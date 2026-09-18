@@ -65,6 +65,8 @@ export interface TerrainTermsInput {
   Auhi: number | null;
   /** Regionale TPI-Streuung für das Gate „TPI < −1σ" — heute `null` ⇒ Gate nicht entscheidbar. */
   tpiSigmaM: number | null;
+  /** AP13: gemessene f_rad-Parameter (calib.json `fRad.*`, `measured`); fehlende behalten `TERRAIN_SET`. */
+  fRadParams?: { a?: number; vRefMs?: number; epsilon?: number };
 }
 
 export interface TerrainTermsResult {
@@ -106,16 +108,16 @@ export function fSaisonOf(latDeg: number, atMs: number): number {
   return Math.max(0, Math.min(1, (night - nightMin) / (nightMax - nightMin)));
 }
 
-export function fRadOf(clct: number | null, windMs: number | null): number | null {
+export function fRadOf(clct: number | null, windMs: number | null, p: { a?: number; vRefMs?: number } = {}): number | null {
   if (clct == null || windMs == null || !Number.isFinite(clct) || !Number.isFinite(windMs)) return null;
   const clear = Math.max(0, Math.min(1, 1 - clct / 100));
-  return Math.pow(clear, TERRAIN_SET.a) * Math.exp(-Math.max(0, windMs) / TERRAIN_SET.vRefMs);
+  return Math.pow(clear, p.a ?? TERRAIN_SET.a) * Math.exp(-Math.max(0, windMs) / (p.vRefMs ?? TERRAIN_SET.vRefMs));
 }
 
 export function terrainTerms(inp: TerrainTermsInput): TerrainTermsResult {
   const flags: TerrainTermsResult['flags'] = [];
-  const fRad = fRadOf(inp.clct, inp.windMs);
-  const mixed = fRad == null ? null : fRad < TERRAIN_SET.epsilon;
+  const fRad = fRadOf(inp.clct, inp.windMs, inp.fRadParams);
+  const mixed = fRad == null ? null : fRad < (inp.fRadParams?.epsilon ?? TERRAIN_SET.epsilon);
   const fSaison = fSaisonOf(inp.lat, inp.atMs);
   const svf = inp.svf ?? 1;
   const depth = Math.max(0, inp.sinkDepthM ?? 0);
@@ -146,9 +148,10 @@ export function terrainTerms(inp: TerrainTermsInput): TerrainTermsResult {
  *   Stufe 2  von z_b hinunter auf 10 m über dem ECHTEN Boden (z0_true, d_true).
  * Rückgabe: der Faktor v_Punkt / v_Modell. `null`, wenn eine Rauhigkeit fehlt — nie 1 als Ersatz.
  */
-export function windBlendingFactor(z0Mod: number | null, z0True: number | null, d0Mod = 0, d0True = 0): number | null {
+export function windBlendingFactor(z0Mod: number | null, z0True: number | null, d0Mod = 0, d0True = 0, zBlendM: number = TERRAIN_SET.zBlendM): number | null {
   if (z0Mod == null || z0True == null || !(z0Mod > 0) || !(z0True > 0)) return null;
-  const zb = TERRAIN_SET.zBlendM, zr = TERRAIN_SET.zRefM;
+  // AP13: z_b gemessen (calib.json `zBlend`) oder die Setzung.
+  const zb = zBlendM, zr = TERRAIN_SET.zRefM;
   const up = Math.log((zb - d0Mod) / z0Mod) / Math.log((zr - d0Mod) / z0Mod);
   const dTrue = Math.min(d0True, zr - 5 * z0True);     // die Verdrängung darf die Referenzhöhe nicht schlucken
   const down = Math.log((zr - dTrue) / z0True) / Math.log((zb - dTrue) / z0True);

@@ -200,6 +200,8 @@ jobs:
           REPACK_BZIP2: '1'
           # PD-C2 (V-PD-36): Plattencache nach der Stufe leeren, Konstanten bleiben.
           POINT_CACHE_CLEAR: 'tier'
+          # AP17 (E-F-15, Jans Freigabe des Diffs): z0 der Modelle als point/static/z0mod/v1 — ohne die Zeile baut der Producer es nicht.
+          POINT_Z0MOD: '1'
           # PD-F2d: Worker-Pool — Standard min(6, Kerne − 1) = 3 auf dem 4-vCPU-Runner.
         run: |
           cd app
@@ -278,6 +280,8 @@ jobs:
           POINT_CACHE: ${{ runner.temp }}/point-cache
           REPACK_BZIP2: '1'
           POINT_CACHE_CLEAR: 'tier'
+          # AP17 (E-F-15, Jans Freigabe des Diffs): z0 der Modelle als point/static/z0mod/v1 — ohne die Zeile baut der Producer es nicht.
+          POINT_Z0MOD: '1'
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \
@@ -354,6 +358,8 @@ jobs:
           POINT_CACHE: ${{ runner.temp }}/point-cache
           REPACK_BZIP2: '1'
           POINT_CACHE_CLEAR: 'tier'
+          # AP17 (E-F-15, Jans Freigabe des Diffs): z0 der Modelle als point/static/z0mod/v1 — ohne die Zeile baut der Producer es nicht.
+          POINT_Z0MOD: '1'
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \

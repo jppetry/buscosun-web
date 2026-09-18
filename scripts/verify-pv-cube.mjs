@@ -1239,6 +1239,563 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
 }
 
 // ---------------------------------------------------------------------------
+// (19) AP13 — Optionen durchreichbar (V-FI-79), calib.json lesen (V-FI-66), nur `measured` mit Beleg wirkt,
+//      Negativkontrollen „ohne Option byte-gleich", calibByVar nach den emittierten Schlüsseln (V-FI-68)
+// ---------------------------------------------------------------------------
+{
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const { CALIBRATION_V1 } = await import('../src/point/calibration.ts');
+  const { validateCalibDocument, calibOverridesFrom, CALIB_BINS_H, CALIB_N_MIN } = await import('../src/point/calibDoc.ts');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const mkInput = () => { const i = cubeInputFromBundle(bundle, clima); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; return i; };
+  const same = (x, y) => JSON.stringify({ ...x, timing: null }) === JSON.stringify({ ...y, timing: null });
+  const base = fuseCubePoint(mkInput(), { hourly: true, tail: true });
+
+  // Ein gültiger Schema-2-Eintrag nach der Regel (n, days, period, estimator, fitVersion, binsH).
+  const nS = CALIB_N_MIN.sigmaSys;
+  const meas = (value, extra = {}) => ({ value, provenance: 'measured', source: 'synthetisch (verify-pv-cube 19)', updatedAt: '2026-10-14T00:00:00Z', n: 5000, days: 40,
+    period: { from: '2026-09-14', to: '2026-10-13' }, estimator: 'test', fitVersion: 'test', ...extra });
+  const sigmaT = meas({ t2m: [3.0, null, null, null, null, null] }, { n: { t2m: [nS.n, 0, 0, 0, 0, 0] }, days: { t2m: [nS.days, 0, 0, 0, 0, 0] }, binsH: CALIB_BINS_H });
+  const doc2 = (over) => ({ ...JSON.parse(JSON.stringify(CALIBRATION_V1)), schema: 2, ...over });
+  const ovOf = (d) => calibOverridesFrom(validateCalibDocument(d));
+
+  // (a) Negativkontrolle der Rechnung: `calib` fehlt / `null` ⇒ byte-gleich (Werte, Flags, calib-Texte).
+  add('(19) Negativkontrolle: FuseCubeOptions ohne `calib` oder mit `calib: null` ⇒ byte-gleich zur Rechnung ohne AP13-Felder',
+    same(fuseCubePoint(mkInput(), { hourly: true, tail: true, calib: null }), base) && same(fuseCubePoint(mkInput(), { hourly: true, tail: true, calib: undefined }), base));
+
+  // (b) gemessenes σ_sys wirkt NUR im belegten Bin (0–6 h) und nur auf das Cube-Member; calib nennt „measured".
+  const withSig = fuseCubePoint(mkInput(), { hourly: true, tail: true, calib: ovOf(doc2({ sigmaSys: sigmaT })) });
+  const sysOf = (r, pred) => r.steps.filter((s) => !s.interpolated && s.uncertainty?.temperature && pred(s)).map((s) => s.uncertainty.temperature.parts.sys);
+  const early = sysOf(withSig, (s) => s.leadH < 7), late = sysOf(withSig, (s) => s.leadH >= 7), lateBase = sysOf(base, (s) => s.leadH >= 7);
+  add('(19) gemessenes σ_sys (t2m, Bin 0–6 h = 3,0 K) ersetzt Boden und Skill-Prior NUR im belegten Bin; die übrigen Bins behalten die Setzung; calib „sigmaSys:measured" mit n/Zeitraum',
+    early.length > 0 && early.every((x) => x === 3.0) && JSON.stringify(late) === JSON.stringify(lateBase)
+    && withSig.calib.some((c) => /^sigmaSys:measured — n \d+, \d+ Tage, 2026-09-14…2026-10-13/.test(c)) && withSig.calib.some((c) => c.startsWith('sigmaSys:set')),
+    `früh ${early.length} Schritte σ_sys ${early[0]} · spät ${late.length} unverändert`);
+
+  // (c) L_h gemessen ⇒ Gewichte ändern sich; ausdrücklich gesetztes `terrainCalib` schlägt gemessenes A.
+  // PAP 3 braucht Nachbarn — das Bündel mit `neighbours: true` wie der Einstieg (Block 7).
+  const HH = 3_600_000, t0N = Math.floor(FIX.nowMs / HH) * HH;
+  const bNb = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0N, toMs: t0N + 336 * HH, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  // Im Fixture haben alle vier Zellen dasselbe Δh (15 m) — der Höhenterm kürzt sich dann heraus. Eine Nachbarzelle
+  // wird deshalb hier (lokale Kopie) um 150 m angehoben, damit L_h sichtbar und nachrechenbar wird.
+  for (const t of Object.values(bNb.cube ?? {})) for (const nb of (t?.neighbours ?? [])) {
+    if (nb.dy === -1 && nb.dx === 0) { nb.hModEffM = (nb.hModEffM ?? 0) + 150; for (const v of nb.values) if (v.hModEff != null) v.hModEff += 150; }
+  }
+  const mkInputN = () => ({ ...cubeInputFromBundle(bNb, clima), terrain: flatTerrain(FIX.hTrue), elevationM: FIX.hTrue });
+  const baseN = fuseCubePoint(mkInputN(), { hourly: true, tail: true });
+  const withLh = fuseCubePoint(mkInputN(), { hourly: true, tail: true, calib: ovOf(doc2({ Lh: meas(50) })) });
+  const w = (r) => JSON.stringify(r.steps.filter((s) => s.grid).slice(0, 5).map((s) => s.grid.weights.map((x) => x.w)));
+  // Die Gewichte eines t1-Schritts aus distM/dhM nach PAP 3 nachrechnen: w ∝ exp(−(d/L_d)²)·exp(−(Δh/L_h)²) (Negativkontrolle: falsches L_h passt nicht).
+  const fitsLh = (r, lh) => {
+    const st = r.steps.find((x) => x.grid && x.grid.n === 4 && x.tier === 't1' && x.grid.weights.some((g) => (g.dhM ?? 0) > 0.5));
+    if (!st) return false;
+    const ld = 0.05 * 110_574;
+    const raw = st.grid.weights.map((g) => Math.exp(-((g.distM / ld) ** 2)) * (g.dhM == null ? 1 : Math.exp(-((g.dhM / lh) ** 2))));
+    const sum = raw.reduce((a, x) => a + x, 0);
+    return st.grid.weights.every((g, i) => Math.abs(g.w - raw[i] / sum) < 1e-12);
+  };
+  const withA = fuseCubePoint(mkInput(), { hourly: true, tail: true, calib: ovOf(doc2({ A: meas({ default: 2 }), tpiSigma: meas({ default: 40 }, { days: 0 }) })) });
+  const withAOver = fuseCubePoint(mkInput(), { hourly: true, tail: true, terrainCalib: { A: 0.5 }, calib: ovOf(doc2({ A: meas({ default: 2 }) })) });
+  add('(19) L_h gemessen (50 m) ändert die PAP-3-Gewichte, calib „Lh:measured"; A/tpiSigma gemessen stehen als „measured", ein gesetztes `terrainCalib.A` hat Vorrang',
+    w(baseN) !== '[]' && fitsLh(baseN, 200) && fitsLh(withLh, 50) && !fitsLh(withLh, 200) && withLh.calib.some((c) => c.startsWith('Lh:measured — ') && c.includes('L_h = 50 m'))
+    && withA.calib.some((c) => c.startsWith('A:measured — ') && c.includes('2 K')) && withA.calib.some((c) => c.startsWith('tpiSigma:measured — '))
+    && withAOver.calib.some((c) => c.startsWith('A:set — ') && c.includes('0.5 K von außen')),
+    `Gewichte ${w(baseN).slice(0, 48)}… → ${w(withLh).slice(0, 48)}…`);
+
+  // (d) gemessener Abschlag „interpoliert" wirkt auf die Konfidenz interpolierter Stunden (Verhältnis 0,5/0,9).
+  const withD = fuseCubePoint(mkInput(), { hourly: true, tail: true, calib: ovOf(doc2({ confDiscount: meas({ interpolated: 0.5 }, { n: { interpolated: 500 } }) })) });
+  const ic = (r) => r.steps.find((s) => s.interpolated && s.interp?.confidence?.temperature > 0)?.interp.confidence.temperature;
+  add('(19) gemessener Konfidenz-Abschlag „interpoliert" (0,5 statt 0,9) skaliert die Konfidenz interpolierter Stunden genau um 0,5/0,9',
+    ic(base) > 0 && Math.abs(ic(withD) / ic(base) - 0.5 / 0.9) < 1e-9, `${ic(base)?.toFixed(4)} → ${ic(withD)?.toFixed(4)}`);
+
+  // (e) V-FI-79: Optionen erreichen das Produkt; der Cache trennt Varianten; ohne Optionen der alte Schlüssel.
+  const optsC = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const ioC = (extra = {}, files = fx.files) => ({ store: memoryStore(files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extra });
+  clearCubeForecastCache();
+  const pBase = await getPointForecastFromCube(optsC, ioC());
+  const pNoGrid = await getPointForecastFromCube(optsC, ioC({ fuse: { grid: false } }));
+  const pAgain = await getPointForecastFromCube(optsC, ioC());
+  add('(19) V-FI-79: `io.fuse` erreicht die Rechnung (grid: false ⇒ keine PAP-3-Zeilen in calib); der Ergebnis-Cache trennt die Varianten (derselbe Ort ohne Optionen danach wieder mit PAP 3); ohne Optionen ist der Schlüsselanteil leer',
+    pBase.cube.calib.some((c) => c.startsWith('Ld:')) && !pNoGrid.cube.calib.some((c) => c.startsWith('Ld:')) && pAgain.cube.calib.some((c) => c.startsWith('Ld:'))
+    && cubeIoVariantKey({}) === '' && cubeIoVariantKey({ fuse: {} }) === '' && cubeIoVariantKey({ calibSource: 'constants' }) === ''
+    && cubeIoVariantKey({ fuse: { grid: false } }) !== cubeIoVariantKey({ fuse: { vertical: false } }) && cubeIoVariantKey({ calibSource: 'json' }) !== '',
+    `Schlüssel ${cubeIoVariantKey({ fuse: { grid: false }, calibSource: 'json' })}`);
+
+  // (e2) V-FI-80: mit eingespeister Uhr gehört die Stunde in den Schlüssel — ein Nachlauf über zwei Slots darf nicht den ersten zurückbekommen.
+  clearCubeForecastCache();
+  const ioT = (ms) => ({ ...ioC(), nowMs: () => ms });
+  const fA = await getPointForecastFromCube(optsC, ioT(FIX.nowMs));
+  const fA2 = await getPointForecastFromCube(optsC, ioT(FIX.nowMs));
+  const fB = await getPointForecastFromCube(optsC, ioT(FIX.nowMs + 3 * 3_600_000));
+  add('(19) V-FI-80: gleiche eingespeiste Uhr ⇒ Cache-Treffer (dasselbe Objekt); andere Stunde ⇒ neu gerechnet (anderer Fensteranfang), nicht das Ergebnis des ersten Slots',
+    fA2 === fA && fB !== fA && fB.hours[0].timestamp.getTime() === fA.hours[0].timestamp.getTime() + 3 * 3_600_000,
+    `${fA.hours[0].timestamp.toISOString()} → ${fB.hours[0].timestamp.toISOString()}`);
+
+  // (f) calibSource 'json' mit der AUSGELIEFERTEN Datei (Schema 1) ⇒ Werte byte-gleich zu den Konstanten; nur die Herkunft steht dabei.
+  const strip = (fc) => { const v2 = JSON.parse(JSON.stringify(fc.cube.v2)); delete v2.provenance.calibFile; v2.provenance.notes = v2.provenance.notes.filter((n) => !n.startsWith('calib:')); v2.provenance.fetched = null; v2.timing = null; return JSON.stringify(v2); };
+  const filesWith = (doc) => { const m = new Map(fx.files); if (doc) m.set('point/calib.json', enc(doc)); return m; };
+  clearCubeForecastCache();
+  const pShipped = await getPointForecastFromCube(optsC, ioC({ calibSource: 'json' }, filesWith(CALIBRATION_V1)));
+  clearCubeForecastCache();
+  const pMissing = await getPointForecastFromCube(optsC, ioC({ calibSource: 'json' }, filesWith(null)));
+  const cf = pShipped.cube.v2.provenance.calibFile;
+  add('(19) Negativkontrolle Produkt: `calibSource: "json"` mit der ausgelieferten calib.json (Schema 1) ⇒ v2 byte-gleich zu den Konstanten (außer Herkunft/Notiz); die Herkunft nennt Schema, sha256, keine Messung; ohne `calibSource` kein `calibFile`',
+    strip(pShipped) === strip(pBase) && cf?.schema === 1 && /^[0-9a-f]{64}$/.test(cf?.hash ?? '') && cf.measured.length === 0
+    && pShipped.cube.v2.provenance.notes.some((n) => n.startsWith('calib: Schema 1, keine geltende Messung')) && !('calibFile' in pBase.cube.v2.provenance),
+    `sha256 ${cf?.hash?.slice(0, 12)}…`);
+  add('(19) fehlt calib.json ⇒ Setzungen mit Notiz, Werte byte-gleich, Herkunft ohne Hash',
+    strip(pMissing) === strip(pBase) && pMissing.cube.v2.provenance.calibFile?.hash === null && pMissing.cube.v2.provenance.notes.some((n) => /^calib: .*nicht lesbar/.test(n)));
+
+  // (g) Schema 2 mit einer gültigen und einer ungültigen Messung ⇒ die gültige wirkt, die ungültige wird einzeln verworfen (mit Grund).
+  clearCubeForecastCache();
+  const pMeas = await getPointForecastFromCube(optsC, ioC({ calibSource: 'json' }, filesWith(doc2({ sigmaSys: sigmaT, Lh: meas(50, { n: 10 }) }))));
+  add('(19) Schema 2 im Produkt: σ_sys (gültig) wirkt und steht in `calibFile.measured`; L_h mit n 10 < n_min wird verworfen (Notiz mit Grund), die Setzung gilt',
+    pMeas.cube.calib.some((c) => c.startsWith('sigmaSys:measured')) && pMeas.cube.v2.provenance.calibFile.measured.join() === 'sigmaSys'
+    && pMeas.cube.v2.provenance.notes.some((n) => /^calib: Lh als measured verworfen \(n 10 < 1000\)/.test(n)) && pMeas.cube.calib.some((c) => c.startsWith('Lh:set')),
+    pMeas.cube.v2.provenance.notes.filter((n) => n.startsWith('calib:')).join(' | '));
+
+  // (h) V-FI-68: jede emittierte Setzung, die nicht allgemein ist, steht bei mindestens einer Größe; nichts Erfundenes.
+  const emitted = new Set(pBase.cube.calib.map((c) => c.split(':')[0]));
+  const general = new Set(['footprint', 'lead', 'hTrue', 'tail', 'interpolation', 'nowcastStale']);
+  const byVar = pBase.cube.v2.provenance.calibByVar;
+  const listed = new Set(Object.values(byVar).flat());
+  const unlisted = [...emitted].filter((k) => !general.has(k) && !listed.has(k));
+  add('(19) V-FI-68: calibByVar ordnet jede emittierte, nicht allgemeine Setzung mindestens einer Größe zu (u. a. sigmaVert, standardLapse, dzSurface bei t2m); keine Liste nennt einen Schlüssel, den die Rechnung nicht ausgibt',
+    unlisted.length === 0 && ['sigmaVert', 'standardLapse', 'dzSurface', 'phi', 'sigmaQuant'].every((k) => byVar.t2m.includes(k)) && [...listed].every((k) => emitted.has(k)),
+    `nicht zugeordnet: ${unlisted.join(',') || '—'} · t2m: ${byVar.t2m.join(',')}`);
+}
+
+// ---------------------------------------------------------------------------
+// (20) AP14 — Nachbar-Chunk: der 2×2-Block über die Chunk-Grenze (`CubeIo.crossChunk`, Voreinstellung aus)
+// ---------------------------------------------------------------------------
+{
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const GRAZ = { lat: 47.0707, lon: 15.4395, h: 353 };
+  const fxG = await buildCubeFixture({ lat: GRAZ.lat, lon: GRAZ.lon, absolute: true, neighbourChunks: true });
+  const optsG = { lat: GRAZ.lat, lng: GRAZ.lon, country: 'AT', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const ioG = (extra = {}, store = memoryStore(fxG.files)) => ({ store, terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(GRAZ.h), obs: null, ...extra });
+  const borderSteps = (fc) => fc.cube.flags.filter((f) => f.flags.includes('chunkBorderTruncated') && (f.tier === 't1' || f.tier === 't2')).length;
+  clearCubeForecastCache();
+  const gOff = await getPointForecastFromCube(optsG, ioG());
+  clearCubeForecastCache();
+  const gOff2 = await getPointForecastFromCube(optsG, ioG({ crossChunk: false }));
+  clearCubeForecastCache();
+  const gOn = await getPointForecastFromCube(optsG, ioG({ crossChunk: true }));
+  const strip = (fc) => { const v2 = JSON.parse(JSON.stringify(fc.cube.v2)); v2.timing = null; v2.provenance.fetched = null; return JSON.stringify(v2); };
+  add('(20) AP14: Graz (t1 und t2 am Chunk-Rand) — ohne Option tragen die t1/t2-Schritte `chunkBorderTruncated`, mit `crossChunk` keiner; die Notiz nennt die nachgeholten Chunks',
+    borderSteps(gOff) > 0 && borderSteps(gOn) === 0 && gOn.cube.notes.some((n) => /^crossChunk: t1 \+1 Chunk \(02_12\), 2 Zellen · t2 \+1 Chunk \(00_06\)/.test(n)),
+    `Schritte mit Flag ${borderSteps(gOff)} → ${borderSteps(gOn)}`);
+  add('(20) Negativkontrolle: `crossChunk` fehlt oder `false` ⇒ v2 byte-gleich; der Cache-Schlüssel trennt die Variante, ohne sie bleiben die AP13-Schlüssel wörtlich',
+    strip(gOff) === strip(gOff2) && strip(gOn) !== strip(gOff)
+    && cubeIoVariantKey({ crossChunk: true }) === '|io:|calib:|cc' && cubeIoVariantKey({ calibSource: 'json' }) === '|io:|calib:json' && cubeIoVariantKey({ crossChunk: false }) === '');
+
+  // PAP 3 rechnet mit dem vollen Block: n = 4, die Versätze sind genau `blockOffsets`, die Gewichte folgen der Formel.
+  const H2 = 3_600_000, t0G = Math.floor(FIX.nowMs / H2) * H2;
+  const bG = await readPointBundle({ lat: GRAZ.lat, lon: GRAZ.lon, elevationM: GRAZ.h, nowMs: FIX.nowMs, fromMs: t0G, toMs: t0G + 336 * H2, stepH: 1 },
+    { store: memoryStore(fxG.files), terrain: false, nowcast: false, plan: false, neighbours: true, crossChunk: true });
+  const rG = fuseCubePoint({ ...cubeInputFromBundle(bG, clima), terrain: flatTerrain(GRAZ.h), elevationM: GRAZ.h }, { hourly: true, tail: true });
+  const stG = rG.steps.find((s) => s.grid && s.tier === 't1');
+  const { TIER_BY_ID: TB, cellOf: cOf, cellCenter: cCen } = await import('../src/point/cubeFormat.ts');
+  const cellG = cOf(TB.t1, GRAZ.lat, GRAZ.lon), ccG = cCen(TB.t1, cellG.iy, cellG.ix);
+  const offs = blockOffsets(GRAZ.lat - ccG.lat, GRAZ.lon - ccG.lon).map((o) => `${o.dy}|${o.dx}`).sort().join();
+  const ld = 0.05 * GRID_SET.mPerDeg;
+  const raw = stG.grid.weights.map((g) => Math.exp(-((g.distM / ld) ** 2)) * (g.dhM == null ? 1 : Math.exp(-((g.dhM / GRID_SET.lhM) ** 2))));
+  const sum = raw.reduce((a, x) => a + x, 0);
+  add('(20) PAP 3 am Rand mit Nachbar-Chunk: t1 n = 4, nicht beschnitten, die Versätze sind genau `blockOffsets`, die Gewichte folgen der Formel — dieselbe Rechnung wie im Inneren eines Chunks',
+    stG.grid.n === 4 && !stG.grid.truncated && stG.grid.weights.map((g) => `${g.dy}|${g.dx}`).sort().join() === offs && stG.grid.weights.every((g, i) => Math.abs(g.w - raw[i] / sum) < 1e-12),
+    `Versätze ${offs}`);
+
+  // Progressiv: der Nachbar-Chunk kommt nach dem Kern ⇒ erste Ausgabe beschnitten (pending crossChunk), dann EINE eigene Ausgabe ohne Flag.
+  const slow = memoryStore(fxG.files); const sb = slow.bytes.bind(slow);
+  slow.bytes = async (p, o) => { if (fxG.extra.some((c) => c.path === p)) await new Promise((r) => setTimeout(r, 150)); return sb(p, o); };
+  clearCubeForecastCache();
+  const em = [];
+  const first = await getPointForecastFromCube({ ...optsG, onUpdate: (u) => em.push(u) }, ioG({ crossChunk: true }, slow));
+  await new Promise((r) => setTimeout(r, 600));
+  const lastE = em[em.length - 1];
+  // Die erste Darstellung (nur t1) kommt VOR dem Kern und weiß vom Nachbar-Chunk noch nichts; ab dem Kern ist er offen.
+  const all = [first, ...em];
+  const coreE = all.find((f) => f.cube.emission === 'core');
+  const ccE = all.filter((f) => f.cube.notes.some((n) => /crossChunk: .*eigene Ausgabe \(AP14\)/.test(n)));
+  add('(20) progressiv: erste Darstellung und Kern rechnen mit beschnittenem Block (Kern: `pending` crossChunk), dann folgt GENAU EINE eigene Ausgabe mit vollem Block — ohne Flag, ohne offenes crossChunk; die erste Darstellung wartet nicht darauf',
+    borderSteps(first) > 0 && !!coreE && borderSteps(coreE) > 0 && (coreE.cube.pending ?? []).includes('crossChunk')
+    && ccE.length === 1 && ccE[0] === lastE && borderSteps(lastE) === 0 && !(lastE.cube.pending ?? []).includes('crossChunk'),
+    `Ausgaben ${[first, ...em].map((f) => `${f.cube.emission}/${borderSteps(f)}/${(f.cube.pending ?? []).join('+') || '∅'}`).join(' ')}`);
+}
+
+// ---------------------------------------------------------------------------
+// (21) AP15 — Druckflächen-Profil t2/t3: die reinen Bausteine. Das Abnahme-Gate VOR dem Archiv (Jans Punkt C) ist ROT
+//      (§9.3.2: MAE 1,94 gegen 1,39 K bei |Δh| > 300 m) ⇒ die Option ist NICHT ins Produkt verdrahtet. Geprüft wird,
+//      was gebaut ist und der AP9-Nachlauf gegen Stationswahrheit braucht: Portierung = Producer, Säulenregel,
+//      `extendBelowBase` (Voreinstellung byte-gleich), und dass kein App-Modul die Bausteine importiert.
+// ---------------------------------------------------------------------------
+{
+  const { profileFromColumn, PROFILE_PARAMS } = await import('./point/profile.mjs');
+  const { profileFromColumnTs, pressureProfileFromCell, hypsometricHeight, PRESSURE_PROFILE_SET } = await import('../src/point/profileColumn.ts');
+  const { readdirSync, readFileSync } = await import('node:fs');
+  let s = 20260918;
+  const u = () => { s = (Math.imul(1103515245, s) + 12345) >>> 0; return s / 4294967296; };
+  const pick = (a) => a[Math.floor(u() * a.length)];
+  const columns = [];
+  const zSelf = [100, 150, 220, 310, 420, 550, 700, 880, 1090, 1330];
+  columns.push({ t: zSelf.map((h) => 15 - 0.0098 * (h - 100)), z: zSelf });
+  columns.push({ t: zSelf.map((h) => (h <= 420 ? 4 * (h - 100) / 320 : 4 - 0.0065 * (h - 420))), z: zSelf });
+  columns.push({ t: zSelf.map((h) => (h < 550 ? 15 - 0.0098 * (h - 100) : h <= 880 ? 15 - 0.0098 * 450 + 3 * (h - 550) / 330 : 15 - 0.0098 * 450 + 3 - 0.0065 * (h - 880))), z: zSelf });
+  const zRip = [100, 120, 145, 175, 210, 250, 300, 360, 430, 510];
+  columns.push({ t: zRip.map((h, k) => 10 - 0.0065 * (h - 100) + (k === 3 ? 0.03 : 0)), z: zRip });
+  columns.push({ t: [0, 3, 3, 2, 1, 0, 4, 4, 3, 2], z: [0, 100, 200, 300, 400, 500, 600, 700, 800, 900] });
+  columns.push({ t: zSelf.map((_, k) => (k === 4 ? NaN : 5)), z: zSelf });
+  columns.push({ t: zSelf.map(() => 5), z: zSelf });
+  const nSelf = columns.length;
+  for (let k = 0; k < 2000; k++) {
+    const n = 2 + Math.floor(u() * 29);
+    const z = [], t = [];
+    let zz = u() * 2000, tt = 20 - 25 * u();
+    for (let i = 0; i < n; i++) {
+      z.push(zz); t.push(u() < 0.02 ? NaN : tt);
+      const dz = 10 + u() * 400; zz += dz;
+      tt += (u() < 0.25 ? +1 : -1) * (0.012 * u()) * dz + (u() - 0.5) * 0.4;
+    }
+    columns.push({ t, z, p: { gammaDepthM: pick([200, 500, 1500]), dzMinM: pick([20, 50, 100]), dTMinK: pick([0.2, 0.5, 1.5]) } });
+  }
+  const same = (a, b) => ['gammaEff', 'zBase', 'zInv', 'dTInv'].every((k) => Object.is(a[k], b[k]));
+  let eq = 0, eqSelf = 0, perturbed = 0, withInv = 0;
+  for (const [i, c] of columns.entries()) {
+    const p = c.p ?? PROFILE_PARAMS;
+    const a = profileFromColumn(c.t, c.z, p), b = profileFromColumnTs(c.t, c.z, p);
+    if (same(a, b)) { eq++; if (i < nSelf) eqSelf++; }
+    if (b.zInv > b.zBase) withInv++;
+    // Negativkontrolle: dieselbe Portierung mit verschobener Schwelle muss irgendwo abweichen — sonst prüft der Vergleich nichts.
+    if (!same(a, profileFromColumnTs(c.t, c.z, { ...p, dTMinK: p.dTMinK + 0.3 }))) perturbed++;
+  }
+  add('(21) AP15: `profileFromColumnTs` = Producer `profileFromColumn` (profile.mjs) an den 7 Säulen des Producer-Selbsttests und 2 000 Zufallssäulen (2–30 Niveaus, Löcher, drei Schwellensätze) — alle vier Felder bitgleich, NaN eingeschlossen',
+    eq === columns.length && eqSelf === nSelf && withInv > 100, `${eq}/${columns.length} gleich, davon ${withInv} mit Inversion`);
+  add('(21) Negativkontrolle: dieselbe Portierung mit dTMin + 0,3 K weicht an mindestens 50 Säulen ab (der Vergleich kann rot werden)',
+    perturbed >= 50, `${perturbed} Säulen abweichend`);
+
+  // Die Säulenregel (E-F-14) an Hand gerechneten Zellen.
+  const zOf = (h, ps, t2, tp, p) => h + (287.05 / 9.80665) * ((t2 + tp) / 2 + 273.15) * Math.log(ps / p);
+  const inv = pressureProfileFromCell({ t2m: 0, ps: 1000, hModEff: 200, t925: 3, t850: 1, t700: -8 });
+  const z925 = zOf(200, 1000, 0, 3, 925);
+  add('(21) Bodeninversion: Säule 2 m + 925/850/700 in hypsometrischen Höhen (925 hPa bei 826,8 m = Grund 200 m + 626,8 m aus T̄ 1,5 °C, von Hand), zBase = hModEff + 2, zInv = z925, dTInv = 3 K',
+    inv && inv.usedHPa.join() === '925,850,700' && Math.abs(z925 - 826.75) < 0.05 && Math.abs(inv.heightsM[1] - z925) < 1e-9 && Math.abs(hypsometricHeight(200, 1000, 0, 3, 925) - z925) < 1e-9
+    && inv.zBase === 202 && inv.zInv === inv.heightsM[1] && Math.abs(inv.dTInv - 3) < 1e-12 && !inv.gammaClamped,
+    inv ? `z925 ${inv.heightsM[1].toFixed(1)} m, Γ ${inv.gammaEff.toFixed(2)} K/km` : 'null');
+  const under = pressureProfileFromCell({ t2m: 10, ps: 920, hModEff: 800, t925: 12, t850: 5, t700: -5 });
+  const near925 = pressureProfileFromCell({ t2m: 10, ps: 930, hModEff: 700, t925: 12, t850: 5, t700: -5 });
+  const two = pressureProfileFromCell({ t2m: 5, ps: 855, hModEff: 1450, t925: 9, t850: 4, t700: -6 });
+  add('(21) Maske ps − p ≥ 10 hPa: 925 unter Grund (ps 920) und 5 hPa über Grund (ps 930) fallen heraus; bleiben < 3 Niveaus (ps 855: nur 700) ⇒ null ⇒ Standard-Lapse',
+    under?.usedHPa.join() === '850,700' && near925?.usedHPa.join() === '850,700' && two === null);
+  const hot = pressureProfileFromCell({ t2m: 30, ps: 1000, hModEff: 100, t925: 18, t850: 12, t700: 0 });
+  const raw = profileFromColumnTs(hot.heightsM.map((_, i) => [30, 18, 12, 0][i]), hot.heightsM, PRESSURE_PROFILE_SET);
+  add('(21) Γ-Deckel: überadiabatische Tagessäule (roh ≈ 12,8 K/km) wird auf 9,8 K/km gekappt und so markiert',
+    hot.gammaClamped && hot.gammaEff === 9.8 && raw.gammaEff > 12 && raw.gammaEff < 13.5, `roh ${raw.gammaEff.toFixed(2)} K/km`);
+  add('(21) ohne t2m, ps oder hModEff ⇒ null (nie ein Profil aus Teilen)',
+    pressureProfileFromCell({ t2m: null, ps: 1000, hModEff: 200, t925: 3, t850: 1, t700: -8 }) === null
+    && pressureProfileFromCell({ t2m: 0, ps: null, hModEff: 200, t925: 3, t850: 1, t700: -8 }) === null
+    && pressureProfileFromCell({ t2m: 0, ps: 1000, hModEff: undefined, t925: 3, t850: 1, t700: -8 }) === null);
+
+  // `extendBelowBase`: Voreinstellung = wie bisher (bitgleich). `false` ändert nur Fälle mit AUFSITZENDER Inversion, in
+  // denen der Punkt oder der Modellboden unter der Basis liegt (der Boden darf bis 50 m darunter liegen, DZ_SURFACE_M —
+  // dann ändert sich auch Fall B, weil P(hModEff) kein Inversionsgefälle mehr bekommt).
+  let dflt = 0, onlyC = true, changed = 0, nC = 0;
+  for (let k = 0; k < 3000; k++) {
+    const hModEff = 200 + u() * 1800, zBase = hModEff - 100 + u() * 400, thick = 50 + u() * 600;
+    const profile = u() < 0.15 ? null : { gammaEff: -5 + u() * 15, zBase, zInv: zBase + (u() < 0.2 ? 0 : thick), dTInv: u() < 0.1 ? 0 : u() * 6 };
+    const base = { tMean: 20 * u() - 5, hModEff, hTrue: hModEff + (u() - 0.5) * 2400, profile, ps: 700 + 300 * u() };
+    const a = verticalCorrection(base), b = verticalCorrection({ ...base, extendBelowBase: true }), c = verticalCorrection({ ...base, extendBelowBase: false });
+    if (JSON.stringify(a) === JSON.stringify(b)) dflt++;
+    const below = a.surfaceBased === true && (base.hTrue < profile.zBase || hModEff < profile.zBase);
+    if (JSON.stringify(a) !== JSON.stringify(c)) { changed++; if (!below) onlyC = false; }
+    if (below) nC++;
+  }
+  add('(21) `extendBelowBase` fehlt ⇒ bitgleich zu `true` (3 000 Zufallsfälle: Fall A/B/C/std, abgehoben und aufsitzend); `false` ändert nur Fälle mit aufsitzender Inversion, in denen Punkt oder Modellboden unter der Basis liegen — und dort jeden',
+    dflt === 3000 && onlyC && changed === nC && nC > 100, `${changed} geändert, erwartet ${nC}`);
+  // Von Hand: Modellboden 500, Basis 505 (aufsitzend), Obergrenze 905, +4 K (Γ_inv 0,01 K/m), Γ 6,5; Punkt 200 m.
+  // Ohne Verlängerung: T = T̄ + Γ·(505 − 200) − Γ·(505 − 500) = T̄ + 1,95 K.
+  // Mit Verlängerung (Deckel pool = min(Tiefe, 400)): P(200) = −0,01·305, P(500) = −0,01·5 ⇒ T = T̄ − 3,00 K.
+  const hand = { tMean: 10, hModEff: 500, hTrue: 200, profile: { gammaEff: 6.5, zBase: 505, zInv: 905, dTInv: 4 } };
+  const hOff = verticalCorrection({ ...hand, extendBelowBase: false }), hOn = verticalCorrection(hand);
+  add('(21) von Hand: Mulde 300 m unter dem Modellboden — ohne Verlängerung Γ_eff (+1,95 K, kein Flag, Tiefe 0), mit Verlängerung Fall C (−3,00 K, `extrapolatedBelowModel`, Tiefe 305 m)',
+    near(hOff.deltaK, 0.0065 * 305 - 0.0065 * 5, 1e-9) && hOff.case === 'C' && hOff.flags.length === 0 && hOff.poolDepthM === 0
+    && near(hOn.deltaK, -0.01 * 305 + 0.01 * 5, 1e-9) && hOn.flags.includes('extrapolatedBelowModel') && hOn.poolDepthM === 305,
+    `${hOff.deltaK.toFixed(4)} / ${hOn.deltaK.toFixed(4)} K`);
+
+  // Nicht im Produkt: kein Modul unter src/ außer der Datei selbst importiert `profileColumn`. Gegenprobe: dasselbe Muster
+  // findet den Import im Gate-Skript (sonst wäre die Abwesenheit nichts wert).
+  const pat = /from\s+['"][^'"]*profileColumn(\.ts)?['"]/;
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(ts|tsx)$/.test(e.name) ? [`${d}/${e.name}`] : []));
+  const importers = walk('src').filter((f) => !f.endsWith('profileColumn.ts') && pat.test(readFileSync(f, 'utf8')));
+  const probe = pat.test(readFileSync('audit/fusion-vollform/pressure-profile-shadow.mjs', 'utf8'));
+  add('(21) Gate rot ⇒ nicht verdrahtet: kein App-Modul unter src/ importiert `profileColumn` (Gegenprobe: das Muster findet den Import im Gate-Skript)',
+    importers.length === 0 && probe, importers.join(', ') || 'keiner');
+}
+
+// ---------------------------------------------------------------------------
+// (22) AP16 — Landbedeckung in der Rechnung: κ je Zelle (E-F-16), Modellzell-Box (V-FI-65), d_water in v2 (E-F-17).
+//      Alles voreingestellt aus: ohne Option byte-gleich, mit Option gegen die Handrechnung.
+// ---------------------------------------------------------------------------
+{
+  const { windBlendingFactor } = await import('../src/pointForecast/fusion/terrainTerms.ts');
+  const { z0CacheKey } = await import('../src/point/client/z0Point.ts');
+  const { landCoverCacheKey, kappaOf } = await import('../src/point/client/landCover.ts');
+  const { memoryBackend } = await import('../src/point/client/cache.ts');
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const { encodeV2, decodeV2, compareV2 } = await import('../src/pointForecast/fusion/v2codec.ts');
+  // Das Bündel MIT Nachbarzellen (PAP 3 wirkt) — derselbe Leseweg wie im Produkt (`neighbours: true`).
+  const bundleN = await readPointBundle(
+    { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  const mkInput = () => { const i = cubeInputFromBundle(bundleN, clima); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; return i; };
+  const OPEN = [0, 0, 0, 1, 0, 0], WATER = [1, 0, 0, 0, 0, 0];
+  const z0v1 = { z0True: 0.03, z0Mod: { t1: 0.03, t2: 0.03, t3: 0.03 }, coverage: { point: 1, t1: 1, t2: 1, t3: 1 }, shares: [[30, 1]], radiusM: 500, source: 'test' };
+  const DW = { m: 1230, aboveM: null, reason: 'found', bodyPx: 57 };
+  /** Landbedeckung um die nächsten Zellen des Fixtures: q/z0/cov je (Stufe, dy, dx), absolut adressiert wie der Lader. */
+  const lcOf = ({ q = () => OPEN, z0 = () => 0.03, cov = () => 1, pCov = 1 } = {}) => {
+    const cells = {};
+    for (const t of ['t1', 't2']) {
+      const s = mkInput().cube[t];
+      if (!s) continue;
+      cells[t] = [];
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) cells[t].push({ iy: s.cell.iy + dy, ix: s.cell.ix + dx, cov: cov(t, dy, dx), q: q(t, dy, dx), z0: z0(t, dy, dx) });
+    }
+    return { ...z0v1, landCover: { v: 1, point: { cov: pCov, p: OPEN }, cells, dWater: DW } };
+  };
+  const run = (z0, o = {}) => fuseCubePoint({ ...mkInput(), z0 }, { hourly: true, tail: true, ...o });
+  const stepsJ = (r) => JSON.stringify(r.steps.map((s) => ({ ...s, grid: s.grid ? { ...s.grid, weights: s.grid.weights.map(({ kappa, ...w }) => w) } : null })));
+  const withGrid = (r, t) => r.steps.filter((s) => s.tier === t && !s.interpolated && s.grid && s.grid.n > 1);
+  const base = run(z0v1);
+
+  // (a) Landbedeckung im Eingang, keine Option ⇒ Werte, Flags, Gewichte, Notizen gleich; calib nur + `dWater:` (Herkunft)
+  const lcOff = run(lcOf());
+  const extra = lcOff.calib.filter((c) => !base.calib.includes(c));
+  add('(22) Negativkontrolle: Landbedeckung im Eingang ohne `kappa`/`z0CellBox` ⇒ jeder Schritt (Werte, Flags, Gewichte, Terrain) und jede Notiz gleich; calib nur um die Herkunftszeile `dWater:set` länger',
+    stepsJ(lcOff) === stepsJ(base) && JSON.stringify(lcOff.notes) === JSON.stringify(base.notes) && extra.length === 1 && /^dWater:set — .*≥ 10 px.*V-FI-75.*E-F-17/.test(extra[0])
+    && lcOff.steps.every((s) => !s.grid || s.grid.weights.every((w) => w.kappa === undefined)),
+    `${withGrid(base, 't1').length} t1-/${withGrid(base, 't2').length} t2-Schritte mit Block · ${extra[0]?.slice(0, 40)}`);
+
+  // (b) κ an, homogene Landbedeckung (q = p) ⇒ κ = 1 überall ⇒ dieselben Werte
+  const homo = run(lcOf(), { kappa: true });
+  add('(22) κ an, homogen (q = p ⇒ κ = 1): Werte und Gewichte gleich wie ohne κ; calib nennt κ je Zelle (λ 1, 6 Gruppen); die Notiz zählt die Schritte',
+    stepsJ(homo) === stepsJ(base) && homo.calib.some((c) => /^kappa:set — PAP 3 κ je Zelle \(AP16, E-F-16\).*λ = 1.*t3 κ = 1/.test(c))
+    && withGrid(homo, 't1').every((s) => s.grid.weights.every((w) => w.kappa === 1)) && homo.notes.some((n) => /^kappa: κ je Zelle an t1 (\d+)\/\1 · t2 (\d+)\/\2/.test(n)),
+    homo.notes.find((n) => n.startsWith('kappa:')));
+
+  // (c) κ an, Nachbarzellen Wasser (Punkt Offenland) ⇒ κ = e^−1 dort; Gewichte = ohne-κ-Gewichte · κ, neu normiert
+  const shoreLc = lcOf({ q: (t, dy, dx) => (dy || dx ? WATER : OPEN) });
+  const shore = run(shoreLc, { kappa: true });
+  let maxErr = 0, nCmp = 0, changed = 0;
+  for (const t of ['t1', 't2']) {
+    const on = withGrid(shore, t), off = withGrid(base, t);
+    on.forEach((s, i) => {
+      const w0 = off[i].grid.weights, k = s.grid.weights.map((w) => (w.dy || w.dx ? Math.exp(-1) : 1));
+      const z = w0.reduce((a, w, j) => a + w.w * k[j], 0);
+      s.grid.weights.forEach((w, j) => { maxErr = Math.max(maxErr, Math.abs(w.w - (w0[j].w * k[j]) / z)); nCmp++; });
+      const cubeT = (x) => x.samples?.find((m) => m.source.startsWith('cube-'))?.temperature;
+      if (cubeT(s) !== cubeT(off[i])) changed++;
+    });
+  }
+  const t3Same = JSON.stringify(shore.steps.filter((s) => s.tier === 't3')) === JSON.stringify(base.steps.filter((s) => s.tier === 't3'));
+  add('(22) κ an, Nachbarzellen Wasser: jedes Blockgewicht = (Gewicht ohne κ) · κ / Σ mit κ = e^−1 (≤ 1e-12); die nächste Zelle wiegt mehr, die Werte ändern sich; t3 unverändert (κ = 1)',
+    nCmp > 100 && maxErr <= 1e-12 && changed > 0 && t3Same && Math.abs(kappaOf(OPEN, WATER) - Math.exp(-1)) < 1e-15,
+    `${nCmp} Gewichte, max. Abweichung ${maxErr.toExponential(1)}, ${changed} Schritte mit anderem Blockwert`);
+
+  // (d) eine Blockzelle unter 80 % bekannt ⇒ κ = 1 für den ganzen Block dieser Stufe (keine halbe Gewichtung), benannt
+  const holeLc = lcOf({ q: (t, dy, dx) => (dy || dx ? WATER : OPEN), cov: (t, dy, dx) => (t === 't1' && (dy || dx) ? 0.5 : 1) });
+  const hole = run(holeLc, { kappa: true });
+  const noLc = run(z0v1, { kappa: true });
+  add('(22) κ nicht entscheidbar: t1-Blockzelle < 80 % bekannt ⇒ t1 exakt wie ohne κ (t2 wirkt weiter), Notiz „t1 0/N"; Option ohne Landbedeckung ⇒ Werte gleich, calib nennt es',
+    JSON.stringify(withGrid(hole, 't1').map((s) => s.grid.weights)) === JSON.stringify(withGrid(base, 't1').map((s) => s.grid.weights))
+    && withGrid(hole, 't2').some((s) => s.grid.weights.some((w) => w.kappa !== undefined && w.kappa < 1))
+    && hole.notes.some((n) => /^kappa: κ je Zelle an t1 0\/\d+ · t2 (\d+)\/\1/.test(n))
+    && stepsJ(noLc) === stepsJ(base) && noLc.calib.some((c) => /^kappa:set — PAP 3 κ = 1: Option kappa an, aber keine Landbedeckung/.test(c)),
+    hole.notes.find((n) => n.startsWith('kappa:')));
+
+  // (e) Modellzell-Box: z0_mod = ln-Mittel der Blockzellen-z0 mit den PAP-3-Gewichten; t3 bleibt bei der Box um den Punkt
+  const boxLc = lcOf({ z0: (t, dy, dx) => (dy || dx ? 0.5 : 0.03) });
+  const box = run(boxLc, { z0CellBox: true });
+  const d0 = mkInput().urban?.d0 ?? 0;
+  let zErr = 0, zN = 0;
+  for (const s of box.steps.filter((x) => !x.interpolated && x.terrain && (x.tier === 't1' || x.tier === 't2'))) {
+    const ws = s.grid ? s.grid.weights : [{ w: 1, dy: 0, dx: 0 }];
+    const z = Math.exp(ws.reduce((a, w) => a + w.w * Math.log(w.dy || w.dx ? 0.5 : 0.03), 0) / ws.reduce((a, w) => a + w.w, 0));
+    zErr = Math.max(zErr, Math.abs(s.terrain.windFactor - windBlendingFactor(z, 0.03, 0, d0, 60)));
+    zN++;
+  }
+  const t3Box = box.steps.filter((s) => s.tier === 't3' && s.terrain).every((s) => s.terrain.windFactor === base.steps.find((b) => b.validAtMs === s.validAtMs).terrain.windFactor);
+  const t1Box = box.steps.find((s) => s.tier === 't1' && s.terrain && s.grid?.n > 1);
+  add('(22) `z0CellBox`: Windfaktor t1/t2 = windBlendingFactor(ln-Mittel der Blockzellen-z0 mit den PAP-3-Gewichten, z0 am Punkt) (≤ 1e-12); t3 wie ohne Option; calib und Notiz nennen die Blockzellen',
+    zN > 50 && zErr <= 1e-12 && t3Box && t1Box.terrain.windFactor > 1
+    && box.calib.some((c) => /^z0:set — .*z0 des Modells t1\/t2 = ln-Mittel der Blockzellen .*V-FI-65/.test(c)) && box.notes.some((n) => /^z0CellBox: z0 des Modells aus den Blockzellen an t1 (\d+)\/\1/.test(n))
+    && stepsJ(run(boxLc)) === stepsJ(base),
+    `${zN} Schritte, max. Abweichung ${zErr.toExponential(1)}, t1-Faktor ${t1Box.terrain.windFactor.toFixed(4)} (ohne Option 1)`);
+
+  // (f) Produktweg: `CubeIo.landCover` — d_water in v2 `point.dWater`, Codec-Rundweg, Cache-Schlüssel, alter z0-Eintrag
+  const optsL = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const fail = async () => new Response('x', { status: 404 });
+  const enc = (o) => ({ bytes: new TextEncoder().encode(JSON.stringify(o)), storedAt: Date.now() });
+  const beBoth = memoryBackend();
+  await beBoth.put(z0CacheKey(FIX.lat, FIX.lon), enc(z0v1));
+  await beBoth.put(landCoverCacheKey(FIX.lat, FIX.lon), enc(lcOf()));
+  const ioL = (extraIo) => ({ store: memoryStore(fx.files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extraIo });
+  clearCubeForecastCache();
+  const pOff = await getPointForecastFromCube(optsL, ioL({ z0: { cache: beBoth, fetchImpl: fail } }));
+  clearCubeForecastCache();
+  const pOn = await getPointForecastFromCube(optsL, ioL({ z0: { cache: beBoth, fetchImpl: fail }, landCover: true }));
+  const strip = (v2) => JSON.stringify({ ...v2, point: { ...v2.point, dWater: undefined }, timing: null,
+    provenance: { ...v2.provenance, calib: v2.provenance.calib.filter((c) => !c.startsWith('dWater:')), fetched: null } });
+  const back = decodeV2(encodeV2(pOn.cube.v2));
+  add('(22) Produkt: ohne `landCover` kein `point.dWater` (Schlüssel fehlt); mit ⇒ `point.dWater` wie geladen, sonst v2 gleich (nur die calib-Herkunftszeile dazu); Codec-Rundweg exakt',
+    !('dWater' in pOff.cube.v2.point) && JSON.stringify(pOn.cube.v2.point.dWater) === JSON.stringify(DW) && strip(pOn.cube.v2) === strip(pOff.cube.v2)
+    && JSON.stringify(back.point.dWater) === JSON.stringify(DW) && compareV2(pOn.cube.v2, back).exact.length === 0,
+    JSON.stringify(pOn.cube.v2.point.dWater));
+  const io0 = ioL({ z0: { cache: beBoth } });
+  add('(22) Cache-Schlüssel: `landCover` nur mit `z0` ⇒ Suffix `|lc`; ohne `landCover` (oder ohne z0) derselbe Schlüssel wie vorher',
+    cubeIoVariantKey({ ...io0, landCover: true }).endsWith('|lc') && cubeIoVariantKey(io0) === '' && cubeIoVariantKey({ ...ioL({}), landCover: true }) === ''
+    && cubeIoVariantKey({ ...io0, landCover: true, crossChunk: true }).endsWith('|cc|lc'));
+  // Nur der alte z0-Eintrag im Cache, Spiegel 404: z0 geht nie verloren (progressiv und nicht-progressiv), d_water fehlt benannt
+  const beV1 = memoryBackend();
+  await beV1.put(z0CacheKey(FIX.lat, FIX.lon), enc(z0v1));
+  const hasZ0 = (fc) => fc.cube.calib.some((c) => c.startsWith('z0:set'));
+  clearCubeForecastCache();
+  const emV = [];
+  const progV1 = await getPointForecastFromCube({ ...optsL, onUpdate: (u) => emV.push(u) }, ioL({ z0: { cache: beV1, fetchImpl: fail }, landCover: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  clearCubeForecastCache();
+  const npV1 = await getPointForecastFromCube(optsL, ioL({ z0: { cache: beV1, fetchImpl: fail }, landCover: true }));
+  add('(22) nur alter z0-Eintrag + Spiegel 404: progressiv trägt jede Ausgabe z0 (Windkorrektur), die erste sagt „Landbedeckung … folgt" mit `pending` z0; nicht-progressiv z0 aus dem Cache mit Notiz; nirgends `point.dWater`',
+    [progV1, ...emV].every(hasZ0) && progV1.cube.notes.some((n) => /^z0: Landbedeckung \(κ, Zellboxen, d_water\) folgt/.test(n)) && (progV1.cube.pending ?? []).includes('z0')
+    && hasZ0(npV1) && npV1.cube.notes.some((n) => /^z0: Landbedeckung nicht verfügbar/.test(n)) && [progV1, ...emV, npV1].every((f) => !('dWater' in f.cube.v2.point)),
+    `Ausgaben ${[progV1, ...emV].map((f) => `${f.cube.emission}/${(f.cube.pending ?? []).join('+') || '∅'}`).join(' ')}`);
+  clearCubeForecastCache();
+  const progLc = await getPointForecastFromCube({ ...optsL, onUpdate: () => {} }, ioL({ z0: { cache: beBoth, fetchImpl: fail }, landCover: true, fuse: { kappa: true } }));
+  add('(22) progressiv mit `lc:v1` im Cache: schon die erste Ausgabe trägt Landbedeckung (d_water, κ-Zeile), kein offenes z0',
+    JSON.stringify(progLc.cube.v2.point.dWater) === JSON.stringify(DW) && !(progLc.cube.pending ?? []).includes('z0') && progLc.cube.calib.some((c) => c.startsWith('kappa:set — PAP 3 κ je Zelle')));
+}
+
+// ---------------------------------------------------------------------------
+// (23) AP17 — z0 der Modelle aus dem GRIB (`point/static/z0mod`, E-F-15, V-FI-58): die Mischung je Stufe (rein), die
+//      Rechnung hinter `z0Model` und der Produktweg hinter `CubeIo.z0mod`. Voreinstellung aus ⇒ byte-gleich.
+// ---------------------------------------------------------------------------
+{
+  const { z0ModelMix, cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const { windBlendingFactor } = await import('../src/pointForecast/fusion/terrainTerms.ts');
+  const { writeStaticZ0mod, Z0_ABSENT_REASON } = await import('./point/staticZ0mod.mjs');
+  const cf = await import('../src/point/cubeFormat.ts');
+  const { z0CacheKey } = await import('../src/point/client/z0Point.ts');
+  const { memoryBackend } = await import('../src/point/client/cache.ts');
+  const { encodeV2, decodeV2, compareV2 } = await import('../src/pointForecast/fusion/v2codec.ts');
+  const { mkdtempSync, rmSync: rmZ, readFileSync: rfZ } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join: jz } = await import('node:path');
+
+  // (a) die Mischung, rein: Spalten ∪ absent = Windquellen; nur Quellen des Laufs mit Mittel, nicht gedroppt, die die Zelle decken.
+  const sp = (byColumn, absent = {}) => ({ product: 'z0mod', version: 'v1', tier: 't1', chunk: { path: '', bytes: 0, cy: 0, cx: 0 }, byColumn, provenance: {}, absent, spreadM: null });
+  const src = (id, extra = {}) => ({ id, name: id, tier: 't1', runAt: '', fromH: 0, toH: 48, steps: 49, members: 0, role: 'assigned', coverage: 'full', offsetH: 0, geometry: null, attribution: null, licence: null, errors: 0, firstError: null, dropped: null, ...extra });
+  const claefGeo = { cells: 1, covered: 1, domain: { latMin: 43.002, latMax: 51.498, lonMin: 5.0317, lonMax: 22.568 }, clip: null, edgeMarginKm: 0, from: '' };
+  const S1 = sp({ icon_d2: Math.log(0.8), icon_eu: Math.log(1), icon_ch1_eps: null }, { claef: 'x', ifs_hres: 'x', aifs_single: 'x' });
+  const run1 = [src('icon_d2'), src('icon_d2_eps', { members: 20 }), src('icon_ch1_eps', { steps: 11 }), src('claef', { geometry: claefGeo }), src('claef_eps'), src('icon_eu', { role: 'diversity' }), src('ifs_hres', { steps: 17 }), src('aifs_single', { steps: 8 })];
+  const mMuc = z0ModelMix(S1, run1, 48.15, 11.6, 0.1);
+  const wantMuc = (Math.log(0.8) + Math.log(1) + 3 * Math.log(0.1)) / 5;
+  const mHh = z0ModelMix(S1, run1, 53.55, 10.0, 0.1);
+  add('(23) AP17 Mischung: München — GRIB icon_d2 + icon_eu, Näherung claef/ifs_hres/aifs_single, icon_ch1_eps außerhalb (MISSING an der Zelle), σ_ens- und Quantil-Quellen nicht gezählt; ln-Mittel exakt',
+    mMuc && mMuc.grib.join() === 'icon_d2,icon_eu' && mMuc.approx.join() === 'claef,ifs_hres,aifs_single' && mMuc.outside.join() === 'icon_ch1_eps'
+    && Math.abs(mMuc.lnZ0 - wantMuc) <= 1e-12 && mHh && mHh.outside.includes('claef') && mHh.approx.join() === 'ifs_hres,aifs_single',
+    `${JSON.stringify(mMuc)} · Hamburg außerhalb: ${mHh?.outside.join()}`);
+  add('(23) Mischung: gedroppte Quelle zählt nicht; ohne GRIB-Quelle an der Zelle, ohne Produkt oder ohne Näherung ⇒ null (der Aufrufer bleibt bei der Näherung)',
+    z0ModelMix(S1, run1.map((s) => (s.id === 'icon_eu' ? { ...s, dropped: { reason: 'x', errors: 6, firstError: 'x' } } : s)), 48.15, 11.6, 0.1).grib.join() === 'icon_d2'
+    && z0ModelMix(sp({ icon_d2: null }, { ifs_hres: 'x' }), run1, 48.15, 11.6, 0.1) === null && z0ModelMix(null, run1, 48.15, 11.6, 0.1) === null
+    && z0ModelMix(S1, run1, 48.15, 11.6, null) === null && z0ModelMix(S1, [], 48.15, 11.6, 0.1) === null);
+
+  // (b)–(d) die Rechnung: z0mod je Stufe an den Zellen des Fixtures (t1 icon_d2, t2 icon_eu, t3 icon_global tragen den Wind).
+  const bundleZ = await readPointBundle(
+    { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  const z0v1 = { z0True: 0.03, z0Mod: { t1: 0.03, t2: 0.03, t3: 0.03 }, coverage: { point: 1, t1: 1, t2: 1, t3: 1 }, shares: [[30, 1]], radiusM: 500, source: 'test' };
+  const Z = { t1: 0.8, t2: 0.6, t3: 0.4 };
+  const zmIn = {
+    t1: sp({ icon_d2: Math.log(Z.t1), icon_eu: Math.log(1), icon_ch1_eps: Math.log(0.5) }, { claef: Z0_ABSENT_REASON.claef, ifs_hres: Z0_ABSENT_REASON.ifs_hres, aifs_single: Z0_ABSENT_REASON.aifs_single }),
+    t2: sp({ icon_eu: Math.log(Z.t2), icon_ch2_eps: Math.log(0.9), icon_global: Math.log(0.7) }, { aicon: Z0_ABSENT_REASON.aicon }),
+    t3: sp({ icon_global: Math.log(Z.t3) }, { aicon: Z0_ABSENT_REASON.aicon, ifs_hres: Z0_ABSENT_REASON.ifs_hres }),
+  };
+  const inp = (withZm) => { const i = cubeInputFromBundle(bundleZ, clima); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; i.z0 = z0v1; if (withZm) i.z0mod = zmIn; return i; };
+  const runZ = (withZm, o = {}) => fuseCubePoint(inp(withZm), { hourly: true, tail: true, ...o });
+  const J = (r) => JSON.stringify({ steps: r.steps, calib: r.calib, notes: r.notes });
+  const baseZ = runZ(false);
+  add('(23) Negativkontrolle: z0mod im Eingang ohne `z0Model` ⇒ Schritte, calib und Notizen byte-gleich',
+    J(runZ(true)) === J(baseZ));
+  const noData = runZ(false, { z0Model: true });
+  add('(23) `z0Model` ohne z0mod im Eingang ⇒ Schritte und calib gleich, die Notiz sagt warum (WorldCover-Näherung)',
+    JSON.stringify(noData.steps) === JSON.stringify(baseZ.steps) && JSON.stringify(noData.calib) === JSON.stringify(baseZ.calib)
+    && noData.notes.some((n) => /^z0Model: Option an, aber kein z0mod im Eingang/.test(n)), noData.notes.find((n) => n.startsWith('z0Model:')));
+  const onZ = runZ(true, { z0Model: true });
+  const d0 = inp(false).urban?.d0 ?? 0;
+  let wErr = 0, wN = 0;
+  for (const s of onZ.steps.filter((x) => !x.interpolated && x.terrain && ['t1', 't2', 't3'].includes(x.tier))) {
+    wErr = Math.max(wErr, Math.abs(s.terrain.windFactor - windBlendingFactor(Math.exp(Math.log(Z[s.tier])), 0.03, 0, d0, 60)));
+    wN++;
+  }
+  const t1On = onZ.steps.find((s) => s.tier === 't1' && s.terrain), t1Off = baseZ.steps.find((s) => s.tier === 't1' && s.terrain);
+  const zLine = onZ.calib.find((c) => c.startsWith('z0Mod:'));
+  add('(23) `z0Model` an: Windfaktor je Schritt = windBlendingFactor(GRIB-z0 der Windquelle des Fixtures je Stufe, z0 am Punkt) (≤ 1e-12); der Wind steigt (Modell rauer als der Punkt)',
+    wN > 100 && wErr <= 1e-12 && t1On.terrain.windFactor > t1Off.terrain.windFactor && t1On.terrain.windFactor > 1,
+    `${wN} Schritte, max. Abweichung ${wErr.toExponential(1)}, t1-Faktor ${t1Off.terrain.windFactor.toFixed(4)} → ${t1On.terrain.windFactor.toFixed(4)}`);
+  add('(23) calib: Zeile `z0Mod:model` (GRIB je Stufe, Quellen, Mittelung über den Lauf benannt), die z0-Zeile nennt die Näherung nur noch für Quellen ohne z0; Notiz zählt die Schritte je Stufe',
+    /^z0Mod:model — z0 des Modells je Stufe aus dem GRIB \(point\/static\/z0mod.*t1 icon_d2 0\.80 m \(GRIB\) ⇒ 0\.80 m; t2 icon_eu 0\.60 m \(GRIB\) ⇒ 0\.60 m; t3 icon_global 0\.40 m \(GRIB\) ⇒ 0\.40 m.*kein Orographie-Anteil.*über den Lauf gemittelt/.test(zLine ?? '')
+    && onZ.calib.some((c) => /^z0:set — .*als Näherung nur für die Windquellen ohne z0/.test(c)) && !baseZ.calib.some((c) => c.startsWith('z0Mod:'))
+    && onZ.notes.some((n) => /^z0Model: z0 des Modells aus dem GRIB an t1 (\d+)\/\1 · t2 (\d+)\/\2 · t3 (\d+)\/\3 Schritten/.test(n)),
+    zLine?.slice(0, 160));
+
+  // (e) Produktweg: das Produkt, wie der Producer es schreibt, im Store; `CubeIo.z0mod` liest, `fuse.z0Model` rechnet.
+  const tmp = mkdtempSync(jz(tmpdir(), 'z0mod-pv-'));
+  try {
+    const colsOf = (t, entries) => entries.map(([id, z]) => { const tier = cf.TIER_BY_ID[t]; const g = new Float32Array(tier.ny * tier.nx).fill(Math.log(z)); return { id, run: '2026091800', grid: g }; });
+    await writeStaticZ0mod(tmp, 't1', colsOf('t1', [['icon_d2', Z.t1], ['icon_eu', 1]]), { absent: { ifs_hres: Z0_ABSENT_REASON.ifs_hres } });
+    await writeStaticZ0mod(tmp, 't2', colsOf('t2', [['icon_eu', Z.t2], ['icon_global', 0.7]]), { absent: { aicon: Z0_ABSENT_REASON.aicon } });
+    await writeStaticZ0mod(tmp, 't3', colsOf('t3', [['icon_global', Z.t3]]), { absent: { ifs_hres: Z0_ABSENT_REASON.ifs_hres } });
+    const files = new Map(fx.files);
+    const rel = (p) => p.replace(/^point\//, '');
+    files.set(cf.staticManifestPath(cf.Z0MOD_PRODUCT, cf.Z0MOD_VERSION), new Uint8Array(rfZ(jz(tmp, rel(cf.staticManifestPath(cf.Z0MOD_PRODUCT, cf.Z0MOD_VERSION))))));
+    for (const t of ['t1', 't2', 't3']) {
+      const tier = cf.TIER_BY_ID[t];
+      for (let cy = 0; cy < tier.chunk.cy; cy++) for (let cx = 0; cx < tier.chunk.cx; cx++) {
+        const p = cf.staticChunkPath(cf.Z0MOD_PRODUCT, cf.Z0MOD_VERSION, t, cy, cx);
+        files.set(p, new Uint8Array(rfZ(jz(tmp, rel(p)))));
+      }
+    }
+    const be = memoryBackend();
+    await be.put(z0CacheKey(FIX.lat, FIX.lon), { bytes: new TextEncoder().encode(JSON.stringify(z0v1)), storedAt: Date.now() });
+    const optsZ = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+    const ioZ = (extra) => ({ store: memoryStore(files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, z0: { cache: be, fetchImpl: async () => new Response('x', { status: 404 }) }, ...extra });
+    const strip = (fc) => JSON.stringify({ ...fc.cube.v2, timing: null, provenance: { ...fc.cube.v2.provenance, fetched: null } });
+    clearCubeForecastCache(); const pBase = await getPointForecastFromCube(optsZ, ioZ({}));
+    clearCubeForecastCache(); const pRead = await getPointForecastFromCube(optsZ, ioZ({ z0mod: true }));
+    clearCubeForecastCache(); const pOn = await getPointForecastFromCube(optsZ, ioZ({ z0mod: true, fuse: { z0Model: true } }));
+    clearCubeForecastCache(); const pNoRead = await getPointForecastFromCube(optsZ, ioZ({ fuse: { z0Model: true } }));
+    add('(23) Produkt: `CubeIo.z0mod` ohne `z0Model` liest das Produkt, rechnet aber byte-gleich (v2 ohne Abrufstatistik gleich)',
+      strip(pRead) === strip(pBase) && (pRead.cube.stats?.files ?? 0) > (pBase.cube.stats?.files ?? 0), `Abrufe ${pBase.cube.stats?.files} → ${pRead.cube.stats?.files}`);
+    const back = decodeV2(encodeV2(pOn.cube.v2));
+    add('(23) Produkt mit `z0Model`: calib `z0Mod:model` mit den gelesenen Werten (t1 icon_d2 0.80 m), calibByVar ordnet z0Mod Wind und Böe zu, Codec-Rundweg exakt; ohne `z0mod`-Lesen nennt die Notiz den Grund',
+      pOn.cube.calib.some((c) => /^z0Mod:model — .*t1 icon_d2 0\.80 m \(GRIB\)/.test(c)) && pOn.cube.v2.provenance.calibByVar.wind.includes('z0Mod') && pOn.cube.v2.provenance.calibByVar.gust.includes('z0Mod')
+      && !pOn.cube.v2.provenance.calibByVar.t2m.includes('z0Mod') && compareV2(pOn.cube.v2, back).exact.length === 0
+      && pNoRead.cube.notes.some((n) => /^z0Model: Option an, aber kein z0mod im Eingang/.test(n)),
+      pOn.cube.calib.find((c) => c.startsWith('z0Mod:'))?.slice(0, 120));
+    add('(23) Cache-Schlüssel: `z0mod` ⇒ Suffix `|zm`; ohne derselbe Schlüssel wie vorher',
+      cubeIoVariantKey(ioZ({ z0mod: true })).endsWith('|zm') && cubeIoVariantKey(ioZ({})) === '' && cubeIoVariantKey(ioZ({ z0mod: true, landCover: true })).endsWith('|lc|zm'));
+    // Progressiv: z0mod reist mit den statischen Produkten — spätestens die letzte Ausgabe rechnet mit dem GRIB-z0.
+    clearCubeForecastCache();
+    const emZ = [];
+    const pProg = await getPointForecastFromCube({ ...optsZ, onUpdate: (u) => emZ.push(u) }, ioZ({ z0mod: true, fuse: { z0Model: true } }));
+    await new Promise((r) => setTimeout(r, 300));
+    const lastZ = [pProg, ...emZ].at(-1);
+    add('(23) progressiv: die letzte Ausgabe trägt `z0Mod:model` (mit den statischen Produkten); keine Ausgabe verliert z0',
+      lastZ.cube.calib.some((c) => c.startsWith('z0Mod:model')) && [pProg, ...emZ].every((f) => f.cube.calib.some((c) => c.startsWith('z0:set'))),
+      `Ausgaben ${[pProg, ...emZ].map((f) => `${f.cube.emission}:${f.cube.calib.some((c) => c.startsWith('z0Mod:')) ? 'GRIB' : 'Näherung'}`).join(' ')}`);
+  } finally { rmZ(tmp, { recursive: true, force: true }); }
+}
+
+// ---------------------------------------------------------------------------
 // Ausgabe
 // ---------------------------------------------------------------------------
 let failed = 0;

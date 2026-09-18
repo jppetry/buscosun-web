@@ -127,6 +127,35 @@ function filesFor(latMin: number, latMax: number, lonMin: number, lonMax: number
   return out;
 }
 
+/**
+ * Eine geladene 3°-Datei des Spiegels: Geometrie der Ebene und die dekodierten Kacheln (Klassenbytes, 0 = keine Daten).
+ * AP16: aus `loadZ0AtPoint` herausgelöst, damit der Landbedeckungs-Durchgang (`landCover.ts`) dieselben Kacheln liest.
+ */
+export interface WcLoadedFile {
+  la0: number;
+  lo0: number;
+  ifd: Pick<CogIfd, 'width' | 'height' | 'tileW' | 'tileH' | 'tilesAcross'>;
+  /** Verhältnis volle Auflösung / Ebene (36 000 / 9 000 = 4). */
+  fac: number;
+  tiles: Map<number, Uint8Array>;
+}
+
+/** Die Klassenfunktion über geladenen Dateien — `null` außerhalb, ohne Kachel oder bei Klasse 0 (wortgleich zu vorher). */
+export function classAtOf(usable: readonly WcLoadedFile[]): ClassAt {
+  return (la, lo) => {
+    const f = usable.find((u) => la >= u.la0 && la < u.la0 + WC_TILE_DEG && lo >= u.lo0 && lo < u.lo0 + WC_TILE_DEG);
+    if (!f) return null;
+    const { ifd, fac } = f;
+    const px = Math.min(ifd.width - 1, Math.floor((lo - f.lo0) / WC_PX_DEG / fac));
+    const py = Math.min(ifd.height - 1, Math.floor((f.la0 + WC_TILE_DEG - la) / WC_PX_DEG / fac));
+    const col = Math.floor(px / ifd.tileW), row = Math.floor(py / ifd.tileH);
+    const t = f.tiles.get(row * ifd.tilesAcross + col);
+    if (!t) return null;
+    const v = t[(py - row * ifd.tileH) * ifd.tileW + (px - col * ifd.tileW)];
+    return v > 0 ? v : null;
+  };
+}
+
 export async function loadZ0AtPoint(lat: number, lon: number, opts: Z0Options = {}): Promise<Z0AtPoint | null> {
   const T0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const cache = opts.cache ?? null;
@@ -141,6 +170,22 @@ export async function loadZ0AtPoint(lat: number, lon: number, opts: Z0Options = 
     }
   }
   if (opts.cacheOnly) return null;
+  const tiles = await loadWorldCoverTiles(lat, lon, opts);
+  if (!tiles.usable.length) return null;
+  const r: Z0AtPoint = { ...z0FromClassField(classAtOf(tiles.usable), lat, lon), source: Z0_SOURCE };
+  if (cache && r.z0True != null) cache.put(key, { bytes: new TextEncoder().encode(JSON.stringify(r)), storedAt: Date.now() }).catch(() => { /* gezählt reicht */ });
+  return {
+    ...r,
+    fetched: { files: tiles.usable.length, tiles: tiles.tilesFetched, bytes: tiles.bytes, ms: Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - T0), fromCache: false },
+  };
+}
+
+/**
+ * Die Kacheln, die die t3-Box ±0,125° um den Punkt schneidet (Kopf je Datei, dann die Kacheln) — über den Cache je URL
+ * und Bereich. AP16: gemeinsamer Teil von `loadZ0AtPoint` und `loadLandCoverAtPoint` (dieselben Bytes).
+ */
+export async function loadWorldCoverTiles(lat: number, lon: number, opts: Z0Options = {}): Promise<{ usable: WcLoadedFile[]; bytes: number; tilesFetched: number }> {
+  const cache = opts.cache ?? null;
   const fetchImpl = opts.fetchImpl ?? fetch;
   let bytes = 0, tilesFetched = 0;
   const get = async (url: string, range: string): Promise<Uint8Array | null> => {
@@ -170,8 +215,7 @@ export async function loadZ0AtPoint(lat: number, lon: number, opts: Z0Options = 
   const half = TIER_BY_ID.t3.deg / 2;
   const box = { latMin: lat - half, latMax: lat + half, lonMin: lon - half, lonMax: lon + half };
   const files = filesFor(box.latMin, box.latMax, box.lonMin, box.lonMax);
-  interface Loaded { la0: number; lo0: number; ifd: CogIfd; fac: number; tiles: Map<number, Uint8Array> }
-  const loaded = await Promise.all(files.map(async (f): Promise<Loaded | null> => {
+  const loaded = await Promise.all(files.map(async (f): Promise<WcLoadedFile | null> => {
     const url = wcMirrorUrl(f.name);
     let head = await get(url, `bytes=0-${COG_HEADER_BYTES - 1}`).catch(() => null);
     if (!head) return null;
@@ -204,24 +248,5 @@ export async function loadZ0AtPoint(lat: number, lon: number, opts: Z0Options = 
     }));
     return { la0: f.la0, lo0: f.lo0, ifd, fac, tiles };
   }));
-  const usable = loaded.filter((x): x is Loaded => !!x);
-  if (!usable.length) return null;
-  const classAt: ClassAt = (la, lo) => {
-    const f = usable.find((u) => la >= u.la0 && la < u.la0 + WC_TILE_DEG && lo >= u.lo0 && lo < u.lo0 + WC_TILE_DEG);
-    if (!f) return null;
-    const { ifd, fac } = f;
-    const px = Math.min(ifd.width - 1, Math.floor((lo - f.lo0) / WC_PX_DEG / fac));
-    const py = Math.min(ifd.height - 1, Math.floor((f.la0 + WC_TILE_DEG - la) / WC_PX_DEG / fac));
-    const col = Math.floor(px / ifd.tileW), row = Math.floor(py / ifd.tileH);
-    const t = f.tiles.get(row * ifd.tilesAcross + col);
-    if (!t) return null;
-    const v = t[(py - row * ifd.tileH) * ifd.tileW + (px - col * ifd.tileW)];
-    return v > 0 ? v : null;
-  };
-  const r: Z0AtPoint = { ...z0FromClassField(classAt, lat, lon), source: Z0_SOURCE };
-  if (cache && r.z0True != null) cache.put(key, { bytes: new TextEncoder().encode(JSON.stringify(r)), storedAt: Date.now() }).catch(() => { /* gezählt reicht */ });
-  return {
-    ...r,
-    fetched: { files: usable.length, tiles: tilesFetched, bytes, ms: Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - T0), fromCache: false },
-  };
+  return { usable: loaded.filter((x): x is WcLoadedFile => !!x), bytes, tilesFetched };
 }

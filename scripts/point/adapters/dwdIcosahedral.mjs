@@ -25,6 +25,7 @@ import {
   fetchGribField, fetchSampledField, poolSetIndex, headOk, probeHorizon, pad3, runIdBack, buildUnstructuredIndex,
   KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
+import { lnBlockMeanUnstructured } from '../staticZ0mod.mjs';
 
 const DWD = process.env.DWD_OPENDATA || 'https://opendata.dwd.de/weather/nwp';
 
@@ -40,6 +41,8 @@ const MODELS = {
       // snowlmt fuehrt ICON global nicht — am Verzeichnis geprueft.
     },
     orographyParam: 'HSURF',
+    // AP17 (E-F-15): `z0/…_000_Z0`, ikosaedrisch wie die Felder (am Verzeichnis 18.09. gelesen).
+    roughnessParam: 'Z0',
     ownGrid: true,
   },
   aicon: {
@@ -50,6 +53,7 @@ const MODELS = {
       t2m: 'T_2M', u10: 'U_10M', v10: 'V_10M', precip: 'TOT_PREC', ps: 'PS',
     },
     orographyParam: null,
+    roughnessParam: null,     // AP17: AICON veröffentlicht kein z0 (Parameterliste s. Kopf)
     ownGrid: false,           // leiht sich clat/clon von ICON global
     isoRun: true,
     raw: true,                // rohes GRIB2, KEIN bz2
@@ -175,6 +179,18 @@ export function makeDwdIcosahedralAdapter(id) {
       const idxKey = await idxKeyFor(tier, idx);
       const r = await fetchSampledField(u, tier, { grid: 'unstructured', idxKey });
       return r ? r.grid : null;
+    },
+
+    /**
+     * AP17 (E-F-15): ln(z0) je Zelle aus dem Schritt 000 — ln-Blockmittel über ALLE ICON-Zellen, deren Mittelpunkt in
+     * die Cube-Zelle fällt (nicht der Nachbarindex der Felder: der nimmt EINE Zelle). AICON: `null` (kein z0).
+     */
+    async roughness(run, tier) {
+      if (!m.roughnessParam) return null;
+      const cells = await iconGlobalCells(run);
+      if (!cells) return null;
+      const f = await fetchGribField(url(run, 0, m.roughnessParam), { bz2: !m.raw });
+      return f ? lnBlockMeanUnstructured(f.values, cells.lat, cells.lon, tier) : null;
     },
   };
 }

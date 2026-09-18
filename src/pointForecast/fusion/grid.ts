@@ -12,7 +12,9 @@
  *   N ≤ 4      die Zellen des 2×2-Blocks, der den Punkt umschließt (v1, im eigenen Chunk;
  *              Halo ist E-F-2 „nein"); fehlt eine Zelle am Chunk-Rand, ist N < 4 und das
  *              Ergebnis trägt `truncated` (Plan §3.3: ≈ 12–13 % der Punkte).
- *   κ = 1      Landnutzungs-Ähnlichkeit gibt es je ZELLE im Repo nicht (nur am Punkt) — markiert.
+ *   κ = 1      Voreinstellung: keine Landnutzungs-Ähnlichkeit je Zelle — markiert. AP16 (E-F-16): trägt eine
+ *              Zelle `kappa` (aus der Landbedeckung, `point/client/landCover.ts`), gilt ihr Wert; ohne Feld
+ *              derselbe Ausdruck wie vorher (byte-gleich).
  *   L_d        Zellweite der Stufe in Metern (N–S), Setzung; AP10 kalibriert.
  *   L_h        200 m, Setzung — Präzedenz `spatialWeight` (H_REF) des Live-Pfads; AP10 kalibriert.
  *   Gemittelt  Mittel, σ_div, σ_ens, Quantile, hModEff (PAP 3 O5). NICHT gemittelt: die
@@ -23,6 +25,8 @@
  *
  * Rein. Headless-prüfbar ({@link verifyGrid}).
  */
+
+import { blockOffsets } from '../../point/cubeFormat';
 
 /** Gesetzt, nicht gemessen: die Längenskalen (Plan §4, AP3). */
 export const GRID_SET = Object.freeze({
@@ -46,9 +50,11 @@ export interface GridCell {
   /** Modellhöhe der Zelle (m ü. NN); `null` ⇒ die Zelle fällt aus der Höhengewichtung heraus (nur Distanz). */
   hModEffM: number | null;
   values: Record<string, number | null>;
+  /** AP16: Landnutzungs-Ähnlichkeit dieser Zelle zum Punkt (0…1); fehlt ⇒ `GridInput.kappa`. */
+  kappa?: number;
 }
 
-export interface GridWeight { dy: number; dx: number; w: number; distM: number; dhM: number | null }
+export interface GridWeight { dy: number; dx: number; w: number; distM: number; dhM: number | null; kappa?: number }
 
 export interface GridResult {
   /** Die gewichteten Werte je Ebene (Profil/Zählwerte: nächste Zelle). */
@@ -63,19 +69,10 @@ export interface GridResult {
 }
 
 /**
- * Welche der bis zu acht Nachbarn den 2×2-Block bilden: die nächste Zelle plus die in
- * Richtung des Punkts (Vorzeichen des Versatzes Punkt − Zellmitte in y und x) und die diagonale.
- * Liegt der Punkt exakt auf der Zellmitte in einer Achse, zählt nur die nächste Zelle in dieser Achse.
+ * Welche Zellen den 2×2-Block bilden — AP14: die Regel steht in `cubeFormat.ts` (Geometrie des Cube-Gitters), damit
+ * der Leser, der Nachbar-Chunks holt, und PAP 3 dieselbe Funktion fragen. Hier weiter exportiert (Bestand).
  */
-export function blockOffsets(dLatDeg: number, dLonDeg: number, tol = 1e-9): Array<{ dy: number; dx: number }> {
-  const sy = Math.abs(dLatDeg) <= tol ? 0 : (dLatDeg > 0 ? 1 : -1);
-  const sx = Math.abs(dLonDeg) <= tol ? 0 : (dLonDeg > 0 ? 1 : -1);
-  const out = [{ dy: 0, dx: 0 }];
-  if (sy) out.push({ dy: sy, dx: 0 });
-  if (sx) out.push({ dy: 0, dx: sx });
-  if (sy && sx) out.push({ dy: sy, dx: sx });
-  return out;
-}
+export { blockOffsets };
 
 export interface GridInput {
   /** Die nächste Zelle (dy = dx = 0) und ihre verfügbaren Nachbarn. */
@@ -105,7 +102,9 @@ export function gridToPoint(inp: GridInput): GridResult {
     const dh = c.hModEffM == null ? null : Math.abs(c.hModEffM - inp.hTrue);
     const wd = Math.exp(-((c.distM / inp.ldM) ** 2));
     const wh = dh == null ? 1 : Math.exp(-((dh / lh) ** 2));
-    return { dy: c.dy, dx: c.dx, w: wd * wh * kappa, distM: c.distM, dhM: dh };
+    return c.kappa === undefined
+      ? { dy: c.dy, dx: c.dx, w: wd * wh * kappa, distM: c.distM, dhM: dh }
+      : { dy: c.dy, dx: c.dx, w: wd * wh * c.kappa, distM: c.distM, dhM: dh, kappa: c.kappa };
   });
   // Normieren — und gegen den Unterlauf: liegen ALLE Zellen viele L_h über oder unter dem Punkt
   // (Zermatt: 900 m), sind alle Gewichte ~e^(−20); relativ bleiben sie sinnvoll, absolut nicht.
@@ -196,6 +195,16 @@ export function verifyGrid(): { checks: GridCheck[]; passed: number; failed: num
   const rZ = gridToPoint({ cells: deep, block: block4, hTrue: 500, ldM: ld });
   add('alle Zellen 900 m höher: Gewichte bleiben endlich und summieren zu 1, die niedrigste Zelle wiegt am meisten',
     rZ.weights.every((w) => Number.isFinite(w.w)) && near(rZ.weights.reduce((a, w) => a + w.w, 0), 1, 1e-9) && rZ.weights.find((w) => w.dx === 1 && w.dy === 0)!.w > rZ.weights[0].w);
+
+  // AP16: κ je Zelle — halbiert eine Zelle ihr κ, halbiert sich ihr relatives Gewicht; gleiches κ überall kürzt sich.
+  const fourK = four.map((c, i) => ({ ...c, kappa: i === 1 ? 0.5 : 1 }));
+  const rK = gridToPoint({ cells: fourK, block: block4, hTrue: 500, ldM: ld });
+  const wOf = (r: GridResult, dy: number, dx: number) => r.weights.find((w) => w.dy === dy && w.dx === dx)!.w;
+  add('AP16: κ je Zelle — Zelle (1,0) mit κ ½ trägt halb so viel wie jede andere (1/7 statt 2/7), κ steht am Gewicht',
+    near(wOf(rK, 1, 0), 1 / 7, 1e-12) && near(wOf(rK, 0, 0), 2 / 7, 1e-12) && rK.weights.find((w) => w.dy === 1)!.kappa === 0.5 && r4.weights.every((w) => w.kappa === undefined));
+  const rK2 = gridToPoint({ cells: four.map((c) => ({ ...c, kappa: 0.3 })), block: block4, hTrue: 500, ldM: ld });
+  add('AP16: gleiches κ in allen Zellen kürzt sich in der Normierung (Werte wie ohne κ, ≤ 1e-12)',
+    near(rK2.values.t2m, r4.values.t2m as number, 1e-12) && rK2.weights.every((w, i) => near(w.w, r4.weights[i].w, 1e-12)));
 
   // blockOffsets: Vorzeichen und Achsen.
   add('blockOffsets: Punkt nordöstlich der Mitte ⇒ (0,0),(1,0),(0,1),(1,1); südwestlich ⇒ −1; exakt auf der Mitte ⇒ nur (0,0)',

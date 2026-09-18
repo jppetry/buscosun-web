@@ -73,9 +73,10 @@
  */
 
 import {
-  fetchBytes, fetchJson, fetchSampledField, poolSetIndex, runIdBack, buildUnstructuredIndex, sampleUnstructuredToTier,
+  fetchBytes, fetchJson, fetchSampledField, fetchGribField, poolSetIndex, runIdBack, buildUnstructuredIndex, sampleUnstructuredToTier,
   KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
+import { lnBlockMeanUnstructured } from '../staticZ0mod.mjs';
 import { decodeGrib2All } from '../../../src/sources/gribDecode.ts';
 
 const STAC = process.env.MCH_STAC || 'https://data.geo.admin.ch/api/stac/v1';
@@ -299,6 +300,21 @@ export function makeMeteoSwissAdapter(id) {
       const idx = await cellIndex(cfg, tier);
       if (!c?.hsurf || !idx) return null;
       return sampleUnstructuredToTier(c.hsurf, idx, tier);
+    },
+
+    /**
+     * AP17 (E-F-15): ln(z0) je Zelle aus dem ctrl-Member, Vorlauf 0 (`Z0`, „Horizon: All" in `params_*.csv`; die
+     * Konstanten tragen kein z0, nur SSO_STDH). ln-Blockmittel über alle ICON-CH-Zellen je Cube-Zelle (CH1 ≈ 25 je
+     * t1-Zelle). Die Enumeration an der Laufzeit ist dieselbe, die `leadsFor` für Stunde 0 schon holt (Cache).
+     */
+    async roughness(run, tier) {
+      const c = await constants(cfg);
+      if (!c) return null;
+      const it = findItem(await itemsAt(cfg, runMs(run)), runMs(run), 'Z0');
+      if (!it) return null;
+      const f = await fetchGribField(it.href, { bz2: false, cacheKey: `mch:${it.object}` });
+      if (!f || f.values.length !== c.n) return null;
+      return lnBlockMeanUnstructured(f.values, c.lat, c.lon, tier);
     },
 
     /**

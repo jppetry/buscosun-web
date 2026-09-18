@@ -17,6 +17,7 @@ import type { FusedVariable } from './fuse';
 import type { FusionVariable } from './priors';
 import type { SigmaKind, UncVar, Confidence } from './uncertainty';
 import type { PointSourceSample } from '../types';
+import type { DWater } from '../../point/client/landCover';
 import type {
   CubeFusionResult, CubeStep, CubeMemberInfo, CubeProduct, StepFlag, StepTier, InterpQ, InterpVar, VarUncertainty,
 } from '../cubeSource';
@@ -95,6 +96,11 @@ export interface PointForecastV2 {
     lat: number; lon: number; hTrue: number | null;
     terrain: { tpi500: number | null; tpi2000: number | null; svf: number | null; slope: number | null; aspect: number | null; sinkDepth: number | null; z0: number | null; imperv: number | null; d0: number | null } | null;
     terrainSource: 'terrarium-z11+z8' | 'override' | 'none';
+    /**
+     * AP16 (E-F-17): Abstand zum nächsten Gewässer ≥ A_min (WorldCover), zensiert statt Platzhalter — nur mit
+     * `CubeIo.landCover` (Feld sonst abwesend ⇒ byte-gleich); `null` = Landbedeckung da, aber ohne Fenster.
+     */
+    dWater?: DWater | null;
   };
   axis: {
     steps: StepV2[];
@@ -125,6 +131,11 @@ export interface PointForecastV2 {
     units: Record<VarIdV2, string>;
     notes: string[];
     fetched: { files: number | null; bytes: number | null; ms: number | null };
+    /**
+     * AP13: mit welcher `calib.json` gerechnet wurde (nur mit `CubeIo.calibSource: 'json'`) — Pfad, Schema, sha256
+     * der Bytes und die geltenden `measured`-Pfade. Fehlt, wenn die Konstanten galten (Negativkontrolle byte-gleich).
+     */
+    calibFile?: { path: string; schema: number | null; hash: string | null; measured: string[] };
   };
   timing: { readMs: number | null; terrainMs: number | null; decodeMs: number | null; algoMs: number; outputMs: number; totalMs: number | null };
 }
@@ -300,15 +311,21 @@ function fromInterp(q: InterpQ | undefined, id: VarIdV2, score: number | undefin
   };
 }
 
-/** Welche Setzungen der Rechnung (`CubeFusionResult.calib`, Schlüssel vor dem Doppelpunkt) je Größe wirken. */
+/**
+ * Welche Setzungen der Rechnung (`CubeFusionResult.calib`, Schlüssel vor dem Doppelpunkt) je Größe wirken.
+ * AP13 (V-FI-68): nur Schlüssel, die `fuseCubePoint` wirklich ausgibt — vorher standen hier fünf, die niemand
+ * emittiert (`vertResidual/lapse/gammaCap/lapseTd/clct`), und elf emittierte fehlten; `calibByVar` verlor sie stumm.
+ * Allgemeine Schlüssel (`footprint`, `lead`, `hTrue`, `tail`, `interpolation`) stehen in `provenance.calib`, nicht je Größe.
+ */
 const CALIB_KEYS_OF: Partial<Record<VarIdV2, readonly string[]>> = {
-  t2m: ['sigmaSys', 'cSpread', 'vertResidual', 'lapse', 'gammaCap', 'Ld', 'Lh', 'kappa', 'anchor', 'A', 'Auhi', 'fRad', 'fSaison', 'tpiSigma'],
-  td2m: ['sigmaSys', 'cSpread', 'vertResidual', 'lapseTd', 'Ld', 'Lh', 'kappa'],
-  rh: ['sigmaSys', 'cSpread', 'lapseTd'],
-  wind: ['sigmaSys', 'cSpread', 'Ld', 'Lh', 'kappa', 'anchor', 'z0'],
-  gust: ['sigmaSys', 'cSpread', 'Ld', 'Lh', 'kappa', 'anchor', 'z0'],
-  precip: ['nowcastStale', 'Ld', 'Lh', 'kappa'],
-  clct: ['sigmaSys', 'cSpread', 'clct', 'Ld', 'Lh', 'kappa'],
+  t2m: ['sigmaSys', 'cSpread', 'sigmaQuant', 'sigmaVert', 'standardLapse', 'phi', 'dzSurface', 'Ld', 'Lh', 'kappa', 'anchor', 'A', 'Auhi', 'fRad', 'fSaison', 'tpiSigma', 'stationSigma', 'confidence'],
+  td2m: ['sigmaSys', 'cSpread', 'sigmaQuant', 'sigmaVert', 'Ld', 'Lh', 'kappa', 'stationSigma', 'confidence'],
+  rh: ['sigmaSys', 'cSpread', 'sigmaVert'],
+  wind: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'anchor', 'z0', 'z0Mod', 'zBlend', 'stationSigma', 'confidence'],
+  gust: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'anchor', 'z0', 'z0Mod', 'zBlend', 'stationSigma', 'confidence'],
+  precip: ['precipSigma', 'nowcastStale', 'Ld', 'Lh', 'kappa'],
+  clct: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'stationSigma', 'confidence'],
+  snowline: ['meltOffset', 'Ld', 'Lh', 'kappa'],
 };
 /** Klartext zu den Schlüsseln, die die Ausgabe selbst setzt (die der Rechnung stehen mit Grund in `provenance.calib`). */
 export const CALIB_LEGEND_V2: Readonly<Record<string, string>> = Object.freeze({
@@ -381,6 +398,10 @@ export interface OutputExtra {
   z0?: number | null;
   fetched?: { files: number | null; bytes: number | null; ms: number | null };
   timing?: { readMs?: number | null; terrainMs?: number | null; decodeMs?: number | null; totalMs?: number | null };
+  /** AP13: die gelesene `calib.json` (s. `provenance.calibFile`). */
+  calibFile?: PointForecastV2['provenance']['calibFile'];
+  /** AP16: d_water aus der Landbedeckung — fehlt das Feld, fehlt `point.dWater`. */
+  dWater?: DWater | null;
 }
 
 export function toPointForecastV2(r: CubeFusionResult, extra: OutputExtra): PointForecastV2 {
@@ -402,6 +423,7 @@ export function toPointForecastV2(r: CubeFusionResult, extra: OutputExtra): Poin
         sinkDepth: roundTo(t.sinkDepthM, 1), z0: roundTo(extra.z0, 0.00001), imperv: roundTo(extra.urban?.imperv, 0.1), d0: roundTo(extra.urban?.d0, 0.1),
       } : null,
       terrainSource: extra.terrainSource,
+      ...(extra.dWater !== undefined ? { dWater: extra.dWater } : {}),
     },
     axis: {
       steps,
@@ -426,6 +448,7 @@ export function toPointForecastV2(r: CubeFusionResult, extra: OutputExtra): Poin
       units: { ...UNIT_V2 },
       notes: r.notes,
       fetched: extra.fetched ?? { files: null, bytes: null, ms: null },
+      ...(extra.calibFile ? { calibFile: extra.calibFile } : {}),
     },
     timing: {
       readMs: extra.timing?.readMs ?? null, terrainMs: extra.timing?.terrainMs ?? null, decodeMs: extra.timing?.decodeMs ?? null,

@@ -43,6 +43,18 @@ export interface CalibEntry<T = number> {
   readonly updatedAt: string | null;
   readonly unit?: string;
   readonly pap?: string;
+  /**
+   * Schema 2 (AP13, `calibDoc.ts`): der Messbeleg eines `measured`-Eintrags — Fälle, Slot-Tage, Zeitraum, Schätzer,
+   * Schichtung, 90-%-Intervall, Fit-Fassung. In Schema 1 (ausgeliefert) abwesend.
+   */
+  readonly n?: unknown;
+  readonly days?: unknown;
+  readonly period?: { from: string; to: string };
+  readonly estimator?: string;
+  readonly strata?: string;
+  readonly ci90?: unknown;
+  readonly fitVersion?: string;
+  readonly binsH?: unknown;
 }
 
 const unknown = <T>(source: string, unit?: string, pap?: string): CalibEntry<T> =>
@@ -52,7 +64,12 @@ const unknown = <T>(source: string, unit?: string, pap?: string): CalibEntry<T> 
 // und es gab den Eintrag nicht. Die Tabelle bleibt DORT (der Client rechnet z₀ am Punkt);
 // hier steht sie als Kalibriereintrag mit Herkunft, damit der Satz wahr ist.
 import { WORLDCOVER_Z0 } from './terrainPoint';
+import { validateCalibDocument, CALIB_BINS_H, CALIB_N_MIN } from './calibDoc';
 
+/**
+ * Das AUSGELIEFERTE Schema bleibt 1, bis der Publisher-Weg der Fit-Werte freigegeben ist (E-F-20, S&F).
+ * Schema 2 (Messbeleg je Eintrag) ist lesbar und geprüft (`calibDoc.ts`), wird aber noch nicht geschrieben.
+ */
 export const CALIB_SCHEMA = 1;
 
 /**
@@ -185,6 +202,37 @@ export function calibrationSelfTest(): { checks: CalibCheck[]; passed: number; t
   add('jeder PAP-Verweis zeigt auf einen der sechs Pläne',
     entries.every(([, e]) => e.pap == null || /^PAP [1-6]$/.test(e.pap)),
     entries.filter(([, e]) => e.pap != null && !/^PAP [1-6]$/.test(e.pap)).map(([p]) => p).join(',') || 'alle');
+
+  // AP13 (E-F-20): die Regel für Schema 2 — measured nur mit Beleg. Geprüft an synthetischen Dokumenten; das
+  // ausgelieferte Schema-1-Dokument bleibt ohne geltende Messung.
+  const shipped = validateCalibDocument(JSON.parse(JSON.stringify(CALIBRATION_V1)));
+  add('Schema 2: das ausgelieferte Dokument (Schema 1) ist lesbar und trägt keine geltende Messung',
+    shipped.readable && shipped.schema === 1 && shipped.accepted.length === 0 && shipped.rejected.length === 0,
+    `Schema ${shipped.schema}, ${shipped.entries.size} Einträge`);
+  const min = CALIB_N_MIN.sigmaSys;
+  const sig = (over: Record<string, unknown> = {}) => ({
+    value: { t2m: [1.1, 1.3, null, null, null, null] }, provenance: 'measured', source: 'synthetisch (Selbsttest)',
+    updatedAt: '2026-10-14T00:00:00Z', n: { t2m: [min.n, min.n + 5, 0, 0, 0, 0] }, days: { t2m: [min.days, min.days, 0, 0, 0, 0] },
+    period: { from: '2026-09-14', to: '2026-10-13' }, estimator: 'Momente', fitVersion: 'selftest', binsH: CALIB_BINS_H, ...over,
+  });
+  const docOf = (schema: number, entry: unknown) => ({ ...JSON.parse(JSON.stringify(CALIBRATION_V1)), schema, sigmaSys: entry });
+  const ok2 = validateCalibDocument(docOf(2, sig()));
+  const noN = validateCalibDocument(docOf(2, sig({ n: undefined })));
+  const fewN = validateCalibDocument(docOf(2, sig({ n: { t2m: [min.n - 1, min.n, 0, 0, 0, 0] } })));
+  const fewDays = validateCalibDocument(docOf(2, sig({ days: { t2m: [min.days, min.days - 1, 0, 0, 0, 0] } })));
+  const inV1 = validateCalibDocument(docOf(1, sig()));
+  const v3 = validateCalibDocument(docOf(3, sig()));
+  const noPeriod = validateCalibDocument(docOf(2, sig({ period: undefined })));
+  const producerKey = validateCalibDocument({ ...docOf(2, sig()), dzMin: { value: 60, provenance: 'measured', source: 'synthetisch', updatedAt: '2026-10-14', n: 5000, days: 40, period: { from: '2026-09-14', to: '2026-10-13' }, estimator: 'x', fitVersion: 'x' } });
+  add('Schema 2: measured mit Beleg (n ≥ n_min, days ≥ min, period, estimator, fitVersion, binsH) gilt',
+    ok2.accepted.join() === 'sigmaSys' && ok2.rejected.length === 0, JSON.stringify(ok2.rejected));
+  add('Schema 2 Negativkontrollen: ohne n, n < n_min, days < min, ohne period ⇒ verworfen (einzeln, mit Grund)',
+    [noN, fewN, fewDays, noPeriod].every((x) => x.accepted.length === 0 && x.rejected.length === 1 && x.rejected[0].path === 'sigmaSys'),
+    [noN, fewN, fewDays, noPeriod].map((x) => x.rejected[0]?.why).join(' | '));
+  add('Schema 1 mit measured ⇒ verworfen; Schema 3 ⇒ nicht lesbar; measured auf einem Producer-Parameter (dzMin) ⇒ verworfen',
+    inV1.accepted.length === 0 && inV1.rejected.length === 1 && !v3.readable
+    && producerKey.accepted.join() === 'sigmaSys' && producerKey.rejected.some((r) => r.path === 'dzMin'),
+    `${inV1.rejected[0]?.why} | ${producerKey.rejected.map((r) => `${r.path}: ${r.why}`).join(', ')}`);
 
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, total: checks.length };

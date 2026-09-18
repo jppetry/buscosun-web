@@ -76,6 +76,14 @@ export interface VerticalInput {
   profile: VerticalProfile | null;
   /** Bodendruck der Zelle (hPa) an h_mod_eff — wird hydrostatisch mitgeführt. */
   ps?: number | null;
+  /**
+   * AP15 (E-F-14): unter einer AUFSITZENDEN Inversion das Gefälle in die Mulde fortsetzen (PAP 4 Fall C, mit dem
+   * V-FI-15-Deckel). Voreinstellung ja — wie bisher. Das grobe Druckflächen-Profil (t2/t3) setzt `false`: seine
+   * „Mächtigkeit" ist der Flächenabstand (p50 ≈ 430 m), der Deckel griffe kaum; unter der Basis gilt dann Γ_eff —
+   * für den Punkt UND für den Modellboden (der bis DZ_SURFACE_M unter der Basis liegen darf ⇒ auch Fall B ändert sich).
+   * AP15-Gate rot (`audit/fusion-vollform.md` §9.3): im Produkt setzt niemand `false`; der AP9-Nachlauf rechnet damit.
+   */
+  extendBelowBase?: boolean;
 }
 
 export interface VerticalResult {
@@ -145,11 +153,13 @@ export function verticalCorrection(inp: VerticalInput): VerticalResult {
   const thickness = zInv - zBase;
   const gInv = dTInv / thickness;                            // Γ_inv, K/m, > 0: wärmer nach oben
   const surfaceBased = zBase <= hModEff + DZ_SURFACE_M;
+  const extend = inp.extendBelowBase !== false;
   const P = (z: number): number => {
     if (z >= zInv) return dTInv - gamma * (z - zInv);        // über der Obergrenze: normale Schichtung
     if (z >= zBase) return dTInv * phiLinear((z - zBase) / thickness);
     // unter der Basis: abgehobene Inversion ⇒ die aufgelöste Schicht darunter ist normal.
-    if (!surfaceBased) return gamma * (zBase - z);
+    // AP15: ohne Verlängerung (grobes Profil) ebenso — Fall C extrapoliert dann nicht.
+    if (!surfaceBased || !extend) return gamma * (zBase - z);
     // Bodeninversion ⇒ PAP 4 Fall C: das Gefälle geht in die Mulde weiter (kälter nach unten),
     // aber höchstens über die eigene Mächtigkeit der Inversion (V-FI-15); darunter wieder Γ_eff.
     const depth = zBase - z;
@@ -162,8 +172,8 @@ export function verticalCorrection(inp: VerticalInput): VerticalResult {
     flags.push('inversionBody');
     return finish(t, 'B', gInv, uOf(hTrue), uOf(hModEff), surfaceBased);
   }
-  if (surfaceBased) flags.push('extrapolatedBelowModel');
-  return finish(t, 'C', gInv, uOf(hTrue), uOf(hModEff), surfaceBased, surfaceBased ? Math.min(zBase - hTrue, thickness) : 0);
+  if (surfaceBased && extend) flags.push('extrapolatedBelowModel');
+  return finish(t, 'C', gInv, uOf(hTrue), uOf(hModEff), surfaceBased, surfaceBased && extend ? Math.min(zBase - hTrue, thickness) : 0);
 }
 
 // ---------------------------------------------------------------------------

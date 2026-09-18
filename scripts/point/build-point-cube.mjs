@@ -64,6 +64,7 @@ import { netStats, resetNetStats, netDiff, clearCache, runIso, poolStats, poolCl
 import { PROFILE_PARAMS } from './profile.mjs';
 import { runLanes, orderedSettle, sequentialSettle } from './lanes.mjs';
 import { writeStaticHmodel } from './staticHmodel.mjs';
+import { writeStaticZ0mod, z0modEnabled, collectZ0mod } from './staticZ0mod.mjs';
 import { QUANTILE_VALUE_OFFSET } from './adapters/ensembleStats.mjs';
 
 const OUT = process.env.POINT_OUT || 'data/point';
@@ -989,6 +990,31 @@ export async function buildTier(tierId, opts = {}) {
   }
   }
 
+  // AP17 (E-F-15, V-FI-58): z0 der Modelle als statisches Produkt `point/static/z0mod/` — nur mit
+  // `POINT_Z0MOD=1` (Jans Gate). Ohne die Variable wird diese Funktion gar nicht eingeplant: kein Abruf,
+  // kein `z0mod` im Manifest, der Cube byte-gleich. Ein Fehler hier reißt den Cube nie mit und zählt NICHT
+  // gegen `SRC_MAX_ERRORS` der Quelle (`collectZ0mod` ohne `safeCall`): eine fehlende Rauhigkeit darf keine
+  // Quelle aus dem Mittel werfen.
+  let z0modStat = null;
+  async function runRoughness() {
+    let absent = {}, missing = {};
+    try {
+      const got = await collectZ0mod(contributors, tier);
+      absent = got.absent; missing = got.missing;
+      const columns = got.columns;
+      const st = await writeStaticZ0mod(opts.out ?? OUT, tierId, columns, { absent, missing });
+      z0modStat = st;
+      console.log(`  ${tierId}: z0 je Quelle — ${st.planes.join(', ') || '(keine)'} · `
+        + (st.changed ? `${st.chunks} Chunks, ${(st.bytes / 1024).toFixed(0)} KiB geschrieben — ${st.reason}` : st.reason)
+        + (Object.keys(absent).length ? ` · ohne z0: ${Object.keys(absent).join(', ')}` : '')
+        + (Object.keys(missing).length ? ` · ⚠ ohne Lieferung: ${Object.entries(missing).map(([k, v]) => `${k} (${v})`).join('; ')}` : ''));
+    } catch (e) {
+      z0modStat = { changed: false, planes: [], chunks: 0, bytes: 0, reason: `Fehler: ${e.message}`, absent, missing };
+      console.log(`  ${tierId}: z0 je Quelle FEHLGESCHLAGEN — ${e.message}`);
+    }
+  }
+  const withZ0mod = z0modEnabled();
+
   // hModEff je (Schritt, Zelle) aus den Quellen, die dort tatsaechlich getragen haben (srcMask).
   // Laeuft NACH dem Join der Bloecke — vorher ist die Maske unvollstaendig. Rueckfall je Zelle:
   // hat keine tragende Quelle eine Hoehe (z. B. nur AICON, das keine veroeffentlicht), das
@@ -1054,6 +1080,7 @@ export async function buildTier(tierId, opts = {}) {
       timed('fields', runFields), timed('ensemble', runEnsemble), timed('quantiles', runQuantiles),
       timed('profile', runProfile), timed('orography', runOrography),
       timed('pressure', runPressure),
+      ...(withZ0mod ? [timed('roughness', runRoughness)] : []),
     ]);
     tFields = Date.now();
     mark('fields');
@@ -1066,6 +1093,9 @@ export async function buildTier(tierId, opts = {}) {
     await timed('profile', runProfile); tFields = Date.now(); mark('profile');
     await timed('orography', runOrography); mark('orography');
     await timed('pressure', runPressure); mark('pressure');
+    // AP17: keine eigene Phasenmarke (die acht Marken sind im Verifier festgeschrieben, (3s)) — die Wandzeit steht
+    // in `timing.blocks.roughness`; im sequenziellen Rückfall zählt sie zur Phase `encode`.
+    if (withZ0mod) { await timed('roughness', runRoughness); }
   }
   // Die einzige Stelle, an der ein Quellfehler den Bau noch abbrechen darf: wenn in
   // dieser Stufe KEINE Quelle mehr trägt. Ein leerer Lauf wäre schlimmer als keiner —
@@ -1150,6 +1180,7 @@ export async function buildTier(tierId, opts = {}) {
     profile: profileStat,
     pressure: pressureStat,
     hmodel: hmodelStat || hModEffStat ? { ...(hmodelStat ?? {}), hModEff: hModEffStat } : null,
+    ...(z0modStat ? { z0mod: z0modStat } : {}),
     quantiles: quantStat,
     ensemble: ensStat,
     perPlane: Object.fromEntries(CUBE_PLANES.map((p, i) => [p.id, perPlane[i]])),
@@ -1278,6 +1309,9 @@ export function runManifest(results) {
         // PD-E: das statische Produkt dieser Stufe. `changed: false` heisst „unveraendert,
         // nichts geschrieben" — genau Jans Vorgabe „nicht pro Lauf neu schreiben".
         hmodel: r.hmodel ?? null,
+        // AP17: das z0-Produkt dieser Stufe (nur mit POINT_Z0MOD=1) — geschrieben oder begründet stehen gelassen,
+        // dazu die Prüfung dieses Laufs (Anteil geänderter Landzellen je Spalte). Ohne den Schalter fehlt der Schlüssel.
+        ...(r.z0mod ? { z0mod: r.z0mod } : {}),
         // PD-E: Druckflaechen. Traegt die Flaechenliste dieser Stufe, die Quellen je
         // Flaeche und die drei Vorbehalte (fehlende 925 bei ICON-D2, fehlendes RH bei
         // AIFS, Extrapolation unter Grund) im Klartext.

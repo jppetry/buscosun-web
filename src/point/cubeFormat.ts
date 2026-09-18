@@ -558,6 +558,45 @@ export function cellCenter(tier: CubeTier, iy: number, ix: number): { lat: numbe
   return { lat: tier.lat0 + iy * tier.deg, lon: tier.lon0 + ix * tier.deg };
 }
 
+/**
+ * Welche der bis zu acht Nachbarn den 2×2-Block bilden: die nächste Zelle plus die in
+ * Richtung des Punkts (Vorzeichen des Versatzes Punkt − Zellmitte in y und x) und die diagonale.
+ * Liegt der Punkt exakt auf der Zellmitte in einer Achse, zählt nur die nächste Zelle in dieser Achse.
+ * EINE Regel für PAP 3 (`fusion/grid.ts`, AP3) und den Leser, der Nachbar-Chunks holt (AP14).
+ */
+export function blockOffsets(dLatDeg: number, dLonDeg: number, tol = 1e-9): Array<{ dy: number; dx: number }> {
+  const sy = Math.abs(dLatDeg) <= tol ? 0 : (dLatDeg > 0 ? 1 : -1);
+  const sx = Math.abs(dLonDeg) <= tol ? 0 : (dLonDeg > 0 ? 1 : -1);
+  const out = [{ dy: 0, dx: 0 }];
+  if (sy) out.push({ dy: sy, dx: 0 });
+  if (sx) out.push({ dy: 0, dx: sx });
+  if (sy && sx) out.push({ dy: sy, dx: sx });
+  return out;
+}
+
+/**
+ * AP14: die Blockzellen einer Stufe, die NICHT im Chunk der nächsten Zelle liegen (aber im Gitter), gruppiert nach
+ * ihrem Chunk. Leer im Inneren eines Chunks; am Rand 1, an einer Ecke bis 3 Chunks. Zellen jenseits des Gitters
+ * gibt es nicht — der Block bleibt dort beschnitten.
+ */
+export function blockCellsOutsideChunk(tier: CubeTier, lat: number, lon: number): Array<{ cy: number; cx: number; cells: Array<{ iy: number; ix: number; dy: number; dx: number }> }> {
+  const c = cellOf(tier, lat, lon);
+  if (!c) return [];
+  const centre = cellCenter(tier, c.iy, c.ix);
+  const home = chunkOf(c.iy, c.ix);
+  const byChunk = new Map<string, { cy: number; cx: number; cells: Array<{ iy: number; ix: number; dy: number; dx: number }> }>();
+  for (const b of blockOffsets(lat - centre.lat, lon - centre.lon)) {
+    const iy = c.iy + b.dy, ix = c.ix + b.dx;
+    if (iy < 0 || ix < 0 || iy >= tier.ny || ix >= tier.nx) continue;
+    const ch = chunkOf(iy, ix);
+    if (ch.cy === home.cy && ch.cx === home.cx) continue;
+    const k = `${ch.cy}_${ch.cx}`;
+    if (!byChunk.has(k)) byChunk.set(k, { cy: ch.cy, cx: ch.cx, cells: [] });
+    byChunk.get(k)!.cells.push({ iy, ix, dy: b.dy, dx: b.dx });
+  }
+  return [...byChunk.values()];
+}
+
 export interface ChunkRef { readonly cy: number; readonly cx: number }
 
 export function chunkOf(iy: number, ix: number): ChunkRef {
@@ -649,6 +688,14 @@ export function staticChunkPath(
 /** Das eine statische Produkt, das es heute gibt: die Modellhoehe je Quelle. */
 export const HMODEL_PRODUCT = 'hmodel';
 export const HMODEL_VERSION = 'v1';
+
+/**
+ * AP17 (E-F-15, V-FI-58): die Rauhigkeitslaenge der Modelle je Quelle — ln(z0) aus dem GRIB-Schritt 000 als
+ * ln-Blockmittel je Zelle (`scripts/point/staticZ0mod.mjs`). Der Leser (`staticPoint.ts`) nimmt Skala und Spalten aus
+ * `static.json`; gebaut wird es nur mit `POINT_Z0MOD=1` (Jans Gate).
+ */
+export const Z0MOD_PRODUCT = 'z0mod';
+export const Z0MOD_VERSION = 'v1';
 
 /** Pfad des Punkt-Manifests. */
 /**

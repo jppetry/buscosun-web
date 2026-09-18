@@ -230,7 +230,7 @@ async function live(lat: number, lng: number, country: Country, hours = 240, opt
  * Cube-Achse und Abbildung auf `PointForecast`. `fresh: true` leert vorher den Ergebnis-Cache
  * des Pfads (der zweite Aufruf misst dann IndexedDB + Rechnung, nicht ein gemerktes Objekt).
  */
-async function cube(lat: number, lng: number, country: Country, opts: { hours?: number; nowcast?: boolean; fresh?: boolean; series?: boolean; obs?: boolean; progressive?: boolean; ranges?: boolean; z0?: boolean } = {}) {
+async function cube(lat: number, lng: number, country: Country, opts: { hours?: number; nowcast?: boolean; fresh?: boolean; series?: boolean; obs?: boolean; progressive?: boolean; ranges?: boolean; z0?: boolean; cc?: boolean; lc?: boolean } = {}) {
   if (opts.fresh) clearCubeForecastCache();
   const T0 = now();
   try {
@@ -240,15 +240,19 @@ async function cube(lat: number, lng: number, country: Country, opts: { hours?: 
     let finalMs: number | null = null;
     let fullMs: number | null = null;
     let updateInfo: { pending: string[]; sources: string[]; notes: string[] } | null = null;
-    const emissions: Array<{ kind: string | null; ms: number; hours: number; pending: string[]; z0: boolean }> = [];
+    const emissions: Array<{ kind: string | null; ms: number; hours: number; pending: string[]; z0: boolean; border: number; cc: boolean; lc: boolean }> = [];
     let onUpd: ((fc: PointForecast) => void) | undefined;
     let settle: (() => void) | null = null;
     const doneP = opts.progressive ? new Promise<void>((resolve) => { settle = resolve; }) : null;
     const note = (u: PointForecast, ms: number) => {
-      const uc = u.cube as { pending?: string[]; emission?: string; notes?: string[]; calib?: string[] } | undefined;
+      const uc = u.cube as { pending?: string[]; emission?: string; notes?: string[]; calib?: string[]; flags?: Array<{ flags: string[] }> } | undefined;
       const pending = uc?.pending ?? [];
       // V-FI-17: trägt diese Ausgabe die zweistufige Windkorrektur (z0 aus WorldCover)?
-      emissions.push({ kind: uc?.emission ?? null, ms: Math.round(ms), hours: u.hours.length, pending, z0: (uc?.calib ?? []).some((c) => c.startsWith('z0:set')) });
+      // AP14: wie viele Schritte tragen noch `chunkBorderTruncated`, und kam der Nachbar-Chunk in dieser Ausgabe?
+      emissions.push({ kind: uc?.emission ?? null, ms: Math.round(ms), hours: u.hours.length, pending, z0: (uc?.calib ?? []).some((c) => c.startsWith('z0:set')),
+        border: (uc?.flags ?? []).filter((f) => f.flags.includes('chunkBorderTruncated')).length, cc: (uc?.notes ?? []).some((n) => n.startsWith('crossChunk:')),
+        // AP16: trägt diese Ausgabe die Landbedeckung (d_water in v2)?
+        lc: !!(uc as { v2?: { point?: { dWater?: unknown } } } | undefined)?.v2?.point?.dWater });
       if (!pending.some((x) => /^t[123]$/.test(x))) fullMs ??= ms;
       finalMs = ms;
       if (uc?.emission === 'update') updateInfo = { pending, sources: u.sourcesAvailable, notes: (uc?.notes ?? []).filter((n) => /anchor/.test(n)) };
@@ -259,8 +263,10 @@ async function cube(lat: number, lng: number, country: Country, opts: { hours?: 
     // AP12 (Diagnose): `obs: false` = ohne Messungs-Abruf für den Anker — misst, was dessen Bytes auf der Leitung kosten.
     // AP12 (c): `ranges` = Cube-Chunks über Ebenen-Bereiche (CUBE_ANSWER_PLANES), Rest im Hintergrund.
     // V-FI-17: `z0: false` = ohne WorldCover-Rauhigkeit (die Vorher-Variante im selben Lauf).
-    const fc = opts.obs === false || opts.ranges || opts.z0 === false
-      ? await getPointForecastFromCube(po, { ...defaultCubeIo(), ...(opts.obs === false ? { obs: null } : {}), ...(opts.ranges ? { planeRanges: true } : {}), ...(opts.z0 === false ? { z0: null } : {}) })
+    // AP14: `cc: true` = Nachbar-Chunk für den 2×2-Block (`crossChunk`), `cc: false` = die Voreinstellung als Vorher-Variante im selben Lauf.
+    // AP16: `lc: true` = Landbedeckung mit κ und Modellzell-Box (`landCover` + `fuse`), `lc: false` = die Voreinstellung im selben Lauf.
+    const fc = opts.obs === false || opts.ranges || opts.z0 === false || opts.cc !== undefined || opts.lc !== undefined
+      ? await getPointForecastFromCube(po, { ...defaultCubeIo(), ...(opts.obs === false ? { obs: null } : {}), ...(opts.ranges ? { planeRanges: true } : {}), ...(opts.z0 === false ? { z0: null } : {}), ...(opts.cc ? { crossChunk: true } : {}), ...(opts.lc ? { landCover: true, fuse: { kappa: true, z0CellBox: true } } : {}) })
       : await getPointForecast(po);
     const firstMs = now() - T0;
     const c = fc.cube as { timing?: Record<string, unknown>; provenance?: Record<string, unknown>; flags?: unknown[]; notes?: string[]; skips?: string[]; errors?: string[]; stats?: unknown; axis?: { native?: number[]; seams?: number[]; perTier?: unknown }; pending?: string[]; emission?: string } | undefined;

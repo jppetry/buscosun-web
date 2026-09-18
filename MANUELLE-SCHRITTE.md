@@ -461,3 +461,169 @@ default-off (`pointSource: 'cube'`), das App-Bundle unverändert (eagerJs 107,9)
       Zeile 461, im Aufruf `getPointForecast({ … })` **`elevationM: p.elev,`** ergänzen — dann rechnet der Live-Pfad
       an den 31 Punkten mit DEM − Station > 50 m in Stationshöhe. Das ändert die B5-Grundlinie an diesen Punkten ⇒ im
       Slot benennen (Hinweistext Zeile 451, `codeHash`).
+
+## 18. buscosun Fusion — Vollform ohne Archiv (AP13–AP17), 2026-09-18
+
+Beleg: `audit/fusion-vollform.md` (Plan §0–§8, Entscheidungen §6.1, Etappenprotokoll §9). Der Plan ist freigegeben;
+E-F-13…22 sind entschieden (alle ja außer E-F-22). AP9 läuft parallel nach dem neuen `prompt.md`. Alles
+uncommitted, Daten- und Archiv-Repo unberührt, jede neue Option voreingestellt aus.
+
+- [ ] **AP9 starten** (parallele Session) mit dem neu geschriebenen `prompt.md`:
+      - 15 Korrekturen aus V-FI-77;
+      - gekürzter 2×2-Block;
+      - POI-Wetterspalten;
+      - Provenienz-Hashes;
+      - Schema 3;
+      - Nachlauf-Prüfung.
+- [ ] **E-F-19 (b) — Slot-Wachstum abzeichnen, bevor AP9 Schema 3 einfriert:**
+      - AP9 misst am echten Slot mit dem gekürzten Block (Nachbarn nur 31 PAP-3-Ebenen);
+      - dazu kommt V-FI-55;
+      - daraus GB/Jahr und Monate bis zur GitHub-Warnung bei 5 GB.
+      Die 44 %/29 % im Plan sind Chunk-Schätzungen, keine Slot-Messung.
+- [ ] **E-F-15 — den AP17-Diff freigeben (z0 der Modelle, `point/static/z0mod/v1`)** — Beleg
+      `audit/fusion-vollform.md` §9.5:
+      - **RV12 gemessen: kein Orographie-Anteil** (z0 fällt über 2 500 m auf p50 0,06 m; ICON-CH1 über 1 500 m
+        unabhängig von SSO_STDH). Aber das GRIB-z0 liegt 1,5- bis 5-mal über der WorldCover-Näherung (V-FI-100): mit
+        `z0Model` stiege der korrigierte Wind im Median um 3–5 %, höchstens 10 %. Deshalb bleibt der Browser aus.
+      - **Der Diff** (ansehen: `git diff -- scripts/point/ scripts/repack-repo/workflow-point.yml src/point/cubeFormat.ts`
+        und die neue Datei `scripts/point/staticZ0mod.mjs`):
+        - `scripts/point/staticZ0mod.mjs` (neu): ln-Blockmittel je Zelle, Neubau-Regel (erster Bau, neue Spalte, neuer
+          Monat oder > 1 % der Landzellen mit Faktor > 1,65; nie bei fehlender Spalte), Schreiber, Selbsttest;
+        - Adapter `dwdRegular` (ICON-D2 `z0`, ICON-EU `Z0`), `dwdIcosahedral` (ICON global `Z0`), `meteoswiss`
+          (ICON-CH1/-CH2 `Z0`, ctrl, Vorlauf 0) — je eine Methode `roughness`;
+        - `build-point-cube.mjs`: `runRoughness` nur mit `POINT_Z0MOD=1`, `z0mod` in `run.json` nur dann;
+        - `scripts/repack-repo/workflow-point.yml`: `POINT_Z0MOD: '1'` in den Bauschritten t1/t2/t3;
+        - `verify-point-data.mjs`: (3az) 11 Prüfungen, (3w) mit benannter Ausnahme + Gegenprobe (990/990).
+        - **Publisher unverändert** (das Register findet das Produkt, `cdnSync` wärmt neue Dateien).
+      - **Kosten:** je Job t1 +4,3 MB, t2 +3,2 MB, t3 +1,7 MB Download (≈ 50 MB/Tag), Wandzeit neben den Feldbahnen;
+        Daten-Repo einmal 265 KiB, danach nur bei Neubau.
+      - **Negativkontrolle gemessen:** echter eingeschränkter t3-Bau ohne/mit Schalter — Cube- und hmodel-Chunks
+        byte-gleich, `run.json` nur um `z0mod` (und flüchtige Zeiten) verschieden.
+      - **Freigeben heißt, in dieser Reihenfolge:**
+        1. `buscosun-web` mit AP17 committen und pushen — das schaltet noch nichts ein (der Schalter fehlt in der
+           Workflow-Kopie des Daten-Repos).
+        2. Die Vorlage `scripts/repack-repo/workflow-point.yml` ins Daten-Repo kopieren — ab dem nächsten Job je Stufe
+           baut der Producer `z0mod` (erster Bau schreibt, danach nur bei Neubau).
+        3. Nach dem ersten Job je Stufe prüfen: `run.json` → `tiers[].z0mod.reason` = „erstmals gebaut", `absent` nennt
+           IFS/AIFS/AICON/C-LAEF; `point/index.json` → `static.products` nennt `z0mod/v1`.
+      - **Rückweg:** die Zeile `POINT_Z0MOD: '1'` aus der Kopie nehmen — das Produkt bleibt liegen und wird nicht
+        gelesen (Browser aus).
+      - **Nicht Teil dieser Freigabe:** `CubeIo.z0mod` + `fuse.z0Model` im Browser — erst nach dem Stationsvergleich
+        beider Varianten (V-FI-100, AP9-Nachlauf/AP10).
+      - **Zur Kenntnis:** V-FI-102 (`run.json` nennt je Quelle nur die Zahl der Stunden, nicht welche — Skizze
+        `sources[].leads`, ein weiterer Producer-Diff, wenn du willst).
+- [ ] **E-F-20 — Publisher-Weg der Fit-Werte (S&F, wenn er ansteht):** `calib.fit.json` aus dem Archiv-Repo in
+      `point/calib.json` (Schema 2). AP13 baut nur Schema 2 und den Client-Leser (voreingestellt aus); das veröffentlichte
+      `calib.json` bleibt bis dahin Schema 1.
+- [ ] **E-F-21 — totalJs-Ratsche je AP:** jede Etappe legt ihren gemessenen Zuwachs vor (lazy, eagerJs 107,9
+      unverändert); du bestätigst die neue Zahl.
+      - **AP13:** 1 430 → **1 432** (IST 1 431,5; +3,9 KB gzip, alles im Lazy-Chunk `cubeSource`). Textsonde: der
+        Fit-Kern ist in keinem Chunk. Beleg `audit/fusion-vollform.md` §9.1.3, Notiz in `budget.json`.
+      - **AP14:** 1 432 → **1 433** (IST 1 432,8; +1,3 KB gzip, alles im Lazy-Chunk `cubeSource`). Beleg §9.2.3.
+      - **AP16:** 1 433 → **1 437** (IST 1 436,2; +3,3 KB gzip, alles im Lazy-Chunk `cubeSource`). Textsonde: der
+        Fit-Kern in keinem Chunk, nichts im Start-Chunk. Beleg §9.4.5, Notiz in `budget.json`.
+      - **AP17:** 1 437 → **1 438** (IST 1 437,4; +1,2 KB gzip, alles im Lazy-Chunk `cubeSource`). Textsonde: der
+        Producer in keinem Chunk, nichts im Start-Chunk. Beleg §9.5.6, Notiz in `budget.json`.
+- [ ] **AP13 ansehen und committen** (Beleg §9.1; nichts eingeschaltet, Produkt byte-gleich bis auf `calibByVar`).
+      Vorher, einzeln:
+
+      ```
+      npm run typecheck
+      npm run verify:pv-cube          # 256/256 (Kosten-Prüfungen nur allein)
+      npm run verify:point-client     # 139/139
+      npm run verify:point-data       # 978/978
+      npm run verify:calib-fit        # 14/14 (≈ 60 s)
+      npm run verify:pv-fusion        # 229/229 (unberührt)
+      npm run verify:punktarchiv      # 103/103 (unberührt)
+      npm run build && npm run budget # 241/241, totalJs 1 431,5 / 1 432
+      ```
+
+      - Dateien (Scope `pointForecast`/`point-calib`):
+        - `src/point/{calibDoc,calibFit}.ts` (neu), `src/point/client/calibPoint.ts` (neu), `src/point/calibration.ts`;
+        - `src/pointForecast/cubeSource.ts`, `src/pointForecast/fusion/{output,uncertainty,terrainTerms}.ts`;
+        - `scripts/verify-calib-fit.mjs` (neu), `scripts/{verify-pv-cube,verify-point-client}.mjs`;
+        - `package.json` (Alias), `budget.json`;
+        - `audit/fusion-vollform.md`, `audit/fusion-implementierung/latency/2026-09-18T16-25-44-456Z.json` und
+          `…T17-02-35-260Z.json`.
+        - Dazu Doku: `prompt.md` (AP9-Kickoff neu), `CLAUDE.md`, dieses §18.
+      - `tsconfig.app.tsbuildinfo` hat `tsc -b` verändert (Build-Artefakt), `prompt-vollform-plan.md` ist der alte
+        Planungs-Kickoff — beide nicht mitnehmen, wenn du sie sonst auch nicht committest.
+      - ⚠ Läuft AP9 parallel: nur diese Dateien stagen.
+- [ ] **`crossChunk` im Browser einschalten** (AP14) erst nach dem Randbefund aus dem Archiv (gepaart beschnitten gegen
+      vollständig, AP9-Nachlauf).
+      - Gebaut und geprüft (§9.2), voreingestellt aus.
+      - Preis gemessen: erste Darstellung unverändert; voller Block als eigene Ausgabe, Mobil-4G kalt ≈ 2,8–3,4 s ab
+        Start; +406–781 KB nur an ≈ 25 % der Orte.
+      - Einschalten = eine Zeile in `defaultCubeIo` (`crossChunk: true`).
+- [ ] **AP14 ansehen und committen** (mit oder nach AP13; Befehle wie dort, Zielzahlen `verify:pv-cube` 260/260,
+      `verify:point-client` 143/143, totalJs 1 432,8 / 1 433).
+      - Dateien:
+        - `src/point/cubeFormat.ts`, `src/point/client/{cubePoint,readPoint}.ts`;
+        - `src/pointForecast/cubeSource.ts`, `src/pointForecast/fusion/grid.ts`;
+        - `scripts/lib/pvCubeFixtures.mjs` (geteilt mit AP9, nur additiv);
+        - `scripts/{verify-point-client,verify-pv-cube,verify-pv-latency}.mjs`, `scripts/pv-latency/lab.ts`;
+        - `budget.json`;
+        - `audit/fusion-vollform/chunk-border.mjs`, `audit/fusion-implementierung/latency/2026-09-18T17-32-20-129Z.json`.
+      - Dazu Doku: `audit/fusion-vollform.md` §0/§9.2, `CLAUDE.md`, dieses §18.
+- [ ] **AP15 — das Abnahme-Gate vor dem Archiv ist ROT** (Beleg `audit/fusion-vollform.md` §9.3.2):
+      - Bei |Δh| > 300 m: Druckflächen-Profil MAE **1,94 K** gegen Standard-Lapse **1,39 K** (Referenz t1-Profil,
+        3 501 Fälle an 95 Punkten).
+      - Nachts 2,79 gegen 1,64; tags besser, 0,87 gegen 1,23.
+      - Ursache ist der 2-m-Punkt in der Säule, nicht die Inversionserkennung.
+      - Keine Regel-Variante schlägt die Standard-Lapse über das Rauschen hinaus.
+      - **Die Option ist nicht verdrahtet** (0 Byte, keine `v2codec`-Änderung). Gebaut sind nur die reinen Bausteine
+        (`profileColumn.ts`, `extendBelowBase`) für den AP9-Nachlauf.
+      - **Zu bestätigen:** (a) nicht verdrahten, bis AP9 gegen Stationen misst; (b) AP9 nimmt den Vergleich in den
+        Nachlauf: (i) gegen (ii) gegen V-e je Nacht/Tag und über/unter der Zelle, t2/t3 ab dem Slot mit Schema 3.
+        Kippt die Wahrheit das Urteil, folgt die Verdrahtung als S-Paket; sonst ist Lücke 2 ohne zusätzliche
+        Druckflächen (1000/950 hPa, V-FI-78) nicht wirksam zu schließen.
+- [ ] **AP15 ansehen und committen** (mit oder nach AP14; nichts im Produkt geändert, `vertical.ts` ohne Option
+      bitgleich zu HEAD). Zielzahlen: `verify:pv-cube` 269/269, sonst wie AP14; totalJs 1 432,9 / 1 433 (keine neue
+      Ratsche).
+      - Dateien:
+        - `src/point/profileColumn.ts` (neu), `src/pointForecast/fusion/vertical.ts`;
+        - `scripts/verify-pv-cube.mjs`;
+        - `audit/fusion-vollform/{pressure-profile-shadow,pressure-levels}.mjs`;
+        - `audit/fusion-implementierung/latency/2026-09-18T17-43-28-696Z.json` (vorher) und `…T18-01-48-474Z.json`
+          (nachher).
+      - Dazu Doku: `audit/fusion-vollform.md` §9.3, `CLAUDE.md`, dieses §18.
+- [ ] **AP16 — Landbedeckung: gebaut, nichts eingeschaltet** (Beleg `audit/fusion-vollform.md` §9.4):
+      - `CubeIo.landCover` (d_water in v2, Eingang für κ und die Modellzell-Box), `FuseCubeOptions.kappa`,
+        `FuseCubeOptions.z0CellBox` — alle voreingestellt aus, ohne Option byte-gleich zum Stand vor AP16.
+      - Einschalten ist **keine** Entscheidung für jetzt: κ (λ) und die Modellzell-Box sind Kalibrierung (AP10), d_water
+        ist nur Ausgabe (E-F-17). Der AP9-Nachlauf kann die Landbedeckung zur Nachlaufzeit aus dem SHA-gepinnten Spiegel
+        rechnen (`loadLandCoverAtPoint` läuft in Node); der Sammler muss dafür nichts speichern.
+      - **Zur Kenntnis (AP10):**
+        - V-FI-94: d_water trifft mit A_min 10 px meist Teiche/Fluss-Stücke (Körper p50 ≈ 0,045 km²); ob ein
+          zweiter Abstand zu Gewässern ≥ 1 km² gebraucht wird, entscheidet der Term.
+        - V-FI-98: tpiSigma gemessen — DE 22,6 · AT 117,1 · CH 135,0 · gepoolt 104,6 m. Der Leser nimmt nur den
+          gepoolten Wert; damit erreicht in DE kaum ein Punkt das Muldengate. Nicht im Produkt
+          (`audit/fusion-vollform/tpi-sigma.fit.json`), wirksam erst mit gemessenem A.
+- [ ] **AP16 ansehen und committen** (mit oder nach AP15). Zielzahlen einzeln: `verify:pv-cube` 280/280,
+      `verify:point-client` 161/161, `verify:calib-fit` 14/14, `verify:point-data` 978/978, `verify:pv-fusion` 229/229;
+      Build, totalJs 1 436,2 / 1 437 (neue Ratsche, s. E-F-21).
+      - Dateien:
+        - `src/point/client/landCover.ts` (neu), `src/point/client/z0Point.ts`, `src/point/calibFit.ts`;
+        - `src/pointForecast/cubeSource.ts`, `src/pointForecast/fusion/{grid,output}.ts`;
+        - `scripts/{verify-point-client,verify-pv-cube,verify-calib-fit,verify-pv-latency}.mjs`, `scripts/pv-latency/lab.ts`;
+        - `budget.json`;
+        - `audit/fusion-vollform/{landcover-places,tpi-sigma}.mjs`, `audit/fusion-vollform/tpi-sigma.fit.json`;
+        - Latenz: `audit/fusion-implementierung/latency/2026-09-18T18-33-57-166Z.json` (vorher),
+          `…T19-10-20-564Z.json` (nachher) und `…T19-13-40-958Z.json` (Landbedeckung an/aus).
+      - Dazu Doku: `audit/fusion-vollform.md` §9.4, `CLAUDE.md`, dieses §18.
+- [ ] **AP17 ansehen und committen** (mit oder nach AP16; der Commit selbst schaltet nichts ein — s. E-F-15 oben).
+      Zielzahlen einzeln: `verify:pv-cube` 290/290, `verify:point-client` 165/165, `verify:point-data` 990/990,
+      `verify:calib-fit` 14/14, `verify:pv-fusion` 229/229, `verify:punktarchiv` 103/103; Build, totalJs 1 437,4 / 1 438.
+      - Dateien, Producer-Teil (= der Diff zur Freigabe):
+        - `scripts/point/staticZ0mod.mjs` (neu), `scripts/point/build-point-cube.mjs`;
+        - `scripts/point/adapters/{dwdRegular,dwdIcosahedral,meteoswiss}.mjs`;
+        - `scripts/repack-repo/workflow-point.yml` (danach die Kopie ins Daten-Repo);
+        - `scripts/verify-point-data.mjs`.
+      - Dateien, Client-Teil (voreingestellt aus):
+        - `src/point/cubeFormat.ts`, `src/point/client/readPoint.ts`;
+        - `src/pointForecast/cubeSource.ts`, `src/pointForecast/fusion/output.ts`;
+        - `scripts/{verify-pv-cube,verify-point-client}.mjs`, `budget.json`.
+      - Diagnose und Messung: `audit/fusion-vollform/{z0mod-diag,z0mod-local,z0mod-places}.mjs`; Latenz
+        `audit/fusion-implementierung/latency/2026-09-18T20-11-48-289Z.json` (nachher; vorher = `…T19-10-20-564Z.json`).
+      - Dazu Doku: `audit/fusion-vollform.md` §9.5, `CLAUDE.md`, dieses §18.
+      - Nicht mitnehmen: `prompt-hindcast.md` (nicht aus dieser Linie), `tsconfig.app.tsbuildinfo`, `prompt-vollform-plan.md`.

@@ -1,0 +1,39 @@
+{
+  "note": "AP16 V-FI-85 — nur Diagnose, nicht im Produkt; Stichprobe s. tpi-sigma.mjs",
+  "entry": {
+    "provenance": "measured",
+    "updatedAt": "2026-09-18T12:00:00.000Z",
+    "period": {
+      "from": "2026-09-18",
+      "to": "2026-09-18"
+    },
+    "estimator": "Standardabweichung des TPI je Region",
+    "strata": "Region",
+    "fitVersion": "calibFit@1",
+    "source": "Geländestack (TPI am Punkt, keine Archivfälle), Fit calibFit@1 (Standardabweichung des TPI je Region); Stichprobe n 330, Regionen DE/AT/CH",
+    "pap": "PAP 5",
+    "value": {
+      "default": 104.5543,
+      "DE": 22.6489,
+      "AT": 117.1239,
+      "CH": 135.014
+    },
+    "n": 330,
+    "days": 0,
+    "unit": "m"
+  },
+  "report": {
+    "path": "tpiSigma",
+    "status": "written",
+    "n": 330,
+    "days": 0,
+    "needN": 100,
+    "needDays": 0,
+    "value": {
+      "default": 104.5543,
+      "DE": 22.6489,
+      "AT": 117.1239,
+      "CH": 135.014
+    }
+  }
+}

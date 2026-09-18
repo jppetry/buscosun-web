@@ -253,6 +253,55 @@ export function planesForChunkHeader(bytes: Uint8Array): PointRunManifest['plane
   return CUBE_PLANES.map((pl) => ({ id: pl.id, unit: pl.unit, scale: pl.scale, offset: pl.offset, group: pl.group }));
 }
 
+/** Eine Zelle (iy, ix — absolut im Stufengitter) aus einem entpackten Chunk als Nachbarzelle. Rein. */
+function cellFromChunk(
+  chunk: CubeChunk, planes: PointRunManifest['planes'], want: Set<string> | null, tier: CubeTier,
+  iy: number, ix: number, dy: number, dx: number, lat: number, lon: number,
+): CubeNeighbourCell {
+  const ny = iy - chunk.y0, nx = ix - chunk.x0;
+  const values: Array<Record<string, number | null>> = [];
+  let hModN: number | null = null;
+  for (let it = 0; it < chunk.nt; it++) {
+    const v: Record<string, number | null> = {};
+    for (let pi = 0; pi < planes.length; pi++) {
+      const plane = planes[pi];
+      if (want && !want.has(plane.id)) continue;
+      const raw = chunk.planes[pi];
+      if (raw.length === 0) continue;
+      v[plane.id] = dequantize(raw[planeOffset(chunk, it, ny, nx)], plane);
+    }
+    if (hModN == null && v.hModEff != null) hModN = v.hModEff;
+    values.push(v);
+  }
+  const c = cellCenter(tier, iy, ix);
+  return { dy, dx, iy, ix, lat: c.lat, lon: c.lon, distKm: distanceKm(lat, lon, c.lat, c.lon), hModEffM: hModN, values };
+}
+
+/**
+ * AP14 (Phase FI, `audit/fusion-vollform.md` §2.3): Blockzellen aus einem ANDEREN Chunk desselben Laufs — für den
+ * 2×2-Block über die Chunk-Grenze. Dieselbe Form wie die Ring-Zellen (`dy/dx` gegen die Hauptzelle). Rein.
+ *
+ * Schutz gegen einen falschen Chunk: jede Zelle muss IN diesem Chunk liegen (Kopf `y0/x0/ny/nx`), Ebenenzahl und
+ * Schrittzahl müssen zur Reihe der Hauptzelle passen — sonst Abbruch statt stiller Fremdwerte.
+ */
+export function cellsFromChunk(
+  chunk: CubeChunk,
+  tier: CubeTier,
+  planes: PointRunManifest['planes'],
+  cells: ReadonlyArray<{ iy: number; ix: number; dy: number; dx: number }>,
+  ctx: { lat: number; lon: number; wanted?: readonly string[]; nt: number },
+): CubeNeighbourCell[] {
+  if (planes.length !== chunk.planes.length) throw new Error(`cubePoint: Nachbar-Chunk hat ${chunk.planes.length} Ebenen, die Liste nennt ${planes.length}`);
+  if (chunk.nt !== ctx.nt) throw new Error(`cubePoint: Nachbar-Chunk trägt ${chunk.nt} Schritte, die Reihe ${ctx.nt} — anderer Lauf?`);
+  const want = ctx.wanted ? new Set(ctx.wanted) : null;
+  return cells.map((c) => {
+    if (c.iy < chunk.y0 || c.ix < chunk.x0 || c.iy >= chunk.y0 + chunk.ny || c.ix >= chunk.x0 + chunk.nx) {
+      throw new Error(`cubePoint: Zelle ${c.iy}/${c.ix} liegt nicht im Nachbar-Chunk (${chunk.y0}/${chunk.x0}, ${chunk.ny}×${chunk.nx}) — Chunk-Raster verletzt`);
+    }
+    return cellFromChunk(chunk, planes, want, tier, c.iy, c.ix, c.dy, c.dx, ctx.lat, ctx.lon);
+  });
+}
+
 /** Entpackter Chunk + Adresse + (optional) Manifest → die Reihe. Rein. */
 export function cubeSeriesFrom(
   chunk: CubeChunk,
@@ -329,22 +378,7 @@ export function cubeSeriesFrom(
         if (dy === 0 && dx === 0) continue;
         const ny = ry + dy, nx = rx + dx;
         if (ny < 0 || nx < 0 || ny >= chunk.ny || nx >= chunk.nx) continue;
-        const values: Array<Record<string, number | null>> = [];
-        let hModN: number | null = null;
-        for (let it = 0; it < chunk.nt; it++) {
-          const v: Record<string, number | null> = {};
-          for (let pi = 0; pi < planes.length; pi++) {
-            const plane = planes[pi];
-            if (want && !want.has(plane.id)) continue;
-            const raw = chunk.planes[pi];
-            if (raw.length === 0) continue;
-            v[plane.id] = dequantize(raw[planeOffset(chunk, it, ny, nx)], plane);
-          }
-          if (hModN == null && v.hModEff != null) hModN = v.hModEff;
-          values.push(v);
-        }
-        const c = cellCenter(tier, cell.iy + dy, cell.ix + dx);
-        neighbours.push({ dy, dx, iy: cell.iy + dy, ix: cell.ix + dx, lat: c.lat, lon: c.lon, distKm: distanceKm(ctx.lat, ctx.lon, c.lat, c.lon), hModEffM: hModN, values });
+        neighbours.push(cellFromChunk(chunk, planes, want, tier, cell.iy + dy, cell.ix + dx, dy, dx, ctx.lat, ctx.lon));
       }
     }
   }

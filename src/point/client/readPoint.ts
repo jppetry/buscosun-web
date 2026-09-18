@@ -29,15 +29,16 @@
  */
 
 import {
-  TIERS, TIER_BY_ID, type TierId, cellOf, chunkOf, stationBundlePath, HMODEL_PRODUCT, HMODEL_VERSION, CUBE_PLANES, CUBE_SCHEMA,
+  TIERS, TIER_BY_ID, type TierId, cellOf, chunkOf, stationBundlePath, HMODEL_PRODUCT, HMODEL_VERSION, Z0MOD_PRODUCT, Z0MOD_VERSION, CUBE_PLANES, CUBE_SCHEMA,
+  chunkPath, blockCellsOutsideChunk, type CubeTier,
 } from '../cubeFormat';
 import type { PointRunManifest } from '../manifest';
 import type { NowcastSourceId } from '../nowcastFormat';
 import { memoStore, withRawFallback, type PointStore, type StoreStats } from './store';
 import { POINT_INDEX_PATH as POINT_INDEX_JSON } from '../cubeFormat';
 import {
-  cubeAddress, cubeSeriesFrom, loadPointIndex, loadRunManifestFrom, manifestStore, planesForChunkHeader,
-  type CubePointSeries, type ManifestOrigin, type PointIndex,
+  cubeAddress, cubeSeriesFrom, cellsFromChunk, loadPointIndex, loadRunManifestFrom, manifestStore, planesForChunkHeader,
+  type CubePointSeries, type CubeNeighbourCell, type ManifestOrigin, type PointIndex,
 } from './cubePoint';
 import {
   loadStationCatalog, nearestStations, readStationPoint,
@@ -83,6 +84,13 @@ export interface ReadPointOptions {
   wanted?: readonly string[];
   /** AP3: die Nachbarzellen jeder Stufe mitlesen (aus demselben Chunk, 0 zusätzliche Abrufe). */
   neighbours?: boolean;
+  /**
+   * AP14 (`audit/fusion-vollform.md` §2.3): liegt eine Zelle des 2×2-Blocks (PAP 3) in einem ANDEREN Chunk, diesen
+   * Chunk desselben Laufs nachholen und die Zelle an `neighbours` hängen (1, an Ecken 3 Chunks; nur ≈ 25 % der Orte).
+   * Nur mit `neighbours`. Nicht-progressiv stehen die Zellen im Bündel; progressiv, wenn sie zum Kern noch nicht da
+   * sind, in `late.crossChunk`. Voreinstellung aus — ohne die Option unverändert.
+   */
+  crossChunk?: boolean;
   nowcast?: boolean;
   /** Gelände-Optionen — oder `false`, um es auszulassen. */
   terrain?: TerrainOptions | false;
@@ -90,6 +98,12 @@ export interface ReadPointOptions {
   plan?: boolean;
   /** Statische Produkte an den Index-Commit gepinnt lesen statt `@main` (s. Kommentar im Leser, V-FI-6). */
   staticPinned?: boolean;
+  /**
+   * AP17 (E-F-15): zusätzlich `point/static/z0mod/v1` je Stufe lesen (z0 der Modelle je Quelle, eine kleine Datei je
+   * Stufe) — mit den übrigen statischen Produkten, also nie auf dem kritischen Pfad. Voreinstellung aus: ohne die
+   * Option kein Abruf und kein Feld `z0mod` im Bündel.
+   */
+  z0mod?: boolean;
   /**
    * AP7 (V-FI-16): Frist AB DEM START des Lesens, bis zu der auf die progressiven Produkte (Nowcast,
    * statische Produkte) gewartet wird — nie früher als `lateGraceMs` nach dem Kern. Radar-Slots sind
@@ -159,6 +173,8 @@ export interface PointBundle {
   nowcast: NowcastPointSeries[];
   hmodel: Partial<Record<TierId, StaticPoint | null>>;
   urban: StaticPoint | null;
+  /** AP17: z0 der Modelle je Stufe (`point/static/z0mod`) — nur mit `ReadPointOptions.z0mod`; `null` = Produkt/Zelle fehlt. */
+  z0mod?: Partial<Record<TierId, StaticPoint | null>>;
   terrain: TerrainPointResult | null;
   plan: PointPlan | null;
   /**
@@ -168,9 +184,14 @@ export interface PointBundle {
    */
   late?: {
     nowcast?: { result: Promise<NowcastPointSeries[]>; skip: string };
-    static?: { result: Promise<{ hmodel: Partial<Record<TierId, StaticPoint | null>>; urban: StaticPoint | null }>; skip: string };
+    static?: { result: Promise<{ hmodel: Partial<Record<TierId, StaticPoint | null>>; urban: StaticPoint | null; z0mod?: Partial<Record<TierId, StaticPoint | null>> }>; skip: string };
     /** AP12 (e): der Index kam aus der SWR-Kopie; `changed` = die Nachprüfung nennt andere Läufe (Stufen oder Stationen). */
     index?: { ageMs: number; changed: Promise<boolean> };
+    /**
+     * AP14: die Blockzellen aus Nachbar-Chunks je Stufe (dieselbe Form wie `neighbours`), zum Kern noch nicht da.
+     * Das Bündel selbst bleibt unverändert — der Aufrufer hängt sie an eine Kopie (`withCrossChunk`).
+     */
+    crossChunk?: { result: Promise<CrossChunkResult>; skip: string };
   };
   /** AP12 (c): die Vervollständigung der über Bereiche gelesenen Chunks (Rest holen, CRC, Cache) — fehlt ohne `planeRanges`. */
   completing?: Promise<Array<{ tier: TierId; ok: boolean; bytes: number; why?: string }>>;
@@ -200,6 +221,24 @@ export interface PointBundle {
     phases: Record<string, number>;
   };
   stats: StoreStats;
+}
+
+/** AP14: die nachgeholten Blockzellen je Stufe, mit den Chunks, aus denen sie kamen. */
+export type CrossChunkResult = Partial<Record<TierId, { cells: CubeNeighbourCell[]; chunks: string[] }>>;
+
+/**
+ * AP14: eine Kopie des Bündels, deren Reihen die nachgeholten Blockzellen tragen (die übrigen Felder geteilt). Rein —
+ * das Bündel des Aufrufers bleibt unverändert; eine Zelle, die es in der Reihe schon gibt, wird nicht doppelt gehängt.
+ */
+export function withCrossChunk(b: PointBundle, cross: CrossChunkResult): PointBundle {
+  const cube: PointBundle['cube'] = { ...b.cube };
+  for (const [t, r] of Object.entries(cross) as Array<[TierId, { cells: CubeNeighbourCell[] } | undefined]>) {
+    const s = cube[t];
+    if (!s || !r?.cells.length || !s.neighbours) continue;
+    const have = new Set(s.neighbours.map((n) => `${n.dy}|${n.dx}`));
+    cube[t] = { ...s, neighbours: [...s.neighbours, ...r.cells.filter((c) => !have.has(`${c.dy}|${c.dx}`))] };
+  }
+  return { ...b, cube };
 }
 
 /** Das Zeitfenster der Anfrage — dieselbe Regel wie in `planPointSources`. */
@@ -378,7 +417,36 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     }
     const series = cubeSeriesFrom(chunk, addr, planes, { bytes: bytes.length, manifest: man, manifestFrom: from, wanted: wantedOf(ranged), lat, lon, neighbours: opts.neighbours });
     if (series.provenanceNote) notes.push(`${tierId}: ${series.provenanceNote}`);
+    // AP14: Blockzellen jenseits der Chunk-Grenze — derselbe Lauf wie die Hauptzelle (an den gelesenen Zeiger gebunden).
+    if (opts.crossChunk && opts.neighbours && series.neighbours) {
+      const groups = blockCellsOutsideChunk(addr.tier, lat, lon);
+      if (groups.length) crossPs.set(tierId, readCross(tierId, addr.tier, series, groups, planes));
+    }
     return series;
+  };
+  const crossPs = new Map<TierId, Promise<{ cells: CubeNeighbourCell[]; chunks: string[] }>>();
+  const readCross = async (
+    tierId: TierId, tier: CubeTier, series: CubePointSeries,
+    groups: ReturnType<typeof blockCellsOutsideChunk>, planes: PointRunManifest['planes'],
+  ): Promise<{ cells: CubeNeighbourCell[]; chunks: string[] }> => {
+    const c0 = now();
+    const cells: CubeNeighbourCell[] = [];
+    const chunks: string[] = [];
+    await Promise.all(groups.map(async (g) => {
+      const path = chunkPath(series.run, tier, g.cy, g.cx);
+      try {
+        const b = await store.bytes(path, { priority: 'low' });
+        if (!b) { notes.push(`${tierId}: Nachbar-Chunk ${path} nicht im Repo — der 2×2-Block bleibt beschnitten (AP14)`); return; }
+        const ch = await decode(b, { planes, wanted: opts.wanted });
+        cells.push(...cellsFromChunk(ch, tier, planes, g.cells, { lat, lon, wanted: opts.wanted, nt: series.steps.length }));
+        chunks.push(path.slice(path.lastIndexOf('/') + 1, -4));
+      } catch (e) {
+        errors.push(`cube.${tierId}/crossChunk ${path}: ${errMsg(e)} — der 2×2-Block bleibt beschnitten (AP14)`);
+      }
+    }));
+    phases[`cross.${tierId}`] = Math.round(now() - c0);
+    cells.sort((a, b) => a.dy - b.dy || a.dx - b.dx);
+    return { cells, chunks: chunks.sort() };
   };
   const tierPs = new Map<TierId, Promise<CubePointSeries | null>>();
   // AP12 (E-F-3 (a), Jan 16.09.: „t1 zuerst … Pflicht in AP12"): mit `onFirst` beginnen die übrigen Stufen erst,
@@ -403,6 +471,11 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     hmodelPs.set(t, guard(`hmodel.${t}`, readStaticProductPoint(staticStore, HMODEL_PRODUCT, HMODEL_VERSION, t, lat, lon, { decodeChunk: decode, priority: 'low' })));
   }
   const urbanP = guard('urban', readUrbanPoint(staticStore, lat, lon, { decodeChunk: decode, priority: 'low' }));
+  // AP17: z0 der Modelle je Stufe — nur mit der Option (sonst keine Map-Einträge, kein Abruf).
+  const z0modPs = new Map<TierId, Promise<StaticPoint | null>>();
+  if (opts.z0mod) {
+    for (const t of tiers) z0modPs.set(t, guard(`z0mod.${t}`, readStaticProductPoint(staticStore, Z0MOD_PRODUCT, Z0MOD_VERSION, t, lat, lon, { decodeChunk: decode, priority: 'low' })));
+  }
 
   // ── Station: Katalog ‖ Manifest ‖ Bündel des eigenen Chunks (optimistisch) ─
   const readStation = async (): Promise<{ series: StationPointSeries | null; choice: StationChoice }> => {
@@ -506,12 +579,15 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   const withDeadline = <T>(p: Promise<T>): Promise<T | typeof LATE> => (deadlineMs == null
     ? p
     : Promise.race([p, coreP.then(() => new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), Math.max(graceMs, (deadlineMs as number) - (now() - T0)))))]));
-  const staticAll = Promise.all([...hmodelPs.values(), urbanP]).then((arr) => { mark('static'); progress('static'); return arr; });
+  const staticAll = Promise.all([...hmodelPs.values(), urbanP, ...z0modPs.values()]).then((arr) => { mark('static'); progress('static'); return arr; });
   const staticOf = (arr: Array<StaticPoint | null>) => {
     const hmodel: Partial<Record<TierId, StaticPoint | null>> = {};
     const tiersList = [...hmodelPs.keys()];
     tiersList.forEach((t, i) => { hmodel[t] = arr[i] ?? null; });
-    return { hmodel, urban: arr[tiersList.length] ?? null };
+    if (!opts.z0mod) return { hmodel, urban: arr[tiersList.length] ?? null };
+    const z0mod: Partial<Record<TierId, StaticPoint | null>> = {};
+    [...z0modPs.keys()].forEach((t, i) => { z0mod[t] = arr[tiersList.length + 1 + i] ?? null; });
+    return { hmodel, urban: arr[tiersList.length] ?? null, z0mod };
   };
   const lateWhy = opts.progressive
     ? 'zum Kern noch nicht da — die erste Ausgabe rechnet ohne, das Ergebnis folgt (progressiv, AP12)'
@@ -519,15 +595,35 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   const [station, nowcastR, terrain, staticR] = await Promise.all([stationP, withDeadline(nowcastP), terrainP, withDeadline(staticAll), firstP, coreP, ...tierPs.values()]);
   for (const [t, p] of tierPs) base.cube[t] = await p;
   if (completions.length) base.completing = Promise.all(completions);
+  // AP14: Nachbar-Chunks. Nicht-progressiv wird gewartet (Sammler, Nachlauf); progressiv nur, was zum Kern schon da ist.
+  if (crossPs.size) {
+    // Stufen in fester Reihenfolge (t1, t2, t3) — nicht in der, in der ihre Chunks fertig wurden (deterministische Notizen).
+    const crossTiers = [...crossPs.keys()].sort();
+    const crossAll: Promise<CrossChunkResult> = Promise.all(crossTiers.map(async (t) => [t, await crossPs.get(t)!] as const))
+      .then((arr) => { mark('crossChunk'); return Object.fromEntries(arr) as CrossChunkResult; });
+    const crossR = opts.progressive ? await Promise.race([crossAll, Promise.resolve(LATE)]) : await crossAll;
+    const say = (r: CrossChunkResult) => Object.entries(r).filter(([, x]) => x?.cells.length)
+      .map(([t, x]) => `${t} +${x!.chunks.length} Chunk (${x!.chunks.join(', ')}), ${x!.cells.length} Zellen`).join(' · ');
+    if (crossR === LATE) {
+      const skip = `cube: Nachbar-Chunk(s) für den 2×2-Block (${crossTiers.join('/')}) ${lateWhy} — Block bis dahin beschnitten (AP14)`;
+      skips.push(skip);
+      (base.late ??= {}).crossChunk = { result: crossAll, skip };
+    } else {
+      base.cube = withCrossChunk(base as PointBundle, crossR).cube;
+      const said = say(crossR);
+      if (said) notes.push(`crossChunk: ${said} — 2×2-Block über die Chunk-Grenze (AP14)`);
+    }
+  }
   if (staticR === LATE) {
     for (const t of hmodelPs.keys()) base.hmodel[t] = null;
-    const skip = `static: hmodel/urban ${lateWhy} — Abruf läuft weiter (V-FI-16)`;
+    const skip = `static: hmodel/urban${opts.z0mod ? '/z0mod' : ''} ${lateWhy} — Abruf läuft weiter (V-FI-16)`;
     skips.push(skip);
     (base.late ??= {}).static = { result: staticAll.then(staticOf), skip };
   } else {
     const s = staticOf(staticR);
     base.hmodel = s.hmodel;
     base.urban = s.urban;
+    if (s.z0mod) base.z0mod = s.z0mod;
   }
   base.station = station?.series ?? null;
   base.stationChoice = station?.choice ?? null;

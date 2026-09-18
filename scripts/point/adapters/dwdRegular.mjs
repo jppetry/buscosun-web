@@ -14,10 +14,11 @@
  */
 
 import {
-  fetchSampledField, headOk, probeHorizon, pad3, runIdBack,
+  fetchSampledField, fetchGribField, headOk, probeHorizon, pad3, runIdBack,
   KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
 import { profileGrid, fullLevelHeights, PROFILE_PARAMS } from '../profile.mjs';
+import { lnBlockMeanRegular } from '../staticZ0mod.mjs';
 
 const DWD = process.env.DWD_OPENDATA || 'https://opendata.dwd.de/weather/nwp';
 
@@ -40,6 +41,8 @@ const MODELS = {
       ps: 'ps', snowlmt: 'snowlmt',
     },
     orographyParam: 'hsurf',
+    // AP17 (E-F-15): Rauhigkeitslänge, je Schritt veröffentlicht (`z0/…_000_2d_z0`, am Verzeichnis 18.09. gelesen).
+    roughnessParam: 'z0',
     // ── Modelllevel (PD-B5) ───────────────────────────────────────────────
     // Am Verzeichnis gemessen (2026-09-10, Lauf 2026091009): `t` liegt auf
     // **65 Vollflächen** als `regular-lat-lon_model-level`, `hhl` auf **66
@@ -89,6 +92,8 @@ const MODELS = {
       ps: 'PS', snowlmt: 'SNOWLMT',
     },
     orographyParam: 'HSURF',
+    // AP17 (E-F-15): `z0/…_000_Z0` (am Verzeichnis 18.09. gelesen).
+    roughnessParam: 'Z0',
     // ICON-EU bekommt in PD-B5 KEINE Profilfelder, und das ist eine Entscheidung,
     // keine Lücke: es führt 74 statt 65 Level, also eine andere Levelzahl für
     // dieselbe Schichttiefe und ein eigenes Volumen. Ob Stufe 2 Profilfelder
@@ -161,6 +166,17 @@ export function makeDwdRegularAdapter(id) {
     async orography(run, tier) {
       const r = await fetchSampledField(invUrl(run, m.orographyParam), tier);
       return r ? r.grid : null;
+    },
+
+    /**
+     * AP17 (E-F-15): ln(z0) je Zelle aus dem Schritt 000 dieses Laufs — ln-Blockmittel der Quellpunkte
+     * (`staticZ0mod.mjs`), nicht das arithmetische Mittel des Pools: z0 mittelt geometrisch. Über Land ist der Wert
+     * innerhalb eines Laufs konstant (gemessen), Schritt 000 genügt.
+     */
+    async roughness(run, tier) {
+      if (!m.roughnessParam) return null;
+      const f = await fetchGribField(url(run, 0, m.roughnessParam));
+      return f ? lnBlockMeanRegular(f, tier) : null;
     },
 
     /** Welche Druckflächen diese Quelle führt (hPa) — gemessen, nicht angenommen. */

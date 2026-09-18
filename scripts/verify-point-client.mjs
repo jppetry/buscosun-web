@@ -1139,6 +1139,323 @@ let stationManifest;
     `Abrufe ${c404}/${c200}/${cOnly}/${calls}`);
 }
 
+// --- (10p) AP13 — calib.json lesen (V-FI-66): Hash, Prüfung, Abbildung, nie still -----------------
+{
+  const { loadCalib } = await import('../src/point/client/calibPoint.ts');
+  const { memoryStore: ms } = await import('../src/point/client/store.ts');
+  const { CALIBRATION_V1 } = await import('../src/point/calibration.ts');
+  const { CALIB_BINS_H, CALIB_N_MIN, calibBinOf, binnedAt } = await import('../src/point/calibDoc.ts');
+  const { createHash } = await import('node:crypto');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const storeWith = (bytes) => { const m = new Map(); if (bytes) m.set('point/calib.json', bytes); return ms(m); };
+  const shippedBytes = enc(CALIBRATION_V1);
+  const shipped = await loadCalib(storeWith(shippedBytes));
+  add('(10p) ausgelieferte calib.json (Schema 1): lesbar, sha256 der Bytes (gegen node:crypto), keine Überschreibung, Notiz „keine geltende Messung"',
+    shipped.schema === 1 && shipped.hash === createHash('sha256').update(shippedBytes).digest('hex') && shipped.overrides === null && shipped.notes.some((n) => n.includes('keine geltende Messung')),
+    shipped.hash?.slice(0, 16));
+  const nS = CALIB_N_MIN.sigmaSys;
+  const sig = { value: { t2m: [1.5, null, null, null, null, 2.5], wind: [null, 1.1, null, null, null, null] }, provenance: 'measured', source: 'synthetisch (10p)', updatedAt: '2026-10-14T00:00:00Z',
+    n: { t2m: [nS.n, 0, 0, 0, 0, nS.n], wind: [0, nS.n, 0, 0, 0, 0] }, days: { t2m: [nS.days, 0, 0, 0, 0, nS.days], wind: [0, nS.days, 0, 0, 0, 0] },
+    period: { from: '2026-09-14', to: '2026-10-13' }, estimator: 'test', fitVersion: 'test', binsH: CALIB_BINS_H };
+  const doc = { ...JSON.parse(JSON.stringify(CALIBRATION_V1)), schema: 2, sigmaSys: sig,
+    meltOffset: { value: 120, provenance: 'measured', source: 'synthetisch', updatedAt: '2026-12-01', n: 400, days: 20, period: { from: '2026-11-01', to: '2026-11-30' }, estimator: 'ML', fitVersion: 'test' },
+    dzMin: { value: 60, provenance: 'measured', source: 'synthetisch', updatedAt: '2026-12-01', n: 400, days: 20, period: { from: '2026-11-01', to: '2026-11-30' }, estimator: 'x', fitVersion: 'test' } };
+  const l2 = await loadCalib(storeWith(enc(doc)));
+  const tT = l2.overrides?.sigmaSys?.temperature, tW = l2.overrides?.sigmaSys?.wind;
+  add('(10p) Schema 2: σ_sys je Größe × Bin abgebildet (t2m → temperature), Bin-Suche wie der Fit (0–6 h, 246–336 h; Lücke 49–50 h im Bin davor); meltOffset gemessen, aber ohne Einspeisestelle (Notiz); dzMin verworfen (Producer-Parameter)',
+    binnedAt(tT, 3) === 1.5 && binnedAt(tT, 300) === 2.5 && binnedAt(tT, 30) === null && binnedAt(tW, 10) === 1.1 && calibBinOf(49.5) === 2 && calibBinOf(123) === 3
+    && l2.overrides.unwired.join() === 'meltOffset' && l2.notes.some((n) => n.startsWith('calib: dzMin als measured verworfen')) && l2.notes.some((n) => n.includes('ohne Einspeisestelle: meltOffset')),
+    l2.notes.join(' | '));
+  const missing = await loadCalib(storeWith(null));
+  const broken = await loadCalib(storeWith(new TextEncoder().encode('{kein json')));
+  const future = await loadCalib(storeWith(enc({ ...doc, schema: 3 })));
+  add('(10p) nie still: fehlende Datei, kein JSON, Schema 3 ⇒ keine Überschreibung, jeweils mit Notiz; Hash nur, wenn Bytes da sind',
+    missing.overrides === null && missing.hash === null && /nicht lesbar/.test(missing.notes[0])
+    && broken.overrides === null && /^[0-9a-f]{64}$/.test(broken.hash ?? '') && /kein JSON/.test(broken.notes[0])
+    && future.overrides === null && /Schema 3 nicht lesbar/.test(future.notes[0]),
+    [missing, broken, future].map((x) => x.notes[0]).join(' | '));
+}
+
+// --- (10q) AP14 — Nachbar-Chunk im Leser: der 2×2-Block über die Chunk-Grenze ----------------------
+{
+  const { buildCubeFixture, FIX: F, signature } = await import('./lib/pvCubeFixtures.mjs');
+  const { readPointBundle, withCrossChunk } = await import('../src/point/client/readPoint.ts');
+  const { memoryStore: ms } = await import('../src/point/client/store.ts');
+  const cf = await import('../src/point/cubeFormat.ts');
+  const GRAZ = { lat: 47.0707, lon: 15.4395 };          // §0: t1 Zeile 15, t2 Zeile 0 — beide am Rand
+  const fx = await buildCubeFixture({ ...GRAZ, absolute: true, neighbourChunks: true });
+  const H = 3_600_000, t0 = Math.floor(F.nowMs / H) * H;
+  const inp = { ...GRAZ, elevationM: 350, nowMs: F.nowMs, fromMs: t0, toMs: t0 + 336 * H, stepH: 1 };
+  const ro = (store, extra = {}) => ({ store, terrain: false, nowcast: false, plan: false, neighbours: true, ...extra });
+  const off = await readPointBundle(inp, ro(ms(fx.files)));
+  const off2 = await readPointBundle(inp, ro(ms(fx.files), { crossChunk: false }));
+  const on = await readPointBundle(inp, ro(ms(fx.files), { crossChunk: true }));
+  const t2mPlane = cf.CUBE_PLANES.find((p) => p.id === 't2m');
+  const want = (t, it, iy, ix) => cf.dequantize(cf.quantize(signature(t, it, iy, ix).t2m, t2mPlane), t2mPlane);
+  const groupsOf = (t) => cf.blockCellsOutsideChunk(cf.TIER_BY_ID[t], GRAZ.lat, GRAZ.lon);
+  let matched = 0, checked = 0;
+  for (const t of ['t1', 't2', 't3']) {
+    for (const g of groupsOf(t)) for (const c of g.cells) {
+      const n = on.cube[t].neighbours.find((x) => x.iy === c.iy && x.ix === c.ix);
+      checked++;
+      if (n && n.dy === c.dy && n.dx === c.dx && n.values.every((v, it) => Math.abs(v.t2m - want(t, it, c.iy, c.ix)) < 1e-9)) matched++;
+    }
+  }
+  const blockComplete = (b, t) => {
+    const tier = cf.TIER_BY_ID[t], cell = cf.cellOf(tier, GRAZ.lat, GRAZ.lon), cc = cf.cellCenter(tier, cell.iy, cell.ix);
+    return cf.blockOffsets(GRAZ.lat - cc.lat, GRAZ.lon - cc.lon).every((o) => (o.dy === 0 && o.dx === 0) || b.cube[t].neighbours.some((n) => n.dy === o.dy && n.dx === o.dx));
+  };
+  add('(10q) AP14: am Rand (Graz: t1 und t2) holt der Leser den Nachbar-Chunk desselben Laufs — jede Blockzelle jenseits der Grenze trägt die Werte des zusammengesetzten Felds (absolute Signatur), der Block ist vollständig; ohne Option fehlt sie',
+    groupsOf('t1').length === 1 && groupsOf('t2').length === 1 && groupsOf('t3').length === 0 && checked > 0 && matched === checked
+    && blockComplete(on, 't1') && blockComplete(on, 't2') && !blockComplete(off, 't1') && on.notes.some((n) => /^crossChunk: t1 \+1 Chunk/.test(n)),
+    `${matched}/${checked} Zellen · ${on.notes.find((n) => n.startsWith('crossChunk:'))}`);
+  add('(10q) Negativkontrolle: ohne Option (fehlend oder `false`) ist das Bündel byte-gleich — kein Mehrabruf',
+    JSON.stringify(off.cube) === JSON.stringify(off2.cube) && off.stats.files === off2.stats.files && on.stats.files === off.stats.files + 2,
+    `Abrufe ${off.stats.files} → ${on.stats.files}`);
+  // Verschobener Chunk: unter dem Pfad des Nachbar-Chunks liegt der eigene Chunk ⇒ Abbruch (Zelle nicht im Chunk), nie Fremdwerte.
+  const nbPath = fx.extra.find((c) => c.tierId === 't1').path;
+  const shifted = new Map(fx.files); shifted.set(nbPath, fx.chunks.t1.bytes);
+  const sh = await readPointBundle(inp, ro(ms(shifted), { crossChunk: true }));
+  const gone = new Map(fx.files); gone.delete(nbPath);
+  const gn = await readPointBundle(inp, ro(ms(gone), { crossChunk: true }));
+  const failing = ms(fx.files); const fb = failing.bytes.bind(failing);
+  failing.bytes = async (p, o) => { if (p === nbPath) throw new Error('HTTP 403'); return fb(p, o); };
+  const fl = await readPointBundle(inp, ro(failing, { crossChunk: true }));
+  add('(10q) verschobener Chunk ⇒ abgewiesen (Fehler „liegt nicht im Nachbar-Chunk"), fehlender ⇒ Notiz, 403 ⇒ Fehler — jeweils bleibt der t1-Block beschnitten, t2 wird trotzdem vollständig',
+    !blockComplete(sh, 't1') && sh.errors.some((e) => /crossChunk .*liegt nicht im Nachbar-Chunk/.test(e))
+    && !blockComplete(gn, 't1') && gn.notes.some((n) => n.includes('nicht im Repo — der 2×2-Block bleibt beschnitten'))
+    && !blockComplete(fl, 't1') && fl.errors.some((e) => /crossChunk .*HTTP 403/.test(e)) && blockComplete(fl, 't2'),
+    [sh.errors[0], gn.notes.find((n) => n.includes('Nachbar-Chunk')), fl.errors[0]].map((x) => x?.slice(0, 70)).join(' | '));
+  // Progressiv: kommt der Nachbar-Chunk nach dem Kern, steht er als spätes Produkt da; das Bündel bleibt unverändert.
+  const slow = ms(fx.files); const sb = slow.bytes.bind(slow);
+  slow.bytes = async (p, o) => { if (fx.extra.some((c) => c.path === p)) await new Promise((r) => setTimeout(r, 120)); return sb(p, o); };
+  const pr = await readPointBundle(inp, ro(slow, { crossChunk: true, progressive: true }));
+  const lateR = await pr.late?.crossChunk?.result;
+  const merged = lateR ? withCrossChunk(pr, lateR) : pr;
+  add('(10q) progressiv: Nachbar-Chunk nach dem Kern ⇒ `late.crossChunk` mit Grund in `skips`; das Ergebnis vervollständigt eine KOPIE (`withCrossChunk`), das Bündel selbst bleibt beschnitten',
+    !!pr.late?.crossChunk && pr.skips.includes(pr.late.crossChunk.skip) && !blockComplete(pr, 't1') && blockComplete(merged, 't1') && blockComplete(merged, 't2')
+    && JSON.stringify(withCrossChunk(merged, lateR).cube) === JSON.stringify(merged.cube),
+    pr.late?.crossChunk?.skip?.slice(0, 90));
+}
+
+// --- (10r) AP16 — Landbedeckung: d_water, κ-Eingang, Lader (analytische Klassenfelder, netzfrei) -------
+{
+  const LC = await import('../src/point/client/landCover.ts');
+  const { z0FromClassField, classAtOf, z0CacheKey } = await import('../src/point/client/z0Point.ts');
+  const { memoryBackend: mb } = await import('../src/point/client/cache.ts');
+  const { M_PER_DEG_LAT: MLAT, mPerDegLon } = await import('../src/point/terrainPoint.ts');
+  const { TIER_BY_ID, cellOf, cellCenter } = await import('../src/point/cubeFormat.ts');
+  const PXD = LC.WC_LEVEL_PX_DEG;
+  // Felder in Pixeln relativ zum Punktpixel (i nach Ost, j nach SÜD) — so liegen Flecken und Flüsse pixelgenau.
+  const pixField = (lat0, lon0, fn) => {
+    const gxp = Math.floor((lon0 + 180) / PXD), gyp = Math.floor((90 - lat0) / PXD);
+    return (la, lo) => fn(Math.floor((lo + 180) / PXD) - gxp, Math.floor((90 - la) / PXD) - gyp);
+  };
+  const LAT0 = 47.6013, LON0 = 9.4021;
+  const pxW = PXD * mPerDegLon(LAT0), pxH = PXD * MLAT;
+  const dw = (fn, maxM = 3000) => LC.dWaterFromWindow(LC.windowFromClassAt(pixField(LAT0, LON0, fn), LAT0, LON0, maxM));
+  const within = (x, lo, hi) => x != null && x >= lo && x <= hi;
+
+  // d_water — die Fälle aus §5 (AP16) und die Ränder der Regel
+  const shore = dw((i, j) => (j <= -Math.ceil(300 / pxH) ? 80 : 30));
+  add('(10r) AP16 d_water: Seeufer 300 m nördlich ⇒ 300 ± 40 m (Pixelmitte, auf 10 m), Körper groß (`bodyPx` am Deckel)',
+    shore.reason === 'found' && within(shore.m, 300, 340) && shore.aboveM === null && shore.bodyPx === LC.LANDCOVER_SET.bodyCapPx, JSON.stringify(shore));
+  const specks = dw((i, j) => (j <= -22 ? 80 : (i === 4 && j === 0) ? 80 : (i >= -8 && i <= -6 && j >= -1 && j <= 1) ? 80 : 30));
+  add('(10r) 1-px-Fleck (100 m) und 9-px-Fleck (≈ 175 m) verworfen (A_min 10 px) ⇒ der See in ≈ 811 m trägt',
+    specks.reason === 'found' && within(specks.m, 780, 840), JSON.stringify(specks));
+  const speckField = pixField(LAT0, LON0, (i, j) => (j <= -22 ? 80 : (i === 4 && j === 0) ? 80 : (i >= -8 && i <= -6 && j >= -1 && j <= 1) ? 80 : 30));
+  const speck1 = LC.dWaterFromWindow(LC.windowFromClassAt(speckField, LAT0, LON0, 3000), 1);
+  add('(10r) Gegenprobe: mit A_min = 1 px trifft derselbe Fall den 1-px-Fleck (≈ 105 m) — die Prüfung darüber kann rot werden',
+    speck1.reason === 'found' && within(speck1.m, 90, 120), JSON.stringify(speck1));
+  const ten = dw((i, j) => (j <= -22 ? 80 : (i >= -8 && i <= -7 && j >= -2 && j <= 2) ? 80 : 30));
+  add('(10r) Grenze A_min: ein 10-px-Körper (2 × 5) zählt ⇒ ≈ 176 m statt des Sees', ten.reason === 'found' && within(ten.m, 150, 200) && ten.bodyPx === 10, JSON.stringify(ten));
+  const river = dw((i, j) => ((i === 20 || i === 21) && j >= -15 && j <= 15 ? 80 : 30));
+  add('(10r) 2-px-Fluss (31 px lang) in ≈ 500 m östlich gefunden', river.reason === 'found' && within(river.m, 480, 530) && river.bodyPx === 62, JSON.stringify(river));
+  const diag = dw((i, j) => (i - 10 === -j && j <= 0 && j >= -14 ? 80 : 30));
+  const diag9 = dw((i, j) => (i - 10 === -j && j <= 0 && j >= -8 ? 80 : 30));
+  add('(10r) 1-px-Diagonale: 15 px hängen über Ecken zusammen (8er-Nachbarschaft) ⇒ gefunden; 9 px ⇒ zu klein',
+    diag.reason === 'found' && within(diag.m, 230, 270) && diag.bodyPx === 15 && diag9.m === null, `${diag.m} m / ${diag9.m}`);
+  const inland = LC.dWaterFromWindow(LC.windowFromClassAt(() => 30, LAT0, LON0));
+  add('(10r) Binnenland ohne Wasser im ganzen 20-km-Fenster ⇒ `m: null`, `aboveM` 20 000 (zensiert, kein Platzhalterwert), Grund `none`',
+    inland.m === null && inland.aboveM === 20_000 && inland.reason === 'none' && inland.bodyPx === null, JSON.stringify(inland));
+  const gap = LC.dWaterFromWindow(LC.windowFromClassAt(pixField(LAT0, LON0, (i) => (i >= 60 && i <= 62 ? null : i >= 80 ? 80 : 30)), LAT0, LON0));
+  add('(10r) Lücke (fehlende Datei/Kachel ≈ 1,5 km östlich): r_c endet dort, der See dahinter (2 km) zählt NICHT ⇒ `m: null`, `aboveM` ≈ 1 500, Grund `coverage`',
+    gap.m === null && within(gap.aboveM, 1480, 1510) && gap.reason === 'coverage', JSON.stringify(gap));
+  const undecided = dw((i, j) => (j <= -22 ? 80 : (i >= 12 && i <= 13 && j >= 0 && j <= 1) ? 80 : (i === 14 && j === 0) ? null : 30));
+  add('(10r) ein 4-px-Fleck, der Unbekanntes berührt, ist unentscheidbar ⇒ r_c sinkt auf ihn (≈ 300 m), kein Treffer dahinter',
+    undecided.m === null && within(undecided.aboveM, 280, 320) && undecided.reason === 'coverage', JSON.stringify(undecided));
+
+  // Fenster aus den Kacheln (Produktweg, zeilenweise kopiert) = Fenster aus der Klassenfunktion — an einer Dateiecke
+  // (lat 48 / lon 12: vier 3°-Dateien), 256er-Kacheln, Klasse 0 verstreut, eine Kachel fehlt.
+  const CLASSES = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100];
+  const pattern = (gx, gy) => ((gx + gy) % 97 === 0 ? 0 : CLASSES[(gx * 7 + gy * 13) % 11]);
+  const PLAT = 47.9981, PLON = 11.9979, M3 = 3000;
+  const files = [];
+  for (const la0 of [45, 48]) for (const lo0 of [9, 12]) {
+    const ifd = { width: 9000, height: 9000, tileW: 256, tileH: 256, tilesAcross: Math.ceil(9000 / 256) };
+    const baseX = Math.round((lo0 + 180) / PXD), baseY = Math.round((90 - la0 - 3) / PXD);
+    const dLa = (M3 + 200) / MLAT, dLo = (M3 + 200) / mPerDegLon(PLAT);
+    const clamp = (v) => Math.min(8999, Math.max(0, v));
+    const x0 = clamp(Math.floor((PLON - dLo - lo0) / PXD)), x1 = clamp(Math.floor((PLON + dLo - lo0) / PXD));
+    const y0 = clamp(Math.floor((la0 + 3 - (PLAT + dLa)) / PXD)), y1 = clamp(Math.floor((la0 + 3 - (PLAT - dLa)) / PXD));
+    const tiles = new Map();
+    for (let row = Math.floor(y0 / 256); row <= Math.floor(y1 / 256); row++) {
+      for (let col = Math.floor(x0 / 256); col <= Math.floor(x1 / 256); col++) {
+        if (la0 === 48 && lo0 === 12 && tiles.size === 0 && row === Math.floor(y0 / 256) && col === Math.floor(x0 / 256)) { tiles.set(-1, null); continue; }   // fehlt
+        const t = new Uint8Array(256 * 256);
+        for (let r = 0; r < 256; r++) for (let c = 0; c < 256; c++) {
+          const px = col * 256 + c, py = row * 256 + r;
+          if (px < 9000 && py < 9000) t[r * 256 + c] = pattern(baseX + px, baseY + py);
+        }
+        tiles.set(row * ifd.tilesAcross + col, t);
+      }
+    }
+    tiles.delete(-1);
+    files.push({ la0, lo0, ifd, fac: 4, tiles });
+  }
+  const wT = LC.windowFromTiles(files, PLAT, PLON, M3), wC = LC.windowFromClassAt(classAtOf(files), PLAT, PLON, M3);
+  let diff = 0, zeros = 0;
+  for (let k = 0; k < wT.data.length; k++) { if (wT.data[k] !== wC.data[k]) diff++; if (!wT.data[k]) zeros++; }
+  const gxp = Math.floor((PLON + 180) / PXD), gyp = Math.floor((90 - PLAT) / PXD);
+  add('(10r) Fenster aus den Kacheln (zeilenweise kopiert) = Fenster aus `classAtOf` an den Pixelmitten — an einer Ecke von vier 3°-Dateien, mit fehlender Kachel und Klasse 0; das Punktpixel trägt den Wert seiner absoluten Adresse',
+    wT.w === wC.w && wT.h === wC.h && wT.cx === wC.cx && diff === 0 && zeros > 4000 && wT.data[wT.cy * wT.w + wT.cx] === pattern(gxp, gyp),
+    `${wT.w}×${wT.h} px, ${diff} abweichend, ${zeros} unbekannt`);
+
+  // κ-Eingang: 3×3 Zellen um die nächste Zelle, Box um die ZELLMITTE, absolut adressiert — fünf Fälle aus §5
+  const t1 = TIER_BY_ID.t1, c1 = cellOf(t1, LAT0, LON0), m1 = cellCenter(t1, c1.iy, c1.ix);
+  const P = { lat: m1.lat + 0.004, lon: m1.lon + 0.004 };   // nahe der Zellmitte, Block nach Nordost
+  const edgeN = m1.lat + t1.deg / 2, edgeE = m1.lon + t1.deg / 2;
+  const lake = LC.landCoverFromClassField((la) => (la > edgeN ? 80 : 30), P.lat, P.lon);
+  const k = (r, tier, dy, dx) => LC.kappaAt(r.landCover, tier, c1.iy + dy, c1.ix + dx);
+  add('(10r) κ Seeufer: die Seezellen nördlich (ganz Wasser) κ = e^−1, die Landzelle des Punkts κ = 1; je Stufe 3×3 Zellen, absolut adressiert',
+    Math.abs(k(lake, 't1', 1, 0) - Math.exp(-1)) < 1e-9 && k(lake, 't1', 0, 0) === 1 && k(lake, 't1', 1, 1) < 0.37
+    && lake.landCover.cells.t1.length === 9 && lake.landCover.cells.t2.length === 9 && lake.landCover.cells.t1.some((c) => c.iy === c1.iy + 1 && c.ix === c1.ix - 1) && !lake.landCover.cells.t3,
+    `κ(1,0) ${k(lake, 't1', 1, 0)?.toFixed(4)} · κ(0,0) ${k(lake, 't1', 0, 0)}`);
+  const city = LC.landCoverFromClassField((la, lo) => (lo < edgeE ? 50 : 40), P.lat, P.lon);
+  add('(10r) κ Stadtrand: Punkt in der Stadt ⇒ die Stadtzelle κ = 1, die Ackerzelle östlich κ = e^−1 (Stadtzelle aufgewertet)',
+    k(city, 't1', 0, 0) === 1 && Math.abs(k(city, 't1', 0, 1) - Math.exp(-1)) < 1e-9);
+  const edgeWood = P.lat + 200 / MLAT;   // Waldrand 200 m nördlich des Punkts: im Punktkreis beides
+  const wood = LC.landCoverFromClassField((la) => (la < edgeWood ? 10 : 30), P.lat, P.lon);
+  const pw = wood.landCover.point.p;
+  add('(10r) κ Waldrand: Punktkreis gemischt (Wald ' + Math.round(pw[2] * 100) + ' %) ⇒ die Waldzelle (Süd) wiegt mehr als die Graszelle (Nord); κ = exp(−½Σ|p − q|) von Hand',
+    k(wood, 't1', -1, 0) > k(wood, 't1', 1, 0) && Math.abs(k(wood, 't1', 1, 0) - Math.exp(-pw[2])) < 1e-3 && pw[2] > 0.5 && pw[2] < 0.9,
+    `κ Wald ${k(wood, 't1', -1, 0)?.toFixed(3)} · κ Gras ${k(wood, 't1', 1, 0)?.toFixed(3)}`);
+  const flat = LC.landCoverFromClassField(() => 30, P.lat, P.lon);
+  add('(10r) κ homogene Ebene: alle 18 Zellen (t1 + t2) κ = 1 exakt',
+    [...flat.landCover.cells.t1, ...flat.landCover.cells.t2].every((c) => c.cov === 1 && LC.kappaOf(flat.landCover.point.p, c.q) === 1));
+  const holeCell = LC.landCoverFromClassField((la) => (la > edgeN ? null : 30), P.lat, P.lon);
+  const holePoint = LC.landCoverFromClassField((la) => (Math.abs(la - P.lat) < 400 / MLAT ? null : 30), P.lat, P.lon);
+  add('(10r) κ unbekannt: Zelle < 80 % bekannt ⇒ `kappaAt` null (die Fusion setzt dann κ = 1 für den Block); Punktkreis unbekannt ⇒ jede Zelle null; t3 immer null',
+    k(holeCell, 't1', 1, 0) === null && k(holeCell, 't1', 0, 0) === 1 && k(holePoint, 't1', 0, 0) === null && LC.kappaAt(flat.landCover, 't3', 0, 0) === null);
+  const v1 = z0FromClassField((la) => (la > edgeN ? 80 : 30), P.lat, P.lon);
+  const { landCover: _lc, ...lakeV1 } = lake;
+  add('(10r) z0 v1 unverändert: die z0-Felder der Landbedeckung = `z0FromClassField` (dieselbe Funktion, JSON-gleich); Zell-z0 der Seezelle = Wasser 0,0002 m',
+    JSON.stringify(lakeV1) === JSON.stringify(v1) && LC.landCoverCell(lake.landCover, 't1', c1.iy + 1, c1.ix).z0 === 0.0002);
+
+  // Lader: Cache `lc:v1`, Rückgriff auf `z0:v1` nur im Blick-in-den-Cache, nie ein Ersatzwert
+  let calls = 0;
+  const f404 = async () => { calls++; return new Response('nope', { status: 404 }); };
+  const be = mb();
+  const enc = (o) => ({ bytes: new TextEncoder().encode(JSON.stringify(o)), storedAt: Date.now() });
+  const r404 = await LC.loadLandCoverAtPoint(P.lat, P.lon, { fetchImpl: f404 });
+  const c404 = calls; calls = 0;
+  const none = await LC.loadLandCoverAtPoint(P.lat, P.lon, { fetchImpl: f404, cache: be, cacheOnly: true });
+  const cNone = calls;
+  await be.put(z0CacheKey(P.lat, P.lon), enc({ ...v1, source: 'test' }));
+  calls = 0;
+  const onlyV1 = await LC.loadLandCoverAtPoint(P.lat, P.lon, { fetchImpl: f404, cache: be, cacheOnly: true });
+  const cV1 = calls; calls = 0;
+  const netV1 = await LC.loadLandCoverAtPoint(P.lat, P.lon, { fetchImpl: f404, cache: be });
+  const cNet = calls;
+  await be.put(LC.landCoverCacheKey(P.lat, P.lon), enc({ ...lake, source: 'test' }));
+  calls = 0;
+  const hitLc = await LC.loadLandCoverAtPoint(P.lat, P.lon, { fetchImpl: f404, cache: be, cacheOnly: true });
+  add('(10r) Lader: 404 ⇒ null; nur Cache ohne Eintrag ⇒ null ohne Abruf; nur der alte `z0:v1`-Eintrag ⇒ im Blick-in-den-Cache z0 OHNE Landbedeckung (kein Abruf), im Netzweg nicht angenommen (Abruf); `lc:v1`-Eintrag ⇒ Landbedeckung ohne Abruf',
+    r404 === null && c404 > 0 && none === null && cNone === 0 && onlyV1?.z0True === 0.03 && !LC.isLandCover(onlyV1) && cV1 === 0 && netV1 === null && cNet > 0
+    && LC.isLandCover(hitLc) && hitLc.fetched.fromCache && calls === 0 && LC.landCoverCacheKey(1, 2).startsWith('lc:v1:') && z0CacheKey(1, 2).startsWith('z0:v1:'),
+    `Abrufe ${c404}/${cNone}/${cV1}/${cNet}/${calls}`);
+
+  // Kosten: der schlimmste Fall — volles 20-km-Fenster aus 1024er-Kacheln, kein Wasser (Suche bis 20 km)
+  const full = [];
+  for (const la0 of [45]) for (const lo0 of [9]) {
+    const ifd = { width: 9000, height: 9000, tileW: 1024, tileH: 1024, tilesAcross: 9 };
+    const tiles = new Map();
+    // (46,5 / 10,5) liegt in den Kachelzeilen 3–4 und -spalten 3–5 der Datei 45/9; das 20-km-Fenster reicht nicht darüber hinaus.
+    for (const row of [3, 4]) for (const col of [3, 4, 5]) tiles.set(row * 9 + col, new Uint8Array(1024 * 1024).fill(30));
+    full.push({ la0, lo0, ifd, fac: 4, tiles });
+  }
+  const times = { fill: [], ring: [] };
+  let worst = null;
+  for (let rep = 0; rep < 5; rep++) {
+    const t0 = performance.now();
+    const w = LC.windowFromTiles(full, 46.5, 10.5);
+    const t1 = performance.now();
+    worst = LC.dWaterFromWindow(w);
+    times.fill.push(t1 - t0); times.ring.push(performance.now() - t1);
+  }
+  const med = (xs) => [...xs].sort((a, b) => a - b)[2];
+  add(`(10r) Kosten (Node ≈ Desktop): schlimmster Fall der Ringsuche (kein Wasser, 20 km) Median ≤ 30 ms; Fenster kopieren berichtet`,
+    worst.m === null && worst.aboveM === 20_000 && med(times.ring) <= 30,
+    `Ringsuche ${med(times.ring).toFixed(1)} ms · Fenster ${med(times.fill).toFixed(1)} ms (Median aus 5)`);
+}
+
+// --- (10s) AP17 — z0 der Modelle im Leser (`readPointBundle({ z0mod })`, E-F-15): voreingestellt aus -------------
+{
+  const { buildCubeFixture, FIX: F } = await import('./lib/pvCubeFixtures.mjs');
+  const { readPointBundle } = await import('../src/point/client/readPoint.ts');
+  const { memoryStore: ms } = await import('../src/point/client/store.ts');
+  const cf = await import('../src/point/cubeFormat.ts');
+  const { writeStaticZ0mod, Z0_ABSENT_REASON } = await import('./point/staticZ0mod.mjs');
+  const { mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const fx = await buildCubeFixture();
+  const H = 3_600_000, t0 = Math.floor(F.nowMs / H) * H;
+  const inp = { lat: F.lat, lon: F.lon, elevationM: F.hTrue, nowMs: F.nowMs, fromMs: t0, toMs: t0 + 336 * H, stepH: 1 };
+  const ro = (store, extra = {}) => ({ store, terrain: false, nowcast: false, plan: false, neighbours: true, ...extra });
+  const tmp = mkdtempSync(join(tmpdir(), 'z0mod-client-'));
+  try {
+    const Z = { t1: [['icon_d2', 0.8], ['icon_eu', 1.1]], t2: [['icon_eu', 0.6]], t3: [['icon_global', 0.4]] };
+    for (const [t, cols] of Object.entries(Z)) {
+      const tier = cf.TIER_BY_ID[t];
+      await writeStaticZ0mod(tmp, t, cols.map(([id, z]) => ({ id, run: '2026091800', grid: new Float32Array(tier.ny * tier.nx).fill(Math.log(z)) })),
+        { absent: { ifs_hres: Z0_ABSENT_REASON.ifs_hres } });
+    }
+    const files = new Map(fx.files);
+    const rel = (p) => p.replace(/^point\//, '');
+    const z0Paths = [cf.staticManifestPath(cf.Z0MOD_PRODUCT, cf.Z0MOD_VERSION)];
+    for (const t of ['t1', 't2', 't3']) {
+      const tier = cf.TIER_BY_ID[t];
+      for (let cy = 0; cy < tier.chunk.cy; cy++) for (let cx = 0; cx < tier.chunk.cx; cx++) z0Paths.push(cf.staticChunkPath(cf.Z0MOD_PRODUCT, cf.Z0MOD_VERSION, t, cy, cx));
+    }
+    for (const p of z0Paths) files.set(p, new Uint8Array(readFileSync(join(tmp, rel(p)))));
+    const logged = (m) => { const s = ms(m); const seen = []; const b = s.bytes.bind(s), j = s.json.bind(s); s.bytes = (p, o) => { seen.push(p); return b(p, o); }; s.json = (p, o) => { seen.push(p); return j(p, o); }; return { s, seen }; };
+    const L0 = logged(files), L1 = logged(files), Lf = logged(files);
+    const off = await readPointBundle(inp, ro(L0.s));
+    const offF = await readPointBundle(inp, ro(Lf.s, { z0mod: false }));
+    const on = await readPointBundle(inp, ro(L1.s, { z0mod: true }));
+    const rest = (b) => JSON.stringify({ ...b, z0mod: undefined, stats: null, timing: null });
+    const zPathsRead = (seen) => seen.filter((p) => p.includes('/static/z0mod/')).length;
+    add('(10s) AP17 Negativkontrolle: ohne Option (fehlend oder `false`) kein Feld `z0mod` im Bündel und kein Abruf unter point/static/z0mod/',
+      !('z0mod' in off) && !('z0mod' in offF) && zPathsRead(L0.seen) === 0 && zPathsRead(Lf.seen) === 0 && rest(off) === rest(offF));
+    const lnOk = (t, id, z) => Math.abs((on.z0mod?.[t]?.byColumn?.[id] ?? NaN) - Math.log(z)) <= 0.0005 + 1e-12;
+    add('(10s) mit Option: je Stufe die z0-Zelle des Punkts (ln z0 ≤ ½ Schritt), `absent` mit Grund; das übrige Bündel byte-gleich; je Stufe ein Chunk + das Manifest',
+      lnOk('t1', 'icon_d2', 0.8) && lnOk('t1', 'icon_eu', 1.1) && lnOk('t2', 'icon_eu', 0.6) && lnOk('t3', 'icon_global', 0.4)
+      && /V-FI-72/.test(on.z0mod.t1.absent.ifs_hres ?? '') && rest(on) === rest(off)
+      && L1.seen.filter((p) => /\/static\/z0mod\/v1\/t\d\//.test(p)).length === 3 && L1.seen.includes(cf.staticManifestPath(cf.Z0MOD_PRODUCT, cf.Z0MOD_VERSION)),
+      JSON.stringify(Object.fromEntries(Object.entries(on.z0mod ?? {}).map(([t, x]) => [t, x?.byColumn]))));
+    const noProd = await readPointBundle(inp, ro(ms(fx.files), { z0mod: true }));
+    add('(10s) Produkt fehlt (noch nicht freigegeben) ⇒ `z0mod` je Stufe `null`, kein Fehler — die Rechnung bleibt bei der WorldCover-Näherung',
+      noProd.z0mod && ['t1', 't2', 't3'].every((t) => noProd.z0mod[t] === null) && !noProd.errors.some((e) => /z0mod/.test(e)), JSON.stringify(noProd.errors));
+    const slow = ms(files); const sb = slow.bytes.bind(slow);
+    slow.bytes = async (p, o) => { if (p.includes('/static/z0mod/')) await new Promise((r) => setTimeout(r, 120)); return sb(p, o); };
+    const pr = await readPointBundle(inp, ro(slow, { z0mod: true, progressive: true }));
+    const lateS = await pr.late?.static?.result;
+    add('(10s) progressiv: kommt z0mod nach dem Kern, reist es mit den statischen Produkten (`late.static` trägt `z0mod`, der Grund nennt es)',
+      !pr.z0mod && !!lateS?.z0mod && Math.abs(lateS.z0mod.t1.byColumn.icon_d2 - Math.log(0.8)) <= 0.0005 + 1e-12 && /^static: hmodel\/urban\/z0mod /.test(pr.late.static.skip),
+      pr.late?.static?.skip?.slice(0, 60));
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+}
+
 // --- Ausgabe ----------------------------------------------------------------
 let failed = 0;
 for (const c of checks) {

@@ -2903,9 +2903,20 @@ merge('Profil (PD-B5)', profileSelfTest());
   add('(3w) Worker starten mit --experimental-strip-types (der Decoder ist .ts)',
     /execArgv: \['--experimental-strip-types', '--no-warnings'\]/.test(dp));
   // Fuenf Aufrufstellen seit PD-E: field, orography, Halbflaechen, Level — und pressureField.
-  add('(3w) dwdRegular: field, orography, Halbflaechen, Level und Druckflaechen laufen ueber fetchSampledField, nichts mehr inline',
-    (files.dwdRegular.match(/fetchSampledField\(/g) || []).length === 5 && !/fetchGribField|sampleRegularToTier/.test(stripC(files.dwdRegular)),
+  // AP17 (E-F-15): EINE benannte Ausnahme — `roughness` (z0, ein Feld je Lauf und Stufe) dekodiert inline, weil das ln
+  // VOR dem Blockmittel stehen muss (geometrisches Mittel); der Pool mittelt arithmetisch. Außerhalb dieser Methode gilt
+  // die Regel unverändert.
+  const drNoZ0 = stripC(files.dwdRegular).replace(/async roughness\(run, tier\) \{[\s\S]*?\r?\n    \},\r?\n/, '');
+  add('(3w) dwdRegular: field, orography, Halbflaechen, Level und Druckflaechen laufen ueber fetchSampledField, nichts mehr inline (Ausnahme: roughness, AP17)',
+    (files.dwdRegular.match(/fetchSampledField\(/g) || []).length === 5 && !/fetchGribField\(|sampleRegularToTier/.test(drNoZ0)
+    && /async roughness\(run, tier\)/.test(files.dwdRegular) && drNoZ0 !== stripC(files.dwdRegular),
     `${(files.dwdRegular.match(/fetchSampledField\(/g) || []).length} Aufrufe`);
+  {
+    // Gegenprobe zur Ausnahme: ein Inline-Dekodieren in `orography` fällt weiter durch.
+    const bad = stripC(files.dwdRegular).replace('async orography(run, tier) {', 'async orography(run, tier) { await fetchGribField(invUrl(run, m.orographyParam));')
+      .replace(/async roughness\(run, tier\) \{[\s\S]*?\r?\n    \},\r?\n/, '');
+    add('(3w) Gegenprobe: Inline-Dekodieren außerhalb von roughness wird erkannt', /fetchGribField\(/.test(bad));
+  }
   add('(3w) dwdIcosahedral: field/orography ueber fetchSampledField, Nachbarindex EINMAL je Stufe an den Pool',
     (files.dwdIcosahedral.match(/fetchSampledField\(/g) || []).length === 2 && /poolSetIndex\(key, idx\)/.test(files.dwdIcosahedral)
     && (files.dwdIcosahedral.match(/grid: 'unstructured', idxKey/g) || []).length === 2);
@@ -3491,6 +3502,69 @@ merge('Profil (PD-B5)', profileSelfTest());
         /scanStaticProducts\(REPO\)/.test(pubSrc) && /staticProducts,/.test(pubSrc)
         && !/readdirSync\(staticRoot/.test(pubSrc));
     } finally { rmSync(tmp2, { recursive: true, force: true }); }
+  }
+
+  // -- (3az) AP17 (E-F-15, V-FI-58): z0 der Modelle als statisches Produkt `point/static/z0mod/v1` --
+  //
+  // Gebaut NUR mit `POINT_Z0MOD=1` (Jans Gate: die Zeile steht in der Cron-Vorlage, die Jan ins Daten-Repo
+  // kopiert). Ohne den Schalter plant der Producer nichts ein — kein Abruf, kein Manifest-Schlüssel, Cube
+  // byte-gleich. Die Rechnung (ln-Blockmittel, Neubau-Regel, Container) prüft der netzfreie Selbsttest.
+  {
+    const { staticZ0modSelfTest, z0modEnabled, Z0_ABSENT_REASON, carriesWindMean, writeStaticZ0mod } = await import('./point/staticZ0mod.mjs');
+    const { Z0MOD_PRODUCT, Z0MOD_VERSION } = await import('../src/point/cubeFormat.ts');
+    const st = await staticZ0modSelfTest();
+    add('(3az) staticZ0mod-Selbsttest (ln-Blockmittel, Quantisierung, Neubau-Regel, Container-Rundweg, Gegenprobe)', st.pass === st.total,
+      `${st.pass}/${st.total}${st.fails.length ? ' — ' + st.fails.join(' | ') : ''}`);
+    add('(3az) Pfade: point/static/z0mod/v1/<Stufe>/<cy>_<cx>.bin, zeitlos',
+      staticChunkPath(Z0MOD_PRODUCT, Z0MOD_VERSION, 't1', 3, 12) === 'point/static/z0mod/v1/t1/03_12.bin'
+      && isTimeless(staticChunkPath(Z0MOD_PRODUCT, Z0MOD_VERSION, 't2', 0, 0)) && isTimeless(staticManifestPath(Z0MOD_PRODUCT, Z0MOD_VERSION)));
+    add('(3az) Voreinstellung aus: ohne POINT_Z0MOD=1 baut der Producer nichts', !z0modEnabled({}) && !z0modEnabled({ POINT_Z0MOD: '0' }) && z0modEnabled({ POINT_Z0MOD: '1' }));
+    // Der Producer plant `runRoughness` nur mit dem Schalter ein und schreibt `z0mod` nur, wenn es eine Statistik gibt.
+    const bpz = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+    const gate = (src) => /const withZ0mod = z0modEnabled\(\);/.test(src)
+      && /\.\.\.\(withZ0mod \? \[timed\('roughness', runRoughness\)\] : \[\]\)/.test(src)
+      && /if \(withZ0mod\) \{ await timed\('roughness', runRoughness\);/.test(src)
+      && /\.\.\.\(z0modStat \? \{ z0mod: z0modStat \} : \{\}\)/.test(src) && /\.\.\.\(r\.z0mod \? \{ z0mod: r\.z0mod \} : \{\}\)/.test(src);
+    add('(3az) Producer: runRoughness nur hinter dem Schalter (parallel und sequenziell), z0mod im Manifest nur mit Statistik', gate(bpz));
+    add('(3az) Gegenprobe: dieselbe Sonde erkennt eine fest eingeschaltete Fassung', !gate(bpz.replace('...(withZ0mod ? [timed', '...(true ? [timed')));
+    const z0src = readFileSync(join(ROOT, 'scripts/point/staticZ0mod.mjs'), 'utf8');
+    add('(3az) der z0-Abruf zählt nicht gegen SRC_MAX_ERRORS (eigenes try/catch statt safeCall) und fasst keine gedroppte Quelle an',
+      /const got = await collectZ0mod\(contributors, tier\);/.test(bpz) && !/safeCall\([^)]*roughness/.test(bpz)
+      && /try \{ g = await c\.adapter\.roughness\(c\.run, tier\); \} catch/.test(z0src)
+      && /if \(c\.dropped \|\| !carriesWindMean\(c\.adapter\)\) continue;/.test(z0src));
+    const wfz = readFileSync(join(ROOT, 'scripts/repack-repo/workflow-point.yml'), 'utf8');
+    add('(3az) Cron-Vorlage: alle drei Bauschritte setzen POINT_Z0MOD=1 (Jans Kopie schaltet es ein)',
+      (wfz.match(/^\s+POINT_Z0MOD: '1'\s*$/gm) ?? []).length === 3, `${(wfz.match(/POINT_Z0MOD: '1'/g) ?? []).length}×`);
+    const dr = readFileSync(join(ROOT, 'scripts/point/adapters/dwdRegular.mjs'), 'utf8');
+    const di = readFileSync(join(ROOT, 'scripts/point/adapters/dwdIcosahedral.mjs'), 'utf8');
+    const ms = readFileSync(join(ROOT, 'scripts/point/adapters/meteoswiss.mjs'), 'utf8');
+    add('(3az) Adapter: ICON-D2 `z0`, ICON-EU `Z0`, ICON global `Z0`, AICON keins, ICON-CH `Z0` (ctrl, Vorlauf 0)',
+      /roughnessParam: 'z0'/.test(dr) && /roughnessParam: 'Z0'/.test(dr) && /roughnessParam: 'Z0'/.test(di) && /roughnessParam: null/.test(di)
+      && /findItem\(await itemsAt\(cfg, runMs\(run\)\), runMs\(run\), 'Z0'\)/.test(ms)
+      && /lnBlockMeanRegular\(f, tier\)/.test(dr) && /lnBlockMeanUnstructured\(f\.values, cells\.lat, cells\.lon, tier\)/.test(di));
+    const { makeEcmwfAdapter: mkE } = await import('./point/adapters/ecmwf.mjs');
+    const { makeGeosphereAdapter: mkG } = await import('./point/adapters/geosphere.mjs');
+    const noZ0 = [['ifs_hres', mkE('ifs_hres')], ['aifs_single', mkE('aifs_single')], ['claef', mkG('claef')]];
+    add('(3az) Windquellen ohne z0-Weg (IFS, AIFS, C-LAEF) tragen den Wind und haben einen gemessenen Grund; AICON ebenso',
+      noZ0.every(([id, a]) => carriesWindMean(a) && typeof a.roughness !== 'function' && Z0_ABSENT_REASON[id]) && /KI-Emulator/.test(Z0_ABSENT_REASON.aicon ?? ''),
+      noZ0.map(([id, a]) => `${id} u10 ${carriesWindMean(a)}`).join(', '));
+    // Der Publisher braucht keine Änderung: das Register findet das Produkt mit derselben Funktion wie `hmodel`.
+    const { scanStaticProducts } = await import('./point/staticIndex.mjs');
+    const tmpz = join(ROOT, 'data', `.verify-z0mod-${process.pid}`);
+    rmSync(tmpz, { recursive: true, force: true });
+    try {
+      const cells3 = TIER_BY_ID.t3.ny * TIER_BY_ID.t3.nx;
+      const g = new Float32Array(cells3);
+      for (let k = 0; k < cells3; k++) g[k] = Math.log(0.1 + (k % 9) / 10);
+      await writeStaticZ0mod(join(tmpz, 'point'), 't3', [{ id: 'icon_global', grid: g, run: '2026091800' }], { absent: { ifs_hres: Z0_ABSENT_REASON.ifs_hres } });
+      const prods = scanStaticProducts(tmpz);
+      add('(3az) das Register (Publisher) findet z0mod ohne Änderung am Publisher, mit Spalte und Chunkzahl',
+        prods.length === 1 && prods[0].product === Z0MOD_PRODUCT && prods[0].tiers[0]?.columns.join() === 'icon_global'
+        && prods[0].tiers[0]?.chunks === TIER_BY_ID.t3.chunk.cy * TIER_BY_ID.t3.chunk.cx, JSON.stringify(prods[0]?.tiers));
+    } finally { rmSync(tmpz, { recursive: true, force: true }); }
+    const { classifyPointPath } = await import('./point/cdnSync.mjs');
+    add('(3az) cdnSync behandelt z0mod wie hmodel (Klasse static: neue Dateien gewärmt, in place geänderte Chunks nicht gepurgt)',
+      classifyPointPath('point/static/z0mod/v1/t1/03_12.bin') === 'static' && classifyPointPath('point/static/z0mod/v1/static.json') === 'static');
   }
 
   // -- E-E-5 + V-PD-57 (Jan, 2026-09-15): hModEff je SCHRITT aus den TRAGENDEN Quellen, die

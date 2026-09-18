@@ -12,7 +12,7 @@
 import {
   CUBE_PLANES, CUBE_SCHEMA, TIERS, TIER_BY_ID, MISSING,
   encodeCubeChunk, chunkPath, chunkExtent, cellOf, chunkOf, quantize, stationBundlePath, stationManifestPath,
-  STATION_CATALOG_PATH,
+  STATION_CATALOG_PATH, blockCellsOutsideChunk,
 } from '../../src/point/cubeFormat.ts';
 import { buildPointIndex } from '../../src/point/manifest.ts';
 
@@ -68,11 +68,16 @@ export function signature(tierId, it, ry, rx) {
   };
 }
 
-/** Der Chunk einer Stufe um den Ort — alle Zellen des 16×16-Blocks, alle Schritte. */
-export async function buildTierChunk(tierId, lat = FIX.lat, lon = FIX.lon) {
+/**
+ * Der Chunk einer Stufe um den Ort — alle Zellen des 16×16-Blocks, alle Schritte.
+ * AP14 (additiv, Voreinstellung wie bisher): `o.chunk` baut einen bestimmten Chunk (cy, cx) statt des Chunks des Orts;
+ * `o.absolute` legt die Signatur auf den ABSOLUTEN Gitterindex statt auf Zeile/Spalte im Chunk — so bilden
+ * benachbarte Chunks ein zusammenhängendes Feld, und eine Zelle jenseits der Grenze ist nachrechenbar.
+ */
+export async function buildTierChunk(tierId, lat = FIX.lat, lon = FIX.lon, o = {}) {
   const tier = TIER_BY_ID[tierId];
   const cell = cellOf(tier, lat, lon);
-  const ch = chunkOf(cell.iy, cell.ix);
+  const ch = o.chunk ?? chunkOf(cell.iy, cell.ix);
   const ext = chunkExtent(tier, ch.cy, ch.cx);
   const nt = tier.leadHours.length;
   const cells = nt * ext.ny * ext.nx;
@@ -81,7 +86,7 @@ export async function buildTierChunk(tierId, lat = FIX.lat, lon = FIX.lon) {
     for (let it = 0; it < nt; it++) {
       for (let y = 0; y < ext.ny; y++) {
         for (let x = 0; x < ext.nx; x++) {
-          const v = signature(tierId, it, y, x)[pl.id];
+          const v = signature(tierId, it, o.absolute ? ext.y0 + y : y, o.absolute ? ext.x0 + x : x)[pl.id];
           if (v != null) a[(it * ext.ny + y) * ext.nx + x] = quantize(v, pl);
         }
       }
@@ -151,7 +156,13 @@ export async function buildCubeFixture(opts = {}) {
   const tiers = opts.tiers ?? ['t1', 't2', 't3'];
   const lat = opts.lat ?? FIX.lat, lon = opts.lon ?? FIX.lon;
   const chunks = {};
-  for (const t of tiers) chunks[t] = await buildTierChunk(t, lat, lon);
+  // AP14 (additiv): `absolute` (Signatur am absoluten Gitterindex), `neighbourChunks` (die Chunks der Blockzellen jenseits
+  // der Grenze kommen als weitere Dateien dazu — derselbe Lauf, dieselbe Signatur).
+  for (const t of tiers) chunks[t] = await buildTierChunk(t, lat, lon, { absolute: !!opts.absolute });
+  const extra = [];
+  if (opts.neighbourChunks) {
+    for (const t of tiers) for (const g of blockCellsOutsideChunk(TIER_BY_ID[t], lat, lon)) extra.push(await buildTierChunk(t, lat, lon, { absolute: !!opts.absolute, chunk: { cy: g.cy, cx: g.cx } }));
+  }
   const station = opts.station === false ? null : await buildStationProduct(lat, lon);
   const runs = tiers.map((t) => {
     const c = chunks[t];
@@ -169,10 +180,11 @@ export async function buildCubeFixture(opts = {}) {
     files.set(`point/${c.run}/run.json`, enc(c.manifest));
     files.set(c.path, c.bytes);
   }
+  for (const c of extra) files.set(c.path, c.bytes);
   if (station) {
     files.set(STATION_CATALOG_PATH, enc(station.catalog));
     files.set(stationManifestPath(station.run), enc(station.manifest));
     files.set(station.file, station.bytes);
   }
-  return { files, index, chunks, station, tiers, TIERS };
+  return { files, index, chunks, station, tiers, TIERS, extra };
 }

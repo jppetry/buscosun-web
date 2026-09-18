@@ -101,6 +101,10 @@ export interface MemberSigmaInput {
   sigmaClima: number;
   /** AP4-Ergebnis des Schritts (Δh, Fall) — `null` ohne Höhen. */
   vertical: VerticalResult | null;
+  /** AP13: gemessenes σ_sys (calib.json, `measured`) — ersetzt max(Boden, Skill-Prior) ganz; fehlt es, gilt die Setzung. */
+  sysOverride?: number | null;
+  /** AP13: gemessenes c(p,f) — ersetzt `C_SPREAD`; fehlt es, gilt die Setzung. */
+  cSpread?: number | null;
 }
 
 export interface MemberSigma {
@@ -125,7 +129,8 @@ export function memberSigma(inp: MemberSigmaInput): MemberSigma {
   const div = pick(sample.sigmaDiv, ids);
   const nEns = sample.ensCount ?? null;
   const src = sample.srcCount ?? null;
-  const sys = sigmaSysAt(v, sample.family, inp.leadH, inp.sigmaClima);
+  const sys = inp.sysOverride ?? sigmaSysAt(v, sample.family, inp.leadH, inp.sigmaClima);
+  const c = inp.cSpread ?? C_SPREAD;
   const quant = sigmaQuantOf(v);
   const dh = inp.vertical ? Math.abs(inp.vertical.dhM) : 0;
   const vert = (VERT_RESIDUAL_PER_M[v] ?? 0) * dh;
@@ -136,7 +141,7 @@ export function memberSigma(inp: MemberSigmaInput): MemberSigma {
   }
   let kind: SigmaKind;
   let core2: number;
-  if (ens != null && nEns != null && nEns > 0 && ens > 0) { kind = 'ensemble'; core2 = (C_SPREAD * ens) ** 2; }
+  if (ens != null && nEns != null && nEns > 0 && ens > 0) { kind = 'ensemble'; core2 = (c * ens) ** 2; }
   else if (div != null && src != null && src >= 2) { kind = 'divergence'; core2 = div * div + sys * sys; }
   else { kind = 'sys-only'; core2 = sys * sys; }
   return {
@@ -164,6 +169,8 @@ export interface ConfidenceInput {
   dhM: number | null;
   /** Station > 15 km (heute nie — die Regel lässt sie nicht zu), für Vollständigkeit. */
   stationFar?: boolean;
+  /** AP13: gemessene Abschläge je Flag (calib.json `confDiscount`); fehlende Flags behalten die Setzung. */
+  discount?: Partial<Record<keyof typeof CONF_DISCOUNT, number>>;
 }
 
 export interface Confidence { score: number; spread: number; agree: number; lage: number }
@@ -178,14 +185,15 @@ export function confidenceOf(inp: ConfidenceInput): Confidence {
   else if (parts.div != null && inp.member.sigma > 0) agreeRaw = clamp01(1 - (parts.div ** 2) / (inp.member.sigma ** 2));
   else agreeRaw = 1;   // nichts widerspricht — aber auch nichts bestätigt: der srcCount-Faktor drückt es
   const agree = clamp01(agreeRaw * Math.min(1, (inp.srcCount ?? 1) / 3));
+  const D = inp.discount ? { ...CONF_DISCOUNT, ...inp.discount } : CONF_DISCOUNT;
   let lage = 1;
-  if (inp.flags.includes('extrapolatedBelowModel')) lage *= CONF_DISCOUNT.caseC;
-  else if (inp.flags.includes('inversionBody')) lage *= CONF_DISCOUNT.caseB;
-  if (inp.dhM != null && inp.dhM > CONF_DH_M) lage *= CONF_DISCOUNT.dhOver300;
-  if (inp.flags.includes('chunkBorderTruncated')) lage *= CONF_DISCOUNT.chunkBorder;
-  if (inp.flags.includes('interpolated')) lage *= CONF_DISCOUNT.interpolated;
-  if (inp.flags.includes('nowcastFallbackModel')) lage *= CONF_DISCOUNT.nowcastFallback;
-  if (inp.stationFar) lage *= CONF_DISCOUNT.stationFar;
+  if (inp.flags.includes('extrapolatedBelowModel')) lage *= D.caseC;
+  else if (inp.flags.includes('inversionBody')) lage *= D.caseB;
+  if (inp.dhM != null && inp.dhM > CONF_DH_M) lage *= D.dhOver300;
+  if (inp.flags.includes('chunkBorderTruncated')) lage *= D.chunkBorder;
+  if (inp.flags.includes('interpolated')) lage *= D.interpolated;
+  if (inp.flags.includes('nowcastFallbackModel')) lage *= D.nowcastFallback;
+  if (inp.stationFar) lage *= D.stationFar;
   return { score: clamp01(spread * agree * lage), spread, agree, lage };
 }
 

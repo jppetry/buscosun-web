@@ -22,6 +22,11 @@
  *             `total` = erste Antwort (bei 336 h die erste Stufe, E-F-3), `fullMs` = ganzes Fenster, `finalMs` = letzte Ausgabe
  *   cubex     AP12-Diagnose: cube-cold-24h, -noradar, -noradar-noobs (was welcher Posten auf der Leitung kostet)
  *   cuber     AP12 (c): Ebenen-Bereiche gegen die ganze Datei im selben Lauf (erster und zweiter Nutzer am Edge)
+ *   cubecc    AP14: Nachbar-Chunk für den 2×2-Block (`crossChunk`) gegen ohne — je Variante ein Isolat, kalt dann warm;
+ *             die Ausgaben tragen `border` (Schritte mit chunkBorderTruncated) und `cc` (Nachbar-Chunk in dieser Ausgabe)
+ *   cubelc    AP16: Landbedeckung (`landCover` + `kappa` + `z0CellBox`) gegen ohne — je Variante ein Isolat, kalt dann warm;
+ *             die Ausgaben tragen `lc` (d_water/κ in dieser Ausgabe); gemessen wird, ob die erste Darstellung gleich bleibt
+ *             und wann die z0-/Landbedeckungs-Ausgabe kommt
  *
  * `--gate` prüft §6: kalt das GANZE Fenster (bei `cubep` daneben die erste Darstellung), warm p50 < 0,5 s.
  *
@@ -266,6 +271,25 @@ async function main() {
         if (only.has('cubez')) {
           // V-FI-17: z0 aus WorldCover gegen ohne — ein Isolat je Variante, kalt dann warm im selben Kontext.
           for (const [cold, warm, o] of [['cube-cold-prog-noz0', 'cube-warm-prog-noz0', 'z0: false'], ['cube-cold-prog-z0', 'cube-warm-prog-z0', 'z0: true']]) {
+            await withContext(profile, async (ctx) => {
+              await record(ctx, { ...base, scenario: cold, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, ${o} })`);
+              await record(ctx, { ...base, scenario: warm, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, fresh: true, ${o} })`);
+            });
+          }
+        }
+        if (only.has('cubecc')) {
+          // AP14: Nachbar-Chunk gegen ohne — ein Isolat je Variante, kalt dann warm im selben Kontext (Graz/Berlin am Rand,
+          // ein Innenort als Gegenprobe: dort darf sich nichts ändern).
+          for (const [cold, warm, o] of [['cube-cold-prog-nocc', 'cube-warm-prog-nocc', 'cc: false'], ['cube-cold-prog-cc', 'cube-warm-prog-cc', 'cc: true']]) {
+            await withContext(profile, async (ctx) => {
+              await record(ctx, { ...base, scenario: cold, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, ${o} })`);
+              await record(ctx, { ...base, scenario: warm, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, fresh: true, ${o} })`);
+            });
+          }
+        }
+        if (only.has('cubelc')) {
+          // AP16: Landbedeckung gegen ohne — ein Isolat je Variante, kalt dann warm im selben Kontext.
+          for (const [cold, warm, o] of [['cube-cold-prog-nolc', 'cube-warm-prog-nolc', 'lc: false'], ['cube-cold-prog-lc', 'cube-warm-prog-lc', 'lc: true']]) {
             await withContext(profile, async (ctx) => {
               await record(ctx, { ...base, scenario: cold, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, ${o} })`);
               await record(ctx, { ...base, scenario: warm, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, fresh: true, ${o} })`);

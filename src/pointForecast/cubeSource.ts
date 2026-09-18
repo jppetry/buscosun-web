@@ -49,6 +49,8 @@ import {
 import { windSigmaAt } from './fusion/priors';
 import { tpiAt } from './fusion/terrainScale';
 import { terrainTerms, windBlendingFactor, TERRAIN_SET, type TerrainTermsResult } from './fusion/terrainTerms';
+import { binnedAt, calibMetaText, type CalibOverrides } from '../point/calibDoc';
+import { loadCalib, type LoadedCalib } from '../point/client/calibPoint';
 import { ANCHOR_MAX, ANCHOR_TAU_H, anchorTerm, innovation, type AnchorPair, type Innovation } from './anchor';
 import { spatialWeight } from './leadTimeWeights';
 import { nowcastSourcesFor } from '../point/client/nowcastPoint';
@@ -65,17 +67,20 @@ import { solarPosition } from './terrainPhysics';
 import { detectFoehn } from './foehnDetector';
 import { apparentTemperatureC } from './apparentTemperature';
 import type { ClimaField, ClimaSample } from '../ml/climaField';
-import { TIERS, CUBE_PLANES, type TierId } from '../point/cubeFormat';
+import { TIERS, CUBE_PLANES, POINT_CALIB_PATH, type TierId } from '../point/cubeFormat';
 import { NOWCAST_SATURATION, type NowcastSourceId } from '../point/nowcastFormat';
 import type { CubePointSeries, CubePointStep } from '../point/client/cubePoint';
+import type { StaticPoint } from '../point/client/staticPoint';
+import type { PointSourceManifest } from '../point/manifest';
 import type { StationPointSeries } from '../point/client/stationPoint';
 import type { NowcastPointSeries } from '../point/client/nowcastPoint';
 import type { TerrainPointResult, TerrainOptions } from '../point/client/terrain';
 import type { PngDecoder } from '../point/client/nowcastPoint';
-import { readPointBundle, tiersForWindow, type PointBundle } from '../point/client/readPoint';
+import { readPointBundle, tiersForWindow, withCrossChunk, type PointBundle, type CrossChunkResult } from '../point/client/readPoint';
 import { httpStore, type PointStore } from '../point/client/store';
 import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../point/client/cache';
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
+import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
 
 const H = 3_600_000;
@@ -112,6 +117,11 @@ export interface CubeFusionInput {
    * ein. Fehlt das Feld (Voreinstellung), rechnet alles wie bisher (byte-gleich).
    */
   z0?: Z0AtPoint | null;
+  /**
+   * AP17 (E-F-15): z0 der Modelle je Stufe aus `point/static/z0mod` (ln z0 je Quelle an der nächsten Zelle, `absent` =
+   * Windquellen ohne z0). Nur mit `CubeIo.z0mod`; wirkt nur mit `FuseCubeOptions.z0Model`. Fehlt das Feld, byte-gleich.
+   */
+  z0mod?: Partial<Record<TierId, StaticPoint | null>>;
   index: { commit: string | null; publishedAt?: string; axis?: { usableToMs?: number | null; gaps?: Array<{ fromH: number; toH: number }> } } | null;
   /** Die Klimatologie — Prior der Schrumpfung. Ohne sie gibt es keine Verteilungen (K-3). */
   clima: ClimaField | null;
@@ -162,6 +172,7 @@ export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, ob
     urban: b.urban?.byColumn ?? null,
     index: b.index ? { commit: b.index.commit, publishedAt: b.index.publishedAt, axis: b.index.axis } : null,
     clima, notes: [...b.notes], skips: [...b.skips], errors: [...b.errors],
+    ...(b.z0mod ? { z0mod: b.z0mod } : {}),
   };
 }
 
@@ -389,6 +400,11 @@ export interface FuseCubeOptions {
   terrain?: boolean;
   /** AP5: Amplituden und Rauhigkeiten von außen (Replay/Verifier); Voreinstellung = `calib.json` heute (alles null). */
   terrainCalib?: { A?: number | null; Auhi?: number | null; tpiSigmaM?: number | null; z0Mod?: number | null; z0True?: number | null };
+  /**
+   * AP13: gemessene Kalibrierung aus `calib.json` (nur `measured` mit Beleg, `calibDoc.ts`). Fehlt sie, gelten die
+   * Setzungen — byte-gleich zu vorher (Negativkontrolle). Ein ausdrücklich gesetztes `terrainCalib` hat Vorrang.
+   */
+  calib?: CalibOverrides | null;
   /** AP7: Anker aus `input.obs` (Voreinstellung ja, wenn Messungen da sind). */
   anchor?: boolean;
   /**
@@ -397,6 +413,24 @@ export interface FuseCubeOptions {
    * `getPointForecastFromCube` verlangt ihn, weil das Produkt bis 336 h antwortet.
    */
   tail?: boolean;
+  /**
+   * AP16 (E-F-16): PAP 3 mit κ je Zelle aus der Landbedeckung (`input.z0.landCover`, nur mit `CubeIo.landCover`) —
+   * t1/t2; t3 κ = 1. Voreinstellung aus ⇒ κ = 1 wie bisher (byte-gleich). Ohne Landbedeckung im Eingang bleibt κ = 1,
+   * benannt.
+   */
+  kappa?: boolean;
+  /**
+   * AP16 (V-FI-65): z0 des Modells in t1/t2 als ln-Mittel der Blockzellen (Box um die ZELLMITTE) mit den PAP-3-Gewichten
+   * statt der Box um den Punkt; t3 bleibt bei der Box um den Punkt. Voreinstellung aus ⇒ byte-gleich.
+   */
+  z0CellBox?: boolean;
+  /**
+   * AP17 (E-F-15, V-FI-58): z0 des Modells je Stufe aus dem GRIB (`input.z0mod`) statt der WorldCover-Näherung: ln-Mittel
+   * über die Windquellen des Laufs, die die Zelle decken — GRIB-Wert, wo die Quelle z0 veröffentlicht, sonst die
+   * Näherung (Box um den Punkt bzw. mit `z0CellBox` die Blockzellen). Wirkt nur mit z0 am Punkt (`input.z0`).
+   * Voreinstellung aus ⇒ byte-gleich.
+   */
+  z0Model?: boolean;
   /**
    * AP7: stündliche Achse — Stunden ohne nativen Schritt füllt die Station (wenn sie den Punkt vertritt),
    * sonst werden die Quantile der Nachbarschritte linear interpoliert und markiert. Voreinstellung nein
@@ -423,7 +457,10 @@ function sigmaPostOf(f: FusedPoint, v: UncVar): number | null {
  * AP3: die Zellwerte am Punkt aus dem 2×2-Block (PAP 3). Ohne Nachbarn in der Reihe bleibt es
  * die nächste Zelle (N = 1, `null`).
  */
-export function gridStep(a: AxisStep, lat: number, lon: number, hTrue: number): GridResult | null {
+export function gridStep(
+  a: AxisStep, lat: number, lon: number, hTrue: number, ldM?: number | null, lhM?: number | null,
+  kappaAtCell?: ((iy: number, ix: number) => number | null) | null,
+): GridResult | null {
   const nb = a.series.neighbours;
   if (!nb || !nb.length) return null;
   const tier = TIERS.find((t) => t.id === a.tier)!;
@@ -433,10 +470,71 @@ export function gridStep(a: AxisStep, lat: number, lon: number, hTrue: number): 
     if (!values) continue;
     cells.push({ dy: n.dy, dx: n.dx, distM: n.distKm * 1000, hModEffM: num(values.hModEff) ?? n.hModEffM, values });
   }
+  const block = blockOffsets(lat - a.series.cell.lat, lon - a.series.cell.lon);
+  // AP16: κ je Zelle nur, wenn JEDE vorhandene Blockzelle einen hat — sonst κ = 1 für alle (keine halbe Gewichtung).
+  if (kappaAtCell) {
+    const inBlock = cells.filter((c) => block.some((b) => b.dy === c.dy && b.dx === c.dx));
+    const ks = inBlock.map((c) => kappaAtCell(a.series.cell.iy + c.dy, a.series.cell.ix + c.dx));
+    if (ks.every((k) => k != null)) inBlock.forEach((c, i) => { c.kappa = ks[i] as number; });
+  }
   return gridToPoint({
-    cells, block: blockOffsets(lat - a.series.cell.lat, lon - a.series.cell.lon), hTrue,
-    ldM: tier.deg * GRID_SET.mPerDeg,
+    cells, block, hTrue,
+    ldM: ldM ?? tier.deg * GRID_SET.mPerDeg,
+    // AP13: gemessenes L_h nur, wenn es da ist — sonst das Feld weglassen (gridToPoint nimmt GRID_SET.lhM).
+    ...(lhM != null ? { lhM } : {}),
   });
+}
+
+/** AP17: z0 des Modells an einer Zelle aus den Windquellen einer Stufe (`z0ModelMix`). */
+export interface Z0ModelMix {
+  /** ln-Mittel über die tragenden Quellen, ln(m). */
+  lnZ0: number;
+  /** Quellen mit GRIB-z0 an dieser Zelle. */
+  grib: string[];
+  /** Quellen ohne z0 (IFS, AIFS, AICON, C-LAEF) — mit der WorldCover-Näherung gezählt. */
+  approx: string[];
+  /** Windquellen des Laufs, die die Zelle nicht decken (Domäne) — nicht gezählt. */
+  outside: string[];
+}
+
+/** Deckt die Domäne einer Quelle (Manifest `geometry`) die Zelle? Dieselbe Regel wie `coversPoint` (Rand nur an der Domäne). */
+function geometryCovers(g: PointSourceManifest['geometry'], lat: number, lon: number): boolean {
+  if (!g) return true;
+  for (const box of [g.domain, g.clip] as Array<{ latMin: number; latMax: number; lonMin: number; lonMax: number } | null>) {
+    if (!box) continue;
+    const margin = box === g.domain ? g.edgeMarginKm ?? 0 : 0;
+    const dLat = margin / 111.32, dLon = margin / (111.32 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+    if (lat < box.latMin + dLat || lat > box.latMax - dLat || lon < box.lonMin + dLon || lon > box.lonMax - dLon) return false;
+  }
+  return true;
+}
+
+/**
+ * AP17 (E-F-15): z0 des Modells an der nächsten Zelle einer Stufe — ln-Mittel über die Windquellen des Laufs (Spalten und
+ * `absent` des Produkts ∩ Quellen des Laufs mit Mittelwert, nicht gedroppt), die die Zelle decken: GRIB-Wert, wo die Quelle
+ * z0 veröffentlicht, sonst `wcZ0` (WorldCover-Näherung). `null`, wenn keine GRIB-Quelle die Zelle trägt ⇒ der Aufrufer
+ * bleibt bei der Näherung (byte-gleich). Näherung, benannt: welche Quelle welchen Schritt trägt, steht nicht im Manifest
+ * (`steps` ist eine Anzahl) — gemittelt wird über den Lauf.
+ */
+export function z0ModelMix(
+  sp: StaticPoint | null | undefined, sources: readonly PointSourceManifest[] | undefined,
+  cellLat: number, cellLon: number, wcZ0: number | null,
+): Z0ModelMix | null {
+  if (!sp || wcZ0 == null || !(wcZ0 > 0)) return null;
+  const wind = new Set([...Object.keys(sp.byColumn), ...Object.keys(sp.absent ?? {})]);
+  const grib: string[] = [], approx: string[] = [], outside: string[] = [];
+  let acc = 0, n = 0;
+  for (const s of sources ?? []) {
+    if (!wind.has(s.id) || s.dropped || (s.members ?? 0) > 1 || !(s.steps > 0)) continue;
+    if (s.id in sp.byColumn) {
+      const v = sp.byColumn[s.id];
+      if (v == null || !Number.isFinite(v)) { outside.push(s.id); continue; }
+      acc += v; n++; grib.push(s.id);
+    } else if (geometryCovers(s.geometry, cellLat, cellLon)) {
+      acc += Math.log(wcZ0); n++; approx.push(s.id);
+    } else outside.push(s.id);
+  }
+  return n && grib.length ? { lnZ0: acc / n, grib, approx, outside } : null;
 }
 
 /**
@@ -475,10 +573,38 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const useTerrain = opts.terrain !== false;
   const useAnchor = opts.anchor !== false;
   const useTail = opts.tail === true;
-  const tc = { A: null, Auhi: null, tpiSigmaM: null, z0Mod: null, z0True: null, ...(opts.terrainCalib ?? {}) };
+  // AP16: Landbedeckung (nur mit `CubeIo.landCover` im Eingang) — κ je Zelle und die Modellzell-Box, beide voreingestellt aus.
+  const lc: LandCover | null = input.z0 && isLandCover(input.z0) ? input.z0.landCover : null;
+  const useKappa = opts.kappa === true;
+  const useZ0Cell = opts.z0CellBox === true;
+  const useZ0Model = opts.z0Model === true;
+  // AP13: gemessene Kalibrierung (nur `measured` mit Beleg). Ohne sie: dieselben Setzungen, dieselben Texte (Negativkontrolle).
+  const cal = opts.calib ?? null;
+  const calT = cal ? { ...(cal.A != null ? { A: cal.A } : {}), ...(cal.Auhi != null ? { Auhi: cal.Auhi } : {}), ...(cal.tpiSigmaM != null ? { tpiSigmaM: cal.tpiSigmaM } : {}) } : {};
+  const tc = { A: null, Auhi: null, tpiSigmaM: null, z0Mod: null, z0True: null, ...calT, ...(opts.terrainCalib ?? {}) };
+  const fromCal = (k: 'A' | 'Auhi' | 'tpiSigmaM'): boolean => cal?.[k] != null && opts.terrainCalib?.[k] === undefined;
+  const zBlendM = cal?.zBlendM ?? TERRAIN_SET.zBlendM;
+  const fRadP = cal?.fRad ? { a: cal.fRad.a ?? TERRAIN_SET.a, vRefMs: cal.fRad.vRefMs ?? TERRAIN_SET.vRefMs, epsilon: cal.fRad.epsilon ?? TERRAIN_SET.epsilon } : null;
+  const metaOf = (...paths: string[]) => calibMetaText(paths.map((q) => cal?.meta[q]).find((m) => m));
+  const fmtM = (x: number | undefined) => (x == null ? '—' : `${Math.round(x)} m`);
   // V-FI-17: z0 aus WorldCover, wenn der Aufrufer es mitbringt und `terrainCalib` keine Rauhigkeit von außen setzt.
   const z0In = input.z0 && input.z0.z0True != null && opts.terrainCalib?.z0True === undefined && opts.terrainCalib?.z0Mod === undefined ? input.z0 : null;
   const fmtZ0 = (x: number | null | undefined) => (x == null ? '—' : x >= 0.1 ? x.toFixed(2) : x.toPrecision(2));
+  // AP17: z0 des Modells aus dem GRIB — nur mit Option, z0 am Punkt und dem Produkt im Eingang; je Stufe an der nächsten Zelle.
+  const zmOn = useZ0Model && !!z0In && !!input.z0mod;
+  const z0mByTier: Partial<Record<TierId, Z0ModelMix | null>> = {};
+  if (zmOn) {
+    for (const t of ['t1', 't2', 't3'] as const) {
+      const se = input.cube[t];
+      z0mByTier[t] = se ? z0ModelMix(input.z0mod![t], se.sources, se.cell.lat, se.cell.lon, z0In!.z0Mod[t] ?? null) : null;
+    }
+  }
+  const z0mText = (t: TierId): string => {
+    const m = z0mByTier[t];
+    if (!m) return `${t} WorldCover-Näherung (kein GRIB-z0 an der Zelle)`;
+    const col = input.z0mod![t]!.byColumn;
+    return `${t} ${m.grib.map((id) => `${id} ${fmtZ0(Math.exp(col[id] as number))}`).join(' · ')} m (GRIB)${m.approx.length ? `, ${m.approx.join(' · ')} mit der Näherung` : ''} ⇒ ${fmtZ0(Math.exp(m.lnZ0))} m`;
+  };
   const calib: string[] = [
     ...(input.elevationFrom === 'station' ? [`hTrue:station — Punkt ≤ ${Math.round(SELECTION.stationAtPointKm * 1000)} m an einer Katalogstation: ihre Höhe (${input.elevationM} m) gilt als h_true statt der DEM-Höhe${input.terrain?.elevationM != null ? ` (${Math.round(input.terrain.elevationM)} m)` : ''} (E-F-12, Jan 17.09.; am Gipfel liegt das DEM-Pixel bis 270 m tiefer)`] : []),
     'footprint:set — FOOTPRINT_M cube-t1/t2/t3 = Zellweite der Stufe (5/10/25 km), gesetzt, bis AP10 die Repräsentativität misst',
@@ -489,30 +615,50 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       `standardLapse:literature — ${STANDARD_LAPSE_PER_M * 1000} K/km (ICAO) als Rückfall ohne Profil (t2/t3) und als Lapse des Motors`,
     ] : []),
     ...(useGrid ? [
-      'Ld:set — PAP 3 L_d = Zellweite der Stufe (5,5/11/28 km N–S), gesetzt; AP10 kalibriert',
-      `Lh:set — PAP 3 L_h = ${GRID_SET.lhM} m (Präzedenz spatialWeight H_REF), gesetzt; AP10 kalibriert`,
-      'kappa:set — PAP 3 κ = 1: keine Landnutzungs-Ähnlichkeit je Zelle im Repo (nur am Punkt)',
+      cal?.LdM
+        ? `Ld:${metaOf('Ld')} — PAP 3 L_d je Stufe t1 ${fmtM(cal.LdM.t1)} · t2 ${fmtM(cal.LdM.t2)} · t3 ${fmtM(cal.LdM.t3)} (fehlende Stufe: Zellweite, set)`
+        : 'Ld:set — PAP 3 L_d = Zellweite der Stufe (5,5/11/28 km N–S), gesetzt; AP10 kalibriert',
+      cal?.LhM != null
+        ? `Lh:${metaOf('Lh')} — PAP 3 L_h = ${Math.round(cal.LhM)} m`
+        : `Lh:set — PAP 3 L_h = ${GRID_SET.lhM} m (Präzedenz spatialWeight H_REF), gesetzt; AP10 kalibriert`,
+      !useKappa ? 'kappa:set — PAP 3 κ = 1: keine Landnutzungs-Ähnlichkeit je Zelle im Repo (nur am Punkt)'
+        : lc ? `kappa:set — PAP 3 κ je Zelle (AP16, E-F-16): κ = exp(−δ/λ), δ = ½·Σ|p − q| über 6 Gruppen (Wasser · Stadt · Wald · Offen · Kahl · Schnee), p im Punktkreis ${Z0_POINT_RADIUS_M} m, q in der Box um die Zellmitte (WorldCover); λ = ${LANDCOVER_SET.lambda} (set); t3 κ = 1; unter ${Math.round(LANDCOVER_SET.minCoverage * 100)} % bekannter Pixel (Punktkreis oder Blockzelle) oder Blockzelle außerhalb des 3×3 ⇒ κ = 1 für den Block`
+        : 'kappa:set — PAP 3 κ = 1: Option kappa an, aber keine Landbedeckung im Eingang (CubeIo.landCover aus oder nicht rechtzeitig)',
     ] : []),
     ...(useUnc ? [
-      `cSpread:set — PAP 6 c(p,f) = ${C_SPREAD} (σ = c·σ_ens), bis AP10 ihn misst`,
+      cal?.cSpread
+        ? `cSpread:${metaOf('cSpread')} — PAP 6 c(p,f) je Größe und Vorlauf-Bin gemessen; Bins ohne Wert: c = ${C_SPREAD} (set)`
+        : `cSpread:set — PAP 6 c(p,f) = ${C_SPREAD} (σ = c·σ_ens), bis AP10 ihn misst`,
+      ...(cal?.sigmaSys ? [`sigmaSys:${metaOf('sigmaSys')} — PAP 6 σ_sys des Cube-Members je Größe und Vorlauf-Bin gemessen (ersetzt Boden und Skill-Prior); Bins ohne Wert: Setzung wie unten`] : []),
       `sigmaSys:set — Boden aus V-A₁ (T ${SIGMA_SYS_FLOOR_A1.temperature} K · Td ${SIGMA_SYS_FLOOR_A1.dewpoint} · Wind ${SIGMA_SYS_FLOOR_A1.wind} m/s · Böe ${SIGMA_SYS_FLOOR_A1.gust}), darüber der Skill-Prior σ_c·√(1−ρ²) des Motors; Bewölkung nur Prior; AP10 misst σ_sys(v, τ)`,
       'sigmaQuant:physical — Δ²/12 aus der Ebenenskala (PAP 6)',
       'sigmaVert:set — Restfehler der Höhenkorrektur 0,0035 K/m·|Δh| (REP.lapseResidualPerM), Fall C |ΔT_C|, Fall B dT_inv/4',
+      ...(cal?.confDiscount ? [`confidence:${metaOf('confDiscount')} — gemessene Abschläge: ${Object.entries(cal.confDiscount).map(([k, x]) => `${k} ${x}`).join(' · ')}; die übrigen wie unten (set)`] : []),
       `confidence:set — Score = spread·agree·lage; Abschläge Fall C ${CONF_DISCOUNT.caseC} · Fall B ${CONF_DISCOUNT.caseB} · |Δh| > 300 m ${CONF_DISCOUNT.dhOver300} · Chunk-Rand ${CONF_DISCOUNT.chunkBorder} · Interpolation ${CONF_DISCOUNT.interpolated} · Modell statt Nowcast ${CONF_DISCOUNT.nowcastFallback}; kein Wahrscheinlichkeitsmaß, AP9 prüft die Monotonie gegen CRPS`,
       'precipSigma:set — Niederschlag bleibt beim Motor (K-2); precip_sd wird nicht als σ verwendet',
       'meltOffset:null — Schneefallgrenze ist der Zellwert, kein Schmelzversatz (calib.meltOffset unbekannt)',
       'stationSigma:set — das MOSMIX-Member (Stationsprodukt, eine Quelle) bekommt dieselbe PAP-6-σ (sys-only: V-A₁-Boden, darüber Skill-Prior) statt des Motor-Priors ρ₀ = 0,985, den V-A₁ als zu hoch gemessen hat (§11 (2))',
     ] : []),
     ...(useTerrain ? [
-      `A:${tc.A == null ? 'null' : 'set'} — PAP 5 Kaltluftsee-Amplitude ${tc.A == null ? 'unbekannt (wird an Stationen gelernt, AP10) ⇒ ΔT_cap inaktiv, Geometrie benannt' : `${tc.A} K von außen`}`,
-      `Auhi:${tc.Auhi == null ? 'null' : 'set'} — PAP 5 Wärmeinsel-Amplitude ${tc.Auhi == null ? 'unbekannt ⇒ ΔT_uhi inaktiv, Geometrie benannt' : `${tc.Auhi} K von außen`}`,
-      `fRad:set — a = ${TERRAIN_SET.a}, v_ref = ${TERRAIN_SET.vRefMs} m/s, ε = ${TERRAIN_SET.epsilon.toFixed(3)}: f_rad an den bestehenden Produkt-Gates (65 % Bedeckung, 2,5 m/s) ist genau ε`,
+      fromCal('A')
+        ? `A:${metaOf('A')} — PAP 5 Kaltluftsee-Amplitude ${tc.A} K (Wert „default"; regionale Werte folgen)`
+        : `A:${tc.A == null ? 'null' : 'set'} — PAP 5 Kaltluftsee-Amplitude ${tc.A == null ? 'unbekannt (wird an Stationen gelernt, AP10) ⇒ ΔT_cap inaktiv, Geometrie benannt' : `${tc.A} K von außen`}`,
+      fromCal('Auhi')
+        ? `Auhi:${metaOf('Auhi')} — PAP 5 Wärmeinsel-Amplitude ${tc.Auhi} K (Wert „default")`
+        : `Auhi:${tc.Auhi == null ? 'null' : 'set'} — PAP 5 Wärmeinsel-Amplitude ${tc.Auhi == null ? 'unbekannt ⇒ ΔT_uhi inaktiv, Geometrie benannt' : `${tc.Auhi} K von außen`}`,
+      fRadP
+        ? `fRad:${metaOf('fRad.a', 'fRad.vRef', 'fRad.epsilon')} — a = ${fRadP.a}, v_ref = ${fRadP.vRefMs} m/s, ε = ${fRadP.epsilon.toFixed(3)} (nicht gemessene Teile: Setzung)`
+        : `fRad:set — a = ${TERRAIN_SET.a}, v_ref = ${TERRAIN_SET.vRefMs} m/s, ε = ${TERRAIN_SET.epsilon.toFixed(3)}: f_rad an den bestehenden Produkt-Gates (65 % Bedeckung, 2,5 m/s) ist genau ε`,
       'fSaison:set — Jahresgang der Nachtlänge am Ort, 0 (kürzeste Nacht) … 1 (längste), E-F-4',
+      fromCal('tpiSigmaM') ? `tpiSigma:${metaOf('tpiSigma')} — regionale TPI-Streuung ${tc.tpiSigmaM} m (Wert „default")` :
       `tpiSigma:${tc.tpiSigmaM == null ? 'null' : 'set'} — regionale TPI-Streuung für das Gate „TPI < −1σ" ${tc.tpiSigmaM == null ? 'unbekannt ⇒ Muldengate nicht entscheidbar' : `${tc.tpiSigmaM} m von außen`}`,
       z0In
-        ? `z0:set — zweistufige Windkorrektur aktiv (V-FI-17): z0 am Punkt = log-Mittel der WorldCover-Klassen im Kreis ${Z0_POINT_RADIUS_M} m = ${fmtZ0(z0In.z0True)} m (${z0In.shares.slice(0, 3).map(([c, f]) => `Klasse ${c} ${Math.round(f * 100)} %`).join(', ')}); z0 des Modells je Stufe = log-Mittel über die Zellweite (t1 ${fmtZ0(z0In.z0Mod.t1)} · t2 ${fmtZ0(z0In.z0Mod.t2)} · t3 ${fmtZ0(z0In.z0Mod.t3)} m) als Näherung — das GRIB-z0 der Modelle trägt der Cube nicht (V-FI-58), ohne Orographie-Anteil; Klassen-z0 Davenport/Wieringa (literature); d0 am Punkt aus urban ${input.urban?.d0 != null ? `(${input.urban.d0} m)` : '(fehlt ⇒ 0)'}, d0 des Modells 0; z_b = ${TERRAIN_SET.zBlendM} m (set); Quelle ${z0In.source}`
-        : `z0:${tc.z0True == null || tc.z0Mod == null ? 'null' : 'set'} — Rauhigkeit am Punkt (WorldCover) und im Modell ${tc.z0True == null || tc.z0Mod == null ? 'nicht im Bündel (V-FI-17) ⇒ zweistufige Windkorrektur inaktiv' : 'von außen'}; z_b = ${TERRAIN_SET.zBlendM} m (set)`,
+        ? `z0:set — zweistufige Windkorrektur aktiv (V-FI-17): z0 am Punkt = log-Mittel der WorldCover-Klassen im Kreis ${Z0_POINT_RADIUS_M} m = ${fmtZ0(z0In.z0True)} m (${z0In.shares.slice(0, 3).map(([c, f]) => `Klasse ${c} ${Math.round(f * 100)} %`).join(', ')}); ${useZ0Cell && lc ? `z0 des Modells t1/t2 = ln-Mittel der Blockzellen (Box um die Zellmitte) mit den PAP-3-Gewichten (AP16, V-FI-65), t3 = Box um den Punkt (${fmtZ0(z0In.z0Mod.t3)} m),` : `z0 des Modells je Stufe = log-Mittel über die Zellweite (t1 ${fmtZ0(z0In.z0Mod.t1)} · t2 ${fmtZ0(z0In.z0Mod.t2)} · t3 ${fmtZ0(z0In.z0Mod.t3)} m)`} ${zmOn ? 'als Näherung nur für die Windquellen ohne z0 (IFS, AIFS, AICON, C-LAEF) — sonst gilt das GRIB-z0 (Zeile z0Mod, AP17);' : 'als Näherung — das GRIB-z0 der Modelle trägt der Cube nicht (V-FI-58), ohne Orographie-Anteil;'} Klassen-z0 Davenport/Wieringa (literature); d0 am Punkt aus urban ${input.urban?.d0 != null ? `(${input.urban.d0} m)` : '(fehlt ⇒ 0)'}, d0 des Modells 0; z_b = ${zBlendM} m (${cal?.zBlendM != null ? 'measured' : 'set'}); Quelle ${z0In.source}`
+        : `z0:${tc.z0True == null || tc.z0Mod == null ? 'null' : 'set'} — Rauhigkeit am Punkt (WorldCover) und im Modell ${tc.z0True == null || tc.z0Mod == null ? 'nicht im Bündel (V-FI-17) ⇒ zweistufige Windkorrektur inaktiv' : 'von außen'}; z_b = ${zBlendM} m (${cal?.zBlendM != null ? 'measured' : 'set'})`,
+      ...(zmOn ? [`z0Mod:model — z0 des Modells je Stufe aus dem GRIB (point/static/z0mod, Schritt 000 des Laufs der Quelle; AP17, E-F-15): ln-Mittel über die Windquellen des Laufs, die die nächste Zelle decken — ${(['t1', 't2', 't3'] as const).filter((t) => input.cube[t]).map(z0mText).join('; ')}; kein Orographie-Anteil (gemessen); welche Quelle welchen Schritt trägt, steht nicht im Manifest ⇒ über den Lauf gemittelt (benannt)${useZ0Cell && lc ? '; die Näherung der Quellen ohne z0 folgt je Schritt den Blockzellen (z0CellBox)' : ''}`] : []),
+      ...(cal?.zBlendM != null ? [`zBlend:${metaOf('zBlend')} — Blending-Höhe z_b = ${Math.round(cal.zBlendM)} m`] : []),
     ] : []),
+    ...(lc ? [`dWater:set — Abstand zum nächsten Gewässer (WorldCover Klasse 80, Körper ≥ ${LANDCOVER_SET.minBodyPx} px in 8er-Nachbarschaft, Spiegel ≈ 37 m: Flüsse < ~40 m fehlen, V-FI-75), gesucht bis r_c ≤ ${LANDCOVER_SET.maxM / 1000} km; ohne Treffer zensiert (aboveM), nie ein Platzhalter; nur Ausgabe, kein Rechenterm (E-F-17)`] : []),
     ...(useAnchor ? [
       `anchor:set — Innovations-Persistenz (anchor.ts, V-PV-19): Versatz Messung − Cube am Messzeitpunkt, τ_T ${ANCHOR_TAU_H.temperature} h / τ_Wind ${ANCHOR_TAU_H.wind} h, Deckel ${ANCHOR_MAX.temperature} K; Messung mit Frist geholt, nie blockierend`,
     ] : []),
@@ -617,6 +763,20 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ...(useUnc ? { sigma: s.errorSigma as Partial<Record<UncVar, number>> } : {}),
   });
 
+  // ── AP16: Zählwerke (κ je Zelle gegen κ = 1; Modellzell-Box gegen Box um den Punkt) und z0 der Blockzellen ──
+  const tierCount = () => ({ t1: 0, t2: 0, t3: 0 } as Record<TierId, number>);
+  const lcCount = { kappa: tierCount(), kappaOne: tierCount(), z0Cell: tierCount(), z0Point: tierCount() };
+  const z0mCount = { grib: tierCount(), approx: tierCount() };
+  /** ln-Mittel der Blockzellen-z0 mit den PAP-3-Gewichten (ohne Block: die nächste Zelle); `null` ⇒ Box um den Punkt. */
+  const z0CellOf = (a: AxisStep, grid: GridResult | null): number | null => {
+    if (!lc || (a.tier !== 't1' && a.tier !== 't2')) return null;
+    const { iy, ix } = a.series.cell;
+    const parts = grid ? grid.weights.map((w) => ({ w: w.w, z0: landCoverCell(lc, a.tier, iy + w.dy, ix + w.dx)?.z0 ?? null })) : [{ w: 1, z0: landCoverCell(lc, a.tier, iy, ix)?.z0 ?? null }];
+    let acc = 0, ws = 0;
+    for (const p of parts) if (p.z0 != null && p.z0 > 0 && p.w > 0) { acc += p.w * Math.log(p.z0); ws += p.w; }
+    return ws > 0 ? Math.exp(acc / ws) : null;
+  };
+
   // ── Durchgang 1: je nativem Schritt das Cube-Member vorbereiten (PAP 3, PAP 4, PAP 5) ─
   interface Prep {
     a: AxisStep; leadH: number; flags: StepFlag[]; grid: GridResult | null; cubeSample: PointSourceSample;
@@ -629,7 +789,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     if (a.step.belowGroundHPa?.includes(925)) flags.push('belowGround925');
     if (!geometryOk) flags.push('noTerrain');
     // AP3: PAP 3 — der 2×2-Block um den Punkt, gewichtet nach Distanz und Höhendifferenz.
-    const grid = useGrid && hTrue != null ? gridStep(a, lat, lon, hTrue) : null;
+    const kappaCell = useKappa && lc && (a.tier === 't1' || a.tier === 't2') ? (iy: number, ix: number) => kappaAt(lc, a.tier, iy, ix) : null;
+    const grid = useGrid && hTrue != null ? gridStep(a, lat, lon, hTrue, cal?.LdM?.[a.tier] ?? null, cal?.LhM ?? null, kappaCell) : null;
+    if (kappaCell && grid) (grid.weights.some((w) => w.kappa !== undefined) ? lcCount.kappa : lcCount.kappaOne)[a.tier]++;
     if (grid?.truncated) flags.push('chunkBorderTruncated');
     const stepForSample: CubePointStep = grid
       ? { ...a.step, values: { ...grid.values, hModEff: grid.hModEffM ?? num(a.step.values.hModEff) } }
@@ -652,10 +814,16 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         tpi500M: input.terrain.tpi500M, tpi2000M: input.terrain.tpi2000M, svf: input.terrain.svf, sinkDepthM: input.terrain.sinkDepthM,
         impervPct: input.urban?.imperv ?? null, foehnScore: foehn ? foehn.score : null, lat, atMs: a.validAtMs,
         A: tc.A, Auhi: tc.Auhi, tpiSigmaM: tc.tpiSigmaM,
+        ...(fRadP ? { fRadParams: fRadP } : {}),
       });
+      const z0Cell = z0In && useZ0Cell ? z0CellOf(a, grid) : null;
+      if (z0In && useZ0Cell) (z0Cell != null ? lcCount.z0Cell : lcCount.z0Point)[a.tier]++;
+      // AP17: mit `z0Model` das ln-Mittel über die Windquellen (GRIB oder Näherung); ohne GRIB-Quelle an der Zelle `null` ⇒ wie bisher.
+      const mix = zmOn ? z0ModelMix(input.z0mod![a.tier], a.series.sources, a.series.cell.lat, a.series.cell.lon, z0Cell ?? z0In!.z0Mod[a.tier] ?? null) : null;
+      if (zmOn) (mix ? z0mCount.grib : z0mCount.approx)[a.tier]++;
       const windFactor = z0In
-        ? windBlendingFactor(z0In.z0Mod[a.tier] ?? null, z0In.z0True, 0, input.urban?.d0 ?? 0)
-        : windBlendingFactor(tc.z0Mod, tc.z0True, 0, input.urban?.d0 ?? 0);
+        ? windBlendingFactor(mix ? Math.exp(mix.lnZ0) : z0Cell ?? z0In.z0Mod[a.tier] ?? null, z0In.z0True, 0, input.urban?.d0 ?? 0, zBlendM)
+        : windBlendingFactor(tc.z0Mod, tc.z0True, 0, input.urban?.d0 ?? 0, zBlendM);
       if (windFactor == null) t.flags.push('windBlendingInactive');
       terrainRes = { ...t, windFactor };
       // Mit Amplitude verschiebt sich das Mittel des Cube-Members (Kaltluftsee kühlt, Wärmeinsel wärmt);
@@ -670,6 +838,22 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     }
     return { a, leadH, flags, grid, cubeSample, vertical, spd, foehnScore: foehn ? foehn.score : null, terrainRes };
   });
+  // AP16: wie oft die Optionen wirklich griffen — je Stufe benannt (nur mit Option, sonst keine Notiz).
+  const perTierText = (hit: Record<TierId, number>, miss: Record<TierId, number>) =>
+    (['t1', 't2', 't3'] as const).filter((t) => hit[t] + miss[t] > 0).map((t) => `${t} ${hit[t]}/${hit[t] + miss[t]}`).join(' · ') || 'keine Schritte';
+  if (useKappa && lc) {
+    notes.push(`kappa: κ je Zelle an ${perTierText(lcCount.kappa, lcCount.kappaOne)} Schritten mit Block; sonst κ = 1 (t3 immer; Punktkreis ${Math.round(lc.point.cov * 100)} % bekannt)`);
+  }
+  if (useZ0Model) {
+    notes.push(zmOn
+      ? `z0Model: z0 des Modells aus dem GRIB an ${perTierText(z0mCount.grib, z0mCount.approx)} Schritten; sonst die WorldCover-Näherung (AP17)`
+      : `z0Model: Option an, aber ${!z0In ? 'kein z0 am Punkt' : 'kein z0mod im Eingang (CubeIo.z0mod aus, Produkt fehlt oder statische Produkte noch nicht da)'} ⇒ WorldCover-Näherung`);
+  }
+  if (useZ0Cell && z0In) {
+    notes.push(lc
+      ? `z0CellBox: z0 des Modells aus den Blockzellen an ${perTierText(lcCount.z0Cell, lcCount.z0Point)} Schritten; sonst Box um den Punkt (t3 immer)`
+      : 'z0CellBox: Option an, aber keine Landbedeckung im Eingang (CubeIo.landCover aus oder nicht rechtzeitig) ⇒ Box um den Punkt');
+  }
 
   // ── Durchgang 2: der Anker (AP7) — Messung − Cube-Wert am Messzeitpunkt, Innovations-Persistenz ─
   // Der Cube-Wert AM PUNKT ist der PAP-4-Wert (`vertical.t`); die Messung wird mit der Standard-Lapse
@@ -731,7 +915,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       for (const v of UNC_VARS) {
         const sc = sigmaClimaFor(v, a.validAtMs);
         sigmaClimaOf[v] = sc;
-        const m = memberSigma({ v, sample: cubeSample, leadH, sigmaClima: sc, vertical });
+        // AP13: σ_sys und c gemessen (je Vorlauf-Bin) nur für das Cube-Member; das Stationsmember bleibt `stationSigma:set`.
+        const m = cal
+          ? memberSigma({ v, sample: cubeSample, leadH, sigmaClima: sc, vertical, sysOverride: binnedAt(cal.sigmaSys?.[v], leadH), cSpread: binnedAt(cal.cSpread?.[v], leadH) })
+          : memberSigma({ v, sample: cubeSample, leadH, sigmaClima: sc, vertical });
         memberSig[v] = m;
         es[v] = m.sigma;
       }
@@ -787,7 +974,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         const sp = fused ? sigmaPostOf(fused, v) : null;
         uncertainty[v] = {
           sigmaKind: m.kind, sigmaMember: m.sigma, parts: m.parts, sigmaPost: sp, sigmaClima: sigmaClimaOf[v]!,
-          confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaOf[v]!, member: m, srcCount: cubeSample.srcCount ?? null, flags, dhM: vertical ? Math.abs(vertical.dhM) : null }),
+          confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaOf[v]!, member: m, srcCount: cubeSample.srcCount ?? null, flags, dhM: vertical ? Math.abs(vertical.dhM) : null, ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }),
         };
       }
     }
@@ -839,7 +1026,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
             const m = memberSigma({ v, sample: st, leadH, sigmaClima: sigmaClimaFor(v, t), vertical: null });
             const sp = sigmaPostOf(fused, v);
             uncertainty[v] = { sigmaKind: m.kind, sigmaMember: m.sigma, parts: m.parts, sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t),
-              confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t), member: m, srcCount: 1, flags, dhM: null }) };
+              confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t), member: m, srcCount: 1, flags, dhM: null, ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }) };
           }
         }
         out.push({ validAtMs: t, leadH, tier: 'station', interpolated: false, flags, fused, members: [stationMember(t, st)], cell: {}, belowGroundHPa: null, vertical: null, grid: null, uncertainty, terrain: null, weights, samples: [st] });
@@ -867,7 +1054,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       for (const v of UNC_VARS) {
         const ca = prev.uncertainty[v]?.confidence?.score, cb = next.uncertainty[v]?.confidence?.score;
         // Ein Klimatologie-Nachbar hat keine Konfidenz (0): die Interpolation läuft dorthin aus; zwischen zwei Klimatologie-Stützen ist sie 0.
-        if (useUnc) interp.confidence![v] = lerp(ca ?? 0, cb ?? 0) * CONF_DISCOUNT.interpolated;
+        if (useUnc) interp.confidence![v] = lerp(ca ?? 0, cb ?? 0) * (cal?.confDiscount?.interpolated ?? CONF_DISCOUNT.interpolated);
       }
       const flags: StepFlag[] = ['interpolated'];
       if (prev.tier !== next.tier && prev.tier !== 'clima' && next.tier !== 'clima') flags.push('seam');
@@ -1059,6 +1246,53 @@ export interface CubeIo {
    * der Nachlieferung), sonst parallel mit Frist `Z0_DEADLINE_MS`; ein Ort liegt danach zeitlos im Cache.
    */
   z0?: Z0Options | null;
+  /**
+   * AP13 (V-FI-79): Optionen der Rechnung für das Produkt — bis AP13 rief `forecastFromBundle` fest
+   * `{ hourly, tail }` auf, keine `FuseCubeOptions` erreichte die Antwort. `hourly`/`tail` bleiben fest (das Produkt
+   * antwortet stündlich bis 336 h). Voreinstellung: nichts ⇒ byte-gleich. Die gesetzten Optionen stehen im
+   * Cache-Schlüssel, damit ein Treffer nie eine andere Variante liefert.
+   */
+  fuse?: Partial<Omit<FuseCubeOptions, 'hourly' | 'tail' | 'calib'>>;
+  /**
+   * AP13 (V-FI-66): `'json'` liest `point/calib.json` (nur `measured` mit Beleg wirkt, `calibDoc.ts`); Voreinstellung
+   * `'constants'` = die Setzungen im Code, byte-gleich wie bisher. Nie blockierend: ist die Datei beim Kern nicht da,
+   * gelten die Setzungen mit Notiz, und die Entscheidung bleibt für alle Ausgaben dieser Abfrage dieselbe (kein
+   * σ-Sprung in der Nachlieferung).
+   */
+  calibSource?: 'constants' | 'json';
+  /**
+   * AP14 (E-F-18): liegt eine Zelle des 2×2-Blocks (PAP 3) in einem anderen Chunk, holt der Leser diesen Chunk desselben
+   * Laufs nach — der Block ist dann vollständig, `chunkBorderTruncated` entfällt. Nicht-progressiv sofort im Bündel;
+   * progressiv als EIGENE Ausgabe, sobald die Zellen da sind (nie in der ersten Darstellung, nie als Wartegrund für
+   * Anker/Radar). Voreinstellung aus; im Browser erst nach dem Randbefund aus dem Archiv (Jans Gate).
+   */
+  crossChunk?: boolean;
+  /**
+   * AP16: statt `loadZ0AtPoint` läuft `loadLandCoverAtPoint` — dieselben WorldCover-Kacheln (0 Byte mehr), dazu die
+   * Landbedeckung für κ (`FuseCubeOptions.kappa`), die Modellzell-Box (`z0CellBox`) und d_water (v2 `point.dWater`).
+   * Wirkt nur mit `z0` (dessen Cache und Frist gelten). Der Blick nur in den Cache nimmt auch den alten z0-Eintrag (z0
+   * wirkt in der ersten Ausgabe weiter); die Landbedeckung folgt dann aus den gecachten Kachelbytes. Voreinstellung aus.
+   */
+  landCover?: boolean;
+  /**
+   * AP17 (E-F-15): `point/static/z0mod/v1` mitlesen (z0 der Modelle je Quelle, eine kleine Datei je Stufe) — mit den
+   * übrigen statischen Produkten, progressiv also erst in der Nachlieferung. Wirkt nur mit `fuse.z0Model` und `z0`.
+   * Voreinstellung aus (kein Abruf); im Browser erst, wenn Jan das Produkt freigegeben hat und es im Daten-Repo liegt.
+   */
+  z0mod?: boolean;
+}
+
+/** AP13: der Anteil der Io-Optionen am Cache-Schlüssel — leer ohne Optionen (byte-gleicher Schlüssel wie bisher). */
+export function cubeIoVariantKey(io: CubeIo): string {
+  const fuse = io.fuse && Object.keys(io.fuse).length ? io.fuse : null;
+  const calib = io.calibSource === 'json' ? 'json' : null;
+  const cross = io.crossChunk ? 'cc' : null;
+  const lcv = io.landCover && io.z0 ? 'lc' : null;
+  const zm = io.z0mod ? 'zm' : null;
+  if (!fuse && !calib && !cross && !lcv && !zm) return '';
+  const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
+  // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -1153,21 +1387,25 @@ export const UPDATE_WAIT_MS = 6_000;
 /** Bündel + Klimatologie + Messungen → `PointForecast` mit `cube`-Block (AP2–AP8); `obsNotes` sagen, warum ohne Anker. */
 function forecastFromBundle(
   bundle: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null, obsNotes: string[], opts: PointForecastOptions, io: CubeIo,
-  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[] },
+  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null },
   z0: Z0AtPoint | null = null,
 ): PointForecast {
   const input = cubeInputFromBundle(bundle, clima, obs);
   input.notes.push(...obsNotes);
+  if (t.calib) input.notes.push(...t.calib.notes);
   if (z0) input.z0 = z0;
   if (io.terrainOverride !== undefined) {
     input.terrain = io.terrainOverride;
     input.elevationM = input.elevationM ?? io.terrainOverride?.elevationM ?? null;
   }
-  const result = fuseCubePoint(input, { hourly: true, tail: true });
+  // AP13 (V-FI-79): die Optionen des Aufrufers und die gemessene Kalibrierung; ohne beide exakt der Aufruf von vorher.
+  const result = fuseCubePoint(input, { ...(io.fuse ?? {}), ...(t.calib?.overrides ? { calib: t.calib.overrides } : {}), hourly: true, tail: true });
   const v2 = toPointForecastV2(result, {
+    ...(t.calib ? { calibFile: { path: t.calib.path, schema: t.calib.schema, hash: t.calib.hash, measured: t.calib.overrides ? Object.keys(t.calib.overrides.meta) : [] } } : {}),
     nowMs: t.nowMs, terrainSource: io.terrainOverride !== undefined ? (io.terrainOverride ? 'override' : 'none') : (input.terrain ? 'terrarium-z11+z8' : 'none'),
     urban: input.urban,
     ...(z0 && z0.z0True != null ? { z0: z0.z0True } : {}),
+    ...(isLandCover(z0) ? { dWater: z0.landCover.dWater } : {}),
     fetched: { files: bundle.stats?.files ?? null, bytes: bundle.stats?.bytes ?? null, ms: bundle.timing.readMs },
     timing: { readMs: bundle.timing.readMs, terrainMs: bundle.timing.doneAt.terrain ?? null, decodeMs: null, totalMs: null },
   });
@@ -1188,6 +1426,20 @@ function forecastFromBundle(
   };
   v2.timing.totalMs = summary.timing.totalMs;
   return toPointForecast(result, opts, { fetchedAt: Date.now(), cube: summary });
+}
+
+/**
+ * AP16: die Notiz für einen noch laufenden (oder gescheiterten) z0-Abruf. Trägt schon ein z0 aus dem Cache (alter
+ * `z0:v1`-Eintrag, nur mit `landCover`), folgt nur die Landbedeckung — die Windkorrektur wirkt bereits. Ohne `landCover`
+ * ist `z0c` hier immer `null` ⇒ exakt die Notiz von vorher.
+ */
+function z0PendingNote(io: CubeIo, z0c: Z0AtPoint | null, why: 'missing' | 'follows'): string[] {
+  if (z0c && z0c.z0True != null) {
+    return [why === 'follows'
+      ? 'z0: Landbedeckung (κ, Zellboxen, d_water) folgt — z0 aus dem Cache wirkt schon (AP16)'
+      : 'z0: Landbedeckung nicht verfügbar (Spiegel ohne Kachel oder Abruf gescheitert) — z0 aus dem Cache wirkt, ohne κ/d_water (AP16)'];
+  }
+  return z0NoteOf(io, null, why);
 }
 
 /** V-FI-17: die z0-Notiz, wenn z0 konfiguriert ist, aber nicht trägt (`null` = keine Notiz). */
@@ -1220,7 +1472,12 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
   const hours = Math.min(CUBE_HOURS_MAX, Math.max(1, opts.hours ?? CUBE_HOURS_MAX));
   const withRadar = opts.includeRadarNowcast !== false;
   const progressive = typeof opts.onUpdate === 'function';
-  const key = pfCacheKey(lat, lon, country, withRadar, false, true, false, true);
+  // AP13 (V-FI-79): die Io-Optionen gehören in den Schlüssel — ohne Optionen bleibt er wie bisher.
+  // V-FI-80: mit eingespeister Uhr (Nachlauf, Sammler, Verifier) auch die Stunde — sonst bekäme ein Nachlauf, der
+  // denselben Punkt für zwei Slots binnen 180 s rechnet, das Ergebnis des ersten Slots. Der Browser speist keine Uhr
+  // ein (`defaultCubeIo`) ⇒ sein Schlüssel bleibt byte-gleich.
+  const key = pfCacheKey(lat, lon, country, withRadar, false, true, false, true) + cubeIoVariantKey(io)
+    + (io.nowMs ? `|now:${Math.floor(io.nowMs() / H)}` : '');
   const hit = CUBE_CACHE.get(key);
   if (hit && hit.hours >= hours && Date.now() - hit.ts < CUBE_CACHE_TTL_MS) {
     // AP12: kam der Treffer aus einer ersten Ausgabe, deren Nachlieferung noch läuft, bekommt auch dieser Aufrufer sie.
@@ -1238,11 +1495,33 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS)).catch(() => null)
     : Promise.resolve(null);
   const climaP = io.clima().catch(() => null);
+  // AP13: `calib.json` parallel zum Index — nie blockierend. Entschieden wird EINMAL, bei der ersten Ausgabe;
+  // alle weiteren Ausgaben dieser Abfrage rechnen mit derselben Entscheidung (kein σ-Sprung in der Nachlieferung).
+  let calibVal: LoadedCalib | null | undefined;
+  const calibP: Promise<unknown> | null = io.calibSource === 'json'
+    ? loadCalib(io.store, opts.signal ? { signal: opts.signal } : {}).then((c) => { calibVal = c; }, () => { calibVal = null; })
+    : null;
+  let calibUsed: LoadedCalib | null | undefined;
+  const calibNow = (): LoadedCalib | null => {
+    if (calibUsed !== undefined) return calibUsed;
+    calibUsed = !calibP ? null : (calibVal ?? {
+      path: POINT_CALIB_PATH, schema: null, hash: null, overrides: null,
+      notes: [calibVal === null ? 'calib: Lesen gescheitert — Setzungen' : 'calib: calib.json bei der ersten Ausgabe noch nicht da — Setzungen (nie blockierend)'],
+    });
+    return calibUsed;
+  };
   // V-FI-17: z0 — nicht-progressiv parallel (mit Frist), progressiv zuerst nur aus dem Cache (ein bekannter Ort wirkt
   // schon in der ersten Ausgabe), der Netzabruf startet dort erst mit dem Kern.
   const z0T0 = now();
+  // AP16: mit `landCover` derselbe Weg über `loadLandCoverAtPoint` (dieselben Kacheln, Landbedeckung dazu).
+  const loadZ0 = io.landCover ? loadLandCoverAtPoint : loadZ0AtPoint;
+  /** z0 fehlt noch — oder (nur mit `landCover`) es kam aus dem alten Cache-Eintrag, und die Landbedeckung fehlt. */
+  const z0Missing = (z: Z0AtPoint | null) => !z || (!!io.landCover && !isLandCover(z));
+  // Nicht-progressiv mit `landCover`: scheitert der Abruf, trägt ein alter z0-Eintrag weiter (z0 geht nie verloren).
   const z0P: Promise<Z0AtPoint | null> = io.z0
-    ? loadZ0AtPoint(lat, lon, { ...io.z0, ...(progressive ? { cacheOnly: true } : {}), ...(opts.signal ? { signal: opts.signal } : {}) }).catch(() => null)
+    ? (io.landCover && !progressive
+      ? loadLandCoverAtPoint(lat, lon, { ...io.z0, ...(opts.signal ? { signal: opts.signal } : {}) }).then((r) => r ?? loadZ0AtPoint(lat, lon, { ...io.z0!, cacheOnly: true }))
+      : loadZ0(lat, lon, { ...io.z0, ...(progressive ? { cacheOnly: true } : {}), ...(opts.signal ? { signal: opts.signal } : {}) })).catch(() => null)
     : Promise.resolve(null);
   // AP12 (E-F-3 (a)): im progressiven Modus die erste Darstellung aus der ersten Stufe, sobald sie da ist —
   // nur, wenn sie vor dem Kern fertig ist (sonst ist der Kern die erste Ausgabe).
@@ -1255,8 +1534,8 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const all = b1.index ? tiersForWindow(b1.index, t0Ms, t0Ms + hours * H) : [];
       const pending = [...all.filter((t) => !b1.tiers.includes(t)), ...(io.obs ? ['anchor'] : [])];
       try {
-        resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...z0NoteOf(io, z0c, 'follows')],
-          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && !z0c ? ['z0'] : [])] }, z0c));
+        resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...(io.z0 && z0Missing(z0c) ? z0PendingNote(io, z0c, 'follows') : z0NoteOf(io, z0c, 'follows'))],
+          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow() }, z0c));
       } catch { /* die erste Darstellung ist ein Angebot — der Kern kommt ohnehin */ }
     });
   } : undefined;
@@ -1264,6 +1543,8 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     { lat, lon, nowMs, fromMs: t0Ms, toMs: t0Ms + hours * H, stepH: 1 },
     {
       store: io.store, decodePng: io.decodePng, nowcast: withRadar, terrain: io.terrain, plan: false, neighbours: true, lateDeadlineMs: io.lateDeadlineMs,
+      ...(io.crossChunk ? { crossChunk: true } : {}),
+      ...(io.z0mod ? { z0mod: true } : {}),
       ...(progressive ? { progressive: true, onFirst, ...(io.indexSwrMs ? { indexSwrMs: io.indexSwrMs } : {}) } : {}),
       ...(io.planeRanges ? { planeRanges: CUBE_ANSWER_PLANES } : {}),
     },
@@ -1288,8 +1569,11 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const z0R = await Promise.race([z0P, new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), z0WaitMs))]);
       z0 = z0R === LATE ? null : z0R;
       notes.push(...z0NoteOf(io, z0, z0R === LATE ? 'late' : 'missing'));
+      if (io.landCover && z0 && !isLandCover(z0)) notes.push(...z0PendingNote(io, z0, 'missing'));
     }
-    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs }, z0);
+    // AP13: nicht-progressiv (Sammler, Nachlauf) wartet auf calib höchstens die Gnadenfrist — wie auf die Messung.
+    if (calibP && calibVal === undefined) await Promise.race([calibP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
+    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow() }, z0);
     cacheForecast(key, hours, forecast, opts);
     return forecast;
   }
@@ -1302,15 +1586,37 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_PROGRESSIVE_DEADLINE_MS)).catch(() => null)
       : Promise.resolve(null);
     // V-FI-17: kein Cache-Treffer ⇒ der Netzabruf startet jetzt, mit dem Kern (die Leitung ist frei), und wirkt in der Nachlieferung.
-    const z0NetP: Promise<Z0AtPoint | null> | null = io.z0 && !z0c
-      ? loadZ0AtPoint(lat, lon, { ...io.z0, ...(opts.signal ? { signal: opts.signal } : {}) }).catch(() => null)
+    const z0NetP: Promise<Z0AtPoint | null> | null = io.z0 && z0Missing(z0c)
+      ? loadZ0(lat, lon, { ...io.z0, ...(opts.signal ? { signal: opts.signal } : {}) }).catch(() => null)
       : null;
     const late = bundle.late ?? {};
-    const pending = [...(io.obs ? ['anchor'] : []), ...(late.nowcast ? ['nowcast'] : []), ...(late.static ? ['static'] : []), ...(z0NetP ? ['z0'] : [])];
+    const pending = [...(io.obs ? ['anchor'] : []), ...(late.nowcast ? ['nowcast'] : []), ...(late.static ? ['static'] : []), ...(z0NetP ? ['z0'] : []), ...(late.crossChunk ? ['crossChunk'] : [])];
+    // AP14: Nachbar-Chunks als EIGENE Ausgabe (Muster z0Later). Sind sie da, trägt jede spätere Ausgabe sie mit; die
+    // eigene Ausgabe rechnet mit dem letzten Stand (Nachlieferung, z0), damit nichts zurückfällt.
+    let crossVal: CrossChunkResult | undefined;
+    const crossSkip = late.crossChunk?.skip ?? null;
+    const cur = (b: PointBundle): PointBundle => (crossVal ? { ...withCrossChunk(b, crossVal), skips: b.skips.filter((x) => x !== crossSkip) } : b);
+    const stillOf = (xs: string[]) => (crossVal ? xs.filter((x) => x !== 'crossChunk') : xs);
+    let last: { b: PointBundle; obs: CubeObs[] | null; notes: string[]; still: string[]; z0: Z0AtPoint | null } | null = null;
     const firstNotes = [...(io.obs
       ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`]
-      : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS)), ...(z0NetP ? z0NoteOf(io, null, 'follows') : [])];
-    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending }, z0c);
+      : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS)), ...(z0NetP ? z0PendingNote(io, z0c, 'follows') : [])];
+    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow() }, z0c);
+    last = { b: bundle, obs: null, notes: firstNotes, still: pending, z0: z0c };
+    if (late.crossChunk) {
+      void late.crossChunk.result.then((r) => {
+        crossVal = r;
+        const said = Object.entries(r).filter(([, x]) => x?.cells.length).map(([t, x]) => `${t} +${x!.chunks.length} Chunk (${x!.chunks.join(', ')}), ${x!.cells.length} Zellen`).join(' · ');
+        if (!said || opts.signal?.aborted || !last) return;   // nichts gewonnen (Abruf gescheitert, benannt im Bündel) ⇒ keine Ausgabe
+        const L = last;
+        const notesX = [...L.notes, `crossChunk: ${said} — 2×2-Block über die Chunk-Grenze, eigene Ausgabe (AP14)`];
+        const fc4 = forecastFromBundle(cur(L.b), clima, L.obs, notesX, opts, io,
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow() }, L.z0);
+        last = { ...L, notes: notesX, still: stillOf(L.still) };
+        cacheForecast(key, hours, fc4, opts);
+        opts.onUpdate!(fc4);
+      }).catch(() => { /* ohne Nachbar-Chunks bleibt der beschnittene Block stehen, benannt */ });
+    }
     // V-FI-17: z0 wartet NICHT in der Nachlieferung mit — gemessen 18.09. (Mobil-4G, kalt, alle WorldCover-Abrufe
     // MISS) verschob das Mitwarten Anker und Radar um ≈ 0,9 s (p50). Ist z0 zur Nachlieferung fertig, reist es mit;
     // sonst folgt es als eigene, letzte Ausgabe (höchstens `Z0_UPDATE_MAX_MS` nach dem Kern).
@@ -1321,8 +1627,11 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const cap = new Promise<null>((r) => setTimeout(() => r(null), Z0_UPDATE_MAX_MS));
       void Promise.race([z0NetP, cap]).then((z) => {
         if (!z || z.z0True == null || opts.signal?.aborted) return;
-        const fc3 = forecastFromBundle(b, clima, obsX, notesX.filter((n) => !n.startsWith('z0: ')), opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillX.filter((x) => x !== 'z0') }, z);
+        const notes3 = notesX.filter((n) => !n.startsWith('z0: '));
+        const still3 = stillOf(stillX.filter((x) => x !== 'z0'));
+        const fc3 = forecastFromBundle(cur(b), clima, obsX, notes3, opts, io,
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow() }, z);
+        last = { b, obs: obsX, notes: notes3, still: still3, z0: z };
         cacheForecast(key, hours, fc3, opts);
         opts.onUpdate!(fc3);
       }).catch(() => { /* ohne z0 bleibt die letzte Ausgabe stehen */ });
@@ -1360,13 +1669,16 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         nowcast: gotNowcast ? (ncR as NowcastPointSeries[]) : bundle.nowcast,
         hmodel: gotStatic ? (stR as { hmodel: PointBundle['hmodel'] }).hmodel : bundle.hmodel,
         urban: gotStatic ? (stR as { urban: PointBundle['urban'] }).urban : bundle.urban,
+        // AP17: z0 der Modelle reist mit den statischen Produkten (nur mit `CubeIo.z0mod`, sonst kein Feld).
+        ...(gotStatic && (stR as { z0mod?: PointBundle['z0mod'] }).z0mod ? { z0mod: (stR as { z0mod?: PointBundle['z0mod'] }).z0mod } : {}),
         skips: bundle.skips.filter((s) => !drop.has(s)),
       };
-      const still = [...(obsR === LATE ? ['anchor'] : []), ...(late.nowcast && !ncDone ? ['nowcast'] : []), ...(late.static && !gotStatic ? ['static'] : []), ...(z0NetP && !z0Done ? ['z0'] : [])];
+      const still = stillOf([...(obsR === LATE ? ['anchor'] : []), ...(late.nowcast && !ncDone ? ['nowcast'] : []), ...(late.static && !gotStatic ? ['static'] : []), ...(z0NetP && !z0Done ? ['z0'] : []), ...(late.crossChunk ? ['crossChunk'] : [])]);
       const notes = [...obsNotes];
       const z0u = gotZ0 ? (z0Val as Z0AtPoint) : z0c;
-      if (z0NetP && !gotZ0) notes.push(...z0NoteOf(io, null, z0Done ? 'missing' : 'follows'));
-      const second = forecastFromBundle(b2, clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still }, z0u);
+      if (z0NetP && !gotZ0) notes.push(...z0PendingNote(io, z0c, z0Done ? 'missing' : 'follows'));
+      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow() }, z0u);
+      last = { b: b2, obs, notes, still, z0: z0u };
       cacheForecast(key, hours, second, opts);
       opts.onUpdate!(second);
       z0Later(b2, obs, notes, still);
