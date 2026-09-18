@@ -66,6 +66,12 @@ export interface FetchOpts {
   priority?: 'high' | 'low' | 'auto';
   /** Abbruch von außen — der Verlierer eines Hedge-Rennens (`fallbackStore`). */
   signal?: AbortSignal;
+  /**
+   * AP12 (V-FI-40): wird einmal gerufen, sobald die Kopfzeilen der Antwort da sind (Status bekannt,
+   * der Körper läuft noch). Der Hedge (`fallbackStore`) unterscheidet damit einen langsamen Origin
+   * (keine Antwort) von einer langsamen Leitung (Antwort da, Bytes laufen).
+   */
+  onHeaders?: () => void;
 }
 
 export interface PointStore {
@@ -83,6 +89,22 @@ export interface PointStore {
    * Optional: ein Speicher-Store kennt keine Commits und gibt sich selbst zurück.
    */
   withBase?(base: string): PointStore;
+  /**
+   * AP12 (c): ein Byte-Bereich [start, end) einer Datei — `null` bei 404. `whole: true` heißt: es kam die
+   * GANZE Datei (ein Cache hatte sie, oder der Server hat den Range ignoriert und 200 geschickt) — der
+   * Aufrufer nimmt sie dann statt der Bereiche. Optional: wer es nicht kann, bekommt den ganzen Abruf.
+   */
+  range?(path: string, start: number, end: number, opts?: FetchOpts): Promise<RangeResult | null>;
+  /** AP12 (c): eine aus Bereichen zusammengesetzte, geprüfte GANZE Datei in den Cache legen (sonst nichts). */
+  seed?(path: string, bytes: Uint8Array): void;
+  /** AP12 (e): die zuletzt gesehene Fassung einer Datei mit SWR-Kopie (heute nur der Index), wenn jünger als `maxAgeMs`. */
+  peek?(path: string, maxAgeMs: number): Promise<{ bytes: Uint8Array; ageMs: number } | null>;
+}
+
+export interface RangeResult {
+  bytes: Uint8Array;
+  /** Die ganze Datei statt des Bereichs (Cache-Treffer oder 200 auf einen Range). */
+  whole: boolean;
 }
 
 /** Das Daten-Repo über jsDelivr — der Weg, den auch die Kartenlinie fährt. */
@@ -97,8 +119,19 @@ export function newStoreStats(): StoreStats {
 export interface HttpStoreOptions {
   base?: string;
   fetchImpl?: typeof fetch;
-  /** Harte Frist je Abruf. Ohne Frist hängt ein Leser beliebig lange (V-PV-20). */
+  /**
+   * Harte Frist bis zur ersten Antwort (Kopfzeilen). Ohne Frist hängt ein Leser beliebig lange (V-PV-20).
+   *
+   * AP12 (V-FI-40): bis 18.09. galt sie für den GANZEN Abruf. Auf Fast 3G (1,6 Mbit) braucht ein
+   * 524-KB-Chunk neben ≈ 1,3 MB anderer Abrufe mehr als 8 s — er wurde in 10 von 10 Läufen
+   * abgebrochen, obwohl die Bytes liefen, und das Produkt antwortete ohne 0–48 h. Seitdem: diese
+   * Frist bis zur Antwort, danach `stallMs` ohne ein einziges neues Byte, und `bodyMaxMs` für alles.
+   */
   timeoutMs?: number;
+  /** Frist OHNE neue Bytes, während der Körper läuft (Voreinstellung = `timeoutMs`). */
+  stallMs?: number;
+  /** Obergrenze für den ganzen Abruf, auch bei tröpfelnder Leitung (Voreinstellung 120 s). */
+  bodyMaxMs?: number;
   /** Weiche Frist: darüber zählt der Abruf als `slow`. Voreinstellung 4 s (Plan §4, AP1). */
   slowMs?: number;
   /**
@@ -124,12 +157,19 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
   const slowMs = opts.slowMs ?? 4_000;
   const retries = opts.retries ?? 1;
   const retryDelayMs = opts.retryDelayMs ?? 300;
+  const stallMs = opts.stallMs ?? timeoutMs;
+  const bodyMaxMs = opts.bodyMaxMs ?? 120_000;
   const stats: StoreStats = sharedStats ?? newStoreStats();
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
-  const once = async (url: string, path: string, fo: FetchOpts): Promise<Uint8Array | null> => {
+  const once = async (url: string, path: string, fo: FetchOpts, span?: [number, number]): Promise<RangeResult | null> => {
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(new Error(`Frist ${timeoutMs} ms: ${path}`)), timeoutMs);
+    // Der Grund eines EIGENEN Abbruchs (Frist). Der Browser meldet einen Abbruch mitten im Körper nur
+    // als „The user aborted a request." (16.09./18.09. im Lab) — geworfen wird deshalb dieser Grund.
+    let why: Error | null = null;
+    const abortWith = (e: Error) => { if (!ac.signal.aborted) { why = e; ac.abort(e); } };
+    let t = setTimeout(() => abortWith(new Error(`Frist ${timeoutMs} ms: ${path}`)), timeoutMs);
+    let tMax: ReturnType<typeof setTimeout> | null = null;
     if (fo.signal) {
       if (fo.signal.aborted) ac.abort(fo.signal.reason ?? new Error(`abgebrochen: ${path}`));
       else fo.signal.addEventListener('abort', () => ac.abort(fo.signal?.reason ?? new Error(`abgebrochen: ${path}`)), { once: true });
@@ -140,25 +180,44 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
       const init: RequestInit & { priority?: string } = { signal: ac.signal };
       if (fo.cache) init.cache = fo.cache;
       if (fo.priority) init.priority = fo.priority;
+      // Ein einzelner Bereich `bytes=a-b` ist CORS-freigegeben (kein Preflight); der Browser schickt dazu
+      // `Accept-Encoding: identity` (Fetch-Spezifikation) — am Edge eine EIGENE Variante (§9.14.1).
+      if (span) init.headers = { range: `bytes=${span[0]}-${span[1] - 1}` };
+      // Chrome reiht gleichzeitige Abrufe DERSELBEN URL hinter der Sperre des HTTP-Cache-Eintrags ein — zehn
+      // Bereiche eines Chunks bekamen ihr erstes Byte im Abstand je einer RTT (Lab 18.09.: 247 … 1 941 ms statt
+      // alle bei ≈ 250 ms). Ohne HTTP-Cache keine Sperre; gespeichert wird ohnehin die geprüfte ganze Datei (IndexedDB).
+      if (span && !fo.cache) init.cache = 'no-store';
       const r = await f(url, init);
+      fo.onHeaders?.();
       if (r.status === 404) { stats.misses += 1; return null; }
       if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
-      const b = new Uint8Array(await r.arrayBuffer());
+      // V-FI-40: ab hier zählt nicht mehr die Frist bis zur Antwort, sondern Stillstand — eine langsame
+      // Leitung, auf der Bytes laufen, ist kein toter Abruf.
+      const arm = () => { clearTimeout(t); t = setTimeout(() => abortWith(new Error(`Frist ${stallMs} ms ohne Daten: ${path}`)), stallMs); };
+      tMax = setTimeout(() => abortWith(new Error(`Frist ${bodyMaxMs} ms Gesamtdauer: ${path}`)), bodyMaxMs);
+      const b = await readBody(r, arm);
       stats.files += 1;
       stats.bytes += b.length;
-      return b;
+      if (span && r.status === 206 && b.length !== span[1] - span[0]) throw new Error(`${path}: Bereich ${span[0]}–${span[1]} lieferte ${b.length} B`);
+      return { bytes: b, whole: !(span && r.status === 206) };
+    } catch (e) {
+      throw why ?? e;
     } finally {
       clearTimeout(t);
+      if (tMax) clearTimeout(tMax);
     }
   };
 
-  const bytes = async (path: string, fo: FetchOpts = {}): Promise<Uint8Array | null> => {
+  const bytes = async (path: string, fo: FetchOpts = {}): Promise<Uint8Array | null> => (await fetchWithRetry(path, fo))?.bytes ?? null;
+  const range = (path: string, start: number, end: number, fo: FetchOpts = {}): Promise<RangeResult | null> => fetchWithRetry(path, fo, [start, end]);
+
+  const fetchWithRetry = async (path: string, fo: FetchOpts, span?: [number, number]): Promise<RangeResult | null> => {
     const url = `${base}/${path.replace(/^\/+/, '')}`;
     const t0 = now();
     try {
       for (let attempt = 0; ; attempt++) {
         try {
-          return await once(url, path, fo);
+          return await once(url, path, fo, span);
         } catch (e) {
           const msg = String((e as Error)?.message ?? e);
           const aborted = (e as Error)?.name === 'AbortError' || /Frist \d+ ms|abgebrochen:|hedge:/.test(msg) || !!fo.signal?.aborted;
@@ -178,6 +237,7 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
   return {
     base,
     bytes,
+    range,
     async json<T>(path: string, fo?: FetchOpts) {
       const b = await bytes(path, fo);
       if (!b) return null;
@@ -186,6 +246,30 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
     stats,
     withBase: (other: string) => httpStore({ ...opts, base: other }, stats),
   };
+}
+
+/**
+ * Den Körper einer Antwort lesen und nach jedem Datenpaket `onChunk` rufen (Stillstandsfrist,
+ * V-FI-40). Ohne lesbaren Strom (ältere Laufzeiten, Test-Attrappen) der ganze Körper auf einmal.
+ * Ergebnis ist immer ein eigener, exakt großer Puffer.
+ */
+async function readBody(r: Response, onChunk: () => void): Promise<Uint8Array> {
+  onChunk();
+  const body = r.body as ReadableStream<Uint8Array> | null;
+  if (!body || typeof body.getReader !== 'function') return new Uint8Array(await r.arrayBuffer());
+  const reader = body.getReader();
+  const parts: Uint8Array[] = [];
+  let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value && value.length) { parts.push(value); n += value.length; }
+    onChunk();
+  }
+  const out = new Uint8Array(n);
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
 }
 
 /**
@@ -206,6 +290,15 @@ export function memoryStore(files: Map<string, Uint8Array>, base = 'memory://'):
   const self: PointStore = {
     base,
     bytes,
+    // AP12 (c): ein Bereich ist ein Ausschnitt derselben Bytes — gezählt wie ein Abruf.
+    async range(path: string, start: number, end: number) {
+      const b = files.get(path.replace(/^\/+/, ''));
+      if (!b) { stats.misses += 1; return null; }
+      const part = b.slice(start, Math.min(end, b.length));
+      stats.files += 1;
+      stats.bytes += part.length;
+      return { bytes: part, whole: false };
+    },
     async json<T>(path: string) {
       const b = await bytes(path);
       if (!b) return null;
@@ -231,8 +324,10 @@ export function memoryStore(files: Map<string, Uint8Array>, base = 'memory://'):
  *
  * **Hedge (`hedgeMs`):** der 403 kam in der Matrix erst nach 1,4–8 s — auf einen Fehler
  * zu WARTEN kostet also genau die Zeit, die der Ausweichweg sparen soll. Ist `hedgeMs`
- * gesetzt, startet der Ausweichweg nach dieser Frist zusätzlich, und die schnellere
- * Antwort gewinnt; der Verlierer wird abgebrochen. Ein 404 des CDN gewinnt sofort
+ * gesetzt und hat das CDN bis dahin NICHT GEANTWORTET (keine Kopfzeilen — V-FI-40: auf
+ * Fast 3G startete der Hedge sonst für jede Datei, deren Körper länger als 2,5 s lief, und
+ * verdoppelte die Bytes auf der vollen Leitung), startet der Ausweichweg zusätzlich, und die
+ * schnellere Antwort gewinnt; der Verlierer wird abgebrochen. Ein 404 des CDN gewinnt sofort
  * (die Datei gibt es nicht). 2,5 s ist das p95 der MISS-TTFB aus AP0/AP1 — darüber ist
  * der Origin-Abruf des CDN erfahrungsgemäß nicht mehr „langsam", sondern kaputt.
  */
@@ -267,7 +362,11 @@ export function fallbackStore(
       );
     };
     if (hedgeMs > 0) timer = setTimeout(() => startFallback(new Error(`hedge ${hedgeMs} ms: ${path}`)), hedgeMs);
-    primary.bytes(path, { ...fo, signal: acP.signal }).then(
+    // V-FI-40: der Hedge gilt einem Origin, der nicht ANTWORTET — nicht einer Leitung, auf der die Bytes
+    // langsam laufen. Sind die Kopfzeilen da, fällt der Hedge weg; bleibt der Körper stehen, wirft der
+    // Store seine Stillstandsfrist, und der Ausweichweg startet über `when` wie bei jedem anderen Fehler.
+    const onHeaders = () => { fo.onHeaders?.(); if (!fallbackStarted && timer) { clearTimeout(timer); timer = null; } };
+    primary.bytes(path, { ...fo, signal: acP.signal, onHeaders }).then(
       (b) => finish(() => { acF.abort(new Error(`hedge: CDN war schneller: ${path}`)); resolve(b); }),
       (e) => {
         if (settled) return;
@@ -282,6 +381,23 @@ export function fallbackStore(
     get base() { return primary.base; },
     get stats() { return primary.stats; },
     bytes,
+    // AP12 (c): Bereiche ohne Hedge — scheitert der erste Weg (403, Frist, 5xx, Netz), fragt der zweite denselben Bereich.
+    ...(primary.range ? {
+      async range(path: string, start: number, end: number, fo?: FetchOpts) {
+        try {
+          return await primary.range!(path, start, end, fo);
+        } catch (e) {
+          if (!when(e)) throw e;
+          primary.stats.fallbacks += 1;
+          opts.onFallback?.(path, e);
+          if (fallback.range) return fallback.range(path, start, end, fo);
+          const b = await fallback.bytes(path, fo);
+          return b ? { bytes: b, whole: true } : null;
+        }
+      },
+    } : {}),
+    ...(primary.seed ? { seed: (path: string, b: Uint8Array) => primary.seed!(path, b) } : {}),
+    ...(primary.peek ? { peek: (path: string, maxAgeMs: number) => primary.peek!(path, maxAgeMs) } : {}),
     async json<T>(path: string, fo?: FetchOpts) {
       const b = await self.bytes(path, fo);
       if (!b) return null;
@@ -321,6 +437,7 @@ export function withRawFallback(store: PointStore, opts: { onFallback?: (path: s
  */
 export function memoStore(inner: PointStore, shared: Map<string, PointStore> = new Map()): PointStore {
   const bytes = new Map<string, Promise<Uint8Array | null>>();
+  const ranges = new Map<string, Promise<RangeResult | null>>();
   const self: PointStore = {
     get base() { return inner.base; },
     get stats() { return inner.stats; },
@@ -336,6 +453,20 @@ export function memoStore(inner: PointStore, shared: Map<string, PointStore> = n
       }
       return p;
     },
+    ...(inner.range ? {
+      range(path: string, start: number, end: number, fo?: FetchOpts) {
+        const key = `${path.replace(/^\/+/, '')}#${start}-${end}`;
+        let p = ranges.get(key);
+        if (!p) {
+          p = inner.range!(path, start, end, fo);
+          ranges.set(key, p);
+          p.catch(() => { if (ranges.get(key) === p) ranges.delete(key); });
+        }
+        return p;
+      },
+    } : {}),
+    ...(inner.seed ? { seed: (path: string, b: Uint8Array) => inner.seed!(path, b) } : {}),
+    ...(inner.peek ? { peek: (path: string, maxAgeMs: number) => inner.peek!(path, maxAgeMs) } : {}),
     async json<T>(path: string, fo?: FetchOpts) {
       const b = await self.bytes(path, fo);
       if (!b) return null;

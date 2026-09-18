@@ -25,6 +25,7 @@ import {
   deadBandStep,
   screenSpeedPxPerSec,
   screenTempoGain,
+  zoomInThinFraction,
   LAT_REF_DEG,
   NS_ASPECT,
   TILE_SIZE_CSS,
@@ -108,6 +109,15 @@ export interface WindLayerOptions {
   /** Untergrenze der ALT-Zoomausdünnung als Anteil der Vollzahl. Wirkt nur,
    *  wenn `zoomThinBase` ausdrücklich gesetzt ist. Default 0.3. */
   zoomThinFloor?: number;
+  /** HZ1 (2026-09-18): Ausdünnung beim REINzoomen (points-Pfad, nicht Globus).
+   *  Oberhalb von `zoomInThinFrom` fällt die gezeichnete Zahl je Zoomstufe um
+   *  den Faktor 2^−exp. Grund: bei `screenTempoZoomExp` > 0 wächst das
+   *  Bildschirmtempo — und damit die Schweiflänge — mit dem Zoom; bei gleicher
+   *  Zahl wuchs die von Schweifen bedeckte Fläche von 4,7 % (z6) auf 37 % (z12)
+   *  (audit/windpartikel-hochzoom.md). Default 0 = aus (Altverhalten). */
+  zoomInThinExp?: number;
+  /** Zoomstufe, ab der `zoomInThinExp` greift. Darunter unverändert. Default 7. */
+  zoomInThinFrom?: number;
   /** Zulässige Belegung des Positions-Rasters (s. `latticeParticleCap`): Anteil
    *  der auflösbaren Rasterzellen, der höchstens besetzt sein darf. Dünn besetzt
    *  liest sich das Raster als Streuung, dicht besetzt als Gitter-Muster.
@@ -328,6 +338,10 @@ export class WindLayer implements CustomLayerInterface {
   private zoomThinBase: number;
   private zoomThinFloor: number;
   private legacyZoomThinning: boolean;
+  // HZ1-Ausdünnung beim Reinzoomen (s. WindLayerOptions.zoomInThinExp).
+  // Öffentlich wie zoomDropBoost: zur Laufzeit umschaltbar (A/B, 0 = Alt).
+  zoomInThinExp: number;
+  zoomInThinFrom: number;
   private latticeOccupancy: number;
 
   private windPngUrl: string;
@@ -1124,6 +1138,8 @@ export class WindLayer implements CustomLayerInterface {
     // Rule 2: die alte Zoom-Zeltkurve wird nicht gelöscht, sondern default-off
     // gestellt. Wer sie zurückwill, setzt `zoomThinBase` ausdrücklich.
     this.legacyZoomThinning = options.zoomThinBase != null;
+    this.zoomInThinExp = Math.max(0, options.zoomInThinExp ?? 0);
+    this.zoomInThinFrom = options.zoomInThinFrom ?? 7;
     this.latticeOccupancy = Math.max(0.005, Math.min(1, options.latticeOccupancy ?? 0.06));
     // Startwert; bei autoScale in onAdd aus der echten Canvas-Größe ersetzt.
     this._numParticles = options.numParticles ?? 4500;
@@ -1737,6 +1753,11 @@ export class WindLayer implements CustomLayerInterface {
     // pro Stufe) — die zusätzliche Ausdünnung des Points-Pfads entfällt.
     if (this.particleStyle === 'segments') return this._numParticles;
     let frac = Math.max(0.05, Math.min(1, this.dataViewFraction()));
+    // HZ1: beim Reinzoomen werden die Schweife länger (screenTempoZoomExp) —
+    // die Zahl fällt oberhalb zoomInThinFrom, damit die bedeckte Fläche nicht
+    // mitwächst. Die ausgelassenen Partikel laufen im Update-Pass weiter; ihre
+    // Spur blendet normal aus, beim Rauszoomen sind sie sofort wieder da.
+    frac *= zoomInThinFraction(this.map?.getZoom() ?? 5, this.zoomInThinFrom, this.zoomInThinExp);
     if (this.legacyZoomThinning) {
       // Alt-Verhalten, nur auf ausdrückliche Anforderung (s. Konstruktor).
       const zoom = this.map?.getZoom() ?? 5;

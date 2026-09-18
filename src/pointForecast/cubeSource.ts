@@ -57,24 +57,25 @@ import type { Country } from '../types';
 import { skyViewFactor, type TerrainScales } from './fusion/terrainScale';
 import { CLIMA_SIGMA_FALLBACK } from './fusion/priors';
 import { rhFromDewPoint } from './fusion/meteo';
-import { meanOf, quantileOf } from './fusion/dist';
+import { meanOf } from './fusion/dist';
 import { getClimaField } from './fusion/attach';
-import { toPointForecastV2, type PointForecastV2 } from './fusion/output';
+import { toPointForecastV2, quantileMemo, type PointForecastV2 } from './fusion/output';
 import type { FusionVariable } from './fusion/priors';
 import { solarPosition } from './terrainPhysics';
 import { detectFoehn } from './foehnDetector';
 import { apparentTemperatureC } from './apparentTemperature';
 import type { ClimaField, ClimaSample } from '../ml/climaField';
-import { TIERS, type TierId } from '../point/cubeFormat';
+import { TIERS, CUBE_PLANES, type TierId } from '../point/cubeFormat';
 import { NOWCAST_SATURATION, type NowcastSourceId } from '../point/nowcastFormat';
 import type { CubePointSeries, CubePointStep } from '../point/client/cubePoint';
 import type { StationPointSeries } from '../point/client/stationPoint';
 import type { NowcastPointSeries } from '../point/client/nowcastPoint';
 import type { TerrainPointResult, TerrainOptions } from '../point/client/terrain';
 import type { PngDecoder } from '../point/client/nowcastPoint';
-import { readPointBundle, type PointBundle } from '../point/client/readPoint';
+import { readPointBundle, tiersForWindow, type PointBundle } from '../point/client/readPoint';
 import { httpStore, type PointStore } from '../point/client/store';
 import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../point/client/cache';
+import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
 
 const H = 3_600_000;
@@ -106,6 +107,11 @@ export interface CubeFusionInput {
   nowcast: NowcastPointSeries[];
   /** `imperv` %, `d0` m, `bldgH` m aus `point/static/urban` (AP5). */
   urban: Record<string, number | null> | null;
+  /**
+   * V-FI-17: Rauhigkeit am Punkt und je Stufe aus WorldCover (`z0Point.ts`) — schaltet die zweistufige Windkorrektur
+   * ein. Fehlt das Feld (Voreinstellung), rechnet alles wie bisher (byte-gleich).
+   */
+  z0?: Z0AtPoint | null;
   index: { commit: string | null; publishedAt?: string; axis?: { usableToMs?: number | null; gaps?: Array<{ fromH: number; toH: number }> } } | null;
   /** Die Klimatologie — Prior der Schrumpfung. Ohne sie gibt es keine Verteilungen (K-3). */
   clima: ClimaField | null;
@@ -470,6 +476,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const useAnchor = opts.anchor !== false;
   const useTail = opts.tail === true;
   const tc = { A: null, Auhi: null, tpiSigmaM: null, z0Mod: null, z0True: null, ...(opts.terrainCalib ?? {}) };
+  // V-FI-17: z0 aus WorldCover, wenn der Aufrufer es mitbringt und `terrainCalib` keine Rauhigkeit von außen setzt.
+  const z0In = input.z0 && input.z0.z0True != null && opts.terrainCalib?.z0True === undefined && opts.terrainCalib?.z0Mod === undefined ? input.z0 : null;
+  const fmtZ0 = (x: number | null | undefined) => (x == null ? '—' : x >= 0.1 ? x.toFixed(2) : x.toPrecision(2));
   const calib: string[] = [
     ...(input.elevationFrom === 'station' ? [`hTrue:station — Punkt ≤ ${Math.round(SELECTION.stationAtPointKm * 1000)} m an einer Katalogstation: ihre Höhe (${input.elevationM} m) gilt als h_true statt der DEM-Höhe${input.terrain?.elevationM != null ? ` (${Math.round(input.terrain.elevationM)} m)` : ''} (E-F-12, Jan 17.09.; am Gipfel liegt das DEM-Pixel bis 270 m tiefer)`] : []),
     'footprint:set — FOOTPRINT_M cube-t1/t2/t3 = Zellweite der Stufe (5/10/25 km), gesetzt, bis AP10 die Repräsentativität misst',
@@ -500,7 +509,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       `fRad:set — a = ${TERRAIN_SET.a}, v_ref = ${TERRAIN_SET.vRefMs} m/s, ε = ${TERRAIN_SET.epsilon.toFixed(3)}: f_rad an den bestehenden Produkt-Gates (65 % Bedeckung, 2,5 m/s) ist genau ε`,
       'fSaison:set — Jahresgang der Nachtlänge am Ort, 0 (kürzeste Nacht) … 1 (längste), E-F-4',
       `tpiSigma:${tc.tpiSigmaM == null ? 'null' : 'set'} — regionale TPI-Streuung für das Gate „TPI < −1σ" ${tc.tpiSigmaM == null ? 'unbekannt ⇒ Muldengate nicht entscheidbar' : `${tc.tpiSigmaM} m von außen`}`,
-      `z0:${tc.z0True == null || tc.z0Mod == null ? 'null' : 'set'} — Rauhigkeit am Punkt (WorldCover) und im Modell ${tc.z0True == null || tc.z0Mod == null ? 'nicht im Bündel (V-FI-17) ⇒ zweistufige Windkorrektur inaktiv' : 'von außen'}; z_b = ${TERRAIN_SET.zBlendM} m (set)`,
+      z0In
+        ? `z0:set — zweistufige Windkorrektur aktiv (V-FI-17): z0 am Punkt = log-Mittel der WorldCover-Klassen im Kreis ${Z0_POINT_RADIUS_M} m = ${fmtZ0(z0In.z0True)} m (${z0In.shares.slice(0, 3).map(([c, f]) => `Klasse ${c} ${Math.round(f * 100)} %`).join(', ')}); z0 des Modells je Stufe = log-Mittel über die Zellweite (t1 ${fmtZ0(z0In.z0Mod.t1)} · t2 ${fmtZ0(z0In.z0Mod.t2)} · t3 ${fmtZ0(z0In.z0Mod.t3)} m) als Näherung — das GRIB-z0 der Modelle trägt der Cube nicht (V-FI-58), ohne Orographie-Anteil; Klassen-z0 Davenport/Wieringa (literature); d0 am Punkt aus urban ${input.urban?.d0 != null ? `(${input.urban.d0} m)` : '(fehlt ⇒ 0)'}, d0 des Modells 0; z_b = ${TERRAIN_SET.zBlendM} m (set); Quelle ${z0In.source}`
+        : `z0:${tc.z0True == null || tc.z0Mod == null ? 'null' : 'set'} — Rauhigkeit am Punkt (WorldCover) und im Modell ${tc.z0True == null || tc.z0Mod == null ? 'nicht im Bündel (V-FI-17) ⇒ zweistufige Windkorrektur inaktiv' : 'von außen'}; z_b = ${TERRAIN_SET.zBlendM} m (set)`,
     ] : []),
     ...(useAnchor ? [
       `anchor:set — Innovations-Persistenz (anchor.ts, V-PV-19): Versatz Messung − Cube am Messzeitpunkt, τ_T ${ANCHOR_TAU_H.temperature} h / τ_Wind ${ANCHOR_TAU_H.wind} h, Deckel ${ANCHOR_MAX.temperature} K; Messung mit Frist geholt, nie blockierend`,
@@ -642,7 +653,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         impervPct: input.urban?.imperv ?? null, foehnScore: foehn ? foehn.score : null, lat, atMs: a.validAtMs,
         A: tc.A, Auhi: tc.Auhi, tpiSigmaM: tc.tpiSigmaM,
       });
-      const windFactor = windBlendingFactor(tc.z0Mod, tc.z0True, 0, input.urban?.d0 ?? 0);
+      const windFactor = z0In
+        ? windBlendingFactor(z0In.z0Mod[a.tier] ?? null, z0In.z0True, 0, input.urban?.d0 ?? 0)
+        : windBlendingFactor(tc.z0Mod, tc.z0True, 0, input.urban?.d0 ?? 0);
       if (windFactor == null) t.flags.push('windBlendingInactive');
       terrainRes = { ...t, windFactor };
       // Mit Amplitude verschiebt sich das Mittel des Cube-Members (Kaltluftsee kühlt, Wärmeinsel wärmt);
@@ -838,7 +851,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       if (!prev || !next || !prev.fused || !next.fused) continue;
       const f = (t - prev.validAtMs) / (next.validAtMs - prev.validAtMs);
       const lerp = (x: number, y: number) => x + (y - x) * f;
-      const qOf = (fv: FusedVariable | null): InterpQ | null => (fv ? { p10: quantileOf(fv.dist, 0.1), p50: quantileOf(fv.dist, 0.5), p90: quantileOf(fv.dist, 0.9), mean: meanOf(fv.dist) } : null);
+      // AP12 (V-FI-20): dieselben Nachbarschritte stützen bis zu fünf Stunden — ihre Quantile einmal rechnen (quantileMemo).
+      const qOf = (fv: FusedVariable | null): InterpQ | null => (fv ? { p10: quantileMemo(fv.dist, 0.1), p50: quantileMemo(fv.dist, 0.5), p90: quantileMemo(fv.dist, 0.9), mean: meanOf(fv.dist) } : null);
       const mix = (a: FusedVariable | null, b: FusedVariable | null): InterpQ | undefined => {
         const qa = qOf(a), qb = qOf(b);
         if (!qa || !qb) return undefined;
@@ -897,7 +911,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
 // Abbildung auf `PointForecast` (der Vertrag, den heutige Verbraucher lesen)
 // ---------------------------------------------------------------------------
 
-const median = (v: FusedVariable | null): number | null => (v ? quantileOf(v.dist, 0.5) : null);
+const median = (v: FusedVariable | null): number | null => (v ? quantileMemo(v.dist, 0.5) : null);
 
 /** Konfidenz-Vorstufe (AP2): der `spread`-Faktor aus Plan §2.2 — 1 − σ/σ_clima; AP6 ergänzt agree · lage. */
 function spreadConfidence(v: FusedVariable | null, sigmaClima: number): number {
@@ -994,6 +1008,14 @@ export interface CubePathSummary {
   stats: PointBundle['stats'];
   /** AP8: das Produkt nach Plan §2 — je Schritt je Größe Quantile, Verteilung, σ-Art, Konfidenz, Member mit Gewicht, Setzungen. */
   v2: PointForecastV2;
+  /**
+   * AP12, nur im progressiven Modus (`onUpdate`): `first` = die Antwort des Aufrufs (erste Stufe allein, wenn sie vor dem Kern
+   * fertig war — dann nennt `pending` die fehlenden Stufen —, sonst der Kern), `core` = das ganze Fenster nach einer ersten
+   * Stufe, `update` = mit Radar/Anker/statischen Produkten, die nachkamen.
+   */
+  emission?: 'first' | 'core' | 'update';
+  /** AP12, nur im progressiven Modus: was bei DIESER Ausgabe noch fehlt und nachgeliefert wird (`anchor`, `nowcast`, `static`). */
+  pending?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -1017,7 +1039,48 @@ export interface CubeIo {
   obs?: ((lat: number, lon: number, country: Country, signal: AbortSignal) => Promise<CubeObs[]>) | null;
   /** AP7: Frist für die progressiven Produkte (Nowcast, statische) ab dem Kern (V-FI-16). */
   lateDeadlineMs?: number;
+  /**
+   * AP12 (c): Cube-Chunks über Byte-Bereiche lesen — nur `CUBE_ANSWER_PLANES`, der Rest im Hintergrund.
+   * Voreinstellung AUS: der Browser fragt Bereiche als identity-Variante an, die der Publisher nicht wärmt —
+   * der erste Bereich je Chunk und Edge ist ein MISS (0,3–1,8 s, §9.14.1). Einschalten erst, wenn der
+   * Publisher auch diese Variante wärmt (Jans Entscheidung).
+   */
+  planeRanges?: boolean;
+  /**
+   * AP12 (e): nur im progressiven Modus — liegt eine Kopie des Index, die jünger ist als diese Frist, wird mit ihr
+   * gelesen und der Index nebenher nachgeprüft; nennt er andere Läufe, wird neu gelesen und nachgeliefert.
+   * Voreinstellung im Browser `INDEX_SWR_MS`; 0/undefined = immer erst den Index holen (wie bisher).
+   */
+  indexSwrMs?: number;
+  /**
+   * V-FI-17: z0 aus WorldCover für die zweistufige Windkorrektur (`z0Point.ts`). Fehlt die Option (Voreinstellung,
+   * z. B. im AP9-Sammler), rechnet der Cube-Pfad ohne Korrektur — byte-gleich wie bisher. Im Browser an
+   * (`defaultCubeIo`, nur hinter `?pf=cube`): nie auf dem kritischen Pfad — progressiv erst ab dem Kern (wirkt in
+   * der Nachlieferung), sonst parallel mit Frist `Z0_DEADLINE_MS`; ein Ort liegt danach zeitlos im Cache.
+   */
+  z0?: Z0Options | null;
 }
+
+/** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
+export const Z0_DEADLINE_MS = 6_000;
+/** V-FI-17: progressiv kommt z0, das nach der Nachlieferung eintrifft, als eigene Ausgabe — höchstens so lange nach dem Kern (set). */
+export const Z0_UPDATE_MAX_MS = 15_000;
+
+/**
+ * AP12 (e): so alt darf die Index-Kopie für die erste Antwort sein (set) — die Läufe, auf die sie zeigt, bleiben
+ * ≥ 9 h im Repo (Aufbewahrung t1), die Nachprüfung läuft immer mit.
+ */
+export const INDEX_SWR_MS = 30 * 60_000;
+
+/**
+ * AP12 (c): die Ebenen, die buscosun Fusion auf dem Cube-Pfad für die Antwort liest — im Code nachgesehen
+ * (18.09.): `cubeSampleOf` trägt die C-LAEF-Quantile `*_q10/_q90` in die Samples, aber weder der Motor noch
+ * `output.ts` rechnet mit ihnen (§9.8.1); von den Druckflächen braucht die Ausgabe nur 925 hPa (`belowGround925`
+ * aus `belowGroundHPa`). Ohne diese 18 Ebenen ist die Ausgabe byte-gleich (`verify:pv-cube` (15)).
+ */
+export const CUBE_ANSWER_PLANES: readonly string[] = Object.freeze(
+  CUBE_PLANES.filter((p) => p.kind !== 'q10' && p.kind !== 'q90' && !['t850', 't700', 'rh850', 'rh700'].includes(p.id)).map((p) => p.id),
+);
 
 /**
  * Frist des Messungs-Abrufs (Plan §3.1: 1,5 s ab Start, hart über `AbortSignal.timeout`). Die Antwort
@@ -1059,7 +1122,7 @@ let browserStore: PointStore | null = null;
 /** Die Voreinstellung im Browser: IndexedDB-Cache vor dem CDN-Store, Browser-PNG-Dekoder, Zwei-Skalen-DEM. */
 export function defaultCubeIo(): CubeIo {
   if (!browserBackend) browserBackend = idbBackend() ?? memoryBackend();
-  if (!browserStore) browserStore = cachedStore(httpStore({ timeoutMs: 8_000 }), browserBackend);
+  if (!browserStore) browserStore = cachedStore(httpStore({ timeoutMs: 8_000 }), browserBackend, { swrIndex: true });
   return {
     store: browserStore,
     decodePng: decodeGrayPngBrowser,
@@ -1067,58 +1130,44 @@ export function defaultCubeIo(): CubeIo {
     clima: getClimaField,
     obs: fetchCubeObs,
     lateDeadlineMs: LATE_DEADLINE_MS,
+    indexSwrMs: INDEX_SWR_MS,
+    z0: { cache: browserBackend, timeoutMs: 8_000 },
   };
 }
 
-interface CubeCacheEntry { hours: number; forecast: PointForecast; ts: number }
+interface CubeCacheEntry { hours: number; forecast: PointForecast; ts: number; update?: Promise<PointForecast | null> }
 const CUBE_CACHE = new Map<string, CubeCacheEntry>();
 const CUBE_CACHE_TTL_MS = 180_000;
 const CUBE_CACHE_MAX = 32;
 const CUBE_HOURS_MAX = 336;
 
-export async function getPointForecastFromCube(opts: PointForecastOptions, io: CubeIo = defaultCubeIo()): Promise<PointForecast> {
-  const T0 = now();
-  const { lat, lng: lon, country } = opts;
-  const hours = Math.min(CUBE_HOURS_MAX, Math.max(1, opts.hours ?? CUBE_HOURS_MAX));
-  const withRadar = opts.includeRadarNowcast !== false;
-  const key = pfCacheKey(lat, lon, country, withRadar, false, true, false, true);
-  const hit = CUBE_CACHE.get(key);
-  if (hit && hit.hours >= hours && Date.now() - hit.ts < CUBE_CACHE_TTL_MS) return hit.forecast;
+/**
+ * AP12: im progressiven Modus startet der Messungs-Abruf erst mit dem Kern — gemessen 18.09. auf Mobil-4G
+ * kostete er den Kern ≈ 160 ms Leitung und kam wegen seiner Frist (1,5 s ab Start) fast nie an. Ab dem Kern
+ * hat er die Leitung für sich und eine eigene Frist (set): sie begrenzt nur, wie lange die Nachlieferung wartet.
+ */
+export const OBS_PROGRESSIVE_DEADLINE_MS = 4_000;
+/** AP12: so lange nach der ersten Ausgabe sammelt der progressive Modus, was noch kommt — dann EINE zweite Ausgabe (set). */
+export const UPDATE_WAIT_MS = 6_000;
 
-  const nowMs = io.nowMs ? io.nowMs() : Date.now();
-  const t0Ms = Math.floor(nowMs / H) * H;
-  // AP7: die Messung für den Anker läuft nebenher, mit harter Frist — und die Antwort wartet
-  // höchstens OBS_GRACE_MS nach dem Bündel auf sie (nie auf dem kritischen Pfad).
-  const obsT0 = now();
-  const obsP: Promise<CubeObs[] | null> = io.obs
-    ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS)).catch(() => null)
-    : Promise.resolve(null);
-  const bundleP = readPointBundle(
-    { lat, lon, nowMs, fromMs: t0Ms, toMs: t0Ms + hours * H, stepH: 1 },
-    { store: io.store, decodePng: io.decodePng, nowcast: withRadar, terrain: io.terrain, plan: false, neighbours: true, lateDeadlineMs: io.lateDeadlineMs },
-  );
-  const [bundle, clima] = await Promise.all([bundleP, io.clima().catch(() => null)]);
-  if (opts.signal?.aborted) throw Object.assign(new Error('abgebrochen'), { name: 'AbortError' });
-  const LATE = Symbol('late');
-  // Warten bis min(Bündel + Gnadenfrist, Frist ab Start) — und gar nicht, wenn das Bündel selbst später kam.
-  const obsWaitMs = Math.max(0, Math.min(OBS_GRACE_MS, OBS_DEADLINE_MS - (now() - obsT0)));
-  const obsR = await Promise.race([obsP, new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), obsWaitMs))]);
-  const obs = obsR === LATE ? null : obsR;
-  const obsMs = Math.round(now() - obsT0);
-
+/** Bündel + Klimatologie + Messungen → `PointForecast` mit `cube`-Block (AP2–AP8); `obsNotes` sagen, warum ohne Anker. */
+function forecastFromBundle(
+  bundle: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null, obsNotes: string[], opts: PointForecastOptions, io: CubeIo,
+  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[] },
+  z0: Z0AtPoint | null = null,
+): PointForecast {
   const input = cubeInputFromBundle(bundle, clima, obs);
-  if (obsR === LATE) input.notes.push(`anchor: Messung nach ${obsMs} ms noch nicht da (Frist ${OBS_DEADLINE_MS} ms ab Start, Gnadenfrist ${OBS_GRACE_MS} ms nach dem Bündel) — kein Anker`);
-  else if (!io.obs) input.notes.push('anchor: kein Messungs-Abruf konfiguriert — kein Anker');
-  else if (obs == null) input.notes.push(`anchor: Messungs-Abruf gescheitert oder abgebrochen (${obsMs} ms) — kein Anker`);
-  else if (!obs.length) input.notes.push(`anchor: keine Messung erhalten (${obsMs} ms — keine Station in Reichweite oder Abruf nach ${OBS_DEADLINE_MS} ms abgebrochen; der Abruf liefert dann eine leere Liste) — kein Anker`);
+  input.notes.push(...obsNotes);
+  if (z0) input.z0 = z0;
   if (io.terrainOverride !== undefined) {
     input.terrain = io.terrainOverride;
     input.elevationM = input.elevationM ?? io.terrainOverride?.elevationM ?? null;
   }
   const result = fuseCubePoint(input, { hourly: true, tail: true });
   const v2 = toPointForecastV2(result, {
-    nowMs, terrainSource: io.terrainOverride !== undefined ? (io.terrainOverride ? 'override' : 'none') : (input.terrain ? 'terrarium-z11+z8' : 'none'),
+    nowMs: t.nowMs, terrainSource: io.terrainOverride !== undefined ? (io.terrainOverride ? 'override' : 'none') : (input.terrain ? 'terrarium-z11+z8' : 'none'),
     urban: input.urban,
+    ...(z0 && z0.z0True != null ? { z0: z0.z0True } : {}),
     fetched: { files: bundle.stats?.files ?? null, bytes: bundle.stats?.bytes ?? null, ms: bundle.timing.readMs },
     timing: { readMs: bundle.timing.readMs, terrainMs: bundle.timing.doneAt.terrain ?? null, decodeMs: null, totalMs: null },
   });
@@ -1126,22 +1175,237 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     schema: 'fi-ap2',
     axis: result.axis, provenance: result.provenance,
     flags: result.steps.filter((s) => s.flags.length).map((s) => ({ validAtMs: s.validAtMs, tier: s.tier, flags: s.flags })),
-    calib: result.calib, notes: result.notes, skips: bundle.skips, errors: bundle.errors,
+    // Kopien: im progressiven Modus schreibt der Leser nach der ersten Ausgabe weiter in dieselben Listen.
+    calib: result.calib, notes: result.notes, skips: [...bundle.skips], errors: [...bundle.errors],
     timing: {
       readMs: bundle.timing.readMs, coreMs: bundle.timing.coreMs, firstMs: bundle.timing.firstMs,
-      algoMs: result.timing.algoMs, outputMs: v2.timing.outputMs, totalMs: Math.round(now() - T0), doneAt: { ...bundle.timing.doneAt, obs: obsMs },
+      algoMs: result.timing.algoMs, outputMs: v2.timing.outputMs, totalMs: Math.round(now() - t.T0),
+      doneAt: { ...bundle.timing.doneAt, ...(t.obsMs == null ? {} : { obs: t.obsMs }), ...(z0?.fetched ? { z0: Math.round(z0.fetched.ms) } : {}) },
     },
-    stats: bundle.stats,
+    stats: { ...bundle.stats },
     v2,
+    ...(t.emission ? { emission: t.emission, pending: t.pending ?? [] } : {}),
   };
   v2.timing.totalMs = summary.timing.totalMs;
-  const forecast = toPointForecast(result, opts, { fetchedAt: Date.now(), cube: summary });
+  return toPointForecast(result, opts, { fetchedAt: Date.now(), cube: summary });
+}
+
+/** V-FI-17: die z0-Notiz, wenn z0 konfiguriert ist, aber nicht trägt (`null` = keine Notiz). */
+function z0NoteOf(io: CubeIo, z0: Z0AtPoint | null, why: 'late' | 'missing' | 'follows'): string[] {
+  if (!io.z0 || (z0 && z0.z0True != null)) return [];
+  if (why === 'follows') return ['z0: WorldCover-Rauhigkeit folgt (progressiv: Abruf ab dem Kern) — diese Ausgabe ohne zweistufige Windkorrektur'];
+  if (why === 'late') return [`z0: WorldCover-Rauhigkeit nicht rechtzeitig (Frist ${Z0_DEADLINE_MS} ms ab Start, ${OBS_GRACE_MS} ms nach dem Bündel) — ohne zweistufige Windkorrektur, Abruf läuft weiter (Cache)`];
+  return ['z0: WorldCover-Rauhigkeit nicht verfügbar (Spiegel ohne Kachel, Abruf gescheitert oder Abdeckung < 50 %) — ohne zweistufige Windkorrektur'];
+}
+
+/** Die Anker-Notiz, wenn die Messung nicht trägt (dieselben Sätze in beiden Modi). */
+function obsNoteOf(io: CubeIo, obs: CubeObs[] | null, obsMs: number, deadlineMs: number): string[] {
+  if (!io.obs) return ['anchor: kein Messungs-Abruf konfiguriert — kein Anker'];
+  if (obs == null) return [`anchor: Messungs-Abruf gescheitert oder abgebrochen (${obsMs} ms) — kein Anker`];
+  if (!obs.length) return [`anchor: keine Messung erhalten (${obsMs} ms — keine Station in Reichweite oder Abruf nach ${deadlineMs} ms abgebrochen; der Abruf liefert dann eine leere Liste) — kein Anker`];
+  return [];
+}
+
+function cacheForecast(key: string, hours: number, forecast: PointForecast, opts: PointForecastOptions, update?: Promise<PointForecast | null>): void {
   // Wie beim Live-Pfad: ein leeres oder quellenloses Ergebnis kommt nicht in den Cache.
   if (forecast.hours.length && forecast.sourcesAvailable.length && !opts.signal?.aborted) {
-    CUBE_CACHE.set(key, { hours, forecast, ts: Date.now() });
+    CUBE_CACHE.set(key, { hours, forecast, ts: Date.now(), ...(update ? { update } : {}) });
     if (CUBE_CACHE.size > CUBE_CACHE_MAX) { const k = CUBE_CACHE.keys().next().value; if (k !== undefined) CUBE_CACHE.delete(k); }
   }
-  return forecast;
+}
+
+export async function getPointForecastFromCube(opts: PointForecastOptions, io: CubeIo = defaultCubeIo()): Promise<PointForecast> {
+  const T0 = now();
+  const { lat, lng: lon, country } = opts;
+  const hours = Math.min(CUBE_HOURS_MAX, Math.max(1, opts.hours ?? CUBE_HOURS_MAX));
+  const withRadar = opts.includeRadarNowcast !== false;
+  const progressive = typeof opts.onUpdate === 'function';
+  const key = pfCacheKey(lat, lon, country, withRadar, false, true, false, true);
+  const hit = CUBE_CACHE.get(key);
+  if (hit && hit.hours >= hours && Date.now() - hit.ts < CUBE_CACHE_TTL_MS) {
+    // AP12: kam der Treffer aus einer ersten Ausgabe, deren Nachlieferung noch läuft, bekommt auch dieser Aufrufer sie.
+    if (progressive && hit.update) hit.update.then((fc) => { if (fc && !opts.signal?.aborted) opts.onUpdate!(fc); }, () => {});
+    return hit.forecast;
+  }
+
+  const nowMs = io.nowMs ? io.nowMs() : Date.now();
+  const t0Ms = Math.floor(nowMs / H) * H;
+  // AP7: die Messung für den Anker läuft nebenher, mit harter Frist — und die Antwort wartet
+  // höchstens OBS_GRACE_MS nach dem Bündel auf sie (nie auf dem kritischen Pfad).
+  // AP12: im progressiven Modus startet sie erst mit dem Kern (unten).
+  const obsT0 = now();
+  const obsP: Promise<CubeObs[] | null> = io.obs && !progressive
+    ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS)).catch(() => null)
+    : Promise.resolve(null);
+  const climaP = io.clima().catch(() => null);
+  // V-FI-17: z0 — nicht-progressiv parallel (mit Frist), progressiv zuerst nur aus dem Cache (ein bekannter Ort wirkt
+  // schon in der ersten Ausgabe), der Netzabruf startet dort erst mit dem Kern.
+  const z0T0 = now();
+  const z0P: Promise<Z0AtPoint | null> = io.z0
+    ? loadZ0AtPoint(lat, lon, { ...io.z0, ...(progressive ? { cacheOnly: true } : {}), ...(opts.signal ? { signal: opts.signal } : {}) }).catch(() => null)
+    : Promise.resolve(null);
+  // AP12 (E-F-3 (a)): im progressiven Modus die erste Darstellung aus der ersten Stufe, sobald sie da ist —
+  // nur, wenn sie vor dem Kern fertig ist (sonst ist der Kern die erste Ausgabe).
+  let coreIn = false;
+  let resolvePaint!: (fc: PointForecast) => void;
+  const paintP = new Promise<PointForecast>((r) => { resolvePaint = r; });
+  const onFirst = progressive ? (b1: PointBundle) => {
+    void Promise.all([climaP, z0P]).then(([clima, z0c]) => {
+      if (coreIn || opts.signal?.aborted) return;
+      const all = b1.index ? tiersForWindow(b1.index, t0Ms, t0Ms + hours * H) : [];
+      const pending = [...all.filter((t) => !b1.tiers.includes(t)), ...(io.obs ? ['anchor'] : [])];
+      try {
+        resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...z0NoteOf(io, z0c, 'follows')],
+          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && !z0c ? ['z0'] : [])] }, z0c));
+      } catch { /* die erste Darstellung ist ein Angebot — der Kern kommt ohnehin */ }
+    });
+  } : undefined;
+  const bundleP = readPointBundle(
+    { lat, lon, nowMs, fromMs: t0Ms, toMs: t0Ms + hours * H, stepH: 1 },
+    {
+      store: io.store, decodePng: io.decodePng, nowcast: withRadar, terrain: io.terrain, plan: false, neighbours: true, lateDeadlineMs: io.lateDeadlineMs,
+      ...(progressive ? { progressive: true, onFirst, ...(io.indexSwrMs ? { indexSwrMs: io.indexSwrMs } : {}) } : {}),
+      ...(io.planeRanges ? { planeRanges: CUBE_ANSWER_PLANES } : {}),
+    },
+  ).then((b) => { coreIn = true; return b; });
+  const LATE = Symbol('late');
+
+  if (!progressive) {
+    const [bundle, clima] = await Promise.all([bundleP, climaP]);
+    if (opts.signal?.aborted) throw Object.assign(new Error('abgebrochen'), { name: 'AbortError' });
+    // Warten bis min(Bündel + Gnadenfrist, Frist ab Start) — und gar nicht, wenn das Bündel selbst später kam.
+    const obsWaitMs = Math.max(0, Math.min(OBS_GRACE_MS, OBS_DEADLINE_MS - (now() - obsT0)));
+    const obsR = await Promise.race([obsP, new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), obsWaitMs))]);
+    const obs = obsR === LATE ? null : obsR;
+    const obsMs = Math.round(now() - obsT0);
+    const notes = obsR === LATE
+      ? [`anchor: Messung nach ${obsMs} ms noch nicht da (Frist ${OBS_DEADLINE_MS} ms ab Start, Gnadenfrist ${OBS_GRACE_MS} ms nach dem Bündel) — kein Anker`]
+      : obsNoteOf(io, obs, obsMs, OBS_DEADLINE_MS);
+    // V-FI-17: z0 mit derselben Regel wie die Messung — höchstens die Gnadenfrist nach dem Bündel, nie über die Frist.
+    let z0: Z0AtPoint | null = null;
+    if (io.z0) {
+      const z0WaitMs = Math.max(0, Math.min(OBS_GRACE_MS, Z0_DEADLINE_MS - (now() - z0T0)));
+      const z0R = await Promise.race([z0P, new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), z0WaitMs))]);
+      z0 = z0R === LATE ? null : z0R;
+      notes.push(...z0NoteOf(io, z0, z0R === LATE ? 'late' : 'missing'));
+    }
+    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs }, z0);
+    cacheForecast(key, hours, forecast, opts);
+    return forecast;
+  }
+
+  // ── AP12: progressiv — (1) erste Darstellung (erste Stufe, s. oben) oder der Kern, (2) der Kern, wenn (1)
+  //    die erste Stufe war, (3) EINE Nachlieferung mit Radar/Anker/statischen Produkten ──
+  const coreAndLate = (bundle: PointBundle, clima: ClimaField | null, emission: 'first' | 'core', z0c: Z0AtPoint | null): PointForecast => {
+    const obs2T0 = now();
+    const obs2P: Promise<CubeObs[] | null> = io.obs
+      ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_PROGRESSIVE_DEADLINE_MS)).catch(() => null)
+      : Promise.resolve(null);
+    // V-FI-17: kein Cache-Treffer ⇒ der Netzabruf startet jetzt, mit dem Kern (die Leitung ist frei), und wirkt in der Nachlieferung.
+    const z0NetP: Promise<Z0AtPoint | null> | null = io.z0 && !z0c
+      ? loadZ0AtPoint(lat, lon, { ...io.z0, ...(opts.signal ? { signal: opts.signal } : {}) }).catch(() => null)
+      : null;
+    const late = bundle.late ?? {};
+    const pending = [...(io.obs ? ['anchor'] : []), ...(late.nowcast ? ['nowcast'] : []), ...(late.static ? ['static'] : []), ...(z0NetP ? ['z0'] : [])];
+    const firstNotes = [...(io.obs
+      ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`]
+      : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS)), ...(z0NetP ? z0NoteOf(io, null, 'follows') : [])];
+    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending }, z0c);
+    // V-FI-17: z0 wartet NICHT in der Nachlieferung mit — gemessen 18.09. (Mobil-4G, kalt, alle WorldCover-Abrufe
+    // MISS) verschob das Mitwarten Anker und Radar um ≈ 0,9 s (p50). Ist z0 zur Nachlieferung fertig, reist es mit;
+    // sonst folgt es als eigene, letzte Ausgabe (höchstens `Z0_UPDATE_MAX_MS` nach dem Kern).
+    let z0Val: Z0AtPoint | null | undefined;
+    if (z0NetP) void z0NetP.then((z) => { z0Val = z; });
+    const z0Later = (b: PointBundle, obsX: CubeObs[] | null, notesX: string[], stillX: string[]) => {
+      if (!z0NetP || z0Val !== undefined) return;
+      const cap = new Promise<null>((r) => setTimeout(() => r(null), Z0_UPDATE_MAX_MS));
+      void Promise.race([z0NetP, cap]).then((z) => {
+        if (!z || z.z0True == null || opts.signal?.aborted) return;
+        const fc3 = forecastFromBundle(b, clima, obsX, notesX.filter((n) => !n.startsWith('z0: ')), opts, io,
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillX.filter((x) => x !== 'z0') }, z);
+        cacheForecast(key, hours, fc3, opts);
+        opts.onUpdate!(fc3);
+      }).catch(() => { /* ohne z0 bleibt die letzte Ausgabe stehen */ });
+    };
+    const update: Promise<PointForecast | null> = (async () => {
+      const until = new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), UPDATE_WAIT_MS));
+      const [obsR, ncR, stR] = await Promise.all([
+        Promise.race([obs2P, until]),
+        late.nowcast ? Promise.race([late.nowcast.result, until]) : Promise.resolve(undefined),
+        late.static ? Promise.race([late.static.result, until]) : Promise.resolve(undefined),
+      ]);
+      await Promise.resolve();   // ein schon fertiges z0 hat seinen `then` oben gerade gesetzt
+      if (opts.signal?.aborted) return null;
+      const obs = obsR === LATE ? null : obsR;
+      const obsMs = Math.round(now() - obs2T0);
+      // Fertig heißt nicht „mit Ergebnis": ein Radar-Abruf ohne Slot endet mit [] (und der Leser hat seinen Grund
+      // schon in `skips` geschrieben) — dann fällt die Notiz „folgt" weg, eine zweite Ausgabe löst er allein nicht aus.
+      const ncDone = ncR !== undefined && ncR !== LATE;
+      const gotNowcast = ncDone && (ncR as NowcastPointSeries[]).length > 0;
+      const gotStatic = stR !== undefined && stR !== LATE;
+      const z0Done = !!z0NetP && z0Val !== undefined;
+      const gotZ0 = z0Done && !!z0Val && z0Val.z0True != null;
+      // Nichts Neues (keine Messung, kein Radar, keine statischen Produkte, kein z0) ⇒ keine weitere Ausgabe — z0 kann
+      // dann noch allein folgen (auf dem Stand des Kerns).
+      const obsNotes = obsR === LATE
+        ? [`anchor: Messung nach ${obsMs} ms ab dem Kern noch nicht da (Frist der Nachlieferung ${UPDATE_WAIT_MS} ms) — kein Anker`]
+        : obsNoteOf(io, obs, obsMs, OBS_PROGRESSIVE_DEADLINE_MS);
+      if (!(obs && obs.length) && !gotNowcast && !gotStatic && !gotZ0) {
+        z0Later(bundle, null, obsNotes, pending.filter((x) => x === 'z0' || (x === 'anchor' && obsR === LATE) || (x === 'nowcast' && !ncDone) || (x === 'static' && !gotStatic)));
+        return null;
+      }
+      const drop = new Set<string>([...(ncDone ? [late.nowcast!.skip] : []), ...(gotStatic ? [late.static!.skip] : [])]);
+      const b2: PointBundle = {
+        ...bundle,
+        nowcast: gotNowcast ? (ncR as NowcastPointSeries[]) : bundle.nowcast,
+        hmodel: gotStatic ? (stR as { hmodel: PointBundle['hmodel'] }).hmodel : bundle.hmodel,
+        urban: gotStatic ? (stR as { urban: PointBundle['urban'] }).urban : bundle.urban,
+        skips: bundle.skips.filter((s) => !drop.has(s)),
+      };
+      const still = [...(obsR === LATE ? ['anchor'] : []), ...(late.nowcast && !ncDone ? ['nowcast'] : []), ...(late.static && !gotStatic ? ['static'] : []), ...(z0NetP && !z0Done ? ['z0'] : [])];
+      const notes = [...obsNotes];
+      const z0u = gotZ0 ? (z0Val as Z0AtPoint) : z0c;
+      if (z0NetP && !gotZ0) notes.push(...z0NoteOf(io, null, z0Done ? 'missing' : 'follows'));
+      const second = forecastFromBundle(b2, clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still }, z0u);
+      cacheForecast(key, hours, second, opts);
+      opts.onUpdate!(second);
+      z0Later(b2, obs, notes, still);
+      return second;
+    })();
+    update.catch(() => null);
+    cacheForecast(key, hours, core, opts, update.catch(() => null));
+    // AP12 (e): der Index kam aus der SWR-Kopie — nennt die Nachprüfung andere Läufe, wird ohne Kopie neu gelesen
+    // und als letzte Ausgabe nachgeliefert (sie ersetzt auch die Nachlieferung oben).
+    if (bundle.late?.index) {
+      void bundle.late.index.changed.then(async (changed) => {
+        if (!changed || opts.signal?.aborted) return;
+        CUBE_CACHE.delete(key);
+        const fresh = await getPointForecastFromCube({ ...opts, onUpdate: undefined }, { ...io, indexSwrMs: 0 });
+        const c = fresh.cube as unknown as CubePathSummary;
+        c.emission = 'update';
+        c.pending = [];
+        c.notes.push('index: die Nachprüfung nannte neue Läufe — ohne Index-Kopie neu gelesen (SWR, AP12)');
+        cacheForecast(key, hours, fresh, opts);
+        if (!opts.signal?.aborted) opts.onUpdate!(fresh);
+      }).catch(() => { /* die Antwort mit der Kopie bleibt stehen, benannt */ });
+    }
+    return core;
+  };
+
+  const paint = await Promise.race([paintP, bundleP.then(() => null)]);
+  if (paint) {
+    // (1) war die erste Stufe: der Kern kommt als zweite Ausgabe. Die erste Darstellung (kürzeres Fenster)
+    // kommt nicht in den Ergebnis-Cache — ein späterer Aufrufer bekäme sonst weniger Stunden, als er verlangt.
+    void (async () => {
+      const [bundle, clima, z0c] = await Promise.all([bundleP, climaP, z0P]);
+      if (opts.signal?.aborted) return;
+      opts.onUpdate!(coreAndLate(bundle, clima, 'core', z0c));
+    })().catch(() => { /* ein Fehler des Kerns steht im Bündel; die erste Darstellung bleibt stehen */ });
+    return paint;
+  }
+  const [bundle, clima, z0c] = await Promise.all([bundleP, climaP, z0P]);
+  if (opts.signal?.aborted) throw Object.assign(new Error('abgebrochen'), { name: 'AbortError' });
+  return coreAndLate(bundle, clima, 'first', z0c);
 }
 
 /** Leert den Ergebnis-Cache des Cube-Pfads — für Vorher/Nachher-Messungen im Lab (IndexedDB bleibt). */

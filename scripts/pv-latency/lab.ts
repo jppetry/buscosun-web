@@ -33,7 +33,7 @@ import {
 import type { DecodedGrayPng } from '../../src/point/nowcastSample';
 import { getPointForecast } from '../../src/pointForecast/pointForecast';
 // AP2: der Cube-Pfad registriert sich beim Laden — das Lab ist der Verbraucher, der ihn lädt.
-import { clearCubeForecastCache } from '../../src/pointForecast/cubeSource';
+import { clearCubeForecastCache, getPointForecastFromCube, defaultCubeIo } from '../../src/pointForecast/cubeSource';
 import { quantileOf } from '../../src/pointForecast/fusion/dist';
 import { loadElevationLookup } from '../../src/fusion/elevation';
 import type { Country } from '../../src/types';
@@ -230,14 +230,51 @@ async function live(lat: number, lng: number, country: Country, hours = 240, opt
  * Cube-Achse und Abbildung auf `PointForecast`. `fresh: true` leert vorher den Ergebnis-Cache
  * des Pfads (der zweite Aufruf misst dann IndexedDB + Rechnung, nicht ein gemerktes Objekt).
  */
-async function cube(lat: number, lng: number, country: Country, opts: { hours?: number; nowcast?: boolean; fresh?: boolean; series?: boolean } = {}) {
+async function cube(lat: number, lng: number, country: Country, opts: { hours?: number; nowcast?: boolean; fresh?: boolean; series?: boolean; obs?: boolean; progressive?: boolean; ranges?: boolean; z0?: boolean } = {}) {
   if (opts.fresh) clearCubeForecastCache();
   const T0 = now();
   try {
-    const fc = await getPointForecast({ lat, lng, country, hours: opts.hours ?? 336, pointSource: 'cube', includeRadarNowcast: opts.nowcast !== false });
-    const c = fc.cube as { timing?: Record<string, unknown>; provenance?: Record<string, unknown>; flags?: unknown[]; notes?: string[]; skips?: string[]; errors?: string[]; stats?: unknown; axis?: { native?: number[]; seams?: number[]; perTier?: unknown } } | undefined;
+    // AP12: `progressive` = Ausgaben über `onUpdate`. `total` = die erste Antwort (bei 336 h die erste Stufe allein,
+    // E-F-3 (a)), `fullMs` = das ganze Fenster (Kern), `finalMs` = die letzte Ausgabe (Radar/Anker/`static`); gewartet
+    // wird höchstens 7 s. Ohne `progressive` sind alle drei gleich.
+    let finalMs: number | null = null;
+    let fullMs: number | null = null;
+    let updateInfo: { pending: string[]; sources: string[]; notes: string[] } | null = null;
+    const emissions: Array<{ kind: string | null; ms: number; hours: number; pending: string[]; z0: boolean }> = [];
+    let onUpd: ((fc: PointForecast) => void) | undefined;
+    let settle: (() => void) | null = null;
+    const doneP = opts.progressive ? new Promise<void>((resolve) => { settle = resolve; }) : null;
+    const note = (u: PointForecast, ms: number) => {
+      const uc = u.cube as { pending?: string[]; emission?: string; notes?: string[]; calib?: string[] } | undefined;
+      const pending = uc?.pending ?? [];
+      // V-FI-17: trägt diese Ausgabe die zweistufige Windkorrektur (z0 aus WorldCover)?
+      emissions.push({ kind: uc?.emission ?? null, ms: Math.round(ms), hours: u.hours.length, pending, z0: (uc?.calib ?? []).some((c) => c.startsWith('z0:set')) });
+      if (!pending.some((x) => /^t[123]$/.test(x))) fullMs ??= ms;
+      finalMs = ms;
+      if (uc?.emission === 'update') updateInfo = { pending, sources: u.sourcesAvailable, notes: (uc?.notes ?? []).filter((n) => /anchor/.test(n)) };
+      if (!pending.length) settle?.();
+    };
+    if (opts.progressive) onUpd = (u) => note(u, now() - T0);
+    const po = { lat, lng, country, hours: opts.hours ?? 336, pointSource: 'cube' as const, includeRadarNowcast: opts.nowcast !== false, ...(onUpd ? { onUpdate: onUpd } : {}) };
+    // AP12 (Diagnose): `obs: false` = ohne Messungs-Abruf für den Anker — misst, was dessen Bytes auf der Leitung kosten.
+    // AP12 (c): `ranges` = Cube-Chunks über Ebenen-Bereiche (CUBE_ANSWER_PLANES), Rest im Hintergrund.
+    // V-FI-17: `z0: false` = ohne WorldCover-Rauhigkeit (die Vorher-Variante im selben Lauf).
+    const fc = opts.obs === false || opts.ranges || opts.z0 === false
+      ? await getPointForecastFromCube(po, { ...defaultCubeIo(), ...(opts.obs === false ? { obs: null } : {}), ...(opts.ranges ? { planeRanges: true } : {}), ...(opts.z0 === false ? { z0: null } : {}) })
+      : await getPointForecast(po);
+    const firstMs = now() - T0;
+    const c = fc.cube as { timing?: Record<string, unknown>; provenance?: Record<string, unknown>; flags?: unknown[]; notes?: string[]; skips?: string[]; errors?: string[]; stats?: unknown; axis?: { native?: number[]; seams?: number[]; perTier?: unknown }; pending?: string[]; emission?: string } | undefined;
+    if (doneP) {
+      note(fc, firstMs);
+      emissions.sort((a, b) => a.ms - b.ms);
+      if ((c?.pending ?? []).length) await Promise.race([doneP, new Promise((r) => setTimeout(r, 7_000))]);
+      emissions.sort((a, b) => a.ms - b.ms);
+    } else {
+      finalMs = fullMs = firstMs;
+    }
     return {
-      total: now() - T0, hours: fc.hours.length, sourcesAvailable: fc.sourcesAvailable, elevation: fc.query.elevation,
+      total: firstMs, fullMs, finalMs, emissions, emission: c?.emission ?? null, pending: c?.pending ?? null, firstHours: fc.hours.length, update: updateInfo,
+      hours: fc.hours.length, sourcesAvailable: fc.sourcesAvailable, elevation: fc.query.elevation,
       timing: c?.timing ?? null, provenance: c?.provenance ?? null, axis: c?.axis ? { native: c.axis.native?.length, seams: c.axis.seams, perTier: c.axis.perTier } : null,
       flags: c?.flags?.length ?? 0, notes: c?.notes ?? [], skips: c?.skips ?? [], errors: c?.errors ?? [], stats: c?.stats ?? null, decode: decodePoolInfo(),
       series: opts.series ? seriesOf(fc) : undefined,

@@ -9,7 +9,7 @@
  * live station observations in the blend.
  */
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { getPointForecast } from './pointForecast';
 import type { PointForecast } from './types';
 import type { Country } from '../types';
@@ -30,9 +30,25 @@ import FavoriteStar from '../FavoriteStar';
 import { placePageFor } from '../router/placePages';
 import { PointForecastOverview } from './PointForecastOverview';
 import { PointForecastCharts } from './PointForecastCharts';
+import { pfLogFrom, pfSourceFrom, type PfSource } from './pfFlags';
 
-export type PointForecastView = 'overview' | 'charts' | 'table';
+export type PointForecastView = 'overview' | 'charts' | 'table' | 'bands';
 type View = PointForecastView;
+
+/**
+ * Phase FI (AP11): `?pf=cube` schaltet das Panel auf buscosun Fusion auf dem Punkt-Cube (`pointSource: 'cube'`);
+ * fehlt der Schalter oder hat er einen anderen Wert, bleibt alles live und unverändert. `?pflog=1` zeigt im
+ * Cube-Modus Zeiten und Herkunft. Die Voreinstellung wechselt erst nach dem AP9-Gate (Jans Entscheidung).
+ * Die Karte hält unbekannte Query-Schlüssel beim Umschreiben der URL fest (`urlState.ts`, `extra`).
+ */
+const PF_SOURCE: PfSource = typeof window !== 'undefined' ? pfSourceFrom(window.location.search) : 'live';
+const PF_LOG = typeof window !== 'undefined' && pfLogFrom(window.location.search);
+/** Der Cube-Modus fragt das ganze Fenster an (die Bandbreite zeigt es bis zum Klimatologie-Schwanz); die drei Altansichten bekommen weiter `hours`. */
+const CUBE_PANEL_HOURS = 336;
+// Eigener Lazy-Chunk (mit eigenem CSS): ohne ?pf=cube kommt die Ansicht nie auf den Draht.
+const PointForecastBands = lazy(() => import('./PointForecastBands'));
+const PointForecastPfLog = lazy(() => import('./PointForecastBands').then((m) => ({ default: m.PfLog })));
+interface CubeEmission { kind: string | null; ms: number; hours: number; pending: string[] }
 
 interface Props {
   lat: number;
@@ -116,22 +132,55 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
   function enableOmPollen() { setOpenMeteoOptIn(true); setOmOptIn(true); }
   function disableOmPollen() { setOpenMeteoOptIn(false); setOmOptIn(false); setOmPollen(null); }
 
+  // AP11: der Cube-Pfad nur mit ?pf=cube und nur im Blend-Modus — ein Einzelmodell (`native`) hat dort keine Entsprechung.
+  const useCube = PF_SOURCE === 'cube' && sourceMode !== 'native';
+  const [emissions, setEmissions] = useState<CubeEmission[]>([]);
+
   useEffect(() => {
     const abort = new AbortController();
     setLoading(true);
     setError(null);
-    getPointForecast({ lat, lng, country, hours, signal: abort.signal, includeRadarNowcast: true, sourceMode })
-      .then((r) => { if (!abort.signal.aborted) { setData(r); setLoading(false); } })
+    if (!useCube) {
+      getPointForecast({ lat, lng, country, hours, signal: abort.signal, includeRadarNowcast: true, sourceMode })
+        .then((r) => { if (!abort.signal.aborted) { setData(r); setLoading(false); } })
+        .catch((err: unknown) => {
+          if ((err as { name?: string })?.name === 'AbortError') return;
+          setError(err instanceof Error ? err.message : String(err));
+          setLoading(false);
+        });
+      const t = window.setInterval(() => {
+        getPointForecast({ lat, lng, country, hours, includeRadarNowcast: true, sourceMode }).then(setData).catch(() => {});
+      }, REFRESH_MS);
+      return () => { abort.abort(); window.clearInterval(t); };
+    }
+    // AP11: buscosun Fusion auf dem Punkt-Cube. `cubeSource` registriert sich beim Laden (eigener Lazy-Chunk,
+    // eagerJs unberührt); die erste Antwort kommt progressiv (AP12: erste Stufe, dann Kern, dann Nachlieferung).
+    setEmissions([]);
+    const t0 = performance.now();
+    const note = (fc: PointForecast) => {
+      const c = fc.cube as { emission?: string; pending?: string[] } | undefined;
+      setEmissions((e) => [...e, { kind: c?.emission ?? null, ms: Math.round(performance.now() - t0), hours: fc.hours.length, pending: c?.pending ?? [] }]);
+    };
+    const onUpdate = (fc: PointForecast) => { if (!abort.signal.aborted) { note(fc); setData(fc); } };
+    const loadCube = (signal?: AbortSignal) => import('./cubeSource').then(() => getPointForecast({
+      lat, lng, country, hours: CUBE_PANEL_HOURS, signal, includeRadarNowcast: true, sourceMode, pointSource: 'cube', onUpdate,
+    }));
+    loadCube(abort.signal)
+      .then((r) => { if (!abort.signal.aborted) { note(r); setData(r); setLoading(false); } })
       .catch((err: unknown) => {
         if ((err as { name?: string })?.name === 'AbortError') return;
-        setError(err instanceof Error ? err.message : String(err));
+        setError(`buscosun Fusion (Cube, Test): ${err instanceof Error ? err.message : String(err)} — ohne ?pf=cube zeigt das Panel den Live-Pfad`);
         setLoading(false);
       });
     const t = window.setInterval(() => {
-      getPointForecast({ lat, lng, country, hours, includeRadarNowcast: true, sourceMode }).then(setData).catch(() => {});
+      loadCube().then((r) => { if (!abort.signal.aborted) setData(r); }).catch(() => {});
     }, REFRESH_MS);
     return () => { abort.abort(); window.clearInterval(t); };
-  }, [lat, lng, country, hours, sourceMode]);
+  }, [lat, lng, country, hours, sourceMode, useCube]);
+
+  // Die drei bestehenden Ansichten sehen im Cube-Modus dasselbe Fenster wie live (`hours`); live ist es dasselbe Objekt.
+  const viewData = useMemo(() => (useCube && data ? { ...data, hours: data.hours.slice(0, hours) } : data), [data, useCube, hours]);
+  const shownView: View = view === 'bands' && !useCube ? 'overview' : view;
 
   // DWD warnings: refreshed every 5 min, point-query via BrightSky.
   useEffect(() => {
@@ -227,31 +276,49 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
               <button
                 type="button"
                 role="tab"
-                className={view === 'overview' ? 'active' : ''}
+                className={shownView === 'overview' ? 'active' : ''}
                 onClick={() => setView('overview')}
-                aria-selected={view === 'overview'}
+                aria-selected={shownView === 'overview'}
               >
                 Übersicht
               </button>
               <button
                 type="button"
                 role="tab"
-                className={view === 'charts' ? 'active' : ''}
+                className={shownView === 'charts' ? 'active' : ''}
                 onClick={() => setView('charts')}
-                aria-selected={view === 'charts'}
+                aria-selected={shownView === 'charts'}
               >
                 Diagramme
               </button>
               <button
                 type="button"
                 role="tab"
-                className={view === 'table' ? 'active' : ''}
+                className={shownView === 'table' ? 'active' : ''}
                 onClick={() => setView('table')}
-                aria-selected={view === 'table'}
+                aria-selected={shownView === 'table'}
               >
                 Tabelle
               </button>
+              {useCube && (
+                <button
+                  type="button"
+                  role="tab"
+                  className={shownView === 'bands' ? 'active' : ''}
+                  onClick={() => setView('bands')}
+                  aria-selected={shownView === 'bands'}
+                  title="buscosun Fusion auf dem Punkt-Cube (Test, ?pf=cube): Band p10–p90, Konfidenz, Member und Setzungen je Stunde"
+                >
+                  Bandbreite
+                </button>
+              )}
             </div>
+          )}
+          {/* AP11: Zeiten und Herkunft des Cube-Pfads (?pflog=1) — über jeder Ansicht. */}
+          {useCube && PF_LOG && data && (
+            <Suspense fallback={null}>
+              <PointForecastPfLog data={data} emissions={emissions} />
+            </Suspense>
           )}
 
           {alerts && alerts.alerts.length > 0 && (
@@ -301,7 +368,7 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
             );
           })()}
 
-          {view === 'overview' && pollen && (
+          {shownView === 'overview' && pollen && (
             <details className="pfc-pollen pfc-pollen-collapse">
               <summary className="pfc-pollen-summary" title={pollen.legend}>
                 <span className="eyebrow">Pollen · {pollen.region}</span>
@@ -348,14 +415,14 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
           )}
 
           {/* AT/CH: Pollen via Open-Meteo/CAMS — Opt-in (kein Default; Rate-Limit/Lizenz). */}
-          {view === 'overview' && country !== 'DE' && !omOptIn && (
+          {shownView === 'overview' && country !== 'DE' && !omOptIn && (
             <div className="pfc-optin">
               <span className="eyebrow">Pollen für {country === 'AT' ? 'Österreich' : 'die Schweiz'}</span>
               <p>Kein offener amtlicher Pollen-Feed für AT/CH. Optional über <strong>Open-Meteo / CAMS</strong> (externe Quelle, Rate-Limit) — Richtwerte, keine amtliche Aussage.</p>
               <button type="button" className="pfc-optin-btn" onClick={enableOmPollen}>Pollen via Open-Meteo aktivieren</button>
             </div>
           )}
-          {view === 'overview' && country !== 'DE' && omOptIn && omPollen && omPollen.species.length > 0 && (
+          {shownView === 'overview' && country !== 'DE' && omOptIn && omPollen && omPollen.species.length > 0 && (
             <details className="pfc-pollen pfc-pollen-collapse">
               <summary className="pfc-pollen-summary">
                 <span className="eyebrow">Pollen · CAMS (Open-Meteo)</span>
@@ -400,9 +467,14 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
             );
           })()}
 
-          {data && view === 'overview' && <PointForecastOverview data={data} />}
-          {data && view === 'charts' && <PointForecastCharts data={data} />}
-          {data && view === 'table' && (
+          {viewData && shownView === 'overview' && <PointForecastOverview data={viewData} />}
+          {viewData && shownView === 'charts' && <PointForecastCharts data={viewData} />}
+          {data && useCube && shownView === 'bands' && (
+            <Suspense fallback={<div className="pfc-status">Lade Bandbreite…</div>}>
+              <PointForecastBands data={data} />
+            </Suspense>
+          )}
+          {viewData && shownView === 'table' && (
             <div className="pfc-table-wrap">
               <table className="pfc-table">
                 <thead>
@@ -416,7 +488,7 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
                   </tr>
                 </thead>
                 <tbody>
-                  {data.hours.map((h, i) => (
+                  {viewData.hours.map((h, i) => (
                     <tr key={i} className={i < 3 ? 'pfc-nowcast' : ''}>
                       <td className="pfc-t">
                         {fmtTime(h.timestamp, i)}

@@ -135,12 +135,45 @@ export interface RunV2 { run: string; runAt: string; ageH: number | null; models
 // Rundung (V-FI-8)
 // ---------------------------------------------------------------------------
 
+/**
+ * AP12 (V-FI-20): die Ausgabe rundet ≈ 50 000 Zahlen je Punkt; `toFixed` + `Number` (Zeichenkette hin und
+ * zurück) war die Hälfte der Ausgabezeit (Profil 18.09.). Für Zehnerpotenz-Schritte ist `k / 10^d` DIESELBE
+ * Zahl: `(k·step).toFixed(d)` ist die exakte Dezimaldarstellung von k/10^d, und `Number` davon ist ihr
+ * nächster Double — genau das, was die IEEE-Division k/10^d liefert (k ganz, |k| < 2^53). `+ 0` macht aus
+ * −0 eine +0 wie `toFixed`. Andere Schritte nehmen weiter den alten Weg. Belegt in `verify:pv-cube` (14).
+ */
+const POW10: Readonly<Record<number, number>> = Object.freeze({ 0: 1, 1: 10, 2: 100, 3: 1_000, 4: 10_000, 5: 100_000, 6: 1_000_000 });
 export function roundTo(x: number | null | undefined, step: number): number | null {
+  if (x == null || !Number.isFinite(x)) return null;
+  const digits = Math.max(0, Math.round(-Math.log10(step)));
+  const k = Math.round(x / step);
+  const p = POW10[digits];
+  if (p !== undefined && step * p === 1 && Math.abs(k) < 2 ** 52) return k / p + 0;
+  return Number((k * step).toFixed(digits));
+}
+/** Der bisherige Weg, unverändert — nur für die Gleichheitsprüfung in `verify:pv-cube` (14). */
+export function roundToReference(x: number | null | undefined, step: number): number | null {
   if (x == null || !Number.isFinite(x)) return null;
   const digits = Math.max(0, Math.round(-Math.log10(step)));
   return Number((Math.round(x / step) * step).toFixed(digits));
 }
 const r3 = (x: number | null | undefined) => roundTo(x, 0.001);
+
+/**
+ * AP12 (V-FI-20): Quantile einer Verteilung EINMAL rechnen. Eine Rice-Verteilung kostet je Quantil 60
+ * Bisektionsschritte über eine Reihe; dieselbe Verteilung wird für die Ausgabe (p10/p50/p90/q16/q84), die
+ * Altfelder (Median) und die Interpolation der Nachbarschritte (bis zu 10-mal) gefragt. Der Speicher hängt
+ * am Verteilungsobjekt (`WeakMap`): der Motor gibt jede Verteilung neu heraus und ändert sie danach nicht —
+ * dieselbe Zahl, nur einmal gerechnet (`verify:pv-cube` (14) vergleicht jede mit `quantileOf`).
+ */
+const QMEMO = new WeakMap<Dist, Map<number, number>>();
+export function quantileMemo(d: Dist, p: number): number {
+  let m = QMEMO.get(d);
+  if (!m) { m = new Map(); QMEMO.set(d, m); }
+  let v = m.get(p);
+  if (v === undefined) { v = quantileOf(d, p); m.set(p, v); }
+  return v;
+}
 
 // ---------------------------------------------------------------------------
 // Abbildungen
@@ -224,7 +257,7 @@ function membersFor(step: CubeStep, id: VarIdV2, fusionVar: FusionVariable | und
 function fromFused(fv: FusedVariable | null | undefined, id: VarIdV2, step: CubeStep, unc: VarUncertainty | undefined, calib: string[]): VarV2 | null {
   if (!fv) return null;
   const sc = OUTPUT_SCALE[id];
-  const q = (p: number) => quantileOf(fv.dist, p);
+  const q = (p: number) => quantileMemo(fv.dist, p);
   const sigma = (q(0.8413) - q(0.1587)) / 2;
   return {
     p10: roundTo(q(0.1), sc), p50: roundTo(q(0.5), sc), p90: roundTo(q(0.9), sc), mean: roundTo(meanOf(fv.dist), sc),
@@ -344,6 +377,8 @@ export interface OutputExtra {
   nowMs: number;
   terrainSource: PointForecastV2['point']['terrainSource'];
   urban?: Record<string, number | null> | null;
+  /** V-FI-17: z0 am Punkt (WorldCover, log-Mittel im 500-m-Kreis), m — fehlt ⇒ `point.terrain.z0` bleibt `null`. */
+  z0?: number | null;
   fetched?: { files: number | null; bytes: number | null; ms: number | null };
   timing?: { readMs?: number | null; terrainMs?: number | null; decodeMs?: number | null; totalMs?: number | null };
 }
@@ -364,7 +399,7 @@ export function toPointForecastV2(r: CubeFusionResult, extra: OutputExtra): Poin
       lat: r.point.lat, lon: r.point.lon, hTrue: r.point.hTrue,
       terrain: t ? {
         tpi500: roundTo(t.tpi500M, 0.1), tpi2000: roundTo(t.tpi2000M, 0.1), svf: r3(t.svf), slope: roundTo(t.slopeDeg, 0.1), aspect: roundTo(t.aspectDeg, 1),
-        sinkDepth: roundTo(t.sinkDepthM, 1), z0: null, imperv: roundTo(extra.urban?.imperv, 0.1), d0: roundTo(extra.urban?.d0, 0.1),
+        sinkDepth: roundTo(t.sinkDepthM, 1), z0: roundTo(extra.z0, 0.00001), imperv: roundTo(extra.urban?.imperv, 0.1), d0: roundTo(extra.urban?.d0, 0.1),
       } : null,
       terrainSource: extra.terrainSource,
     },

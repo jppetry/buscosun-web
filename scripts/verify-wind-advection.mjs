@@ -20,10 +20,13 @@
  * Diagnose + Herleitung: audit/wind-partikel-grib-treue.md
  */
 
+import { readFileSync } from 'node:fs';
 import {
   advectionStepScale,
   screenTempoGain,
   screenSpeedPxPerSec,
+  zoomInThinFraction,
+  ZOOM_IN_THIN_FLOOR,
   deadBandStep,
   positionQuantum,
   EARTH_RADIUS_M,
@@ -255,6 +258,47 @@ console.log('── T7  Regressionswächter: die ALTE Formel war nachweislich fa
   near('T7.2 Altstand: 45°-Nordost erschien unter atan(0,5)', angOld, 26.565, 0.05, '°');
   const nNew = modelScreenStep(speed, speed, lat, 10, z, PROD);
   near('T7.3 Neu: 45°-Nordost erscheint unter 45°', Math.abs(Math.atan2(-nNew.y, nNew.x)) / DEG, 45, 0.02, '°');
+}
+
+console.log('── T8  HZ1: Ausdünnung beim Reinzoomen (audit/windpartikel-hochzoom.md) ──');
+{
+  // Die Werte der Wetterkarte stehen als Literale in MapView — hier gelesen,
+  // nicht abgeschrieben, damit der Wächter der echten Einstellung folgt.
+  const src = readFileSync(new URL('../src/MapView.tsx', import.meta.url), 'utf8');
+  const num = (key) => { const m = src.match(new RegExp(`\\b${key}:\\s*([0-9.]+)`)); return m ? Number(m[1]) : NaN; };
+  const cfg = {
+    thinExp: num('zoomInThinExp'), thinFrom: num('zoomInThinFrom'),
+    tempoExp: num('screenTempoZoomExp'), refZoom: num('speedRefZoom'), pxPerMs: num('speedPxPerMs'),
+  };
+  check('T8.0 MapView setzt zoomInThinExp/zoomInThinFrom/screenTempoZoomExp', Object.values(cfg).every(Number.isFinite), JSON.stringify(cfg));
+
+  // Altverhalten: exp 0 lässt JEDE Zoomstufe exakt unverändert.
+  let altOk = true;
+  for (let z = 0; z <= 22; z += 0.25) if (zoomInThinFraction(z, 7, 0) !== 1) altOk = false;
+  check('T8.1 exp 0 ⇒ Faktor exakt 1 auf z0–z22 (Rule-2-Fallback)', altOk);
+  // Unterhalb der Schwelle unverändert, darüber exakt 2^−exp je Stufe.
+  let belowOk = true;
+  for (let z = 0; z <= cfg.thinFrom; z += 0.25) if (zoomInThinFraction(z, cfg.thinFrom, cfg.thinExp) !== 1) belowOk = false;
+  check(`T8.2 bis z${cfg.thinFrom} unverändert`, belowOk);
+  near('T8.3 eine Stufe über der Schwelle = 2^−exp', zoomInThinFraction(cfg.thinFrom + 1, cfg.thinFrom, cfg.thinExp), Math.pow(2, -cfg.thinExp), 1e-12);
+  near('T8.4 vier Stufen über der Schwelle = 2^−4·exp', zoomInThinFraction(cfg.thinFrom + 4, cfg.thinFrom, cfg.thinExp), Math.pow(2, -4 * cfg.thinExp), 1e-12);
+  let mono = true, prev = Infinity;
+  for (let z = 0; z <= 22; z += 0.1) { const f = zoomInThinFraction(z, cfg.thinFrom, cfg.thinExp); if (f > prev + 1e-15) mono = false; prev = f; }
+  check('T8.5 monoton fallend über den Zoom', mono);
+  near('T8.6 Untergrenze greift bei extremem Zoom', zoomInThinFraction(22, cfg.thinFrom, cfg.thinExp), ZOOM_IN_THIN_FLOOR, 1e-12);
+
+  // Kern der Phase: Schweif-„Tinte" ∝ gezeichnete Zahl × Schweiflänge, und die
+  // Schweiflänge ∝ A(z) (wanduhr-normierte Spur). Oberhalb der Schwelle darf sie
+  // mit der ECHTEN Einstellung nicht mehr wachsen, bis die Untergrenze greift.
+  const tempo = { speedPxPerMs: cfg.pxPerMs, speedFactor: 1, speedRefZoom: cfg.refZoom, screenTempoZoomExp: cfg.tempoExp };
+  const ink = (z, exp) => zoomInThinFraction(z, cfg.thinFrom, exp) * screenTempoGain(z, tempo);
+  const floorZoom = cfg.thinFrom + Math.log2(1 / ZOOM_IN_THIN_FLOOR) / cfg.thinExp;
+  let worst = 0;
+  for (let z = cfg.thinFrom; z <= floorZoom; z += 0.1) worst = Math.max(worst, ink(z, cfg.thinExp) / ink(cfg.thinFrom, cfg.thinExp));
+  check(`T8.7 Schweif-Tinte wächst oberhalb z${cfg.thinFrom} nicht (bis z${floorZoom.toFixed(1)})`, worst <= 1 + 1e-12, `max. Faktor ${worst.toFixed(3)}`);
+  // Gegenprobe: OHNE Ausdünnung muss dieselbe Prüfung anschlagen, sonst misst sie nichts.
+  const altGrowth = ink(13, 0) / ink(cfg.thinFrom, 0);
+  check('T8.8 Gegenprobe: ohne Ausdünnung wächst die Tinte bis z13', altGrowth > 1.5, `Faktor ${altGrowth.toFixed(2)}`);
 }
 
 console.log('');

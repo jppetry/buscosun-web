@@ -386,3 +386,78 @@ Cron klont `main`), das Daten-Repo auch nicht.
 
 - [x] **Entschieden (17.09., 16:35 UTC) und umgesetzt (§9.12.5):** V-FI-25 und V-FI-26 freigegeben (Commit 2),
       E-F-11 ja (DE-Profil für DK/NL/BE/LU), E-F-12 ja mit 250 m statt 1 km. Offen bleibt nur der Push.
+
+## 17. Cube-Pfad: Mobil-Härtung (AP12) und Punkt-Panel hinter `?pf=cube` (AP11), 2026-09-18
+
+Beleg: `audit/fusion-implementierung.md` §9.14 (Diagnose, Umsetzung, Vorher/Nachher am selben Tag:
+`latency/2026-09-18-before.json` gegen `latency/2026-09-18-after.json`). Alles liegt uncommitted in `buscosun-web`
+(nur `src/point/client/*`, `src/pointForecast/{cubeSource,pointForecast}.ts`, `fusion/output.ts`, Harnisch, Verifier);
+Daten- und Archiv-Repo unberührt. Der Live-Pfad ist unverändert (`verify:pv-fusion` 227/227), der Cube-Pfad bleibt
+default-off (`pointSource: 'cube'`), das App-Bundle unverändert (eagerJs 107,9).
+
+- [x] **Entscheidung 1 — welches Maß zählt das §6-Gate auf 4G?** — *entschieden 18.09.: die erste Darstellung (Gate AP12 grün).* Gemessen (Mobil-4G, 10 Orte, p50 / p95):
+      **erste Darstellung** (t1 + Station, 0–47 h — E-F-3 „t1 zuerst") **1 812 / 2 176 ms — grün**;
+      **ganzes 336-h-Fenster** 2 478 / 2 902 ms — **rot** (vorher 2 518); warm 193 ms (vorher 1 310) — grün.
+      Das Panel fragt heute 24 h an (1 805 / 2 122 ms). Desktop-4G: erste 1 686, ganz 2 296 (vorher 2 258 — t1 zuerst
+      kostet das ganze Fenster eine RTT, V-FI-47). **Empfehlung:** die erste Darstellung zählen (sie ist byte-gleich
+      der Anfang der ganzen Antwort, der Rest folgt ≈ 0,7 s später über `onUpdate`) und das ganze Fenster weiter
+      berichten. Bis zur Entscheidung beginnt Stufe 2 (AP11-Panel) nicht.
+- [ ] **Entscheidung 2 — V-FI-42 (Publisher, S&F):** *(18.09.: später entscheiden)* `scripts/point/cdnSync.mjs` wärmt je Chunk zusätzlich die
+      identity-Variante (ein Abruf `Range: bytes=0-731`; gemessen: danach ist jeder Bereich am Edge HIT). Erst dann
+      lohnt es, `CubeIo.planeRanges` einzuschalten (gemessen erste Darstellung Desktop-4G −263 ms, 3G −700 ms, Mobil
+      −48 ms; ganzes Fenster −77 … −283 ms). Ohne das wärmt nur der erste Nutzer je Edge (MISS 0,3–1,8 s).
+- [ ] **AP11 ansehen (Beleg §9.15):** ohne Schalter ist das Panel pixelgleich (Desktop + Mobil, alle drei Tabs); mit
+      `…/wetterkarte/temperatur/muenchen?startnow=0&pf=cube&pflog=1` erscheint der Tab „Bandbreite" (Bildschirmfotos
+      `audit/fusion-implementierung/ap11/`). `?startnow=0` ist nötig, weil das Panel in der Produktion ausgeblendet ist
+      (V-FI-53, Bestand). Die Voreinstellung bleibt live, bis AP9 das Gate liefert.
+- [ ] **Budget-Anhebung bestätigen:** `totalJs` 1 372 → **1 430 KB** (IST 1 424,1): der Cube-Pfad hat mit AP11 zum ersten
+      Mal einen Verbraucher im App-Bau — `cubeSource` 47,2 KB, `PointForecastBands` 4,9 + 1,6 KB CSS, `decodeWorker`
+      3,9 KB, alles lazy (lädt nur mit `?pf=cube`); eagerJs 107,9 unverändert.
+- [ ] **Commit A + Push von `main`** (Scope `pointForecast`/`point-client`: AP12, AP11, V-FI-21 Kodierer, V-FI-17 z0,
+      V-FI-24 Option), wenn die Entscheidungen stehen. Vorher (Verifier einzeln, nicht parallel zu anderen Sessions):
+
+      ```
+      npm run typecheck
+      npm run verify:point-client       # 136/136
+      npm run verify:pv-cube            # 246/246  (Kosten-Prüfungen (4)/(9)/(11) nur allein laufen lassen)
+      npm run verify:pv-fusion          # 227/227 ohne Commit B (229/229 mit)
+      npm run verify:punktarchiv        # 103/103 (unberührt, der Sammler ruft cubeSource/pointForecast)
+      npm run build && npm run budget   # 241/241, eagerJs 107,9, totalJs 1 427,6 / 1 430
+      ```
+
+      Dateien für A: `src/point/client/{store,cache,readPoint,decodePool,decodeWorker}.ts`,
+      `src/point/client/{chunkRanges,z0Point}.ts` (neu), `src/pointForecast/{cubeSource,pointForecast}.ts`,
+      `src/pointForecast/fusion/output.ts`, `src/pointForecast/fusion/v2codec.ts` (neu), `src/pointForecast/PointForecastPanel.tsx`,
+      `src/pointForecast/{PointForecastBands.tsx,pointForecastBands.css,pfFlags.ts}` (neu), `budget.json`,
+      `scripts/{verify-point-client,verify-pv-cube,verify-pv-latency}.mjs`, `scripts/pv-latency/lab.ts`,
+      `scripts/lib/cdpBrowser.mjs`, `audit/fusion-implementierung.md` (§9.14–§9.16), `audit/fusion-implementierung/{ap11,v2codec}/`,
+      `audit/fusion-implementierung/latency/2026-09-18*.json`, `CLAUDE.md` (nur die eigenen Zeilen), dieses §17.
+      ⚠ Im Baum liegen gleichzeitig Änderungen zweier anderer Sessions (AP9: `scripts/punktarchiv/**`, `prompt.md`; HZ1:
+      `src/wind/*`, `src/MapView.tsx`, `scripts/verify-wind-advection.mjs`) — nur die eigenen Dateien stagen.
+- [ ] **Commit B (V-FI-11, ändert das Live-Produkt — Jans Freigabe):** `src/sources/brightSkyCurrent.ts` +
+      `scripts/verify-pv-fusion.mjs` (die zwei neuen Prüfungen V-FI-24 und V-FI-11). BrightSky füllt fehlende Messgrößen einer
+      Station aus Nachbarstationen; der Leser schrieb sie der angefragten Station zu (Zugspitze +0 h 17,2 °C mit der
+      Garmischer Temperatur; um München 14 von 20 Antworten mit geborgten Größen). Nach dem Fix gehört jeder Wert seiner
+      Station: Zugspitze +0 h 2,8 °C; München: Lapse 6,73 → 6,50 K/km, T +0 h −0,3 K, Wind +0,5 m/s (Tagesmessung). Wirkt auf
+      den Live-Punktpfad UND die Rasterfusion der Karte (V-FI-61: Alpen-Temperatur im Fusionsmodus einmal ansehen).
+      Nebenwirkung benannt: unter den 6 nächsten Stationen stehen jetzt Teil-Punkte (V-FI-60) — um München 3 statt 6
+      Temperaturen. Freigeben (Push nach A) oder zurückhalten (dann nur A pushen; `verify:pv-fusion` bleibt 227/227).
+- [ ] **Real-Device (vor jeder Default-Umstellung, AP11):** auf einem echten Android-Gerät
+      `…/wetterkarte/temperatur/muenchen?startnow=0&pf=cube&pflog=1` öffnen, mit DevTools-Trace (Remote Debugging) —
+      die Rechnung läuft heute ≈ 300 ms am Stück im Hauptthread (V-FI-50), headless-shell meldet keine Long Tasks.
+      Gleich mitsehen: Wischen des Sheets, Tab „Bandbreite", eine Stunde aufklappen, `pflog`-Zeiten notieren.
+
+**Befunde V-FI-21/17/24/11 (Stufen 3–6, Beleg §9.16):**
+
+- [ ] **Entscheidung 3 — V-FI-55 (mit AP9, E-U-13 Archivgröße):** der Cube-Pfad kompakt im Archiv (`fusion/v2codec.ts`,
+      Rundweg exakt bis auf Verteilungs-/Ankerzahlen ≤ ½ Schritt) kostet je Slot bei 405 Punkten **+13,5 MiB stündlich
+      (+75 % auf ≈ 18 MiB)** oder **+6,6 MiB nur native Schritte (+37 %)** — ≈ +4,8 bzw. +2,4 GB/Jahr. v2 als JSON wären 46 MiB.
+      Frage an Jan: welche Form legt der Sammler ab?
+- [ ] **Entscheidung 4 — V-FI-17 (z0-Näherung, set):** die zweistufige Windkorrektur des Cube-Pfads rechnet jetzt mit
+      z0 am Punkt (WorldCover, 500-m-Kreis) und — mangels GRIB-z0 im Cube — mit einer z0-Näherung der Modellzelle aus
+      derselben Karte (log-Mittel über die Zellweite der Stufe). Aktiv nur hinter `?pf=cube` (`defaultCubeIo`); der
+      AP9-Sammler rechnet ohne. Gutheißen, oder erst mit GRIB-z0 im Cube (V-FI-58, Producer/Schema = S&F)?
+- [ ] **V-FI-24 an die AP9-Session übergeben (nicht von dieser Session geändert):** `scripts/punktarchiv/collect.mjs`
+      Zeile 461, im Aufruf `getPointForecast({ … })` **`elevationM: p.elev,`** ergänzen — dann rechnet der Live-Pfad
+      an den 31 Punkten mit DEM − Station > 50 m in Stationshöhe. Das ändert die B5-Grundlinie an diesen Punkten ⇒ im
+      Slot benennen (Hinweistext Zeile 451, `codeHash`).

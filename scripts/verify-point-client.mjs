@@ -458,19 +458,42 @@ let stationManifest;
     add('(8) Textsonde am Bundle — uebersprungen, kein `dist/assets` (erst nach `npm run build`)', true, 'uebersprungen');
   } else {
     const js = readdirSync(dist).filter((f) => f.endsWith('.js'));
+    // AP11 (Phase FI): seit das Punkt-Panel den Cube-Pfad hinter `?pf=cube` lädt, GIBT es einen Verbraucher — die Regel
+    // heißt deshalb nicht mehr „in keinem Chunk", sondern „nur in den Lazy-Chunks, die das Panel per dynamischem Import
+    // holt" (cubeSource, PointForecastBands, der Dekodier-Worker). Nie im Start-Chunk (alles, was index.html lädt) und
+    // nie im MapView-Chunk, den jeder Kartenbesuch lädt. Gegenprobe: im Cube-Chunk MÜSSEN die Marken stehen.
+    const html = readFileSync(join(ROOT, 'dist/index.html'), 'utf8');
+    const eager = new Set([...html.matchAll(/(?:src|href)="\/?assets\/([^"]+\.js)"/g)].map((m) => m[1]));
+    const lazyOk = (f) => /^(cubeSource|PointForecastBands|decodeWorker)-/.test(f);
+    const needles = ['planPointSources', 'readCubePoint', 'nowcastSlotStamps', 'stationMaxDElevM',
+      'readHmodelPoint', 'belowGroundHPa', 'derived-gh-sp',
+      // AP1: der parallele Leser, der Cache und der Dekodier-Pool
+      'readPointBundle', 'cachedStore', 'decodeChunkPooled', 'loadTerrainAtPoint'];
     const hits = [];
     for (const f of js) {
+      if (lazyOk(f)) continue;
       const t = readFileSync(join(dist, f), 'utf8');
-      // PD-E hat zwei Signaturen dazugelegt: den Hoehen-Leser und die Druckflaechen.
-      for (const needle of ['planPointSources', 'readCubePoint', 'nowcastSlotStamps', 'stationMaxDElevM',
-        'readHmodelPoint', 'belowGroundHPa', 'derived-gh-sp',
-        // AP1: der parallele Leser, der Cache und der Dekodier-Pool duerfen ebenso wenig im App-Bundle stehen.
-        'readPointBundle', 'cachedStore', 'decodeChunkPooled', 'loadTerrainAtPoint']) {
-        if (t.includes(needle)) hits.push(`${f}:${needle}`);
-      }
+      for (const needle of needles) if (t.includes(needle)) hits.push(`${f}:${needle}`);
     }
-    add('(8) kein Vorstufen-Modul steht im Bundle (kein Verbraucher ist verdrahtet)',
-      hits.length === 0, hits.join(' ') || `${js.length} Chunks geprueft`);
+    const cubeChunk = js.find((f) => /^cubeSource-/.test(f));
+    const cubeText = cubeChunk ? readFileSync(join(dist, cubeChunk), 'utf8') : '';
+    add('(8) Punkt-Module stehen nur im Lazy-Chunk des Cube-Pfads (AP11: Verbraucher hinter ?pf=cube) — nicht im Start-Chunk, nicht im MapView-Chunk; Gegenprobe: im Cube-Chunk stehen sie',
+      hits.length === 0 && eager.size > 0 && !!cubeChunk && !eager.has(cubeChunk) && ['stationMaxDElevM', 'belowGroundHPa'].every((n) => cubeText.includes(n)),
+      hits.join(' ') || `${js.length} Chunks geprueft, Start-Chunks ${[...eager].join(',')}, Cube-Chunk ${cubeChunk ?? 'fehlt'}`);
+    // AP12: die neuen Wege (Ebenen-Bereiche, progressive Ausgabe, Index-SWR) — Textmarken, die eine Minifizierung überleben.
+    const marks12 = ['chunkRanges:', 'Ebenen-Bereiche gescheitert', 'SWR-Kopie', 'erste Darstellung aus', 'Messung folgt (progressiv'];
+    const hits12 = [];
+    for (const f of js) {
+      if (lazyOk(f)) continue;
+      const t = readFileSync(join(dist, f), 'utf8');
+      for (const needle of marks12) if (t.includes(needle)) hits12.push(`${f}:${needle}`);
+    }
+    // Gegenprobe auf das eigene Muster: jede Marke steht wirklich im Quelltext — sonst wäre ihre Abwesenheit im Bundle keine Aussage.
+    const srcText = ['src/point/client/chunkRanges.ts', 'src/point/client/readPoint.ts', 'src/pointForecast/cubeSource.ts'].map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n');
+    const missingInSrc = marks12.filter((n) => !srcText.includes(n));
+    add('(8) AP12: Ebenen-Bereiche, progressive Ausgabe und Index-SWR stehen nur im Lazy-Chunk des Cube-Pfads (nicht im Start-Chunk, nicht im MapView-Chunk); jede Marke steht im Quelltext und im Cube-Chunk',
+      hits12.length === 0 && missingInSrc.length === 0 && marks12.every((n) => cubeText.includes(n)),
+      (hits12.join(' ') || `${js.length} Chunks geprueft`) + (missingInSrc.length ? ` · fehlt im Quelltext: ${missingInSrc.join(', ')}` : ''));
   }
 }
 
@@ -956,6 +979,164 @@ let stationManifest;
     add('(10) Gelaende: ohne Ergebnis-Cache kommen die KACHELN aus dem Cache (0 Abrufe), das Ergebnis ist dasselbe',
       rp3.fromCache === false && peak.count() === before && rp3.tiles.fromCache === nNear + nFar && rp3.elevationM === rp.elevationM);
   }
+
+  // ── (10k) AP12, V-FI-40: Frist bis zur Antwort, Stillstand im Körper, Hedge nur bei langsamer Antwort ─
+  // Fast 3G am 18.09.: der t1-Chunk kam in 10 von 10 Läufen nie an — die harte Frist galt für den ganzen
+  // Abruf und der Hedge startete für jeden Körper, der länger als 2,5 s lief. Die Attrappe liefert den
+  // Körper als Strom in Paketen, gebunden an das Abbruch-Signal wie ein echtes fetch.
+  {
+    const { fallbackStore } = await import('../src/point/client/store.ts');
+    const full = cubeFiles.get(chunkP);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    /** headersMs: bis zur Antwort; parts: Pakete; gapMs: Abstand; stallAfter: nach so vielen Paketen kommt nichts mehr. */
+    const mkStream = ({ headersMs = 0, parts = 6, gapMs = 40, stallAfter = null } = {}) => {
+      let calls = 0;
+      const fetchImpl = (url, init) => new Promise((res, rej) => {
+        calls++;
+        const sig = init?.signal;
+        const onAbort = () => rej(Object.assign(new Error('The user aborted a request.'), { name: 'AbortError' }));
+        if (sig?.aborted) return onAbort();
+        sig?.addEventListener('abort', onAbort, { once: true });
+        setTimeout(() => {
+          const size = Math.ceil(full.length / parts);
+          const body = new ReadableStream({
+            async start(c) {
+              sig?.addEventListener('abort', () => { try { c.error(Object.assign(new Error('The user aborted a request.'), { name: 'AbortError' })); } catch { /* schon zu */ } }, { once: true });
+              for (let i = 0; i < parts; i++) {
+                if (sig?.aborted) return;
+                if (stallAfter != null && i >= stallAfter) return;   // Stillstand: der Strom bleibt offen, nichts kommt mehr
+                c.enqueue(full.subarray(i * size, Math.min(full.length, (i + 1) * size)));
+                await sleep(gapMs);
+              }
+              c.close();
+            },
+          });
+          res(new Response(body, { status: 200 }));
+        }, headersMs);
+      });
+      return { fetchImpl, calls: () => calls };
+    };
+    const same = (b) => !!b && b.length === full.length && b.every((v, i) => v === full[i]);
+    // (1) Langsamer, aber laufender Körper: 6 × 40 ms = 240 ms > Frist 100 ms — kommt an (bis 18.09.: abgebrochen).
+    const s1 = mkStream();
+    let heads = 0;
+    const t1a = Date.now();
+    const b1 = await httpStore({ base: POINT_CDN_BASE, fetchImpl: s1.fetchImpl, timeoutMs: 100 }).bytes(chunkP, { onHeaders: () => { heads++; } });
+    add('(10) V-FI-40: ein Körper, der 240 ms läuft, übersteht die Frist von 100 ms (sie gilt bis zur Antwort), byte-gleich, `onHeaders` genau einmal',
+      same(b1) && heads === 1 && Date.now() - t1a >= 200, `${Date.now() - t1a} ms`);
+    // (2) Negativkontrolle: nach zwei Paketen Stillstand ⇒ Abbruch mit benannter Frist, nicht mit dem Browser-Text.
+    const s2 = mkStream({ stallAfter: 2 });
+    let e2 = null; try { await httpStore({ base: POINT_CDN_BASE, fetchImpl: s2.fetchImpl, timeoutMs: 100, retries: 0 }).bytes(chunkP); } catch (e) { e2 = String(e.message); }
+    add('(10) V-FI-40 Negativkontrolle: Stillstand im Körper (100 ms ohne Byte) bricht ab — mit „Frist 100 ms ohne Daten", nicht mit „The user aborted"',
+      e2 != null && /Frist 100 ms ohne Daten/.test(e2), e2 ?? 'kein Fehler');
+    // (3) Keine Antwort binnen der Frist ⇒ wie bisher Abbruch mit „Frist … ms:".
+    const s3 = mkStream({ headersMs: 300 });
+    let e3 = null; try { await httpStore({ base: POINT_CDN_BASE, fetchImpl: s3.fetchImpl, timeoutMs: 100, retries: 0 }).bytes(chunkP); } catch (e) { e3 = String(e.message); }
+    add('(10) V-FI-40: ohne Antwort binnen der Frist bricht der Abruf wie bisher ab („Frist 100 ms:")', e3 != null && /Frist 100 ms: /.test(e3), e3 ?? 'kein Fehler');
+    // (4) Hedge 50 ms, Antwort nach 5 ms, Körper 240 ms ⇒ KEIN Ausweichweg (bis 18.09.: nach 50 ms doppelt geladen).
+    const s4 = mkStream({ headersMs: 5 });
+    const p4 = httpStore({ base: POINT_CDN_BASE, fetchImpl: s4.fetchImpl, timeoutMs: 1000 });
+    const fb4 = fallbackStore(p4, memoryStore(all), { hedgeMs: 50 });
+    const b4 = await fb4.bytes(chunkP);
+    add('(10) V-FI-40: der Hedge startet NICHT, wenn das CDN geantwortet hat und die Bytes laufen (langsame Leitung ≠ toter Origin)',
+      same(b4) && p4.stats.fallbacks === 0 && s4.calls() === 1);
+    // (5) Hedge 50 ms, Antwort erst nach 300 ms ⇒ Ausweichweg wie bisher (V-FI-5).
+    const s5 = mkStream({ headersMs: 300 });
+    const p5 = httpStore({ base: POINT_CDN_BASE, fetchImpl: s5.fetchImpl, timeoutMs: 1000 });
+    const t5 = Date.now();
+    const b5 = await fallbackStore(p5, memoryStore(all), { hedgeMs: 50 }).bytes(chunkP);
+    add('(10) V-FI-40: antwortet das CDN nicht binnen des Hedge, gewinnt der Ausweichweg wie bisher (V-FI-5)', same(b5) && p5.stats.fallbacks === 1 && Date.now() - t5 < 250, `${Date.now() - t5} ms`);
+    // (6) Antwort da, dann Stillstand ⇒ die Stillstandsfrist wirft, `when` nimmt den Ausweichweg.
+    const s6 = mkStream({ headersMs: 5, stallAfter: 1 });
+    const p6 = httpStore({ base: POINT_CDN_BASE, fetchImpl: s6.fetchImpl, timeoutMs: 80, retries: 0 });
+    const b6 = await fallbackStore(p6, memoryStore(all), { hedgeMs: 50 }).bytes(chunkP);
+    add('(10) V-FI-40: bleibt der Körper nach der Antwort stehen, holt der Ausweichweg die Datei (Stillstand zählt wie ein 403)', same(b6) && p6.stats.fallbacks === 1);
+  }
+
+  // ── (10l) AP12 (e): stale-while-revalidate-Kopie des Index — nur der Index, nur mit Frist, nie als Lieferung ─
+  {
+    let clock = 1_000_000;
+    const backend = memoryBackend();
+    const cs = cachedStore(memoryStore(all), backend, { nowMs: () => clock, swrIndex: true });
+    add('(10) SWR: ohne vorherigen Abruf keine Kopie (`peek` ⇒ null)', (await cs.peek('point/index.json', 60_000)) === null);
+    const off = cachedStore(memoryStore(all), memoryBackend(), { nowMs: () => clock });
+    await off.bytes('point/index.json');
+    add('(10) SWR Negativkontrolle: ohne `swrIndex` legt der Cache keine Kopie ab (Verhalten wie bisher)', (await off.peek('point/index.json', 1e9)) === null);
+    const idxBytes = await cs.bytes('point/index.json');
+    const p1 = await cs.peek('point/index.json', 60_000);
+    clock += 30_000;
+    const p2 = await cs.peek('point/index.json', 60_000);
+    clock += 60_000;
+    const p3 = await cs.peek('point/index.json', 60_000);
+    add('(10) SWR: nach dem Abruf liegt eine Kopie (byte-gleich, Alter gemessen), jenseits der Frist nicht mehr',
+      !!p1 && p1.bytes.length === idxBytes.length && p1.bytes.every((v, i) => v === idxBytes[i]) && p2?.ageMs === 30_000 && p3 === null);
+    const filesBefore = cs.stats.files;
+    const again = await cs.bytes('point/index.json');
+    add('(10) SWR: der Index wird trotzdem NIE aus dem Cache geliefert (`bytes` fragt den Store darunter), andere Pfade haben keine Kopie',
+      again !== null && cs.stats.files === filesBefore + 1 && (await cs.peek(chunkP, 1e9)) === null && (await cs.peek('point/stations/catalog.json', 1e9)) === null);
+  }
+}
+
+// ── (10m) AP11: URL-Schalter des Punkt-Panels (`?pf=cube`, `?pflog=1`) — rein, netzfrei ──
+{
+  const { pfSourceFrom, pfLogFrom } = await import('../src/pointForecast/pfFlags.ts');
+  const cubeCases = ['?pf=cube', '?startnow=0&pf=cube&pflog=1', 'pf=cube', '?lat=50.2&lon=10.5&pf=cube'];
+  const liveCases = ['', '?', '?pf=', '?pf=Cube', '?pf=CUBE', '?pf=cube2', '?pf=live', '?pfx=cube', '?startnow=0', '?pf=%20cube'];
+  const badCube = cubeCases.filter((s) => pfSourceFrom(s) !== 'cube');
+  const badLive = liveCases.filter((s) => pfSourceFrom(s) !== 'live');
+  add('(10m) AP11: `?pf=cube` schaltet auf den Cube-Pfad — nur genau dieser Wert; fehlt er oder steht etwas anderes da, bleibt das Panel live',
+    badCube.length === 0 && badLive.length === 0, [...badCube.map((s) => `nicht cube: ${s}`), ...badLive.map((s) => `nicht live: ${s}`)].join(' · ') || `${cubeCases.length} cube, ${liveCases.length} live`);
+  const logOn = ['?pflog=1', '?pf=cube&pflog=1'], logOff = ['', '?pflog=0', '?pflog=true', '?pflog=', '?pf=cube'];
+  add('(10m) AP11: `?pflog=1` schaltet den Zeit-/Herkunftsblock — nur mit dem Wert 1',
+    logOn.every((s) => pfLogFrom(s)) && logOff.every((s) => !pfLogFrom(s)));
+  // Der Live-Zweig des Panels ruft wie vor AP11 — dieselbe Zeile, dieselben Felder (die Pixelgleichheit belegt das Bildschirmfoto,
+  // diese Prüfung hält die Zeile gegen stilles Umschreiben fest); der Cube-Zweig lädt `cubeSource` nur per dynamischem Import.
+  const panel = readFileSync(join(ROOT, 'src/pointForecast/PointForecastPanel.tsx'), 'utf8');
+  const liveCall = 'getPointForecast({ lat, lng, country, hours, signal: abort.signal, includeRadarNowcast: true, sourceMode })';
+  const staticCube = /^import[^;]*['"]\.\/cubeSource['"]/m.test(panel);
+  add('(10m) AP11: Live-Zweig ruft unverändert, Cube-Zweig nur per `import(\'./cubeSource\')` (kein statischer Import im Panel)',
+    panel.includes(liveCall) && panel.includes("import('./cubeSource')") && !staticCube && panel.includes('pfSourceFrom(window.location.search)'));
+}
+
+// ── (10n) V-FI-17: z0 aus WorldCover — reiner Rechenteil an synthetischen Klassenfeldern, Lader-Regeln ohne Netz ──
+{
+  const { z0FromClassField, loadZ0AtPoint, z0CacheKey, Z0_POINT_RADIUS_M } = await import('../src/point/client/z0Point.ts');
+  const { memoryBackend: mb } = await import('../src/point/client/cache.ts');
+  const { M_PER_DEG_LAT: MLAT } = await import('../src/point/terrainPoint.ts');
+  const LAT0 = 48.14, LON0 = 11.58;
+  const distM = (la, lo) => Math.hypot((la - LAT0) * MLAT, (lo - LON0) * 111_320 * Math.cos((LAT0 * Math.PI) / 180));
+  const grass = () => 30;
+  const lakeInGrass = (la, lo) => (distM(la, lo) <= 700 ? 80 : 30);
+  const forestInGrass = (la, lo) => (distM(la, lo) <= 700 ? 10 : 30);
+  const holes = (la, lo) => (distM(la, lo) <= 400 ? null : 30);
+  const g = z0FromClassField(grass, LAT0, LON0);
+  add('(10n) V-FI-17: gleichförmiges Grasland ⇒ z0 am Punkt = z0 jeder Zelle = 0,03 m (log-Mittel einer Konstanten), volle Abdeckung',
+    g.z0True === 0.03 && g.z0Mod.t1 === 0.03 && g.z0Mod.t2 === 0.03 && g.z0Mod.t3 === 0.03 && g.coverage.point === 1 && g.shares[0][0] === 30,
+    JSON.stringify({ z0True: g.z0True, z0Mod: g.z0Mod, coverage: g.coverage }));
+  const w = z0FromClassField(lakeInGrass, LAT0, LON0), f = z0FromClassField(forestInGrass, LAT0, LON0);
+  add(`(10n) See (700 m) in Grasland: am Punkt (Kreis ${Z0_POINT_RADIUS_M} m) Wasser-z0 0,0002 m, die t1-Zelle bleibt nahe Grasland; Wald ebenso mit 0,75 m`,
+    w.z0True === 0.0002 && w.z0Mod.t1 > 0.02 && w.z0Mod.t1 < 0.03 && f.z0True === 0.75 && f.z0Mod.t1 > 0.03 && f.z0Mod.t1 < 0.05 && w.shares[0][0] === 80,
+    `See ${w.z0True}/${w.z0Mod.t1} · Wald ${f.z0True}/${f.z0Mod.t1}`);
+  const h = z0FromClassField(holes, LAT0, LON0);
+  add('(10n) Negativkontrolle: unter 50 % bekannter Pixel im Punktkreis ⇒ z0 am Punkt null (kein Ersatzwert), die Zellen tragen weiter',
+    h.z0True === null && h.coverage.point < 0.5 && h.z0Mod.t1 === 0.03, JSON.stringify(h.coverage));
+  // Lader ohne Netz: 404 ⇒ null; 200 (ganze Datei statt Bereich) ⇒ nie angenommen; nur Cache ⇒ kein Abruf; Treffer ⇒ kein Abruf
+  let calls = 0;
+  const f404 = async () => { calls++; return new Response('nope', { status: 404 }); };
+  const f200 = async () => { calls++; return new Response(new Uint8Array(64), { status: 200 }); };
+  const r404 = await loadZ0AtPoint(LAT0, LON0, { fetchImpl: f404 });
+  const c404 = calls; calls = 0;
+  const r200 = await loadZ0AtPoint(LAT0, LON0, { fetchImpl: f200 });
+  const c200 = calls; calls = 0;
+  const rOnly = await loadZ0AtPoint(LAT0, LON0, { fetchImpl: f404, cacheOnly: true });
+  const cOnly = calls;
+  const be = mb();
+  await be.put(z0CacheKey(LAT0, LON0), { bytes: new TextEncoder().encode(JSON.stringify({ ...g, source: 'test' })), storedAt: Date.now() });
+  calls = 0;
+  const rHit = await loadZ0AtPoint(LAT0, LON0, { fetchImpl: f404, cache: be, cacheOnly: true });
+  add('(10n) Lader: 404 ⇒ null; 200 statt 206 (ganze 8-MB-Datei) wird nie angenommen ⇒ null; nur Cache ohne Eintrag ⇒ null ohne Abruf; Cache-Treffer ⇒ Ergebnis ohne Abruf (`fromCache`)',
+    r404 === null && c404 > 0 && r200 === null && c200 > 0 && rOnly === null && cOnly === 0 && rHit?.z0True === 0.03 && rHit.fetched.fromCache === true && calls === 0,
+    `Abrufe ${c404}/${c200}/${cOnly}/${calls}`);
 }
 
 // --- Ausgabe ----------------------------------------------------------------

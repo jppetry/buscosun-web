@@ -28,6 +28,13 @@ interface CurrentWeatherEntry {
   cloud_cover?: number | null;         // %
   precipitation_10?: number | null;    // mm in last 10 min
   timestamp: string;
+  /** Die Station, deren Messung das ist. */
+  source_id?: number;
+  /**
+   * Größen, die BrightSky aus einer ANDEREN Station füllt, weil der Station der Wert fehlt — z. B. die Zugspitze
+   * (2 956 m) mit der Temperatur von Garmisch-Partenkirchen (719 m, 9 km), gemessen 18.09. 11:30 UTC (V-FI-11).
+   */
+  fallback_source_ids?: Record<string, number>;
 }
 interface SourceEntry {
   id: number;
@@ -59,6 +66,51 @@ async function pMap<T, R>(
   const runners = Array.from({ length: Math.min(limit, items.length) }, () => run());
   await Promise.all(runners);
   return results;
+}
+
+/**
+ * Ein Stationspunkt aus einer `/current_weather`-Antwort — nur die Größen, die `mine(Feld)` dieser Station zuordnet
+ * (V-FI-11: eigene Messung oder, für die Nachbarstation, das, was BrightSky von ihr geborgt hat).
+ */
+function pointFor(w: CurrentWeatherEntry, src: SourceEntry, mine: (field: string) => boolean): ForecastHourPoint {
+  let u: number | null = null;
+  let v: number | null = null;
+  if (w.wind_speed_10 != null && w.wind_direction_10 != null && mine('wind_speed_10') && mine('wind_direction_10')) {
+    // BrightSky returns wind_speed_10 in km/h — convert to m/s
+    const speedMs = w.wind_speed_10 / 3.6;
+    const rad = (w.wind_direction_10 * Math.PI) / 180;
+    u = -speedMs * Math.sin(rad);
+    v = -speedMs * Math.cos(rad);
+  }
+  // DWD-Synop cloud_cover is intentionally NOT used as a map-layer source:
+  // visual comparison against EUMETSAT MSG satellite + ICON-D2 shows the
+  // station feed runs systematically 30-70 percentage-points too pessimistic
+  // (Cirrus haze read as overcast, hour-old SYNOP records that lag the sky).
+  // We keep the value on the station popup (`fetchDwdStationLive`) so users
+  // can still see the raw reading at a specific station, but for the fused
+  // cloud raster we rely on MOSMIX which is satellite-consistent.
+  const cl: number | null = null;
+  const cm: number | null = null;
+  const ch: number | null = null;
+  // precipitation_10 = mm in last 10 minutes → × 6 = mm/h
+  const precipPerHour = w.precipitation_10 != null && mine('precipitation_10') ? w.precipitation_10 * 6 : null;
+  // BrightSky reports gust in km/h, same as wind_speed_10. Convert to m/s.
+  const gustMs = w.wind_gust_speed_10 != null && mine('wind_gust_speed_10') ? w.wind_gust_speed_10 / 3.6 : null;
+  return {
+    temperature: mine('temperature') ? w.temperature ?? null : null,
+    u,
+    v,
+    gust: gustMs,
+    relativeHumidity: mine('relative_humidity') ? w.relative_humidity ?? null : null,
+    cloudLow: cl,
+    cloudMid: cm,
+    cloudHigh: ch,
+    precipitation: precipPerHour,
+    model: 'dwd_obs',
+    lat: src.lat,
+    lng: src.lon,
+    elev: src.height,
+  };
 }
 
 export interface BrightSkyCurrentOptions {
@@ -134,53 +186,29 @@ export async function fetchBrightSkyCurrentGrid(
   );
 
   // Dedupe by source_id → unique stations
+  //
+  // V-FI-11 (2026-09-18): die Station einer Antwort ist `weather.source_id` (nicht einfach die erste Quelle), und
+  // BrightSky füllt Größen, die ihr fehlen, aus Nachbarstationen (`fallback_source_ids`). So ein Wert ist eine
+  // Messung der NACHBARSTATION — er wird ihr zugeschrieben (ihre Lage, ihre Höhe), nie der angefragten. Gemessen:
+  // die Zugspitze (2 956 m) trug die Temperatur von Garmisch-Partenkirchen (719 m) — im Live-Pfad +14 K bei +0 h.
+  // Erst alle eigenen Messungen, dann die geborgten für Stationen, die keine eigene Antwort hatten.
   const stations = new Map<number, ForecastHourPoint>();
+  const borrowed = new Map<number, ForecastHourPoint>();
   for (const r of responses) {
     if (!r?.weather || !r.sources?.length) continue;
     const w = r.weather;
-    const s = r.sources[0];
-    if (stations.has(s.id)) continue;
-
-    let u: number | null = null;
-    let v: number | null = null;
-    if (w.wind_speed_10 != null && w.wind_direction_10 != null) {
-      // BrightSky returns wind_speed_10 in km/h — convert to m/s
-      const speedMs = w.wind_speed_10 / 3.6;
-      const rad = (w.wind_direction_10 * Math.PI) / 180;
-      u = -speedMs * Math.sin(rad);
-      v = -speedMs * Math.cos(rad);
+    const s = (w.source_id != null ? r.sources.find((x) => x.id === w.source_id) : undefined) ?? r.sources[0];
+    const ownerOf = (field: string): number => w.fallback_source_ids?.[field] ?? s.id;
+    if (!stations.has(s.id)) stations.set(s.id, pointFor(w, s, (f) => ownerOf(f) === s.id));
+    const others = new Set(Object.values(w.fallback_source_ids ?? {}).filter((id) => id !== s.id));
+    for (const id of others) {
+      const src = r.sources.find((x) => x.id === id);
+      if (!src || borrowed.has(id)) continue;
+      const p = pointFor(w, src, (f) => ownerOf(f) === id);
+      if (p.temperature != null || p.relativeHumidity != null || p.u != null || p.gust != null || p.precipitation != null) borrowed.set(id, p);
     }
-    // DWD-Synop cloud_cover is intentionally NOT used as a map-layer source:
-    // visual comparison against EUMETSAT MSG satellite + ICON-D2 shows the
-    // station feed runs systematically 30-70 percentage-points too pessimistic
-    // (Cirrus haze read as overcast, hour-old SYNOP records that lag the sky).
-    // We keep the value on the station popup (`fetchDwdStationLive`) so users
-    // can still see the raw reading at a specific station, but for the fused
-    // cloud raster we rely on MOSMIX which is satellite-consistent.
-    const cl: number | null = null;
-    const cm: number | null = null;
-    const ch: number | null = null;
-    // precipitation_10 = mm in last 10 minutes → × 6 = mm/h
-    const precipPerHour = w.precipitation_10 != null ? w.precipitation_10 * 6 : null;
-    // BrightSky reports gust in km/h, same as wind_speed_10. Convert to m/s.
-    const gustMs = w.wind_gust_speed_10 != null ? w.wind_gust_speed_10 / 3.6 : null;
-
-    stations.set(s.id, {
-      temperature: w.temperature ?? null,
-      u,
-      v,
-      gust: gustMs,
-      relativeHumidity: w.relative_humidity ?? null,
-      cloudLow: cl,
-      cloudMid: cm,
-      cloudHigh: ch,
-      precipitation: precipPerHour,
-      model: 'dwd_obs',
-      lat: s.lat,
-      lng: s.lon,
-      elev: s.height,
-    });
   }
+  for (const [id, p] of borrowed) if (!stations.has(id)) stations.set(id, p);
 
   const uniquePoints = Array.from(stations.values());
   // Wrap as a 1×N grid; cols/rows are nominal here, the engine ignores them

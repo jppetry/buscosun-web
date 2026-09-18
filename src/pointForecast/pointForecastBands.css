@@ -1,0 +1,98 @@
+/* PointForecastBands — buscosun Fusion (Cube) im Punkt-Panel, nur hinter ?pf=cube (Phase FI, AP11).
+   Command-Deck: hell, Sand/Ink, die Tokens des Punkt-Panels; eigener Namensraum pfb-*, geladen nur mit dem Lazy-Chunk.
+   Desktop kompakt (Maus), mobil ≤ 767 px Zeilen und Schalter ≥ 44 px (Touch), Safe-Area unten. */
+
+.pfb-root { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 4px; font-variant-numeric: tabular-nums; color: var(--ink-900, #2C2A26); }
+.pfb-empty { font-size: 12px; color: var(--stone-500, #8B7355); margin: 6px 0; }
+
+.pfb-head { display: flex; flex-wrap: wrap; gap: 5px; }
+.pfb-badge {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; line-height: 1;
+  padding: 5px 7px; border-radius: 6px; border: 1px solid var(--sand-200, #E0D6BE);
+  background: var(--cream-50, #FAF6EA); color: var(--stone-600, #5C5447);
+}
+.pfb-badge-set { border-color: #E7C9A6; background: #FBF1E4; color: var(--terracotta-700, #A85E2E); cursor: help; }
+.pfb-badge-wait { border-color: #D6E1C9; background: #F1F5EC; color: var(--sage-600, #7A9466); }
+
+.pfb-vars { display: flex; flex-wrap: wrap; gap: 4px; }
+.pfb-vars button {
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer; font: inherit;
+  font-size: 11.5px; font-weight: 600; color: var(--stone-500, #8B7355); border-radius: 7px; padding: 5px 8px;
+}
+.pfb-vars button.is-active { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
+.pfb-vars button:focus-visible, .pfb-row:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
+
+.pfb-axis { display: flex; justify-content: space-between; align-items: baseline; font-size: 10.5px; color: var(--stone-500, #8B7355); padding: 0 34px 0 44px; }
+.pfb-axis-mid { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone-400, #A89A82); }
+
+.pfb-list { list-style: none; margin: 0; padding: 0; }
+.pfb-item { margin: 0; }
+.pfb-day {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--stone-500, #8B7355); padding: 8px 0 3px; border-bottom: 1px solid var(--sand-200, #E0D6BE);
+}
+.pfb-tail-rule {
+  margin: 8px 0 4px; padding: 7px 9px; border-radius: 8px; font-size: 11.5px; line-height: 1.35;
+  background: #F4EFE3; border: 1px dashed var(--sand-300, #D9CEB0); color: var(--stone-600, #5C5447);
+}
+
+.pfb-row {
+  display: grid; grid-template-columns: 38px 1fr 40px 26px; align-items: center; column-gap: 6px; row-gap: 2px;
+  width: 100%; min-height: 26px; padding: 3px 4px 3px 2px; border: 0; border-bottom: 1px solid var(--sand-100, #EDE6D3);
+  background: transparent; font: inherit; font-size: 12px; text-align: left; cursor: pointer; color: inherit;
+}
+.pfb-row:hover { background: var(--cream-50, #FAF6EA); }
+.pfb-row.is-open { background: var(--cream-50, #FAF6EA); }
+.pfb-time { color: var(--stone-600, #5C5447); }
+.pfb-val { text-align: right; font-weight: 700; }
+.pfb-conf { text-align: right; font-size: 10.5px; color: var(--stone-500, #8B7355); }
+.pfb-band { position: relative; height: 12px; border-radius: 3px; background: var(--sand-100, #EDE6D3); overflow: hidden; }
+.pfb-band-range { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; background: var(--terracotta-500, #C97B47); opacity: 0.45; }
+.pfb-band-mid { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink-900, #2C2A26); }
+.pfb-row.is-interp .pfb-band-range { background: transparent; border: 1px dashed var(--terracotta-700, #A85E2E); opacity: 0.8; }
+.pfb-row.is-clima { color: var(--stone-500, #8B7355); }
+.pfb-row.is-clima .pfb-band-range { background: var(--stone-400, #A89A82); opacity: 0.35; }
+.pfb-row.is-clima .pfb-band-mid { background: var(--stone-500, #8B7355); }
+
+.pfb-flags { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 3px; }
+.pfb-flag {
+  font-size: 9.5px; line-height: 1; padding: 2px 5px; border-radius: 4px;
+  background: var(--sand-100, #EDE6D3); color: var(--stone-600, #5C5447);
+}
+.pfb-flag-nowcastFallbackModel, .pfb-flag-stale, .pfb-flag-extrapolatedBelowModel, .pfb-flag-chunkBorderTruncated { background: #FBF1E4; color: var(--terracotta-700, #A85E2E); }
+.pfb-flag-anchored { background: #F1F5EC; color: var(--sage-600, #7A9466); }
+
+.pfb-detail { padding: 6px 0 10px 44px; font-size: 11.5px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.pfb-kv { margin: 0 0 6px; display: grid; gap: 3px; }
+.pfb-kv > div { display: grid; grid-template-columns: 112px 1fr; gap: 6px; }
+.pfb-kv dt { color: var(--stone-500, #8B7355); }
+.pfb-kv dd { margin: 0; overflow-wrap: anywhere; }
+.pfb-members { width: 100%; border-collapse: collapse; margin: 4px 0 6px; font-size: 11px; }
+.pfb-members th { text-align: left; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone-400, #A89A82); font-weight: 500; padding: 2px 4px 2px 0; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.pfb-members td { padding: 3px 4px 3px 0; border-bottom: 1px solid var(--sand-100, #EDE6D3); vertical-align: top; }
+.pfb-flaglist { margin: 4px 0 0; padding-left: 16px; color: var(--stone-600, #5C5447); line-height: 1.4; }
+
+.pfb-prov { border-top: 1px solid var(--sand-200, #E0D6BE); padding-top: 6px; font-size: 11.5px; }
+.pfb-prov summary { cursor: pointer; font-weight: 700; font-size: 12px; padding: 4px 0; }
+.pfb-prov-body { padding: 6px 0 2px; }
+.pfb-calib { margin: 4px 0 0; padding-left: 16px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.pfb-calib li.is-set::marker { color: var(--terracotta-500, #C97B47); }
+
+.pfb-legend { border-top: 1px solid var(--sand-200, #E0D6BE); padding-top: 6px; }
+.pfb-legend p { margin: 3px 0 0; font-size: 11px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+
+.pfb-log { border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 8px 10px; background: #fff; font-size: 11px; }
+.pfb-log > .eyebrow { display: block; margin-bottom: 4px; }
+.pfb-log ul { margin: 3px 0; padding-left: 16px; line-height: 1.35; }
+.pfb-log summary { cursor: pointer; font-weight: 600; padding: 3px 0; }
+
+/* Mobil (≤ 767 px, Touch): Zeilen und Schalter mindestens 44 px, Platz für die Safe-Area unten. */
+@media (max-width: 767px) {
+  .pfb-vars button { min-height: 44px; padding: 8px 12px; font-size: 12.5px; }
+  .pfb-row { min-height: 44px; padding: 6px 4px 6px 2px; font-size: 13px; grid-template-columns: 42px 1fr 44px 28px; }
+  .pfb-axis { padding: 0 36px 0 48px; }
+  .pfb-detail { padding-left: 8px; }
+  .pfb-kv > div { grid-template-columns: 100px 1fr; }
+  .pfb-prov summary, .pfb-log summary { min-height: 44px; display: flex; align-items: center; }
+  .pfb-root { padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+}

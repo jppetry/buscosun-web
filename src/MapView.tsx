@@ -1344,6 +1344,14 @@ export default function MapView({
       // dem Referenzzoom (z4 ≈ 0,68×) und lässt es beim Reinzoomen leicht
       // anziehen; die Richtung/Proportionalität zu |V| bleibt unangetastet.
       screenTempoZoomExp: 0.35,
+      // HZ1 (2026-09-18, Jans Befund „bei hohem Zoom zu viele Windpartikel"):
+      // exp 0,35 macht die Schweife beim Reinzoomen länger, die Zahl blieb
+      // gleich — die bedeckte Fläche stieg von 4,7 % (z6) auf 47 % (z13), aus
+      // Strömungslinien wurde ein Sprenkel-Teppich. Ab z7 fällt die gezeichnete
+      // Zahl je Zoomstufe um 2^−0,75; darunter bleibt alles wie bisher. Tempo
+      // und GRIB-Treue unberührt. Messreihe: audit/windpartikel-hochzoom.md.
+      // Fallback (Rule 2): zoomInThinExp 0 = Altverhalten.
+      zoomInThinExp: 0.75, zoomInThinFrom: 7,
       // Touch/coarse-pointer (mobile/tablet): skip the particle passes during
       // active pan/zoom so the basemap + heatmap stay smooth; particles resume
       // on moveend. Desktop (fine pointer) keeps full fidelity.

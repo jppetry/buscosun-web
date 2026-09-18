@@ -29,11 +29,12 @@
  */
 
 import {
-  TIERS, TIER_BY_ID, type TierId, cellOf, chunkOf, stationBundlePath, HMODEL_PRODUCT, HMODEL_VERSION,
+  TIERS, TIER_BY_ID, type TierId, cellOf, chunkOf, stationBundlePath, HMODEL_PRODUCT, HMODEL_VERSION, CUBE_PLANES, CUBE_SCHEMA,
 } from '../cubeFormat';
 import type { PointRunManifest } from '../manifest';
 import type { NowcastSourceId } from '../nowcastFormat';
 import { memoStore, withRawFallback, type PointStore, type StoreStats } from './store';
+import { POINT_INDEX_PATH as POINT_INDEX_JSON } from '../cubeFormat';
 import {
   cubeAddress, cubeSeriesFrom, loadPointIndex, loadRunManifestFrom, manifestStore, planesForChunkHeader,
   type CubePointSeries, type ManifestOrigin, type PointIndex,
@@ -47,6 +48,7 @@ import { readStaticProductPoint, readUrbanPoint, type StaticPoint } from './stat
 import { judgeStation, planPointSources, SELECTION, type PointPlan } from './resolve';
 import { loadTerrainAtPoint, type TerrainOptions, type TerrainPointResult } from './terrain';
 import { decodeChunkPooled, type ChunkDecoder } from './decodePool';
+import { readChunkRanges, type RangedChunk } from './chunkRanges';
 
 const H = 3_600_000;
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -99,6 +101,35 @@ export interface ReadPointOptions {
   lateDeadlineMs?: number;
   /** Mindestwartezeit nach dem Kern, wenn `lateDeadlineMs` gesetzt ist (Voreinstellung `LATE_GRACE_MS`). */
   lateGraceMs?: number;
+  /**
+   * AP12 (V-FI-22): das Bündel kommt, SOBALD DER KERN DA IST — Nowcast und statische Produkte, die dann
+   * noch laufen, werden nicht abgewartet, sondern stehen als Versprechen in `bundle.late` (der Aufrufer
+   * rechnet mit ihnen nach, wenn sie kommen). Ersetzt `lateDeadlineMs`/`lateGraceMs`. Ohne Option
+   * unverändert.
+   */
+  progressive?: boolean;
+  /**
+   * AP12 (c): nur diese Ebenen der Cube-Chunks über Byte-Bereiche holen (Verzeichnis vorab, dann die Blöcke),
+   * den Rest im Hintergrund nachladen und die geprüfte ganze Datei in den Cache legen (`completing`). Liegt
+   * die Datei schon im Cache oder ignoriert der Server den Range, gilt die ganze Datei. Jeder Fehler auf
+   * diesem Weg ⇒ ganze Datei (benannt). Voreinstellung aus: der erste Bereich je Chunk und Edge ist heute ein
+   * MISS der identity-Variante (§9.14.1).
+   */
+  planeRanges?: readonly string[];
+  /**
+   * AP12 (E-F-3 (a), Jan 16.09.: „progressives Laden, t1 zuerst … Pflicht in AP12"): wird EINMAL mit einem
+   * Bündel der ersten Stufe gerufen (Fenster bis zu ihrem letzten Schritt, dazu Station, Gelände und was vom
+   * Radar schon da ist), sobald diese da sind — vor dem Kern. Mit der Option beginnen die übrigen Stufen erst
+   * nach der ersten (sonst käme die erste Stufe als letzte an). Trägt die erste Stufe schon das ganze Fenster,
+   * wird nicht gerufen.
+   */
+  onFirst?: (b: PointBundle) => void;
+  /**
+   * AP12 (e): stale-while-revalidate für den Index — liegt eine Kopie, die jünger ist als diese Frist, wird mit ihr
+   * gelesen (keine RTT vor den Chunks); der Index wird trotzdem geholt, und `late.index.changed` sagt, ob er andere
+   * Läufe nennt (dann liest der Aufrufer neu). Der Warm-Fall auf Mobil-4G begann mit ≈ 190–650 ms Index-RTT (§9.14.1).
+   */
+  indexSwrMs?: number;
   onProgress?: (e: { stage: ProgressStage; ms: number }) => void;
 }
 
@@ -130,6 +161,19 @@ export interface PointBundle {
   urban: StaticPoint | null;
   terrain: TerrainPointResult | null;
   plan: PointPlan | null;
+  /**
+   * AP12: Produkte, die zur Frist (bzw. im progressiven Modus zum Kern) noch liefen — ihr Abruf läuft
+   * weiter, das Versprechen liefert das Ergebnis nach. `skip` ist genau der Eintrag in `skips`, der
+   * sie als fehlend benennt (ein Aufrufer, der nachrechnet, nimmt ihn heraus). Fehlt, wenn alles da war.
+   */
+  late?: {
+    nowcast?: { result: Promise<NowcastPointSeries[]>; skip: string };
+    static?: { result: Promise<{ hmodel: Partial<Record<TierId, StaticPoint | null>>; urban: StaticPoint | null }>; skip: string };
+    /** AP12 (e): der Index kam aus der SWR-Kopie; `changed` = die Nachprüfung nennt andere Läufe (Stufen oder Stationen). */
+    index?: { ageMs: number; changed: Promise<boolean> };
+  };
+  /** AP12 (c): die Vervollständigung der über Bereiche gelesenen Chunks (Rest holen, CRC, Cache) — fehlt ohne `planeRanges`. */
+  completing?: Promise<Array<{ tier: TierId; ok: boolean; bytes: number; why?: string }>>;
   /** Produkte, die es an diesem Punkt/Fenster NICHT gab — mit Grund. */
   skips: string[];
   /** Provenienz-Hinweise (Werte da, Herkunft unvollständig). */
@@ -221,12 +265,25 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     : Promise.resolve(null);
 
   // ── Index ───────────────────────────────────────────────────────────────
-  const index = await guard('index', loadPointIndex(store));
+  // AP12 (e): mit `indexSwrMs` zuerst die SWR-Kopie (keine RTT), die Nachprüfung läuft nebenher.
+  let swr: { index: PointIndex; ageMs: number } | null = null;
+  if (opts.indexSwrMs && store.peek) {
+    const hit = await store.peek(POINT_INDEX_JSON, opts.indexSwrMs).catch(() => null);
+    if (hit) { try { swr = { index: JSON.parse(new TextDecoder().decode(hit.bytes)) as PointIndex, ageMs: hit.ageMs }; } catch { swr = null; } }
+  }
+  const freshP = guard('index', loadPointIndex(store));
+  const index = swr ? swr.index : await freshP;
   mark('index'); progress('index');
   const base: Omit<PointBundle, 'timing'> & { timing?: PointBundle['timing'] } = {
     input, window: { fromMs, toMs, stepH, nowMs }, index, tiers: [], cube: {}, station: null, stationChoice: null,
     nowcast: [], hmodel: {}, urban: null, terrain: null, plan: null, skips, notes, errors, stats: store.stats,
   };
+  if (swr) {
+    const stale = swr.index;
+    const runsOf = (ix: PointIndex | null) => JSON.stringify([ix?.latestByTier, ix?.stations?.runs?.[0]?.run ?? null]);
+    notes.push(`index: aus der SWR-Kopie (${Math.round(swr.ageMs / 1000)} s alt, Commit ${String(stale.commit).slice(0, 7)}) — Nachprüfung läuft (AP12)`);
+    base.late = { ...(base.late ?? {}), index: { ageMs: swr.ageMs, changed: freshP.then((f) => !!f && runsOf(f) !== runsOf(stale)) } };
+  }
   const finish = (firstMs: number | null, coreMs: number, readMs: number): PointBundle => ({
     ...base,
     timing: { indexMs: doneAt.index ?? null, firstMs, coreMs, readMs, totalMs: Math.round(now() - T0), doneAt, phases },
@@ -245,6 +302,11 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   const firstTier = tiers[0] ?? null;
 
   // ── Cube je Stufe: Chunk ‖ Manifest, Dekodierung sobald der Chunk da ist ─
+  const completions: Array<Promise<{ tier: TierId; ok: boolean; bytes: number; why?: string }>> = [];
+  // AP12 (E-F-3 (a)): die übrigen Stufen starten, sobald die BYTES der ersten da sind — nicht erst nach deren
+  // Dekodierung (die läuft im Worker und braucht die Leitung nicht).
+  let firstBytesIn!: () => void;
+  const firstBytesP = new Promise<void>((r) => { firstBytesIn = r; });
   const readTier = async (tierId: TierId): Promise<CubePointSeries | null> => {
     const a = cubeAddress(index, tierId, lat, lon);
     if (!a.ok) { skips.push(a.reason); return null; }
@@ -253,38 +315,79 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
       loadRunManifestFrom(store, addr.pointer.manifest, index)
         .catch((e) => { errors.push(`cube.${tierId}/manifest: ${errMsg(e)}`); return { manifest: null, from: 'none' as const }; });
     const f0 = now();
-    const bytes = await store.bytes(addr.path, { priority: tierId === firstTier ? 'high' : 'low' });
+    const fo = { priority: tierId === firstTier ? 'high' as const : 'low' as const };
+    let bytes: Uint8Array | null = null;
+    // AP12 (c): nur die Ebenen der Antwort über Bereiche — jeder Fehler ⇒ ganze Datei, benannt.
+    let ranged: RangedChunk | null = null;
+    if (opts.planeRanges && store.range) {
+      try {
+        const rc = await readChunkRanges(store, addr.path, CUBE_PLANES.map((p) => p.id), opts.planeRanges, fo, CUBE_SCHEMA);
+        if (rc === null) { phases[`fetch.${tierId}`] = Math.round(now() - f0); skips.push(`${tierId}: Chunk ${addr.path} nicht im Repo (Aufbewahrung?)`); return null; }
+        bytes = rc.bytes;
+        if (!rc.whole) ranged = rc;
+      } catch (e) {
+        notes.push(`${tierId}: Ebenen-Bereiche gescheitert (${errMsg(e)}) — ganze Datei (Rückfall)`);
+      }
+    }
+    if (!bytes) bytes = await store.bytes(addr.path, fo);
     phases[`fetch.${tierId}`] = Math.round(now() - f0);
+    if (tierId === firstTier) firstBytesIn();
     if (!bytes) { skips.push(`${tierId}: Chunk ${addr.path} nicht im Repo (Aufbewahrung?)`); return null; }
 
     let planes = planesForChunkHeader(bytes);
     let man: PointRunManifest | null = null;
     let from: ManifestOrigin = 'none';
     let manifestAwaited = false;
+    if (!planes && ranged) {
+      // Bereiche wurden nach `CUBE_PLANES` geschnitten; ein fremdes Schema braucht die ganze Datei.
+      notes.push(`${tierId}: Chunk trägt ein anderes Schema — ganze Datei statt Bereiche (Rückfall)`);
+      ranged = null;
+      bytes = await store.bytes(addr.path, fo);
+      if (!bytes) { skips.push(`${tierId}: Chunk ${addr.path} nicht im Repo (Aufbewahrung?)`); return null; }
+    }
     if (!planes) {
       // Fremdes Schema: nur das Manifest kennt die Ebenen.
       const l = await manP; man = l.manifest; from = l.from; manifestAwaited = true;
       planes = man?.planes ?? null;
       if (!planes) { skips.push(`${tierId}: Chunk trägt ein anderes Schema und das Manifest ist nicht lesbar`); return null; }
     }
+    // Aus Bereichen: NUR die geholten Ebenen dekodieren (die übrigen Blöcke sind Nullen), ohne Gesamt-CRC.
+    const wantedOf = (r: RangedChunk | null) => (r ? (opts.wanted ?? r.wanted).filter((id) => r.wanted.includes(id)) : opts.wanted);
     const d0 = now();
-    let chunk = await decode(bytes, { planes, wanted: opts.wanted });
+    let chunk = await decode(bytes, { planes, wanted: wantedOf(ranged), ...(ranged ? { checkCrc: false } : {}) });
     phases[`decode.${tierId}`] = Math.round(now() - d0);
     if (!manifestAwaited) { const l = await manP; man = l.manifest; from = l.from; }
     // Gegenprobe: das Manifest nennt dieselben Ebenen wie das Schema. Weicht es ab, gilt das
     // Manifest (es beschreibt DIESEN Lauf) — und der Widerspruch steht im Protokoll.
     if (man && man.planes.length === planes.length && man.planes.some((p, i) => p.id !== planes![i].id)) {
       notes.push(`${tierId}: Ebenenliste des Manifests weicht vom Schema ab — nach Manifest neu dekodiert`);
+      if (ranged) {
+        // Die Bereiche gehören zur Schema-Reihenfolge — nach dem Manifest gelesen brauchte es andere Blöcke.
+        notes.push(`${tierId}: ganze Datei statt Bereiche (Rückfall)`);
+        ranged = null;
+        bytes = await store.bytes(addr.path, fo);
+        if (!bytes) { skips.push(`${tierId}: Chunk ${addr.path} nicht im Repo (Aufbewahrung?)`); return null; }
+      }
       chunk = await decode(bytes, { planes: man.planes, wanted: opts.wanted });
       planes = man.planes;
     }
-    const series = cubeSeriesFrom(chunk, addr, planes, { bytes: bytes.length, manifest: man, manifestFrom: from, wanted: opts.wanted, lat, lon, neighbours: opts.neighbours });
+    if (ranged) {
+      const r = ranged;
+      notes.push(`${tierId}: ${r.wanted.length} von ${planes.length} Ebenen über ${r.requests} Bereiche gelesen (${(r.fetchedBytes / 1024).toFixed(0)} statt ${(r.totalBytes / 1024).toFixed(0)} KB) — die übrigen liest die Antwort nicht; der Rest wird im Hintergrund nachgeladen (AP12)`);
+      completions.push(r.complete().then((c) => ({ tier: tierId, ...c })));
+    }
+    const series = cubeSeriesFrom(chunk, addr, planes, { bytes: bytes.length, manifest: man, manifestFrom: from, wanted: wantedOf(ranged), lat, lon, neighbours: opts.neighbours });
     if (series.provenanceNote) notes.push(`${tierId}: ${series.provenanceNote}`);
     return series;
   };
   const tierPs = new Map<TierId, Promise<CubePointSeries | null>>();
+  // AP12 (E-F-3 (a), Jan 16.09.: „t1 zuerst … Pflicht in AP12"): mit `onFirst` beginnen die übrigen Stufen erst,
+  // wenn die erste gelesen ist. Auf einer vollen Leitung teilen sich sonst alle Chunks die Bytes, und der größte
+  // (t1, ≈ 524 KB) kommt als LETZTER an — die erste Darstellung käme nie vor dem Kern.
+  const deferLater = !!opts.onFirst && tiers.length > 1 && firstTier != null;
   for (const t of tiers) {
-    tierPs.set(t, guard(`cube.${t}`, readTier(t)).then((r) => { mark(`cube.${t}`); progress(`cube.${t}`); return r; }));
+    const start: Promise<unknown> = deferLater && t !== firstTier ? Promise.race([firstBytesP, tierPs.get(firstTier!)!]) : Promise.resolve();
+    tierPs.set(t, start.then(() => guard(`cube.${t}`, readTier(t))).then((r) => { mark(`cube.${t}`); progress(`cube.${t}`); return r; }));
   }
 
   // ── Statische Produkte ────────────────────────────────────────────────────
@@ -361,6 +464,33 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   const firstP = Promise.all([firstTier ? tierPs.get(firstTier)! : Promise.resolve(null), terrainP])
     .then(() => { firstMs = Math.round(now() - T0); mark('first'); progress('first'); });
 
+  // AP12 (E-F-3 (a)): die erste Darstellung als eigenes Bündel — erste Stufe + Station + Gelände, Fenster bis zu
+  // ihrem letzten Schritt; was vom Radar/den statischen Produkten schon da ist, kommt mit. Nur, wenn danach
+  // noch Stufen fehlen (sonst ist das Bündel selbst die erste Darstellung).
+  let nowcastDone: NowcastPointSeries[] | null = null;
+  let urbanDone: StaticPoint | null = null;
+  void nowcastP.then((r) => { nowcastDone = r; });
+  void urbanP.then((r) => { urbanDone = r; });
+  if (deferLater) {
+    Promise.all([tierPs.get(firstTier!)!, stationP, terrainP]).then(([s1, st, tr]) => {
+      const lastMs = s1?.steps.length ? s1.steps[s1.steps.length - 1].validAtMs : null;
+      if (!s1 || lastMs == null || lastMs >= toMs) return;
+      const t = Math.round(now() - T0);
+      const rest = tiers.filter((x) => x !== firstTier);
+      opts.onFirst!({
+        ...base,
+        window: { ...base.window, toMs: Math.min(toMs, lastMs) },
+        tiers: [firstTier!], cube: { [firstTier!]: s1 },
+        station: st?.series ?? null, stationChoice: st?.choice ?? null, terrain: tr,
+        nowcast: nowcastDone ?? [], hmodel: {}, urban: urbanDone,
+        skips: [...skips, `cube: ${rest.join('/')} folgen — erste Darstellung aus ${firstTier} bis ${new Date(lastMs).toISOString().slice(0, 16)}Z (E-F-3, AP12)`],
+        notes: [...notes], errors: [...errors],
+        timing: { indexMs: doneAt.index ?? null, firstMs: t, coreMs: t, readMs: t, totalMs: t, doneAt: { ...doneAt }, phases: { ...phases } },
+        stats: { ...store.stats },
+      });
+    }).catch(() => { /* die erste Darstellung ist ein Angebot, kein Pflichtteil */ });
+  }
+
   // ── Kern einsammeln (Stufen, Station, Gelände), dann den Rest ────────────
   let coreMs = 0;
   const coreP = Promise.all([stationP, terrainP, ...tierPs.values()]).then(() => { coreMs = Math.round(now() - T0); mark('core'); });
@@ -370,26 +500,42 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   // München bei 2 256 ms (Kern 742 + 1 500), also über dem 2-s-Ziel — der Radar-Slot ist am Edge immer
   // MISS (V-FI-7). Der Verlierer der Frist läuft weiter (Cache), das Bündel sagt, dass er fehlte.
   const LATE = Symbol('late');
-  const graceMs = opts.lateGraceMs ?? LATE_GRACE_MS;
-  const withDeadline = <T>(p: Promise<T>): Promise<T | typeof LATE> => (opts.lateDeadlineMs == null
+  // AP12: progressiv = Frist 0 ab dem Kern, keine Gnadenfrist — was dann noch läuft, kommt über `late`.
+  const graceMs = opts.progressive ? 0 : opts.lateGraceMs ?? LATE_GRACE_MS;
+  const deadlineMs = opts.progressive ? 0 : opts.lateDeadlineMs;
+  const withDeadline = <T>(p: Promise<T>): Promise<T | typeof LATE> => (deadlineMs == null
     ? p
-    : Promise.race([p, coreP.then(() => new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), Math.max(graceMs, (opts.lateDeadlineMs as number) - (now() - T0)))))]));
+    : Promise.race([p, coreP.then(() => new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), Math.max(graceMs, (deadlineMs as number) - (now() - T0)))))]));
   const staticAll = Promise.all([...hmodelPs.values(), urbanP]).then((arr) => { mark('static'); progress('static'); return arr; });
+  const staticOf = (arr: Array<StaticPoint | null>) => {
+    const hmodel: Partial<Record<TierId, StaticPoint | null>> = {};
+    const tiersList = [...hmodelPs.keys()];
+    tiersList.forEach((t, i) => { hmodel[t] = arr[i] ?? null; });
+    return { hmodel, urban: arr[tiersList.length] ?? null };
+  };
+  const lateWhy = opts.progressive
+    ? 'zum Kern noch nicht da — die erste Ausgabe rechnet ohne, das Ergebnis folgt (progressiv, AP12)'
+    : `nach der Frist (${opts.lateDeadlineMs} ms ab Start, mindestens ${graceMs} ms nach dem Kern) nicht da`;
   const [station, nowcastR, terrain, staticR] = await Promise.all([stationP, withDeadline(nowcastP), terrainP, withDeadline(staticAll), firstP, coreP, ...tierPs.values()]);
   for (const [t, p] of tierPs) base.cube[t] = await p;
+  if (completions.length) base.completing = Promise.all(completions);
   if (staticR === LATE) {
     for (const t of hmodelPs.keys()) base.hmodel[t] = null;
-    skips.push(`static: hmodel/urban nach der Frist (${opts.lateDeadlineMs} ms ab Start, mindestens ${graceMs} ms nach dem Kern) nicht da — Abruf läuft weiter (V-FI-16)`);
+    const skip = `static: hmodel/urban ${lateWhy} — Abruf läuft weiter (V-FI-16)`;
+    skips.push(skip);
+    (base.late ??= {}).static = { result: staticAll.then(staticOf), skip };
   } else {
-    const tiersList = [...hmodelPs.keys()];
-    tiersList.forEach((t, i) => { base.hmodel[t] = staticR[i] ?? null; });
-    base.urban = staticR[tiersList.length] ?? null;
+    const s = staticOf(staticR);
+    base.hmodel = s.hmodel;
+    base.urban = s.urban;
   }
   base.station = station?.series ?? null;
   base.stationChoice = station?.choice ?? null;
   if (nowcastR === LATE) {
     base.nowcast = [];
-    skips.push(`nowcast: Radar nach der Frist (${opts.lateDeadlineMs} ms ab Start, mindestens ${graceMs} ms nach dem Kern) nicht da — Modell statt Radar für 0–3 h, Abruf läuft weiter (V-FI-16)`);
+    const skip = `nowcast: Radar ${lateWhy} — Modell statt Radar für 0–3 h, Abruf läuft weiter (V-FI-16)`;
+    skips.push(skip);
+    (base.late ??= {}).nowcast = { result: nowcastP, skip };
   } else {
     base.nowcast = nowcastR;
   }

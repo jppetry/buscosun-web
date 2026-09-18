@@ -1,0 +1,108 @@
+{
+ "desktop": {
+  "firstMs": 2202,
+  "tabs": [
+   {
+    "t": "Übersicht",
+    "h": 44
+   },
+   {
+    "t": "Diagramme",
+    "h": 44
+   },
+   {
+    "t": "Tabelle",
+    "h": 44
+   },
+   {
+    "t": "Bandbreite",
+    "h": 44
+   }
+  ],
+  "info": {
+   "rows": 337,
+   "badges": [
+    "buscosun Fusion · Cube · Test",
+    "vorläufige Bandbreite"
+   ],
+   "tail": true,
+   "interp": 75,
+   "clima": 5,
+   "rowHeights": [
+    35,
+    35,
+    35,
+    35,
+    35
+   ],
+   "varHeights": [
+    23,
+    23,
+    23,
+    23,
+    23,
+    23
+   ],
+   "log": "PFLOG · ZEITEN UND HERKUNFT\nAusgaben\nfirst 1460 ms (45 h, offen t2+t3+anchor) · core 1802 ms (337 h, offen anchor+nowcast) · update 4107 ms (337 h)\nLesen · Kern · erste\n1679 · 1678 · 1241 ms\nRechnung · Ausgabe · gesamt\n42.2 · 18.4 · 4082 ms\nfertig je Produkt\nindex 233 · static 703 · terrain 864 · cube.t1 1241 · first 1241 · station 1359 · cube.t2 1637 · cube.t3 1678 · core 1678 · read 1679 · nowcast 4020 · obs 4021\nNetz\n64 Dateien · 3678 KB · Ausweichwege 0 · 404 6\nBrowser-Cache\n39 von 135 Dateien aus dem HTTP-Cache · x-cache im Browser nicht lesbar\nNotizen (1)",
+   "overflowX": false
+  },
+  "detail": "p10 / p50 / p90\n17,3 / 19,2 / 21,1 °C\nMittel · σ\n19,2 · 1,5 °C\nσ-Art\nModellstreuung · normal\nKonfidenz\n45 % (Schärfe 54 % · Einigkeit 84 % · Lage 100 %)\nMEMBER\tGEWICHT\tWERT\tLAUF · ALTER\nCube t1\t41 %\t19,4\t2026091806 · 6,0 h\nAnker\t—\t-0,1\t— · 2,0 h\nStation MUENCHEN STADT (5,0 km)\t59 %\t19,3\t2026091809 · 3,0 h\nRadar radvor_rv\t—\t—\t2609181050 · 0,1 h\nRadar inca\t—\t—\t20260918T1030 · 0,4 h\nKlimatologie\t11 % (1 − β)\t—\t—\n\nZwei Ebenen: die Gewichte der Quellen teilen die Modellkombination unter sich auf (zusammen 100 %); diese Kombination geht mit β in die Antwort ein, die Klimatologie mit 1 − β.\n\nAnker — die Stationsmessung verschiebt die ersten Stunden (Innovations-Persistenz, klingt ab)",
+  "errors": [],
+  "overview": true,
+  "bands": true,
+  "tail": true
+ },
+ "mobile": {
+  "firstMs": 1818,
+  "tabs": [
+   {
+    "t": "Übersicht",
+    "h": 44
+   },
+   {
+    "t": "Diagramme",
+    "h": 44
+   },
+   {
+    "t": "Tabelle",
+    "h": 44
+   },
+   {
+    "t": "Bandbreite",
+    "h": 44
+   }
+  ],
+  "info": {
+   "rows": 337,
+   "badges": [
+    "buscosun Fusion · Cube · Test",
+    "vorläufige Bandbreite"
+   ],
+   "tail": true,
+   "interp": 75,
+   "clima": 5,
+   "rowHeights": [
+    44,
+    44,
+    44,
+    44,
+    44
+   ],
+   "varHeights": [
+    44,
+    44,
+    44,
+    44,
+    44,
+    44
+   ],
+   "log": "PFLOG · ZEITEN UND HERKUNFT\nAusgaben\nfirst 1438 ms (45 h, offen t2+t3+anchor) · core 1836 ms (337 h, offen anchor) · update 2594 ms (337 h)\nLesen · Kern · erste\n1724 · 1724 · 1340 ms\nRechnung · Ausgabe · gesamt\n46.8 · 21.4 · 2235 ms\nfertig je Produkt\nindex 384 · terrain 804 · static 1031 · station 1078 · nowcast 1278 · cube.t1 1340 · first 1340 · cube.t2 1615 · cube.t3 1724 · core 1724 · read 1724 · obs 2167\nNetz\n64 Dateien · 3678 KB · Ausweichwege 0 · 404 6\nBrowser-Cache\n39 von 138 Dateien aus dem HTTP-Cache · x-cache im Browser nicht lesbar\nNotizen (1)",
+   "overflowX": false
+  },
+  "detail": "p10 / p50 / p90\n17,3 / 19,2 / 21,1 °C\nMittel · σ\n19,2 · 1,5 °C\nσ-Art\nModellstreuung · normal\nKonfidenz\n45 % (Schärfe 54 % · Einigkeit 84 % · Lage 100 %)\nMEMBER\tGEWICHT\tWERT\tLAUF · ALTER\nCube t1\t41 %\t19,4\t2026091806 · 6,0 h\nAnker\t—\t-0,1\t— · 2,0 h\nStation MUENCHEN STADT (5,0 km)\t59 %\t19,3\t2026091809 · 3,0 h\nRadar radvor_rv\t—\t—\t2609181050 · 0,1 h\nRadar inca\t—\t—\t20260918T1030 · 0,4 h\nKlimatologie\t11 % (1 − β)\t—\t—\n\nZwei Ebenen: die Gewichte der Quellen teilen die Modellkombination unter sich auf (zusammen 100 %); diese Kombination geht mit β in die Antwort ein, die Klimatologie mit 1 − β.\n\nAnker — die Stationsmessung verschiebt die ersten Stunden (Innovations-Persistenz, klingt ab)",
+  "errors": [],
+  "overview": true,
+  "bands": true,
+  "tail": true
+ }
+}

@@ -56,6 +56,89 @@ function verifyBrightSkyDewPoint() {
   return { checks, passed: checks.length - failed, failed };
 }
 
+/**
+ * V-FI-24 (Phase FI, 2026-09-18): `getPointForecast({ elevationM })` — eine Höhe von außen ersetzt die DEM-Höhe im
+ * Live-Pfad (Lapse, Stationsgewichte, Fusion, `query.elevation`); ohne sie bleibt alles, wie es war. Ende zu Ende mit
+ * einem gestubbten `fetch`: nur BrightSky antwortet (MOSMIX-Station Zugspitze, 2 964 m, 2 °C), alles andere 404 —
+ * auch das Gelände, also DEM-Höhe 0 (die V-FI-11-Lage in klein). Eine Prüfung.
+ */
+async function verifyQueryElevation() {
+  const checks = [];
+  const { getPointForecast, pfCacheKey } = await import('../src/pointForecast/pointForecast.ts');
+  const H = 3_600_000;
+  const t0 = Math.floor(Date.now() / H) * H;
+  const weather = Array.from({ length: 14 }, (_, i) => ({
+    timestamp: new Date(t0 + (i - 2) * H).toISOString(), source_id: 1, temperature: 2, wind_speed: 20, wind_direction: 270,
+    wind_gust_speed: 40, relative_humidity: 80, dew_point: -1, cloud_cover: 50, precipitation: 0, condition: 'dry',
+  }));
+  const body = JSON.stringify({ weather, sources: [{ id: 1, lat: 47.42, lon: 10.98, height: 2964, station_name: 'ZUGSPITZE', observation_type: 'forecast' }] });
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => (String(url).includes('api.brightsky.dev/weather') ? new Response(body, { status: 200, headers: { 'content-type': 'application/json' } }) : new Response('', { status: 404 }));
+  try {
+    const q = { lat: 47.4211, lng: 10.9853, country: 'DE', hours: 8 };
+    const strip = (fc) => JSON.stringify({ ...fc, fetchedAt: 0 });
+    const unset = await getPointForecast({ ...q });
+    const asNull = await getPointForecast({ ...q, lng: 10.9863, elevationM: null });
+    const nan = await getPointForecast({ ...q, lng: 10.9873, elevationM: Number.NaN });
+    const set = await getPointForecast({ ...q, lng: 10.9883, elevationM: 2964 });
+    const t = (fc) => fc.hours[0]?.temperature;
+    // Ohne Höhe gleich (Feld fehlt, null, NaN). Die Länge unterscheidet sich in der 3. Stelle, damit kein Aufruf den
+    // Modul-Cache des vorigen trifft (Schlüssel `toFixed(3)`) — sonst wäre die Gleichheit trivial.
+    const same = (a, b) => strip({ ...a, query: { ...a.query, lng: 0 } }) === strip({ ...b, query: { ...b.query, lng: 0 } });
+    const keyOld = pfCacheKey(47.4211, 10.9853, 'DE', false, false, false, false);
+    const ok = same(unset, asNull) && same(unset, nan) && unset.query.elevation === 0
+      && keyOld === 'DE:47.421:10.985' && pfCacheKey(47.4211, 10.9853, 'DE', false, false, false, false, false, null) === keyOld
+      && pfCacheKey(47.4211, 10.9853, 'DE', false, false, false, false, false, 2964) === `${keyOld}:h2964`
+      && set.query.elevation === 2964 && Math.abs(t(set) - 2) < 0.6 && t(unset) - t(set) > 10;
+    checks.push({ name: 'V-FI-24: ohne Höhe (fehlt/null/NaN) byte-gleich und Cache-Schlüssel unverändert; mit Stationshöhe 2 964 m trägt der Blend die Station ohne Lapse-Sprung (DEM hier 0 m ⇒ ohne Höhe +19 K), Schlüssel `:h2964`',
+      ok, detail: `T(+0 h) ohne Höhe ${t(unset)?.toFixed(1)} °C auf ${unset.query.elevation} m · mit Höhe ${t(set)?.toFixed(1)} °C auf ${set.query.elevation} m · Schlüssel ${keyOld}` });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  const failed = checks.filter((c) => !c.ok).length;
+  return { checks, passed: checks.length - failed, failed };
+}
+
+/**
+ * V-FI-11 (Phase FI, 2026-09-18): BrightSky `/current_weather` füllt fehlende Größen einer Station aus einer anderen
+ * (`fallback_source_ids`). Gemessen 18.09. 11:30 UTC an der Zugspitze (273006, 2 956 m): `temperature: 16,4` aus
+ * Garmisch-Partenkirchen (11857, 719 m) — der Leser schrieb den Talwert der Gipfelhöhe zu, der Live-Pfad meldete
+ * +0 h 17,2 °C (MOSMIX 2 °C). Die Antwortform unten ist die echte (Felder gekürzt). Eine Prüfung mit Negativkontrollen.
+ */
+async function verifyBrightSkyCurrentFallback() {
+  const checks = [];
+  const { fetchBrightSkyCurrentGrid } = await import('../src/sources/brightSkyCurrent.ts');
+  const zugspitze = { id: 273006, station_name: 'Zugspitze', height: 2956, lat: 47.421, lon: 10.9848, observation_type: 'synop' };
+  const garmisch = { id: 11857, station_name: 'Garmisch-Partenkirch', height: 719.3, lat: 47.483, lon: 11.0621, observation_type: 'synop' };
+  const weather = {
+    timestamp: '2026-09-18T11:30:00+00:00', source_id: 273006, temperature: 16.4, relative_humidity: 62, wind_speed_10: 21.2, wind_direction_10: 250,
+    wind_gust_speed_10: 40.3, precipitation_10: 0,
+    fallback_source_ids: { temperature: 11857, relative_humidity: 11857, precipitation_60: 11857, pressure_msl: 11857, dew_point: 11857, precipitation_30: 11857, precipitation_10: 11857 },
+  };
+  const run = async (body) => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+    try {
+      const g = await fetchBrightSkyCurrentGrid({ bounds: { lngMin: 10.98, lngMax: 10.99, latMin: 47.42, latMax: 47.43 }, cols: 1, rows: 1 });
+      return g.points[0];
+    } finally { globalThis.fetch = realFetch; }
+  };
+  const fixed = await run({ weather, sources: [zugspitze, garmisch] });
+  const noFallback = await run({ weather: { ...weather, fallback_source_ids: undefined }, sources: [zugspitze, garmisch] });
+  const reordered = await run({ weather, sources: [garmisch, zugspitze] });
+  const at = (pts, elev) => pts.find((p) => p.elev === elev) ?? null;
+  const zF = at(fixed, 2956), gF = at(fixed, 719.3), zR = at(reordered, 2956), gR = at(reordered, 719.3);
+  const ok = fixed.length === 2 && zF.temperature === null && zF.relativeHumidity === null && zF.precipitation === null
+    && zF.u != null && zF.v != null && zF.gust != null
+    && gF && gF.temperature === 16.4 && gF.relativeHumidity === 62 && gF.precipitation === 0 && gF.u === null && gF.gust === null && gF.lat === 47.483
+    && noFallback.length === 1 && noFallback[0].elev === 2956 && noFallback[0].temperature === 16.4
+    && reordered.length === 2 && zR.temperature === null && gR?.temperature === 16.4;
+  checks.push({ name: 'V-FI-11: eine geborgte Größe (Garmischer Temperatur in der Zugspitz-Antwort) gehört der Station, die sie gemessen hat — sie steht auf 719 m in Garmisch, nicht auf 2 956 m; eigene Größen der Zugspitze (Wind, Böe) bleiben; Station = `source_id` auch bei anderer Reihenfolge; Negativkontrolle ohne `fallback_source_ids`: ein Punkt, 16,4 °C an der Zugspitze',
+    ok, detail: `Zugspitze T ${zF?.temperature} · Wind u ${zF?.u?.toFixed(1)} · Garmisch T ${gF?.temperature} RH ${gF?.relativeHumidity} Wind ${gF?.u} · ohne Fallback ${noFallback.length} Punkt, T ${noFallback[0]?.temperature} auf ${noFallback[0]?.elev} m` });
+  const failed = checks.filter((c) => !c.ok).length;
+  return { checks, passed: checks.length - failed, failed };
+}
+
 const SUITES = [
   ['Verteilungen (dist)', verifyDist],
   ['Kombination (combine)', verifyCombine],
@@ -68,6 +151,8 @@ const SUITES = [
   ['Stationsanker (anchor)', verifyAnchor],
   ['Stationsanker im Blend (pointForecast)', verifyAnchorQC],
   ['Eingaben: BrightSky-Taupunkt (sampleSources, V-FI-25)', verifyBrightSkyDewPoint],
+  ['Abfragehöhe von außen (getPointForecast, V-FI-24)', verifyQueryElevation],
+  ['Eingaben: BrightSky-Stationsmessung ohne fremde Werte (brightSkyCurrent, V-FI-11)', verifyBrightSkyCurrentFallback],
 ];
 
 let total = 0;

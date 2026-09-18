@@ -126,6 +126,27 @@ export function screenSpeedPxPerSec(
   return screenTempoGain(zoom, o) * speedMs * (cosRef / cosLat);
 }
 
+/** Untergrenze der HZ1-Ausdünnung (Anteil der Vollzahl) — Schutz gegen ein
+ *  leeres Bild bei extremem Zoom. Mit der Wetterkarten-Einstellung (exp 0,75 ab
+ *  z7) greift sie ab z14,5; darüber wachsen die Schweife wieder ungebremst. */
+export const ZOOM_IN_THIN_FLOOR = 0.02;
+
+/**
+ * HZ1 — Anteil der Partikel, der beim REINzoomen noch gezeichnet wird.
+ *
+ * Mit `screenTempoZoomExp` > 0 wächst `A(z)` und mit ihm die Schweiflänge
+ * (Tempo × wanduhr-normierte Lebensdauer der Spur). Bei konstanter Zahl wuchs
+ * die von Schweifen bedeckte Fläche dadurch von 4,7 % (z6) auf 37 % (z12) —
+ * aus dem Strömungsbild wurde ein Teppich (audit/windpartikel-hochzoom.md).
+ * Oberhalb `fromZoom` fällt die gezeichnete Zahl deshalb je Zoomstufe um
+ * 2^−exp. Der Windwert und das Tempo bleiben unberührt; nur die Zahl sinkt.
+ * `exp` = 0 ⇒ exakt 1 (Altverhalten).
+ */
+export function zoomInThinFraction(zoom: number, fromZoom: number, exp: number): number {
+  if (!(exp > 0) || !(zoom > fromZoom)) return 1;
+  return Math.max(ZOOM_IN_THIN_FLOOR, Math.pow(2, -exp * (zoom - fromZoom)));
+}
+
 /**
  * Auflösung der Positionskodierung in EQUIRECT-Einheiten.
  *

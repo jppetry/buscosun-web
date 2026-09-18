@@ -16,6 +16,14 @@
  *             Kontext), cube-warm (IndexedDB + Rechnung, Ergebnis-Cache geleert); `--gate` prüft §6 daran
  *   compare   AP2-Abnahme: cube-vs-live — beide Pfade im selben Kontext, Zeitreihen im Ergebnis, Tabelle der
  *             Abweichungen an festen Vorläufen (T 0,5 K · Wind 1 m/s · RR 0,2 mm/h · clct 10 %; Größeres = Befund)
+ *   cubez     V-FI-17: progressiv mit z0 (WorldCover, Voreinstellung) gegen ohne — je Variante ein frischer Kontext,
+ *             kalt und warm (derselbe Ort erneut; z0 dann aus dem Cache in der ersten Ausgabe)
+ *   cubep     AP12: progressive Ausgabe (`onUpdate`) — cube-cold-prog / cube-warm-prog / cube-cold-prog-24h; je Lauf
+ *             `total` = erste Antwort (bei 336 h die erste Stufe, E-F-3), `fullMs` = ganzes Fenster, `finalMs` = letzte Ausgabe
+ *   cubex     AP12-Diagnose: cube-cold-24h, -noradar, -noradar-noobs (was welcher Posten auf der Leitung kostet)
+ *   cuber     AP12 (c): Ebenen-Bereiche gegen die ganze Datei im selben Lauf (erster und zweiter Nutzer am Edge)
+ *
+ * `--gate` prüft §6: kalt das GANZE Fenster (bei `cubep` daneben die erste Darstellung), warm p50 < 0,5 s.
  *
  * Netzmitschnitt je Lauf über CDP: Anzahl Abrufe, Draht-Bytes, x-cache HIT/MISS getrennt (Chunks sind
  * nicht purgebar — ein kalter Edge ist Zufall, deshalb beide Populationen). Ergebnis als JSON unter
@@ -144,7 +152,7 @@ function netSummary(reqs) {
     largest: largest ? { url: largest.url.replace(/^https?:\/\/[^/]+\//, ''), bytes: largest.bytes, ttfbMs: largest.ttfbMs, ms: largest.ms, xCache: largest.xCache } : null,
     hosts,
     // Alle CDN-Abrufe einzeln: für die TTFB-Populationen (HIT/MISS) und die Größenabhängigkeit.
-    cdnRequests: cdn.map((r) => ({ path: r.url.replace(/^https?:\/\/[^/]+\//, ''), bytes: r.bytes, ttfbMs: r.ttfbMs, ms: r.ms, xCache: r.xCache, startMs: Math.round((r.t0 - t0min) * 1000), status: r.status })),
+    cdnRequests: cdn.map((r) => ({ path: r.url.replace(/^https?:\/\/[^/]+\//, ''), bytes: r.bytes, ttfbMs: r.ttfbMs, ms: r.ms, xCache: r.xCache, startMs: Math.round((r.t0 - t0min) * 1000), status: r.status, ...(r.method && r.method !== 'GET' ? { method: r.method } : {}), ...(r.range ? { range: r.range } : {}), ...(r.enc ? { enc: r.enc } : {}) })),
     // Fremd-Hosts (S3-Kacheln, Live-Pfad) ebenfalls mit Startzeit — für den kritischen Pfad.
     otherRequests: done.filter((r) => !r.url.includes('cdn.jsdelivr.net')).map((r) => ({ url: r.url.replace(/^https?:\/\//, '').slice(0, 90), bytes: r.bytes, ttfbMs: r.ttfbMs, ms: r.ms, startMs: Math.round((r.t0 - t0min) * 1000), status: r.status, fromCache: !!r.fromCache })),
   };
@@ -181,13 +189,15 @@ async function main() {
     const wall = Date.now() - t0;
     await new Promise((r) => setTimeout(r, 150)); // loadingFinished-Ereignisse nachlaufen lassen
     const run = {
-      ...base, wallMs: wall, totalMs: result?.total ?? null,
+      ...base, wallMs: wall, totalMs: result?.total ?? null, fullMs: result?.fullMs ?? null, finalMs: result?.finalMs ?? null,
       coreMs: result?.timing?.coreMs ?? null, readMs: result?.timing?.readMs ?? null, firstMs: result?.timing?.firstMs ?? null,
       result, net: netSummary(ctx.requests()),
     };
     runs.push(run);
     const l = run.net.largest;
-    const extra = run.coreMs != null ? `  core ${ms(run.coreMs)} first ${ms(run.firstMs)} all ${ms(run.readMs)}` : '';
+    const extra = (run.coreMs != null ? `  core ${ms(run.coreMs)} first ${ms(run.firstMs)} all ${ms(run.readMs)}` : '')
+      + (run.fullMs != null && run.fullMs !== run.totalMs ? `  full ${ms(run.fullMs)} (erste ${result?.firstHours} h)` : '')
+      + (run.finalMs != null ? `  final ${ms(run.finalMs)}${result?.pending?.length ? ` (${result.pending.join('+')})` : ''}` : '');
     const errs = (result?.errors?.length ? `  ⚠ ${result.errors.length} Fehler: ${result.errors[0]}` : '') + (result?.error ? `  ✗ ${result.error}` : '');
     console.log(`  ${base.profile.padEnd(12)} ${base.place.padEnd(10)} ${base.scenario.padEnd(18)} ${ms(run.totalMs).padStart(9)}${extra}  req ${String(run.net.requests).padStart(3)} (${run.net.cached} cache)  ${(run.net.bytes / 1024).toFixed(0).padStart(5)} KB  HIT/MISS ${run.net.hit}/${run.net.miss}`
       + (l ? `  größte ${(l.bytes / 1024).toFixed(0)} KB ttfb ${l.ttfbMs} ms ${l.xCache ?? ''}` : '') + errs);
@@ -242,6 +252,43 @@ async function main() {
             await record(ctx, { ...base, scenario: 'cube-warm', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { fresh: true })`);
           });
         }
+        if (only.has('cubep')) {
+          // AP12: progressive Ausgabe — erste Antwort ab dem Kern (`total`), Nachlieferung (`finalMs`); warm = derselbe Ort erneut.
+          await withContext(profile, async (ctx) => {
+            await record(ctx, { ...base, scenario: 'cube-cold-prog', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true })`);
+            await record(ctx, { ...base, scenario: 'cube-warm-prog', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, fresh: true })`);
+          });
+          // Das Panel fragt heute 24 h an (PointForecastPanel, `hours = 24`) — dieselbe Messung für dieses Fenster.
+          await withContext(profile, async (ctx) => {
+            await record(ctx, { ...base, scenario: 'cube-cold-prog-24h', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, hours: 24 })`);
+          });
+        }
+        if (only.has('cubez')) {
+          // V-FI-17: z0 aus WorldCover gegen ohne — ein Isolat je Variante, kalt dann warm im selben Kontext.
+          for (const [cold, warm, o] of [['cube-cold-prog-noz0', 'cube-warm-prog-noz0', 'z0: false'], ['cube-cold-prog-z0', 'cube-warm-prog-z0', 'z0: true']]) {
+            await withContext(profile, async (ctx) => {
+              await record(ctx, { ...base, scenario: cold, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, ${o} })`);
+              await record(ctx, { ...base, scenario: warm, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { progressive: true, fresh: true, ${o} })`);
+            });
+          }
+        }
+        if (only.has('cuber')) {
+          // AP12 (c): Ebenen-Bereiche gegen die ganze Datei im selben Lauf. Der erste Bereichs-Lauf je Ort ist der
+          // erste Nutzer am Edge (identity-Variante kalt, §9.14.1), der zweite ein weiterer Nutzer (identity warm).
+          for (const [scenario, o] of [['cube-cold-prog', '{ progressive: true }'], ['cube-cold-prog-ranges', '{ progressive: true, ranges: true }'], ['cube-cold-prog-ranges-2nd', '{ progressive: true, ranges: true }']]) {
+            await withContext(profile, async (ctx) => {
+              await record(ctx, { ...base, scenario, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', ${o})`);
+            });
+          }
+        }
+        if (only.has('cubex')) {
+          // AP12-Diagnose: welche Posten die Leitung vor dem Kern belegen — je Variante ein frischer Kontext (ein Isolat je Variante).
+          for (const [scenario, o] of [['cube-cold-24h', '{ hours: 24 }'], ['cube-cold-noradar', '{ nowcast: false }'], ['cube-cold-noradar-noobs', '{ nowcast: false, obs: false }']]) {
+            await withContext(profile, async (ctx) => {
+              await record(ctx, { ...base, scenario, rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', ${o})`);
+            });
+          }
+        }
         if (only.has('compare') && profile !== 'fast-3g') {
           // Beide Pfade im SELBEN Kontext, nacheinander: erst der Cube (kalt), dann der Live-Pfad (kalt) —
           // die Zeitreihen kommen mit, die Tabelle rechnet der Harnisch unten.
@@ -262,8 +309,10 @@ async function main() {
   const summary = {};
   for (const r of runs) {
     const k = `${r.profile}|${r.scenario}`;
-    (summary[k] ??= { total: [], core: [], read: [], first: [] });
+    (summary[k] ??= { total: [], core: [], read: [], first: [], final: [], full: [] });
     summary[k].total.push(r.totalMs ?? r.wallMs);
+    if (r.finalMs != null) summary[k].final.push(r.finalMs);
+    if (r.fullMs != null) summary[k].full.push(r.fullMs);
     if (r.coreMs != null) summary[k].core.push(r.coreMs);
     if (r.readMs != null) summary[k].read.push(r.readMs);
     if (r.firstMs != null) summary[k].first.push(r.firstMs);
@@ -273,11 +322,14 @@ async function main() {
   for (const [k, v] of Object.entries(summary)) {
     const [profile, scenario] = k.split('|');
     table.push({ profile, scenario, n: v.total.length, p50: q(v.total, 0.5), p95: q(v.total, 0.95), max: Math.max(...v.total),
-      coreP50: q(v.core, 0.5), coreP95: q(v.core, 0.95), readP50: q(v.read, 0.5), readP95: q(v.read, 0.95), firstP50: q(v.first, 0.5), firstP95: q(v.first, 0.95) });
+      coreP50: q(v.core, 0.5), coreP95: q(v.core, 0.95), readP50: q(v.read, 0.5), readP95: q(v.read, 0.95), firstP50: q(v.first, 0.5), firstP95: q(v.first, 0.95),
+      finalP50: q(v.final, 0.5), finalP95: q(v.final, 0.95), fullP50: q(v.full, 0.5), fullP95: q(v.full, 0.95) });
   }
   for (const t of table) {
     console.log(`  ${t.profile.padEnd(12)} ${t.scenario.padEnd(18)} n=${String(t.n).padStart(2)}  ${ms(t.p50).padStart(9)} / ${ms(t.p95).padStart(9)} / ${ms(t.max).padStart(9)}`
-      + (t.coreP50 != null ? `   core ${ms(t.coreP50).padStart(8)} (p95 ${ms(t.coreP95)})  first ${ms(t.firstP50).padStart(8)}  all ${ms(t.readP50).padStart(8)}` : ''));
+      + (t.coreP50 != null ? `   core ${ms(t.coreP50).padStart(8)} (p95 ${ms(t.coreP95)})  first ${ms(t.firstP50).padStart(8)}  all ${ms(t.readP50).padStart(8)}` : '')
+      + (t.fullP50 != null && t.fullP50 !== t.p50 ? `  full ${ms(t.fullP50)} (p95 ${ms(t.fullP95)})` : '')
+      + (t.finalP50 != null ? `  final ${ms(t.finalP50)} (p95 ${ms(t.finalP95)})` : ''));
   }
 
   // ── AP2-Abnahme: Cube ↔ Live an festen Vorläufen ────────────────────────
@@ -324,15 +376,27 @@ async function main() {
       const c = { gate: 'AP1 core read warm', profile, n: arr.length, p50: q(arr, 0.5), limit, ok: q(arr, 0.5) <= limit };
       gate.checks.push(c); gate.ok = gate.ok && c.ok;
     }
-    // §6 (ab AP2): Ende-zu-Ende kalt-neu.
-    const cubeRuns = runs.filter((r) => r.scenario === 'cube-cold');
+    // §6 (ab AP2): Ende-zu-Ende kalt-neu. AP12: gibt es das progressive Szenario, zählt dessen ERSTE Antwort
+    // (vollständige 0–336-h-Vorhersage aus dem Kern; Radar/Anker/`static` kommen als Nachlieferung, deren p50
+    // steht daneben) — sonst wie bisher `cube-cold`. Dazu warm (§6: p50 < 0,5 s).
+    const coldScenario = runs.some((r) => r.scenario === 'cube-cold-prog') ? 'cube-cold-prog' : 'cube-cold';
+    const warmScenario = runs.some((r) => r.scenario === 'cube-warm-prog') ? 'cube-warm-prog' : 'cube-warm';
+    const cubeRuns = runs.filter((r) => r.scenario === coldScenario);
     if (!cubeRuns.length) {
       console.log('\n[pv-latency] Gate §6: kein Cube-Pfad-Szenario (`cube-cold`) im Lauf — Ende-zu-Ende-Abnahme erst ab AP2.');
     } else {
       for (const profile of profileIds.filter((p) => PROFILES[p]?.gate)) {
-        const arr = cubeRuns.filter((r) => r.profile === profile).map((r) => r.totalMs);
-        const c = { gate: '§6 end-to-end cold', profile, p50: q(arr, 0.5), p95: q(arr, 0.95), ok: q(arr, 0.5) < 2000 && q(arr, 0.95) < 5000 };
+        // Gezählt wird das GANZE Fenster (Kern, `fullMs`) — die erste Darstellung aus t1 (E-F-3) steht daneben (`firstP50`).
+        const arr = cubeRuns.filter((r) => r.profile === profile).map((r) => r.fullMs ?? r.totalMs);
+        const firsts = cubeRuns.filter((r) => r.profile === profile).map((r) => r.totalMs);
+        const fin = cubeRuns.filter((r) => r.profile === profile && r.finalMs != null).map((r) => r.finalMs);
+        const c = { gate: `§6 end-to-end cold (${coldScenario}, ganzes Fenster)`, profile, p50: q(arr, 0.5), p95: q(arr, 0.95), firstP50: q(firsts, 0.5), firstP95: q(firsts, 0.95), ...(fin.length ? { finalP50: q(fin, 0.5), finalP95: q(fin, 0.95) } : {}), ok: q(arr, 0.5) < 2000 && q(arr, 0.95) < 5000 };
         gate.checks.push(c); gate.ok = gate.ok && c.ok;
+        const warmArr = runs.filter((r) => r.scenario === warmScenario && r.profile === profile).map((r) => r.totalMs);
+        if (warmArr.length) {
+          const w = { gate: `§6 warm (${warmScenario})`, profile, p50: q(warmArr, 0.5), p95: q(warmArr, 0.95), ok: q(warmArr, 0.5) < 500 };
+          gate.checks.push(w); gate.ok = gate.ok && w.ok;
+        }
       }
     }
     if (!gate.checks.length) { console.log('\n[pv-latency] Gate: kein Abnahme-Szenario im Lauf.'); gate = null; }

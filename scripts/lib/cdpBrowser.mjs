@@ -97,7 +97,7 @@ export async function openBrowser(chromePath, { timeoutMs = 60_000, extraArgs = 
     const off = on((msg) => {
       if (msg.sessionId !== sessionId) return;
       const p = msg.params;
-      if (msg.method === 'Network.requestWillBeSent') reqs.set(p.requestId, { url: p.request.url, t0: p.timestamp, wall0: p.wallTime });
+      if (msg.method === 'Network.requestWillBeSent') reqs.set(p.requestId, { url: p.request.url, t0: p.timestamp, wall0: p.wallTime, method: p.request.method, range: p.request.headers?.Range ?? p.request.headers?.range ?? null });
       else if (msg.method === 'Network.responseReceived') {
         const r = reqs.get(p.requestId); if (!r) return;
         const h = p.response.headers || {};

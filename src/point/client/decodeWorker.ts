@@ -16,12 +16,14 @@ interface Req {
   buf: ArrayBuffer;
   planes: string[];
   wanted?: string[];
+  /** AP12 (c): aus Bereichen zusammengesetzt ⇒ keine CRC über die ganze Nutzlast. */
+  checkCrc?: boolean;
 }
 
 self.onmessage = async (e: MessageEvent<Req>) => {
-  const { id, buf, planes, wanted } = e.data;
+  const { id, buf, planes, wanted, checkCrc } = e.data;
   try {
-    const chunk = await decodeCubeChunk(new Uint8Array(buf), { planes: planes.map((p) => ({ id: p })), wanted });
+    const chunk = await decodeCubeChunk(new Uint8Array(buf), { planes: planes.map((p) => ({ id: p })), wanted, ...(checkCrc === false ? { checkCrc: false } : {}) });
     const { planes: arrays, ...header } = chunk;
     const bufs = arrays.map((a) => (a.byteOffset === 0 && a.byteLength === a.buffer.byteLength ? a.buffer : a.slice().buffer) as ArrayBuffer);
     (self as unknown as { postMessage: (m: unknown, t: Transferable[]) => void })

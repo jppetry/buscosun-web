@@ -35,7 +35,10 @@ Check `git status`: the tree may carry Jan's uncommitted work — do not revert,
 ────────────────────────────────────────────────────────────────────────────
 Ground rules
 ────────────────────────────────────────────────────────────────────────────
-• Diagnosis first (§9.13 in the phase document before code — §9.12 is PA3): which slots exist, which points
+• Diagnosis first (§9.13 in the phase document before code — §9.12 is PA3); number your findings
+  V-FI-32…39 (a parallel session, kickoff prompt-ap12-ap11.md, owns AP12/AP11 and V-FI-40+ — it
+  must not touch scripts/punktarchiv/**; you must not touch src/point/client/**, the panel, the
+  latency harness or §9.14–§9.16; a v2 codec, if it exists first there, is yours to import): which slots exist, which points
   have truth (POI hourly; TAWES/SMN `rr1h` since PA2), which leads are scorable today (slot N
   + ⌈h/24⌉ days), how many (point, lead) cases that gives per bin — and whether the archived
   cube planes + station + nowcast + hmodel are enough to rebuild the bundle `fuseCubePoint`

@@ -824,6 +824,421 @@ function cubeSampleOfValues(r, i) {
 }
 
 // ---------------------------------------------------------------------------
+// (14) AP12 — progressive Ausgabe (`onUpdate`): erste Antwort ab dem Kern, EINE Nachlieferung;
+//      statische Produkte ändern keinen Wert (V-FI-22); ohne `onUpdate` alles wie bisher
+// ---------------------------------------------------------------------------
+{
+  const { encodeCubeChunk, staticChunkPath, staticManifestPath } = await import('../src/point/cubeFormat.ts');
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // Die Fixture trägt kein Stadt-Raster — hier eins in echter Form (Container des Producers, Manifest mit Ebenenliste).
+  const files = new Map(fx.files);
+  const urbanPlanes = [{ id: 'imperv', unit: 'pct', scale: 0.1, offset: 0 }, { id: 'd0', unit: 'm', scale: 0.1, offset: 0 }, { id: 'bldgH', unit: 'm', scale: 0.1, offset: 0 }];
+  const uCell = cellOf(TIER_BY_ID.t1, FIX.lat, FIX.lon), uCh = chunkOf(uCell.iy, uCell.ix), uExt = chunkExtent(TIER_BY_ID.t1, uCh.cy, uCh.cx);
+  const uPl = [230, 45, 120].map((q) => { const a = new Int16Array(uExt.ny * uExt.nx); a.fill(q); return a; });
+  files.set(staticChunkPath('urban', 'v1', 't1', uCh.cy, uCh.cx), await encodeCubeChunk({ runHours: 0, tierIndex: 0, nt: 1, y0: uExt.y0, x0: uExt.x0, ny: uExt.ny, nx: uExt.nx, planes: uPl }, undefined, urbanPlanes));
+  files.set(staticManifestPath('urban', 'v1'), new TextEncoder().encode(JSON.stringify({ product: 'urban', version: 'v1', planes: urbanPlanes })));
+  const slowStore = (re, delayMs) => { const s = memoryStore(files); const bytes = s.bytes.bind(s); return { ...s, bytes: async (p, o) => { if (re.test(p)) await sleep(delayMs); return bytes(p, o); } }; };
+  const mk0 = cubeInputFromBundle(bundle, clima); mk0.terrain = flatTerrain(FIX.hTrue); mk0.elevationM = FIX.hTrue;
+  const tCube0 = fuseCubePoint(mk0).steps[0].vertical.t;
+  const obsList = [{ source: 'brightsky', name: 'Test', lat: FIX.lat, lon: FIX.lon, elevM: FIX.hTrue, distanceM: 3000, validAtMs: t0Ms, temperature: tCube0 + 2, relativeHumidity: null, u: null, v: null, gust: null }];
+  const optsP = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const ioOf = (store, obs) => ({ store, terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs });
+  const stepsOf = (fc) => JSON.stringify(fc.cube.v2.axis.steps);
+
+  // Referenzen OHNE onUpdate (der bisherige Weg): statische Produkte da, einmal ohne und einmal mit Messung.
+  clearCubeForecastCache();
+  const refNoObs = await getPointForecastFromCube(optsP, ioOf(memoryStore(files), null));
+  clearCubeForecastCache();
+  const refObs = await getPointForecastFromCube(optsP, ioOf(memoryStore(files), async () => obsList));
+  add('(14) Referenz ohne `onUpdate`: Stadt-Raster gelesen (imperv 23 %), kein `emission`-Feld — der bisherige Weg bleibt, wie er war',
+    refNoObs.cube.v2.point.terrain.imperv === 23 && refObs.cube.v2.point.terrain.d0 === 4.5 && !('emission' in refNoObs.cube) && !('pending' in refObs.cube),
+    `imperv ${refNoObs.cube.v2.point.terrain.imperv} d0 ${refObs.cube.v2.point.terrain.d0}`);
+
+  // Progressiv: statische Produkte 600 ms langsam, Messung sofort verfügbar.
+  // Alle Ausgaben eines progressiven Aufrufs einsammeln (die zurückgegebene + jede über onUpdate), bis nichts mehr offen ist.
+  const runProg = async (store, obsFn) => {
+    const em = [];
+    let obsCalledAt = null, chunkLog = [];
+    const t0 = performance.now();
+    const logged = { ...store, bytes: async (p, o) => { if (/^point\/\d{10}\/t[123]\//.test(p)) chunkLog.push({ tier: p.match(/\/(t[123])\//)[1], at: performance.now() - t0, phase: 'start' }); const b = await store.bytes(p, o); if (/^point\/\d{10}\/t[123]\//.test(p)) chunkLog.push({ tier: p.match(/\/(t[123])\//)[1], at: performance.now() - t0, phase: 'end' }); return b; } };
+    const io = ioOf(logged, obsFn ? async () => { obsCalledAt = performance.now() - t0; return obsFn(); } : null);
+    await new Promise((resolve) => {
+      const onUpdate = (fc) => { em.push({ fc, ms: performance.now() - t0 }); if (fc.cube.pending.length === 0) resolve(); };
+      getPointForecastFromCube({ ...optsP, onUpdate }, io).then((fc) => { em.push({ fc, ms: performance.now() - t0, returned: true }); if (fc.cube.pending.length === 0) resolve(); });
+      setTimeout(resolve, 3000);
+    });
+    await sleep(50);
+    const by = (k) => em.find((e) => e.fc.cube.emission === k) ?? null;
+    return { em, first: em.find((e) => e.returned) ?? null, core: by('core'), update: by('update'), obsCalledAt, chunkLog };
+  };
+
+  // Progressiv: statische Produkte 600 ms langsam, Messung sofort verfügbar.
+  clearCubeForecastCache();
+  const P = await runProg(slowStore(/static\//, 600), async () => obsList);
+  const nFirst = P.first?.fc.hours.length ?? 0;
+  add('(14) E-F-3 (a) progressiv: die erste Antwort ist die erste Stufe (t1 + Station), Fenster bis zu ihrem letzten Schritt, `pending` nennt t2, t3 und den Anker',
+    P.first && P.first.fc.cube.emission === 'first' && P.first.fc.cube.pending.join() === 't2,t3,anchor' && nFirst === 46 && P.first.ms < 450
+    && P.first.fc.cube.skips.some((s) => /cube: t2\/t3 folgen/.test(s)),
+    P.first ? `${P.first.ms.toFixed(0)} ms, ${nFirst} Stunden, pending ${P.first.fc.cube.pending.join()}` : 'keine erste Antwort');
+  add('(14) die erste Darstellung ist in jedem Wert GENAU der Anfang der vollständigen Antwort (0–45 h byte-gleich zur Referenz ohne Messung)',
+    P.first && JSON.stringify(P.first.fc.cube.v2.axis.steps) === JSON.stringify(refNoObs.cube.v2.axis.steps.slice(0, nFirst)) && nFirst > 0);
+  const t1End = P.chunkLog.find((c) => c.tier === 't1' && c.phase === 'end')?.at;
+  const laterStart = Math.min(...P.chunkLog.filter((c) => c.tier !== 't1' && c.phase === 'start').map((c) => c.at));
+  add('(14) E-F-3 (a): t2/t3 werden erst abgerufen, wenn die Bytes von t1 da sind (auf voller Leitung käme t1 sonst als letzter an)',
+    t1End != null && Number.isFinite(laterStart) && laterStart >= t1End, `t1 fertig ${t1End?.toFixed(1)} ms, t2/t3 ab ${laterStart.toFixed(1)} ms`);
+  add('(14) zweite Ausgabe = der Kern: ganzes Fenster (337 h), `emission: core`, offen nur noch Anker + Stadt-Raster; V-FI-22: ohne Stadt-Raster byte-gleich zur Referenz MIT Stadt-Raster (ohne Messung), der Vergleich sieht den Anker',
+    P.core && P.core.fc.cube.emission === 'core' && P.core.fc.hours.length === 337 && P.core.fc.cube.pending.join() === 'anchor,static'
+    && stepsOf(P.core.fc) === stepsOf(refNoObs) && stepsOf(P.core.fc) !== stepsOf(refObs) && P.core.fc.cube.v2.point.terrain.imperv === null
+    && P.core.fc.cube.skips.some((s) => /static: .*zum Kern noch nicht da/.test(s)),
+    P.core ? `${P.core.ms.toFixed(0)} ms, pending ${P.core.fc.cube.pending.join()}` : 'kein Kern');
+  add('(14) der Messungs-Abruf startet erst mit dem Kern (progressiv; auf Mobil-4G belegt er sonst ≈ 160 ms der Leitung), die Ausgaben davor nennen „Messung folgt" und tragen keinen Anker',
+    P.core && P.obsCalledAt != null && P.obsCalledAt >= P.core.fc.cube.timing.coreMs && [P.first, P.core].every((e) => e.fc.cube.notes.some((n) => /anchor: Messung folgt/.test(n)) && !e.fc.sourcesAvailable.includes('brightsky')),
+    `Abruf bei ${P.obsCalledAt?.toFixed(0)} ms, Kern ${P.core?.fc.cube.timing.coreMs} ms`);
+  add('(14) die Nachlieferung kommt EINMAL (Stadt-Raster + Anker), `emission: update`, nichts mehr offen, die Frist-Notiz des Stadt-Rasters ist weg — und sie ist byte-gleich zur Referenz mit Messung',
+    P.update && P.em.filter((e) => e.fc.cube.emission === 'update').length === 1 && P.update.fc.cube.pending.length === 0 && P.update.fc.cube.v2.point.terrain.imperv === 23 && P.update.fc.sourcesAvailable.includes('brightsky')
+    && !P.update.fc.cube.skips.some((s) => /static: /.test(s)) && stepsOf(P.update.fc) === stepsOf(refObs) && P.update.ms >= 600,
+    P.update ? `${P.update.ms.toFixed(0)} ms` : 'keine Nachlieferung');
+  // Cache: ein zweiter Aufruf nach der Nachlieferung bekommt sie (die erste Darstellung mit kürzerem Fenster kommt nie in den Cache).
+  const again = await getPointForecastFromCube({ ...optsP, onUpdate: () => {} }, ioOf(memoryStore(files), async () => obsList));
+  add('(14) Ergebnis-Cache hält nach der Nachlieferung die vollständige Fassung (337 h)', again.cube.emission === 'update' && again.cube.v2.point.terrain.imperv === 23 && again.hours.length === 337);
+
+  // Nichts kommt nach (kein Messungs-Abruf, statische Produkte vor dem Kern) ⇒ nur der Kern folgt der ersten Darstellung.
+  clearCubeForecastCache();
+  const L = await runProg(memoryStore(files), null);
+  add('(14) nichts offen (kein Messungs-Abruf, `static` vor dem Kern da) ⇒ erste Darstellung, dann der Kern mit leerem `pending`, KEINE weitere Ausgabe; Kern byte-gleich zur Referenz',
+    L.first?.fc.cube.emission === 'first' && L.core && L.core.fc.cube.pending.length === 0 && !L.update && L.em.length === 2 && stepsOf(L.core.fc) === stepsOf(refNoObs),
+    `Ausgaben ${L.em.map((e) => e.fc.cube.emission).join(',')}`);
+  // Ein Fenster, das die erste Stufe allein trägt (24 h — das Panel heute), hat keine Vorstufe: die erste Antwort IST der Kern.
+  clearCubeForecastCache();
+  const D = await (async () => { const em = []; const fc = await getPointForecastFromCube({ ...optsP, hours: 24, onUpdate: (u) => em.push(u) }, ioOf(memoryStore(files), null)); await sleep(50); return { fc, em }; })();
+  add('(14) 24-h-Fenster (nur t1): die erste Antwort ist der Kern (25 h, nichts offen), keine weitere Ausgabe',
+    D.fc.cube.emission === 'first' && D.fc.hours.length === 25 && D.fc.cube.pending.length === 0 && D.em.length === 0, `${D.fc.hours.length} h, ${D.em.length} weitere`);
+
+  // Ohne `onUpdate` wartet der Pfad wie bisher auf die statischen Produkte (keine Frist im Test-IO).
+  clearCubeForecastCache();
+  const tW = performance.now();
+  const waited = await getPointForecastFromCube(optsP, ioOf(slowStore(/static\//, 600), null));
+  add('(14) ohne `onUpdate` wartet der Pfad wie bisher (≥ 600 ms auf `static`), Werte byte-gleich zur Referenz', performance.now() - tW >= 600 && stepsOf(waited) === stepsOf(refNoObs), `${(performance.now() - tW).toFixed(0)} ms`);
+
+  // V-FI-20: schnelles Runden und Quantil-Speicher — DIESELBEN Zahlen wie vorher.
+  const { roundTo: rT, roundToReference: rRef, quantileMemo, OUTPUT_SCALE } = await import('../src/pointForecast/fusion/output.ts');
+  let seed = 42; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  const steps = [...new Set([...Object.values(OUTPUT_SCALE), 0.001, 0.01, 0.1, 1, 0.25, 0.5, 5])];
+  let nR = 0, badR = null;
+  for (const st of steps) {
+    for (let k = 0; k < 40_000; k++) {
+      const mag = 10 ** (rnd() * 8 - 4) * (rnd() < 0.5 ? -1 : 1);
+      const x = k % 97 === 0 ? (k % 2 ? -0 : 0) : k % 89 === 0 ? (Math.round(mag / st) + 0.5) * st : mag;   // ±0 und genaue Halbierungen mit
+      nR++;
+      if (JSON.stringify(rT(x, st)) !== JSON.stringify(rRef(x, st))) { badR = `${x} @ ${st}: ${rT(x, st)} ≠ ${rRef(x, st)}`; break; }
+    }
+    if (badR) break;
+  }
+  add('(14) V-FI-20: `roundTo` (Zehnerpotenzen über k/10^d) liefert an je 40 000 Zufallswerten (±0, Halbierungen, 1e−4…1e4) für jeden Schritt der Ausgabe und drei andere DIESELBE Zahl wie der bisherige Weg über toFixed',
+    !badR && nR === steps.length * 40_000 && steps.length >= 7, badR ?? `${nR} Werte, ${steps.length} Schritte`);
+  const rH = fuseCubePoint(mk0, { hourly: true, tail: true });
+  const dists = rH.steps.flatMap((s) => (s.fused ? [s.fused.temperature, s.fused.dewPoint, s.fused.humidity, s.fused.windSpeed, s.fused.gust, s.fused.precipitation, s.fused.clouds].filter(Boolean).map((v) => v.dist) : []));
+  const ps = [0.1, 0.5, 0.9, 0.8413, 0.1587];
+  const memoOk = dists.every((d) => ps.every((p) => quantileMemo(d, p) === quantileOf(d, p) && quantileMemo(d, p) === quantileOf(d, p)));
+  add('(14) V-FI-20: der Quantil-Speicher gibt für jede Verteilung der stündlichen Rechnung und jedes p genau `quantileOf` zurück (zweiter Aufruf aus dem Speicher)',
+    memoOk && dists.some((d) => d.kind === 'rice'), `${dists.length} Verteilungen (${dists.filter((d) => d.kind === 'rice').length} Rice)`);
+
+  // Leser: Radar, das zum Kern noch läuft, steht als Versprechen in `late.nowcast`; fertig ohne Slot ⇒ [] und der Leser nennt den Grund.
+  const bP = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: slowStore(/^radar\//, 400), terrain: false, plan: false, decodePng: () => { throw new Error('kein Frame erwartet'); }, progressive: true });
+  const ncLate = await bP.late?.nowcast?.result;
+  add('(14) Leser progressiv: Radar noch unterwegs ⇒ `late.nowcast` mit Skip „zum Kern noch nicht da"; es endet ohne Slot mit [] und eigener Begründung',
+    !!bP.late?.nowcast && bP.skips.includes(bP.late.nowcast.skip) && /zum Kern noch nicht da/.test(bP.late.nowcast.skip) && Array.isArray(ncLate) && ncLate.length === 0
+    && bP.skips.some((s) => /nowcast: .*kein Slot/.test(s)),
+    bP.skips.filter((s) => /nowcast/.test(s)).join(' | '));
+}
+
+// ---------------------------------------------------------------------------
+// (15) AP12 (c) — Ebenen-Bereiche: nur die Ebenen der Antwort holen, Rest im Hintergrund,
+//      geprüfte ganze Datei in den Cache; jede Abweichung ⇒ ganze Datei. Ausgabe byte-gleich.
+// ---------------------------------------------------------------------------
+{
+  const { CUBE_ANSWER_PLANES } = await import('../src/pointForecast/cubeSource.ts');
+  const { spansForPlanes, complementSpans } = await import('../src/point/client/chunkRanges.ts');
+  const { cachedStore, memoryBackend } = await import('../src/point/client/cache.ts');
+  add('(15) CUBE_ANSWER_PLANES: 39 von 57 Ebenen — ohne alle *_q10/_q90 und ohne t/rh auf 850/700 hPa, mit 925 hPa',
+    CUBE_ANSWER_PLANES.length === 39 && !CUBE_ANSWER_PLANES.some((id) => /_q(10|90)$/.test(id) || /^(t|rh)(850|700)$/.test(id))
+    && ['t925', 'rh925', 'srcCount', 'ensCount', 'hModEff', 'gammaEff', 't2m_sd_ens', 'snowlmt_sd'].every((id) => CUBE_ANSWER_PLANES.includes(id)), String(CUBE_ANSWER_PLANES.length));
+  const dirT = [{ offset: 100, length: 10 }, { offset: 110, length: 5 }, { offset: 115, length: 3000 }, { offset: 3115, length: 20 }];
+  const sp = spansForPlanes(dirT, ['a', 'b', 'c', 'd'], new Set(['a', 'b', 'd']));
+  add('(15) Bereiche: benachbarte Blöcke zusammengelegt (a+b), eine Lücke > 2 KB trennt (c), Rest = genau die Lücken bis zum Ende',
+    JSON.stringify(sp) === JSON.stringify([{ start: 100, end: 115 }, { start: 3115, end: 3135 }])
+    && JSON.stringify(complementSpans([{ start: 0, end: 50 }, ...sp], 3200)) === JSON.stringify([{ start: 50, end: 100 }, { start: 115, end: 3115 }, { start: 3135, end: 3200 }]));
+
+  const optsR = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const ioR = (store, planeRanges) => ({ store, terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...(planeRanges ? { planeRanges: true } : {}) });
+  const vOf = (fc) => JSON.stringify(fc.cube.v2.axis.steps);
+  const hoursOf = (fc) => JSON.stringify(fc.hours.map((h) => ({ ...h, fusion: undefined })));
+  clearCubeForecastCache();
+  const sWhole = memoryStore(fx.files);
+  const fWhole = await getPointForecastFromCube(optsR, ioR(sWhole, false));
+  clearCubeForecastCache();
+  const sRange = memoryStore(fx.files);
+  const fRange = await getPointForecastFromCube(optsR, ioR(sRange, true));
+  // Bytes bis zur Antwort: direkt am t1-Chunk der Fixture (die Vervollständigung läuft im Speicher-Store sofort nach).
+  const { readChunkRanges } = await import('../src/point/client/chunkRanges.ts');
+  const t1P = [...fx.files.keys()].find((p) => /^point\/\d{10}\/t1\//.test(p));
+  const rc1 = await readChunkRanges(memoryStore(fx.files), t1P, CUBE_PLANES.map((p) => p.id), CUBE_ANSWER_PLANES);
+  add('(15) Ende-zu-Ende: mit Ebenen-Bereichen ist die Ausgabe (v2-Schritte UND Altfelder) byte-gleich zur ganzen Datei; am t1-Chunk fließen bis zur Antwort weniger Bytes',
+    vOf(fRange) === vOf(fWhole) && hoursOf(fRange) === hoursOf(fWhole) && !rc1.whole && rc1.fetchedBytes < rc1.totalBytes,
+    `t1: ${rc1.fetchedBytes} von ${rc1.totalBytes} B in ${rc1.requests} Abrufen`);
+  add('(15) benannt: je Stufe „39 von 57 Ebenen über n Bereiche gelesen … Rest wird im Hintergrund nachgeladen"',
+    ['t1', 't2', 't3'].every((t) => fRange.cube.notes.some((n) => n.startsWith(`${t}: 39 von 57 Ebenen über`))), fRange.cube.notes.filter((n) => /Ebenen über/.test(n)).join(' | '));
+  // Negativkontrolle: nur t2m über Bereiche ⇒ die Ausgabe ist eine andere (der Vergleich oben ist nicht blind).
+  const bNeg = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true, planeRanges: ['t2m'] });
+  const iNeg = cubeInputFromBundle(bNeg, clima); iNeg.terrain = flatTerrain(FIX.hTrue); iNeg.elevationM = FIX.hTrue;
+  const vNeg = JSON.stringify(toPointForecastV2(fuseCubePoint(iNeg, { hourly: true, tail: true }), { nowMs: FIX.nowMs, terrainSource: 'override', urban: null }).axis.steps);
+  add('(15) Negativkontrolle: nur t2m über Bereiche ⇒ andere Ausgabe (Taupunkt/Wind fehlen) — der Byte-Vergleich sieht fehlende Ebenen', vNeg !== vOf(fWhole) && bNeg.cube.t1.filledPlanes.join() === 't2m');
+
+  // Vervollständigung: Rest holen, CRC prüfen, ganze Datei in den Cache; der nächste Besuch liest die ganze Datei ohne Bereich.
+  const backend = memoryBackend();
+  const cStore = cachedStore(memoryStore(fx.files), backend);
+  const bC = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: cStore, terrain: false, nowcast: false, plan: false, planeRanges: CUBE_ANSWER_PLANES });
+  const comp = await bC.completing;
+  await sleep0();
+  const t1Path = bC.cube.t1.chunk.path;
+  const cachedT1 = await backend.get(`${cStore.base}/${t1Path}`);
+  const orig = fx.files.get(t1Path);
+  add('(15) Vervollständigung: je Stufe ok mit CRC, die zusammengesetzte ganze Datei liegt byte-gleich im Cache',
+    comp?.length === 3 && comp.every((c) => c.ok) && comp.find((c) => c.tier === 't1').bytes > 0 && !!cachedT1 && cachedT1.bytes.length === orig.length && cachedT1.bytes.every((v, i) => v === orig[i]),
+    comp ? comp.map((c) => `${c.tier} ${c.ok ? 'ok' : c.why} +${c.bytes} B`).join(', ') : 'keine Vervollständigung');
+  const before2 = cStore.stats.files;
+  const bC2 = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: cStore, terrain: false, nowcast: false, plan: false, planeRanges: CUBE_ANSWER_PLANES });
+  add('(15) zweiter Besuch: die Chunks kommen ganz aus dem Cache (keine Bereiche, keine Vervollständigung, alle 57 Ebenen)',
+    !bC2.completing && !bC2.notes.some((n) => /Ebenen über/.test(n)) && bC2.cube.t1.filledPlanes.length + bC2.cube.t1.emptyPlanes.length === 57,
+    `Abrufe ${cStore.stats.files - before2}`);
+
+  // Rückfälle: Server ignoriert den Range (200) ⇒ ganze Datei; Bereich scheitert ⇒ ganze Datei mit Notiz; ohne `range` ⇒ ganze Datei.
+  const wholeOnRange = { ...memoryStore(fx.files) }; wholeOnRange.range = async (p) => { const b = fx.files.get(p); return b ? { bytes: b, whole: true } : null; };
+  const failing = { ...memoryStore(fx.files) }; failing.range = async () => { throw new Error('HTTP 403'); };
+  const noRange = { ...memoryStore(fx.files) }; delete noRange.range;
+  const rd = (store) => readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store, terrain: false, nowcast: false, plan: false, planeRanges: CUBE_ANSWER_PLANES });
+  const [bW, bF, bN] = await Promise.all([rd(wholeOnRange), rd(failing), rd(noRange)]);
+  const t2mOf = (b) => JSON.stringify(b.cube.t1.steps.map((s) => s.values.t2m));
+  add('(15) Rückfall: 200 auf einen Range ⇒ ganze Datei (57 Ebenen, keine Vervollständigung); Bereich scheitert (403) ⇒ ganze Datei mit Notiz; Store ohne Bereiche ⇒ ganze Datei — Werte je gleich',
+    !bW.completing && bW.cube.t1.filledPlanes.length + bW.cube.t1.emptyPlanes.length === 57
+    && bF.notes.some((n) => /Ebenen-Bereiche gescheitert .*ganze Datei \(Rückfall\)/.test(n)) && !bF.completing
+    && !bN.completing && t2mOf(bW) === t2mOf(bundle) && t2mOf(bF) === t2mOf(bundle) && t2mOf(bN) === t2mOf(bundle));
+  // Vervollständigung mit falschen Bytes ⇒ CRC-Befund, NICHT gespeichert.
+  const bad = memoryStore(fx.files); const badBackend = memoryBackend();
+  const origRange = bad.range.bind(bad);
+  let calls = 0;
+  bad.range = async (p, a, b, fo) => { const r = await origRange(p, a, b, fo); calls++; if (r && fo?.priority === 'low' && /\/t1\//.test(p)) { const c = new Uint8Array(r.bytes); c[0] ^= 0xff; return { ...r, bytes: c }; } return r; };
+  const bBad = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 336 * H, stepH: 1 },
+    { store: cachedStore(bad, badBackend), terrain: false, nowcast: false, plan: false, planeRanges: CUBE_ANSWER_PLANES });
+  const cBad = await bBad.completing;
+  await sleep0();
+  const t1Bad = cBad?.find((c) => c.tier === 't1');
+  const keyOf = (t) => `${bad.base}/${bBad.cube[t].chunk.path}`;
+  const inCache = { t1: !!(await badBackend.get(keyOf('t1'))), t2: !!(await badBackend.get(keyOf('t2'))), t3: !!(await badBackend.get(keyOf('t3'))) };
+  add('(15) Negativkontrolle: ein verfälschtes Byte im Rest ⇒ CRC-Befund, die Datei wird NICHT in den Cache gelegt (die anderen Stufen schon)',
+    t1Bad && !t1Bad.ok && /CRC/.test(t1Bad.why ?? '') && !inCache.t1 && inCache.t2 && inCache.t3, `${t1Bad?.why} · Cache ${JSON.stringify(inCache)}`);
+}
+function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
+
+// ---------------------------------------------------------------------------
+// (16) AP12 (e) — Index stale-while-revalidate im progressiven Modus: Antwort mit der Kopie, Nachprüfung
+//      nebenher; nennt sie andere Läufe, wird neu gelesen und nachgeliefert
+// ---------------------------------------------------------------------------
+{
+  const { cachedStore, memoryBackend } = await import('../src/point/client/cache.ts');
+  const optsS = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const mkIo = (store) => ({ store, terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, indexSwrMs: 60_000 });
+  const collect = async (store) => {
+    const em = [];
+    const fc = await getPointForecastFromCube({ ...optsS, onUpdate: (u) => em.push(u) }, mkIo(store));
+    await new Promise((r) => setTimeout(r, 400));
+    return { fc, em };
+  };
+  // (a) Kopie = derselbe Index ⇒ Antwort aus der Kopie, keine Neu-Lesung.
+  const backend = memoryBackend();
+  const cs = cachedStore(memoryStore(fx.files), backend, { swrIndex: true });
+  await cs.bytes('point/index.json');
+  clearCubeForecastCache();
+  const A = await collect(cs);
+  const all = [A.fc, ...A.em];
+  add('(16) SWR: mit gleicher Index-Kopie liest der Pfad ohne Index-Abruf vorab, benennt die Kopie, und es folgt KEINE Neu-Lesung',
+    all.every((f) => f.cube.notes.some((n) => /index: aus der SWR-Kopie/.test(n))) && !all.some((f) => f.cube.notes.some((n) => /ohne Index-Kopie neu gelesen/.test(n)))
+    && all.some((f) => f.hours.length === 337), all.map((f) => `${f.cube.emission}/${f.hours.length}`).join(' '));
+  // (b) Kopie zeigt auf einen t3-Lauf, den es nicht (mehr) gibt ⇒ Kern ohne t3 (benannt), dann die Neu-Lesung mit allem.
+  const stale = JSON.parse(new TextDecoder().decode(fx.files.get('point/index.json')));
+  stale.latestByTier.t3 = { ...stale.latestByTier.t3, run: '2000010100' };
+  await backend.put(`swr:${cs.base}/point/index.json`, { bytes: new TextEncoder().encode(JSON.stringify(stale)), storedAt: Date.now() });
+  clearCubeForecastCache();
+  const B = await collect(cs);
+  const coreB = [B.fc, ...B.em].find((f) => f.cube.emission === 'core' || (f.cube.emission === 'first' && f.hours.length === 337));
+  const refreshed = B.em.find((f) => f.cube.notes.some((n) => /ohne Index-Kopie neu gelesen/.test(n)));
+  add('(16) SWR: eine Kopie, die auf einen verschwundenen t3-Lauf zeigt ⇒ Kern ohne t3 mit Skip-Notiz, dann Neu-Lesung ohne Kopie: t3 da, `emission: update`, nichts offen',
+    !!coreB && coreB.cube.skips.some((s) => /t3: Chunk .*2000010100.* nicht im Repo/.test(s)) && !coreB.sourcesAvailable.includes('cube-t3')
+    && !!refreshed && refreshed.cube.emission === 'update' && refreshed.cube.pending.length === 0 && refreshed.sourcesAvailable.includes('cube-t3') && refreshed.hours.length === 337,
+    `Ausgaben: ${[B.fc, ...B.em].map((f) => `${f.cube.emission}/${f.hours.length}/${f.sourcesAvailable.filter((x) => /cube/.test(x)).join('+')}`).join(' ')}`);
+  // (c) Ohne `indexSwrMs` bleibt es beim Abruf vorab (Negativkontrolle), auch wenn eine Kopie liegt.
+  clearCubeForecastCache();
+  const C = await getPointForecastFromCube({ ...optsS, onUpdate: () => {} }, { ...mkIo(cs), indexSwrMs: 0 });
+  add('(16) SWR Negativkontrolle: ohne `indexSwrMs` keine Kopie, t3 aus dem echten Index', !C.cube.notes.some((n) => /SWR-Kopie/.test(n)));
+}
+
+// ---------------------------------------------------------------------------
+// (17) V-FI-21 — kompakte Kodierung von `PointForecastV2` (`fusion/v2codec.ts`): Rundweg, Prüfsumme, Größe
+// ---------------------------------------------------------------------------
+{
+  const { encodeV2, decodeV2, compareV2, V2C_REGISTERED } = await import('../src/pointForecast/fusion/v2codec.ts');
+  const { CALIB_LEGEND_V2, UNIT_V2 } = await import('../src/pointForecast/fusion/output.ts');
+  const { gzipSync } = await import('node:zlib');
+  const gzKB = (x) => gzipSync(Buffer.from(typeof x === 'string' ? x : JSON.stringify(x))).length / 1024;
+  const mkInput = () => { const i = cubeInputFromBundle(bundle, clima); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; return i; };
+  const outExtra = { nowMs: FIX.nowMs, terrainSource: 'override', urban: null };
+  // Der volle Fall: stündlich mit Schwanz, dazu ein Radar-Slot und eine Stationsmessung (Anker) — jede Member-Art kommt vor.
+  const full = mkInput();
+  full.nowcast = [{ product: 'nowcast', sourceId: 'radvor_rv', stamp: '2026091621', slotAgeMin: 12, probes: 1, extrapolationH: 2, bytes: 0, framesInSlot: 25, framesFetched: 1, framesFailed: 0,
+    frames: [{ validAtMs: t0Ms, leadMinutes: 0, mmh: 0.6, saturated: false, validAtSuspect: false }] }];
+  const tCube0 = fuseCubePoint(mkInput()).steps[0].vertical.t;
+  full.obs = [{ source: 'brightsky', lat: FIX.lat, lon: FIX.lon, elevM: FIX.hTrue, distanceM: 3000, validAtMs: t0Ms, temperature: tCube0 + 2, relativeHumidity: null, u: null, v: null, gust: 7.5 }];
+  const v2H = toPointForecastV2(fuseCubePoint(full, { hourly: true, tail: true }), outExtra);
+  const v2N = toPointForecastV2(fuseCubePoint(mkInput()), outExtra);
+  const cH = encodeV2(v2H), cN = encodeV2(v2N);
+  const backH = decodeV2(cH), backN = decodeV2(cN);
+  const dH = compareV2(v2H, backH), dN = compareV2(v2N, backN);
+  const kinds = new Set(v2H.axis.steps.flatMap((s) => s.members.map((m) => m.product)));
+  add('(17) Rundweg stündlich (337 Schritte, mit Radar und Anker): jede Zahl, jedes Flag, jedes Member, Achse und Provenienz exakt; Verteilungs- und Ankerzahlen innerhalb ½ Schritt',
+    dH.exact.length === 0 && dH.distMaxHalfSteps <= 1 && dH.distCompared > 3000 && dH.anchorMaxHalfSteps <= 1 && dH.anchorCompared > 0
+    && ['cube-t1', 'station', 'nowcast', 'anchor', 'climatology'].every((k) => kinds.has(k)) && v2H.axis.steps.length === 337,
+    `${v2H.axis.steps.length} Schritte · exakt-Abweichungen ${dH.exact.length}${dH.exact.length ? ` (${dH.exact.slice(0, 2).join('; ')})` : ''} · Verteilung max ${dH.distMaxHalfSteps.toFixed(3)} × ½ Schritt über ${dH.distCompared} · Anker max ${dH.anchorMaxHalfSteps.toFixed(3)} über ${dH.anchorCompared} · Member-Arten ${[...kinds].join(',')}`);
+  add('(17) Rundweg nativ (102 Schritte) exakt, Verteilungen innerhalb ½ Schritt',
+    dN.exact.length === 0 && dN.distMaxHalfSteps <= 1 && v2N.axis.steps.length === 102, `exakt-Abweichungen ${dN.exact.length} · Verteilung max ${dN.distMaxHalfSteps.toFixed(3)}`);
+  const viaText = decodeV2(JSON.parse(JSON.stringify(cH)));
+  add('(17) Rundweg über den JSON-Text (so liegt es im Archiv): dasselbe Ergebnis wie aus dem Objekt',
+    compareV2(backH, viaText).exact.length === 0 && JSON.stringify(viaText) === JSON.stringify(backH));
+  // Negativkontrollen: eine gekippte Ziffer, eine falsche Prüfsumme, eine fremde Version
+  const flip = JSON.parse(JSON.stringify(cH));
+  const col = flip.body.vars.t2m.d[0];
+  const at = col.findIndex((x) => x != null && x !== 0);
+  col[at] += 1;
+  const throws = (fn, re) => { try { fn(); return false; } catch (e) { return re.test(e.message); } };
+  add('(17) Negativkontrolle: eine gekippte Ziffer im Körper (t2m-Verteilung) ⇒ Dekodierung verweigert (Prüfsumme); falsche Prüfsumme, fremde Version, fremdes Objekt ebenso',
+    at >= 0 && throws(() => decodeV2(flip), /Prüfsumme/) && throws(() => decodeV2({ ...cH, check: (cH.check + 1) >>> 0 }), /Prüfsumme/)
+    && throws(() => decodeV2({ ...cH, version: 2 }), /Version/) && throws(() => decodeV2({ body: cH.body }), /kein buscosun-v2c/));
+  // Der Vergleicher selbst schlägt an (sonst wäre „0 Abweichungen" keine Aussage)
+  const bad1 = structuredClone(backH); bad1.axis.steps[5].vars.t2m.p50 = Math.round((bad1.axis.steps[5].vars.t2m.p50 + 0.01) * 100) / 100;
+  const bad2 = structuredClone(backH); bad2.axis.steps[5].vars.t2m.dist.mu += 0.01;
+  const ai = backH.axis.steps.findIndex((s) => s.members.some((m) => m.anchor));
+  const bad3 = structuredClone(backH); bad3.axis.steps[ai].members.find((m) => m.anchor).anchor.termK += 2e-4;
+  const bad4 = structuredClone(backH); bad4.axis.steps[7].flags = [...bad4.axis.steps[7].flags, 'stale'];
+  add('(17) Negativkontrolle des Vergleichers: p50 um einen Schritt, eine Verteilung um einen ganzen Schritt, ein Ankerwert um 2 Schritte, ein Flag mehr — jede Änderung wird gemeldet',
+    compareV2(v2H, bad1).exact.length === 1 && compareV2(v2H, bad2).exact.some((e) => /dist\.mu .*½ Schritt/.test(e)) && ai >= 0
+    && compareV2(v2H, bad3).exact.some((e) => /anchor\.termK/.test(e)) && compareV2(v2H, bad4).exact.some((e) => /flags/.test(e)));
+  // Exakt heißt exakt: ein Wert neben der Skala wird nicht still gerundet
+  const offScale = structuredClone(v2N); offScale.axis.steps[0].vars.t2m.p50 = 12.345;
+  add('(17) Negativkontrolle: ein Wert neben der Ausgabe-Skala (t2m p50 = 12,345 bei 0,01) ⇒ der Kodierer verweigert, statt still zu runden',
+    throws(() => encodeV2(offScale), /nicht auf der Skala/));
+  // Die Texte: Legende und Einheiten per Verweis nur, solange sie den registrierten gleichen; ein neuer Text reist wörtlich
+  const changed = structuredClone(v2N); changed.provenance.calibLegend = { ...changed.provenance.calibLegend, interpolated: 'geänderter Text' };
+  const cC = encodeV2(changed);
+  add('(17) Legende/Einheiten: output.ts schreibt die registrierten Texte (sonst hier registrieren); im Normalfall per Verweis, ein geänderter Text reist wörtlich und kommt so zurück',
+    JSON.stringify(V2C_REGISTERED.legend) === JSON.stringify(CALIB_LEGEND_V2) && JSON.stringify(V2C_REGISTERED.units) === JSON.stringify(UNIT_V2)
+    && cH.body.provenance.calibLegend.ref === 'legend-1' && cH.body.provenance.units.ref === 'units-1'
+    && !('ref' in cC.body.provenance.calibLegend) && decodeV2(cC).provenance.calibLegend.interpolated === 'geänderter Text');
+  // Größe (gzip, Stufe 6 wie das Archiv): gemessen, mit Ratsche auf der Fixture
+  const gH = gzKB(v2H), gHc = gzKB(cH), gN = gzKB(v2N), gNc = gzKB(cN);
+  add('(17) Größe (Ratsche auf der Fixture): stündlich kompakt ≤ 27 KB gz und ≤ 30 % des v2-JSON; nativ ≤ 13 KB gz',
+    gHc <= 27 && gHc <= 0.3 * gH && gNc <= 13,
+    `v2 stündlich ${(JSON.stringify(v2H).length / 1024).toFixed(0)} KB / gz ${gH.toFixed(1)} KB → kompakt ${(JSON.stringify(cH).length / 1024).toFixed(0)} KB / gz ${gHc.toFixed(1)} KB (${(100 * gHc / gH).toFixed(0)} %) · nativ gz ${gN.toFixed(1)} → ${gNc.toFixed(1)} KB`);
+}
+
+// ---------------------------------------------------------------------------
+// (18) V-FI-17 — z0 aus WorldCover schaltet die zweistufige Windkorrektur ein (nur mit z0; ohne byte-gleich)
+// ---------------------------------------------------------------------------
+{
+  const { windBlendingFactor } = await import('../src/pointForecast/fusion/terrainTerms.ts');
+  const { z0CacheKey } = await import('../src/point/client/z0Point.ts');
+  const { memoryBackend } = await import('../src/point/client/cache.ts');
+  const mkInput = () => { const i = cubeInputFromBundle(bundle, clima); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; return i; };
+  const z0Of = (z0True, t1, t2 = t1, t3 = t1) => ({ z0True, z0Mod: { t1, t2, t3 }, coverage: { point: 1, t1: 1, t2: 1, t3: 1 }, shares: [[30, 1]], radiusM: 500, source: 'test' });
+  const base = fuseCubePoint(mkInput(), { hourly: true, tail: true });
+  // Alles außer der gemessenen Rechenzeit (`timing`) — sie ist in jedem Lauf anders.
+  const same = (x, y) => JSON.stringify({ ...x, timing: null }) === JSON.stringify({ ...y, timing: null });
+  const withNull = fuseCubePoint({ ...mkInput(), z0: null }, { hourly: true, tail: true });
+  const noTrue = fuseCubePoint({ ...mkInput(), z0: z0Of(null, 0.03) }, { hourly: true, tail: true });
+  add('(18) Negativkontrolle: ohne z0 (Feld fehlt, `null`, oder z0 am Punkt unbekannt) ist die Rechnung byte-gleich — Werte, Flags, calib',
+    same(withNull, base) && same(noTrue, base)
+    && base.calib.some((c) => c.startsWith('z0:null')) && base.steps.filter((s) => s.terrain).every((s) => s.terrain.flags.includes('windBlendingInactive')));
+  // Die synthetischen Fälle des Plans (PAP 5 O7): See in Grasland, Wald in Grasland, Stadt mit Verdrängungshöhe
+  const lake = fuseCubePoint({ ...mkInput(), z0: z0Of(0.0002, 0.03) }, { hourly: true, tail: true });
+  const forest = fuseCubePoint({ ...mkInput(), z0: z0Of(0.75, 0.03) }, { hourly: true, tail: true });
+  const cityIn = mkInput(); cityIn.urban = { ...(cityIn.urban ?? {}), d0: 9 };
+  const city = fuseCubePoint({ ...cityIn, z0: z0Of(1.0, 0.1) }, { hourly: true, tail: true });
+  const open = fuseCubePoint({ ...mkInput(), z0: z0Of(0.03, 0.03) }, { hourly: true, tail: true });
+  const wf = (r) => r.steps.find((s) => s.terrain && s.tier === 't1')?.terrain.windFactor ?? null;
+  const oneStage = Math.log(10 / 0.0002) / Math.log(10 / 0.03);
+  add('(18) See in Grasland: +5…+20 % Wind (zweistufig), weit unter der einstufigen Formel (für 0,0002/0,03 ×1,86; der Plan nennt +135 % für seine Paarung); Wald < 1; Stadt mit d0 9 m < Stadt ohne d0 < 1; offenes Land in offenem Land = 1',
+    wf(lake) > 1.05 && wf(lake) < 1.2 && wf(lake) < oneStage - 0.5 && wf(forest) > 0.3 && wf(forest) < 0.8 && wf(city) < (windBlendingFactor(0.1, 1.0, 0, 0)) && wf(city) < 1 && Math.abs(wf(open) - 1) < 1e-12,
+    `See ${wf(lake)?.toFixed(3)} (einstufig ${oneStage.toFixed(2)}) · Wald ${wf(forest)?.toFixed(3)} · Stadt+d0 ${wf(city)?.toFixed(3)} (ohne d0 ${windBlendingFactor(0.1, 1.0, 0, 0).toFixed(3)}) · offen ${wf(open)}`);
+  const s0 = (r) => r.steps.find((s) => s.tier === 't1' && s.samples?.length);
+  const cubeU = (r) => s0(r).samples.find((x) => x.source.startsWith('cube-'));
+  const ratio = Math.hypot(cubeU(lake).u, cubeU(lake).v) / Math.hypot(cubeU(base).u, cubeU(base).v);
+  add('(18) das Cube-Member trägt den Faktor (u, v, Böe), Flag `windBlendingInactive` fällt weg, die Temperatur bleibt unberührt',
+    Math.abs(ratio - wf(lake)) < 1e-9 && Math.abs(cubeU(lake).gust / cubeU(base).gust - wf(lake)) < 1e-9 && cubeU(lake).temperature === cubeU(base).temperature
+    && !s0(lake).terrain.flags.includes('windBlendingInactive') && !same(lake, base), `|v| ×${ratio.toFixed(4)} · Gegenprobe des Vergleichs: mit z0 ≠ ohne`);
+  const perTier = fuseCubePoint({ ...mkInput(), z0: z0Of(0.0002, 0.03, 0.1, null) }, { hourly: true, tail: true });
+  const ofTier = (t) => perTier.steps.find((s) => s.terrain && s.tier === t && !s.interpolated)?.terrain;
+  add('(18) z0 des Modells gilt je Stufe (t1 0,03 · t2 0,10 m ⇒ größerer Faktor); fehlt es für t3, bleibt t3 inaktiv mit Flag',
+    ofTier('t2').windFactor > ofTier('t1').windFactor && ofTier('t3').windFactor === null && ofTier('t3').flags.includes('windBlendingInactive'),
+    `t1 ${ofTier('t1').windFactor?.toFixed(3)} · t2 ${ofTier('t2').windFactor?.toFixed(3)} · t3 ${ofTier('t3').windFactor}`);
+  const over = fuseCubePoint({ ...mkInput(), z0: z0Of(0.0002, 0.03) }, { terrainCalib: { z0Mod: 0.03, z0True: 0.75 } });
+  add('(18) `terrainCalib` von außen hat Vorrang vor dem mitgebrachten z0 (Replay/Verifier), calib nennt die Setzung mit Herkunft',
+    over.steps[0].terrain.windFactor < 0.8 && lake.calib.some((c) => /^z0:set — zweistufige Windkorrektur aktiv .*Kreis 500 m.*t1 0\.03.*V-FI-58.*literature.*z_b = 60 m/.test(c)));
+  // Durchreichen in beiden Modi — z0 kommt aus einem vorbelegten Cache (kein Netz); ohne `io.z0` byte-gleich wie bisher
+  const optsZ = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const be = memoryBackend();
+  await be.put(z0CacheKey(FIX.lat, FIX.lon), { bytes: new TextEncoder().encode(JSON.stringify(z0Of(0.0002, 0.03))), storedAt: Date.now() });
+  const fail = async () => new Response('x', { status: 404 });
+  const ioZ = (z0) => ({ store: memoryStore(fx.files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...(z0 ? { z0 } : {}) });
+  clearCubeForecastCache();
+  const plain = await getPointForecastFromCube(optsZ, ioZ(null));
+  clearCubeForecastCache();
+  const nonProg = await getPointForecastFromCube(optsZ, ioZ({ cache: be, fetchImpl: fail }));
+  clearCubeForecastCache();
+  const emP = [];
+  const prog = await getPointForecastFromCube({ ...optsZ, onUpdate: (u) => emP.push(u) }, ioZ({ cache: be, fetchImpl: fail }));
+  clearCubeForecastCache();
+  const emM = [];
+  const miss = await getPointForecastFromCube({ ...optsZ, onUpdate: (u) => emM.push(u) }, ioZ({ cache: memoryBackend(), fetchImpl: fail }));
+  await new Promise((r) => setTimeout(r, 200));
+  const hasZ0 = (fc) => fc.cube.calib.some((c) => c.startsWith('z0:set')) && fc.cube.v2.point.terrain?.z0 === 0.0002;
+  const all = [prog, ...emP];
+  add('(18) Durchreichen: ohne `io.z0` kein z0 (calib z0:null, `point.terrain.z0` null); nicht-progressiv mit z0 im Cache ⇒ Korrektur aktiv; progressiv mit Cache-Treffer schon in der ersten Ausgabe',
+    !hasZ0(plain) && plain.cube.calib.some((c) => c.startsWith('z0:null')) && plain.cube.v2.point.terrain?.z0 === null && hasZ0(nonProg) && all.length >= 1 && all.every(hasZ0),
+    `Ausgaben progressiv: ${all.map((f) => `${f.cube.emission}/${hasZ0(f) ? 'z0' : '—'}`).join(' ')}`);
+  add('(18) progressiv ohne Cache-Treffer und ohne Spiegel (404): Ausgabe ohne Korrektur, benannt („folgt", `pending` z0), keine erfundene Rauhigkeit',
+    !hasZ0(miss) && miss.cube.notes.some((n) => /^z0: WorldCover-Rauhigkeit folgt/.test(n)) && (miss.cube.pending ?? []).includes('z0') && emM.every((f) => !hasZ0(f)),
+    `Ausgaben ${[miss, ...emM].map((f) => `${f.cube.emission}/${(f.cube.pending ?? []).join('+')}`).join(' ')}`);
+  // Nach der Nachlieferung: z0 kommt spät (erster Cache-Blick leer, der Abruf ab dem Kern liefert nach 300 ms) ⇒ eine
+  // eigene, letzte Ausgabe mit z0; die Ausgaben davor warten nicht darauf (gemessen 18.09.: Mitwarten kostete Anker/Radar ≈ 0,9 s).
+  let gets = 0;
+  const entry = { bytes: new TextEncoder().encode(JSON.stringify(z0Of(0.0002, 0.03))), storedAt: Date.now() };
+  const slowBe = { kind: 'test', get: async () => { gets++; if (gets === 1) return null; await new Promise((r) => setTimeout(r, 300)); return entry; }, put: async () => {}, sweep: async () => 0 };
+  clearCubeForecastCache();
+  const emL = [], tL = [];
+  const t0L = Date.now();
+  const lateFirst = await getPointForecastFromCube({ ...optsZ, onUpdate: (u) => { emL.push(u); tL.push(Date.now() - t0L); } }, ioZ({ cache: slowBe, fetchImpl: fail }));
+  await new Promise((r) => setTimeout(r, 700));
+  const lastL = emL[emL.length - 1];
+  add('(18) progressiv, z0 später als die Nachlieferung: die Ausgaben davor ohne z0 (`pending` z0), dann EINE eigene letzte Ausgabe mit z0 und ohne offenes z0',
+    !hasZ0(lateFirst) && (lateFirst.cube.pending ?? []).includes('z0') && emL.length >= 1 && !!lastL && hasZ0(lastL) && !(lastL.cube.pending ?? []).includes('z0')
+    && emL.slice(0, -1).every((f) => !hasZ0(f)),
+    `Ausgaben ${[lateFirst, ...emL].map((f) => `${f.cube.emission}/${hasZ0(f) ? 'z0' : '—'}/${(f.cube.pending ?? []).join('+') || '∅'}`).join(' ')} · z0 nach ${tL[tL.length - 1] ?? '—'} ms`);
+}
+
+// ---------------------------------------------------------------------------
 // Ausgabe
 // ---------------------------------------------------------------------------
 let failed = 0;

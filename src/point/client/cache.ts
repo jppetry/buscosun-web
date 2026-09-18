@@ -67,6 +67,9 @@ export const defaultCachePolicy: CachePolicy = (path, base) => {
   return null;
 };
 
+/** AP12 (e): Dateien mit stale-while-revalidate-Kopie — nur der Index (er zeigt auf Läufe, die ≥ 9 h im Repo bleiben). */
+const isSwrPath = (path: string) => path.replace(/^\/+/, '') === 'point/index.json';
+
 export interface CacheStats {
   hits: number;
   misses: number;
@@ -89,6 +92,8 @@ export interface CachedStoreOptions {
   stats?: CacheStats;
   /** Sweep-Schwelle; Voreinstellung 48 h (kein Lauf ist länger als 24 h im Repo). */
   maxAgeMs?: number;
+  /** AP12 (e): vom Index eine Kopie für stale-while-revalidate ablegen und über `peek` anbieten. Voreinstellung aus. */
+  swrIndex?: boolean;
 }
 
 /**
@@ -101,6 +106,7 @@ export function cachedStore(inner: PointStore, backend: CacheBackend, opts: Cach
   const now = opts.nowMs ?? (() => Date.now());
   const stats = opts.stats ?? newCacheStats();
   const maxAgeMs = opts.maxAgeMs ?? 48 * H;
+  const swrOn = !!opts.swrIndex;
   const sweptOnce = new WeakSet<CacheBackend>();
   if (!sweptOnce.has(backend)) {
     sweptOnce.add(backend);
@@ -109,7 +115,13 @@ export function cachedStore(inner: PointStore, backend: CacheBackend, opts: Cach
 
   const bytes = async (path: string, fo?: FetchOpts): Promise<Uint8Array | null> => {
     const ttl = policy(path, inner.base);
-    if (ttl == null) { stats.bypass += 1; return inner.bytes(path, fo); }
+    if (ttl == null) {
+      stats.bypass += 1;
+      const b = await inner.bytes(path, fo);
+      // AP12 (e): vom Index eine Kopie für stale-while-revalidate (`peek`) — der Index selbst wird nie aus dem Cache GELIEFERT.
+      if (b && swrOn && isSwrPath(path)) backend.put(`swr:${inner.base}/${path.replace(/^\/+/, '')}`, { bytes: b, storedAt: now() }).catch(() => { stats.errors += 1; });
+      return b;
+    }
     const key = `${inner.base}/${path.replace(/^\/+/, '')}`;
     try {
       const hit = await backend.get(key);
@@ -132,6 +144,40 @@ export function cachedStore(inner: PointStore, backend: CacheBackend, opts: Cach
     get base() { return inner.base; },
     get stats() { return inner.stats; },
     bytes,
+    // AP12 (c): liegt die GANZE Datei im Cache, gibt es keinen Bereich, sondern sie (`whole`) — der warme
+    // Weg bleibt der heutige. Bereiche selbst werden nicht gespeichert; die geprüfte ganze Datei legt
+    // der Leser nach der Vervollständigung über `seed` ab.
+    async range(path: string, start: number, end: number, fo?: FetchOpts) {
+      const ttl = policy(path, inner.base);
+      if (ttl != null) {
+        try {
+          const hit = await backend.get(`${inner.base}/${path.replace(/^\/+/, '')}`);
+          if (hit && (ttl === Infinity || now() - hit.storedAt < ttl)) {
+            stats.hits += 1;
+            stats.bytesServed += hit.bytes.length;
+            return { bytes: hit.bytes, whole: true };
+          }
+        } catch { stats.errors += 1; }
+      }
+      if (inner.range) return inner.range(path, start, end, fo);
+      const b = await bytes(path, fo);
+      return b ? { bytes: b, whole: true } : null;
+    },
+    // AP12 (e): die zuletzt gesehene Fassung einer SWR-Datei (heute nur `point/index.json`), wenn sie jünger ist als `maxAgeMs`.
+    async peek(path: string, maxAgeMs: number) {
+      if (!swrOn || !isSwrPath(path)) return null;
+      try {
+        const hit = await backend.get(`swr:${inner.base}/${path.replace(/^\/+/, '')}`);
+        if (!hit) return null;
+        const ageMs = now() - hit.storedAt;
+        return ageMs >= 0 && ageMs <= maxAgeMs ? { bytes: hit.bytes, ageMs } : null;
+      } catch { stats.errors += 1; return null; }
+    },
+    seed(path: string, b: Uint8Array) {
+      if (policy(path, inner.base) == null) return;
+      backend.put(`${inner.base}/${path.replace(/^\/+/, '')}`, { bytes: b, storedAt: now() })
+        .then(() => { stats.stored += 1; }, () => { stats.errors += 1; });
+    },
     async json<T>(path: string, fo?: FetchOpts) {
       const b = await bytes(path, fo);
       if (!b) return null;
@@ -139,7 +185,7 @@ export function cachedStore(inner: PointStore, backend: CacheBackend, opts: Cach
     },
     withBase(base: string) {
       if (!inner.withBase) return self;
-      return cachedStore(inner.withBase(base), backend, { policy, nowMs: now, stats, maxAgeMs });
+      return cachedStore(inner.withBase(base), backend, { policy, nowMs: now, stats, maxAgeMs, swrIndex: swrOn });
     },
   };
   return self;

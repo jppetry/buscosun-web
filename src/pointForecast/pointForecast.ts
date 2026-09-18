@@ -184,6 +184,23 @@ export interface PointForecastOptions {
    *    nach dem AP9-Gate (AP11).
    */
   pointSource?: 'live' | 'cube';
+  /**
+   * Phase FI (AP12): progressive Ausgabe — NUR der Cube-Pfad liest das Feld. Ist es gesetzt, kommt die
+   * erste Antwort, sobald der Kern gelesen ist (Stufen, Station, Gelände); Radar, Anker-Messung und
+   * statische Produkte, die dann noch laufen, werden nicht abgewartet, sondern lösen EINE spätere
+   * Ausgabe über diesen Rückruf aus (benannt in `cube.emission`/`cube.pending`). Ohne das Feld wartet
+   * der Pfad wie bisher auf die Fristen (Sammler, Verifier). Der Live-Pfad ignoriert es.
+   */
+  onUpdate?: (fc: PointForecast) => void;
+  /**
+   * Phase FI (V-FI-24): die Höhe des Abfragepunkts von außen, m ü. NN — z. B. die Stationshöhe eines Archivpunkts
+   * (PA3: an 31 Punkten lag die DEM-Höhe > 50 m unter der Station). Ersetzt die DEM-Höhe überall, wo der Live-Pfad
+   * sie braucht: Stationsgewichte und Anker (`spatialWeight`), Höhenkorrektur des Blends (Lapse), buscosun Fusion
+   * (`computeDistributions`, Klimatologie) und `query.elevation`. Die Geländeform (Senke, Hang, `demSample`) bleibt
+   * vom DEM. Fehlt das Feld oder ist es nicht endlich ⇒ DEM-Höhe wie bisher (byte-gleich). Nur der Live-Pfad liest
+   * es; der Cube-Pfad hat seine eigene Regel (E-F-12: Stationshöhe ≤ 250 m).
+   */
+  elevationM?: number | null;
 }
 
 /**
@@ -223,7 +240,7 @@ interface PfCacheEntry { hours: number; forecast: PointForecast; ts: number }
 const PF_CACHE = new Map<string, PfCacheEntry>();
 const PF_CACHE_TTL_MS = 180_000;     // 3 min
 const PF_CACHE_MAX = 64;
-export function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean, dist: boolean, anchorValue = false, cube = false): string {
+export function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean, dist: boolean, anchorValue = false, cube = false, elevationM: number | null = null): string {
   // Das Radar-Flag MUSS in den Key: sonst könnte ein Nicht-Radar-Aufrufer
   // (Route/3D) den Cache füllen und ein Radar-Aufrufer (Event/Panel) bekäme das
   // radarlose Ergebnis (fehlender Nowcast-Niederschlag). Ebenso der Native-Modus:
@@ -233,7 +250,9 @@ export function pfCacheKey(lat: number, lng: number, country: Country, radar: bo
   // `undefined`, ohne dass etwas fehlgeschlagen wäre.
   // Ebenso der Cube-Pfad (Phase FI, AP2): sonst bekäme ein Live-Aufrufer die
   // Cube-Achse (109 Schritte statt Stunden) — oder umgekehrt.
-  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}${dist ? ':d' : ''}${anchorValue ? ':av' : ''}${cube ? ':c' : ''}`;
+  // Ebenso eine Höhe von außen (V-FI-24): sonst bekäme ein Aufrufer mit Stationshöhe das DEM-Ergebnis. Ohne Höhe
+  // bleibt der Schlüssel Zeichen für Zeichen, wie er war.
+  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}${dist ? ':d' : ''}${anchorValue ? ':av' : ''}${cube ? ':c' : ''}${elevationM != null && Number.isFinite(elevationM) ? `:h${elevationM}` : ''}`;
 }
 
 /**
@@ -256,7 +275,9 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   // Wie viele vergangene Stunden für den Anker geholt werden (Schritt zwei).
   const histH = anchorMode === 'offset' ? ANCHOR_HISTORY_H : 0;
 
-  const cacheKey = pfCacheKey(lat, lng, country, !!opts.includeRadarNowcast, opts.sourceMode === 'native', !!opts.distribution, anchorMode === 'value');
+  // V-FI-24: eine Höhe von außen (endlich) ersetzt die DEM-Höhe; sonst `null` ⇒ alles wie bisher.
+  const elevationIn = opts.elevationM != null && Number.isFinite(opts.elevationM) ? opts.elevationM : null;
+  const cacheKey = pfCacheKey(lat, lng, country, !!opts.includeRadarNowcast, opts.sourceMode === 'native', !!opts.distribution, anchorMode === 'value', false, elevationIn);
   const cached = PF_CACHE.get(cacheKey);
   if (cached && cached.hours >= hours && (Date.now() - cached.ts) < PF_CACHE_TTL_MS) {
     return cached.forecast;
@@ -354,7 +375,7 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   ]);
   const terrain = terrainRes.ctx;
   const demSample = terrainRes.sample;
-  const elevation = terrain.elevationM;
+  const elevation = elevationIn ?? terrain.elevationM;
 
   // Existiert eine quasi ko-lokalisierte Station, misst sie die Mikrolage
   // (Kaltluftsee, Hanglage) bereits — dann die Terrain-Korrektur stark dämpfen,

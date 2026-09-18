@@ -25,12 +25,14 @@ import { decodeCubeChunk, type CubeChunk, type CubeChunkHeader } from '../cubeFo
 export interface DecodeOpts {
   planes: readonly { id: string }[];
   wanted?: readonly string[];
+  /** AP12 (c): `false` bei einem aus Bereichen zusammengesetzten Chunk — die CRC gilt der ganzen Nutzlast. */
+  checkCrc?: boolean;
 }
 
 export type ChunkDecoder = (bytes: Uint8Array, opts: DecodeOpts) => Promise<CubeChunk>;
 
 /** Der Hauptthread-Weg, unverändert. */
-export const decodeChunkMain: ChunkDecoder = (bytes, opts) => decodeCubeChunk(bytes, { planes: opts.planes, wanted: opts.wanted });
+export const decodeChunkMain: ChunkDecoder = (bytes, opts) => decodeCubeChunk(bytes, { planes: opts.planes, wanted: opts.wanted, ...(opts.checkCrc === false ? { checkCrc: false } : {}) });
 
 interface Pending {
   resolve: (c: CubeChunk) => void;
@@ -154,7 +156,7 @@ export const decodeChunkPooled: ChunkDecoder = (bytes, opts) => {
     try {
       // Kopie senden, nicht transferieren: die Bytes gehören dem Aufrufer (Cache).
       const buf = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes.buffer : bytes.slice().buffer;
-      w.postMessage({ id, buf, planes: opts.planes.map((p) => p.id), wanted: opts.wanted ? [...opts.wanted] : undefined });
+      w.postMessage({ id, buf, planes: opts.planes.map((p) => p.id), wanted: opts.wanted ? [...opts.wanted] : undefined, ...(opts.checkCrc === false ? { checkCrc: false } : {}) });
     } catch (err) {
       pending.delete(id);
       clearTimeout(timer);
