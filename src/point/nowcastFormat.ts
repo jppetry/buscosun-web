@@ -225,7 +225,7 @@ export function nowcastManifest() {
       step: NOWCAST_STEP,
       deadZone: NOWCAST_DEAD_ZONE,
       inverse: 'raw === 0 ? 0 : (raw / 255) * vMax',
-      zeroMeans: 'ZWEIDEUTIG: „kein messbarer Niederschlag (< 0,06 mm/h)" ODER „keine Radarabdeckung". decodeRadolanRaw setzt ausserhalb der Abdeckung NaN, und precipToU8 bildet NaN auf 0 ab — beides wird dasselbe Byte. Am echten Slot belegt: Linz und Wien liefern roh NaN, im PNG 0,0000. Deshalb IMMER erst die Domaene pruefen (domain ∩ clip aus point/sources.json), sonst entsteht eine erfundene Trockenheit.',
+      zeroMeans: 'ZWEIDEUTIG: „kein messbarer Niederschlag (< 0,06 mm/h)" ODER „keine Radarabdeckung". decodeRadolanRaw setzt ausserhalb der Abdeckung NaN, und precipToU8 bildet NaN auf 0 ab — beides wird dasselbe Byte. Am echten Slot belegt: Linz und Wien liefern roh NaN, im PNG 0,0000. Deshalb IMMER erst die Domaene pruefen (domain ∩ clip ∩ Standortreichweite `sites` aus point/sources.json — RV: 150 km um die 17 DWD-Standorte), sonst entsteht eine erfundene Trockenheit.',
       saturatedAt: NOWCAST_SATURATION,
       saturatedMeans: `raw === 255 heißt „≥ ${NOWCAST_SATURATION.toFixed(2)} mm/h", ein offener Randbin. NICHT als ${NOWCAST_VMAX} ausliefern — das machte aus 60 mm/h eine plausible falsche Zahl.`,
       vMaxWarning: 'vMax ist zugleich der Drift-Wächter des Clients (src/sources/radarImg.ts): ein abweichender Wert macht den Slot für jeden Leser ungültig. Nicht erhöhen.',

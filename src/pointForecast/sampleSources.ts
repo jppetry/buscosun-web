@@ -38,6 +38,12 @@ interface OpenMeteoPointHour {
   gust: number | null;
   /** Relative humidity at 2 m, %. */
   relativeHumidity: number | null;
+  /**
+   * Dew point at 2 m, °C — where the source carries it directly. MOSMIX via BrightSky
+   * does (`dew_point`) while its `relative_humidity` is null; without this field MOSMIX
+   * carried neither dew point nor humidity into buscosun Fusion (V-FI-25, 2026-09-17).
+   */
+  dewPoint?: number | null;
   /** Schneefallgrenze (m ü. M.) — nur AROME/AT/CH liefert das aktuell. */
   snowLine: number | null;
   cloudLow: number | null;
@@ -160,7 +166,8 @@ interface BrightSkyWeatherEntry {
   wind_speed?: number | null;       // km/h
   wind_direction?: number | null;
   wind_gust_speed?: number | null;  // km/h, max gust during hour (MOSMIX FX1)
-  relative_humidity?: number | null; // %
+  relative_humidity?: number | null; // % — null for MOSMIX forecast hours (measured 2026-09-17, V-FI-25)
+  dew_point?: number | null;         // °C — set for MOSMIX forecast hours (MOSMIX carries Td, not RH)
   cloud_cover?: number | null;
   precipitation?: number | null;
 }
@@ -187,7 +194,7 @@ export interface BrightSkyPointForecast {
   obsStation?: { id: number; lat: number; lng: number; height: number; name?: string };
 }
 
-function brightSkyEntryToHour(w: BrightSkyWeatherEntry, model: string, elevation: number | null): OpenMeteoPointHour {
+export function brightSkyEntryToHour(w: BrightSkyWeatherEntry, model: string, elevation: number | null): OpenMeteoPointHour {
   let u: number | null = null;
   let v: number | null = null;
   if (w.wind_speed != null && w.wind_direction != null) {
@@ -214,6 +221,9 @@ function brightSkyEntryToHour(w: BrightSkyWeatherEntry, model: string, elevation
     u, v,
     gust: gustMs,
     relativeHumidity: w.relative_humidity ?? null,
+    // V-FI-25: MOSMIX forecast hours carry `dew_point` and a null `relative_humidity`;
+    // `fuse.ts` prefers the dew point anyway (exact at the source's height).
+    dewPoint: w.dew_point ?? null,
     snowLine: null,                      // MOSMIX liefert keinen snowlmt-Wert
     cloudLow: cl, cloudMid: cm, cloudHigh: ch,
     precipitation: w.precipitation ?? null,
@@ -619,6 +629,7 @@ export function omSeriesToHourSamples(
         u: e.u, v: e.v,
         gust: e.gust,
         relativeHumidity: e.relativeHumidity,
+        dewPoint: e.dewPoint ?? null,
         snowLine: e.snowLine,
         cloudLow: e.cloudLow, cloudMid: e.cloudMid, cloudHigh: e.cloudHigh,
         precipitation: e.precipitation,
@@ -651,6 +662,7 @@ export function seriesToHourSamples(
       u: e.u, v: e.v,
       gust: e.gust,
       relativeHumidity: e.relativeHumidity,
+      dewPoint: e.dewPoint ?? null,
       snowLine: e.snowLine,
       cloudLow: e.cloudLow, cloudMid: e.cloudMid, cloudHigh: e.cloudHigh,
       precipitation: e.precipitation,
@@ -687,6 +699,7 @@ export function brightSkyToHourSamples(
       u: e.u, v: e.v,
       gust: e.gust,
       relativeHumidity: e.relativeHumidity,
+      dewPoint: e.dewPoint ?? null,
       snowLine: e.snowLine,
       cloudLow: e.cloudLow, cloudMid: e.cloudMid, cloudHigh: e.cloudHigh,
       precipitation: e.precipitation,
@@ -714,7 +727,7 @@ export function brightSkyHistoryToSamples(
   const toSample = (e: OpenMeteoPointHour, source: string, family: PointSourceSample['family'], distanceMeters: number, elev: number | null): PointSourceSample => ({
     source, family,
     temperature: e.temperature, sourceElevation: elev,
-    u: e.u, v: e.v, gust: e.gust, relativeHumidity: e.relativeHumidity, snowLine: e.snowLine,
+    u: e.u, v: e.v, gust: e.gust, relativeHumidity: e.relativeHumidity, dewPoint: e.dewPoint ?? null, snowLine: e.snowLine,
     cloudLow: e.cloudLow, cloudMid: e.cloudMid, cloudHigh: e.cloudHigh,
     precipitation: e.precipitation, uvIndex: null, distanceMeters,
     validAtMs: e.time.getTime(),

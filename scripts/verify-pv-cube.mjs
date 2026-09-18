@@ -58,6 +58,21 @@ const bundle = await readBundle();
 add('(1) das Bündel liest drei Stufen und die Station aus der Fixture (echte Container, echter Index)',
   bundle.tiers.join() === 't1,t2,t3' && !!bundle.cube.t1 && !!bundle.cube.t2 && !!bundle.cube.t3 && !!bundle.station && bundle.errors.length === 0,
   `tiers ${bundle.tiers.join()} station ${bundle.station?.station.id} errors ${bundle.errors.join('; ')}`);
+// E-F-12 (Jan, 17.09.): steht der Punkt ≤ 250 m an der Katalogstation, ist deren Höhe h_true — auch
+// für PAP 4 — und die Setzung steht in calib. Ohne übergebene Höhe und ohne Gelände (Fixture).
+{
+  const bS = await readBundle(fx.files, { lat: FIX.station.lat + 0.001, lon: FIX.station.lon, elevationM: undefined });
+  const inS = cubeInputFromBundle(bS, clima);
+  add('(1) E-F-12: 0,1 km an der Station ⇒ Bündel nimmt ihre Höhe (515 m) als h_true, elevationFrom station, calib nennt hTrue:station',
+    bS.stationChoice?.elevationFrom === 'station' && inS.elevationM === FIX.station.elev && inS.elevationFrom === 'station'
+    && fuseCubePoint(inS, { hourly: false }).calib.some((c) => c.startsWith('hTrue:station')),
+    `${bS.stationChoice?.elevationFrom} ${inS.elevationM}`);
+  const bF = await readBundle(fx.files, { elevationM: undefined });   // FIX.lat/lon: 4,5 km von der Station
+  const inF = cubeInputFromBundle(bF, clima);
+  add('(1) E-F-12 Negativkontrolle: 4,5 km entfernt ohne Höhe und Gelände ⇒ h_true null (kein Wert ohne Herkunft), kein hTrue:station',
+    bF.stationChoice?.elevationFrom !== 'station' && inF.elevationM === null && !fuseCubePoint(inF, { hourly: false }).calib.some((c) => c.startsWith('hTrue:station')));
+  add('(1) E-F-12: die übergebene Höhe hat Vorrang (input) — die Fixture rechnet weiter mit hTrue 525', cubeInputFromBundle(bundle, clima).elevationFrom === 'input' && cubeInputFromBundle(bundle, clima).elevationM === FIX.hTrue);
+}
 add('(1) die Station vertritt den Punkt (4,5 km, −10 m) — dieselbe Regel wie am lebenden Datum (§9.5.1)',
   bundle.stationChoice?.accepted === true && bundle.station?.steps.length === 247 && /-10 m/.test(bundle.stationChoice.reason), bundle.stationChoice?.reason);
 add('(1) Manifest gelesen (ein Speicher-Store kennt keine Commits ⇒ `main`), Quellen je Stufe bekannt',

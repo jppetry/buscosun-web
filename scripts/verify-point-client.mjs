@@ -381,9 +381,18 @@ let stationManifest;
   add('(7) Negativ-Kontrolle Abstand: eine Station 15+ km entfernt vertritt den Punkt NICHT',
     p2.station.accepted === false && /Schwelle 15 km/.test(p2.station.reason), p2.station.reason);
 
-  const p3 = await (plan(46.98, 10.98, at(4), 900));
-  add('(7) Negativ-Kontrolle Hoehe: 0,3 km entfernt, aber 900 m hoeher ⇒ abgelehnt, mit Grund',
+  // 0,5 km neben Hochsoelden (E-F-12 greift erst bei ≤ 250 m), 900 m tiefer als die Station.
+  const p3 = await (plan(46.98 + 0.0045, 10.98, at(4), 900));
+  add('(7) Negativ-Kontrolle Hoehe: 0,5 km entfernt, aber 900 m hoeher ⇒ abgelehnt, mit Grund',
     p3.station.accepted === false && /Bias-Korrektur/.test(p3.station.reason), p3.station.reason);
+  // E-F-12 (Jan, 17.09.): AN der Station (≤ 250 m) gilt ihre Hoehe als Punkthoehe — auch wenn der
+  // Aufrufer (DEM) 900 m weniger uebergibt; die Station vertritt den Punkt, mit Grund.
+  const p3b = await (plan(46.98 + 0.002, 10.98, at(4), 900));
+  add('(7) E-F-12: 0,2 km von der Station, DEM 900 m tiefer ⇒ die Station steht am Punkt und vertritt ihn, ihre Hoehe gilt',
+    p3b.station.accepted === true && /steht an der Station/.test(p3b.station.reason) && /1800 m/.test(p3b.station.reason) && SELECTION.stationAtPointKm === 0.25, p3b.station.reason);
+  const p3c = await (plan(46.98 + 0.0025, 10.98, at(4), 900));
+  add('(7) E-F-12 Negativ-Kontrolle: 0,28 km ⇒ die Regel greift nicht mehr, das Hoehenkriterium lehnt ab',
+    p3c.station.accepted === false && /Bias-Korrektur/.test(p3c.station.reason), p3c.station.reason);
 
   const p4 = await (plan(LAT, LON, at(400), 519));
   add('(7) jenseits jeder Achse gibt es KEINE Wahl — und jeder Kandidat sagt, warum',
@@ -391,6 +400,19 @@ let stationManifest;
     p4.decisions[0].candidates.map((c) => c.product).join(','));
   add('(7) die Luecke wird als Luecke gefuehrt, nicht als leeres Ergebnis',
     p4.gaps.length === 1 && /trägt 0…48 h/.test(p4.gaps[0].why));
+  // PA3 (§9.12): Abschnitte sind halboffen und lueckenlos — toMs = letzte Entscheidungszeit +
+  // Schritt − 1 ms, bei einem wie bei vielen Schritten. Vorher endete ein mehrstufiger Abschnitt
+  // auf der letzten Entscheidungszeit selbst (im Archiv sah das wie 6-h-Loecher aus).
+  {
+    const H6 = 6 * 3_600_000;
+    const pr = await planPointSources(memoryStore(all), { lat: LAT, lon: LON, elevationM: 519, fromMs: at(0), toMs: at(400), stepH: 6, nowMs: Date.parse(RUN_AT) });
+    const segs = pr.segments;
+    const contiguous = segs.every((s, i) => (i === 0 || s.fromMs === segs[i - 1].toMs + 1) && (s.toMs - s.fromMs + 1) === s.steps * H6);
+    const lastGap = pr.gaps[pr.gaps.length - 1];
+    add('(7) PA3: Abschnitte lueckenlos aneinander, Laenge = Schritte × 6 h, auch der einstufige; Luecken enden auf Schrittende',
+      segs.length >= 3 && contiguous && segs.some((s) => s.steps === 1) && lastGap && (lastGap.toMs - lastGap.fromMs + 1) % H6 === 0,
+      segs.map((s) => `${s.primary ?? '-'}×${s.steps}`).join(' '));
+  }
 
   const p5 = await (plan(41.9, 12.5, at(4), 20));
   add('(7) ausserhalb des Cube-Ausschnitts faellt die Stufe mit dem Ausschnitt als Grund durch',
@@ -739,6 +761,21 @@ let stationManifest;
       bb.station?.station.id === 'NB' && bb.station?.bundle.path === man2.chunks[1].file && bb.station?.bundle.column === 0 && chA.cx !== chB.cx
       && [...f.keys()].filter((k) => k.startsWith(`point/stations/${RUN}/`) && k.endsWith('.bin')).length === 2 && st.stats.files >= 5,
       `station ${bb.station?.station.id} path ${bb.station?.bundle.path} files ${st.stats.files}`);
+  }
+
+  // ── (10e2) E-F-12: an der Station (≤ 250 m) ist ihre Hoehe die Punkthoehe des Buendels ──
+  {
+    const st = STATION_CATALOG.stations[0];   // 10865 MUENCHEN STADT, 515 m
+    const bAt = await readPointBundle({ lat: st.lat + 0.001, lon: st.lon, atMs: at(4), nowMs: NOW }, { store: memoryStore(all), terrain: false, nowcast: false });
+    add('(10) E-F-12: 0,1 km von der Station ohne uebergebene Hoehe ⇒ elevationFrom station, Hoehe 515 m, Station angenommen',
+      bAt.stationChoice?.elevationFrom === 'station' && bAt.stationChoice.elevationM === st.elev && bAt.stationChoice.accepted === true && /steht an der Station/.test(bAt.stationChoice.reason),
+      `${bAt.stationChoice?.elevationFrom} ${bAt.stationChoice?.elevationM} — ${bAt.stationChoice?.reason}`);
+    const bIn = await readPointBundle({ lat: st.lat + 0.001, lon: st.lon, atMs: at(4), elevationM: 700, nowMs: NOW }, { store: memoryStore(all), terrain: false, nowcast: false });
+    add('(10) E-F-12: eine uebergebene Hoehe hat Vorrang (input, 700 m) — die Station steht trotzdem am Punkt und traegt',
+      bIn.stationChoice?.elevationFrom === 'input' && bIn.stationChoice.elevationM === 700 && bIn.stationChoice.accepted === true);
+    const bFar = await readPointBundle({ lat: LAT, lon: LON, atMs: at(4), nowMs: NOW }, { store: memoryStore(all), terrain: false, nowcast: false });
+    add('(10) E-F-12 Negativ-Kontrolle: 4,5 km von der Station, kein Gelaende ⇒ keine Hoehe (null), Hoehenkriterium ungeprueft und gesagt',
+      bFar.stationChoice?.elevationFrom === null && bFar.stationChoice.elevationM === null && /NICHT geprüft/.test(bFar.stationChoice.reason), bFar.stationChoice?.reason);
   }
 
   // ── (10f) Cache-Regel und cachedStore ─────────────────────────────────────

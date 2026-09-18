@@ -35,7 +35,7 @@ import { POINT_CDN_BASE } from '../../src/point/client/store.ts';
 import { STATION_CATALOG_PATH } from '../../src/point/cubeFormat.ts';
 import { distanceKm } from '../../src/point/client/cubePoint.ts';
 import {
-  parsePoiListing, parseSmnStations, parseTawesStations, parseSmnNowRows, POI_DIR_URL, SMN_META_URL, TAWES_META_URL, TAWES_HISTORY_URL, SMN_NOW_URL,
+  parsePoiListing, parsePoi, parseSmnStations, parseTawesStations, parseSmnNowRows, POI_DIR_URL, POI_URL, SMN_META_URL, TAWES_META_URL, TAWES_HISTORY_URL, SMN_NOW_URL,
 } from './lib/truth.mjs';
 import { decodePng } from '../lib/png.mjs';
 
@@ -53,8 +53,15 @@ export const WMO_RANGES = Object.freeze([
   [11000, 11399, 'AT'], [11400, 11799, 'CZ'], [11800, 11999, 'SK'],
 ]);
 export const DACH = Object.freeze(['DE', 'AT', 'CH', 'LI']);
-/** Country profile the live path (`getPointForecast({ country })`) is called with. Neighbours keep PA1's block profile. */
-export const PROFILE_OF = Object.freeze({ DE: 'DE', AT: 'AT', CH: 'CH', LI: 'CH', CZ: 'AT', SK: 'AT', DK: 'CH', NL: 'CH', BE: 'CH', LU: 'CH' });
+/**
+ * Country profile the live path (`getPointForecast({ country })`) is called with. CZ/SK keep
+ * PA1's block profile AT (AROME and INCA reach into Bohemia); DK/NL/BE/LU run under DE since
+ * E-F-11 (Jan, 2026-09-17): ICON-D2 and MOSMIX cover them, AROME does not — until PA3 they ran
+ * under CH (WMO block 06), a series break named in every slot (`PROFILE_WHY`).
+ */
+export const PROFILE_OF = Object.freeze({ DE: 'DE', AT: 'AT', CH: 'CH', LI: 'CH', CZ: 'AT', SK: 'AT', DK: 'DE', NL: 'DE', BE: 'DE', LU: 'DE' });
+/** Written into every slot (PA3), because read cold the neighbours' profile looks like a default fallback. */
+export const PROFILE_WHY = 'Der Live-Pfad kennt nur die drei DACH-Profile. CZ/SK tragen AT (PA1, WMO-Block 11; AROME/INCA reichen nach Boehmen), LI traegt CH. DK/NL/BE/LU tragen seit E-F-11 (Jan, 17.09.2026) DE — ICON-D2 und MOSMIX decken sie, AROME nicht; die Slots vom 14.–16.09. rechneten sie unter CH (WMO-Block 06): Reihenbruch am 17.09., im Bewerter nach codeHash trennen.';
 /** Which measurement network carries the truth where POI is not required. */
 export const NETWORK_OF = Object.freeze({ AT: 'tawes', CH: 'smn', LI: 'smn' });
 
@@ -236,11 +243,41 @@ async function readableNetworkStations() {
   return { readable, probe: { tawes: { ...tawesProbe, readable: tawesOk.size, notReadable: tawes.filter((s) => !tawesOk.has(s.id)).map((s) => `${s.id} ${s.name}`) }, smn: { ...smnProbe, readable: smnOk.size } } };
 }
 
+/**
+ * POI files that carry at least one measurement (PA3): a file can exist and hold only „---"
+ * for days — measured 2026-09-17 at 10004 UFS TW Ems, 10007 UFS Deutsche Bucht, 10044
+ * Leuchtturm Kiel, 10382 Berlin-Tegel (closed airport), 10522 Euskirchen. A point whose only
+ * truth is such a file has no truth. Probed only for catalog stations that could become
+ * points (WMO range or network pair), one file each, six in parallel.
+ */
+export async function readablePoiIds(poiIds, catalogStations) {
+  const candidates = catalogStations.filter((s) => poiIds.has(s.id) && (countryOfWmo(s.id) != null || s.id.startsWith('P')));
+  const readable = new Set();
+  const empty = [];
+  const failed = [];
+  const t0 = Date.now();
+  let bytes = 0;
+  await mapLimit(candidates, 6, async (s) => {
+    try {
+      const txt = await fetchText(POI_URL(s.id));
+      bytes += txt.length;
+      const rows = parsePoi(txt);
+      let any = false;
+      for (const r of rows.values()) if (r.t != null || r.rh != null || r.ff != null || r.p != null || r.n != null) { any = true; break; }
+      if (any) readable.add(s.id); else empty.push(`${s.id} ${String(s.name).trim()}`);
+    } catch (e) { failed.push(`${s.id}: ${e.message.slice(0, 40)}`); readable.add(s.id); }   // an outage is not an empty station
+  });
+  return { readable, probe: { candidates: candidates.length, readable: readable.size, empty, failed, bytes, ms: Date.now() - t0 } };
+}
+
 export async function buildPointList(opts = {}) {
   const t0 = Date.now();
   const catalogSrc = opts.catalog ?? `${POINT_CDN_BASE}/${STATION_CATALOG_PATH}`;
   const catalog = /^https?:/.test(catalogSrc) ? JSON.parse(await fetchText(catalogSrc)) : JSON.parse(readFileSync(catalogSrc, 'utf8'));
-  const poiIds = parsePoiListing(await fetchText(POI_DIR_URL));
+  const poiAll = parsePoiListing(await fetchText(POI_DIR_URL));
+  let poiIds = poiAll;
+  let poiProbe = null;
+  try { ({ readable: poiIds, probe: poiProbe } = await readablePoiIds(poiAll, catalog.stations)); } catch (e) { console.warn(`[points] POI-Sonde gescheitert — alle POI-Dateien gelten als lesbar: ${e.message}`); }
   let networkStations = [];
   let probe = null;
   try { ({ readable: networkStations, probe } = await readableNetworkStations()); } catch (e) { console.warn(`[points] TAWES/SMN nicht lesbar — AT/CH fallen auf POI zurück: ${e.message}`); }
@@ -258,8 +295,9 @@ export async function buildPointList(opts = {}) {
   const count = (f) => points.filter(f).length;
   const doc = {
     schema: 1, kind: 'punktarchiv/points', builtAt: new Date().toISOString(),
-    from: { catalog: catalogSrc, catalogUpdatedAt: catalog.updatedAt ?? null, catalogCount: catalog.count ?? catalog.stations.length, poiDir: POI_DIR_URL, poiFiles: poiIds.size, smnMeta: SMN_META_URL, tawesMeta: TAWES_META_URL, networkProbe: probe },
-    rule: 'DE: MOSMIX-Katalog ∩ POI ∩ WMO 10000–10999 (PA1). AT/CH/LI: Katalogstation mit TAWES- bzw. SMN-Station am selben Ort (gleiche Kennung ≤ 5 km oder ≤ 2 km, |Δz| ≤ 50 m; Position = Messstelle), POI zusätzlich wo vorhanden, ohne Netzpaar POI allein. Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, Länderprofil wie in PA1. Alle: Cube-Box, eindeutig nach Kennung und Position (3 Dezimalen), DEM (Terrarium z9) endlich. Herleitung: audit/fusion-implementierung.md §9.3.',
+    from: { catalog: catalogSrc, catalogUpdatedAt: catalog.updatedAt ?? null, catalogCount: catalog.count ?? catalog.stations.length, poiDir: POI_DIR_URL, poiFiles: poiAll.size, poiProbe, smnMeta: SMN_META_URL, tawesMeta: TAWES_META_URL, networkProbe: probe },
+    rule: 'DE: MOSMIX-Katalog ∩ POI ∩ WMO 10000–10999 (PA1); seit PA3 zählt eine POI-Datei nur, wenn sie mindestens einen Messwert trägt (Sonde beim Bau). AT/CH/LI: Katalogstation mit TAWES- bzw. SMN-Station am selben Ort (gleiche Kennung ≤ 5 km oder ≤ 2 km, |Δz| ≤ 50 m; Position = Messstelle), POI zusätzlich wo vorhanden, ohne Netzpaar POI allein. Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, Länderprofil wie in PA1. Alle: Cube-Box, eindeutig nach Kennung und Position (3 Dezimalen), DEM (Terrarium z9) endlich. Herleitung: audit/fusion-implementierung.md §9.3, §9.12.',
+    profileWhy: PROFILE_WHY,
     colocate: COLOCATE,
     counts: {
       points: points.length, byCountry,
@@ -267,7 +305,7 @@ export async function buildPointList(opts = {}) {
       withPoi: count((p) => p.truth.poi), withTawes: count((p) => p.truth.tawes), withSmn: count((p) => p.truth.smn),
       networkOnly: count((p) => !p.truth.poi && (p.truth.tawes || p.truth.smn)),
       matchId: count((p) => p.mosmix?.match === 'id'), matchColocated: count((p) => p.mosmix?.match === 'colocated'),
-      droppedNoDem: noDem.length, ...sel.dropped, terrariumTiles: tiles,
+      droppedNoDem: noDem.length, poiEmpty: poiProbe?.empty.length ?? null, ...sel.dropped, terrariumTiles: tiles,
     },
     points,
     ms: Date.now() - t0,
@@ -332,8 +370,8 @@ export function pointsSelfTest() {
   add('CH: Genf SMN GVE + POI, Säntis SMN SAE ohne POI (Höhe der Messstelle 2501 m); LI: Vaduz SMN VAD, Profil CH',
     by['06700'].truth.smn === 'GVE' && by['06700'].country === 'CH' && by['06680'].truth.smn === 'SAE' && !by['06680'].truth.poi && by['06680'].elev === 2501
     && by['06990'].country === 'LI' && by['06990'].truth.smn === 'VAD' && by['06990'].profile === 'CH');
-  add('Nachbarn richtig etikettiert und im PA1-Profil: Prag CZ/Profil AT, Leeuwarden NL/Profil CH, beide nur POI',
-    by['11518'].country === 'CZ' && by['11518'].profile === 'AT' && by['06270'].country === 'NL' && by['06270'].profile === 'CH' && by['11518'].truth.poi && !by['11518'].truth.tawes);
+  add('Nachbarn richtig etikettiert: Prag CZ/Profil AT (PA1), Leeuwarden NL/Profil DE (E-F-11), beide nur POI',
+    by['11518'].country === 'CZ' && by['11518'].profile === 'AT' && by['06270'].country === 'NL' && by['06270'].profile === 'DE' && by['11518'].truth.poi && !by['11518'].truth.tawes);
   // Rückfall: ohne Netzstationen (Metadaten-Ausfall) bleibt ein AT-Punkt mit POI stehen, einer ohne POI fällt.
   const bare = selectPoints(cat, poi, {});
   add('Rückfall ohne TAWES/SMN: Wien und Genf bleiben (POI, Katalogposition), Sonnblick und Säntis fallen',
@@ -364,6 +402,8 @@ async function main() {
   console.log(`[points] verworfen: ${JSON.stringify({ noCountry: c.noCountry, noTruth: c.noTruth, outsideBox: c.outsideBox, dupId: c.dupId, dupPos: c.dupPos, colocateTooFar: c.colocateTooFar, colocateDz: c.colocateDz })}`);
   const pr = doc.from.networkProbe;
   if (pr) console.log(`[points] Wahrheit geprüft: TAWES ${pr.tawes.readable}/${pr.tawes.stations} (${pr.tawes.requests} Abrufe, ${(pr.tawes.bytes / 1024).toFixed(0)} KB, ${pr.tawes.ms} ms) · SMN ${pr.smn.readable}/${pr.smn.stations} (${pr.smn.requests} Abrufe, ${(pr.smn.bytes / 1024).toFixed(0)} KB, ${pr.smn.ms} ms)${pr.smn.failed.length ? ` — nicht lesbar: ${pr.smn.failed.join(', ')}` : ''}${pr.tawes.notReadable.length ? ` — TAWES ohne TL: ${pr.tawes.notReadable.join(', ')}` : ''}`);
+  const pp = doc.from.poiProbe;
+  if (pp) console.log(`[points] POI geprüft: ${pp.readable}/${pp.candidates} Dateien mit Messwert (${(pp.bytes / 1024).toFixed(0)} KB, ${pp.ms} ms)${pp.empty.length ? ` — leer: ${pp.empty.join(', ')}` : ''}${pp.failed.length ? ` — nicht lesbar (gelten als lesbar): ${pp.failed.join(', ')}` : ''}`);
   console.log(`[points] ${doc.ms} ms → ${out}`);
 }
 

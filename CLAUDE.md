@@ -16,13 +16,15 @@ Daten-Repo (307 MiB, kein Platz).
 |---|---|---|
 | AP0 Messbasis | fertig | §9.0 — Harness `verify:pv-latency` (esbuild-Lab + CDP, App-Bundle unberührt); heutiger Leser 3,0 s Desktop / 13,6 s Mobil-4G / 38,9 s 3G; kalter Chunk-TTFB p90 2,6 s |
 | AP1 paralleler Leser | fertig, Gate grün | §9.2 — `readPointBundle` (`src/point/client/readPoint.ts`), IndexedDB-Cache je Pfadregel, Worker-Pool, Zwei-Skalen-DEM z11 + z8, Chunk-Adresse aus dem Index, `run.json@commit` nur für Provenienz, raw-Ausweichweg mit 2,5-s-Hedge; Kern warm 168 ms Desktop / 325 ms Mobil-4G, kalt 0,8–1,5 s / 2,2–2,3 s (bytes-gebunden); `verify:point-client` 112/112 |
-| AP-PA2 AT/CH-Archivpunkte | fertig | §9.3 — 410 Punkte (DE 208, AT 84, CH 101, LI 1), Position = Messstelle, `rr1h` Stundensumme; `verify:punktarchiv` 87/87 |
+| AP-PA2 AT/CH-Archivpunkte | fertig | §9.3 — Position = Messstelle, `rr1h` Stundensumme; seit PA3 **405 Punkte** (DE 203, AT 84, CH 101, LI 1, Nachbarn 16 — 5 leere POI-Stationen entfernt) |
+| AP-PA3 Archiv-Befunde des Experten | **fertig (uncommitted), Push = Jans Gate vor 23:10 UTC** | §9.12 — 17 Befunde geprüft, 11 behoben: Schema **2** (Historie in `punktarchiv.mjs`, Schema 1 lesbar), Plan mit Stationshöhe (10 Gipfelstationen nahmen sich selbst nicht an), RV-Abdeckung als **Standortregel** 150 km um 17 DWD-Standorte (`sourceMatrix.ts`, an der rohen NaN-Maske gemessen: 99,53 %; der Kasten bis 14,1 °E lag an 36/410 Punkten falsch), Wahrheitsfenster ab Stundenboden (die 23-UTC-Stunde fehlte täglich), TAWES/SMN aus eigenen 10-min-Spalten + `fxh`, `ageAtSlotH`, `stepsCoverage`, `skipped`/`assignedAbsent`, Nowcast „außerhalb des Rasters" benannt, `stats.warnings`, `pointsFrom.rules`, `live.axis`; `toSegments` lückenlos (`resolve.ts`). **Jans Entscheidungen 17.09. umgesetzt (§9.12.5):** V-FI-25 MOSMIX-Taupunkt in die Live-Fusion (`sampleSources.ts`; gemessen 0/240 statt ~230/240 Klimatologie-Stunden an DE-Punkten) und V-FI-26 SMN-Böenspalte `fkl010z1` — **eigener Commit 2**; E-F-11 DE-Profil für DK/NL/BE/LU; E-F-12 Stationshöhe als h_true bei ≤ 250 m (`SELECTION.stationAtPointKm`, `elevationFrom`, `hTrue:station`). Gates: `verify:punktarchiv` **103/103**, `verify:point-data` **974/974**, `verify:point-client` **118/118**, `verify:pv-cube` **204/204**, `verify:pv-fusion` **227/227**, Build 241/241, Budget unverändert |
 | AP12a Purge + Warm-up im Publisher | fertig, Abnahme (b) offen | §9.4 — `scripts/point/cdnSync.mjs`: jede geänderte Datei purgen (run.json zuerst), Index-Frischeprüfung, Warm-up mit 403/Frist als Fehlschlag, Budget je Job (Regel F); `verify:point-data` 969/969 |
 | AP2–AP8 Algorithmus | **fertig (uncommitted), Desktop-Gate grün, Mobil-4G rot** | §9.5–§9.11 — `src/pointForecast/cubeSource.ts` hinter `pointSource: 'cube'` (Registrierung statt Import ⇒ App-Bundle unverändert, eagerJs 107,9), `fusion/{vertical,grid,uncertainty,terrainTerms,output}.ts`; `fuseCubePoint` = reine Funktion (Bündel, calib, nowMs, options): PAP 3 (2×2-Block, Nachbarn aus demselben Chunk) · PAP 4 (Fall A/B/C, Γ_inv-Deckel V-FI-15) · PAP 6 (σ_ens/σ_div/sys-only ⊕ Quantisierung ⊕ Höhenrest, Konfidenz-Score) · PAP 5 (Geometrie, Terme inaktiv bis A/A_uhi gemessen) · AP7 (Anker aus Messungen mit Frist, Radar-Flags `nowcastFallbackModel`/`stale`, Klimatologie-Schwanz, stündliche Achse: Station füllt, sonst markierte Interpolation, Nähte ungeglättet) · AP8 (`PointForecastV2`: je Stunde je Größe p10/p50/p90/σ, Verteilung, σ-Art, Konfidenz, Member mit Gewicht, Setzungen — Live-Pfad byte-gleich, `verify:pv-fusion` 222/222). Motor nur additiv angefasst (`errorSigma`, `cloudTotal`, lesender Hook `onWeights`). Gates: `verify:pv-cube` **201/201** (13 Blöcke, in CI), `verify:point-client` 112/112, Build 241/241, Budget unverändert. Lab (`--gate`, 4 Orte): **Desktop kalt p50 ≈ 1,0 s / p95 1,9 s, warm 0,4 s — §6 grün; Mobil-4G kalt 2,5 s — rot, Kern allein 2,1–2,4 s (bytes ⇒ AP12)**. Fristen (set): progressive Produkte 1 800 ms ab Start, Obs 1 500 ms + 500 ms Gnade. **Keine Genauigkeitsaussage** (kein Backtest) — Vergleich Cube gegen Live-Pfad an 10 Orten in §9.5.4 (T 57/100 innerhalb 0,5 K, Flachland 29/30; Bergorte: Station trägt, V-FI-13) |
 | AP9 Backtest · AP11 Consumer · AP12 Härtung (Mobil) · AP10 Kalibrierung | **nächste Etappen** | AP9 über das Archiv (`verify:pv-score --archive`, Sammler nimmt den Cube-Pfad mit `pointSource: 'cube'`); 0–48 h bewertbar ab jetzt, 336 h ab 30.09., 30 Fälle je t3-Bin ≈ Ende Oktober; AP12 = Ebenen-Ranges/progressives Laden für Mobil (E-F-3) |
 
-**Jans Gates (`MANUELLE-SCHRITTE.md` §15):** Push von `buscosun-web/main` mit AP1 + PA2 + AP12a zusammen
-(der Archiv-Cron klont `main` täglich 23:10 UTC; der Punkt-Cron fährt danach den neuen Publisher); Kopie von
+**Jans Gates (`MANUELLE-SCHRITTE.md` §15/§16):** Push von `buscosun-web/main` mit AP1 + PA2 + AP12a + **PA3 +
+E-F-11/12** als Commit 1 **vor 23:10 UTC** (der Archiv-Cron klont `main` täglich 23:10 UTC; der Punkt-Cron fährt danach
+den neuen Publisher), **V-FI-25/26 als Commit 2** direkt danach (Live-Pfad: MOSMIX-Taupunkt, SMN-Böe); Kopie von
 `scripts/repack-repo/workflow-point.yml` ins Daten-Repo (optional, +11 Zeilen); Abnahme (b) mit
 `npm run verify:pv-latency -- --only=bundle --profiles=desktop-none` nach dem ersten Cron-Job mit neuem
 Publisher (Basis kalt Kern p50 1 458 ms).
@@ -33,8 +35,15 @@ gepinnt), V-FI-7 (Radar-Slots am Edge immer MISS — Warm-up im Spiegel-Workflow
 München kalt in 0–3 h das Modell, benannt), V-FI-9 (kosmetisch; V-FI-8 in AP8 behoben), V-FI-11 (Live-Pfad
 Zugspitze +0 h 12,6 °C auf 2 962 m), V-FI-13 (Bergorte: Cube-Member < 5 % — der Motor-Prior 0,0035 K/m
 Höhenrest dominiert, AP10 misst), V-FI-17 (z0 nicht im Bündel ⇒ Wind-Blending inaktiv), V-FI-20 (stündliche
-Achse +100–200 ms auf Mobil), V-FI-21 (v2-JSON 1,1 MB je Punkt — Transport braucht kompakte Kodierung).
-Long Tasks sind in headless-shell nicht messbar (AP11 Real-Device).
+Achse +100–200 ms auf Mobil), V-FI-21 (v2-JSON 1,1 MB je Punkt — Transport braucht kompakte Kodierung),
+V-FI-22 (statische Produkte auf dem kritischen Pfad). **Aus PA3 (§9.12.4; V-FI-25/26 am 17.09. behoben, §9.12.5):**
+V-FI-24 (Live-Pfad rechnet an 31 Punkten mit DEM-Höhe > 50 m unter der Station; `getPointForecast` nimmt keine
+Höhe an — der Cube-Pfad nimmt seit E-F-12 die Stationshöhe bei ≤ 250 m), V-FI-27 (Registry ordnet ICON-CH2-EPS
+t1 und CLAEF t2 zu, der Producer liest sie dort nie), V-FI-28 (ICON-CH1 STAC-500 ohne Rückfall), V-FI-29
+(INCA/RZC-Hüllen größer als das Raster), V-FI-31 (Legacy-Feld `relativeHumidity` des Live-Pfads an DE-Punkten nur in
+Stunde 0 belegt — MOSMIX hat keine RH; `fusion.humidity` ist seit V-FI-25 da, das Feld füllt sich daraus nicht: Jans
+Gate). AP9-Regel: die 23-UTC-Stunde von TAWES/SMN steht in zwei Slots — nach Punkt und Stempel deduplizieren. Long
+Tasks sind in headless-shell nicht messbar (AP11 Real-Device).
 
 **Weitere offene Linien:** AROME-Ablösung im Live-Rückfallpfad vor 2026-11-01 (U-19); V-PD-62 (`hmodel.changed`
 feuert bei jedem ECMWF-Laufwechsel); E-U-13 Archivgröße (≈ 6,7 GB/Jahr bei 410 Punkten); SEO/GEO Stufe 2

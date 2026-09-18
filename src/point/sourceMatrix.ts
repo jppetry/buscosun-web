@@ -68,6 +68,12 @@ export interface Source {
   readonly edgeMarginKm: number;
   /** Zusätzliche geometrische Einschränkung aus einer Fußnote (⚠¹, ⚠⁴). */
   readonly clip: SourceDomain | null;
+  /**
+   * Reichweite um feste Standorte (Radarkomposite, ⚠¹): der Punkt gilt nur als gedeckt,
+   * wenn er innerhalb `rangeKm` um EINEN der Standorte liegt — zusätzlich zu `domain` und
+   * `clip`. Ein Komposit ist kein Kasten, sondern die Vereinigung von Kreisen.
+   */
+  readonly sites?: { readonly rangeKm: number; readonly points: ReadonlyArray<readonly [number, number]> } | null;
   /** Vorhersagelänge in Stunden je Laufstunde UTC. `default` gilt für alle übrigen. */
   readonly horizonH: { readonly default: number; readonly byRunHour?: Readonly<Partial<Record<number, number>>> };
   /** Laufstunden UTC, zu denen die Quelle überhaupt läuft. */
@@ -98,6 +104,40 @@ const G = (latMin: number, latMax: number, lonMin: number, lonMax: number): Sour
 const CC_BY_4 = 'CC BY 4.0';
 
 /**
+ * Die 17 Standorte des DWD-Radarverbunds (WGS84 lat, lon), Reichweite des Komposits 150 km.
+ *
+ * ⚠¹ Bis 2026-09-17 stand für RV ein `clip` bis 14,1 °E über die GANZE Breite: für
+ * Ostösterreich richtig, für Ostsachsen/Brandenburg (Cottbus, Görlitz, Lindenberg, Manschnow,
+ * Hoyerswerda, Lichtenhain) und Prag/Liberec falsch — und im Süden (Kärnten, Osttirol, Engadin,
+ * Tessin, Genfersee) fehlte der Schnitt ganz. **Gemessen am rohen Komposit** (`radar/rv/
+ * DE1200_RV2609171520.tar.bz2`, Lead 0, NaN = kein Radar, `audit/fusion-implementierung.md`
+ * §9.12): die Standortregel trifft **99,53 % von 12 844 Rasterpunkten** (0,1°-Raster über der
+ * Domäne), alle Abweichungen liegen bei 150 ± 2 km; um jeden einzeln prüfbaren Standort ist
+ * das Komposit bei 140 km in jeder Richtung belegt und bei 160 km leer. Der alte Kasten lag an
+ * 36 der 410 Archivpunkte falsch, die Standortregel an 2 (Randfälle 145/151 km).
+ */
+export const DWD_RADAR_SITES: ReadonlyArray<readonly [number, number]> = Object.freeze([
+  [53.5644, 6.7484],   // Borkum
+  [54.0044, 10.0468],  // Boostedt
+  [51.1246, 13.7686],  // Dresden
+  [49.5407, 12.4028],  // Eisberg
+  [51.4055, 6.9671],   // Essen
+  [47.8736, 8.0037],   // Feldberg
+  [51.3112, 8.8020],   // Flechtdorf
+  [52.4601, 9.6945],   // Hannover
+  [48.1747, 12.1018],  // Isen
+  [48.0421, 10.2192],  // Memmingen
+  [50.5001, 11.1350],  // Neuhaus
+  [50.1097, 6.5483],   // Neuheilenbach
+  [49.9847, 8.7128],   // Offenthal
+  [52.6486, 13.8581],  // Prötzel
+  [54.1757, 12.0580],  // Rostock
+  [48.5853, 9.7828],   // Türkheim
+  [52.1601, 11.1761],  // Ummendorf
+]);
+export const DWD_RADAR_RANGE_KM = 150;
+
+/**
  * DIE Quellenliste. Reihenfolge: Kurzfrist → Langfrist, wie in `QUELLENMATRIX.md` §1.
  * Domänen aus §2, Vorhaltezeiten aus §4, Lizenzen aus §5 — jeweils wörtlich übernommen.
  */
@@ -106,9 +146,12 @@ export const SOURCES: readonly Source[] = Object.freeze([
   {
     id: 'radvor_rv', name: 'RADVOR RV (+ RADOLAN RY/HG)', provider: 'DWD', kind: 'nowcast',
     domain: G(46.5, 55.9, 3.5, 15.7), edgeMarginKm: 0,
-    // ⚠¹: Das DWD-Komposit reicht 150 km um die Radarstandorte — praktisch nur
-    // westlich ca. 14,0–14,3 °E. Wien, Graz, Linz, Klagenfurt, Villach fallen heraus.
-    clip: G(46.5, 55.9, 3.5, 14.1),
+    // ⚠¹: Das DWD-Komposit reicht 150 km um die Radarstandorte — in Österreich nur bis
+    // ca. 14,0–14,3 °E (Wien, Graz, Linz, Klagenfurt, Villach fallen heraus), in Sachsen und
+    // Brandenburg aber bis zur polnischen Grenze und über Prag. Ein Kasten kann das nicht
+    // sagen; die Standortregel (`sites`, gemessen s. DWD_RADAR_SITES) kann es.
+    clip: null,
+    sites: { rangeKm: DWD_RADAR_RANGE_KM, points: DWD_RADAR_SITES },
     horizonH: { default: 2 }, runHours: [], members: 0,
     vars: ['precip'], steps: null, stepsMeasured: false,
     retentionH: 48, freeArchive: null,
@@ -603,7 +646,18 @@ export const SCHEDULED_CHANGES = Object.freeze([
 
 const KM_PER_DEG_LAT = 111.32;
 
-/** Liegt der Punkt in der Domäne — mit dem geforderten Sicherheitsabstand zum Rand? */
+/** Großkreisabstand in km (Haversine, R = 6 371 km) — pur, damit die Registry ohne Import bleibt. */
+export function greatCircleKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const r = Math.PI / 180;
+  const dLat = (bLat - aLat) * r, dLon = (bLon - aLon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * Liegt der Punkt in der Domäne — mit dem geforderten Sicherheitsabstand zum Rand — und,
+ * wo die Quelle Standorte nennt (`sites`), in Reichweite eines Standorts?
+ */
 export function coversPoint(src: Source, lat: number, lon: number): boolean {
   for (const box of [src.domain, src.clip]) {
     if (!box) continue;
@@ -614,6 +668,14 @@ export function coversPoint(src: Source, lat: number, lon: number): boolean {
     const dLon = margin / (KM_PER_DEG_LAT * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
     if (lat < box.latMin + dLat || lat > box.latMax - dLat) return false;
     if (lon < box.lonMin + dLon || lon > box.lonMax - dLon) return false;
+  }
+  if (src.sites) {
+    const { rangeKm, points } = src.sites;
+    let near = false;
+    for (const [sLat, sLon] of points) {
+      if (greatCircleKm(lat, lon, sLat, sLon) <= rangeKm) { near = true; break; }
+    }
+    if (!near) return false;
   }
   return true;
 }
@@ -698,6 +760,24 @@ export function sourceMatrixSelfTest(nowMs = Date.now()): {
   add('⚠¹ RV deckt Bregenz, nicht Wien',
     coversPoint(SOURCE_BY_ID.radvor_rv, bregenz.lat, bregenz.lon)
     && !coversPoint(SOURCE_BY_ID.radvor_rv, wien.lat, wien.lon));
+  // ⚠¹ als Standortregel, an der rohen NaN-Maske gemessen (2026-09-17, §9.12): Ostsachsen,
+  // Brandenburg und Prag liegen im Komposit (Dresden/Prötzel), Linz/Graz/Klagenfurt nicht;
+  // im Süden endet es vor Lienz (Osttirol) und Samedan (Engadin), im Norden vor Odense.
+  const rv = SOURCE_BY_ID.radvor_rv;
+  // Kremsmünster (48,05/14,13) ist gemessen gedeckt, liegt aber 151 km von Isen — der eine
+  // Randfall der Regel an den Archivpunkten; er steht hier NICHT als Behauptung.
+  add('⚠¹ RV deckt Cottbus, Görlitz, Lindenberg, Manschnow und Prag (150 km um Dresden/Prötzel)',
+    coversPoint(rv, 51.78, 14.32) && coversPoint(rv, 51.17, 14.95) && coversPoint(rv, 52.22, 14.12)
+    && coversPoint(rv, 52.55, 14.55) && coversPoint(rv, 50.10, 14.25));
+  add('⚠¹ RV deckt NICHT Linz, Graz, Klagenfurt, Lienz, Samedan, Bozen, Odense',
+    !coversPoint(rv, 48.306, 14.286) && !coversPoint(rv, 47.07, 15.44) && !coversPoint(rv, 46.62, 14.31)
+    && !coversPoint(rv, 46.83, 12.81) && !coversPoint(rv, 46.53, 9.88) && !coversPoint(rv, 46.5, 11.35) && !coversPoint(rv, 55.47, 10.33));
+  add('⚠¹ Standortregel: 17 Standorte, 150 km; Haversine Dresden→Prag 118 km, Isen→Linz 163 km',
+    DWD_RADAR_SITES.length === 17 && rv.sites?.rangeKm === 150
+    && Math.abs(greatCircleKm(51.1246, 13.7686, 50.10, 14.25) - 118) < 3
+    && Math.abs(greatCircleKm(48.1747, 12.1018, 48.306, 14.286) - 163) < 3);
+  add('⚠¹ Negativkontrolle: ohne Standortregel läge Linz in der RV-Domäne (die Hülle allein reicht nicht)',
+    coversPoint({ ...rv, sites: null }, 48.306, 14.286));
   add('⚠¹ INCA deckt Wien',
     coversPoint(SOURCE_BY_ID.inca, wien.lat, wien.lon));
   add('⚠² ICON-CH1 deckt Bern', coversPoint(SOURCE_BY_ID.icon_ch1_eps, 46.95, 7.45));

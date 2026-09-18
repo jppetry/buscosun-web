@@ -13,7 +13,7 @@ import { readFileSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { punktarchivSelfTest, tierForLead, LIVE_SCALES, TRUTH_SCALES, SENTINEL, encodeValue, ARCHIVE_SCHEMA } from './punktarchiv/lib/punktarchiv.mjs';
+import { punktarchivSelfTest, tierForLead, LIVE_SCALES, TRUTH_SCALES, SENTINEL, encodeValue, ARCHIVE_SCHEMA, ARCHIVE_SCHEMAS_READABLE } from './punktarchiv/lib/punktarchiv.mjs';
 import { truthSelfTest } from './punktarchiv/lib/truth.mjs';
 import { nodeShimsSelfTest } from './punktarchiv/lib/nodeShims.mjs';
 import { pointsSelfTest, selectPoints, countryOfWmo, inCubeBox, COLOCATE, DACH, PROFILE_OF } from './punktarchiv/points.mjs';
@@ -55,7 +55,7 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(3) jede Skala trägt scale > 0, offset und unit', all.every(([, s]) => s.scale > 0 && Number.isFinite(s.offset) && typeof s.unit === 'string'), `${all.length} Spalten`);
   add('(3) der größte plausible Wert je Spalte bleibt unter dem Sentinel-Betrag (kein stilles Klemmen)',
     encodeValue(60, LIVE_SCALES.temperature) < 32767 && encodeValue(1100, TRUTH_SCALES.p) < 32767 && encodeValue(100, LIVE_SCALES.precipitation) < 32767);
-  add('(3) Sentinel ist -32768 wie im Cube (MISSING), Schema 1', SENTINEL === -32768 && ARCHIVE_SCHEMA === 1);
+  add('(3) Sentinel ist -32768 wie im Cube (MISSING); Schema 2 (PA3), Schema 1 bleibt lesbar', SENTINEL === -32768 && ARCHIVE_SCHEMA === 2 && ARCHIVE_SCHEMAS_READABLE.includes(1) && ARCHIVE_SCHEMAS_READABLE.includes(2));
 }
 
 // (4) Die materialisierte Punktliste (falls gebaut): eindeutig, DACH, in der Box, DEM endlich.
@@ -74,6 +74,10 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
     add('(4) points.json: jeder Punkt liegt in der Cube-Box; Land aus dem WMO-Bereich bzw. aus dem Netz der Messstelle', doc.points.every((x) => inCubeBox(x.lat, x.lon)
       && (x.mosmix ? (x.truth.tawes ? x.country === 'AT' : x.truth.smn ? ['CH', 'LI'].includes(x.country) : false) : countryOfWmo(x.id) === x.country)));
     add('(4) points.json: jeder Punkt hat eine endliche DEM-Höhe', doc.points.every((x) => Number.isFinite(x.demM)));
+    // PA3: eine POI-Datei ohne einen Messwert ist keine Wahrheit — beim Bau gesondet, die Leeren gezählt.
+    add('(4) PA3: die Liste wurde mit POI-Sonde gebaut (leere POI-Dateien gezählt und ausgeschlossen); profileWhy steht in der Datei',
+      doc.from.poiProbe != null && Number.isInteger(doc.counts.poiEmpty) && typeof doc.profileWhy === 'string' && /E-F-11/.test(doc.profileWhy),
+      doc.from.poiProbe ? `${doc.from.poiProbe.readable}/${doc.from.poiProbe.candidates} lesbar · leer: ${doc.from.poiProbe.empty.join(', ') || '—'}` : 'keine Sonde');
     add('(4) points.json: jeder Punkt hat mindestens eine Wahrheit; TAWES nur in AT, SMN nur in CH/LI; Punkte ohne POI tragen ein Katalog-Paar (mosmix)',
       doc.points.every((x) => (x.truth.poi === true || x.truth.tawes || x.truth.smn) && (!x.truth.tawes || x.country === 'AT') && (!x.truth.smn || ['CH', 'LI'].includes(x.country)) && (x.truth.poi === true || !!x.mosmix)),
       `POI ${doc.counts.withPoi} · TAWES ${doc.counts.withTawes} · SMN ${doc.counts.withSmn} · nur Netz ${doc.counts.networkOnly}`);
@@ -85,8 +89,9 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
     const de = doc.points.filter((x) => x.country === 'DE');
     add('(4) PA2: DE unverändert — nur POI, Katalogposition (kein mosmix-Feld), Profil DE, WMO 10000–10999', de.length > 0 && de.every((x) => x.truth.poi === true && !x.truth.tawes && !x.truth.smn && !x.mosmix && x.profile === 'DE' && countryOfWmo(x.id) === 'DE'), `${de.length} Punkte`);
     const nb = doc.points.filter((x) => !DACH.includes(x.country));
-    add('(4) PA2: Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, ohne Netz, im Länderprofil von PA1 (Block 11 ⇒ AT, Block 06 ⇒ CH)',
-      nb.every((x) => x.truth.poi === true && !x.truth.tawes && !x.truth.smn && x.profile === PROFILE_OF[x.country] && x.profile === (x.id.startsWith('11') ? 'AT' : 'CH')), `${nb.length} Punkte`);
+    add('(4) PA2/E-F-11: Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, ohne Netz; Profil CZ/SK ⇒ AT, DK/NL/BE/LU ⇒ DE (seit 17.09.), LI ⇒ CH',
+      nb.every((x) => x.truth.poi === true && !x.truth.tawes && !x.truth.smn && x.profile === PROFILE_OF[x.country] && x.profile === (x.id.startsWith('11') ? 'AT' : 'DE'))
+      && doc.points.filter((x) => x.country === 'LI').every((x) => x.profile === 'CH') && /E-F-11/.test(doc.profileWhy ?? ''), `${nb.length} Punkte`);
     add('(4) PA2 (GPA2/E-F-9): ≥ 60 AT-Punkte mit TAWES und ≥ 40 CH-Punkte mit SMN — mindestens die DE-Dichte (208 Punkte auf 357 000 km² ⇒ AT 49, CH 24)',
       doc.points.filter((x) => x.country === 'AT' && x.truth.tawes).length >= 60 && doc.points.filter((x) => x.country === 'CH' && x.truth.smn).length >= 40,
       `AT ${doc.points.filter((x) => x.country === 'AT' && x.truth.tawes).length} · CH ${doc.points.filter((x) => x.country === 'CH' && x.truth.smn).length}`);
@@ -133,6 +138,17 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(5) PA2: das Stationsprodukt kommt über die Katalogkennung (mosmix.id), nicht über die Nähe', /p\.mosmix\?\.id \?\? p\.id/.test(src) && !/nearestStations\(/.test(src));
   add('(5) PA2: POI wird nur für Punkte mit POI-Datei abgefragt; der Live-Pfad bekommt das Länderprofil', /truth\?\.poi !== false/.test(src) && /country: p\.profile \?\? p\.country/.test(src));
   add('(5) PA2: TAWES/SMN tragen rr1h aus den 10-min-Werten (tenMinColumns) und benennen es als die mit POI vergleichbare Größe', /tenMinColumns\(/.test(src) && /rr1h \(PA2\)/.test(src) && TRUTH_SCALES.rr1h?.unit === 'mm');
+  // PA3 (§9.12) — die Befunde des Experten, je einer als Textanker an der Ursache:
+  add('(5) PA3: der Plan bekommt die STATIONSHÖHE als Punkthöhe (elevationM: p.elev), nicht das DEM-Pixel', /elevationM: p\.elev,/.test(src) && !/elevationM: p\.demM/.test(src));
+  add('(5) PA3: der Plan beginnt auf dem nächsten 6-h-Raster (00/06/12/18 UTC — alle Stufen auf ihrem Gitter), nicht auf der Slot-Minute', /Math\.ceil\(slotAtMs \/ \(stepH \* H\)\) \* stepH \* H/.test(src));
+  add('(5) PA3: das Wahrheitsfenster beginnt am Stundenboden von Slot − 24 h (die 23-UTC-Stunde geht nicht mehr verloren)', /Math\.floor\(\(slotAtMs - 24 \* H\) \/ H\) \* H/.test(src));
+  add('(5) PA3: TAWES/SMN kommen aus den eigenen 10-min-Spalten (tenMinHourStamps), nicht mehr über die App-Leser', /tenMinHourStamps\(/.test(src) && !/fetchTawesHistory|fetchSmnHistory|hourMapSeries/.test(src));
+  add('(5) PA3: Cube-Stufen tragen ageAtSlotH und publishLagH (kein kopiertes ageH), stepsCoverage statt coverage, skipped/pending/declined und die zugeordneten, aber fehlenden Quellen',
+    /ageAtSlotH:/.test(src) && /publishLagH: lb\.ageH/.test(src) && /stepsCoverage: s\.coverage/.test(src) && !/ageH: lb\.ageH/.test(src) && /skipped: manifest\.skipped/.test(src) && /assignedButAbsent\(/.test(src));
+  add('(5) PA3: Nowcast — ein Slot je Quelle (findLatestSlot), außerhalb des Rasters benannt, validAtSuspect je Reihe statt je Frame', /findLatestSlot\(store, spec\.id, slotAtMs\)/.test(src) && /ausserhalb des Rasters/.test(src) && !/validAtSuspect: !!f\.validAtSuspect/.test(src));
+  add('(5) PA3: stats.warnings sammelt Befunde ohne Abbruch (Quellen, Radar, Station, POI, Live-Höhe)', /warn\(slot, 'cubeSourcesAbsent'/.test(src) && /warn\(slot, 'nowcastUncovered'/.test(src) && /warn\(slot, 'planStationRejected'/.test(src) && /warn\(slot, 'poiEmpty'/.test(src) && /warn\(slot, 'liveElevation'/.test(src));
+  add('(5) PA3: der Slot erklärt seine Schlüssel (pointsFrom.rules: id, wmo, profile, elev, demM) und die Live-Achse (t0Ms/tsMs)', /rules: \{/.test(src) && /PROFILE_WHY/.test(src) && /slot\.live\.axis = \{/.test(src) && /tsMs ist null/.test(src));
+  add('(5) PA3: fxh (Stundenmaximum der Böe) wird für POI gesetzt (= fx) und für TAWES/SMN aus tenMinColumns übernommen', /s\.fxh = s\.fx/.test(src) && TRUTH_SCALES.fxh?.unit === 'm/s');
 }
 
 // (6) Workflow-Vorlage: Slot NACH dem letzten t1-Bau des Tages und vor Mitternacht, eigene Gruppe, kein Force-Push.

@@ -1,21 +1,35 @@
 {
  "schema": 1,
  "kind": "punktarchiv/points",
- "builtAt": "2026-09-16T17:46:31.059Z",
+ "builtAt": "2026-09-17T20:03:35.464Z",
  "from": {
   "catalog": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/point/stations/catalog.json",
-  "catalogUpdatedAt": "2026-09-15T22:44:02.927Z",
+  "catalogUpdatedAt": "2026-09-17T16:43:40.397Z",
   "catalogCount": 3071,
   "poiDir": "https://opendata.dwd.de/weather/weather_reports/poi/",
   "poiFiles": 974,
+  "poiProbe": {
+   "candidates": 243,
+   "readable": 238,
+   "empty": [
+    "10004 UFS TW EMS",
+    "10007 UFS DEUTSCHE BUCHT",
+    "10044 LEUCHTTURM KIEL",
+    "10382 BERLIN-TEGEL",
+    "10522 EUSKIRCHEN"
+   ],
+   "failed": [],
+   "bytes": 1750693,
+   "ms": 868
+  },
   "smnMeta": "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv",
   "tawesMeta": "https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min/metadata",
   "networkProbe": {
    "tawes": {
     "stations": 286,
     "requests": 3,
-    "bytes": 268270,
-    "ms": 1429,
+    "bytes": 267766,
+    "ms": 2115,
     "readable": 280,
     "notReadable": [
      "11267 DACHSTEIN-HUNERKOGEL",
@@ -29,49 +43,51 @@
    "smn": {
     "stations": 158,
     "requests": 158,
-    "bytes": 2040503,
-    "ms": 1303,
+    "bytes": 2279375,
+    "ms": 1202,
     "failed": [],
     "readable": 158
    }
   }
  },
- "rule": "DE: MOSMIX-Katalog ∩ POI ∩ WMO 10000–10999 (PA1). AT/CH/LI: Katalogstation mit TAWES- bzw. SMN-Station am selben Ort (gleiche Kennung ≤ 5 km oder ≤ 2 km, |Δz| ≤ 50 m; Position = Messstelle), POI zusätzlich wo vorhanden, ohne Netzpaar POI allein. Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, Länderprofil wie in PA1. Alle: Cube-Box, eindeutig nach Kennung und Position (3 Dezimalen), DEM (Terrarium z9) endlich. Herleitung: audit/fusion-implementierung.md §9.3.",
+ "rule": "DE: MOSMIX-Katalog ∩ POI ∩ WMO 10000–10999 (PA1); seit PA3 zählt eine POI-Datei nur, wenn sie mindestens einen Messwert trägt (Sonde beim Bau). AT/CH/LI: Katalogstation mit TAWES- bzw. SMN-Station am selben Ort (gleiche Kennung ≤ 5 km oder ≤ 2 km, |Δz| ≤ 50 m; Position = Messstelle), POI zusätzlich wo vorhanden, ohne Netzpaar POI allein. Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, Länderprofil wie in PA1. Alle: Cube-Box, eindeutig nach Kennung und Position (3 Dezimalen), DEM (Terrarium z9) endlich. Herleitung: audit/fusion-implementierung.md §9.3, §9.12.",
+ "profileWhy": "Der Live-Pfad kennt nur die drei DACH-Profile. CZ/SK tragen AT (PA1, WMO-Block 11; AROME/INCA reichen nach Boehmen), LI traegt CH. DK/NL/BE/LU tragen seit E-F-11 (Jan, 17.09.2026) DE — ICON-D2 und MOSMIX decken sie, AROME nicht; die Slots vom 14.–16.09. rechneten sie unter CH (WMO-Block 06): Reihenbruch am 17.09., im Bewerter nach codeHash trennen.",
  "colocate": {
   "idMaxKm": 5,
   "maxKm": 2,
   "maxDzM": 50
  },
  "counts": {
-  "points": 410,
+  "points": 405,
   "byCountry": {
    "DK": 1,
    "NL": 4,
    "LU": 1,
    "CH": 101,
    "LI": 1,
-   "DE": 208,
+   "DE": 203,
    "AT": 84,
    "CZ": 9,
    "SK": 1
   },
-  "dach": 394,
+  "dach": 389,
   "neighbours": 16,
-  "withPoi": 243,
+  "withPoi": 238,
   "withTawes": 84,
   "withSmn": 102,
   "networkOnly": 167,
   "matchId": 169,
   "matchColocated": 17,
   "droppedNoDem": 0,
+  "poiEmpty": 5,
   "noCountry": 2547,
-  "noTruth": 114,
+  "noTruth": 119,
   "outsideBox": 0,
   "dupId": 0,
   "dupPos": 0,
   "colocateTooFar": 0,
   "colocateDz": 3,
-  "terrariumTiles": 208
+  "terrariumTiles": 205
  },
  "points": [
   {
@@ -81,7 +97,7 @@
    "lon": 10.33,
    "elev": 17,
    "country": "DK",
-   "profile": "CH",
+   "profile": "DE",
    "wmo": "06120",
    "truth": {
     "poi": true,
@@ -97,7 +113,7 @@
    "lon": 5.77,
    "elev": 1,
    "country": "NL",
-   "profile": "CH",
+   "profile": "DE",
    "wmo": "06270",
    "truth": {
     "poi": true,
@@ -113,7 +129,7 @@
    "lon": 6.9,
    "elev": 35,
    "country": "NL",
-   "profile": "CH",
+   "profile": "DE",
    "wmo": "06290",
    "truth": {
     "poi": true,
@@ -129,7 +145,7 @@
    "lon": 5.7,
    "elev": 22,
    "country": "NL",
-   "profile": "CH",
+   "profile": "DE",
    "wmo": "06375",
    "truth": {
     "poi": true,
@@ -145,7 +161,7 @@
    "lon": 5.78,
    "elev": 114,
    "country": "NL",
-   "profile": "CH",
+   "profile": "DE",
    "wmo": "06380",
    "truth": {
     "poi": true,
@@ -161,7 +177,7 @@
    "lon": 6.22,
    "elev": 376,
    "country": "LU",
-   "profile": "CH",
+   "profile": "DE",
    "wmo": "06590",
    "truth": {
     "poi": true,
@@ -2823,38 +2839,6 @@
    "demM": 457
   },
   {
-   "id": "10004",
-   "name": "UFS TW EMS",
-   "lat": 54.17,
-   "lon": 6.35,
-   "elev": 0,
-   "country": "DE",
-   "profile": "DE",
-   "wmo": "10004",
-   "truth": {
-    "poi": true,
-    "tawes": null,
-    "smn": null
-   },
-   "demM": -33
-  },
-  {
-   "id": "10007",
-   "name": "UFS DEUTSCHE BUCHT",
-   "lat": 54.17,
-   "lon": 7.45,
-   "elev": 0,
-   "country": "DE",
-   "profile": "DE",
-   "wmo": "10007",
-   "truth": {
-    "poi": true,
-    "tawes": null,
-    "smn": null
-   },
-   "demM": -35
-  },
-  {
    "id": "10015",
    "name": "HELGOLAND",
    "lat": 54.17,
@@ -2997,22 +2981,6 @@
     "smn": null
    },
    "demM": -3
-  },
-  {
-   "id": "10044",
-   "name": "LEUCHTTURM KIEL",
-   "lat": 54.5,
-   "lon": 10.27,
-   "elev": 5,
-   "country": "DE",
-   "profile": "DE",
-   "wmo": "10044",
-   "truth": {
-    "poi": true,
-    "tawes": null,
-    "smn": null
-   },
-   "demM": -15
   },
   {
    "id": "10046",
@@ -4023,22 +3991,6 @@
    "demM": 50
   },
   {
-   "id": "10382",
-   "name": "BERLIN-TEGEL",
-   "lat": 52.57,
-   "lon": 13.32,
-   "elev": 37,
-   "country": "DE",
-   "profile": "DE",
-   "wmo": "10382",
-   "truth": {
-    "poi": true,
-    "tawes": null,
-    "smn": null
-   },
-   "demM": 39
-  },
-  {
    "id": "10384",
    "name": "BERLIN-TEMPELHOF",
    "lat": 52.47,
@@ -4661,22 +4613,6 @@
     "smn": null
    },
    "demM": 66
-  },
-  {
-   "id": "10522",
-   "name": "EUSKIRCHEN",
-   "lat": 50.65,
-   "lon": 6.78,
-   "elev": 176,
-   "country": "DE",
-   "profile": "DE",
-   "wmo": "10522",
-   "truth": {
-    "poi": true,
-    "tawes": null,
-    "smn": null
-   },
-   "demM": 171
   },
   {
    "id": "10526",
@@ -8495,5 +8431,5 @@
    "demM": 2182
   }
  ],
- "ms": 37371
+ "ms": 38007
 }

@@ -24,7 +24,33 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
-export const ARCHIVE_SCHEMA = 1;
+/**
+ * Schema-Historie — ein Sprung je Formänderung, damit ein Leser die Form am Kopf erkennt:
+ *   1  PA1 (2026-09-14). PA2 (16.09.) kam additiv dazu — `points[].profile`, `points[].mosmix`,
+ *      `truth.*.rr1h` — OHNE Sprung; das war ein Fehler (PA3, Befund des Experten 17.09.).
+ *   2  PA3 (2026-09-17):
+ *      · `cube[t].ageAtSlotH` (Alter des Quell-Laufs ZUR SLOTZEIT) statt des kopierten `ageH`, das im
+ *        Producer „Publikationslauf − Quell-Lauf" heißt und mit einem Job je Stufe immer 0 ist; die
+ *        Kopie heißt jetzt `publishLagH`. Dasselbe in `index.latestByTier[t]`; `index.stations` trägt
+ *        `ageAtBuildH` (Producer) und `ageAtSlotH`.
+ *      · `cube[t].sources[].stepsCoverage` statt `coverage` (es ist die ZEITACHSE, keine Fläche) mit
+ *        `coverageNote`; `cube[t].quantiles.points` zählt, wie viele Punkte die Quantil-Ebenen tragen.
+ *      · `cube[t].skipped` (übersprungene Quellen mit Grund, z. B. ICON-CH1-EPS bei STAC-500),
+ *        `pending`/`declined` als Kennungslisten, `fusion.note`.
+ *      · `nowcast.slots` je Quelle; `nowcast.byPoint[].bySource[s]` ist `null` nur noch ohne Slot,
+ *        außerhalb des Rasters `{ stamp, frames: null, note }`; `validAtSuspect` einmal je Reihe
+ *        (`{ frames, of, why }`) statt je Frame.
+ *      · `plan` ab der nächsten vollen Stunde (Grenzen auf Modellstunden), Punkthöhe = `points[].elev`
+ *        (Stationshöhe) statt DEM; `plan.station.candidate.dDemM` daneben; `stations.byPoint[].station.dElevM`
+ *        gegen `elev`, `dDemM` gegen `demM`.
+ *      · `truth.window` ab Stundenboden(slot − 24 h) (25 h, die 23-UTC-Stunde des Vortags fehlt nicht mehr);
+ *        TAWES/SMN-Spalten aus den 10-min-Werten AM Stundenstempel (nicht mehr über die App-Leser);
+ *        `fxh` (Stundenmaximum der Böe) in allen Netzen; `count` = Zahl der Stunden (`n` ist Bedeckung).
+ *      · `live.axis` (Bedeutung von `t0Ms`/`tsMs`), `stats.warnings`, `pointsFrom.rules`.
+ */
+export const ARCHIVE_SCHEMA = 2;
+/** Schemata, die `parseSlot` liest — ein Archiv trägt alle Fassungen nebeneinander. */
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2]);
 export const SENTINEL = -32768;
 export const SLOT_KIND = 'punktarchiv/slot';
 
@@ -54,6 +80,9 @@ export const TRUTH_SCALES = Object.freeze({
   ff: { scale: 0.01, offset: 0, unit: 'm/s' },
   dd: { scale: 1, offset: 0, unit: 'deg' },
   fx: { scale: 0.01, offset: 0, unit: 'm/s' },
+  // PA3: hour maximum of the gust — POI's fx IS that (maximum_wind_speed_last_hour); for
+  // TAWES/SMN the max of the six 10-min peaks stamped h−50…h (fx there = the 10-min peak at h).
+  fxh: { scale: 0.01, offset: 0, unit: 'm/s' },
   rr1: { scale: 0.01, offset: 0, unit: 'mm' },
   // PA2: hour sum from six 10-min values (TAWES/SMN only; POI's rr1 already is the hour sum).
   rr1h: { scale: 0.01, offset: 0, unit: 'mm' },
@@ -91,16 +120,19 @@ export function newSlot(head) {
     producer: head.producer,
     sentinel: SENTINEL,
     scales: { live: LIVE_SCALES, truth: TRUTH_SCALES, cube: {} },
-    index: null,          // point/index.json head: commit, publishedAt, latestByTier, stations run
-    points: [],           // { id, name, lat, lon, elev, country, profile, wmo, truth: { poi, tawes, smn }, mosmix? } — mosmix: catalog station when the point sits at a TAWES/SMN site (PA2)
-    cube: {},             // tier → { run, sourceRun, sourceRunAtMs, leadHours, planes[], provenance, byPoint }
-    stations: null,       // { run, ageH, leadHours, planes[], byPoint }
-    nowcast: { byPoint: {} },
+    index: null,          // point/index.json head: commit, publishedAt, latestByTier (with ageAtSlotH), stations run
+    points: [],           // { id, name, lat, lon, elev, demM, country, profile, wmo, truth: { poi, tawes, smn }, mosmix? } — mosmix: catalog station when the point sits at a TAWES/SMN site (PA2)
+    pointsFrom: null,     // { file, builtAt, total, used, rules } — rules: what id/wmo/profile/elev/demM mean (PA3)
+    cube: {},             // tier → { run, sourceRun, ageAtSlotH, publishLagH, leadHours, planeOrder, provenance, sources[].stepsCoverage, skipped, fusion, quantiles, byPoint }
+    stations: null,       // { run, ageAtSlotH, ageAtBuildH, leadHours, scales, byPoint }
+    nowcast: { slots: {}, byPoint: {} },
     hmodel: { byPoint: {} },
-    live: { options: null, caveats: [], byPoint: {} },
-    truth: { windowH: 24, byPoint: {} },
-    plan: { byPoint: {} },
-    stats: { errors: [], timing: {}, net: null },
+    live: { options: null, caveats: [], axis: null, byPoint: {} },
+    truth: { windowH: 25, window: null, byPoint: {} },
+    plan: { axis: null, selection: null, byPoint: {} },
+    // errors: hard failures (a request or a read that threw); warnings: what is missing or
+    // doubtful WITHOUT a failure — an unreachable radar, a skipped source, an empty truth (PA3).
+    stats: { errors: [], warnings: {}, timing: {}, net: null },
   };
 }
 
@@ -139,7 +171,9 @@ export function serialiseSlot(slot) {
 }
 export function parseSlot(bytes) {
   const slot = JSON.parse(gunzipSync(bytes).toString('utf8'));
-  if (slot.schema !== ARCHIVE_SCHEMA || slot.kind !== SLOT_KIND) throw new Error(`punktarchiv: schema ${slot.schema}/${slot.kind} — expected ${ARCHIVE_SCHEMA}/${SLOT_KIND}`);
+  if (!ARCHIVE_SCHEMAS_READABLE.includes(slot.schema) || slot.kind !== SLOT_KIND) {
+    throw new Error(`punktarchiv: schema ${slot.schema}/${slot.kind} — expected one of ${ARCHIVE_SCHEMAS_READABLE.join('/')} and ${SLOT_KIND}`);
+  }
   return slot;
 }
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -260,6 +294,15 @@ export function punktarchivSelfTest(tmpRoot) {
   const back = parseSlot(bytes);
   add('Rundweg: serialise → gunzip → parse ist inhaltsgleich', JSON.stringify(back) === JSON.stringify(s1));
   add('Rundweg: die Wahrheitswerte kommen auf 0,01 K zurück', Math.abs(decodeSeries(back.truth.byPoint['10865'].poi.t, TRUTH_SCALES.t)[0] - 12.3) < 1e-9);
+  // PA3: Schema 2 schreibt, Schema 1 (PA1/PA2-Slots im Archiv) liest weiter, ein unbekanntes Schema nicht.
+  add('Schema: der Kopf trägt Schema 2, ein Schema-1-Slot wird weiterhin gelesen, Schema 3 abgewiesen', (() => {
+    const old = mk(); old.schema = 1;
+    const future = mk(); future.schema = 3;
+    const reads = (s) => { try { parseSlot(gzipSync(Buffer.from(JSON.stringify(s), 'utf8'))); return true; } catch { return false; } };
+    return s1.schema === 2 && ARCHIVE_SCHEMA === 2 && reads(old) && !reads(future);
+  })());
+  add('Skalen: fxh (Stundenmaximum der Böe) trägt dieselbe Skala wie fx; count ist keine Skala (n = Bedeckung)',
+    TRUTH_SCALES.fxh?.scale === TRUTH_SCALES.fx.scale && TRUTH_SCALES.fxh.unit === 'm/s' && !('count' in TRUTH_SCALES) && TRUTH_SCALES.n.unit === 'pct');
   // As-of: eine Messung eine Stunde NACH dem Slot muss abgewiesen werden (Negativkontrolle).
   const leak = mk();
   leak.truth.byPoint['10865'].poi.obsAtMs.push(slotAtMs + 3_600_000);

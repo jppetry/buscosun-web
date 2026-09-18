@@ -1289,14 +1289,16 @@ add('das Repo führt KEIN Geländeprodukt', !TIMELESS_PATHS.some((p) => p.starts
 
   // Negativ-Kontrolle zur Maske — und sie hat beim ersten Lauf meine eigene Annahme
   // widerlegt: Wien (16,37 °E) liegt schon ausserhalb der ROHEN Domäne (15,7 °E), es
-  // beweist über `clip` also gar nichts. Der Ort, den erst `clip` herausnimmt, ist
-  // **Linz** (14,29 °E): in der Domäne bis 15,7, ausserhalb des Schnitts bei 14,1 —
+  // beweist über die Standortregel also gar nichts. Der Ort, den erst die Reichweite
+  // herausnimmt, ist **Linz** (14,29 °E, 163 km vom Radar Isen): in der Domäne bis 15,7 —
   // genau die Aufzählung in ⚠¹ („Nicht abgedeckt: Linz, Graz, Klagenfurt, Villach, Wien").
+  // Seit PA3 (§9.12) ist die Regel „150 km um die 17 DWD-Standorte", an der rohen NaN-Maske
+  // gemessen — der frühere `clip` bis 14,1 °E nahm auch Cottbus, Görlitz und Prag heraus.
   const d = SOURCE_BY_ID.radvor_rv.domain;
   const rawDomainCoversLinz =
     48.306 >= d.latMin && 48.306 <= d.latMax && 14.286 >= d.lonMin && 14.286 <= d.lonMax;
-  add('(3e) Negativ-Kontrolle: ohne clip läge Linz in der RV-Domäne', rawDomainCoversLinz,
-    `Domäne bis ${d.lonMax} °E, clip bis ${SOURCE_BY_ID.radvor_rv.clip.lonMax} °E`);
+  add('(3e) Negativ-Kontrolle: ohne Standortregel läge Linz in der RV-Domäne', rawDomainCoversLinz && SOURCE_BY_ID.radvor_rv.clip === null && SOURCE_BY_ID.radvor_rv.sites?.rangeKm === 150,
+    `Domäne bis ${d.lonMax} °E, ${SOURCE_BY_ID.radvor_rv.sites?.points.length} Standorte à ${SOURCE_BY_ID.radvor_rv.sites?.rangeKm} km`);
 
   // ICON-CH1: `edgeMarginKm: 20` (⚠² — die Domäne reicht geometrisch bis 17,7 °E, aber
   // die Ostspitze Österreichs liegt im lateralen Randrelaxationsbereich).
@@ -1526,6 +1528,12 @@ merge('Nowcast-Form', nowcastFormatSelfTest());
     coversPoint(SOURCE_BY_ID.radvor_rv, 47.503, 9.747)
     && !coversPoint(SOURCE_BY_ID.radvor_rv, 48.306, 14.286)
     && !coversPoint(SOURCE_BY_ID.radvor_rv, 48.209, 16.373));
+  // PA3 (§9.12): der Kasten bis 14,1 °E nahm Ostsachsen/Brandenburg und Prag heraus, die das
+  // Komposit (150 km um Dresden/Prötzel) trägt — gemessen an der rohen NaN-Maske.
+  add('(3g) RADVOR RV trägt Cottbus, Görlitz, Lindenberg und Prag, aber nicht Lienz und Samedan (Standortregel, PA3)',
+    coversPoint(SOURCE_BY_ID.radvor_rv, 51.78, 14.32) && coversPoint(SOURCE_BY_ID.radvor_rv, 51.17, 14.95)
+    && coversPoint(SOURCE_BY_ID.radvor_rv, 52.22, 14.12) && coversPoint(SOURCE_BY_ID.radvor_rv, 50.10, 14.25)
+    && !coversPoint(SOURCE_BY_ID.radvor_rv, 46.83, 12.81) && !coversPoint(SOURCE_BY_ID.radvor_rv, 46.53, 9.88));
   // INCA trägt Ostösterreich allein — genau die Lücke, die RV dort lässt.
   add('(3g) INCA trägt Wien, wo RV es nicht tut',
     coversPoint(SOURCE_BY_ID.inca, 48.209, 16.373)

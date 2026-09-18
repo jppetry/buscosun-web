@@ -44,7 +44,7 @@ import {
 } from './stationPoint';
 import { nowcastSourcesFor, readNowcastPoint, type NowcastPointSeries, type PngDecoder } from './nowcastPoint';
 import { readStaticProductPoint, readUrbanPoint, type StaticPoint } from './staticPoint';
-import { judgeStation, planPointSources, type PointPlan } from './resolve';
+import { judgeStation, planPointSources, SELECTION, type PointPlan } from './resolve';
 import { loadTerrainAtPoint, type TerrainOptions, type TerrainPointResult } from './terrain';
 import { decodeChunkPooled, type ChunkDecoder } from './decodePool';
 
@@ -109,6 +109,11 @@ export interface StationChoice {
   nearby: StationCandidate[];
   /** Die Höhe, gegen die das Höhenkriterium geprüft wurde (`null` = nicht geprüft, steht im Grund). */
   elevationM: number | null;
+  /**
+   * Woher diese Höhe kam: `input` (übergeben), `station` (E-F-12: Punkt ≤ 250 m an der Station —
+   * ihre Höhe ist die Punkthöhe, auch für PAP 4), `terrain` (DEM), `null` (keine).
+   */
+  elevationFrom: 'input' | 'station' | 'terrain' | null;
 }
 
 export interface PointBundle {
@@ -309,13 +314,18 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
       void store.bytes(stationBundlePath(run.run, ch.cy, ch.cx), { priority: 'high' }).catch(() => null);
     }
     const catalog = await catalogP;
-    // Höhenkriterium: die übergebene Höhe, sonst die aus dem Gelände — das Bündel ist
-    // längst unterwegs, das Warten kostet auf dem kritischen Pfad nichts.
-    const elev = input.elevationM ?? (await terrainP)?.elevationM ?? null;
-    const nearby = catalog ? nearestStations(catalog, lat, lon, { elevationM: elev, limit: 5 }) : [];
+    // Höhenkriterium: die übergebene Höhe; sonst — E-F-12 — die Stationshöhe, wenn der Punkt
+    // an der Station steht (≤ 250 m: die DEM-Höhe liegt am Gipfel bis 270 m darunter und
+    // ließ den Punkt seine eigene Station verwerfen, PA3); sonst die aus dem Gelände. Das
+    // Bündel ist längst unterwegs, das Warten kostet auf dem kritischen Pfad nichts.
+    const nearby = catalog ? nearestStations(catalog, lat, lon, { limit: 5 }) : [];
     const best = nearby[0] ?? null;
+    const atStation = input.elevationM == null && best != null && best.distanceKm <= SELECTION.stationAtPointKm;
+    const elev = input.elevationM ?? (atStation ? best.elev : null) ?? (await terrainP)?.elevationM ?? null;
+    const elevationFrom: StationChoice['elevationFrom'] = input.elevationM != null ? 'input' : atStation ? 'station' : elev != null ? 'terrain' : null;
+    for (const s of nearby) s.dElevM = elev == null ? null : s.elev - elev;
     const judged = judgeStation(!!catalog, best, elev);
-    const choice: StationChoice = { candidate: best, accepted: judged.accepted, reason: judged.reason, nearby, elevationM: elev };
+    const choice: StationChoice = { candidate: best, accepted: judged.accepted, reason: judged.reason, nearby, elevationM: elev, elevationFrom };
     if (!judged.accepted || !best) { skips.push(`stations: ${judged.reason}`); return { series: null, choice }; }
     if (!run) { skips.push('stations: kein Lauf im Index'); return { series: null, choice }; }
     const manifest = await manifestP;
@@ -389,7 +399,8 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
 
   // ── Auswahlregel — über den Memo-Store, also ohne weiteren Abruf ─────────
   if (opts.plan !== false) {
-    const elev = input.elevationM ?? terrain?.elevationM ?? null;
+    // Dieselbe Höhe wie die Stationswahl (E-F-12: an der Station deren Höhe), sonst Gelände.
+    const elev = input.elevationM ?? base.stationChoice?.elevationM ?? terrain?.elevationM ?? null;
     base.plan = await guard('plan', planPointSources(store, {
       lat, lon, elevationM: elev, nowMs, stepH,
       ...(input.atMs != null ? { atMs: input.atMs } : { fromMs, toMs }),

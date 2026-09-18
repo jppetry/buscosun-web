@@ -52,6 +52,7 @@ import { terrainTerms, windBlendingFactor, TERRAIN_SET, type TerrainTermsResult 
 import { ANCHOR_MAX, ANCHOR_TAU_H, anchorTerm, innovation, type AnchorPair, type Innovation } from './anchor';
 import { spatialWeight } from './leadTimeWeights';
 import { nowcastSourcesFor } from '../point/client/nowcastPoint';
+import { SELECTION } from '../point/client/resolve';
 import type { Country } from '../types';
 import { skyViewFactor, type TerrainScales } from './fusion/terrainScale';
 import { CLIMA_SIGMA_FALLBACK } from './fusion/priors';
@@ -95,6 +96,8 @@ export interface CubeFusionInput {
   window: { fromMs: number; toMs: number; stepH: number };
   /** Echte Geländehöhe h_true; `null` = unbekannt (dann keine Verteilungen, s. `noTerrain`). */
   elevationM: number | null;
+  /** Woher h_true kam (E-F-12: `station` = Punkt ≤ 250 m an der Katalogstation, deren Höhe gilt). */
+  elevationFrom?: 'input' | 'station' | 'terrain' | null;
   terrain: CubeTerrain | null;
   cube: Partial<Record<TierId, CubePointSeries | null>>;
   station: StationPointSeries | null;
@@ -140,7 +143,10 @@ export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, ob
   return {
     obs, nowcastCovering: nowcastSourcesFor(b.input.lat, b.input.lon),
     lat: b.input.lat, lon: b.input.lon, nowMs: b.window.nowMs, window: { fromMs: b.window.fromMs, toMs: b.window.toMs, stepH: b.window.stepH },
-    elevationM: b.input.elevationM ?? b.terrain?.elevationM ?? null,
+    // E-F-12: steht der Punkt an einer Katalogstation (≤ 250 m), ist deren Höhe h_true — die
+    // DEM-Höhe bleibt im `terrain`-Block für TPI, Horizont und Senke.
+    elevationM: b.input.elevationM ?? (b.stationChoice?.elevationFrom === 'station' ? b.stationChoice.elevationM : null) ?? b.terrain?.elevationM ?? null,
+    elevationFrom: b.input.elevationM != null ? 'input' : b.stationChoice?.elevationFrom === 'station' ? 'station' : b.terrain?.elevationM != null ? 'terrain' : null,
     terrain: b.terrain ? {
       elevationM: b.terrain.elevationM, tpi500M: b.terrain.tpi500M, tpi2000M: b.terrain.tpi2000M, svf: b.terrain.svf,
       slopeDeg: b.terrain.slopeDeg, aspectDeg: b.terrain.aspectDeg, horizonDeg: b.terrain.horizonDeg,
@@ -465,6 +471,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const useTail = opts.tail === true;
   const tc = { A: null, Auhi: null, tpiSigmaM: null, z0Mod: null, z0True: null, ...(opts.terrainCalib ?? {}) };
   const calib: string[] = [
+    ...(input.elevationFrom === 'station' ? [`hTrue:station — Punkt ≤ ${Math.round(SELECTION.stationAtPointKm * 1000)} m an einer Katalogstation: ihre Höhe (${input.elevationM} m) gilt als h_true statt der DEM-Höhe${input.terrain?.elevationM != null ? ` (${Math.round(input.terrain.elevationM)} m)` : ''} (E-F-12, Jan 17.09.; am Gipfel liegt das DEM-Pixel bis 270 m tiefer)`] : []),
     'footprint:set — FOOTPRINT_M cube-t1/t2/t3 = Zellweite der Stufe (5/10/25 km), gesetzt, bis AP10 die Repräsentativität misst',
     'lead:set — Vorlauf der Skill-Kurven = Stunde ab jetzt, nicht ab dem Quell-Lauf (wie Live-Pfad; V-FI-10)',
     ...(useVertical ? [

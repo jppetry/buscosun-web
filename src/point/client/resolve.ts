@@ -55,8 +55,17 @@ const H = 3_600_000;
 export const SELECTION = Object.freeze({
   stationMaxKm: 15,
   stationMaxDElevM: 100,
+  /**
+   * E-F-12 (Jan, 2026-09-17): liegt die nächste Katalogstation höchstens so weit entfernt,
+   * STEHT der Punkt an der Station — ihre Höhe gilt als Punkthöhe, das Höhenkriterium
+   * entfällt. Gesetzt, nicht gemessen; enger als der Vorschlag (1 km), weil ein Kilometer
+   * in den Alpen 500 m Höhe bedeuten kann. Hintergrund: die DEM-Höhe (z9/z11) liegt an
+   * Gipfelstationen bis 270 m unter der Station (Arber, Zugspitze) und ließ den Punkt seine
+   * eigene Station verwerfen (PA3, §9.12).
+   */
+  stationAtPointKm: 0.25,
   calibrated: false,
-  why: 'PD-D3, audit/fusion-vorstufe.md §9. Gesetzte Startwerte, keine Messung.',
+  why: 'PD-D3, audit/fusion-vorstufe.md §9. Gesetzte Startwerte, keine Messung; stationAtPointKm E-F-12 (§9.12.5).',
 });
 
 export type ProductId = 'nowcast' | 'stations' | 'cube-t1' | 'cube-t2' | 'cube-t3';
@@ -169,6 +178,10 @@ export function judgeStation(
 ): { accepted: boolean; reason: string } {
   if (!catalogPresent) return { accepted: false, reason: 'Stationskatalog nicht im Repo erreichbar.' };
   if (!best) return { accepted: false, reason: 'Keine Station im Katalog.' };
+  if (best.distanceKm <= SELECTION.stationAtPointKm) {
+    return { accepted: true, reason: `${best.name}, ${Math.round(best.distanceKm * 1000)} m — der Punkt steht an der Station; `
+      + `ihre Höhe (${best.elev} m) gilt als Punkthöhe, das Höhenkriterium entfällt (E-F-12).` };
+  }
   if (best.distanceKm > SELECTION.stationMaxKm) {
     return { accepted: false, reason: `Nächste Station ${best.name} liegt ${best.distanceKm.toFixed(1)} km entfernt `
       + `(Schwelle ${SELECTION.stationMaxKm} km) — sie vertritt diesen Punkt nicht.` };
@@ -438,7 +451,15 @@ function mk(
   return { product, detail, available, reason, offsetMin, ageH, distanceKm, quantities, hasUncertainty };
 }
 
-/** Aufeinanderfolgende gleiche Entscheidungen zu Abschnitten zusammenfassen. */
+/**
+ * Aufeinanderfolgende gleiche Entscheidungen zu Abschnitten zusammenfassen.
+ *
+ * Jeder Abschnitt ist halboffen und lückenlos an den nächsten gefügt: `fromMs` ist die
+ * erste Entscheidungszeit, `toMs` die LETZTE Entscheidungszeit + Schrittweite − 1 ms —
+ * bei einem wie bei zwanzig Schritten. Bis 2026-09-17 endete ein mehrstufiger Abschnitt
+ * auf seiner letzten Entscheidungszeit selbst, ein einstufiger auf dem Schrittende; im
+ * Archiv sah das wie 6-h-Löcher zwischen den Abschnitten aus (PA3, §9.12).
+ */
 function toSegments(decisions: readonly Decision[], stepH: number): PlanSegment[] {
   const out: PlanSegment[] = [];
   for (const d of decisions) {
@@ -446,7 +467,7 @@ function toSegments(decisions: readonly Decision[], stepH: number): PlanSegment[
     const last = out[out.length - 1];
     const lastKey = last ? `${last.primary ?? '-'}|${last.alternative ?? '-'}|${last.precip ?? '-'}` : null;
     if (last && lastKey === key) {
-      last.toMs = d.atMs;
+      last.toMs = d.atMs + stepH * H - 1;
       last.steps += 1;
       continue;
     }
@@ -467,13 +488,14 @@ function toSegments(decisions: readonly Decision[], stepH: number): PlanSegment[
 
 function gapsOf(decisions: readonly Decision[], stepH: number): Array<{ fromMs: number; toMs: number; why: string }> {
   const out: Array<{ fromMs: number; toMs: number; why: string }> = [];
+  // Dieselbe Konvention wie die Abschnitte: `toMs` = letzte Entscheidungszeit + Schritt − 1 ms.
   for (const d of decisions) {
     if (d.primary || d.precip) continue;
     const last = out[out.length - 1];
-    if (last && d.atMs - last.toMs <= stepH * H) { last.toMs = d.atMs; continue; }
+    if (last && d.atMs - last.toMs <= stepH * H) { last.toMs = d.atMs + stepH * H - 1; continue; }
     out.push({
       fromMs: d.atMs,
-      toMs: d.atMs,
+      toMs: d.atMs + stepH * H - 1,
       why: d.candidates.filter((x) => !x.available).map((x) => `${x.product}: ${x.reason}`).join(' · '),
     });
   }

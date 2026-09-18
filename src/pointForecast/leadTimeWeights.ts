@@ -107,7 +107,7 @@ const VARIABLE_MULTIPLIER: Record<Variable, Partial<Record<SourceFamily, number>
     global: 1.0,
   },
   gust: {
-    // Station gust (FFX / FX1 / fkl010d1) is a direct max-in-window measurement
+    // Station gust (FFX / FX1 / fkl010z1) is a direct max-in-window measurement
     // → strong anchor. NWP gust products are calibrated guesses; downweight
     // slightly. Many sources don't carry gust at all — handled by null-skip in
     // the blender.

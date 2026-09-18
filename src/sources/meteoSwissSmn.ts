@@ -126,8 +126,10 @@ function rowToPoint(headers: string[], row: string[], s: SmnStation): ForecastHo
   const t = get('tre200s0');
   const ff = get('fkl010z0');
   const dd = get('dkl010z0');
-  // fkl010d1 = max wind gust during last 10 min, m/s.
-  const ffx = get('fkl010d1');
+  // fkl010z1 = max wind gust (1-s peak) during the last 10 min, m/s. Until 2026-09-17 this
+  // read `fkl010d1`, a column the OGD file does not have (header measured: fkl010z0/z1/z3,
+  // fu3010z0/z1/z3) — the CH gust anchor was silently null everywhere (V-FI-26, PA3).
+  const ffx = get('fkl010z1');
   // ure200s0 = relative humidity 2 m, %.
   const rh = get('ure200s0');
   const rr10 = get('rre150z0');

@@ -1,6 +1,6 @@
 # Kickoff-Prompt — Phase FI, Etappe AP9 (Backtest gegen das Archiv)
 
-> Für eine neue Claude-Code-Session in `C:\dev\buscosun-web`. Geschrieben am 2026-09-17 nach der Gegenprüfung von AP2–AP8 (§9.11.4).
+> Für eine neue Claude-Code-Session in `C:\dev\buscosun-web`. Geschrieben am 2026-09-17 nach der Gegenprüfung von AP2–AP8 (§9.11.4); aktualisiert am Abend nach PA3 (§9.12: Archiv-Schema 2, 405 Punkte) — AP9 schreibt §9.13.
 > Prompts an Claude Code auf Englisch (CLAUDE.md, Sprache & Konventionen). Der vorige Kickoff (AP2–AP8) ist erledigt.
 
 ```
@@ -21,8 +21,10 @@ Read first, in this order:
    the existing scorer `scripts/verify-pv-score.mjs` (V-A₁: MAE/Bias/RMSE, CRPS, PIT, spread/skill,
    Brier, Diebold-Mariano with HAC, block bootstrap, FDR, leak guard with negative control) — REUSE
    its metric code, do not write a second implementation.
-4. The archive: `audit/punktdaten-umsetzungsplan.md` (PA1 data model v1), §9.3 (PA2: 410 points,
-   `rr1h`), `scripts/punktarchiv/{collect.mjs,points.mjs,lib/punktarchiv.mjs,lib/truth.mjs}`,
+4. The archive: `audit/punktdaten-umsetzungsplan.md` (PA1 data model v1), §9.3 (PA2: `rr1h`),
+   §9.12 (PA3: archive schema 2 with history in `lib/punktarchiv.mjs`, 405 points, station height
+   `elev` as the plan height, `fxh`, `ageAtSlotH`, `stats.warnings`, truth window from the hour
+   floor — slots up to 16.09. are schema 1, later ones schema 2; both must stay readable), `scripts/punktarchiv/{collect.mjs,points.mjs,lib/punktarchiv.mjs,lib/truth.mjs}`,
    the local clone `C:\dev\buscosun-archiv` (run `git pull` there first — it is behind; slots since
    2026-09-14, one per day at 23:10 UTC; the remote is Jan's, never push).
 5. The cube path: `src/pointForecast/cubeSource.ts` (`fuseCubePoint(input, opts)` is a PURE
@@ -33,7 +35,7 @@ Check `git status`: the tree may carry Jan's uncommitted work — do not revert,
 ────────────────────────────────────────────────────────────────────────────
 Ground rules
 ────────────────────────────────────────────────────────────────────────────
-• Diagnosis first (§9.12 in the phase document before code): which slots exist, which points
+• Diagnosis first (§9.13 in the phase document before code — §9.12 is PA3): which slots exist, which points
   have truth (POI hourly; TAWES/SMN `rr1h` since PA2), which leads are scorable today (slot N
   + ⌈h/24⌉ days), how many (point, lead) cases that gives per bin — and whether the archived
   cube planes + station + nowcast + hmodel are enough to rebuild the bundle `fuseCubePoint`
@@ -42,6 +44,9 @@ Ground rules
 • Wahrheit = Stationsmessung, nie Modellanalyse. As-of t₀: the replay may only see what the
   slot at t₀ saw (its cube runs, its station run, its nowcast slot, obs up to t₀). Leak guard:
   a shifted-time negative control that MUST fail. Truth from LATER slots only.
+• Truth dedupe: TAWES/SMN deliver the 23-UTC hour within ≤ 25 min, so since PA3 it sits in two
+  consecutive slots (end of slot N, start of slot N+1); POI carries each hour once. Key truth by
+  (point, stamp), count it once, assert equal values where both exist.
 • No accuracy claim without a scorecard; every number in §9.12 comes from the scorer output.
   Report what is not yet scorable (t2/t3 bins) as "not yet", never extrapolate.
 • Engine and reader stay as they are; if a defect surfaces, name it as V-FI-n and fix only if
@@ -59,9 +64,10 @@ Deliverables
    (store/clima/nowMs as `verify:pv-cube` does), so future truth scores exactly what a user
    would have seen. Store it COMPACT (V-FI-21: v2 is 1.1 MB JSON per point — encode per hour
    and variable as integer tuples on the plane scale, members as index, flags as bitmask);
-   measure the slot growth (today ≈ 17.5 MiB gz for 410 points; E-U-13) and keep it
+   measure the slot growth (today ≈ 18 MiB gz for 405 points; E-U-13) and keep it
    proportionate — say the number. Keep `live` as it is (B5 baseline). Kill switch, no
-   behaviour change without the flag. `verify:punktarchiv` (87/87) grows with negative controls.
+   behaviour change without the flag. Bump the archive schema to 3 with a history entry
+   (schemas 1–3 readable, as PA3 did for 2). `verify:punktarchiv` (87/87) grows with negative controls.
 2. Scorer, part (b): `npm run verify:pv-score -- --archive` (new mode in the existing script,
    or a sibling `scripts/punktarchiv/score-archive.mjs` that imports the metric functions —
    one implementation): replay `fuseCubePoint` from the archived cube planes for every slot
@@ -71,7 +77,7 @@ Deliverables
    B6 old fusion (`live.fusion` q10/q50/q90 — CRPS as 3-quantile approximation, same for all,
    labelled). Metrics per §5.3; lead bins 0–6 · 7–24 · 25–48 · 51–120 · 126–240 · 246–336 h;
    stratification by height band, TPI class, day/night, inversion (zInv > zBase), country.
-   Output: `audit/fusion-implementierung/scorecards/<date>.json` + a table in §9.12. Replay
+   Output: `audit/fusion-implementierung/scorecards/<date>.json` + a table in §9.13. Replay
    ≤ 10 min per slot locally (measure it).
 3. First scorecard: 0–48 h from the slots available today (14./15./16.09. → truth from
    15./16./17.09.). DE is the core; AT/CH only from slots after Jan's push (PA2). Answer, with
@@ -79,11 +85,13 @@ Deliverables
    0–6, 7–24, 25–48 h bins for T, wind, precipitation (Brier at 0.1/1/5 mm/h), clouds? Is the
    spread/skill of the cube path closer to 1 than the live path's 0.5–0.6 (V-A₁)? What does the
    score say about V-FI-13 (cube member < 5 % at mountain sites — right or wrong?), V-FI-12
-   (Rice median wind bias) and the anchor (with vs without, `anchorMode`)?
+   (Rice median wind bias) and the anchor (with vs without, `anchorMode`)? Note V-FI-25: until Jan
+   approves the dew-point fix, B5 carries no MOSMIX humidity — stratify B5 by collector commit
+   (the slot records it) and say so next to any td/rh number.
 4. Verifier for the scorer itself: netzfrei against a synthetic archive (two slots, known
    truth, one baseline deliberately better) — the metrics must recover the known ordering,
    the leak guard must fail on shifted time, the as-of rule must exclude later runs.
-5. §9.12 with diagnosis, what changed (files), the scorecard table, findings V-FI-n, what is
+5. §9.13 with diagnosis, what changed (files), the scorecard table, findings V-FI-n, what is
    deliberately left open (t2/t3 bins until 30.09./end of October; AP10 fit needs ≥ 30 days),
    and the CLAUDE.md status block updated (status, not chronicle). End with a report that
    stands on its own: numbers first, then what Jan has to do (push of `main` so the collector

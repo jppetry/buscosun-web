@@ -330,3 +330,59 @@ angefasst.
 
       und die kalt-neu-Zahlen (HIT/MISS, Kern p50) gegen `audit/fusion-implementierung/latency/2026-09-16T14-33-41-921Z.json`
       (Kern p50 1 458 ms, 37 MISS) in §9.4 eintragen.
+
+## 16. Archiv-Befunde des Experten beheben (AP-PA3, 2026-09-17) — **Frist 23:10 UTC**
+
+Beleg: `audit/fusion-implementierung.md` §9.12 (17 Befunde, je mit Messung; 11 im Archiv/Client behoben, 6 als
+V-FI-23…30 gestellt). Alles liegt uncommitted in `buscosun-web`; das Archiv-Repo braucht KEINE Änderung (der
+Cron klont `main`), das Daten-Repo auch nicht.
+
+- [ ] **Commit 1 — PA3 + E-F-11 + E-F-12, `main` pushen vor 23:10 UTC.** Der heutige Slot trägt dann Schema 2:
+      Stationshöhe im Plan (die 10 Gipfelstationen nehmen ihre eigene Station wieder an), RV-Abdeckung als
+      Standortregel (Cottbus, Görlitz, Lindenberg, Prag bekommen den Nowcast; Kärnten/Engadin verlieren die
+      erfundene Trockenheit), die 23-UTC-Stunde der Wahrheit, `fxh`, `ageAtSlotH`, `stats.warnings`, die neue
+      Punktliste (405 Punkte — 5 leere POI-Stationen weniger, DK/NL/BE/LU im DE-Profil), dazu E-F-12 im Cube-Pfad
+      (Stationshöhe bei ≤ 250 m, default-off). Vorher prüfen, dann committen und pushen:
+
+      ```
+      npm run typecheck
+      npm run verify:punktarchiv        # 103/103
+      npm run verify:point-data         # 974/974
+      npm run verify:point-client       # 118/118
+      npm run verify:pv-cube            # 204/204
+      git add audit CLAUDE.md MANUELLE-SCHRITTE.md scripts src/point src/pointForecast/cubeSource.ts
+      git reset -q scripts/verify-pv-fusion.mjs          # gehört zu Commit 2
+      git status                        # staged: 17 Dateien; NICHT staged: sampleSources.ts, meteoSwissSmn.ts, leadTimeWeights.ts, verify-pv-fusion.mjs (Commit 2), prompt.md (deine Datei)
+      git commit -m "fix(punktarchiv): expert findings PA3 — station height, RV site rule, 23-UTC truth, schema 2; E-F-11 DE profile, E-F-12 station height ≤ 250 m"
+      git push origin main
+      ```
+
+      Ohne Push läuft der Slot um 23:10 mit dem alten Sammler weiter (Schema 1, alle Befunde bleiben).
+      Rückweg: nichts — Schema-1-Slots bleiben lesbar, das Archiv ist append-only.
+
+- [ ] **Commit 2 — V-FI-25 + V-FI-26 (Live-Pfad), direkt danach.** Vier Dateien, keine davon in Commit 1:
+      MOSMIX-Taupunkt in die Fusion (`sampleSources.ts`), SMN-Böenspalte `fkl010z1` (`meteoSwissSmn.ts`),
+      Kommentar (`leadTimeWeights.ts`), Prüfung (`verify-pv-fusion.mjs`). Ändert Taupunkt/Feuchte der
+      Live-Vorhersage aller DE-Punkte jenseits der Ankerstunden (gemessen: 0/240 statt ~230/240 Stunden
+      Klimatologie) und lässt den CH-Böenanker tragen. Der Slot trägt den Sammler-Commit (`codeHash`), der
+      Bewerter trennt B5 vor/nach:
+
+      ```
+      npm run verify:pv-fusion          # 227/227
+      git add src/pointForecast/sampleSources.ts src/sources/meteoSwissSmn.ts src/pointForecast/leadTimeWeights.ts scripts/verify-pv-fusion.mjs
+      git status                        # staged: genau diese 4
+      git commit -m "fix(pointForecast): MOSMIX dew point reaches buscosun Fusion (V-FI-25), SMN gust column fkl010z1 (V-FI-26)"
+      git push origin main
+      ```
+
+      Netlify baut aus `main`; nach dem Deploy an einem DE-Ort im Punkt-Panel prüfen, dass Taupunkt/Feuchte
+      jenseits +6 h nicht mehr auf der Klimatologie liegen (`fusion.dewPoint.climatologyOnly` false).
+
+- [ ] **Danach ansehen (2 min):** im Actions-Log `[collect] … 0 Fehler · N Warnungen` und die Warnzeilen —
+      erwartet `cubeSourcesAbsent` (t1 icon_ch2_eps, t2 claef: V-FI-27), `cubeQuantilesMissing` t1 ≈ 98/405
+      (C-LAEF endet bei 51,5 °N), `nowcastUncovered` ≈ 30 (Kärnten, Osttirol, Engadin, Tessin, Odense, Sylt —
+      gemessen ohne Radar), `nowcastOutsideRaster` inca ≈ 11, `liveElevation` ≈ 31 (V-FI-24). Slot-Größe
+      weiterhin ≈ 18 MiB.
+
+- [x] **Entschieden (17.09., 16:35 UTC) und umgesetzt (§9.12.5):** V-FI-25 und V-FI-26 freigegeben (Commit 2),
+      E-F-11 ja (DE-Profil für DK/NL/BE/LU), E-F-12 ja mit 250 m statt 1 km. Offen bleibt nur der Push.
