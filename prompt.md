@@ -22,7 +22,9 @@ Read first, in this order:
 3. audit/fusion-implementierung.md: §5 (verification strategy — baselines B0–B6, metrics, lead
    bins, stratification, gates, abort rules), §1.2 (what the archive holds), §2 (PointForecastV2),
    §9.5.4 (10-place comparison, V-FI-11…14), §9.8 (σ rules), §9.10 (anchor, nowcast, hourly
-   axis), §9.11 (fuseCubePoint, output), §9.12 (PA3: schema 2), §9.16.1 (v2 codec), §9.16.3
+   axis), §9.11 (fuseCubePoint, output), §9.12 (PA3: schema 2), §9.17 (PA4: schema 3 — the
+   expert's second report, 22.09.: live first + asOf, fusion columns, ps, plan axis, stations.nearest,
+   V-FI-104…110), §9.16.1 (v2 codec), §9.16.3
    (elevationM at the live call).
 4. audit/punktvorhersage-14tage/verifikation.md (metrics, gates §7.0, abort rules §7.2/7.3) and
    scripts/verify-pv-score.mjs. FACTS: it exports NOTHING (top-level code, process.exit), its
@@ -91,7 +93,8 @@ Ground rules
 ────────────────────────────────────────────────────────────────────────────
 Deliverables
 ────────────────────────────────────────────────────────────────────────────
-1. Collector → archive schema 3 (scripts/punktarchiv/collect.mjs, lib/punktarchiv.mjs, lib/truth.mjs)
+1. Collector → archive schema 4 (scripts/punktarchiv/collect.mjs, lib/punktarchiv.mjs, lib/truth.mjs;
+   schema 3 is PA4 of 22.09. — read its history entry in lib/punktarchiv.mjs first)
    a. Cube-path forecast per point per slot: registerCubePointSource(io) once, then
       getPointForecast({ pointSource: 'cube', … }) — or getPointForecastFromCube(opts, io) —
       with io = { store, clima, nowMs: () => slotAtMs, terrain/terrainOverride, obs: null }
@@ -113,23 +116,24 @@ Deliverables
    c. Condition (b): MEASURE the slot growth with the trimmed block on a real slot before schema
       3 is frozen — gz bytes of the cube part before/after, together with V-FI-55, GB/year and
       MONTHS until GitHub's 5-GB warning at one slot per day. Jan signs off that number; until
-      then schema 3 is not frozen. (The 44 %/29 % in audit/fusion-vollform.md §6.1 are chunk-byte
+      then schema 4 is not frozen. (The 44 %/29 % in audit/fusion-vollform.md §6.1 are chunk-byte
       estimates, not slot measurements.)
    d. Provenance in the slot: options hash (the exact CubeIo/FuseCubeOptions the collector set),
       calib hash (sha256 of point/calib.json as read), WorldCover mirror SHA (WC_MIRROR_SHA from
       src/fire/detail/worldCover.ts), V2C_VERSION, collector commit.
-   e. Live path: add elevationM: p.elev at BOTH live calls (collect.mjs:461 and :570; §9.16.3
-      asks for it) and fix the caveat at ~l.451. Keep `live` otherwise as it is (B5). V-FI-25 is
+   e. Live path: DONE in PA4 (22.09.): both live calls go through liveCallOptions() with
+      elevationM: p.elev, the caveat is fixed, `fusion` is column-wise (decodeFusionColumns gives the
+      schema-2 form back), live runs first (live.asOf). Keep `live` otherwise as it is (B5). V-FI-25 is
       approved and implemented (17.09.): B5 carries MOSMIX dew point from the 18.09. slot on —
       stratify B5 by collector commit.
    f. Truth: lib/truth.mjs POI_COLS (l.37–47) reads 9 of 43 POI columns. Add present_weather,
       past_weather_1, past_weather_2 (code tables, int), depth_of_new_snow, total_snow_depth (cm)
       to POI_COLS and TRUTH_SCALES (V-FI-76 — with them meltOffset becomes fittable in winter;
       DE/POI only). Schema-2 truth rules stay (window from the hour floor, 23-UTC dedupe).
-   g. Schema 3 with a history entry in lib/punktarchiv.mjs (schemas 1–3 readable). Update the
-      self-tests: punktarchiv.mjs:298–303 today asserts that schema 3 is REJECTED (future.schema
-      = 3) — move the "future" probe to 4; verify-punktarchiv.mjs:58 asserts ARCHIVE_SCHEMA === 2.
-      verify:punktarchiv is 103/103 today and grows with negative controls. Kill switch; no
+   g. Schema 4 with a history entry in lib/punktarchiv.mjs (schemas 1–4 readable). Update the
+      self-tests: punktarchiv.mjs asserts that schema 4 is REJECTED (future.schema = 4) — move the
+      "future" probe to 5; verify-punktarchiv.mjs asserts ARCHIVE_SCHEMA === 3.
+      verify:punktarchiv is 125/125 today (after PA4) and grows with negative controls. Kill switch; no
       behaviour change without the flag.
 2. Replay + scorer
    a. A PURE, importable replay (e.g. scripts/punktarchiv/lib/replay.mjs, exported): slot →
@@ -166,6 +170,6 @@ Deliverables
    table, findings V-FI-32…39, what stays open (t2/t3 bins until ≈ end of October; AP10 needs
    ≥ 30 days). CLAUDE.md status block: status, not chronicle — coordinate, the parallel line
    edits it too (edit only the AP9 row). End with a report that stands on its own: numbers
-   first, then what Jan has to do (push of main so the collector records schema 3 — every
+   first, then what Jan has to do (push of main so the collector records schema 4 — every
    day without the block is a lost case for L_d/L_h/κ).
 ```

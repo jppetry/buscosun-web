@@ -627,3 +627,57 @@ uncommitted, Daten- und Archiv-Repo unberührt, jede neue Option voreingestellt 
         `audit/fusion-implementierung/latency/2026-09-18T20-11-48-289Z.json` (nachher; vorher = `…T19-10-20-564Z.json`).
       - Dazu Doku: `audit/fusion-vollform.md` §9.5, `CLAUDE.md`, dieses §18.
       - Nicht mitnehmen: `prompt-hindcast.md` (nicht aus dieser Linie), `tsconfig.app.tsbuildinfo`, `prompt-vollform-plan.md`.
+
+## 19. AP10a — Hindcast-Archiv für die Kalibrierung (Fremdkalibrierung), 2026-09-19
+
+Protokoll: `audit/kalibrierung-fremdarchive.md` §8. Daten lokal in `C:\dev\buscosun-hindcast\` (kein Git-Repo, nichts
+geht in `buscosun-data` oder `buscosun-archiv`), Code in `scripts/hindcast/` (uncommitted). Hintergrundläufe laufen
+losgelöst weiter (Wachhund `scripts/hindcast/watchdog.ps1`, hält den Rechner wach).
+
+- [ ] **Rechner an lassen**, bis `C:\dev\buscosun-hindcast\log\watchdog.log` „all chains done" meldet (Schätzung
+      §8.0: 1,5–2 Tage). Deckel zu / Ruhezustand hält alles an; danach genügt ein Neustart des Wachhunds (§8.8).
+      **Frist:** die Ketten `dr-A/B/C` holen das auslaufende data_run-Fenster (die Front rückt täglich einen Tag vor;
+      am 19.09. stand sie bei 2026-06-17, die Kette `dr-A` beginnt am 21.06.).
+- [ ] **Entscheidungen** (§8.6): E-F-26 (Open-Meteo-API für die Bins 7–48 h im Winter — Empfehlung: nicht jetzt),
+      E-F-27 (Python nur als Leser — bestätigen), E-F-28 (Feld `source` in der Fit-Registry — an die Vollform-Linie),
+      E-F-29 (keine Tag-0-Slots im data_run-Fenster), E-F-30 (t3-σ_ens an jeder Stunde).
+- [ ] **Ansehen und committen** (eigener Commit, keine gemeinsamen Dateien mit AP9/Vollform außer der Doku):
+      - `scripts/hindcast/**` (neu),
+      - `audit/kalibrierung-fremdarchive.md` §8, `CLAUDE.md` (Zeile „AP10a Hindcast"), dieses §19.
+      - Nicht mitnehmen: nichts aus `C:\dev\buscosun-hindcast\` (die Daten bleiben lokal).
+- [ ] **Nach dem Ende aller Ketten** läuft die volle Abnahme selbst (Kette `accept`) und stempelt `index.json`
+      (`verification`); `verify\<Datum>.json` ansehen. Erst mit diesem Stempel ist das Archiv für den Fit freigegeben —
+      die nächste Sitzung (Fälle + Fit) prüft ihn als Erstes.
+
+## 20. AP-PA4 — zweiter Expertenbericht am Archiv (Slot 21.09.), 2026-09-22 — **Frist 23:10 UTC**
+
+Protokoll: `audit/fusion-implementierung.md` §9.17. Geändert nur `scripts/punktarchiv/**`, `scripts/verify-punktarchiv.mjs`,
+`prompt.md`, Doku — kein `src/`, kein Producer, kein Motor. `verify:punktarchiv` 125/125.
+
+- [ ] **Push von `main` vor 23:10 UTC** (der Archiv-Cron klont `main`): der heutige Slot trägt dann **Schema 3** — Live-Pfad
+      zuerst (As-of = Abrufzeit, `live.asOf`), `finishedAt`, Stationshöhe am Live-Aufruf (`elevationM`, V-FI-24;
+      Reihenbruch, im Bewerter nach `codeHash` trennen), `live.fusion` spaltenweise (17,8 → 10,7 MB gz je Slot),
+      `truth.*.ps` (Stationsdruck), Plan-Achse 56 Schritte, `stations.nearest`, Notizen/Caveats. Ohne den Push bleibt jeder
+      weitere Slot 17,8 MB und ohne `ps`/`nearest`.
+      Dateien: `scripts/punktarchiv/collect.mjs`, `scripts/punktarchiv/lib/{punktarchiv,truth}.mjs`,
+      `scripts/verify-punktarchiv.mjs`, `prompt.md` (AP9 → Schema 4), `CLAUDE.md`, `audit/fusion-implementierung.md`,
+      dieses §20. Die Dateien `2321.json` und `befund_punktarchiv_slot_2321.md` in der Repo-Wurzel gehören NICHT in den
+      Commit (134 MB; der Bericht kann nach `audit/fusion-implementierung/` wandern, wenn du ihn behalten willst).
+- [ ] **Entscheidung V-FI-104 (Producer, PAP 2):** Sägezahn in `t2m`/`hModEff` durch den stündlichen Quellenmix — bleibt
+      nach Höhenreduktion (Betrag 0,76 gegen 0,33 K). Vorschlag: 3-h-/6-h-Quellen zeitlich auf die Stundenachse interpolieren,
+      bevor gemittelt wird (Producer-Join), `hModEff` wird je Punkt konstant. Fusion-Engine-Änderung ⇒ deine Freigabe.
+- [ ] **Entscheidung V-FI-105 (Producer/statisches Produkt):** CLAEF (t1) und AICON (t2/t3) haben keine Modellhöhe ⇒
+      `hModEff` ist das Mittel der übrigen Quellen (Giswil 1153 statt ≈ 1050 m). Vorschlag: Stellvertreter-Orographie
+      (ICON-D2 für CLAEF, ICON global für AICON) mit Provenienz `proxy`.
+- [ ] **Entscheidung V-FI-106 (Producer, gering):** t1-Quantile aus `claef_eps` passen nicht zum Mittel (45 % außerhalb
+      q10–q90); der Cube-Pfad liest sie nicht. Vorschlag: als Abstand zum eigenen Mittel speichern oder in t1 weglassen.
+- [ ] **Entscheidung V-FI-107 (Motor, Live UND Cube, STOPP & FRAGEN):** Windgeschwindigkeit driftet mit dem Vorlauf auf
+      4–5 m/s (Slot 21.09.: 2,95 → 5,10 m/s bei 150–240 h; MOSMIX 2,5), weil der Komponenten-Prior (`windSigmaAt`, 3,2 m/s +
+      Höhe/TPI) über die Rice-Verteilung eine implizite mittlere Geschwindigkeit σ·√(π/2) erzeugt. Vorschlag: σ je Punkt aus
+      der Stationsklimatologie messen (Hindcast/Punktarchiv), nicht setzen. Bis dahin Wind-Scores jenseits ≈ 72 h als verzerrt
+      kennzeichnen.
+- [ ] **Entscheidung V-FI-108 (Design):** Einzelwerte je Quelle sind nirgends archiviert ⇒ Basislinie „Fusion gegen jede Quelle"
+      und Σ-Gewichte (PAP 2) sind nicht erreichbar. Vorschlag: Punktauszug je Lauf/Stufe/Quelle an den 405 Archivpunkten aus dem
+      Producer (≈ 1–2 MB gz je Lauf, geschätzt), Sammler kopiert ihn — oder Gewichte aus dem Hindcast (Open-Meteo-Modelle als
+      Stellvertreter).
+- [ ] **AP9-Kickoff:** `prompt.md` baut jetzt Schema 4 auf Schema 3 auf; Punkt 1e (Stationshöhe am Live-Aufruf) ist erledigt.

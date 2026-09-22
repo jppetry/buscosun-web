@@ -47,10 +47,29 @@ import { join, dirname } from 'node:path';
  *        TAWES/SMN-Spalten aus den 10-min-Werten AM Stundenstempel (nicht mehr über die App-Leser);
  *        `fxh` (Stundenmaximum der Böe) in allen Netzen; `count` = Zahl der Stunden (`n` ist Bedeckung).
  *      · `live.axis` (Bedeutung von `t0Ms`/`tsMs`), `stats.warnings`, `pointsFrom.rules`.
+ *   3  PA4 (2026-09-22, Befunde des Experten am Slot 2026-09-21/2321, §9.17):
+ *      · `finishedAt` im Kopf (Ende des Sammelns; `createdAt` war und ist der BEGINN — der Experte las es
+ *        als Fertigstellung); `live.asOf` nennt die Abrufzeit des Live-Pfads als dessen As-of und Stunde 0
+ *        als Analysestunde mit Anker; der Live-Pfad läuft jetzt als ERSTES nach dem Index (näher am Slot).
+ *      · `live.byPoint[].fusion` SPALTENWEISE und ganzzahlig (`encodeFusionColumns`/`decodeFusionColumns`,
+ *        `FUSION_SCALES`) statt eines Objekts je Stunde mit vollen Gleitkommazahlen (Schema 2: 71 % der
+ *        gz-Bytes des Slots); Leser bekommen die Schema-2-Form über `decodeFusionColumns` zurück.
+ *      · `live.products`/`live.keys`: welche Reihe was ist (`fields` = Altfeld-Blend der App, `fusion` =
+ *        buscosun Fusion) und die Schlüsselabbildung confidence ↔ fields; `rawMu` als entdämpfte
+ *        Schätzung benannt. Live-Pfad mit `elevationM: points[].elev` (V-FI-24, Reihenbruch am codeHash).
+ *      · `truth.*.ps` (Stationsdruck: TAWES `P`, SMN `prestas0`); Caveat zu TAWES `PRED` (an Bergstationen
+ *        auf 1 500/3 000 m reduziert, gemessen) und SMN `pp0qffs0` (an 56/102 Stationen leer).
+ *      · `plan.axis.toMs` ist das Achsenende (exklusiv): 56 Entscheidungen je 6 h statt 57.
+ *      · `stations.mapped`/`stations.absent` (was das Stationsprodukt trägt, was nicht — `notMapped` nannte
+ *        nur 7 von 45 fehlenden Ebenen); `stations.byPoint[].nearest`, wenn der Plan eine ANDERE Station als
+ *        die Katalogstation des Punkts wählt (Zell am See: 11143 statt 11144).
+ *      · `cube.notes` (Bezugshöhe hModEff je Schritt, Vorzeichen gammaEff, Niederschlagsrate, rh > 100,
+ *        Quantile aus fremder Quelle) und `scales.cube[t][id].why` aus `CUBE_VARS`; `hmodel.note` (CLAEF ohne
+ *        Orographie ⇒ nicht in hModEff); `nowcast.note` um INCA-+15-min und CombiPrecip-Analyse ergänzt.
  */
-export const ARCHIVE_SCHEMA = 2;
+export const ARCHIVE_SCHEMA = 3;
 /** Schemata, die `parseSlot` liest — ein Archiv trägt alle Fassungen nebeneinander. */
-export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2]);
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3]);
 export const SENTINEL = -32768;
 export const SLOT_KIND = 'punktarchiv/slot';
 
@@ -88,7 +107,123 @@ export const TRUTH_SCALES = Object.freeze({
   rr1h: { scale: 0.01, offset: 0, unit: 'mm' },
   n: { scale: 0.1, offset: 0, unit: 'pct' },
   p: { scale: 0.1, offset: 0, unit: 'hPa' },
+  // PA4: pressure at STATION level (TAWES `P`, SMN `prestas0`; POI carries none). `p` is the
+  // network's own reduced pressure — sea level for POI/SMN, but TAWES reduces mountain stations
+  // to 1 500 m or 3 000 m (measured 22.09.: PRED 856–861 hPa at 1 034–2 251 m, 714–717 at
+  // ≥ 2 317 m, PGPM = height of the 850/700-hPa surface) — so only `ps` compares across
+  // networks and with the cube's `ps` after a hypsometric step hModEff → station height.
+  ps: { scale: 0.1, offset: 0, unit: 'hPa' },
 });
+
+/**
+ * PA4: the buscosun-Fusion distribution block of the live path, column-wise. Schema 2 wrote one
+ * object per hour and variable with full-precision floats (`"n": 1.0171111723776158`) — 102 MB raw
+ * / 12.6 MB gz of a 17.8-MB slot. Same content, integer columns, one dictionary per point.
+ */
+export const FUSION_VARS = Object.freeze(['temperature', 'dewPoint', 'humidity', 'clouds', 'precipitation', 'windSpeed', 'gust']);
+export const FUSION_COLS = Object.freeze(['mu', 'q10', 'q50', 'q90', 'rawMu', 'rawSigma']);
+export const FUSION_REGIME_KEYS = Object.freeze(['coldPool', 'foehn', 'phaseEdge', 'tempExtraVar', 'windExtraVar']);
+export const FUSION_SCALES = Object.freeze({
+  value: { scale: 0.01, offset: 0, unit: 'unit of the variable (degC, mm/h, m/s)' },
+  valuePct: { scale: 0.1, offset: 0, unit: 'pct (humidity, clouds)' },
+  n: { scale: 0.001, offset: 0, unit: 'equivalent sources' },
+  regime: { scale: 0.001, offset: 0, unit: 'score 0…1 / extra variance' },
+  pSnow: { scale: 0.001, offset: 0, unit: 'probability' },
+  windDirectionDeg: { scale: 1, offset: 0, unit: 'deg' },
+});
+/** Scale of the value columns per variable (the encoder in collect.mjs uses the same rule). */
+export const fusionValueScale = (v) => (v === 'humidity' || v === 'clouds' ? FUSION_SCALES.valuePct : FUSION_SCALES.value);
+
+/**
+ * Encodes the per-hour fusion objects (the schema-2 form: `{ temperature: { mu, q10, q50, q90, rawMu,
+ * rawSigma, n, climaOnly, sources }, …, windDirectionDeg, pSnow, regime, climaSource } | null`) into
+ * columns. In that form mu/q10/q50/q90/rawMu/rawSigma/windDirectionDeg/pSnow are ALREADY integer-coded
+ * (they pass through unchanged, `null` → SENTINEL); `n` and the regime scores are raw floats and are
+ * quantised here (×1000) — never guess from the value whether it is coded (n = 1 is a legal float).
+ */
+export function encodeFusionColumns(hours) {
+  const dict = [];
+  const idx = (s) => { let i = dict.indexOf(s); if (i < 0) { dict.push(s); i = dict.length - 1; } return i; };
+  const reasonDict = [], climaDict = [];
+  const ridx = (s) => { let i = reasonDict.indexOf(s); if (i < 0) { reasonDict.push(s); i = reasonDict.length - 1; } return i; };
+  const cidx = (s) => { let i = climaDict.indexOf(s); if (i < 0) { climaDict.push(s); i = climaDict.length - 1; } return i; };
+  const n = hours.length;
+  const col = () => new Array(n).fill(SENTINEL);
+  const byVar = {};
+  for (const v of FUSION_VARS) {
+    byVar[v] = { mu: col(), q10: col(), q50: col(), q90: col(), rawMu: col(), rawSigma: col(), n: col(), climaOnly: col(), sources: col() };
+  }
+  const present = new Array(n).fill(0);
+  const windDirectionDeg = col(), pSnow = col(), climaSource = col();
+  const regime = Object.fromEntries(FUSION_REGIME_KEYS.map((k) => [k, col()]));
+  regime.reasons = col();
+  const coded = (x) => (typeof x === 'number' && Number.isInteger(x) ? x : SENTINEL);   // already integer-coded
+  for (let i = 0; i < n; i++) {
+    const h = hours[i];
+    if (!h) continue;
+    present[i] = 1;
+    for (const v of FUSION_VARS) {
+      const x = h[v];
+      if (!x) continue;
+      const c = byVar[v];
+      for (const k of FUSION_COLS) c[k][i] = coded(x[k]);
+      c.n[i] = encodeValue(x.n, FUSION_SCALES.n);
+      c.climaOnly[i] = x.climaOnly ? 1 : 0;
+      c.sources[i] = packTags(x.sources ?? [], idx);
+    }
+    windDirectionDeg[i] = coded(h.windDirectionDeg);
+    pSnow[i] = coded(h.pSnow);
+    if (h.regime) {
+      for (const k of FUSION_REGIME_KEYS) regime[k][i] = encodeValue(h.regime[k], FUSION_SCALES.regime);
+      regime.reasons[i] = packTags(h.regime.reasons ?? [], ridx);
+    }
+    if (h.climaSource != null) climaSource[i] = cidx(h.climaSource);
+  }
+  return { layout: 'columns', n, present, vars: [...FUSION_VARS], cols: [...FUSION_COLS], byVar, windDirectionDeg, pSnow, regime, climaSource, dict, reasonDict, climaDict,
+    packing: 'sources/reasons: ORDERED list of dictionary indices, 5 bit each (index + 1), first tag in the lowest bits; 0 = none. The order is the weight order of the contributors and is kept.' };
+}
+
+/**
+ * Ordered tag list → one integer: (index + 1) in 5 bits per position, first tag lowest. Order matters
+ * (`contributors` are sorted by weight); a bitmask would lose it. ≤ 31 dictionary entries, ≤ 6 tags.
+ */
+function packTags(tags, idx) {
+  if (tags.length > 6) throw new Error(`punktarchiv: more than 6 tags per hour (${tags.join(',')})`);
+  let v = 0;
+  tags.forEach((t, pos) => { const i = idx(t) + 1; if (i > 31) throw new Error('punktarchiv: fusion dictionary exceeds 31 entries'); v += i * 2 ** (5 * pos); });
+  return v;
+}
+function unpackTags(v, dict) {
+  const r = [];
+  if (v === SENTINEL || v == null) return r;
+  while (v > 0) { r.push(dict[(v % 32) - 1]); v = Math.floor(v / 32); }
+  return r;
+}
+
+/** The inverse: the schema-2 form (integer-coded values, `null` hours), for readers and the scorer. */
+export function decodeFusionColumns(f) {
+  if (!f) return null;
+  if (Array.isArray(f)) return f;   // schema 2: already one object per hour
+  const out = new Array(f.n);
+  const tags = unpackTags;
+  for (let i = 0; i < f.n; i++) {
+    if (!f.present[i]) { out[i] = null; continue; }
+    const h = {};
+    for (const v of f.vars) {
+      const c = f.byVar[v];
+      if (c.n[i] === SENTINEL && c.mu[i] === SENTINEL && c.sources[i] === SENTINEL) { h[v] = null; continue; }
+      h[v] = { mu: c.mu[i], q10: c.q10[i], q50: c.q50[i], q90: c.q90[i], rawMu: c.rawMu[i], rawSigma: c.rawSigma[i],
+        n: c.n[i] === SENTINEL ? null : c.n[i] * FUSION_SCALES.n.scale, climaOnly: c.climaOnly[i] === 1, sources: tags(c.sources[i], f.dict) };
+    }
+    h.windDirectionDeg = f.windDirectionDeg[i];
+    h.pSnow = f.pSnow[i];
+    h.regime = f.regime.reasons[i] === SENTINEL ? null
+      : { ...Object.fromEntries(FUSION_REGIME_KEYS.map((k) => [k, f.regime[k][i] === SENTINEL ? null : f.regime[k][i] * FUSION_SCALES.regime.scale])), reasons: tags(f.regime.reasons[i], f.reasonDict) };
+    h.climaSource = f.climaSource[i] === SENTINEL ? null : f.climaDict[f.climaSource[i]];
+    out[i] = h;
+  }
+  return out;
+}
 
 // ─── Integer coding ─────────────────────────────────────────────────────────
 export function encodeValue(v, sc) {
@@ -115,7 +250,9 @@ export function newSlot(head) {
     kind: SLOT_KIND,
     slotAt: new Date(head.slotAtMs).toISOString(),
     slotAtMs: head.slotAtMs,
+    // PA4: `createdAt` = BEGINN des Sammelns (so seit PA1); `finishedAt` = Ende, gesetzt vor dem Schreiben.
     createdAt: new Date().toISOString(),
+    finishedAt: null,
     codeHash: head.codeHash ?? null,
     producer: head.producer,
     sentinel: SENTINEL,
@@ -127,7 +264,7 @@ export function newSlot(head) {
     stations: null,       // { run, ageAtSlotH, ageAtBuildH, leadHours, scales, byPoint }
     nowcast: { slots: {}, byPoint: {} },
     hmodel: { byPoint: {} },
-    live: { options: null, caveats: [], axis: null, byPoint: {} },
+    live: { options: null, caveats: [], axis: null, asOf: null, products: null, keys: null, fusionScales: FUSION_SCALES, byPoint: {} },
     truth: { windowH: 25, window: null, byPoint: {} },
     plan: { axis: null, selection: null, byPoint: {} },
     // errors: hard failures (a request or a read that threw); warnings: what is missing or
@@ -294,15 +431,42 @@ export function punktarchivSelfTest(tmpRoot) {
   const back = parseSlot(bytes);
   add('Rundweg: serialise → gunzip → parse ist inhaltsgleich', JSON.stringify(back) === JSON.stringify(s1));
   add('Rundweg: die Wahrheitswerte kommen auf 0,01 K zurück', Math.abs(decodeSeries(back.truth.byPoint['10865'].poi.t, TRUTH_SCALES.t)[0] - 12.3) < 1e-9);
-  // PA3: Schema 2 schreibt, Schema 1 (PA1/PA2-Slots im Archiv) liest weiter, ein unbekanntes Schema nicht.
-  add('Schema: der Kopf trägt Schema 2, ein Schema-1-Slot wird weiterhin gelesen, Schema 3 abgewiesen', (() => {
-    const old = mk(); old.schema = 1;
-    const future = mk(); future.schema = 3;
+  // PA3/PA4: Schema 3 schreibt, Schema 1 und 2 (Slots im Archiv) lesen weiter, ein unbekanntes Schema nicht.
+  add('Schema: der Kopf trägt Schema 3, Schema-1- und Schema-2-Slots werden weiterhin gelesen, Schema 4 abgewiesen', (() => {
+    const s1old = mk(); s1old.schema = 1;
+    const s2old = mk(); s2old.schema = 2;
+    const future = mk(); future.schema = 4;
     const reads = (s) => { try { parseSlot(gzipSync(Buffer.from(JSON.stringify(s), 'utf8'))); return true; } catch { return false; } };
-    return s1.schema === 2 && ARCHIVE_SCHEMA === 2 && reads(old) && !reads(future);
+    return s1.schema === 3 && ARCHIVE_SCHEMA === 3 && reads(s1old) && reads(s2old) && !reads(future);
   })());
+  add('PA4: der Kopf trägt finishedAt (null bis zum Ende) neben createdAt (Beginn)', 'finishedAt' in s1 && s1.finishedAt === null && typeof s1.createdAt === 'string');
   add('Skalen: fxh (Stundenmaximum der Böe) trägt dieselbe Skala wie fx; count ist keine Skala (n = Bedeckung)',
     TRUTH_SCALES.fxh?.scale === TRUTH_SCALES.fx.scale && TRUTH_SCALES.fxh.unit === 'm/s' && !('count' in TRUTH_SCALES) && TRUTH_SCALES.n.unit === 'pct');
+  add('PA4: ps (Stationsdruck) trägt dieselbe Skala wie p und ist eine eigene Spalte', TRUTH_SCALES.ps?.scale === TRUTH_SCALES.p.scale && TRUTH_SCALES.ps.unit === 'hPa');
+  // PA4: fusion columns — round trip of the schema-2 form, null hours and null variables, bitmask dictionaries.
+  {
+    const hour = (t, srcs, clima) => ({
+      temperature: { mu: 1234, q10: 1000, q50: 1234, q90: 1500, rawMu: 1200, rawSigma: 150, n: 1.2684658, climaOnly: false, sources: srcs },
+      dewPoint: null, humidity: { mu: 902, q10: 742, q50: 936, q90: 1000, rawMu: 936, rawSigma: 151, n: 1, climaOnly: clima, sources: clima ? [] : ['mosmix'] },
+      clouds: { mu: 458, q10: 49, q50: 452, q90: 856, rawMu: -563, rawSigma: 841, n: 1, climaOnly: false, sources: ['mosmix'] },
+      precipitation: { mu: 1, q10: 0, q50: 0, q90: 0, rawMu: -183, rawSigma: 94, n: 1, climaOnly: false, sources: ['mosmix'] },
+      windSpeed: { mu: 380, q10: 139, q50: 357, q90: 650, rawMu: 195, rawSigma: 459, n: 1, climaOnly: false, sources: ['mosmix', 'dwd_obs'] },
+      gust: { mu: 468, q10: 0, q50: 410, q90: 1052, rawMu: -522, rawSigma: 936, n: 1, climaOnly: false, sources: ['mosmix'] },
+      windDirectionDeg: t === 0 ? 240 : SENTINEL, pSnow: 30, regime: { coldPool: 0.0024, foehn: 0.259, phaseEdge: 0.003, tempExtraVar: 0.8597, windExtraVar: 0.3626, reasons: t === 0 ? ['foehn'] : [] }, climaSource: 'grid',
+    });
+    const hours = [hour(0, ['mosmix', 'dwd_obs'], false), null, hour(2, ['mosmix'], true)];
+    const enc = encodeFusionColumns(hours);
+    const back = decodeFusionColumns(enc);
+    add('PA4 fusion: Spalten je Größe, Länge = Stunden, Wörterbuch aus den Quellen', enc.layout === 'columns' && enc.n === 3 && enc.byVar.temperature.mu.length === 3 && enc.dict.join() === 'mosmix,dwd_obs');
+    add('PA4 fusion: Rundweg — Werte, n (auf 0,001), climaOnly, Quellen IN IHRER REIHENFOLGE, Regime-Gründe, Richtung als Sentinel kommen zurück',
+      back[0].temperature.mu === 1234 && Math.abs(back[0].temperature.n - 1.268) < 1e-9 && back[0].windSpeed.sources.join() === 'mosmix,dwd_obs' && back[0].regime.reasons.join() === 'foehn'
+      && decodeFusionColumns(encodeFusionColumns([{ ...hours[0], windSpeed: { ...hours[0].windSpeed, sources: ['dwd_obs', 'mosmix'] } }]))[0].windSpeed.sources.join() === 'dwd_obs,mosmix'
+      && back[2].humidity.climaOnly === true && back[2].humidity.sources.length === 0 && back[2].windDirectionDeg === SENTINEL && back[2].regime.reasons.length === 0 && back[0].climaSource === 'grid' && Math.abs(back[0].regime.foehn - 0.259) < 1e-9,
+      JSON.stringify(back[0].temperature));
+    add('PA4 fusion: eine null-Stunde bleibt null, eine null-Größe bleibt null', back[1] === null && back[0].dewPoint === null && back[2].dewPoint === null);
+    add('PA4 fusion: die Schema-2-Form (Array) geht unverändert durch decodeFusionColumns', decodeFusionColumns(hours) === hours);
+    add('Negativkontrolle PA4: ein anderer Wert im Rundweg wird bemerkt', (() => { const h2 = structuredClone(hours); h2[0].temperature.mu = 1235; return decodeFusionColumns(encodeFusionColumns(h2))[0].temperature.mu !== back[0].temperature.mu; })());
+  }
   // As-of: eine Messung eine Stunde NACH dem Slot muss abgewiesen werden (Negativkontrolle).
   const leak = mk();
   leak.truth.byPoint['10865'].poi.obsAtMs.push(slotAtMs + 3_600_000);

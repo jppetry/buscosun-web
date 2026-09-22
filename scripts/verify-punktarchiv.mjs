@@ -55,7 +55,8 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(3) jede Skala trägt scale > 0, offset und unit', all.every(([, s]) => s.scale > 0 && Number.isFinite(s.offset) && typeof s.unit === 'string'), `${all.length} Spalten`);
   add('(3) der größte plausible Wert je Spalte bleibt unter dem Sentinel-Betrag (kein stilles Klemmen)',
     encodeValue(60, LIVE_SCALES.temperature) < 32767 && encodeValue(1100, TRUTH_SCALES.p) < 32767 && encodeValue(100, LIVE_SCALES.precipitation) < 32767);
-  add('(3) Sentinel ist -32768 wie im Cube (MISSING); Schema 2 (PA3), Schema 1 bleibt lesbar', SENTINEL === -32768 && ARCHIVE_SCHEMA === 2 && ARCHIVE_SCHEMAS_READABLE.includes(1) && ARCHIVE_SCHEMAS_READABLE.includes(2));
+  add('(3) Sentinel ist -32768 wie im Cube (MISSING); Schema 3 (PA4), Schema 1 und 2 bleiben lesbar', SENTINEL === -32768 && ARCHIVE_SCHEMA === 3 && ARCHIVE_SCHEMAS_READABLE.includes(1) && ARCHIVE_SCHEMAS_READABLE.includes(2) && ARCHIVE_SCHEMAS_READABLE.includes(3));
+  add('(3) PA4: ps (Stationsdruck) neben p (reduziert) in TRUTH_SCALES, gleiche Skala', TRUTH_SCALES.ps?.scale === TRUTH_SCALES.p.scale);
 }
 
 // (4) Die materialisierte Punktliste (falls gebaut): eindeutig, DACH, in der Box, DEM endlich.
@@ -149,6 +150,19 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(5) PA3: stats.warnings sammelt Befunde ohne Abbruch (Quellen, Radar, Station, POI, Live-Höhe)', /warn\(slot, 'cubeSourcesAbsent'/.test(src) && /warn\(slot, 'nowcastUncovered'/.test(src) && /warn\(slot, 'planStationRejected'/.test(src) && /warn\(slot, 'poiEmpty'/.test(src) && /warn\(slot, 'liveElevation'/.test(src));
   add('(5) PA3: der Slot erklärt seine Schlüssel (pointsFrom.rules: id, wmo, profile, elev, demM) und die Live-Achse (t0Ms/tsMs)', /rules: \{/.test(src) && /PROFILE_WHY/.test(src) && /slot\.live\.axis = \{/.test(src) && /tsMs ist null/.test(src));
   add('(5) PA3: fxh (Stundenmaximum der Böe) wird für POI gesetzt (= fx) und für TAWES/SMN aus tenMinColumns übernommen', /s\.fxh = s\.fx/.test(src) && TRUTH_SCALES.fxh?.unit === 'm/s');
+  // PA4 (§9.17) — die Befunde des zweiten Expertenberichts (Slot 21.09.), je einer als Textanker an der Kur:
+  add('(5) PA4: finishedAt wird vor dem Serialisieren gesetzt (createdAt = Beginn)', /slot\.finishedAt = new Date\(\)\.toISOString\(\)/.test(src) && src.indexOf('slot.finishedAt = new Date()') < src.indexOf('const bytes = serialiseSlot(slot)'));
+  add('(5) PA4: der Live-Pfad läuft als ERSTES nach dem Index (As-of = Abrufzeit), live.asOf nennt die Regel', src.indexOf('await collectLive(') < src.indexOf('await collectCube(') && /slot\.live\.asOf = \{/.test(src) && /fetchedAtMinMs/.test(src));
+  add('(5) PA4: BEIDE Live-Aufrufe laufen über liveCallOptions mit elevationM: p.elev (V-FI-24); kein Aufruf ohne Höhe', /elevationM: p\.elev, hours/.test(src) && (src.match(/await getPointForecast\(/g) ?? []).length === 2 && (src.match(/await getPointForecast\(\{? ?\.{0,3}liveCallOptions\(p, /g) ?? []).length === 2);
+  add('(5) PA4: fusion wird spaltenweise kodiert (encodeFusionColumns), nicht mehr als Objekt je Stunde', /encodeFusionColumns\(hours\.map/.test(src) && !/fusion: hours\.some\(\(h\) => h\.fusion\) \? hours\.map/.test(src));
+  add('(5) PA4: live.products erklärt fields (B5) gegen fusion, rawMu als entdämpfte Schätzung, den Wind-Befund; live.keys bildet confidence/fusion auf fields ab', /slot\.live\.products = \{/.test(src) && /ENTDAEMPFTE/.test(src) && /windDrift:/.test(src) && /confidenceToFields:/.test(src) && /fusionToFields:/.test(src));
+  add('(5) PA4: der V-FI-25-Vorbehalt ist ersetzt (MOSMIX trägt den Taupunkt), V-FI-31 bleibt benannt', !/dewPoint\/humidity der Live-Fusion sind ausserhalb der Ankerstunden Klimatologie/.test(src) && /V-FI-25, seit 17\.09\. behoben/.test(src) && /V-FI-31/.test(src));
+  add('(5) PA4: die Plan-Achse ist am Ende exklusiv (toMs − 1 an planPointSources, 56 Schritte)', /toMs: toMs - 1, stepH/.test(src) && /steps: 336 \/ stepH/.test(src));
+  add('(5) PA4: der Plan läuft VOR den Stationen; die Stationen tragen mapped/absent und die Plan-Station als nearest', src.indexOf('await collectPlan(') < src.indexOf('await collectStations(') && /rec\.nearest = near/.test(src) && /slot\.stations\.mapped = /.test(src) && /slot\.stations\.absent = /.test(src));
+  add('(5) PA4: die Wahrheit nennt die Bezugsniveaus des Drucks (TAWES PRED 1 500/3 000 m, SMN QFF leer) und ps als vergleichbare Größe', /auf 1 500 m/.test(src) && /3 000 m/.test(src) && /ps = Druck auf STATIONSNIVEAU/.test(src));
+  add('(5) PA4: cube.notes (Bezugshöhe, Sägezahn V-FI-104, gammaEff-Vorzeichen, Niederschlagsrate, rh > 100, Quantile) und scales[].why aus CUBE_PLANES', /notes: \{/.test(src) && /referenceHeight:/.test(src) && /V-FI-104/.test(src) && /gammaEff:/.test(src) && /precip: `/.test(src) && /whyOf\[p\.id\]/.test(src) && /CUBE_VARS\.map\(\(v\) => \[v\.id, v\.why/.test(src));
+  add('(5) PA4: hmodel nennt Quellen ohne Höhe (CLAEF, V-FI-105) je Stufe und warnt', /absentBySlot/.test(src) && /warn\(slot, 'hmodelAbsent'/.test(src) && /V-FI-105/.test(src));
+  add('(5) PA4: nowcast.note erklärt INCA ab +15 min und CombiPrecip als Analyse', /ab \+15 min/.test(src) && /NUR die Analyse/.test(src));
 }
 
 // (6) Workflow-Vorlage: Slot NACH dem letzten t1-Bau des Tages und vor Mitternacht, eigene Gruppe, kein Force-Push.

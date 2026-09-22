@@ -1,0 +1,12 @@
+# AP10a hindcast readers (E-F-27): Python only for READING the external archives.
+# Python 3.12 (uv python install 3.12). Node writes the slots (scripts/hindcast/build-slots.mjs). Venv: C:\dev\buscosun-hindcast\.venv
+omfiles==1.2.0
+fsspec>=2024.6
+s3fs>=2024.6
+icechunk>=2.2   # dynamical.org stores are Icechunk v2 (needs Python >= 3.12)
+zarr>=3.0
+xarray>=2025.1
+pystac>=1.10
+numpy>=2.0
+pyarrow>=17
+dynamical-catalog>=0.3

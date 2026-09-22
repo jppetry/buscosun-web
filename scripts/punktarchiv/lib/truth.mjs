@@ -31,8 +31,17 @@ const HOUR = 3_600_000;
  * `station/historical/tawes-v1-10min/metadata`, SMN `ogd-smn_<abbr>_t_now.csv` header
  * (the gust column is `fkl010z1`; `fkl010d1`, which the app reader asks for, does not exist).
  */
-export const TAWES_10MIN = Object.freeze({ t: 'TL', td: 'TP', rh: 'RF', ff: 'FF', dd: 'DD', fx: 'FFX', rr10: 'RR', p: 'PRED' });
-export const SMN_10MIN = Object.freeze({ t: 'tre200s0', td: 'tde200s0', rh: 'ure200s0', ff: 'fkl010z0', dd: 'dkl010z0', fx: 'fkl010z1', rr10: 'rre150z0', p: 'pp0qffs0' });
+/**
+ * PA4 (22.09.): `p` is each network's REDUCED pressure and the reference level is not the same
+ * everywhere — TAWES `PRED` is sea level only below ≈ 1 000 m; at 1 034–2 251 m it is reduced to
+ * 1 500 m (856–861 hPa measured, `PGPM` ≈ 1 560–1 600 gpm = height of the 850-hPa surface) and at
+ * ≥ 2 317 m to 3 000 m (714–717 hPa, `PGPM` ≈ 3 140–3 170 = 700-hPa height); GeoSphere's own
+ * parameter text: „PGPM … gültiger Wert bei pred < 950 hPa". SMN `pp0qffs0` (QFF) is empty at 56 of
+ * 102 stations (measured), `prestas0` is there at all. `ps` = pressure at STATION level (TAWES `P`,
+ * SMN `prestas0`) is the one column comparable across networks and with the cube's `ps`.
+ */
+export const TAWES_10MIN = Object.freeze({ t: 'TL', td: 'TP', rh: 'RF', ff: 'FF', dd: 'DD', fx: 'FFX', rr10: 'RR', p: 'PRED', ps: 'P' });
+export const SMN_10MIN = Object.freeze({ t: 'tre200s0', td: 'tde200s0', rh: 'ure200s0', ff: 'fkl010z0', dd: 'dkl010z0', fx: 'fkl010z1', rr10: 'rre150z0', p: 'pp0qffs0', ps: 'prestas0' });
 
 const POI_COLS = {
   t: 'dry_bulb_temperature_at_2_meter_above_ground',
@@ -198,7 +207,7 @@ export function tenMinHourStamps(series, fromMs, toMs) {
 export function tenMinColumns(series, obsAtMs) {
   const at = (k) => obsAtMs.map((h) => series[k]?.get(h) ?? null);
   return {
-    t: at('t'), td: at('td'), rh: at('rh'), ff: at('ff'), dd: at('dd'), fx: at('fx'), p: at('p'),
+    t: at('t'), td: at('td'), rh: at('rh'), ff: at('ff'), dd: at('dd'), fx: at('fx'), p: at('p'), ps: at('ps'),
     rr1: obsAtMs.map((h) => { const v = series.rr10?.get(h); return v == null ? null : Math.round(v * 6 * 1000) / 1000; }),
     rr1h: obsAtMs.map((h) => (series.rr10 ? hourSum10(series.rr10, h) : null)),
     fxh: obsAtMs.map((h) => (series.fx ? hourMax10(series.fx, h) : null)),
@@ -229,28 +238,31 @@ export function truthSelfTest() {
   const meta = parseSmnMeta('station_abbr;station_name;station_wigos_id;station_coordinates_wgs84_lat;station_coordinates_wgs84_lon;station_height_masl\nSMA;Zürich / Fluntern;0-20000-0-06660;47.378;8.574;556\nXYZ;Ohne WMO;;46.0;7.0;100');
   add('SMN-Meta: WIGOS 0-20000-0-06660 → WMO 06660 → SMA; Stationen ohne WIGOS fallen weg', meta.get('06660')?.abbr === 'SMA' && meta.size === 1);
   // PA2/PA3: 10-min columns. Stamp = interval END ⇒ the hour 12:00 is the sum of the stamps 11:10…12:00.
-  const smnHead = 'station_abbr;reference_timestamp;tre200s0;ure200s0;fkl010z0;dkl010z0;fkl010z1;rre150z0;tde200s0;pp0qffs0';
+  const smnHead = 'station_abbr;reference_timestamp;tre200s0;ure200s0;fkl010z0;dkl010z0;fkl010z1;rre150z0;tde200s0;pp0qffs0;prestas0';
   const smnCsv = [smnHead,
-    ...['11:00', '11:10', '11:20', '11:30', '11:40', '11:50', '12:00'].map((t, i) => `SAE;16.09.2026 ${t};1.0;9${i};3.${i};27${i};${[6, 4.1, 5.5, 12.3, 3, 2.2, 7][i]};${[9, 0.5, 0.5, 1, 0, 0.2, 1][i]};${i === 6 ? '-2.5' : ''};${i === 6 ? '1016.4' : ''}`)].join('\n');
+    ...['11:00', '11:10', '11:20', '11:30', '11:40', '11:50', '12:00'].map((t, i) => `SAE;16.09.2026 ${t};1.0;9${i};3.${i};27${i};${[6, 4.1, 5.5, 12.3, 3, 2.2, 7][i]};${[9, 0.5, 0.5, 1, 0, 0.2, 1][i]};${i === 6 ? '-2.5' : ''};${i === 6 ? '1016.4' : ''};${i === 6 ? '761.9' : ''}`)].join('\n');
   const sm = parseSmn10min(smnCsv);
   const h12 = Date.UTC(2026, 8, 16, 12, 0);
   add('SMN 10 min: Stundensumme 12:00 = Stempel 11:10…12:00 = 3,2 mm (der 9-mm-Wert um 11:00 gehört zur Vorstunde)', hourSum10(sm.rr10, h12) === 3.2, String(hourSum10(sm.rr10, h12)));
   add('SMN 10 min: fehlt einer der sechs Werte, ist die Stundensumme null (nicht zu klein)', hourSum10(sm.rr10, Date.UTC(2026, 8, 16, 11, 0)) === null);
   const cols = tenMinColumns(sm, [h12]);
   add('SMN 10 min: td und p am Stundenstempel (−2,5 °C, 1016,4 hPa), leere Zelle ⇒ null', cols.td[0] === -2.5 && cols.p[0] === 1016.4 && sm.td.get(Date.UTC(2026, 8, 16, 11, 50)) === null && cols.rr1h[0] === 3.2);
+  add('PA4: ps (Stationsdruck prestas0 761,9 hPa) ist eine eigene Spalte neben p (QFF); ohne die Spalte im Kopf bleibt sie null',
+    cols.ps[0] === 761.9 && tenMinColumns(parseSmn10min(smnCsv.split('\n').map((l) => l.split(';').slice(0, 10).join(';')).join('\n')), [h12]).ps[0] === null, JSON.stringify(cols.ps));
   add('PA3: t/rh/ff/dd/fx AM Stempel 12:00 (1,0 · 96 · 3,6 · 276 · 7), rr1 = 10-min × 6 = 6 mm/h, fxh = Maximum der sechs Spitzen 11:10…12:00 = 12,3 (die 6 um 11:00 gehört zur Vorstunde)',
     cols.t[0] === 1 && cols.rh[0] === 96 && cols.ff[0] === 3.6 && cols.dd[0] === 276 && cols.fx[0] === 7 && cols.rr1[0] === 6 && cols.fxh[0] === 12.3, JSON.stringify(cols));
   add('PA3: fehlt eine der sechs Spitzen, ist fxh null (die fehlende könnte DIE Spitze sein)', hourMax10(sm.fx, Date.UTC(2026, 8, 16, 11, 0)) === null);
   add('PA3: tenMinHourStamps liefert nur volle Stunden im Fenster (11:00, 12:00), Fenster ab 11:30 nur 12:00',
     tenMinHourStamps(sm, Date.UTC(2026, 8, 16, 10, 0), h12).join() === [Date.UTC(2026, 8, 16, 11, 0), h12].join() && tenMinHourStamps(sm, Date.UTC(2026, 8, 16, 11, 30), h12).join() === String(h12));
   const tj = { timestamps: ['2026-09-16T11:10+00:00', '2026-09-16T11:20+00:00', '2026-09-16T11:30+00:00', '2026-09-16T11:40+00:00', '2026-09-16T11:50+00:00', '2026-09-16T12:00+00:00'],
-    features: [{ properties: { station: '11343', parameters: { RR: { data: [0.1, 0.1, 0, 0, null, 0.2] }, TP: { data: [0, 0, 0, 0, 0, -8.1] }, PRED: { data: [null, null, null, null, null, 1019] },
+    features: [{ properties: { station: '11343', parameters: { RR: { data: [0.1, 0.1, 0, 0, null, 0.2] }, TP: { data: [0, 0, 0, 0, 0, -8.1] }, PRED: { data: [null, null, null, null, null, 714] }, P: { data: [null, null, null, null, null, 702.2] },
       TL: { data: [1, 1, 1, 1, 1, -3.4] }, RF: { data: [90, 90, 90, 90, 90, 97] }, FF: { data: [5, 5, 5, 5, 5, 8.2] }, DD: { data: [200, 200, 200, 200, 200, 231] }, FFX: { data: [9, 22.5, 9, 9, 9, 12] } } } }] };
   const tm = parseTawes10min(tj).get('11343');
-  add('TAWES 10 min: ein fehlender RR-Wert ⇒ Stundensumme null; td −8,1 und p 1019 am Stempel 12:00', hourSum10(tm.rr10, h12) === null && tm.td.get(h12) === -8.1 && tm.p.get(h12) === 1019);
+  add('TAWES 10 min: ein fehlender RR-Wert ⇒ Stundensumme null; td −8,1 und p 714 (PRED, Sonnblick: auf 3 000 m reduziert) am Stempel 12:00', hourSum10(tm.rr10, h12) === null && tm.td.get(h12) === -8.1 && tm.p.get(h12) === 714);
   const tc = tenMinColumns(tm, [h12]);
   add('PA3 TAWES: t −3,4 · rh 97 · ff 8,2 · dd 231 · fx 12 am Stempel, fxh = 22,5 (Spitze um 11:20), rr1 = 1,2 mm/h (0,2 × 6), rr1h null',
     tc.t[0] === -3.4 && tc.rh[0] === 97 && tc.ff[0] === 8.2 && tc.dd[0] === 231 && tc.fx[0] === 12 && tc.fxh[0] === 22.5 && tc.rr1[0] === 1.2 && tc.rr1h[0] === null, JSON.stringify(tc));
+  add('PA4 TAWES: ps = P (Stationsdruck 702,2 hPa) neben p = PRED (714, kein Meeresniveau am Sonnblick)', tc.ps[0] === 702.2 && tc.p[0] === 714 && TAWES_10MIN.ps === 'P' && SMN_10MIN.ps === 'prestas0');
   add('PA3: die Spaltennamen beider Netze sind an den Endpunkten gemessen (SMN-Böe fkl010z1, TAWES-Böe FFX)',
     SMN_10MIN.fx === 'fkl010z1' && TAWES_10MIN.fx === 'FFX' && Object.keys(SMN_10MIN).join() === Object.keys(TAWES_10MIN).join());
   const st = parseTawesStations({ stations: [{ id: '11343', name: 'SONNBLICK', lat: 47.05, lon: 12.96, altitude: 3109, is_active: true }, { id: '8989117', name: 'WEIZ - TESTSTATION', lat: 47.2, lon: 15.6, altitude: 480, is_active: true }, { id: '11999', name: 'ALT', lat: 47, lon: 13, altitude: 1, is_active: false }] });
