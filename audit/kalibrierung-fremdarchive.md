@@ -272,8 +272,21 @@ Jede Prüfung mit Gegenprobe; eine Prüfung ohne Gegenprobe zählt nicht. 101 Sl
 | V7 | Wiederholung über fertige Bereiche: 0 Datenbytes; `index.json` = Platte; Bytes je Quelle und Route im Log | 18 Läufe, 101 Slots, 19 Quelle-Routen | **bestanden** (dynamical: 0 Byte Daten, 0,14 MB Katalog beim Öffnen) | 1 übertragenes Byte würde durchfallen |
 | V8 | Quellenvermerke im README; jede Ebene mit Werten nennt ≥ 1 Quelle; jeder Stellvertreter im Slot; kein API-Aufruf in 5,6 MB Log | 177 Stufen-Blöcke | **bestanden** | README ohne „MeteoSwiss" fällt durch; Slot ohne Herkunft für t2m erkannt; API-Muster wird gefunden |
 
-**Offen bis zum Ende der Hintergrundläufe:** dieselbe Abnahme über das ganze Archiv — sie läuft selbst als Kette
-`accept` (8.8) und überschreibt den Stempel.
+### 8.3b Abnahme über das ganze Archiv (23.09.2026, `verify\2026-09-23.json`, Stempel in `index.json`)
+
+**4 314 Slots an 1 216 Tagen (7,24 GiB), Wahrheit 1 217 Tage, Cache 116 985 Dateien / 38,99 GiB.** Alle acht
+Prüfungen bestanden: **V1 8 · V2 6 · V3 11 · V4 31 · V5 7 · V6 3 · V7 6 · V8 8** (Pilot: 8/6/9/27/7/3/4/7). Die
+vier zusätzlichen V4-Prüfungen und die zwei zusätzlichen in V3/V7/V8 stammen aus V-HC-25 … V-HC-30.
+
+Der Weg dorthin brauchte vier Anläufe, jeder mit einem eigenen Befund (8.5): V7 fiel an der Buchung von
+Katalog-Bytes durch (V-HC-24), V3 (a) am Kopf und Code-Stempel der Slots ⇒ Neubau aller 4 314 (V-HC-26), V4 an einer
+Schranke, die aus der Eigenbewegung des Archivs genommen werden sollte und dabei die Gegenprobe durchwinkte
+(V-HC-25), V8 an seinem eigenen Beispielsatz im Log (V-HC-27), V3 (b) an zwei Fehlern der unabhängigen
+Nachrechnung (V-HC-28/29) — und zuletzt an **einem echten Datenfehler im Archiv**, den nur der Zufall der
+Stichprobe traf (V-HC-30). Seitdem prüft V3 (b) jeden Slotwert gegen den physikalischen Bereich seiner Größe.
+
+**Was der Stempel nicht sagt:** `codeHash` lautet `911dff6-hindcast-dirty` — die Nacharbeiten vom 23.09. sind
+uncommitted. Ein Commit und ein erneuter Neubau machten ihn eindeutig (V-HC-21/26).
 
 ### 8.4 V4 — Schatten gegen den echten Cube
 
@@ -393,7 +406,7 @@ Gegenprobe (Druckflächen-Temperatur gegen die Hindcast-Zelle des nächsten Punk
 | meteoswiss_icon_ch1 | precipitation | 107 | ohne: 2, 1 h: 33, 2 h: 33, 3 h: 33, 4 h: 1, 5 h: 1, 6 h: 1, 7 h: 1, 8 h: 1, 9 h: 1 |
 | meteoswiss_icon_ch1 | wind_u_component_10m | 107 | 0 h: 34, 1 h: 33, 2 h: 33, 3 h: 1, 4 h: 1, 5 h: 1, 6 h: 1, 7 h: 1, 8 h: 1, 9 h: 1 |
 
-### 8.5 Befunde V-HC-1 … V-HC-24
+### 8.5 Befunde V-HC-1 … V-HC-30
 
 Jeder Befund mit Mehrwert (für Jan) und Umsetzung bzw. Skizze. „behoben" heißt: im Code dieser Etappe, am Pilot belegt.
 
@@ -423,6 +436,12 @@ Jeder Befund mit Mehrwert (für Jan) und Umsetzung bzw. Skizze. „behoben" hei�
 | V-HC-22 | Die 16 Nachbarpunkte (DK, NL, LU, CZ, SK) haben keine freie stündliche Wahrheit in den zugelassenen Quellen. | im Fit nur Cube-Seite | benannt |
 | V-HC-23 | Alte Open-Meteo-Chunks (vor ≈ 02/2025) liegen **flach** als `(ny·nx, nt)` statt `(ny, nx, nt)`; der Leser kannte nur die neue Form und warf `IndexError` für jeden Monat vor 2025-02. Die Kette lief 11 Neustarts lang leer (19.09. 22 UTC – 20.09. 08 UTC). | Leser beherrscht beide Formen (`flat`, `sel()`, `col()`), auch im `--check`-Direktvergleich; 10/2024 nachgeprüft: 14 Chunks, 0 Fehlschläge, Direktvergleich gleich | **behoben** (`extract_openmeteo.py`) |
 | V-HC-24 | V7 fiel am vollen Archiv durch: die Wiederholung des Wahrheits-Extraktors übertrug 5,6 MB. Ursache **nicht** fehlende Wiederaufnahme, sondern Buchung — CDC-Stationslisten (7 × ≈ 0,76 MB, täglich neu veröffentlicht), CDC-Verzeichnislisting und GeoSphere-Datensatz-Metadaten zählten als Datenbytes. Im selben Lauf: 0 Stationsmonate gebaut, 0 Tage geschrieben, 31 Tage als final übersprungen. | Katalog-Abrufe zählen als `metaBytes` wie der Icechunk-Katalog des dynamical-Extraktors; V7 fordert 0 Datenbytes **und** 0 gebaute Datensätze **und** 0 geschriebene Tage, weist Katalog-Bytes getrennt aus; Gegenproben für beide Richtungen | **behoben** (`truthHist.mjs`, `rerun-check.mjs`, V7) |
+| V-HC-25 | **hModEff wird gegen eine bewegliche Referenz gemessen.** Der Archivwert am selben (Punkt, Vorlaufstunde) unterscheidet sich zwischen Läufen um p50 2–8, max 218–411 Cube-Schritte — hModEff ist das Mittel über die BEITRAGENDEN Quellen, und die Zusammensetzung wechselt je Lauf (16.09. t1 ohne ICON-CH1, 17.09. mit). Eine Schranke aus dieser Spanne ist wertlos: die Gegenprobe (Zelle des Nachbarpunkts) ginge bei t1/t2 zu 100 % durch. | verglichen wird nur, wo der Archivwert über alle Läufe stillsteht (t1 38,8 %, t2 8,7 %, t3 3,2 % der Paare) — dort **100 % innerhalb ±1 Schritt** bei MAE 0,06–0,26, Gegenprobe 3,6/1,6/9,1 %; die Beweglichkeit steht als Zahl im Bericht | **behoben** (`shadow.mjs`, V4 31 statt 27 Prüfungen) |
+| V-HC-26 | Slots vom 20.09. ließen sich nicht byte-gleich nachbauen: `scales.truth` bekam einen Eintrag `ps` (die Tabelle liegt in `scripts/punktarchiv/lib/punktarchiv.mjs`, also in der AP9-Linie, die sich unter dem Hindcast ändert), und `codeHash` wechselte mit Jans Commit der Hindcast-Skripte (22.09., `911dff6`). Werte unberührt. | alle 4 314 Slots einmal mit `--force` neu (Kette `rebuild`, ≈ 2,6 s/Slot, 3,5 h) ⇒ ein Code-Stempel und ein Kopf im ganzen Archiv; V3 (a) danach 3/3 byte-gleich. Damit ist V-HC-21 halb erledigt: der Stempel nennt jetzt einen echten Commit, bis zum Commit der Nacharbeiten mit Zusatz `-hindcast-dirty` | **behoben** |
+| V-HC-27 | V8 vergiftete seinen eigenen Beweis: der Name der Gegenprobe enthielt den verbotenen API-Host wörtlich, die Kette schrieb ihn ins Log, und der nächste V8-Lauf fand ihn dort (1 Treffer in 35,2 MB, Ursprung: Abnahme vom 20.09.). | Prüfnamen nennen keinen Host mehr (nur der Ausdruck selbst), die Suche lässt eigene Zeilen aus — mit Gegenprobe, dass der Filter einen ECHTEN Aufruf stehen lässt | **behoben** |
+| V-HC-28 | V3 (b) fand 16 von 109 907 Stichproben daneben, alle bei `ps`, bis 4,2 hPa (dazu 17 von 74 912 bei σ_div, dieselben Punkte); die Ausreißer lagen am 14.05. und 06.06.2025, an der Kante, an der Open-Meteos Bodendruck-Abdeckung endet. Ursache: `lib/recompute.mjs` wählte die ps-Grundlage **je Zelle**, `build-slots.mjs` je (Quelle, **Zeitschritt**) — es löst einen Spaltenleser je Schritt auf (`accessorsFor`) und leitet nur ab, wenn es keinen gibt. Wo die Abdeckung im Block geteilt ist, mischte die Nachrechnung gespeicherten und abgeleiteten Druck in EINEM Blockmittel. Ein Zwischenversuch „je Quell-Lauf" (`sr.has`) machte es schlimmer (290 Ausreißer), weil `has` nur das Verzeichnis prüft. | Regel je (Quelle, Schritt) wie im Slot-Bauer, Zellen ohne gespeicherten Wert fallen heraus; an beiden Grenztagen 32 804/32 804 bei 25-fach dichterer Stichprobe. Die Slots blieben unverändert — der Prüfer war falsch, nicht das Archiv. Fehlermeldung nennt jetzt Slot, Zeitpunkt und beide Werte | **behoben** (`recompute.mjs`) |
+| V-HC-29 | `recompute.mjs` rechnete die Chunk-Nummer der Tag-0-Reihe aus einer **je Modell** fest verdrahteten Chunk-Länge; sie steht aber je **Variable** im Dateikopf (`chunkSeconds`). Für Variablen mit anderer Länge zeigte die Rechnung auf den falschen oder keinen Chunk. | Länge je (Modell, Variable) aus einem Chunk-Kopf gelesen, wie `store.mjs` es tut | **behoben** (beim Suchen von V-HC-28 gefunden) |
+| V-HC-30 | **Ein kaputter Quellwert stand ungeprüft im Archiv.** Open-Meteos Tag-0-Reihe von AIFS führt die Bewölkung vom 21.–29.11.2025 auf einer 0…10000-Skala (`chunk_1134`, `scale` 1 wie überall sonst ⇒ kein Lesefehler). Der Slot-Bauer prüfte keine physikalischen Grenzen und mittelte 9 996 % mit drei gesunden Quellen zu **2 573,7 % Bewölkung**; σ_div lief über den Ebenenbereich und wurde MISSING — daran fiel es V3 (b) auf. Betroffen: 29 290 Werte (1,47 % der Variablen), 9 Tag-0-Slots. Ein Scan des ganzen Caches (26 Größen, 7 Modelle, beide Routen) fand **nur diesen einen Fleck**; RH > 100 % (ECMWF −7…129: Übersättigung, spektrales Ringing) und negative Schneefallgrenzen (Grenze unter NN) sind dagegen legitime Modellausgaben und werden NICHT beschnitten. | Plausibilitätsgrenze **nur für Bewölkung** (0…100 % ist die Definition der Größe) in `build-slots.mjs` UND `recompute.mjs`; Werte außerhalb zählen wie abwesend, `srcCount` nennt dann 3 statt 4. **Nicht** durch 100 geteilt — was die Quelle meinte, ist unbekannt, eine falsche Annahme wanderte still in den Fit. Neue Dauerprüfung V3 (b) „jeder Slotwert im physikalischen Bereich" über ALLE Slots (2,96 Mio. Werte) mit Gegenprobe; 44 Slots neu gebaut | **behoben** |
 
 ### 8.6 Entscheidungen für Jan (E-F-26 … E-F-30)
 

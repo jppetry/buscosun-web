@@ -17,6 +17,9 @@
  *     pilot-june                 the pilot of the day-0 and dyn routes (2026-06-01 … 06-16)
  *     follow <from> <to>         catch-up for the growing edge: data_run + truth + slots for a range (the data_run
  *                                window expires ≈ 3 months after the run, so every day not pulled is lost for good)
+ *     rebuild                    every slot once more with --force, so the whole archive carries ONE code stamp and
+ *                                one header (V-HC-26: the truth scale table moved under us, and the hindcast code
+ *                                is committed since 911dff6 — before that every slot said "-hindcast-dirty")
  *
  * Each mode ends with the line "DONE <mode>" — watchdog.ps1 restarts a chain until that line is in its log.
  */
@@ -110,6 +113,15 @@ if (mode === 'dyn') {
   if (t.status !== 0) process.exit(1);
   const r = node(['scripts/hindcast/build-slots.mjs', `--from=${a1}`, `--to=${a2}`]);
   say(`follow slots ${a1}..${a2} status ${r.status} ${r.tail}`);
+} else if (mode === 'rebuild') {
+  // every slot once more, so the archive is homogeneous: one codeHash (the committed one) and one scales header
+  for (const [from, to, hours] of [['2023-05-24', '2026-06-16', '0,6,12,18'], ['2026-06-17', '2026-09-21', null]]) {
+    const args = ['scripts/hindcast/build-slots.mjs', `--from=${from}`, `--to=${to}`, '--force'];
+    if (hours) args.push(`--hours=${hours}`);
+    const r = node(args);
+    say(`rebuild ${from}..${to} status ${r.status} ${r.tail}`);
+    if (r.status !== 0) process.exit(1);
+  }
 } else if (mode === 'truth') {
   // truth for a range (resumable: raw downloads and final station-months stay cached), IGRA2 with it
   const r = spawnSync(process.execPath, ['--max-old-space-size=8192', '--experimental-strip-types', '--import', './scripts/lib/register-ts.mjs', 'scripts/hindcast/extract_truth.mjs', `--from=${a1}`, `--to=${a2}`, '--igra', '--quiet'], { encoding: 'utf8', env, maxBuffer: 256 * 1024 * 1024, windowsHide: true });

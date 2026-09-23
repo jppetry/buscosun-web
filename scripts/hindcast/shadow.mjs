@@ -64,6 +64,7 @@ function omHalfStep(pid) {
   }
   return (scaleMemo[pid] = worst);
 }
+const HIST = 20;   // |Δ| histogram cap in cube steps — everything above lands in the last bucket
 function boundSteps(pid) {
   const pl = CUBE_PLANES[planeIndex(pid)];
   const hs = omHalfStep(pid);
@@ -90,25 +91,26 @@ function compareTier(arch, hc, planes, shift = 0, swap = null, stepOk = null) {
   for (const pid of planes) {
     const pl = CUBE_PLANES[planeIndex(pid)];
     const bound = boundSteps(pid);
-    let n = 0, w1 = 0, wB = 0, sAbs = 0, sBias = 0; const steps = [];
+    let n = 0, w1 = 0, wB = 0, sAbs = 0, sBias = 0; const steps = []; const hist = new Array(HIST + 1).fill(0);
     for (const [id, a] of Object.entries(arch)) {
       const h = hc[swap ? swap.get(id) : id]; if (!a || !h) continue;
       const ac = a.planes?.[pid]; const hcP = h.planes?.[pid];
       if (!ac || !hcP) continue;
       for (let it = 0; it < ac.length; it++) {
         const j = it + shift; if (j < 0 || j >= hcP.length) continue;
-        if (stepOk && !stepOk(pid, it)) continue;
+        if (stepOk && !stepOk(pid, it, id)) continue;
         if (ac[it] === MISSING || hcP[j] === MISSING || ac[it] == null) continue;
         n++;
         const d = hcP[j] - ac[it];
         steps.push(Math.abs(d));
+        hist[Math.min(HIST, Math.abs(d))]++;   // lets any bound be counted afterwards, without a second pass
         if (Math.abs(d) <= 1) w1++;
         if (Math.abs(d) <= bound) wB++;
         const phys = (dequantize(hcP[j], pl) ?? 0) - (dequantize(ac[it], pl) ?? 0);
         sAbs += Math.abs(phys); sBias += phys;
       }
     }
-    out[pid] = { n, within1: w1, share: n ? w1 / n : null, withinBound: wB, boundSteps: bound, shareBound: n ? wB / n : null, mae: n ? sAbs / n : null, bias: n ? sBias / n : null, p50Steps: pctl(steps, 0.5), p95Steps: pctl(steps, 0.95), unit: pl.unit, step: pl.scale };
+    out[pid] = { n, within1: w1, share: n ? w1 / n : null, withinBound: wB, boundSteps: bound, shareBound: n ? wB / n : null, mae: n ? sAbs / n : null, bias: n ? sBias / n : null, p50Steps: pctl(steps, 0.5), p95Steps: pctl(steps, 0.95), hist, unit: pl.unit, step: pl.scale };
   }
   return out;
 }
@@ -116,6 +118,28 @@ function compareTier(arch, hc, planes, shift = 0, swap = null, stepOk = null) {
 async function main() {
   const res = { at: new Date().toISOString(), archive: ARCH, slots: [], exact: [], compared: [], standIn: null, dynRoute: [], day0: null, negativeControl: null };
   const exactAgg = {}; const cmpAgg = {}; const negAgg = { n: 0, w1: 0, wB: 0 }; const ruleExcluded = {};
+  // hModEff is measured against a MOVING reference (V-HC-25): the archive's own value at the same (point, lead)
+  // differs between runs — p50 2–8, max 218–411 cube steps (measured 22.09.) — because hModEff is the mean over the
+  // CONTRIBUTING sources and that set changes per run, and because the producer recomputes the ECMWF heights each
+  // run. A bound taken from that spread is useless: at t1/t2 it would pass even the neighbouring point's cell
+  // (negative control 100 %). So hModEff is compared ONLY where the reference stands still across the compared
+  // runs, at the literal ±1 step; the share of movable pairs is reported instead of hidden.
+  const hmodRef = {}; const negHistH = {};
+  for (const u of archiveSlots()) {   // pre-pass: the archive's own hModEff per (tier, point, lead), no hindcast build
+    const slot = loadUnit(u);
+    for (const [t, c] of Object.entries(slot.cube ?? {})) {
+      if (!c?.byPoint) continue;
+      const pubMs = Date.parse(c.runAt ?? `${c.run.slice(0, 4)}-${c.run.slice(4, 6)}-${c.run.slice(6, 8)}T${c.run.slice(8, 10)}:00:00Z`);
+      if (pubMs < RULE_CHANGE_MS) continue;   // old hModEff rule, excluded from the comparison anyway
+      const lds = c.leadHours ?? TIER_BY_ID[t].leadHours;
+      for (const [id, a] of Object.entries(c.byPoint)) {
+        const arr = a?.planes?.hModEff; if (!arr) continue;
+        for (let it = 0; it < arr.length; it++) { if (arr[it] === MISSING || arr[it] == null) continue; (hmodRef[`${t}|${id}|${lds[it]}`] ??= []).push(arr[it]); }
+      }
+    }
+  }
+  const hmodSpan = (k) => { const v = hmodRef[k]; return v && v.length > 1 ? Math.max(...v) - Math.min(...v) : null; };
+  const hmodStable = (k) => hmodSpan(k) === 0;
   for (const u of archiveSlots()) {
     const slot = loadUnit(u);
     const srec = { file: u.file, label: slot.label, schema: slot.schema, tiers: {} };
@@ -144,15 +168,25 @@ async function main() {
       const byHour = c.provenance?.ensemble?.byHour ?? {};
       const ensVars = new Set((c.provenance?.ensemble?.sources ?? []).filter((x) => x.id === 'ifs_ens').flatMap((x) => x.vars ?? []));
       const leads = c.leadHours ?? TIER_BY_ID[t].leadHours;
-      const stepOk = (pid, it) => !pid.endsWith('_sd_ens') || (byHour[leads[it]] === 'ifs_ens' && ensVars.has(pid.replace('_sd_ens', '')));
+      const stepOk = (pid, it, id) => {
+        if (pid === 'hModEff') return hmodStable(`${t}|${id}|${leads[it]}`);
+        return !pid.endsWith('_sd_ens') || (byHour[leads[it]] === 'ifs_ens' && ensVars.has(pid.replace('_sd_ens', '')));
+      };
       const ex = compareTier(c.byPoint, built.byPoint, planes, 0, null, stepOk);
       const ids = Object.keys(c.byPoint).filter((id) => c.byPoint[id] && built.byPoint[id]);
       const swap = new Map(ids.map((id, i) => [id, ids[(i + 1) % ids.length]]));
       const neg = compareTier(c.byPoint, built.byPoint, EXACT.slice(0, 3).filter((pid) => planes.includes(pid)), 0, swap);
       for (const v of Object.values(neg)) { negAgg.n += v.n; negAgg.w1 += v.within1; negAgg.wB += v.withinBound; }
+      if (planes.includes('hModEff')) {
+        // the same negative control on the same stable pairs: the neighbouring point's cell must NOT fit ±1 step
+        const nh = compareTier(c.byPoint, built.byPoint, ['hModEff'], 0, swap, stepOk).hModEff;
+        const na = (negHistH[t] ??= { n: 0, hist: new Array(HIST + 1).fill(0) });
+        na.n += nh.n; nh.hist.forEach((v, i) => { na.hist[i] += v; });
+      }
       for (const [pid, v] of Object.entries(ex)) {
-        const k = `${t}|${pid}`; const a = (exactAgg[k] ??= { tier: t, plane: pid, n: 0, within1: 0, withinBound: 0, boundSteps: v.boundSteps, p95: [], maeSum: 0, runs: [] });
+        const k = `${t}|${pid}`; const a = (exactAgg[k] ??= { tier: t, plane: pid, n: 0, within1: 0, withinBound: 0, boundSteps: v.boundSteps, p95: [], maeSum: 0, runs: [], hist: new Array(HIST + 1).fill(0) });
         a.n += v.n; a.within1 += v.within1; a.withinBound += v.withinBound; if (v.p95Steps != null) a.p95.push(v.p95Steps); a.maeSum += (v.mae ?? 0) * v.n; if (v.n) a.runs.push(`${slot.schema === 'cdn' ? 'cdn' : 'arch'}:${c.run}`);
+        v.hist.forEach((x, i) => { a.hist[i] += x; });
       }
       const cm = compareTier(c.byPoint, built.byPoint, [...MEANS, ...SDS]);
       for (const [pid, v] of Object.entries(cm)) {
@@ -175,14 +209,37 @@ async function main() {
   }
   const REASON = {
     storage: (a) => `Open-Meteo speichert ${a.plane.startsWith('rh') ? 'Feuchte in 1-%-Schritten (700 hPa 1,11 %)' : 'Temperatur auf Druckflächen mit scale_factor 9,14/8,29/6,57 je K (0,11/0,12/0,15 K)'} — Schranke ½·Speicherschritt + 1 Cube-Schritt = ${a.boundSteps} Schritte`,
-    hModEff: 'die abgeleiteten ECMWF-Höhen (derived-gh-sp) wechseln je Lauf um 1–3 m (Archiv hmodel.byPoint), der Hindcast pinnt EIN hmodel-Produkt (index-Commit beedc23, 18.09.)',
+    hModEff: (d) => `verglichen werden nur Paare, deren Archiv-Wert über die Läufe gleich bleibt (${((d?.stableShare ?? 0) * 100).toFixed(0)} % von ${d?.pairs ?? 0}); die übrigen bewegen sich im Archiv selbst um p50 ${d?.p50}, p95 ${d?.p95}, max ${d?.max} Schritte, weil die beitragenden Quellen je Lauf wechseln und der Hindcast EIN hmodel-Produkt pinnt (index-Commit beedc23, 18.09.)`,
     sdEns: 'dynamical speichert die Member als binär gerundete Gleitkommazahlen; der Producer liest die GRIB-Werte von ECMWF Open Data',
   };
+  // how movable the reference is, per tier — the share of (point, lead) pairs that stand still across the compared
+  // runs is what the hModEff comparison rests on, so it is reported with the result, not buried
+  res.referenceDrift = {};
+  {
+    const byTier = {};
+    for (const [k, vals] of Object.entries(hmodRef)) {
+      if (vals.length < 2) continue;
+      const t = k.split('|')[0]; const span = Math.max(...vals) - Math.min(...vals);
+      const b = (byTier[t] ??= { spans: [], stable: 0 });
+      b.spans.push(span); if (!span) b.stable++;
+    }
+    for (const [t, b] of Object.entries(byTier)) res.referenceDrift[t] = {
+      what: 'Spanne der ARCHIV-eigenen hModEff je (Punkt, Vorlaufstunde) über die verglichenen Läufe — bewegt sich, weil die beitragenden Quellen je Lauf wechseln und der Producer die ECMWF-Höhen neu rechnet',
+      pairs: b.spans.length, stablePairs: b.stable, stableShare: b.stable / b.spans.length, p50: pctl(b.spans, 0.5), p95: pctl(b.spans, 0.95), max: Math.max(...b.spans),
+    };
+  }
+  const shareUpTo = (hist, n, b) => (n ? hist.slice(0, Math.min(HIST, b) + 1).reduce((s, x) => s + x, 0) / n : null);
   res.exact = Object.values(exactAgg).filter((a) => a.n).map((a) => {
     const share = a.within1 / a.n, shareBound = a.withinBound / a.n;
-    const reason = share >= 0.95 ? null : OM_OF[a.plane] ? REASON.storage(a) : a.plane === 'hModEff' ? REASON.hModEff : REASON.sdEns;
-    return { tier: a.tier, plane: a.plane, n: a.n, share, boundSteps: a.boundSteps, shareBound, mae: a.maeSum / a.n, p95StepsMax: Math.max(...a.p95), runs: a.runs, reason };
+    const reason = share >= 0.95 ? null : OM_OF[a.plane] ? REASON.storage(a) : a.plane === 'hModEff' ? REASON.hModEff(res.referenceDrift[a.tier]) : REASON.sdEns;
+    return { tier: a.tier, plane: a.plane, n: a.n, share, boundSteps: a.boundSteps, boundFrom: OM_OF[a.plane] ? 'omStorage' : 'cubeStep', shareBound, mae: a.maeSum / a.n, p95StepsMax: Math.max(...a.p95), runs: a.runs,
+      ...(a.plane === 'hModEff' ? { only: 'Paare, deren Archiv-Wert über alle verglichenen Läufe gleich bleibt', stableShare: res.referenceDrift[a.tier]?.stableShare ?? null } : {}), reason };
   });
+  // the same negative control on the same stable pairs, at the same ±1 step
+  res.negativeControlHmod = Object.entries(negHistH).map(([t, v]) => ({
+    tier: t, what: 'hModEff gegen die Hindcast-Zelle des nächsten Punkts der Liste, dieselben stabilen Paare, dieselbe Schranke',
+    boundSteps: 1, n: v.n, shareBound: shareUpTo(v.hist, v.n, 1),
+  }));
   res.excluded = Object.entries(ruleExcluded).map(([k, runs]) => ({ tier: k.split('|')[0], plane: k.split('|')[1], runs, why: 'Lauf vor dem Producer-Commit 717cc12 (16.09. 05:40 UTC: hModEff je tragender Quelle, E-E-5/V-PD-57; ENS-Statistik neu) bzw. Druckquelle nicht im Hindcast' }));
   res.compared = Object.values(cmpAgg).filter((a) => a.n).map((a) => ({ tier: a.tier, plane: a.plane, n: a.n, mae: a.sAbs / a.n, bias: a.sBias / a.n, notInHindcast: [...a.notInHindcast] }));
   res.negativeControl = { what: 't925/t850/t700 gegen die Hindcast-Zelle des nächsten Punkts der Liste', n: negAgg.n, share: negAgg.n ? negAgg.w1 / negAgg.n : null, shareBound: negAgg.n ? negAgg.wB / negAgg.n : null };
@@ -249,7 +306,7 @@ async function main() {
   const date = new Date().toISOString().slice(0, 10);
   writeFileSync(join(HINDCAST_ROOT, 'shadow', `${date}.json`), JSON.stringify(res, null, 1));
   writeFileSync(join(HINDCAST_ROOT, 'shadow', 'latest.json'), JSON.stringify(res, null, 1));
-  for (const r of res.exact) console.log(`[shadow] exakt ${r.tier} ${r.plane.padEnd(14)} ±1 Schritt ${(100 * r.share).toFixed(1)} % · ±${r.boundSteps} (Speicherschranke) ${(100 * r.shareBound).toFixed(1)} % von ${r.n} · MAE ${r.mae.toFixed(3)} · p95 ${r.p95StepsMax} Schritte · ${r.runs.length} Läufe`);
+  for (const r of res.exact) console.log(`[shadow] exakt ${r.tier} ${r.plane.padEnd(14)} ±1 Schritt ${(100 * r.share).toFixed(1)} % · ±${r.boundSteps} (${r.boundFrom === 'referenceDrift' ? 'Eigenbewegung' : r.boundFrom === 'omStorage' ? 'Speicherschranke' : 'Cube-Schritt'}) ${(100 * r.shareBound).toFixed(1)} % von ${r.n} · MAE ${r.mae.toFixed(3)} · p95 ${r.p95StepsMax} Schritte · ${r.runs.length} Läufe`);
   for (const r of res.excluded) console.log(`[shadow] ausgenommen ${r.tier} ${r.plane}: ${r.runs.join(', ')}`);
   console.log(`[shadow] Gegenprobe (verschoben): ±1 ${(100 * (res.negativeControl.share ?? 0)).toFixed(1)} % · Schranke ${(100 * (res.negativeControl.shareBound ?? 0)).toFixed(1)} % von ${res.negativeControl.n}`);
 }

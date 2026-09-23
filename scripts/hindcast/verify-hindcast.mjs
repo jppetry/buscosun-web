@@ -46,7 +46,9 @@ const pointById = new Map(points.map((p) => [p.id, p]));
 const C_PLANES_ALL = ['gammaEff', 'zBase', 'zInv', 'dTInv'];
 const C_T12 = CUBE_PLANES.filter((p) => p.kind === 'sd_ens' || p.kind === 'q10' || p.kind === 'q90').map((p) => p.id).concat(['ensCount']);
 const PASS = { parsed: 0, bad: [], blockBad: 0, blockN: 0, leadBad: 0, nearIncomplete: 0, neighWrong: 0, cViol: 0, cCounted: 0, asOfBad: [], asOfN: 0,
-  perTier: {}, planesNoSrc: 0, noStandIn: 0, tierBlocks: 0, routes: {} };
+  perTier: {}, planesNoSrc: 0, noStandIn: 0, tierBlocks: 0, routes: {}, rangeN: 0, rangeBad: 0, rangeEx: [] };
+/** Hard physical ranges of a plane — only where the quantity itself forbids the value, never a plausibility taste. */
+const RANGE_OF = { clct: [0, 100], clcl: [0, 100], clcm: [0, 100], clch: [0, 100] };
 const needPass = ['V1', 'V3', 'V6', 'V7', 'V8'].some(want);
 if (needPass) {
   const t0 = Date.now();
@@ -77,6 +79,23 @@ if (needPass) {
         for (const q of forbid) if (bp.planes[q]) PASS.cViol++;
         for (const b of bp.block) if (b.planes !== 'nearest') for (const q of forbid) if (b.planes[q]) PASS.cViol++;
         for (const q of Object.keys(bp.planes)) if (!(c.provenance.perPlane[q]?.sources?.length)) PASS.planesNoSrc++;
+        // physical range of the artifact itself (V-HC-30): cloud cover is a share of the sky and a spread cannot be
+        // negative. Deliberately only these — RH over 100 % and a negative snow line are legitimate model output.
+        for (const [q, arr] of Object.entries(bp.planes)) {
+          const pl = CUBE_PLANES[planeIndex(q)];
+          const lo = RANGE_OF[q]?.[0] ?? (pl.kind === 'sd' || pl.kind === 'sd_ens' ? 0 : null);
+          const hi = RANGE_OF[q]?.[1] ?? null;
+          if (lo == null && hi == null) continue;
+          for (let i = 0; i < arr.length; i++) {
+            if (arr[i] === MISSING || arr[i] == null) continue;
+            PASS.rangeN++;
+            const x = dequantize(arr[i], pl);
+            if ((lo != null && x < lo - 0.5) || (hi != null && x > hi + 0.5)) {
+              PASS.rangeBad++;
+              if (PASS.rangeEx.length < 6) PASS.rangeEx.push(`${f.slice(-22)} ${id} ${t} ${q} step ${i}: ${x}`);
+            }
+          }
+        }
         if (firstPoint) firstPoint = false;
       }
       if (c.sources.some((x) => x.external.includes('member 0')) && !c.standIn.some((x) => x.source === 'ifs_hres')) PASS.noStandIn++;
@@ -217,7 +236,7 @@ if (want('V3') && slotFiles.length) {
   // (b) round trip against an independent recomputation
   const sample = Number(flags.sample ?? 0.01);
   let n = 0, okMean = 0, okSd = 0, nSd = 0, okCount = 0, nCount = 0, missOk = 0, nMiss = 0, negN = 0, negOk = 0;
-  const worst = [];
+  const worst = []; const worstSd = [];
   const extractMemo = {}; const ex = (g) => (extractMemo[g] ??= loadExtract(g));
   const hsMemo = {}; const hs = (m) => (hsMemo[m] ??= (existsSync(join(HINDCAST_ROOT, 'cells', `hsurf-${m}.json`)) ? JSON.parse(readFileSync(join(HINDCAST_ROOT, 'cells', `hsurf-${m}.json`), 'utf8')).values : null));
   const tcMemo = {}; const tcOf = (t) => (tcMemo[t] ??= loadTierCells(t));
@@ -280,13 +299,16 @@ if (want('V3') && slotFiles.length) {
           n++;
           const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
           const d = Math.abs(dequantize(code, plane) - mean);
-          if (d <= quantStep(plane) / 2 + 1e-9) okMean++; else if (worst.length < 8) worst.push(`${id} ${t} ${pv} step ${it}: Δ ${d.toFixed(4)}`);
+          if (d <= quantStep(plane) / 2 + 1e-9) okMean++;
+          else if (worst.length < 8) worst.push(`${f.slice(-22)} ${id} ${t} ${pv} step ${it} (${new Date(t0).toISOString().slice(0, 13)}Z, ${vals.length} Quellen): Slot ${dequantize(code, plane)} ≠ ${mean.toFixed(4)}, Δ ${d.toFixed(4)}`);
           const sdId = `${pv}_sd`;
           if (planeIndex(sdId) >= 0 && vals.length >= 2) {
             nSd++;
             const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (vals.length - 1));
             const sc = bp.planes[sdId]?.[it];
-            if (sc != null && sc !== MISSING && Math.abs(dequantize(sc, CUBE_PLANES[planeIndex(sdId)]) - sd) <= quantStep(CUBE_PLANES[planeIndex(sdId)]) + 1e-9) okSd++;
+            const sdPlane = CUBE_PLANES[planeIndex(sdId)];
+            if (sc != null && sc !== MISSING && Math.abs(dequantize(sc, sdPlane) - sd) <= quantStep(sdPlane) + 1e-9) okSd++;
+            else if (worstSd.length < 8) worstSd.push(`${f.slice(-22)} ${id} ${t} ${sdId} step ${it} (${new Date(t0).toISOString().slice(0, 13)}Z, ${vals.length} Quellen): Slot ${sc == null || sc === MISSING ? 'MISSING' : dequantize(sc, sdPlane)} ≠ ${sd.toFixed(5)}`);
           }
           nCount++;
           const cc = bp.planes.srcCount?.[it];
@@ -296,7 +318,14 @@ if (want('V3') && slotFiles.length) {
     }
   }
   check('V3', '(b) Rundweg: dequantize(Mittel) − unabhängig aus dem Cache gerechnetes Mittel ≤ Δ/2', n > 0 && okMean === n, `${okMean}/${n}${worst.length ? ` · ${worst.slice(0, 3).join(' | ')}` : ''}`, n);
-  check('V3', '(b) σ_div = unabhängige Streuung derselben Rohwerte ± Δ', nSd > 0 && okSd === nSd, `${okSd}/${nSd}`, nSd);
+  check('V3', '(b) σ_div = unabhängige Streuung derselben Rohwerte ± Δ', nSd > 0 && okSd === nSd, `${okSd}/${nSd}${worstSd.length ? ` · ${worstSd.slice(0, 3).join(' | ')}` : ''}`, nSd);
+  // the artifact against the hard physical range of its own quantities — this is what found V-HC-30 too late
+  check('V3', '(b) jeder Slotwert im physikalischen Bereich seiner Groesse (Bewoelkung 0…100 %, Streuung ≥ 0)',
+    PASS.rangeBad === 0 && PASS.rangeN > 0, `${PASS.rangeN - PASS.rangeBad}/${PASS.rangeN}${PASS.rangeEx.length ? ` · ${PASS.rangeEx.slice(0, 3).join(' | ')}` : ''}`, PASS.rangeN);
+  {
+    const flag = (x) => x < RANGE_OF.clct[0] - 0.5 || x > RANGE_OF.clct[1] + 0.5;
+    check('V3', '(b) Gegenprobe: 2 573 % Bewoelkung faellt auf, 98,7 % und 0 % nicht', flag(2573.7) && flag(-3) && !flag(98.7) && !flag(0) && !flag(100));
+  }
   check('V3', '(b) srcCount = Zahl der Quellen mit Wert', nCount > 0 && okCount === nCount, `${okCount}/${nCount}`, nCount);
   check('V3', '(b) MISSING genau dort, wo keine Quelle einen Wert hat', missOk === nMiss, `${missOk}/${nMiss}`, nMiss);
   // negative control for (b): the same comparison against the recipe of the neighbouring cube cell must mostly fail
@@ -328,7 +357,13 @@ if (want('V4')) {
     // pass = |Δ| within the storage bound (½ Open-Meteo storage step + 1 cube step; = 1 step where no Open-Meteo
     // storage is involved) at ≥ 95 % of the (point, step) pairs; the kickoff's literal ±1 step is reported beside it
     for (const r of sh.exact ?? []) check('V4', `exakt vergleichbar: ${r.tier} ${r.plane} |Δ| ≤ ${r.boundSteps} Schritt(e) an ≥ 95 % der (Punkt, Schritt)-Paare`, r.shareBound >= 0.95,
-      `${(100 * r.shareBound).toFixed(1)} % (±1 Schritt: ${(100 * r.share).toFixed(1)} %) von ${r.n}, ${r.runs.length} Läufe${r.reason ? ` · ${r.reason}` : ''}`, r.n);
+      `${(100 * r.shareBound).toFixed(1)} % (±1 Schritt: ${(100 * r.share).toFixed(1)} %) von ${r.n}, ${r.runs.length} Läufe · Schranke aus ${r.boundFrom ?? 'omStorage'}${r.reason ? ` · ${r.reason}` : ''}`, r.n);
+    // hModEff is compared only where the archive's own value stands still across the compared runs (V-HC-25);
+    // that restriction needs its own negative control on exactly those pairs, else it could be hiding a wrong cell
+    for (const r of sh.negativeControlHmod ?? []) check('V4', `Gegenprobe: ${r.tier} hModEff gegen die Zelle des nächsten Punkts fällt auf denselben stabilen Paaren durch`,
+      (r.shareBound ?? 1) < 0.95, `${(100 * (r.shareBound ?? 1)).toFixed(1)} % von ${r.n}`, r.n);
+    check('V4', 'die Beweglichkeit der Referenz ist gemessen und ausgewiesen (hModEff)', Object.keys(sh.referenceDrift ?? {}).length > 0,
+      Object.entries(sh.referenceDrift ?? {}).map(([t, d]) => `${t} stabil ${(100 * d.stableShare).toFixed(0)} % von ${d.pairs}, Bewegung p50 ${d.p50}/p95 ${d.p95}/max ${d.max}`).join(' · ') || 'fehlt');
     check('V4', 'Gegenprobe: Druckflächen-Temperaturen gegen die Zelle des nächsten Punkts fallen auch mit der Schranke durch', (sh.negativeControl?.shareBound ?? 1) < 0.95,
       sh.negativeControl ? `Schranke ${(100 * sh.negativeControl.shareBound).toFixed(1)} %, ±1 ${(100 * sh.negativeControl.share).toFixed(1)} % (${sh.negativeControl.what})` : 'fehlt');
     const need = ['t1|t850', 't2|t850', 't3|t850', 't1|hModEff', 't3|t2m_sd_ens'];
@@ -521,10 +556,21 @@ if (want('V8')) {
     check('V8', `Gegenprobe: ein Slot ohne Herkunft für „${victim}" wird erkannt`, miss2 > 0, `${miss2}`);
   }
   const API_RE = /api\.open-meteo\.com|historical-forecast-api|previous-runs-api|single-runs-api/g;
-  const logText = readdirSync(join(HINDCAST_ROOT, 'log')).filter((f) => /\.(jsonl|log)$/.test(f)).map((f) => readFileSync(join(HINDCAST_ROOT, 'log', f), 'utf8')).join('\n');
-  const apiHits = logText.match(API_RE) ?? [];
-  check('V8', 'kein Open-Meteo-API-Aufruf in den Logs (Sonden vom 18.09. liegen in audit/kalibrierung-fremdarchive.md, nicht hier)', apiHits.length === 0, `${apiHits.length} Treffer in ${(logText.length / 1e6).toFixed(1)} MB Log`);
-  check('V8', 'Gegenprobe: eine Logzeile mit historical-forecast-api.open-meteo.com würde gefunden', ('GET https://historical-forecast-api.open-meteo.com/v1/forecast'.match(API_RE) ?? []).length > 0);
+  // This verifier's own output reaches log\pull-accept.log (the chain logs its tail), so a line that IS verifier
+  // output is no evidence of a call — measured 22.09.: V8 found the host name out of its own negative control of
+  // 20.09. Hence: the check names never spell a host (`API_SAMPLE` stays inside the expression), and verifier
+  // lines are dropped from the scan. Both guarded below, so the filter cannot hide a real call either.
+  const API_SAMPLE = `GET https://historical-forecast-api.open-${'meteo'}.com/v1/forecast?latitude=48`;
+  const selfLine = (l) => /\[verify\]|\[V\d\]|Gegenprobe/.test(l);
+  const logLines = readdirSync(join(HINDCAST_ROOT, 'log')).filter((f) => /\.(jsonl|log)$/.test(f))
+    .flatMap((f) => readFileSync(join(HINDCAST_ROOT, 'log', f), 'utf8').split('\n'));
+  const scanned = logLines.filter((l) => !selfLine(l));
+  const apiHits = scanned.join('\n').match(API_RE) ?? [];
+  check('V8', 'kein Open-Meteo-API-Aufruf in den Logs (Sonden vom 18.09. liegen in audit/kalibrierung-fremdarchive.md, nicht hier)',
+    apiHits.length === 0, `${apiHits.length} Treffer in ${(scanned.join('\n').length / 1e6).toFixed(1)} MB Log, ${logLines.length - scanned.length} eigene Zeilen ausgelassen`);
+  check('V8', 'Gegenprobe: eine Logzeile mit dem Archiv-API-Host würde gefunden', (API_SAMPLE.match(API_RE) ?? []).length > 0);
+  check('V8', 'Gegenprobe: der Selbstfilter lässt einen echten Aufruf stehen (er filtert Prüf-, nicht Abrufzeilen)',
+    !selfLine(`2026-09-22T12:00:00Z ${API_SAMPLE}`) && selfLine('[verify] V1 PASS (8)'));
 }
 
 // ─── write ───────────────────────────────────────────────────────────────────

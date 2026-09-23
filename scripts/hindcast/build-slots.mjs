@@ -161,7 +161,7 @@ function omQuantity(sr, model, varId, K, t, dtH) {
     if (varId === 'td2m') v = dewPointFromRh(raw(OM_VAR.t2m, k, t) ?? NaN, raw(OM_VAR.rh2m, k, t) ?? NaN);
     else if (varId === 'ps') v = hasPs ? (raw(OM_VAR.ps, k, t) ?? NaN) : psFromMsl(raw(OM_VAR.msl, k, t) ?? NaN, raw(OM_VAR.t2m, k, t) ?? NaN, hs?.[k] ?? NaN);
     else v = raw(OM_VAR[varId], k, t) ?? NaN;
-    if (!Number.isFinite(v)) continue;
+    if (!Number.isFinite(v) || !plausible(varId, v)) continue;
     sum += v; n++;
   }
   return n ? Math.fround(sum / n) : null;
@@ -188,13 +188,24 @@ function dynQuantity(sr, varId, K, t, dtH, mi = 0) {
     if (varId === 'precip') v = dynPrecip(sr, k, t, dtH, mi);
     else if (varId === 'ps') { const p = sr.raw(DYN_VAR.ps, k, t, mi); v = p == null ? null : p / 100; }
     else v = sr.raw(DYN_VAR[varId], k, t, mi);
-    if (v == null || !Number.isFinite(v)) continue;
+    if (v == null || !Number.isFinite(v) || !plausible(varId, v)) continue;
     sum += v; n++;
   }
   if (!n) return null;
   const m = Math.fround(sum / n);
   return varId === 'precip' ? Math.max(0, m) : m;
 }
+/**
+ * Cloud cover is a share of the sky: 0…100 % by definition, so a value outside that cannot be one and is dropped
+ * like an absent value (the source then simply does not carry the plane, srcCount says so). Measured 23.09.: the
+ * Open-Meteo day-0 series of AIFS carries 2025-11-21…29 on a 0…10000 basis (chunk_1134, scale 1 as everywhere
+ * else) — the untested mean put 2 573 % into a slot and its σ_div overflowed the plane to MISSING, which is how
+ * V3 (b) found it (V-HC-30). Deliberately ONLY cloud cover: relative humidity over 100 % (supersaturation,
+ * spectral ringing at ECMWF: −7…129) and a negative snowfall height (snow line below sea level) are legitimate
+ * model output and are NOT clipped — clipping them would destroy information.
+ */
+const CLOUD = new Set(['clct', 'clcl', 'clcm', 'clch']);
+function plausible(varId, v) { return !CLOUD.has(varId) || (v >= -0.5 && v <= 100.5); }
 function quantityOf(src, varId, K, t, dtH) {
   if (src.sr.route === 'dyn') return dynQuantity(src.sr, varId, K, t, dtH, src.member ?? 0);
   return omQuantity(src.sr, src.model, varId, K, t, dtH);
@@ -255,7 +266,7 @@ function accessorsFor(s, t, dtH) {
     value(varId, K) {
       const g = getter(varId); if (!g) return null;
       let sum = 0, n = 0;
-      for (const k of K) { const v = g(k); if (v == null || !Number.isFinite(v)) continue; sum += v; n++; }
+      for (const k of K) { const v = g(k); if (v == null || !Number.isFinite(v) || !plausible(varId, v)) continue; sum += v; n++; }
       if (!n) return null;
       const m = Math.fround(sum / n);
       return varId === 'precip' ? Math.max(0, m) : m;
