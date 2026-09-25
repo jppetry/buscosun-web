@@ -14,9 +14,19 @@
  * `period`, `estimator`, `fitVersion`. Ein Eintrag, der die Regel verletzt, wird EINZELN verworfen (mit Grund),
  * nie die ganze Datei; die Rechnung nimmt dann die Setzung (`set`) und sagt es. Schema 1 darf kein `measured`
  * tragen (bis AP10 gibt es keine Messung — der Selbsttest von `calibration.ts` hält das fest).
+ *
+ * Phase FL (23.09.2026, E-F-23 / V-FL-1): `hindcast` ist die zweite Belegklasse — aus dem Hindcast-Archiv
+ * (Open-Meteo/dynamical-Stellvertreter, `audit/kalibrierung-fremdarchive.md`) gefittet, nie aus dem eigenen
+ * Punktarchiv. Sie gilt unter DERSELBEN Belegregel wie `measured`, wird aber im Produkt als `hindcast` genannt —
+ * nur `measured` wirkt stillschweigend (Provenienzregel der Punktlinie). Schema 1 trägt keine der beiden.
  */
 
-export type CalibProvenance = 'measured' | 'literature' | 'physical' | 'set' | null;
+export type CalibProvenance = 'measured' | 'hindcast' | 'literature' | 'physical' | 'set' | null;
+
+/** Die Belegklassen: Einträge dieser Herkunft dürfen wirken, wenn ihr Beleg reicht. */
+export const CALIB_EVIDENCE_PROVENANCES = Object.freeze(['measured', 'hindcast'] as const);
+export type CalibEvidence = (typeof CALIB_EVIDENCE_PROVENANCES)[number];
+export const isEvidence = (p: CalibProvenance | undefined): p is CalibEvidence => p === 'measured' || p === 'hindcast';
 
 /** Lesbare Schemata. 1 = ausgeliefert (PD-A), 2 = mit Messbeleg je Eintrag (AP13). */
 export const CALIB_SCHEMAS_READABLE: readonly number[] = Object.freeze([1, 2]);
@@ -207,8 +217,8 @@ export function validateCalibDocument(doc: unknown): CalibValidation {
   const accepted: string[] = [];
   const rejected: Array<{ path: string; why: string }> = [];
   for (const [path, e] of entries) {
-    if (e.provenance !== 'measured') continue;
-    const why = schema! < 2 ? 'Schema 1 trägt kein measured'
+    if (!isEvidence(e.provenance)) continue;
+    const why = schema! < 2 ? `Schema 1 trägt kein ${e.provenance}`
       : !CALIB_N_MIN[path] ? 'kein Fit-Schlüssel (Producer-Parameter oder unbekannt)'
       : !(e.period && isoDay(e.period.from) && isoDay(e.period.to) && Date.parse(e.period.from) <= Date.parse(e.period.to)) ? 'period {from, to} fehlt oder ungültig'
       : !(typeof e.estimator === 'string' && e.estimator.length > 0) ? 'estimator fehlt'
@@ -233,8 +243,8 @@ export interface CalibOverrides {
   fRad?: { a?: number; vRefMs?: number; epsilon?: number };
   zBlendM?: number;
   confDiscount?: Partial<Record<CalibConfKey, number>>;
-  /** Je geltendem Pfad der Beleg für den calib-Text. */
-  meta: Record<string, { n: number; days: number; period: CalibPeriod; estimator: string; fitVersion: string }>;
+  /** Je geltendem Pfad der Beleg für den calib-Text — mit der Belegklasse (`measured` | `hindcast`, E-F-23). */
+  meta: Record<string, { provenance: CalibEvidence; n: number; days: number; period: CalibPeriod; estimator: string; fitVersion: string }>;
   /** Gemessen, aber ohne Einspeisestelle (Notiz). */
   unwired: string[];
 }
@@ -263,7 +273,7 @@ export function calibOverridesFrom(v: CalibValidation): CalibOverrides | null {
   };
   for (const path of v.accepted) {
     const e = v.entries.get(path)!;
-    o.meta[path] = { n: sumN(e.n), days: maxDays(e.days), period: e.period!, estimator: e.estimator!, fitVersion: e.fitVersion! };
+    o.meta[path] = { provenance: e.provenance as CalibEvidence, n: sumN(e.n), days: maxDays(e.days), period: e.period!, estimator: e.estimator!, fitVersion: e.fitVersion! };
     if (CALIB_UNWIRED.has(path)) { o.unwired.push(path); continue; }
     const val = e.value as never;
     switch (path) {
@@ -292,8 +302,11 @@ export function binnedAt(table: ReadonlyArray<number | null> | undefined, leadH:
   return x == null ? null : x;
 }
 
-/** Kurzbeleg für den calib-Text: „measured — n 12 340, 31 Tage, 2026-09-14…2026-10-14, Momente". */
+/**
+ * Kurzbeleg für den calib-Text: „measured — n 12 340, 31 Tage, 2026-09-14…2026-10-14, Momente" — bzw. „hindcast — …",
+ * damit ein Wert aus dem Fremdarchiv nie als Messung am eigenen Produkt erscheint (E-F-23).
+ */
 export function calibMetaText(m: CalibOverrides['meta'][string] | undefined): string {
   if (!m) return '';
-  return `measured — n ${m.n}, ${m.days} Tage, ${m.period.from.slice(0, 10)}…${m.period.to.slice(0, 10)}, ${m.estimator} (${m.fitVersion})`;
+  return `${m.provenance ?? 'measured'} — n ${m.n}, ${m.days} Tage, ${m.period.from.slice(0, 10)}…${m.period.to.slice(0, 10)}, ${m.estimator} (${m.fitVersion})`;
 }

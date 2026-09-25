@@ -1,10 +1,27 @@
 # Programmablaufpläne — Punktvorhersage 0–336 h
 
-**Norm:** DIN 66001 · **Stand:** 2026-09-09 · **Status:** Entwurf, nicht freigegeben
+**Norm:** DIN 66001 · **Stand:** 2026-09-23 · **Status:** Entwurf vom 09.09., überarbeitet mit dem Ist-Stand aus FI/Vollform
+(`audit/fusion-implementierung.md` §0.3, `audit/fusion-vollform.md`) und um PAP 7–9 der Lernphase FL ergänzt
+(`audit/fusion-lernphase.md`)
 
 Sechs Ablaufpläne für den Fusions- und Downscaling-Algorithmus: vom Modellgitter
 über die vertikale Korrektur bis zu den kalibrierten Quantilen an einem beliebigen
-Punkt im DACH-Raum.
+Punkt im DACH-Raum — dazu drei Pläne der Lernphase (Lernstufe zur Laufzeit, Fit aus
+dem Hindcast, Verifikation).
+
+**Abweichungen der Umsetzung vom Entwurf (Stand 23.09.2026, Belege in FI §0.3 und §9):**
+
+| Entwurf sagt | Umsetzung macht | Warum |
+|---|---|---|
+| PAP 1: 141 Zeitschritte 0–336 h | 109 native Cube-Schritte (t1 stündlich 0–48, t2 3-h 51–120, t3 6-h 126–336) + markierte Interpolation | die Cube-Achse ist die Datenachse |
+| PAP 1: drei Range-Requests | ganze Chunks je Stufe, progressiv (Kern zuerst) | der Algorithmus braucht ≈ 45 von 57 Ebenen |
+| PAP 1: Terrain-Stack als Produkt | Gelände zur Laufzeit am Punkt (Terrarium z11 + z8, WorldCover, GHSL) | kein Platz im Daten-Repo (E-F-6) |
+| PAP 2: Bias je Quelle (MOS + Kalman) und Σ-Fusion im Ingest | **nicht gebaut** — der Producer mittelt gleichgewichtet (`fusion.provenance: fallback`); Bias/Σ kommen als **Lernstufe im Client** (PAP 7, E-FL-1) | Einzelquellen liegen im Cube nicht vor (V-FI-108); Σ wird aus dem Hindcast gemessen |
+| PAP 3: N = 4…9 Nachbarn | 2×2-Block, L_d = Zellweite (set), L_h = 200 m (set), κ je Zelle (AP16, aus) | Fit in FL (Registry `Ld/Lh/kappaLambda`) |
+| PAP 4: t2/t3 mit Profil | t1 Profil aus Modellleveln; t2/t3 Standard-Lapse (Druckflächen-Profil mit 2-m-Punkt nachts schlechter, AP15) | Γ nur aus der freien Atmosphäre, Entkopplung als Merkmal (FL §3.1) |
+| PAP 5: A, A_uhi wirken | Geometrie berechnet, Amplituden `null` ⇒ Terme inaktiv | erst mit Nachtfällen fitbar (FL Stufe G) |
+| PAP 6: Weibull, zensierte Normal für Niederschlag | Rice (E-F-10), hurdleLogNormal (K-2) | Verteilungsalgebra des Motors |
+| PAP 6: σ = c·σ_ens, c gefittet | c = 1 (set), σ_sys-Böden aus V-A₁ (set) | Fit in FL Stufe D |
 
 > Die Diagramme sind als Mermaid notiert und rendern in GitHub, GitLab und den
 > meisten Editoren direkt. Die normgetreue Fassung mit den exakten DIN-Symbolen
@@ -96,6 +113,11 @@ flowchart TD
 Letzteres ist stabile Schichtung und liegt in fast jeder Nacht vor — mit dieser
 Schwelle würde der Inversionszweig zum Normalfall statt zum Sonderfall.
 Umrechnung: `∂T/∂z > 0` entspricht `∂θ/∂z > (θ/T)·g/c_p ≈ 0,0098 K/m`.
+
+**Stand der Umsetzung (23.09.2026):** Die Profilauswertung (O2–O4) läuft im Producer für t1. Die Unterprogramme
+U1 (Bias-Korrektur je Quelle) und U2 (Σ-Fusion) sind **nicht gebaut**; der Producer mittelt gleichgewichtet. Beide
+Funktionen übernimmt die Lernstufe zur Laufzeit (PAP 7, Entscheidung E-FL-1) mit Koeffizienten aus dem Hindcast (PAP 8).
+Ein Producer-Weg bleibt möglich, sobald Einzelquellen im Cube liegen (V-FI-108, Jans Gate).
 
 ---
 
@@ -290,3 +312,108 @@ Bezüge ist hier die leichteste Art, sich einen stillen Fehler einzubauen.
   sind Kalibrierungsparameter, keine physikalischen Konstanten.
 - Die Schrittfolge ist entworfen, nicht verifiziert. Genauigkeitsaussagen erst nach
   dem Baseline-Lauf.
+- Stand 23.09.2026: die Baseline- und Fit-Läufe sind die Lernphase FL (`audit/fusion-lernphase.md`,
+  PAP 7–9 unten). Kein Startwert ist bisher gefittet.
+
+---
+
+## PAP 7 — Lernstufe zur Laufzeit (Phase FL, Form K)
+
+Läuft im Client je nativem Zeitschritt nach PAP 3–5. Der Cube trägt nur das
+gleichgewichtete Mittel der Quellen (`ȳ`), `σ_div`, `srcCount` und `h_mod_eff`;
+die Koeffizienten `a(Z)`, `b(Z)`, das σ-Modell und die Familienparameter kommen aus
+dem Fit (PAP 8) mit Provenienz `hindcast`. Ohne belegte Tabelle fällt der Schritt auf
+die Motor-Konstanten zurück und sagt es (Flag). Mathematik: `audit/fusion-lernphase.md` §3.
+
+```mermaid
+flowchart TD
+    S(["Start · Schritt f, Cube-Member nach PAP 3–5"])
+    E1[/"Z(s): Δh, TPI, SVF, z0, imperv, d_water, ΔT_sfc, srcCount<br>Tabellen: a(Z), b(Z), σ-Modell, Rice-σ, Hürde, μ_c/σ_c/ρ"/]
+    V1{"Tabelle für (v, Bin, Klasse) belegt?"}
+    O1["μ := a(Z) + b(Z)·ȳ^A"]
+    O2["σ² := exp(c₀ + c_Z·Z) + c₁σ_div² + c₂σ_ens² + σ_quant² + (γ_res·Δh)²"]
+    O3["Familie: Normal · Rice(ν, σ) · zensiert · Hürde"]
+    O4["Rückfall: Motor-Konstanten, Flag learnedAbsent"]
+    U1[["Anker (Innovations-Persistenz)"]]
+    U2[["fuseHour: Station · Radar · Prior"]]
+    U3[["PAP 6 Konsistenz"]]
+    A1[/"PointForecastV2 + calibByVar (hindcast)"/]
+    ND(["Ende"])
+    S --> E1 --> V1
+    V1 -->|ja| O1 --> O2 --> O3 --> U1
+    V1 -->|nein| O4 --> U1
+    U1 --> U2 --> U3 --> A1 --> ND
+```
+
+**Zu beachten:** Form K ist die im Client mögliche Form. Die Einzelquellen-Form P
+(`μ = a(Z) + Σ_m b_m(Z_m)·ŷ_m^A`, jede Quelle mit eigener Modellhöhe reduziert) ist nur
+im Backtest rechenbar, solange der Cube keine Einzelquellen trägt (V-FI-108); der
+Abstand P − K wird gemessen und ist der Beleg für diese Producer-Entscheidung.
+
+---
+
+## PAP 8 — Fit aus dem Hindcast (Phase FL)
+
+Läuft offline in Node (`scripts/fusionfit/`), liest den abgenommenen Hindcast
+(`C:\dev\buscosun-hindcast`, V1–V8) und die Merkmalstabelle der 405 Punkte. Leck-Wächter
+und Falten sind Teil des Ablaufs, nicht der Auswertung.
+
+```mermaid
+flowchart TD
+    S(["Start · Hindcast abgenommen (V1–V8), Merkmalstabelle da"])
+    L1{{"für jeden Slot"}}
+    E1[/"Slot lesen (slotio), Wahrheit je (Punkt, Stempel)"/]
+    O1["Adapter: Slot → CubePointSeries → fuseCubePoint (Cube-Member, Produkt)"]
+    O2["Einzelquellen je Zelle aus dem Cache (Stufe A auf Modellhöhe)"]
+    V1{"validAt > slotAt ∧ Init ≤ slotAt ?"}
+    O3["Fall verwerfen, zählen"]
+    O4["Fall schreiben (CAS1, Monat × Stufe)"]
+    L2{{"nächster Slot"}}
+    O5["Suffiziente Statistiken je (Stratum, Monat, Kachel, Höhenband)"]
+    L3{{"für jede Falte (Monat mit Purge · Region · Höhe)"}}
+    U1[["Schätzer: Bias/EMOS · Σ · Varianz · Rice · Hürde · Klimatologie · Anker"]]
+    V2{"n ≥ n_min ∧ Tage ≥ min ∧ CI ohne 0 ?"}
+    O6["Eintrag mit Beleg (hindcast)"]
+    O7["Status too-short / not-significant mit ETA"]
+    L4{{"nächste Falte"}}
+    A1[/"calib.hindcast.json · fusion.hindcast.json · folds/<monat>.json · report.json"/]
+    ND(["Ende"])
+    S --> L1 --> E1 --> O1 --> O2 --> V1
+    V1 -->|nein| O3 --> L2
+    V1 -->|ja| O4 --> L2
+    L2 -->|Rücksprung| L1
+    L2 --> O5 --> L3 --> U1 --> V2
+    V2 -->|ja| O6 --> L4
+    V2 -->|nein| O7 --> L4
+    L4 -->|Rücksprung| L3
+    L4 --> A1 --> ND
+```
+
+---
+
+## PAP 9 — Verifikation und Gates (Phase FL)
+
+Jeder Kandidat wird auf denselben Fällen out-of-sample bewertet; Einzelquellen auf
+denselben Punkt heruntergerechnet (sonst vergleicht man Höhenfehler). FSS ist an
+Punkten nicht definiert; an ihre Stelle tritt ETS je Schwelle mit ±1 h.
+
+```mermaid
+flowchart TD
+    S(["Start · Fälle + Falten-Tabellen"])
+    L1{{"für jeden Kandidaten: FL-P, FL-K, Cube, Quellen, MMM, Klima, Persistenz"}}
+    O1["Verteilung je Fall (out-of-sample)"]
+    O2["Scores: MAE/RMSE/Bias · CRPS · PIT · Spread/Skill · Brier/Reliability · ETS"]
+    L2{{"nächster Kandidat"}}
+    O3["Differenzen je Tag → DM (HAC) · Block-Bootstrap · BH-FDR"]
+    V1{"G-FL-1…4 in jedem Bin?"}
+    O4["Bin grün: Kandidat trägt"]
+    O5["Bin rot: Hybrid auf MMM, Grund benannt"]
+    A1[/"scorecard.json/.md · Phasendokument §11"/]
+    ND(["Ende"])
+    S --> L1 --> O1 --> O2 --> L2
+    L2 -->|Rücksprung| L1
+    L2 --> O3 --> V1
+    V1 -->|ja| O4 --> A1
+    V1 -->|nein| O5 --> A1
+    A1 --> ND
+```

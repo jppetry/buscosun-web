@@ -96,6 +96,8 @@
     "verify:pv-latency": "node scripts/verify-pv-latency.mjs",
     "verify:pv-cube": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-cube.mjs",
     "verify:calib-fit": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-calib-fit.mjs",
+    "verify:fusion-fit": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fusion-fit.mjs",
+    "fusionfit:features": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fusionfit/features.mjs",
     "point:nowcast": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/nowcastReader.mjs",
     "point:read": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/read-point.mjs",
     "point:availability": "node scripts/point/measure-availability.mjs",

@@ -491,6 +491,12 @@ export function planFromRuns(tierId, publishMs, runs, route = 'run') {
   return { route, R: publishMs, publishMs, leadHours: [...tier.leadHours], validAtMs: tier.leadHours.map((h) => publishMs + h * H), sources, ens };
 }
 export { buildTier, planRun };
+/**
+ * Phase FL (E-FL-8, additive): the producer-faithful per-source readers for the case builder (`scripts/fusionfit/`).
+ * Nothing above changes — the slots stay byte-identical (V3 (a)); the case builder recombines per-source values and
+ * checks them against the slot plane (V-FF-1).
+ */
+export { accessorsFor, makeSource, planDay0, quantityOf };
 
 function planDay0(dayMs) {
   const validAtMs = Array.from({ length: 24 }, (_, h) => dayMs + h * H);

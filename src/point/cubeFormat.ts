@@ -734,6 +734,8 @@ export const STATION_CATALOG_PATH = `${STATIONS_DIR}/catalog.json`;
 export const POINT_INDEX_PATH = `${POINT_DIR}/index.json`;
 export const POINT_SOURCES_PATH = `${POINT_DIR}/sources.json`;
 export const POINT_CALIB_PATH = `${POINT_DIR}/calib.json`;
+/** Phase FL (E-FL-1): die gelernten Tabellen der Form K für den Client (`src/point/fusionFit/tables.ts`), Provenienz `hindcast`. */
+export const POINT_LEARNED_PATH = `${POINT_DIR}/fusion.client.json`;
 
 // ---------------------------------------------------------------------------
 // Quantisierung

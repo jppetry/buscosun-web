@@ -31,6 +31,7 @@ import { inflateRawSync, constants as zc } from 'node:zlib';
 import { decodePng } from './lib/png.mjs';
 import { hourlyClimaTemp } from '../src/pointForecast/fusion/fuse.ts';
 import { computeDistributions } from '../src/pointForecast/fusion/attach.ts';
+import { Phi } from '../src/pointForecast/fusion/dist.ts';
 import { ClimaField } from '../src/ml/climaField.ts';
 import { blendVariable, anchorOffsetsFor, anchoredValues } from '../src/pointForecast/pointForecast.ts';
 import { ANCHOR_HISTORY_H } from '../src/pointForecast/anchor.ts';
@@ -414,7 +415,8 @@ function dmTest(diffsByTime) {
   const p = 2 * (1 - Phi(Math.abs(stat)));
   return { n, stat, p };
 }
-function Phi(z) { const t = 1 / (1 + 0.3275911 * Math.abs(z)); const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z); return 0.5 * (1 + (z < 0 ? -y : y)); }
+// Φ from dist.ts (erf-based); the former local A&S 7.1.26 copy applied the erf polynomial to z instead of z/√2 and returned
+// Φ(z·√2) — every DM p-value of the V-A₁ scorecards was too small (V-FL-25, 24.09.2026).
 
 function summarise() {
   // CRPS/PIT je Fusions-Datensatz EINMAL rechnen — das Rice-Quantil ist eine

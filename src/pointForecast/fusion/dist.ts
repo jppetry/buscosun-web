@@ -67,7 +67,13 @@ export type Dist =
    */
   | { kind: 'hurdleLogNormal'; pDry: number; mu: number; sigma: number }
   /** Speed of a bivariate normal (u,v) with mean length `nu` and per-component sd `sigma`. */
-  | { kind: 'rice'; nu: number; sigma: number };
+  | { kind: 'rice'; nu: number; sigma: number }
+  /**
+   * Normal TRUNCATED at `lo` (no atom: the mass below `lo` is renormalised away) — the speed law of the learning
+   * stage (phase FL, V-FL-22): TN(a + b·E_Rice, c·sd_Rice) at 0, fitted per stratum by CRPS. Only the learned path
+   * emits it (`FuseCubeOptions.learnedSpeed`); nothing else in the engine produces this family.
+   */
+  | { kind: 'truncatedNormal'; mu: number; sigma: number; lo: number };
 
 const SQRT2 = Math.SQRT2;
 const INV_SQRT_2PI = 0.3989422804014327;
@@ -202,6 +208,13 @@ export function cdfOf(d: Dist, x: number): number {
     }
     case 'rice':
       return riceCdf(x, d.nu, d.sigma);
+    case 'truncatedNormal': {
+      if (x < d.lo) return 0;
+      if (!(d.sigma > 0)) return x >= Math.max(d.lo, d.mu) ? 1 : 0;
+      const Pa = Phi((d.lo - d.mu) / d.sigma);
+      if (!(1 - Pa > 1e-12)) return 1;
+      return Math.min(1, (Phi((x - d.mu) / d.sigma) - Pa) / (1 - Pa));
+    }
   }
 }
 
@@ -230,6 +243,11 @@ export function quantileOf(d: Dist, p: number): number {
         if (riceCdf(mid, d.nu, d.sigma) < q) lo = mid; else hi = mid;
       }
       return 0.5 * (lo + hi);
+    }
+    case 'truncatedNormal': {
+      if (!(d.sigma > 0)) return Math.max(d.lo, d.mu);
+      const Pa = Phi((d.lo - d.mu) / d.sigma);
+      return Math.max(d.lo, d.mu + d.sigma * PhiInv(Pa + q * (1 - Pa)));
     }
   }
 }
@@ -282,6 +300,14 @@ export function meanOf(d: Dist): number {
       }
       return d.sigma * acc;
     }
+    case 'truncatedNormal': {
+      // E = μ + σ·φ(a)/(1 − Φ(a)), a = (lo − μ)/σ — the inverse Mills ratio of the lower tail.
+      if (!(d.sigma > 0)) return Math.max(d.lo, d.mu);
+      const a = (d.lo - d.mu) / d.sigma;
+      const tail = 1 - Phi(a);
+      if (!(tail > 1e-12)) return d.lo;
+      return d.mu + d.sigma * phi(a) / tail;
+    }
   }
 }
 
@@ -317,6 +343,39 @@ export function crpsNormal(mu: number, sigma: number, y: number): number {
   if (!(sigma > 0)) return Math.abs(y - mu);
   const z = (y - mu) / sigma;
   return sigma * (z * (2 * Phi(z) - 1) + 2 * phi(z) - 0.5641895835477563);  // 1/√π
+}
+
+/**
+ * CRPS of a normal truncated below at `lo` — closed form (Thorarinsdóttir & Gneiting 2010, eq. for N⁰): with
+ * a = (μ − lo)/σ, z = (y − μ)/σ, P = Φ(a) the retained mass,
+ *   CRPS = σ/P² · { z·P·(2Φ(z) + P − 2) + 2φ(z)·P − Φ(√2·a)/√π }   for y ≥ lo,
+ * plus the linear tail (lo − y) below the bound. Checked against `crpsOf` on the truncated quantile function.
+ */
+export function crpsTruncatedNormal(mu: number, sigma: number, lo: number, y: number): number {
+  if (!(sigma > 0)) return Math.abs(y - Math.max(lo, mu));
+  const a = (mu - lo) / sigma, P = Phi(a);
+  if (!(P > 1e-12)) return Math.abs(y - lo);
+  const yy = Math.max(lo, y), z = (yy - mu) / sigma;
+  const core = (sigma / (P * P)) * (z * P * (2 * Phi(z) + P - 2) + 2 * phi(z) * P - Phi(SQRT2 * a) / Math.sqrt(Math.PI));
+  return core + (y < lo ? lo - y : 0);
+}
+
+/**
+ * CRPS of a normal CENSORED on [lo, hi] (atoms at both bounds) — closed form from the antiderivatives
+ * ∫Φ = tΦ + φ and ∫Φ² = tΦ² + 2Φφ − Φ(t√2)/√π on the standardised interval; the tails outside [lo, hi] are
+ * exactly |y − bound|. The fit uses it for the σ-scale search (V-FL-15); the scorer keeps `crpsOf` so its
+ * numbers stay comparable with the earlier scorecards. Checked against `crpsOf` in `verify:fusion-fit`.
+ */
+export function crpsCensoredNormal(mu: number, sigma: number, lo: number, hi: number, y: number): number {
+  if (!(hi > lo)) return Math.abs(y - lo);
+  if (!(sigma > 0)) return Math.abs(y - Math.min(hi, Math.max(lo, mu)));
+  const H = (t: number) => t * Phi(t) + phi(t);                                       // ∫Φ
+  const G = (t: number) => t * Phi(t) * Phi(t) + 2 * Phi(t) * phi(t) - Phi(SQRT2 * t) / Math.sqrt(Math.PI);   // ∫Φ²
+  const l = (lo - mu) / sigma, u = (hi - mu) / sigma;
+  const yc = Math.min(hi, Math.max(lo, y)), z = (yc - mu) / sigma;
+  // ∫_l^u (Φ − 1{t ≥ z})² dt = ∫_l^u Φ² − 2∫_z^u Φ + (u − z)
+  const inner = (G(u) - G(l)) - 2 * (H(u) - H(z)) + (u - z);
+  return sigma * inner + Math.abs(y - yc);
 }
 
 /**
@@ -386,6 +445,9 @@ export function inflate(d: Dist, extraVar: number): Dist {
       const nu2 = d.nu * d.nu + d.sigma * d.sigma - s2;
       return { kind: 'rice', nu: Math.sqrt(Math.max(0, nu2)), sigma: Math.sqrt(s2) };
     }
+    case 'truncatedNormal':
+      // like `censoredNormal`: the latent σ widens, μ stays (the mean moves by the Mills term — accepted, as there).
+      return { ...d, sigma: Math.sqrt(d.sigma * d.sigma + extraVar) };
   }
 }
 

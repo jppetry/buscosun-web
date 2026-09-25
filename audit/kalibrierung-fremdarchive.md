@@ -445,7 +445,7 @@ Jeder Befund mit Mehrwert (für Jan) und Umsetzung bzw. Skizze. „behoben" hei�
 
 ### 8.6 Entscheidungen für Jan (E-F-26 … E-F-30)
 
-- **E-F-26 (offen, Kickoff):** Open-Meteo-API kommerziell (≈ 99 €/Monat laut Doku) für die Lücken des S3-Wegs?
+- **E-F-26 (entschieden 23.09.2026 = E-FL-3: nicht jetzt; Winter 7–48 h aus Archiv + Folgekette ab Dezember):** Open-Meteo-API kommerziell (≈ 99 €/Monat laut Doku) für die Lücken des S3-Wegs?
   Erreichbare Tage je Fit-Bin (Tabelle 8.7). Der S3/dynamical-Weg deckt die Bins 0–6 h (1 215 Tage, drei Winter),
   51–120 h und 126–336 h (≈ 900 Tage, zwei Winter) — aber **7–24 h und 25–48 h nur mit den 95 Sommertagen des
   data_run-Fensters, kein Winter**. Die API schlösse das: `previous-runs-api` (`_previous_day1/2`, ab 2024-01-19) gibt
@@ -501,6 +501,15 @@ den Rechner wach). Liste in `C:\dev\buscosun-hindcast\log\chains.json`, Logs `lo
 | `truth-full` (Einzeljob) | Wahrheit 2023-05-24 … 2026-07-31 + IGRA2 | — ; bei Abbruch: `{"name":"truth-full2","mode":"truth","args":"2023-05-24 2026-07-31"}` in `chains.json` eintragen |
 | `accept` | Abnahme V1–V8 über das ganze Archiv: Archiv-Klon `git pull`, rerun-check, shadow, truth `--verify` (Abdeckung 2023-05 … heute), index, verify-hindcast — **stempelt `index.json`** | alle anderen Ketten `DONE` und `truth-full` beendet |
 
+**Folgekette `follow <von> <bis>` (der wachsende Rand; `queue.mjs:98–115`, nachgetragen 23.09. — CLAUDE.md zitierte sie,
+der Text fehlte hier, V-FL-2):** je Tag im Bereich (1) `extract_openmeteo.py --route run` für die sieben Modelle
+(`dwd_icon_d2`, `dwd_icon_eu`, `meteoswiss_icon_ch1`, `meteoswiss_icon_ch2`, `dwd_icon`, `ecmwf_ifs025`,
+`ecmwf_aifs025_single`); (2) `extract_dynamical.py --ds ifs-ens` über den Bereich (t3-σ_ens auch im Lauf-Fenster, V-HC-8 —
+ohne ihn überspringt der Vollständigkeitswächter die 00/12-UTC-t3-Slots); bei einem Fehlschlag kein Slot-Bau, der Wachhund
+startet die Kette neu; (3) `extract_truth.mjs --from --to`; (4) `build-slots.mjs --from --to`. Die `data_run`-Frist ist ≈ 3
+Monate: ein Tag, der nicht in dieser Zeit gezogen wird, ist für die Lauf-Route verloren. Die Kette läuft täglich auf Jans
+Maschine, damit die Winterlücke 7–48 h sich schließt (E-FL-3, FL-AP7).
+
 **Wiederaufnahme nach Neustart des Rechners:**
 `powershell -File scripts\hindcast\detach.ps1 -Name watchdog -Shell cmd -Priority Normal -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\hindcast\watchdog.ps1"`
 — er liest `chains.json` und startet, was nicht `DONE` ist. Danach Abnahme wie in `scripts/hindcast/README.md`
@@ -524,3 +533,9 @@ den Rechner wach). Liste in `C:\dev\buscosun-hindcast\log\chains.json`, Logs `lo
    Fit geschrieben wird.
 6. **Abnahme-Stempel prüfen:** `index.json` → `verification` muss die volle Abnahme nach dem Ende aller Ketten
    tragen; bis dahin gilt die Pilot-Abnahme (8.3).
+
+**Stand 23.09.2026:** Die Sitzung „Fälle + Fit" ist die Lernphase FL (`audit/fusion-lernphase.md`): Fallbau
+`scripts/fusionfit/build-cases.mjs` (§5 dort), Fit `fit.mjs`, Scorer `score.mjs`; Einzelquellen je Zelle kommen aus dem
+Cache über die producer-treuen Leser (`build-slots.mjs`, nur zusätzlich exportiert) mit Gegenprobe `recompute.mjs`.
+Punkte 1–6 gelten unverändert; dazu: Stunde 0 der Tag-0-Slots (validAt = slotAt) fällt aus den Fällen; Provenienz
+`hindcast` in `calibDoc.ts` ist FL-AP1.

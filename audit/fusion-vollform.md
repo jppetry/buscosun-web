@@ -402,6 +402,12 @@ zeitabhängig, `cubeFormat.ts:282-284`); das statische ln-Mittel je Stufe bildet
 - Synthetischer Verifier `scripts/verify-calib-fit.mjs`.
 - Die CLI `scripts/punktarchiv/fit-calib.mjs` (Archiv-Leser plus Nachlauf) kommt **erst nach AP9**: sie importiert
   AP9s Nachlauf und fasst vorher keine AP9-Datei an.
+- **Stand 23.09.2026 (Phase FL, `audit/fusion-lernphase.md`):** der Fit läuft zuerst über den Hindcast
+  (`scripts/fusionfit/fit.mjs`), nicht über das Archiv. `calibFit.ts` bleibt für σ_sys/c/L_d/L_h/κ/z_b/A und bekommt
+  additiv `FitOptions.provenance ('measured'|'hindcast')` und `source` (E-F-28) sowie die Exporte `bootstrapDays/blockOf`;
+  die neuen Schätzer (Bias/EMOS je Quelle, Σ, Varianzmodell, Rice-σ, Niederschlags-Hürde, Klimatologie, Anker) liegen in
+  `src/point/fusionFit/*.ts` und schreiben `fusion.hindcast.json` (Koeffizientenblöcke, Schema-Bump 3 des Lesers = E-FL-5).
+  `CalibProvenance` erhält `'hindcast'` (E-F-23; V-FL-1).
 
 **Ausgabe `point/calib.json` Schema 2 (E-F-20):**
 - Je Eintrag zusätzlich: `n`, `days`, `period {from,to}`, `estimator`, `strata`, `ci90`, `fitVersion`.
@@ -1325,7 +1331,8 @@ Gründe:
 
 #### 9.3.5 Befunde (V-FI-90 …)
 
-- **V-FI-90 — offen, Jans Gate (AP9):** Das Druckflächen-Profil verschlechtert T bei |Δh| > 300 m gegenüber der
+- **V-FI-90 — offen, Jans Gate (AP9; FL misst es gegen Stationen, `audit/fusion-lernphase.md` §3.1: Γ nur aus der freien
+  Atmosphäre, 2-m-Entkopplung als Merkmal, Ablation Γ_frei gegen 6,5 K/km per Kreuzvalidierung):** Das Druckflächen-Profil verschlechtert T bei |Δh| > 300 m gegenüber der
   Standard-Lapse (1,94 gegen 1,39 K, Referenz t1-Profil).
   - **Mehrwert:** Klärt, ob Lücke 2 mit den vorhandenen Flächen überhaupt zu schließen ist, bevor sie jemand
     einschaltet.
@@ -1533,7 +1540,7 @@ Gründe:
 
 #### 9.4.4 Befunde (V-FI-94 …)
 
-- **V-FI-94 — offen (AP10, Entscheidung):** d_water misst mit A_min 10 px meist einen Teich oder ein Fluss-Stück,
+- **V-FI-94 — offen (AP10, Entscheidung; FL-AP1 nimmt `dLakeM` ≥ 1 km² als zweites Merkmal in die Merkmalstabelle, V-FL-6):** d_water misst mit A_min 10 px meist einen Teich oder ein Fluss-Stück,
   nicht „den See". Der getroffene Körper hat im Median 49 px (≈ 0,045 km²); ≥ 1 km² nur an 7/42 Orten; in Genf trifft
   die Suche die Rhône zwischen Brücken (30 m), nicht den Genfersee.
   - **Mehrwert:** Für einen Seeufer-Term (gedämpfte Tagesamplitude, Land-See-Wind) ist der Abstand zum großen
@@ -1550,7 +1557,7 @@ Gründe:
 - **V-FI-97 — behoben:** Der Fit-Kern (AP13) schrieb für tpiSigma die Archiv-Herkunft („buscosun-archiv … Zeitraum
   undefined…undefined"), obwohl der Wert aus dem Gelände kommt und es keine Archivfälle gibt. Jetzt
   „Geländestack (TPI am Punkt, keine Archivfälle) … Stichprobe n, Regionen"; `verify:calib-fit` (7) prüft es.
-- **V-FI-98 — offen (AP10, mit V-FI-83):** tpiSigma ist regional sehr verschieden: DE 22,6 m, AT 117,1 m, CH 135,0 m;
+- **V-FI-98 — offen (AP10, mit V-FI-83; FL Stufe G nimmt die regionalen Werte, `audit/fusion-lernphase.md` §3.6):** tpiSigma ist regional sehr verschieden: DE 22,6 m, AT 117,1 m, CH 135,0 m;
   gepoolt 104,6 m. Der Leser nimmt nur `default` (`calibDoc.ts`, `o.tpiSigmaM = val.default`). Mit dem gepoolten
   Wert erreicht in DE praktisch kein Punkt das Muldengate (TPI < −105 m; das p10 von DE liegt bei −26 m).
   - **Mehrwert:** Kaltluftseen im Flachland (Rheingraben, Donautal) würden erst mit σ je Region als Mulden erkannt.
@@ -1775,7 +1782,7 @@ mit `hmodel` ab.
 
 #### 9.5.5 Befunde (V-FI-100 …)
 
-- **V-FI-100 — offen (AP10):** Das GRIB-z0 der ICON-Modelle liegt systematisch 1,5- bis 5-mal über der WorldCover-Näherung
+- **V-FI-100 — offen (AP10; in FL entscheidet der Fit von z_b gegen Stationswind, ob `z0Model` trägt — §3.1 A6 dort):** Das GRIB-z0 der ICON-Modelle liegt systematisch 1,5- bis 5-mal über der WorldCover-Näherung
   (flach ×2,2, Gebirge ×5 für ICON-D2), ohne Orographie-Anteil. Mit `z0Model` stiege der Wind im Median um 3–5 %.
   - **Mehrwert:** Welche Rauhigkeit das Modell seinem 10-m-Wind zugrunde legt, entscheidet die Richtung der Korrektur;
     mit der Näherung korrigiert der Cube-Pfad heute an homogenen Flachlandorten fast nichts (Faktor p50 1,01).

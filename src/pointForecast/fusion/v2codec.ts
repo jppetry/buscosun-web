@@ -32,7 +32,13 @@ import type { ConfidenceV2, MemberV2, PointForecastV2, StepV2, VarIdV2, VarMembe
 import { OUTPUT_SCALE, VAR_IDS_V2, roundTo } from './output';
 
 export const V2C_CODEC = 'buscosun-v2c';
-export const V2C_VERSION = 1;
+/**
+ * Codec version. 1 = the tables as of §9.16; 2 (FL-AP8c, 25.09.2026) = version 1 plus the family `truncatedNormal` at
+ * the END of `DIST_KINDS` (the learned speed law, V-FL-22). Every index of version 1 is unchanged, so a version-1
+ * document decodes with the version-2 tables to the same object — the decoder reads both (`V2C_READABLE`).
+ */
+export const V2C_VERSION = 2;
+export const V2C_READABLE: readonly number[] = Object.freeze([1, 2]);
 
 type Col = Array<number | null>;
 
@@ -142,7 +148,7 @@ export interface CompactV2 {
 // Scales and tables
 // ---------------------------------------------------------------------------
 
-const DIST_KINDS = ['none', 'normal', 'censoredNormal', 'logCensored', 'hurdleLogNormal', 'rice'] as const;
+const DIST_KINDS = ['none', 'normal', 'censoredNormal', 'logCensored', 'hurdleLogNormal', 'rice', 'truncatedNormal'] as const;
 type DistKind = Exclude<(typeof DIST_KINDS)[number], 'none'>;
 type ParamScale = 'loc' | 'spread' | 'log' | 'prob';
 /** Which parameter goes into which of the four columns, and on which scale. */
@@ -152,6 +158,7 @@ const DIST_LAYOUT: Readonly<Record<DistKind, ReadonlyArray<readonly [string, Par
   logCensored: [['mu', 'log'], ['sigma', 'log']],
   hurdleLogNormal: [['mu', 'log'], ['sigma', 'log'], ['pDry', 'prob']],
   rice: [['nu', 'loc'], ['sigma', 'spread']],
+  truncatedNormal: [['mu', 'loc'], ['sigma', 'spread'], ['lo', 'loc']],
 });
 const POW10 = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000];
 /** Decimal digits of a scale that is a power of ten (0.01 → 2). */
@@ -492,7 +499,7 @@ export function encodeV2(v2: PointForecastV2): CompactV2 {
 
 export function decodeV2(c: CompactV2): PointForecastV2 {
   if (!c || c.codec !== V2C_CODEC) throw new Error('v2codec: kein buscosun-v2c-Objekt');
-  if (c.version !== V2C_VERSION) throw new Error(`v2codec: Version ${String(c.version)} unbekannt (kann ${V2C_VERSION})`);
+  if (!V2C_READABLE.includes(c.version as number)) throw new Error(`v2codec: Version ${String(c.version)} unbekannt (kann ${V2C_READABLE.join(', ')})`);
   const b = c.body;
   const sum = fnv1a32(JSON.stringify(b));
   if (sum !== c.check) throw new Error(`v2codec: Prüfsumme ${sum} ≠ ${c.check} — die Kodierung ist beschädigt`);

@@ -24,7 +24,7 @@
  *     ausschließt. Sonst: Status mit Grund, kein Wert.
  */
 
-import { CALIB_BINS_H, CALIB_N_MIN, CALIB_VARS, CALIB_CONF_KEYS, calibBinOf, type CalibVar, type CalibConfKey } from './calibDoc';
+import { CALIB_BINS_H, CALIB_N_MIN, CALIB_VARS, CALIB_CONF_KEYS, calibBinOf, type CalibVar, type CalibConfKey, type CalibEvidence } from './calibDoc';
 import { crpsNormal } from '../pointForecast/fusion/dist';
 import { fRadOf, windBlendingFactor, TERRAIN_SET } from '../pointForecast/fusion/terrainTerms';
 
@@ -160,8 +160,8 @@ export const CALIB_REGISTRY: readonly RegistryEntry[] = Object.freeze([
 // Hilfen
 // ---------------------------------------------------------------------------
 
-/** LCG wie `verify-pv-score.mjs` (Saat 12345) — deterministisch. */
-function lcg(seed = 12345) {
+/** LCG wie `verify-pv-score.mjs` (Saat 12345) — deterministisch. Exportiert seit FL (AP1) für `fusionFit/*`. */
+export function lcg(seed = 12345) {
   let s = seed >>> 0;
   return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 4294967296; };
 }
@@ -170,8 +170,8 @@ const mean = (xs: readonly number[]) => (xs.length ? xs.reduce((a, x) => a + x, 
 const quantile = (xs: number[], p: number) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.min(s.length - 1, Math.max(0, Math.floor(p * (s.length - 1))))] : NaN; };
 const r4 = (x: number) => Math.round(x * 1e4) / 1e4;
 
-/** Block-Bootstrap über Tage: 90-%-Intervall einer Statistik. */
-function bootstrapDays<T extends { day: string }>(cases: readonly T[], stat: (cs: T[]) => number, draws = 200, seed = 12345): [number, number] {
+/** Block-Bootstrap über Tage: 90-%-Intervall einer Statistik. Exportiert seit FL (AP1). */
+export function bootstrapDays<T extends { day: string }>(cases: readonly T[], stat: (cs: T[]) => number, draws = 200, seed = 12345): [number, number] {
   const byDay = new Map<string, T[]>();
   for (const c of cases) { const a = byDay.get(c.day); if (a) a.push(c); else byDay.set(c.day, [c]); }
   const days = [...byDay.values()];
@@ -186,8 +186,9 @@ function bootstrapDays<T extends { day: string }>(cases: readonly T[], stat: (cs
   return [quantile(out, 0.05), quantile(out, 0.95)];
 }
 
-const daysOf = (cases: readonly { day: string }[]) => new Set(cases.map((c) => c.day)).size;
-const blockOf = (c: { lat: number; lon: number }) => `${Math.floor(c.lat)}_${Math.floor(c.lon)}`;
+export const daysOf = (cases: readonly { day: string }[]) => new Set(cases.map((c) => c.day)).size;
+/** 1°-Kachel eines Punkts — die Einheit der räumlich geblockten Kreuzvalidierung (Anspruch B). Exportiert seit FL. */
+export const blockOf = (c: { lat: number; lon: number }) => `${Math.floor(c.lat)}_${Math.floor(c.lon)}`;
 
 // ---------------------------------------------------------------------------
 // Ergebnis und Diagnose
@@ -211,7 +212,7 @@ export interface FitReportRow {
 }
 
 export interface FitEntry {
-  value: unknown; provenance: 'measured'; source: string; updatedAt: string; unit?: string; pap?: string;
+  value: unknown; provenance: CalibEvidence; source: string; updatedAt: string; unit?: string; pap?: string;
   n: unknown; days: unknown; period: { from: string; to: string }; estimator: string; strata: string; ci90?: unknown; fitVersion: string;
   binsH?: typeof CALIB_BINS_H;
 }
@@ -232,6 +233,13 @@ export interface FitOptions {
   tpi?: readonly TpiSample[];
   /** Nur zum Testen: Mindestbeleg überschreiben. */
   nMin?: Partial<Record<string, { n: number; days: number }>>;
+  /**
+   * Belegklasse der geschriebenen Einträge (FL, E-F-23): `measured` = Fälle aus dem eigenen Punktarchiv (Voreinstellung),
+   * `hindcast` = Fälle aus dem Hindcast-Archiv (Stellvertreter-Quellen). Nie beide in einem Fit mischen (E-F-28).
+   */
+  provenance?: CalibEvidence;
+  /** Name des Fallarchivs für den `source`-Text (E-F-28); Voreinstellung nach `provenance`. */
+  source?: string;
 }
 
 function etaOf(n: number, days: number, need: { n: number; days: number }, lastDay: string | null): string | null {
@@ -262,9 +270,11 @@ export function fitCalib(allCases: readonly FitCase[], opts: FitOptions): FitRes
   const updatedAt = new Date(opts.asOfMs).toISOString();
   const entries: Record<string, FitEntry> = {};
   const report: FitReportRow[] = [];
+  const provenance: CalibEvidence = opts.provenance ?? 'measured';
+  const archive = opts.source ?? (provenance === 'hindcast' ? 'buscosun-hindcast (Stellvertreter-Quellen, E-F-23)' : 'buscosun-archiv');
   const base = (path: string, estimator: string, strata: string) => ({
-    provenance: 'measured' as const, updatedAt, period: period!, estimator, strata, fitVersion: FIT_VERSION,
-    source: `buscosun-archiv, Fit ${FIT_VERSION} (${estimator}); Zeitraum ${period?.from}…${period?.to}`,
+    provenance, updatedAt, period: period!, estimator, strata, fitVersion: FIT_VERSION,
+    source: `${archive}, Fit ${FIT_VERSION} (${estimator}); Zeitraum ${period?.from}…${period?.to}`,
     pap: path.startsWith('sigma') || path === 'cSpread' || path === 'confDiscount' || path === 'meltOffset' ? 'PAP 6' : path === 'Ld' || path === 'Lh' || path === 'kappaLambda' ? 'PAP 3' : 'PAP 5',
   });
   const tooShort = (path: string, n: number, d: number, why?: string): FitReportRow => {

@@ -75,6 +75,72 @@ export function anchorTerm(inn: Innovation | null, leadH: number, tauH: number):
 }
 
 // ---------------------------------------------------------------------------
+// V-FL-20 (FL-AP8b): das Gewicht aus der GEMESSENEN Persistenzkurve statt e^(−τ/τ_v)
+// ---------------------------------------------------------------------------
+//
+// Der Fit der Lernphase (`fitAnchor.ts`, `tables.anchor[v].curve`) misst an den Form-K-Residuen derselben
+// (Punkt, Slot)-Reihe, wie viel vom Residuum bei Vorlauf 1 bei Vorlauf τ noch da ist: w(τ) = cov(e₁, e_τ)/var(e₁).
+// Gemessen (Fit 2, 24.09.2026, T): 0,91 bei 2 h, 0,71 bei 4 h, 0,41 bei 6 h, ≈ 0 bei 9–18 h, 0,45 bei 24–26 h,
+// ≈ 0 bei 33–42 h, 0,38 bei 48 h — die Nacht nach der Messung kehrt wieder (Tagesgang); e^(−τ/4) gibt 0,61 · 0,37 ·
+// 0,22 · 0,002 und trifft weder die ersten Stunden noch 24 h. Die Kurve wirkt nur hinter `FuseCubeOptions.learned`
+// (cubeSource.ts); `anchorDecay`/`anchorTerm` bleiben unverändert (Live-Pfad, Rückfall ohne Kurve).
+
+/**
+ * Ein Punkt der Persistenzkurve, wie der Fit sie schreibt: `curve[τ−1]` für τ = 1…48; `weight` = optimales lineares
+ * Gewicht von e₁ für e_τ, `null` wo der Fit zu wenig Paare hatte (n < 200); bei τ = 1 per Definition null (Referenz).
+ */
+export interface AnchorCurvePoint { leadH: number; rho: number | null; weight: number | null; n: number }
+/** Länge der Kurve (Vorlauf 1…48 h) — dieselbe Zahl wie `ANCHOR_MAX_LEAD_H` in `fitAnchor.ts` (der Verifier bindet beide). */
+export const ANCHOR_CURVE_LEAD_H = 48;
+
+/** Formprüfung (Zulassungsregel des Lesers): 48 Einträge, `leadH` 1…48 in Reihe, Gewichte endlich oder `null`. */
+export function anchorCurveValid(curve: unknown): curve is AnchorCurvePoint[] {
+  if (!Array.isArray(curve) || curve.length !== ANCHOR_CURVE_LEAD_H) return false;
+  for (let i = 0; i < curve.length; i++) {
+    const c = curve[i] as Partial<AnchorCurvePoint> | null;
+    if (!c || typeof c !== 'object' || c.leadH !== i + 1) return false;
+    if (!(c.weight === null || (typeof c.weight === 'number' && Number.isFinite(c.weight)))) return false;
+  }
+  return true;
+}
+
+/**
+ * Gewicht des Versatzes bei Vorlauf `leadH` aus der Kurve: τ ≤ 1 ⇒ 1 (Definition: e₁ gegen sich selbst); 2…48 ⇒ der
+ * gemessene Eintrag; bei gebrochenem Vorlauf oder fehlendem Eintrag linear zwischen den nächsten endlichen Einträgen
+ * (nach unten bis zur Definition bei 1 h); jenseits des letzten gemessenen Vorlaufs ⇒ 0 — das ist die DATENLAGE (der
+ * Fit endet bei 48 h, ρ_T(48) ≈ 0,29 fällt weg; offen), keine Aussage über die Persistenz. Negative Gewichte sind
+ * Daten (Gegenphase des Tagesgangs), nur auf [−1, 1] gedeckelt. `null`, wenn die Kurve die Form nicht hat — dann
+ * gilt die Setzung (`anchorTerm`).
+ */
+export function anchorWeightFromCurve(curve: unknown, leadH: number): number | null {
+  if (!anchorCurveValid(curve) || !Number.isFinite(leadH)) return null;
+  if (leadH <= 1) return 1;
+  const clamp = (w: number) => Math.max(-1, Math.min(1, w));
+  let last = 0;
+  for (let i = curve.length - 1; i >= 0; i--) if (curve[i].weight != null) { last = curve[i].leadH; break; }
+  if (leadH > last) return 0;
+  const at = (L: number): number | null => (L <= 1 ? 1 : (curve[L - 1]?.weight ?? null));
+  const lo = Math.floor(leadH), hi = Math.ceil(leadH);
+  if (lo === hi) { const w = at(lo); if (w != null) return clamp(w); }
+  let L0 = lo, L1 = hi === lo ? lo + 1 : hi;
+  while (at(L0) == null) L0 -= 1;
+  while (at(L1) == null) L1 += 1;
+  const w0 = at(L0) as number, w1 = at(L1) as number;
+  return clamp(w0 + ((leadH - L0) / (L1 - L0)) * (w1 - w0));
+}
+
+/**
+ * Der Zuschlag bei Vorlauf `leadH` mit dem Gewicht der Kurve: offset · fraction · w(τ). Der Aufrufer prüft die Kurve
+ * vorher (`anchorCurveValid`) und nimmt sonst `anchorTerm`; eine ungültige Kurve gibt hier 0 (kein stiller Rückfall
+ * auf eine Setzung, die der Aufrufer nicht benannt hat).
+ */
+export function anchorTermLearned(inn: Innovation | null, leadH: number, curve: AnchorCurvePoint[]): number {
+  if (!inn) return 0;
+  const w = anchorWeightFromCurve(curve, leadH);
+  return w == null ? 0 : inn.offset * inn.fraction * w;
+}
+
+// ---------------------------------------------------------------------------
 // Verifikation
 // ---------------------------------------------------------------------------
 

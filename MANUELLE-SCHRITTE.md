@@ -681,3 +681,102 @@ Protokoll: `audit/fusion-implementierung.md` §9.17. Geändert nur `scripts/punk
       Producer (≈ 1–2 MB gz je Lauf, geschätzt), Sammler kopiert ihn — oder Gewichte aus dem Hindcast (Open-Meteo-Modelle als
       Stellvertreter).
 - [ ] **AP9-Kickoff:** `prompt.md` baut jetzt Schema 4 auf Schema 3 auf; Punkt 1e (Stationshöhe am Live-Aufruf) ist erledigt.
+
+## 21. Phase FL — buscosun Fusion Lernphase (Bias, Σ, Varianz, Verifikation gegen jede Einzelquelle), 2026-09-23
+
+Design: `audit/fusion-lernphase.md`. Planungssession 23.09. mit deinen Entscheidungen E-FL-1…4 und E-FL-10; die Umsetzung
+FL-AP1 ff. läuft in derselben Session (kein Commit, kein Push, kein Producer-Eingriff, alles unter `src/` hinter Optionen).
+
+- [ ] **Ergebnis lesen (§11.6, Scorecard 2 vom 24.09., `C:\dev\buscosun-hindcast\score\2026-09-24\scorecard.md`):** Form K schlägt in
+      0–240 h für T/Td jede Einzelquelle (−26…−54 % CRPS), MMM, Klima, Persistenz und den Cube (−6…−21 %) signifikant, Spread/Skill ≈ 1;
+      Böe 0–120 h, Bewölkung 0–240 h ebenso. Rot: 246–336 h (Klimatologie schlägt alles, V-FL-24), Wind ab 51 h und PIT-Rand 0,27–0,33
+      (V-FL-22), Niederschlag ≈ Cube. **Entscheidungen:** (a) Client-Tabellen für T/Td/Böe/Bewölkung 0–240 h veröffentlichen (unten),
+      (b) Wind und 246–336 h im Client auf dem Cube lassen (Tabellen tragen sie, `predict` kann je Stratum aussparen — sag, ob ich die
+      `no-skill`-Regel auf „gegen Klimatologie" umstelle, V-FL-23/24), (c) V-FI-108: Form P bringt nur 1–4 % ⇒ kein Punktauszug nötig?
+- [ ] **Design lesen und freigeben** (`audit/fusion-lernphase.md` §1–§8): Anspruch A/B, Stufen A–G, Formen P und K,
+      Gates G-FL-1…4, Lückenliste §2.7/§7. Deine Entscheidungen sind dort als E-FL-1…4 protokolliert:
+      Client über calib.json · EMOS linear in Merkmalen · Winter 7–48 h aus Archiv + Folgekette · Baselines = 7 Rohmodelle
+      + MMM + Klima + Persistenz, MOSMIX/Live-Pfad nur im Archiv-Fenster.
+- [ ] **E-FL-5** `point/calib.json` Schema-Bump 3 (Koeffizientenblöcke `bias/cov/variance/wind/precip/clima/anchor`,
+      Leser liest 1/2/3). Publisher-Weg bleibt E-F-20 (STOPP & FRAGEN).
+- [ ] **E-FL-6** Föhn-Prädiktor aus dem Kamm-Druckgradienten (zwei Cube-Zellen zusätzlich im Client) — ja/nein.
+- [ ] **E-FL-7** MOSMIX-Gewicht in `fuseHour`: aus dem Archiv-Fenster mit kurzem Beleg oder `set` bis genug Slots da sind.
+- [ ] **E-FL-8** additive Exporte (`accessorsFor`, `makeSource`, `planDay0`) aus `scripts/hindcast/build-slots.mjs`
+      (Hindcast-Linie, AP10a-Commit §19 noch offen) — Slots bleiben byte-gleich (V3-a-Wächter).
+- [ ] **E-FL-9** ≈ 7 GB Plattenplatz für die Fälle unter `C:\dev\buscosun-hindcast\cases\` (plus ≈ 0,3 GB Kacheln).
+- [ ] **Maschine:** Folgekette `queue.mjs follow` täglich weiterlaufen lassen (data_run-Frist ≈ 3 Monate), sonst bleibt
+      die Winterlücke 7–48 h; vor dem **30.09.** den neuen dynamical-Zugriffsweg prüfen (t3-σ_ens hängt daran, V-HC-8).
+- [ ] **V-FI-108 mit Zahl:** nach FL-AP4 steht P − K in der Scorecard — dann Entscheidung Punktauszug je Quelle aus dem
+      Producer oder PAP 2 im Producer (beides Producer-Diff = dein Gate).
+- [ ] **STOPP & FRAGEN bleibt:** Motor-Änderungen außerhalb der Option `learned` (V-FI-107 `windSigmaAt` wird nur mit
+      Option ersetzt), Publisher-Weg für `fusion.hindcast.json`, jeder Commit.
+- [ ] **Publisher-Weg der Client-Tabellen (E-F-20-analog):** `fit\<datum>\fusion.client.json` (≈ 100 KB, Form K, Provenienz `hindcast`)
+      nach `point/fusion.client.json` ins Daten-Repo — erst, wenn die Scorecard G-FL-1/G-FL-2 für Form K trägt; bis dahin liest der
+      Client nichts (`CubeIo.learnedSource` voreingestellt `none`).
+- [ ] **Einschalten im Browser:** `learnedSource: 'json'` in `defaultCubeIo` nur hinter `?pf=cube` und nur nach deiner Freigabe der
+      Scorecard; der Cube-Pfad bleibt ohne Option byte-gleich (`verify:pv-cube` Block 24).
+- [ ] **Kosten-Gates wiederholen** (`verify:pv-cube` (4)/(9), `verify:point-client` (10s)) ohne laufende Bau-Worker — V-FL-12.
+- [ ] **E-FL-11 totalJs-Ratsche (E-F-21):** Build 241/241, eagerJs 107,9 KB unverändert, **totalJs 1 441,4 KB > Grenze 1 438 KB**
+      (+3,4 KB gz im lazy `cubeSource`-Chunk: `predict`/`design`/`features`/`strata`/`tables`/`learnedPoint`). Entweder Grenze auf 1 442
+      anheben (`npm run budget -- --update`, im Diff sichtbar) oder ich trenne die Vorhersage-Konstanten vom Fit-Kern (≈ 1 KB, kein
+      Funktionsverlust). Deine Entscheidung.
+- [ ] **Nachtrag 24.09. — Scorecard 2 lesen mit Vermerk V-FL-25:** die DM-p-Werte in `score6-09-24\scorecard.{json,md}` sind mit einer
+      falschen Φ gerechnet (Φ(z·√2)); nachgerechnet kippen drei G-FL-1-Zellen der Form K (Wind 25–48 h gegen Klima, Bewölkung 126–240 h
+      gegen Klima, Niederschlag 126–336 h gegen Cube), die Kernaussage T/Td 0–240 h, Böe 0–120 h, Bewölkung 0–120 h bleibt (§11.8).
+      Entscheidung (a) oben gilt damit für Bewölkung nur bis 120 h. Verifier-Fix ist drin (`stats.mjs`, `verify-pv-score.mjs`, 9g).
+- [ ] **E-FL-12 Klimatologie-Produkt für Wind und Böe:** der größte gemessene Gewinn (Wind −3 %, Böe −4…−7 %, Bergstationen: Klima schlägt
+      fl-K heute schon bei 0–6 h) braucht eine Punktklimatologie je Größe; `ClimaField` trägt nur T. Optionen: (i) stündliche Wind-/Böen-
+      Klimatologie je Zelle aus dem Hindcast-Cube (statisches Produkt im Daten-Repo, Publisher-Weg = dein Gate), (ii) Stationsreihen
+      interpoliert (Höhen-/TPI-abhängig, ungenau abseits der Stationen), (iii) vorerst nur T über `ClimaField`. Deine Entscheidung.
+- [ ] **E-FL-13 Freigabe FL-AP8 (Fit-Iteration 2, §11.8 Bauplan):** Halbmonatsfalten (V-FL-27), Standort × Tagesgang (V-FL-26), μ_c als
+      Spalte (V-FL-23), σ-Skala per CRPS (V-FL-15), Speed-EMOS Wind (V-FL-22), Hürde mit Cube-Prädiktor + CV-Schranke (V-FL-18),
+      Anker-Kurve aus den Tabellen (V-FL-20; berührt `anchorTerm` — nur mit Option `learned`, sonst byte-gleich), schlanke Client-
+      Tabelle (V-FL-28, 36 → 18 KB gz). Danach Fit 3 + Scorecard 3 (≈ 3 h Rechenzeit + 1 h Scorer, Maschine frei). Kein Producer-Eingriff.
+- [ ] **FL-AP8b (24.09.) — Anker-Kurve gebaut, Einschalten = dein Gate (V-FL-20, §11.10):** der Anker des Cube-Pfads nimmt mit
+      `FuseCubeOptions.learned` UND einem `anchor`-Block in `fusion.client.json` das gemessene Gewicht w(τ) = cov(e₁,e_τ)/var(e₁)
+      (1…48 h, jenseits 0) statt e^(−τ/τ_v) — ein **Motor-Eingriff hinter der Option** (`anchor.ts` additiv, `cubeSource.ts`);
+      ohne Option, ohne Block oder je Größe ohne Kurve byte-gleich (`verify:pv-cube` Block 25, 308/308; `verify:pv-fusion` 229/229,
+      Live-Pfad unberührt). Im Browser wirkt es erst mit `learnedSource: 'json'` (dein Gate „Einschalten im Browser" oben) — und nur,
+      wenn `fusion.client.json` den `anchor`-Block behält (V-FL-28 darf ihn nicht streichen: +2,6 KB gz). Offen: die Kurve endet bei
+      48 h (ρ_T(48) ≈ 0,29 fällt auf 0), `ANCHOR_MAX_LEAD_H` im Fit verlängern = Fit-Diff. totalJs 1 442,6 KB > 1 438 (E-FL-11, Grenze
+      nicht angehoben).
+- [ ] **FL-AP8a (24.09.) — V-FL-26 umgesetzt, Fit 3 + Scorecard 3 (§11.9):** `fusionFit@2` (14 Standort × Tagesgang-Spalten im
+      Mittelwertdesign, Tabellen mit `design.mean`; `fusionFit@1`-Tabellen lehnt der Leser ab). Scorecard 3 gegen Scorecard 2: T CRPS 0–6 h
+      **−5,3 %**, 7–120 h −2,5…−3,0 %, Böe −1…−1,3 %, Td +0,0…+0,4 %, Wind/Bewölkung/Niederschlag ±0,2 %; T über 800 m −13 %, CH −9 %; kein
+      Gate-Verlust durch die Spalten (die Wechsel sind die V-FL-25-Zellen und fl-P Böe 246–336 h G2 mit PIT-Rand 0,149). **Dein Gate:**
+      (a) `fit\2026-09-25-v26\fusion.client.json` (163 KB / 39 KB gz, Form K, trägt den `anchor`-Block für FL-AP8b) ist das neue Artefakt für den
+      Publisher-Weg `point/fusion.client.json` (E-F-20-analog, oben) — die Fit-2-Datei passt nicht mehr zum Client (`fusionFit@1` ⇒
+      `learned: … nicht lesbar`, Rechnung ohne Lernstufe, benannt); (b) Entscheidung (a) oben (Client-Tabellen für T/Td/Böe/Bewölkung) gilt mit
+      den Fit-3-Zahlen weiter; (c) V-FL-32 — Td trägt die T-Spalten nicht (Band ≥ 800 m +1,5…+1,7 % CRPS): Spaltensatz je Größe = Fit-Diff
+      `fusionFit@3`, ja/nein; (d) totalJs 1 442,6 KB > 1 438 KB (E-FL-11 unverändert offen, Grenze nicht angehoben). Logs und Vergleichstabellen:
+      `fit\2026-09-25-v26\fit.log`, `score\2026-09-25-v26\score.log`, `compare-fit.md`/`compare-score.md` (Kopien in
+      `audit/fusion-lernphase/ap8a-2026-09-25/`). Referenzen `fit\2026-09-24\` und `score\2026-09-24\` unverändert.
+- [ ] **FL-AP8c (25.09.) — V-FL-15/22/18/28 gebaut, `fusionFit@3`, Fit 4 + Scorecard 4 (§11.11):** σ-Skala je Stratum per CRPS
+      (`VarianceEntry.scale`; Bewölkung Pflicht, T/Td/Böe nur bei Out-of-fold-Gewinn), Speed-EMOS als **gestutzte Normal**
+      TN(a + b·E_Rice, c·sd_Rice) hinter dem u/v-Modell (`tables.speed`, out of fold gegen die Rice, sonst `no-skill`), Hürde mit Spalte
+      logit(1 − pDry_Cube) und CV-Schranke (`no-skill`; die Hürde wird jetzt im Speicher mit gedämpftem Newton bis zur Konvergenz gefittet —
+      die alte Durchlauf-IRLS divergierte, **V-FL-36**, betraf die Hürde seit FL-AP3), schlanke Client-Tabelle (`lib/clientTables.mjs` ohne
+      cv/prior/jitter/folds/ρ_f/Klimatologie; `names` und `anchor` bleiben). Gates: `verify:fusion-fit` 67/67, `verify:pv-cube` 314/314 (Block 26),
+      `verify:point-client` 165/165, `verify:calib-fit` 14/14, `verify:pv-fusion` 229/229, Build 241/241, totalJs **1 443,8 KB > 1 438**
+      (E-FL-11 unverändert offen, Grenze nicht angehoben). **Deine Gates:**
+      (a) **STOPP & FRAGEN nachgeholt — Codec:** `fusion/dist.ts` hat die neue Familie `truncatedNormal` (nur der Lernpfad erzeugt sie),
+          und `fusion/v2codec.ts` trägt sie am Ende der `DIST_KINDS`-Tabelle mit **`V2C_VERSION` 1 → 2**; der Dekoder liest 1 und 2
+          (`V2C_READABLE`, Version-1-Dokumente dekodieren unverändert, Block 26 prüft es; Block 17 nimmt jetzt Version 3 als fremd). Der
+          Codec ist mit AP9 geteilt (Regel „geteilt nur additiv, Änderung ⇒ V2C_VERSION"): bitte bestätigen, sonst nehme ich den
+          Client-Teil der Speed-EMOS zurück (Fit/Scorer/Tabellen bleiben davon unberührt).
+      (b) **Publisher-Weg:** das neue Artefakt für `point/fusion.client.json` ist `fit\2026-09-25-ap8c\fusion.client.json` (`fusionFit@3`;
+          die v26-Datei ist `fusionFit@2` und fällt beim Leser mit benannter Meldung durch ⇒ Rechnung ohne Lernstufe): **115 KB / 24,8 KB gz**
+          (Fit 3: 39 KB gz; die 18–21 KB aus §11.8 galten für das 37-Spalten-Design ohne `anchor`-Block).
+      (c) **Einschalten im Browser (je eigene Option, beide voreingestellt aus, nur mit `learned`):** `CubeIo.fuse.learnedSpeed`
+          (Wind als TN der Motor-Rice, Richtung aus u/v) und `CubeIo.fuse.learnedPrecip` (gelernte Hürde statt K-2, nur ohne Radar-/
+          Stationsmember). **Scorecard 4 (§11.11):** Wind CRPS −2,1 … −5,4 % je Bin, PIT-Rand 0,27–0,33 → 0,20–0,24, gegen den Cube
+          −11,5 … −26,1 %* — aber **DE +2,8 %** bei 0–6 h und 25–48 h (AT/CH −4 … −13 %, V-FL-38: das Gesetz gilt je Stratum, nicht je
+          Land) ⇒ Empfehlung `learnedSpeed` erst nach V-FL-38, oder jetzt mit dem benannten DE-Verlust. Niederschlag: 0–6 h −1,2 %* gegen
+          den Cube (Brier −4,8 %), 7–48 h `no-skill` (K-2 bleibt von selbst), 51–120 h −0,6 % ⇒ `learnedPrecip` ist ungefährlich, aber
+          klein. Die σ-Skala wirkt mit `learned` automatisch (Teil der Varianztabelle): Bewölkung CRPS −0,4 … −3,6 %, PIT-Rand 0,22–0,35 →
+          0,14–0,18; **an T/Td/Böe drückt der Faktor 0,9 (17 Strata) den Spread/Skill auf 0,86–0,92 bei ≤ 0,4 % CRPS-Gewinn (V-FL-37) —
+          sag, ob ich die Skala per Regel auf die Bewölkung beschränke (Fit-Diff, Tabellen neu schreiben).**
+      (e) **V-FL-36/40 (behoben, aber rückwirkend):** die Hürde der Scorecards 1–3 war eine unkonvergierte IRLS; „Niederschlag ≈ Cube" dort
+          war der Fit, nicht die Datenlage. Die Zahlen der Scorecard 4 sind die ersten mit konvergierter Hürde.
+      (d) Nicht gebaut (benannt): V-FL-27 Halbmonatsfalten, V-FL-23 μ_c, V-FL-32 Td-Spaltensatz (= `fusionFit@4`), V-FL-35 Anker-σ,
+          V-FL-29…31 — je eigener Auftrag.

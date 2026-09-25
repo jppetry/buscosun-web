@@ -34,7 +34,7 @@ import type { VerticalResult } from './vertical';
 
 /** Die Größen, für die das Cube-Member eine explizite σ bekommt (Einheit wie im Cube). */
 export type UncVar = 'temperature' | 'dewpoint' | 'wind' | 'gust' | 'clouds';
-export type SigmaKind = 'ensemble' | 'divergence' | 'sys-only' | 'set';
+export type SigmaKind = 'ensemble' | 'divergence' | 'sys-only' | 'set' | 'learned';
 
 /** Cube-Ebene(n) je Größe. Wind: zwei Komponenten, σ als quadratisches Mittel. */
 export const UNC_CUBE_IDS: Readonly<Record<UncVar, readonly string[]>> = Object.freeze({

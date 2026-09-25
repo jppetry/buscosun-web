@@ -1,6 +1,7 @@
 # Quellenmatrix — Punktvorhersage 0–336 h
 
-**Stand:** 2026-09-09 · **Geltungsbereich:** DE, AT, CH · **Status:** Entwurf
+**Stand:** 2026-09-23 · **Geltungsbereich:** DE, AT, CH · **Status:** Entwurf vom 09.09., ergänzt um den Ist-Stand
+(Cube / Live-Pfad / Hindcast / fehlt, §1a) und die Archivlage der Lernphase FL (`audit/fusion-lernphase.md` §2)
 
 Welche Primärquellen der Algorithmus je Standortland und Vorhersagestunde braucht.
 Ergänzt die Ablaufpläne (`ABLAUFPLAENE.md`), wird aber getrennt geführt: Quellen
@@ -61,6 +62,42 @@ Bei **03/09/15/21 UTC: nur 48 h**. Für die Hälfte aller Läufe klafft zwischen
 
 **⚠⁷ IFS HRES reicht nur bei 00/12 UTC bis 360 h.** Die Läufe 06/18 UTC (`scda`)
 enden bei 144 h. Für 240–336 h stehen also nur die beiden Hauptläufe zur Verfügung.
+
+**⚠⁸ Der Hindcast (`C:\dev\buscosun-hindcast`, AP10a) trägt drei Provenienzwege nach Datum:** ab 2026-06-17 ganze
+Läufe (Open-Meteo `data_run`, Frist ≈ 3 Monate); davor für t1 nur die Tag-0-Reihe (Vorlauf 0–2 h / 0–5 h, gemessene
+Annahme) und für t2/t3 die dyn-Route (IFS-ENS-Kontrolllauf als HRES-Stellvertreter auf 0,02 K, AIFS; ICON-EU ab
+2026-02-10; t3-σ_ens aus 50 Membern). Vorlauf 7–48 h damit nur mit 95 Sommertagen (0 Wintertage, E-FL-3).
+
+**⚠⁹ MOSMIX hat nirgends ein Archiv** (PAMORE schließt es aus; BrightSky hält keine Läufe). Als Baseline steht MOSMIX-L
+nur im eigenen Punktarchiv ab 2026-09-14 (E-FL-4). Dasselbe gilt für C-LAEF(-EPS), ICON-D2-EPS, INCA, RV/RZC und E4.
+
+---
+
+## 1a. Ist-Stand je Quelle: Cube · Live-Pfad · Hindcast · fehlt (23.09.2026)
+
+Gemessen an `src/point/sourceMatrix.ts`, FI §1.1 und `buscosun-hindcast\index.json`; „Cube" = Punkt-Cube im Daten-Repo,
+„Live" = heutiger App-Pfad, „Hindcast" = AP10a-Archiv für die Kalibrierung.
+
+| Quelle | Cube | Live | Hindcast | Bemerkung |
+|---|---|---|---|---|
+| ICON-D2 | t1 | ja | t1 (Tag 0 ab 2023-05, Lauf ab 2026-06-17) | ohne 925 hPa, ohne Td/ps in Open-Meteo (Magnus/barometrisch) |
+| ICON-D2-EPS | t1 (σ_ens) | — | **nein** | kein freies Ensemble-Archiv |
+| ICON-EU (+EPS) | t1/t2 | ja | t1 ab 2023-05; t2 dyn ab 2026-02-10, Lauf ab 06-17 | 03/09/15/21 UTC nur 48 h (⚠⁵) |
+| ICON global / ICON-EPS | t2/t3 | — | Lauf ab 2026-06-17 | dyn-Route ohne ICON global |
+| AICON | t2/t3 | — | **nein** | keine Modellorographie veröffentlicht (V-FI-105) |
+| IFS HRES | t1–t3 | ja (Rückfall) | Tag 0 ab 2024-01-25; dyn = ENS-Kontrolllauf | ps nur bis 2025-05 in Open-Meteo |
+| IFS ENS | t3 (σ_ens 48-h-Raster) | — | t3 dyn ab 2024-04-01, 50 Member an jeder Stunde | einzige Ensemble-Quelle im Hindcast |
+| AIFS Single | t1–t3 | — | ab 2025-02-05 | 6-stündlich, ohne Böe |
+| AIFS ENS | (übersprungen) | — | nein | — |
+| ICON-CH1-EPS / CH2-EPS | t1 / t2 | — | ab 2025-07 (nächste Zelle, ohne Druckflächen, ohne hmodel) | Registry-Bänder nie gelesen (V-FI-27); Ostrand ⚠² |
+| C-LAEF / C-LAEF-EPS | t1 (Quantile) | — | **nein** | nur P10/50/90 (⚠³), keine Orographie (V-FI-105), Quantile ≠ Mittel (V-FI-106) |
+| MOSMIX-L | Stationsprodukt | ja (BrightSky) | **nein** (⚠⁹) | Baseline nur im Punktarchiv |
+| MOSMIX-S, KENDA-CH1, E4 | — | — | nein | E4 = CH-Benchmark, nicht zugänglich (⚠⁴) |
+| RADVOR RV / INCA / CombiPrecip | Nowcast-Spiegel | ja | **nein** | 0–3 h nur im Punktarchiv prüfbar |
+| AROME (GeoSphere) | — | ja (Rückfall AT) | nein | Abschaltung 11/2026 (§6) |
+| GFS | — | ja (Schwanz) | nein | — |
+| Beobachtungen POI / TAWES / SMN | — | ja (Anker) | Wahrheit stündlich (CDC statt POI in DE) | keine Strahlung, Sonne, Schnee, Sicht; Bewölkung nur DE; `ps` erst Archiv-Schema 3 |
+| IGRA2 Radiosonden | — | — | 19 Stationen, 2023-05 … 2026-09 | Prüfung des Γ-Schätzers, ohne RH |
 
 ---
 
@@ -139,6 +176,14 @@ und nirgends nachkaufbar.
 archiviert werden — als Punktextraktion an den Verifikationsstationen, nicht als
 Volldaten. Jeder Tag ohne diesen Job ist für die Verifikation dauerhaft verloren.
 
+**Stand 23.09.2026 — was tatsächlich archiviert ist:**
+
+| Archiv | Inhalt | Umfang |
+|---|---|---|
+| `buscosun-archiv` (Git, Cron 23:10 UTC) | Cube-Ebenen je Punkt mit Profil und σ_ens, MOSMIX-L, Nowcast-Frames, Live-Pfad, Wahrheit 25 h; 405 Punkte | ab 2026-09-14, 1 Slot/Tag, ≈ 18,5 MB gz (Schema 2), Schema 3 ab dem nächsten Push |
+| `C:\dev\buscosun-hindcast` (lokal, kein Repo) | Open-Meteo/dynamical-Extrakte in Cube-Slot-Form, Provenienz `hindcast`; Wahrheit stündlich 389 Punkte; IGRA2 | 4 314 Slots / 1 216 Tage (2023-05-25 … 2026-09-21), 7,8 GB Slots + 39 GB Cache; Folgekette `queue.mjs follow` täglich (Jans Maschine) |
+| **kein Archiv** | MOSMIX, C-LAEF, ICON-D2-EPS, CH-EPS-Member, INCA, Radar, AICON | Baselines nur aus `buscosun-archiv` (⚠⁹) |
+
 ---
 
 ## 5. Lizenzlage
@@ -180,3 +225,8 @@ Blitzdaten (kostenpflichtig oder nicht-kommerziell).
   tar-Archiv und ist mit einem Download zu klären.
 - **Praktisch nutzbarer Rand der ICON-CH-Domain** in Ostösterreich: 20 km Einschnitt ist
   eine Annahme nach Open-Meteo-Vorbild, keine Messung.
+- **Einzelquellen im Cube (V-FI-108):** der Cube trägt nur das Mittel; die Einzelquellen-Form der Lernstufe
+  (PAP 7, Form P) ist nur im Backtest rechenbar. Punktauszug je Quelle aus dem Producer oder PAP 2 im
+  Producer ist Jans Entscheidung, der Backtest liefert dafür die Zahl (P − K).
+- **`data.dynamical.org` ab 30.09.2026:** die Folgekette des Hindcasts hängt für t3-σ_ens daran (V-HC-8);
+  vor dem Stichtag den neuen Zugriffsweg prüfen.

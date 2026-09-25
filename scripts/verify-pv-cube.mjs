@@ -1118,7 +1118,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const viaText = decodeV2(JSON.parse(JSON.stringify(cH)));
   add('(17) Rundweg über den JSON-Text (so liegt es im Archiv): dasselbe Ergebnis wie aus dem Objekt',
     compareV2(backH, viaText).exact.length === 0 && JSON.stringify(viaText) === JSON.stringify(backH));
-  // Negativkontrollen: eine gekippte Ziffer, eine falsche Prüfsumme, eine fremde Version
+  // Negativkontrollen: eine gekippte Ziffer, eine falsche Prüfsumme, eine fremde Version (3 — seit FL-AP8c liest der Codec 1 und 2, `V2C_READABLE`)
   const flip = JSON.parse(JSON.stringify(cH));
   const col = flip.body.vars.t2m.d[0];
   const at = col.findIndex((x) => x != null && x !== 0);
@@ -1126,7 +1126,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const throws = (fn, re) => { try { fn(); return false; } catch (e) { return re.test(e.message); } };
   add('(17) Negativkontrolle: eine gekippte Ziffer im Körper (t2m-Verteilung) ⇒ Dekodierung verweigert (Prüfsumme); falsche Prüfsumme, fremde Version, fremdes Objekt ebenso',
     at >= 0 && throws(() => decodeV2(flip), /Prüfsumme/) && throws(() => decodeV2({ ...cH, check: (cH.check + 1) >>> 0 }), /Prüfsumme/)
-    && throws(() => decodeV2({ ...cH, version: 2 }), /Version/) && throws(() => decodeV2({ body: cH.body }), /kein buscosun-v2c/));
+    && throws(() => decodeV2({ ...cH, version: 3 }), /Version 3 unbekannt/) && throws(() => decodeV2({ body: cH.body }), /kein buscosun-v2c/));
   // Der Vergleicher selbst schlägt an (sonst wäre „0 Abweichungen" keine Aussage)
   const bad1 = structuredClone(backH); bad1.axis.steps[5].vars.t2m.p50 = Math.round((bad1.axis.steps[5].vars.t2m.p50 + 0.01) * 100) / 100;
   const bad2 = structuredClone(backH); bad2.axis.steps[5].vars.t2m.dist.mu += 0.01;
@@ -1798,6 +1798,252 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
 // ---------------------------------------------------------------------------
 // Ausgabe
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// (24) Phase FL, FL-AP5: die Lernstufe (Form K) hinter `learned` — byte-gleich ohne Option; eine synthetische Tabelle
+//      (μ = ȳ + 1,0 K, σ = 1) verschiebt das Cube-Member und ersetzt seine σ; der Produktpfad liest `point/fusion.client.json`.
+// ---------------------------------------------------------------------------
+{
+  const { newTables, FIT_VERSION } = await import('../src/point/fusionFit/tables.ts');
+  const { Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { designNames } = await import('../src/point/fusionFit/fitMean.ts');
+  const { V_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const tables = newTables('2026-09-23T00:00:00Z');
+  tables.period = { from: '2025-09-01', to: '2026-09-21' };
+  const names = designNames('K', 'r1');
+  for (let bin = 0; bin < 6; bin++) {
+    const beta = new Array(names.length).fill(0); beta[0] = 1.0; beta[Z_DIM] = 1;   // μ = ȳ + 1,0 K
+    tables.mean[stratumKey('K', 't', bin, 'r1')] = { form: 'K', var: 't', bin, cls: 'r1', names, beta, lambda: 1, n: 10000, days: 60, prior: null, cv: { time: null, region: null, band: null }, status: 'written', jitter: 0 };
+    const c = new Array(V_NAMES.length).fill(0); c[0] = 1.0;   // σ² = 1
+    tables.variance[stratumKey('K', 't', bin, 'r1')] = { form: 'K', var: 't', bin, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 10000, days: 60, msr: 1, status: 'written' };
+  }
+  // das Bündel der Fixture liest ohne Kacheln (`terrain: false`) — die Lernstufe braucht Gelände und h_true wie der Produktpfad
+  const input = { ...cubeInputFromBundle(bundle, clima), terrain: flatTerrain(FIX.hTrue) };
+  const base = fuseCubePoint(input, { hourly: false });
+  const off = fuseCubePoint({ ...input, learned: tables }, { hourly: false });
+  add('(24) Negativkontrolle: Tabellen im Eingang ohne Option ⇒ Schritte, calib und Notizen byte-gleich',
+    JSON.stringify(off.steps) === JSON.stringify(base.steps) && JSON.stringify(off.calib) === JSON.stringify(base.calib) && JSON.stringify(off.notes) === JSON.stringify(base.notes));
+  const on = fuseCubePoint({ ...input, learned: tables }, { hourly: false, learned: true });
+  const pairs = base.steps.map((s, i) => [s, on.steps[i]]).filter(([s]) => !s.interpolated && s.samples?.[0]?.temperature != null);
+  const shift = pairs.map(([s, o]) => o.samples[0].temperature - s.samples[0].temperature);
+  add('(24) `learned` an: das Cube-Member T ist um +1,0 K verschoben (synthetische Tabelle), σ_T = 1 mit `kind: learned`, Flag `learned`; u/Böe unverändert',
+    pairs.length > 50 && shift.every((d) => Math.abs(d - 1) < 1e-9)
+    && pairs.every(([, o]) => o.uncertainty.temperature?.sigmaKind === 'learned' && Math.abs(o.uncertainty.temperature.sigmaMember - 1) < 1e-9 && o.flags.includes('learned'))
+    && pairs.every(([s, o]) => o.samples[0].u === s.samples[0].u && o.samples[0].gust === s.samples[0].gust),
+    `${pairs.length} Schritte, Δ ${shift[0]?.toFixed(3)}, σ ${pairs[0]?.[1].uncertainty.temperature?.sigmaMember}`);
+  add('(24) calib: Zeile `learned:hindcast` mit fitVersion, Zeitraum und Strata; Notiz zählt die Schritte; ohne Tabellen sagt es `learned:absent`',
+    on.calib.some((c) => c.startsWith(`learned:hindcast — Form K aus ${FIT_VERSION} (2025-09-01…2026-09-21, 6 Strata)`))
+    && on.notes.some((n) => /^learned: Form K an \d+ Schritten \(t \d+\)/.test(n))
+    && fuseCubePoint(input, { hourly: false, learned: true }).calib.some((c) => c.startsWith('learned:absent')),
+    on.notes.find((n) => n.startsWith('learned:')));
+  // der Produktpfad: `learnedSource: 'json'` liest point/fusion.client.json aus dem Store
+  const filesL = new Map(fx.files); filesL.set('point/fusion.client.json', enc(tables));
+  const ioL = (extra) => ({ store: memoryStore(filesL), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extra });
+  const optsL = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  clearCubeForecastCache(); const pBase = await getPointForecastFromCube(optsL, ioL({}));
+  clearCubeForecastCache(); const pOn = await getPointForecastFromCube(optsL, ioL({ learnedSource: 'json' }));
+  clearCubeForecastCache(); const pMissing = await getPointForecastFromCube(optsL, { ...ioL({ learnedSource: 'json' }), store: memoryStore(fx.files) });
+  add('(24) Produkt: `learnedSource: json` liest die Tabellen, calib nennt `learned:hindcast`, calibByVar ordnet `learned` t2m zu und nicht precip; ohne Datei die Notiz; Cache-Schlüssel `|learned:json`',
+    pOn.cube.calib.some((c) => c.startsWith('learned:hindcast')) && pOn.cube.v2.provenance.calibByVar.t2m.includes('learned') && !pOn.cube.v2.provenance.calibByVar.precip.includes('learned')
+    && !pBase.cube.calib.some((c) => c.startsWith('learned')) && pMissing.cube.notes.some((n) => /^learned: .*nicht lesbar/.test(n))
+    && cubeIoVariantKey(ioL({ learnedSource: 'json' })).endsWith('|learned:json') && cubeIoVariantKey(ioL({})) === '',
+    `${pOn.cube.calib.find((c) => c.startsWith('learned:'))?.slice(0, 90)} · fehlend: ${pMissing.cube.notes.find((n) => n.startsWith('learned:'))?.slice(0, 60)}`);
+}
+
+// ---------------------------------------------------------------------------
+// (25) FL-AP8b (V-FL-20): das Anker-Gewicht aus der gemessenen Persistenzkurve statt e^(−τ/τ_v) — nur mit `learned`
+//      UND Kurve in den Tabellen; ohne Option, ohne `anchor`-Block oder je Größe ohne Kurve exakt der bisherige Pfad.
+//      Fixture: der `anchor`-Block des Fits 2 (24.09.2026, `scripts/lib/fixtures/anchorCurve.fit-2026-09-24.json`),
+//      gegen die Quelle `C:\dev\buscosun-hindcast\fit\2026-09-24\fusion.hindcast.json` geprüft, wo sie liegt.
+// ---------------------------------------------------------------------------
+{
+  const { anchorWeightFromCurve, anchorTermLearned, anchorCurveValid, ANCHOR_CURVE_LEAD_H, innovation } = await import('../src/pointForecast/anchor.ts');
+  const { ANCHOR_MAX_LEAD_H, ANCHOR_VARS } = await import('../src/point/fusionFit/fitAnchor.ts');
+  const { newTables } = await import('../src/point/fusionFit/tables.ts');
+  const { calibByVar } = await import('../src/pointForecast/fusion/output.ts');
+  const { readFileSync, existsSync } = await import('node:fs');
+  const fixture = JSON.parse(readFileSync(new URL('./lib/fixtures/anchorCurve.fit-2026-09-24.json', import.meta.url), 'utf8'));
+  const curveOf = (v) => fixture.anchor[v].curve;
+  const SRC = 'C:/dev/buscosun-hindcast/fit/2026-09-24/fusion.hindcast.json';
+  if (existsSync(SRC)) {
+    const src = JSON.parse(readFileSync(SRC, 'utf8'));
+    add('(25) Fixture = der `anchor`-Block der Quelle (Fit 2, 24.09.) — gleich, nichts nachgetragen',
+      JSON.stringify(src.anchor) === JSON.stringify(fixture.anchor) && fixture.fitVersion === src.fitVersion, `${fixture.fitVersion} · ${Object.keys(fixture.anchor).join(',')}`);
+  } else add('(25) Quelle des Fits nicht auf dieser Maschine — die Fixture trägt den Block (Herkunft im Kopf)', typeof fixture.source?.path === 'string' && fixture.anchor.t.curve.length === 48, fixture.source?.path);
+  // (a) die reine Funktion: Definition bei ≤ 1, gemessene Einträge, Interpolation, 0 jenseits, Form, Deckel
+  const cT = curveOf('t');
+  const wT = (L) => anchorWeightFromCurve(cT, L);
+  add('(25) w(τ): τ ≤ 1 ⇒ 1 (Definition); τ = 2/4/6/24/48 ⇒ die gemessenen Einträge 0,9127 / 0,7140 / 0,4055 / 0,4524 / 0,3849; τ = 14 ⇒ −0,0711 (negativ bleibt)',
+    wT(1) === 1 && wT(0) === 1 && near(wT(2), 0.9127, 1e-12) && near(wT(4), 0.714, 1e-12) && near(wT(6), 0.4055, 1e-12) && near(wT(24), 0.4524, 1e-12) && near(wT(48), 0.3849, 1e-12) && near(wT(14), -0.0711, 1e-12),
+    [1, 2, 3, 4, 6, 12, 14, 24, 36, 48, 49].map((L) => `${L}:${wT(L)}`).join(' '));
+  add('(25) w(τ): jenseits des letzten gemessenen Vorlaufs 0 (49, 60, 336 h — Datenlage, benannt); ANCHOR_CURVE_LEAD_H = ANCHOR_MAX_LEAD_H des Fits (48); alle fünf Kurven der Fixture sind gültig',
+    wT(49) === 0 && wT(60) === 0 && wT(336) === 0 && ANCHOR_CURVE_LEAD_H === ANCHOR_MAX_LEAD_H && ANCHOR_MAX_LEAD_H === 48 && ANCHOR_VARS.every((v) => anchorCurveValid(curveOf(v))));
+  const gap = cT.map((c) => ({ ...c })); gap[3].weight = null;   // Eintrag τ = 4 fehlt ⇒ linear zwischen 3 und 5
+  const clip = cT.map((c) => ({ ...c })); clip[1].weight = 1.5; clip[2].weight = -1.5;
+  add('(25) w(τ): gebrochener Vorlauf linear (2,5 h aus 2/3), fehlender Eintrag linear aus den Nachbarn (4 h aus 3/5), 1,5 h aus der Definition 1 und dem Eintrag 2; Deckel [−1, 1]',
+    near(wT(2.5), (0.9127 + 0.7584) / 2, 1e-12) && near(anchorWeightFromCurve(gap, 4), (0.7584 + 0.5971) / 2, 1e-12) && near(wT(1.5), (1 + 0.9127) / 2, 1e-12)
+    && anchorWeightFromCurve(clip, 2) === 1 && anchorWeightFromCurve(clip, 3) === -1,
+    `2,5 h ${wT(2.5)} · Lücke 4 h ${anchorWeightFromCurve(gap, 4)} · 1,5 h ${wT(1.5)}`);
+  const short = cT.slice(0, 47), wrongLead = cT.map((c, i) => ({ ...c, leadH: i })), nan = cT.map((c) => ({ ...c })); nan[5].weight = NaN;
+  add('(25) Negativkontrolle Form: 47 Einträge, verschobene leadH, NaN-Gewicht, kein Array ⇒ ungültig ⇒ null (Setzung gilt); anchorTermLearned mit ungültiger Kurve 0, ohne Innovation 0',
+    !anchorCurveValid(short) && !anchorCurveValid(wrongLead) && !anchorCurveValid(nan) && !anchorCurveValid(null) && anchorWeightFromCurve(short, 2) === null
+    && anchorTermLearned(innovation([{ ageH: 0, obs: 2, model: 0, wsp: 1 }], 8), 2, short) === 0 && anchorTermLearned(null, 2, cT) === 0
+    && near(anchorTermLearned(innovation([{ ageH: 0, obs: 2, model: 0, wsp: 0.5 }], 8), 2, cT), 2 * 0.5 * 0.9127, 1e-12));
+  // (b) der Cube-Pfad: Tabellen NUR mit dem anchor-Block (kein Stratum ⇒ das Cube-Member bleibt, der Anker rechnet gegen den PAP-4-Wert)
+  const tablesA = newTables('2026-09-24T00:00:00Z'); tablesA.period = { from: '2025-09-01', to: '2026-09-21' }; tablesA.anchor = fixture.anchor;
+  const input = { ...cubeInputFromBundle(bundle, clima), terrain: flatTerrain(FIX.hTrue) };
+  const base = fuseCubePoint(input, { hourly: false });
+  const s0 = base.steps[0];
+  // Messung bei 0 km auf h_true (Repräsentativität 1): T +2 K, u/v/Böe +1 m/s gegen den Cube-Wert am Punkt
+  const obs = [{ source: 'brightsky', name: 'Test', lat: FIX.lat, lon: FIX.lon, elevM: FIX.hTrue, distanceM: 0, validAtMs: t0Ms, temperature: s0.vertical.t + 2, relativeHumidity: null, u: s0.samples[0].u + 1, v: s0.samples[0].v + 1, gust: s0.samples[0].gust + 1 }];
+  const setP = fuseCubePoint({ ...input, obs }, { hourly: false });
+  const setL = fuseCubePoint({ ...input, obs, learned: tablesA }, { hourly: false });          // Tabellen im Eingang, Option aus
+  const on = fuseCubePoint({ ...input, obs, learned: tablesA }, { hourly: false, learned: true });
+  const termAt = (r, L, k) => r.steps.find((s) => s.leadH === L)?.members.find((m) => m.product === 'anchor')?.anchor?.[k];
+  const anchorOf = (r) => r.steps.map((s) => s.members.find((m) => m.product === 'anchor')?.anchor ?? null);
+  add('(25) Negativkontrolle: Tabellen mit Kurve im Eingang, aber ohne Option ⇒ Schritte, calib und Notizen byte-gleich zum Setzungspfad; der nennt anchor:set und kein anchor:hindcast',
+    JSON.stringify(setL.steps) === JSON.stringify(setP.steps) && JSON.stringify(setL.calib) === JSON.stringify(setP.calib) && JSON.stringify(setL.notes) === JSON.stringify(setP.notes)
+    && setP.calib.some((c) => c.startsWith('anchor:set')) && !setP.calib.some((c) => c.startsWith('anchor:hindcast')));
+  add('(25) Versatz T +2 K, Repräsentativität 1: Zuschlag bei +2 h 2·0,9127, +24 h 2·0,4524, +14 h 2·(−0,0711) (negativ geht durch), +60 h 0, +0 h 2 (Gewicht 1); die Setzung gäbe bei +2 h 2·e^(−1/2) = 1,213 — die beiden unterscheiden sich dort',
+    near(termAt(on, 0, 'termK'), 2, 1e-9) && near(termAt(on, 2, 'termK'), 2 * 0.9127, 1e-6) && near(termAt(on, 24, 'termK'), 2 * 0.4524, 1e-6) && near(termAt(on, 14, 'termK'), 2 * -0.0711, 1e-6) && termAt(on, 60, 'termK') === 0
+    && near(termAt(setP, 2, 'termK'), 2 * Math.exp(-0.5), 1e-9) && Math.abs(termAt(on, 2, 'termK') - termAt(setP, 2, 'termK')) > 0.5,
+    `Kurve +2 h ${termAt(on, 2, 'termK')?.toFixed(4)} · +24 h ${termAt(on, 24, 'termK')?.toFixed(4)} · +14 h ${termAt(on, 14, 'termK')?.toFixed(4)} · +60 h ${termAt(on, 60, 'termK')} — Setzung +2 h ${termAt(setP, 2, 'termK')?.toFixed(4)}`);
+  add('(25) das Cube-Member trägt den Zuschlag: T bei +2 h = Basis + 2·0,9127, bei +24 h = Basis + 2·0,4524, bei +14 h = Basis − 0,142; Flag `anchored` bei +24 h gesetzt, bei +60 h nicht',
+    near(on.steps[2].samples[0].temperature - base.steps[2].samples[0].temperature, 2 * 0.9127, 1e-6) && near(on.steps[24].samples[0].temperature - base.steps[24].samples[0].temperature, 2 * 0.4524, 1e-6)
+    && near(on.steps[14].samples[0].temperature - base.steps[14].samples[0].temperature, 2 * -0.0711, 1e-6)
+    && on.steps[24].flags.includes('anchored') && !on.steps.find((s) => s.leadH === 60).flags.includes('anchored') && !setP.steps[24].flags.includes('anchored'),
+    `+24 h Δ Kurve ${(on.steps[24].samples[0].temperature - base.steps[24].samples[0].temperature).toFixed(4)} K, Setzung ${(setP.steps[24].samples[0].temperature - base.steps[24].samples[0].temperature).toExponential(2)} K`);
+  // (c) Wind: u und v mit je eigener Kurve, Böe mit ihrer
+  add('(25) Wind: u und v nehmen je ihre eigene Kurve — Versatz +1 m/s ⇒ bei +3 h u 0,5629, v 0,5003, Böe 0,5322; die Setzung gäbe für alle drei e^(−3/2) = 0,223',
+    near(termAt(on, 3, 'termU'), 0.5629, 1e-6) && near(termAt(on, 3, 'termV'), 0.5003, 1e-6) && near(termAt(on, 3, 'termGust'), 0.5322, 1e-6)
+    && near(termAt(setP, 3, 'termU'), Math.exp(-1.5), 1e-9) && near(termAt(setP, 3, 'termV'), Math.exp(-1.5), 1e-9) && near(termAt(setP, 3, 'termGust'), Math.exp(-1.5), 1e-9),
+    `u ${termAt(on, 3, 'termU')?.toFixed(4)} v ${termAt(on, 3, 'termV')?.toFixed(4)} Böe ${termAt(on, 3, 'termGust')?.toFixed(4)} (Setzung ${termAt(setP, 3, 'termU')?.toFixed(4)})`);
+  // (d) Herkunft
+  add('(25) calib: mit Option und Kurve genau eine Anker-Zeile `anchor:hindcast` (fitVersion, τ_1/e T 7 · u 6 · v 6 · Böe 6 h, Td ungenutzt, jenseits 48 h ⇒ 0) und kein `anchor:set`; calibByVar führt `anchor` an t2m/wind/gust',
+    on.calib.some((c) => c.startsWith(`anchor:hindcast — Persistenzkurve der Form-K-Residuen aus ${tablesA.fitVersion}`) && /τ_1\/e gemessen T 7 h · u 6 h · v 6 h · Böe 6 h/.test(c) && /Td ohne Anker/.test(c) && /jenseits 48 h ⇒ 0/.test(c))
+    && !on.calib.some((c) => c.startsWith('anchor:set')) && on.calib.filter((c) => c.startsWith('anchor:')).length === 1
+    && ['t2m', 'wind', 'gust'].every((k) => calibByVar(on.calib)[k].includes('anchor')),
+    on.calib.find((c) => c.startsWith('anchor:'))?.slice(0, 140));
+  // (e) je Größe: ohne Kurve für die Böe fällt nur die Böe auf die Setzung zurück, benannt
+  const tablesG = { ...tablesA, anchor: { ...fixture.anchor } }; delete tablesG.anchor.gust;
+  const onG = fuseCubePoint({ ...input, obs, learned: tablesG }, { hourly: false, learned: true });
+  add('(25) ohne Kurve für die Böe: T/u/v weiter aus der Kurve, Böe aus der Setzung e^(−3/2) = 0,223 bei +3 h; die Herkunft nennt „Setzung … für Böe"',
+    near(termAt(onG, 3, 'termK'), termAt(on, 3, 'termK'), 1e-12) && near(termAt(onG, 3, 'termU'), 0.5629, 1e-6) && near(termAt(onG, 3, 'termGust'), Math.exp(-1.5), 1e-9)
+    && onG.calib.some((c) => c.startsWith('anchor:hindcast') && /Setzung e\^\(−τ\/τ_v\) für Böe \(keine gültige Kurve/.test(c)),
+    onG.calib.find((c) => c.startsWith('anchor:'))?.match(/Setzung e[^;]*/)?.[0]);
+  const onN = fuseCubePoint({ ...input, obs, learned: { ...tablesA, anchor: null } }, { hourly: false, learned: true });
+  add('(25) Tabellen ohne anchor-Block + Option: Anker-Terme und Herkunft exakt wie der Setzungspfad (anchor:set, Zuschläge gleich, keine Zusatznotiz) — der heutige Lernpfad bleibt, wie er ist',
+    JSON.stringify(anchorOf(onN)) === JSON.stringify(anchorOf(setP)) && onN.calib.filter((c) => c.startsWith('anchor:')).join() === setP.calib.filter((c) => c.startsWith('anchor:')).join()
+    && !onN.notes.some((n) => /Persistenzkurve/.test(n)));
+  const onB = fuseCubePoint({ ...input, obs, learned: { ...tablesA, anchor: { t: { curve: cT.slice(0, 10), tauH: null, setTauH: 4 } } } }, { hourly: false, learned: true });
+  add('(25) anchor-Block da, aber keine gültige Kurve (10 Einträge) ⇒ Setzung für alle, anchor:set, und eine Notiz sagt es',
+    JSON.stringify(anchorOf(onB)) === JSON.stringify(anchorOf(setP)) && onB.calib.some((c) => c.startsWith('anchor:set')) && onB.notes.some((n) => /anchor-Block, aber keine gültige Persistenzkurve/.test(n)),
+    onB.notes.find((n) => /anchor-Block/.test(n))?.slice(0, 80));
+  // (f) der Produktpfad: fusion.client.json mit Kurve + Messung ⇒ das Produkt nennt anchor:hindcast, das v2-Anker-Member bei +2 h trägt 1,825 statt 1,213
+  const filesA = new Map(fx.files); filesA.set('point/fusion.client.json', new TextEncoder().encode(JSON.stringify(tablesA)));
+  const ioA = (extra) => ({ store: memoryStore(filesA), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: async () => obs, ...extra });
+  const optsA = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  clearCubeForecastCache(); const pSet = await getPointForecastFromCube(optsA, ioA({}));
+  clearCubeForecastCache(); const pCurve = await getPointForecastFromCube(optsA, ioA({ learnedSource: 'json' }));
+  const v2Anchor = (p, L) => p.cube.v2.axis.steps.find((x) => x.leadH === L)?.members.find((m) => m.product === 'anchor')?.anchor?.termK ?? null;
+  // der Produktpfad rechnet die Innovation gegen SEINEN Cube-Wert (≈ 2,004 K statt exakt 2) — geprüft wird das Verhältnis der Zuschläge: 0,9127 / e^(−1/2) = 1,5048
+  add('(25) Produkt: `learnedSource: json` mit Kurve und Messung ⇒ calib nennt anchor:hindcast, das v2-Anker-Member T bei +2 h trägt Versatz·0,9127 statt Versatz·e^(−1/2) (Verhältnis 1,5048); ohne learnedSource anchor:set',
+    pCurve.cube.calib.some((c) => c.startsWith('anchor:hindcast')) && pSet.cube.calib.some((c) => c.startsWith('anchor:set')) && !pSet.cube.calib.some((c) => c.startsWith('anchor:hindcast'))
+    && v2Anchor(pSet, 2) > 1 && near(v2Anchor(pCurve, 2) / v2Anchor(pSet, 2), 0.9127 / Math.exp(-0.5), 1e-6) && near(v2Anchor(pCurve, 2), 2 * 0.9127, 0.02),
+    `v2 +2 h Kurve ${v2Anchor(pCurve, 2)?.toFixed(4)} · Setzung ${v2Anchor(pSet, 2)?.toFixed(4)} · Verhältnis ${(v2Anchor(pCurve, 2) / v2Anchor(pSet, 2)).toFixed(5)}`);
+}
+
+// ---------------------------------------------------------------------------
+// (26) FL-AP8c (fusionFit@3): Speed-EMOS (`learnedSpeed`, V-FL-22) und gelernte Hürde (`learnedPrecip`, V-FL-18) hinter
+//      `learned` — ohne die Optionen byte-gleich zum FL-AP5-Pfad, auch wenn die Tabellen die Blöcke tragen; die
+//      Verteilungsfamilie `truncatedNormal` und der Codec (Version 2 liest 1).
+// ---------------------------------------------------------------------------
+{
+  const { newTables, FIT_VERSION } = await import('../src/point/fusionFit/tables.ts');
+  const { Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { designNames } = await import('../src/point/fusionFit/fitMean.ts');
+  const { V_NAMES, O_NAMES, A_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const { riceMoments } = await import('../src/point/fusionFit/fitSpeed.ts');
+  const { calibByVar } = await import('../src/pointForecast/fusion/output.ts');
+  const { encodeV2, decodeV2, compareV2, V2C_VERSION, V2C_READABLE } = await import('../src/pointForecast/fusion/v2codec.ts');
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  // a fusionFit@3 table: identity mean for u/v/gust (μ = ȳ), σ² = 1, a speed law per bin, an identity hurdle (only logitWetCube = 1) with amount ln 2 / 0,5
+  const tables = newTables('2026-09-25T00:00:00Z');
+  tables.period = { from: '2025-09-01', to: '2026-09-21' };
+  const names = designNames('K', 'r1');
+  for (let bin = 0; bin < 6; bin++) {
+    for (const v of ['u', 'v', 'gust']) {
+      const beta = new Array(names.length).fill(0); beta[Z_DIM] = 1;
+      tables.mean[stratumKey('K', v, bin, 'r1')] = { form: 'K', var: v, bin, cls: 'r1', names, beta, lambda: 1, n: 10000, days: 60, status: 'written' };
+      const c = new Array(V_NAMES.length).fill(0); c[0] = 1;
+      tables.variance[stratumKey('K', v, bin, 'r1')] = { form: 'K', var: v, bin, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 10000, days: 60, msr: 1, status: 'written' };
+    }
+    tables.speed[`K|ws|${bin}|r1`] = { form: 'K', var: 'ws', bin, cls: 'r1', names: ['a', 'b', 'c'], family: 'truncatedNormal', a: -0.6, b: 1, c: 1.3, n: 10000, days: 60, status: 'written' };
+    const ob = new Array(O_NAMES.length).fill(0); ob[O_NAMES.length - 1] = 1;
+    tables.occurrence[stratumKey('K', 'precip', bin, 'r1')] = { form: 'K', var: 'precip', bin, cls: 'r1', names: O_NAMES, beta: ob, n: 10000, days: 60, wetShare: 0.3, iterations: 3, llPerRow: -0.5, status: 'written' };
+    tables.amount[stratumKey('K', 'precip', bin, 'r1')] = { form: 'K', var: 'precip', bin, cls: 'r1', names: A_NAMES, beta: [Math.log(2), 0, 0, 0, 0, 0], sigma: 0.5, n: 10000, days: 60, status: 'written' };
+  }
+  // a t1-only bundle without station: the hurdle may replace K-2 at every step (the station carries precipitation)
+  const fxN = await buildCubeFixture({ tiers: ['t1'], station: false });
+  const bN = await readBundle(fxN.files);
+  const input = { ...cubeInputFromBundle(bN, clima), terrain: flatTerrain(FIX.hTrue), elevationM: FIX.hTrue };
+  const sig = (r) => JSON.stringify([r.steps, r.calib, r.notes]);
+  const base = fuseCubePoint(input, { hourly: false });
+  const off = fuseCubePoint({ ...input, learned: tables }, { hourly: false });
+  const l5 = fuseCubePoint({ ...input, learned: tables }, { hourly: false, learned: true });
+  const l5Plain = fuseCubePoint({ ...input, learned: { ...tables, speed: {}, occurrence: {}, amount: {} } }, { hourly: false, learned: true });
+  add('(26) Negativkontrollen: Tabellen mit speed/occurrence im Eingang ohne Option ⇒ byte-gleich zur Basis; mit `learned` allein ⇒ byte-gleich zum FL-AP5-Pfad ohne diese Blöcke (kein Flag learnedSpeed/learnedPrecip, keine calib-Zeile)',
+    sig(off) === sig(base) && sig(l5) === sig(l5Plain) && !l5.steps.some((s) => s.flags.includes('learnedSpeed') || s.flags.includes('learnedPrecip')) && !l5.calib.some((c) => /^learned(Speed|Precip)/.test(c)) && l5.steps.every((s) => s.fused?.windSpeed?.dist.kind !== 'truncatedNormal'));
+  // (a) learnedSpeed: every native step with a Rice becomes TN(−0,6 + E, 1,3·sd) of the engine's own Rice; direction, gust and T unchanged
+  const onS = fuseCubePoint({ ...input, learned: tables }, { hourly: false, learned: true, learnedSpeed: true });
+  const pairsS = l5.steps.map((s, i) => [s, onS.steps[i]]).filter(([s]) => s.fused?.windSpeed?.dist.kind === 'rice');
+  const tnOk = pairsS.every(([s, o]) => { const r = s.fused.windSpeed.dist, d = o.fused.windSpeed.dist; const mo = riceMoments(r.nu, r.sigma); return d.kind === 'truncatedNormal' && d.lo === 0 && near(d.mu, -0.6 + mo.m, 1e-9) && near(d.sigma, 1.3 * mo.sd, 1e-9) && o.flags.includes('learnedSpeed') && o.fused.windDirectionDeg === s.fused.windDirectionDeg && JSON.stringify(o.fused.gust) === JSON.stringify(s.fused.gust) && JSON.stringify(o.fused.temperature) === JSON.stringify(s.fused.temperature); });
+  add('(26) `learnedSpeed`: an jedem nativen Schritt TN(−0,6 + E_Rice, 1,3·sd_Rice) der Motor-Rice, Flag learnedSpeed, Richtung/Böe/T unverändert; calib nennt learnedSpeed:hindcast mit 6 Strata und der fitVersion; calibByVar.wind trägt learnedSpeed; Notiz zählt',
+    pairsS.length > 20 && tnOk && onS.calib.some((c) => c.startsWith(`learnedSpeed:hindcast — Windgeschwindigkeit als gestutzte Normal`) && c.includes(`(6 Strata, ${FIT_VERSION})`)) && calibByVar(onS.calib).wind.includes('learnedSpeed') && !calibByVar(l5.calib).wind.includes('learnedSpeed')
+    && onS.notes.some((n) => new RegExp(`^learnedSpeed: gestutzte Normal an ${pairsS.length} Schritten, ohne Gesetz im Stratum 0`).test(n)),
+    `${pairsS.length} Schritte · ${onS.notes.find((n) => n.startsWith('learnedSpeed:'))}`);
+  const onS0 = fuseCubePoint({ ...input, learned: { ...tables, speed: {} } }, { hourly: false, learned: true, learnedSpeed: true });
+  add('(26) `learnedSpeed` ohne Gesetz in den Tabellen ⇒ Rice bleibt an jedem Schritt, kein Flag, Notiz „ohne Gesetz"', onS0.steps.every((s) => s.fused?.windSpeed?.dist.kind !== 'truncatedNormal' && !s.flags.includes('learnedSpeed')) && onS0.notes.some((n) => /^learnedSpeed: gestutzte Normal an 0 Schritten, ohne Gesetz im Stratum \d+/.test(n)) && JSON.stringify(onS0.steps.map((s) => s.fused?.windSpeed)) === JSON.stringify(l5.steps.map((s) => s.fused?.windSpeed)));
+  // (b) learnedPrecip: the identity hurdle reproduces the engine's pDry exactly (the cube column alone), the amount is the learned one
+  const onP = fuseCubePoint({ ...input, learned: tables }, { hourly: false, learned: true, learnedPrecip: true });
+  const pairsP = l5.steps.map((s, i) => [s, onP.steps[i]]).filter(([s]) => s.fused?.precipitation?.dist.kind === 'hurdleLogNormal' && s.fused.precipitation.dist.pDry > 0.001 && s.fused.precipitation.dist.pDry < 0.999);
+  const hOk = pairsP.every(([s, o]) => { const d = o.fused.precipitation.dist; return d.kind === 'hurdleLogNormal' && near(d.pDry, s.fused.precipitation.dist.pDry, 1e-9) && near(d.mu, Math.log(2), 1e-12) && d.sigma === 0.5 && o.flags.includes('learnedPrecip') && JSON.stringify(o.fused.windSpeed) === JSON.stringify(s.fused.windSpeed); });
+  add('(26) `learnedPrecip`: Identitäts-Hürde ⇒ pDry = pDry des Motors exakt (nur die Cube-Spalte), Menge ln 2 / 0,5, Flag learnedPrecip, Wind unverändert; calib learnedPrecip:hindcast, calibByVar.precip trägt learnedPrecip; Notiz zählt (K-2 behalten 0 ohne Station/Radar)',
+    pairsP.length > 20 && hOk && onP.calib.some((c) => c.startsWith('learnedPrecip:hindcast')) && calibByVar(onP.calib).precip.includes('learnedPrecip') && !calibByVar(l5.calib).precip.includes('learnedPrecip')
+    && onP.notes.some((n) => /^learnedPrecip: gelernte Hürde an \d+ Schritten, K-2 behalten 0 \(Radar-\/Stationsmember\), ohne Stratum oder ohne CV-Gewinn 0/.test(n)),
+    `${pairsP.length} Schritte · ${onP.notes.find((n) => n.startsWith('learnedPrecip:'))}`);
+  const noSkill = { ...tables, occurrence: Object.fromEntries(Object.entries(tables.occurrence).map(([k, e]) => [k, { ...e, status: 'no-skill' }])) };
+  const onPn = fuseCubePoint({ ...input, learned: noSkill }, { hourly: false, learned: true, learnedPrecip: true });
+  const withSt = fuseCubePoint({ ...cubeInputFromBundle(bundle, clima), terrain: flatTerrain(FIX.hTrue), elevationM: FIX.hTrue, learned: tables }, { hourly: false, learned: true, learnedPrecip: true });
+  const stSteps = withSt.steps.filter((s) => s.members.some((m) => m.product === 'station'));
+  add('(26) Hürde no-skill ⇒ K-2 bleibt an jedem Schritt (Notiz „ohne CV-Gewinn"); mit Stationsmember bleibt K-2 an den Stationsschritten (Notiz „K-2 behalten")',
+    onPn.steps.every((s) => !s.flags.includes('learnedPrecip')) && JSON.stringify(onPn.steps.map((s) => s.fused?.precipitation)) === JSON.stringify(l5.steps.map((s) => s.fused?.precipitation)) && onPn.notes.some((n) => /ohne Stratum oder ohne CV-Gewinn [1-9]\d*/.test(n))
+    && stSteps.length > 0 && stSteps.every((s) => !s.flags.includes('learnedPrecip')) && withSt.notes.some((n) => new RegExp(`K-2 behalten ${stSteps.length} `).test(n)),
+    `no-skill: ${onPn.notes.find((n) => n.startsWith('learnedPrecip:'))} · Station: ${withSt.notes.find((n) => n.startsWith('learnedPrecip:'))}`);
+  // (c) the product path and the codec: version 2 encodes the TN, reads version 1 unchanged, rejects 3; the cache key carries the options
+  const filesL = new Map(fxN.files); filesL.set('point/fusion.client.json', enc(tables));
+  const ioL = (extra) => ({ store: memoryStore(filesL), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extra });
+  const optsL = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  clearCubeForecastCache(); const pOn = await getPointForecastFromCube(optsL, ioL({ learnedSource: 'json', fuse: { learnedSpeed: true, learnedPrecip: true } }));
+  clearCubeForecastCache(); const pL5 = await getPointForecastFromCube(optsL, ioL({ learnedSource: 'json' }));
+  const tnSteps = pOn.cube.v2.axis.steps.filter((s) => s.vars.wind?.dist?.kind === 'truncatedNormal');
+  const c2 = encodeV2(pOn.cube.v2), d2 = decodeV2(c2);
+  const cmp = compareV2(pOn.cube.v2, d2);
+  const c1 = encodeV2(pL5.cube.v2);
+  const asV1 = { ...c1, version: 1 };
+  const d1 = decodeV2(asV1), dRef = decodeV2(c1);
+  let rejected = false; try { decodeV2({ ...c1, version: 3 }); } catch (e) { rejected = /Version 3 unbekannt \(kann 1, 2\)/.test(String(e.message)); }
+  add('(26) Produkt + Codec: `fuse.learnedSpeed/learnedPrecip` über CubeIo ⇒ v2 trägt truncatedNormal am Wind und calib beide Zeilen; Version 2 kodiert/dekodiert die TN exakt; ein Dokument der Version 1 dekodiert wie Version 2 (gleiche Tabellen); Version 3 wird benannt verworfen; Cache-Schlüssel trägt die Optionen',
+    tnSteps.length > 20 && pOn.cube.calib.some((c) => c.startsWith('learnedSpeed:hindcast')) && pOn.cube.calib.some((c) => c.startsWith('learnedPrecip:hindcast')) && pOn.cube.v2.provenance.calibByVar.wind.includes('learnedSpeed') && pOn.cube.v2.provenance.calibByVar.precip.includes('learnedPrecip')
+    && V2C_VERSION === 2 && V2C_READABLE.join() === '1,2' && c2.version === 2 && cmp.exact.length === 0 && JSON.stringify(d1) === JSON.stringify(dRef) && rejected
+    && cubeIoVariantKey(ioL({ learnedSource: 'json', fuse: { learnedSpeed: true } })) !== cubeIoVariantKey(ioL({ learnedSource: 'json' })),
+    `${tnSteps.length} TN-Schritte · Codec exakt ${cmp.exact.length === 0} · v1 gleich ${JSON.stringify(d1) === JSON.stringify(dRef)}`);
+}
+
 let failed = 0;
 for (const c of checks) {
   if (!c.ok) failed += 1;

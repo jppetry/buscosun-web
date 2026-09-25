@@ -156,6 +156,12 @@ bekannten Fehleranteil bei Lead 0–48 h.
 
 ### 4.2 Stufe B: Verteilungsmodell mit Geländeattributen
 
+> **Stand 23.09.2026:** Diese Stufe wird in der Lernphase FL umgesetzt (`audit/fusion-lernphase.md` §3.2–§3.3):
+> Koeffizienten linear in den Standortmerkmalen (E-FL-2), Ridge mit Shrinkage-Ziel = Minimum-Varianz-Gewichte aus der
+> gemessenen Σ, Varianz aus σ_div/σ_ens + Merkmalen per CRPS; Fit aus dem Hindcast (Provenienz `hindcast`), Laufzeit im
+> Client (E-FL-1). Zwei Formen: P (Einzelquellen, nur Backtest) und K (Cube-Member, Client). Stufe 2 (GBM) bleibt wie
+> unten beschrieben auf ≥ 2 Jahre Archiv verschoben.
+
 **Grundform (EMOS/NGR, Gneiting et al.)** für Temperatur und Taupunkt:
 
 $$y\mid \mathbf{x} \sim \mathcal{N}\bigl(\mu,\sigma^2\bigr),\qquad
@@ -273,6 +279,10 @@ Daraus folgt beides zugleich, **ohne einen einzigen freien Parameter**:
 
 - Der **Mittelwert** schrumpft mit $\rho(\tau)$ zur Klimatologie.
 - Die **Streuung** wächst auf $\sigma_c$, sobald $\rho\to0$.
+
+> **Stand 23.09.2026:** σ_c stündlich und ρ(τ) werden in FL Stufe E aus 3 Jahren Hindcast-Wahrheit gefittet
+> (V-PV-18; `audit/fusion-lernphase.md` §3.4). Die EMOS-Form von §4.2 dämpft von selbst (Σ b_m → 0); die Dämpfung hier
+> bleibt Rückfall und Konsistenzprüfung.
 
 $\rho(\tau)$ wird je Variable, Lead-Bin, Jahreszeit und Geländeklasse **aus dem Archiv
 geschätzt**, nicht gesetzt. Das ersetzt `SKILL_DECAY` (τ/floor) und `leadWeight()` aus
