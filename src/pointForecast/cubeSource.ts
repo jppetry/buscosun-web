@@ -52,6 +52,9 @@ import { terrainTerms, windBlendingFactor, TERRAIN_SET, type TerrainTermsResult 
 import { binnedAt, calibMetaText, type CalibOverrides } from '../point/calibDoc';
 import { loadCalib, type LoadedCalib } from '../point/client/calibPoint';
 import { loadLearned, type LoadedLearned } from '../point/client/learnedPoint';
+import { loadClimaProduct, type LoadedClimaProduct } from '../point/client/climaPoint';
+import { estimateCoefficients, muAt, trendVector, type ClimaProduct, type MuEstimate } from '../point/fusionFit/climaProduct';
+import { climaColumnsFor } from '../point/fusionFit/tables';
 import { predict as predictLearned, predictPrecip as predictPrecipLearned, type PredictSituation } from '../point/fusionFit/predict';
 import { speedLaw, type SpeedEntry } from '../point/fusionFit/fitSpeed';
 import { buildZ, dTsfcProxy } from '../point/fusionFit/features';
@@ -73,7 +76,7 @@ import { solarPosition } from './terrainPhysics';
 import { detectFoehn } from './foehnDetector';
 import { apparentTemperatureC } from './apparentTemperature';
 import type { ClimaField, ClimaSample } from '../ml/climaField';
-import { TIERS, CUBE_PLANES, POINT_CALIB_PATH, POINT_LEARNED_PATH, type TierId } from '../point/cubeFormat';
+import { TIERS, CUBE_PLANES, POINT_CALIB_PATH, POINT_LEARNED_PATH, POINT_CLIMA_PATH, type TierId } from '../point/cubeFormat';
 import { NOWCAST_SATURATION, type NowcastSourceId } from '../point/nowcastFormat';
 import type { CubePointSeries, CubePointStep } from '../point/client/cubePoint';
 import type { StaticPoint } from '../point/client/staticPoint';
@@ -133,6 +136,12 @@ export interface CubeFusionInput {
    * `CubeIo.learnedSource: 'json'`; wirkt nur mit `FuseCubeOptions.learned`. Fehlt das Feld, byte-gleich.
    */
   learned?: FusionTables | null;
+  /**
+   * Phase FX-5 (E-FX-8, §6.5): das Klimatologieprodukt (`point/static/clima/v1/stations.json`, `climaProduct.ts`) für die
+   * μ_c-Spalte einer station-Tabelle. Nur mit `CubeIo.climaSource: 'json'`; wirkt nur mit `learned` + Tabellen, deren Design
+   * die Spalte für die Größe erklärt (`design.mean.climaVars`). Fehlt das Feld: die gelisteten Größen bleiben `absent`, benannt.
+   */
+  learnedClima?: ClimaProduct | null;
   index: { commit: string | null; publishedAt?: string; axis?: { usableToMs?: number | null; gaps?: Array<{ fromH: number; toH: number }> } } | null;
   /** Die Klimatologie — Prior der Schrumpfung. Ohne sie gibt es keine Verteilungen (K-3). */
   clima: ClimaField | null;
@@ -611,6 +620,31 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   // FL-AP5: die Lernstufe (Form K) — nur mit Option UND Tabellen im Eingang.
   const useLearned = opts.learned === true;
   const learnedT: FusionTables | null = useLearned && input.learned ? input.learned : null;
+  // Phase FX-5 (E-FX-8): μ_c EINMAL je Abfrage aus dem Klimatologieprodukt am Punkt (Trend auf den Geländemerkmalen, die jede
+  // Cube-Antwort im Kern trägt), je Schritt in `PredictSituation.muC` — nur mit `learned` + Tabellen mit μ_c-Spalte; ohne
+  // Produkt bleiben die gelisteten Größen `absent` (heutiges Verhalten einer station-Tabelle ohne μ_c, benannt).
+  const climaVarsT: string[] = learnedT ? (['t', 'td', 'u', 'v', 'gust', 'clct', 'precip'] as const).filter((v) => climaColumnsFor(learnedT.design.mean, v) === 'station') : [];
+  const climaProd: ClimaProduct | null = learnedT && climaVarsT.length && input.learnedClima ? input.learnedClima : null;
+  let climaEst: MuEstimate | null = null;
+  /** Why a station table runs without μ_c (the absent line names it): no product, no geometry at the point, or a product without an estimate for the listed variables. */
+  let climaWhy = 'kein Klimatologieprodukt im Eingang (CubeIo.climaSource aus, Datei fehlt oder ungültig)';
+  {
+    const h0 = input.elevationM ?? input.terrain?.elevationM ?? null, tr = input.terrain;
+    if (climaProd) climaWhy = 'kein Gelände/h_true am Punkt';
+    if (climaProd && tr && h0 != null && (tr.scales?.sampledCount ?? 0) > 0) {
+      try {
+        const lc0: LandCover | null = input.z0 && isLandCover(input.z0) ? input.z0.landCover : null;
+        const names = climaProd.trend?.names ?? null;
+        const feat = names ? trendVector({
+          hTrueM: h0, tpi500M: tr.tpi500M, tpi2000M: tr.tpi2000M, svf: tr.svf, sinkDepthM: tr.sinkDepthM ?? null, slopeDeg: tr.slopeDeg, aspectDeg: tr.aspectDeg,
+          z0True: input.z0?.z0True ?? null, lcShares: lc0?.point.p ?? null, dWaterM: lc0?.dWater?.m ?? null, dLakeM: null, impervPct: input.urban?.imperv ?? null, d0M: input.urban?.d0 ?? null, lonDeg: lon,
+        }, lat, names) : null;
+        climaEst = estimateCoefficients(climaProd, { lat, lon, elevM: h0, feat });
+        if (!climaVarsT.some((v) => climaEst!.mu[v as keyof MuEstimate['mu']])) { climaEst = null; climaWhy = `das Produkt (vars ${climaProd.vars.join(',')}) trägt keine Schätzung für ${climaVarsT.join(', ')}`; }
+      } catch (e) { climaEst = null; climaWhy = `Schätzung gescheitert (${e instanceof Error ? e.message : String(e)})`; }
+    }
+  }
+  const climaHow = (): string => (climaEst ? [...new Set(Object.values(climaEst.how))].join('/') : '—');
   const learnedCount = { applied: 0, absent: 0, vars: {} as Record<string, number> };
   // FL-AP8c: Speed-EMOS (V-FL-22) und gelernte Hürde (V-FL-18) — je eigene Option, nur mit `learned` und Tabellen.
   const useLearnedSpeed = useLearned && opts.learnedSpeed === true;
@@ -661,6 +695,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ...(useLearned ? [learnedT
       ? `learned:hindcast — Form K aus ${learnedT.fitVersion} (${learnedT.period ? `${learnedT.period.from}…${learnedT.period.to}` : 'Zeitraum unbekannt'}, ${Object.values(learnedT.mean).filter((e) => e.status === 'written').length} Strata): Mittel und σ des Cube-Members für T, Td, Wind, Böe, Bewölkung aus den gelernten Tabellen (E-FL-1, Provenienz hindcast, nie measured); Niederschlag nicht (Stufe 1)`
       : 'learned:absent — Option an, aber keine Tabellen im Eingang (CubeIo.learnedSource aus, Datei fehlt oder ungültig) ⇒ Rechnung ohne Lernstufe'] : []),
+    ...(learnedT && climaVarsT.length ? [climaEst
+      ? `learnedClima:hindcast — μ_c-Spalte für ${climaVarsT.join(', ')} aus dem Klimatologieprodukt (${climaProd?.candidate ?? climaProd?.estimator.kind} · Trend ${climaProd?.trend?.names.length ?? 0} Merkmale · Weg ${climaHow()} · nächste Station ${climaEst.nearestKm == null ? '—' : climaEst.nearestKm.toFixed(1) + ' km'}; ${climaProd?.source.points ?? '?'} Stationen, Lizenzen ${climaProd?.licence.length ?? 0}) — geschätzt am Punkt, nie measured (E-FX-8, §6.5)`
+      : `learnedClima:absent — die Tabellen erklären die μ_c-Spalte für ${climaVarsT.join(', ')}, aber ${climaWhy} ⇒ diese Größen ohne Lernstufe`] : []),
     ...(useLearnedSpeed && learnedT ? [`learnedSpeed:hindcast — Windgeschwindigkeit als gestutzte Normal TN(a + b·E_Rice, c·sd_Rice) bei 0 aus tables.speed (${Object.values(learnedT.speed ?? {}).filter((e) => e.status === 'written').length} Strata, ${learnedT.fitVersion}) statt der Rice des u/v-Modells; Richtung weiter aus u/v; je Stratum ohne Gesetz bleibt die Rice (V-FL-22, FL-AP8c)`] : []),
     ...(useLearnedPrecip && learnedT ? [`learnedPrecip:hindcast — Niederschlag aus der gelernten Hürde (Auftritt mit Spalte logit(1 − pDry_Cube) am Motor-Wert der Stunde, Menge ln(y | nass); ${Object.values(learnedT.occurrence ?? {}).filter((e) => e.status === 'written').length} Strata mit CV-Gewinn, ${learnedT.fitVersion}) statt K-2, nur wo kein Radar- und kein Stationsmember Niederschlag trägt (V-FL-18, FL-AP8c)`] : []),
     'footprint:set — FOOTPRINT_M cube-t1/t2/t3 = Zellweite der Stufe (5/10/25 km), gesetzt, bis AP10 die Repräsentativität misst',
@@ -922,6 +959,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         sigDiv: { t: sd.t2m ?? null, td: sd.td2m ?? null, u: sd.u10 ?? null, v: sd.v10 ?? null, gust: sd.gust ?? null, clct: sd.clct ?? null, precip: sd.precip ?? null },
         sigEns: { t: se.t2m ?? null, u: se.u10 ?? null, v: se.v10 ?? null, precip: se.precip ?? null },
         wetShare: pr0 != null && sd.precip != null ? Math.min(3, sd.precip / (pr0 + 0.1)) : 0,
+        ...(climaEst ? { muC: muAt(climaEst, a.validAtMs, lon) } : {}),
       };
       const pr = predictLearned(learnedT, 'K', sit);
       learnedSit = sit; learnedSpeedE = pr.speed;
@@ -1404,6 +1442,12 @@ export interface CubeIo {
    */
   learnedSource?: 'none' | 'json';
   /**
+   * Phase FX-5 (E-FX-8, §6.5): `'json'` liest `point/static/clima/v1/stations.json` (das Klimatologieprodukt, `climaPoint.ts`)
+   * für die μ_c-Spalte der Lernstufe. Wirkt nur mit `learnedSource: 'json'` und einer Tabelle mit μ_c-Spalte; Voreinstellung
+   * `'none'` ⇒ byte-gleich. Wie die Tabellen nie blockierend, eine Entscheidung je Abfrage.
+   */
+  climaSource?: 'none' | 'json';
+  /**
    * AP14 (E-F-18): liegt eine Zelle des 2×2-Blocks (PAP 3) in einem anderen Chunk, holt der Leser diesen Chunk desselben
    * Laufs nach — der Block ist dann vollständig, `chunkBorderTruncated` entfällt. Nicht-progressiv sofort im Bündel;
    * progressiv als EIGENE Ausgabe, sobald die Zellen da sind (nie in der ersten Darstellung, nie als Wartegrund für
@@ -1433,10 +1477,11 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const lcv = io.landCover && io.z0 ? 'lc' : null;
   const zm = io.z0mod ? 'zm' : null;
   const learned = io.learnedSource === 'json' ? 'learned:json' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned) return '';
+  const climaS = io.climaSource === 'json' ? 'clima:json' : null;
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -1531,7 +1576,7 @@ export const UPDATE_WAIT_MS = 6_000;
 /** Bündel + Klimatologie + Messungen → `PointForecast` mit `cube`-Block (AP2–AP8); `obsNotes` sagen, warum ohne Anker. */
 function forecastFromBundle(
   bundle: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null, obsNotes: string[], opts: PointForecastOptions, io: CubeIo,
-  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null },
+  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null },
   z0: Z0AtPoint | null = null,
 ): PointForecast {
   const input = cubeInputFromBundle(bundle, clima, obs);
@@ -1539,6 +1584,8 @@ function forecastFromBundle(
   if (t.calib) input.notes.push(...t.calib.notes);
   // FL-AP5: die gelernten Tabellen (nur mit `learnedSource: 'json'`); ohne Datei bleibt die Option an und sagt es.
   if (t.learned) { input.notes.push(...t.learned.notes); input.learned = t.learned.tables; }
+  // Phase FX-5: das Klimatologieprodukt (nur mit `climaSource: 'json'`); ohne Datei rechnet die station-Tabelle ohne μ_c und sagt es.
+  if (t.climaProduct) { input.notes.push(...t.climaProduct.notes); input.learnedClima = t.climaProduct.product; }
   if (z0) input.z0 = z0;
   if (io.terrainOverride !== undefined) {
     input.terrain = io.terrainOverride;
@@ -1661,6 +1708,20 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     });
     return learnedUsed;
   };
+  // Phase FX-5: das Klimatologieprodukt — derselbe Weg (parallel, nie blockierend, eine Entscheidung je Abfrage).
+  let climaProdVal: LoadedClimaProduct | null | undefined;
+  const climaProdP: Promise<unknown> | null = io.climaSource === 'json'
+    ? loadClimaProduct(io.store, opts.signal ? { signal: opts.signal } : {}).then((c) => { climaProdVal = c; }, () => { climaProdVal = null; })
+    : null;
+  let climaProdUsed: LoadedClimaProduct | null | undefined;
+  const climaProductNow = (): LoadedClimaProduct | null => {
+    if (climaProdUsed !== undefined) return climaProdUsed;
+    climaProdUsed = !climaProdP ? null : (climaProdVal ?? {
+      path: POINT_CLIMA_PATH, hash: null, product: null,
+      notes: [climaProdVal === null ? 'learnedClima: Lesen gescheitert — station-Tabelle ohne μ_c' : 'learnedClima: stations.json bei der ersten Ausgabe noch nicht da — station-Tabelle ohne μ_c (nie blockierend)'],
+    });
+    return climaProdUsed;
+  };
   let calibUsed: LoadedCalib | null | undefined;
   const calibNow = (): LoadedCalib | null => {
     if (calibUsed !== undefined) return calibUsed;
@@ -1695,7 +1756,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const pending = [...all.filter((t) => !b1.tiers.includes(t)), ...(io.obs ? ['anchor'] : [])];
       try {
         resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...(io.z0 && z0Missing(z0c) ? z0PendingNote(io, z0c, 'follows') : z0NoteOf(io, z0c, 'follows'))],
-          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow() }, z0c));
+          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0c));
       } catch { /* die erste Darstellung ist ein Angebot — der Kern kommt ohnehin */ }
     });
   } : undefined;
@@ -1734,7 +1795,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     // AP13: nicht-progressiv (Sammler, Nachlauf) wartet auf calib höchstens die Gnadenfrist — wie auf die Messung.
     if (calibP && calibVal === undefined) await Promise.race([calibP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
     if (learnedP && learnedVal === undefined) await Promise.race([learnedP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
-    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow() }, z0);
+    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0);
     cacheForecast(key, hours, forecast, opts);
     return forecast;
   }
@@ -1762,7 +1823,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     const firstNotes = [...(io.obs
       ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`]
       : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS)), ...(z0NetP ? z0PendingNote(io, z0c, 'follows') : [])];
-    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow() }, z0c);
+    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0c);
     last = { b: bundle, obs: null, notes: firstNotes, still: pending, z0: z0c };
     if (late.crossChunk) {
       void late.crossChunk.result.then((r) => {
@@ -1772,7 +1833,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const L = last;
         const notesX = [...L.notes, `crossChunk: ${said} — 2×2-Block über die Chunk-Grenze, eigene Ausgabe (AP14)`];
         const fc4 = forecastFromBundle(cur(L.b), clima, L.obs, notesX, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow() }, L.z0);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, L.z0);
         last = { ...L, notes: notesX, still: stillOf(L.still) };
         cacheForecast(key, hours, fc4, opts);
         opts.onUpdate!(fc4);
@@ -1791,7 +1852,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const notes3 = notesX.filter((n) => !n.startsWith('z0: '));
         const still3 = stillOf(stillX.filter((x) => x !== 'z0'));
         const fc3 = forecastFromBundle(cur(b), clima, obsX, notes3, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow() }, z);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z);
         last = { b, obs: obsX, notes: notes3, still: still3, z0: z };
         cacheForecast(key, hours, fc3, opts);
         opts.onUpdate!(fc3);
@@ -1838,7 +1899,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const notes = [...obsNotes];
       const z0u = gotZ0 ? (z0Val as Z0AtPoint) : z0c;
       if (z0NetP && !gotZ0) notes.push(...z0PendingNote(io, z0c, z0Done ? 'missing' : 'follows'));
-      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow() }, z0u);
+      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0u);
       last = { b: b2, obs, notes, still, z0: z0u };
       cacheForecast(key, hours, second, opts);
       opts.onUpdate!(second);

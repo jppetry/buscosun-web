@@ -31,22 +31,42 @@ export function interactionDesign(z: Float64Array, out: Float64Array, offset: nu
   return out;
 }
 
-/** Form K mean design: [Z, ȳ, ȳ·dh, ȳ·dTsfc, ȳ·srcCount/5, then the 14 interactions of `INTER_NAMES`]. */
-export function meanDesignK(z: Float64Array, yA: number, dhM: number, dTsfcK: number | null, srcCount: number | null): Float64Array {
-  const x = new Float64Array(Z_DIM + K_MODS.length + INTER_NAMES.length);
+/**
+ * Climatology columns of the mean design (phase FX, hypothesis C1 — V-FX-5, absorbs V-FL-23): `station` appends ONE column
+ * μ_c (the hourly station climatology of the variable at the row's valid time, pooled band|country where the point has
+ * no series) at the very END of the design — after the 14 interactions, so every existing offset stays. With it the
+ * optimal blend μ = μ_c + ρ·(ȳ − μ_c) is linear in the design (β_ȳ = ρ, β_μc = 1 − ρ) and the ridge target of
+ * `fitStratum` can pull toward it; without it only ȳ carries the site level and the target β_ȳ = 1 holds it there
+ * (measured 25.09.2026: β_cube 0,95/0,92/0,78 at ρ_f 0,29/0,22/0,20 for T/Td/u at 246–336 h). `none` = the design of
+ * fusionFit@3, byte-identical. A caller never builds a station row without a μ_c: it returns null before (the variable
+ * is then `absent`), so a null here is a programming error and throws.
+ */
+export type ClimaColumns = 'none' | 'station';
+export const CLIMA_NAMES = Object.freeze(['muC'] as const);
+function climaColumn(x: Float64Array, clima: ClimaColumns, muC: number | null): Float64Array {
+  if (clima !== 'station') return x;
+  if (muC == null || !Number.isFinite(muC)) throw new Error('meanDesign: station clima column without μ_c');
+  x[x.length - 1] = muC;
+  return x;
+}
+const climaDim = (clima: ClimaColumns): number => (clima === 'station' ? CLIMA_NAMES.length : 0);
+
+/** Form K mean design: [Z, ȳ, ȳ·dh, ȳ·dTsfc, ȳ·srcCount/5, then the 14 interactions of `INTER_NAMES`, then (station) μ_c]. */
+export function meanDesignK(z: Float64Array, yA: number, dhM: number, dTsfcK: number | null, srcCount: number | null, clima: ClimaColumns = 'none', muC: number | null = null): Float64Array {
+  const x = new Float64Array(Z_DIM + K_MODS.length + INTER_NAMES.length + climaDim(clima));
   x.set(z);
   x[Z_DIM] = yA; x[Z_DIM + 1] = yA * (dhM / 1000); x[Z_DIM + 2] = yA * (dTsfcK ?? 0); x[Z_DIM + 3] = yA * ((srcCount ?? 0) / 5);
-  return interactionDesign(z, x, Z_DIM + K_MODS.length);
+  return climaColumn(interactionDesign(z, x, Z_DIM + K_MODS.length), clima, muC);
 }
-/** Form P mean design: [Z, then per source (in class order) ŷ_m, ŷ_m·dh_m, ŷ_m·dTsfc, then the 14 interactions of `INTER_NAMES`]. */
-export function meanDesignP(z: Float64Array, sources: ReadonlyArray<{ yA: number; dhM: number }>, dTsfcK: number | null): Float64Array {
-  const x = new Float64Array(Z_DIM + sources.length * P_MODS.length + INTER_NAMES.length);
+/** Form P mean design: [Z, then per source (in class order) ŷ_m, ŷ_m·dh_m, ŷ_m·dTsfc, then the 14 interactions of `INTER_NAMES`, then (station) μ_c]. */
+export function meanDesignP(z: Float64Array, sources: ReadonlyArray<{ yA: number; dhM: number }>, dTsfcK: number | null, clima: ClimaColumns = 'none', muC: number | null = null): Float64Array {
+  const x = new Float64Array(Z_DIM + sources.length * P_MODS.length + INTER_NAMES.length + climaDim(clima));
   x.set(z);
   for (let i = 0; i < sources.length; i++) {
     const o = Z_DIM + i * P_MODS.length, s = sources[i];
     x[o] = s.yA; x[o + 1] = s.yA * (s.dhM / 1000); x[o + 2] = s.yA * (dTsfcK ?? 0);
   }
-  return interactionDesign(z, x, Z_DIM + sources.length * P_MODS.length);
+  return climaColumn(interactionDesign(z, x, Z_DIM + sources.length * P_MODS.length), clima, muC);
 }
 
 /** Variance design: σ² ≈ c·[1, σ_div², σ_ens², |dh|, dh², svf, hSin1, hCos1, tpi2000]. */

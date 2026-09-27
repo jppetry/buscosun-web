@@ -2,8 +2,8 @@
  * strata.ts — how the learning stage of buscosun Fusion is stratified and cross-validated (phase FL,
  * `audit/fusion-lernphase.md` §5.4–§5.5): variables, the six lead bins of `calibDoc.ts`, the two forms P (per source)
  * and K (cube member), the source class (form P: the exact source set of a row; form K: the route), and the fold keys
- * time (calendar month with a one-month purge on both sides), region (the twelve strongest 1° tiles plus the rest) and
- * height band (< / ≥ 800 m).
+ * time (calendar month with a one-month purge on both sides — or, since phase FX, half-month groups with a
+ * half-month purge, `FoldScheme`), region (the twelve strongest 1° tiles plus the rest) and height band (< / ≥ 800 m).
  */
 import { CALIB_BINS_H, calibBinOf } from '../calibDoc';
 
@@ -39,13 +39,33 @@ export function parseStratum(key: string): { form: Form; v: FitVar; bin: number;
   return { form: form as Form, v: v as FitVar, bin: Number(bin), cls };
 }
 
-/** Fold keys of a row: month `YYYY-MM`, region tile, height band. */
+/** Fold keys of a row: time key (`YYYY-MM`, or `YYYY-MMa|b` under the half scheme), region tile, height band. */
 export interface FoldKeys { month: string; region: string; band: string }
+/**
+ * Time-fold scheme (phase FX, hypothesis C8 — absorbs V-FL-27). `month`: calendar months with a ±1-month purge (the
+ * behaviour up to fusionFit@3; with 13 months every fold drops three of them and the annual harmonics extrapolate, and
+ * the run route 2026-06…09 has four folds, so the July fold trains on September alone). `half`: half-month groups with a
+ * ±1-half-month purge — leak-free too, since the leads reach 14 d and the purge gap is the length of the purged half:
+ * ≥ 15 d everywhere except February (15 + 13/14 d), where a 14-d lead of a training row can reach one day into the held
+ * half. Measured 24.09.2026 (§11.8): 1–3 % smaller out-of-fold RMSE at identical design.
+ */
+export type FoldScheme = 'month' | 'half';
 export const monthOf = (validAtMs: number): string => new Date(validAtMs).toISOString().slice(0, 7);
+/** Half-month key `YYYY-MMa` for UTC day ≤ 15, `YYYY-MMb` otherwise — sorts like the month keys (`2026-02a` < `2026-02b` < `2026-03a`). */
+export function halfMonthOf(validAtMs: number): string {
+  const d = new Date(validAtMs);
+  return `${d.toISOString().slice(0, 7)}${d.getUTCDate() <= 15 ? 'a' : 'b'}`;
+}
+/** The time-fold key of a row under a scheme. */
+export const foldKeyOf = (validAtMs: number, scheme: FoldScheme): string => (scheme === 'half' ? halfMonthOf(validAtMs) : monthOf(validAtMs));
 export const groupKey = (k: FoldKeys): string => `${k.month}|${k.region}|${k.band}`;
 export function parseGroup(key: string): FoldKeys { const [month, region, band] = key.split('|'); return { month, region, band }; }
 
-/** Time folds: each month held out, its neighbours purged (leads reach 14 days). */
+/**
+ * Time folds: each key held out, its INDEX neighbours on the sorted keys purged (leads reach 14 days) — with month keys
+ * the purge is ±1 month, with half-month keys (`halfMonthOf`) ±1 half-month. The keys carry no scheme: whoever fills the
+ * accumulators decides (`fit.mjs --folds`), and every time-keyed accumulator of a fit uses the same key.
+ */
 export function timeFolds(months: readonly string[]): Array<{ name: string; held: string[]; purged: string[] }> {
   const ms = [...months].sort();
   return ms.map((m, i) => ({ name: `time:${m}`, held: [m], purged: [ms[i - 1], ms[i + 1]].filter((x): x is string => !!x) }));
@@ -60,7 +80,8 @@ export function bandFolds(bands: readonly string[]): Array<{ name: string; held:
 
 /**
  * Map group keys (month|region|band) to the fold specs of `chooseLambda`: a fold's `held`/`purged` are GROUP keys.
- * `axis` picks which component the fold reads.
+ * `axis` picks which component the fold reads; the `month` axis only parses the first component, so a half-month key
+ * (`2026-02a|*|*`) works unchanged — `timeFolds` then purges ±1 half-month.
  */
 export function foldsOverGroups(groupKeys: readonly string[], axis: 'month' | 'region' | 'band'): Array<{ name: string; held: string[]; purged: string[] }> {
   const vals = [...new Set(groupKeys.map((k) => parseGroup(k)[axis]))];

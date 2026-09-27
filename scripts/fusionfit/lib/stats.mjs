@@ -1,10 +1,11 @@
 /**
  * stats.mjs — the verification statistics of phase FL (`audit/fusion-lernphase.md` §6), extracted from
  * `scripts/verify-pv-score.mjs` (Diebold–Mariano with HAC, Φ, block bootstrap over days, Brier + reliability, PIT)
- * and extended by ETS, Benjamini–Hochberg and CRPSS. Pure functions and small accumulators; no I/O.
+ * and extended by ETS, Benjamini–Hochberg and CRPSS; since phase FX (M1/C5) also the calibration measures `sdOf` and
+ * `pitRandomOf`. Pure functions and small accumulators; no I/O.
  */
 import { lcg } from '../../../src/point/calibFit.ts';
-import { cdfOf, Phi } from '../../../src/pointForecast/fusion/dist.ts';
+import { cdfOf, meanOf, Phi, phi } from '../../../src/pointForecast/fusion/dist.ts';
 
 export const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
@@ -84,22 +85,91 @@ export function benjaminiHochberg(ps) {
   return out;
 }
 
+/**
+ * Standard deviation of the OBSERVABLE variable of a predictive distribution (phase FX, hypotheses M1/C5 — absorbs
+ * V-FL-14/39/41/42). The scorer's former "spread" was the LATENT σ of the censored normal, the per-component σ of the
+ * Rice and (q84−q16)/2 of the TN; for a censored variable the latent σ overstates the spread of what is observed, so
+ * the spread/skill gate measured its own definition (measured 25.09.2026 on the clouds: latent σ/RMSE 1,29–1,71 against
+ * Tobit sd/RMSE 0,93–0,96, while the wind's 0,83–0,85 is real). Closed forms:
+ *   normal           σ
+ *   truncatedNormal  σ·√(1 + α·λ − λ²), α = (lo − μ)/σ, λ = φ(α)/(1 − Φ(α))
+ *   censoredNormal   Tobit sd on [lo, hi]: E[Y] and E[Y²] from the two atoms plus the truncated moments
+ *   rice             √(2σ² + ν² − E²), E = `meanOf`
+ *   hurdleLogNormal  null — an atom at zero, spread/skill is not defined (G-FL-2 does not apply)
+ * Checked against a 20 000-node quantile grid in `verify:fusion-fit` block 11.
+ */
+export function sdOf(d) {
+  switch (d.kind) {
+    case 'normal': return d.sigma > 0 ? d.sigma : 0;
+    case 'truncatedNormal': {
+      if (!(d.sigma > 0)) return 0;
+      const a = (d.lo - d.mu) / d.sigma, Z = 1 - Phi(a);
+      if (!(Z > 1e-12)) return 0;
+      const l = phi(a) / Z;
+      return d.sigma * Math.sqrt(Math.max(0, 1 + a * l - l * l));
+    }
+    case 'censoredNormal': {
+      if (!(d.sigma > 0)) return 0;
+      const sg = d.sigma, a = (d.lo - d.mu) / sg, b = (d.hi - d.mu) / sg, Pa = Phi(a), Pb = Phi(b), fa = phi(a), fb = phi(b), mid = Pb - Pa;
+      const E = d.lo * Pa + d.mu * mid + sg * (fa - fb) + d.hi * (1 - Pb);
+      const E2 = d.lo * d.lo * Pa + d.hi * d.hi * (1 - Pb) + d.mu * d.mu * mid + 2 * d.mu * sg * (fa - fb) + sg * sg * (mid + a * fa - b * fb);
+      return Math.sqrt(Math.max(0, E2 - E * E));
+    }
+    case 'rice': { if (!(d.sigma > 0)) return 0; const E = meanOf(d); return Math.sqrt(Math.max(0, 2 * d.sigma * d.sigma + d.nu * d.nu - E * E)); }
+    default: return null;
+  }
+}
+
+/**
+ * Randomised PIT (phase FX, C5): `pitOf` of `dist.ts` puts an observation ON an atom at the midpoint of the atom's
+ * interval, which piles every censored hour into one decile and shows a histogram defect where the forecast is fine
+ * (V-FL-41/42). With u ~ U[0, 1) the PIT of an atom observation is uniform on the atom's interval (Czado, Gneiting &
+ * Held 2009): censoredNormal y ≤ lo → u·F(lo), y ≥ hi → F(hi⁻) + u·(1 − F(hi⁻)) with F(hi⁻) = Φ((hi − μ)/σ);
+ * hurdleLogNormal y ≤ 0 → u·pDry; families without atoms → `cdfOf`. The caller draws u — deterministically per
+ * (row, variable), so every candidate of a row sees the same u.
+ */
+export function pitRandomOf(d, y, u) {
+  if (d.kind === 'censoredNormal') {
+    const F = (x) => (d.sigma > 0 ? Phi((x - d.mu) / d.sigma) : x >= d.mu ? 1 : 0);
+    if (y <= d.lo) return u * F(d.lo);
+    if (y >= d.hi) { const below = F(d.hi); return below + u * (1 - below); }
+    return cdfOf(d, y);
+  }
+  if ((d.kind === 'hurdleLogNormal' || d.kind === 'logCensored') && y <= 0) return u * cdfOf(d, 0);
+  return cdfOf(d, y);
+}
+
 /** Running summary of a scalar score and of a probabilistic forecast. */
 export class ScoreAcc {
-  constructor() { this.n = 0; this.sumAbs = 0; this.sumErr = 0; this.sumSq = 0; this.sumCrps = 0; this.nCrps = 0; this.sumSigma = 0; this.pit = new Float64Array(10); this.nPit = 0; }
-  /** `err` = forecast − truth (median or mean), `crps` (null for deterministic ⇒ |err|), `pit` (null when not probabilistic), `sigma`. */
-  add(err, crps, pit, sigma) {
+  constructor() { this.n = 0; this.sumAbs = 0; this.sumErr = 0; this.sumSq = 0; this.sumCrps = 0; this.nCrps = 0; this.sumSigma = 0; this.sumSd = 0; this.sumVar = 0; this.nSd = 0; this.pit = new Float64Array(10); this.nPit = 0; }
+  /**
+   * `err` = forecast − truth (median or mean), `crps` (null for deterministic ⇒ |err|), `pit` (null when not probabilistic),
+   * `sigma` = the latent spread (today's definition, kept for `spreadSkillLatent`), `sd` = the observable sd (`sdOf`; phase FX)
+   * — when the caller passes no `sd` the latent σ stands in, an explicit null (hurdle) leaves the sd sums untouched.
+   */
+  add(err, crps, pit, sigma, sd = sigma) {
     this.n += 1; this.sumAbs += Math.abs(err); this.sumErr += err; this.sumSq += err * err;
     this.sumCrps += crps == null ? Math.abs(err) : crps; this.nCrps += 1;
     if (pit != null && Number.isFinite(pit)) { this.pit[Math.min(9, Math.max(0, Math.floor(pit * 10)))] += 1; this.nPit += 1; }
     if (sigma != null && Number.isFinite(sigma)) this.sumSigma += sigma;
+    if (sd != null && Number.isFinite(sd)) { this.sumSd += sd; this.sumVar += sd * sd; this.nSd += 1; }
   }
+  /**
+   * `spreadSkill` = √(mean sd²)/RMSE — the rms definition (E[σ²] = E[e²] is the calibration identity; the gate reads this);
+   * `spreadSkillMean` = mean(sd)/RMSE; `spreadSkillLatent` = mean(latent σ)/RMSE, the definition up to Scorecard 4 (like-for-like
+   * reading against older cards).
+   */
   summary() {
     const n = this.n;
     if (!n) return null;
     const rmse = Math.sqrt(this.sumSq / n);
     const pit = this.nPit ? Array.from(this.pit).map((c) => c / this.nPit) : null;
-    return { n, mae: this.sumAbs / n, bias: this.sumErr / n, rmse, crps: this.sumCrps / Math.max(1, this.nCrps), pit, pitOuter: pit ? pit[0] + pit[9] : null, spreadSkill: this.nPit && rmse > 0 ? this.sumSigma / this.nPit / rmse : null };
+    return {
+      n, mae: this.sumAbs / n, bias: this.sumErr / n, rmse, crps: this.sumCrps / Math.max(1, this.nCrps), pit, pitOuter: pit ? pit[0] + pit[9] : null,
+      spreadSkill: this.nSd && rmse > 0 ? Math.sqrt(this.sumVar / this.nSd) / rmse : null,
+      spreadSkillMean: this.nSd && rmse > 0 ? this.sumSd / this.nSd / rmse : null,
+      spreadSkillLatent: this.nPit && rmse > 0 ? this.sumSigma / this.nPit / rmse : null,
+    };
   }
 }
 

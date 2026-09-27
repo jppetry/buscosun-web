@@ -672,6 +672,15 @@ export const STATIC_DIR = `${POINT_DIR}/static`;
 export function staticProductDir(product: string, version: string): string {
   return `${STATIC_DIR}/${product}/${version}`;
 }
+/**
+ * Phase FX-4/FX-5 (E-FX-1/E-FX-8): Name und Fassung des Klimatologieprodukts (`scripts/fusionfit/clima-product.mjs`,
+ * `src/point/fusionFit/climaProduct.ts`). Nur der Produktbau liest sie (fit-seitig); ein Client-Leser kommt erst nach
+ * Jans Gate (§6.5 Stufe 3) — bis dahin liegt unter `point/static/clima/` nichts, und der Client fragt es nicht an.
+ */
+export const CLIMA_PRODUCT = 'clima';
+export const CLIMA_VERSION = 'v1';
+/** Phase FX-5 (E-FX-8): das Klimatologieprodukt für die μ_c-Spalte der Lernstufe (`src/point/client/climaPoint.ts`); zeitlos wie jedes statische Produkt. */
+export const POINT_CLIMA_PATH = `${staticProductDir(CLIMA_PRODUCT, CLIMA_VERSION)}/stations.json`;
 
 /** Manifest eines statischen Produkts (Ebenenliste = Bedeutung der Spalten). */
 export function staticManifestPath(product: string, version: string): string {

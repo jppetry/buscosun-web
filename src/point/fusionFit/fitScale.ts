@@ -74,3 +74,17 @@ export function chooseScale(acc: ScaleAcc, minN = 1000): ScaleCv | null {
 
 /** PIT-edge indicator (below 0,1 or above 0,9). */
 export const pitOuterOf = (pit: number): number => (pit < 0.1 || pit > 0.9 ? 1 : 0);
+
+/**
+ * The write rule of the scale (phase FX, V-FX-7 / E-FX-2): the variables in `vars` may get a scale ≠ 1 — cloud cover
+ * always (its latent σ is not the residual moment), the others only where the scale wins out of fold; a variable outside
+ * `vars` gets 1 written whatever the search says (the evidence `scaleCv` stays for the record). `SCALE_VARS_DEFAULT` is
+ * the fusionFit@3 behaviour; Fit 5b runs with `['clct']` — a scale 0,9 at T/Td/gust is the signature of unexplained
+ * heteroscedasticity (a leptokurtic residual gives k* 0,85–0,9 with 0,1–0,6 % CRPS gain and a worse PIT), not calibration.
+ */
+export const SCALE_VARS_DEFAULT: readonly string[] = Object.freeze(['t', 'td', 'gust', 'clct']);
+export function scaleForVar(v: string, cv: Pick<ScaleCv, 'k' | 'winsOof'>, vars: readonly string[] = SCALE_VARS_DEFAULT): number {
+  if (!vars.includes(v)) return 1;
+  if (v === 'clct') return cv.k;
+  return cv.winsOof ? cv.k : 1;
+}

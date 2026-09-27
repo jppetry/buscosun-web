@@ -2044,6 +2044,96 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     `${tnSteps.length} TN-Schritte · Codec exakt ${cmp.exact.length === 0} · v1 gleich ${JSON.stringify(d1) === JSON.stringify(dRef)}`);
 }
 
+// ---------------------------------------------------------------------------
+// (27) Phase FX-5 (E-FX-8, §6.5): das Klimatologieprodukt für die μ_c-Spalte der Lernstufe — `CubeIo.climaSource: 'json'` liest
+//      `point/static/clima/v1/stations.json`; μ_c wird EINMAL je Abfrage am Punkt geschätzt und je Schritt an `predict` gereicht,
+//      nur mit `learned` + station-Tabelle. Ohne `learned` byte-gleich (Negativkontrolle); none-Tabelle + Produkt = heutiger
+//      Lernpfad; station-Tabelle ohne Produkt = Basis für die gelisteten Größen, benannt absent; Cache-Schlüssel; fehlende Datei.
+// ---------------------------------------------------------------------------
+{
+  const { newTables } = await import('../src/point/fusionFit/tables.ts');
+  const { Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { designNames } = await import('../src/point/fusionFit/fitMean.ts');
+  const { V_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const { C_NAMES, C_DIM } = await import('../src/point/fusionFit/fitClima.ts');
+  const { TREND_SETS, CLIMA_PRODUCT_KIND, CLIMA_PRODUCT_SCHEMA } = await import('../src/point/fusionFit/climaProduct.ts');
+  const { POINT_CLIMA_PATH, POINT_LEARNED_PATH } = await import('../src/point/cubeFormat.ts');
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  // tables: form K, T only, station design with the column list [t] — μ = 0,5·ȳ + 0,5·μ_c; σ = 1
+  const mkTables = (clima) => {
+    const T = newTables('2026-09-27T00:00:00Z'); T.period = { from: '2025-09-01', to: '2026-09-21' };
+    if (clima) T.design.mean = { ...T.design.mean, clima: 'station', climaVars: ['t'] };
+    const names = designNames('K', 'r1', clima ? 'station' : 'none');
+    for (let bin = 0; bin < 6; bin++) {
+      const beta = new Array(names.length).fill(0); beta[Z_DIM] = clima ? 0.5 : 1; if (clima) beta[names.length - 1] = 0.5; else beta[0] = 1.0;
+      T.mean[stratumKey('K', 't', bin, 'r1')] = { form: 'K', var: 't', bin, cls: 'r1', names, beta, lambda: 1, n: 10000, days: 60, prior: null, cv: { time: null, region: null, band: null }, status: 'written', jitter: 0 };
+      const c = new Array(V_NAMES.length).fill(0); c[0] = 1.0;
+      T.variance[stratumKey('K', 't', bin, 'r1')] = { form: 'K', var: 't', bin, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 10000, days: 60, msr: 1, status: 'written' };
+    }
+    return T;
+  };
+  // product: geo trend whose T intercept coefficient is the constant 5 (every other coefficient 0) ⇒ μ_c(T) = 5 at every hour; one station near the point
+  const trendT = Array.from({ length: C_DIM }, (_, j) => TREND_SETS.geo.map((n) => (j === 0 && n === '1' ? 5 : 0)));
+  const product = { schema: CLIMA_PRODUCT_SCHEMA, kind: CLIMA_PRODUCT_KIND, fitVersion: 'test', provenance: 'hindcast', builtAt: '2026-09-27T00:00:00Z', candidate: 'ridgeTx-test',
+    estimator: { kind: 'ridge', k: 3, power: 2, heightSlope: 'none' }, design: C_NAMES, vars: ['t', 'td', 'gust'], lapse: null,
+    trend: { names: TREND_SETS.geo, beta: { t: trendT }, lambda: { t: 1 } },
+    stations: [{ id: 'S1', lat: FIX.lat + 0.05, lon: FIX.lon, elevM: 520, country: 'DE', mu: {} }], source: { clima: 'test', sha256: null, period: null, days: null, points: 1 }, licence: ['test'], notes: [] };
+  const filesOf = (tables, prod) => { const m = new Map(fx.files); if (tables) m.set(POINT_LEARNED_PATH, enc(tables)); if (prod) m.set(POINT_CLIMA_PATH, prod === 'broken' ? new TextEncoder().encode('{kein json') : enc(prod)); return m; };
+  const io = (files, extra) => ({ store: memoryStore(files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extra });
+  const opts27 = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const run = async (files, extra) => { clearCubeForecastCache(); return getPointForecastFromCube(opts27, io(files, extra)); };
+  const stepsJson = (p) => JSON.stringify(p.cube.v2.axis.steps);
+  const base = await run(filesOf(null, null), {});
+  // (a) negative control: the product alone (no `learned`) changes nothing but the cache key
+  const climaOnly = await run(filesOf(null, product), { climaSource: 'json' });
+  add('(27) Negativkontrolle: `climaSource: json` ohne `learnedSource` ⇒ Schritte und calib byte-gleich zur Basis, keine learnedClima-Zeile; Cache-Schlüssel trägt |clima:json',
+    stepsJson(climaOnly) === stepsJson(base) && JSON.stringify(climaOnly.cube.calib) === JSON.stringify(base.cube.calib) && !climaOnly.cube.calib.some((c) => c.startsWith('learnedClima'))
+    && cubeIoVariantKey(io(new Map(), { climaSource: 'json' })).endsWith('|clima:json') && cubeIoVariantKey(io(new Map(), { learnedSource: 'json', climaSource: 'json' })).endsWith('|learned:json|clima:json') && cubeIoVariantKey(io(new Map(), {})) === '',
+    cubeIoVariantKey(io(new Map(), { learnedSource: 'json', climaSource: 'json' })));
+  // (b) none table + product = today's learned path (byte-identical to the same table without the product)
+  const noneT = mkTables(false);
+  const noneOn = await run(filesOf(noneT, null), { learnedSource: 'json' });
+  const noneProd = await run(filesOf(noneT, product), { learnedSource: 'json', climaSource: 'json' });
+  add('(27) none-Tabelle + Produkt: Schritte und calib byte-gleich zum Lernpfad ohne Produkt (die Tabelle erklärt keine μ_c-Spalte ⇒ keine learnedClima-Zeile)',
+    stepsJson(noneProd) === stepsJson(noneOn) && JSON.stringify(noneProd.cube.calib) === JSON.stringify(noneOn.cube.calib) && noneOn.cube.calib.some((c) => c.startsWith('learned:hindcast')) && !noneProd.cube.calib.some((c) => c.startsWith('learnedClima')));
+  // (c) station table + product: T = 0,5·ȳ + 0,5·5 at every native step; provenance names the product, the estimator path and the nearest station
+  const stT = mkTables(true);
+  // the pure function: the cube member T at every native step is exactly 0,5·ȳ + 0,5·μ_c (μ_c = 5 from the geo trend)
+  const input27 = { ...cubeInputFromBundle(bundle, clima), terrain: flatTerrain(FIX.hTrue) };
+  const base27 = fuseCubePoint(input27, { hourly: false });
+  const on27 = fuseCubePoint({ ...input27, learned: stT, learnedClima: product }, { hourly: false, learned: true });
+  const pairs27 = base27.steps.map((s, i) => [s, on27.steps[i]]).filter(([s]) => !s.interpolated && s.samples?.[0]?.temperature != null);
+  const exact = pairs27.filter(([s, o]) => Math.abs(o.samples[0].temperature - (0.5 * s.samples[0].temperature + 2.5)) < 1e-6).length;
+  const lineC = on27.calib.find((c) => c.startsWith('learnedClima:hindcast'));
+  // the product path: the same line reaches the v2 provenance
+  const stOn = await run(filesOf(stT, product), { learnedSource: 'json', climaSource: 'json' });
+  add('(27) station-Tabelle [t] + Produkt: das Cube-Member T an jedem nativen Schritt exakt 0,5·ȳ + 0,5·μ_c (μ_c = 5 aus dem Geo-Trend; ≥ 40 Schritte), Flag learned, calib `learnedClima:hindcast` nennt t, den Kandidaten, Weg ridge und die nächste Station (≈ 5,6 km) — pur und über den Produktpfad',
+    pairs27.length >= 40 && exact === pairs27.length && pairs27.every(([, o]) => o.flags.includes('learned')) && !!lineC && / für t aus dem Klimatologieprodukt \(ridgeTx-test/.test(lineC) && /Weg ridge/.test(lineC) && /nächste Station 5\.[4-8] km/.test(lineC)
+    && stOn.cube.calib.some((c) => c.startsWith('learnedClima:hindcast — μ_c-Spalte für t aus')) && stOn.cube.v2.provenance.calibByVar.t2m.includes('learned') && stOn.cube.calib.some((c) => c.startsWith('learned:hindcast')),
+    `${exact}/${pairs27.length} exakt · ${lineC?.slice(0, 140)}`);
+  // station table WITHOUT product, pure: steps byte-identical to the base (t absent), calib says why
+  const off27 = fuseCubePoint({ ...input27, learned: stT }, { hourly: false, learned: true });
+  add('(27) station-Tabelle ohne Produkt (pur): Schritte byte-gleich zur Basis, calib `learnedClima:absent` (kein Produkt im Eingang); Negativkontrolle: Tabelle + Produkt im Eingang OHNE Option ⇒ byte-gleich zur Basis, keine Zeile',
+    JSON.stringify(off27.steps) === JSON.stringify(base27.steps) && off27.calib.some((c) => /^learnedClima:absent — .*kein Klimatologieprodukt im Eingang/.test(c))
+    && JSON.stringify(fuseCubePoint({ ...input27, learned: stT, learnedClima: product }, { hourly: false }).steps) === JSON.stringify(base27.steps) && !fuseCubePoint({ ...input27, learned: stT, learnedClima: product }, { hourly: false }).calib.some((c) => c.startsWith('learned')),
+    off27.calib.find((c) => c.startsWith('learnedClima'))?.slice(0, 120));
+  // (d) station table WITHOUT product: t stays absent (steps byte-identical to the base), named
+  const stOff = await run(filesOf(stT, null), { learnedSource: 'json' });
+  const stMissing = await run(filesOf(stT, null), { learnedSource: 'json', climaSource: 'json' });
+  const stBroken = await run(filesOf(stT, 'broken'), { learnedSource: 'json', climaSource: 'json' });
+  add('(27) station-Tabelle ohne Produkt (climaSource aus / Datei fehlt / kein JSON): Schritte byte-gleich zur Basis (t ohne Lernstufe), calib `learnedClima:absent` benennt die Ursache, die Leser-Notiz sagt „nicht lesbar" bzw. „kein JSON"',
+    stepsJson(stOff) === stepsJson(base) && stOff.cube.calib.some((c) => /^learnedClima:absent — .*CubeIo\.climaSource aus/.test(c))
+    && stepsJson(stMissing) === stepsJson(base) && stMissing.cube.notes.some((n) => /^learnedClima: .*nicht lesbar/.test(n)) && stMissing.cube.calib.some((c) => c.startsWith('learnedClima:absent'))
+    && stepsJson(stBroken) === stepsJson(base) && stBroken.cube.notes.some((n) => /^learnedClima: .*kein JSON/.test(n)),
+    `${stOff.cube.calib.find((c) => c.startsWith('learnedClima'))?.slice(0, 120)} · ${stMissing.cube.notes.find((n) => n.startsWith('learnedClima'))?.slice(0, 80)}`);
+  // (e) a product without T (vars [gust]) or without the trend for t leaves t absent and says so
+  const noT = await run(filesOf(stT, { ...product, vars: ['gust'], trend: { names: TREND_SETS.geo, beta: {}, lambda: {} } }), { learnedSource: 'json', climaSource: 'json' });
+  add('(27) Produkt ohne T-Trend (vars [gust]): t bleibt absent, Schritte byte-gleich zur Basis, calib `learnedClima:absent`',
+    stepsJson(noT) === stepsJson(base) && noT.cube.calib.some((c) => /^learnedClima:absent — .*das Produkt \(vars gust\) trägt keine Schätzung für t/.test(c)), noT.cube.calib.find((c) => c.startsWith('learnedClima'))?.slice(0, 120));
+}
+
 let failed = 0;
 for (const c of checks) {
   if (!c.ok) failed += 1;

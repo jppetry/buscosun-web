@@ -1,0 +1,2038 @@
+{
+ "schema": 2,
+ "startedAt": "2026-09-27T04:04:42.197Z",
+ "finishedAt": "2026-09-27T04:05:01.839Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "mobile-4g"
+  ],
+  "placeIds": [
+   "muenchen"
+  ],
+  "only": [
+   "cubep"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "mobile-4g",
+   "scenario": "cube-cold-prog",
+   "n": 1,
+   "p50": 1797,
+   "p95": 1797,
+   "max": 1797,
+   "coreP50": 1588,
+   "coreP95": 1588,
+   "readP50": 1588,
+   "readP95": 1588,
+   "firstP50": 1588,
+   "firstP95": 1588,
+   "finalP50": 5308.600000143051,
+   "finalP95": 5308.600000143051,
+   "fullP50": 2826.2999999523163,
+   "fullP95": 2826.2999999523163
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "cube-warm-prog",
+   "n": 1,
+   "p50": 236.5,
+   "p95": 236.5,
+   "max": 236.5,
+   "coreP50": 180,
+   "coreP95": 180,
+   "readP50": 180,
+   "readP95": 180,
+   "firstP50": 180,
+   "firstP95": 180,
+   "finalP50": 2879.699999809265,
+   "finalP95": 2879.699999809265,
+   "fullP50": 485.7999999523163,
+   "fullP95": 485.7999999523163
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "cube-cold-prog-24h",
+   "n": 1,
+   "p50": 1769.2999999523163,
+   "p95": 1769.2999999523163,
+   "max": 1769.2999999523163,
+   "coreP50": 1597,
+   "coreP95": 1597,
+   "readP50": 1598,
+   "readP95": 1598,
+   "firstP50": 1597,
+   "firstP95": 1597,
+   "finalP50": 3253.600000143051,
+   "finalP95": 3253.600000143051,
+   "fullP50": 1769.2999999523163,
+   "fullP95": 1769.2999999523163
+  }
+ ],
+ "gate": null,
+ "compare": null,
+ "runs": [
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-cold-prog",
+   "rep": 0,
+   "wallMs": 5314,
+   "totalMs": 1797,
+   "fullMs": 2826.2999999523163,
+   "finalMs": 5308.600000143051,
+   "coreMs": 1588,
+   "readMs": 1588,
+   "firstMs": 1588,
+   "result": {
+    "total": 1797,
+    "fullMs": 2826.2999999523163,
+    "finalMs": 5308.600000143051,
+    "emissions": [
+     {
+      "kind": "first",
+      "ms": 1797,
+      "hours": 45,
+      "pending": [
+       "t2",
+       "t3",
+       "anchor",
+       "z0"
+      ],
+      "z0": false,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     },
+     {
+      "kind": "core",
+      "ms": 2826,
+      "hours": 337,
+      "pending": [
+       "anchor",
+       "nowcast",
+       "static",
+       "z0"
+      ],
+      "z0": false,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     },
+     {
+      "kind": "update",
+      "ms": 5309,
+      "hours": 337,
+      "pending": [],
+      "z0": true,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     }
+    ],
+    "emission": "first",
+    "pending": [
+     "t2",
+     "t3",
+     "anchor",
+     "z0"
+    ],
+    "firstHours": 45,
+    "update": {
+     "pending": [],
+     "sources": [
+      "cube-t1",
+      "cube-t2",
+      "cube-t3",
+      "mosmix",
+      "radolan",
+      "inca",
+      "rzc",
+      "dwd_obs"
+     ],
+     "notes": [
+      "anchor: 3 Paar(e) aus dwd_obs, Versatz T -1.64 K, Repräsentativität 0.28"
+     ]
+    },
+    "hours": 45,
+    "sourcesAvailable": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 1588,
+     "coreMs": 1588,
+     "firstMs": 1588,
+     "algoMs": 129.7,
+     "outputMs": 28.1,
+     "totalMs": 1781,
+     "doneAt": {
+      "index": 297,
+      "terrain": 1415,
+      "station": 1484,
+      "cube.t1": 1585,
+      "first": 1586
+     }
+    },
+    "provenance": {
+     "indexCommit": "00781d2d6258895f6338301f3fa171152f528f60",
+     "runs": {
+      "t1": {
+       "run": "2026092700",
+       "sourceRun": "2026092700",
+       "sourceRunAtMs": 1790467200000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026092621",
+      "runAtMs": 1790456400000,
+      "ageH": 1.68,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 45,
+     "seams": [],
+     "perTier": {
+      "t1": 45,
+      "t2": 0,
+      "t3": 0
+     }
+    },
+    "flags": 26,
+    "notes": [
+     "anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist 4000 ms) — erste Ausgabe ohne Anker",
+     "z0: WorldCover-Rauhigkeit folgt (progressiv: Abruf ab dem Kern) — diese Ausgabe ohne zweistufige Windkorrektur"
+    ],
+    "skips": [
+     "cube: t2/t3 folgen — erste Darstellung aus t1 bis 2026-09-29T00:00Z (E-F-3, AP12)"
+    ],
+    "errors": [],
+    "stats": {
+     "files": 21,
+     "bytes": 1175526,
+     "misses": 1,
+     "ms": 11653.099999427795,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 65,
+    "cached": 0,
+    "failed": 4,
+    "bytes": 1797474,
+    "cdn": 36,
+    "hit": 12,
+    "miss": 22,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026092700/t1/03_07.bin",
+     "bytes": 501902,
+     "ttfbMs": 230,
+     "ms": 1142,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "127.0.0.1:12266": 1,
+     "cdn.jsdelivr.net": 36,
+     "s3.amazonaws.com": 4,
+     "api.brightsky.dev": 20,
+     "raw.githubusercontent.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5721,
+      "ttfbMs": 223,
+      "ms": 240,
+      "xCache": "HIT, MISS",
+      "startMs": 55,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2304,
+      "ttfbMs": 241,
+      "ms": 245,
+      "xCache": "HIT",
+      "startMs": 329,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_07.bin",
+      "bytes": 1521,
+      "ttfbMs": 298,
+      "ms": 316,
+      "xCache": "MISS",
+      "startMs": 330,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_03.bin",
+      "bytes": 1939,
+      "ttfbMs": 715,
+      "ms": 718,
+      "xCache": "MISS",
+      "startMs": 330,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_01.bin",
+      "startMs": 331
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "startMs": 333
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_07.bin",
+      "bytes": 1392,
+      "ttfbMs": 711,
+      "ms": 713,
+      "xCache": "HIT",
+      "startMs": 334,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59641,
+      "ttfbMs": 212,
+      "ms": 551,
+      "xCache": "HIT",
+      "startMs": 334,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026092621/stations.json",
+      "bytes": 14415,
+      "ttfbMs": 234,
+      "ms": 325,
+      "xCache": "HIT",
+      "startMs": 335,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026092621/03_07.bin",
+      "bytes": 100791,
+      "ttfbMs": 224,
+      "ms": 712,
+      "xCache": "HIT",
+      "startMs": 335,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/meta.json",
+      "bytes": 675,
+      "ttfbMs": 710,
+      "ms": 713,
+      "xCache": "MISS",
+      "startMs": 336,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270355/meta.json",
+      "bytes": 635,
+      "ttfbMs": 709,
+      "ms": 712,
+      "xCache": "MISS",
+      "startMs": 336,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270350/meta.json",
+      "bytes": 629,
+      "ttfbMs": 289,
+      "ms": 290,
+      "xCache": "MISS",
+      "startMs": 336,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270345/meta.json",
+      "bytes": 651,
+      "ttfbMs": 725,
+      "ms": 726,
+      "xCache": "MISS, MISS",
+      "startMs": 337,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/meta.json",
+      "startMs": 338
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0315/meta.json",
+      "bytes": 967,
+      "ttfbMs": 290,
+      "ms": 292,
+      "xCache": "MISS",
+      "startMs": 338,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0400/meta.json",
+      "bytes": 582,
+      "ttfbMs": 691,
+      "ms": 693,
+      "xCache": "MISS",
+      "startMs": 338,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0355/meta.json",
+      "bytes": 542,
+      "ttfbMs": 692,
+      "ms": 694,
+      "xCache": "MISS",
+      "startMs": 339,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0350/meta.json",
+      "bytes": 573,
+      "ttfbMs": 708,
+      "ms": 710,
+      "xCache": "MISS",
+      "startMs": 339,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0345/meta.json",
+      "bytes": 611,
+      "ttfbMs": 572,
+      "ms": 574,
+      "xCache": "MISS",
+      "startMs": 339,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@00781d2d6258895f6338301f3fa171152f528f60/point/2026092700/run.json",
+      "bytes": 10598,
+      "ttfbMs": 230,
+      "ms": 273,
+      "xCache": "HIT",
+      "startMs": 341,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026092700/t1/03_07.bin",
+      "bytes": 501902,
+      "ttfbMs": 230,
+      "ms": 1142,
+      "xCache": "HIT",
+      "startMs": 341,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0400/frame.png",
+      "startMs": 1069
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/f000.png",
+      "bytes": 2728,
+      "ttfbMs": 254,
+      "ms": 257,
+      "xCache": "MISS",
+      "startMs": 1090,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/f060.png",
+      "bytes": 2512,
+      "ttfbMs": 1404,
+      "ms": 1405,
+      "xCache": "MISS",
+      "startMs": 1091,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/f120.png",
+      "bytes": 2521,
+      "ttfbMs": 273,
+      "ms": 274,
+      "xCache": "MISS",
+      "startMs": 1093,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@00781d2d6258895f6338301f3fa171152f528f60/point/2026092618/run.json",
+      "bytes": 12919,
+      "ttfbMs": 911,
+      "ms": 912,
+      "xCache": "MISS, MISS",
+      "startMs": 1508,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026092618/t2/01_03.bin",
+      "bytes": 204125,
+      "ttfbMs": 187,
+      "ms": 540,
+      "xCache": "HIT, MISS",
+      "startMs": 1509,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@00781d2d6258895f6338301f3fa171152f528f60/point/2026092612/run.json",
+      "bytes": 10331,
+      "ttfbMs": 1035,
+      "ms": 1038,
+      "xCache": "MISS, MISS",
+      "startMs": 1509,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026092612/t3/00_01.bin",
+      "bytes": 258910,
+      "ttfbMs": 186,
+      "ms": 602,
+      "xCache": "HIT",
+      "startMs": 1510,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-worldcover@cc3ce5590dd47a0fe002338607ba7c0b07ce9ea4/map/N48E009.tif",
+      "bytes": 17116,
+      "ttfbMs": 191,
+      "ms": 205,
+      "xCache": "HIT",
+      "startMs": 2826,
+      "status": 206,
+      "range": "bytes=0-16383"
+     },
+     {
+      "path": "gh/jppetry/buscosun-worldcover@cc3ce5590dd47a0fe002338607ba7c0b07ce9ea4/map/N48E009.tif",
+      "bytes": 109362,
+      "ttfbMs": 193,
+      "ms": 295,
+      "xCache": "HIT",
+      "startMs": 3034,
+      "status": 206,
+      "range": "bytes=8280881-8389490"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f030.png",
+      "bytes": 1355,
+      "ttfbMs": 431,
+      "ms": 432,
+      "xCache": "MISS, MISS",
+      "startMs": 3083,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f090.png",
+      "bytes": 1321,
+      "ttfbMs": 393,
+      "ms": 395,
+      "xCache": "MISS",
+      "startMs": 3084,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f150.png",
+      "bytes": 1200,
+      "ttfbMs": 376,
+      "ms": 378,
+      "xCache": "MISS",
+      "startMs": 3085,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f180.png",
+      "bytes": 1147,
+      "ttfbMs": 1975,
+      "ms": 1978,
+      "xCache": "MISS",
+      "startMs": 3086,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:12266/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 192,
+      "ms": 245,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 451,
+      "ms": 1344,
+      "startMs": 59,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 433,
+      "ms": 1009,
+      "startMs": 60,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 449,
+      "ms": 770,
+      "startMs": 61,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 449,
+      "ms": 934,
+      "startMs": 62,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.376",
+      "bytes": 611,
+      "ttfbMs": 236,
+      "ms": 239,
+      "startMs": 2812,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.976",
+      "bytes": 561,
+      "ttfbMs": 236,
+      "ms": 238,
+      "startMs": 2814,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=11.575",
+      "bytes": 627,
+      "ttfbMs": 235,
+      "ms": 237,
+      "startMs": 2815,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "raw.githubusercontent.com/jppetry/buscosun-data/main/point/static/hmodel/v1/t3/00_01.bin",
+      "bytes": 1581,
+      "ttfbMs": 231,
+      "ms": 235,
+      "startMs": 2822,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "raw.githubusercontent.com/jppetry/buscosun-data/main/point/static/urban/v1/static.json",
+      "bytes": 3809,
+      "ttfbMs": 229,
+      "ms": 236,
+      "startMs": 2823,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/inca/20260927T0330/meta.",
+      "bytes": 539,
+      "ttfbMs": 227,
+      "ms": 228,
+      "startMs": 2827,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.175",
+      "bytes": 996,
+      "ttfbMs": 175,
+      "ms": 176,
+      "startMs": 3056,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.775",
+      "bytes": 609,
+      "ttfbMs": 180,
+      "ms": 181,
+      "startMs": 3063,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.376",
+      "bytes": 758,
+      "ttfbMs": 179,
+      "ms": 181,
+      "startMs": 3063,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.976",
+      "bytes": 571,
+      "ttfbMs": 193,
+      "ms": 194,
+      "startMs": 3235,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=11.575",
+      "bytes": 746,
+      "ttfbMs": 180,
+      "ms": 182,
+      "startMs": 3250,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.175",
+      "bytes": 687,
+      "ttfbMs": 179,
+      "ms": 180,
+      "startMs": 3250,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.775",
+      "bytes": 769,
+      "ttfbMs": 195,
+      "ms": 196,
+      "startMs": 3434,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.376",
+      "bytes": 592,
+      "ttfbMs": 191,
+      "ms": 192,
+      "startMs": 3438,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.976",
+      "bytes": 544,
+      "ttfbMs": 189,
+      "ms": 191,
+      "startMs": 3439,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rzc/20260927T0400/frame.",
+      "bytes": 1382,
+      "ttfbMs": 179,
+      "ms": 181,
+      "startMs": 3632,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=11.575",
+      "bytes": 799,
+      "ttfbMs": 177,
+      "ms": 178,
+      "startMs": 3638,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.175",
+      "bytes": 764,
+      "ttfbMs": 174,
+      "ms": 176,
+      "startMs": 3641,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.775",
+      "bytes": 709,
+      "ttfbMs": 175,
+      "ms": 177,
+      "startMs": 3642,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.376",
+      "bytes": 546,
+      "ttfbMs": 195,
+      "ms": 197,
+      "startMs": 3834,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.976",
+      "bytes": 720,
+      "ttfbMs": 192,
+      "ms": 194,
+      "startMs": 3836,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=11.575",
+      "bytes": 667,
+      "ttfbMs": 191,
+      "ms": 193,
+      "startMs": 3837,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.175",
+      "bytes": 744,
+      "ttfbMs": 192,
+      "ms": 193,
+      "startMs": 4036,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.775",
+      "bytes": 694,
+      "ttfbMs": 189,
+      "ms": 190,
+      "startMs": 4039,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-warm-prog",
+   "rep": 0,
+   "wallMs": 2885,
+   "totalMs": 236.5,
+   "fullMs": 485.7999999523163,
+   "finalMs": 2879.699999809265,
+   "coreMs": 180,
+   "readMs": 180,
+   "firstMs": 180,
+   "result": {
+    "total": 236.5,
+    "fullMs": 485.7999999523163,
+    "finalMs": 2879.699999809265,
+    "emissions": [
+     {
+      "kind": "first",
+      "ms": 237,
+      "hours": 45,
+      "pending": [
+       "t2",
+       "t3",
+       "anchor"
+      ],
+      "z0": true,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     },
+     {
+      "kind": "core",
+      "ms": 486,
+      "hours": 337,
+      "pending": [
+       "anchor",
+       "nowcast",
+       "static"
+      ],
+      "z0": true,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     },
+     {
+      "kind": "update",
+      "ms": 2880,
+      "hours": 337,
+      "pending": [],
+      "z0": true,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     }
+    ],
+    "emission": "first",
+    "pending": [
+     "t2",
+     "t3",
+     "anchor"
+    ],
+    "firstHours": 45,
+    "update": {
+     "pending": [],
+     "sources": [
+      "cube-t1",
+      "cube-t2",
+      "cube-t3",
+      "mosmix",
+      "radolan",
+      "inca",
+      "rzc",
+      "dwd_obs"
+     ],
+     "notes": [
+      "anchor: 3 Paar(e) aus dwd_obs, Versatz T -1.64 K, Repräsentativität 0.28"
+     ]
+    },
+    "hours": 45,
+    "sourcesAvailable": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 180,
+     "coreMs": 180,
+     "firstMs": 180,
+     "algoMs": 41.7,
+     "outputMs": 12.9,
+     "totalMs": 235,
+     "doneAt": {
+      "terrain": 4,
+      "index": 6,
+      "cube.t2": 157,
+      "cube.t1": 175,
+      "first": 175,
+      "station": 180,
+      "z0": 3
+     }
+    },
+    "provenance": {
+     "indexCommit": "00781d2d6258895f6338301f3fa171152f528f60",
+     "runs": {
+      "t1": {
+       "run": "2026092700",
+       "sourceRun": "2026092700",
+       "sourceRunAtMs": 1790467200000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026092621",
+      "runAtMs": 1790456400000,
+      "ageH": 1.68,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 45,
+     "seams": [],
+     "perTier": {
+      "t1": 45,
+      "t2": 0,
+      "t3": 0
+     }
+    },
+    "flags": 26,
+    "notes": [
+     "index: aus der SWR-Kopie (5 s alt, Commit 00781d2) — Nachprüfung läuft (AP12)",
+     "anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist 4000 ms) — erste Ausgabe ohne Anker"
+    ],
+    "skips": [
+     "cube: t2/t3 folgen — erste Darstellung aus t1 bis 2026-09-29T00:00Z (E-F-3, AP12)"
+    ],
+    "errors": [],
+    "stats": {
+     "files": 34,
+     "bytes": 1794483,
+     "misses": 2,
+     "ms": 33013.79999947548,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 4
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 0,
+    "failed": 1,
+    "bytes": 20904,
+    "cdn": 5,
+    "hit": 2,
+    "miss": 4,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+     "bytes": 3926,
+     "ttfbMs": 2595,
+     "ms": 2606,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 5,
+     "api.brightsky.dev": 20
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 668,
+      "ttfbMs": 192,
+      "ms": 193,
+      "xCache": "HIT, MISS",
+      "startMs": 0,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_01.bin",
+      "ttfbMs": 2596,
+      "xCache": "MISS",
+      "startMs": 10,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3926,
+      "ttfbMs": 2595,
+      "ms": 2606,
+      "xCache": "HIT",
+      "startMs": 10,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/meta.json",
+      "bytes": 981,
+      "ttfbMs": 194,
+      "ms": 195,
+      "xCache": "MISS",
+      "startMs": 14,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0400/frame.png",
+      "bytes": 1686,
+      "ttfbMs": 193,
+      "ms": 194,
+      "xCache": "MISS, MISS",
+      "startMs": 15,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.376",
+      "bytes": 569,
+      "ttfbMs": 193,
+      "ms": 195,
+      "startMs": 481,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.976",
+      "bytes": 557,
+      "ttfbMs": 192,
+      "ms": 194,
+      "startMs": 481,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=11.575",
+      "bytes": 656,
+      "ttfbMs": 190,
+      "ms": 193,
+      "startMs": 482,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.175",
+      "bytes": 992,
+      "ttfbMs": 198,
+      "ms": 200,
+      "startMs": 677,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.775",
+      "bytes": 608,
+      "ttfbMs": 196,
+      "ms": 198,
+      "startMs": 678,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.376",
+      "bytes": 760,
+      "ttfbMs": 196,
+      "ms": 198,
+      "startMs": 679,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.976",
+      "bytes": 544,
+      "ttfbMs": 197,
+      "ms": 198,
+      "startMs": 882,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=11.575",
+      "bytes": 749,
+      "ttfbMs": 195,
+      "ms": 196,
+      "startMs": 883,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.175",
+      "bytes": 690,
+      "ttfbMs": 193,
+      "ms": 195,
+      "startMs": 885,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.775",
+      "bytes": 770,
+      "ttfbMs": 173,
+      "ms": 190,
+      "startMs": 1087,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.376",
+      "bytes": 585,
+      "ttfbMs": 190,
+      "ms": 192,
+      "startMs": 1089,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.976",
+      "bytes": 540,
+      "ttfbMs": 189,
+      "ms": 190,
+      "startMs": 1090,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=11.575",
+      "bytes": 790,
+      "ttfbMs": 193,
+      "ms": 195,
+      "startMs": 1279,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.175",
+      "bytes": 766,
+      "ttfbMs": 188,
+      "ms": 190,
+      "startMs": 1284,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.775",
+      "bytes": 724,
+      "ttfbMs": 186,
+      "ms": 195,
+      "startMs": 1286,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.376",
+      "bytes": 546,
+      "ttfbMs": 205,
+      "ms": 207,
+      "startMs": 1480,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.976",
+      "bytes": 695,
+      "ttfbMs": 202,
+      "ms": 203,
+      "startMs": 1484,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=11.575",
+      "bytes": 666,
+      "ttfbMs": 201,
+      "ms": 203,
+      "startMs": 1484,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.175",
+      "bytes": 740,
+      "ttfbMs": 197,
+      "ms": 199,
+      "startMs": 1694,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.775",
+      "bytes": 696,
+      "ttfbMs": 197,
+      "ms": 198,
+      "startMs": 1695,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-cold-prog-24h",
+   "rep": 0,
+   "wallMs": 3259,
+   "totalMs": 1769.2999999523163,
+   "fullMs": 1769.2999999523163,
+   "finalMs": 3253.600000143051,
+   "coreMs": 1597,
+   "readMs": 1598,
+   "firstMs": 1597,
+   "result": {
+    "total": 1769.2999999523163,
+    "fullMs": 1769.2999999523163,
+    "finalMs": 3253.600000143051,
+    "emissions": [
+     {
+      "kind": "first",
+      "ms": 1769,
+      "hours": 25,
+      "pending": [
+       "anchor",
+       "z0"
+      ],
+      "z0": false,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     },
+     {
+      "kind": "update",
+      "ms": 3254,
+      "hours": 25,
+      "pending": [],
+      "z0": true,
+      "border": 0,
+      "cc": false,
+      "lc": false
+     }
+    ],
+    "emission": "first",
+    "pending": [
+     "anchor",
+     "z0"
+    ],
+    "firstHours": 25,
+    "update": {
+     "pending": [],
+     "sources": [
+      "cube-t1",
+      "mosmix",
+      "radolan",
+      "inca",
+      "rzc",
+      "dwd_obs"
+     ],
+     "notes": [
+      "anchor: 3 Paar(e) aus dwd_obs, Versatz T -1.64 K, Repräsentativität 0.28"
+     ]
+    },
+    "hours": 25,
+    "sourcesAvailable": [
+     "cube-t1",
+     "mosmix",
+     "radolan",
+     "inca",
+     "rzc"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 1598,
+     "coreMs": 1597,
+     "firstMs": 1597,
+     "algoMs": 95.3,
+     "outputMs": 26.5,
+     "totalMs": 1747,
+     "doneAt": {
+      "index": 283,
+      "static": 711,
+      "nowcast": 1091,
+      "terrain": 1515,
+      "station": 1574,
+      "cube.t1": 1597,
+      "first": 1597,
+      "core": 1597,
+      "read": 1598
+     }
+    },
+    "provenance": {
+     "indexCommit": "00781d2d6258895f6338301f3fa171152f528f60",
+     "runs": {
+      "t1": {
+       "run": "2026092700",
+       "sourceRun": "2026092700",
+       "sourceRunAtMs": 1790467200000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026092621",
+      "runAtMs": 1790456400000,
+      "ageH": 1.68,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "radvor_rv",
+       "stamp": "2609270400",
+       "ageMin": 5,
+       "frames": 3,
+       "extrapolationH": 2
+      },
+      {
+       "source": "inca",
+       "stamp": "20260927T0330",
+       "ageMin": 35,
+       "frames": 4,
+       "extrapolationH": 3
+      },
+      {
+       "source": "combiprecip",
+       "stamp": "20260927T0400",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 25,
+     "seams": [],
+     "perTier": {
+      "t1": 25,
+      "t2": 0,
+      "t3": 0
+     }
+    },
+    "flags": 15,
+    "notes": [
+     "anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist 4000 ms) — erste Ausgabe ohne Anker",
+     "z0: WorldCover-Rauhigkeit folgt (progressiv: Abruf ab dem Kern) — diese Ausgabe ohne zweistufige Windkorrektur"
+    ],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 28,
+     "bytes": 1192058,
+     "misses": 2,
+     "ms": 9592.600000858307,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 4,
+     "viaWorker": 4,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 55,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1307680,
+    "cdn": 30,
+    "hit": 11,
+    "miss": 20,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026092700/t1/03_07.bin",
+     "bytes": 501902,
+     "ttfbMs": 230,
+     "ms": 1193,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "127.0.0.1:12266": 1,
+     "cdn.jsdelivr.net": 30,
+     "s3.amazonaws.com": 4,
+     "api.brightsky.dev": 20
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5719,
+      "ttfbMs": 249,
+      "ms": 251,
+      "xCache": "HIT, MISS",
+      "startMs": 35,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2304,
+      "ttfbMs": 255,
+      "ms": 266,
+      "xCache": "HIT",
+      "startMs": 312,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_07.bin",
+      "bytes": 1531,
+      "ttfbMs": 253,
+      "ms": 260,
+      "xCache": "MISS",
+      "startMs": 313,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3589,
+      "ttfbMs": 251,
+      "ms": 265,
+      "xCache": "HIT",
+      "startMs": 314,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_07.bin",
+      "bytes": 1065,
+      "ttfbMs": 251,
+      "ms": 258,
+      "xCache": "HIT",
+      "startMs": 315,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59634,
+      "ttfbMs": 250,
+      "ms": 498,
+      "xCache": "HIT",
+      "startMs": 315,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026092621/stations.json",
+      "bytes": 14684,
+      "ttfbMs": 251,
+      "ms": 343,
+      "xCache": "HIT",
+      "startMs": 316,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026092621/03_07.bin",
+      "bytes": 100765,
+      "ttfbMs": 249,
+      "ms": 596,
+      "xCache": "HIT",
+      "startMs": 318,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/meta.json",
+      "bytes": 637,
+      "ttfbMs": 248,
+      "ms": 255,
+      "xCache": "MISS",
+      "startMs": 319,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270355/meta.json",
+      "bytes": 660,
+      "ttfbMs": 246,
+      "ms": 254,
+      "xCache": "MISS",
+      "startMs": 321,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270350/meta.json",
+      "bytes": 627,
+      "ttfbMs": 245,
+      "ms": 252,
+      "xCache": "MISS",
+      "startMs": 322,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270345/meta.json",
+      "bytes": 661,
+      "ttfbMs": 244,
+      "ms": 251,
+      "xCache": "MISS, MISS",
+      "startMs": 323,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/meta.json",
+      "bytes": 981,
+      "ttfbMs": 240,
+      "ms": 248,
+      "xCache": "MISS",
+      "startMs": 327,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0315/meta.json",
+      "bytes": 669,
+      "ttfbMs": 236,
+      "ms": 244,
+      "xCache": "MISS",
+      "startMs": 329,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0400/meta.json",
+      "bytes": 567,
+      "ttfbMs": 237,
+      "ms": 245,
+      "xCache": "MISS",
+      "startMs": 330,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0355/meta.json",
+      "bytes": 576,
+      "ttfbMs": 234,
+      "ms": 245,
+      "xCache": "MISS",
+      "startMs": 330,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0350/meta.json",
+      "bytes": 564,
+      "ttfbMs": 233,
+      "ms": 244,
+      "xCache": "MISS",
+      "startMs": 331,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0345/meta.json",
+      "bytes": 568,
+      "ttfbMs": 233,
+      "ms": 244,
+      "xCache": "MISS",
+      "startMs": 332,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@00781d2d6258895f6338301f3fa171152f528f60/point/2026092700/run.json",
+      "bytes": 10586,
+      "ttfbMs": 231,
+      "ms": 322,
+      "xCache": "HIT",
+      "startMs": 334,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026092700/t1/03_07.bin",
+      "bytes": 501902,
+      "ttfbMs": 230,
+      "ms": 1193,
+      "xCache": "HIT",
+      "startMs": 335,
+      "status": 200,
+      "enc": "br"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260927T0400/frame.png",
+      "bytes": 1723,
+      "ttfbMs": 212,
+      "ms": 215,
+      "xCache": "MISS, MISS",
+      "startMs": 682,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/f000.png",
+      "bytes": 2699,
+      "ttfbMs": 186,
+      "ms": 203,
+      "xCache": "MISS",
+      "startMs": 713,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/f060.png",
+      "bytes": 2505,
+      "ttfbMs": 199,
+      "ms": 215,
+      "xCache": "MISS",
+      "startMs": 714,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609270400/f120.png",
+      "bytes": 2527,
+      "ttfbMs": 199,
+      "ms": 214,
+      "xCache": "MISS",
+      "startMs": 715,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f030.png",
+      "bytes": 1367,
+      "ttfbMs": 181,
+      "ms": 182,
+      "xCache": "MISS, MISS",
+      "startMs": 719,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f090.png",
+      "bytes": 1316,
+      "ttfbMs": 195,
+      "ms": 197,
+      "xCache": "MISS",
+      "startMs": 719,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f150.png",
+      "bytes": 1201,
+      "ttfbMs": 193,
+      "ms": 196,
+      "xCache": "MISS",
+      "startMs": 719,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260927T0330/f180.png",
+      "bytes": 1139,
+      "ttfbMs": 194,
+      "ms": 196,
+      "xCache": "MISS",
+      "startMs": 720,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-worldcover@cc3ce5590dd47a0fe002338607ba7c0b07ce9ea4/map/N48E009.tif",
+      "bytes": 17117,
+      "ttfbMs": 174,
+      "ms": 193,
+      "xCache": "HIT",
+      "startMs": 1756,
+      "status": 206,
+      "range": "bytes=0-16383"
+     },
+     {
+      "path": "gh/jppetry/buscosun-worldcover@cc3ce5590dd47a0fe002338607ba7c0b07ce9ea4/map/N48E009.tif",
+      "bytes": 109359,
+      "ttfbMs": 190,
+      "ms": 291,
+      "xCache": "HIT",
+      "startMs": 1955,
+      "status": 206,
+      "range": "bytes=8280881-8389490"
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:12266/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 191,
+      "ms": 253,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107115,
+      "ttfbMs": 528,
+      "ms": 1454,
+      "startMs": 38,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103855,
+      "ttfbMs": 527,
+      "ms": 1453,
+      "startMs": 39,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66610,
+      "ttfbMs": 610,
+      "ms": 1290,
+      "startMs": 41,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94470,
+      "ttfbMs": 609,
+      "ms": 1458,
+      "startMs": 42,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.376",
+      "bytes": 611,
+      "ttfbMs": 227,
+      "ms": 229,
+      "startMs": 1748,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.976",
+      "bytes": 561,
+      "ttfbMs": 226,
+      "ms": 227,
+      "startMs": 1749,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=11.575",
+      "bytes": 652,
+      "ttfbMs": 227,
+      "ms": 228,
+      "startMs": 1750,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.175",
+      "bytes": 996,
+      "ttfbMs": 184,
+      "ms": 185,
+      "startMs": 1979,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.775",
+      "bytes": 614,
+      "ttfbMs": 188,
+      "ms": 189,
+      "startMs": 1980,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.376",
+      "bytes": 751,
+      "ttfbMs": 186,
+      "ms": 188,
+      "startMs": 1982,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.976",
+      "bytes": 548,
+      "ttfbMs": 195,
+      "ms": 197,
+      "startMs": 2168,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=11.575",
+      "bytes": 746,
+      "ttfbMs": 191,
+      "ms": 193,
+      "startMs": 2173,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.175",
+      "bytes": 698,
+      "ttfbMs": 188,
+      "ms": 196,
+      "startMs": 2176,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.775",
+      "bytes": 766,
+      "ttfbMs": 189,
+      "ms": 190,
+      "startMs": 2372,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.376",
+      "bytes": 590,
+      "ttfbMs": 188,
+      "ms": 189,
+      "startMs": 2373,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.976",
+      "bytes": 544,
+      "ttfbMs": 187,
+      "ms": 188,
+      "startMs": 2377,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=11.575",
+      "bytes": 790,
+      "ttfbMs": 196,
+      "ms": 197,
+      "startMs": 2565,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.175",
+      "bytes": 764,
+      "ttfbMs": 195,
+      "ms": 197,
+      "startMs": 2566,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.775",
+      "bytes": 701,
+      "ttfbMs": 191,
+      "ms": 193,
+      "startMs": 2569,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.376",
+      "bytes": 546,
+      "ttfbMs": 196,
+      "ms": 198,
+      "startMs": 2768,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.976",
+      "bytes": 716,
+      "ttfbMs": 193,
+      "ms": 196,
+      "startMs": 2771,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=11.575",
+      "bytes": 666,
+      "ttfbMs": 192,
+      "ms": 195,
+      "startMs": 2772,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.175",
+      "bytes": 749,
+      "ttfbMs": 186,
+      "ms": 187,
+      "startMs": 2975,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.775",
+      "bytes": 696,
+      "ttfbMs": 185,
+      "ms": 187,
+      "startMs": 2977,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  }
+ ]
+}

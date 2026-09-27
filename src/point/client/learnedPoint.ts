@@ -18,7 +18,7 @@ export interface LoadedLearned {
   notes: string[];
 }
 
-async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
+export async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
   const subtle = (globalThis as { crypto?: Crypto }).crypto?.subtle;
   if (!subtle) return null;
   const buf = await subtle.digest('SHA-256', bytes.slice().buffer);

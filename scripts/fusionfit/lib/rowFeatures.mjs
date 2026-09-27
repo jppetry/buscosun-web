@@ -4,12 +4,12 @@
  * the form-K and form-P predictors per variable, σ_div/σ_ens, the per-variable source class of form P.
  * Used by the fit (`fit.mjs`) and by the scorer (`score.mjs`) — one definition of what a row means.
  *
- * Hot path: `prepareBatch(cols)` resolves the column arrays once per batch (no per-row string keys), the month of a
- * row is cached per day, and `rowContext(..., light)` skips Z and the per-source predictors when the caller only
- * needs targets and the cube member (anchor, ρ_f).
+ * Hot path: `prepareBatch(cols)` resolves the column arrays once per batch (no per-row string keys), the month and the
+ * half-month key of a row are cached per day, and `rowContext(..., light)` skips Z and the per-source predictors when
+ * the caller only needs targets and the cube member (anchor, ρ_f).
  */
 import { buildZ, dTsfcProxy, sourceToPoint, windComponents, Z_DIM } from '../../../src/point/fusionFit/features.ts';
-import { binIndex, binRange, FL_SOURCES, classKey } from '../../../src/point/fusionFit/strata.ts';
+import { binIndex, binRange, FL_SOURCES, classKey, halfMonthOf } from '../../../src/point/fusionFit/strata.ts';
 import { WET_MM_H } from '../../../src/point/fusionFit/design.ts';
 
 const H = 3_600_000;
@@ -54,8 +54,10 @@ export const ROW_COLUMNS = Object.freeze([
   ...[0, 1, 2, 3, 4, 5, 6].flatMap((k) => ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct'].map((v) => `s${k}_${v}`)),
 ]);
 
-const monthCache = new Map();
+const monthCache = new Map(), halfCache = new Map();
 const monthOfHour = (h) => { const d = Math.floor(h / 24); let m = monthCache.get(d); if (!m) { m = new Date(d * 86_400_000).toISOString().slice(0, 7); monthCache.set(d, m); } return m; };
+/** Half-month key of the row's valid hour (phase FX, C8 — `strata.ts halfMonthOf`), cached per day like the month. */
+const halfOfHour = (h) => { const d = Math.floor(h / 24); let m = halfCache.get(d); if (!m) { m = halfMonthOf(d * 86_400_000); halfCache.set(d, m); } return m; };
 
 /** Resolve the column arrays of a batch once. */
 export function prepareBatch(cols) {
@@ -102,7 +104,7 @@ export function rowContext(b, i, sites, light = false) {
   const dTsfcK = dTsfcProxy(fin(cols.c_t2m[i]) ? cols.c_t2m[i] : null, fin(cols.c_t850[i]) ? cols.c_t850[i] : null, fin(cols.c_hModEff[i]) ? cols.c_hModEff[i] : null);
   const ctx = {
     pointIdx: cols.pointIdx[i], site: st, tier, validAtMs, slotAtH: cols.slotAtH[i], dayIdx: Math.floor(cols.slotAtH[i] / 24), leadH, bin, route, srcMask, srcCount,
-    month: monthOfHour(validAtH), y, k, sigDiv, sigEns, dhM, dTsfcK, clsK: classKey('K', srcMask, route),
+    month: monthOfHour(validAtH), half: halfOfHour(validAtH), y, k, sigDiv, sigEns, dhM, dTsfcK, clsK: classKey('K', srcMask, route),
     z: null, p: null, pMask: null, pBase: null, wetShareK: 0, wetShareP: 0, clsP: null, fused: null,
   };
   if (light) return ctx;

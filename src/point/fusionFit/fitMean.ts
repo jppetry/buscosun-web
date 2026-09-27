@@ -11,10 +11,15 @@
  * sources after mean-bias removal, `combine`-style w = Σ⁻¹1/1ᵀΣ⁻¹1) are the prior of the ŷ_m coefficients, the
  * mean bias the prior of the intercept, zero everywhere else. λ by cross-validation over the time folds; the region
  * and band folds are reported (claim B). Nothing here reads rows — it works on the Gram groups the pass accumulated.
+ *
+ * Phase FX (C1, V-FX-5): with the station-climatology column μ_c in the design (`design.ts ClimaColumns`) and a
+ * forecast-anomaly correlation ρ_f as `rhoTarget`, the target becomes the optimal linear blend — β_ȳ = ρ (form K),
+ * w_m·ρ on the ŷ_m (form P), β_μc = 1 − ρ — instead of β_ȳ = 1 / w_m; without `rhoTarget` the target on the ŷ columns
+ * stays as it was and μ_c gets 0. `ridgeTarget` is the ONE place that builds it (the fit script rebuilds the fold β from it).
  */
 import { Gram, ridge, chooseLambda, variancePenalty, type CvResult } from './gram';
 import { Z_DIM, Z_NAMES } from './features';
-import { P_MODS, K_MODS, INTER_NAMES } from './design';
+import { P_MODS, K_MODS, INTER_NAMES, CLIMA_NAMES, type ClimaColumns } from './design';
 import { invSpd, nearestPd } from './linalg';
 import { foldsOverGroups, sourcesOfMask, STRATUM_MIN, type Form } from './strata';
 
@@ -26,16 +31,42 @@ export interface AxisGroups { month: Map<string, Gram>; region: Map<string, Gram
 export { P_MODS, K_MODS } from './design';
 
 /** Column names of the design of a stratum — the same order as `meanDesignK`/`meanDesignP` write it (`design.ts`). */
-export function designNames(form: Form, cls: string): string[] {
+export function designNames(form: Form, cls: string, clima: ClimaColumns = 'none'): string[] {
   const names: string[] = [...Z_NAMES];
   if (form === 'P') {
     const mask = parseInt(cls.slice(1), 16);
     for (const s of sourcesOfMask(mask)) for (const m of P_MODS) names.push(`${s}${m}`);
   } else for (const m of K_MODS) names.push(`cube${m}`);
   names.push(...INTER_NAMES);
+  if (clima === 'station') names.push(...CLIMA_NAMES);
   return names;
 }
-export const designDim = (form: Form, cls: string): number => designNames(form, cls).length;
+export const designDim = (form: Form, cls: string, clima: ClimaColumns = 'none'): number => designNames(form, cls, clima).length;
+
+/**
+ * Options of the mean fit (phase FX, C1): the climatology column of the design and the ρ_f ridge target. `rhoSelect`
+ * `cv` evaluates BOTH targets — today's (β_ȳ = 1, μ_c 0) and the ρ_f one — each with its own λ from the time-fold CV,
+ * and keeps the one with the lower held-out MSE per row (the one-line ridge-target probe; measured 25.09.2026: the fixed
+ * ρ target cost T/Td 0,1–2,1 % at 0–48 h where the data wanted β_ȳ ≈ 1). `fixed` (default) = the target as given.
+ */
+export interface MeanFitOptions { clima?: ClimaColumns; rhoTarget?: number | null; rhoSelect?: 'fixed' | 'cv' }
+
+/**
+ * The ridge target β0 of a stratum (length p): form P — the Σ-weights on the ŷ_m columns (times ρ when `rhoTarget` is
+ * given) and the bias on the intercept, both from `prior`; form K — ρ (or 1) on the ȳ column; with the station column,
+ * 1 − ρ (or 0) on μ_c. The intercept's target is irrelevant for form K (its penalty is 0).
+ */
+export function ridgeTarget(form: Form, cls: string, p: number, prior: MeanEntry['prior'], opts: MeanFitOptions = {}): Float64Array {
+  const target = new Float64Array(p);
+  const rho = opts.rhoTarget ?? null;
+  if (form === 'P' && prior) {
+    const srcs = sourcesOfMask(parseInt(cls.slice(1), 16));
+    srcs.forEach((s, i) => { target[Z_DIM + i * P_MODS.length] = (prior.weights[s] ?? 0) * (rho ?? 1); });
+    target[0] = prior.bias;
+  } else if (form === 'K') target[Z_DIM] = rho ?? 1;   // the cube member with weight 1 (or ρ) and no bias is the prior
+  if (opts.clima === 'station') target[p - CLIMA_NAMES.length] = rho != null ? 1 - rho : 0;
+  return target;
+}
 
 /** Pairwise error statistics of the sources of a class (form P): Σe_m, Σe_m e_k, n — for Σ and the weight prior. */
 export class ErrorStats {
@@ -94,6 +125,12 @@ export interface MeanEntry {
   jitter?: number;
   /** β per held-out month (fold without that month and its neighbours) — the scorer's out-of-sample coefficients. */
   folds?: Record<string, number[]>;
+  /** Phase FX (C1): the design's climatology column and the ρ_f ridge target of this stratum — written only when set (evidence). */
+  clima?: ClimaColumns;
+  rhoTarget?: number;
+  /** Phase FX (C1, `rhoSelect: 'cv'` only): the target the time-fold CV chose (1 = today's, else ρ_f) and the held-out MSE per row of both. */
+  rhoTargetChosen?: number;
+  rhoTargetCv?: { one: number | null; rho: number | null };
 }
 export interface CvSummary { mse: number; baseMse: number | null; /** 1 − MSE/MSE_base */ skill: number | null; folds: number; n: number }
 
@@ -107,29 +144,43 @@ const summarise = (r: CvResult | null): CvSummary | null => (r && r.heldN ? { ms
  * sources, or the cube member) for the skill report. Returns the entry: `too-short` below STRATUM_MIN, `no-skill` when
  * the time-fold CV shows no gain (the entry is kept for the record, `predict` ignores it).
  */
-export function fitStratum(form: Form, v: string, bin: number, cls: string, axes: AxisGroups, errors: ErrorStats | null, baseKey: string, min: { n: number; days: number } = STRATUM_MIN): MeanEntry {
-  const names = designNames(form, cls);
+export function fitStratum(form: Form, v: string, bin: number, cls: string, axes: AxisGroups, errors: ErrorStats | null, baseKey: string, min: { n: number; days: number } = STRATUM_MIN, opts: MeanFitOptions = {}): MeanEntry {
+  const clima = opts.clima ?? 'none';
+  const names = designNames(form, cls, clima);
   const p = names.length;
   const all = Gram.sum(axes.month.values(), p);
-  const base = { form, var: v, bin, cls, names, lambda: NaN, n: all.n, days: all.days.size, prior: null, cv: { time: null, region: null, band: null }, jitter: 0 };
+  // the option fields are written only when set, so a default fit's entries stay byte-identical to fusionFit@3
+  const base = { form, var: v, bin, cls, names, lambda: NaN, n: all.n, days: all.days.size, prior: null, cv: { time: null, region: null, band: null }, jitter: 0, ...(clima !== 'none' ? { clima } : {}), ...(opts.rhoTarget != null ? { rhoTarget: opts.rhoTarget } : {}) };
   if (all.n < min.n || all.days.size < min.days) return { ...base, beta: [], status: 'too-short' };
   // the prior: Σ-weights on the ŷ_m columns, the mean bias on the intercept
-  const target = new Float64Array(p);
   let prior: MeanEntry['prior'] = null;
   if (form === 'P' && errors && errors.n > 0) {
     const { bias, cov } = errors.covariance();
     const { w, effective } = minVarianceWeights(cov, errors.k);
     const srcs = sourcesOfMask(parseInt(cls.slice(1), 16));
     let b0 = 0;
-    for (let i = 0; i < srcs.length; i++) { target[Z_DIM + i * P_MODS.length] = w[i]; b0 += w[i] * -bias[i]; }
-    target[0] = b0;
+    for (let i = 0; i < srcs.length; i++) b0 += w[i] * -bias[i];
     prior = { bias: b0, weights: Object.fromEntries(srcs.map((s, i) => [s, w[i]])), effective, cov: Array.from(cov) };
-  } else if (form === 'K') {
-    target[Z_DIM] = 1;   // the cube member with weight 1 and no bias is the prior
   }
   const penalty = variancePenalty(all);
-  const cvTime = chooseLambda(axes.month, p, foldsOverGroups([...axes.month.keys()], 'month'), LAMBDAS, penalty, target, baseKey);
+  const foldsTime = foldsOverGroups([...axes.month.keys()], 'month');
+  // the ridge target — under `rhoSelect: 'cv'` both candidates (today's and ρ_f), each with its own λ, the lower held-out MSE wins (tie → today's)
+  const rho = opts.rhoTarget ?? null;
+  const selectCv = opts.rhoSelect === 'cv';
+  const candidates = selectCv && rho != null
+    ? [{ rho: null as number | null, target: ridgeTarget(form, cls, p, prior, { ...opts, rhoTarget: null }) }, { rho, target: ridgeTarget(form, cls, p, prior, opts) }]
+    : [{ rho, target: ridgeTarget(form, cls, p, prior, opts) }];
+  let pick = candidates[0], cvTime: CvResult | null = null, pickMse = Infinity;
+  const cvByCand: Array<number | null> = [];
+  for (const c of candidates) {
+    const cv = chooseLambda(axes.month, p, foldsTime, LAMBDAS, penalty, c.target, baseKey);
+    const mse = cv && cv.heldN ? cv.heldSse / cv.heldN : null;
+    cvByCand.push(mse);
+    if (mse != null && mse < pickMse) { pick = c; cvTime = cv; pickMse = mse; }
+  }
+  const target = pick.target;
   const lambda = cvTime?.lambda ?? 1;
+  const chosen = selectCv ? { rhoTargetChosen: pick.rho ?? 1, rhoTargetCv: { one: cvByCand[0] == null ? null : Math.round(cvByCand[0] * 1e6) / 1e6, rho: candidates.length > 1 && cvByCand[1] != null ? Math.round(cvByCand[1] * 1e6) / 1e6 : null } } : {};
   const cvRegion = chooseLambda(axes.region, p, foldsOverGroups([...axes.region.keys()], 'region'), [lambda], penalty, target, baseKey);
   const cvBand = chooseLambda(axes.band, p, foldsOverGroups([...axes.band.keys()], 'band'), [lambda], penalty, target, baseKey);
   const r = ridge(all, lambda, penalty, target);
@@ -137,7 +188,7 @@ export function fitStratum(form: Form, v: string, bin: number, cls: string, axes
   const cv = { time: summarise(cvTime), region: summarise(cvRegion), band: summarise(cvBand) };
   const skill = cv.time?.skill;
   const status: MeanEntry['status'] = skill != null && skill > 0 ? 'written' : 'no-skill';
-  return { ...base, beta: Array.from(r.beta).map((x) => Math.round(x * 1e6) / 1e6), lambda, prior, jitter: r.jitter, cv, status };
+  return { ...base, beta: Array.from(r.beta).map((x) => Math.round(x * 1e6) / 1e6), lambda, prior, jitter: r.jitter, cv, status, ...chosen };
 }
 
 /** μ from a design row and an entry. */

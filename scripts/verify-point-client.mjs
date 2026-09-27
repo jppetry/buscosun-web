@@ -1456,6 +1456,37 @@ let stationManifest;
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
 
+// --- (10r) Phase FX-5 (E-FX-8): das Klimatologieprodukt lesen (`climaPoint.ts`) — Hash, Prüfung, Priorität low, nie still --------
+{
+  const { loadClimaProduct } = await import('../src/point/client/climaPoint.ts');
+  const { memoryStore: ms } = await import('../src/point/client/store.ts');
+  const { POINT_CLIMA_PATH, CLIMA_PRODUCT, CLIMA_VERSION } = await import('../src/point/cubeFormat.ts');
+  const { CLIMA_PRODUCT_KIND, CLIMA_PRODUCT_SCHEMA, TREND_SETS } = await import('../src/point/fusionFit/climaProduct.ts');
+  const { C_NAMES, C_DIM } = await import('../src/point/fusionFit/fitClima.ts');
+  const { createHash } = await import('node:crypto');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const prios = [];
+  const storeWith = (bytes) => { const m = new Map(); if (bytes) m.set(POINT_CLIMA_PATH, bytes); const s = ms(m); return { ...s, bytes: (p, o) => { prios.push(o?.priority ?? null); return s.bytes(p, o); } }; };
+  const trendT = Array.from({ length: C_DIM }, (_, j) => TREND_SETS.geo.map((n) => (j === 0 && n === '1' ? 5 : 0)));
+  const doc = { schema: CLIMA_PRODUCT_SCHEMA, kind: CLIMA_PRODUCT_KIND, fitVersion: 'test', provenance: 'hindcast', builtAt: '2026-09-27T00:00:00Z', estimator: { kind: 'ridge', k: 3, power: 2, heightSlope: 'none' },
+    design: C_NAMES, vars: ['t', 'td', 'gust'], lapse: null, trend: { names: TREND_SETS.geo, beta: { t: trendT }, lambda: {} }, stations: [{ id: 'S1', lat: 48, lon: 11, elevM: 500, country: 'DE', mu: {} }],
+    source: { clima: 'test', sha256: null, period: null, days: null, points: 1 }, licence: ['test'], notes: [] };
+  const bytes = enc(doc);
+  const ok = await loadClimaProduct(storeWith(bytes));
+  add('(10r) Pfad `point/static/clima/v1/stations.json` (zeitloses statisches Produkt); gültiges Produkt: lesbar, sha256 der Bytes (gegen node:crypto), Priorität low, keine Notiz',
+    POINT_CLIMA_PATH === `point/static/${CLIMA_PRODUCT}/${CLIMA_VERSION}/stations.json` && ok.product?.kind === CLIMA_PRODUCT_KIND && ok.hash === createHash('sha256').update(bytes).digest('hex') && ok.notes.length === 0 && prios.every((p) => p === 'low') && prios.length === 1,
+    `${POINT_CLIMA_PATH} · ${ok.hash?.slice(0, 16)} · prio ${prios.join(',')}`);
+  const missing = await loadClimaProduct(storeWith(null));
+  const broken = await loadClimaProduct(storeWith(new TextEncoder().encode('{kein json')));
+  const wrong = await loadClimaProduct(storeWith(enc({ ...doc, kind: 'x' })));
+  const outside = await loadClimaProduct(storeWith(enc({ ...doc, trend: { ...doc.trend, beta: { t: trendT, u: trendT } } })));
+  add('(10r) nie still: fehlende Datei, kein JSON, falsche kind, Trend einer Größe außerhalb vars ⇒ kein Produkt, je mit Notiz; Hash nur mit Bytes',
+    missing.product === null && missing.hash === null && /nicht lesbar/.test(missing.notes[0])
+    && broken.product === null && /^[0-9a-f]{64}$/.test(broken.hash ?? '') && /kein JSON/.test(broken.notes[0])
+    && wrong.product === null && /ungültig \(kind x/.test(wrong.notes[0]) && outside.product === null && /trend u: Größe nicht in vars/.test(outside.notes[0]),
+    [missing, broken, wrong, outside].map((r) => r.notes[0]?.slice(0, 70)).join(' | '));
+}
+
 // --- Ausgabe ----------------------------------------------------------------
 let failed = 0;
 for (const c of checks) {

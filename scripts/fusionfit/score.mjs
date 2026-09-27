@@ -2,7 +2,9 @@
  * score.mjs — the scorecard of phase FL (FL-AP4; `audit/fusion-lernphase.md` §6, PAP 9). Streams the case files,
  * builds every candidate's distribution per row and variable, and scores them out of sample:
  *
- *   fl-K, fl-P   the learning stage (forms K and P) with the β of the fold WITHOUT the row's month
+ *   fl-K, fl-P   the learning stage (forms K and P) with the β of the fold WITHOUT the row's month — or, when the
+ *                tables were fitted on half-month folds (`inputs.foldScheme = half`, phase FX C8), WITHOUT the row's
+ *                own half-month group (the key is per ROW, `ctx.half`; a month table keeps the per-FILE month)
  *   cube         the current engine (fused distribution stored in the row — candidate „heutiger Cube")
  *   mmm          equal-weight mean of the height-corrected sources (deterministic; CRPS = MAE)
  *   src:<id>     each source, height-corrected (deterministic)
@@ -15,9 +17,25 @@
  * Benjamini–Hochberg over all DM tests; the gates G-FL-1…4. FSS is not defined at points (no neighbourhood) — ETS at
  * the thresholds stands in, and says so in the header.
  *
+ * Phase FX (M1/C5, absorbs V-FL-14/39/41/42): the spread is the sd of the OBSERVABLE variable (`stats.mjs sdOf` —
+ * Tobit sd of the censored normal, closed TN sd, Rice sd) and `spreadSkill` its rms form √E[sd²]/RMSE, which G2 reads;
+ * the former latent-σ definition stays as `spreadSkillLatent`. The PIT is randomised on the atoms (`pitRandomOf`) with
+ * one deterministic u per (row, variable) shared by all candidates. Score-only strata `lead:<h>` and `season:<DJF…>`
+ * carry CRPS/MAE per lead hour and season (no pairs/Brier/ETS); the markdown names per variable the crossing hour
+ * where fl-K falls behind the climatology for good.
+ *
+ * Phase FX-5 (§6.5, E-FX-8): a table with `design.mean.climaVars` gets μ_c only for the listed variables — `predict` decides per
+ * variable (`tables.ts climaColumnsFor`), the scorer passes μ_c for every variable as before; the header and `inputs.climaVars` name the list.
+ *
+ * Phase FX-4 (§6.4): `--refTables=<label>=<path>[,<label>=<path>]` scores the form K of up to two REFERENCE tables on the
+ * same rows as candidates `fl-K@<label>` (their own fold scheme, their own μ_c definition) and pairs fl-K against them
+ * (DM/BH on identical rows — the like-for-like test across fits); a table with `climaMu` (estimated μ_c, `fit.mjs
+ * --climaMu`) gets its μ_c from there, the `clima` reference candidate stays the station climatology of the main tables;
+ * strata `dnn:<bin>` = the station's distance to the nearest OTHER station with a climatology (< 10, 10–20, 20–35, > 35 km).
+ *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fusionfit/score.mjs
  *       --tables=<root>\fit\<date>\fusion.hindcast.json [--cases=…] [--features=…] [--out=<root>\score\<date>\scorecard.json]
- *       [--stride=4] [--months=2025-09,2026-09] [--riceN=96]
+ *       [--stride=4] [--months=2025-09,2026-09] [--riceN=96] [--refTables=5a=<path>,5b=<path>]
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -26,15 +44,16 @@ import { HINDCAST_ROOT, parseArgs, codeHash } from '../hindcast/lib/common.mjs';
 import { readCases } from './lib/casesio.mjs';
 import { rowContext, prepareBatch, siteOf, ROW_COLUMNS, FIT_VARS } from './lib/rowFeatures.mjs';
 import { truthReader } from './lib/truthJoin.mjs';
-import { ScoreAcc, BrierAcc, EtsAcc, PairAcc, benjaminiHochberg, crpsByCdf } from './lib/stats.mjs';
-import { crpsOf, crpsNormal, crpsTruncatedNormal, pitOf, quantileOf, exceedance, meanOf } from '../../src/pointForecast/fusion/dist.ts';
+import { ScoreAcc, BrierAcc, EtsAcc, PairAcc, benjaminiHochberg, crpsByCdf, sdOf, pitRandomOf } from './lib/stats.mjs';
+import { crpsOf, crpsNormal, crpsTruncatedNormal, quantileOf, exceedance, meanOf } from '../../src/pointForecast/fusion/dist.ts';
 import { predict } from '../../src/point/fusionFit/predict.ts';
 import { climaDesign, climaAt, C_DIM } from '../../src/point/fusionFit/fitClima.ts';
 import { validateTables } from '../../src/point/fusionFit/tables.ts';
-import { stratumKey, classKey, FL_SOURCES } from '../../src/point/fusionFit/strata.ts';
+import { stratumKey, classKey, FL_SOURCES, binIndex } from '../../src/point/fusionFit/strata.ts';
 import { windComponents } from '../../src/point/fusionFit/features.ts';
 import { anchorWeightFromCurve } from '../../src/pointForecast/anchor.ts';
 import { speedLaw } from '../../src/point/fusionFit/fitSpeed.ts';
+import { lcg } from '../../src/point/calibFit.ts';
 
 const H = 3_600_000;
 const flags = parseArgs(process.argv.slice(2));
@@ -53,6 +72,19 @@ const tablesBytes = readFileSync(tablesPath);
 const tables = JSON.parse(tablesBytes.toString('utf8'));
 const terr = validateTables(tables);
 if (terr.length) throw new Error(`Tabellen ungültig: ${terr.join('; ')}`);
+// phase FX-4: reference tables (form K only) scored on the same rows as `fl-K@<label>`
+const refTables = [];
+if (typeof flags.refTables === 'string') {
+  for (const spec of flags.refTables.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const eq = spec.indexOf('='), label = eq > 0 ? spec.slice(0, eq) : `ref${refTables.length + 1}`, p = eq > 0 ? spec.slice(eq + 1) : spec;
+    const b = readFileSync(p), T = JSON.parse(b.toString('utf8'));
+    const e = validateTables(T); if (e.length) throw new Error(`Referenztabellen ${label} ungültig: ${e.join('; ')}`);
+    refTables.push({ label, path: p, sha256: createHash('sha256').update(b).digest('hex'), tables: T, foldScheme: T.inputs?.foldScheme === 'half' ? 'half' : 'month' });
+  }
+  say(`Referenztabellen: ${refTables.map((r) => `fl-K@${r.label} = ${r.path} (${r.tables.fitVersion}, Falten ${r.foldScheme}, clima ${r.tables.design?.mean?.clima ?? 'none'}${r.tables.climaMu ? `, μ_c geschätzt ${r.tables.climaMu.candidate}` : ''})`).join(' · ')}`);
+}
+if (tables.design?.mean?.climaVars) say(`μ_c-Spalte nur für ${tables.design.mean.climaVars.join(', ')} (design.mean.climaVars, Phase FX-5) — die übrigen Größen rechnen das none-Design`);
+if (tables.climaMu) say(`μ_c der fl-K/fl-P-Situation aus tables.climaMu (geschätzt, Kandidat ${tables.climaMu.candidate}, ${Object.keys(tables.climaMu.byPoint).length} Stationen); der Kandidat clima bleibt die Stationsklimatologie`);
 // FL-AP8b (V-FL-20): candidate `fl-K+anchor` — form K plus the lead-1 residual of the same (point, slot) carried with the
 // measured persistence weight w(τ) from `tables.anchor` (run route, tier t1, leads 2…48; σ unchanged). Off with --anchor=0
 // or without an anchor block. The curve was fitted on all months (not out of fold) — slightly optimistic, said in the notes.
@@ -69,18 +101,25 @@ for (const m of readdirSync(casesDir).filter((d) => /^\d{4}-\d{2}$/.test(d)).sor
 let sites = null, pointIds = null;
 
 // ── candidates ────────────────────────────────────────────────────────────────
-/** Tables with the fold β of one month swapped in (out of sample). */
-const foldTablesCache = new Map();
-const tablesForMonth = (month) => {
-  if (foldTablesCache.has(month)) return foldTablesCache.get(month);
+/**
+ * Tables with the fold β of one time key swapped in (out of sample). Phase FX (C8): under `inputs.foldScheme = half` the
+ * key is the ROW's half-month group (`ctx.half` = `halfMonthOf(validAtH·3 600 000)`, one cached table per key); a month
+ * table keeps the per-FILE month of the pre-FX scorer, so a Fit-4 card scores byte-identically.
+ */
+const foldScheme = tables.inputs?.foldScheme === 'half' ? 'half' : 'month';
+const foldTablesCache = new Map();   // tables object → Map<key, fold tables>
+const tablesForFoldOf = (T, key) => {
+  let cache = foldTablesCache.get(T); if (!cache) { cache = new Map(); foldTablesCache.set(T, cache); }
+  if (cache.has(key)) return cache.get(key);
   const mean = {}, occurrence = {};
-  for (const [k, e] of Object.entries(tables.mean)) mean[k] = e.folds?.[month] ? { ...e, beta: e.folds[month] } : e;
-  // fusionFit@3: the hurdle carries fold β too (one Newton step from the pooled β, V-FL-18)
-  for (const [k, e] of Object.entries(tables.occurrence)) occurrence[k] = e.folds?.[month] ? { ...e, beta: e.folds[month] } : e;
-  const t = { ...tables, mean, occurrence };
-  foldTablesCache.set(month, t);
+  for (const [k, e] of Object.entries(T.mean)) mean[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
+  // fusionFit@3: the hurdle carries fold β too (exact per-fold Newton fits, V-FL-18/36)
+  for (const [k, e] of Object.entries(T.occurrence)) occurrence[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
+  const t = { ...T, mean, occurrence };
+  cache.set(key, t);
   return t;
 };
+const tablesForFold = (key) => tablesForFoldOf(tables, key);
 const cx = new Float64Array(C_DIM);
 const climaEntry = (site, v) => tables.clima?.byPoint?.[site.id]?.[v] ?? tables.clima?.pooled?.[`${site.band}|${site.country}`]?.[v] ?? null;
 const climaDist = (site, v, x) => { const e = climaEntry(site, v); return e && e.status === 'written' ? climaAt(e, x) : null; };
@@ -93,8 +132,26 @@ const distOrNull = (d) => (d ? { det: false, dist: d } : null);
  * Candidates per variable for one row: { name → { det, value | dist } }. Variables scored: t, td, ws (speed), gust,
  * clct, precip (amount mm/h with atom).
  */
-/** The form-K situation of a row (the same glue as the client adapter). */
-const sitK = (ctx) => ({ z: ctx.z, leadH: ctx.leadH, route: ctx.route, srcMask: ctx.srcMask, srcCount: ctx.srcCount, dhM: ctx.dhM, dTsfcK: ctx.dTsfcK, k: ctx.k, p: {}, sigDiv: ctx.sigDiv, sigEns: ctx.sigEns, wetShare: ctx.wetShareK, pDryCube: ctx.pDryCube });
+/**
+ * The form-K situation of a row (the same glue as the client adapter). Phase FX: plus μ_c per variable (station entry,
+ * fallback pooled band|country — the rule of the `clima` candidate; a table without the station column ignores it) and the
+ * site's height band (a written band entry of the speed law then wins). The clima design row is built here so
+ * `anchorResiduals` (called before `candidatesOf` fills the shared `cx`) sees the same μ_c.
+ */
+const cxS = new Float64Array(C_DIM);
+/** μ_c of a station and variable under a table's definition: its `climaMu` estimate (phase FX-4) when it has one, else the station climatology (fallback pooled). */
+const muCOfTable = (T, site, v, x) => {
+  const est = T.climaMu?.byPoint?.[site.id]?.[v];
+  if (est) { let s = 0; for (let i = 0; i < C_DIM; i++) s += est[i] * x[i]; return s; }
+  if (T.climaMu) { const pe = T.clima?.pooled?.[`${site.band}|${site.country}`]?.[v]; return pe && pe.status === 'written' ? climaAt(pe, x).mu : null; }
+  const d = climaDist(site, v, x); return d ? d.mu : null;
+};
+const sitK = (ctx, T = tables) => {
+  climaDesign(ctx.validAtMs, ctx.site.site.lonDeg, cxS);
+  const muC = {};
+  for (const v of FIT_VARS) muC[v] = muCOfTable(T, ctx.site, v, cxS);
+  return { z: ctx.z, leadH: ctx.leadH, route: ctx.route, srcMask: ctx.srcMask, srcCount: ctx.srcCount, dhM: ctx.dhM, dTsfcK: ctx.dTsfcK, k: ctx.k, p: {}, sigDiv: ctx.sigDiv, sigEns: ctx.sigEns, wetShare: ctx.wetShareK, pDryCube: ctx.pDryCube, muC, band: ctx.site.band };
+};
 
 /** Lead-1 residuals e₁ = y − μ_K of one (point, slot) — the innovation the anchor of the learned product would carry. */
 function anchorResiduals(ctx, tbl) {
@@ -104,7 +161,7 @@ function anchorResiduals(ctx, tbl) {
   return e;
 }
 
-function candidatesOf(ctx, tbl, e1 = null) {
+function candidatesOf(ctx, tbl, e1 = null, refTbls = null) {
   const c = { t: {}, td: {}, ws: {}, gust: {}, clct: {}, precip: {} };
   const s = ctx.site;
   climaDesign(ctx.validAtMs, s.site.lonDeg, cx);
@@ -112,7 +169,9 @@ function candidatesOf(ctx, tbl, e1 = null) {
   const sit = sitK(ctx);
   const pK = predict(tbl, 'K', sit);
   const pP = predict(tbl, 'P', { ...sit, p: ctx.p, srcMask: ctx.pMask.t, wetShare: ctx.wetShareP });
-  for (const [name, pr] of [['fl-K', pK], ['fl-P', pP]]) {
+  // phase FX-4: the reference tables' form K on the same row, each with ITS μ_c definition and ITS fold β
+  const learned = [['fl-K', pK], ['fl-P', pP], ...(refTbls ?? []).map(([label, T]) => [`fl-K@${label}`, predict(T, 'K', sitK(ctx, T))])];
+  for (const [name, pr] of learned) {
     if (pr.dist.temperature) c.t[name] = distOrNull(pr.dist.temperature);
     if (pr.dist.dewPoint) c.td[name] = distOrNull(pr.dist.dewPoint);
     if (pr.dist.windSpeed) c.ws[name] = distOrNull(pr.dist.windSpeed);
@@ -183,28 +242,46 @@ const brier = new Map();      // `${v}|${bin}|${cand}|${thr}` → BrierAcc (prob
 const ets = new Map();        // `${v}|${bin}|${cand}|${thr}` → EtsAcc
 const pairs = new Map();      // `${v}|${bin}|${cand}|${ref}|${stratum}` → PairAcc
 const REFS = ['cube', 'mmm', 'clima', 'persist', 'apersist', ...FL_SOURCES.slice(0, 7).map((s) => `src:${s}`)];
+/** Phase FX-4: the reference-table candidates are paired with fl-K only (the gates G1/G4 stay on `REFS`). */
+const REF_TABLE_NAMES = refTables.map((r) => `fl-K@${r.label}`);
+const DNN_BINS = [[0, 10, '<10km'], [10, 20, '10-20km'], [20, 35, '20-35km'], [35, Infinity, '>35km']];
+const dnnBinOf = (d) => (d == null ? null : DNN_BINS.find(([lo, hi]) => d >= lo && d < hi)[2]);
+let dnnKm = null;   // per site index: distance to the nearest OTHER station with a climatology (filled once the header is known)
 const getOr = (map, key, mk) => { let a = map.get(key); if (!a) { a = mk(); map.set(key, a); } return a; };
 const VAR_TRUTH = { t: 't', td: 'td', ws: 'ff', gust: 'gust', clct: 'clct', precip: 'rr' };
+const VAR_IDX = { t: 0, td: 1, ws: 2, gust: 3, clct: 4, precip: 5 };
+const SEASON = ['DJF', 'DJF', 'MAM', 'MAM', 'MAM', 'JJA', 'JJA', 'JJA', 'SON', 'SON', 'SON', 'DJF'];
+/**
+ * The uniform draw of the randomised PIT (phase FX, C5): deterministic per (row, variable) from pointIdx and validAtH through
+ * the seeded LCG of `calibFit.ts` (the first output is discarded — it is affine in the seed), shared by every candidate of
+ * that row and variable, so their PIT histograms are compared on the same draws.
+ */
+const pitDraw = (ctx, v) => { const g = lcg((ctx.pointIdx * 1_000_003 + Math.round(ctx.validAtMs / H) * 7919 + VAR_IDX[v] * 104_729) >>> 0); g(); return g(); };
 
 function scoreRow(ctx, cands) {
-  const strata = ['all', `country:${ctx.site.country}`, `band:${ctx.site.band}`, `route:${ctx.route}`];
+  const dnn = dnnKm ? dnnBinOf(dnnKm[ctx.pointIdx]) : null;
+  const strata = ['all', `country:${ctx.site.country}`, `band:${ctx.site.band}`, `route:${ctx.route}`, ...(dnn ? [`dnn:${dnn}`] : [])];
+  // score-only strata (phase FX): per lead hour and season — CRPS/MAE/PIT only, no pairs/Brier/ETS
+  const accStrata = [...strata, `lead:${ctx.leadH}`, `season:${SEASON[new Date(ctx.validAtMs).getUTCMonth()]}`];
   for (const v of Object.keys(cands)) {
     const y = ctx.y[VAR_TRUTH[v]];
     if (y == null || !Number.isFinite(y)) continue;
     const scores = {};
+    const u = pitDraw(ctx, v);
     for (const [name, cd] of Object.entries(cands[v])) {
       if (!cd) continue;
-      let point, crps = null, pit = null, sigma = null;
+      let point, crps = null, pit = null, sigma = null, sd = null;
       if (cd.det) { point = cd.value; }
       else {
         const d = cd.dist;
+        // `sigma` = the latent spread of the pre-FX scorer (kept for `spreadSkillLatent`), `sd` = the observable sd (`sdOf`, the gate's measure)
         if (d.kind === 'rice') {
-          // no bisection: the CDF integral on [0, ν + 8σ] (riceN cells), the mean as point value, σ (per component) as spread
+          // no bisection: the CDF integral on [0, ν + 8σ] (riceN cells), the mean as point value, σ (per component) as latent spread
           point = meanOf(d);
           crps = crpsByCdf(d, y, 0, d.nu + 8 * d.sigma + 1, riceN);
           sigma = d.sigma;
         } else if (d.kind === 'truncatedNormal') {
-          // fusionFit@3 (V-FL-22): the speed law — mean as point value (like the Rice), CRPS closed form, spread from the quantiles
+          // fusionFit@3 (V-FL-22): the speed law — mean as point value (like the Rice), CRPS closed form, latent spread from the quantiles
           point = meanOf(d);
           crps = crpsTruncatedNormal(d.mu, d.sigma, d.lo, y);
           sigma = (quantileOf(d, 0.8413) - quantileOf(d, 0.1587)) / 2;
@@ -213,12 +290,13 @@ function scoreRow(ctx, cands) {
           crps = d.kind === 'normal' ? crpsNormal(d.mu, d.sigma, y) : crpsOf(d, y, d.kind === 'hurdleLogNormal' ? riceN : 256);
           sigma = d.kind === 'normal' || d.kind === 'censoredNormal' ? d.sigma : (quantileOf(d, 0.84) - quantileOf(d, 0.16)) / 2;
         }
-        pit = pitOf(d, y);
+        sd = sdOf(d);
+        pit = pitRandomOf(d, y, u);
         if (!Number.isFinite(crps)) continue;
       }
       if (!Number.isFinite(point)) continue;
       scores[name] = crps == null ? Math.abs(point - y) : crps;
-      for (const st of strata) getOr(acc, `${v}|${ctx.bin}|${name}|${st}`, () => new ScoreAcc()).add(point - y, crps, pit, sigma);
+      for (const st of accStrata) getOr(acc, `${v}|${ctx.bin}|${name}|${st}`, () => new ScoreAcc()).add(point - y, crps, pit, sigma, sd);
       for (const thr of THRESH[v] ?? []) {
         const ob = v === 't' ? y < thr : y >= thr;
         if (!cd.det) { const p = v === 't' ? 1 - exceedance(cd.dist, thr) : exceedance(cd.dist, thr); getOr(brier, `${v}|${ctx.bin}|${name}|${thr}`, () => new BrierAcc()).add(Math.min(1, Math.max(0, p)), ob ? 1 : 0); getOr(ets, `${v}|${ctx.bin}|${name}|${thr}`, () => new EtsAcc()).add(p >= 0.5, ob); }
@@ -227,8 +305,8 @@ function scoreRow(ctx, cands) {
     }
     for (const cand of ['fl-K', 'fl-P', 'cube', 'fl-K+anchor']) {
       if (scores[cand] == null) continue;
-      // the anchor candidate is tested against fl-K itself (the pair that measures V-FL-20) and the references
-      for (const ref of cand === 'fl-K+anchor' ? ['fl-K', ...REFS] : REFS) {
+      // the anchor candidate is tested against fl-K itself (the pair that measures V-FL-20) and the references; fl-K also against the reference tables (FX-4)
+      for (const ref of cand === 'fl-K+anchor' ? ['fl-K', ...REFS] : cand === 'fl-K' ? [...REFS, ...REF_TABLE_NAMES] : REFS) {
         if (ref === cand || scores[ref] == null) continue;
         for (const st of strata) getOr(pairs, `${v}|${ctx.bin}|${cand}|${ref}|${st}`, () => new PairAcc()).add(ctx.dayIdx, scores[cand], scores[ref]);
       }
@@ -241,9 +319,20 @@ const T0 = Date.now();
 let rows = 0, scored = 0;
 let curAnchor = null, anchorSlots = 0, anchoredRows = 0;   // FL-AP8b: lead-1 residuals of the current (point, slot)
 for (const f of files) {
-  const tbl = tablesForMonth(f.month);
+  // month scheme: the per-FILE month (pre-FX behaviour); half scheme: the per-ROW half-month group (also for the lead-1 anchor row)
+  const tblFile = foldScheme === 'month' ? tablesForFold(f.month) : null;
+  const tblOf = (ctx) => tblFile ?? tablesForFold(ctx.half);
+  // the reference tables' fold tables per row (their own scheme), phase FX-4
+  const refFold = (ctx) => refTables.map((r) => [r.label, tablesForFoldOf(r.tables, r.foldScheme === 'month' ? f.month : ctx.half)]);
   const r = await readCases(f.path, { columns: ROW_COLUMNS, batchRows: 32768, onBatch: (cols, n, header) => {
-    if (!sites) { pointIds = header.points; sites = pointIds.map((id) => (feat.byPoint[id] ? siteOf(feat.byPoint[id]) : null)); }
+    if (!sites) {
+      pointIds = header.points; sites = pointIds.map((id) => (feat.byPoint[id] ? siteOf(feat.byPoint[id]) : null));
+      // d_nn per site: nearest OTHER station that has a climatology entry (the information source of an estimated μ_c)
+      const withClima = tables.clima?.byPoint ? new Set(Object.keys(tables.clima.byPoint)) : null;
+      const pool = sites.map((s, i) => (s && (!withClima || withClima.has(s.id)) ? { i, lat: feat.byPoint[s.id].lat, lon: feat.byPoint[s.id].lon, id: s.id } : null)).filter(Boolean);
+      const dist = (a, b) => { const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r; const q = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2; return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(q))); };
+      dnnKm = sites.map((s) => { if (!s) return null; const me = { lat: feat.byPoint[s.id].lat, lon: feat.byPoint[s.id].lon }; let best = null; for (const o of pool) { if (o.id === s.id) continue; const d = dist(me, o); if (best == null || d < best) best = d; } return best; });
+    }
     const b = prepareBatch(cols);
     for (let i = 0; i < n; i++) {
       rows += 1;
@@ -251,7 +340,7 @@ for (const f of files) {
       // ordered per point and slot (the same contract `fit.mjs` pass B relies on)
       if (withAnchor && f.tier === 't1' && cols.leadH[i] === 1) {
         const c1 = rowContext(b, i, sites, false);
-        curAnchor = c1 && c1.route === 1 ? { p: cols.pointIdx[i], s: c1.slotAtH, e: anchorResiduals(c1, tbl) } : null;
+        curAnchor = c1 && c1.route === 1 ? { p: cols.pointIdx[i], s: c1.slotAtH, e: anchorResiduals(c1, tblOf(c1)) } : null;
         anchorSlots += curAnchor ? 1 : 0;
       }
       if ((cols.validAtH[i] + cols.pointIdx[i]) % stride !== 0) continue;
@@ -260,7 +349,7 @@ for (const f of files) {
       scored += 1;
       const e1 = withAnchor && f.tier === 't1' && ctx.route === 1 && curAnchor && curAnchor.p === cols.pointIdx[i] && curAnchor.s === ctx.slotAtH ? curAnchor.e : null;
       if (e1) anchoredRows += 1;
-      scoreRow(ctx, candidatesOf(ctx, tbl, e1));
+      scoreRow(ctx, candidatesOf(ctx, tblOf(ctx), e1, refTables.length ? refFold(ctx) : null));
     }
   } });
   say(`${f.month} ${f.tier}: ${r.rows} Zeilen, ${scored} bewertet, ${Math.round((Date.now() - T0) / 1000)} s`);
@@ -269,9 +358,21 @@ for (const f of files) {
 // ── summaries, tests, gates ───────────────────────────────────────────────────
 const card = {
   schema: 1, kind: 'fusionfit/scorecard', builtAt: new Date().toISOString(), codeHash: codeHash(), tables: { path: tablesPath, sha256: createHash('sha256').update(tablesBytes).digest('hex'), fitVersion: tables.fitVersion, provenance: tables.provenance },
-  inputs: { cases: casesDir, files: files.length, rows, scored, stride, riceN, months: [...new Set(files.map((f) => f.month))].sort(), anchor: withAnchor ? { slots: anchorSlots, rows: anchoredRows } : null },
-  notes: ['FSS ist an Punkten nicht definiert (keine Nachbarschaft) — ETS an den Schwellen steht dafür.', 'Deterministische Kandidaten: CRPS = MAE.', 'fl-K/fl-P mit den β der Zeitfalte ohne den Monat der Zeile (und seine Nachbarn); Varianz-, Hürden- und Klimatologie-Tabellen über alle Monate gepoolt (Stufe 1).', 'Wind (Rice): CRPS als CDF-Integral auf [0, ν + 8σ] mit riceN Zellen, Punktwert = Erwartungswert, Spread = σ je Komponente (Spread/Skill des Windes deshalb nur näherungsweise).', 'Niederschlag: PIT und Spread/Skill sind bei einer Verteilung mit Atom nicht aussagekräftig (G2 entfällt); Brier/ETS an 0,1/1/5 mm/h tragen die Kalibrierung.',
+  inputs: { cases: casesDir, files: files.length, rows, scored, stride, riceN, months: [...new Set(files.map((f) => f.month))].sort(), foldScheme, anchor: withAnchor ? { slots: anchorSlots, rows: anchoredRows } : null,
+    ...(tables.climaMu ? { climaMu: { candidate: tables.climaMu.candidate, estimator: tables.climaMu.estimator, trendSet: tables.climaMu.trendSet, source: tables.climaMu.source } } : {}),
+    ...(tables.design?.mean?.climaVars ? { climaVars: tables.design.mean.climaVars } : {}),
+    ...(refTables.length ? { refTables: refTables.map((r) => ({ label: r.label, path: r.path, sha256: r.sha256, fitVersion: r.tables.fitVersion, foldScheme: r.foldScheme, clima: r.tables.design?.mean?.clima ?? 'none', climaMu: r.tables.climaMu?.candidate ?? null })) } : {}),
+    dnnBins: DNN_BINS.map((b) => b[2]) },
+  notes: ['FSS ist an Punkten nicht definiert (keine Nachbarschaft) — ETS an den Schwellen steht dafür.', 'Deterministische Kandidaten: CRPS = MAE.',
+    foldScheme === 'half' ? 'fl-K/fl-P mit den β der Zeitfalte ohne die Halbmonatsgruppe der ZEILE (und ihre Nachbarn; tables.inputs.foldScheme = half, Phase FX C8) — auch die Hürden-β und die Anker-Residuen e₁; Varianz-, Skalen-, Speed- und Klimatologie-Tabellen über alle Gruppen gepoolt (Stufe 1).' : 'fl-K/fl-P mit den β der Zeitfalte ohne den Monat der Zeile (und seine Nachbarn); Varianz-, Hürden- und Klimatologie-Tabellen über alle Monate gepoolt (Stufe 1).',
+    'Wind (Rice): CRPS als CDF-Integral auf [0, ν + 8σ] mit riceN Zellen, Punktwert = Erwartungswert; Spread für spreadSkill = sd der Rice √(2σ² + ν² − E²), σ je Komponente nur noch in spreadSkillLatent.',
+    'Spread/Skill (Phase FX, M1/C5 — V-FL-14/39/41/42): `spreadSkill` = √(mean sd²)/RMSE mit der Standardabweichung der BEOBACHTBAREN Größe (Normal σ; zensierte Normal Tobit-sd auf [lo, hi]; TN geschlossen; Rice √(2σ²+ν²−E²)) — das liest G2 (die Kalibrieridentität E[σ²] = E[e²]); `spreadSkillMean` = mean(sd)/RMSE; `spreadSkillLatent` = die Definition bis Scorecard 4 (latente σ der zensierten Normal, σ je Rice-Komponente, (q84−q16)/2 der TN) für den Vergleich mit älteren Karten. PIT randomisiert an den Atomen (u deterministisch je Zeile × Größe aus pointIdx/validAtH, gleich für alle Kandidaten: zensierte Normal y ≤ lo → u·F(lo), y ≥ hi → F(hi⁻) + u·(1 − F(hi⁻)); Hürde y = 0 → u·pDry) — PIT-Rand und G2 sind deshalb nicht mit Scorecard ≤ 4 vergleichbar, CRPS/MAE/Paare/G1/G4 unverändert.',
+    'Zellen `lead:<h>` (Vorlaufstunde) und `season:<DJF|MAM|JJA|SON>` (Monat der Gültigkeit) tragen nur CRPS/MAE/Bias/PIT/Spread — keine Paare, Brier, ETS; die Kreuzungsstunde im Markdown = erste Vorlaufstunde, ab der fl-K und die zwei folgenden Vorläufe im CRPS über der Klimatologie liegen.',
+    'Niederschlag: PIT und Spread/Skill sind bei einer Verteilung mit Atom nicht aussagekräftig (G2 entfällt, spreadSkill null); Brier/ETS an 0,1/1/5 mm/h tragen die Kalibrierung.',
     ...(withAnchor ? [`fl-K+anchor (V-FL-20, FL-AP8b): μ_K + w(τ)·e₁ mit e₁ = y − μ_K bei Vorlauf 1 derselben (Punkt, Slot)-Reihe (Wahrheit der Slotstunde +1 h als Anker), w(τ) aus tables.anchor (Lauf-Route, t1, 2…48 h; σ unverändert; Td ≤ T). Die Kurve ist über ALLE Monate gefittet (nicht out of fold) ⇒ leicht optimistisch; ${anchorSlots} Slot-Reihen mit e₁, ${anchoredRows} bewertete Zeilen. Paar fl-K+anchor gegen fl-K = die Zahl für V-FL-20.`] : []),
+    ...(tables.design?.mean?.climaVars ? [`Phase FX-5 (E-FX-8, §6.5): μ_c-Spalte nur für ${tables.design.mean.climaVars.join(', ')} (design.mean.climaVars); die übrigen Größen rechnen das none-Design von fusionFit@3.`] : []),
+    ...(tables.climaMu ? [`Phase FX-4 (§6.4): μ_c der fl-K/fl-P-Situation aus tables.climaMu — GESCHÄTZT ohne die Station (Leave-Station-out, Kandidat ${tables.climaMu.candidate}, Schätzer ${JSON.stringify(tables.climaMu.estimator)}, Trendmerkmale ${tables.climaMu.trendSet ?? '—'}); der Kandidat clima und die Anker-Residuen-Referenz bleiben die Stationsklimatologie (tables.clima).`] : []),
+    ...(refTables.length ? [`Phase FX-4: Kandidaten ${REF_TABLE_NAMES.join(', ')} = Form K der Referenztabellen auf DENSELBEN Zeilen (je mit eigenem Faltenschema, eigener μ_c-Definition und eigenen Falten-β); Paare fl-K gegen fl-K@… sind der like-for-like DM/BH-Test zwischen Fits. Strata dnn:<Bin> = Abstand der Station zur nächsten anderen Station mit Klimatologie.`] : []),
   ],
   scores: {}, brier: {}, ets: {}, pairs: {}, gates: {},
 };
@@ -295,7 +396,8 @@ for (const v of ['t', 'td', 'ws', 'gust', 'clct', 'precip']) {
       const g1 = beats.length > 0 && beats.every((b) => b.significant);
       const g2 = v === 'precip' ? null : s.spreadSkill != null && s.spreadSkill >= 0.85 && s.spreadSkill <= 1.2 && s.pitOuter != null && s.pitOuter >= 0.15 && s.pitOuter <= 0.25;
       const worseStrata = Object.entries(card.pairs).filter(([k, p]) => k.startsWith(`${v}|${bin}|${cand}|mmm|`) && !k.endsWith('|all') && p.skill < 0 && p.dm.pAdj < 0.05).map(([k]) => k.split('|')[4]);
-      gates[`${v}|${bin}|${cand}`] = { n: s.n, crps: s.crps, mae: s.mae, spreadSkill: s.spreadSkill, pitOuter: s.pitOuter, G1: g1, G2: g2, G4: worseStrata.length === 0, worseStrata, beats };
+      // G2 reads the rms spread/skill of the observable sd and the randomised PIT edge (phase FX); the latent and mean forms ride along for the record
+      gates[`${v}|${bin}|${cand}`] = { n: s.n, crps: s.crps, mae: s.mae, spreadSkill: s.spreadSkill, spreadSkillMean: s.spreadSkillMean, spreadSkillLatent: s.spreadSkillLatent, pitOuter: s.pitOuter, G1: g1, G2: g2, G4: worseStrata.length === 0, worseStrata, beats };
     }
   }
 }
@@ -307,8 +409,15 @@ writeFileSync(out, JSON.stringify(card));
 const f2 = (x, d = 2) => (x == null || !Number.isFinite(x) ? '—' : x.toFixed(d));
 const md = [`# Scorecard FL — ${card.builtAt.slice(0, 10)}`, '', `Fälle ${scored} von ${rows} Zeilen (Stride ${stride}), Monate ${card.inputs.months[0]}…${card.inputs.months[card.inputs.months.length - 1]}, Tabellen ${tables.fitVersion} (${card.tables.sha256.slice(0, 12)}), codeHash ${card.codeHash}.`, '', ...card.notes.map((n) => `- ${n}`), ''];
 const BIN_LABEL = ['0–6', '7–24', '25–48', '51–120', '126–240', '246–336'];
+/** Crossing hour (phase FX): the first lead (ascending over the `lead:` strata) where fl-K's CRPS exceeds the climatology's and stays above it for the next two leads; null = never. */
+const crossingHour = (v) => {
+  const leads = [...new Set([...acc.keys()].filter((k) => k.startsWith(`${v}|`) && k.includes('|fl-K|lead:')).map((k) => Number(k.split('|')[3].slice(5))))].sort((a, b) => a - b);
+  const worse = (L) => { const k = card.scores[`${v}|${binIndex(L)}|fl-K|lead:${L}`], c = card.scores[`${v}|${binIndex(L)}|clima|lead:${L}`]; return !!(k && c) && k.crps > c.crps; };
+  for (let i = 0; i + 2 < leads.length; i++) if (worse(leads[i]) && worse(leads[i + 1]) && worse(leads[i + 2])) return leads[i];
+  return null;
+};
 for (const v of ['t', 'td', 'ws', 'gust', 'clct', 'precip']) {
-  md.push(`## ${v}`, '', '| Bin | Kandidat | n | MAE | Bias | RMSE | CRPS | PIT außen | Spread/Skill | vs cube | vs mmm | vs beste Quelle | vs clima | G1 | G2 | G4 |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  md.push(`## ${v}`, '', '| Bin | Kandidat | n | MAE | Bias | RMSE | CRPS | PIT außen | Spread/Skill (rms) | vs cube | vs mmm | vs beste Quelle | vs clima | G1 | G2 | G4 |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (let bin = 0; bin < 6; bin++) {
     const cands = [...new Set([...acc.keys()].filter((k) => k.startsWith(`${v}|${bin}|`) && k.endsWith('|all')).map((k) => k.split('|')[2]))].sort((a, b) => (card.scores[`${v}|${bin}|${a}|all`].crps - card.scores[`${v}|${bin}|${b}|all`].crps));
     for (const cand of cands) {
@@ -320,8 +429,23 @@ for (const v of ['t', 'td', 'ws', 'gust', 'clct', 'precip']) {
       md.push(`| ${BIN_LABEL[bin]} | ${cand} | ${s.n} | ${f2(s.mae)} | ${f2(s.bias)} | ${f2(s.rmse)} | ${f2(s.crps, 3)} | ${f2(s.pitOuter, 3)} | ${f2(s.spreadSkill)} | ${pr('cube')} | ${pr('mmm')} | ${best ? `${best.slice(4)} ${pr(best)}` : '—'} | ${pr('clima')} | ${g ? (g.G1 ? '✓' : '✗') : ''} | ${g ? (g.G2 == null ? '–' : g.G2 ? '✓' : '✗') : ''} | ${g ? (g.G4 ? '✓' : '✗') : ''} |`);
     }
   }
-  md.push('');
+  const cross = crossingHour(v);
+  md.push('', `Kreuzungsstunde fl-K gegen Klima: ${cross == null ? 'keine' : `${cross} h`} (erste Vorlaufstunde, ab der fl-K und die zwei folgenden Vorläufe im CRPS über der Klimatologie liegen; Zellen \`lead:<h>\`)`, '');
+}
+// phase FX-4: fl-K against the reference tables per variable × bin, layer all and the country/band/dnn layers
+if (REF_TABLE_NAMES.length) {
+  const layersR = ['all', 'country:DE', 'country:AT', 'country:CH', 'band:lt800', 'band:ge800', ...DNN_BINS.map((b) => `dnn:${b[2]}`)];
+  for (const rn of REF_TABLE_NAMES) {
+    md.push(`## fl-K gegen ${rn} — CRPS-Skill (%, BH-p; * signifikant besser, ! signifikant schlechter)`, '', `| Größe · Bin | ${layersR.join(' | ')} |`, `|---|${layersR.map(() => '---').join('|')}|`);
+    for (const v of ['t', 'td', 'ws', 'gust', 'clct', 'precip']) for (let bin = 0; bin < 6; bin++) {
+      const cells = layersR.map((L) => { const p = card.pairs[`${v}|${bin}|fl-K|${rn}|${L}`]; return p ? `${f2(100 * p.skill, 1)}${p.dm.pAdj < 0.05 ? (p.skill > 0 ? '*' : '!') : ''} (p ${f2(p.dm.pAdj, 3)}, n ${p.n ?? '—'})` : '—'; });
+      if (cells.every((c) => c === '—')) continue;
+      md.push(`| ${v} · ${BIN_LABEL[bin]} | ${cells.join(' | ')} |`);
+    }
+    md.push('');
+  }
 }
 writeFileSync(out.replace(/\.json$/, '.md'), md.join('\n'));
 say(`geschrieben ${out} (+ .md): ${Object.keys(card.scores).length} Score-Zellen, ${pKeys.length} DM-Tests, ${Math.round((Date.now() - T0) / 60000)} min`);
-for (const [k, g] of Object.entries(gates)) if (k.endsWith('|fl-K')) say(`${k.padEnd(16)} n ${String(g.n).padStart(7)} CRPS ${f2(g.crps, 3)} S/S ${f2(g.spreadSkill)} PIT ${f2(g.pitOuter, 3)} G1 ${g.G1 ? '✓' : '✗'} G2 ${g.G2 == null ? '–' : g.G2 ? '✓' : '✗'} G4 ${g.G4 ? '✓' : '✗'} · ${g.beats.map((b) => `${b.ref} ${f2(100 * b.skill, 1)}%${b.significant ? '*' : b.worse ? '!' : ''}`).join(' ')}`);
+for (const [k, g] of Object.entries(gates)) if (k.endsWith('|fl-K')) say(`${k.padEnd(16)} n ${String(g.n).padStart(7)} CRPS ${f2(g.crps, 3)} S/S rms ${f2(g.spreadSkill)} (latent ${f2(g.spreadSkillLatent)}) PIT ${f2(g.pitOuter, 3)} G1 ${g.G1 ? '✓' : '✗'} G2 ${g.G2 == null ? '–' : g.G2 ? '✓' : '✗'} G4 ${g.G4 ? '✓' : '✗'} · ${g.beats.map((b) => `${b.ref} ${f2(100 * b.skill, 1)}%${b.significant ? '*' : b.worse ? '!' : ''}`).join(' ')}`);
+say(`Zeitfalten der Tabellen: ${foldScheme}${foldScheme === 'half' ? ` (${foldTablesCache.size} Halbmonatsgruppen je Zeile)` : ' (je Datei-Monat)'}`);

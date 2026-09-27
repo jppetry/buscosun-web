@@ -18,6 +18,17 @@
  * FL-AP3/AP4 blocks 8 and 9 (fit core, statistics); since FL-AP8a (fusionFit@2, V-FL-26) block 8 also checks the
  *   site × diurnal interaction columns: 8e″ recovers one true interaction from a synthetic stratum (effect size, not raw β —
  *   the site columns are collinear per region), 8k/8k′ pin the 14 products and their place after the ȳ/ŷ_m columns.
+ * Phase FX block 11 (research iteration, stage 1): half-month time folds (C8 — `halfMonthOf`, ±1-half-month purge with a
+ *   gap ≥ 13 d, leak negative control like 8e′ on half keys) and the scorer's calibration measures (M1/C5 — `sdOf` against a
+ *   quantile grid with the latent σ as negative control, randomised PIT on the atoms, the three spread/skill forms).
+ * Phase FX block 12 (stage 2): the station-climatology column μ_c with the ρ_f ridge target (C1, V-FX-5 — design byte-equal
+ *   without it, recovery of β_cube = ρ / β_μc = 1 − ρ on a 24-site synthetic stratum, shuffled-μ_c and no-μ_c controls, `predict`
+ *   absent without μ_c), the opened speed grid v4 with the second family `sd` and the band entries (A1, V-FX-6 — v3 reproduces
+ *   fusionFit@3, edge flags, `speedEntryOf` with a band), the σ-scale write rule (V-FX-7, `scaleForVar`).
+ * Phase FX-4 block 13 (E-FX-1, §6.4): the μ_c estimators of `climaProduct.ts` — the climatology's own lapse (`fitLapse`, clean and
+ *   confounded sets), leave-station-out recovery on 72 synthetic stations of the real data shape (trend, kriging, idw with/without
+ *   height slope) against shuffled neighbours, the leak check (the held-out station never in `used`) with a deliberately leaking
+ *   control, `byVar` overrides, `muAt`/`trendVector` sets, `validateClimaProduct` with named rejections.
  */
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -663,6 +674,503 @@ if (typeof flags.cases === 'string') {
     // negative control: the truncated and the censored normal differ where the mass below 0 is not negligible, and agree where it is
     const dLow = Math.abs(crpsTruncatedNormal(0.5, 1, 0, 0.8) - crpsCensoredNormal(0.5, 1, 0, 1e6, 0.8)), dHigh = Math.abs(crpsTruncatedNormal(9, 1, 0, 8.5) - crpsCensoredNormal(9, 1, 0, 1e6, 8.5));
     add('10f′ Negativkontrolle: gestutzt ≠ zensiert bei μ/σ = 0,5 (Δ > 0,02), gleich bei μ/σ = 9 (Δ < 1e-6); Φ(1,96) = 0,975', dLow > 0.02 && dHigh < 1e-6 && near(Phi(1.959964), 0.975, 1e-4), `Δ ${dLow.toFixed(4)} / ${dHigh.toExponential(1)}`);
+  }
+}
+
+// ── Block 11: phase FX stage 1 — half-month folds (C8) and the scorer's calibration measures (M1/C5), each with a negative control ──
+{
+  const { halfMonthOf, foldKeyOf, monthOf, timeFolds, foldsOverGroups } = await import('../src/point/fusionFit/strata.ts');
+  const { sdOf, pitRandomOf, ScoreAcc } = await import('./fusionfit/lib/stats.mjs');
+  const { quantileOf, cdfOf, pitOf, crpsNormal, Phi } = await import('../src/pointForecast/fusion/dist.ts');
+  const { Gram, chooseLambda, variancePenalty } = await import('../src/point/fusionFit/gram.ts');
+  const { buildZ, Z_INDEX, Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { meanDesignK } = await import('../src/point/fusionFit/design.ts');
+  const { fitStratum, designDim } = await import('../src/point/fusionFit/fitMean.ts');
+  const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
+  // 11a the half-month key and the scheme switch
+  {
+    const k1 = halfMonthOf(Date.UTC(2026, 1, 15, 23)), k2 = halfMonthOf(Date.UTC(2026, 1, 16, 0)), k3 = halfMonthOf(Date.UTC(2026, 0, 31, 12));
+    add('11a halfMonthOf: 15.02. 23 UTC ⇒ 2026-02a, 16.02. 00 UTC ⇒ 2026-02b, 31.01. ⇒ 2026-01b; foldKeyOf(month) = monthOf, foldKeyOf(half) = halfMonthOf', k1 === '2026-02a' && k2 === '2026-02b' && k3 === '2026-01b' && foldKeyOf(Date.UTC(2026, 1, 16), 'month') === '2026-02' && foldKeyOf(Date.UTC(2026, 1, 16), 'month') === monthOf(Date.UTC(2026, 1, 16)) && foldKeyOf(Date.UTC(2026, 1, 16), 'half') === '2026-02b', `${k1} ${k2} ${k3}`);
+  }
+  // 11b timeFolds on sorted half keys: ±1 half-month purge; the gap between a held half and its nearest training half ≥ 13 d (February b), never 0
+  {
+    const keys = ['2025-12a', '2025-12b', '2026-01a', '2026-01b', '2026-02a', '2026-02b', '2026-03a', '2026-03b', '2026-04a', '2026-04b'];
+    const folds = timeFolds([...keys].reverse());   // unsorted on purpose — timeFolds sorts
+    const feb = folds.find((f) => f.held[0] === '2026-02b');
+    const startOf = (k) => Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, k.endsWith('a') ? 1 : 16);
+    const endOf = (k) => (k.endsWith('a') ? Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, 16) : Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 1));
+    const DAY = 86_400_000;
+    const gapOf = (fs) => { let g = Infinity; for (const f of fs) { const out = new Set([...f.held, ...f.purged]); for (const k of keys) { if (out.has(k)) continue; const d = k > f.held[0] ? (startOf(k) - endOf(f.held[0])) / DAY : (startOf(f.held[0]) - endOf(k)) / DAY; g = Math.min(g, d); } } return g; };
+    const gap = gapOf(folds), gapNoPurge = gapOf(folds.map((f) => ({ ...f, purged: [] })));
+    const fg = foldsOverGroups(['2026-02a|R|lt800', '2026-02b|R|lt800', '2026-03a|R|ge800'], 'month');
+    add('11b timeFolds auf Halbmonaten: 2026-02b hält nur sich, purgt genau 2026-02a und 2026-03a; kleinste Lücke gehaltene ↔ Trainingshälfte = 13 d (Februar b); ohne Purge 0 d (Negativkontrolle); foldsOverGroups liest den Halbmonat als erste Komponente',
+      folds.length === 10 && feb && feb.held.length === 1 && JSON.stringify(feb.purged) === '["2026-02a","2026-03a"]' && gap === 13 && gapNoPurge === 0 && fg.length === 3 && fg[1].held[0] === '2026-02b|R|lt800' && fg[1].purged.length === 2, `Lücke ${gap} d, ohne Purge ${gapNoPurge} d, purged ${feb?.purged.join(',')}`);
+  }
+  // 11c leak negative control on half folds (like 8e′): a month (both halves) with a foreign +6-K offset costs the honest half folds, the leaky
+  //     axes hide it; and the ±1-half purge itself: without it the fold that holds 2026-02a trains on the shifted 2026-02b and learns part of the bump
+  {
+    const rnd = lcg(1101);
+    const gauss = () => { const u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    const site = { hTrueM: 500, tpi500M: 0, tpi2000M: 0, svf: 1, sinkDepthM: 0, slopeDeg: 0, aspectDeg: 0, z0True: 0.1, lcShares: [0, 0, 0.3, 0.7, 0, 0], dWaterM: 5000, dLakeM: null, impervPct: 5, d0M: 0.5, lonDeg: 10 };
+    const siteOf = (rg, band) => ({ ...site, hTrueM: band === 'ge800' ? 1200 : 400, tpi500M: band === 'ge800' ? 80 : -30, svf: band === 'ge800' ? 0.7 : 1, sinkDepthM: { '46_7': 0, '48_11': 40, rest: 90 }[rg], lcShares: [0, 0, { '46_7': 0.1, '48_11': 0.3, rest: 0.6 }[rg], 0.7, 0, 0], impervPct: { '46_7': 2, '48_11': 5, rest: 30 }[rg] });
+    const pK = designDim('K', 'r1');
+    const newAxes = () => ({ month: new Map(), region: new Map(), band: new Map() });
+    const axes = newAxes(), axesShift = newAxes();
+    const addAxes = (A, key, rg, band, x, y, day, baseSq) => { for (const [axis, k] of [['month', `${key}|*|*`], ['region', `*|${rg}|*`], ['band', `*|*|${band}`]]) { let g = A[axis].get(k); if (!g) { g = new Gram(pK); A[axis].set(k, g); } g.add(x, y, day); g.addExtra('base', baseSq); } };
+    const SHIFT_MONTH = '2026-02';   // both halves shifted: the honest fold of either half must not see the other (purged)
+    const halves = new Set();
+    for (let mi = 0; mi < 8; mi++) for (const rg of ['46_7', '48_11', 'rest']) for (const band of ['lt800', 'ge800']) for (let i = 0; i < 120; i++) {
+      const dh = 400 * gauss(), t = Date.UTC(2025, 9 + mi, 1 + (i % 28), i % 24), key = halfMonthOf(t);
+      halves.add(key);
+      const z = buildZ(siteOf(rg, band), { dhM: dh, z0ModTier: 0.1, foehnFactor: 1, fRad: 0.3, dTsfcK: 0, validAtMs: t, leadH: 10, binFromH: 7, binToH: 24 });
+      const yA = 8 + 6 * gauss(), sigDiv = 0.5 + Math.abs(gauss());
+      const y = 0.7 + 0.9 * yA - 1.2 * (dh / 1000) + 0.6 * (dh / 1000) * z[Z_INDEX.hCos1] + Math.sqrt(0.5 + 0.8 * sigDiv * sigDiv) * gauss();
+      const x = meanDesignK(z, yA, dh, 0, 5), day = mi * 30 + (i % 28);
+      addAxes(axes, key, rg, band, x, y, day, (y - yA) ** 2);
+      const ys = y + (key.startsWith(SHIFT_MONTH) ? 6 : 0);
+      addAxes(axesShift, key, rg, band, x, ys, day, (ys - yA) ** 2);
+    }
+    const min = { n: 1000, days: 20 };
+    const clean = fitStratum('K', 't', 1, 'r1', axes, null, 'base', min);
+    const honest = fitStratum('K', 't', 1, 'r1', axesShift, null, 'base', min);
+    const leaky = fitStratum('K', 't', 1, 'r1', { month: new Map([...axesShift.month, ...axesShift.region, ...axesShift.band]), region: axesShift.region, band: axesShift.band }, null, 'base', min);
+    add('11c Halbmonatsfalten, Leck-Negativkontrolle (wie 8e′): 16 Falten (eine je Hälfte), die ehrliche Zeitfalte sieht den verschobenen Monat als Verlust (MSE > 1,2 × sauber, Skill kleiner), das Leck (Region/Band-Gruppen im Zeit-Axis) versteckt ihn (MSE < 0,7 × ehrlich); sauber `written` mit Steigung 0,9 ±0,1',
+      halves.size === 16 && clean.cv.time?.folds === 16 && honest.cv.time && leaky.cv.time && honest.cv.time.mse > clean.cv.time.mse * 1.2 && honest.cv.time.skill < clean.cv.time.skill && leaky.cv.time.mse < honest.cv.time.mse * 0.7 && clean.status === 'written' && Math.abs(clean.beta[Z_DIM] - 0.9) < 0.1,
+      `Hälften ${halves.size} · Falten ${clean.cv.time?.folds} · MSE sauber ${clean.cv.time?.mse.toFixed(2)} ehrlich ${honest.cv.time?.mse.toFixed(2)} leck ${leaky.cv.time?.mse.toFixed(2)} · Skill sauber ${clean.cv.time?.skill.toFixed(3)} ehrlich ${honest.cv.time?.skill.toFixed(3)} · β_y ${clean.beta[Z_DIM]?.toFixed(3)}`);
+    // the purge itself, on the same half-keyed time axis: fold specs with and without the ±1-half purge at the fitted λ
+    const pen = variancePenalty(Gram.sum(axesShift.month.values(), pK)), target = new Float64Array(pK); target[Z_DIM] = 1;
+    const specs = foldsOverGroups([...axesShift.month.keys()], 'month');
+    const cvPurge = chooseLambda(axesShift.month, pK, specs, [honest.lambda], pen, target, 'base');
+    const cvNoPurge = chooseLambda(axesShift.month, pK, specs.map((f) => ({ ...f, purged: [] })), [honest.lambda], pen, target, 'base');
+    const mseP = cvPurge.heldSse / cvPurge.heldN, mseN = cvNoPurge.heldSse / cvNoPurge.heldN;
+    add('11c′ Purge ±1 Halbmonat: Faltennamen time:YYYY-MMa|b (16), die Falte mit Purge = fitStratum-Zeit-CV (±1e-9); ohne Purge trainiert die 2026-02a-Falte auf der verschobenen 2026-02b-Hälfte und der Verlust sinkt (Negativkontrolle)',
+      cvPurge.perFold.length === 16 && cvPurge.perFold.every((f) => /^time:\d{4}-\d{2}[ab]$/.test(f.name)) && near(mseP, honest.cv.time.mse, 1e-9) && mseN < mseP,
+      `MSE mit Purge ${mseP.toFixed(3)} ohne ${mseN.toFixed(3)} · Falten ${cvPurge.perFold.map((f) => f.name.slice(5)).slice(0, 4).join(',')}…`);
+  }
+  // 11d sdOf against a 20 000-node quantile grid; negative control: the latent σ is not the observable sd
+  {
+    const gridSd = (d, n = 20000) => { let s = 0, s2 = 0; for (let i = 0; i < n; i++) { const q = quantileOf(d, (i + 0.5) / n); s += q; s2 += q * q; } const m = s / n; return Math.sqrt(Math.max(0, s2 / n - m * m)); };
+    const cn = [[50, 40, 0, 100], [95, 60, 0, 100], [5, 3, 0, 90]].map(([mu, sigma, lo, hi]) => { const d = { kind: 'censoredNormal', mu, sigma, lo, hi }; const c = sdOf(d), g = gridSd(d); return { c, g, rel: Math.abs(c / g - 1) }; });
+    const tn = [[1.2, 1.5], [-0.5, 1], [4, 0.8]].map(([mu, sigma]) => { const d = { kind: 'truncatedNormal', mu, sigma, lo: 0 }; const c = sdOf(d), g = gridSd(d); return { c, g, rel: Math.abs(c / g - 1) }; });
+    const dr = { kind: 'rice', nu: 4, sigma: 1.5 }, rc = sdOf(dr), rg = gridSd(dr, 4000);
+    const nn = sdOf({ kind: 'normal', mu: 3, sigma: 2 });
+    add('11d sdOf: zensierte Normal (Tobit) an drei Parametersätzen ±1e-3 relativ zum Quantilgitter, TN an drei ±1e-3, Rice ±2e-3, Normal = σ, Hürde null',
+      cn.every((x) => x.rel < 1e-3) && tn.every((x) => x.rel < 1e-3) && Math.abs(rc / rg - 1) < 2e-3 && nn === 2 && sdOf({ kind: 'hurdleLogNormal', pDry: 0.3, mu: 0, sigma: 0.5 }) === null,
+      `CN ${cn.map((x) => `${x.c.toFixed(3)}/${x.g.toFixed(3)}`).join(' ')} · TN ${tn.map((x) => `${x.c.toFixed(4)}/${x.g.toFixed(4)}`).join(' ')} · Rice ${rc.toFixed(4)}/${rg.toFixed(4)}`);
+    const dNeg = { kind: 'censoredNormal', mu: 50, sigma: 60, lo: 0, hi: 100 };
+    add('11d′ Negativkontrolle: latente σ 60 ≠ Tobit-sd (Δ > 10 %) bei (50, 60, 0, 100); TN-sd < σ bei μ/σ = −0,5', Math.abs(dNeg.sigma / sdOf(dNeg) - 1) > 0.1 && tn[1].c < 1, `Tobit ${sdOf(dNeg).toFixed(3)} gegen σ 60 · TN ${tn[1].c.toFixed(4)}`);
+  }
+  // 11e randomised PIT: identical to cdfOf without atoms, uniform on the atom's interval, deterministic in u
+  {
+    const rnd = lcg(1105);
+    const dn = { kind: 'normal', mu: 3, sigma: 2 };
+    const eqN = [0, 2.5, 3, 6].every((y) => pitRandomOf(dn, y, rnd()) === cdfOf(dn, y));
+    const dc = { kind: 'censoredNormal', mu: 30, sigma: 25, lo: 0, hi: 100 };
+    const Flo = cdfOf(dc, 0), Fhi = Phi((100 - 30) / 25);
+    let lo = [], hi = [];
+    for (let i = 0; i < 2000; i++) { lo.push(pitRandomOf(dc, 0, rnd())); hi.push(pitRandomOf(dc, 100, rnd())); }
+    const mLo = lo.reduce((a, b) => a + b, 0) / lo.length, mHi = hi.reduce((a, b) => a + b, 0) / hi.length;
+    const dh = { kind: 'hurdleLogNormal', pDry: 0.3, mu: 0, sigma: 0.5 };
+    const hu = [0, 0.25, 0.999].map((u) => pitRandomOf(dh, 0, u));
+    add('11e pitRandomOf: Normal = cdfOf; zensiert y = lo mit 2 000 Ziehungen alle in [0, F(lo)] und Mittel F(lo)/2 ±0,02, y = hi gespiegelt in [F(hi⁻), 1] um (1 + F(hi⁻))/2; Hürde y = 0 in [0, pDry] = u·pDry; innen = cdfOf',
+      eqN && lo.every((p) => p >= 0 && p <= Flo) && near(mLo, Flo / 2, 0.02) && hi.every((p) => p >= Fhi && p <= 1) && near(mHi, (1 + Fhi) / 2, 0.02) && hu.every((p, i) => near(p, [0, 0.25, 0.999][i] * 0.3, 1e-12)) && pitRandomOf(dc, 40, 0.7) === cdfOf(dc, 40),
+      `F(lo) ${Flo.toFixed(4)} Mittel ${mLo.toFixed(4)} · F(hi⁻) ${Fhi.toFixed(4)} Mittel ${mHi.toFixed(4)}`);
+    add('11e′ Negativkontrolle: pitOf legt das Atom deterministisch in die Mitte (u wirkungslos), pitRandomOf variiert mit u', pitOf(dc, 0) === pitRandomOf(dc, 0, 0.5) && pitRandomOf(dc, 0, 0.25) !== pitRandomOf(dc, 0, 0.75) && pitOf(dc, 0) === pitOf(dc, 0), `${pitRandomOf(dc, 0, 0.25).toFixed(4)} / ${pitRandomOf(dc, 0, 0.75).toFixed(4)}`);
+  }
+  // 11f ScoreAcc: constant sd ⇒ the three spread/skill forms coincide; varying sd ⇒ rms > mean, latent separate, all reported
+  {
+    const rnd = lcg(1106);
+    const gauss = () => { const u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    const a = new ScoreAcc(), b = new ScoreAcc();
+    for (let i = 0; i < 4000; i++) { const e = 1.5 * gauss(); a.add(e, crpsNormal(0, 1.5, -e), 0.5, 1.5, 1.5); b.add(e, crpsNormal(0, 1.5, -e), 0.5, 1.0, i % 2 ? 0.5 : 1.5); }
+    const sa = a.summary(), sb = b.summary();
+    add('11f ScoreAcc: konstante sd ⇒ rms = mean = latent (±1e-12); sd 0,5/1,5 ⇒ rms (√1,25/RMSE) > mean (1/RMSE) = latent, alle drei gemeldet; ohne sd steht σ ein',
+      near(sa.spreadSkill, sa.spreadSkillMean, 1e-12) && near(sa.spreadSkill, sa.spreadSkillLatent, 1e-12) && near(sa.spreadSkill, 1.5 / sa.rmse, 1e-12)
+      && near(sb.spreadSkill, Math.sqrt(1.25) / sb.rmse, 1e-12) && near(sb.spreadSkillMean, 1 / sb.rmse, 1e-12) && near(sb.spreadSkillLatent, 1 / sb.rmse, 1e-12) && sb.spreadSkill > sb.spreadSkillMean
+      && (() => { const c = new ScoreAcc(); c.add(1, 0.5, 0.5, 2); const s = c.summary(); return s.spreadSkill === 2 && s.spreadSkillLatent === 2; })() && (() => { const c = new ScoreAcc(); c.add(1, 0.5, 0.5, 2, null); return c.summary().spreadSkill === null; })(),
+      `konstant ${sa.spreadSkill.toFixed(4)}/${sa.spreadSkillMean.toFixed(4)}/${sa.spreadSkillLatent.toFixed(4)} · variabel rms ${sb.spreadSkill.toFixed(4)} mean ${sb.spreadSkillMean.toFixed(4)} latent ${sb.spreadSkillLatent.toFixed(4)}`);
+  }
+}
+
+// ── Block 12: phase FX stage 2 — μ_c column with ρ_f target (C1, V-FX-5), opened speed grid / second family / band entries (A1, V-FX-6), σ-scale rule (V-FX-7), each with a negative control ──
+{
+  const { meanDesignK, meanDesignP, CLIMA_NAMES, V_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { designNames, fitStratum, ridgeTarget } = await import('../src/point/fusionFit/fitMean.ts');
+  const { validateTables, newTables } = await import('../src/point/fusionFit/tables.ts');
+  const { predict, speedEntryOf } = await import('../src/point/fusionFit/predict.ts');
+  const { SpeedAcc, fitSpeedStratum, speedLaw, riceMoments, speedEdge, SPEED_CANDIDATES, SPEED_GRID } = await import('../src/point/fusionFit/fitSpeed.ts');
+  const { scaleForVar, SCALE_VARS_DEFAULT } = await import('../src/point/fusionFit/fitScale.ts');
+  const { buildZ, Z_DIM, Z_INDEX } = await import('../src/point/fusionFit/features.ts');
+  const { Gram } = await import('../src/point/fusionFit/gram.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
+  const rnd = lcg(1202);
+  const gauss = () => { const u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const eqArr = (a, b) => a.length === b.length && Array.from(a).every((v, i) => v === b[i]);
+  const T0 = newTables('2026-09-25T00:00:00Z');
+  const withClima = (T, clima) => ({ ...T, design: { ...T.design, mean: { ...T.design.mean, clima } } });
+  // 12a the design: `none` byte-equal to a call without the new arguments, `station` one more LAST column = μ_c; designNames; validateTables on `clima`
+  {
+    const z = new Float64Array(Z_DIM);
+    for (let i = 0; i < Z_DIM; i++) z[i] = 0.3 + 0.21 * i * (i % 2 ? 1 : -1);
+    const k0 = meanDesignK(z, 3, 250, 1.5, 4), kN = meanDesignK(z, 3, 250, 1.5, 4, 'none', 7.5), kS = meanDesignK(z, 3, 250, 1.5, 4, 'station', 7.5);
+    const srcs = [{ yA: 2, dhM: 100 }, { yA: 4, dhM: -300 }];
+    const p0 = meanDesignP(z, srcs, 0.5), pN = meanDesignP(z, srcs, 0.5, 'none', 7.5), pS = meanDesignP(z, srcs, 0.5, 'station', 7.5);
+    let threw = false; try { meanDesignK(z, 3, 250, 1.5, 4, 'station', null); } catch (e) { threw = /μ_c/.test(String(e?.message)); }
+    const nK = designNames('K', 'r1'), nKS = designNames('K', 'r1', 'station'), nPS = designNames('P', 'm5', 'station');
+    add('12a V-FX-5 Design: none = Aufruf ohne die neuen Argumente (Form K und P byte-gleich, μ_c ignoriert); station hängt GENAU eine Spalte μ_c ans Ende (alle Offsets unverändert); designNames trägt muC als letzten Namen; station ohne μ_c wirft benannt',
+      eqArr(k0, kN) && eqArr(p0, pN) && kS.length === k0.length + 1 && eqArr(kS.slice(0, k0.length), k0) && kS[kS.length - 1] === 7.5 && pS.length === p0.length + 1 && eqArr(pS.slice(0, p0.length), p0) && pS[pS.length - 1] === 7.5
+      && nK.length === k0.length && nKS.length === kS.length && nKS[nKS.length - 1] === 'muC' && nPS.length === pS.length && nPS[nPS.length - 1] === 'muC' && CLIMA_NAMES.length === 1 && threw,
+      `p_K ${k0.length} → ${kS.length} · p_P ${p0.length} → ${pS.length} · letzte Spalte ${kS[kS.length - 1]}`);
+    const eFoo = validateTables(withClima(T0, 'foo')), eNone = validateTables(withClima(T0, 'none')), eSt = validateTables(withClima(T0, 'station')), eAbs = validateTables(T0);
+    add('12a′ validateTables: design.mean.clima "foo" verworfen (benannt), undefined/none/station gültig (Negativkontrolle: das leere Dokument bleibt gültig)', eFoo.length === 1 && /^design\.mean\.clima foo/.test(eFoo[0]) && eNone.length === 0 && eSt.length === 0 && eAbs.length === 0, eFoo.join('; '));
+    // the ridge target: form K ρ on ȳ and 1 − ρ on μ_c; without ρ 1 and 0; form P the Σ-weights times ρ at the source offsets, the bias on the intercept
+    const pK = nKS.length, tK = ridgeTarget('K', 'r1', pK, null, { clima: 'station', rhoTarget: 0.3 }), tK1 = ridgeTarget('K', 'r1', nK.length, null, {}), tKs0 = ridgeTarget('K', 'r1', pK, null, { clima: 'station' });
+    const prior = { bias: -0.2, weights: { icon_d2: 0.6, icon_eu: 0.4 }, effective: 1.9, cov: [] };
+    const tP = ridgeTarget('P', 'm5', nPS.length, prior, { clima: 'station', rhoTarget: 0.5 }), tP1 = ridgeTarget('P', 'm5', designNames('P', 'm5').length, prior, {});
+    const sumAbs = (t) => Array.from(t).reduce((a, x) => a + Math.abs(x), 0);
+    add('12a″ ridgeTarget: K mit ρ 0,3 ⇒ 0,3 auf cube und 0,7 auf muC (sonst 0); ohne ρ 1 / 0 (heutiges Ziel, keine weitere Masse); P mit Σ-Gewichten 0,6/0,4 und ρ 0,5 ⇒ 0,3/0,2 an den Quellspalten, 0,5 auf muC, Bias −0,2 im Intercept; ohne ρ 0,6/0,4 und 0',
+      near(tK[Z_DIM], 0.3, 1e-12) && near(tK[pK - 1], 0.7, 1e-12) && near(sumAbs(tK), 1, 1e-12) && tK1.length === nK.length && tK1[Z_DIM] === 1 && near(sumAbs(tK1), 1, 1e-12) && tKs0[Z_DIM] === 1 && tKs0[pK - 1] === 0
+      && near(tP[Z_DIM], 0.3, 1e-12) && near(tP[Z_DIM + 3], 0.2, 1e-12) && near(tP[nPS.length - 1], 0.5, 1e-12) && near(tP[0], -0.2, 1e-12) && near(sumAbs(tP), 1.2, 1e-12) && near(tP1[Z_DIM], 0.6, 1e-12) && near(tP1[Z_DIM + 3], 0.4, 1e-12) && near(sumAbs(tP1), 1.2, 1e-12),
+      `K ${tK[Z_DIM]}/${tK[pK - 1]} · P ${tP[Z_DIM]}/${tP[Z_DIM + 3]}/${tP[nPS.length - 1]}`);
+  }
+  // 12b fitStratum recovery on a synthetic stratum with a site climatology (24 sites with their own level and diurnal/annual amplitude):
+  //     truth y = μ_c(s) + 0,3·(ȳ − μ_c(s)) + noise ⇒ station + ρ 0,3 recovers β_cube 0,3 / β_μc 0,7; today's call on y = ȳ + noise keeps β_cube ≈ 1
+  //     (negative control); the design without μ_c and the shuffled μ_c lose the time-fold skill
+  {
+    const NS = 24, RG = ['46_7', '48_11', '47_9', 'rest'];
+    const sitesS = Array.from({ length: NS }, (_, s) => {
+      const u = 0.3 * rnd(), f = 0.5 * rnd(), hi = s % 3 === 0;
+      return {
+        rg: RG[s % 4], band: hi ? 'ge800' : 'lt800',
+        site: { hTrueM: hi ? 900 + 300 * rnd() : 300 + 400 * rnd(), tpi500M: 100 * gauss(), tpi2000M: 150 * gauss(), svf: 0.7 + 0.3 * rnd(), sinkDepthM: 100 * rnd(), slopeDeg: 15 * rnd(), aspectDeg: 360 * rnd(), z0True: 0.05 + 0.4 * rnd(), lcShares: [0, u, f, 1 - u - f, 0, 0], dWaterM: 20000 * rnd(), dLakeM: null, impervPct: 40 * rnd(), d0M: 2 * rnd(), lonDeg: 8 + 6 * rnd() },
+        L: 15 * rnd(), A: 1 + 4 * rnd(), D: 2 + 6 * rnd(),
+      };
+    });
+    const muCOf = (st, z) => st.L + st.A * z[Z_INDEX.hCos1] + st.D * z[Z_INDEX.dCos1];
+    const RHO = 0.3;
+    const newAxes = () => ({ month: new Map(), region: new Map(), band: new Map() });
+    const axS = newAxes(), axN = newAxes(), axX = newAxes(), axC = newAxes();
+    const addAxes = (A, m, rg, band, x, y, day, baseSq) => { for (const [axis, k] of [['month', `${m}|*|*`], ['region', `*|${rg}|*`], ['band', `*|*|${band}`]]) { let g = A[axis].get(k); if (!g) { g = new Gram(x.length); A[axis].set(k, g); } g.add(x, y, day); g.addExtra('base', baseSq); } };
+    const months = ['2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
+    for (let mi = 0; mi < months.length; mi++) for (let s = 0; s < NS; s++) for (let i = 0; i < 60; i++) {
+      const st = sitesS[s], dh = 300 * gauss(), t = Date.UTC(2025, 9 + mi, 1 + (i % 28), (i * 7) % 24), day = mi * 30 + (i % 28);
+      const z = buildZ(st.site, { dhM: dh, z0ModTier: 0.1, foehnFactor: 1, fRad: 0.3, dTsfcK: 0, validAtMs: t, leadH: 10, binFromH: 7, binToH: 24 });
+      const muC = muCOf(st, z), muX = muCOf(sitesS[(s + 1) % NS], z), anom = 5 * gauss(), yA = muC + anom;
+      // srcCount varies per row: a constant one makes ȳ·srcCount/5 identical to ȳ and the ridge would split their sum by the targets
+      const sc = 2 + (i % 4);
+      const y = muC + RHO * anom + gauss();
+      addAxes(axS, months[mi], st.rg, st.band, meanDesignK(z, yA, dh, 0, sc, 'station', muC), y, day, (y - yA) ** 2);
+      addAxes(axN, months[mi], st.rg, st.band, meanDesignK(z, yA, dh, 0, sc), y, day, (y - yA) ** 2);
+      addAxes(axX, months[mi], st.rg, st.band, meanDesignK(z, yA, dh, 0, sc, 'station', muX), y, day, (y - yA) ** 2);
+      const yC = 0.7 + yA + gauss();   // the control truth: slope 1 with an intercept (as block 8e), so the baseline ȳ leaves skill to find
+      addAxes(axC, months[mi], st.rg, st.band, meanDesignK(z, yA, dh, 0, sc), yC, day, (yC - yA) ** 2);
+    }
+    const min = { n: 1000, days: 20 };
+    const eS = fitStratum('K', 't', 1, 'r1', axS, null, 'base', min, { clima: 'station', rhoTarget: RHO });
+    const eN = fitStratum('K', 't', 1, 'r1', axN, null, 'base', min);
+    const eX = fitStratum('K', 't', 1, 'r1', axX, null, 'base', min, { clima: 'station', rhoTarget: RHO });
+    const eC = fitStratum('K', 't', 1, 'r1', axC, null, 'base', min);
+    const iMu = eS.names.length - 1, iCube = Z_DIM;
+    // effect size of every other column (β·sd, V-FL-34) — the site information must sit in μ_c, not spill into Z
+    const mom = Gram.sum(axS.month.values(), eS.names.length).moments();
+    const spill = eS.names.map((n, j) => [n, Math.abs(eS.beta[j]) * Math.sqrt(mom.variance[j])]).filter(([n]) => n !== '1' && n !== 'cube' && n !== 'muC').sort((a, b) => b[1] - a[1]);
+    add('12b V-FX-5 Rückgewinnung: station + ρ 0,3 ⇒ β_cube 0,3 ±0,08, β_μc 0,7 ±0,1, written, Einträge tragen clima/rhoTarget, muC letzter Name; jede andere Spalte < 0,3 K Effekt (β·sd); Negativkontrolle heutiger Aufruf auf y = 0,7 + ȳ + Rauschen ⇒ β_cube 1 ±0,1, written, ohne clima/rhoTarget-Felder',
+      eS.status === 'written' && near(eS.beta[iCube], RHO, 0.08) && near(eS.beta[iMu], 1 - RHO, 0.1) && eS.clima === 'station' && eS.rhoTarget === RHO && eS.names[iMu] === 'muC' && eS.beta.length === eS.names.length && spill[0][1] < 0.3
+      && eC.status === 'written' && near(eC.beta[iCube], 1, 0.1) && eC.clima === undefined && eC.rhoTarget === undefined && eC.names.length === eS.names.length - 1,
+      `β_cube ${eS.beta[iCube].toFixed(3)} β_μc ${eS.beta[iMu].toFixed(3)} λ ${eS.lambda} ${eS.status} clima ${eS.clima} ρ ${eS.rhoTarget} ${eS.names[iMu]} ${eS.beta.length}/${eS.names.length} · größter Rest ${spill[0][0]} ${spill[0][1].toFixed(3)} K · Kontrolle β_cube ${eC.beta[iCube].toFixed(3)} ${eC.status} ${eC.clima} ${eC.rhoTarget} ${eC.names.length}`);
+    // the target must not be what recovers it: with a WRONG target (ρ 0,8) the data still says 0,3 — the CV picks a small λ (λ = 1 is a 50-% pull in `gram.ts`)
+    const eW = fitStratum('K', 't', 1, 'r1', axS, null, 'base', min, { clima: 'station', rhoTarget: 0.8 });
+    add('12b″ Negativkontrolle des Ziels: station + falsches ρ 0,8 ⇒ β_cube bleibt 0,3 ±0,1 und β_μc 0,7 ±0,1 (die Daten identifizieren die Spalte, die CV wählt λ ≤ 0,3); Eintrag trägt rhoTarget 0,8',
+      near(eW.beta[iCube], RHO, 0.1) && near(eW.beta[iMu], 1 - RHO, 0.1) && eW.lambda <= 0.3 && eW.rhoTarget === 0.8 && eW.lambda < eS.lambda,
+      `β_cube ${eW.beta[iCube].toFixed(3)} β_μc ${eW.beta[iMu].toFixed(3)} λ ${eW.lambda} (richtiges Ziel λ ${eS.lambda})`);
+    // rhoSelect cv: both targets with their own λ, the lower held-out MSE wins — on the ρ-0,3 truth the ρ target (β identical to the fixed call),
+    // on the slope-1 control today's target; the fixed call carries none of the cv fields (default path unchanged)
+    const eCv = fitStratum('K', 't', 1, 'r1', axS, null, 'base', min, { clima: 'station', rhoTarget: RHO, rhoSelect: 'cv' });
+    const eCvC = fitStratum('K', 't', 1, 'r1', axC, null, 'base', min, { rhoTarget: RHO, rhoSelect: 'cv' });
+    add('12b‴ rhoSelect cv: ρ-0,3-Wahrheit ⇒ Ziel ρ gewählt (rhoTargetChosen 0,3, MSE_ρ < MSE_1), β und λ byte-gleich zum festen ρ-Aufruf; Steigung-1-Kontrolle ⇒ Ziel 1 gewählt (β_cube 1 ±0,1, MSE_1 ≤ MSE_ρ); der feste Aufruf trägt keine cv-Felder',
+      eCv.rhoTargetChosen === RHO && eCv.rhoTargetCv && eCv.rhoTargetCv.rho < eCv.rhoTargetCv.one && JSON.stringify(eCv.beta) === JSON.stringify(eS.beta) && eCv.lambda === eS.lambda && eCv.rhoTarget === RHO
+      && eCvC.rhoTargetChosen === 1 && eCvC.rhoTargetCv && eCvC.rhoTargetCv.one <= eCvC.rhoTargetCv.rho && near(eCvC.beta[iCube], 1, 0.1) && eS.rhoTargetChosen === undefined && eS.rhoTargetCv === undefined && eC.rhoTargetChosen === undefined,
+      `ρ-Wahrheit gewählt ${eCv.rhoTargetChosen} (MSE 1 ${eCv.rhoTargetCv?.one} ρ ${eCv.rhoTargetCv?.rho}, λ ${eCv.lambda}) · Kontrolle gewählt ${eCvC.rhoTargetChosen} (MSE 1 ${eCvC.rhoTargetCv?.one} ρ ${eCvC.rhoTargetCv?.rho}) β_cube ${eCvC.beta[iCube].toFixed(3)}`);
+    add('12b′ Zeitfalten-Skill: die μ_c-Spalte trägt Ortsinformation — MSE(station) < ½ MSE(ohne μ_c) und < ½ MSE(Nachbar-μ_c, Negativkontrolle); die gemischte Spalte verliert den Skill gegen die richtige und liegt nicht unter dem Design ohne μ_c',
+      eS.cv.time && eN.cv.time && eX.cv.time && eS.cv.time.mse < 0.5 * eN.cv.time.mse && eS.cv.time.mse < 0.5 * eX.cv.time.mse && eX.cv.time.skill < eS.cv.time.skill && eX.cv.time.mse > 0.9 * eN.cv.time.mse,
+      `MSE Zeit station ${eS.cv.time?.mse.toFixed(3)} (Skill ${eS.cv.time?.skill.toFixed(3)}) · ohne μ_c ${eN.cv.time?.mse.toFixed(3)} (${eN.cv.time?.skill.toFixed(3)}) · Nachbar-μ_c ${eX.cv.time?.mse.toFixed(3)} (${eX.cv.time?.skill.toFixed(3)}, β_μc ${eX.beta[iMu]?.toFixed(3)})`);
+  }
+  // 12c predict: a station table without μ_c ⇒ the variable is absent; with μ_c the column acts; a none table ignores μ_c and returns the same μ as before
+  {
+    const site = { hTrueM: 500, tpi500M: 0, tpi2000M: 0, svf: 1, sinkDepthM: 0, slopeDeg: 0, aspectDeg: 0, z0True: 0.1, lcShares: [0, 0, 0.3, 0.7, 0, 0], dWaterM: 5000, dLakeM: null, impervPct: 5, d0M: 0.5, lonDeg: 10 };
+    const z = buildZ(site, { dhM: 0, z0ModTier: 0.1, foehnFactor: 1, fRad: 0.3, dTsfcK: 0, validAtMs: Date.UTC(2026, 0, 1), leadH: 10, binFromH: 7, binToH: 24 });
+    const names = designNames('K', 'r1'), key = stratumKey('K', 't', 1, 'r1');
+    const beta = new Array(names.length).fill(0); beta[0] = 1; beta[Z_DIM] = 1;   // μ = ȳ + 1
+    const c = new Array(V_NAMES.length).fill(0); c[0] = 1;
+    const T = { ...newTables('2026-09-25T00:00:00Z'), mean: { [key]: { form: 'K', var: 't', bin: 1, cls: 'r1', names, beta, lambda: 1, n: 9000, days: 60, status: 'written' } }, variance: { [key]: { form: 'K', var: 't', bin: 1, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 9000, days: 60, msr: 1, status: 'written' } } };
+    const TS = { ...withClima(T, 'station'), mean: { [key]: { ...T.mean[key], names: [...names, 'muC'], beta: [...beta, 0.5] } } };
+    const sit = { z, leadH: 10, route: 1, srcMask: 0, srcCount: 3, dhM: 0, dTsfcK: 0, k: { t: 12 }, p: {}, sigDiv: {}, sigEns: {}, wetShare: 0 };
+    const p0 = predict(T, 'K', sit), pIgn = predict(T, 'K', { ...sit, muC: { t: 4 } });
+    const pAbs = predict(TS, 'K', sit), pNaN = predict(TS, 'K', { ...sit, muC: { t: NaN } }), pOn = predict(TS, 'K', { ...sit, muC: { t: 4 } });
+    const vS = validateTables(TS), vBad = validateTables({ ...TS, mean: { [key]: T.mean[key] } });
+    add('12c predict: station-Tabelle ohne μ_c ⇒ t absent (dist null), μ_c NaN ebenso; mit μ_c 4 ⇒ μ = 1 + 12 + 0,5·4 = 15; none-Tabelle gibt mit und ohne μ_c dieselbe μ 13 (Negativkontrolle); validateTables: station-Tabelle gültig, ein geschriebener Eintrag ohne muC-Spalte darin fällt benannt',
+      near(p0.mu.t, 13, 1e-12) && near(pIgn.mu.t, 13, 1e-12) && JSON.stringify(pIgn.dist) === JSON.stringify(p0.dist)
+      && pAbs.absent.includes('t') && pAbs.dist.temperature === null && pAbs.mu.t === undefined && pNaN.absent.includes('t') && near(pOn.mu.t, 15, 1e-12) && !pOn.absent.includes('t')
+      && vS.length === 0 && vBad.some((x) => /ohne μ_c-Spalte/.test(x)),
+      `none ${p0.mu.t} · station ohne ${pAbs.absent.join(',')} · mit ${pOn.mu.t} · ${vBad.join('; ')}`);
+  }
+  // 12d speed: v3 reproduces the fusionFit@3 fit (block 10b) without the new fields; v4 picks the `sd` family on an sd-truth and `add` on an add-truth,
+  //     edge flags where the optimum sits at the border, `speedLaw` with absent law = add
+  {
+    const months = ['2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
+    const tnSample = (mu, sg) => { for (let k = 0; k < 100; k++) { const y = mu + sg * gauss(); if (y >= 0) return y; } return 0; };
+    const run = (grid, truth) => {
+      const acc = new SpeedAcc(grid);
+      for (let mi = 0; mi < months.length; mi++) for (let i = 0; i < 1200; i++) {
+        const nu = Math.abs(2.5 + 2.5 * gauss()), sig = 0.6 + 1.5 * Math.abs(gauss());
+        const { m, sd } = riceMoments(nu, sig);
+        let y;
+        if (truth === 'rice') { const ang = 2 * Math.PI * rnd(); y = Math.hypot(nu * Math.cos(ang) + sig * gauss(), nu * Math.sin(ang) + sig * gauss()); }
+        else if (truth === 'add') y = tnSample(-0.6 + 1.0 * m, 1.3 * sd);
+        else if (truth === 'sd') y = tnSample(-0.6 * sd + 1.0 * m, 1.2 * sd);
+        else y = tnSample(-2.5 + 1.0 * m, 1.0 * sd);   // `far`: the optimum lies outside the grid
+        acc.add(months[mi], mi * 30 + (i % 28), y, nu, sig, false);
+      }
+      return fitSpeedStratum('K', 4, 'r1', acc, { n: 1000, days: 20 });
+    };
+    const v3add = run('v3', 'add'), v3rice = run('v3', 'rice');
+    add('12d V-FX-6 Gitter v3 = fusionFit@3 (Negativkontrolle): 75 Tripel in Gitterreihenfolge, TN-Wahrheit (−0,6, 1, 1,3) zurückgewonnen (a ±0,3, b ±0,1, c ∈ {1,15; 1,3; 1,5}), written, ohne law/grid/edge-Felder; Rice-Wahrheit ⇒ kein Gewinn > 1 %',
+      SPEED_GRID.length === 75 && SPEED_CANDIDATES.v3.length === 75 && SPEED_CANDIDATES.v3.every((c, i) => c.law === 'add' && c.a === SPEED_GRID[i][0] && c.b === SPEED_GRID[i][1] && c.c === SPEED_GRID[i][2]) && SPEED_CANDIDATES.v4.length === 612 && SPEED_CANDIDATES.v4.filter((c) => c.law === 'add').length === 324
+      && v3add.status === 'written' && Math.abs(v3add.a + 0.6) <= 0.3 && Math.abs(v3add.b - 1) <= 0.1 && [1.15, 1.3, 1.5].includes(v3add.c) && v3add.law === undefined && v3add.grid === undefined && v3add.edge === undefined && v3add.cv.byLaw === undefined
+      && v3rice.cv.oof.crps > v3rice.cv.oof.crpsRice * 0.99,
+      `v3 add-Wahrheit a ${v3add.a} b ${v3add.b} c ${v3add.c} ${v3add.status} oof ${v3add.cv.oof.crpsRice.toFixed(4)} → ${v3add.cv.oof.crps.toFixed(4)} · Rice-Wahrheit a ${v3rice.a} b ${v3rice.b} c ${v3rice.c} ${v3rice.status}`);
+    const v4sd = run('v4', 'sd'), v4add = run('v4', 'add'), v4far = run('v4', 'far');
+    add('12d′ Gitter v4: sd-Wahrheit TN(−0,6·sd + E, 1,2·sd) ⇒ Familie sd mit a −0,6 ±0,3, b 1 ±0,15, c ∈ {1,1; 1,25}, schlägt add out of fold, written, grid v4, kein Randparameter; add-Wahrheit ⇒ Familie add mit a −0,6 ±0,3 (Symmetrie-Negativkontrolle); beide Familien im Beleg cv.byLaw',
+      v4sd.status === 'written' && v4sd.law === 'sd' && v4sd.grid === 'v4' && Math.abs(v4sd.a + 0.6) <= 0.3 && Math.abs(v4sd.b - 1) <= 0.15 && [1.1, 1.25].includes(v4sd.c) && v4sd.cv.byLaw.sd.oof.crps < v4sd.cv.byLaw.add.oof.crps && v4sd.edge.length === 0
+      && v4add.status === 'written' && v4add.law === 'add' && Math.abs(v4add.a + 0.6) <= 0.3 && v4add.cv.byLaw.add.oof.crps <= v4add.cv.byLaw.sd.oof.crps && Array.isArray(v4add.edge),
+      `sd-Wahrheit ${v4sd.law} a ${v4sd.a} b ${v4sd.b} c ${v4sd.c} oof sd ${v4sd.cv.byLaw.sd.oof.crps.toFixed(4)} add ${v4sd.cv.byLaw.add.oof.crps.toFixed(4)} Rice ${v4sd.cv.oof.crpsRice.toFixed(4)} · add-Wahrheit ${v4add.law} a ${v4add.a} b ${v4add.b} c ${v4add.c} oof add ${v4add.cv.byLaw.add.oof.crps.toFixed(4)} sd ${v4add.cv.byLaw.sd.oof.crps.toFixed(4)}`);
+    add('12d″ Randflags: Wahrheit TN(−2,5 + E, sd) liegt außerhalb des v4-Gitters ⇒ a = −1,8 mit edge ⊇ [a]; speedEdge nennt für das Fit-4-Gesetz (−0,9, 1,1, 1) auf v3 genau a und b, für (−0,9, 1, 1,1) auf v4 nichts (Negativkontrolle)',
+      v4far.a === -1.8 && v4far.edge.includes('a') && JSON.stringify(speedEdge('v3', { law: 'add', a: -0.9, b: 1.1, c: 1 })) === '["a","b"]' && speedEdge('v4', { law: 'add', a: -0.9, b: 1, c: 1.1 }).length === 0 && JSON.stringify(speedEdge('v4', { law: 'sd', a: 0.3, b: 0.7, c: 1.7 })) === '["a","b","c"]',
+      `fern a ${v4far.a} b ${v4far.b} c ${v4far.c} edge ${v4far.edge.join('')}`);
+    const r = { nu: 4, sigma: 1.5 }, mo = riceMoments(4, 1.5);
+    const lAbs = speedLaw(r, { a: -0.6, b: 1, c: 1.3 }), lAdd = speedLaw(r, { a: -0.6, b: 1, c: 1.3, law: 'add' }), lSd = speedLaw(r, { a: -0.6, b: 1, c: 1.3, law: 'sd' });
+    add('12d‴ speedLaw: ohne law = add (byte-gleich), sd ⇒ μ = a·sd + b·E ≠ add, σ gleich', JSON.stringify(lAbs) === JSON.stringify(lAdd) && near(lAbs.mu, -0.6 + mo.m, 1e-12) && near(lSd.mu, -0.6 * mo.sd + mo.m, 1e-12) && lSd.mu !== lAdd.mu && lSd.sigma === lAdd.sigma, `add μ ${lAdd.mu.toFixed(4)} sd μ ${lSd.mu.toFixed(4)}`);
+  }
+  // 12e speedEntryOf / predict with a band: a written band entry wins, pooled without band, with an unknown band or with a no-skill band entry; validateTables on keys and law
+  {
+    const mk = (a, status, extra = {}) => ({ form: 'K', var: 'ws', bin: 1, cls: 'r1', names: ['a', 'b', 'c'], family: 'truncatedNormal', a, b: 1, c: 1.3, n: 9000, days: 60, status, ...extra });
+    const T = { ...newTables('2026-09-25T00:00:00Z'), speed: { 'K|ws|1|r1': mk(-0.6, 'written'), 'K|ws|1|r1|ge800': mk(0.3, 'written', { band: 'ge800', law: 'sd', grid: 'v4', edge: [] }), 'K|ws|1|r1|lt800': mk(-1.5, 'no-skill', { band: 'lt800' }) } };
+    const site = { hTrueM: 500, tpi500M: 0, tpi2000M: 0, svf: 1, sinkDepthM: 0, slopeDeg: 0, aspectDeg: 0, z0True: 0.1, lcShares: [0, 0, 0.3, 0.7, 0, 0], dWaterM: 5000, dLakeM: null, impervPct: 5, d0M: 0.5, lonDeg: 10 };
+    const z = buildZ(site, { dhM: 0, z0ModTier: 0.1, foehnFactor: 1, fRad: 0.3, dTsfcK: 0, validAtMs: Date.UTC(2026, 0, 1), leadH: 10, binFromH: 7, binToH: 24 });
+    const names = designNames('K', 'r1');
+    for (const v of ['u', 'v']) {
+      const beta = new Array(names.length).fill(0); beta[Z_DIM] = 1;
+      T.mean[stratumKey('K', v, 1, 'r1')] = { form: 'K', var: v, bin: 1, cls: 'r1', names, beta, lambda: 1, n: 9000, days: 60, status: 'written' };
+      const c = new Array(V_NAMES.length).fill(0); c[0] = 1;
+      T.variance[stratumKey('K', v, 1, 'r1')] = { form: 'K', var: v, bin: 1, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 9000, days: 60, msr: 1, status: 'written' };
+    }
+    const sit = { z, leadH: 10, route: 1, srcMask: 0, srcCount: 3, dhM: 0, dTsfcK: 0, k: { u: 3, v: 4 }, p: {}, sigDiv: {}, sigEns: {}, wetShare: 0 };
+    const mo = riceMoments(5, 1);
+    const pG = predict(T, 'K', { ...sit, band: 'ge800' }), pL = predict(T, 'K', { ...sit, band: 'lt800' }), pN = predict(T, 'K', sit);
+    const vOk = validateTables(T), vKey = validateTables({ ...T, speed: { 'K|ws|1|r1|foo': mk(0, 'written') } }), vLaw = validateTables({ ...T, speed: { 'K|ws|1|r1': mk(0, 'written', { law: 'x' }) } });
+    add('12e speedEntryOf: mit Band ge800 der geschriebene Bandeintrag (a 0,3, sd), ohne Band der gepoolte (−0,6), Band lt800 mit no-skill-Eintrag ⇒ gepoolt (Negativkontrolle), unbekanntes Band ⇒ gepoolt; predict trägt es (TN μ = 0,3·sd + E gegen −0,6 + E); validateTables: Bandschlüssel gültig, Schlüssel …|foo und law x fallen benannt',
+      speedEntryOf(T, 'K', 10, 'r1', 'ge800').a === 0.3 && speedEntryOf(T, 'K', 10, 'r1').a === -0.6 && speedEntryOf(T, 'K', 10, 'r1', 'lt800').a === -0.6 && speedEntryOf(T, 'K', 10, 'r1', 'other').a === -0.6
+      && pG.speed?.band === 'ge800' && near(pG.dist.windSpeed.mu, 0.3 * mo.sd + mo.m, 1e-12) && pL.speed?.band === undefined && near(pL.dist.windSpeed.mu, -0.6 + mo.m, 1e-12) && JSON.stringify(pN.dist.windSpeed) === JSON.stringify(pL.dist.windSpeed)
+      && vOk.length === 0 && vKey.some((x) => /^speed K\|ws\|1\|r1\|foo: Schlüssel/.test(x)) && vLaw.some((x) => /^speed K\|ws\|1\|r1: law x/.test(x)),
+      `ge800 μ ${pG.dist.windSpeed.mu.toFixed(4)} · gepoolt μ ${pL.dist.windSpeed.mu.toFixed(4)} · ${vKey.join('; ')} · ${vLaw.join('; ')}`);
+  }
+  // 12f the σ-scale write rule (V-FX-7): outside `--scaleVars` always 1, clouds mandatory inside, the others only where they win
+  {
+    const win = { k: 0.9, winsOof: true }, lose = { k: 1.3, winsOof: false };
+    add('12f scaleForVar: Voreinstellung t/td/gust/clct — t gewinnt ⇒ 0,9, t verliert ⇒ 1, clct verliert ⇒ 1,3 (Pflicht); --scaleVars=clct — t gewinnt ⇒ 1 (Regel), gust gewinnt ⇒ 1, clct verliert ⇒ 1,3; Negativkontrolle --scaleVars=t: clct ⇒ 1',
+      JSON.stringify(SCALE_VARS_DEFAULT) === '["t","td","gust","clct"]' && scaleForVar('t', win) === 0.9 && scaleForVar('t', lose) === 1 && scaleForVar('clct', lose) === 1.3 && scaleForVar('td', win, SCALE_VARS_DEFAULT) === 0.9
+      && scaleForVar('t', win, ['clct']) === 1 && scaleForVar('gust', win, ['clct']) === 1 && scaleForVar('clct', lose, ['clct']) === 1.3 && scaleForVar('clct', win, ['clct']) === 0.9 && scaleForVar('clct', lose, ['t']) === 1 && scaleForVar('t', win, ['t']) === 0.9);
+  }
+}
+
+// ── Block 13: phase FX-4 — the μ_c estimators of `climaProduct.ts` (E-FX-1): recovery on synthetic stations of the real data shape, shuffled neighbours as negative control, leave-station-out leak check with a deliberately leaking control, product validation ──
+{
+  const { estimateCoefficients, fitLapse, fitTrend, trendVector, muAt, validateClimaProduct, TREND_SETS, TREND_NAMES, CLIMA_PRODUCT_KIND, CLIMA_PRODUCT_SCHEMA, distKm } = await import('../src/point/fusionFit/climaProduct.ts');
+  const { C_DIM, C_NAMES, CLIMA_VARS, climaDesign } = await import('../src/point/fusionFit/fitClima.ts');
+  const rnd = lcg(1304);
+  const gauss = () => { const u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  // 72 synthetic stations on a 9 × 8 grid over 46…52° N, 6…15° E with heights 100…2 500 m and terrain features of the real shape (siteOf-like)
+  const N = 72, stations = [];
+  for (let i = 0; i < N; i++) {
+    const row = Math.floor(i / 9), col = i % 9;
+    const lat = 46.2 + row * 0.8 + 0.1 * gauss(), lon = 6.5 + col * 1.05 + 0.1 * gauss();
+    const alpine = lat < 48;
+    const hTrueM = Math.round(alpine ? 400 + 2100 * rnd() : 50 + 500 * rnd());
+    const site = { hTrueM, tpi500M: (rnd() - 0.5) * (alpine ? 300 : 40), tpi2000M: (rnd() - 0.5) * (alpine ? 800 : 80), svf: alpine ? 0.7 + 0.3 * rnd() : 0.97 + 0.03 * rnd(), sinkDepthM: rnd() * (alpine ? 200 : 20), slopeDeg: rnd() * (alpine ? 25 : 3), aspectDeg: rnd() * 360, z0True: 0.03 + 0.5 * rnd(), lcShares: [0.02, 0.1 * rnd(), 0.4 * rnd(), 0.4, 0.02, 0], dWaterM: 500 + 15000 * rnd(), dLakeM: 20000, impervPct: 20 * rnd(), d0M: 2 * rnd(), lonDeg: lon };
+    stations.push({ id: `S${String(i).padStart(2, '0')}`, lat, lon, elevM: hTrueM, country: alpine ? 'AT' : 'DE', net: 'test', site, feat: Array.from(trendVector(site, lat, TREND_SETS.terrain)) });
+  }
+  // truth: T level = 12 − 6·h(km) + 0,4·(lat − 48) + 0,3·svf-anomaly + smooth field + noise; diurnal amplitude 4 − 1,5·h; u level 1 + 0,8·h; clct 60 + 6·h
+  const smooth = (lat, lon) => 1.2 * Math.sin(lat * 1.1) * Math.cos(lon * 0.7);
+  for (const s of stations) {
+    const h = s.elevM / 1000, x = s.feat;
+    const t = new Array(C_DIM).fill(0), u = new Array(C_DIM).fill(0), cl = new Array(C_DIM).fill(0);
+    t[0] = 12 - 6 * h + 0.4 * (s.lat - 48) + 3 * (x[7] - 0.9) + smooth(s.lat, s.lon) + 0.15 * gauss(); t[1] = -4 + 0.1 * gauss(); t[2] = -6 + 0.1 * gauss(); t[6] = -(4 - 1.5 * h) + 0.1 * gauss();
+    u[0] = 1 + 0.8 * h + 0.1 * gauss(); u[5] = 0.5 + 0.05 * gauss();
+    cl[0] = 60 + 6 * h + 0.5 * gauss(); cl[2] = 5;
+    s.mu = { t, u, clct: cl };
+  }
+  const regionOf = (id) => { const st = stations.find((x) => x.id === id); return `${Math.floor(st.lat)}_${Math.floor(st.lon / 3)}`; };
+  const rows = (v, exclude) => stations.filter((s) => s.mu[v] && s.id !== exclude).map((s) => ({ id: s.id, x: s.feat, y: s.mu[v] }));
+  const trendFor = (exclude) => { const beta = {}, lambda = {}; for (const v of ['t', 'u', 'clct']) { const f = fitTrend(rows(v, exclude), regionOf); beta[v] = f.beta.map((b) => Array.from(b)); lambda[v] = f.lambda; } return { names: TREND_SETS.terrain, beta, lambda }; };
+  const lapseFor = (exclude) => Object.fromEntries(['t', 'u', 'clct'].map((v) => [v, Array.from(fitLapse(stations, v, exclude))]));
+  const base = { schema: CLIMA_PRODUCT_SCHEMA, kind: CLIMA_PRODUCT_KIND, fitVersion: 'test', provenance: 'hindcast', builtAt: '2026-09-26T00:00:00Z', design: C_NAMES, vars: ['t', 'u', 'clct'], stations, source: { clima: 'test', sha256: null, period: null, days: null, points: N }, licence: ['test'], notes: [] };
+  const specs = {
+    idw3: { kind: 'idw', k: 3, power: 2, heightSlope: 'tTd' },
+    idw3n: { kind: 'idw', k: 3, power: 2, heightSlope: 'none' },
+    ridgeT: { kind: 'ridge', k: 3, power: 2, heightSlope: 'none' },
+    ridgeTx: { kind: 'ridge', k: 3, power: 2, heightSlope: 'none', byVar: { clct: { kind: 'idw', k: 3, power: 2, heightSlope: 'none' } } },
+    krigT3: { kind: 'kriging', k: 3, power: 2, heightSlope: 'none' },
+  };
+  // 13a the climatology's own lapse: the annual-mean slope of T over height is recovered (−6 K/km), of u (+0,8), leave-one-out changes it little
+  {
+    // a clean set (level = 12 − 6·h + noise, nothing else) recovers the slope exactly; on the confounded stations (svf and latitude co-vary with height) the marginal slope is steeper — by design
+    const clean = stations.map((st, i) => ({ ...st, id: `C${i}`, mu: { t: [12 - 6 * st.elevM / 1000 + 0.1 * gauss(), 0, 0, 0, 0, 0, -(4 - 1.5 * st.elevM / 1000), 0, 0, 0, 0, 0, 0] } }));
+    const lc = fitLapse(clean, 't'), l = fitLapse(stations, 't'), lu = fitLapse(stations, 'u'), l1 = fitLapse(stations, 't', 'S00');
+    add('13a fitLapse: an einem reinen Höhensatz Steigung des T-Jahresmittels −6 K/km (±0,15) und der Tagesgang-Amplitude +1,5 K/km (±0,15) aus den Stationen selbst; am verschränkten Satz (svf, Breite mit der Höhe) steiler (−6,5…−7,5, Konstruktion); u +0,8 m/s je km; ohne eine Station fast gleich; < 3 Stationen ⇒ null',
+      Math.abs(lc[0] + 6) < 0.15 && Math.abs(lc[6] - 1.5) < 0.15 && l[0] < -6.5 && l[0] > -7.5 && Math.abs(lu[0] - 0.8) < 0.15 && Math.abs(l1[0] - l[0]) < 0.1 && fitLapse(stations.slice(0, 2), 't') === null,
+      `rein γ_T ${lc[0].toFixed(2)} K/km · γ_amp ${lc[6].toFixed(2)} · verschränkt γ_T ${l[0].toFixed(2)} · γ_u ${lu[0].toFixed(2)} · LOO ${l1[0].toFixed(2)}`);
+  }
+  // 13b leave-station-out recovery: per station the estimate WITHOUT it against its own coefficients — RMS of the annual mean and of the hourly design
+  const mom = (() => { const M = new Float64Array(C_DIM * C_DIM), x = new Float64Array(C_DIM), n = 365 * 24; for (let h = 0; h < n; h++) { climaDesign(Date.UTC(2025, 0, 1) + h * 3_600_000, 10, x); for (let i = 0; i < C_DIM; i++) for (let j = 0; j < C_DIM; j++) M[i * C_DIM + j] += x[i] * x[j] / n; } return M; })();
+  const rmsOf = (est, truth) => { let q = 0; for (let i = 0; i < C_DIM; i++) for (let j = 0; j < C_DIM; j++) q += (est[i] - truth[i]) * mom[i * C_DIM + j] * (est[j] - truth[j]); return Math.sqrt(Math.max(0, q)); };
+  const loso = {};   // cand → var → [rms]
+  const leaks = [];
+  for (const s of stations) {
+    const trend = trendFor(s.id), lapse = lapseFor(s.id);
+    const target = { lat: s.lat, lon: s.lon, elevM: s.elevM, feat: s.feat };
+    for (const [cand, spec] of Object.entries(specs)) {
+      const est = estimateCoefficients({ ...base, estimator: spec, lapse, trend: spec.kind === 'idw' ? null : trend }, target, { exclude: s.id });
+      if (est.used.includes(s.id)) leaks.push(`${cand}:${s.id}`);
+      for (const v of ['t', 'u', 'clct']) if (est.mu[v]) ((loso[cand] ??= {})[v] ??= []).push(rmsOf(est.mu[v], s.mu[v]));
+    }
+    // shuffled neighbour (negative control): the coefficients of the station 31 places on, at this station
+    const o = stations[(stations.indexOf(s) + 31) % N];
+    for (const v of ['t', 'u', 'clct']) ((loso.shuffle ??= {})[v] ??= []).push(rmsOf(o.mu[v], s.mu[v]));
+  }
+  const rms = (a) => Math.sqrt(a.reduce((x, y) => x + y * y, 0) / a.length);
+  const R = Object.fromEntries(Object.entries(loso).map(([c, byV]) => [c, Object.fromEntries(Object.entries(byV).map(([v, a]) => [v, rms(a)]))]));
+  // the truth carries a smooth 1,2-K spatial field no feature explains: the trends stop at ≈ 1,1–1,2 K, the neighbours see it (idw3 ≤ 1,0 K), kriging (trend + neighbour residuals) beats the plain trend
+  add('13b Leave-Station-out: die Gelände-Trends holen Höhe/Lage/svf der T-Klimatologie zurück (RMS ≤ 1,3 K gegen ≥ 4 K der verwürfelten Nachbarn; der glatte 1,2-K-Feldanteil bleibt), idw3 mit Höhensteigung ≤ 1,0 K, ohne Höhensteigung ≥ 2,5 K (die Alpenhöhen); Kriging ≤ Trend; jede Kandidatin schlägt die Verwürfelung um mindestens den Faktor 2',
+    R.ridgeT.t < 1.3 && R.krigT3.t < 1.3 && R.krigT3.t <= R.ridgeT.t && R.shuffle.t > 4 && R.idw3.t < 1.0 && R.idw3n.t > 2.5 && Object.keys(specs).every((c) => R[c].t * 2 < R.shuffle.t && R[c].u * 2 < R.shuffle.u),
+    `T: ridgeT ${R.ridgeT.t.toFixed(2)} · krigT3 ${R.krigT3.t.toFixed(2)} · idw3 ${R.idw3.t.toFixed(2)} · idw3n ${R.idw3n.t.toFixed(2)} · shuffle ${R.shuffle.t.toFixed(2)} K; u: ridgeT ${R.ridgeT.u.toFixed(2)} · shuffle ${R.shuffle.u.toFixed(2)}`);
+  add('13c Leck-Prüfung: in keiner der ' + (N * Object.keys(specs).length) + ' LOSO-Schätzungen steht die ausgelassene Station unter `used`', leaks.length === 0, leaks.slice(0, 3).join(', '));
+  {
+    // the deliberately leaking control: without `exclude` the estimate at a station's own place uses that station — the same check must catch it
+    const s = stations[5], est = estimateCoefficients({ ...base, estimator: specs.idw3, lapse: lapseFor(null), trend: null }, { lat: s.lat, lon: s.lon, elevM: s.elevM, feat: s.feat }, {});
+    const estX = estimateCoefficients({ ...base, estimator: specs.idw3, lapse: lapseFor(s.id), trend: null }, { lat: s.lat, lon: s.lon, elevM: s.elevM, feat: s.feat }, { exclude: s.id });
+    add('13c′ Negativkontrolle (absichtlich leckend): ohne `exclude` steht die Station selbst unter `used`, ihr Abstand ist 0 und ihre Koeffizienten kommen (fast) unverändert zurück; mit `exclude` weder Station noch Abstand 0',
+      est.used.includes(s.id) && est.nearestKm < 0.05 && Math.abs(est.mu.t[0] - s.mu.t[0]) < 0.05 && !estX.used.includes(s.id) && estX.nearestKm > 20 && Math.abs(estX.mu.t[0] - s.mu.t[0]) > 0.05,
+      `used ${est.used.slice(0, 3).join(',')} · nearest ${est.nearestKm.toFixed(3)} / ${estX.nearestKm.toFixed(1)} km`);
+  }
+  // 13d byVar: cloud cover takes idw3 while T takes the trend (`how` names it); the composite equals its parts
+  {
+    const s = stations[10], trend = trendFor(s.id), lapse = lapseFor(s.id), target = { lat: s.lat, lon: s.lon, elevM: s.elevM, feat: s.feat };
+    const comp = estimateCoefficients({ ...base, estimator: specs.ridgeTx, lapse, trend }, target, { exclude: s.id });
+    const rg = estimateCoefficients({ ...base, estimator: specs.ridgeT, lapse, trend }, target, { exclude: s.id });
+    const id3 = estimateCoefficients({ ...base, estimator: specs.idw3n, lapse, trend: null }, target, { exclude: s.id });
+    const eq = (a, b) => a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) < 1e-12);
+    add('13d byVar: ridgeTx rechnet T mit dem Trend (how ridge, byte-gleich zu ridgeT) und die Bewölkung mit idw3 (how idw, byte-gleich zu idw3 ohne Steigung); ohne Merkmale fällt der Trend benannt auf idw zurück',
+      comp.how.t === 'ridge' && comp.how.clct === 'idw' && eq(Array.from(comp.mu.t), Array.from(rg.mu.t)) && eq(Array.from(comp.mu.clct), Array.from(id3.mu.clct))
+      && estimateCoefficients({ ...base, estimator: specs.ridgeT, lapse, trend }, { ...target, feat: null }, { exclude: s.id }).how.t === 'idw-fallback',
+      `how ${JSON.stringify(comp.how)}`);
+  }
+  // 13e muAt = the design row at the target's longitude times the coefficients; trendVector sets and order
+  {
+    const s = stations[3], est = { mu: { t: Float64Array.from(s.mu.t) }, nearestKm: 0, used: [], how: {} };
+    const ms = Date.UTC(2025, 6, 15, 12), x = climaDesign(ms, s.lon), want = s.mu.t.reduce((a, b, i) => a + b * x[i], 0);
+    const full = trendVector(s.site, s.lat), terr = trendVector(s.site, s.lat, TREND_SETS.terrain), geo = trendVector(s.site, s.lat, TREND_SETS.geo);
+    let threw = false; try { trendVector(s.site, s.lat, ['1', 'nix']); } catch (e) { threw = /nix/.test(String(e?.message)); }
+    add('13e muAt trägt Σ β·x an der Ziel-Länge; trendVector: full 22, terrain 12, geo 5 Spalten (Intercept 1, Höhe km, Höhe², Δlat, Δlon voran), unbekannter Name wirft benannt',
+      Math.abs(muAt(est, ms, s.lon).t - want) < 1e-12 && full.length === TREND_NAMES.length && terr.length === 12 && geo.length === 5 && geo[0] === 1 && Math.abs(geo[1] - s.elevM / 1000) < 1e-12 && Math.abs(geo[3] - (s.lat - 48)) < 1e-12 && threw && terr[5] === full[5],
+      `muAt ${muAt(est, ms, s.lon).t.toFixed(4)} · dims ${full.length}/${terr.length}/${geo.length}`);
+  }
+  // 13f validateClimaProduct: the synthetic product passes; wrong kind, unknown trend set, nested byVar, missing lapse with a height slope, missing licence are named
+  {
+    const ok = { ...base, estimator: specs.ridgeTx, lapse: null, trend: trendFor(null) };
+    const v0 = validateClimaProduct(ok);
+    const vKind = validateClimaProduct({ ...ok, kind: 'x' }), vSet = validateClimaProduct({ ...ok, trend: { ...ok.trend, names: ['1', 'hKm'] } });
+    const vNest = validateClimaProduct({ ...ok, estimator: { ...specs.ridgeTx, byVar: { clct: { ...specs.idw3n, byVar: {} } } } });
+    const vLapse = validateClimaProduct({ ...ok, estimator: specs.idw3, trend: null }), vLic = validateClimaProduct({ ...ok, licence: [] });
+    const vIdw = validateClimaProduct({ ...ok, estimator: specs.idw3, lapse: lapseFor(null), trend: null });
+    add('13f validateClimaProduct: gültiges Produkt ohne Befund (Trend- und idw-Form); kind, fremder Merkmalssatz, verschachteltes byVar, Höhensteigung ohne lapse und fehlende Lizenz werden benannt',
+      v0.length === 0 && vIdw.length === 0 && vKind.some((e) => /^kind/.test(e)) && vSet.some((e) => /TREND_SETS/.test(e)) && vNest.some((e) => /byVar clct/.test(e)) && vLapse.some((e) => /lapse/.test(e)) && vLic.some((e) => /licence/.test(e)),
+      [v0, vKind, vSet, vNest, vLapse, vLic].map((v) => v.join(';') || 'ok').join(' | '));
+  }
+  add('13g distKm: Wien–München ≈ 355 km (±5), Punkt zu sich selbst 0', Math.abs(distKm(48.21, 16.37, 48.14, 11.58) - 355) < 5 && distKm(47, 8, 47, 8) === 0);
+}
+
+// ── Block 14: phase FX-5 (E-FX-8, §6.5) — the μ_c column per VARIABLE (`design.mean.climaVars`): one decision (`climaColumnsFor`) for tables, predict and the fit; a listed variable needs μ_c, an unlisted one is predicted from the `none` design byte-identically; the narrowed product carries nothing for other variables; each with a negative control ──
+{
+  const { climaColumnsFor, parseClimaVars, validateTables, newTables } = await import('../src/point/fusionFit/tables.ts');
+  const { meanDesignK, varianceDesign, CLIMA_NAMES, V_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { designNames } = await import('../src/point/fusionFit/fitMean.ts');
+  const { predict } = await import('../src/point/fusionFit/predict.ts');
+  const { Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const { validateClimaProduct, estimateCoefficients, CLIMA_PRODUCT_KIND, CLIMA_PRODUCT_SCHEMA, TREND_SETS } = await import('../src/point/fusionFit/climaProduct.ts');
+  const { C_NAMES, C_DIM } = await import('../src/point/fusionFit/fitClima.ts');
+  const eqArr = (a, b) => a.length === b.length && Array.from(a).every((v, i) => v === b[i]);
+  // 14a the decision: none table → none for every variable; station without a list → station for all; station + list → only the listed
+  {
+    const S = { clima: 'station' }, SL = { clima: 'station', climaVars: ['t', 'td', 'gust'] }, N = { clima: 'none' }, NL = { clima: 'none', climaVars: ['t'] };
+    const all = ['t', 'td', 'u', 'v', 'gust', 'clct', 'precip'];
+    add('14a climaColumnsFor: none-Tabelle ⇒ none für jede Größe (auch mit Liste); station ohne Liste ⇒ station für alle (Fit 5b/5c lesbar); station + [t,td,gust] ⇒ station nur dort, u/v/clct/precip none; undefined ⇒ none',
+      all.every((v) => climaColumnsFor(N, v) === 'none' && climaColumnsFor(NL, v) === 'none' && climaColumnsFor(undefined, v) === 'none' && climaColumnsFor(S, v) === 'station')
+      && ['t', 'td', 'gust'].every((v) => climaColumnsFor(SL, v) === 'station') && ['u', 'v', 'clct', 'precip'].every((v) => climaColumnsFor(SL, v) === 'none'));
+    let e1 = '', e2 = '', e3 = '';
+    try { parseClimaVars('t,x'); } catch (e) { e1 = String(e?.message); }
+    try { parseClimaVars(''); } catch (e) { e2 = String(e?.message); }
+    try { parseClimaVars('t,t'); } catch (e) { e3 = String(e?.message); }
+    add('14a′ parseClimaVars: "t, td,gust" ⇒ [t,td,gust]; unbekannte Größe, leere Liste und Dublette werfen benannt', JSON.stringify(parseClimaVars('t, td,gust')) === '["t","td","gust"]' && /unbekannte Größe x/.test(e1) && /leer/.test(e2) && /doppelte/.test(e3), `${e1} · ${e2} · ${e3}`);
+  }
+  // 14b validateTables: the list needs a station table and FIT_VARS members; a listed variable's written entry must end with μ_c, an unlisted one must not (negative control: the same entries under a list-less station table are rejected the other way round)
+  {
+    const T = newTables('2026-09-27T00:00:00Z');
+    const nT = designNames('K', 'r1', 'station'), nU = designNames('K', 'r1');
+    const entry = (v, names) => ({ form: 'K', var: v, bin: 5, cls: 'r1', names, beta: names.map(() => 0.1), lambda: 1, n: 9000, days: 60, status: 'written', cv: { time: null, region: null, band: null } });
+    const mk = (mean, climaVars, clima = 'station') => ({ ...T, design: { ...T.design, mean: { ...T.design.mean, clima, ...(climaVars ? { climaVars } : {}) } }, mean });
+    const good = mk({ [stratumKey('K', 't', 5, 'r1')]: entry('t', nT), [stratumKey('K', 'u', 5, 'r1')]: entry('u', nU) }, ['t', 'td', 'gust']);
+    const badU = mk({ [stratumKey('K', 'u', 5, 'r1')]: entry('u', nT) }, ['t', 'td', 'gust']);
+    const badT = mk({ [stratumKey('K', 't', 5, 'r1')]: entry('t', nU) }, ['t', 'td', 'gust']);
+    const noList = mk({ [stratumKey('K', 't', 5, 'r1')]: entry('t', nT), [stratumKey('K', 'u', 5, 'r1')]: entry('u', nU) }, null);
+    const vGood = validateTables(good), vU = validateTables(badU), vT = validateTables(badT), vNo = validateTables(noList);
+    const vX = validateTables(mk({}, ['t', 'x'])), vE = validateTables(mk({}, [])), vN = validateTables(mk({}, ['t'], 'none'));
+    add('14b validateTables: [t,td,gust] mit t-Eintrag (μ_c) und u-Eintrag (ohne) gültig; u MIT μ_c benannt; t OHNE μ_c benannt; Negativkontrolle: dieselben Einträge ohne Liste ⇒ der u-Eintrag wird als "ohne μ_c" benannt; Liste mit fremder Größe, leere Liste und Liste ohne station benannt',
+      vGood.length === 0 && vU.some((e) => /K\|u\|5\|r1: μ_c-Spalte, obwohl/.test(e)) && vT.some((e) => /K\|t\|5\|r1: ohne μ_c-Spalte/.test(e)) && vNo.some((e) => /K\|u\|5\|r1: ohne μ_c-Spalte/.test(e))
+      && vX.some((e) => /climaVars: erwartet/.test(e)) && vE.some((e) => /climaVars: erwartet/.test(e)) && vN.some((e) => /climaVars ohne design.mean.clima = station/.test(e)),
+      [vGood, vU, vT, vNo, vX, vE, vN].map((v) => v.join(';') || 'ok').join(' | '));
+    // 14c predict: under the list, t needs μ_c (absent without), u is predicted without μ_c and byte-equal to the same β under a none table; under a list-less station table u needs μ_c too (negative control)
+    const z = new Float64Array(Z_DIM); for (let i = 0; i < Z_DIM; i++) z[i] = 0.2 + 0.1 * i * (i % 2 ? 1 : -1);
+    const bT = nT.map((_, i) => (i === Z_DIM ? 0.7 : i === nT.length - 1 ? 0.3 : 0)), bU = nU.map((_, i) => (i === Z_DIM ? 0.9 : 0));
+    const ve = { form: 'K', var: 'x', bin: 5, cls: 'r1', c: V_NAMES.map((_, i) => (i === 0 ? 1 : 0)), floor: 0.01, n: 9000, days: 60, status: 'written' };
+    const meanT = { ...entry('t', nT), beta: bT }, meanU = { ...entry('u', nU), beta: bU }, meanV = { ...entry('v', nU), beta: bU };
+    const tab = (climaVars, clima = 'station') => ({ ...mk({ 'K|t|5|r1': meanT, 'K|u|5|r1': meanU, 'K|v|5|r1': meanV }, climaVars, clima), variance: { 'K|t|5|r1': { ...ve, var: 't' }, 'K|u|5|r1': { ...ve, var: 'u' }, 'K|v|5|r1': { ...ve, var: 'v' } }, occurrence: {}, amount: {}, speed: {} });
+    const TL = tab(['t', 'td', 'gust']), TS = tab(null), TN = { ...tab(null, 'none'), mean: { 'K|u|5|r1': meanU, 'K|v|5|r1': meanV } };
+    const sit = { z, leadH: 300, route: 1, srcMask: 1, srcCount: 3, dhM: 0, dTsfcK: null, k: { t: 10, u: 2, v: -1 }, p: {}, sigDiv: {}, sigEns: {}, wetShare: 0 };
+    const pL = predict(TL, 'K', { ...sit, muC: { t: 4 } }), pLno = predict(TL, 'K', { ...sit, muC: {} }), pS = predict(TS, 'K', { ...sit, muC: { t: 4 } }), pN = predict(TN, 'K', sit);
+    add('14c predict: unter [t,td,gust] braucht t μ_c (μ = 0,7·ȳ + 0,3·μ_c = 8,2; ohne μ_c absent), u/v rechnen ohne μ_c und sind byte-gleich zur none-Tabelle mit denselben β (Rice ν gleich); Negativkontrolle: die station-Tabelle OHNE Liste meldet u/v ohne μ_c als absent',
+      Math.abs(pL.mu.t - 8.2) < 1e-9 && pLno.absent.includes('t') && !pLno.absent.includes('u') && pL.mu.u === pN.mu.u && pL.mu.v === pN.mu.v && pL.dist.windSpeed && pN.dist.windSpeed && pL.dist.windSpeed.nu === pN.dist.windSpeed.nu
+      && pS.absent.includes('u') && pS.absent.includes('v') && Math.abs(pS.mu.t - 8.2) < 1e-9,
+      `μ_t ${pL.mu.t} · u ${pL.mu.u} = ${pN.mu.u} · absent(list, no μ_c) ${pLno.absent.join(',')} · absent(station, u ohne μ_c) ${pS.absent.join(',')}`);
+    void meanDesignK; void varianceDesign; void CLIMA_NAMES;
+  }
+  // 14d the narrowed product: `vars` [t,td,gust] with a trend only for those is valid; a trend, lapse or station coefficient for a variable outside `vars` is named; estimateCoefficients returns only the product's variables
+  {
+    const st = [{ id: 'A', lat: 48, lon: 10, elevM: 500, country: 'DE', mu: { t: new Array(C_DIM).fill(1) } }, { id: 'B', lat: 48.5, lon: 10.5, elevM: 700, country: 'DE', mu: {} }];
+    const trend = (vars) => ({ names: TREND_SETS.geo, beta: Object.fromEntries(vars.map((v) => [v, Array.from({ length: C_DIM }, () => TREND_SETS.geo.map(() => 0.5))])), lambda: {} });
+    const base = { schema: CLIMA_PRODUCT_SCHEMA, kind: CLIMA_PRODUCT_KIND, fitVersion: 'test', provenance: 'hindcast', builtAt: '2026-09-27T00:00:00Z', design: C_NAMES, estimator: { kind: 'ridge', k: 3, power: 2, heightSlope: 'none' }, lapse: null, source: { clima: 'test', sha256: null, period: null, days: null, points: 2 }, licence: ['test'], notes: [] };
+    const narrow = { ...base, vars: ['t', 'td', 'gust'], trend: trend(['t', 'td', 'gust']), stations: st.map((s) => ({ ...s, mu: {} })) };
+    const vN = validateClimaProduct(narrow);
+    const vTr = validateClimaProduct({ ...narrow, trend: trend(['t', 'td', 'gust', 'u']) });
+    const vLa = validateClimaProduct({ ...narrow, estimator: { ...base.estimator, heightSlope: 'tTd' }, lapse: { t: new Array(C_DIM).fill(0), u: new Array(C_DIM).fill(0) } });
+    const vSt = validateClimaProduct({ ...narrow, stations: st.map((s) => ({ ...s, mu: { u: new Array(C_DIM).fill(0) } })) });
+    const vEmpty = validateClimaProduct({ ...narrow, vars: [] });
+    const est = estimateCoefficients(narrow, { lat: 48.2, lon: 10.2, elevM: 600, feat: [1, 0.6, 0.36, 0.2, 0.2] });
+    add('14d validateClimaProduct: Produkt mit vars [t,td,gust] und Trend nur dafür gültig; Trend/lapse/Stationskoeffizient für u werden benannt; leere vars benannt; estimateCoefficients liefert genau t, td, gust (kein u)',
+      vN.length === 0 && vTr.some((e) => /^trend u: Größe nicht in vars/.test(e)) && vLa.some((e) => /^lapse u: Größe nicht in vars/.test(e)) && vSt.some((e) => /station A: mu u nicht in vars/.test(e)) && vEmpty.some((e) => /^vars$/.test(e))
+      && JSON.stringify(Object.keys(est.mu).sort()) === '["gust","t","td"]',
+      [vN, vTr, vLa, vSt, vEmpty].map((v) => v.join(';') || 'ok').join(' | ') + ` · est ${Object.keys(est.mu).join(',')}`);
   }
 }
 

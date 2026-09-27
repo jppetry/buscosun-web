@@ -12,15 +12,21 @@
  * truncated normal of `tables.speed` behind the u/v Rice where the stratum has a written law (V-FL-22, the direction
  * stays with u/v); the hurdle needs the cube's own dry probability (`pDryCube`, column `logitWetCube`, V-FL-18) and
  * respects the hurdle's `no-skill` verdict.
+ *
+ * Phase FX: a table fitted with the station-climatology column (`design.mean.clima = 'station'`, C1) needs μ_c per
+ * variable in the situation — without it the variable is `absent` and the caller falls back as it does today; a
+ * caller that knows its height band (`band`) gets a written band entry of the speed law over the pooled one (A1). Phase FX-5
+ * (E-FX-8): the column is per VARIABLE — `design.mean.climaVars` names the variables that carry it (absent = all); the others
+ * are predicted from the `none` design and need no μ_c (`tables.ts climaColumnsFor`, one definition).
  */
 import type { Dist } from '../../pointForecast/fusion/dist';
 import { meanDesignK, meanDesignP, varianceDesign, occurrenceDesign, amountDesign } from './design';
 import { predictMean } from './fitMean';
 import { predictSigma } from './fitVariance';
 import { predictWet, predictAmountLn } from './fitPrecip';
-import { speedLaw, type SpeedEntry } from './fitSpeed';
+import { speedLaw, type SpeedEntry, type SpeedBand } from './fitSpeed';
 import { stratumKey, classKey, binIndex, type FitVar, type Form } from './strata';
-import type { FusionTables } from './tables';
+import { climaColumnsFor, type FusionTables } from './tables';
 
 export interface PredictSituation {
   z: Float64Array;
@@ -41,6 +47,10 @@ export interface PredictSituation {
   wetShare: number;
   /** fusionFit@3: the engine's dry probability at the cube member (the hurdle's cube column). Without it: no learned hurdle. */
   pDryCube?: number | null;
+  /** Phase FX (C1): the station climatology μ_c per variable at the valid time — needed by a table with `design.mean.clima = 'station'`. */
+  muC?: Partial<Record<FitVar, number | null>>;
+  /** Phase FX (A1): the site's height band — a written band entry of the speed law then wins over the pooled one. */
+  band?: SpeedBand;
 }
 
 export interface Predicted {
@@ -63,9 +73,12 @@ function meanAndSigma(tables: FusionTables, form: Form, v: FitVar, bin: number, 
   return { mu: predictMean(x, m.beta), sigma: predictSigma(xv, s) };
 }
 
-/** The speed law of a stratum (written entries only). */
-export function speedEntryOf(tables: FusionTables, form: Form, leadH: number, cls: string): SpeedEntry | null {
-  const e = tables.speed?.[`${form}|ws|${binIndex(leadH)}|${cls}`];
+/** The speed law of a stratum (written entries only): with a `band`, a written band entry `…|<band>` wins over the pooled one. */
+export function speedEntryOf(tables: FusionTables, form: Form, leadH: number, cls: string, band?: SpeedBand): SpeedEntry | null {
+  const key = `${form}|ws|${binIndex(leadH)}|${cls}`;
+  const eb = band ? tables.speed?.[`${key}|${band}`] : undefined;
+  if (eb && eb.status === 'written') return eb;
+  const e = tables.speed?.[key];
   return e && e.status === 'written' ? e : null;
 }
 
@@ -94,9 +107,14 @@ export function predict(tables: FusionTables, form: Form, s: PredictSituation): 
   const cls = classKey(form, s.srcMask, s.route);
   const absent: string[] = [];
   const mu: Predicted['mu'] = {}, sigma: Predicted['sigma'] = {};
+  // phase FX (C1): a station table needs μ_c per variable — without a finite μ_c the variable is absent (the caller falls back);
+  // phase FX-5 (E-FX-8): only for the variables the table lists (`climaColumnsFor`), the others take the `none` design
   const designOf = (v: FitVar): Float64Array | null => {
-    if (form === 'K') { const y = s.k[v]; return y == null ? null : meanDesignK(s.z, y, s.dhM, s.dTsfcK, s.srcCount); }
-    const src = s.p[v]; return src && src.length ? meanDesignP(s.z, src, s.dTsfcK) : null;
+    const clima = climaColumnsFor(tables.design.mean, v);
+    let muC: number | null = null;
+    if (clima === 'station') { const m = s.muC?.[v]; if (m == null || !Number.isFinite(m)) return null; muC = m; }
+    if (form === 'K') { const y = s.k[v]; return y == null ? null : meanDesignK(s.z, y, s.dhM, s.dTsfcK, s.srcCount, clima, muC); }
+    const src = s.p[v]; return src && src.length ? meanDesignP(s.z, src, s.dTsfcK, clima, muC) : null;
   };
   const scalar = (v: FitVar): { mu: number; sigma: number } | null => {
     const r = meanAndSigma(tables, form, v, bin, cls, designOf(v), varianceDesign(s.z, s.sigDiv[v] ?? null, s.sigEns[v] ?? null));
@@ -117,7 +135,7 @@ export function predict(tables: FusionTables, form: Form, s: PredictSituation): 
     windSpeed = { kind: 'rice', nu, sigma: sig }; riceNu = nu;
     windDirectionDeg = nu / sig >= 1 ? ((Math.atan2(-u.mu, -vv.mu) * 180) / Math.PI + 360) % 360 : null;
     // fusionFit@3 (V-FL-22): the speed law of the stratum replaces the Rice for the SPEED; the direction above stays.
-    speed = speedEntryOf(tables, form, s.leadH, cls);
+    speed = speedEntryOf(tables, form, s.leadH, cls, s.band);
     if (speed) windSpeed = speedLaw({ nu, sigma: sig }, speed);
   }
   return {

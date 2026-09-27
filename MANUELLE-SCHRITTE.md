@@ -780,3 +780,72 @@ FL-AP1 ff. läuft in derselben Session (kein Commit, kein Push, kein Producer-Ei
           war der Fit, nicht die Datenlage. Die Zahlen der Scorecard 4 sind die ersten mit konvergierter Hürde.
       (d) Nicht gebaut (benannt): V-FL-27 Halbmonatsfalten, V-FL-23 μ_c, V-FL-32 Td-Spaltensatz (= `fusionFit@4`), V-FL-35 Anker-σ,
           V-FL-29…31 — je eigener Auftrag.
+
+## 22. Phase FX — buscosun Fusion jenseits des Lehrbuch-Post-Processings (Forschungsiteration), 2026-09-25
+
+Phasendokument `audit/fusion-forschung.md` (Diagnose §2, Hypothesen + Adversarial-Urteile §3, Formel-Urteile §4, Bauplan §5, Protokoll §6,
+V-FX-1…22 in §7). Fit-/Scorer-seitig gebaut (hinter Flags, ohne Option byte-gleich): Halbmonatsfalten, Scorer-Maße (rms-Spread,
+randomisierte PIT, Vorlaufstunden-/Saison-Strata), μ_c-Spalte mit Ridge-Ziel ρ_f, Windgesetz mit offenem Gitter/zweiter Familie/Band-Verdikt,
+Skalenregel — Fit 5a/5b + Scorecard 5a/5b gegen Scorecard 4 (§6). Kein Commit, kein Push, kein Producer-/Motor-Eingriff.
+
+- [ ] **Ergebnis lesen (§6.3, Scorecard 5b `score\2026-09-25-fx5b\` gegen Scorecard 4, like-for-like 6 805 912 Zeilen):** T 246–336 h −10,1 % CRPS
+      und erstmals signifikant besser als die Stationsklimatologie (+4,1 %*), Td −12,5 % (Klima-Niveau), Böe −4,8…−10,5 % je Bin, Wind −3,6…−5,0 %
+      je Bin mit DE −1,9…−5,7 % (V-FL-38 erledigt) und halbiertem Klima-Verlust am langen Ende (−4,1/−9,7 %!), T/Td 0–240 h −0,8…−3,5 %,
+      Niederschlag ≥ Cube in jedem Bin, Bewölkung 0–48 h +1,0 % (V-FX-25, nächster Fit). Fit 5a (nur Halbmonatsfalten): T/Td −1,1…−3,4 %, Wind
+      −0,5…−1,1 %, Böe −1,1…−2,6 %, keine Regression. **Entscheidung:** Fit 5b ist der neue Referenzstand für die nächste Iteration (CRPS-Zielwahl
+      für die Bewölkung, M2 σ-Modell); keine Veröffentlichung vor E-FX-1.
+- [ ] **Lesen (§0–§2):** drei Messfehler der Scorecard 4 (Spread latent ⇒ Bewölkungs-G-FL-2 war Artefakt; Lauf-Route-Falten mit 14–21 Trainingstagen;
+      Brier-Tabelle über verschiedene Zeilenmengen ⇒ „Form P −6,0 % bei 25–48 h" ist widerlegt). Wind-Unterdispersion real ≥ 800 m. Kreuzung gegen die
+      Stationsklimatologie: Wind 105 h, Böe 156 h, Td 234 h, Bewölkung 246 h, T 264 h — Mechanismus: fehlende Schrumpfung (b 0,36/0,20 statt ≈ 1).
+- [ ] **E-FX-1 Klimatologieprodukt im Client (E-FL-12 neu):** (a) Stationstabelle ≈ 90–110 KB gz (oder ≈ 1 KB je Punkt, drei nächste Stationen), (b)
+      Merkmalsregression der Koeffizienten ≈ 8 KB gz — nur mit Leave-Station-out-Beleg (Anspruch B; bisher negativ: gepoolte Klimatologie ±0,1 %),
+      (c) nur T über `ClimaField`. Ohne Produkt bleibt die μ_c-Spalte (C1) eine Scorer-Zahl; eine `clima: station`-Tabelle rechnet im Client ohne
+      Lernstufe (benannt `absent`).
+- [ ] **E-FX-2 V-FL-37:** σ-Skala per Regel nur für die Bewölkung (`--scaleVars=clct`; Fit 5b läuft so). Bestätigen oder zurück auf Fit-4-Regel.
+- [ ] **E-FX-3 Client-Kette messen (A6, V-FX-9):** Fallbau mit `learned` und Falten-Tabellen je Monat (6–10 h auf 4 Kernen) ⇒ Kandidat `fl-K+engine`;
+      danach Entscheidung Gesetz vor `fuseHour` (momentengleiche Rice) — Motor-Reihenfolge = dein Gate.
+- [ ] **E-FX-4 Motor-Liste (STOPP & FRAGEN, nicht gebaut):** M9 Anker senkt σ (`anchor.ts`/`cubeSource.ts`); neue Familien Weibull (Klimatologie),
+      Zwei-Atome (Bewölkung), Flauten-Hürde (Wind) in `dist.ts`/Codec; Client-Seite von C1 (μ_c in `cubeSource.ts`) und A1 (Band-Schlüssel).
+- [ ] **E-FX-5 Niederschlags-Produkt bei t2/t3:** der Cube-Wert ist die Mittelrate über 3/6 h, die Wahrheit die 1-h-Summe (`recompute.mjs`); Fenstermittel
+      oder Stundensumme als Produktgröße — die Hürde folgt der Definition (A5, V-FX-14).
+- [ ] **E-FX-6 Codec-Version 2 (TN):** bleibt, oder nach A6 (2) momentengleiche Rice ⇒ Bump entbehrlich.
+- [ ] **E-FX-7 Publisher-Kandidat:** keine Client-Tabelle aus Fit 5 vor Scorecard 5b und E-FX-1; die Fit-4-Tabelle bleibt lesbar (kein Versionsbump:
+      `design.mean.clima` ist optional, fehlend = heutiges Design).
+- [ ] **Maschine:** Fit 5a/5b + Scorecard 5a/5b ≈ 4 h sequenziell (eigene Prozesse); Folgekette `queue.mjs follow` weiter täglich; dynamical-Zugang vor 30.09.
+- [ ] **FX-4 lesen (26.09., `audit/fusion-forschung.md` §6.4, `audit/fusion-forschung/{diag-fx4.md, fx4-decision-5c.md}`):** Leave-Station-out an 389 Stationen —
+      μ_c aus Standortmerkmalen (Ridge-Trend Höhe/Lage/Gelände) T 1,06 K, Td 0,68, Böe 1,31 m/s RMS (gepoolt 1,87/1,70/1,76; `ClimaField` 2,14 K), Wind nur
+      0,70/0,65 gegen 0,78/0,63 (Exposition in keinem Merkmal). **Fit 5c + Scorecard 5c mit GESCHÄTZTEM μ_c** (`fit\2026-09-26-fx5c`, `score\2026-09-26-fx5c`,
+      dieselben 6 805 912 Zeilen, DM gegen fl-K@5a auf identischen Zeilen): T 246–336 h +4,7 %*, Td +8,5 %*, Böe +1,9/+2,8 %*, Wind +0,3…+1,6 %* (nur
+      < 20 km Stationsabstand), T/Td 126–240 h +0,3 % n.s., Bewölkung −1,1…−3,2 %! ⇒ **Regel (vorab festgelegt) verletzt, nicht gebaut**; Fit 5d abgebrochen
+      (gleicher Bewölkungs-Schätzer). Client-Wiring war vorbereitet und geprüft (pv-cube 319/319, point-client 167/167, totalJs +2,9 KB) und ist zurückgebaut.
+- [ ] **E-FX-1 (beantwortet durch Messung):** kein Klimatologieprodukt jetzt. Geblieben: Schätzer `src/point/fusionFit/climaProduct.ts`, Produktbau
+      `scripts/fusionfit/clima-product.mjs` (lokal `C:\dev\buscosun-hindcast\product\2026-09-26\clima\v1\stations.json`, 24,9 KB gz, Lizenzen DWD/GeoSphere/
+      MeteoSwiss CC BY 4.0 — nichts kopiert), `fit.mjs --climaMu`, `score.mjs --refTables`. E-FX-7 bleibt: keine Client-Tabelle aus Fit 5.
+- [ ] **E-FX-8 Regel je Größe × Bin?** Ein Produkt nur für T/Td/Böe bei 246–336 h (Wind/Bewölkung ohne μ_c-Spalte) bestünde Regel 2/3 und Regel 1 halb —
+      Fit 5e (`--climaVars=t,td,gust`, ≈ 5,5 h Maschine) bauen oder E-FX-1 schließen, bis eine Windklimatologie mit Exposition existiert (E-FX-9).
+- [ ] **E-FX-9 Windklimatologie mit Exposition:** Monatsmittel u/v/Böe je Cube-Zelle als statisches Producer-Produkt oder ERA5-Land-Kacheln (CC BY 4.0);
+      vorher A3 (μ_c^mod-Anomalieform) an den 405 Punkten aus den Fallreihen messen — Producer/Motor = dein Gate.
+- [ ] **Maschine FX-4:** Kette Fit 5c (2 h 14) → Scorecard 5c (2 h 59, Referenzkandidaten verdoppeln die Zeit, V-FX-36); lange Ketten vom Werkzeugprozess
+      gelöst starten (V-FX-34). Der Hintergrund-Wächter wurde wegen Speicherknappheit beendet (Fit-Spitze); `queue.mjs follow` und der dynamical-Zugang bleiben offen.
+- [ ] **FX-5 lesen (27.09., `audit/fusion-forschung.md` §6.5, `audit/fusion-forschung/{fx5-decision-5e.md, diag-fx5-a3.md}`):** E-FX-8 gebaut und gemessen — Fit 5e
+      (`fit\2026-09-27-fx5e`, μ_c-Spalte nur T/Td/Böe, geschätztes μ_c ridgeTx) + Scorecard 5e (`score\2026-09-27-fx5e`, dieselben 6 805 912 Zeilen, Referenzen 5a und 5c):
+      **T 246–336 h +4,7 %*, Td +8,5 %*, Böe +1,9/+2,8 %* gegen 5a; Bewölkung/Niederschlag exakt 0,0 (Negativkontrolle); Wind +0,3…+1,7 %* = A1 allein (V-FX-40); keine
+      Schicht unter −2 % (Rand Wind DE 7–24 h −1,9 %!)** ⇒ Regel fx5 bestanden, **Stufe 3 gebaut**: Produkt lokal `product\2026-09-27\clima\v1\stations.json` (12,0 KB gz,
+      nur T/Td/Böe, CC BY 4.0 DWD/GeoSphere/MeteoSwiss), Client-Wiring `CubeIo.climaSource: 'json'` + Leser `climaPoint.ts` (voreingestellt aus, Produktion byte-gleich),
+      Fit-5e-Client-Tabelle 28,3 KB gz. Gates grün (`verify:fusion-fit` 104/104, `verify:pv-cube` 320/320, `verify:point-client` 167/167, calib-fit 14/14, pv-fusion 229/229,
+      Build 241/241); Budget eagerJs 107,9 unverändert, **totalJs 1 447,6 KB > 1 438 (+2,9 KB gz im lazy cubeSource-Chunk, E-FL-11)**. Kein Commit, nichts kopiert.
+- [ ] **E-FX-10 Kopie ins Daten-Repo (dein Gate, nur GEMEINSAM — V-FX-43):** `C:\dev\buscosun-hindcast\product\2026-09-27\clima\v1\stations.json` → `buscosun-data/point/static/clima/v1/stations.json`
+      UND `C:\dev\buscosun-hindcast\fit\2026-09-27-fx5e\fusion.client.json` → `buscosun-data/point/fusion.client.json`; danach Warm-up (GET) beider Dateien am Edge. Ohne das
+      Produkt rechnet die station-Tabelle T/Td/Böe nicht gelernt (benannt `learnedClima:absent`). Alternative: E-FX-7 (Fit-4-Tabelle) beibehalten, nichts kopieren.
+- [ ] **E-FX-11 Einschalten hinter `?pf=cube`:** `defaultCubeIo` → `learnedSource: 'json'` + `climaSource: 'json'` gemeinsam (heute beide aus); erst nach E-FX-10, dann
+      Real-Device-Blick auf die erste Darstellung (`?startnow=0&pf=cube&pflog=1`; das Produkt liegt nie auf dem kritischen Pfad).
+- [ ] **E-FL-11 totalJs:** 1 444,7 → **1 447,6 KB** (Ratsche 1 438) — anheben oder Rückbau des Client-Wirings verlangen.
+- [ ] **V-FX-39:** `clima-product.mjs` war nach dem FX-4-Rückbau nicht lauffähig (fehlende Konstanten in `cubeFormat.ts`) — wiederhergestellt; zur Kenntnis.
+- [ ] **E-FX-9 — durch A3 beantwortet: NEIN (§6.5, `diag-fx5-a3.md`, 389 Punkte, Hash-Verdünnung):** die Klimatologie des Cube-Members trägt in der Anomalieform nichts
+      (u/v 126–336 h −0,3…+0,5 % = verwürfelte Kontrolle, β_μc 0,02–0,10; Stationsklimatologie +3,9…+8,2 %*, LOSO +0,2…+1,8 %*; Böe +2,1/+4,4 %* ≈ LOSO) ⇒ kein
+      Producer-Produkt Monatsmittel u/v/Böe je Zelle, kein Motor-Eingriff. Offen als Frage: ERA5-Land-Kacheln (V-FX-45) oder rollende 12-Monats-Stationsklimatologie
+      (V-FX-46: +8,6 %* bei ws 246–336 h, in Echtzeit nur mit Vergangenheit zu messen). Zur Kenntnis: das rohe Member ist bei ws 246–336 h 7,9 %* besser als das u/v-Modell (V-FX-47).
+- [ ] **V-FX-44 / E-FX-12 (Befund 27.09.):** die Zeilenverdünnung `(validAtH + pointIdx) % stride` von Fit und Scorer ist bei t3 (6-h-Schritte) eine Punktauswahl —
+      Bins 4/5 aller Fits und Scorecards seit Fit 4 hängen an **65 von 389 Stationen** (t2: 130, t1: 259; Zeilenanteil je 16,7 %). Like-for-like zwischen den Karten bleibt
+      gültig; Schicht-/dnn-Zahlen der Bins 3–5 auf 65/130 Stationen lesen. Entscheidung: Hash-Auswahl + Referenzkette 5a → 5e neu (≈ 8 h) jetzt oder mit dem Winter-Nachfit.
+- [ ] **Mobil-4G (Lab, 04:04 UTC, Maschine frei):** cube-cold-prog erste Darstellung 1 588 / total 1 797 ms, warm 237 ms — keine Regression erkennbar (Referenz 18.09. 1 812 / 193 ms, andere Leitung).

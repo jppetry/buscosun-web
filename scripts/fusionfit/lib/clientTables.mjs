@@ -18,8 +18,10 @@ export const CLIENT_DROP = Object.freeze(['folds', 'cv', 'prior', 'jitter', 'sca
 export function clientTables(tables) {
   const drop = new Set(CLIENT_DROP);
   const pickK = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([k, e]) => k.startsWith('K|') && e.status === 'written').map(([k, e]) => [k, Object.fromEntries(Object.entries(e).filter(([f]) => !drop.has(f)))]));
+  // phase FX-4: the estimated-μ_c block of a `--climaMu` fit is scorer evidence, never the client's (it reads the product); a fit without it stays byte-identical
+  const { climaMu: _climaMu, ...rest } = tables;
   return {
-    ...tables,
+    ...rest,
     mean: pickK(tables.mean), variance: pickK(tables.variance), occurrence: pickK(tables.occurrence), amount: pickK(tables.amount), speed: pickK(tables.speed),
     clima: null, rhoForecast: null,
     notes: [...tables.notes, 'Client-Fassung (V-FL-28): nur Form K, geschriebene Strata, je Eintrag ohne Falten-β/CV/Prior/Jitter/Skalen- und LN-Belege; ohne Klimatologie und ρ_f (der Client liest sie nicht); anchor-Block für die Anker-Kurve (FL-AP8b)'],
