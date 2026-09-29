@@ -209,8 +209,11 @@ Blitzdaten (kostenpflichtig oder nicht-kommerziell).
 
 | Datum | Was | Konsequenz |
 |---|---|---|
-| **November 2026** | GeoSphere `nwp-v1-1h-2500m` (AROME 2,5 km) wird abgeschaltet | rechtzeitig auf `nwp-v2-1h-1km` migrieren; nicht neu darauf bauen |
-| **30.09.2026** | `data.dynamical.org` ändert den Zugriffsweg | nur relevant, falls das ICON-EU-Teilarchiv genutzt wird |
+| **30.09.2026** | `data.dynamical.org` wird abgeschaltet | **erledigt 29.09.** — der Hindcast liest die Icechunk-Stores seit AP10a direkt aus den AWS-Buckets (`s3://dynamical-…`); am 29.09. alle drei Stores geöffnet; Producer und Client lesen dynamical nicht |
+| **06.10.2026** | DWD: ICON-EPS 26 → 20 km (Gitter #39), ICON-EU-EPS 13 → 10 km (Gitter #63) | **erledigt 29.09.** — der unveränderte Adapter liest den DWD-Testlauf auf den neuen Gittern (`scripts/point/probe-eps-grid.mjs`); Dateien doppelt so groß ⇒ Job-Dauer t2/t3 nach dem ersten Lauf ansehen |
+| **20.10.2026, 08 UTC** | DWD schaltet die Altformate der Radarprodukte ab (RADOLAN-Binär) | RV aus `composite_rv_<JJJJMMTT>_<HHMM>.tar` (ODIM-HDF5) lesen: Spiegel, Ableitung, Client-Rohweg, Nowcast-Leser |
+| **04.11.2026** | GeoSphere `nwp-v1-1h-2500m` (AROME 2,5 km) wird abgeschaltet | rechtzeitig auf `nwp-v2-1h-1km` migrieren; nicht neu darauf bauen. Producer liest schon v2; offen Live-Rückfallpfad und Kartenquelle |
+| **30.11.2026** | DWD: altes URL-Schema für ICON(-EPS), ICON-EU(-EPS), ICON-D2(-EPS) endet; danach nur Dreiecksgitter unter `/weather/nwp/v1/m/`, Member einzeln, CCSDS statt bz2 | Producer-Adapter und Kartenlinie umstellen; ICON-D2 und ICON-EU verlieren das reguläre Gitter |
 | **Ende 2026** | MeteoSchweiz kündigt eine Einzelabfrage-API an | Chance: der CH-Nowcast könnte damit öffnen |
 | offen | Copernicus DEM: CDSE hat den View-Service eingeschränkt (25.08.2026) | AWS-Bucket nutzen, Derivate selbst spiegeln |
 
@@ -228,5 +231,6 @@ Blitzdaten (kostenpflichtig oder nicht-kommerziell).
 - **Einzelquellen im Cube (V-FI-108):** der Cube trägt nur das Mittel; die Einzelquellen-Form der Lernstufe
   (PAP 7, Form P) ist nur im Backtest rechenbar. Punktauszug je Quelle aus dem Producer oder PAP 2 im
   Producer ist Jans Entscheidung, der Backtest liefert dafür die Zahl (P − K).
-- **`data.dynamical.org` ab 30.09.2026:** die Folgekette des Hindcasts hängt für t3-σ_ens daran (V-HC-8);
-  vor dem Stichtag den neuen Zugriffsweg prüfen.
+- **`data.dynamical.org` ab 30.09.2026 — geprüft 29.09.:** die Folgekette des Hindcasts (t3-σ_ens, V-HC-8) liest
+  nicht über `data.dynamical.org`, sondern die Buckets `dynamical-ecmwf-ifs-ens`, `dynamical-ecmwf-aifs-single`
+  und `dynamical-dwd-icon-eu` direkt; das ist der Weg, den dynamical.org als Ersatz nennt.

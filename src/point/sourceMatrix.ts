@@ -619,20 +619,63 @@ export const BLOCKED = Object.freeze([
  * Terminierte Änderungen (`QUELLENMATRIX.md` §6). Ein Datum in einer Prosa-Tabelle
  * wird übersehen; hier kann der Verifier davor warnen (V-PD-2 ist genau dieser Fall:
  * `nwp-v1-1h-2500m` fiele sonst still aus, wie der RADOLAN-Frühstart bei V-LE-12).
+ *
+ * `resolved` (V-EX-1, 2026-09-29): ein Termin ist erledigt, wenn an der Quelle GEMESSEN ist, dass
+ * der eigene Leser ihn übersteht — mit Datum und Beleg. Ohne das Feld hielt der verstrichene
+ * Termin „data.dynamical.org" das Gate des Punkt-Crons an (vier Läufe am 29.09. ab 13:49 UTC),
+ * obwohl kein Leser den abgeschalteten Weg benutzt. Ein Termin ohne `resolved` bleibt, was er war:
+ * ab dem Stichtag ein Fehlschlag.
  */
-export const SCHEDULED_CHANGES = Object.freeze([
+export interface ScheduledChange {
+  readonly on: string | null;
+  readonly what: string;
+  readonly action: string;
+  readonly affects: readonly string[];
+  readonly improvement: string | null;
+  readonly resolved?: { readonly on: string; readonly evidence: string };
+  /** Ankündigung ohne Wegfall — wird genannt, hält aber kein Gate an. */
+  readonly informational?: boolean;
+}
+
+export const SCHEDULED_CHANGES: readonly ScheduledChange[] = Object.freeze([
   Object.freeze({
-    on: '2026-11-01', what: 'GeoSphere nwp-v1-1h-2500m (AROME 2,5 km) wird abgeschaltet',
-    action: 'auf nwp-v2-1h-1km (C-LAEF AlpeAdria) migrieren; nicht neu darauf bauen',
+    on: '2026-11-04', what: 'GeoSphere nwp-v1-1h-2500m (AROME 2,5 km) wird abgeschaltet',
+    action: 'auf nwp-v2-1h-1km (C-LAEF AlpeAdria) migrieren; nicht neu darauf bauen. Der Producer liest schon v2; offen sind der Live-Rückfallpfad (sampleSources.ts) und die Kartenquelle (geosphereArome.ts)',
     affects: ['claef'], improvement: 'V-PD-2',
   }),
   Object.freeze({
-    on: '2026-09-30', what: 'data.dynamical.org ändert den Zugriffsweg',
-    action: 'nur relevant, falls das ICON-EU-Teilarchiv genutzt wird', affects: ['icon_eu'], improvement: null,
+    on: '2026-09-30', what: 'data.dynamical.org wird abgeschaltet',
+    action: 'Icechunk-Stores direkt aus den AWS-Buckets lesen (s3://dynamical-…, us-west-2, anonym)',
+    affects: ['ifs_ens', 'aifs_single', 'icon_eu'], improvement: 'V-EX-1',
+    resolved: Object.freeze({
+      on: '2026-09-29',
+      evidence: 'scripts/hindcast/extract_dynamical.py liest seit AP10a icechunk.s3_storage(bucket=dynamical-…); am 29.09. alle drei Stores geöffnet (ifs-ens, aifs, icon-eu), jüngster Lauf 2026-09-29, keine virtuellen Chunk-Container; weder Producer noch Client lesen dynamical',
+    }),
+  }),
+  Object.freeze({
+    on: '2026-10-06', what: 'DWD: ICON-EPS 26 → 20 km (Gitter #39), ICON-EU-EPS 13 → 10 km (Gitter #63, größeres Gebiet)',
+    action: 'Nachbarindex je Lauf aus clat/clon (dwdEps.mjs tut das); Kosten je Datei verdoppeln sich — Job-Dauer t2/t3 nach dem ersten Lauf ansehen',
+    affects: ['icon_eu_eps', 'icon_eps_global'], improvement: 'V-EX-2',
+    resolved: Object.freeze({
+      on: '2026-09-29',
+      evidence: 'scripts/point/probe-eps-grid.mjs gegen den DWD-Testlauf 2026071500 (opendata.dwd.de/test/): unveränderter Adapter liest 342 428 bzw. 1 310 720 Zellen, 40 Member, 0 Zellen ohne Nachbar, Abstand p90 6,5 / 12,9 km; Datei 19,5 statt 9,5 MB bzw. 62,7 statt 37,2 MB',
+    }),
+  }),
+  Object.freeze({
+    on: '2026-10-20', what: 'DWD schaltet die Altformate der Radarprodukte ab (RADOLAN-Binär; HDF5 bleibt), 08 UTC',
+    action: 'RV aus composite_rv_<JJJJMMTT>_<HHMM>.tar (ODIM-HDF5) lesen: Spiegel, Ableitung, Client-Rohweg, Nowcast-Leser',
+    affects: ['dwd_rv'], improvement: 'V-EX-3',
+  }),
+  Object.freeze({
+    on: '2026-11-30', what: 'DWD: altes URL-Schema für ICON(-EPS), ICON-EU(-EPS), ICON-D2(-EPS) endet; danach nur noch Dreiecksgitter unter /weather/nwp/v1/m/, Member als Einzeldateien, CCSDS statt bz2',
+    action: 'Producer-Adapter dwdRegular/dwdIcosahedral/dwdEps und die Kartenlinie (Repack, Client-Leser) auf /v1/m/ und das Dreiecksgitter umstellen; ICON-D2 und ICON-EU verlieren das reguläre Gitter',
+    affects: ['icon_d2', 'icon_eu', 'icon_global', 'icon_d2_eps', 'icon_eu_eps', 'icon_eps_global'], improvement: 'V-EX-4',
   }),
   Object.freeze({
     on: '2026-12-31', what: 'MeteoSchweiz kündigt eine Einzelabfrage-API an',
     action: 'Chance: der CH-Nowcast könnte damit öffnen', affects: ['combiprecip'], improvement: null,
+    // Eine Ankündigung, kein Wegfall: nichts, was wir lesen, endet an diesem Tag (V-EX-5).
+    informational: true,
   }),
   Object.freeze({
     on: null, what: 'Copernicus DEM: CDSE hat den View-Service eingeschränkt (25.08.2026)',
@@ -857,7 +900,8 @@ export function sourceMatrixSelfTest(nowMs = Date.now()): {
   for (const c of SCHEDULED_CHANGES) {
     const d = daysUntil(c, nowMs);
     if (d == null) continue;
-    add(`Termin nicht überfällig: ${c.what.slice(0, 42)}…`, d > 0, `${d} Tage`);
+    add(`Termin nicht überfällig: ${c.what.slice(0, 42)}…`, d > 0 || !!c.resolved || c.informational === true,
+      c.resolved ? `erledigt ${c.resolved.on}` : c.informational ? `${d} Tage (Ankündigung)` : `${d} Tage`);
   }
 
   // §1 als Tabelle: jede genannte Quelle muss existieren, und jedes Band muss

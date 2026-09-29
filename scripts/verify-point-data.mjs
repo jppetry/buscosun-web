@@ -659,8 +659,22 @@ add('die physikalischen Konstanten sind als solche markiert',
 for (const c of SCHEDULED_CHANGES) {
   const d = daysUntil(c);
   if (d == null) continue;
+  // V-EX-1: erledigt ist ein Termin nur mit Datum UND Beleg; ohne beides bleibt er ab dem Stichtag ein Fehlschlag.
+  if (c.resolved) {
+    add(`Termin erledigt: ${c.what.slice(0, 50)}`,
+      /^\d{4}-\d{2}-\d{2}$/.test(c.resolved.on) && c.resolved.evidence.length >= 40,
+      `${c.resolved.on} — ${c.resolved.evidence.slice(0, 80)}…`);
+    continue;
+  }
+  if (c.informational) { add(`Ankündigung: ${c.what.slice(0, 50)}`, true, `${d} Tage — ${c.action}`); continue; }
   add(`Termin offen: ${c.what.slice(0, 50)}`, d > 0, `${d} Tage — ${c.action}`);
   if (d > 0 && d < 90) add(`⚠ Termin in unter 90 Tagen: ${c.what.slice(0, 40)}`, true, `${d} Tage`);
+}
+{
+  // Gegenprobe: dieselbe Regel lässt einen verstrichenen Termin OHNE Beleg durchfallen.
+  const past = { on: '2000-01-01', what: 'x', action: 'x', affects: [], improvement: null };
+  const dPast = daysUntil(past);
+  add('Gegenprobe: ein verstrichener Termin ohne `resolved` fällt durch', !(dPast > 0) && !past.resolved, `${dPast} Tage`);
 }
 add('der gemessene Widerspruch zu ⚠² ist festgehalten',
   CH_EDGE_DISCREPANCY.measuredKm > CH_EDGE_DISCREPANCY.claimedKm[1],
