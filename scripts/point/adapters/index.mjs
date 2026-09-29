@@ -75,7 +75,7 @@ export const PENDING = Object.freeze({
  * auf eine Quelle wartet, die nie kommt.
  */
 export const DECLINED = Object.freeze({
-  mosmix_s: 'Stündliches Stationsprodukt (24 KMZ à ≈ 80 MiB je Tag). Neben ICON-D2 (stündlich, 8 Läufe) und dem Stationsanker ist ein Gewinn in 0–24 h nicht belegt (Annahme, audit/punktdaten-bereitschaft.md §5.8). Wieder offen, sobald buscosun-archiv zeigt, dass MOSMIX-S dort besser ist als MOSMIX-L + Anker.',
+  mosmix_s: 'Stündliches Stationsprodukt (24 KMZ je Tag, gemessen 2026-09-29: 36,4–36,9 MB je Datei; die früher genannten ≈ 80 MiB sind die Größe von MOSMIX-L). Neben ICON-D2 (stündlich, 8 Läufe) und dem Stationsanker ist ein Gewinn in 0–24 h nicht belegt (Annahme, audit/punktdaten-bereitschaft.md §5.8). Wieder offen, sobald buscosun-archiv zeigt, dass MOSMIX-S dort besser ist als MOSMIX-L + Anker.',
   kenda_ch1: 'ANALYSE, keine Vorhersage (STAC ch.meteoschweiz.ogd-analysis-kenda-ch1) — gehört zu Stunde 0 wie das Radar. Der Anker liest heute SwissMetNet live; KENDA wäre ein Ersatz für ein dünnes Stationsnetz. Wieder offen, sobald das Archiv an CH-Punkten einen Anker-Fehler zeigt, den die Analyse schließen könnte.',
 });
 

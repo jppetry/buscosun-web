@@ -6,15 +6,19 @@
  *
  * Gemessen (LE0 §2.4): INCA-Parse 2,5 s Hauptthread im Browser — jeder
  * fertige Radar-Frame wartete dahinter.
+ *
+ * `rv` (EX-3): das HDF5-Tar des DWD-RV-Nowcasts (`rvHdf5.ts`). Es läuft hier und
+ * nicht im `radolanWorker`, weil jsfive in diesem Worker schon geladen ist.
  */
 /// <reference lib="webworker" />
 
 import { parseIncaNetcdf } from './incaParse';
 import { parseRzcHdf5 } from './rzcParse';
+import { decodeRvHdf5Tar } from './rvHdf5';
 
-export interface Hdf5Req { id: number; kind: 'inca' | 'rzc'; buf: ArrayBuffer }
+export interface Hdf5Req { id: number; kind: 'inca' | 'rzc' | 'rv'; buf: ArrayBuffer }
 
-self.onmessage = (e: MessageEvent<Hdf5Req>) => {
+self.onmessage = async (e: MessageEvent<Hdf5Req>) => {
   const { id, kind, buf } = e.data;
   const post = self as unknown as { postMessage: (m: unknown, t?: Transferable[]) => void };
   try {
@@ -22,6 +26,10 @@ self.onmessage = (e: MessageEvent<Hdf5Req>) => {
       const { frames, corners } = parseIncaNetcdf(buf);
       const out = frames.map((f) => ({ leadHours: f.leadHours, width: f.width, height: f.height, valuesBuf: f.values.buffer }));
       post.postMessage({ id, ok: true, kind, corners, frames: out }, out.map((f) => f.valuesBuf));
+    } else if (kind === 'rv') {
+      const { runAtMs, frames } = await decodeRvHdf5Tar(new Uint8Array(buf));
+      const out = frames.map((f) => ({ leadMinutes: f.leadMinutes, validAtMs: f.validAtMs, width: f.width, height: f.height, valuesBuf: f.values.buffer }));
+      post.postMessage({ id, ok: true, kind, runAtMs, frames: out }, out.map((f) => f.valuesBuf));
     } else {
       const r = parseRzcHdf5(buf);
       post.postMessage(

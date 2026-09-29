@@ -398,7 +398,7 @@ if (typeof flags.features === 'string') {
 
 // ── Block 9: the verification statistics (FL-AP4) ─────────────────────────────
 {
-  const { dmTest, bootstrapSkill, benjaminiHochberg, ScoreAcc, BrierAcc, EtsAcc, PairAcc, crpsByCdf } = await import('./fusionfit/lib/stats.mjs');
+  const { dmTest, bootstrapSkill, benjaminiHochberg, ScoreAcc, BrierAcc, EtsAcc, PairAcc, crpsByCdf, studentTCdf } = await import('./fusionfit/lib/stats.mjs');
   const { crpsNormal, crpsOf } = await import('../src/pointForecast/fusion/dist.ts');
   const rnd = lcg(5);
   const gauss = () => { const u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
@@ -407,11 +407,56 @@ if (typeof flags.features === 'string') {
   for (let d = 0; d < 120; d++) { better.set(d, [-0.2 * 30 + 0.3 * gauss() * Math.sqrt(30), 30]); noise.set(d, [0.3 * gauss() * Math.sqrt(30), 30]); }
   const dmB = dmTest(better), dmN = dmTest(noise);
   add('9a Diebold–Mariano (HAC): Gewinn signifikant negativ, Rauschen nicht', dmB.stat < -3 && dmB.p < 0.01 && Math.abs(dmN.stat) < 2.5 && dmN.p > 0.01, `stat ${dmB.stat.toFixed(2)} p ${dmB.p.toExponential(1)} · Rauschen stat ${dmN.stat.toFixed(2)}`);
+  // 9a' small-sample form (phase EX): Student t against table values, the HLN factor at 13 days, and the counter-check
+  // that a statistic the normal form called significant is not significant at 13 days
+  {
+    const tOk = Math.abs(studentTCdf(2.178813, 12) - 0.975) < 1e-5 && Math.abs(studentTCdf(12.7062, 1) - 0.975) < 1e-5
+      && Math.abs(studentTCdf(-2.178813, 12) - 0.025) < 1e-5 && Math.abs(studentTCdf(1.959964, 1e7) - 0.975) < 1e-5 && studentTCdf(0, 5) === 0.5;
+    add("9a' Student-t: t₀,₉₇₅ bei 12 und 1 Freiheitsgraden, Symmetrie, Grenzfall Normalverteilung", tOk,
+      `${studentTCdf(2.178813, 12).toFixed(6)} · ${studentTCdf(12.7062, 1).toFixed(6)} · ${studentTCdf(1.959964, 1e7).toFixed(6)}`);
+    const short = new Map();
+    const r13 = lcg(77);
+    const g13 = () => { const u = r13() || 1e-9, v = r13(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    for (let d = 0; d < 13; d++) short.set(d, [(-0.12 + 0.2 * g13()) * 30, 30]);
+    const dm13 = dmTest(short);
+    add("9a' Harvey–Leybourne–Newbold: bei 13 Tagen (L = 3) Faktor 0,730, p aus t₁₂ größer als aus der Normalverteilung",
+      dm13.n === 13 && dm13.lag === 3 && Math.abs(dm13.hln - Math.sqrt((13 + 1 - 8 + 12 / 13) / 13)) < 1e-12 && Math.abs(dm13.hln - 0.7298) < 1e-3
+      && Math.abs(dm13.stat - dm13.statNormal * dm13.hln) < 1e-12 && dm13.p > dm13.pNormal,
+      `Faktor ${dm13.hln.toFixed(4)} · stat ${dm13.statNormal.toFixed(2)} → ${dm13.stat.toFixed(2)} · p ${dm13.pNormal.toFixed(4)} → ${dm13.p.toFixed(4)}`);
+    add("9a' bei 120 Tagen (L = 7) ist der Faktor 0,9375 — die Korrektur schrumpft mit der Länge der Reihe", Math.abs(dmB.hln - 0.9375) < 1e-3 && dmB.hln < 1 && Math.abs(dmB.stat) < Math.abs(dmB.statNormal), `Faktor ${dmB.hln.toFixed(4)}`);
+    // counter-check: search a 13-day series the normal form calls significant (p < 0,05) and the small-sample form does not
+    let found = null;
+    for (let seed = 1; seed < 400 && !found; seed++) {
+      const r = lcg(seed); const g = () => { const u = r() || 1e-9, v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+      const mm = new Map();
+      for (let d = 0; d < 13; d++) mm.set(d, [(-0.1 + 0.2 * g()) * 30, 30]);
+      const t = dmTest(mm);
+      if (t.pNormal < 0.05 && t.p >= 0.05) found = { seed, pNormal: t.pNormal, p: t.p };
+    }
+    add("9a' Gegenprobe: es gibt 13-Tage-Reihen, die nur die Normalform signifikant nennt (die Korrektur ist nicht wirkungslos)", !!found,
+      found ? `Seed ${found.seed}: p ${found.pNormal.toFixed(3)} → ${found.p.toFixed(3)}` : 'keine gefunden');
+  }
   // 9b bootstrap over days brackets the true skill
   const bd = new Map();
   for (let d = 0; d < 80; d++) bd.set(d, [0.8 * 20 + 2 * gauss(), 1.0 * 20 + 2 * gauss()]);
   const ci = bootstrapSkill(bd);
   add('9b Block-Bootstrap: 90-%-Intervall umschließt den wahren Skill 0,2', ci && ci[0] < 0.2 && ci[1] > 0.2 && ci[1] - ci[0] < 0.2, `[${ci?.map((x) => x.toFixed(3)).join(', ')}]`);
+  {
+    // 9b' moving blocks (phase EX): days that hang together (one regime per 6 days) widen the interval against the same
+    // days in shuffled order — a bootstrap that draws single days cannot tell the two apart
+    const reg = new Map(), shuf = new Map();
+    const rr = lcg(9);
+    const rows = [];
+    for (let d = 0; d < 90; d++) { const lvl = Math.floor(d / 6) % 2 === 0 ? 0.6 : 1.0; rows.push([lvl * 20 + 0.5 * (rr() - 0.5), 20]); }
+    rows.forEach((r, d) => reg.set(d, r));
+    const order = rows.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    order.forEach((src, d) => shuf.set(d, rows[src]));
+    const ciReg = bootstrapSkill(reg), ciShuf = bootstrapSkill(shuf);
+    const wReg = ciReg[1] - ciReg[0], wShuf = ciShuf[1] - ciShuf[0];
+    add("9b' gleitende Blöcke: zusammenhängende Tage geben ein breiteres Intervall als dieselben Tage gemischt", wReg > 1.3 * wShuf,
+      `Breite ${wReg.toFixed(3)} gegen ${wShuf.toFixed(3)}`);
+  }
   // 9c Benjamini–Hochberg: monotone, the smallest p scaled by m
   const adj = benjaminiHochberg([0.001, 0.02, 0.03, 0.5, NaN]);
   add('9c Benjamini–Hochberg: monoton, p_min·m, NaN bleibt NaN', Math.abs(adj[0] - 0.004) < 1e-12 && adj[1] <= adj[2] && adj[2] <= adj[3] && Math.abs(adj[3] - 0.5) < 1e-12 && Number.isNaN(adj[4]), adj.map((x) => (Number.isNaN(x) ? 'NaN' : x.toFixed(3))).join('/'));

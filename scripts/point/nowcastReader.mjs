@@ -27,7 +27,7 @@ import { pathToFileURL } from 'node:url';
 import { decodePng } from '../lib/png.mjs';
 import { decompressBz2 } from '../lib/bz2.mjs';
 import { sampleRadarPoint } from '../../src/pointForecast/radarSample.ts';
-import { untar, decodeRadolanRaw } from '../../src/sources/radolanDecode.ts';
+import { untar, decodeRadolanRaw, isBz2, rvFileNameOf } from '../../src/sources/radolanDecode.ts';
 import { DE1200_CORNERS } from '../../src/sources/radolanGeo.ts';
 import {
   NOWCAST_BY_ID, NOWCAST_SOURCES, NOWCAST_IMG_DIR, NOWCAST_RV_RAW_DIR,
@@ -85,17 +85,27 @@ export async function readFrame(repoRoot, sourceId, stamp, lat, lon, lead = null
 /**
  * Derselbe Punkt aus dem UNVERÄNDERTEN RV-Archiv — ohne Sättigung, ohne Quantisierung.
  *
- * Nur für Deutschland: `radar/rv/DE1200_RV<stamp>.tar.bz2` liegt roh im Spiegel. Der
+ * Nur für Deutschland: der Lauf liegt roh im Spiegel — seit EX-3 als
+ * `radar/rv/composite_rv_<JJJJMMTT>_<HHMM>.tar` (ODIM-HDF5), bis zum 2026-10-20 auch als
+ * `radar/rv/DE1200_RV<stamp>.tar.bz2` (RADOLAN-Binär). Der
  * Weg ist teurer (entpacken statt PNG lesen), aber er ist die einzige Stelle, an der ein
  * Starkregen über 20 mm/h seinen echten Wert behält — und er belegt, dass die Aussage
  * über die PNG-Kodierung stimmt.
+ *
+ * Beide Lieferformen geben dasselbe Feld in RADOLAN-Einheiten (0,12 mm/h), s. `src/sources/rvHdf5.ts`.
  */
 export async function readRvExact(repoRoot, stamp, lat, lon, lead = 0) {
-  const p = join(repoRoot, NOWCAST_RV_RAW_DIR, `DE1200_RV${stamp}.tar.bz2`);
-  if (!existsSync(p)) return null;
-  const entries = untar(await decompressBz2(new Uint8Array(readFileSync(p))));
+  const names = [rvFileNameOf(stamp, 'hdf5'), rvFileNameOf(stamp, 'radolan')];
+  const p = names.map((n) => join(repoRoot, NOWCAST_RV_RAW_DIR, n)).find((x) => existsSync(x));
+  if (!p) return null;
+  const raw = new Uint8Array(readFileSync(p));
+  const entries = untar(isBz2(raw) ? await decompressBz2(raw) : raw);
+  // jsfive erst laden, wenn wirklich ein HDF5-Feld vorliegt.
+  const h5 = entries.length && entries[0].data[0] === 0x89 ? await import('../../src/sources/rvHdf5.ts') : null;
   for (const e of entries) {
-    const grid = decodeRadolanRaw(e.data);
+    const grid = h5
+      ? await h5.decodeRvHdf5(e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength), { name: e.name })
+      : decodeRadolanRaw(e.data);
     if (grid.leadMinutes !== lead) continue;
     // Das Rasterfeld ist Float32 in mm/h. Um DIESELBE Verortung wie der PNG-Weg zu
     // benutzen (und nicht versehentlich eine zweite Geometrie einzuführen), wird es über

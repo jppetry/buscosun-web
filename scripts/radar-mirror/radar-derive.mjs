@@ -5,7 +5,8 @@
  * Daten-Repo) als KINDPROZESS gespawnt — ein Derive-Fehler nimmt nur die Bild-Ablage,
  * nie den Roh-Push. Läuft aus dem buscosun-web-Klon (APP_DIR des Workflows), damit die
  * DECODER DES CLIENTS die Bytes erzeugen (BW-1-Regel: byte-identisch per Konstruktion):
- *   rv        DE1200_RV<stamp>.tar.bz2 → 25 Graustufen-PNGs (precipToU8-Bytes) + meta.json
+ *   rv        composite_rv_<JJJJMMTT>_<HHMM>.tar (HDF5) oder DE1200_RV<stamp>.tar.bz2 (bis 2026-10-20)
+ *                                      → 25 Graustufen-PNGs (precipToU8-Bytes) + meta.json
  *   inca      GeoSphere-NetCDF         → 12 PNGs + meta.json (Ecken aus der Datei)
  *   rzc       MeteoSwiss-ODIM-HDF5     → frame.png + meta.json
  *   konrad3d  KONRAD3D_<stamp>.xml     → cells.json ({schema:1, run: parseKonrad3d(...)})
@@ -19,7 +20,8 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync, renameSync, cpSync } fr
 import { join, dirname } from 'node:path';
 import { decompressBz2 } from '../lib/bz2.mjs';
 import { encodePng } from '../lib/png.mjs';
-import { decodeRvTar } from '../../src/sources/radolanDecode.ts';
+import { decodeRvTar, isBz2, rvTarIsHdf5 } from '../../src/sources/radolanDecode.ts';
+import { decodeRvHdf5Tar } from '../../src/sources/rvHdf5.ts';
 import { parseIncaNetcdf } from '../../src/sources/incaParse.ts';
 import { parseRzcHdf5 } from '../../src/sources/rzcParse.ts';
 import { parseKonrad3d } from '../../src/radar/konrad3d.ts';
@@ -60,7 +62,10 @@ const raw = readFileSync(inPath);
 const rawBuf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
 
 if (source === 'rv') {
-  const run = decodeRvTar(await decompressBz2(raw));
+  // EX-3: beide Lieferformen des DWD, am INHALT erkannt — `composite_rv_*.tar` (ODIM-HDF5, nacktes Tar)
+  // und bis 2026-10-20 `DE1200_RV*.tar.bz2` (RADOLAN-Binär).
+  const tar = isBz2(raw) ? await decompressBz2(raw) : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+  const run = rvTarIsHdf5(tar) ? await decodeRvHdf5Tar(tar) : decodeRvTar(tar);
   const metaFrames = pngFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })));
   const meta = makeRvImgMeta(stamp, run.runAtMs, metaFrames);
   if (!parseRvImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rv: eigene meta.json besteht den Client-Prüfer nicht');

@@ -64,11 +64,18 @@ const INCA_META_URL = 'https://dataset.api.hub.geosphere.at/v1/grid/forecast/now
 const INCA_GRID_URL = 'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km?parameters=rr&output_format=netcdf&bbox=45.51,8.11,49.47,17.73';
 const RZC_STAC_ITEM = (day) => `https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/${day}-ch`;
 
+// EX-3 (buscosun-web/audit/fusion-expertenbericht-2026-09-29.md §3.3): der DWD schaltet das RADOLAN-
+// Binärformat am 2026-10-20 08 UTC ab. Gespiegelt wird deshalb die HDF5-Lieferung desselben Laufs
+// (`composite_rv_<JJJJMMTT>_<HHMM>.tar`, nacktes Tar, gemessen 0,75–2,4 MB statt 0,1–0,5 MB). Der
+// Slot-Stempel `JJMMTTHHMM` bleibt der Schlüssel der Bild-Ablage. `RV_FORMAT=radolan` stellt bis zum
+// Stichtag auf das Altformat zurück.
+const RV_FORMAT = process.env.RV_FORMAT === 'radolan' ? 'radolan' : 'hdf5';
+
 const PRODUCTS = {
   rv: {
     dir: 'rv',
     stamp: (d) => two(d.getUTCFullYear() % 100) + two(d.getUTCMonth() + 1) + two(d.getUTCDate()) + two(d.getUTCHours()) + two(d.getUTCMinutes()),
-    file: (s) => `DE1200_RV${s}.tar.bz2`,
+    file: (s) => (RV_FORMAT === 'hdf5' ? `composite_rv_20${s.slice(0, 6)}_${s.slice(6, 10)}.tar` : `DE1200_RV${s}.tar.bz2`),
     url: (f) => `https://opendata.dwd.de/weather/radar/composite/rv/${f}`,
     derive: 'rv',
     imgStamp: (d, s) => s, // Bild-Slot = Tar-Stempel
@@ -112,10 +119,25 @@ function git(args, opts = {}) {
 
 // ── lokaler Bestand (MIRROR): die Wahrheit dieses Jobs, unabhängig vom Repo-Stand ──
 function storeDir(p) { return join(MIRROR, p.dir); }
-function storeFiles(p) { return existsSync(storeDir(p)) ? readdirSync(storeDir(p)).filter((f) => !f.startsWith('.')).sort() : []; }
+// Nach dem SLOT sortiert, nicht nach dem Namen: beim Wechsel der Lieferform liegen beide Namensmuster
+// nebeneinander, und die Retention muss die ältesten Slots treffen, gleich wie sie heißen.
+function slotKey(f) {
+  const h = /composite_rv_20(\d{6})_(\d{4})\.tar$/.exec(f);
+  if (h) return h[1] + h[2];
+  const r = /DE1200_RV(\d{10})\.tar\.bz2$/.exec(f);
+  return r ? r[1] : f;
+}
+function storeFiles(p) {
+  if (!existsSync(storeDir(p))) return [];
+  return readdirSync(storeDir(p)).filter((f) => !f.startsWith('.'))
+    .sort((a, b) => (slotKey(a) < slotKey(b) ? -1 : slotKey(a) > slotKey(b) ? 1 : a < b ? -1 : a > b ? 1 : 0));
+}
 function storePut(p, file, buf) {
   mkdirSync(storeDir(p), { recursive: true });
   writeFileSync(join(storeDir(p), file), buf);
+  // Ein Slot, eine Datei: die andere Lieferform desselben Slots weicht (sonst hielte die Retention
+  // während des Wechsels 6 Slots doppelt statt 12 einfach).
+  for (const f of storeFiles(p)) if (f !== file && slotKey(f) === slotKey(file)) rmSync(join(storeDir(p), f));
   const files = storeFiles(p);
   for (const f of files.slice(0, Math.max(0, files.length - KEEP))) rmSync(join(storeDir(p), f));
 }
@@ -304,11 +326,12 @@ async function main() {
   // rückwärts höchstens KEEP Slots (nach der Naht liegen die älteren schon auf main).
   const pending = {};
   for (const [k, p] of Object.entries(PRODUCTS)) {
-    const have = new Set(storeFiles(p));
+    // Nach dem Slot verglichen: ein Slot, der in der anderen Lieferform schon liegt, wird nicht nachgeholt.
+    const have = new Set(storeFiles(p).map(slotKey));
     let slot = slotOf(Date.now());
     for (let i = 0; i < KEEP - 1; i++) {
       const prev = new Date(slot.getTime() - 300_000);
-      if (have.has(p.file(p.stamp(prev)))) break;
+      if (have.has(slotKey(p.file(p.stamp(prev))))) break;
       slot = prev;
     }
     pending[k] = { slot, polls: 0 };

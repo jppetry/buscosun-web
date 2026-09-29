@@ -41,7 +41,9 @@ for (const f of ['src/sources/incaParse.ts', 'src/sources/rzcParse.ts', 'src/sou
 {
   const w = src('src/sources/hdf5Worker.ts');
   const imports = [...w.matchAll(/^import .* from '([^']+)'/gm)].map((m) => m[1]).sort();
-  add('A: hdf5Worker importiert genau incaParse + rzcParse', imports.join(',') === './incaParse,./rzcParse', imports.join(','));
+  // EX-3: dazu der RV-Leser der HDF5-Lieferung (`rvHdf5.ts`, DOM-frei wie die beiden anderen).
+  add('A: hdf5Worker importiert genau incaParse + rvHdf5 + rzcParse', imports.join(',') === './incaParse,./rvHdf5,./rzcParse', imports.join(','));
+  add('A: src/sources/rvHdf5.ts ohne document/window/fetch', !/(document|window)\.|fetch\(/.test(src('src/sources/rvHdf5.ts')));
   add('A: hdf5Worker transferiert die Werte-Puffer', /postMessage\([^;]*valuesBuf[^;]*\)/s.test(w) && /\[r\.values\.buffer\]/.test(w));
 }
 
@@ -169,8 +171,8 @@ else {
   const rad = src('src/sources/radolan.ts');
   // RD2: der Tar-Leser wählt den Weg (CDN vs. Netlify) selbst — die Priorität
   // muss auf BEIDEN Wegen ankommen, der Standard bleibt high.
-  add('F: RV-Tar fetch trägt priority, Standard high (beide Wege)', /fetchRvBytesCached\(ts: string, signal\?: AbortSignal, priority: RequestPriority = 'high'\)/.test(rad) && /fetch\(cdnUrl, \{ signal: dl\.signal, priority \}\)/.test(rad) && /fetch\(netlifyUrl, \{ signal, priority \}\)/.test(rad));
-  add('F: fetchRvNowcast reicht die Priorität bis zum Tar', /loadRvNowcast\(opts\?\.priority\)/.test(rad) && /fetchRvTar\(ts, undefined, priority\)/.test(rad) && /fetchRvBytesCached\(ts, signal, priority\)/.test(rad));
+  add('F: RV-Tar fetch trägt priority, Standard high (beide Wege)', /fetchRvBytesCached\(ts: string, signal\?: AbortSignal, priority: RequestPriority = 'high', fmt: RvFormat = 'hdf5'\)/.test(rad) && /fetch\(cdnUrl, \{ signal: dl\.signal, priority \}\)/.test(rad) && /fetch\(netlifyUrl, \{ signal, priority \}\)/.test(rad));
+  add('F: fetchRvNowcast reicht die Priorität bis zum Tar', /loadRvNowcast\(opts\?\.priority\)/.test(rad) && /fetchRvTar\(ts, undefined, priority\)/.test(rad) && /fetchRvDecoded\(ts, signal, priority\)/.test(rad) && /fetchRvBytesCached\(ts, signal, priority, fmt\)/.test(rad));
   add('F: Frühstart-Tar bleibt high', /priority: 'high'/.test(src('src/sources/radolanRuns.ts')));
   const rep = src('src/sources/repackSource.ts');
   // LZ1/M2: `loadRgba` trägt seit LZ1 eine gepinnte Rückfall-URL als fünften

@@ -26,13 +26,14 @@
 import { decompress } from './decompress';
 import { shareInFlight } from './shareInFlight';
 import type { QuadCorners } from '../scalar/RainLayer';
-import { decodeRadolanRaw, decodeRvTar, type RadolanGrid, type DecodedRvFrame } from './radolanDecode';
+import { decodeRadolanRaw, decodeRvTar, isBz2, rvTarIsHdf5, rvStampFromFileName, rvFormatOrder, rvFileNameOf, type RvFormat, type RadolanGrid, type DecodedRvFrame } from './radolanDecode';
 // LE1/H2: Lauf-Zeitstempel, Tar-URL, Cache-Name und der Frühstart des Tar-Abrufs
 // leben abhängigkeitsfrei in `radolanRuns.ts` (der Router stößt ihn aus dem
 // index-Chunk an). Re-Export, damit `verify:radar-runs` und andere Importeure
 // unverändert bleiben.
 import {
-  RV_DIR, RV_TAR_CACHE, guessRvRuns, rvTarUrl, takeWarmRvTar,
+  RV_DIR, RV_TAR_CACHE, RADAR_CDN_BASE, guessRvRuns, rvTarUrl, takeWarmRvTar,
+  // EX-3: zwei Lieferformen desselben Laufs (HDF5 zuerst, RADOLAN als Rückfall)
   // RD2 (audit/radar-datenrepo.md §13): CDN-Weg über das Daten-Repo
   rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
   // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
@@ -125,9 +126,10 @@ async function listRvRuns(signal?: AbortSignal): Promise<string[]> {
   if (!res.ok) throw new Error(`RADOLAN-RV Verzeichnis: ${res.status}`);
   const html = await res.text();
   const set = new Set<string>();
-  const re = /DE1200_RV(\d{10})\.tar\.bz2/g;
+  // EX-3: beide Lieferformen nennen denselben Slot (`rvStampFromFileName`).
+  const re = /(?:DE1200_RV\d{10}\.tar\.bz2|composite_rv_20\d{6}_\d{4}\.tar)/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) set.add(m[1]);
+  while ((m = re.exec(html)) !== null) { const ts = rvStampFromFileName(m[0]); if (ts) set.add(ts); }
   return [...set].sort().reverse();
 }
 
@@ -155,9 +157,11 @@ async function pruneRvCache(cache: Cache): Promise<void> {
 /** Woher kam der letzte Tar? Nur fürs Log in `loadRvNowcast` (synchron danach gelesen). */
 let _lastRvVia: 'img' | 'cdn' | 'dwd' = 'dwd';
 
-async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: RequestPriority = 'high'): Promise<ArrayBuffer> {
-  const netlifyUrl = rvTarUrl(ts);
-  const cdnUrl = rvTarCdnUrl(ts);
+async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: RequestPriority = 'high', fmt: RvFormat = 'hdf5'): Promise<ArrayBuffer> {
+  // Die HDF5-Adressen kommen aus `radolanRuns.ts` (derselbe Resolver wie der Frühstart); das Altformat
+  // liegt im selben Verzeichnis unter seinem alten Namen.
+  const netlifyUrl = fmt === 'hdf5' ? rvTarUrl(ts) : `${RV_DIR}${rvFileNameOf(ts, fmt)}`;
+  const cdnUrl = fmt === 'hdf5' ? rvTarCdnUrl(ts) : `${RADAR_CDN_BASE}/rv/${rvFileNameOf(ts, fmt)}`;
   const cache = await rvCache();
   // LE1/H2: hat der Router den Tar schon vorgestartet (beim Laden des Seiten-
   // Chunks), nehmen wir dessen Antwort — sie hat die Cache-API selbst befragt.
@@ -385,6 +389,36 @@ async function decodeGrayPngsOffMain(
   }
 }
 
+/** In welcher Lieferform kam der letzte Roh-Lauf? Nur fürs Log. */
+let _lastRvFormat: RvFormat = 'hdf5';
+
+/** Rohbytes eines Laufs → Frames, gleich in welcher Lieferform (bz2 und HDF5 an der Signatur erkannt). */
+async function decodeRvBytes(buf: ArrayBuffer): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
+  const head = new Uint8Array(buf, 0, Math.min(buf.byteLength, 8));
+  const tarBytes = isBz2(head) ? await decompress(buf) : new Uint8Array(buf);
+  if (rvTarIsHdf5(tarBytes)) {
+    // jsfive gehört nicht in diesen Chunk: die Brücke (Worker + Hauptthread-Rückfall) wird erst hier geladen.
+    const { decodeRvHdf5TarOffMain } = await import('./hdf5OffMain');
+    return decodeRvHdf5TarOffMain(tarBytes);
+  }
+  return decodeRvTarOffMain(tarBytes);
+}
+
+async function fetchRvDecoded(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
+  let lastErr: unknown;
+  for (const fmt of rvFormatOrder()) {
+    try {
+      const out = await decodeRvBytes(await fetchRvBytesCached(ts, signal, priority, fmt));
+      _lastRvFormat = fmt;
+      return out;
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error(`RADOLAN-RV ${ts}: keine Lieferform lesbar`);
+}
+
 async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast> {
   // RD3: gegatterte Slots zuerst als fertige Frames (kein bz2, kein Tar-Dekode);
   // jeder Fehlschlag fällt still auf den Tar-Weg zurück.
@@ -394,8 +428,9 @@ async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPr
   }
   // RD2: die Wegwahl (CDN vs. Netlify) liegt in `fetchRvBytesCached`/`rvTarUrlFor`
   // — der Frühstart in `radolanRuns.ts` nimmt denselben Resolver.
-  const tarBytes = await decompress(await fetchRvBytesCached(ts, signal, priority));
-  const { runAtMs, frames: decoded } = await decodeRvTarOffMain(tarBytes);
+  // EX-3: HDF5 zuerst, das RADOLAN-Altformat als benannter Rückfall (bis der DWD es am
+  // 2026-10-20 abschaltet). Welcher Leser läuft, entscheidet der INHALT, nicht der Name.
+  const { runAtMs, frames: decoded } = await fetchRvDecoded(ts, signal, priority);
   const frames: RvFrame[] = decoded.map((f) => ({
     leadMinutes: f.leadMinutes,
     validAt: new Date(f.validAtMs),
@@ -434,7 +469,7 @@ async function loadRvNowcast(priority?: RequestPriority): Promise<RvNowcast> {
         _runCache = { ts, at: Date.now() };
         // Welche RADOLAN-RV-Datei wird gerade auf die Karte gerendert?
         console.log(
-          `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: DE1200_RV${ts}.tar.bz2` +
+          `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: ${_lastRvVia === 'img' ? `Slot ${ts}` : rvFileNameOf(ts, _lastRvFormat)}` +
           ` · Lauf ${result.runAt.toLocaleString('de-DE')} · ${result.frames.length} Frames (0…+120 min)` +
           ` · Quelle ${_lastRvVia === 'img' ? 'Daten-Repo (PNG)' : _lastRvVia === 'cdn' ? 'Daten-Repo (jsDelivr)' : 'DWD (Netlify)'}`,
         );

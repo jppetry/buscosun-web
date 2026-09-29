@@ -55,8 +55,26 @@ export function rvStampToMs(s: string): number {
   return Date.UTC(2000 + +s.slice(0, 2), +s.slice(2, 4) - 1, +s.slice(4, 6), +s.slice(6, 8), +s.slice(8, 10));
 }
 
+// ---------------------------------------------------------------------------
+// EX-3 — zwei Lieferformen desselben Laufs (audit/fusion-expertenbericht-2026-09-29.md §3.3)
+// ---------------------------------------------------------------------------
+// Der DWD legt jeden RV-Lauf bis zum 2026-10-20 08 UTC doppelt ab: als RADOLAN-Binär
+// (`DE1200_RV<JJMMTTHHMM>.tar.bz2`) und als ODIM-HDF5 (`composite_rv_<JJJJMMTT>_<HHMM>.tar`,
+// unkomprimiertes Tar). Danach bleibt nur HDF5. Der Leser fragt deshalb HDF5 ZUERST und
+// nimmt das Altformat als benannten Rückfall; `?rvfmt=radolan|hdf5` (bzw.
+// `localStorage.rvfmt`) legt die Form fest, ohne Rückfall auf die andere.
+// Der Slot-Stempel `JJMMTTHHMM` bleibt der Schlüssel aller Wege (Bild-Verzeichnis, Cache).
+// Dieses Modul liegt im Start-Chunk und kennt nur die HDF5-Form; die Adressen des Altformats baut
+// `rvUrls` in `radolanDecode.ts`.
+/** Dateiname eines RV-Laufs (HDF5-Lieferung); `ts` = `JJMMTTHHMM`. */
+export function rvFileName(ts: string): string {
+  return `composite_rv_20${ts.slice(0, 6)}_${ts.slice(6)}.tar`;
+}
+
+// (`rvFormatOrder` und `rvStampFromFileName` stehen in `radolanDecode.ts` — dieses Modul liegt im Start-Chunk.)
+
 export function rvTarCdnUrl(ts: string): string {
-  return `${RADAR_CDN_BASE}/rv/DE1200_RV${ts}.tar.bz2`;
+  return `${RADAR_CDN_BASE}/rv/${rvFileName(ts)}`;
 }
 
 /** Kill-Switch: `?radarcdn=0|1` schlägt `localStorage.radarcdn` (beide Richtungen). */
@@ -177,7 +195,7 @@ export function guessRvRuns(count: number, nowMs: number = Date.now()): string[]
 }
 
 export function rvTarUrl(ts: string): string {
-  return `${RV_DIR}DE1200_RV${ts}.tar.bz2`;
+  return `${RV_DIR}${rvFileName(ts)}`;
 }
 
 /** Ergebnis eines Frühstarts: die Antwort und ob sie schon aus der Cache-API kam
@@ -213,6 +231,8 @@ export function warmRvTar(nowMs: number = Date.now()): string | null {
   }
   // RD2: derselbe Resolver wie der Leser — CDN, sobald der Slot das Gate passiert
   // hat, sonst Netlify. Der Leser probiert beim `take` beide URL-Schlüssel.
+  // EX-3: in der Lieferform, die der Leser zuerst versucht (HDF5; der Schalter `rvfmt` ist ein
+  // Diagnoseweg und wirkt erst im Leser).
   const url = rvTarUrlFor(ts, nowMs);
   const cur = warm.get(url);
   if (cur && nowMs - cur.at < RV_WARM_TTL_MS) return url;

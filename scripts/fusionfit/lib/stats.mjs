@@ -38,15 +38,66 @@ export function crpsByCdf(d, y, lo, hi, n = 96) {
  */
 export { Phi };
 
+/** ln Γ(x), Lanczos (g = 7, 9 terms) — for the Student t of the small-sample DM test. */
+function lnGamma(x) {
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
+  const z = x - 1;
+  let a = c[0];
+  for (let i = 1; i < 9; i++) a += c[i] / (z + i);
+  const t = z + 7.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+/** Regularised incomplete beta I_x(a, b), continued fraction (modified Lentz). */
+function betaInc(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  if (x > (a + 1) / (a + b + 2)) return 1 - betaInc(1 - x, b, a);
+  const front = Math.exp(lnGamma(a + b) - lnGamma(a) - lnGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  const tiny = 1e-300;
+  let c = 1, d = 1 - ((a + b) * x) / (a + 1);
+  d = Math.abs(d) < tiny ? tiny : d; d = 1 / d;
+  let f = d;
+  for (let m = 1; m <= 300; m++) {
+    const m2 = 2 * m;
+    let num = (m * (b - m) * x) / ((a + m2 - 1) * (a + m2));
+    d = 1 + num * d; d = Math.abs(d) < tiny ? tiny : d; d = 1 / d;
+    c = 1 + num / c; c = Math.abs(c) < tiny ? tiny : c;
+    f *= d * c;
+    num = (-(a + m) * (a + b + m) * x) / ((a + m2) * (a + m2 + 1));
+    d = 1 + num * d; d = Math.abs(d) < tiny ? tiny : d; d = 1 / d;
+    c = 1 + num / c; c = Math.abs(c) < tiny ? tiny : c;
+    const del = d * c;
+    f *= del;
+    if (Math.abs(del - 1) < 1e-14) break;
+  }
+  return (front * f) / a;
+}
+
+/** CDF of Student's t with ν degrees of freedom. */
+export function studentTCdf(t, nu) {
+  if (!Number.isFinite(t) || !(nu > 0)) return NaN;
+  const ib = 0.5 * betaInc(nu / (nu + t * t), nu / 2, 0.5);
+  return t >= 0 ? 1 - ib : ib;
+}
+
 /**
  * Diebold–Mariano on the time series of daily mean score differences d_t (candidate − reference), HAC (Newey–West,
  * Bartlett, L = ⌊1,5·n^{1/3}⌋). `byDay` = Map<dayIdx, [sum, n]>. Negative stat ⇒ the candidate is better.
+ *
+ * Small-sample form (phase EX, 29.09.2026 — the archive cards rest on 13 issue days): the statistic is scaled after
+ * Harvey, Leybourne & Newbold (1997), √((n + 1 − 2h + h(h − 1)/n)/n) with h = L + 1, and referred to Student's t with
+ * n − 1 degrees of freedom instead of the normal. At n = 13 (L = 3) the factor is 0,73 and |t| = 2,18 marks 5 %, where
+ * the normal form took 1,96 of the unscaled statistic; at n = 120 (L = 7) the factor is 0,94. The former values ride along as
+ * `statNormal` / `pNormal`, so an old card can be read against a new one.
  */
 export function dmTest(byDay) {
   const keys = [...byDay.keys()].sort((a, b) => a - b);
   const d = keys.map((k) => { const [s, n] = byDay.get(k); return s / n; });
   const n = d.length;
-  if (n < 4) return { n, stat: NaN, p: NaN };
+  if (n < 4) return { n, stat: NaN, p: NaN, statNormal: NaN, pNormal: NaN };
   const m = mean(d);
   const L = Math.floor(1.5 * Math.cbrt(n));
   let v = 0;
@@ -57,19 +108,35 @@ export function dmTest(byDay) {
     v += (lag === 0 ? 1 : 2 * (1 - lag / (L + 1))) * g;
   }
   const se = Math.sqrt(Math.max(v, 1e-12) / n);
-  const stat = m / se;
-  return { n, stat, p: 2 * (1 - Phi(Math.abs(stat))), meanDiff: m };
+  const statNormal = m / se;
+  const h = L + 1;
+  const hln = Math.sqrt(Math.max(0, n + 1 - 2 * h + (h * (h - 1)) / n) / n);
+  const stat = statNormal * hln;
+  return {
+    n, stat, p: 2 * (1 - studentTCdf(Math.abs(stat), n - 1)), meanDiff: m, lag: L, hln,
+    statNormal, pNormal: 2 * (1 - Phi(Math.abs(statNormal))),
+  };
 }
 
-/** Block bootstrap over days of the skill 1 − Σc/Σref; `byDay` = Map<dayIdx, [sumCand, sumRef]>. 90-% interval. */
+/**
+ * Block bootstrap over days of the skill 1 − Σc/Σref; `byDay` = Map<dayIdx, [sumCand, sumRef]>. 90-% interval.
+ *
+ * Since phase EX a MOVING-block bootstrap (circular, block length L + 1 with the L of `dmTest`) over the days in
+ * their order: the former draw took single days independently, which treats consecutive days as unrelated and
+ * gives an interval that is too narrow when a weather regime spans several days. Same seed, same number of draws.
+ */
 export function bootstrapSkill(byDay, draws = 200, seed = 12345) {
-  const days = [...byDay.values()];
+  const days = [...byDay.keys()].sort((a, b) => a - b).map((k) => byDay.get(k));
   if (days.length < 2) return null;
   const rnd = lcg(seed);
   const boots = [];
+  const n = days.length, blk = Math.min(n, Math.floor(1.5 * Math.cbrt(n)) + 1);
   for (let b = 0; b < draws; b++) {
-    let c = 0, r = 0;
-    for (let i = 0; i < days.length; i++) { const a = days[Math.floor(rnd() * days.length)]; c += a[0]; r += a[1]; }
+    let c = 0, r = 0, taken = 0;
+    while (taken < n) {
+      const start = Math.floor(rnd() * n);
+      for (let j = 0; j < blk && taken < n; j++, taken++) { const a = days[(start + j) % n]; c += a[0]; r += a[1]; }
+    }
     if (r > 0) boots.push(1 - c / r);
   }
   boots.sort((a, b) => a - b);

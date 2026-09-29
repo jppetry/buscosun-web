@@ -31,7 +31,7 @@ import { inflateRawSync, constants as zc } from 'node:zlib';
 import { decodePng } from './lib/png.mjs';
 import { hourlyClimaTemp } from '../src/pointForecast/fusion/fuse.ts';
 import { computeDistributions } from '../src/pointForecast/fusion/attach.ts';
-import { Phi } from '../src/pointForecast/fusion/dist.ts';
+import { dmTest as dmTestDays } from './fusionfit/lib/stats.mjs';
 import { ClimaField } from '../src/ml/climaField.ts';
 import { blendVariable, anchorOffsetsFor, anchoredValues } from '../src/pointForecast/pointForecast.ts';
 import { ANCHOR_HISTORY_H } from '../src/pointForecast/anchor.ts';
@@ -396,24 +396,11 @@ async function scoreRun(st, run, runs, poi, dem, terrain) {
 const BINS = [['1–6 h', 1, 6], ['7–12 h', 7, 12], ['13–24 h', 13, 24]];
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 function dmTest(diffsByTime) {
-  // Diebold-Mariano auf der Zeitreihe der Score-Differenzen (je Zielstunde gemittelt), HAC (Newey-West).
-  const keys = [...diffsByTime.keys()].sort((a, b) => a - b);
-  const d = keys.map((k) => mean(diffsByTime.get(k)));
-  const n = d.length;
-  if (n < 4) return { n, stat: NaN, p: NaN };
-  const m = mean(d);
-  const L = Math.floor(1.5 * Math.cbrt(n));
-  let v = 0;
-  for (let lag = 0; lag <= L; lag++) {
-    let g = 0;
-    for (let t = lag; t < n; t++) g += (d[t] - m) * (d[t - lag] - m);
-    g /= n;
-    v += (lag === 0 ? 1 : 2 * (1 - lag / (L + 1))) * g;
-  }
-  const se = Math.sqrt(Math.max(v, 1e-12) / n);
-  const stat = m / se;
-  const p = 2 * (1 - Phi(Math.abs(stat)));
-  return { n, stat, p };
+  // Diebold-Mariano auf der Zeitreihe der Score-Differenzen (je Zielstunde gemittelt), HAC (Newey-West) — seit Phase EX
+  // die EINE Fassung aus `fusionfit/lib/stats.mjs` (Kleinstichproben-Form nach Harvey/Leybourne/Newbold, Student-t).
+  const byKey = new Map();
+  for (const [k, xs] of diffsByTime) byKey.set(k, [xs.reduce((a, b) => a + b, 0), xs.length]);
+  return dmTestDays(byKey);
 }
 // Φ from dist.ts (erf-based); the former local A&S 7.1.26 copy applied the erf polynomial to z instead of z/√2 and returned
 // Φ(z·√2) — every DM p-value of the V-A₁ scorecards was too small (V-FL-25, 24.09.2026).
@@ -448,7 +435,11 @@ function summarise() {
           for (const p of pits) hist[Math.min(9, Math.max(0, Math.floor(p * 10)))]++;
           m.pit = hist.map((c) => c / pits.length);
           m.pitOuter = (hist[0] + hist[9]) / pits.length;                // Soll 0,2
-          m.spreadSkill = v === 'RR' ? null : mean(rs.map((r) => r.sigma)) / m.rmse;   // RR: Atom + Lognormal, σ in mm ist keine Streuung
+          // Spread = √(mittlere Varianz), nicht das Mittel der σ (Fortin et al. 2014): das Mittel der σ liegt nach Jensen
+          // immer darunter und ließ die Bänder schmaler aussehen, als sie sind (Phase EX; die Fit-Scorer rechnen seit FX so).
+          // Die alte Zahl fährt als `spreadSkillMean` mit, damit die Karten vor dem 29.09. lesbar bleiben.
+          m.spreadSkill = v === 'RR' ? null : Math.sqrt(mean(rs.map((r) => r.sigma * r.sigma))) / m.rmse;   // RR: Atom + Lognormal, σ in mm ist keine Streuung
+          m.spreadSkillMean = v === 'RR' ? null : mean(rs.map((r) => r.sigma)) / m.rmse;
           if (v === 'RR') m.maeMean = mean(rs.map((r) => Math.abs(r.mean - r.truth)));
         }
         row.methods[mth] = m;

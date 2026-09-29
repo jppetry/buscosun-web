@@ -24,6 +24,7 @@ import {
   RV_CDN_GATE_MS, RADAR_CDN_WINDOW_MS, RADAR_CDN_BASE, RADAR_CDN_FAIL_LATCH,
   radarCdnEnabled, radarCdnUsable, noteRadarCdnFailure, _resetRadarCdn, radarCdnDeadline,
 } from '../src/sources/radolanRuns.ts';
+import { rvStampFromFileName, rvFormatOrder, rvFileNameOf as rvFileName } from '../src/sources/radolanDecode.ts';
 import {
   guessKonradStamps, konradCdnUrl, KONRAD_CDN_GATE_MS, KONRAD_PUBLISH_LAG_MIN,
 } from '../src/sources/dwdKonrad3d.ts';
@@ -103,11 +104,13 @@ try {
   const res = await fetch(RV_DIR, { signal: AbortSignal.timeout(20_000) });
   if (res.ok) {
     const html = await res.text();
-    const set = new Set();
-    const re = /DE1200_RV(\d{10})\.tar\.bz2/g;
+    // EX-3: gezählt wird die Lieferform, die der Leser ZUERST fragt (HDF5); das Altformat daneben,
+    // solange der DWD es noch ablegt (bis 2026-10-20 08 UTC).
+    const set = new Set(), legacy = new Set();
+    const re = /(?:DE1200_RV\d{10}\.tar\.bz2|composite_rv_20\d{6}_\d{4}\.tar)/g;
     let m;
-    while ((m = re.exec(html)) !== null) set.add(m[1]);
-    listing = { runs: [...set].sort().reverse(), bytes: Buffer.byteLength(html) };
+    while ((m = re.exec(html)) !== null) (m[0].startsWith('composite_') ? set : legacy).add(rvStampFromFileName(m[0]));
+    listing = { runs: [...set].sort().reverse(), legacy: [...legacy].sort().reverse(), bytes: Buffer.byteLength(html) };
   }
 } catch { /* kein Netz → B wird übersprungen */ }
 
@@ -142,6 +145,16 @@ if (!listing || listing.runs.length < 20) {
   // Was die Maßnahme wert ist — die Zahl, die im Audit steht.
   add('das ersetzte Listing ist > 100 KB groß (sonst lohnt die Regel nicht)',
     listing.bytes > 100_000, `${listing.bytes} B`);
+
+  // EX-3: solange beide Lieferformen liegen, nennen sie dieselben Slots — der Wechsel verliert keinen Lauf.
+  if (listing.legacy.length) {
+    const old = new Set(listing.legacy);
+    const onlyNew = listing.runs.filter((s) => !old.has(s)).length, onlyOld = listing.legacy.filter((s) => !have.has(s)).length;
+    add('[ex3] HDF5 und RADOLAN nennen dieselben Slots (höchstens der jüngste fehlt in einer Form)',
+      onlyNew <= 1 && onlyOld <= 1, `${listing.runs.length} HDF5 · ${listing.legacy.length} RADOLAN · nur HDF5 ${onlyNew} · nur RADOLAN ${onlyOld}`);
+  } else {
+    skip('[ex3] HDF5 und RADOLAN nennen dieselben Slots', 'das Altformat liegt nicht mehr im Verzeichnis (DWD-Abschaltung 2026-10-20)');
+  }
 
   // Die Kandidatenliste des Rückblick-Archivs muss im Verzeichnis liegen.
   const seq = guessRvRuns(10, now).slice(1);   // ohne den womöglich zu jungen ersten
@@ -220,7 +233,16 @@ add('am Ende ist keine Entdopplung mehr offen', _inFlightCount() === 0, `${_inFl
   add('[rd2] rvStamp ↔ rvStampToMs ist ein Rundlauf', rvStampToMs(rvStamp(new Date(slot))) === slot);
 
   const ts = rvStamp(new Date(slot));
-  add('[rd2] CDN-URL hat die Spiegel-Form', rvTarCdnUrl(ts) === `${RADAR_CDN_BASE}/rv/DE1200_RV${ts}.tar.bz2`);
+  add('[rd2] CDN-URL hat die Spiegel-Form (HDF5 zuerst, EX-3)', rvTarCdnUrl(ts) === `${RADAR_CDN_BASE}/rv/composite_rv_20260829_1355.tar`, rvTarCdnUrl(ts));
+  add('[ex3] das Altformat bleibt als benannter Rückfall adressierbar',
+    rvFileName(ts, 'radolan') === `DE1200_RV${ts}.tar.bz2` && rvFileName(ts, 'hdf5') === rvTarUrl(ts).split('/').pop());
+  add('[ex3] Dateiname ↔ Slot-Stempel ist in beiden Formen ein Rundlauf',
+    rvStampFromFileName(rvFileName(ts, 'hdf5')) === ts && rvStampFromFileName(rvFileName(ts, 'radolan')) === ts
+    && rvStampFromFileName('KONRAD3D_20260829T135500.xml') === null);
+  add('[ex3] Reihenfolge: HDF5, dann RADOLAN; `?rvfmt=` bzw. der Speicher legt EINE Form fest, die Query schlägt den Speicher',
+    rvFormatOrder('', null).join() === 'hdf5,radolan' && rvFormatOrder('?rvfmt=radolan', null).join() === 'radolan'
+    && rvFormatOrder('', 'radolan').join() === 'radolan' && rvFormatOrder('?rvfmt=hdf5', 'radolan').join() === 'hdf5'
+    && rvFormatOrder('?rvfmt=quatsch', null).join() === 'hdf5,radolan');
   add('[rd2] Netlify-URL bleibt unverändert (benannter Fallback)', rvTarUrl(ts).startsWith('/_dwd_opendata/weather/radar/composite/rv/'));
 
   // Das Gate: VOR Slot + 4:00 kein CDN (jsDelivr hielte unser 404 fest, §10.3:
@@ -302,8 +324,11 @@ add('am Ende ist keine Entdopplung mehr offen', _inFlightCount() === 0, `${_inFl
 try {
   const now = Date.now();
   const rvTs = guessRvRuns(3, now).find((s) => rvCdnEligible(s, now));
-  const r1 = await fetch(rvTarCdnUrl(rvTs), { method: 'HEAD', signal: AbortSignal.timeout(20_000) });
-  add('[rd2/live] jüngster gegatteter RV-Lauf liegt auf dem CDN', r1.ok, `${rvTs} → HTTP ${r1.status}`);
+  // EX-3: in der Form, die der Spiegel gerade ablegt — HDF5, während des Wechsels noch RADOLAN.
+  let r1 = await fetch(rvTarCdnUrl(rvTs), { method: 'HEAD', signal: AbortSignal.timeout(20_000) });
+  let form = 'hdf5';
+  if (!r1.ok) { r1 = await fetch(`${RADAR_CDN_BASE}/rv/${rvFileName(rvTs, 'radolan')}`, { method: 'HEAD', signal: AbortSignal.timeout(20_000) }); form = 'radolan'; }
+  add('[rd2/live] jüngster gegatteter RV-Lauf liegt auf dem CDN', r1.ok, `${rvTs} (${form}) → HTTP ${r1.status}`);
   const koStamp = guessKonradStamps(1, now)[0];
   const r2 = await fetch(konradCdnUrl(koStamp), { method: 'HEAD', signal: AbortSignal.timeout(20_000) });
   add('[rd2/live] jüngster gegatteter KONRAD-Lauf liegt auf dem CDN', r2.ok, `${koStamp} → HTTP ${r2.status}`);

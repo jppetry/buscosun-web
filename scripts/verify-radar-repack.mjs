@@ -31,6 +31,8 @@ import { RV_CDN_GATE_MS, rvStamp, RADAR_CDN_WINDOW_MS, rvImgEligible, _resetRada
 import { guessIncaStamps, INCA_IMG_GATE_MS } from '../src/sources/geosphereIncaGrid.ts';
 import { PRECIP_VMAX } from '../src/scalar/RainLayer.ts';
 import { decodeRvTar } from '../src/sources/radolanDecode.ts';
+import { decodeRvHdf5Tar } from '../src/sources/rvHdf5.ts';
+import { rvFileNameOf as rvFileName } from '../src/sources/radolanDecode.ts';
 import { parseIncaNetcdf } from '../src/sources/incaParse.ts';
 import { parseRzcHdf5 } from '../src/sources/rzcParse.ts';
 import { parseKonrad3d } from '../src/radar/konrad3d.ts';
@@ -199,10 +201,13 @@ try {
   // B1 — RV: gegatteter Slot, Tar → derive → PNGs byte-gleich zum Client-Decoder.
   const ms = gatedSlotMs(RV_IMG_GATE_MS, 300_000);
   const stamp = rvStamp(new Date(ms));
-  const tarPath = join(WORK, 'rv.tar.bz2');
-  writeFileSync(tarPath, await fetchBuf(`https://opendata.dwd.de/weather/radar/composite/rv/DE1200_RV${stamp}.tar.bz2`));
+  // EX-3: die HDF5-Lieferung ist die Form, die der Spiegel ablegt; `ref` ist der Client-Leser dafür.
+  const tarPath = join(WORK, 'rv.tar');
+  writeFileSync(tarPath, await fetchBuf(`https://opendata.dwd.de/weather/radar/composite/rv/${rvFileName(stamp, 'hdf5')}`));
   const outDir = runDerive('rv', tarPath, stamp);
-  const ref = decodeRvTar(await decompressBz2(readFileSync(tarPath)));
+  const tRef0 = Date.now();
+  const ref = await decodeRvHdf5Tar(new Uint8Array(readFileSync(tarPath)));
+  const msFast = Date.now() - tRef0;
   let identical = ref.frames.length === 25;
   for (const f of ref.frames) {
     const g = grayOf(readFileSync(join(outDir, radarImgFrameFile(f.leadMinutes))));
@@ -230,6 +235,66 @@ try {
   }
   const meta = parseRvImgMeta(JSON.parse(readFileSync(join(outDir, 'meta.json'), 'utf8')));
   add('B2 RV: meta.json besteht den Client-Prüfer, runAtMs = Tar-Lauf', meta !== null && meta.runAtMs === ref.runAtMs && meta.stamp === stamp);
+  add('B2b RV (EX-3): Laufzeit aus der HDF5-Datei = Slot des Dateinamens, Vorläufe 0…120 min im 5-Minuten-Raster',
+    ref.runAtMs === ms && ref.frames.every((f, i) => f.leadMinutes === i * 5 && f.validAtMs === ms),
+    `${new Date(ref.runAtMs).toISOString()} · ${ref.frames.map((f) => f.leadMinutes).slice(0, 3).join(',')}…${ref.frames.at(-1).leadMinutes}`);
+
+  {
+    // B2c — der schnelle Leser (ein Chunk, DecompressionStream) gegen den jsfive-Weg: dieselben Bytes, und schneller.
+    const t0 = Date.now();
+    const slow = await decodeRvHdf5Tar(new Uint8Array(readFileSync(tarPath)), { reader: 'jsfive' });
+    const msSlow = Date.now() - t0;
+    const same = slow.frames.length === ref.frames.length && slow.runAtMs === ref.runAtMs
+      && slow.frames.every((f, i) => f.leadMinutes === ref.frames[i].leadMinutes && eq(f.values, ref.frames[i].values));
+    add('B2c RV (EX-3): schneller Leser byte-gleich zum jsfive-Weg (25 Felder)', same, `${msFast} ms gegen ${msSlow} ms`);
+    add('B2c RV (EX-3): der schnelle Weg ist wirklich gelaufen (mindestens doppelt so schnell wie jsfive)', msFast * 2 <= msSlow, `${msFast} ms gegen ${msSlow} ms`);
+  }
+
+  // B1h — der Wechsel der Lieferform, am SELBEN Lauf gemessen. Nur möglich, solange der DWD beide
+  // Formen ablegt (bis 2026-10-20 08 UTC); danach ⊘. Behauptet wird: dieselbe Radarmaske Zelle für
+  // Zelle, und in den nassen Zellen höchstens eine RADOLAN-Einheit Abstand (0,12 mm/h = 2 Byte-Stufen),
+  // und das nur auf den Einheitengrenzen (`rvHdf5.ts`, gemessen 1,5 % der nassen Zellen).
+  let legacyTar = null;
+  try { legacyTar = await fetchBuf(`https://opendata.dwd.de/weather/radar/composite/rv/${rvFileName(stamp, 'radolan')}`); } catch { /* abgeschaltet */ }
+  if (!legacyTar) {
+    skip('B1h RV (EX-3): HDF5 gegen RADOLAN am selben Lauf', 'das Altformat liegt nicht mehr beim DWD');
+  } else {
+    const legacyPath = join(WORK, 'rv-legacy.tar.bz2');
+    writeFileSync(legacyPath, legacyTar);
+    const old = decodeRvTar(await decompressBz2(readFileSync(legacyPath)));
+    let maskDiff = 0, wet = 0, differ = 0, maxStep = 0, cells = 0;
+    const sameShape = old.frames.length === ref.frames.length && old.runAtMs === ref.runAtMs
+      && old.frames.every((f, i) => f.leadMinutes === ref.frames[i].leadMinutes && f.validAtMs === ref.frames[i].validAtMs
+        && f.width === ref.frames[i].width && f.height === ref.frames[i].height);
+    if (sameShape) {
+      for (let i = 0; i < old.frames.length; i++) {
+        const a = old.frames[i].values, b = ref.frames[i].values;
+        for (let k = 0; k < a.length; k++) {
+          cells++;
+          if ((a[k] === 0) !== (b[k] === 0)) { maskDiff++; continue; }
+          if (a[k] === 0) continue;
+          wet++;
+          const d = Math.abs(a[k] - b[k]);
+          if (d) { differ++; if (d > maxStep) maxStep = d; }
+        }
+      }
+    }
+    add('B1h RV (EX-3): beide Lieferformen tragen dieselben 25 Felder (Laufzeit, Vorläufe, Maße)', sameShape,
+      `${old.frames.length}/${ref.frames.length} Felder`);
+    add('B1h RV (EX-3): trocken/nass stimmt Zelle für Zelle überein (keine erfundene und keine verlorene Zelle)',
+      sameShape && maskDiff === 0, `${maskDiff} von ${cells} Zellen`);
+    add('B1h RV (EX-3): nasse Zellen weichen höchstens um eine RADOLAN-Einheit ab (≤ 2 Byte-Stufen), und das in ≤ 5 %',
+      sameShape && maxStep <= 2 && differ <= 0.05 * Math.max(1, wet), `${differ} von ${wet} nassen Zellen, größter Abstand ${maxStep} Stufen`);
+    // Gegenprobe: die feinen Werte (`units: 'native'`) sind NICHT dasselbe Bild — sonst prüfte B1h nichts.
+    const fine = await decodeRvHdf5Tar(new Uint8Array(readFileSync(tarPath)), { units: 'native' });
+    let fineDiff = 0;
+    for (let i = 0; i < fine.frames.length && sameShape; i++) {
+      const a = old.frames[i].values, b = fine.frames[i].values;
+      for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) fineDiff++;
+    }
+    add('B1h Gegenprobe: mit den feinen Werten wichen mehr Zellen ab als mit den RADOLAN-Einheiten', wet === 0 || fineDiff > differ + maskDiff,
+      `${fineDiff} gegen ${differ + maskDiff}`);
+  }
 } catch (e) { skip('B1/B2 RV (Netz)', e.message); }
 
 try {

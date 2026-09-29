@@ -14,14 +14,18 @@
 
 import { parseIncaNetcdf, type IncaParsed } from './incaParse';
 import { parseRzcHdf5, type RzcParsed } from './rzcParse';
+import { decodeRvHdf5Tar } from './rvHdf5';
+import type { DecodedRvFrame } from './radolanDecode';
 import type { QuadCorners } from '../scalar/RainLayer';
 
 interface IncaMsg { id: number; ok: true; kind: 'inca'; corners: QuadCorners; frames: { leadHours: number; width: number; height: number; valuesBuf: ArrayBuffer }[] }
 interface RzcMsg { id: number; ok: true; kind: 'rzc'; width: number; height: number; corners: QuadCorners; validAtMs: number | null; valuesBuf: ArrayBuffer }
+interface RvMsg { id: number; ok: true; kind: 'rv'; runAtMs: number; frames: { leadMinutes: number; validAtMs: number; width: number; height: number; valuesBuf: ArrayBuffer }[] }
 interface ErrMsg { id: number; ok: false; error?: string }
-type Msg = IncaMsg | RzcMsg | ErrMsg;
+type OkMsg = IncaMsg | RzcMsg | RvMsg;
+type Msg = OkMsg | ErrMsg;
 
-interface Pending { resolve: (m: IncaMsg | RzcMsg) => void; reject: (e: Error) => void }
+interface Pending { resolve: (m: OkMsg) => void; reject: (e: Error) => void }
 
 let worker: Worker | null = null;
 let usable = true, inited = false, nextId = 1;
@@ -75,7 +79,7 @@ export function warmHdf5Worker(): void {
 /** Ist der Worker-Pfad in dieser Sitzung aktiv? (nach `init`) */
 export function _hdf5WorkerActive(): boolean { return inited && usable && worker !== null; }
 
-function send(kind: 'inca' | 'rzc', buf: ArrayBuffer): Promise<IncaMsg | RzcMsg> | null {
+function send(kind: 'inca' | 'rzc' | 'rv', buf: ArrayBuffer): Promise<OkMsg> | null {
   init();
   if (!usable || !worker) return null;
   const w = worker;
@@ -101,6 +105,25 @@ export async function parseIncaOffMain(buf: ArrayBuffer): Promise<IncaParsed> {
     }
   }
   return parseIncaNetcdf(buf);
+}
+
+/** RV-HDF5-Tar (DWD, 25 Felder) off-main; Rückfall = `decodeRvHdf5Tar` auf dem Hauptthread. */
+export async function decodeRvHdf5TarOffMain(tarBytes: Uint8Array): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
+  // Exakt zugeschnittene Kopie: `tarBytes` kann eine Teilsicht sein, und der Rückfall braucht sie danach noch.
+  const buf = tarBytes.buffer.slice(tarBytes.byteOffset, tarBytes.byteOffset + tarBytes.byteLength) as ArrayBuffer;
+  const p = send('rv', buf);
+  if (p) {
+    try {
+      const m = await p as RvMsg;
+      return {
+        runAtMs: m.runAtMs,
+        frames: m.frames.map((f) => ({ leadMinutes: f.leadMinutes, validAtMs: f.validAtMs, width: f.width, height: f.height, values: new Uint8Array(f.valuesBuf) })),
+      };
+    } catch (err) {
+      console.warn('[buscosun] RV-HDF5 im Worker fehlgeschlagen — Hauptthread übernimmt:', err instanceof Error ? err.message : err);
+    }
+  }
+  return decodeRvHdf5Tar(tarBytes);
 }
 
 /** rzc-HDF5 off-main; Rückfall = `parseRzcHdf5` auf dem Hauptthread. */

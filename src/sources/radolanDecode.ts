@@ -142,6 +142,50 @@ export function untar(buf: Uint8Array): TarEntry[] {
   return out;
 }
 
+export type RvFormat = 'hdf5' | 'radolan';
+
+/** Dateiname eines RV-Laufs in der gewünschten Lieferform; `ts` = `JJMMTTHHMM`. */
+export function rvFileNameOf(ts: string, fmt: RvFormat): string {
+  return fmt === 'radolan' ? `DE1200_RV${ts}.tar.bz2` : `composite_rv_20${ts.slice(0, 6)}_${ts.slice(6)}.tar`;
+}
+
+/** Slot-Stempel `JJMMTTHHMM` aus einem RV-Dateinamen beider Lieferformen; `null`, wenn es keiner ist. */
+export function rvStampFromFileName(name: string): string | null {
+  const h = /composite_rv_20(\d{6})_(\d{4})\.tar$/.exec(name);
+  if (h) return h[1] + h[2];
+  const r = /DE1200_RV(\d{10})\.tar\.bz2$/.exec(name);
+  return r ? r[1] : null;
+}
+
+/**
+ * Reihenfolge, in der die Lieferformen versucht werden: HDF5, dann das Altformat. `?rvfmt=radolan|hdf5`
+ * bzw. `localStorage.rvfmt` legt EINE Form fest (die Query schlägt den Speicher).
+ */
+export function rvFormatOrder(search?: string, stored?: string | null): RvFormat[] {
+  let q: string | null | undefined, s = stored;
+  try {
+    q = new URLSearchParams(search ?? location.search).get('rvfmt');
+    if (s === undefined) s = localStorage.getItem('rvfmt');
+  } catch { /* kein Fenster, kaputte Query, gesperrter Speicher = kein Votum */ }
+  for (const v of [q, s]) if (v === 'hdf5' || v === 'radolan') return [v];
+  return ['hdf5', 'radolan'];
+}
+
+/** bzip2-Signatur `BZh` — das Altformat kommt als `.tar.bz2`, die HDF5-Lieferung als nacktes Tar. */
+export function isBz2(bytes: Uint8Array): boolean {
+  return bytes.length >= 3 && bytes[0] === 0x42 && bytes[1] === 0x5a && bytes[2] === 0x68;
+}
+
+/**
+ * Trägt das (entpackte) RV-Tar HDF5-Felder? Geprüft an der Signatur des ERSTEN Eintrags (`89 48 44 46`),
+ * nicht am Namen. Ohne Abhängigkeit, damit der Aufrufer den Leser wählen kann, ohne jsfive zu laden
+ * (`rvHdf5.ts`, im `hdf5Worker`).
+ */
+export function rvTarIsHdf5(tarBytes: Uint8Array): boolean {
+  return tarBytes.length >= 516 && tarBytes[512] === 0x89 && tarBytes[513] === 0x48
+    && tarBytes[514] === 0x44 && tarBytes[515] === 0x46;
+}
+
 export interface DecodedRvFrame {
   leadMinutes: number;
   validAtMs: number;
