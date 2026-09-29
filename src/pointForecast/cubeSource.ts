@@ -39,7 +39,8 @@
 
 import type { PointForecast, PointForecastHour, PointSourceSample } from './types';
 import { pfCacheKey, registerPointSource, type PointForecastOptions } from './pointForecast';
-import { fuseHour, hourlyClimaTemp, type ClimaRef, type FusedPoint, type FusedVariable, type FusionContext } from './fusion/fuse';
+import { fuseHour, hourlyClimaTemp, windTerrainFactor, type ClimaRef, type FusedPoint, type FusedVariable, type FusionContext } from './fusion/fuse';
+import { stationValueOf, stationAtPoint, validateStackTable, STACK_VARS, type StackTable, type StackVar, type StackForm } from './fusion/stationValue';
 import { verticalCorrection, STANDARD_LAPSE_PER_M, DZ_SURFACE_M, type VerticalResult } from './fusion/vertical';
 import { gridToPoint, blockOffsets, GRID_SET, type GridCell, type GridResult } from './fusion/grid';
 import {
@@ -53,11 +54,12 @@ import { binnedAt, calibMetaText, type CalibOverrides } from '../point/calibDoc'
 import { loadCalib, type LoadedCalib } from '../point/client/calibPoint';
 import { loadLearned, type LoadedLearned } from '../point/client/learnedPoint';
 import { loadClimaProduct, type LoadedClimaProduct } from '../point/client/climaPoint';
+import { loadStack, type LoadedStack } from '../point/client/stackPoint';
 import { estimateCoefficients, muAt, trendVector, type ClimaProduct, type MuEstimate } from '../point/fusionFit/climaProduct';
 import { climaColumnsFor } from '../point/fusionFit/tables';
 import { predict as predictLearned, predictPrecip as predictPrecipLearned, type PredictSituation } from '../point/fusionFit/predict';
 import { speedLaw, type SpeedEntry } from '../point/fusionFit/fitSpeed';
-import { buildZ, dTsfcProxy } from '../point/fusionFit/features';
+import { buildZ, dTsfcProxy, sourceToPoint } from '../point/fusionFit/features';
 import { binIndex, binRange } from '../point/fusionFit/strata';
 import type { FusionTables } from '../point/fusionFit/tables';
 import { ANCHOR_MAX, ANCHOR_TAU_H, anchorTerm, anchorTermLearned, anchorCurveValid, innovation, type AnchorCurvePoint, type AnchorPair, type Innovation } from './anchor';
@@ -66,9 +68,9 @@ import { nowcastSourcesFor } from '../point/client/nowcastPoint';
 import { SELECTION } from '../point/client/resolve';
 import type { Country } from '../types';
 import { skyViewFactor, type TerrainScales } from './fusion/terrainScale';
-import { CLIMA_SIGMA_FALLBACK } from './fusion/priors';
-import { rhFromDewPoint } from './fusion/meteo';
-import { meanOf } from './fusion/dist';
+import { CLIMA_SIGMA_FALLBACK, DEWPOINT_LAPSE_PER_M } from './fusion/priors';
+import { rhFromDewPoint, dewPointC } from './fusion/meteo';
+import { meanOf, quantileOf, type Dist } from './fusion/dist';
 import { getClimaField } from './fusion/attach';
 import { toPointForecastV2, quantileMemo, type PointForecastV2 } from './fusion/output';
 import type { FusionVariable } from './fusion/priors';
@@ -76,7 +78,7 @@ import { solarPosition } from './terrainPhysics';
 import { detectFoehn } from './foehnDetector';
 import { apparentTemperatureC } from './apparentTemperature';
 import type { ClimaField, ClimaSample } from '../ml/climaField';
-import { TIERS, CUBE_PLANES, POINT_CALIB_PATH, POINT_LEARNED_PATH, POINT_CLIMA_PATH, type TierId } from '../point/cubeFormat';
+import { TIERS, CUBE_PLANES, POINT_CALIB_PATH, POINT_LEARNED_PATH, POINT_CLIMA_PATH, POINT_STACK_PATH, type TierId } from '../point/cubeFormat';
 import { NOWCAST_SATURATION, type NowcastSourceId } from '../point/nowcastFormat';
 import type { CubePointSeries, CubePointStep } from '../point/client/cubePoint';
 import type { StaticPoint } from '../point/client/staticPoint';
@@ -142,6 +144,11 @@ export interface CubeFusionInput {
    * die Spalte für die Größe erklärt (`design.mean.climaVars`). Fehlt das Feld: die gelisteten Größen bleiben `absent`, benannt.
    */
   learnedClima?: ClimaProduct | null;
+  /**
+   * Phase FS (`audit/fusion-stationswert.md`): die Tabelle des Stationswerts (`stationValue.ts`, Provenienz `archive`).
+   * Wirkt nur mit `FuseCubeOptions.stationValue`, einem Stationsmember AM Punkt (`table.range`) — fehlt das Feld, byte-gleich.
+   */
+  stack?: StackTable | null;
   index: { commit: string | null; publishedAt?: string; axis?: { usableToMs?: number | null; gaps?: Array<{ fromH: number; toH: number }> } } | null;
   /** Die Klimatologie — Prior der Schrumpfung. Ohne sie gibt es keine Verteilungen (K-3). */
   clima: ClimaField | null;
@@ -172,6 +179,8 @@ export interface CubeObs {
   u: number | null;
   v: number | null;
   gust: number | null;
+  /** Phase FS: der gemessene Taupunkt, wenn das Netz ihn führt — sonst rechnet der Stationswert ihn aus T und RH. Der Anker liest ihn nicht. */
+  dewPoint?: number | null;
 }
 
 /** Aus dem AP1-Bündel — die Produktion. Der Archiv-Adapter (AP9) baut dieselbe Form aus dem Slot. */
@@ -261,6 +270,11 @@ export interface CubeStep {
   samples?: PointSourceSample[];
   /** AP5: die Terrain-Terme (PAP 5) — Geometrie gerechnet, Terme `null`, solange A/A_uhi fehlen; Wind-Faktor `null` ohne z0. */
   terrain: (TerrainTermsResult & { windFactor: number | null }) | null;
+  /** Phase FS: was nach der Kombination ersetzt wurde — der Stationswert je Größe, die durchgereichte Bewölkung. Fehlt ohne die Optionen. */
+  post?: {
+    stationValue?: Partial<Record<StackVar, { form: StackForm; group: number; M: number; I: number | null; L: number | null; value: number }>>;
+    learnedClouds?: boolean;
+  };
 }
 
 export interface VarUncertainty {
@@ -471,6 +485,32 @@ export interface FuseCubeOptions {
    */
   learnedPrecip?: boolean;
   /**
+   * Phase FS (V-FS-2): das gelernte Mittel gilt AM PUNKT. Der Motor bringt jedes Sample selbst von `sourceElevation` auf
+   * h_true (T, Td) und skaliert den Wind mit dem Geländefaktor des Footprints — auf das gelernte Mittel angewendet ist das
+   * eine zweite Korrektur (gemessen: T-MAE des Members 1,18–1,54 K wie gespeichert, 1,69–2,31 K wie der Motor ihn liest).
+   * Mit der Option wird das Member so vorkompensiert, dass der Motor genau das gelernte Mittel (plus Anker) liest — wie
+   * `applyVertical` es für PAP 4 tut. Wirkt nur mit `learned`; Voreinstellung aus ⇒ byte-gleich.
+   */
+  learnedAtPoint?: boolean;
+  /**
+   * Phase FS (D2): `false` = kein Klimatologie-Schritt für Kombinationen, deren Member alle eine explizite σ tragen
+   * (Cube-Member mit PAP 6 oder Lernstufe, Stationsmember) — `FusionContext.priorShrink`. Niederschlag behält den Schritt
+   * (K-2, Member ohne explizite σ). Voreinstellung an ⇒ byte-gleich.
+   */
+  priorShrink?: boolean;
+  /**
+   * Phase FS (H14): die gelernte Bewölkungsverteilung wird durchgereicht statt nachfusioniert (`fused.clouds`), wo die
+   * Lernstufe sie trägt. Wirkt nur mit `learned`; Voreinstellung aus ⇒ byte-gleich.
+   */
+  learnedClouds?: boolean;
+  /**
+   * Phase FS (H9/H10): der Stationswert — steht ein Stationsmember AM Punkt (`input.stack.range`), ersetzt
+   * M + b + w·I + c·(L − M) die fusionierte Verteilung von T, Td, Windgeschwindigkeit und Böe (`stationValue.ts`); I aus der
+   * jüngsten Messung ≤ jetzt einer Station am Punkt, L aus der Lernstufe (ohne sie die Form ohne L). Die Richtung, die
+   * Feuchte und die Phase bleiben aus der Kombination. Wirkt nur mit `input.stack`; Voreinstellung aus ⇒ byte-gleich.
+   */
+  stationValue?: boolean;
+  /**
    * AP7: stündliche Achse — Stunden ohne nativen Schritt füllt die Station (wenn sie den Punkt vertritt),
    * sonst werden die Quantile der Nachbarschritte linear interpoliert und markiert. Voreinstellung nein
    * (nur native Schritte); `getPointForecastFromCube` verlangt sie, weil `PointForecast.hours` stündlich ist.
@@ -650,6 +690,13 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const useLearnedSpeed = useLearned && opts.learnedSpeed === true;
   const useLearnedPrecip = useLearned && opts.learnedPrecip === true;
   const learnedPost = { speed: 0, speedNoLaw: 0, precip: 0, precipKept: 0, precipAbsent: 0 };
+  // Phase FS (`audit/fusion-stationswert.md`): vier Optionen, jede voreingestellt aus — ohne sie byte-gleich.
+  const useAtPoint = useLearned && opts.learnedAtPoint === true;
+  const noPriorShrink = opts.priorShrink === false;
+  const useLearnedClouds = useLearned && opts.learnedClouds === true;
+  const stackErrors = opts.stationValue === true && input.stack ? validateStackTable(input.stack) : [];
+  const stackT: StackTable | null = opts.stationValue === true && input.stack && !stackErrors.length ? input.stack : null;
+  const fsCount = { atPoint: 0, clouds: 0, stationValue: 0, byForm: {} as Record<string, number> };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
   // gültiger Kurve (`anchorCurveValid`); je Größe ohne Kurve gilt die Setzung e^(−τ/τ_v). Ohne `anchor`-Block in den
   // Tabellen: exakt der bisherige Pfad (byte-gleich). Td hat im Cube-Pfad keinen Anker (keine Feuchte-Innovation).
@@ -756,6 +803,12 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       ? `anchor:hindcast — Persistenzkurve der Form-K-Residuen aus ${learnedT.fitVersion} (V-FL-20, FL-AP8b): Zuschlag = Versatz · Repräsentativität · w(τ) mit w = cov(e₁,e_τ)/var(e₁) je Vorlauf 1…48 h statt e^(−τ/τ_v); τ_1/e gemessen T ${learnedT.anchor?.t?.tauH ?? '—'} h · u ${learnedT.anchor?.u?.tauH ?? '—'} h · v ${learnedT.anchor?.v?.tauH ?? '—'} h · Böe ${learnedT.anchor?.gust?.tauH ?? '—'} h (Setzung ${ANCHOR_TAU_H.temperature} / ${ANCHOR_TAU_H.wind} / ${ANCHOR_TAU_H.wind} / ${ANCHOR_TAU_H.gust} h); τ ≤ 1 h ⇒ 1, jenseits 48 h ⇒ 0 (Datenlage, nicht Persistenz — offen), negative Gewichte bleiben (Gegenphase des Tagesgangs); Td ohne Anker im Cube-Pfad (Kurve ungenutzt)${anchorFallback.length ? `; Setzung e^(−τ/τ_v) für ${anchorFallback.map((av) => (av === 't' ? 'T' : av === 'gust' ? 'Böe' : av)).join(', ')} (keine gültige Kurve in den Tabellen)` : ''}; Deckel ${ANCHOR_MAX.temperature} K; Messung mit Frist geholt, nie blockierend`
       : `anchor:set — Innovations-Persistenz (anchor.ts, V-PV-19): Versatz Messung − Cube am Messzeitpunkt, τ_T ${ANCHOR_TAU_H.temperature} h / τ_Wind ${ANCHOR_TAU_H.wind} h, Deckel ${ANCHOR_MAX.temperature} K; Messung mit Frist geholt, nie blockierend`,
     ] : []),
+    ...(useAtPoint && learnedT ? ['learnedAtPoint:set — das gelernte Mittel gilt am Punkt: das Member wird so vorkompensiert, dass die Höhenkorrektur (T, Td) und der Geländefaktor (Wind, Böe) des Motors genau das gelernte Mittel plus Anker ergeben (V-FS-2)'] : []),
+    ...(noPriorShrink ? ['priorShrink:off — kein Klimatologie-Schritt für Kombinationen aus Membern mit expliziter σ (Lernstufe, PAP 6, Stationsmember sind kalibrierte Vorhersagen); Niederschlag behält ihn (K-2); jenseits der Daten trägt weiter allein die Klimatologie (Phase FS, D2)'] : []),
+    ...(useLearnedClouds && learnedT ? ['learnedClouds:hindcast — die Bewölkungsverteilung der Lernstufe wird durchgereicht statt nachfusioniert (Phase FS, H14)'] : []),
+    ...(opts.stationValue === true ? [stackT
+      ? `stationValue:archive — Stationswert M + b + w·I + c·(L − M) aus ${stackT.fitVersion} (${stackT.period.from}…${stackT.period.to}, ${stackT.period.issueDays} Ausgabetage, ${stackT.rows} Zeilen; Provenienz archive, nie measured) für T, Td, Windgeschwindigkeit, Böe — nur mit einer Station am Punkt (≤ ${stackT.range.maxKm} km, |Δh| ≤ ${stackT.range.maxDElevM} m); I aus der jüngsten Messung einer Station am Punkt; Richtung, Feuchte und Phase bleiben aus der Kombination`
+      : `stationValue:absent — Option an, aber ${input.stack ? `die Tabelle ist ungültig (${stackErrors.slice(0, 2).join('; ')})` : 'keine Tabelle im Eingang'} ⇒ Rechnung ohne Stationswert`] : []),
     `nowcastStale:set — Radar-Slot älter als ${NOWCAST_STALE_MIN} min gilt als veraltet; fehlt das Radar in 0–${NOWCAST_HORIZON_H} h, trägt das Modell (Flag nowcastFallbackModel)`,
     ...(useTail ? ['tail:set — jenseits des letzten nativen Schritts trägt allein die Klimatologie (6-h-Schritte, climatologyOnly); keine Extrapolation der Modelle'] : []),
     ...(opts.hourly ? ['interpolation:set — Stunden ohne nativen Schritt: Station, wenn sie den Punkt vertritt; sonst lineare Interpolation der Quantile (p10/p50/p90/Mittel) der Nachbarschritte, markiert; Nähte werden nie geglättet (R7)'] : []),
@@ -833,8 +886,66 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       clima: climaAt(atMs),
       climaAt,
       terrainDeltaAt: () => 0,
+      ...(noPriorShrink ? { priorShrink: false } : {}),
     };
     return fuseHour(samples, leadH, ctx);
+  };
+
+  // ── Phase FS: der Stationswert — Station am Punkt, Innovation der Stationsvorhersage an der jüngsten Messung ──
+  const stackOn = !!(stackT && input.station && hTrue != null && stationAtPoint(stackT, input.station.station.distanceKm, input.station.station.elev - hTrue));
+  const pointOfDist = (d: Dist | null | undefined): number | null => {
+    if (!d) return null;
+    const x = d.kind === 'normal' ? d.mu : d.kind === 'rice' || d.kind === 'truncatedNormal' ? meanOf(d) : quantileOf(d, 0.5);
+    return Number.isFinite(x) ? x : null;
+  };
+  /** Die Stationsvorhersage einer Gültigzeit je Größe, T/Td auf die Höhe `hTo` gebracht. */
+  const stationForecastAt = (atMs: number, hTo: number): Partial<Record<StackVar, number | null>> | null => {
+    const sv = stationAt.get(atMs);
+    if (!sv || !input.station) return null;
+    const se = input.station.station.elev;
+    const t = num(sv.t2m), td = num(sv.td2m), u = num(sv.u10), v = num(sv.v10);
+    return { t: t != null ? sourceToPoint('t2m', t, se, hTo) : null, td: td != null ? sourceToPoint('td2m', td, se, hTo) : null, ws: u != null && v != null ? Math.hypot(u, v) : null, gust: num(sv.gust) };
+  };
+  let stackInn: { atMs: number; source: string; I: Partial<Record<StackVar, number | null>> } | null = null;
+  if (stackOn && stackT && input.obs && hTrue != null) {
+    let best: CubeObs | null = null;
+    for (const o of input.obs) {
+      if (o.validAtMs > input.nowMs || o.temperature == null) continue;
+      if (!stationAtPoint(stackT, Math.max(0, o.distanceM) / 1000, (o.elevM ?? hTrue) - hTrue)) continue;
+      if (!best || o.validAtMs > best.validAtMs) best = o;
+    }
+    const m0 = best ? stationForecastAt(best.validAtMs, best.elevM ?? hTrue) : null;
+    if (best && m0) {
+      const tdObs = best.dewPoint ?? (best.temperature != null && best.relativeHumidity != null ? dewPointC(best.temperature, best.relativeHumidity) : null);
+      const wsObs = best.u != null && best.v != null ? Math.hypot(best.u, best.v) : null;
+      const diff = (y: number | null | undefined, m: number | null | undefined) => (y != null && Number.isFinite(y) && m != null ? y - m : null);
+      stackInn = { atMs: best.validAtMs, source: best.source, I: { t: diff(best.temperature, m0.t), td: diff(tdObs, m0.td), ws: diff(wsObs, m0.ws), gust: diff(best.gust, m0.gust) } };
+    }
+  }
+  type LearnedDist = ReturnType<typeof predictLearned>['dist'];
+  const FUSED_OF: Record<StackVar, 'temperature' | 'dewPoint' | 'windSpeed' | 'gust'> = { t: 'temperature', td: 'dewPoint', ws: 'windSpeed', gust: 'gust' };
+  const applyStationValue = (fused: FusedPoint, atMs: number, leadH: number, ld: LearnedDist | null): { fused: FusedPoint; info: NonNullable<NonNullable<CubeStep['post']>['stationValue']> } | null => {
+    if (!stackOn || !stackT || hTrue == null) return null;
+    const m = stationForecastAt(atMs, hTrue);
+    if (!m) return null;
+    const tauH = stackInn ? (atMs - stackInn.atMs) / H : null;
+    const info: NonNullable<NonNullable<CubeStep['post']>['stationValue']> = {};
+    let out = fused;
+    for (const v of STACK_VARS) {
+      const fv = out[FUSED_OF[v]];
+      const M = m[v] ?? null;
+      if (!fv || M == null) continue;
+      const I = stackInn?.I[v] ?? null;
+      const L = pointOfDist(ld?.[FUSED_OF[v]] ?? null);
+      const r = stationValueOf(stackT, v, { M, I, tauH, leadH, L });
+      if (!r) continue;
+      out = { ...out, [FUSED_OF[v]]: { ...fv, dist: r.dist } };
+      info[v] = { form: r.form, group: r.group, M, I: r.form === 'A' || r.form === 'AB' || r.form === 'S' ? I : null, L: r.form === 'S' || r.form === 'S0' ? L : null, value: r.value };
+      fsCount.byForm[r.form] = (fsCount.byForm[r.form] ?? 0) + 1;
+    }
+    if (!Object.keys(info).length) return null;
+    fsCount.stationValue += 1;
+    return { fused: out, info };
   };
   const stationSampleAt = (atMs: number, leadH: number): PointSourceSample | null => {
     const stValues = stationAt.get(atMs);
@@ -881,6 +992,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     /** FL-AP8c: die Situation der Lernstufe (für die Hürde nach der Fusion) und das Geschwindigkeitsgesetz des Stratums. */
     learnedSit: PredictSituation | null;
     learnedSpeed: SpeedEntry | null;
+    /** Phase FS: welche Größen des Members die Lernstufe gesetzt hat (`learnedAtPoint`) und ihre Verteilungen (`learnedClouds`, `stationValue`). */
+    learnedSet: { t: boolean; td: boolean; uv: boolean; gust: boolean } | null;
+    learnedDist: LearnedDist | null;
   }
   const preps: Prep[] = axis.map((a) => {
     const flags: StepFlag[] = [];
@@ -940,6 +1054,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     // Anker (E-FL-1). Ohne Tabellen, Gelände oder h_true: nichts, gezählt.
     let learnedMu: Prep['learnedMu'] = null, learnedSigma: Prep['learnedSigma'] = null;
     let learnedSit: Prep['learnedSit'] = null, learnedSpeedE: Prep['learnedSpeed'] = null;
+    let learnedSet: Prep['learnedSet'] = null, learnedDist: Prep['learnedDist'] = null;
     if (learnedT && geometryOk && input.terrain && hTrue != null) {
       const hMod = cubeSample.hModEff ?? cubeSample.sourceElevation ?? null;
       const dhM = vertical?.dhM ?? (hMod != null ? hTrue - hMod : 0);
@@ -963,11 +1078,14 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       };
       const pr = predictLearned(learnedT, 'K', sit);
       learnedSit = sit; learnedSpeedE = pr.speed;
+      learnedDist = pr.dist;
+      const set = { t: false, td: false, uv: false, gust: false };
       let any = false;
-      if (pr.mu.t != null && cubeSample.temperature != null) { cubeSample.temperature = pr.mu.t; any = true; }
-      if (pr.mu.td != null && cubeSample.dewPoint != null) { cubeSample.dewPoint = Math.min(pr.mu.td, cubeSample.temperature ?? pr.mu.td); any = true; }
-      if (pr.mu.u != null && pr.mu.v != null && cubeSample.u != null && cubeSample.v != null) { cubeSample.u = pr.mu.u; cubeSample.v = pr.mu.v; any = true; }
-      if (pr.mu.gust != null && cubeSample.gust != null) { cubeSample.gust = Math.max(0, pr.mu.gust); any = true; }
+      if (pr.mu.t != null && cubeSample.temperature != null) { cubeSample.temperature = pr.mu.t; any = true; set.t = true; }
+      if (pr.mu.td != null && cubeSample.dewPoint != null) { cubeSample.dewPoint = Math.min(pr.mu.td, cubeSample.temperature ?? pr.mu.td); any = true; set.td = true; }
+      if (pr.mu.u != null && pr.mu.v != null && cubeSample.u != null && cubeSample.v != null) { cubeSample.u = pr.mu.u; cubeSample.v = pr.mu.v; any = true; set.uv = true; }
+      if (pr.mu.gust != null && cubeSample.gust != null) { cubeSample.gust = Math.max(0, pr.mu.gust); any = true; set.gust = true; }
+      learnedSet = set;
       if (pr.mu.clct != null && cubeSample.cloudTotal != null) { cubeSample.cloudTotal = Math.min(100, Math.max(0, pr.mu.clct)); any = true; }
       learnedSigma = {};
       if (pr.sigma.t != null) learnedSigma.temperature = pr.sigma.t;
@@ -982,7 +1100,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       } else { learnedCount.absent += 1; learnedSigma = null; }
       for (const av of pr.absent) learnedCount.vars[`absent:${av}`] = (learnedCount.vars[`absent:${av}`] ?? 0) + 1;
     }
-    return { a, leadH, flags, grid, cubeSample, vertical, spd, foehnScore: foehn ? foehn.score : null, terrainRes, learnedMu, learnedSigma, learnedSit, learnedSpeed: learnedSpeedE };
+    return { a, leadH, flags, grid, cubeSample, vertical, spd, foehnScore: foehn ? foehn.score : null, terrainRes, learnedMu, learnedSigma, learnedSit, learnedSpeed: learnedSpeedE, learnedSet, learnedDist };
   });
   if (useLearned) {
     notes.push(learnedT
@@ -1059,6 +1177,19 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         product: 'anchor', tag: anchorInfo.sources.join('+'), ageH: leadH,
         anchor: { sources: anchorInfo.sources, pairs: anchorInfo.pairs, fraction: anchorInfo.fraction, offsetK: anchorInfo.t?.offset ?? null, termK, termU, termV, termGust },
       });
+    }
+    // Phase FS (V-FS-2): das gelernte Mittel (plus Anker) gilt am Punkt — vorkompensieren, was der Motor gleich noch einmal
+    // anwendet: die lineare Höhenkorrektur von `sourceElevation` (T, Td) und den Geländefaktor des Footprints (Wind, Böe).
+    if (useAtPoint && p.learnedSet && flags.includes('learned') && hTrue != null && scales) {
+      const dz = cubeSample.sourceElevation != null && Number.isFinite(cubeSample.sourceElevation) ? cubeSample.sourceElevation - hTrue : 0;
+      if (p.learnedSet.t && cubeSample.temperature != null) cubeSample.temperature -= dz * STANDARD_LAPSE_PER_M;
+      if (p.learnedSet.td && cubeSample.dewPoint != null) cubeSample.dewPoint -= dz * DEWPOINT_LAPSE_PER_M;
+      const wf = windTerrainFactor(cubeSample, { terrain: scales, elevationM: hTrue } as FusionContext);
+      if (Number.isFinite(wf) && wf > 0 && wf !== 1) {
+        if (p.learnedSet.uv && cubeSample.u != null && cubeSample.v != null) { cubeSample.u /= wf; cubeSample.v /= wf; }
+        if (p.learnedSet.gust && cubeSample.gust != null) cubeSample.gust /= wf;
+      }
+      fsCount.atPoint += 1;
     }
     // AP6: σ des Cube-Members aus dem Cube (PAP 6).
     const uncertainty: CubeStep['uncertainty'] = {};
@@ -1141,6 +1272,16 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         }
       }
     }
+    // Phase FS: nach der Kombination — die gelernte Bewölkung durchreichen (H14), der Stationswert (H9/H10).
+    let post: CubeStep['post'];
+    if (fused && useLearnedClouds && fused.clouds && p.learnedDist?.clouds && flags.includes('learned')) {
+      fused = { ...fused, clouds: { ...fused.clouds, dist: p.learnedDist.clouds } };
+      post = { ...post, learnedClouds: true }; fsCount.clouds += 1;
+    }
+    if (fused && stackOn) {
+      const r = applyStationValue(fused, a.validAtMs, leadH, flags.includes('learned') ? p.learnedDist : null);
+      if (r) { fused = r.fused; post = { ...post, stationValue: r.info }; }
+    }
     if (useUnc) {
       for (const v of UNC_VARS) {
         const m = memberSig[v]!;
@@ -1158,9 +1299,21 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       uncertainty,
       terrain: p.terrainRes,
       weights, samples,
+      ...(post ? { post } : {}),
     };
   };
   const steps: CubeStep[] = preps.map(finishStep);
+  // Nie still: wie oft der Stationswert wirklich gesetzt wurde — eine Tabelle ohne Eintrag für die tragbare Form setzt nichts.
+  const stationValueApplied = (): string => (fsCount.stationValue
+    ? `stationValue: gesetzt an ${fsCount.stationValue} Schritten (Formen ${Object.entries(fsCount.byForm).map(([f, n]) => `${f} ${n}`).join(', ')}, je Größe gezählt)`
+    : 'stationValue: an keinem Schritt gesetzt — die Tabelle trägt keinen Eintrag für die Form, die diese Abfrage tragen kann');
+  if (useAtPoint && learnedT) notes.push(`learnedAtPoint: Member an ${fsCount.atPoint} Schritten vorkompensiert`);
+  if (useLearnedClouds && learnedT) notes.push(`learnedClouds: gelernte Bewölkung an ${fsCount.clouds} Schritten durchgereicht`);
+  if (opts.stationValue === true && stackT) {
+    notes.push(stackOn
+      ? `stationValue: ${input.station!.station.name.trim()} steht am Punkt (${input.station!.station.distanceKm.toFixed(1)} km, Δh ${Math.round(input.station!.station.elev - (hTrue as number))} m); Innovation ${stackInn ? `aus ${stackInn.source} ${new Date(stackInn.atMs).toISOString().slice(0, 16)}Z (T ${stackInn.I.t == null ? '—' : stackInn.I.t.toFixed(2)} K)` : 'keine (keine Messung einer Station am Punkt ≤ jetzt mit Stationsvorhersage zur Messzeit) ⇒ Formen ohne w·I'}`
+      : `stationValue: keine Station am Punkt (${input.station ? `${input.station.station.name.trim()}, ${input.station.station.distanceKm.toFixed(1)} km, Δh ${hTrue == null ? '—' : Math.round(input.station.station.elev - hTrue)} m — außerhalb ${stackT.range.maxKm} km / ${stackT.range.maxDElevM} m` : 'kein Stationsmember'}) ⇒ Rechnung ohne Stationswert`);
+  }
   if (useLearnedSpeed && learnedT) notes.push(`learnedSpeed: gestutzte Normal an ${learnedPost.speed} Schritten, ohne Gesetz im Stratum ${learnedPost.speedNoLaw} (Rice bleibt)`);
   if (useLearnedPrecip && learnedT) notes.push(`learnedPrecip: gelernte Hürde an ${learnedPost.precip} Schritten, K-2 behalten ${learnedPost.precipKept} (Radar-/Stationsmember), ohne Stratum oder ohne CV-Gewinn ${learnedPost.precipAbsent}`);
 
@@ -1192,7 +1345,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const st = stationSampleAt(t, leadH);
       if (st) {
         const weights: Weights = {};
-        const fused = fuseAt([st], leadH, t, null, weights);
+        let fused = fuseAt([st], leadH, t, null, weights);
+        // Phase FS: auch die Stunde, die die Station füllt, bekommt den Stationswert (ohne Lernstufe: die Formen ohne L).
+        let post: CubeStep['post'];
+        if (fused && stackOn) { const r = applyStationValue(fused, t, leadH, null); if (r) { fused = r.fused; post = { stationValue: r.info }; } }
         const flags: StepFlag[] = ['stationOnly'];
         if (input.nowcastCovering.length && inHorizon(t)) flags.push('nowcastFallbackModel');
         const uncertainty: CubeStep['uncertainty'] = {};
@@ -1204,7 +1360,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
               confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t), member: m, srcCount: 1, flags, dhM: null, ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }) };
           }
         }
-        out.push({ validAtMs: t, leadH, tier: 'station', interpolated: false, flags, fused, members: [stationMember(t, st)], cell: {}, belowGroundHPa: null, vertical: null, grid: null, uncertainty, terrain: null, weights, samples: [st] });
+        out.push({ validAtMs: t, leadH, tier: 'station', interpolated: false, flags, fused, members: [stationMember(t, st)], cell: {}, belowGroundHPa: null, vertical: null, grid: null, uncertainty, terrain: null, weights, samples: [st], ...(post ? { post } : {}) });
         continue;
       }
       // Lineare Interpolation der Quantile zwischen den nächsten Schritten mit Verteilung — markiert.
@@ -1239,6 +1395,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     steps.push(...out);
   }
 
+  if (stackOn) notes.push(stationValueApplied());
   const runs: CubeFusionResult['provenance']['runs'] = {};
   for (const tier of TIERS) {
     const s = input.cube[tier.id];
@@ -1448,6 +1605,19 @@ export interface CubeIo {
    */
   climaSource?: 'none' | 'json';
   /**
+   * Phase FS: `'json'` liest `point/stack.client.json` (die Tabelle des Stationswerts, `stackPoint.ts`, Provenienz `archive`).
+   * Wirkt nur mit `fuse.stationValue` oder `stage: 'fs'`. Voreinstellung `'none'`. Nie blockierend, eine Entscheidung je Abfrage.
+   */
+  stackSource?: 'none' | 'json';
+  /**
+   * Phase FS: `'fs'` = die neueste Stufe von buscosun Fusion als EIN Schalter. Liegen die gelernten Tabellen vor, rechnet der
+   * Cube-Pfad mit `learnedSpeed`, `learnedPrecip`, `learnedAtPoint`, `learnedClouds` und `priorShrink: false` — die Kette, die
+   * am Archiv gemessen ist; liegt zusätzlich die Tabelle des Stationswerts vor, mit `stationValue`. Ohne Tabellen rechnet der
+   * Pfad wie ohne Schalter (keine der Optionen ist ohne Lernstufe gemessen) und sagt es. Ausdrückliche `fuse`-Optionen haben
+   * Vorrang. Braucht `learnedSource: 'json'` (und `climaSource`, `stackSource`), sonst kommt nichts an.
+   */
+  stage?: 'fs';
+  /**
    * AP14 (E-F-18): liegt eine Zelle des 2×2-Blocks (PAP 3) in einem anderen Chunk, holt der Leser diesen Chunk desselben
    * Laufs nach — der Block ist dann vollständig, `chunkBorderTruncated` entfällt. Nicht-progressiv sofort im Bündel;
    * progressiv als EIGENE Ausgabe, sobald die Zellen da sind (nie in der ersten Darstellung, nie als Wartegrund für
@@ -1478,10 +1648,12 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const zm = io.z0mod ? 'zm' : null;
   const learned = io.learnedSource === 'json' ? 'learned:json' : null;
   const climaS = io.climaSource === 'json' ? 'clima:json' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS) return '';
+  const stackS = io.stackSource === 'json' ? 'stack:json' : null;
+  const stage = io.stage === 'fs' ? 'stage:fs' : null;
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !stage) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${stage ? `|${stage}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -1555,6 +1727,10 @@ export function defaultCubeIo(): CubeIo {
     lateDeadlineMs: LATE_DEADLINE_MS,
     indexSwrMs: INDEX_SWR_MS,
     z0: { cache: browserBackend, timeoutMs: 8_000 },
+    // Phase FS (Jan, 28.09.): wer buscosun Fusion auf dem Cube abfragt, bekommt die neueste Stufe — Lernstufe (Fit 5e) mit
+    // Klimatologieprodukt, beide Korrekturen, Bewölkung durchgereicht, Stationswert. Jede Datei nie blockierend; fehlt sie im
+    // Daten-Repo, rechnet der Pfad ohne diesen Teil und nennt es.
+    learnedSource: 'json', climaSource: 'json', stackSource: 'json', stage: 'fs',
   };
 }
 
@@ -1576,7 +1752,7 @@ export const UPDATE_WAIT_MS = 6_000;
 /** Bündel + Klimatologie + Messungen → `PointForecast` mit `cube`-Block (AP2–AP8); `obsNotes` sagen, warum ohne Anker. */
 function forecastFromBundle(
   bundle: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null, obsNotes: string[], opts: PointForecastOptions, io: CubeIo,
-  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null },
+  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null; stack?: LoadedStack | null },
   z0: Z0AtPoint | null = null,
 ): PointForecast {
   const input = cubeInputFromBundle(bundle, clima, obs);
@@ -1586,13 +1762,23 @@ function forecastFromBundle(
   if (t.learned) { input.notes.push(...t.learned.notes); input.learned = t.learned.tables; }
   // Phase FX-5: das Klimatologieprodukt (nur mit `climaSource: 'json'`); ohne Datei rechnet die station-Tabelle ohne μ_c und sagt es.
   if (t.climaProduct) { input.notes.push(...t.climaProduct.notes); input.learnedClima = t.climaProduct.product; }
+  // Phase FS: die Tabelle des Stationswerts; die Stufe `fs` schaltet, was die vorhandenen Tabellen tragen.
+  if (t.stack) { input.notes.push(...t.stack.notes); input.stack = t.stack.table; }
+  const stageFuse: Partial<FuseCubeOptions> = {};
+  if (io.stage === 'fs') {
+    if (t.learned?.tables) {
+      Object.assign(stageFuse, { learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false });
+      if (t.stack?.table) stageFuse.stationValue = true;
+      input.notes.push(`stage:fs — neueste Stufe: Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
+    } else input.notes.push('stage:fs — keine gelernten Tabellen ⇒ Rechnung wie ohne die Stufe (keine ihrer Optionen ist ohne Lernstufe gemessen)');
+  }
   if (z0) input.z0 = z0;
   if (io.terrainOverride !== undefined) {
     input.terrain = io.terrainOverride;
     input.elevationM = input.elevationM ?? io.terrainOverride?.elevationM ?? null;
   }
   // AP13 (V-FI-79): die Optionen des Aufrufers und die gemessene Kalibrierung; ohne beide exakt der Aufruf von vorher.
-  const result = fuseCubePoint(input, { ...(io.fuse ?? {}), ...(t.calib?.overrides ? { calib: t.calib.overrides } : {}), ...(t.learned ? { learned: true } : {}), hourly: true, tail: true });
+  const result = fuseCubePoint(input, { ...stageFuse, ...(io.fuse ?? {}), ...(t.calib?.overrides ? { calib: t.calib.overrides } : {}), ...(t.learned ? { learned: true } : {}), hourly: true, tail: true });
   const v2 = toPointForecastV2(result, {
     ...(t.calib ? { calibFile: { path: t.calib.path, schema: t.calib.schema, hash: t.calib.hash, measured: t.calib.overrides ? Object.keys(t.calib.overrides.meta) : [] } } : {}),
     nowMs: t.nowMs, terrainSource: io.terrainOverride !== undefined ? (io.terrainOverride ? 'override' : 'none') : (input.terrain ? 'terrarium-z11+z8' : 'none'),
@@ -1722,6 +1908,20 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     });
     return climaProdUsed;
   };
+  // Phase FS: die Tabelle des Stationswerts — derselbe Weg.
+  let stackVal: LoadedStack | null | undefined;
+  const stackP: Promise<unknown> | null = io.stackSource === 'json'
+    ? loadStack(io.store, opts.signal ? { signal: opts.signal } : {}).then((c) => { stackVal = c; }, () => { stackVal = null; })
+    : null;
+  let stackUsed: LoadedStack | null | undefined;
+  const stackNow = (): LoadedStack | null => {
+    if (stackUsed !== undefined) return stackUsed;
+    stackUsed = !stackP ? null : (stackVal ?? {
+      path: POINT_STACK_PATH, hash: null, table: null,
+      notes: [stackVal === null ? 'stationValue: Lesen gescheitert — Rechnung ohne Stationswert' : 'stationValue: stack.client.json bei der ersten Ausgabe noch nicht da — Rechnung ohne Stationswert (nie blockierend)'],
+    });
+    return stackUsed;
+  };
   let calibUsed: LoadedCalib | null | undefined;
   const calibNow = (): LoadedCalib | null => {
     if (calibUsed !== undefined) return calibUsed;
@@ -1756,7 +1956,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const pending = [...all.filter((t) => !b1.tiers.includes(t)), ...(io.obs ? ['anchor'] : [])];
       try {
         resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...(io.z0 && z0Missing(z0c) ? z0PendingNote(io, z0c, 'follows') : z0NoteOf(io, z0c, 'follows'))],
-          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0c));
+          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0c));
       } catch { /* die erste Darstellung ist ein Angebot — der Kern kommt ohnehin */ }
     });
   } : undefined;
@@ -1795,7 +1995,8 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     // AP13: nicht-progressiv (Sammler, Nachlauf) wartet auf calib höchstens die Gnadenfrist — wie auf die Messung.
     if (calibP && calibVal === undefined) await Promise.race([calibP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
     if (learnedP && learnedVal === undefined) await Promise.race([learnedP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
-    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0);
+    if (stackP && stackVal === undefined) await Promise.race([stackP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
+    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0);
     cacheForecast(key, hours, forecast, opts);
     return forecast;
   }
@@ -1823,7 +2024,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     const firstNotes = [...(io.obs
       ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`]
       : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS)), ...(z0NetP ? z0PendingNote(io, z0c, 'follows') : [])];
-    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0c);
+    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0c);
     last = { b: bundle, obs: null, notes: firstNotes, still: pending, z0: z0c };
     if (late.crossChunk) {
       void late.crossChunk.result.then((r) => {
@@ -1833,7 +2034,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const L = last;
         const notesX = [...L.notes, `crossChunk: ${said} — 2×2-Block über die Chunk-Grenze, eigene Ausgabe (AP14)`];
         const fc4 = forecastFromBundle(cur(L.b), clima, L.obs, notesX, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, L.z0);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, L.z0);
         last = { ...L, notes: notesX, still: stillOf(L.still) };
         cacheForecast(key, hours, fc4, opts);
         opts.onUpdate!(fc4);
@@ -1852,7 +2053,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const notes3 = notesX.filter((n) => !n.startsWith('z0: '));
         const still3 = stillOf(stillX.filter((x) => x !== 'z0'));
         const fc3 = forecastFromBundle(cur(b), clima, obsX, notes3, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z);
         last = { b, obs: obsX, notes: notes3, still: still3, z0: z };
         cacheForecast(key, hours, fc3, opts);
         opts.onUpdate!(fc3);
@@ -1899,7 +2100,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const notes = [...obsNotes];
       const z0u = gotZ0 ? (z0Val as Z0AtPoint) : z0c;
       if (z0NetP && !gotZ0) notes.push(...z0PendingNote(io, z0c, z0Done ? 'missing' : 'follows'));
-      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow() }, z0u);
+      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0u);
       last = { b: b2, obs, notes, still, z0: z0u };
       cacheForecast(key, hours, second, opts);
       opts.onUpdate!(second);

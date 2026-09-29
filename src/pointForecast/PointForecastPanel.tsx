@@ -36,16 +36,17 @@ export type PointForecastView = 'overview' | 'charts' | 'table' | 'bands';
 type View = PointForecastView;
 
 /**
- * Phase FI (AP11): `?pf=cube` schaltet das Panel auf buscosun Fusion auf dem Punkt-Cube (`pointSource: 'cube'`);
- * fehlt der Schalter oder hat er einen anderen Wert, bleibt alles live und unverändert. `?pflog=1` zeigt im
- * Cube-Modus Zeiten und Herkunft. Die Voreinstellung wechselt erst nach dem AP9-Gate (Jans Entscheidung).
+ * Phase FS (Jan, 29.09.2026): buscosun Fusion auf dem Punkt-Cube (`pointSource: 'cube'`) ist die VOREINSTELLUNG des Panels —
+ * die neueste Stufe (`audit/fusion-stationswert.md` §7). `?pf=live` zeigt den Live-Pfad wie vor der Umstellung (benannter
+ * Rückfall); scheitert der Cube-Pfad, fällt das Panel von selbst auf den Live-Pfad zurück. `?pflog=1` zeigt im Cube-Modus
+ * Zeiten und Herkunft. Bis zum 28.09. lief der Cube-Pfad nur hinter `?pf=cube` (Phase FI, AP11).
  * Die Karte hält unbekannte Query-Schlüssel beim Umschreiben der URL fest (`urlState.ts`, `extra`).
  */
 const PF_SOURCE: PfSource = typeof window !== 'undefined' ? pfSourceFrom(window.location.search) : 'live';
 const PF_LOG = typeof window !== 'undefined' && pfLogFrom(window.location.search);
 /** Der Cube-Modus fragt das ganze Fenster an (die Bandbreite zeigt es bis zum Klimatologie-Schwanz); die drei Altansichten bekommen weiter `hours`. */
 const CUBE_PANEL_HOURS = 336;
-// Eigener Lazy-Chunk (mit eigenem CSS): ohne ?pf=cube kommt die Ansicht nie auf den Draht.
+// Eigener Lazy-Chunk (mit eigenem CSS): mit ?pf=live kommt die Ansicht nie auf den Draht.
 const PointForecastBands = lazy(() => import('./PointForecastBands'));
 const PointForecastPfLog = lazy(() => import('./PointForecastBands').then((m) => ({ default: m.PfLog })));
 interface CubeEmission { kind: string | null; ms: number; hours: number; pending: string[] }
@@ -132,8 +133,11 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
   function enableOmPollen() { setOpenMeteoOptIn(true); setOmOptIn(true); }
   function disableOmPollen() { setOpenMeteoOptIn(false); setOmOptIn(false); setOmPollen(null); }
 
-  // AP11: der Cube-Pfad nur mit ?pf=cube und nur im Blend-Modus — ein Einzelmodell (`native`) hat dort keine Entsprechung.
-  const useCube = PF_SOURCE === 'cube' && sourceMode !== 'native';
+  // Der Cube-Pfad ist die Voreinstellung (Phase FS), nur im Blend-Modus — ein Einzelmodell (`native`) hat dort keine Entsprechung.
+  // Scheitert er an diesem Ort, zeigt das Panel den Live-Pfad (Rückfall), bis der Ort wechselt.
+  const [cubeFailed, setCubeFailed] = useState<string | null>(null);
+  useEffect(() => { setCubeFailed(null); }, [lat, lng]);
+  const useCube = PF_SOURCE === 'cube' && sourceMode !== 'native' && cubeFailed == null;
   const [emissions, setEmissions] = useState<CubeEmission[]>([]);
 
   useEffect(() => {
@@ -169,8 +173,10 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
       .then((r) => { if (!abort.signal.aborted) { note(r); setData(r); setLoading(false); } })
       .catch((err: unknown) => {
         if ((err as { name?: string })?.name === 'AbortError') return;
-        setError(`buscosun Fusion (Cube, Test): ${err instanceof Error ? err.message : String(err)} — ohne ?pf=cube zeigt das Panel den Live-Pfad`);
-        setLoading(false);
+        // Rückfall auf den Live-Pfad: der Effekt läuft mit `useCube = false` neu und lädt dort.
+        const why = err instanceof Error ? err.message : String(err);
+        console.warn(`[buscosun Fusion] Cube-Pfad gescheitert (${why}) — Rückfall auf den Live-Pfad`);
+        setCubeFailed(why);
       });
     const t = window.setInterval(() => {
       loadCube().then((r) => { if (!abort.signal.aborted) setData(r); }).catch(() => {});
@@ -307,7 +313,7 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
                   className={shownView === 'bands' ? 'active' : ''}
                   onClick={() => setView('bands')}
                   aria-selected={shownView === 'bands'}
-                  title="buscosun Fusion auf dem Punkt-Cube (Test, ?pf=cube): Band p10–p90, Konfidenz, Member und Setzungen je Stunde"
+                  title="buscosun Fusion auf dem Punkt-Cube: Band p10–p90, Konfidenz, Member und Setzungen je Stunde"
                 >
                   Bandbreite
                 </button>

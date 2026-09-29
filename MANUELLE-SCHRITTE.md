@@ -849,3 +849,65 @@ Skalenregel — Fit 5a/5b + Scorecard 5a/5b gegen Scorecard 4 (§6). Kein Commit
       Bins 4/5 aller Fits und Scorecards seit Fit 4 hängen an **65 von 389 Stationen** (t2: 130, t1: 259; Zeilenanteil je 16,7 %). Like-for-like zwischen den Karten bleibt
       gültig; Schicht-/dnn-Zahlen der Bins 3–5 auf 65/130 Stationen lesen. Entscheidung: Hash-Auswahl + Referenzkette 5a → 5e neu (≈ 8 h) jetzt oder mit dem Winter-Nachfit.
 - [ ] **Mobil-4G (Lab, 04:04 UTC, Maschine frei):** cube-cold-prog erste Darstellung 1 588 / total 1 797 ms, warm 237 ms — keine Regression erkennbar (Referenz 18.09. 1 812 / 193 ms, andere Leitung).
+
+## 23. Phase FV — Abschlussvalidierung von buscosun Fusion (Stand Fit 5e), 2026-09-27
+
+Phasendokument `audit/fusion-validierung.md` (§0 Kurzfassung, §4 Verdikt, §5 Befunde V-FV-1…11, §6 Entscheidungen). Behauptungen vorab eingefroren
+(10:36:17Z, Hash in `audit/fusion-validierung/claims-frozen.sha256`), Verdikte gerechnet von `audit/fusion-validierung/fv-decision.mjs`.
+Kein Commit, kein Push, keine Kopie, nichts unter `src/` geändert.
+
+- [ ] **Ergebnis zur Kenntnis:** Hindcast (FV-H, 6,8 Mio. Fälle, 389 Stationen): H2 gilt (besser als jedes Rohmodell und das Mittel), H8 gilt; H1 (gegen
+      die Tabellen der Scorecard 4) und H3 (gegen den heutigen Motor) scheitern je an einer bzw. zwei Zellen nahe null; H4 scheitert an der Bewölkung
+      (PIT-Rand 0,26–0,30 in jedem Bin). Archiv (FV-A, 12 Ausgabetage, an MOSMIX-Stationen, indikativ): H6 und H7 gelten nicht — die volle Kette ist im
+      CRPS besser als MOSMIX, im Punktwert aber schlechter als MOSMIX und als das heutige Live-Produkt (außer Niederschlag).
+- [ ] **E-FV-1 H6b messen?** Stationsloser Punkt gegen MOSMIX (Leave-Station-out mit der nächsten anderen MOSMIX-Station), ≈ 15 min, als nachträgliche
+      Behauptung gekennzeichnet.
+- [ ] **E-FV-2 (Empfehlung: nein, noch nicht):** E-FX-10/11 (Klimatologieprodukt + Fit-5e-Tabelle kopieren, `learnedSource`/`climaSource` hinter `?pf=cube`
+      einschalten) zurückstellen, bis die Member-Gewichte gemessen sind (V-FV-6, Motor).
+- [ ] **E-FV-3 Motor:** t2/t3 im Client mit den ganzjährigen Route-3-Strata statt Route 1 (Sommer 2026) — V-FV-1.
+- [ ] **E-FV-4:** `--thin=hash` als Voreinstellung von `fit.mjs`/`score.mjs` (V-FV-3; alte Karten dann nur mit `--thin=legacy` reproduzierbar).
+- [ ] **E-FV-5:** Client-Tabelle nicht wechseln (5e vs 4 im Archiv uneinheitlich, V-FV-9), bis das Archiv ≥ 30 Ausgabetage je Bin trägt.
+- [ ] **E-FL-11 totalJs** unverändert 1 447,6 KB > 1 438 (diese Phase 0 Byte).
+- [ ] **Zur Kenntnis V-FV-2:** der erste Archivlauf las die ganzzahligen Radarraten roh (×100); verworfen (`score\2026-09-27-fv-a-run1-void`), behoben,
+      Verifier 16h. AP9: Archivspalten nur mit ihrer Kopf-Skala lesen (`scripts/fusionfit/lib/archiveAdapter.mjs` kann übernommen werden).
+
+## 24. Phase FS — Stationswert von buscosun Fusion gegen MOSMIX (Stand Fit 5e), 2026-09-28
+
+Phasendokument `audit/fusion-stationswert.md` (§0 Kurzfassung, §4 Verdikt, §5 Befunde V-FS-1…11, §6 Entscheidungen). Behauptungen vorab
+eingefroren (17:43:58Z, Hash in `audit/fusion-stationswert/claims-frozen.sha256`), Verdikte gerechnet von `scripts/fusionfit/stack-score.mjs`.
+Kein Commit, kein Push, keine Kopie, kein Publisher-Lauf. Unter `src/` geändert: `pointForecast/cubeSource.ts`, `fusion/fuse.ts`,
+`fusion/output.ts`, neu `fusion/stationValue.ts` — vier Optionen, alle voreingestellt aus, ohne Option byte-gleich zu HEAD (312/312 Läufe).
+
+- [ ] **Ergebnis zur Kenntnis:** die Kette trug zwei Fehler (V-FS-2 doppelte Höhen-/Geländekorrektur des gelernten Mittels, V-FS-3 doppelte
+      Schrumpfung); der Stationswert M + b + w·I + c·(L − M) schlägt MOSMIX an der Station (T +13/+6/+5/+3 %, Td +18…+10 %, Wind/Böe 0–6 h
+      +5/+8 %, sonst gleichauf, keine Zelle schlechter). 13 Ausgabetage, indikativ.
+- [ ] **E-FS-1:** `learnedAtPoint` zur Voreinstellung von `learned` machen (Fehlerkorrektur; heute Option, damit FV-A reproduzierbar bleibt).
+      Empfehlung: ja.
+- [ ] **E-FS-2:** `priorShrink: false` im Cube-Pfad (D2 bestätigt). Empfehlung: ja, zusammen mit E-FS-1.
+- [ ] **E-FS-3:** Stationswert einschalten — braucht einen Leser im Client (`CubeIo.stackSource`, V-FS-10) und den Publisher-Weg der Tabelle
+      (`C:\dev\buscosun-hindcast\fit\2026-09-28-fs\stack.archive.json`, 17 KB). Empfehlung: Neufit ab ≥ 30 Ausgabetagen, vorher V-FS-5
+      (Schweiz: Wind/Böe −2…−10 % gegen MOSMIX) klären.
+- [ ] **E-FS-4:** `learnedClouds` (H14 gilt: CRPS +18…+22 % gegen die Kette). Empfehlung: ja, mit `learned`.
+- [ ] **E-FS-5:** E-FV-2 neu bewerten — „Lernstufe noch nicht einschalten" galt der Kette mit beiden Fehlern.
+- [ ] **E-FS-6 totalJs** 1 450,6 KB > 1 438 (+3,0 KB aus dieser Phase, Lazy-Chunk des Cube-Pfads).
+- [ ] **Zur Kenntnis V-FS-6:** dem Client fehlen das Merkmal `lake` und das Höhenband des Windgesetzes — die Lernstufe im Browser weicht
+      vom Scorer ab (T p50 0,05 K, max 0,16 K).
+- [ ] **Real-Device / Browser:** s. §24.1 — seit dem Abend des 28.09. ist die Stufe im Client voreingestellt; sie wirkt, sobald die Dateien im Daten-Repo liegen.
+
+### 24.1 Die neueste Stufe live bringen (Jans Auftrag 28.09. abends) — drei Schritte, nur du
+
+Der Client ist fertig: `defaultCubeIo` liest die drei Dateien und rechnet mit der neuesten Stufe, sobald sie da sind
+(`audit/fusion-stationswert.md` §7). Bis dahin rechnet der Browser wie bisher und nennt jede fehlende Datei.
+
+- [x] **1. Kopie ins Daten-Repo — erledigt 29.09. 04:52 UTC (Commit `3dd7475`, mit Jans Erlaubnis; CDN 200, kein Purge nötig).** Ursprünglich: (`buscosun-data`, außerhalb der Publish-Fenster: nicht um :20 der Stunden 0/3/6/… und nicht um :30 der
+      Stunden 2/5/8/… UTC, nicht während eines Punkt-Jobs). Aus `C:\dev\buscosun-hindcast\publish\2026-09-28-fs\` die drei Dateien an
+      denselben Pfad: `point/fusion.client.json`, `point/static/clima/v1/stations.json`, `point/stack.client.json`. Prüfsummen in
+      `SHA256SUMS`. Danach nachsehen, dass sie auf `origin/main` stehen (der Force-Push der Kartenlinie ersetzt sonst die Historie).
+- [x] **2. Purge — nicht nötig** (alle drei Pfade antworten 200, auch unter `@main`). Ursprünglich: Purge der drei Pfade am CDN — sie sind am 28.09. abgefragt worden und antworten 404 (V-FS-13).
+- [ ] **3. Commit und Push von `buscosun-web`** (Code dieser Phase), dann Deploy.
+- [ ] **Abnahme nach dem Deploy:** `…?startnow=0&pflog=1` an einem Stationsort (ohne `pf`) — im Herkunftsblock stehen `learned:hindcast`, `learnedAtPoint:set`,
+      `priorShrink:off`, `learnedClouds:hindcast`, `stationValue:archive` und die Notiz `stage:fs — neueste Stufe`.
+- [x] **E-FS-7 entschieden (Jan, 29.09.: „komplett freischalten"):** der Cube-Pfad ist die Voreinstellung des Panels, `?pf=live` der Rückfall; im Browser geprüft (Desktop). Ursprüngliche Frage: soll das Panel den Cube-Pfad OHNE `?pf=cube` zeigen? Heute ist der Live-Pfad die Voreinstellung; der
+      Cube-Pfad ist auf dem Gerät nicht abgenommen (V-FI-50 Long Task, V-FI-53). Empfehlung: erst Real-Device, dann umstellen.
+- [ ] **Hinweis:** die Temperatur ändert sich sichtbar (am 28.09. bis +2 K in der warmen Anomalie) — das ist die entfallene doppelte
+      Schrumpfung, am Archiv gemessen (D2).

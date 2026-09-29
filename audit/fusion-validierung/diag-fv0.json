@@ -1,0 +1,6785 @@
+{
+ "builtAt": "2026-09-27T10:28:09.278Z",
+ "archive": "C:/dev/buscosun-archiv",
+ "slots": [
+  {
+   "file": "2026-09-14/2046.json.gz",
+   "schema": 1,
+   "slotAt": "2026-09-14T20:46:00.000Z",
+   "codeHash": "302e04f-dirty",
+   "createdAt": "2026-09-14T20:46:25.277Z",
+   "finishedAt": null,
+   "points": 243,
+   "countryMismatch": [
+    "06120 CH≠DK",
+    "06270 CH≠NL",
+    "06290 CH≠NL",
+    "06375 CH≠NL",
+    "06380 CH≠NL",
+    "06590 CH≠LU",
+    "06990 CH≠LI",
+    "11406 AT≠CZ"
+   ],
+   "countryMismatchN": 17,
+   "dach": 222,
+   "cube": {
+    "t1": {
+     "run": "2026091418",
+     "sourceRun": "2026091418",
+     "ageAtSlotH": 2.77,
+     "ageFieldSchema1": 0,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 243,
+     "block": false
+    },
+    "t2": {
+     "run": "2026091412",
+     "sourceRun": "2026091412",
+     "ageAtSlotH": 8.77,
+     "ageFieldSchema1": 0,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 243,
+     "block": false
+    },
+    "t3": {
+     "run": "2026091400",
+     "sourceRun": "2026091400",
+     "ageAtSlotH": 20.77,
+     "ageFieldSchema1": 0,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 243,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 102,
+    "perTier": {
+     "t1": 46,
+     "t2": 22,
+     "t3": 34
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 316,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…112",
+     "t3": "118…316"
+    }
+   },
+   "stations": {
+    "run": "2026091409",
+    "runAt": "2026-09-14T09:00:00.000Z",
+    "ageAtSlotH": 7.06,
+    "leads": "1…247 (247)",
+    "points": 243,
+    "noStation": 0,
+    "planes": {
+     "clch": 243,
+     "clcl": 243,
+     "clcm": 243,
+     "clct": 243,
+     "gust": 243,
+     "hModEff": 243,
+     "precip": 243,
+     "srcCount": 243,
+     "t2m": 243,
+     "td2m": 243,
+     "u10": 243,
+     "v10": 243
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 0,
+     "max": 0,
+     "gt5": 0,
+     "n": 222
+    },
+    "dElevAbsDach": {
+     "p50": 8,
+     "p90": 42,
+     "max": 577,
+     "gt100": 6
+    },
+    "plan": {
+     "accepted": 237,
+     "rejected": 6,
+     "candidateNotCatalog": 0,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 243,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 7.9,
+    "fetchedMaxAfterSlotMin": 8.8,
+    "hours": "240…373",
+    "withFusion": 243,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": [
+    "byPoint",
+    "scale"
+   ],
+   "truth": {
+    "windowH": 24,
+    "from": null,
+    "to": null,
+    "networks": {
+     "DE:poi": 203,
+     "AT:poi": 13,
+     "AT:tawes": 11,
+     "CH:poi": 5,
+     "CH:smn": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5297,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5294,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5278,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5278,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4317,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4543,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4839,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.td": {
+      "present": 11,
+      "values": 0,
+      "hours": 253
+     },
+     "tawes.ff": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.dd": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.fx": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 253
+     },
+     "tawes.rr1": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 253
+     },
+     "tawes.n": {
+      "present": 11,
+      "values": 0,
+      "hours": 253
+     },
+     "smn.t": {
+      "present": 6,
+      "values": 126,
+      "hours": 126
+     },
+     "smn.td": {
+      "present": 6,
+      "values": 0,
+      "hours": 126
+     },
+     "smn.ff": {
+      "present": 6,
+      "values": 126,
+      "hours": 126
+     },
+     "smn.dd": {
+      "present": 6,
+      "values": 126,
+      "hours": 126
+     },
+     "smn.fx": {
+      "present": 6,
+      "values": 0,
+      "hours": 126
+     },
+     "smn.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 126
+     },
+     "smn.rr1": {
+      "present": 6,
+      "values": 126,
+      "hours": 126
+     },
+     "smn.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 126
+     },
+     "smn.n": {
+      "present": 6,
+      "values": 0,
+      "hours": 126
+     }
+    }
+   },
+   "issueDay": "2026-09-14",
+   "halfKey": "2026-09a",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-15/2320.json.gz",
+   "schema": 1,
+   "slotAt": "2026-09-15T23:20:00.000Z",
+   "codeHash": "f13661c",
+   "createdAt": "2026-09-15T23:20:22.163Z",
+   "finishedAt": null,
+   "points": 243,
+   "countryMismatch": [
+    "06120 CH≠DK",
+    "06270 CH≠NL",
+    "06290 CH≠NL",
+    "06375 CH≠NL",
+    "06380 CH≠NL",
+    "06590 CH≠LU",
+    "06990 CH≠LI",
+    "11406 AT≠CZ"
+   ],
+   "countryMismatchN": 17,
+   "dach": 222,
+   "cube": {
+    "t1": {
+     "run": "2026091521",
+     "sourceRun": "2026091521",
+     "ageAtSlotH": 2.33,
+     "ageFieldSchema1": 0,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 243,
+     "block": false
+    },
+    "t2": {
+     "run": "2026091518",
+     "sourceRun": "2026091518",
+     "ageAtSlotH": 5.33,
+     "ageFieldSchema1": 0,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 243,
+     "block": false
+    },
+    "t3": {
+     "run": "2026091512",
+     "sourceRun": "2026091512",
+     "ageAtSlotH": 11.33,
+     "ageFieldSchema1": 0,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 243,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026091521",
+    "runAt": "2026-09-15T21:00:00.000Z",
+    "ageAtSlotH": 1.73,
+    "leads": "1…247 (247)",
+    "points": 243,
+    "noStation": 0,
+    "planes": {
+     "clch": 243,
+     "clcl": 243,
+     "clcm": 243,
+     "clct": 243,
+     "gust": 243,
+     "hModEff": 243,
+     "precip": 243,
+     "srcCount": 243,
+     "t2m": 243,
+     "td2m": 243,
+     "u10": 243,
+     "v10": 243
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 0,
+     "max": 0,
+     "gt5": 0,
+     "n": 222
+    },
+    "dElevAbsDach": {
+     "p50": 8,
+     "p90": 42,
+     "max": 577,
+     "gt100": 6
+    },
+    "plan": {
+     "accepted": 237,
+     "rejected": 6,
+     "candidateNotCatalog": 0,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 243,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 10.3,
+    "fetchedMaxAfterSlotMin": 12,
+    "hours": "240…373",
+    "withFusion": 243,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": [
+    "byPoint",
+    "scale"
+   ],
+   "truth": {
+    "windowH": 24,
+    "from": null,
+    "to": null,
+    "networks": {
+     "DE:poi": 203,
+     "AT:poi": 13,
+     "AT:tawes": 11,
+     "CH:poi": 5,
+     "CH:smn": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5105,
+      "hours": 5106
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5105,
+      "hours": 5106
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5080,
+      "hours": 5106
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5080,
+      "hours": 5106
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4159,
+      "hours": 5106
+     },
+     "poi.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 5106
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4384,
+      "hours": 5106
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5106
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4650,
+      "hours": 5106
+     },
+     "tawes.t": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.td": {
+      "present": 11,
+      "values": 0,
+      "hours": 253
+     },
+     "tawes.ff": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.dd": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.fx": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 253
+     },
+     "tawes.rr1": {
+      "present": 11,
+      "values": 253,
+      "hours": 253
+     },
+     "tawes.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 253
+     },
+     "tawes.n": {
+      "present": 11,
+      "values": 0,
+      "hours": 253
+     },
+     "smn.t": {
+      "present": 6,
+      "values": 144,
+      "hours": 144
+     },
+     "smn.td": {
+      "present": 6,
+      "values": 0,
+      "hours": 144
+     },
+     "smn.ff": {
+      "present": 6,
+      "values": 144,
+      "hours": 144
+     },
+     "smn.dd": {
+      "present": 6,
+      "values": 144,
+      "hours": 144
+     },
+     "smn.fx": {
+      "present": 6,
+      "values": 0,
+      "hours": 144
+     },
+     "smn.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 144
+     },
+     "smn.rr1": {
+      "present": 6,
+      "values": 144,
+      "hours": 144
+     },
+     "smn.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 144
+     },
+     "smn.n": {
+      "present": 6,
+      "values": 0,
+      "hours": 144
+     }
+    }
+   },
+   "issueDay": "2026-09-15",
+   "halfKey": "2026-09a",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-16/2320.json.gz",
+   "schema": 1,
+   "slotAt": "2026-09-16T23:20:00.000Z",
+   "codeHash": "8212dda",
+   "createdAt": "2026-09-16T23:20:18.377Z",
+   "finishedAt": null,
+   "points": 410,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026091621",
+     "sourceRun": "2026091621",
+     "ageAtSlotH": 2.33,
+     "ageFieldSchema1": 0,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 410,
+     "block": false
+    },
+    "t2": {
+     "run": "2026091618",
+     "sourceRun": "2026091618",
+     "ageAtSlotH": 5.33,
+     "ageFieldSchema1": 0,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 410,
+     "block": false
+    },
+    "t3": {
+     "run": "2026091612",
+     "sourceRun": "2026091612",
+     "ageAtSlotH": 11.33,
+     "ageFieldSchema1": 0,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 410,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026091621",
+    "runAt": "2026-09-16T21:00:00.000Z",
+    "ageAtSlotH": 1.67,
+    "leads": "1…247 (247)",
+    "points": 410,
+    "noStation": 0,
+    "planes": {
+     "clch": 410,
+     "clcl": 410,
+     "clcm": 410,
+     "clct": 410,
+     "gust": 410,
+     "hModEff": 410,
+     "precip": 410,
+     "srcCount": 410,
+     "t2m": 410,
+     "td2m": 410,
+     "u10": 410,
+     "v10": 410
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 7,
+     "p90": 43,
+     "max": 269,
+     "gt100": 10
+    },
+    "plan": {
+     "accepted": 400,
+     "rejected": 10,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 410,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 7.3,
+    "fetchedMaxAfterSlotMin": 11.9,
+    "hours": "240…373",
+    "withFusion": 410,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": [
+    "byPoint",
+    "scale"
+   ],
+   "truth": {
+    "windowH": 24,
+    "from": null,
+    "to": null,
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5088,
+      "hours": 5106
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5087,
+      "hours": 5106
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5077,
+      "hours": 5106
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5077,
+      "hours": 5106
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4162,
+      "hours": 5106
+     },
+     "poi.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 5106
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4369,
+      "hours": 5106
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5106
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4635,
+      "hours": 5106
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 1932,
+      "hours": 1932
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 1932,
+      "hours": 1932
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 1908,
+      "hours": 1932
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 1908,
+      "hours": 1932
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 1909,
+      "hours": 1932
+     },
+     "tawes.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 1932
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 1908,
+      "hours": 1932
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 1897,
+      "hours": 1932
+     },
+     "tawes.n": {
+      "present": 84,
+      "values": 0,
+      "hours": 1932
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2358,
+      "hours": 2428
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2358,
+      "hours": 2428
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2404,
+      "hours": 2428
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2404,
+      "hours": 2428
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 0,
+      "hours": 2428
+     },
+     "smn.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 2428
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2263,
+      "hours": 2428
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2160,
+      "hours": 2428
+     },
+     "smn.n": {
+      "present": 102,
+      "values": 0,
+      "hours": 2428
+     }
+    }
+   },
+   "issueDay": "2026-09-16",
+   "halfKey": "2026-09b",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-17/2319.json.gz",
+   "schema": 1,
+   "slotAt": "2026-09-17T23:19:00.000Z",
+   "codeHash": "9f4403e",
+   "createdAt": "2026-09-17T23:19:04.919Z",
+   "finishedAt": null,
+   "points": 410,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026091718",
+     "sourceRun": "2026091718",
+     "ageAtSlotH": 5.32,
+     "ageFieldSchema1": 0,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 410,
+     "block": false
+    },
+    "t2": {
+     "run": "2026091712",
+     "sourceRun": "2026091712",
+     "ageAtSlotH": 11.32,
+     "ageFieldSchema1": 0,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 410,
+     "block": false
+    },
+    "t3": {
+     "run": "2026091712",
+     "sourceRun": "2026091712",
+     "ageAtSlotH": 11.32,
+     "ageFieldSchema1": 0,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 410,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 101,
+    "perTier": {
+     "t1": 43,
+     "t2": 22,
+     "t3": 36
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…43",
+     "t2": "46…109",
+     "t3": "115…325"
+    }
+   },
+   "stations": {
+    "run": "2026091715",
+    "runAt": "2026-09-17T15:00:00.000Z",
+    "ageAtSlotH": 1.72,
+    "leads": "1…247 (247)",
+    "points": 410,
+    "noStation": 0,
+    "planes": {
+     "clch": 410,
+     "clcl": 410,
+     "clcm": 410,
+     "clct": 410,
+     "gust": 410,
+     "hModEff": 410,
+     "precip": 410,
+     "srcCount": 410,
+     "t2m": 410,
+     "td2m": 410,
+     "u10": 410,
+     "v10": 410
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 7,
+     "p90": 43,
+     "max": 269,
+     "gt100": 10
+    },
+    "plan": {
+     "accepted": 400,
+     "rejected": 10,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 410,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 5.5,
+    "fetchedMaxAfterSlotMin": 7.7,
+    "hours": "240…373",
+    "withFusion": 410,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": [
+    "byPoint",
+    "scale"
+   ],
+   "truth": {
+    "windowH": 24,
+    "from": null,
+    "to": null,
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5104,
+      "hours": 5106
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5104,
+      "hours": 5106
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5092,
+      "hours": 5106
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5092,
+      "hours": 5106
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4185,
+      "hours": 5106
+     },
+     "poi.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 5106
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4379,
+      "hours": 5106
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5106
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4688,
+      "hours": 5106
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 1929,
+      "hours": 1932
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 1929,
+      "hours": 1932
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 1906,
+      "hours": 1932
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 1906,
+      "hours": 1932
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 1906,
+      "hours": 1932
+     },
+     "tawes.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 1932
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 1906,
+      "hours": 1932
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 1902,
+      "hours": 1932
+     },
+     "tawes.n": {
+      "present": 84,
+      "values": 0,
+      "hours": 1932
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2375,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 0,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2280,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2177,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 102,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-17",
+   "halfKey": "2026-09b",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-18/2321.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-18T23:21:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-18T23:21:15.255Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026091821",
+     "sourceRun": "2026091821",
+     "ageAtSlotH": 2.35,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026091818",
+     "sourceRun": "2026091818",
+     "ageAtSlotH": 5.35,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026091812",
+     "sourceRun": "2026091812",
+     "ageAtSlotH": 11.35,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026091821",
+    "runAt": "2026-09-18T21:00:00.000Z",
+    "ageAtSlotH": 2.35,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 4.9,
+    "fetchedMaxAfterSlotMin": 8,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609182320 (1 min)",
+    "inca": "20260918T2300 (21 min)",
+    "combiprecip": "20260918T2320 (1 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-17T23:00:00.000Z",
+    "to": "2026-09-18T23:21:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5327,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5317,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5322,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5322,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4376,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4376,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4584,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4837,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2067,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2067,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2375,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2272,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2176,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-18",
+   "halfKey": "2026-09b",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-19/2318.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-19T23:18:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-19T23:18:48.927Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026091918",
+     "sourceRun": "2026091918",
+     "ageAtSlotH": 5.3,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026091918",
+     "sourceRun": "2026091918",
+     "ageAtSlotH": 5.3,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026091912",
+     "sourceRun": "2026091912",
+     "ageAtSlotH": 11.3,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 102,
+    "perTier": {
+     "t1": 43,
+     "t2": 24,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…43",
+     "t2": "46…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026091921",
+    "runAt": "2026-09-19T21:00:00.000Z",
+    "ageAtSlotH": 2.3,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 11.3,
+    "fetchedMaxAfterSlotMin": 17,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609192315 (3 min)",
+    "inca": "20260919T2300 (18 min)",
+    "combiprecip": "20260919T2315 (3 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-18T23:00:00.000Z",
+    "to": "2026-09-19T23:18:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5326,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5301,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5302,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5302,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4390,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4390,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4589,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4712,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2071,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2277,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2182,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-19",
+   "halfKey": "2026-09b",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-20/2319.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-20T23:19:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-20T23:19:52.528Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092021",
+     "sourceRun": "2026092021",
+     "ageAtSlotH": 2.32,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092018",
+     "sourceRun": "2026092018",
+     "ageAtSlotH": 5.32,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092012",
+     "sourceRun": "2026092012",
+     "ageAtSlotH": 11.32,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092021",
+    "runAt": "2026-09-20T21:00:00.000Z",
+    "ageAtSlotH": 2.32,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 8.1,
+    "fetchedMaxAfterSlotMin": 10.6,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609202315 (4 min)",
+    "inca": "20260920T2300 (19 min)",
+    "combiprecip": "20260920T2315 (4 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-19T23:00:00.000Z",
+    "to": "2026-09-20T23:19:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5307,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5282,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5282,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5282,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4411,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4411,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4586,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4729,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2071,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2370,
+      "hours": 2442
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2370,
+      "hours": 2442
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2418,
+      "hours": 2442
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2418,
+      "hours": 2442
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2418,
+      "hours": 2442
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2317,
+      "hours": 2442
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2267,
+      "hours": 2442
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2172,
+      "hours": 2442
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2442
+     }
+    }
+   },
+   "issueDay": "2026-09-20",
+   "halfKey": "2026-09b",
+   "insideHindcast": true
+  },
+  {
+   "file": "2026-09-21/2321.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-21T23:21:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-21T23:21:50.393Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092118",
+     "sourceRun": "2026092118",
+     "ageAtSlotH": 5.35,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092118",
+     "sourceRun": "2026092118",
+     "ageAtSlotH": 5.35,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092112",
+     "sourceRun": "2026092112",
+     "ageAtSlotH": 11.35,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 102,
+    "perTier": {
+     "t1": 43,
+     "t2": 24,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…43",
+     "t2": "46…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092121",
+    "runAt": "2026-09-21T21:00:00.000Z",
+    "ageAtSlotH": 2.35,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 7.2,
+    "fetchedMaxAfterSlotMin": 12.1,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609212320 (1 min)",
+    "inca": "20260921T2300 (21 min)",
+    "combiprecip": "20260921T2320 (1 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-20T23:00:00.000Z",
+    "to": "2026-09-21T23:21:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5302,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5279,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5277,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5277,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4408,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4408,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4553,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4856,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2070,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2421,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2421,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2421,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2320,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2273,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2178,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-21",
+   "halfKey": "2026-09b",
+   "insideHindcast": false
+  },
+  {
+   "file": "2026-09-22/2320.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-22T23:20:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-22T23:20:33.375Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092221",
+     "sourceRun": "2026092221",
+     "ageAtSlotH": 2.33,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092218",
+     "sourceRun": "2026092218",
+     "ageAtSlotH": 5.33,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092212",
+     "sourceRun": "2026092212",
+     "ageAtSlotH": 11.33,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092221",
+    "runAt": "2026-09-22T21:00:00.000Z",
+    "ageAtSlotH": 2.33,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 7.7,
+    "fetchedMaxAfterSlotMin": 12.4,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609222320 (0 min)",
+    "inca": "20260922T2300 (20 min)",
+    "combiprecip": "20260922T2320 (0 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-21T23:00:00.000Z",
+    "to": "2026-09-22T23:20:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5299,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5275,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5275,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5275,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4324,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4324,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4545,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4820,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2097,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2097,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2064,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2064,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2064,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2058,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2072,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2067,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2270,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2175,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-22",
+   "halfKey": "2026-09b",
+   "insideHindcast": false
+  },
+  {
+   "file": "2026-09-23/2318.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-23T23:18:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-23T23:19:00.926Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092321",
+     "sourceRun": "2026092321",
+     "ageAtSlotH": 2.3,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092318",
+     "sourceRun": "2026092318",
+     "ageAtSlotH": 5.3,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092312",
+     "sourceRun": "2026092312",
+     "ageAtSlotH": 11.3,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092321",
+    "runAt": "2026-09-23T21:00:00.000Z",
+    "ageAtSlotH": 2.3,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 8.7,
+    "fetchedMaxAfterSlotMin": 11.6,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609232315 (3 min)",
+    "inca": "20260923T2300 (18 min)",
+    "combiprecip": "20260923T2315 (3 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-22T23:00:00.000Z",
+    "to": "2026-09-23T23:18:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5302,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5278,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5277,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5277,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4319,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4319,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4532,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4824,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2096,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2096,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2071,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2071,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2071,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2069,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2070,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2065,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2270,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2174,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-23",
+   "halfKey": "2026-09b",
+   "insideHindcast": false
+  },
+  {
+   "file": "2026-09-24/2321.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-24T23:21:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-24T23:21:20.091Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092421",
+     "sourceRun": "2026092421",
+     "ageAtSlotH": 2.35,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092418",
+     "sourceRun": "2026092418",
+     "ageAtSlotH": 5.35,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092412",
+     "sourceRun": "2026092412",
+     "ageAtSlotH": 11.35,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092421",
+    "runAt": "2026-09-24T21:00:00.000Z",
+    "ageAtSlotH": 2.35,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 5.9,
+    "fetchedMaxAfterSlotMin": 8.3,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609242320 (1 min)",
+    "inca": "20260924T2300 (21 min)",
+    "combiprecip": "20260924T2320 (1 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-23T23:00:00.000Z",
+    "to": "2026-09-24T23:21:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5303,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5279,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5293,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5293,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4373,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4373,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4559,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4874,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2073,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2273,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2178,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-24",
+   "halfKey": "2026-09b",
+   "insideHindcast": false
+  },
+  {
+   "file": "2026-09-25/2320.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-25T23:20:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-25T23:20:43.013Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092521",
+     "sourceRun": "2026092521",
+     "ageAtSlotH": 2.33,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092518",
+     "sourceRun": "2026092518",
+     "ageAtSlotH": 5.33,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092512",
+     "sourceRun": "2026092512",
+     "ageAtSlotH": 11.33,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092521",
+    "runAt": "2026-09-25T21:00:00.000Z",
+    "ageAtSlotH": 2.33,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 7.7,
+    "fetchedMaxAfterSlotMin": 9.8,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609252320 (0 min)",
+    "inca": "20260925T2300 (20 min)",
+    "combiprecip": "20260925T2320 (0 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-24T23:00:00.000Z",
+    "to": "2026-09-25T23:20:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5291,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5267,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5284,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5284,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4323,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4323,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4562,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4790,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2066,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2074,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2065,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2274,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2179,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-25",
+   "halfKey": "2026-09b",
+   "insideHindcast": false
+  },
+  {
+   "file": "2026-09-26/2320.json.gz",
+   "schema": 2,
+   "slotAt": "2026-09-26T23:20:00.000Z",
+   "codeHash": "36f2bbb",
+   "createdAt": "2026-09-26T23:20:43.539Z",
+   "finishedAt": null,
+   "points": 405,
+   "countryMismatch": [],
+   "countryMismatchN": 0,
+   "dach": 389,
+   "cube": {
+    "t1": {
+     "run": "2026092621",
+     "sourceRun": "2026092621",
+     "ageAtSlotH": 2.33,
+     "ageFieldSchema1": null,
+     "leads": "0…48 (49)",
+     "sources": [
+      "icon_d2",
+      "icon_d2_eps",
+      "icon_ch1_eps",
+      "claef",
+      "claef_eps",
+      "icon_eu",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t2": {
+     "run": "2026092618",
+     "sourceRun": "2026092618",
+     "ageAtSlotH": 5.33,
+     "ageFieldSchema1": null,
+     "leads": "51…120 (24)",
+     "sources": [
+      "icon_eu",
+      "icon_eu_eps",
+      "icon_ch2_eps",
+      "icon_global",
+      "aicon",
+      "ifs_hres",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    },
+    "t3": {
+     "run": "2026092612",
+     "sourceRun": "2026092612",
+     "ageAtSlotH": 11.33,
+     "ageFieldSchema1": null,
+     "leads": "126…336 (36)",
+     "sources": [
+      "icon_global",
+      "icon_eps_global",
+      "aicon",
+      "ifs_hres",
+      "ifs_ens",
+      "aifs_single"
+     ],
+     "points": 405,
+     "block": false
+    }
+   },
+   "axis": {
+    "steps": 104,
+    "perTier": {
+     "t1": 46,
+     "t2": 23,
+     "t3": 35
+    },
+    "firstLeadH": 1,
+    "lastLeadH": 325,
+    "perTierLeadRange": {
+     "t1": "1…46",
+     "t2": "49…115",
+     "t3": "121…325"
+    }
+   },
+   "stations": {
+    "run": "2026092621",
+    "runAt": "2026-09-26T21:00:00.000Z",
+    "ageAtSlotH": 2.33,
+    "leads": "1…247 (247)",
+    "points": 405,
+    "noStation": 0,
+    "planes": {
+     "clch": 405,
+     "clcl": 405,
+     "clcm": 405,
+     "clct": 405,
+     "gust": 405,
+     "hModEff": 405,
+     "precip": 405,
+     "srcCount": 405,
+     "t2m": 405,
+     "td2m": 405,
+     "u10": 405,
+     "v10": 405
+    },
+    "mapped": null,
+    "units": {
+     "t2m": "degC ×0.01",
+     "td2m": "degC ×0.01",
+     "u10": "m/s ×0.01",
+     "v10": "m/s ×0.01",
+     "gust": "m/s ×0.01",
+     "precip": "mm/h ×0.01",
+     "clct": "pct ×0.1"
+    },
+    "distKmDach": {
+     "p50": 0,
+     "p90": 1.23,
+     "max": 4.56,
+     "gt5": 0,
+     "n": 389
+    },
+    "dElevAbsDach": {
+     "p50": 0,
+     "p90": 6,
+     "max": 48,
+     "gt100": 0
+    },
+    "plan": {
+     "accepted": 405,
+     "rejected": 0,
+     "candidateNotCatalog": 1,
+     "withNearest": 0
+    }
+   },
+   "live": {
+    "points": 405,
+    "errors": 0,
+    "fetchedMinAfterSlotMin": 7.3,
+    "fetchedMaxAfterSlotMin": 10.1,
+    "hours": "240…373",
+    "withFusion": 405,
+    "fusionForm": "rows (schema ≤ 2)",
+    "t0MinusSlotFloorH": [
+     0
+    ],
+    "fields": [
+     "temperature",
+     "apparentTemperature",
+     "windSpeed",
+     "windDirection",
+     "gustSpeed",
+     "relativeHumidity",
+     "snowLineM",
+     "cloudCoverTotal",
+     "cloudCoverLow",
+     "cloudCoverMid",
+     "cloudCoverHigh",
+     "precipitation",
+     "uvIndex"
+    ],
+    "asOf": "absent"
+   },
+   "nowcast": {
+    "radvor_rv": "2609262320 (0 min)",
+    "inca": "20260926T2300 (20 min)",
+    "combiprecip": "20260926T2320 (0 min)"
+   },
+   "truth": {
+    "windowH": 25,
+    "from": "2026-09-25T23:00:00.000Z",
+    "to": "2026-09-26T23:20:00.000Z",
+    "networks": {
+     "DE:poi": 203,
+     "AT:tawes": 84,
+     "AT:poi": 13,
+     "CH:smn": 101,
+     "CH:poi": 5,
+     "LI:poi": 1,
+     "LI:smn": 1
+    },
+    "columns": {
+     "poi.t": {
+      "present": 222,
+      "values": 5263,
+      "hours": 5328
+     },
+     "poi.td": {
+      "present": 222,
+      "values": 5239,
+      "hours": 5328
+     },
+     "poi.ff": {
+      "present": 222,
+      "values": 5237,
+      "hours": 5328
+     },
+     "poi.dd": {
+      "present": 222,
+      "values": 5237,
+      "hours": 5328
+     },
+     "poi.fx": {
+      "present": 222,
+      "values": 4277,
+      "hours": 5328
+     },
+     "poi.fxh": {
+      "present": 222,
+      "values": 4277,
+      "hours": 5328
+     },
+     "poi.rr1": {
+      "present": 222,
+      "values": 4554,
+      "hours": 5328
+     },
+     "poi.rr1h": {
+      "present": 0,
+      "values": 0,
+      "hours": 5328
+     },
+     "poi.n": {
+      "present": 222,
+      "values": 4649,
+      "hours": 5328
+     },
+     "tawes.t": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.td": {
+      "present": 84,
+      "values": 2100,
+      "hours": 2100
+     },
+     "tawes.ff": {
+      "present": 84,
+      "values": 2073,
+      "hours": 2100
+     },
+     "tawes.dd": {
+      "present": 84,
+      "values": 2073,
+      "hours": 2100
+     },
+     "tawes.fx": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.fxh": {
+      "present": 84,
+      "values": 2069,
+      "hours": 2100
+     },
+     "tawes.rr1": {
+      "present": 84,
+      "values": 2075,
+      "hours": 2100
+     },
+     "tawes.rr1h": {
+      "present": 84,
+      "values": 2069,
+      "hours": 2100
+     },
+     "tawes.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2100
+     },
+     "smn.t": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.td": {
+      "present": 102,
+      "values": 2376,
+      "hours": 2448
+     },
+     "smn.ff": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.dd": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fx": {
+      "present": 102,
+      "values": 2424,
+      "hours": 2448
+     },
+     "smn.fxh": {
+      "present": 102,
+      "values": 2323,
+      "hours": 2448
+     },
+     "smn.rr1": {
+      "present": 102,
+      "values": 2273,
+      "hours": 2448
+     },
+     "smn.rr1h": {
+      "present": 102,
+      "values": 2178,
+      "hours": 2448
+     },
+     "smn.n": {
+      "present": 0,
+      "values": 0,
+      "hours": 2448
+     }
+    }
+   },
+   "issueDay": "2026-09-26",
+   "halfKey": "2026-09b",
+   "insideHindcast": false
+  }
+ ],
+ "truth": {
+  "pairs": 112497,
+  "lastHour": "2026-09-26T23:00:00.000Z",
+  "dedupe": {
+   "pairs": 672,
+   "mismatch": 0,
+   "examples": []
+  },
+  "networkRule": "DE poi · AT tawes · CH/LI smn (= hindcast cdc/tawes/smn)"
+ },
+ "coverage": {
+  "2026-09-14|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 609,
+    "td": 609,
+    "ff": 606,
+    "fxh": 532,
+    "rr": 525,
+    "n": 574
+   }
+  },
+  "2026-09-14|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3654,
+    "td": 3654,
+    "ff": 3634,
+    "fxh": 3182,
+    "rr": 3150,
+    "n": 3543
+   }
+  },
+  "2026-09-14|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4447,
+    "td": 4446,
+    "ff": 4438,
+    "fxh": 3891,
+    "rr": 3826,
+    "n": 4297
+   }
+  },
+  "2026-09-14|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4668,
+    "td": 4658,
+    "ff": 4656,
+    "fxh": 4081,
+    "rr": 4025,
+    "n": 4467
+   }
+  },
+  "2026-09-14|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 4040,
+    "td": 4020,
+    "ff": 4023,
+    "fxh": 3524,
+    "rr": 3481,
+    "n": 3899
+   }
+  },
+  "2026-09-14|5|DE": {
+   "rows": 2436,
+   "truth": {
+    "t": 1405,
+    "td": 1398,
+    "ff": 1399,
+    "fxh": 1224,
+    "rr": 1215,
+    "n": 1333
+   }
+  },
+  "2026-09-14|0|AT": {
+   "rows": 78,
+   "truth": {
+    "t": 33,
+    "td": 0,
+    "ff": 33,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-14|1|AT": {
+   "rows": 234,
+   "truth": {
+    "t": 198,
+    "td": 0,
+    "ff": 198,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-14|2|AT": {
+   "rows": 299,
+   "truth": {
+    "t": 282,
+    "td": 260,
+    "ff": 282,
+    "fxh": 0,
+    "rr": 260,
+    "n": 0
+   }
+  },
+  "2026-09-14|3|AT": {
+   "rows": 299,
+   "truth": {
+    "t": 299,
+    "td": 299,
+    "ff": 299,
+    "fxh": 193,
+    "rr": 296,
+    "n": 0
+   }
+  },
+  "2026-09-14|4|AT": {
+   "rows": 260,
+   "truth": {
+    "t": 260,
+    "td": 260,
+    "ff": 258,
+    "fxh": 257,
+    "rr": 258,
+    "n": 0
+   }
+  },
+  "2026-09-14|5|AT": {
+   "rows": 156,
+   "truth": {
+    "t": 91,
+    "td": 91,
+    "ff": 91,
+    "fxh": 91,
+    "rr": 91,
+    "n": 0
+   }
+  },
+  "2026-09-14|0|CH": {
+   "rows": 36,
+   "truth": {
+    "t": 18,
+    "td": 0,
+    "ff": 18,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-14|1|CH": {
+   "rows": 108,
+   "truth": {
+    "t": 108,
+    "td": 0,
+    "ff": 108,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-14|2|CH": {
+   "rows": 138,
+   "truth": {
+    "t": 138,
+    "td": 120,
+    "ff": 138,
+    "fxh": 0,
+    "rr": 114,
+    "n": 0
+   }
+  },
+  "2026-09-14|3|CH": {
+   "rows": 138,
+   "truth": {
+    "t": 138,
+    "td": 138,
+    "ff": 138,
+    "fxh": 72,
+    "rr": 114,
+    "n": 0
+   }
+  },
+  "2026-09-14|4|CH": {
+   "rows": 120,
+   "truth": {
+    "t": 120,
+    "td": 120,
+    "ff": 120,
+    "fxh": 90,
+    "rr": 90,
+    "n": 0
+   }
+  },
+  "2026-09-14|5|CH": {
+   "rows": 72,
+   "truth": {
+    "t": 42,
+    "td": 42,
+    "ff": 42,
+    "fxh": 36,
+    "rr": 36,
+    "n": 0
+   }
+  },
+  "2026-09-15|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1212,
+    "td": 1212,
+    "ff": 1212,
+    "fxh": 1062,
+    "rr": 1044,
+    "n": 1159
+   }
+  },
+  "2026-09-15|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3439,
+    "td": 3438,
+    "ff": 3428,
+    "fxh": 3005,
+    "rr": 2959,
+    "n": 3331
+   }
+  },
+  "2026-09-15|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4667,
+    "td": 4667,
+    "ff": 4656,
+    "fxh": 4096,
+    "rr": 4025,
+    "n": 4541
+   }
+  },
+  "2026-09-15|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4662,
+    "td": 4643,
+    "ff": 4643,
+    "fxh": 4073,
+    "rr": 4022,
+    "n": 4414
+   }
+  },
+  "2026-09-15|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 4037,
+    "td": 4017,
+    "ff": 4021,
+    "fxh": 3520,
+    "rr": 3479,
+    "n": 3903
+   }
+  },
+  "2026-09-15|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 600,
+    "td": 597,
+    "ff": 597,
+    "fxh": 522,
+    "rr": 519,
+    "n": 563
+   }
+  },
+  "2026-09-15|0|AT": {
+   "rows": 78,
+   "truth": {
+    "t": 78,
+    "td": 78,
+    "ff": 78,
+    "fxh": 0,
+    "rr": 78,
+    "n": 0
+   }
+  },
+  "2026-09-15|1|AT": {
+   "rows": 234,
+   "truth": {
+    "t": 221,
+    "td": 221,
+    "ff": 221,
+    "fxh": 0,
+    "rr": 221,
+    "n": 0
+   }
+  },
+  "2026-09-15|2|AT": {
+   "rows": 299,
+   "truth": {
+    "t": 299,
+    "td": 299,
+    "ff": 299,
+    "fxh": 13,
+    "rr": 299,
+    "n": 0
+   }
+  },
+  "2026-09-15|3|AT": {
+   "rows": 299,
+   "truth": {
+    "t": 299,
+    "td": 299,
+    "ff": 299,
+    "fxh": 296,
+    "rr": 294,
+    "n": 0
+   }
+  },
+  "2026-09-15|4|AT": {
+   "rows": 260,
+   "truth": {
+    "t": 260,
+    "td": 260,
+    "ff": 258,
+    "fxh": 258,
+    "rr": 259,
+    "n": 0
+   }
+  },
+  "2026-09-15|5|AT": {
+   "rows": 182,
+   "truth": {
+    "t": 39,
+    "td": 39,
+    "ff": 39,
+    "fxh": 39,
+    "rr": 39,
+    "n": 0
+   }
+  },
+  "2026-09-15|0|CH": {
+   "rows": 36,
+   "truth": {
+    "t": 36,
+    "td": 36,
+    "ff": 36,
+    "fxh": 0,
+    "rr": 30,
+    "n": 0
+   }
+  },
+  "2026-09-15|1|CH": {
+   "rows": 108,
+   "truth": {
+    "t": 107,
+    "td": 107,
+    "ff": 107,
+    "fxh": 0,
+    "rr": 107,
+    "n": 0
+   }
+  },
+  "2026-09-15|2|CH": {
+   "rows": 138,
+   "truth": {
+    "t": 138,
+    "td": 138,
+    "ff": 138,
+    "fxh": 0,
+    "rr": 126,
+    "n": 0
+   }
+  },
+  "2026-09-15|3|CH": {
+   "rows": 138,
+   "truth": {
+    "t": 138,
+    "td": 138,
+    "ff": 138,
+    "fxh": 120,
+    "rr": 120,
+    "n": 0
+   }
+  },
+  "2026-09-15|4|CH": {
+   "rows": 120,
+   "truth": {
+    "t": 120,
+    "td": 120,
+    "ff": 120,
+    "fxh": 90,
+    "rr": 90,
+    "n": 0
+   }
+  },
+  "2026-09-15|5|CH": {
+   "rows": 84,
+   "truth": {
+    "t": 18,
+    "td": 18,
+    "ff": 18,
+    "fxh": 18,
+    "rr": 18,
+    "n": 0
+   }
+  },
+  "2026-09-16|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1218,
+    "td": 1218,
+    "ff": 1218,
+    "fxh": 1068,
+    "rr": 1050,
+    "n": 1161
+   }
+  },
+  "2026-09-16|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3652,
+    "td": 3652,
+    "ff": 3640,
+    "fxh": 3205,
+    "rr": 3150,
+    "n": 3573
+   }
+  },
+  "2026-09-16|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4668,
+    "td": 4658,
+    "ff": 4663,
+    "fxh": 4102,
+    "rr": 4025,
+    "n": 4494
+   }
+  },
+  "2026-09-16|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4653,
+    "td": 4630,
+    "ff": 4629,
+    "fxh": 4059,
+    "rr": 4014,
+    "n": 4426
+   }
+  },
+  "2026-09-16|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 3829,
+    "td": 3810,
+    "ff": 3814,
+    "fxh": 3339,
+    "rr": 3302,
+    "n": 3681
+   }
+  },
+  "2026-09-16|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-16|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 0,
+    "rr": 497,
+    "n": 0
+   }
+  },
+  "2026-09-16|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1509,
+    "td": 1509,
+    "ff": 1491,
+    "fxh": 83,
+    "rr": 1488,
+    "n": 0
+   }
+  },
+  "2026-09-16|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1932,
+    "td": 1932,
+    "ff": 1909,
+    "fxh": 1901,
+    "rr": 1901,
+    "n": 0
+   }
+  },
+  "2026-09-16|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1932,
+    "td": 1932,
+    "ff": 1908,
+    "fxh": 1907,
+    "rr": 1903,
+    "n": 0
+   }
+  },
+  "2026-09-16|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 1594,
+    "td": 1594,
+    "ff": 1574,
+    "fxh": 1574,
+    "rr": 1573,
+    "n": 0
+   }
+  },
+  "2026-09-16|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-16|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 0,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-16|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1781,
+    "ff": 1818,
+    "fxh": 0,
+    "rr": 1702,
+    "n": 0
+   }
+  },
+  "2026-09-16|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2276,
+    "ff": 2323,
+    "fxh": 2121,
+    "rr": 1993,
+    "n": 0
+   }
+  },
+  "2026-09-16|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2275,
+    "td": 2275,
+    "ff": 2320,
+    "fxh": 2017,
+    "rr": 1898,
+    "n": 0
+   }
+  },
+  "2026-09-16|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 1881,
+    "td": 1881,
+    "ff": 1919,
+    "fxh": 1515,
+    "rr": 1425,
+    "n": 0
+   }
+  },
+  "2026-09-16|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-17|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1218,
+    "td": 1218,
+    "ff": 1218,
+    "fxh": 1068,
+    "rr": 1050,
+    "n": 1172
+   }
+  },
+  "2026-09-17|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3653,
+    "td": 3642,
+    "ff": 3647,
+    "fxh": 3212,
+    "rr": 3150,
+    "n": 3510
+   }
+  },
+  "2026-09-17|2|DE": {
+   "rows": 4263,
+   "truth": {
+    "t": 4261,
+    "td": 4240,
+    "ff": 4240,
+    "fxh": 3752,
+    "rr": 3675,
+    "n": 3996
+   }
+  },
+  "2026-09-17|3|DE": {
+   "rows": 4466,
+   "truth": {
+    "t": 4442,
+    "td": 4420,
+    "ff": 4419,
+    "fxh": 3874,
+    "rr": 3831,
+    "n": 4265
+   }
+  },
+  "2026-09-17|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 3022,
+    "td": 3007,
+    "ff": 3011,
+    "fxh": 2636,
+    "rr": 2607,
+    "n": 2904
+   }
+  },
+  "2026-09-17|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-17|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 492,
+    "rr": 492,
+    "n": 0
+   }
+  },
+  "2026-09-17|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1494,
+    "fxh": 1492,
+    "rr": 1492,
+    "n": 0
+   }
+  },
+  "2026-09-17|2|AT": {
+   "rows": 1764,
+   "truth": {
+    "t": 1764,
+    "td": 1764,
+    "ff": 1743,
+    "fxh": 1743,
+    "rr": 1740,
+    "n": 0
+   }
+  },
+  "2026-09-17|3|AT": {
+   "rows": 1848,
+   "truth": {
+    "t": 1847,
+    "td": 1847,
+    "ff": 1822,
+    "fxh": 1821,
+    "rr": 1821,
+    "n": 0
+   }
+  },
+  "2026-09-17|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 1259,
+    "td": 1259,
+    "ff": 1244,
+    "fxh": 1244,
+    "rr": 1242,
+    "n": 0
+   }
+  },
+  "2026-09-17|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-17|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-17|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1781,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1701,
+    "n": 0
+   }
+  },
+  "2026-09-17|2|CH": {
+   "rows": 2142,
+   "truth": {
+    "t": 2079,
+    "td": 2079,
+    "ff": 2121,
+    "fxh": 1919,
+    "rr": 1805,
+    "n": 0
+   }
+  },
+  "2026-09-17|3|CH": {
+   "rows": 2244,
+   "truth": {
+    "t": 2176,
+    "td": 2176,
+    "ff": 2219,
+    "fxh": 1916,
+    "rr": 1802,
+    "n": 0
+   }
+  },
+  "2026-09-17|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 1485,
+    "td": 1485,
+    "ff": 1515,
+    "fxh": 1212,
+    "rr": 1140,
+    "n": 0
+   }
+  },
+  "2026-09-17|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-18|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1218,
+    "td": 1212,
+    "ff": 1212,
+    "fxh": 1063,
+    "rr": 1050,
+    "n": 1137
+   }
+  },
+  "2026-09-18|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3652,
+    "td": 3633,
+    "ff": 3634,
+    "fxh": 3230,
+    "rr": 3150,
+    "n": 3424
+   }
+  },
+  "2026-09-18|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4648,
+    "td": 4624,
+    "ff": 4624,
+    "fxh": 4129,
+    "rr": 4016,
+    "n": 4391
+   }
+  },
+  "2026-09-18|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4643,
+    "td": 4620,
+    "ff": 4620,
+    "fxh": 4046,
+    "rr": 3999,
+    "n": 4490
+   }
+  },
+  "2026-09-18|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 2214,
+    "td": 2203,
+    "ff": 2206,
+    "fxh": 1931,
+    "rr": 1911,
+    "n": 2122
+   }
+  },
+  "2026-09-18|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-18|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 498,
+    "n": 0
+   }
+  },
+  "2026-09-18|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1494,
+    "fxh": 1493,
+    "rr": 1490,
+    "n": 0
+   }
+  },
+  "2026-09-18|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1932,
+    "td": 1932,
+    "ff": 1909,
+    "fxh": 1908,
+    "rr": 1905,
+    "n": 0
+   }
+  },
+  "2026-09-18|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1929,
+    "td": 1929,
+    "ff": 1903,
+    "fxh": 1902,
+    "rr": 1901,
+    "n": 0
+   }
+  },
+  "2026-09-18|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 924,
+    "td": 924,
+    "ff": 913,
+    "fxh": 913,
+    "rr": 912,
+    "n": 0
+   }
+  },
+  "2026-09-18|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-18|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-18|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1707,
+    "n": 0
+   }
+  },
+  "2026-09-18|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2273,
+    "td": 2273,
+    "ff": 2319,
+    "fxh": 2117,
+    "rr": 1991,
+    "n": 0
+   }
+  },
+  "2026-09-18|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2277,
+    "ff": 2322,
+    "fxh": 2019,
+    "rr": 1898,
+    "n": 0
+   }
+  },
+  "2026-09-18|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 1089,
+    "td": 1089,
+    "ff": 1111,
+    "fxh": 909,
+    "rr": 855,
+    "n": 0
+   }
+  },
+  "2026-09-18|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-19|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1217,
+    "td": 1211,
+    "ff": 1211,
+    "fxh": 1063,
+    "rr": 1050,
+    "n": 1133
+   }
+  },
+  "2026-09-19|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3633,
+    "td": 3614,
+    "ff": 3614,
+    "fxh": 3248,
+    "rr": 3140,
+    "n": 3449
+   }
+  },
+  "2026-09-19|2|DE": {
+   "rows": 4263,
+   "truth": {
+    "t": 4240,
+    "td": 4220,
+    "ff": 4218,
+    "fxh": 3748,
+    "rr": 3654,
+    "n": 4131
+   }
+  },
+  "2026-09-19|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4645,
+    "td": 4622,
+    "ff": 4626,
+    "fxh": 4052,
+    "rr": 3998,
+    "n": 4495
+   }
+  },
+  "2026-09-19|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 1405,
+    "td": 1398,
+    "ff": 1399,
+    "fxh": 1224,
+    "rr": 1215,
+    "n": 1333
+   }
+  },
+  "2026-09-19|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-19|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 495,
+    "n": 0
+   }
+  },
+  "2026-09-19|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1494,
+    "fxh": 1493,
+    "rr": 1493,
+    "n": 0
+   }
+  },
+  "2026-09-19|2|AT": {
+   "rows": 1764,
+   "truth": {
+    "t": 1764,
+    "td": 1764,
+    "ff": 1742,
+    "fxh": 1741,
+    "rr": 1738,
+    "n": 0
+   }
+  },
+  "2026-09-19|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1929,
+    "td": 1929,
+    "ff": 1904,
+    "fxh": 1903,
+    "rr": 1902,
+    "n": 0
+   }
+  },
+  "2026-09-19|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 588,
+    "td": 588,
+    "ff": 581,
+    "fxh": 581,
+    "rr": 581,
+    "n": 0
+   }
+  },
+  "2026-09-19|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-19|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-19|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1776,
+    "td": 1776,
+    "ff": 1812,
+    "fxh": 1812,
+    "rr": 1697,
+    "n": 0
+   }
+  },
+  "2026-09-19|2|CH": {
+   "rows": 2142,
+   "truth": {
+    "t": 2079,
+    "td": 2079,
+    "ff": 2118,
+    "fxh": 1916,
+    "rr": 1805,
+    "n": 0
+   }
+  },
+  "2026-09-19|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2277,
+    "ff": 2323,
+    "fxh": 2020,
+    "rr": 1898,
+    "n": 0
+   }
+  },
+  "2026-09-19|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 693,
+    "td": 693,
+    "ff": 707,
+    "fxh": 606,
+    "rr": 570,
+    "n": 0
+   }
+  },
+  "2026-09-19|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-20|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1211,
+    "td": 1206,
+    "ff": 1206,
+    "fxh": 1070,
+    "rr": 1044,
+    "n": 1167
+   }
+  },
+  "2026-09-20|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3635,
+    "td": 3617,
+    "ff": 3615,
+    "fxh": 3206,
+    "rr": 3132,
+    "n": 3541
+   }
+  },
+  "2026-09-20|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4642,
+    "td": 4619,
+    "ff": 4619,
+    "fxh": 4044,
+    "rr": 3998,
+    "n": 4480
+   }
+  },
+  "2026-09-20|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4642,
+    "td": 4619,
+    "ff": 4627,
+    "fxh": 4053,
+    "rr": 4000,
+    "n": 4488
+   }
+  },
+  "2026-09-20|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 600,
+    "td": 597,
+    "ff": 597,
+    "fxh": 522,
+    "rr": 519,
+    "n": 563
+   }
+  },
+  "2026-09-20|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-20|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 496,
+    "n": 0
+   }
+  },
+  "2026-09-20|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1494,
+    "fxh": 1493,
+    "rr": 1491,
+    "n": 0
+   }
+  },
+  "2026-09-20|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1929,
+    "td": 1929,
+    "ff": 1898,
+    "fxh": 1892,
+    "rr": 1901,
+    "n": 0
+   }
+  },
+  "2026-09-20|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1930,
+    "td": 1930,
+    "ff": 1907,
+    "fxh": 1906,
+    "rr": 1904,
+    "n": 0
+   }
+  },
+  "2026-09-20|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 252,
+    "td": 252,
+    "ff": 249,
+    "fxh": 249,
+    "rr": 249,
+    "n": 0
+   }
+  },
+  "2026-09-20|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-20|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-20|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1815,
+    "fxh": 1815,
+    "rr": 1703,
+    "n": 0
+   }
+  },
+  "2026-09-20|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2277,
+    "ff": 2323,
+    "fxh": 2121,
+    "rr": 1992,
+    "n": 0
+   }
+  },
+  "2026-09-20|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2277,
+    "ff": 2323,
+    "fxh": 2020,
+    "rr": 1899,
+    "n": 0
+   }
+  },
+  "2026-09-20|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 297,
+    "td": 297,
+    "ff": 303,
+    "fxh": 303,
+    "rr": 285,
+    "n": 0
+   }
+  },
+  "2026-09-20|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-21|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1212,
+    "td": 1206,
+    "ff": 1206,
+    "fxh": 1056,
+    "rr": 1044,
+    "n": 1167
+   }
+  },
+  "2026-09-21|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3631,
+    "td": 3613,
+    "ff": 3613,
+    "fxh": 3163,
+    "rr": 3127,
+    "n": 3500
+   }
+  },
+  "2026-09-21|2|DE": {
+   "rows": 4263,
+   "truth": {
+    "t": 4242,
+    "td": 4221,
+    "ff": 4221,
+    "fxh": 3696,
+    "rr": 3653,
+    "n": 4100
+   }
+  },
+  "2026-09-21|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4428,
+    "td": 4406,
+    "ff": 4413,
+    "fxh": 3863,
+    "rr": 3822,
+    "n": 4241
+   }
+  },
+  "2026-09-21|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-21|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-21|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 492,
+    "fxh": 492,
+    "rr": 498,
+    "n": 0
+   }
+  },
+  "2026-09-21|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1509,
+    "td": 1509,
+    "ff": 1489,
+    "fxh": 1483,
+    "rr": 1486,
+    "n": 0
+   }
+  },
+  "2026-09-21|2|AT": {
+   "rows": 1764,
+   "truth": {
+    "t": 1760,
+    "td": 1760,
+    "ff": 1739,
+    "fxh": 1737,
+    "rr": 1734,
+    "n": 0
+   }
+  },
+  "2026-09-21|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1848,
+    "td": 1848,
+    "ff": 1825,
+    "fxh": 1826,
+    "rr": 1825,
+    "n": 0
+   }
+  },
+  "2026-09-21|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-21|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-21|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-21|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1700,
+    "n": 0
+   }
+  },
+  "2026-09-21|2|CH": {
+   "rows": 2142,
+   "truth": {
+    "t": 2079,
+    "td": 2079,
+    "ff": 2121,
+    "fxh": 1919,
+    "rr": 1801,
+    "n": 0
+   }
+  },
+  "2026-09-21|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2178,
+    "td": 2178,
+    "ff": 2222,
+    "fxh": 2020,
+    "rr": 1900,
+    "n": 0
+   }
+  },
+  "2026-09-21|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-21|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-22|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1212,
+    "td": 1206,
+    "ff": 1206,
+    "fxh": 1056,
+    "rr": 1044,
+    "n": 1152
+   }
+  },
+  "2026-09-22|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3634,
+    "td": 3616,
+    "ff": 3616,
+    "fxh": 3170,
+    "rr": 3131,
+    "n": 3523
+   }
+  },
+  "2026-09-22|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4647,
+    "td": 4624,
+    "ff": 4638,
+    "fxh": 4093,
+    "rr": 3997,
+    "n": 4533
+   }
+  },
+  "2026-09-22|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 3011,
+    "td": 2996,
+    "ff": 2999,
+    "fxh": 2624,
+    "rr": 2604,
+    "n": 2852
+   }
+  },
+  "2026-09-22|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-22|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-22|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 498,
+    "n": 0
+   }
+  },
+  "2026-09-22|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1508,
+    "td": 1508,
+    "ff": 1490,
+    "fxh": 1488,
+    "rr": 1484,
+    "n": 0
+   }
+  },
+  "2026-09-22|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1932,
+    "td": 1932,
+    "ff": 1909,
+    "fxh": 1909,
+    "rr": 1907,
+    "n": 0
+   }
+  },
+  "2026-09-22|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1260,
+    "td": 1260,
+    "ff": 1244,
+    "fxh": 1245,
+    "rr": 1245,
+    "n": 0
+   }
+  },
+  "2026-09-22|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-22|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-22|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-22|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1699,
+    "n": 0
+   }
+  },
+  "2026-09-22|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2277,
+    "ff": 2323,
+    "fxh": 2121,
+    "rr": 1995,
+    "n": 0
+   }
+  },
+  "2026-09-22|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 1485,
+    "td": 1485,
+    "ff": 1515,
+    "fxh": 1414,
+    "rr": 1330,
+    "n": 0
+   }
+  },
+  "2026-09-22|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-22|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-23|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1212,
+    "td": 1206,
+    "ff": 1212,
+    "fxh": 1072,
+    "rr": 1044,
+    "n": 1167
+   }
+  },
+  "2026-09-23|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3637,
+    "td": 3619,
+    "ff": 3627,
+    "fxh": 3197,
+    "rr": 3126,
+    "n": 3557
+   }
+  },
+  "2026-09-23|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4633,
+    "td": 4610,
+    "ff": 4626,
+    "fxh": 4050,
+    "rr": 4004,
+    "n": 4448
+   }
+  },
+  "2026-09-23|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 1401,
+    "td": 1394,
+    "ff": 1393,
+    "fxh": 1218,
+    "rr": 1212,
+    "n": 1312
+   }
+  },
+  "2026-09-23|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-23|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-23|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 498,
+    "n": 0
+   }
+  },
+  "2026-09-23|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1494,
+    "fxh": 1494,
+    "rr": 1492,
+    "n": 0
+   }
+  },
+  "2026-09-23|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1932,
+    "td": 1932,
+    "ff": 1908,
+    "fxh": 1900,
+    "rr": 1899,
+    "n": 0
+   }
+  },
+  "2026-09-23|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 588,
+    "td": 588,
+    "ff": 580,
+    "fxh": 581,
+    "rr": 581,
+    "n": 0
+   }
+  },
+  "2026-09-23|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-23|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-23|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-23|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1703,
+    "n": 0
+   }
+  },
+  "2026-09-23|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2277,
+    "td": 2277,
+    "ff": 2323,
+    "fxh": 2121,
+    "rr": 1995,
+    "n": 0
+   }
+  },
+  "2026-09-23|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 693,
+    "td": 693,
+    "ff": 707,
+    "fxh": 707,
+    "rr": 665,
+    "n": 0
+   }
+  },
+  "2026-09-23|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-23|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1212,
+    "td": 1206,
+    "ff": 1212,
+    "fxh": 1062,
+    "rr": 1044,
+    "n": 1167
+   }
+  },
+  "2026-09-24|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3622,
+    "td": 3604,
+    "ff": 3614,
+    "fxh": 3163,
+    "rr": 3134,
+    "n": 3467
+   }
+  },
+  "2026-09-24|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 4406,
+    "td": 4384,
+    "ff": 4382,
+    "fxh": 3832,
+    "rr": 3812,
+    "n": 4128
+   }
+  },
+  "2026-09-24|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 498,
+    "n": 0
+   }
+  },
+  "2026-09-24|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1493,
+    "fxh": 1485,
+    "rr": 1484,
+    "n": 0
+   }
+  },
+  "2026-09-24|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 1848,
+    "td": 1848,
+    "ff": 1824,
+    "fxh": 1820,
+    "rr": 1820,
+    "n": 0
+   }
+  },
+  "2026-09-24|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-24|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1704,
+    "n": 0
+   }
+  },
+  "2026-09-24|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 2178,
+    "td": 2178,
+    "ff": 2222,
+    "fxh": 2121,
+    "rr": 1995,
+    "n": 0
+   }
+  },
+  "2026-09-24|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-24|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 1206,
+    "td": 1200,
+    "ff": 1200,
+    "fxh": 1050,
+    "rr": 1044,
+    "n": 1125
+   }
+  },
+  "2026-09-25|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 3400,
+    "td": 3383,
+    "ff": 3381,
+    "fxh": 2956,
+    "rr": 2941,
+    "n": 3188
+   }
+  },
+  "2026-09-25|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 504,
+    "td": 504,
+    "ff": 498,
+    "fxh": 498,
+    "rr": 498,
+    "n": 0
+   }
+  },
+  "2026-09-25|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 1512,
+    "td": 1512,
+    "ff": 1492,
+    "fxh": 1488,
+    "rr": 1488,
+    "n": 0
+   }
+  },
+  "2026-09-25|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 594,
+    "td": 594,
+    "ff": 606,
+    "fxh": 505,
+    "rr": 475,
+    "n": 0
+   }
+  },
+  "2026-09-25|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 1782,
+    "td": 1782,
+    "ff": 1818,
+    "fxh": 1818,
+    "rr": 1703,
+    "n": 0
+   }
+  },
+  "2026-09-25|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-25|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|0|DE": {
+   "rows": 1218,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|1|DE": {
+   "rows": 3654,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|2|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|3|DE": {
+   "rows": 4669,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|4|DE": {
+   "rows": 4060,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|5|DE": {
+   "rows": 2842,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|0|AT": {
+   "rows": 504,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|1|AT": {
+   "rows": 1512,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|2|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|3|AT": {
+   "rows": 1932,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|4|AT": {
+   "rows": 1680,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|5|AT": {
+   "rows": 1176,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|0|CH": {
+   "rows": 612,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|1|CH": {
+   "rows": 1836,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|2|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|3|CH": {
+   "rows": 2346,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|4|CH": {
+   "rows": 2040,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  },
+  "2026-09-26|5|CH": {
+   "rows": 1428,
+   "truth": {
+    "t": 0,
+    "td": 0,
+    "ff": 0,
+    "fxh": 0,
+    "rr": 0,
+    "n": 0
+   }
+  }
+ },
+ "leadHistT": {
+  "0": 25102,
+  "1": 76800,
+  "2": 86947,
+  "3": 70970,
+  "4": 29969,
+  "5": 2195
+ }
+}

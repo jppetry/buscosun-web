@@ -45,11 +45,16 @@
  *     byte-identical to a fit without `--climaCols` (the negative control). `tables.design.mean.climaVars` names the list;
  *     absent = every variable (Fit 5b/5c). Only with `--climaCols=station`.
  *
+ * Phase FV (`audit/fusion-validierung.md` §1.3, V-FX-44): `--thin=legacy|hash` — the row selection of the Gram adds (passes
+ *   A, B, E). `legacy` (default) = `(validAtH + pointIdx) % stride`, byte-identical to every fit so far — a POINT selection on
+ *   t2/t3 (stride 6: t3 65 of 389 stations, t2 130); `hash` = `mix32(validAtH, pointIdx) % stride` (`lib/thin.mjs`), every
+ *   station in every tier at the same row share. Under `hash` the tables name mode and stride (`inputs.thin`) and a note.
+ *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fusionfit/fit.mjs
  *       [--cases=<root>\cases\v1] [--clima=<root>\fit\<date>\clima.hindcast.json] [--features=…] [--out=…]
  *       [--months=2025-09,2026-09] [--stride=4] [--tiers=t1,t2,t3] [--folds=month|half]
  *       [--climaCols=none|station] [--rhoTarget=0|1|cv] [--climaShuffle=1] [--speedGrid=v3|v4] [--speedBands=0|1] [--scaleVars=…]
- *       [--climaMu=<path>] [--climaVars=t,td,gust]
+ *       [--climaMu=<path>] [--climaVars=t,td,gust] [--thin=legacy|hash]
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -70,6 +75,7 @@ import { AnchorAcc, ANCHOR_VARS } from '../../src/point/fusionFit/fitAnchor.ts';
 import { climaDesign, climaAt, C_DIM } from '../../src/point/fusionFit/fitClima.ts';
 import { stratumKey, parseStratum, regionOf, timeFolds } from '../../src/point/fusionFit/strata.ts';
 import { newTables, validateTables, parseClimaVars } from '../../src/point/fusionFit/tables.ts';
+import { thinSelect, parseThin } from './lib/thin.mjs';
 
 const flags = parseArgs(process.argv.slice(2));
 const root = typeof flags.root === 'string' ? flags.root : HINDCAST_ROOT;
@@ -108,6 +114,10 @@ if (climaMuPath && climaShuffle) throw new Error('--climaMu nicht mit --climaShu
 const climaVars = typeof flags.climaVars === 'string' ? parseClimaVars(flags.climaVars) : null;
 if (climaVars && climaCols !== 'station') throw new Error('--climaVars nur mit --climaCols=station');
 const climaVarOf = (v) => (climaCols === 'station' && (!climaVars || climaVars.includes(v)) ? 'station' : 'none');
+// phase FV (V-FX-44): the row thinning — `legacy` is the rule of every fit so far (byte-identical), `hash` keeps every station in every tier
+const thin = parseThin(flags.thin);
+const thinKeep = thinSelect(thin, stride);
+if (thin !== 'legacy') say(`Zeilenauswahl ${thin} (Stride ${stride}) — jede Station in jeder Stufe (lib/thin.mjs, V-FX-44)`);
 
 // ── inputs ─────────────────────────────────────────────────────────────────────
 const featBytes = readFileSync(featPath);
@@ -233,7 +243,7 @@ const addGram = (key, p, x, y, ctx, baseSq, extra) => {
   }
 };
 /** Row selection: every `stride`-th row gets the full context; a slot subsample (every 4th 3-h slot) the light one. */
-const strideSelect = (i, b) => (b.cols.validAtH[i] + b.cols.pointIdx[i]) % stride === 0;
+const strideSelect = (i, b) => thinKeep(b.cols.validAtH[i], b.cols.pointIdx[i]);
 const anchorSlot = (i, b) => ((b.cols.slotAtH[i] / 3) | 0) % 4 === 0;
 const statsA = await pass('A', (ctx, full) => {
   // forecast-anomaly skill (selected rows, needs the climatology)
@@ -516,6 +526,11 @@ if (speedBands) tables.notes.push('Phase FX (A1 Band-Verdikt) — Speed-Gesetz z
 if (scaleVars) { tables.inputs.scaleVars = scaleVars; tables.notes.push(`Phase FX (V-FX-7, E-FX-2) — σ-Skala nur für ${scaleVars.join(', ')} geschrieben (Bewölkung Pflicht, übrige nur bei oof-Gewinn); die anderen Größen tragen scale 1, der Suchbeleg scaleCv bleibt`); }
 // phase FX (C8, V-FL-27): the half-month scheme is named in the notes only where it is on — a month fit stays byte-identical to fusionFit@3
 if (folds === 'half') tables.notes.push('Phase FX (C8, V-FL-27) — Zeitfalten nach Halbmonaten: Gruppen YYYY-MMa (Tag ≤ 15) | YYYY-MMb, Purge ±1 Halbmonat = Lücke ≥ 13 Tage (Februar-Hälften 15 + 13/14 d, sonst ≥ 15 d; der Vorlauf reicht 14 d, nur an einer Februar-b-Hälfte kann ein Trainings-Lauf um einen Tag in die gehaltene Hälfte zurückreichen); λ-Wahl, Falten-β (mean/occurrence, Schlüssel = Halbmonat), no-skill-Regel, σ-Skala und Speed-Gesetz out of fold auf diesen Falten; der Scorer liest inputs.foldScheme und nimmt je ZEILE die β ohne ihre Halbmonatsgruppe');
+// phase FV (V-FX-44): the thinning is named only where it is not the legacy rule — a default fit stays byte-identical
+if (thin !== 'legacy') {
+  tables.inputs.thin = { mode: thin, stride };
+  tables.notes.push(`Phase FV (V-FX-44) — Zeilenauswahl ${thin}: mix32(validAtH, pointIdx) % ${stride} (scripts/fusionfit/lib/thin.mjs) statt (validAtH + pointIdx) % ${stride}; die alte Regel wählte bei t2/t3 PUNKTE aus (Stride 6: t3 65, t2 130 von 389 Stationen), die Hash-Auswahl nimmt jede Station in jeder Stufe mit gleichem Zeilenanteil (audit/fusion-validierung.md §1.3)`);
+}
 const errs = validateTables(tables);
 if (errs.length) say(`Tabellen ungültig: ${errs.join('; ')}`);
 mkdirSync(dirname(out), { recursive: true });

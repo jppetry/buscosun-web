@@ -33,9 +33,18 @@
  * --climaMu`) gets its μ_c from there, the `clima` reference candidate stays the station climatology of the main tables;
  * strata `dnn:<bin>` = the station's distance to the nearest OTHER station with a climatology (< 10, 10–20, 20–35, > 35 km).
  *
+ * Phase FV (`audit/fusion-validierung.md` §1.3, §2.2), all default-off (without them the card is the one of phase FX):
+ *   `--thin=legacy|hash` — the row selection (`lib/thin.mjs`): `legacy` = `(validAtH + pointIdx) % stride` (a POINT selection
+ *     on t2/t3, V-FX-44), `hash` = `mix32(validAtH, pointIdx) % stride` (every station in every tier); named in `inputs.thin`.
+ *   `--mdReliability=1` — the reliability diagram of every threshold × bin in the markdown (10 probability classes: mean
+ *     forecast, observed frequency, n) for fl-K, the reference tables and cube; the JSON carries them already (`brier[…].reliability`).
+ *   `--mdHoldout=1` — claim B as a table: per form-K mean stratum the time-, region- and band-holdout MSE skill of the fit
+ *     (`entry.cv.time/region/band`) for the main and the reference tables — MSE skill of the ridge folds, not CRPS.
+ *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fusionfit/score.mjs
  *       --tables=<root>\fit\<date>\fusion.hindcast.json [--cases=…] [--features=…] [--out=<root>\score\<date>\scorecard.json]
- *       [--stride=4] [--months=2025-09,2026-09] [--riceN=96] [--refTables=5a=<path>,5b=<path>]
+ *       [--stride=4] [--months=2025-09,2026-09] [--riceN=96] [--refTables=5a=<path>,5b=<path>] [--thin=legacy|hash]
+ *       [--mdReliability=1] [--mdHoldout=1]
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -54,6 +63,7 @@ import { windComponents } from '../../src/point/fusionFit/features.ts';
 import { anchorWeightFromCurve } from '../../src/pointForecast/anchor.ts';
 import { speedLaw } from '../../src/point/fusionFit/fitSpeed.ts';
 import { lcg } from '../../src/point/calibFit.ts';
+import { thinSelect, parseThin } from './lib/thin.mjs';
 
 const H = 3_600_000;
 const flags = parseArgs(process.argv.slice(2));
@@ -67,6 +77,11 @@ const stride = Math.max(1, Number(flags.stride) || 4);
 const riceN = Number(flags.riceN) || 96;
 const monthRange = typeof flags.months === 'string' ? flags.months.split(',') : null;
 const say = (s) => console.log(`[score] ${s}`);
+// phase FV (V-FX-44): the row selection — `legacy` byte-identical to every card so far, `hash` keeps every station in every tier
+const thin = parseThin(flags.thin);
+const thinKeep = thinSelect(thin, stride);
+const on = (x) => x === '1' || x === 1 || x === true;
+const mdReliability = on(flags.mdReliability), mdHoldout = on(flags.mdHoldout);
 
 const tablesBytes = readFileSync(tablesPath);
 const tables = JSON.parse(tablesBytes.toString('utf8'));
@@ -83,6 +98,7 @@ if (typeof flags.refTables === 'string') {
   }
   say(`Referenztabellen: ${refTables.map((r) => `fl-K@${r.label} = ${r.path} (${r.tables.fitVersion}, Falten ${r.foldScheme}, clima ${r.tables.design?.mean?.clima ?? 'none'}${r.tables.climaMu ? `, μ_c geschätzt ${r.tables.climaMu.candidate}` : ''})`).join(' · ')}`);
 }
+if (thin !== 'legacy' || tables.inputs?.thin) say(`Zeilenauswahl ${thin} (Stride ${stride}); Tabellen gefittet mit ${tables.inputs?.thin?.mode ?? 'legacy'}${refTables.length ? `, Referenzen ${refTables.map((r) => `${r.label} ${r.tables.inputs?.thin?.mode ?? 'legacy'}`).join(' · ')}` : ''}`);
 if (tables.design?.mean?.climaVars) say(`μ_c-Spalte nur für ${tables.design.mean.climaVars.join(', ')} (design.mean.climaVars, Phase FX-5) — die übrigen Größen rechnen das none-Design`);
 if (tables.climaMu) say(`μ_c der fl-K/fl-P-Situation aus tables.climaMu (geschätzt, Kandidat ${tables.climaMu.candidate}, ${Object.keys(tables.climaMu.byPoint).length} Stationen); der Kandidat clima bleibt die Stationsklimatologie`);
 // FL-AP8b (V-FL-20): candidate `fl-K+anchor` — form K plus the lead-1 residual of the same (point, slot) carried with the
@@ -343,7 +359,7 @@ for (const f of files) {
         curAnchor = c1 && c1.route === 1 ? { p: cols.pointIdx[i], s: c1.slotAtH, e: anchorResiduals(c1, tblOf(c1)) } : null;
         anchorSlots += curAnchor ? 1 : 0;
       }
-      if ((cols.validAtH[i] + cols.pointIdx[i]) % stride !== 0) continue;
+      if (!thinKeep(cols.validAtH[i], cols.pointIdx[i])) continue;
       const ctx = rowContext(b, i, sites, false);
       if (!ctx) continue;
       scored += 1;
@@ -361,7 +377,8 @@ const card = {
   inputs: { cases: casesDir, files: files.length, rows, scored, stride, riceN, months: [...new Set(files.map((f) => f.month))].sort(), foldScheme, anchor: withAnchor ? { slots: anchorSlots, rows: anchoredRows } : null,
     ...(tables.climaMu ? { climaMu: { candidate: tables.climaMu.candidate, estimator: tables.climaMu.estimator, trendSet: tables.climaMu.trendSet, source: tables.climaMu.source } } : {}),
     ...(tables.design?.mean?.climaVars ? { climaVars: tables.design.mean.climaVars } : {}),
-    ...(refTables.length ? { refTables: refTables.map((r) => ({ label: r.label, path: r.path, sha256: r.sha256, fitVersion: r.tables.fitVersion, foldScheme: r.foldScheme, clima: r.tables.design?.mean?.clima ?? 'none', climaMu: r.tables.climaMu?.candidate ?? null })) } : {}),
+    ...(refTables.length ? { refTables: refTables.map((r) => ({ label: r.label, path: r.path, sha256: r.sha256, fitVersion: r.tables.fitVersion, foldScheme: r.foldScheme, clima: r.tables.design?.mean?.clima ?? 'none', climaMu: r.tables.climaMu?.candidate ?? null, thin: r.tables.inputs?.thin?.mode ?? 'legacy' })) } : {}),
+    ...(thin !== 'legacy' ? { thin: { mode: thin, stride, tables: tables.inputs?.thin?.mode ?? 'legacy' } } : {}),
     dnnBins: DNN_BINS.map((b) => b[2]) },
   notes: ['FSS ist an Punkten nicht definiert (keine Nachbarschaft) — ETS an den Schwellen steht dafür.', 'Deterministische Kandidaten: CRPS = MAE.',
     foldScheme === 'half' ? 'fl-K/fl-P mit den β der Zeitfalte ohne die Halbmonatsgruppe der ZEILE (und ihre Nachbarn; tables.inputs.foldScheme = half, Phase FX C8) — auch die Hürden-β und die Anker-Residuen e₁; Varianz-, Skalen-, Speed- und Klimatologie-Tabellen über alle Gruppen gepoolt (Stufe 1).' : 'fl-K/fl-P mit den β der Zeitfalte ohne den Monat der Zeile (und seine Nachbarn); Varianz-, Hürden- und Klimatologie-Tabellen über alle Monate gepoolt (Stufe 1).',
@@ -373,6 +390,7 @@ const card = {
     ...(tables.design?.mean?.climaVars ? [`Phase FX-5 (E-FX-8, §6.5): μ_c-Spalte nur für ${tables.design.mean.climaVars.join(', ')} (design.mean.climaVars); die übrigen Größen rechnen das none-Design von fusionFit@3.`] : []),
     ...(tables.climaMu ? [`Phase FX-4 (§6.4): μ_c der fl-K/fl-P-Situation aus tables.climaMu — GESCHÄTZT ohne die Station (Leave-Station-out, Kandidat ${tables.climaMu.candidate}, Schätzer ${JSON.stringify(tables.climaMu.estimator)}, Trendmerkmale ${tables.climaMu.trendSet ?? '—'}); der Kandidat clima und die Anker-Residuen-Referenz bleiben die Stationsklimatologie (tables.clima).`] : []),
     ...(refTables.length ? [`Phase FX-4: Kandidaten ${REF_TABLE_NAMES.join(', ')} = Form K der Referenztabellen auf DENSELBEN Zeilen (je mit eigenem Faltenschema, eigener μ_c-Definition und eigenen Falten-β); Paare fl-K gegen fl-K@… sind der like-for-like DM/BH-Test zwischen Fits. Strata dnn:<Bin> = Abstand der Station zur nächsten anderen Station mit Klimatologie.`] : []),
+    ...(thin !== 'legacy' ? [`Phase FV (V-FX-44): Zeilenauswahl ${thin} — mix32(validAtH, pointIdx) % ${stride} statt (validAtH + pointIdx) % ${stride}; jede Station in jeder Stufe (die alte Regel bewertete bei 126–336 h 65, bei 51–120 h 130 von 389 Stationen). Karten mit der alten Regel sind NICHT like-for-like zu dieser. Tabellen gefittet mit ${tables.inputs?.thin?.mode ?? 'legacy'}.`] : []),
   ],
   scores: {}, brier: {}, ets: {}, pairs: {}, gates: {},
 };
@@ -444,6 +462,34 @@ if (REF_TABLE_NAMES.length) {
     }
     md.push('');
   }
+}
+// phase FV (§2.2): reliability diagrams per threshold × bin for fl-K, the reference tables and cube (10 probability classes)
+if (mdReliability) {
+  const relCands = ['fl-K', ...REF_TABLE_NAMES, 'cube'];
+  const THR_LABEL = { t: (x) => `T < ${x} °C`, precip: (x) => `Niederschlag ≥ ${x} mm/h`, gust: (x) => `Böe ≥ ${x} m/s`, ws: (x) => `Wind ≥ ${x} m/s` };
+  md.push('## Reliability-Diagramme je Schwelle (Klasse: mittlere Vorhersage-Wahrscheinlichkeit → beobachtete Häufigkeit (n); Schicht all)', '');
+  for (const [v, thrs] of Object.entries(THRESH)) for (const thr of thrs) {
+    md.push(`### ${THR_LABEL[v](thr)}`, '', `| Bin | Kandidat | Brier | BSS | Basisrate | ${Array.from({ length: 10 }, (_, i) => `${i * 10}–${(i + 1) * 10} %`).join(' | ')} |`, `|---|---|---|---|---|${Array.from({ length: 10 }, () => '---').join('|')}|`);
+    for (let bin = 0; bin < 6; bin++) for (const cand of relCands) {
+      const b = card.brier[`${v}|${bin}|${cand}|${thr}`];
+      if (!b) continue;
+      md.push(`| ${BIN_LABEL[bin]} | ${cand} | ${f2(b.brier, 4)} | ${f2(b.bss, 3)} | ${f2(b.baseRate, 4)} | ${b.reliability.map((r) => (r.n ? `${f2(r.fc, 2)}→${f2(r.obs, 2)} (${r.n})` : '—')).join(' | ')} |`);
+    }
+    md.push('');
+  }
+}
+// phase FV (§2.2, claim B): the holdout skill of every form-K mean stratum — time, region, band folds of the ridge (MSE skill, not CRPS)
+if (mdHoldout) {
+  const tabs = [['fl-K', tables], ...refTables.map((r) => [`fl-K@${r.label}`, r.tables])];
+  const keys = [...new Set(tabs.flatMap(([, T]) => Object.keys(T.mean).filter((k) => k.startsWith('K|'))))].sort((a, b) => { const pa = a.split('|'), pb = b.split('|'); return pa[1].localeCompare(pb[1]) || Number(pa[2]) - Number(pb[2]) || pa[3].localeCompare(pb[3]); });
+  const cell = (e) => (!e ? '—' : e.status !== 'written' ? e.status : `${f2(e.cv?.time?.skill, 3)} / ${f2(e.cv?.region?.skill, 3)} / ${f2(e.cv?.band?.skill, 3)}`);
+  md.push('## Anspruch B — Holdout-Skill je Mittelwert-Stratum der Form K (MSE-Skill 1 − MSE/MSE_Basis der Ridge-Falten: Zeit / Region / Höhenband; kein CRPS)', '', `| Stratum | n (${tabs[0][0]}) | ${tabs.map(([l]) => `${l} Zeit / Region / Band`).join(' | ')} | Region − Zeit, Band − Zeit (${tabs[0][0]}) |`, `|---|---|${tabs.map(() => '---').join('|')}|---|`);
+  for (const k of keys) {
+    const e0 = tables.mean[k];
+    const d = e0?.status === 'written' && e0.cv?.time?.skill != null ? `${f2(100 * ((e0.cv.region?.skill ?? NaN) - e0.cv.time.skill), 1)} / ${f2(100 * ((e0.cv.band?.skill ?? NaN) - e0.cv.time.skill), 1)} Pkt` : '—';
+    md.push(`| ${k} | ${e0?.n ?? '—'} | ${tabs.map(([, T]) => cell(T.mean[k])).join(' | ')} | ${d} |`);
+  }
+  md.push('');
 }
 writeFileSync(out.replace(/\.json$/, '.md'), md.join('\n'));
 say(`geschrieben ${out} (+ .md): ${Object.keys(card.scores).length} Score-Zellen, ${pKeys.length} DM-Tests, ${Math.round((Date.now() - T0) / 60000)} min`);

@@ -318,13 +318,13 @@ function fromInterp(q: InterpQ | undefined, id: VarIdV2, score: number | undefin
  * Allgemeine Schlüssel (`footprint`, `lead`, `hTrue`, `tail`, `interpolation`) stehen in `provenance.calib`, nicht je Größe.
  */
 const CALIB_KEYS_OF: Partial<Record<VarIdV2, readonly string[]>> = {
-  t2m: ['sigmaSys', 'cSpread', 'sigmaQuant', 'sigmaVert', 'standardLapse', 'phi', 'dzSurface', 'Ld', 'Lh', 'kappa', 'anchor', 'A', 'Auhi', 'fRad', 'fSaison', 'tpiSigma', 'stationSigma', 'confidence', 'learned'],
-  td2m: ['sigmaSys', 'cSpread', 'sigmaQuant', 'sigmaVert', 'Ld', 'Lh', 'kappa', 'stationSigma', 'confidence', 'learned'],
+  t2m: ['sigmaSys', 'cSpread', 'sigmaQuant', 'sigmaVert', 'standardLapse', 'phi', 'dzSurface', 'Ld', 'Lh', 'kappa', 'anchor', 'A', 'Auhi', 'fRad', 'fSaison', 'tpiSigma', 'stationSigma', 'confidence', 'learned', 'learnedAtPoint', 'priorShrink', 'stationValue'],
+  td2m: ['sigmaSys', 'cSpread', 'sigmaQuant', 'sigmaVert', 'Ld', 'Lh', 'kappa', 'stationSigma', 'confidence', 'learned', 'learnedAtPoint', 'priorShrink', 'stationValue'],
   rh: ['sigmaSys', 'cSpread', 'sigmaVert', 'learned'],
-  wind: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'anchor', 'z0', 'z0Mod', 'zBlend', 'stationSigma', 'confidence', 'learned', 'learnedSpeed'],
-  gust: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'anchor', 'z0', 'z0Mod', 'zBlend', 'stationSigma', 'confidence', 'learned'],
+  wind: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'anchor', 'z0', 'z0Mod', 'zBlend', 'stationSigma', 'confidence', 'learned', 'learnedSpeed', 'learnedAtPoint', 'priorShrink', 'stationValue'],
+  gust: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'anchor', 'z0', 'z0Mod', 'zBlend', 'stationSigma', 'confidence', 'learned', 'learnedAtPoint', 'priorShrink', 'stationValue'],
   precip: ['precipSigma', 'nowcastStale', 'Ld', 'Lh', 'kappa', 'learnedPrecip'],
-  clct: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'stationSigma', 'confidence', 'learned'],
+  clct: ['sigmaSys', 'cSpread', 'sigmaQuant', 'Ld', 'Lh', 'kappa', 'stationSigma', 'confidence', 'learned', 'priorShrink', 'learnedClouds'],
   snowline: ['meltOffset', 'Ld', 'Lh', 'kappa'],
 };
 /** Klartext zu den Schlüsseln, die die Ausgabe selbst setzt (die der Rechnung stehen mit Grund in `provenance.calib`). */

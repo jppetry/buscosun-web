@@ -1174,6 +1174,206 @@ if (typeof flags.cases === 'string') {
   }
 }
 
+// ── Block 15: phase FV (`audit/fusion-validierung.md` §1.3, V-FX-44) — the row thinning of fit and scorer: `legacy` is the old rule
+// bit for bit, `hash` keeps every station in every tier at the same row share; negative controls: the legacy rule and a naive
+// product/XOR of the keys lose stations on the coarse tiers ──
+{
+  const { thinSelect, mix32, parseThin, THIN_MODES } = await import('./fusionfit/lib/thin.mjs');
+  // 15a legacy = (validAtH + pointIdx) % stride for every key of a dense grid; unknown mode throws; absent flag = legacy
+  {
+    let same = 0, diff = 0;
+    for (const s of [1, 4, 6, 12]) { const L = thinSelect('legacy', s); for (let v = 490_000; v < 490_400; v++) for (let p = 0; p < 405; p++) { if (L(v, p) === ((v + p) % s === 0)) same += 1; else diff += 1; } }
+    let threw = false; try { thinSelect('random', 6); } catch { threw = true; }
+    add('15a thin legacy = (validAtH + pointIdx) % stride an jedem Schlüssel (Stride 1/4/6/12, 648 000 Paare); fremder Modus wirft; fehlendes Flag = legacy',
+      diff === 0 && same === 648_000 && threw && parseThin(undefined) === 'legacy' && parseThin(true) === 'legacy' && parseThin('hash') === 'hash' && JSON.stringify(THIN_MODES) === '["legacy","hash"]',
+      `gleich ${same}, abweichend ${diff}, wirft ${threw}`);
+  }
+  // 15b the real data shape: 389 stations, 13 months of valid hours — t1 hourly, t2 3-hourly, t3 6-hourly (the case files' rasters)
+  {
+    const H0 = Math.floor(Date.UTC(2025, 8, 1) / 3_600_000), H1 = Math.floor(Date.UTC(2026, 8, 22) / 3_600_000);
+    const tierStep = { t1: 1, t2: 3, t3: 6 };
+    const naive = (s) => (v, p) => ((Math.imul(v, 0x9e3779b1) ^ Math.imul(p, 0x85ebca6b)) >>> 0) % s === 0;
+    const survey = (sel) => {
+      const out = {};
+      for (const [t, step] of Object.entries(tierStep)) {
+        const per = new Array(389).fill(0); let rows = 0, kept = 0;
+        for (let v = H0; v < H1; v += step) for (let p = 0; p < 389; p++) { rows += 1; if (sel(v, p)) { kept += 1; per[p] += 1; } }
+        const withRows = per.filter((x) => x > 0).length, share = kept / rows, perShare = per.map((x) => x / (rows / 389));
+        out[t] = { withRows, share, minShare: Math.min(...perShare), maxShare: Math.max(...perShare) };
+      }
+      return out;
+    };
+    const h6 = survey(thinSelect('hash', 6)), h12 = survey(thinSelect('hash', 12));
+    const l6 = survey(thinSelect('legacy', 6)), l12 = survey(thinSelect('legacy', 12)), n6 = survey(naive(6));
+    const allKept = (o, s) => Object.values(o).every((x) => x.withRows === 389 && Math.abs(x.share - 1 / s) < 0.005 && x.minShare > 0.5 / s && x.maxShare < 1.5 / s);
+    add('15b hash hält jede der 389 Stationen in t1/t2/t3 bei Stride 6 und 12, Zeilenanteil ±0,5 %-Pkt um 1/Stride, je Station 0,5–1,5 × 1/Stride; Negativkontrollen: die alte Regel behält bei Stride 6 in t3 65 und in t2 130 Stationen (= V-FX-44, gemessen in diag-fv0-thin), ein naives Produkt/XOR der Schlüssel verliert ebenfalls Stationen',
+      allKept(h6, 6) && allKept(h12, 12) && l6.t3.withRows === 65 && l6.t2.withRows === 130 && l6.t1.withRows === 389 && l12.t3.withRows < 389 && Object.values(n6).some((x) => x.withRows < 389),
+      `hash/6 ${Object.entries(h6).map(([t, x]) => `${t} ${x.withRows} (${(100 * x.share).toFixed(2)} %, je Station ${(6 * x.minShare).toFixed(2)}…${(6 * x.maxShare).toFixed(2)})`).join(' · ')} · legacy/6 ${Object.entries(l6).map(([t, x]) => `${t} ${x.withRows}`).join(' ')} · legacy/12 t3 ${l12.t3.withRows} · naiv/6 ${Object.entries(n6).map(([t, x]) => `${t} ${x.withRows}`).join(' ')}`);
+  }
+  // 15c both scripts select rows through thin.mjs only — no hand-written `% stride` row rule left (list check, not a count)
+  {
+    const src = (f) => readFileSync(join(import.meta.dirname, 'fusionfit', f), 'utf8');
+    const fitS = src('fit.mjs'), scoreS = src('score.mjs');
+    const oldRule = /\(\s*(?:b\.)?cols\.validAtH\[i\]\s*\+\s*(?:b\.)?cols\.pointIdx\[i\]\s*\)\s*%\s*stride/;
+    const negative = oldRule.test('(b.cols.validAtH[i] + b.cols.pointIdx[i]) % stride === 0');
+    add('15c fit.mjs und score.mjs wählen Zeilen nur über lib/thin.mjs (Import + thinSelect), keine eigene (validAtH + pointIdx) % stride-Regel mehr; Negativkontrolle: das Muster erkennt die alte Zeile',
+      negative && /from '\.\/lib\/thin\.mjs'/.test(fitS) && /from '\.\/lib\/thin\.mjs'/.test(scoreS) && /thinSelect\(thin, stride\)/.test(fitS) && /thinSelect\(thin, stride\)/.test(scoreS) && !oldRule.test(fitS) && !oldRule.test(scoreS),
+      `Muster erkennt die alte Zeile: ${negative}`);
+    void mix32;
+  }
+}
+
+// ── Block 16: phase FV stage 2 (`audit/fusion-validierung.md` §1.6, §1.7) — the archive adapter on a synthetic slot of the real
+// form (schema 1 and 2), the frozen fold rule, the leave-station-out μ_c as a one-station product, the distribution scores of the
+// archive scorer; each with a negative control ──
+{
+  const A = await import('./fusionfit/lib/archiveAdapter.mjs');
+  const { scoreDist, qs3Of, quantiles3 } = await import('./fusionfit/lib/distScore.mjs');
+  const { crpsNormal, crpsOf } = await import('../src/pointForecast/fusion/dist.ts');
+  const { crpsByCdf } = await import('./fusionfit/lib/stats.mjs');
+  const { estimateCoefficients, muAt } = await import('../src/point/fusionFit/climaProduct.ts');
+  const { C_DIM: CD, climaDesign: cDes } = await import('../src/point/fusionFit/fitClima.ts');
+  const H = 3_600_000, S = A.ARCHIVE_SENTINEL;
+  const runAt = '2026-09-22T21:00:00Z', runMs = Date.parse(runAt), slotAtMs = Date.parse('2026-09-22T23:20:00Z');
+  const mkSlot = (schema) => ({
+    kind: 'punktarchiv/slot', schema, slotAt: new Date(slotAtMs).toISOString(), slotAtMs, index: { commit: 'x' },
+    scales: { cube: { t1: { t2m: { scale: 0.01, offset: 0 }, u10: { scale: 0.02, offset: 0 }, hModEff: { scale: 1, offset: 0 } } }, truth: { t: { scale: 0.01, offset: 0 }, ff: { scale: 0.01, offset: 0 }, dd: { scale: 1, offset: 0 }, fx: { scale: 0.01, offset: 0 }, fxh: { scale: 0.01, offset: 0 }, rr1: { scale: 0.01, offset: 0 }, rr1h: { scale: 0.01, offset: 0 }, n: { scale: 0.1, offset: 0 } } },
+    points: [{ id: 'P1', name: 'ONE', lat: 48, lon: 11, elev: 500, demM: 480, country: 'DE' }, { id: 'P2', name: 'TWO', lat: 47, lon: 14, elev: 1500, demM: 1200, country: 'AT' }],
+    cube: { t1: { run: '2026092221', runAt, sourceRun: '2026092221', sourceRunAt: runAt, leadHours: [0, 1, 2], sources: [{ id: 'icon_d2', runAt, steps: 3, stepsCoverage: 'full' }],
+      byPoint: { P1: { cell: { iy: 1, ix: 2, lat: 48.01, lon: 11.02, offsetKm: 1.5 }, hModEffM: 510, belowGroundHPa: [[], [925], []], planes: { t2m: [1000, 1100, S], u10: [100, 150, 200], hModEff: [510, 510, 510] }, empty: ['clct'] } } } },
+    nowcast: { scale: { mmh: { scale: 0.01, offset: 0, unit: 'mm/h' } }, byPoint: { P1: { covering: ['radvor_rv'], bySource: { radvor_rv: { stamp: '2609222320', slotAgeMin: 0, probes: 1, extrapolationH: 2, validAtSuspect: null,
+      frames: [{ lead: 0, validAtMs: slotAtMs, mmh: 150, saturated: false }, { lead: 5, validAtMs: slotAtMs + 5 * 60_000, mmh: S, saturated: false }, { lead: 10, validAtMs: slotAtMs + 10 * 60_000, mmh: 0, saturated: false }] } } } } },
+    stations: { run: '2026092221', runAt, ageAtBuildH: 1.7, leadHours: [1, 2], scales: { t2m: { scale: 0.01, offset: 0 } },
+      byPoint: { P1: { station: { id: 'P1', distanceKm: 0.1, dElevM: 300 }, planes: { t2m: [900, 950] } }, P2: { station: { id: 'X', distanceKm: 5, dElevM: 150 }, planes: { t2m: [100, 110] } } } },
+    truth: { byPoint: {
+      P1: { poi: { obsAtMs: [slotAtMs - 2 * H + 20 * 60_000 - 20 * 60_000, slotAtMs - 20 * 60_000 - 20 * 60_000 + 20 * 60_000], t: [1500, 1400], ff: [300, S], dd: [270, S], fx: [800, S], fxh: [S, S], rr1: [10, 0], n: [500, 600] } },
+      P2: { poi: { obsAtMs: [slotAtMs - 20 * 60_000], t: [0] }, tawes: { obsAtMs: [slotAtMs - 20 * 60_000, slotAtMs + 40 * 60_000], t: [300, 999], ff: [100, 100], dd: [0, 0], fx: [900, 900], ...(schema >= 2 ? { fxh: [1000, 1000] } : {}), rr1: [60, 60], rr1h: [20, 20] } },
+    } },
+  });
+  const s2 = mkSlot(2), s1 = mkSlot(1);
+  // 16a cube series: the slot's own scales and sentinel, validAt = runAt + lead, belowGround carried, no block
+  {
+    const ser = A.archiveSeries(s2, 't1', 'P1');
+    const wrongScale = 150 * 0.01;   // the u10 plane dequantised with a foreign 0,01 scale instead of the slot's 0,02
+    add('16a archiveSeries: Werte mit den Skalen DES SLOTS (u10 150 × 0,02 = 3 m/s), Sentinel ⇒ null, leere Ebene null, Gültigzeit = runAt + Vorlauf, belowGroundHPa je Schritt, neighbours [] (PAP 3 mit N = 1); Negativkontrolle: fremde Skala gäbe 1,5 m/s; fehlender Punkt ⇒ null',
+      ser && ser.steps.length === 3 && Math.abs(ser.steps[1].values.u10 - 3) < 1e-12 && ser.steps[1].values.u10 !== wrongScale && ser.steps[2].values.t2m === null && ser.steps[0].values.clct === null
+      && ser.steps[2].validAtMs === runMs + 2 * H && JSON.stringify(ser.steps[1].belowGroundHPa) === '[925]' && Array.isArray(ser.neighbours) && ser.neighbours.length === 0 && ser.hModEffM === 510 && A.archiveSeries(s2, 't1', 'P2') === null,
+      `u10 ${ser?.steps[1].values.u10} · t2m[2] ${ser?.steps[2].values.t2m} · validAt[2] ${ser && new Date(ser.steps[2].validAtMs).toISOString()}`);
+  }
+  // 16b station selection (today's client rule): at the point (≤ 0,25 km) the height criterion falls; 5 km with |Δh| > 100 m is rejected; schema-1 height from demM
+  {
+    const a = A.archiveStation(s2, 'P1', 500), b = A.archiveStation(s2, 'P2', 1500), a1 = A.archiveStation(s1, 'P1', 500);
+    add('16b archiveStation: Station 0,1 km am Punkt mit Δh 300 m angenommen (E-F-12), 5 km mit Δh 150 m abgelehnt (SELECTION 100 m); Stationshöhe Schema 2 = elev + dElevM (800), Schema 1 = demM + dElevM (780); Schritte = runAt + Vorlauf mit den Stationsskalen',
+      a.series && !b.series && /vertritt den Punkt nicht/.test(b.reason) && a.series.station.elev === 800 && a1.series.station.elev === 780 && a.series.steps[0].validAtMs === runMs + H && Math.abs(a.series.steps[1].values.t2m - 9.5) < 1e-12,
+      `${a.reason} · ${b.reason} · Schema 1 Höhe ${a1.series?.station.elev}`);
+  }
+  // 16c truth network per point = the hindcast's; fxh / POI fx; rr1 vs rr1h; nothing from POI at an AT point
+  {
+    const ctry = (id) => (id === 'P1' ? 'DE' : 'AT');
+    const t2 = A.archiveTruth(s2, ctry), t1 = A.archiveTruth(s1, ctry);
+    const p1 = t2.get('P1'), p2 = t2.get('P2'), p2s1 = t1.get('P2');
+    add('16c archiveTruth: DE ⇒ poi, AT ⇒ tawes (auch wenn der Punkt POI trägt — Negativkontrolle: die POI-Reihe des AT-Punkts, t = 0 °C, wird nie gelesen); Böe = fxh bzw. POI-fx; Schema 1 TAWES ohne fxh ⇒ null; Niederschlag POI rr1 / TAWES rr1h',
+      p1.net === 'poi' && p2.net === 'tawes' && p2.rows[0].t === 3 && p1.rows[0].fxh === 8 && p2.rows[0].fxh === 10 && p2s1.rows[0].fxh === null && p1.rows[0].rr === 0.1 && p2.rows[0].rr === 0.2 && !p2.rows.some((r) => r.t === 0),
+      `P1 ${p1.net} fxh ${p1.rows[0].fxh} rr ${p1.rows[0].rr} · P2 ${p2.net} t ${p2.rows[0].t} fxh ${p2.rows[0].fxh} (Schema 1 ${p2s1.rows[0].fxh}) rr ${p2.rows[0].rr}`);
+  }
+  // 16d the anchor input: the latest reading ≤ slotAt; a reading after the slot (+40 min) is never taken
+  {
+    const ctry = (id) => (id === 'P1' ? 'DE' : 'AT');
+    const tr = A.archiveTruth(s2, ctry);
+    const o = A.archiveObs(s2, tr.get('P2'), { id: 'P2', name: 'TWO', lat: 47, lon: 14, elevM: 1500 });
+    add('16d archiveObs: jüngste Messung ≤ slotAt (TAWES 23:00, t 3 °C, Wind aus ff/dd, Böe fxh), die Messung 40 min NACH dem Slot (t 9,99 °C) wird nie genommen (Negativkontrolle), Abstand 0, Stationshöhe',
+      o.length === 1 && o[0].validAtMs <= slotAtMs && o[0].temperature === 3 && o[0].gust === 10 && o[0].distanceM === 0 && o[0].elevM === 1500 && Math.abs(o[0].v + 1) < 1e-12,
+      `obs ${o.map((x) => `${new Date(x.validAtMs).toISOString().slice(11, 16)} t ${x.temperature} v ${x.v?.toFixed(2)}`).join(' ')}`);
+  }
+  // 16e the frozen fold rule: issue ≤ hindcast end ⇒ half-month of the valid time, capped at 2026-09b; month table ⇒ 2026-09; after ⇒ full
+  {
+    const END = Date.parse('2026-09-21T23:59:59.999Z'), iss14 = Date.parse('2026-09-14T20:46:00Z'), iss21 = Date.parse('2026-09-21T23:21:00Z'), iss22 = Date.parse('2026-09-22T23:20:00Z');
+    const k = (sch, i, v) => A.foldKeyFV(sch, i, Date.parse(v), END);
+    const naiveOct = (() => { const d = new Date('2026-10-01T06:00:00Z'); return `${d.toISOString().slice(0, 7)}${d.getUTCDate() <= 15 ? 'a' : 'b'}`; })();
+    add('16e foldKeyFV (§1.7 eingefroren): Ausgabe 14.09. Gültigkeit 15.09. ⇒ 2026-09a, 16.09. ⇒ 2026-09b; Ausgabe 21.09. 23:21 (vor Tagesende) Gültigkeit 01.10. ⇒ 2026-09b (gedeckelt — Negativkontrolle: die Scorer-Regel „Halbmonat der Gültigzeit" gäbe 2026-10a, einen Schlüssel ohne Falten ⇒ volle β = Leck); Monatstabelle ⇒ 2026-09; Ausgabe 22.09. ⇒ null (volle Tabellen)',
+      k('half', iss14, '2026-09-15T12:00:00Z') === '2026-09a' && k('half', iss14, '2026-09-16T00:00:00Z') === '2026-09b' && k('half', iss21, '2026-10-01T06:00:00Z') === '2026-09b' && naiveOct === '2026-10a'
+      && k('month', iss14, '2026-09-30T00:00:00Z') === '2026-09' && k('half', iss22, '2026-09-23T00:00:00Z') === null && k('month', iss22, '2026-09-23T00:00:00Z') === null,
+      `naiv ${naiveOct}`);
+  }
+  // 16f the LOSO μ_c as a one-station product: estimateCoefficients returns the station's LOSO vector unchanged, μ_c(t) = the scorer's dot product; negative control: the station's own climatology gives another μ_c
+  {
+    const loso = Array.from({ length: CD }, (_, j) => 10 - 0.3 * j), own = Array.from({ length: CD }, (_, j) => 12 + 0.1 * j);
+    const T = { fitVersion: 'fusionFit@3', builtAt: 'x', design: { mean: { clima: 'station', climaVars: ['t', 'td', 'gust'] } }, climaMu: { candidate: 'ridgeTx', byPoint: { P1: { t: loso, td: loso, gust: loso, u: loso } } } };
+    const prod = A.losoClimaProduct(T, { id: 'P1', name: 'ONE', lat: 48, lon: 11, elevM: 500, country: 'DE' });
+    const est = estimateCoefficients(prod, { lat: 48, lon: 11, elevM: 500, feat: null });
+    const ms = Date.parse('2026-09-23T12:00:00Z'), x = new Float64Array(CD); cDes(ms, 11, x);
+    const dot = (m) => m.reduce((s, c, j) => s + c * x[j], 0);
+    const mu = muAt(est, ms, 11);
+    add('16f losoClimaProduct: Ein-Stations-Produkt (idw k 1, ohne Höhensteigung) ⇒ estimateCoefficients gibt den LOSO-Vektor exakt zurück, μ_c(t) = Skalarprodukt wie score.mjs muCOfTable, nur die gelisteten Größen (u nicht); Negativkontrolle: die eigene Stationsklimatologie gäbe ein anderes μ_c',
+      prod && JSON.stringify(Array.from(est.mu.t)) === JSON.stringify(loso) && Math.abs(mu.t - dot(loso)) < 1e-9 && Math.abs(mu.t - dot(own)) > 1 && !('u' in est.mu) && JSON.stringify(prod.vars) === '["t","td","gust"]' && A.losoClimaProduct({ ...T, climaMu: null }, { id: 'P1' }) === null,
+      `μ_c(t) ${mu.t?.toFixed(3)} = ${dot(loso).toFixed(3)} (eigene ${dot(own).toFixed(3)})`);
+  }
+  // 16h the radar rates are integer-coded like every archive column (`nowcast.scale.mmh` 0,01 mm/h — V-FV-2: FV-A run 1 read them raw)
+  {
+    const nc = A.archiveNowcast(s2, 'P1');
+    const f = nc.nowcast[0]?.frames ?? [];
+    let threw = false; try { A.archiveNowcast({ ...s2, nowcast: { ...s2.nowcast, scale: undefined } }, 'P1'); } catch { threw = true; }
+    add('16h archiveNowcast: Radarrate mit der Skala des Slots (150 ⇒ 1,5 mm/h), Sentinel ⇒ null, 0 bleibt 0, covering durchgereicht; Negativkontrolle: roh gelesen wären es 150 mm/h (V-FV-2, FV-A Lauf 1); ohne Skala wirft der Anpasser statt zu raten',
+      Math.abs(f[0]?.mmh - 1.5) < 1e-12 && f[0].mmh !== 150 && f[1]?.mmh === null && f[2]?.mmh === 0 && JSON.stringify(nc.covering) === '["radvor_rv"]' && threw,
+      `mmh ${f.map((x) => x.mmh).join(' / ')} · ohne Skala wirft ${threw}`);
+  }
+  // 16g the distribution scores: the dist.ts primitives of score.mjs; QS3 of a point value = |e|; QS3 of Normal quantiles is proper (the true quantiles beat shifted ones on average)
+  {
+    const dn = { kind: 'normal', mu: 2, sigma: 1.5 }, dr = { kind: 'rice', nu: 3, sigma: 1 }, dc = { kind: 'censoredNormal', mu: 40, sigma: 30, lo: 0, hi: 100 };
+    const a = scoreDist(dn, 3.1, 0.3), b = scoreDist(dr, 2, 0.3), c = scoreDist(dc, 100, 0.3);
+    let good = 0, bad = 0; const g = lcg(7); g();
+    for (let i = 0; i < 4000; i++) { const u1 = Math.max(1e-12, g()), u2 = g(); const y = 2 + 1.5 * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2); good += qs3Of(quantiles3(dn), y); bad += qs3Of(quantiles3({ ...dn, mu: 3 }), y); }
+    add('16g distScore: Normal-CRPS = crpsNormal, Rice-CRPS = CDF-Integral (riceN 96) wie score.mjs, zensiert = crpsOf(…, 256), Punktwert zensiert = Median; QS3 eines Punktwerts = |Fehler| (beide Vorzeichen); Negativkontrolle Eigentlichkeit: um 1 σ verschobene Quantile verlieren im Mittel (4 000 Züge)',
+      Math.abs(a.crps - crpsNormal(2, 1.5, 3.1)) < 1e-12 && Math.abs(b.crps - crpsByCdf(dr, 2, 0, 3 + 8 + 1, 96)) < 1e-12 && Math.abs(c.crps - crpsOf(dc, 100, 256)) < 1e-12 && Math.abs(qs3Of([1.5, 1.5, 1.5], 2) - 0.5) < 1e-12 && Math.abs(qs3Of([1.5, 1.5, 1.5], 1) - 0.5) < 1e-12 && good < bad,
+      `QS3 wahr ${(good / 4000).toFixed(4)} gegen verschoben ${(bad / 4000).toFixed(4)}`);
+  }
+}
+
+// ── Block 17: phase FS (`audit/fusion-stationswert.md` §2.2) — the fitted station-value candidates: recovery of known b, w, c, the
+// leave-day-out purge (a leak planted in the neighbouring valid day must not reach the fold), the forms per row, each with a negative control ──
+{
+  const F = await import('./fusionfit/lib/stackFit.mjs');
+  const g = lcg(4711); g();
+  const gauss = () => { const u1 = Math.max(1e-12, g()), u2 = g(); return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2); };
+  // 17a recovery: r = 0,3 + 0,7·I + 0,2·D + noise over 12 valid days
+  {
+    const s = new F.FoldSums();
+    for (let d = 0; d < 12; d++) for (let i = 0; i < 400; i++) { const I = 1.5 * gauss(), D = 1.2 * gauss(); s.add('k', d, F.FORMS.S.x(I, D), 0.3 + 0.7 * I + 0.2 * D + 0.5 * gauss()); }
+    const f = s.fit('k', null), fo = s.fit('k', 5);
+    const few = new F.FoldSums(); for (let i = 0; i < 50; i++) few.add('k', 0, [1, gauss()], gauss());
+    const ff = few.fit('k', null);
+    add('17a stackFit: b, w, c aus 4 800 Zeilen zurückgewonnen (0,3 / 0,7 / 0,2 auf ±0,03), σ = Residuen-rms 0,5, die Falte ohne die Gültigtage 4–6 zählt 3 600 Zeilen; Negativkontrolle: unter 200 Zeilen bleibt der Kandidat MOSMIX (Parameter 0, nicht geschrieben)',
+      f.written && Math.abs(f.beta[0] - 0.3) < 0.03 && Math.abs(f.beta[1] - 0.7) < 0.03 && Math.abs(f.beta[2] - 0.2) < 0.03 && Math.abs(f.sigma - 0.5) < 0.03 && fo.n === 3600 && !ff.written && ff.beta.every((x) => x === 0),
+      `β ${f.beta.map((x) => x.toFixed(3)).join(' / ')} σ ${f.sigma.toFixed(3)} · Falte n ${fo.n}`);
+  }
+  // 17b the purge: the truth of valid day 6 is planted as the predictor on the days 5…7 (the same truth under neighbouring issue days);
+  // the fold of day 6 must not see it — without the purge (purge 0) the neighbours leak
+  {
+    const s = new F.FoldSums();
+    for (let d = 0; d < 12; d++) for (let i = 0; i < 300; i++) { const r = gauss(); const leak = d >= 5 && d <= 7; s.add('k', d, [1, leak ? r : gauss()], r); }
+    const purged = s.fit('k', 6), naive = s.fit('k', 6, { purge: 0 }), all = s.fit('k', null);
+    add('17b Leave-Day-out mit Sperre ±1 Gültigtag: die Falte des Tages 6 sieht das in den Tagen 5–7 gepflanzte Leck nicht (w ≈ 0); Negativkontrolle: ohne Sperre (nur der Tag selbst) und im In-sample-Fit trägt das Leck ein Gewicht',
+      Math.abs(purged.beta[1]) < 0.05 && naive.beta[1] > 0.1 && all.beta[1] > 0.15 && purged.n === 2700 && naive.n === 3300,
+      `w gesperrt ${purged.beta[1].toFixed(3)} · ohne Sperre ${naive.beta[1].toFixed(3)} · in-sample ${all.beta[1].toFixed(3)}`);
+  }
+  // 17c forms, groups, values
+  {
+    const v0 = F.stackValue(12.34, [1, 0.7, -2], [0, 0, 0], false), v1 = F.stackValue(1, [1, -3], [0, 1], true), v2 = F.stackValue(1, [1, -3], [0, 1], false);
+    const dW = F.stackDist('ws', -0.4, 0.8), dT = F.stackDist('t', 3, 1.1);
+    add('17c Formen: mit Innovation und Lernstufe S, ohne Lernstufe AB, ohne Innovation S0/B, mosmix+anker ohne Innovation = MOSMIX (null); τ-Gruppen 1…6 einzeln, 7–12 … 121–240, außerhalb −1; Nullform = MOSMIX exakt; Wind/Böe bei 0 begrenzt und zensiert; Negativkontrolle: ohne Grenze wäre der Wind negativ',
+      F.formOf('stack', 1, 1) === 'S' && F.formOf('stack', 1, null) === 'AB' && F.formOf('stack', null, 1) === 'S0' && F.formOf('stack', null, null) === 'B' && F.formOf('mosmix+anker', null, 1) === null && F.formOf('mosmix+anker+bias', null, 1) === 'B'
+      && F.tauGroup(1) === 0 && F.tauGroup(6) === 5 && F.tauGroup(7) === 6 && F.tauGroup(12) === 6 && F.tauGroup(48) === 8 && F.tauGroup(240) === 10 && F.tauGroup(241) === -1 && F.tauGroup(0) === -1 && F.tauGroup(null) === -1
+      && v0 === 12.34 && v1 === 0 && v2 === -2 && dW.kind === 'censoredNormal' && dW.lo === 0 && dT.kind === 'normal',
+      `Nullform ${v0} · Wind begrenzt ${v1} (unbegrenzt ${v2})`);
+  }
+  // 17d distance
+  {
+    const km = F.haversineKm(48.137, 11.575, 47.421, 10.985);   // München – Zugspitze ≈ 91 km
+    add('17d haversineKm: München – Zugspitze 88–94 km, ein Punkt zu sich selbst 0; Negativkontrolle: vertauschte Achsen geben eine andere Strecke',
+      km > 88 && km < 94 && F.haversineKm(48, 11, 48, 11) === 0 && Math.abs(F.haversineKm(11.575, 48.137, 10.985, 47.421) - km) > 5, `${km.toFixed(1)} km`);
+  }
+}
+
 const passed = checks.filter((c) => c.ok).length;
 console.log(`\nverify:fusion-fit ${passed}/${checks.length}`);
 if (passed !== checks.length) process.exit(1);

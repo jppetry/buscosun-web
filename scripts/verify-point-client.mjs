@@ -1080,11 +1080,12 @@ let stationManifest;
 // ── (10m) AP11: URL-Schalter des Punkt-Panels (`?pf=cube`, `?pflog=1`) — rein, netzfrei ──
 {
   const { pfSourceFrom, pfLogFrom } = await import('../src/pointForecast/pfFlags.ts');
-  const cubeCases = ['?pf=cube', '?startnow=0&pf=cube&pflog=1', 'pf=cube', '?lat=50.2&lon=10.5&pf=cube'];
-  const liveCases = ['', '?', '?pf=', '?pf=Cube', '?pf=CUBE', '?pf=cube2', '?pf=live', '?pfx=cube', '?startnow=0', '?pf=%20cube'];
+  // Phase FS (29.09.): der Cube-Pfad ist die Voreinstellung, `?pf=live` der benannte Rückfall
+  const cubeCases = ['', '?', '?pf=', '?pf=cube', '?startnow=0&pf=cube&pflog=1', 'pf=cube', '?lat=50.2&lon=10.5', '?pf=Live', '?pf=LIVE', '?pf=live2', '?pfx=live', '?startnow=0', '?pf=%20live'];
+  const liveCases = ['?pf=live', '?startnow=0&pf=live&pflog=1', 'pf=live', '?lat=50.2&lon=10.5&pf=live'];
   const badCube = cubeCases.filter((s) => pfSourceFrom(s) !== 'cube');
   const badLive = liveCases.filter((s) => pfSourceFrom(s) !== 'live');
-  add('(10m) AP11: `?pf=cube` schaltet auf den Cube-Pfad — nur genau dieser Wert; fehlt er oder steht etwas anderes da, bleibt das Panel live',
+  add('(10m) Phase FS: der Cube-Pfad ist die Voreinstellung — nur genau `?pf=live` schaltet auf den Live-Pfad; fehlt der Schalter oder steht etwas anderes da, rechnet das Panel auf dem Cube',
     badCube.length === 0 && badLive.length === 0, [...badCube.map((s) => `nicht cube: ${s}`), ...badLive.map((s) => `nicht live: ${s}`)].join(' · ') || `${cubeCases.length} cube, ${liveCases.length} live`);
   const logOn = ['?pflog=1', '?pf=cube&pflog=1'], logOff = ['', '?pflog=0', '?pflog=true', '?pflog=', '?pf=cube'];
   add('(10m) AP11: `?pflog=1` schaltet den Zeit-/Herkunftsblock — nur mit dem Wert 1',
@@ -1094,8 +1095,9 @@ let stationManifest;
   const panel = readFileSync(join(ROOT, 'src/pointForecast/PointForecastPanel.tsx'), 'utf8');
   const liveCall = 'getPointForecast({ lat, lng, country, hours, signal: abort.signal, includeRadarNowcast: true, sourceMode })';
   const staticCube = /^import[^;]*['"]\.\/cubeSource['"]/m.test(panel);
-  add('(10m) AP11: Live-Zweig ruft unverändert, Cube-Zweig nur per `import(\'./cubeSource\')` (kein statischer Import im Panel)',
-    panel.includes(liveCall) && panel.includes("import('./cubeSource')") && !staticCube && panel.includes('pfSourceFrom(window.location.search)'));
+  add('(10m) Live-Zweig ruft unverändert, Cube-Zweig nur per `import(\'./cubeSource\')` (kein statischer Import im Panel); scheitert der Cube-Pfad, fällt das Panel auf den Live-Zweig zurück (`cubeFailed`) statt einen Fehler zu zeigen',
+    panel.includes(liveCall) && panel.includes("import('./cubeSource')") && !staticCube && panel.includes('pfSourceFrom(window.location.search)')
+    && panel.includes('setCubeFailed(why)') && panel.includes("sourceMode !== 'native' && cubeFailed == null") && !panel.includes('setError(`buscosun Fusion (Cube'));
 }
 
 // ── (10n) V-FI-17: z0 aus WorldCover — reiner Rechenteil an synthetischen Klassenfeldern, Lader-Regeln ohne Netz ──

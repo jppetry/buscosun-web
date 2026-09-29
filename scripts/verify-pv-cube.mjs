@@ -2134,6 +2134,196 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     stepsJson(noT) === stepsJson(base) && noT.cube.calib.some((c) => /^learnedClima:absent — .*das Produkt \(vars gust\) trägt keine Schätzung für t/.test(c)), noT.cube.calib.find((c) => c.startsWith('learnedClima'))?.slice(0, 120));
 }
 
+// ---------------------------------------------------------------------------
+// (28) Phase FS (`audit/fusion-stationswert.md` §2.7): vier Optionen hinter dem Cube-Pfad, jede voreingestellt aus —
+//      `learnedAtPoint` (V-FS-2: das gelernte Mittel gilt am Punkt), `priorShrink: false` (D2: kein Klimatologie-Schritt für
+//      kalibrierte Member), `learnedClouds` (H14), `stationValue` (H9/H10: M + b + w·I + c·(L − M) an einer Station am Punkt).
+//      Ohne die Optionen byte-gleich, auch mit Tabellen im Eingang; jede Wirkung mit Negativkontrolle.
+// ---------------------------------------------------------------------------
+{
+  const { newTables } = await import('../src/point/fusionFit/tables.ts');
+  const { Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { designNames } = await import('../src/point/fusionFit/fitMean.ts');
+  const { V_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const { verifyStationValue, TAU_GROUPS, STACK_TABLE_KIND, STACK_FIT_VERSION } = await import('../src/pointForecast/fusion/stationValue.ts');
+  const { windTerrainFactor } = await import('../src/pointForecast/fusion/fuse.ts');
+  const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const { calibByVar } = await import('../src/pointForecast/fusion/output.ts');
+  const sv = verifyStationValue();
+  add(`(28) stationValue.ts: ${sv.checks.length} Modulprüfungen (Tabelle, Formen, Rückfall auf die tragbare Form, Grenze bei 0, Station am Punkt)`, sv.failed === 0, sv.checks.filter((c) => !c.ok).map((c) => c.name).join(' | '));
+  // identity tables: μ = ȳ for T, Td, u, v, gust, clct; σ² = 1
+  const tables = newTables('2026-09-28T00:00:00Z');
+  tables.period = { from: '2025-09-01', to: '2026-09-21' };
+  const names = designNames('K', 'r1');
+  for (let bin = 0; bin < 6; bin++) for (const v of ['t', 'td', 'u', 'v', 'gust', 'clct']) {
+    const beta = new Array(names.length).fill(0); beta[Z_DIM] = 1;
+    tables.mean[stratumKey('K', v, bin, 'r1')] = { form: 'K', var: v, bin, cls: 'r1', names, beta, lambda: 1, n: 10000, days: 60, status: 'written' };
+    const c = new Array(V_NAMES.length).fill(0); c[0] = 1;
+    tables.variance[stratumKey('K', v, bin, 'r1')] = { form: 'K', var: v, bin, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 10000, days: 60, msr: 1, status: 'written' };
+  }
+  const entries = {};
+  for (const v of ['t', 'td', 'ws', 'gust']) for (let g = 0; g < TAU_GROUPS.length; g++) {
+    entries[`${v}|${g}|B`] = { n: 500, beta: [0.25], sigma: 0.9 };
+    entries[`${v}|${g}|AB`] = { n: 500, beta: [0.1, 0.5], sigma: 0.8 };
+    entries[`${v}|${g}|S0`] = { n: 500, beta: [0.2, 0.3], sigma: 0.85 };
+    entries[`${v}|${g}|S`] = { n: 500, beta: [0.1, 0.5, 0.2], sigma: 0.7 };
+  }
+  const stack = { schema: 1, kind: STACK_TABLE_KIND, fitVersion: STACK_FIT_VERSION, provenance: 'archive', builtAt: '2026-09-28T00:00:00Z', period: { from: '2026-09-14', to: '2026-09-27', issueDays: 13 }, rows: 1000, range: { maxKm: 5, maxDElevM: 50 }, tauGroups: TAU_GROUPS, entries };
+  const sig = (r) => JSON.stringify([r.steps, r.calib, r.notes]);
+  // a valley: the wind factor of the engine is < 1 for the cube member
+  const valley = { ...flatTerrain(FIX.hTrue), tpi500M: -60, tpi2000M: -80, scales: { ...flatScales(FIX.hTrue), tpiM: [-60, -80, -80, -80, -80, -80] } };
+
+  // (a) the pure function without a station (t1): one member, so rawMu IS what the engine read
+  const fxN = await buildCubeFixture({ tiers: ['t1'], station: false });
+  const bN = await readBundle(fxN.files);
+  const inN = { ...cubeInputFromBundle(bN, clima), terrain: valley, elevationM: FIX.hTrue };
+  const base = fuseCubePoint(inN, { hourly: false });
+  const off = fuseCubePoint({ ...inN, learned: tables, stack }, { hourly: false });
+  const lOnly = fuseCubePoint({ ...inN, learned: tables }, { hourly: false, learned: true });
+  const noLearn = fuseCubePoint({ ...inN, learned: tables }, { hourly: false, learnedAtPoint: true, learnedClouds: true });
+  add('(28) Negativkontrollen: Tabellen und Stationswert-Tabelle im Eingang ohne Option ⇒ byte-gleich zur Basis; `learnedAtPoint`/`learnedClouds` ohne `learned` ⇒ byte-gleich zur Basis, keine calib-Zeile',
+    sig(off) === sig(base) && sig(noLearn) === sig(base) && !noLearn.calib.some((c) => /^(learnedAtPoint|learnedClouds|priorShrink|stationValue)/.test(c)));
+  const atP = fuseCubePoint({ ...inN, learned: tables }, { hourly: false, learned: true, learnedAtPoint: true, priorShrink: false });
+  const notP = fuseCubePoint({ ...inN, learned: tables }, { hourly: false, learned: true, priorShrink: false });
+  const nat = base.steps.map((s, i) => ({ b: s, l: lOnly.steps[i], a: atP.steps[i], n: notP.steps[i] })).filter((x) => !x.b.interpolated && x.b.samples?.[0]?.temperature != null && x.l.flags.includes('learned'));
+  const dz = (x) => x.b.samples[0].sourceElevation - FIX.hTrue;
+  const wfOf = (x) => windTerrainFactor(x.b.samples[0], { terrain: valley.scales, elevationM: FIX.hTrue });
+  // the learned mean of an identity table is the member as stored BEFORE the engine reads it (the base run's sample)
+  const Lt = (x) => x.b.samples[0].temperature, Lws = (x) => Math.hypot(x.b.samples[0].u, x.b.samples[0].v), Lg = (x) => x.b.samples[0].gust;
+  const okAt = nat.every((x) => near(x.a.fused.temperature.rawMu, Lt(x), 1e-9) && near(x.a.fused.windSpeed.rawMu, Lws(x), 1e-9) && near(x.a.fused.gust.rawMu, Lg(x), 1e-9) && near(x.a.fused.dewPoint.rawMu, Math.min(x.b.samples[0].dewPoint, Lt(x)), 1e-9));
+  const okNot = nat.every((x) => near(x.n.fused.temperature.rawMu, Lt(x) + dz(x) * 0.0065, 1e-9) && near(x.n.fused.windSpeed.rawMu, Lws(x) * wfOf(x), 1e-9) && near(x.n.fused.gust.rawMu, Lg(x) * wfOf(x), 1e-9));
+  add('(28) `learnedAtPoint` (V-FS-2): der Motor liest an jedem nativen Schritt genau das gelernte Mittel (T, Td, |v|, Böe; Identitäts-Tabelle, ein Member, ohne Klimatologie-Schritt); Negativkontrolle: ohne die Option liest er T + Δh·6,5 K/km und Wind/Böe mal Geländefaktor (Tal, Faktor < 1)',
+    nat.length > 20 && okAt && okNot && Math.abs(dz(nat[0])) >= 10 && wfOf(nat[0]) < 0.95 && atP.calib.some((c) => c.startsWith('learnedAtPoint:set')) && atP.notes.some((n) => new RegExp(`^learnedAtPoint: Member an ${nat.length} Schritten`).test(n))
+    && calibByVar(atP.calib).t2m.includes('learnedAtPoint') && calibByVar(atP.calib).wind.includes('priorShrink'),
+    `${nat.length} Schritte · Δh ${dz(nat[0])} m · Geländefaktor ${wfOf(nat[0]).toFixed(3)} · T gelesen ohne Option ${nat[0].n.fused.temperature.rawMu.toFixed(3)} gegen gelernt ${Lt(nat[0]).toFixed(3)}`);
+  // (b) priorShrink: false — μ = rawMu, β = 1; precipitation keeps the step; with the step μ is pulled toward the climatology
+  const shr = lOnly, nos = fuseCubePoint({ ...inN, learned: tables }, { hourly: false, learned: true, priorShrink: false });
+  const prs = nat.map((x, i) => ({ s: shr.steps[base.steps.indexOf(x.b)], n: nos.steps[base.steps.indexOf(x.b)] }));
+  add('(28) `priorShrink: false` (D2): T, Td, Böe und Bewölkung μ = rawMu, β = 1 in den Gewichten aller Größen (die Rice des Windes trägt danach noch die mittelwerttreue Regime-Aufweitung); Niederschlag byte-gleich (K-2 behält den Schritt); Negativkontrolle: mit dem Schritt liegt μ näher an der Klimatologie (β < 1)',
+    prs.every(({ s, n }) => near(n.fused.temperature.dist.mu, n.fused.temperature.rawMu, 1e-12) && near(n.fused.dewPoint.dist.mu, n.fused.dewPoint.rawMu, 1e-12) && near(n.fused.clouds.dist.mu, n.fused.clouds.rawMu, 1e-12) && n.weights.wind.beta === 1 && n.weights.gust.beta === 1 && s.weights.wind.beta < 1 && n.fused.windSpeed.dist.nu > s.fused.windSpeed.dist.nu
+      && n.weights.temperature.beta === 1 && s.weights.temperature.beta < 1 && Math.abs(s.fused.temperature.dist.mu - s.fused.temperature.rawMu) > 1e-6 && JSON.stringify(n.fused.precipitation) === JSON.stringify(s.fused.precipitation) && n.fused.temperature.rawMu === s.fused.temperature.rawMu)
+    && nos.calib.some((c) => c.startsWith('priorShrink:off')) && !shr.calib.some((c) => c.startsWith('priorShrink')),
+    `β mit Schritt ${prs[0].s.weights.temperature.beta.toFixed(3)} · μ ${prs[0].s.fused.temperature.dist.mu.toFixed(3)} → ${prs[0].n.fused.temperature.dist.mu.toFixed(3)}`);
+  const tailOn = fuseCubePoint(inN, { hourly: false, tail: true, priorShrink: false }), tailOff = fuseCubePoint(inN, { hourly: false, tail: true });
+  add('(28) `priorShrink: false` lässt den Klimatologie-Schwanz unberührt (jenseits der Daten trägt weiter allein die Klimatologie)',
+    tailOn.steps.some((s) => s.tier === 'clima') && JSON.stringify(tailOn.steps.filter((s) => s.tier === 'clima')) === JSON.stringify(tailOff.steps.filter((s) => s.tier === 'clima')));
+  // (c) learnedClouds: the learned distribution passes through
+  const clo = fuseCubePoint({ ...inN, learned: tables }, { hourly: false, learned: true, learnedClouds: true });
+  const cl = nat.map((x) => ({ l: lOnly.steps[base.steps.indexOf(x.b)], c: clo.steps[base.steps.indexOf(x.b)] }));
+  add('(28) `learnedClouds` (H14): die Bewölkung ist die Verteilung der Lernstufe (zensiert, σ der Tabelle = 1) statt der nachfusionierten; T, Wind, Niederschlag unverändert; `post.learnedClouds`; Negativkontrolle: ohne Option trägt der Schritt das zur Klimatologie gezogene μ des Motors',
+    cl.every(({ l, c }) => c.fused.clouds.dist.kind === 'censoredNormal' && near(c.fused.clouds.dist.sigma, 1, 1e-9) && c.post?.learnedClouds === true && !l.post && near(c.fused.clouds.dist.mu, l.fused.clouds.rawMu, 1e-9)
+      && JSON.stringify(c.fused.temperature) === JSON.stringify(l.fused.temperature) && JSON.stringify(c.fused.windSpeed) === JSON.stringify(l.fused.windSpeed) && JSON.stringify(c.fused.precipitation) === JSON.stringify(l.fused.precipitation))
+    && cl.filter(({ l, c }) => Math.abs(l.fused.clouds.dist.mu - c.fused.clouds.dist.mu) > 1e-3).length > cl.length / 2 && clo.calib.some((c) => c.startsWith('learnedClouds:hindcast')),
+    `μ ${cl[0].l.fused.clouds.dist.mu.toFixed(3)} → ${cl[0].c.fused.clouds.dist.mu.toFixed(3)}`);
+
+  // (d) stationValue: the main fixture — MUENCHEN STADT 4,5 km, 515 m against h_true 525 m
+  const inS = { ...cubeInputFromBundle(bundle, clima), terrain: flatTerrain(FIX.hTrue), elevationM: FIX.hTrue };
+  const stT = (ms) => 12 + (Math.round((ms - Date.parse('2026-09-16T15:00:00Z')) / H) - 1) * 0.1 + 0.0065 * (FIX.station.elev - FIX.hTrue);
+  const obs = [{ source: 'brightsky', name: 'am Punkt', lat: FIX.lat, lon: FIX.lon, elevM: FIX.hTrue, distanceM: 0, validAtMs: t0Ms, temperature: stT(t0Ms) + 2, relativeHumidity: null, u: null, v: null, gust: null }];
+  const sBase = fuseCubePoint({ ...inS, obs }, { hourly: false });
+  const sOff = fuseCubePoint({ ...inS, obs, stack }, { hourly: false });
+  const sOn = fuseCubePoint({ ...inS, obs, stack }, { hourly: false, stationValue: true });
+  const withM = sOn.steps.map((s, i) => ({ s, b: sBase.steps[i] })).filter(({ s }) => s.post?.stationValue?.t);
+  const lead = (s) => Math.round((s.validAtMs - t0Ms) / H);
+  add('(28) `stationValue` (H9/H10): an jedem Schritt mit Stationsvorhersage T = M + 0,1 + 0,5·I (Form AB ohne Lernstufe, I = +2 K aus der Messung am Punkt, M auf h_true gebracht), normal mit σ 0,8; Wind/Böe ohne Messung Form B (M + 0,25, zensiert bei 0); Richtung, Feuchte, Niederschlag, Bewölkung unverändert; Negativkontrolle: Tabelle ohne Option ⇒ byte-gleich',
+    sig(sOff) === sig(sBase) && withM.length > 40
+    && withM.every(({ s, b }) => { const p = s.post.stationValue; return p.t.form === 'AB' && near(p.t.M, stT(s.validAtMs), 1e-6) && near(p.t.I, 2, 1e-6) && near(s.fused.temperature.dist.mu, stT(s.validAtMs) + 0.1 + 1, 1e-6) && s.fused.temperature.dist.sigma === 0.8
+      && p.ws.form === 'B' && near(p.ws.value, Math.hypot(1.5, -0.5) + 0.25, 1e-6) && s.fused.windSpeed.dist.kind === 'censoredNormal' && s.fused.windSpeed.dist.lo === 0 && p.gust.form === 'B'
+      && s.fused.windDirectionDeg === b.fused.windDirectionDeg && JSON.stringify(s.fused.humidity) === JSON.stringify(b.fused.humidity) && JSON.stringify(s.fused.precipitation) === JSON.stringify(b.fused.precipitation) && JSON.stringify(s.fused.clouds) === JSON.stringify(b.fused.clouds); })
+    && withM.some(({ s }) => lead(s) > 48) && sOn.calib.some((c) => c.startsWith('stationValue:archive') && c.includes('stack@1') && c.includes('nie measured')) && sOn.notes.some((n) => /^stationValue: MUENCHEN STADT steht am Punkt \(4\.\d km, Δh -10 m\); Innovation aus brightsky/.test(n))
+    && calibByVar(sOn.calib).t2m.includes('stationValue') && !calibByVar(sBase.calib).t2m.includes('stationValue'),
+    `${withM.length} Schritte · T +1 h ${withM[0].s.fused.temperature.dist.mu.toFixed(3)} = M ${withM[0].s.post.stationValue.t.M.toFixed(3)} + 1,1 · ${sOn.notes.find((n) => n.startsWith('stationValue:'))?.slice(0, 110)}`);
+  const sL = fuseCubePoint({ ...inS, obs, stack, learned: tables }, { hourly: false, learned: true, stationValue: true });
+  const lm = sL.steps.filter((s) => s.post?.stationValue?.t);
+  add('(28) `stationValue` mit Lernstufe: volle Form S — T = M + 0,1 + 0,5·I + 0,2·(L − M) mit L = gelerntes Mittel des Schritts, σ 0,7',
+    lm.length > 40 && lm.every((s) => { const p = s.post.stationValue.t; return p.form === 'S' && p.L != null && near(p.value, p.M + 0.1 + 0.5 * p.I + 0.2 * (p.L - p.M), 1e-9) && near(s.fused.temperature.dist.mu, p.value, 1e-12) && s.fused.temperature.dist.sigma === 0.7; }),
+    lm.length ? `L ${lm[0].post.stationValue.t.L.toFixed(3)} · M ${lm[0].post.stationValue.t.M.toFixed(3)} · Wert ${lm[0].post.stationValue.t.value.toFixed(3)}` : 'keine Schritte');
+  const sFar = fuseCubePoint({ ...inS, obs, stack: { ...stack, range: { maxKm: 3, maxDElevM: 50 } } }, { hourly: false, stationValue: true });
+  const sObsFar = fuseCubePoint({ ...inS, obs: obs.map((o) => ({ ...o, distanceM: 8000 })), stack }, { hourly: false, stationValue: true });
+  const sBad = fuseCubePoint({ ...inS, obs, stack: { ...stack, provenance: 'measured' } }, { hourly: false, stationValue: true });
+  const sNone = fuseCubePoint({ ...inS, obs }, { hourly: false, stationValue: true });
+  add('(28) `stationValue` Grenzen: Station außerhalb der Reichweite der Tabelle (3 km) ⇒ Schritte byte-gleich zur Basis, benannt; Messung 8 km entfernt ⇒ keine Innovation, Form B; Tabelle mit fremder Provenienz oder keine Tabelle ⇒ byte-gleiche Schritte, calib `stationValue:absent`',
+    JSON.stringify(sFar.steps) === JSON.stringify(sBase.steps) && sFar.notes.some((n) => /^stationValue: keine Station am Punkt .*außerhalb 3 km/.test(n))
+    && sObsFar.steps.filter((s) => s.post?.stationValue?.t).every((s) => s.post.stationValue.t.form === 'B' && s.post.stationValue.t.I === null) && sObsFar.notes.some((n) => /Innovation keine/.test(n))
+    && JSON.stringify(sBad.steps) === JSON.stringify(sBase.steps) && sBad.calib.some((c) => /^stationValue:absent — .*Tabelle ist ungültig \(provenance measured/.test(c))
+    && JSON.stringify(sNone.steps) === JSON.stringify(sBase.steps) && sNone.calib.some((c) => /^stationValue:absent — .*keine Tabelle im Eingang/.test(c)));
+  const hOn = fuseCubePoint({ ...inS, obs, stack }, { hourly: true, stationValue: true });
+  const filled = hOn.steps.filter((s) => s.tier === 'station' && lead(s) <= 240);
+  const beyond = hOn.steps.filter((s) => s.tier === 'station' && lead(s) > 240);
+  add('(28) `stationValue` auf der stündlichen Achse: auch die Stunde, die die Station füllt, trägt den Stationswert (Form AB, derselbe I); jenseits der τ-Gruppen (> 240 h) bleibt die Kombination',
+    filled.length > 20 && filled.every((s) => s.post?.stationValue?.t?.form === 'AB' && near(s.fused.temperature.dist.mu, stT(s.validAtMs) + 1.1, 1e-6)) && beyond.every((s) => !s.post), `${filled.length} gefüllte Stunden, ${beyond.length} jenseits`);
+  const io28 = (extra) => ({ store: memoryStore(fx.files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extra });
+  add('(28) Cache-Schlüssel: die Optionen über `CubeIo.fuse` tragen den Schlüssel (kein geteilter Eintrag mit der Voreinstellung)',
+    cubeIoVariantKey(io28({ fuse: { priorShrink: false } })) !== cubeIoVariantKey(io28({})) && cubeIoVariantKey(io28({ fuse: { learnedAtPoint: true } })) !== cubeIoVariantKey(io28({ fuse: { priorShrink: false } })));
+}
+
+// ---------------------------------------------------------------------------
+// (29) Phase FS, die neueste Stufe als EIN Schalter: `CubeIo.stage: 'fs'` mit `learnedSource`/`climaSource`/`stackSource` —
+//      die Voreinstellung des Browsers (`defaultCubeIo`). Mit den Dateien trägt das Produkt alle Zeilen der Stufe; ohne die
+//      Dateien rechnet es byte-gleich wie ohne den Schalter und nennt es; der Stationswert nennt, wie oft er gesetzt wurde.
+// ---------------------------------------------------------------------------
+{
+  const { newTables } = await import('../src/point/fusionFit/tables.ts');
+  const { Z_DIM } = await import('../src/point/fusionFit/features.ts');
+  const { designNames } = await import('../src/point/fusionFit/fitMean.ts');
+  const { V_NAMES } = await import('../src/point/fusionFit/design.ts');
+  const { stratumKey } = await import('../src/point/fusionFit/strata.ts');
+  const { TAU_GROUPS, STACK_TABLE_KIND, STACK_FIT_VERSION } = await import('../src/pointForecast/fusion/stationValue.ts');
+  const { POINT_LEARNED_PATH, POINT_STACK_PATH } = await import('../src/point/cubeFormat.ts');
+  const { cubeIoVariantKey, defaultCubeIo } = await import('../src/pointForecast/cubeSource.ts');
+  const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const tables = newTables('2026-09-28T00:00:00Z'); tables.period = { from: '2025-09-01', to: '2026-09-21' };
+  const names = designNames('K', 'r1');
+  for (let bin = 0; bin < 6; bin++) for (const v of ['t', 'td', 'u', 'v', 'gust', 'clct']) {
+    const beta = new Array(names.length).fill(0); beta[Z_DIM] = 1;
+    tables.mean[stratumKey('K', v, bin, 'r1')] = { form: 'K', var: v, bin, cls: 'r1', names, beta, lambda: 1, n: 10000, days: 60, status: 'written' };
+    const c = new Array(V_NAMES.length).fill(0); c[0] = 1;
+    tables.variance[stratumKey('K', v, bin, 'r1')] = { form: 'K', var: v, bin, cls: 'r1', names: V_NAMES, c, floor: 0.01, n: 10000, days: 60, msr: 1, status: 'written' };
+  }
+  const mkStack = (forms) => {
+    const entries = {};
+    for (const v of ['t', 'td', 'ws', 'gust']) for (let g = 0; g < TAU_GROUPS.length; g++) for (const [f, b] of Object.entries(forms)) entries[`${v}|${g}|${f}`] = { n: 500, beta: b, sigma: 0.8 };
+    return { schema: 1, kind: STACK_TABLE_KIND, fitVersion: STACK_FIT_VERSION, provenance: 'archive', builtAt: '2026-09-28T00:00:00Z', period: { from: '2026-09-14', to: '2026-09-27', issueDays: 13 }, rows: 1000, range: { maxKm: 5, maxDElevM: 50 }, tauGroups: TAU_GROUPS, entries };
+  };
+  const stackFull = mkStack({ B: [0.25], AB: [0.1, 0.5], S0: [0.2, 0.3], S: [0.1, 0.5, 0.2] });
+  const stackOnlyI = mkStack({ AB: [0.1, 0.5], S: [0.1, 0.5, 0.2] });
+  const filesOf = (tb, st) => { const m = new Map(fx.files); if (tb) m.set(POINT_LEARNED_PATH, enc(tb)); if (st) m.set(POINT_STACK_PATH, st === 'broken' ? new TextEncoder().encode('{kein json') : enc(st)); return m; };
+  const io = (files, extra) => ({ store: memoryStore(files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue), obs: null, ...extra });
+  const opts29 = { lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false };
+  const run = async (files, extra) => { clearCubeForecastCache(); return getPointForecastFromCube(opts29, io(files, extra)); };
+  const STAGE = { learnedSource: 'json', climaSource: 'json', stackSource: 'json', stage: 'fs' };
+  const stepsJson = (p) => JSON.stringify(p.cube.v2.axis.steps);
+  const keysOf = (p) => p.cube.calib.map((c) => c.split(' — ')[0]);
+  const base = await run(filesOf(null, null), {});
+  const d = defaultCubeIo();
+  add('(29) Voreinstellung des Browsers: defaultCubeIo trägt learnedSource, climaSource, stackSource = json und stage fs; der Cache-Schlüssel trägt Stufe und Tabelle',
+    d.learnedSource === 'json' && d.climaSource === 'json' && d.stackSource === 'json' && d.stage === 'fs' && cubeIoVariantKey(io(new Map(), STAGE)).endsWith('|learned:json|clima:json|stack:json|stage:fs') && cubeIoVariantKey(io(new Map(), { stage: 'fs' })) !== cubeIoVariantKey(io(new Map(), {})),
+    cubeIoVariantKey(io(new Map(), STAGE)));
+  const none = await run(filesOf(null, null), STAGE);
+  add('(29) ohne die Dateien im Daten-Repo: Schritte byte-gleich zum Pfad ohne Schalter, keine Zeile der Stufe außer learned:absent; die Notizen nennen jede fehlende Datei und „Rechnung wie ohne die Stufe"',
+    stepsJson(none) === stepsJson(base) && keysOf(none).filter((k) => /^(learned|priorShrink|stationValue)/.test(k)).join() === 'learned:absent'
+    && none.cube.notes.some((n) => /^learned: .*nicht lesbar/.test(n)) && none.cube.notes.some((n) => /^stationValue: .*nicht lesbar/.test(n)) && none.cube.notes.some((n) => /^stage:fs — keine gelernten Tabellen/.test(n)),
+    keysOf(none).filter((k) => /^(learned|priorShrink|stationValue)/.test(k)).join());
+  const onlyStack = await run(filesOf(null, stackFull), STAGE);
+  add('(29) nur die Tabelle des Stationswerts, keine Lernstufe: Schritte byte-gleich zum Pfad ohne Schalter (die Stufe ist nur mit der Lernstufe gemessen)', stepsJson(onlyStack) === stepsJson(base) && !keysOf(onlyStack).includes('stationValue:archive'));
+  const full = await run(filesOf(tables, stackFull), STAGE);
+  const need = ['learned:hindcast', 'learnedAtPoint:set', 'learnedClouds:hindcast', 'priorShrink:off', 'stationValue:archive'];
+  add('(29) mit Tabellen und Stationswert-Tabelle: calib trägt learned, learnedAtPoint, learnedClouds, priorShrink:off, stationValue:archive; die Notiz nennt die Stufe und zählt die gesetzten Schritte; ohne Messung trägt die Form S0; Schritte ≠ Basis',
+    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe: .*Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
+    full.cube.notes.find((n) => n.startsWith('stationValue: gesetzt'))?.slice(0, 120) ?? `fehlt: ${need.filter((k) => !keysOf(full).includes(k)).join()}`);
+  const noI = await run(filesOf(tables, stackOnlyI), STAGE);
+  add('(29) nie still (V-FS-12): eine Tabelle ohne die Formen ohne Messung setzt bei einer Abfrage ohne Messung NICHTS — die Notiz sagt „an keinem Schritt gesetzt"; die übrige Stufe wirkt weiter',
+    noI.cube.notes.some((n) => /^stationValue: an keinem Schritt gesetzt/.test(n)) && keysOf(noI).includes('priorShrink:off') && stepsJson(noI) !== stepsJson(full) && stepsJson(noI) !== stepsJson(base));
+  const broken = await run(filesOf(tables, 'broken'), STAGE);
+  const noFile = await run(filesOf(tables, null), STAGE);
+  add('(29) Stationswert-Tabelle kein JSON: die Stufe rechnet ohne Stationswert (Notiz „kein JSON", „ohne Stationswert"), Schritte byte-gleich zur Stufe ohne die Datei',
+    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe: .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
+  const explicit = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { priorShrink: true, stationValue: false } });
+  add('(29) ausdrückliche fuse-Optionen haben Vorrang vor der Stufe: priorShrink true und stationValue false ⇒ keine der beiden Zeilen, die übrige Stufe bleibt',
+    !keysOf(explicit).includes('priorShrink:off') && !keysOf(explicit).includes('stationValue:archive') && keysOf(explicit).includes('learnedAtPoint:set'));
+}
+
 let failed = 0;
 for (const c of checks) {
   if (!c.ok) failed += 1;

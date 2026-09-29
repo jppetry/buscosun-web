@@ -1,7 +1,7 @@
 /**
  * PointForecastBands.tsx — buscosun Fusion auf dem Punkt-Cube im Punkt-Panel (Phase FI, AP11).
  *
- * Nur hinter `?pf=cube`: `PointForecastPanel` lädt diese Datei per `React.lazy` (eigener Chunk mit eigenem CSS),
+ * Im Cube-Modus (Voreinstellung seit Phase FS; nicht mit `?pf=live`): `PointForecastPanel` lädt diese Datei per `React.lazy` (eigener Chunk mit eigenem CSS),
  * ohne den Schalter kommt sie nie auf den Draht. Gezeigt wird `PointForecastV2` (Plan §2) so, wie es ist:
  *   • je Stunde der Median mit dem Band p10–p90 auf EINER Skala je Größe (Stunden sind vergleichbar),
  *   • σ-Art (PAP 6), Konfidenz mit ihren drei Faktoren (kein Wahrscheinlichkeitsmaß, V-PV-02),
@@ -113,7 +113,7 @@ export default function PointForecastBands({ data }: Props) {
   return (
     <div className="pfb-root">
       <div className="pfb-head">
-        <span className="pfb-badge">buscosun Fusion · Cube · Test</span>
+        <span className="pfb-badge">buscosun Fusion · Cube</span>
         {hasSet && <span className="pfb-badge pfb-badge-set" title="Die Bandbreiten beruhen auf Setzungen, bis das Archiv sie kalibriert (AP10).">vorläufige Bandbreite</span>}
         {tiersPending.length > 0 && <span className="pfb-badge pfb-badge-wait">erste Darstellung · {tiersPending.join('/')} folgen</span>}
         {pending.includes('anchor') && <span className="pfb-badge pfb-badge-wait">Anker folgt</span>}

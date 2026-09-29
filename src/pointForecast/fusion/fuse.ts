@@ -100,6 +100,15 @@ export interface FusionContext {
   onWeights?: (info: { variable: FusionVariable; weights: ReadonlyArray<{ tag: string; w: number }>; beta: number }) => void;
   /** Micro-climate temperature offset at an arbitrary time (K) — same reasoning. */
   terrainDeltaAt?: (ms: number) => number;
+  /**
+   * Phase FS (D2, `audit/fusion-stationswert.md`): `false` = NO climatological step for a combination whose members ALL
+   * carry an explicit error spread (`errorSigma`). Such members are calibrated forecasts — a station forecast (a MOS) and
+   * the learned member are regressions on the truth already, E[truth | forecast] = forecast; shrinking them toward the
+   * climatology a second time damps the anomaly twice (measured on the archive: slope of the truth on the combined anomaly
+   * 1,04–1,13 for T where β of the step is 0,83–0,87). A combination with any prior-calibrated member keeps the step. Absent or
+   * `true`: unchanged.
+   */
+  priorShrink?: boolean;
 }
 
 export interface FusedVariable {
@@ -348,6 +357,7 @@ export function fuseScalar(
   const curves = ACC[variable];
   const sc = opt.climaSigma;
   const sc2 = sc * sc;
+  let explicit = 0;
 
   for (const s of samples) {
     const raw = opt.value(s);
@@ -366,6 +376,7 @@ export function fuseScalar(
       const microE = timedE && opt.microDeltaAt ? opt.microDeltaAt(atMsE) : (opt.microDelta ?? 0);
       const resolvedE = microE ? microE * microResolution(s, ctx) : 0;
       members.push({ mu: raw - (baseMeanE + resolvedE), sigma: es, tag: s.source, src: s });
+      explicit += 1;
       continue;
     }
 
@@ -493,10 +504,12 @@ export function fuseScalar(
   //   σ_est → 0  (a station, here, now)  ⇒  the measurement wins outright
   //   σ_est → ∞  (no skill left)         ⇒  the climatology wins outright
   const se2 = c.sigma * c.sigma;
-  const beta = sc2 / (sc2 + se2);
+  // Phase FS (D2): calibrated members only and the step switched off ⇒ the combination IS the answer (β = 1).
+  const noShrink = ctx.priorShrink === false && explicit === members.length;
+  const beta = noShrink ? 1 : sc2 / (sc2 + se2);
   const climaMean = opt.climaMean + (opt.microDelta ?? 0);
   const mu = climaMean + beta * c.mu;
-  const varPost = (sc2 * se2) / (sc2 + se2);
+  const varPost = noShrink ? se2 : (sc2 * se2) / (sc2 + se2);
   const sigma = Math.sqrt(Math.max(1e-9, varPost + (opt.extraVar ?? 0)));
 
   const total = c.weights.reduce((a, w) => a + Math.abs(w), 0) || 1;
