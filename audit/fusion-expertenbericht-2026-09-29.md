@@ -205,6 +205,12 @@ Stichtag), `?rvfmt=hdf5` auf HDF5 ohne Rückfall. Der Bild-Weg (RD3, Normalweg) 
    Ableitung. Umgekehrt gälte das nicht: neues Skript mit alter Ableitung ⇒ Slots ohne Bild-Ablage.
 3. Nicht in das Publish-Fenster des Repack-Crons pushen (`:20` und `:30` der 3-Stunden-Slots, Force-Push).
 
+**Am Runner (30.09., Spiegel-Job ab 03:53:48 UTC, erster Job mit dem neuen Skript):** `composite_rv_20260930_0350.tar`
+(952 KB) und `…_0355.tar` liegen auf `main`, die Altformat-Slots werden Slot für Slot verdrängt (nach zwei Slots
+2 HDF5 / 10 RADOLAN); Ableitung **882 ms** am Runner (schneller Leser; lokal unter Last 4–7 s), Bild-Slot 128 KB,
+`radar/img/v1/rv/2609300355/meta.json` am CDN mit HTTP 200. Der erste Slot brauchte DWD → Push 71 s, weil er den
+Jobstart mit einschloss; die Regelkette bleibt unter dem Bild-Gate von 270 s (V-EX-11 am 01.10. an mehreren Slots ansehen).
+
 **Offen.** V-EX-9 `fetchRyLatest` (exportiert, ohne Aufrufer) liest `…-bin.bz2` und endet am 20.10.; die HDF5-Form
 von RY ist ein anderes Produkt (Größe `RATE`, gain 0,01, `/where` leer) — nicht geraten, nicht portiert.
 V-EX-10 Altformat-Rückfall und `B1h` nach dem 20.10. entfernen. V-EX-11 Bild-Gate: die Ableitung dauert länger als
