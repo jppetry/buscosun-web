@@ -12,7 +12,12 @@
  *   D  Dashboard → Karte: dasselbe Canvas-Element (Markierung überlebt) ⇒ keine Neu-Initialisierung; der Loop läuft wieder.
  *   E  Browser-Zurück/Vorwärts wechselt die Ansicht.
  *   F  Teilen-Link in frischem Kontext öffnet das Dashboard direkt (14 Tage), ohne die Karte zu montieren; erster Wechsel
- *      montiert sie, Zurück kehrt ins Dashboard.
+ *      montiert sie, Zurück kehrt ins Dashboard. E-DB-20: das Karten-JS kommt erst nach der ersten Fusionsausgabe, im
+ *      Hintergrund, sobald das ganze Fenster da ist; der Wechsel holt es nicht noch einmal.
+ *   J  E-DB-20: Ortswahl auf der Startseite (gespeicherter Ort — derselbe `onSelect` wie die Suche) öffnet das Dashboard;
+ *      Karten-JS danach im Hintergrund; der Umschalter zeigt die Karte am selben Ort.
+ *   K  E-DB-20: Wechsel zur Karte, bevor ihr JS im Hintergrund da ist ⇒ Ladeanzeige, dann die Karte (Lazy-Weg).
+ *   L  E-DB-20: ein Karten-Link holt MapView parallel zum Route-Chunk (Router-Loader), ohne Dashboard/Fusion.
  *   G  Kanonisierung: Standardwerte/ungültige Werte verschwinden aus der URL.
  *   H  /warnungen hat keinen Umschalter; mobil sitzt er in der Schwebeleiste mit 44-px-Trefferfläche.
  *   I  keine ungefangene Ausnahme während der Abläufe.
@@ -46,6 +51,7 @@ const browser = await openBrowser(chrome, { timeoutMs: 90_000, extraArgs: ['--us
 async function page({ width = 1440, height = 900, mobile = false } = {}) {
   const ctx = await browser.newContext({ width, height, mobile });
   await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: DRAW_COUNTER });
+  await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: RT_BUFFER });
   const errors = [];
   const off = browser.on((msg) => {
     if (msg.sessionId !== ctx.sessionId) return;
@@ -67,6 +73,13 @@ async function page({ width = 1440, height = 900, mobile = false } = {}) {
 
 const loc = `location.pathname + location.search`;
 const draws = async (p, ms) => { await p.ev('window.__dbDraws = 0, true'); await sleep(ms); return p.ev('window.__dbDraws'); };
+// E-DB-20: Ladereihenfolge aus der Resource-Timing-API der Seite (dieselbe Zeitbasis wie die Messpunkte `dbd:fusion:*`).
+// Der Puffer wird vor jedem Skript der Seite vergrößert — sonst fielen späte Einträge (das Karten-JS) nach 250 heraus.
+const RT_BUFFER = `performance.setResourceTimingBufferSize(5000);`;
+const res = (name) => `(() => { const e = performance.getEntriesByType('resource').filter((r) => /\\/assets\\/${name}-[\\w-]+\\.js$/.test(r.name)); return e.length ? { n: e.length, start: Math.round(e[0].startTime), end: Math.round(e[0].responseEnd) } : null; })()`;
+const mark = (n) => `(performance.getEntriesByName('${n}')[0]?.startTime ?? null)`;
+// Ein gespeicherter Ort auf der Startseite: derselbe `onSelect` wie die Suche, ohne Geocoding über das Netz.
+const FAV_SEED = `try { localStorage.setItem('buscosun.favorites.v1', JSON.stringify([{ name: 'Garmisch-Partenkirchen', lat: 47.4917, lon: 11.0955, country: 'DE' }])); } catch (e) {}`;
 
 // ---------------------------------------------------------------------------
 // A–E Desktop, eine Sitzung
@@ -138,14 +151,75 @@ const draws = async (p, ms) => { await p.ev('window.__dbDraws = 0, true'); await
   add('(F) jedes als „nicht verfügbar" markierte Element endet auf „n. v."/„nicht verfügbar" — kein Wert', naBad.length === 0 && naN > 0, naBad.join(' | ') || `${naN} n.-v.-Elemente`);
   const origins = await p.ev(`[...document.querySelectorAll('.dbd-root [data-origin]')].every((e) => /^P\\d\\d$/.test(e.dataset.origin))`);
   add('(F) jeder gezeichnete Wert trägt seine Herkunft (data-origin P01–P88)', origins);
+  // E-DB-20: erst das Dashboard, dann das Karten-JS im Hintergrund — montiert wird die Karte erst beim Wechsel.
+  const bg = await p.until(`!!${res('MapView')}`, 40_000);
+  const t = await p.ev(`({ first: ${mark('dbd:fusion:first')}, core: ${mark('dbd:fusion:core')}, mv: ${res('MapView')}, canvases: document.querySelectorAll('.maplibregl-canvas').length })`);
+  const firstOut = t.first ?? t.core;
+  add('(F) E-DB-20: das Karten-JS (MapView) wird erst nach der ersten Fusionsausgabe angefordert', bg && firstOut != null && t.mv.start > firstOut, JSON.stringify(t));
+  add('(F) E-DB-20: danach lädt es im Hintergrund, sobald das ganze Fenster da ist — die Karte bleibt unmontiert', bg && t.mv.start >= (t.core ?? firstOut) && t.canvases === 0, JSON.stringify(t));
   await p.ev(`[...document.querySelectorAll('.dbd-top > .vt-toggle .vt-btn')].find((b) => b.textContent === 'Karte').click(), true`);
   const mounted = await p.until(`!!document.querySelector('.maplibregl-canvas')`, 30_000);
   add('(F) erster Wechsel zur Karte montiert sie', mounted);
+  add('(F) E-DB-20: der Wechsel holt das Karten-JS nicht noch einmal (ein Abruf, aus dem Hintergrund)', (await p.ev(res('MapView')))?.n === 1);
   await p.ev(`document.querySelector('.maplibregl-canvas').dataset.dbMark = 'first', true`);
   await p.ev('history.back(), true');
   const bk = await p.until(`!!document.querySelector('.dbd-root') && /zeitraum=14-tage/.test(location.search)`, 10_000);
   add('(F) Zurück ⇒ Dashboard mit 14 Tagen; die Karte bleibt montiert (dasselbe Canvas)', bk && await p.ev(`document.querySelector('.maplibregl-canvas')?.dataset.dbMark === 'first'`));
   add('(I) keine ungefangene Ausnahme im Ablauf F', p.errors.length === 0, p.errors.slice(0, 3).join(' | '));
+  await p.close();
+}
+
+// ---------------------------------------------------------------------------
+// J Ortswahl auf der Startseite ⇒ Dashboard (E-DB-20) · L Karten-Link holt MapView parallel zum Route-Chunk
+// ---------------------------------------------------------------------------
+{
+  const p = await page();
+  await p.ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: FAV_SEED });
+  await p.go('/');
+  const favUp = await p.until(`!!document.querySelector('.deck-fav-open')`, 20_000);
+  const histBefore = await p.ev('history.length');
+  // Die Startseite wärmt MapView selbst im Leerlauf vor (SearchPage, „während der Nutzer sucht") — maßgeblich ist, ob
+  // NACH der Ortswahl vor der ersten Fusionsausgabe Karten-JS angefragt wird.
+  if (favUp) await p.ev(`window.__dbClickAt = performance.now(), document.querySelector('.deck-fav-open').click(), true`);
+  const inDash = await p.until(`!!document.querySelector('.dbd-root') && /ansicht=dashboard/.test(location.search)`, 20_000);
+  const url = await p.ev(loc);
+  add('(J) E-DB-20: Ortswahl auf der Startseite öffnet das Dashboard am Ort (Pfad mit Layer und Ort, ansicht=dashboard, push)',
+    favUp && inDash && /^\/wetterkarte\/wind\/[\w-]+\?(?:[^#]*&)?ansicht=dashboard$/.test(url) && (await p.ev('history.length')) === histBefore + 1, url);
+  add('(J) E-DB-20: die Karte ist dabei nicht montiert', (await p.ev(`document.querySelectorAll('.maplibregl-canvas').length`)) === 0);
+  const bg = await p.until(`!!${res('MapView')} && ${mark('dbd:fusion:core')} != null`, 40_000);
+  const t = await p.ev(`({ click: Math.round(window.__dbClickAt), first: ${mark('dbd:fusion:first')}, core: ${mark('dbd:fusion:core')}, mv: ${res('MapView')} })`);
+  const out1 = t.first ?? t.core;
+  add('(J) E-DB-20: zwischen Ortswahl und erster Fusionsausgabe wird kein Karten-JS angefragt (davor: Leerlauf-Vorwärmen der Startseite)',
+    bg && out1 != null && (t.mv.start < t.click || t.mv.start > out1), JSON.stringify(t));
+  await p.ev(`[...document.querySelectorAll('.dbd-top > .vt-toggle .vt-btn')].find((b) => b.textContent === 'Karte')?.click(), true`);
+  const onMap = inDash && await p.until(`!!document.querySelector('.maplibregl-canvas') && !document.querySelector('.dbd-root') && !/ansicht=/.test(location.search)`, 30_000);
+  add('(J) Umschalter ⇒ die Karte am selben Ort (Pfad bleibt, ohne ansicht)', onMap && (await p.ev('location.pathname')) === new URL(BASE + url).pathname);
+  add('(I) keine ungefangene Ausnahme im Ablauf J', p.errors.length === 0, p.errors.slice(0, 3).join(' | '));
+  await p.close();
+}
+{
+  // K: Wechsel zur Karte, BEVOR das Karten-JS im Hintergrund da ist ⇒ Ladeanzeige (AppLoader), dann die Karte.
+  const p = await page();
+  await p.go(`${PLACE}?ansicht=dashboard`);
+  await p.until(`!!document.querySelector('.dbd-top > .vt-toggle .vt-btn')`, 20_000);
+  const before = await p.ev(res('MapView'));
+  await p.ev(`[...document.querySelectorAll('.dbd-top > .vt-toggle .vt-btn')].find((b) => b.textContent === 'Karte')?.click(), true`);
+  const mounted = await p.until(`!!document.querySelector('.maplibregl-canvas') && !document.querySelector('.dbd-root')`, 45_000);
+  add('(K) E-DB-20: Wechsel zur Karte vor dem Hintergrund-Laden (Karten-JS noch nicht angefragt) ⇒ die Karte kommt trotzdem',
+    before == null && mounted && (await p.ev(res('MapView')))?.n === 1, JSON.stringify({ before }));
+  add('(I) keine ungefangene Ausnahme im Ablauf K', p.errors.length === 0, p.errors.slice(0, 3).join(' | '));
+  await p.close();
+}
+{
+  const p = await page();
+  await p.go(`${PLACE}?radar=0`);
+  const up = await p.until(`!!document.querySelector('.maplibregl-canvas')`, 45_000);
+  const r = await p.ev(res('WetterkarteRoute'));
+  const mv = await p.ev(res('MapView'));
+  add('(L) E-DB-20: ein Karten-Link holt MapView parallel zum Route-Chunk (Anfrage vor dessen Ende), nicht danach',
+    up && !!r && !!mv && mv.start <= r.end, JSON.stringify({ route: r, mapView: mv }));
+  add('(L) … und lädt dabei weder Dashboard noch Fusion', (await p.ev(res('DashboardView'))) == null && (await p.ev(res('forecastStore'))) == null);
+  add('(I) keine ungefangene Ausnahme im Ablauf L', p.errors.length === 0, p.errors.slice(0, 3).join(' | '));
   await p.close();
 }
 

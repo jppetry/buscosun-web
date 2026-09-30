@@ -21,7 +21,11 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
-import MapView, { type LayerKey } from '../../MapView';
+import type { LayerKey } from '../../MapView';
+// E-DB-20 (audit/dashboard.md §11): the map is a lazy chunk of its own. Map views get it through the route loader
+// (`router.tsx`, in parallel with this chunk); the dashboard fetches it in the background and mounts it on the switch.
+import { loadMapView, loadedMapView } from '../mapViewLoader';
+import AppLoader from '../AppLoader';
 import { DACH_OVERVIEW_LOCATION } from '../../App';
 import type { Country, Location } from '../../types';
 import type { ModelSourceState } from '../../fusion/modelSource';
@@ -45,8 +49,12 @@ import NotFoundRoute from './NotFoundRoute';
 import { dashViewOf, dashRangeOf, withDashState, dashStateValid, type DashRange } from '../../dashboard/dashUrl';
 import type { DashboardView as DashView } from '../../dashboard/ViewToggle';
 const DashboardView = lazy(() => import('../../dashboard/DashboardView'));
+const MapViewLazy = lazy(loadMapView);
+type MapViewComponent = typeof MapViewLazy | NonNullable<ReturnType<typeof loadedMapView>>['default'];
 
 const CAM_DEBOUNCE_MS = 300;
+/** E-DB-20: the map's JS follows the dashboard at the latest this long after it opened, even without a forecast. */
+const BACKGROUND_MAP_FALLBACK_MS = 15_000;
 
 interface UrlRefs {
   layers: LayerKey[];
@@ -134,6 +142,11 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   // montiert — beim Zurückwechseln keine Neu-Initialisierung (E-DB-5).
   const mapEverRef = useRef(false);
   if (view === 'karte') mapEverRef.current = true;
+  // The component type is fixed once per route instance: the loaded module when it is there (map links — the loader
+  // awaited it — or a finished background load), else the lazy wrapper. Switching the type later would remount MapView.
+  const mapCompRef = useRef<MapViewComponent | null>(null);
+  if (mapEverRef.current && !mapCompRef.current) mapCompRef.current = loadedMapView()?.default ?? MapViewLazy;
+  const MapComp = mapCompRef.current;
 
   const urlOf = useCallback(() => {
     const s = st.current!;
@@ -252,6 +265,21 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     void import('../../dashboard/data/forecastStore').then((m) => m.prefetchDashboardForecast(p)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, place?.lat, place?.lon, place?.country]);
+  // E-DB-20: dashboard first, then the map's JS in the background — once the dashboard has its forecast (whole window,
+  // error, or no place: `onSettled`), at the latest after BACKGROUND_MAP_FALLBACK_MS. Only the JS; mounted on the switch.
+  const [dashSettled, setDashSettled] = useState(false);
+  const onDashSettled = useCallback(() => setDashSettled(true), []);
+  useEffect(() => {
+    if (view !== 'dashboard' || loadedMapView()) return;
+    // A failed load stays silent here; `loadMapView` forgets it, so the switch to the map tries again.
+    const go = () => { void loadMapView().catch(() => {}); };
+    let idle = 0;
+    let t = 0;
+    if (!dashSettled) t = window.setTimeout(go, BACKGROUND_MAP_FALLBACK_MS);
+    else if (typeof window.requestIdleCallback === 'function') idle = window.requestIdleCallback(go, { timeout: 2000 }); // not in Safari
+    else t = window.setTimeout(go, 200);
+    return () => { if (idle) window.cancelIdleCallback(idle); if (t) window.clearTimeout(t); };
+  }, [view, dashSettled]);
   const onRangeChange = useCallback((r: DashRange) => {
     const s = st.current!;
     s.extra = withDashState(s.extra, { range: r });
@@ -277,10 +305,11 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
             onSelectView={onSelectView}
             onSelectLocation={onSelectLocation}
             onBack={nav.goHome}
+            onSettled={onDashSettled}
           />
         </Suspense>
       )}
-      {mapEverRef.current && <MapView
+      {MapComp && <Suspense fallback={<AppLoader />}><MapComp
         suspended={view === 'dashboard'}
         onOpenDashboard={dashEnabled ? onOpenDashboard : undefined}
         location={mapLocation}
@@ -299,7 +328,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
         onSelectLocation={onSelectLocation}
         onBack={nav.goHome}
         onOpenFeature={nav.openFeature}
-      />}
+      /></Suspense>}
     </>
   );
 }

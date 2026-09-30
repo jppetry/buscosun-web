@@ -15,7 +15,7 @@ import type { DashRange } from './dashUrl';
 import type { Country, Location } from '../types';
 import { buildDashboardVM, shortName } from './model/build';
 import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, PlaceIn, PollenIn, TerrainIn, UvIn, WarningsIn } from './model/types';
-import { subscribeDashboardForecast, retryDashboardForecast, type ForecastState } from './data/forecastStore';
+import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
 import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningCard, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
@@ -30,6 +30,11 @@ interface Props {
   onSelectView: (v: View) => void;
   onSelectLocation: (l: Location) => void;
   onBack: () => void;
+  /**
+   * E-DB-20: called once when the dashboard no longer needs the network for its forecast — whole window there, the
+   * fusion failed, or no place is chosen. The route loads the map's JS in the background then.
+   */
+  onSettled?: () => void;
 }
 
 const REFRESH_EXTRAS_MS = 5 * 60_000;
@@ -164,6 +169,14 @@ function LiveDashboard(props: Props) {
   const vm = useMemo(() => buildDashboardVM(inputs),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nowMs, place, range, fc, warnings, uv, pollen, nowcast, cells, hail, terrain, halfKm, iconD2]);
+
+  const settledRef = useRef(false);
+  const whole = !!fc?.fusion && coversWindow(fc.fusion);
+  const { onSettled } = props;
+  useEffect(() => {
+    if (settledRef.current || !onSettled) return;
+    if (!place || fc?.status === 'error' || whole) { settledRef.current = true; onSettled(); }
+  }, [place, fc?.status, whole, onSettled]);
 
   // Messpunkte für die Latenzmessung (Performance-Timeline, kein Netz).
   const marked = useRef<string>('');

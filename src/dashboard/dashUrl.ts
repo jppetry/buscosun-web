@@ -8,9 +8,11 @@
  * das Bündel der Edge Function auch. Reihenfolge fest: `ansicht` vor `zeitraum`, hinter allen übrigen Extras.
  */
 import type { DashboardView } from './ViewToggle';
+import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD, isDashboardSearch } from './viewKey';
 
 export type DashRange = 'heute' | '3-tage' | '7-tage' | '14-tage';
-export const DASH_VIEW_KEY = 'ansicht';
+// The view key lives in the tiny `viewKey.ts` (start chunk: router + prefetch read it, E-DB-20).
+export { DASH_VIEW_KEY };
 export const DASH_RANGE_KEY = 'zeitraum';
 export const DASH_RANGES: readonly DashRange[] = Object.freeze(['heute', '3-tage', '7-tage', '14-tage']);
 export const DASH_RANGE_DEFAULT: DashRange = '3-tage';
@@ -28,7 +30,7 @@ function get(extra: Extra, key: string): string | null {
 }
 
 export function dashViewOf(extra: Extra): DashboardView {
-  return get(extra, DASH_VIEW_KEY) === 'dashboard' ? 'dashboard' : 'karte';
+  return get(extra, DASH_VIEW_KEY) === DASH_VIEW_DASHBOARD ? 'dashboard' : 'karte';
 }
 
 export function dashRangeOf(extra: Extra): DashRange {
@@ -39,7 +41,7 @@ export function dashRangeOf(extra: Extra): DashRange {
 /** `false`, wenn ein Schlüssel einen ungültigen oder den Standardwert trägt — die Route zieht die URL dann kanonisch nach. */
 export function dashStateValid(extra: Extra): boolean {
   const v = get(extra, DASH_VIEW_KEY);
-  if (v != null && v !== 'dashboard') return false;
+  if (v != null && v !== DASH_VIEW_DASHBOARD) return false;
   const r = get(extra, DASH_RANGE_KEY);
   if (r != null && (r === DASH_RANGE_DEFAULT || !(DASH_RANGES as readonly string[]).includes(r))) return false;
   return true;
@@ -50,7 +52,7 @@ export function withDashState(extra: Extra, next: { view?: DashboardView; range?
   const view = next.view ?? dashViewOf(extra);
   const range = next.range ?? dashRangeOf(extra);
   const out: Array<[string, string]> = extra.filter(([k]) => k !== DASH_VIEW_KEY && k !== DASH_RANGE_KEY).map(([k, v]) => [k, v]);
-  if (view === 'dashboard') out.push([DASH_VIEW_KEY, 'dashboard']);
+  if (view === 'dashboard') out.push([DASH_VIEW_KEY, DASH_VIEW_DASHBOARD]);
   if (range !== DASH_RANGE_DEFAULT) out.push([DASH_RANGE_KEY, range]);
   return out;
 }
@@ -73,5 +75,9 @@ export function verifyDashUrl(): string[] {
   const back = withDashState(w, { view: 'karte' });
   ok(JSON.stringify(back) === JSON.stringify([['startnow', '0'], ['zeitraum', 'heute']]), 'Zurück zur Karte behält den Zeitraum');
   ok(withDashState([['ansicht', 'dashboard']], { range: '3-tage' }).length === 1, 'Standardzeitraum wird nicht geschrieben');
+  // E-DB-20: the start-chunk check (`viewKey.ts`, router + prefetch) reads a query exactly like `dashViewOf`.
+  for (const q of ['', '?ansicht=dashboard', '?ansicht=Dashboard', '?ansicht=karte', '?radar=0&ansicht=dashboard&zeitraum=7-tage', '?ansicht=karte&ansicht=dashboard', '?ansicht=dashboard&ansicht=karte']) {
+    ok(isDashboardSearch(q) === (dashViewOf([...new URLSearchParams(q)]) === 'dashboard'), `viewKey und dashViewOf gleich für „${q}"`);
+  }
   return fails;
 }

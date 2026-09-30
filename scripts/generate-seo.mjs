@@ -6,7 +6,7 @@
  * JSON-LD an. Reines Node-ESM, kein App-Import → kann den App-Bundle nicht brechen.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLACES } from './seo/places.mjs';
@@ -30,6 +30,7 @@ import {
 // + register-ts.mjs wie die Verifier) — Route-Shells + Sitemap aus EINER Quelle.
 import { ROUTES, sitemapPaths, indexableSubRoutes, CONTENT_UPDATED } from '../src/router/routes.ts';
 import { subRouteText } from '../src/seo/subRouteTexts.ts';
+import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD } from '../src/dashboard/viewKey.ts';
 import { PLACES_UPDATED } from './seo/places.mjs';
 import { LEGAL_UPDATED } from './seo/legal.mjs';
 
@@ -389,11 +390,55 @@ export function routePreloadFiles(routeId) {
   if (!m) return [];
   return m[1].split(',').filter(Boolean).map((i) => depFiles[Number(i)]).filter(Boolean);
 }
+
+// E-DB-20 (audit/dashboard.md §11): `MapView` is a lazy chunk of its own (`src/router/mapViewLoader.ts`, imported by
+// the router ⇒ its preload list sits in `index-*.js`). The Wetterkarte shells serve map AND dashboard links
+// (`/wetterkarte/*` ⇒ `wetterkarte.html`, the query never reaches the file), so their view-specific hints are chosen by a
+// tiny inline script at parse time: without `ansicht=dashboard` the map chunks (as before), with it the dashboard and
+// the fusion chunks instead — the map's JS then follows in the background (WetterkarteRoute). `/warnungen` is always a
+// map ⇒ static hints as before.
+const ASSETS = join(DIST, 'assets');
+// The start chunk first: its list is the one the app uses (the router's `loadMapView`); other importers come after.
+const assetJs = existsSync(ASSETS) ? readdirSync(ASSETS).filter((f) => f.endsWith('.js')).sort((a, b) => Number(!a.startsWith('index-')) - Number(!b.startsWith('index-'))) : [];
+const depsCache = new Map();
+/** Preload list Vite wrote for `import("./<chunk>-<hash>.js")` in any built chunk (each chunk carries its own file list). */
+export function dynamicImportDeps(chunk) {
+  if (depsCache.has(chunk)) return depsCache.get(chunk);
+  const re = new RegExp(String.raw`import\("\./${chunk}-[\w-]+\.js"\)(?:\.then\(\w+=>\w+\.\w+\))?,__vite__mapDeps\(\[([\d,]*)\]\)`);
+  let out = [];
+  for (const f of assetJs) {
+    const src = readFileSync(join(ASSETS, f), 'utf8');
+    const m = re.exec(src);
+    if (!m) continue;
+    const list = (src.match(/m\.f=\[((?:"[^"]*",?)*)\]/) || [])[1];
+    const files = list ? list.split(',').filter(Boolean).map((x) => x.replace(/^"|"$/g, '')) : [];
+    out = m[1].split(',').filter(Boolean).map((i) => files[Number(i)]).filter(Boolean);
+    break;
+  }
+  depsCache.set(chunk, out);
+  return out;
+}
+/** The view-specific preload lists of the Wetterkarte shells (without what the shell loads anyway). */
+export function wetterkarteViewPreloads() {
+  const route = new Set(routePreloadFiles('wetterkarte'));
+  const pick = (chunks) => [...new Set(chunks.flatMap((c) => dynamicImportDeps(c)))]
+    .filter((f) => !route.has(f) && !rawShell.includes(`/${f}"`) && (f.endsWith('.js') || f.endsWith('.css')));
+  return { map: pick(['MapView']), dashboard: pick(['DashboardView', 'forecastStore', 'cubeSource']) };
+}
+/** Inline script (ES5, no dependencies): same rule as `isDashboardSearch` in `src/dashboard/viewKey.ts`. */
+export function viewPreloadScript({ map, dashboard }) {
+  const arr = (xs) => `[${xs.map((f) => JSON.stringify(`/${f}`)).join(',')}]`;
+  return `<script>(function(){try{var d=new URLSearchParams(location.search).get(${JSON.stringify(DASH_VIEW_KEY)})===${JSON.stringify(DASH_VIEW_DASHBOARD)},`
+    + `f=d?${arr(dashboard)}:${arr(map)},h=document.head;for(var i=0;i<f.length;i++){var l=document.createElement("link"),c=f[i].slice(-4)===".css";`
+    + `l.rel=c?"preload":"modulepreload";if(c)l.as="style";l.crossOrigin="";l.href=f[i];h.appendChild(l)}}catch(e){}})()</script>`;
+}
 function routePreloadLinks(routeId) {
   const seen = new Set();
   const links = [];
   for (const origin of PRECONNECT_BY_ROUTE[routeId] ?? []) links.push(`<link rel="preconnect" href="${origin}" crossorigin />`);
-  for (const f of routePreloadFiles(routeId)) {
+  // `/warnungen` shows the map only ⇒ the MapView chunks stay static hints there.
+  const files = routeId === 'warnungen' ? [...routePreloadFiles(routeId), ...dynamicImportDeps('MapView')] : routePreloadFiles(routeId);
+  for (const f of files) {
     const href = `/${f}`;
     if (seen.has(href) || rawShell.includes(`href="${href}"`)) continue;   // index.html lädt ihn schon vor
     seen.add(href);
@@ -403,7 +448,25 @@ function routePreloadLinks(routeId) {
     if (f.endsWith('.js')) links.push(`<link rel="modulepreload" crossorigin href="${href}" />`);
     else if (f.endsWith('.css')) links.push(`<link rel="preload" as="style" crossorigin href="${href}" />`);
   }
-  return links;
+  let script = null;
+  if (routeId === 'wetterkarte' && links.length) {
+    const v = wetterkarteViewPreloads();
+    if (v.map.length) script = viewPreloadScript(v);
+  }
+  return { links, script };
+}
+/**
+ * Hints into a shell: links before `</head>`; the view script (E-DB-20) right before the module script — above the
+ * stylesheet, because a parser-inserted script waits for every stylesheet above it (the map preloads would otherwise
+ * start one CSS download later than the static links did before).
+ */
+function withPreloads(html, { links, script }) {
+  let out = links.length ? html.replace('</head>', `    ${links.join('\n    ')}\n  </head>`) : html;
+  if (script) {
+    if (!/\n\s*<script type="module"/.test(out)) { console.error('[seo] Shell ohne Modul-Skript — Ansichts-Skript nicht platzierbar'); process.exit(1); }
+    out = out.replace(/(\n\s*)<script type="module"/, (m, ws) => `${ws}${script}${ws}<script type="module"`);
+  }
+  return out;
 }
 
 let routeShells = 0;
@@ -415,7 +478,7 @@ for (const route of ROUTES) {
     .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(route.meta.description)}" />`);
   if (!shell.includes('og:site_name')) shell = shell.replace('</head>', `    ${routeHeadExtras(route)}\n  </head>`);
   const preload = routePreloadLinks(route.id);
-  if (preload.length) shell = shell.replace('</head>', `    ${preload.join('\n    ')}\n  </head>`);
+  shell = withPreloads(shell, preload);
   shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>`);
   writeFileSync(join(DIST, `${route.id}.html`), shell, 'utf8');
   routeShells++;
@@ -434,7 +497,7 @@ for (const route of ROUTES) {
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(x.sub.title)} | ${SITE.name}</title>`)
       .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(x.sub.description)}" />`);
     sh = sh.replace('</head>', `    ${subRouteHeadExtras(route, x.sub)}\n  </head>`);
-    if (preload.length) sh = sh.replace('</head>', `    ${preload.join('\n    ')}\n  </head>`);
+    sh = withPreloads(sh, preload);
     sh = sh.replace('<div id="root"></div>', `<div id="root">${renderSubRouteRootContent(route, x.sub, text, subs.map((y) => y.sub), explainerOk)}</div>`);
     writeFileSync(join(DIST, x.shell.slice(1)), sh, 'utf8');
     subShells++;

@@ -9,11 +9,13 @@
  * `window.location` beim Erzeugen.
  */
 import { lazy, Suspense, type ComponentType } from 'react';
-import { createBrowserRouter, isRouteErrorResponse, Navigate, useLocation, useRouteError, type RouteObject } from 'react-router';
+import { createBrowserRouter, isRouteErrorResponse, Navigate, useLocation, useRouteError, type LoaderFunctionArgs, type RouteObject } from 'react-router';
 import App from '../App';
 import AppLoader from './AppLoader';
 import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, routeForPath, type RouteId } from './routes';
 import { warmRouteData } from './prefetch';
+import { loadMapView } from './mapViewLoader';
+import { isDashboardSearch } from '../dashboard/viewKey';
 // Lazy: Block + CSS hängen nicht am Start-Bundle (Budget-Ratschen eagerJs/eagerCss).
 const RouteSeoBlock = lazy(() => import('./RouteSeoBlock'));
 
@@ -42,6 +44,18 @@ const page = (load: () => Promise<{ default: ComponentType }>, warm?: RouteId) =
       return withSeo((await load()).default);
     },
   },
+});
+
+/**
+ * E-DB-20 (audit/dashboard.md §11): `MapView` is a lazy chunk of its own. Map views wait for it in parallel with the
+ * route chunk (the loader reads the TARGET URL, also on in-app navigation), so the map arrives as before. The
+ * dashboard view (`?ansicht=dashboard`, Wetterkarte only) skips it; the route fetches it in the background later.
+ * No revalidation: the loader returns no data, it only gates the first render of a new match.
+ */
+const mapFirst = (dashboardView: boolean) => ({
+  loader: ({ request }: LoaderFunctionArgs) =>
+    (dashboardView && isDashboardSearch(new URL(request.url).search) ? null : loadMapView().then(() => null)),
+  shouldRevalidate: () => false,
 });
 
 function AliasRedirect({ to }: { to: string }) {
@@ -95,8 +109,8 @@ export function createAppRouter() {
       ErrorBoundary: RouteError,
       children: [
         { index: true, ...page(() => import('./pages/HomeRoute')) },
-        { path: sub('wetterkarte'), ...page(() => import('./pages/WetterkarteRoute'), 'wetterkarte') },
-        { path: sub('warnungen'), ...page(() => import('./pages/WarnungenRoute'), 'warnungen') },
+        { path: sub('wetterkarte'), ...page(() => import('./pages/WetterkarteRoute'), 'wetterkarte'), ...mapFirst(true) },
+        { path: sub('warnungen'), ...page(() => import('./pages/WarnungenRoute'), 'warnungen'), ...mapFirst(false) },
         { path: sub('regenradar'), ...page(() => import('./pages/NowcastRoute'), 'regenradar') },
         { path: sub('vorhersage'), ...page(() => import('./pages/ForecastRoute')) },
         { path: sub('tourenplanung'), ...page(() => import('./pages/TourRoute')) },

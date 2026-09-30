@@ -914,43 +914,46 @@ Der Client ist fertig: `defaultCubeIo` liest die drei Dateien und rechnet mit de
 
 ## 25. Phase DB — Wetter-Dashboard (Umschalten Dashboard ⇄ Karte), 2026-09-29/30 — Abnahme Phase 2
 
-Phasendokument `audit/dashboard.md` (§0 Kurzfassung Punkt 6, §10 Umsetzung). Phase 1 (Analyse) am 29.09., Freigabe „starte
-phase 2" am selben Tag; Phase 2 am 30.09. fertig, **uncommitted**.
+Phasendokument `audit/dashboard.md` (§0 Kurzfassung Punkt 6/7, §10 Umsetzung, §11 E-DB-20). Phase 1 (Analyse) am 29.09., Freigabe „starte
+phase 2" am selben Tag; Phase 2 am 30.09. fertig, commitet und gepusht mit `377a73a` (30.09., 08:02).
 
-**Erledigt (deine Entscheidungen vom 29.09.):**
+**Erledigt (deine Entscheidungen vom 29./30.09.):**
 
 - [x] Freigabe Phase 2
 - [x] E-DB-1 767/1279 wie Vorlage
 - [x] E-DB-2 Umschalter nach der Marke + mobil in der Schwebeleiste
 - [x] E-DB-3…17 wie empfohlen
 - [x] E-DB-18 Zustände ohne Vorlage aus Bausteinen abgeleitet
+- [x] Commit + Push (`377a73a`)
+- [x] **E-DB-19 + E-DB-16′ (30.09.: „die Grenzen … können gerne angehoben werden")** — `budget.json`: eagerJs 107,9 → 108,0 (IST 107,922), totalJs 1 475 → 1 495 (IST 1 492,0, einschließlich der Altlast aus E-FS-6/E-EX-8); `npm run budget` grün ⇒ auch der Budget-Schritt der CI. **Noch zu commiten:** `budget.json`, dieses Dokument, `audit/dashboard.md`, `CLAUDE.md`.
 
 **Offen:**
 
 - [ ] **Abnahme Pixel-Diff:** Abweichungen und ihre Gründe stehen in §10.4. Die Bilder liegen in `audit/dashboard/pixel/`: `*-A.png` ist die Aufnahme, `*-B-diff.png` markiert Abweichungen rot.
 - [ ] **Abnahme Zustände ohne Vorlage:** die zwölf Aufnahmen in `audit/dashboard/states/` (Laden, Fehler, kein Ort, Heute/7/14 Tage, Tablet/Mobil live, Karte mit Umschalter, Bern, Wien).
-- [ ] **E-DB-19 — eagerJs 107,922 > 107,9 (+37 B).**
-  - Ursache: der Vorlade-Eintrag des nun geteilten `@nivo/line`-Chunks im Start-Chunk.
-  - Entweder: Ratsche auf 108,0 (Empfehlung).
-  - Oder: `@nivo/line` im Dashboard durch einen eigenen Zeitachsen-Rahmen ersetzen.
-- [ ] **E-DB-20 — Dashboard-Link mobil-4G: erste Ausgabe 4,7 s statt < 2 s** (p95 < 5 s erfüllt; Desktop 1,5 s erfüllt).
-  - Ursache: das Karten-JS lädt auf demselben Weg.
-  - Entweder: ein eigener Einstieg für `?ansicht=dashboard` (Eingriff in Router und Start-Chunk).
-  - Oder: so lassen.
-  - Empfehlung: erst das Real-Device-Ergebnis abwarten.
-- [ ] **E-DB-16′ totalJs:** Ratsche 1 438 → 1 475 für den Zuwachs dieser Phase (+36,5 KB, alles lazy) bestätigen. Stand 1 492,0; die restlichen ≈ 17 KB stammen aus früheren Ständen (E-FS-6, E-EX-8).
+- [x] **E-DB-20 entschieden (30.09.: „wenn ein Nutzer einen Ort auswählt, erscheint erst das Dashboard … danach im Hintergrund
+      die Karte") und umgesetzt, uncommitted** — `audit/dashboard.md` §11:
+  - Ortswahl auf der Startseite ⇒ Dashboard; Karten-JS erst nach der Vorhersage im Hintergrund, Montage beim Umschalten.
+  - Gemessen wie in Produktion (Shell, HTTP/2): Dashboard-Link mobil-4G erste Ausgabe 3,76 → 3,44 s, ganzes Fenster
+    4,41 → 3,88 s; Karten-Link mobil unverändert, Desktop gepoolt +15 ms. Ziel < 2 s nicht erreicht (V-DB-19).
+  - Budget nach deiner Freigabe angehoben: eagerJs 108,7 (IST 108,6), totalJs 1 502 (IST 1 500,5), Herkunft in `budget.json`.
+- [ ] **Commit** des E-DB-20-Stands zusammen mit dem Budget-/Doku-Nachtrag von oben: `src/router/{router.tsx,mapViewLoader.ts,
+      prefetch.ts,useAppNav.ts,pages/WetterkarteRoute.tsx}`, `src/dashboard/{viewKey.ts,dashUrl.ts,DashboardView.tsx,
+      data/forecastStore.ts}`, `scripts/{generate-seo,verify-routing,verify-dashboard-switch,dashboard-latency}.mjs`,
+      `budget.json`, `audit/dashboard.md`, dieses Dokument, `CLAUDE.md`. Danach Push + Deploy-Prüfung (unten).
+- [ ] **E-DB-21 (V-DB-16):** Die Startseite wärmt im Leerlauf die Karte vor. Soll sie zuerst das Dashboard vorwärmen
+      (+231 KB JS je Startseitenbesuch)? Empfehlung: erst Real-Device, dann entscheiden.
+- [ ] **E-DB-22 (V-DB-17):** Kartenpause — einmaliger Schub von ≈ 3 700 Draws hinter dem Dashboard, schon auf HEAD; macht (B)
+      im Umschalt-Verifier zeitabhängig rot. Empfehlung: eigene kleine Phase.
 - [ ] **V-DB-12:** die Vorlade-Toleranz in `generate-seo.mjs` auch für Atmosphäre, Eventplanung, Tourenplanung und Brandradar einschalten. Deren Shells tragen schon auf HEAD nur die Basis-Hinweise. Ändert deren Erstbild; eigene kleine Phase.
 - [ ] **V-DB-10 zur Kenntnis:** der Konfidenz-Index der Fusion ist in der Stufe fs klein (Garmisch Stunde 0: 6,4 %). Das Dashboard zeigt ihn wahrheitsgemäß als „unsicher". Neu definieren wäre ein Eingriff in buscosun Fusion.
-- [ ] **Real-Device** mit `…/wetterkarte/<layer>/<ort>?ansicht=dashboard`:
-  - Long Tasks (headless nicht messbar);
+- [ ] **Real-Device** mit `…/wetterkarte/<layer>/<ort>?ansicht=dashboard` und über die Startseite (Ort suchen):
+  - Long Tasks (headless nicht messbar) — auch beim Hintergrund-Laden der Karte, während das Dashboard steht;
   - Touch-Ziele;
   - Kartenpause (Akku, Wärme);
-  - Wechsel zurück zur Karte.
-- [ ] **Commit/Push/Deploy.** Dateien der Phase:
-  - neu `src/dashboard/**`, `scripts/verify-dashboard.mjs`, `scripts/verify-dashboard-switch.mjs`, `scripts/dashboard-pixel-diff.mjs`, `scripts/dashboard-latency.mjs`, `audit/dashboard.md`, `audit/dashboard/**`, `reference/dashboard.dc.html`;
-  - geändert `src/MapView.tsx`, `src/map/mapDeck.css`, `src/router/pages/WetterkarteRoute.tsx`, `src/wind/WindLayer.ts`, `src/pointForecast/cubeSource.ts`, `scripts/generate-seo.mjs`, `budget.json`, `package.json`, Doku;
-  - die Vorlagen `reference/{desktop,tablet,mobile}.png` sind ebenfalls geändert.
-  - Nicht dazu: `fusion-verbesserungen-2026-09-29.md` und `Claude outputs/` (parallele Sitzung).
+  - Wechsel zur Karte (sofort und nach einigen Sekunden) und zurück.
+- [ ] **Deploy prüfen:** Produktion zeigt den Umschalter „Dashboard | Karte" auf `/wetterkarte`, `…?ansicht=dashboard` öffnet das
+      Dashboard, die Ortssuche der Startseite landet im Dashboard; im Netzwerk-Tab kommt `MapView-*.js` erst nach der Vorhersage.
 
 ## 26. Phase EX — Expertenbericht vom 29.09. zu buscosun Fusion (Fristen, Radar-HDF5, Scorer), 2026-09-29
 

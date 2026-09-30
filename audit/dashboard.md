@@ -1,6 +1,6 @@
 # Wetter-Dashboard (Umschalten Dashboard ⇄ Karte) — Phase DB, Diagnose und Konzept
 
-> **Stand: 2026-09-30, Phase 2 (Umsetzung) fertig, uncommitted — Protokoll, Pixel-Diff, Tests, Latenz und Budget in §10.**
+> **Stand: 2026-09-30, Phase 2 (Umsetzung) fertig, commitet und gepusht (`377a73a`); Budget nach Jans Freigabe grün — Protokoll, Pixel-Diff, Tests, Latenz und Budget in §10.**
 > Phase 1 (Analyse, 29.09.) steht unverändert in §0–§9. Auftrag: Dashboard-Ansicht neben der Wetterkarte, Werte primär
 > aus der neuesten Stufe von buscosun Fusion, Alternativquellen nur von der Plattform, Umschalter mit Zustand in der URL,
 > Karte ohne Neu-Initialisierung und ohne Render-Loop im Hintergrund.
@@ -39,7 +39,17 @@
    - Pixel-Diff: Kacheln ausgerichtet 0,1–7,9 %. Ausnahmen sind der Stundenverlauf (echte Zeitachse gegen schematische Vorlage) und der Fuß; jede Abweichung ist begründet.
    - Tests: `verify:dashboard` 56/56, `verify:dashboard-switch` 26/26.
    - Latenz Desktop 1,5 s ✓; **mobil-4G 4,7 s ✗** (Karten-JS auf demselben Weg, E-DB-20).
-   - **eagerJs +37 B über der Ratsche** (E-DB-19).
+   - Budget: eagerJs lag 37 B über der Ratsche. Jan hat am 30.09. alle Grenzen zum Anheben freigegeben (E-DB-19/16′), die Ratsche steht jetzt auf 108,0 / 1 495, `npm run budget` ist grün.
+   - Commitet und gepusht mit `377a73a`.
+7. **E-DB-20 umgesetzt (30.09., §11, uncommitted):**
+   - Die Ortswahl auf der Startseite öffnet das Dashboard; die Karte ist einen Umschalter entfernt.
+   - Das Karten-JS hängt nicht mehr am Route-Chunk: Karten-Links holen es parallel zum Route-Chunk (Router-Loader), das
+     Dashboard lädt es erst nach seiner Vorhersage im Hintergrund; die Produktions-Shell lädt je Ansicht vor.
+   - Gemessen wie in Produktion (Shell, HTTP/2): Dashboard-Link mobil-4G erste Ausgabe 3,76 → **3,44 s**, ganzes Fenster
+     4,41 → **3,88 s**, JS auf dem Weg 741 → **304 KB**; Karten-Link mobil unverändert, Desktop gepoolt +15 ms.
+   - Ziel < 2 s nicht erreicht — der Rest ist App-Start und die Fusion selbst (V-DB-19). Die 4,7 s aus §10.6 waren ohne Shell
+     gemessen (V-DB-20).
+   - Gates grün bis auf (B) im Umschalt-Verifier, das auch am HEAD-Bau rot ist (V-DB-17). Offen: E-DB-21/22, Real-Device.
 
 ## 1. Auftrag und Regeln, die hier greifen
 
@@ -444,7 +454,7 @@ ohne Vorlage streng aus den Bausteinen der Vorlage ableiten, als „ohne Vorlage
 | DB4 | Nebenquellen gestaffelt (Warnung, UV, Pollen, Nowcast/Zellen/Hagel, ICON-D2-Kasten, Terrain) | Latenz erste Darstellung ≤ Punktabfrage (§5.3), Pixel-Diff vollständig |
 | DB5 | Abnahme: fünf Fragen, Budget, Konsole, Long Tasks, Real-Device-Hinweis (V-FI-50 gilt auch hier) | Jans Abnahme |
 
-## 10. Phase 2 — Umsetzung (29./30.09.2026, uncommitted)
+## 10. Phase 2 — Umsetzung (29./30.09.2026, commitet `377a73a`)
 
 ### 10.1 Was gebaut ist
 
@@ -573,7 +583,7 @@ Desktop/Mobil · 11 Bern (CH: MeteoAlarm, SMN-Anker, POH) · 12 Wien (AT: GeoSph
 | Karte Desktop 1440×900, HEAD-Bau gegen Arbeitsstand | Rail, Layer-Dock, Readout **0 abweichende Pixel**; Topbar rechts 0,05 %; Topbar links 23,25 % = der freigegebene Umschalter (E-DB-2) und die dadurch nach rechts gerückten Elemente |
 | SEO-Shells (Vorlade-Hinweise) | alle Shells mit **denselben** `modulepreload`/`preload`-Einträgen wie HEAD — nach der Korrektur in `generate-seo.mjs` (s. V-DB-12) |
 | Konsole Dashboard (Produktions-Bau) | keine Ausnahme, kein `console.error`; drei 404 der Slot-Suche im Radar-Spiegel (vorgesehenes Sondieren) |
-| Budget | eagerJs **107,922 > 107,9** (E-DB-19) · totalJs 1 492,0 > 1 475 (Ratsche um den Zuwachs dieser Phase angehoben, Rest = Altlast, §10.6) |
+| Budget | eagerJs **107,922 > 107,9** (E-DB-19) · totalJs 1 492,0 > 1 475 (Ratsche um den Zuwachs dieser Phase angehoben, Rest = Altlast, §10.6). **Nach Jans Freigabe vom 30.09. (§10.9):** Grenzen 108,0 / 1 495 ⇒ `npm run budget` grün (eagerJs 107,9 · eagerCss 2,4 · largestChunk 278,4 · totalJs 1 492), am Bau des Stands `377a73a` |
 
 ### 10.6 Latenz und Budget (`scripts/dashboard-latency.mjs`, Produktions-Bau über `vite preview`, HEAD im Worktree, kalter Kontext je Lauf)
 
@@ -627,12 +637,144 @@ in Node p50 2,6 ms / max 9,0 ms (3 Tage) bzw. p50 6,3 ms / max 27,3 ms (14 Tage)
 | V-DB-14 | Wolkenschichten enden bei ≈ 235 h (danach Quellen ohne Schichten); benannt in der Beschriftung | Klarheit bis 336 h | t3-Quelle mit Schichten in den Cube (Producer) |
 | V-DB-15 | Das Karten-JS ist für Dashboard-Links Pflichtweg, weil das Dashboard eine Ansicht derselben Route ist | Dashboard-Link mobil ≈ 2 s schneller | E-DB-20 |
 
-### 10.9 Offen — Jans Entscheidungen (gespiegelt in MANUELLE-SCHRITTE §25)
+### 10.9 Jans Entscheidungen nach Phase 2 (gespiegelt in MANUELLE-SCHRITTE §25)
+
+| E | Frage | Empfehlung / Entscheidung |
+|---|---|---|
+| E-DB-19 | eagerJs 107,885 → 107,922 KB (+37 B) allein durch den Vorlade-Eintrag des geteilten `@nivo/line`-Chunks: Ratsche auf 108,0 heben — oder im Dashboard auf `@nivo/line` verzichten (eigener Zeitachsen-Rahmen; die Diagramme zeichnen ohnehin eigene Ebenen; widerspricht aber der Vorlagen-Notiz und E-DB-14) | **Entschieden 30.09. (Jan: „die Grenzen … totalJs etc. können gerne angehoben werden"):** Ratsche 108,0, `@nivo/line` bleibt |
+| E-DB-20 | Dashboard-Link mobil 4,7 s statt < 2 s: eigener Einstieg für `?ansicht=dashboard`, der das Karten-JS erst beim Wechsel lädt (Eingriff in Start-Chunk/Router) — oder so lassen (Desktop 1,5 s erfüllt, p95 mobil erfüllt) | **Entschieden 30.09. (Jan):** Ortswahl auf der Startseite öffnet das Dashboard; es lädt zuerst, die Karte danach im Hintergrund — §11 |
+| E-DB-16′ | totalJs-Ratsche bestätigen; die Altlast 1 438 → 1 455,5 gehört zu E-FS-6/`cdc9a9b` | **Entschieden 30.09.:** 1 495 (IST 1 492,0 einschließlich der Altlast) — Grenzen dürfen angehoben werden |
+| — | Pixel-Abweichungen (§10.4) und Zustände ohne Vorlage (`states/`) abnehmen; Real-Device (Long Tasks, Touch, WebGL-Pause) | — |
+| V-DB-12 | Vorlade-Toleranz auch für Atmosphäre/Eventplanung/Tourenplanung/Brandradar einschalten | ja, als eigene kleine Phase |
+
+## 11. E-DB-20 — erst das Dashboard, danach im Hintergrund die Karte (30.09.2026)
+
+**Auftrag (Jan, 30.09.):** „wenn ein Nutzer einen Ort auswählt, erscheint erst das Dashboard — deswegen das zuerst laden und
+danach im Hintergrund die Karte". Rückfrage beantwortet: **Ortswahl auf der Startseite ⇒ Dashboard**; die Suche in der Karte
+bleibt in der Karte, die im Dashboard im Dashboard. Karte im Hintergrund = **nur das JS**, montiert wird sie beim Umschalten
+(freigegebener Entwurf; die Alternative „unsichtbar montieren" kostet mobil Daten und Akku auch für alle, die nie wechseln).
+
+### 11.1 Diagnose (vor dem Code)
+
+1. **Das Karten-JS ist statische Abhängigkeit des Route-Chunks.** `WetterkarteRoute.tsx:24` importiert `MapView` statisch.
+   Vite lädt deshalb für `import('./pages/WetterkarteRoute')` den Route-Chunk **samt** `MapView`, `maplibre` und allen
+   geteilten Karten-Chunks (Vorladeliste `__vite__mapDeps` des Start-Chunks), bevor die Route überhaupt rendert — auch dann,
+   wenn sie nur das Dashboard zeigt und `MapView` nie montiert (`mapEverRef`). Gemessen §10.6: mobil 2,14–2,32 s bis
+   Dashboard-Chunk + Karten-JS, erst dann startet die Fusion.
+2. **Die Produktions-Shell verstärkt das.** `/wetterkarte/<layer>/<ort>` wird auf `wetterkarte.html` umgeschrieben
+   (`netlify.toml`, `/wetterkarte/*`); die Shell trägt `modulepreload` für genau diese Karten-Chunks
+   (`generate-seo.mjs` → `routePreloadFiles('wetterkarte')`, geprüft von `verify-routing` „[shell] … MapView und maplibre").
+   Sie kennt die Query nicht ⇒ auch ein Dashboard-Link holt das Karten-JS mit höchster Priorität. Die Messung §10.6 lief über
+   `vite preview`, das für Ort-Pfade `index.html` ausliefert — **ohne** diese Hinweise; in Produktion konkurrieren die
+   Vorlade-Hinweise zusätzlich um die 4G-Leitung.
+3. **Frühstart der Kartendaten.** `prefetch.ts` (`warmPlanFor('wetterkarte')`) holt für jeden Wetterkarten-Pfad das
+   GRIB-Manifest und bei Nowcast-Layern den RV-Tar (≈ 2,4 MB, `priority: high`) — auch für `?ansicht=dashboard`.
+4. **Ortswahl heute.** `HomeRoute` → `useAppNav.selectLocation` → `mapPathForPlace` ⇒ `/wetterkarte/wind/<ort>` (Karte).
+5. **Folge, wenn man `MapView` nur lazy macht:** Karten-Links bekämen einen Wasserfall (Route-Chunk → dann MapView) und
+   verlören die Shell-Vorladung ⇒ Regression am ersten WebGL-Draw. Deshalb braucht der Kartenweg einen parallelen Start
+   **vor** dem Route-Chunk und die Shell eine Vorladung je Ansicht.
+
+### 11.2 Plan (freigegeben 30.09.)
+
+| Baustein | Änderung |
+|---|---|
+| Ortswahl | `useAppNav.selectLocation` führt auf `…/<ort>?ansicht=dashboard` |
+| Karten-JS lazy | `MapView` in `WetterkarteRoute` per `lazy`; EIN Lader `loadMapView()` (gemeinsamer Promise, Start-Chunk) |
+| Kartenweg unverändert | Route-`loader` (liest die **Ziel**-URL): Karte und `/warnungen` warten auf `loadMapView()` parallel zum Route-Chunk ⇒ gleicher `HydrateFallback`, kein Leerbild; `?ansicht=dashboard` lädt nichts davon |
+| Frühstart | `warmPlanFor`: keine Kartendaten für `?ansicht=dashboard` |
+| Hintergrund | nach der Fusionsausgabe `core` (bzw. Fehler, sonst nach einer Frist) lädt die Route das Karten-JS im Leerlauf; Montage beim Umschalten |
+| Shell | Wetterkarten-Shells: Karten-Vorladung über ein kleines Inline-Skript nur ohne `ansicht=dashboard`, mit ihr stattdessen Dashboard- und Fusions-Chunk; `/warnungen` fest wie bisher |
+| Prüfungen | `verify:dashboard-switch` (Reihenfolge der Anfragen, Ortssuche, Kartenweg parallel, dasselbe Canvas), `verify-routing` (Shell-Form), `verify:dashboard --dist`, Latenz HEAD gegen neu mit Netlify-gleicher Shell |
+
+### 11.3 Umsetzung (30.09., uncommitted)
+
+| Datei | Änderung |
+|---|---|
+| `src/dashboard/viewKey.ts` (neu) | `DASH_VIEW_KEY`, `isDashboardSearch()` — die EINE Lesart von `ansicht=dashboard` außerhalb des Dashboard-Chunks (Start-Chunk: Router, Frühstart); `dashUrl.ts` nimmt den Schlüssel von dort, `verifyDashUrl` prüft beide Lesarten auf sieben Queries gleich |
+| `src/router/mapViewLoader.ts` (neu) | `loadMapView()` (ein Promise, vergisst einen Fehlschlag) und `loadedMapView()` |
+| `src/router/router.tsx` | `mapFirst`: Route-`loader` für Wetterkarte (Dashboard ausgenommen) und Warnungen wartet auf `loadMapView()` parallel zum Route-Chunk; liest die **Ziel**-URL (`request.url`); `shouldRevalidate: () => false` |
+| `src/router/pages/WetterkarteRoute.tsx` | `MapView` nur noch als Typ importiert; Komponente je Route-Instanz festgelegt (`loadedMapView()` oder `lazy(loadMapView)` — kein Typwechsel, sonst Remount) hinter `<Suspense fallback={<AppLoader />}>`; Hintergrund-Laden nach `onSettled` im Leerlauf (`requestIdleCallback`, Safari: 200 ms), spätestens nach 15 s |
+| `src/dashboard/DashboardView.tsx`, `data/forecastStore.ts` | `onSettled` einmal, sobald das ganze Fenster da ist (`coversWindow`: keine Cube-Stufe mehr in `pending`), die Fusion scheitert oder kein Ort gewählt ist |
+| `src/router/prefetch.ts` | kein Frühstart der Kartendaten für `?ansicht=dashboard` |
+| `src/router/useAppNav.ts` | `selectLocation` (nur die Startseite ruft es) ⇒ `…/<ort>?ansicht=dashboard` |
+| `scripts/generate-seo.mjs` | Wetterkarten-Shells: fest nur der Route-Chunk; ein Inline-Skript (ES5, vor Modul-Skript **und Stylesheet** — ein Parser-Skript wartet auf jedes Stylesheet darüber) legt ohne `ansicht=dashboard` die MapView-Hinweise an (wie bisher fest), mit ihm die von DashboardView, forecastStore, cubeSource; `/warnungen` fest wie bisher |
+| `scripts/verify-routing.mjs` | Frühstart-Plan mit Gegenprobe, Router-Verdrahtung, Shell-Form (Skript im Stub-DOM ausgeführt, für neun Queries gegen `isDashboardSearch`), Funktionserhalt der Kartenvorladung (jede Datei des `import(MapView)` im Start-Chunk lädt die Kartenansicht vor), Skript über dem Stylesheet, Route-Chunk ohne statischen MapView-Import (Gegenprobe am HEAD-Bau: `true` gegen `false`) — **249/249** |
+| `scripts/verify-dashboard-switch.mjs` | F: Karten-JS erst nach der ersten Fusionsausgabe, dann im Hintergrund, kein zweiter Abruf; J: Startseite → Ort ⇒ Dashboard (push), zwischen Ortswahl und Ausgabe kein Karten-JS, Umschalter ⇒ Karte am Ort; K: Wechsel vor dem Hintergrund-Laden ⇒ Karte kommt über den Lazy-Weg; L: Karten-Link holt MapView parallel zum Route-Chunk, ohne Dashboard/Fusion |
+| `scripts/dashboard-latency.mjs` | `--shell` (Proxy liefert `/wetterkarte…` wie Netlify mit der Shell aus), `--h2` (HTTP/2 über TLS wie Netlify), Dashboard auch für HEAD, Bytes und JS-Aufschlüsselung je Lauf, Protokoll je Lauf |
+
+Unverändert: MapView, WindLayer, buscosun Fusion (`cubeSource.ts`), Kacheln, Kartenpause, Suche in Karte und Dashboard.
+
+### 11.4 Messung (Produktions-Bau, HEAD `4112e2f` gegen Arbeitsstand, kalter Kontext je Lauf, Varianten abwechselnd)
+
+**Methode:** Die Messung §10.6 lief über `vite preview` — das liefert für Ort-Pfade `index.html`, **ohne** die Vorlade-Hinweise der
+Shell, und spricht HTTP/1.1. Netlify liefert `wetterkarte.html` mit Hinweisen über HTTP/2. Maßgeblich ist deshalb der Lauf mit
+`--h2` (Protokoll je Lauf geprüft: `h2`). Gleichzeitig lief ein Chrome-Fenster des Nutzers mit Last auf derselben Maschine — Werte nur
+innerhalb eines Laufs vergleichen; ein Lauf mit 18-s-Ausreißer und ≈ 60 % höheren Zeiten beider Varianten ist verworfen.
+
+| HTTP/2, p50 (p95) | HEAD | E-DB-20 |
+|---|---|---|
+| Dashboard-Link mobil-4G, erste Fusionsausgabe | 3 761 (3 836) ms | **3 441 (3 770) ms** |
+| Dashboard-Link mobil-4G, ganzes Fenster | 4 413 ms | **3 882 ms** |
+| Dashboard-Link mobil-4G, übertragen bis zum ganzen Fenster | 2 159 KB | **1 928 KB** |
+| Dashboard-Link Desktop, erste Ausgabe | 1 237 (1 282) ms | 1 245 (1 408) ms |
+| Karten-Link mobil-4G, erster WebGL-Draw | 1 878 ms (n = 4) | 1 858 ms |
+| Karten-Link Desktop, erster WebGL-Draw — drei Läufe | 567 · 641 · 640 ms | 640 · 636 · 726 ms |
+| … gepoolt (n = 19 je Variante) | 629 ms | 644 ms |
+
+JS je Ladeweg (gzip, aus Vites Vorladelisten, ohne Start-Chunk): **Dashboard-Link 41 Dateien / 741 KB → 30 / 304 KB**; Karten-Link
+34 / 515 → 55 / 520 KB; Warnungen 35 / 516 → 56 / 521; Regenradar 22 / 416 → 35 / 419; Startseite 12 / 70 → 17 / 72; übrige
+Seiten +0,2…2 KB.
+
+**Aufschlüsselung Dashboard-Link mobil-4G (HTTP/2, Arbeitsstand):** alle Dashboard- und Fusions-Chunks sind nach ≈ 0,86 s da
+(der Start-Chunk endet ebenfalls erst dann — er teilt die Leitung mit den Hinweisen); App-Start unter 4× CPU bis zum
+Fusionsstart ≈ 0,4 s (Start bei 1,2–1,3 s); die Fusion selbst ≈ 2,1–2,4 s. Das Karten-JS wird erst nach der Ausgabe angefragt
+(HEAD: bei ≈ 0,2 s). **Ziel < 2 s nicht erreicht:** der Rest ist Start-Chunk + App-Start + Fusion (V-DB-19).
+
+**Karten-Link:** mobil-4G kein Unterschied. Desktop in zwei von drei Läufen +73/+86 ms, in einem −5 ms, gepoolt +15 ms bei
+±60 ms Streuung desselben Baus; in Lauf 3 endet das letzte JS im Median ≈ 100 ms später (55 statt 34 Dateien über den
+lokalen Proxy), vom letzten JS bis zum ersten Draw gleich. Ein erster HTTP/1.1-Lauf (vor dem Umsetzen des Skripts über das
+Stylesheet) zeigte mobil +826 ms — Ursache Skript hinter dem Stylesheet plus sechs Verbindungen × 170 ms Drosselung je Anfrage;
+beides trifft Netlify (HTTP/2) nicht bzw. ist behoben (V-DB-18).
+
+### 11.5 Prüfungen (Arbeitsstand)
+
+| Gate | Ergebnis |
+|---|---|
+| `npm run typecheck` | grün |
+| `npm run build` (inkl. `verify-seo`, `verify-routing`) | grün, routing **249/249** |
+| `verify:dashboard --dist` | **59/59** |
+| `verify:dashboard-switch` | **38/39** — alle E-DB-20-Prüfungen (F/J/K/L) grün; rot ist **(B)**, und zwar **auch am HEAD-Bau** (Gegenprobe: 3 276 Draws in 3 s) ⇒ V-DB-17, nicht von E-DB-20. Gegenprobe der neuen Prüfungen am HEAD-Bau: F (2) und J (4) rot, wie erwartet |
+| `verify:share` · `verify:point-client` · `verify:wind-advection` · `verify:layer-erstbild` | 528/528 · 167/167 · 59/59 · 38/38 |
+| `npm run budget` | grün nach Anhebung (Jans Freigabe 30.09.): eagerJs 108,6 / **108,7**, totalJs 1 500,5 / **1 502**; Herkunft in der `budget.json`-Notiz |
+| Karte 1440×900 und 390×844, HEAD gegen Arbeitsstand, Karten-Canvas ausgeblendet | 637 px (0,049 %) bzw. 173 px (0,006 %) abweichend — ausschließlich die laufende Uhr und die Zeitleisten-Beschriftung (Aufnahmen ≈ 20 s auseinander); Rail, Dock, Readout, Topbar mit Umschalter pixelgleich |
+| Konsole (Karten-Link, Dashboard-Link → Karte, Startseite → Ort → Dashboard, `/warnungen`) | keine Ausnahme, kein `console.error` der App; GL-Treiber-Hinweise von SwiftShader („GPU stall due to ReadPixels"), die vorgesehenen 404 der Slot-Suche im Radar-Spiegel |
+
+### 11.6 Die fünf Fragen
+
+1. **Funktionserhalt:** ja. Die Ortssuche der Startseite führt jetzt ins Dashboard (Jans Entscheidung); die Karte am Ort mit Marker
+   und Punkt-Panel liegt einen Umschalter entfernt (J). Karten-Links, `/warnungen`, Suche in Karte und Dashboard, Teilen, Zurück/
+   Vorwärts unverändert (A–L). Nichts entfernt.
+2. **Desktop pixelgleich:** Karte ja (§11.5, nur die Uhr). Neu ist ein Zustand: Wechsel zur Karte, bevor ihr JS im Hintergrund da
+   ist, zeigt kurz den bestehenden `AppLoader` (K).
+3. **Touch-Ziele:** keine neuen Bedienelemente.
+4. **Konsole:** sauber (§11.5).
+5. **Long Tasks:** in headless-shell nicht messbar. Die Hintergrund-Ladung läuft im Leerlauf nach dem ganzen Fenster; das Parsen des
+   Karten-JS (≈ 520 KB gzip) fällt dann auf dem Handy in die Zeit, in der das Dashboard steht — **Real-Device offen (Jan).**
+
+### 11.7 Befunde (V-DB, D-28)
+
+| V | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-DB-16 | Die Startseite wärmt im Leerlauf `MapView` vor (`SearchPage.tsx:125-138`, „während der Nutzer sucht") — nach E-DB-20 folgt auf die Ortswahl aber das Dashboard | Ortswahl → Dashboard ohne Chunk-Wartezeit | im Leerlauf zuerst Dashboard-, Store- und Fusions-Chunk, danach MapView: **+231 KB JS (gzip) je Startseitenbesuch** (heute 640 KB inkl. Hero-Karte und MapView); nicht bei `saveData`/2G wie bisher — Jans Entscheidung (E-DB-21) |
+| V-DB-17 | Kartenpause: etwa 6–9 s nach dem Kartenstart zeichnet die Karte hinter dem Dashboard **einmal** einen Schub (3 588 / 3 744 Draws in einem 3-s-Fenster, HEAD und Arbeitsstand gleich), davor und danach 0 — kein Dauer-Loop. (B) misst ein festes Fenster und wird dadurch zeitabhängig rot | Akku/Wärme hinter dem Dashboard, verlässliches Gate | Anstoß suchen (Einblenden neu geladener Daten hinter `suspended`), Anstöße während der Pause sammeln und beim Zurückwechseln einmal zeichnen; (B) danach über mehrere Fenster — eigene kleine Phase |
+| V-DB-18 | Ohne statischen MapView-Import trennt Rollup die von Karte und Dashboard geteilten Module in 20 zusätzliche Chunks (90 → 110): Kartenweg 34 → 55 Dateien, Regenradar 22 → 35 (+3 KB) | weniger Anfragen | erst nach Real-Device/Produktionsmessung; eine gezielte `manualChunks`-Gruppe nur, wenn sie keiner Seite Code aufzwingt — `experimentalMinChunkSize` geprüft und verworfen (Startseite 70 → 398 KB, Vorhersage 41 → 364 KB) |
+| V-DB-19 | Dashboard-Link mobil-4G 3,4 s statt < 2 s: der Rest ist Start-Chunk (teilt die Leitung mit den Hinweisen), App-Start ≈ 0,4 s, Fusion ≈ 2,1–2,4 s ab Start | Dashboard mobil näher an 2 s | Cube-Index und ersten t1-Chunk schon aus der Shell vorladen (Leser-URL und Credentials-Modus müssen passen), Vorlade-Reihenfolge (erst Start-Chunk + Fusion, Diagramme später); Fusionsbytes = AP12-Linie |
+| V-DB-20 | Die Latenzmessung §10.6 (Dashboard-Link mobil 4,7 s) lief ohne die Produktions-Shell über HTTP/1.1; mit Shell über HTTP/2 lag HEAD bei 3,76 s | ehrliche Ausgangszahl | `dashboard-latency.mjs --h2` als Standard der Linie |
+
+### 11.8 Jans Entscheidungen nach E-DB-20 (gespiegelt in MANUELLE-SCHRITTE §25)
 
 | E | Frage | Empfehlung |
 |---|---|---|
-| E-DB-19 | eagerJs 107,885 → 107,922 KB (+37 B) allein durch den Vorlade-Eintrag des geteilten `@nivo/line`-Chunks: Ratsche auf 108,0 heben — oder im Dashboard auf `@nivo/line` verzichten (eigener Zeitachsen-Rahmen; die Diagramme zeichnen ohnehin eigene Ebenen; widerspricht aber der Vorlagen-Notiz und E-DB-14) | Ratsche 108,0 (Wirkung: 37 B Text im Start-Chunk, keine zusätzliche Anfrage auf dem Kartenweg) |
-| E-DB-20 | Dashboard-Link mobil 4,7 s statt < 2 s: eigener Einstieg für `?ansicht=dashboard`, der das Karten-JS erst beim Wechsel lädt (Eingriff in Start-Chunk/Router) — oder so lassen (Desktop 1,5 s erfüllt, p95 mobil erfüllt) | Erst Real-Device, dann entscheiden |
-| E-DB-16′ | totalJs-Ratsche 1 475 bestätigen (Zuwachs dieser Phase); die Altlast 1 438 → 1 455,5 gehört zu E-FS-6/`cdc9a9b` | bestätigen |
-| — | Pixel-Abweichungen (§10.4) und Zustände ohne Vorlage (`states/`) abnehmen; Real-Device (Long Tasks, Touch, WebGL-Pause) | — |
-| V-DB-12 | Vorlade-Toleranz auch für Atmosphäre/Eventplanung/Tourenplanung/Brandradar einschalten | ja, als eigene kleine Phase |
+| E-DB-21 | V-DB-16: Startseite im Leerlauf erst Dashboard, dann Karte vorladen (+231 KB je Besuch) — oder wie bisher nur die Karte | ja, wenn die Real-Device-Messung die Chunk-Wartezeit nach der Ortswahl zeigt; sonst so lassen |
+| E-DB-22 | V-DB-17 als eigene kleine Phase (Kartenpause ohne Schub) | ja |
+| — | Real-Device: Ortswahl → Dashboard, Hintergrund-Laden (Long Task beim Parsen), Wechsel zur Karte | — |

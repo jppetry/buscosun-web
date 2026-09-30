@@ -36,7 +36,9 @@ import { warmPlanFor, GRIB_MANIFEST_PATH } from '../src/router/prefetch.ts';
 import { warmLiveManifest, takeWarmManifest, liveManifestUrl, MANIFEST_TTL_MS, _warmManifestCount, _resetWarmManifests } from '../src/sources/liveManifest.ts';
 import { warmRvTar, takeWarmRvTar, rvTarUrlFor, rvTarCdnUrl, guessRvRuns, RV_WARM_TTL_MS, _warmRvCount, _resetWarmRv, rvImgDir, radarImgFrameFile } from '../src/sources/radolanRuns.ts';
 import { guessRvRuns as guessViaRadolan } from '../src/sources/radolan.ts';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
+import vm from 'node:vm';
+import { isDashboardSearch } from '../src/dashboard/viewKey.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const checks = [];
@@ -211,6 +213,13 @@ add('[warm] /regenradar ohne Ort (Suchformular): kein RV-Tar (V-LE-12)', plan('r
 add('[warm] /regenradar?ort=Wien&land=at: kein RV-Tar (Nachbarquelle kommt mit low)', plan('regenradar', '/regenradar', '?ort=Wien&olat=48.2&olon=16.4&land=at').rvTar === false);
 add('[warm] /regenradar?olat&olon ohne land: DE angenommen ⇒ RV-Tar', plan('regenradar', '/regenradar', '?olat=51.3&olon=9.5').rvTar === true);
 add('[warm] andere Routen starten nichts vor', ['vorhersage', 'home', 'waldbrand', 'globus'].every((id) => { const p = plan(id, '/' + id); return p.manifests.length === 0 && !p.rvTar; }));
+// E-DB-20: das Dashboard zeigt zuerst keine Karte ⇒ keine Kartendaten vorab (Gegenprobe: derselbe Pfad ohne Schlüssel,
+// ungültiger Wert, /warnungen mit dem Schlüssel — dort gibt es kein Dashboard).
+add('[warm] E-DB-20: /wetterkarte/niederschlag/<ort>?ansicht=dashboard startet nichts vor (Gegenprobe ohne Schlüssel: Manifest + RV-Tar)',
+  JSON.stringify(plan('wetterkarte', '/wetterkarte/niederschlag/muenchen', '?ansicht=dashboard')) === JSON.stringify({ manifests: [], rvTar: false })
+  && JSON.stringify(plan('wetterkarte', '/wetterkarte/niederschlag/muenchen', '')) === JSON.stringify({ manifests: [GRIB_MANIFEST_PATH], rvTar: true })
+  && plan('wetterkarte', '/wetterkarte/wind/muenchen', '?ansicht=Dashboard').manifests.length === 1
+  && plan('warnungen', '/warnungen', '?ansicht=dashboard').manifests.length === 1);
 
 // Frühstart-Mechanik mit gezähltem `fetch` (Node 22: fetch/Response global).
 {
@@ -257,18 +266,68 @@ add('[warm] andere Routen starten nichts vor', ['vorhersage', 'home', 'waldbrand
 }
 add('[warm] radolan.ts exportiert dieselbe `guessRvRuns` (Re-Export, kein Nachbau)', guessViaRadolan === guessRvRuns);
 add('[router] Frühstart an Wetterkarte, Warnungen und Regenradar verdrahtet', ['wetterkarte', 'warnungen', 'regenradar'].every((id) => new RegExp(`sub\\('${id}'\\)[^\\n]*'${id}'\\)`).test(routerSrc)) && !/sub\('vorhersage'\)[^\n]*'vorhersage'\)/.test(routerSrc));
+// E-DB-20: Karte und Warnungen warten im Loader auf MapView (parallel zum Route-Chunk); nur die Wetterkarte nimmt das
+// Dashboard aus. Der Route-Chunk selbst importiert MapView nicht mehr statisch (Gegenprobe am Bau unten).
+add('[router] E-DB-20: Wetterkarte (Dashboard ausgenommen) und Warnungen laden MapView im Loader',
+  /sub\('wetterkarte'\)[^\n]*mapFirst\(true\)/.test(routerSrc) && /sub\('warnungen'\)[^\n]*mapFirst\(false\)/.test(routerSrc)
+  && ROUTES.filter((r) => r.id !== 'wetterkarte' && r.id !== 'warnungen').every((r) => !new RegExp(`sub\\('${r.id}'\\)[^\\n]*mapFirst`).test(routerSrc)));
 
 // Route-Shells (nur wenn `dist/` gebaut ist — sonst übersprungen, nicht rot).
 const shellOf = (id) => { const p = join(ROOT, 'dist', `${id}.html`); return existsSync(p) ? readFileSync(p, 'utf8') : null; };
-const wkShell = shellOf('wetterkarte'), rrShell = shellOf('regenradar'), fcShell = shellOf('vorhersage');
+const wkShell = shellOf('wetterkarte'), rrShell = shellOf('regenradar'), fcShell = shellOf('vorhersage'), wnShell = shellOf('warnungen');
+// E-DB-20: das Ansichts-Skript einer Shell im Stub-DOM ausführen ⇒ die Links, die es für eine Query anlegt.
+const viewScript = (shell) => (/<script>(\(function\(\)\{try\{var d=[\s\S]*?)<\/script>/.exec(shell) || [])[1] ?? null;
+const viewLinks = (shell, search) => {
+  const code = viewScript(shell);
+  if (!code) return null;
+  const links = [];
+  vm.runInNewContext(code, { location: { search }, URLSearchParams, document: { head: { appendChild: (l) => links.push(l) }, createElement: () => ({}) } });
+  return links;
+};
+const hasLink = (links, name, ext = 'js') => links.some((l) => new RegExp(`^/assets/${name}-[\\w-]+\\.${ext}$`).test(l.href)
+  && l.crossOrigin === '' && (ext === 'js' ? l.rel === 'modulepreload' : l.rel === 'preload' && l.as === 'style'));
 if (wkShell && rrShell) {
   const pre = (s, re) => new RegExp(`<link rel="modulepreload" crossorigin href="/assets/${re}-[\\w-]+\\.js" />`).test(s);
-  add('[shell] wetterkarte.html lädt Route-Chunk, MapView und maplibre vor', pre(wkShell, 'WetterkarteRoute') && pre(wkShell, 'MapView') && pre(wkShell, 'maplibre'));
-  add('[shell] wetterkarte.html lädt die Karten-CSS vor (mit `crossorigin`, wie Vites Stylesheet-Link)', /<link rel="preload" as="style" crossorigin href="\/assets\/maplibre-[\w-]+\.css" \/>/.test(wkShell));
-  add('[shell] regenradar.html lädt NowcastRoute und maplibre vor, nicht MapView', pre(rrShell, 'NowcastRoute') && pre(rrShell, 'maplibre') && !pre(rrShell, 'MapView'));
+  add('[shell] E-DB-20: wetterkarte.html lädt den Route-Chunk fest vor, MapView und maplibre NICHT fest (die Shell dient Karte und Dashboard)',
+    pre(wkShell, 'WetterkarteRoute') && !pre(wkShell, 'MapView') && !pre(wkShell, 'maplibre'));
+  const mapQ = ['', '?radar=0&z=9', '?ansicht=Dashboard', '?ansicht=karte&ansicht=dashboard'];
+  const dashQ = ['?ansicht=dashboard', '?radar=0&ansicht=dashboard&zeitraum=7-tage'];
+  const mapOk = (ls) => !!ls && hasLink(ls, 'MapView') && hasLink(ls, 'maplibre') && hasLink(ls, 'maplibre', 'css') && !hasLink(ls, 'DashboardView') && !hasLink(ls, 'cubeSource');
+  const dashOk = (ls) => !!ls && hasLink(ls, 'DashboardView') && hasLink(ls, 'forecastStore') && hasLink(ls, 'cubeSource') && hasLink(ls, 'DashboardView', 'css') && !hasLink(ls, 'MapView') && !hasLink(ls, 'maplibre');
+  add('[shell] E-DB-20: Ansichts-Skript ohne ansicht=dashboard ⇒ MapView + maplibre (JS modulepreload, Karten-CSS preload as=style, crossOrigin wie Vite)',
+    mapQ.every((q) => mapOk(viewLinks(wkShell, q))), mapQ.filter((q) => !mapOk(viewLinks(wkShell, q))).join(' '));
+  add('[shell] E-DB-20: mit ansicht=dashboard ⇒ DashboardView, forecastStore, cubeSource — kein MapView/maplibre',
+    dashQ.every((q) => dashOk(viewLinks(wkShell, q))), dashQ.filter((q) => !dashOk(viewLinks(wkShell, q))).join(' '));
+  // Ein Parser-Skript wartet auf jedes Stylesheet darüber — über dem Stylesheet startet die Vorladung so früh wie
+  // die festen Hinweise vorher (Gegenprobe: das Stylesheet steht in der Shell).
+  const posScript = wkShell.indexOf('<script>(function(){try{var d='), posCss = wkShell.indexOf('<link rel="stylesheet"'), posModule = wkShell.indexOf('<script type="module"');
+  add('[shell] E-DB-20: das Ansichts-Skript steht vor Modul-Skript und Stylesheet (kein Warten auf das CSS)', posScript > 0 && posCss > 0 && posModule > 0 && posScript < posModule && posScript < posCss, JSON.stringify({ posScript, posModule, posCss }));
+  add('[shell] E-DB-20: das Skript entscheidet wie `isDashboardSearch` (viewKey.ts) für jede geprüfte Query',
+    [...mapQ, ...dashQ].every((q) => isDashboardSearch(q) === dashQ.includes(q)));
+  // Funktionserhalt der Kartenvorladung: jede Datei, die Vite für `import(MapView)` im Start-Chunk nennt, lädt die
+  // Kartenansicht weiterhin vor (fest oder per Skript) — nichts fällt gegenüber dem Stand vor E-DB-20 heraus.
+  const idxName = (readFileSync(join(ROOT, 'dist', 'index.html'), 'utf8').match(/src="\/(assets\/index-[\w-]+\.js)"/) || [])[1];
+  const idxJs = idxName ? readFileSync(join(ROOT, 'dist', idxName), 'utf8') : '';
+  const idxFiles = ((idxJs.match(/m\.f=\[((?:"[^"]*",?)*)\]/) || [])[1] ?? '').split(',').filter(Boolean).map((x) => x.replace(/^"|"$/g, ''));
+  const mvIdx = (/import\("\.\/MapView-[\w-]+\.js"\)(?:\.then\(\w+=>\w+\.\w+\))?,__vite__mapDeps\(\[([\d,]*)\]\)/.exec(idxJs) || [])[1];
+  const mvFiles = (mvIdx ?? '').split(',').filter(Boolean).map((i) => `/${idxFiles[Number(i)]}`);
+  const mapHave = new Set([...[...wkShell.matchAll(/href="(\/assets\/[^"]+)"/g)].map((m) => m[1]), ...(viewLinks(wkShell, '') ?? []).map((l) => l.href)]);
+  const missing = mvFiles.filter((f) => !mapHave.has(f) && !readFileSync(join(ROOT, 'dist', 'index.html'), 'utf8').includes(`${f}"`));
+  add('[shell] E-DB-20: der Start-Chunk lädt MapView über EINEN Import; jede seiner Dateien lädt die Kartenansicht vor', mvFiles.length > 5 && missing.length === 0, missing.slice(0, 4).join(' ') || `${mvFiles.length} Dateien`);
+  // Am Bau: der Route-Chunk importiert MapView/maplibre nicht statisch (Gegenprobe: WarnungenRoute importiert WetterkarteRoute statisch).
+  const assetJs = readdirSync(join(ROOT, 'dist', 'assets')).filter((f) => f.endsWith('.js'));
+  const chunkSrc = (name) => { const f = assetJs.find((x) => new RegExp(`^${name}-[\\w-]+\\.js$`).test(x)); return f ? readFileSync(join(ROOT, 'dist', 'assets', f), 'utf8') : ''; };
+  const staticFrom = (src, name) => new RegExp(`(?:^|[;}\\s])import[^;()]*?from\\s*"\\./${name}-[\\w-]+\\.js"`).test(src);
+  const wkRoute = chunkSrc('WetterkarteRoute'), wnRoute = chunkSrc('WarnungenRoute');
+  add('[shell] E-DB-20: WetterkarteRoute-Chunk importiert MapView und maplibre nicht statisch (Gegenprobe: WarnungenRoute → WetterkarteRoute statisch)',
+    !!wkRoute && !staticFrom(wkRoute, 'MapView') && !staticFrom(wkRoute, 'maplibre') && staticFrom(wnRoute, 'WetterkarteRoute'));
+  if (wnShell) add('[shell] warnungen.html lädt Route-Chunk, MapView, maplibre und Karten-CSS fest vor (nur Karte), kein Ansichts-Skript',
+    pre(wnShell, 'WarnungenRoute') && pre(wnShell, 'MapView') && pre(wnShell, 'maplibre') && /<link rel="preload" as="style" crossorigin href="\/assets\/maplibre-[\w-]+\.css" \/>/.test(wnShell) && !viewScript(wnShell));
+  add('[shell] regenradar.html lädt NowcastRoute und maplibre vor, nicht MapView', pre(rrShell, 'NowcastRoute') && pre(rrShell, 'maplibre') && !pre(rrShell, 'MapView') && !viewScript(rrShell));
   add('[shell] preconnect: Wetterkarte → openfreemap/jsDelivr/S3, Regenradar → GeoSphere + geo.admin', ['tiles.openfreemap.org', 'cdn.jsdelivr.net', 's3.amazonaws.com'].every((h) => wkShell.includes(`<link rel="preconnect" href="https://${h}" crossorigin />`)) && ['dataset.api.hub.geosphere.at', 'data.geo.admin.ch'].every((h) => rrShell.includes(`<link rel="preconnect" href="https://${h}" crossorigin />`)) && !rrShell.includes('s3.amazonaws.com'));
   const dup = (s) => { const hs = [...s.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((h) => h.startsWith('/assets/')); return hs.length !== new Set(hs).size; };
-  add('[shell] kein Asset zweimal verlinkt (index.html-Preloads werden nicht wiederholt)', !dup(wkShell) && !dup(rrShell));
+  const dupView = (s) => { const hs = [...s.matchAll(/href="([^"]+)"/g)].map((m) => m[1]); return [...(viewLinks(s, '') ?? []), ...(viewLinks(s, '?ansicht=dashboard') ?? [])].some((l) => hs.includes(l.href)); };
+  add('[shell] kein Asset zweimal verlinkt (index.html-Preloads werden nicht wiederholt, das Ansichts-Skript wiederholt keinen festen Hinweis)', !dup(wkShell) && !dup(rrShell) && (!wnShell || !dup(wnShell)) && !dupView(wkShell));
   add('[shell] vorhersage.html trägt keine Karten-Preconnects', !fcShell || !fcShell.includes('rel="preconnect"'));
   // E1: Sub-Routen-Shells tragen eigenen Canonical + dieselben Preloads wie die Eltern-Shell.
   const subShell = (id, slug) => { const p = join(ROOT, 'dist', `${id}--${slug}.html`); return existsSync(p) ? readFileSync(p, 'utf8') : null; };
@@ -276,7 +335,8 @@ if (wkShell && rrShell) {
   add('[shell] Sub-Routen-Shells existieren (wetterkarte--temperatur, atmosphaere--fliegen, waldbrand--aktive-braende)', !!tempShell && !!flyShell && !!fireShell);
   if (tempShell) {
     add('[shell] wetterkarte--temperatur.html: eigener Canonical, eigener Title, H1 aus dem Katalog', tempShell.includes('<link rel="canonical" href="https://buscosun.com/wetterkarte/temperatur" />') && tempShell.includes('<title>Temperaturkarte DACH | buscosun</title>') && tempShell.includes(`<h1>${subRouteText('/wetterkarte/temperatur').h1}</h1>`));
-    add('[shell] wetterkarte--temperatur.html lädt Route-Chunk, MapView und maplibre vor', pre(tempShell, 'WetterkarteRoute') && pre(tempShell, 'MapView') && pre(tempShell, 'maplibre'));
+    add('[shell] wetterkarte--temperatur.html lädt den Route-Chunk fest vor und trägt dasselbe Ansichts-Skript wie die Eltern-Shell (E-DB-20)',
+      pre(tempShell, 'WetterkarteRoute') && !pre(tempShell, 'MapView') && !!viewScript(tempShell) && viewScript(tempShell) === viewScript(wkShell));
     add('[shell] Sub-Shell verlinkt Eltern-Route und Geschwister-Ansichten', tempShell.includes('href="/wetterkarte"') && tempShell.includes('href="/wetterkarte/wind"') && !tempShell.includes('href="/wetterkarte/temperatur"><') );
     add('[shell] keine hreflang-Tags mehr', !/hreflang=/.test(tempShell) && !/hreflang=/.test(wkShell));
   }

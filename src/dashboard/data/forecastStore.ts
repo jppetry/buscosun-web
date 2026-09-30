@@ -14,8 +14,18 @@ import type { CubePathSummary } from '../../pointForecast/cubeSource';
 import type { FusionIn, PlaceIn } from '../model/types';
 import { pWetOf } from '../model/build';
 import type { Dist } from '../../pointForecast/fusion/dist';
+import type { TierId } from '../../point/cubeFormat';
 
 export const DASHBOARD_HOURS = 336;
+const TIER_IDS: readonly TierId[] = ['t1', 't2', 't3'];
+
+/**
+ * E-DB-20: `true` once the forecast spans the whole window. The cube path's first paint (t1 only) names the tiers it
+ * still waits for in `pending`; the core output (or a first output that already was the core) names none.
+ */
+export function coversWindow(f: FusionIn): boolean {
+  return !f.pending.some((p) => (TIER_IDS as readonly string[]).includes(p));
+}
 const REFRESH_MS = 10 * 60_000;
 
 export interface ForecastState {

@@ -17,6 +17,7 @@
 import { warmLiveManifest } from '../sources/liveManifest';
 import { warmRvTar } from '../sources/radolanRuns';
 import type { RouteId } from './routes';
+import { isDashboardSearch } from '../dashboard/viewKey';
 
 export const GRIB_MANIFEST_PATH = '/latest-grib.json';
 // BW-13: WIND_MANIFEST_PATH ist entfallen — der Windlayer löst seinen Lauf aus
@@ -34,6 +35,8 @@ export function warmPlanFor(routeId: RouteId, pathname: string, search: string):
   switch (routeId) {
     case 'wetterkarte':
     case 'warnungen': {
+      // E-DB-20: the dashboard view shows no map at first — its data comes later, with the map (audit/dashboard.md §11).
+      if (routeId === 'wetterkarte' && isDashboardSearch(search)) return { manifests: [], rvTar: false };
       // MapView lädt Wind + Temperatur immer (Stadt-Labels); der RV-Tar nur,
       // wenn ein Layer der Nowcast-Familie über Pfad-Slug oder `l=` aktiv ist.
       const seg = pathname.split('/').filter(Boolean);
