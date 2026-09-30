@@ -257,6 +257,7 @@ function formatSourceList(sources: string[]): string {
     switch (s.toLowerCase()) {
       case 'dwd_obs': return 'DWD Stations-Obs';
       case 'mosmix':  return 'DWD MOSMIX';
+      case 'claef':   return 'GeoSphere C-LAEF';
       case 'arome_at':
       case 'arome':   return 'GeoSphere AROME';
       case 'inca':    return 'GeoSphere INCA';

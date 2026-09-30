@@ -425,7 +425,7 @@ const TERMS = [
   {
     id: 'arome', term: 'AROME',
     short: 'Hochauflösendes Regionalmodell von Météo-France (1,3 km), das auch für Österreich (GeoSphere) und die Schweiz (COSMO-Nachfolger ICON-CH) verwandt ist.',
-    html: '<p><strong>AROME</strong> löst wie ICON-D2 Konvektion explizit auf und ist im Alpenraum eine wichtige zweite Meinung — GeoSphere Austria betreibt eine eigene AROME-Konfiguration. buscosun bezieht AROME-Felder für Frankreich-nahe Gebiete und den Modellvergleich; im DACH-Kern bleibt ICON-D2 der Standard. Wo ein Modell nicht offen verfügbar ist, sagt der Modellvergleich das, statt es stillschweigend zu ersetzen.</p>',
+    html: '<p><strong>AROME</strong> löst wie ICON-D2 Konvektion explizit auf und ist im Alpenraum eine wichtige zweite Meinung — GeoSphere Austria betreibt darauf aufbauend C-LAEF, ein 1-km-Modell auf AROME-Basis, das buscosun seit Herbst 2026 für Österreich und die Schweiz liest (AROME-AT 2,5 km wird im November 2026 eingestellt). Für Frankreich-nahe Gebiete und den Modellvergleich bezieht buscosun AROME-France-Felder; im DACH-Kern bleibt ICON-D2 der Standard. Wo ein Modell nicht offen verfügbar ist, sagt der Modellvergleich das, statt es stillschweigend zu ersetzen.</p>',
     links: ['/methodik/wettermodelle/', '/funktionen/modellvergleich/'],
   },
   {

@@ -342,7 +342,7 @@ const EXPLAINERS_BASE = [
           'Feuchte, begrenzt auf ±1,5 K Abweichung vom Anker. Im <a href="/regenradar">Regenradar</a> wird daraus ' +
           'zusätzlich die Trennung zwischen Tal und Grat: Ab 700 Metern Ortshöhe nennt buscosun beide Werte und sagt ' +
           'ausdrücklich, ob die Grenze über dem Grat, unter dem Tal oder dazwischen liegt. Für Österreich und die ' +
-          'Schweiz nennt der Punktforecast zusätzlich die Schneefallgrenze aus dem AROME-Modell in Metern.</p>',
+          'Schweiz nennt der Punktforecast zusätzlich die Schneefallgrenze aus dem C-LAEF-Modell in Metern.</p>',
       },
       {
         id: 'grenzen',

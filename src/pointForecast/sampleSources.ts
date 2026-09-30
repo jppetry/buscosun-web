@@ -10,6 +10,7 @@ import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
 import { fetchTawesCurrentGrid, fetchTawesHistory } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid, fetchSmnHistory } from '../sources/meteoSwissSmn';
 import type { ForecastBounds, ForecastHourPoint } from '../sources/openMeteoForecast';
+import { geoSphereNwpVersion, geoSphereNwpUrl, readGeoSphereHour, GEOSPHERE_NWP_SOURCE, GEOSPHERE_NWP_DATASET } from '../sources/geosphereNwp';
 import type { PointSourceSample, PointHourSamples } from './types';
 
 const EARTH_R = 6_371_000;
@@ -404,7 +405,8 @@ export async function fetchIncaPoint(
 }
 
 // ---------------------------------------------------------------------------
-// GeoSphere AROME-AT — 2.5 km / 1 h NWP, 60 h horizon at a point.
+// GeoSphere NWP am Punkt — C-LAEF 1 km (`nwp-v2-1h-1km`), bis zum 2026-11-04 wahlweise AROME 2,5 km
+// (`?nwp=v1`); 1 h Schritt, 60 h Horizont. Zuordnung der Größen: `sources/geosphereNwp.ts` (Phase GS).
 // ---------------------------------------------------------------------------
 
 const AROME_BOUNDS = { lngMin: 6.0, lngMax: 17.0, latMin: 45.7, latMax: 51.5 };
@@ -423,13 +425,10 @@ export async function fetchAromePoint(
   ) {
     return [];
   }
-  const url =
-    'https://dataset.api.hub.geosphere.at/v1/timeseries/forecast/nwp-v1-1h-2500m' +
-    // ugust/vgust: 10-m max-gust components (m/s); rh2m: 2-m relative humidity (%);
-    // snowlmt: Schneefallgrenze in m ü. M.
-    `?parameters=t2m,u10m,v10m,ugust,vgust,rh2m,snowlmt,tcc,rr_acc&lat_lon=${lat.toFixed(3)},${lng.toFixed(3)}`;
+  const version = geoSphereNwpVersion();
+  const url = geoSphereNwpUrl(version, [`lat_lon=${lat.toFixed(3)},${lng.toFixed(3)}`]);
   const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`AROME point ${res.status}`);
+  if (!res.ok) throw new Error(`GeoSphere ${GEOSPHERE_NWP_DATASET[version]} point ${res.status}`);
   const json = (await res.json()) as GeoSphereTimeSeriesResponse;
   const feat = json.features?.[0];
   if (!feat) return [];
@@ -448,47 +447,30 @@ export async function fetchAromePoint(
   const first = Math.max(0, startIdx - Math.max(0, pastHours));
   const usable = Math.min(hours + (startIdx - first), stamps.length - first);
   const out: OpenMeteoPointHour[] = [];
-  let prevAcc: number | null = null;
   for (let k = 0; k < usable; k++) {
     const h = first + k;
-    const t = p.t2m?.data?.[h] ?? null;
-    const u = p.u10m?.data?.[h] ?? null;
-    const v = p.v10m?.data?.[h] ?? null;
-    const tcc = p.tcc?.data?.[h];
-    const total100 = tcc != null ? tcc * 100 : null;
+    const g = readGeoSphereHour(p, h, version);
+    // Total cover split 55 / 30 / 15 across the three layers (the point sources only report one total).
+    const total100 = g.cloudTotalPct;
     let cl: number | null = null, cm: number | null = null, ch: number | null = null;
     if (total100 != null) {
       cl = total100 * 0.55;
       cm = total100 * 0.30;
       ch = total100 * 0.15;
     }
-    // rr_acc is monotone increasing; hourly precip is the diff.
-    const acc = p.rr_acc?.data?.[h] ?? null;
-    let precip: number | null = null;
-    if (acc != null && prevAcc != null) precip = Math.max(0, acc - prevAcc);
-    if (acc != null) prevAcc = acc;
-    // Gust = magnitude of (ugust, vgust); rh2m is directly in %.
-    const ug = p.ugust?.data?.[h];
-    const vg = p.vgust?.data?.[h];
-    const gustMs = ug != null && vg != null ? Math.sqrt(ug * ug + vg * vg) : null;
-    const rh2m = p.rh2m?.data?.[h] ?? null;
-    const snowlmt = p.snowlmt?.data?.[h] ?? null;
     out.push({
       time: stamps[h],
-      temperature: t,
-      u, v,
-      gust: gustMs,
-      relativeHumidity: rh2m,
-      snowLine: snowlmt,
+      temperature: g.temperature,
+      u: g.u, v: g.v,
+      gust: g.gust,
+      relativeHumidity: g.relativeHumidity,
+      snowLine: g.snowLine,
       cloudLow: cl, cloudMid: cm, cloudHigh: ch,
-      precipitation: precip,
-      model: 'arome_at',
-      // AROME is a 2.5 km gridded model — the response includes the native
-      // grid-cell topography on the feature, but the API doesn't surface it
-      // in /timeseries/forecast. Without that, we can't lapse-correct against
-      // the model topography; the blender therefore skips lapse correction
-      // for AROME samples (elevation: null) and relies on AROME's own
-      // valley-resolving skill at 2.5 km.
+      precipitation: g.precipitation,
+      model: GEOSPHERE_NWP_SOURCE[version],
+      // The API does not surface the model orography in /timeseries/forecast. Without it we cannot
+      // lapse-correct against the model cell; the blender therefore skips lapse correction for these
+      // samples (elevation: null) and relies on the model's own valley resolution (2,5 km resp. 1 km).
       elevation: null,
     });
   }

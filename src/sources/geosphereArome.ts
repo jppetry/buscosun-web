@@ -1,18 +1,13 @@
 /**
- * GeoSphere Austria — AROME-AT (forecast nwp-v1-1h-2500m).
+ * GeoSphere Austria — das NWP-Stützgitter der Rasterfusion: C-LAEF 1 km (`nwp-v2-1h-1km`), bis zum
+ * 2026-11-04 wahlweise AROME-AT 2,5 km (`nwp-v1-1h-2500m`, `?nwp=v1`). Phase GS, `audit/geosphere-v2.md`.
  *
- * AROME at 2.5 km / 1 h is the reference deterministic NWP for Austria and
- * has an unusually generous coverage box that includes most of DACH:
- *   lat 42.98 .. 51.82, lng 5.50 .. 22.10 → all of AT, CH, southern DE
- *   (north DE above ~52 °N is outside — falls back to MOSMIX).
+ * Beide Datensätze haben eine großzügige Abdeckung, die den größten Teil von DACH einschließt:
+ *   v1 lat 42.98 .. 51.82, lng 5.50 .. 22.10 · v2 lat 43.00 .. 51.50, lng 5.03 .. 22.57
+ *   → ganz AT und CH, Süddeutschland (Norddeutschland oberhalb ~51,5 °N liegt außerhalb — MOSMIX).
  *
- * Forecast horizon: 60 h, hourly. Variables we use:
- *   t2m   — 2 m temperature, °C (direct)
- *   u10m  — 10 m east-wind component, m/s   (direct U!)
- *   v10m  — 10 m north-wind component, m/s  (direct V!)
- *   tcc   — total cloud cover, 0..1 (multiply by 100)
- *   rr_acc — accumulated precipitation since forecast start, mm (we diff
- *           consecutive hours to get hourly precipitation)
+ * Horizont 60 h, stündlich, Läufe alle 3 h. Die Größen und ihre Bedeutung je Version stehen EINMAL in
+ * `geosphereNwp.ts` (`readGeoSphereHour`): T, u, v, Gesamtbewölkung in %, Stundensumme Niederschlag.
  *
  * Same API conventions as INCA: raw-comma lat_lon list, ≈ 5 req/s rate limit,
  * boundary points get rejected with HTTP 400 if any sit outside the bbox.
@@ -20,6 +15,7 @@
 
 import type { ForecastBounds, ForecastGrid, ForecastHourPoint } from './openMeteoForecast';
 import { correctCloudBias } from './cloudBias';
+import { geoSphereNwpVersion, geoSphereNwpUrl, readGeoSphereHour, GEOSPHERE_NWP_SOURCE, GEOSPHERE_NWP_DATASET } from './geosphereNwp';
 
 /**
  * AROME's published bbox per /metadata. We sit a comfortable margin inside
@@ -77,11 +73,10 @@ export async function fetchGeoSphereAromeGrid(options: AromeOptions = {}): Promi
   for (let k = 0; k < total; k++) {
     partLatLon[k] = `lat_lon=${lats[k].toFixed(3)},${lngs[k].toFixed(3)}`;
   }
-  const url =
-    'https://dataset.api.hub.geosphere.at/v1/timeseries/forecast/nwp-v1-1h-2500m' +
-    `?parameters=t2m,u10m,v10m,tcc,rr_acc&${partLatLon.join('&')}`;
+  const version = geoSphereNwpVersion();
+  const url = geoSphereNwpUrl(version, partLatLon, true);
   const res = await fetch(url, { signal: options.signal });
-  if (!res.ok) throw new Error(`GeoSphere AROME error ${res.status}`);
+  if (!res.ok) throw new Error(`GeoSphere ${GEOSPHERE_NWP_DATASET[version]} error ${res.status}`);
   const json = (await res.json()) as AromeResponse;
 
   const timestamps = json.timestamps.map((s) => new Date(s));
@@ -106,20 +101,15 @@ export async function fetchGeoSphereAromeGrid(options: AromeOptions = {}): Promi
     const arr: ForecastHourPoint[] = new Array(total);
     for (let k = 0; k < total; k++) {
       const f = featureFor(lats[k], lngs[k]);
-      const p = f?.properties.parameters;
-      const t = p?.t2m?.data?.[h] ?? null;
-      const u = p?.u10m?.data?.[h] ?? null;
-      const v = p?.v10m?.data?.[h] ?? null;
-      const tccRaw = p?.tcc?.data?.[h];
-      // tcc is 0..1; scale to 0..100, then satellite-bias-correct (see
-      // ./cloudBias.ts — Cirrus haze inflates the 0-50 % band the most).
-      const total100 = correctCloudBias(tccRaw != null ? tccRaw * 100 : null);
-      // Hourly precip = diff of accumulated rr
-      const accNow = p?.rr_acc?.data?.[h] ?? null;
-      const accPrev = h > 0 ? p?.rr_acc?.data?.[h - 1] ?? null : 0;
-      const precipPerHour = accNow != null && accPrev != null
-        ? Math.max(0, accNow - accPrev)
-        : null;
+      const g = f ? readGeoSphereHour(f.properties.parameters, h, version) : null;
+      const t = g?.temperature ?? null;
+      const u = g?.u ?? null;
+      const v = g?.v ?? null;
+      // Gesamtbewölkung in %, dann Satelliten-Bias-Korrektur (./cloudBias.ts — Cirrus-Dunst bläht das
+      // Band 0–50 % am stärksten auf).
+      const total100 = correctCloudBias(g?.cloudTotalPct ?? null);
+      // Stundensumme (v1: Differenz der Laufsumme, bei Stunde 0 zur Summe 0 wie bisher; v2: `tp`, Stunde 0 ohne Wert).
+      const precipPerHour = g?.precipitation ?? null;
       // Cloud-cover layered split — proportional 55 / 30 / 15 of (corrected)
       // total so alpha-combined render matches the bias-corrected tcc.
       let cl: number | null = null, cm: number | null = null, ch: number | null = null;
@@ -136,7 +126,7 @@ export async function fetchGeoSphereAromeGrid(options: AromeOptions = {}): Promi
         cloudMid: cm,
         cloudHigh: ch,
         precipitation: precipPerHour,
-        model: 'arome_at',
+        model: GEOSPHERE_NWP_SOURCE[version],
       };
     }
     points.push(arr);

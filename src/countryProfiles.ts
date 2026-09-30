@@ -89,8 +89,8 @@ export const COUNTRY_PROFILES: Record<Country, CountryProfile> = {
     useInca: true,
     useTawes: true,
     useSmn: true,
-    forecastHours: 60,   // AROME goes to +60 h
-    stackLabel: 'GeoSphere AROME + INCA + TAWES',
+    forecastHours: 60,   // C-LAEF (wie AROME) geht bis +60 h
+    stackLabel: 'GeoSphere C-LAEF + INCA + TAWES',
   },
   CH: {
     code: 'CH',
@@ -106,7 +106,7 @@ export const COUNTRY_PROFILES: Record<Country, CountryProfile> = {
     useTawes: true,
     useSmn: true,
     forecastHours: 60,
-    stackLabel: 'GeoSphere AROME + MeteoSwiss SMN',
+    stackLabel: 'GeoSphere C-LAEF + MeteoSwiss SMN',
   },
 };
 

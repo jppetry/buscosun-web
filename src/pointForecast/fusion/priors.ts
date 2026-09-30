@@ -286,6 +286,7 @@ export const FOOTPRINT_M: Readonly<Record<string, number>> = Object.freeze({
   dwd_obs: 0, tawes: 0, smn: 0,                  // point measurements
   inca: 1_000,
   arome_at: 2_500,
+  claef: 1_000,                                  // GeoSphere C-LAEF 1 km (Phase GS, ersetzt AROME ab 2026-11)
   icon_d2: 2_200,
   icon_ch1: 1_000,
   mosmix: 0,                                     // station forecast — reports its own height

@@ -24,7 +24,7 @@ import {
 
 const FLAG: Record<Country, string> = { DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' };
 const COUNTRY_NAME: Record<Country, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz' };
-const POINT_LABEL: Record<Country, string> = { DE: 'MOSMIX + Stationen', AT: 'AROME + TAWES', CH: 'AROME + SMN' };
+const POINT_LABEL: Record<Country, string> = { DE: 'MOSMIX + Stationen', AT: 'C-LAEF + TAWES', CH: 'C-LAEF + SMN' };
 const GROUP_TITLE: Record<ModelGroup, string> = {
   local: 'Lokal & fein', regional: 'Regional', global: 'Global & langfristig',
 };

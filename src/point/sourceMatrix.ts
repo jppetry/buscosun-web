@@ -640,8 +640,12 @@ export interface ScheduledChange {
 export const SCHEDULED_CHANGES: readonly ScheduledChange[] = Object.freeze([
   Object.freeze({
     on: '2026-11-04', what: 'GeoSphere nwp-v1-1h-2500m (AROME 2,5 km) wird abgeschaltet',
-    action: 'auf nwp-v2-1h-1km (C-LAEF AlpeAdria) migrieren; nicht neu darauf bauen. Der Producer liest schon v2; offen sind der Live-Rückfallpfad (sampleSources.ts) und die Kartenquelle (geosphereArome.ts)',
+    action: 'auf nwp-v2-1h-1km (C-LAEF AlpeAdria) migrieren; nicht neu darauf bauen',
     affects: ['claef'], improvement: 'V-PD-2',
+    resolved: Object.freeze({
+      on: '2026-09-30',
+      evidence: 'Producer seit PD-B7 auf v2 (adapters/geosphere.mjs); Phase GS: Live-Rückfallpfad (sampleSources.ts) und Kartenquelle (geosphereArome.ts) lesen nwp-v2-1h-1km über sources/geosphereNwp.ts, v1 nur noch mit ?nwp=v1; verify:geosphere-nwp gegen beide Datensätze',
+    }),
   }),
   Object.freeze({
     on: '2026-09-30', what: 'data.dynamical.org wird abgeschaltet',

@@ -84,8 +84,8 @@ function isAlpine(place) {
 /** Datenquellen je Land (ehrlich, deckungsgleich mit der App). */
 function sourcesFor(country) {
   if (country === 'DE') return 'DWD (ICON-D2/MOSMIX, RADOLAN-RV, Sferics, UV, Pollen, amtliche Warnungen)';
-  if (country === 'AT') return 'GeoSphere Austria (AROME, INCA, TAWES) + ICON-D2 im Grenzbereich';
-  return 'MeteoSwiss (AROME, SMN, rzc-Radar) + ICON-D2 im Grenzbereich';
+  if (country === 'AT') return 'GeoSphere Austria (C-LAEF, INCA, TAWES) + ICON-D2 im Grenzbereich';
+  return 'MeteoSwiss (SMN, rzc-Radar) + GeoSphere C-LAEF + ICON-D2 im Grenzbereich';
 }
 
 /** Aus echten Attributen abgeleitete Faktensätze (kein Live-Wert). */
@@ -112,8 +112,8 @@ export function placeFacts(place) {
 /** Kurzes Quellen-Label je Land (für den Lead). */
 function shortSource(country) {
   if (country === 'DE') return 'DWD (ICON-D2, MOSMIX, RADOLAN)';
-  if (country === 'AT') return 'GeoSphere Austria (AROME, INCA) + ICON-D2';
-  return 'MeteoSwiss (AROME, Radar) + ICON-D2';
+  if (country === 'AT') return 'GeoSphere Austria (C-LAEF, INCA) + ICON-D2';
+  return 'MeteoSwiss (Radar) + GeoSphere C-LAEF + ICON-D2';
 }
 
 /** Extrahierbarer 40–60-Wort-Direktantwort-Lead (GEO). Nur stabile Fakten. */

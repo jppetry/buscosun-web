@@ -195,7 +195,7 @@ export function familyOf(source: string): SourceFamily {
   if (s === 'inca' || s.includes('radolan') || s.includes('nowcast')) return 'nowcast';
   if (
     s === 'icon_d2' || s === 'icon_ch1' ||
-    s === 'arome' || s === 'arome_at' ||
+    s === 'arome' || s === 'arome_at' || s === 'claef' ||
     s.startsWith('icon_d2') || s.startsWith('icon_ch')
   ) {
     return 'highres';

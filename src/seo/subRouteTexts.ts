@@ -173,7 +173,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Ehrlich bleibt die Sicherheit: Jeder Tag trägt eine Konfidenz aus der Einigkeit der Quellen mal Vorlaufzeit. Unter dem Schwellenwert 0,55 wird der Tag als Tendenz gekennzeichnet statt als Empfehlung. Tage jenseits des Horizonts der genutzten Quelle erscheinen als „keine Vorhersage" und nicht als Null, die wie eine Aussage aussieht. Wer eine Fläche aufzieht, bekommt zusätzlich die Spanne über das Gelände statt eines einzelnen Punktwerts.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere AROME und INCA · MeteoSchweiz SMN · Radar-Nowcast im Kurzfristbereich' },
+      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN · Radar-Nowcast im Kurzfristbereich' },
       { label: 'Profil', text: 'Idealtemperatur 19–30 °C; Gewichte Regen 1,0 · Temperatur 0,7 · Wind 0,5 · Bewölkung 0,5 (wenig bevorzugt)' },
       { label: 'Horizont', text: '7 Tage; Konfidenz unter 0,55 gilt als Tendenz' },
       { label: 'Abdeckung', text: 'DE, AT, CH; Punkt oder aufgezogene Fläche mit vier Ecken und Mitte' },
@@ -189,7 +189,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Für die Location selbst hilft die Flächenansicht: Statt eines Punktes lässt sich das Gelände als Rechteck aufziehen, vier Ecken und die Mitte werden nacheinander abgefragt, und die Geländebühne nennt den tiefsten und den windexponiertesten Punkt sowie die Stunde, in der die Sonne je Phase hinter dem Grat verschwindet. Über flachem Land liegt die Spanne oft unter einem halben Grad — dann sagt die Ansicht „uniform", statt Nachkommastellen als Ortsauflösung auszugeben. Sieben Tage sind der Horizont; für einen Termin in Monaten gibt es keine Wettervorhersage, nur die astronomischen Lichtzeiten.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere AROME · MeteoSchweiz SMN · Terrarium-DEM für Gelände und Horizont' },
+      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF · MeteoSchweiz SMN · Terrarium-DEM für Gelände und Horizont' },
       { label: 'Phasen', text: 'Trauung 13–15, Empfang 15–18, Abendfeier 18–23 Uhr (frei änderbar); der Tag zählt die schwächste Phase' },
       { label: 'Plan B', text: 'Voreinstellung 3 mm Regen, 13 m/s Böe oder Punktzahl 50; Ausweichort in 8 Richtungen bis 22 km' },
       { label: 'Abdeckung', text: 'DE, AT, CH; Fläche mit Ecken-Abtastung und Geländekennzahlen' },
@@ -205,7 +205,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Grenzen: Die Bewertung kennt den Weg nicht, sondern nur den Ort — Nebelgrenzen, Grat und Tal unterscheidet erst die Tourenplanung oder die Atmosphäre-Ansicht. Für alpine Touren im Winter ersetzt nichts davon den Lawinenlagebericht; buscosun verlinkt ihn ab etwa 1 000 Metern, wertet ihn aber nicht aus. Amtliche Warnungen gibt allein der Wetterdienst heraus, in Österreich und der Schweiz mit anderen Stufenlogiken als in Deutschland.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere AROME und INCA · MeteoSchweiz SMN · Terrarium-DEM' },
+      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN · Terrarium-DEM' },
       { label: 'Profil', text: 'Idealtemperatur 12–22 °C; Gewichte Regen 1,0 · Temperatur 0,6 · Wind 0,4 · Bewölkung 0,25' },
       { label: 'Horizont', text: '7 Tage; Konfidenz unter 0,55 gilt als Tendenz' },
       { label: 'Abdeckung', text: 'DE, AT, CH; höhenkorrigiert über das Geländemodell' },
@@ -221,7 +221,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Grenzen und Verantwortung: buscosun kennt weder die Betriebsgrenzen des Geräts noch die Luftraumlage. Die Herstellerangabe und die Betriebsanleitung sind maßgeblich, ebenso die Regeln der zuständigen Luftfahrtbehörde und geografische Sperrgebiete — dafür gibt es eigene amtliche Dienste. Die Böe in Flughöhe ist eine Näherung aus dem Bodenwert über ein Grenzschichtprofil, keine Messung, und Turbulenz an Kanten oder zwischen Gebäuden bildet kein Modell mit 2,2 Kilometern Gitterweite ab.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD ICON-D2 (Böe) und MOSMIX · GeoSphere AROME · MeteoSchweiz SMN · Terrarium-DEM' },
+      { label: 'Quellen', text: 'DWD ICON-D2 (Böe) und MOSMIX · GeoSphere C-LAEF · MeteoSchweiz SMN · Terrarium-DEM' },
       { label: 'Profil', text: 'Idealtemperatur 2–30 °C; Gewichte Wind 1,0 · Regen 0,9 · Bewölkung 0,4 · Temperatur 0,1' },
       { label: 'Stundenwahl', text: 'Arbeitsfenster Go/No-Go mit Flughöhe und Böengrenzwert (Voreinstellung 120 m, 40 km/h)' },
       { label: 'Abdeckung', text: 'DE, AT, CH' },
@@ -237,7 +237,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Am Gelände wird es konkreter: Wer eine Fläche aufzieht, bekommt die Stunde genannt, in der die Sonne hinter dem Grat verschwindet — der Horizont stammt aus dem Höhenmodell im Umkreis von 30 Kilometern, ein Grat unter einem Grad Höhe gilt als normaler Sonnenuntergang. Grenzen: Das Modell kennt weder Gebäude noch Bäume, die Nebelchance ist eine Schätzung und keine Nebelvorhersage, und ob eine Wolke am Abend wirklich Farbe annimmt, sagt keine Rechnung sicher voraus.',
     ],
     facts: [
-      { label: 'Quellen', text: 'Sonnenstand nach NOAA-Verfahren · DWD MOSMIX, GeoSphere AROME, MeteoSchweiz SMN für Bewölkung und Feuchte · Terrarium-DEM für den Horizont' },
+      { label: 'Quellen', text: 'Sonnenstand nach NOAA-Verfahren · DWD MOSMIX, GeoSphere C-LAEF, MeteoSchweiz SMN für Bewölkung und Feuchte · Terrarium-DEM für den Horizont' },
       { label: 'Profil', text: 'Idealtemperatur 2–28 °C; Gewichte Bewölkung 1,0 (weiches Licht bevorzugt) · Regen 0,7 · Wind 0,25 · Temperatur 0,15' },
       { label: 'Lichtzeiten', text: 'blaue Stunde −6° bis −4°, goldene Stunde −4° bis +6°, Auf-/Untergang −0,833°; gültig für jedes Datum' },
       { label: 'Abdeckung', text: 'DE, AT, CH; Geländehorizont im Umkreis von 30 km' },
@@ -253,7 +253,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Was diese Ansicht nicht kann: Sie sagt keine Sichtbarkeit der Milchstraße vorher, keine Meteorströme, keine Polarlichter und keine Durchsicht in Bogensekunden. Sie beantwortet die Frage, in welcher der nächsten Nächte Wolken, Mond und Feuchte am wenigsten im Weg stehen, und liefert die Zeiten, ab denen es astronomisch wirklich dunkel ist. Für den Beobachtungsplan selbst bleiben Ephemeriden und Sternkarten zuständig.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX, GeoSphere AROME, MeteoSchweiz SMN für Wolken und Feuchte · Sonnen- und Mondstand astronomisch berechnet' },
+      { label: 'Quellen', text: 'DWD MOSMIX, GeoSphere C-LAEF, MeteoSchweiz SMN für Wolken und Feuchte · Sonnen- und Mondstand astronomisch berechnet' },
       { label: 'Profil', text: 'Kernnacht 22–4 Uhr; Gewichte Bewölkung 1,0 · Regen 0,9 · Wind 0,2 · Temperatur 0,15' },
       { label: 'Nachtwerte', text: 'Wolkenstockwerke, Mondphase und -höhe, astronomische Dunkelheit, Tau-Risiko aus dem Taupunkt' },
       { label: 'Abdeckung', text: 'DE, AT, CH; Bortle-Einordnung als Offline-Schätzung' },
@@ -269,7 +269,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Grenzen: Ein Tageswert kennt keine Passhöhe und keine Talinversion; die Höhenkorrektur greift für den gewählten Ort, nicht für jeden Streckenpunkt. Für Gewitterlagen im Sommer ist der Nowcast die schärfere Quelle, weil er gemessenes Radar statt Modellniederschlag zeigt. Amtliche Warnungen kommen ausschließlich von den Wetterdiensten; buscosun bildet sie ab, gibt aber keine eigenen heraus.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere AROME und INCA · MeteoSchweiz SMN · Radar-Nowcast im Kurzfristbereich' },
+      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN · Radar-Nowcast im Kurzfristbereich' },
       { label: 'Profil', text: 'Idealtemperatur 12–24 °C; Gewichte Regen 1,0 · Wind 0,7 · Temperatur 0,5 · Bewölkung 0,2' },
       { label: 'Anschluss', text: 'Tourenplanung mit GPX/TCX/FIT/KML, Wind-Effekt auf die Fahrzeit und E-Bike-Reichweite' },
       { label: 'Abdeckung', text: 'DE, AT, CH' },
@@ -285,7 +285,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Zur Ehrlichkeit gehört die Sicherheit je Tag: Sie entsteht aus der Einigkeit der Quellen mal Vorlaufzeit und wird als Balken gezeigt; unter dem Schwellenwert 0,55 gilt der Tag nur noch als Tendenz. Für Tage jenseits des Quellenhorizonts steht „keine Vorhersage" statt einer Zahl. Sieben Tage sind die Grenze; darüber hinaus gibt es keine belastbare Aussage, auch wenn andere Apps welche zeigen.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere AROME und INCA · MeteoSchweiz SMN' },
+      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN' },
       { label: 'Profil', text: 'Idealtemperatur 17–28 °C; Gewichte Regen 1,0 · Temperatur 0,7 · Wind 0,5 · Bewölkung 0,45 (wenig bevorzugt)' },
       { label: 'Horizont', text: '7 Tage; Konfidenz unter 0,55 gilt als Tendenz' },
       { label: 'Abdeckung', text: 'DE, AT, CH; Punkt oder aufgezogene Fläche' },
@@ -301,7 +301,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Grenzen: Es gibt keine Hitzewarnung und keinen medizinischen Rat — buscosun rechnet Wetter, nicht Belastung. Amtliche Warnungen vor Hitze oder Gewitter geben allein die Wetterdienste heraus. Ozon- und Feinstaubwerte sind nicht Teil der Bewertung; der Pollenflug steht nur für Deutschland als amtlicher Feed zur Verfügung, für Österreich und die Schweiz ausdrücklich nicht.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere AROME und INCA · MeteoSchweiz SMN' },
+      { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN' },
       { label: 'Profil', text: 'Idealtemperatur 5–17 °C; Gewichte Regen 0,8 · Temperatur 0,6 · Wind 0,4 · Bewölkung 0,15' },
       { label: 'Fenster', text: 'ganzer Tag, Vormittag, Nachmittag, Abend oder eigene Phase mit fester Startzeit' },
       { label: 'Abdeckung', text: 'DE, AT, CH; gefühlte Temperatur aus Wind und Feuchte' },
@@ -317,7 +317,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
       'Beim UV-Index ist die Herkunft ehrlich getrennt: In Deutschland stammt er vom DWD als amtlicher Tageshöchstwert und wird über den Sonnenstand auf die Stunden verteilt; für Österreich und die Schweiz gibt es keinen entsprechenden offenen Feed, dort ist der Wert eine Klarhimmel-Schätzung. Für Gewitter im Sommer ist zusätzlich der Nowcast die schärfere Quelle, weil er gemessenes Radar zeigt statt Modellniederschlag.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD MOSMIX, Messstationen und UV-Tagespeak · GeoSphere AROME und INCA · MeteoSchweiz SMN' },
+      { label: 'Quellen', text: 'DWD MOSMIX, Messstationen und UV-Tagespeak · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN' },
       { label: 'Profil', text: 'Idealtemperatur 24–34 °C; Gewichte Temperatur 1,0 · Regen 0,8 · Bewölkung 0,6 (wenig bevorzugt) · Wind 0,4' },
       { label: 'UV', text: 'Deutschland amtlicher DWD-Tageshöchstwert, über den Sonnenstand verteilt; Österreich und Schweiz Klarhimmel-Schätzung' },
       { label: 'Abdeckung', text: 'DE, AT, CH' },

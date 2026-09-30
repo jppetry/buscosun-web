@@ -49,14 +49,14 @@ export const METHODIK_PAGES = [
   {
     slug: 'punktvorhersage-quellenmix',
     title: 'Punktvorhersage: der Quellenmix',
-    h1: 'Wie der Punktforecast aus Stationen, MOSMIX, AROME und Radar eine Vorhersage mischt',
+    h1: 'Wie der Punktforecast aus Stationen, MOSMIX, C-LAEF und Radar eine Vorhersage mischt',
     description: 'Welche Quellen der Punktforecast von buscosun je Land verwendet, wie sie gewichtet werden und wie die Konfidenz je Variable entsteht.',
-    answer: 'Der Punktforecast von buscosun mischt für jeden Ort die nächsten amtlichen Messstationen (DWD, TAWES, SMN), die DWD-Stationsvorhersage MOSMIX, für Österreich und die Schweiz die GeoSphere-Modelle AROME und INCA sowie das Radar-Nowcast — gewichtet nach Vorlaufzeit, an den Live-Messwerten verankert und mit einer Konfidenz je Variable aus der Streuung der Quellen. Open-Meteo wird bewusst nicht als Standardquelle benutzt.',
+    answer: 'Der Punktforecast von buscosun mischt für jeden Ort die nächsten amtlichen Messstationen (DWD, TAWES, SMN), die DWD-Stationsvorhersage MOSMIX, für Österreich und die Schweiz die GeoSphere-Modelle C-LAEF und INCA sowie das Radar-Nowcast — gewichtet nach Vorlaufzeit, an den Live-Messwerten verankert und mit einer Konfidenz je Variable aus der Streuung der Quellen. Open-Meteo wird bewusst nicht als Standardquelle benutzt.',
     sections: [
       { h2: 'Die Quellen je Land', html: table(['Quelle', 'Land', 'Horizont', 'Rolle'], [
         ['Live-Stationen DWD (via BrightSky) · GeoSphere TAWES · MeteoSchweiz SMN', 'DE · AT · CH', 'jetzt', 'Anker der ersten Stunden, Lapse-Rate, Qualitätsprüfung'],
         ['MOSMIX (DWD, Stationsvorhersage)', 'DACH', '~10 Tage', 'Grundlinie'],
-        ['AROME (GeoSphere Austria)', 'AT · CH', 'bis 60 h', 'Feinauflösung im Alpenraum, Schneefallgrenze'],
+        ['C-LAEF (GeoSphere Austria)', 'AT · CH', 'bis 60 h', 'Feinauflösung im Alpenraum, Schneefallgrenze'],
         ['INCA (GeoSphere Austria)', 'AT', 'bis 4 h', 'Nowcast'],
         ['RADOLAN-RV / INCA / rzc', 'DE / AT / CH', '2 h / 3 h / jetzt', 'Niederschlag überschreibt im Radarhorizont'],
         ['GFS (NOAA)', 'DACH', '216–372 h', 'nur wenn mehr als 240 h angefragt werden (Langfrist-Schwanz)'],
@@ -64,7 +64,7 @@ export const METHODIK_PAGES = [
       ]) + p('Für Österreich und die Schweiz gibt es keinen amtlichen UV- und Pollenfeed; UV wird per Klarhimmel-Modell geschätzt, Pollen sind nur als ausdrücklich zugeschaltete Open-Meteo/CAMS-Quelle verfügbar. buscosun sagt das im Panel, statt deutsche Werte zu übertragen.') },
       { h2: 'Gewichtung und Anker', html: p('Jede Quelle bekommt ein Gewicht nach Vorlaufzeit und Eignung. Die Live-Messung der nächsten Stationen verankert die Stunden 0 bis 5 mit abklingendem Gewicht — die Vorhersage startet dort, wo das Thermometer wirklich steht. Eine Plausibilitätsprüfung („Representativeness-QC") wertet Quellen ab, die mehr als 3,5 °C vom ko-lokalisierten Messanker abweichen (gaußförmig, nicht hart). Die Lapse-Rate für die Höhe des Ortes wird aus dem Stationssatz geschätzt, Rückfall 6,5 K/km.') },
       { h2: 'Konfidenz je Variable', html: p('Für jede Variable und Stunde berechnet buscosun aus der gewichteten Streuung der Quellen eine Konfidenz zwischen 0 und 1 und multipliziert sie mit einem Skill-Abfall je Vorlaufzeit — Niederschlag verliert am schnellsten, Temperatur am langsamsten. Die Zeitkonstanten (Stunden) und Untergrenzen sind fest im Code:') + table(['Variable', 'τ (h)', 'Untergrenze'], [['Temperatur', '160', '0,45'], ['Wind', '80', '0,40'], ['Böe', '60', '0,35'], ['Feuchte', '120', '0,40'], ['Niederschlag', '36', '0,25'], ['Bewölkung', '60', '0,30'], ['Schneefallgrenze', '120', '0,40'], ['UV', '200', '0,50']]) + p('Angezeigt wird die Konfidenz als Balken: hoch 80–100 %, moderat 50–79 %, niedrig unter 50 %.') },
-      { h2: 'Der isolierte Modus', html: p('Wählt man in der Modell-Bibliothek ein konkretes Modell für ein Land, isoliert sich auch der Punktforecast auf die native Quelle des Landes (DE: MOSMIX, AT/CH: AROME) — ohne Blend, ohne Messanker, ohne Radar. Liefert die Quelle nichts, bleibt der volle Mix, damit das Panel nie leer ist.') },
+      { h2: 'Der isolierte Modus', html: p('Wählt man in der Modell-Bibliothek ein konkretes Modell für ein Land, isoliert sich auch der Punktforecast auf die native Quelle des Landes (DE: MOSMIX, AT/CH: C-LAEF) — ohne Blend, ohne Messanker, ohne Radar. Liefert die Quelle nichts, bleibt der volle Mix, damit das Panel nie leer ist.') },
       { h2: 'Grenzen', html: ul([
         'Modellvorhersagen bleiben Modelle; die Konfidenz misst die Einigkeit der Quellen, nicht die Wahrheit.',
         'MOSMIX ist eine Stationsvorhersage; zwischen den Stationen wird interpoliert.',
@@ -235,11 +235,11 @@ export function buildWettermodellePage() {
     slug: 'wettermodelle',
     title: 'Die Wettermodelle',
     h1: 'Welche Wettermodelle buscosun nutzt und wie die Modellwahl je Land funktioniert',
-    description: 'ICON-D2, ICON-EU, AROME, INCA, ICON-CH1/CH2, IFS, GFS, MOSMIX und mehr: Auflösung, Horizont, Abdeckung DE/AT/CH und Lizenz — direkt aus dem Modellkatalog der App.',
+    description: 'ICON-D2, ICON-EU, C-LAEF, INCA, ICON-CH1/CH2, IFS, GFS, MOSMIX und mehr: Auflösung, Horizont, Abdeckung DE/AT/CH und Lizenz — direkt aus dem Modellkatalog der App.',
     answer: `buscosun führt ${models.length} Modelle und Quellen in einem Katalog, der nur frei lizenzierte Daten zulässt (CC BY 4.0, GeoNutzV-kompatibel, Etalab 2.0, OGL, Public Domain). Standard ist „Native": ICON-D2 des DWD als 2,2-km-Raster für DE, AT und CH, das jeweilige Landesradar und der Punktforecast-Quellenmix. Ein Modell lässt sich je Land umschalten; deckt es das Land nicht ab, fällt die Karte still auf Native zurück, statt leer zu bleiben.`,
     sections: [
       { h2: 'Der Katalog', html: table(['Modell', 'Betreiber', 'Auflösung', 'Horizont', 'Abdeckung', 'Status', 'Lizenz'], rows) + p('Die Tabelle wird beim Build aus <code>src/fusion/modelCatalog.ts</code> erzeugt — dieselbe Datei, die die Modell-Bibliothek der App speist. Eine abgetippte Zweitliste würde driften.') },
-      { h2: 'Native: der Standard', html: p('„Native" ist kein einzelnes Modell, sondern die Zusammensetzung: ICON-D2 (Karte, 2,2 km), das Landesradar (RADOLAN-RV, INCA, rzc) und der Punktforecast-Mix aus Stationen, MOSMIX und AROME. Der Höhenwind kommt aus den ICON-EU-Druckflächen (~7 km), weil ICON-D2 seine Druckflächen nur im ikosaedrischen Gitter veröffentlicht, das der eingebaute GRIB2-Decoder nicht liest.') },
+      { h2: 'Native: der Standard', html: p('„Native" ist kein einzelnes Modell, sondern die Zusammensetzung: ICON-D2 (Karte, 2,2 km), das Landesradar (RADOLAN-RV, INCA, rzc) und der Punktforecast-Mix aus Stationen, MOSMIX und C-LAEF. Der Höhenwind kommt aus den ICON-EU-Druckflächen (~7 km), weil ICON-D2 seine Druckflächen nur im ikosaedrischen Gitter veröffentlicht, das der eingebaute GRIB2-Decoder nicht liest.') },
       { h2: 'Modellwahl je Land', html: p('Die Modell-Bibliothek zeigt je Modell eine Abdeckungskarte für DE, AT und CH (voll, teilweise, grob, keine), Auflösung, Horizont, Update-Takt und einen „Gut für"-Satz, der aus den Katalogdaten erzeugt wird — keine Werbeaussagen. Modelle, die die Engine nur vereinfacht rastert, tragen den Hinweis „vereinfachtes Raster — in Gebirgslagen weniger genau" und sind nie „empfohlen". Wählt man ein Modell für ein Land, isoliert sich auch der Punktforecast auf die native Quelle dieses Landes. Der Radar-Schalter ist unabhängig von der Modellwahl.') },
       { h2: 'Was buscosun mit den Daten macht', html: p('Die dargestellten Werte sind nicht die Rohprodukte der Wetterdienste: Höhenkorrektur, Quellenmix, Radar-Nowcast, abgeleitete Indizes (Gewitterpotenzial, Rotation, Schneefallgrenze) und eigene Farbskalen verändern sie. Deshalb nennt buscosun die Quelle an jeder Stelle und verweist für amtliche Aussagen auf die Dienste selbst. Vollständiges Verzeichnis: <a href="/lizenzen/">Quellen &amp; Lizenzen</a>.') },
     ],
@@ -267,7 +267,7 @@ export function buildUeberPage() {
         '<strong>Ehrlichkeit vor Scheingenauigkeit.</strong> Jede Ansicht nennt Quelle, Auflösung, Horizont und Grenze. Warnungen erscheinen nur als wörtliches Zitat der Wetterdienste; buscosun gibt selbst keine heraus.',
         '<strong>Ohne Konto, ohne Werbung, ohne Tracker.</strong> Keine Analytics, keine Cookies, selbst gehostete Schriften — nachprüfbar unter <a href="/ohne-tracker/">Ohne Tracker</a>.',
         '<strong>Alles im Browser.</strong> Es gibt keinen Server, der Daten sammelt: GRIB2-Dateien der Wetterdienste werden im Browser dekodiert, Radar und Modelle dort verrechnet. Die Kehrseite: keine Push-Benachrichtigungen bei geschlossener App.',
-        '<strong>DACH.</strong> Deutschland, Österreich und die Schweiz mit ihren Asymmetrien: UV, Pollen und Warnflächen amtlich nur für Deutschland (und Warnungen für die Schweiz), Schneefallgrenze aus AROME nur für AT und CH, Hagel aus dem Schweizer Radar. Das wird gesagt, nicht geglättet.',
+        '<strong>DACH.</strong> Deutschland, Österreich und die Schweiz mit ihren Asymmetrien: UV, Pollen und Warnflächen amtlich nur für Deutschland (und Warnungen für die Schweiz), Schneefallgrenze aus C-LAEF nur für AT und CH, Hagel aus dem Schweizer Radar. Das wird gesagt, nicht geglättet.',
       ]) },
       { h2: 'Was buscosun kann', html: ul([
         '<a href="/wetterkarte">Wetterkarte</a> mit 19 Layern (Wind, Böen, Radar, höhenkorrigierte Temperatur, Gewitterpotenzial, Zellbahnen, Hagel, amtliche Warnungen …) und Modellwahl je Land',

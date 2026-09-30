@@ -158,7 +158,7 @@ async function getCachedSource<T>(
  * Blend-Wert mehr; jeder Aufruf isoliert die genannte Quelle.
  *
  *  'mosmix'   → DWD MOSMIX only (DE forecast backbone, CC-BY 4.0)
- *  'arome'    → GeoSphere AROME-AT only (2.5 km, AT/CH/sDE coverage)
+ *  'arome'    → GeoSphere C-LAEF only (1 km, AT/CH/sDE coverage; bis 2026-11-04 mit `?nwp=v1` AROME-AT 2,5 km)
  *  'inca'     → GeoSphere INCA nowcast only (AT, 1 km, ~3 h horizon)
  *  'obs'      → live station obs only (DWD + TAWES + SMN, h=0)
  *  'icon-d2-eps' → DWD ICON-D2-EPS ensemble mean only (2.2 km icosahedral, DACH)
@@ -364,10 +364,11 @@ export async function loadFusedForecast(options: FusedLoadOptions): Promise<DwdF
     engine.ingest(inca, { temperature: 2.0, wind: 1.8, clouds: 0, precipitation: 2.2 });
     modelTags.push('inca');
   }
-  // AROME — AT+CH+sDE 2.5 km NWP.
+  // GeoSphere NWP — AT+CH+sDE: C-LAEF 1 km (Tag `claef`), mit `?nwp=v1` bis 2026-11-04 AROME 2,5 km (`arome_at`).
+  // Das Badge nennt den Tag, den der Leser gesetzt hat.
   if (arome) {
     engine.ingest(arome, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('arome');
+    modelTags.push(arome.points[0]?.[0]?.model === 'arome_at' ? 'arome' : 'claef');
   }
   // TAWES — AT live stations.
   if (tawes && tawes.points[0]?.length) {
@@ -446,7 +447,7 @@ export async function loadFusedForecast(options: FusedLoadOptions): Promise<DwdF
   // sie schlicht beim Namen (kein „fused"-Präfix mehr — es wird nichts gemischt).
   const SINGLE_MODEL_LABEL: Record<ModelChoice, string> = {
     mosmix: 'DWD MOSMIX',
-    arome:  'GeoSphere AROME',
+    arome:  'GeoSphere C-LAEF',
     inca:   'GeoSphere INCA',
     obs:    'Station-Obs',
     'icon-d2-eps': 'DWD ICON-D2-EPS',

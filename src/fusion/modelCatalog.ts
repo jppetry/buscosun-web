@@ -157,8 +157,10 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
     pipelineNote: '2D-Raster aktuell als Kontrolllauf (0–6 h); Ensemble-Mittel folgt. Lädt im Hintergrund.',
   },
   {
-    id: 'arome-at', name: 'AROME-AT', operator: 'GeoSphere Austria', kind: 'raster',
-    resolutionKm: 2.5, horizonH: 60, license: 'CC-BY-4.0',
+    // Phase GS (2026-09-30): hinter der Kennung steht C-LAEF 1 km (`nwp-v2-1h-1km`); AROME-AT wird am
+    // 2026-11-04 abgeschaltet. Die Kennung bleibt der URL-Schlüssel (`modell=arome-at`, gespeicherte Länderwahl).
+    id: 'arome-at', name: 'C-LAEF', operator: 'GeoSphere Austria', kind: 'raster',
+    resolutionKm: 1, horizonH: 60, license: 'CC-BY-4.0',
     attribution: 'Daten: GeoSphere Austria · CC BY 4.0',
     ingested: true, rasterCapable: true, engineGridded: true,
     coverage: { DE: 'partial', AT: 'full', CH: 'full' }, group: 'local',

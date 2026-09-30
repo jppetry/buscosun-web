@@ -87,6 +87,9 @@ jobs:
         run: npm run verify:health
       - name: Verifier — Modellquellen-Resolver
         run: npm run verify:model-source
+      # GS: GeoSphere-NWP-Zuordnung (v2 C-LAEF, v1 bis 2026-11-04) — Fixtures netzfrei, Live-Zeile ⊘ ohne Netz
+      - name: Verifier — GeoSphere-NWP
+        run: npm run verify:geosphere-nwp
       - name: Verifier — Punkt-Fusion (buscosun Fusion)
         run: npm run verify:pv-fusion
       # FI: buscosun Fusion auf dem Punkt-Cube (AP2–AP8) — netzfrei gegen eine Fixture in

@@ -201,7 +201,7 @@ export const LAYER_SEO: Readonly<Record<LayerKey, SeoText>> = {
     h1: `Schneefallgrenze für ${DACH} — die Linie zwischen Regen und Schnee`,
     lead: `Die Schneefallgrenze zeigt als Linie über der Wetterkarte, oberhalb welcher Höhe Niederschlag als Schnee fällt — für ${DACH}, stündlich über den Zeit-Schieber. Die Linie folgt dem Gelände: Sie wird aus dem höhenkorrigierten Temperaturfeld von ICON-D2 berechnet, mit einem physikalischen Anker um +1 °C und einer aus DWD-Stationsdaten gelernten Orts-Korrektur. In milder Tieflandsluft existiert keine Linie — dann ist überall Regen, und die Karte sagt das.`,
     body: [
-      'Für Skitour, Winterdienst, Pässe und Alpenwanderungen ist die Schneefallgrenze die entscheidende Zahl: 300 Meter Unterschied entscheiden zwischen Pulverschnee und Regen. Die Linie ist mit Kontur und Saum gezeichnet, damit sie über jeder Farbfläche lesbar bleibt. Der Punktforecast nennt für AT und CH zusätzlich die Schneefallgrenze aus AROME in Metern.',
+      'Für Skitour, Winterdienst, Pässe und Alpenwanderungen ist die Schneefallgrenze die entscheidende Zahl: 300 Meter Unterschied entscheiden zwischen Pulverschnee und Regen. Die Linie ist mit Kontur und Saum gezeichnet, damit sie über jeder Farbfläche lesbar bleibt. Der Punktforecast nennt für AT und CH zusätzlich die Schneefallgrenze aus dem GeoSphere-Modell C-LAEF in Metern.',
       'Grenzen: Die Grenze liegt in Wirklichkeit einige hundert Meter unter der Nullgradgrenze und schwankt mit Niederschlagsintensität und Luftfeuchte — die gelernte Korrektur bildet das ortsweise ab, nicht wetterlagenweise. Die Linie ist ein Modellprodukt, keine Messung; Radar kennt die Phase nicht. Nicht im Standard-Dock, über diese Adresse jederzeit erreichbar.',
     ],
     facts: [

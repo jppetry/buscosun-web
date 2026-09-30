@@ -27,7 +27,7 @@ const MODEL_DESC: Record<ModelId, string> = {
   'icon-d2': 'Hochaufgelöstes Kurzfristmodell für Mitteleuropa, ideal für die nächsten zwei Tage.',
   'icon-d2-eps': 'Ensemble-Variante des ICON-D2 — Kurzfrist mit Unsicherheitsspanne.',
   inca: 'Analyse-Nowcast auf 1 km — die aktuelle Lage und die nächsten Stunden für Österreich.',
-  'arome-at': 'Feines Alpenmodell mit guter Geländeauflösung für AT, CH und angrenzende Regionen.',
+  'arome-at': 'C-LAEF, das 1-km-Alpenmodell von GeoSphere — feine Geländeauflösung für AT, CH und angrenzende Regionen.',
   'icon-ch1-eps': 'Konvektions-Ensemble für die Schweiz auf 1 km — Unsicherheit im Bergland.',
   'icon-ch2-eps': 'Schweizer Ensemble auf 2,1 km — bis fünf Tage, mit Unsicherheitsspanne.',
   'arome-fr': 'Sehr feines Modell von Météo-France — deckt DE und CH voll ab, West-AT teilweise.',

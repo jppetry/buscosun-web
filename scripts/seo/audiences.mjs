@@ -111,7 +111,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Die Temperaturkarte und die Schneefallgrenze rechnen für DE, AT und CH auf ICON-D2 (DWD, 2,2 km) mit dem Terrarium-Geländemodell (rund 30 m). Der Punktforecast mischt je Land die nächsten Messstationen (DWD, TAWES, SMN), MOSMIX und für AT/CH das GeoSphere-Modell AROME; das Radar überschreibt den Modellregen im Radarhorizont — DE bis 2 h (RADOLAN-RV), AT bis 3 h (INCA), CH nur die Analyse. Für Rasterkarten reicht der Horizont in AT und CH etwa 1–2 Tage, darüber hinaus nur der Punkt-Mix. Lawinen: SLF für die Schweiz, lawinen.report für Österreich, Lawinenwarndienst Bayern für die deutschen Alpen.') },
+        p('Die Temperaturkarte und die Schneefallgrenze rechnen für DE, AT und CH auf ICON-D2 (DWD, 2,2 km) mit dem Terrarium-Geländemodell (rund 30 m). Der Punktforecast mischt je Land die nächsten Messstationen (DWD, TAWES, SMN), MOSMIX und für AT/CH das GeoSphere-Modell C-LAEF; das Radar überschreibt den Modellregen im Radarhorizont — DE bis 2 h (RADOLAN-RV), AT bis 3 h (INCA), CH nur die Analyse. Für Rasterkarten reicht der Horizont in AT und CH etwa 1–2 Tage, darüber hinaus nur der Punkt-Mix. Lawinen: SLF für die Schweiz, lawinen.report für Österreich, Lawinenwarndienst Bayern für die deutschen Alpen.') },
     ],
     faqs: [
       { q: 'Wie berechnet buscosun die Gehzeit?', a: 'Nach DIN 33466/SAC: horizontale und vertikale Teilzeit, die größere voll, die kleinere halb. Wandern rechnet 350 Hm/h auf und 500 ab, Bergwandern T3 300/400 mit Steilstufen-Aufschlag über 25 %.' },
@@ -155,7 +155,7 @@ export const AUDIENCES = [
         'Die zuletzt geplante Tour bleibt sieben Tage im Gerät (IndexedDB), das Wetter wird nie gespeichert. Kein Konto, keine Synchronisation. ' + NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Wind und Böen auf der Karte kommen für DE, AT und CH aus ICON-D2 (DWD, 2,2 km). Der Punktforecast entlang der Route mischt je Land Stationen (DWD via BrightSky, TAWES, SMN), MOSMIX und für AT/CH AROME (GeoSphere). Das Radar-Override nutzt RADOLAN-RV in Deutschland (bis 2 h), INCA in Österreich (bis 3 h) und das MeteoSchweiz-Radar als Analyse. UV ist in Deutschland ein amtlicher DWD-Tagespeak, in AT und CH eine Klarhimmel-Schätzung — das Ergebnis sagt das. Jenseits von 240 Stunden warnt die App vor reduzierter Konfidenz.') },
+        p('Wind und Böen auf der Karte kommen für DE, AT und CH aus ICON-D2 (DWD, 2,2 km). Der Punktforecast entlang der Route mischt je Land Stationen (DWD via BrightSky, TAWES, SMN), MOSMIX und für AT/CH C-LAEF (GeoSphere). Das Radar-Override nutzt RADOLAN-RV in Deutschland (bis 2 h), INCA in Österreich (bis 3 h) und das MeteoSchweiz-Radar als Analyse. UV ist in Deutschland ein amtlicher DWD-Tagespeak, in AT und CH eine Klarhimmel-Schätzung — das Ergebnis sagt das. Jenseits von 240 Stunden warnt die App vor reduzierter Konfidenz.') },
     ],
     faqs: [
       { q: 'Berücksichtigt buscosun den Gegenwind?', a: 'Ja. Die Windkomponente entlang der Fahrtrichtung skaliert das Tempo mit 1 + 0,04 · Komponente (begrenzt 0,5–1,4), iterativ mit dem Wetter zur Ankunftszeit.' },
@@ -198,7 +198,7 @@ export const AUDIENCES = [
         'Es gibt nur eine E-Bike-Bewegungsart (Trekking); S-Pedelecs über 25 km/h und E-MTB-Trails sind nicht gesondert modelliert.',
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Wind und Wetter entlang der Route kommen aus demselben Punktforecast wie bei jeder Tour: für Deutschland Stationen (DWD) und MOSMIX, für Österreich und die Schweiz zusätzlich AROME (GeoSphere), Radar-Override mit RADOLAN-RV (DE, bis 2 h), INCA (AT, bis 3 h) und dem MeteoSchweiz-Radar (Analyse). Die Höhen je Segment stammen aus dem Terrarium-Geländemodell (rund 30 m, DACH plus etwa 50 km Puffer). Die Abregelung bei 25 km/h ist die gesetzliche Grenze für Pedelecs in allen drei Ländern und im Modell fest.') },
+        p('Wind und Wetter entlang der Route kommen aus demselben Punktforecast wie bei jeder Tour: für Deutschland Stationen (DWD) und MOSMIX, für Österreich und die Schweiz zusätzlich C-LAEF (GeoSphere), Radar-Override mit RADOLAN-RV (DE, bis 2 h), INCA (AT, bis 3 h) und dem MeteoSchweiz-Radar (Analyse). Die Höhen je Segment stammen aus dem Terrarium-Geländemodell (rund 30 m, DACH plus etwa 50 km Puffer). Die Abregelung bei 25 km/h ist die gesetzliche Grenze für Pedelecs in allen drei Ländern und im Modell fest.') },
     ],
     faqs: [
       { q: 'Wie viel Watt hat die Tour-Stufe im Modell?', a: '350 W Motor-Deckel; Eco 200, Sport 500, Turbo 750 W — an gängigen Mittelmotoren orientiert und einstellbar.' },
@@ -288,7 +288,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Böen und Wind kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, CC BY 4.0), der Punktforecast fürs Go/No-Go mischt je Land Stationen (DWD, TAWES, SMN), MOSMIX und für AT/CH AROME. Der Höhenwind für die Druckflächen stammt aus ICON-EU. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz; für Österreich nennt das Panel GeoSphere Austria. Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt.') },
+        p('Böen und Wind kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, CC BY 4.0), der Punktforecast fürs Go/No-Go mischt je Land Stationen (DWD, TAWES, SMN), MOSMIX und für AT/CH C-LAEF. Der Höhenwind für die Druckflächen stammt aus ICON-EU. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz; für Österreich nennt das Panel GeoSphere Austria. Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt.') },
     ],
     faqs: [
       { q: 'Welchen Windgrenzwert soll ich eintragen?', a: 'Den aus der Betriebsanleitung deines Geräts. buscosun setzt als Standard 40 km/h auf 120 m, kennt aber dein Modell nicht.' },
@@ -332,7 +332,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Böen und Temperatur kommen für DE, AT und CH aus ICON-D2 (DWD, CC BY 4.0); der Punktforecast fürs Go/No-Go aus Stationen (DWD, TAWES, SMN), MOSMIX und AROME (AT/CH). Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt. Amtliche Warnungen: DWD (CAP) für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, mit getrennten Stufenskalen; für Österreich keine Fläche. Das Wetterarchiv nutzt Meteostat-Stationsdaten (DWD-Tageswerte als Standard) und ERA5 für modellgefüllte Anteile, die ausgewiesen werden.') },
+        p('Böen und Temperatur kommen für DE, AT und CH aus ICON-D2 (DWD, CC BY 4.0); der Punktforecast fürs Go/No-Go aus Stationen (DWD, TAWES, SMN), MOSMIX und C-LAEF (AT/CH). Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt. Amtliche Warnungen: DWD (CAP) für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, mit getrennten Stufenskalen; für Österreich keine Fläche. Das Wetterarchiv nutzt Meteostat-Stationsdaten (DWD-Tageswerte als Standard) und ERA5 für modellgefüllte Anteile, die ausgewiesen werden.') },
     ],
     faqs: [
       { q: 'Ab welcher Windstärke muss der Kran stoppen?', a: 'Das sagt die Betriebsanleitung des Krans und die zuständige Vorschrift, nicht buscosun. Du trägst den Grenzwert ein; buscosun zeigt, wann die Prognose ihn auf deiner Arbeitshöhe reißt.' },
@@ -422,7 +422,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Die Bewertung läuft auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX (DACH, rund 10 Tage) und für AT/CH AROME (bis 60 Stunden) — daher der kürzere Horizont dort. Das Gelände stammt aus Terrarium-Höhenkacheln (rund 30 m). Ecken und Mitte werden nacheinander abgefragt, weil parallele Abrufe bei GeoSphere HTTP 429 auslösten. KONRAD3D-Zellbahnen und die Blitzkarte sind DWD-Produkte für Deutschland; das Gewitterpotenzial (ICON-D2) deckt DACH ab. Amtliche Warnungen: DWD für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, Österreich nur als Verweis auf GeoSphere.') },
+        p('Die Bewertung läuft auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX (DACH, rund 10 Tage) und für AT/CH C-LAEF (bis 60 Stunden) — daher der kürzere Horizont dort. Das Gelände stammt aus Terrarium-Höhenkacheln (rund 30 m). Ecken und Mitte werden nacheinander abgefragt, weil parallele Abrufe bei GeoSphere HTTP 429 auslösten. KONRAD3D-Zellbahnen und die Blitzkarte sind DWD-Produkte für Deutschland; das Gewitterpotenzial (ICON-D2) deckt DACH ab. Amtliche Warnungen: DWD für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, Österreich nur als Verweis auf GeoSphere.') },
     ],
     faqs: [
       { q: 'Wann löst Plan B aus?', a: 'Wenn im Zeitfenster die Regensumme (Standard 3 mm), die Spitzenböe (Standard 13 m/s) oder der Gesamtscore (Standard 50) die Schwelle reißt; die Werte sind einstellbar.' },
@@ -467,7 +467,7 @@ export const AUDIENCES = [
         NO_WARNING,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Die Bewertung nutzt den Punktforecast aus Stationen (DWD, TAWES, SMN), MOSMIX (DACH, rund 10 Tage) und für Österreich und die Schweiz AROME (bis 60 Stunden) — deshalb bewertet buscosun dort nur die ersten zweieinhalb Tage und zeigt danach „keine Vorhersage" statt einer Zahl. Das Gelände stammt aus Terrarium-Höhenkacheln (rund 30 m). Die Lichtzeiten sind Astronomie ohne Länderunterschied. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz.') },
+        p('Die Bewertung nutzt den Punktforecast aus Stationen (DWD, TAWES, SMN), MOSMIX (DACH, rund 10 Tage) und für Österreich und die Schweiz C-LAEF (bis 60 Stunden) — deshalb bewertet buscosun dort nur die ersten zweieinhalb Tage und zeigt danach „keine Vorhersage" statt einer Zahl. Das Gelände stammt aus Terrarium-Höhenkacheln (rund 30 m). Die Lichtzeiten sind Astronomie ohne Länderunterschied. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz.') },
     ],
     faqs: [
       { q: 'Kann ich das Wetter für unsere Hochzeit in vier Monaten sehen?', a: 'Nein, die Bewertung reicht sieben Tage. Die goldene und blaue Stunde für den Termin gelten astronomisch schon jetzt; die Klimastatistik des Ortes zeigt das Wetterarchiv.' },
@@ -511,7 +511,7 @@ export const AUDIENCES = [
         'Die Nebelobergrenze kommt aus dem ICON-EU-Profil (rund 7 km); dünne Schichten unter 200 m sind nicht sicher aufgelöst.',
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Die Lichtzeiten sind Astronomie ohne Länderunterschied. Lichtqualität und Chancen laufen auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX und für Österreich und die Schweiz AROME (bis 60 Stunden) — dort ist der Horizont für Wetteraussagen kürzer. Die Wolkenstockwerke kommen aus ICON-D2 (DWD, 2,2 km, DACH), das Satellitenbild vom DWD-Kartendienst (EUMETSAT Meteosat, 3-Stunden-Takt). Die Inversion rechnet auf ICON-EU für alle drei Länder gleich.') },
+        p('Die Lichtzeiten sind Astronomie ohne Länderunterschied. Lichtqualität und Chancen laufen auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX und für Österreich und die Schweiz C-LAEF (bis 60 Stunden) — dort ist der Horizont für Wetteraussagen kürzer. Die Wolkenstockwerke kommen aus ICON-D2 (DWD, 2,2 km, DACH), das Satellitenbild vom DWD-Kartendienst (EUMETSAT Meteosat, 3-Stunden-Takt). Die Inversion rechnet auf ICON-EU für alle drei Länder gleich.') },
     ],
     faqs: [
       { q: 'Kann ich die goldene Stunde für einen Termin in drei Monaten sehen?', a: 'Ja. Die Lichtfenster sind reine Astronomie (NOAA-Verfahren, etwa minutengenau) und gelten für jedes Datum; eine Wetterwahrscheinlichkeit gibt es erst im Vorhersagehorizont.' },
@@ -555,7 +555,7 @@ export const AUDIENCES = [
         'Kein Teleskop-Steuerung, kein Objektkatalog, keine Sichtbarkeitstabelle für Planeten oder Deep-Sky-Objekte.',
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Mond und Dunkelheit sind Astronomie ohne Länderunterschied. Die Bewölkung in drei Stockwerken kommt aus dem Punktforecast (Stationen DWD/TAWES/SMN, MOSMIX, für AT/CH AROME bis 60 Stunden) und auf der Karte aus ICON-D2 (DWD, 2,2 km, DACH). Die Lichtverschmutzung rechnet auf einer Städteliste im Gerät, ohne Netzabruf und ohne Länderunterschied. Das Satellitenbild stammt vom DWD-Kartendienst (Meteosat, 3-Stunden-Takt).') },
+        p('Mond und Dunkelheit sind Astronomie ohne Länderunterschied. Die Bewölkung in drei Stockwerken kommt aus dem Punktforecast (Stationen DWD/TAWES/SMN, MOSMIX, für AT/CH C-LAEF bis 60 Stunden) und auf der Karte aus ICON-D2 (DWD, 2,2 km, DACH). Die Lichtverschmutzung rechnet auf einer Städteliste im Gerät, ohne Netzabruf und ohne Länderunterschied. Das Satellitenbild stammt vom DWD-Kartendienst (Meteosat, 3-Stunden-Takt).') },
     ],
     faqs: [
       { q: 'Ist die Bortle-Klasse gemessen?', a: 'Nein. Sie ist eine Offline-Schätzung aus der Entfernung zu Städten (additives 1/d^2,5-Modell), kalibriert auf Großstadtkern ≈ 8 und abgelegen ≈ 2. buscosun nennt die nächste Stadt dazu.' },
@@ -736,7 +736,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Schneekarte, Schneefallgrenze und Temperatur rechnen für DE, AT und CH auf ICON-D2 (DWD, 2,2 km) mit dem Terrarium-Geländemodell (rund 30 m). Das Regenradar nutzt RADOLAN-RV in Deutschland (25 Frames im 5-Minuten-Takt bis 2 h), INCA in Österreich (12 Frames im 15-Minuten-Takt bis 3 h) und das MeteoSchweiz-Radar als Analyse; die Schweiz liefert keine Nowcast-Frames. Lawinen: SLF (CH), lawinen.report (AT), Lawinenwarndienst Bayern (DE), dazu EAWS. Der Punktforecast nutzt für AT/CH zusätzlich AROME für die Schneefallgrenze. Amtliche Warnflächen gibt es für DE und CH.') },
+        p('Schneekarte, Schneefallgrenze und Temperatur rechnen für DE, AT und CH auf ICON-D2 (DWD, 2,2 km) mit dem Terrarium-Geländemodell (rund 30 m). Das Regenradar nutzt RADOLAN-RV in Deutschland (25 Frames im 5-Minuten-Takt bis 2 h), INCA in Österreich (12 Frames im 15-Minuten-Takt bis 3 h) und das MeteoSchweiz-Radar als Analyse; die Schweiz liefert keine Nowcast-Frames. Lawinen: SLF (CH), lawinen.report (AT), Lawinenwarndienst Bayern (DE), dazu EAWS. Der Punktforecast nutzt für AT/CH zusätzlich C-LAEF für die Schneefallgrenze. Amtliche Warnflächen gibt es für DE und CH.') },
     ],
     faqs: [
       { q: 'Ist die Schneehöhe gemessen?', a: 'Nein. Die Schneekarte zeigt Modellwerte aus ICON-D2 (Schneedecke h_snow, Neuschnee aus snow_gsp und snow_con). Stationsmessungen der Skigebiete gibt es nicht.' },

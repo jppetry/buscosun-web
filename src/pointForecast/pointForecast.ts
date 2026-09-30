@@ -74,8 +74,9 @@ import type { ModelSource } from '../fusion/modelSource';
  */
 const NATIVE_POINT_SOURCES: Record<Country, ReadonlySet<string>> = {
   DE: new Set(['mosmix', 'dwd_uv']),
-  AT: new Set(['arome_at', 'dwd_uv']),
-  CH: new Set(['arome_at', 'dwd_uv']),
+  // Phase GS: `claef` (C-LAEF 1 km, nwp-v2) ist die Voreinstellung, `arome_at` nur noch mit `?nwp=v1`.
+  AT: new Set(['claef', 'arome_at', 'dwd_uv']),
+  CH: new Set(['claef', 'arome_at', 'dwd_uv']),
 };
 
 const STD_LAPSE_PER_M = 0.0065;
@@ -407,7 +408,9 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   const incaPast = incaPoint.filter(isPast), incaFuture = incaPoint.filter((e) => !isPast(e));
   const mosmixHours = brightSkyToHourSamples(bsPoint, lat, lng);
   const incaHours = seriesToHourSamples(incaFuture, 'inca', 'nowcast');
-  const aromeHours = seriesToHourSamples(aromeFuture, 'arome_at', 'highres');
+  // Der Tag kommt vom Leser (`claef` oder `arome_at`, je nach Datensatz — Phase GS).
+  const aromeTag = aromePoint[0]?.model ?? 'claef';
+  const aromeHours = seriesToHourSamples(aromeFuture, aromeTag, 'highres');
   const uvHours = uvToHourSamples(uvPoint);
 
   // Build the unified per-hour samples. We anchor on the longest available
@@ -451,7 +454,7 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     // BrightSky-Messhistorie nur in DE: dort ist die nächste Beobachtungsstation
     // eine der Ankerstationen. In AT/CH wäre es eine ferne DWD-Station.
     const bsHist = brightSkyHistoryToSamples(bsPoint, lat, lng, country === 'DE');
-    const aromeHist = seriesToHourSamples(aromePast, 'arome_at', 'highres');
+    const aromeHist = seriesToHourSamples(aromePast, aromeTag, 'highres');
     const incaHist = seriesToHourSamples(incaPast, 'inca', 'nowcast');
     const at = (arr: PointHourSamples[], ms: number) => arr.find((x) => x.timestamp.getTime() === ms)?.samples ?? [];
     for (let k = 1; k <= histH; k++) {
@@ -640,7 +643,7 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     ...stations.map((s) => s.source),
     bsPoint ? 'mosmix' : null,
     incaPoint.length ? 'inca' : null,
-    aromePoint.length ? 'arome_at' : null,
+    aromePoint.length ? aromeTag : null,
     uvPoint.some((u) => u.uvIndex != null) ? 'dwd_uv' : null,
     radarContributed && radarSampler ? radarSampler.meta.source : null,
     gfsHours.some((g) => g && g.samples.length) ? 'gfs' : null,
