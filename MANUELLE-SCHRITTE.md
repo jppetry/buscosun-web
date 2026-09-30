@@ -1013,7 +1013,7 @@ Phasendokument `audit/geosphere-v2.md`. Gebaut und geprüft (Gates §3), **nicht
       gesperrten Native-Module der laufenden Dev-Server der Dashboard-Session liegen unter `C:\dev\.locked\` und
       können gelöscht werden, sobald diese Server beendet sind.
 
-## 28. Phase AX — Ausbau nach dem Expertenbericht (AX-1…AX-8), 2026-09-30
+## 28. Phase AX — Ausbau nach dem Expertenbericht (AX-1…AX-12), 2026-09-30
 
 Phasendokument `audit/fusion-ausbau.md`. Alles gebaut, gemessen und geprüft (Gates je AP), **nicht committet, nicht
 gepusht**. Der Live-Pfad ist byte-gleich (`verify:pv-fusion` 229/229); im Cube-Pfad wirken AX-1 (Messung der Station am
@@ -1034,10 +1034,10 @@ Push Schema 5 tragen; `point/stations-s/`).
       (Bytes je Chunk +4 Ebenen, in t1/t2 leer ⇒ ≈ 4 Byte je Ebene) und die t3-Laufzeit mit 50/24 Membern im Manifest
       (`tiers[].ensemble.mean`, `timing.blocks.ensemble`) nachlesen; `ensMember` bleibt aus, bis der Fit das Mittel als
       Prädiktor trägt (E-AX-6).
-- [ ] **AX-8 nach dem Push:** der Job `stations-s` (`:50` in 20 Stunden) und der zweite Schritt im t2-Job bauen dann
-      MOSMIX-S nach `point/stations-s/`; bis dahin beenden sie sich benannt („Producer auf main ohne MOSMIX-S"). Nach den
-      ersten Runner-Läufen `JOB_MEASURED_MAX_MIN['stations-s']` (cdnSync.mjs, geschätzt 3,2 min) und das CDN-Budget (60 s)
-      nachrechnen (Regel F, `verify:point-data`).
+- [x] **AX-8 nach dem Push — eingetreten (Push `a02f2b5` 15:33 UTC):** der `stations-s`-Slot 15:50 (Lauf 15:56 UTC) hat den
+      ersten MOSMIX-S-Lauf `2026093015` gebaut und publiziert (Job 2 min 17 s, Publish `success`, Index `stationsS.runs`);
+      der t2-Lauf 16:40 UTC läuft mit L- und S-Schritt. Erste Messung: 2,3 min ≤ `JOB_MEASURED_MAX_MIN['stations-s']` 3,2
+      (bleibt als obere Schranke, bis mehr Läufe da sind); CDN-Budget 60 s nach ein paar Tagen nachrechnen (Regel F).
 - [ ] **AX-9 Klimagitter — Produkt liegt im Daten-Repo** (`point/static/clima-grid/v1/`, 208 Chunks, 1,87 MiB, von mir
       gepusht; der Client liest es NUR mit `CubeIo.climaGrid`, im Panel `?cg=1`). Gemessen an 14 762 Punkt-Monaten
       (§6c.3): Gitter gewinnt in Alpen (−28 %), CH (−16 %), |Δh| > 200 m (−23 %), verliert im flachen DE (+10 %); mit
@@ -1089,9 +1089,35 @@ Push Schema 5 tragen; `point/stations-s/`).
       AT Wind +4,7…+5,6 %*, nirgends schlechter; die CH-Lücke gegen MOSMIX schließt sich). Die Tabelle
       `C:\dev\buscosun-hindcast\fit\2026-09-30-ax5\stack.archive.json` (863 Einträge, 28,7 KB gz statt 8,1) ersetzt
       `point/stack.client.json` im Daten-Repo (Purge wie in §24.1). Empfehlung: ja.
-- [ ] **V-AX-4 Archiv-Schema 3:** das Punktarchiv schreibt seit 29.09. Schema 3; `archiveAdapter.mjs` liest nur 1/2
-      (`--slotsTo=2026-09-28` in `stack-extract.mjs`). Vor dem Neufit des Stationswerts (E-FS-3, ≥ 30 Ausgabetage) muss der
-      Leser Schema 3 lesen — Zuständigkeit dieses Repos, keine Entscheidung nötig, zur Kenntnis.
+- [x] **V-AX-4 Archiv-Schema 3 — erledigt (AX-12, 30.09. abends):** `archiveAdapter.mjs` liest Schema 1/2/3
+      (`ARCHIVE_SCHEMAS_READABLE`, `verify:fusion-fit` 16i); `stack-extract.mjs` hat `--slotsFrom` (Ausgabe-Slots) neben
+      `--slotsTo`. Der Neufit des Stationswerts (E-FS-3, ≥ 30 Ausgabetage) kann damit über Schema-3-Slots laufen.
+- [ ] **AX-12 — Messung heute gegen Fit 5e (Archiv 16.–28.09., 365 513 Zeilen, 13 Ausgabetage, 389 Stationspunkte;
+      `audit/fusion-ausbau.md` §6g, Karte `audit/fusion-ausbau/now-vs-5e.md`):** zur Kenntnis — Modus S (Punkt = Station) MAE in
+      **22 von 36 Zellen signifikant besser als 5e, keine schlechter** (T +17…+29 %*, Td +10…+22 %*, Wind +20…+27 %*, Böe
+      +16…+28 %*, Bewölkung +11…+18 %*; Niederschlag unverändert); gegen MOSMIX T +3…+14 %*, Td +13…+19 %*, Wind/Böe 0–6 h
+      +6/+10 %*, sonst gleichauf; der Stationswert Leave-Day-out, die eingesetzte Tabelle liegt ≤ 1,2 % davon. **Zwei Entscheidungen
+      berührt:** (1) **E-AX-7 wird dringender** — die Schweiz liegt bei Wind 7–240 h −2,2…−7,0 %! und Böe 7–120 h −5,3…−9,9 %! hinter
+      MOSMIX, genau die Lücke, die die AX-5-Tabelle (`fit\2026-09-30-ax5\stack.archive.json` → `point/stack.client.json`) schließt;
+      (2) **E-AX-11 (neu, V-AX-13):** am stationslosen Punkt ist Wind in 2 Bins signifikant schlechter als 5e (0–6 h −1,2 %!,
+      126–240 h −4,1 %!) und bei 0–120 h unter der Lernstufe allein (−1,3…−5,0 %!), AT in 4 von 5 Bins — Vorschlag: `priorShrink`
+      je Größe (Wind/Böe behalten den Klimatologie-Schritt) und/oder Anker-Gewicht des Windes mit der Distanz der Messung dämpfen,
+      zuerst als Varianten am Archiv messen (≈ 1 h auf denselben Zeilen), dann entscheiden; nichts gebaut. Verdikte auf 13–14 Tagen
+      kippen zwischen GILT und GLEICHSTAND (V-AX-14) — alles indikativ bis ≥ 30 Ausgabetage.
+- [x] **AX-12b — die zwei Schaltkandidaten am Archiv gemessen (§6g.5, Karte `audit/fusion-ausbau/now-vs-5e-b.md`) und mit deinem
+      Go am 30.09. 18:25 UTC eingespielt: Daten-Repo `1aaec969`, beide Pfade gepurgt, CDN geprüft (§6g.6). Der Stand heißt ab jetzt
+      **„buscosun Fusion 6"** (Definition in `CLAUDE.md`, Sprache & Konventionen; Rückbau = Revert von `1aaec969` + Purge).
+      Offen daraus: V-AX-16 (Bezeichnung als Konstante im Produkt-Hinweis, mit dem nächsten Push) und E-AX-12 (Karte an den
+      nächsten ≥ 14 Archivtagen). Die gemessenen Zahlen:**
+      (1) **E-AX-4/5 Wolkenatome:** `fit\2026-09-30-ax4\fusion.ax4.client.json` → `point/fusion.client.json` (5e-Tabelle + 16
+      Atome, +5,5 KB). Archiv: Bewölkung CRPS 0–6 h **+10,0 %***, 7–48 h +6 %*, MAE +6,5…+11,7 %*, PIT-Rand 0,28–0,33 → 0,21–0,23,
+      126–336 h unverändert (keine Atome geschrieben); Kontrolle K7: alle anderen Größen byte-gleich. **Empfehlung: ja.**
+      (2) **E-AX-7 Landesparameter:** `fit\2026-09-30-ax5\stack.archive.json` → `point/stack.client.json`. Archiv: Wind +1,8…+3,2 %*,
+      Böe +2,1…+2,9 %*, CH Wind/Böe +1,5…+8,1 %*, AT Wind +4…+6 %*; die Schweiz schließt gegen MOSMIX von −2…−10 %! auf
+      −0,6…−1,1 % (n.s.). **Aber Td −0,1…−1,0 % (25–48 h −1,0 %!, V-AX-15)** ⇒ **Empfehlung: ja, ohne die Td-Landeseinträge**
+      (Td fällt auf die gepoolten Einträge zurück; T/Wind/Böe mit Land) — beide Spalten sind gemessen.
+      Zusammen gegen 5e (Modus S): MAE **23 von 36 Zellen signifikant besser, 0 schlechter**. Danach E-AX-12: dieselbe Karte an den
+      nächsten ≥ 14 Archivtagen, dann out-of-sample für beide Tabellen.
 - [ ] **V-AX-6 Rampe an den Nähten (Bericht #15):** ohne überlappende Vorläufe nicht messbar — Producer müsste t2 ab 45 h
       und t3 ab 117 h behalten (je zwei Schritte). Entscheidung, ob das die Bytes wert ist.
 - [ ] **Nicht gebaut, entworfen (`audit/fusion-ausbau.md` §6f):** #17 CH-Member (CH2-EPS zuerst, hinter `POINT_CH_MEMBERS`),

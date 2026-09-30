@@ -1372,6 +1372,22 @@ if (typeof flags.cases === 'string') {
       Math.abs(a.crps - crpsNormal(2, 1.5, 3.1)) < 1e-12 && Math.abs(b.crps - crpsByCdf(dr, 2, 0, 3 + 8 + 1, 96)) < 1e-12 && Math.abs(c.crps - crpsOf(dc, 100, 256)) < 1e-12 && Math.abs(qs3Of([1.5, 1.5, 1.5], 2) - 0.5) < 1e-12 && Math.abs(qs3Of([1.5, 1.5, 1.5], 1) - 0.5) < 1e-12 && good < bad,
       `QS3 wahr ${(good / 4000).toFixed(4)} gegen verschoben ${(bad / 4000).toFixed(4)}`);
   }
+  // 16i (phase AX, V-AX-4): readArchiveSlot reads schema 1, 2 AND 3 (PA4, the archive since 29.09.2026 — cube/stations/nowcast/truth
+  // unchanged, live.fusion columnar via the AP9 decoder) and still refuses an unknown schema and a foreign kind
+  {
+    const { gzipSync } = await import('node:zlib');
+    const dir = mkdtempSync(join(tmpdir(), 'fusionfit-slot-'));
+    const wr = (name, obj) => { const p = join(dir, name); writeFileSync(p, gzipSync(Buffer.from(JSON.stringify(obj)))); return p; };
+    const s3 = mkSlot(3), r3 = A.readArchiveSlot(wr('s3.json.gz', s3));
+    const ser3 = A.archiveSeries(r3, 't1', 'P1'), tr3 = A.archiveTruth(r3, (id) => (id === 'P1' ? 'DE' : 'AT'));
+    let threw4 = false, threwKind = false;
+    try { A.readArchiveSlot(wr('s4.json.gz', mkSlot(4))); } catch { threw4 = true; }
+    try { A.readArchiveSlot(wr('sk.json.gz', { ...mkSlot(3), kind: 'punktarchiv/index' })); } catch { threwKind = true; }
+    rmSync(dir, { recursive: true, force: true });
+    add('16i readArchiveSlot (V-AX-4): Schema 3 wird gelesen wie Schema 2 (Serie, Wahrheit und Station gleich dekodiert); Negativkontrollen: Schema 4 und ein fremder kind werfen; die Liste der lesbaren Schemata ist [1, 2, 3]',
+      r3?.schema === 3 && ser3 && Math.abs(ser3.steps[1].values.u10 - 3) < 1e-12 && tr3.get('P2')?.rows[0].fxh === 10 && A.archiveStation(r3, 'P1', 500).series?.station.elev === 800 && threw4 && threwKind && JSON.stringify(A.ARCHIVE_SCHEMAS_READABLE) === '[1,2,3]',
+      `Schema ${r3?.schema} · u10 ${ser3?.steps[1].values.u10} · fxh ${tr3.get('P2')?.rows[0].fxh} · Schema 4 wirft ${threw4} · fremder kind wirft ${threwKind}`);
+  }
 }
 
 // ── Block 17: phase FS (`audit/fusion-stationswert.md` §2.2) — the fitted station-value candidates: recovery of known b, w, c, the

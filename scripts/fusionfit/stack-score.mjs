@@ -118,7 +118,9 @@ const PAIRS = {
   // phase AX, AX-2 (E-FV-3): the stage with route-3 strata in t2/t3 against the stage as it runs (route 1), and the references
   'product-FS-r3': ['product-FS', 'mosmix', 'live', 'fl-K@5e'],
   // phase AX, AX-5 (V-FS-5): the station value with country parameters against the pooled one and MOSMIX
-  'stack-cc': ['stack', 'mosmix'],
+  'stack-cc': ['stack', 'mosmix', 'product@5e', 'live', 'fl-K@5e'],
+  // phase AX, AX-4 (E-AX-4/5): the stage with the cloud atoms against the stage without, and the references
+  'product-FS+atoms': ['product-FS', 'product@5e', 'mosmix', 'fl-K@5e', 'live'],
 };
 const ccUsed = { cc: 0, pooled: 0 };
 const k5 = {}, k6 = { n: 0, maxAbs: 0, formDiffers: 0, byVar: {} };
@@ -149,6 +151,7 @@ for await (const row of rowsOf(flags.rows)) {
       if (m.P2) cands['product+fix+noshrink'] = { dist: m.P2 };
       if (m.P3) cands['product-FS'] = { dist: m.P3 };
       if (m.P4) cands['product-FS-r3'] = { dist: m.P4 };
+      if (m.P5) cands['product-FS+atoms'] = { dist: m.P5 };   // AX-4: the stage with the two-atom cloud family (tables with atoms)
       // K5: the engine without the climatological step against the offline form, on the chain of run 1
       if (mode === 'S' && m.PN && m.N) { const a = pointOf(m.PN), b = pointOf(m.N); const o5 = k5[v] ?? (k5[v] = { n: 0, maxAbs: 0, maxSigma: 0 }); o5.n += 1; o5.maxAbs = Math.max(o5.maxAbs, Math.abs(a - b)); if (m.PN.sigma != null && m.N.sigma != null) o5.maxSigma = Math.max(o5.maxSigma, Math.abs(m.PN.sigma - m.N.sigma)); }
       if (o.L) cands['fl-K@5e'] = { dist: o.L };
@@ -432,6 +435,20 @@ if (Object.keys(card.scores).some((k) => k.includes('|product+fix|'))) {
     verdicts['AX-5'] = chWorse === 0 && deatWorse === 0 && chBetter >= 2 ? 'GILT' : worse2 === 0 ? 'GLEICHSTAND' : 'GILT NICHT';
     md.push(`Wind/Böe 7–120 h je Land (MAE und CRPS): CH ${chBetter} signifikant besser / ${chWorse} schlechter; DE+AT ${rows5.filter((r) => r.cc !== 'CH' && r.w === 'better').length} besser / ${deatWorse} schlechter; Zeilen mit Landesparametern ${ccUsed.cc}, mit gepoolten ${ccUsed.pooled}. **AX-5 ${verdicts['AX-5']}** (Regel: CH ≥ 2 Zellen signifikant besser und nirgends signifikant schlechter, DE/AT nirgends signifikant schlechter ⇒ GILT; keine Zelle < −2 % ⇒ GLEICHSTAND; sonst GILT NICHT).${rows5.filter((r) => r.w === 'worse').length ? ` Schlechter: ${rows5.filter((r) => r.w === 'worse').map((r) => `${r.cc} ${VAR_LABEL[r.v]} ${BIN_LABEL[r.bin]} ${r.m} ${cell(r.p)}`).join('; ')}.` : ''}`, '');
   }
+  // phase AX, AX-4 (E-AX-4/5): the two-atom cloud family in the chain — only the cloud cells can differ (K7 checks the rest)
+  if (Object.keys(card.scores).some((k) => k.includes('|product-FS+atoms|'))) {
+    const CL = [0, 1, 2, 3, 4, 5].map((bin) => ({ v: 'clct', bin }));
+    table('AX-4 — product-FS+atoms (Wolkenatome) gegen product-FS — Modus S, Bewölkung (DE)', 'S', 'product-FS+atoms', 'product-FS', ['crps', 'mae'], CL);
+    table('AX-4 — product-FS+atoms gegen product-FS — Modus L, Bewölkung (DE)', 'L', 'product-FS+atoms', 'product-FS', ['crps', 'mae'], CL);
+    table('AX-4 Kontext — product-FS+atoms gegen mosmix (Modus S, Bewölkung)', 'S', 'product-FS+atoms', 'mosmix', ['crps', 'mae'], CL);
+    const t7 = tally('S', 'product-FS+atoms', 'product-FS', 'crps', CL.slice(0, 4)), t7L = tally('L', 'product-FS+atoms', 'product-FS', 'crps', CL.slice(0, 4));
+    // K7: the atoms touch ONLY the clouds — every other variable is byte-identical between P5 and P3
+    let k7bad = [];
+    for (const v of ['t', 'td', 'ws', 'gust', 'precip']) for (const bin of [0, 1, 2, 3, 4, 5]) { const a = card.scores[`S|${v}|${bin}|product-FS+atoms|all`], b = card.scores[`S|${v}|${bin}|product-FS|all`]; if (a && b && (Math.abs(a.mae - b.mae) > 1e-9 || Math.abs(a.crps - b.crps) > 1e-9)) k7bad.push(`${VAR_LABEL[v]} ${BIN_LABEL[bin]}`); }
+    verdicts['AX-4'] = t7.worse.length === 0 && t7L.worse.length === 0 && (t7.better.length + t7L.better.length) >= 4 ? 'BESSER' : (t7.worse.length === 0 && t7L.worse.length === 0 ? 'GLEICHSTAND' : 'SCHLECHTER');
+    verdicts.K7 = k7bad.length ? 'NICHT bestanden' : 'bestanden';
+    md.push(`CRPS Bewölkung 0–120 h: Modus S ${t7.better.length} signifikant besser / ${t7.worse.length} schlechter / ${t7.ns.length} gleichauf · Modus L ${t7L.better.length} / ${t7L.worse.length} / ${t7L.ns.length}. **AX-4 ${verdicts['AX-4']}** (Regel: keine Zelle signifikant schlechter in S und L und ≥ 4 signifikant besser ⇒ BESSER). **K7** (Atome berühren nur die Bewölkung — T/Td/Wind/Böe/Niederschlag byte-gleich zu product-FS): **${verdicts.K7}**${k7bad.length ? ` (abweichend: ${k7bad.join(', ')})` : ''}.`, '');
+  }
   table('E2 Kontext — Bewölkung und Niederschlag: product-FS gegen product@5e (Modus S)', 'S', 'product-FS', 'product@5e', ['mae', 'crps'], CN);
   table('E2 Kontext — Bewölkung und Niederschlag: product-FS gegen mosmix (Modus S)', 'S', 'product-FS', 'mosmix', ['mae', 'crps'], CN);
   table('E4 — product+fix+noshrink gegen MOSMIX der Nachbarstation (Modus L)', 'L', 'product+fix+noshrink', 'mosmix', ['crps', 'mae'], CELLS, COUNTRY);
@@ -451,7 +468,7 @@ if (Object.keys(card.scores).some((k) => k.includes('|product+fix|'))) {
 // absolute numbers
 for (const mode of MODES) {
   md.push(`## Absolut — Modus ${mode} (Schicht all)`, '', '| Zelle | Kandidat | n | MAE | Bias | CRPS | PIT außen | S/S |', '|---|---|---|---|---|---|---|---|');
-  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
+  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
     const s = card.scores[`${mode}|${v}|${bin}|${c}|all`];
     if (s) md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} | ${c} | ${s.n} | ${f2(s.mae, 3)} | ${f2(s.bias)} | ${f2(s.crps, 3)} | ${f2(s.pitOuter, 3)} | ${f2(s.spreadSkill)} |`);
   }

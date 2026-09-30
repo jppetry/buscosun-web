@@ -28,6 +28,7 @@
 | AX-9 | Klimagitter 1991–2020 als Temperatur-Prior (#13, E-EX-4) | **fertig, gemessen, Produkt im Daten-Repo (`3869297b`)** — Producer aus DWD-CDC/SPARTACUS/MeteoSwiss (GK3 selbst, SPARTACUS-Normale aus Wert − Anomalie mit exakter Gegenprobe, CH-Sonne relativ → Stunden), 208 Chunks 1,87 MiB, 53 % der Zellen (DE/AT/CH/LI); Client `CubeIo.climaGrid` (`?cg=1`) ersetzt das Tagesmittel T des Priors mit Lapse gegen `elev_src`; **Messung an 14 762 Punkt-Monaten:** Alpen −28 %, CH −16 %, Δh > 200 m −23 %, DE-Flachland +10 %; beide Prioren ≈ 1,2 K zu kalt ⇒ `climaTrend` (0,45 K/Dekade, set): Stationsfeld 1,63 → 1,36, Gitter 1,57 → **1,22 K**; alles voreingestellt aus = E-AX-9 | Block 36 (6 Prüfungen) · `clima-grid-check.mjs` · `%TEMP%\ax9` |
 | AX-10 | INCA-Analyse als Anker in Österreich (#14, zweiter Teil) | **gebaut, nicht gemessen** — `CubeObs.weight` (Analyse ≠ Messung), INCA-Zeitreihe am Punkt (Latenz ≈ 1–1,5 h gemessen) parallel zu den Stationen, nur AT, nur mit `CubeIo.incaAnchor` (`?inca=1`), Gewicht 0,6 set; Ausbleiben benannt; Produktwirkung braucht das Archiv (E-AX-10) | Block 37 (4 Prüfungen) |
 | AX-11 | Globalstrahlung, Sonnenscheindauer, Sichtweite im Stationsprodukt (#21) | **fertig, lokal geprüft** — drei Ebenen hinter den 61 Cube-Ebenen (MOSMIX `Rad1h`/`SunD1`/`VV`, in S und L), Manifest nennt sie, Leser unverändert (München 30.09. 15 UTC 342 W/m², 60 min, 51 km); +1,66 MiB je Lauf; Dashboard kann sie aus der Stationsreihe nehmen (Phase DB) | `verify:point-data` (3n, 3 Prüfungen) · `%TEMP%\ax8\repo` |
+| AX-12 | Messung: buscosun Fusion heute (Stufe fs) gegen Fit 5e am Archiv 16.–28.09., an den Stationen (Auftrag Jan 30.09. abends, nach dem Commit `a02f2b5`) | **gemessen** — 365 513 Zeilen, 13 Ausgabetage, 389 Stationspunkte, Wahrheit bis zum 29.09.-Slot (V-AX-4 behoben: Schema 3 lesbar, `--slotsFrom`); **Modus S gegen 5e: MAE 22 von 36 Zellen signifikant besser, 0 schlechter** (T +17…+29 %*, Td +10…+22 %*, Wind +20…+27 %*, Böe +16…+28 %*, Bewölkung +11…+18 %*, PIT-Rand 0,62–0,75 → 0,28–0,33; Niederschlag unverändert); gegen MOSMIX T +14/+7/+6/+3 %*, Td +13…+19 %*, Wind 0–6 h +6 %* sonst gleichauf, Böe 0–6 h +10 %*; **CH Wind/Böe weiter −2…−10 %! (E-AX-7 offen)**; Modus L (stationslos): 15 besser / 2 schlechter — **Wind 0–6 h −1,2 %!, 126–240 h −4,1 %!, 0–120 h unter der Lernstufe allein ⇒ V-AX-13, E-AX-11**; Kontrolle In-sample gegen Leave-Day-out ≤ 1,2 % | §6g · `scripts/fusionfit/now-vs-5e.mjs` · `fusion-ausbau/now-vs-5e.md` · `score\2026-09-30-now5e` · `verify:fusion-fit` 125/125 (16i). **Schaltkandidaten (§6g.5, `now-vs-5e-b.md`):** Wolkenatome (AX-4) Bewölkung CRPS +6…+10 %*, PIT-Rand 0,3 → 0,2, K7 bestanden ⇒ BESSER; Landesparameter (E-AX-7) Wind/Böe +2…+3 %* (CH +1,5…+8 %*), CH gegen MOSMIX von −2…−10 %! auf −0,6…−1,1 % (n.s.), Td −0,1…−1,0 % ⇒ ohne Td-Landeseinträge einspielen (V-AX-15); zusammen gegen 5e **23 / 0 / 13** — Einspielen = Jans Go |
 | AX-6 | Ensemble-Mittel in t3 (E-EX-1, #3) — die Messung | **gemessen (roh, 13 Monate, 129 Läufe)** — gegen jeden Einzellauf bei 126–336 h T +14/+23 %*, Wind +13/+16 %*, Böe +10/+12 %*; gegen das Mittel zweier Läufe bei T erst ab 246 h (+10 %*); bei 246–336 h gleichauf mit der Klimatologie ⇒ Gewinn vor allem Wind/Böe; Producer-Schritt = E-AX-6 | `score\2026-09-30-ax6`, `fusion-ausbau/ax6-ens.md` |
 | — | Nicht gebaut (Entwürfe §6f) | #17 CH-Member, #18 Exposition, #20 zeitversetztes Ensemble (heute nicht messbar), #4 RUC (E-EX-5: Phase 30.11.), #6 flächige MOS-Korrektur und #8 flächige Niederschlagswahrheit (Datenprogramme); Kalender #1/2 (≥ 30 Ausgabetage), #9 (Winter) | — |
 
@@ -181,7 +182,7 @@ seltener, wie in EX §4.2 vorhergesagt. V-FS-5 bestätigt: CH Wind 7–120 h −
 
 | ID | Befund / Verbesserung | Mehrwert | Skizze | Stand |
 |---|---|---|---|---|
-| V-AX-4 | Das Punktarchiv schreibt seit dem 29.09. **Schema 3** (PA4); `archiveAdapter.mjs` liest 1/2 und wirft bei 3 | jede künftige Archiv-Messung (Neufit des Stationswerts, V-FS-1, AX-5) braucht den Leser | `readArchiveSlot`/`archiveLive` um Schema 3 erweitern (`live.fusion` spaltenweise, `live.asOf`, `elevationM`) — Zuständigkeit: dieses Repo (`scripts/fusionfit/lib/`), vor AX-5 | offen |
+| V-AX-4 | Das Punktarchiv schreibt seit dem 29.09. **Schema 3** (PA4); `archiveAdapter.mjs` liest 1/2 und wirft bei 3 | jede künftige Archiv-Messung (Neufit des Stationswerts, V-FS-1, AX-5) braucht den Leser | `readArchiveSlot`/`archiveLive` um Schema 3 erweitern (`live.fusion` spaltenweise, `live.asOf`, `elevationM`) — Zuständigkeit: dieses Repo (`scripts/fusionfit/lib/`), vor AX-5 | **behoben (AX-12, 30.09.):** `ARCHIVE_SCHEMAS_READABLE = [1, 2, 3]` — am 29.09.-Slot geprüft: `cube`/`stations`/`nowcast`/`truth` byte-kompatibel zu Schema 2 (Wahrheit + `ps`), `live.fusion` spaltenweise las `archiveLive` schon über den AP9-Dekoder; Rauchtest (3 Punkte, Ausgabe 28./29.09.): der 28.09. bekommt 24 Wahrheitsstunden aus dem Schema-3-Slot; `verify:fusion-fit` 16i (Schema 3 wie 2, Schema 4 und fremder kind werfen) |
 | V-AX-5 | `period.to` der Client-Tabelle ist `2026-09-31` (kein Datum) | — | der Fit schreibt das Monatsende richtig (`fit.mjs`), die Leser lesen tolerant | offen, kosmetisch |
 
 ## 3 AX-3 — Interpolation zwischen den nativen Schritten: Temperatur als Anomalie gegen den Tagesgang (Bericht #16)
@@ -682,20 +683,175 @@ beginnen kann; gebaut wurde er nicht, weil das Ergebnis heute nicht messbar wär
 | 6 | Flächige MOS-Korrektur (gridded MOS) | Differenz MOSMIX − Cube an den 3 071 Stationen je Stunde, mit Abstands- und Höhenterm aufs Stufe-1-Gitter (BCDG) als **statisches Produkt je Lauf** im t2-Job; der Stationswert (FS) bleibt an der Station, das Gitter ersetzt die harte 5-km/50-m-Schwelle | 1–2 Tage + Archivmessung an zurückgehaltenen Stationen | braucht die Archivkarte (≥ 30 Ausgabetage, E-FS-3) als Maß; ohne sie wäre es eine zweite ungemessene Korrektur neben dem Stationswert |
 | 8 | Flächige Niederschlagswahrheit (RADOLAN RW/RADKLIM, INCA-Analyse, CombiPrecip) + zensierte Gamma/GEV | Wahrheitspfad des Hindcasts um Rasterwahrheit an den 405 Punkten (RADKLIM 2001–2025 als Jahresdateien ≈ 1 GB/Jahr), dann Fit der Niederschlagsverteilung als eigene Familie (`dist.ts`, Codec-Version 4) | Datenprogramm (Tage) + Fit | K-2 („no-skill" 7–48 h) ist eine Datenfrage — erst mit Winterzeilen und Rasterwahrheit; Familienwechsel = Codec-Bump = Jans Gate |
 
+## 6g AX-12 — Messung: buscosun Fusion heute (Stufe fs) gegen Fit 5e am Archiv, 16.–28.09., an den Stationen
+
+Auftrag Jan (30.09. abends, nach dem Commit `a02f2b5` von buscosun-web): „anhand der buscosun-archiv die letzten zwei Wochen an den
+Stationen messen mit der neuen Version gegenüber buscosun Fusion 5e". Gemessen wird also nicht ein Fit, sondern die **Kette**: dieselbe
+Lernstufe (Fit 5e, `fit\2026-09-27-fx5e\fusion.hindcast.json`) in der Kette von FV (`product@5e`) gegen die Kette, die das Panel seit
+29.09. rechnet (Stufe fs: `learnedAtPoint`, `priorShrink:false`, `learnedClouds`, Stationswert; `cubeSource.ts` Z. 2118–2126).
+
+### 6g.1 Aufbau (30.09., 15:43–16:39 UTC; `score\2026-09-30-now5e`, Karte `fusion-ausbau/now-vs-5e.md`)
+
+- **Daten:** Punktarchiv, Ausgabe-Slots 16.–29.09. (14; der 29.09. hat noch keine Wahrheit ⇒ **13 Ausgabetage**), Wahrheit aus allen
+  16 Slots 14.–29.09. (140 502 Punkt-Stunden), 389 DACH-Stationspunkte, **native Schritte** (die Karte bewertet keine
+  Zwischenstunden). 365 513 Zeilen, 60 256 Motorläufe ohne Fehler, 21 min (`stack-extract.mjs`), Scoring 8 098 Zellen, 37 150 DM-Tests.
+- **Vorarbeit V-AX-4:** der Archiv-Leser wirft bei Schema 3 nicht mehr (`ARCHIVE_SCHEMAS_READABLE = [1, 2, 3]`; am 29.09.-Slot
+  geprüft: `cube`/`stations`/`nowcast`/`truth` byte-kompatibel zu Schema 2, `live.fusion` spaltenweise las `archiveLive` schon).
+  Ohne das hätte der 28.09. keine Wahrheit gehabt — **die Wahrheit eines Ausgabetags liegt im Slot danach.** Neu `--slotsFrom`
+  (Ausgabe-Slots; die Wahrheit liest weiter jeden Slot). Rauchtest an 3 Punkten: der 28.09. bekommt 24 Wahrheitsstunden aus dem
+  Schema-3-Slot. `verify:fusion-fit` 16i (Schema 3 wie 2, Schema 4 und fremder kind werfen).
+- **Kandidaten:** „5e" = `product@5e` (Lernstufe, learnedSpeed, learnedPrecip, Klimatologie-Schritt, gewichtetes Stationsmember).
+  „heute" im **Modus S** (Punkt = Station, das Produkt mit Stationsmember): T/Td/Wind/Böe = `stack`, der Stationswert
+  **Leave-Day-out mit Sperre ±1 Gültigtag** — die eingesetzte Tabelle (`point/stack.client.json`, 28.09.) ist auf 14.–27.09. gefittet,
+  eine In-sample-Zahl schmeichelte; Bewölkung, Niederschlag und > 240 h = `product-FS` (Motor mit der eingesetzten Tabelle). „heute" im
+  **Modus L** (Leave-Station-out: der Punkt ohne eigene Station, MOSMIX und Messung der nächsten anderen Station) = `product-FS`.
+  Referenzen `mosmix` (L: die Nachbarstation), `live`, `fl-K@5e` (Lernstufe allein). Statistik wie FS/EX: DM je Ausgabetag (HLN),
+  BH über die Karte; * signifikant besser, ! signifikant schlechter. **Alles indikativ (n_eff ≤ 13).**
+- **Werkzeug:** `scripts/fusionfit/now-vs-5e.mjs` (liest die Scorecard von `stack-score.mjs`, schreibt die Karte A/B/C).
+
+### 6g.2 Modus S — der Punkt ist die Station (Δ = heute gegen 5e, MAE; in Klammern heute gegen MOSMIX)
+
+| Größe | 0–6 h | 7–24 h | 25–48 h | 51–120 h | 126–240 h |
+|---|---|---|---|---|---|
+| T | **+29,3 %*** (+14,1 %*) | +16,6 %* (+7,1 %*) | +18,3 %* (+5,7 %*) | +17,7 %* (+2,6 %*) | +13,5 % (+1,1 %) |
+| Td | +22,2 %* (+18,8 %*) | +11,7 %* (+13,5 %*) | +14,9 %* (+12,7 %*) | +9,9 %* (+17,2 %*) | +10,6 % (+15,4 %*) |
+| Wind | +25,5 %* (+5,8 %*) | +22,9 %* (+0,8 %) | **+26,8 %*** (+0,6 %) | +23,5 %* (−0,1 %) | +20,0 %* (+2,4 %) |
+| Böe | +19,3 %* (+10,0 %*) | +15,7 %* (+3,0 %) | +22,2 %* (+2,0 %*) | +21,3 %* (+0,3 %) | **+28,3 %*** (+3,7 %) |
+| Bewölkung (DE) | +17,1 %* (+3,9 %) | +18,4 %* (+8,3 %) | +14,0 %* (+1,0 %) | +10,6 %* (+4,3 %) | −3,7 % (−3,4 %) |
+| Bewölkung CRPS | +21,1 %* | +22,3 %* | +18,6 %* | +19,1 %* | +13,3 %* |
+| Niederschlag | 0,0 % | 0,0 % | 0,0 % | 0,0 % | 0,0 % |
+
+Absolut: T 0–6 h **1,02 → 0,72 K** (MOSMIX 0,84, live 0,92), 51–120 h 1,54 → 1,26 K; Wind 0–6 h 0,85 → 0,63 m/s (MOSMIX 0,67);
+Böe 126–240 h 2,38 → 1,70 m/s (MOSMIX 1,77); Bewölkung 0–6 h 25,7 → 21,3 % (MOSMIX 22,2). Bewölkung **PIT-Rand 0,62–0,75 → 0,28–0,33**
+(H14: die durchgereichte Lernstufe statt der Nachfusion; immer noch überkonfident, AX-4 zielt darauf). Niederschlag ist byte-gleich
+(K-2 behält den Klimatologie-Schritt), gegen MOSMIX +24…+34 % wie bei 5e. Gegen den Live-Pfad: T +21/+9/+7/+3 %*, Wind +13/+7/+7 %*,
+Böe 0–6 h +10 %* sonst gleichauf. **246–336 h** (ohne MOSMIX, `product-FS`, n 7 000–8 000): T +17,5 %, Böe +8,3 %, Td −4,6 %,
+Wind −5,2 %, alle n.s.
+
+**Zusammenfassung Modus S:** MAE **22 von 36 Zellen signifikant besser, 0 schlechter**, 14 gleichauf; CRPS 23 / 0 / 13.
+
+**Je Land gegen 5e:** überall besser (CH Wind +33…+39 %*, Böe +22…+50 %*; AT T +14…+30 %*). **Je Land gegen MOSMIX:** AT Wind/Böe
++5…+27 %*, T +6…+27 %*; DE gleichauf bei Wind/Böe (−1,7…+3,8 %), T +3…+7 %*; **CH Wind 7–240 h −2,2…−7,0 %!, Böe 7–120 h
+−5,3…−9,9 %!** — das ist V-FS-5 unverändert: die Tabelle mit Landesparametern (AX-5, H15 gilt) ist nicht eingesetzt (E-AX-7).
+
+**Kontrolle B (In-sample gegen Leave-Day-out):** `product-FS` mit der eingesetzten Tabelle gegen `stack`: +0,1…+1,2 % (Td 126–240 h
++2,9 %) ⇒ die Leave-Day-out-Zahlen gelten für die Kette im Panel bis auf ≈ 1 %.
+
+### 6g.3 Modus L — der Punkt ohne eigene Station (Δ = heute gegen 5e, MAE)
+
+| Größe | 0–6 h | 7–24 h | 25–48 h | 51–120 h | 126–240 h |
+|---|---|---|---|---|---|
+| T | +5,9 % | +20,3 %* | +23,6 %* | +25,8 %* | +20,3 %* |
+| Td | −1,0 % | +9,0 %* | +8,8 %* | −0,6 % | −2,7 % |
+| Wind | **−1,2 %!** | +2,2 % | +1,8 % | +3,6 % | **−4,1 %!** |
+| Böe | +9,2 %* | +13,2 %* | +15,1 %* | +13,9 %* | +13,6 %* |
+| Bewölkung (DE) | +24,9 %* | +23,1 %* | +21,2 %* | +13,9 %* | −3,4 % |
+
+MAE 15 Zellen signifikant besser, **2 schlechter**, 19 gleichauf; CRPS 16 / 0 / 20. Gegen die MOSMIX der Nachbarstation überall
++16…+49 %* (Distanz 10–30 km, kein fairer Vergleich). **Wind gegen die Lernstufe allein (`fl-K@5e`): 0–6 h −5,0 %!, 7–24 h −3,5 %!,
+25–48 h −1,9 %!, 51–120 h −1,3 %!** — die Kette verwässert die Lernstufe beim Wind ohne Station, wie V-FV-6 es für die alte Kette
+beschrieb; bei T/Td/Böe ist sie gleichauf (±1 %). Je Land: AT Wind −4,1…−9,5 %! in 4 von 5 Bins, CH Wind 25–48 h −2,7 %! und
+126–240 h −13,3 %!, CH Td 51–240 h −8,4…−11,9 %!; DE Wind +3,5…+8,8 %*.
+
+### 6g.4 Befunde und Entscheidungen
+
+| ID | Befund / Entscheidung | Bewertung |
+|---|---|---|
+| V-AX-13 | **Wind am stationslosen Punkt:** die Stufe fs ist in 2 von 6 Bins signifikant schlechter als 5e (0–6 h −1,2 %!, 126–240 h −4,1 %!) und bei 0–120 h unter der Lernstufe allein (−1,3…−5,0 %!); AT in 4 von 5 Bins, CH bei 126–240 h −13 %!. Hypothesen: (a) `priorShrink:false` gilt für alle Größen — beim Wind ohne Station fehlt die Schrumpfung, die gegen die Rice-Drift (V-FI-107) und im AT/CH-Relief half (126–240 h); (b) der Anker aus der Messung der Nachbarstation (10–30 km) trägt beim Wind eine fremde Innovation (Exposition, Richtung) in 0–6 h. T/Td/Böe zeigen das nicht. | offen — **E-AX-11** |
+| V-AX-14 | **Verdikte auf 13–14 Ausgabetagen kippen:** dieselben Regeln geben auf 14.–28.09. (Wahrheit bis 28.09.) H10 GLEICHSTAND, H11 GILT NICHT, E2 GLEICHSTAND — auf 16.–28.09. (Wahrheit bis 29.09.) H10/H11/E2 GILT. Die Skills sind gleich, nur die Signifikanz wechselt. | zur Kenntnis — jede Zahl dieser Linie bleibt indikativ bis ≥ 30 Ausgabetage (E-FS-3) |
+| E-AX-7 | AX-5-Tabelle mit Landesparametern einsetzen | **dringender:** die Schweiz liegt bei Wind/Böe weiter −2…−10 %! hinter MOSMIX — genau die Lücke, die H15 schließt |
+| E-AX-11 | Wind ohne Station: `priorShrink` je Größe (Wind/Böe behalten den Klimatologie-Schritt, T/Td nicht) und/oder Anker-Gewicht des Windes mit der Distanz der Messung dämpfen — zuerst als Varianten P5/P6 am Archiv messen (≈ 1 h Rechnung auf denselben Zeilen), dann entscheiden; nichts gebaut | Jans Gate |
+| Kontrollen | K1–K4 bestanden; K5/K6 „NICHT bestanden" mit denselben Maximalabweichungen wie in der AX-5-Karte (K5 Wind 0,53 / Böe 4,6 m/s: Offline-Form der Windfamilie ≠ Motor mit learnedSpeed; K6: die Kette rechnet mit der eingesetzten Tabelle vom 28.09., `stack:in` mit dem Fit auf diesen Zeilen — verschieden per Bauart) — kein neuer Befund dieser Messung; Kontrolle B (§6g.2) ersetzt K6 hier | — |
+
+**Nicht in dieser Messung:** AX-3 (Anomalie-Interpolation wirkt nur zwischen den nativen Schritten), AX-1 (im Archiv liegt die Messung
+ohnehin am Punkt), alles hinter Gates (AX-7…AX-10). Der Unterschied „heute gegen 5e" ist allein die Kette.
+
+### 6g.5 Die zwei Schaltkandidaten am Archiv (30.09., 17:20–18:05 UTC; `score\2026-09-30-now5e-b`, Karte `fusion-ausbau/now-vs-5e-b.md`)
+
+Jans Frage: was lässt sich von heute scharf schalten und dann noch einmal testen? Zwei Bauteile brauchen weder Client-Code noch
+Push, nur eine Tabelle im Daten-Repo: **E-AX-7** (Stationswert mit Landesparametern, `fit\2026-09-30-ax5\stack.archive.json` →
+`point/stack.client.json`) und **AX-4** (dieselbe 5e-Tabelle plus 16 geschriebene Atom-Einträge, `fit\2026-09-30-ax4\fusion.ax4.client.json`
+→ `point/fusion.client.json`; `predict.ts` wendet Atome an, wo ein Stratum beide trägt, `learnedClouds` reicht die Verteilung durch,
+Codec 3 ist seit `a02f2b5` auf `main`). Gemessen auf denselben 365 513 Zeilen: `stack-extract.mjs --tables2` rechnet die Variante
+**P5** = P3 mit den Atom-Tabellen (Falten-β auch für die Atome, Rauchtest: 16 641 Nicht-Wolken-Zellen byte-gleich zu P3, 1 000
+DE-Wolkenzellen als `cloudMix`); `stack-score.mjs` Kandidat `product-FS+atoms`, Kontrolle **K7** (Atome berühren nur die Bewölkung —
+bestanden), Verdikt AX-4 nach Regel; die Landesparameter sind der Kandidat `stack-cc` (Leave-Day-out wie `stack`).
+
+**AX-4 Wolkenatome gegen heute (Bewölkung DE, Modus S = L):**
+
+| Bin | CRPS heute → Atome | Δ CRPS | Δ MAE | PIT-Rand |
+|---|---|---|---|---|
+| 0–6 h | 14,68 → 13,21 | **+10,0 %*** | +11,7 %* | 0,33 → 0,22 |
+| 7–24 h | 14,82 → 13,88 | +6,4 %* | +8,8 %* | 0,28 → 0,21 |
+| 25–48 h | 16,71 → 15,70 | +6,1 %* | +9,6 %* | 0,28 → 0,21 |
+| 51–120 h | 19,55 → 18,74 | +4,2 % | +6,5 %* | 0,28 → 0,23 |
+| 126–336 h | gleich | 0,0 % | 0,0 % | (keine Atome geschrieben: Sommer-Strata no-skill, §4) |
+
+**AX-4 BESSER** (keine Zelle schlechter, 6 signifikant besser in S und L), K7 bestanden. Die Archivzahl (+6…+10 %*) liegt über der
+Hindcast-Zahl (+5,7 %*, 0–6 h +10,7 %*) — konsistent.
+
+**E-AX-7 Landesparameter gegen den gepoolten Stationswert (Modus S, MAE):** Wind alle +1,8…+3,2 %* (0–120 h), CH +1,5…+5,5 %*,
+AT +4,0…+6,2 %*, DE 0–6 h +2,3 %*; Böe alle +2,1…+2,9 %*, CH +3,6…+8,1 %*; T 0–6 h +1,4 %*, CH 126–240 h +4,6 %*. **Gegen MOSMIX
+schließt die Schweiz:** Wind 7–240 h von −2,2…−7,0 %! auf −0,6…−1,1 % (n.s.), Böe 7–120 h von −5,3…−9,9 %! auf −0,8…−1,0 % (n.s.),
+0–6 h Wind +3,3 %*, Böe +5,0 %*. **Aber Td:** alle −0,1…−1,0 % (25–48 h **−1,0 %!**), CH −1,7…−5,1 % (n.s.) — die Landes-Einträge
+für Td sind an 13 Tagen schlechter als die gepoolten ⇒ **V-AX-15**; AX-5 GILT nach der eingefrorenen Regel (Wind/Böe 7–120 h je Land).
+
+**F — das Produkt nach beiden Schaltungen gegen 5e (Modus S):** MAE **23 von 36 Zellen signifikant besser, 0 schlechter**, 13 gleichauf
+(CRPS 23 / 0 / 13). Gegen heute: Wind +1,8…+3,2 %*, Böe +2,1…+2,9 %*, T 0–6 h +1,4 %*, Bewölkung +6,5…+11,7 %*, Td −0,1…−1,0 %.
+Gegen MOSMIX danach: T +15/+8/+6/+3 %*, Td +19…+12 %*, Wind +9/+3/+3/+2 %*, Böe +12/+6/+5/+2 %*, Bewölkung +15/+16/+11 %*;
+CH Wind/Böe −0,6…−1,1 % (n.s.) statt −2…−10 %!. Modus L ändert sich nur bei der Bewölkung (Atome; identische Zahlen wie S).
+
+| ID | Befund / Entscheidung | Bewertung |
+|---|---|---|
+| V-AX-15 | Landesparameter für **Td** sind schlechter als gepoolt (alle −0,1…−1,0 %, 25–48 h −1,0 %!, CH bis −5 % n.s.) — zu wenige Zeilen je Land × τ-Gruppe für die Form S mit drei Parametern | **Empfehlung: die Tabelle ohne die Td-Landeseinträge einspielen** (Td fällt auf die gepoolten Einträge = heute zurück; T/Wind/Böe mit Land); das ist genau die Spalte „stack" für Td und „stack-cc" für die übrigen — beide gemessen |
+| E-AX-4/5 | Atom-Tabelle als `point/fusion.client.json` einspielen (Codec 3 ist auf `main`; der Sammler schreibt ab dem 23:10-Slot Version 3) | **ja** — Archiv BESSER, K7 bestanden, 0 Byte Client-Code |
+| E-AX-7 | Landes-Tabelle als `point/stack.client.json` einspielen, ohne Td-Landeseinträge (V-AX-15) | **ja** — CH-Lücke schließt, nirgends sonst schlechter |
+| E-AX-12 | Nach dem Einspielen: dieselbe Karte an den NÄCHSTEN Archivtagen (out-of-sample für beide Tabellen), ab ≥ 14 Tagen | Jans Gate für den Termin |
+
+### 6g.6 Eingespielt mit Jans Go — und die Bezeichnung „buscosun Fusion 6" (30.09., 18:25 UTC)
+
+Jans Go (30.09. abends): beide Tabellen einspielen und dem Stand eine feste Bezeichnung geben, „sodass egal wann ich es anspreche
+genau diese genommen wird".
+
+**Einspielen:** `scripts/fusionfit/release-tables.mjs` baut die beiden Client-Tabellen aus den gemessenen Fits und prüft sie mit den
+Validatoren des Clients (`validateTables`, `validateStackTable`): `fusion.client.json` = `fusion.ax4.client.json` unverändert
+(fusionFit@3, 70 Mittel-Einträge, 16 geschriebene Atome, 138 449 B, sha256 `0714300fe2a56d83…`); `stack.client.json` =
+`stack.archive.json` (AX-5) **ohne die 162 Td-Landeseinträge** (V-AX-15): 863 → 701 Einträge (220 gepoolt, AT 165, DE 156, CH 160),
+67 975 B, sha256 `9d22ff35986f6092…`, Notiz in der Tabelle. Daten-Repo-Commit **`1aaec969`** (Rebase auf den Radar-Spiegel, Push im
+zweiten Versuch, 18:25 UTC), beide Pfade gepurgt, CDN liefert die neuen Hashes (Kontrolle unten). Kein Client-Code, kein Push von
+buscosun-web: `predict.ts` nimmt Atome, wo ein Stratum beide trägt; `stationValueOf` nimmt den Landeseintrag, wo einer steht.
+Rückholbar per Revert des Commits + Purge. **Ende-zu-Ende gegen das CDN** (`fusion-ausbau/f6-live-check.mjs` → `f6-live-check.md`,
+18:28 UTC, Store `@main`, ohne Overlay): der Client lädt 16 Atome und 701 Stationswert-Einträge (Landeseinträge T 162 / Wind 162 /
+Böe 157 / **Td 0**); an Helgoland (DE), Wolfsegg (AT) und Basel (CH) stehen alle sieben Stufen-Zeilen in calib, der Stationswert
+rechnet mit den Landeseinträgen (DE 720 / AT 720 / CH 719 Setzungen), die Bewölkung trägt 140 `cloudMix`-Verteilungen je Produkt;
+Rechnung 89–164 ms. (Der alte `fs-live-check.mjs` meldet jetzt planmäßig „Fehler", weil seine Annahme A — Dateien noch nicht im
+Daten-Repo — nicht mehr gilt; sein Belegfile ist aus Git wiederhergestellt.)
+
+**Bezeichnung (Jans Festlegung, verankert in `CLAUDE.md` „Sprache & Konventionen"):** **„buscosun Fusion 6"** = Client `a02f2b5` +
+Stufe `fs` (Optionen wie in `cubeSource.ts` Z. 2118–2126: Lernstufe Fit 5e, `learnedSpeed`, `learnedPrecip`, `learnedAtPoint`,
+`learnedClouds`, `priorShrink: false`, Stationswert, Anomalie-Interpolation, Route 1; `ensMember`/`climaGrid`/`incaAnchor` aus,
+Stationsmember MOSMIX-L) + die Tabellen von `1aaec969` + `point/static/clima/v1` (unverändert seit FS) + Cube-Schema 6. Die
+Messung dazu ist Spalte F in `fusion-ausbau/now-vs-5e-b.md` (gegen Fit 5e 23 / 0 / 13). Vorgänger: „buscosun Fusion 5e" =
+`product@5e` (FV, 27.09.); der Zwischenstand 29./30.09. („heute" in §6g.2) trägt keinen eigenen Namen. Die Zahl zählt Produktstände,
+nicht Fits (Fit 5e bleibt Fit 5e) und nicht das Cube-Schema (dass beides 6 ist, ist Zufall) — jede Änderung an Tabellen, Optionen oder
+Kette ergibt die nächste Nummer, die 6 wird nie umgehängt. Im Code steht die Bezeichnung noch nicht (V-AX-16: eine Konstante
+`FUSION_RELEASE` mit Name, Commit und Tabellen-Hashes, im `stage:fs`-Hinweis des Produkts sichtbar — Client-Änderung, mit dem nächsten
+Push).
+
 ## 7 Gates der Phase (Arbeitsbaum mit der parallelen Dashboard-Phase; Stand nach AX-11, 30.09. 14:50 UTC)
 
 | Gate | Stand |
 |---|---|
 | `verify:pv-cube` | **379/379** (338 + Blöcke 30–37; Kostenprüfungen (8)/(9) nur im Leerlauf grün, V-EX-13) |
 | `verify:point-data` | **1018/1018** (vier Cron-Jobs, Regeln A–F und E′ nachgerechnet, Leerlauf-Schutz mit Gegenprobe, AX-8/AX-11-Anker) |
-| `verify:fusion-fit` | **124/124** |
+| `verify:fusion-fit` | **125/125** (nach AX-12: Prüfung 16i, Archiv-Schema 3; vorher 124/124) |
 | `verify:pv-fusion` | **249/249** — der Live-Pfad ist byte-gleich |
 | `verify:point-client` | **171/171** ((10s) zeitabhängig: ein Lauf unter Last 170/171, im Leerlauf grün) |
 | `verifyDist` / `verifyStationValue` | 54/54 · 10/10 |
 | `npm run typecheck` | 0 Fehler (ganzer Baum) |
 | `npm run build` | 249/249 |
 | `npm run budget` (AX-7…AX-11) | eagerJs 108,6 / 108,7 (unverändert), largestChunk 278,4 / 302, **totalJs 1 508,6 / 1 510** (Grenze um den gemessenen Zuwachs +2,2 KB angehoben, Notiz in `budget.json`) |
-| Daten-Repo | `7115d708` Cron-Vorlage + README · `3869297b` Klimagitter · `d058317c` Leerlauf-Schutz; Runner: t1 13:48 UTC (neue Vorlage, `POINT_Z0MOD`) 15 min grün, `stations-s` 14:03 UTC grün (Leerlauf fehlgeschlagen ⇒ V-AX-12, harmlos) |
+| Daten-Repo | `7115d708` Cron-Vorlage + README · `3869297b` Klimagitter · `d058317c` Leerlauf-Schutz; **nach Jans Push `a02f2b5` (15:33 UTC, Actions-API 17:05 UTC gelesen): der `stations-s`-Slot 15:50 (Lauf 15:56 UTC) baut und publiziert den ersten MOSMIX-S-Lauf `2026093015` (Job 2 min 17 s, Publish `success`, Index `stationsS.runs = [2026093015]`), der t2-Lauf 16:40 UTC läuft mit L- und S-Schritt;** Runner: t1 13:48 UTC (neue Vorlage, `POINT_Z0MOD`) 15 min grün, `stations-s` 14:03 UTC grün (Leerlauf fehlgeschlagen ⇒ V-AX-12, harmlos) |
 
 ### 7.1 Gates der ersten Hälfte (AX-1…AX-6, vor der Freigabe des Daten-Repos)
 
@@ -745,7 +901,7 @@ ist out of fold am Hindcast gemessen, das ist die stärkere Zahl); AX-6 nach der
 | V-AX-1 | Live-Pfad und Karte holen nicht die nächsten Stationen | offen (E-AX-1) |
 | V-AX-2 | TAWES/SMN-Messungen ohne Messzeit im Punkt | offen, klein |
 | V-AX-3 | 4 von 8 Stadtpunkten ohne messende Station ≤ 5 km | Kalender (V-FS-1) |
-| V-AX-4 | Archiv-Schema 3 seit 29.09., `archiveAdapter.mjs` liest 1/2 | offen, vor dem Neufit |
+| V-AX-4 | Archiv-Schema 3 seit 29.09., `archiveAdapter.mjs` liest 1/2 | behoben (AX-12: Leser liest 1/2/3, `verify:fusion-fit` 16i) |
 | V-AX-5 | `period.to` der Client-Tabelle „2026-09-31" | offen, kosmetisch |
 | V-AX-6 | Rampe an den Nähten ohne überlappende Vorläufe nicht baubar | Producer (Jans Gate) |
 | V-AX-7 | Scorecards bewerten keine interpolierten Stunden | offen (AP9) |
@@ -754,15 +910,20 @@ ist out of fold am Hindcast gemessen, das ist die stärkere Zahl); AX-6 nach der
 | V-AX-10 | Klimatologie-Prioren ≈ 1,2 K zu kalt (Referenzperioden) | `climaTrend` gebaut, aus (E-AX-9) |
 | V-AX-11 | Klimagitter nur DE/AT/CH/LI | offen (Rand = Stationsfeld, benannt) |
 | V-AX-12 | Leerlauf-Schutz traf den Teilstring `mosmix_stationskatalog` | behoben (`POINT_STATIONS_SOURCE`, `d058317c`) |
+| V-AX-13 | Wind am stationslosen Punkt: Stufe fs in 2 Bins schlechter als 5e, 0–120 h unter der Lernstufe allein (§6g.3) | offen — E-AX-11 |
+| V-AX-14 | Verdikte auf 13–14 Ausgabetagen kippen zwischen GILT und GLEICHSTAND (§6g.4) | zur Kenntnis, indikativ bis ≥ 30 Tage |
+| V-AX-15 | Landesparameter für Td schlechter als gepoolt (−0,1…−1,0 %, eine Zelle !; §6g.5) | Tabelle ohne Td-Landeseinträge einspielen |
 | E-AX-10 | INCA-Anker (Gewicht 0,6) in die Stufe | nach AP9/AP10-Messung (§6d) |
+| E-AX-11 | Wind ohne Station: `priorShrink` je Größe / Anker-Distanz — erst als Varianten am Archiv messen (§6g.4) | Jans Gate |
 
 | ID | Entscheidung | Empfehlung |
 |---|---|---|
 | E-AX-1 | `near` im Live-Pfad | ja, eigener Commit |
 | E-AX-2 | `learnedRoute: 'tier'` | nein (gemessen schlechter), Dezember neu |
 | E-AX-3 | `anomalyInterp` in der Stufe fs | gesetzt, ja |
-| E-AX-4 | Codec Version 3 | bestätigen |
-| E-AX-5 | Tabelle mit Atomen ins Daten-Repo | ja, mit E-AX-4 |
+| E-AX-4 | Codec Version 3 | auf `main` seit `a02f2b5` (Jans Commit) |
+| E-AX-5 | Tabelle mit Atomen ins Daten-Repo | ja — Archiv BESSER, K7 bestanden (§6g.5); Einspielen = Jans Go |
+| E-AX-12 | Karte nach dem Einspielen an den nächsten ≥ 14 Archivtagen wiederholen (out-of-sample) | Jans Gate für den Termin |
 | E-AX-6 | ENS-Mittel als t3-Member (Producer) | ja, nach NS |
 | E-AX-7 | Landeseinträge des Stationswerts ins Daten-Repo | nach der Karte §5.4 |
 | E-AX-8 | MOSMIX-S als Voreinstellung | nein, bis gemessen (§6b) |

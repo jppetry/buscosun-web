@@ -1,5 +1,5 @@
 /**
- * archiveAdapter.mjs — an ARCHIVE slot (`buscosun-archiv`, schema 1 and 2) as the engine sees the point (phase FV,
+ * archiveAdapter.mjs — an ARCHIVE slot (`buscosun-archiv`, schema 1, 2 and 3) as the engine sees the point (phase FV,
  * `audit/fusion-validierung.md` §1.6). The hindcast adapter (`slotAdapter.mjs`) stays untouched: a hindcast slot carries
  * `cube[t].validAtMs`, the planes in `CUBE_PLANES` scales and the 2×2 block; an archive slot carries `runAt` + `leadHours`,
  * its own scales (`scales.cube[t]`, the run manifest's), `belowGroundHPa` per step, NO block (schema 4 = AP9), and in
@@ -28,9 +28,14 @@ const H = 3_600_000;
 export const ARCHIVE_SENTINEL = -32768;
 export const TRUTH_NET_BY_COUNTRY = Object.freeze({ DE: 'poi', AT: 'tawes', CH: 'smn', LI: 'smn' });
 
+// Phase AX (V-AX-4): schema 3 (PA4, since 29.09.2026) keeps `cube`, `stations`, `nowcast` and `truth` byte-compatible with
+// schema 2 (checked on the 29.09. slot: same keys, same scales, truth columns + `ps`); only `live.fusion` is columnar, which
+// `archiveLive` already decodes via the AP9 decoder. Nothing in this adapter reads the parts that changed otherwise
+// (`live.asOf`, `finishedAt`, `plan` axis, `hmodel.absentBySlot`).
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3]);
 export function readArchiveSlot(path) {
   const s = JSON.parse(gunzipSync(readFileSync(path)).toString('utf8'));
-  if (s.kind !== 'punktarchiv/slot' || ![1, 2].includes(s.schema)) throw new Error(`${path}: kein Archiv-Slot mit Schema 1/2 (kind ${s.kind}, schema ${s.schema})`);
+  if (s.kind !== 'punktarchiv/slot' || !ARCHIVE_SCHEMAS_READABLE.includes(s.schema)) throw new Error(`${path}: kein Archiv-Slot mit Schema ${ARCHIVE_SCHEMAS_READABLE.join('/')} (kind ${s.kind}, schema ${s.schema})`);
   return s;
 }
 

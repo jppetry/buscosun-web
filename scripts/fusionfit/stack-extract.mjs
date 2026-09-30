@@ -63,22 +63,43 @@ const slotPaths = [];
 // AX-2: `--slotsTo=YYYY-MM-DD` — the archive writes schema 3 since 29.09.2026 (PA4), which `archiveAdapter.mjs` does not read
 // yet (V-AX-4); until it does, the extraction stops at the last schema-2 day instead of throwing on the first schema-3 slot.
 const slotsTo = typeof flags.slotsTo === 'string' ? flags.slotsTo : null;
+// AX (measurement "now against 5e"): `--slotsFrom=YYYY-MM-DD` limits the ISSUE slots of pass 2 — pass 1 still reads the truth of
+// EVERY slot up to `--slotsTo`, because the truth of an issue day lives in the slots after it (a window of 25 h per slot)
+const slotsFrom = typeof flags.slotsFrom === 'string' ? flags.slotsFrom : null;
 for (const d of readdirSync(ARCH).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x) && (!slotsTo || x <= slotsTo)).sort()) for (const f of readdirSync(join(ARCH, d)).filter((x) => /^\d{4}\.json\.gz$/.test(x)).sort()) slotPaths.push(join(ARCH, d, f));
 const slotsUsed = slotPaths.slice(0, limitSlots);
 if (slotsTo) say(`Slots bis ${slotsTo} (--slotsTo)`);
+if (slotsFrom) say(`Ausgabe-Slots ab ${slotsFrom} (--slotsFrom); Wahrheit aus allen Slots`);
 say(`${slotsUsed.length} Slots, ${pointIds.length} DACH-Punkte; Tabellen ${tablesSha.slice(0, 12)} (${T5.inputs?.foldScheme ?? 'month'})`);
 
-const foldCache = new Map();
-const foldTables = (key) => {
-  if (key == null) return T5;
-  if (foldCache.has(key)) return foldCache.get(key);
-  const mean = {}, occurrence = {};
-  for (const [k, e] of Object.entries(T5.mean)) mean[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
-  for (const [k, e] of Object.entries(T5.occurrence)) occurrence[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
-  const t = { ...T5, mean, occurrence };
-  foldCache.set(key, t);
-  return t;
+/** The fold tables of one table set: mean, occurrence and (AX-4) atoms take the held-out β of the key; null key = the full tables. */
+const foldTablesOf = (T) => {
+  const cache = new Map();
+  return (key) => {
+    if (key == null) return T;
+    if (cache.has(key)) return cache.get(key);
+    const mean = {}, occurrence = {}, atoms = T.atoms ? {} : undefined;
+    for (const [k, e] of Object.entries(T.mean)) mean[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
+    for (const [k, e] of Object.entries(T.occurrence)) occurrence[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
+    if (atoms) for (const [k, e] of Object.entries(T.atoms)) atoms[k] = e.folds?.[key] ? { ...e, beta: e.folds[key] } : e;
+    const t = { ...T, mean, occurrence, ...(atoms ? { atoms } : {}) };
+    cache.set(key, t);
+    return t;
+  };
 };
+const foldTables = foldTablesOf(T5);
+// AX-4 / AX-12b: `--tables2=<fit>/fusion.ax4.json` — the same learned tables WITH written atoms (the two-atom cloud family, applied by
+// `predict.ts` where a stratum carries both atoms); variant P5 = P3 computed with these tables ⇒ the only difference is the cloud family
+let T6 = null, tables2Sha = null;
+if (typeof flags.tables2 === 'string') {
+  const tb2 = readFileSync(flags.tables2);
+  T6 = JSON.parse(tb2.toString('utf8'));
+  { const e = validateTables(T6); if (e.length) throw new Error(`${flags.tables2}: ${e.join('; ')}`); }
+  if (!T6.atoms || !Object.keys(T6.atoms).length) throw new Error(`${flags.tables2}: keine Atome (atoms) in der Tabelle`);
+  tables2Sha = createHash('sha256').update(tb2).digest('hex');
+}
+const foldTables2 = T6 ? foldTablesOf(T6) : null;
+if (T6) say(`Tabellen 2 (Atome): ${tables2Sha.slice(0, 12)}, ${Object.keys(T6.atoms).length} Atom-Einträge (${Object.values(T6.atoms).filter((e) => e.status === 'written').length} geschrieben)`);
 const key5e = (issueMs, validMs) => foldKeyFV(T5.inputs?.foldScheme === 'half' ? 'half' : 'month', issueMs, validMs, HINDCAST_END_MS);
 
 // ── pass 1: the truth of every slot, deduplicated by (point, stamp) ──────────────
@@ -193,13 +214,17 @@ const VARIANTS = Object.freeze({
   P3: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true },   // … clouds passed through (H14), station value (H9/H10)
   // phase AX, AX-2 (E-FV-3): the stage `fs` with the learned strata of route 3 in t2/t3 (`learnedRoute: 'tier'`)
   P4: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, learnedRoute: 'tier' },
+  // phase AX, AX-4 (E-AX-4/5): the stage `fs` with the tables that carry the cloud atoms (`--tables2`) — same options as P3
+  P5: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true },
 });
 const EQ_POINTS = 25;   // per slot: the engine with priorShrink:false on the run-1 chain, against the offline form (K5)
 const stackTable = typeof flags.stack === 'string' ? JSON.parse(readFileSync(flags.stack, 'utf8')) : null;
 { const e = stackTable ? validateStackTable(stackTable) : []; if (e.length) throw new Error(`${flags.stack}: ${e.join('; ')}`); }
-await write({ kind: 'fusionfit/stack-rows', schema: 2, stack: stackTable ? { path: flags.stack, builtAt: stackTable.builtAt, entries: Object.keys(stackTable.entries).length } : null, variants: VARIANTS, builtAt: new Date().toISOString(), codeHash: codeHash(), tables: { path: flags.tables, sha256: tablesSha }, archive: ARCH, slots: slotMeta.map((m) => ({ slotAt: m.slotAt, schema: m.schema })), hindcastEnd, points: pointIds.length });
+await write({ kind: 'fusionfit/stack-rows', schema: 2, stack: stackTable ? { path: flags.stack, builtAt: stackTable.builtAt, entries: Object.keys(stackTable.entries).length } : null, variants: VARIANTS, builtAt: new Date().toISOString(), codeHash: codeHash(), tables: { path: flags.tables, sha256: tablesSha }, tables2: T6 ? { path: flags.tables2, sha256: tables2Sha, atoms: Object.keys(T6.atoms).length } : null, archive: ARCH, slots: slotMeta.map((m) => ({ slotAt: m.slotAt, schema: m.schema })), slotsFrom, hindcastEnd, points: pointIds.length });
 const T0 = Date.now();
-for (const meta of slotMeta) {
+const issueSlots = slotsFrom ? slotMeta.filter((m) => m.slotAt.slice(0, 10) >= slotsFrom) : slotMeta;
+if (slotsFrom) say(`${issueSlots.length} Ausgabe-Slots (${issueSlots[0]?.slotAt ?? '—'} … ${issueSlots[issueSlots.length - 1]?.slotAt ?? '—'})`);
+for (const meta of issueSlots) {
   const s = readArchiveSlot(meta.path);
   const slotAtMs = s.slotAtMs, floorMs = Math.floor(slotAtMs / H) * H, dayIdx = Math.floor(slotAtMs / DAY);
   const truthSlot = archiveTruth(s, countryOf);
@@ -239,10 +264,12 @@ for (const meta of slotMeta) {
       const out = {};
       if (fitOnly) return out;
       for (const [name, opts] of Object.entries(VARIANTS)) {
-        const withStack = name === 'P3' || name === 'P4';
+        const withStack = name === 'P3' || name === 'P4' || name === 'P5';
         if (withStack && !stackTable) continue;
+        if (name === 'P5' && !foldTables2) continue;
+        const tablesOf = name === 'P5' ? foldTables2 : foldTables;
         const m = new Map();
-        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: foldTables(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}) }, opts)));
+        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: tablesOf(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}) }, opts)));
         out[name] = m;
       }
       return out;
