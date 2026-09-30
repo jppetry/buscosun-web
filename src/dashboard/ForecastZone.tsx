@@ -30,6 +30,7 @@ export function ForecastZone({ vm, range, onRange }: { vm: ZoneVM; range: DashRa
         </span>
         <span className={`dbd-dotline dbd-zone-conf${vm.head.confCls === 'fair' ? ' is-fair' : ''}`}><i /><Val v={vm.head.conf} long /></span>
       </div>
+      <p className="dbd-zone-lead"><Val v={vm.lead} long /></p>
       <div className="dbd-days">
         {vm.days.map((d) => <DayCard key={d.key} d={d} />)}
       </div>
@@ -45,6 +46,8 @@ export function ForecastZone({ vm, range, onRange }: { vm: ZoneVM; range: DashRa
           <span><i style={{ width: 14, height: 2.5, background: '#C97B47' }} /> Temperatur + Bandbreite p10–p90</span>
           <span><i style={{ width: 14, height: 2, background: '#3A6FA8' }} /> Taupunkt</span>
           <span><i style={{ width: 10, height: 8, background: '#3A6FA8', opacity: .55, borderRadius: 2 }} /> Menge mm/h</span>
+          <span><i style={{ width: 12, height: 9, background: '#E0D6BE', borderRadius: 2 }} /> Nacht</span>
+          <span><i style={{ width: 0, height: 10, borderLeft: '1px dashed #8B7355' }} /> Bandbreite erreicht ±2/3/4 °C</span>
           <span className="dbd-legend-right">Tagesgrenzen als Linie</span>
         </div>
       </div>

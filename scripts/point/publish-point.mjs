@@ -30,8 +30,8 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync
 import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER_BY_ID,
-         STATIONS_DIR, STAGE_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
-import { buildPointIndex, runsToKeep, runsToKeepFor, RETENTION_HOURS, RETENTION_HOURS_BY_TIER, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
+         STATIONS_DIR, STATIONS_S_DIR, STAGE_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
+import { buildPointIndex, runsToKeep, runsToKeepFor, RETENTION_HOURS, RETENTION_HOURS_BY_TIER, MIN_RUNS, CDN_BASE, STATIONS_S_RETENTION } from '../../src/point/manifest.ts';
 import { TIERS } from '../../src/point/cubeFormat.ts';
 import { tiersOf, runsIn, runIdToIso, retainRuns } from './prune.mjs';
 import { scanStaticProducts } from './staticIndex.mjs';
@@ -171,6 +171,33 @@ const stationRuns = stKept.map((run) => {
 });
 log(`stations/: ${stationRuns.length} Lauf/Läufe, ${(stationRuns.reduce((n, r) => n + r.bytes, 0) / 1048576).toFixed(2)} MiB`);
 
+// ── AX-8: das zweite Stationsprodukt `point/stations-s/` (MOSMIX-S, stündlich) ──────────
+// Gleiche Regel, EIGENE Grenze (`STATIONS_S_RETENTION`, 6 h bei 24 Läufen am Tag — 24 h hielten
+// 24 Läufe à ≈ 5 MiB vor), gleicher Boden. Der Katalog gehört dem L-Produkt und bleibt zeitlos.
+const stationsSRoot = join(REPO, STATIONS_S_DIR);
+const ssPresent = runsIn(stationsSRoot).map((r) => ({ run: r, runAt: runIdToIso(r) }));
+const ssDecision = runsToKeepFor(ssPresent, STATIONS_S_RETENTION);
+for (const r of ssDecision.drop) {
+  rmSync(join(stationsSRoot, r.run), { recursive: true, force: true });
+  log(`Aufbewahrung stations-s/: ${r.run} entfernt (${((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1)} h alt, Grenze ${STATIONS_S_RETENTION.hours} h)`);
+}
+for (const r of ssDecision.stale) {
+  log(`⚠ stations-s/${r.run} ist ${((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1)} h alt und bleibt nur wegen des Bodens (min. ${STATIONS_S_RETENTION.minRuns} Läufe) — ein überalteter Lauf wird BENANNT, nicht verschwiegen.`);
+}
+const stationSRuns = runsIn(stationsSRoot).map((run) => {
+  const mp = join(REPO, stationManifestPath(run, 'mosmix_s'));
+  const m = existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null;
+  return {
+    run, runAt: m?.runAt ?? null, ageH: m?.ageH ?? null,
+    path: `${STATIONS_S_DIR}/${run}`,
+    manifest: stationManifestPath(run, 'mosmix_s'),
+    stationCount: m?.stationCount ?? null,
+    leadHours: m?.axis?.leadHours?.length ?? null,
+    bytes: dirBytes(join(stationsSRoot, run)),
+  };
+});
+log(`stations-s/: ${stationSRuns.length} Lauf/Läufe, ${(stationSRuns.reduce((n, r) => n + r.bytes, 0) / 1048576).toFixed(2)} MiB`);
+
 // ── Die zeitlosen Produkte unter `point/static/` ──────────────────────
 // Sie fallen NICHT unter die Aufbewahrung (`TIMELESS_PATHS`) und werden hier deshalb
 // auch nicht gelöscht — sie werden GEZÄHLT. Bis PD-E lag `hmodel` veröffentlicht im Repo
@@ -214,6 +241,7 @@ write(POINT_INDEX_PATH, buildPointIndex({
   publishedAt: new Date().toISOString(),
   runs: runEntries,
   stationRuns,
+  stationSRuns,
   staticProducts,
 }));
 

@@ -83,6 +83,28 @@
 /* Unten Platz für den globalen Chip „Über diese Ansicht" (RouteSeoBlock, fest unten rechts) — ohne ihn läge er am
    Seitenende über der Quellenzeile. Einzige bewusste Höhenabweichung gegenüber der Vorlage am Seitenende. */
 .dbd-content { flex: 1 0 auto; padding: 16px 16px 60px; }
+
+/* ---- E-DB-24: Reiter „Überblick | Details" — zweite Ebene, leiser als „Dashboard | Karte" --------------------- */
+.dbd-tabs { flex: 0 0 auto; padding: 0 16px; border-bottom: 1px solid var(--dbd-line); background: var(--dbd-sand); }
+.dbd-tablist { display: flex; gap: 26px; }
+.dbd-tab {
+  position: relative; background: none; border: 0; padding: 12px 2px 11px; margin: 0; cursor: pointer;
+  font-size: 14px; font-weight: 500; color: var(--dbd-muted); letter-spacing: -0.1px;
+}
+.dbd-tab:hover { color: var(--dbd-ink); }
+.dbd-tab.is-active { color: var(--dbd-ink); font-weight: 600; }
+.dbd-tab.is-active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--dbd-terra); }
+.dbd-tab:focus-visible { outline: 2px solid var(--dbd-terra); outline-offset: 2px; border-radius: 4px; }
+.dbd-panel > .dbd-row3:first-child { margin-top: 0; }
+.dbd-more {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px; width: 100%; margin-top: 12px;
+  padding: 14px 16px; background: var(--dbd-cream); border: 1px solid var(--dbd-line); border-radius: 12px;
+  font: inherit; color: var(--dbd-ink); text-align: left; cursor: pointer;
+}
+.dbd-more:hover { border-color: var(--dbd-terra); }
+.dbd-more:focus-visible { outline: 2px solid var(--dbd-terra); outline-offset: 2px; }
+.dbd-more-title { font-size: 15px; font-weight: 600; }
+.dbd-more-list { font-size: 12.5px; color: var(--dbd-muted); }
 .dbd-eyebrow { font-size: 10px; letter-spacing: 2.2px; color: var(--dbd-eyebrow); font-weight: 700; }
 .dbd-card { border-radius: 13px; padding: 16px; }
 .dbd-sand-card { background: var(--dbd-cream); border: 1px solid var(--dbd-line); }
@@ -117,6 +139,10 @@
 .dbd-conf-pct { font-size: 22px; font-weight: 700; color: #F5F1E8; line-height: 1; }
 .dbd-conf-word { font-size: 10.5px; color: #9CBF83; font-weight: 600; }
 .dbd-conf-word.is-fair { color: #E0A567; }
+/* E-DB-23: Bandbreite führt, der Trichter ersetzt den Ring, der Index steht klein darunter */
+.dbd-funnel { flex: 0 0 auto; display: block; }
+.dbd-conf-main { min-width: 0; }
+.dbd-conf-range { font-size: 10.5px; color: #D6CDB9; margin: 4px 0 3px; line-height: 1.35; }
 .dbd-weights { display: flex; gap: 2px; margin-top: 12px; height: 14px; border-radius: 3px; overflow: hidden; }
 .dbd-weights span { display: block; height: 100%; }
 .dbd-weights-text { font-size: 10px; color: #B7AE9C; margin-top: 6px; line-height: 1.5; }
@@ -134,6 +160,8 @@
 .dbd-seg button.is-active { font-weight: 600; color: var(--dbd-cream); background: var(--dbd-terra); }
 .dbd-seg button:focus-visible { outline: 2px solid var(--dbd-terra); outline-offset: 2px; }
 .dbd-zone-info { font-size: 11px; color: var(--dbd-muted); }
+/* E-DB-23: Leitsatz — eine ruhige Zeile über den Tageskarten */
+.dbd-zone-lead { margin: 12px 0 0; font-size: 17px; line-height: 1.35; font-weight: 500; color: var(--dbd-ink); max-width: 80ch; letter-spacing: -0.1px; }
 .dbd-dotline { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; color: var(--dbd-sage-deep); }
 .dbd-dotline i { width: 7px; height: 7px; border-radius: 50%; background: var(--dbd-sage); display: block; flex: 0 0 auto; }
 .dbd-dotline.is-fair { color: var(--dbd-terra-deep); } .dbd-dotline.is-fair i { background: #C99A4E; }
@@ -333,6 +361,10 @@
   .dbd-search-input { font-size: 14px; flex: 1; field-sizing: fixed; width: 100%; }
   .dbd-run-mobile { display: block; font-size: 10.5px; color: var(--dbd-muted); }
   .dbd-content { padding: 12px 12px 64px; }
+  .dbd-tabs { padding: 0 12px; }
+  .dbd-tablist { gap: 0; }
+  .dbd-tab { flex: 1; min-height: 44px; font-size: 15px; text-align: center; }
+  .dbd-more { flex-direction: column; gap: 3px; }
   .dbd-row1 { grid-template-columns: 1fr; }
   .dbd-now-head { flex-direction: column; gap: 3px; }
   .dbd-now-main { flex-wrap: wrap; gap: 14px 18px; }
@@ -343,6 +375,7 @@
   .dbd-seg button::after, .dbd-seg-dark button::after { content: ''; position: absolute; left: 0; right: 0; top: -7px; bottom: -7px; }
   .dbd-zone-conf { margin-left: 0; }
   .dbd-days { grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+  .dbd-zone-lead { font-size: 15.5px; margin-top: 10px; }
   .dbd-hourly-head { flex-direction: column; gap: 3px; }
   .dbd-hourly-chart { height: 150px; }
   .dbd-ticks-d { display: none; }

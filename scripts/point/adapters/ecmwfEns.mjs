@@ -51,7 +51,7 @@
  */
 
 import { fetchBytes, fetchRanges, headOk, runIdBack, sampleBytes, M_TO_MM } from './shared.mjs';
-import { memberSpread, memberQuantiles } from './ensembleStats.mjs';
+import { memberSpread, memberQuantiles, memberMean } from './ensembleStats.mjs';
 // PD-C5: dasselbe Schrittraster wie der deterministische IFS-Adapter — EINE Regel.
 import { ECMWF_STEPS } from './ecmwf.mjs';
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
@@ -272,7 +272,9 @@ export function makeEcmwfEnsembleAdapter(id) {
         if (!cur) return null;
         const r = memberSpread(cur.members, null, { cells, factor: cur.factor });
         const q = memberQuantiles(cur.members, null, { cells, factor: cur.factor });
-        return { sd: r.sd, n: r.maxN, members: r.members, clamped: 0, q10: q.q[0.1], q90: q.q[0.9] };
+        // AX-7 (Schema 6): das Member-Mittel aus denselben Membern — null Bytes zusaetzlich (E-AX-6)
+        const mm = memberMean(cur.members, null, { cells, factor: cur.factor });
+        return { sd: r.sd, n: r.maxN, members: r.members, clamped: 0, q10: q.q[0.1], q90: q.q[0.9], mean: mm.mean };
       }
       if (!(dt > 0) || leadH - dt <= 0) return null;
       // Vorschritt ZUERST: fehlt er, gibt es keine Rate, und der Hauptschritt
@@ -283,7 +285,8 @@ export function makeEcmwfEnsembleAdapter(id) {
       if (!cur) return null;
       const r = memberSpread(cur.members, prev.members, { cells, dt, factor: cur.factor });
       const q = memberQuantiles(cur.members, prev.members, { cells, dt, factor: cur.factor });
-      return { sd: r.sd, n: r.maxN, members: r.members, clamped: r.clamped, q10: q.q[0.1], q90: q.q[0.9] };
+      const mm = memberMean(cur.members, prev.members, { cells, dt, factor: cur.factor });
+      return { sd: r.sd, n: r.maxN, members: r.members, clamped: r.clamped, q10: q.q[0.1], q90: q.q[0.9], mean: mm.mean };
     },
 
     async orography() { return null; },

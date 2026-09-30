@@ -98,6 +98,18 @@ export function occurrenceDesign(z: Float64Array, pMean: number, wetShare: numbe
   x[10] = logitWetCube(pDryCube);
   return x;
 }
+/**
+ * Phase AX, AX-4 (V-FV-10): the design of the two cloud atoms P(Y = 0) and P(Y = 100) — logistic on the cube's cover
+ * c = clct/100 and c², ln1p σ_div, the day and hour harmonics, the sky-view factor and the lead fraction of the bin.
+ */
+export const AT_NAMES = Object.freeze(['1', 'c', 'c2', 'lnSigDiv', 'dSin1', 'dCos1', 'hSin1', 'hCos1', 'svf', 'leadFrac'] as const);
+export function atomsDesign(z: Float64Array, clct: number, sigDiv: number | null): Float64Array {
+  const x = new Float64Array(AT_NAMES.length);
+  const c = Math.min(1, Math.max(0, clct / 100));
+  x[0] = 1; x[1] = c; x[2] = c * c; x[3] = Math.log1p(Math.max(0, sigDiv ?? 0));
+  x[4] = z[Z_INDEX.dSin1]; x[5] = z[Z_INDEX.dCos1]; x[6] = z[Z_INDEX.hSin1]; x[7] = z[Z_INDEX.hCos1]; x[8] = z[Z_INDEX.svf]; x[9] = z[Z_INDEX.leadFrac];
+  return x;
+}
 /** Precipitation amount design (ln mm/h | wet): [1, ln1p P̄, ln1p σ_div, tpi2000, slope, lcForest]. */
 export const A_NAMES = Object.freeze(['1', 'lnP', 'lnSigDiv', 'tpi2000', 'slope', 'lcForest'] as const);
 export function amountDesign(z: Float64Array, pMean: number, sigDiv: number | null): Float64Array {

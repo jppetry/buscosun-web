@@ -937,10 +937,27 @@ phase 2" am selben Tag; Phase 2 am 30.09. fertig, commitet und gepusht mit `377a
   - Gemessen wie in Produktion (Shell, HTTP/2): Dashboard-Link mobil-4G erste Ausgabe 3,76 → 3,44 s, ganzes Fenster
     4,41 → 3,88 s; Karten-Link mobil unverändert, Desktop gepoolt +15 ms. Ziel < 2 s nicht erreicht (V-DB-19).
   - Budget nach deiner Freigabe angehoben: eagerJs 108,7 (IST 108,6), totalJs 1 502 (IST 1 500,5), Herkunft in `budget.json`.
-- [ ] **Commit** des E-DB-20-Stands zusammen mit dem Budget-/Doku-Nachtrag von oben: `src/router/{router.tsx,mapViewLoader.ts,
-      prefetch.ts,useAppNav.ts,pages/WetterkarteRoute.tsx}`, `src/dashboard/{viewKey.ts,dashUrl.ts,DashboardView.tsx,
-      data/forecastStore.ts}`, `scripts/{generate-seo,verify-routing,verify-dashboard-switch,dashboard-latency}.mjs`,
-      `budget.json`, `audit/dashboard.md`, dieses Dokument, `CLAUDE.md`. Danach Push + Deploy-Prüfung (unten).
+- [x] **Commit** `ccfd3cd` (30.09., auf deinen Auftrag, **nicht gepusht**): E-DB-20 samt Budget-/Doku-Nachtrag von oben; nur
+      die Dashboard-Hunks von `CLAUDE.md` und diesem Dokument — die GS-Doku-Nachträge (§27, E-EX-7) und die Dateien der
+      parallelen Fusion-Sitzung liegen weiter uncommitted.
+- [ ] **Push** von `buscosun-web/main` (mit `4112e2f` GS davor, E-GS-3) und danach die Deploy-Prüfung (unten).
+- [x] **E-DB-23 umgesetzt (30.09., uncommitted)** — `audit/dashboard.md` §12. Deine Linie: „orientiere dich am ursprünglichen
+      Dashboard und mache es punktuell innovativer" (die Skizze „Wetter-Deck" war dir zu aufgeregt). Gewählt und gebaut:
+  - Konfidenz-Kachel führt mit der **Bandbreite** („±1,3 °C", „jetzt: 80 % zwischen …") und einem kleinen **Trichter** über
+    14 Tage; der Index steht klein darunter.
+  - **Leitsatz** über den Tageskarten, aus denselben Tagesdaten („Heute bedeckt, bis 26°. Morgen Regen, kühler, …, 15,6 mm.").
+  - Stundenverlauf mit **Nachtflächen** und **Marken**, wo die Bandbreite ±2/3/4 °C erreicht.
+  - Folgefund zu E-DB-20 behoben: die Ortswahl auf der Startseite bricht deren Karten-Vorwärmen ab.
+  - Gates: `verify:dashboard` 68/68 (`--dist` 71/71), `verify:dashboard-switch` 39/39, Build 249/249, Budget totalJs 1 508 (+1,6 KB).
+- [ ] **Ansehen:** `…/wetterkarte/wind/<ort>?ansicht=dashboard` (Dev-Server) — passt die Richtung? Danach Commit (nur die
+      Dashboard-Dateien, `src/SearchPage.tsx`, `budget.json`, Doku — nicht die Dateien der parallelen Fusion-Sitzung).
+- [x] **E-DB-24 umgesetzt (30.09., uncommitted)** — `audit/dashboard.md` §13: Reiter „Überblick | Details" unter dem Kopf
+      (Überblick = oberste Reihe + Prognose, Details = alles weitere), URL `teil=details`, Details lädt erst beim Öffnen.
+      Gates: `verify:dashboard-switch` 50/50, `verify:dashboard --dist` 71/71, Build 249/249, Budget totalJs 1 512 (+0,5 KB).
+- [ ] **Ansehen und Commit** von E-DB-23 + E-DB-24 zusammen (nur Dashboard-Dateien, `src/SearchPage.tsx`,
+      `src/router/pages/WetterkarteRoute.tsx`, `budget.json`, Doku — nicht die Dateien der parallelen Fusion-Sitzung).
+- [ ] **V-DB-21 zur Kenntnis (Fusion):** einzelne Stunden mit eingeknickter Bandbreite und stündlich springender Herkunft der
+      Streuung in Stufe t3 — der Trichter zeigt deshalb die Hüllkurve je Tag.
 - [ ] **E-DB-21 (V-DB-16):** Die Startseite wärmt im Leerlauf die Karte vor. Soll sie zuerst das Dashboard vorwärmen
       (+231 KB JS je Startseitenbesuch)? Empfehlung: erst Real-Device, dann entscheiden.
 - [ ] **E-DB-22 (V-DB-17):** Kartenpause — einmaliger Schub von ≈ 3 700 Draws hinter dem Dashboard, schon auf HEAD; macht (B)
@@ -971,8 +988,7 @@ wertete den Termin „30.09. dynamical" als überfällig, vier Läufe schlugen f
 - [ ] **E-EX-6** Radarwerte in RADOLAN-Einheiten wie bisher (gebaut) oder in den feineren HDF5-Werten (27 % der schwächsten
       Echos fielen unter die Farbschwelle). Empfehlung: wie bisher.
 - [ ] **Nach dem 06.10.:** Dauer des ersten t2- und t3-Jobs ansehen (ICON-EPS-Dateien doppelt so groß; t2 heute 8,3 von 15 min).
-- [ ] **E-EX-7 — Frist 04.11.:** GeoSphere `nwp-v2-1h-1km` unter eigener Kennung im Live-Rückfallpfad und in der Karte
-      (Zuordnung der Größen in §3.4). Ohne das schlägt das Cron-Gate ab dem 03.11. 12 UTC fehl.
+- [x] **E-EX-7 — Frist 04.11.:** erledigt in Phase GS (§27).
 - [ ] **E-EX-5 — Frist 30.11.:** Phase „NS" (neues DWD-URL-Schema, ICON-D2/ICON-EU nur noch im Dreiecksgitter): Start und
       Reihenfolge. Empfehlung: Diagnose Anfang Oktober, Producer vor Kartenlinie.
 - [ ] **E-EX-1** Ensemble-Mittel in t3 am Hindcast messen (berührt V-PD-9). **E-EX-3** MOSMIX_S für 0–24 h (gemessen
@@ -981,3 +997,108 @@ wertete den Termin „30.09. dynamical" als überfällig, vier Läufe schlugen f
 - [ ] **Zur Kenntnis:** die Sterne der Archiv-Karten FV-A und FS stehen auf 13 Tagen und der alten Testform; mit der
       Kleinstichproben-Korrektur (§4.2) verlieren knappe Zellen den Stern. Neu rechnen mit dem Neufit (E-FS-3).
       Befund 18 gemessen: gestutzte Normal am Stationswert ist für Wind 1,6–5,0 % schlechter ⇒ nicht umgestellt (§4.4).
+
+## 27. Phase GS — GeoSphere `nwp-v1` → `nwp-v2` (C-LAEF 1 km) im Live-Pfad und in der Karte, 2026-09-30
+
+Phasendokument `audit/geosphere-v2.md`. Gebaut und geprüft (Gates §3), **nicht gepusht**.
+
+- [ ] **E-GS-3 Push von `buscosun-web/main`** (Netlify-Deploy). Danach liest der Live-Rückfallpfad (`?pf=live`) und die
+      Rasterfusion AT/CH C-LAEF 1 km; `?nwp=v1` (bzw. `localStorage.nwp = 'v1'`) liest bis zum 04.11. weiter AROME.
+- [ ] **E-GS-1** Katalog-Kennung `arome-at` bleibt der URL-Schlüssel, sichtbar „C-LAEF" — bestätigen (Alternative: neue
+      Kennung `claef` mit Alias für alte Links; berührt den Parser der Edge Function).
+- [ ] **E-GS-2** Fehler-Priors der Familie `highres` gelten unverändert für C-LAEF (gesetzt); eigene σ erst aus dem Archiv.
+- [ ] **Nach dem 04.11.:** V-GS-1 — Schalter `?nwp=v1` und die `arome_at`-Reste entfernen.
+- [ ] **Zur Kenntnis:** Beim Aufräumen eines Mess-Arbeitsbaums habe ich `node_modules` des Hauptbaums mitgelöscht
+      (Junction + `rm -rf`); wiederhergestellt mit `npm ci` (224 Pakete, `package-lock.json` unverändert). Die
+      gesperrten Native-Module der laufenden Dev-Server der Dashboard-Session liegen unter `C:\dev\.locked\` und
+      können gelöscht werden, sobald diese Server beendet sind.
+
+## 28. Phase AX — Ausbau nach dem Expertenbericht (AX-1…AX-8), 2026-09-30
+
+Phasendokument `audit/fusion-ausbau.md`. Alles gebaut, gemessen und geprüft (Gates je AP), **nicht committet, nicht
+gepusht**. Der Live-Pfad ist byte-gleich (`verify:pv-fusion` 229/229); im Cube-Pfad wirken AX-1 (Messung der Station am
+Punkt), AX-2b (Altersnotizen) und AX-3 (Anomalie-Interpolation, in der Stufe `fs`) sofort nach dem Deploy — die übrigen
+Ergebnisse warten auf deine Gates.
+
+**Seit deiner Freigabe vom 30.09. (Daten-Repo und Jobs):** AX-7 (Ensemble-Mittel, Schema 6) und AX-8 (MOSMIX-S) sind gebaut
+und lokal gegen echte Daten geprüft (§6a.3, §6b.3). **Der Punkt-Cron klont `buscosun-web/main`** — beides läuft dort erst
+nach dem Push dieses Repos; ich habe deshalb ins Daten-Repo nur kopiert, was ohne den neuen Producer ungefährlich ist
+(Cron-Vorlage mit Leerlauf-Schutz, README), und **nicht** die Tabellen, die einen neuen Client brauchen (E-AX-5/7).
+Daten-Repo-Commit **`7115d708`** (30.09., 13:47 UTC, gepusht): `.github/workflows/point.yml` = Vorlage (bringt auch die seit
+AP12a/AP17 ausstehenden Zeilen `POINT_CDN_BUDGET_S` und `POINT_Z0MOD: '1'` mit — z0mod wird damit im nächsten Cron-Lauf
+gebaut, der Code liegt auf `main` seit `36f2bbb`), `README.md` = Vorlage (61 Ebenen mit dem Satz, dass die Läufe bis zum
+Push Schema 5 tragen; `point/stations-s/`).
+
+- [ ] **AX-7 nach dem Push:** der erste t3-Job (`55 9,21`) schreibt Schema 6 (61 Ebenen); t1/t2 folgen in ihren Slots,
+      bis zu 24 h liegen Schema-5-Chunks daneben (Leser lesen beide). Danach `verify:pv-latency -- --only=bundle` einmal
+      (Bytes je Chunk +4 Ebenen, in t1/t2 leer ⇒ ≈ 4 Byte je Ebene) und die t3-Laufzeit mit 50/24 Membern im Manifest
+      (`tiers[].ensemble.mean`, `timing.blocks.ensemble`) nachlesen; `ensMember` bleibt aus, bis der Fit das Mittel als
+      Prädiktor trägt (E-AX-6).
+- [ ] **AX-8 nach dem Push:** der Job `stations-s` (`:50` in 20 Stunden) und der zweite Schritt im t2-Job bauen dann
+      MOSMIX-S nach `point/stations-s/`; bis dahin beenden sie sich benannt („Producer auf main ohne MOSMIX-S"). Nach den
+      ersten Runner-Läufen `JOB_MEASURED_MAX_MIN['stations-s']` (cdnSync.mjs, geschätzt 3,2 min) und das CDN-Budget (60 s)
+      nachrechnen (Regel F, `verify:point-data`).
+- [ ] **AX-9 Klimagitter — Produkt liegt im Daten-Repo** (`point/static/clima-grid/v1/`, 208 Chunks, 1,87 MiB, von mir
+      gepusht; der Client liest es NUR mit `CubeIo.climaGrid`, im Panel `?cg=1`). Gemessen an 14 762 Punkt-Monaten
+      (§6c.3): Gitter gewinnt in Alpen (−28 %), CH (−16 %), |Δh| > 200 m (−23 %), verliert im flachen DE (+10 %); mit
+      Trendversatz 0,45 K/Dekade (`FuseCubeOptions.climaTrend`) Stationsfeld 1,63 → 1,36 K, Gitter 1,57 → **1,22 K**.
+- [ ] **E-AX-9 Prior in die Stufe?** Empfehlung: `climaGrid` + `climaTrend` in der Stufe `fs` (`defaultCubeIo` /
+      `forecastFromBundle` je eine Zeile), nachdem AP9 die Produktwirkung gemessen hat — der Prior wirkt nur über die
+      Schrumpfung bei langen Vorläufen und den Schwanz. Konservativer Zwischenschritt: nur `climaTrend` (wirkt schon
+      ohne Gitter, −17 % Prior-MAE). Der Trendwert ist ein Literaturwert (set), kein Fit.
+- [ ] **AX-10 INCA-Anker (gebaut, nicht gemessen):** in AT die INCA-Analyse (GeoSphere, 1 km, stündlich, Latenz ≈ 1–1,5 h)
+      am Punkt als Anker-„Messung" mit Gewicht 0,6 (set) — nur mit `CubeIo.incaAnchor` (`?inca=1`). **E-AX-10:** in die
+      Stufe erst nach der Messung (der Sammler schreibt die INCA-Zeile mit, der Fit misst das Gewicht; Leave-Station-out
+      geht mit der Analyse nicht).
+- [ ] **AX-11 (#21) Globalstrahlung, Sonnenscheindauer, Sichtweite** liegen nach dem Push in beiden Stationsprodukten
+      (drei Ebenen hinter den 61 Cube-Ebenen; +1,66 MiB je Lauf) — `station.steps[].values.radGlob/sunDur/vis`. Das
+      Dashboard (Phase DB) kann sie von dort nehmen; hier nicht angefasst. Keine Entscheidung nötig, zur Kenntnis.
+- [ ] **V-AX-12 zur Kenntnis:** der erste Leerlauf-Schutz des `stations-s`-Jobs traf den Teilstring `mosmix_stationskatalog`
+      im alten Bauer — der Lauf 14:03 UTC baute MOSMIX-L einmal neu (byte-gleiche Bündel, nur Zeitstempel/Index). Behoben
+      mit dem Marker `POINT_STATIONS_SOURCE` (Daten-Repo `d058317c`, 14:35 UTC); der Verifier prüft Marker und Teilstring-Fall.
+      Der t1-Lauf 13:48 UTC lief bereits mit der neuen Vorlage (inkl. `POINT_Z0MOD: '1'`) in 15 min durch; der Slot 14:50 (Lauf 14:58 UTC) endete als benannter Leerlauf mit übersprungenem Publish — der Schutz greift.
+- [ ] **E-AX-8 MOSMIX-S als Voreinstellung?** Nein, bis gemessen: der Stationswert (FS) und die Lernstufe sind an MOSMIX-L
+      gefittet. Messweg: der Sammler (AP9) liest je Slot zusätzlich die S-Reihe (`readStationPoint` mit
+      `stationSource: 'mosmix_s'`, eine Zeile in `scripts/punktarchiv/`), nach ≥ 14 Ausgabetagen S gegen L + Anker an den
+      Stationen (der Beleg, den `DECLINED.mosmix_s` verlangte). Im Panel jederzeit `?st=s` / `?st=fresh`.
+
+- [ ] **Commit und Push von `buscosun-web/main`** (Netlify-Deploy). Danach: der Stationswert bekommt in DE/AT/CH die
+      Messung der Station am Punkt (vorher an 0 von 8 Stadtpunkten, jetzt 4 von 8 — die übrigen haben keine messende
+      Station im Umkreis), TAWES/SMN liefern die wirklich nächsten Stationen, T zwischen den nativen Schritten folgt dem
+      Tagesgang (Orakel: 6-h-Schritte −15,5 % MAE, 3-h −4,1 %).
+- [ ] **E-AX-1** `near` auch im Live-Pfad (`?pf=live`, Stunde 0 aus den wirklich nächsten Stationen) — ändert das
+      Live-Produkt, eigener Commit nach dem Muster von Commit B. Empfehlung: ja.
+- [ ] **E-AX-2** `learnedRoute: 'tier'` (Route-3-Strata in t2/t3, E-FV-3): gebaut, am Archiv gemessen — **schlechter**
+      (stationsloser Punkt T 51–120 h −11 %!, Wind 126–240 h −17 %!). Bleibt gebaut, Voreinstellung 1, nicht in der Stufe.
+      Empfehlung: bei Route 1 bleiben, im Dezember mit Winterzeilen neu messen (E-FL-3).
+- [ ] **E-AX-3** `anomalyInterp` in der Stufe `fs` — eine Zeile in `forecastFromBundle` (`cubeSource.ts`). Ich habe sie
+      gesetzt (Jans Auftrag 28.09.: „wer buscosun Fusion abfragt, bekommt die neueste Stufe"); Rücknahme = die Zeile löschen.
+- [ ] **E-AX-4 Codec Version 3** (Familie `cloudMix`): der Codec ist mit AP9 geteilt — der Sammler schreibt nach dem
+      Deploy Version 3, die Leser (Client, AP9) lesen 1–3. Bestätigen.
+- [ ] **E-AX-5 Bewölkung als Zwei-Atome-Mischung ins Produkt:** die Tabelle `C:\dev\buscosun-hindcast\fit\2026-09-30-ax4\fusion.ax4.json`
+      (Fit 5e + `atoms`, 16 geschriebene Atome) als `point/fusion.client.json` ins Daten-Repo (Purge der drei Pfade wie in
+      §24.1) — **nur zusammen mit E-AX-4**. Out of fold: CRPS +5,7 %* (0–6 h +10,7 %*), MAE −9 %, PIT-Rand 0,28 → 0,195,
+      Atome kalibriert. Die Client-Tabelle liegt gebaut in `fit\2026-09-30-ax4\fusion.ax4.client.json` (30,3 KB gz statt 29,0;
+      `lib/clientTables.mjs` trägt die Atome seit AX-4; mean/variance/occurrence/amount/speed byte-gleich zur veröffentlichten
+      Tabelle, geprüft) — sie ersetzt `point/fusion.client.json` im Daten-Repo.
+- [ ] **E-AX-6 Ensemble-Mittel in t3** (E-EX-1): gemessen roh — gegen jeden Einzellauf +14…+28 % (T), +13…+16 % (Wind),
+      +10…+12 % (Böe); gegen das Mittel zweier Läufe bei T erst ab 246 h (+10 %*), bei 246–336 h nur gleichauf mit der
+      Klimatologie. Empfehlung: ENS-Mittel für u/v und Böe (und T) als t3-Member in den Cube (Producer `ecmwfEns.mjs`,
+      kehrt V-PD-9 um), danach Fit mit dem Mittel als Prädiktor — nach der Phase NS.
+- [ ] **E-AX-7 Landesparameter des Stationswerts:** H15 **GILT** (§5.4: CH Wind 7–120 h +1,3…+3,7 %*, Böe +3,2…+7,0 %*,
+      AT Wind +4,7…+5,6 %*, nirgends schlechter; die CH-Lücke gegen MOSMIX schließt sich). Die Tabelle
+      `C:\dev\buscosun-hindcast\fit\2026-09-30-ax5\stack.archive.json` (863 Einträge, 28,7 KB gz statt 8,1) ersetzt
+      `point/stack.client.json` im Daten-Repo (Purge wie in §24.1). Empfehlung: ja.
+- [ ] **V-AX-4 Archiv-Schema 3:** das Punktarchiv schreibt seit 29.09. Schema 3; `archiveAdapter.mjs` liest nur 1/2
+      (`--slotsTo=2026-09-28` in `stack-extract.mjs`). Vor dem Neufit des Stationswerts (E-FS-3, ≥ 30 Ausgabetage) muss der
+      Leser Schema 3 lesen — Zuständigkeit dieses Repos, keine Entscheidung nötig, zur Kenntnis.
+- [ ] **V-AX-6 Rampe an den Nähten (Bericht #15):** ohne überlappende Vorläufe nicht messbar — Producer müsste t2 ab 45 h
+      und t3 ab 117 h behalten (je zwei Schritte). Entscheidung, ob das die Bytes wert ist.
+- [ ] **Nicht gebaut, entworfen (`audit/fusion-ausbau.md` §6f):** #17 CH-Member (CH2-EPS zuerst, hinter `POINT_CH_MEMBERS`),
+      #18 Exposition (Merkmal aus `horizonDeg`, Neufit = eigene Fit-Etappe), #20 zeitversetztes Ensemble (ohne Archiv mit
+      Vorläufern nicht messbar), #4 RUC (E-EX-5: mit der DWD-Schema-Phase am 30.11.), #6 flächige MOS-Korrektur und #8
+      flächige Niederschlagswahrheit (Datenprogramme, brauchen die Archivkarte bzw. Rasterwahrheit); Kalender: #1/2
+      (≥ 30 Ausgabetage), #9 (Winter). Gebaut sind #3 (AX-7), #5 (AX-8), #13 (AX-9), #14 (AX-10), #21 (AX-11).
+- [ ] **Zur Kenntnis:** dieselbe Archivkarte mit 15 Slots und der korrigierten Teststatistik (EX §4.2) stuft H10 auf
+      GLEICHSTAND und E2 auf GLEICHSTAND (die Skills sind unverändert positiv, nur seltener signifikant); V-FS-5 bestätigt.
+      Die Dev-Server-Instanz auf :5199 (diese Session) kann beendet werden.

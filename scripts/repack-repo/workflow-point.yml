@@ -112,10 +112,13 @@ on:
     - cron: '40 1,4,7,10,13,16,19,22 * * *'   # t1
     - cron: '30 4,10,16,22 * * *'             # t2 (+ Stationsprodukt), seit 2026-09-14 (V-PD-28)
     - cron: '55 9,21 * * *'                   # t3
+    # AX-8 (2026-09-30): MOSMIX-S stuendlich (Lauf + 39…41 min gemessen) — :50 in jeder Stunde AUSSER den
+    # t2-Stunden 4/10/16/22 (dort waere es der dritte Job im Fenster, Regel D; der t2-Job baut S dort selbst).
+    - cron: '50 0,1,2,3,5,6,7,8,9,11,12,13,14,15,17,18,19,20,21,23 * * *'   # stations-s
   workflow_dispatch:
     inputs:
       tiers:
-        description: 'Stufen: all | t1 | t2 | t3 (all = nacheinander t1 → t2 → t3)'
+        description: 'Stufen: all | t1 | t2 | t3 | stations-s (all = nacheinander t1 → t2 → t3 → stations-s)'
         required: false
         default: 'all'
       run:
@@ -299,6 +302,17 @@ jobs:
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs
+      # AX-8: in den t2-Stunden (4/10/16/22) baut DIESER Job MOSMIX-S, weil ein eigener :50-Slot dort der dritte
+      # Job im Fenster waere (Regel D). Bei ≈ :38–:40 trifft er meist den Vorlauf (S erscheint bei :39–:41);
+      # `ageH` im Manifest sagt es. Uebersprungen, solange der Producer auf main `--source` nicht kennt.
+      - name: Build station product (MOSMIX-S, AX-8)
+        continue-on-error: true
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+        run: |
+          cd app
+          grep -qF "POINT_STATIONS_SOURCE" scripts/point/build-stations.mjs || { echo "Producer auf main ohne MOSMIX-S (AX-8 nicht gepusht) — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs --source=mosmix_s
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           POINT_PUSH: '1'
@@ -370,6 +384,75 @@ jobs:
         env:
           POINT_PUSH: '1'
           POINT_CDN_BUDGET_S: '180'   # AP12a, s. t1
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
+
+  # ── Stationsprodukt MOSMIX-S (AX-8, 2026-09-30) — stündlich, :50 ausser in den t2-Stunden ──
+  # Kein Cube-Bau: ein Abruf (37 MB), ein Parsen (7,5 s lokal), zwölf Bündel, ein Publish. Regel A: :50 → :20
+  # der Folgestunde = 30 min ≥ JOB_MAX_MIN(stations-s) 6 + 20. Regel B: hinter t1 (:40, 20 min) bleibt
+  # 40 − (20 − 10) = 30 ≥ 26; t3 (:55) startet 5 min nach S und wartet hoechstens dessen Rest. Regel C:
+  # 6 + 10 ≤ 20 ≤ 30. Regel D: in den t2-Stunden 4/10/16/22 gibt es den Slot NICHT (der t2-Job baut S).
+  # Solange `buscosun-web/main` den Producer ohne `--source` traegt, ist der Job ein benannter Leerlauf.
+  stations-s:
+    needs: [t3]
+    if: >-
+      always() && (
+      (github.event_name == 'schedule' && github.event.schedule == '50 0,1,2,3,5,6,7,8,9,11,12,13,14,15,17,18,19,20,21,23 * * *')
+      || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 'stations-s'))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            point
+            index.json
+            .gitattributes
+          sparse-checkout-cone-mode: false
+      - name: Sparse-Muster des Daten-Repos nachpruefen
+        run: |
+          git sparse-checkout list
+          git sparse-checkout list | grep -qx '.gitattributes' || { echo "sparse-Muster ohne .gitattributes — der Publisher wuerde abbrechen"; exit 1; }
+          test -f .gitattributes && echo ".gitattributes vorhanden" || echo ".gitattributes fehlt im Repo — der Publisher legt sie an"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-bot'
+          git config user.email 'bot@buscosun.local'
+      - name: Checkout producer (public, no token, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+          git checkout --quiet
+          test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
+      - name: Install producer dependency
+        run: cd app && npm install --no-save --no-audit --no-fund bz2@1
+      - name: Gate — Form der Punktdaten
+        run: cd app && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs
+      - name: Build station product (MOSMIX-S)
+        id: build
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+        run: |
+          cd app
+          if ! grep -qF "POINT_STATIONS_SOURCE" scripts/point/build-stations.mjs; then
+            echo "Producer auf main ohne MOSMIX-S (AX-8 nicht gepusht) — Leerlauf, kein Publish"
+            echo "built=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs --source=mosmix_s
+          echo "built=1" >> "$GITHUB_OUTPUT"
+      - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
+        if: steps.build.outputs.built == '1'
+        env:
+          POINT_PUSH: '1'
+          POINT_CDN_BUDGET_S: '60'   # AX-8: 3,2 (geschaetzt) + 1 + 1 ≤ 6 — Regel F, nach dem ersten Runner-Lauf nachrechnen
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}

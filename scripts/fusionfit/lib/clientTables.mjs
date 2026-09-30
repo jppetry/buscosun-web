@@ -23,6 +23,8 @@ export function clientTables(tables) {
   return {
     ...rest,
     mean: pickK(tables.mean), variance: pickK(tables.variance), occurrence: pickK(tables.occurrence), amount: pickK(tables.amount), speed: pickK(tables.speed),
+    // phase AX, AX-4: the cloud atoms travel with the client table (written entries only; a fit without them carries no section)
+    ...(tables.atoms ? { atoms: pickK(tables.atoms) } : {}),
     clima: null, rhoForecast: null,
     notes: [...tables.notes, 'Client-Fassung (V-FL-28): nur Form K, geschriebene Strata, je Eintrag ohne Falten-β/CV/Prior/Jitter/Skalen- und LN-Belege; ohne Klimatologie und ρ_f (der Client liest sie nicht); anchor-Block für die Anker-Kurve (FL-AP8b)'],
   };
@@ -30,7 +32,7 @@ export function clientTables(tables) {
 
 export function clientTablesReport(client) {
   const s = JSON.stringify(client);
-  return { mean: Object.keys(client.mean).length, variance: Object.keys(client.variance).length, speed: Object.keys(client.speed).length, occurrence: Object.keys(client.occurrence).length, kb: Math.round(s.length / 1024), gzKb: Math.round(gzipSync(s).length / 1024 * 10) / 10 };
+  return { mean: Object.keys(client.mean).length, variance: Object.keys(client.variance).length, speed: Object.keys(client.speed).length, occurrence: Object.keys(client.occurrence).length, atoms: Object.keys(client.atoms ?? {}).length, kb: Math.round(s.length / 1024), gzKb: Math.round(gzipSync(s).length / 1024 * 10) / 10 };
 }
 
 if (process.argv[1] && /clientTables\.mjs$/.test(process.argv[1])) {

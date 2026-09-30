@@ -104,7 +104,9 @@ point/<lauf>/t2/<cy>_<cx>.bin    Stufe 2 — 0,10°, 51–120 h 3-stündl. · 10
 point/<lauf>/t3/<cy>_<cx>.bin    Stufe 3 — 0,25°, 126–336 h 6-stündl.·  41×49,   12 Chunks
 point/stations/catalog.json      Stationskatalog (zeitlos)
 point/stations/<lauf>/…          MOSMIX-L je Station — EIGENES Produkt, eigene Achse
+point/stations-s/<lauf>/…        MOSMIX-S je Station — stündliche Läufe, 240 h (AX-8)
 point/static/hmodel/v1/…         Modellhöhe JE QUELLE — statisch, zeitlos
+point/static/clima-grid/v1/…     Klimanormale 1991–2020 (DE/AT/CH-Gitter) auf Stufe 1 — statisch (AX-9)
 ```
 
 **Drei Auflösungsstufen**, weil die Quellen drei Auflösungen haben: ICON-D2 ist 2,2 km,
@@ -116,7 +118,7 @@ Veröffentlichung").
 Eine Punktabfrage lädt **drei** Chunks — einen je Stufe. Dazu kommen, wenn gebraucht,
 1,5 KiB Modellhöhe aus `point/static/` und ein Stationsbündel.
 
-### Was der Cube trägt — 57 Ebenen
+### Was der Cube trägt — 61 Ebenen
 
 ```
 25 Mittel   12 Zielgrößen (t2m, td2m, u10, v10, gust, precip, clct, clcl, clcm, clch, ps, snowlmt)
@@ -126,7 +128,15 @@ Eine Punktabfrage lädt **drei** Chunks — einen je Stufe. Dazu kommen, wenn ge
  9 σ_div    <var>_sd      — Streuung ZWISCHEN den Quellen
  9 σ_ens    <var>_sd_ens  — Streuung ZWISCHEN den Membern EINER Quelle
  7 q10 + 7 q90            — gemessene Quantile EINER Quelle (C-LAEF-EPS)
+ 4 Member-Mittel <var>_ens — Mittel der Member EINER Quelle (IFS-ENS, Stufe 3: t2m, u10, v10, precip; seit Schema 6, 2026-09-30)
 ```
+
+Das Member-Mittel ist ein **Wert** wie die Quantile (Skala und Versatz der Größe). Es ersetzt das Mittel der Stufe
+nicht — die `mean`-Ebene bleibt das Mittel der deterministischen Läufe; der Client kann das Member-Mittel als eigenes
+Member führen. In Stufe 1 und 2 sind die vier Ebenen leer. Chunks des Schemas 5 (57 Ebenen) liegen nach dem Wechsel
+bis zu 24 h daneben; jeder Leser mit dem Manifest oder mit der Schema-5-Liste liest sie weiter. Der Cron klont den
+Producer von `buscosun-web/main` — bis der Stand mit Schema 6 dort liegt, tragen alle Läufe Schema 5; `run.json`
+nennt das Schema je Lauf, `index.json` die Ebenenliste.
 
 ⚠️ **Die drei Streuungsarten werden nicht verrechnet.** `_sd` und `_sd_ens` beschreiben
 Verschiedenes und dürfen nicht addiert werden; `_q10`/`_q90` sind gemessene Quantile und
@@ -236,6 +246,34 @@ ausgenommen.
 `hModEff` trägt hier die **Stationshöhe**: MOSMIX gilt AM Ort, es gibt keine
 Höhendifferenz zu korrigieren.
 
+**Drei Ebenen nur im Stationsprodukt** (AX-11, seit 2026-09-30): hinter den Cube-Ebenen
+stehen `radGlob` (Globalstrahlung, Stundenmittel W/m² aus `Rad1h`), `sunDur` (Sonnenschein-
+dauer der Stunde in Minuten aus `SunD1`) und `vis` (Sichtweite in m aus `VV`) — Größen, die
+der Cube nicht führt. Die Ebenenliste steht im Lauf-Manifest (`planes`, `stationPlanes`);
+ein Leser nimmt sie von dort, nie aus der Cube-Liste.
+
+**MOSMIX-S daneben — `point/stations-s/`** (AX-8, seit 2026-09-30): dieselbe Pipeline,
+derselbe Container, derselbe Katalog (gemessen: dieselben 3 071 Stationen, Lage und Höhe
+identisch), aber **stündliche Läufe** (Lauf + 39…41 min, 37 MB je Datei) mit 240 statt
+247 Schritten. Ein eigenes Verzeichnis, weil ein 09z-Lauf von S und einer von L denselben
+Namen trügen; ein eigener Index-Eintrag (`stationsS`), weil der Leser MOSMIX-L voreingestellt
+weiterliest und S nur mit Option nimmt (bis der Stationsvergleich entschieden ist).
+
+### Klimanormale — `point/static/clima-grid/v1/`
+
+Monatliche Klimanormale **1991–2020** (Temperatur Mittel/Max/Min, Niederschlagssumme,
+Sonnenscheindauer) aus den drei nationalen 1-km-Gittern — DWD CDC (Gauß-Krüger 3, 1/10 °C),
+GeoSphere SPARTACUS v3 (Normale = Wert − Anomalie des Jahres 2020) und MeteoSchweiz OGD
+(LV95; die Sonne dort als relativer Anteil, in Stunden über die astronomische Tageslänge
+umgerechnet) — als Mittel der Quellzellen je Cube-Zelle der Stufe 1. Alle drei CC BY 4.0.
+
+Gleicher Container, eigene Ebenenliste (`t_mean_01…12`, `t_max_*`, `t_min_*`, `rr_*`, `sun_*`,
+dazu `elev_src` = mittlere DEM-Höhe der Quellzellen, `n_src`, `src` = Länder-Bitmaske),
+`nt = 1`, nur Stufe 1. Zellen außerhalb DE/AT/CH/LI sind MISSING — Nachbarländer haben hier
+kein Gitter. Der Client bringt die Temperaturnormale mit dem Lapse gegen `elev_src` auf
+seine Punkthöhe; Tagesgang, Streuung und Nasstag-Wahrscheinlichkeit bleiben Sache der
+Stationsklimatologie. `static.json` nennt Quellen, Lizenzen, Ableitung und Wertebereiche.
+
 ### Modellhöhe je Quelle — `point/static/hmodel/v1/`
 
 Jede Quelle hat ihre eigene Modelloberfläche, und sie weichen erheblich voneinander ab:
@@ -303,6 +341,7 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `point/` Stufe 2 | Alter ≤ **24 h**, mindestens 2 Läufe | ≈ 4 Läufe |
 | `point/` Stufe 3 | Alter ≤ **24 h**, mindestens 2 Läufe | 2 Läufe |
 | `point/stations/` | Alter ≤ 24 h, mindestens 2 Läufe | ≈ 4 Läufe |
+| `point/stations-s/` | Alter ≤ **6 h**, mindestens 2 Läufe | ≈ 6 Läufe bei 24 Slots |
 | `runs/` | `keep: 4` | ≈ 12 h |
 | `radar/` | `keep: 12` Schritte | ≈ 1 h |
 
@@ -349,6 +388,7 @@ ein gemeinsamer Takt für jede von ihnen der falsche wäre. Die Slots sind aus d
 | Stufe 1 | `:40` der Stunden 1, 4, 7, 10, 13, 16, 19, 22 | ICON-D2 | Lauf + 1,36 h ⇒ 18 min Rand |
 | Stufe 2 (+ Stationen) | `:30` der Stunden 4, 10, 16, 22 | ICON-EU, MOSMIX-L | ICON-EU Lauf + 3,60…3,70 h ⇒ 48 min Rand; MOSMIX-L (03/09/15/21z) Lauf + 73…76 min ⇒ 14 min Rand. Bis 2026-09-14 lag der Slot bei `:50` der Stunden 3, 9, 15, 21 — 27 min VOR MOSMIX-L, das Stationsprodukt trug immer den Vorlauf (7 h alt) |
 | Stufe 3 | `:55` der Stunden 9, 21 | IFS `oper` | Lauf + 7,57 h; 336 h liefern nur 00z und 12z |
+| Stationen S (AX-8) | `:50` der Stunden 0, 1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23 | MOSMIX-S | Lauf + 39…41 min (Last-Modified 30.09.: 09:39:52 · 10:40:47 · 11:39:37 · 12:39:20) ⇒ 9 min Rand; in den t2-Stunden 4/10/16/22 baut der t2-Job das Produkt bei ≈ :38–:40 und trifft meist den Vorlauf — `ageH` sagt es |
 
 Alle drei teilen eine Concurrency-Gruppe — sie können sich nie überlappen — und halten
 Abstand zum Force-Push der Kartenlinie, der alles überschriebe, was zwischen Klon und Push

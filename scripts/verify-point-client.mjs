@@ -699,6 +699,36 @@ let stationManifest;
   add('(10) AP1: Zeiten je Produkt (doneAt/phases), erste Darstellung und Lesephase stehen im Ergebnis',
     typeof b.timing.readMs === 'number' && b.timing.doneAt['cube.t1'] != null && b.timing.phases['decode.t1'] != null && b.timing.firstMs != null && b.timing.indexMs != null);
 
+  // ── (10s) AX-8: das zweite Stationsprodukt MOSMIX-S (`stationsS`) nur mit Option ─────────────
+  {
+    const RUN_S = String(Number(RUN) + 1), RUN_AT_S = new Date(Date.parse(RUN_AT) + H).toISOString();
+    const manS = { ...stationManifest, source: 'mosmix_s', run: RUN_S, runAt: RUN_AT_S, ageH: 0.7,
+      chunks: [{ ...stationManifest.chunks[0], file: `point/stations-s/${RUN_S}/03_07.bin` }] };
+    const entryS = { run: RUN_S, runAt: RUN_AT_S, ageH: 0.7, path: `point/stations-s/${RUN_S}`, manifest: `point/stations-s/${RUN_S}/stations.json`, stationCount: 2, leadHours: 60, bytes: 1 };
+    const withS = new Map(all);
+    withS.set(`point/stations-s/${RUN_S}/stations.json`, enc(manS));
+    withS.set(`point/stations-s/${RUN_S}/03_07.bin`, stationFiles.get(`point/stations/${RUN}/03_07.bin`));
+    const idxS = { ...idx, stationsS: { dir: 'point/stations-s', catalog: 'point/stations/catalog.json', source: 'mosmix_s', runs: [entryS] } };
+    withS.set('point/index.json', enc(idxS));
+    const rd = (o) => readPointBundle({ lat: LAT, lon: LON, atMs: at(4), elevationM: 519, nowMs: NOW }, { store: memoryStore(withS), terrain: false, nowcast: false, decodeChunk: decodeChunkMain, ...o });
+    const [bL, bS, bF, bDef] = await Promise.all([rd({ stationSource: 'mosmix_l' }), rd({ stationSource: 'mosmix_s' }), rd({ stationSource: 'freshest' }), rd({})]);
+    add('(10s) AX-8: ohne Option und mit mosmix_l liest der Leser MOSMIX-L — byte-gleich zum Stand ohne stationsS im Index',
+      bDef.station?.source === 'mosmix_l' && bL.station?.source === 'mosmix_l' && bDef.station?.run === RUN
+      && JSON.stringify(bDef.station?.steps) === JSON.stringify(b.station?.steps) && bDef.station?.bundle.path === b.station?.bundle.path, `${bDef.station?.bundle.path}`);
+    add('(10s) AX-8: mit mosmix_s kommt die Reihe aus point/stations-s/ (Lauf, Quelle, Pfad), Werte in derselben Spalte',
+      bS.station?.source === 'mosmix_s' && bS.station?.run === RUN_S && bS.station?.bundle.path === `point/stations-s/${RUN_S}/03_07.bin` && bS.station?.bundle.column === b.station?.bundle.column
+      && bS.station?.runAtMs === Date.parse(RUN_AT_S), bS.skips.join('; '));
+    add('(10s) AX-8: freshest nimmt den juengeren Lauf (hier S, eine Stunde juenger)', bF.station?.source === 'mosmix_s' && bF.station?.run === RUN_S);
+    // Gegenproben: ein aelterer S-Lauf verliert bei `freshest`; ohne S-Lauf faellt `mosmix_s` BENANNT auf L zurueck.
+    const older = new Map(withS);
+    older.set('point/index.json', enc({ ...idxS, stationsS: { ...idxS.stationsS, runs: [{ ...entryS, runAt: new Date(Date.parse(RUN_AT) - 2 * H).toISOString() }] } }));
+    const bFo = await readPointBundle({ lat: LAT, lon: LON, atMs: at(4), elevationM: 519, nowMs: NOW }, { store: memoryStore(older), terrain: false, nowcast: false, decodeChunk: decodeChunkMain, stationSource: 'freshest' });
+    const noS = new Map(all); noS.set('point/index.json', enc({ ...idx, stationsS: { dir: 'point/stations-s', catalog: 'point/stations/catalog.json', source: 'mosmix_s', runs: [] } }));
+    const bSn = await readPointBundle({ lat: LAT, lon: LON, atMs: at(4), elevationM: 519, nowMs: NOW }, { store: memoryStore(noS), terrain: false, nowcast: false, decodeChunk: decodeChunkMain, stationSource: 'mosmix_s' });
+    add('(10s) AX-8: Gegenproben — aelterer S-Lauf verliert bei freshest; ohne S-Lauf faellt mosmix_s benannt auf L zurueck',
+      bFo.station?.source === 'mosmix_l' && bSn.station?.source === 'mosmix_l' && bSn.skips.some((x) => /kein MOSMIX-S-Lauf im Index — Rückfall auf MOSMIX-L/.test(x)), bSn.skips.join('; '));
+  }
+
   // ── (10b) Veraltetes / fehlendes Manifest: Werte bleiben, Provenienz wird benannt ─
   {
     // Wie am CDN (V-FI-1): das veraltete Manifest kennt weder die Stufe noch ihre Quellen.

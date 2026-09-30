@@ -268,6 +268,16 @@ dazwischen markierte Interpolation, ab ≈ 318 h Klimatologie-Schwanz (`cubeSour
   Feuerwetter, CAMS-Pollen „überall" (im Code nur AT/CH, P83). Die Quellenzeile muss zusätzlich C-LAEF (GeoSphere), ICON-CH1/CH2 (MeteoSchweiz), ICON-EU/global, AICON und
   IFS/AIFS nennen, die der Cube wirklich trägt (`buscosun-data/point/sources.json`).
 
+### 4.7 Erweiterung E-DB-23 (30.09., §12): Bandbreite, Leitsatz, Nächte und Marken
+
+| P | Wert | Fusion | Alternative | Reichweite | Status |
+|---|---|---|---|---|---|
+| P89 | Bandbreite jetzt „±1,3 °C" (80 %-Band) | ja: `t2m.p10/p90` an Stunde 0 | — | Stunde 0 | F |
+| P90 | Bandbreite über 14 Tage (Trichter) | ja: `t2m.p10/p90` je Stunde | — | 0–336 h | F |
+| P91 | Leitsatz über der Prognose | ja: Tagestexte, Tmax, Regensumme (`dayText`) | — | 0–72 h | F·abg (`leadSentence`, set) |
+| P92 | Nächte im Stundenverlauf | — | Sonnenstand `solarPosition` (Rechnung, keine Wetterquelle) | Zeitraum | UI |
+| P93 | Marken „±2/3/4 °C ab …" | ja: `t2m.p10/p90` je Stunde | — | Zeitraum | F·abg (`bandMarks`, set) |
+
 ## 5. Architekturvorschlag
 
 ### 5.1 Routing und URL-Zustand
@@ -778,3 +788,136 @@ beides trifft Netlify (HTTP/2) nicht bzw. ist behoben (V-DB-18).
 | E-DB-21 | V-DB-16: Startseite im Leerlauf erst Dashboard, dann Karte vorladen (+231 KB je Besuch) — oder wie bisher nur die Karte | ja, wenn die Real-Device-Messung die Chunk-Wartezeit nach der Ortswahl zeigt; sonst so lassen |
 | E-DB-22 | V-DB-17 als eigene kleine Phase (Kartenpause ohne Schub) | ja |
 | — | Real-Device: Ortswahl → Dashboard, Hintergrund-Laden (Long Task beim Parsen), Wechsel zur Karte | — |
+
+## 12. E-DB-23 — das Dashboard punktuell innovativer (30.09.2026)
+
+**Auftrag (Jan, 30.09.):** „irgendwie sieht das Dashboard noch aus wie vorher" → Neugestaltung im Command-Deck-Stil, „innovativ und
+modern". Ein erster Entwurf („Wetter-Deck": Command-Deck-Hülle mit Rail, Dock, dunkler Bühne, Zeit-Cursor über einer großen
+Temperatur-Fahne, Readout je Stunde) wurde als klickbare Wegwerf-Skizze mit echten Herborn-Werten gebaut (Scratchpad, nicht im
+Repo) und **verworfen: „zu aufgeregt"**. Neuer Auftrag: **„orientiere dich am ursprünglichen Dashboard und mache es punktuell
+innovativer"**. Aus vier Vorschlägen gewählt (Mehrfachauswahl): **Bandbreite statt Rätsel-Prozent**, **Leitsatz über der
+Prognose**, **Nächte und Unsicherheits-Marken im Stundenverlauf**. Nicht gewählt: der Zeit-Cursor im Stundenverlauf (damit
+auch keine gemeinsame Stunde mit der Karte).
+
+### 12.1 Diagnose
+
+1. **Konfidenz-Kachel (P22–P24):** Der Ring zeigt den Konfidenz-Index `t2m.confidence.score` — in Stufe fs klein und schwer lesbar
+   (V-DB-10: Herborn 30.09. Stunde 0 **39 %**, bei +24 h **0 %**, obwohl das 80 %-Band dort nur ±1,5 °C breit ist). Die Fusion
+   liefert je Stunde `t2m.p10/p90`; die halbe Breite (p90 − p10)/2 ist eine greifbare Aussage in °C und wächst ehrlich mit dem
+   Vorlauf (Herborn: ±1,3 °C jetzt, ±1,6 bei 48 h, ±2,2 bei 96 h, ±3,0 bei 168 h, ±4,3 bei 336 h; Streuung gelernt → aus
+   Systematik → gesetzt).
+2. **Prognose-Kopf (P25–P28):** trägt nur Meta (Zeitraum, Modelle, Ensemble, Konfidenz-Mittel). Eine Aussage über das Wetter steht
+   erst in den Tageskarten, verteilt auf drei Karten.
+3. **Stundenverlauf (P47–P51):** zeichnet Band, Linie, Taupunkt, Menge und Tagesgrenzen — aber nicht, wann es dunkel ist, und nicht,
+   ab wann das Band aufgeht; beides muss man heute aus der Zeitachse und der Bandbreite selbst ablesen.
+4. **Daten sind da:** `t2m.p10/p90` je Stunde (0–336 h), `solarPosition` (schon in `forecastStore` für `night0`), Tagestexte aus
+   `dayText` (`model/rules.ts`). Keine neue Quelle, kein neuer Abruf.
+
+### 12.2 Plan (freigegeben durch Jans Auswahl 30.09.)
+
+| Baustein | Änderung | Herkunft |
+|---|---|---|
+| Konfidenz-Kachel | Ring → Trichter der halben Bandbreite über 14 Tage (klein, Kartenfarben); daneben groß „±1,3 °C" und „80 % zwischen 21,7 und 24,3 °C"; Index und Einstufung bleiben, kleiner, als Zeile darunter; Gewichtsleiste, Quellen und Fuß unverändert | P89, P90 (F); P22/P23 bleiben |
+| Leitsatz | eine Zeile unter dem Prognose-Kopf, aus denselben Tagesdaten wie die Karten: „Heute {Tagestext}, bis {Tmax}°." + der nächste nasse Tag (Regen ≥ 1 mm) von morgen/übermorgen mit Tagestext und Menge, sonst morgen mit Tagestext und Tmax | P91 (F·abg, `leadSentence`) |
+| Stundenverlauf | Nachtflächen (Sonne unter −0,833°, alle 10 min aus `solarPosition`, in `forecastStore` berechnet) dezent unter den Linien; gestrichelte Marken mit „±2° ab So 06" dort, wo die halbe Bandbreite zum ersten Mal 2, 3, 4 °C erreicht; Legende um „Nacht" und „Bandbreite ab ±2/3/4 °C" ergänzt | P92 (UI), P93 (F·abg, `bandMarks`) |
+| Prüfungen | `verify:dashboard`: P01–P93, Matrix §4.7, `leadSentence`/`bandMarks` an Fixture und echter Fusions-Form, Nächte plausibel (Sonnenauf-/-untergang); `verify:dashboard-switch` unverändert grün; Pixel-Diff nur zur Kontrolle, die Vorlage kennt die Neuerungen nicht | — |
+
+Unverändert: Layout, Raster, Farben, Schrift, alle übrigen Kacheln und Texte, Ladeweg (E-DB-20).
+
+### 12.3 Umsetzung (30.09., uncommitted)
+
+| Datei | Änderung |
+|---|---|
+| `src/dashboard/origin.ts` | P89 Bandbreite jetzt (F), P90 Trichter (F), P91 Leitsatz (F·abg), P92 Nächte (UI), P93 Marken (F·abg) — Matrix §4.7 |
+| `src/dashboard/model/rules.ts` | `BAND_MARK_K` = 2/3/4 K, `bandMarks()`, `leadSentence()` (set) |
+| `src/dashboard/data/forecastStore.ts` | `nightsOf()`: Nächte über die Achse aus `solarPosition` (−0,833°, 10 min), beim Empfang; kostet 1 ms p50 / 5 ms max je Ausgabe (Node) |
+| `src/dashboard/model/build.ts` | Konfidenz: `band`, `bandRange` („jetzt: 80 % zwischen …"), `funnel` als **Hüllkurve** (jetzt, dann je 24 h die größte halbe Bandbreite), `funnelMarks` mit Datum; Einstufungswort ohne „· Stunde 0" (der Zeitbezug steht am 80-%-Satz); Zone: `lead` aus heute/morgen/übermorgen (in jedem Zeitraum derselbe); Stundenverlauf: `nights`, `marks` („±2° ab 04 Uhr") |
+| `src/dashboard/tiles.tsx` | Konfidenz-Kachel: `BandFunnel` (118×58, statt Ring) + „±1,3 °C" + 80-%-Satz + „Index 40 % · unsicher"; Gewichtsleiste, Quellen, Fuß unverändert |
+| `src/dashboard/ForecastZone.tsx`, `charts.tsx`, `dashboard.css` | Leitsatz-Zeile (17 px, mobil 15,5 px); Nachtflächen (Sand, 50 %) unter den Linien; gestrichelte Marken in einer zweiten Beschriftungszeile; Legende „Nacht" und „Bandbreite erreicht ±2/3/4 °C" |
+| `src/dashboard/fixture.ts` | neue Felder mit Werten zur Vorlage (nur Entwicklungsmodus) |
+| `src/SearchPage.tsx` | Folgefund zu E-DB-20 (§12.5): die Ortswahl bricht das noch ausstehende Leerlauf-Vorwärmen der Karte ab |
+| `scripts/verify-dashboard.mjs` | P01–P93, Matrix §4.7, Abschnitt (3b) mit 12 Prüfungen (unabhängig nachgerechnet, mit Gegenproben) |
+
+**Verworfen beim Bauen:** der Trichter aus allen 337 Stunden — einzelne Stunden mit eingeknicktem Band (V-DB-21) machten ihn auf
+118 px zum Strichcode; die Hüllkurve je Tag ist ruhig und bleibt ehrlich (sie zeigt, wie weit es höchstens schwankt).
+
+### 12.4 Prüfungen
+
+| Gate | Ergebnis |
+|---|---|
+| `npm run typecheck` · `npm run build` (inkl. `verify-seo`, `verify-routing`) | grün · 249/249 |
+| `verify:dashboard` · `--dist` | **68/68** · **71/71** |
+| `verify:dashboard-switch` (Produktions-Bau) | **39/39** (auch (B) in diesem Lauf 0 Draws; bleibt zeitabhängig, V-DB-17) |
+| `npm run budget` | eagerJs 108,6 / 108,7 unverändert; totalJs 1 506,6 / **1 508** (+1,6 KB E-DB-23; die Stufe 1 502 → 1 505 kam aus Phase AX) |
+| Aufnahmen Desktop 1440 (3 und 7 Tage) und mobil 390, Herborn 30.09. | Leitsatz „Heute bedeckt, bis 26°. Morgen Regen, kühler, Schneegrenze sinkt, 15,6 mm."; Kachel „±1,3 °C · jetzt: 80 % zwischen 24,4 und 26,9 °C · Index 40 % · unsicher"; 7 Tage: 7 Nächte, Marken „±2° ab 04 Uhr" (So), „±3° ab 13 Uhr" (Mi) |
+
+**Die fünf Fragen:** (1) Funktionserhalt ja — der Index (P22) und die Einstufung (P23) stehen weiter in der Kachel, nur kleiner;
+nichts entfernt. (2) Desktop: das Dashboard ändert sich gewollt an drei Stellen, sonst pixelgleich; Karte und Startseite optisch
+unverändert. (3) Keine neuen Bedienelemente. (4) Konsole: keine Ausnahme (Umschalt-Verifier (I)). (5) Neue Rechnung ≤ 5 ms je
+Ausgabe (Node), Real-Device offen.
+
+### 12.5 Folgefund zu E-DB-20: das Vorwärmen der Startseite
+
+Der Umschalt-Verifier (J) wurde rot: Klick auf einen gespeicherten Ort bei 675 ms, `MapView` angefragt bei 693 ms — vor der ersten
+Fusionsausgabe. Ursache: `SearchPage` wärmt `MapView` im Leerlauf vor; nach der Ortswahl bleibt die Startseite montiert, bis der
+Routen-Chunk geladen ist, und der Leerlauf-Rückruf fiel genau in diese Lücke (vorher lag der Klick zufällig immer nach dem
+Vorwärmen). Kur: `selectPlace` bricht den ausstehenden Rückruf ab. Danach: Klick 559 ms, ganzes Fenster 1 658 ms, `MapView` erst bei
+1 713 ms aus dem Hintergrund-Laden des Dashboards. Ob die Startseite stattdessen das Dashboard vorwärmen soll, bleibt E-DB-21.
+
+### 12.6 Befunde (V-DB, D-28)
+
+| V | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-DB-21 | In der Fusion knickt die Bandbreite der Temperatur an einzelnen Stunden ein (Herborn 30.09., Lauf von 13 Uhr: +121 h und +127 h je 2,5 → 2,0 → 2,5 °C, +139 h 2,7 → 1,6 °C) und springt in Stufe t3 stündlich in der Herkunft der Streuung (native Schritte `learned`, interpolierte `set`, einzelne `none`) — wahrscheinlich Stufennähte und Interpolation | glatte, ehrliche Bandbreite in Stundenverlauf und Trichter | buscosun Fusion: Streuung interpolierter Stunden aus den Nachbarn statt gesetzt; Nähte prüfen — Jans Gate (Fusion) |
+| V-DB-22 | Der Konfidenz-Index liegt in Stufe fs niedrig (Herborn 40 % jetzt), während das Band schmal ist (±1,3 °C); jetzt steht die Bandbreite vorn, der Widerspruch bleibt im Index | ein Maß statt zwei | Index für `sigmaKind: learned` neu definieren (= V-DB-10) |
+
+## 13. E-DB-24 — das Dashboard in zwei Teilen: Reiter „Überblick | Details" (30.09.2026)
+
+**Auftrag (Jan, 30.09.):** „das Dashboard in zwei Teilen — erster Teil die oberste Reihe plus Prognose, zweiter Teil alles
+weitere". Aus vier Varianten (Reiter, Abschnitte, Spalten, aufklappbar) gewählt: **zwei Reiter**; Entwurf freigegeben („ja baue es").
+
+### 13.1 Diagnose
+
+- `DashboardPage` rendert heute eine Folge: Reihe 1 (Jetzt, Warnung, Konfidenz) · Prognose-Zone · Reihe 3 (Nowcast, Bewölkung,
+  Wind) · Gelände · Reihe 5 (UV, Pollen, ICON-D2) · Fuß. Die Teilung fällt genau zwischen Prognose und Reihe 3.
+- Staffel 3 (Nowcast/Zellen/Hagel, Gelände, ICON-D2) lädt schon heute erst bei Sichtbarkeit (`useInView`) — liegen die Kacheln
+  in einem nicht gezeigten Reiter, laden sie erst beim Öffnen. Staffel 2 (Warnungen, UV, Pollen) bleibt nach der Vorhersage.
+- URL-Zustand: `ansicht`/`zeitraum` sind durchgereichte Schlüssel (`dashUrl.ts`, E-DB-3) — ein dritter Schlüssel fügt sich ein,
+  ohne `urlState.ts` oder das Edge-Bündel anzufassen.
+
+### 13.2 Plan
+
+| Baustein | Änderung |
+|---|---|
+| URL | `teil=details` (Standard `ueberblick` wird nie geschrieben), Reihenfolge `ansicht`, `zeitraum`, `teil`; Wechsel = push |
+| Reiterleiste | unter dem Kopf, zwei Textreiter mit Terrakotta-Unterstrich (zweite Ebene, leiser als „Dashboard \| Karte"), `role=tablist`, Pfeiltasten; mobil volle Breite |
+| Überblick | Reihe 1 + Prognose wie heute; am Ende „Mehr zur Lage am Ort: Radar, Bewölkung, Wind, Gelände, UV, Pollen, ICON-D2" als Sprung zu Details |
+| Details | Reihe 3, Gelände, Reihe 5 wie heute; Staffel 3 lädt beim ersten Öffnen |
+| Wechsel | Seite springt an den Anfang; Fuß und `?pflog` in beiden Reitern |
+| Prüfungen | `verifyDashUrl` um `teil`; `verify:dashboard-switch` Ablauf M (Reiter, URL, Inhalt, Zurück, Details lädt erst nach dem Öffnen); Aufnahmen Desktop/mobil |
+
+### 13.3 Umsetzung (30.09., uncommitted)
+
+| Datei | Änderung |
+|---|---|
+| `src/dashboard/dashUrl.ts` | `DashPart`, `DASH_PART_KEY = 'teil'`, `dashPartOf`, `withDashState(…, { part })`, Kanonisierung; Selbstprüfung um fünf Fälle (Standard nie geschrieben, Reihenfolge, Rückkehr von der Karte behält den Reiter) |
+| `src/router/pages/WetterkarteRoute.tsx` | `part` aus der URL, `onPartChange` = push |
+| `src/dashboard/DashboardView.tsx` | `DashTabs` (`role=tablist`, roving tabindex, Pfeiltasten mit Fokus), zwei Panels (`role=tabpanel`, `hidden`), Sprungzeile „Mehr zur Lage am Ort" am Ende des Überblicks, Sprung an den Anfang beim Wechsel (nicht beim ersten Zeichnen) |
+| `src/dashboard/dashboard.css` | Reiterleiste 16 px Rand wie der Inhalt, Terrakotta-Unterstrich 2,5 px, mobil zwei gleich breite Reiter mit 44 px; Sprungzeile im Kachelstil |
+| `scripts/verify-dashboard-switch.mjs` | Ablauf M (9 Prüfungen), (G) um `teil=ueberblick` |
+
+Die Panels bleiben montiert und werden mit `hidden` verborgen: Zustand (Zeitraum, Schnittlänge, geladene Nebenquellen) überlebt den
+Wechsel, und Staffel 3 (`useInView`) startet erst, wenn Details sichtbar wird.
+
+### 13.4 Prüfungen
+
+| Gate | Ergebnis |
+|---|---|
+| `npm run typecheck` · `npm run build` | grün · 249/249 |
+| `verify:dashboard` · `--dist` | 68/68 · **71/71** |
+| `verify:dashboard-switch` (Produktions-Bau) | **50/50** — u. a. Details lädt nicht, solange der Überblick offen ist (Radar-Zeile 3 s nach der Vorhersage noch „lädt"), nach dem Öffnen schon; `teil=details` hinter `ansicht`, ein Verlaufseintrag, Sprung an den Anfang; Zurück ⇒ Überblick; Pfeiltaste wechselt mit Fokus; Sprungzeile öffnet Details; geteilter Link öffnet Details; mobil 2 × 189 px, 44 px hoch |
+| `npm run budget` | eagerJs 108,6 / 108,7; totalJs 1 510,8 / **1 512** (E-DB-24 +0,5 KB, `DashboardView`; Rest seit der AX-Messung aus Phase AX, getrennt benannt) |
+| Aufnahmen Herborn 30.09. | Desktop Überblick und Details, mobil Überblick — ruhig, Kacheln unverändert |
+
+**Die fünf Fragen:** (1) nichts entfernt, alles umgruppiert und in einem Klick erreichbar; (2) Desktop: gewollt neu sind nur die
+Reiterleiste und die Sprungzeile; (3) Reiter mobil 44 px, Sprungzeile ≥ 44 px; (4) keine Ausnahme ((I) in M); (5) keine neue Rechnung.

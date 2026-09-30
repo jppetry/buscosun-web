@@ -24,7 +24,7 @@
 import {
   TIER_BY_ID, type TierId, type CubeTier, type CubeChunk,
   cellOf, cellCenter, chunkOf, chunkPath, decodeCubeChunk, dequantize, planeOffset, MISSING,
-  PRESSURE_LEVELS_HPA, pressurePlaneId, CUBE_PLANES, CUBE_SCHEMA, readCubeHeader,
+  PRESSURE_LEVELS_HPA, pressurePlaneId, CUBE_PLANES, CUBE_SCHEMA, CUBE_PLANES_V5, CUBE_SCHEMA_V5, readCubeHeader,
 } from '../cubeFormat';
 import type { PointRunManifest, PointSourceManifest, PointTierManifest } from '../manifest';
 import { POINT_INDEX_PATH } from '../cubeFormat';
@@ -249,8 +249,11 @@ export function cubeAddress(
  */
 export function planesForChunkHeader(bytes: Uint8Array): PointRunManifest['planes'] | null {
   const { header } = readCubeHeader(bytes, { allowOtherSchema: true });
-  if (header.schema !== CUBE_SCHEMA || header.nvar !== CUBE_PLANES.length) return null;
-  return CUBE_PLANES.map((pl) => ({ id: pl.id, unit: pl.unit, scale: pl.scale, offset: pl.offset, group: pl.group }));
+  // AX-7: Schema 6 (61 Ebenen) und — für die Aufbewahrungsfrist nach dem Wechsel — Schema 5 (57 Ebenen, `CUBE_PLANES_V5`)
+  const list = header.schema === CUBE_SCHEMA && header.nvar === CUBE_PLANES.length ? CUBE_PLANES
+    : header.schema === CUBE_SCHEMA_V5 && header.nvar === CUBE_PLANES_V5.length ? CUBE_PLANES_V5 : null;
+  if (!list) return null;
+  return list.map((pl) => ({ id: pl.id, unit: pl.unit, scale: pl.scale, offset: pl.offset, group: pl.group }));
 }
 
 /** Eine Zelle (iy, ix — absolut im Stufengitter) aus einem entpackten Chunk als Nachbarzelle. Rein. */

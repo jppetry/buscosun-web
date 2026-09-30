@@ -23,7 +23,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  cubeSelfTest, CUBE_VARS, CUBE_PLANES, TIERS, TIER_BY_ID, CUBE_DOMAIN, CUBE_STEP_COUNT, CUBE_SCHEMA,
+  cubeSelfTest, CUBE_VARS, CUBE_PLANES, CUBE_PLANES_V5, TIERS, TIER_BY_ID, CUBE_DOMAIN, CUBE_STEP_COUNT, CUBE_SCHEMA,
   sigmaKindOf, SIGMA_KIND, encodeCubeChunk, decodeCubeChunk,
   chunkPath, chunkExtent, cellOf, MISSING, quantize, dequantize, planeIndex,
   POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH,
@@ -41,7 +41,7 @@ import { ECMWF_ENS_MEMBERS, ECMWF_ENS_STEP_H, ECMWF_ENS_WIND_EVERY, ECMWF_ENS_WI
 import { keepIndexEntry, ECMWF_STEPS, ecmwfOwnLeads, ecmwfSnapDown } from './point/adapters/ecmwf.mjs';
 import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
-import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest, runsToKeepFor, RETENTION_HOURS_BY_TIER, latestByTier } from '../src/point/manifest.ts';
+import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest, runsToKeepFor, RETENTION_HOURS_BY_TIER, latestByTier, STATIONS_S_RETENTION } from '../src/point/manifest.ts';
 import { pruneTier, tiersOf, retainRuns, runsIn } from './point/prune.mjs';
 import { planCdnSync, parseNameStatus, missingManifestPurges, cdnContractViolations, syncCdn, CDN_BUDGET_S_BY_TIER, CDN_BUDGET_S_DEFAULT, JOB_MEASURED_MAX_MIN } from './point/cdnSync.mjs';
 import { warmCdnFiles, WARM_ACCEPT_ENCODING } from './lib/repackManifest.mjs';
@@ -739,6 +739,7 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     need(`${byKind.sd} σ_div`, text.includes(`${byKind.sd} σ_div`));
     need(`${byKind.sd_ens} σ_ens`, text.includes(`${byKind.sd_ens} σ_ens`));
     need('Quantilzahl', text.includes(`${byKind.q10} q10 + ${byKind.q90} q90`));
+    need(`${byKind.ens} Member-Mittel`, text.includes(`${byKind.ens} Member-Mittel`));
     need(`Registergröße ${SOURCES.length}`, text.includes(`${SOURCES.length} Einträge`));
     for (const d of [STATIONS_DIR, STATIC_DIR, STAGE_DIR]) need(`Verzeichnis ${d}`, text.includes(d));
     for (const p of TIMELESS_PATHS) need(`zeitlos ${p}`, text.includes(p));
@@ -828,11 +829,16 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     //   t1 11,1 + 2,5 = 13,6 → 20 · t2 8,4 + 3,5 (Stationen) = 11,9 → 15 · t3 5,9 + 2,5 = 8,4 → 10.
     // ⚠ Diese Zahlen schreiben sich NICHT selbst fort (§34.6) — sie stehen mit Datum und Laufnummer
     // hier, damit die naechste Aenderung sie nachrechnet statt sie zu erben.
-    const JOB_MAX_MIN_BY_TIER = { t1: 20, t2: 15, t3: 10 };
+    // AX-8 (2026-09-30): `stations-s` = MOSMIX-S stuendlich, kein Cube-Bau — lokal 36 s (Abruf 3 s, Parsen 7 s,
+    // Kodieren), x2 fuer den Runner + 2,5 min Job-Rand ⇒ 3,2 min geschaetzt, JOB_MAX 6; nach den ersten Runner-Laeufen
+    // nachtragen (kein Runner-Lauf vor dem Push von buscosun-web/main).
+    const JOB_MAX_MIN_BY_TIER = { t1: 20, t2: 15, t3: 10, 'stations-s': 6 };
     const JOB_MAX_MIN = Math.max(...Object.values(JOB_MAX_MIN_BY_TIER));
     const jobs = jobsOf(wf);
-    add('(F3b) die Vorlage hat drei Jobs t1/t2/t3, jeder baut GENAU seine Stufe (--tiers=tX)',
-      jobs.map((j) => j.name).join() === 't1,t2,t3' && jobs.every((j) => j.tier === j.name), jobs.map((j) => `${j.name}:${j.tier}`).join(' '));
+    add('(F3b) die Vorlage hat vier Jobs t1/t2/t3/stations-s; jeder Stufen-Job baut GENAU seine Stufe (--tiers=tX), stations-s baut MOSMIX-S (AX-8)',
+      jobs.map((j) => j.name).join() === 't1,t2,t3,stations-s' && jobs.filter((j) => /^t\d$/.test(j.name)).every((j) => j.tier === j.name)
+      && jobs[3]?.tier === null && /build-stations\.mjs --source=mosmix_s/.test(jobs[3]?.body ?? '') && !/build-point-cube/.test(jobs[3]?.body ?? ''),
+      jobs.map((j) => `${j.name}:${j.tier}`).join(' '));
     const scheduleLines = wf.split(NEWLINE).map((l) => /-\s*cron:\s*'([^']+)'/.exec(l)?.[1]).filter(Boolean);
     add('(F3b) jeder Job hat seinen eigenen Cron im `if:` und der steht in on.schedule',
       jobs.every((j) => j.cron && scheduleLines.includes(j.cron)) && new Set(jobs.map((j) => j.cron)).size === jobs.length && scheduleLines.length === jobs.length,
@@ -869,7 +875,7 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     }
     // Regel C: timeout je Job zwischen JOB_MAX + 10 und dem engsten Abstand.
     const timeouts = timeoutMinutesOf(wf);
-    add('(F3b) drei Jobs, drei timeout-minutes', timeouts.length === 3 && jobs.every((j) => j.timeout), timeouts.join(', '));
+    add('(F3b) vier Jobs, vier timeout-minutes', timeouts.length === 4 && jobs.every((j) => j.timeout), timeouts.join(', '));
     for (const j of jobs) {
       const max = JOB_MAX_MIN_BY_TIER[j.name] ?? JOB_MAX_MIN;
       add(`(F3b) Regel C ${j.name}: ${max} + 10 ≤ timeout ${j.timeout} ≤ Abstand ${j.worstGap}`, j.timeout >= max + 10 && j.timeout <= j.worstGap);
@@ -889,14 +895,27 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     }
     // Reihenfolge und Warteschlange: t2 hinter t1, t3 hinter t2 — mit always(), sonst faellt ein
     // planmaessiger t2-Lauf aus, weil t1 an dem Tag uebersprungen ist.
-    add('(F3b) needs-Kette t1 → t2 → t3 mit always() (bei tiers=all nacheinander, planmaessig unabhaengig)',
-      jobs[1]?.needs.join() === 't1' && jobs[2]?.needs.join() === 't2' && jobs[1]?.always && jobs[2]?.always && !jobs[0]?.needs.length);
+    add('(F3b) needs-Kette t1 → t2 → t3 → stations-s mit always() (bei tiers=all nacheinander, planmaessig unabhaengig)',
+      jobs[1]?.needs.join() === 't1' && jobs[2]?.needs.join() === 't2' && jobs[3]?.needs.join() === 't3' && jobs[1]?.always && jobs[2]?.always && jobs[3]?.always && !jobs[0]?.needs.length);
     add('(F3b) EINE Concurrency-Gruppe fuer alle Jobs, ohne cancel-in-progress',
       /concurrency:\s*[\s\S]*?group: point\s*[\s\S]*?cancel-in-progress: false/.test(wf) && (wf.match(/group: point/g) || []).length === 1);
-    add('(F3b) das Stationsprodukt haengt genau am t2-Job (viermal taeglich, continue-on-error)',
-      jobs.filter((j) => /build-stations\.mjs/.test(j.body)).map((j) => j.name).join() === 't2' && /continue-on-error: true/.test(jobs[1]?.body ?? ''));
-    add('(F3b) jeder Job hat genau EINE Push-Stelle (publish-point.mjs) und leert den Cache je Stufe',
-      jobs.every((j) => (j.body.match(/publish-point\.mjs/g) || []).length === 1 && /POINT_CACHE_CLEAR: 'tier'/.test(j.body) && /REPACK_BZIP2: '1'/.test(j.body) && /POINT_PUSH: '1'/.test(j.body)));
+    add('(F3b) MOSMIX-L haengt genau am t2-Job (viermal taeglich, continue-on-error); MOSMIX-S (AX-8) am t2-Job (t2-Stunden, continue-on-error) und am stations-s-Job',
+      jobs.filter((j) => /build-stations\.mjs\s*$/m.test(j.body)).map((j) => j.name).join() === 't2'
+      && jobs.filter((j) => /build-stations\.mjs --source=mosmix_s/.test(j.body)).map((j) => j.name).join() === 't2,stations-s'
+      && (jobs[1]?.body.match(/continue-on-error: true/g) || []).length === 2 && !/continue-on-error/.test(jobs[3]?.body ?? ''));
+    // V-AX-12: der erste Schutz suchte `mosmix_s` — ein TEILSTRING von `mosmix_stationskatalog`, das der alte Bauer auf main
+    // enthaelt: der Leerlauf-Schutz griff nicht, der Lauf 14:03 UTC (30.09.) baute MOSMIX-L stuendlich neu. Deshalb ein
+    // Marker, den es vor AX-8 nirgends gab (`POINT_STATIONS_SOURCE`), mit `-F` (fester String), und hier die Gegenprobe:
+    // der Marker steht im heutigen Bauer, und der Teilstring-Fall ist als Negativkontrolle benannt.
+    const bsForGuard = readFileSync(join(ROOT, 'scripts/point/build-stations.mjs'), 'utf8');
+    add('(F3b) der stations-s-Job ist ein benannter Leerlauf, solange main den Producer ohne --source traegt (kein Publish ohne Bau); Marker POINT_STATIONS_SOURCE mit -F, nicht der Teilstring mosmix_s (V-AX-12)',
+      /grep -qF "POINT_STATIONS_SOURCE" scripts\/point\/build-stations\.mjs/.test(jobs[3]?.body ?? '') && /built=0/.test(jobs[3]?.body ?? '') && /if: steps\.build\.outputs\.built == '1'/.test(jobs[3]?.body ?? '')
+      && /grep -qF "POINT_STATIONS_SOURCE" scripts\/point\/build-stations\.mjs/.test(jobs[1]?.body ?? '')
+      && bsForGuard.includes('POINT_STATIONS_SOURCE') && !/grep -q "mosmix_s"/.test(wf) && 'mosmix_stationskatalog'.includes('mosmix_s'));
+    add('(F3b) jeder Job hat genau EINE Push-Stelle (publish-point.mjs); die Stufen-Jobs leeren den Cache je Stufe',
+      jobs.every((j) => (j.body.match(/publish-point\.mjs/g) || []).length === 1 && /POINT_PUSH: '1'/.test(j.body))
+      && jobs.filter((j) => j.tier).every((j) => /POINT_CACHE_CLEAR: 'tier'/.test(j.body) && /REPACK_BZIP2: '1'/.test(j.body))
+      && !/POINT_CACHE_CLEAR|REPACK_BZIP2/.test(jobs[3]?.body ?? ''));
     // ── Regel F (AP12a, E-F-1): der CDN-Abgleich nach dem Push passt in die Luft des Jobs ──────
     // Budget je Job = POINT_CDN_BUDGET_S im Publish-Schritt; gemessenes Job-Maximum (GitHub-API,
     // Läufe 56–71, 15./16.09.) + Budget + 1 min Reserve ≤ JOB_MAX_MIN_BY_TIER. Die Vorlage und
@@ -926,8 +945,10 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     //             12z Stunde 360 am 2026-09-14 um 19:34 UTC     ⇒ Lauf + 7,57 h  (12z erstmals gemessen)
     //   mosmix_l  all_stations, Last-Modified 2026-09-13/14: 21z 22:12:47 · 03z 04:16:01 ·
     //             09z 10:12:51 · 15z 16:16:16                    ⇒ Lauf + 73…76 min (Regel E′)
-    const READY_H = { icon_d2: 1.36, icon_eu: 3.64, ifs_oper: 7.57, mosmix_l: 1.28 };
-    const TIER_DRIVER = { t1: { src: 'icon_d2', everyH: 3 }, t2: { src: 'icon_eu', everyH: 6 }, t3: { src: 'ifs_oper', everyH: 12 } };
+    //   mosmix_s  AX-8, all_stations MOSMIX_S_LATEST_240, Last-Modified 2026-09-30: 09z 09:39:52 · 10z 10:40:47 ·
+    //             11z 11:39:37 · 12z 12:39:20                    ⇒ Lauf + 39…41 min (stuendlich; Slot :50 ⇒ 9 min Rand)
+    const READY_H = { icon_d2: 1.36, icon_eu: 3.64, ifs_oper: 7.57, mosmix_l: 1.28, mosmix_s: 41 / 60 };
+    const TIER_DRIVER = { t1: { src: 'icon_d2', everyH: 3 }, t2: { src: 'icon_eu', everyH: 6 }, t3: { src: 'ifs_oper', everyH: 12 }, 'stations-s': { src: 'mosmix_s', everyH: 1 } };
     const MARGIN_MIN = 9;
     // Alter des juengsten Laufs der Quelle zum Slot-Zeitpunkt, in Minuten.
     const ageAtSlot = (slotMin, everyH) => {
@@ -1001,8 +1022,8 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
   // Praedikat gegen dieselbe Pfadliste gehalten, die der Publisher benutzt.
   {
     const blocks = sparseBlocksOf(wf);
-    add('(F3b) die Vorlage hat einen sparse-checkout-Block JE JOB (drei)',
-      blocks.length === 3, `${blocks.length} Bloecke: ${blocks.map((b) => b.join(' ')).join(' | ')}`);
+    add('(F3b) die Vorlage hat einen sparse-checkout-Block JE JOB (vier, seit AX-8)',
+      blocks.length === 4, `${blocks.length} Bloecke: ${blocks.map((b) => b.join(' ')).join(' | ')}`);
     const mustCover = [...PUBLISH_PATHS, STATIONS_DIR, POINT_INDEX_PATH, POINT_CALIB_PATH];
     for (const [i, patterns] of blocks.entries()) {
       const open = uncoveredPaths(patterns, mustCover);
@@ -1010,7 +1031,7 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
         open.length === 0, open.length ? `ungedeckt: ${open.join(', ')}` : `${mustCover.length} Pfade gegen ${patterns.join(' ')}`);
     }
     add('jeder Job prueft das Muster nach (git sparse-checkout list)',
-      (wf.match(/sparse-checkout list \| grep -qx '\.gitattributes'/g) || []).length === 3,
+      (wf.match(/sparse-checkout list \| grep -qx '\.gitattributes'/g) || []).length === 4,
       'ein Muster, das nichts trifft, meldet nichts');
     // Negativ-Kontrolle: das deployte Muster vom 2026-09-09 muss durchfallen.
     const deployedOld = ['point', 'index.json'];
@@ -1179,10 +1200,10 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
 
 // --- (12) Zählwerte, die im Audit stehen -----------------------------------
 add('Zeitachse: 109 Schritte über drei Stufen', CUBE_STEP_COUNT === 109, `${CUBE_STEP_COUNT}`);
-// Gezaehlter Anker, kein Kommentar: 25 Groessen + 9 sigma_div + 9 sigma_ens + 2x7 Quantile = 57
-// (Schema 5; Schema 4 waren es 51, Schema 2 36, Schema 1 27). Aendert sich die Zahl
+// Gezaehlter Anker, kein Kommentar: 25 Groessen + 9 sigma_div + 9 sigma_ens + 2x7 Quantile + 4 Member-Mittel = 61
+// (Schema 6, AX-7; Schema 5 waren es 57, Schema 4 51, Schema 2 36, Schema 1 27). Aendert sich die Zahl
 // unbeabsichtigt, faellt diese Zeile.
-add('57 Ebenen im Cube (Schema 5)', CUBE_PLANES.length === 57 && CUBE_SCHEMA === 5, `${CUBE_PLANES.length}, Schema ${CUBE_SCHEMA}`);
+add('61 Ebenen im Cube (Schema 6), 57 in der Schema-5-Liste', CUBE_PLANES.length === 61 && CUBE_SCHEMA === 6 && CUBE_PLANES_V5.length === 57, `${CUBE_PLANES.length}, Schema ${CUBE_SCHEMA}, V5 ${CUBE_PLANES_V5.length}`);
 add('276 Chunks je vollem Lauf',
   TIERS.reduce((n, t) => n + t.chunk.cy * t.chunk.cx, 0) === 276,
   String(TIERS.reduce((n, t) => n + t.chunk.cy * t.chunk.cx, 0)));
@@ -1356,9 +1377,12 @@ add('das Repo führt KEIN Geländeprodukt', !TIMELESS_PATHS.some((p) => p.starts
   const ensVars = CUBE_VARS.filter((v) => v.sigmaEns).map((v) => v.id);
   const divVars = CUBE_VARS.filter((v) => v.sigmaDiv).map((v) => v.id);
   const qVars = CUBE_VARS.filter((v) => v.quantiles).map((v) => v.id);
-  add('(3f) Ebenenzahl = Größen + σ_div + σ_ens + 2·Quantile',
-    CUBE_PLANES.length === CUBE_VARS.length + divVars.length + ensVars.length + 2 * qVars.length,
-    `${CUBE_VARS.length} + ${divVars.length} + ${ensVars.length} + 2·${qVars.length} = ${CUBE_PLANES.length}`);
+  const mVars = CUBE_VARS.filter((v) => v.ensMean).map((v) => v.id);
+  add('(3f) Ebenenzahl = Größen + σ_div + σ_ens + 2·Quantile + Member-Mittel (Schema 6, AX-7)',
+    CUBE_PLANES.length === CUBE_VARS.length + divVars.length + ensVars.length + 2 * qVars.length + mVars.length,
+    `${CUBE_VARS.length} + ${divVars.length} + ${ensVars.length} + 2·${qVars.length} + ${mVars.length} = ${CUBE_PLANES.length}`);
+  // AX-7: ein Member-Mittel setzt σ_ens voraus (dieselben Member) — eine `_ens`-Ebene ohne Ensemble-Quelle wäre schreiberlos
+  add('(3f) jede _ens-Ebene gehört zu einer Größe mit σ_ens (dieselben Member)', mVars.every((v) => ensVars.includes(v)), mVars.join(','));
 
   // ⚠ Der Kern der Etappe: eine `_sd_ens`-Ebene, die keine Quelle je füllen kann, wäre
   // ein Schreiber-loses Feld — dasselbe Muster wie V-SH-11, nur andersherum. Geprüft wird
@@ -2282,6 +2306,37 @@ merge('Profil (PD-B5)', profileSelfTest());
   add('(3n) und ueberalterte Stationslaeufe werden BENANNT, nicht verschwiegen',
     /stDecision\.stale/.test(pub));
   add('(3n) index.json fuehrt die Stationslaeufe', /stationRuns/.test(pub));
+  // ── AX-8 (2026-09-30): MOSMIX-S als zweites Stationsprodukt ──────────────────────────────────
+  const readmeText = readFileSync(join(ROOT, 'scripts/repack-repo/README.md'), 'utf8');
+  const { classifyPointPath } = await import('./point/cdnSync.mjs');
+  add('(3n) AX-8: der Bauer kennt beide Quellen (--source / POINT_STATIONS_SOURCE) und lehnt fremde ab',
+    /args\.source \|\| process\.env\.POINT_STATIONS_SOURCE \|\| 'mosmix_l'/.test(bs) && /STATION_SOURCES\.includes\(STATION_SOURCE\)/.test(bs));
+  add('(3n) AX-8: MOSMIX-S wird von MOSMIX_S_LATEST_240.kmz gelesen, L unveraendert von MOSMIX_L_LATEST.kmz',
+    /mosmix_s: 'https:\/\/opendata\.dwd\.de\/weather\/local_forecasts\/mos\/MOSMIX_S\/all_stations\/kml\/MOSMIX_S_LATEST_240\.kmz'/.test(bs)
+    && /mosmix_l: 'https:\/\/opendata\.dwd\.de\/weather\/local_forecasts\/mos\/MOSMIX_L\/all_stations\/kml\/MOSMIX_L_LATEST\.kmz'/.test(bs));
+  add('(3n) AX-8: Pfade, Buendel und Manifest folgen der Quelle; ohne Argument L wie vor AX-8',
+    /stationsDirOf\(STATION_SOURCE\)/.test(bs) && /stationBundlePath\(run, c\.cy, c\.cx, STATION_SOURCE\)/.test(bs) && /stationManifestPath\(run, STATION_SOURCE\)/.test(bs) && /source: STATION_SOURCE,/.test(bs)
+    && stationBundlePath('2026093009', 0, 0, 'mosmix_s') === 'point/stations-s/2026093009/00_00.bin' && stationBundlePath('2026093009', 0, 0) === 'point/stations/2026093009/00_00.bin');
+  add('(3n) AX-8: nur der L-Lauf schreibt den Katalog (S traegt dieselben Stationen, gemessen)', /if \(STATION_SOURCE === 'mosmix_l'\) writeFileSync\(cp/.test(bs));
+  add('(3n) AX-8: die Bereitstellung von MOSMIX-S ist gemessen (Lauf + 39…41 min) und steht als Caveat im S-Manifest', /Lauf \+ 39…41 min/.test(bs) && /09z 09:39:52/.test(bs));
+  add('(3n) AX-8: stations-s/ unterliegt einer EIGENEN Aufbewahrung (6 h, Boden) und steht im Index als stationsS',
+    /runsIn\(stationsSRoot\)/.test(pub) && /runsToKeepFor\(ssPresent, STATIONS_S_RETENTION\)/.test(pub) && /rmSync\(join\(stationsSRoot/.test(pub) && /stationSRuns,/.test(pub)
+    && STATIONS_S_RETENTION.hours === 6 && STATIONS_S_RETENTION.minRuns === MIN_RUNS && STATIONS_S_RETENTION.hours < RETENTION_HOURS);
+  add('(3n) AX-8: der CDN-Abgleich klassifiziert stations-s wie stations', classifyPointPath('point/stations-s/2026093009/00_00.bin') === 'stations-bundle' && classifyPointPath('point/stations-s/2026093009/stations.json') === 'stations-manifest');
+  add('(3n) AX-8: das README des Daten-Repos nennt point/stations-s/ und die 6 h', readmeText.includes('point/stations-s/') && /stations-s\/`\s*\|\s*Alter ≤ \*\*6 h\*\*/.test(readmeText));
+  // ── AX-11 (2026-09-30, Bericht #21): drei Ebenen nur im Stationsprodukt (Globalstrahlung, Sonnenscheindauer, Sichtweite) ──
+  {
+    const { STATION_PLANES: SP, STATION_EXTRA_PLANES: SEP, CUBE_PLANES: CP } = await import('../src/point/cubeFormat.ts');
+    const { mosmixToCube: m2c, MOSMIX_PARAMS: MP } = await import('./point/mosmix.mjs');
+    add('(3n) AX-11: die Stationsliste = Cube-Ebenen + genau drei Stationsebenen (radGlob W/m2, sunDur min, vis m/10) HINTER der Cube-Liste',
+      SP.length === CP.length + 3 && SP.slice(0, CP.length).every((p, i) => p.id === CP[i].id) && SEP.map((p) => `${p.id}:${p.unit}:${p.scale}`).join() === 'radGlob:W/m2:1,sunDur:min:1,vis:m:10');
+    add('(3n) AX-11: MOSMIX Rad1h/SunD1/VV werden gelesen und in die Produkteinheiten gebracht (kJ/m² ÷ 3,6 ⇒ W/m², s ⇒ min gekappt 60, m); negative Werte fallen weg',
+      ['Rad1h', 'SunD1', 'VV'].every((k) => MP.includes(k))
+      && (() => { const v = m2c({ Rad1h: [1800], SunD1: [1800], VV: [12345] }, 0); return v.radGlob === 500 && v.sunDur === 30 && v.vis === 12345; })()
+      && (() => { const v = m2c({ Rad1h: [-1], SunD1: [7200], VV: [-5] }, 0); return v.radGlob === undefined && v.sunDur === 60 && v.vis === undefined; })());
+    add('(3n) AX-11: der Bauer schreibt mit der Stationsliste (Encoder zaehlt 64), das Manifest nennt sie und die Stationsebenen',
+      /encodeCubeChunk\(\{[\s\S]*?\}, deflate9, PLANES\)/.test(bs) && /planes: PLANES\.map/.test(bs) && /stationPlanes: STATION_EXTRA_PLANES\.map/.test(bs) && /const PLANES = STATION_PLANES;/.test(bs));
+  }
 
   // §30-Lehre: die Vorlage pruefen, nicht nur das Skript.
   const wf = readFileSync(join(ROOT, 'scripts/repack-repo/workflow-point.yml'), 'utf8');
@@ -2315,9 +2370,9 @@ merge('Profil (PD-B5)', profileSelfTest());
 
   // EINE Streuungsrechnung für alle Ensembles — sonst versteckt sich derselbe Fehler
   // in jeder Kopie einzeln.
-  add('(3o) dwdEps und ecmwfEns rechnen mit derselben Funktion (Streuung UND Quantile aus ensembleStats.mjs)',
-    /import \{ memberSpread, memberQuantiles \} from '\.\/ensembleStats\.mjs'/.test(de)
-    && /import \{ memberSpread, memberQuantiles \} from '\.\/ensembleStats\.mjs'/.test(ee));
+  add('(3o) dwdEps und ecmwfEns rechnen mit derselben Funktion (Streuung UND Quantile aus ensembleStats.mjs; ecmwfEns seit AX-7 auch das Member-Mittel)',
+    /import \{[^}]*\bmemberSpread\b[^}]*\bmemberQuantiles\b[^}]*\} from '\.\/ensembleStats\.mjs'/.test(de)
+    && /import \{[^}]*\bmemberSpread\b[^}]*\bmemberQuantiles\b[^}]*\bmemberMean\b[^}]*\} from '\.\/ensembleStats\.mjs'/.test(ee));
   add('(3o) dwdEps rechnet die Streuung nicht mehr selbst',
     !/\(s2\[k\] - \(s1\[k\] \* s1\[k\]\) \/ c\) \/ \(c - 1\)/.test(deC));
 
@@ -3139,7 +3194,7 @@ merge('Profil (PD-B5)', profileSelfTest());
   // F3a selbst war additiv und hat das Schema nicht angefasst; angehoben hat es PD-E
   // (51 -> 57 Ebenen, Druckflaechen). Die Zeile haelt die Zahl an EINER Stelle fest, damit
   // eine unbeabsichtigte Ebenenaenderung auffaellt — nicht die Behauptung, sie aendere sich nie.
-  add('(3z) CUBE_SCHEMA ist 5 (F3a additiv, angehoben von PD-E)', CUBE_SCHEMA === 5, String(CUBE_SCHEMA));
+  add('(3z) CUBE_SCHEMA ist 6 (F3a additiv, angehoben von PD-E auf 5 und von AX-7 auf 6)', CUBE_SCHEMA === 6, String(CUBE_SCHEMA));
   add('(3z) Aufbewahrung je Stufe: t1 kuerzer als die Gesamtregel, keine Stufe laenger als 24 h (Jans Regel 2026-09-09)',
     RETENTION_HOURS_BY_TIER.t1 < RETENTION_HOURS && Object.values(RETENTION_HOURS_BY_TIER).every((h) => h <= RETENTION_HOURS)
     && Object.keys(RETENTION_HOURS_BY_TIER).sort().join() === TIERS.map((t) => t.id).sort().join(), JSON.stringify(RETENTION_HOURS_BY_TIER));
@@ -3147,7 +3202,9 @@ merge('Profil (PD-B5)', profileSelfTest());
   {
     const perRun = 75.7, slotsPerDay = 8;
     const t1Runs = Math.max(MIN_RUNS, Math.floor(RETENTION_HOURS_BY_TIER.t1 / (24 / slotsPerDay)) + 1);
-    add(`(3z) Repo-Rechnung: ${t1Runs} t1-Laeufe x ${perRun} MiB + t2/t3/stations bleibt unter 500 MiB`, t1Runs * perRun + 4 * 25 + 2 * 5 + 27 < 500, `${(t1Runs * perRun + 4 * 25 + 2 * 5 + 27).toFixed(0)} MiB`);
+    // AX-8: + stations-s — 6 h Aufbewahrung bei 24 Slots ⇒ ≈ 7 Laeufe x 6,84 MiB (lokal gemessen 30.09.).
+    const sRuns = Math.floor(STATIONS_S_RETENTION.hours) + 1, sMiB = 6.84;
+    add(`(3z) Repo-Rechnung: ${t1Runs} t1-Laeufe x ${perRun} MiB + t2/t3/stations + ${sRuns} stations-s x ${sMiB} MiB bleibt unter 500 MiB`, t1Runs * perRun + 4 * 25 + 2 * 5 + 27 + sRuns * sMiB < 500, `${(t1Runs * perRun + 4 * 25 + 2 * 5 + 27 + sRuns * sMiB).toFixed(0)} MiB`);
   }
   const now = Date.parse('2026-09-11T22:00:00Z');
   const iso = (r) => `${r.slice(0, 4)}-${r.slice(4, 6)}-${r.slice(6, 8)}T${r.slice(8, 10)}:00:00Z`;

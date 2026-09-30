@@ -58,6 +58,8 @@ export function signature(tierId, it, ry, rx) {
     ...(single ? {} : { t2m_sd: sdT, td2m_sd: sdT + 0.1, u10_sd: 0.6, v10_sd: 0.6, gust_sd: 1.2, precip_sd: 0.2, clct_sd: 12, ps_sd: 0.8, snowlmt_sd: 80 }),
     // σ_ens nur auf dem groben Raster (t1 6 h, t2 12 h, t3 24 h) — wie im Cube (§9.5.1 (3)).
     ...(it % { t1: 6, t2: 4, t3: 4 }[tierId] === 0 ? { t2m_sd_ens: sdEnsT, u10_sd_ens: 0.4, v10_sd_ens: 0.4, precip_sd_ens: 0.15, ensCount: 20 } : {}),
+    // Schema 6 (AX-7): das Member-Mittel nur in t3 an den σ_ens-Stunden (IFS-ENS) — um +0,7 K / −10 % Wind vom Stufenmittel entfernt
+    ...(tierId === 't3' && it % 4 === 0 ? { t2m_ens: t2m + 0.7, u10_ens: u10 * 0.9, v10_ens: v10 * 0.9, precip_ens: it % 5 === 0 ? 0.25 + it * 0.01 : 0.05 } : {}),
     t2m_q10: t2m - 1.5, t2m_q90: t2m + 1.5, precip_q10: 0, precip_q90: 0.8,
     srcCount: single ? 1 : tierId === 't3' && it > 9 ? 2 : 5,
     hModEff: FIX.hModEff[tierId],

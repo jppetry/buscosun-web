@@ -570,6 +570,9 @@ export async function buildTier(tierId, opts = {}) {
       && !contributors.some((c) => (c.adapter.quantileVars ?? []).length > 0 && !c.dropped);
     const qHours = new Set(), qVars = new Set(), qByHour = {};
     let qFilled = 0;
+    // AX-7 (Schema 6): das Member-Mittel `<var>_ens` aus denselben Membern — nur, wo die Quelle es liefert (IFS-ENS)
+    const mHours = new Set(), mVars = new Set(), mByHour = {};
+    let mFilled = 0;
     const per = new Map(ensSources.map((c) => [c.id, {
       id: c.id, run: c.run, hours: [], vars: new Set(),
       membersMin: Infinity, membersMax: 0, clamped: 0, noRate: 0, errors: 0,
@@ -634,6 +637,19 @@ export async function buildTier(tierId, opts = {}) {
             }
             qHours.add(leadH); qVars.add(varId); qByHour[leadH] = src.id;
           }
+          // AX-7: das Member-Mittel ist ein WERT der Groesse (Versatz Kelvin → °C wie die Quantile), am Ende der Groesse
+          if (r.mean && planeIndex(`${varId}_ens`) >= 0) {
+            const off = QUANTILE_VALUE_OFFSET[varId] ?? 0;
+            const em = meta(`${varId}_ens`), ep = planeAt(`${varId}_ens`);
+            for (let i = 0; i < cells; i++) {
+              const v = r.mean[i];
+              if (!Number.isFinite(v)) continue;
+              if (src.mask && !src.mask[i]) continue;
+              ep[b + i] = quantize(v + off, em);
+              mFilled++;
+            }
+            mHours.add(leadH); mVars.add(varId); mByHour[leadH] = src.id;
+          }
         }
         if (any) { servedBy = src.id; st.hours.push(leadH); break; }
       }
@@ -668,6 +684,16 @@ export async function buildTier(tierId, opts = {}) {
         + 'Laufbeginn.',
       caveat: 'σ_ens ist die Streuung INNERHALB einer Quelle, σ_div die zwischen Quellen. '
         + 'PAP 6 verzweigt zwischen beiden — sie werden NICHT addiert.',
+      // AX-7 (Schema 6, E-AX-6): das Member-Mittel als eigene Ebene je Groesse
+      mean: mHours.size ? {
+        vars: [...mVars], steps: mHours.size, missing: nt - mHours.size, cellsWritten: mFilled, byHour: mByHour,
+        provenance: 'ensemble-members',
+        note: 'Phase AX, AX-7 (2026-09-30): `<var>_ens` = Mittel der Member der Quelle, die die Stunde traegt (dieselben Member wie '
+          + 'σ_ens und die Quantile, null Bytes zusaetzlich; Niederschlag als Rate ueber den Stufenschritt). Es ersetzt das Mittel '
+          + 'der Stufe NICHT (V-PD-9 gilt fuer die mean-Ebene weiter) — der Client kann es als eigenes Member fuehren '
+          + '(FuseCubeOptions.ensMember). Gemessen an 389 Stationen 2025-09…2026-09: bei 126–336 h gegen den Kontrolllauf '
+          + 'T +14/+23 %, Wind +13/+16 %, Boee +10/+12 % MAE (audit/fusion-ausbau.md §6).',
+      } : null,
     };
     if (writeMemberQuantiles && qHours.size) {
       const ids = [...new Set(Object.values(qByHour))];

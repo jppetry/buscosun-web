@@ -29,7 +29,7 @@
  */
 
 import {
-  TIERS, TIER_BY_ID, type TierId, cellOf, chunkOf, stationBundlePath, HMODEL_PRODUCT, HMODEL_VERSION, Z0MOD_PRODUCT, Z0MOD_VERSION, CUBE_PLANES, CUBE_SCHEMA,
+  TIERS, TIER_BY_ID, type TierId, cellOf, chunkOf, stationBundlePath, type StationSource, HMODEL_PRODUCT, HMODEL_VERSION, Z0MOD_PRODUCT, Z0MOD_VERSION, CLIMA_GRID_PRODUCT, CLIMA_GRID_VERSION, CUBE_PLANES, CUBE_SCHEMA,
   chunkPath, blockCellsOutsideChunk, type CubeTier,
 } from '../cubeFormat';
 import type { PointRunManifest } from '../manifest';
@@ -105,6 +105,18 @@ export interface ReadPointOptions {
    */
   z0mod?: boolean;
   /**
+   * AX-8: welches Stationsprodukt die Stationsreihe trägt. `mosmix_l` (Voreinstellung, `index.stations`, wie vor
+   * AX-8), `mosmix_s` (`index.stationsS`, stündlich; fehlt der Lauf, fällt der Leser BENANNT auf L zurück) oder
+   * `freshest` (der jüngere Lauf beider Listen nach `runAt`). Ohne Option byte-gleich zum Stand vor AX-8.
+   */
+  stationSource?: 'mosmix_l' | 'mosmix_s' | 'freshest';
+  /**
+   * AX-9: `point/static/clima-grid/v1` (monatliche Klimanormale 1991–2020 der nationalen 1-km-Gitter auf dem
+   * Stufe-1-Gitter) mitlesen — mit den übrigen statischen Produkten, progressiv also in der Nachlieferung.
+   * Voreinstellung aus (kein Abruf, kein Feld im Bündel).
+   */
+  climaGrid?: boolean;
+  /**
    * AP7 (V-FI-16): Frist AB DEM START des Lesens, bis zu der auf die progressiven Produkte (Nowcast,
    * statische Produkte) gewartet wird — nie früher als `lateGraceMs` nach dem Kern. Radar-Slots sind
    * am Edge immer kalt (V-FI-7) — im Lab kam der Nowcast 1,4–2,1 s nach dem Kern und machte aus 0,7 s
@@ -175,6 +187,8 @@ export interface PointBundle {
   urban: StaticPoint | null;
   /** AP17: z0 der Modelle je Stufe (`point/static/z0mod`) — nur mit `ReadPointOptions.z0mod`; `null` = Produkt/Zelle fehlt. */
   z0mod?: Partial<Record<TierId, StaticPoint | null>>;
+  /** AX-9: Klimanormale der Stufe-1-Zelle (`point/static/clima-grid`) — nur mit `ReadPointOptions.climaGrid`; `null` = Produkt/Zelle fehlt. */
+  climaGrid?: StaticPoint | null;
   terrain: TerrainPointResult | null;
   plan: PointPlan | null;
   /**
@@ -184,7 +198,7 @@ export interface PointBundle {
    */
   late?: {
     nowcast?: { result: Promise<NowcastPointSeries[]>; skip: string };
-    static?: { result: Promise<{ hmodel: Partial<Record<TierId, StaticPoint | null>>; urban: StaticPoint | null; z0mod?: Partial<Record<TierId, StaticPoint | null>> }>; skip: string };
+    static?: { result: Promise<{ hmodel: Partial<Record<TierId, StaticPoint | null>>; urban: StaticPoint | null; z0mod?: Partial<Record<TierId, StaticPoint | null>>; climaGrid?: StaticPoint | null }>; skip: string };
     /** AP12 (e): der Index kam aus der SWR-Kopie; `changed` = die Nachprüfung nennt andere Läufe (Stufen oder Stationen). */
     index?: { ageMs: number; changed: Promise<boolean> };
     /**
@@ -476,10 +490,28 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   if (opts.z0mod) {
     for (const t of tiers) z0modPs.set(t, guard(`z0mod.${t}`, readStaticProductPoint(staticStore, Z0MOD_PRODUCT, Z0MOD_VERSION, t, lat, lon, { decodeChunk: decode, priority: 'low' })));
   }
+  // AX-9: Klimanormale der Stufe-1-Zelle — nur mit der Option (sonst kein Abruf, kein Feld).
+  const climaGridP: Promise<StaticPoint | null> | null = opts.climaGrid
+    ? guard('climaGrid', readStaticProductPoint(staticStore, CLIMA_GRID_PRODUCT, CLIMA_GRID_VERSION, 't1', lat, lon, { decodeChunk: decode, priority: 'low' }))
+    : null;
 
   // ── Station: Katalog ‖ Manifest ‖ Bündel des eigenen Chunks (optimistisch) ─
   const readStation = async (): Promise<{ series: StationPointSeries | null; choice: StationChoice }> => {
-    const run = index.stations?.runs?.[0] ?? null;
+    // AX-8: L ist die Voreinstellung; S nur mit Option, und ohne S-Lauf im Index BENANNT zurück auf L.
+    const runL = index.stations?.runs?.[0] ?? null;
+    const runS = (index as { stationsS?: { runs?: typeof index.stations.runs } }).stationsS?.runs?.[0] ?? null;
+    const want = opts.stationSource ?? 'mosmix_l';
+    const pick = (): { run: typeof runL; source: StationSource } => {
+      if (want === 'mosmix_s') {
+        if (runS) return { run: runS, source: 'mosmix_s' };
+        if (runL) skips.push('stations: kein MOSMIX-S-Lauf im Index — Rückfall auf MOSMIX-L');
+        return { run: runL, source: 'mosmix_l' };
+      }
+      if (want === 'freshest' && runS && (!runL || Date.parse(runS.runAt ?? '') > Date.parse(runL.runAt ?? ''))) return { run: runS, source: 'mosmix_s' };
+      return { run: runL, source: 'mosmix_l' };
+    };
+    const picked = pick();
+    const run = picked.run;
     const catalogP = loadStationCatalog(store, { priority: 'high' });
     const manifestP: Promise<StationRunManifest | null> = run ? store.json<StationRunManifest>(run.manifest, { priority: 'high' }) : Promise.resolve(null);
     const cell = cellOf(TIER_BY_ID.t1, lat, lon);
@@ -487,7 +519,7 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
       const ch = chunkOf(cell.iy, cell.ix);
       // Der Memo-Store merkt sich die Zusage; der Stationsleser holt denselben Pfad später
       // aus dem Memo, wenn die Station im eigenen Chunk liegt (der Regelfall bei ≤ 15 km).
-      void store.bytes(stationBundlePath(run.run, ch.cy, ch.cx), { priority: 'high' }).catch(() => null);
+      void store.bytes(stationBundlePath(run.run, ch.cy, ch.cx, picked.source), { priority: 'high' }).catch(() => null);
     }
     const catalog = await catalogP;
     // Höhenkriterium: die übergebene Höhe; sonst — E-F-12 — die Stationshöhe, wenn der Punkt
@@ -579,15 +611,20 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   const withDeadline = <T>(p: Promise<T>): Promise<T | typeof LATE> => (deadlineMs == null
     ? p
     : Promise.race([p, coreP.then(() => new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), Math.max(graceMs, (deadlineMs as number) - (now() - T0)))))]));
-  const staticAll = Promise.all([...hmodelPs.values(), urbanP, ...z0modPs.values()]).then((arr) => { mark('static'); progress('static'); return arr; });
+  const staticAll = Promise.all([...hmodelPs.values(), urbanP, ...z0modPs.values(), ...(climaGridP ? [climaGridP] : [])]).then((arr) => { mark('static'); progress('static'); return arr; });
   const staticOf = (arr: Array<StaticPoint | null>) => {
     const hmodel: Partial<Record<TierId, StaticPoint | null>> = {};
     const tiersList = [...hmodelPs.keys()];
     tiersList.forEach((t, i) => { hmodel[t] = arr[i] ?? null; });
-    if (!opts.z0mod) return { hmodel, urban: arr[tiersList.length] ?? null };
-    const z0mod: Partial<Record<TierId, StaticPoint | null>> = {};
-    [...z0modPs.keys()].forEach((t, i) => { z0mod[t] = arr[tiersList.length + 1 + i] ?? null; });
-    return { hmodel, urban: arr[tiersList.length] ?? null, z0mod };
+    const out: { hmodel: typeof hmodel; urban: StaticPoint | null; z0mod?: Partial<Record<TierId, StaticPoint | null>>; climaGrid?: StaticPoint | null } = { hmodel, urban: arr[tiersList.length] ?? null };
+    if (opts.z0mod) {
+      const z0mod: Partial<Record<TierId, StaticPoint | null>> = {};
+      [...z0modPs.keys()].forEach((t, i) => { z0mod[t] = arr[tiersList.length + 1 + i] ?? null; });
+      out.z0mod = z0mod;
+    }
+    // AX-9: das Klimagitter steht IMMER als letztes Element — nach hmodel je Stufe, urban und (mit Option) z0mod je Stufe.
+    if (climaGridP) out.climaGrid = arr[tiersList.length + 1 + z0modPs.size] ?? null;
+    return out;
   };
   const lateWhy = opts.progressive
     ? 'zum Kern noch nicht da — die erste Ausgabe rechnet ohne, das Ergebnis folgt (progressiv, AP12)'
@@ -616,7 +653,7 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   }
   if (staticR === LATE) {
     for (const t of hmodelPs.keys()) base.hmodel[t] = null;
-    const skip = `static: hmodel/urban${opts.z0mod ? '/z0mod' : ''} ${lateWhy} — Abruf läuft weiter (V-FI-16)`;
+    const skip = `static: hmodel/urban${opts.z0mod ? '/z0mod' : ''}${opts.climaGrid ? '/clima-grid' : ''} ${lateWhy} — Abruf läuft weiter (V-FI-16)`;
     skips.push(skip);
     (base.late ??= {}).static = { result: staticAll.then(staticOf), skip };
   } else {
@@ -624,6 +661,7 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     base.hmodel = s.hmodel;
     base.urban = s.urban;
     if (s.z0mod) base.z0mod = s.z0mod;
+    if (s.climaGrid !== undefined) base.climaGrid = s.climaGrid;
   }
   base.station = station?.series ?? null;
   base.stationChoice = station?.choice ?? null;

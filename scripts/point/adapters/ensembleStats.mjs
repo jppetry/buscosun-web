@@ -125,6 +125,31 @@ export function memberQuantiles(cur, prev, { cells, dt = null, factor = 1, probs
 }
 
 /**
+ * Phase AX, AX-7 (E-AX-6, Schema 6): das MITTEL der Member — ein Wert der Groesse wie die Quantile (Faktor der Einheit,
+ * der Versatz kommt beim Schreiben, `QUANTILE_VALUE_OFFSET`); bei Raten wie `memberSpread` je Member entakkumuliert.
+ * NaN, wo weniger als zwei Member einen Wert hatten (dieselbe Regel wie σ_ens).
+ * @returns `{ mean, members, maxN }`
+ */
+export function memberMean(cur, prev, { cells, dt = null, factor = 1 } = {}) {
+  if (prev && !(dt > 0)) throw new Error('memberMean: eine Rate braucht dt > 0');
+  const keys = [...cur.keys()].filter((k) => !prev || prev.has(k));
+  const s = new Float64Array(cells), n = new Int32Array(cells);
+  for (const key of keys) {
+    const a = cur.get(key), b = prev ? prev.get(key) : null;
+    for (let k = 0; k < cells; k++) {
+      let v = a[k];
+      if (!Number.isFinite(v)) continue;
+      if (b) { const w = b[k]; if (!Number.isFinite(w)) continue; v = Math.max(0, v - w) / dt; }
+      s[k] += v * factor; n[k] += 1;
+    }
+  }
+  const mean = new Float32Array(cells).fill(NaN);
+  let maxN = 0;
+  for (let k = 0; k < cells; k++) { if (n[k] >= 2) { mean[k] = s[k] / n[k]; if (n[k] > maxN) maxN = n[k]; } }
+  return { mean, members: keys.length, maxN };
+}
+
+/**
  * Versatz je Groesse fuer QUANTILE (Werte), nicht fuer Streuungen. Beide Ensemble-Familien
  * (DWD `t_2m`, ECMWF `2t`) liefern Kelvin; alles andere ist versatzfrei (m/s, mm/h, %).
  */

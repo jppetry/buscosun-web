@@ -90,8 +90,14 @@ import { DACH_VIEW } from '../countryProfiles';
  * zwei Chunk-Generationen mit derselben Schema-Nummer und verschiedener
  * Ebenenzahl wären für einen Leser OHNE Manifest still verschieden. Genau davor
  * schützt die Nummer.
+ *
+ * **5 → 6 (Phase AX, AX-7, 2026-09-30):** vier Größen (t2m, u10, v10, precip) bekommen `<id>_ens`, das Mittel der
+ * Ensemble-Member der Quelle, die die Stunde trägt (IFS-ENS in t3; in t1/t2 MISSING) ⇒ 57 → 61 Ebenen. Der Leser liest
+ * Schema 5 weiter (`CUBE_PLANES_V5`, `CUBE_SCHEMAS_READABLE`), weil nach dem Wechsel bis zu 24 h alte Chunks im Repo liegen.
  */
-export const CUBE_SCHEMA = 5;
+export const CUBE_SCHEMA = 6;
+/** Die Schemata, die der Client ohne Manifest liest (das aktuelle und das vorige, für die Aufbewahrungsfrist). */
+export const CUBE_SCHEMAS_READABLE: readonly number[] = Object.freeze([5, 6]);
 /** `BSPC` — buscosun point cube. */
 export const CUBE_MAGIC = 0x42535043;
 /** Fester Kopf. Das Verzeichnis folgt unmittelbar (`DIR_ENTRY_BYTES` je Ebene). */
@@ -214,6 +220,13 @@ export interface CubeVar {
    * aus (dieselbe Lehre wie V-SH-11).
    */
   readonly quantiles?: boolean;
+  /**
+   * Phase AX, AX-7 (E-AX-6, Schema 6): führt `<id>_ens` — das **Mittel der Ensemble-Member** der Quelle, die die Stunde
+   * trägt (IFS-ENS in t3), als WERT der Größe (Skala und Versatz wie die Quantile). Gemessen 30.09.2026 an 389 Stationen:
+   * bei 126–336 h schlägt das ENS-Mittel jeden Einzellauf (T +14/+23 %, Wind +13/+16 %). Es ersetzt das Mittel der Stufe
+   * NICHT (V-PD-9 bleibt für die `mean`-Ebene) — der Client kann es als eigenes Member führen (`FuseCubeOptions.ensMember`).
+   */
+  readonly ensMean?: boolean;
   readonly group: CubeGroup;
   /** Physikalischer Gültigkeitsbereich — der Selbsttest prüft, dass er in int16 passt. */
   readonly range: readonly [number, number];
@@ -232,21 +245,21 @@ export interface CubeVar {
  */
 export const CUBE_VARS: readonly CubeVar[] = Object.freeze([
   // ── Zielgrößen mit Streuung ──────────────────────────────────────────────
-  { id: 't2m',      unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
+  { id: 't2m',      unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, ensMean: true, group: 'target',
     range: [-60, 60], grib: 't_2m',
     why: 'PAP 4 korrigiert sie vertikal, PAP 5 addiert die Geländeterme, PAP 6 quantilisiert sie normal.' },
   { id: 'td2m',     unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, group: 'target',
     range: [-70, 45], grib: 'td_2m',
     why: 'buscosun Fusion rechnet mit dem TAUPUNKT statt der relativen Feuchte (types.ts): unbeschraenkt, additiv, hoehenkorrigierbar.' },
-  { id: 'u10',      unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
+  { id: 'u10',      unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, ensMean: true, group: 'target',
     range: [-100, 100], grib: 'u_10m',
     why: 'PAP 5 braucht v10 fuer f_rad und die Blending-Height-Korrektur.' },
-  { id: 'v10',      unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
+  { id: 'v10',      unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, ensMean: true, group: 'target',
     range: [-100, 100], grib: 'v_10m', why: 'wie u10.' },
   { id: 'gust',     unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [0, 150], grib: 'vmax_10m',
     why: 'PAP 6: v_max := max(v_max, |v10|), Quantile aus einer Weibull-Familie.' },
-  { id: 'precip',   unit: 'mm/h',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
+  { id: 'precip',   unit: 'mm/h',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, ensMean: true, group: 'target',
     range: [0, 300], grib: 'tot_prec',
     why: 'PAP 6: zensierte Verteilung mit Punktmasse bei 0 — eine Normalverteilung erzeugte negative p10.' },
   { id: 'clct',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
@@ -371,8 +384,8 @@ export function sigmaKindOf(meanPresent: boolean, sdPresent: boolean, ensPresent
 export interface CubePlane {
   readonly id: string;
   readonly varId: string;
-  /** `sd` = Streuung zwischen Quellen (σ_div), `sd_ens` = zwischen Membern (σ_ens). */
-  readonly kind: 'mean' | 'sd' | 'sd_ens' | 'q10' | 'q90';
+  /** `sd` = Streuung zwischen Quellen (σ_div), `sd_ens` = zwischen Membern (σ_ens), `ens` = Mittel der Member (AX-7). */
+  readonly kind: 'mean' | 'sd' | 'sd_ens' | 'q10' | 'q90' | 'ens';
   readonly unit: string;
   readonly scale: number;
   readonly offset: number;
@@ -389,8 +402,8 @@ export interface CubePlane {
  * gibt es die Schema-Nummer; ein Leser, der `CUBE_PLANES` gegen einen Schema-1-Chunk
  * hielte, läse stillschweigend die falschen Größen.
  */
-export const CUBE_PLANES: readonly CubePlane[] = Object.freeze(
-  CUBE_VARS.flatMap((v): CubePlane[] => {
+function planesOf(vars: readonly CubeVar[], withEnsMean: boolean): readonly CubePlane[] {
+  return Object.freeze(vars.flatMap((v): CubePlane[] => {
     const base: CubePlane = {
       id: v.id, varId: v.id, kind: 'mean',
       unit: v.unit, scale: v.scale, offset: v.offset, group: v.group,
@@ -404,9 +417,21 @@ export const CUBE_PLANES: readonly CubePlane[] = Object.freeze(
       out.push({ ...base, id: `${v.id}_q10`, kind: 'q10' });
       out.push({ ...base, id: `${v.id}_q90`, kind: 'q90' });
     }
+    // Schema 6 (AX-7): das Member-Mittel — ein Wert wie die Quantile, am ENDE der Größe (die Liste wächst nur dort).
+    if (withEnsMean && v.ensMean) out.push({ ...base, id: `${v.id}_ens`, kind: 'ens' });
     return out;
-  }),
-);
+  }));
+}
+export const CUBE_PLANES: readonly CubePlane[] = planesOf(CUBE_VARS, true);
+/**
+ * Die Ebenenliste von Schema 5 (57 Ebenen, bis 30.09.2026): dieselben Größen ohne die `_ens`-Ebenen. Ein Chunk dieses
+ * Schemas liegt bis zu 24 h nach dem Wechsel im Repo (Aufbewahrung je Stufe) — der Leser liest ihn mit DIESER Liste, ohne
+ * das Manifest zu brauchen (`planesForChunkHeader`).
+ */
+export const CUBE_PLANES_V5: readonly CubePlane[] = planesOf(CUBE_VARS, false);
+export const CUBE_SCHEMA_V5 = 5;
+/** Die Größen mit einer `_ens`-Ebene (Schema 6). */
+export const CUBE_ENS_MEAN_VARS: readonly string[] = Object.freeze(CUBE_VARS.filter((v) => v.ensMean).map((v) => v.id));
 
 /** Index einer Ebene im Container. `-1` = nicht vorhanden. */
 export function planeIndex(id: string): number {
@@ -705,6 +730,14 @@ export const HMODEL_VERSION = 'v1';
  */
 export const Z0MOD_PRODUCT = 'z0mod';
 export const Z0MOD_VERSION = 'v1';
+/**
+ * Phase AX, AX-9 (Bericht 29.09. #13, E-EX-4): monatliche Klimanormale 1991–2020 (T Mittel/Max/Min, RR, Sonne) aus
+ * den nationalen 1-km-Gittern DE/AT/CH auf dem Stufe-1-Gitter — `scripts/point/staticClimaGrid.mjs`, nur Stufe 1,
+ * Ebenen `t_mean_01…12`, `t_max_*`, `t_min_*`, `rr_*`, `sun_*`, `elev_src`, `n_src`, `src`. Der Leser nimmt es nur mit
+ * `CubeIo.climaGrid` (Voreinstellung aus).
+ */
+export const CLIMA_GRID_PRODUCT = 'clima-grid';
+export const CLIMA_GRID_VERSION = 'v1';
 
 /** Pfad des Punkt-Manifests. */
 /**
@@ -728,14 +761,41 @@ export const Z0MOD_VERSION = 'v1';
  * Eine Datei je Station wären bei ~1 000 DACH-Stationen und vier Läufen 4 000 Objekte
  * im Repo — für dieselbe Information.
  */
+/**
+ * AX-11 (Bericht #21): Ebenen, die NUR das Stationsprodukt trägt — hinter der Cube-Liste, damit die 61 Cube-Ebenen an
+ * denselben Stellen bleiben. Ein Leser nimmt die Liste aus dem Lauf-Manifest (`stations.json`, `planes`), nie von hier.
+ * Globalstrahlung als Stundenmittel (MOSMIX `Rad1h` kJ/m² ÷ 3,6), Sonnenscheindauer der Stunde in Minuten (`SunD1` ÷ 60),
+ * Sichtweite in Metern (`VV`, Skala 10 ⇒ bis 327 km).
+ */
+export const STATION_EXTRA_PLANES: readonly CubePlane[] = Object.freeze([
+  { id: 'radGlob', varId: 'radGlob', kind: 'mean', unit: 'W/m2', scale: 1, offset: 0, group: 'target' },
+  { id: 'sunDur', varId: 'sunDur', kind: 'mean', unit: 'min', scale: 1, offset: 0, group: 'target' },
+  { id: 'vis', varId: 'vis', kind: 'mean', unit: 'm', scale: 10, offset: 0, group: 'target' },
+]);
+/** Die Ebenenliste des Stationsprodukts: Cube-Ebenen + Stationsebenen (Reihenfolge ist Vertrag, das Manifest nennt sie). */
+export const STATION_PLANES: readonly CubePlane[] = Object.freeze([...CUBE_PLANES, ...STATION_EXTRA_PLANES]);
 export const STATIONS_DIR = `${POINT_DIR}/stations`;
-/** Bündel je Stufe-1-Chunk: `point/stations/<lauf>/<cy>_<cx>.bin`. */
-export function stationBundlePath(run: string, cy: number, cx: number): string {
-  return `${STATIONS_DIR}/${run}/${pad2(cy)}_${pad2(cx)}.bin`;
+/**
+ * Phase AX, AX-8 (2026-09-30): MOSMIX-S als ZWEITES Stationsprodukt neben MOSMIX-L — gleicher
+ * Container, gleiche Bündelung, gleicher Katalog (am 30.09. gemessen: dieselben 3 071 Stationen,
+ * Position und Höhe identisch), aber **stündliche Läufe** (Lauf + 39…41 min, 37 MB je Datei)
+ * und 240 statt 247 Schritte. Ein eigenes Verzeichnis, weil ein 09z-Lauf von S und einer von L
+ * denselben Namen `2026093009` trügen; ein eigener Index-Eintrag (`stationsS`), weil der Leser
+ * MOSMIX-L voreingestellt weiterliest (Regel 2) und S nur mit Option nimmt.
+ */
+export const STATIONS_S_DIR = `${POINT_DIR}/stations-s`;
+export type StationSource = 'mosmix_l' | 'mosmix_s';
+export const STATION_SOURCES: readonly StationSource[] = ['mosmix_l', 'mosmix_s'];
+export function stationsDirOf(source: StationSource = 'mosmix_l'): string {
+  return source === 'mosmix_s' ? STATIONS_S_DIR : STATIONS_DIR;
+}
+/** Bündel je Stufe-1-Chunk: `point/stations/<lauf>/<cy>_<cx>.bin` (S: `point/stations-s/…`). */
+export function stationBundlePath(run: string, cy: number, cx: number, source: StationSource = 'mosmix_l'): string {
+  return `${stationsDirOf(source)}/${run}/${pad2(cy)}_${pad2(cx)}.bin`;
 }
 /** Die Zuordnung Spalte → Station, je Lauf. Ohne sie ist das Bündel bedeutungslos. */
-export function stationManifestPath(run: string): string {
-  return `${STATIONS_DIR}/${run}/stations.json`;
+export function stationManifestPath(run: string, source: StationSource = 'mosmix_l'): string {
+  return `${stationsDirOf(source)}/${run}/stations.json`;
 }
 /** Der Stationskatalog (Ort, Höhe, Land) — zeitlos, deshalb außerhalb der Läufe. */
 export const STATION_CATALOG_PATH = `${STATIONS_DIR}/catalog.json`;
@@ -1118,13 +1178,20 @@ export async function cubeSelfTest(): Promise<{ checks: CubeCheck[]; passed: num
   // (2) IDs eindeutig, Ebenen aus den Größen abgeleitet.
   add('Größen-IDs eindeutig', new Set(CUBE_VARS.map((v) => v.id)).size === CUBE_VARS.length);
   add('Ebenen-IDs eindeutig', new Set(CUBE_PLANES.map((p) => p.id)).size === CUBE_PLANES.length);
-  add('Ebenenzahl = Größen + σ_div + σ_ens + 2·Quantile',
+  add('Ebenenzahl = Größen + σ_div + σ_ens + 2·Quantile + Member-Mittel',
     CUBE_PLANES.length === CUBE_VARS.length
       + CUBE_VARS.filter((v) => v.sigmaDiv).length
       + CUBE_VARS.filter((v) => v.sigmaEns).length
-      + 2 * CUBE_VARS.filter((v) => v.quantiles).length,
+      + 2 * CUBE_VARS.filter((v) => v.quantiles).length
+      + CUBE_VARS.filter((v) => v.ensMean).length,
     `${CUBE_PLANES.length} Ebenen = ${CUBE_VARS.length} + ${CUBE_VARS.filter((v) => v.sigmaDiv).length} σ_div`
-      + ` + ${CUBE_VARS.filter((v) => v.sigmaEns).length} σ_ens + 2·${CUBE_VARS.filter((v) => v.quantiles).length} Quantile`);
+      + ` + ${CUBE_VARS.filter((v) => v.sigmaEns).length} σ_ens + 2·${CUBE_VARS.filter((v) => v.quantiles).length} Quantile + ${CUBE_VARS.filter((v) => v.ensMean).length} Member-Mittel`);
+  // AX-7: ein Member-Mittel ist ein WERT der Größe — Skala und Versatz der Größe, und es setzt σ_ens voraus (dieselben Member)
+  add('Member-Mittel-Ebenen behalten Skala und Versatz ihrer Größe und liegen nur bei Größen mit σ_ens; Schema 5 = Schema 6 ohne sie',
+    CUBE_PLANES.filter((p) => p.kind === 'ens').every((p) => { const v = CUBE_VARS.find((x) => x.id === p.varId); return !!v && v.sigmaEns === true && p.scale === v.scale && p.offset === v.offset; })
+    && CUBE_PLANES_V5.length === CUBE_PLANES.length - CUBE_ENS_MEAN_VARS.length && CUBE_PLANES_V5.every((p) => p.kind !== 'ens')
+    && JSON.stringify(CUBE_PLANES.filter((p) => p.kind !== 'ens').map((p) => p.id)) === JSON.stringify(CUBE_PLANES_V5.map((p) => p.id)),
+    `${CUBE_ENS_MEAN_VARS.join(',')} · V5 ${CUBE_PLANES_V5.length}`);
   // Ein Quantil ist ein WERT derselben Groesse, keine Streuung — es behaelt deshalb
   // Skala UND Versatz. Stuende hier `offset: 0`, laege eine Temperatur um den
   // Versatz daneben, und zwar lautlos.
@@ -1139,10 +1206,10 @@ export async function cubeSelfTest(): Promise<{ checks: CubeCheck[]; passed: num
     CUBE_VARS.every((v) => !v.sigmaEns || v.sigmaDiv),
     CUBE_VARS.filter((v) => v.sigmaEns && !v.sigmaDiv).map((v) => v.id).join(',') || 'keine');
   // Reihenfolge je Groesse ist Vertrag: Median, dann σ_div, dann σ_ens.
-  add('Ebenen-Reihenfolge je Größe: mean → sd → sd_ens → q10 → q90', (() => {
+  add('Ebenen-Reihenfolge je Größe: mean → sd → sd_ens → q10 → q90 → ens', (() => {
     for (const v of CUBE_VARS) {
       const want = ['mean', ...(v.sigmaDiv ? ['sd'] : []), ...(v.sigmaEns ? ['sd_ens'] : []),
-        ...(v.quantiles ? ['q10', 'q90'] : [])];
+        ...(v.quantiles ? ['q10', 'q90'] : []), ...(v.ensMean ? ['ens'] : [])];
       const got = CUBE_PLANES.filter((p) => p.varId === v.id).map((p) => p.kind);
       if (want.join() !== got.join()) return false;
     }
@@ -1267,6 +1334,12 @@ export async function cubeSelfTest(): Promise<{ checks: CubeCheck[]; passed: num
     stationBundlePath('2026090900', 3, 12));
   add('Stationskatalog ist zeitlos adressiert (ohne Lauf)',
     STATION_CATALOG_PATH === 'point/stations/catalog.json' && !STATION_CATALOG_PATH.includes('2026'));
+  add('AX-8: MOSMIX-S liegt in einem eigenen Verzeichnis (gleicher Laufname wie L möglich), L bleibt ohne Argument byte-gleich adressiert',
+    stationBundlePath('2026093009', 3, 12, 'mosmix_s') === 'point/stations-s/2026093009/03_12.bin'
+    && stationManifestPath('2026093009', 'mosmix_s') === 'point/stations-s/2026093009/stations.json'
+    && stationManifestPath('2026093009') === 'point/stations/2026093009/stations.json'
+    && stationsDirOf() === STATIONS_DIR && stationsDirOf('mosmix_s') !== stationsDirOf('mosmix_l') && !STATIONS_S_DIR.startsWith(`${STATIONS_DIR}/`),
+    stationBundlePath('2026093009', 3, 12, 'mosmix_s'));
   add('eine Stationsreihe passt in denselben Container (ny = 1)',
     CHUNK_CELLS >= 1);
 

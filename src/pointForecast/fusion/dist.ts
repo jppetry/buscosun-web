@@ -73,7 +73,29 @@ export type Dist =
    * stage (phase FL, V-FL-22): TN(a + b·E_Rice, c·sd_Rice) at 0, fitted per stratum by CRPS. Only the learned path
    * emits it (`FuseCubeOptions.learnedSpeed`); nothing else in the engine produces this family.
    */
-  | { kind: 'truncatedNormal'; mu: number; sigma: number; lo: number };
+  | { kind: 'truncatedNormal'; mu: number; sigma: number; lo: number }
+  /**
+   * Phase AX, AX-4 (V-FV-10, V-FX-15): cloud cover as a two-atom mixture on [0, 100] — P(Y = 0) = pClear, P(Y = 100) =
+   * pOvercast, the rest a normal truncated to (0, 100). The censored normal puts mass on the bounds only as far as its
+   * tails reach; the truth piles up there (57 % of the hours at 0 or 100 %) far beyond that. The atoms are learned
+   * (logistic on the cube's cover, `fitAtoms.ts`), μ/σ are the learned mean and σ of the cover.
+   */
+  | { kind: 'cloudMix'; pClear: number; pOvercast: number; mu: number; sigma: number };
+
+const CLOUD_LO = 0, CLOUD_HI = 100;
+/** The three masses of a `cloudMix`, clipped and normalised: clear, overcast, the middle. */
+export function cloudMixParts(d: { pClear: number; pOvercast: number }): { pc: number; po: number; pm: number } {
+  const pc = Math.min(1, Math.max(0, d.pClear));
+  const po = Math.min(1 - pc, Math.max(0, d.pOvercast));
+  return { pc, po, pm: Math.max(0, 1 - pc - po) };
+}
+/** Φ at the bounds of the truncated middle part: [Pa, Pb, Z = Pb − Pa]; Z ≤ 0 ⇒ degenerate (point mass at the clipped μ). */
+function cloudMixBounds(mu: number, sigma: number): [number, number, number] {
+  if (!(sigma > 0)) return [0, 1, 0];
+  const Pa = Phi((CLOUD_LO - mu) / sigma), Pb = Phi((CLOUD_HI - mu) / sigma);
+  return [Pa, Pb, Pb - Pa];
+}
+const clipCloud = (x: number) => Math.min(CLOUD_HI, Math.max(CLOUD_LO, x));
 
 const SQRT2 = Math.SQRT2;
 const INV_SQRT_2PI = 0.3989422804014327;
@@ -215,6 +237,15 @@ export function cdfOf(d: Dist, x: number): number {
       if (!(1 - Pa > 1e-12)) return 1;
       return Math.min(1, (Phi((x - d.mu) / d.sigma) - Pa) / (1 - Pa));
     }
+    case 'cloudMix': {
+      if (x < CLOUD_LO) return 0;
+      if (x >= CLOUD_HI) return 1;
+      const { pc, pm } = cloudMixParts(d);
+      if (x === CLOUD_LO) return pc;                            // the lower atom, exactly
+      const [Pa, , Z] = cloudMixBounds(d.mu, d.sigma);
+      const tn = Z > 1e-12 ? Math.min(1, Math.max(0, (Phi((x - d.mu) / d.sigma) - Pa) / Z)) : (x >= clipCloud(d.mu) ? 1 : 0);
+      return Math.min(1, pc + pm * tn);
+    }
   }
 }
 
@@ -248,6 +279,16 @@ export function quantileOf(d: Dist, p: number): number {
       if (!(d.sigma > 0)) return Math.max(d.lo, d.mu);
       const Pa = Phi((d.lo - d.mu) / d.sigma);
       return Math.max(d.lo, d.mu + d.sigma * PhiInv(Pa + q * (1 - Pa)));
+    }
+    case 'cloudMix': {
+      const { pc, po, pm } = cloudMixParts(d);
+      if (q <= pc) return CLOUD_LO;
+      if (q >= 1 - po) return CLOUD_HI;
+      if (!(pm > 1e-12)) return q < pc + 0.5 * pm ? CLOUD_LO : CLOUD_HI;
+      const [Pa, , Z] = cloudMixBounds(d.mu, d.sigma);
+      if (!(Z > 1e-12)) return clipCloud(d.mu);
+      const inner = Math.min(1 - 1e-9, Math.max(1e-9, (q - pc) / pm));
+      return clipCloud(d.mu + d.sigma * PhiInv(Pa + inner * Z));
     }
   }
 }
@@ -308,7 +349,28 @@ export function meanOf(d: Dist): number {
       if (!(tail > 1e-12)) return d.lo;
       return d.mu + d.sigma * phi(a) / tail;
     }
+    case 'cloudMix': {
+      // E = 100·pOvercast + pMid·E[TN(μ, σ; 0, 100)], E[TN] = μ + σ·(φ(a) − φ(b))/Z
+      const { po, pm } = cloudMixParts(d);
+      return CLOUD_HI * po + pm * cloudMixMiddleMean(d.mu, d.sigma);
+    }
   }
+}
+
+/** Mean of the truncated middle part of a `cloudMix` (μ clipped when σ is 0 or the window has no mass). */
+export function cloudMixMiddleMean(mu: number, sigma: number): number {
+  const [Pa, Pb, Z] = cloudMixBounds(mu, sigma);
+  if (!(Z > 1e-12)) return clipCloud(mu);
+  const a = (CLOUD_LO - mu) / sigma, b = (CLOUD_HI - mu) / sigma;
+  return mu + sigma * (phi(a) - phi(b)) / (Pb - Pa);
+}
+/** Variance of the truncated middle part of a `cloudMix`. */
+export function cloudMixMiddleVar(mu: number, sigma: number): number {
+  const [, , Z] = cloudMixBounds(mu, sigma);
+  if (!(Z > 1e-12)) return 0;
+  const a = (CLOUD_LO - mu) / sigma, b = (CLOUD_HI - mu) / sigma;
+  const t1 = (a * phi(a) - b * phi(b)) / Z, t2 = (phi(a) - phi(b)) / Z;
+  return Math.max(0, sigma * sigma * (1 + t1 - t2 * t2));
 }
 
 // ---------------------------------------------------------------------------
@@ -413,6 +475,11 @@ export function pitOf(d: Dist, y: number): number {
       return below + 0.5 * (1 - below);
     }
   }
+  if (d.kind === 'cloudMix') {
+    const { pc, po } = cloudMixParts(d);
+    if (y <= CLOUD_LO) return 0.5 * pc;
+    if (y >= CLOUD_HI) return 1 - po + 0.5 * po;
+  }
   return cdfOf(d, y);
 }
 
@@ -447,6 +514,9 @@ export function inflate(d: Dist, extraVar: number): Dist {
     }
     case 'truncatedNormal':
       // like `censoredNormal`: the latent σ widens, μ stays (the mean moves by the Mills term — accepted, as there).
+      return { ...d, sigma: Math.sqrt(d.sigma * d.sigma + extraVar) };
+    case 'cloudMix':
+      // the middle part widens; the atoms are learned probabilities and stay
       return { ...d, sigma: Math.sqrt(d.sigma * d.sigma + extraVar) };
   }
 }
@@ -665,6 +735,29 @@ export function verifyDist(): DistVerifyResult {
     add('PIT nutzt die Mitte des unteren Atoms', Math.abs(atLo - 0.5 * full) < 1e-9,
       `${atLo.toFixed(4)} statt ${full.toFixed(4)}`);
     add('PIT am oberen Rand unter 1', pitOf(c, 100) < 1 && pitOf(c, 100) > cdfOf(c, 99.999));
+  }
+
+  // --- AX-4: the two-atom cloud mixture
+  {
+    const m: Dist = { kind: 'cloudMix', pClear: 0.3, pOvercast: 0.2, mu: 40, sigma: 25 };
+    add('cloudMix: cdf(0) = pClear, cdf(100⁻) = 1 − pOvercast, cdf(100) = 1, cdf(−1) = 0',
+      near(cdfOf(m, 0), 0.3, 1e-12) && near(cdfOf(m, 99.999999), 0.8, 1e-6) && cdfOf(m, 100) === 1 && cdfOf(m, -1) === 0, `${cdfOf(m, 0).toFixed(4)} · ${cdfOf(m, 99.999999).toFixed(4)}`);
+    let rt = true;
+    for (const p of [0.31, 0.4, 0.5, 0.6, 0.79]) if (!near(cdfOf(m, quantileOf(m, p)), p, 2e-3)) rt = false;
+    add('cloudMix: Rundlauf cdf(quantile(p)) = p in der Mitte; Quantile in den Atomen sind 0 bzw. 100', rt && quantileOf(m, 0.1) === 0 && quantileOf(m, 0.29) === 0 && quantileOf(m, 0.81) === 100 && quantileOf(m, 0.95) === 100);
+    // the mean: 100·po + pm·E[TN]; E[TN] by a numeric integral of the middle part
+    let num = 0; const nI = 4000;
+    for (let i = 0; i < nI; i++) { const x = (i + 0.5) * 100 / nI; num += x * (cdfOf({ kind: 'truncatedNormal', mu: 40, sigma: 25, lo: 0 }, 0) === 0 ? 1 : 1) * 0; }
+    const [Pa, Pb] = [Phi((0 - 40) / 25), Phi((100 - 40) / 25)];
+    let numTn = 0; for (let i = 0; i < nI; i++) { const x = (i + 0.5) * 100 / nI; numTn += x * phi((x - 40) / 25) / 25 / (Pb - Pa) * (100 / nI); }
+    add('cloudMix: Mittel = 100·pOvercast + pMid·E[TN] (E[TN] gegen das numerische Integral auf 1e-3)', near(meanOf(m), 100 * 0.2 + 0.5 * numTn, 1e-3) && near(cloudMixMiddleMean(40, 25), numTn, 1e-3), `${meanOf(m).toFixed(4)} gegen ${(20 + 0.5 * numTn).toFixed(4)}${num}`);
+    add('cloudMix: Grenzfälle — alles klar ⇒ Mittel 0 und jedes Quantil 0; alles bedeckt ⇒ 100; σ = 0 ⇒ Mitte bei μ',
+      meanOf({ kind: 'cloudMix', pClear: 1, pOvercast: 0, mu: 50, sigma: 20 }) === 0 && quantileOf({ kind: 'cloudMix', pClear: 1, pOvercast: 0, mu: 50, sigma: 20 }, 0.99) === 0
+      && meanOf({ kind: 'cloudMix', pClear: 0, pOvercast: 1, mu: 50, sigma: 20 }) === 100 && near(quantileOf({ kind: 'cloudMix', pClear: 0.1, pOvercast: 0.1, mu: 37, sigma: 0 }, 0.5), 37, 1e-9));
+    add('cloudMix: PIT in den Atomen mittig (0,5·pClear bzw. 1 − 0,5·pOvercast), CRPS endlich und kleiner für eine Wahrheit im Atom mit großer Atommasse',
+      near(pitOf(m, 0), 0.15, 1e-12) && near(pitOf(m, 100), 0.9, 1e-12) && Number.isFinite(crpsOf(m, 0))
+      && crpsOf({ kind: 'cloudMix', pClear: 0.8, pOvercast: 0.05, mu: 40, sigma: 25 }, 0) < crpsOf({ kind: 'cloudMix', pClear: 0.05, pOvercast: 0.05, mu: 40, sigma: 25 }, 0));
+    add('cloudMix: Aufweitung verbreitert die Mitte und lässt die Atome stehen', (inflate(m, 400) as { pClear: number; sigma: number }).pClear === 0.3 && near((inflate(m, 400) as { sigma: number }).sigma, Math.sqrt(25 * 25 + 400), 1e-12));
   }
 
   const passed = checks.filter((c) => c.ok).length;

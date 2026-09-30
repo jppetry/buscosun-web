@@ -15,6 +15,7 @@
  */
 
 import type { ForecastBounds, ForecastGrid, ForecastHourPoint } from './openMeteoForecast';
+import { nearestSubset } from './stationSelect';
 
 const META_URL = 'https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min/metadata';
 const CURRENT_URL = 'https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min';
@@ -56,6 +57,12 @@ export interface TawesOptions {
   /** Cap station count (URL length safety). Default 200, plenty for AT. */
   maxStations?: number;
   signal?: AbortSignal;
+  /**
+   * AX-1 (V-FS-15): with a point, the cap keeps the `maxStations` stations NEAREST to it instead of the first ones of
+   * the operator's list — measured 30.09.2026: for Vienna the nearest station in the list stood 13,7 km away while
+   * Wien/Innere Stadt (1,1 km) had been cut by `slice(0, 200)`. Without `near` the call is byte-identical to before.
+   */
+  near?: { lat: number; lon: number };
 }
 
 /**
@@ -65,7 +72,7 @@ export interface TawesOptions {
 export async function fetchTawesCurrentGrid(options: TawesOptions = {}): Promise<ForecastGrid> {
   const stations = await loadStationsList();
   const cap = options.maxStations ?? 200;
-  const slice = stations.slice(0, cap);
+  const slice = options.near ? nearestSubset(stations, options.near, cap, (s) => ({ lat: s.lat, lon: s.lon })) : stations.slice(0, cap);
   if (!slice.length) {
     return {
       cols: 1, rows: 1,

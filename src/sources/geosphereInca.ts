@@ -24,7 +24,7 @@ import type { ForecastBounds, ForecastGrid, ForecastHourPoint } from './openMete
  * Points exactly ON the boundary (e.g. 49.5) are rejected as out-of-bounds
  * and the API refuses the *whole* multi-point request. We sit a margin inside.
  */
-const INCA_BOUNDS: ForecastBounds = {
+export const INCA_BOUNDS: ForecastBounds = {
   lngMin: 8.5,
   lngMax: 17.4,
   latMin: 45.7,

@@ -196,3 +196,39 @@ export function gammaWord(g: number): string {
   if (g >= 0) return 'flach';
   return 'umgekehrt';
 }
+
+// ---------------------------------------------------------------------------
+// E-DB-23 (audit/dashboard.md §12): Bandbreiten-Marken und Leitsatz
+// ---------------------------------------------------------------------------
+
+/** Schwellen der halben 80 %-Bandbreite der Temperatur (K), ab denen Marken gesetzt werden (set). */
+export const BAND_MARK_K: readonly number[] = Object.freeze([2, 3, 4]);
+
+/** Erste Stunde je Schwelle, an der die halbe Bandbreite sie erreicht (set). Eingabe zeitlich sortiert. */
+export function bandMarks(pts: ReadonlyArray<{ t: number; half: number | null }>, limits: readonly number[] = BAND_MARK_K): Array<{ t: number; k: number }> {
+  const out: Array<{ t: number; k: number }> = [];
+  for (const k of limits) {
+    const p = pts.find((x) => x.half != null && x.half >= k);
+    if (p) out.push({ t: p.t, k });
+  }
+  return out;
+}
+
+export interface LeadDay { name: string; text: string | null; tmax: string | null; rain: number | null; rainText: string | null }
+
+/**
+ * Leitsatz über den Tageskarten (set), aus denselben Tagesdaten wie die Karten — er kann ihnen nicht widersprechen:
+ * „Heute {Tagestext}, bis {Tmax}." und danach der erste nasse Tag (Regen ≥ WET_DAY_MM) von morgen/übermorgen mit
+ * Tagestext und Menge, sonst morgen mit Tagestext und Tmax. Ohne Tagestext und Tmax für heute: kein Satz.
+ */
+export function leadSentence(days: readonly LeadDay[]): string | null {
+  const [d0, ...next] = days;
+  if (!d0 || (d0.text == null && d0.tmax == null)) return null;
+  const part = (d: LeadDay, tail: string | null) => [d.name, d.text].filter(Boolean).join(' ') + (tail ? `${d.text ? ',' : ''} ${tail}` : '') + '.';
+  const out = [part(d0, d0.tmax ? `bis ${d0.tmax}` : null)];
+  const wet = next.slice(0, 2).find((d) => (d.rain ?? 0) >= WET_DAY_MM && d.rainText);
+  const d1 = next[0];
+  if (wet) out.push(part(wet, wet.rainText));
+  else if (d1 && (d1.text || d1.tmax)) out.push(part(d1, d1.tmax ? `bis ${d1.tmax}` : null));
+  return out.join(' ');
+}

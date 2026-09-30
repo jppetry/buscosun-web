@@ -122,7 +122,10 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
     warmMapData();
   }, []);
 
-  // Den schweren MapView-Chunk im Leerlauf vorwärmen, während der Nutzer sucht.
+  // Den schweren MapView-Chunk im Leerlauf vorwärmen, während der Nutzer sucht. E-DB-20: wer einen Ort wählt, bekommt
+  // zuerst das Dashboard — ein noch ausstehendes Vorwärmen fällt dann weg. Die Startseite bleibt bis zum Routenwechsel
+  // montiert; ohne das Abbrechen fiele der Leerlauf mitten in den Ladeweg des Dashboards (audit/dashboard.md §12.5).
+  const cancelMapWarm = useRef<(() => void) | null>(null);
   useEffect(() => {
     const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return;
@@ -134,9 +137,15 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
       typeof window.cancelIdleCallback === 'function'
         ? (id) => window.cancelIdleCallback(id)
         : (id) => window.clearTimeout(id);
-    const id = ric(() => { void import('./MapView'); });
-    return () => cancel(id);
+    const id = ric(() => { cancelMapWarm.current = null; void import('./MapView'); });
+    cancelMapWarm.current = () => cancel(id);
+    return () => { cancel(id); cancelMapWarm.current = null; };
   }, []);
+  const selectPlace = useCallback((loc: Location) => {
+    cancelMapWarm.current?.();
+    cancelMapWarm.current = null;
+    onSelect(loc);
+  }, [onSelect]);
 
   // ⌘K / Ctrl-K global: Palette togglen. Esc schließt (auch aus der Palette).
   useEffect(() => {
@@ -174,7 +183,7 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
       )}
 
       <main className="deck-main">
-        <Hero onSelect={onSelect} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} narrow={narrow} />
+        <Hero onSelect={selectPlace} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} narrow={narrow} />
         <FilterChips active={activeCat} onChange={setActiveCat} />
         <BentoGrid activeCat={activeCat} onOpenFeature={openFeature} narrow={narrow} />
         <Fundament />

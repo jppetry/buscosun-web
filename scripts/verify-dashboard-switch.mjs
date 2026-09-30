@@ -18,6 +18,8 @@
  *      Karten-JS danach im Hintergrund; der Umschalter zeigt die Karte am selben Ort.
  *   K  E-DB-20: Wechsel zur Karte, bevor ihr JS im Hintergrund da ist ⇒ Ladeanzeige, dann die Karte (Lazy-Weg).
  *   L  E-DB-20: ein Karten-Link holt MapView parallel zum Route-Chunk (Router-Loader), ohne Dashboard/Fusion.
+ *   M  E-DB-24: Reiter „Überblick | Details" — Auswahl, URL `teil`, Verlauf, Pfeiltasten, Sprung aus dem Überblick,
+ *      Details lädt erst nach dem Öffnen, geteilter Link, mobil 44 px.
  *   G  Kanonisierung: Standardwerte/ungültige Werte verschwinden aus der URL.
  *   H  /warnungen hat keinen Umschalter; mobil sitzt er in der Schwebeleiste mit 44-px-Trefferfläche.
  *   I  keine ungefangene Ausnahme während der Abläufe.
@@ -224,15 +226,65 @@ const FAV_SEED = `try { localStorage.setItem('buscosun.favorites.v1', JSON.strin
 }
 
 // ---------------------------------------------------------------------------
+// M Reiter „Überblick | Details" (E-DB-24)
+// ---------------------------------------------------------------------------
+{
+  const p = await page();
+  await p.go(`${PLACE}?ansicht=dashboard`);
+  await p.until(`!!performance.getEntriesByName('dbd:fusion:core')[0] || !!performance.getEntriesByName('dbd:fusion:final')[0]`, 45_000);
+  await sleep(3000); // Staffel 3 hätte längst geladen, wenn die Kacheln sichtbar wären
+  const tabs = await p.ev(`(() => { const t = [...document.querySelectorAll('.dbd-tablist [role="tab"]')]; return t.map((b) => ({ id: b.id, text: b.textContent, sel: b.getAttribute('aria-selected'), tab: b.tabIndex })); })()`);
+  const vis = (sel) => `(() => { const e = document.querySelector('${sel}'); return !!e && e.getClientRects().length > 0; })()`;
+  add('(M) E-DB-24: Reiter „Überblick | Details" unter dem Kopf, Überblick gewählt (aria-selected, roving tabindex)',
+    tabs.length === 2 && tabs[0].text === 'Überblick' && tabs[1].text === 'Details' && tabs[0].sel === 'true' && tabs[1].sel === 'false' && tabs[0].tab === 0 && tabs[1].tab === -1, JSON.stringify(tabs));
+  add('(M) Überblick zeigt Reihe 1 und Prognose, Details (Radar, Bewölkung, Wind, Gelände, UV, Pollen, ICON-D2) ist verborgen',
+    (await p.ev(vis('#dbd-panel-ueberblick .dbd-row1'))) && (await p.ev(vis('#dbd-panel-ueberblick .dbd-zone'))) && !(await p.ev(vis('#dbd-panel-details .dbd-row3'))) && !(await p.ev(vis('#dbd-panel-details .dbd-terrain'))));
+  const ncBusyBefore = await p.ev(`!!document.querySelector('#dbd-panel-details .dbd-nowcast-line .dbd-loading')`);
+  add('(M) Details lädt nicht, solange der Überblick offen ist (Radar-Zeile steht 3 s nach der Vorhersage noch auf „lädt")', ncBusyBefore);
+  const h0 = await p.ev('history.length');
+  await p.ev(`window.scrollTo(0, 400), true`);
+  await p.ev(`document.getElementById('dbd-tab-details').click(), true`);
+  const onDetails = await p.until(`${vis('#dbd-panel-details .dbd-row3')} && !${vis('#dbd-panel-ueberblick .dbd-row1')}`, 5000);
+  const urlD = await p.ev(loc);
+  add('(M) Details: URL trägt teil=details (nach ansicht), ein Verlaufseintrag, Seite springt an den Anfang',
+    onDetails && /ansicht=dashboard(&zeitraum=[^&]+)?&teil=details$/.test(urlD) && (await p.ev('history.length')) === h0 + 1 && (await p.ev('window.scrollY')) === 0, urlD);
+  const loaded = await p.until(`!document.querySelector('#dbd-panel-details .dbd-nowcast-line .dbd-loading')`, 25_000);
+  add('(M) nach dem Öffnen lädt Details (Radar-Zeile mit Wert oder „nicht verfügbar")', loaded);
+  await p.ev('history.back(), true');
+  const backO = await p.until(`${vis('#dbd-panel-ueberblick .dbd-row1')} && !/teil=/.test(location.search)`, 8000);
+  add('(M) Zurück ⇒ Überblick, teil verschwindet aus der URL', backO);
+  await p.ev(`document.getElementById('dbd-tab-ueberblick').focus(), true`);
+  await p.ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+  await p.ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+  const byKey = await p.until(`/teil=details/.test(location.search) && document.activeElement?.id === 'dbd-tab-details'`, 5000);
+  add('(M) Pfeiltaste → wechselt den Reiter und setzt den Fokus mit', byKey);
+  await p.ev(`document.getElementById('dbd-tab-ueberblick').click(), true`);
+  await p.until(vis('#dbd-panel-ueberblick .dbd-more'), 5000);
+  await p.ev(`document.querySelector('#dbd-panel-ueberblick .dbd-more').click(), true`);
+  add('(M) „Mehr zur Lage am Ort" am Ende des Überblicks öffnet Details', await p.until(`/teil=details/.test(location.search) && ${vis('#dbd-panel-details .dbd-row3')}`, 5000));
+  add('(I) keine ungefangene Ausnahme im Ablauf M', p.errors.length === 0, p.errors.slice(0, 3).join(' | '));
+  await p.close();
+  // Geteilter Link auf Details, mobil: Reiter volle Breite mit 44-px-Trefferfläche.
+  const m = await page({ width: 402, height: 874, mobile: true });
+  await m.go(`${PLACE}?ansicht=dashboard&zeitraum=7-tage&teil=details`);
+  const upM = await m.until(vis('#dbd-panel-details .dbd-row3'), 20_000);
+  const tabBox = await m.ev(`(() => { const t = [...document.querySelectorAll('.dbd-tablist [role="tab"]')].map((b) => b.getBoundingClientRect()); return { h: Math.min(...t.map((r) => r.height)), w: t.map((r) => Math.round(r.width)) }; })()`);
+  add('(M) geteilter Link mit teil=details öffnet Details direkt; mobil zwei gleich breite Reiter ≥ 44 px',
+    upM && (await m.ev(`document.getElementById('dbd-tab-details').getAttribute('aria-selected')`)) === 'true' && tabBox.h >= 44 && Math.abs(tabBox.w[0] - tabBox.w[1]) <= 1, JSON.stringify(tabBox));
+  add('(I) keine ungefangene Ausnahme (M mobil)', m.errors.length === 0, m.errors.slice(0, 3).join(' | '));
+  await m.close();
+}
+
+// ---------------------------------------------------------------------------
 // G Kanonisierung · H /warnungen und mobil
 // ---------------------------------------------------------------------------
 {
   const p = await page();
-  await p.go(`${PLACE}?ansicht=karte&zeitraum=3-tage&radar=0`);
+  await p.go(`${PLACE}?ansicht=karte&zeitraum=3-tage&teil=ueberblick&radar=0`);
   await p.until(`!!document.querySelector('.mdk-topbar')`, 30_000);
   await sleep(500);
   const s = await p.ev('location.search');
-  add('(G) Standard- bzw. ungültige Werte (ansicht=karte, zeitraum=3-tage) verschwinden aus der URL, der Rest bleibt', !/ansicht=|zeitraum=/.test(s) && /radar=0/.test(s), s);
+  add('(G) Standard- bzw. ungültige Werte (ansicht=karte, zeitraum=3-tage, teil=ueberblick) verschwinden aus der URL, der Rest bleibt', !/ansicht=|zeitraum=|teil=/.test(s) && /radar=0/.test(s), s);
   await p.go('/warnungen');
   await p.until(`!!document.querySelector('.mdk-topbar')`, 30_000);
   add('(H) /warnungen hat keinen Umschalter (Dashboard nur auf der Wetterkarte, E-DB-4)', (await p.ev(`document.querySelectorAll('.vt-toggle').length`)) === 0);

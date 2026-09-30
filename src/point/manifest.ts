@@ -20,8 +20,8 @@
  */
 
 import {
-  CUBE_SCHEMA, CUBE_PLANES, CHUNK_CELLS, TIERS, POINT_DIR, POINT_INDEX_PATH,
-  POINT_SOURCES_PATH, POINT_CALIB_PATH, STATIONS_DIR, STATION_CATALOG_PATH, STATIC_DIR,
+  CUBE_SCHEMA, CUBE_SCHEMAS_READABLE, CUBE_PLANES, CHUNK_CELLS, TIERS, POINT_DIR, POINT_INDEX_PATH,
+  POINT_SOURCES_PATH, POINT_CALIB_PATH, STATIONS_DIR, STATIONS_S_DIR, STATION_CATALOG_PATH, STATIC_DIR,
   type TierId,
 } from './cubeFormat';
 import { nowcastManifest } from './nowcastFormat';
@@ -53,6 +53,11 @@ export const POINT_INDEX_CDN_URL = `${CDN_BASE}@main/${POINT_INDEX_PATH}`;
  */
 export const RETENTION_HOURS = 24;
 export const MIN_RUNS = 2;
+/**
+ * AX-8: Aufbewahrung des stündlichen Stationsprodukts MOSMIX-S (`point/stations-s/`). 24 h hielten
+ * 24 Läufe à ≈ 5 MiB vor; 6 h decken den Ausfall eines Slots und den Vorlauf für den Vergleich S gegen L.
+ */
+export const STATIONS_S_RETENTION = Object.freeze({ hours: 6, minRuns: MIN_RUNS });
 /**
  * PD-F3a: Aufbewahrung JE STUFE (Stunden) — der Client liest `latestByTier`, also darf eine Stufe
  * aus einem Lauf fallen, während eine andere bleibt. **Vorschlag E-F-1, Jans Entscheidung steht
@@ -271,7 +276,8 @@ export function validateRunManifest(json: unknown): string[] {
   const isObj = (v: unknown) => v != null && typeof v === 'object' && !Array.isArray(v);
   const objOrNull = (v: unknown) => v === null || isObj(v);
 
-  if (m.schema !== CUBE_SCHEMA) err(`schema ${String(m.schema)} ≠ ${CUBE_SCHEMA}`);
+  // AX-7: das aktuelle Schema und das vorige (Aufbewahrungsfrist nach dem Wechsel 5 → 6)
+  if (!CUBE_SCHEMAS_READABLE.includes(m.schema as number)) err(`schema ${String(m.schema)} ≠ ${CUBE_SCHEMA} (lesbar: ${CUBE_SCHEMAS_READABLE.join(', ')})`);
   if (!isRun(m.run)) err('run: kein YYYYMMDDHH');
   if (!isIso(m.runAt)) err('runAt: keine Zeit');
   if (m.note != null && typeof m.note !== 'string') err('note: kein Text');
@@ -440,6 +446,12 @@ export function buildPointIndex(opts: {
   stationRuns?: Array<{ run: string; runAt: string | null; ageH: number | null; path: string;
     manifest: string; stationCount: number | null; leadHours: number | null; bytes: number }>;
   /**
+   * AX-8: die Läufe des ZWEITEN Stationsprodukts (MOSMIX-S, `point/stations-s/`, stündlich). Eigene
+   * Liste aus demselben Grund wie `stationRuns` — und weil ein Leser ohne Option MOSMIX-L weiterliest.
+   */
+  stationSRuns?: Array<{ run: string; runAt: string | null; ageH: number | null; path: string;
+    manifest: string; stationCount: number | null; leadHours: number | null; bytes: number }>;
+  /**
    * Die zeitlosen Produkte unter `point/static/`. Vom Publisher **gezählt**, nicht hier
    * behauptet: ein Register, das ein Produkt nennt, das nicht liegt, ist schlimmer als
    * eines, das schweigt.
@@ -471,6 +483,15 @@ export function buildPointIndex(opts: {
       source: 'mosmix_l',
       axis: 'eigene Achse, stuendlich bis 247 h — NICHT die Stufenachse des Cubes (die ist ab 51 h dreistuendlich).',
       note: 'Stationsvorhersagen (MOSMIX) sind ein EIGENES Produkt, kein Gitter — s. cubeFormat.ts. Gebündelt nach dem Chunk-Raster der Stufe 1, gleicher Container, Zuordnung Spalte → Station im Lauf-Manifest.' },
+    // AX-8 (2026-09-30): MOSMIX-S daneben — stündliche Läufe (Lauf + 39…41 min), 240 Schritte, dieselben
+    // Stationen und derselbe Katalog. Der Leser nimmt es nur mit Option (`stationSource`), L bleibt die
+    // Voreinstellung; die Liste ist leer, solange der Cron das Produkt nicht baut.
+    stationsS: { dir: STATIONS_S_DIR, catalog: STATION_CATALOG_PATH,
+      runs: opts.stationSRuns ?? [],
+      source: 'mosmix_s',
+      retention: STATIONS_S_RETENTION,
+      axis: 'eigene Achse, stuendlich 1…240 h — NICHT die Stufenachse des Cubes.',
+      note: 'MOSMIX-S (stuendlich, 40 Parameter) als zweites Stationsprodukt neben MOSMIX-L; gleicher Container, gleiche Buendelung, Katalog gemeinsam (point/stations/catalog.json). Ein 09z-Lauf von S und einer von L truegen denselben Namen — deshalb ein eigenes Verzeichnis.' },
     // Die zeitlosen Produkte. `point/static/` stand seit PD-C4 in `timeless`, aber kein
     // Register nannte, WAS dort liegt: das Produkt `hmodel` war veröffentlicht und nur
     // auffindbar, wer den Pfad im Client-Code kannte. Die Umkehrung von V-SH-11 — dort

@@ -42,8 +42,11 @@ interface SourceEntry {
   lon: number;
   height: number;
   station_name?: string;
+  /** AX-1: the operator's ids — `wmo_station_id` is the id of the MOSMIX catalogue for synop stations. */
+  wmo_station_id?: string | null;
+  dwd_station_id?: string | null;
 }
-interface CurrentWeatherResponse {
+export interface CurrentWeatherResponse {
   weather?: CurrentWeatherEntry;
   sources?: SourceEntry[];
 }
@@ -110,7 +113,69 @@ function pointFor(w: CurrentWeatherEntry, src: SourceEntry, mine: (field: string
     lat: src.lat,
     lng: src.lon,
     elev: src.height,
+    // AX-1: the station behind the point — the WMO id (= MOSMIX catalogue id) when it has one, else the DWD id; the
+    // measurement time as BrightSky states it (the anchor pairs by it, V-DB-2).
+    ...({
+      stationName: src.station_name ?? String(src.id),
+      stationId: src.wmo_station_id ?? src.dwd_station_id ?? String(src.id),
+      timestamp: w.timestamp ? new Date(w.timestamp) : undefined,
+    } as { stationName: string; stationId: string; timestamp?: Date }),
   };
+}
+
+/**
+ * The points of ONE `/current_weather` response, attributed (V-FI-11): `own` is the answering station with the fields
+ * that are its own; `borrowed` are the neighbour stations BrightSky filled fields from, each carrying only what it lent.
+ * Pure; the grid fetch and the single-station fetch both go through here.
+ */
+export function brightSkyPointsOf(r: CurrentWeatherResponse | null | undefined): { own: { id: number; point: ForecastHourPoint } | null; borrowed: Array<{ id: number; point: ForecastHourPoint }> } {
+  if (!r?.weather || !r.sources?.length) return { own: null, borrowed: [] };
+  const w = r.weather;
+  const s = (w.source_id != null ? r.sources.find((x) => x.id === w.source_id) : undefined) ?? r.sources[0];
+  const ownerOf = (field: string): number => w.fallback_source_ids?.[field] ?? s.id;
+  const own = { id: s.id, point: pointFor(w, s, (f) => ownerOf(f) === s.id) };
+  const borrowed: Array<{ id: number; point: ForecastHourPoint }> = [];
+  const others = new Set(Object.values(w.fallback_source_ids ?? {}).filter((id) => id !== s.id));
+  for (const id of others) {
+    const src = r.sources.find((x) => x.id === id);
+    if (!src) continue;
+    const p = pointFor(w, src, (f) => ownerOf(f) === id);
+    if (p.temperature != null || p.relativeHumidity != null || p.u != null || p.gust != null || p.precipitation != null) borrowed.push({ id, point: p });
+  }
+  return { own, borrowed };
+}
+
+export interface BrightSkyAtQuery {
+  lat?: number;
+  lon?: number;
+  /** The WMO id (5 digits, the id of the MOSMIX catalogue) — BrightSky answers with that station or 404. */
+  wmoStationId?: string;
+  dwdStationId?: string;
+  signal?: AbortSignal;
+}
+
+/**
+ * AX-1 (V-FS-15): ONE `/current_weather` request — by coordinates (BrightSky picks the nearest station with data) or by
+ * station id. Returns the answering station first, then the stations it borrowed fields from (each attributed, V-FI-11);
+ * an empty list on 404 (no such station, or no data) and on any transport error. Never throws except on abort.
+ */
+export async function fetchBrightSkyCurrentAt(q: BrightSkyAtQuery): Promise<ForecastHourPoint[]> {
+  const params = new URLSearchParams();
+  if (q.wmoStationId) params.set('wmo_station_id', q.wmoStationId);
+  else if (q.dwdStationId) params.set('dwd_station_id', q.dwdStationId);
+  else if (q.lat != null && q.lon != null) { params.set('lat', q.lat.toFixed(4)); params.set('lon', q.lon.toFixed(4)); }
+  else return [];
+  let r: CurrentWeatherResponse | null = null;
+  try {
+    const res = await fetch(`https://api.brightsky.dev/current_weather?${params.toString()}`, { signal: q.signal, priority: 'low' });
+    if (!res.ok) return [];
+    r = (await res.json()) as CurrentWeatherResponse;
+  } catch (err) {
+    if ((err as { name?: string })?.name === 'AbortError') throw err;
+    return [];
+  }
+  const { own, borrowed } = brightSkyPointsOf(r);
+  return [...(own ? [own.point] : []), ...borrowed.map((b) => b.point)];
 }
 
 export interface BrightSkyCurrentOptions {
@@ -195,18 +260,10 @@ export async function fetchBrightSkyCurrentGrid(
   const stations = new Map<number, ForecastHourPoint>();
   const borrowed = new Map<number, ForecastHourPoint>();
   for (const r of responses) {
-    if (!r?.weather || !r.sources?.length) continue;
-    const w = r.weather;
-    const s = (w.source_id != null ? r.sources.find((x) => x.id === w.source_id) : undefined) ?? r.sources[0];
-    const ownerOf = (field: string): number => w.fallback_source_ids?.[field] ?? s.id;
-    if (!stations.has(s.id)) stations.set(s.id, pointFor(w, s, (f) => ownerOf(f) === s.id));
-    const others = new Set(Object.values(w.fallback_source_ids ?? {}).filter((id) => id !== s.id));
-    for (const id of others) {
-      const src = r.sources.find((x) => x.id === id);
-      if (!src || borrowed.has(id)) continue;
-      const p = pointFor(w, src, (f) => ownerOf(f) === id);
-      if (p.temperature != null || p.relativeHumidity != null || p.u != null || p.gust != null || p.precipitation != null) borrowed.set(id, p);
-    }
+    const pts = brightSkyPointsOf(r);
+    if (!pts.own) continue;
+    if (!stations.has(pts.own.id)) stations.set(pts.own.id, pts.own.point);
+    for (const b of pts.borrowed) if (!borrowed.has(b.id)) borrowed.set(b.id, b.point);
   }
   for (const [id, p] of borrowed) if (!stations.has(id)) stations.set(id, p);
 

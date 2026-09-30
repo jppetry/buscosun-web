@@ -9,8 +9,8 @@ import { DASH_RANGE_DAYS, DASH_RANGE_HOURS } from '../dashUrl';
 import { compass16, compass8, dateTime, dayLabel, hhmm, localParts, num, runLabel, withUnit } from '../format';
 import { ORIGIN, type ParamId } from '../origin';
 import {
-  confidenceClass, confidenceWord, dayText, DRY_MMH, spreadText, gammaWord, GUST_WARN_MS, isothermColor, isotherms,
-  PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM,
+  bandMarks, confidenceClass, confidenceWord, dayText, DRY_MMH, spreadText, gammaWord, GUST_WARN_MS, isothermColor, isotherms,
+  leadSentence, PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
 } from './rules';
 import type {
   CloudsVM, ConfVM, DashboardVM, DashInputs, DayVM, HourlyVM, IconD2VM, NowcastVM, NowVM, PhaseVM, PollenVM, Shown,
@@ -255,9 +255,32 @@ export const modelName = (id: string) => MODEL_NAMES[id] ?? id;
 /** Farben der Gewichtsleiste nach Produkt (Vorlage: Terracotta, Stahl, Salbei, Stein). */
 const PRODUCT_COLOR: Record<string, string> = { 'cube-t1': '#C97B47', 'cube-t2': '#C97B47', 'cube-t3': '#C97B47', station: '#3A6FA8', nowcast: '#7A9466', climatology: '#6E675A' };
 
+/** E-DB-23: halbe Breite des 80 %-Bands (p10–p90) der Temperatur. */
+const halfBand = (s: StepV2 | undefined): number | null => {
+  const lo = v(s, 't2m', 'p10'), hi = v(s, 't2m', 'p90');
+  return lo == null || hi == null ? null : (hi - lo) / 2;
+};
+
 function buildConf(c: Ctx): ConfVM {
   const s0 = c.s0;
-  if (!c.f || !s0) return { pct: null, value: loading('P22'), word: loading('P23'), weights: [], weightsText: loading('P24') };
+  if (!c.f || !s0) {
+    return { pct: null, value: loading('P22'), word: loading('P23'), weights: [], weightsText: loading('P24'), band: loading('P89'), bandRange: loading('P89'), funnel: [], funnelMarks: [] };
+  }
+  // Trichter (P90) über den ganzen Horizont als Hüllkurve: jetzt, dann je 24 h die größte halbe Bandbreite — einzelne
+  // Stunden mit eingeknicktem Band (Stufennähte, V-DB-21) machten die stündliche Kurve zum Strichcode.
+  const t0 = s0.validAtMs;
+  const hourly = c.steps.map((s) => ({ h: Math.round((s.validAtMs - t0) / H), half: halfBand(s) }))
+    .filter((p): p is { h: number; half: number } => p.half != null);
+  const funnel: ConfVM['funnel'] = hourly.length ? [hourly[0]] : [];
+  const hEnd = hourly.length ? hourly[hourly.length - 1].h : 0;
+  for (let from = 0; from < hEnd; from += 24) {
+    const block = hourly.filter((p) => p.h > from && p.h <= from + 24);
+    if (block.length) funnel.push({ h: Math.min(from + 24, hEnd), half: Math.max(...block.map((p) => p.half)) });
+  }
+  // Marken (P93) an der ersten Stunde je Schwelle — stündlich, wie im Stundenverlauf.
+  const funnelMarks = bandMarks(c.steps.map((s) => ({ t: s.validAtMs, half: halfBand(s) })))
+    .map((m) => ({ h: Math.round((m.t - t0) / H), k: m.k, label: `±${m.k}° ab ${dayLabel(m.t)}` }));
+  const half0 = halfBand(s0);
   const score = confOf(s0);
   // Anteile an der Antwort: die Member (Modelle, Station, Radar) sind unter sich auf 1 normiert, die Klimatologie trägt
   // 1 − β (output.ts, K-3) ⇒ Member × β, Klimatologie × 1 — zusammen 100 %.
@@ -284,9 +307,14 @@ function buildConf(c: Ctx): ConfVM {
   return {
     pct: score == null ? null : Math.round(score * 100),
     value: orNa('P22', pct(score), 'keine Konfidenz für diese Stunde'),
-    word: orNa('P23', confidenceWord(score) == null ? null : `${confidenceWord(score)} · Stunde 0`, 'keine Konfidenz'),
+    // E-DB-23: „Stunde 0" steht jetzt am 80-%-Satz („jetzt: …"), die ganze Kachel meint jetzt.
+    word: orNa('P23', confidenceWord(score), 'keine Konfidenz'),
     weights,
     weightsText: orNa('P24', weights.length ? weights.map((w) => `${w.label} ${w.pct}${NBSP}%`).join(' · ') : null, 'keine Gewichte an Stunde 0'),
+    band: orNa('P89', half0 == null ? null : `±${withUnit(half0, 1, '°C')}`, 'keine Temperaturverteilung an Stunde 0'),
+    bandRange: orNa('P89', half0 == null ? null : `jetzt: 80${NBSP}% zwischen ${num(v(s0, 't2m', 'p10'), 1)} und ${withUnit(v(s0, 't2m', 'p90'), 1, '°C')}`, 'keine Temperaturverteilung an Stunde 0'),
+    funnel,
+    funnelMarks,
   };
 }
 
@@ -306,6 +334,7 @@ function buildZone(c: Ctx): ZoneVM {
   if (!f || !steps.length) {
     return {
       head: { period: sh('P25', periodText), models: loading('P26'), ensemble: loading('P27'), conf: loading('P28'), confCls: 'good' },
+      lead: loading('P91'),
       days: keys.map((k, i) => emptyDay(k, i)),
       hourly: null,
       hourlyHead: loading('P53'),
@@ -330,12 +359,23 @@ function buildZone(c: Ctx): ZoneVM {
   const changeH = change ? Math.round((change.validAtMs - startMs) / H) : null;
   const ens = spreadText(kind0, changeH != null && changeH <= rangeH ? changeH : null, rangeH);
   const confMean = mean(inRange.map(confOf));
-  const days: DayVM[] = [];
+  const built: BuiltDay[] = [];
   let prevTmax: number | null = null;
   for (let i = 0; i < keys.length; i++) {
     const d = buildDay(c, keys[i], i, prevTmax);
-    days.push(d.vm);
+    built.push(d);
     prevTmax = d.tmax;
+  }
+  const days: DayVM[] = built.map((d) => d.vm);
+  // Leitsatz (P91): immer heute, morgen, übermorgen — dieselben Tagesdaten wie die Karten, auch wenn „Heute" gewählt ist.
+  const leadDays: LeadDay[] = [];
+  let leadKey = todayKey;
+  let leadPrev: number | null = null;
+  for (let i = 0; i < 3; i++) {
+    const d: BuiltDay = built[i] ?? buildDay(c, leadKey, i, leadPrev);
+    leadDays.push({ name: i === 0 ? 'Heute' : i === 1 ? 'Morgen' : weekdayLong(noonMs(leadKey)), text: d.vm.text.t, tmax: d.vm.tmax.t, rain: d.rainSum, rainText: d.vm.rain.t });
+    leadPrev = d.tmax;
+    leadKey = nextDayKey(leadKey);
   }
   return {
     head: {
@@ -345,6 +385,7 @@ function buildZone(c: Ctx): ZoneVM {
       conf: orNa('P28', confMean == null ? null : `Konfidenz ${Math.round(confMean * 100)}${NBSP}% im Mittel`, 'keine Konfidenz im Zeitraum'),
       confCls: confidenceClass(confMean),
     },
+    lead: orNa('P91', leadSentence(leadDays), NA_FUSION),
     days,
     hourly: buildHourly(c, startMs, endMs, rangeH, ens),
     hourlyHead: sh('P53', `${rangeH}${NBSP}h · ${ens}`),
@@ -352,6 +393,8 @@ function buildZone(c: Ctx): ZoneVM {
 }
 
 const TITLE_PREFIX = ['Heute', 'Morgen', 'Übermorgen'];
+const WEEKDAY_LONG: Record<string, string> = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
+const weekdayLong = (ms: number) => { const wd = localParts(ms).wd; return WEEKDAY_LONG[wd] ?? wd; };
 
 function emptyDay(key: string, index: number): DayVM {
   const l = (o: ParamId) => loading(o);
@@ -365,7 +408,9 @@ function emptyDay(key: string, index: number): DayVM {
   };
 }
 
-function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): { vm: DayVM; tmax: number | null } {
+interface BuiltDay { vm: DayVM; tmax: number | null; rainSum: number | null }
+
+function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): BuiltDay {
   const { inp, steps } = c;
   const hoursOf = (k: string, from: number, to: number) => steps.filter((s) => {
     const p = localParts(s.validAtMs);
@@ -382,6 +427,7 @@ function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): 
         rain: na('P39', why), rainSub: na('P40', why), mid: { label: 'BÖEN MAX', value: na('P41', why), sub: na('P41', why), subWarn: false },
         sunSub: na('P44', why), conf: { pct: null, text: na('P46', why), cls: 'fair' } },
       tmax: null,
+      rainSum: null,
     };
   }
   const t50 = day.map((s) => v(s, 't2m'));
@@ -465,7 +511,7 @@ function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): 
     sunSub: uvSub,
     conf: { pct: confMean == null ? null : Math.round(confMean * 100), text: orNa('P46', pct(confMean), 'keine Konfidenz'), cls: confidenceClass(confMean) },
   };
-  return { vm, tmax };
+  return { vm, tmax, rainSum: rainKnown ? rainSum : null };
 }
 
 function warningOnDay(inp: DashInputs, key: string): boolean {
@@ -482,9 +528,16 @@ function buildHourly(c: Ctx, startMs: number, endMs: number, rangeH: number, ens
     t: s.validAtMs, t50: v(s, 't2m'), t10: v(s, 't2m', 'p10'), t90: v(s, 't2m', 'p90'), td: v(s, 'td2m'), pr: v(s, 'precip', 'mean'),
   }));
   const { dayLines, ticks, ticksMobile } = hourAxis(startMs, endMs, rangeH);
+  // E-DB-23: Nächte (P92) im Zeitraum, Marken (P93) wo die halbe Bandbreite zuerst 2/3/4 °C erreicht.
+  const nights = (c.f?.nights ?? [])
+    .filter(([a, b]) => b > startMs && a < endMs)
+    .map(([a, b]) => ({ from: Math.max(a, startMs), to: Math.min(b, endMs) }));
+  const marks = bandMarks(pts.map((p) => ({ t: p.t, half: p.t10 != null && p.t90 != null ? (p.t90 - p.t10) / 2 : null })))
+    .map((m) => { const lp = localParts(m.t); return { t: m.t, k: m.k, label: `±${m.k}° ab ${String(lp.h).padStart(2, '0')} Uhr` }; });
   return {
     startMs, endMs, hours: rangeH, points: pts, dayLines, ticks, ticksMobile,
     head: sh('P53', `${rangeH}${NBSP}h · ${ens}`),
+    nights, marks,
   };
 }
 

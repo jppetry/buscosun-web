@@ -5,7 +5,7 @@
  * `pitRandomOf`. Pure functions and small accumulators; no I/O.
  */
 import { lcg } from '../../../src/point/calibFit.ts';
-import { cdfOf, meanOf, Phi, phi } from '../../../src/pointForecast/fusion/dist.ts';
+import { cdfOf, meanOf, Phi, phi, cloudMixParts, cloudMixMiddleMean, cloudMixMiddleVar } from '../../../src/pointForecast/fusion/dist.ts';
 
 export const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
@@ -168,6 +168,13 @@ export function benjaminiHochberg(ps) {
 export function sdOf(d) {
   switch (d.kind) {
     case 'normal': return d.sigma > 0 ? d.sigma : 0;
+    case 'cloudMix': {
+      // AX-4: E = 100·po + pm·m, E[Y²] = 100²·po + pm·(var + m²) of the truncated middle part
+      const { po, pm } = cloudMixParts(d);
+      const m = cloudMixMiddleMean(d.mu, d.sigma), v = cloudMixMiddleVar(d.mu, d.sigma);
+      const E = 100 * po + pm * m, E2 = 10000 * po + pm * (v + m * m);
+      return Math.sqrt(Math.max(0, E2 - E * E));
+    }
     case 'truncatedNormal': {
       if (!(d.sigma > 0)) return 0;
       const a = (d.lo - d.mu) / d.sigma, Z = 1 - Phi(a);
@@ -196,6 +203,13 @@ export function sdOf(d) {
  * (row, variable), so every candidate of a row sees the same u.
  */
 export function pitRandomOf(d, y, u) {
+  if (d.kind === 'cloudMix') {
+    // AX-4: two learned atoms — randomised inside each
+    const { pc, po } = cloudMixParts(d);
+    if (y <= 0) return u * pc;
+    if (y >= 100) return (1 - po) + u * po;
+    return cdfOf(d, y);
+  }
   if (d.kind === 'censoredNormal') {
     const F = (x) => (d.sigma > 0 ? Phi((x - d.mu) / d.sigma) : x >= d.mu ? 1 : 0);
     if (y <= d.lo) return u * F(d.lo);

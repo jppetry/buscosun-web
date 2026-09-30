@@ -23,6 +23,7 @@
  */
 
 import type { ForecastBounds, ForecastGrid, ForecastHourPoint } from './openMeteoForecast';
+import { nearestSubset } from './stationSelect';
 
 const META_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv';
 const STATION_URL = (abbr: string) =>
@@ -212,6 +213,13 @@ export interface SmnOptions {
   /** Cap station count — 158 is a lot of HTTP calls. Default 80 (well-distributed). */
   maxStations?: number;
   signal?: AbortSignal;
+  /**
+   * AX-1 (V-FS-15): with a point, the subset is the `maxStations` stations NEAREST to it — one file per station, so a
+   * point path that needs the six nearest reads twelve files instead of eighty spread over the alphabet (measured
+   * 30.09.2026: for Zürich the nearest station in the alphabet subset stood 6,6 km away, Zürich/Fluntern 2,5 km was not
+   * in it). Without `near` the call is byte-identical to before.
+   */
+  near?: { lat: number; lon: number };
 }
 
 /**
@@ -225,7 +233,9 @@ export async function fetchSmnCurrentGrid(options: SmnOptions = {}): Promise<For
   // because station abbrs don't cluster geographically). If cap < all.length
   // we take every (all/cap)-th station.
   const subset: SmnStation[] = [];
-  if (all.length <= cap) {
+  if (options.near) {
+    subset.push(...nearestSubset(all, options.near, cap, (s) => ({ lat: s.lat, lon: s.lng })));
+  } else if (all.length <= cap) {
     subset.push(...all);
   } else {
     const step = all.length / cap;

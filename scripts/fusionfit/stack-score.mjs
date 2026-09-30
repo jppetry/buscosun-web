@@ -76,8 +76,9 @@ for await (const row of rowsOf(flags.rows)) {
     const f = fitInputs(row, mode, v);
     if (!f || f.g < 0) continue;
     const forms = f.I != null ? ['A', 'AB', ...(f.D != null ? ['S'] : [])] : [];
-    for (const form of forms) sums.add(`${mode}|${v}|${f.g}|${form}`, vd, FORMS[form].x(f.I, f.D), f.r);
-    if (f.gl >= 0) for (const form of ['B', ...(f.D != null ? ['S0'] : [])]) sums.add(`${mode}|${v}|${f.gl}|${form}`, vd, FORMS[form].x(null, f.D), f.r);
+    for (const form of forms) { sums.add(`${mode}|${v}|${f.g}|${form}`, vd, FORMS[form].x(f.I, f.D), f.r); if (row.cc) sums.add(`${mode}|${v}|${f.g}|${form}|${row.cc}`, vd, FORMS[form].x(f.I, f.D), f.r); }
+    // AX-5 (V-FS-5): the same sums per country (`…|DE`, `…|AT`, `…|CH` — LI is CH) for the country candidate and the country entries of the table
+    if (f.gl >= 0) for (const form of ['B', ...(f.D != null ? ['S0'] : [])]) { sums.add(`${mode}|${v}|${f.gl}|${form}`, vd, FORMS[form].x(null, f.D), f.r); if (row.cc) sums.add(`${mode}|${v}|${f.gl}|${form}|${row.cc}`, vd, FORMS[form].x(null, f.D), f.r); }
     if (f.I != null) { const k = `${row.id}|${row.d}`; let e = innov[mode].get(k); if (!e) { e = {}; innov[mode].set(k, e); } e[v] = f.I; }
   }
 }
@@ -114,7 +115,12 @@ const PAIRS = {
   'product+fix': ['product@5e', 'mosmix', 'fl-K@5e', 'live'],
   'product+fix+noshrink': ['product+fix', 'product@5e', 'mosmix', 'fl-K@5e', 'live'],
   'product-FS': ['mosmix', 'product@5e', 'product+fix+noshrink', 'fl-K@5e', 'live', 'stack'],
+  // phase AX, AX-2 (E-FV-3): the stage with route-3 strata in t2/t3 against the stage as it runs (route 1), and the references
+  'product-FS-r3': ['product-FS', 'mosmix', 'live', 'fl-K@5e'],
+  // phase AX, AX-5 (V-FS-5): the station value with country parameters against the pooled one and MOSMIX
+  'stack-cc': ['stack', 'mosmix'],
 };
+const ccUsed = { cc: 0, pooled: 0 };
 const k5 = {}, k6 = { n: 0, maxAbs: 0, formDiffers: 0, byVar: {} };
 const pitDraw = (id, V, v) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; const g = lcg((h * 1_000_003 + V * 7919 + VAR_IDX[v] * 104_729) >>> 0); g(); return g(); };
 // D1/D2 collectors
@@ -142,6 +148,7 @@ for await (const row of rowsOf(flags.rows)) {
       if (m.P1) cands['product+fix'] = { dist: m.P1 };
       if (m.P2) cands['product+fix+noshrink'] = { dist: m.P2 };
       if (m.P3) cands['product-FS'] = { dist: m.P3 };
+      if (m.P4) cands['product-FS-r3'] = { dist: m.P4 };
       // K5: the engine without the climatological step against the offline form, on the chain of run 1
       if (mode === 'S' && m.PN && m.N) { const a = pointOf(m.PN), b = pointOf(m.N); const o5 = k5[v] ?? (k5[v] = { n: 0, maxAbs: 0, maxSigma: 0 }); o5.n += 1; o5.maxAbs = Math.max(o5.maxAbs, Math.abs(a - b)); if (m.PN.sigma != null && m.N.sigma != null) o5.maxSigma = Math.max(o5.maxSigma, Math.abs(m.PN.sigma - m.N.sigma)); }
       if (o.L) cands['fl-K@5e'] = { dist: o.L };
@@ -169,6 +176,24 @@ for await (const row of rowsOf(flags.rows)) {
               }
               // D1: the leave-day-out weight of MOSMIX in the stack = 1 − c
               if (form === 'S' || form === 'S0') { const w = getOr(wCol, `${mode}|${v}|${bin}`, () => ({ wM: [], beta: [], cSum: 0, cN: 0 })); w.cSum += fit.beta[fit.beta.length - 1]; w.cN += 1; }
+            }
+          }
+        }
+      }
+      // AX-5 (V-FS-5): the station value with the country's parameters where the country fit is written (≥ MIN_ROWS after the
+      // purge), else the pooled ones — the candidate `stack-cc`; counted which one carried the row
+      if (FIT_VARS.includes(v) && row.cc) {
+        const fc = fitInputs(row, mode, v);
+        if (fc && fc.g >= 0) {
+          const form = formOf('stack', fc.I, fc.D);
+          if (form != null) {
+            const x = FORMS[form].x(fc.I, fc.D), gK = form === 'B' || form === 'S0' ? fc.gl : fc.g;
+            const fitCC = sums.fit(`${mode}|${v}|${gK}|${form}|${row.cc}`, vd), fitP = sums.fit(`${mode}|${v}|${gK}|${form}`, vd);
+            const use = fitCC && fitCC.written ? fitCC : fitP && fitP.written ? fitP : null;
+            if (use) {
+              const val = stackValue(fc.M, x, use.beta, NONNEG.has(v));
+              cands['stack-cc'] = { dist: stackDist(v, NONNEG.has(v) ? stackValue(fc.M, x, use.beta, false) : val, use.sigma ?? 1), point: val };
+              ccUsed[use === fitCC ? 'cc' : 'pooled'] += 1;
             }
           }
         }
@@ -234,9 +259,10 @@ writeFileSync(flags.out, JSON.stringify(card));
 if (typeof flags.table === 'string') {
   const entries = {};
   for (const [k, c] of Object.entries(card.coefficients)) {
-    const [mode, v, g, form] = k.split('|');
+    const [mode, v, g, form, cc] = k.split('|');
     if (mode !== 'S' || !c.written) continue;
-    entries[`${v}|${g}|${form}`] = { n: c.n, beta: FORMS[form].names.map((nm) => c[nm]), sigma: c.sigma };
+    // AX-5: country entries (`…|DE|AT|CH`) next to the pooled ones — the engine prefers a written country entry
+    entries[`${v}|${g}|${form}${cc ? `|${cc}` : ''}`] = { n: c.n, beta: FORMS[form].names.map((nm) => c[nm]), sigma: c.sigma };
   }
   const slots = header?.slots ?? [];
   const table = {
@@ -383,6 +409,29 @@ if (Object.keys(card.scores).some((k) => k.includes('|product+fix|'))) {
   table('E2 Kontext — product-FS gegen product@5e (Modus S)', 'S', 'product-FS', 'product@5e', ['mae', 'crps'], CELLS, COUNTRY);
   table('E2 Kontext — product-FS gegen live (Modus S, MAE)', 'S', 'product-FS', 'live', ['mae'], CELLS.filter((c) => c.v !== 'td'));
   table('E2 Kontext — product-FS gegen stack (Leave-Day-out, Modus S)', 'S', 'product-FS', 'stack', ['mae', 'crps']);
+  // phase AX, AX-2 (E-FV-3): route 3 in t2/t3 — only the bins the option touches (51 h and beyond); t1 is byte-identical
+  {
+    const LONG = ALL_VARS.flatMap((v) => [3, 4, 5].map((bin) => ({ v, bin })));
+    table('AX-2 — product-FS-r3 (Route 3 in t2/t3, E-FV-3) gegen product-FS (Route 1) — Modus S, Bins 51–336 h', 'S', 'product-FS-r3', 'product-FS', ['mae', 'crps'], LONG, COUNTRY);
+    table('AX-2 — product-FS-r3 gegen product-FS — Modus L (stationsloser Punkt), Bins 51–336 h', 'L', 'product-FS-r3', 'product-FS', ['mae', 'crps'], LONG);
+    table('AX-2 Kontext — product-FS-r3 gegen mosmix (Modus S), Bins 51–336 h', 'S', 'product-FS-r3', 'mosmix', ['mae', 'crps'], LONG.filter((c) => FIT_VARS.includes(c.v)));
+    table('AX-2 Kontext — product-FS-r3 gegen fl-K@5e (Modus L), Bins 51–336 h', 'L', 'product-FS-r3', 'fl-K@5e', ['mae', 'crps'], LONG);
+    const t6 = tally('S', 'product-FS-r3', 'product-FS', 'crps', LONG), t6m = tally('S', 'product-FS-r3', 'product-FS', 'mae', LONG), t6L = tally('L', 'product-FS-r3', 'product-FS', 'crps', LONG);
+    verdicts['AX-2'] = t6.worse.length === 0 && t6L.worse.length === 0 && (t6.better.length + t6L.better.length) >= 4 ? 'BESSER' : (t6.worse2.length === 0 && t6L.worse2.length === 0 ? 'GLEICHSTAND' : 'SCHLECHTER');
+    md.push(`CRPS Modus S: ${t6.better.length} signifikant besser, ${t6.worse.length} signifikant schlechter, ${t6.ns.length} gleichauf, ${t6.missing.length} ohne Zelle · MAE Modus S: ${t6m.better.length} / ${t6m.worse.length} / ${t6m.ns.length} · CRPS Modus L: ${t6L.better.length} / ${t6L.worse.length} / ${t6L.ns.length}. **AX-2 ${verdicts['AX-2']}** (Regel: keine Zelle signifikant schlechter in S und L und ≥ 4 signifikant besser ⇒ BESSER; keine Zelle < −2 % ⇒ GLEICHSTAND; sonst SCHLECHTER).${t6.worse.length ? ` Schlechter (S): ${t6.worse.join('; ')}.` : ''}${t6L.worse.length ? ` Schlechter (L): ${t6L.worse.join('; ')}.` : ''}`, '');
+  }
+  // phase AX, AX-5 (V-FS-5): country parameters of the station value — the frozen rule reads the country layers of Wind/Böe 7–120 h
+  if (card.scores['crps|S|ws|1|stack-cc|all'] || card.pairs['mae|S|ws|1|stack-cc|stack|all']) {
+    table('AX-5 — stack-cc (Parameter je Land, Rückfall gepoolt) gegen stack (gepoolt) — Modus S', 'S', 'stack-cc', 'stack', ['mae', 'crps'], CELLS, COUNTRY);
+    table('AX-5 Kontext — stack-cc gegen mosmix (Modus S)', 'S', 'stack-cc', 'mosmix', ['mae', 'crps'], CELLS, COUNTRY);
+    table('AX-5 Kontext — stack-cc gegen stack (Modus L)', 'L', 'stack-cc', 'stack', ['mae', 'crps']);
+    const rows5 = [];
+    for (const cc of ['DE', 'AT', 'CH']) for (const v of ['ws', 'gust']) for (const bin of [1, 2, 3]) for (const m of ['mae', 'crps']) { const p = P(m, 'S', v, bin, 'stack-cc', 'stack', `country:${cc}`); rows5.push({ cc, v, bin, m, w: word(p), p }); }
+    const chBetter = rows5.filter((r) => r.cc === 'CH' && r.w === 'better').length, chWorse = rows5.filter((r) => r.cc === 'CH' && r.w === 'worse').length;
+    const deatWorse = rows5.filter((r) => r.cc !== 'CH' && r.w === 'worse').length, worse2 = rows5.filter((r) => r.w === 'worse' && r.p.skill < -0.02).length;
+    verdicts['AX-5'] = chWorse === 0 && deatWorse === 0 && chBetter >= 2 ? 'GILT' : worse2 === 0 ? 'GLEICHSTAND' : 'GILT NICHT';
+    md.push(`Wind/Böe 7–120 h je Land (MAE und CRPS): CH ${chBetter} signifikant besser / ${chWorse} schlechter; DE+AT ${rows5.filter((r) => r.cc !== 'CH' && r.w === 'better').length} besser / ${deatWorse} schlechter; Zeilen mit Landesparametern ${ccUsed.cc}, mit gepoolten ${ccUsed.pooled}. **AX-5 ${verdicts['AX-5']}** (Regel: CH ≥ 2 Zellen signifikant besser und nirgends signifikant schlechter, DE/AT nirgends signifikant schlechter ⇒ GILT; keine Zelle < −2 % ⇒ GLEICHSTAND; sonst GILT NICHT).${rows5.filter((r) => r.w === 'worse').length ? ` Schlechter: ${rows5.filter((r) => r.w === 'worse').map((r) => `${r.cc} ${VAR_LABEL[r.v]} ${BIN_LABEL[r.bin]} ${r.m} ${cell(r.p)}`).join('; ')}.` : ''}`, '');
+  }
   table('E2 Kontext — Bewölkung und Niederschlag: product-FS gegen product@5e (Modus S)', 'S', 'product-FS', 'product@5e', ['mae', 'crps'], CN);
   table('E2 Kontext — Bewölkung und Niederschlag: product-FS gegen mosmix (Modus S)', 'S', 'product-FS', 'mosmix', ['mae', 'crps'], CN);
   table('E4 — product+fix+noshrink gegen MOSMIX der Nachbarstation (Modus L)', 'L', 'product+fix+noshrink', 'mosmix', ['crps', 'mae'], CELLS, COUNTRY);
@@ -402,7 +451,7 @@ if (Object.keys(card.scores).some((k) => k.includes('|product+fix|'))) {
 // absolute numbers
 for (const mode of MODES) {
   md.push(`## Absolut — Modus ${mode} (Schicht all)`, '', '| Zelle | Kandidat | n | MAE | Bias | CRPS | PIT außen | S/S |', '|---|---|---|---|---|---|---|---|');
-  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack0']) {
+  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
     const s = card.scores[`${mode}|${v}|${bin}|${c}|all`];
     if (s) md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} | ${c} | ${s.n} | ${f2(s.mae, 3)} | ${f2(s.bias)} | ${f2(s.crps, 3)} | ${f2(s.pitOuter, 3)} | ${f2(s.spreadSkill)} |`);
   }

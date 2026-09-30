@@ -37,8 +37,12 @@ export const V2C_CODEC = 'buscosun-v2c';
  * the END of `DIST_KINDS` (the learned speed law, V-FL-22). Every index of version 1 is unchanged, so a version-1
  * document decodes with the version-2 tables to the same object — the decoder reads both (`V2C_READABLE`).
  */
-export const V2C_VERSION = 2;
-export const V2C_READABLE: readonly number[] = Object.freeze([1, 2]);
+export const V2C_VERSION = 3;
+/**
+ * 3 (phase AX, AX-4, 30.09.2026) = version 2 plus the family `cloudMix` at the END of `DIST_KINDS` (the two-atom cloud
+ * mixture of the learning stage). Every index of versions 1 and 2 is unchanged; the decoder reads all three.
+ */
+export const V2C_READABLE: readonly number[] = Object.freeze([1, 2, 3]);
 
 type Col = Array<number | null>;
 
@@ -148,7 +152,7 @@ export interface CompactV2 {
 // Scales and tables
 // ---------------------------------------------------------------------------
 
-const DIST_KINDS = ['none', 'normal', 'censoredNormal', 'logCensored', 'hurdleLogNormal', 'rice', 'truncatedNormal'] as const;
+const DIST_KINDS = ['none', 'normal', 'censoredNormal', 'logCensored', 'hurdleLogNormal', 'rice', 'truncatedNormal', 'cloudMix'] as const;
 type DistKind = Exclude<(typeof DIST_KINDS)[number], 'none'>;
 type ParamScale = 'loc' | 'spread' | 'log' | 'prob';
 /** Which parameter goes into which of the four columns, and on which scale. */
@@ -159,6 +163,8 @@ const DIST_LAYOUT: Readonly<Record<DistKind, ReadonlyArray<readonly [string, Par
   hurdleLogNormal: [['mu', 'log'], ['sigma', 'log'], ['pDry', 'prob']],
   rice: [['nu', 'loc'], ['sigma', 'spread']],
   truncatedNormal: [['mu', 'loc'], ['sigma', 'spread'], ['lo', 'loc']],
+  // version 3 (AX-4): the two-atom cloud mixture — the bounds 0/100 are the family's, only four parameters travel
+  cloudMix: [['mu', 'loc'], ['sigma', 'spread'], ['pClear', 'prob'], ['pOvercast', 'prob']],
 });
 const POW10 = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000];
 /** Decimal digits of a scale that is a power of ten (0.01 → 2). */

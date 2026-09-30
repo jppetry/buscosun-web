@@ -7,6 +7,7 @@
  */
 import { POINT_LEARNED_PATH } from '../cubeFormat';
 import { validateTables, type FusionTables } from '../fusionFit/tables';
+import { tableAgeOf, LEARNED_STALE_DAYS, type TableAge } from './tableAge';
 import type { PointStore } from './store';
 
 export interface LoadedLearned {
@@ -16,6 +17,8 @@ export interface LoadedLearned {
   /** Die geprüften Tabellen; `null` = nichts gilt ⇒ Rechnung wie ohne Option. */
   tables: FusionTables | null;
   notes: string[];
+  /** AX-2 (V-EX-6): das Alter der Tabelle, benannt — nie stumm, nie blockierend. */
+  age?: TableAge;
 }
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
@@ -25,7 +28,7 @@ export async function sha256Hex(bytes: Uint8Array): Promise<string | null> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function loadLearned(store: PointStore, opts: { signal?: AbortSignal } = {}): Promise<LoadedLearned> {
+export async function loadLearned(store: PointStore, opts: { signal?: AbortSignal; nowMs?: number } = {}): Promise<LoadedLearned> {
   const path = POINT_LEARNED_PATH;
   let bytes: Uint8Array | null = null;
   try { bytes = await store.bytes(path, { priority: 'low', ...(opts.signal ? { signal: opts.signal } : {}) }); } catch { bytes = null; }
@@ -37,5 +40,7 @@ export async function loadLearned(store: PointStore, opts: { signal?: AbortSigna
   if (errs.length) return { path, hash, tables: null, notes: [`learned: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — Rechnung ohne Lernstufe`] };
   const t = doc as FusionTables;
   const written = Object.values(t.mean).filter((e) => e.status === 'written').length;
-  return { path, hash, tables: t, notes: written ? [] : ['learned: Tabellen ohne geschriebenes Stratum — Rechnung ohne Lernstufe'] };
+  // AX-2 (V-EX-6): das Alter wird genannt, nie stumm; eine veraltete Tabelle wirkt weiter (sie bleibt das Beste, was der Client hat).
+  const age = tableAgeOf('learned', t, opts.nowMs ?? Date.now(), LEARNED_STALE_DAYS);
+  return { path, hash, tables: t, notes: [...(written ? [] : ['learned: Tabellen ohne geschriebenes Stratum — Rechnung ohne Lernstufe']), age.note], age };
 }

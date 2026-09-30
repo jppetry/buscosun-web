@@ -201,6 +201,7 @@ export function losoClimaProduct(tables, featRow) {
 export function inputFromArchive(slot, row, { cube, station = null, stationReason = null, nowcast = [], covering = [], obs = null, clima, learned = null, learnedClima = null, stack = null, nowMs, window }) {
   return {
     lat: row.lat, lon: row.lon, nowMs, window,
+    country: row.country ?? null,   // AX-5: the country entry of the station-value table (LI counts as CH in the engine)
     elevationM: row.elevM, elevationFrom: 'station',
     terrain: terrainOf(row),
     cube, station, stationReason, nowcast, nowcastCovering: covering,

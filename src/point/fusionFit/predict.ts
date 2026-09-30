@@ -20,7 +20,8 @@
  * are predicted from the `none` design and need no μ_c (`tables.ts climaColumnsFor`, one definition).
  */
 import type { Dist } from '../../pointForecast/fusion/dist';
-import { meanDesignK, meanDesignP, varianceDesign, occurrenceDesign, amountDesign } from './design';
+import { meanDesignK, meanDesignP, varianceDesign, occurrenceDesign, amountDesign, atomsDesign } from './design';
+import { atomMasses, atomsKey } from './fitAtoms';
 import { predictMean } from './fitMean';
 import { predictSigma } from './fitVariance';
 import { predictWet, predictAmountLn } from './fitPrecip';
@@ -102,7 +103,25 @@ export function predictPrecip(tables: FusionTables, form: Form, s: PredictSituat
   return { dist: { kind: 'hurdleLogNormal', pDry: 1 - pWet, mu: lnAmt, sigma: amt.sigma }, mean: pWet * Math.exp(lnAmt + 0.5 * amt.sigma * amt.sigma) };
 }
 
-export function predict(tables: FusionTables, form: Form, s: PredictSituation): Predicted {
+export interface PredictOptions {
+  /** Phase AX, AX-4: `false` = the censored normal even where the table carries written atoms (the scorer's A/B). Default: atoms where written. */
+  cloudAtoms?: boolean;
+}
+
+/**
+ * The cloud distribution of a stratum: the two-atom mixture where the table carries BOTH written atoms of the stratum
+ * (form K only), else the censored normal as before (AX-4, `fitAtoms.ts`).
+ */
+export function cloudsDist(tables: FusionTables, form: Form, bin: number, cls: string, s: PredictSituation, clct: { mu: number; sigma: number }, opts?: PredictOptions): Dist {
+  if (form === 'K' && opts?.cloudAtoms !== false && tables.atoms && s.k.clct != null) {
+    const x = atomsDesign(s.z, s.k.clct, s.sigDiv.clct ?? null);
+    const m = atomMasses(tables.atoms[atomsKey('K', bin, cls, 'clear')], tables.atoms[atomsKey('K', bin, cls, 'overcast')], x);
+    if (m) return { kind: 'cloudMix', pClear: m.pClear, pOvercast: m.pOvercast, mu: clct.mu, sigma: clct.sigma };
+  }
+  return { kind: 'censoredNormal', mu: clct.mu, sigma: clct.sigma, lo: 0, hi: 100 };
+}
+
+export function predict(tables: FusionTables, form: Form, s: PredictSituation, opts?: PredictOptions): Predicted {
   const bin = binIndex(s.leadH);
   const cls = classKey(form, s.srcMask, s.route);
   const absent: string[] = [];
@@ -146,7 +165,7 @@ export function predict(tables: FusionTables, form: Form, s: PredictSituation): 
       windSpeed,
       // the gust floor stays the u/v Rice's ν (as before fusionFit@3), whatever family the speed takes
       gust: gust ? { kind: 'censoredNormal', mu: Math.max(gust.mu, riceNu), sigma: gust.sigma, lo: 0, hi: 90 } : null,
-      clouds: clct ? { kind: 'censoredNormal', mu: clct.mu, sigma: clct.sigma, lo: 0, hi: 100 } : null,
+      clouds: clct ? cloudsDist(tables, form, bin, cls, s, clct, opts) : null,
       precipitation,
     },
     windDirectionDeg, speed, absent,

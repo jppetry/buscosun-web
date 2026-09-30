@@ -39,6 +39,8 @@ export interface FusionIn {
   pWet: Record<number, number | null>;
   /** Sonne unter dem Horizont an Stunde 0 (NOAA-Sonnenstand, `terrainPhysics.ts`), beim Empfang berechnet. */
   night0: boolean | null;
+  /** E-DB-23 (P92): Nächte über die ganze Achse als [von, bis] in ms (Sonne unter −0,833°, alle 10 min), beim Empfang berechnet. */
+  nights?: Array<[number, number]>;
 }
 
 /** Eine amtliche Warnung am Punkt — Texte wörtlich aus der Quelle (Warn-Layer-Sonderregel). */
@@ -135,6 +137,14 @@ export interface ConfVM {
   word: Shown;
   weights: Array<{ label: string; pct: number; color: string }>;
   weightsText: Shown;
+  /** E-DB-23 (P89): halbe Breite des 80 %-Bands der Temperatur an Stunde 0 — „±1,3 °C". */
+  band: Shown;
+  /** E-DB-23 (P89): „80 % zwischen 21,7 und 24,3 °C". */
+  bandRange: Shown;
+  /** E-DB-23 (P90): der Trichter — halbe Bandbreite jetzt, danach je 24 h die größte (`h` = Stunden ab Stunde 0). */
+  funnel: Array<{ h: number; half: number }>;
+  /** E-DB-23 (P93): ab welcher Stunde die halbe Bandbreite 2/3/4 °C erreicht — Marken im Trichter. */
+  funnelMarks: Array<{ h: number; k: number; label: string }>;
 }
 
 export interface PhaseVM {
@@ -172,10 +182,16 @@ export interface HourlyVM {
   ticks: Array<{ t: number; label: string }>;
   ticksMobile: Array<{ t: number; label: string }>;
   head: Shown;
+  /** E-DB-23 (P92): Nächte im Zeitraum. */
+  nights: Array<{ from: number; to: number }>;
+  /** E-DB-23 (P93): wo die halbe Bandbreite zuerst ±2/3/4 °C erreicht — „±2° ab So 06". */
+  marks: Array<{ t: number; k: number; label: string }>;
 }
 
 export interface ZoneVM {
   head: { period: Shown; models: Shown; ensemble: Shown; conf: Shown; confCls: 'good' | 'fair' };
+  /** E-DB-23 (P91): ein Satz über den Tageskarten, aus denselben Tagesdaten. */
+  lead: Shown;
   days: DayVM[];
   hourly: HourlyVM | null;
   /** Kopf des Stundenverlaufs auch ohne Daten (lädt / nicht verfügbar). */

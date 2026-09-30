@@ -84,25 +84,48 @@ export function WarningCard({ vm }: { vm: WarningVM }) {
   );
 }
 
-const DONUT_C = 2 * Math.PI * 23;
+/**
+ * E-DB-23: Trichter der halben 80 %-Bandbreite über den ganzen Horizont (P90) — so breit wie die Temperatur jetzt schwankt,
+ * und wie weit sie in 14 Tagen schwankt. Marken (P93) dort, wo ±2/3/4 °C zuerst erreicht sind.
+ */
+function BandFunnel({ vm }: { vm: ConfVM }) {
+  const W = 118, top = 4, bottom = 46, mid = (top + bottom) / 2;
+  const pts = vm.funnel;
+  if (pts.length < 2) return <svg width={W} height="58" viewBox={`0 0 ${W} 58`} className="dbd-funnel" aria-hidden="true" />;
+  const hMax = pts[pts.length - 1].h || 1;
+  const maxHalf = Math.max(...pts.map((p) => p.half), 0.5);
+  const x = (h: number) => (h / hMax) * W;
+  const off = (half: number) => (half / maxHalf) * (bottom - top) / 2;
+  const d = `${pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.h).toFixed(1)} ${(mid - off(p.half)).toFixed(1)}`).join(' ')} `
+    + `${[...pts].reverse().map((p) => `L${x(p.h).toFixed(1)} ${(mid + off(p.half)).toFixed(1)}`).join(' ')} Z`;
+  const last = pts[pts.length - 1];
+  const label = `Bandbreite ${vm.band.t ?? 'n. v.'} jetzt, ±${last.half.toFixed(1).replace('.', ',')} °C in ${Math.round(hMax / 24)} Tagen${vm.funnelMarks.length ? `; ${vm.funnelMarks.map((m) => m.label).join(', ')}` : ''}`;
+  return (
+    <svg width={W} height="58" viewBox={`0 0 ${W} 58`} className="dbd-funnel" role="img" aria-label={label} data-origin="P90">
+      <path d={d} fill="#C99A4E" opacity=".55" />
+      <line x1="0" y1={mid} x2={W} y2={mid} stroke="#F5F1E8" strokeWidth="1.2" opacity=".7" />
+      <g data-origin="P93" stroke="#8B8474" strokeWidth="1" strokeDasharray="2 2">
+        {vm.funnelMarks.map((m) => <line key={m.k} x1={x(m.h)} x2={x(m.h)} y1={top} y2={bottom} />)}
+      </g>
+      <g fontFamily="League Spartan" fontSize="9.5" fill="#8B8474">
+        <text x="0" y="56">jetzt</text>
+        <text x={W} y="56" textAnchor="end">+{Math.round(hMax / 24)} Tage</text>
+      </g>
+    </svg>
+  );
+}
 
 export function ConfidenceCard({ vm }: { vm: ConfVM }) {
-  const p = vm.pct == null ? 0 : Math.max(0, Math.min(100, vm.pct)) / 100;
   const fair = vm.pct != null && vm.pct < 70;
   return (
     <section className="dbd-card dbd-dark-card dbd-conf dbd-dark" aria-label="Konfidenz und Quellen">
       <span className="dbd-eyebrow" style={{ letterSpacing: '2px' }}>KONFIDENZ &amp; QUELLEN</span>
       <div className="dbd-conf-row">
-        <svg width="58" height="58" viewBox="0 0 58 58" style={{ flex: '0 0 auto' }} aria-hidden="true">
-          <circle cx="29" cy="29" r="23" fill="none" stroke="#43403A" strokeWidth="7" />
-          {vm.pct != null && vm.pct > 0 && (
-            <circle cx="29" cy="29" r="23" fill="none" stroke={fair ? '#C99A4E' : '#7A9466'} strokeWidth="7" strokeLinecap="round"
-              strokeDasharray="144 145" strokeDashoffset={Math.round(DONUT_C * (1 - p) * 10) / 10} transform="rotate(-90 29 29)" />
-          )}
-        </svg>
-        <div>
-          <div className="dbd-conf-pct"><Val v={vm.value} /></div>
-          <div className={`dbd-conf-word${fair ? ' is-fair' : ''}`}><Val v={vm.word} /></div>
+        <BandFunnel vm={vm} />
+        <div className="dbd-conf-main">
+          <div className="dbd-conf-pct"><Val v={vm.band} /></div>
+          <div className="dbd-conf-range"><Val v={vm.bandRange} long /></div>
+          <div className={`dbd-conf-word${fair ? ' is-fair' : ''}`}>Index <Val v={vm.value} /> · <Val v={vm.word} /></div>
         </div>
       </div>
       <div className="dbd-weights" data-origin="P24">

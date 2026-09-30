@@ -84,6 +84,8 @@ export interface PointSourceSample {
   srcCount?: number | null;
   /** Wie viele Member in σ_ens eingegangen sind; `null` = kein Ensemble an dieser Stunde. */
   ensCount?: number | null;
+  /** AX-7 (Schema 6): das Mittel der Ensemble-Member je Größe (`<id>_ens`, IFS-ENS in t3) — ein Wert, kein σ. */
+  ensMean?: Partial<Record<'t2m' | 'u10' | 'v10' | 'precip', number | null>>;
   /** Effektive Modellorographie der Zelle in m ü. NN (Ebene `hModEff`). */
   hModEff?: number | null;
   /**

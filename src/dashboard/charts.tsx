@@ -79,6 +79,10 @@ export function HourlyChart({ vm, patternId }: { vm: HourlyVM; patternId: string
           </pattern>
         </defs>
         <rect x="0" y="0" width={w} height={h} fill={`url(#${patternId})`} opacity=".4" />
+        {/* E-DB-23: Nächte (P92) dezent unter allem, was Wert trägt */}
+        <g fill="#E0D6BE" opacity=".5" data-origin="P92">
+          {vm.nights.map((n) => <rect key={n.from} x={x(n.from)} y="0" width={Math.max(0, x(n.to) - x(n.from))} height={base} />)}
+        </g>
         <g stroke="#EDE6D3" strokeWidth="1">
           {[34, 68, 102].map((u) => <line key={u} x1="0" y1={fy(u)} x2={w} y2={fy(u)} />)}
         </g>
@@ -95,6 +99,19 @@ export function HourlyChart({ vm, patternId }: { vm: HourlyVM; patternId: string
           })}
         </g>
         <line x1="0" y1={base} x2={w} y2={base} stroke="#C4B896" strokeWidth="1" />
+        {/* E-DB-23: wo die halbe Bandbreite zuerst ±2/3/4 °C erreicht (P93) — zweite Beschriftungszeile unter den Tagen */}
+        <g data-origin="P93">
+          {vm.marks.map((m) => {
+            const mx = x(m.t);
+            const right = mx > w - 96;
+            return (
+              <g key={m.k}>
+                <line x1={mx} x2={mx} y1={fy(22)} y2={base} stroke="#A89A7A" strokeWidth="1" strokeDasharray="2 3" />
+                <text x={right ? mx - 5 : mx + 5} y={fy(30)} textAnchor={right ? 'end' : 'start'} fontFamily="League Spartan" fontSize="10.5" fill="#8B7355">{m.label}</text>
+              </g>
+            );
+          })}
+        </g>
         <g fontFamily="League Spartan" fontSize="10.5" fill="#8B7355">
           <text x="6" y="14">°C</text>
           {vm.dayLines.map((d) => <text key={d.t} x={x(d.t) + 7} y="14">{d.label}</text>)}

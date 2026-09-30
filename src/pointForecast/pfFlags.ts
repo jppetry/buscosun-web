@@ -17,3 +17,28 @@ export function pfSourceFrom(search: string): PfSource {
 export function pfLogFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('pflog') === '1'; } catch { return false; }
 }
+
+/**
+ * AX-8 (`audit/fusion-ausbau.md` §6b): which station product feeds the station member of buscosun Fusion.
+ *   `?st=s`      → MOSMIX-S (`point/stations-s/`, hourly runs); without an S run in the index the reader falls back to L and says so.
+ *   `?st=fresh`  → the younger run of MOSMIX-S and MOSMIX-L.
+ *   anything else → MOSMIX-L (the default, byte-identical to the state before AX-8).
+ */
+export type PfStationSource = 'mosmix_l' | 'mosmix_s' | 'freshest';
+
+/** AX-10: `?inca=1` adds the INCA analysis (GeoSphere, 1 km, hourly) at the point as an anchor observation in Austria. */
+export function pfIncaAnchorFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('inca') === '1'; } catch { return false; }
+}
+
+/** AX-9: `?cg=1` reads `point/static/clima-grid` and takes its 1991–2020 normals as the daily mean of the temperature prior. */
+export function pfClimaGridFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('cg') === '1'; } catch { return false; }
+}
+
+export function pfStationSourceFrom(search: string): PfStationSource {
+  try {
+    const v = new URLSearchParams(search).get('st');
+    return v === 's' ? 'mosmix_s' : v === 'fresh' ? 'freshest' : 'mosmix_l';
+  } catch { return 'mosmix_l'; }
+}

@@ -96,6 +96,8 @@ export interface StationPointStep {
 
 export interface StationPointSeries {
   product: 'stations';
+  /** AX-8: `mosmix_l` (Voreinstellung, `point/stations/`) oder `mosmix_s` (`point/stations-s/`), aus dem Lauf-Manifest. */
+  source: string;
   station: StationCandidate;
   run: string;
   runAtMs: number;
@@ -155,6 +157,7 @@ export async function readStationPoint(
 
   return {
     product: 'stations',
+    source: manifest.source,
     station,
     run: manifest.run,
     runAtMs,

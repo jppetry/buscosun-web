@@ -62,6 +62,11 @@ export const MOSMIX_PARAMS = Object.freeze([
   'Nm',    // mittlere Bewölkung, %
   'Nh',    // hohe Bewölkung, %
   'RR1c',  // Gesamtniederschlag letzte Stunde, kg/m² = mm
+  // AX-11 (Bericht #21): drei Größen, die der Cube nicht trägt und die NUR das Stationsprodukt führt (eigene Ebenen
+  // hinter der Cube-Liste, `STATION_EXTRA_PLANES`). In MOSMIX-S wie in MOSMIX-L (am S-File 30.09. ausgezählt).
+  'Rad1h', // Globalstrahlung, Summe der letzten Stunde, kJ/m²  ⇒ W/m² (÷ 3,6)
+  'SunD1', // Sonnenscheindauer der letzten Stunde, s          ⇒ min (÷ 60)
+  'VV',    // Sichtweite, m
 ]);
 
 /**
@@ -251,6 +256,10 @@ export function mosmixToCube(values, i) {
   const nl = g('Nl'); if (Number.isFinite(nl)) out.clcl = nl;
   const nm = g('Nm'); if (Number.isFinite(nm)) out.clcm = nm;
   const nh = g('Nh'); if (Number.isFinite(nh)) out.clch = nh;
+  // AX-11: Stationsebenen jenseits des Cubes — Einheiten des Produkts (W/m², min, m), negative Werte sind Datenfehler.
+  const rad = g('Rad1h'); if (Number.isFinite(rad) && rad >= 0) out.radGlob = rad / 3.6;
+  const sd = g('SunD1'); if (Number.isFinite(sd) && sd >= 0) out.sunDur = Math.min(60, sd / 60);
+  const vv = g('VV'); if (Number.isFinite(vv) && vv >= 0) out.vis = vv;
   return out;
 }
 

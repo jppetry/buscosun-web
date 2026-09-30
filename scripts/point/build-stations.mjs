@@ -35,9 +35,9 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import {
-  CUBE_DOMAIN, CUBE_PLANES, CUBE_SCHEMA, CHUNK_CELLS, MISSING, TIER_BY_ID,
-  cellOf, chunkOf, planeIndex, quantize, encodeCubeChunk,
-  stationBundlePath, stationManifestPath, STATION_CATALOG_PATH,
+  CUBE_DOMAIN, CUBE_PLANES, STATION_PLANES, STATION_EXTRA_PLANES, CUBE_SCHEMA, CHUNK_CELLS, MISSING, TIER_BY_ID,
+  cellOf, chunkOf, quantize, encodeCubeChunk,
+  stationBundlePath, stationManifestPath, stationsDirOf, STATION_CATALOG_PATH, STATION_SOURCES,
 } from '../../src/point/cubeFormat.ts';
 import { readMosmixKmz, mosmixToCube, MOSMIX_NOT_MAPPED, MOSMIX_PARAMS } from './mosmix.mjs';
 
@@ -55,8 +55,28 @@ const deflate9 = async (b) => new Uint8Array(deflateRawSync(b, { level: 9 }));
  */
 export const STATIONS_ENABLED = process.env.POINT_STATIONS !== '0';
 
-const MOSMIX_URL = process.env.MOSMIX_URL
-  || 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/all_stations/kml/MOSMIX_L_LATEST.kmz';
+/**
+ * Phase AX, AX-8 (2026-09-30): dieselbe Pipeline für MOSMIX-L (viermal täglich, 247 h, 114 Parameter,
+ * 76 MiB) und MOSMIX-S (**stündlich**, 240 h, 40 Parameter, 37 MB). Am echten S-File vom 30.09. 12z
+ * gemessen: alle zehn Cube-Größen da (TTT Td DD FF FX1 N Nl Nm Nh RR1c, Füllung 99,8–100 % in 0–24 h),
+ * dieselben 3 071 Stationen im Ausschnitt wie der L-Katalog (0 Abweichungen in Lage und Höhe), Schritte
+ * 1…240 h stündlich, Parsen 7,5 s. Bereitstellung `MOSMIX_S_LATEST_240.kmz`: Lauf + 39…41 min
+ * (Last-Modified 09z 09:39:52 · 10z 10:40:47 · 11z 11:39:37 · 12z 12:39:20).
+ *
+ * `--source=mosmix_s` (oder `POINT_STATIONS_SOURCE=mosmix_s`) schreibt nach `point/stations-s/<lauf>/`;
+ * ohne Argument bleibt alles wie vor AX-8 (L nach `point/stations/`). Der Katalog wird nur vom L-Lauf
+ * geschrieben — S trägt dieselben Stationen, ein zweiter Schreiber wäre eine zweite Wahrheit.
+ */
+const STATION_SOURCE = args.source || process.env.POINT_STATIONS_SOURCE || 'mosmix_l';
+if (!STATION_SOURCES.includes(STATION_SOURCE)) {
+  throw new Error(`build-stations: unbekannte Quelle ${STATION_SOURCE} (erlaubt: ${STATION_SOURCES.join(', ')})`);
+}
+export const STATION_SOURCE_URLS = Object.freeze({
+  mosmix_l: 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/all_stations/kml/MOSMIX_L_LATEST.kmz',
+  mosmix_s: 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/MOSMIX_S_LATEST_240.kmz',
+});
+const MOSMIX_URL = process.env.MOSMIX_URL || STATION_SOURCE_URLS[STATION_SOURCE];
+const LOG_TAG = STATION_SOURCE === 'mosmix_s' ? '[stations-s]' : '[stations]';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const runIdOf = (ms) => {
@@ -79,11 +99,11 @@ export function leadsOf(header) {
 }
 
 async function main() {
-  if (!STATIONS_ENABLED) { console.log('[stations] POINT_STATIONS=0 — uebersprungen'); return; }
+  if (!STATIONS_ENABLED) { console.log(`${LOG_TAG} POINT_STATIONS=0 — uebersprungen`); return; }
   const t0 = Date.now();
   const tier = TIER_BY_ID.t1;
 
-  console.log(`[stations] ${MOSMIX_URL}`);
+  console.log(`${LOG_TAG} ${STATION_SOURCE} ${MOSMIX_URL}`);
   const res = await fetch(MOSMIX_URL);
   if (!res.ok) throw new Error(`MOSMIX HTTP ${res.status}`);
   const kmz = Buffer.from(await res.arrayBuffer());
@@ -118,23 +138,27 @@ async function main() {
   // Manifest. Nach Stations-ID sortiert, nicht nach Lesereihenfolge der Datei.
   for (const c of byChunk.values()) c.st.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-  const outRoot = join(OUT, 'stations', run);
+  const outRoot = join(OUT, stationsDirOf(STATION_SOURCE).replace(/^point\//, ''), run);
   if (existsSync(outRoot)) rmSync(outRoot, { recursive: true, force: true });
 
   const files = [];
   const manifestChunks = [];
-  const perPlane = new Array(CUBE_PLANES.length).fill(0);
+  // AX-11: das Stationsprodukt traegt hinter den Cube-Ebenen drei eigene (Globalstrahlung, Sonnenscheindauer, Sichtweite).
+  const PLANES = STATION_PLANES;
+  const planeIdx = new Map(PLANES.map((p, i) => [p.id, i]));
+  const perPlane = new Array(PLANES.length).fill(0);
   const filled = new Set();
   let bytesTotal = 0, valueCount = 0, gustClamped = 0;
 
   const nt = leads.length;
   for (const [key, c] of [...byChunk.entries()].sort()) {
     const nx = c.st.length;
-    const planes = CUBE_PLANES.map(() => new Int16Array(nt * nx).fill(MISSING));
+    const planes = PLANES.map(() => new Int16Array(nt * nx).fill(MISSING));
     const put = (id, it, k, v) => {
       if (!Number.isFinite(v)) return;
-      const pi = planeIndex(id);
-      planes[pi][it * nx + k] = quantize(v, CUBE_PLANES[pi]);
+      const pi = planeIdx.get(id);
+      if (pi == null) throw new Error(`build-stations: Ebene ${id} ist weder Cube- noch Stationsebene`);
+      planes[pi][it * nx + k] = quantize(v, PLANES[pi]);
       filled.add(id); valueCount++;
     };
     for (let k = 0; k < nx; k++) {
@@ -150,11 +174,12 @@ async function main() {
         put('srcCount', it, k, 1);
       }
     }
+    // AX-11: 64 Ebenen (61 Cube + 3 Station) — die Liste geht als Vertrag mit, der Encoder zaehlt sie nach.
     const bytes = await encodeCubeChunk({
       runHours: Math.floor(header.issueMs / 3_600_000),
       tierIndex: tier.index, nt, y0: 0, x0: 0, ny: 1, nx, planes,
-    }, deflate9);
-    const rel = stationBundlePath(run, c.cy, c.cx);
+    }, deflate9, PLANES);
+    const rel = stationBundlePath(run, c.cy, c.cx, STATION_SOURCE);
     const p = join(OUT, rel.replace(/^point\//, ''));
     mkdirSync(dirname(p), { recursive: true });
     writeFileSync(p, bytes);
@@ -164,7 +189,7 @@ async function main() {
       // DIE Zuordnung Spalte → Station. Ohne sie ist das Bündel Zahlensalat.
       stations: c.st.map((s) => s.id),
     });
-    for (let pi = 0; pi < CUBE_PLANES.length; pi++) {
+    for (let pi = 0; pi < PLANES.length; pi++) {
       perPlane[pi] += (await deflate9(new Uint8Array(planes[pi].buffer))).length;
     }
   }
@@ -173,7 +198,7 @@ async function main() {
   const manifest = {
     schema: CUBE_SCHEMA,
     product: 'stations',
-    source: 'mosmix_l',
+    source: STATION_SOURCE,
     run, runAt: new Date(header.issueMs).toISOString(), ageH: Number(ageH.toFixed(2)),
     tier: tier.id, chunkCells: CHUNK_CELLS,
     axis: {
@@ -182,7 +207,9 @@ async function main() {
     },
     stationCount: header.kept,
     chunks: manifestChunks,
-    planes: CUBE_PLANES.map((p) => ({ id: p.id, unit: p.unit, scale: p.scale, offset: p.offset, group: p.group })),
+    // AX-11: Cube-Ebenen + Stationsebenen — der Leser nimmt DIESE Liste (61 + 3), nie die Cube-Liste.
+    planes: PLANES.map((p) => ({ id: p.id, unit: p.unit, scale: p.scale, offset: p.offset, group: p.group })),
+    stationPlanes: STATION_EXTRA_PLANES.map((p) => p.id),
     notMapped: MOSMIX_NOT_MAPPED,
     parameters: MOSMIX_PARAMS,
     caveats: [
@@ -191,11 +218,12 @@ async function main() {
       'ensCount bleibt MISSING statt 0: 0 hiesse "gemessen und null", gemessen wurde nichts.',
       'hModEff ist die Stationshoehe — MOSMIX gilt AM Ort, PAP 4 hat hier nichts zu korrigieren.',
       'gust ist auf max(FX1, |v10|) geklammert (PAP 6); am echten Lauf war FX1 in 97 Fallen kleiner als FF.',
+      ...(STATION_SOURCE === 'mosmix_s' ? ['MOSMIX-S laeuft STUENDLICH und erscheint bei Lauf + 39…41 min (Last-Modified 30.09.: 09z 09:39:52, 10z 10:40:47, 11z 11:39:37, 12z 12:39:20); 240 Schritte 1…240 h. Der Slot :50 (Vorlage) hat 9 min Rand; in den t2-Stunden baut der t2-Job das Produkt bei ≈ :38–:40 und trifft meist den Vorlauf — ageH sagt, wie alt der genommene ist.'] : []),
       'MOSMIX-L laeuft 03/09/15/21 UTC und erscheint bei Lauf + 72…77 min. Ein t2-Slot bei Lauf + 50 min (bis 2026-09-14) erreicht den gleichzeitigen Lauf NIE, einer bei + 90 min (Vorlage `30 4,10,16,22`) mit 14–17 min Rand — ageH sagt, wie alt der genommene ist.',
     ],
     producer: 'buscosun-web/scripts/point/build-stations.mjs',
   };
-  const mp = join(OUT, stationManifestPath(run).replace(/^point\//, ''));
+  const mp = join(OUT, stationManifestPath(run, STATION_SOURCE).replace(/^point\//, ''));
   mkdirSync(dirname(mp), { recursive: true });
   writeFileSync(mp, JSON.stringify(manifest, null, 2));
 
@@ -215,13 +243,14 @@ async function main() {
   };
   const cp = join(OUT, STATION_CATALOG_PATH.replace(/^point\//, ''));
   mkdirSync(dirname(cp), { recursive: true });
-  writeFileSync(cp, JSON.stringify(catalog, null, 2));
+  if (STATION_SOURCE === 'mosmix_l') writeFileSync(cp, JSON.stringify(catalog, null, 2));
+  else console.log(`  Katalog nicht geschrieben: nur der MOSMIX-L-Lauf schreibt ihn (S traegt dieselben ${catalog.count} Stationen, gemessen 30.09.)`);
 
   // --- Bericht ---------------------------------------------------------------
-  const fill = perPlane.map((v, i) => [CUBE_PLANES[i].id, v]).filter(([id]) => filled.has(id))
+  const fill = perPlane.map((v, i) => [PLANES[i].id, v]).filter(([id]) => filled.has(id))
     .sort((a, b) => b[1] - a[1]);
   console.log(`  ${files.length} Buendel · ${(bytesTotal / 1048576).toFixed(2)} MiB · ${valueCount.toLocaleString('de-DE')} Werte`);
-  console.log(`  belegte Ebenen (${filled.size}/${CUBE_PLANES.length}): ${fill.map(([k, v]) => `${k} ${(v / 1024).toFixed(0)}`).join(' · ')}`);
+  console.log(`  belegte Ebenen (${filled.size}/${PLANES.length}, davon ${STATION_EXTRA_PLANES.filter((p) => filled.has(p.id)).length} Stationsebenen): ${fill.map(([k, v]) => `${k} ${(v / 1024).toFixed(0)}`).join(' · ')}`);
   console.log(`  ⚠ Boee auf den Wind gehoben: ${gustClamped}`);
   console.log(`  Katalog ${catalog.count} Stationen · ausserhalb ${outside}`);
   console.log(`WALL_STATIONS=${Math.round((Date.now() - t0) / 1000)}s`);

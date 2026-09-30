@@ -60,8 +60,12 @@ const NEIGH = new Map(pointIds.map((a) => {
   return [a, pointIds.filter((b) => b !== a).map((b) => ({ id: b, km: haversineKm(A.lat, A.lon, feat.byPoint[b].lat, feat.byPoint[b].lon) })).sort((x, y) => x.km - y.km).slice(0, 12)];
 }));
 const slotPaths = [];
-for (const d of readdirSync(ARCH).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort()) for (const f of readdirSync(join(ARCH, d)).filter((x) => /^\d{4}\.json\.gz$/.test(x)).sort()) slotPaths.push(join(ARCH, d, f));
+// AX-2: `--slotsTo=YYYY-MM-DD` — the archive writes schema 3 since 29.09.2026 (PA4), which `archiveAdapter.mjs` does not read
+// yet (V-AX-4); until it does, the extraction stops at the last schema-2 day instead of throwing on the first schema-3 slot.
+const slotsTo = typeof flags.slotsTo === 'string' ? flags.slotsTo : null;
+for (const d of readdirSync(ARCH).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x) && (!slotsTo || x <= slotsTo)).sort()) for (const f of readdirSync(join(ARCH, d)).filter((x) => /^\d{4}\.json\.gz$/.test(x)).sort()) slotPaths.push(join(ARCH, d, f));
 const slotsUsed = slotPaths.slice(0, limitSlots);
+if (slotsTo) say(`Slots bis ${slotsTo} (--slotsTo)`);
 say(`${slotsUsed.length} Slots, ${pointIds.length} DACH-Punkte; Tabellen ${tablesSha.slice(0, 12)} (${T5.inputs?.foldScheme ?? 'month'})`);
 
 const foldCache = new Map();
@@ -187,6 +191,8 @@ const VARIANTS = Object.freeze({
   P1: { ...PRODUCT, learnedAtPoint: true },                                                       // product+fix (V-FS-2)
   P2: { ...PRODUCT, learnedAtPoint: true, priorShrink: false },                                   // … without the climatological step (D2)
   P3: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true },   // … clouds passed through (H14), station value (H9/H10)
+  // phase AX, AX-2 (E-FV-3): the stage `fs` with the learned strata of route 3 in t2/t3 (`learnedRoute: 'tier'`)
+  P4: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, learnedRoute: 'tier' },
 });
 const EQ_POINTS = 25;   // per slot: the engine with priorShrink:false on the run-1 chain, against the offline form (K5)
 const stackTable = typeof flags.stack === 'string' ? JSON.parse(readFileSync(flags.stack, 'utf8')) : null;
@@ -233,9 +239,10 @@ for (const meta of slotMeta) {
       const out = {};
       if (fitOnly) return out;
       for (const [name, opts] of Object.entries(VARIANTS)) {
-        if (name === 'P3' && !stackTable) continue;
+        const withStack = name === 'P3' || name === 'P4';
+        if (withStack && !stackTable) continue;
         const m = new Map();
-        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: name === 'P3' ? forStack(obs, rec) : withTd(obs, rec), learned: foldTables(k), learnedClima: lc5, ...(name === 'P3' ? { stack: stackTable } : {}) }, opts)));
+        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: foldTables(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}) }, opts)));
         out[name] = m;
       }
       return out;

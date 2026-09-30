@@ -26,6 +26,9 @@ export type StackForm = 'A' | 'AB' | 'S' | 'B' | 'S0';
 export type StackCandidate = 'mosmix+anker' | 'mosmix+anker+bias' | 'stack';
 
 export const STACK_VARS: readonly StackVar[] = Object.freeze(['t', 'td', 'ws', 'gust']);
+/** AX-5: the countries an entry may be fitted for; the engine maps LI to CH (the archive's convention). */
+export const STACK_COUNTRIES: readonly string[] = Object.freeze(['DE', 'AT', 'CH']);
+export const stackCountryOf = (country: string | null | undefined): string | null => (country == null ? null : country === 'LI' ? 'CH' : STACK_COUNTRIES.includes(country) ? country : null);
 /** τ groups in hours, inclusive. */
 export const TAU_GROUPS: ReadonlyArray<readonly [number, number]> = Object.freeze([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 12], [13, 24], [25, 48], [49, 120], [121, 240]] as const);
 export function tauGroup(tau: number | null | undefined): number {
@@ -99,7 +102,11 @@ export interface StackTable {
    */
   range: { maxKm: number; maxDElevM: number };
   tauGroups: ReadonlyArray<readonly [number, number]>;
-  /** `${variable}|${group}|${form}` → entry; only written entries (≥ the fit's minimum rows). */
+  /**
+   * `${variable}|${group}|${form}` → entry; only written entries (≥ the fit's minimum rows). Phase AX, AX-5 (V-FS-5): an
+   * entry may carry a country as fourth part (`…|CH`) — the engine takes the country's entry where the point lies in that
+   * country and one is written, else the pooled one (LI counts as CH, like the archive).
+   */
   entries: Record<string, StackEntry>;
   source?: Record<string, unknown>;
   notes?: string[];
@@ -117,9 +124,9 @@ export function validateStackTable(x: unknown): string[] {
   if (!Array.isArray(t.tauGroups) || JSON.stringify(t.tauGroups) !== JSON.stringify(TAU_GROUPS)) e.push('tauGroups weichen von der Definition ab');
   if (!t.entries || typeof t.entries !== 'object') { e.push('entries fehlt'); return e; }
   for (const [k, en] of Object.entries(t.entries)) {
-    const [v, g, form] = k.split('|');
+    const [v, g, form, cc, extra] = k.split('|');
     const f = FORMS[form as StackForm];
-    if (!STACK_VARS.includes(v as StackVar) || !f || !(Number(g) >= 0 && Number(g) < TAU_GROUPS.length)) { e.push(`Schlüssel ${k}`); continue; }
+    if (!STACK_VARS.includes(v as StackVar) || !f || !(Number(g) >= 0 && Number(g) < TAU_GROUPS.length) || (cc !== undefined && !STACK_COUNTRIES.includes(cc)) || extra !== undefined) { e.push(`Schlüssel ${k}`); continue; }
     if (!en || !Array.isArray(en.beta) || en.beta.length !== f.names.length || !en.beta.every((b) => Number.isFinite(b))) e.push(`${k}: beta`);
     else if (!(en.sigma > 0) || !Number.isFinite(en.sigma)) e.push(`${k}: sigma`);
     else if (!(en.n > 0)) e.push(`${k}: n`);
@@ -144,6 +151,8 @@ export interface StationValueInput {
   leadH: number;
   /** Point value of the learned member; null without the learned stage. */
   L: number | null;
+  /** AX-5: the country of the point (DE/AT/CH, LI = CH) — a written country entry then wins over the pooled one. */
+  country?: string | null;
 }
 export interface StationValue {
   value: number;
@@ -151,6 +160,8 @@ export interface StationValue {
   form: StackForm;
   group: number;
   n: number;
+  /** AX-5: the country whose entry was used, null for the pooled entry. */
+  country: string | null;
 }
 
 /**
@@ -167,14 +178,17 @@ export function stationValueOf(table: StackTable, v: StackVar, inp: StationValue
   // the form the row can carry, then the forms below it
   const first = formOf('stack', I, D) as StackForm;
   const chain: StackForm[] = first === 'S' ? ['S', 'AB'] : first === 'S0' ? ['S0', 'B'] : [first];
+  const cc = stackCountryOf(inp.country);
   for (const form of chain) {
-    const en = table.entries[`${v}|${group}|${form}`];
+    // AX-5: the country's entry first (where fitted), then the pooled one — never a mix of the two
+    const enCC = cc ? table.entries[`${v}|${group}|${form}|${cc}`] : undefined;
+    const en = enCC ?? table.entries[`${v}|${group}|${form}`];
     if (!en) continue;
     const x = FORMS[form].x(I, D);
     if (!x) continue;
     const nonNeg = v === 'ws' || v === 'gust';
     const value = stackValue(inp.M, x, en.beta, nonNeg);
-    return { value, dist: stackDist(v, nonNeg ? stackValue(inp.M, x, en.beta, false) : value, en.sigma), form, group, n: en.n };
+    return { value, dist: stackDist(v, nonNeg ? stackValue(inp.M, x, en.beta, false) : value, en.sigma), form, group, n: en.n, country: enCC ? cc : null };
   }
   return null;
 }
@@ -219,6 +233,19 @@ export function verifyStationValue(): StationValueVerifyResult {
     !!w && w.value === 0 && w.dist.kind === 'censoredNormal' && w.dist.mu < 0 && w.dist.lo === 0, w ? `${w.value} (μ ${w.dist.kind === 'censoredNormal' ? w.dist.mu.toFixed(3) : '—'})` : 'null');
   add('Station am Punkt: 1,2 km / 30 m ja; 6 km nein; 60 m nein; unbekannter Abstand nein',
     stationAtPoint(table, 1.2, 30) && !stationAtPoint(table, 6, 0) && !stationAtPoint(table, 1, -60) && !stationAtPoint(table, null, 0));
+  // AX-5: country entries
+  const tCC: StackTable = { ...table, entries: { ...table.entries, 'ws|0|S|CH': { n: 400, beta: [0.0, 0.4, 0.5], sigma: 0.9 } } };
+  const chS = stationValueOf(tCC, 'ws', { M: 3, I: 1, tauH: 1, leadH: 1, L: 4, country: 'CH' });
+  const liS = stationValueOf(tCC, 'ws', { M: 3, I: 1, tauH: 1, leadH: 1, L: 4, country: 'LI' });
+  const deS = stationValueOf(tCC, 'ws', { M: 3, I: 1, tauH: 1, leadH: 1, L: 4, country: 'DE' });
+  const noC = stationValueOf(tCC, 'ws', { M: 3, I: 1, tauH: 1, leadH: 1, L: 4 });
+  const nearV = (a: number | undefined, b: number) => a != null && Math.abs(a - b) < 1e-12;
+  add('AX-5 Landeseintrag: CH nimmt ws|0|S|CH (3 + 0,4 + 0,5 = 3,9, σ 0,9), LI zählt als CH, DE und ohne Land nehmen den gepoolten Eintrag (3 − 0,1 + 0,6 + 0,2 = 3,7); T ohne Landeseintrag bleibt gepoolt auch für CH',
+    !!chS && nearV(chS.value, 3.9) && chS.country === 'CH' && chS.dist.kind === 'censoredNormal' && chS.dist.sigma === 0.9 && !!liS && nearV(liS.value, 3.9)
+    && !!deS && nearV(deS.value, 3.7) && deS.country === null && !!noC && nearV(noC.value, 3.7) && stationValueOf(tCC, 't', { M: 10, I: 1.5, tauH: 1, leadH: 1, L: 12, country: 'CH' })?.country === null,
+    `${chS?.value} · ${deS?.value}`);
+  add('AX-5 Tabelle: ein Landeseintrag mit gültigem Land besteht; ein fremdes Land (FR) und ein fünfter Teil werden benannt',
+    validateStackTable(tCC).length === 0 && validateStackTable({ ...table, entries: { 'ws|0|S|FR': { n: 400, beta: [0, 0.4, 0.5], sigma: 0.9 } } }).length === 1 && validateStackTable({ ...table, entries: { 'ws|0|S|CH|x': { n: 400, beta: [0, 0.4, 0.5], sigma: 0.9 } } }).length === 1);
   add('Formen je Zeile: S / AB / S0 / B; mosmix+anker ohne Messung ist die Stationsvorhersage selbst (null); τ-Gruppen 1…6 einzeln, 7–12 … 121–240',
     formOf('stack', 1, 1) === 'S' && formOf('stack', 1, null) === 'AB' && formOf('stack', null, 1) === 'S0' && formOf('stack', null, null) === 'B' && formOf('mosmix+anker', null, 1) === null
     && tauGroup(1) === 0 && tauGroup(6) === 5 && tauGroup(7) === 6 && tauGroup(240) === 10 && tauGroup(241) === -1 && tauGroup(0) === -1 && tauGroup(null) === -1);

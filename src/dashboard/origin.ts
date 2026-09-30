@@ -1,7 +1,7 @@
 /**
  * Herkunftstabelle des Dashboards (Phase DB, audit/dashboard.md §4/§5.4).
  *
- * Jede angezeigte Größe trägt ihre Parameter-Nummer (P01–P88 = Zeilen der Abdeckungsmatrix). Die Kachel schreibt sie als
+ * Jede angezeigte Größe trägt ihre Parameter-Nummer (P01–P93 = Zeilen der Abdeckungsmatrix §4 und §4.7). Die Kachel schreibt sie als
  * `data-origin` an das Element und als `title` (Quelle + Pfad), damit die Herkunft im DOM und im Code nachvollziehbar
  * ist. `verify:dashboard` prüft: jede Matrixzeile hat hier einen Eintrag, `unavailable` rendert nie eine Zahl, und
  * kein Eintrag zeigt auf den Live-Pfad oder die Rasterfusion.
@@ -110,6 +110,12 @@ export const ORIGIN = {
   P86: { label: 'Neuschnee 24 h', kind: 'data', source: 'buscosun-data runs/ ICON-D2-Repack snowfresh', path: 'src/sources/iconD2Snow.ts' },
   P87: { label: 'Böen max (ICON-D2)', kind: 'data', source: 'buscosun-data runs/ ICON-D2-Repack gust', path: 'src/sources/iconD2GustSource.ts' },
   P88: { label: 'Feuerwetter', kind: 'unavailable', source: 'zurückgezogen (CLAUDE.md, fire/fireModel.ts)', path: '—' },
+  // E-DB-23 (audit/dashboard.md §4.7/§12): Bandbreite, Leitsatz, Nächte und Marken.
+  P89: { label: 'Bandbreite jetzt (80 %-Band)', kind: 'fusion', source: FUSION, path: 'steps[0].vars.t2m.p10/p90' },
+  P90: { label: 'Bandbreite über 14 Tage', kind: 'fusion', source: FUSION, path: 'vars.t2m.p10/p90 je Stunde' },
+  P91: { label: 'Leitsatz', kind: 'fusion-derived', source: FUSION, path: `${RULES} leadSentence (aus dayText, Tmax, Regensumme)` },
+  P92: { label: 'Nächte', kind: 'ui', source: 'Sonnenstand (NOAA-Näherung), keine Wetterquelle', path: 'src/pointForecast/terrainPhysics.ts solarPosition · data/forecastStore.ts' },
+  P93: { label: 'Bandbreiten-Marken', kind: 'fusion-derived', source: FUSION, path: `vars.t2m.p10/p90 · ${RULES} bandMarks` },
 } as const satisfies Record<string, OriginEntry>;
 
 export type ParamId = keyof typeof ORIGIN;

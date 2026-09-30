@@ -78,12 +78,17 @@ export function templateVM(): DashboardVM {
       footer: 'gültig bis 18.09. 06:00 · wörtlich zitiert · Deutscher Wetterdienst',
     },
     conf: {
-      pct: 82, value: s('P22', `82${NB}%`), word: s('P23', 'solide · Stunde 0'),
+      pct: 82, value: s('P22', `82${NB}%`), word: s('P23', 'solide'),
       weights: [{ label: 'ICON-D2 +3', pct: 42, color: '#C97B47' }, { label: 'MOSMIX', pct: 27, color: '#3A6FA8' }, { label: 'Radar', pct: 18, color: '#7A9466' }, { label: 'Klimatologie', pct: 13, color: '#6E675A' }],
       weightsText: s('P24', `ICON-D2 +3 42${NB}% · MOSMIX 27${NB}% · Radar 18${NB}% · Klimatologie 13${NB}%`),
+      // E-DB-23 — die Vorlage kennt Bandbreite und Trichter nicht; plausible Werte zur Kontrolle der Darstellung.
+      band: s('P89', `±1,2${NB}°C`), bandRange: s('P89', `jetzt: 80${NB}% zwischen 16,9 und 19,3${NB}°C`),
+      funnel: Array.from({ length: 15 }, (_, i) => ({ h: i * 24, half: 1.2 + 3.3 * Math.pow(i / 14, 0.8) })),
+      funnelMarks: [{ h: 75, k: 2, label: '±2° ab Sa 19.09.' }, { h: 200, k: 3, label: '±3° ab Do 24.09.' }, { h: 330, k: 4, label: '±4° ab Mi 30.09.' }],
     },
     zone: {
       head: { period: s('P25', 'Mi 16.09. → Fr 18.09.'), models: s('P26', 'ICON-D2 + MOSMIX'), ensemble: s('P27', 'Ensemble vollständig (< 78 h)'), conf: s('P28', `Konfidenz 74${NB}% im Mittel`), confCls: 'good' },
+      lead: s('P91', `Heute heiter, später auflockernd, bis 21°. Morgen wechselnd bewölkt, Schauer, 4,1${NB}mm.`),
       days: [
         {
           key: '2026-09-16', title: 'Heute · Mi 16.09.', highlight: true, text: s('P30', 'heiter, später auflockernd'), icon: { kind: 'sun' }, tmax: s('P32', '21°'), tmin: s('P32', '9°'),
@@ -107,7 +112,12 @@ export function templateVM(): DashboardVM {
           sun: noSun, sunSub: s('P44', 'UV 4'), conf: { pct: 61, text: s('P46', `61${NB}%`), cls: 'fair' },
         },
       ],
-      hourly: { startMs: START, endMs: START + 72 * H, hours: 72, points, dayLines, ticks, ticksMobile, head: s('P53', `72${NB}h · Ensemble vollständig`) },
+      hourly: {
+        startMs: START, endMs: START + 72 * H, hours: 72, points, dayLines, ticks, ticksMobile, head: s('P53', `72${NB}h · Ensemble vollständig`),
+        // Nächte etwa 20–07 Uhr (Mitte September); Marken leer — die Vorlage zeigt keine.
+        nights: [6, 30, 54].map((h) => ({ from: START + h * H, to: START + (h + 11) * H })),
+        marks: [],
+      },
       hourlyHead: s('P53', `72${NB}h · Ensemble vollständig`),
     },
     nowcast: {

@@ -27,7 +27,9 @@ import { buildDashboardVM, hourAxis, pWetOf } from '../src/dashboard/model/build
 import { localParts, num } from '../src/dashboard/format.ts';
 import {
   symbolFor, dayText, popLevel, confidenceClass, confidenceWord, isotherms, snowlineShown, uvColor, uvBarPct, pollenColor, thunderWord, tempAt, spreadText, GUST_WARN_MS,
+  bandMarks, leadSentence, BAND_MARK_K, WET_DAY_MM,
 } from '../src/dashboard/model/rules.ts';
+import { nightsOf } from '../src/dashboard/data/forecastStore.ts';
 import { templateVM } from '../src/dashboard/fixture.ts';
 import { parseAtWarnings } from '../src/dashboard/data/atWarnings.ts';
 import { parseWarnContext, GS_FIXTURE } from '../src/fire/sources/geosphereWarnContext.ts';
@@ -53,8 +55,8 @@ const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
 // ---------------------------------------------------------------------------
 {
   const ids = Object.keys(ORIGIN);
-  const want = Array.from({ length: 88 }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
-  add('(2) origin.ts trägt genau P01–P88', ids.length === 88 && want.every((id) => ids.includes(id)), `${ids.length} Einträge`);
+  const want = Array.from({ length: 93 }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
+  add('(2) origin.ts trägt genau P01–P93 (P89–P93 = E-DB-23)', ids.length === 93 && want.every((id) => ids.includes(id)), `${ids.length} Einträge`);
   const kinds = new Set(['fusion', 'fusion-derived', 'data', 'web', 'unavailable', 'ui']);
   add('(2) jede Herkunft hat eine gültige Art, Quelle und Pfad', ids.every((id) => kinds.has(ORIGIN[id].kind) && ORIGIN[id].source && ORIGIN[id].path));
   // Verboten: der Live-Pfad (getPointForecast ohne Cube) und die Rasterfusion. `src/fusion/elevation.ts` ist der
@@ -67,8 +69,8 @@ const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
   const rows = [...sec.matchAll(/^\| (P\d\d) \|.*\| ([^|]+) \|\s*$/gm)].map((m) => [m[1], m[2].replace(/\*\*/g, '').trim()]);
   const docKind = (s) => (/^n\. v\./.test(s) ? 'unavailable' : /^F·abg/.test(s) ? 'fusion-derived' : /^F\b/.test(s) ? 'fusion' : /^A-data/.test(s) ? 'data' : /^A-web/.test(s) ? 'web' : /^UI/.test(s) ? 'ui' : '?');
   const mism = rows.filter(([id, st]) => !ORIGIN[id] || docKind(st) !== ORIGIN[id].kind).map(([id, st]) => `${id}: Doku ${docKind(st)} ≠ Code ${ORIGIN[id]?.kind}`);
-  add('(2) die Abdeckungsmatrix (audit/dashboard.md §4) nennt P01–P88 je einmal, mit derselben Herkunftsart wie origin.ts',
-    rows.length === 88 && new Set(rows.map((r) => r[0])).size === 88 && mism.length === 0, mism.slice(0, 6).join(' · ') || `${rows.length} Zeilen`);
+  add('(2) die Abdeckungsmatrix (audit/dashboard.md §4 mit §4.7) nennt P01–P93 je einmal, mit derselben Herkunftsart wie origin.ts',
+    rows.length === 93 && new Set(rows.map((r) => r[0])).size === 93 && mism.length === 0, mism.slice(0, 6).join(' · ') || `${rows.length} Zeilen`);
 }
 
 // ---------------------------------------------------------------------------
@@ -84,7 +86,8 @@ const fx = await buildCubeFixture();
 const io = { store: memoryStore(fx.files), terrain: false, clima: async () => clima, nowMs: () => FIX.nowMs, terrainOverride: flatTerrain(FIX.hTrue) };
 const fc = await getPointForecastFromCube({ lat: FIX.lat, lng: FIX.lon, country: 'DE', hours: 336, pointSource: 'cube', includeRadarNowcast: false }, io);
 const cube = fc.cube;
-const fusion = { v2: cube.v2, cells: cube.cells ?? [], emission: null, pending: [], notes: [...cube.notes, ...cube.v2.provenance.notes], pWet: pWetOf(cube.v2, exceedance), night0: solarPosition(FIX.lat, FIX.lon, cube.v2.axis.steps[0].validAtMs).elevationDeg < 0 };
+const fusion = { v2: cube.v2, cells: cube.cells ?? [], emission: null, pending: [], notes: [...cube.notes, ...cube.v2.provenance.notes], pWet: pWetOf(cube.v2, exceedance), night0: solarPosition(FIX.lat, FIX.lon, cube.v2.axis.steps[0].validAtMs).elevationDeg < 0,
+  nights: nightsOf({ name: 'München', lat: FIX.lat, lon: FIX.lon, country: 'DE' }, cube.v2.axis.steps, solarPosition) };
 const place = { name: 'München', lat: FIX.lat, lon: FIX.lon, country: 'DE' };
 const ok = (x) => ({ state: 'ok', ...x });
 const extras = {
@@ -172,6 +175,75 @@ function invariants(vm, label) {
   const pastWant = [12, 18, 24].filter((to) => to <= hNow).length;
   const pastGot = vmH.zone.days[0].phases.filter((p) => p.temp.na && /vergangen/.test(p.temp.na)).length;
   add('(3) Heute ⇒ eine Tageskarte, 25 Stunden; heute abgelaufene Phasen „nicht verfügbar (vergangen)" statt Zahl', vmH.zone.days.length === 1 && vmH.zone.hourly.points.length === 25 && pastGot === pastWant, `${pastGot} vergangen um ${hNow} Uhr`);
+}
+
+// ---------------------------------------------------------------------------
+// (3b) E-DB-23: Bandbreite, Trichter, Marken, Nächte, Leitsatz — unabhängig nachgerechnet (audit/dashboard.md §12)
+// ---------------------------------------------------------------------------
+{
+  const NB = ' ';
+  const H1 = 3_600_000;
+  const steps = [...cube.v2.axis.steps].sort((a, b) => a.validAtMs - b.validAtMs);
+  const half = (s) => (s.vars.t2m?.p10 == null || s.vars.t2m?.p90 == null ? null : (s.vars.t2m.p90 - s.vars.t2m.p10) / 2);
+  const vm = buildDashboardVM(inputs());
+  const h0 = half(steps[0]);
+  add('(3b) Bandbreite jetzt = halbe Breite p10–p90 an Stunde 0 („±x,x °C"), der 80-%-Satz nennt p10 und p90',
+    vm.conf.band.o === 'P89' && vm.conf.band.t === `±${num(h0, 1)}${NB}°C`
+    && vm.conf.bandRange.t === `jetzt: 80${NB}% zwischen ${num(steps[0].vars.t2m.p10, 1)} und ${num(steps[0].vars.t2m.p90, 1)}${NB}°C`, `${vm.conf.band.t} · ${vm.conf.bandRange.t}`);
+  const withBand = steps.filter((s) => half(s) != null).map((s) => ({ h: Math.round((s.validAtMs - steps[0].validAtMs) / H1), half: half(s) }));
+  const hEnd = withBand.at(-1).h;
+  const wantFunnel = [withBand[0]];
+  for (let from = 0; from < hEnd; from += 24) {
+    const b = withBand.filter((p) => p.h > from && p.h <= from + 24);
+    if (b.length) wantFunnel.push({ h: Math.min(from + 24, hEnd), half: Math.max(...b.map((p) => p.half)) });
+  }
+  add('(3b) Trichter = Hüllkurve: jetzt, dann je 24 h die größte halbe Bandbreite (unabhängig nachgerechnet); jede Stütze ≥ jede Stunde ihres Tages',
+    JSON.stringify(vm.conf.funnel) === JSON.stringify(wantFunnel) && vm.conf.funnel[0].h === 0 && Math.abs(vm.conf.funnel[0].half - h0) < 1e-9
+    && withBand.every((p) => p.h === 0 || p.half <= vm.conf.funnel.find((f) => f.h >= p.h).half + 1e-9), `${vm.conf.funnel.length} Stützen bis ${vm.conf.funnel.at(-1)?.h} h`);
+  const wantMarks = BAND_MARK_K.map((k) => { const s = steps.find((x) => half(x) != null && half(x) >= k); return s ? { k, h: Math.round((s.validAtMs - steps[0].validAtMs) / H1) } : null; }).filter(Boolean);
+  add('(3b) Trichter-Marken = erste Stunde, an der die halbe Bandbreite 2/3/4 °C erreicht',
+    JSON.stringify(vm.conf.funnelMarks.map((m) => ({ k: m.k, h: m.h }))) === JSON.stringify(wantMarks), JSON.stringify(wantMarks));
+  add('(3b) bandMarks, Gegenprobe: unter 2 °C keine Marke; genau 2 °C setzt sie; ein Sprung auf 5 °C setzt 3 und 4 an derselben Stunde',
+    bandMarks([{ t: 1, half: 1.9 }, { t: 2, half: 1.99 }]).length === 0
+    && bandMarks([{ t: 1, half: 1 }, { t: 2, half: 2 }, { t: 3, half: 5 }]).map((m) => `${m.k}@${m.t}`).join(',') === '2@2,3@3,4@3');
+  const pts = vm.zone.hourly.points;
+  const wantH = BAND_MARK_K.map((k) => pts.find((p) => p.t10 != null && p.t90 != null && (p.t90 - p.t10) / 2 >= k)).filter(Boolean).map((p) => p.t);
+  add('(3b) Marken im Stundenverlauf nur im gewählten Zeitraum, an der ersten Stunde je Schwelle',
+    JSON.stringify(vm.zone.hourly.marks.map((m) => m.t)) === JSON.stringify(wantH) && vm.zone.hourly.marks.every((m) => /^±[234]° ab \d\d Uhr$/.test(m.label)), `${vm.zone.hourly.marks.length} Marken`);
+  add('(3b) Trichter-Marken tragen das Datum (zwei Mittwoche in 14 Tagen sind sonst nicht zu unterscheiden)',
+    vm.conf.funnelMarks.length > 0 && vm.conf.funnelMarks.every((m) => /^±[234]° ab \S\S \d\d\.\d\d\.$/.test(m.label)), vm.conf.funnelMarks.map((m) => m.label).join(' · '));
+  // Nächte: die Funktion des Dashboards (forecastStore.nightsOf) gegen den Sonnenstand selbst.
+  const nights = fusion.nights;
+  const elev = (t) => solarPosition(FIX.lat, FIX.lon, t).elevationDeg;
+  const axisFrom = steps[0].validAtMs, axisTo = steps.at(-1).validAtMs + H1;
+  const nightOk = nights.every(([a, b]) => b > a && elev((a + b) / 2) < -0.833
+    && (a === axisFrom || elev(a - 20 * 60_000) > -0.833) && (b === axisTo || elev(b + 20 * 60_000) > -0.833));
+  const spanDays = (axisTo - axisFrom) / 86_400_000;
+  add('(3b) Nächte: Sonne in der Mitte jeder Nacht unter −0,833°, 20 min davor und danach darüber; etwa eine Nacht je Tag der Achse',
+    nights.length >= Math.floor(spanDays) && nights.length <= Math.ceil(spanDays) + 1 && nightOk, `${nights.length} Nächte auf ${spanDays.toFixed(1)} Tagen`);
+  const hn = vm.zone.hourly.nights;
+  add('(3b) Nächte im Stundenverlauf auf den Zeitraum beschnitten', hn.length > 0 && hn.every((n) => n.from >= vm.zone.hourly.startMs && n.to <= vm.zone.hourly.endMs && n.to > n.from), `${hn.length} Nächte`);
+  // Leitsatz: aus denselben Tageskarten nachgebaut.
+  const d = vm.zone.days;
+  const LONG = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
+  const mm = (t) => (t == null ? 0 : Number(t.replace(/[^\d,]/g, '').replace(',', '.')));
+  const nameOf = (i) => (i === 1 ? 'Morgen' : LONG[/· (\S\S) /.exec(d[i].title)?.[1]] ?? '?');
+  const part = (name, text, tail) => `${[name, text].filter(Boolean).join(' ')}${tail ? `${text ? ',' : ''} ${tail}` : ''}.`;
+  const wetIdx = [1, 2].find((i) => d[i] && d[i].rain.t != null && mm(d[i].rain.t) >= WET_DAY_MM);
+  let want = part('Heute', d[0].text.t, d[0].tmax.t ? `bis ${d[0].tmax.t}` : null);
+  if (wetIdx) want += ` ${part(nameOf(wetIdx), d[wetIdx].text.t, d[wetIdx].rain.t)}`;
+  else if (d[1]) want += ` ${part('Morgen', d[1].text.t, d[1].tmax.t ? `bis ${d[1].tmax.t}` : null)}`;
+  add('(3b) Leitsatz aus denselben Tageskarten (Tagestext, Tmax, Menge des ersten nassen Folgetags) — widerspricht ihnen nie',
+    vm.zone.lead.o === 'P91' && vm.zone.lead.t === want, vm.zone.lead.t);
+  add('(3b) Leitsatz ist in jedem Zeitraum derselbe (immer heute, morgen, übermorgen)',
+    ['heute', '7-tage', '14-tage'].every((r) => buildDashboardVM(inputs({ range: r })).zone.lead.t === vm.zone.lead.t));
+  add('(3b) leadSentence: trockener Morgen ⇒ nasser Übermorgen mit Wochentag und Menge; beide trocken ⇒ morgen mit Tmax; ohne Werte ⇒ kein Satz',
+    leadSentence([{ name: 'Heute', text: 'sonnig', tmax: '24°', rain: 0, rainText: `0,0${NB}mm` }, { name: 'Morgen', text: 'heiter', tmax: '22°', rain: 0.2, rainText: `0,2${NB}mm` }, { name: 'Freitag', text: 'Regen', tmax: '15°', rain: 8, rainText: `8,0${NB}mm` }]) === `Heute sonnig, bis 24°. Freitag Regen, 8,0${NB}mm.`
+    && leadSentence([{ name: 'Heute', text: 'bedeckt', tmax: '12°', rain: 0, rainText: `0,0${NB}mm` }, { name: 'Morgen', text: 'heiter', tmax: '14°', rain: 0, rainText: `0,0${NB}mm` }]) === 'Heute bedeckt, bis 12°. Morgen heiter, bis 14°.'
+    && leadSentence([{ name: 'Heute', text: null, tmax: null, rain: null, rainText: null }]) === null);
+  const vmL = buildDashboardVM(inputs({ fusion: null, fusionState: 'loading' }));
+  add('(3b) ohne Fusion: Bandbreite und Leitsatz laden (keine Zahl), Trichter, Marken und Nächte leer',
+    vmL.conf.band.t == null && vmL.zone.lead.t == null && vmL.conf.funnel.length === 0 && vmL.conf.funnelMarks.length === 0 && vmL.zone.hourly == null);
 }
 
 // ---------------------------------------------------------------------------

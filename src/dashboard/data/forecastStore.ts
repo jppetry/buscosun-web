@@ -55,7 +55,25 @@ function toFusionIn(fc: PointForecast, exceedance: (d: Dist, x: number) => numbe
     notes: [...(cube.notes ?? []), ...(cube.v2.provenance.notes ?? [])],
     pWet: pWetOf(cube.v2, exceedance),
     night0: cube.v2.axis.steps[0] ? sun(p.lat, p.lon, cube.v2.axis.steps[0].validAtMs).elevationDeg < 0 : null,
+    nights: nightsOf(p, cube.v2.axis.steps, sun),
   };
+}
+
+/** E-DB-23 (P92): Nächte über die Achse — Sonne unter −0,833° (Oberrand mit Refraktion), alle 10 min geprüft. */
+const NIGHT_ELEV_DEG = -0.833;
+const NIGHT_STEP_MS = 10 * 60_000;
+export function nightsOf(p: PlaceIn, steps: ReadonlyArray<{ validAtMs: number }>, sun: SunFn): Array<[number, number]> {
+  if (!steps.length) return [];
+  const from = steps[0].validAtMs, to = steps[steps.length - 1].validAtMs + 3_600_000;
+  const out: Array<[number, number]> = [];
+  let start: number | null = null;
+  for (let t = from; t <= to; t += NIGHT_STEP_MS) {
+    const dark = sun(p.lat, p.lon, t).elevationDeg < NIGHT_ELEV_DEG;
+    if (dark && start == null) start = t;
+    if (!dark && start != null) { out.push([start, t]); start = null; }
+  }
+  if (start != null) out.push([start, to]);
+  return out;
 }
 
 function emit(e: Entry, patch: Partial<ForecastState>) {

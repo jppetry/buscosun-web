@@ -46,7 +46,7 @@ import NotFoundRoute from './NotFoundRoute';
 // Phase DB (audit/dashboard.md §5.1): das Dashboard ist eine ANSICHT dieser Route (`?ansicht=dashboard`), kein eigener
 // Pfad — ein Routenwechsel baute MapView ab. Der Zustand steht als durchgereichter Query-Schlüssel in `extra`
 // (E-DB-3: kein Eingriff in das eager `urlState.ts` und kein Neubau des Edge-Bündels). Code liegt im eigenen Lazy-Chunk.
-import { dashViewOf, dashRangeOf, withDashState, dashStateValid, type DashRange } from '../../dashboard/dashUrl';
+import { dashViewOf, dashRangeOf, dashPartOf, withDashState, dashStateValid, type DashRange, type DashPart } from '../../dashboard/dashUrl';
 import type { DashboardView as DashView } from '../../dashboard/ViewToggle';
 const DashboardView = lazy(() => import('../../dashboard/DashboardView'));
 const MapViewLazy = lazy(loadMapView);
@@ -138,6 +138,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   const view: DashView = dashEnabled ? dashViewOf(parsed.extra) : 'karte';
   const [, setDashTick] = useState(0);
   const range: DashRange = dashRangeOf(init.extra);
+  // E-DB-24: Reiter „Überblick | Details" — Wechsel legt einen Verlaufseintrag an (wie der Umschalter).
+  const part: DashPart = dashPartOf(init.extra);
   // Die Karte entsteht erst, wenn sie einmal gebraucht wird (ein Dashboard-Link lädt kein MapLibre), und bleibt danach
   // montiert — beim Zurückwechseln keine Neu-Initialisierung (E-DB-5).
   const mapEverRef = useRef(false);
@@ -280,6 +282,11 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     else t = window.setTimeout(go, 200);
     return () => { if (idle) window.cancelIdleCallback(idle); if (t) window.clearTimeout(t); };
   }, [view, dashSettled]);
+  const onPartChange = useCallback((p: DashPart) => {
+    const s = st.current!;
+    s.extra = withDashState(s.extra, { part: p });
+    push();
+  }, [push]);
   const onRangeChange = useCallback((r: DashRange) => {
     const s = st.current!;
     s.extra = withDashState(s.extra, { range: r });
@@ -302,6 +309,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
             country={country}
             range={range}
             onRange={onRangeChange}
+            part={part}
+            onPart={onPartChange}
             onSelectView={onSelectView}
             onSelectLocation={onSelectLocation}
             onBack={nav.goHome}

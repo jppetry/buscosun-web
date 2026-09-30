@@ -6,7 +6,7 @@
  */
 
 import type { Country } from '../types';
-import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
+import { fetchBrightSkyCurrentGrid, fetchBrightSkyCurrentAt } from '../sources/brightSkyCurrent';
 import { fetchTawesCurrentGrid, fetchTawesHistory } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid, fetchSmnHistory } from '../sources/meteoSwissSmn';
 import type { ForecastBounds, ForecastHourPoint } from '../sources/openMeteoForecast';
@@ -484,8 +484,10 @@ export async function fetchAromePoint(
 export interface NearestStationObs {
   source: string;
   name?: string;
-  /** Kennung beim Betreiber (TAWES-ID, SMN-Kürzel) — Schlüssel für die Stationshistorie. */
+  /** Kennung beim Betreiber (TAWES-ID, SMN-Kürzel; DE seit AX-1 die WMO-Kennung) — Schlüssel für die Stationshistorie. */
   stationId?: string;
+  /** AX-1: die Antwort kam auf die gezielte Abfrage der Station des Punkts (nicht aus dem Raster). */
+  byStation?: boolean;
   lat: number;
   lng: number;
   elevation: number;
@@ -497,6 +499,30 @@ const stationIdOf = (p: ForecastHourPoint): string | undefined => {
   const q = p as ForecastHourPoint & { stationId?: string; stationName?: string };
   return q.stationId ?? q.stationName;
 };
+const stationNameOf = (p: ForecastHourPoint): string | undefined => (p as ForecastHourPoint & { stationName?: string }).stationName;
+
+/**
+ * AX-1 (V-FS-15): how the cube path asks for measurements. `near` keeps the stations nearest to the point in every
+ * adapter (instead of a probe raster, the first 200 of a list, every second of the alphabet — measured 30.09.2026: at
+ * eight cities not one measurement within 5 km / 50 m of the point arrived); `station` is the point's MOSMIX station,
+ * whose own measurement is fetched by its WMO id (DE). Without options the call is byte-identical to before (live path).
+ */
+export interface NearestObsOptions {
+  near?: boolean;
+  station?: { id: string; lat: number; lon: number } | null;
+}
+
+/** DE, AX-1: the station's own measurement by WMO id (5 digits = the id of the MOSMIX catalogue), and the nearest station to the point. */
+async function brightSkyAtPoint(lat: number, lng: number, station: NearestObsOptions['station'], signal?: AbortSignal): Promise<NearestStationObs[]> {
+  const toObs = (p: ForecastHourPoint, byStation: boolean): NearestStationObs | null => (p.lat == null || p.lng == null ? null : {
+    source: 'dwd_obs', stationId: stationIdOf(p), name: stationNameOf(p), lat: p.lat, lng: p.lng, elevation: p.elev ?? 0,
+    distanceMeters: haversine(lat, lng, p.lat, p.lng), point: p, ...(byStation ? { byStation: true } : {}),
+  });
+  const byId = station && /^\d{5}$/.test(station.id) ? fetchBrightSkyCurrentAt({ wmoStationId: station.id, signal }).catch(() => []) : Promise.resolve([]);
+  const atPt = fetchBrightSkyCurrentAt({ lat, lon: lng, signal }).catch(() => []);
+  const [a, b] = await Promise.all([byId, atPt]);
+  return [...a.map((p) => toObs(p, true)), ...b.map((p) => toObs(p, false))].filter((x): x is NearestStationObs => x != null);
+}
 
 /**
  * Run all live-observation adapters that the country profile activates, then
@@ -508,8 +534,10 @@ export async function fetchNearestStationObs(
   lat: number, lng: number, country: Country,
   maxStations: number,
   signal?: AbortSignal,
+  options: NearestObsOptions = {},
 ): Promise<NearestStationObs[]> {
   const lookups: Array<Promise<NearestStationObs[]>> = [];
+  const near = options.near ? { lat, lon: lng } : null;
 
   // DWD via BrightSky: only fires for DE (the API returns 404 elsewhere).
   // For other countries cross-border stations are negligible.
@@ -528,6 +556,7 @@ export async function fetchNearestStationObs(
             .filter((p) => p.lat != null && p.lng != null)
             .map((p) => ({
               source: 'dwd_obs',
+              ...(near ? { stationId: stationIdOf(p), name: stationNameOf(p) } : {}),
               lat: p.lat as number,
               lng: p.lng as number,
               elevation: p.elev ?? 0,
@@ -537,12 +566,14 @@ export async function fetchNearestStationObs(
         } catch { return []; }
       })(),
     );
+    // AX-1: the point's own station and the station nearest to the point — the raster above never hits them.
+    if (near) lookups.push(brightSkyAtPoint(lat, lng, options.station ?? null, signal).catch(() => []));
   }
   if (country === 'AT') {
     lookups.push(
       (async () => {
         try {
-          const grid = await fetchTawesCurrentGrid({ signal });
+          const grid = await fetchTawesCurrentGrid(near ? { signal, near, maxStations: 60 } : { signal });
           return (grid.points[0] ?? [])
             .filter((p) => p.lat != null && p.lng != null)
             .map((p) => ({
@@ -562,7 +593,7 @@ export async function fetchNearestStationObs(
     lookups.push(
       (async () => {
         try {
-          const grid = await fetchSmnCurrentGrid({ maxStations: 80 });
+          const grid = await fetchSmnCurrentGrid(near ? { signal, near, maxStations: 12 } : { maxStations: 80 });
           return (grid.points[0] ?? [])
             .filter((p) => p.lat != null && p.lng != null)
             .map((p) => ({
@@ -580,8 +611,26 @@ export async function fetchNearestStationObs(
   }
 
   const all = (await Promise.all(lookups)).flat();
-  all.sort((a, b) => a.distanceMeters - b.distanceMeters);
-  return all.slice(0, maxStations);
+  return nearestStationList(all, maxStations, !!near);
+}
+
+/**
+ * AX-1: the `maxStations` nearest, one entry per station (the same station can come from the raster AND the targeted
+ * fetch — the targeted one wins, it is the fresher, attributed answer). Without `dedupe` exactly the old slice. Pure.
+ */
+export function nearestStationList(all: NearestStationObs[], maxStations: number, dedupe: boolean): NearestStationObs[] {
+  const list = [...all];
+  if (dedupe) {
+    const seen = new Map<string, number>();
+    const keyOf = (s: NearestStationObs) => `${s.source}|${s.stationId ?? `${s.lat.toFixed(3)},${s.lng.toFixed(3)}`}`;
+    const kept: NearestStationObs[] = [];
+    // targeted answers first (they carry `byStation`), then the rest in input order
+    const ordered = [...list.filter((s) => (s as { byStation?: boolean }).byStation), ...list.filter((s) => !(s as { byStation?: boolean }).byStation)];
+    for (const s of ordered) { const k = keyOf(s); if (seen.has(k)) continue; seen.set(k, kept.length); kept.push(s); }
+    list.length = 0; list.push(...kept);
+  }
+  list.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  return list.slice(0, maxStations);
 }
 
 // ---------------------------------------------------------------------------

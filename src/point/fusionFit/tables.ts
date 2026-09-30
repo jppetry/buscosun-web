@@ -9,10 +9,11 @@ import type { VarianceEntry } from './fitVariance';
 import type { OccurrenceEntry, AmountEntry } from './fitPrecip';
 import type { ClimaEntry } from './fitClima';
 import type { SpeedEntry } from './fitSpeed';
+import type { AtomsEntry } from './fitAtoms';
 import { FIT_VARS, type FitVar, type FoldScheme } from './strata';
 import { SPEED_NAMES } from './fitSpeed';
 import { Z_NAMES } from './features';
-import { V_NAMES, O_NAMES, A_NAMES, K_MODS, P_MODS, INTER_NAMES, CLIMA_NAMES, type ClimaColumns } from './design';
+import { V_NAMES, O_NAMES, A_NAMES, AT_NAMES, K_MODS, P_MODS, INTER_NAMES, CLIMA_NAMES, type ClimaColumns } from './design';
 import { C_NAMES, RHO_LAGS_H } from './fitClima';
 
 /**
@@ -88,6 +89,12 @@ export interface FusionTables {
   amount: Record<string, AmountEntry>;
   /** fusionFit@3 (V-FL-22): the speed law per `${form}|ws|${bin}|${cls}` (cls = the u/v class) — TN(a + b·E_Rice, c·sd_Rice) at 0. */
   speed: Record<string, SpeedEntry>;
+  /**
+   * Phase AX, AX-4 (V-FV-10): the two cloud atoms per `K|clct|${bin}|${cls}|clear|overcast` (`fitAtoms.ts`). Optional — a
+   * table without the section (every fit before AX-4, the published client table) keeps the censored normal; `predict`
+   * builds the `cloudMix` only where BOTH sides of a stratum are written.
+   */
+  atoms?: Record<string, AtomsEntry>;
   /** Climatology per point id and variable, plus pooled fallbacks per `band|country`. */
   clima: { byPoint: Record<string, Partial<Record<string, ClimaEntry>>>; pooled: Record<string, Partial<Record<string, ClimaEntry>>>; rho: Record<string, Array<{ lagH: number; rho: number | null; n: number }>> } | null;
   /** Anchor persistence per variable (lead 1…48). */
@@ -152,6 +159,12 @@ export function validateTables(doc: unknown): string[] {
   }
   for (const [k, e] of Object.entries(d.occurrence ?? {})) {
     if (e.status === 'written' && (!Array.isArray(e.beta) || e.beta.length !== O_NAMES.length || e.beta.some((x) => !Number.isFinite(x)))) errs.push(`occurrence ${k}: beta`);
+  }
+  // phase AX, AX-4: the cloud atoms, when present — key form, both sides, β of the atoms design
+  for (const [k, e] of Object.entries(d.atoms ?? {})) {
+    if (!/^K\|clct\|\d+\|[^|]+\|(clear|overcast)$/.test(k)) errs.push(`atoms ${k}: Schlüssel`);
+    if (e.status === 'written' && (!Array.isArray(e.beta) || e.beta.length !== AT_NAMES.length || e.beta.some((x) => !Number.isFinite(x)))) errs.push(`atoms ${k}: beta`);
+    if (errs.length > 12) break;
   }
   // phase FX-4: an estimated-μ_c block, when present, carries C_DIM coefficients per station and variable
   if (d.climaMu != null) {

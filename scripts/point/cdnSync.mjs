@@ -54,10 +54,15 @@ import { POINT_INDEX_PATH, stationManifestPath } from '../../src/point/cubeForma
  * einer Minute Reserve: t1 20 − 14,2 − 1 = 4,8 min ⇒ 240 s; t2 15 − 10,7 − 1 = 3,3 ⇒ 180 s;
  * t3 10 − 5,4 − 1 = 3,6 ⇒ 180 s. Ohne Angabe gilt das kleinste (180 s), das in jedem Job hält.
  */
-export const CDN_BUDGET_S_BY_TIER = Object.freeze({ t1: 240, t2: 180, t3: 180 });
+export const CDN_BUDGET_S_BY_TIER = Object.freeze({ t1: 240, t2: 180, t3: 180, 'stations-s': 60 });
 export const CDN_BUDGET_S_DEFAULT = Math.min(...Object.values(CDN_BUDGET_S_BY_TIER));
-/** Gemessene Job-Maxima (min), aus denen das Budget folgt — der Verifier rechnet Regel F damit. */
-export const JOB_MEASURED_MAX_MIN = Object.freeze({ t1: 14.2, t2: 10.7, t3: 5.4 });
+/**
+ * Gemessene Job-Maxima (min), aus denen das Budget folgt — der Verifier rechnet Regel F damit.
+ * `stations-s` (AX-8): noch KEIN Runner-Lauf — lokal 30.09. gemessen 3 s Abruf + 7,5 s Parsen + Kodieren, ×2 für den
+ * Runner + 2,5 min Job-Rand (Klon, Install, Gate, Publish) ⇒ 3,2 min geschätzt; nach den ersten Runner-Läufen
+ * nachtragen (§34.6: die Zahl schreibt sich nicht selbst fort).
+ */
+export const JOB_MEASURED_MAX_MIN = Object.freeze({ t1: 14.2, t2: 10.7, t3: 5.4, 'stations-s': 3.2 });
 export const CDN_WARM = Object.freeze({ concurrency: 8, timeoutMs: 20_000, retries: 3, backoffMs: 3_000 });
 
 /** `git diff --name-status --no-renames` → `[{ status: 'A'|'M'|'D', path }]`. */
@@ -78,8 +83,9 @@ export function classifyPointPath(path) {
   if (path === POINT_INDEX_PATH) return 'index';
   if (/^point\/\d{10}\/run\.json$/.test(path)) return 'run-manifest';
   if (/^point\/\d{10}\/t\d\/[^/]+\.bin$/.test(path)) return 'chunk';
-  if (/^point\/stations\/\d{10}\/[^/]+\.bin$/.test(path)) return 'stations-bundle';
-  if (/^point\/stations\/\d{10}\/stations\.json$/.test(path)) return 'stations-manifest';
+  // AX-8: `point/stations-s/` (MOSMIX-S) hat dieselben Klassen wie `point/stations/` — gleicher Leser, gleiche Reihenfolge.
+  if (/^point\/stations(-s)?\/\d{10}\/[^/]+\.bin$/.test(path)) return 'stations-bundle';
+  if (/^point\/stations(-s)?\/\d{10}\/stations\.json$/.test(path)) return 'stations-manifest';
   if (path === 'point/stations/catalog.json') return 'stations-catalog';
   if (/^point\/static\//.test(path)) return 'static';
   if (/^point\/(sources|calib)\.json$/.test(path)) return 'register';
