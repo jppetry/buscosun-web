@@ -380,7 +380,12 @@ const depFiles = (() => {
 export function routePreloadFiles(routeId) {
   const chunk = (new RegExp(`sub\\('${routeId}'\\)[^\\n]*?import\\('\\./pages/(\\w+)'\\)`).exec(routerSrc) || [])[1];
   if (!chunk || depFiles.length === 0) return [];
-  const m = new RegExp(`import\\("\\./${chunk}-[\\w-]+\\.js"\\),__vite__mapDeps\\(\\[([\\d,]*)\\]\\)`).exec(indexJs);
+  // Phase DB (30.09.): exportiert der Route-Chunk mehr als seinen Standard (das Dashboard nutzt Module daraus mit),
+  // schreibt Rollup `import("./X.js").then(c=>c.d)` — die Vorladeliste folgt dann erst nach dem `.then(…)`. Die Toleranz
+  // gilt nur für die Kartenrouten, für die LE1/H2 die Hinweise vorsieht; bei den übrigen Routen bleibt das Verhalten wie
+  // auf HEAD (dort griff die Suche schon vorher nicht — Befund V-DB-12, Jans Entscheidung).
+  const thenForm = routeId in PRECONNECT_BY_ROUTE ? '(?:\\.then\\(\\w+=>\\w+\\.\\w+\\))?' : '';
+  const m = new RegExp(`import\\("\\./${chunk}-[\\w-]+\\.js"\\)${thenForm},__vite__mapDeps\\(\\[([\\d,]*)\\]\\)`).exec(indexJs);
   if (!m) return [];
   return m[1].split(',').filter(Boolean).map((i) => depFiles[Number(i)]).filter(Boolean);
 }

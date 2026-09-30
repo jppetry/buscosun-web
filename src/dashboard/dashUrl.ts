@@ -1,0 +1,77 @@
+/**
+ * URL-Zustand des Dashboards (Phase DB, audit/dashboard.md §5.1) — rein, headless prüfbar (`verify:dashboard`).
+ *
+ * Zwei lesbare Schlüssel mit implizitem Standard (SH-Zielbild, architecture.md §15.2):
+ *   `ansicht=dashboard`                      Standard `karte` ⇒ nie geschrieben
+ *   `zeitraum=heute|7-tage|14-tage`          Standard `3-tage` (Vorlage) ⇒ nie geschrieben
+ * Sie reisen als durchgereichte Schlüssel in `parseMapSearch(...).extra` (E-DB-3): `urlState.ts` bleibt unberührt,
+ * das Bündel der Edge Function auch. Reihenfolge fest: `ansicht` vor `zeitraum`, hinter allen übrigen Extras.
+ */
+import type { DashboardView } from './ViewToggle';
+
+export type DashRange = 'heute' | '3-tage' | '7-tage' | '14-tage';
+export const DASH_VIEW_KEY = 'ansicht';
+export const DASH_RANGE_KEY = 'zeitraum';
+export const DASH_RANGES: readonly DashRange[] = Object.freeze(['heute', '3-tage', '7-tage', '14-tage']);
+export const DASH_RANGE_DEFAULT: DashRange = '3-tage';
+/** Stunden des Stundenverlaufs je Zeitraum (ab der laufenden Stunde; 14 Tage = der ganze Fusionshorizont 336 h). */
+export const DASH_RANGE_HOURS: Readonly<Record<DashRange, number>> = Object.freeze({ heute: 24, '3-tage': 72, '7-tage': 168, '14-tage': 336 });
+/** Tageskarten je Zeitraum (Kalendertage ab heute). */
+export const DASH_RANGE_DAYS: Readonly<Record<DashRange, number>> = Object.freeze({ heute: 1, '3-tage': 3, '7-tage': 7, '14-tage': 14 });
+export const DASH_RANGE_LABEL: Readonly<Record<DashRange, string>> = Object.freeze({ heute: 'Heute', '3-tage': '3 Tage', '7-tage': '7 Tage', '14-tage': '14 Tage' });
+
+type Extra = ReadonlyArray<readonly [string, string]>;
+
+function get(extra: Extra, key: string): string | null {
+  for (const [k, v] of extra) if (k === key) return v;
+  return null;
+}
+
+export function dashViewOf(extra: Extra): DashboardView {
+  return get(extra, DASH_VIEW_KEY) === 'dashboard' ? 'dashboard' : 'karte';
+}
+
+export function dashRangeOf(extra: Extra): DashRange {
+  const v = get(extra, DASH_RANGE_KEY);
+  return v && (DASH_RANGES as readonly string[]).includes(v) ? v as DashRange : DASH_RANGE_DEFAULT;
+}
+
+/** `false`, wenn ein Schlüssel einen ungültigen oder den Standardwert trägt — die Route zieht die URL dann kanonisch nach. */
+export function dashStateValid(extra: Extra): boolean {
+  const v = get(extra, DASH_VIEW_KEY);
+  if (v != null && v !== 'dashboard') return false;
+  const r = get(extra, DASH_RANGE_KEY);
+  if (r != null && (r === DASH_RANGE_DEFAULT || !(DASH_RANGES as readonly string[]).includes(r))) return false;
+  return true;
+}
+
+/** Neue Extras: übrige Schlüssel in ihrer Reihenfolge, dahinter `ansicht`, `zeitraum` — Standardwerte entfallen. */
+export function withDashState(extra: Extra, next: { view?: DashboardView; range?: DashRange }): Array<[string, string]> {
+  const view = next.view ?? dashViewOf(extra);
+  const range = next.range ?? dashRangeOf(extra);
+  const out: Array<[string, string]> = extra.filter(([k]) => k !== DASH_VIEW_KEY && k !== DASH_RANGE_KEY).map(([k, v]) => [k, v]);
+  if (view === 'dashboard') out.push([DASH_VIEW_KEY, 'dashboard']);
+  if (range !== DASH_RANGE_DEFAULT) out.push([DASH_RANGE_KEY, range]);
+  return out;
+}
+
+/** Selbstprüfung (von `verify:dashboard` aufgerufen): leere Liste = grün. */
+export function verifyDashUrl(): string[] {
+  const fails: string[] = [];
+  const ok = (c: boolean, what: string) => { if (!c) fails.push(what); };
+  ok(dashViewOf([]) === 'karte', 'ohne Schlüssel ⇒ Karte');
+  ok(dashViewOf([['ansicht', 'dashboard']]) === 'dashboard', 'ansicht=dashboard ⇒ Dashboard');
+  ok(dashViewOf([['ansicht', 'Dashboard']]) === 'karte', 'Großschreibung ist ungültig ⇒ Karte');
+  ok(dashRangeOf([]) === '3-tage', 'Standardzeitraum 3 Tage');
+  ok(dashRangeOf([['zeitraum', '7-tage']]) === '7-tage', 'zeitraum=7-tage');
+  ok(dashRangeOf([['zeitraum', '5-tage']]) === '3-tage', 'ungültiger Zeitraum ⇒ Standard');
+  ok(dashStateValid([['ansicht', 'dashboard'], ['zeitraum', '14-tage']]), 'gültige Kombination');
+  ok(!dashStateValid([['zeitraum', '3-tage']]), 'Standardwert in der URL ⇒ nachziehen');
+  ok(!dashStateValid([['ansicht', 'karte']]), 'ansicht=karte ⇒ nachziehen');
+  const w = withDashState([['startnow', '0'], ['zeitraum', 'heute']], { view: 'dashboard' });
+  ok(JSON.stringify(w) === JSON.stringify([['startnow', '0'], ['ansicht', 'dashboard'], ['zeitraum', 'heute']]), `Reihenfolge ${JSON.stringify(w)}`);
+  const back = withDashState(w, { view: 'karte' });
+  ok(JSON.stringify(back) === JSON.stringify([['startnow', '0'], ['zeitraum', 'heute']]), 'Zurück zur Karte behält den Zeitraum');
+  ok(withDashState([['ansicht', 'dashboard']], { range: '3-tage' }).length === 1, 'Standardzeitraum wird nicht geschrieben');
+  return fails;
+}

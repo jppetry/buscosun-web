@@ -911,3 +911,70 @@ Der Client ist fertig: `defaultCubeIo` liest die drei Dateien und rechnet mit de
       Cube-Pfad ist auf dem Gerät nicht abgenommen (V-FI-50 Long Task, V-FI-53). Empfehlung: erst Real-Device, dann umstellen.
 - [ ] **Hinweis:** die Temperatur ändert sich sichtbar (am 28.09. bis +2 K in der warmen Anomalie) — das ist die entfallene doppelte
       Schrumpfung, am Archiv gemessen (D2).
+
+## 25. Phase DB — Wetter-Dashboard (Umschalten Dashboard ⇄ Karte), 2026-09-29/30 — Abnahme Phase 2
+
+Phasendokument `audit/dashboard.md` (§0 Kurzfassung Punkt 6, §10 Umsetzung). Phase 1 (Analyse) am 29.09., Freigabe „starte
+phase 2" am selben Tag; Phase 2 am 30.09. fertig, **uncommitted**.
+
+**Erledigt (deine Entscheidungen vom 29.09.):**
+
+- [x] Freigabe Phase 2
+- [x] E-DB-1 767/1279 wie Vorlage
+- [x] E-DB-2 Umschalter nach der Marke + mobil in der Schwebeleiste
+- [x] E-DB-3…17 wie empfohlen
+- [x] E-DB-18 Zustände ohne Vorlage aus Bausteinen abgeleitet
+
+**Offen:**
+
+- [ ] **Abnahme Pixel-Diff:** Abweichungen und ihre Gründe stehen in §10.4. Die Bilder liegen in `audit/dashboard/pixel/`: `*-A.png` ist die Aufnahme, `*-B-diff.png` markiert Abweichungen rot.
+- [ ] **Abnahme Zustände ohne Vorlage:** die zwölf Aufnahmen in `audit/dashboard/states/` (Laden, Fehler, kein Ort, Heute/7/14 Tage, Tablet/Mobil live, Karte mit Umschalter, Bern, Wien).
+- [ ] **E-DB-19 — eagerJs 107,922 > 107,9 (+37 B).**
+  - Ursache: der Vorlade-Eintrag des nun geteilten `@nivo/line`-Chunks im Start-Chunk.
+  - Entweder: Ratsche auf 108,0 (Empfehlung).
+  - Oder: `@nivo/line` im Dashboard durch einen eigenen Zeitachsen-Rahmen ersetzen.
+- [ ] **E-DB-20 — Dashboard-Link mobil-4G: erste Ausgabe 4,7 s statt < 2 s** (p95 < 5 s erfüllt; Desktop 1,5 s erfüllt).
+  - Ursache: das Karten-JS lädt auf demselben Weg.
+  - Entweder: ein eigener Einstieg für `?ansicht=dashboard` (Eingriff in Router und Start-Chunk).
+  - Oder: so lassen.
+  - Empfehlung: erst das Real-Device-Ergebnis abwarten.
+- [ ] **E-DB-16′ totalJs:** Ratsche 1 438 → 1 475 für den Zuwachs dieser Phase (+36,5 KB, alles lazy) bestätigen. Stand 1 492,0; die restlichen ≈ 17 KB stammen aus früheren Ständen (E-FS-6, E-EX-8).
+- [ ] **V-DB-12:** die Vorlade-Toleranz in `generate-seo.mjs` auch für Atmosphäre, Eventplanung, Tourenplanung und Brandradar einschalten. Deren Shells tragen schon auf HEAD nur die Basis-Hinweise. Ändert deren Erstbild; eigene kleine Phase.
+- [ ] **V-DB-10 zur Kenntnis:** der Konfidenz-Index der Fusion ist in der Stufe fs klein (Garmisch Stunde 0: 6,4 %). Das Dashboard zeigt ihn wahrheitsgemäß als „unsicher". Neu definieren wäre ein Eingriff in buscosun Fusion.
+- [ ] **Real-Device** mit `…/wetterkarte/<layer>/<ort>?ansicht=dashboard`:
+  - Long Tasks (headless nicht messbar);
+  - Touch-Ziele;
+  - Kartenpause (Akku, Wärme);
+  - Wechsel zurück zur Karte.
+- [ ] **Commit/Push/Deploy.** Dateien der Phase:
+  - neu `src/dashboard/**`, `scripts/verify-dashboard.mjs`, `scripts/verify-dashboard-switch.mjs`, `scripts/dashboard-pixel-diff.mjs`, `scripts/dashboard-latency.mjs`, `audit/dashboard.md`, `audit/dashboard/**`, `reference/dashboard.dc.html`;
+  - geändert `src/MapView.tsx`, `src/map/mapDeck.css`, `src/router/pages/WetterkarteRoute.tsx`, `src/wind/WindLayer.ts`, `src/pointForecast/cubeSource.ts`, `scripts/generate-seo.mjs`, `budget.json`, `package.json`, Doku;
+  - die Vorlagen `reference/{desktop,tablet,mobile}.png` sind ebenfalls geändert.
+  - Nicht dazu: `fusion-verbesserungen-2026-09-29.md` und `Claude outputs/` (parallele Sitzung).
+
+## 26. Phase EX — Expertenbericht vom 29.09. zu buscosun Fusion (Fristen, Radar-HDF5, Scorer), 2026-09-29
+
+Phasendokument `audit/fusion-expertenbericht-2026-09-29.md` (§0 Kurzfassung, §1 die 21 Vorschläge, §2 Fristen, §5 Reihenfolge).
+
+**Schon geschehen (mit deiner Freigabe vom 29.09.):** Cron-Fix `db1baa5` auf `buscosun-web/main` — das Gate des Punkt-Crons
+wertete den Termin „30.09. dynamical" als überfällig, vier Läufe schlugen fehl (13:49–19:44 UTC).
+
+- [x] **Nachgesehen:** Punkt-Cron nach dem Fix grün — 29.09. 21:57 (t3, 5,8 min), 22:37 (t2, 9,5), 22:44 (t1, 15,3), 30.09. 02:00 (12,5).
+- [x] **Radar-HDF5 eingeschaltet (30.09., deine Freigabe):** `buscosun-web/main` `cdc9a9b` gepusht (Netlify liefert den
+      neuen Start-Chunk), danach `buscosun-data` `a506f2e` (Kopie von `radar-mirror.mjs`, außerhalb des Repack-Fensters).
+      Der Spiegel-Job vom 29.09. 22:08 UTC lief noch mit dem alten Skript; der Nachfolger (≈ 03:53 UTC) legt HDF5 ab.
+- [ ] **Am 01.10. `radar/status.json` ansehen:** `deriveMs` und Abstand DWD → Push gegen das Bild-Gate 270 s (V-EX-11).
+  Rückweg bis zum Stichtag: `RV_FORMAT=radolan` im Workflow, im Browser `?rvfmt=radolan`.
+- [ ] **E-EX-6** Radarwerte in RADOLAN-Einheiten wie bisher (gebaut) oder in den feineren HDF5-Werten (27 % der schwächsten
+      Echos fielen unter die Farbschwelle). Empfehlung: wie bisher.
+- [ ] **Nach dem 06.10.:** Dauer des ersten t2- und t3-Jobs ansehen (ICON-EPS-Dateien doppelt so groß; t2 heute 8,3 von 15 min).
+- [ ] **E-EX-7 — Frist 04.11.:** GeoSphere `nwp-v2-1h-1km` unter eigener Kennung im Live-Rückfallpfad und in der Karte
+      (Zuordnung der Größen in §3.4). Ohne das schlägt das Cron-Gate ab dem 03.11. 12 UTC fehl.
+- [ ] **E-EX-5 — Frist 30.11.:** Phase „NS" (neues DWD-URL-Schema, ICON-D2/ICON-EU nur noch im Dreiecksgitter): Start und
+      Reihenfolge. Empfehlung: Diagnose Anfang Oktober, Producer vor Kartenlinie.
+- [ ] **E-EX-1** Ensemble-Mittel in t3 am Hindcast messen (berührt V-PD-9). **E-EX-3** MOSMIX_S für 0–24 h (gemessen
+      36 MB je Datei, nicht 80). **E-EX-2** ICON-D2-RUC. **E-EX-4** Klimagitter als Motor-Prior.
+- [ ] **E-EX-8** totalJs 1 451,2 → 1 455,5 (+4,3 KB, Radar-HDF5); eagerJs 107,9 gehalten.
+- [ ] **Zur Kenntnis:** die Sterne der Archiv-Karten FV-A und FS stehen auf 13 Tagen und der alten Testform; mit der
+      Kleinstichproben-Korrektur (§4.2) verlieren knappe Zellen den Stern. Neu rechnen mit dem Neufit (E-FS-3).
+      Befund 18 gemessen: gestutzte Normal am Stationswert ist für Wind 1,6–5,0 % schlechter ⇒ nicht umgestellt (§4.4).

@@ -1,0 +1,885 @@
+{
+ "at": "2026-09-29T22:42:19.884Z",
+ "base": "http://127.0.0.1:5211",
+ "path": "/wetterkarte/wind/garmisch-partenkirchen",
+ "mode": "fixture",
+ "threshold": 12,
+ "sizes": [
+  {
+   "name": "desktop",
+   "width": 1440,
+   "A": {
+    "cssHeight": 1857,
+    "ready": true,
+    "refPx": [
+     2880,
+     3718
+    ],
+    "gotPx": [
+     2880,
+     3714
+    ],
+    "compared": 10695526,
+    "deviating": 2062578,
+    "pct": 19.28,
+    "modules": [
+     {
+      "module": "dbd-top",
+      "y": 0,
+      "h": 58,
+      "pct": 8.5
+     },
+     {
+      "module": "Jetzt",
+      "y": 74,
+      "h": 177,
+      "pct": 7.5
+     },
+     {
+      "module": "Amtliche Warnung",
+      "y": 74,
+      "h": 177,
+      "pct": 7.5
+     },
+     {
+      "module": "Konfidenz und Quellen",
+      "y": 74,
+      "h": 177,
+      "pct": 7.5
+     },
+     {
+      "module": "Prognose",
+      "y": 263,
+      "h": 590,
+      "pct": 21.8
+     },
+     {
+      "module": "Heute · Mi 16.09.",
+      "y": 330,
+      "h": 221,
+      "pct": 7.7
+     },
+     {
+      "module": "Morgen · Do 17.09.",
+      "y": 330,
+      "h": 221,
+      "pct": 7.7
+     },
+     {
+      "module": "Übermorgen · Fr 18.09.",
+      "y": 330,
+      "h": 221,
+      "pct": 7.7
+     },
+     {
+      "module": "dbd-hourly",
+      "y": 563,
+      "h": 273,
+      "pct": 38.1
+     },
+     {
+      "module": "Nowcast Radar",
+      "y": 865,
+      "h": 180,
+      "pct": 8
+     },
+     {
+      "module": "Bewölkung in vier Schichten",
+      "y": 865,
+      "h": 180,
+      "pct": 8
+     },
+     {
+      "module": "Windrichtung und Reichweite",
+      "y": 865,
+      "h": 180,
+      "pct": 8
+     },
+     {
+      "module": "Terrain um den Ort",
+      "y": 1057,
+      "h": 559,
+      "pct": 10.5
+     },
+     {
+      "module": "UV-Index",
+      "y": 1628,
+      "h": 141,
+      "pct": 51.6
+     },
+     {
+      "module": "Pollenflug",
+      "y": 1628,
+      "h": 141,
+      "pct": 51.6
+     },
+     {
+      "module": "ICON-D2-Layer am Ort",
+      "y": 1628,
+      "h": 141,
+      "pct": 51.6
+     },
+     {
+      "module": "dbd-footer",
+      "y": 1782,
+      "h": 15,
+      "pct": 96.3
+     }
+    ]
+   },
+   "B": {
+    "cssHeight": 1857,
+    "refInnerPx": [
+     2876,
+     3714
+    ],
+    "gotPx": [
+     2876,
+     3714
+    ],
+    "compared": 10680904,
+    "deviating": 1606195,
+    "pct": 15.04,
+    "modules": [
+     {
+      "module": "dbd-top",
+      "x": 0,
+      "y": 0,
+      "w": 1438,
+      "h": 58,
+      "dy": 0,
+      "pct": 0.5
+     },
+     {
+      "module": "Jetzt",
+      "x": 16,
+      "y": 74,
+      "w": 660,
+      "h": 177,
+      "dy": 0,
+      "pct": 1.1
+     },
+     {
+      "module": "Amtliche Warnung",
+      "x": 688,
+      "y": 74,
+      "w": 408,
+      "h": 177,
+      "dy": 0,
+      "pct": 1.6
+     },
+     {
+      "module": "Konfidenz und Quellen",
+      "x": 1108,
+      "y": 74,
+      "w": 314,
+      "h": 177,
+      "dy": 0,
+      "pct": 1
+     },
+     {
+      "module": "Prognose",
+      "x": 16,
+      "y": 263,
+      "w": 1406,
+      "h": 590,
+      "dy": 0,
+      "pct": 15.6
+     },
+     {
+      "module": "Heute · Mi 16.09.",
+      "x": 33,
+      "y": 330,
+      "w": 449,
+      "h": 221,
+      "dy": 0,
+      "pct": 0.5
+     },
+     {
+      "module": "Morgen · Do 17.09.",
+      "x": 494,
+      "y": 330,
+      "w": 449,
+      "h": 221,
+      "dy": 0,
+      "pct": 0.3
+     },
+     {
+      "module": "Übermorgen · Fr 18.09.",
+      "x": 956,
+      "y": 330,
+      "w": 449,
+      "h": 221,
+      "dy": 0,
+      "pct": 0.4
+     },
+     {
+      "module": "dbd-hourly",
+      "x": 33,
+      "y": 563,
+      "w": 1372,
+      "h": 273,
+      "dy": -180,
+      "pct": 30.6
+     },
+     {
+      "module": "Nowcast Radar",
+      "x": 16,
+      "y": 865,
+      "w": 532,
+      "h": 180,
+      "dy": 0,
+      "pct": 3.3
+     },
+     {
+      "module": "Bewölkung in vier Schichten",
+      "x": 560,
+      "y": 865,
+      "w": 425,
+      "h": 180,
+      "dy": 0,
+      "pct": 1.5
+     },
+     {
+      "module": "Windrichtung und Reichweite",
+      "x": 997,
+      "y": 865,
+      "w": 425,
+      "h": 180,
+      "dy": 0,
+      "pct": 3.1
+     },
+     {
+      "module": "Terrain um den Ort",
+      "x": 16,
+      "y": 1057,
+      "w": 1406,
+      "h": 559,
+      "dy": 4,
+      "pct": 4.6
+     },
+     {
+      "module": "UV-Index",
+      "x": 16,
+      "y": 1628,
+      "w": 346,
+      "h": 141,
+      "dy": 46,
+      "pct": 0.3
+     },
+     {
+      "module": "Pollenflug",
+      "x": 374,
+      "y": 1628,
+      "w": 691,
+      "h": 141,
+      "dy": 46,
+      "pct": 0.5
+     },
+     {
+      "module": "ICON-D2-Layer am Ort",
+      "x": 1077,
+      "y": 1628,
+      "w": 346,
+      "h": 141,
+      "dy": 46,
+      "pct": 0.8
+     },
+     {
+      "module": "dbd-footer",
+      "x": 16,
+      "y": 1782,
+      "w": 1406,
+      "h": 15,
+      "dy": 70,
+      "pct": 22.2
+     }
+    ]
+   }
+  },
+  {
+   "name": "tablet",
+   "width": 1024,
+   "A": {
+    "cssHeight": 2505,
+    "ready": true,
+    "refPx": [
+     2048,
+     4938
+    ],
+    "gotPx": [
+     2048,
+     5010
+    ],
+    "compared": 10112040,
+    "deviating": 1956619,
+    "pct": 19.35,
+    "modules": [
+     {
+      "module": "dbd-top",
+      "y": 0,
+      "h": 58,
+      "pct": 9
+     },
+     {
+      "module": "Jetzt",
+      "y": 74,
+      "h": 145,
+      "pct": 8.3
+     },
+     {
+      "module": "Amtliche Warnung",
+      "y": 231,
+      "h": 177,
+      "pct": 6.4
+     },
+     {
+      "module": "Konfidenz und Quellen",
+      "y": 231,
+      "h": 177,
+      "pct": 6.4
+     },
+     {
+      "module": "Prognose",
+      "y": 420,
+      "h": 590,
+      "pct": 22.5
+     },
+     {
+      "module": "Heute · Mi 16.09.",
+      "y": 487,
+      "h": 221,
+      "pct": 9.4
+     },
+     {
+      "module": "Morgen · Do 17.09.",
+      "y": 487,
+      "h": 221,
+      "pct": 9.4
+     },
+     {
+      "module": "Übermorgen · Fr 18.09.",
+      "y": 487,
+      "h": 221,
+      "pct": 9.4
+     },
+     {
+      "module": "dbd-hourly",
+      "y": 720,
+      "h": 273,
+      "pct": 37.8
+     },
+     {
+      "module": "Nowcast Radar",
+      "y": 1022,
+      "h": 180,
+      "pct": 7.6
+     },
+     {
+      "module": "Bewölkung in vier Schichten",
+      "y": 1214,
+      "h": 166,
+      "pct": 20.2
+     },
+     {
+      "module": "Windrichtung und Reichweite",
+      "y": 1214,
+      "h": 166,
+      "pct": 20.2
+     },
+     {
+      "module": "Terrain um den Ort",
+      "y": 1392,
+      "h": 739,
+      "pct": 12.7
+     },
+     {
+      "module": "UV-Index",
+      "y": 2143,
+      "h": 141,
+      "pct": 31.3
+     },
+     {
+      "module": "Pollenflug",
+      "y": 2296,
+      "h": 106,
+      "pct": 61.5
+     },
+     {
+      "module": "ICON-D2-Layer am Ort",
+      "y": 2143,
+      "h": 141,
+      "pct": 31.3
+     },
+     {
+      "module": "dbd-footer",
+      "y": 2415,
+      "h": 30,
+      "pct": 38.8
+     }
+    ]
+   },
+   "B": {
+    "cssHeight": 2505,
+    "refInnerPx": [
+     2044,
+     4934
+    ],
+    "gotPx": [
+     2044,
+     5010
+    ],
+    "compared": 10088522,
+    "deviating": 1534309,
+    "pct": 15.21,
+    "modules": [
+     {
+      "module": "dbd-top",
+      "x": 0,
+      "y": 0,
+      "w": 1022,
+      "h": 58,
+      "dy": 0,
+      "pct": 0.1
+     },
+     {
+      "module": "Jetzt",
+      "x": 16,
+      "y": 74,
+      "w": 990,
+      "h": 145,
+      "dy": 0,
+      "pct": 0.9
+     },
+     {
+      "module": "Amtliche Warnung",
+      "x": 16,
+      "y": 231,
+      "w": 489,
+      "h": 177,
+      "dy": 0,
+      "pct": 0.5
+     },
+     {
+      "module": "Konfidenz und Quellen",
+      "x": 517,
+      "y": 231,
+      "w": 489,
+      "h": 177,
+      "dy": 0,
+      "pct": 0.7
+     },
+     {
+      "module": "Prognose",
+      "x": 16,
+      "y": 420,
+      "w": 990,
+      "h": 590,
+      "dy": 0,
+      "pct": 15.5
+     },
+     {
+      "module": "Heute · Mi 16.09.",
+      "x": 33,
+      "y": 487,
+      "w": 311,
+      "h": 221,
+      "dy": 0,
+      "pct": 0.6
+     },
+     {
+      "module": "Morgen · Do 17.09.",
+      "x": 356,
+      "y": 487,
+      "w": 311,
+      "h": 221,
+      "dy": 0,
+      "pct": 0.6
+     },
+     {
+      "module": "Übermorgen · Fr 18.09.",
+      "x": 678,
+      "y": 487,
+      "w": 311,
+      "h": 221,
+      "dy": 0,
+      "pct": 0.5
+     },
+     {
+      "module": "dbd-hourly",
+      "x": 33,
+      "y": 720,
+      "w": 956,
+      "h": 273,
+      "dy": -180,
+      "pct": 31.9
+     },
+     {
+      "module": "Nowcast Radar",
+      "x": 16,
+      "y": 1022,
+      "w": 990,
+      "h": 180,
+      "dy": 0,
+      "pct": 2.4
+     },
+     {
+      "module": "Bewölkung in vier Schichten",
+      "x": 16,
+      "y": 1214,
+      "w": 489,
+      "h": 166,
+      "dy": 4,
+      "pct": 1.4
+     },
+     {
+      "module": "Windrichtung und Reichweite",
+      "x": 517,
+      "y": 1214,
+      "w": 489,
+      "h": 166,
+      "dy": 4,
+      "pct": 2.5
+     },
+     {
+      "module": "Terrain um den Ort",
+      "x": 16,
+      "y": 1392,
+      "w": 990,
+      "h": 739,
+      "dy": 9,
+      "pct": 6
+     },
+     {
+      "module": "UV-Index",
+      "x": 16,
+      "y": 2143,
+      "w": 489,
+      "h": 141,
+      "dy": 23,
+      "pct": 0.2
+     },
+     {
+      "module": "Pollenflug",
+      "x": 16,
+      "y": 2296,
+      "w": 990,
+      "h": 106,
+      "dy": 23,
+      "pct": 0.4
+     },
+     {
+      "module": "ICON-D2-Layer am Ort",
+      "x": 517,
+      "y": 2143,
+      "w": 489,
+      "h": 141,
+      "dy": 23,
+      "pct": 0.6
+     },
+     {
+      "module": "dbd-footer",
+      "x": 16,
+      "y": 2415,
+      "w": 990,
+      "h": 30,
+      "dy": 35,
+      "pct": 16.1
+     }
+    ]
+   }
+  },
+  {
+   "name": "mobile",
+   "width": 402,
+   "A": {
+    "cssHeight": 4130,
+    "ready": true,
+    "refPx": [
+     804,
+     8408
+    ],
+    "gotPx": [
+     804,
+     8260
+    ],
+    "compared": 6641020,
+    "deviating": 2187112,
+    "pct": 32.93,
+    "modules": [
+     {
+      "module": "dbd-top",
+      "y": 0,
+      "h": 154,
+      "pct": 10.2
+     },
+     {
+      "module": "Jetzt",
+      "y": 166,
+      "h": 253,
+      "pct": 9.5
+     },
+     {
+      "module": "Amtliche Warnung",
+      "y": 431,
+      "h": 138,
+      "pct": 12.5
+     },
+     {
+      "module": "Konfidenz und Quellen",
+      "y": 580,
+      "h": 177,
+      "pct": 24.1
+     },
+     {
+      "module": "Prognose",
+      "y": 769,
+      "h": 1144,
+      "pct": 27.5
+     },
+     {
+      "module": "Heute · Mi 16.09.",
+      "y": 910,
+      "h": 221,
+      "pct": 18.4
+     },
+     {
+      "module": "Morgen · Do 17.09.",
+      "y": 1141,
+      "h": 221,
+      "pct": 18.4
+     },
+     {
+      "module": "Übermorgen · Fr 18.09.",
+      "y": 1372,
+      "h": 221,
+      "pct": 18.9
+     },
+     {
+      "module": "dbd-hourly",
+      "y": 1605,
+      "h": 291,
+      "pct": 37.7
+     },
+     {
+      "module": "Nowcast Radar",
+      "y": 1925,
+      "h": 180,
+      "pct": 31.2
+     },
+     {
+      "module": "Bewölkung in vier Schichten",
+      "y": 2117,
+      "h": 166,
+      "pct": 77.1
+     },
+     {
+      "module": "Windrichtung und Reichweite",
+      "y": 2295,
+      "h": 144,
+      "pct": 22.3
+     },
+     {
+      "module": "Terrain um den Ort",
+      "y": 2451,
+      "h": 1066,
+      "pct": 23.3
+     },
+     {
+      "module": "UV-Index",
+      "y": 3529,
+      "h": 135,
+      "pct": 71
+     },
+     {
+      "module": "Pollenflug",
+      "y": 3676,
+      "h": 164,
+      "pct": 59.5
+     },
+     {
+      "module": "ICON-D2-Layer am Ort",
+      "y": 3852,
+      "h": 141,
+      "pct": 68.2
+     },
+     {
+      "module": "dbd-footer",
+      "y": 4006,
+      "h": 60,
+      "pct": 94
+     }
+    ]
+   },
+   "B": {
+    "cssHeight": 4130,
+    "refInnerPx": [
+     800,
+     8316
+    ],
+    "gotPx": [
+     800,
+     8260
+    ],
+    "compared": 6608000,
+    "deviating": 1972535,
+    "pct": 29.85,
+    "modules": [
+     {
+      "module": "dbd-top",
+      "x": 0,
+      "y": 0,
+      "w": 400,
+      "h": 154,
+      "dy": 0,
+      "pct": 0.6
+     },
+     {
+      "module": "Jetzt",
+      "x": 12,
+      "y": 166,
+      "w": 376,
+      "h": 253,
+      "dy": 0,
+      "pct": 0.7
+     },
+     {
+      "module": "Amtliche Warnung",
+      "x": 12,
+      "y": 431,
+      "w": 376,
+      "h": 138,
+      "dy": 0,
+      "pct": 2
+     },
+     {
+      "module": "Konfidenz und Quellen",
+      "x": 12,
+      "y": 580,
+      "w": 376,
+      "h": 177,
+      "dy": 9,
+      "pct": 0.8
+     },
+     {
+      "module": "Prognose",
+      "x": 12,
+      "y": 769,
+      "w": 376,
+      "h": 1144,
+      "dy": 10,
+      "pct": 8.5
+     },
+     {
+      "module": "Heute · Mi 16.09.",
+      "x": 29,
+      "y": 910,
+      "w": 342,
+      "h": 221,
+      "dy": 10,
+      "pct": 0.5
+     },
+     {
+      "module": "Morgen · Do 17.09.",
+      "x": 29,
+      "y": 1141,
+      "w": 342,
+      "h": 221,
+      "dy": 10,
+      "pct": 0.4
+     },
+     {
+      "module": "Übermorgen · Fr 18.09.",
+      "x": 29,
+      "y": 1372,
+      "w": 342,
+      "h": 221,
+      "dy": 10,
+      "pct": 0.3
+     },
+     {
+      "module": "dbd-hourly",
+      "x": 29,
+      "y": 1605,
+      "w": 342,
+      "h": 291,
+      "dy": -169,
+      "pct": 26.7
+     },
+     {
+      "module": "Nowcast Radar",
+      "x": 12,
+      "y": 1925,
+      "w": 376,
+      "h": 180,
+      "dy": 35,
+      "pct": 4.4
+     },
+     {
+      "module": "Bewölkung in vier Schichten",
+      "x": 12,
+      "y": 2117,
+      "w": 376,
+      "h": 166,
+      "dy": 39,
+      "pct": 1.9
+     },
+     {
+      "module": "Windrichtung und Reichweite",
+      "x": 12,
+      "y": 2295,
+      "w": 376,
+      "h": 144,
+      "dy": 43,
+      "pct": 2.6
+     },
+     {
+      "module": "Terrain um den Ort",
+      "x": 12,
+      "y": 2451,
+      "w": 376,
+      "h": 1066,
+      "dy": 43,
+      "pct": 7.9
+     },
+     {
+      "module": "UV-Index",
+      "x": 12,
+      "y": 3529,
+      "w": 376,
+      "h": 135,
+      "dy": 96,
+      "pct": 0.2
+     },
+     {
+      "module": "Pollenflug",
+      "x": 12,
+      "y": 3676,
+      "w": 376,
+      "h": 164,
+      "dy": 96,
+      "pct": 0.2
+     },
+     {
+      "module": "ICON-D2-Layer am Ort",
+      "x": 12,
+      "y": 3852,
+      "w": 376,
+      "h": 141,
+      "dy": 96,
+      "pct": 0.7
+     },
+     {
+      "module": "dbd-footer",
+      "x": 12,
+      "y": 4006,
+      "w": 376,
+      "h": 60,
+      "dy": 133,
+      "pct": 14.9
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -679,3 +679,43 @@ verschiedenen Modellläufen (t1 aus ICON-D2 12z, t3 aus ICON global 06z); der
 Verzeichnisname ist deshalb der **Publikationslauf**, und jeder Stufeneintrag nennt
 seinen eigenen **Quell-Lauf** samt Alter (`run`, `runAt`, `ageH`). Vor der Trennung
 dieser zwei Begriffe lagen zwölf Chunks im Repo, die kein Manifest nannte.
+
+---
+
+## 17. Wetter-Dashboard neben der Wetterkarte (Phase DB — Konzept 29.09., umgesetzt 30.09., uncommitted)
+
+Vollständig in `audit/dashboard.md` (Abdeckungsmatrix, Vorlagen-Lücken, Entscheidungen E-DB-1…20, Umsetzung §10). Hier nur
+das, was repo-weit gilt.
+
+**Eine Route, zwei Ansichten.** Das Dashboard ist eine Ansicht von `/wetterkarte/<layer>[/<ort>]`, geschaltet über
+`?ansicht=dashboard` (Zeitraum `?zeitraum=heute|7-tage|14-tage`, Standard „3 Tage" ohne Schlüssel). Ein eigener Pfad
+würde `MapView` abbauen — der Router remountet bei jedem Routenwechsel, und der Cleanup der Karte ruft `map.remove()`.
+Innerhalb derselben Route bleibt die Instanz stehen (`WetterkarteRoute.tsx`, „kein `key`!"). Alle übrigen Schlüssel
+(`t`, `land`, `modell`, Kamera, Layer im Pfad) bleiben beim Wechsel unverändert, der Umschalter schreibt per `push`,
+Browser-Zurück kehrt zur vorigen Ansicht zurück; der Zeitraum ersetzt den Eintrag (`replaceState`). `/warnungen` (fester
+Layer) hat keinen Umschalter. Die Schlüssel sind durchgereicht (`src/dashboard/dashUrl.ts`), nicht Teil von `urlState.ts`.
+
+**Die Karte wird pausiert, nicht versteckt.** MapLibre rendert nur auf Anstoß; der einzige Dauer-Loop der 2D-Karte ist
+der Partikel-Repaint des `WindLayer` (pausiert bisher nur bei verstecktem Tab oder Canvas außerhalb des Viewports).
+`display:none` würde MapLibre auf 400×300 verkleinern und `moveend` feuern. Umgesetzt ist ein `suspended`-Zustand
+(`MapView`-Prop: `.mdk-suspended` = `visibility:hidden`, `inert`, `aria-hidden`; `WindLayer.setSuspended` als dritter
+Eingang in `paused`; Wiedergabe stoppt) — E-DB-5. Die Karte wird erst beim ersten Bedarf montiert (ein Dashboard-Link
+lädt kein MapLibre-Canvas) und danach nie abgebaut. Belegt in `verify:dashboard-switch`: 0 WebGL-Draws hinter dem
+Dashboard, dasselbe Canvas-Element nach dem Zurückwechseln.
+
+**Werte nur aus der neuesten Stufe von buscosun Fusion.** Das Dashboard ruft den Cube-Pfad (`pointSource: 'cube'`,
+`stage: fs`) und liest `PointForecastV2`; es fällt nie auf den Live-Pfad zurück und benutzt die Rasterfusion
+(`src/fusion/`) nicht. Was die Fusion nicht liefert, kommt aus `buscosun-data` (Cube-Ebenen, Radar-Spiegel, KONRAD3D,
+ICON-D2-Repack, Stationskatalog), dann aus bestehenden Pfaden (DWD-CAP/MeteoAlarm, DWD-UV, DWD-Pollen, Terrarium) —
+sonst steht „nicht verfügbar". Eine Herkunftstabelle im Code (`src/dashboard/origin.ts`) trägt die Matrix; jedes gezeichnete
+Element nennt seine Zeile als `data-origin`, jedes „n. v." seinen Grund (`data-na`, `title`).
+
+**Lazy und nachrangig.** Dashboard-Code ist ein eigener Chunk (`DashboardView`); die Edge Function bleibt unberührt, weil
+die neuen Schlüssel im Lazy-Chunk der Route gelesen werden. Nebenquellen laden erst nach der ersten Fusion-Ausgabe bzw.
+bei Sichtbarkeit der Kachel. Zwei Chunk-Regeln, die diese Phase gemessen hat: (1) Ein dynamischer Import eines Moduls,
+das in einem fremden Chunk liegt, spaltet es in einen neuen Chunk ab — Punkt-Module erreicht das Dashboard deshalb nur
+über Re-Exporte von `cubeSource.ts` (AP11-Regel, `verify:point-client` (8)). (2) Vite trägt jeden Chunk, den eine
+Lazy-Route statisch braucht, in die Vorladeliste `__vite__mapDeps` des Start-Chunks ein — ein neu geteilter Chunk (hier
+`@nivo/line`, jetzt Brandradar + Dashboard) kostet Bytes auf eagerJs (E-DB-19); für GeoSphere-Warnungen ist deshalb eine
+Kopie mit Wächter gewählt (`src/dashboard/data/atWarnings.ts`). `scripts/generate-seo.mjs` liest die Vorladeliste einer
+Kartenroute auch in der Form `import(…).then(c=>c.x)` (V-DB-12).

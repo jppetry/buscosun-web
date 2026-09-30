@@ -124,6 +124,10 @@
    `src/share/share.css`; hier steht nur die Einpassung ins Karten-Deck. */
 .mdk-share { margin-left: 4px; }
 
+/* Phase DB (audit/dashboard.md, E-DB-5): die Karte hinter dem Dashboard — unsichtbar und inert, aber in voller
+   Größe (kein Resize, keine Kamera-Meldung). `display:none` ließe MapLibre auf 400×300 schrumpfen. */
+.mdk-root.mdk-suspended { visibility: hidden; pointer-events: none; }
+
 /* ---- Body: Rail · Dock · Bühne · Readout ---------------------------------- */
 .mdk-body { flex: 1; display: flex; min-height: 0; }
 
@@ -785,6 +789,14 @@
     cursor: pointer;
   }
   .mdk-m-topfloat > div { display: flex; }
+  /* Phase DB (E-DB-2): Umschalter Dashboard|Karte als zweite Zeile der Schwebeleiste, volle Breite wie in der
+     Mobil-Vorlage; die Modell-Pille rückt um diese Zeile (44 px + 8 px Abstand) nach unten. */
+  .mdk-has-viewtoggle .mdk-m-topfloat { flex-wrap: wrap; row-gap: 8px; }
+  .mdk-m-topfloat > .mdk-m-viewtoggle { flex: 1 0 100%; box-shadow: var(--shadow-card); }
+  .mdk-has-viewtoggle .mdk-m-modelpill { top: calc(120px + env(safe-area-inset-top, 0px)); }
+  /* Der Chip „Über diese Ansicht" (RouteSeoBlock) sitzt mobil neben der Modell-Pille — er rückt mit ihr nach unten.
+     Klasse am body (von MapView gesetzt) statt `:has()`, damit keine Stil-Neuberechnung an jeder DOM-Änderung hängt. */
+  body.mdk-viewtoggle-on .rsb { top: calc(120px + env(safe-area-inset-top, 0px)); }
   /* SH2: Teilen neben der Landeswahl — gleiche Höhe wie Suche und Land (46 px),
      das Touch-Ziel bleibt durch `min-height` in share.css bei 44 px. */
   .mdk-m-share {

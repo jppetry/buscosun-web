@@ -104,7 +104,10 @@
     "point:urban": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-urban.mjs",
     "verify:punktarchiv": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-punktarchiv.mjs",
     "punktarchiv:points": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/points.mjs",
-    "punktarchiv:collect": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs"
+    "punktarchiv:collect": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs",
+    "verify:dashboard": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-dashboard.mjs",
+    "verify:dashboard-switch": "node scripts/verify-dashboard-switch.mjs",
+    "dashboard:pixeldiff": "node scripts/dashboard-pixel-diff.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

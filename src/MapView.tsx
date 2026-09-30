@@ -140,6 +140,8 @@ import { FeatureRail, type RailFeature } from './nav/featureRail';
 // SH2: Teilen-Knopf. Winzig und ohne schwere Importe — Adapter, Ortstabelle und
 // Sheet kommen erst beim ersten Klick (dynamischer Import in ShareButton).
 import ShareButton from './share/ShareButton';
+// Phase DB: Umschalter Dashboard|Karte (klein; das Dashboard selbst ist ein eigener Lazy-Chunk).
+import ViewToggle from './dashboard/ViewToggle';
 import './MapView.css';
 // Command-Deck der Kartenseite (references/*-karte.png): Topbar · Ink-Rail ·
 // Layer-Dock · dunkle Bühne · rechtes Panel · Modellseite · Mobile-Bottom-Bar.
@@ -548,6 +550,12 @@ interface Props {
   /** Modellquelle von außen (nur Zurück/Vorwärts). */
   routeModelSource?: MapModelInit;
   onModelSourceChange?: (state: ModelSourceState) => void;
+  // --- Phase DB (audit/dashboard.md) — additiv; ohne beide Props exakt wie vorher ----------
+  /** Die Karte liegt hinter dem Dashboard: unsichtbar und inert (Größe bleibt, kein Resize), Wind-Loop angehalten,
+   *  Wiedergabe gestoppt. Die Instanz bleibt stehen (E-DB-5). */
+  suspended?: boolean;
+  /** Umschalter Dashboard|Karte in Topbar bzw. mobiler Schwebeleiste zeigen (E-DB-2); Klick auf „Dashboard". */
+  onOpenDashboard?: () => void;
 }
 
 // Layer-Katalog (SEO/GEO 2026, E1): Label + Tooltip je Layer stehen seit E1 in
@@ -664,7 +672,11 @@ function visiblePlaceLabels(map: maplibregl.Map, skip: Set<string>): PlaceLabel[
 export default function MapView({
   location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false,
   routeLayers, onLayersChange, routeHour, onHourChange, initialView, onViewChange, initialModelSource, routeModelSource, onModelSourceChange,
+  suspended = false, onOpenDashboard,
 }: Props) {
+  // Phase DB: für die Stelle, an der der WindLayer entsteht (Mount-Effekt, liest ohne Stale-Closure).
+  const suspendedRef = useRef(suspended);
+  suspendedRef.current = suspended;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -1497,6 +1509,8 @@ export default function MapView({
     // Vertrauens-Schleier (Kreuzschraffur) — über den Datenschichten.
     const confidenceLayer = new ConfidenceLayer({ id: CONFIDENCE_LAYER_ID, opacity: 0.8 });
     layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer };
+    // Phase DB: entsteht die Karte, während das Dashboard schon wieder vorn liegt, startet der Wind-Loop angehalten.
+    if (suspendedRef.current) wind.setSuspended(true);
 
     // Insert temp + clouds *under* the boundary/label layers of the OSM basemap so
     // country outlines, state borders and city labels stay readable on top of the
@@ -4104,6 +4118,21 @@ export default function MapView({
   const dayLo = embedded && embedHourRange ? Math.max(0, Math.min(sliderMax, embedHourRange[0])) : 0;
   const dayHi = embedded && embedHourRange ? Math.max(dayLo + 0.2, Math.min(sliderMax, embedHourRange[1])) : sliderMax;
 
+  // Phase DB (E-DB-2): mit Umschalter rückt mobil der Chip „Über diese Ansicht" mit der Modell-Pille eine Zeile tiefer
+  // (mapDeck.css) — Klasse am body, weil der Chip außerhalb von `.mdk-root` liegt.
+  useEffect(() => {
+    if (!onOpenDashboard) return;
+    document.body.classList.add('mdk-viewtoggle-on');
+    return () => document.body.classList.remove('mdk-viewtoggle-on');
+  }, [onOpenDashboard]);
+
+  // Phase DB (E-DB-5): hinter dem Dashboard kein GPU-Dauerloop — Wind-Repaint anhalten, Wiedergabe stoppen.
+  // MapLibre selbst rendert nur auf Anstoß; Datenabrufe laufen weiter, damit die Karte beim Zurückwechseln aktuell ist.
+  useEffect(() => {
+    layerRefs.current.wind?.setSuspended(suspended);
+    if (suspended) setPlaying(false);
+  }, [suspended]);
+
   // Play: Slider Schritt für Schritt durchs Fenster animieren, am Ende zurück an
   // den Anfang. Eingebettet = Eventfenster; Vollansicht = 0…Horizont (Zeit-Deck ▶).
   useEffect(() => {
@@ -5037,7 +5066,12 @@ export default function MapView({
   );
 
   return (
-    <div className="mdk-root" style={{ '--mdk-bar-h': '64px' } as React.CSSProperties}>
+    <div
+      className={`mdk-root${suspended ? ' mdk-suspended' : ''}${onOpenDashboard ? ' mdk-has-viewtoggle' : ''}`}
+      style={{ '--mdk-bar-h': '64px' } as React.CSSProperties}
+      inert={suspended || undefined}
+      aria-hidden={suspended || undefined}
+    >
       {/* ---- Topbar (Desktop/Tablet) ---------------------------------------- */}
       {!isMobileMap && (
         <header className="mdk-topbar">
@@ -5045,6 +5079,7 @@ export default function MapView({
             <img className="mdk-brand-mark" src="/buscosun-mark.svg" width={26} height={26} alt="" />
             <span className="mdk-brand-name">buscosun</span>
           </button>
+          {onOpenDashboard && <ViewToggle active="karte" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />}
           <span className="mdk-topdiv" aria-hidden="true" />
           <DeckSearch placeholder={overview ? 'Deutschland · Österreich · Schweiz' : location.name} onSelect={onSelectLocation} />
           <div className="mdk-countries" role="tablist" aria-label="Land (Modellwahl)">
@@ -5184,6 +5219,9 @@ export default function MapView({
                   )}
                 </div>
                 <ShareButton className="mdk-m-share" compact />
+                {onOpenDashboard && (
+                  <ViewToggle active="karte" variant="mobile" className="mdk-m-viewtoggle" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />
+                )}
               </div>
               {mobileTab === 'karte' && (
                 <button type="button" className="mdk-m-modelpill mdk-glass" onClick={() => setMobileTab('modelle')}>

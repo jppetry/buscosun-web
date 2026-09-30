@@ -524,6 +524,8 @@ export class WindLayer implements CustomLayerInterface {
   private paused = false;
   private _docHidden = false;
   private _offscreen = false;
+  /** Phase DB (E-DB-5): von außen angehalten, solange die Karte hinter dem Dashboard liegt (`setSuspended`). */
+  private _suspended = false;
   private _intersectionObserver: IntersectionObserver | null = null;
   private onVisibilityChange = () => {
     this._docHidden = typeof document !== 'undefined' && document.hidden;
@@ -541,7 +543,7 @@ export class WindLayer implements CustomLayerInterface {
    *  Übergang → sichtbar: eingefrorenen Alt-Trail verwerfen (P3-4) und den Loop
    *  einmalig neu anstoßen (`triggerRepaint`). */
   private updatePausedState(): void {
-    const next = this._docHidden || this._offscreen;
+    const next = this._docHidden || this._offscreen || this._suspended;
     if (next === this.paused) return;
     this.paused = next;
     if (next) {
@@ -623,6 +625,17 @@ export class WindLayer implements CustomLayerInterface {
     this.autoScale = true;
     this.applyTargetParticleCount();
     this.map?.triggerRepaint();
+  }
+
+  /**
+   * Phase DB (E-DB-5): den selbst-perpetuierenden Repaint von außen anhalten, solange die Karte hinter dem Dashboard
+   * liegt. Dritter Eingang in `paused` neben `document.hidden` und dem IntersectionObserver — reines Scheduling wie P3,
+   * dieselbe Resume-Hygiene (Alt-Trail verwerfen, einmal anstoßen). Ohne Aufruf unverändert.
+   */
+  setSuspended(on: boolean): void {
+    if (this._suspended === on) return;
+    this._suspended = on;
+    this.updatePausedState();
   }
 
   /** Partikel-Animation an/aus (Heatmap bleibt sichtbar). UI „Aus". */

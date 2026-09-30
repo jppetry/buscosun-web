@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { background: #0B0E12; min-height: 100%; }
+  body { margin: 0; font-family: "League Spartan", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #E0A567; text-decoration: none; }
+  a:hover { color: #F0BC85; }
+  .dc-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .dc-scroll::-webkit-scrollbar-thumb { background: #4A463E; border-radius: 3px; }
+  .dc-scroll::-webkit-scrollbar-track { background: transparent; }
+  .dc-scroll { scrollbar-color: #4A463E transparent; scrollbar-width: thin; }
+  @keyframes dcPulse { 0% { transform:scale(.6); opacity:.65; } 100% { transform:scale(2.3); opacity:0; } }
+  @keyframes dcSweep { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<section style="padding:56px 64px 130px; display:flex; flex-direction:column; gap:44px;">
+  <div>
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:3.5px; color:#8B7355; font-weight:500;">SAND-BENTO · DASHBOARD MIT PROGNOSE-ZONE · PIXEL-VORLAGEN</div>
+    <div style="font-size:31px; font-weight:600; color:#E9ECF1; letter-spacing:-0.7px; margin-top:8px;">Desktop · Tablet · Mobile</div>
+    <div style="font-size:13px; color:#98A2AF; max-width:720px; line-height:1.6; margin-top:10px; font-weight:300;">Gleicher Inhalt in allen drei Größen, Zustand „3 Tage". <a href="#vd">Desktop 1440</a> · <a href="#vt">Tablet 1024</a> · <a href="#vm">Mobile 402</a>. Alle Diagramme später mit Nivo (<code style="font-family:'IBM Plex Mono',monospace; color:#E0A567;">@nivo/line</code>, <code style="font-family:'IBM Plex Mono',monospace; color:#E0A567;">@nivo/bar</code>).</div>
+  </div>
+  <div style="display:flex; gap:56px; align-items:flex-start; flex-wrap:wrap;">
+  <article id="vd" style="width:1440px; flex:0 0 auto;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">D</span><span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · ≥1280 px</span><span style="font-size:12.5px; color:#8B7355; font-weight:300;">— dreispaltige Jetzt-Zeile, 3 Tageskarten nebeneinander, Terrain mit Tabelle rechts</span></div>
+    <div style="min-height:1810px; border-radius:16px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column; font-family:'League Spartan',sans-serif;">
+      <div style="height:58px; flex:0 0 auto; display:flex; align-items:center; gap:16px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:18px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="display:flex; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:3px;">
+          <span style="font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:6px 14px;">Dashboard</span>
+          <span style="font-size:12.5px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 14px;">Karte</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:7px 13px;"><svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="font-size:13.5px; color:#2C2A26; font-weight:500;">Garmisch-Partenkirchen · 708 m</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;">
+          <span style="font-size:11px; color:#8B7355;">Lauf 12Z · Anker Station 14:00</span>
+          <span style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.2px; color:#5F7A4C; font-weight:600;">FUSION LIVE</span></span>
+        </div>
+      </div>
+
+      <div style="flex:1 0 auto; padding:16px;">
+        <!-- Jetzt-Zeile -->
+        <div style="display:grid; grid-template-columns:2.1fr 1.3fr 1fr; gap:12px;">
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2.2px; color:#A89A7A; font-weight:700;">JETZT · MESSWERT ALS ANKER</span><span style="font-size:10.5px; color:#8B7355;">BrightSky · 4 Stationen</span></div>
+            <div style="display:flex; align-items:center; gap:22px; margin-top:12px;">
+              <div style="display:flex; align-items:baseline; gap:8px;"><span style="font-size:52px; font-weight:700; color:#2C2A26; line-height:.88; letter-spacing:-2.4px;">18.1</span><span style="font-size:17px; color:#8B7355;">°C</span></div>
+              <svg width="44" height="44" viewBox="0 0 40 40" fill="none" style="flex:0 0 auto;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.2" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="36"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/><line x1="28" y1="28" x2="31" y2="31"/></g></svg>
+              <div style="flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:9px;">
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">TAUPUNKT</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">11.2 °C</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REL. FEUCHTE</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">63 %</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">WIND · BÖEN</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">3.2 / 7.4</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">DRUCK</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">1018 hPa</div></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:7px; margin-top:13px; padding-top:11px; border-top:1px solid #E0D6BE; flex-wrap:wrap;">
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Wind SW · 228°</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Bewölkung 35 %</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Schneegrenze 2 100 m</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">925 / 850 / 700 hPa · 18 / 13 / 2 °C</span>
+            </div>
+          </div>
+          <div style="background:#FBF3E7; border:1px solid #E3C39A; border-radius:13px; padding:16px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="10" x2="12" y2="14"/></svg><span style="font-size:10px; letter-spacing:2px; color:#9A5A2A; font-weight:700;">AMTLICHE WARNUNG · DWD CAP</span></div>
+            <p style="font-size:13px; color:#2C2A26; margin:10px 0 0; line-height:1.5; font-weight:500;">„Amtliche WARNUNG vor WINDBÖEN — es treten Windböen mit Geschwindigkeiten um 60 km/h (17 m/s, Bft 7) aus südwestlicher Richtung auf."</p>
+            <div style="font-size:10.5px; color:#8B7355; margin-top:auto; padding-top:11px;">gültig bis 18.09. 06:00 · wörtlich zitiert · MeteoSchweiz via MeteoAlarm · AT offen</div>
+          </div>
+          <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:16px; display:flex; flex-direction:column;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">KONFIDENZ &amp; QUELLEN</span>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:11px;">
+              <svg width="58" height="58" viewBox="0 0 58 58" style="flex:0 0 auto;"><circle cx="29" cy="29" r="23" fill="none" stroke="#43403A" stroke-width="7"/><circle cx="29" cy="29" r="23" fill="none" stroke="#7A9466" stroke-width="7" stroke-linecap="round" stroke-dasharray="144 145" stroke-dashoffset="26" transform="rotate(-90 29 29)"/></svg>
+              <div><div style="font-size:22px; font-weight:700; color:#F5F1E8; line-height:1;">82 %</div><div style="font-size:10.5px; color:#9CBF83; font-weight:600;">solide · Stunde 0</div></div>
+            </div>
+            <div style="display:flex; gap:2px; margin-top:12px; height:14px; border-radius:3px; overflow:hidden;"><span style="width:42%; background:#C97B47;"></span><span style="width:27%; background:#3A6FA8;"></span><span style="width:18%; background:#7A9466;"></span><span style="width:13%; background:#6E675A;"></span></div>
+            <div style="font-size:10px; color:#B7AE9C; margin-top:6px; line-height:1.5;">ICON-D2 42 % · MOSMIX 27 % · Station 18 % · ERA5 13 %</div>
+            <div style="font-size:10px; color:#8B8474; margin-top:auto; padding-top:9px;">Gewicht je Stunde neu — Kennzeichnung an jedem Wert</div>
+          </div>
+        </div>
+
+        <!-- ═══ PROGNOSE-ZONE ═══ -->
+        <div style="background:#FAF6EA; border:1.5px solid #C97B47; border-radius:14px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:2.2px; color:#C97B47; font-weight:700;">PROGNOSE</span>
+            <div style="display:flex; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:10px; padding:3px;">
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:8px 18px; cursor:pointer;">Heute</span>
+              <span style="font-size:13px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:7px; padding:8px 18px; cursor:pointer;">3 Tage</span>
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:8px 18px; cursor:pointer;">7 Tage</span>
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:8px 18px; cursor:pointer;">14 Tage</span>
+            </div>
+            <span style="font-size:11px; color:#8B7355;">Mi 16.09. → Fr 18.09. · ICON-D2 + MOSMIX · Ensemble vollständig (&lt; 78 h)</span>
+            <span style="margin-left:auto; display:flex; align-items:center; gap:7px; font-size:11px; color:#5F7A4C; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>Konfidenz 74 % im Mittel</span>
+          </div>
+
+          <!-- 3 Tageskarten -->
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px;">
+            <!-- Tag 1 -->
+            <div style="background:#FFFFFF; border:1.5px solid #C97B47; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FBF3E7; border-bottom:1px solid #E7D3B4;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Heute · Mi 16.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">heiter, später auflockernd</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/></g></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">21°</span><span style="display:block; font-size:12px; color:#8B7355;">9°</span></span></span>
+              </div>
+              <!-- Tagesphasen -->
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="15" cy="17" r="8" fill="#D4A373"/><path d="M 8 29 Q 8 20 17 20 Q 22 13 29 20 Q 37 20 37 27 Q 37 31 31 31 L 12 31 Q 8 31 8 29 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">12°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">10 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="4" y1="20" x2="9" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">20°</div><div style="font-size:9.5px; color:#8FA8C4; font-weight:600;">5 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FBF3E7; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#9A5A2A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="31" y1="20" x2="36" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">21°</div><div style="font-size:9.5px; color:#8FA8C4; font-weight:600;">5 %</div><div style="font-size:9px; color:#9A5A2A; font-weight:600;">Böen 17</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M24 8 A12 12 0 1 0 32 26 A9 9 0 0 1 24 8 Z" fill="#B5A6E0"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">11°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">15 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+              </div>
+              <!-- Tageswerte -->
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0,2 mm</div><div style="font-size:9.5px; color:#8B7355;">max 15 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">WIND MAX</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">17 m/s</div><div style="font-size:9.5px; color:#9A5A2A; font-weight:600;">Warnung aktiv</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">8,4 h</div><div style="font-size:9.5px; color:#8B7355;">UV 5</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:86%; height:100%; background:#7A9466;"></div></div><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">86 %</span></div>
+              </div>
+            </div>
+            <!-- Tag 2 -->
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Morgen · Do 17.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">wechselnd bewölkt, Schauer</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 28 Q 8 19 17 19 Q 22 12 29 19 Q 37 19 37 26 Q 37 30 31 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">19°</span><span style="display:block; font-size:12px; color:#8B7355;">8°</span></span></span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 24 Q 6 14 16 14 Q 22 7 30 14 Q 38 14 38 22 Q 38 26 32 26 L 10 26 Q 6 26 6 24 Z" fill="#9AB8CF"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">10°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">35 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/><line x1="24" y1="28" x2="22" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">18°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">65 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 28 Q 8 19 17 19 Q 22 12 29 19 Q 37 19 37 26 Q 37 30 31 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">16°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">30 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M24 8 A12 12 0 1 0 32 26 A9 9 0 0 1 24 8 Z" fill="#B5A6E0"/><path d="M 6 30 Q 6 24 12 24 Q 16 20 21 24 Q 27 24 27 29 Q 27 32 23 32 L 9 32 Q 6 32 6 30 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">25 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+              </div>
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#3A6FA8;">4,1 mm</div><div style="font-size:9.5px; color:#8B7355;">max 65 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">WIND MAX</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">11 m/s</div><div style="font-size:9.5px; color:#8B7355;">SW</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">3,1 h</div><div style="font-size:9.5px; color:#8B7355;">UV 6</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:74%; height:100%; background:#7A9466;"></div></div><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">74 %</span></div>
+              </div>
+            </div>
+            <!-- Tag 3 -->
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Übermorgen · Fr 18.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">Regen, kühler, Schneegrenze sinkt</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.4" stroke-linecap="round"><line x1="15" y1="28" x2="13" y2="34"/><line x1="23" y1="28" x2="21" y2="34"/></g></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">15°</span><span style="display:block; font-size:12px; color:#8B7355;">7°</span></span></span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">70 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#8FA8C4"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="34"/><line x1="20" y1="28" x2="18" y2="34"/><line x1="26" y1="28" x2="24" y2="34"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">14°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">85 %</div><div style="font-size:9px; color:#8B7355;">5 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="28" x2="16" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">11°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">55 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 26 Q 6 16 16 16 Q 22 9 30 16 Q 38 16 38 24 Q 38 28 32 28 L 10 28 Q 6 28 6 26 Z" fill="#8FA8C4"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">7°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">40 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+              </div>
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#3A6FA8;">11,6 mm</div><div style="font-size:9.5px; color:#8B7355;">max 85 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SCHNEEGRENZE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">1 650 m</div><div style="font-size:9.5px; color:#8B7355;">sinkt um 450 m</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0,8 h</div><div style="font-size:9.5px; color:#8B7355;">UV 4</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:61%; height:100%; background:#C99A4E;"></div></div><span style="font-size:10.5px; color:#9A5A2A; font-weight:600;">61 %</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Durchgehender Verlauf über die 3 Tage -->
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px; margin-top:12px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">STUNDENVERLAUF ÜBER DEN GEWÄHLTEN ZEITRAUM</span><span style="font-size:10.5px; color:#8B7355;">72 h · Ensemble vollständig</span></div>
+            <svg viewBox="0 0 1330 178" preserveAspectRatio="none" style="width:100%; height:178px; margin-top:10px;">
+              <defs><pattern id="f2ens" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#C4D3E0" stroke-width="1.1"/></pattern></defs>
+              <rect x="0" y="0" width="1330" height="178" fill="url(#f2ens)" opacity=".4"/>
+              <g stroke="#EDE6D3" stroke-width="1"><line x1="0" y1="34" x2="1330" y2="34"/><line x1="0" y1="68" x2="1330" y2="68"/><line x1="0" y1="102" x2="1330" y2="102"/></g>
+              <g stroke="#E0D6BE" stroke-width="1.2"><line x1="443" y1="0" x2="443" y2="178"/><line x1="886" y1="0" x2="886" y2="178"/></g>
+              <path d="M0 86 L80 100 L160 58 L240 46 L340 52 L443 92 L520 104 L600 62 L700 68 L800 88 L886 104 L980 112 L1080 76 L1180 84 L1280 100 L1330 108 L1330 178 L0 178 Z" fill="rgba(201,123,71,.1)"/>
+              <path d="M0 86 L80 100 L160 58 L240 46 L340 52 L443 92 L520 104 L600 62 L700 68 L800 88 L886 104 L980 112 L1080 76 L1180 84 L1280 100 L1330 108" fill="none" stroke="#C97B47" stroke-width="2.2"/>
+              <path d="M0 118 L200 124 L443 120 L700 112 L886 122 L1080 116 L1330 126" fill="none" stroke="#3A6FA8" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <g fill="#3A6FA8" opacity=".55"><rect x="600" y="150" width="11" height="20" rx="2"/><rect x="620" y="142" width="11" height="28" rx="2"/><rect x="640" y="156" width="11" height="14" rx="2"/><rect x="960" y="128" width="11" height="42" rx="2"/><rect x="980" y="120" width="11" height="50" rx="2" fill="#9B8CE0"/><rect x="1000" y="136" width="11" height="34" rx="2"/><rect x="1020" y="148" width="11" height="22" rx="2"/></g>
+              <line x1="0" y1="170" x2="1330" y2="170" stroke="#C4B896" stroke-width="1"/>
+              <g font-family="League Spartan" font-size="10.5" fill="#8B7355"><text x="6" y="14">°C</text><text x="450" y="14">Do 17.09.</text><text x="893" y="14">Fr 18.09.</text></g>
+            </svg>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#A89A7A; margin-top:4px;"><span>14:00</span><span>20:00</span><span>02:00</span><span>08:00</span><span>14:00</span><span>20:00</span><span>02:00</span><span>08:00</span><span>14:00</span></div>
+            <div style="display:flex; gap:16px; margin-top:9px; padding-top:9px; border-top:1px solid #EDE6D3; flex-wrap:wrap; font-size:10.5px; color:#5C5447;">
+              <span><i style="display:inline-block; width:14px; height:2.5px; background:#C97B47;"></i> Temperatur + Ensemble-Spread</span>
+              <span><i style="display:inline-block; width:14px; height:2px; background:#3A6FA8;"></i> Taupunkt</span>
+              <span><i style="display:inline-block; width:10px; height:8px; background:#3A6FA8; opacity:.55; border-radius:2px;"></i> Menge mm/h</span>
+              <span style="margin-left:auto; color:#8B7355;">Tagesgrenzen als Linie · Phasen-Segmente oben synchron</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail-Kacheln -->
+        <div style="display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:12px; margin-top:12px;">
+          <div style="background:#1F2937; border:1px solid #2F3B4A; border-radius:13px; padding:15px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#7FB2E5; font-weight:700;">NOWCAST · RADAR</span><span style="font-size:10px; color:#8A97A6;">0–2 h DE · 0–3 h AT</span></div>
+            <div style="font-size:16px; font-weight:700; color:#EDF1F5; margin-top:8px;">Trocken bis 16:40</div>
+            <svg viewBox="0 0 300 84" preserveAspectRatio="none" style="width:100%; height:84px; margin-top:8px;">
+              <g stroke="#2F3B4A" stroke-width="1"><line x1="0" y1="26" x2="300" y2="26"/><line x1="0" y1="52" x2="300" y2="52"/></g>
+              <g fill="#5B9BD5"><rect x="176" y="62" width="11" height="16" rx="2" opacity=".55"/><rect x="192" y="50" width="11" height="28" rx="2"/><rect x="208" y="38" width="11" height="40" rx="2" fill="#9B8CE0"/><rect x="224" y="54" width="11" height="24" rx="2"/><rect x="240" y="68" width="11" height="10" rx="2" opacity=".6"/></g>
+              <line x1="168" y1="4" x2="168" y2="78" stroke="#E0A567" stroke-width="1.3" stroke-dasharray="3 3"/>
+              <line x1="0" y1="78" x2="300" y2="78" stroke="#3E4B5C" stroke-width="1"/>
+            </svg>
+            <div style="display:flex; gap:6px; margin-top:7px; flex-wrap:wrap;">
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Zellen: keine</span>
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Blitze 1 h: 0</span>
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Hagel: — (nur CH)</span>
+            </div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:15px;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">BEWÖLKUNG · 4 SCHICHTEN</span>
+            <svg viewBox="0 0 300 96" preserveAspectRatio="none" style="width:100%; height:96px; margin-top:9px;">
+              <rect x="0" y="2" width="300" height="19" fill="#C9CFD6" opacity=".45"/><rect x="0" y="2" width="120" height="19" fill="#9BA6B2" opacity=".8"/>
+              <rect x="0" y="25" width="300" height="19" fill="#C9CFD6" opacity=".35"/><rect x="90" y="25" width="135" height="19" fill="#9BA6B2" opacity=".7"/>
+              <rect x="0" y="48" width="300" height="19" fill="#C9CFD6" opacity=".3"/><rect x="172" y="48" width="105" height="19" fill="#9BA6B2" opacity=".6"/>
+              <path d="M0 84 L60 78 L120 88 L180 76 L240 84 L300 78" fill="none" stroke="#2C2A26" stroke-width="1.5"/>
+              <path d="M0 90 L60 84 L120 94 L180 82 L240 90 L300 84 L300 70 L240 76 L180 68 L120 82 L60 70 L0 76 Z" fill="rgba(44,42,38,.09)"/>
+            </svg>
+            <div style="font-size:9.5px; color:#8B7355; margin-top:5px;">hoch · mittel · tief + gesamt mit Quantilen · 336 h</div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:15px;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">WINDRICHTUNG · REICHWEITE</span>
+            <div style="display:flex; gap:11px; align-items:center; margin-top:9px;">
+              <svg viewBox="0 0 110 110" style="width:88px; height:88px; flex:0 0 auto;">
+                <circle cx="55" cy="55" r="40" fill="none" stroke="#E0D6BE" stroke-width=".9"/><circle cx="55" cy="55" r="20" fill="none" stroke="#EDE6D3" stroke-width=".9"/>
+                <path d="M55 55 L66 24 A33 33 0 0 0 44 24 Z" fill="#C4B896"/><path d="M55 55 L33 34 A29 29 0 0 1 44 24 Z" fill="#A89A7A"/><path d="M55 55 L26 47 A30 30 0 0 1 33 34 Z" fill="#8B8474"/><path d="M55 55 L28 70 A30 30 0 0 1 26 47 Z" fill="#5C5447"/><path d="M55 55 L41 82 A31 31 0 0 1 28 70 Z" fill="#5C5447"/><path d="M55 55 L70 80 A29 29 0 0 1 41 82 Z" fill="#A89A7A"/>
+                <line x1="55" y1="55" x2="34" y2="76" stroke="#2C2A26" stroke-width="1.5" stroke-dasharray="3 2"/>
+                <g fill="#8B7355" font-size="8.5" text-anchor="middle" font-family="League Spartan"><text x="55" y="10">N</text><text x="102" y="58">O</text><text x="55" y="105">S</text><text x="8" y="58">W</text></g>
+              </svg>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:14px; font-weight:700; color:#2C2A26;">SW · 228°</div>
+                <div style="font-size:10px; color:#8B7355; margin-top:2px; line-height:1.5;">belastbar bis <strong style="color:#2C2A26;">46 h</strong> @ 3 m/s, bis <strong style="color:#2C2A26;">229 h</strong> @ 12 m/s</div>
+                <div style="height:5px; background:#E0D6BE; border-radius:3px; margin-top:8px; position:relative;"><div style="position:absolute; left:0; width:31%; top:0; bottom:0; background:#7A9466; border-radius:3px;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TERRAIN-FELD ═══ -->
+        <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:2.2px; color:#A89A7A; font-weight:700;">TERRAIN UM DEN ORT · TEMPERATUR NACH HÖHE · WIND JE NIVEAU</span>
+            <div style="display:flex; background:#211F1C; border:1px solid #3A3833; border-radius:8px; padding:2px;">
+              <span style="font-size:11px; font-weight:600; color:#2C2A26; background:#E0A567; border-radius:6px; padding:5px 11px;">± 20 km</span>
+              <span style="font-size:11px; font-weight:500; color:#8B8474; border-radius:6px; padding:5px 11px;">± 50 km</span>
+            </div>
+            <span style="font-size:11px; color:#8B8474;">Schnitt SW → NO durch die Fahrtrichtung des Windes · ICON-D2 2,2 km, höhenkorrigiert</span>
+            <span style="margin-left:auto; display:flex; align-items:center; gap:7px; font-size:11px; color:#9CBF83; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>γ 7,1 K/km · keine Inversion</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 268px; gap:14px; margin-top:13px;">
+            <!-- Geländeschnitt -->
+            <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+              <svg viewBox="0 0 900 340" preserveAspectRatio="none" style="width:100%; height:340px; font-family:'League Spartan',sans-serif;">
+                <defs>
+                  <linearGradient id="trTemp" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#C97B47" stop-opacity=".30"/>
+                    <stop offset="26%" stop-color="#D4A373" stop-opacity=".26"/>
+                    <stop offset="42%" stop-color="#C99A4E" stop-opacity=".24"/>
+                    <stop offset="58%" stop-color="#7A9466" stop-opacity=".22"/>
+                    <stop offset="78%" stop-color="#5B9BD5" stop-opacity=".22"/>
+                    <stop offset="100%" stop-color="#3A6FA8" stop-opacity=".26"/>
+                  </linearGradient>
+                  <linearGradient id="trRock" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4A463E"/><stop offset="100%" stop-color="#312E29"/>
+                  </linearGradient>
+                  <clipPath id="trCap"><path d="M58 108 H900 V10 H58 Z"/></clipPath>
+                </defs>
+
+                <!-- Temperaturschichtung -->
+                <rect x="58" y="10" width="842" height="272" fill="url(#trTemp)"/>
+
+                <!-- Höhenachse -->
+                <g stroke="#3A3833" stroke-width="1">
+                  <line x1="58" y1="10" x2="900" y2="10"/><line x1="58" y1="64" x2="900" y2="64"/>
+                  <line x1="58" y1="118" x2="900" y2="118"/><line x1="58" y1="172" x2="900" y2="172"/>
+                  <line x1="58" y1="226" x2="900" y2="226"/><line x1="58" y1="282" x2="900" y2="282"/>
+                </g>
+                <g fill="#8B8474" font-size="10.5" text-anchor="end">
+                  <text x="52" y="14">3000 m</text><text x="52" y="68">2500</text><text x="52" y="122">2000</text>
+                  <text x="52" y="176">1500</text><text x="52" y="230">1000</text><text x="52" y="286">500</text>
+                </g>
+
+                <!-- Isothermen · aus dem Höhenprofil abgeleitet -->
+                <path d="M58 69 L240 66 L430 71 L620 65 L780 70 L900 67" fill="none" stroke="#5B9BD5" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <path d="M58 131 L240 128 L430 133 L620 127 L780 132 L900 129" fill="none" stroke="#7A9466" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <path d="M58 192 L240 189 L430 194 L620 188 L780 193 L900 190" fill="none" stroke="#C99A4E" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <g fill="#8B8474" font-size="9.5"><text x="64" y="65">6 °C · 2 450 m</text><text x="64" y="127">10 °C · 1 890 m</text></g>
+
+
+                <!-- Schneefallgrenze 2 100 m -->
+                <line x1="58" y1="108" x2="900" y2="108" stroke="#B5C4D4" stroke-width="1.6"/>
+                <text x="892" y="104" font-size="10" fill="#B5C4D4" text-anchor="end">Schneegrenze 2 100 m</text>
+
+                <!-- Windvektoren je Niveau · vor dem Gelände, wird vom Fels verdeckt -->
+                <g stroke="#7A9466" stroke-width="2" stroke-linecap="round">
+                  <g><line x1="100" y1="69" x2="146" y2="69"/><path d="M146 69 l-9 -5 M146 69 l-9 5"/></g>
+                  <g><line x1="400" y1="69" x2="446" y2="69"/><path d="M446 69 l-9 -5 M446 69 l-9 5"/></g>
+                  <g><line x1="700" y1="69" x2="746" y2="69"/><path d="M746 69 l-9 -5 M746 69 l-9 5"/></g>
+                  <g><line x1="100" y1="131" x2="138" y2="131"/><path d="M138 131 l-8 -5 M138 131 l-8 5"/></g>
+                  <g><line x1="400" y1="131" x2="438" y2="131"/><path d="M438 131 l-8 -5 M438 131 l-8 5"/></g>
+                  <g><line x1="700" y1="131" x2="738" y2="131"/><path d="M738 131 l-8 -5 M738 131 l-8 5"/></g>
+                  <g><line x1="100" y1="192" x2="128" y2="192"/><path d="M128 192 l-7 -4 M128 192 l-7 4"/></g>
+                  <g><line x1="400" y1="192" x2="428" y2="192"/><path d="M428 192 l-7 -4 M428 192 l-7 4"/></g>
+                  <g><line x1="700" y1="192" x2="728" y2="192"/><path d="M728 192 l-7 -4 M728 192 l-7 4"/></g>
+                </g>
+                <g stroke="#5E7359" stroke-width="1.8" stroke-linecap="round">
+                  <g><line x1="340" y1="230" x2="356" y2="234"/><path d="M356 234 l-6 -2 M356 234 l-2 -5"/></g>
+                  <g><line x1="470" y1="230" x2="486" y2="234"/><path d="M486 234 l-6 -2 M486 234 l-2 -5"/></g>
+                  <g><line x1="800" y1="230" x2="816" y2="234"/><path d="M816 234 l-6 -2 M816 234 l-2 -5"/></g>
+                </g>
+
+                <!-- Geländeprofil · jede Höhe aus der Achsenformel -->
+                <path d="M58 340 L58 183 L110 150 L150 96 L200 14 L248 78 L290 168 L330 238 L380 255 L420 259 L470 252 L520 218 L560 178 L600 143 L650 186 L700 212 L760 228 L830 240 L900 249 L900 340 Z" fill="url(#trRock)" stroke="#5A554B" stroke-width="1.4"/>
+                <!-- Schneekappe nur oberhalb 2 100 m -->
+                <g clip-path="url(#trCap)"><path d="M58 340 L58 183 L110 150 L150 96 L200 14 L248 78 L290 168 L330 238 L380 255 L420 259 L470 252 L520 218 L560 178 L600 143 L650 186 L700 212 L760 228 L830 240 L900 249 L900 340 Z" fill="#B5C4D4" fill-opacity=".9" stroke="#D6DEE6" stroke-width="1.4"/></g>
+
+                <!-- Beschriftungen über Grund, nach dem Gelände gezeichnet -->
+                <text x="770" y="188" font-size="9.5" fill="#C99A4E">14 °C · 1 330 m</text>
+
+                <!-- Gipfel und Stationen im Schnitt -->
+                <g>
+                  <circle cx="200" cy="14" r="4.5" fill="#B5C4D4"/><text x="210" y="24" font-size="9.5" fill="#B5C4D4">Zugspitze 2 964 m · 2,4 °C</text>
+                  <circle cx="600" cy="143" r="4.5" fill="#B7AE9C"/><text x="610" y="139" font-size="9.5" fill="#B7AE9C">Wank 1 780 m · 10,8 °C</text>
+                </g>
+                <!-- gewählter Ort · 708 m -->
+                <g>
+                  <line x1="420" y1="259" x2="420" y2="288" stroke="#E0A567" stroke-width="1.4" stroke-dasharray="3 3"/>
+                  <circle cx="420" cy="259" r="6.5" fill="#E0A567" stroke="#2C2A26" stroke-width="2"/>
+                  <rect x="350" y="288" width="140" height="34" rx="6" fill="#2C2A26" stroke="#E0A567" stroke-width="1.2"/>
+                  <text x="420" y="301" font-size="10.5" fill="#F5F1E8" text-anchor="middle" font-weight="600">Garmisch-P. · 708 m</text>
+                  <text x="420" y="315" font-size="10" fill="#E0A567" text-anchor="middle">18,4 °C · Wind 3,2 m/s SW</text>
+                </g>
+                <g fill="#8B8474" font-size="10" text-anchor="middle"><text x="86" y="334">SW 20 km</text><text x="880" y="334">NO 20 km</text></g>
+              </svg>
+              <div style="display:flex; gap:15px; margin-top:9px; padding-top:9px; border-top:1px solid #3A3833; flex-wrap:wrap; font-size:10px; color:#B7AE9C;">
+                <span><i style="display:inline-block; width:16px; height:8px; border-radius:2px; background:linear-gradient(0deg,#C97B47,#7A9466,#3A6FA8);"></i> Temperatur nach Höhe (warm unten → kalt oben)</span>
+                <span><i style="display:inline-block; width:14px; height:2px; background:#7A9466;"></i> Windvektor je Niveau — Länge = Stärke</span>
+                <span><i style="display:inline-block; width:14px; height:2px; background:#B5C4D4;"></i> Schneefallgrenze</span>
+                <span style="color:#8B8474;">gestrichelte Linien: Isothermen 6 / 10 / 14 °C — Höhe aus γ 7,1 K/km gerechnet</span>
+              </div>
+            </div>
+
+            <!-- Höhenprofil-Tabelle -->
+            <div style="display:flex; flex-direction:column; gap:9px;">
+              <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+                <span style="font-size:9.5px; letter-spacing:1.7px; color:#8B8474; font-weight:700;">JE HÖHENSTUFE</span>
+                <div style="display:flex; flex-direction:column; margin-top:9px;">
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">3 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">2,1°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">→ W 14 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">2 500 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">5,7°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">→ W 11 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">2 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">9,2°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ WSW 9 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 780 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">10,8°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ WSW 8 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 500 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">12,8°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 6 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">16,3°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 4 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#F5F1E8; font-weight:600;">708 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#E0A567; font-weight:700;">18,4°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 3,2 m/s</span></div>
+                </div>
+              </div>
+              <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+                <span style="font-size:9.5px; letter-spacing:1.7px; color:#8B8474; font-weight:700;">ABLESUNG</span>
+                <p style="font-size:11.5px; color:#B7AE9C; margin:8px 0 0; line-height:1.55;">Die Temperatur nimmt <strong style="color:#F5F1E8;">durchgehend mit der Höhe ab</strong> — 18,4 °C am Ort (708 m) gegen 2,4 °C auf der Zugspitze (2 964 m) ergibt <strong style="color:#F5F1E8;">γ 7,1 K/km</strong>. Das ist steil und lässt heute <strong style="color:#F5F1E8;">keine Inversion</strong> zu; es gibt keinen Kaltluftsee im Tal. Der Wind dreht mit der Höhe von SW auf West und wird <strong style="color:#F5F1E8;">viermal so stark</strong> (3,2 → 14 m/s).</p>
+                <div style="font-size:10px; color:#8B8474; margin-top:9px; padding-top:8px; border-top:1px solid #332F2A; line-height:1.5;">Gelände, Gipfel und Schneegrenze sitzen auf ihrer <strong style="color:#B7AE9C;">tatsächlichen Höhe</strong> der Achse; Zwischenwerte folgen dem einen Gradienten, nichts wird aus zwei Modellen gemischt. Windvektoren enden am Fels — wo kein Pfeil steht, liegt das Niveau unter Grund. Oberstdorf und Hohenpeißenberg liegen außerhalb des ±20-km-Schnitts.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stufe 2 -->
+        <div style="display:grid; grid-template-columns:1fr 2fr 1fr; gap:12px; margin-top:12px;">
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">UV-INDEX · DWD · NUR DE</span>
+            <div style="display:flex; align-items:flex-end; gap:8px; margin-top:9px;">
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:62%; background:#E9A33C; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">5</div><div style="font-size:9px; color:#8B7355;">heute</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:78%; background:#D4632E; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">6</div><div style="font-size:9px; color:#8B7355;">morgen</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:50%; background:#D6D24E; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">4</div><div style="font-size:9px; color:#8B7355;">übermorgen</div></div>
+            </div>
+            <div style="font-size:9.5px; color:#A89A7A; margin-top:8px;">Tagesmaximum · 38 Vorhersageorte</div>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">POLLEN · DWD-GEFAHRENINDEX · 8 ARTEN · NUR DE</span><span style="font-size:9.5px; color:#8B7355;">CAMS-Opt-in aus · 6 Arten, 4 Tage, überall</span></div>
+            <div style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px; margin-top:10px;">
+              <div style="text-align:center;"><div style="height:28px; background:#7A9466; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Erle</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E9A33C; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Birke</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#A32B1E; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Gräser</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Roggen</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#7A9466; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Beifuß</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Ambrosia</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E9A33C; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Esche</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Hasel</div></div>
+            </div>
+            <div style="font-size:9.5px; color:#8B7355; margin-top:8px;">heute · morgen · übermorgen je Art · Region Oberbayern</div>
+          </div>
+          <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:14px;">
+            <span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">ICON-D2-LAYER · 48 h · DACH</span>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Gewitterpotenzial</span><span style="color:#9CBF83; font-weight:600;">gering</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Rotation</span><span style="color:#8B8474;">—</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Neuschnee 24 h</span><span style="color:#F5F1E8; font-weight:600;">0 cm</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Böen max</span><span style="color:#E0A567; font-weight:600;">17 m/s</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Feuerwetter</span><span style="color:#9CBF83; font-weight:600;">niedrig</span></div>
+            </div>
+            <div style="font-size:9.5px; color:#8B8474; margin-top:8px;">Kartenlayer · am Ort abfragbar</div>
+          </div>
+        </div>
+        <div style="font-size:10px; color:#8B7355; margin-top:13px; text-align:center;">● DWD (ICON-D2, MOSMIX, CAP, BrightSky) · GeoSphere (INCA, TAWES) · MeteoSchweiz (CombiPrecip, SMN, POH/MESHS) · ECMWF-Ensemble · ERA5 · keine Tracker</div>
+      </div>
+    </div>
+  </article>
+  <article id="vt" style="width:1024px; flex:0 0 auto;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T</span><span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · 768–1279 px</span><span style="font-size:12.5px; color:#8B7355; font-weight:300;">— Jetzt-Kachel volle Breite, Warnung + Konfidenz darunter; Nowcast und Pollen volle Breite; Terrain-Tabelle unter dem Schnitt</span></div>
+    <div style="min-height:0; border-radius:16px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column; font-family:'League Spartan',sans-serif;">
+      <div style="height:58px; flex:0 0 auto; display:flex; align-items:center; gap:16px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:18px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="display:flex; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:3px;">
+          <span style="font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:6px 14px;">Dashboard</span>
+          <span style="font-size:12.5px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 14px;">Karte</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:7px 13px;"><svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="font-size:13.5px; color:#2C2A26; font-weight:500;">Garmisch-P. · 708 m</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;">
+          
+          <span style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.2px; color:#5F7A4C; font-weight:600;">FUSION LIVE</span></span>
+        </div>
+      </div>
+
+      <div style="flex:1 0 auto; padding:16px;">
+        <!-- Jetzt-Zeile -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="grid-column:1 / -1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2.2px; color:#A89A7A; font-weight:700;">JETZT · MESSWERT ALS ANKER</span><span style="font-size:10.5px; color:#8B7355;">BrightSky · 4 Stationen</span></div>
+            <div style="display:flex; align-items:center; gap:22px; margin-top:12px;">
+              <div style="display:flex; align-items:baseline; gap:8px;"><span style="font-size:52px; font-weight:700; color:#2C2A26; line-height:.88; letter-spacing:-2.4px;">18.1</span><span style="font-size:17px; color:#8B7355;">°C</span></div>
+              <svg width="44" height="44" viewBox="0 0 40 40" fill="none" style="flex:0 0 auto;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.2" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="36"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/><line x1="28" y1="28" x2="31" y2="31"/></g></svg>
+              <div style="flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:9px;">
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">TAUPUNKT</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">11.2 °C</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REL. FEUCHTE</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">63 %</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">WIND · BÖEN</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">3.2 / 7.4</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">DRUCK</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">1018 hPa</div></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:7px; margin-top:13px; padding-top:11px; border-top:1px solid #E0D6BE; flex-wrap:wrap;">
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Wind SW · 228°</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Bewölkung 35 %</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Schneegrenze 2 100 m</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">925 / 850 / 700 hPa · 18 / 13 / 2 °C</span>
+            </div>
+          </div>
+          <div style="background:#FBF3E7; border:1px solid #E3C39A; border-radius:13px; padding:16px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="10" x2="12" y2="14"/></svg><span style="font-size:10px; letter-spacing:2px; color:#9A5A2A; font-weight:700;">AMTLICHE WARNUNG · DWD CAP</span></div>
+            <p style="font-size:13px; color:#2C2A26; margin:10px 0 0; line-height:1.5; font-weight:500;">„Amtliche WARNUNG vor WINDBÖEN — es treten Windböen mit Geschwindigkeiten um 60 km/h (17 m/s, Bft 7) aus südwestlicher Richtung auf."</p>
+            <div style="font-size:10.5px; color:#8B7355; margin-top:auto; padding-top:11px;">gültig bis 18.09. 06:00 · wörtlich zitiert · MeteoSchweiz via MeteoAlarm · AT offen</div>
+          </div>
+          <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:16px; display:flex; flex-direction:column;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">KONFIDENZ &amp; QUELLEN</span>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:11px;">
+              <svg width="58" height="58" viewBox="0 0 58 58" style="flex:0 0 auto;"><circle cx="29" cy="29" r="23" fill="none" stroke="#43403A" stroke-width="7"/><circle cx="29" cy="29" r="23" fill="none" stroke="#7A9466" stroke-width="7" stroke-linecap="round" stroke-dasharray="144 145" stroke-dashoffset="26" transform="rotate(-90 29 29)"/></svg>
+              <div><div style="font-size:22px; font-weight:700; color:#F5F1E8; line-height:1;">82 %</div><div style="font-size:10.5px; color:#9CBF83; font-weight:600;">solide · Stunde 0</div></div>
+            </div>
+            <div style="display:flex; gap:2px; margin-top:12px; height:14px; border-radius:3px; overflow:hidden;"><span style="width:42%; background:#C97B47;"></span><span style="width:27%; background:#3A6FA8;"></span><span style="width:18%; background:#7A9466;"></span><span style="width:13%; background:#6E675A;"></span></div>
+            <div style="font-size:10px; color:#B7AE9C; margin-top:6px; line-height:1.5;">ICON-D2 42 % · MOSMIX 27 % · Station 18 % · ERA5 13 %</div>
+            <div style="font-size:10px; color:#8B8474; margin-top:auto; padding-top:9px;">Gewicht je Stunde neu — Kennzeichnung an jedem Wert</div>
+          </div>
+        </div>
+
+        <!-- ═══ PROGNOSE-ZONE ═══ -->
+        <div style="background:#FAF6EA; border:1.5px solid #C97B47; border-radius:14px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:2.2px; color:#C97B47; font-weight:700;">PROGNOSE</span>
+            <div style="display:flex; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:10px; padding:3px;">
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:8px 18px; cursor:pointer;">Heute</span>
+              <span style="font-size:13px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:7px; padding:8px 18px; cursor:pointer;">3 Tage</span>
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:8px 18px; cursor:pointer;">7 Tage</span>
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:8px 18px; cursor:pointer;">14 Tage</span>
+            </div>
+            <span style="font-size:11px; color:#8B7355;">Mi 16.09. → Fr 18.09. · ICON-D2 + MOSMIX · Ensemble vollständig (&lt; 78 h)</span>
+            <span style="margin-left:auto; display:flex; align-items:center; gap:7px; font-size:11px; color:#5F7A4C; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>Konfidenz 74 % im Mittel</span>
+          </div>
+
+          <!-- 3 Tageskarten -->
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px;">
+            <!-- Tag 1 -->
+            <div style="background:#FFFFFF; border:1.5px solid #C97B47; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FBF3E7; border-bottom:1px solid #E7D3B4;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Heute · Mi 16.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">heiter, später auflockernd</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/></g></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">21°</span><span style="display:block; font-size:12px; color:#8B7355;">9°</span></span></span>
+              </div>
+              <!-- Tagesphasen -->
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="15" cy="17" r="8" fill="#D4A373"/><path d="M 8 29 Q 8 20 17 20 Q 22 13 29 20 Q 37 20 37 27 Q 37 31 31 31 L 12 31 Q 8 31 8 29 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">12°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">10 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="4" y1="20" x2="9" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">20°</div><div style="font-size:9.5px; color:#8FA8C4; font-weight:600;">5 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FBF3E7; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#9A5A2A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="31" y1="20" x2="36" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">21°</div><div style="font-size:9.5px; color:#8FA8C4; font-weight:600;">5 %</div><div style="font-size:9px; color:#9A5A2A; font-weight:600;">Böen 17</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M24 8 A12 12 0 1 0 32 26 A9 9 0 0 1 24 8 Z" fill="#B5A6E0"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">11°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">15 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+              </div>
+              <!-- Tageswerte -->
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0,2 mm</div><div style="font-size:9.5px; color:#8B7355;">max 15 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">WIND MAX</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">17 m/s</div><div style="font-size:9.5px; color:#9A5A2A; font-weight:600;">Warnung aktiv</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">8,4 h</div><div style="font-size:9.5px; color:#8B7355;">UV 5</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:86%; height:100%; background:#7A9466;"></div></div><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">86 %</span></div>
+              </div>
+            </div>
+            <!-- Tag 2 -->
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Morgen · Do 17.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">wechselnd bewölkt, Schauer</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 28 Q 8 19 17 19 Q 22 12 29 19 Q 37 19 37 26 Q 37 30 31 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">19°</span><span style="display:block; font-size:12px; color:#8B7355;">8°</span></span></span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 24 Q 6 14 16 14 Q 22 7 30 14 Q 38 14 38 22 Q 38 26 32 26 L 10 26 Q 6 26 6 24 Z" fill="#9AB8CF"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">10°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">35 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/><line x1="24" y1="28" x2="22" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">18°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">65 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 28 Q 8 19 17 19 Q 22 12 29 19 Q 37 19 37 26 Q 37 30 31 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">16°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">30 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M24 8 A12 12 0 1 0 32 26 A9 9 0 0 1 24 8 Z" fill="#B5A6E0"/><path d="M 6 30 Q 6 24 12 24 Q 16 20 21 24 Q 27 24 27 29 Q 27 32 23 32 L 9 32 Q 6 32 6 30 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">25 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+              </div>
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#3A6FA8;">4,1 mm</div><div style="font-size:9.5px; color:#8B7355;">max 65 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">WIND MAX</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">11 m/s</div><div style="font-size:9.5px; color:#8B7355;">SW</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">3,1 h</div><div style="font-size:9.5px; color:#8B7355;">UV 6</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:74%; height:100%; background:#7A9466;"></div></div><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">74 %</span></div>
+              </div>
+            </div>
+            <!-- Tag 3 -->
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Übermorgen · Fr 18.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">Regen, kühler, Schneegrenze sinkt</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.4" stroke-linecap="round"><line x1="15" y1="28" x2="13" y2="34"/><line x1="23" y1="28" x2="21" y2="34"/></g></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">15°</span><span style="display:block; font-size:12px; color:#8B7355;">7°</span></span></span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">70 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#8FA8C4"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="34"/><line x1="20" y1="28" x2="18" y2="34"/><line x1="26" y1="28" x2="24" y2="34"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">14°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">85 %</div><div style="font-size:9px; color:#8B7355;">5 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="28" x2="16" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">11°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">55 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 26 Q 6 16 16 16 Q 22 9 30 16 Q 38 16 38 24 Q 38 28 32 28 L 10 28 Q 6 28 6 26 Z" fill="#8FA8C4"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">7°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">40 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+              </div>
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#3A6FA8;">11,6 mm</div><div style="font-size:9.5px; color:#8B7355;">max 85 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SCHNEEGRENZE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">1 650 m</div><div style="font-size:9.5px; color:#8B7355;">sinkt um 450 m</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0,8 h</div><div style="font-size:9.5px; color:#8B7355;">UV 4</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:61%; height:100%; background:#C99A4E;"></div></div><span style="font-size:10.5px; color:#9A5A2A; font-weight:600;">61 %</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Durchgehender Verlauf über die 3 Tage -->
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px; margin-top:12px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">STUNDENVERLAUF ÜBER DEN GEWÄHLTEN ZEITRAUM</span><span style="font-size:10.5px; color:#8B7355;">72 h · Ensemble vollständig</span></div>
+            <svg viewBox="0 0 1330 178" preserveAspectRatio="none" style="width:100%; height:178px; margin-top:10px;">
+              <defs><pattern id="f2ens" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#C4D3E0" stroke-width="1.1"/></pattern></defs>
+              <rect x="0" y="0" width="1330" height="178" fill="url(#f2ens)" opacity=".4"/>
+              <g stroke="#EDE6D3" stroke-width="1"><line x1="0" y1="34" x2="1330" y2="34"/><line x1="0" y1="68" x2="1330" y2="68"/><line x1="0" y1="102" x2="1330" y2="102"/></g>
+              <g stroke="#E0D6BE" stroke-width="1.2"><line x1="443" y1="0" x2="443" y2="178"/><line x1="886" y1="0" x2="886" y2="178"/></g>
+              <path d="M0 86 L80 100 L160 58 L240 46 L340 52 L443 92 L520 104 L600 62 L700 68 L800 88 L886 104 L980 112 L1080 76 L1180 84 L1280 100 L1330 108 L1330 178 L0 178 Z" fill="rgba(201,123,71,.1)"/>
+              <path d="M0 86 L80 100 L160 58 L240 46 L340 52 L443 92 L520 104 L600 62 L700 68 L800 88 L886 104 L980 112 L1080 76 L1180 84 L1280 100 L1330 108" fill="none" stroke="#C97B47" stroke-width="2.2"/>
+              <path d="M0 118 L200 124 L443 120 L700 112 L886 122 L1080 116 L1330 126" fill="none" stroke="#3A6FA8" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <g fill="#3A6FA8" opacity=".55"><rect x="600" y="150" width="11" height="20" rx="2"/><rect x="620" y="142" width="11" height="28" rx="2"/><rect x="640" y="156" width="11" height="14" rx="2"/><rect x="960" y="128" width="11" height="42" rx="2"/><rect x="980" y="120" width="11" height="50" rx="2" fill="#9B8CE0"/><rect x="1000" y="136" width="11" height="34" rx="2"/><rect x="1020" y="148" width="11" height="22" rx="2"/></g>
+              <line x1="0" y1="170" x2="1330" y2="170" stroke="#C4B896" stroke-width="1"/>
+              <g font-family="League Spartan" font-size="10.5" fill="#8B7355"><text x="6" y="14">°C</text><text x="450" y="14">Do 17.09.</text><text x="893" y="14">Fr 18.09.</text></g>
+            </svg>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#A89A7A; margin-top:4px;"><span>14:00</span><span>20:00</span><span>02:00</span><span>08:00</span><span>14:00</span><span>20:00</span><span>02:00</span><span>08:00</span><span>14:00</span></div>
+            <div style="display:flex; gap:16px; margin-top:9px; padding-top:9px; border-top:1px solid #EDE6D3; flex-wrap:wrap; font-size:10.5px; color:#5C5447;">
+              <span><i style="display:inline-block; width:14px; height:2.5px; background:#C97B47;"></i> Temperatur + Ensemble-Spread</span>
+              <span><i style="display:inline-block; width:14px; height:2px; background:#3A6FA8;"></i> Taupunkt</span>
+              <span><i style="display:inline-block; width:10px; height:8px; background:#3A6FA8; opacity:.55; border-radius:2px;"></i> Menge mm/h</span>
+              <span style="margin-left:auto; color:#8B7355;">Tagesgrenzen als Linie · Phasen-Segmente oben synchron</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail-Kacheln -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+          <div style="grid-column:1 / -1; background:#1F2937; border:1px solid #2F3B4A; border-radius:13px; padding:15px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#7FB2E5; font-weight:700;">NOWCAST · RADAR</span><span style="font-size:10px; color:#8A97A6;">0–2 h DE · 0–3 h AT</span></div>
+            <div style="font-size:16px; font-weight:700; color:#EDF1F5; margin-top:8px;">Trocken bis 16:40</div>
+            <svg viewBox="0 0 300 84" preserveAspectRatio="none" style="width:100%; height:84px; margin-top:8px;">
+              <g stroke="#2F3B4A" stroke-width="1"><line x1="0" y1="26" x2="300" y2="26"/><line x1="0" y1="52" x2="300" y2="52"/></g>
+              <g fill="#5B9BD5"><rect x="176" y="62" width="11" height="16" rx="2" opacity=".55"/><rect x="192" y="50" width="11" height="28" rx="2"/><rect x="208" y="38" width="11" height="40" rx="2" fill="#9B8CE0"/><rect x="224" y="54" width="11" height="24" rx="2"/><rect x="240" y="68" width="11" height="10" rx="2" opacity=".6"/></g>
+              <line x1="168" y1="4" x2="168" y2="78" stroke="#E0A567" stroke-width="1.3" stroke-dasharray="3 3"/>
+              <line x1="0" y1="78" x2="300" y2="78" stroke="#3E4B5C" stroke-width="1"/>
+            </svg>
+            <div style="display:flex; gap:6px; margin-top:7px; flex-wrap:wrap;">
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Zellen: keine</span>
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Blitze 1 h: 0</span>
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Hagel: — (nur CH)</span>
+            </div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:15px;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">BEWÖLKUNG · 4 SCHICHTEN</span>
+            <svg viewBox="0 0 300 96" preserveAspectRatio="none" style="width:100%; height:96px; margin-top:9px;">
+              <rect x="0" y="2" width="300" height="19" fill="#C9CFD6" opacity=".45"/><rect x="0" y="2" width="120" height="19" fill="#9BA6B2" opacity=".8"/>
+              <rect x="0" y="25" width="300" height="19" fill="#C9CFD6" opacity=".35"/><rect x="90" y="25" width="135" height="19" fill="#9BA6B2" opacity=".7"/>
+              <rect x="0" y="48" width="300" height="19" fill="#C9CFD6" opacity=".3"/><rect x="172" y="48" width="105" height="19" fill="#9BA6B2" opacity=".6"/>
+              <path d="M0 84 L60 78 L120 88 L180 76 L240 84 L300 78" fill="none" stroke="#2C2A26" stroke-width="1.5"/>
+              <path d="M0 90 L60 84 L120 94 L180 82 L240 90 L300 84 L300 70 L240 76 L180 68 L120 82 L60 70 L0 76 Z" fill="rgba(44,42,38,.09)"/>
+            </svg>
+            <div style="font-size:9.5px; color:#8B7355; margin-top:5px;">hoch · mittel · tief + gesamt mit Quantilen · 336 h</div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:15px;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">WINDRICHTUNG · REICHWEITE</span>
+            <div style="display:flex; gap:11px; align-items:center; margin-top:9px;">
+              <svg viewBox="0 0 110 110" style="width:88px; height:88px; flex:0 0 auto;">
+                <circle cx="55" cy="55" r="40" fill="none" stroke="#E0D6BE" stroke-width=".9"/><circle cx="55" cy="55" r="20" fill="none" stroke="#EDE6D3" stroke-width=".9"/>
+                <path d="M55 55 L66 24 A33 33 0 0 0 44 24 Z" fill="#C4B896"/><path d="M55 55 L33 34 A29 29 0 0 1 44 24 Z" fill="#A89A7A"/><path d="M55 55 L26 47 A30 30 0 0 1 33 34 Z" fill="#8B8474"/><path d="M55 55 L28 70 A30 30 0 0 1 26 47 Z" fill="#5C5447"/><path d="M55 55 L41 82 A31 31 0 0 1 28 70 Z" fill="#5C5447"/><path d="M55 55 L70 80 A29 29 0 0 1 41 82 Z" fill="#A89A7A"/>
+                <line x1="55" y1="55" x2="34" y2="76" stroke="#2C2A26" stroke-width="1.5" stroke-dasharray="3 2"/>
+                <g fill="#8B7355" font-size="8.5" text-anchor="middle" font-family="League Spartan"><text x="55" y="10">N</text><text x="102" y="58">O</text><text x="55" y="105">S</text><text x="8" y="58">W</text></g>
+              </svg>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:14px; font-weight:700; color:#2C2A26;">SW · 228°</div>
+                <div style="font-size:10px; color:#8B7355; margin-top:2px; line-height:1.5;">belastbar bis <strong style="color:#2C2A26;">46 h</strong> @ 3 m/s, bis <strong style="color:#2C2A26;">229 h</strong> @ 12 m/s</div>
+                <div style="height:5px; background:#E0D6BE; border-radius:3px; margin-top:8px; position:relative;"><div style="position:absolute; left:0; width:31%; top:0; bottom:0; background:#7A9466; border-radius:3px;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TERRAIN-FELD ═══ -->
+        <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:2.2px; color:#A89A7A; font-weight:700;">TERRAIN UM DEN ORT · TEMPERATUR NACH HÖHE · WIND JE NIVEAU</span>
+            <div style="display:flex; background:#211F1C; border:1px solid #3A3833; border-radius:8px; padding:2px;">
+              <span style="font-size:11px; font-weight:600; color:#2C2A26; background:#E0A567; border-radius:6px; padding:5px 11px;">± 20 km</span>
+              <span style="font-size:11px; font-weight:500; color:#8B8474; border-radius:6px; padding:5px 11px;">± 50 km</span>
+            </div>
+            <span style="font-size:11px; color:#8B8474;">Schnitt SW → NO durch die Fahrtrichtung des Windes · ICON-D2 2,2 km, höhenkorrigiert</span>
+            <span style="margin-left:auto; display:flex; align-items:center; gap:7px; font-size:11px; color:#9CBF83; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>γ 7,1 K/km · keine Inversion</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:14px; margin-top:13px;">
+            <!-- Geländeschnitt -->
+            <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+              <svg viewBox="0 0 900 340" preserveAspectRatio="none" style="width:100%; height:340px; font-family:'League Spartan',sans-serif;">
+                <defs>
+                  <linearGradient id="trTemp" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#C97B47" stop-opacity=".30"/>
+                    <stop offset="26%" stop-color="#D4A373" stop-opacity=".26"/>
+                    <stop offset="42%" stop-color="#C99A4E" stop-opacity=".24"/>
+                    <stop offset="58%" stop-color="#7A9466" stop-opacity=".22"/>
+                    <stop offset="78%" stop-color="#5B9BD5" stop-opacity=".22"/>
+                    <stop offset="100%" stop-color="#3A6FA8" stop-opacity=".26"/>
+                  </linearGradient>
+                  <linearGradient id="trRock" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4A463E"/><stop offset="100%" stop-color="#312E29"/>
+                  </linearGradient>
+                  <clipPath id="trCap"><path d="M58 108 H900 V10 H58 Z"/></clipPath>
+                </defs>
+
+                <!-- Temperaturschichtung -->
+                <rect x="58" y="10" width="842" height="272" fill="url(#trTemp)"/>
+
+                <!-- Höhenachse -->
+                <g stroke="#3A3833" stroke-width="1">
+                  <line x1="58" y1="10" x2="900" y2="10"/><line x1="58" y1="64" x2="900" y2="64"/>
+                  <line x1="58" y1="118" x2="900" y2="118"/><line x1="58" y1="172" x2="900" y2="172"/>
+                  <line x1="58" y1="226" x2="900" y2="226"/><line x1="58" y1="282" x2="900" y2="282"/>
+                </g>
+                <g fill="#8B8474" font-size="10.5" text-anchor="end">
+                  <text x="52" y="14">3000 m</text><text x="52" y="68">2500</text><text x="52" y="122">2000</text>
+                  <text x="52" y="176">1500</text><text x="52" y="230">1000</text><text x="52" y="286">500</text>
+                </g>
+
+                <!-- Isothermen · aus dem Höhenprofil abgeleitet -->
+                <path d="M58 69 L240 66 L430 71 L620 65 L780 70 L900 67" fill="none" stroke="#5B9BD5" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <path d="M58 131 L240 128 L430 133 L620 127 L780 132 L900 129" fill="none" stroke="#7A9466" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <path d="M58 192 L240 189 L430 194 L620 188 L780 193 L900 190" fill="none" stroke="#C99A4E" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <g fill="#8B8474" font-size="9.5"><text x="64" y="65">6 °C · 2 450 m</text><text x="64" y="127">10 °C · 1 890 m</text></g>
+
+
+                <!-- Schneefallgrenze 2 100 m -->
+                <line x1="58" y1="108" x2="900" y2="108" stroke="#B5C4D4" stroke-width="1.6"/>
+                <text x="892" y="104" font-size="10" fill="#B5C4D4" text-anchor="end">Schneegrenze 2 100 m</text>
+
+                <!-- Windvektoren je Niveau · vor dem Gelände, wird vom Fels verdeckt -->
+                <g stroke="#7A9466" stroke-width="2" stroke-linecap="round">
+                  <g><line x1="100" y1="69" x2="146" y2="69"/><path d="M146 69 l-9 -5 M146 69 l-9 5"/></g>
+                  <g><line x1="400" y1="69" x2="446" y2="69"/><path d="M446 69 l-9 -5 M446 69 l-9 5"/></g>
+                  <g><line x1="700" y1="69" x2="746" y2="69"/><path d="M746 69 l-9 -5 M746 69 l-9 5"/></g>
+                  <g><line x1="100" y1="131" x2="138" y2="131"/><path d="M138 131 l-8 -5 M138 131 l-8 5"/></g>
+                  <g><line x1="400" y1="131" x2="438" y2="131"/><path d="M438 131 l-8 -5 M438 131 l-8 5"/></g>
+                  <g><line x1="700" y1="131" x2="738" y2="131"/><path d="M738 131 l-8 -5 M738 131 l-8 5"/></g>
+                  <g><line x1="100" y1="192" x2="128" y2="192"/><path d="M128 192 l-7 -4 M128 192 l-7 4"/></g>
+                  <g><line x1="400" y1="192" x2="428" y2="192"/><path d="M428 192 l-7 -4 M428 192 l-7 4"/></g>
+                  <g><line x1="700" y1="192" x2="728" y2="192"/><path d="M728 192 l-7 -4 M728 192 l-7 4"/></g>
+                </g>
+                <g stroke="#5E7359" stroke-width="1.8" stroke-linecap="round">
+                  <g><line x1="340" y1="230" x2="356" y2="234"/><path d="M356 234 l-6 -2 M356 234 l-2 -5"/></g>
+                  <g><line x1="470" y1="230" x2="486" y2="234"/><path d="M486 234 l-6 -2 M486 234 l-2 -5"/></g>
+                  <g><line x1="800" y1="230" x2="816" y2="234"/><path d="M816 234 l-6 -2 M816 234 l-2 -5"/></g>
+                </g>
+
+                <!-- Geländeprofil · jede Höhe aus der Achsenformel -->
+                <path d="M58 340 L58 183 L110 150 L150 96 L200 14 L248 78 L290 168 L330 238 L380 255 L420 259 L470 252 L520 218 L560 178 L600 143 L650 186 L700 212 L760 228 L830 240 L900 249 L900 340 Z" fill="url(#trRock)" stroke="#5A554B" stroke-width="1.4"/>
+                <!-- Schneekappe nur oberhalb 2 100 m -->
+                <g clip-path="url(#trCap)"><path d="M58 340 L58 183 L110 150 L150 96 L200 14 L248 78 L290 168 L330 238 L380 255 L420 259 L470 252 L520 218 L560 178 L600 143 L650 186 L700 212 L760 228 L830 240 L900 249 L900 340 Z" fill="#B5C4D4" fill-opacity=".9" stroke="#D6DEE6" stroke-width="1.4"/></g>
+
+                <!-- Beschriftungen über Grund, nach dem Gelände gezeichnet -->
+                <text x="770" y="188" font-size="9.5" fill="#C99A4E">14 °C · 1 330 m</text>
+
+                <!-- Gipfel und Stationen im Schnitt -->
+                <g>
+                  <circle cx="200" cy="14" r="4.5" fill="#B5C4D4"/><text x="210" y="24" font-size="9.5" fill="#B5C4D4">Zugspitze 2 964 m · 2,4 °C</text>
+                  <circle cx="600" cy="143" r="4.5" fill="#B7AE9C"/><text x="610" y="139" font-size="9.5" fill="#B7AE9C">Wank 1 780 m · 10,8 °C</text>
+                </g>
+                <!-- gewählter Ort · 708 m -->
+                <g>
+                  <line x1="420" y1="259" x2="420" y2="288" stroke="#E0A567" stroke-width="1.4" stroke-dasharray="3 3"/>
+                  <circle cx="420" cy="259" r="6.5" fill="#E0A567" stroke="#2C2A26" stroke-width="2"/>
+                  <rect x="350" y="288" width="140" height="34" rx="6" fill="#2C2A26" stroke="#E0A567" stroke-width="1.2"/>
+                  <text x="420" y="301" font-size="10.5" fill="#F5F1E8" text-anchor="middle" font-weight="600">Garmisch-P. · 708 m</text>
+                  <text x="420" y="315" font-size="10" fill="#E0A567" text-anchor="middle">18,4 °C · Wind 3,2 m/s SW</text>
+                </g>
+                <g fill="#8B8474" font-size="10" text-anchor="middle"><text x="86" y="334">SW 20 km</text><text x="880" y="334">NO 20 km</text></g>
+              </svg>
+              <div style="display:flex; gap:15px; margin-top:9px; padding-top:9px; border-top:1px solid #3A3833; flex-wrap:wrap; font-size:10px; color:#B7AE9C;">
+                <span><i style="display:inline-block; width:16px; height:8px; border-radius:2px; background:linear-gradient(0deg,#C97B47,#7A9466,#3A6FA8);"></i> Temperatur nach Höhe (warm unten → kalt oben)</span>
+                <span><i style="display:inline-block; width:14px; height:2px; background:#7A9466;"></i> Windvektor je Niveau — Länge = Stärke</span>
+                <span><i style="display:inline-block; width:14px; height:2px; background:#B5C4D4;"></i> Schneefallgrenze</span>
+                <span style="color:#8B8474;">gestrichelte Linien: Isothermen 6 / 10 / 14 °C — Höhe aus γ 7,1 K/km gerechnet</span>
+              </div>
+            </div>
+
+            <!-- Höhenprofil-Tabelle -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px; align-items:start;">
+              <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+                <span style="font-size:9.5px; letter-spacing:1.7px; color:#8B8474; font-weight:700;">JE HÖHENSTUFE</span>
+                <div style="display:flex; flex-direction:column; margin-top:9px;">
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">3 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">2,1°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">→ W 14 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">2 500 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">5,7°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">→ W 11 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">2 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">9,2°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ WSW 9 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 780 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">10,8°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ WSW 8 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 500 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">12,8°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 6 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">16,3°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 4 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#F5F1E8; font-weight:600;">708 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#E0A567; font-weight:700;">18,4°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 3,2 m/s</span></div>
+                </div>
+              </div>
+              <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+                <span style="font-size:9.5px; letter-spacing:1.7px; color:#8B8474; font-weight:700;">ABLESUNG</span>
+                <p style="font-size:11.5px; color:#B7AE9C; margin:8px 0 0; line-height:1.55;">Die Temperatur nimmt <strong style="color:#F5F1E8;">durchgehend mit der Höhe ab</strong> — 18,4 °C am Ort (708 m) gegen 2,4 °C auf der Zugspitze (2 964 m) ergibt <strong style="color:#F5F1E8;">γ 7,1 K/km</strong>. Das ist steil und lässt heute <strong style="color:#F5F1E8;">keine Inversion</strong> zu; es gibt keinen Kaltluftsee im Tal. Der Wind dreht mit der Höhe von SW auf West und wird <strong style="color:#F5F1E8;">viermal so stark</strong> (3,2 → 14 m/s).</p>
+                <div style="font-size:10px; color:#8B8474; margin-top:9px; padding-top:8px; border-top:1px solid #332F2A; line-height:1.5;">Gelände, Gipfel und Schneegrenze sitzen auf ihrer <strong style="color:#B7AE9C;">tatsächlichen Höhe</strong> der Achse; Zwischenwerte folgen dem einen Gradienten, nichts wird aus zwei Modellen gemischt. Windvektoren enden am Fels — wo kein Pfeil steht, liegt das Niveau unter Grund. Oberstdorf und Hohenpeißenberg liegen außerhalb des ±20-km-Schnitts.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stufe 2 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">UV-INDEX · DWD · NUR DE</span>
+            <div style="display:flex; align-items:flex-end; gap:8px; margin-top:9px;">
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:62%; background:#E9A33C; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">5</div><div style="font-size:9px; color:#8B7355;">heute</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:78%; background:#D4632E; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">6</div><div style="font-size:9px; color:#8B7355;">morgen</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:50%; background:#D6D24E; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">4</div><div style="font-size:9px; color:#8B7355;">übermorgen</div></div>
+            </div>
+            <div style="font-size:9.5px; color:#A89A7A; margin-top:8px;">Tagesmaximum · 38 Vorhersageorte</div>
+          </div>
+          <div style="grid-column:1 / -1; order:3; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">POLLEN · DWD-GEFAHRENINDEX · 8 ARTEN · NUR DE</span><span style="font-size:9.5px; color:#8B7355;">CAMS-Opt-in aus · 6 Arten, 4 Tage, überall</span></div>
+            <div style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px; margin-top:10px;">
+              <div style="text-align:center;"><div style="height:28px; background:#7A9466; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Erle</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E9A33C; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Birke</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#A32B1E; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Gräser</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Roggen</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#7A9466; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Beifuß</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Ambrosia</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E9A33C; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Esche</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Hasel</div></div>
+            </div>
+            <div style="font-size:9.5px; color:#8B7355; margin-top:8px;">heute · morgen · übermorgen je Art · Region Oberbayern</div>
+          </div>
+          <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:14px;">
+            <span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">ICON-D2-LAYER · 48 h · DACH</span>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Gewitterpotenzial</span><span style="color:#9CBF83; font-weight:600;">gering</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Rotation</span><span style="color:#8B8474;">—</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Neuschnee 24 h</span><span style="color:#F5F1E8; font-weight:600;">0 cm</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Böen max</span><span style="color:#E0A567; font-weight:600;">17 m/s</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Feuerwetter</span><span style="color:#9CBF83; font-weight:600;">niedrig</span></div>
+            </div>
+            <div style="font-size:9.5px; color:#8B8474; margin-top:8px;">Kartenlayer · am Ort abfragbar</div>
+          </div>
+        </div>
+        <div style="font-size:10px; color:#8B7355; margin-top:13px; text-align:center;">● DWD (ICON-D2, MOSMIX, CAP, BrightSky) · GeoSphere (INCA, TAWES) · MeteoSchweiz (CombiPrecip, SMN, POH/MESHS) · ECMWF-Ensemble · ERA5 · keine Tracker</div>
+      </div>
+    </div>
+  </article>
+  <article id="vm" style="width:402px; flex:0 0 auto;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><span style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">M</span><span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · &lt;768 px</span><span style="font-size:12.5px; color:#8B7355; font-weight:300;">— einspaltig</span></div>
+    <div style="width:402px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column; font-family:'League Spartan',sans-serif;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#FAF6EA; color:#2C2A26; font-size:13px; font-weight:600;"><span>14:07</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:10px; padding:4px 14px 12px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:9px;"><img src="buscosun-mark.svg" width="22" height="22" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:10.5px; letter-spacing:1.1px; color:#5F7A4C; font-weight:600;">FUSION LIVE</span></span></div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:10px; padding:10px 13px;"><svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:14px; color:#2C2A26; font-weight:500;">Garmisch-Partenkirchen · 708 m</span></div>
+        <div style="display:flex; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:10px; padding:3px;"><span style="flex:1; text-align:center; font-size:13px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:7px; padding:10px 0;">Dashboard</span><span style="flex:1; text-align:center; font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:10px 0;">Karte</span></div>
+        <div style="font-size:10.5px; color:#8B7355;">Lauf 12Z · Anker Station 14:00</div>
+      </div>
+      <div style="flex:1 0 auto; padding:12px 12px 34px;">
+        <!-- Jetzt-Zeile -->
+        <div style="display:grid; grid-template-columns:1fr; gap:12px;">
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;">
+            <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:10px; letter-spacing:2.2px; color:#A89A7A; font-weight:700;">JETZT · MESSWERT ALS ANKER</span><span style="font-size:10.5px; color:#8B7355;">BrightSky · 4 Stationen</span></div>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px 18px; margin-top:12px;">
+              <div style="display:flex; align-items:baseline; gap:8px;"><span style="font-size:52px; font-weight:700; color:#2C2A26; line-height:.88; letter-spacing:-2.4px;">18.1</span><span style="font-size:17px; color:#8B7355;">°C</span></div>
+              <svg width="44" height="44" viewBox="0 0 40 40" fill="none" style="flex:0 0 auto;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.2" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="36"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/><line x1="28" y1="28" x2="31" y2="31"/></g></svg>
+              <div style="flex:1 1 100%; display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">TAUPUNKT</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">11.2 °C</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REL. FEUCHTE</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">63 %</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">WIND · BÖEN</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">3.2 / 7.4</div></div>
+                <div><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">DRUCK</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">1018 hPa</div></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:7px; margin-top:13px; padding-top:11px; border-top:1px solid #E0D6BE; flex-wrap:wrap;">
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Wind SW · 228°</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Bewölkung 35 %</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">Schneegrenze 2 100 m</span>
+              <span style="font-size:10.5px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:4px 9px;">925 / 850 / 700 hPa · 18 / 13 / 2 °C</span>
+            </div>
+          </div>
+          <div style="background:#FBF3E7; border:1px solid #E3C39A; border-radius:13px; padding:16px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="10" x2="12" y2="14"/></svg><span style="font-size:10px; letter-spacing:2px; color:#9A5A2A; font-weight:700;">AMTLICHE WARNUNG · DWD CAP</span></div>
+            <p style="font-size:13px; color:#2C2A26; margin:10px 0 0; line-height:1.5; font-weight:500;">„Amtliche WARNUNG vor WINDBÖEN — es treten Windböen mit Geschwindigkeiten um 60 km/h (17 m/s, Bft 7) aus südwestlicher Richtung auf."</p>
+            <div style="font-size:10.5px; color:#8B7355; margin-top:auto; padding-top:11px;">gültig bis 18.09. 06:00 · wörtlich zitiert · MeteoSchweiz via MeteoAlarm · AT offen</div>
+          </div>
+          <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:16px; display:flex; flex-direction:column;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">KONFIDENZ &amp; QUELLEN</span>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:11px;">
+              <svg width="58" height="58" viewBox="0 0 58 58" style="flex:0 0 auto;"><circle cx="29" cy="29" r="23" fill="none" stroke="#43403A" stroke-width="7"/><circle cx="29" cy="29" r="23" fill="none" stroke="#7A9466" stroke-width="7" stroke-linecap="round" stroke-dasharray="144 145" stroke-dashoffset="26" transform="rotate(-90 29 29)"/></svg>
+              <div><div style="font-size:22px; font-weight:700; color:#F5F1E8; line-height:1;">82 %</div><div style="font-size:10.5px; color:#9CBF83; font-weight:600;">solide · Stunde 0</div></div>
+            </div>
+            <div style="display:flex; gap:2px; margin-top:12px; height:14px; border-radius:3px; overflow:hidden;"><span style="width:42%; background:#C97B47;"></span><span style="width:27%; background:#3A6FA8;"></span><span style="width:18%; background:#7A9466;"></span><span style="width:13%; background:#6E675A;"></span></div>
+            <div style="font-size:10px; color:#B7AE9C; margin-top:6px; line-height:1.5;">ICON-D2 42 % · MOSMIX 27 % · Station 18 % · ERA5 13 %</div>
+            <div style="font-size:10px; color:#8B8474; margin-top:auto; padding-top:9px;">Gewicht je Stunde neu — Kennzeichnung an jedem Wert</div>
+          </div>
+        </div>
+
+        <!-- ═══ PROGNOSE-ZONE ═══ -->
+        <div style="background:#FAF6EA; border:1.5px solid #C97B47; border-radius:14px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:2.2px; color:#C97B47; font-weight:700;">PROGNOSE</span>
+            <div style="display:flex; flex:1 1 100%; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:10px; padding:3px;">
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:9px 0; flex:1; text-align:center; cursor:pointer;">Heute</span>
+              <span style="font-size:13px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:7px; padding:9px 0; flex:1; text-align:center; cursor:pointer;">3 Tage</span>
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:9px 0; flex:1; text-align:center; cursor:pointer;">7 Tage</span>
+              <span style="font-size:13px; font-weight:500; color:#8B7355; border-radius:7px; padding:9px 0; flex:1; text-align:center; cursor:pointer;">14 Tage</span>
+            </div>
+            <span style="font-size:11px; color:#8B7355;">Mi 16.09. → Fr 18.09. · ICON-D2 + MOSMIX · Ensemble vollständig (&lt; 78 h)</span>
+            <span style="display:flex; align-items:center; gap:7px; font-size:11px; color:#5F7A4C; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>Konfidenz 74 % im Mittel</span>
+          </div>
+
+          <!-- 3 Tageskarten -->
+          <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px;">
+            <!-- Tag 1 -->
+            <div style="background:#FFFFFF; border:1.5px solid #C97B47; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FBF3E7; border-bottom:1px solid #E7D3B4;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Heute · Mi 16.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">heiter, später auflockernd</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/></g></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">21°</span><span style="display:block; font-size:12px; color:#8B7355;">9°</span></span></span>
+              </div>
+              <!-- Tagesphasen -->
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="15" cy="17" r="8" fill="#D4A373"/><path d="M 8 29 Q 8 20 17 20 Q 22 13 29 20 Q 37 20 37 27 Q 37 31 31 31 L 12 31 Q 8 31 8 29 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">12°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">10 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="4" y1="20" x2="9" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">20°</div><div style="font-size:9.5px; color:#8FA8C4; font-weight:600;">5 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FBF3E7; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#9A5A2A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="20" cy="20" r="9" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="31" y1="20" x2="36" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">21°</div><div style="font-size:9.5px; color:#8FA8C4; font-weight:600;">5 %</div><div style="font-size:9px; color:#9A5A2A; font-weight:600;">Böen 17</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M24 8 A12 12 0 1 0 32 26 A9 9 0 0 1 24 8 Z" fill="#B5A6E0"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">11°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">15 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+              </div>
+              <!-- Tageswerte -->
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0,2 mm</div><div style="font-size:9.5px; color:#8B7355;">max 15 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">WIND MAX</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">17 m/s</div><div style="font-size:9.5px; color:#9A5A2A; font-weight:600;">Warnung aktiv</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">8,4 h</div><div style="font-size:9.5px; color:#8B7355;">UV 5</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:86%; height:100%; background:#7A9466;"></div></div><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">86 %</span></div>
+              </div>
+            </div>
+            <!-- Tag 2 -->
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Morgen · Do 17.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">wechselnd bewölkt, Schauer</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 28 Q 8 19 17 19 Q 22 12 29 19 Q 37 19 37 26 Q 37 30 31 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">19°</span><span style="display:block; font-size:12px; color:#8B7355;">8°</span></span></span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 24 Q 6 14 16 14 Q 22 7 30 14 Q 38 14 38 22 Q 38 26 32 26 L 10 26 Q 6 26 6 24 Z" fill="#9AB8CF"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">10°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">35 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/><line x1="24" y1="28" x2="22" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">18°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">65 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 28 Q 8 19 17 19 Q 22 12 29 19 Q 37 19 37 26 Q 37 30 31 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">16°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">30 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M24 8 A12 12 0 1 0 32 26 A9 9 0 0 1 24 8 Z" fill="#B5A6E0"/><path d="M 6 30 Q 6 24 12 24 Q 16 20 21 24 Q 27 24 27 29 Q 27 32 23 32 L 9 32 Q 6 32 6 30 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">25 %</div><div style="font-size:9px; color:#8B7355;">2 m/s</div></div>
+              </div>
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#3A6FA8;">4,1 mm</div><div style="font-size:9.5px; color:#8B7355;">max 65 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">WIND MAX</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">11 m/s</div><div style="font-size:9.5px; color:#8B7355;">SW</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">3,1 h</div><div style="font-size:9.5px; color:#8B7355;">UV 6</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:74%; height:100%; background:#7A9466;"></div></div><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">74 %</span></div>
+              </div>
+            </div>
+            <!-- Tag 3 -->
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+                <span><span style="font-size:14px; font-weight:700; color:#2C2A26;">Übermorgen · Fr 18.09.</span><span style="display:block; font-size:10.5px; color:#8B7355;">Regen, kühler, Schneegrenze sinkt</span></span>
+                <span style="display:flex; align-items:center; gap:9px;"><svg width="30" height="30" viewBox="0 0 40 40" fill="none"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.4" stroke-linecap="round"><line x1="15" y1="28" x2="13" y2="34"/><line x1="23" y1="28" x2="21" y2="34"/></g></svg><span style="text-align:right;"><span style="display:block; font-size:19px; font-weight:700; color:#2C2A26; line-height:1;">15°</span><span style="display:block; font-size:12px; color:#8B7355;">7°</span></span></span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#E0D6BE;">
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MORGEN</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">70 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">MITTAG</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#8FA8C4"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="34"/><line x1="20" y1="28" x2="18" y2="34"/><line x1="26" y1="28" x2="24" y2="34"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">14°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:700;">85 %</div><div style="font-size:9px; color:#8B7355;">5 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">ABEND</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="28" x2="16" y2="33"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">11°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">55 %</div><div style="font-size:9px; color:#8B7355;">4 m/s</div></div>
+                <div style="background:#FFFFFF; padding:9px 7px; text-align:center;"><div style="font-size:9px; letter-spacing:.8px; color:#A89A7A; font-weight:700;">NACHT</div><svg width="20" height="20" viewBox="0 0 40 40" fill="none" style="margin:4px auto 0; display:block;"><path d="M 6 26 Q 6 16 16 16 Q 22 9 30 16 Q 38 16 38 24 Q 38 28 32 28 L 10 28 Q 6 28 6 26 Z" fill="#8FA8C4"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">7°</div><div style="font-size:9.5px; color:#3A6FA8; font-weight:600;">40 %</div><div style="font-size:9px; color:#8B7355;">3 m/s</div></div>
+              </div>
+              <div style="padding:11px 14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:14px; font-weight:700; color:#3A6FA8;">11,6 mm</div><div style="font-size:9.5px; color:#8B7355;">max 85 %</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SCHNEEGRENZE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">1 650 m</div><div style="font-size:9.5px; color:#8B7355;">sinkt um 450 m</div></div>
+                  <div><div style="font-size:9px; letter-spacing:.9px; color:#A89A7A; font-weight:700;">SONNE</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0,8 h</div><div style="font-size:9.5px; color:#8B7355;">UV 4</div></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:9px; border-top:1px solid #E0D6BE;"><span style="font-size:9.5px; color:#A89A7A;">Konfidenz</span><div style="flex:1; height:5px; border-radius:3px; background:#E0D6BE; overflow:hidden;"><div style="width:61%; height:100%; background:#C99A4E;"></div></div><span style="font-size:10.5px; color:#9A5A2A; font-weight:600;">61 %</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Durchgehender Verlauf über die 3 Tage -->
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px; margin-top:12px;">
+            <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">STUNDENVERLAUF ÜBER DEN GEWÄHLTEN ZEITRAUM</span><span style="font-size:10.5px; color:#8B7355;">72 h · Ensemble vollständig</span></div>
+            <svg viewBox="0 0 1330 178" preserveAspectRatio="none" style="width:100%; height:150px; margin-top:10px;">
+              <defs><pattern id="f2ens" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#C4D3E0" stroke-width="1.1"/></pattern></defs>
+              <rect x="0" y="0" width="1330" height="178" fill="url(#f2ens)" opacity=".4"/>
+              <g stroke="#EDE6D3" stroke-width="1"><line x1="0" y1="34" x2="1330" y2="34"/><line x1="0" y1="68" x2="1330" y2="68"/><line x1="0" y1="102" x2="1330" y2="102"/></g>
+              <g stroke="#E0D6BE" stroke-width="1.2"><line x1="443" y1="0" x2="443" y2="178"/><line x1="886" y1="0" x2="886" y2="178"/></g>
+              <path d="M0 86 L80 100 L160 58 L240 46 L340 52 L443 92 L520 104 L600 62 L700 68 L800 88 L886 104 L980 112 L1080 76 L1180 84 L1280 100 L1330 108 L1330 178 L0 178 Z" fill="rgba(201,123,71,.1)"/>
+              <path d="M0 86 L80 100 L160 58 L240 46 L340 52 L443 92 L520 104 L600 62 L700 68 L800 88 L886 104 L980 112 L1080 76 L1180 84 L1280 100 L1330 108" fill="none" stroke="#C97B47" stroke-width="2.2"/>
+              <path d="M0 118 L200 124 L443 120 L700 112 L886 122 L1080 116 L1330 126" fill="none" stroke="#3A6FA8" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <g fill="#3A6FA8" opacity=".55"><rect x="600" y="150" width="11" height="20" rx="2"/><rect x="620" y="142" width="11" height="28" rx="2"/><rect x="640" y="156" width="11" height="14" rx="2"/><rect x="960" y="128" width="11" height="42" rx="2"/><rect x="980" y="120" width="11" height="50" rx="2" fill="#9B8CE0"/><rect x="1000" y="136" width="11" height="34" rx="2"/><rect x="1020" y="148" width="11" height="22" rx="2"/></g>
+              <line x1="0" y1="170" x2="1330" y2="170" stroke="#C4B896" stroke-width="1"/>
+              <g font-family="League Spartan" font-size="10.5" fill="#8B7355"><text x="6" y="14">°C</text><text x="450" y="14">Do 17.09.</text><text x="893" y="14">Fr 18.09.</text></g>
+            </svg>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#A89A7A; margin-top:4px;"><span>Mi 14:00</span><span>Do 02:00</span><span>Do 14:00</span><span>Fr 02:00</span><span>Fr 14:00</span></div>
+            <div style="display:flex; gap:16px; margin-top:9px; padding-top:9px; border-top:1px solid #EDE6D3; flex-wrap:wrap; font-size:10.5px; color:#5C5447;">
+              <span><i style="display:inline-block; width:14px; height:2.5px; background:#C97B47;"></i> Temperatur + Ensemble-Spread</span>
+              <span><i style="display:inline-block; width:14px; height:2px; background:#3A6FA8;"></i> Taupunkt</span>
+              <span><i style="display:inline-block; width:10px; height:8px; background:#3A6FA8; opacity:.55; border-radius:2px;"></i> Menge mm/h</span>
+              <span style="color:#8B7355;">Tagesgrenzen als Linie · Phasen-Segmente oben synchron</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail-Kacheln -->
+        <div style="display:grid; grid-template-columns:1fr; gap:12px; margin-top:12px;">
+          <div style="background:#1F2937; border:1px solid #2F3B4A; border-radius:13px; padding:15px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#7FB2E5; font-weight:700;">NOWCAST · RADAR</span><span style="font-size:10px; color:#8A97A6;">0–2 h DE · 0–3 h AT</span></div>
+            <div style="font-size:16px; font-weight:700; color:#EDF1F5; margin-top:8px;">Trocken bis 16:40</div>
+            <svg viewBox="0 0 300 84" preserveAspectRatio="none" style="width:100%; height:84px; margin-top:8px;">
+              <g stroke="#2F3B4A" stroke-width="1"><line x1="0" y1="26" x2="300" y2="26"/><line x1="0" y1="52" x2="300" y2="52"/></g>
+              <g fill="#5B9BD5"><rect x="176" y="62" width="11" height="16" rx="2" opacity=".55"/><rect x="192" y="50" width="11" height="28" rx="2"/><rect x="208" y="38" width="11" height="40" rx="2" fill="#9B8CE0"/><rect x="224" y="54" width="11" height="24" rx="2"/><rect x="240" y="68" width="11" height="10" rx="2" opacity=".6"/></g>
+              <line x1="168" y1="4" x2="168" y2="78" stroke="#E0A567" stroke-width="1.3" stroke-dasharray="3 3"/>
+              <line x1="0" y1="78" x2="300" y2="78" stroke="#3E4B5C" stroke-width="1"/>
+            </svg>
+            <div style="display:flex; gap:6px; margin-top:7px; flex-wrap:wrap;">
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Zellen: keine</span>
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Blitze 1 h: 0</span>
+              <span style="font-size:9.5px; color:#C3CDD8; background:#26313E; border:1px solid #3A4757; border-radius:6px; padding:3px 7px;">Hagel: — (nur CH)</span>
+            </div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:15px;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">BEWÖLKUNG · 4 SCHICHTEN</span>
+            <svg viewBox="0 0 300 96" preserveAspectRatio="none" style="width:100%; height:96px; margin-top:9px;">
+              <rect x="0" y="2" width="300" height="19" fill="#C9CFD6" opacity=".45"/><rect x="0" y="2" width="120" height="19" fill="#9BA6B2" opacity=".8"/>
+              <rect x="0" y="25" width="300" height="19" fill="#C9CFD6" opacity=".35"/><rect x="90" y="25" width="135" height="19" fill="#9BA6B2" opacity=".7"/>
+              <rect x="0" y="48" width="300" height="19" fill="#C9CFD6" opacity=".3"/><rect x="172" y="48" width="105" height="19" fill="#9BA6B2" opacity=".6"/>
+              <path d="M0 84 L60 78 L120 88 L180 76 L240 84 L300 78" fill="none" stroke="#2C2A26" stroke-width="1.5"/>
+              <path d="M0 90 L60 84 L120 94 L180 82 L240 90 L300 84 L300 70 L240 76 L180 68 L120 82 L60 70 L0 76 Z" fill="rgba(44,42,38,.09)"/>
+            </svg>
+            <div style="font-size:9.5px; color:#8B7355; margin-top:5px;">hoch · mittel · tief + gesamt mit Quantilen · 336 h</div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:15px;">
+            <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">WINDRICHTUNG · REICHWEITE</span>
+            <div style="display:flex; gap:11px; align-items:center; margin-top:9px;">
+              <svg viewBox="0 0 110 110" style="width:88px; height:88px; flex:0 0 auto;">
+                <circle cx="55" cy="55" r="40" fill="none" stroke="#E0D6BE" stroke-width=".9"/><circle cx="55" cy="55" r="20" fill="none" stroke="#EDE6D3" stroke-width=".9"/>
+                <path d="M55 55 L66 24 A33 33 0 0 0 44 24 Z" fill="#C4B896"/><path d="M55 55 L33 34 A29 29 0 0 1 44 24 Z" fill="#A89A7A"/><path d="M55 55 L26 47 A30 30 0 0 1 33 34 Z" fill="#8B8474"/><path d="M55 55 L28 70 A30 30 0 0 1 26 47 Z" fill="#5C5447"/><path d="M55 55 L41 82 A31 31 0 0 1 28 70 Z" fill="#5C5447"/><path d="M55 55 L70 80 A29 29 0 0 1 41 82 Z" fill="#A89A7A"/>
+                <line x1="55" y1="55" x2="34" y2="76" stroke="#2C2A26" stroke-width="1.5" stroke-dasharray="3 2"/>
+                <g fill="#8B7355" font-size="8.5" text-anchor="middle" font-family="League Spartan"><text x="55" y="10">N</text><text x="102" y="58">O</text><text x="55" y="105">S</text><text x="8" y="58">W</text></g>
+              </svg>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:14px; font-weight:700; color:#2C2A26;">SW · 228°</div>
+                <div style="font-size:10px; color:#8B7355; margin-top:2px; line-height:1.5;">belastbar bis <strong style="color:#2C2A26;">46 h</strong> @ 3 m/s, bis <strong style="color:#2C2A26;">229 h</strong> @ 12 m/s</div>
+                <div style="height:5px; background:#E0D6BE; border-radius:3px; margin-top:8px; position:relative;"><div style="position:absolute; left:0; width:31%; top:0; bottom:0; background:#7A9466; border-radius:3px;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TERRAIN-FELD ═══ -->
+        <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <span style="font-size:10px; letter-spacing:2.2px; color:#A89A7A; font-weight:700;">TERRAIN UM DEN ORT · TEMPERATUR NACH HÖHE · WIND JE NIVEAU</span>
+            <div style="display:flex; background:#211F1C; border:1px solid #3A3833; border-radius:8px; padding:2px;">
+              <span style="font-size:11px; font-weight:600; color:#2C2A26; background:#E0A567; border-radius:6px; padding:5px 11px;">± 20 km</span>
+              <span style="font-size:11px; font-weight:500; color:#8B8474; border-radius:6px; padding:5px 11px;">± 50 km</span>
+            </div>
+            <span style="font-size:11px; color:#8B8474;">Schnitt SW → NO durch die Fahrtrichtung des Windes · ICON-D2 2,2 km, höhenkorrigiert</span>
+            <span style="display:flex; align-items:center; gap:7px; font-size:11px; color:#9CBF83; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>γ 7,1 K/km · keine Inversion</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:14px; margin-top:13px;">
+            <!-- Geländeschnitt -->
+            <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+              <div class="dc-scroll" style="overflow-x:auto; overflow-y:hidden; max-width:100%;"><svg viewBox="0 0 900 340" style="width:760px; height:287px; display:block; font-family:'League Spartan',sans-serif;">
+                <defs>
+                  <linearGradient id="trTemp" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#C97B47" stop-opacity=".30"/>
+                    <stop offset="26%" stop-color="#D4A373" stop-opacity=".26"/>
+                    <stop offset="42%" stop-color="#C99A4E" stop-opacity=".24"/>
+                    <stop offset="58%" stop-color="#7A9466" stop-opacity=".22"/>
+                    <stop offset="78%" stop-color="#5B9BD5" stop-opacity=".22"/>
+                    <stop offset="100%" stop-color="#3A6FA8" stop-opacity=".26"/>
+                  </linearGradient>
+                  <linearGradient id="trRock" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4A463E"/><stop offset="100%" stop-color="#312E29"/>
+                  </linearGradient>
+                  <clipPath id="trCap"><path d="M58 108 H900 V10 H58 Z"/></clipPath>
+                </defs>
+
+                <!-- Temperaturschichtung -->
+                <rect x="58" y="10" width="842" height="272" fill="url(#trTemp)"/>
+
+                <!-- Höhenachse -->
+                <g stroke="#3A3833" stroke-width="1">
+                  <line x1="58" y1="10" x2="900" y2="10"/><line x1="58" y1="64" x2="900" y2="64"/>
+                  <line x1="58" y1="118" x2="900" y2="118"/><line x1="58" y1="172" x2="900" y2="172"/>
+                  <line x1="58" y1="226" x2="900" y2="226"/><line x1="58" y1="282" x2="900" y2="282"/>
+                </g>
+                <g fill="#8B8474" font-size="10.5" text-anchor="end">
+                  <text x="52" y="14">3000 m</text><text x="52" y="68">2500</text><text x="52" y="122">2000</text>
+                  <text x="52" y="176">1500</text><text x="52" y="230">1000</text><text x="52" y="286">500</text>
+                </g>
+
+                <!-- Isothermen · aus dem Höhenprofil abgeleitet -->
+                <path d="M58 69 L240 66 L430 71 L620 65 L780 70 L900 67" fill="none" stroke="#5B9BD5" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <path d="M58 131 L240 128 L430 133 L620 127 L780 132 L900 129" fill="none" stroke="#7A9466" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <path d="M58 192 L240 189 L430 194 L620 188 L780 193 L900 190" fill="none" stroke="#C99A4E" stroke-width="1.2" stroke-dasharray="5 4" opacity=".75"/>
+                <g fill="#8B8474" font-size="9.5"><text x="64" y="65">6 °C · 2 450 m</text><text x="64" y="127">10 °C · 1 890 m</text></g>
+
+
+                <!-- Schneefallgrenze 2 100 m -->
+                <line x1="58" y1="108" x2="900" y2="108" stroke="#B5C4D4" stroke-width="1.6"/>
+                <text x="892" y="104" font-size="10" fill="#B5C4D4" text-anchor="end">Schneegrenze 2 100 m</text>
+
+                <!-- Windvektoren je Niveau · vor dem Gelände, wird vom Fels verdeckt -->
+                <g stroke="#7A9466" stroke-width="2" stroke-linecap="round">
+                  <g><line x1="100" y1="69" x2="146" y2="69"/><path d="M146 69 l-9 -5 M146 69 l-9 5"/></g>
+                  <g><line x1="400" y1="69" x2="446" y2="69"/><path d="M446 69 l-9 -5 M446 69 l-9 5"/></g>
+                  <g><line x1="700" y1="69" x2="746" y2="69"/><path d="M746 69 l-9 -5 M746 69 l-9 5"/></g>
+                  <g><line x1="100" y1="131" x2="138" y2="131"/><path d="M138 131 l-8 -5 M138 131 l-8 5"/></g>
+                  <g><line x1="400" y1="131" x2="438" y2="131"/><path d="M438 131 l-8 -5 M438 131 l-8 5"/></g>
+                  <g><line x1="700" y1="131" x2="738" y2="131"/><path d="M738 131 l-8 -5 M738 131 l-8 5"/></g>
+                  <g><line x1="100" y1="192" x2="128" y2="192"/><path d="M128 192 l-7 -4 M128 192 l-7 4"/></g>
+                  <g><line x1="400" y1="192" x2="428" y2="192"/><path d="M428 192 l-7 -4 M428 192 l-7 4"/></g>
+                  <g><line x1="700" y1="192" x2="728" y2="192"/><path d="M728 192 l-7 -4 M728 192 l-7 4"/></g>
+                </g>
+                <g stroke="#5E7359" stroke-width="1.8" stroke-linecap="round">
+                  <g><line x1="340" y1="230" x2="356" y2="234"/><path d="M356 234 l-6 -2 M356 234 l-2 -5"/></g>
+                  <g><line x1="470" y1="230" x2="486" y2="234"/><path d="M486 234 l-6 -2 M486 234 l-2 -5"/></g>
+                  <g><line x1="800" y1="230" x2="816" y2="234"/><path d="M816 234 l-6 -2 M816 234 l-2 -5"/></g>
+                </g>
+
+                <!-- Geländeprofil · jede Höhe aus der Achsenformel -->
+                <path d="M58 340 L58 183 L110 150 L150 96 L200 14 L248 78 L290 168 L330 238 L380 255 L420 259 L470 252 L520 218 L560 178 L600 143 L650 186 L700 212 L760 228 L830 240 L900 249 L900 340 Z" fill="url(#trRock)" stroke="#5A554B" stroke-width="1.4"/>
+                <!-- Schneekappe nur oberhalb 2 100 m -->
+                <g clip-path="url(#trCap)"><path d="M58 340 L58 183 L110 150 L150 96 L200 14 L248 78 L290 168 L330 238 L380 255 L420 259 L470 252 L520 218 L560 178 L600 143 L650 186 L700 212 L760 228 L830 240 L900 249 L900 340 Z" fill="#B5C4D4" fill-opacity=".9" stroke="#D6DEE6" stroke-width="1.4"/></g>
+
+                <!-- Beschriftungen über Grund, nach dem Gelände gezeichnet -->
+                <text x="770" y="188" font-size="9.5" fill="#C99A4E">14 °C · 1 330 m</text>
+
+                <!-- Gipfel und Stationen im Schnitt -->
+                <g>
+                  <circle cx="200" cy="14" r="4.5" fill="#B5C4D4"/><text x="210" y="24" font-size="9.5" fill="#B5C4D4">Zugspitze 2 964 m · 2,4 °C</text>
+                  <circle cx="600" cy="143" r="4.5" fill="#B7AE9C"/><text x="610" y="139" font-size="9.5" fill="#B7AE9C">Wank 1 780 m · 10,8 °C</text>
+                </g>
+                <!-- gewählter Ort · 708 m -->
+                <g>
+                  <line x1="420" y1="259" x2="420" y2="288" stroke="#E0A567" stroke-width="1.4" stroke-dasharray="3 3"/>
+                  <circle cx="420" cy="259" r="6.5" fill="#E0A567" stroke="#2C2A26" stroke-width="2"/>
+                  <rect x="350" y="288" width="140" height="34" rx="6" fill="#2C2A26" stroke="#E0A567" stroke-width="1.2"/>
+                  <text x="420" y="301" font-size="10.5" fill="#F5F1E8" text-anchor="middle" font-weight="600">Garmisch-P. · 708 m</text>
+                  <text x="420" y="315" font-size="10" fill="#E0A567" text-anchor="middle">18,4 °C · Wind 3,2 m/s SW</text>
+                </g>
+                <g fill="#8B8474" font-size="10" text-anchor="middle"><text x="86" y="334">SW 20 km</text><text x="880" y="334">NO 20 km</text></g>
+              </svg></div><div style="display:flex; align-items:center; gap:7px; margin-top:7px; font-size:10px; color:#8B8474;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 8 L4 12 L8 16 M16 8 L20 12 L16 16 M4 12 H20" stroke="#8B8474" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Schnitt seitlich wischen · SW ← Ort → NO</div>
+              <div style="display:flex; gap:15px; margin-top:9px; padding-top:9px; border-top:1px solid #3A3833; flex-wrap:wrap; font-size:10px; color:#B7AE9C;">
+                <span><i style="display:inline-block; width:16px; height:8px; border-radius:2px; background:linear-gradient(0deg,#C97B47,#7A9466,#3A6FA8);"></i> Temperatur nach Höhe (warm unten → kalt oben)</span>
+                <span><i style="display:inline-block; width:14px; height:2px; background:#7A9466;"></i> Windvektor je Niveau — Länge = Stärke</span>
+                <span><i style="display:inline-block; width:14px; height:2px; background:#B5C4D4;"></i> Schneefallgrenze</span>
+                <span style="color:#8B8474;">gestrichelte Linien: Isothermen 6 / 10 / 14 °C — Höhe aus γ 7,1 K/km gerechnet</span>
+              </div>
+            </div>
+
+            <!-- Höhenprofil-Tabelle -->
+            <div style="display:flex; flex-direction:column; gap:9px;">
+              <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+                <span style="font-size:9.5px; letter-spacing:1.7px; color:#8B8474; font-weight:700;">JE HÖHENSTUFE</span>
+                <div style="display:flex; flex-direction:column; margin-top:9px;">
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">3 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">2,1°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">→ W 14 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">2 500 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">5,7°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">→ W 11 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">2 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">9,2°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ WSW 9 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 780 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">10,8°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ WSW 8 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 500 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">12,8°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 6 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #332F2A;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#8B8474;">1 000 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#F5F1E8; font-weight:600;">16,3°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 4 m/s</span></div>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0;"><span style="width:50px; flex:0 0 auto; font-size:10.5px; color:#F5F1E8; font-weight:600;">708 m</span><span style="width:42px; flex:0 0 auto; font-size:12.5px; color:#E0A567; font-weight:700;">18,4°</span><span style="flex:1; font-size:10.5px; color:#9CBF83;">↗ SW 3,2 m/s</span></div>
+                </div>
+              </div>
+              <div style="background:#211F1C; border:1px solid #3A3833; border-radius:11px; padding:13px;">
+                <span style="font-size:9.5px; letter-spacing:1.7px; color:#8B8474; font-weight:700;">ABLESUNG</span>
+                <p style="font-size:11.5px; color:#B7AE9C; margin:8px 0 0; line-height:1.55;">Die Temperatur nimmt <strong style="color:#F5F1E8;">durchgehend mit der Höhe ab</strong> — 18,4 °C am Ort (708 m) gegen 2,4 °C auf der Zugspitze (2 964 m) ergibt <strong style="color:#F5F1E8;">γ 7,1 K/km</strong>. Das ist steil und lässt heute <strong style="color:#F5F1E8;">keine Inversion</strong> zu; es gibt keinen Kaltluftsee im Tal. Der Wind dreht mit der Höhe von SW auf West und wird <strong style="color:#F5F1E8;">viermal so stark</strong> (3,2 → 14 m/s).</p>
+                <div style="font-size:10px; color:#8B8474; margin-top:9px; padding-top:8px; border-top:1px solid #332F2A; line-height:1.5;">Gelände, Gipfel und Schneegrenze sitzen auf ihrer <strong style="color:#B7AE9C;">tatsächlichen Höhe</strong> der Achse; Zwischenwerte folgen dem einen Gradienten, nichts wird aus zwei Modellen gemischt. Windvektoren enden am Fels — wo kein Pfeil steht, liegt das Niveau unter Grund. Oberstdorf und Hohenpeißenberg liegen außerhalb des ±20-km-Schnitts.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stufe 2 -->
+        <div style="display:grid; grid-template-columns:1fr; gap:12px; margin-top:12px;">
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">UV-INDEX · DWD · NUR DE</span>
+            <div style="display:flex; align-items:flex-end; gap:8px; margin-top:9px;">
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:62%; background:#E9A33C; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">5</div><div style="font-size:9px; color:#8B7355;">heute</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:78%; background:#D4632E; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">6</div><div style="font-size:9px; color:#8B7355;">morgen</div></div>
+              <div style="flex:1; text-align:center;"><div style="height:40px; display:flex; align-items:flex-end;"><div style="width:100%; height:50%; background:#D6D24E; border-radius:3px 3px 0 0;"></div></div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">4</div><div style="font-size:9px; color:#8B7355;">übermorgen</div></div>
+            </div>
+            <div style="font-size:9.5px; color:#A89A7A; margin-top:8px;">Tagesmaximum · 38 Vorhersageorte</div>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <div style="display:flex; flex-direction:column; gap:3px;"><span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">POLLEN · DWD-GEFAHRENINDEX · 8 ARTEN · NUR DE</span><span style="font-size:9.5px; color:#8B7355;">CAMS-Opt-in aus · 6 Arten, 4 Tage, überall</span></div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px 5px; margin-top:10px;">
+              <div style="text-align:center;"><div style="height:28px; background:#7A9466; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Erle</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E9A33C; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Birke</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#A32B1E; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Gräser</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Roggen</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#7A9466; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Beifuß</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Ambrosia</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E9A33C; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Esche</div></div>
+              <div style="text-align:center;"><div style="height:28px; background:#E0D6BE; border-radius:3px;"></div><div style="font-size:9px; color:#5C5447; margin-top:4px;">Hasel</div></div>
+            </div>
+            <div style="font-size:9.5px; color:#8B7355; margin-top:8px;">heute · morgen · übermorgen je Art · Region Oberbayern</div>
+          </div>
+          <div style="background:#2C2A26; border:1px solid #3A3833; border-radius:13px; padding:14px;">
+            <span style="font-size:9.5px; letter-spacing:1.8px; color:#A89A7A; font-weight:700;">ICON-D2-LAYER · 48 h · DACH</span>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Gewitterpotenzial</span><span style="color:#9CBF83; font-weight:600;">gering</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Rotation</span><span style="color:#8B8474;">—</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Neuschnee 24 h</span><span style="color:#F5F1E8; font-weight:600;">0 cm</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Böen max</span><span style="color:#E0A567; font-weight:600;">17 m/s</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#B7AE9C;"><span>Feuerwetter</span><span style="color:#9CBF83; font-weight:600;">niedrig</span></div>
+            </div>
+            <div style="font-size:9.5px; color:#8B8474; margin-top:8px;">Kartenlayer · am Ort abfragbar</div>
+          </div>
+        </div>
+        <div style="font-size:10px; color:#8B7355; margin-top:13px; text-align:center;">● DWD (ICON-D2, MOSMIX, CAP, BrightSky) · GeoSphere (INCA, TAWES) · MeteoSchweiz (CombiPrecip, SMN, POH/MESHS) · ECMWF-Ensemble · ERA5 · keine Tracker</div>
+      </div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:15px 2px 0; font-weight:300;">Einspaltig in der Reihenfolge Jetzt → Warnung → Konfidenz → Prognose (Segment volle Breite, Tageskarten gestapelt) → Stundenverlauf → Nowcast → Bewölkung → Windrichtung → Terrain (Schnitt seitlich wischbar, Maßstab bleibt lesbar) → UV · Pollen (4 × 2) · ICON-D2. Umschalter Dashboard/Karte oben volle Breite, 44-px-Ziele.</p>
+  </article>
+  </div>
+</section>
+
+
+</x-dc>
+</body>
+</html>

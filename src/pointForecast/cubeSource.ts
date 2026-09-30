@@ -1535,6 +1535,28 @@ export interface CubePathSummary {
   emission?: 'first' | 'core' | 'update';
   /** AP12, nur im progressiven Modus: was bei DIESER Ausgabe noch fehlt und nachgeliefert wird (`anchor`, `nowcast`, `static`). */
   pending?: string[];
+  /**
+   * Phase DB (E-DB-8, audit/dashboard.md §5.3): rohe Zellwerte der Cube-Stufen, die `v2` nicht trägt — Druckflächen und
+   * Profil —, an den NATIVEN Schritten, rein lesend aus demselben Bündel. `v2` und die Rechnung sind davon unberührt.
+   */
+  cells?: CubeCellRow[];
+}
+
+/** Phase DB: die durchgereichten Ebenen (Einheiten wie im Cube: °C, %, K/km, m, K). */
+export const CUBE_CELL_PLANES = Object.freeze(['t925', 't850', 't700', 'rh925', 'rh850', 'rh700', 'gammaEff', 'zBase', 'zInv', 'dTInv', 'hModEff'] as const);
+export type CubeCellPlane = typeof CUBE_CELL_PLANES[number];
+export interface CubeCellRow { validAtMs: number; tier: StepTier; v: Record<CubeCellPlane, number | null> }
+
+/** Phase DB: die Zeilen für `CubePathSummary.cells` — nur Schritte mit Zellwerten (native Cube-Schritte). */
+function cubeCellRows(steps: ReadonlyArray<{ validAtMs: number; tier: StepTier; interpolated?: boolean; cell: Record<string, number | null> }>): CubeCellRow[] {
+  const out: CubeCellRow[] = [];
+  for (const s of steps) {
+    if (s.interpolated || !s.cell || !Object.keys(s.cell).length) continue;
+    const v = {} as Record<CubeCellPlane, number | null>;
+    for (const p of CUBE_CELL_PLANES) { const x = s.cell[p]; v[p] = typeof x === 'number' && Number.isFinite(x) ? x : null; }
+    out.push({ validAtMs: s.validAtMs, tier: s.tier, v });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -1802,6 +1824,7 @@ function forecastFromBundle(
     stats: { ...bundle.stats },
     v2,
     ...(t.emission ? { emission: t.emission, pending: t.pending ?? [] } : {}),
+    cells: cubeCellRows(result.steps),
   };
   v2.timing.totalMs = summary.timing.totalMs;
   return toPointForecast(result, opts, { fetchedAt: Date.now(), cube: summary });
@@ -2153,3 +2176,11 @@ export function registerCubePointSource(io?: CubeIo): void {
   registerPointSource('cube', (opts) => getPointForecastFromCube(opts, io ?? defaultCubeIo()));
 }
 registerCubePointSource();
+
+// Phase DB (audit/dashboard.md §5.3): das Dashboard bezieht Punkt-Leser und Verteilungsrechnung ÜBER dieses Modul, das es
+// ohnehin lädt — so bleiben die Punkt-Module im Lazy-Chunk des Cube-Pfads (AP11, `verify:point-client` 8) und kein
+// zweiter Chunk entsteht. Reine Weiterreichung, ohne Wirkung auf den Cube-Pfad.
+export { exceedance } from './fusion/dist';
+export { solarPosition } from './terrainPhysics';
+export { loadStationCatalog } from '../point/client/stationPoint';
+export { nowcastSourcesFor, readNowcastPoint } from '../point/client/nowcastPoint';

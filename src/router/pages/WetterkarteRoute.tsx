@@ -19,7 +19,7 @@
  * EINE Route mit optionalem Param — bei einem Layerwechsel bleibt dieselbe
  * Route-Instanz stehen, MapView wird nicht remountet (kein `key`!).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import MapView, { type LayerKey } from '../../MapView';
 import { DACH_OVERVIEW_LOCATION } from '../../App';
@@ -39,6 +39,12 @@ import { resolveRoutePlace, slugForPlace } from '../../share/placeTable';
 // nicht nur ins Sheet des Absenders.
 import StaleLinkNotice from '../../share/StaleLinkNotice';
 import NotFoundRoute from './NotFoundRoute';
+// Phase DB (audit/dashboard.md §5.1): das Dashboard ist eine ANSICHT dieser Route (`?ansicht=dashboard`), kein eigener
+// Pfad — ein Routenwechsel baute MapView ab. Der Zustand steht als durchgereichter Query-Schlüssel in `extra`
+// (E-DB-3: kein Eingriff in das eager `urlState.ts` und kein Neubau des Edge-Bündels). Code liegt im eigenen Lazy-Chunk.
+import { dashViewOf, dashRangeOf, withDashState, dashStateValid, type DashRange } from '../../dashboard/dashUrl';
+import type { DashboardView as DashView } from '../../dashboard/ViewToggle';
+const DashboardView = lazy(() => import('../../dashboard/DashboardView'));
 
 const CAM_DEBOUNCE_MS = 300;
 
@@ -66,6 +72,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   const navigate = useNavigate();
   const nav = useAppNav();
   const base: '/wetterkarte' | '/warnungen' = fixedPrimary ? '/warnungen' : '/wetterkarte';
+  // Phase DB: das Dashboard gibt es nur auf der Wetterkarte (E-DB-4), nicht auf `/warnungen`.
+  const dashEnabled = !fixedPrimary;
 
   const parsed = useMemo(() => parseMapSearch(loc.search, Date.now(), isWhitelisted), [loc.search]);
   const slug = fixedPrimary ? LAYER_SLUGS[fixedPrimary] : params.layer;
@@ -91,7 +99,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
       cam: parsed.cam,
       place: routePlace.place,
       country: parsed.country ?? routePlace.place?.country ?? null,
-      extra: parsed.extra,
+      extra: dashEnabled ? withDashState(parsed.extra, {}) : parsed.extra,
       wantedAtMs: parsed.wantedAtMs,
       timePast: !!parsed.timePast,
     };
@@ -113,10 +121,19 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
       s.model = parsed.model; s.point = parsed.point ?? 'fusion'; s.radar = parsed.radar ?? true;
       s.place = routePlace.place; s.country = parsed.country ?? routePlace.place?.country ?? s.country;
       if (parsed.cam) s.cam = parsed.cam;
-      s.extra = parsed.extra;
+      s.extra = dashEnabled ? withDashState(parsed.extra, {}) : parsed.extra;
     }
   }
   const init = st.current;
+  // Phase DB: die Ansicht folgt der URL (Umschalten = push, also sieht der Router sie); der Zeitraum wird wie die
+  // Stunde per replaceState am Router vorbei geschrieben und steht deshalb im laufenden Zustand `st.extra`.
+  const view: DashView = dashEnabled ? dashViewOf(parsed.extra) : 'karte';
+  const [, setDashTick] = useState(0);
+  const range: DashRange = dashRangeOf(init.extra);
+  // Die Karte entsteht erst, wenn sie einmal gebraucht wird (ein Dashboard-Link lädt kein MapLibre), und bleibt danach
+  // montiert — beim Zurückwechseln keine Neu-Initialisierung (E-DB-5).
+  const mapEverRef = useRef(false);
+  if (view === 'karte') mapEverRef.current = true;
 
   const urlOf = useCallback(() => {
     const s = st.current!;
@@ -157,7 +174,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     // Geo-Seite von vor SH1) einmal auf die Slug-Form ziehen — danach ist
     // `params.ort` gesetzt und die Bedingung greift nicht erneut.
     const wantsSlugForm = !!parsed.place && !params.ort;
-    if (!slug || parsed.invalid.length || route.invalid.length || routePlace.unresolved || wantsSlugForm) {
+    const dashNonCanonical = dashEnabled && !dashStateValid(parsed.extra);
+    if (!slug || parsed.invalid.length || route.invalid.length || routePlace.unresolved || wantsSlugForm || dashNonCanonical) {
       const url = urlOf();
       lastWrittenRef.current = url;
       void navigate(url, { replace: true });
@@ -218,6 +236,28 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     s.place = l; s.country = l.country;
     push();
   }, [push]);
+  // Phase DB: Umschalten legt einen Verlaufseintrag an (Zurück kehrt zur vorigen Ansicht zurück); alle übrigen
+  // Schlüssel (Ort, `t`, Land/Modell, Kamera, Layer) bleiben stehen.
+  const onSelectView = useCallback((v: DashView) => {
+    const s = st.current!;
+    s.extra = withDashState(s.extra, { view: v });
+    push();
+  }, [push]);
+  const onOpenDashboard = useCallback(() => onSelectView('dashboard'), [onSelectView]);
+  // Phase DB (§5.3): den Abruf von buscosun Fusion schon hier starten — parallel zum Laden des Dashboard-Chunks, statt
+  // erst nach ihm. Derselbe Eintrag wird vom Dashboard übernommen (`forecastStore`, ein Abruf je Ort).
+  useEffect(() => {
+    if (view !== 'dashboard' || !place) return;
+    const p = { name: place.name, lat: place.lat, lon: place.lon, country: place.country };
+    void import('../../dashboard/data/forecastStore').then((m) => m.prefetchDashboardForecast(p)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, place?.lat, place?.lon, place?.country]);
+  const onRangeChange = useCallback((r: DashRange) => {
+    const s = st.current!;
+    s.extra = withDashState(s.extra, { range: r });
+    setDashTick((n) => n + 1);
+    replaceDebounced();
+  }, [replaceDebounced]);
 
   if (unknownPrimary) return <NotFoundRoute />;
 
@@ -225,9 +265,24 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
 
   return (
     <>
-      <StaleLinkNotice at={init.timePast ? init.wantedAtMs : null} shows="die Lage für jetzt" />
-      <StaleLinkNotice reason="horizon" at={horizonAt} />
-      <MapView
+      {view === 'karte' && <StaleLinkNotice at={init.timePast ? init.wantedAtMs : null} shows="die Lage für jetzt" />}
+      {view === 'karte' && <StaleLinkNotice reason="horizon" at={horizonAt} />}
+      {view === 'dashboard' && (
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#EDE6D3' }} aria-busy="true" />}>
+          <DashboardView
+            place={place}
+            country={country}
+            range={range}
+            onRange={onRangeChange}
+            onSelectView={onSelectView}
+            onSelectLocation={onSelectLocation}
+            onBack={nav.goHome}
+          />
+        </Suspense>
+      )}
+      {mapEverRef.current && <MapView
+        suspended={view === 'dashboard'}
+        onOpenDashboard={dashEnabled ? onOpenDashboard : undefined}
         location={mapLocation}
         overview={!place}
         initialActive={init.layers}
@@ -244,7 +299,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
         onSelectLocation={onSelectLocation}
         onBack={nav.goHome}
         onOpenFeature={nav.openFeature}
-      />
+      />}
     </>
   );
 }

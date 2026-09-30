@@ -1,0 +1,31 @@
+/* Umschalter Dashboard | Karte — Maße und Farben aus reference/dashboard.dc.html (Kopfzeile). Phase DB. */
+.vt-toggle {
+  display: flex;
+  flex: 0 0 auto;
+  background: #FFFFFF;
+  border: 1px solid #D9D0B8;
+  border-radius: 9px;
+  padding: 3px;
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+}
+.vt-btn {
+  position: relative;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: normal;
+  color: #8B7355;
+  border-radius: 6px;
+  padding: 6px 14px;
+}
+.vt-btn.is-active { font-weight: 600; color: #FAF6EA; background: #C97B47; cursor: default; }
+.vt-btn:focus-visible { outline: 2px solid #C97B47; outline-offset: 2px; }
+
+/* Mobile: volle Breite, Segmente teilen sich die Zeile (Vorlage #vm). Sichtbar 32 px hoch (13 px League Spartan +
+   2 × 10 px); die Trefferfläche reicht je 6 px über den Innenabstand des Kastens hinaus auf 44 px, ohne das Bild zu ändern. */
+.vt-mobile { border-radius: 10px; }
+.vt-mobile .vt-btn { flex: 1; text-align: center; font-size: 13px; border-radius: 7px; padding: 10px 0; }
+.vt-mobile .vt-btn::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
