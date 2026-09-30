@@ -131,7 +131,7 @@ falsch zuordnen (Index-Schlüssel `id|tier`, keine Längenprüfung in `sampleUns
 `chooseRun` einen Lauf je Quelle und Job; die Prüfung wird mit der Umstellung auf das neue URL-Schema (E-EX-5)
 eingebaut, weil dieselben Dateien angefasst werden.
 
-### 3.3 Radar: RV aus der HDF5-Lieferung (V-EX-3) — gebaut, Gates grün, Einschalten in zwei Schritten
+### 3.3 Radar: RV aus der HDF5-Lieferung (V-EX-3) — gebaut, Gates grün, **eingeschaltet am 30.09.** (`cdc9a9b`, Daten-Repo `a506f2e`)
 
 **Diagnose.** Alles, was RV liest, las das RADOLAN-Binärformat: der Spiegel (`radar-mirror.mjs`), die Ableitung der
 Bild-Slots (`radar-derive.mjs`), der Rohweg des Clients (`radolan.ts`, CDN und DWD), der Nowcast-Leser des Producers
@@ -332,7 +332,7 @@ Welche davon ohne Opt-in laufen, ist nicht einzeln nachverfolgt (V-EX-12). Für 
 |---|---|---|---|---|
 | V-EX-1 | Terminregister ohne Zustand „erledigt"; ein verstrichener Termin hielt den Punkt-Cron an | der Cube altert nicht mehr wegen eines Kalendereintrags | `resolved { on, evidence }`, Gate verlangt beides | **erledigt, gepusht** |
 | V-EX-2 | Gitterwechsel ICON-EPS / ICON-EU-EPS | σ_ens bleibt nach dem 06.10. da | `probe-eps-grid.mjs` gegen den DWD-Testlauf | **erledigt** (lesbar); Job-Dauer ansehen |
-| V-EX-3 | RV nur im Altformat gelesen | Regenradar DE und Nowcast-Member überleben den 20.10. | §3.3 | **gebaut**, Einschalten = Jans Gate |
+| V-EX-3 | RV nur im Altformat gelesen | Regenradar DE und Nowcast-Member überleben den 20.10. | §3.3 | **erledigt, eingeschaltet 30.09.** (Jans Freigabe) |
 | V-EX-4 | DWD-URL-Schema und reguläres Gitter enden am 30.11. | Wetterkarte und Cube überleben den 30.11. | §3.5 | offen (E-EX-5) |
 | V-EX-5 | „MeteoSchweiz kündigt API an" hätte das Cron-Gate am 30.12. angehalten | — | `informational: true` | **erledigt, gepusht** |
 | V-EX-6 | gelernte Tabellen ohne Altersprüfung | ein veralteter Fit wird genannt statt still benutzt | Leser vergleicht `period.to` mit der Uhr, Notiz im Produkt | offen |
