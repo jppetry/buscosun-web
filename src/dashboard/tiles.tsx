@@ -125,7 +125,8 @@ export function ConfidenceCard({ vm }: { vm: ConfVM }) {
         <div className="dbd-conf-main">
           <div className="dbd-conf-pct"><Val v={vm.band} /></div>
           <div className="dbd-conf-range"><Val v={vm.bandRange} long /></div>
-          <div className={`dbd-conf-word${fair ? ' is-fair' : ''}`}>Index <Val v={vm.value} /> · <Val v={vm.word} /></div>
+          {/* E-KF-4: das Wort und sein gemessener Fehler tragen die Zeile; der Index (kein Wahrscheinlichkeitsmaß) steht im Tooltip */}
+          <div className={`dbd-conf-word${fair ? ' is-fair' : ''}`} title={vm.value.t ? `Konfidenz-Index ${vm.value.t} (0–100, kein Wahrscheinlichkeitsmaß; Klasse aus Score-Perzentilen am Archiv)` : undefined} data-origin="P22"><Val v={vm.word} /> · <Val v={vm.typical} long /></div>
         </div>
       </div>
       <div className="dbd-weights" data-origin="P24">

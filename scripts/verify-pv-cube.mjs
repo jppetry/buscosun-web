@@ -27,6 +27,7 @@ import {
 import { verifyVertical, verticalCorrection, STANDARD_LAPSE_PER_M } from '../src/pointForecast/fusion/vertical.ts';
 import { verifyGrid, blockOffsets, GRID_SET } from '../src/pointForecast/fusion/grid.ts';
 import { verifyUncertainty } from '../src/pointForecast/fusion/uncertainty.ts';
+import { verifyConfidenceClasses } from '../src/pointForecast/fusion/confidenceClasses.ts';
 import { verifyTerrainTerms, fSaisonOf } from '../src/pointForecast/fusion/terrainTerms.ts';
 import { toPointForecastV2, verifyOutput } from '../src/pointForecast/fusion/output.ts';
 import { accAt, ACC } from '../src/pointForecast/fusion/priors.ts';
@@ -412,6 +413,7 @@ let resultRef = null;
 {
   const u = verifyUncertainty();
   for (const c of u.checks) add(`(10) uncertainty: ${c.name}`, c.ok, c.detail);
+  for (const c of verifyConfidenceClasses()) add(`(10) confidenceClasses (E-KF-3): ${c.name}`, c.ok, c.detail);
 
   // Der Motor-Haken: ein Sample mit `errorSigma` ist eine unverzerrte Schätzung mit genau dieser σ —
   // bei Vorlauf 100 h nicht durch ρ geschrumpft; ohne das Feld wird es geschrumpft (Negativkontrolle).
@@ -2706,29 +2708,45 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     // a REAL schema-5 chunk from the local data repo (the cube before AX-7), when the clone carries one
     const { readdirSync, readFileSync, existsSync, statSync } = await import('node:fs');
     const { join } = await import('node:path');
-    let real5 = null, realPath = null;
+    // since Jan's push `a02f2b5` (30.09. 15:33 UTC) the runner writes schema 6 — the clone carries schema-5 chunks only while the
+    // retention keeps runs built before it; both are checked where present, named in the detail
+    let real5 = null, realPath = null, real6 = null, realPath6 = null;
     const root = 'C:/dev/buscosun-data/point';
     if (existsSync(root)) {
       for (const run of readdirSync(root).filter((d) => /^\d{10}$/.test(d)).sort().reverse()) {
         for (const tier of ['t3', 't2', 't1']) {
           const dir = join(root, run, tier);
           if (!existsSync(dir)) continue;
-          for (const f of readdirSync(dir)) { const p = join(dir, f); if (statSync(p).isFile()) { const b = new Uint8Array(readFileSync(p)); if (isChunk(b)) { real5 = b; realPath = `${run}/${tier}/${f}`; break; } } }
-          if (real5) break;
+          for (const f of readdirSync(dir)) {
+            const p = join(dir, f);
+            if (!statSync(p).isFile()) continue;
+            const b = new Uint8Array(readFileSync(p));
+            if (!isChunk(b)) continue;
+            const sch = new DataView(b.buffer, b.byteOffset).getUint16(4, true);
+            if (sch === 5 && !real5) { real5 = b; realPath = `${run}/${tier}/${f}`; }
+            else if (sch === 6 && !real6) { real6 = b; realPath6 = `${run}/${tier}/${f}`; }
+            break;
+          }
+          if (real5 && real6) break;
         }
-        if (real5) break;
+        if (real5 && real6) break;
       }
     }
     const pl5 = real5 ? planesForChunkHeader(real5) : null;
+    const pl6r = real6 ? planesForChunkHeader(real6) : null;
+    const ch6r = pl6r ? await decodeCubeChunk(real6, { planes: pl6r }) : null;
+    const iT6 = pl6r ? pl6r.findIndex((p) => p.id === 't2m') : -1;
+    const finite6 = !!ch6r && iT6 >= 0 && (() => { for (let k = 0; k < ch6r.planes[iT6].length; k++) { const q = ch6r.planes[iT6][k]; if (q !== -32768) return Number.isFinite(dequantize(q, pl6r[iT6])); } return false; })();
     const ch5 = pl5 ? await decodeCubeChunk(real5, { planes: pl5 }) : null;
     const iT5 = pl5 ? pl5.findIndex((p) => p.id === 't2m') : -1;
     const finite5 = !!ch5 && iT5 >= 0 && (() => { for (let k = 0; k < ch5.planes[iT5].length; k++) { const q = ch5.planes[iT5][k]; if (q !== -32768) return Number.isFinite(dequantize(q, pl5[iT5])); } return false; })();
     const isEnsMean = (id) => CUBE_ENS_MEAN_VARS.some((v) => id === `${v}_ens`);   // not `_sd_ens`
     const okReal = !real5 || (!!pl5 && pl5.length === 57 && !pl5.some((p) => isEnsMean(p.id)) && pl5.some((p) => p.id === 't2m_sd_ens') && finite5 && new DataView(real5.buffer, real5.byteOffset).getUint16(4, true) === 5);
-    transitionOk = !!pl6 && pl6.length === 61 && planesForChunkHeader(mis) === null && planesForChunkHeader(foreign) === null && okReal;
-    detail35 = `V6 ${pl6?.length} · Schema-5-Byte mit 61 Ebenen ${planesForChunkHeader(mis)} · fremd ${planesForChunkHeader(foreign)} · echter Schema-5-Chunk ${realPath ?? 'keiner im Klon'}: ${pl5 ? `${pl5.length} Ebenen, t2m lesbar ${finite5}` : '—'}`;
+    const okReal6 = !real6 || (!!pl6r && pl6r.length === 61 && pl6r.some((p) => isEnsMean(p.id)) && finite6);
+    transitionOk = !!pl6 && pl6.length === 61 && planesForChunkHeader(mis) === null && planesForChunkHeader(foreign) === null && okReal && okReal6 && !!(real5 || real6);
+    detail35 = `V6 ${pl6?.length} · echter Schema-6-Chunk ${realPath6 ?? 'keiner im Klon'}: ${pl6r ? `${pl6r.length} Ebenen, _ens ${pl6r.some((p) => isEnsMean(p.id))}, t2m lesbar ${finite6}` : '—'} ·Schema-5-Byte mit 61 Ebenen ${planesForChunkHeader(mis)} · fremd ${planesForChunkHeader(foreign)} · echter Schema-5-Chunk ${realPath ?? 'keiner im Klon'}: ${pl5 ? `${pl5.length} Ebenen, t2m lesbar ${finite5}` : '—'}`;
   }
-  add('(35) Übergang: ein echter Schema-5-Chunk aus dem Daten-Repo (57 Ebenen) bekommt ohne Manifest die Schema-5-Liste (ohne _ens) und liest T; Schema 6/61 die aktuelle Liste; Schema-Byte 5 mit 61 Ebenen und ein fremdes Schema 7 ⇒ null (Manifest)', transitionOk, detail35);
+  add('(35) Übergang an echten Chunks des Daten-Repo-Klons (mindestens einer): ein Schema-5-Chunk (57 Ebenen, solange die Aufbewahrung einen hält) bekommt ohne Manifest die Schema-5-Liste (ohne _ens) und liest T, ein Schema-6-Chunk (61 Ebenen, Runner seit a02f2b5) die Liste mit _ens und liest T; Schema 6/61 die aktuelle Liste; Schema-Byte 5 mit 61 Ebenen und ein fremdes Schema 7 ⇒ null (Manifest)', transitionOk, detail35);
   add('(35) Manifest: Schema 5 UND 6 bestehen die Prüfung, 4 nicht', !validateRunManifest || (() => {
     const base = JSON.parse(JSON.stringify(b3.index ? {} : {}));
     return true;   // die Manifestprüfung selbst ist in verify:point-data (3z) gemessen; hier nur die Lesbarkeitsliste
@@ -2877,6 +2895,40 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     && pAtYes.cube.v2.provenance.calibByVar.t2m.includes('incaAnchor') && pAtYes.cube.v2.provenance.calibByVar.wind.includes('incaAnchor') && !pAtYes.cube.v2.provenance.calibByVar.precip.includes('incaAnchor')
     && cubeIoVariantKey({ incaAnchor: true }).endsWith('|inca') && cubeIoVariantKey({}) === '',
     `seen ${JSON.stringify(seen)} · note ${!!pAtNo.cube.notes.find((n) => n.startsWith('incaAnchor:'))} · de ${!pDe.cube.notes.some((n) => n.startsWith('incaAnchor:'))} · off ${!pOff.cube.notes.some((n) => n.startsWith('incaAnchor:'))} · t2m ${pAtYes.cube.v2.provenance.calibByVar.t2m.includes('incaAnchor')} · wind ${pAtYes.cube.v2.provenance.calibByVar.wind.includes('incaAnchor')} · precip ${!pAtYes.cube.v2.provenance.calibByVar.precip.includes('incaAnchor')} · key ${cubeIoVariantKey({ incaAnchor: true })}`);
+}
+
+// (38) Phase AX, E-AX-11 (`audit/fusion-ausbau.md` §6h, V-AX-13): der Wind am Punkt ohne Station — `priorShrinkWind` (Wind und Böe
+//      behalten den Klimatologie-Schritt trotz `priorShrink: false`, Objektform `{ except }` in fuse.ts) und `anchorWindKm` (der
+//      Anker für u/v/Böe über die Distanz der Messung gedämpft, T unberührt). Beide voreingestellt aus ⇒ byte-gleich.
+{
+  const { cubeInputFromBundle, fuseCubePoint } = await import('../src/pointForecast/cubeSource.ts');
+  const bundleW = await readPointBundle(
+    { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  const inW = (obs) => { const i = cubeInputFromBundle(bundleW, clima, obs); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; return i; };
+  const js = (r) => JSON.stringify(r.steps.map((s) => s.fused));
+  // (a) der Schritt je Größe: ohne priorShrink:false wirkungslos; mit ihm bleibt μ_T gleich, der Wind wechselt an ≥ 1 Schritt, calib/calibByVar nennen ihn
+  const b0 = fuseCubePoint(inW(null), { hourly: false });
+  const bOff = fuseCubePoint(inW(null), { hourly: false, priorShrink: false });
+  const bW = fuseCubePoint(inW(null), { hourly: false, priorShrink: false, priorShrinkWind: true });
+  const bWonly = fuseCubePoint(inW(null), { hourly: false, priorShrinkWind: true });
+  const wsOf = (r, i) => quantileOf(r.steps[i].fused.windSpeed.dist, 0.5);
+  const windDiffers = bW.steps.some((s, i) => Math.abs(wsOf(bW, i) - wsOf(bOff, i)) > 1e-9);
+  const tSame = bW.steps.every((s, i) => near(s.fused.temperature.dist.mu, bOff.steps[i].fused.temperature.dist.mu, 1e-9) && Math.abs(s.fused.temperature.dist.sigma - bOff.steps[i].fused.temperature.dist.sigma) < 0.3);
+  add('(38) priorShrinkWind: ohne priorShrink:false byte-gleich zur Voreinstellung; mit priorShrink:false wechselt der Wind an ≥ 1 Schritt (der Schritt bleibt für Wind/Böe), μ_T bleibt exakt (σ_T ≤ 0,3 K Kopplung), calib `priorShrinkWind:set` nur mit beidem, calibByVar wind/gust kennen den Schlüssel',
+    js(bWonly) === js(b0) && !bWonly.calib.some((c) => c.startsWith('priorShrinkWind:')) && windDiffers && tSame && bW.calib.some((c) => c.startsWith('priorShrinkWind:set')) && !bOff.calib.some((c) => c.startsWith('priorShrinkWind:'))
+    && js(bOff) !== js(b0),
+    `wind differs ${windDiffers} · T same ${tSame} · calib ${bW.calib.filter((c) => c.startsWith('priorShrink')).map((c) => c.split(' — ')[0]).join(', ')}`);
+  // (b) der Wind-Anker über die Distanz: eine Messung 15 km entfernt mit T und u — die T-Verschiebung bleibt, die Windverschiebung schrumpft (e^(−(15/10)²) ≈ 0,1); bei d = 0 byte-gleich
+  const t0v = b0.steps[0].validAtMs, tAt0 = b0.steps[0].fused.temperature.dist.mu;
+  const obsD = (d) => [{ source: 'dwd_obs', lat: FIX.lat, lon: FIX.lon, elevM: FIX.hTrue, distanceM: d, validAtMs: t0v, temperature: tAt0 + 2, relativeHumidity: null, u: wsOf(b0, 0) + 4, v: 0, gust: null }];
+  const a15 = fuseCubePoint(inW(obsD(15_000)), { hourly: false }), a15d = fuseCubePoint(inW(obsD(15_000)), { hourly: false, anchorWindKm: 10 });
+  const a0 = fuseCubePoint(inW(obsD(0)), { hourly: false }), a0d = fuseCubePoint(inW(obsD(0)), { hourly: false, anchorWindKm: 10 });
+  const dT = (r) => r.steps[1].fused.temperature.dist.mu - b0.steps[1].fused.temperature.dist.mu, dW = (r) => wsOf(r, 1) - wsOf(b0, 1);
+  add('(38) anchorWindKm: bei 15 km bleibt die T-Verschiebung des Ankers gleich, die Windverschiebung schrumpft auf < ¼ und bleibt > 0; bei d = 0 byte-gleich; calib `anchorWind:set` nur mit Option',
+    near(dT(a15d), dT(a15), 1e-9) && Math.abs(dT(a15)) > 0.05 && Math.abs(dW(a15)) > 0.05 && Math.abs(dW(a15d)) < 0.25 * Math.abs(dW(a15)) && Math.abs(dW(a15d)) > 0
+    && js(a0d) === js(a0) && a15d.calib.some((c) => c.startsWith('anchorWind:set')) && !a15.calib.some((c) => c.startsWith('anchorWind:')) && js(fuseCubePoint(inW(null), { hourly: false, anchorWindKm: 10 })) === js(b0),
+    `ΔT 15 km ${dT(a15).toFixed(3)} / ${dT(a15d).toFixed(3)} K · Δws 15 km ${dW(a15).toFixed(3)} → ${dW(a15d).toFixed(3)} m/s · d=0 gleich ${js(a0d) === js(a0)}`);
 }
 
 let failed = 0;

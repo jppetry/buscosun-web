@@ -13,6 +13,7 @@
 import { useMemo, useState } from 'react';
 import type { PointForecast } from './types';
 import type { PointForecastV2, StepV2, VarV2, VarIdV2, MemberV2 } from './fusion/output';
+import { confidenceWordOf, type ConfClassVar } from './fusion/confidenceClasses';
 import './pointForecastBands.css';
 
 type VarKey = Extract<VarIdV2, 't2m' | 'wind' | 'gust' | 'precip' | 'clct' | 'td2m'>;
@@ -170,7 +171,7 @@ export default function PointForecastBands({ data }: Props) {
                   </span>
                 )}
               </button>
-              {expanded && <StepDetail step={s} v={v} digits={meta.digits} unit={unit} />}
+              {expanded && <StepDetail step={s} v={v} id={varId} digits={meta.digits} unit={unit} />}
             </li>
           );
         })}
@@ -190,7 +191,10 @@ export default function PointForecastBands({ data }: Props) {
   );
 }
 
-function StepDetail({ step, v, digits, unit }: { step: StepV2; v: VarV2 | null; digits: number; unit: string }) {
+/** E-KF-3: the variables with a word class in `confidenceClasses.ts`. */
+const CONF_CLASS_IDS = new Set<string>(['t2m', 'td2m', 'wind', 'gust', 'clct']);
+
+function StepDetail({ step, v, id, digits, unit }: { step: StepV2; v: VarV2 | null; id: VarIdV2; digits: number; unit: string }) {
   return (
     <div className="pfb-detail">
       {v ? (
@@ -198,7 +202,7 @@ function StepDetail({ step, v, digits, unit }: { step: StepV2; v: VarV2 | null; 
           <div><dt>p10 / p50 / p90</dt><dd>{num(v.p10, digits)} / {num(v.p50, digits)} / {num(v.p90, digits)} {unit}</dd></div>
           <div><dt>Mittel · σ</dt><dd>{num(v.mean, digits)} · {num(v.sigma, digits)} {unit}</dd></div>
           <div><dt>σ-Art</dt><dd>{SIGMA_TEXT[v.sigmaKind] ?? v.sigmaKind}{v.dist ? ` · ${v.dist.kind}` : ''}</dd></div>
-          <div><dt>Konfidenz</dt><dd>{v.confidence ? `${pct(v.confidence.score)} (Schärfe ${pct(v.confidence.spread)} · Einigkeit ${pct(v.confidence.agree)} · Lage ${pct(v.confidence.lage)})` : '—'}</dd></div>
+          <div><dt>Konfidenz</dt><dd>{v.confidence ? `${pct(v.confidence.score)}${CONF_CLASS_IDS.has(id) ? ` · ${confidenceWordOf(id as ConfClassVar, v.confidence.score)}` : ''} (Schärfe ${pct(v.confidence.spread)} · Einigkeit ${pct(v.confidence.agree)} · Lage ${pct(v.confidence.lage)})` : '—'}</dd></div>
           {v.calib.length > 0 && <div><dt>Setzungen hier</dt><dd>{v.calib.join(', ')}</dd></div>}
         </dl>
       ) : <p className="pfb-empty">Diese Größe trägt der Schritt nicht.</p>}

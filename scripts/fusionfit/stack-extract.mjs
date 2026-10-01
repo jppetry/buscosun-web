@@ -216,7 +216,15 @@ const VARIANTS = Object.freeze({
   P4: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, learnedRoute: 'tier' },
   // phase AX, AX-4 (E-AX-4/5): the stage `fs` with the tables that carry the cloud atoms (`--tables2`) — same options as P3
   P5: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true },
+  // phase AX, E-AX-11 (V-AX-13): wind without a station — P6 wind/gust keep the climatological step, P7 the wind anchor is damped
+  // over the distance of the measurement (10 km), P8 both; each on top of P3 (the stage as it runs)
+  P6: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, priorShrinkWind: true },
+  P7: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10 },
+  P8: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, priorShrinkWind: true, anchorWindKm: 10 },
 });
+// `--variants=P3,P6,P7,P8` — only these variants are computed (default: all); the product and cube-hc runs are always computed
+const variantFilter = typeof flags.variants === 'string' ? new Set(flags.variants.split(',').map((s) => s.trim()).filter(Boolean)) : null;
+if (variantFilter) { for (const v of variantFilter) if (!VARIANTS[v]) throw new Error(`--variants: unbekannte Variante ${v}`); say(`Varianten: ${[...variantFilter].join(', ')} (--variants)`); }
 const EQ_POINTS = 25;   // per slot: the engine with priorShrink:false on the run-1 chain, against the offline form (K5)
 const stackTable = typeof flags.stack === 'string' ? JSON.parse(readFileSync(flags.stack, 'utf8')) : null;
 { const e = stackTable ? validateStackTable(stackTable) : []; if (e.length) throw new Error(`${flags.stack}: ${e.join('; ')}`); }
@@ -264,7 +272,8 @@ for (const meta of issueSlots) {
       const out = {};
       if (fitOnly) return out;
       for (const [name, opts] of Object.entries(VARIANTS)) {
-        const withStack = name === 'P3' || name === 'P4' || name === 'P5';
+        if (variantFilter && !variantFilter.has(name)) continue;
+        const withStack = name !== 'P1' && name !== 'P2';
         if (withStack && !stackTable) continue;
         if (name === 'P5' && !foldTables2) continue;
         const tablesOf = name === 'P5' ? foldTables2 : foldTables;

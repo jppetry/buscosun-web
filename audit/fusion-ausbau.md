@@ -28,7 +28,8 @@
 | AX-9 | Klimagitter 1991–2020 als Temperatur-Prior (#13, E-EX-4) | **fertig, gemessen, Produkt im Daten-Repo (`3869297b`)** — Producer aus DWD-CDC/SPARTACUS/MeteoSwiss (GK3 selbst, SPARTACUS-Normale aus Wert − Anomalie mit exakter Gegenprobe, CH-Sonne relativ → Stunden), 208 Chunks 1,87 MiB, 53 % der Zellen (DE/AT/CH/LI); Client `CubeIo.climaGrid` (`?cg=1`) ersetzt das Tagesmittel T des Priors mit Lapse gegen `elev_src`; **Messung an 14 762 Punkt-Monaten:** Alpen −28 %, CH −16 %, Δh > 200 m −23 %, DE-Flachland +10 %; beide Prioren ≈ 1,2 K zu kalt ⇒ `climaTrend` (0,45 K/Dekade, set): Stationsfeld 1,63 → 1,36, Gitter 1,57 → **1,22 K**; alles voreingestellt aus = E-AX-9 | Block 36 (6 Prüfungen) · `clima-grid-check.mjs` · `%TEMP%\ax9` |
 | AX-10 | INCA-Analyse als Anker in Österreich (#14, zweiter Teil) | **gebaut, nicht gemessen** — `CubeObs.weight` (Analyse ≠ Messung), INCA-Zeitreihe am Punkt (Latenz ≈ 1–1,5 h gemessen) parallel zu den Stationen, nur AT, nur mit `CubeIo.incaAnchor` (`?inca=1`), Gewicht 0,6 set; Ausbleiben benannt; Produktwirkung braucht das Archiv (E-AX-10) | Block 37 (4 Prüfungen) |
 | AX-11 | Globalstrahlung, Sonnenscheindauer, Sichtweite im Stationsprodukt (#21) | **fertig, lokal geprüft** — drei Ebenen hinter den 61 Cube-Ebenen (MOSMIX `Rad1h`/`SunD1`/`VV`, in S und L), Manifest nennt sie, Leser unverändert (München 30.09. 15 UTC 342 W/m², 60 min, 51 km); +1,66 MiB je Lauf; Dashboard kann sie aus der Stationsreihe nehmen (Phase DB) | `verify:point-data` (3n, 3 Prüfungen) · `%TEMP%\ax8\repo` |
-| AX-12 | Messung: buscosun Fusion heute (Stufe fs) gegen Fit 5e am Archiv 16.–28.09., an den Stationen (Auftrag Jan 30.09. abends, nach dem Commit `a02f2b5`) | **gemessen** — 365 513 Zeilen, 13 Ausgabetage, 389 Stationspunkte, Wahrheit bis zum 29.09.-Slot (V-AX-4 behoben: Schema 3 lesbar, `--slotsFrom`); **Modus S gegen 5e: MAE 22 von 36 Zellen signifikant besser, 0 schlechter** (T +17…+29 %*, Td +10…+22 %*, Wind +20…+27 %*, Böe +16…+28 %*, Bewölkung +11…+18 %*, PIT-Rand 0,62–0,75 → 0,28–0,33; Niederschlag unverändert); gegen MOSMIX T +14/+7/+6/+3 %*, Td +13…+19 %*, Wind 0–6 h +6 %* sonst gleichauf, Böe 0–6 h +10 %*; **CH Wind/Böe weiter −2…−10 %! (E-AX-7 offen)**; Modus L (stationslos): 15 besser / 2 schlechter — **Wind 0–6 h −1,2 %!, 126–240 h −4,1 %!, 0–120 h unter der Lernstufe allein ⇒ V-AX-13, E-AX-11**; Kontrolle In-sample gegen Leave-Day-out ≤ 1,2 % | §6g · `scripts/fusionfit/now-vs-5e.mjs` · `fusion-ausbau/now-vs-5e.md` · `score\2026-09-30-now5e` · `verify:fusion-fit` 125/125 (16i). **Schaltkandidaten (§6g.5, `now-vs-5e-b.md`):** Wolkenatome (AX-4) Bewölkung CRPS +6…+10 %*, PIT-Rand 0,3 → 0,2, K7 bestanden ⇒ BESSER; Landesparameter (E-AX-7) Wind/Böe +2…+3 %* (CH +1,5…+8 %*), CH gegen MOSMIX von −2…−10 %! auf −0,6…−1,1 % (n.s.), Td −0,1…−1,0 % ⇒ ohne Td-Landeseinträge einspielen (V-AX-15); zusammen gegen 5e **23 / 0 / 13** — Einspielen = Jans Go |
+| AX-12 | Messung: buscosun Fusion heute (Stufe fs) gegen Fit 5e am Archiv 16.–28.09., an den Stationen (Auftrag Jan 30.09. abends, nach dem Commit `a02f2b5`) | **gemessen** — 365 513 Zeilen, 13 Ausgabetage, 389 Stationspunkte, Wahrheit bis zum 29.09.-Slot (V-AX-4 behoben: Schema 3 lesbar, `--slotsFrom`); **Modus S gegen 5e: MAE 22 von 36 Zellen signifikant besser, 0 schlechter** (T +17…+29 %*, Td +10…+22 %*, Wind +20…+27 %*, Böe +16…+28 %*, Bewölkung +11…+18 %*, PIT-Rand 0,62–0,75 → 0,28–0,33; Niederschlag unverändert); gegen MOSMIX T +14/+7/+6/+3 %*, Td +13…+19 %*, Wind 0–6 h +6 %* sonst gleichauf, Böe 0–6 h +10 %*; **CH Wind/Böe weiter −2…−10 %! (E-AX-7 offen)**; Modus L (stationslos): 15 besser / 2 schlechter — **Wind 0–6 h −1,2 %!, 126–240 h −4,1 %!, 0–120 h unter der Lernstufe allein ⇒ V-AX-13, E-AX-11**; Kontrolle In-sample gegen Leave-Day-out ≤ 1,2 % | §6g · `scripts/fusionfit/now-vs-5e.mjs` · `fusion-ausbau/now-vs-5e.md` · `score\2026-09-30-now5e` · `verify:fusion-fit` 125/125 (16i). **Schaltkandidaten (§6g.5, `now-vs-5e-b.md`):** Wolkenatome (AX-4) Bewölkung CRPS +6…+10 %*, PIT-Rand 0,3 → 0,2, K7 bestanden ⇒ BESSER; Landesparameter (E-AX-7) Wind/Böe +2…+3 %* (CH +1,5…+8 %*), CH gegen MOSMIX von −2…−10 %! auf −0,6…−1,1 % (n.s.), Td −0,1…−1,0 % ⇒ ohne Td-Landeseinträge einspielen (V-AX-15); zusammen gegen 5e **23 / 0 / 13** — **mit Jans Go eingespielt (Daten-Repo `1aaec969`) = „buscosun Fusion 6"** (§6g.6) |
+| E-AX-11 | Wind ohne Station (V-AX-13; Auftrag Jan 30.09. „ja starte") | **gebaut (zwei Optionen, aus), gemessen — Schritt SCHLECHTER, Anker GLEICHSTAND** — `priorShrinkWind` (Schritt bleibt für Wind/Böe): Modus L Böe 0–120 h −3,5…−5,7 %!, DE-Wind bis −11 %!, aber AT/CH-Wind +3…+15 %* und 126–240 h +4,7 %* ⇒ V-AX-17 (Defizit im gelernten Windmember); `anchorWindKm: 10` (Wind-Anker über die Distanz gedämpft): nirgends schlechter, 0–6 h Böe +0,6 %*, Wind +0,5 % (gegen 5e −1,1 %! → −0,6 % n.s.); K8 bestanden; Empfehlung: Anker in die Stufe fs mit dem nächsten Push (= buscosun Fusion 7), Schritt nein, E-AX-13 mit ≥ 30 Tagen | §6h · `fusion-ausbau/eax11.md` · `score\2026-09-30-eax11` · `verify:pv-cube` 398/398 (Block 38) · `verify:pv-fusion` 235/235 · Build 249/249 · Budget grün |
 | AX-6 | Ensemble-Mittel in t3 (E-EX-1, #3) — die Messung | **gemessen (roh, 13 Monate, 129 Läufe)** — gegen jeden Einzellauf bei 126–336 h T +14/+23 %*, Wind +13/+16 %*, Böe +10/+12 %*; gegen das Mittel zweier Läufe bei T erst ab 246 h (+10 %*); bei 246–336 h gleichauf mit der Klimatologie ⇒ Gewinn vor allem Wind/Böe; Producer-Schritt = E-AX-6 | `score\2026-09-30-ax6`, `fusion-ausbau/ax6-ens.md` |
 | — | Nicht gebaut (Entwürfe §6f) | #17 CH-Member, #18 Exposition, #20 zeitversetztes Ensemble (heute nicht messbar), #4 RUC (E-EX-5: Phase 30.11.), #6 flächige MOS-Korrektur und #8 flächige Niederschlagswahrheit (Datenprogramme); Kalender #1/2 (≥ 30 Ausgabetage), #9 (Winter) | — |
 
@@ -838,20 +839,100 @@ Kette ergibt die nächste Nummer, die 6 wird nie umgehängt. Im Code steht die B
 `FUSION_RELEASE` mit Name, Commit und Tabellen-Hashes, im `stage:fs`-Hinweis des Produkts sichtbar — Client-Änderung, mit dem nächsten
 Push).
 
+## 6h E-AX-11 — Wind ohne Station (V-AX-13): Diagnose, zwei Optionen, Messung (Auftrag Jan 30.09., „ja starte")
+
+### 6h.1 Diagnose (30.09., 18:45 UTC, am Code)
+
+Befund V-AX-13 (§6g.3): am Punkt ohne eigene Station (Modus L) ist die Stufe fs beim Wind in 2 von 6 Bins signifikant schlechter als
+die Kette von 5e (0–6 h −1,2 %!, 126–240 h −4,1 %!) und bei 0–120 h unter der Lernstufe allein (−1,3…−5,0 %!); AT in 4 von 5 Bins,
+CH bei 126–240 h −13 %!. T, Td und Böe zeigen das nicht. Zwei Stellen im Motor kommen in Frage:
+
+1. **Der Klimatologie-Schritt fällt für alle Größen zugleich.** `priorShrink: false` (Phase FS, D2) setzt in `fuse.ts`
+   `noShrink = ctx.priorShrink === false && explicit === members.length` — je Größe, aber mit einem globalen Schalter. D2 war an T
+   gemessen (Steigung 1,04–1,13); für den Wind gab es keine eigene Messung. Ohne Station sind alle Member explizit (Lernstufe,
+   ggf. Nachbar-MOSMIX) ⇒ der Wind verliert die Schrumpfung, die gegen die Rice-Drift (V-FI-107) und im Relief half.
+2. **Der Anker gewichtet eine ferne Messung beim Wind wie bei T.** `spatialWeight` (`leadTimeWeights.ts`, D_REF 20 km, H_REF 200 m)
+   gibt einer 20 km entfernten Messung noch 0,5, einer 10 km entfernten 0,8 — und dasselbe Gewicht geht in die Paare für T, u, v
+   und Böe. Im Modus L kommt die Messung der Nachbarstation (10–30 km) mit `distanceM`; beim Wind trägt sie deren Exposition und
+   Richtung, bei T ist der Ortsversatz übertragbarer.
+
+### 6h.2 Zwei Optionen, voreingestellt aus (ohne sie byte-gleich)
+
+| Option | Wirkung | Wo |
+|---|---|---|
+| `FuseCubeOptions.priorShrinkWind` | mit `priorShrink: false` behalten **Wind und Böe** den Klimatologie-Schritt: `FusionContext.priorShrink = { except: ['wind', 'gust'] }` (neue Objektform in `fuse.ts`, `shrinkOff` je Größe) | `fuse.ts`, `cubeSource.ts` (Kontext, calib `priorShrinkWind:set`) |
+| `FuseCubeOptions.anchorWindKm` | die Anker-Paare für u, v und Böe werden zusätzlich mit e^(−(d/L)²) über die Distanz der Messung gedämpft; T behält `spatialWeight`; d = 0 (Station am Punkt, INCA) unberührt | `cubeSource.ts` Anker-Schleife (`wspW`), calib `anchorWind:set` |
+
+`CALIB_KEYS_OF` (wind, gust) kennt beide Schlüssel. Varianten im Extractor: **P6** = P3 + `priorShrinkWind`, **P7** = P3 +
+`anchorWindKm: 10`, **P8** = beides; `--variants=P3,P6,P7,P8` rechnet nur diese. Scorer: Kandidaten `product-FS+shrinkW`/`+anchorW`/
+`+both`, Regel „nirgends signifikant schlechter in L und S, ≥ 3 Zellen signifikant besser in L ⇒ BESSER", Kontrolle **K8** (nur
+Wind/Böe berührt: MAE von T/Td/Bewölkung/Niederschlag byte-gleich, CRPS von Td/Bewölkung/Niederschlag byte-gleich, T-CRPS ≤ 0,5 %).
+**Rauchtest (40 Punkte, Ausgabe 28./29.09.):** Td und Niederschlag in beiden Modi byte-gleich; im Modus S ändert P6 den Wind nur an
+23 von 936 Zellen (dort greift der Stationswert nicht), P7 nichts (d = 0); im Modus L ändern sich Wind und Böe fast überall — und
+**σ_T in 0–24 h um bis zu 0,18 K bei unverändertem μ_T** (der Stabilitätsterm von σ_T liest die Windgeschwindigkeit; deshalb die
+Toleranz in K8).
+
+### 6h.3 Messung (30.09., 19:03–19:55 UTC; `score\2026-09-30-eax11`, Karte `fusion-ausbau/eax11.md` Abschnitt G)
+
+Dieselben 365 513 Zeilen (13 Ausgabetage, 389 Stationspunkte) wie AX-12, Varianten P3 (= buscosun Fusion 6 ohne Atome/Land, „heute"),
+P6, P7, P8; 60 256 Motorläufe, 26 min; 8 098 Zellen, 41 534 DM-Tests. K8 bestanden für alle drei (T/Td/Bewölkung/Niederschlag im
+Punktwert byte-gleich; größte relative Abweichung des T-CRPS 0,05 %).
+
+**Modus L (Punkt ohne Station), Δ MAE gegen heute:**
+
+| Zelle | P6 Schritt für Wind/Böe | P7 Wind-Anker 10 km | P8 beides | heute gg. 5e |
+|---|---|---|---|---|
+| Wind 0–6 h | +0,9 % | +0,5 % | **+1,3 %*** | −1,1 %! |
+| Wind 7–24 h | −1,3 % | 0,0 % | −1,2 % | +2,3 % |
+| Wind 25–48 h | −2,5 % | 0,0 % | −2,5 % | +1,9 % |
+| Wind 51–120 h | −3,4 % | 0,0 % | −3,4 % | +3,7 % |
+| Wind 126–240 h | **+4,7 %*** | 0,0 % | **+4,7 %*** | −4,0 %! |
+| Böe 0–6 h | **−3,7 %!** | **+0,6 %*** | −3,2 %! | +9,3 %* |
+| Böe 7–120 h | **−3,5…−5,7 %!** | 0,0 % | −3,5…−5,7 %! | +13…+15 %* |
+| Böe 126–240 h | +1,6 %* | 0,0 % | +1,6 %* | +13,6 %* |
+
+Je Land (P6, Wind): **DE −2,3…−11,2 %** (7–24 h −8,0 %!, 51–120 h −11,2 %!, 126–240 h −4,6 %!), **AT +3,3…+9,3 %***, **CH
++4,3…+15,1 %***; Böe in allen drei Ländern 0–120 h schlechter (−2,7…−6,4 %!). Streuung: mit dem Schritt fällt Spread/Skill des Windes
+von 0,83–1,01 auf 0,73–0,90 (überkonfidenter), PIT-Rand 0,17–0,27 → 0,20–0,29. **Modus S** (Punkt = Station): P6 ≤ 0,3 %, P7 byte-gleich
+(d = 0) — der Stationswert deckt Wind und Böe ab. Der Anker wirkt nur in 0–6 h (τ_Wind), ab 7 h exakt 0,0 %.
+
+**Verdikte nach der Regel (nirgends signifikant schlechter in L und S, ≥ 3 Zellen signifikant besser in L ⇒ BESSER):** P6
+**SCHLECHTER**, P7 **GLEICHSTAND** (nirgends schlechter, eine Zelle signifikant besser), P8 **SCHLECHTER** — vom Scorer gerechnet
+(`score2.log`, 20:40 UTC: „E-AX-11 product-FS+shrinkW SCHLECHTER, product-FS+anchorW GLEICHSTAND, product-FS+both SCHLECHTER · K8
+bestanden"; der erste Lauf trug die Verdikte nicht, weil der E-AX-11-Block im Run-2-Block hing, der ohne `product+fix` nicht läuft —
+behoben, Block steht außerhalb). Gegen 5e bringt P7 den
+Wind 0–6 h von −1,1 %! auf −0,6 % (n.s.) und die Böe 0–6 h von +9,3 auf +9,8 %*; das Defizit bei 126–240 h (−4,0 %!) bleibt.
+
+### 6h.4 Befunde und Entscheidungen
+
+| ID | Befund / Entscheidung | Bewertung |
+|---|---|---|
+| V-AX-17 | **Der Klimatologie-Schritt hilft dem Wind im Relief und jenseits von Tag 5, schadet im Flachland und der Böe überall.** AT/CH +3…+15 %*, 126–240 h +4,7 %*; DE bis −11 %!, Böe 0–120 h −3…−6 %!; Spread/Skill sinkt. Hypothese (a) als globale Regel ist damit widerlegt; das Defizit bei 126–240 h und in AT/CH liegt im gelernten Windmember selbst (Route-1-Strata, nur Sommertage für 51–336 h — E-FL-3; σ im Relief zu klein), nicht in der Kette | offen — Fit-Seite (Winter-Nachfit ab Dezember) |
+| V-AX-13 | Wind ohne Station: mit P7 in 0–6 h halbiert (−0,6 % n.s.), bei 126–240 h unverändert −4,0 %! | teilweise behoben |
+| E-AX-11 | `anchorWindKm: 10` in die Stufe `fs` (Client-Push ⇒ **buscosun Fusion 7**) — nirgends schlechter, Böe 0–6 h +0,6 %*, Wind 0–6 h +0,5 %; physikalisch richtig (eine 20 km entfernte Messung wog beim Wind 0,5); der Schritt für Wind/Böe **nein** | Jans Gate: Empfehlung ja, mit dem Vorbehalt „Gleichstand nach Regel" (Gewinn klein) |
+| E-AX-13 | Schritt nur für Wind, nur ≥ 126 h oder nur im Relief (TPI/Land) — an 13 Tagen wäre das Anpassen an die Stichprobe; erst mit ≥ 30 Ausgabetagen als Varianten messen, zusammen mit dem Winter-Nachfit | später |
+
+**Arbeitsbaum (30.09., 22:00 UTC):** Jan hat AX-12 und die Karten mit `6d5933d` („Update buscosun Fusion 6", 18:30 UTC) committed. Seitdem
+läuft parallel die Phase KF (`audit/fusion-konfidenz.md`, Konfidenz-Score) in einer eigenen Session; sie ändert `uncertainty.ts`,
+`cubeSource.ts` (Import `cloudMixSharpness`, Konfidenz-Hinweis), `PointForecastPanel/Bands.tsx`, `src/dashboard/*`, `budget.json`.
+E-AX-11 liegt daneben in denselben Dateien (`cubeSource.ts`: `priorShrinkWind`, `anchorWindKm`, `wspW`; `fuse.ts`: `priorShrink:
+{ except }`; `output.ts`: zwei Schlüssel; `verify-pv-cube.mjs` Block 38 und (35)); beide Stände zusammen: typecheck 0 (22:00 UTC). Beim
+Commit gehören die KF-Dateien der KF-Session, E-AX-11 ist an den genannten Markern erkennbar.
+
 ## 7 Gates der Phase (Arbeitsbaum mit der parallelen Dashboard-Phase; Stand nach AX-11, 30.09. 14:50 UTC)
 
 | Gate | Stand |
 |---|---|
-| `verify:pv-cube` | **379/379** (338 + Blöcke 30–37; Kostenprüfungen (8)/(9) nur im Leerlauf grün, V-EX-13) |
-| `verify:point-data` | **1018/1018** (vier Cron-Jobs, Regeln A–F und E′ nachgerechnet, Leerlauf-Schutz mit Gegenprobe, AX-8/AX-11-Anker) |
+| `verify:pv-cube` | **398/398** (338 + Blöcke 30–38; (35) prüft seit 19:05 UTC echte Schema-5- UND Schema-6-Chunks des Klons, (38) = E-AX-11; Kostenprüfungen (8)/(9) nur im Leerlauf grün, V-EX-13) |
+| `verify:point-data` | **1018/1018** (vier Cron-Jobs, Regeln A–F und E′ nachgerechnet, Leerlauf-Schutz mit Gegenprobe, AX-8/AX-11-Anker; seit 22:15 UTC mit t3 gemessen 8,4 / JOB_MAX 15, V-AX-18: Regel F 12,4 ≤ 15, Regel C 25 ≤ 40) |
 | `verify:fusion-fit` | **125/125** (nach AX-12: Prüfung 16i, Archiv-Schema 3; vorher 124/124) |
-| `verify:pv-fusion` | **249/249** — der Live-Pfad ist byte-gleich |
+| `verify:pv-fusion` | **235/235** — der Live-Pfad ist byte-gleich (neu gezählt 30.09. 19:10 UTC nach der `fuse.ts`-Änderung von E-AX-11; die bis dahin notierte 249 war die Build-Zahl — BW-1) |
 | `verify:point-client` | **171/171** ((10s) zeitabhängig: ein Lauf unter Last 170/171, im Leerlauf grün) |
 | `verifyDist` / `verifyStationValue` | 54/54 · 10/10 |
 | `npm run typecheck` | 0 Fehler (ganzer Baum) |
 | `npm run build` | 249/249 |
 | `npm run budget` (AX-7…AX-11) | eagerJs 108,6 / 108,7 (unverändert), largestChunk 278,4 / 302, **totalJs 1 508,6 / 1 510** (Grenze um den gemessenen Zuwachs +2,2 KB angehoben, Notiz in `budget.json`) |
-| Daten-Repo | `7115d708` Cron-Vorlage + README · `3869297b` Klimagitter · `d058317c` Leerlauf-Schutz; **nach Jans Push `a02f2b5` (15:33 UTC, Actions-API 17:05 UTC gelesen): der `stations-s`-Slot 15:50 (Lauf 15:56 UTC) baut und publiziert den ersten MOSMIX-S-Lauf `2026093015` (Job 2 min 17 s, Publish `success`, Index `stationsS.runs = [2026093015]`), der t2-Lauf 16:40 UTC läuft mit L- und S-Schritt;** Runner: t1 13:48 UTC (neue Vorlage, `POINT_Z0MOD`) 15 min grün, `stations-s` 14:03 UTC grün (Leerlauf fehlgeschlagen ⇒ V-AX-12, harmlos) |
+| Daten-Repo | `7115d708` Cron-Vorlage + README · `3869297b` Klimagitter · `d058317c` Leerlauf-Schutz; **nach Jans Push `a02f2b5` (15:33 UTC, Actions-API 17:05 UTC gelesen): der `stations-s`-Slot 15:50 (Lauf 15:56 UTC) baut und publiziert den ersten MOSMIX-S-Lauf `2026093015` (Job 2 min 17 s, Publish `success`, Index `stationsS.runs = [2026093015]`), der t2-Lauf 16:40 UTC läuft mit L- und S-Schritt; **der t1-Lauf `2026093015` (16:40 UTC) ist der erste Cube in Schema 6 auf dem Runner — `verify:pv-cube` (35) liest ihn aus dem Klon: 61 Ebenen, `_ens` vorhanden, T lesbar, während `2026093012` noch 57 Ebenen trägt (Übergang mit beiden Schemata bewiesen, 19:05 UTC); **erster Schema-6-t3-Lauf `2026093012` (Job 21:58–22:06 UTC, 8,4 min, Publish `success`, 12 Chunks): die vier `_ens`-Ebenen sind an 16 Rasterstunden gefüllt (1 024 von 9 216 Zellen×Stunden je Ebene = 11,1 %, genau wie `u10/v10/precip_sd_ens`; `t2m_sd_ens` trägt 24 Stunden, weil ICON-EPS dort σ liefert, aber kein Mittel — wie entworfen: nur wo IFS-ENS die Stunde trägt)**;** Runner: t1 13:48 UTC (neue Vorlage, `POINT_Z0MOD`) 15 min grün, `stations-s` 14:03 UTC grün (Leerlauf fehlgeschlagen ⇒ V-AX-12, harmlos) |
 
 ### 7.1 Gates der ersten Hälfte (AX-1…AX-6, vor der Freigabe des Daten-Repos)
 
@@ -912,7 +993,9 @@ ist out of fold am Hindcast gemessen, das ist die stärkere Zahl); AX-6 nach der
 | V-AX-12 | Leerlauf-Schutz traf den Teilstring `mosmix_stationskatalog` | behoben (`POINT_STATIONS_SOURCE`, `d058317c`) |
 | V-AX-13 | Wind am stationslosen Punkt: Stufe fs in 2 Bins schlechter als 5e, 0–120 h unter der Lernstufe allein (§6g.3) | offen — E-AX-11 |
 | V-AX-14 | Verdikte auf 13–14 Ausgabetagen kippen zwischen GILT und GLEICHSTAND (§6g.4) | zur Kenntnis, indikativ bis ≥ 30 Tage |
-| V-AX-15 | Landesparameter für Td schlechter als gepoolt (−0,1…−1,0 %, eine Zelle !; §6g.5) | Tabelle ohne Td-Landeseinträge einspielen |
+| V-AX-15 | Landesparameter für Td schlechter als gepoolt (−0,1…−1,0 %, eine Zelle !; §6g.5) | Tabelle ohne Td-Landeseinträge einspielen (eingespielt, `1aaec969`) |
+| V-AX-17 | Klimatologie-Schritt hilft dem Wind im Relief und ab Tag 6, schadet im Flachland und der Böe (§6h.3) | offen — Fit-Seite, E-AX-13 |
+| V-AX-18 | **t3-Job nach Schema 6 + `POINT_Z0MOD` 8,4 statt 5,8 min** (Bau 6,0 statt 4,4, Publish 1,3 statt 0,6; Lauf 36782700338, 21:58–22:06 UTC) — Regel F verlangte JOB_MAX_MIN 10 → `JOB_MEASURED_MAX_MIN.t3` 8,4 und `JOB_MAX_MIN_BY_TIER.t3` 15 (Regel C hält: timeout-minutes 40); die Vorlage bleibt unverändert | behoben im Verifier, nach weiteren Läufen nachmessen |
 | E-AX-10 | INCA-Anker (Gewicht 0,6) in die Stufe | nach AP9/AP10-Messung (§6d) |
 | E-AX-11 | Wind ohne Station: `priorShrink` je Größe / Anker-Distanz — erst als Varianten am Archiv messen (§6g.4) | Jans Gate |
 

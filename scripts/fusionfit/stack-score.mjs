@@ -121,6 +121,10 @@ const PAIRS = {
   'stack-cc': ['stack', 'mosmix', 'product@5e', 'live', 'fl-K@5e'],
   // phase AX, AX-4 (E-AX-4/5): the stage with the cloud atoms against the stage without, and the references
   'product-FS+atoms': ['product-FS', 'product@5e', 'mosmix', 'fl-K@5e', 'live'],
+  // phase AX, E-AX-11: the wind variants against the stage as it runs and the references
+  'product-FS+shrinkW': ['product-FS', 'product@5e', 'fl-K@5e', 'mosmix'],
+  'product-FS+anchorW': ['product-FS', 'product@5e', 'fl-K@5e', 'mosmix'],
+  'product-FS+both': ['product-FS', 'product@5e', 'fl-K@5e', 'mosmix', 'product-FS+shrinkW', 'product-FS+anchorW'],
 };
 const ccUsed = { cc: 0, pooled: 0 };
 const k5 = {}, k6 = { n: 0, maxAbs: 0, formDiffers: 0, byVar: {} };
@@ -152,6 +156,10 @@ for await (const row of rowsOf(flags.rows)) {
       if (m.P3) cands['product-FS'] = { dist: m.P3 };
       if (m.P4) cands['product-FS-r3'] = { dist: m.P4 };
       if (m.P5) cands['product-FS+atoms'] = { dist: m.P5 };   // AX-4: the stage with the two-atom cloud family (tables with atoms)
+      // E-AX-11: wind without a station — the step kept for wind/gust (P6), the wind anchor damped over the distance (P7), both (P8)
+      if (m.P6) cands['product-FS+shrinkW'] = { dist: m.P6 };
+      if (m.P7) cands['product-FS+anchorW'] = { dist: m.P7 };
+      if (m.P8) cands['product-FS+both'] = { dist: m.P8 };
       // K5: the engine without the climatological step against the offline form, on the chain of run 1
       if (mode === 'S' && m.PN && m.N) { const a = pointOf(m.PN), b = pointOf(m.N); const o5 = k5[v] ?? (k5[v] = { n: 0, maxAbs: 0, maxSigma: 0 }); o5.n += 1; o5.maxAbs = Math.max(o5.maxAbs, Math.abs(a - b)); if (m.PN.sigma != null && m.N.sigma != null) o5.maxSigma = Math.max(o5.maxSigma, Math.abs(m.PN.sigma - m.N.sigma)); }
       if (o.L) cands['fl-K@5e'] = { dist: o.L };
@@ -465,10 +473,43 @@ if (Object.keys(card.scores).some((k) => k.includes('|product+fix|'))) {
     `- **K5** (Motor mit priorShrink:false gegen die Offline-Form, Punktwert): ${Object.entries(k5).map(([v, o]) => `${VAR_LABEL[v]} n ${o.n} max |Δ| ${o.maxAbs.toExponential(2)} (σ ${o.maxSigma.toExponential(2)})`).join(' · ')} — **${verdicts.K5}**`,
     `- **K6** (Stationswert des Motors gegen stack:in, Zeilen gleicher Form): ${Object.entries(k6.byVar).map(([v, o]) => `${VAR_LABEL[v]} n ${o.n} max |Δ| ${o.maxAbs.toExponential(2)}, andere Form ${o.formDiffers}`).join(' · ')} — **${verdicts.K6}**`, '');
 }
+// phase AX, E-AX-11 (V-AX-13): wind without a station — the three variants in mode L (the case) and mode S (must not lose).
+// OUTSIDE the run-2 block: a run with `--variants=P3,P6,P7,P8` carries no `product+fix` (the first E-AX-11 card lacked the verdicts).
+{
+  if (Object.keys(card.scores).some((k) => k.includes('|product-FS+shrinkW|') || k.includes('|product-FS+anchorW|') || k.includes('|product-FS+both|'))) {
+    const W = ['ws', 'gust'].flatMap((v) => [0, 1, 2, 3, 4].map((bin) => ({ v, bin })));
+    const VAR = [['product-FS+shrinkW', 'Klimatologie-Schritt für Wind/Böe (P6)'], ['product-FS+anchorW', 'Wind-Anker über die Distanz gedämpft, 10 km (P7)'], ['product-FS+both', 'beides (P8)']];
+    const rows11 = [];
+    for (const [cand, label] of VAR) {
+      if (!Object.keys(card.scores).some((k) => k.includes(`|${cand}|`))) continue;
+      table(`E-AX-11 — ${cand} (${label}) gegen product-FS — Modus L (Punkt ohne Station), Wind und Böe`, 'L', cand, 'product-FS', ['mae', 'crps'], W, COUNTRY);
+      table(`E-AX-11 — ${cand} gegen product-FS — Modus S (Punkt = Station), Wind und Böe`, 'S', cand, 'product-FS', ['mae', 'crps'], W);
+      table(`E-AX-11 Kontext — ${cand} gegen product@5e (Modus L)`, 'L', cand, 'product@5e', ['mae', 'crps'], W);
+      table(`E-AX-11 Kontext — ${cand} gegen fl-K@5e (Modus L)`, 'L', cand, 'fl-K@5e', ['mae', 'crps'], W);
+      const tL = tally('L', cand, 'product-FS', 'mae', W), tLc = tally('L', cand, 'product-FS', 'crps', W), tS = tally('S', cand, 'product-FS', 'mae', W), tSc = tally('S', cand, 'product-FS', 'crps', W);
+      // K8: the wind options touch only wind and gust — the POINT value of T/Td/clouds/precipitation is byte-identical to product-FS
+      // (MAE), and so is the CRPS of Td/clouds/precipitation; σ_T may move by ≤ 0,2 K in 0–24 h through the anchored wind (the
+      // stable-layer term of σ_T reads the wind speed — smoke test: max |Δμ_T| 0, max |Δσ_T| 0,18 K), so the T-CRPS is held to 0,5 %
+      const k8bad = [];
+      for (const v of ['t', 'td', 'clct', 'precip']) for (const bin of [0, 1, 2, 3, 4, 5]) for (const mode of MODES) {
+        const a = card.scores[`${mode}|${v}|${bin}|${cand}|all`], b = card.scores[`${mode}|${v}|${bin}|product-FS|all`];
+        if (!a || !b) continue;
+        const maeOff = Math.abs(a.mae - b.mae) > 1e-9, crpsOff = v === 't' ? Math.abs(a.crps - b.crps) > 0.005 * b.crps : Math.abs(a.crps - b.crps) > 1e-9;
+        if (maeOff || crpsOff) k8bad.push(`${mode} ${VAR_LABEL[v]} ${BIN_LABEL[bin]}${maeOff ? ' MAE' : ''}${crpsOff ? ' CRPS' : ''}`);
+      }
+      const worse = tL.worse.length + tLc.worse.length + tS.worse.length + tSc.worse.length, better = tL.better.length + tLc.better.length;
+      const verdict = worse === 0 && better >= 3 ? 'BESSER' : worse === 0 ? 'GLEICHSTAND' : 'SCHLECHTER';
+      rows11.push({ cand, verdict, better, worse, k8: k8bad.length ? `NICHT bestanden (${k8bad.slice(0, 4).join(', ')})` : 'bestanden' });
+      md.push(`${cand}: Modus L MAE ${tL.better.length} besser / ${tL.worse.length} schlechter / ${tL.ns.length} gleichauf, CRPS ${tLc.better.length} / ${tLc.worse.length} / ${tLc.ns.length}; Modus S MAE ${tS.better.length} / ${tS.worse.length} / ${tS.ns.length}, CRPS ${tSc.better.length} / ${tSc.worse.length} / ${tSc.ns.length}. **${verdict}** (Regel: nirgends signifikant schlechter in L und S und ≥ 3 Zellen signifikant besser in L ⇒ BESSER). **K8** (nur Wind/Böe berührt): ${rows11[rows11.length - 1].k8}.`, '');
+    }
+    if (rows11.length) verdicts['E-AX-11'] = rows11.map((r) => `${r.cand} ${r.verdict}`).join(', ');
+    if (rows11.length) verdicts.K8 = rows11.every((r) => r.k8 === 'bestanden') ? 'bestanden' : 'NICHT bestanden';
+  }
+}
 // absolute numbers
 for (const mode of MODES) {
   md.push(`## Absolut — Modus ${mode} (Schicht all)`, '', '| Zelle | Kandidat | n | MAE | Bias | CRPS | PIT außen | S/S |', '|---|---|---|---|---|---|---|---|');
-  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
+  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'product-FS+shrinkW', 'product-FS+anchorW', 'product-FS+both', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
     const s = card.scores[`${mode}|${v}|${bin}|${c}|all`];
     if (s) md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} | ${c} | ${s.n} | ${f2(s.mae, 3)} | ${f2(s.bias)} | ${f2(s.crps, 3)} | ${f2(s.pitOuter, 3)} | ${f2(s.spreadSkill)} |`);
   }

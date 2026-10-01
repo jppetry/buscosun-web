@@ -832,7 +832,9 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     // AX-8 (2026-09-30): `stations-s` = MOSMIX-S stuendlich, kein Cube-Bau — lokal 36 s (Abruf 3 s, Parsen 7 s,
     // Kodieren), x2 fuer den Runner + 2,5 min Job-Rand ⇒ 3,2 min geschaetzt, JOB_MAX 6; nach den ersten Runner-Laeufen
     // nachtragen (kein Runner-Lauf vor dem Push von buscosun-web/main).
-    const JOB_MAX_MIN_BY_TIER = { t1: 20, t2: 15, t3: 10, 'stations-s': 6 };
+    // t3 10 → 15 (30.09., AX-7): der erste Schema-6-Lauf auf dem Runner brauchte 8,4 min (JOB_MEASURED_MAX_MIN), Regel F verlangt
+    // gemessen + CDN-Budget 3 min + 1 ≤ JOB_MAX_MIN; Regel C hält (15 + 10 ≤ timeout-minutes 40 ≤ Abstand 12 h)
+    const JOB_MAX_MIN_BY_TIER = { t1: 20, t2: 15, t3: 15, 'stations-s': 6 };
     const JOB_MAX_MIN = Math.max(...Object.values(JOB_MAX_MIN_BY_TIER));
     const jobs = jobsOf(wf);
     add('(F3b) die Vorlage hat vier Jobs t1/t2/t3/stations-s; jeder Stufen-Job baut GENAU seine Stufe (--tiers=tX), stations-s baut MOSMIX-S (AX-8)',

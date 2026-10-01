@@ -129,6 +129,23 @@ if (S('S', 'ws', 1, 'stack-cc') && S('S', 'clct', 0, 'product-FS+atoms')) {
   md.push('Modus L (ohne eigene Station) ändert sich nur bei der Bewölkung (Atome); die Landesparameter greifen dort nicht (Stationswert braucht eine Station am Punkt): siehe D.', '');
 }
 
+// ── G: E-AX-11 — wind without a station: the three variants (only when the card carries them) ──
+{
+  const VAR = [['product-FS+shrinkW', 'Schritt für Wind/Böe'], ['product-FS+anchorW', 'Wind-Anker gedämpft 10 km'], ['product-FS+both', 'beides']].filter(([c]) => S('L', 'ws', 0, c));
+  if (VAR.length) {
+    md.push('## G — E-AX-11 Wind ohne Station: Varianten gegen heute (`product-FS`) und gegen 5e — Wind und Böe, MAE (CRPS)', '', `| Zelle | Modus | MAE heute | ${VAR.map(([, l]) => `${l}: gg. heute`).join(' | ')} | ${VAR.map(([, l]) => `${l}: gg. 5e`).join(' | ')} | heute gg. 5e |`, `|---|---|---|${VAR.map(() => '---').join('|')}|${VAR.map(() => '---').join('|')}|---|`);
+    for (const mode of ['L', 'S']) for (const v of ['ws', 'gust']) for (const bin of [0, 1, 2, 3, 4]) {
+      const b = S(mode, v, bin, 'product-FS');
+      if (!b) continue;
+      const cell2 = (cand, ref) => `${pct(P('mae', mode, v, bin, cand, ref))} (${pct(P('crps', mode, v, bin, cand, ref))})`;
+      md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} h | ${mode} | ${f(b.mae)} ${UNIT[v]} | ${VAR.map(([c]) => cell2(c, 'product-FS')).join(' | ')} | ${VAR.map(([c]) => cell2(c, REF)).join(' | ')} | ${pct(P('mae', mode, v, bin, 'product-FS', REF))} |`);
+    }
+    md.push('', 'Je Land, Modus L, gegen heute (MAE):', '', `| Zelle | ${VAR.map(([, l]) => `${l}: DE / AT / CH`).join(' | ')} |`, `|---|${VAR.map(() => '---').join('|')}|`);
+    for (const v of ['ws', 'gust']) for (const bin of [0, 1, 2, 3, 4]) md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} h | ${VAR.map(([c]) => ['DE', 'AT', 'CH'].map((cc) => pct(P('mae', 'L', v, bin, c, 'product-FS', `country:${cc}`))).join(' / ')).join(' | ')} |`);
+    md.push('', `Verdikte von stack-score: E-AX-11 ${card.verdicts?.['E-AX-11'] ?? '—'} · K8 (nur Wind/Böe berührt) ${card.verdicts?.K8 ?? '—'}`, '');
+  }
+}
+
 // ── summary ────────────────────────────────────────────────────────────────────
 const tl = (k) => { const t = tallies[k] ?? { better: 0, worse: 0, ns: 0, missing: 0 }; return `${t.better} signifikant besser · ${t.worse} signifikant schlechter · ${t.ns} gleichauf${t.missing ? ` · ${t.missing} ohne Paar` : ''}`; };
 md.push('## Zusammenfassung (heute gegen 5e, Zellen Größe × Bin)', '', `- Modus S, MAE: ${tl('S|mae')}`, `- Modus S, CRPS: ${tl('S|crps')}`, `- Modus L, MAE: ${tl('L|mae')}`, `- Modus L, CRPS: ${tl('L|crps')}`, '');

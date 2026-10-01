@@ -1,0 +1,214 @@
+{
+ "builtAt": "2026-09-30T19:47:45.815Z",
+ "provenance": "archive",
+ "rows": 755463,
+ "slots": 7,
+ "points": 2723,
+ "tables": {
+  "learned": "1ee84cab689e",
+  "stack": "8c5c81adf2fe"
+ },
+ "note": "Schwellen = Score-Perzentile P20/P40/P60/P80 je Größe über alle Vorlauf-Bins (Archiv 16.–28.09.2026, Modus S); mean = Ø CRPS / Ø |p50 − y| je Klasse in der Einheit der Größe",
+ "byVar": {
+  "t": {
+   "thresholds": [
+    0.147,
+    0.287,
+    0.377,
+    0.461
+   ],
+   "classes": [
+    {
+     "word": "unsicher",
+     "share": 0.2,
+     "crps": 1.239,
+     "mae": 1.749
+    },
+    {
+     "word": "gering",
+     "share": 0.2,
+     "crps": 0.849,
+     "mae": 1.175
+    },
+    {
+     "word": "mäßig",
+     "share": 0.198,
+     "crps": 0.716,
+     "mae": 0.995
+    },
+    {
+     "word": "solide",
+     "share": 0.201,
+     "crps": 0.672,
+     "mae": 0.934
+    },
+    {
+     "word": "hoch",
+     "share": 0.2,
+     "crps": 0.587,
+     "mae": 0.809
+    }
+   ]
+  },
+  "td": {
+   "thresholds": [
+    0.3,
+    0.408,
+    0.502,
+    0.63
+   ],
+   "classes": [
+    {
+     "word": "unsicher",
+     "share": 0.199,
+     "crps": 1.384,
+     "mae": 1.836
+    },
+    {
+     "word": "gering",
+     "share": 0.2,
+     "crps": 1.028,
+     "mae": 1.372
+    },
+    {
+     "word": "mäßig",
+     "share": 0.201,
+     "crps": 0.8,
+     "mae": 1.077
+    },
+    {
+     "word": "solide",
+     "share": 0.199,
+     "crps": 0.725,
+     "mae": 0.975
+    },
+    {
+     "word": "hoch",
+     "share": 0.2,
+     "crps": 0.632,
+     "mae": 0.863
+    }
+   ]
+  },
+  "ws": {
+   "thresholds": [
+    0.37,
+    0.492,
+    0.603,
+    0.681
+   ],
+   "classes": [
+    {
+     "word": "unsicher",
+     "share": 0.2,
+     "crps": 0.634,
+     "mae": 0.873
+    },
+    {
+     "word": "gering",
+     "share": 0.201,
+     "crps": 0.583,
+     "mae": 0.796
+    },
+    {
+     "word": "mäßig",
+     "share": 0.199,
+     "crps": 0.577,
+     "mae": 0.783
+    },
+    {
+     "word": "solide",
+     "share": 0.201,
+     "crps": 0.587,
+     "mae": 0.791
+    },
+    {
+     "word": "hoch",
+     "share": 0.2,
+     "crps": 0.544,
+     "mae": 0.738
+    }
+   ]
+  },
+  "gust": {
+   "thresholds": [
+    0.354,
+    0.478,
+    0.566,
+    0.669
+   ],
+   "classes": [
+    {
+     "word": "unsicher",
+     "share": 0.201,
+     "crps": 1.052,
+     "mae": 1.418
+    },
+    {
+     "word": "gering",
+     "share": 0.199,
+     "crps": 1.011,
+     "mae": 1.371
+    },
+    {
+     "word": "mäßig",
+     "share": 0.201,
+     "crps": 0.851,
+     "mae": 1.15
+    },
+    {
+     "word": "solide",
+     "share": 0.2,
+     "crps": 0.842,
+     "mae": 1.129
+    },
+    {
+     "word": "hoch",
+     "share": 0.2,
+     "crps": 0.727,
+     "mae": 0.99
+    }
+   ]
+  },
+  "clct": {
+   "thresholds": [
+    0.088,
+    0.162,
+    0.225,
+    0.307
+   ],
+   "classes": [
+    {
+     "word": "unsicher",
+     "share": 0.2,
+     "crps": 23.174,
+     "mae": 37.949
+    },
+    {
+     "word": "gering",
+     "share": 0.199,
+     "crps": 19.883,
+     "mae": 30.584
+    },
+    {
+     "word": "mäßig",
+     "share": 0.2,
+     "crps": 16.911,
+     "mae": 24.921
+    },
+    {
+     "word": "solide",
+     "share": 0.201,
+     "crps": 14.411,
+     "mae": 20.29
+    },
+    {
+     "word": "hoch",
+     "share": 0.2,
+     "crps": 10.105,
+     "mae": 12.915
+    }
+   ]
+  }
+ }
+}

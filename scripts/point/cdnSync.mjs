@@ -62,7 +62,11 @@ export const CDN_BUDGET_S_DEFAULT = Math.min(...Object.values(CDN_BUDGET_S_BY_TI
  * Runner + 2,5 min Job-Rand (Klon, Install, Gate, Publish) ⇒ 3,2 min geschätzt; nach den ersten Runner-Läufen
  * nachtragen (§34.6: die Zahl schreibt sich nicht selbst fort).
  */
-export const JOB_MEASURED_MAX_MIN = Object.freeze({ t1: 14.2, t2: 10.7, t3: 5.4, 'stations-s': 3.2 });
+// t3 (AX-7, Schema 6 + POINT_Z0MOD): erster Runner-Lauf nach dem Push `a02f2b5` — Lauf 36782700338, 30.09. 21:58–22:06 UTC,
+// Job 8,4 min (Bau 6,0 statt 4,4, Publish 1,3 statt 0,6 gegen den letzten Schema-5-Lauf 09:58 UTC, 5,8 min); die Planungsgrenze
+// JOB_MAX_MIN_BY_TIER.t3 im Verifier ist deshalb 10 → 15 (Regel C: 15 + 10 ≤ timeout-minutes 40). `stations-s`: erster Runner-Lauf
+// 15:56 UTC 2,3 min, die Schätzung 3,2 bleibt als Schranke.
+export const JOB_MEASURED_MAX_MIN = Object.freeze({ t1: 14.2, t2: 10.7, t3: 8.4, 'stations-s': 3.2 });
 export const CDN_WARM = Object.freeze({ concurrency: 8, timeoutMs: 20_000, retries: 3, backoffMs: 3_000 });
 
 /** `git diff --name-status --no-renames` → `[{ status: 'A'|'M'|'D', path }]`. */

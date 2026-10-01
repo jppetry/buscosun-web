@@ -9,6 +9,7 @@
  * live station observations in the blend.
  */
 
+import { CONF_CLASSES } from './fusion/confidenceClasses';
 import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { getPointForecast } from './pointForecast';
 import type { PointForecast } from './types';
@@ -538,15 +539,15 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
                 </div>
                 <div className="pfc-tbl-legend-row">
                   <span className="pfc-tbl-legend-bar" style={{ width: '22px', background: 'var(--sage-600)' }} />
-                  <span>Konfidenz Hoch — 80–100 %</span>
+                  <span>Konfidenz solide/hoch — Index ab {Math.round(CONF_CLASSES.byVar.t2m.thresholds[2] * 100)} % (T; Klassen aus Score-Perzentilen am Archiv)</span>
                 </div>
                 <div className="pfc-tbl-legend-row">
                   <span className="pfc-tbl-legend-bar" style={{ width: '14px', background: 'var(--amber-500)' }} />
-                  <span>Konfidenz Moderat — 50–79 %</span>
+                  <span>Konfidenz mäßig — {Math.round(CONF_CLASSES.byVar.t2m.thresholds[1] * 100)}–{Math.round(CONF_CLASSES.byVar.t2m.thresholds[2] * 100)} %</span>
                 </div>
                 <div className="pfc-tbl-legend-row">
                   <span className="pfc-tbl-legend-bar" style={{ width: '8px', background: 'var(--terracotta-500)' }} />
-                  <span>Konfidenz Niedrig — unter 50 %</span>
+                  <span>Konfidenz unsicher — unter {Math.round(CONF_CLASSES.byVar.t2m.thresholds[1] * 100)} % (kein Wahrscheinlichkeitsmaß)</span>
                 </div>
               </div>
             </div>

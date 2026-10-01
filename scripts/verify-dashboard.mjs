@@ -13,6 +13,8 @@
  *   (5) Wörtliche Warntexte, Zustände ohne Vorlage, „nicht verfügbar" nie mit Zahl.
  *   (6) optional `--dist`: Textsonde am Bau — nichts vom Dashboard im Start-Chunk, die Fixture in keinem Chunk.
  */
+import { CONF_CLASSES, verifyConfidenceClasses } from '../src/pointForecast/fusion/confidenceClasses.ts';
+const NBSP_R = ' ';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildCubeFixture, FIX } from './lib/pvCubeFixtures.mjs';
@@ -26,7 +28,7 @@ import { ORIGIN } from '../src/dashboard/origin.ts';
 import { buildDashboardVM, hourAxis, pWetOf } from '../src/dashboard/model/build.ts';
 import { localParts, num } from '../src/dashboard/format.ts';
 import {
-  symbolFor, dayText, popLevel, confidenceClass, confidenceWord, isotherms, snowlineShown, uvColor, uvBarPct, pollenColor, thunderWord, tempAt, spreadText, GUST_WARN_MS,
+  symbolFor, dayText, popLevel, confidenceClass, confidenceWord, confidenceTypical, isotherms, snowlineShown, uvColor, uvBarPct, pollenColor, thunderWord, tempAt, spreadText, GUST_WARN_MS,
   bandMarks, leadSentence, BAND_MARK_K, WET_DAY_MM,
 } from '../src/dashboard/model/rules.ts';
 import { nightsOf } from '../src/dashboard/data/forecastStore.ts';
@@ -266,7 +268,14 @@ function invariants(vm, label) {
   add('(4) Tagestexte der Vorlage: „heiter, später auflockernd" · „wechselnd bewölkt, Schauer" · „Regen, kühler, Schneegrenze sinkt"',
     t1 === 'heiter, später auflockernd' && t2 === 'wechselnd bewölkt, Schauer' && t3 === 'Regen, kühler, Schneegrenze sinkt', `${t1} | ${t2} | ${t3}`);
   add('(4) Farben der Wahrscheinlichkeit: 5 % hell, 10–55 % Stahl, ≥ 60 % fett', popLevel(0.05) === 'faint' && popLevel(0.1) === 'mid' && popLevel(0.55) === 'mid' && popLevel(0.65) === 'high');
-  add('(4) Konfidenz: 86/74 % grün, 61 % ocker; 82 % „solide"', confidenceClass(0.86) === 'good' && confidenceClass(0.74) === 'good' && confidenceClass(0.61) === 'fair' && confidenceWord(0.82) === 'solide');
+  // E-KF-3: Klassen aus der Tabelle des Motors (Score-Perzentile am Archiv), nicht mehr die Vorlagenzahlen 0,9/0,7/0,5
+  const thT = CONF_CLASSES.byVar.t2m.thresholds;
+  add('(4) Konfidenz (E-KF-3): Wörter aus der Klassentabelle — auf P60 „solide", auf P80 „hoch", knapp unter P40 „unsicher", 0 „sehr unsicher"; grün ab P60',
+    confidenceWord(thT[2]) === 'solide' && confidenceWord(thT[3]) === 'hoch' && confidenceWord(thT[1] - 1e-9) === 'unsicher' && confidenceWord(0) === 'sehr unsicher'
+    && confidenceClass(thT[2]) === 'good' && confidenceClass(thT[2] - 1e-9) === 'fair' && confidenceClass(0.61) === 'good' && confidenceClass(0.2) === 'fair', `T-Schwellen ${thT.join('/')}`);
+  add('(4) Konfidenz (E-KF-4): typischer Fehler der Klasse in °C mit Komma („typisch ±0,8 °C" bei hoch, „±1,7 °C" bei sehr unsicher)',
+    confidenceTypical(0.9) === `typisch ±0,8${NBSP_R}°C` && confidenceTypical(0) === `typisch ±1,7${NBSP_R}°C` && confidenceTypical(null) === null, `${confidenceTypical(0.9)} · ${confidenceTypical(0)}`);
+  for (const c of verifyConfidenceClasses()) add(`(4) confidenceClasses: ${c.name}`, c.ok, c.detail);
   const iso = isotherms(18.4, 708, 7.1, 3000);
   add('(4) Isothermen der Vorlage: 6/10/14 °C in 2 450/1 890/1 330 m (±15 m) aus 18,4 °C in 708 m und γ 7,1 K/km',
     iso.length === 3 && near(iso[0].h, 2450, 15) && near(iso[1].h, 1890, 15) && near(iso[2].h, 1330, 15) && iso.map((x) => x.t).join() === '6,10,14', iso.map((x) => `${x.t}@${Math.round(x.h)}`).join(' '));

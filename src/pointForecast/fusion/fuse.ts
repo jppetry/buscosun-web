@@ -107,8 +107,12 @@ export interface FusionContext {
    * climatology a second time damps the anomaly twice (measured on the archive: slope of the truth on the combined anomaly
    * 1,04–1,13 for T where β of the step is 0,83–0,87). A combination with any prior-calibrated member keeps the step. Absent or
    * `true`: unchanged.
+   *
+   * Phase AX, E-AX-11 (V-AX-13): the object form `{ except: [...] }` switches the step off for every variable EXCEPT the listed
+   * ones — measured at the archive, the point WITHOUT a station lost wind skill against the chain with the step (0–6 h −1,2 %!,
+   * 126–240 h −4,1 %!) while T/Td/gust gained; the wind combination keeps the step, the others drop it.
    */
-  priorShrink?: boolean;
+  priorShrink?: boolean | { except: ReadonlyArray<FusionVariable> };
 }
 
 export interface FusedVariable {
@@ -505,7 +509,9 @@ export function fuseScalar(
   //   σ_est → ∞  (no skill left)         ⇒  the climatology wins outright
   const se2 = c.sigma * c.sigma;
   // Phase FS (D2): calibrated members only and the step switched off ⇒ the combination IS the answer (β = 1).
-  const noShrink = ctx.priorShrink === false && explicit === members.length;
+  // E-AX-11: the object form keeps the step for the listed variables (wind, gust) and drops it for the rest.
+  const shrinkOff = ctx.priorShrink === false || (typeof ctx.priorShrink === 'object' && ctx.priorShrink !== null && !ctx.priorShrink.except.includes(variable));
+  const noShrink = shrinkOff && explicit === members.length;
   const beta = noShrink ? 1 : sc2 / (sc2 + se2);
   const climaMean = opt.climaMean + (opt.microDelta ?? 0);
   const mu = climaMean + beta * c.mu;

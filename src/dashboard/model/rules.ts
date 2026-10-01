@@ -6,6 +6,9 @@
  * Wert — sie ordnen, fassen zusammen oder beschriften Werte der Fusion bzw. der Alternativquellen.
  */
 import type { IconKind } from './types';
+import { confidenceClassOf, confidenceTypicalError, confidenceWordOf } from '../../pointForecast/fusion/confidenceClasses';
+
+const NBSP_R = ' ';
 
 /** Tagesphasen (set): Morgen 06–12, Mittag 12–18, Abend 18–24, Nacht 00–06 des FOLGETAGS (die Nacht nach dem Abend). */
 export const PHASES = Object.freeze([
@@ -41,18 +44,23 @@ export function popLevel(p: number | null): 'faint' | 'mid' | 'high' {
   return p >= 0.6 ? 'high' : 'mid';
 }
 
-/** Konfidenz-Klasse (set; Vorlage: 86/74 % grün, 61 % ocker). */
+/**
+ * Konfidenz-Klasse der Temperatur (E-KF-3): „good" = solide oder hoch nach der Klassentabelle des Motors
+ * (`confidenceClasses.ts`, Schwellen = Score-Perzentile am Archiv, Provenienz `archive`) — nicht mehr die Vorlagenzahl 0,7.
+ */
 export function confidenceClass(score: number | null): 'good' | 'fair' {
-  return score != null && score >= 0.7 ? 'good' : 'fair';
+  return confidenceClassOf('t2m', score);
 }
 
-/** Einstufung des Konfidenz-Werts (set; Vorlage „82 % · solide"). Kein Wahrscheinlichkeitsmaß (uncertainty.ts). */
+/** Einstufung des Konfidenz-Werts der Temperatur (E-KF-3, Klassentabelle des Motors). Kein Wahrscheinlichkeitsmaß (uncertainty.ts). */
 export function confidenceWord(score: number | null): string | null {
-  if (score == null) return null;
-  if (score >= 0.9) return 'hoch';
-  if (score >= 0.7) return 'solide';
-  if (score >= 0.5) return 'mäßig';
-  return 'unsicher';
+  return confidenceWordOf('t2m', score);
+}
+
+/** E-KF-4: der gemessene typische Fehler der Klasse („±0,8 °C") — was das Wort am Archiv bedeutet. */
+export function confidenceTypical(score: number | null): string | null {
+  const t = confidenceTypicalError('t2m', score);
+  return t == null ? null : `typisch ±${t.value.toFixed(1).replace('.', ',')}${NBSP_R}°C`;
 }
 
 /**

@@ -135,6 +135,8 @@ export interface ConfVM {
   pct: number | null;
   value: Shown;
   word: Shown;
+  /** E-KF-4 (P22): der am Archiv gemessene typische Fehler der Klasse („typisch ±0,8 °C") — was das Wort bedeutet. */
+  typical: Shown;
   weights: Array<{ label: string; pct: number; color: string }>;
   weightsText: Shown;
   /** E-DB-23 (P89): halbe Breite des 80 %-Bands der Temperatur an Stunde 0 — „±1,3 °C". */

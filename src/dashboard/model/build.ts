@@ -9,7 +9,7 @@ import { DASH_RANGE_DAYS, DASH_RANGE_HOURS } from '../dashUrl';
 import { compass16, compass8, dateTime, dayLabel, hhmm, localParts, num, runLabel, withUnit } from '../format';
 import { ORIGIN, type ParamId } from '../origin';
 import {
-  bandMarks, confidenceClass, confidenceWord, dayText, DRY_MMH, spreadText, gammaWord, GUST_WARN_MS, isothermColor, isotherms,
+  bandMarks, confidenceClass, confidenceTypical, confidenceWord, dayText, DRY_MMH, spreadText, gammaWord, GUST_WARN_MS, isothermColor, isotherms,
   leadSentence, PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
 } from './rules';
 import type {
@@ -264,7 +264,7 @@ const halfBand = (s: StepV2 | undefined): number | null => {
 function buildConf(c: Ctx): ConfVM {
   const s0 = c.s0;
   if (!c.f || !s0) {
-    return { pct: null, value: loading('P22'), word: loading('P23'), weights: [], weightsText: loading('P24'), band: loading('P89'), bandRange: loading('P89'), funnel: [], funnelMarks: [] };
+    return { pct: null, value: loading('P22'), word: loading('P23'), typical: loading('P22'), weights: [], weightsText: loading('P24'), band: loading('P89'), bandRange: loading('P89'), funnel: [], funnelMarks: [] };
   }
   // Trichter (P90) über den ganzen Horizont als Hüllkurve: jetzt, dann je 24 h die größte halbe Bandbreite — einzelne
   // Stunden mit eingeknicktem Band (Stufennähte, V-DB-21) machten die stündliche Kurve zum Strichcode.
@@ -308,7 +308,9 @@ function buildConf(c: Ctx): ConfVM {
     pct: score == null ? null : Math.round(score * 100),
     value: orNa('P22', pct(score), 'keine Konfidenz für diese Stunde'),
     // E-DB-23: „Stunde 0" steht jetzt am 80-%-Satz („jetzt: …"), die ganze Kachel meint jetzt.
+    // E-KF-3/4: Wort und typischer Fehler aus der Klassentabelle des Motors (Archiv); der Index bleibt als Detail (`value`).
     word: orNa('P23', confidenceWord(score), 'keine Konfidenz'),
+    typical: orNa('P22', confidenceTypical(score), 'keine Konfidenz für diese Stunde'),
     weights,
     weightsText: orNa('P24', weights.length ? weights.map((w) => `${w.label} ${w.pct}${NBSP}%`).join(' · ') : null, 'keine Gewichte an Stunde 0'),
     band: orNa('P89', half0 == null ? null : `±${withUnit(half0, 1, '°C')}`, 'keine Temperaturverteilung an Stunde 0'),
@@ -382,7 +384,8 @@ function buildZone(c: Ctx): ZoneVM {
       period: sh('P25', periodText),
       models: orNa('P26', modelsText, 'keine Modellangabe'),
       ensemble: sh('P27', ens),
-      conf: orNa('P28', confMean == null ? null : `Konfidenz ${Math.round(confMean * 100)}${NBSP}% im Mittel`, 'keine Konfidenz im Zeitraum'),
+      // E-KF-4: das Wort der Klassentabelle statt der Prozentzahl (der Index steht im Detail der Kachel)
+      conf: orNa('P28', confMean == null ? null : `Konfidenz im Mittel ${confidenceWord(confMean)}`, 'keine Konfidenz im Zeitraum'),
       confCls: confidenceClass(confMean),
     },
     lead: orNa('P91', leadSentence(leadDays), NA_FUSION),
@@ -509,7 +512,8 @@ function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): 
     mid,
     sun: na('P43', 'keine Sonnenschein-Quelle auf der Plattform (E-DB-10)'),
     sunSub: uvSub,
-    conf: { pct: confMean == null ? null : Math.round(confMean * 100), text: orNa('P46', pct(confMean), 'keine Konfidenz'), cls: confidenceClass(confMean) },
+    // E-KF-4: Balken = Index, Text = Wort der Klassentabelle
+    conf: { pct: confMean == null ? null : Math.round(confMean * 100), text: orNa('P46', confidenceWord(confMean), 'keine Konfidenz'), cls: confidenceClass(confMean) },
   };
   return { vm, tmax, rainSum: rainKnown ? rainSum : null };
 }

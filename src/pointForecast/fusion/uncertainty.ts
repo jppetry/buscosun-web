@@ -111,6 +111,12 @@ export interface MemberSigma {
   sigma: number;
   kind: SigmaKind;
   parts: { ens: number | null; div: number | null; sys: number; quant: number; vert: number; widen: number };
+  /**
+   * KF (V-KF-1): the PAP-6 branch BEFORE a learned σ replaced it (`kind: learned` keeps `parts.div`/`parts.ens` of this one).
+   * The agreement factor of the confidence score relates σ_div to THIS σ — against σ_learned it is unbounded and drops to 0
+   * wherever the sources disagree more than the learned σ (13 % of the T/Td hours, audit/fusion-konfidenz.md §4.4).
+   */
+  raw?: { sigma: number; kind: SigmaKind };
 }
 
 const rms = (xs: number[]) => Math.sqrt(xs.reduce((a, x) => a + x * x, 0) / xs.length);
@@ -171,18 +177,37 @@ export interface ConfidenceInput {
   stationFar?: boolean;
   /** AP13: gemessene Abschläge je Flag (calib.json `confDiscount`); fehlende Flags behalten die Setzung. */
   discount?: Partial<Record<keyof typeof CONF_DISCOUNT, number>>;
+  /**
+   * KF (V-KF-2): vorgerechnete Schärfe 0…1, ersetzt `1 − σ_post/σ_clima` — für Verteilungen, deren σ kein Schärfemaß ist
+   * (Zwei-Atome-Mischung der Bewölkung: `cloudMixSharpness`).
+   */
+  spread?: number;
 }
 
 export interface Confidence { score: number; spread: number; agree: number; lage: number }
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
+/**
+ * KF (V-KF-2): Schärfe einer Zwei-Atome-Mischung der Bewölkung — die größte der drei Massen (klar, Mitte, bedeckt), von ⅓ (alle
+ * gleich) bis 1 (ein Atom sicher) auf 0…1 gestreckt. `set`; die Mischungs-σ (33–83 %) liegt über σ_clima 34 % und ergab immer 0.
+ */
+export function cloudMixSharpness(d: { pClear: number; pOvercast: number }): number {
+  const pc = Math.min(1, Math.max(0, d.pClear));
+  const po = Math.min(1 - pc, Math.max(0, d.pOvercast));
+  const pm = Math.max(0, 1 - pc - po);
+  return clamp01((Math.max(pc, po, pm) - 1 / 3) / (2 / 3));
+}
+
 export function confidenceOf(inp: ConfidenceInput): Confidence {
-  const spread = inp.sigmaClima > 0 ? clamp01(1 - Math.min(1, inp.sigmaPost / inp.sigmaClima)) : 0;
-  const { parts, kind } = inp.member;
+  const spread = inp.spread != null ? clamp01(inp.spread) : inp.sigmaClima > 0 ? clamp01(1 - Math.min(1, inp.sigmaPost / inp.sigmaClima)) : 0;
+  const { parts } = inp.member;
+  // V-KF-1: die Einigkeit misst σ_div gegen die σ des PAP-6-Zweigs (σ² = σ_div² + σ_sys² + …), nicht gegen eine gelernte σ.
+  const ref = inp.member.raw ?? inp.member;
+  const kind = ref.kind;
   let agreeRaw: number;
   if (kind === 'ensemble' && parts.ens != null && parts.div != null) agreeRaw = (parts.ens ** 2) / (parts.ens ** 2 + parts.div ** 2);
-  else if (parts.div != null && inp.member.sigma > 0) agreeRaw = clamp01(1 - (parts.div ** 2) / (inp.member.sigma ** 2));
+  else if (parts.div != null && ref.sigma > 0) agreeRaw = clamp01(1 - (parts.div ** 2) / (ref.sigma ** 2));
   else agreeRaw = 1;   // nichts widerspricht — aber auch nichts bestätigt: der srcCount-Faktor drückt es
   const agree = clamp01(agreeRaw * Math.min(1, (inp.srcCount ?? 1) / 3));
   const D = inp.discount ? { ...CONF_DISCOUNT, ...inp.discount } : CONF_DISCOUNT;
@@ -261,6 +286,24 @@ export function verifyUncertainty(): { checks: UncCheck[]; passed: number; faile
   add('spread: σ_post 1 K gegen σ_clima 5 K ⇒ 0,8; σ_post ≥ σ_clima ⇒ 0', near(mk(1).spread, 0.8, 1e-12) && mk(5).spread === 0 && mk(9).spread === 0);
   add('agree (divergence): 1 − σ_div²/σ² = 1 − 0,64/2,08 ≈ 0,69; mit einer Quelle ⅓', near(mk(1).agree, 1 - 0.64 / (0.8 ** 2 + 1.2 ** 2), 1e-3) && near(confidenceOf({ sigmaPost: 1, sigmaClima: 5, member: s1, srcCount: 1, flags: [], dhM: 0 }).agree, 1 / 3, 1e-12));
   add('agree (ensemble): σ_ens²/(σ_ens²+σ_div²) = 2,25/(2,25+0,64) ≈ 0,78', near(confidenceOf({ sigmaPost: 1, sigmaClima: 5, member: e, srcCount: 5, flags: [], dhM: 0 }).agree, 2.25 / 2.89, 1e-9));
+  // KF (V-KF-1): eine gelernte σ ersetzt die Member-σ, die Einigkeit rechnet weiter gegen den PAP-6-Zweig.
+  const learnedD: MemberSigma = { sigma: 1.0, kind: 'learned', parts: { ...d.parts, sys: 0 }, raw: { sigma: d.sigma, kind: d.kind } };
+  const learnedE: MemberSigma = { sigma: 1.0, kind: 'learned', parts: { ...e.parts, sys: 0 }, raw: { sigma: e.sigma, kind: e.kind } };
+  const learnedNoRaw: MemberSigma = { sigma: 1.0, kind: 'learned', parts: { ...d.parts, sys: 0 } };
+  const cf = (m: MemberSigma) => confidenceOf({ sigmaPost: 1, sigmaClima: 5, member: m, srcCount: 5, flags: [], dhM: 0 });
+  add('V-KF-1 agree (learned, raw divergence): wie der PAP-6-Zweig ≈ 0,69 — nicht 1 − 0,64/1,0 = 0,36', near(cf(learnedD).agree, cf(d).agree, 1e-12) && near(cf(learnedD).agree, 1 - 0.64 / (0.8 ** 2 + 1.2 ** 2), 1e-3));
+  add('V-KF-1 agree (learned, raw ensemble): σ_ens²/(σ_ens²+σ_div²) ≈ 0,78 wie ohne Lernstufe', near(cf(learnedE).agree, cf(e).agree, 1e-12));
+  add('V-KF-1 Negativkontrolle: ohne `raw` bleibt die alte Rechnung (σ_div 0,8 gegen σ_learned 1,0 ⇒ 0,36; σ_div 1,2 ⇒ 0)',
+    near(cf(learnedNoRaw).agree, 1 - 0.64, 1e-12) && cf({ ...learnedNoRaw, parts: { ...learnedNoRaw.parts, div: 1.2 } }).agree === 0);
+  add('V-KF-1 Einigkeit bei learned fällt nie auf 0, solange σ_div < σ_raw (σ_div 1,2 gegen σ_raw 1,44)',
+    cf({ ...learnedD, parts: { ...learnedD.parts, div: 1.2 } }).agree > 0.3);
+  // KF (V-KF-2): Schärfe der Bewölkungs-Mischung aus der größten Atommasse.
+  add('V-KF-2 cloudMixSharpness: klar 0,8 ⇒ 0,7; drei gleiche Massen ⇒ 0; bedeckt 1 ⇒ 1; Mitte 0,6 ⇒ 0,4',
+    near(cloudMixSharpness({ pClear: 0.8, pOvercast: 0.1 }), 0.7, 1e-12) && near(cloudMixSharpness({ pClear: 1 / 3, pOvercast: 1 / 3 }), 0, 1e-12)
+    && near(cloudMixSharpness({ pClear: 0, pOvercast: 1 }), 1, 1e-12) && near(cloudMixSharpness({ pClear: 0.2, pOvercast: 0.2 }), 0.4, 1e-12));
+  add('V-KF-2 `spread` überschreibt 1 − σ_post/σ_clima: Mischungs-σ 45 gegen σ_clima 34 ⇒ 0, mit Schärfe 0,7 ⇒ Score 0,7·agree',
+    confidenceOf({ sigmaPost: 45, sigmaClima: 34, member: d, srcCount: 5, flags: [], dhM: 0 }).spread === 0
+    && near(confidenceOf({ sigmaPost: 45, sigmaClima: 34, member: d, srcCount: 5, flags: [], dhM: 0, spread: 0.7 }).spread, 0.7, 1e-12));
   add('lage: Fall C 0,7 · Chunk-Rand 0,9 · |Δh| > 300 m 0,8 ⇒ 0,504; ohne Flags 1',
     near(mk(1, ['extrapolatedBelowModel', 'chunkBorderTruncated'], 5, 900).lage, 0.7 * 0.9 * 0.8, 1e-12) && mk(1).lage === 1);
   add('score = spread · agree · lage, in [0,1], sinkt mit σ_post', mk(1).score > mk(2).score && mk(2).score > mk(4).score && mk(1).score <= 1 && mk(1).score >= 0 && near(mk(1).score, mk(1).spread * mk(1).agree * mk(1).lage, 1e-12));

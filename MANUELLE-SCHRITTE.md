@@ -1029,7 +1029,11 @@ AP12a/AP17 ausstehenden Zeilen `POINT_CDN_BUDGET_S` und `POINT_Z0MOD: '1'` mit �
 gebaut, der Code liegt auf `main` seit `36f2bbb`), `README.md` = Vorlage (61 Ebenen mit dem Satz, dass die Läufe bis zum
 Push Schema 5 tragen; `point/stations-s/`).
 
-- [ ] **AX-7 nach dem Push:** der erste t3-Job (`55 9,21`) schreibt Schema 6 (61 Ebenen); t1/t2 folgen in ihren Slots,
+- [x] **AX-7 nach dem Push — eingetreten:** der t1-Lauf `2026093015` (16:40 UTC) war der erste Cube in Schema 6 auf dem Runner
+      (`verify:pv-cube` (35) liest ihn aus dem Klon: 61 Ebenen, `_ens` da, T lesbar; `2026093012` t1 noch 57). Der erste t3-Job
+      lief 21:58–22:06 UTC (**8,4 min**, Grenze 10; bisher gemessen 5,4 — `JOB_MEASURED_MAX_MIN.t3` nachgezogen) und schreibt
+      `2026093012` t3 mit den vier `_ens`-Ebenen an 16 Rasterstunden (11,1 % der Zellen×Stunden, wie σ_ens; wie entworfen).
+      Der Archiv-Cron 23:10 UTC sammelt ab heute Nacht mit dem neuen Leser, die Ebenen liegen damit ab morgen im Archiv. Weiter gilt:
       bis zu 24 h liegen Schema-5-Chunks daneben (Leser lesen beide). Danach `verify:pv-latency -- --only=bundle` einmal
       (Bytes je Chunk +4 Ebenen, in t1/t2 leer ⇒ ≈ 4 Byte je Ebene) und die t3-Laufzeit mit 50/24 Membern im Manifest
       (`tiers[].ensemble.mean`, `timing.blocks.ensemble`) nachlesen; `ensMember` bleibt aus, bis der Fit das Mittel als
@@ -1109,6 +1113,15 @@ Push Schema 5 tragen; `point/stations-s/`).
       **„buscosun Fusion 6"** (Definition in `CLAUDE.md`, Sprache & Konventionen; Rückbau = Revert von `1aaec969` + Purge).
       Offen daraus: V-AX-16 (Bezeichnung als Konstante im Produkt-Hinweis, mit dem nächsten Push) und E-AX-12 (Karte an den
       nächsten ≥ 14 Archivtagen). Die gemessenen Zahlen:**
+- [ ] **E-AX-11 Wind ohne Station — gebaut und gemessen (§6h, Karte `audit/fusion-ausbau/eax11.md`), Entscheidung offen:** zwei
+      Motor-Optionen, voreingestellt aus (`priorShrinkWind`: Klimatologie-Schritt bleibt für Wind/Böe; `anchorWindKm`: Wind-Anker
+      über die Distanz der Messung gedämpft), `verify:pv-cube` 398/398 (Block 38), `verify:pv-fusion` 235/235 (Live-Pfad
+      byte-gleich), Build 249/249, Budget grün. Archiv 13 Tage, Modus L: **der Schritt ist SCHLECHTER** (Böe 0–120 h −3,5…−5,7 %!,
+      DE-Wind bis −11 %!; aber AT/CH-Wind +3…+15 %* und 126–240 h +4,7 %* ⇒ V-AX-17: das Defizit liegt im gelernten Windmember,
+      Fit-Seite, Winter-Nachfit); **der gedämpfte Anker ist GLEICHSTAND** nach Regel (nirgends schlechter, Böe 0–6 h +0,6 %*,
+      Wind 0–6 h +0,5 %; gegen 5e Wind 0–6 h −1,1 %! → −0,6 % n.s.). **Empfehlung:** `anchorWindKm: 10` in die Stufe fs mit
+      dem nächsten Push von buscosun-web (dann „buscosun Fusion 7"), den Schritt nicht; E-AX-13 (Schritt nur Wind, nur ≥ 126 h
+      oder Relief) erst mit ≥ 30 Ausgabetagen. Bis zum Push bleibt buscosun Fusion 6 unverändert.
       (1) **E-AX-4/5 Wolkenatome:** `fit\2026-09-30-ax4\fusion.ax4.client.json` → `point/fusion.client.json` (5e-Tabelle + 16
       Atome, +5,5 KB). Archiv: Bewölkung CRPS 0–6 h **+10,0 %***, 7–48 h +6 %*, MAE +6,5…+11,7 %*, PIT-Rand 0,28–0,33 → 0,21–0,23,
       126–336 h unverändert (keine Atome geschrieben); Kontrolle K7: alle anderen Größen byte-gleich. **Empfehlung: ja.**
@@ -1128,3 +1141,36 @@ Push Schema 5 tragen; `point/stations-s/`).
 - [ ] **Zur Kenntnis:** dieselbe Archivkarte mit 15 Slots und der korrigierten Teststatistik (EX §4.2) stuft H10 auf
       GLEICHSTAND und E2 auf GLEICHSTAND (die Skills sind unverändert positiv, nur seltener signifikant); V-FS-5 bestätigt.
       Die Dev-Server-Instanz auf :5199 (diese Session) kann beendet werden.
+
+## 29. Phase KF — Konfidenz-Score von buscosun Fusion 6, 2026-09-30 (Diagnose, kein Code geändert)
+
+Beleg: `audit/fusion-konfidenz.md` (§0 Kurzfassung, §6 Vorschlag), `audit/fusion-konfidenz/monotonie.md`, `cdn-probe.md`.
+Der Score ist an 99–100 % aller Stunden unter „solide" und bei der Bewölkung immer 0; er ordnet den Fehler zwar (T-Dezile
+monoton), ist aber falsch skaliert (V-KF-1…5). Alles Folgende berührt `src/pointForecast/fusion/uncertainty.ts` (Fusion-Engine) und
+ist deshalb Jans Entscheidung:
+
+- **E-KF-1** Score neu als kalibrierte Schärfe je Größe (F_v(σ_post/σ_clima), an Fehler-Dezilen des Archivs geeicht), Einigkeit nur
+  wo sie misst (Bewölkung: Atommasse; T/Td gegen die ungelernte Member-σ), Lage raus aus dem Produkt (Hinweise bleiben) ⇒ neue
+  Nummer „buscosun Fusion 7" (Konvention: jede Kettenänderung = neue Nummer).
+- **E-KF-2** Vorab minimal: V-KF-1 (Einigkeit bei `learned` gegen `m0.sigma`) und V-KF-2 (Bewölkung: Schärfe aus der größten
+  Atommasse) beheben, mit Fixtures in `verify:pv-cube` Block 10; byte-gleich außer `confidence`; Vorher/Nachher mit
+  `audit/fusion-konfidenz/conf-monotonie.mjs`.
+- **E-KF-3** Wörter „hoch/solide/mäßig/unsicher" aus gemessenen Fehler-Quintilen (eine Tabelle im Motor, Provenienz `archive`),
+  Dashboard/Panel/Bandbreite lesen dieselbe Tabelle (heute drei verschiedene Schwellensätze).
+- **E-KF-4** Anzeige: Wort statt Prozentzahl in der Kachel, oder der erwartete Fehler in der Einheit („typisch ±0,8 °C").
+- **E-KF-5** `score-archive.mjs` liefert die Konfidenz-Dezile mit (Gate: T/Td 0 Monotonie-Verletzungen).
+
+Empfohlene Reihenfolge: E-KF-2 → E-KF-5 → E-KF-1/3 → E-KF-4.
+
+**Stand nach Jans Freigabe (30.09. abends, „mach E-KF-2 bis E-KF-4 umsetzen") — umgesetzt, uncommitted (`audit/fusion-konfidenz.md` §8):**
+- E-KF-2 ✓ (`MemberSigma.raw`, `cloudMixSharpness`), E-KF-3 ✓ (`src/pointForecast/fusion/confidenceClasses.ts`, Tabelle aus
+  `audit/fusion-konfidenz/classes.json`), E-KF-4 ✓ (Kachel „‹Wort› · typisch ±x °C", Index im Tooltip; Zeitraumkopf, Tageskarten).
+- Gates: `verify:dashboard` 80/80 · `verify:pv-cube` 397/398 (rot nur (35): der lokale Daten-Repo-Klon trägt seit Lauf `2026093015`
+  nur Schema-6-Chunks, V-KF-9 — an HEAD gleich) · `verify:pv-fusion` 235/235 · `verify:point-client` 171/171 · Build 249/249 ·
+  Budget totalJs 1512 → **1514** (Notiz in `budget.json`, Jans Regel vom 30.09.).
+- **Jans Gates jetzt:** (a) Commit (Scope `fusion`/`dashboard`); (b) **Bezeichnung**: der Stand ist nach der Konvention nicht mehr
+  „buscosun Fusion 6" (Kette in `confidence` geändert, Tabellen unverändert) — Vorschlag „buscosun Fusion 6.1"; (c) E-KF-1 und
+  E-KF-5 bleiben offen; (d) V-KF-9 Verifier (35) auf Schema-Byte 5 filtern.
+- Hinweis: der Arbeitsbaum trug parallel fremde uncommitted Änderungen (`fusion/output.ts`, `fusion/fuse.ts`, `scripts/fusionfit/*`,
+  `audit/fusion-ausbau.md` — `priorShrinkWind`/`anchorWind`, Phase AX); die Gates liefen mit ihnen. Beim Aufräumen des Dev-Servers
+  wurden alle `node.exe`-Prozesse beendet — falls dabei ein Lauf der anderen Sitzung abbrach, ist er neu zu starten.

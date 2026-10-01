@@ -78,7 +78,7 @@ export function templateVM(): DashboardVM {
       footer: 'gültig bis 18.09. 06:00 · wörtlich zitiert · Deutscher Wetterdienst',
     },
     conf: {
-      pct: 82, value: s('P22', `82${NB}%`), word: s('P23', 'solide'),
+      pct: 82, value: s('P22', `82${NB}%`), word: s('P23', 'solide'), typical: s('P22', `typisch ±0,8${NB}°C`),
       weights: [{ label: 'ICON-D2 +3', pct: 42, color: '#C97B47' }, { label: 'MOSMIX', pct: 27, color: '#3A6FA8' }, { label: 'Radar', pct: 18, color: '#7A9466' }, { label: 'Klimatologie', pct: 13, color: '#6E675A' }],
       weightsText: s('P24', `ICON-D2 +3 42${NB}% · MOSMIX 27${NB}% · Radar 18${NB}% · Klimatologie 13${NB}%`),
       // E-DB-23 — die Vorlage kennt Bandbreite und Trichter nicht; plausible Werte zur Kontrolle der Darstellung.

@@ -44,7 +44,7 @@ import { stationValueOf, stationAtPoint, validateStackTable, STACK_VARS, type St
 import { verticalCorrection, STANDARD_LAPSE_PER_M, DZ_SURFACE_M, type VerticalResult } from './fusion/vertical';
 import { gridToPoint, blockOffsets, GRID_SET, type GridCell, type GridResult } from './fusion/grid';
 import {
-  memberSigma, confidenceOf, consistentCloudTotal, sigmaClimaFallback, C_SPREAD, SIGMA_SYS_FLOOR_A1, CONF_DISCOUNT,
+  memberSigma, confidenceOf, cloudMixSharpness, consistentCloudTotal, sigmaClimaFallback, C_SPREAD, SIGMA_SYS_FLOOR_A1, CONF_DISCOUNT,
   type UncVar, type MemberSigma, type Confidence, type SigmaKind,
 } from './fusion/uncertainty';
 import { windSigmaAt } from './fusion/priors';
@@ -564,6 +564,21 @@ export interface FuseCubeOptions {
    */
   priorShrink?: boolean;
   /**
+   * Phase AX, E-AX-11 (V-AX-13, `audit/fusion-ausbau.md` §6h): mit `priorShrink: false` behalten WIND und BÖE den
+   * Klimatologie-Schritt trotzdem (`FusionContext.priorShrink = { except: ['wind', 'gust'] }`). Am Archiv (16.–28.09., Modus L =
+   * Punkt ohne eigene Station) verlor der Wind ohne den Schritt gegen die Kette von 5e (0–6 h −1,2 %!, 126–240 h −4,1 %!) und lag
+   * bei 0–120 h unter der Lernstufe allein, während T/Td/Böe gewannen. Wirkt nur mit `priorShrink: false`; Voreinstellung aus
+   * ⇒ byte-gleich.
+   */
+  priorShrinkWind?: boolean;
+  /**
+   * Phase AX, E-AX-11 (zweite Hypothese): der Anker für u, v und Böe wird über die DISTANZ der Messung zusätzlich mit
+   * e^(−(d / anchorWindKm)²) gedämpft — `spatialWeight` (D_REF 20 km) gibt einer 20 km entfernten Messung noch 0,5, doch beim
+   * Wind trägt sie eine fremde Exposition und Richtung. T bleibt beim bisherigen Gewicht. Messungen am Punkt (d = 0) und die
+   * INCA-Analyse sind unberührt. Voreinstellung aus (kein Wert) ⇒ byte-gleich.
+   */
+  anchorWindKm?: number;
+  /**
    * Phase FS (H14): die gelernte Bewölkungsverteilung wird durchgereicht statt nachfusioniert (`fused.clouds`), wo die
    * Lernstufe sie trägt. Wirkt nur mit `learned`; Voreinstellung aus ⇒ byte-gleich.
    */
@@ -595,6 +610,15 @@ function sigmaPostOf(f: FusedPoint, v: UncVar): number | null {
   const fv = v === 'temperature' ? f.temperature : v === 'dewpoint' ? f.dewPoint : v === 'wind' ? f.windSpeed : v === 'gust' ? f.gust : f.clouds;
   const s = (fv?.dist as { sigma?: number } | undefined)?.sigma;
   return s != null && Number.isFinite(s) ? s : null;
+}
+/**
+ * KF (V-KF-2): die Schärfe des Konfidenz-Scores, wo σ keines ist — die Zwei-Atome-Mischung der Bewölkung (`cloudMix`) bekommt die
+ * größte Atommasse (`cloudMixSharpness`); jede andere Verteilung behält `1 − σ_post/σ_clima` (`undefined` ⇒ Voreinstellung).
+ */
+function spreadOverrideOf(f: FusedPoint, v: UncVar): number | undefined {
+  if (v !== 'clouds') return undefined;
+  const d = f.clouds?.dist;
+  return d && d.kind === 'cloudMix' ? cloudMixSharpness(d) : undefined;
 }
 
 /**
@@ -809,6 +833,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const routeCount: Record<string, number> = {};
   const useAtPoint = useLearned && opts.learnedAtPoint === true;
   const noPriorShrink = opts.priorShrink === false;
+  // E-AX-11: wind/gust keep the climatological step; the wind anchor is damped over the distance of the measurement
+  const keepWindShrink = noPriorShrink && opts.priorShrinkWind === true;
+  const anchorWindL = opts.anchorWindKm != null && Number.isFinite(opts.anchorWindKm) && opts.anchorWindKm > 0 ? opts.anchorWindKm * 1000 : null;
   const useLearnedClouds = useLearned && opts.learnedClouds === true;
   const stackErrors = opts.stationValue === true && input.stack ? validateStackTable(input.stack) : [];
   const stackT: StackTable | null = opts.stationValue === true && input.stack && !stackErrors.length ? input.stack : null;
@@ -890,7 +917,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       'sigmaQuant:physical — Δ²/12 aus der Ebenenskala (PAP 6)',
       'sigmaVert:set — Restfehler der Höhenkorrektur 0,0035 K/m·|Δh| (REP.lapseResidualPerM), Fall C |ΔT_C|, Fall B dT_inv/4',
       ...(cal?.confDiscount ? [`confidence:${metaOf('confDiscount')} — gemessene Abschläge: ${Object.entries(cal.confDiscount).map(([k, x]) => `${k} ${x}`).join(' · ')}; die übrigen wie unten (set)`] : []),
-      `confidence:set — Score = spread·agree·lage; Abschläge Fall C ${CONF_DISCOUNT.caseC} · Fall B ${CONF_DISCOUNT.caseB} · |Δh| > 300 m ${CONF_DISCOUNT.dhOver300} · Chunk-Rand ${CONF_DISCOUNT.chunkBorder} · Interpolation ${CONF_DISCOUNT.interpolated} · Modell statt Nowcast ${CONF_DISCOUNT.nowcastFallback}; kein Wahrscheinlichkeitsmaß, AP9 prüft die Monotonie gegen CRPS`,
+      `confidence:set — Score = spread·agree·lage; Abschläge Fall C ${CONF_DISCOUNT.caseC} · Fall B ${CONF_DISCOUNT.caseB} · |Δh| > 300 m ${CONF_DISCOUNT.dhOver300} · Chunk-Rand ${CONF_DISCOUNT.chunkBorder} · Interpolation ${CONF_DISCOUNT.interpolated} · Modell statt Nowcast ${CONF_DISCOUNT.nowcastFallback}; Einigkeit misst σ_div gegen die PAP-6-σ auch unter einer gelernten σ (V-KF-1); Bewölkung als Zwei-Atome-Mischung: Schärfe = größte Atommasse statt σ (V-KF-2); kein Wahrscheinlichkeitsmaß — Score-Dezile gegen CRPS am Archiv in audit/fusion-konfidenz/monotonie.md`,
       'precipSigma:set — Niederschlag bleibt beim Motor (K-2); precip_sd wird nicht als σ verwendet',
       'meltOffset:null — Schneefallgrenze ist der Zellwert, kein Schmelzversatz (calib.meltOffset unbekannt)',
       'stationSigma:set — das MOSMIX-Member (Stationsprodukt, eine Quelle) bekommt dieselbe PAP-6-σ (sys-only: V-A₁-Boden, darüber Skill-Prior) statt des Motor-Priors ρ₀ = 0,985, den V-A₁ als zu hoch gemessen hat (§11 (2))',
@@ -928,6 +955,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       ? 'learnedRoute:tier — Strata der Lernstufe je Stufe: t1 Route 1 (Lauf-Route), t2/t3 Route 3 (dyn, ganzjährig, 289 Tage) statt Route 1 mit 87–95 Sommertagen (E-FV-3, V-FV-1; AX-2)'
       : `learnedRoute:${learnedRouteOpt} — Strata der Lernstufe aus Route ${learnedRouteOpt} in jeder Stufe (AX-2)`] : []),
     ...(noPriorShrink ? ['priorShrink:off — kein Klimatologie-Schritt für Kombinationen aus Membern mit expliziter σ (Lernstufe, PAP 6, Stationsmember sind kalibrierte Vorhersagen); Niederschlag behält ihn (K-2); jenseits der Daten trägt weiter allein die Klimatologie (Phase FS, D2)'] : []),
+    ...(keepWindShrink ? ['priorShrinkWind:set — Wind und Böe behalten den Klimatologie-Schritt trotz priorShrink:off (E-AX-11, V-AX-13): am Punkt ohne Station verlor der Wind ohne den Schritt gegen die Kette von 5e; T, Td und Bewölkung bleiben ohne Schritt'] : []),
+    ...(anchorWindL != null ? [`anchorWind:set — der Anker für u, v und Böe ist über die Distanz der Messung mit e^(−(d/${opts.anchorWindKm} km)²) gedämpft (E-AX-11): eine 10–30 km entfernte Messung trägt beim Wind eine fremde Exposition; T behält das Gewicht von spatialWeight`] : []),
     ...(useLearnedClouds && learnedT ? ['learnedClouds:hindcast — die Bewölkungsverteilung der Lernstufe wird durchgereicht statt nachfusioniert (Phase FS, H14)'] : []),
     ...(opts.stationValue === true ? [stackT
       ? `stationValue:archive — Stationswert M + b + w·I + c·(L − M) aus ${stackT.fitVersion} (${stackT.period.from}…${stackT.period.to}, ${stackT.period.issueDays} Ausgabetage, ${stackT.rows} Zeilen; Provenienz archive, nie measured) für T, Td, Windgeschwindigkeit, Böe — nur mit einer Station am Punkt (≤ ${stackT.range.maxKm} km, |Δh| ≤ ${stackT.range.maxDElevM} m); I aus der jüngsten Messung einer Station am Punkt; Richtung, Feuchte und Phase bleiben aus der Kombination`
@@ -1040,7 +1069,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       clima: climaAt(atMs),
       climaAt,
       terrainDeltaAt: () => 0,
-      ...(noPriorShrink ? { priorShrink: false } : {}),
+      ...(noPriorShrink ? { priorShrink: keepWindShrink ? { except: ['wind', 'gust'] as const } : false } : {}),
     };
     return fuseHour(samples, leadH, ctx);
   };
@@ -1304,9 +1333,11 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         const tObs = o.temperature + ((o.elevM ?? hTrue) - hTrue) * STANDARD_LAPSE_PER_M;
         pairs.t.push({ ageH, obs: tObs, model: tCube, wsp });
       }
-      if (o.u != null && p.cubeSample.u != null) pairs.u.push({ ageH, obs: o.u, model: p.cubeSample.u, wsp });
-      if (o.v != null && p.cubeSample.v != null) pairs.v.push({ ageH, obs: o.v, model: p.cubeSample.v, wsp });
-      if (o.gust != null && p.cubeSample.gust != null) pairs.gust.push({ ageH, obs: o.gust, model: p.cubeSample.gust, wsp });
+      // E-AX-11: the wind anchor (u, v, gust) is damped over the distance of the measurement; T keeps `wsp`
+      const wspW = anchorWindL != null ? wsp * Math.exp(-((Math.max(0, o.distanceM) / anchorWindL) ** 2)) : wsp;
+      if (o.u != null && p.cubeSample.u != null && wspW > 0) pairs.u.push({ ageH, obs: o.u, model: p.cubeSample.u, wsp: wspW });
+      if (o.v != null && p.cubeSample.v != null && wspW > 0) pairs.v.push({ ageH, obs: o.v, model: p.cubeSample.v, wsp: wspW });
+      if (o.gust != null && p.cubeSample.gust != null && wspW > 0) pairs.gust.push({ ageH, obs: o.gust, model: p.cubeSample.gust, wsp: wspW });
       sources.add(o.source); fraction = Math.max(fraction, wsp);
     }
     const t = innovation(pairs.t, ANCHOR_MAX.temperature), u = innovation(pairs.u, ANCHOR_MAX.wind), vv = innovation(pairs.v, ANCHOR_MAX.wind), g = innovation(pairs.gust, ANCHOR_MAX.gust);
@@ -1365,7 +1396,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
           : memberSigma({ v, sample: cubeSample, leadH, sigmaClima: sc, vertical });
         // FL-AP5: die gelernte σ ersetzt den PAP-6-Zweig ganz (Varianzmodell aus dem Hindcast, `kind: learned`).
         const ls = p.learnedSigma?.[v];
-        const m: MemberSigma = ls != null && ls > 0 ? { sigma: ls, kind: 'learned', parts: { ...m0.parts, sys: 0 } } : m0;
+        // KF (V-KF-1): der PAP-6-Zweig bleibt als `raw` erhalten — die Einigkeit des Konfidenz-Scores misst σ_div gegen ihn.
+        const m: MemberSigma = ls != null && ls > 0 ? { sigma: ls, kind: 'learned', parts: { ...m0.parts, sys: 0 }, raw: { sigma: m0.sigma, kind: m0.kind } } : m0;
         memberSig[v] = m;
         es[v] = m.sigma;
       }
@@ -1475,7 +1507,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         const sp = fused ? sigmaPostOf(fused, v) : null;
         uncertainty[v] = {
           sigmaKind: m.kind, sigmaMember: m.sigma, parts: m.parts, sigmaPost: sp, sigmaClima: sigmaClimaOf[v]!,
-          confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaOf[v]!, member: m, srcCount: cubeSample.srcCount ?? null, flags, dhM: vertical ? Math.abs(vertical.dhM) : null, ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }),
+          confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaOf[v]!, member: m, srcCount: cubeSample.srcCount ?? null, flags, dhM: vertical ? Math.abs(vertical.dhM) : null, spread: spreadOverrideOf(fused!, v), ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }),
         };
       }
     }
@@ -1544,7 +1576,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
             const m = memberSigma({ v, sample: st, leadH, sigmaClima: sigmaClimaFor(v, t), vertical: null });
             const sp = sigmaPostOf(fused, v);
             uncertainty[v] = { sigmaKind: m.kind, sigmaMember: m.sigma, parts: m.parts, sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t),
-              confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t), member: m, srcCount: 1, flags, dhM: null, ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }) };
+              confidence: sp == null ? null : confidenceOf({ sigmaPost: sp, sigmaClima: sigmaClimaFor(v, t), member: m, srcCount: 1, flags, dhM: null, spread: spreadOverrideOf(fused, v), ...(cal?.confDiscount ? { discount: cal.confDiscount } : {}) }) };
           }
         }
         out.push({ validAtMs: t, leadH, tier: 'station', interpolated: false, flags, fused, members: [stationMember(t, st)], cell: {}, belowGroundHPa: null, vertical: null, grid: null, uncertainty, terrain: null, weights, samples: [st], ...(post ? { post } : {}) });
