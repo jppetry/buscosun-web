@@ -30,6 +30,8 @@
 | AX-11 | Globalstrahlung, Sonnenscheindauer, Sichtweite im Stationsprodukt (#21) | **fertig, lokal geprüft** — drei Ebenen hinter den 61 Cube-Ebenen (MOSMIX `Rad1h`/`SunD1`/`VV`, in S und L), Manifest nennt sie, Leser unverändert (München 30.09. 15 UTC 342 W/m², 60 min, 51 km); +1,66 MiB je Lauf; Dashboard kann sie aus der Stationsreihe nehmen (Phase DB) | `verify:point-data` (3n, 3 Prüfungen) · `%TEMP%\ax8\repo` |
 | AX-12 | Messung: buscosun Fusion heute (Stufe fs) gegen Fit 5e am Archiv 16.–28.09., an den Stationen (Auftrag Jan 30.09. abends, nach dem Commit `a02f2b5`) | **gemessen** — 365 513 Zeilen, 13 Ausgabetage, 389 Stationspunkte, Wahrheit bis zum 29.09.-Slot (V-AX-4 behoben: Schema 3 lesbar, `--slotsFrom`); **Modus S gegen 5e: MAE 22 von 36 Zellen signifikant besser, 0 schlechter** (T +17…+29 %*, Td +10…+22 %*, Wind +20…+27 %*, Böe +16…+28 %*, Bewölkung +11…+18 %*, PIT-Rand 0,62–0,75 → 0,28–0,33; Niederschlag unverändert); gegen MOSMIX T +14/+7/+6/+3 %*, Td +13…+19 %*, Wind 0–6 h +6 %* sonst gleichauf, Böe 0–6 h +10 %*; **CH Wind/Böe weiter −2…−10 %! (E-AX-7 offen)**; Modus L (stationslos): 15 besser / 2 schlechter — **Wind 0–6 h −1,2 %!, 126–240 h −4,1 %!, 0–120 h unter der Lernstufe allein ⇒ V-AX-13, E-AX-11**; Kontrolle In-sample gegen Leave-Day-out ≤ 1,2 % | §6g · `scripts/fusionfit/now-vs-5e.mjs` · `fusion-ausbau/now-vs-5e.md` · `score\2026-09-30-now5e` · `verify:fusion-fit` 125/125 (16i). **Schaltkandidaten (§6g.5, `now-vs-5e-b.md`):** Wolkenatome (AX-4) Bewölkung CRPS +6…+10 %*, PIT-Rand 0,3 → 0,2, K7 bestanden ⇒ BESSER; Landesparameter (E-AX-7) Wind/Böe +2…+3 %* (CH +1,5…+8 %*), CH gegen MOSMIX von −2…−10 %! auf −0,6…−1,1 % (n.s.), Td −0,1…−1,0 % ⇒ ohne Td-Landeseinträge einspielen (V-AX-15); zusammen gegen 5e **23 / 0 / 13** — **mit Jans Go eingespielt (Daten-Repo `1aaec969`) = „buscosun Fusion 6"** (§6g.6) |
 | E-AX-11 | Wind ohne Station (V-AX-13; Auftrag Jan 30.09. „ja starte") | **gebaut (zwei Optionen, aus), gemessen — Schritt SCHLECHTER, Anker GLEICHSTAND** — `priorShrinkWind` (Schritt bleibt für Wind/Böe): Modus L Böe 0–120 h −3,5…−5,7 %!, DE-Wind bis −11 %!, aber AT/CH-Wind +3…+15 %* und 126–240 h +4,7 %* ⇒ V-AX-17 (Defizit im gelernten Windmember); `anchorWindKm: 10` (Wind-Anker über die Distanz gedämpft): nirgends schlechter, 0–6 h Böe +0,6 %*, Wind +0,5 % (gegen 5e −1,1 %! → −0,6 % n.s.); K8 bestanden; Empfehlung: Anker in die Stufe fs mit dem nächsten Push (= buscosun Fusion 7), Schritt nein, E-AX-13 mit ≥ 30 Tagen | §6h · `fusion-ausbau/eax11.md` · `score\2026-09-30-eax11` · `verify:pv-cube` 398/398 (Block 38) · `verify:pv-fusion` 235/235 · Build 249/249 · Budget grün |
+| AX-13 (§6i) | Messung „buscosun Fusion 7“ (= 6 + `anchorWindKm: 10` + Klimagitter/Trend) gegen Fusion 6 am Archiv 16.–30.09. (Auftrag Jan 01.10.) | **gemessen — BESSER nach der vorab eingefrorenen Regel (4 Tupel besser / 0 schlechter), aber marginal:** nur Wind/Böe 0–6 h ohne Station +0,5 %* / +0,6 %* (1,008 → 1,004 · 1,213 → 1,206 m/s), Modus S byte-gleich; Zuordnung: alles vom Anker, **Klimagitter bewegt 0 von 72 Zellen (K9, V-AX-19)**; 405 810 Zeilen, 14 Ausgabetage | §6i · `fusion-ausbau/fusion7-vs-6.md` · `score\2026-10-01-f7` · `verify:fusion-fit` 125/125 · E-AX-14 = Jans Gate |
+| AX-14 (§6j) | Archiv-Schema 4: MOSMIX-S-Reihe (`stationsS`) und INCA-Analyse (`incaAnalysis`) im Sammler — die Eingaben für E-AX-8 und E-AX-10 | **gebaut (uncommitted)**, Trockenlauf gegen das CDN grün (S-Lauf 2026100104, INCA 2/2 AT-Punkte), additiv, Leser 1–4 | §6j · `verify:punktarchiv` 126/126 · wirksam nach dem Push von `main` (§30 a) |
 | AX-6 | Ensemble-Mittel in t3 (E-EX-1, #3) — die Messung | **gemessen (roh, 13 Monate, 129 Läufe)** — gegen jeden Einzellauf bei 126–336 h T +14/+23 %*, Wind +13/+16 %*, Böe +10/+12 %*; gegen das Mittel zweier Läufe bei T erst ab 246 h (+10 %*); bei 246–336 h gleichauf mit der Klimatologie ⇒ Gewinn vor allem Wind/Böe; Producer-Schritt = E-AX-6 | `score\2026-09-30-ax6`, `fusion-ausbau/ax6-ens.md` |
 | — | Nicht gebaut (Entwürfe §6f) | #17 CH-Member, #18 Exposition, #20 zeitversetztes Ensemble (heute nicht messbar), #4 RUC (E-EX-5: Phase 30.11.), #6 flächige MOS-Korrektur und #8 flächige Niederschlagswahrheit (Datenprogramme); Kalender #1/2 (≥ 30 Ausgabetage), #9 (Winter) | — |
 
@@ -919,6 +921,128 @@ E-AX-11 liegt daneben in denselben Dateien (`cubeSource.ts`: `priorShrinkWind`, 
 { except }`; `output.ts`: zwei Schlüssel; `verify-pv-cube.mjs` Block 38 und (35)); beide Stände zusammen: typecheck 0 (22:00 UTC). Beim
 Commit gehören die KF-Dateien der KF-Session, E-AX-11 ist an den genannten Markern erkennbar.
 
+## 6i „buscosun Fusion 7" gegen „buscosun Fusion 6" am Archiv (Auftrag Jan 01.10.: „mache das … gib mir nachvollziehbar aus, ob 7 besser als 6 ist")
+
+Jans Frage am Morgen des 01.10.: was lässt sich buscosun Fusion jetzt noch hinzufügen, was war offen, was kann mit dem neuen
+Archivlauf umgesetzt werden — und vorher prüfen, ob es Fusion 6 verbessert. Die Sichtung der offenen Kandidaten (§6i.0) ergab zwei
+Bauteile, die ohne neue Eingaben sofort am Archiv messbar sind, und zwei, die erst eine Sammler-Zeile brauchen (§6j).
+
+### 6i.0 Offene Kandidaten und ihre Messbarkeit (Sichtung 01.10., 04:30 UTC)
+
+| Kandidat | Stand | Messbar am Archiv? |
+|---|---|---|
+| E-AX-11 `anchorWindKm: 10` (Wind-Anker über die Messdistanz gedämpft) | gebaut, aus; gegen P3 GLEICHSTAND (§6h.3) — nie gegen Fusion 6 selbst | **ja, sofort** |
+| E-AX-9 `climaGrid` + `climaTrend` (Klimagitter als Tagesmittel des Priors) | gebaut, aus; Prior allein 1,63 → 1,22 K (§6c.3), Produktwirkung ungemessen | **ja, sofort** — Gitter aus dem lokalen Daten-Repo-Klon |
+| E-KF-1 Konfidenz als kalibrierte Schärfe | entworfen (`audit/fusion-konfidenz.md` §7) | ja (`conf-monotonie.mjs`), ändert keinen Vorhersagewert |
+| E-AX-6 `ensMember` (ENS-Mittel als t3-Member) | gebaut, aus; Hindcast roh T +14/+23 %* bei 126–336 h | **erst ab ≈ 06.–14.10.**: der Slot 30.09. 23:22 UTC ist der ERSTE mit Schema-6-Ebenen (`t2m_ens`/`u10_ens`/`v10_ens`/`precip_ens`, 61 Ebenen; 29.09. noch 57) |
+| E-AX-8 MOSMIX-S als Stationsmember (`stationSource`) | gebaut, aus | **nein**: der Sammler liest nur die L-Reihe ⇒ §6j |
+| E-AX-10 INCA-Analyse als Anker in AT | gebaut, aus, nie gemessen | **nein**: der Sammler schreibt keine INCA-Analyse ⇒ §6j |
+| E-FS-3 Stationswert-Neufit, MOSMIX-σ/ρ aus dem Archiv, E-AX-12 (6 gegen 5e out-of-sample), E-AX-13 | entworfen | erst ab ≥ 30 Ausgabetagen (heute 17: 14.–30.09.) ≈ 14.10. |
+| #20 zeitversetztes Ensemble, #8 Rasterwahrheit, #4 ICON-D2-RUC, V-AX-6 Stufennaht-Rampe | entworfen | nein (Archiv ohne Vorläufer/Überlappung; Datenprogramm; Phase NS) |
+
+### 6i.1 Vorab eingefrorene Regel (01.10., 05:05 UTC, im Code von `stack-score.mjs` VOR dem Lauf)
+
+**Kandidat „buscosun Fusion 7"** = Fusion 6 + `anchorWindKm: 10` + `climaGrid` + `climaTrend` (Extraktor-Variante **F7**; die Teile einzeln
+als **F7a** Anker und **F7b** Klimagitter/Trend). **Referenz „buscosun Fusion 6"** = Variante **F6**: Optionen der Stufe fs (`learned`,
+`learnedSpeed`, `learnedPrecip`, `learnedAtPoint`, `priorShrink: false`, `learnedClouds`, `stationValue`), Lernstufe mit den Wolkenatomen
+(`fit\2026-09-30-ax4\fusion.ax4.json`, der Hindcast-Zwilling von `point/fusion.client.json`, Falten-β je Ausgabetag ≤ 21.09.) und der
+**eingesetzte** Landes-Stationswert `C:\dev\buscosun-data\point\stack.client.json` (701 Einträge, ohne Td-Landeseinträge, sha wie im
+Daten-Repo `1aaec969`). Die Stationswert-Tabelle ist für das Archivfenster In-sample (gefittet 14.–27.09.) — das trifft F6 und F7
+gleich und kürzt sich in der Paardifferenz; Absolutzahlen gegen MOSMIX/5e sind deshalb nur Kontext.
+
+**Zeilen:** Archiv 16.–30.09. (Ausgabe-Slots ab 16.09., Wahrheit aus allen Slots bis 30.09.), 389 Stationspunkte, nur native Schritte
+(V-AX-7), Modus S (Punkt = Station) und Modus L (Punkt ohne eigene Station). **Regel** (Kandidat `fusion7` gegen `fusion6`, alle
+6 Größen × 6 Bins = 36 Zellen, Modus S und L, MAE und CRPS, Schicht all; DM je Ausgabetag HLN, BH über die Karte):
+
+- **BESSER**: nirgends signifikant schlechter UND ≥ 3 Tupel (Modus, Zelle, Maß) signifikant besser.
+- **GLEICHSTAND**: nirgends signifikant schlechter, weniger als 3 besser.
+- **SCHLECHTER**: irgendwo signifikant schlechter (Zellen < −2 % werden gezählt).
+
+Dieselbe Zählung für F7a und F7b gegen F6 ordnet das Ergebnis den Teilen zu. **Kontrollen:** **K9** — Erwartung aus dem Code: das
+Klimagitter bewegt in der Stufe fs KEINE native Zelle (der Klimatologie-Schritt ist aus, der Schwanz im Extraktor aus, die
+Anomalie-Interpolation liest das gelernte μ_c, nicht den Motor-Prior; `cubeSource.ts` `climaAt`) — die Zahl der bewegten Zellen ist ein
+Befund, kein Gate. **K10** — der Anker berührt nur Wind und Böe (T/Td/Bewölkung/Niederschlag ohne bewegte Zelle; σ_T darf sich über
+den Wind in 0–24 h minimal bewegen, s. K8).
+
+**Rauchtest vor dem Lauf** (4 Punkte, Slots 29./30.09., 96 Zeilen, `score\2026-10-01-f7-smoke`): alle vier Varianten in jeder Zeile;
+**F7b byte-gleich zu F6 in allen Größen und beiden Modi** (K9 vorab bestätigt); F7a bewegt in Modus L Wind 73/96, Böe 92/92 und T 18/96
+(σ_T-Stabilitätsterm), in Modus S nichts (der Stationswert deckt Wind/Böe); Klimagitter an 4/4 Punkten gelesen.
+
+### 6i.2 Lauf (01.10., 05:10–06:10 UTC; `score\2026-10-01-f7`, Karte `fusion-ausbau/fusion7-vs-6.md`)
+
+Extraktion 22 min (15 Ausgabe-Slots 16.–30.09., **405 810 Zeilen, 14 Ausgabetage**, 389 Stationspunkte, 64 560 Motorläufe ohne Fehler,
+Klimagitter an 383 von 389 Punkten gelesen), Scoring 8 098 Zellen, 39 008 DM-Tests. Vom Scorer gerechnet (`score.log`, 06:10 UTC):
+**„Fusion 7 BESSER (4 besser / 0 schlechter) · K9 Klimagitter bewegt keine native Zelle (wie erwartet in der Stufe fs)"**.
+
+**Verdikt Fusion 7 gegen Fusion 6 — BESSER nach der Regel, aber marginal:**
+
+| Zelle (Modus L, Punkt ohne Station) | MAE Fusion 6 → 7 | Δ MAE | CRPS 6 → 7 | Δ CRPS |
+|---|---|---|---|---|
+| Wind 0–6 h | 1,008 → 1,004 m/s | **+0,5 %*** | 0,696 → 0,692 | **+0,5 %*** |
+| Böe 0–6 h | 1,213 → 1,206 m/s | **+0,6 %*** | 0,882 → 0,876 | **+0,7 %*** |
+| alle übrigen 34 Zellen, Modus L | identisch oder n.s. | 0,0 % | | 0,0 % |
+| alle 36 Zellen, Modus S (Punkt = Station) | **byte-gleich** | 0,0 % | | 0,0 % |
+
+- **Zuordnung:** F7a (nur Wind-Anker) ergibt exakt dieselbe Karte wie F7 — **BESSER (4 / 0)**; F7b (nur Klimagitter + Trend) ist in
+  allen 72 Zellen byte-gleich zu Fusion 6 — **GLEICHSTAND, 0 bewegte Zellen (K9)**. Fusion 7 ist also allein der gedämpfte Wind-Anker.
+- **Wo der Anker wirkt:** nur in den ersten sechs Stunden an Punkten OHNE eigene Station (die Messung der Nachbarstation wird über
+  e^(−(d/10 km)²) gedämpft); ab 7 h exakt 0,0 %, mit Station deckt der Stationswert Wind/Böe (Modus S identisch). Spread/Skill
+  Wind 0,88, PIT-Rand 0,239 → 0,237 — die Streuung bleibt, wie sie war.
+- **Was bleibt:** der stationslose Wind bei 126–240 h ist weiter −3,5 %! gegen 5e (V-AX-13/V-AX-17, Fit-Seite, E-AX-13), 0–6 h von
+  −1,0 %! auf n.s.
+- **K10** (Anker berührt nur Wind/Böe): die erste Karte meldete „NICHT bestanden (T 3/12)" — drei T-Zellen in Modus L mit **ΔMAE = 0**
+  und |ΔCRPS| ≤ 0,002 % (der σ_T-Stabilitätsterm liest den verankerten Wind; dieselbe Spur, die K8 in §6h.3 mit 0,5 % Toleranz
+  zulässt). Die Kontrolle wurde auf die K8-Toleranz angeglichen (T: Punktwert exakt, CRPS ≤ 0,5 %) und der Scorer erneut gerechnet
+  (`score2.log`) ⇒ **bestanden**. Festgehalten, weil die Regel nach dem Lauf angefasst wurde — am Verdikt ändert sich nichts.
+- **Kontext, Fusion 6 gegen Fit 5e auf denselben Zeilen** (In-sample-Stationswert, deshalb etwas schmeichelhafter als Spalte F in
+  §6g.5 mit Leave-Day-out): Modus S MAE **25 von 36 Zellen signifikant besser, 0 schlechter**, 11 gleichauf (T +17…+31 %*, Td +10…+23 %*,
+  Wind +22…+28 %* bis 240 h, Böe +18…+29 %*, Bewölkung +16…+26 %*; Td 246–336 h CRPS −4,6 %! ohne MOSMIX); Modus L 18 besser / 2 schlechter
+  (Wind 0–6 h −1,0 %!, 126–240 h −3,5 %!) / 16 gleichauf. Niederschlag in jeder Zelle 0,0 % (Atome und Stationswert berühren ihn nicht).
+
+**Befund V-AX-19 — das Klimagitter (E-AX-9) ist in der Stufe fs wirkungslos auf jeden bewerteten Schritt.** Der Klimatologie-Prior
+trägt nur noch über den Klimatologie-Schritt (aus seit E-FS-2), den Klimatologie-Schwanz jenseits der Daten und `climatologyOnly`-Schritte
+(im Archiv nicht bewertet), und die Anomalie-Interpolation (AX-3) liest das gelernte μ_c der Lernstufe, nicht den Motor-Prior
+(`cubeSource.ts` `anomalyMuT` ← `learnedClima`). Die gemessene Prior-Verbesserung (1,63 → 1,22 K, §6c.3) kommt im Produkt deshalb
+nicht an. Will man sie nutzen, muss das Gitter in die Anomalie-Interpolation (μ_c der Lernstufe um das Gitter-Tagesmittel verschieben)
+oder in den Schwanz — beides messbar nur mit stündlichen Zeilen (`interp-score.mjs`-Weg) bzw. gar nicht am Archiv. Bis dahin:
+**`climaGrid`/`climaTrend` nicht einschalten** (kostet 1,87 MiB Chunks am Edge, bringt im bewerteten Produkt nichts).
+
+**Empfehlung an Jan (E-AX-14):** `anchorWindKm: 10` in die Stufe fs = **„buscosun Fusion 7"** — nirgends schlechter, +0,5 bis +0,7 %
+in zwei Zellen; ehrlich gesagt ein Gewinn im Nachkommabereich, der die neue Nummer rechtfertigt, aber nicht trägt. Die Nummer bleibt Jans
+Konvention (jede Kettenänderung ⇒ neue Nummer); der heutige Stand im Arbeitsbaum (Phase KF, `confidence` geändert) ist ohnehin schon
+nicht mehr „6". Der nächste echte Gewinn liegt in E-AX-6 (ENS-Mittel, messbar ab ≈ 06.–14.10.), E-AX-8/E-AX-10 (ab dem ersten
+Schema-4-Slot + 14 Tage, §6j) und E-FS-3 (Neufit ab 30 Ausgabetagen ≈ 14.10.).
+
+**Gates:** `verify:fusion-fit` **125/125** (16i auf Schema 4 erweitert), `verify:punktarchiv` **126/126**; kein `src/`-Eingriff (keine
+Bundle-/Typecheck-Änderung). Geänderte Dateien: `stack-extract.mjs` (Varianten F6/F7a/F7b/F7, `VARIANT_NEEDS`, Klimagitter-Store
+`--point`), `stack-score.mjs` (Kandidaten `fusion6`/`fusion7*`, Block §6i mit Regel, K9/K10), `lib/archiveAdapter.mjs` (`climaGrid`
+im Eingang, Schema 4, `archiveStation(…, source)`).
+
+## 6j Archiv-Schema 4 — zwei Sammler-Zeilen für E-AX-8 und E-AX-10 (01.10., 05:15–05:30 UTC; gebaut, uncommitted)
+
+Zwei gebaute, voreingestellt ausgeschaltete Optionen von buscosun Fusion waren am Archiv nicht messbar, weil der Sammler ihre
+Eingaben nicht schrieb: `stationSource: 'mosmix_s'` (AX-8, E-AX-8 — MOSMIX-S als Stationsmember) und `incaAnchor` (AX-10, E-AX-10 —
+die INCA-Analyse als Anker-„Messung" in AT). Jeder Tag ohne diese Zeilen ist ein verlorener Messtag, deshalb heute, vor der Messung
+selbst. Alles additiv — Leser von Schema 3 lesen Schema 4 unverändert (`archiveAdapter.mjs` liest 1–4).
+
+| Datei | Änderung |
+|---|---|
+| `scripts/punktarchiv/lib/punktarchiv.mjs` | `ARCHIVE_SCHEMA = 4`, lesbar 1–4, Schema-Historie im Kopf, Selbsttest „Schema 5 abgewiesen" |
+| `scripts/punktarchiv/collect.mjs` | `collectStations(…, variant)` liest L **und** S mit demselben Leser (`STATIONS_L`/`STATIONS_S`, Block `stationsS` mit `product: 'mosmix_s'`, `stations` trägt jetzt `product: 'mosmix_l'`); fehlt der S-Lauf im Index: Warnung `stationsSAbsent`, kein Fehler. Neu `collectIncaAnalysis`: für jeden AT-Punkt `fetchIncaAnalysisObs` des Motors (dieselbe URL, dieselbe Abbildung, Fenster 4 h ≤ Slot), Block `incaAnalysis` mit `byPoint[id] = [{ validAtMs, t, td, rh, u, v }]`, `weight` = `INCA_ANCHOR_WEIGHT` (0,6 set), `stats` (Punkte, Zeilen, Alter der jüngsten Analyse); Schalter `--no-inca`. `index.stationsS` im Kopf |
+| `scripts/fusionfit/lib/archiveAdapter.mjs` | liest Schema 4; `archiveStation(slot, id, hTrue, source = 'stations')` — `'stationsS'` für die spätere Messung von E-AX-8 |
+| `scripts/verify-punktarchiv.mjs` | (3) Schema 4; neue (5)-Prüfung an den Konstanten (S-Leser, INCA nur AT, Gewicht aus der Motor-Konstante); Regex der PA4-Prüfung auf `slot[key]` |
+
+**Trockenlauf** (05:14 UTC, `--dry --ids=11120,11035,10865,06660 --no-live --no-truth --no-nowcast`, gegen das CDN, nichts geschrieben):
+Index `65d04cd`, `stations (mosmix_l)` Lauf 2026100103 (2,2 h alt), **`stationsS (mosmix_s)` Lauf 2026100104 (1,2 h alt), 4/4 Punkte,
+15 Ebenen**, **`incaAnalysis` 2/2 AT-Punkte, 8 Zeilen (4 je Punkt), jüngste Analyse 1,2 h vor dem Slot, 5,2 s**; 0 Fehler. Slot
++ 0,07 MiB gz bei 4 Punkten ⇒ bei 405 Punkten ≈ +0,5 MiB je Slot (die S-Reihe ist so groß wie die L-Reihe; INCA ≈ 84 × 4 Zeilen).
+
+**Gates:** `verify:punktarchiv` **126/126** (Selbsttest Schema 4 + neue (5)-Prüfung). Kein `src/`-Eingriff ⇒ Bundle/Typecheck unberührt.
+
+**Wirksam erst nach dem Push von `main`** (der Archiv-Cron klont `main` täglich 23:10 UTC) — Jans Gate, MANUELLE-SCHRITTE §30. Messbar
+werden E-AX-8 und E-AX-10 damit ab ≈ 14 Ausgabetagen nach dem ersten Schema-4-Slot (≈ 15.10.); der Scorer braucht dazu je eine
+Variante (`stationSource`-Leser über `archiveStation(…, 'stationsS')`, INCA-Zeilen als `CubeObs` mit `weight` in den Anker).
+
 ## 7 Gates der Phase (Arbeitsbaum mit der parallelen Dashboard-Phase; Stand nach AX-11, 30.09. 14:50 UTC)
 
 | Gate | Stand |
@@ -1007,6 +1131,9 @@ ist out of fold am Hindcast gemessen, das ist die stärkere Zahl); AX-6 nach der
 | E-AX-4 | Codec Version 3 | auf `main` seit `a02f2b5` (Jans Commit) |
 | E-AX-5 | Tabelle mit Atomen ins Daten-Repo | ja — Archiv BESSER, K7 bestanden (§6g.5); Einspielen = Jans Go |
 | E-AX-12 | Karte nach dem Einspielen an den nächsten ≥ 14 Archivtagen wiederholen (out-of-sample) | Jans Gate für den Termin |
+| V-AX-19 | **Das Klimagitter (E-AX-9) bewegt in der Stufe fs keine bewertete Zelle** — der Prior wirkt nur noch im Schwanz und in `climatologyOnly`-Schritten, die Anomalie-Interpolation liest das gelernte μ_c (§6i.2, 405 810 Zeilen byte-gleich) | `climaGrid`/`climaTrend` nicht einschalten; Gewinn nur über die Anomalie-Interpolation erreichbar (eigene Etappe) |
+| E-AX-14 | `anchorWindKm: 10` in die Stufe fs = „buscosun Fusion 7“: nach der Regel BESSER (4 / 0), Gewinn nur Wind/Böe 0–6 h ohne Station +0,5/+0,6 %* (§6i.2) | Jans Gate (MANUELLE-SCHRITTE §30 b) |
+| §6j | Archiv-Schema 4: `stationsS` (MOSMIX-S-Reihe) und `incaAnalysis` im Sammler, damit E-AX-8/E-AX-10 messbar werden | gebaut, wirksam nach dem Push von `main` (§30 a); messbar ab ≈ 15.10. |
 | E-AX-6 | ENS-Mittel als t3-Member (Producer) | ja, nach NS |
 | E-AX-7 | Landeseinträge des Stationswerts ins Daten-Repo | nach der Karte §5.4 |
 | E-AX-8 | MOSMIX-S als Voreinstellung | nein, bis gemessen (§6b) |

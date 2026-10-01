@@ -32,7 +32,8 @@ export const TRUTH_NET_BY_COUNTRY = Object.freeze({ DE: 'poi', AT: 'tawes', CH: 
 // schema 2 (checked on the 29.09. slot: same keys, same scales, truth columns + `ps`); only `live.fusion` is columnar, which
 // `archiveLive` already decodes via the AP9 decoder. Nothing in this adapter reads the parts that changed otherwise
 // (`live.asOf`, `finishedAt`, `plan` axis, `hmodel.absentBySlot`).
-export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3]);
+// schema 4 (AX §6j, 01.10.2026) adds `stationsS` and `incaAnalysis` next to the schema-3 blocks — everything else byte-compatible
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4]);
 export function readArchiveSlot(path) {
   const s = JSON.parse(gunzipSync(readFileSync(path)).toString('utf8'));
   if (s.kind !== 'punktarchiv/slot' || !ARCHIVE_SCHEMAS_READABLE.includes(s.schema)) throw new Error(`${path}: kein Archiv-Slot mit Schema ${ARCHIVE_SCHEMAS_READABLE.join('/')} (kind ${s.kind}, schema ${s.schema})`);
@@ -76,8 +77,9 @@ export function archiveSeries(slot, tierId, pointId) {
  * The MOSMIX-L station series of a point and the decision whether it represents the point (today's client rule, `SELECTION`).
  * Station height: schema ≥ 2 `dElevM` is against `points[].elev`, schema 1 against the DEM pixel `points[].demM` (PA3).
  */
-export function archiveStation(slot, pointId, hTrueM) {
-  const st = slot.stations, rec = st?.byPoint?.[pointId];
+export function archiveStation(slot, pointId, hTrueM, source = 'stations') {
+  // schema 4: `source = 'stationsS'` reads the MOSMIX-S series (same form) — null in slots before 01.10.2026
+  const st = slot[source], rec = st?.byPoint?.[pointId];
   if (!st || !rec?.station || !rec.planes) return { series: null, reason: 'kein Stationsprodukt für den Punkt im Slot' };
   const p = slot.points.find((x) => x.id === pointId);
   const base = slot.schema >= 2 ? p?.elev : p?.demM;
@@ -203,9 +205,12 @@ export function losoClimaProduct(tables, featRow) {
 }
 
 /** The engine input of one archive point (pure; the caller decides station/nowcast/obs/learned per variant). */
-export function inputFromArchive(slot, row, { cube, station = null, stationReason = null, nowcast = [], covering = [], obs = null, clima, learned = null, learnedClima = null, stack = null, nowMs, window }) {
+export function inputFromArchive(slot, row, { cube, station = null, stationReason = null, nowcast = [], covering = [], obs = null, clima, learned = null, learnedClima = null, stack = null, climaGrid = undefined, nowMs, window }) {
   return {
     lat: row.lat, lon: row.lon, nowMs, window,
+    // AX-9 / Fusion-7 measurement: the climate-grid normals of the point's stage-1 cell (`point/static/clima-grid`), read from a
+    // local clone of the data repo — the archive does not store them (a static product). undefined = not requested (byte-identical).
+    ...(climaGrid !== undefined ? { climaGrid } : {}),
     country: row.country ?? null,   // AX-5: the country entry of the station-value table (LI counts as CH in the engine)
     elevationM: row.elevM, elevationFrom: 'station',
     terrain: terrainOf(row),

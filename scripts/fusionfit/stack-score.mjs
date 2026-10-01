@@ -125,6 +125,11 @@ const PAIRS = {
   'product-FS+shrinkW': ['product-FS', 'product@5e', 'fl-K@5e', 'mosmix'],
   'product-FS+anchorW': ['product-FS', 'product@5e', 'fl-K@5e', 'mosmix'],
   'product-FS+both': ['product-FS', 'product@5e', 'fl-K@5e', 'mosmix', 'product-FS+shrinkW', 'product-FS+anchorW'],
+  // phase AX §6i (01.10.): buscosun Fusion 7 (candidate) against buscosun Fusion 6 (the frozen stand), and both against the references
+  fusion6: ['product@5e', 'mosmix', 'fl-K@5e', 'live', 'product-FS'],
+  'fusion7-anchorW': ['fusion6', 'product@5e', 'mosmix'],
+  'fusion7-clima': ['fusion6', 'product@5e', 'mosmix'],
+  fusion7: ['fusion6', 'product@5e', 'mosmix', 'fl-K@5e', 'live'],
 };
 const ccUsed = { cc: 0, pooled: 0 };
 const k5 = {}, k6 = { n: 0, maxAbs: 0, formDiffers: 0, byVar: {} };
@@ -160,6 +165,11 @@ for await (const row of rowsOf(flags.rows)) {
       if (m.P6) cands['product-FS+shrinkW'] = { dist: m.P6 };
       if (m.P7) cands['product-FS+anchorW'] = { dist: m.P7 };
       if (m.P8) cands['product-FS+both'] = { dist: m.P8 };
+      // Phase AX §6i: F6 = buscosun Fusion 6 (atoms + country station value), F7a/F7b/F7 = the Fusion-7 candidates
+      if (m.F6) cands.fusion6 = { dist: m.F6 };
+      if (m.F7a) cands['fusion7-anchorW'] = { dist: m.F7a };
+      if (m.F7b) cands['fusion7-clima'] = { dist: m.F7b };
+      if (m.F7) cands.fusion7 = { dist: m.F7 };
       // K5: the engine without the climatological step against the offline form, on the chain of run 1
       if (mode === 'S' && m.PN && m.N) { const a = pointOf(m.PN), b = pointOf(m.N); const o5 = k5[v] ?? (k5[v] = { n: 0, maxAbs: 0, maxSigma: 0 }); o5.n += 1; o5.maxAbs = Math.max(o5.maxAbs, Math.abs(a - b)); if (m.PN.sigma != null && m.N.sigma != null) o5.maxSigma = Math.max(o5.maxSigma, Math.abs(m.PN.sigma - m.N.sigma)); }
       if (o.L) cands['fl-K@5e'] = { dist: o.L };
@@ -506,10 +516,48 @@ if (Object.keys(card.scores).some((k) => k.includes('|product+fix|'))) {
     if (rows11.length) verdicts.K8 = rows11.every((r) => r.k8 === 'bestanden') ? 'bestanden' : 'NICHT bestanden';
   }
 }
+// Phase AX §6i (01.10.): buscosun Fusion 7 against buscosun Fusion 6 — rule frozen BEFORE the run (audit/fusion-ausbau.md §6i.1):
+// every variable × bin (36 cells), modes S and L, MAE and CRPS, stratum all. BESSER = no cell significantly worse anywhere and
+// ≥ 3 (mode, cell, metric) tuples significantly better; GLEICHSTAND = no cell significantly worse; else SCHLECHTER. The same
+// tally for the two parts (anchor, climate grid) attributes the result. K9: the climate grid is expected NOT to move the native
+// steps in stage fs (priorShrink off, tail off, the anomaly interpolation reads the learned μ_c) — the count of moved cells is a
+// finding. K10: the wind anchor touches only wind and gust (the K8 logic).
+{
+  const F7 = [['fusion7', 'Fusion 7 = Fusion 6 + Wind-Anker 10 km + Klimagitter/Trend'], ['fusion7-anchorW', 'nur Wind-Anker 10 km (F7a)'], ['fusion7-clima', 'nur Klimagitter + Trend (F7b)']];
+  if (Object.keys(card.scores).some((k) => k.includes('|fusion6|'))) {
+    const ALL36 = ALL_VARS.flatMap((v) => [0, 1, 2, 3, 4, 5].map((bin) => ({ v, bin })));
+    md.push('## Fusion 7 gegen Fusion 6 (Phase AX §6i)', '', 'fusion6 = die eingefrorene Kette (Atome, Landes-Stationswert, Stufe fs). Regel vorab: nirgends signifikant schlechter (S und L, MAE und CRPS, alle 36 Zellen) und ≥ 3 Zellen signifikant besser ⇒ BESSER; nirgends schlechter ⇒ GLEICHSTAND; sonst SCHLECHTER.', '');
+    table('Kontext — fusion6 gegen product@5e (Modus S): reproduziert Spalte F von AX-12b?', 'S', 'fusion6', 'product@5e', ['mae', 'crps'], ALL36);
+    table('Kontext — fusion6 gegen product-FS (Modus S): was Atome + Landesparameter gegen die Stufe fs ohne sie bringen', 'S', 'fusion6', 'product-FS', ['mae', 'crps'], ALL36);
+    const rows7 = [];
+    for (const [cand, label] of F7) {
+      if (!Object.keys(card.scores).some((k) => k.includes(`|${cand}|`))) continue;
+      table(`${cand} (${label}) gegen fusion6 — Modus S (Punkt = Station)`, 'S', cand, 'fusion6', ['mae', 'crps'], ALL36, COUNTRY);
+      table(`${cand} gegen fusion6 — Modus L (Punkt ohne Station)`, 'L', cand, 'fusion6', ['mae', 'crps'], ALL36, COUNTRY);
+      if (cand === 'fusion7') { table('Kontext — fusion7 gegen product@5e (Modus S)', 'S', 'fusion7', 'product@5e', ['mae', 'crps'], ALL36); table('Kontext — fusion7 gegen mosmix (Modus S)', 'S', 'fusion7', 'mosmix', ['mae', 'crps'], ALL36.filter((c) => c.v !== 'precip')); }
+      const tS = tally('S', cand, 'fusion6', 'mae', ALL36), tSc = tally('S', cand, 'fusion6', 'crps', ALL36), tL = tally('L', cand, 'fusion6', 'mae', ALL36), tLc = tally('L', cand, 'fusion6', 'crps', ALL36);
+      const worse = [...tS.worse, ...tSc.worse, ...tL.worse, ...tLc.worse], better = [...tS.better, ...tSc.better, ...tL.better, ...tLc.better];
+      const worse2 = tS.worse2.length + tSc.worse2.length + tL.worse2.length + tLc.worse2.length;
+      const verdict = worse.length === 0 && better.length >= 3 ? 'BESSER' : worse.length === 0 ? 'GLEICHSTAND' : 'SCHLECHTER';
+      // moved cells: where the candidate differs from fusion6 at all (MAE or CRPS beyond 1e-9), per variable
+      const moved = {};
+      // T: the point value must be exact, the CRPS may move ≤ 0,5 % (the σ_T stable-layer term reads the anchored wind — the K8
+      // tolerance; the first card flagged 3/12 T cells with |ΔCRPS| ≤ 0,002 % and ΔMAE = 0)
+      for (const v of ALL_VARS) { let n = 0, tot = 0; for (const bin of [0, 1, 2, 3, 4, 5]) for (const mode of MODES) { const a = card.scores[`${mode}|${v}|${bin}|${cand}|all`], b = card.scores[`${mode}|${v}|${bin}|fusion6|all`]; if (!a || !b) continue; tot += 1; const crpsOff = v === 't' ? Math.abs(a.crps - b.crps) > 0.005 * b.crps : Math.abs(a.crps - b.crps) > 1e-9; if (Math.abs(a.mae - b.mae) > 1e-9 || crpsOff) n += 1; } moved[v] = `${n}/${tot}`; }
+      rows7.push({ cand, verdict, better: better.length, worse: worse.length, worse2, moved });
+      md.push(`**${cand}** (${label}): Modus S MAE ${tS.better.length} besser / ${tS.worse.length} schlechter / ${tS.ns.length} gleichauf, CRPS ${tSc.better.length} / ${tSc.worse.length} / ${tSc.ns.length}; Modus L MAE ${tL.better.length} / ${tL.worse.length} / ${tL.ns.length}, CRPS ${tLc.better.length} / ${tLc.worse.length} / ${tLc.ns.length}. **${verdict}**${worse2 ? ` (davon < −2 %: ${worse2})` : ''}. Bewegte Zellen (MAE oder CRPS ≠ fusion6) je Größe: ${Object.entries(moved).map(([v, x]) => `${VAR_LABEL[v]} ${x}`).join(' · ')}.${worse.length ? ` Schlechter: ${worse.slice(0, 8).join('; ')}${worse.length > 8 ? ' …' : ''}.` : ''}${better.length ? ` Besser: ${better.slice(0, 8).join('; ')}${better.length > 8 ? ' …' : ''}.` : ''}`, '');
+    }
+    const r7 = rows7.find((r) => r.cand === 'fusion7'), rA = rows7.find((r) => r.cand === 'fusion7-anchorW'), rC = rows7.find((r) => r.cand === 'fusion7-clima');
+    if (r7) verdicts['Fusion 7'] = `${r7.verdict} (${r7.better} besser / ${r7.worse} schlechter)`;
+    if (rC) verdicts.K9 = Object.values(rC.moved).every((x) => x.startsWith('0/')) ? 'Klimagitter bewegt keine native Zelle (wie erwartet in der Stufe fs)' : `Klimagitter bewegt Zellen: ${Object.entries(rC.moved).filter(([, x]) => !x.startsWith('0/')).map(([v, x]) => `${VAR_LABEL[v]} ${x}`).join(', ')}`;
+    if (rA) verdicts.K10 = ['t', 'td', 'clct', 'precip'].every((v) => rA.moved[v]?.startsWith('0/')) ? 'bestanden' : `NICHT bestanden (${['t', 'td', 'clct', 'precip'].filter((v) => !rA.moved[v]?.startsWith('0/')).map((v) => `${VAR_LABEL[v]} ${rA.moved[v]}`).join(', ')})`;
+    if (rows7.length) md.push(`**Verdikt Fusion 7:** ${verdicts['Fusion 7'] ?? '—'} · **K9** ${verdicts.K9 ?? '—'} · **K10** (Anker berührt nur Wind/Böe) ${verdicts.K10 ?? '—'}`, '');
+  }
+}
 // absolute numbers
 for (const mode of MODES) {
   md.push(`## Absolut — Modus ${mode} (Schicht all)`, '', '| Zelle | Kandidat | n | MAE | Bias | CRPS | PIT außen | S/S |', '|---|---|---|---|---|---|---|---|');
-  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'product-FS+shrinkW', 'product-FS+anchorW', 'product-FS+both', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
+  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'product-FS+shrinkW', 'product-FS+anchorW', 'product-FS+both', 'fusion6', 'fusion7-anchorW', 'fusion7-clima', 'fusion7', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
     const s = card.scores[`${mode}|${v}|${bin}|${c}|all`];
     if (s) md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} | ${c} | ${s.n} | ${f2(s.mae, 3)} | ${f2(s.bias)} | ${f2(s.crps, 3)} | ${f2(s.pitOuter, 3)} | ${f2(s.spreadSkill)} |`);
   }

@@ -1174,3 +1174,28 @@ Empfohlene Reihenfolge: E-KF-2 → E-KF-5 → E-KF-1/3 → E-KF-4.
 - Hinweis: der Arbeitsbaum trug parallel fremde uncommitted Änderungen (`fusion/output.ts`, `fusion/fuse.ts`, `scripts/fusionfit/*`,
   `audit/fusion-ausbau.md` — `priorShrinkWind`/`anchorWind`, Phase AX); die Gates liefen mit ihnen. Beim Aufräumen des Dev-Servers
   wurden alle `node.exe`-Prozesse beendet — falls dabei ein Lauf der anderen Sitzung abbrach, ist er neu zu starten.
+
+## 30. Phase AX, 01.10. — „buscosun Fusion 7" gegen 6 gemessen, Archiv-Schema 4 (MOSMIX-S, INCA-Analyse)
+
+Auftrag Jan 01.10. morgens: offene Kandidaten sichten, Messung 1 + 2 (Wind-Anker, Klimagitter) gegen Fusion 6 starten, parallel die
+zwei Sammler-Zeilen bauen, und nachvollziehbar sagen, ob 7 besser als 6 ist. Alles in `audit/fusion-ausbau.md` §6i (Messung) und §6j
+(Sammler); Karte `audit/fusion-ausbau/fusion7-vs-6.md`. **Uncommitted**, kein `src/`-Eingriff.
+
+**Ergebnis in einem Satz:** Fusion 7 (= Fusion 6 + `anchorWindKm: 10`) ist nach der vorab eingefrorenen Regel **BESSER** — nirgends
+signifikant schlechter, vier Tupel signifikant besser — aber der Gewinn ist klein: nur Wind/Böe in den ersten sechs Stunden an Punkten
+ohne eigene Station (+0,5 %* / +0,6 %* MAE, 1,008 → 1,004 bzw. 1,213 → 1,206 m/s); mit Station byte-gleich. Das Klimagitter
+(E-AX-9) bewegt in der Stufe fs **keine einzige** bewertete Zelle (V-AX-19) und gehört deshalb NICHT in Fusion 7.
+
+**Deine Gates:**
+- **(a) Push von `main` vor 23:10 UTC** (der Archiv-Cron klont `main`): damit schreibt der Slot heute Nacht Schema 4 mit der MOSMIX-S-Reihe
+  (`stationsS`) und der INCA-Analyse (`incaAnalysis`, nur AT-Punkte). Jeder Tag ohne Push ist ein verlorener Messtag für E-AX-8 und
+  E-AX-10. Trockenlauf grün, `verify:punktarchiv` 126/126, `verify:fusion-fit` 125/125. Slot wächst um ≈ 0,5 MiB gz.
+- **(b) E-AX-14: `anchorWindKm: 10` in die Stufe fs einschalten = „buscosun Fusion 7"?** Mein Rat: ja, es kostet nichts und ist nirgends
+  schlechter — aber sei dir bewusst, dass die neue Nummer dann für ein halbes Prozent in zwei Zellen steht. Alternative: den Anker mit dem
+  nächsten echten Gewinn (ENS-Mittel, E-AX-6) zusammen schalten. Einschalten = Motor-Voreinstellung (`cubeSource.ts`, Stufe fs) ⇒ Client-Push.
+- **(c) E-AX-9 `climaGrid`/`climaTrend`: NICHT einschalten** (V-AX-19; wirkt nur im Schwanz und in `climatologyOnly`-Schritten, nicht
+  bewertbar). Wenn du den Prior-Gewinn willst, muss das Gitter in die Anomalie-Interpolation (AX-3) — eigene Etappe, Messung über
+  stündliche Zeilen.
+- **(d) Termine:** E-AX-6 (ENS-Mittel) ab ≈ 06.–14.10. messbar (erster Schema-6-Slot 30.09.), E-AX-8/E-AX-10 ab ≈ 15.10. (14 Schema-4-Tage),
+  E-FS-3/E-AX-12/E-AX-13 ab ≈ 14.10. (30 Ausgabetage).
+- **(e)** Commit-Scope `fusionfit`/`punktarchiv`.

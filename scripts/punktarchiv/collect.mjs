@@ -3,7 +3,7 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs \
  *        [--limit=N] [--ids=a,b] [--live-hours=240] [--live-full=N] [--no-live] [--no-cube] [--no-nowcast] [--no-truth] \
- *        [--out=<archive root>] [--now=<iso>] [--raw] [--dry] [--vpa1=N]
+ *        [--out=<archive root>] [--now=<iso>] [--raw] [--dry] [--vpa1=N] [--no-inca]
  *
  * What one slot holds, per point (see lib/punktarchiv.mjs for the form and the schema history):
  *   cube      t1/t2/t3 from `buscosun-data` via `src/point/client` — every plane, integer-coded
@@ -12,6 +12,10 @@
  *             skipped/pending/declined sources and how many points the quantile planes cover
  *   stations  the MOSMIX-L product at the point's own station (the point IS a catalog station;
  *             for AT/CH points at the measurement site the catalog id is `point.mosmix.id`)
+ *   stationsS the MOSMIX-S product (hourly runs, `point/stations-s/`) of the same station in the same
+ *             form — schema 4, so `stationSource` (E-AX-8) can be measured on the archive
+ *   incaAnalysis  the INCA analysis (GeoSphere, 1 km, hourly) at every AT point for the last 4 h ≤ slot
+ *             — the anchor "measurement" of `incaAnchor` (E-AX-10), schema 4
  *   nowcast   the radar mirror frames covering the slot — one slot probe per source, then per
  *             point; `null` only when no slot exists, „outside the raster" named as such
  *   hmodel    model orography per source and tier (`point/static/hmodel/v1`)
@@ -63,6 +67,7 @@ import { TIERS, CUBE_VARS } from '../../src/point/cubeFormat.ts';
 import { NOWCAST_SOURCES } from '../../src/point/nowcastFormat.ts';
 import { MATRIX_BANDS } from '../../src/point/sourceMatrix.ts';
 import { getPointForecast } from '../../src/pointForecast/pointForecast.ts';
+import { fetchIncaAnalysisObs, INCA_ANALYSIS_URL, INCA_ANALYSIS_WINDOW_H, INCA_ANCHOR_WEIGHT } from '../../src/pointForecast/cubeSource.ts';
 import { quantileOf, meanOf } from '../../src/pointForecast/fusion/dist.ts';
 
 import {
@@ -268,14 +273,24 @@ async function collectCube(store, index, points, slot, slotAtMs) {
 }
 
 // ─── stations ─────────────────────────────────────────────────────────────
-async function collectStations(store, index, points, slot, slotAtMs) {
+// Schema 4 (AX-8): the same reader for MOSMIX-L (`stations`, the station member of today's chain) and MOSMIX-S (`stationsS`).
+const STATIONS_L = Object.freeze({ key: 'stations', product: 'mosmix_l', indexKey: 'stations' });
+const STATIONS_S = Object.freeze({ key: 'stationsS', product: 'mosmix_s', indexKey: 'stationsS' });
+async function collectStations(store, index, points, slot, slotAtMs, variant = STATIONS_L) {
   const t0 = Date.now();
-  const run = index.stations?.runs?.[0];
-  if (!run) { slot.stats.errors.push('stations: kein Lauf im Index'); return; }
+  const { key, product, indexKey } = variant;
+  const run = index[indexKey]?.runs?.[0];
+  if (!run) {
+    // the S product exists since AX-8 (cron :50); an index without it is a state, not a failure of this run
+    if (key === 'stationsS') warn(slot, 'stationsSAbsent', 'stations-s: kein Lauf im Index (Produkt seit AX-8, Cron :50) — stationsS bleibt null');
+    else slot.stats.errors.push('stations: kein Lauf im Index');
+    slot[key] = null;
+    return;
+  }
   const [catalog, manifest] = await Promise.all([loadStationCatalog(store), store.json(run.manifest)]);
-  if (!catalog || !manifest) { slot.stats.errors.push('stations: Katalog oder Manifest nicht lesbar'); return; }
-  slot.stations = {
-    run: run.run, runAt: run.runAt, ageAtSlotH: round2((slotAtMs - Date.parse(run.runAt)) / H), ageAtBuildH: run.ageH,
+  if (!catalog || !manifest) { slot.stats.errors.push(`${key}: Katalog oder Manifest nicht lesbar`); slot[key] = null; return; }
+  slot[key] = {
+    product, run: run.run, runAt: run.runAt, ageAtSlotH: round2((slotAtMs - Date.parse(run.runAt)) / H), ageAtBuildH: run.ageH,
     manifest: run.manifest, leadHours: manifest.axis?.leadHours ?? null,
     scales: Object.fromEntries((manifest.planes ?? []).map((p) => [p.id, { scale: p.scale, offset: p.offset, unit: p.unit }])),
     notMapped: Object.keys(manifest.notMapped ?? {}), mapped: [], absent: [],
@@ -311,23 +326,55 @@ async function collectStations(store, index, points, slot, slotAtMs) {
     try {
       const sid = p.mosmix?.id ?? p.id;
       const s = byId.get(sid);
-      if (!s) { slot.stations.byPoint[p.id] = { station: null, planes: null, note: `Katalogstation ${sid} steht nicht (mehr) im Katalog` }; continue; }
+      if (!s) { slot[key].byPoint[p.id] = { station: null, planes: null, note: `Katalogstation ${sid} steht nicht (mehr) im Katalog` }; continue; }
       const rec = await readStation(p, s);
-      if (!rec) { slot.stations.byPoint[p.id] = null; continue; }
+      if (!rec) { slot[key].byPoint[p.id] = null; continue; }
       // PA4: the plan's candidate (nearest catalog station) when it is not the point's own station.
       const cand = slot.plan.byPoint[p.id]?.station?.candidate ?? null;
       if (cand && cand.id !== sid && byId.has(cand.id)) {
         const near = await readStation(p, byId.get(cand.id));
         if (near) { rec.nearest = near; nearestN++; }
       }
-      slot.stations.byPoint[p.id] = rec;
+      slot[key].byPoint[p.id] = rec;
       ok++;
-    } catch (e) { slot.stats.errors.push(`stations/${p.id}: ${e.message}`); slot.stations.byPoint[p.id] = null; }
+    } catch (e) { slot.stats.errors.push(`${key}/${p.id}: ${e.message}`); slot[key].byPoint[p.id] = null; }
   }
-  slot.stations.mapped = (manifest.planes ?? []).map((p) => p.id).filter((id) => mapped.has(id));
-  slot.stations.absent = (manifest.planes ?? []).map((p) => p.id).filter((id) => !mapped.has(id));
-  slot.stats.timing.stations = Date.now() - t0;
-  console.log(`[collect] stations: Lauf ${run.run} (${slot.stations.ageAtSlotH} h alt zum Slot) · ${ok}/${points.length} Punkte · ${slot.stations.mapped.length} Ebenen belegt · ${nearestN} Punkte mit anderer Plan-Station · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  slot[key].mapped = (manifest.planes ?? []).map((p) => p.id).filter((id) => mapped.has(id));
+  slot[key].absent = (manifest.planes ?? []).map((p) => p.id).filter((id) => !mapped.has(id));
+  slot.stats.timing[key] = Date.now() - t0;
+  console.log(`[collect] ${key} (${product}): Lauf ${run.run} (${slot[key].ageAtSlotH} h alt zum Slot) · ${ok}/${points.length} Punkte · ${slot[key].mapped.length} Ebenen belegt · ${nearestN} Punkte mit anderer Plan-Station · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+}
+
+// ─── INCA analysis (schema 4, AX-10 / E-AX-10) ─────────────────────────────
+// The hourly INCA analysis (GeoSphere, 1 km) at every AT point for the last INCA_ANALYSIS_WINDOW_H hours ≤ slot — the
+// "measurement" the option `incaAnchor` feeds to the anchor (weight INCA_ANCHOR_WEIGHT, set). Written so the option can be
+// measured on the archive; the engine's own fetcher and mapping are used (same URL, same columns), plain floats (≤ 5 rows/point).
+async function collectIncaAnalysis(points, slot, slotAtMs) {
+  const t0 = Date.now();
+  const at = points.filter((p) => p.country === 'AT');
+  slot.incaAnalysis = {
+    source: 'inca', url: INCA_ANALYSIS_URL, windowH: INCA_ANALYSIS_WINDOW_H, weight: INCA_ANCHOR_WEIGHT, asOf: new Date(slotAtMs).toISOString(),
+    note: 'Schema 4: INCA-Analyse (GeoSphere inca-v1-1h-1km, stuendlich, Latenz ≈ 1–1,5 h) am Punkt fuer die letzten windowH Stunden ≤ Slot, nur AT-Punkte (die Option incaAnchor fragt nur in AT). Zeile: validAtMs, t (°C), td (°C), rh (%), u/v (m/s, 10 m); Gewicht = INCA_ANCHOR_WEIGHT (set), Abstand 0, Hoehe = Punkt. [] = kein Wert im Fenster oder HTTP-Fehler (der Motor-Abrufer meldet beides leer); null = Ausnahme (stats.errors).',
+    byPoint: {}, stats: { points: at.length, withRows: 0, rows: 0, latestAgeH: null },
+  };
+  let maxLatest = null;
+  await mapLimit(at, 3, async (p) => {
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 30_000);
+      const obs = await fetchIncaAnalysisObs(p.lat, p.lon, slotAtMs, ac.signal, fetch).finally(() => clearTimeout(timer));
+      const rows = obs.filter((o) => o.validAtMs <= slotAtMs).map((o) => ({ validAtMs: o.validAtMs, t: round2(o.temperature), td: round2(o.dewPoint), rh: round2(o.relativeHumidity), u: round2(o.u), v: round2(o.v) }));
+      slot.incaAnalysis.byPoint[p.id] = rows;
+      if (rows.length) {
+        slot.incaAnalysis.stats.withRows += 1; slot.incaAnalysis.stats.rows += rows.length;
+        const l = Math.max(...rows.map((r) => r.validAtMs)); maxLatest = maxLatest == null ? l : Math.max(maxLatest, l);
+      }
+    } catch (e) { slot.stats.errors.push(`incaAnalysis/${p.id}: ${e.message}`); slot.incaAnalysis.byPoint[p.id] = null; }
+  });
+  if (maxLatest != null) slot.incaAnalysis.stats.latestAgeH = round2((slotAtMs - maxLatest) / H);
+  if (at.length && !slot.incaAnalysis.stats.withRows) warn(slot, 'incaAnalysisEmpty', `incaAnalysis: keiner von ${at.length} AT-Punkten mit Zeile (API nicht erreichbar oder leer)`);
+  slot.stats.timing.incaAnalysis = Date.now() - t0;
+  console.log(`[collect] incaAnalysis: ${slot.incaAnalysis.stats.withRows}/${at.length} AT-Punkte mit Zeilen · ${slot.incaAnalysis.stats.rows} Zeilen · juengste Analyse ${slot.incaAnalysis.stats.latestAgeH ?? '—'} h vor dem Slot · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 
 // ─── nowcast + hmodel + plan ───────────────────────────────────────────────
@@ -725,6 +772,8 @@ async function main() {
     // Producers (Publikationslauf − Quell-Lauf, mit einem Job je Stufe immer 0).
     latestByTier: Object.fromEntries(Object.entries(index.latestByTier ?? {}).map(([t, v]) => [t, v ? { run: v.run, runAt: v.runAt, sourceRun: v.sourceRun, sourceRunAt: v.sourceRunAt ?? null, ageAtSlotH: ageAtSlot(v.sourceRunAt ?? v.runAt), publishLagH: v.ageH } : null])),
     stations: index.stations?.runs?.[0] ? { run: index.stations.runs[0].run, runAt: index.stations.runs[0].runAt, ageAtSlotH: ageAtSlot(index.stations.runs[0].runAt), ageAtBuildH: index.stations.runs[0].ageH } : null,
+    // schema 4 (AX-8): the MOSMIX-S run of the index, when the producer publishes one
+    stationsS: index.stationsS?.runs?.[0] ? { run: index.stationsS.runs[0].run, runAt: index.stationsS.runs[0].runAt, ageAtSlotH: ageAtSlot(index.stationsS.runs[0].runAt), ageAtBuildH: index.stationsS.runs[0].ageH } : null,
     retentionByTier: index.retentionByTier ?? null,
   };
   console.log(`[collect] Index ${String(index.commit).slice(0, 7)} (${index.publishedAt}) · t1 ${index.latestByTier?.t1?.run} · t2 ${index.latestByTier?.t2?.run} · t3 ${index.latestByTier?.t3?.run} · Stationen ${index.stations?.runs?.[0]?.run}`);
@@ -740,9 +789,13 @@ async function main() {
     // PA4: the plan BEFORE the stations — the stations block reads the plan's candidate (nearest).
     await collectPlan(store, points, slot, slotAtMs);
     await collectStations(store, index, points, slot, slotAtMs);
+    // schema 4 (AX-8 / E-AX-8): the MOSMIX-S series next to L — same catalog station, same form, product 'mosmix_s'
+    await collectStations(store, index, points, slot, slotAtMs, STATIONS_S);
   }
   if (!flags['no-nowcast'] && !flags['no-cube']) await collectNowcast(store, points, slot, slotAtMs);
   if (!flags['no-truth']) await collectTruth(points, slot, slotAtMs);
+  // schema 4 (AX-10 / E-AX-10): the INCA analysis at the AT points (the anchor "measurement" of `incaAnchor`)
+  if (!flags['no-inca']) await collectIncaAnalysis(points, slot, slotAtMs);
 
   slot.stats.net = { files: store.stats.files, bytes: store.stats.bytes, misses: store.stats.misses, fallbacks: store.stats.fallbacks ?? 0, memoChunks: store.memo.chunks, memoJsons: store.memo.jsons };
   slot.stats.timing.total = Date.now() - t0;

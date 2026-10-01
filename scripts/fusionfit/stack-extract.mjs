@@ -12,9 +12,9 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fusionfit/stack-extract.mjs
  *       --tables=<fit 5e>/fusion.hindcast.json --out=<root>/score/<date>-fs/rows.jsonl.gz [--archive=…] [--limitSlots=N] [--limitPoints=N]
  */
-import { readFileSync, readdirSync, mkdirSync, createWriteStream } from 'node:fs';
+import { readFileSync, readdirSync, mkdirSync, createWriteStream, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { createGzip } from 'node:zlib';
+import { createGzip, inflateRawSync } from 'node:zlib';
 import { join, dirname } from 'node:path';
 import { once } from 'node:events';
 import { HINDCAST_ROOT, parseArgs, codeHash } from '../hindcast/lib/common.mjs';
@@ -31,6 +31,8 @@ import { binIndex, binRange } from '../../src/point/fusionFit/strata.ts';
 import { buildZ, dTsfcProxy, sourceToPoint } from '../../src/point/fusionFit/features.ts';
 import { SELECTION } from '../../src/point/client/resolve.ts';
 import { validateStackTable } from '../../src/pointForecast/fusion/stationValue.ts';
+import { readStaticProductPoint } from '../../src/point/client/staticPoint.ts';
+import { CLIMA_GRID_PRODUCT, CLIMA_GRID_VERSION, decodeCubeChunk } from '../../src/point/cubeFormat.ts';
 
 const H = 3_600_000, DAY = 86_400_000;
 const flags = parseArgs(process.argv.slice(2));
@@ -221,10 +223,42 @@ const VARIANTS = Object.freeze({
   P6: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, priorShrinkWind: true },
   P7: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10 },
   P8: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, priorShrinkWind: true, anchorWindKm: 10 },
+  // Phase AX §6i (01.10.): "buscosun Fusion 7" against "buscosun Fusion 6". F6 = the frozen stand (P3 options, the ATOM tables
+  // `--tables2` = point/fusion.client.json's hindcast twin, the COUNTRY station-value table `--stack` = point/stack.client.json).
+  // F7a = F6 + the wind anchor damped over the distance (E-AX-11, GLEICHSTAND against P3); F7b = F6 + the climate grid as the
+  // prior's day mean + the warming trend (E-AX-9; the grid is read from the local data-repo clone, `--point`); F7 = both.
+  F6:  { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true },
+  F7a: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10 },
+  F7b: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, climaTrend: true },
+  F7:  { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10, climaTrend: true },
 });
+/** What a variant needs beyond its options: the atom tables (`--tables2`) and the climate grid in the input (`--point`). */
+const VARIANT_NEEDS = Object.freeze({ P5: { atoms: true }, F6: { atoms: true }, F7a: { atoms: true }, F7b: { atoms: true, climaGrid: true }, F7: { atoms: true, climaGrid: true } });
 // `--variants=P3,P6,P7,P8` — only these variants are computed (default: all); the product and cube-hc runs are always computed
 const variantFilter = typeof flags.variants === 'string' ? new Set(flags.variants.split(',').map((s) => s.trim()).filter(Boolean)) : null;
 if (variantFilter) { for (const v of variantFilter) if (!VARIANTS[v]) throw new Error(`--variants: unbekannte Variante ${v}`); say(`Varianten: ${[...variantFilter].join(', ')} (--variants)`); }
+// Phase AX §6i: the climate grid (AX-9) for the variants that need it — a local store on the data-repo clone (`--point`, default
+// C:/dev/buscosun-data/point), read once per point; without the directory the variants F7b/F7 are skipped (named in the log).
+const needsClimaGrid = Object.entries(VARIANT_NEEDS).some(([n, x]) => x.climaGrid && (!variantFilter || variantFilter.has(n)));
+const POINT_DIR = typeof flags.point === 'string' ? flags.point : 'C:/dev/buscosun-data/point';
+const climaGridStore = needsClimaGrid && existsSync(join(POINT_DIR, 'static', 'clima-grid')) ? {
+  base: 'file://' + POINT_DIR, stats: { requests: 0, bytes: 0 },
+  async bytes(path) { const p = join(POINT_DIR, path.replace(/^point\//, '')); if (!existsSync(p)) return null; return new Uint8Array(readFileSync(p)); },
+  async json(path) { const b = await this.bytes(path); return b ? JSON.parse(new TextDecoder().decode(b)) : null; },
+  withBase() { return this; },
+} : null;
+if (needsClimaGrid) say(climaGridStore ? `Klimagitter aus ${POINT_DIR}/static/clima-grid (F7b/F7)` : `WARNUNG: kein Klimagitter unter ${POINT_DIR}/static/clima-grid — F7b/F7 werden übersprungen`);
+const climaGridOfPoint = new Map();
+const climaGridCounts = { points: 0, withGrid: 0 };
+const inflate = async (u8) => new Uint8Array(inflateRawSync(Buffer.from(u8)));
+const loadClimaGrid = async (id, row) => {
+  climaGridCounts.points += 1;
+  try {
+    const cg = await readStaticProductPoint(climaGridStore, CLIMA_GRID_PRODUCT, CLIMA_GRID_VERSION, 't1', row.lat, row.lon, { decodeChunk: (b, o) => decodeCubeChunk(b, { ...o, decompress: inflate }) });
+    if (cg?.byColumn?.elev_src != null) climaGridCounts.withGrid += 1;
+    return cg ?? null;
+  } catch (e) { if (counts.errors.length < 20) counts.errors.push(`clima-grid ${id}: ${e?.message ?? e}`); return null; }
+};
 const EQ_POINTS = 25;   // per slot: the engine with priorShrink:false on the run-1 chain, against the offline form (K5)
 const stackTable = typeof flags.stack === 'string' ? JSON.parse(readFileSync(flags.stack, 'utf8')) : null;
 { const e = stackTable ? validateStackTable(stackTable) : []; if (e.length) throw new Error(`${flags.stack}: ${e.join('; ')}`); }
@@ -244,6 +278,7 @@ for (const meta of issueSlots) {
   for (const id of pointIds) {
     if (n >= limitPoints) break;
     const row = feat.byPoint[id], site = sites.get(id), hTrue = row.elevM;
+    if (climaGridStore && !climaGridOfPoint.has(id)) climaGridOfPoint.set(id, await loadClimaGrid(id, row));
     const cube = {};
     for (const t of ['t1', 't2', 't3']) { const ser = archiveSeries(s, t, id); if (ser) cube[t] = ser; }
     if (!Object.keys(cube).length) continue;
@@ -275,10 +310,13 @@ for (const meta of issueSlots) {
         if (variantFilter && !variantFilter.has(name)) continue;
         const withStack = name !== 'P1' && name !== 'P2';
         if (withStack && !stackTable) continue;
-        if (name === 'P5' && !foldTables2) continue;
-        const tablesOf = name === 'P5' ? foldTables2 : foldTables;
+        const needs = VARIANT_NEEDS[name] ?? {};
+        if (needs.atoms && !foldTables2) continue;
+        if (needs.climaGrid && !climaGridStore) continue;
+        const tablesOf = needs.atoms ? foldTables2 : foldTables;
+        const cg = needs.climaGrid ? { climaGrid: climaGridOfPoint.get(id) ?? null } : {};
         const m = new Map();
-        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: tablesOf(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}) }, opts)));
+        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: tablesOf(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}), ...cg }, opts)));
         out[name] = m;
       }
       return out;
@@ -379,8 +417,9 @@ for (const meta of issueSlots) {
   }
   say(`${meta.slotAt} (Schema ${meta.schema}): ${n} Punkte, Zeilen bisher ${counts.rows}, Motorläufe ${counts.engineRuns}, ${Math.round((Date.now() - T0) / 1000)} s`);
 }
-await write({ kind: 'fusionfit/stack-rows-end', counts });
+await write({ kind: 'fusionfit/stack-rows-end', counts, ...(climaGridStore ? { climaGrid: climaGridCounts } : {}) });
 gz.end();
+if (climaGridStore) say(`Klimagitter: ${climaGridCounts.withGrid} von ${climaGridCounts.points} Punkten mit Normale in der Zelle`);
 await once(sink, 'finish');
 say(`geschrieben ${flags.out}: ${counts.rows} Zeilen, ${counts.engineRuns} Motorläufe, ${Math.round((Date.now() - T0) / 60000)} min; Modus L: ${JSON.stringify(counts.modeL)}`);
 if (counts.errors.length) say(`Motorfehler: ${counts.errors.length} (erste: ${counts.errors.slice(0, 3).join(' | ')})`);

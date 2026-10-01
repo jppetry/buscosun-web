@@ -66,10 +66,17 @@ import { join, dirname } from 'node:path';
  *      · `cube.notes` (Bezugshöhe hModEff je Schritt, Vorzeichen gammaEff, Niederschlagsrate, rh > 100,
  *        Quantile aus fremder Quelle) und `scales.cube[t][id].why` aus `CUBE_VARS`; `hmodel.note` (CLAEF ohne
  *        Orographie ⇒ nicht in hModEff); `nowcast.note` um INCA-+15-min und CombiPrecip-Analyse ergänzt.
+ *   4  AX (2026-10-01, Phase AX §6j — Eingaben für zwei gebaute, noch ungemessene Optionen; alles additiv):
+ *      · `stationsS` neben `stations`: die MOSMIX-S-Reihe (`point/stations-s/`, stündlich, Lauf + 40 min) der
+ *        Katalogstation des Punkts in derselben Form (`product: 'mosmix_s'`; `stations` trägt jetzt `product: 'mosmix_l'`),
+ *        damit `stationSource` (E-AX-8) am Archiv messbar wird; fehlt der Lauf im Index, eine Warnung statt eines Fehlers.
+ *      · `incaAnalysis`: die INCA-Analyse (GeoSphere, 1 km, stündlich) an jedem AT-Punkt für die letzten 4 Stunden ≤ Slot
+ *        (`validAtMs`, t, td, rh, u, v; Gewicht 0,6 set) — die Anker-„Messung" der Option `incaAnchor` (E-AX-10).
+ *      · `index.stationsS` (Lauf, Alter) im Kopf. Leser von Schema 3 lesen Schema 4 unverändert.
  */
-export const ARCHIVE_SCHEMA = 3;
+export const ARCHIVE_SCHEMA = 4;
 /** Schemata, die `parseSlot` liest — ein Archiv trägt alle Fassungen nebeneinander. */
-export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3]);
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4]);
 export const SENTINEL = -32768;
 export const SLOT_KIND = 'punktarchiv/slot';
 
@@ -431,13 +438,12 @@ export function punktarchivSelfTest(tmpRoot) {
   const back = parseSlot(bytes);
   add('Rundweg: serialise → gunzip → parse ist inhaltsgleich', JSON.stringify(back) === JSON.stringify(s1));
   add('Rundweg: die Wahrheitswerte kommen auf 0,01 K zurück', Math.abs(decodeSeries(back.truth.byPoint['10865'].poi.t, TRUTH_SCALES.t)[0] - 12.3) < 1e-9);
-  // PA3/PA4: Schema 3 schreibt, Schema 1 und 2 (Slots im Archiv) lesen weiter, ein unbekanntes Schema nicht.
-  add('Schema: der Kopf trägt Schema 3, Schema-1- und Schema-2-Slots werden weiterhin gelesen, Schema 4 abgewiesen', (() => {
-    const s1old = mk(); s1old.schema = 1;
-    const s2old = mk(); s2old.schema = 2;
-    const future = mk(); future.schema = 4;
+  // PA3/PA4/AX §6j: Schema 4 schreibt, Schema 1–3 (Slots im Archiv) lesen weiter, ein unbekanntes Schema nicht.
+  add('Schema: der Kopf trägt Schema 4, Schema-1/2/3-Slots werden weiterhin gelesen, Schema 5 abgewiesen', (() => {
+    const olds = [1, 2, 3].map((n) => { const o = mk(); o.schema = n; return o; });
+    const future = mk(); future.schema = 5;
     const reads = (s) => { try { parseSlot(gzipSync(Buffer.from(JSON.stringify(s), 'utf8'))); return true; } catch { return false; } };
-    return s1.schema === 3 && ARCHIVE_SCHEMA === 3 && reads(s1old) && reads(s2old) && !reads(future);
+    return s1.schema === 4 && ARCHIVE_SCHEMA === 4 && olds.every(reads) && !reads(future);
   })());
   add('PA4: der Kopf trägt finishedAt (null bis zum Ende) neben createdAt (Beginn)', 'finishedAt' in s1 && s1.finishedAt === null && typeof s1.createdAt === 'string');
   add('Skalen: fxh (Stundenmaximum der Böe) trägt dieselbe Skala wie fx; count ist keine Skala (n = Bedeckung)',
