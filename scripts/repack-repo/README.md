@@ -78,6 +78,9 @@ radar/status.json         schema 2 — keep, pollSec, derive, Job-ID, letzte Lä
 radar/rv/                 DWD RADVOR RV, rohe tar.bz2 je 5-Minuten-Schritt
 radar/konrad3d/           DWD KONRAD3D, XML je 5-Minuten-Schritt
 radar/img/v1/rv/          RV als fertiges PNG + JSON (RD3: Derive im Spiegel statt im Browser)
+                          f000…f120.png = 25 Einzelframes (u8, 5 min); seit 02.10.2026 dazu je volle Stunde
+                          nach dem Slot ein Stundenmittel m<lead>.png (RGB: R·256+G = Summe der Rohbytes der
+                          Frames in (t − 60 min, t], B = gesättigte Frames; meta.json#hourMeans) — E-AX-16
 radar/img/v1/inca/        GeoSphere INCA
 radar/img/v1/rzc/         MeteoSchweiz RZC/CombiPrecip
 radar/img/v1/konrad3d/    Zellbahnen als JSON

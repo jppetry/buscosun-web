@@ -43,6 +43,8 @@ if (typeof flags.tables !== 'string' || typeof flags.out !== 'string') throw new
 const hindcastEnd = typeof flags.hindcastEnd === 'string' ? flags.hindcastEnd : '2026-09-21';
 const HINDCAST_END_MS = Date.parse(`${hindcastEnd}T23:59:59.999Z`);
 const limitSlots = Number(flags.limitSlots) || Infinity, limitPoints = Number(flags.limitPoints) || Infinity;
+// §6l.4 smoke: `--points=<id,id,…>` runs the chain for these points only (mode L still searches its neighbours among ALL points)
+const pointsFilter = typeof flags.points === 'string' ? new Set(flags.points.split(',').map((x) => x.trim()).filter(Boolean)) : null;
 // --only=fit: the rows of the FIT alone (truth, MOSMIX, innovation, learned stage) — no chain, no variants; the table is fitted on these
 const fitOnly = flags.only === 'fit';
 const say = (s) => console.log(`[stack-extract] ${s}`);
@@ -73,6 +75,7 @@ for (const d of readdirSync(ARCH).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x) &&
 const slotsUsed = slotPaths.slice(0, limitSlots);
 if (slotsTo) say(`Slots bis ${slotsTo} (--slotsTo)`);
 if (slotsFrom) say(`Ausgabe-Slots ab ${slotsFrom} (--slotsFrom); Wahrheit aus allen Slots`);
+if (pointsFilter) say(`Punkte: ${[...pointsFilter].join(', ')} (--points)`);
 say(`${slotsUsed.length} Slots, ${pointIds.length} DACH-Punkte; Tabellen ${tablesSha.slice(0, 12)} (${T5.inputs?.foldScheme ?? 'month'})`);
 
 /** The fold tables of one table set: mean, occurrence and (AX-4) atoms take the held-out β of the key; null key = the full tables. */
@@ -236,9 +239,12 @@ const VARIANTS = Object.freeze({
   // probability (`precipCal`, table `--precipCal` = the in-sample table of stack-score's `--precipTable`). Serves the K-check
   // "engine option = offline in-sample candidate" (like K6); the card's verdict rests on the offline leave-day-out candidate.
   F8:  { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10, precipCal: true },
+  // Phase AX §6l.4 (V-AX-23, 02.10.): candidate B = Fusion 7 as it RUNS (F7a) + the radar hour mean as the nowcast member
+  // (`nowcastHourMean`: mean rate of the 5-min frames in (t − 60 min, t], ≥ 6 frames, else the single frame). Scorer: `fusion8-radar`.
+  F8r: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10, nowcastHourMean: true },
 });
 /** What a variant needs beyond its options: the atom tables (`--tables2`), the climate grid in the input (`--point`), the precipCal table. */
-const VARIANT_NEEDS = Object.freeze({ P5: { atoms: true }, F6: { atoms: true }, F7a: { atoms: true }, F7b: { atoms: true, climaGrid: true }, F7: { atoms: true, climaGrid: true }, F8: { atoms: true, precipCal: true } });
+const VARIANT_NEEDS = Object.freeze({ P5: { atoms: true }, F6: { atoms: true }, F7a: { atoms: true }, F7b: { atoms: true, climaGrid: true }, F7: { atoms: true, climaGrid: true }, F8: { atoms: true, precipCal: true }, F8r: { atoms: true } });
 // `--variants=P3,P6,P7,P8` — only these variants are computed (default: all); the product and cube-hc runs are always computed
 const variantFilter = typeof flags.variants === 'string' ? new Set(flags.variants.split(',').map((s) => s.trim()).filter(Boolean)) : null;
 if (variantFilter) { for (const v of variantFilter) if (!VARIANTS[v]) throw new Error(`--variants: unbekannte Variante ${v}`); say(`Varianten: ${[...variantFilter].join(', ')} (--variants)`); }
@@ -285,6 +291,7 @@ for (const meta of issueSlots) {
   const latestObsRec = (id) => { const tr = truthSlot.get(id); if (!tr) return null; let best = null; for (const r of tr.rows) if (r.ms <= slotAtMs && r.t != null && (!best || r.ms > best.ms)) best = r; return best; };
   let n = 0;
   for (const id of pointIds) {
+    if (pointsFilter && !pointsFilter.has(id)) continue;
     if (n >= limitPoints) break;
     const row = feat.byPoint[id], site = sites.get(id), hTrue = row.elevM;
     if (climaGridStore && !climaGridOfPoint.has(id)) climaGridOfPoint.set(id, await loadClimaGrid(id, row));

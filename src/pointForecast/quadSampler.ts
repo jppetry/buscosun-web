@@ -132,6 +132,24 @@ export function sampleRadarQuad(
   project?: ProjectXY | null,
   anchor: CellAnchor = 'center',
 ): number | null {
+  const idx = quadCellIndex(width, height, corners, lat, lon, project, anchor);
+  if (idx == null) return null;
+  const raw = values[idx];
+  if (raw === 0) return 0;
+  return (raw / 255) * vMax;
+}
+
+/**
+ * Die Zelle (Index `row · width + col`), die `sampleRadarQuad` an (lat, lon) liest — Nächster-Nachbar, keine
+ * Interpolation. Herausgelöst für Bilder mit mehr als einem Byte je Pixel (E-AX-16: das RGB-Summenbild des
+ * Stundenmittels); `sampleRadarQuad` liest über dieselbe Zelle, also byte-gleich zu vorher.
+ */
+export function quadCellIndex(
+  width: number, height: number,
+  corners: QuadCorners, lat: number, lon: number,
+  project?: ProjectXY | null,
+  anchor: CellAnchor = 'center',
+): number | null {
   const uv = inverseBilinear(corners, lat, lon, project);
   if (!uv) return null;
   const col = anchor === 'edge'
@@ -140,7 +158,5 @@ export function sampleRadarQuad(
   const row = anchor === 'edge'
     ? Math.min(height - 1, Math.max(0, Math.floor(uv.v * height)))
     : Math.min(height - 1, Math.max(0, Math.round(uv.v * (height - 1))));
-  const raw = values[row * width + col];
-  if (raw === 0) return 0;
-  return (raw / 255) * vMax;
+  return row * width + col;
 }

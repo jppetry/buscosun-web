@@ -81,21 +81,21 @@ import { detectFoehn } from './foehnDetector';
 import { apparentTemperatureC } from './apparentTemperature';
 import type { ClimaField, ClimaSample } from '../ml/climaField';
 import { TIERS, CUBE_PLANES, CUBE_ENS_MEAN_VARS, POINT_CALIB_PATH, POINT_LEARNED_PATH, POINT_CLIMA_PATH, POINT_STACK_PATH, POINT_PRECIP_CAL_PATH, type TierId } from '../point/cubeFormat';
-import { NOWCAST_SATURATION, type NowcastSourceId } from '../point/nowcastFormat';
+import { NOWCAST_SATURATION, NOWCAST_HOUR_MEAN_MIN_FRAMES as NOWCAST_HOUR_MEAN_MIN_FRAMES_FORMAT, NOWCAST_HOUR_MEAN_WINDOW_MIN, type NowcastSourceId } from '../point/nowcastFormat';
 import { distanceKm, type CubePointSeries, type CubePointStep } from '../point/client/cubePoint';
 import type { StaticPoint } from '../point/client/staticPoint';
 import type { PointSourceManifest } from '../point/manifest';
 import type { StationPointSeries } from '../point/client/stationPoint';
 import type { NowcastPointSeries } from '../point/client/nowcastPoint';
 import type { TerrainPointResult, TerrainOptions } from '../point/client/terrain';
-import type { PngDecoder } from '../point/client/nowcastPoint';
+import type { PngDecoder, RgbPngDecoder } from '../point/client/nowcastPoint';
 import { readPointBundle, tiersForWindow, withCrossChunk, type PointBundle, type CrossChunkResult } from '../point/client/readPoint';
 import { httpStore, type PointStore } from '../point/client/store';
 import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../point/client/cache';
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
-import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom } from './pfFlags';
+import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom } from './pfFlags';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
 
 const H = 3_600_000;
@@ -268,7 +268,7 @@ export interface CubeMemberInfo {
   ageH?: number;
   models?: string[];
   station?: { id: string; name: string; distKm: number; dElevM: number | null; /** AX-8: `mosmix_l` | `mosmix_s` (nur gesetzt, wenn nicht L). */ source?: string };
-  nowcast?: { source: NowcastSourceId; ageMin: number; validAtSuspect: boolean; saturated: boolean };
+  nowcast?: { source: NowcastSourceId; ageMin: number; validAtSuspect: boolean; saturated: boolean; /** V-AX-23: nur mit `nowcastHourMean` — Zahl der gemittelten Frames; `mirror` = vorgemittelt vom Spiegel gelesen (`m<lead>.png`, E-AX-16) statt im Motor aus den Frames. */ hourMean?: { frames: number; mirror?: boolean } };
   /** AP6: die σ, mit der das Member je Größe in die Kombination ging (PAP 6). */
   sigma?: Partial<Record<UncVar, number>>;
   /** AP7: der Anker — Versatz Messung − Cube je Größe und der Zuschlag an diesem Schritt. */
@@ -605,6 +605,13 @@ export interface FuseCubeOptions {
    */
   precipCal?: boolean;
   /**
+   * Phase AX §6l.4 (V-AX-23, Kandidat „buscosun Fusion 8" B): der Nowcast-Member einer Gültigstunde t ist das Mittel der Frame-Raten
+   * im Fenster (t − `NOWCAST_HOUR_MEAN_WINDOW_MS`, t] statt des einen Frames, der t am nächsten liegt — die Wahrheit ist die Stundensumme,
+   * die Rate am Stundenende trifft nur 37 % der Regenstunden (§6l.2). Mindestens `NOWCAST_HOUR_MEAN_MIN_FRAMES` Frames im Fenster, sonst
+   * der Einzelframe wie bisher. Berührt nur Stunden mit Frames im Fenster (RV: Vorlauf 1–2 h). Voreinstellung aus ⇒ byte-gleich.
+   */
+  nowcastHourMean?: boolean;
+  /**
    * AP7: stündliche Achse — Stunden ohne nativen Schritt füllt die Station (wenn sie den Punkt vertritt),
    * sonst werden die Quantile der Nachbarschritte linear interpoliert und markiert. Voreinstellung nein
    * (nur native Schritte); `getPointForecastFromCube` verlangt sie, weil `PointForecast.hours` stündlich ist.
@@ -616,6 +623,13 @@ export interface FuseCubeOptions {
 export const NOWCAST_STALE_MIN = 60;
 /** Radar-Horizont (h), innerhalb dessen ein fehlendes Radar als `nowcastFallbackModel` gilt. */
 export const NOWCAST_HORIZON_H = 3;
+/**
+ * V-AX-23 (Option `nowcastHourMean`): Fenster des Radar-Stundenmittels — Frames mit Gültigzeit in (t − Fenster, t]. Seit E-AX-16
+ * EINE Festlegung in `point/nowcastFormat.ts` (der Spiegel schreibt das Mittel mit demselben Fenster als `m<lead>.png`).
+ */
+export const NOWCAST_HOUR_MEAN_WINDOW_MS = NOWCAST_HOUR_MEAN_WINDOW_MIN * 60_000;
+/** V-AX-23: Mindestzahl Frames im Fenster für das Stundenmittel (RV liefert 12 à 5 min; INCA 4 à 15 min ⇒ Einzelframe). */
+export const NOWCAST_HOUR_MEAN_MIN_FRAMES = NOWCAST_HOUR_MEAN_MIN_FRAMES_FORMAT;
 
 const UNC_VARS: readonly UncVar[] = ['temperature', 'dewpoint', 'wind', 'gust', 'clouds'];
 
@@ -858,6 +872,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const pcErrors = opts.precipCal === true && input.precipCal ? validatePrecipCalTable(input.precipCal) : [];
   const pcT: PrecipCalTable | null = opts.precipCal === true && input.precipCal && !pcErrors.length ? input.precipCal : null;
   const pcCount = { applied: 0, k2: 0, learned: 0, identity: 0 };
+  // V-AX-23: the radar hour mean (option, default off) — hours served by the mean, hours that fell back to the single frame
+  const useHourMean = opts.nowcastHourMean === true;
+  const hmCount = { mean: 0, frames: 0, single: 0, mirror: 0 };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
   // gültiger Kurve (`anchorCurveValid`); je Größe ohne Kurve gilt die Setzung e^(−τ/τ_v). Ohne `anchor`-Block in den
   // Tabellen: exakt der bisherige Pfad (byte-gleich). Td hat im Cube-Pfad keinen Anker (keine Feuchte-Innovation).
@@ -979,6 +996,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ...(opts.precipCal === true ? [pcT
       ? `precipCal:archive — Regenwahrscheinlichkeit nachkalibriert, p′ = Φ(a + b·Φ⁻¹(p)) aus ${pcT.fitVersion} (${pcT.period.from}…${pcT.period.to}, ${pcT.period.issueDays} Ausgabetage, ${pcT.rows} Zeilen; Provenienz archive, nie measured) je Situation (K-2-Kette mit Station/Radar, gelernte Hürde) × Vorlaufgruppe; Menge (μ, σ | nass) unverändert (buscosun Fusion 8, §6l)`
       : `precipCal:absent — Option an, aber keine Tabelle im Eingang${pcErrors.length ? ` (ungültig: ${pcErrors.slice(0, 2).join('; ')})` : ''} ⇒ Hürde unverändert`] : []),
+    ...(useHourMean ? [`nowcastHourMean:set — Radar-Member je Stunde t als Mittel der Frame-Raten im Fenster (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] bei ≥ ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames, sonst der Einzelframe; die Wahrheit ist die Stundensumme (V-AX-23, Kandidat buscosun Fusion 8 B)`] : []),
     ...(opts.stationValue === true ? [stackT
       ? `stationValue:archive — Stationswert M + b + w·I + c·(L − M) aus ${stackT.fitVersion} (${stackT.period.from}…${stackT.period.to}, ${stackT.period.issueDays} Ausgabetage, ${stackT.rows} Zeilen; Provenienz archive, nie measured) für T, Td, Windgeschwindigkeit, Böe — nur mit einer Station am Punkt (≤ ${stackT.range.maxKm} km, |Δh| ≤ ${stackT.range.maxDElevM} m); I aus der jüngsten Messung einer Station am Punkt; Richtung, Feuchte und Phase bleiben aus der Kombination`
       : `stationValue:absent — Option an, aber ${input.stack ? `die Tabelle ist ungültig (${stackErrors.slice(0, 2).join('; ')})` : 'keine Tabelle im Eingang'} ⇒ Rechnung ohne Stationswert`] : []),
@@ -1467,26 +1485,48 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     for (const nc of input.nowcast) {
       let best: (typeof nc.frames)[number] | null = null;
       for (const f of nc.frames) {
-        if (f.validAtMs == null) continue;
+        // E-AX-16: a sample pre-averaged by the mirror is never "the nearest frame" — it counts only through the hour-mean path below.
+        if (f.validAtMs == null || f.hourMean) continue;
         if (Math.abs(f.validAtMs - a.validAtMs) > tol) continue;
         if (!best || Math.abs(f.validAtMs - a.validAtMs) < Math.abs((best.validAtMs as number) - a.validAtMs)) best = f;
       }
-      if (!best) continue;
-      const mmh = best.saturated ? NOWCAST_SATURATION : best.mmh;
+      // V-AX-23 (Option nowcastHourMean): the mean rate of the frames valid in (t − 60 min, t] — at least NOWCAST_HOUR_MEAN_MIN_FRAMES
+      // of them, else the single nearest frame as before; a saturated frame counts as NOWCAST_SATURATION and marks the hour.
+      let hourMean: { mmh: number; frames: number; saturated: boolean; suspect: boolean; mirror: boolean } | null = null;
+      if (useHourMean) {
+        // E-AX-16: the mirror's pre-averaged sample for exactly this hour (`m<lead>.png`, read by the client with ONE fetch) carries the
+        // same mean the loop below would compute from the twelve frames — same window, same arithmetic (`nowcastHourMeanFromSum`).
+        const pre = nc.frames.find((f) => f.hourMean && f.validAtMs === a.validAtMs && f.mmh != null);
+        if (pre) hourMean = { mmh: pre.mmh as number, frames: pre.hourMean!.frames, saturated: pre.saturated, suspect: pre.validAtSuspect, mirror: true };
+        else {
+          let sum = 0, n = 0, sat = false, susp = false;
+          for (const f of nc.frames) {
+            if (f.hourMean || f.validAtMs == null || f.validAtMs <= a.validAtMs - NOWCAST_HOUR_MEAN_WINDOW_MS || f.validAtMs > a.validAtMs) continue;
+            const r = f.saturated ? NOWCAST_SATURATION : f.mmh;
+            if (r == null) continue;
+            sum += r; n += 1; if (f.saturated) sat = true; if (f.validAtSuspect) susp = true;
+          }
+          if (n >= NOWCAST_HOUR_MEAN_MIN_FRAMES) hourMean = { mmh: sum / n, frames: n, saturated: sat, suspect: susp, mirror: false };
+        }
+      }
+      if (!hourMean && !best) continue;
+      const mmh = hourMean ? hourMean.mmh : best!.saturated ? NOWCAST_SATURATION : best!.mmh;
       if (mmh == null) continue;
-      if (best.saturated && !flags.includes('nowcastSaturated')) flags.push('nowcastSaturated');
+      const saturated = hourMean ? hourMean.saturated : !!best!.saturated;
+      if (saturated && !flags.includes('nowcastSaturated')) flags.push('nowcastSaturated');
       if (nc.slotAgeMin > NOWCAST_STALE_MIN && !flags.includes('stale')) flags.push('stale');
+      if (useHourMean) { if (hourMean) { hmCount.mean += 1; hmCount.frames += hourMean.frames; if (hourMean.mirror) hmCount.mirror += 1; } else hmCount.single += 1; }
       const tag = nowcastTagOf(nc.sourceId);
       samples.push({
         source: tag, family: 'nowcast',
         temperature: null, sourceElevation: null, u: null, v: null, gust: null, relativeHumidity: null,
         snowLine: null, cloudLow: null, cloudMid: null, cloudHigh: null,
-        precipitation: mmh, uvIndex: null, distanceMeters: 0, validAtMs: best.validAtMs as number,
+        precipitation: mmh, uvIndex: null, distanceMeters: 0, validAtMs: hourMean ? a.validAtMs : (best!.validAtMs as number),
       });
       members.push({
         product: 'nowcast', tag, run: nc.stamp,
         ageH: Math.round((nc.slotAgeMin / 60) * 100) / 100,
-        nowcast: { source: nc.sourceId, ageMin: Math.round(nc.slotAgeMin), validAtSuspect: !!best.validAtSuspect, saturated: !!best.saturated },
+        nowcast: { source: nc.sourceId, ageMin: Math.round(nc.slotAgeMin), validAtSuspect: hourMean ? hourMean.suspect : !!best!.validAtSuspect, saturated, ...(hourMean ? { hourMean: { frames: hourMean.frames, ...(hourMean.mirror ? { mirror: true } : {}) } } : {}) },
       });
       nowcastMembers += 1;
     }
@@ -1559,6 +1599,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   if (useAtPoint && learnedT) notes.push(`learnedAtPoint: Member an ${fsCount.atPoint} Schritten vorkompensiert`);
   if (useLearnedClouds && learnedT) notes.push(`learnedClouds: gelernte Bewölkung an ${fsCount.clouds} Schritten durchgereicht`);
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
+  if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
   if (opts.stationValue === true && stackT) {
     notes.push(stackOn
       ? `stationValue: ${input.station!.station.name.trim()} steht am Punkt (${input.station!.station.distanceKm.toFixed(1)} km, Δh ${Math.round(input.station!.station.elev - (hTrue as number))} m); Innovation ${stackInn ? `aus ${stackInn.source}${stackInn.stationId ? ` ${stackInn.stationId}` : ''}${stackInn.name ? ` ${stackInn.name}` : ''} (${stackInn.distanceKm.toFixed(1)} km${stackInn.byStation ? ', gezielt abgefragt' : ''}) ${new Date(stackInn.atMs).toISOString().slice(0, 16)}Z (T ${stackInn.I.t == null ? '—' : stackInn.I.t.toFixed(2)} K)` : `keine (${input.obs?.length ? `${input.obs.length} Messung(en), die nächste ${(Math.min(...input.obs.map((o) => o.distanceM)) / 1000).toFixed(1)} km entfernt — ` : 'keine Messung — '}keine Messung einer Station am Punkt ≤ jetzt mit Stationsvorhersage zur Messzeit) ⇒ Formen ohne w·I`}`
@@ -1849,6 +1890,13 @@ function cubeCellRows(steps: ReadonlyArray<{ validAtMs: number; tier: StepTier; 
 export interface CubeIo {
   store: PointStore;
   decodePng?: PngDecoder;
+  /**
+   * E-AX-16 (`audit/fusion-ausbau.md` §6m, Kandidat „buscosun Fusion 8" B): der Leser holt je Ausgabestunde das Stundenmittel des
+   * Spiegels (`m<lead>.png`, RGB-Summenbild) statt des nächsten Einzelframes, und der Motor rechnet mit `nowcastHourMean` — beide
+   * zusammen, sonst läse der Motor das Mittel als Einzelframe. Braucht `decodeRgbPng`. Voreinstellung aus ⇒ byte-gleich; `?hm=1`.
+   */
+  nowcastHourMean?: boolean;
+  decodeRgbPng?: RgbPngDecoder;
   terrain: TerrainOptions | false;
   clima: () => Promise<ClimaField | null>;
   /** Die Uhr — injizierbar, damit Verifier und Replay gegen eine feste Zeit lesen (D-12). */
@@ -1987,10 +2035,12 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const stS = io.stationSource && io.stationSource !== 'mosmix_l' ? `st:${io.stationSource}` : null;
   const cg = io.climaGrid ? 'cg' : null;
   const inca = io.incaAnchor ? 'inca' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca) return '';
+  // E-AX-16: das Stundenmittel ist ein anderes Produkt (anderer Radar-Member) — in den Schlüssel, ohne Option kein Anhang.
+  const hm = io.nowcastHourMean ? 'hm' : null;
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -2180,6 +2230,8 @@ export function defaultCubeIo(): CubeIo {
   return {
     store: browserStore,
     decodePng: decodeGrayPngBrowser,
+    // E-AX-16: der RGB-Dekoder für das Summenbild des Stundenmittels — nur mit `nowcastHourMean` gelesen.
+    decodeRgbPng: decodeRgbaPngBrowser,
     terrain: { decodeRgba: decodeRgbaPngBrowser, cache: browserBackend },
     clima: getClimaField,
     obs: fetchCubeObs,
@@ -2194,6 +2246,8 @@ export function defaultCubeIo(): CubeIo {
     ...(climaGridFlag ? { climaGrid: true } : {}),
     // AX-10: `?inca=1` — INCA-Analyse als Anker in AT (Voreinstellung aus).
     ...(incaFlag ? { incaAnchor: true } : {}),
+    // E-AX-16: `?hm=1` — Radar-Stundenmittel aus dem Spiegel, Leser und Motor-Option zusammen (Voreinstellung aus).
+    ...(hourMeanFlag ? { nowcastHourMean: true } : {}),
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2201,6 +2255,7 @@ export function defaultCubeIo(): CubeIo {
 const stationSourceFlag = pfStationSourceFrom(typeof window !== 'undefined' ? window.location.search : '');
 const climaGridFlag = pfClimaGridFrom(typeof window !== 'undefined' ? window.location.search : '');
 const incaFlag = pfIncaAnchorFrom(typeof window !== 'undefined' ? window.location.search : '');
+const hourMeanFlag = pfHourMeanFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 interface CubeCacheEntry { hours: number; forecast: PointForecast; ts: number; update?: Promise<PointForecast | null> }
 const CUBE_CACHE = new Map<string, CubeCacheEntry>();
@@ -2247,6 +2302,12 @@ function forecastFromBundle(
     // Phase AX, AX-3 (E-AX-3): T zwischen den nativen Schritten als Anomalie gegen μ_c — braucht nur das Klimatologieprodukt
     // (Orakel: 6-h-Schritte −15,5 %, 3-h −4,1 % MAE; `audit/fusion-ausbau.md` §3). Ohne Produkt linear wie bisher, benannt.
     if (t.climaProduct?.product) { stageFuse.anomalyInterp = true; input.notes.push('stage:fs — Interpolation der Temperatur als Anomalie gegen den Tagesgang μ_c (AX-3)'); }
+  }
+  // E-AX-16: der Leser hat die Stundenmittel des Spiegels geholt (wo der Slot sie führt) — der Motor muss sie als Stundenmittel lesen.
+  if (io.nowcastHourMean) {
+    stageFuse.nowcastHourMean = true;
+    const hm = input.nowcast.reduce((s, n) => s + (n.hourMeans ?? 0), 0);
+    input.notes.push(`nowcastHourMean: Radar-Stundenmittel aus dem Spiegel (m<lead>.png, E-AX-16) — ${hm} Stunden vorgemittelt gelesen${hm ? '' : ' (der Slot führt noch kein Stundenmittel oder kein RV-Punkt ⇒ Einzelframes, Motor mittelt, was im Bündel liegt)'}`);
   }
   if (z0) input.z0 = z0;
   if (io.terrainOverride !== undefined) {
@@ -2463,6 +2524,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       ...(io.z0mod ? { z0mod: true } : {}),
       ...(io.stationSource && io.stationSource !== 'mosmix_l' ? { stationSource: io.stationSource } : {}),
       ...(io.climaGrid ? { climaGrid: true } : {}),
+      ...(io.nowcastHourMean ? { nowcastHourMean: true, ...(io.decodeRgbPng ? { decodeRgbPng: io.decodeRgbPng } : {}) } : {}),
       ...(progressive ? { progressive: true, onFirst, ...(io.indexSwrMs ? { indexSwrMs: io.indexSwrMs } : {}) } : {}),
       ...(io.planeRanges ? { planeRanges: CUBE_ANSWER_PLANES } : {}),
     },

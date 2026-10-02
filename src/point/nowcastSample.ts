@@ -13,10 +13,10 @@
  */
 
 import { DE1200_CORNERS } from '../sources/radolanGeo';
-import { sampleRadarPoint } from '../pointForecast/radarSample';
+import { sampleRadarIndex, sampleRadarPoint } from '../pointForecast/radarSample';
 import { SOURCE_BY_ID, coversPoint } from './sourceMatrix';
 import {
-  NOWCAST_BY_ID, NOWCAST_VMAX, type NowcastSourceId, type NowcastSourceSpec, nowcastFromU8,
+  NOWCAST_BY_ID, NOWCAST_VMAX, type NowcastSourceId, type NowcastSourceSpec, nowcastFromU8, nowcastHourMeanFromSum,
 } from './nowcastFormat';
 
 /** Ein dekodiertes Graustufen-PNG, wie `scripts/lib/png.mjs` es liefert. */
@@ -25,6 +25,27 @@ export interface DecodedGrayPng {
   width: number;
   height: number;
   channels: number;
+}
+
+/**
+ * E-AX-16: ein dekodiertes RGB-/RGBA-PNG (das Summenbild des Stundenmittels). Node liefert 3 Kanäle (`png.mjs`),
+ * der Browser über den Canvas immer 4 (`decodeRgbaPngBrowser`, dort ohne `channels`-Feld ⇒ 4).
+ */
+export interface DecodedRgbPng {
+  data: Uint8Array | Uint8ClampedArray;
+  width: number;
+  height: number;
+  channels?: number;
+}
+
+/** E-AX-16: ein Stundenmittel-Eintrag der `meta.json` (`RvImgHourMean` in `sources/radarImg.ts`). */
+export interface NowcastSlotHourMean {
+  lead: number;
+  file: string;
+  frames: number;
+  bytes?: number;
+  leadFrom?: number;
+  leadTo?: number;
 }
 
 /** Was in der `meta.json` eines Slots steht (vom Spiegel geschrieben). */
@@ -38,6 +59,8 @@ export interface NowcastSlotMeta {
   validAtMs?: number | null;
   fetchedAtMs?: number;
   frames?: Array<{ file: string; lead?: number; validAtMs?: number }>;
+  /** E-AX-16: nur RV-Slots seit 02.10.2026 — fehlt sonst. */
+  hourMeans?: NowcastSlotHourMean[];
 }
 
 export interface NowcastSample {
@@ -55,6 +78,49 @@ export interface NowcastSample {
   lead: number;
   stamp: string;
   sourceId: NowcastSourceId;
+  /**
+   * E-AX-16: dieses Sample ist das vorgemittelte Stundenmittel des Spiegels (`m<lead>.png`), kein Einzelframe —
+   * `mmh` ist das Mittel der `frames` Frames in (validAtMs − 60 min, validAtMs], `saturated` heißt „mindestens
+   * ein Frame gesättigt". Der Motor nimmt es mit `nowcastHourMean` direkt; ohne die Option ignoriert er es.
+   */
+  hourMean?: { frames: number };
+}
+
+/**
+ * E-AX-16: das Stundenmittel eines Slots an einem Punkt lesen — aus dem RGB-Summenbild statt aus zwölf Frames.
+ *
+ * Dieselbe Zelle wie `sampleNowcastFrame` (Nächster-Nachbar, `sampleRadarIndex`), dieselben Wächter (Domäne, `vMax`),
+ * dieselbe Arithmetik wie der Motor über die Einzelframes (`nowcastHourMeanFromSum`). `null` = außerhalb der Abdeckung
+ * oder des Gitters. `mmh` ist hier nie `null`: ein gesättigter Frame zählt mit NOWCAST_SATURATION und setzt `saturated`.
+ */
+export function sampleNowcastHourMean(
+  sourceId: NowcastSourceId,
+  meta: NowcastSlotMeta,
+  png: DecodedRgbPng,
+  lat: number,
+  lon: number,
+  hm: NowcastSlotHourMean,
+): NowcastSample | null {
+  const spec = NOWCAST_BY_ID[sourceId];
+  if (!spec) throw new Error(`nowcast: unbekannte Quelle ${sourceId}`);
+  if (meta.vMax !== NOWCAST_VMAX) {
+    throw new Error(`nowcast: ${sourceId}/${meta.stamp} hat vMax ${meta.vMax}, erwartet ${NOWCAST_VMAX}`);
+  }
+  const src = SOURCE_BY_ID[sourceId];
+  if (src && !coversPoint(src, lat, lon)) return null;
+  const ch = png.channels ?? 4;
+  if (ch !== 3 && ch !== 4) throw new Error(`nowcast: ${hm.file} hat ${ch} Kanäle, erwartet 3 oder 4`);
+  if (png.width !== meta.width || png.height !== meta.height) {
+    throw new Error(`nowcast: ${hm.file} misst ${png.width}×${png.height}, der Slot ${meta.width}×${meta.height}`);
+  }
+  if (!Number.isInteger(hm.frames) || hm.frames < 1) throw new Error(`nowcast: ${hm.file} nennt ${hm.frames} Frames`);
+  const idx = sampleRadarIndex(spec.grid, png.width, png.height, nowcastCorners(spec, meta) as never, lat, lon);
+  if (idx == null) return null;
+  const o = idx * ch;
+  const { mmh, saturated } = nowcastHourMeanFromSum(png.data[o] * 256 + png.data[o + 1], png.data[o + 2], hm.frames);
+  const slotMs = meta.runAtMs ?? stampMs(meta.stamp);
+  if (slotMs == null) throw new Error(`nowcast: ${sourceId}/${meta.stamp} ohne Slotzeit`);
+  return { mmh, saturated, validAtMs: slotMs + hm.lead * 60_000, validAtSuspect: false, lead: hm.lead, stamp: meta.stamp, sourceId, hourMean: { frames: hm.frames } };
 }
 
 /**

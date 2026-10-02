@@ -75,6 +75,34 @@ export const NOWCAST_STEP = NOWCAST_VMAX / 255;
 /** Ab diesem Wert liefert der Kodierer 255 — alles darüber ist nicht mehr unterscheidbar. */
 export const NOWCAST_SATURATION = NOWCAST_VMAX - NOWCAST_STEP / 2;
 
+// ── E-AX-16 (`audit/fusion-ausbau.md` §6m): das Stundenmittel als Produkt des Spiegels ──
+// Der Radar-Member einer Stunde t ist mit `FuseCubeOptions.nowcastHourMean` das Mittel der
+// Frame-Raten in (t − 60 min, t] bei ≥ 6 Frames (V-AX-23, Kandidat B). Der Spiegel schreibt
+// dieses Mittel je volle Stunde als EIGENE Datei `m<lead>.png` (RGB: R·256 + G = Summe der
+// Rohbytes der Frames, B = Zahl der gesättigten Frames), damit der Client EINEN Abruf je
+// Stunde braucht statt zwölf. Die Umkehrung steht hier — dieselbe Arithmetik wie der Motor
+// über die Einzelframes (gesättigt zählt als NOWCAST_SATURATION, Byte 0 als 0).
+/** Fenster des Stundenmittels in Minuten: Frames mit Gültigzeit in (t − Fenster, t]. */
+export const NOWCAST_HOUR_MEAN_WINDOW_MIN = 60;
+/** Mindestzahl der Frames im Fenster, sonst gilt der Einzelframe (RV 12 je Stunde, INCA 4 ⇒ nie). */
+export const NOWCAST_HOUR_MEAN_MIN_FRAMES = 6;
+
+/** Dateiname des Stundenmittels im Slot — `lead` in Minuten von der Slotzeit bis zum Stundenende. */
+export function nowcastHourMeanFile(lead: number): string {
+  return `m${String(lead).padStart(3, '0')}.png`;
+}
+
+/**
+ * RGB-Pixel des Summenbilds → Stundenmittel in mm/h. `sum` = Summe der Rohbytes der `frames`
+ * Frames, `nSat` = wie viele davon 255 (gesättigt) waren. Gesättigte Frames gehen wie im Motor
+ * mit NOWCAST_SATURATION ein, alle anderen mit raw/255·vMax; Byte 0 trägt 0.
+ */
+export function nowcastHourMeanFromSum(sum: number, nSat: number, frames: number): { mmh: number; saturated: boolean } {
+  if (!(frames > 0)) throw new Error(`nowcastHourMeanFromSum: frames ${frames}`);
+  const plain = (sum - 255 * nSat) * (NOWCAST_VMAX / 255);
+  return { mmh: (plain + nSat * NOWCAST_SATURATION) / frames, saturated: nSat > 0 };
+}
+
 /** Wurzel der gespiegelten Bilder im Daten-Repo. */
 export const NOWCAST_IMG_DIR = 'radar/img/v1';
 /** Wurzel der unveränderten RV-Archive (verlustfrei, nur DE). */
@@ -230,6 +258,15 @@ export function nowcastManifest() {
       saturatedMeans: `raw === 255 heißt „≥ ${NOWCAST_SATURATION.toFixed(2)} mm/h", ein offener Randbin. NICHT als ${NOWCAST_VMAX} ausliefern — das machte aus 60 mm/h eine plausible falsche Zahl.`,
       vMaxWarning: 'vMax ist zugleich der Drift-Wächter des Clients (src/sources/radarImg.ts): ein abweichender Wert macht den Slot für jeden Leser ungültig. Nicht erhöhen.',
     },
+    // E-AX-16: das Stundenmittel als eigene Datei je Stunde (nur RV; INCA hat 4 Frames je Stunde < 6).
+    hourMean: {
+      file: 'm<lead>.png je volle Stunde t nach dem Slot, lead = Minuten Slot → t; meta.json#hourMeans[] nennt lead, file, frames, leadFrom, leadTo',
+      encoding: 'RGB-PNG: R·256 + G = Summe der Rohbytes der Frames im Fenster (t − 60 min, t], B = Zahl der gesättigten Frames (Byte 255); exakt, keine zweite Quantisierung',
+      inverse: '((sum − 255·nSat)·vMax/255 + nSat·saturatedAt) / frames — dieselbe Arithmetik wie der Motor über die Einzelframes (FuseCubeOptions.nowcastHourMean)',
+      windowMin: NOWCAST_HOUR_MEAN_WINDOW_MIN,
+      minFrames: NOWCAST_HOUR_MEAN_MIN_FRAMES,
+      why: 'Die Wahrheit ist die Stundensumme; der Frame am Stundenende trifft 37 % der Regenstunden, das Stundenmittel 49 % (V-AX-23). Der Live-Pfad holt je Stunde einen Frame — mit dieser Datei ist es das Mittel (V-AX-24, E-AX-16).',
+    },
     sources: NOWCAST_SOURCES.map((s) => ({
       id: s.id, dir: `${NOWCAST_IMG_DIR}/${s.dir}`, grid: s.grid,
       cornersFrom: s.cornersFrom, slotMinutes: s.slotMinutes, keptSlots: s.keptSlots,
@@ -290,6 +327,18 @@ export function nowcastFormatSelfTest(): { checks: NowcastCheck[]; passed: numbe
     }
     add('die Umkehrung steigt streng monoton (1…254)', mono);
   }
+
+  // E-AX-16: die Umkehrung des Summenbilds an ihren Kanten — zwölf gleiche Bytes sind das Byte, ein
+  // gesättigter Frame zählt als NOWCAST_SATURATION (nicht als 20), ein Nieselframe bleibt erhalten.
+  add('Stundenmittel: zwölf gleiche Bytes 128 ⇒ Mittel = Byte 128',
+    Math.abs(nowcastHourMeanFromSum(12 * 128, 0, 12).mmh - (nowcastFromU8(128).mmh ?? -1)) < 1e-12 && !nowcastHourMeanFromSum(12 * 128, 0, 12).saturated);
+  add('Stundenmittel: ein gesättigter Frame unter zwölf zählt als NOWCAST_SATURATION und markiert die Stunde',
+    Math.abs(nowcastHourMeanFromSum(255 + 11 * 128, 1, 12).mmh - (NOWCAST_SATURATION + 11 * (nowcastFromU8(128).mmh ?? 0)) / 12) < 1e-12
+    && nowcastHourMeanFromSum(255 + 11 * 128, 1, 12).saturated);
+  add('Stundenmittel: ein Nieselframe (Byte 1) unter zwölf trockenen bleibt > 0 (keine zweite Totzone)',
+    nowcastHourMeanFromSum(1, 0, 12).mmh > 0 && nowcastHourMeanFromSum(1, 0, 12).mmh < NOWCAST_DEAD_ZONE);
+  add('Stundenmittel: Dateiname m<lead>.png, Fenster 60 min, mindestens 6 Frames',
+    nowcastHourMeanFile(75) === 'm075.png' && nowcastHourMeanFile(135) === 'm135.png' && NOWCAST_HOUR_MEAN_WINDOW_MIN === 60 && NOWCAST_HOUR_MEAN_MIN_FRAMES === 6);
 
   // Pfadregeln: eine falsch zusammengesetzte URL fällt sonst erst am 404 auf.
   const rv = NOWCAST_BY_ID.radvor_rv;

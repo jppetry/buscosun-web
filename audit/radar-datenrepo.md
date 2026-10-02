@@ -978,3 +978,25 @@ konkurrierten (dieselbe Messfalle wie §14.6). Belegbar sind: Einzelframe 627 ms
 206 ms (direkt), Node über 25 Frames 188 ms/Frame, und — unabhängig von jedem Faktor — dass die
 Arbeit den Hauptthread verlassen hat (Long Tasks 0). Ein belastbarer Vergleich gehört auf eine
 ruhige Maschine (**V-RD-18**).
+
+## 15. RD4 — das Radar-Stundenmittel als Produkt des Spiegels (E-AX-16, 2026-10-02; Diagnose, Bau und Messung in `audit/fusion-ausbau.md` §6m)
+
+buscosun Fusion gewinnt bei 1–2 h messbar, wenn der Radar-Member das **Stundenmittel** der 5-min-Frames ist statt des Frames am Stundenende
+(V-AX-23: DE-Treffer 0,33 → 0,52, Karte §6l.5). Der Punkt-Leser holt je Ausgabestunde aber nur EINEN Frame (V-AX-24). Statt elf weiterer PNG je
+Stunde im Browser (≈ 1,8 MB) schreibt der Derive seit heute je RV-Slot zusätzlich **ein Summenbild je volle Stunde t nach dem Slot** mit ≥ 6 Frames
+im Fenster (t − 60 min, t]: `m<lead>.png` (lead = Minuten Slot → t; Slot :05 ⇒ `m055` aus f000…f055 und `m115` aus f060…f115, Slot :45 ⇒ `m075`
+und `m135` mit 9 Frames). **RGB-PNG:** R·256 + G = Summe der Rohbytes der Frames, B = Zahl der gesättigten Frames — exakt, keine zweite
+Quantisierung (ein u8-Mittel verlöre die Nieselstunden an die Totzone 0,06 mm/h). `meta.json` bekommt das **Zusatzfeld** `hourMeans[]`
+(lead, file, bytes, frames, leadFrom, leadTo); Schema 1 und `frames` bleiben, alte Clients ignorieren das Feld, der Prüfer nimmt es optional an.
+Umkehrung am Punkt: ((Summe − 255·nSat)·20/255 + nSat·19,96) / frames — dieselbe Arithmetik wie der Motor über die Einzelframes
+(`point/nowcastFormat.ts`). Weil die Punktabtastung Nächster-Nachbar ist, liefert das Summenbild am Punkt **exakt** das Mittel der Frames.
+
+Gemessen am Live-Slot 2610021505: zwei Bilder 17,8 + 17,3 KB gegen 119 KB für die 25 Frames (trockener Tag; nass mehr), Derive 3,3 s lokal statt
+1,2 s; 25 Frame-PNGs byte-gleich zum veröffentlichten Spiegel; an 405 Punkten × 2 Stunden |Δ| = 0; Chromium dekodiert die RGB-Bilder über
+`createImageBitmap` + Canvas byte-gleich zu Node (FNV-Hash). Verifier `verify:radar-repack` 55/55 (A32–A36, B1e/B1f am echten Slot).
+
+**Betrieb:** Workflow (`radar.yml`) und Spiegelskript sind unverändert — der Job klont buscosun-web `main` beim Start, die Datei entsteht ab dem
+ersten Job nach Jans Push (Kette ≈ 5 h 45, früher durch Abbruch des laufenden Jobs). Retention wie die Frames (Slot-Verzeichnis). Konsument ist
+nur der Punkt-Leser mit `nowcastHourMean` (`?hm=1`, Voreinstellung aus); Wetterkarte und Regenradar lesen weiter die Frames. README-Vorlage
+nennt das Produkt (`scripts/repack-repo/README.md`). **V-RD-19:** Derive-Zeit auf dem Actions-Runner nach dem ersten Job in `status.json`
+(`deriveMs`) nachlesen; **V-RD-20:** nasse Tage — Größe der Summenbilder (Summen haben mehr Entropie als Einzelframes) im Paketbudget beobachten.

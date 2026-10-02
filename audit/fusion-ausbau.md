@@ -32,7 +32,7 @@
 | E-AX-11 | Wind ohne Station (V-AX-13; Auftrag Jan 30.09. „ja starte") | **gebaut (zwei Optionen, aus), gemessen — Schritt SCHLECHTER, Anker GLEICHSTAND** — `priorShrinkWind` (Schritt bleibt für Wind/Böe): Modus L Böe 0–120 h −3,5…−5,7 %!, DE-Wind bis −11 %!, aber AT/CH-Wind +3…+15 %* und 126–240 h +4,7 %* ⇒ V-AX-17 (Defizit im gelernten Windmember); `anchorWindKm: 10` (Wind-Anker über die Distanz gedämpft): nirgends schlechter, 0–6 h Böe +0,6 %*, Wind +0,5 % (gegen 5e −1,1 %! → −0,6 % n.s.); K8 bestanden; Empfehlung: Anker in die Stufe fs mit dem nächsten Push (= buscosun Fusion 7), Schritt nein, E-AX-13 mit ≥ 30 Tagen | §6h · `fusion-ausbau/eax11.md` · `score\2026-09-30-eax11` · `verify:pv-cube` 398/398 (Block 38) · `verify:pv-fusion` 235/235 · Build 249/249 · Budget grün |
 | AX-13 (§6i) | Messung „buscosun Fusion 7“ (= 6 + `anchorWindKm: 10` + Klimagitter/Trend) gegen Fusion 6 am Archiv 16.–30.09. (Auftrag Jan 01.10.) | **gemessen — BESSER nach der vorab eingefrorenen Regel (4 Tupel besser / 0 schlechter), aber marginal:** nur Wind/Böe 0–6 h ohne Station +0,5 %* / +0,6 %* (1,008 → 1,004 · 1,213 → 1,206 m/s), Modus S byte-gleich; Zuordnung: alles vom Anker, **Klimagitter bewegt 0 von 72 Zellen (K9, V-AX-19)**; 405 810 Zeilen, 14 Ausgabetage | §6i · `fusion-ausbau/fusion7-vs-6.md` · `score\2026-10-01-f7` · `verify:fusion-fit` 125/125 · E-AX-14 = Jans Gate |
 | AX-14 (§6j) | Archiv-Schema 4: MOSMIX-S-Reihe (`stationsS`) und INCA-Analyse (`incaAnalysis`) im Sammler — die Eingaben für E-AX-8 und E-AX-10 | **gebaut (uncommitted)**, Trockenlauf gegen das CDN grün (S-Lauf 2026100104, INCA 2/2 AT-Punkte), additiv, Leser 1–4 | §6j · `verify:punktarchiv` 126/126 · wirksam nach dem Push von `main` (§30 a) |
-| AX-15 (§6k/§6l) | Prüfung des ersten Schema-4-Slots, Regentag; INCA-Sammler-Fix (V-AX-20); Scorer mit Niederschlagszellen (Brier/Reliability/POD-FAR); „buscosun Fusion 8" = 7 + nachkalibrierte Hürde gegen 7; DE-Radar 1–3 h (Auftrag Jan 02.10.) | **INCA gebündelt (84/84 live), Fusion 8 GLEICHSTAND (0 / 0 von 24; K12/K13 rot) ⇒ nicht eingeschaltet, Option gebaut und aus; V-AX-23 Radar-Stundenmittel als nächster Kandidat** | §6k–§6l · `fusion-ausbau/fusion8-vs-7.md` · `score\2026-10-02-f8` · `verify:fusion-fit` 129/129 (18) · `verify:pv-cube` 405/405 (37, 39) · `verify:punktarchiv` 127/127 · MANUELLE-SCHRITTE §32 |
+| AX-15 (§6k/§6l) | Prüfung des ersten Schema-4-Slots, Regentag; INCA-Sammler-Fix (V-AX-20); Scorer mit Niederschlagszellen (Brier/Reliability/POD-FAR); „buscosun Fusion 8" = 7 + nachkalibrierte Hürde gegen 7; DE-Radar 1–3 h (Auftrag Jan 02.10.) | **INCA gebündelt (84/84 live), Fusion 8 GLEICHSTAND (0 / 0 von 24; K12/K13 rot) ⇒ nicht eingeschaltet, Option gebaut und aus; Kandidat B Radar-Stundenmittel (V-AX-23, Option `nowcastHourMean`, Neu-Extraktion F8r, Regel §6l.4) GLEICHSTAND 1 / 0 von 4 primär (L Brier +11 %*, S +9 % p 0,055; DE POD 0,33 → 0,52), K11/K14/K16 grün ⇒ nicht eingeschaltet, Wiederholung ≥ 30 Tage; V-AX-24 Live-Pfad holt einen Frame je Stunde ⇒ E-AX-16 — **umgesetzt (§6m): Stundenmittel als RGB-Summenbild `m<lead>.png` je Stunde im Radar-Spiegel (exakt, M1 |Δ| 0), Client hinter `nowcastHourMean`/`?hm=1` (aus), Kette Leser → Motor geprüft (pv-cube 41, radar-repack 55/55); Karte auf 15 Ausgabetagen (Zwischenstand, nicht die Wiederholung): BESSER 2 / 0 von 4 primär (S Brier +9,8 %*, L +11,8 %*), Kontext 2 / 0, K11/K14 grün, DE POD 0,33 → 0,52 ⇒ Einschalten = E-AX-17 (Jan)** | §6k–§6m · `fusion-ausbau/fusion8-vs-7.md` · `score\2026-10-02-f8` · `verify:fusion-fit` 129/129 (18) · `verify:pv-cube` 405/405 (37, 39) · `verify:punktarchiv` 127/127 · MANUELLE-SCHRITTE §32 |
 | AX-6 | Ensemble-Mittel in t3 (E-EX-1, #3) — die Messung | **gemessen (roh, 13 Monate, 129 Läufe)** — gegen jeden Einzellauf bei 126–336 h T +14/+23 %*, Wind +13/+16 %*, Böe +10/+12 %*; gegen das Mittel zweier Läufe bei T erst ab 246 h (+10 %*); bei 246–336 h gleichauf mit der Klimatologie ⇒ Gewinn vor allem Wind/Böe; Producer-Schritt = E-AX-6 | `score\2026-09-30-ax6`, `fusion-ausbau/ax6-ens.md` |
 | — | Nicht gebaut (Entwürfe §6f) | #17 CH-Member, #18 Exposition, #20 zeitversetztes Ensemble (heute nicht messbar), #4 RUC (E-EX-5: Phase 30.11.), #6 flächige MOS-Korrektur und #8 flächige Niederschlagswahrheit (Datenprogramme); Kalender #1/2 (≥ 30 Ausgabetage), #9 (Winter) | — |
 
@@ -1159,6 +1159,167 @@ Block 39 neu) · `verify:punktarchiv` **127/127** · `verify:pv-fusion` **235/23
 (10s) rot, V-EX-13) · Build **249/249** · Budget grün: eagerJs 108,6 / 108,7, **totalJs 1 516,0 / 1 516** (die Option und der Leser kosten
 ≈ 1,7 KB gz im Cube-Chunk; die Grenze ist damit erreicht — der nächste Zuwachs braucht die Anhebung mit Notiz, Jan 30.09.).
 
+### 6l.4 Kandidat B — Radar-Stundenmittel (V-AX-23): Behauptung und Regel — eingefroren 2026-10-02 11:58 UTC, vor dem Bau der Option und vor dem Lauf (Auftrag Jan 02.10.: „mach das und schaue, ob das ein geeigneter Kandidat wäre")
+
+**Kandidat „buscosun Fusion 8" (B)** = Fusion 7, wie es läuft (Stufe fs mit `anchorWindKm: 10`, ohne Klimagitter = Extractor-Variante F7a)
+**+ Motor-Option `nowcastHourMean`**: der Nowcast-Member einer Gültigstunde t ist nicht mehr der eine Radar-Frame, der t am nächsten liegt
+(Toleranz 30 min), sondern das **Mittel der Frame-Raten im Fenster (t − 60 min, t]** — die Wahrheit ist eine Stundensumme, die Rate am
+Stundenende ist ihr schlechter Schätzer (§6l.2). Mindestens **6 Frames** im Fenster (RV liefert 12 à 5 min), sonst Rückfall auf den
+Einzelframe (unverändertes Verhalten); gesättigte Frames zählen mit `NOWCAST_SATURATION`, das Flag `nowcastSaturated` kommt, sobald ein
+Frame gesättigt ist; `stale`/`validAtSuspect` wie bisher. Voreinstellung aus ⇒ byte-gleich (Rule 2). Betroffen sind nur Stunden mit Frames im
+Fenster: RV extrapoliert 120 min ⇒ **Vorlauf 1 h und 2 h** an Punkten mit RV-Abdeckung (DE und Ränder; INCA 15-min-Frames ab +15 min ⇒ bei
+1 h vier, bei 2 h vier Frames < 6 ⇒ Rückfall, INCA bleibt Einzelframe; CombiPrecip nur Analyse ⇒ unverändert). Vorlauf 0 (ein Frame im
+Fenster) und ≥ 3 h (kein Frame) bleiben byte-gleich — eine Kontrolle, keine Annahme.
+
+**Neu-Extraktion:** dieselben 15 Ausgabe-Slots 16.–30.09. (389 Stationspunkte), `stack-extract.mjs --variants=F7a,F8r`; F8r = F7a +
+`nowcastHourMean: true`. Karte mit `stack-score.mjs` (Niederschlagszellen aus §6l). Neue Scorer-Zellen nur für Niederschlag: **Bin 6
+„Radarstunden" = Vorlauf 1–2 h** (die einzigen Stunden, die der Kandidat berühren kann) und **Bin 7 „3–6 h"** (Kontrolle, muss unbewegt sein);
+die sechs Standard-Bins bleiben.
+
+**Regel (vorab):** primäre Tupel = Niederschlag × Bin 6 × Modus S/L × {Brier, CRPS} = **4**; Kontext-Tupel = die 24 Standard-Tupel aus §6l.1
+(6 Bins × S/L × {Brier, CRPS}); signifikant = BH-adjustiertes DM/HLN-p < 0,05 über die ganze Karte. **BESSER** = keines der 28 Tupel
+signifikant schlechter UND ≥ 2 der 4 primären Tupel signifikant besser, darunter mindestens ein Brier-Tupel; **SCHLECHTER** = irgendein
+Tupel signifikant schlechter; sonst **GLEICHSTAND**. MAE des Medians, POD/FAR bei p ≥ 0,5 und die Länderschichten (DE, AT, CH) werden
+berichtet, zählen nicht. Kontrollen: **K11** alle Nicht-Niederschlags-Zellen von fusion8-radar gegen fusion7-anchorW unbewegt (0/60);
+**K14** Niederschlag außerhalb der Radarstunden byte-gleich — Bin 7 und die Bins 1–5 in S und L mit |ΔMAE| und |ΔCRPS| < 1e-9 (sonst
+berührt die Option mehr, als sie darf); **K16** die Variante F7a der Neu-Extraktion reproduziert die Karte vom 01.10. (`score\2026-10-01-f7`):
+MAE/CRPS von fusion7-anchorW in Schicht all je Größe × Bin × Modus gleich bis 1e-9 (der Motor ohne Option ist unverändert). Vorab-Erwartung
+(ehrlich): Brier in Bin 6 um einige Prozent besser, am stärksten in DE; CRPS folgt der Hürde nur teilweise; im Standard-Bin 0–6 h verdünnt
+durch die unberührten Stunden 3–6 h; sonst nichts. Risiko: 14 Tage, 6 Regentage.
+
+**Befund vorab (V-AX-24, Live-Pfad):** der Leser des Live-Pfads holt je Ausgabestunde EINEN Frame (`readPointBundle` → `readNowcastPoint`
+mit `atMs`, Toleranz 30 min) — ein RV-Slot sind 25 PNG à ≈ 80 KB, deshalb. Das Stundenmittel braucht im Browser elf weitere Frames je
+Radarstunde (≈ 0,9 MB je Stunde, ≈ 1,8 MB für 1–2 h, Mobil-4G!) **oder** ein Stundenmittel-Bild im Radar-Spiegel (Producer, eine Datei je
+Stunde). Der Sammler des Archivs holt alle Frames (`fromMs`/`untilMs`) ⇒ die Messung ist am Archiv möglich, der Live-Pfad bildet die
+Stunde heute NICHT so. Bei BESSER ist der Weg (Client-Frames gegen Spiegel-Produkt) Jans Entscheidung **E-AX-16**; bei GLEICHSTAND/SCHLECHTER
+bleibt die Option gebaut und aus.
+
+### 6l.5 Ergebnis Kandidat B (Extraktion 12:25–12:48 UTC, Karte 12:48–13:47 UTC, `score\2026-10-02-f8r`, Zusammenfassung `fusion-ausbau/fusion8b-radar-vs-7.md`)
+
+**GLEICHSTAND nach der Regel — primär 1 von 4 Tupeln signifikant besser (Modus L Brier Radarstunden +11,1 %*, p 0,048), 0 schlechter;
+Kontext 1 von 24 besser (L 0–6 h Brier +3,1 %*), 0 schlechter.** Das zweite primäre Tupel (S Brier +9,0 %) liegt bei p 0,055 knapp über der
+Schwelle; CRPS S/L +7,9/+8,9 % n.s. (p 0,16). **K11 bestanden** (0/60 fremde Zellen), **K14 bestanden** (0/12 Niederschlagszellen außerhalb der
+Radarstunden bewegt — 3–6 h und alle Bins ≥ 7 h byte-gleich), **K16 bestanden** (F7a der Neu-Extraktion reproduziert die Karte vom 01.10. in
+72/72 Zellen bis 1e-9). Länderschichten (berichtet): DE Brier +13,8 % (S, p 0,077) / +16,8 % (L, p 0,066), AT +0,8 %, CH +8 % n.s.; nirgends
+schlechter. Absolut in den Radarstunden (S, all): BSS 0,390 → **0,445**, POD 0,51 → **0,60** bei FAR 0,39 → 0,36; **DE POD 0,33 → 0,52, FAR
+0,49 → 0,41** (S), L DE 0,19 → 0,42 — die Member-Diagnose (§6l.2, POD 0,37 → 0,49) kommt im Produkt an, sogar etwas verstärkt; MOSMIX-Punktwert
+und Live-Pfad liegen dort bei BSS −0,5 (FAR 0,62). Reliability: der zu trockene 10–20-%-Bin verschwindet (25 → 10 % beobachtet), dafür ist
+der Kandidat in 20–60 % zu nass (Mittel hebt Nieselstunden) — Kalibrierrest, mit mehr Regentagen zu prüfen. AT bewegt sich nicht (INCA-Frames
+im 15-min-Takt ⇒ 4 Frames < 6 ⇒ Einzelframe), CH nur über RV-Ränder.
+
+**Entscheidung:** nach der Regel **nicht einschalten**; `FuseCubeOptions.nowcastHourMean` bleibt gebaut und aus (Rule 2), Extractor F8r und
+Scorer-Zellen bleiben. **Empfehlung:** das ist der stärkste Niederschlags-Hebel bisher (nirgends schlechter, alle Kontrollen grün, Effekt in der
+sichtbarsten Zelle); Wiederholung mit derselben Regel ab ≥ 30 Ausgabetagen (≈ 15.10.) — und unabhängig davon **E-AX-16** (Jan): der Weg ins
+Produkt, weil der Live-Pfad je Stunde nur einen Frame holt (V-AX-24) — (a) elf weitere PNG je Radarstunde im Browser (≈ 1,8 MB für 1–2 h) oder
+(b) ein Stundenmittel-Bild je Stunde im Radar-Spiegel (Producer; der Client läse es wie einen Frame). Ohne (a) oder (b) ist der Kandidat auch
+bei BESSER nicht deploybar.
+
+Gates (Arbeitsbaum, 02.10. abends): typecheck 0 · `verify:pv-cube` **Block 40 neu (5)** — Lauf parallel zur Kette 409/410 ((8) PAP-4-Kosten
+unter Last), Solo-Lauf s. u. · `verify:fusion-fit` **131/131** (Block 19 neu) · `verify:pv-fusion` 235/235 · Build 249/249 · Budget grün:
+eagerJs 108,6 / 108,7, **totalJs 1 516,3 / 1 517** (Grenze um den gemessenen Zuwachs +0,3 KB angehoben, Notiz in `budget.json`, Jan 30.09.).
+Smoke am Archiv (`--points=10129,10962,11150,11350`, alle Slots): bewegt nur Niederschlag, nur Vorlauf 1–2 h, nur RV-Punkte (DE 20, AT 12
+Zeilen je Modus). Extractor neu: `--points=<ids>`.
+
+## 6m E-AX-16 — das Radar-Stundenmittel als Produkt des Spiegels (Auftrag Jan 02.10. ≈ 15:05 UTC: „E-AX-16 sofort machen, den Weg über buscosun-data, dort sehr granular die Radarbilder ablegen; Rückendeckung und alle Genehmigungen für das Daten-Repo; danach die Messung")
+
+### 6m.1 Diagnose (15:05–15:40 UTC, am Code, am Daten-Repo und am laufenden Spiegel)
+
+- **Was liegt heute im Spiegel:** je RV-Slot (alle 5 min) 25 Einzelframes `f000…f120.png` (u8-Graustufen mit den `precipToU8`-Bytes des Clients,
+  1100 × 1200) + `meta.json` (Schema 1, strenger Prüfer `parseRvImgMeta`: genau 25 Frames auf den Leads 0…120). Retention KEEP 12 Slots (≈ 1 h).
+  Der Derive läuft als Kindprozess aus dem **sparse Klon von buscosun-web `main`** (`radar-derive.mjs`, 1,2 s je Slot, gemessen heute 14:48 UTC:
+  25 PNG = 131 KB). Die Körnung „5-Minuten-Frames" ist also da — was fehlt, ist allein das **Stundenmittel als eigene Datei**.
+- **Wie die Leser lesen (V-AX-24):** der Live-Pfad holt je Ausgabestunde t den Frame, der t am nächsten liegt (`readNowcastPoint`, `atMs`, Toleranz
+  30 min); der Sammler holt alle Frames des Fensters. Der Motor mit `nowcastHourMean` mittelt, was im Bündel liegt: im Archiv die 12 Frames einer
+  Stunde, live nur den einen Frame (⇒ < 6 ⇒ Einzelframe, also wirkungslos).
+- **Abtastung ist Nächster-Nachbar** (`sampleRadarQuad`: `floor(u·width)`, kein Bilinear). Damit ist die Summe der Frame-Pixel an der Zelle exakt
+  die Summe der abgetasteten Frame-Werte — ein **Summenbild je Stunde** liefert das Stundenmittel am Punkt **exakt** (bis auf die Reihenfolge der
+  Gleitkomma-Addition), ohne den Weg über 12 Einzelabrufe.
+- **Warum kein u8-Mittelbild:** die u8-Skala hat Totzone 0,06 mm/h und Schritt 0,078 mm/h. Ein Stundenmittel aus einem nassen Frame von 0,5 mm/h
+  und elf trockenen ist 0,042 mm/h — im u8 würde es 0. Genau diese Nieselstunden hat der Kandidat B gewonnen (Reliability 10–20 %, §6l.5).
+  Ein quantisiertes Mittel wäre ein anderer Kandidat als der gemessene.
+- **Zwei Schreiber, eine Vorlage:** Workflow und Spiegelskript liegen als Kopien im Daten-Repo (byte-gleich zur Vorlage bis auf CRLF, geprüft);
+  der Spiegel-Job klont buscosun-web `main` **beim Jobstart** (Kette alle ≈ 5 h 45). Der Derive-Code lebt in buscosun-web (BW-1: die Decoder des
+  Clients erzeugen die Bytes). Folge: das neue Produkt erscheint im Daten-Repo **nach Jans Push von `main` + dem nächsten Jobstart**; am Workflow
+  und am Spiegelskript ist nichts zu ändern. Ein Rückport in das Daten-Repo (eigenes Skript mit kopierten Konstanten) würde es nur früher
+  erscheinen lassen, bevor ein Client es lesen kann — der Client braucht denselben Push. Nicht gemacht.
+- **Rate-/Größenlage:** Summenbild = RGB-PNG (zwei Bytes Summe + ein Byte Sättigungszähler), zwei Bilder je Slot; geschätzt +50…150 KB je Slot
+  gegen 131 KB heute (nasse Tage mehr). Weit unter dem 150-MB-Paketbudget (§14.1 der Radar-Linie).
+
+### 6m.2 Entscheidung und Bauplan (vor dem Code festgelegt)
+
+1. **Produkt (Daten-Repo, `radar/img/v1/rv/<stamp>/`):** je volle Stunde t nach dem Slot mit ≥ 6 Frames im Fenster (t − 60 min, t] eine Datei
+   `m<lead>.png` (lead = Minuten von der Slotzeit bis t, z. B. Slot 14:45 ⇒ `m075.png` aus f020…f075 und `m135.png` aus f080…f120 mit 9 Frames;
+   Slot :00 ⇒ `m060`/`m120` je 12). **RGB-PNG:** R·256 + G = Summe der Rohbytes der Frames (0…3060), B = Zahl der gesättigten Frames (Byte 255).
+   `meta.json` bekommt das **Zusatzfeld** `hourMeans: [{ lead, file, bytes, frames, leadFrom, leadTo }]`; `frames` und Schema 1 bleiben
+   unverändert — alte Clients ignorieren das Feld, der strenge Prüfer nimmt es optional an.
+2. **Dekodierung am Punkt (eine Stelle, `nowcastSample.ts`):** mmh = ((Summe − 255·nSat)·20/255 + nSat·NOWCAST_SATURATION) / frames — dieselbe
+   Arithmetik wie der Motor über die Einzelframes (gesättigt zählt als NOWCAST_SATURATION, Byte 0 als 0). Gesättigt-Flag der Stunde = nSat > 0.
+3. **Client:** Leser-Option `hourMean` (`readNowcastPoint` → `readPointBundle` → `CubeIo.nowcastHourMean`), RGB-Dekoder injiziert
+   (Browser: Canvas-RGBA, Node: `png.mjs`); der Motor nimmt ein vorgemitteltes Sample (`NowcastSample.hourMean`) für die Stunde, sonst mittelt er
+   wie bisher die Frames; Option am Leser schaltet die Motor-Option mit (sonst würde das Mittel als „Einzelframe" gelesen). Schalter `?hm=1`.
+   **Voreinstellung aus ⇒ Live-Produkt byte-gleich** (kein Abruf, kein Feld).
+4. **Verifier:** `verify:radar-repack` A (Meta mit/ohne `hourMeans`, Ablehnung kaputter Einträge, Plan der Stunden je Slotminute) und B (am echten
+   Slot: Summenbild Pixel für Pixel = Summe der 25 Frame-PNGs, Sättigungszähler, Dekodierung am Punkt = Mittel der Frame-Werte ≤ 1e-9);
+   `verify:pv-cube` (41): vorgemitteltes Sample ≡ Mittel aus den Frames im Motor, Leser liefert mit Option das Mittel und ohne Option die Frames.
+5. **Messung danach:** (M1) Exaktheit am Live-Slot an den 405 Archivpunkten (Produkt gegen Mittel der Frames), (M2) Kette Leser → Motor,
+   (M3) Karte des Kandidaten B auf allen Slots bis 01.10. (16 Ausgabetage, Regel §6l.4 unverändert; **Zwischenstand, nicht die vorregistrierte
+   Wiederholung bei ≥ 30 Tagen**) — ohne `--refCard` (K16 gilt nur bei gleichen Slots und ist am 15-Slot-Lauf bestanden).
+
+### 6m.3 Umsetzung und Messung (15:40–17:00 UTC; gebaut, uncommitted)
+
+**Gebaut (buscosun-web, Daten-Repo unverändert — der Spiegel-Job klont `main` beim Start):**
+- **Vertrag:** `RvImgHourMean` + optionales `RvImgMeta.hourMeans` (`radarImg.ts`, Prüfer streng auf das Feld, Slots ohne Feld bestehen weiter);
+  Konstanten, Dateiname und Umkehrung EINMAL in `point/nowcastFormat.ts` (`NOWCAST_HOUR_MEAN_WINDOW_MIN`/`_MIN_FRAMES`, `nowcastHourMeanFile`,
+  `nowcastHourMeanFromSum`; der Motor liest seine Konstanten von dort); Manifest-Eintrag `hourMean` in `point/index.json`.
+- **Producer:** `src/sources/radarImgHourMean.ts` (Plan je Slotminute, Summenbild, Meta-Eintrag; in keinem Bundle-Chunk) + `radar-derive.mjs`
+  schreibt je RV-Slot `m<lead>.png` aus denselben Bytes wie die Frame-PNGs (RGB, `encodePng(…, 3)`). Gemessen am Live-Slot 2610021505 (Slotminute :05):
+  `m055.png` (f000…f055) + `m115.png` (f060…f115), je 12 Frames, **17,8 + 17,3 KB gegen 119 KB für die 25 Frames**; Derive 3,3 s statt 1,2 s
+  lokal (Summenschleife über 2 × 12 × 1,32 M Pixel + zwei RGB-PNGs), weit unter dem 5-min-Takt.
+- **Client:** `readNowcastPoint({ hourMean, decodeRgbPng })` holt für eine Ausgabezeit t, zu der der Slot ein Mittel führt (lead = t − Slotzeit), das
+  Summenbild statt des nächsten Frames und tastet es mit `sampleNowcastHourMean` ab (dieselbe Zelle: `sampleRadarIndex`/`quadCellIndex`, Nächster-
+  Nachbar — `sampleRadarQuad` liest über dieselbe Funktion, byte-gleich); `NowcastSample.hourMean`; `ReadPointOptions.nowcastHourMean`;
+  `CubeIo.nowcastHourMean` + `decodeRgbPng` (Browser: `decodeRgbaPngBrowser`), Schlüssel `|hm`, `?hm=1` (`pfHourMeanFrom`); die Option am Leser
+  schaltet die Motor-Option mit (Notiz nennt die Zahl der vorgemittelten Stunden). **Motor:** ein vorgemitteltes Sample für genau die Stunde ersetzt die
+  Fensterrechnung (Provenienz `hourMean.mirror`), zählt aber nie als „nächster Frame" (ohne Option ignoriert). Voreinstellung aus ⇒ Live-Produkt und
+  Bündel byte-gleich.
+
+**Messung:**
+- **M1 Exaktheit am Live-Slot** (2610021505, 405 Archivpunkte × 2 Stunden, `scratchpad/m1-exact.mjs`): 626 Vergleiche Produkt gegen das Motor-Mittel
+  der Frame-Werte — **max |Δ| = 0,0 mm/h**, Sättigungs-Flags 0 Abweichungen, Abdeckung (null) identisch; ganzes Bild: 0 von 2 640 000 Pixeln weichen in
+  Summe oder Sättigungszähler ab; die 25 Frame-PNGs sind **byte-gleich zu den vom Live-Spiegel veröffentlichten** (25/25) — der Frame-Weg ist unberührt.
+  Beispiele: Nieselstunden 0,013 … 0,078 mm/h kommen exakt an (im u8 wären sie 0).
+- **M2 Kette im Browser-Dekoder:** die RGB-Summenbilder über `createImageBitmap` + Canvas (der Weg von `decodeRgbaPngBrowser`) gegen `png.mjs` in
+  Node — Kanalsummen und FNV-Hash der RGB-Bytes identisch (`ce8878e0`, `8dc27`; Graustufen-Gegenprobe `f060.png` `cd0b15ec`), Alpha überall 255,
+  keine Farbraum-Verschiebung (Playwright, Chromium headless, Konsole bis auf favicon-404 leer).
+- **M2 Kette Leser → Motor** (`verify:pv-cube` Block 41, Speicher-Store mit 25 Frames + 2 Summenbildern): mit Option drei Abrufe (15 KB statt 58 KB
+  für 25 Frames), Stundenmittel 2,0 (exakt) und 20/11 an t0 + 1 h/+ 2 h; Motor mit dem Spiegel-Sample = Motor mit den 25 Frames (|Δ| < 1e-12 in pDry/μ/σ),
+  Member `hourMean.frames` 12/11 beide, `mirror` nur beim Spiegel; ohne Option Leser und Motor unverändert, Spiegel-Samples ohne Motor-Option kein
+  Member (Modell, benannt); `readPointBundle` mit/ohne Option, ohne RGB-Dekoder Hinweis.
+- **M3 Karte des Kandidaten auf allen Slots bis 01.10.** (16 Ausgabetage, Regel §6l.4, ohne `--refCard`; `score\2026-10-02-f8r-b`): **BESSER nach der Regel §6l.4 — primär 2 von 4 Tupeln signifikant besser (S Brier +9,8 %*, p 0,021; L Brier +11,8 %*, p 0,022),
+  CRPS +8,3/+9,4 % n.s. (p 0,12), 0 schlechter; Kontext 2 von 24 besser (0–6 h Brier S +2,7 %*, L +3,1 %*), 0 schlechter; K11 (0/60) und K14 (0/12)
+  bestanden; K16 nicht geprüft (kein `--refCard`, andere Slots).** 446 141 Zeilen, 15 Ausgabetage (der Slot vom 01.10. bekommt seine Wahrheit erst
+  mit dem Archiv-Slot vom 02.10. abends), 9 135 Radarstunden-Zeilen je Modus, 30 025 DM-Tests, Karte 16:34 UTC (`fusion-ausbau/fusion8b-radar-vs-7.md`
+  §Zwischenstand). DE Brier +15,0 %* (S) / +17,7 %* (L). Absolut Radarstunden S all: BSS 0,384 → **0,444**, POD 0,50 → **0,59**, FAR 0,39 → 0,37;
+  **DE S POD 0,33 → 0,52 bei FAR 0,50 → 0,42, L DE POD 0,20 → 0,42**; AT unbewegt (+0,8 %), CH +7,6 % n.s. Reliability wie am Mittag: der zu trockene
+  10–20-%-Bin verschwindet (25 → 9 % beobachtet), 20–60 % zu nass (Kalibrierrest).
+  **Einordnung (ehrlich):** das ist ein **Zwischenstand**, nicht die vorregistrierte Wiederholung bei ≥ 30 Ausgabetagen. Ein einziger Regentag mehr
+  (30.09.) hebt das zweite Brier-Tupel von p 0,055 auf p 0,021 — das Verdikt kippt von GLEICHSTAND auf BESSER an derselben Datenbasis plus einem Tag.
+  Richtung und Kontrollen sind eindeutig, die Größe des Effekts bleibt mit 7 Regentagen unscharf. **Das Einschalten in die Stufe fs (= „buscosun
+  Fusion 8") ist E-AX-17 (Jan):** jetzt mit dem Produkt (Regel erfüllt, nirgends schlechter, Produkt exakt) — oder nach der Wiederholung ≈ 15.10.
+  Ohne Entscheidung bleibt die Option aus.
+
+**Gates (Arbeitsbaum, Kette parallel):** typecheck 0 · `verify:radar-repack` **55/55** (A32–A36 Plan/Meta/Summenbild/Umkehrung, B1e/B1f am echten Slot:
+2 640 000 Pixel, 10 Punktvergleiche |Δ| 0) · `verify:pv-cube` **415/415** (Block 41, 5) · `verify:point-data` **1022/1022** (Selbsttest +4) ·
+`verify:point-client` 170/171 ((10s) zeitabhängig unter Last, V-EX-13; Solo-Lauf s. u.) · `verify:pv-fusion` 235/235 · `verify:radar-runs` 56/56 ·
+`verify:punktarchiv` 127/127 · `verify:fusion-fit` 131/131 · Build 249/249 · Budget grün: eagerJs 108,6 / 108,7, **totalJs 1 517,5 / 1 518** (+1,2 KB,
+Notiz in `budget.json`).
+
+**Weg ins Produkt (E-AX-16 umgesetzt, Jans Rest):** der Radar-Spiegel braucht keine Änderung im Daten-Repo (Workflow und Skript bleiben; die 5-min-Frames
+liegen schon dort). Nach Jans Push von `main` schreibt der **nächste Spiegel-Job** (Kette alle ≈ 5 h 45; früher durch Abbruch des laufenden Jobs — der
+Watchdog/`ensureSuccessor` startet neu) jeden RV-Slot mit `m<lead>.png`; ab dann liest `?hm=1` das Produkt im Browser (Prüfung: Notiz
+„N Stunden vorgemittelt gelesen", Member `hourMean.mirror`), und die Wiederholung der Messung ≈ 15.10. entscheidet über die Stufe fs (= „buscosun Fusion 8").
+Die README-Vorlage des Daten-Repos (`scripts/repack-repo/README.md`) nennt das Produkt; der Publisher legt sie beim nächsten Lauf aus.
+
 ## 7 Gates der Phase (Arbeitsbaum mit der parallelen Dashboard-Phase; Stand nach AX-11, 30.09. 14:50 UTC)
 
 | Gate | Stand |
@@ -1251,8 +1412,11 @@ ist out of fold am Hindcast gemessen, das ist die stärkere Zahl); AX-6 nach der
 | V-AX-20 | **INCA-Analyse nur an 40 von 84 AT-Punkten** — GeoSphere-Rate-Limit 5 Anfragen/s (Header gelesen), der Sammler feuert ≈ 10/s, 429 wird zu `[]` (§6k) | Sammler bündelt die AT-Punkte je Anfrage (≤ 25 `lat_lon`, erlaubt), Frist 90 s, Fehlstatus benannt — vor dem Push 23:10 UTC |
 | V-AX-21 | INCA-Latenz ≈ 20 min statt 1–1,5 h (§6k) | Doku korrigieren; Anker nimmt die laufende Stunde |
 | V-AX-22 | **Niederschlag:** MAE-Zelle misst nichts (97 % trocken); Hürde hat Brier-Gewinn, ist aber am unteren Rand zu trocken (≈ Hälfte der Regenstunden bei pWet < 0,1); Median sagt zu selten Regen (POD 0,51 → 0,20 → 0,1, DE bei 1 h 0,34 trotz Radar) (§6k) | Fusion-8-Kandidaten: Hürde nachkalibrieren, DE-Radar 1–2 h prüfen, Scorer-Zellen Brier/Reliability/POD-FAR |
-| V-AX-23 | **DE-Radar bei 1–2 h: der Einzelframe zur Gültigzeit trifft nur 31–37 % der Regenstunden (FAR 0,69)** — Rate zu einem Zeitpunkt gegen Stundensumme; das Stundenmittel der zwölf Frames trifft 0,49 bei FAR 0,47; die Fusion verwirft das Radar nicht (§6l.2) | Kandidat: Nowcast-Member einer Stunde als Mittel der Frames im Stundenfenster (Motor), Messung mit Neu-Extraktion |
+| V-AX-23 | **DE-Radar bei 1–2 h: der Einzelframe zur Gültigzeit trifft nur 31–37 % der Regenstunden (FAR 0,69)** — Rate zu einem Zeitpunkt gegen Stundensumme; das Stundenmittel der zwölf Frames trifft 0,49 bei FAR 0,47; die Fusion verwirft das Radar nicht (§6l.2) | **gebaut und gemessen (§6l.4/§6l.5):** Option `nowcastHourMean` (aus), Kandidat B GLEICHSTAND 1 / 0 von 4 primär (L Brier +11,1 %*, S +9,0 % p 0,055), nirgends schlechter, K11/K14/K16 grün, DE POD 0,33 → 0,52 ⇒ nicht eingeschaltet, Wiederholung ≥ 30 Ausgabetage; Weg ins Produkt = E-AX-16 |
 | E-AX-15 | „buscosun Fusion 8" = Fusion 7 + Nachkalibrierung der Regenwahrscheinlichkeit (§6l): GLEICHSTAND (0 / 0 von 24), K12/K13 rot | **nicht einschalten**; Option/Leser/Tabelle gebaut und aus; Wiederholung ab ≥ 30 Ausgabetagen; nächster Kandidat V-AX-23 |
+| V-AX-24 | **Der Live-Pfad holt je Ausgabestunde EINEN Radar-Frame** (`readPointBundle` → `readNowcastPoint` mit `atMs`, Toleranz 30 min; ein RV-Slot = 25 PNG à ≈ 80 KB) — das Stundenmittel (V-AX-23) braucht elf weitere Frames je Radarstunde (≈ 1,8 MB für 1–2 h) oder ein Stundenmittel-Bild im Radar-Spiegel; der Archiv-Sammler holt alle Frames, die Messung ist am Archiv möglich (§6l.4) | **behoben (E-AX-16, §6m):** der Spiegel schreibt je Stunde `m<lead>.png`, der Leser holt es mit `nowcastHourMean` (ein Abruf je Stunde, ≈ 17 KB) |
+| E-AX-16 | Weg des Radar-Stundenmittels ins Produkt (V-AX-24): (a) elf weitere PNG je Radarstunde im Browser (≈ 1,8 MB für 1–2 h, Mobil-4G) oder (b) Stundenmittel-Bild je Stunde im Radar-Spiegel (Producer, Client liest es wie einen Frame) — Empfehlung (b) | **(b) umgesetzt (Jan 02.10. „sofort, über buscosun-data"; §6m):** RGB-Summenbild `m<lead>.png` je Stunde im Derive, exakt (M1 |Δ| 0 an 626 Vergleichen), Client hinter `nowcastHourMean`/`?hm=1` (aus); wirksam nach Jans Push + nächstem Spiegel-Job |
+| E-AX-17 | **Einschalten des Radar-Stundenmittels in die Stufe fs (= „buscosun Fusion 8")**: die Karte auf 15 Ausgabetagen (§6m.3 M3) erfüllt die Regel §6l.4 (BESSER 2/0 von 4, Kontext 2/0 von 24, K11/K14 grün), ist aber ein Zwischenstand — ein Regentag mehr hob p 0,055 auf 0,021. Jetzt einschalten (eine Zeile in `stage: fs`, `nowcastHourMean: true` + `CubeIo.nowcastHourMean`) oder nach der Wiederholung ≈ 15.10. | **Jans Gate** (MANUELLE-SCHRITTE §32 h) |
 | E-AX-14 | `anchorWindKm: 10` in die Stufe fs = „buscosun Fusion 7“: nach der Regel BESSER (4 / 0), Gewinn nur Wind/Böe 0–6 h ohne Station +0,5/+0,6 %* (§6i.2) | Jans Gate (MANUELLE-SCHRITTE §30 b) |
 | §6j | Archiv-Schema 4: `stationsS` (MOSMIX-S-Reihe) und `incaAnalysis` im Sammler, damit E-AX-8/E-AX-10 messbar werden | gebaut, wirksam nach dem Push von `main` (§30 a); messbar ab ≈ 15.10. |
 | E-AX-6 | ENS-Mittel als t3-Member (Producer) | ja, nach NS |

@@ -21,7 +21,7 @@
 import { psFwd } from '../sources/radolanGeo';
 import { incaFwd } from '../sources/geosphereIncaGeo';
 import { rzcFwd } from '../sources/meteoSwissGeo';
-import { sampleRadarQuad, type CellAnchor, type ProjectXY } from './quadSampler';
+import { quadCellIndex, sampleRadarQuad, type CellAnchor, type ProjectXY } from './quadSampler';
 import type { QuadCorners } from '../scalar/RainLayer';
 
 /** Quellen-Kennung der Radar-Gitter (deckungsgleich mit `radar/radarFrames.ts`). */
@@ -65,4 +65,18 @@ export function sampleRadarPoint(
 ): number | null {
   const g = GEOMETRY[source];
   return sampleRadarQuad(values, width, height, corners, lat, lon, vMax, g.project, g.anchor);
+}
+
+/**
+ * Die Zelle, die `sampleRadarPoint` an (lat, lon) liest (Index `row · width + col`, `null` außerhalb des Gitters) —
+ * für Bilder mit mehreren Bytes je Pixel (E-AX-16: RGB-Summenbild des Radar-Stundenmittels). Dieselbe Geometrie,
+ * dieselbe Zelle.
+ */
+export function sampleRadarIndex(
+  source: RadarGridSource,
+  width: number, height: number,
+  corners: QuadCorners, lat: number, lon: number,
+): number | null {
+  const g = GEOMETRY[source];
+  return quadCellIndex(width, height, corners, lat, lon, g.project, g.anchor);
 }

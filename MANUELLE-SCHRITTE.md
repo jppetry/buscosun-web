@@ -1257,6 +1257,23 @@ Auftrag Jan 02.10. („lass uns das umsetzen und prüfen, ob buscosun Fusion 8 d
   in the stack scorer, precipCal option (off)") — damit der heutige Archiv-Slot INCA an allen 84 AT-Punkten trägt. Prüfung morgen früh im Slot
   `2026-10-02/23xx.json.gz`: `incaAnalysis.stats.withRows` = 84, `requests` 4, `httpErrors` 0.
 - (b) E-AX-15: Fusion 8 als Nachkalibrierung nicht einschalten (Empfehlung); Wiederholung ab ≥ 30 Ausgabetagen (≈ 15.10.), dann je Land.
-- (c) V-AX-23 freigeben als nächsten Kandidaten („Fusion 8" wäre dann das Radar-Stundenmittel): Motor-Option default-off, Regel vorab,
-  Neu-Extraktion (≈ 22 min) + Karte (≈ 80 min).
+- (c) **erledigt (Jan 02.10. „mach das"):** Kandidat B Radar-Stundenmittel gebaut (`FuseCubeOptions.nowcastHourMean`, aus) und nach vorab
+  eingefrorener Regel gemessen (§6l.4/§6l.5, `audit/fusion-ausbau/fusion8b-radar-vs-7.md`): **GLEICHSTAND** — 1 von 4 primären Tupeln
+  signifikant besser (L Brier Radarstunden +11,1 %*), das zweite bei p 0,055; nirgends schlechter, K11/K14/K16 grün; DE Treffer 0,33 → 0,52.
+  Empfehlung: nicht einschalten, Wiederholung mit derselben Regel ab ≥ 30 Ausgabetagen (≈ 15.10.).
+- (e) **erledigt (Jan 02.10. „E-AX-16 sofort, über buscosun-data"):** der Radar-Spiegel schreibt je RV-Slot ein Stundenmittel-Bild je voller Stunde
+  (`m<lead>.png`, RGB-Summenbild, exakt; `audit/fusion-ausbau.md` §6m, `audit/radar-datenrepo.md` §15), der Client liest es hinter
+  `nowcastHourMean`/`?hm=1` (aus). Am Live-Slot geprüft: |Δ| 0 an 626 Vergleichen, Frames byte-gleich, Browser-Dekoder byte-gleich. **Im Daten-Repo
+  ist nichts zu ändern** — Workflow und Spiegelskript bleiben, der Job klont `main` von buscosun-web beim Start.
+- (f) **Push von `main`** (Option aus, Derive mit Stundenmittel, Verifier, Doku; Scope `fusion`: „fusion: radar hour-mean as mirror product (E-AX-16), reader/engine option nowcastHourMean (off), radar-hour cells in the stack scorer"). Damit das Produkt heute noch entsteht: nach dem Push den laufenden Job `radar` im Daten-Repo abbrechen (Actions → radar → Cancel) — der Nachfolger klont den neuen Stand und schreibt ab dem nächsten Slot `m<lead>.png`; ohne Abbruch beim nächsten Jobstart (Kette ≈ 5 h 45).
+- (g) **Prüfung nach dem ersten Job:** `radar/img/v1/rv/<stamp>/meta.json` trägt `hourMeans` mit zwei Einträgen (bei Slotminute ≥ :30 der zweite mit
+  < 12 Frames), `status.json` `deriveMs` für rv (lokal 3,3 s); im Browser `?hm=1&pflog=1` an einem DE-Ort: Notiz „nowcastHourMean: … N Stunden
+  vorgemittelt gelesen" mit N ≥ 1 und Member `hourMean.mirror`. Ohne `?hm=1` bleibt alles byte-gleich.
+- (h) **E-AX-17 — Einschalten in die Stufe fs (= „buscosun Fusion 8"):** die Karte auf allen Slots bis 01.10. (15 Ausgabetage, 16:34 UTC,
+  `audit/fusion-ausbau/fusion8b-radar-vs-7.md` §Zwischenstand) erfüllt die Regel §6l.4: **BESSER** — S Brier Radarstunden +9,8 %*, L +11,8 %*,
+  0–6 h +2,7/+3,1 %*, nirgends schlechter, K11/K14 grün, DE Treffer 0,33 → 0,52. **Aber:** ein Regentag mehr hob p 0,055 auf 0,021 — das ist ein
+  Zwischenstand, nicht die vorregistrierte Wiederholung (≥ 30 Tage ≈ 15.10.). Deine Entscheidung: (1) jetzt einschalten — eine Zeile in
+  `cubeSource.ts` (`stage: fs` ⇒ `nowcastHourMean: true` und `CubeIo.nowcastHourMean` in `defaultCubeIo`), nur sinnvoll NACH dem ersten Spiegel-Job
+  mit `m<lead>.png` (sonst liest der Client Einzelframes und der Motor mittelt nichts), Definition „buscosun Fusion 8" = 7 + Radar-Stundenmittel;
+  (2) bis zur Wiederholung ≈ 15.10. warten, bis dahin `?hm=1` zum Ansehen. Ohne Entscheidung bleibt die Option aus (Empfehlung des Mittags).
 - (d) E-AX-10 (INCA-Anker-Gewicht) wird ab dem ersten vollständigen Slot messbar; Scorer-Variante folgt mit E-AX-8 (MOSMIX-S) ≈ 15.10.

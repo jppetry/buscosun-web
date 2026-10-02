@@ -31,6 +31,15 @@ export function pfIncaAnchorFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('inca') === '1'; } catch { return false; }
 }
 
+/**
+ * E-AX-16 (`audit/fusion-ausbau.md` §6m): `?hm=1` reads the radar hour mean of the mirror (`m<lead>.png`, one file per
+ * hour) instead of the single nearest frame and switches the engine option `nowcastHourMean` on with it (candidate
+ * „buscosun Fusion 8 B"). Default off — the live product stays byte-identical.
+ */
+export function pfHourMeanFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('hm') === '1'; } catch { return false; }
+}
+
 /** AX-9: `?cg=1` reads `point/static/clima-grid` and takes its 1991–2020 normals as the daily mean of the temperature prior. */
 export function pfClimaGridFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('cg') === '1'; } catch { return false; }

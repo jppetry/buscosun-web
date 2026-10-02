@@ -7,6 +7,8 @@
  * DECODER DES CLIENTS die Bytes erzeugen (BW-1-Regel: byte-identisch per Konstruktion):
  *   rv        composite_rv_<JJJJMMTT>_<HHMM>.tar (HDF5) oder DE1200_RV<stamp>.tar.bz2 (bis 2026-10-20)
  *                                      → 25 Graustufen-PNGs (precipToU8-Bytes) + meta.json
+ *                                        + E-AX-16: je volle Stunde nach dem Slot ein Summenbild m<lead>.png (RGB,
+ *                                        Stundenmittel der Frames im Fenster (t − 60 min, t], ≥ 6 Frames; meta.hourMeans)
  *   inca      GeoSphere-NetCDF         → 12 PNGs + meta.json (Ecken aus der Datei)
  *   rzc       MeteoSwiss-ODIM-HDF5     → frame.png + meta.json
  *   konrad3d  KONRAD3D_<stamp>.xml     → cells.json ({schema:1, run: parseKonrad3d(...)})
@@ -29,6 +31,7 @@ import {
   makeRvImgMeta, makeIncaImgMeta, makeRzcImgMeta, radarImgFrameFile,
   parseRvImgMeta, parseIncaImgMeta, parseRzcImgMeta,
 } from '../../src/sources/radarImg.ts';
+import { rvHourMeanPlan, rvHourMeanImage, rvHourMeanMeta } from '../../src/sources/radarImgHourMean.ts';
 
 const [source, inPath, outDir, stamp] = process.argv.slice(2);
 if (!source || !inPath || !outDir || !stamp) {
@@ -67,7 +70,18 @@ if (source === 'rv') {
   const tar = isBz2(raw) ? await decompressBz2(raw) : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
   const run = rvTarIsHdf5(tar) ? await decodeRvHdf5Tar(tar) : decodeRvTar(tar);
   const metaFrames = pngFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })));
-  const meta = makeRvImgMeta(stamp, run.runAtMs, metaFrames);
+  // E-AX-16 (audit/fusion-ausbau.md §6m): je volle Stunde nach dem Slot das Summenbild der Frames im Fenster (t − 60 min, t]
+  // als `m<lead>.png` (RGB: Summe der Rohbytes + Zahl der gesättigten Frames) — aus DENSELBEN Bytes wie die Frame-PNGs.
+  const byLead = new Map(run.frames.map((f) => [f.leadMinutes, f]));
+  const hourMeans = rvHourMeanPlan(run.frames.map((f) => f.leadMinutes), run.runAtMs).map((entry) => {
+    const frames = entry.leads.map((l) => byLead.get(l).values);
+    const first = byLead.get(entry.leads[0]);
+    const png = encodePng(first.width, first.height, rvHourMeanImage(frames, first.width, first.height), 3);
+    const hm = rvHourMeanMeta(entry, png.length);
+    put(hm.file, png);
+    return hm;
+  });
+  const meta = makeRvImgMeta(stamp, run.runAtMs, metaFrames, hourMeans);
   if (!parseRvImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rv: eigene meta.json besteht den Client-Prüfer nicht');
   put('meta.json', JSON.stringify(meta) + '\n');
 } else if (source === 'inca') {

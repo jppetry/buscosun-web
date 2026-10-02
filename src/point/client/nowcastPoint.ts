@@ -28,12 +28,14 @@ import {
 } from '../nowcastFormat';
 import { SOURCE_BY_ID, coversPoint } from '../sourceMatrix';
 import {
-  sampleNowcastFrame, stampMs,
-  type DecodedGrayPng, type NowcastSample, type NowcastSlotMeta,
+  sampleNowcastFrame, sampleNowcastHourMean, stampMs,
+  type DecodedGrayPng, type DecodedRgbPng, type NowcastSample, type NowcastSlotHourMean, type NowcastSlotMeta,
 } from '../nowcastSample';
 import type { FetchOpts, PointStore } from './store';
 
 export type PngDecoder = (bytes: Uint8Array) => DecodedGrayPng | Promise<DecodedGrayPng>;
+/** E-AX-16: Dekoder für das RGB-Summenbild des Stundenmittels (Node `png.mjs` → 3 Kanäle, Browser-Canvas → RGBA). */
+export type RgbPngDecoder = (bytes: Uint8Array) => DecodedRgbPng | Promise<DecodedRgbPng>;
 
 export interface NowcastSlot {
   sourceId: NowcastSourceId;
@@ -132,6 +134,8 @@ export interface NowcastPointSeries {
   framesInSlot: number;
   framesFetched: number;
   framesFailed: number;
+  /** E-AX-16: wie viele der `frames` vorgemittelte Stundenmittel des Spiegels sind (0 ohne Option oder ohne Produkt im Slot). */
+  hourMeans: number;
 }
 
 export interface ReadNowcastOptions {
@@ -157,6 +161,14 @@ export interface ReadNowcastOptions {
   slot?: NowcastSlot | null;
   /** Fetch-Priorität für Sonden und Frames (der Nowcast ist progressiv ⇒ `low`). */
   priority?: FetchOpts['priority'];
+  /**
+   * E-AX-16 (`audit/fusion-ausbau.md` §6m): für eine Ausgabezeit t, zu der der Slot ein Stundenmittel `m<lead>.png`
+   * führt (`meta.hourMeans`, lead = t − Slotzeit), DIESES statt des nächsten Einzelframes holen — ein Abruf, der Wert ist
+   * das Mittel der Frames in (t − 60 min, t]. Braucht `decodeRgbPng`; ohne Produkt im Slot (ältere Slots, INCA, rzc)
+   * oder nur mit `atMs` wie bisher der Einzelframe. Voreinstellung aus ⇒ unverändert.
+   */
+  hourMean?: boolean;
+  decodeRgbPng?: RgbPngDecoder;
 }
 
 /**
@@ -188,10 +200,18 @@ export async function readNowcastPoint(
 
   // ── Welche Frames ────────────────────────────────────────────────────────
   let chosen: typeof all;
+  // E-AX-16: Stundenmittel des Spiegels je Ausgabezeit, wo der Slot eines führt (nur mit Option, Dekoder und `atMs`).
+  const hmByLead = new Map<number, NowcastSlotHourMean>();
+  const useHm = opts.hourMean === true && !!opts.decodeRgbPng && base != null && Array.isArray(slot.meta.hourMeans);
   if (opts.atMs && opts.atMs.length) {
     const tol = (opts.toleranceMin ?? 30) * 60_000;
     const picked = new Set<number>();
     for (const t of opts.atMs) {
+      if (useHm) {
+        const lead = (t - (base as number)) / 60_000;
+        const hm = slot.meta.hourMeans!.find((h) => h.lead === lead);
+        if (hm) { hmByLead.set(hm.lead, hm); continue; }
+      }
       let bi = -1, bd = Infinity;
       for (let i = 0; i < all.length; i++) {
         const v = validOf(all[i]);
@@ -218,17 +238,29 @@ export async function readNowcastPoint(
   const bytesBefore = store.stats.bytes;
   let failed = 0;
   let lastError: unknown = null;
-  const results = await Promise.all(chosen.map(async (f) => {
-    try {
-      const raw = await store.bytes(nowcastFramePath(spec, slot.stamp, f.file), fo);
-      if (!raw) return null;
-      const png = await opts.decodePng(raw);
-      return sampleNowcastFrame(sourceId, slot.meta, png, lat, lon, f);
-    } catch (e) { failed += 1; lastError = e; return null; }
-  }));
+  const results = await Promise.all([
+    ...chosen.map(async (f) => {
+      try {
+        const raw = await store.bytes(nowcastFramePath(spec, slot.stamp, f.file), fo);
+        if (!raw) return null;
+        const png = await opts.decodePng(raw);
+        return sampleNowcastFrame(sourceId, slot.meta, png, lat, lon, f);
+      } catch (e) { failed += 1; lastError = e; return null; }
+    }),
+    // E-AX-16: die Stundenmittel desselben Slots, nebeneinander mit den Frames — jedes ein Abruf wie ein Frame.
+    ...[...hmByLead.values()].map(async (hm) => {
+      try {
+        const raw = await store.bytes(nowcastFramePath(spec, slot.stamp, hm.file), fo);
+        if (!raw) return null;
+        const png = await opts.decodeRgbPng!(raw);
+        return sampleNowcastHourMean(sourceId, slot.meta, png, lat, lon, hm);
+      } catch (e) { failed += 1; lastError = e; return null; }
+    }),
+  ]);
   const frames: NowcastSample[] = [];
-  let fetched = 0;
-  for (const r of results) { if (r) { frames.push(r); fetched += 1; } }
+  let fetched = 0, hourMeans = 0;
+  for (const r of results) { if (r) { frames.push(r); fetched += 1; if (r.hourMean) hourMeans += 1; } }
+  if (hourMeans) frames.sort((x, y) => (x.validAtMs ?? 0) - (y.validAtMs ?? 0));
   if (!frames.length) {
     if (lastError) throw lastError;
     return null;
@@ -248,5 +280,6 @@ export async function readNowcastPoint(
     framesInSlot: all.length,
     framesFetched: fetched,
     framesFailed: failed,
+    hourMeans,
   };
 }

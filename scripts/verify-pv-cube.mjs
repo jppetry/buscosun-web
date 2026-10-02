@@ -3036,6 +3036,142 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     ok9.notes[0]?.slice(0, 80));
 }
 
+// (40) Phase AX §6l.4 (`audit/fusion-ausbau.md`, V-AX-23): `FuseCubeOptions.nowcastHourMean` — der Radar-Member einer Stunde t als Mittel
+//      der Frame-Raten im Fenster (t − 60 min, t] bei ≥ 6 Frames, sonst der Einzelframe. Voreinstellung aus ⇒ byte-gleich; mit Option bewegt
+//      sich NUR der Niederschlag der Stunden mit ≥ 6 Frames im Fenster; linke Fenstergrenze offen, rechte geschlossen; gesättigte Frames
+//      zählen als NOWCAST_SATURATION und markieren die Stunde; Member-Provenienz nennt die Frame-Zahl; calib/Notiz nur mit Option.
+{
+  const { cubeInputFromBundle, fuseCubePoint, cubeIoVariantKey, NOWCAST_HOUR_MEAN_WINDOW_MS, NOWCAST_HOUR_MEAN_MIN_FRAMES } = await import('../src/pointForecast/cubeSource.ts');
+  const { NOWCAST_SATURATION } = await import('../src/point/nowcastFormat.ts');
+  const bundle40 = await readPointBundle(
+    { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  const MIN = 60_000;
+  const frame = (offMin, mmh, extra = {}) => ({ validAtMs: t0Ms + offMin * MIN, leadMinutes: offMin, mmh, saturated: false, validAtSuspect: false, ...extra });
+  const in40 = (frames) => {
+    const i = cubeInputFromBundle(bundle40, clima, null); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue;
+    i.nowcast = [{ product: 'nowcast', sourceId: 'radvor_rv', stamp: '2026091621', slotAgeMin: 12, probes: 1, extrapolationH: 2, bytes: 0, framesInSlot: 25, framesFetched: frames.length, framesFailed: 0, frames }];
+    return i;
+  };
+  const js = (r) => JSON.stringify(r.steps.map((s) => s.fused));
+  const precipAt = (r, i) => JSON.stringify(r.steps[i].fused?.precipitation ?? null);
+  const stripP = (r) => JSON.stringify(r.steps.map((s) => (s.fused ? { ...s.fused, precipitation: null } : null)));
+  // (a) twelve equal frames in (t0, t0 + 60 min]: the mean IS the single frame ⇒ byte-identical with and without the option; off never writes calib/notes
+  const same12 = Array.from({ length: 12 }, (_, k) => frame(5 * (k + 1), 0.5));   // 0,5: zwölfmal exakt summierbar (0,6 × 12 / 12 ≠ 0,6 in IEEE)
+  const aOff = fuseCubePoint(in40(same12), { hourly: false }), aOn = fuseCubePoint(in40(same12), { hourly: false, nowcastHourMean: true });
+  add('(40) nowcastHourMean: zwölf gleiche Frames in (t0, t0 + 60 min] ⇒ Stundenmittel = Einzelframe, fused byte-gleich mit und ohne Option; calib `nowcastHourMean:set` und Notiz nur mit Option; Konstanten 60 min / 6 Frames; Option im Variantenschlüssel',
+    js(aOn) === js(aOff) && aOn.calib.some((c) => c.startsWith('nowcastHourMean:set')) && !aOff.calib.some((c) => c.startsWith('nowcastHourMean')) && aOn.notes.some((n) => /^nowcastHourMean: Radar-Member an 1 Stunden aus dem Stundenmittel \(12 Frames\), 1 aus dem Einzelframe/.test(n)) && !aOff.notes.some((n) => n.startsWith('nowcastHourMean'))
+    && NOWCAST_HOUR_MEAN_WINDOW_MS === 60 * MIN && NOWCAST_HOUR_MEAN_MIN_FRAMES === 6 && cubeIoVariantKey({ fuse: { nowcastHourMean: true } }).includes('nowcastHourMean') && !cubeIoVariantKey({ fuse: { hourly: false } }).includes('nowcastHourMean'),
+    aOn.notes.find((n) => n.startsWith('nowcastHourMean'))?.slice(0, 90));
+  // (b) eleven frames at 1,2 mm/h and the frame AT t0 + 60 min dry: off reads the dry frame (nearest), on reads the mean 1,1 ⇒ only the
+  //     precipitation of step 1 moves (wetter), every other variable and every other step stay byte-identical; member provenance hourMean.frames 12
+  const varying = [...Array.from({ length: 11 }, (_, k) => frame(5 * (k + 1), 1.2)), frame(60, 0)];
+  const bOff = fuseCubePoint(in40(varying), { hourly: false }), bOn = fuseCubePoint(in40(varying), { hourly: false, nowcastHourMean: true });
+  const movedSteps = bOn.steps.map((s, i) => (precipAt(bOn, i) !== precipAt(bOff, i) ? i : -1)).filter((i) => i >= 0);
+  const m1 = bOn.steps[1].members.find((m) => m.product === 'nowcast'), m0 = bOn.steps[0].members.find((m) => m.product === 'nowcast'), m1off = bOff.steps[1].members.find((m) => m.product === 'nowcast');
+  const pOn = bOn.steps[1].fused?.precipitation?.dist, pOff = bOff.steps[1].fused?.precipitation?.dist;
+  add('(40) nowcastHourMean: elf Frames 1,2 mm/h + trockener Frame genau auf t0 + 60 min ⇒ nur der Niederschlag von Schritt 1 bewegt sich (nasser als der Einzelframe), alle anderen Größen und Schritte byte-gleich; Member-Provenienz hourMean.frames 12 nur dort (Schritt 0 Einzelframe, ohne Option nie)',
+    movedSteps.join() === '1' && stripP(bOn) === stripP(bOff) && m1?.nowcast?.hourMean?.frames === 12 && m0 && !m0.nowcast?.hourMean && m1off && !m1off.nowcast?.hourMean
+    && pOn?.kind === 'hurdleLogNormal' && pOff?.kind === 'hurdleLogNormal' && pOn.pDry < pOff.pDry,
+    `bewegte Schritte ${movedSteps.join()} · pDry ${pOff?.pDry?.toFixed(3)} → ${pOn?.pDry?.toFixed(3)}`);
+  // (c) five frames in the window (< 6) ⇒ fallback to the single frame: byte-identical to the option off, note counts 0 mean / 2 single
+  const five = Array.from({ length: 5 }, (_, k) => frame(40 + 5 * k, 1.2 - 0.2 * k));
+  const cOff = fuseCubePoint(in40(five), { hourly: false }), cOn = fuseCubePoint(in40(five), { hourly: false, nowcastHourMean: true });
+  add('(40) nowcastHourMean: fünf Frames im Fenster (< 6) ⇒ Rückfall auf den Einzelframe, byte-gleich zur Option aus; Notiz zählt 0 aus dem Mittel',
+    js(cOn) === js(cOff) && cOn.notes.some((n) => /^nowcastHourMean: Radar-Member an 0 Stunden aus dem Stundenmittel \(0 Frames\), \d+ aus dem Einzelframe/.test(n)));
+  // (d) window edges: a frame exactly at t0 (= t − 60 min for step 1) is OUTSIDE step 1's window, the frame at t0 + 60 min inside
+  const edgeWith = [frame(0, 10), ...Array.from({ length: 6 }, (_, k) => frame(10 * (k + 1), 0.5))], edgeWithout = edgeWith.slice(1);
+  const dA = fuseCubePoint(in40(edgeWith), { hourly: false, nowcastHourMean: true }), dB = fuseCubePoint(in40(edgeWithout), { hourly: false, nowcastHourMean: true });
+  add('(40) nowcastHourMean: Fenster (t − 60 min, t] — der Frame genau auf t − 60 min zählt für Schritt 1 nicht (Niederschlag von Schritt 1 gleich mit und ohne ihn), die sechs Frames bis t0 + 60 min tragen das Mittel (hourMean.frames 6)',
+    precipAt(dA, 1) === precipAt(dB, 1) && dA.steps[1].members.find((m) => m.product === 'nowcast')?.nowcast?.hourMean?.frames === 6 && precipAt(dA, 0) !== precipAt(dB, 0),
+    `frames ${dA.steps[1].members.find((m) => m.product === 'nowcast')?.nowcast?.hourMean?.frames}`);
+  // (e) saturation: one saturated frame counts as NOWCAST_SATURATION in the mean and marks the hour (flag + member), a plain frame with that rate does not
+  const satFrames = same12.map((f, k) => (k === 3 ? { ...f, mmh: null, saturated: true } : f)), plainFrames = same12.map((f, k) => (k === 3 ? { ...f, mmh: NOWCAST_SATURATION } : f));
+  const eSat = fuseCubePoint(in40(satFrames), { hourly: false, nowcastHourMean: true }), ePlain = fuseCubePoint(in40(plainFrames), { hourly: false, nowcastHourMean: true });
+  add('(40) nowcastHourMean: ein gesättigter Frame zählt im Mittel als NOWCAST_SATURATION (Niederschlag von Schritt 1 gleich einem Frame mit dieser Rate), setzt aber Flag `nowcastSaturated` und Member saturated — der glatte Frame nicht',
+    precipAt(eSat, 1) === precipAt(ePlain, 1) && eSat.steps[1].flags.includes('nowcastSaturated') && !ePlain.steps[1].flags.includes('nowcastSaturated')
+    && eSat.steps[1].members.find((m) => m.product === 'nowcast')?.nowcast?.saturated === true && ePlain.steps[1].members.find((m) => m.product === 'nowcast')?.nowcast?.saturated === false);
+}
+
+// (41) E-AX-16 (`audit/fusion-ausbau.md` §6m): das Radar-Stundenmittel als Produkt des Spiegels — der Leser holt mit `hourMean` je
+//      Ausgabestunde `m<lead>.png` statt des nächsten Frames (ein Abruf), der Motor nimmt das vorgemittelte Sample (Provenienz mirror);
+//      ohne Option sind Leser und Motor unverändert. Fixture: ein RV-Slot als Speicher-Store — 25 Frame-PNGs + Summenbilder + meta.json,
+//      mit den Producer-Modulen gebaut (dieselben wie radar-derive.mjs).
+{
+  const { readNowcastPoint } = await import('../src/point/client/nowcastPoint.ts');
+  const { encodePng, decodePng } = await import('./lib/png.mjs');
+  const { makeRvImgMeta, RV_IMG_LEADS, RV_IMG_WIDTH, RV_IMG_HEIGHT, radarImgFrameFile, parseRvImgMeta } = await import('../src/sources/radarImg.ts');
+  const { rvHourMeanPlan, rvHourMeanImage, rvHourMeanMeta } = await import('../src/sources/radarImgHourMean.ts');
+  const { nowcastMetaPath, nowcastFramePath, nowcastStampOf, NOWCAST_BY_ID } = await import('../src/point/nowcastFormat.ts');
+  const { cubeInputFromBundle, fuseCubePoint, cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const spec = NOWCAST_BY_ID.radvor_rv;
+  const MIN = 60_000;
+  // Slot fünf Minuten vor t0 (Slotminute :55): Stunde t0 hat nur f000/f005 im Fenster (⇒ Einzelframe f005), t0 + 1 h das Mittel aus
+  // f010…f065 (12 Frames), t0 + 2 h aus f070…f120 (11 Frames). Frame k (Lead 5k) ist 51 (= 4,0 mm/h, exakt) bei ungeradem k, sonst 0.
+  const slotMs = t0Ms - 5 * MIN;
+  const stamp = nowcastStampOf('radvor_rv', new Date(slotMs));
+  const N = RV_IMG_WIDTH * RV_IMG_HEIGHT;
+  const rawFrames = RV_IMG_LEADS.map((l) => new Uint8Array(N).fill((l / 5) % 2 === 1 ? 51 : 0));
+  const files = new Map(fx.files);
+  const metaFrames = RV_IMG_LEADS.map((l, i) => { const png = encodePng(RV_IMG_WIDTH, RV_IMG_HEIGHT, rawFrames[i], 1); files.set(nowcastFramePath(spec, stamp, radarImgFrameFile(l)), new Uint8Array(png)); return { lead: l, file: radarImgFrameFile(l), bytes: png.length }; });
+  const plan = rvHourMeanPlan(RV_IMG_LEADS, slotMs);
+  const hms = plan.map((e) => { const png = encodePng(RV_IMG_WIDTH, RV_IMG_HEIGHT, rvHourMeanImage(e.leads.map((l) => rawFrames[l / 5]), RV_IMG_WIDTH, RV_IMG_HEIGHT), 3); const hm = rvHourMeanMeta(e, png.length); files.set(nowcastFramePath(spec, stamp, hm.file), new Uint8Array(png)); return hm; });
+  const meta = makeRvImgMeta(stamp, slotMs, metaFrames, hms);
+  files.set(nowcastMetaPath(spec, stamp), new TextEncoder().encode(JSON.stringify(meta)));
+  const gray = (b) => { const d = decodePng(b); return { data: d.data, width: d.width, height: d.height, channels: d.channels }; };
+  const times = [t0Ms, t0Ms + H, t0Ms + 2 * H];
+  const slot = { sourceId: 'radvor_rv', stamp, meta, ageMin: 5, probes: 0 };
+  const read = (extra) => readNowcastPoint(memoryStore(files), 'radvor_rv', FIX.lat, FIX.lon, { nowMs: t0Ms, decodePng: gray, atMs: times, slot, ...extra });
+  const rOff = await read({}), rOn = await read({ hourMean: true, decodeRgbPng: gray }), rNoDec = await read({ hourMean: true });
+  const rAll = await readNowcastPoint(memoryStore(files), 'radvor_rv', FIX.lat, FIX.lon, { nowMs: t0Ms, decodePng: gray, fromMs: slotMs, untilMs: slotMs + 3 * H, slot });
+  const leads = (r) => r.frames.map((f) => f.lead).join();
+  add('(41) Stundenmittel-Leser: ohne Option (oder ohne RGB-Dekoder) wie bisher — drei Einzelframes f005/f065/f120, hourMeans 0, kein Feld hourMean; Plan des Slots :55 = m065 (12) + m125 (11); meta mit hourMeans besteht den Prüfer',
+    parseRvImgMeta(JSON.parse(JSON.stringify(meta))) !== null && plan.map((e) => `${e.lead}/${e.leads.length}`).join() === '65/12,125/11'
+    && leads(rOff) === '5,65,120' && rOff.hourMeans === 0 && rOff.frames.every((f) => !f.hourMean) && JSON.stringify(rNoDec) === JSON.stringify(rOff),
+    `Leads ${leads(rOff)} · ${leads(rNoDec)}`);
+  add('(41) Stundenmittel-Leser: mit Option drei Abrufe — f005 (Einzelframe, 4,0 mm/h), m065 (12 Frames, Mittel 2,0 exakt) und m125 (11 Frames, 20/11) auf t0 + 1 h / t0 + 2 h; hourMeans 2; Byte-Zahl kleiner als die 25 Frames des Sammlerwegs',
+    leads(rOn) === '5,65,125' && rOn.hourMeans === 2 && rOn.framesFetched === 3 && !rOn.frames[0].hourMean && rOn.frames[0].mmh === 4
+    && rOn.frames[1].hourMean?.frames === 12 && rOn.frames[1].mmh === 2 && rOn.frames[1].validAtMs === t0Ms + H
+    && rOn.frames[2].hourMean?.frames === 11 && Math.abs(rOn.frames[2].mmh - 20 / 11) < 1e-12 && rOn.frames[2].validAtMs === t0Ms + 2 * H
+    && rAll.frames.length === 25 && rOn.bytes < rAll.bytes,
+    `${rOn.frames.map((f) => `${f.lead}:${f.mmh?.toFixed(3)}${f.hourMean ? `(${f.hourMean.frames})` : ''}`).join(' ')} · ${rOn.bytes} B gegen ${rAll.bytes} B`);
+  // Motor: das vorgemittelte Sample (Spiegel) gegen das Mittel aus den 25 Frames (Archivweg) — dieselben Zahlen, Provenienz mirror.
+  const bundle41 = await readPointBundle(
+    { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  const in41 = (series) => { const i = cubeInputFromBundle(bundle41, clima, null); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; i.nowcast = [series]; return i; };
+  const dist = (r, i) => { const d = r.steps[i].fused?.precipitation?.dist; return d ? [d.pDry, d.mu, d.sigma] : null; };
+  const close = (a, b) => !!a && !!b && a.every((x, k) => Math.abs(x - b[k]) < 1e-12);
+  const mAll = fuseCubePoint(in41(rAll), { hourly: false, nowcastHourMean: true }), mOn = fuseCubePoint(in41(rOn), { hourly: false, nowcastHourMean: true });
+  const nm = (r, i) => r.steps[i].members.find((m) => m.product === 'nowcast');
+  add('(41) Motor mit nowcastHourMean: das Spiegel-Sample liefert an t0 + 1 h / t0 + 2 h dieselbe Niederschlagsverteilung wie das Mittel aus den 25 Frames (|Δ| < 1e-12), Member hourMean.frames 12/11 beide, mirror nur beim Spiegel; Schritt 0 Einzelframe beide; Notiz nennt 2 vorgemittelte',
+    close(dist(mOn, 1), dist(mAll, 1)) && close(dist(mOn, 2), dist(mAll, 2)) && close(dist(mOn, 0), dist(mAll, 0))
+    && nm(mOn, 1)?.nowcast?.hourMean?.frames === 12 && nm(mAll, 1)?.nowcast?.hourMean?.frames === 12 && nm(mOn, 2)?.nowcast?.hourMean?.frames === 11
+    && nm(mOn, 1)?.nowcast?.hourMean?.mirror === true && nm(mAll, 1)?.nowcast?.hourMean?.mirror === undefined && !nm(mOn, 0)?.nowcast?.hourMean
+    && mOn.notes.some((n) => /^nowcastHourMean: Radar-Member an 2 Stunden aus dem Stundenmittel \(23 Frames\), 1 aus dem Einzelframe.*davon 2 vorgemittelt aus dem Spiegel/.test(n))
+    && mAll.notes.some((n) => /^nowcastHourMean: Radar-Member an 2 Stunden aus dem Stundenmittel \(23 Frames\), 1 aus dem Einzelframe/.test(n) && !/Spiegel/.test(n)),
+    `t0+1h ${JSON.stringify(dist(mOn, 1))} gegen ${JSON.stringify(dist(mAll, 1))}`);
+  // Ohne die Motor-Option gilt ein Spiegel-Sample nicht als Frame: die Stunden 1 und 2 haben dann keinen Radar-Member (Modell, benannt),
+  // Schritt 0 den Einzelframe; mit dem Einzelframe-Leser ist der Motor ohne Option byte-gleich zum Sammlerweg (nächster Frame derselbe).
+  const oOn = fuseCubePoint(in41(rOn), { hourly: false }), oOff = fuseCubePoint(in41(rOff), { hourly: false }), oAll = fuseCubePoint(in41(rAll), { hourly: false });
+  add('(41) Motor ohne nowcastHourMean: Spiegel-Samples zählen nicht als Einzelframe (Stunden 1–2 ohne Radar-Member, Flag nowcastFallbackModel), Schritt 0 unverändert; Einzelframe-Leser ⇒ fused byte-gleich zum Sammlerweg; Variantenschlüssel trägt hm nur mit Option',
+    !nm(oOn, 1) && !nm(oOn, 2) && oOn.steps[1].flags.includes('nowcastFallbackModel') && nm(oOn, 0) && JSON.stringify(oOn.steps[0].fused) === JSON.stringify(oOff.steps[0].fused)
+    && JSON.stringify(oOff.steps.map((s) => s.fused)) === JSON.stringify(oAll.steps.map((s) => s.fused))
+    && cubeIoVariantKey({ nowcastHourMean: true }).endsWith('|hm') && !cubeIoVariantKey({ stage: 'fs' }).includes('hm'));
+  // Der ganze Leser (readPointBundle): mit nowcastHourMean + decodeRgbPng kommen die Stundenmittel ins Bündel, ohne Option die Frames.
+  const bOn = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: t0Ms, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(files), terrain: false, nowcast: true, decodePng: gray, nowcastHourMean: true, decodeRgbPng: gray, plan: false, neighbours: true });
+  const bOff = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: t0Ms, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(files), terrain: false, nowcast: true, decodePng: gray, plan: false, neighbours: true });
+  const bNoDec = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: t0Ms, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(files), terrain: false, nowcast: true, decodePng: gray, nowcastHourMean: true, plan: false, neighbours: true });
+  add('(41) readPointBundle: mit nowcastHourMean + decodeRgbPng trägt das Bündel die zwei Stundenmittel (Leads 5/65/125), ohne Option die Frames 5/65/120; Option ohne RGB-Dekoder ⇒ Frames und benannter Hinweis',
+    bOn.nowcast.length === 1 && bOn.nowcast[0].hourMeans === 2 && leads(bOn.nowcast[0]) === '5,65,125'
+    && bOff.nowcast.length === 1 && bOff.nowcast[0].hourMeans === 0 && leads(bOff.nowcast[0]) === '5,65,120'
+    && bNoDec.nowcast[0]?.hourMeans === 0 && bNoDec.skips.some((s) => s.includes('kein RGB-Dekoder')),
+    `${leads(bOn.nowcast[0] ?? { frames: [] })} · ${leads(bOff.nowcast[0] ?? { frames: [] })}`);
+}
+
 let failed = 0;
 for (const c of checks) {
   if (!c.ok) failed += 1;

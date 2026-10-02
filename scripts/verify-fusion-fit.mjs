@@ -1486,6 +1486,23 @@ if (typeof flags.cases === 'string') {
     && /const precipSit = \(mode, row\) => \(mode === 'S' \|\| row\.mem \|\| row\.lead <= PRECIP_CAL_RADAR_H \? 'k2' : 'learned'\)/.test(src) && /flags\.precipTable/.test(src) && /validatePrecipCalTable\(tbl\)/.test(src) && /verdicts\.K11 = /.test(src) && /verdicts\.K12 = /.test(src) && /verdicts\.K13 = /.test(src) && /verdicts\['Fusion 8'\]/.test(src));
 }
 
+// (19) Phase AX §6l.4 (V-AX-23): candidate B — the radar hour mean. The extractor variant F8r = F7a + nowcastHourMean, the scorer's
+//      candidate fusion8-radar with the two extra precipitation cells (bin 6 = leads 1–2 h, bin 7 = leads 3–6 h), the frozen rule's verdict
+//      block with K11/K14/K16 and the reference card (--refCard).
+{
+  const ex = readFileSync(new URL('./fusionfit/stack-extract.mjs', import.meta.url), 'utf8');
+  const sc = readFileSync(new URL('./fusionfit/stack-score.mjs', import.meta.url), 'utf8');
+  add('19a stack-extract.mjs: Variante F8r = F7a-Optionen + nowcastHourMean: true, VARIANT_NEEDS F8r braucht die Atome; F7a unverändert ohne die Option',
+    /F8r: \{ \.\.\.PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10, nowcastHourMean: true \}/.test(ex)
+    && /F8r: \{ atoms: true \}/.test(ex) && /F7a: \{ \.\.\.PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10 \},/.test(ex));
+  add('19b stack-score.mjs: Niederschlagszellen Bin 6 (Vorlauf 1–2 h) und Bin 7 (3–6 h) über precipBinsOf, nur für Niederschlag; Kandidat fusion8-radar aus F8r mit Paaren gegen fusion7-anchorW; Verdikt-Block mit K11 (B), K14, K16 und --refCard; Kandidat in der Absolut-Liste',
+    /const BIN_RADAR = 6, BIN_NORADAR = 7;/.test(sc) && /const precipBinsOf = \(lead, bin\) => \(lead <= 6 \? \[bin, lead <= 2 \? BIN_RADAR : BIN_NORADAR\] : \[bin\]\);/.test(sc)
+    && /const vBins = v === 'precip' \? precipBinsOf\(row\.lead, bin\) : \[bin\];/.test(sc) && /cands\['fusion8-radar'\] = \{ dist: m\.F8r \}/.test(sc)
+    && /'fusion8-radar': \['fusion7-anchorW', 'fusion7', 'fusion6', 'mosmix', 'live', 'fl-K@5e'\]/.test(sc)
+    && /verdicts\['K11 \(B\)'\] = /.test(sc) && /verdicts\.K14 = /.test(sc) && /verdicts\.K16 = /.test(sc) && /flags\.refCard/.test(sc) && /verdicts\['Fusion 8 B \(Radar\)'\]/.test(sc)
+    && /'fusion8', 'fusion8-radar', 'fl-K@5e'/.test(sc));
+}
+
 const passed = checks.filter((c) => c.ok).length;
 console.log(`\nverify:fusion-fit ${passed}/${checks.length}`);
 if (passed !== checks.length) process.exit(1);

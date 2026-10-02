@@ -44,7 +44,7 @@ import {
   loadStationCatalog, nearestStations, readStationPoint,
   type StationCandidate, type StationPointSeries, type StationRunManifest,
 } from './stationPoint';
-import { nowcastSourcesFor, readNowcastPoint, type NowcastPointSeries, type PngDecoder } from './nowcastPoint';
+import { nowcastSourcesFor, readNowcastPoint, type NowcastPointSeries, type PngDecoder, type RgbPngDecoder } from './nowcastPoint';
 import { readStaticProductPoint, readUrbanPoint, type StaticPoint } from './staticPoint';
 import { judgeStation, planPointSources, SELECTION, type PointPlan } from './resolve';
 import { loadTerrainAtPoint, type TerrainOptions, type TerrainPointResult } from './terrain';
@@ -78,6 +78,13 @@ export interface ReadPointOptions {
   store: PointStore;
   /** PNG-Dekoder für die Radar-Frames. Ohne ihn wird der Nowcast übersprungen — und gesagt. */
   decodePng?: PngDecoder;
+  /**
+   * E-AX-16 (`audit/fusion-ausbau.md` §6m): je Ausgabestunde das Stundenmittel des Spiegels (`m<lead>.png`) statt des
+   * nächsten Einzelframes, wo der RV-Slot eines führt — ein Abruf je Stunde, Wert = Mittel der Frames in (t − 60 min, t].
+   * Braucht `decodeRgbPng` (Summenbild ist RGB). Voreinstellung aus ⇒ Bündel byte-gleich.
+   */
+  nowcastHourMean?: boolean;
+  decodeRgbPng?: RgbPngDecoder;
   /** Dekodierweg für Chunks. Voreinstellung: Worker-Pool im Browser, Hauptthread sonst. */
   decodeChunk?: ChunkDecoder;
   /** Nur diese Ebenen entpacken (Rechenzeit, keine Bytes). */
@@ -554,7 +561,11 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     if (!times.length) { skips.push('nowcast: keine Ausgabezeit im Radar-Horizont (0–3 h)'); return []; }
     const decodePng = opts.decodePng;
     const res = await Promise.all(sources.map((src) =>
-      guard(`nowcast.${src}`, readNowcastPoint(store, src, lat, lon, { nowMs, decodePng, atMs: times, probeBatch: 4, priority: 'low' }))));
+      guard(`nowcast.${src}`, readNowcastPoint(store, src, lat, lon, {
+        nowMs, decodePng, atMs: times, probeBatch: 4, priority: 'low',
+        ...(opts.nowcastHourMean && opts.decodeRgbPng ? { hourMean: true, decodeRgbPng: opts.decodeRgbPng } : {}),
+      }))));
+    if (opts.nowcastHourMean && !opts.decodeRgbPng) skips.push('nowcast: Stundenmittel verlangt, aber kein RGB-Dekoder übergeben ⇒ Einzelframes');
     const out = res.filter((r): r is NowcastPointSeries => !!r);
     if (!out.length) skips.push(`nowcast: ${sources.join('/')} — kein Slot oder kein Frame auf den Ausgabezeiten`);
     return out;

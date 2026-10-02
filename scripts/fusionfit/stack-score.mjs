@@ -8,10 +8,11 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fusionfit/stack-score.mjs
  *       --rows=<root>/score/<date>-fs/rows.jsonl.gz --out=<root>/score/<date>-fs/scorecard.json [--decision=audit/fusion-stationswert/fs-decision.md]
+ *       [--refCard=<scorecard.json of 01.10.>]   (§6l.4, K16: F7a of a re-extraction reproduces the earlier card)
  *       [--table=<stack table>] [--precipTable=<precipCal table>]   (phase AX §6l: Fusion 8 — Brier/reliability/contingency cells for
  *       precipitation, the recalibration candidate `fusion8` from the Fusion-7 hurdle, and the in-sample table for the engine)
  */
-import { createReadStream, writeFileSync, mkdirSync } from 'node:fs';
+import { createReadStream, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
 import { dirname } from 'node:path';
@@ -39,7 +40,11 @@ const FIT_VARS = ['t', 'td', 'ws', 'gust'];
 const ALL_VARS = ['t', 'td', 'ws', 'gust', 'clct', 'precip'];
 const VAR_IDX = { t: 0, td: 1, ws: 2, gust: 3, clct: 4, precip: 5 };
 const VAR_LABEL = { t: 'T', td: 'Td', ws: 'Wind', gust: 'Böe', clct: 'Bewölkung (DE)', precip: 'Niederschlag' };
-const BIN_LABEL = ['0–6', '7–24', '25–48', '51–120', '126–240', '246–336'];
+// §6l.4 (V-AX-23): two extra PRECIPITATION cells — bin 6 = leads 1–2 h (the radar hours the hour-mean candidate can touch), bin 7 = leads
+// 3–6 h (control: must stay byte-identical); the six standard bins are unchanged
+const BIN_LABEL = ['0–6', '7–24', '25–48', '51–120', '126–240', '246–336', '1–2 (Radarstunden)', '3–6 (ohne Radar)'];
+const BIN_RADAR = 6, BIN_NORADAR = 7;
+const precipBinsOf = (lead, bin) => (lead <= 6 ? [bin, lead <= 2 ? BIN_RADAR : BIN_NORADAR] : [bin]);
 const FITTED = ['mosmix+anker', 'mosmix+anker+bias', 'stack'];
 // stack0: the station value of a query WITHOUT a measurement — the forms without w·I on every row
 const STACK0 = 'stack0';
@@ -159,6 +164,8 @@ const PAIRS = {
   // and the references; `fusion8:in` = the in-sample parameters (K13)
   fusion8: ['fusion7', 'fusion6', 'mosmix', 'live', 'fl-K@5e'],
   'fusion8:in': ['fusion8'],
+  // §6l.4: candidate B (radar hour mean, extractor F8r) against Fusion 7 as it runs (F7a) and the references
+  'fusion8-radar': ['fusion7-anchorW', 'fusion7', 'fusion6', 'mosmix', 'live', 'fl-K@5e'],
 };
 const ccUsed = { cc: 0, pooled: 0 };
 const k5 = {}, k6 = { n: 0, maxAbs: 0, formDiffers: 0, byVar: {} };
@@ -199,6 +206,7 @@ for await (const row of rowsOf(flags.rows)) {
       if (m.F7a) cands['fusion7-anchorW'] = { dist: m.F7a };
       if (m.F7b) cands['fusion7-clima'] = { dist: m.F7b };
       if (m.F7) cands.fusion7 = { dist: m.F7 };
+      if (m.F8r) cands['fusion8-radar'] = { dist: m.F8r };   // §6l.4: candidate B = F7a + nowcastHourMean
       // §6l: Fusion 8 = Fusion 7 with the recalibrated wet probability (leave-day-out parameters of the row's valid day); every other
       // variable IS Fusion 7 (K11 by construction, still scored); `fusion8:in` = in-sample parameters (K13)
       if (m.F7) {
@@ -278,27 +286,28 @@ for await (const row of rowsOf(flags.rows)) {
       }
       const scores = {}, maes = {}, briers = {};
       const wet = v === 'precip' ? (y >= WET_MM ? 1 : 0) : null;
+      const vBins = v === 'precip' ? precipBinsOf(row.lead, bin) : [bin];   // §6l.4: precipitation also under the radar-hour cells
       for (const [name, cd] of Object.entries(cands)) {
         let point, crps, rec = null;
         if (cd.dist) { rec = scoreDist(cd.dist, y, u, riceN); if (!rec) continue; point = cd.point ?? rec.point; crps = rec.crps; }
         else { point = cd.value; crps = Math.abs(point - y); }
         scores[name] = crps; maes[name] = Math.abs(point - y);
-        for (const st of strata) getOr(acc, `${mode}|${v}|${bin}|${name}|${st}`, () => new ScoreAcc()).add(point - y, crps, rec ? rec.pit : null, rec ? rec.sigma : null, rec ? rec.sd : null);
+        for (const b of vBins) for (const st of strata) getOr(acc, `${mode}|${v}|${b}|${name}|${st}`, () => new ScoreAcc()).add(point - y, crps, rec ? rec.pit : null, rec ? rec.sigma : null, rec ? rec.sd : null);
         // §6l: the wet probability — Brier, reliability, contingency at PWET_THRESHOLD
         if (wet != null) {
           const pw = pWetOf(cd);
           if (pw != null) {
             briers[name] = (pw - wet) ** 2;
-            for (const st of strata) { getOr(brierAcc, `${mode}|${v}|${bin}|${name}|${st}`, () => new BrierAcc()).add(pw, wet); getOr(etsAcc, `${mode}|${v}|${bin}|${name}|${st}`, () => new EtsAcc()).add(pw >= PWET_THRESHOLD, wet === 1); }
+            for (const b of vBins) for (const st of strata) { getOr(brierAcc, `${mode}|${v}|${b}|${name}|${st}`, () => new BrierAcc()).add(pw, wet); getOr(etsAcc, `${mode}|${v}|${b}|${name}|${st}`, () => new EtsAcc()).add(pw >= PWET_THRESHOLD, wet === 1); }
           }
         }
       }
       for (const [cand, refs] of Object.entries(PAIRS)) for (const ref of refs) {
         if (scores[cand] == null || scores[ref] == null) continue;
-        for (const st of strata) {
-          getOr(pairs, `crps|${mode}|${v}|${bin}|${cand}|${ref}|${st}`, () => new PairAcc()).add(row.d, scores[cand], scores[ref]);
-          getOr(pairs, `mae|${mode}|${v}|${bin}|${cand}|${ref}|${st}`, () => new PairAcc()).add(row.d, maes[cand], maes[ref]);
-          if (briers[cand] != null && briers[ref] != null) getOr(pairs, `brier|${mode}|${v}|${bin}|${cand}|${ref}|${st}`, () => new PairAcc()).add(row.d, briers[cand], briers[ref]);
+        for (const b of vBins) for (const st of strata) {
+          getOr(pairs, `crps|${mode}|${v}|${b}|${cand}|${ref}|${st}`, () => new PairAcc()).add(row.d, scores[cand], scores[ref]);
+          getOr(pairs, `mae|${mode}|${v}|${b}|${cand}|${ref}|${st}`, () => new PairAcc()).add(row.d, maes[cand], maes[ref]);
+          if (briers[cand] != null && briers[ref] != null) getOr(pairs, `brier|${mode}|${v}|${b}|${cand}|${ref}|${st}`, () => new PairAcc()).add(row.d, briers[cand], briers[ref]);
         }
       }
     }
@@ -686,10 +695,62 @@ if (Object.keys(card.scores).some((k) => k.includes('|fusion8|'))) {
   }
   md.push(`**Verdikt Fusion 8:** ${verdicts['Fusion 8']} · **K11** ${verdicts.K11} · **K12** ${verdicts.K12} · **K13** ${verdicts.K13}`, '');
 }
+// §6l.4 (V-AX-23): candidate B — the radar hour mean (`fusion8-radar` = F7a + nowcastHourMean) against Fusion 7 as it runs (F7a =
+// `fusion7-anchorW`). Rule frozen 02.10. 11:58 UTC: primary = precipitation × bin 6 (leads 1–2 h) × S/L × {Brier, CRPS} = 4 tuples;
+// context = the 24 standard tuples; BESSER = none of the 28 significantly worse AND ≥ 2 of the 4 primary significantly better, among them
+// ≥ 1 Brier tuple; SCHLECHTER = any tuple significantly worse; else GLEICHSTAND. K11 other variables unmoved; K14 precipitation outside
+// the radar hours (bin 7 and bins 1–5) byte-identical; K16 F7a reproduces the card of 01.10. (`--refCard`).
+if (Object.keys(card.scores).some((k) => k.includes('|fusion8-radar|'))) {
+  const REF = 'fusion7-anchorW', CAND = 'fusion8-radar';
+  const PC = [0, 1, 2, 3, 4, 5].map((bin) => ({ v: 'precip', bin })), PR = [{ v: 'precip', bin: BIN_RADAR }], PN = [{ v: 'precip', bin: BIN_NORADAR }];
+  const B = (mode, bin, cand, st = 'all') => card.precip.brier[`${mode}|precip|${bin}|${cand}|${st}`] ?? null;
+  const E = (mode, bin, cand, st = 'all') => card.precip.ets[`${mode}|precip|${bin}|${cand}|${st}`] ?? null;
+  const BR_COUNTRY = ['DE', 'AT', 'CH'].map((c) => ({ label: `Brier ${c}`, metric: 'brier', st: `country:${c}` }));
+  md.push('## Kandidat B — Radar-Stundenmittel gegen Fusion 7 (Phase AX §6l.4, V-AX-23) — Niederschlag', '',
+    `Regel (eingefroren 02.10. 11:58 UTC): primär 4 Tupel = Bin „1–2 (Radarstunden)" × Modus S/L × {Brier, CRPS}; Kontext die 24 Standard-Tupel. BESSER = keines der 28 Tupel signifikant schlechter UND ≥ 2 der 4 primären signifikant besser, darunter ≥ 1 Brier; SCHLECHTER = irgendein Tupel signifikant schlechter; sonst GLEICHSTAND. Referenz ${REF} = Fusion 7, wie es läuft (F7a). Ereignis y ≥ ${WET_MM} mm/h; Kontingenz bei p_wet ≥ ${PWET_THRESHOLD}.`, '');
+  for (const mode of MODES) table(`${CAND} gegen ${REF} — Modus ${mode} (${mode === 'S' ? 'Punkt = Station' : 'Punkt ohne Station'})`, mode, CAND, REF, ['brier', 'crps', 'mae'], [...PR, ...PC, ...PN], BR_COUNTRY);
+  if (Object.keys(card.scores).some((k) => k.includes('|fusion7|'))) table(`Kontext — ${CAND} gegen fusion7 (Modus S)`, 'S', CAND, 'fusion7', ['brier', 'crps'], [...PR, ...PC]);
+  table(`Kontext — ${CAND} gegen mosmix (Modus S; MOSMIX-Brier = Fehlerquote des Punktwerts)`, 'S', CAND, 'mosmix', ['brier', 'crps', 'mae'], [...PR, ...PC]);
+  table(`Kontext — ${CAND} gegen fl-K@5e (Modus L)`, 'L', CAND, 'fl-K@5e', ['brier', 'crps', 'mae'], [...PR, ...PC]);
+  const tP = { bS: tally('S', CAND, REF, 'brier', PR), bL: tally('L', CAND, REF, 'brier', PR), cS: tally('S', CAND, REF, 'crps', PR), cL: tally('L', CAND, REF, 'crps', PR) };
+  const tK = { bS: tally('S', CAND, REF, 'brier', PC), bL: tally('L', CAND, REF, 'brier', PC), cS: tally('S', CAND, REF, 'crps', PC), cL: tally('L', CAND, REF, 'crps', PC) };
+  const primBetter = [...tP.bS.better, ...tP.bL.better, ...tP.cS.better, ...tP.cL.better], primBrierBetter = tP.bS.better.length + tP.bL.better.length;
+  const worseAll = [...Object.values(tP).flatMap((t) => t.worse), ...Object.values(tK).flatMap((t) => t.worse)];
+  const betterCtx = Object.values(tK).flatMap((t) => t.better);
+  const verdictB = worseAll.length === 0 && primBetter.length >= 2 && primBrierBetter >= 1 ? 'BESSER' : worseAll.length === 0 ? 'GLEICHSTAND' : 'SCHLECHTER';
+  verdicts['Fusion 8 B (Radar)'] = `${verdictB} (primär ${primBetter.length} besser / ${Object.values(tP).reduce((a, t) => a + t.worse.length, 0)} schlechter von 4; Kontext ${betterCtx.length} besser / ${Object.values(tK).reduce((a, t) => a + t.worse.length, 0)} schlechter von 24)`;
+  md.push(`**${CAND} gegen ${REF}:** primär (Radarstunden) Brier S ${tP.bS.better.length}/${tP.bS.worse.length}/${tP.bS.ns.length}, L ${tP.bL.better.length}/${tP.bL.worse.length}/${tP.bL.ns.length}; CRPS S ${tP.cS.better.length}/${tP.cS.worse.length}/${tP.cS.ns.length}, L ${tP.cL.better.length}/${tP.cL.worse.length}/${tP.cL.ns.length} (besser/schlechter/gleichauf). Kontext (24): ${betterCtx.length} besser / ${Object.values(tK).reduce((a, t) => a + t.worse.length, 0)} schlechter. **${verdicts['Fusion 8 B (Radar)']}.**${worseAll.length ? ` Schlechter: ${worseAll.join('; ')}.` : ''}${primBetter.length ? ` Besser (primär): ${primBetter.join('; ')}.` : ''}${betterCtx.length ? ` Besser (Kontext): ${betterCtx.join('; ')}.` : ''}`, '');
+  // K11: nothing but precipitation moved
+  { let n = 0, tot = 0; const movedCells = []; for (const v of ALL_VARS.filter((x) => x !== 'precip')) for (const bin of [0, 1, 2, 3, 4, 5]) for (const mode of MODES) { const a = card.scores[`${mode}|${v}|${bin}|${CAND}|all`], b = card.scores[`${mode}|${v}|${bin}|${REF}|all`]; if (!a || !b) continue; tot += 1; if (Math.abs(a.mae - b.mae) > 1e-9 || Math.abs(a.crps - b.crps) > 1e-9) { n += 1; movedCells.push(`${mode} ${VAR_LABEL[v]} ${BIN_LABEL[bin]}`); } } verdicts['K11 (B)'] = n === 0 ? `bestanden (0/${tot} Nicht-Niederschlags-Zellen bewegt)` : `NICHT bestanden (${n}/${tot}: ${movedCells.slice(0, 6).join(', ')})`; }
+  // K14: precipitation outside the radar hours byte-identical (bin 7 = leads 3–6 h, bins 1–5)
+  { const bad = []; let tot = 0; for (const bin of [BIN_NORADAR, 1, 2, 3, 4, 5]) for (const mode of MODES) { const a = card.scores[`${mode}|precip|${bin}|${CAND}|all`], b = card.scores[`${mode}|precip|${bin}|${REF}|all`]; if (!a || !b) continue; tot += 1; if (Math.abs(a.mae - b.mae) > 1e-9 || Math.abs(a.crps - b.crps) > 1e-9) bad.push(`${mode} ${BIN_LABEL[bin]} (ΔMAE ${(a.mae - b.mae).toExponential(1)}, ΔCRPS ${(a.crps - b.crps).toExponential(1)})`); } verdicts.K14 = bad.length ? `NICHT bestanden (${bad.join('; ')})` : `bestanden (0/${tot} Niederschlagszellen außerhalb der Radarstunden bewegt)`; }
+  // K16: F7a of this extraction reproduces the card of 01.10. (--refCard=<scorecard.json>): MAE/CRPS of fusion7-anchorW, stratum all
+  if (typeof flags.refCard === 'string') {
+    const ref = JSON.parse(readFileSync(flags.refCard, 'utf8')); const bad = []; let tot = 0, missing = 0;
+    for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const mode of MODES) { const a = card.scores[`${mode}|${v}|${bin}|${REF}|all`], b = ref.scores?.[`${mode}|${v}|${bin}|${REF}|all`]; if (!a || !b) { missing += 1; continue; } tot += 1; if (a.n !== b.n || Math.abs(a.mae - b.mae) > 1e-9 || Math.abs(a.crps - b.crps) > 1e-9) bad.push(`${mode} ${VAR_LABEL[v]} ${BIN_LABEL[bin]} (n ${a.n}/${b.n}, ΔMAE ${(a.mae - b.mae).toExponential(1)}, ΔCRPS ${(a.crps - b.crps).toExponential(1)})`); }
+    verdicts.K16 = bad.length ? `NICHT bestanden (${bad.length}/${tot}: ${bad.slice(0, 4).join('; ')})` : `bestanden (${tot} Zellen gleich bis 1e-9${missing ? `, ${missing} ohne Gegenstück` : ''}; Referenz ${flags.refCard})`;
+  } else verdicts.K16 = 'nicht geprüft (kein --refCard)';
+  md.push(`**K11 (B)** ${verdicts['K11 (B)']} · **K14** (Niederschlag außerhalb der Radarstunden byte-gleich) ${verdicts.K14} · **K16** (F7a reproduziert die Karte vom 01.10.) ${verdicts.K16}`, '');
+  // reliability in the radar hours, both modes
+  md.push('### Reliability in den Radarstunden (Vorlauf 1–2 h, Schicht all) — Fusion 7 (F7a) gegen Kandidat B, alle zehn Bins', '', '| Modus | Bin | n (7) | vorhergesagt (7) | beobachtet (7) | n (B) | vorhergesagt (B) | beobachtet (B) |', '|---|---|---|---|---|---|---|---|');
+  for (const mode of MODES) { const r7 = B(mode, BIN_RADAR, REF), rB = B(mode, BIN_RADAR, CAND); if (!r7 || !rB) continue; for (let i = 0; i < 10; i++) { const a = r7.reliability[i], b = rB.reliability[i]; md.push(`| ${mode} | ${i * 10}–${(i + 1) * 10} % | ${a.n} | ${f2(a.fc, 3)} | ${f2(a.obs, 3)} | ${b.n} | ${f2(b.fc, 3)} | ${f2(b.obs, 3)} |`); } }
+  md.push('');
+  // the absolute table: radar hours, 0–6 h, 3–6 h
+  for (const mode of MODES) {
+    md.push(`### Absolut Niederschlag, Kandidat B — Modus ${mode} (Schicht all; dazu Länder in den Radarstunden)`, '', '| Bin | Schicht | Kandidat | n | Basisrate | Brier | BSS | POD | FAR | Freq-Bias | MAE | CRPS |', '|---|---|---|---|---|---|---|---|---|---|---|---|');
+    for (const [bin, sts] of [[BIN_RADAR, ['all', 'country:DE', 'country:AT', 'country:CH']], [0, ['all']], [BIN_NORADAR, ['all']]]) for (const st of sts) for (const c of ['mosmix', 'live', 'fl-K@5e', REF, 'fusion7', CAND]) {
+      const b = B(mode, bin, c, st), e = E(mode, bin, c, st), s = card.scores[`${mode}|precip|${bin}|${c}|${st}`];
+      if (!b || !s) continue;
+      md.push(`| ${BIN_LABEL[bin]} | ${st} | ${c} | ${b.n} | ${f2(b.baseRate, 3)} | ${f2(b.brier, 4)} | ${f2(b.bss, 3)} | ${f2(e?.pod)} | ${f2(e?.far)} | ${f2(e?.bias)} | ${f2(s.mae, 3)} | ${f2(s.crps, 4)} |`);
+    }
+    md.push('');
+  }
+  md.push(`**Verdikt Kandidat B (Radar-Stundenmittel):** ${verdicts['Fusion 8 B (Radar)']} · **K11** ${verdicts['K11 (B)']} · **K14** ${verdicts.K14} · **K16** ${verdicts.K16}`, '');
+}
 // absolute numbers
 for (const mode of MODES) {
   md.push(`## Absolut — Modus ${mode} (Schicht all)`, '', '| Zelle | Kandidat | n | MAE | Bias | CRPS | PIT außen | S/S |', '|---|---|---|---|---|---|---|---|');
-  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'product-FS+shrinkW', 'product-FS+anchorW', 'product-FS+both', 'fusion6', 'fusion7-anchorW', 'fusion7-clima', 'fusion7', 'fusion8', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
+  for (const v of ALL_VARS) for (const bin of [0, 1, 2, 3, 4, 5]) for (const c of ['mosmix', 'live', 'product@5e', 'product-noshrink', 'product+fix', 'product+fix+noshrink', 'product-FS', 'product-FS-r3', 'product-FS+atoms', 'product-FS+shrinkW', 'product-FS+anchorW', 'product-FS+both', 'fusion6', 'fusion7-anchorW', 'fusion7-clima', 'fusion7', 'fusion8', 'fusion8-radar', 'fl-K@5e', 'mosmix+anker', 'mosmix+anker+bias', 'stack', 'stack-cc', 'stack0']) {
     const s = card.scores[`${mode}|${v}|${bin}|${c}|all`];
     if (s) md.push(`| ${VAR_LABEL[v]} · ${BIN_LABEL[bin]} | ${c} | ${s.n} | ${f2(s.mae, 3)} | ${f2(s.bias)} | ${f2(s.crps, 3)} | ${f2(s.pitOuter, 3)} | ${f2(s.spreadSkill)} |`);
   }

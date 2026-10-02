@@ -37,6 +37,10 @@ import { parseIncaNetcdf } from '../src/sources/incaParse.ts';
 import { parseRzcHdf5 } from '../src/sources/rzcParse.ts';
 import { parseKonrad3d } from '../src/radar/konrad3d.ts';
 import { decodeGrayPng, GrayPngUnsupported } from '../src/sources/grayPng.ts';
+// E-AX-16 (audit/fusion-ausbau.md §6m): das Stundenmittel als Produkt des Spiegels — Producer-Seite, Umkehrung, Punktleser.
+import { rvHourMeanPlan, rvHourMeanImage, rvHourMeanPixel, rvHourMeanMeta } from '../src/sources/radarImgHourMean.ts';
+import { NOWCAST_SATURATION, nowcastHourMeanFile, nowcastHourMeanFromSum } from '../src/point/nowcastFormat.ts';
+import { sampleNowcastFrame, sampleNowcastHourMean } from '../src/point/nowcastSample.ts';
 
 let passed = 0, failed = 0, skipped = 0;
 const add = (name, ok, detail) => {
@@ -78,6 +82,42 @@ add('A5 Leads: RV 25×5 min (0…120, +2 h bleibt), INCA 12×15 min (15…180)',
   add('A8 rv-Meta: falsche Maße werden abgelehnt', parseRvImgMeta({ ...j, width: 1101 }) === null);
   add('A9 rv-Meta: fehlender Frame wird abgelehnt', parseRvImgMeta({ ...j, frames: j.frames.slice(1) }) === null);
   add('A10 rv-Meta: Maße = 1100×1200', m.width === RV_IMG_WIDTH && m.height === RV_IMG_HEIGHT && RV_IMG_WIDTH === 1100 && RV_IMG_HEIGHT === 1200);
+}
+{
+  // A32–A36 (E-AX-16, audit/fusion-ausbau.md §6m): das Stundenmittel als Produkt — der Plan je Slotminute, das Zusatzfeld im Meta,
+  // das Summenbild und seine Umkehrung (dieselbe Arithmetik wie der Motor über die Einzelframes).
+  const plan00 = rvHourMeanPlan(RV_IMG_LEADS, Date.UTC(2026, 9, 2, 15, 0));
+  const plan45 = rvHourMeanPlan(RV_IMG_LEADS, Date.UTC(2026, 9, 2, 14, 45));
+  const plan05 = rvHourMeanPlan(RV_IMG_LEADS, Date.UTC(2026, 9, 2, 15, 5));
+  const sig = (p) => p.map((e) => `${e.lead}:${e.leads[0]}-${e.leads.at(-1)}/${e.leads.length}`).join(' ');
+  add('A32 Stundenmittel-Plan: Slot :00 ⇒ m060 (f005…f060) + m120 (f065…f120); :45 ⇒ m075 (12) + m135 (f080…f120, 9 Frames), keine erste Stunde (4 Frames < 6); :05 ⇒ m055 (f000…f055) + m115',
+    sig(plan00) === '60:5-60/12 120:65-120/12' && sig(plan45) === '75:20-75/12 135:80-120/9' && sig(plan05) === '55:0-55/12 115:60-115/12',
+    `${sig(plan00)} · ${sig(plan45)} · ${sig(plan05)}`);
+  const rvFrames = RV_IMG_LEADS.map((l) => ({ lead: l, file: radarImgFrameFile(l), bytes: 100 + l }));
+  const hms = plan45.map((e) => rvHourMeanMeta(e, 5000 + e.lead));
+  const j = JSON.parse(JSON.stringify(makeRvImgMeta('2610021445', 123, rvFrames, hms)));
+  const { hourMeans: _hm, ...without } = j;
+  add('A33 rv-Meta mit hourMeans: Bauer → JSON → Prüfer besteht; ohne das Feld (Slots vor dem 02.10.) ebenso; Dateien m075/m135, frames = Fensterlänge, Fenstergrenzen aus dem Plan',
+    parseRvImgMeta(j) !== null && parseRvImgMeta(without) !== null && j.hourMeans[0].file === 'm075.png' && j.hourMeans[1].file === 'm135.png'
+    && j.hourMeans[0].frames === 12 && j.hourMeans[1].frames === 9 && j.hourMeans[1].leadFrom === 80 && j.hourMeans[1].leadTo === 120 && j.hourMeans[1].bytes === 5135);
+  const bad = (patch) => parseRvImgMeta({ ...j, hourMeans: [{ ...j.hourMeans[0], ...patch }, j.hourMeans[1]] }) === null;
+  add('A34 rv-Meta: kaputte hourMeans werden abgelehnt (fremder Dateiname, frames ≠ Fenster, Fenster über den Lead, Lead > 180, bytes 0, kein Array)',
+    bad({ file: 'h075.png' }) && bad({ frames: 11 }) && bad({ leadTo: 80 }) && bad({ lead: 185, file: 'm185.png' }) && bad({ bytes: 0 })
+    && parseRvImgMeta({ ...j, hourMeans: 'x' }) === null && parseRvImgMeta({ ...j, hourMeans: [] }) !== null);
+  // Summenbild 2×2 aus drei Frames: Summen, Sättigungszähler, Umkehrung.
+  const f1 = Uint8Array.of(0, 10, 255, 1), f2 = Uint8Array.of(0, 20, 255, 0), f3 = Uint8Array.of(0, 30, 5, 0);
+  const img = rvHourMeanImage([f1, f2, f3], 2, 2);
+  const px = (i) => rvHourMeanPixel(img[i * 3], img[i * 3 + 1], img[i * 3 + 2]);
+  add('A35 Summenbild (RGB): R·256 + G = Summe der Rohbytes (0 · 60 · 515 · 1), B = Zahl der 255er (0 · 0 · 2 · 0), 3 Bytes je Pixel',
+    img.length === 12 && px(0).sum === 0 && px(1).sum === 60 && px(2).sum === 515 && px(3).sum === 1
+    && px(0).nSat === 0 && px(1).nSat === 0 && px(2).nSat === 2 && px(3).nSat === 0);
+  const engine = (NOWCAST_SATURATION + NOWCAST_SATURATION + (5 / 255) * PRECIP_VMAX) / 3;
+  const dec = nowcastHourMeanFromSum(px(2).sum, px(2).nSat, 3);
+  add('A36 Umkehrung: ((Summe − 255·nSat)·vMax/255 + nSat·NOWCAST_SATURATION) / frames = das Mittel des Motors über die Frames (gesättigt zählt als NOWCAST_SATURATION, nicht als 20); ein Nieselbyte unter trockenen bleibt > 0',
+    Math.abs(dec.mmh - engine) < 1e-12 && dec.saturated
+    && Math.abs(nowcastHourMeanFromSum(px(1).sum, 0, 3).mmh - ((60 / 255) * PRECIP_VMAX) / 3) < 1e-12 && !nowcastHourMeanFromSum(px(1).sum, 0, 3).saturated
+    && nowcastHourMeanFromSum(px(3).sum, 0, 3).mmh > 0 && nowcastHourMeanFromSum(px(3).sum, 0, 3).mmh < 0.06,
+    `${dec.mmh.toFixed(6)} gegen ${engine.toFixed(6)} mm/h`);
 }
 {
   const corners = [[8.09, 49.37], [17.75, 49.4], [17.44, 45.53], [8.46, 45.5]];
@@ -238,6 +278,58 @@ try {
   add('B2b RV (EX-3): Laufzeit aus der HDF5-Datei = Slot des Dateinamens, Vorläufe 0…120 min im 5-Minuten-Raster',
     ref.runAtMs === ms && ref.frames.every((f, i) => f.leadMinutes === i * 5 && f.validAtMs === ms),
     `${new Date(ref.runAtMs).toISOString()} · ${ref.frames.map((f) => f.leadMinutes).slice(0, 3).join(',')}…${ref.frames.at(-1).leadMinutes}`);
+
+  {
+    // B1e/B1f (E-AX-16, audit/fusion-ausbau.md §6m): die Stundenmittel-Bilder des Slots — jedes Pixel die Summe der Frame-Bytes im
+    // Fenster und die Zahl der gesättigten Frames; meta.hourMeans = Plan; am Punkt dasselbe Mittel wie der Motor über die Einzelframes.
+    const plan = rvHourMeanPlan(ref.frames.map((f) => f.leadMinutes), ref.runAtMs);
+    const byLead = new Map(ref.frames.map((f) => [f.leadMinutes, f.values]));
+    let ok = plan.length >= 1 && meta !== null && Array.isArray(meta.hourMeans) && meta.hourMeans.length === plan.length;
+    let pixels = 0, hmBytes = 0;
+    const decoded = [];
+    for (const [k, e] of plan.entries()) {
+      const png = readFileSync(join(outDir, nowcastHourMeanFile(e.lead)));
+      hmBytes += png.length;
+      const d = decodePng(png);
+      decoded.push({ e, d });
+      const mm = meta?.hourMeans?.[k];
+      if (!mm || mm.lead !== e.lead || mm.frames !== e.leads.length || mm.leadFrom !== e.leads[0] || mm.leadTo !== e.leads.at(-1) || mm.bytes !== png.length) ok = false;
+      if (d.channels !== 3 || d.width !== RV_IMG_WIDTH || d.height !== RV_IMG_HEIGHT) { ok = false; continue; }
+      const win = e.leads.map((l) => byLead.get(l));
+      for (let i = 0; i < d.width * d.height; i++) {
+        let s = 0, c = 0;
+        for (const w of win) { const b = w[i]; s += b; if (b === 255) c++; }
+        pixels++;
+        if (d.data[i * 3] * 256 + d.data[i * 3 + 1] !== s || d.data[i * 3 + 2] !== c) { ok = false; break; }
+      }
+    }
+    add('B1e RV (E-AX-16): Stundenmittel-Bilder m<lead>.png — Pixel für Pixel die Summe der Frame-Bytes im Fenster und die Zahl der gesättigten Frames; meta.hourMeans = Plan (lead, frames, Fenster, bytes)', ok,
+      `${plan.map((e) => `m${String(e.lead).padStart(3, '0')} (${e.leads.length} Frames)`).join(', ')} · ${pixels} Pixel · ${(hmBytes / 1024).toFixed(0)} KB gegen ${((meta?.frames ?? []).reduce((s, f) => s + f.bytes, 0) / 1024).toFixed(0)} KB Frames`);
+    let pts = 0, maxD = 0, wet = 0, nullMismatch = 0;
+    const framePngs = ref.frames.map((f) => ({ f: { lead: f.leadMinutes, file: radarImgFrameFile(f.leadMinutes) }, png: { data: f.values, width: f.width, height: f.height, channels: 1 } }));
+    for (const [lat, lon] of [[51.31, 9.49], [53.55, 9.99], [48.14, 11.58], [50.11, 8.68], [52.52, 13.40]]) {
+      for (const { e, d } of decoded) {
+        const hmEntry = meta?.hourMeans?.find((h) => h.lead === e.lead);
+        if (!hmEntry) { nullMismatch++; continue; }
+        const a = sampleNowcastHourMean('radvor_rv', meta, { data: d.data, width: d.width, height: d.height, channels: 3 }, lat, lon, hmEntry);
+        let s = 0, n = 0;
+        for (const fp of framePngs) {
+          if (fp.f.lead <= e.lead - 60 || fp.f.lead > e.lead) continue;
+          const x = sampleNowcastFrame('radvor_rv', meta, fp.png, lat, lon, fp.f);
+          if (!x) { n = -1; break; }
+          s += x.saturated ? NOWCAST_SATURATION : x.mmh; n++;
+        }
+        if ((a == null) !== (n < 0)) { nullMismatch++; continue; }
+        if (a == null) continue;
+        pts++;
+        const dlt = Math.abs(a.mmh - s / n);
+        if (dlt > maxD) maxD = dlt;
+        if (s > 0) wet++;
+      }
+    }
+    add('B1f RV (E-AX-16): am Punkt dekodiert das Summenbild dasselbe Stundenmittel, das der Motor aus den Einzelframes rechnet (|Δ| ≤ 1e-9; fünf DE-Orte × alle Stunden des Slots)',
+      pts > 0 && maxD <= 1e-9 && nullMismatch === 0, `${pts} Vergleiche, max |Δ| ${maxD.toExponential(1)} mm/h, ${wet} nasse Stunden`);
+  }
 
   {
     // B2c — der schnelle Leser (ein Chunk, DecompressionStream) gegen den jsfive-Weg: dieselben Bytes, und schneller.

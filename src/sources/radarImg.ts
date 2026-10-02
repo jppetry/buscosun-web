@@ -7,6 +7,9 @@
  * Ablage (versionierter Pfad — eine Format-Änderung bumpt `v1` → `v2`, alte Clients sehen
  * saubere 404 und fallen auf den Rohweg zurück):
  *   radar/img/v1/rv/<YYMMDDHHMM>/f000.png … f120.png + meta.json   (25 Graustufen-PNG 1100×1200)
+ *                                 + m<lead>.png je volle Stunde nach dem Slot (E-AX-16, seit 02.10.2026: RGB-Summenbild der
+ *                                   Frames in (t − 60 min, t], `meta.hourMeans`; Vertrag `RvImgHourMean`, Producer-Seite
+ *                                   `radarImgHourMean.ts`, Umkehrung `point/nowcastFormat.ts`)
  *   radar/img/v1/inca/<YYYYMMDDTHHMM>/f015.png … f180.png + meta.json (12 PNG 701×431)
  *   radar/img/v1/rzc/<YYYYMMDDTHHMM>/frame.png + meta.json            (1 PNG 710×640)
  *   radar/img/v1/konrad3d/<YYYYMMDDTHHMM00>/cells.json                (Konrad3dRun, schema-versioniert)
@@ -95,10 +98,22 @@ export interface RadarImgFrame {
   validAtMs?: number;
 }
 
+/**
+ * E-AX-16 (`audit/fusion-ausbau.md` §6m): das Stundenmittel als eigene Datei je voller Stunde t nach dem Slot.
+ * `lead` = Minuten Slot → t, `leadFrom…leadTo` = die gemittelten Frame-Leads (Fenster (lead − 60, lead] ∩ Slot),
+ * `frames` = ihre Zahl (≥ 6, sonst gibt es die Datei nicht). RGB-PNG: R·256 + G = Summe der Rohbytes, B = Zahl der
+ * gesättigten Frames — exakt, keine zweite Quantisierung (Umkehrung `nowcastHourMeanFromSum`, `point/nowcastFormat.ts`).
+ */
+export interface RvImgHourMean {
+  lead: number; file: string; bytes: number; frames: number; leadFrom: number; leadTo: number;
+}
+
 export interface RvImgMeta {
   schema: 1; source: 'rv'; stamp: string; runAtMs: number;
   width: number; height: number; vMax: number;
   frames: RadarImgFrame[];
+  /** E-AX-16: Zusatzfeld seit 02.10.2026 — Slots davor haben es nicht; alte Clients ignorieren es. */
+  hourMeans?: RvImgHourMean[];
 }
 
 export interface IncaImgMeta {
@@ -115,8 +130,30 @@ export interface RzcImgMeta {
   frames: RadarImgFrame[]; // genau eines, lead 0, file 'frame.png'
 }
 
-export function makeRvImgMeta(stamp: string, runAtMs: number, frames: RadarImgFrame[]): RvImgMeta {
-  return { schema: 1, source: 'rv', stamp, runAtMs, width: RV_IMG_WIDTH, height: RV_IMG_HEIGHT, vMax: PRECIP_VMAX, frames };
+export function makeRvImgMeta(stamp: string, runAtMs: number, frames: RadarImgFrame[], hourMeans?: RvImgHourMean[]): RvImgMeta {
+  return {
+    schema: 1, source: 'rv', stamp, runAtMs, width: RV_IMG_WIDTH, height: RV_IMG_HEIGHT, vMax: PRECIP_VMAX, frames,
+    ...(hourMeans ? { hourMeans } : {}),
+  };
+}
+
+/** E-AX-16: Form der Stundenmittel-Einträge — Datei = `m<lead>.png`, Fenster und Zahl stimmig, Leads im Slot (0…180). */
+function hourMeansOk(v: unknown): v is RvImgHourMean[] {
+  if (!Array.isArray(v)) return false;
+  let prev = -1;
+  return v.every((x) => {
+    const h = x as RvImgHourMean;
+    const ok = h && typeof h === 'object'
+      && Number.isInteger(h.lead) && h.lead > prev && h.lead > 0 && h.lead <= 180
+      && h.file === `m${String(h.lead).padStart(3, '0')}.png`
+      && Number.isFinite(h.bytes) && h.bytes > 0
+      && Number.isInteger(h.frames) && h.frames >= 1 && h.frames <= 25
+      && Number.isInteger(h.leadFrom) && Number.isInteger(h.leadTo) && h.leadFrom >= 0 && h.leadTo <= 120
+      && h.leadFrom <= h.leadTo && h.leadTo <= h.lead && h.leadFrom > h.lead - 60
+      && (h.leadTo - h.leadFrom) / 5 + 1 === h.frames;
+    prev = h?.lead ?? prev;
+    return ok;
+  });
 }
 
 export function makeIncaImgMeta(stamp: string, fetchedAtMs: number, corners: QuadCorners, frames: RadarImgFrame[]): IncaImgMeta {
@@ -169,6 +206,8 @@ export function parseRvImgMeta(j: unknown): RvImgMeta | null {
   if (m.width !== RV_IMG_WIDTH || m.height !== RV_IMG_HEIGHT || m.vMax !== PRECIP_VMAX) return null;
   if (typeof m.stamp !== 'string' || !Number.isFinite(m.runAtMs)) return null;
   if (!framesOk(m.frames, RV_IMG_LEADS)) return null;
+  // E-AX-16: das Zusatzfeld ist optional (Slots vor dem 02.10.2026 haben es nicht) — ist es da, muss es stimmen.
+  if (m.hourMeans !== undefined && !hourMeansOk(m.hourMeans)) return null;
   return m;
 }
 
