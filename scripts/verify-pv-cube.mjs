@@ -2318,7 +2318,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const full = await run(filesOf(tables, stackFull), STAGE);
   const need = ['learned:hindcast', 'learnedAtPoint:set', 'learnedClouds:hindcast', 'priorShrink:off', 'stationValue:archive'];
   add('(29) mit Tabellen und Stationswert-Tabelle: calib trägt learned, learnedAtPoint, learnedClouds, priorShrink:off, stationValue:archive; die Notiz nennt die Stufe und zählt die gesetzten Schritte; ohne Messung trägt die Form S0; Schritte ≠ Basis',
-    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 7\): .*Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
+    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
     full.cube.notes.find((n) => n.startsWith('stationValue: gesetzt'))?.slice(0, 120) ?? `fehlt: ${need.filter((k) => !keysOf(full).includes(k)).join()}`);
   const noI = await run(filesOf(tables, stackOnlyI), STAGE);
   add('(29) nie still (V-FS-12): eine Tabelle ohne die Formen ohne Messung setzt bei einer Abfrage ohne Messung NICHTS — die Notiz sagt „an keinem Schritt gesetzt"; die übrige Stufe wirkt weiter',
@@ -2326,7 +2326,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const broken = await run(filesOf(tables, 'broken'), STAGE);
   const noFile = await run(filesOf(tables, null), STAGE);
   add('(29) Stationswert-Tabelle kein JSON: die Stufe rechnet ohne Stationswert (Notiz „kein JSON", „ohne Stationswert"), Schritte byte-gleich zur Stufe ohne die Datei',
-    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 7\): .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
+    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
   const explicit = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { priorShrink: true, stationValue: false } });
   add('(29) ausdrückliche fuse-Optionen haben Vorrang vor der Stufe: priorShrink true und stationValue false ⇒ keine der beiden Zeilen, die übrige Stufe bleibt',
     !keysOf(explicit).includes('priorShrink:off') && !keysOf(explicit).includes('stationValue:archive') && keysOf(explicit).includes('learnedAtPoint:set'));
@@ -2336,9 +2336,19 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const noAnchor = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { anchorWindKm: 0 } });
   add(`(29) buscosun Fusion 7 (E-AX-14): mit Tabellen trägt die Stufe anchorWind:set mit ${FUSION7_ANCHOR_WIND_KM} km und nennt es in der Stufen-Notiz; ohne Tabellen keine anchorWind-Zeile (Rechnung wie ohne Schalter); fuse.anchorWindKm: 0 schaltet den Anker ab, der Rest der Stufe bleibt`,
     FUSION7_ANCHOR_WIND_KM === 10 && keysOf(full).includes('anchorWind:set') && full.cube.calib.some((c) => c.startsWith('anchorWind:set') && c.includes(`${FUSION7_ANCHOR_WIND_KM} km`))
-    && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 7\): .*Wind-Anker über die Messdistanz gedämpft \(10 km, E-AX-14\), Stationswert$/.test(n))
+    && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Wind-Anker über die Messdistanz gedämpft \(10 km, E-AX-14\), Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n))
     && !keysOf(none).includes('anchorWind:set') && !keysOf(noAnchor).includes('anchorWind:set') && keysOf(noAnchor).includes('priorShrink:off') && keysOf(noAnchor).includes('stationValue:archive'),
     `full ${keysOf(full).filter((k) => k.startsWith('anchorWind')).join() || '—'} · none ${keysOf(none).filter((k) => k.startsWith('anchorWind')).join() || '—'} · anchorWindKm:0 ${keysOf(noAnchor).filter((k) => k.startsWith('anchorWind')).join() || '—'}`);
+  // buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC): the stage takes the radar hour mean (FUSION8_NOWCAST_HOUR_MEAN) — calib line
+  // nowcastHourMean:set, stage note names Fusion 8; `CubeIo.nowcastHourMean: false` (?hm=0) is the named fallback: no line, note names Fusion 7;
+  // without tables no line either (the stage computes like without the switch).
+  const { FUSION8_NOWCAST_HOUR_MEAN } = await import('../src/pointForecast/cubeSource.ts');
+  const f7 = await run(filesOf(tables, stackFull), { ...STAGE, nowcastHourMean: false });
+  add('(29) buscosun Fusion 8 (E-AX-17): mit Tabellen trägt die Stufe nowcastHourMean:set und nennt „buscosun Fusion 8" + „Radar-Stundenmittel (E-AX-17)"; CubeIo.nowcastHourMean: false ⇒ keine Zeile, Notiz „Fusion 7 (Stundenmittel per Schalter aus)", Schritte ohne Radar im Fixture byte-gleich; ohne Tabellen keine Zeile',
+    FUSION8_NOWCAST_HOUR_MEAN === true && keysOf(full).includes('nowcastHourMean:set') && !keysOf(f7).includes('nowcastHourMean:set') && !keysOf(none).includes('nowcastHourMean:set')
+    && f7.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 7 \(Stundenmittel per Schalter aus\)\): /.test(n) && !/Radar-Stundenmittel/.test(n))
+    && stepsJson(f7) === stepsJson(full) && keysOf(f7).includes('anchorWind:set'),
+    `full ${keysOf(full).filter((k) => k.startsWith('nowcastHourMean')).join() || '—'} · hm:false ${keysOf(f7).filter((k) => k.startsWith('nowcastHourMean')).join() || '—'}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -3165,6 +3175,17 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     { store: memoryStore(files), terrain: false, nowcast: true, decodePng: gray, plan: false, neighbours: true });
   const bNoDec = await readPointBundle({ lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: t0Ms, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
     { store: memoryStore(files), terrain: false, nowcast: true, decodePng: gray, nowcastHourMean: true, plan: false, neighbours: true });
+  // Deployment-Fenster: solange ein Slot kein Stundenmittel führt (meta ohne hourMeans — jeder Slot vor dem ersten Spiegel-Job mit dem neuen
+  // Derive), liefert der Leser MIT Option exakt die Einzelframes, und der Motor mit Option rechnet exakt Fusion 7 (ein Frame je Stunde < 6).
+  const metaOld = { ...meta }; delete metaOld.hourMeans;
+  const filesOld = new Map(files); filesOld.set(nowcastMetaPath(spec, stamp), new TextEncoder().encode(JSON.stringify(metaOld)));
+  const slotOld = { ...slot, meta: metaOld };
+  const rOld = await readNowcastPoint(memoryStore(filesOld), 'radvor_rv', FIX.lat, FIX.lon, { nowMs: t0Ms, decodePng: gray, atMs: times, slot: slotOld, hourMean: true, decodeRgbPng: gray });
+  const { pfHourMeanFrom } = await import('../src/pointForecast/pfFlags.ts');
+  add('(41) Slot ohne Stundenmittel (jeder Slot vor dem ersten Spiegel-Job): Leser mit Option = Einzelframes 5/65/120, hourMeans 0; Motor mit Option byte-gleich zu Fusion 7; Schalter: ?hm=0 aus, sonst an (Voreinstellung an seit Fusion 8)',
+    leads(rOld) === '5,65,120' && rOld.hourMeans === 0 && JSON.stringify(rOld.frames) === JSON.stringify(rOff.frames)
+    && JSON.stringify(fuseCubePoint(in41(rOld), { hourly: false, nowcastHourMean: true }).steps.map((s) => s.fused)) === JSON.stringify(oOff.steps.map((s) => s.fused))
+    && pfHourMeanFrom('') === true && pfHourMeanFrom('?hm=1') === true && pfHourMeanFrom('?hm=0') === false && pfHourMeanFrom('?x=1&hm=0') === false);
   add('(41) readPointBundle: mit nowcastHourMean + decodeRgbPng trägt das Bündel die zwei Stundenmittel (Leads 5/65/125), ohne Option die Frames 5/65/120; Option ohne RGB-Dekoder ⇒ Frames und benannter Hinweis',
     bOn.nowcast.length === 1 && bOn.nowcast[0].hourMeans === 2 && leads(bOn.nowcast[0]) === '5,65,125'
     && bOff.nowcast.length === 1 && bOff.nowcast[0].hourMeans === 0 && leads(bOff.nowcast[0]) === '5,65,120'

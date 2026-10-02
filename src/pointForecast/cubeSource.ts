@@ -608,7 +608,9 @@ export interface FuseCubeOptions {
    * Phase AX §6l.4 (V-AX-23, Kandidat „buscosun Fusion 8" B): der Nowcast-Member einer Gültigstunde t ist das Mittel der Frame-Raten
    * im Fenster (t − `NOWCAST_HOUR_MEAN_WINDOW_MS`, t] statt des einen Frames, der t am nächsten liegt — die Wahrheit ist die Stundensumme,
    * die Rate am Stundenende trifft nur 37 % der Regenstunden (§6l.2). Mindestens `NOWCAST_HOUR_MEAN_MIN_FRAMES` Frames im Fenster, sonst
-   * der Einzelframe wie bisher. Berührt nur Stunden mit Frames im Fenster (RV: Vorlauf 1–2 h). Voreinstellung aus ⇒ byte-gleich.
+   * der Einzelframe wie bisher. Berührt nur Stunden mit Frames im Fenster (RV: Vorlauf 1–2 h). Ohne Option byte-gleich; **seit E-AX-17
+   * (02.10.2026) Teil der Stufe fs = „buscosun Fusion 8"** (`FUSION8_NOWCAST_HOUR_MEAN`), gelesen aus dem Spiegel-Produkt `m<lead>.png`
+   * (E-AX-16) oder — im Archiv — gemittelt aus den Frames des Bündels.
    */
   nowcastHourMean?: boolean;
   /**
@@ -1891,9 +1893,12 @@ export interface CubeIo {
   store: PointStore;
   decodePng?: PngDecoder;
   /**
-   * E-AX-16 (`audit/fusion-ausbau.md` §6m, Kandidat „buscosun Fusion 8" B): der Leser holt je Ausgabestunde das Stundenmittel des
+   * E-AX-16/E-AX-17 (`audit/fusion-ausbau.md` §6m, „buscosun Fusion 8"): der Leser holt je Ausgabestunde das Stundenmittel des
    * Spiegels (`m<lead>.png`, RGB-Summenbild) statt des nächsten Einzelframes, und der Motor rechnet mit `nowcastHourMean` — beide
-   * zusammen, sonst läse der Motor das Mittel als Einzelframe. Braucht `decodeRgbPng`. Voreinstellung aus ⇒ byte-gleich; `?hm=1`.
+   * zusammen, sonst läse der Motor das Mittel als Einzelframe. Braucht `decodeRgbPng`. Im Browser (`defaultCubeIo`) seit Fusion 8 AN;
+   * `false` ist der benannte Rückfall auf Fusion 7 (`?hm=0`) und nimmt der Stufe fs auch die Motor-Option. Ohne Angabe: Leser holt
+   * Einzelframes, die Stufe fs setzt die Motor-Option trotzdem (sie mittelt dann, was im Bündel liegt — mit einem Frame je Stunde
+   * exakt Fusion 7).
    */
   nowcastHourMean?: boolean;
   decodeRgbPng?: RgbPngDecoder;
@@ -2107,6 +2112,16 @@ export const INCA_ANCHOR_WEIGHT = 0.6;
  * station +0,5/+0,6 %*, with a station byte-identical. Fusion 7 = Fusion 6 (tables of data-repo commit 1aaec969 unchanged) + this.
  */
 export const FUSION7_ANCHOR_WIND_KM = 10;
+/**
+ * buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC: „sofort aktiv schalten … diesen Stand ab jetzt buscosun Fusion 8 nennen"): the stage `fs`
+ * takes the radar member of an hour as the HOUR MEAN of the 5-min frames in (t − 60 min, t] (`FuseCubeOptions.nowcastHourMean`, V-AX-23),
+ * read with ONE fetch per hour from the mirror product `m<lead>.png` (E-AX-16, `CubeIo.nowcastHourMean`). Measured against buscosun
+ * Fusion 7 on the archive 16.09.–01.10.2026 (446 141 rows, 15 issue days, 389 station points; `audit/fusion-ausbau.md` §6l.4/§6m.3, rule
+ * frozen before the build): Brier at 1–2 h +9,8 %* (station) / +11,8 %* (no station), 0–6 h +2,7/+3,1 %*, DE hits 0,33 → 0,52, nowhere
+ * worse, every other variable and lead byte-identical (K11/K14). Fusion 8 = Fusion 7 (tables of data-repo commit 1aaec969 unchanged) + this.
+ * Until the mirror carries `m<lead>.png` for a slot the engine sees one frame per hour and computes exactly Fusion 7. `?hm=0` = Fusion 7.
+ */
+export const FUSION8_NOWCAST_HOUR_MEAN = true;
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
@@ -2246,8 +2261,9 @@ export function defaultCubeIo(): CubeIo {
     ...(climaGridFlag ? { climaGrid: true } : {}),
     // AX-10: `?inca=1` — INCA-Analyse als Anker in AT (Voreinstellung aus).
     ...(incaFlag ? { incaAnchor: true } : {}),
-    // E-AX-16: `?hm=1` — Radar-Stundenmittel aus dem Spiegel, Leser und Motor-Option zusammen (Voreinstellung aus).
-    ...(hourMeanFlag ? { nowcastHourMean: true } : {}),
+    // buscosun Fusion 8 (E-AX-16/E-AX-17): Radar-Stundenmittel aus dem Spiegel, Leser und Motor-Option zusammen — Voreinstellung AN;
+    // `?hm=0` ist der benannte Rückfall auf Fusion 7 (Einzelframe je Stunde).
+    nowcastHourMean: hourMeanFlag,
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2296,8 +2312,12 @@ function forecastFromBundle(
       // measured against buscosun Fusion 6 on the archive 16.–30.09. (audit/fusion-ausbau.md §6i: nowhere worse, wind/gust
       // 0–6 h without a station +0,5/+0,6 %*, with a station byte-identical). Everything else of the stage is Fusion 6.
       Object.assign(stageFuse, { learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false, anchorWindKm: FUSION7_ANCHOR_WIND_KM });
+      // buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC): the radar member as the hour mean (V-AX-23/E-AX-16) — `CubeIo.nowcastHourMean: false`
+      // (`?hm=0`) is the named fallback to Fusion 7; without the mirror product for a slot the engine computes Fusion 7 anyway.
+      const hourMean = FUSION8_NOWCAST_HOUR_MEAN && io.nowcastHourMean !== false;
+      if (hourMean) stageFuse.nowcastHourMean = true;
       if (t.stack?.table) stageFuse.stationValue = true;
-      input.notes.push(`stage:fs — neueste Stufe (buscosun Fusion 7): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
+      input.notes.push(`stage:fs — neueste Stufe (buscosun Fusion ${hourMean ? 8 : '7 (Stundenmittel per Schalter aus)'}): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)${hourMean ? ', Radar-Stundenmittel (E-AX-17)' : ''}${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
     } else input.notes.push('stage:fs — keine gelernten Tabellen ⇒ Rechnung wie ohne die Stufe (keine ihrer Optionen ist ohne Lernstufe gemessen)');
     // Phase AX, AX-3 (E-AX-3): T zwischen den nativen Schritten als Anomalie gegen μ_c — braucht nur das Klimatologieprodukt
     // (Orakel: 6-h-Schritte −15,5 %, 3-h −4,1 % MAE; `audit/fusion-ausbau.md` §3). Ohne Produkt linear wie bisher, benannt.

@@ -1269,11 +1269,10 @@ Auftrag Jan 02.10. („lass uns das umsetzen und prüfen, ob buscosun Fusion 8 d
 - (g) **Prüfung nach dem ersten Job:** `radar/img/v1/rv/<stamp>/meta.json` trägt `hourMeans` mit zwei Einträgen (bei Slotminute ≥ :30 der zweite mit
   < 12 Frames), `status.json` `deriveMs` für rv (lokal 3,3 s); im Browser `?hm=1&pflog=1` an einem DE-Ort: Notiz „nowcastHourMean: … N Stunden
   vorgemittelt gelesen" mit N ≥ 1 und Member `hourMean.mirror`. Ohne `?hm=1` bleibt alles byte-gleich.
-- (h) **E-AX-17 — Einschalten in die Stufe fs (= „buscosun Fusion 8"):** die Karte auf allen Slots bis 01.10. (15 Ausgabetage, 16:34 UTC,
-  `audit/fusion-ausbau/fusion8b-radar-vs-7.md` §Zwischenstand) erfüllt die Regel §6l.4: **BESSER** — S Brier Radarstunden +9,8 %*, L +11,8 %*,
-  0–6 h +2,7/+3,1 %*, nirgends schlechter, K11/K14 grün, DE Treffer 0,33 → 0,52. **Aber:** ein Regentag mehr hob p 0,055 auf 0,021 — das ist ein
-  Zwischenstand, nicht die vorregistrierte Wiederholung (≥ 30 Tage ≈ 15.10.). Deine Entscheidung: (1) jetzt einschalten — eine Zeile in
-  `cubeSource.ts` (`stage: fs` ⇒ `nowcastHourMean: true` und `CubeIo.nowcastHourMean` in `defaultCubeIo`), nur sinnvoll NACH dem ersten Spiegel-Job
-  mit `m<lead>.png` (sonst liest der Client Einzelframes und der Motor mittelt nichts), Definition „buscosun Fusion 8" = 7 + Radar-Stundenmittel;
-  (2) bis zur Wiederholung ≈ 15.10. warten, bis dahin `?hm=1` zum Ansehen. Ohne Entscheidung bleibt die Option aus (Empfehlung des Mittags).
+- (h) **E-AX-17 entschieden (Jan 02.10. 22:30 UTC: „sofort aktiv schalten … ab jetzt buscosun Fusion 8"):** umgesetzt — die Stufe fs trägt das
+  Radar-Stundenmittel (`FUSION8_NOWCAST_HOUR_MEAN`), der Browser liest es standardmäßig, `?hm=0` ist der Rückfall auf Fusion 7. Grundlage: Karte auf
+  allen Slots bis 01.10. (15 Ausgabetage, `audit/fusion-ausbau/fusion8b-radar-vs-7.md` §Zwischenstand): BESSER nach §6l.4 — S Brier Radarstunden
+  +9,8 %*, L +11,8 %*, 0–6 h +2,7/+3,1 %*, nirgends schlechter, K11/K14 grün, DE Treffer 0,33 → 0,52; benannt als Zwischenstand (ein Regentag mehr hob
+  p 0,055 auf 0,021). **Deployment-Reihenfolge ist unkritisch:** bis der Spiegel-Job `m<lead>.png` schreibt, rechnet der Client exakt Fusion 7
+  (verify:pv-cube 41). Push (f), Job-Abbruch und Prüfung (g) wie oben; die Wiederholung ≈ 15.10. bestätigt die Effektgröße.
 - (d) E-AX-10 (INCA-Anker-Gewicht) wird ab dem ersten vollständigen Slot messbar; Scorer-Variante folgt mit E-AX-8 (MOSMIX-S) ≈ 15.10.

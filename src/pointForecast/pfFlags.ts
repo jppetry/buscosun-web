@@ -32,12 +32,13 @@ export function pfIncaAnchorFrom(search: string): boolean {
 }
 
 /**
- * E-AX-16 (`audit/fusion-ausbau.md` §6m): `?hm=1` reads the radar hour mean of the mirror (`m<lead>.png`, one file per
- * hour) instead of the single nearest frame and switches the engine option `nowcastHourMean` on with it (candidate
- * „buscosun Fusion 8 B"). Default off — the live product stays byte-identical.
+ * E-AX-16/E-AX-17 (`audit/fusion-ausbau.md` §6m, „buscosun Fusion 8", Jan 02.10.2026 22:30 UTC): the radar hour mean of the mirror
+ * (`m<lead>.png`, one file per hour) replaces the single nearest frame, reader and engine option together. Default ON.
+ *   `?hm=0` → off: the named fallback to buscosun Fusion 7 (single frame per hour).
+ *   anything else → on.
  */
 export function pfHourMeanFrom(search: string): boolean {
-  try { return new URLSearchParams(search).get('hm') === '1'; } catch { return false; }
+  try { return new URLSearchParams(search).get('hm') !== '0'; } catch { return true; }
 }
 
 /** AX-9: `?cg=1` reads `point/static/clima-grid` and takes its 1991–2020 normals as the daily mean of the temperature prior. */
