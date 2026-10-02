@@ -31,6 +31,7 @@ import { binIndex, binRange } from '../../src/point/fusionFit/strata.ts';
 import { buildZ, dTsfcProxy, sourceToPoint } from '../../src/point/fusionFit/features.ts';
 import { SELECTION } from '../../src/point/client/resolve.ts';
 import { validateStackTable } from '../../src/pointForecast/fusion/stationValue.ts';
+import { validatePrecipCalTable } from '../../src/pointForecast/fusion/precipCal.ts';
 import { readStaticProductPoint } from '../../src/point/client/staticPoint.ts';
 import { CLIMA_GRID_PRODUCT, CLIMA_GRID_VERSION, decodeCubeChunk } from '../../src/point/cubeFormat.ts';
 
@@ -231,9 +232,13 @@ const VARIANTS = Object.freeze({
   F7a: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10 },
   F7b: { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, climaTrend: true },
   F7:  { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10, climaTrend: true },
+  // Phase AX §6l (02.10.): "buscosun Fusion 8" = Fusion 7 (as it RUNS: the anchor, no climate grid — F7a) + the recalibrated wet
+  // probability (`precipCal`, table `--precipCal` = the in-sample table of stack-score's `--precipTable`). Serves the K-check
+  // "engine option = offline in-sample candidate" (like K6); the card's verdict rests on the offline leave-day-out candidate.
+  F8:  { ...PRODUCT, learnedAtPoint: true, priorShrink: false, learnedClouds: true, stationValue: true, anchorWindKm: 10, precipCal: true },
 });
-/** What a variant needs beyond its options: the atom tables (`--tables2`) and the climate grid in the input (`--point`). */
-const VARIANT_NEEDS = Object.freeze({ P5: { atoms: true }, F6: { atoms: true }, F7a: { atoms: true }, F7b: { atoms: true, climaGrid: true }, F7: { atoms: true, climaGrid: true } });
+/** What a variant needs beyond its options: the atom tables (`--tables2`), the climate grid in the input (`--point`), the precipCal table. */
+const VARIANT_NEEDS = Object.freeze({ P5: { atoms: true }, F6: { atoms: true }, F7a: { atoms: true }, F7b: { atoms: true, climaGrid: true }, F7: { atoms: true, climaGrid: true }, F8: { atoms: true, precipCal: true } });
 // `--variants=P3,P6,P7,P8` — only these variants are computed (default: all); the product and cube-hc runs are always computed
 const variantFilter = typeof flags.variants === 'string' ? new Set(flags.variants.split(',').map((s) => s.trim()).filter(Boolean)) : null;
 if (variantFilter) { for (const v of variantFilter) if (!VARIANTS[v]) throw new Error(`--variants: unbekannte Variante ${v}`); say(`Varianten: ${[...variantFilter].join(', ')} (--variants)`); }
@@ -262,6 +267,10 @@ const loadClimaGrid = async (id, row) => {
 const EQ_POINTS = 25;   // per slot: the engine with priorShrink:false on the run-1 chain, against the offline form (K5)
 const stackTable = typeof flags.stack === 'string' ? JSON.parse(readFileSync(flags.stack, 'utf8')) : null;
 { const e = stackTable ? validateStackTable(stackTable) : []; if (e.length) throw new Error(`${flags.stack}: ${e.join('; ')}`); }
+// §6l: the precipCal table for F8 (`--precipCal=<path>`); without it F8 is skipped (named)
+const precipCalTable = typeof flags.precipCal === 'string' ? JSON.parse(readFileSync(flags.precipCal, 'utf8')) : null;
+{ const e = precipCalTable ? validatePrecipCalTable(precipCalTable) : []; if (e.length) throw new Error(`${flags.precipCal}: ${e.join('; ')}`); }
+if (Object.entries(VARIANT_NEEDS).some(([n, x]) => x.precipCal && (!variantFilter || variantFilter.has(n)))) say(precipCalTable ? `precipCal-Tabelle ${flags.precipCal} (F8)` : 'WARNUNG: keine precipCal-Tabelle (--precipCal) — F8 wird übersprungen');
 await write({ kind: 'fusionfit/stack-rows', schema: 2, stack: stackTable ? { path: flags.stack, builtAt: stackTable.builtAt, entries: Object.keys(stackTable.entries).length } : null, variants: VARIANTS, builtAt: new Date().toISOString(), codeHash: codeHash(), tables: { path: flags.tables, sha256: tablesSha }, tables2: T6 ? { path: flags.tables2, sha256: tables2Sha, atoms: Object.keys(T6.atoms).length } : null, archive: ARCH, slots: slotMeta.map((m) => ({ slotAt: m.slotAt, schema: m.schema })), slotsFrom, hindcastEnd, points: pointIds.length });
 const T0 = Date.now();
 const issueSlots = slotsFrom ? slotMeta.filter((m) => m.slotAt.slice(0, 10) >= slotsFrom) : slotMeta;
@@ -313,10 +322,12 @@ for (const meta of issueSlots) {
         const needs = VARIANT_NEEDS[name] ?? {};
         if (needs.atoms && !foldTables2) continue;
         if (needs.climaGrid && !climaGridStore) continue;
+        if (needs.precipCal && !precipCalTable) continue;
         const tablesOf = needs.atoms ? foldTables2 : foldTables;
         const cg = needs.climaGrid ? { climaGrid: climaGridOfPoint.get(id) ?? null } : {};
+        const pc = needs.precipCal ? { precipCal: precipCalTable } : {};
         const m = new Map();
-        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: tablesOf(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}), ...cg }, opts)));
+        for (const k of keysNeeded) m.set(k, byMs(run({ ...base, obs: withStack ? forStack(obs, rec) : withTd(obs, rec), learned: tablesOf(k), learnedClima: lc5, ...(withStack ? { stack: stackTable } : {}), ...cg, ...pc }, opts)));
         out[name] = m;
       }
       return out;

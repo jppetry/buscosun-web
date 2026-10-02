@@ -205,7 +205,7 @@ export function losoClimaProduct(tables, featRow) {
 }
 
 /** The engine input of one archive point (pure; the caller decides station/nowcast/obs/learned per variant). */
-export function inputFromArchive(slot, row, { cube, station = null, stationReason = null, nowcast = [], covering = [], obs = null, clima, learned = null, learnedClima = null, stack = null, climaGrid = undefined, nowMs, window }) {
+export function inputFromArchive(slot, row, { cube, station = null, stationReason = null, nowcast = [], covering = [], obs = null, clima, learned = null, learnedClima = null, stack = null, climaGrid = undefined, precipCal = null, nowMs, window }) {
   return {
     lat: row.lat, lon: row.lon, nowMs, window,
     // AX-9 / Fusion-7 measurement: the climate-grid normals of the point's stage-1 cell (`point/static/clima-grid`), read from a
@@ -219,7 +219,7 @@ export function inputFromArchive(slot, row, { cube, station = null, stationReaso
     z0: row.landCover ?? null,
     index: { commit: slot.index?.commit ?? null },
     clima, obs,
-    ...(learned ? { learned } : {}), ...(learnedClima ? { learnedClima } : {}), ...(stack ? { stack } : {}),
+    ...(learned ? { learned } : {}), ...(learnedClima ? { learnedClima } : {}), ...(stack ? { stack } : {}), ...(precipCal ? { precipCal } : {}),
     notes: [], skips: [], errors: [],
   };
 }

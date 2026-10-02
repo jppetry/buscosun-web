@@ -807,6 +807,8 @@ export const POINT_CALIB_PATH = `${POINT_DIR}/calib.json`;
 export const POINT_LEARNED_PATH = `${POINT_DIR}/fusion.client.json`;
 /** Phase FS: die Tabelle des Stationswerts für den Client (`src/pointForecast/fusion/stationValue.ts`), Provenienz `archive`. */
 export const POINT_STACK_PATH = `${POINT_DIR}/stack.client.json`;
+/** Phase AX §6l (buscosun Fusion 8): the recalibration table of the wet probability (`fusion/precipCal.ts`, provenance archive). */
+export const POINT_PRECIP_CAL_PATH = `${POINT_DIR}/precip-cal.client.json`;
 
 // ---------------------------------------------------------------------------
 // Quantisierung

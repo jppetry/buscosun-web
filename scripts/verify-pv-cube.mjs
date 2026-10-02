@@ -2874,6 +2874,35 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   add('(37) fetchIncaAnalysisObs: eine Anfrage an die historische INCA-Zeitreihe mit T2M,TD2M,RH2M,UU,VV, lat_lon und Fenster 10:00…14:00; Berlin (außerhalb) fragt nicht; HTTP-Fehler ⇒ leer',
     got.length === 2 && calls.length === 1 && calls[0].startsWith(INCA_ANALYSIS_URL) && /parameters=T2M,TD2M,RH2M,UU,VV/.test(calls[0]) && /lat_lon=47\.2600,11\.3600/.test(calls[0])
     && /start=2026-09-30T10:00/.test(calls[0]) && /end=2026-09-30T14:00/.test(calls[0]) && outside.length === 0 && calls.length === 1 && bad.length === 0, calls[0]);
+  // (b2) V-AX-20 (02.10., `audit/fusion-ausbau.md` §6k): der gebündelte Abruf des Sammlers — ein `lat_lon` je Punkt in EINER Anfrage,
+  //      Punkte außerhalb des Rasters nicht in der Anfrage (leer), Features in Anfrage-Reihenfolge, ein fremdes Feature (> 3 km) fällt weg,
+  //      HTTP-Fehler ⇒ Status und lauter leere Reihen, mehr als INCA_BATCH_MAX Punkte ⇒ Fehler. Die Einzelanfrage ist davon unberührt.
+  {
+    const { fetchIncaAnalysisObsBatch, incaAnalysisUrl, INCA_BATCH_MAX, INCA_RATE_LIMIT } = await import('../src/pointForecast/cubeSource.ts');
+    const feat = (lon, lat, t) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { parameters: { T2M: { data: [t, t, null] }, TD2M: { data: [null, null, null] }, RH2M: { data: [50, 50, null] }, UU: { data: [1, 1, null] }, VV: { data: [0, 0, null] } } } });
+    const docB = { timestamps: docI.timestamps, features: [feat(11.3632, 47.2575, 20), feat(16.37, 48.21, 18), feat(13.0, 47.8, 15)] };
+    const callsB = [];
+    const fetchB = async (url) => { callsB.push(url); return { ok: true, status: 200, json: async () => docB }; };
+    // Innsbruck, Berlin (außerhalb — bleibt leer, steht nicht in der URL), Wien, Salzburg — das dritte Feature (Salzburg) liegt 1,2 km
+    // neben dem gefragten Punkt (gleiche Zelle), das zweite 0,5 km: beide zugeordnet.
+    const ptsB = [{ lat: 47.26, lon: 11.36 }, { lat: 52.5, lon: 13.4 }, { lat: 48.2057, lon: 16.3738 }, { lat: 47.81, lon: 13.0 }];
+    const rB = await fetchIncaAnalysisObsBatch(ptsB, nowI, AbortSignal.timeout(1000), fetchB);
+    const urlB = callsB[0] ?? '';
+    add('(37) fetchIncaAnalysisObsBatch: EINE Anfrage für drei Punkte im Raster (drei lat_lon in Anfrage-Reihenfolge, Berlin fehlt in der URL und bekommt []), Features in Reihenfolge zugeordnet (Innsbruck 20 °C, Wien 18, Salzburg 15), Status 200',
+      callsB.length === 1 && rB.status === 200 && (urlB.match(/lat_lon=/g) ?? []).length === 3 && /lat_lon=47\.2600,11\.3600&lat_lon=48\.2057,16\.3738&lat_lon=47\.8100,13\.0000/.test(urlB)
+      && rB.rows.length === 4 && rB.rows[0].length === 2 && rB.rows[0][0].temperature === 20 && rB.rows[1].length === 0 && rB.rows[2][0].temperature === 18 && rB.rows[3][0].temperature === 15
+      && urlB === incaAnalysisUrl([ptsB[0], ptsB[2], ptsB[3]], nowI), `${callsB.length} Anfragen, Status ${rB.status}, Zeilen ${rB.rows.map((r) => r.length).join('/')}`);
+    // ein fremdes Feature: die Antwort trägt an Stelle 2 die Zelle von Graz (> 100 km von Wien) ⇒ Wien leer, die anderen bleiben
+    const docX = { timestamps: docI.timestamps, features: [docB.features[0], feat(15.44, 47.07, 9), docB.features[2]] };
+    const rX = await fetchIncaAnalysisObsBatch(ptsB, nowI, AbortSignal.timeout(1000), async () => ({ ok: true, status: 200, json: async () => docX }));
+    const r429 = await fetchIncaAnalysisObsBatch(ptsB, nowI, AbortSignal.timeout(1000), async () => ({ ok: false, status: 429, json: async () => ({}) }));
+    const rNone = await fetchIncaAnalysisObsBatch([{ lat: 52.5, lon: 13.4 }], nowI, AbortSignal.timeout(1000), fetchB);
+    let tooMany = false; try { await fetchIncaAnalysisObsBatch(Array.from({ length: INCA_BATCH_MAX + 1 }, () => ptsB[0]), nowI, AbortSignal.timeout(1000), fetchB); } catch { tooMany = true; }
+    add('(37) fetchIncaAnalysisObsBatch: fremdes Feature (Graz statt Wien, > 3 km) ⇒ nur Wien leer; HTTP 429 ⇒ Status 429 und alle Reihen leer (der Sammler nennt es); nur Punkte außerhalb ⇒ keine Anfrage (Status 0); > INCA_BATCH_MAX Punkte ⇒ Fehler; INCA_RATE_LIMIT 5/s und 240/h, INCA_BATCH_MAX 25',
+      rX.rows[0].length === 2 && rX.rows[2].length === 0 && rX.rows[3].length === 2 && r429.status === 429 && r429.rows.every((r) => r.length === 0)
+      && rNone.status === 0 && rNone.rows.length === 1 && rNone.rows[0].length === 0 && callsB.length === 1 && tooMany && INCA_RATE_LIMIT.perSecond === 5 && INCA_RATE_LIMIT.perHour === 240 && INCA_BATCH_MAX === 25,
+      `Graz-Fall ${rX.rows.map((r) => r.length).join('/')}, 429 ${r429.status}, leer ${rNone.status}`);
+  }
   // (c) das Gewicht im Anker: dieselbe „Messung" am Punkt mit Gewicht 1, 0,6 und 0 — Repräsentativität folgt dem Gewicht, die Wirkung auf T ist monoton.
   const bundleI = await readPointBundle(
     { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
@@ -2938,6 +2967,73 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     near(dT(a15d), dT(a15), 1e-9) && Math.abs(dT(a15)) > 0.05 && Math.abs(dW(a15)) > 0.05 && Math.abs(dW(a15d)) < 0.25 * Math.abs(dW(a15)) && Math.abs(dW(a15d)) > 0
     && js(a0d) === js(a0) && a15d.calib.some((c) => c.startsWith('anchorWind:set')) && !a15.calib.some((c) => c.startsWith('anchorWind:')) && js(fuseCubePoint(inW(null), { hourly: false, anchorWindKm: 10 })) === js(b0),
     `ΔT 15 km ${dT(a15).toFixed(3)} / ${dT(a15d).toFixed(3)} K · Δws 15 km ${dW(a15).toFixed(3)} → ${dW(a15d).toFixed(3)} m/s · d=0 gleich ${js(a0d) === js(a0)}`);
+}
+
+// (39) Phase AX §6l (`audit/fusion-ausbau.md`, V-AX-22): „buscosun Fusion 8" — die Regenwahrscheinlichkeit der Hürde nachkalibriert
+//      (`FuseCubeOptions.precipCal` + `CubeInput.precipCal`, Tabelle `precipCal.ts`, Leser `precipCalPoint.ts`, `CubeIo.precipCalSource`).
+//      Voreinstellung aus ⇒ byte-gleich; mit Option ohne Tabelle byte-gleich + Notiz; mit Tabelle bewegt sich NUR pDry der Hürde,
+//      μ/σ der Menge und jede andere Größe bleiben exakt; die Situation (K-2-Kette / gelernte Hürde) wählt den Eintrag.
+{
+  const { cubeInputFromBundle, fuseCubePoint, cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+  const { PRECIP_CAL_KIND, PRECIP_CAL_VERSION, PRECIP_CAL_SITUATIONS, PRECIP_CAL_GROUPS } = await import('../src/pointForecast/fusion/precipCal.ts');
+  const { loadPrecipCal } = await import('../src/point/client/precipCalPoint.ts');
+  const { POINT_PRECIP_CAL_PATH } = await import('../src/point/cubeFormat.ts');
+  const bundle9 = await readPointBundle(
+    { lat: FIX.lat, lon: FIX.lon, elevationM: FIX.hTrue, nowMs: FIX.nowMs, fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 },
+    { store: memoryStore(fx.files), terrain: false, nowcast: false, plan: false, neighbours: true });
+  const in9 = (table) => { const i = cubeInputFromBundle(bundle9, clima, null); i.terrain = flatTerrain(FIX.hTrue); i.elevationM = FIX.hTrue; if (table !== undefined) i.precipCal = table; return i; };
+  const tableFor = (sits, a = 0.6, b = 1) => {
+    const entries = {};
+    for (const s of PRECIP_CAL_SITUATIONS) for (let g = 0; g < PRECIP_CAL_GROUPS.length; g++) entries[`${s}|${g}`] = sits.includes(s) ? { n: 1000, wet: 100, a, b, written: true } : { n: 0, wet: 0, a: 0, b: 1, written: false };
+    return { schema: 1, kind: PRECIP_CAL_KIND, fitVersion: PRECIP_CAL_VERSION, provenance: 'archive', builtAt: 'x', period: { from: '2026-09-16', to: '2026-09-30', issueDays: 14 }, rows: 405810, entries, notes: [] };
+  };
+  const js = (r) => JSON.stringify(r.steps.map((s) => s.fused));
+  const b0 = fuseCubePoint(in9(undefined), { hourly: false });
+  const bOptNoTable = fuseCubePoint(in9(undefined), { hourly: false, precipCal: true });
+  const bTableNoOpt = fuseCubePoint(in9(tableFor(['k2', 'learned'])), { hourly: false });
+  const bBad = fuseCubePoint(in9({ ...tableFor(['k2']), kind: 'x' }), { hourly: false, precipCal: true });
+  add('(39) precipCal aus ⇒ byte-gleich (auch mit Tabelle im Eingang, keine calib-Zeile); an ohne Tabelle ⇒ byte-gleich + `precipCal:absent`; an mit ungültiger Tabelle ⇒ byte-gleich + `precipCal:absent (ungültig: …)`',
+    js(bOptNoTable) === js(b0) && js(bTableNoOpt) === js(b0) && js(bBad) === js(b0)
+    && bOptNoTable.calib.some((c) => c.startsWith('precipCal:absent')) && !b0.calib.some((c) => c.startsWith('precipCal:')) && !bTableNoOpt.calib.some((c) => c.startsWith('precipCal:'))
+    && bBad.calib.some((c) => c.startsWith('precipCal:absent') && c.includes('ungültig')),
+    bOptNoTable.calib.filter((c) => c.startsWith('precipCal')).map((c) => c.slice(0, 40)).join(' | '));
+  // with a table for BOTH situations: only pDry moves (downwards with a = 0,6 > 0), μ/σ and every other variable stay exactly
+  const bBoth = fuseCubePoint(in9(tableFor(['k2', 'learned'])), { hourly: false, precipCal: true });
+  // a hurdle with pDry exactly 0 (p_wet = 1 → clamped to 1 − 1e-4 → Φ(a + b·3,7) = 1) cannot move: counted as "movable" only strictly inside (0, 1)
+  // … and the analysis hour (lead 0) lies in no lead group (groups start at 1 h) — no entry, no move, no flag
+  const { precipCalGroup } = await import('../src/pointForecast/fusion/precipCal.ts');
+  let movedPDry = 0, hurdles = 0, movable = 0, inGroup = 0, otherSame = true, amountSame = true, downwards = true;
+  bBoth.steps.forEach((s, i) => {
+    const p0 = b0.steps[i].fused?.precipitation, p1 = s.fused?.precipitation;
+    if (p0?.dist.kind === 'hurdleLogNormal' && p1?.dist.kind === 'hurdleLogNormal') { hurdles += 1; const g = precipCalGroup(s.leadH) >= 0; if (g) inGroup += 1; if (g && p0.dist.pDry > 0 && p0.dist.pDry < 1) movable += 1; if (Math.abs(p1.dist.pDry - p0.dist.pDry) > 1e-12) { movedPDry += 1; if (p1.dist.pDry > p0.dist.pDry) downwards = false; } if (p1.dist.mu !== p0.dist.mu || p1.dist.sigma !== p0.dist.sigma) amountSame = false; }
+    const strip = (f) => f ? JSON.stringify({ ...f, precipitation: null }) : 'null';
+    if (strip(s.fused) !== strip(b0.steps[i].fused)) otherSame = false;
+  });
+  add('(39) precipCal an mit Tabelle (beide Situationen, a 0,6): pDry sinkt an jedem Hürden-Schritt mit 0 < pDry < 1 (pDry = 0 bleibt 0), μ/σ der Menge bleiben exakt, T/Td/Wind/Böe/Bewölkung byte-gleich; Flag `precipCal` an jedem Schritt mit Eintrag, calib `precipCal:archive`, Notiz mit Zählung',
+    hurdles > 0 && movable > 0 && movedPDry === movable && downwards && amountSame && otherSame
+    && bBoth.steps.filter((s) => s.flags.includes('precipCal')).length === inGroup && bBoth.calib.some((c) => c.startsWith('precipCal:archive')) && bBoth.notes.some((n) => /^precipCal: Regenwahrscheinlichkeit nachkalibriert an \d+ Schritten/.test(n)),
+    `${movedPDry}/${movable} bewegliche Hürden bewegt (${hurdles} Hürden)`);
+  // the situation routes the entry: a table written only for `k2` and one only for `learned` — each movable step moves under exactly ONE
+  // of them; the fixture's station member carries precipitation, so the chain is K-2 everywhere (k2)
+  const bK2 = fuseCubePoint(in9(tableFor(['k2'])), { hourly: false, precipCal: true }), bL = fuseCubePoint(in9(tableFor(['learned'])), { hourly: false, precipCal: true });
+  let xor = true, anyK2 = 0, anyL = 0;
+  bBoth.steps.forEach((s, i) => {
+    const p0 = b0.steps[i].fused?.precipitation?.dist, k = bK2.steps[i].fused?.precipitation?.dist, l = bL.steps[i].fused?.precipitation?.dist;
+    if (p0?.kind !== 'hurdleLogNormal' || !(p0.pDry > 0 && p0.pDry < 1) || precipCalGroup(s.leadH) < 0) return;
+    const mk = Math.abs(k.pDry - p0.pDry) > 1e-12, ml = Math.abs(l.pDry - p0.pDry) > 1e-12;
+    if (mk === ml) xor = false; if (mk) anyK2 += 1; if (ml) anyL += 1;
+  });
+  add('(39) Situation: an jedem beweglichen Hürden-Schritt bewegt genau EINE der beiden Teil-Tabellen (k2 ODER learned) pDry — die Kette wählt den Eintrag; im Fixture trägt die Station Niederschlag ⇒ überall k2, learned 0',
+    xor && anyK2 === movable && anyL === 0, `k2 ${anyK2} · learned ${anyL} von ${movable}`);
+  // the reader and the io key
+  const enc9 = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const ok9 = await loadPrecipCal(memoryStore(new Map([[POINT_PRECIP_CAL_PATH, enc9(tableFor(['k2']))]])));
+  const bad9 = await loadPrecipCal(memoryStore(new Map([[POINT_PRECIP_CAL_PATH, enc9({ ...tableFor(['k2']), fitVersion: 99 })]])));
+  const none9 = await loadPrecipCal(memoryStore(new Map()));
+  add('(39) loadPrecipCal: gültige Datei ⇒ Tabelle + Notiz mit Zählung der geschriebenen Einträge; ungültige ⇒ null + „ungültig"; fehlende ⇒ null + „nicht lesbar"; CubeIo.precipCalSource json ⇒ Schlüsselanhang `pcal:json` (ohne: kein Anhang)',
+    ok9.table !== null && /6 von 12 Einträgen geschrieben/.test(ok9.notes[0]) && bad9.table === null && /ungültig/.test(bad9.notes[0]) && none9.table === null && /nicht lesbar/.test(none9.notes[0])
+    && cubeIoVariantKey({ precipCalSource: 'json' }).includes('|pcal:json') && !cubeIoVariantKey({ stackSource: 'json' }).includes('pcal'),
+    ok9.notes[0]?.slice(0, 80));
 }
 
 let failed = 0;

@@ -67,7 +67,7 @@ import { TIERS, CUBE_VARS } from '../../src/point/cubeFormat.ts';
 import { NOWCAST_SOURCES } from '../../src/point/nowcastFormat.ts';
 import { MATRIX_BANDS } from '../../src/point/sourceMatrix.ts';
 import { getPointForecast } from '../../src/pointForecast/pointForecast.ts';
-import { fetchIncaAnalysisObs, INCA_ANALYSIS_URL, INCA_ANALYSIS_WINDOW_H, INCA_ANCHOR_WEIGHT } from '../../src/pointForecast/cubeSource.ts';
+import { fetchIncaAnalysisObsBatch, INCA_ANALYSIS_URL, INCA_ANALYSIS_WINDOW_H, INCA_ANCHOR_WEIGHT, INCA_BATCH_MAX } from '../../src/pointForecast/cubeSource.ts';
 import { quantileOf, meanOf } from '../../src/pointForecast/fusion/dist.ts';
 
 import {
@@ -354,23 +354,38 @@ async function collectIncaAnalysis(points, slot, slotAtMs) {
   const at = points.filter((p) => p.country === 'AT');
   slot.incaAnalysis = {
     source: 'inca', url: INCA_ANALYSIS_URL, windowH: INCA_ANALYSIS_WINDOW_H, weight: INCA_ANCHOR_WEIGHT, asOf: new Date(slotAtMs).toISOString(),
-    note: 'Schema 4: INCA-Analyse (GeoSphere inca-v1-1h-1km, stuendlich, Latenz ≈ 1–1,5 h) am Punkt fuer die letzten windowH Stunden ≤ Slot, nur AT-Punkte (die Option incaAnchor fragt nur in AT). Zeile: validAtMs, t (°C), td (°C), rh (%), u/v (m/s, 10 m); Gewicht = INCA_ANCHOR_WEIGHT (set), Abstand 0, Hoehe = Punkt. [] = kein Wert im Fenster oder HTTP-Fehler (der Motor-Abrufer meldet beides leer); null = Ausnahme (stats.errors).',
+    note: 'Schema 4: INCA-Analyse (GeoSphere inca-v1-1h-1km, stuendlich, Latenz ≈ 20 min — V-AX-21) am Punkt fuer die letzten windowH Stunden ≤ Slot, nur AT-Punkte (die Option incaAnchor fragt nur in AT). Zeile: validAtMs, t (°C), td (°C), rh (%), u/v (m/s, 10 m); Gewicht = INCA_ANCHOR_WEIGHT (set), Abstand 0, Hoehe = Punkt. Seit 02.10. (V-AX-20) gebuendelt: ≤ batchMax Punkte je Anfrage, Anfragen nacheinander (GeoSphere: 5/s, 240/h). [] = kein Wert im Fenster; null = HTTP-Fehler oder Ausnahme der Anfrage (stats.errors nennt Status und Batch).',
     byPoint: {}, stats: { points: at.length, withRows: 0, rows: 0, latestAgeH: null },
   };
   let maxLatest = null;
-  await mapLimit(at, 3, async (p) => {
+  // V-AX-20 (02.10.): the first schema-4 slot carried rows at 40 of 84 AT points — GeoSphere limits to INCA_RATE_LIMIT.perSecond
+  // requests per second (5) and the per-point loop fired ≈ 10/s; a 429 is `!res.ok` and was indistinguishable from "no value".
+  // Now: ≤ INCA_BATCH_MAX points per request (several `lat_lon` are allowed), the batches SEQUENTIALLY (≤ 1 request/s by
+  // construction), 90 s per request (a cold single request took 26 s), and a non-200 status named in `stats.errors`.
+  const batches = [];
+  for (let i = 0; i < at.length; i += INCA_BATCH_MAX) batches.push(at.slice(i, i + INCA_BATCH_MAX));
+  slot.incaAnalysis.stats.requests = batches.length; slot.incaAnalysis.stats.batchMax = INCA_BATCH_MAX; slot.incaAnalysis.stats.httpErrors = 0;
+  for (const [bi, batch] of batches.entries()) {
     try {
       const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 30_000);
-      const obs = await fetchIncaAnalysisObs(p.lat, p.lon, slotAtMs, ac.signal, fetch).finally(() => clearTimeout(timer));
-      const rows = obs.filter((o) => o.validAtMs <= slotAtMs).map((o) => ({ validAtMs: o.validAtMs, t: round2(o.temperature), td: round2(o.dewPoint), rh: round2(o.relativeHumidity), u: round2(o.u), v: round2(o.v) }));
-      slot.incaAnalysis.byPoint[p.id] = rows;
-      if (rows.length) {
-        slot.incaAnalysis.stats.withRows += 1; slot.incaAnalysis.stats.rows += rows.length;
-        const l = Math.max(...rows.map((r) => r.validAtMs)); maxLatest = maxLatest == null ? l : Math.max(maxLatest, l);
+      const timer = setTimeout(() => ac.abort(), 90_000);
+      const { status, rows: perPoint } = await fetchIncaAnalysisObsBatch(batch, slotAtMs, ac.signal, fetch).finally(() => clearTimeout(timer));
+      if (status !== 200 && status !== 0) {
+        slot.incaAnalysis.stats.httpErrors += 1;
+        slot.stats.errors.push(`incaAnalysis/batch ${bi + 1}/${batches.length} (${batch.length} Punkte): HTTP ${status}${status === 429 ? ' — Rate-Limit (V-AX-20)' : ''}`);
+        for (const p of batch) slot.incaAnalysis.byPoint[p.id] = null;
+        continue;
       }
-    } catch (e) { slot.stats.errors.push(`incaAnalysis/${p.id}: ${e.message}`); slot.incaAnalysis.byPoint[p.id] = null; }
-  });
+      batch.forEach((p, k) => {
+        const rows = perPoint[k].filter((o) => o.validAtMs <= slotAtMs).map((o) => ({ validAtMs: o.validAtMs, t: round2(o.temperature), td: round2(o.dewPoint), rh: round2(o.relativeHumidity), u: round2(o.u), v: round2(o.v) }));
+        slot.incaAnalysis.byPoint[p.id] = rows;
+        if (rows.length) {
+          slot.incaAnalysis.stats.withRows += 1; slot.incaAnalysis.stats.rows += rows.length;
+          const l = Math.max(...rows.map((r) => r.validAtMs)); maxLatest = maxLatest == null ? l : Math.max(maxLatest, l);
+        }
+      });
+    } catch (e) { slot.stats.errors.push(`incaAnalysis/batch ${bi + 1}/${batches.length}: ${e.message}`); for (const p of batch) slot.incaAnalysis.byPoint[p.id] = null; }
+  }
   if (maxLatest != null) slot.incaAnalysis.stats.latestAgeH = round2((slotAtMs - maxLatest) / H);
   if (at.length && !slot.incaAnalysis.stats.withRows) warn(slot, 'incaAnalysisEmpty', `incaAnalysis: keiner von ${at.length} AT-Punkten mit Zeile (API nicht erreichbar oder leer)`);
   slot.stats.timing.incaAnalysis = Date.now() - t0;

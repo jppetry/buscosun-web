@@ -32,6 +32,7 @@
 | E-AX-11 | Wind ohne Station (V-AX-13; Auftrag Jan 30.09. „ja starte") | **gebaut (zwei Optionen, aus), gemessen — Schritt SCHLECHTER, Anker GLEICHSTAND** — `priorShrinkWind` (Schritt bleibt für Wind/Böe): Modus L Böe 0–120 h −3,5…−5,7 %!, DE-Wind bis −11 %!, aber AT/CH-Wind +3…+15 %* und 126–240 h +4,7 %* ⇒ V-AX-17 (Defizit im gelernten Windmember); `anchorWindKm: 10` (Wind-Anker über die Distanz gedämpft): nirgends schlechter, 0–6 h Böe +0,6 %*, Wind +0,5 % (gegen 5e −1,1 %! → −0,6 % n.s.); K8 bestanden; Empfehlung: Anker in die Stufe fs mit dem nächsten Push (= buscosun Fusion 7), Schritt nein, E-AX-13 mit ≥ 30 Tagen | §6h · `fusion-ausbau/eax11.md` · `score\2026-09-30-eax11` · `verify:pv-cube` 398/398 (Block 38) · `verify:pv-fusion` 235/235 · Build 249/249 · Budget grün |
 | AX-13 (§6i) | Messung „buscosun Fusion 7“ (= 6 + `anchorWindKm: 10` + Klimagitter/Trend) gegen Fusion 6 am Archiv 16.–30.09. (Auftrag Jan 01.10.) | **gemessen — BESSER nach der vorab eingefrorenen Regel (4 Tupel besser / 0 schlechter), aber marginal:** nur Wind/Böe 0–6 h ohne Station +0,5 %* / +0,6 %* (1,008 → 1,004 · 1,213 → 1,206 m/s), Modus S byte-gleich; Zuordnung: alles vom Anker, **Klimagitter bewegt 0 von 72 Zellen (K9, V-AX-19)**; 405 810 Zeilen, 14 Ausgabetage | §6i · `fusion-ausbau/fusion7-vs-6.md` · `score\2026-10-01-f7` · `verify:fusion-fit` 125/125 · E-AX-14 = Jans Gate |
 | AX-14 (§6j) | Archiv-Schema 4: MOSMIX-S-Reihe (`stationsS`) und INCA-Analyse (`incaAnalysis`) im Sammler — die Eingaben für E-AX-8 und E-AX-10 | **gebaut (uncommitted)**, Trockenlauf gegen das CDN grün (S-Lauf 2026100104, INCA 2/2 AT-Punkte), additiv, Leser 1–4 | §6j · `verify:punktarchiv` 126/126 · wirksam nach dem Push von `main` (§30 a) |
+| AX-15 (§6k/§6l) | Prüfung des ersten Schema-4-Slots, Regentag; INCA-Sammler-Fix (V-AX-20); Scorer mit Niederschlagszellen (Brier/Reliability/POD-FAR); „buscosun Fusion 8" = 7 + nachkalibrierte Hürde gegen 7; DE-Radar 1–3 h (Auftrag Jan 02.10.) | **INCA gebündelt (84/84 live), Fusion 8 GLEICHSTAND (0 / 0 von 24; K12/K13 rot) ⇒ nicht eingeschaltet, Option gebaut und aus; V-AX-23 Radar-Stundenmittel als nächster Kandidat** | §6k–§6l · `fusion-ausbau/fusion8-vs-7.md` · `score\2026-10-02-f8` · `verify:fusion-fit` 129/129 (18) · `verify:pv-cube` 405/405 (37, 39) · `verify:punktarchiv` 127/127 · MANUELLE-SCHRITTE §32 |
 | AX-6 | Ensemble-Mittel in t3 (E-EX-1, #3) — die Messung | **gemessen (roh, 13 Monate, 129 Läufe)** — gegen jeden Einzellauf bei 126–336 h T +14/+23 %*, Wind +13/+16 %*, Böe +10/+12 %*; gegen das Mittel zweier Läufe bei T erst ab 246 h (+10 %*); bei 246–336 h gleichauf mit der Klimatologie ⇒ Gewinn vor allem Wind/Böe; Producer-Schritt = E-AX-6 | `score\2026-09-30-ax6`, `fusion-ausbau/ax6-ens.md` |
 | — | Nicht gebaut (Entwürfe §6f) | #17 CH-Member, #18 Exposition, #20 zeitversetztes Ensemble (heute nicht messbar), #4 RUC (E-EX-5: Phase 30.11.), #6 flächige MOS-Korrektur und #8 flächige Niederschlagswahrheit (Datenprogramme); Kalender #1/2 (≥ 30 Ausgabetage), #9 (Winter) | — |
 
@@ -1059,6 +1060,105 @@ Index `65d04cd`, `stations (mosmix_l)` Lauf 2026100103 (2,2 h alt), **`stationsS
 werden E-AX-8 und E-AX-10 damit ab ≈ 14 Ausgabetagen nach dem ersten Schema-4-Slot (≈ 15.10.); der Scorer braucht dazu je eine
 Variante (`stationSource`-Leser über `archiveStation(…, 'stationsS')`, INCA-Zeilen als `CubeObs` mit `weight` in den Anker).
 
+## 6k Prüfung des ersten Schema-4-Slots und des Regentags (02.10., Auftrag Jan: „schau dir den Push auf dem Archiv an … gestern hat es auch geregnet")
+
+**Slot `2026-10-01/2322.json.gz`** (Archiv-Commit `9dc4e58`, 23:31 UTC; `codeHash 373b687`, 12,9 MB gz gegen 11,6 am Vortag, 405 Punkte,
+520 s; `stats.errors` leer): **Schema 4.** `stationsS` 405 Punkte (MOSMIX-S Lauf 2026100122, Alter am Slot 1,37 h gegen 2,37 h bei
+MOSMIX-L 2026100121, dieselben 15 Ebenen, 49 absent wie bei L); `incaAnalysis` 84 AT-Punkte, **aber nur 40 mit Zeilen** (200 Zeilen = 5 je
+Punkt, 8,4 s), jüngste Analyse 0,37 h vor dem Slot; Cube t1/t2/t3 je 61 Ebenen (Schema 6, zweiter Slot mit ENS-Ebenen). **Wahrheit =
+Regentag:** DE 92 von 174 Punkten mit ≥ 0,5 mm Tagessumme (18,8 % nasse Stunden, max 30,6 mm), CH 71 von 99 (17,0 %, 25,0 mm), AT 3 von 93.
+Nasse Tage im Archiv damit: DE 14./16./20./24.09. und 01.10., AT 14./16./17./24.09., CH 16.09. und 01.10. **buscosun Fusion 7 ist deployt:**
+der Chunk `assets/cubeSource-Buma0mPB.js` auf buscosun.com trägt die Stufen-Notiz „buscosun Fusion 7" (Client-Commit `751bee2`, 02.10.
+09:45 CEST, `main` = `origin/main`); der Slot selbst wurde noch mit `373b687` gesammelt (Scorer rechnet die Stufe ohnehin neu).
+
+| Nr. | Befund | Folge |
+|---|---|---|
+| V-AX-20 | **INCA-Analyse nur an 40 von 84 AT-Punkten — Rate-Limit der GeoSphere-API.** Muster in Punktreihenfolge `++++++++-----+++++--++++-+--------+++++---…` (Fünfergruppen); der Sammler feuert 84 Anfragen mit `mapLimit 3` in 8,4 s ≈ 10/s, die API antwortet mit `ratelimit-limit: 5` je Sekunde und `x-ratelimit-limit-hour: 240` (Header am 02.10. gelesen); `fetchIncaAnalysisObs` gibt bei `!res.ok` `[]` zurück ⇒ die 429 sind nicht von „kein Wert" zu unterscheiden. Gegenprobe: derselbe Punkt 11021 einzeln ⇒ 200, 5 Zeilen (die erste kalte Anfrage brauchte 26 s — nahe am 30-s-Abbruch); **mehrere `lat_lon` je Anfrage sind erlaubt** (3 Punkte ⇒ 3 Features in Reihenfolge, 489 ms) | Sammler: alle AT-Punkte in ≤ 4 Anfragen zu ≤ 25 Punkten, sequenziell, Frist 90 s, Status ≠ 200 als `stats.errors`; Motor-Leser `incaObsOf` mit Feature-Index. Wirksam erst nach dem Push vor 23:10 UTC; der Browser-Pfad (eine Anfrage je Punkt) bleibt unter 5/s |
+| V-AX-21 | **INCA-Latenz ≈ 20 min, nicht 1–1,5 h** (§6d): die 23:00-Analyse lag um 23:22 UTC vor (`latestAgeH 0,37`) | Fenster 4 h bleibt; die Doku-Angabe korrigieren; der Anker bekommt die laufende Stunde — Gewicht 0,6 (set) wird mit dem ersten vollständigen Slot messbar |
+| V-AX-22 | **Niederschlag war in jeder Archivkarte byte-gleich (0,0 %, p 1,000) — kein Kandidat hat ihn je berührt, und die MAE-Zelle misst nichts:** 97 % trockene Stunden, MAE 0,021 mm/h = Klima. Bedingt gezählt (405 810 Zeilen, Modus S): die Hürden-Wahrscheinlichkeit 1 − pDry hat **Brier-Gewinn gegen Klima** (Vorlauf 1 h 0,023 gegen 0,041; 7–18 h ≈ 0,021 gegen 0,026–0,034) und schlägt MOSMIX' eigene Hürde (0,028); ab 0,2 zuverlässig (0,54 → 0,53 beobachtet), **am unteren Rand zu trocken** (pWet < 0,1 an 204 048 Zeilen mit 1,3 % Regen ≈ die Hälfte aller Regenstunden; 0,1–0,2 ⇒ 0,245 beobachtet). Der Punktwert (Median) sagt zu selten Regen: POD 0,51 bei 1 h (**DE 0,34 trotz Radar**), 0,20 bei 6 h, ≈ 0,1 ab 9 h; FreqBias 0,55 → 0,24 → 0,04; der Live-Pfad POD 0,8 bei FAR 0,6–0,7 (übertreibt) | Kandidaten für Fusion 8: (a) Hürde am unteren Rand nachkalibrieren (Reliability-Kurve aus dem Archiv, jetzt 6 nasse Tage), (b) DE-Radar bei 1–2 h prüfen (warum POD 0,34), (c) Scorer: Brier · Reliability · POD/FAR als Niederschlagszellen statt MAE (sonst bleibt jede Änderung unsichtbar) |
+
+## 6l „buscosun Fusion 8" — Niederschlag: Hürde nachkalibriert, Scorer mit Niederschlagszellen, DE-Radar 1–3 h (Auftrag Jan 02.10.: „lass uns das umsetzen und prüfen, ob buscosun Fusion 8 die 7er Version schlägt an den Stationen")
+
+### 6l.0 Sammler-Fix INCA (V-AX-20, zuerst — Push-Frist 23:10 UTC)
+
+`fetchIncaAnalysisObsBatch` (Motor, `cubeSource.ts`): mehrere Punkte in EINER Anfrage (`incaAnalysisUrl`, ein `lat_lon` je Punkt), Punkte außerhalb
+des Rasters nicht in der Anfrage (leer), Features in Anfrage-Reihenfolge, `incaObsOf(doc, lat, lon, featureIndex)` verwirft ein Feature
+> `INCA_FEATURE_MAX_KM` 3 km vom Punkt; `status` statt stummem `[]` bei `!res.ok`. Der Sammler bündelt die AT-Punkte zu ≤ `INCA_BATCH_MAX` 25,
+Anfragen nacheinander, Frist 90 s, Status ≠ 200 als `stats.errors` („HTTP 429 — Rate-Limit (V-AX-20)"), `stats.requests/httpErrors`. **Live
+geprüft 02.10. 09:20 UTC (4 GETs):** 84 von 84 AT-Punkten mit Zeilen, 420 Zeilen, 11,5 s; alle 44 gestern leeren Punkte jetzt gefüllt.
+Gates: typecheck 0, `verify:punktarchiv` **127/127** (neue Prüfung (5) V-AX-20), `verify:pv-cube` Block (37) um zwei Prüfungen erweitert.
+Doku-Latenz korrigiert (V-AX-21). Wirksam ab dem Archiv-Cron nach Jans Push.
+
+### 6l.1 Behauptung und Regel — eingefroren 2026-10-02 09:32 UTC, vor dem ersten Lauf
+
+**Kandidat „buscosun Fusion 8"** = Fusion 7 + Nachkalibrierung der Regenwahrscheinlichkeit: p′_wet = Φ(a + b·Φ⁻¹(p_wet)) mit p_wet = 1 − pDry
+der Fusion-7-Hürde, (a, b) je **Situation** (`k2`: die K-2-Kette des Motors — ein Stationsmember und/oder Radar-Frames tragen Niederschlag;
+`learned`: die gelernte Hürde, ohne Station und Radar) × **Vorlaufgruppe** [1–3 | 4–6 | 7–24 | 25–48 | 51–120 | 126–336 h] (1–3 h = Radar-
+Horizont `NOWCAST_HORIZON_H`), per Probit-Regression (Fisher-Scoring) auf den Archivzeilen, **Leave-Day-out mit Sperre ±1 Gültigtag** (wie
+der Stationswert), geschrieben nur bei ≥ 200 Zeilen und ≥ 20 Regenstunden im Fit, sonst Identität (a = 0, b = 1). Die Menge (μ, σ | nass)
+bleibt unverändert; T/Td/Wind/Böe/Bewölkung sind byte-gleich zu Fusion 7. Zeilen-Zuordnung: Modus S ⇒ `k2`; Modus L ⇒ `k2` bei `mem = 1`
+oder Vorlauf ≤ 3 h, sonst `learned`. *(Präzisierung 09:50 UTC, vor dem ersten gültigen Lauf: die erste Fassung nannte die Situationen
+`station`/`none` ohne den Radar-Horizont — im Motor hält das Radar bei 1–3 h die K-2-Kette, der Fit muss derselben Kette folgen; der um
+09:39 UTC gestartete Lauf wurde dafür abgebrochen, Regel und Metriken unverändert.)*
+
+**Scorer-Zellen Niederschlag (neu):** Brier der Regenwahrscheinlichkeit (Ereignis y ≥ 0,1 mm/h; Punktkandidaten MOSMIX/live als 0/1 =
+Fehlerquote), BSS gegen die Basisrate, Reliability in zehn Bins, POD/FAR/Frequenz-Bias bei p_wet ≥ 0,5 — je Modus × Bin × Kandidat ×
+Schicht; CRPS und MAE bleiben.
+
+**Regel (vorab):** Tupel = Niederschlag × 6 Bins × Modus S/L × Metrik {Brier, CRPS} = 24; signifikant = BH-adjustiertes DM/HLN-p < 0,05.
+**BESSER** = kein Tupel signifikant schlechter UND ≥ 3 Tupel signifikant besser; **SCHLECHTER** = irgendein Tupel signifikant schlechter;
+sonst **GLEICHSTAND**. MAE des Medians wird berichtet, zählt nicht (bei 3 % Basisrate belohnt MAE „immer trocken"). Kontrollen: **K11** alle
+Nicht-Niederschlags-Zellen von fusion8 gegen fusion7 unbewegt (0/60); **K12** Reliability am unteren Rand: |beobachtet − vorhergesagt| in den
+Bins 0–10 % und 10–20 % (Vorlauf ≤ 48 h, Schicht all) in beiden Modi kleiner als bei Fusion 7; **K13** In-sample-Kandidat `fusion8:in` nicht
+mehr als 0,5 % Brier besser als Leave-Day-out (sonst Anpassung an die Stichprobe). Datenbasis: dieselben 405 810 Zeilen (16.–30.09., 14
+Ausgabetage, `score\2026-10-01-f7\rows.jsonl.gz`, Spalten `v.precip.{S,Lm}.F7`), **keine Neu-Extraktion** — der Kandidat rechnet offline
+aus der Fusion-7-Verteilung (die Motor-Option folgt nur bei BESSER, mit K-Prüfung Motor = offline wie K6).
+
+### 6l.2 DE-Radar bei 1–3 h — Diagnose (02.10. 09:45 UTC, 7 317 DE-Zeilen der Karte, Modus S, 14 Tage; `scratchpad/radar-de-diag.mjs`)
+
+Join der Archiv-Frames (`nowcast.byPoint[].bySource.radvor_rv`, 5-min-Schritte, Extrapolation 2 h ⇒ bei 3 h kein Frame) mit den
+Karten-Zeilen desselben Ausgabetags; Ereignis ≥ 0,1 mm (Wahrheit = Stundensumme, Frame = Rate am Stundenende):
+
+| Vorlauf | Zeilen | nass (Wahrheit) | Radar-Frame nass | Fusion 7 nass (p ≥ 0,5) | Radar ∧ Wahrheit | Fusion 7 ∧ Wahrheit | Radar nass, Fusion 7 trocken |
+|---|---|---|---|---|---|---|---|
+| 1 h | 2 415 | 76 | 91 | 54 | 28 (POD 0,37, FAR 0,69) | 25 (POD 0,33) | 61 |
+| 2 h | 2 415 | 68 | 68 | 38 | 21 (POD 0,31, FAR 0,69) | 22 (POD 0,32) | 42 |
+
+**Befund V-AX-23 — nicht die Fusion verwirft das Radar, der Radar-Member selbst ist am Stundenende schwach:** der einzelne Frame zur
+Gültigzeit trifft nur 31–37 % der Regenstunden und liegt zu 69 % falsch (Rate an einem Zeitpunkt gegen Stundensumme, Auflösung
+0,16 mm/h, Nieselregen). Wo Radar UND Wahrheit nass sind, sagt Fusion 7 zu 65 % nass (pDry-Median 0,47); wo das Radar trocken ist und
+es regnet (95 von 144 Regenstunden), liegt pDry im Median bei 0,85 — der Fehlbetrag kommt aus dem Radar, nicht aus der Gewichtung.
+**Stundenmittel der zwölf Frames** in der Wahrheitsstunde statt des Einzelframes: POD 0,49 / FAR 0,47 bei 1 h, 0,49 / 0,57 bei 2 h;
+das Stundenmaximum trifft 0,87, aber mit FAR 0,70 (zu scharf). ⇒ Kandidat für die nächste Nummer (nicht Teil von Fusion 8, Regel
+eingefroren): der Nowcast-Member einer Stunde als Mittel der Frames im Stundenfenster (Motor `cubeSource.ts`, Radar-Sample), gemessen
+mit Neu-Extraktion; dazu die Frage, ob der Live-Pfad die Radarstunde ebenso bildet.
+
+**Vorab-Erwartung (ehrlich):** Gewinn vor allem im Brier bei 0–48 h (die Reliability zeigt den Fehler dort); CRPS folgt der Hürde nur teilweise;
+bei 126–336 h zu wenige Regenstunden (650) ⇒ meist Identität. Risiko: 14 Tage mit sechs Regentagen — die Parameter können Wetterlagen
+lernen; darum Leave-Day-out, K13 und die Wiederholung an den nächsten Archivtagen (E-AX-12-Muster).
+
+### 6l.3 Ergebnis (Lauf 09:50–11:14 UTC, Karte `score\2026-10-02-f8`, Zusammenfassung `fusion-ausbau/fusion8-vs-7.md`)
+
+**Fusion 8 GLEICHSTAND (0 / 0 von 24 Tupeln).** K11 bestanden (0/60 fremde Zellen bewegt), **K12 NICHT bestanden** (0–10-%-Bin in beiden
+Modi besser — S 0,006 → 0,010 gegen 0,012 beobachtet, L 0,029 → 0,011 gegen 0,010 —, der 10–20-%-Bin nicht: 24–25 % Regen bei 13 %
+Vorhersage bleiben), **K13 NICHT bestanden** (In-sample 0,9–1,5 % (S) / 1,0–5,2 % (L) Brier besser als Leave-Day-out ⇒ die Parameter
+hängen am Tag; 6 Regentage). Modus S ±1,4 % n.s.; Modus L +1,4…+9,4 % n.s. (CH **+20/+32/+52 %*** bei 7–120 h — die gelernte Hürde ohne
+Station ist in CH zu unscharf, b 1,15–1,53 schärft), Modus S CH 25–48 h **−3,4 %!**, 51–120 h **−74 %!** (Länderschichten, nicht Teil der
+Regel). Absolut: Fusion 7 BSS 0,29 / 0,27 / 0,15 / 0,11 (0–6 … 51–120 h, Modus S) gegen MOSMIX-Punktwert **−0,76** und Live-Pfad **−0,80**
+— die Hürde ist probabilistisch weit vor jedem Punktwert; der Median sagt bei 3 % Basisrate fast nie Regen (MAE-optimal, kein Fehler).
+**Deutung:** die Hälfte der Regenstunden liegt bei p < 10 %, wo die Vorhersage keine Trennung hat — eine affine Karte auf der Probit-Skala
+verschiebt Masse (S: aus 20–30 % nach 40–60 %, dort jetzt zu nass 0,44 → 0,35), gewinnt aber keine Information. **Entscheidung:** Fusion 8
+als Nachkalibrierung **nicht einschalten**, Tabelle nicht veröffentlichen; `FuseCubeOptions.precipCal`, Leser `precipCalPoint.ts`,
+Tabelle `precipCal.ts`, Extractor-Variante F8 bleiben gebaut und aus (Rule 2); Wiederholung mit ≥ 30 Ausgabetagen (je Land, CH-Signal).
+Nebenbefund: Fusion 7 gegen 6 steht auf derselben Karte mit 3 / 0 statt 4 / 0 (BH über 47 702 statt der früheren Tests) — nach der Regel
+weiter BESSER, am Rand. **Der nächste Hebel ist Information, nicht Kalibrierung: V-AX-23 (Radar-Stundenmittel, §6l.2) als Kandidat mit
+Neu-Extraktion; danach Member-Spread/ENS-Mittel in der Hürde.**
+
+Gates (Arbeitsbaum, 02.10.): typecheck 0 · `verify:fusion-fit` **129/129** (Block 18 neu) · `verify:pv-cube` **405/405** (Block 37 +2,
+Block 39 neu) · `verify:punktarchiv` **127/127** · `verify:pv-fusion` **235/235** · `verify:point-client` **171/171** (solo; unter Last
+(10s) rot, V-EX-13) · Build **249/249** · Budget grün: eagerJs 108,6 / 108,7, **totalJs 1 516,0 / 1 516** (die Option und der Leser kosten
+≈ 1,7 KB gz im Cube-Chunk; die Grenze ist damit erreicht — der nächste Zuwachs braucht die Anhebung mit Notiz, Jan 30.09.).
+
 ## 7 Gates der Phase (Arbeitsbaum mit der parallelen Dashboard-Phase; Stand nach AX-11, 30.09. 14:50 UTC)
 
 | Gate | Stand |
@@ -1148,6 +1248,11 @@ ist out of fold am Hindcast gemessen, das ist die stärkere Zahl); AX-6 nach der
 | E-AX-5 | Tabelle mit Atomen ins Daten-Repo | ja — Archiv BESSER, K7 bestanden (§6g.5); Einspielen = Jans Go |
 | E-AX-12 | Karte nach dem Einspielen an den nächsten ≥ 14 Archivtagen wiederholen (out-of-sample) | Jans Gate für den Termin |
 | V-AX-19 | **Das Klimagitter (E-AX-9) bewegt in der Stufe fs keine bewertete Zelle** — der Prior wirkt nur noch im Schwanz und in `climatologyOnly`-Schritten, die Anomalie-Interpolation liest das gelernte μ_c (§6i.2, 405 810 Zeilen byte-gleich) | `climaGrid`/`climaTrend` nicht einschalten; Gewinn nur über die Anomalie-Interpolation erreichbar (eigene Etappe) |
+| V-AX-20 | **INCA-Analyse nur an 40 von 84 AT-Punkten** — GeoSphere-Rate-Limit 5 Anfragen/s (Header gelesen), der Sammler feuert ≈ 10/s, 429 wird zu `[]` (§6k) | Sammler bündelt die AT-Punkte je Anfrage (≤ 25 `lat_lon`, erlaubt), Frist 90 s, Fehlstatus benannt — vor dem Push 23:10 UTC |
+| V-AX-21 | INCA-Latenz ≈ 20 min statt 1–1,5 h (§6k) | Doku korrigieren; Anker nimmt die laufende Stunde |
+| V-AX-22 | **Niederschlag:** MAE-Zelle misst nichts (97 % trocken); Hürde hat Brier-Gewinn, ist aber am unteren Rand zu trocken (≈ Hälfte der Regenstunden bei pWet < 0,1); Median sagt zu selten Regen (POD 0,51 → 0,20 → 0,1, DE bei 1 h 0,34 trotz Radar) (§6k) | Fusion-8-Kandidaten: Hürde nachkalibrieren, DE-Radar 1–2 h prüfen, Scorer-Zellen Brier/Reliability/POD-FAR |
+| V-AX-23 | **DE-Radar bei 1–2 h: der Einzelframe zur Gültigzeit trifft nur 31–37 % der Regenstunden (FAR 0,69)** — Rate zu einem Zeitpunkt gegen Stundensumme; das Stundenmittel der zwölf Frames trifft 0,49 bei FAR 0,47; die Fusion verwirft das Radar nicht (§6l.2) | Kandidat: Nowcast-Member einer Stunde als Mittel der Frames im Stundenfenster (Motor), Messung mit Neu-Extraktion |
+| E-AX-15 | „buscosun Fusion 8" = Fusion 7 + Nachkalibrierung der Regenwahrscheinlichkeit (§6l): GLEICHSTAND (0 / 0 von 24), K12/K13 rot | **nicht einschalten**; Option/Leser/Tabelle gebaut und aus; Wiederholung ab ≥ 30 Ausgabetagen; nächster Kandidat V-AX-23 |
 | E-AX-14 | `anchorWindKm: 10` in die Stufe fs = „buscosun Fusion 7“: nach der Regel BESSER (4 / 0), Gewinn nur Wind/Böe 0–6 h ohne Station +0,5/+0,6 %* (§6i.2) | Jans Gate (MANUELLE-SCHRITTE §30 b) |
 | §6j | Archiv-Schema 4: `stationsS` (MOSMIX-S-Reihe) und `incaAnalysis` im Sammler, damit E-AX-8/E-AX-10 messbar werden | gebaut, wirksam nach dem Push von `main` (§30 a); messbar ab ≈ 15.10. |
 | E-AX-6 | ENS-Mittel als t3-Member (Producer) | ja, nach NS |

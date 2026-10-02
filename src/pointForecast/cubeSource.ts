@@ -55,6 +55,8 @@ import { loadCalib, type LoadedCalib } from '../point/client/calibPoint';
 import { loadLearned, type LoadedLearned } from '../point/client/learnedPoint';
 import { loadClimaProduct, type LoadedClimaProduct } from '../point/client/climaPoint';
 import { loadStack, type LoadedStack } from '../point/client/stackPoint';
+import { loadPrecipCal, type LoadedPrecipCal } from '../point/client/precipCalPoint';
+import { applyPrecipCal, precipCalEntry, validatePrecipCalTable, type PrecipCalSituation, type PrecipCalTable } from './fusion/precipCal';
 import { estimateCoefficients, muAt, trendVector, type ClimaProduct, type MuEstimate } from '../point/fusionFit/climaProduct';
 import { climaColumnsFor } from '../point/fusionFit/tables';
 import { predict as predictLearned, predictPrecip as predictPrecipLearned, type PredictSituation } from '../point/fusionFit/predict';
@@ -78,9 +80,9 @@ import { solarPosition } from './terrainPhysics';
 import { detectFoehn } from './foehnDetector';
 import { apparentTemperatureC } from './apparentTemperature';
 import type { ClimaField, ClimaSample } from '../ml/climaField';
-import { TIERS, CUBE_PLANES, CUBE_ENS_MEAN_VARS, POINT_CALIB_PATH, POINT_LEARNED_PATH, POINT_CLIMA_PATH, POINT_STACK_PATH, type TierId } from '../point/cubeFormat';
+import { TIERS, CUBE_PLANES, CUBE_ENS_MEAN_VARS, POINT_CALIB_PATH, POINT_LEARNED_PATH, POINT_CLIMA_PATH, POINT_STACK_PATH, POINT_PRECIP_CAL_PATH, type TierId } from '../point/cubeFormat';
 import { NOWCAST_SATURATION, type NowcastSourceId } from '../point/nowcastFormat';
-import type { CubePointSeries, CubePointStep } from '../point/client/cubePoint';
+import { distanceKm, type CubePointSeries, type CubePointStep } from '../point/client/cubePoint';
 import type { StaticPoint } from '../point/client/staticPoint';
 import type { PointSourceManifest } from '../point/manifest';
 import type { StationPointSeries } from '../point/client/stationPoint';
@@ -159,6 +161,11 @@ export interface CubeFusionInput {
    * Wirkt nur mit `FuseCubeOptions.stationValue`, einem Stationsmember AM Punkt (`table.range`) — fehlt das Feld, byte-gleich.
    */
   stack?: StackTable | null;
+  /**
+   * Phase AX §6l (buscosun Fusion 8): die Tabelle der Regenwahrscheinlichkeits-Nachkalibrierung (`precipCal.ts`, Provenienz
+   * `archive`). Wirkt nur mit `FuseCubeOptions.precipCal`; fehlt das Feld, byte-gleich.
+   */
+  precipCal?: PrecipCalTable | null;
   index: { commit: string | null; publishedAt?: string; axis?: { usableToMs?: number | null; gaps?: Array<{ fromH: number; toH: number }> } } | null;
   /** Die Klimatologie — Prior der Schrumpfung. Ohne sie gibt es keine Verteilungen (K-3). */
   clima: ClimaField | null;
@@ -242,7 +249,7 @@ export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, ob
 export type StepFlag =
   | 'extrapolatedBelowModel' | 'inversionBody' | 'stdLapseFallback' | 'chunkBorderTruncated' | 'belowGround925'
   | 'nowcastFallbackModel' | 'climatologyOnly' | 'stale' | 'seam' | 'interpolated' | 'noTerrain' | 'nowcastSaturated'
-  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip';
+  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal';
 
 export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'anchor' | 'climatology';
 export type StepTier = TierId | 'station' | 'clima';
@@ -591,6 +598,13 @@ export interface FuseCubeOptions {
    */
   stationValue?: boolean;
   /**
+   * Phase AX §6l (buscosun Fusion 8, V-AX-22): die Regenwahrscheinlichkeit der Hürde nachkalibriert, p′ = Φ(a + b·Φ⁻¹(p)) mit
+   * (a, b) je Situation (K-2-Kette mit Station und/oder Radar, gelernte Hürde) × Vorlaufgruppe aus `input.precipCal`; die Menge
+   * (μ, σ | nass) bleibt. Nach der gelernten Hürde, vor dem Stationswert. Wirkt nur mit `input.precipCal`; Voreinstellung aus ⇒
+   * byte-gleich.
+   */
+  precipCal?: boolean;
+  /**
    * AP7: stündliche Achse — Stunden ohne nativen Schritt füllt die Station (wenn sie den Punkt vertritt),
    * sonst werden die Quantile der Nachbarschritte linear interpoliert und markiert. Voreinstellung nein
    * (nur native Schritte); `getPointForecastFromCube` verlangt sie, weil `PointForecast.hours` stündlich ist.
@@ -840,6 +854,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const stackErrors = opts.stationValue === true && input.stack ? validateStackTable(input.stack) : [];
   const stackT: StackTable | null = opts.stationValue === true && input.stack && !stackErrors.length ? input.stack : null;
   const fsCount = { atPoint: 0, clouds: 0, stationValue: 0, byForm: {} as Record<string, number>, byCountry: {} as Record<string, number> };
+  // Phase AX §6l (buscosun Fusion 8): the recalibration table of the wet probability — only with the option AND a valid table
+  const pcErrors = opts.precipCal === true && input.precipCal ? validatePrecipCalTable(input.precipCal) : [];
+  const pcT: PrecipCalTable | null = opts.precipCal === true && input.precipCal && !pcErrors.length ? input.precipCal : null;
+  const pcCount = { applied: 0, k2: 0, learned: 0, identity: 0 };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
   // gültiger Kurve (`anchorCurveValid`); je Größe ohne Kurve gilt die Setzung e^(−τ/τ_v). Ohne `anchor`-Block in den
   // Tabellen: exakt der bisherige Pfad (byte-gleich). Td hat im Cube-Pfad keinen Anker (keine Feuchte-Innovation).
@@ -958,6 +976,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ...(keepWindShrink ? ['priorShrinkWind:set — Wind und Böe behalten den Klimatologie-Schritt trotz priorShrink:off (E-AX-11, V-AX-13): am Punkt ohne Station verlor der Wind ohne den Schritt gegen die Kette von 5e; T, Td und Bewölkung bleiben ohne Schritt'] : []),
     ...(anchorWindL != null ? [`anchorWind:set — der Anker für u, v und Böe ist über die Distanz der Messung mit e^(−(d/${opts.anchorWindKm} km)²) gedämpft (E-AX-11): eine 10–30 km entfernte Messung trägt beim Wind eine fremde Exposition; T behält das Gewicht von spatialWeight`] : []),
     ...(useLearnedClouds && learnedT ? ['learnedClouds:hindcast — die Bewölkungsverteilung der Lernstufe wird durchgereicht statt nachfusioniert (Phase FS, H14)'] : []),
+    ...(opts.precipCal === true ? [pcT
+      ? `precipCal:archive — Regenwahrscheinlichkeit nachkalibriert, p′ = Φ(a + b·Φ⁻¹(p)) aus ${pcT.fitVersion} (${pcT.period.from}…${pcT.period.to}, ${pcT.period.issueDays} Ausgabetage, ${pcT.rows} Zeilen; Provenienz archive, nie measured) je Situation (K-2-Kette mit Station/Radar, gelernte Hürde) × Vorlaufgruppe; Menge (μ, σ | nass) unverändert (buscosun Fusion 8, §6l)`
+      : `precipCal:absent — Option an, aber keine Tabelle im Eingang${pcErrors.length ? ` (ungültig: ${pcErrors.slice(0, 2).join('; ')})` : ''} ⇒ Hürde unverändert`] : []),
     ...(opts.stationValue === true ? [stackT
       ? `stationValue:archive — Stationswert M + b + w·I + c·(L − M) aus ${stackT.fitVersion} (${stackT.period.from}…${stackT.period.to}, ${stackT.period.issueDays} Ausgabetage, ${stackT.rows} Zeilen; Provenienz archive, nie measured) für T, Td, Windgeschwindigkeit, Böe — nur mit einer Station am Punkt (≤ ${stackT.range.maxKm} km, |Δh| ≤ ${stackT.range.maxDElevM} m); I aus der jüngsten Messung einer Station am Punkt; Richtung, Feuchte und Phase bleiben aus der Kombination`
       : `stationValue:absent — Option an, aber ${input.stack ? `die Tabelle ist ungültig (${stackErrors.slice(0, 2).join('; ')})` : 'keine Tabelle im Eingang'} ⇒ Rechnung ohne Stationswert`] : []),
@@ -1491,6 +1512,15 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         }
       }
     }
+    // Phase AX §6l (buscosun Fusion 8): the recalibrated wet probability — after the K-2 / learned hurdle, before the station value.
+    // Situation k2 = a station member and/or radar frames carried precipitation (the engine kept K-2 above), learned = the learned
+    // hurdle's chain (whether or not a stratum was written — the scorer labels its rows the same way).
+    if (fused && pcT && fused.precipitation && fused.precipitation.dist.kind === 'hurdleLogNormal') {
+      const sit: PrecipCalSituation = nowcastMembers || (st && st.precipitation != null) ? 'k2' : 'learned';
+      const e = precipCalEntry(pcT, sit, leadH);
+      if (e && e.written) { fused = { ...fused, precipitation: { ...fused.precipitation, dist: applyPrecipCal(fused.precipitation.dist, e) } }; flags.push('precipCal'); pcCount.applied += 1; pcCount[sit] += 1; }
+      else pcCount.identity += 1;
+    }
     // Phase FS: nach der Kombination — die gelernte Bewölkung durchreichen (H14), der Stationswert (H9/H10).
     let post: CubeStep['post'];
     if (fused && useLearnedClouds && fused.clouds && p.learnedDist?.clouds && flags.includes('learned')) {
@@ -1528,6 +1558,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     : 'stationValue: an keinem Schritt gesetzt — die Tabelle trägt keinen Eintrag für die Form, die diese Abfrage tragen kann');
   if (useAtPoint && learnedT) notes.push(`learnedAtPoint: Member an ${fsCount.atPoint} Schritten vorkompensiert`);
   if (useLearnedClouds && learnedT) notes.push(`learnedClouds: gelernte Bewölkung an ${fsCount.clouds} Schritten durchgereicht`);
+  if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
   if (opts.stationValue === true && stackT) {
     notes.push(stackOn
       ? `stationValue: ${input.station!.station.name.trim()} steht am Punkt (${input.station!.station.distanceKm.toFixed(1)} km, Δh ${Math.round(input.station!.station.elev - (hTrue as number))} m); Innovation ${stackInn ? `aus ${stackInn.source}${stackInn.stationId ? ` ${stackInn.stationId}` : ''}${stackInn.name ? ` ${stackInn.name}` : ''} (${stackInn.distanceKm.toFixed(1)} km${stackInn.byStation ? ', gezielt abgefragt' : ''}) ${new Date(stackInn.atMs).toISOString().slice(0, 16)}Z (T ${stackInn.I.t == null ? '—' : stackInn.I.t.toFixed(2)} K)` : `keine (${input.obs?.length ? `${input.obs.length} Messung(en), die nächste ${(Math.min(...input.obs.map((o) => o.distanceM)) / 1000).toFixed(1)} km entfernt — ` : 'keine Messung — '}keine Messung einer Station am Punkt ≤ jetzt mit Stationsvorhersage zur Messzeit) ⇒ Formen ohne w·I`}`
@@ -1885,6 +1916,12 @@ export interface CubeIo {
    */
   stackSource?: 'none' | 'json';
   /**
+   * Phase AX §6l (buscosun Fusion 8): `'json'` liest `point/precip-cal.client.json` (`precipCalPoint.ts`, Provenienz `archive`)
+   * und reicht die Tabelle als `CubeInput.precipCal` an den Motor. Wirkt nur mit `fuse.precipCal`. Voreinstellung `'none'`.
+   * Nie blockierend, eine Entscheidung je Abfrage.
+   */
+  precipCalSource?: 'none' | 'json';
+  /**
    * Phase FS: `'fs'` = die neueste Stufe von buscosun Fusion als EIN Schalter. Liegen die gelernten Tabellen vor, rechnet der
    * Cube-Pfad mit `learnedSpeed`, `learnedPrecip`, `learnedAtPoint`, `learnedClouds`, `priorShrink: false` und (seit
    * „buscosun Fusion 7", E-AX-14, 01.10.2026) `anchorWindKm: FUSION7_ANCHOR_WIND_KM` — die Kette, die am Archiv gemessen ist;
@@ -1944,15 +1981,16 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const learned = io.learnedSource === 'json' ? 'learned:json' : null;
   const climaS = io.climaSource === 'json' ? 'clima:json' : null;
   const stackS = io.stackSource === 'json' ? 'stack:json' : null;
+  const pcS = io.precipCalSource === 'json' ? 'pcal:json' : null;
   const stage = io.stage === 'fs' ? 'stage:fs' : null;
   // AX-8: ein anderes Stationsprodukt ist ein anderes Produkt — in den Schlüssel (V-FI-80), ohne Option kein Anhang.
   const stS = io.stationSource && io.stationSource !== 'mosmix_l' ? `st:${io.stationSource}` : null;
   const cg = io.climaGrid ? 'cg' : null;
   const inca = io.incaAnchor ? 'inca' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !stage && !stS && !cg && !inca) return '';
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -2020,14 +2058,26 @@ export const INCA_ANCHOR_WEIGHT = 0.6;
  */
 export const FUSION7_ANCHOR_WIND_KM = 10;
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
-/** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse erscheint ≈ 1–1,5 h nach der Stunde, gemessen 30.09.). */
+/** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
+/**
+ * V-AX-20: die GeoSphere-API begrenzt je IP auf 5 Anfragen je Sekunde und 240 je Stunde (Header `ratelimit-limit` /
+ * `x-ratelimit-limit-hour`, gelesen 02.10.); eine 429 kommt als `!res.ok` zurück. Mehrere `lat_lon` je Anfrage sind erlaubt
+ * (Features in der Reihenfolge der Parameter, gemessen) — der Sammler bündelt darum bis zu INCA_BATCH_MAX Punkte je Anfrage.
+ */
+export const INCA_RATE_LIMIT = Object.freeze({ perSecond: 5, perHour: 240 });
+export const INCA_BATCH_MAX = 25;
+/** Größter Abstand Punkt → zurückgegebene Zelle, bis zu dem ein Feature dem Punkt zugeordnet wird (1-km-Raster ⇒ ≤ 0,71 km). */
+export const INCA_FEATURE_MAX_KM = 3;
 
 /** AX-10: die Abbildung der GeoSphere-Zeitreihe → `CubeObs` (rein; der Verifier prüft sie ohne Netz). */
-export function incaObsOf(doc: unknown, lat: number, lon: number): CubeObs[] {
+export function incaObsOf(doc: unknown, lat: number, lon: number, featureIndex = 0): CubeObs[] {
   const d = doc as { timestamps?: string[]; features?: Array<{ geometry?: { coordinates?: [number, number] }; properties?: { parameters?: Record<string, { data?: Array<number | null> }> } }> } | null;
-  const ts = d?.timestamps, f = d?.features?.[0], par = f?.properties?.parameters;
+  const ts = d?.timestamps, f = d?.features?.[featureIndex], par = f?.properties?.parameters;
   if (!Array.isArray(ts) || !par) return [];
+  // V-AX-20: in a batched answer the feature must be the point's own cell — a feature further away is someone else's.
+  const fc = f?.geometry?.coordinates;
+  if (fc && Number.isFinite(fc[0]) && Number.isFinite(fc[1]) && distanceKm(lat, lon, fc[1], fc[0]) > INCA_FEATURE_MAX_KM) return [];
   const col = (k: string): Array<number | null> => par[k]?.data ?? [];
   const at = (arr: Array<number | null>, i: number): number | null => { const v = arr[i]; return typeof v === 'number' && Number.isFinite(v) ? v : null; };
   const coords = f?.geometry?.coordinates;
@@ -2050,13 +2100,42 @@ export function incaObsOf(doc: unknown, lat: number, lon: number): CubeObs[] {
 
 /** AX-10: die INCA-Analyse der letzten Stunden am Punkt — leer außerhalb des Rasters, bei HTTP-Fehler oder Abbruch. */
 export async function fetchIncaAnalysisObs(lat: number, lon: number, nowMs: number, signal: AbortSignal, fetchImpl: typeof fetch = fetch): Promise<CubeObs[]> {
-  if (lat < INCA_BOUNDS.latMin || lat > INCA_BOUNDS.latMax || lon < INCA_BOUNDS.lngMin || lon > INCA_BOUNDS.lngMax) return [];
-  const stamp = (ms: number): string => new Date(Math.floor(ms / H) * H).toISOString().slice(0, 16);
-  const url = INCA_ANALYSIS_URL + '?parameters=T2M,TD2M,RH2M,UU,VV&lat_lon=' + lat.toFixed(4) + ',' + lon.toFixed(4)
-    + '&start=' + stamp(nowMs - INCA_ANALYSIS_WINDOW_H * H) + '&end=' + stamp(nowMs);
-  const res = await fetchImpl(url, { signal });
+  if (!incaCovers(lat, lon)) return [];
+  const res = await fetchImpl(incaAnalysisUrl([{ lat, lon }], nowMs), { signal });
   if (!res.ok) return [];
   return incaObsOf(await res.json(), lat, lon);
+}
+
+/** Liegt der Punkt im INCA-Raster (Registry-Hülle)? Außerhalb wird nie gefragt. */
+export function incaCovers(lat: number, lon: number): boolean {
+  return !(lat < INCA_BOUNDS.latMin || lat > INCA_BOUNDS.latMax || lon < INCA_BOUNDS.lngMin || lon > INCA_BOUNDS.lngMax);
+}
+
+/** Die Anfrage-URL für einen oder mehrere Punkte (ein `lat_lon` je Punkt, Fenster INCA_ANALYSIS_WINDOW_H auf volle Stunden). */
+export function incaAnalysisUrl(points: ReadonlyArray<{ lat: number; lon: number }>, nowMs: number): string {
+  const stamp = (ms: number): string => new Date(Math.floor(ms / H) * H).toISOString().slice(0, 16);
+  return INCA_ANALYSIS_URL + '?parameters=T2M,TD2M,RH2M,UU,VV'
+    + points.map((p) => '&lat_lon=' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4)).join('')
+    + '&start=' + stamp(nowMs - INCA_ANALYSIS_WINDOW_H * H) + '&end=' + stamp(nowMs);
+}
+
+/**
+ * V-AX-20: die INCA-Analyse für MEHRERE Punkte in EINER Anfrage (Sammler; der Browser fragt je Punkt). Punkte außerhalb des
+ * Rasters stehen nicht in der Anfrage und bekommen `[]`; die Antwort-Features werden in der Reihenfolge der Anfrage zugeordnet
+ * (`incaObsOf` prüft die Zellkoordinate gegen den Punkt). `status` ist der HTTP-Status (0 = kein Punkt gefragt); bei
+ * `!res.ok` sind alle Reihen leer — der Aufrufer unterscheidet damit „429/5xx" von „kein Wert".
+ */
+export async function fetchIncaAnalysisObsBatch(points: ReadonlyArray<{ lat: number; lon: number }>, nowMs: number, signal: AbortSignal, fetchImpl: typeof fetch = fetch): Promise<{ status: number; rows: CubeObs[][] }> {
+  if (points.length > INCA_BATCH_MAX) throw new Error(`fetchIncaAnalysisObsBatch: ${points.length} Punkte > INCA_BATCH_MAX ${INCA_BATCH_MAX}`);
+  const rows: CubeObs[][] = points.map(() => []);
+  const asked: number[] = [];
+  points.forEach((p, i) => { if (incaCovers(p.lat, p.lon)) asked.push(i); });
+  if (!asked.length) return { status: 0, rows };
+  const res = await fetchImpl(incaAnalysisUrl(asked.map((i) => points[i]), nowMs), { signal });
+  if (!res.ok) return { status: res.status, rows };
+  const doc = await res.json();
+  asked.forEach((pi, k) => { rows[pi] = incaObsOf(doc, points[pi].lat, points[pi].lon, k); });
+  return { status: res.status, rows };
 }
 
 export async function fetchCubeObs(lat: number, lon: number, country: Country, signal: AbortSignal, hint?: CubeObsHint, opts?: CubeObsFetchOptions): Promise<CubeObs[]> {
@@ -2141,7 +2220,7 @@ export const UPDATE_WAIT_MS = 6_000;
 /** Bündel + Klimatologie + Messungen → `PointForecast` mit `cube`-Block (AP2–AP8); `obsNotes` sagen, warum ohne Anker. */
 function forecastFromBundle(
   bundle: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null, obsNotes: string[], opts: PointForecastOptions, io: CubeIo,
-  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null; stack?: LoadedStack | null },
+  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null; stack?: LoadedStack | null; precipCal?: LoadedPrecipCal | null },
   z0: Z0AtPoint | null = null,
 ): PointForecast {
   const input = cubeInputFromBundle(bundle, clima, obs);
@@ -2154,6 +2233,7 @@ function forecastFromBundle(
   if (t.climaProduct) { input.notes.push(...t.climaProduct.notes); input.learnedClima = t.climaProduct.product; }
   // Phase FS: die Tabelle des Stationswerts; die Stufe `fs` schaltet, was die vorhandenen Tabellen tragen.
   if (t.stack) { input.notes.push(...t.stack.notes); input.stack = t.stack.table; }
+  if (t.precipCal) { input.notes.push(...t.precipCal.notes); input.precipCal = t.precipCal.table; }
   const stageFuse: Partial<FuseCubeOptions> = {};
   if (io.stage === 'fs') {
     if (t.learned?.tables) {
@@ -2323,6 +2403,20 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     });
     return stackUsed;
   };
+  // Phase AX §6l (buscosun Fusion 8): the recalibration table — same pattern, never blocking, one decision per query.
+  let pcVal: LoadedPrecipCal | null | undefined;
+  const pcP: Promise<unknown> | null = io.precipCalSource === 'json'
+    ? loadPrecipCal(io.store, opts.signal ? { signal: opts.signal } : {}).then((c) => { pcVal = c; }, () => { pcVal = null; })
+    : null;
+  let pcUsed: LoadedPrecipCal | null | undefined;
+  const precipCalNow = (): LoadedPrecipCal | null => {
+    if (pcUsed !== undefined) return pcUsed;
+    pcUsed = !pcP ? null : (pcVal ?? {
+      path: POINT_PRECIP_CAL_PATH, hash: null, table: null,
+      notes: [pcVal === null ? 'precipCal: Lesen gescheitert — Hürde unverändert' : 'precipCal: precip-cal.client.json bei der ersten Ausgabe noch nicht da — Hürde unverändert (nie blockierend)'],
+    });
+    return pcUsed;
+  };
   let calibUsed: LoadedCalib | null | undefined;
   const calibNow = (): LoadedCalib | null => {
     if (calibUsed !== undefined) return calibUsed;
@@ -2357,7 +2451,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const pending = [...all.filter((t) => !b1.tiers.includes(t)), ...(io.obs ? ['anchor'] : [])];
       try {
         resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...(io.z0 && z0Missing(z0c) ? z0PendingNote(io, z0c, 'follows') : z0NoteOf(io, z0c, 'follows'))],
-          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0c));
+          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0c));
       } catch { /* die erste Darstellung ist ein Angebot — der Kern kommt ohnehin */ }
     });
   } : undefined;
@@ -2399,7 +2493,8 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     if (calibP && calibVal === undefined) await Promise.race([calibP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
     if (learnedP && learnedVal === undefined) await Promise.race([learnedP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
     if (stackP && stackVal === undefined) await Promise.race([stackP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
-    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0);
+    if (pcP && pcVal === undefined) await Promise.race([pcP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
+    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0);
     cacheForecast(key, hours, forecast, opts);
     return forecast;
   }
@@ -2428,7 +2523,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     const firstNotes = [...(io.obs
       ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`]
       : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS, country)), ...(z0NetP ? z0PendingNote(io, z0c, 'follows') : [])];
-    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0c);
+    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0c);
     last = { b: bundle, obs: null, notes: firstNotes, still: pending, z0: z0c };
     if (late.crossChunk) {
       void late.crossChunk.result.then((r) => {
@@ -2438,7 +2533,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const L = last;
         const notesX = [...L.notes, `crossChunk: ${said} — 2×2-Block über die Chunk-Grenze, eigene Ausgabe (AP14)`];
         const fc4 = forecastFromBundle(cur(L.b), clima, L.obs, notesX, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, L.z0);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, L.z0);
         last = { ...L, notes: notesX, still: stillOf(L.still) };
         cacheForecast(key, hours, fc4, opts);
         opts.onUpdate!(fc4);
@@ -2457,7 +2552,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const notes3 = notesX.filter((n) => !n.startsWith('z0: '));
         const still3 = stillOf(stillX.filter((x) => x !== 'z0'));
         const fc3 = forecastFromBundle(cur(b), clima, obsX, notes3, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z);
         last = { b, obs: obsX, notes: notes3, still: still3, z0: z };
         cacheForecast(key, hours, fc3, opts);
         opts.onUpdate!(fc3);
@@ -2506,7 +2601,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const notes = [...obsNotes];
       const z0u = gotZ0 ? (z0Val as Z0AtPoint) : z0c;
       if (z0NetP && !gotZ0) notes.push(...z0PendingNote(io, z0c, z0Done ? 'missing' : 'follows'));
-      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow() }, z0u);
+      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0u);
       last = { b: b2, obs, notes, still, z0: z0u };
       cacheForecast(key, hours, second, opts);
       opts.onUpdate!(second);

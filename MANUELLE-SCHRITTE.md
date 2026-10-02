@@ -1236,3 +1236,27 @@ sich getrennt von den parallel laufenden Fusion-Änderungen committen:
 - **(e) V-NL-4:** `radarraw` und `rvfmt` in die Sperrliste geteilter Links — braucht den Neubau des Edge-Bündels `og-meta`.
 - **Hinweis:** auf der Maschine läuft seit 30.09. ein Vite-Dev-Server (PID 14356, ≈ 1 Kern Dauerlast) — nicht von dieser
   Sitzung, nicht beendet. Er verfälscht Leistungsmessungen; beenden, wenn er nicht mehr gebraucht wird.
+
+## 32. Phase AX, 02.10. — INCA-Sammler-Fix, Niederschlagszellen im Scorer, „buscosun Fusion 8" gegen 7 (GLEICHSTAND)
+
+Auftrag Jan 02.10. („lass uns das umsetzen und prüfen, ob buscosun Fusion 8 die 7er Version schlägt an den Stationen"); Befunde und Messung in
+`audit/fusion-ausbau.md` §6k–§6l, Karte `audit/fusion-ausbau/fusion8-vs-7.md`.
+
+**Stand (uncommitted):**
+- **V-AX-20 behoben:** der INCA-Sammler bündelt die 84 AT-Punkte in 4 Anfragen (GeoSphere-Limit 5/s, 240/h), Frist 90 s, Fehlstatus benannt;
+  live geprüft 84/84 Punkte, 420 Zeilen, 11,5 s. Motor: `fetchIncaAnalysisObsBatch`, `incaAnalysisUrl`, `incaObsOf(…, featureIndex)`.
+- **Scorer:** Brier, BSS, Reliability, POD/FAR/Frequenz-Bias als Niederschlagszellen (`stack-score.mjs`, `--precipTable`), Kandidat `fusion8`.
+- **„buscosun Fusion 8" (= 7 + nachkalibrierte Regenwahrscheinlichkeit): GLEICHSTAND, 0 von 24 Tupeln besser, K12/K13 rot ⇒ NICHT
+  eingeschaltet.** Option `FuseCubeOptions.precipCal`, Leser `precipCalPoint.ts`, Tabelle `precipCal.ts`, Pfad `point/precip-cal.client.json`,
+  Extractor-Variante F8 sind gebaut und voreingestellt aus (nichts im Daten-Repo, nichts in der Stufe fs). Fusion 7 bleibt der Stand.
+- **V-AX-23:** der Radar-Member bei 1–2 h ist als Einzelframe schwach (POD 0,37); Stundenmittel POD 0,49 / FAR 0,47 ⇒ nächster Kandidat (Motor,
+  Neu-Extraktion, eigene eingefrorene Regel).
+
+**Deine Gates:**
+- (a) **Push von `main` vor 23:10 UTC** (Scope `punktarchiv`/`fusion`: „archive: batch INCA analysis requests (V-AX-20), precipitation cells
+  in the stack scorer, precipCal option (off)") — damit der heutige Archiv-Slot INCA an allen 84 AT-Punkten trägt. Prüfung morgen früh im Slot
+  `2026-10-02/23xx.json.gz`: `incaAnalysis.stats.withRows` = 84, `requests` 4, `httpErrors` 0.
+- (b) E-AX-15: Fusion 8 als Nachkalibrierung nicht einschalten (Empfehlung); Wiederholung ab ≥ 30 Ausgabetagen (≈ 15.10.), dann je Land.
+- (c) V-AX-23 freigeben als nächsten Kandidaten („Fusion 8" wäre dann das Radar-Stundenmittel): Motor-Option default-off, Regel vorab,
+  Neu-Extraktion (≈ 22 min) + Karte (≈ 80 min).
+- (d) E-AX-10 (INCA-Anker-Gewicht) wird ab dem ersten vollständigen Slot messbar; Scorer-Variante folgt mit E-AX-8 (MOSMIX-S) ≈ 15.10.

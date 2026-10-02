@@ -1441,6 +1441,51 @@ if (typeof flags.cases === 'string') {
   }
 }
 
+// (18) Phase AX §6l — buscosun Fusion 8: the wet-probability recalibration (`fusion/precipCal.ts`, pure, shared by scorer and engine)
+//      and its probit fit (`lib/precipCalFit.mjs`); the scorer's precipitation cells (Brier, reliability, contingency) hang on the
+//      same constants. Identity entries pass a hurdle through byte-identically; a written entry moves ONLY pDry.
+{
+  const C = await import('../src/pointForecast/fusion/precipCal.ts');
+  const Fit = await import('./fusionfit/lib/precipCalFit.mjs');
+  const { Phi, PhiInv } = await import('../src/pointForecast/fusion/dist.ts');
+  const h = { kind: 'hurdleLogNormal', pDry: 0.95, mu: -1.2, sigma: 0.9 };
+  const idn = C.applyPrecipCal(h, C.PRECIP_CAL_IDENTITY), idn2 = C.applyPrecipCal(h, null);
+  const e = { n: 1000, wet: 100, a: 0.4, b: 1.2, written: true };
+  const w = C.applyPrecipCal(h, e);
+  const expect = 1 - Phi(0.4 + 1.2 * PhiInv(0.05));
+  const groups = [1, 3, 4, 6, 7, 24, 25, 48, 51, 120, 126, 336].map((l) => C.precipCalGroup(l));
+  add('18a precipCal: Gruppen 1–3 | 4–6 | 7–24 | 25–48 | 51–120 | 126–336 (0 und 337 ⇒ −1); Identität und fehlender Eintrag reichen die Hürde unverändert durch (gleiche Referenz); ein geschriebener Eintrag bewegt NUR pDry (p′ = Φ(a + b·Φ⁻¹(p)), 5 % ⇒ ' + (100 * (1 - expect)).toFixed(1) + ' %), μ/σ bleiben; Normalverteilung geht unverändert durch; p wird vor dem Probit auf [1e-4, 1 − 1e-4] geklemmt',
+    groups.join(',') === '0,0,1,1,2,2,3,3,4,4,5,5' && C.precipCalGroup(0) === -1 && C.precipCalGroup(337) === -1
+    && idn === h && idn2 === h && w !== h && Math.abs(w.pDry - expect) < 1e-12 && w.mu === h.mu && w.sigma === h.sigma && w.kind === 'hurdleLogNormal'
+    && C.applyPrecipCal({ kind: 'normal', mu: 1, sigma: 1 }, e).kind === 'normal'
+    && Math.abs(C.recalPWet(0, e) - Phi(0.4 + 1.2 * PhiInv(1e-4))) < 1e-12 && C.recalPWet(0.3, C.PRECIP_CAL_IDENTITY) === 0.3 && C.recalPWet(0.3, null) === 0.3,
+    `pDry 0,95 → ${w.pDry.toFixed(4)}`);
+  // table validation: a good table, then one error at a time
+  const good = { schema: 1, kind: C.PRECIP_CAL_KIND, fitVersion: C.PRECIP_CAL_VERSION, provenance: 'archive', builtAt: 'x', period: { from: null, to: null, issueDays: 1 }, rows: 1,
+    entries: { 'k2|0': { n: 500, wet: 40, a: 0.3, b: 1.1, written: true }, 'learned|5': { n: 10, wet: 1, a: 0, b: 1, written: false } }, notes: [] };
+  const bad = (patch) => C.validatePrecipCalTable({ ...good, entries: { ...good.entries, ...patch } }).length > 0;
+  add('18b validatePrecipCalTable: gültige Tabelle ohne Befund; falscher kind / fitVersion / provenance, fremder Schlüssel, b ≤ 0, geschrieben unter den Mindestzahlen, ungeschrieben aber nicht Identität ⇒ je ein Befund; der Eintrag für die Situation und den Vorlauf kommt über precipCalEntry (Gruppe 0 bei 2 h, null bei 400 h und ohne Tabelle)',
+    C.validatePrecipCalTable(good).length === 0 && C.validatePrecipCalTable({ ...good, kind: 'x' }).length === 1 && C.validatePrecipCalTable({ ...good, fitVersion: 99 }).length === 1 && C.validatePrecipCalTable({ ...good, provenance: 'measured' }).length === 1
+    && bad({ 'k2|9': { n: 500, wet: 40, a: 0, b: 1, written: true } }) && bad({ 'station|0': { n: 500, wet: 40, a: 0.3, b: 1.1, written: true } }) && bad({ 'k2|0': { n: 500, wet: 40, a: 0.3, b: 0, written: true } }) && bad({ 'k2|0': { n: 100, wet: 40, a: 0.3, b: 1.1, written: true } }) && bad({ 'learned|5': { n: 10, wet: 1, a: 0.1, b: 1, written: false } })
+    && C.precipCalEntry(good, 'k2', 2) === good.entries['k2|0'] && C.precipCalEntry(good, 'k2', 400) === null && C.precipCalEntry(null, 'k2', 2) === null && C.precipCalEntry(good, 'learned', 2) === null && C.PRECIP_CAL_RADAR_H === 3 && C.PRECIP_CAL_SITUATIONS.join() === 'k2,learned');
+  // the fit: synthetic recovery + identity; leave-day-out purge removes the held-out day ±1; below the minimums the entry is identity
+  const st = Fit.selfTest();
+  const F = new Fit.ProbitFolds();
+  let s = 11; const rnd = () => { s = (1664525 * s + 1013904223) >>> 0; return s / 4294967296; };
+  for (let day = 0; day < 6; day++) for (let i = 0; i < 400; i++) { const z = -2 + 3 * rnd(); F.add('k2|1', day, z, rnd() < Phi(0.5 + z) ? 1 : 0); }
+  for (let i = 0; i < 50; i++) F.add('learned|5', 0, -1, i < 3 ? 1 : 0);
+  const all = F.fit('k2|1', null), out2 = F.fit('k2|1', 2), tiny = F.fit('learned|5', null);
+  add('18c ProbitFolds/probitFit: Selbsttest findet (0,4 · 1,2) und die Identität wieder; In-sample auf 2 400 Zeilen a ≈ 0,5 (±0,12), b ≈ 1 (±0,15), geschrieben; Leave-Day-out von Tag 2 (Sperre ±1) rechnet auf 3 Tagen = 1 200 Zeilen; unter den Mindestzahlen Identität (a 0, b 1, nicht geschrieben) mit n/nass gezählt',
+    st.ok && all?.written && Math.abs(all.a - 0.5) < 0.12 && Math.abs(all.b - 1) < 0.15 && all.n === 2400 && out2?.n === 1200 && out2.written
+    && tiny && !tiny.written && tiny.a === 0 && tiny.b === 1 && tiny.n === 50 && tiny.wet === 3,
+    `in-sample a ${all?.a?.toFixed(3)} b ${all?.b?.toFixed(3)} · Selbsttest a ${st.recovered?.a?.toFixed(3)} b ${st.recovered?.b?.toFixed(3)}`);
+  // the scorer source: the cells and the candidate hang on the shared constants
+  const src = readFileSync(new URL('./fusionfit/stack-score.mjs', import.meta.url), 'utf8');
+  add('18d stack-score.mjs: Brier-/Kontingenz-Zellen (BrierAcc, EtsAcc, Paar-Metrik brier), Kandidat fusion8 aus applyPrecipCal auf F7 mit Leave-Day-out-Eintrag und fusion8:in in-sample, Situation station/none aus Modus und mem, Tabelle über --precipTable mit validatePrecipCalTable, Verdikt-Block mit K11/K12/K13',
+    /new BrierAcc\(\)/.test(src) && /new EtsAcc\(\)/.test(src) && /`brier\|\$\{mode\}/.test(src) && /cands\.fusion8 = \{ dist: applyPrecipCal\(m\.F7, eOut\) \}/.test(src) && /cands\['fusion8:in'\] = \{ dist: applyPrecipCal\(m\.F7, eIn\) \}/.test(src)
+    && /const precipSit = \(mode, row\) => \(mode === 'S' \|\| row\.mem \|\| row\.lead <= PRECIP_CAL_RADAR_H \? 'k2' : 'learned'\)/.test(src) && /flags\.precipTable/.test(src) && /validatePrecipCalTable\(tbl\)/.test(src) && /verdicts\.K11 = /.test(src) && /verdicts\.K12 = /.test(src) && /verdicts\.K13 = /.test(src) && /verdicts\['Fusion 8'\]/.test(src));
+}
+
 const passed = checks.filter((c) => c.ok).length;
 console.log(`\nverify:fusion-fit ${passed}/${checks.length}`);
 if (passed !== checks.length) process.exit(1);
