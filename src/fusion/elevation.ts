@@ -167,3 +167,47 @@ export async function loadElevationLookup(
 
   return { sample, buildGrid };
 }
+
+/**
+ * The raw Terrarium tiles covering `bounds`, indexed by tile position instead of
+ * wrapped in a `sample` closure (audit/karte-ruckler.md, RK-1). The temperature
+ * DEM samples 7.2 M points; through `sample` every point recomputed the tile row
+ * (log/tan/cos) and looked the tile up by string key — 2 s on the main thread.
+ * Same tiles, same loading rules as `loadElevationLookup`.
+ */
+export interface ElevationTiles {
+  zoom: number;
+  /** First tile column/row and the number of tiles per axis. */
+  x0: number;
+  y0: number;
+  nx: number;
+  ny: number;
+  /** RGBA pixels (256 × 256 × 4) per tile at `(y - y0) * nx + (x - x0)`; `null` = not loaded. */
+  data: (Uint8ClampedArray | null)[];
+}
+
+export async function loadElevationTiles(
+  bounds: ForecastBounds,
+  zoom = 4,
+  signal?: AbortSignal,
+): Promise<ElevationTiles> {
+  const x0 = Math.floor(lng2tileX(bounds.lngMin, zoom));
+  const x1 = Math.floor(lng2tileX(bounds.lngMax, zoom));
+  const y0 = Math.floor(lat2tileY(bounds.latMax, zoom));
+  const y1 = Math.floor(lat2tileY(bounds.latMin, zoom));
+  const nx = x1 - x0 + 1;
+  const ny = y1 - y0 + 1;
+  const data = new Array<Uint8ClampedArray | null>(nx * ny).fill(null);
+  // Same bounded concurrency as `loadElevationLookup` (basemap tiles first).
+  const DEM_CONCURRENCY = 6;
+  let next = 0;
+  const runners = Array.from({ length: Math.min(DEM_CONCURRENCY, nx * ny) }, async () => {
+    while (next < nx * ny) {
+      const k = next++;
+      const t = await loadTile(zoom, x0 + (k % nx), y0 + Math.floor(k / nx), signal);
+      data[k] = t ? t.data : null;
+    }
+  });
+  await Promise.all(runners);
+  return { zoom, x0, y0, nx, ny, data };
+}

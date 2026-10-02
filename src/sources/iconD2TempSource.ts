@@ -20,7 +20,8 @@ import {
   D2_GRIB_PROXY_BASE,
   type GribField,
 } from './iconD2Precip';
-import { loadElevationLookup } from '../fusion/elevation';
+import { loadElevationTiles } from '../fusion/elevation';
+import { buildDemRgba } from './demGrid';
 import { stepsForNowWindow } from './frameAtValidTime';
 import { buildTempRgba, TEMP_DEM_MAX, TEMP_VMIN, TEMP_VMAX } from './tempFrameBuild';
 import {
@@ -94,53 +95,17 @@ async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Prom
   // Monte Rosa) stark geglättet → DEM-Höhe zu niedrig → Lapse-Korrektur zu
   // schwach → Gipfel zu warm bzw. Schneegrenze verfehlt. Feinere Quelle (z7
   // ≈ 1,2 km) + peak-erhaltende MAX-Aggregation über ein 3×3-Subraster je Zelle
-  // heben die Gipfelhöhe an. DEM ist statisch + pro Bounds gecacht → Einmalkosten.
-  const lookup = await loadElevationLookup(bounds, DEM_ZOOM, signal);
-  const rows = 700;
-  const lonSpan = bounds.lngMax - bounds.lngMin;
-  const latSpan = Math.max(0.01, bounds.latMax - bounds.latMin);
-  const cols = Math.max(64, Math.round(rows * (lonSpan / latSpan)));
-  // Zellmitten, NICHT Randpunkte (KL6): der ScalarLayer liest das DEM mit derselben
-  // `uv` wie die Werte-Textur, und `texture2D` legt die Texelmitten auf (i+0,5)/n.
-  // Mit `span/(n−1)` und Start auf `latMin` lag das DEM eine halbe DEM-Zelle
-  // (1,2 km) neben seiner Zeichenfläche — die Höhenkorrektur je Pixel rechnete
-  // damit mit Gelände aus der Nachbarschaft (audit/karten-layer-verortung.md, B6).
-  const dLat = latSpan / rows, dLng = lonSpan / cols;
-  const grid = new Float32Array(cols * rows); // j=0 = Süden (latMin)
-  // Max über ein 3×3-Subraster INNERHALB der Zelle (±0,3 Zellbreite). Bewusst
-  // kein Übergriff in Nachbarzellen (vorher ±0,4) — das hob Gipfel an, verzerrte
-  // aber rolliges Flachland nach oben (QA-Fix D3-Refinement). So bleibt die
-  // Gipfelhöhe erhalten, ohne entfernte Hügel einzufangen.
-  const subs = [-0.3, 0, 0.3];
-  for (let j = 0; j < rows; j++) {
-    const lat0 = bounds.latMin + (j + 0.5) * dLat;
-    for (let i = 0; i < cols; i++) {
-      const lng0 = bounds.lngMin + (i + 0.5) * dLng;
-      let peak = -Infinity;
-      for (const sj of subs) for (const si of subs) {
-        const e = lookup.sample(lng0 + si * dLng, lat0 + sj * dLat);
-        if (Number.isFinite(e) && e > peak) peak = e;
-      }
-      grid[j * cols + i] = peak > -Infinity ? peak : NaN;
-    }
-  }
+  // (±0,3 Zellbreite, QA-Fix D3-Refinement) heben die Gipfelhöhe an. Zellmitten,
+  // NICHT Randpunkte (KL6, audit/karten-layer-verortung.md B6). DEM ist statisch +
+  // pro Bounds gecacht → Einmalkosten.
+  // RK-1 (audit/karte-ruckler.md): dieselbe Rechnung in `demGrid.ts`, byte-gleich, aber ohne
+  // den 2-s-Block — vorher stand die Karte auf jeder Ansicht kurz nach dem Laden still.
+  const tiles = await loadElevationTiles(bounds, DEM_ZOOM, signal);
+  const { width, height, rgba } = await buildDemRgba(tiles, bounds, 700, DEM_MAX, { signal });
 
   const canvas = document.createElement('canvas');
-  canvas.width = cols; canvas.height = rows;
-  const ctx = canvas.getContext('2d')!;
-  const img = ctx.createImageData(cols, rows);
-  for (let j = 0; j < rows; j++) {
-    const y = rows - 1 - j; // Süd→Nord flippen → Canvas-Zeile 0 = Norden
-    for (let i = 0; i < cols; i++) {
-      const e = grid[j * cols + i];
-      const idx = (y * cols + i) * 4;
-      img.data[idx] = Math.round(clamp01(e / DEM_MAX) * 255);
-      img.data[idx + 1] = 0;
-      img.data[idx + 2] = 0;
-      img.data[idx + 3] = 255;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d')!.putImageData(new ImageData(rgba, width, height), 0, 0);
   demCache.set(key, canvas);
   return canvas;
 }

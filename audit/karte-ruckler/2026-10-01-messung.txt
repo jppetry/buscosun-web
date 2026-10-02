@@ -1,0 +1,15 @@
+kalt                                     2026-10-01T16:31:55.060Z | Frame-Lücken > 250 ms: 2614 ms +550, 4347 ms +317, 4664 ms +933, 7997 ms +2017 | DEM-Task: 7990 ms, Dauer 2029 ms
+kalt                                     2026-10-01T16:33:03.477Z | Frame-Lücken > 250 ms: 1696 ms +467, 2163 ms +300, 3363 ms +350, 3829 ms +767, 7079 ms +2050 | DEM-Task: 7072 ms, Dauer 2065 ms
+kalt                                     2026-10-01T16:33:16.416Z | Frame-Lücken > 250 ms: 2662 ms +333, 5212 ms +1967 | DEM-Task: 5202 ms, Dauer 1990 ms
+kalt                                     2026-10-01T16:33:29.185Z | Frame-Lücken > 250 ms: 2095 ms +367, 4612 ms +1967 | DEM-Task: 4603 ms, Dauer 1989 ms
+warm (zweiter Aufruf im selben Kontext)  2026-10-01T16:33:57.938Z | Frame-Lücken > 250 ms: 551 ms +683, 2501 ms +450, 3218 ms +2233 | DEM-Task: 3209 ms, Dauer 2254 ms
+warm (zweiter Aufruf im selben Kontext)  2026-10-01T16:34:25.666Z | Frame-Lücken > 250 ms: 1748 ms +2150, 3948 ms +350 | DEM-Task: 1738 ms, Dauer 2174 ms
+kalt, CPU 4x                             2026-10-01T16:42:58.022Z | Frame-Lücken > 250 ms: 894 ms +267, 1161 ms +617, 1778 ms +717, 2528 ms +317, 3994 ms +450, 4444 ms +1883, 8944 ms +7667 | DEM-Task: 8937 ms, Dauer 7674 ms
+kalt, mit CPU-Profil                     2026-10-01T16:42:28.542Z | Frame-Lücken > 250 ms: 900 ms +367, 1350 ms +700, 3200 ms +400, 3600 ms +683, 6784 ms +2217 | DEM-Task: 6778 ms, Dauer 2231 ms
+wind1.json DEM@7990 | tex 4683:445x451 5329:794x836 5331:794x836 5540:1216x746 10049:1141x700 10111:1216x746 10147:1141x700
+wind-cold.json DEM@7072 | tex 3842:445x451 4333:794x836 4335:794x836 4543:1216x746 9166:1141x700 9172:1141x700 9236:1216x746
+wind-cold.json DEM@5202 | tex 2634:445x451 2754:794x836 2755:794x836 2959:1216x746 7246:1141x700 7251:1141x700 7298:1216x746
+wind-cold.json DEM@4603 | tex 1976:445x451 2213:794x836 2215:794x836 2427:1216x746 6637:1141x700 6695:1216x746 6735:1141x700
+wind-warm.json DEM@3209 | tex 2507:445x451 2607:794x836 2610:794x836 2870:1216x746 5505:1141x700 5510:1141x700 5558:1216x746
+wind-warm.json DEM@1738 | tex 3960:445x451 4046:794x836 4049:794x836 4254:1216x746 4354:1141x700 4374:1141x700 4990:1216x746
+wind-cpu4.json DEM@8937 | tex 4481:445x451 5391:794x836 5396:794x836 6177:1216x746 16785:1141x700 16816:1141x700 16877:1216x746

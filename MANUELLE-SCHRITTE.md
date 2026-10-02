@@ -1199,3 +1199,40 @@ ohne eigene Station (+0,5 %* / +0,6 %* MAE, 1,008 → 1,004 bzw. 1,213 → 1,206
 - **(d) Termine:** E-AX-6 (ENS-Mittel) ab ≈ 06.–14.10. messbar (erster Schema-6-Slot 30.09.), E-AX-8/E-AX-10 ab ≈ 15.10. (14 Schema-4-Tage),
   E-FS-3/E-AX-12/E-AX-13 ab ≈ 14.10. (30 Ausgabetage).
 - **(e)** Commit-Scope `fusionfit`/`punktarchiv`.
+
+**Stand nach Jans Freigabe (01.10. vormittags, „ja mach das, nenn es buscosun fusion 7") — umgesetzt, uncommitted (§6i.3):**
+- E-AX-14 ✓: `anchorWindKm: 10` ist Teil der Stufe fs (`FUSION7_ANCHOR_WIND_KM` in `cubeSource.ts`), Verifier (29) erweitert;
+  Definition „buscosun Fusion 7" in `CLAUDE.md` (Sprache & Konventionen). Gates: typecheck 0 · `verify:pv-cube` 399/399 ·
+  `verify:point-client` 171/171 · `verify:fusion-fit` 125/125 · `verify:punktarchiv` 126/126 · Build 249/249 · Budget grün (eagerJs 108,6 / 108,7, totalJs 1512,7 / 1514, unverändert — die Konstante kostet < 0,1 KB).
+- **Deine Gates jetzt:** (a) Push von `main` **vor 23:10 UTC** — damit zugleich Archiv-Schema 4 (§30 a) UND Fusion 7 live gehen
+  (Deploy-Prüfung: Panel-Tab „Bandbreite" → Setzungen zeigt `anchorWind:set … 10 km` an einem Ort ohne eigene Station, z. B. einem
+  Dorf; `?pflog=1` nennt die Stufen-Notiz „buscosun Fusion 7"); (b) Commit-Scope `fusion` („buscosun Fusion 7: damped wind anchor in
+  stage fs (E-AX-14)") plus `fusionfit`/`punktarchiv`; (c) E-AX-9 bleibt aus (V-AX-19).
+
+## 31. Phasen RK + NL — Ruckler der Karte nach dem Laden, Niederschlag lädt manchmal lange, 2026-10-01
+
+Jans Befunde vom 01.10. Diagnosen und Gate-Belege: `audit/karte-ruckler.md` (§6), `audit/niederschlag-ladezeit.md` (§5).
+Umgesetzt mit Jans Freigabe (RK-1, NL-1 + NL-2), **uncommitted**. Beide Phasen berühren nur eigene Dateien — sie lassen
+sich getrennt von den parallel laufenden Fusion-Änderungen committen:
+
+- RK: `src/sources/demGrid.ts` (neu), `src/fusion/elevation.ts` (nur ergänzt), `src/sources/iconD2TempSource.ts`,
+  `scripts/verify-dem-build.mjs` (neu), `audit/karte-ruckler.md` + `audit/karte-ruckler/`
+- NL: `src/sources/radarImg.ts`, `src/sources/radolan.ts`, `scripts/verify-radar-fallback.mjs` (neu),
+  `audit/niederschlag-ladezeit.md` + `audit/niederschlag-ladezeit/`
+- beide: `package.json` (zwei Verifier-Aliase), `budget.json` (totalJs 1 514 → 1 516 mit Notiz)
+
+**Deine Gates:**
+- **(a) Commit + Push + Deploy.** Vorschlag: zwei Commits — `perf(map): build the temperature DEM without blocking the
+  main thread (RK-1)` und `fix(radar): deadline for pre-started fetches, raw.githubusercontent fallback per radar image
+  (NL-1/NL-2)`. Deploy-Prüfung: Wetterkarte Wind öffnen — nach dem ersten Windbild kein 2-s-Stillstand mehr; Niederschlag
+  über mehrere Minuten mehrfach kalt öffnen — in den Netzwerk-Tools erscheinen bei kalten jsDelivr-Dateien Abrufe an
+  `raw.githubusercontent.com`, die Konsolenzeile nennt „Quelle Daten-Repo (PNG)". Notbremse: `?radarraw=0`.
+- **(b) Real-Device:** Handy, Wetterkarte kalt — läuft der Wind nach dem ersten Bild ohne Stocken? (Emulation CPU 4×:
+  7,7 s → 0,1 s.)
+- **(c) E-RK-2:** Höhenbild einmal vorrechnen und ablegen (wie `hsurf-v1.png`, LE0-H1) — spart zusätzlich 90 Terrarium-Kacheln
+  je Kaltstart. Ablage Daten-Repo oder `public/`?
+- **(d) E-NL-2:** Warm-up der Radar-Bild-Slots im Spiegel-Workflow nach dem Push (V-FI-7) — Daten-Repo, erst wenn jsDelivr den
+  neuen Commit auflöst.
+- **(e) V-NL-4:** `radarraw` und `rvfmt` in die Sperrliste geteilter Links — braucht den Neubau des Edge-Bündels `og-meta`.
+- **Hinweis:** auf der Maschine läuft seit 30.09. ein Vite-Dev-Server (PID 14356, ≈ 1 Kern Dauerlast) — nicht von dieser
+  Sitzung, nicht beendet. Er verfälscht Leistungsmessungen; beenden, wenn er nicht mehr gebraucht wird.

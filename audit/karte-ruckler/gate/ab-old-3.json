@@ -1,0 +1,2647 @@
+[
+ {
+  "i": 0,
+  "at": "2026-10-01T21:20:06.286Z",
+  "slotAgeS": 306,
+  "logs": [],
+  "net": [
+   {
+    "url": "/wetterkarte/wind?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 0,
+    "t1": 532,
+    "ttfb": 528,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/space-grotesk-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 22,
+    "t0": 540,
+    "t1": 683,
+    "ttfb": 131,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-500-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 540,
+    "t1": 748,
+    "ttfb": 206,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-B_Pq2S3f.js",
+    "st": 200,
+    "xc": null,
+    "kb": 105,
+    "t0": 540,
+    "t1": 1223,
+    "ttfb": 310,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cjs-helpers-Cpj98o6Y.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 540,
+    "t1": 683,
+    "ttfb": 135,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-BkLV0zc3.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 541,
+    "t1": 885,
+    "ttfb": 336,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WetterkarteRoute-DpdTmSIo.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 541,
+    "t1": 764,
+    "ttfb": 215,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/modelCatalog-BbqlpjhE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 541,
+    "t1": 778,
+    "ttfb": 228,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useAppNav-DGoyJoyz.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 541,
+    "t1": 757,
+    "ttfb": 207,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeTable-Bzi3GTyK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 541,
+    "t1": 770,
+    "ttfb": 219,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeSlugs-Db3aVW-d.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 542,
+    "t1": 770,
+    "ttfb": 218,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/StaleLinkNotice-hLMffmJ_.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 542,
+    "t1": 778,
+    "ttfb": 226,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/shareText-dgVRmrvW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 542,
+    "t1": 857,
+    "ttfb": 304,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/share-BbtFrz6j.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 542,
+    "t1": 803,
+    "ttfb": 249,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/NotFoundRoute-BUvZHMmD.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 542,
+    "t1": 774,
+    "ttfb": 220,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/NotFoundRoute-D5gLhNUD.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 542,
+    "t1": 800,
+    "ttfb": 245,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/MapView-BeqMCQIT.js",
+    "st": 200,
+    "xc": null,
+    "kb": 68,
+    "t0": 551,
+    "t1": 1006,
+    "ttfb": 258,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/layerCatalog-BJAetTm8.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 556,
+    "t1": 778,
+    "ttfb": 221,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/repackSource-DiGXEdJr.js",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 556,
+    "t1": 863,
+    "ttfb": 199,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipType-DUpA9G44.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 556,
+    "t1": 775,
+    "ttfb": 217,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RainLayer-DGpUKW74.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 557,
+    "t1": 782,
+    "ttfb": 224,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadWarpMesh-D34P57sN.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 557,
+    "t1": 776,
+    "ttfb": 217,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-Y04dvQ_6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 266,
+    "t0": 557,
+    "t1": 1495,
+    "ttfb": 372,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-B-YMMjus.css",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 557,
+    "t1": 884,
+    "ttfb": 217,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WindLayer-ZWaLFfz6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 20,
+    "t0": 557,
+    "t1": 884,
+    "ttfb": 324,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/perfGovernor-DRlV9hh2.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 557,
+    "t1": 776,
+    "ttfb": 215,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ScalarLayer--YO68cV6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 557,
+    "t1": 777,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/FavoriteStar-XAOLW3lC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 557,
+    "t1": 959,
+    "ttfb": 322,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/spatialInterp-BPNm5uAK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 8,
+    "t0": 558,
+    "t1": 796,
+    "ttfb": 234,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/geosphereInca-B4gDQ1iJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 558,
+    "t1": 815,
+    "ttfb": 252,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2Precip-BKGlnbQO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 6,
+    "t0": 558,
+    "t1": 885,
+    "ttfb": 322,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/decompress-CSvRoCdr.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 558,
+    "t1": 803,
+    "ttfb": 240,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/elevation-BXFuDItn.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 558,
+    "t1": 770,
+    "ttfb": 206,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryProfiles-BzLt73dV.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 558,
+    "t1": 775,
+    "ttfb": 211,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/favorites-CFhiwowP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 558,
+    "t1": 781,
+    "ttfb": 217,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipComposite-Cl4P7Adq.js",
+    "st": 200,
+    "xc": null,
+    "kb": 8,
+    "t0": 559,
+    "t1": 774,
+    "ttfb": 206,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdKonrad3d-Dq_zE7QJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 559,
+    "t1": 859,
+    "ttfb": 293,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/gridGeo-C5fxNpjK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 559,
+    "t1": 771,
+    "ttfb": 204,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarImg-CYzCspJP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 559,
+    "t1": 856,
+    "ttfb": 289,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cellPolygons-CoL03GOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 559,
+    "t1": 804,
+    "ttfb": 237,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/clustering-C12B-hJ4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 559,
+    "t1": 798,
+    "ttfb": 230,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolan-CbxSXSM_.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 559,
+    "t1": 902,
+    "ttfb": 334,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pointForecast-tANLVsDY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 17,
+    "t0": 559,
+    "t1": 1005,
+    "ttfb": 344,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdUvForecast-_NiJSUbx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 559,
+    "t1": 763,
+    "ttfb": 194,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-B57jaMJ9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 18,
+    "t0": 560,
+    "t1": 1040,
+    "ttfb": 372,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadSampler-lGj0Vsww.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 560,
+    "t1": 816,
+    "ttfb": 246,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipComposite-mU9M8QeK.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 560,
+    "t1": 781,
+    "ttfb": 210,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/countryMask-COxrSb3L.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 560,
+    "t1": 797,
+    "ttfb": 226,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/confidenceClasses-DtK7eI0c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 560,
+    "t1": 796,
+    "ttfb": 224,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdAlerts-vgqFxWeX.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 560,
+    "t1": 800,
+    "ttfb": 228,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdPollen-BUxCXz3c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 560,
+    "t1": 856,
+    "ttfb": 284,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/officialSources-BpPrM3VE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 857,
+    "ttfb": 284,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/WeatherIcon-C5RVF5Um.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 805,
+    "ttfb": 231,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pfFlags-BnG5GcTH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 857,
+    "ttfb": 282,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useIsMobile-BJ6g3eWD.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 815,
+    "ttfb": 241,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoSwissHail-YV8RdkUK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 797,
+    "ttfb": 221,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdCapAlerts-DAoKuzQC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 805,
+    "ttfb": 229,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/capAlerts-CxRb59-A.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 561,
+    "t1": 801,
+    "ttfb": 225,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoAlarmCh-D8Y2UIPd.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 561,
+    "t1": 801,
+    "ttfb": 224,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/warnField-p1sqTgvY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 562,
+    "t1": 859,
+    "ttfb": 281,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/multiModel-CpQ_xN8F.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 562,
+    "t1": 798,
+    "ttfb": 220,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climaField-NlUyLfOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 562,
+    "t1": 802,
+    "ttfb": 223,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climatology-WB8LnLs9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 562,
+    "t1": 802,
+    "ttfb": 222,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/flowEnsemble-CRj4ZekA.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 562,
+    "t1": 858,
+    "ttfb": 279,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/featureRail-CmyuvhcB.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 562,
+    "t1": 805,
+    "ttfb": 225,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ShareButton-DYYhWbi5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 563,
+    "t1": 795,
+    "ttfb": 214,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-CIaycyHr.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 563,
+    "t1": 858,
+    "ttfb": 277,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-FKUZoNHx.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 563,
+    "t1": 800,
+    "ttfb": 217,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/geocode-D3m5OzC_.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 563,
+    "t1": 799,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/MapView-G-yhLwjs.css",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 563,
+    "t1": 1219,
+    "ttfb": 349,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1303,
+    "t1": 1508,
+    "ttfb": 204,
+    "prio": "High"
+   },
+   {
+    "url": "/buscosun-mark.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1588,
+    "t1": 1794,
+    "ttfb": 205,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-BOHLQYew.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1602,
+    "t1": 1815,
+    "ttfb": 210,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-zZIC9_Ee.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1604,
+    "t1": 1830,
+    "ttfb": 224,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "blob:https://buscosun.com/49b3c0a4-63d0-4afa-8841-049b8d408f4a",
+    "kb": null,
+    "t0": 4542,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "/fonts/league-spartan-400-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1620,
+    "t1": 4707,
+    "ttfb": 123,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/league-spartan-700-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1624,
+    "t1": 4728,
+    "ttfb": 136,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/league-spartan-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1624,
+    "t1": 4730,
+    "ttfb": 156,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/ibm-plex-mono-400-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 1647,
+    "t1": 4790,
+    "ttfb": 216,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4547,
+    "t1": 4547,
+    "ttfb": null,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/styles/positron",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 4569,
+    "t1": 4638,
+    "ttfb": 68,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4643,
+    "t1": 4665,
+    "ttfb": 20,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/planet",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4708,
+    "t1": 4735,
+    "ttfb": 26,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm.json",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4709,
+    "t1": 4735,
+    "ttfb": 26,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4710,
+    "t1": 4749,
+    "ttfb": 37,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/index.json",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 10,
+    "t0": 4717,
+    "t1": 4779,
+    "ttfb": 60,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/subRouteTexts-DO4fJOUh.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4722,
+    "t1": 4991,
+    "ttfb": 264,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/wind-003.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 229,
+    "t0": 4879,
+    "t1": 4940,
+    "ttfb": 34,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/wind-004.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 233,
+    "t0": 4879,
+    "t1": 4927,
+    "ttfb": 12,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/windBlendWorker-BqwAUGWJ.js",
+    "kb": null,
+    "t0": 4961,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4962,
+    "t1": 4964,
+    "ttfb": 2,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/hsurf-v1.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 60,
+    "t0": 6242,
+    "t1": 6280,
+    "ttfb": 20,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/gust-003.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 127,
+    "t0": 6244,
+    "t1": 6289,
+    "ttfb": 18,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6290,
+    "t1": 6905,
+    "ttfb": 393,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6290,
+    "t1": 6965,
+    "ttfb": 442,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6290,
+    "t1": 6814,
+    "ttfb": 413,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6291,
+    "t1": 6919,
+    "ttfb": 413,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6291,
+    "t1": 6792,
+    "ttfb": 379,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6291,
+    "t1": 6823,
+    "ttfb": 419,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/gust-004.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 127,
+    "t0": 6292,
+    "t1": 6349,
+    "ttfb": 40,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/thunder-003.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 11,
+    "t0": 6356,
+    "t1": 6371,
+    "ttfb": 12,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/thunder-004.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 11,
+    "t0": 6373,
+    "t1": 6386,
+    "ttfb": 12,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/rotation-003.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 25,
+    "t0": 6388,
+    "t1": 6416,
+    "ttfb": 26,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/rotation-004.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 25,
+    "t0": 6418,
+    "t1": 6446,
+    "ttfb": 27,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/snowdepth-003.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 3,
+    "t0": 6448,
+    "t1": 6465,
+    "ttfb": 16,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/snowdepth-004.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 3,
+    "t0": 6467,
+    "t1": 6482,
+    "ttfb": 14,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/lpi-003.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 3,
+    "t0": 6484,
+    "t1": 6504,
+    "ttfb": 19,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/lpi-004.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 3,
+    "t0": 6506,
+    "t1": 6522,
+    "ttfb": 15,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/0-255.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6591,
+    "t1": 6619,
+    "ttfb": 19,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/256-511.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6591,
+    "t1": 6645,
+    "ttfb": 27,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/768-1023.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6591,
+    "t1": 6650,
+    "ttfb": 50,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/1024-1279.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6592,
+    "t1": 6672,
+    "ttfb": 61,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/8192-8447.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6592,
+    "t1": 6648,
+    "ttfb": 51,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6592,
+    "t1": 6650,
+    "ttfb": 50,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/256-511.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6592,
+    "t1": 6650,
+    "ttfb": 52,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/512-767.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6592,
+    "t1": 6669,
+    "ttfb": 60,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1024-1279.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6593,
+    "t1": 6657,
+    "ttfb": 50,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6593,
+    "t1": 6660,
+    "ttfb": 56,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/256-511.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6593,
+    "t1": 6671,
+    "ttfb": 59,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/512-767.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6593,
+    "t1": 6669,
+    "ttfb": 60,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/1024-1279.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6594,
+    "t1": 6670,
+    "ttfb": 61,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6795,
+    "t1": 7037,
+    "ttfb": 132,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6817,
+    "t1": 7075,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6826,
+    "t1": 7079,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6908,
+    "t1": 7045,
+    "ttfb": 137,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6922,
+    "t1": 7174,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/1536-1791.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6955,
+    "t1": 6994,
+    "ttfb": 27,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/11520-11775.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6956,
+    "t1": 7004,
+    "ttfb": 33,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/768-1023.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6956,
+    "t1": 7005,
+    "ttfb": 31,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1536-1791.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6956,
+    "t1": 7004,
+    "ttfb": 30,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/11520-11775.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6956,
+    "t1": 7004,
+    "ttfb": 33,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/768-1023.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6956,
+    "t1": 7005,
+    "ttfb": 34,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/1536-1791.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6957,
+    "t1": 7006,
+    "ttfb": 37,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/11520-11775.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6957,
+    "t1": 7005,
+    "ttfb": 36,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6968,
+    "t1": 7117,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7039,
+    "t1": 7183,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7048,
+    "t1": 7315,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7077,
+    "t1": 7216,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7083,
+    "t1": 7233,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7120,
+    "t1": 7280,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7176,
+    "t1": 7529,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7186,
+    "t1": 7328,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "/countries/DE.geojson",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7663,
+    "t1": 7936,
+    "ttfb": 273,
+    "prio": "High"
+   },
+   {
+    "url": "/countries/AT.geojson",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7663,
+    "t1": 7899,
+    "ttfb": 235,
+    "prio": "High"
+   },
+   {
+    "url": "/countries/CH.geojson",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 7663,
+    "t1": 7943,
+    "ttfb": 279,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9519,
+    "t1": 9661,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9544,
+    "t1": 9719,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9545,
+    "t1": 9693,
+    "ttfb": 146,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9545,
+    "t1": 9703,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9558,
+    "t1": 9705,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9560,
+    "t1": 9719,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9664,
+    "t1": 9810,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9695,
+    "t1": 9842,
+    "ttfb": 137,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9711,
+    "t1": 9852,
+    "ttfb": 141,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9712,
+    "t1": 9871,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9727,
+    "t1": 9869,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9727,
+    "t1": 9907,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9812,
+    "t1": 9949,
+    "ttfb": 133,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9845,
+    "t1": 9992,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9859,
+    "t1": 10011,
+    "ttfb": 141,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9877,
+    "t1": 10016,
+    "ttfb": 135,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9878,
+    "t1": 10029,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9910,
+    "t1": 10056,
+    "ttfb": 146,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9959,
+    "t1": 10093,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9995,
+    "t1": 10142,
+    "ttfb": 133,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10015,
+    "t1": 10154,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10027,
+    "t1": 10175,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10032,
+    "t1": 10194,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10060,
+    "t1": 10210,
+    "ttfb": 141,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10096,
+    "t1": 10242,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10144,
+    "t1": 10291,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10160,
+    "t1": 10300,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10178,
+    "t1": 10323,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10224,
+    "t1": 10363,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10225,
+    "t1": 10367,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10245,
+    "t1": 10397,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10294,
+    "t1": 10446,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10310,
+    "t1": 10463,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10327,
+    "t1": 10471,
+    "ttfb": 137,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10374,
+    "t1": 10511,
+    "ttfb": 135,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10376,
+    "t1": 10526,
+    "ttfb": 135,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10408,
+    "t1": 10544,
+    "ttfb": 133,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10449,
+    "t1": 10624,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10474,
+    "t1": 10641,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10477,
+    "t1": 10641,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10514,
+    "t1": 10677,
+    "ttfb": 143,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10528,
+    "t1": 10685,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10547,
+    "t1": 10709,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10627,
+    "t1": 10802,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10645,
+    "t1": 10813,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10647,
+    "t1": 10802,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10681,
+    "t1": 10838,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10695,
+    "t1": 10941,
+    "ttfb": 245,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10712,
+    "t1": 10941,
+    "ttfb": 226,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10812,
+    "t1": 10952,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10813,
+    "t1": 10962,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10824,
+    "t1": 10981,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10857,
+    "t1": 11111,
+    "ttfb": 248,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10944,
+    "t1": 11144,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10945,
+    "t1": 11106,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10961,
+    "t1": 11152,
+    "ttfb": 184,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10966,
+    "t1": 11153,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10992,
+    "t1": 11160,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11113,
+    "t1": 11295,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11114,
+    "t1": 11344,
+    "ttfb": 194,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11147,
+    "t1": 11325,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11160,
+    "t1": 11338,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11161,
+    "t1": 11327,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11164,
+    "t1": 11327,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11298,
+    "t1": 11443,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11347,
+    "t1": 11499,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11348,
+    "t1": 11516,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11349,
+    "t1": 11525,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11351,
+    "t1": 11531,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11359,
+    "t1": 11535,
+    "ttfb": 175,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11445,
+    "t1": 11592,
+    "ttfb": 133,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/temp-003.png",
+    "kb": null,
+    "t0": 14328,
+    "t1": null,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026100118/temp-004.png",
+    "kb": null,
+    "t0": 14328,
+    "t1": null,
+    "prio": "High"
+   }
+  ],
+  "lab": {
+   "raf": [
+    899.1,
+    4249.2,
+    4582.5,
+    5015.9,
+    6199.2,
+    6215.8,
+    6232.6,
+    6249.2,
+    6265.8,
+    6282.6,
+    6299.2,
+    6315.9,
+    6332.5,
+    6349.2,
+    6365.9,
+    6382.6,
+    6399.2,
+    6415.9,
+    6432.5,
+    6449.2,
+    6465.8,
+    6482.5,
+    6499.2,
+    6515.8,
+    6532.7,
+    6549.2,
+    6565.9,
+    6582.6,
+    6599.2,
+    6615.8,
+    6632.5,
+    6649.2,
+    6665.8,
+    6682.5,
+    6699.2,
+    6715.9,
+    6732.5,
+    6749.2,
+    6765.9,
+    6782.6,
+    6799.2,
+    6815.9,
+    6832.5,
+    6849.2,
+    6865.8,
+    6882.5,
+    6899.2,
+    6915.8,
+    6932.5,
+    6949.2,
+    6965.8,
+    6982.6,
+    6999.2,
+    7015.9,
+    7032.5,
+    7049.2,
+    7065.8,
+    7082.5,
+    7099.2,
+    7115.9,
+    7132.5,
+    7149.2,
+    7165.9,
+    7182.5,
+    7199.2,
+    7215.9,
+    7515.9,
+    9065.9,
+    9416.1,
+    9482.6,
+    9515.9,
+    9532.6,
+    9549.3,
+    9565.9,
+    9582.5,
+    9599.3,
+    9615.9,
+    9632.5,
+    9649.2,
+    9665.9,
+    9682.6,
+    9699.2,
+    9715.9,
+    9732.6,
+    9749.3,
+    9765.9,
+    9782.6,
+    9799.3,
+    9815.9,
+    9832.6,
+    9849.2,
+    9865.9,
+    9882.6,
+    9899.2,
+    9915.9,
+    9932.6,
+    9949.2,
+    9965.9,
+    9982.6,
+    9999.2,
+    10015.9,
+    10032.6,
+    10049.3,
+    10065.9,
+    10082.6,
+    10099.2,
+    10115.9,
+    10132.6,
+    10149.3,
+    10165.9,
+    10182.6,
+    10199.5,
+    10216,
+    10232.5,
+    10249.2,
+    10265.9,
+    10282.5,
+    10299.3,
+    10315.9,
+    10332.6,
+    10349.2,
+    10365.9,
+    10382.6,
+    10399.2,
+    10415.9,
+    10432.6,
+    10449.3,
+    10465.9,
+    10482.6,
+    10499.2,
+    10515.9,
+    10532.5,
+    10549.3,
+    10565.9,
+    10582.5,
+    10599.2,
+    10616.3,
+    10632.5,
+    10649.2,
+    10665.9,
+    10682.5,
+    10699.2,
+    10715.9,
+    10732.6,
+    10749.3,
+    10765.9,
+    10782.6,
+    10799.3,
+    10815.9,
+    10832.6,
+    10849.2,
+    10865.9,
+    10882.6,
+    10899.2,
+    10915.9,
+    10932.6,
+    10949.3,
+    10965.9,
+    10982.6,
+    10999.3,
+    11015.9,
+    11032.5,
+    11049.3,
+    11065.9,
+    11082.6,
+    11099.3,
+    11116,
+    11132.6,
+    11149.3,
+    11165.9,
+    11182.5,
+    11199.2,
+    11216,
+    11232.6,
+    11249.2,
+    11265.9,
+    11282.6,
+    11299.2,
+    11315.9,
+    11332.5,
+    11349.2,
+    11365.9,
+    11382.6,
+    11399.2,
+    11416,
+    11432.6,
+    11449.2,
+    11465.9,
+    11482.6,
+    11499.3,
+    11515.9,
+    11532.6,
+    11549.2,
+    11565.9,
+    11582.6,
+    11599.2
+   ],
+   "loaf": [
+    {
+     "start": 550.6999999880791,
+     "dur": 412.30000001192093,
+     "block": 25.292,
+     "scripts": [
+      {
+       "inv": "https://buscosun.com/wetterkarte/wind?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de",
+       "type": "classic-script",
+       "src": "wind?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de",
+       "fn": "",
+       "pos": 0,
+       "dur": 13,
+       "start": 552
+      }
+     ]
+    },
+    {
+     "start": 991.3999999761581,
+     "dur": 3590.100000023842,
+     "block": 2916.596,
+     "scripts": [
+      {
+       "inv": "https://buscosun.com/assets/index-B_Pq2S3f.js",
+       "type": "module-script",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "",
+       "pos": 0,
+       "dur": 48,
+       "start": 1236
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 11,
+       "start": 1287
+      },
+      {
+       "inv": "https://buscosun.com/assets/MapView-BeqMCQIT.js",
+       "type": "module-script",
+       "src": "MapView-BeqMCQIT.js",
+       "fn": "",
+       "pos": 0,
+       "dur": 33,
+       "start": 1511
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 6,
+       "start": 1554
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 23,
+       "start": 1561
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 5,
+       "start": 1585
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 5,
+       "start": 1590
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 5,
+       "start": 1595
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 5,
+       "start": 1601
+      },
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 2961,
+       "start": 1610
+      }
+     ]
+    },
+    {
+     "start": 4589.399999976158,
+     "dur": 57.400000005960464,
+     "block": 0,
+     "scripts": [
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 7,
+       "start": 4602
+      }
+     ]
+    },
+    {
+     "start": 4648.5,
+     "dur": 1555.3999999761581,
+     "block": 1213.916,
+     "scripts": [
+      {
+       "inv": "MessagePort.onmessage",
+       "type": "event-listener",
+       "src": "index-B_Pq2S3f.js",
+       "fn": "We",
+       "pos": 15246,
+       "dur": 5,
+       "start": 4650
+      },
+      {
+       "inv": "Response.json.then",
+       "type": "resolve-promise",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 11128,
+       "dur": 49,
+       "start": 4662
+      },
+      {
+       "inv": "Promise.resolve",
+       "type": "resolve-promise",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 468352,
+       "dur": 90,
+       "start": 4754
+      },
+      {
+       "inv": "FrameRequestCallback",
+       "type": "user-callback",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 490892,
+       "dur": 1170,
+       "start": 5032
+      }
+     ]
+    },
+    {
+     "start": 7200,
+     "dur": 323.39999997615814,
+     "block": 261.503,
+     "scripts": [
+      {
+       "inv": "FrameRequestCallback",
+       "type": "user-callback",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 490892,
+       "dur": 307,
+       "start": 7216
+      }
+     ]
+    },
+    {
+     "start": 7523.5999999940395,
+     "dur": 1551.9000000059605,
+     "block": 1495.547,
+     "scripts": [
+      {
+       "inv": "FrameRequestCallback",
+       "type": "user-callback",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 490892,
+       "dur": 1543,
+       "start": 7532
+      }
+     ]
+    },
+    {
+     "start": 9076,
+     "dur": 356.19999998807907,
+     "block": 304.396,
+     "scripts": [
+      {
+       "inv": "FrameRequestCallback",
+       "type": "user-callback",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 490892,
+       "dur": 353,
+       "start": 9078
+      }
+     ]
+    },
+    {
+     "start": 9432.399999976158,
+     "dur": 59.30000001192093,
+     "block": 6.337,
+     "scripts": [
+      {
+       "inv": "FrameRequestCallback",
+       "type": "user-callback",
+       "src": "maplibre-Y04dvQ_6.js",
+       "fn": "",
+       "pos": 490892,
+       "dur": 55,
+       "start": 9436
+      }
+     ]
+    }
+   ],
+   "tex": [
+    {
+     "t": 7544,
+     "name": "texImage2D",
+     "w": 445,
+     "h": 451,
+     "ms": 0.1
+    },
+    {
+     "t": 8656,
+     "name": "texImage2D",
+     "w": 794,
+     "h": 836,
+     "ms": 1.6
+    },
+    {
+     "t": 8657,
+     "name": "texImage2D",
+     "w": 794,
+     "h": 836,
+     "ms": 1.5
+    },
+    {
+     "t": 8944,
+     "name": "texImage2D",
+     "w": 1216,
+     "h": 746,
+     "ms": 2.3
+    }
+   ],
+   "marks": []
+  }
+ }
+]

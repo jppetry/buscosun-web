@@ -1,0 +1,6 @@
+new 1 | DEM-Task: — | übrige Frames > 250 ms: 469,432,740,990,1107,315,309 | Summe übrige 4362 | DEM-Upload @ 9124
+new 2 | DEM-Task: — | übrige Frames > 250 ms: 672,735,829,1265,267,609 | Summe übrige 4377 | DEM-Upload @ 8476
+new 3 | DEM-Task: — | übrige Frames > 250 ms: 314,659,300,696,333,2872,674,364,438 | Summe übrige 6650 | DEM-Upload @ 10756
+old 1 | DEM-Task: 2830 | übrige Frames > 250 ms: 742,1304,322,1136,373 | Summe übrige 3877 | DEM-Upload @ 10956
+old 2 | DEM-Task: 2843 | übrige Frames > 250 ms: 386,528,603,807,1559 | Summe übrige 3883 | DEM-Upload @ 10760
+old 3 | DEM-Task: — | übrige Frames > 250 ms: 412,3590,1555,323,1552,356 | Summe übrige 7788 | DEM-Upload @ —

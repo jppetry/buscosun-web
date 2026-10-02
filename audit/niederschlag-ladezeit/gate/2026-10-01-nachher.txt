@@ -1,0 +1,364 @@
+#0 2026-10-01T21:09:23.475Z slotAge=263s  rvLog@7917ms  radarKB=7496  RV-Datei: composite_rv_20261001_2105.tar · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (jsDelivr)
+       467→  6457 200   7275KB MISS CDN/gh/jppetry/buscosun-data@main/radar/rv/composite_rv_20261001_2105.tar 
+      1057→  1546 200      1KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/meta.json 
+      2068→  2316 200      0KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      2156→  2487 200     32KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/frame.png 
+      2324→  2644 200     14KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      2324→  2661 200     14KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      2325→  2675 200     14KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      2325→  3018 200     14KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      2325→  3289 200     16KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      2326→  3162 200     17KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      2326→  3052 200     17KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      2326→  3280 200     17KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      2326→  3670 200     17KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      2326→  3866 200     17KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      2327→  2873 200     17KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+#1 2026-10-01T21:09:53.851Z slotAge=294s  rvLog@4578ms  radarKB=1338  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       233→   723 200      0KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       233→   609 200     88KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       854→   886 200      0KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/meta.json 
+       961→  1348 200     90KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       962→  3765 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png net::ERR_ABORTED
+       962→  3769 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png net::ERR_ABORTED
+       962→  3765 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png net::ERR_ABORTED
+       963→  1291 200     88KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       963→  3764 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png net::ERR_ABORTED
+       963→  1946 200     87KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       963→  3765 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png net::ERR_ABORTED
+       964→  3770 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png net::ERR_ABORTED
+       964→  3764 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png net::ERR_ABORTED
+       964→  1686 200     86KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       964→  3713 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png net::ERR_ABORTED
+       965→  1348 200     86KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       965→  3765 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png net::ERR_ABORTED
+       965→  1907 200     86KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       965→  1294 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       966→  3763 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png net::ERR_ABORTED
+       966→  3765 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png net::ERR_ABORTED
+       966→  3764 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png net::ERR_ABORTED
+       966→  1971 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       966→  1365 200     84KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       967→  1920 200     84KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       967→  1348 200     84KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       967→  1335 200     84KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+       970→  1012 200     32KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/frame.png 
+      1099→  1127 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1148→  1237 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1149→  1220 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1149→  1191 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1149→  1220 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1150→  1238 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1150→  1238 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1150→  1238 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1150→  1237 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1150→  1237 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1151→  1238 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1151→  1238 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+      3465→  3768 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f010.png 
+      3466→  3797 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f015.png 
+      3466→  3813 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f020.png 
+      3466→  3829 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f030.png 
+      3466→  3799 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f040.png 
+      3467→  3814 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f045.png 
+      3467→  3767 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f050.png 
+      3467→  3757 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f060.png 
+      3467→  3800 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f070.png 
+      3467→  3768 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f085.png 
+      3468→  3791 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f090.png 
+      3468→  3830 200      0KB MISS https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f095.png 
+#2 2026-10-01T21:10:24.185Z slotAge=324s  rvLog@3962ms  radarKB=2303  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       127→   222 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       128→   270 200     88KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       739→   798 200      1KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/meta.json 
+       816→  1019 200     90KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       817→  1005 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png 
+       828→   891 200     89KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png 
+       829→  1025 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png 
+       829→  1020 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       829→   971 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png 
+       830→  1017 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       830→   976 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png 
+       830→  3377 -       KB  CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png net::ERR_ABORTED
+       830→  1006 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png 
+       830→   995 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       831→   994 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png 
+       831→  1032 200     86KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       831→   994 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png 
+       831→  1013 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       831→  1007 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       832→  1013 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png 
+       832→  1022 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png 
+       832→  1457 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png 
+       832→  1011 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       833→  1011 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       833→  1033 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       833→  1012 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       833→  1033 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+       907→  1022 200     32KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/frame.png 
+      1407→  1438 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1441→  1513 200     15KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1441→  1499 200     15KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1441→  1557 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1442→  1511 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1442→  1511 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1442→  1556 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1442→  1557 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1442→  1507 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1443→  1556 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1443→  1510 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1443→  1516 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+      3331→  3393 200      0KB HIT https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/rv/2610012105/f045.png 
+#3 2026-10-01T21:10:54.630Z slotAge=355s  rvLog@2430ms  radarKB=2391  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       208→   309 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       209→   323 200     88KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       862→   890 200      1KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/meta.json 
+       973→  1148 200     90KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       974→  1203 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png 
+       975→  1184 200     89KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png 
+       975→  1205 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png 
+       976→  1202 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       976→  1207 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png 
+       976→  1205 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       977→  1206 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png 
+       977→  1208 200     87KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png 
+       978→  1205 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png 
+       978→  1207 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       979→  1210 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png 
+       979→  1210 200     86KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       979→  1207 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png 
+       980→  1209 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       980→  1209 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       980→  1207 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png 
+       981→  1208 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png 
+       981→  1208 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png 
+       982→  1209 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       982→  1209 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       983→  1211 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       983→  1208 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       984→  1208 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+      1054→  1204 200     32KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/frame.png 
+      1124→  1178 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1200→  1258 200     15KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1200→  1254 200     15KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1201→  1254 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1201→  1250 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1202→  1253 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1202→  1255 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1203→  1255 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1204→  1257 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1204→  1259 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1204→  1259 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1205→  1259 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+#4 2026-10-01T21:11:25.075Z slotAge=385s  rvLog@2362ms  radarKB=2392  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       128→   221 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       129→   220 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       747→   776 200      1KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/meta.json 
+       863→  1080 200     90KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       864→  1098 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png 
+       864→  1103 200     89KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png 
+       864→   996 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png 
+       864→  1101 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       865→  1078 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png 
+       865→  1081 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       865→  1096 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png 
+       866→  1080 200     87KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png 
+       866→  1104 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png 
+       866→  1101 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       866→  1104 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png 
+       866→  1089 200     86KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       867→  1102 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png 
+       867→  1098 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       867→  1096 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       867→  1101 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png 
+       868→  1101 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png 
+       868→  1099 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png 
+       868→  1098 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       868→  1104 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       868→  1102 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       869→  1105 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       869→  1104 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+       941→  1046 200     32KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2105/frame.png 
+      1039→  1100 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1175→  1214 200     15KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1175→  1214 200     15KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1175→  1214 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1176→  1218 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1176→  1234 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1176→  1216 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1176→  1226 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1176→  1232 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1176→  1231 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1177→  1219 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1177→  1234 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+#5 2026-10-01T21:11:55.408Z slotAge=415s  rvLog@2249ms  radarKB=2354  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       115→   196 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       116→   206 200     88KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       782→  1106 200      0KB Miss from cloudfront https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/20261001-ch 
+       864→   909 200     90KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       865→   895 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png 
+       865→   922 200     89KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png 
+       866→   924 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png 
+       866→   938 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       867→   939 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png 
+       867→   952 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       868→   952 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png 
+       868→   964 200     87KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png 
+       868→   964 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png 
+       869→   986 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       869→   986 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png 
+       869→   988 200     86KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       870→  1001 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png 
+       870→  1010 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       870→  1011 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       871→  1023 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png 
+       871→  1024 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png 
+       871→  1041 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png 
+       872→  1053 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       872→  1053 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       874→  1056 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       874→  1056 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       875→  1058 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+      1052→  1074 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1095→  1130 200     15KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1095→  1130 200     15KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1096→  1144 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1096→  1131 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1096→  1157 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1096→  1154 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1097→  1159 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1097→  1157 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1097→  1160 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1097→  1159 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1097→  1159 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+      1118→  1236 200      0KB Miss from cloudfront https://data.geo.admin.ch/ch.meteoschweiz.ogd-radar-precip/20261001-ch/rzc262742110vl.001.h5 
+#6 2026-10-01T21:12:25.732Z slotAge=446s  rvLog@2357ms  radarKB=2354  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       140→   209 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       141→   234 200     88KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       770→  1084 200      0KB Miss from cloudfront https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/20261001-ch 
+       847→   902 200     90KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       847→   878 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png 
+       847→   903 200     89KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png 
+       848→   911 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png 
+       849→   925 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       849→   934 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png 
+       850→   941 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       850→   941 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png 
+       851→   952 200     87KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png 
+       851→   952 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png 
+       851→   957 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       851→   973 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png 
+       852→   973 200     86KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       852→   988 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png 
+       852→   989 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       853→   999 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       853→  1011 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png 
+       853→  1012 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png 
+       854→  1021 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png 
+       854→  1029 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       854→  1035 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       854→  1036 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       855→  1042 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       855→  1045 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+      1088→  1178 200      0KB Miss from cloudfront https://data.geo.admin.ch/ch.meteoschweiz.ogd-radar-precip/20261001-ch/rzc262742110vl.001.h5 
+      1089→  1108 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1144→  1219 200     15KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1144→  1220 200     15KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1145→  1237 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1145→  1239 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1145→  1225 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1146→  1237 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1146→  1239 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1146→  1239 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1147→  1236 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1147→  1239 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1147→  1239 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+#7 2026-10-01T21:12:56.028Z slotAge=476s  rvLog@2342ms  radarKB=2355  RV-Datei: Slot 2610012105 · Lauf 1.10.2026, 23:05:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+       117→   192 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/meta.json 
+       117→   214 200     88KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f000.png 
+       732→  1093 200      0KB Miss from cloudfront https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/20261001-ch 
+       804→   867 200     90KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f005.png 
+       804→   867 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f010.png 
+       805→   840 200     89KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f015.png 
+       805→   873 200     89KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f020.png 
+       806→   882 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f025.png 
+       806→   890 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f030.png 
+       806→   898 200     88KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f035.png 
+       807→   898 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f040.png 
+       807→   909 200     87KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f045.png 
+       808→   921 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f050.png 
+       808→   921 200     87KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f055.png 
+       808→   943 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f060.png 
+       809→   943 200     86KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f065.png 
+       809→   943 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f070.png 
+       810→   947 200     86KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f075.png 
+       810→   966 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f080.png 
+       811→   968 200     85KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f085.png 
+       811→   968 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f090.png 
+       811→   982 200     85KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f095.png 
+       812→   994 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f100.png 
+       812→   994 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f105.png 
+       812→   996 200     85KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f110.png 
+       813→   996 200     84KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f115.png 
+       813→  1001 200     84KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2610012105/f120.png 
+       991→  1014 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1034→  1065 200     15KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1035→  1090 200     15KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1038→  1090 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1038→  1068 200     14KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1038→  1107 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1039→  1121 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1039→  1109 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1040→  1121 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1040→  1120 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1040→  1121 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1041→  1121 200     17KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+      1105→  1288 200      0KB Miss from cloudfront https://data.geo.admin.ch/ch.meteoschweiz.ogd-radar-precip/20261001-ch/rzc262742110vl.001.h5 
+#8 2026-10-01T21:13:26.380Z slotAge=206s  rvLog@3928ms  radarKB=7868  RV-Datei: composite_rv_20261001_2110.tar · Lauf 1.10.2026, 23:10:00 · 25 Frames (0…+120 min) · Quelle DWD (Netlify)
+       177→  1280 200   7680KB  http://localhost:5231/_dwd_opendata/weather/radar/composite/rv/composite_rv_20261001_2110.tar 
+       799→  1175 200      0KB Miss from cloudfront https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/20261001-ch 
+      1126→  1286 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1177→  1342 200      0KB Miss from cloudfront https://data.geo.admin.ch/ch.meteoschweiz.ogd-radar-precip/20261001-ch/rzc262742110vl.001.h5 
+      1345→  1370 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1346→  1417 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1346→  1427 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1346→  1418 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1346→  1425 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1347→  1419 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1347→  1426 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1347→  1427 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1347→  1453 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1347→  1435 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1347→  1452 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+#9 2026-10-01T21:13:56.666Z slotAge=237s  rvLog@4014ms  radarKB=7868  RV-Datei: composite_rv_20261001_2110.tar · Lauf 1.10.2026, 23:10:00 · 25 Frames (0…+120 min) · Quelle DWD (Netlify)
+       169→  1180 200   7680KB  http://localhost:5231/_dwd_opendata/weather/radar/composite/rv/composite_rv_20261001_2110.tar 
+       787→  1317 200      0KB Miss from cloudfront https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/20261001-ch 
+      1012→  1169 200      0KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+      1252→  1326 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+      1253→  1326 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+      1253→  1335 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+      1253→  1351 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+      1254→  1352 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+      1254→  1352 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+      1254→  1352 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+      1254→  1352 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+      1254→  1352 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+      1255→  1352 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+      1255→  1352 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+      1320→  1409 200      0KB Miss from cloudfront https://data.geo.admin.ch/ch.meteoschweiz.ogd-radar-precip/20261001-ch/rzc262742110vl.001.h5 
+#10 2026-10-01T21:14:27.106Z slotAge=267s  rvLog@7853ms  radarKB=7466  RV-Datei: composite_rv_20261001_2110.tar · Lauf 1.10.2026, 23:10:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (jsDelivr)
+       253→  6624 200   7248KB MISS CDN/gh/jppetry/buscosun-data@main/radar/rv/composite_rv_20261001_2110.tar 
+       718→  2190 200      0KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2110/meta.json 
+       940→   970 200      1KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/meta.json 
+       973→   992 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f015.png 
+       973→   999 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f030.png 
+       973→  1009 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f045.png 
+       974→  1022 200     14KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f060.png 
+       974→  1022 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f075.png 
+       974→  1033 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f090.png 
+       974→  1037 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f105.png 
+       974→  1046 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f120.png 
+       975→  1038 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f135.png 
+       975→  1047 200     17KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f150.png 
+       975→  1037 200     16KB HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca/20261001T2045/f165.png 
+      2271→  3974 200     31KB MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261001T2110/frame.png 

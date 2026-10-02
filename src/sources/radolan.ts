@@ -32,7 +32,7 @@ import { decodeRadolanRaw, decodeRvTar, isBz2, rvTarIsHdf5, rvStampFromFileName,
 // index-Chunk an). Re-Export, damit `verify:radar-runs` und andere Importeure
 // unverändert bleiben.
 import {
-  RV_DIR, RV_TAR_CACHE, RADAR_CDN_BASE, guessRvRuns, rvTarUrl, takeWarmRvTar,
+  RV_DIR, RV_TAR_CACHE, RADAR_CDN_BASE, guessRvRuns, rvTarUrl, takeWarmRvTar, type WarmRvTar,
   // EX-3: zwei Lieferformen desselben Laufs (HDF5 zuerst, RADOLAN als Rückfall)
   // RD2 (audit/radar-datenrepo.md §13): CDN-Weg über das Daten-Repo
   rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
@@ -170,18 +170,37 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
   let warmWasCdn = true;
   let warm = takeWarmRvTar(cdnUrl);
   if (!warm) { warmWasCdn = false; warm = takeWarmRvTar(netlifyUrl); }
+  // NL-1: der vorgestartete CDN-Abruf steht unter derselben Frist wie ein eigener (Kopfzeilen UND
+  // Körper). Läuft sie ab, war das ein harter CDN-Fehler — und derselbe Tar wird am CDN nicht noch
+  // einmal 8 s lang versucht, sondern gleich über Netlify geholt (gemessen: > 30 s ohne Frist).
+  let cdnTimedOut = false;
   if (warm) {
-    const { res, fromCache } = await warm;
-    if (res.ok) {
-      const buf = await res.arrayBuffer();
-      if (cache && !fromCache) { cache.put(warmWasCdn ? cdnUrl : netlifyUrl, new Response(buf.slice(0))).then(() => pruneRvCache(cache)).catch(() => {}); }
+    let got: { res: Response; fromCache: boolean; buf: ArrayBuffer | null } | null = null;
+    const read = (w: Promise<WarmRvTar>) => w.then(async ({ res, fromCache }) => ({ res, fromCache, buf: res.ok ? await res.arrayBuffer() : null }));
+    if (warmWasCdn) {
+      const dl = radarCdnDeadline(signal);
+      try {
+        got = await new Promise((resolve, reject) => {
+          dl.signal.addEventListener('abort', () => reject(dl.signal.reason), { once: true });
+          read(warm!).then(resolve, reject);
+        });
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        noteRadarCdnFailure();
+        cdnTimedOut = true;
+      } finally { dl.done(); }
+    } else {
+      got = await read(warm);
+    }
+    if (got?.buf) {
+      if (cache && !got.fromCache) { cache.put(warmWasCdn ? cdnUrl : netlifyUrl, new Response(got.buf.slice(0))).then(() => pruneRvCache(cache)).catch(() => {}); }
       _lastRvVia = warmWasCdn ? 'cdn' : 'dwd';
-      return buf;
+      return got.buf;
     }
     // Ein vorgestarteter CDN-Fehlgriff (Spiegel noch nicht so weit) ist kein
     // Urteil über den Lauf — unten regulär weiter. Der Netlify-Fehlgriff bleibt
     // wie bisher das Urteil (404 = Lauf liegt noch nicht beim DWD).
-    if (!warmWasCdn) throw new Error(`RADOLAN-RV ${netlifyUrl}: ${res.status}`);
+    if (got && !warmWasCdn) throw new Error(`RADOLAN-RV ${netlifyUrl}: ${got.res.status}`);
   }
   if (cache) {
     const cdnHit = await cache.match(cdnUrl);
@@ -192,7 +211,7 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
   // (sonst hielte jsDelivr unser 404 fest und der Slot würde für alle spät).
   // 404/5xx ⇒ benannter Fallback auf den DWD-Weg; Netz/Timeout zählt auf den
   // Sitzungs-Latch (`noteRadarCdnFailure`).
-  if (rvCdnEligible(ts)) {
+  if (!cdnTimedOut && rvCdnEligible(ts)) {
     const dl = radarCdnDeadline(signal);
     try {
       const res = await fetch(cdnUrl, { signal: dl.signal, priority });
@@ -292,16 +311,12 @@ async function decodeRvTarOffMain(tarBytes: Uint8Array): Promise<{ runAtMs: numb
 
 // ── RD3: der Bild-Weg — Frames als fertige Graustufen-PNGs vom Daten-Repo (audit §14) ──
 
-/** RD3-Leseweg: geteilte Helfer in `radarImg.ts`; hier nur die Warm-Entgegennahme dazu. */
-async function imgRes(url: string, signal: AbortSignal, priority?: RequestPriority): Promise<Response> {
+/** RD3-Leseweg: geteilte Helfer in `radarImg.ts`; hier nur die Warm-Entgegennahme dazu.
+ *  NL-1: die vorgestartete Antwort steht unter derselben Frist und demselben Ausweichweg wie ein
+ *  eigener Abruf — vorher wartete der Leser auf sie ohne Frist (gemessen 9,8 s bis > 30 s). */
+function imgRes(url: string, signal: AbortSignal, priority?: RequestPriority): Promise<Response> {
   const wf = takeWarmRvTar(url);
-  if (wf) {
-    const res = (await wf).res;
-    if (res.status === 404 || res.status === 403) throw new RadarImg404(`${res.status} ${url}`);
-    if (!res.ok) throw new Error(`${res.status} ${url}`);
-    return res;
-  }
-  return fetchImgRes(url, signal, priority);
+  return fetchImgRes(url, signal, priority, wf ? wf.then((w) => w.res) : undefined);
 }
 
 /**

@@ -1886,8 +1886,9 @@ export interface CubeIo {
   stackSource?: 'none' | 'json';
   /**
    * Phase FS: `'fs'` = die neueste Stufe von buscosun Fusion als EIN Schalter. Liegen die gelernten Tabellen vor, rechnet der
-   * Cube-Pfad mit `learnedSpeed`, `learnedPrecip`, `learnedAtPoint`, `learnedClouds` und `priorShrink: false` — die Kette, die
-   * am Archiv gemessen ist; liegt zusätzlich die Tabelle des Stationswerts vor, mit `stationValue`. Ohne Tabellen rechnet der
+   * Cube-Pfad mit `learnedSpeed`, `learnedPrecip`, `learnedAtPoint`, `learnedClouds`, `priorShrink: false` und (seit
+   * „buscosun Fusion 7", E-AX-14, 01.10.2026) `anchorWindKm: FUSION7_ANCHOR_WIND_KM` — die Kette, die am Archiv gemessen ist;
+   * liegt zusätzlich die Tabelle des Stationswerts vor, mit `stationValue`. Ohne Tabellen rechnet der
    * Pfad wie ohne Schalter (keine der Optionen ist ohne Lernstufe gemessen) und sagt es. Ausdrückliche `fuse`-Optionen haben
    * Vorrang. Braucht `learnedSource: 'json'` (und `climaSource`, `stackSource`), sonst kommt nichts an.
    */
@@ -2011,6 +2012,13 @@ export interface CubeObsFetchOptions {
  * am Punkt, aber keine Messung. 0,6 = zwischen „volle Messung" und „nur Modell"; der Fit (AP10) kann es messen.
  */
 export const INCA_ANCHOR_WEIGHT = 0.6;
+/**
+ * buscosun Fusion 7 (E-AX-14, Jan 01.10.2026): the stage `fs` damps the wind anchor over the distance of the measurement with
+ * e^(−(d / 10 km)²) (`FuseCubeOptions.anchorWindKm`). Measured against buscosun Fusion 6 on the archive 16.–30.09.2026 (405 810
+ * rows, 14 issue days, 389 station points; `audit/fusion-ausbau.md` §6i): nowhere significantly worse, wind/gust 0–6 h without a
+ * station +0,5/+0,6 %*, with a station byte-identical. Fusion 7 = Fusion 6 (tables of data-repo commit 1aaec969 unchanged) + this.
+ */
+export const FUSION7_ANCHOR_WIND_KM = 10;
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse erscheint ≈ 1–1,5 h nach der Stunde, gemessen 30.09.). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
@@ -2149,9 +2157,12 @@ function forecastFromBundle(
   const stageFuse: Partial<FuseCubeOptions> = {};
   if (io.stage === 'fs') {
     if (t.learned?.tables) {
-      Object.assign(stageFuse, { learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false });
+      // buscosun Fusion 7 (E-AX-14, Jan 01.10.2026): the wind anchor damped over the distance of the measurement, 10 km —
+      // measured against buscosun Fusion 6 on the archive 16.–30.09. (audit/fusion-ausbau.md §6i: nowhere worse, wind/gust
+      // 0–6 h without a station +0,5/+0,6 %*, with a station byte-identical). Everything else of the stage is Fusion 6.
+      Object.assign(stageFuse, { learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false, anchorWindKm: FUSION7_ANCHOR_WIND_KM });
       if (t.stack?.table) stageFuse.stationValue = true;
-      input.notes.push(`stage:fs — neueste Stufe: Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
+      input.notes.push(`stage:fs — neueste Stufe (buscosun Fusion 7): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
     } else input.notes.push('stage:fs — keine gelernten Tabellen ⇒ Rechnung wie ohne die Stufe (keine ihrer Optionen ist ohne Lernstufe gemessen)');
     // Phase AX, AX-3 (E-AX-3): T zwischen den nativen Schritten als Anomalie gegen μ_c — braucht nur das Klimatologieprodukt
     // (Orakel: 6-h-Schritte −15,5 %, 3-h −4,1 % MAE; `audit/fusion-ausbau.md` §3). Ohne Produkt linear wie bisher, benannt.

@@ -22,7 +22,7 @@
 import { PRECIP_VMAX, type QuadCorners } from '../scalar/RainLayer';
 import { decodeGrayPng, GrayPngUnsupported } from './grayPng';
 import {
-  RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
+  RADAR_CDN_BASE, RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
   radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
 } from './radolanRuns';
 
@@ -205,12 +205,135 @@ export function parseKonradImgJson(j: unknown): { refMs: number; file: string; c
 /** Markierter 404/403 — „noch nicht gespiegelt/schon gepruned" ist eine Antwort, kein harter Fehler. */
 export class RadarImg404 extends Error {}
 
-/** CDN-Abruf mit 404-Markierung; harte HTTP-Fehler werfen normal (⇒ Sitzungs-Latch beim Aufrufer). */
-export async function fetchImgRes(url: string, signal?: AbortSignal, priority?: RequestPriority): Promise<Response> {
-  const res = await fetch(url, { signal, ...(priority ? { priority } : {}) } as RequestInit);
-  if (res.status === 404 || res.status === 403) throw new RadarImg404(`${res.status} ${url}`);
-  if (!res.ok) throw new Error(`${res.status} ${url}`);
-  return res;
+// --- NL-2: Ausweichweg raw.githubusercontent (audit/niederschlag-ladezeit.md) ------------------
+// jsDelivr liefert frische Radar-Dateien kalt manchmal gar nicht: Abrufe hängen > 8 s oder kommen
+// als 403 (am 01.10. gemessen, festgehalten am Edge). Weil der Bild-Weg alle 26 Dateien eines
+// Slots braucht, verwarf EINE solche Datei den Slot, und der rohe Tar (seit HDF5 9,6 MB) kam.
+// Dasselbe Muster wie der Punkt-Leser seit V-FI-5 (`fallbackStore`, point/client/store.ts):
+// dieselbe Datei von raw.githubusercontent.com (CORS *, gemessen 0,27–0,35 s TTFB) — als Hedge,
+// wenn das CDN nach 2,5 s keine Kopfzeilen geschickt hat, sofort bei 403/5xx/Netzfehler.
+// Ein 404 heißt „gibt es nicht" und bleibt eins. Schalter `?radarraw=0|1` / `localStorage.radarraw`.
+export const RADAR_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar';
+/** p95 der gemessenen MISS-TTFB (AP0/AP1) — wie `RAW_FALLBACK_HEDGE_MS` des Punkt-Lesers. */
+export const RADAR_RAW_HEDGE_MS = 2_500;
+
+/** Kill-Switch des Ausweichwegs: `?radarraw=0|1` schlägt `localStorage.radarraw` (D-31). */
+export function radarRawFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('radarraw'); } catch { /* kaputte Query = kein Votum */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarraw') : null; } catch { s = null; }
+  }
+  return s !== '0';
+}
+
+/** Dieselbe Datei auf raw.githubusercontent — `null` für jede andere Basis oder mit Schalter aus. */
+export function radarRawUrl(url: string): string | null {
+  if (!url.startsWith(`${RADAR_CDN_BASE}/`) || !radarRawFlagFrom()) return null;
+  return RADAR_RAW_BASE + url.slice(RADAR_CDN_BASE.length);
+}
+
+function abortReason(signal: AbortSignal): unknown {
+  return signal.reason ?? new DOMException('Aborted', 'AbortError');
+}
+
+/**
+ * CDN-Abruf mit 404-Markierung und Ausweichweg (NL-2); harte Fehler auf BEIDEN Wegen werfen normal
+ * (⇒ Sitzungs-Latch beim Aufrufer), „nicht da" (404/403 überall) wirft `RadarImg404`.
+ * `started` = eine schon laufende Antwort desselben URL (Router-Frühstart, `takeWarmRvTar`) — sie
+ * steht unter derselben Frist (`signal`) und demselben Hedge wie ein eigener Abruf (NL-1).
+ * Die Antwort ist gepuffert: auch ihr Körper ist innerhalb der Frist gelesen.
+ */
+export function fetchImgRes(url: string, signal?: AbortSignal, priority?: RequestPriority, started?: Promise<Response>): Promise<Response> {
+  const raw = radarRawUrl(url);
+  const init = (s: AbortSignal): RequestInit => ({ signal: s, ...(priority ? { priority } : {}) } as RequestInit);
+  const acP = new AbortController();
+  const acF = new AbortController();
+  return new Promise<Response>((resolve, reject) => {
+    let settled = false;
+    let won = false;          // ein Weg hat geantwortet; sein Körper wird gerade gelesen
+    let fbStarted = false;
+    let pErr: unknown = null;
+    let fErr: unknown = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onAbort = () => {
+      acP.abort(signal?.reason); acF.abort(signal?.reason);
+      finish(() => reject(abortReason(signal!)));
+    };
+    function finish(fn: () => void): void {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      fn();
+    }
+    const notThere = (e: unknown) => e instanceof RadarImg404;
+    // Beide Wege gescheitert (oder der Ausweichweg gar nicht möglich) ⇒ entscheiden, was gemeldet wird.
+    const settleFailure = () => {
+      if (!pErr || (fbStarted && !fErr)) return;
+      if (!fbStarted || (notThere(pErr) && notThere(fErr))) { finish(() => reject(pErr)); return; }
+      // Ein Weg „nicht da", der andere hart gescheitert ⇒ der harte Fehler zählt (Latch wie bisher).
+      finish(() => reject(notThere(pErr) ? fErr : pErr));
+    };
+    // Gewinner puffern (der Körper liegt dann innerhalb der Frist), Verlierer abbrechen.
+    const win = (res: Response, loser: AbortController) => {
+      if (settled || won) return;
+      won = true;
+      loser.abort(new Error(`hedge: anderer Weg war schneller: ${url}`));
+      res.arrayBuffer().then(
+        (buf) => finish(() => resolve(new Response(buf, { status: res.status, statusText: res.statusText, headers: res.headers }))),
+        (e) => finish(() => reject(e)),
+      );
+    };
+    const startFallback = (): boolean => {
+      if (!raw || fbStarted || settled) return false;
+      fbStarted = true;
+      fetch(raw, init(acF.signal)).then(
+        (res) => {
+          if (settled || won) return;
+          if (res.ok) { win(res, acP); return; }
+          fErr = res.status === 404 || res.status === 403 ? new RadarImg404(`${res.status} ${raw}`) : new Error(`${res.status} ${raw}`);
+          settleFailure();
+        },
+        (e) => { if (settled || won) return; fErr = e; settleFailure(); },
+      );
+      return true;
+    };
+
+    if (signal) {
+      if (signal.aborted) { onAbort(); return; }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+    if (raw) timer = setTimeout(() => { timer = null; startFallback(); }, RADAR_RAW_HEDGE_MS);
+    (started ?? fetch(url, init(acP.signal))).then(
+      (res) => {
+        if (settled || won) return;
+        if (timer) { clearTimeout(timer); timer = null; }   // Kopfzeilen da: kein Hedge mehr
+        if (res.ok) { win(res, acF); return; }
+        if (res.status === 404) {                          // gibt es nicht ⇒ sofort, ohne Ausweichweg
+          acF.abort(new Error(`404 am CDN: ${url}`));
+          finish(() => reject(new RadarImg404(`404 ${url}`)));
+          return;
+        }
+        pErr = res.status === 403 ? new RadarImg404(`403 ${url}`) : new Error(`${res.status} ${url}`);
+        startFallback();   // ohne Ausweichweg (Schalter/fremde Basis) entscheidet settleFailure sofort
+        settleFailure();
+      },
+      (e) => {
+        if (settled || won) return;
+        if (timer) { clearTimeout(timer); timer = null; }
+        pErr = e;
+        startFallback();   // ohne Ausweichweg (Schalter/fremde Basis) entscheidet settleFailure sofort
+        settleFailure();
+      },
+    );
+  });
 }
 
 /**

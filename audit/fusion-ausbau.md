@@ -1018,6 +1018,22 @@ Bundle-/Typecheck-Änderung). Geänderte Dateien: `stack-extract.mjs` (Varianten
 `--point`), `stack-score.mjs` (Kandidaten `fusion6`/`fusion7*`, Block §6i mit Regel, K9/K10), `lib/archiveAdapter.mjs` (`climaGrid`
 im Eingang, Schema 4, `archiveStation(…, source)`).
 
+### 6i.3 Einschalten = „buscosun Fusion 7" (Jan 01.10., „ja mach das, nenn es buscosun fusion 7"; umgesetzt, uncommitted)
+
+- `src/pointForecast/cubeSource.ts`: die Stufe `fs` setzt `anchorWindKm: FUSION7_ANCHOR_WIND_KM` (= 10, exportierte Konstante mit
+  Herkunft) neben den Fusion-6-Optionen; die Stufen-Notiz heißt jetzt „stage:fs — neueste Stufe (buscosun Fusion 7): … Wind-Anker
+  über die Messdistanz gedämpft (10 km, E-AX-14) …"; die Setzung `anchorWind:set` steht in `calib` (Wind/Böe, `calibByVar`).
+  Ohne Tabellen rechnet die Stufe weiter wie ohne Schalter (auch ohne Anker); `fuse.anchorWindKm: 0` schaltet ihn ausdrücklich ab.
+- `scripts/verify-pv-cube.mjs` Block (29): neue Prüfung (Anker in der Stufe mit 10 km, ohne Tabellen keine Zeile, ausdrückliche 0
+  schaltet ab, Rest der Stufe bleibt); zwei bestehende Prüfungen auf die neue Notiz gebunden.
+- **Definition** in `CLAUDE.md` (Sprache & Konventionen): Fusion 7 = Fusion 6 + Anker (+ die Konfidenz-Korrekturen der Phase KF, die
+  seit `6d5933d` auf `main` liegen); Tabellen `1aaec969` unverändert; jede weitere Änderung ⇒ Fusion 8.
+- **Gates:** typecheck 0 · `verify:pv-cube` **399/399** (solo; unter Last war (8) rot) · `verify:point-client` **171/171** (solo; unter
+  Last (10s) rot, V-EX-13) · `verify:fusion-fit` 125/125 · `verify:punktarchiv` 126/126 · Build 249/249 · Budget grün (eagerJs 108,6 / 108,7, totalJs 1512,7 / 1514, unverändert — die Konstante kostet < 0,1 KB).
+- **Wirksam** für Nutzer erst mit Jans Commit + Push + Deploy von buscosun-web (Client-Commit = Fusion 7). Das Daten-Repo bleibt
+  unberührt. Kein Browser-Beleg nötig: die Änderung ist eine Motor-Voreinstellung, die der Verifier auf echten Fixtures prüft; der
+  sichtbare Unterschied liegt bei ≤ 0,5 % Wind in 0–6 h ohne Station.
+
 ## 6j Archiv-Schema 4 — zwei Sammler-Zeilen für E-AX-8 und E-AX-10 (01.10., 05:15–05:30 UTC; gebaut, uncommitted)
 
 Zwei gebaute, voreingestellt ausgeschaltete Optionen von buscosun Fusion waren am Archiv nicht messbar, weil der Sammler ihre
