@@ -16,7 +16,9 @@ import { decodeSwisFile } from '../src/road/swisBufr.ts';
 import {
   validateRoadSlot, parseRoadObs, parseRoadH24, roadObsRoundTripOk, roadFreshness, roadExpectedSlot, roadFlagFrom,
   roadStamp, roadStampToMs, normaliseRoad, ROAD_GROUPS, ROAD_SLOT_MS, ROAD_STUCK_RUN, ROAD_RULES, ROAD_OBS_GATE_MS,
+  ROAD_STALE_MS, ROAD_DEAD_MS, ROAD_RAW_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH,
 } from '../src/road/roadContract.ts';
+import { ROAD_HEALTH } from './health-manifests.mjs';
 import { classifySensor, mostSevereCondition } from '../src/road/roadClasses.ts';
 import { makeInDE } from './road/deMask.mjs';
 
@@ -201,6 +203,11 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
     normaliseRoad('A008').road === 'A8' && normaliseRoad('A095S').road === 'A95' && normaliseRoad('A095S').dir === 'S' && normaliseRoad('B017N').road === 'B17' && normaliseRoad('BAB 3').road === 'A3');
   const h24 = { schema: 1, product: 'road-h24', group: 'FN-BY', slot: '2610030800', slots: ['2610030745', '2610030800'], stations: { V164: { rs: [1.2, null], ta: [3, 3.1], td: [1, 1] } } };
   add('F16 h24-Prüfer: gültig ⇒ Datei, Längen ungleich ⇒ null', !!parseRoadH24(h24) && parseRoadH24({ ...h24, stations: { V164: { rs: [1], ta: [3, 3], td: [1, 1] } } }) === null);
+  // The health watcher is plain JS and carries its own copy of the two limits (scripts/health-manifests.mjs).
+  add('F17 Betriebs-Wächter: Grenzen gleich ROAD_STALE_MS / ROAD_DEAD_MS, Status-Pfad gleich dem Vertrag',
+    ROAD_HEALTH.staleMin * 60_000 === ROAD_STALE_MS && ROAD_HEALTH.deadMin * 60_000 === ROAD_DEAD_MS
+      && ROAD_HEALTH.statusUrl === `${ROAD_RAW_BASE}/${ROAD_STATUS_PATH}` && ROAD_RAW_BASE.endsWith(`/main/${ROAD_REPO_DIR}`),
+    `${ROAD_HEALTH.staleMin}/${ROAD_HEALTH.deadMin} min · ${ROAD_HEALTH.statusUrl}`);
 }
 
 const passed = checks.filter((c) => c.ok).length;

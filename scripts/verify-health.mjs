@@ -7,7 +7,7 @@
  * Der Wächter ist selbst ein Prüfmittel — er muss also nachweislich rot werden
  * können, sonst wiederholt er den Fehler, den er aufdecken soll (V-91).
  */
-import { checkManifest } from './health-manifests.mjs';
+import { checkManifest, checkRoadStatus, ROAD_HEALTH } from './health-manifests.mjs';
 
 const NOW = Date.parse('2026-08-03T12:00:00.000Z');
 const OPTS = { origin: 'https://buscosun.com', nowMs: NOW, maxRunAgeH: 9, maxUpdateAgeH: 6, proxyPath: '/_dwd_grib' };
@@ -93,6 +93,37 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   const wind = { run: 'R', runAt: healthy.runAt, updatedAt: healthy.updatedAt, warmedThroughProxy: 'https://buscosun.com/_dwd_wind', steps: [0, 1, 2, 3, 4] };
   add('H5 versteht auch ein flaches steps[] (Form ohne Produzent seit BW-13)',
     idOf(checkManifest('flach.json', wind, { ...OPTS, proxyPath: '/_dwd_wind' }), 'H5 Step-Vollständigkeit')?.pass === true);
+}
+
+// ── R: Straßenwetter road/v1/status.json (Phase AW, audit/autobahnwetter.md §4.4) ─────────────
+{
+  const RNOW = Date.parse('2026-10-03T13:20:00.000Z');
+  const ropts = { nowMs: RNOW };
+  const ok = {
+    schema: 1, product: 'road-status', job: '1', updatedAt: '2026-10-03T13:18:30.000Z', killSwitch: false,
+    lastSlot: '2610031300', lastPublishedSlot: '2610031300', blocked: null,
+    catalog: { etag: 'x', state: 'ok', checkedAt: '2026-10-03T12:50:00.000Z' }, groups: {}, balance: null, recent: [],
+  };
+  const rid = (s, id) => checkRoadStatus(s, ropts).find((r) => r.id === id);
+  add('R gesunder Status → alle Prüfungen grün', checkRoadStatus(ok, ropts).every((x) => x.pass),
+    checkRoadStatus(ok, ropts).filter((x) => !x.pass).map((x) => x.id).join(',') || 'keine');
+  add('R1 rot bei nicht lesbarem Status', rid(null, 'R1 Status lesbar')?.pass === false);
+  add('R1 rot bei fremdem Produkt', rid({ ...ok, product: 'radar' }, 'R1 Status lesbar')?.pass === false);
+  // R2: the mirror writes status.json on every publish; > 45 min without ⇒ road ingest is down (stale in the client).
+  add('R2 rot bei 50 min altem Lebenszeichen', rid({ ...ok, updatedAt: '2026-10-03T12:30:00.000Z' }, 'R2 Lebenszeichen')?.pass === false);
+  add('R2 grün bei 40 min (Naht zwischen zwei Spiegel-Jobs)', rid({ ...ok, updatedAt: '2026-10-03T12:40:00.000Z' }, 'R2 Lebenszeichen')?.pass === true);
+  add('R2 rot ohne updatedAt', rid({ ...ok, updatedAt: null }, 'R2 Lebenszeichen')?.pass === false);
+  // R3: last released slot (gate green) ≤ 3 h — beyond that the client shows "keine Messdaten" (ROAD_DEAD_MS).
+  add('R3 rot, wenn der letzte freigegebene Slot 3,5 h alt ist', rid({ ...ok, lastPublishedSlot: '2610030945' }, 'R3 freigegebener Slot')?.pass === false);
+  add('R3 grün bei gesperrtem Einzelslot (letzter freier 30 min alt)',
+    rid({ ...ok, lastSlot: '2610031315', lastPublishedSlot: '2610031245', blocked: { slot: '2610031315', reasons: [{ rule: 'slotGroups' }] } }, 'R3 freigegebener Slot')?.pass === true);
+  add('R3 rot ohne freigegebenen Slot', rid({ ...ok, lastPublishedSlot: null }, 'R3 freigegebener Slot')?.pass === false);
+  add('R4 rot bei fehlendem Stationskatalog', rid({ ...ok, catalog: { state: 'missing' } }, 'R4 Katalog')?.pass === false);
+  add('R4 grün bei veraltetem Katalog (alte Datei bleibt)', rid({ ...ok, catalog: { state: 'stale' } }, 'R4 Katalog')?.pass === true);
+  // A deliberate kill switch is not an outage — it must not mail every hour, but it is named.
+  const killed = checkRoadStatus({ ...ok, killSwitch: true, lastPublishedSlot: '2610030800' }, ropts);
+  add('Kill-Schalter: grün und benannt', killed.every((x) => x.pass) && killed.some((x) => /Kill/.test(x.detail ?? '')), killed.map((x) => `${x.id}:${x.pass}`).join(','));
+  add('Grenzen = Vertrag (45 min / 3 h)', ROAD_HEALTH.staleMin === 45 && ROAD_HEALTH.deadMin === 180);
 }
 
 const passed = checks.filter((c) => c.ok).length;

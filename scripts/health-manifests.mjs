@@ -28,6 +28,15 @@
  *       sonst stammt das ausgelieferte Manifest aus einem fremden Lauf
  *   H5  Step-Vollständigkeit: je Param lückenlos ab 0 bis zum jeweiligen Maximum
  *
+ * Dazu das Straßenwetter (Phase AW, audit/autobahnwetter.md §4.4) — `road/v1/status.json` im Daten-Repo, das der
+ * Radar-Spiegel bei jedem Push schreibt (Abruf über raw.githubusercontent, nicht über das CDN: fester Pfad,
+ * veränderliche Datei; `ROAD_HEALTH=0` schaltet die Prüfung ab):
+ *   R1  lesbar, `product: road-status`
+ *   R2  Lebenszeichen `updatedAt` ≤ 45 min (= ROAD_STALE_MS des Vertrags; eine Spiegel-Naht passt hinein)
+ *   R3  letzter freigegebener Slot ≤ 3 h (= ROAD_DEAD_MS; danach zeigt die Seite „keine Messdaten")
+ *   R4  Stationskatalog vorhanden (`stale` = alte Datei bleibt, grün)
+ *   Ein bewusst gesetzter Kill-Schalter ist kein Ausfall: grün, aber benannt.
+ *
  * Exit 0 = alles grün · 1 = mindestens eine Prüfung rot (GitHub schickt dann
  * seine Standard-Fehlermail) · 2 = Wächter selbst nicht lauffähig.
  */
@@ -112,6 +121,48 @@ export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAge
   return out;
 }
 
+/**
+ * Straßenwetter: Grenzen in Minuten. Plain JS (der Wächter läuft ohne TS-Lader) — `verify:road-contract` prüft, dass
+ * sie gleich ROAD_STALE_MS / ROAD_DEAD_MS aus `src/road/roadContract.ts` sind.
+ */
+export const ROAD_HEALTH = Object.freeze({
+  statusUrl: 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/road/v1/status.json',
+  staleMin: 45,
+  deadMin: 180,
+});
+
+/** `YYMMDDHHMM` (UTC) → ms; NaN when malformed. */
+function roadStampMs(s) {
+  if (typeof s !== 'string' || !/^\d{10}$/.test(s)) return NaN;
+  return Date.UTC(2000 + +s.slice(0, 2), +s.slice(2, 4) - 1, +s.slice(4, 6), +s.slice(6, 8), +s.slice(8, 10));
+}
+
+/** Reine Prüflogik für `road/v1/status.json` — von `verify-health.mjs` netzfrei getestet. */
+export function checkRoadStatus(s, { nowMs }) {
+  const out = [];
+  const ok = (id, pass, detail) => out.push({ id, name: `road/v1/status.json · ${id}`, pass, detail });
+  if (s == null || typeof s !== 'object' || s.product !== 'road-status') {
+    ok('R1 Status lesbar', false, s && typeof s === 'object' ? `product ${s.product ?? '(fehlt)'}` : 'nicht lesbar oder kein Objekt');
+    return out;
+  }
+  ok('R1 Status lesbar', true, s.killSwitch ? 'Kill-Schalter ROAD_KILL=1 aktiv — Slots ohne Punkte, bewusst' : undefined);
+  const upMs = Date.parse(s.updatedAt ?? '');
+  const upMin = (nowMs - upMs) / 60_000;
+  ok('R2 Lebenszeichen', Number.isFinite(upMin) && upMin <= ROAD_HEALTH.staleMin,
+    Number.isFinite(upMin) ? `zuletzt geschrieben vor ${upMin.toFixed(0)} min (Grenze ${ROAD_HEALTH.staleMin} min)` : 'updatedAt fehlt/ungültig');
+  if (s.killSwitch) {
+    ok('R3 freigegebener Slot', true, 'Kill-Schalter aktiv — nicht bewertet');
+  } else {
+    const pubMin = (nowMs - roadStampMs(s.lastPublishedSlot)) / 60_000;
+    const blocked = s.blocked?.slot ? ` · zuletzt gesperrt ${s.blocked.slot} (${(s.blocked.reasons ?? []).map((r) => r.rule).join(', ')})` : '';
+    ok('R3 freigegebener Slot', Number.isFinite(pubMin) && pubMin <= ROAD_HEALTH.deadMin,
+      Number.isFinite(pubMin) ? `Slot ${s.lastPublishedSlot} ist ${pubMin.toFixed(0)} min alt (Grenze ${ROAD_HEALTH.deadMin} min)${blocked}` : `kein freigegebener Slot${blocked}`);
+  }
+  const cat = s.catalog?.state ?? 'missing';
+  ok('R4 Katalog', cat !== 'missing', `Stationskatalog ${cat}`);
+  return out;
+}
+
 async function loadRemote(url) {
   const res = await fetch(url, { headers: { 'cache-control': 'no-cache' } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -141,6 +192,12 @@ async function main() {
       try { m = await loadRemote(`${baseUrl}/${meta.name}`); }
       catch (e) { results.push({ id: 'H1', name: `${meta.name} · H1 erreichbar`, pass: false, detail: String(e?.message ?? e) }); continue; }
       results.push(...checkManifest(meta.name, m, { origin: baseUrl, nowMs, maxRunAgeH: MAX_RUN_AGE_H, maxUpdateAgeH: MAX_UPDATE_AGE_H, proxyPath: meta.proxy }));
+    }
+    if (process.env.ROAD_HEALTH !== '0') {
+      let s = null;
+      try { s = await loadRemote(process.env.ROAD_STATUS_URL ?? ROAD_HEALTH.statusUrl); }
+      catch (e) { results.push({ id: 'R1', name: 'road/v1/status.json · R1 erreichbar', pass: false, detail: String(e?.message ?? e) }); }
+      if (s) results.push(...checkRoadStatus(s, { nowMs }));
     }
   }
 
