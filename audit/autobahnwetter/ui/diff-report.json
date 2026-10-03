@@ -1,13 +1,13 @@
 {
  "threshold": 12,
  "desktop": {
-  "pct": 32.8,
+  "pct": 33.2,
   "modules": {
    "rail": 9.3,
    "topbar": 6.5,
-   "dock": 31.1,
+   "dock": 33.7,
    "map": 50.9,
-   "band": 15.5,
+   "band": 15.2,
    "readout": 24.1
   }
  },

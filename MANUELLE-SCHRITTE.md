@@ -1283,30 +1283,35 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
 
 **Stand:**
 - **Auf `main` von buscosun-web (gepusht, für Nutzer unsichtbar):** `a2bb63a` Datenlinie (Decoder, Vertrag, Ableitung, Spiegel-Haken,
-  Katalog, Korridor-Bauer, README-Vorlage, drei Verifier) und `691113c` Klassenspalte im 24-h-Ring + Exportform (E-AW-6, nur vorbereitet).
+  Katalog, Korridor-Bauer, README-Vorlage, drei Verifier), `691113c` Klassenspalte im 24-h-Ring + Exportform (E-AW-6, nur vorbereitet),
+  `2687a61` Wächter R1–R4, `45f12dd` + `ef6d7af` Fixes der Gesamtprüfung (DWD-Zeitlimits im Spiegel, Status über die Job-Naht, Wächter
+  R2/R3/R5, Korridor-Achsen ohne Schleifen) — **wirksam im Spiegel ab dem nächsten Jobstart (≈ 18:35 UTC)**.
 - **Im Daten-Repo (gepusht nach Protokoll, nie force):** `cb20f86` README-Abschnitt „Straßenwetter — road/", `scripts/radar-mirror.mjs`
-  mit drei Haken, `road/v1/static/stations.json` + `corridors.json`; `bef7411` und `e9ef1f0` Korridor-Titel. jsDelivr für die geänderten
-  `road/`-Dateien gepurgt. Workflows unverändert.
+  mit drei Haken, `road/v1/static/stations.json` + `corridors.json`; `bef7411` und `e9ef1f0` Korridor-Titel, `0e801f2` bereinigte
+  Korridor-Achsen (A 8 161,3 → 128,7 km). jsDelivr für die geänderten `road/`-Dateien gepurgt. Workflows unverändert. Nach dem
+  Force-Push der Kartenlinie (13:07 UTC) geprüft: alles noch da.
 - **Schattenbetrieb:** der Radar-Spiegel klont `main` von buscosun-web bei jedem Jobstart und schreibt seither je 15-min-Slot `road/v1/`
   (Belege der ersten Slots: Audit §5). Keine Seite liest die Daten ohne `?road=1`.
-- **Zweig `feat/autobahnwetter` (nicht auf `main`):** AW-4 (Kachel, Route, Rail, ⌘K, Aliase) und AW-5 (Seite) hinter `?road=1`, Wächter-Prüfung
-  R1–R4 — siehe (a).
+- **Zweig `feat/autobahnwetter` (nicht auf `main`, gepusht):** AW-4 (Kachel, Route, Rail, ⌘K, Aliase) und AW-5 (Seite) hinter `?road=1`
+  samt Fixes der Gesamtprüfung — siehe (a).
 
 **Deine Gates:**
 - **(a) E-AW-14 — Edge-Bündel `og-meta`:** `git apply audit/autobahnwetter/og-meta-bundle.patch` oder gleichwertig `npm run edge:share` auf dem
   Zweig (nur der neue Routeneintrag im erzeugten
   `netlify/edge-shared/shareParser.js`; `og-meta` läuft nur auf den neun teilbaren Pfaden ⇒ keine Laufzeitwirkung). Danach `verify:share`
   528/528 und der Zweig kann nach `main` (Flag aus, unsichtbar). Ohne (a) bleibt der Zweig liegen, weil die CI `verify:share` fährt.
-- **(b) Wächter:** mit dem Merge prüft `health.yml` stündlich `road/v1/status.json` (Lebenszeichen ≤ 45 min, freigegebener Slot ≤ 3 h) und
-  mailt bei Rot wie bei den Warm-Manifesten. Wer im Schattenbetrieb keine Mails will: in `.github/workflows/health.yml` beim Schritt
-  „Warm-Manifeste in Produktion prüfen" unter `env:` die Zeile `ROAD_HEALTH: '0'` ergänzen (Workflow-Datei = dein Gate, nicht angefasst).
+- **(b) E-AW-16 — Wächter:** `health.yml` prüft seit `2687a61` stündlich auch das Straßenwetter (R1–R5). **Aber:** der Workflow ist seit
+  September bei **jedem** Lauf rot, weil `latest-grib.json` seit dem Rückzug der Warm-Crons nicht mehr fortgeschrieben wird (H2/H3,
+  ≈ 700 h alt) — so meldet er keinen echten Ausfall. Vorschlag: die H-Prüfungen für `latest-grib.json` entfernen oder auf den Index-Weg
+  umstellen (Workflow-/Wächter-Änderung, dein Ja). Straßenteil abschalten, falls gewünscht: `ROAD_HEALTH: '0'` unter `env:` des Schritts.
 - **(c) Gate B nach 7 Tagen Schatten (≈ 10.10.):** Anteil freigegebener Slots, Ankunft gegen Frist, Bilanz je Regel aus `status.json`/`quarantine/`,
   Stichproben V-AW-5/6, Push-Last (V-AW-10), Radar ohne Rückschritt (Spiegel-Takt). Vorlage: Audit §5.
 - **(d) Kalibrierung nach ≥ 14 Tagen (≈ 17.10.):** Startwerte der Beobachtungsregeln (`jump`, `neighbours`, `roadAir`, `catalog`, `cube`) aus
   der Quarantäne; entscheiden, welche hart werden.
 - **(e) Gate C — Flag an:** `ROAD_LIVE = true` in `src/road/roadFlag.ts`, Sitemap + die 20 Autobahn-Unterseiten (V-AW-8), E-AW-15 Vorschaukarte.
   Vorher Real-Device (V-AW-13): Handy mit `?road=1`, Karte, Blatt, Auswahl.
-- **(f) E-AW-13:** Voreingestellte Messstelle ohne kritische Messung — kälteste gemessene Fahrbahn (Vorschlag) oder schwerste Klasse (heute).
+- **(f) E-AW-13:** Voreingestellte Messstelle — heute die kälteste gemessene Fahrbahn; Vorschlag: kritischste Klasse zuerst (Glätte, Frost, Nässe),
+  bei Gleichstand die kälteste (eine gemessene Glätte an einer wärmeren Stelle stünde sonst dahinter).
 - **(g) AW-6 — Archiv-Freigabe:** die Exportform liegt (`scripts/road/road-export.mjs`); Archiv-Ziel (`buscosun-archiv`?), Takt und Größe
   entscheiden, dann Prognose +1/+3/+6 h mit Backtest (Gate D).
 - **(h) V-AW-4:** P758 (A 94) mit Katalog-Koordinaten reparieren — Datenänderung, nur mit deinem Ja.

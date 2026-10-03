@@ -7,7 +7,21 @@
 
 ## 0. Kurzfassung für Jan
 
-*(wird am Ende der Sitzung mit dem Stand je AP ersetzt — s. §9)*
+- **AW-0 Spike (Gate A bestanden):** Rohformat BUFR mit eigenem Decoder (die QA-XML trägt keinen Fahrbahnzustand);
+  drei Layouts, gegen eccodes 78 670 Werte ohne Abweichung; 23 aktive DWD-Reihen, Ankunft p90 139 s; 48-h-Replay der
+  Regeln: hart verworfen p50 1,5 % / max 2,9 %. Zwei Rückfragen entschieden (E-AW-7 Katalog, E-AW-11 Eis-Codes).
+- **AW-1–AW-3 auf `main`, Schattenbetrieb läuft:** Vertrag `road/v1`, Ableitung als Produkt des Radar-Spiegels, Wächter
+  R1–R5. Seit 12:47 UTC schreibt der Spiegel je 15 min einen Slot; erster Live-Slot 13:30 UTC nach **235 s** im
+  Daten-Repo, über jsDelivr lesbar, 1 546 Punkte, 1,5 % verworfen (§5).
+- **AW-4/AW-5 auf dem Zweig `feat/autobahnwetter`** hinter `?road=1` (Flag aus): Kachel, Route, Deck nach der Vorlage
+  (jede Abweichung benannt, §6.4), alle Gates grün außer `verify:share` SH6 — das braucht dein Ja zum Edge-Bündel
+  (**E-AW-14**, Patch liegt bei, keine Laufzeitwirkung).
+- **Gesamtprüfung durch einen frischen Reviewer:** 0 kritisch, 9 wichtig — alle behoben mit vorher roten Tests (§10);
+  u. a. Zeitlimits für DWD im Radar-Spiegel (greift ab dem nächsten Jobstart ≈ 18:35 UTC) und Korridor-km, die 15–22 %
+  zu lang waren.
+- **Bitte entscheiden:** E-AW-14 (Edge-Bündel), E-AW-16 (`health.yml` ist seit September immer rot — so meldet er auch
+  keinen Straßenausfall), E-AW-13 (Voreinstellung der Messstelle), dann Gate B nach 7 Tagen Schatten (≈ 10.10.),
+  Kalibrierung ≥ 14 Tage, Gate C (Flag an), Archiv-Freigabe für AW-6. Einzelheiten: `MANUELLE-SCHRITTE.md` §33.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
 
@@ -316,13 +330,18 @@ Quarantäne und `state.json` immer, `obs/` und `h24/` nur bei grünem Gate; Zusa
 der Spiegel bis zu **96 Slots (24 h)** aus dem 48-h-Fenster des DWD nach (die `stuck`-Regel braucht 6 h Vorgeschichte),
 ein Slot je Schleife, Push alle 8 Slots — der Radar-Takt bleibt unberührt. `publish()` kopiert den ganzen Speicher nach
 `road/v1` (heilt die Force-Pushes von `build.yml`/`point.yml`) und nimmt `git add radar road`. Fehler im Straßenteil
-werden geloggt, der Radar läuft weiter (`try/catch` um `poll()`).
+werden geloggt, der Radar läuft weiter (`try/catch` um `poll()`). Seit `45f12dd` (Befund #1 der Gesamtprüfung, §10):
+jede DWD-Anfrage mit Zeitlimit 8 s, höchstens 6 gleichzeitig, ein Durchlauf startet nach 10 s keine neuen Anfragen
+mehr (der Rest kommt in der nächsten Schleife) — vorher liefen 23 Anfragen ohne Zeitlimit nacheinander in der
+Radar-Schleife. Ein Nachfolge-Job übernimmt den Status des Vorgängers und leitet dessen letzten Slot nicht noch einmal
+ab (Befund #2).
 
 Höflichkeit gegen opendata.dwd.de: ≈ 23 HEAD je 30 s nur bis zur Ankunft (p50 31 s) bzw. bis zur Frist, danach
 nichts bis zum nächsten Slot; GET nur einmal je Datei; Katalog einmal täglich per ETag.
 
 Datei im Daten-Repo: `scripts/radar-mirror.mjs` (Kopie von `buscosun-web/scripts/radar-mirror/radar-mirror.mjs`,
-+25/−2 Zeilen: Haken, `paths`) — gepusht `cb20f86`, die Korridor-Titel `bef7411` und `e9ef1f0` (§5).
++25/−2 Zeilen: Haken, `paths`) — gepusht `cb20f86`, die Korridor-Titel `bef7411` und `e9ef1f0`, die bereinigten
+Korridor-Achsen `0e801f2` (§4.5, §10).
 
 Klassenspalte und Exportform (E-AW-6, nur vorbereitet): der 24-h-Ring trägt seit `691113c` je Station `k`, die
 Klasse je Slot als ein Zeichen (`i f w d u n`, `-` = kein Punkt) — ein Backtest der Glätte-Klassen braucht den
@@ -333,28 +352,72 @@ Freigabe). Rohwerte verworfener Messungen stehen nur in `quarantine/` (24 h) —
 
 ### 4.4 Betriebs-Wächter (`scripts/health-manifests.mjs`)
 
-Der stündliche Wächter (`health.yml`, unverändert) prüft zusätzlich `road/v1/status.json` über raw.githubusercontent:
-R1 lesbar, R2 Lebenszeichen ≤ 45 min, R3 letzter **freigegebener** Slot ≤ 3 h, R4 Katalog vorhanden; ein bewusst
-gesetzter Kill-Schalter ist grün und benannt. `ROAD_HEALTH=0` schaltet die Prüfung ab. Die Grenzen sind eine Kopie
-von `ROAD_STALE_MS`/`ROAD_DEAD_MS` (der Wächter läuft ohne TS-Lader) — `verify:road-contract` F17 hält sie gleich.
-`verify:health` 33/33 (vorher 20, +13 Fälle mit Negativkontrollen). **Wirkung:** ein Ausfall des Straßenwetters mailt
-ab dem Merge nach `main` wie ein Ausfall der Warm-Manifeste.
+Der stündliche Wächter (`health.yml`, unverändert) prüft seit `2687a61`/`45f12dd`/`ef6d7af` (auf `main`) zusätzlich
+`road/v1/status.json` über raw.githubusercontent: **R1** lesbar · **R2** die Straßen-Ableitung lebt (jüngster
+abgeleiteter Slot ≤ 45 min — nicht `updatedAt`, das jeder Radar-Push erneuert) · **R3** letzter **freigegebener** Slot
+≤ 45 min (Plan; danach zeigt die Seite „veraltet") · **R4** Katalog vorhanden · **R5** was jsDelivr ausliefert: der
+jüngste freigegebene Slot, der ≥ 10 min alt und ≤ 2 h alt ist, über `@main` wie von der Seite gelesen (Produkt, Slot,
+Punkte). Ein bewusst gesetzter Kill-Schalter ist grün und benannt. `ROAD_HEALTH=0` schaltet die Prüfung ab. Grenze und
+Pfade sind eine Kopie aus dem Vertrag (der Wächter läuft ohne TS-Lader) — `verify:road-contract` F17 hält sie gleich.
+`verify:health` **38/38** (vorher 20). Probelauf gegen Produktion 03.10. 13:39 UTC: R1–R4 grün, R5 „nicht geprüft"
+(Nachholen), **H2/H3 von `latest-grib.json` rot — wie bei jedem Lauf seit September** (E-AW-16).
 
 ### 4.5 Korridore (`scripts/road/build-corridors.mjs`, E-AW-12)
 
 BKG DLM250 per WFS (`objart_42003_l`, Widmung 1301, `bez` z. B. `E52#A8` — erster Entwurf verlor Straßen am `#`):
 Segmente → Ketten (≤ 60 m) → Abschnitte (Lücken ≤ 3 km) → Douglas-Peucker 80 m → Richtung nach der deutschen
 Nummerierung (ungerade N → S, gerade W → O) → Korridor-km ab 0 (unsere Achse, nicht der amtliche Betriebskilometer).
+**Bereinigung der Achse (`removeLoops`, Befund #4, §10):** die gierige Verkettung lief auch über Rampen, Kleeblatt-
+Schleifen und — bei Autobahnen mit zwei Fahrbahnlinien — hin auf der einen und zurück auf der anderen Fahrbahn; das
+blähte Korridor-km um 15–22 % auf (A 8 München → Salzburg 161,3 statt ≈ 128 km, ETA am Ende ≈ 20 min falsch). Kommt
+der Weg ≤ 50 m an einen ≥ 150 m früheren Punkt zurück, entscheidet eine Vorschau über 300 m: läuft er weiter über
+Besuchtes (Gegenfahrbahn, Rampe zurück) ⇒ diese Punkte fallen weg; verlässt er es wieder (Schleife, Stichweg) ⇒ der
+Abschnitt dazwischen wird geschnitten; endet eine Rückfahrt am Kettenanfang, wird die Linie umgedreht und fortgesetzt.
+Neubau (`0e801f2`): Summe 16 088 → **13 143 km**, A 8 → **128,7 km**, Wiederkehrpunkte 2 138 → 3, Stationen 985 →
+**980** (vier liegen auf Stichästen, V-AW-16), Kennungen und Titel unverändert. `verify:road-contract` K1–K5.
 Stationen derselben Autobahn ≤ 2 km werden projiziert: **807 von 833** Autobahn-Anlagen. Endnamen aus GeoNames
 (`public/fire/places-dach.json`), an der Grenze die nächste Stadt ≥ 20 000 Einwohner jenseits (≤ 15 km) — „München →
 Salzburg"; beginnt und endet ein Abschnitt in derselben Gemeinde, heißt er „A 1 bei Buchholz in der Nordheide"
-(17 Abschnitte). Nur Abschnitte mit Stationen: **137 Korridore auf 88 Autobahnen, 985 Zuordnungen** (Richtungs-
-fahrbahnen getrennt), 407 KB. Lizenz: „© GeoBasis-DE / BKG (2026), dl-de/by-2.0" in Datei, README und Quellen-Reiter.
+(17 Abschnitte). Nur Abschnitte mit Stationen: **137 Korridore auf 88 Autobahnen, 980 Zuordnungen** (Richtungs-
+fahrbahnen getrennt), 262 KB. Lizenz: „© GeoBasis-DE / BKG (2026), dl-de/by-2.0" in Datei, README und Quellen-Reiter.
 AT/CH-Fortsetzungen (GIP.at, OSM) und Prognosepunkte gehören zu AW-6.
 
-## 5. Schattenbetrieb
+## 5. Schattenbetrieb (ab 03.10.2026 12:47 UTC)
 
-*(§5.1 ff. nach den ersten Slots — s. unten)*
+### 5.1 Start
+
+Der Radar-Spiegel klont bei jedem Jobstart `main` von buscosun-web. Der Job `37123997416` (Start 12:47:10 UTC) war der
+erste mit dem Straßenteil: `road: Start` beim Slot 02.10. 12:45 UTC (24 h Nachholen aus dem DWD-Fenster), Katalog per
+ETag (`a681a1dd…`, unverändert) — kein Dispatch, kein Abbruch eines laufenden Jobs. Erster `status.json` auf
+`origin/main` mit dem ersten Radar-Push des Jobs um 12:48:43 UTC.
+
+**Nachholen:** 96 Slots in 46 min (12:47 → 13:33), ≈ 2 Slots je Minute, Straßen-Push alle 8 Slots. Belegt über 14
+Stichproben des Fortschritts (alle 2 min) und die 24 Einträge von `status.recent`: jeder Slot **freigegeben**, `blocked`
+nie gesetzt, 22–23 Reihen, 1 534–1 556 Punkte, hart verworfen **1,07–1,67 %** je Slot; in der Historie seit dem
+Force-Push der Kartenlinie (13:07) 11 Straßen-Commits, keiner „(gesperrt)". Lückenlos für alle 96 ist es aus Git nicht
+belegbar (Force-Push der Kartenlinie, Aufbewahrung `obs/` 3 h).
+**Radar-Takt dabei unverändert:** RV-Komposit jeweils 3:43–3:58 min nach dem Slot auf `origin/main`, wie vorher
+(12:23–12:48: 3:50–3:59) — DWD antwortete schnell; der Schutz gegen einen langsamen DWD kam danach (§10, #1).
+
+### 5.2 Erste Live-Slots, Ende zu Ende (DWD → Ableitung → Daten-Repo → jsDelivr)
+
+| Slot (UTC) | Reihen | Punkte | verworfen | letzte DWD-Datei | abgeleitet | Commit `origin/main` | nach Slotbeginn | jsDelivr (eine Anfrage ≥ 4 min nach dem Commit) |
+|---|---|---|---|---|---|---|---|---|
+| 13:30 | 23 | 1 546 | 1,54 % | 13:33:29 | 13:33:54 (576 ms) | 13:33:55 | **235 s** | 200 MISS, 1 546 Punkte, Client-Prüfer 0 verworfen, 960 ms |
+
+*(weitere Live-Slots §5.4)*
+
+Klassen im Slot 13:30: trocken 999 · nass 91 · Zustand unbekannt 82 · keine gültige Messung 374. Ring
+`h24/FN-BY/2610031330.json`: 96 Slots, 160 Stationen, Klassenspalte `k` vorhanden. Bilanz harte Regeln (13:30):
+`stateNoTemp` 102 · `dwdSuspect` 32 · `stuck` 26 · `limit` 8 · `placeholder` 3 · `dewAboveAir` 1 · `outsideDE` 1 (P758).
+
+### 5.3 Daten-Repo und andere Jobs
+
+`road/` überlebte zwei Force-Pushes von `point.yml` (10:41, 10:58 UTC) und den der Kartenlinie `build.yml` (13:07 UTC,
+frische Historie) — die Publisher tragen unbekannte Ordner mit; nach 13:07 geprüft: README-Abschnitt, Haken in
+`scripts/radar-mirror.mjs`, 204 Dateien unter `road/`, bereinigte Korridore.
+README-Abschnitt und `scripts/radar-mirror.mjs` stehen auf `origin/main`. jsDelivr: `static/corridors.json` nach jedem
+Push gepurgt und in beiden Kodierungen geprüft (A 8 = 128,7 km).
 
 ## 6. AW-4/AW-5 Kachel, Route, Seite (Zweig `feat/autobahnwetter`, hinter `?road=1`)
 
@@ -393,7 +456,7 @@ nur mit der Ebene „Amtliche Warnungen"), am gewählten Punkt per Polygon-Test,
 Anführungszeichen**, gültig von/bis, Quelle. Abgeleitete Werte gibt es noch keine; Zeitchips +1/+3/+6 h und die
 Prognose-Kacheln sind gesperrt („Prognose folgt", Gate D).
 
-### 6.3 Prüfung im Browser (`verify:road-ui`, 26/26)
+### 6.3 Prüfung im Browser (`verify:road-ui`, 36/36 nach §10)
 
 Headless Chromium (SwiftShader für MapLibre) gegen `vite preview` des Builds; Daten = der eingefrorene Slot
 03.10. 08:00 UTC, durch den **echten** Producer (`road-derive.mjs`) abgeleitet und per Abfang-Regel für jsDelivr und
@@ -407,8 +470,9 @@ Punkte; „keine gültige Messung" über +16,0 °C; leeres Diagramm bei einem Sl
 
 ### 6.4 Abweichungen von der Vorlage (`scripts/road-ui-diff.mjs`, Belege `audit/autobahnwetter/ui/`)
 
-Pixelvergleich gegen die gerenderten `reference/autobahnwetter-*.dc.html` (|ΔRGB| > 12): **Desktop 32,8 %**
-(Rail 9,3 · Topbar 6,5 · Dock 31,1 · Karte 50,9 · Band 15,5 · Readout 24,1), **Mobil 50,1 %** (Pille 15,5 · Teilen
+Pixelvergleich gegen die gerenderten `reference/autobahnwetter-*.dc.html` (|ΔRGB| > 12): **Desktop 33,2 %**
+(Rail 9,3 · Topbar 6,5 · Dock 33,7 · Karte 50,9 · Band 15,2 · Readout 24,1; finaler Build nach §10 — die Dock-Zeilen tragen
+jetzt „ohne Zustand“ getrennt von „ohne Messung“), **Mobil 50,1 %** (Pille 15,5 · Teilen
 14,7 · Chips 21,4 · Karte 62,4 · Blatt 43,4). Die Vorlage zeichnet eine SVG-Karte und Beispielwerte (06:15, Glätte
 am Irschenberg), die Seite eine echte Karte und den Slot 10:00 bei +16 °C — Karte, Werte und Farben weichen daher
 bauartbedingt ab. Benannt je Modul:
@@ -424,8 +488,9 @@ bauartbedingt ab. Benannt je Modul:
 | Mobil | Pille öffnet die Autobahn-Auswahl (Vorlage: Chevron ohne Ziel), Blatt in zwei Stufen (414 px / offen), „Abfahrt" als zweiter Knopf | Bedienbarkeit, Touch ≥ 44 px |
 | Kachel | ohne Prognose-Versprechen, „rund 1.200" statt Beispielzahl | §6.1 |
 
-Voreingestellte Messstelle ist die schwerste Klasse des Korridors; ist keine Glätte/Frost/Nässe gemessen, steht
-„Zustand unbekannt" vor „trocken" (Schweinbach im Beispiel) — Entscheidung E-AW-13 (§9).
+Voreingestellte Messstelle ist die **kälteste gemessene Fahrbahn** des Korridors, sonst seine erste Station
+(`RoadPage.tsx`; im Beispiel Schweinbach +16,0 °C, Zustand unbekannt). Die Vorlage zeigt die kritischste Stelle —
+Entscheidung E-AW-13 (§9). *(Erste Fassung dieses Absatzes beschrieb das Verhalten falsch; Befund der Gesamtprüfung.)*
 
 ### 6.5 Fünf Selbstverifikations-Fragen (Gate AW-4/AW-5)
 
@@ -443,7 +508,8 @@ Voreingestellte Messstelle ist die schwerste Klasse des Korridors; ist keine Gl�
 
 ### 6.6 Budget
 
-Kontrollbau (gleicher Baum ohne AW-4/AW-5) 108,6 / 1 517,5 KB gegen 108,9 / 1 538,9 KB: RoadPage +18,6, RoadRoute
+Kontrollbau (gleicher Baum ohne AW-4/AW-5) 108,6 / 1 517,5 KB gegen 108,9 / 1 538,9 KB (nach dem Fix-Durchgang §10:
+1 539,3 KB, +0,4 KB für Warnungs-Erneuerung, Sichtmodell und `warnField` im Seiten-Chunk): RoadPage +18,6, RoadRoute
 +1,45, roadFlag +0,26 (alle lazy), Startseite +0,33, Rail +0,10; eagerJs +0,3 KB (Routeneintrag, Lazy-Verweis).
 Ratschen mit Notiz angehoben: eagerJs 108,7 → **109,0**, totalJs 1 518 → **1 540** (Jan 30.09.: anheben erlaubt).
 eagerCss bleibt 2,4: die `--aw-*`-Tokens stehen im lazy `roadDeck.css`, nicht in `designTokens.css` (erster
@@ -484,22 +550,25 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | V-AW-13 | Mobil-Karte (WebGL), Long Tasks, Touch nicht am Gerät geprüft | Sicherheit vor Gate C | Real-Device mit `?road=1` (scrcpy), Trace der ersten 10 s |
 | V-AW-14 | Radar-Ebene der Vorlage („Niederschlag jetzt") nicht gebaut | Schauer an der Strecke sehen | RV-Bild des Spiegels als Bild-Quelle auf der Straßenkarte (Module der Wetterkarte), eigene Ebene im Dock |
 | V-AW-15 | `verify:share` SH6 ist in jedem frischen Windows-Checkout rot (CRLF durch `autocrlf`, Vergleich Byte für Byte) | ein Verifier, der nur auf einer Maschine grün ist, verdeckt echte Fehler | `.gitattributes`: `netlify/edge-shared/*.js text eol=lf` (dann ist der Checkout überall LF) oder im Verifier Zeilenenden vor dem Vergleich angleichen |
+| V-AW-16 | Stichäste einer Autobahn fallen bei der Bereinigung aus der Achse — 4 Stationen ohne Korridor (Larrelt A 31, AD Bayerisches Vogtland A 72, Fürth A 73, AD Hochfranken A 93) | auch diese Anlagen im Streckenband | Äste ≥ 2 km als eigene Abschnitte behalten (eigene Kennung `a31-x`), statt sie abzuschneiden; die Stationen erscheinen bis dahin als Kartenpunkt |
+| V-AW-17 | `health.yml` schlägt seit September bei jedem Lauf fehl (H2/H3 `latest-grib.json` ≈ 700 h alt) | ein immer roter Wächter meldet keinen echten Ausfall — auch nicht den des Straßenwetters | E-AW-16 |
+| V-AW-18 | Tauplateau-Ausnahme der `stuck`-Regel (Fahrbahn −10…0 °C bei Luft ±10 K) deckt den Großteil des Winters — ein bei −0,01 °C hängender Fühler (Muster K677) würde im Winter nie verworfen und zeigte bei Nässe „Frostgefahr" | weniger falsche Frost-Warnfarbe im Winter | in Gate B kalibrieren: Plateau nur, wenn auch die Luft sich bewegt, oder Ausnahme auf 12 h begrenzen (Hinweis der Gesamtprüfung) |
 
-## 8. Verifier (Stand Zweig `5999694`, gelaufen 03.10. 11:40–12:30 UTC, PowerShell, ohne `2>&1`)
+## 8. Verifier (Stand Zweig nach dem Fix-Durchgang, gelaufen 03.10. 13:50–14:10 UTC, PowerShell, ohne `2>&1`)
 
 | Verifier | Ergebnis | Inhalt |
 |---|---|---|
 | `verify:road-decode` | **15/15** | Decoder gegen den eccodes-Fixture (24 Bulletins, 78 670 Werte), drei Layouts, Latin-1, rechtsbündige Strings, Fehlerfälle |
-| `verify:road-contract` | **59/59** | Regeln B (Werte), C (hängend, Plateau, Sprung über Slots), D (Station), E (Slot-Sperre), F (Klassen, Client-Prüfer, Frische, Zeit-Gate, Flag, Ring-Prüfer, Wächter-Grenzen F17) |
-| `verify:road-derive` | **27/27** | Spiegel-Haken im echten `radar-mirror.mjs`, Bare-Repo + Klon + nachgebauter DWD: erste Slots, Sperre, Heilung nach Force-Push, Aufbewahrung, atomares Schreiben, von Hand gepushte Korridore, Klassenspalte + Export (H1–H5) |
-| `verify:road-ui` | **26/26** | §6.3 (B3, F3, F4 am alten Build rot) |
-| `verify:health` | **33/33** | Warm-Manifeste wie bisher (20) + R1–R4 mit Negativkontrollen (13) |
+| `verify:road-contract` | **64/64** | Regeln B (Werte), C (hängend, Plateau, Sprung über Slots), D (Station), E (Slot-Sperre), F (Klassen, Client-Prüfer, Frische, Zeit-Gate, Flag, Ring-Prüfer, Wächter-Grenzen F17), K1–K5 Korridor-Bereinigung |
+| `verify:road-derive` | **31/31** | Spiegel-Haken im echten `radar-mirror.mjs`, Bare-Repo + Klon + nachgebauter DWD: erste Slots, Sperre, Heilung nach Force-Push, Aufbewahrung, atomares Schreiben, von Hand gepushte Korridore, Klassenspalte + Export (H1–H5), Job-Naht und hängender DWD (I1–I4) |
+| `verify:road-ui` | **36/36** | §6.3; dazu V1–V3, W1–W2, D5, M1–M4 aus der Gesamtprüfung (alle am alten Build rot) |
+| `verify:health` | **38/38** | Warm-Manifeste wie bisher (20) + R1–R5 mit Negativkontrollen (18) |
 | `npm run build` | grün | `verify-seo` 803/803, `verify-routing` **252/252** (vorher 249, +3 AW-Prüfungen) |
 | `npm run budget` | grün | eagerJs 108,9 / 109,0 · eagerCss 2,4 / 2,5 · largestChunk 278,4 / 302 · totalJs 1 539,0 / 1 540 |
 | `npm run typecheck` | 0 Fehler | |
 | `verify:fire-detail` | 483/483 | liest `designTokens.css` (unverändert) |
 | `verify:fire-behoerden` | 100/100 | liest `netlify.toml` |
-| `verify:dashboard-switch` | 50/50 | Router, Startseite, Karte ⇄ Dashboard im Browser |
+| `verify:dashboard-switch` | 50/50 (12:25 UTC) · 49/50 (13:55 UTC) | Router, Startseite, Karte ⇄ Dashboard im Browser. Um 13:55 rot: (B) „kein GPU-Render-Loop hinter dem Dashboard" — 3 900 Draws in 3 s; **am Kontrollbau ohne AW-4/AW-5 identisch** (49/50, gleiche Zahl) ⇒ unabhängig von dieser Phase, zeit-/datenabhängig; Beobachtung für die Dashboard-Linie (§10.4) |
 | `verify:share` | **527/528** | ✗ SH6 „Edge-Bündel passt Byte für Byte zur Quelle" — durch den Routeneintrag (mit LF-Bündel gemessen), mit dem Patch 528/528; E-AW-14, V-AW-15 (§6.7) |
 | Startseite/Rail ohne Flag | 0 px Unterschied in 6 Aufnahmen | Gegenprobe mit Flag 58 468 / 331 px (§6.5) |
 
@@ -511,6 +580,64 @@ Producer-Commit `691113c` vor dem Push im sauberen Worktree (Stand `a2bb63a` + n
 
 | Nr. | Frage | Vorschlag |
 |---|---|---|
-| **E-AW-13** | Voreingestellte Messstelle, wenn nichts Kritisches gemessen ist: schwerste Klasse (heute: „Zustand unbekannt" vor „trocken") oder kälteste gemessene Fahrbahn? | kälteste gemessene Fahrbahn — sie ist für Glätte die relevante, „unbekannt" bleibt sichtbar schraffiert |
+| **E-AW-13** | Voreingestellte Messstelle: heute die **kälteste gemessene Fahrbahn** (eine gemessene Glätte an einer wärmeren Stelle stünde dahinter); die Vorlage zeigt die kritischste Stelle | kritischste Klasse zuerst (Glätte, Frost, Nässe), bei Gleichstand die kälteste — eine Zeile in `RoadPage.tsx` |
 | **E-AW-14** | Bündel der Edge Function `og-meta` neu schreiben (`audit/autobahnwetter/og-meta-bundle.patch`, nur der Routeneintrag, keine Laufzeitwirkung) | ja — danach `verify:share` grün und AW-4/AW-5 nach `main` |
 | **E-AW-15** | Vorschaukarte (Open Graph) für `/autobahnwetter` je Korridor | mit Gate C: `og-meta` um die Route erweitern, eine Karte „Autobahnwetter" (Stufe 1 wie SH6) |
+| **E-AW-16** | `health.yml` ist seit September dauerhaft rot (H2/H3: `latest-grib.json` wird seit dem Rückzug der Warm-Crons nicht mehr fortgeschrieben) — der Wächter meldet so keinen echten Ausfall mehr | H-Prüfungen für `latest-grib.json` entfernen (oder auf den Index-Weg des Daten-Repos umstellen); dann ist der Wächter wieder ein Signal, auch für R1–R5 |
+
+## 10. Gesamtprüfung des Zweigs (frischer Reviewer) und Fix-Durchgang
+
+Nach AW-5 hat ein frischer Reviewer (eigener Kontext, nur lesend) den ganzen Zweig `07cc7cf..5999694` gegen Plan,
+Audit und CLAUDE.md geprüft: **keine kritischen Befunde, neun wichtige, sechzehn kleine.** Die wichtigen sind alle in
+einem Durchgang behoben, jeder mit einem Test, der vorher rot war:
+
+| # | Befund | Wirkung für Nutzer/Betrieb | Behebung | Test (rot → grün) | Commit |
+|---|---|---|---|---|---|
+| 1 | DWD-Abrufe ohne Zeitlimit, nacheinander, in der Radar-Schleife | ein langsamer DWD hätte den Radar-Spiegel minutenlang angehalten (RV später als das 240-s-Gate) | Zeitlimit 8 s, 6 parallel, 10-s-Budget je Durchlauf | `verify:road-derive` I3/I4 (vorher Abbruch nach 6 s) | `45f12dd` (main) |
+| 2 | Status nach einer Job-Naht leer | Wächter rot bei jeder Naht (≈ 1 Fehlmail am Tag), letzter Slot doppelt abgeleitet | Status übernehmen, nächster Slot statt letzter | I1/I2 | `45f12dd` |
+| 3 | Wächter maß Radar- statt Straßen-Lebendigkeit, 3 h statt 45 min, kein CDN | Straßenausfall bis 3 h unbemerkt | R2 = Ableitung, R3 = 45 min, R5 = jsDelivr | `verify:health` R2/R3/R5 | `45f12dd`, `ef6d7af` |
+| 4 | Schleifen/Rückfahrten in den Korridor-Achsen | Korridor-km +15–22 %, ETA bis ≈ 20 min falsch | `removeLoops` (Rückfahrt verwerfen, Schleife schneiden, am Anfang umdrehen) | `verify:road-contract` K1–K5 | `45f12dd`, Daten `0e801f2` |
+| 5 | Korridorwahl bewegte die Karte nicht | Dock-Klick ohne sichtbare Wirkung | Anpassen nach `load`, nicht nach `map.loaded()` | `verify:road-ui` M3 | `31d055e` (Zweig) |
+| 6 | Zurück-Taste änderte nur die URL | geteilter Link ≠ Anzeige | POP übergibt den URL-Zustand an die Seite | M4 | `31d055e` |
+| 7 | Dock-Punkt „trocken" über 29 unbekannten Stationen | D-04 verletzt | Punkt nur trocken, wenn mehr trocken als unbekannt; „ohne Zustand" ≠ „ohne Messung" | V1–V3 | `31d055e` |
+| 8 | Warnungen nie erneuert | abgelaufene Warnung bleibt stehen | alle 5 min neu, beim Zeichnen nach der Uhr gefiltert, Link zum DWD bei Fehler | W1/W2, M2 | `31d055e` |
+| 9 | GeoNames ohne Nachweis, DWD-Zeile nicht in der API-§7-Form | Lizenzauflage | Quellen-Zeile GeoNames, „Datenbasis: Deutscher Wetterdienst …" | D5, M1 | `31d055e` |
+
+### 10.1 Was beim Beheben selbst auffiel
+
+- **#4, erster Ansatz verworfen:** eine Richtungsregel („Punkt gegen die Fahrtrichtung der letzten 200 m ⇒ weg")
+  bestand die synthetischen Tests, hätte an echten Daten aber 70 % der Stationen aus den Korridoren genommen
+  (A 3: 930 → 49 km, 985 → 296 Stationen) — die Ketten laufen nicht sauber vorwärts. Reines Schleifen-Schneiden kürzte
+  bei Rückfahrten die **Hinfahrt** (A 602: 23,7 → 5,3 km). Die Vorschau-Regel unterscheidet beides; geprüft an allen 137
+  Korridoren, nicht nur an Testfällen.
+- **M2 lief bisher gegen den echten DWD-Feed:** die Seite holt Warnungen über den eigenen Proxy-Pfad, und der
+  Service Worker der App beantwortete die Anfrage, bevor die Abfang-Regel des Tests sie sah. `verify:road-ui` umgeht den
+  Service Worker jetzt per CDP.
+- **R5 im Probelauf gegen Produktion:** beim Nachholen fragte R5 einen längst aufgeräumten Slot an (404) — R5 nimmt
+  jetzt nur Slots ≤ 2 h (`ef6d7af`).
+- **Doku-Fehler:** §6.4 und E-AW-13 beschrieben die Voreinstellung der Messstelle falsch (Code: kälteste gemessene
+  Fahrbahn) — korrigiert.
+
+### 10.2 Wirksamkeit auf dem laufenden Betrieb
+
+Die Producer-Fixes liegen auf `main` (`45f12dd`, `ef6d7af`); der Radar-Spiegel lädt sie erst beim **nächsten Jobstart**
+(≈ 18:35 UTC). Den laufenden Job breche ich nicht ab (Startprompt §2). Bis dahin läuft der Stand `691113c` — mit dem
+Risiko #1 bei einem langsamen DWD (heute gemessen: RV-Takt unverändert).
+
+### 10.3 Aufgeschoben (kleine Befunde, Ledger)
+
+Rückschritt nur 4 Slots (ein frischer Aufruf sieht „veraltet" nie, nur „keine Messdaten" nach ≈ 75 min) · Client-Gate
+10 min vor der Producer-Frist 12 min (kurze 404 am Edge bei späten Reihen) · ein Refresh kann einen älteren Slot zeigen
+· „veraltet" nur auf der Karte, nicht in Band/Dock/Badge · Stationsklasse „trocken" kann einen kälteren Fühler mit
+unbekanntem Zustand verdecken · ETA-Zeilen > +30 min zeigen die Klasse (liest sich wie Prognose) · Fingerabdruck vor dem
+Expandieren prüfen, Fehlermeldung kürzen (ENOBUFS) · Ringe vor dem Schreiben durch `parseRoadH24` · Tippziele der
+Kartenpunkte 10–15 px, Auswahl-Dialog ohne Fokusführung, Reiter ohne `aria-controls` · Tablet 768–1023 px eng · Erstanzeige
+nicht gemessen, `dataAge.ts` nicht wiederverwendet, `'SD-BW'` hart kodiert · `corridors.json` über `@main` (nur durch
+Purge sicher) · Flag `road=1` fällt bei der ersten Navigation aus der URL · keine Ladeanzeige, „invalid" mit falschem
+Text, `setData` je Render solange `corridors` fehlt. Planebene: Tauplateau (V-AW-18).
+
+### 10.4 Beobachtungen außerhalb der Phase
+
+- `health.yml` ist seit September bei jedem Lauf rot (E-AW-16).
+- `verify:dashboard-switch` (B) um 13:55 UTC auf beiden Builds rot (3 900 Draws hinter dem Dashboard), um 12:25 grün.
+- `verify:share` SH6 in jedem frischen Windows-Worktree rot (V-AW-15).
