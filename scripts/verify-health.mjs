@@ -7,7 +7,7 @@
  * Der Wächter ist selbst ein Prüfmittel — er muss also nachweislich rot werden
  * können, sonst wiederholt er den Fehler, den er aufdecken soll (V-91).
  */
-import { checkManifest, checkRoadStatus, ROAD_HEALTH } from './health-manifests.mjs';
+import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH } from './health-manifests.mjs';
 
 const NOW = Date.parse('2026-08-03T12:00:00.000Z');
 const OPTS = { origin: 'https://buscosun.com', nowMs: NOW, maxRunAgeH: 9, maxUpdateAgeH: 6, proxyPath: '/_dwd_grib' };
@@ -99,21 +99,25 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
 {
   const RNOW = Date.parse('2026-10-03T13:20:00.000Z');
   const ropts = { nowMs: RNOW };
+  const rec = (slot, derivedAt, publish = true) => ({ slot, publish, derivedAt, points: 1500, share: 0.012, groups: 23 });
   const ok = {
     schema: 1, product: 'road-status', job: '1', updatedAt: '2026-10-03T13:18:30.000Z', killSwitch: false,
     lastSlot: '2610031300', lastPublishedSlot: '2610031300', blocked: null,
-    catalog: { etag: 'x', state: 'ok', checkedAt: '2026-10-03T12:50:00.000Z' }, groups: {}, balance: null, recent: [],
+    catalog: { etag: 'x', state: 'ok', checkedAt: '2026-10-03T12:50:00.000Z' }, groups: {}, balance: null,
+    recent: [rec('2610031300', '2026-10-03T13:04:10.000Z'), rec('2610031245', '2026-10-03T12:49:30.000Z')],
   };
   const rid = (s, id) => checkRoadStatus(s, ropts).find((r) => r.id === id);
   add('R gesunder Status → alle Prüfungen grün', checkRoadStatus(ok, ropts).every((x) => x.pass),
     checkRoadStatus(ok, ropts).filter((x) => !x.pass).map((x) => x.id).join(',') || 'keine');
   add('R1 rot bei nicht lesbarem Status', rid(null, 'R1 Status lesbar')?.pass === false);
   add('R1 rot bei fremdem Produkt', rid({ ...ok, product: 'radar' }, 'R1 Status lesbar')?.pass === false);
-  // R2: the mirror writes status.json on every publish; > 45 min without ⇒ road ingest is down (stale in the client).
-  add('R2 rot bei 50 min altem Lebenszeichen', rid({ ...ok, updatedAt: '2026-10-03T12:30:00.000Z' }, 'R2 Lebenszeichen')?.pass === false);
-  add('R2 grün bei 40 min (Naht zwischen zwei Spiegel-Jobs)', rid({ ...ok, updatedAt: '2026-10-03T12:40:00.000Z' }, 'R2 Lebenszeichen')?.pass === true);
-  add('R2 rot ohne updatedAt', rid({ ...ok, updatedAt: null }, 'R2 Lebenszeichen')?.pass === false);
-  // R3: last released slot (gate green) ≤ 3 h — beyond that the client shows "keine Messdaten" (ROAD_DEAD_MS).
+  // R2: liveness of the ROAD derive, not of the mirror — every radar push refreshes updatedAt (review finding #3).
+  add('R2 rot, wenn die Ableitung seit 50 min ruht, obwohl updatedAt frisch ist (Radar-Push)',
+    rid({ ...ok, recent: [rec('2610031215', '2026-10-03T12:30:00.000Z')] }, 'R2 Ableitung')?.pass === false);
+  add('R2 grün bei 40 min (Naht zwischen zwei Spiegel-Jobs)', rid({ ...ok, recent: [rec('2610031230', '2026-10-03T12:40:00.000Z')] }, 'R2 Ableitung')?.pass === true);
+  add('R2 rot ohne abgeleiteten Slot', rid({ ...ok, recent: [] }, 'R2 Ableitung')?.pass === false);
+  // R3: last released slot ≤ 45 min = ROAD_STALE_MS — beyond it the page says "veraltet" (plan: slot age < 45 min).
+  add('R3 rot bei 60 min altem freigegebenen Slot (Seite zeigt „veraltet")', rid({ ...ok, lastPublishedSlot: '2610031220' }, 'R3 freigegebener Slot')?.pass === false);
   add('R3 rot, wenn der letzte freigegebene Slot 3,5 h alt ist', rid({ ...ok, lastPublishedSlot: '2610030945' }, 'R3 freigegebener Slot')?.pass === false);
   add('R3 grün bei gesperrtem Einzelslot (letzter freier 30 min alt)',
     rid({ ...ok, lastSlot: '2610031315', lastPublishedSlot: '2610031245', blocked: { slot: '2610031315', reasons: [{ rule: 'slotGroups' }] } }, 'R3 freigegebener Slot')?.pass === true);
@@ -123,7 +127,14 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   // A deliberate kill switch is not an outage — it must not mail every hour, but it is named.
   const killed = checkRoadStatus({ ...ok, killSwitch: true, lastPublishedSlot: '2610030800' }, ropts);
   add('Kill-Schalter: grün und benannt', killed.every((x) => x.pass) && killed.some((x) => /Kill/.test(x.detail ?? '')), killed.map((x) => `${x.id}:${x.pass}`).join(','));
-  add('Grenzen = Vertrag (45 min / 3 h)', ROAD_HEALTH.staleMin === 45 && ROAD_HEALTH.deadMin === 180);
+  // R5: what jsDelivr really serves (plan) — the newest released slot that is ≥ 10 min old (an earlier request could
+  // pin a 404 at the edge), checked as the page would read it.
+  add('R5 wählt den jüngsten freigegebenen Slot, der ≥ 10 min alt ist', roadCdnSlot(ok, RNOW) === '2610031300' && roadCdnSlot({ ...ok, recent: [rec('2610031315', '2026-10-03T13:18:00.000Z'), ...ok.recent] }, RNOW) === '2610031300');
+  const obs = { schema: 1, product: 'road-obs', slot: '2610031300', points: [{ id: 'X' }] };
+  add('R5 grün, wenn das CDN die Slot-Datei mit Punkten ausliefert', checkRoadCdn(obs, '2610031300').pass === true);
+  add('R5 rot bei fremdem Slot, leerer oder fehlender Datei', checkRoadCdn({ ...obs, slot: '2610031245' }, '2610031300').pass === false
+    && checkRoadCdn({ ...obs, points: [] }, '2610031300').pass === false && checkRoadCdn(null, '2610031300').pass === false);
+  add('Grenzen = Vertrag (45 min)', ROAD_HEALTH.staleMin === 45);
 }
 
 const passed = checks.filter((c) => c.ok).length;

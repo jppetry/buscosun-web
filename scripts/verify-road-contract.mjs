@@ -16,7 +16,7 @@ import { decodeSwisFile } from '../src/road/swisBufr.ts';
 import {
   validateRoadSlot, parseRoadObs, parseRoadH24, roadObsRoundTripOk, roadFreshness, roadExpectedSlot, roadFlagFrom,
   roadStamp, roadStampToMs, normaliseRoad, ROAD_GROUPS, ROAD_SLOT_MS, ROAD_STUCK_RUN, ROAD_RULES, ROAD_OBS_GATE_MS,
-  ROAD_STALE_MS, ROAD_DEAD_MS, ROAD_RAW_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH,
+  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH,
 } from '../src/road/roadContract.ts';
 import { ROAD_HEALTH } from './health-manifests.mjs';
 import { classifySensor, mostSevereCondition } from '../src/road/roadClasses.ts';
@@ -203,11 +203,43 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
     normaliseRoad('A008').road === 'A8' && normaliseRoad('A095S').road === 'A95' && normaliseRoad('A095S').dir === 'S' && normaliseRoad('B017N').road === 'B17' && normaliseRoad('BAB 3').road === 'A3');
   const h24 = { schema: 1, product: 'road-h24', group: 'FN-BY', slot: '2610030800', slots: ['2610030745', '2610030800'], stations: { V164: { rs: [1.2, null], ta: [3, 3.1], td: [1, 1] } } };
   add('F16 h24-Prüfer: gültig ⇒ Datei, Längen ungleich ⇒ null', !!parseRoadH24(h24) && parseRoadH24({ ...h24, stations: { V164: { rs: [1], ta: [3, 3], td: [1, 1] } } }) === null);
-  // The health watcher is plain JS and carries its own copy of the two limits (scripts/health-manifests.mjs).
-  add('F17 Betriebs-Wächter: Grenzen gleich ROAD_STALE_MS / ROAD_DEAD_MS, Status-Pfad gleich dem Vertrag',
-    ROAD_HEALTH.staleMin * 60_000 === ROAD_STALE_MS && ROAD_HEALTH.deadMin * 60_000 === ROAD_DEAD_MS
+  // The health watcher is plain JS and carries its own copy of the limit and the paths (scripts/health-manifests.mjs).
+  add('F17 Betriebs-Wächter: Grenze gleich ROAD_STALE_MS, Status- und CDN-Pfad gleich dem Vertrag',
+    ROAD_HEALTH.staleMin * 60_000 === ROAD_STALE_MS && ROAD_HEALTH.cdnBase === ROAD_CDN_BASE
       && ROAD_HEALTH.statusUrl === `${ROAD_RAW_BASE}/${ROAD_STATUS_PATH}` && ROAD_RAW_BASE.endsWith(`/main/${ROAD_REPO_DIR}`),
-    `${ROAD_HEALTH.staleMin}/${ROAD_HEALTH.deadMin} min · ${ROAD_HEALTH.statusUrl}`);
+    `${ROAD_HEALTH.staleMin} min · ${ROAD_HEALTH.statusUrl} · ${ROAD_HEALTH.cdnBase}`);
+}
+
+// --- K: corridor builder — no junction loops in the axis (review finding #4) ----------------------------
+{
+  const { removeLoops } = await import('./road/build-corridors.mjs');
+  const kmLen = (c) => { let s = 0; for (let i = 1; i < c.length; i++) { const kx = 111.2 * Math.cos(((c[i][1] + c[i - 1][1]) / 2) * Math.PI / 180); s += Math.hypot((c[i][0] - c[i - 1][0]) * kx, (c[i][1] - c[i - 1][1]) * 111.2); } return s; };
+  const LAT = 48, dLon = 0.01 / (111.2 * Math.cos(LAT * Math.PI / 180));   // 10 m east
+  const straight = Array.from({ length: 401 }, (_, i) => [11 + i * dLon, LAT]);   // 4 km, 10 m spacing
+  // A cloverleaf: leaves the axis at 2 km, turns a circle of ≈ 160 m radius (≈ 1 km) and rejoins at the same place.
+  const loop = [];
+  for (let k = 1; k < 64; k++) { const a = (k / 64) * 2 * Math.PI; loop.push([11 + 200 * dLon + Math.sin(a) * 16 * dLon, LAT + (1 - Math.cos(a)) * 0.16 / 111.2]); }
+  const withLoop = [...straight.slice(0, 201), ...loop, ...straight.slice(200)];
+  const out1 = removeLoops(withLoop);
+  add('K1 Kleeblatt-Schleife (≈ 1 km) wird aus der Achse geschnitten — Länge wieder ≈ 4 km', Math.abs(kmLen(out1) - 4) < 0.05 && kmLen(withLoop) > 4.9, `${kmLen(withLoop).toFixed(2)} → ${kmLen(out1).toFixed(2)} km`);
+  add('K2 dichte gerade Achse (10 m Abstand) bleibt unverändert', removeLoops(straight).length === straight.length);
+  // U-turn onto the other carriageway 30 m north (chaining joined both directions at the end).
+  const back = Array.from({ length: 101 }, (_, i) => [11 + (400 - i * 2) * dLon, LAT + 0.03 / 111.2]);
+  const out3 = removeLoops([...straight, ...back]);
+  add('K3 Wendung auf die Gegenfahrbahn (30 m daneben) wird abgeschnitten', Math.abs(kmLen(out3) - 4) < 0.1, `${kmLen([...straight, ...back]).toFixed(2)} → ${kmLen(out3).toFixed(2)} km`);
+  // A 100-m spur out and back (ramp stub) at 1 km.
+  const spur = [...Array.from({ length: 10 }, (_, i) => [11 + 100 * dLon, LAT + ((i + 1) * 0.01) / 111.2]), ...Array.from({ length: 9 }, (_, i) => [11 + 100 * dLon, LAT + ((9 - i) * 0.01) / 111.2])];
+  const out4 = removeLoops([...straight.slice(0, 101), ...spur, ...straight.slice(101)]);
+  // Tolerance 60 m: the cut lands on the earliest vertex within 50 m, a few tens of metres of the spur may remain —
+  // noise against the 15–22 % inflation the rule removes (review finding #4).
+  add('K4 Stichweg hin und zurück (2 × 100 m) wird bis auf ≤ 60 m entfernt', kmLen(out4) - 4 < 0.06, `${kmLen(out4).toFixed(3)} km`);
+  // The chain starts mid-way (2 km), runs to the end (4 km), turns onto the opposite carriageway and runs back PAST
+  // its start to 0 km (A 31 at Emden: the first draft lost the end with the station at Larrelt).
+  const mid = [...straight.slice(200), ...Array.from({ length: 401 }, (_, i) => [11 + (400 - i) * dLon, LAT + 0.03 / 111.2])];
+  const out5 = removeLoops(mid);
+  const reach = (x) => out5.some((p) => Math.abs(p[0] - (11 + x * dLon)) < 2 * dLon);
+  add('K5 Kette beginnt in der Mitte und kehrt über ihren Anfang hinaus zurück: ganze Strecke 0–4 km bleibt, beide Enden erreicht',
+    Math.abs(kmLen(out5) - 4) < 0.15 && reach(0) && reach(400), `${kmLen(mid).toFixed(2)} → ${kmLen(out5).toFixed(2)} km`);
 }
 
 const passed = checks.filter((c) => c.ok).length;

@@ -13,7 +13,9 @@
  *   5. publish  the mirror's publish() copies the WHOLE road store next to the radar store (heals force-pushes)
  * Deadline slot + 12 min: missing series are published as `missing`. Past slots (start, after a seam, after a
  * force-push ate the state) are caught up from the DWD 48-h window, one slot per loop iteration, so the radar
- * mirror never stalls.
+ * mirror never stalls: every DWD request has a timeout (`fetchTimeoutMs`), at most `concurrency` run at once, and a
+ * poll stops starting requests after `pollBudgetMs` — whatever is left is asked again in the next loop iteration
+ * (review finding #1: sequential requests without a timeout could hold the radar loop for minutes).
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, cpSync, statSync } from 'node:fs';
@@ -29,6 +31,7 @@ export function createRoadMirror({
   appDir, mirrorDir, log = console.log, now = () => Date.now(), fetchImpl = fetch,
   killed = process.env.ROAD_KILL === '1', catalogFile = process.env.ROAD_CATALOG_FILE || '',
   maxCatchUpSlots = Number(process.env.ROAD_CATCHUP_SLOTS ?? 96), publishEvery = 8,
+  fetchTimeoutMs = 8_000, pollBudgetMs = 10_000, concurrency = 6, maxAttempts = 3,
 } = {}) {
   const deriveScript = appDir ? join(appDir, 'scripts', 'road', 'road-derive.mjs') : '';
   const catalogScript = appDir ? join(appDir, 'scripts', 'road', 'road-catalog.mjs') : '';
@@ -41,7 +44,7 @@ export function createRoadMirror({
   ], { encoding: 'utf8', timeout, stdio: ['ignore', 'pipe', 'pipe'] });
 
   let plan = null;                 // contract constants, from `road-derive.mjs --plan`
-  let pending = null;              // { slotMs, have: Map<group, file>, polledAt }
+  let pending = null;              // { slotMs, have: Map<group, file>, tried: Map<group, attempts>, polledAt }
   let catalog = { etag: null, state: 'missing', checkedAt: 0 };
   let caughtUp = 0;
   let seeded = false;
@@ -101,25 +104,49 @@ export function createRoadMirror({
     const current = slotOf(now());
     // At most `maxCatchUpSlots` past slots are caught up (96 = 24 h: the stuck rule needs 6 h of history).
     const earliest = current - maxCatchUpSlots * plan.slotMs;
+    // The slot after the last derived one — never that slot again (a seam re-derived it: double-counted stuck runs,
+    // rewrote an `obs` file that is immutable at the CDN). poll() waits while it lies in the future.
     const start = Number.isFinite(lastMs) && lastMs >= earliest ? lastMs + plan.slotMs : earliest;
-    pending = { slotMs: Math.min(start, current), have: new Map(), polledAt: 0 };
+    pending = newPending(start);
+    // The predecessor's status carries over until this job derives its first slot: every radar push writes status.json,
+    // and a null `lastPublishedSlot` / missing catalogue there would turn the watcher red at every seam (finding #2).
     const prev = readJson(join(store, plan.statusPath));
-    if (prev?.recent) status.recent = prev.recent.slice(0, 24);
+    if (prev?.product === 'road-status') {
+      for (const k of ['lastSlot', 'lastPublishedSlot', 'blocked', 'groups', 'balance', 'catalog']) if (prev[k] !== undefined) status[k] = prev[k];
+      if (prev.recent) status.recent = prev.recent.slice(0, 24);
+    }
     if (prev?.catalog) catalog = { etag: prev.catalog.etag ?? null, state: prev.catalog.state ?? 'ok', checkedAt: Date.parse(prev.catalog.checkedAt ?? '') || 0 };
     seeded = true;
     log(`road: Start · Slot ${stampOf(pending.slotMs)} (${Math.round((current - pending.slotMs) / plan.slotMs)} Slots aufzuholen) · Bestand obs ${stampFiles(join(store, 'obs')).length} · Katalog ${existsSync(join(store, plan.stationsPath)) ? 'da' : 'fehlt'}${killed ? ' · KILL-SWITCH' : ''}`);
   }
 
+  const newPending = (slotMs) => ({ slotMs, have: new Map(), tried: new Map(), polledAt: 0 });
+
   async function head(url) {
     try {
-      const r = await fetchImpl(url, { method: 'HEAD', headers: { 'user-agent': UA }, cache: 'no-store' });
+      const r = await fetchImpl(url, { method: 'HEAD', headers: { 'user-agent': UA }, cache: 'no-store', signal: AbortSignal.timeout(fetchTimeoutMs) });
       return { status: r.status, lastModified: r.headers.get('last-modified') };
     } catch (e) { return { status: 0, error: String(e?.message ?? e) }; }
   }
   async function get(url) {
-    const r = await fetchImpl(url, { headers: { 'user-agent': UA } });
+    const r = await fetchImpl(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(fetchTimeoutMs) });
     if (!r.ok) throw new Error(`GET ${url}: ${r.status}`);
     return new Uint8Array(await r.arrayBuffer());
+  }
+
+  /** HEAD (+ GET when there) for one series of the pending slot; records a definite answer in `tried`. */
+  async function fetchGroup(g, t) {
+    const url = bulletinUrl(g, pending.slotMs);
+    const h = await head(url);
+    const attempts = (pending.tried.get(g.id) ?? 0) + 1;
+    if (h.status === 0) { pending.tried.set(g.id, attempts >= maxAttempts ? maxAttempts : -attempts); return; }   // timeout/network: retry
+    pending.tried.set(g.id, maxAttempts);
+    if (h.status !== 200) return;
+    try {
+      const buf = await get(url);
+      const lm = h.lastModified ? Date.parse(h.lastModified) : NaN;
+      pending.have.set(g.id, { buf, lastModified: Number.isFinite(lm) ? new Date(lm).toISOString() : null, ageMin: Number.isFinite(lm) ? Math.max(0, Math.round((t - lm) / 60_000)) : null });
+    } catch (e) { pending.tried.set(g.id, attempts >= maxAttempts ? maxAttempts : -attempts); log(`road ${g.id}: ${e.message} — nächster Versuch`); }
   }
 
   /** Daily ETag check of the station catalogue (plan); a failure keeps the old file and reports `stale`. */
@@ -197,25 +224,25 @@ export function createRoadMirror({
     const live = t - pending.slotMs < plan.deadlineMs;
     if (live && t - pending.polledAt < plan.pollMs) return changedCatalog ? 'road: Katalog' : null;
     pending.polledAt = t;
-    for (const g of plan.groups) {
-      if (pending.have.has(g.id)) continue;
-      const url = bulletinUrl(g, pending.slotMs);
-      const h = await head(url);
-      if (h.status !== 200) continue;
-      try {
-        const buf = await get(url);
-        const lm = h.lastModified ? Date.parse(h.lastModified) : NaN;
-        pending.have.set(g.id, { buf, lastModified: Number.isFinite(lm) ? new Date(lm).toISOString() : null, ageMin: Number.isFinite(lm) ? Math.max(0, Math.round((t - lm) / 60_000)) : null });
-      } catch (e) { log(`road ${g.id}: ${e.message} — nächster Versuch`); }
-    }
+    // Live: ask again every series not yet there. Past slot: every series until it gave a definite answer (or ran
+    // out of attempts). A small pool, a wall-clock budget — the radar loop gets its turn back in ≤ budget + timeout.
+    const todo = plan.groups.filter((g) => !pending.have.has(g.id) && (live || (pending.tried.get(g.id) ?? 0) < maxAttempts));
+    const t0 = Date.now();
+    let next = 0;
+    const worker = async () => {
+      while (next < todo.length && Date.now() - t0 < pollBudgetMs) await fetchGroup(todo[next++], t);
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
     const regular = plan.groups.filter((g) => !g.sporadic);
     const complete = regular.every((g) => pending.have.has(g.id));
     if (live && !complete) return changedCatalog ? 'road: Katalog' : null;
+    // A past slot is derived only once every series answered (else the budget ran out: continue next iteration).
+    if (!live && !complete && plan.groups.some((g) => !pending.have.has(g.id) && (pending.tried.get(g.id) ?? 0) < maxAttempts)) return changedCatalog ? 'road: Katalog' : null;
     const s = deriveSlot(pending.slotMs, pending.have, !live || t - pending.slotMs >= plan.deadlineMs);
     const stamp = stampOf(pending.slotMs);
     const behind = Math.round((current - pending.slotMs) / plan.slotMs);
     const got = pending.have.size;
-    pending = { slotMs: pending.slotMs + plan.slotMs, have: new Map(), polledAt: 0 };
+    pending = newPending(pending.slotMs + plan.slotMs);
     if (behind > 1) caughtUp++;
     log(`road ${stamp} · ${got}/${regular.length} Reihen${s.ok === false ? ' · derive-Fehler' : ` · ${s.points} Punkte · verworfen ${(100 * (s.balance?.share ?? 0)).toFixed(1)} % · ${s.publish ? 'frei' : `GESPERRT (${s.reasons.map((r) => r.rule).join(', ')})`}`}${behind > 1 ? ` · Rückstand ${behind}` : ''}`);
     // During catch-up push only every few slots; live slots always.
@@ -245,5 +272,6 @@ export function createRoadMirror({
     return n;
   }
 
-  return { get enabled() { return enabled && seeded; }, seed, poll, copyInto, status, storeBytes, get pendingSlot() { return pending ? stampOf(pending.slotMs) : null; } };
+  return { get enabled() { return enabled && seeded; }, seed, poll, copyInto, status, storeBytes, get pendingSlot() { return pending ? stampOf(pending.slotMs) : null; },
+    get pendingInfo() { return pending ? { slot: stampOf(pending.slotMs), have: [...pending.have.keys()], tried: Object.fromEntries(pending.tried) } : null; } };
 }

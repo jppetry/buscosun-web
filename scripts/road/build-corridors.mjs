@@ -26,6 +26,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const WFS = 'https://sgx.geodatenzentrum.de/wfs_dlm250';
 const UA = 'buscosun-road-corridors (buscosun-web/audit/autobahnwetter.md)';
 const JOIN_M = 60, GAP_KM = 3, SNAP_KM = 2, SIMPLIFY_KM = 0.08;
+/** Loop removal (`set`): back within 50 m of a vertex ≥ 150 m earlier = revisit; ≥ 70 % of the next 300 m also
+ *  revisiting = retrace (dropped), else a loop (cut). */
+const LOOP_NEAR_KM = 0.05, LOOP_MIN_KM = 0.15, LOOKAHEAD_KM = 0.3, RETRACE_SHARE = 0.7, REATTACH_KM = 0.5;
 
 const kmBetween = (a, b) => {
   const kx = 111.2 * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180);
@@ -118,6 +121,82 @@ export function sections(chains) {
   return out.filter((c) => lengthKm(c) >= 5);
 }
 
+/**
+ * Cleans a chained axis (review finding #4: corridor km inflated by 15–22 %, A 8 München → Salzburg 161 instead of
+ * ≈ 128 km). Greedy chaining (≤ 60 m) also follows interchange ramps, cloverleaf loops and — on motorways with two
+ * carriageway lines — runs out on one and back on the other. Whenever the path comes back within `nearKm` of a vertex
+ * at least `minLoopKm` earlier, a look-ahead decides:
+ *   - retrace: the next `LOOKAHEAD_KM` keep running over visited ground (opposite carriageway, ramp back) ⇒ the
+ *     returning vertices are dropped, the line keeps its outbound part;
+ *   - loop: the path leaves the visited ground again (cloverleaf, spur) ⇒ everything since that vertex is cut.
+ * A grid of ≈ 70 m cells keeps it near linear.
+ */
+export function removeLoops(c, nearKm = LOOP_NEAR_KM, minLoopKm = LOOP_MIN_KM) {
+  const out = [], cum = [];
+  const grid = new Map();
+  const key = (cx, cy) => `${cx}:${cy}`;
+  const cellOf = (p) => [Math.floor(p[0] / 0.001), Math.floor(p[1] / 0.00065)];
+  const push = (p) => {
+    cum.push(out.length ? cum[out.length - 1] + kmBetween(out[out.length - 1], p) : 0);
+    out.push(p);
+    const [cx, cy] = cellOf(p);
+    const k = key(cx, cy);
+    if (!grid.has(k)) grid.set(k, []);
+    grid.get(k).push([out.length - 1, p]);
+  };
+  /** Earliest kept vertex within `nearKm` of p that lies at least `minLoopKm` behind `along`; -1 when none. */
+  const revisit = (p, along) => {
+    const [cx, cy] = cellOf(p);
+    let hit = -1;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      for (const [j, q] of grid.get(key(cx + dx, cy + dy)) ?? []) {
+        if (out[j] !== q || (hit >= 0 && j >= hit)) continue;         // stale entry (cut away) or not earlier
+        if (along - cum[j] >= minLoopKm && kmBetween(q, p) <= nearKm) hit = j;
+      }
+    }
+    return hit;
+  };
+  /**
+   * After a retrace the path leaves visited ground again — usually where the chain began (it started mid-way, ran to
+   * an end, came back on the other carriageway and goes on past its start). Then the kept line is turned round so it
+   * ends at its start and the path continues from there; elsewhere the dead-end branch is cut.
+   */
+  const reattach = (p) => {
+    if (kmBetween(out[out.length - 1], p) <= REATTACH_KM) return;
+    let j = -1, best = REATTACH_KM;
+    for (let k = 0; k < out.length; k++) { const d = kmBetween(out[k], p); if (d < best) { best = d; j = k; } }
+    if (j < 0) return;                                                  // a real gap: keep going
+    if (cum[j] <= REATTACH_KM) {
+      const rev = out.slice().reverse();
+      out.length = 0; cum.length = 0; grid.clear();
+      for (const q of rev) push(q);
+    } else { out.length = j + 1; cum.length = j + 1; }
+  };
+  let retracing = false;
+  for (let i = 0; i < c.length; i++) {
+    const p = c[i];
+    if (!out.length) { push(p); continue; }
+    const along = cum[out.length - 1] + kmBetween(out[out.length - 1], p);
+    const j = revisit(p, along);
+    if (j < 0) {
+      if (retracing) { reattach(p); retracing = false; }
+      push(p);
+      continue;
+    }
+    let n = 0, near = 0, d = 0;
+    for (let k = i + 1; k < c.length && d < LOOKAHEAD_KM; k++) {
+      d += kmBetween(c[k - 1], c[k]);
+      n++;
+      if (revisit(c[k], along + d) >= 0) near++;
+    }
+    if (n === 0 || near / n >= RETRACE_SHARE) { retracing = true; continue; }   // retrace (or chain ends on visited ground): drop
+    if (retracing) { reattach(p); retracing = false; push(p); continue; }       // a retrace ends: re-anchor, never cut the outbound
+    out.length = j + 1; cum.length = j + 1;                             // loop: cut back to where it began
+    push(p);
+  }
+  return out;
+}
+
 /** Douglas-Peucker in km. */
 export function simplify(c, tolKm = SIMPLIFY_KM) {
   if (c.length < 3) return c;
@@ -190,7 +269,7 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
   const corridors = [];
   const num = (r) => Number(r.slice(1));
   for (const road of [...byRoad.keys()].sort((a, b) => num(a) - num(b))) {
-    const secs = sections(chain(byRoad.get(road))).map((c) => simplify(c));
+    const secs = sections(chain(byRoad.get(road))).map((c) => simplify(removeLoops(c)));
     const built = [];
     secs.forEach((line0) => {
       // Orientation: odd numbers north → south, even numbers west → east.

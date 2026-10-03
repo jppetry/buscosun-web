@@ -32,9 +32,12 @@
  * Radar-Spiegel bei jedem Push schreibt (Abruf über raw.githubusercontent, nicht über das CDN: fester Pfad,
  * veränderliche Datei; `ROAD_HEALTH=0` schaltet die Prüfung ab):
  *   R1  lesbar, `product: road-status`
- *   R2  Lebenszeichen `updatedAt` ≤ 45 min (= ROAD_STALE_MS des Vertrags; eine Spiegel-Naht passt hinein)
- *   R3  letzter freigegebener Slot ≤ 3 h (= ROAD_DEAD_MS; danach zeigt die Seite „keine Messdaten")
+ *   R2  die Ableitung lebt: jüngster abgeleiteter Slot (`recent[0].derivedAt`) ≤ 45 min — NICHT `updatedAt`, das jeder
+ *       Radar-Push erneuert (eine dauernd scheiternde Straßen-Ableitung bliebe sonst grün)
+ *   R3  letzter freigegebener Slot ≤ 45 min (= ROAD_STALE_MS; danach zeigt die Seite „veraltet", Plan AW-3)
  *   R4  Stationskatalog vorhanden (`stale` = alte Datei bleibt, grün)
+ *   R5  was jsDelivr ausliefert: der jüngste freigegebene Slot, der ≥ 10 min alt ist (früher abgefragt, könnte eine
+ *       404 am Edge hängen bleiben), über `@main` wie von der Seite gelesen — Produkt, Slot, Punkte
  *   Ein bewusst gesetzter Kill-Schalter ist kein Ausfall: grün, aber benannt.
  *
  * Exit 0 = alles grün · 1 = mindestens eine Prüfung rot (GitHub schickt dann
@@ -127,8 +130,10 @@ export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAge
  */
 export const ROAD_HEALTH = Object.freeze({
   statusUrl: 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/road/v1/status.json',
+  cdnBase: 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/road/v1',
   staleMin: 45,
-  deadMin: 180,
+  /** R5 asks the CDN only for slots released at least this long ago (sticky edge 404, jsDelivr `@main` lag ≈ 3 min). */
+  cdnMinAgeMin: 10,
 });
 
 /** `YYMMDDHHMM` (UTC) → ms; NaN when malformed. */
@@ -146,21 +151,37 @@ export function checkRoadStatus(s, { nowMs }) {
     return out;
   }
   ok('R1 Status lesbar', true, s.killSwitch ? 'Kill-Schalter ROAD_KILL=1 aktiv — Slots ohne Punkte, bewusst' : undefined);
-  const upMs = Date.parse(s.updatedAt ?? '');
-  const upMin = (nowMs - upMs) / 60_000;
-  ok('R2 Lebenszeichen', Number.isFinite(upMin) && upMin <= ROAD_HEALTH.staleMin,
-    Number.isFinite(upMin) ? `zuletzt geschrieben vor ${upMin.toFixed(0)} min (Grenze ${ROAD_HEALTH.staleMin} min)` : 'updatedAt fehlt/ungültig');
+  const last = Array.isArray(s.recent) ? s.recent[0] : null;
+  const devMin = (nowMs - Date.parse(last?.derivedAt ?? '')) / 60_000;
+  ok('R2 Ableitung', Number.isFinite(devMin) && devMin <= ROAD_HEALTH.staleMin,
+    Number.isFinite(devMin) ? `zuletzt abgeleitet ${last.slot} vor ${devMin.toFixed(0)} min (Grenze ${ROAD_HEALTH.staleMin} min; Status geschrieben ${s.updatedAt ?? '—'})` : 'kein abgeleiteter Slot in recent');
   if (s.killSwitch) {
     ok('R3 freigegebener Slot', true, 'Kill-Schalter aktiv — nicht bewertet');
   } else {
     const pubMin = (nowMs - roadStampMs(s.lastPublishedSlot)) / 60_000;
     const blocked = s.blocked?.slot ? ` · zuletzt gesperrt ${s.blocked.slot} (${(s.blocked.reasons ?? []).map((r) => r.rule).join(', ')})` : '';
-    ok('R3 freigegebener Slot', Number.isFinite(pubMin) && pubMin <= ROAD_HEALTH.deadMin,
-      Number.isFinite(pubMin) ? `Slot ${s.lastPublishedSlot} ist ${pubMin.toFixed(0)} min alt (Grenze ${ROAD_HEALTH.deadMin} min)${blocked}` : `kein freigegebener Slot${blocked}`);
+    const g = last?.groups != null ? ` · ${last.groups} Reihen, ${(100 * (last.share ?? 0)).toFixed(1)} % verworfen` : '';
+    ok('R3 freigegebener Slot', Number.isFinite(pubMin) && pubMin <= ROAD_HEALTH.staleMin,
+      Number.isFinite(pubMin) ? `Slot ${s.lastPublishedSlot} ist ${pubMin.toFixed(0)} min alt (Grenze ${ROAD_HEALTH.staleMin} min)${g}${blocked}` : `kein freigegebener Slot${blocked}`);
   }
   const cat = s.catalog?.state ?? 'missing';
   ok('R4 Katalog', cat !== 'missing', `Stationskatalog ${cat}`);
   return out;
+}
+
+/** R5: the slot to ask the CDN for — newest released one derived at least `cdnMinAgeMin` ago; null when none. */
+export function roadCdnSlot(s, nowMs) {
+  const r = (s?.recent ?? []).find((x) => x?.publish && nowMs - Date.parse(x.derivedAt ?? '') >= ROAD_HEALTH.cdnMinAgeMin * 60_000);
+  return r?.slot ?? null;
+}
+
+/** R5: the CDN's copy of `obs/<slot>.json` as the page reads it (product, slot, points; a killed slot has none). */
+export function checkRoadCdn(obs, slot) {
+  const name = `road/v1/obs/${slot}.json (jsDelivr) · R5 CDN`;
+  if (!obs || typeof obs !== 'object' || obs.product !== 'road-obs' || obs.schema !== 1) return { id: 'R5 CDN', name, pass: false, detail: 'nicht lesbar oder fremdes Produkt' };
+  if (obs.slot !== slot) return { id: 'R5 CDN', name, pass: false, detail: `liefert Slot ${obs.slot} statt ${slot}` };
+  if (!Array.isArray(obs.points) || (!obs.killed && obs.points.length === 0)) return { id: 'R5 CDN', name, pass: false, detail: 'keine Punkte' };
+  return { id: 'R5 CDN', name, pass: true, detail: obs.killed ? 'Kill-Schalter: Slot ohne Punkte' : `${obs.points.length} Punkte` };
 }
 
 async function loadRemote(url) {
@@ -197,7 +218,17 @@ async function main() {
       let s = null;
       try { s = await loadRemote(process.env.ROAD_STATUS_URL ?? ROAD_HEALTH.statusUrl); }
       catch (e) { results.push({ id: 'R1', name: 'road/v1/status.json · R1 erreichbar', pass: false, detail: String(e?.message ?? e) }); }
-      if (s) results.push(...checkRoadStatus(s, { nowMs }));
+      if (s) {
+        results.push(...checkRoadStatus(s, { nowMs }));
+        const slot = roadCdnSlot(s, nowMs);
+        if (slot) {
+          let obs = null;
+          try { obs = await loadRemote(`${ROAD_HEALTH.cdnBase}/obs/${slot}.json`); } catch (e) { results.push({ id: 'R5 CDN', name: `road/v1/obs/${slot}.json (jsDelivr) · R5 CDN`, pass: false, detail: String(e?.message ?? e) }); }
+          if (obs) results.push(checkRoadCdn(obs, slot));
+        } else {
+          results.push({ id: 'R5 CDN', name: 'road/v1/obs (jsDelivr) · R5 CDN', pass: true, detail: 'nicht geprüft: kein freigegebener Slot, der ≥ 10 min alt ist (Frische prüft R3)' });
+        }
+      }
     }
   }
 

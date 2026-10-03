@@ -228,6 +228,53 @@ add('E4 Nachfolger-Job: Zustand älter als die Nachholgrenze ⇒ Start an der Gr
   add('H5 Export aus Ringen ohne k: Klassen „-" (unbekannt), Werte unverändert', Object.values(legacyEx.stations).every((s) => /^-+$/.test(s.k)) && legacyEx.stations[sid].rs.join() === e.rs.join());
 }
 
+// --- I: job seam and a slow/hanging DWD (review findings #1, #2) ----------------------------------------
+{
+  const { checkRoadStatus } = await import('./health-manifests.mjs');
+  git(clone, ['fetch', '--quiet', 'origin', 'main']);
+  git(clone, ['checkout', '--quiet', '-B', 'main', 'origin/main']);
+  // I1: the successor job starts with an EMPTY store, 2 min after the predecessor published 11:00.
+  clock = Date.UTC(2026, 9, 3, 11, 6, 0);
+  const succ = createRoadMirror({ appDir: APP, mirrorDir: join(tmp, 'mirror-succ'), log: (s) => logs.push(s), now: () => clock, fetchImpl: fakeFetch, maxCatchUpSlots: 96, publishEvery: 1, catalogFile: join(tmp, 'none.xlsx') });
+  succ.seed(clone);
+  const root = join(tmp, 'seam-root');
+  mkdirSync(root, { recursive: true });
+  succ.copyInto(root);
+  const st = JSON.parse(readFileSync(join(root, 'road', 'v1', 'status.json'), 'utf8'));
+  const before = show('road/v1/status.json');
+  // This verifier has no catalogue source on purpose (B5: "missing") — R4 must carry the predecessor's state, not reset.
+  const res = checkRoadStatus(st, { nowMs: clock }).filter((r) => r.id !== 'R4 Katalog');
+  add('I1 Job-Naht: der Nachfolger schreibt beim ersten Radar-Push einen Status, der den Wächter grün lässt (letzter freigegebener Slot, Katalog, Ableitung übernommen)',
+    res.every((r) => r.pass) && st.lastPublishedSlot === '2610031100' && st.catalog?.state === before.catalog?.state && st.catalog?.etag === before.catalog?.etag,
+    res.filter((r) => !r.pass).map((r) => `${r.id}: ${r.detail}`).join(' · ') || `${st.lastPublishedSlot} · Katalog ${st.catalog?.state}`);
+  add('I2 Job-Naht: der zuletzt veröffentlichte Slot wird nicht noch einmal abgeleitet (nächster ist 11:15)', succ.pendingSlot === '2610031115', succ.pendingSlot);
+
+  // I3/I4: DWD hangs. A hanging request must not hold the radar mirror's loop (fetch timeout + poll budget).
+  const hang = (pred) => async (url, init = {}) => {
+    if (pred(url)) {
+      return new Promise((_, reject) => {
+        const sig = init.signal;
+        if (sig?.aborted) { reject(sig.reason ?? new Error('aborted')); return; }
+        sig?.addEventListener('abort', () => reject(sig.reason ?? new Error('aborted')), { once: true });
+      });
+    }
+    return fakeFetch(url, init);
+  };
+  const raceMs = async (p, ms) => { const t0 = Date.now(); const r = await Promise.race([p.then(() => 'done'), new Promise((r2) => setTimeout(() => r2('timeout'), ms))]); return { r, ms: Date.now() - t0 }; };
+  clock = Date.UTC(2026, 9, 3, 11, 16, 0);           // live slot 11:15
+  const opts = { appDir: APP, log: (s) => logs.push(s), now: () => clock, maxCatchUpSlots: 96, publishEvery: 1, catalogFile: join(tmp, 'none.xlsx'), fetchTimeoutMs: 300, pollBudgetMs: 1500 };
+  const one = createRoadMirror({ ...opts, mirrorDir: join(tmp, 'mirror-hang1'), fetchImpl: hang((u) => u.includes('/FN/') && u.includes('-BY--')) });
+  one.seed(clone);
+  const a = await raceMs(one.poll(), 6000);
+  const have = one.pendingInfo?.have ?? [];
+  add('I3 eine hängende Reihe (FN-BY): poll() kehrt binnen Zeitbudget zurück, die übrigen Reihen sind geholt',
+    a.r === 'done' && a.ms < 3000 && have.length >= 20 && !have.includes('FN-BY'), `${a.r} nach ${a.ms} ms · ${have.length} Reihen`);
+  const all = createRoadMirror({ ...opts, mirrorDir: join(tmp, 'mirror-hang2'), fetchImpl: hang(() => true) });
+  all.seed(clone);
+  const b = await raceMs(all.poll(), 6000);
+  add('I4 DWD hängt komplett: poll() kehrt binnen Zeitbudget zurück (der Radar-Takt bleibt frei)', b.r === 'done' && b.ms < 3000, `${b.r} nach ${b.ms} ms`);
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const passed = checks.filter((c) => c.ok).length;
 const failed = checks.length - passed;
