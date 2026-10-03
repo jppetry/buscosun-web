@@ -134,6 +134,8 @@ export const ROAD_HEALTH = Object.freeze({
   staleMin: 45,
   /** R5 asks the CDN only for slots released at least this long ago (sticky edge 404, jsDelivr `@main` lag ≈ 3 min). */
   cdnMinAgeMin: 10,
+  /** …and only slots still kept in obs/ (3 h, ROAD_RETENTION) with a margin. */
+  cdnMaxSlotAgeMin: 120,
 });
 
 /** `YYMMDDHHMM` (UTC) → ms; NaN when malformed. */
@@ -169,9 +171,15 @@ export function checkRoadStatus(s, { nowMs }) {
   return out;
 }
 
-/** R5: the slot to ask the CDN for — newest released one derived at least `cdnMinAgeMin` ago; null when none. */
+/**
+ * R5: the slot to ask the CDN for — the newest released one derived at least `cdnMinAgeMin` ago AND still in obs/
+ * (slot ≤ `cdnMaxSlotAgeMin` old; obs keeps 3 h — slots caught up after a start were derived minutes ago but may be
+ * long gone). null when none.
+ */
 export function roadCdnSlot(s, nowMs) {
-  const r = (s?.recent ?? []).find((x) => x?.publish && nowMs - Date.parse(x.derivedAt ?? '') >= ROAD_HEALTH.cdnMinAgeMin * 60_000);
+  const r = (s?.recent ?? []).find((x) => x?.publish
+    && nowMs - Date.parse(x.derivedAt ?? '') >= ROAD_HEALTH.cdnMinAgeMin * 60_000
+    && nowMs - roadStampMs(x.slot) <= ROAD_HEALTH.cdnMaxSlotAgeMin * 60_000);
   return r?.slot ?? null;
 }
 

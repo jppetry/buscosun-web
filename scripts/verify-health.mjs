@@ -130,6 +130,9 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   // R5: what jsDelivr really serves (plan) — the newest released slot that is ≥ 10 min old (an earlier request could
   // pin a 404 at the edge), checked as the page would read it.
   add('R5 wählt den jüngsten freigegebenen Slot, der ≥ 10 min alt ist', roadCdnSlot(ok, RNOW) === '2610031300' && roadCdnSlot({ ...ok, recent: [rec('2610031315', '2026-10-03T13:18:00.000Z'), ...ok.recent] }, RNOW) === '2610031300');
+  // Catch-up after a start: slots of the morning were derived minutes ago but already left obs/ (3 h) — never ask for them.
+  add('R5 übergeht nachgeholte Slots, die schon aus der Aufbewahrung fielen (> 2 h alt)',
+    roadCdnSlot({ ...ok, recent: [rec('2610031315', '2026-10-03T13:18:00.000Z'), rec('2610030845', '2026-10-03T13:05:00.000Z')] }, RNOW) === null);
   const obs = { schema: 1, product: 'road-obs', slot: '2610031300', points: [{ id: 'X' }] };
   add('R5 grün, wenn das CDN die Slot-Datei mit Punkten ausliefert', checkRoadCdn(obs, '2610031300').pass === true);
   add('R5 rot bei fremdem Slot, leerer oder fehlender Datei', checkRoadCdn({ ...obs, slot: '2610031245' }, '2610031300').pass === false
