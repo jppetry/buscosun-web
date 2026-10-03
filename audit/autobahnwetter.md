@@ -718,7 +718,7 @@ Nur die Ablage, keine Prognose, kein `fc/` (das bleibt AW-6).
 - `scripts/road/road-mirror.mjs`: `ROAD_RECENT_SLOTS = 24` als Konstante; ein **gesperrter** Slot trägt im Slot-Protokoll
   `reasons` (für Gate B aus dem Archiv) — wirksam ab dem nächsten Spiegel-Job, sonst unverändert.
 - Vorlage `scripts/punktarchiv-repo/workflow-road-archiv.yml` → `.github/workflows/road-archiv.yml` im Archiv-Repo.
-- `verify:road-archive` **25/25** (A Halbtage/Merge/IO/Lebenszeichen/Punktarchiv daneben, B echter Producer am Slot
+- `verify:road-archive` **26/26** (A Halbtage/Merge/IO/Lebenszeichen/Punktarchiv daneben/README mit CRLF, B echter Producer am Slot
   03.10. 08:00: 1 293/1 293 Stationen mit gleichen Werten und Klasse, 149 Quarantäne-Einträge unverändert, C Vorlage
   gegen die Konstanten inkl. Importhülle im sparse-Muster). **Gegenproben:** acht eingebaute Fehler (offene Halbtage
   schreiben, Merge überschreibt, Lebenszeichen nie rot, kaputte Datei überschreiben, Takt 8 h, `--force`, sparse ohne
@@ -727,3 +727,9 @@ Nur die Ablage, keine Prognose, kein `fc/` (das bleibt AW-6).
 - **Probelauf gegen den echten Bestand** (03.10. 15:47 UTC, Fenster `2610021545…2610031530`): `2026-10-02/12.json.gz`
   173 KB (Teil ab 15:45, 1 308 Stationen, 10 757 Quarantäne-Einträge), `2026-10-03/00.json.gz` **236 KB** (1 313
   Stationen, 48/48 Slots, 16 041 Einträge), `slots.json` 6,6 KB ⇒ ≈ 0,47 MB/Tag ≈ 170 MB/Jahr.
+- **Erster Lauf lokal** (03.10. ≈ 16:00 UTC, Fenster `2610021600…2610031545`) ins Archiv-Repo gepusht (`692915b`, kein
+  Force): `2026-10-02/12.json.gz` 169 KB, `2026-10-03/00.json.gz` 236 KB, `slots.json`, Index, README und
+  `.github/workflows/road-archiv.yml`. **Workflow-Schritte nachgespielt** (frischer sparse Klon ohne Blobs, App- und
+  Daten-Klon wie im Workflow, ohne Push): Checkout 12 s, Archiv-Klon 0,5 MB, Lauf „unverändert" — dabei gefunden: eine
+  README mit CRLF (Windows-Checkout) galt als geändert und stempelte den Index neu ⇒ Vergleich ohne `\r`, Test A17
+  (vorher rot).
