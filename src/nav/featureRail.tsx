@@ -130,7 +130,7 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'atmosphere', label: 'Vertikalschnitt · 3D-Wetter', icon: <IconRailSection /> },
   { id: 'globe', label: '3D-Globus', icon: <IconRailGlobe /> },
   { id: 'fire', label: 'Waldbrand DACH', icon: <IconRailFire /> },
-  // Phase AW: bis Gate C nur mit `?road=1` sichtbar (`src/road/roadFlag.ts`), auf der eigenen Seite immer.
+  // Phase AW: sichtbar nach `ROAD_LIVE` (seit 03.10. an), `?road=0` blendet aus (`src/road/roadFlag.ts`); auf der eigenen Seite immer.
   { id: 'road', label: 'Autobahnwetter', icon: <IconRailRoad /> },
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];
