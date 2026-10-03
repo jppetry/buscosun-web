@@ -1276,3 +1276,39 @@ Auftrag Jan 02.10. („lass uns das umsetzen und prüfen, ob buscosun Fusion 8 d
   p 0,055 auf 0,021). **Deployment-Reihenfolge ist unkritisch:** bis der Spiegel-Job `m<lead>.png` schreibt, rechnet der Client exakt Fusion 7
   (verify:pv-cube 41). Push (f), Job-Abbruch und Prüfung (g) wie oben; die Wiederholung ≈ 15.10. bestätigt die Effektgröße.
 - (d) E-AX-10 (INCA-Anker-Gewicht) wird ab dem ersten vollständigen Slot messbar; Scorer-Variante folgt mit E-AX-8 (MOSMIX-S) ≈ 15.10.
+
+## 33. Phase AW — Autobahnwetter (Fahrbahn gemessen DE), 2026-10-03
+
+Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwerte: `audit/autobahnwetter.md` (§0 Kurzfassung).
+
+**Stand:**
+- **Auf `main` von buscosun-web (gepusht, für Nutzer unsichtbar):** `a2bb63a` Datenlinie (Decoder, Vertrag, Ableitung, Spiegel-Haken,
+  Katalog, Korridor-Bauer, README-Vorlage, drei Verifier) und `691113c` Klassenspalte im 24-h-Ring + Exportform (E-AW-6, nur vorbereitet).
+- **Im Daten-Repo (gepusht nach Protokoll, nie force):** `cb20f86` README-Abschnitt „Straßenwetter — road/", `scripts/radar-mirror.mjs`
+  mit drei Haken, `road/v1/static/stations.json` + `corridors.json`; `bef7411` und `e9ef1f0` Korridor-Titel. jsDelivr für die geänderten
+  `road/`-Dateien gepurgt. Workflows unverändert.
+- **Schattenbetrieb:** der Radar-Spiegel klont `main` von buscosun-web bei jedem Jobstart und schreibt seither je 15-min-Slot `road/v1/`
+  (Belege der ersten Slots: Audit §5). Keine Seite liest die Daten ohne `?road=1`.
+- **Zweig `feat/autobahnwetter` (nicht auf `main`):** AW-4 (Kachel, Route, Rail, ⌘K, Aliase) und AW-5 (Seite) hinter `?road=1`, Wächter-Prüfung
+  R1–R4 — siehe (a).
+
+**Deine Gates:**
+- **(a) E-AW-14 — Edge-Bündel `og-meta`:** `git apply audit/autobahnwetter/og-meta-bundle.patch` oder gleichwertig `npm run edge:share` auf dem
+  Zweig (nur der neue Routeneintrag im erzeugten
+  `netlify/edge-shared/shareParser.js`; `og-meta` läuft nur auf den neun teilbaren Pfaden ⇒ keine Laufzeitwirkung). Danach `verify:share`
+  528/528 und der Zweig kann nach `main` (Flag aus, unsichtbar). Ohne (a) bleibt der Zweig liegen, weil die CI `verify:share` fährt.
+- **(b) Wächter:** mit dem Merge prüft `health.yml` stündlich `road/v1/status.json` (Lebenszeichen ≤ 45 min, freigegebener Slot ≤ 3 h) und
+  mailt bei Rot wie bei den Warm-Manifesten. Wer im Schattenbetrieb keine Mails will: in `.github/workflows/health.yml` beim Schritt
+  „Warm-Manifeste in Produktion prüfen" unter `env:` die Zeile `ROAD_HEALTH: '0'` ergänzen (Workflow-Datei = dein Gate, nicht angefasst).
+- **(c) Gate B nach 7 Tagen Schatten (≈ 10.10.):** Anteil freigegebener Slots, Ankunft gegen Frist, Bilanz je Regel aus `status.json`/`quarantine/`,
+  Stichproben V-AW-5/6, Push-Last (V-AW-10), Radar ohne Rückschritt (Spiegel-Takt). Vorlage: Audit §5.
+- **(d) Kalibrierung nach ≥ 14 Tagen (≈ 17.10.):** Startwerte der Beobachtungsregeln (`jump`, `neighbours`, `roadAir`, `catalog`, `cube`) aus
+  der Quarantäne; entscheiden, welche hart werden.
+- **(e) Gate C — Flag an:** `ROAD_LIVE = true` in `src/road/roadFlag.ts`, Sitemap + die 20 Autobahn-Unterseiten (V-AW-8), E-AW-15 Vorschaukarte.
+  Vorher Real-Device (V-AW-13): Handy mit `?road=1`, Karte, Blatt, Auswahl.
+- **(f) E-AW-13:** Voreingestellte Messstelle ohne kritische Messung — kälteste gemessene Fahrbahn (Vorschlag) oder schwerste Klasse (heute).
+- **(g) AW-6 — Archiv-Freigabe:** die Exportform liegt (`scripts/road/road-export.mjs`); Archiv-Ziel (`buscosun-archiv`?), Takt und Größe
+  entscheiden, dann Prognose +1/+3/+6 h mit Backtest (Gate D).
+- **(h) V-AW-4:** P758 (A 94) mit Katalog-Koordinaten reparieren — Datenänderung, nur mit deinem Ja.
+- **Hinweis Arbeitsbaum:** dein Haupt-Arbeitsbaum `C:\dev\buscosun-web` steht auf `07cc7cf`, `origin/main` ist zwei Commits weiter (`691113c`) —
+  die Startseiten-Sitzung muss vor ihrem Commit `git pull --rebase` (keine Überschneidung außer `SearchPage.tsx` im Zweig, additiv).

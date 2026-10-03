@@ -1,0 +1,30 @@
+diff --git a/netlify/edge-shared/shareParser.js b/netlify/edge-shared/shareParser.js
+index 8718803..9ce4b8b 100644
+--- a/netlify/edge-shared/shareParser.js
++++ b/netlify/edge-shared/shareParser.js
+@@ -532,6 +532,25 @@ var ROUTES = [
+       lead: "Das Brandradar von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über die DACH-Region und zur Einordnung die nationalen Skalen von DWD und BAFU, jede mit ihrer eigenen Stufenlogik (Österreich hat keine offene amtliche Stufe). Dazu aktive Brände aus Satellitendetektionen, von EFFIS kartierte Brandflächen, die zwischen den Überflügen beobachtete Verschiebung eines Brands sowie Bodentrockenheit und Feuerwetter als Treiber — ohne amtliches Warnprodukt zu sein."
+     }
+   },
++  {
++    // Phase AW (audit/autobahnwetter.md): Pfadsegment = Korridor (`/autobahnwetter/a8`), entscheidet die Seite. Die
++    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) kommen erst mit Gate C in diese — eager geladene —
++    // Tabelle; bis dahin ist die Route noindex und steht in keiner Sitemap.
++    id: "autobahnwetter",
++    path: "/autobahnwetter",
++    aliases: ["/strassenwetter", "/glaette"],
++    featureId: "road",
++    subParam: "road",
++    subs: null,
++    meta: {
++      title: "Autobahnwetter — Glätte und Fahrbahnzustand",
++      description: "Fahrbahntemperatur und -zustand der Glättemeldeanlagen an deutschen Autobahnen, alle 15 Minuten gemessen — je Strecke als Band.",
++      h1: "Autobahnwetter: Ist die Strecke glatt?",
++      lead: "Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt.",
++      noindex: true
++      // Gate C (ROAD_LIVE)
++    }
++  },
+   {
+     id: "feedback",
+     path: "/feedback",
