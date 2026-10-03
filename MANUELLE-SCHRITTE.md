@@ -1333,18 +1333,14 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
   Force-Push der Kartenlinie (13:07 UTC) geprüft: alles noch da.
 - **Schattenbetrieb:** der Radar-Spiegel klont `main` von buscosun-web bei jedem Jobstart und schreibt seither je 15-min-Slot `road/v1/`
   (Belege der ersten Slots: Audit §5). Keine Seite liest die Daten ohne `?road=1`.
-- **Zweig `feat/autobahnwetter` (nicht auf `main`, gepusht):** AW-4 (Kachel, Route, Rail, ⌘K, Aliase) und AW-5 (Seite) hinter `?road=1`
-  samt Fixes der Gesamtprüfung — siehe (a).
+- **AW-4/AW-5 seit 03.10. abends auf `main`** (Zweig `feat/autobahnwetter` gemergt, Audit §11): Kachel, Route, Rail, ⌘K, Aliase und Seite
+  hinter `?road=1` — sichtbar auf buscosun.com nur mit `?road=1` (danach im Browser gemerkt, `?road=0` blendet aus).
 
 **Deine Gates:**
-- **(a) E-AW-14 — Edge-Bündel `og-meta`:** `git apply audit/autobahnwetter/og-meta-bundle.patch` oder gleichwertig `npm run edge:share` auf dem
-  Zweig (nur der neue Routeneintrag im erzeugten
-  `netlify/edge-shared/shareParser.js`; `og-meta` läuft nur auf den neun teilbaren Pfaden ⇒ keine Laufzeitwirkung). Danach `verify:share`
-  528/528 und der Zweig kann nach `main` (Flag aus, unsichtbar). Ohne (a) bleibt der Zweig liegen, weil die CI `verify:share` fährt.
-- **(b) E-AW-16 — Wächter:** `health.yml` prüft seit `2687a61` stündlich auch das Straßenwetter (R1–R5). **Aber:** der Workflow ist seit
-  September bei **jedem** Lauf rot, weil `latest-grib.json` seit dem Rückzug der Warm-Crons nicht mehr fortgeschrieben wird (H2/H3,
-  ≈ 700 h alt) — so meldet er keinen echten Ausfall. Vorschlag: die H-Prüfungen für `latest-grib.json` entfernen oder auf den Index-Weg
-  umstellen (Workflow-/Wächter-Änderung, dein Ja). Straßenteil abschalten, falls gewünscht: `ROAD_HEALTH: '0'` unter `env:` des Schritts.
+- ~~**(a) E-AW-14 — Edge-Bündel `og-meta`**~~ — erledigt 03.10. mit deinem Ja (`npm run edge:share`, gleich dem Patch, `verify:share` 528/528).
+- ~~**(b) E-AW-16 — Wächter**~~ — erledigt 03.10.: `health.yml` gelöscht („wird nicht mehr verwendet"). Damit prüft **kein Zeitplan** mehr die
+  Straßen-Ableitung (V-AW-19); Handlauf: `node scripts/health-manifests.mjs --url https://buscosun.com` (R1–R5; H2/H3 bleiben rot). Vor Gate C
+  entscheiden, ob ein schlanker Straßen-Wächter (stündlich, nur R1–R5) zurückkommt.
 - **(c) Gate B nach 7 Tagen Schatten (≈ 10.10.):** Anteil freigegebener Slots, Ankunft gegen Frist, Bilanz je Regel aus `status.json`/`quarantine/`,
   Stichproben V-AW-5/6, Push-Last (V-AW-10), Radar ohne Rückschritt (Spiegel-Takt). Vorlage: Audit §5.
 - **(d) Kalibrierung nach ≥ 14 Tagen (≈ 17.10.):** Startwerte der Beobachtungsregeln (`jump`, `neighbours`, `roadAir`, `catalog`, `cube`) aus
@@ -1356,5 +1352,5 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
 - **(g) AW-6 — Archiv-Freigabe:** die Exportform liegt (`scripts/road/road-export.mjs`); Archiv-Ziel (`buscosun-archiv`?), Takt und Größe
   entscheiden, dann Prognose +1/+3/+6 h mit Backtest (Gate D).
 - **(h) V-AW-4:** P758 (A 94) mit Katalog-Koordinaten reparieren — Datenänderung, nur mit deinem Ja.
-- **Hinweis Arbeitsbaum:** dein Haupt-Arbeitsbaum `C:\dev\buscosun-web` steht auf `07cc7cf`, `origin/main` ist zwei Commits weiter (`691113c`) —
-  die Startseiten-Sitzung muss vor ihrem Commit `git pull --rebase` (keine Überschneidung außer `SearchPage.tsx` im Zweig, additiv).
+- **Hinweis Arbeitsbaum:** nach dem Merge vom 03.10. vor dem nächsten eigenen Commit `git pull` im Haupt-Arbeitsbaum, falls er noch hinter
+  `origin/main` steht.

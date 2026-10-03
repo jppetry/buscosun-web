@@ -13,14 +13,13 @@
 - **AW-1–AW-3 auf `main`, Schattenbetrieb läuft:** Vertrag `road/v1`, Ableitung als Produkt des Radar-Spiegels, Wächter
   R1–R5. Seit 12:47 UTC schreibt der Spiegel je 15 min einen Slot; erster Live-Slot 13:30 UTC nach **235 s** im
   Daten-Repo, über jsDelivr lesbar, 1 546 Punkte, 1,5 % verworfen (§5).
-- **AW-4/AW-5 auf dem Zweig `feat/autobahnwetter`** hinter `?road=1` (Flag aus): Kachel, Route, Deck nach der Vorlage
-  (jede Abweichung benannt, §6.4), alle Gates grün außer `verify:share` SH6 — das braucht dein Ja zum Edge-Bündel
-  (**E-AW-14**, Patch liegt bei, keine Laufzeitwirkung).
+- **AW-4/AW-5 seit 03.10. abends auf `main`** hinter `?road=1` (Flag aus): Kachel, Route, Deck nach der Vorlage
+  (jede Abweichung benannt, §6.4). Edge-Bündel mit deinem Ja neu gebaut (**E-AW-14**), alle Gates grün (§11).
 - **Gesamtprüfung durch einen frischen Reviewer:** 0 kritisch, 9 wichtig — alle behoben mit vorher roten Tests (§10);
   u. a. Zeitlimits für DWD im Radar-Spiegel (greift ab dem nächsten Jobstart ≈ 18:35 UTC) und Korridor-km, die 15–22 %
   zu lang waren.
-- **Bitte entscheiden:** E-AW-14 (Edge-Bündel), E-AW-16 (`health.yml` ist seit September immer rot — so meldet er auch
-  keinen Straßenausfall), E-AW-13 (Voreinstellung der Messstelle), dann Gate B nach 7 Tagen Schatten (≈ 10.10.),
+- **E-AW-16 entschieden:** `health.yml` war unbenutzt und ist gelöscht — damit prüft kein Zeitplan mehr R1–R5 (§4.4).
+- **Bitte entscheiden:** E-AW-13 (Voreinstellung der Messstelle), dann Gate B nach 7 Tagen Schatten (≈ 10.10.),
   Kalibrierung ≥ 14 Tage, Gate C (Flag an), Archiv-Freigabe für AW-6. Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
@@ -362,6 +361,12 @@ Pfade sind eine Kopie aus dem Vertrag (der Wächter läuft ohne TS-Lader) — `v
 `verify:health` **38/38** (vorher 20). Probelauf gegen Produktion 03.10. 13:39 UTC: R1–R4 grün, R5 „nicht geprüft"
 (Nachholen), **H2/H3 von `latest-grib.json` rot — wie bei jedem Lauf seit September** (E-AW-16).
 
+**Seit 03.10. abends ohne Zeitplan:** Jan hat `health.yml` als unbenutzt freigegeben, der Workflow ist gelöscht. Die
+Prüfungen bleiben: `verify:health` (netzfrei, in `ci.yml`) und ein Handlauf
+`node scripts/health-manifests.mjs --url https://buscosun.com` — am 03.10. 15:24 UTC R1–R5 grün (Slot 15:15 nach 7 min,
+R5 1 550 Punkte über jsDelivr), H2/H3 rot wie seit September. Ein Straßenausfall fällt bis Gate C nur an
+`status.json` und an der Seite auf (V-AW-19).
+
 ### 4.5 Korridore (`scripts/road/build-corridors.mjs`, E-AW-12)
 
 BKG DLM250 per WFS (`objart_42003_l`, Widmung 1301, `bez` z. B. `E52#A8` — erster Entwurf verlor Straßen am `#`):
@@ -561,6 +566,7 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | V-AW-16 | Stichäste einer Autobahn fallen bei der Bereinigung aus der Achse — 4 Stationen ohne Korridor (Larrelt A 31, AD Bayerisches Vogtland A 72, Fürth A 73, AD Hochfranken A 93) | auch diese Anlagen im Streckenband | Äste ≥ 2 km als eigene Abschnitte behalten (eigene Kennung `a31-x`), statt sie abzuschneiden; die Stationen erscheinen bis dahin als Kartenpunkt |
 | V-AW-17 | `health.yml` schlägt seit September bei jedem Lauf fehl (H2/H3 `latest-grib.json` ≈ 700 h alt) | ein immer roter Wächter meldet keinen echten Ausfall — auch nicht den des Straßenwetters | E-AW-16 |
 | V-AW-18 | Tauplateau-Ausnahme der `stuck`-Regel (Fahrbahn −10…0 °C bei Luft ±10 K) deckt den Großteil des Winters — ein bei −0,01 °C hängender Fühler (Muster K677) würde im Winter nie verworfen und zeigte bei Nässe „Frostgefahr" | weniger falsche Frost-Warnfarbe im Winter | in Gate B kalibrieren: Plateau nur, wenn auch die Luft sich bewegt, oder Ausnahme auf 12 h begrenzen (Hinweis der Gesamtprüfung) |
+| V-AW-19 | Seit dem Löschen von `health.yml` (E-AW-16) prüft kein Zeitplan mehr, ob die Straßen-Ableitung lebt (R1–R5) | ein Ausfall des Straßenwetters fällt auf, bevor Nutzer ihn sehen — spätestens ab Gate C nötig | eigener schlanker Workflow (stündlich, nur `ROAD_HEALTH`, ohne die H-Prüfungen) oder eine Zeile im Radar-Wachhund des Daten-Repos; bis dahin Handlauf §4.4 |
 
 ## 8. Verifier (Stand Zweig nach dem Fix-Durchgang, gelaufen 03.10. 13:50–14:10 UTC, PowerShell, ohne `2>&1`)
 
@@ -577,7 +583,7 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | `verify:fire-detail` | 483/483 | liest `designTokens.css` (unverändert) |
 | `verify:fire-behoerden` | 100/100 | liest `netlify.toml` |
 | `verify:dashboard-switch` | 50/50 (12:25 UTC) · 49/50 (13:55 UTC) | Router, Startseite, Karte ⇄ Dashboard im Browser. Um 13:55 rot: (B) „kein GPU-Render-Loop hinter dem Dashboard" — 3 900 Draws in 3 s; **am Kontrollbau ohne AW-4/AW-5 identisch** (49/50, gleiche Zahl) ⇒ unabhängig von dieser Phase, zeit-/datenabhängig; Beobachtung für die Dashboard-Linie (§10.4) |
-| `verify:share` | **527/528** | ✗ SH6 „Edge-Bündel passt Byte für Byte zur Quelle" — durch den Routeneintrag (mit LF-Bündel gemessen), mit dem Patch 528/528; E-AW-14, V-AW-15 (§6.7) |
+| `verify:share` | **528/528** (nach E-AW-14, §11) | vorher 527/528: ✗ SH6 „Edge-Bündel passt Byte für Byte zur Quelle" — durch den Routeneintrag (mit LF-Bündel gemessen); V-AW-15 (§6.7) |
 | Startseite/Rail ohne Flag | 0 px Unterschied in 6 Aufnahmen | Gegenprobe mit Flag 58 468 / 331 px (§6.5); nach dem Merge von `main` wiederholt mit eingefrorenen Animationen (die neuen Glyphen laufen ohne Reduced-Motion-Ausnahme — ohne Einfrieren 2 537 px Rauschen zwischen zwei Aufnahmen desselben Builds): 0 px in allen 6, Gegenprobe 75 219 / 331 px |
 
 Producer-Commit `691113c` vor dem Push im sauberen Worktree (Stand `a2bb63a` + nur diese Dateien): typecheck 0,
@@ -589,9 +595,9 @@ Producer-Commit `691113c` vor dem Push im sauberen Worktree (Stand `a2bb63a` + n
 | Nr. | Frage | Vorschlag |
 |---|---|---|
 | **E-AW-13** | Voreingestellte Messstelle: heute die **kälteste gemessene Fahrbahn** (eine gemessene Glätte an einer wärmeren Stelle stünde dahinter); die Vorlage zeigt die kritischste Stelle | kritischste Klasse zuerst (Glätte, Frost, Nässe), bei Gleichstand die kälteste — eine Zeile in `RoadPage.tsx` |
-| **E-AW-14** | Bündel der Edge Function `og-meta` neu schreiben (`audit/autobahnwetter/og-meta-bundle.patch`, nur der Routeneintrag, keine Laufzeitwirkung) | ja — danach `verify:share` grün und AW-4/AW-5 nach `main` |
+| ~~E-AW-14~~ | Bündel der Edge Function `og-meta` neu schreiben | **entschieden 03.10. (Jan): ja** — `npm run edge:share`, Ergebnis Zeile für Zeile gleich dem Patch, AW-4/AW-5 auf `main` (§11) |
 | **E-AW-15** | Vorschaukarte (Open Graph) für `/autobahnwetter` je Korridor | mit Gate C: `og-meta` um die Route erweitern, eine Karte „Autobahnwetter" (Stufe 1 wie SH6) |
-| **E-AW-16** | `health.yml` ist seit September dauerhaft rot (H2/H3: `latest-grib.json` wird seit dem Rückzug der Warm-Crons nicht mehr fortgeschrieben) — der Wächter meldet so keinen echten Ausfall mehr | H-Prüfungen für `latest-grib.json` entfernen (oder auf den Index-Weg des Daten-Repos umstellen); dann ist der Wächter wieder ein Signal, auch für R1–R5 |
+| ~~E-AW-16~~ | `health.yml` ist seit September dauerhaft rot | **entschieden 03.10. (Jan): „wird nicht mehr verwendet und kann gelöscht werden"** — gelöscht; Folge V-AW-19 (§4.4) |
 
 ## 10. Gesamtprüfung des Zweigs (frischer Reviewer) und Fix-Durchgang
 
@@ -646,6 +652,24 @@ Text, `setData` je Render solange `corridors` fehlt. Planebene: Tauplateau (V-AW
 
 ### 10.4 Beobachtungen außerhalb der Phase
 
-- `health.yml` ist seit September bei jedem Lauf rot (E-AW-16).
+- `health.yml` war seit September bei jedem Lauf rot (E-AW-16; am 03.10. gelöscht).
 - `verify:dashboard-switch` (B) um 13:55 UTC auf beiden Builds rot (3 900 Draws hinter dem Dashboard), um 12:25 grün.
 - `verify:share` SH6 in jedem frischen Windows-Worktree rot (V-AW-15).
+
+## 11. Merge nach `main` (03.10. abends, Jans Freigabe)
+
+Jan, 03.10.: „passt für mich so … health.yml wird auch nicht mehr verwendet und kann gelöscht werden … Kannst gerne auf
+main mergen". Umgesetzt im Worktree auf dem Zweig, dann `main` vorgespult (kein Force, kein Rebase):
+
+- `origin/main` (`5cafb93`, NP-0-Diagnose) in den Zweig gemergt — keine Überschneidung.
+- **E-AW-14:** `npm run edge:share` schreibt `netlify/edge-shared/shareParser.js` (51,4 KB) neu; die Änderung ist Zeile
+  für Zeile gleich dem vorbereiteten Patch (19 Zeilen, nur der Routeneintrag `autobahnwetter`).
+- **E-AW-16:** `.github/workflows/health.yml` gelöscht. `scripts/health-manifests.mjs` und `verify:health` bleiben
+  (CI-Selbsttest, Handlauf §4.4); Folge V-AW-19.
+
+Gates am gemergten Stand: `npm run build` grün (`verify-routing` 252/252, `verify-seo` 803), typecheck 0, Budget
+eagerJs 108,9 / 109,0 · totalJs 1 543,9 / 1 545, `verify:share` **528/528**, `verify:road-decode` 15/15,
+`verify:road-contract` 64/64, `verify:road-derive` 31/31, `verify:road-ui` 36/36, `verify:health` 38/38,
+`verify:fire-detail` 483/483, `verify:fire-behoerden` 100/100, `verify:dashboard-switch` 49/50 — (B) wie in §8 auch ohne
+diese Phase rot. Für Nutzer ändert sich ohne `?road=1` nichts (§8, 0 px in 6 Aufnahmen); der Radar-Spiegel lädt mit dem
+nächsten Jobstart denselben Producer-Code wie vorher (der Zweig ändert unter `scripts/` nur Verifier und Fixtures).
