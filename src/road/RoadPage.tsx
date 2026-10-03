@@ -25,7 +25,7 @@ import RoadReadout from './RoadReadout';
 import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadUrlState } from './roadState';
 import {
   ROAD_CLASS_COLOR, bandSegments, corridorEnds, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
-  searchCorridors, slotSummary, activeRoadWarnings, ROAD_WARN_REFRESH_MS,
+  searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
 } from './roadView';
 import './roadDeck.css';
 
@@ -119,13 +119,11 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const inCorridor = useMemo(() => new Set(corridor?.stations.map((s) => s.id) ?? []), [corridor]);
   const mapPoints = useMemo(() => shownPoints.filter((p) => p.kind === 'A' || layers.bl || inCorridor.has(p.id)), [shownPoints, layers.bl, inCorridor]);
 
-  // Default station: the coldest valid measurement of the corridor, else its first station.
+  // Default station (E-AW-13): most critical class first, then the coldest road, else the corridor's first station.
   const point: RoadPoint | null = useMemo(() => {
     if (stId && shownById.get(stId)) return shownById.get(stId)!;
     if (!corridor) return null;
-    const ps = corridor.stations.map((s) => shownById.get(s.id)).filter((x): x is RoadPoint => !!x);
-    const measured = ps.filter((x) => x.rs != null).sort((a, b) => (a.rs as number) - (b.rs as number));
-    return measured[0] ?? ps[0] ?? null;
+    return defaultRoadStation(corridor.stations.map((s) => shownById.get(s.id)).filter((x): x is RoadPoint => !!x));
   }, [stId, shownById, corridor]);
 
   // 24-h ring of the selected station's series.

@@ -76,6 +76,24 @@ add('A0 Fixture-Slot über den echten Producer abgeleitet (1 555 Punkte, freigeg
   const act = typeof view.activeRoadWarnings === 'function' ? view.activeRoadWarnings(alerts, now).map((a) => a.id).join(',') : 'activeRoadWarnings fehlt';
   add('W1 Warnungen werden beim Zeichnen nach der Uhr gefiltert (abgelaufen/zukünftig fallen weg)', act === 'now', act);
   add('W2 Warnungen werden spätestens alle 5 min neu geholt', typeof view.ROAD_WARN_REFRESH_MS === 'number' && view.ROAD_WARN_REFRESH_MS <= 5 * 60_000, String(view.ROAD_WARN_REFRESH_MS));
+  // E-AW-13 (Jan 03.10.): default station = most critical class first (ice, frost, wet), then the coldest road.
+  const pt = (id, cls, rs) => ({ id, cls, rs });
+  const pick = (ps) => (typeof view.defaultRoadStation === 'function' ? view.defaultRoadStation(ps)?.id ?? null : 'defaultRoadStation fehlt');
+  const v4 = [
+    pick([pt('dry', 'dry', -3), pt('wet', 'wet', 6), pt('unk', 'unknown', -5), pt('frost', 'frost', 0.5), pt('ice', 'ice', 2)]),
+    pick([pt('dry', 'dry', -3), pt('wetWarm', 'wet', 6), pt('wetCold', 'wet', 3), pt('unk', 'unknown', -5)]),
+    pick([pt('frostA', 'frost', 0.8), pt('frostB', 'frost', -1.2), pt('wet', 'wet', -4)]),
+  ];
+  add('V4 Voreinstellung (E-AW-13): kritischste Klasse zuerst (Glätte vor Frost vor Nässe), bei Gleichstand die kälteste Fahrbahn',
+    v4.join() === 'ice,wetCold,frostB', v4.join());
+  const v5 = [
+    pick([pt('dry', 'dry', 1), pt('unk', 'unknown', -2), pt('none', 'nodata', null)]),
+    pick([pt('n1', 'nodata', null), pt('n2', 'nodata', null)]),
+    pick([pt('wetNoT', 'wet', null), pt('dry', 'dry', -6)]),
+    pick([]),
+  ];
+  add('V5 ohne Warnklasse wie bisher die kälteste gemessene Fahrbahn; ohne Messung die erste Station; Nässe ohne Temperatur schlägt trocken; leer ⇒ keine',
+    v5.join() === 'unk,n1,wetNoT,', v5.join());
 }
 
 const SLOT_MS = Date.UTC(2026, 9, 3, 8, 0);
@@ -170,6 +188,15 @@ const allErrors = [];
   add('C1 Voreinstellung A 8 „München → Salzburg", 30 Messpunkte im Band, URL /autobahnwetter/a8', c.pill === 'München → Salzburg' && c.ticks === 30 && c.url.startsWith('/autobahnwetter/a8'), JSON.stringify(c));
   add('C2 Topbar: Live, Messung 10:00 Ortszeit, Reihenzahl', /Live/.test(c.live) && /10:00/.test(c.stand) && /von \d+ DWD-Reihen/.test(c.stand), `${c.live} · ${c.stand}`);
   add('C3 Dock listet die Korridore + AT/CH-Zeilen ohne Messung', c.rows >= 9 + 4, String(c.rows));
+  {
+    // The page shows the station the view model picks on the fixture slot (E-AW-13), not its own choice.
+    const view = await import('../src/road/roadView.ts');
+    const obsFix = JSON.parse(readFileSync(join(site, 'obs', '2610030800.json'), 'utf8'));
+    const a8 = JSON.parse(readFileSync(join(FIX, 'corridors-munich.json'), 'utf8')).corridors.find((x) => x.id === 'a8');
+    const byIdFix = new Map(obsFix.points.map((p) => [p.id, p]));
+    const want = view.defaultRoadStation?.(a8.stations.map((s) => byIdFix.get(s.id)).filter(Boolean));
+    add('C4 Readout zeigt ohne st= die Station der Voreinstellung (E-AW-13)', !!want && c.name === want.n, `${c.name} · erwartet ${want?.n} (${want?.cls}, ${want?.rs} °C)`);
+  }
   await shot(ctx, 'desktop-1440');
 
   // D: selection via a band tick, URL, direction, tabs.

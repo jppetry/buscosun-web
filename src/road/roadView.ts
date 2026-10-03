@@ -104,6 +104,24 @@ export function corridorStatus(c: RoadCorridor, byId: ReadonlyMap<string, RoadPo
   return { measured, critical, unknown, nodata, worst };
 }
 
+/** Warning classes rank for the default station; every other class shares rank 0. */
+const DEFAULT_RANK: Readonly<Partial<Record<RoadClass, number>>> = Object.freeze({ ice: 3, frost: 2, wet: 1 });
+
+/**
+ * Default station of a corridor (E-AW-13, Jan 03.10.2026): the most critical measured class first (ice, frost, wet),
+ * on a tie the coldest road surface; without a warning class the coldest measured road, without any measurement the
+ * first station (corridor order). A measured ice patch at a warmer spot no longer hides behind a colder dry one.
+ */
+export function defaultRoadStation(ps: readonly RoadPoint[]): RoadPoint | null {
+  let best: RoadPoint | null = null;
+  for (const p of ps) {
+    if (!best) { best = p; continue; }
+    const r = (DEFAULT_RANK[p.cls] ?? 0) - (DEFAULT_RANK[best.cls] ?? 0);
+    if (r > 0 || (r === 0 && p.rs != null && (best.rs == null || p.rs < best.rs))) best = p;
+  }
+  return best;
+}
+
 /** Tie rank in the band: warning classes first, then hatched (unknown, no data) before dry — the cautious reading. */
 const TIE_RANK: Readonly<Record<RoadClass, number>> = Object.freeze({ ice: 5, frost: 4, wet: 3, unknown: 2, nodata: 1, dry: 0 });
 
