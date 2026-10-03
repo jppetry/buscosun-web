@@ -136,6 +136,10 @@ add('C1 Slot 08:15 mit 19 Reihen ⇒ gesperrt: keine obs-Datei, Status nennt die
   !remoteFiles('road/v1/obs/').includes('road/v1/obs/2610030815.json') && st2.blocked?.slot === '2610030815' && st2.blocked.reasons.some((r) => r.rule === 'slotGroups') && remoteFiles('road/v1/obs/').includes('road/v1/obs/2610030800.json'),
   JSON.stringify(st2.blocked));
 add('C2 gesperrter Slot: Quarantäne und Zustand werden trotzdem fortgeschrieben (Diagnose, Lauflängen)', remoteFiles('road/v1/quarantine/').includes('road/v1/quarantine/2610030815.json') && show('road/v1/state.json').slot === '2610030815');
+add('C3 Slot-Protokoll (recent) trägt beim gesperrten Slot den Sperrgrund, beim freigegebenen keinen (AW-6a: Gate B aus dem Archiv)',
+  st2.recent[0]?.slot === '2610030815' && st2.recent[0].publish === false && st2.recent[0].reasons?.some((r) => r.rule === 'slotGroups')
+  && st2.recent[1]?.slot === '2610030800' && st2.recent[1].publish === true && !('reasons' in st2.recent[1]),
+  JSON.stringify(st2.recent.map((r) => [r.slot, r.publish, r.reasons?.map((x) => x.rule)])));
 missingGroups = new Set();
 
 // --- D: force-push of another line wipes road/ — the next publish heals it ------------------------

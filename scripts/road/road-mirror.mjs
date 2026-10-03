@@ -24,6 +24,8 @@ import { pathToFileURL } from 'node:url';
 
 const UA = 'buscosun-road-mirror (buscosun-web/audit/autobahnwetter.md)';
 const DAY_MS = 86_400_000;
+/** Slots in `status.json` `recent` (6 h). The archive (road-archive.mjs, every 3 h) must run well inside this. */
+export const ROAD_RECENT_SLOTS = 24;
 
 const readJson = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
 
@@ -113,7 +115,7 @@ export function createRoadMirror({
     const prev = readJson(join(store, plan.statusPath));
     if (prev?.product === 'road-status') {
       for (const k of ['lastSlot', 'lastPublishedSlot', 'blocked', 'groups', 'balance', 'catalog']) if (prev[k] !== undefined) status[k] = prev[k];
-      if (prev.recent) status.recent = prev.recent.slice(0, 24);
+      if (prev.recent) status.recent = prev.recent.slice(0, ROAD_RECENT_SLOTS);
     }
     if (prev?.catalog) catalog = { etag: prev.catalog.etag ?? null, state: prev.catalog.state ?? 'ok', checkedAt: Date.parse(prev.catalog.checkedAt ?? '') || 0 };
     seeded = true;
@@ -205,7 +207,9 @@ export function createRoadMirror({
       slot: stamp, publish: summary.publish, points: summary.points, values: summary.balance.values,
       rejected: summary.balance.rejected, share: Number(summary.balance.share.toFixed(4)), groups: Object.values(summary.groups).filter((g) => g.state === 'ok').length,
       dwdLastAt: dwdLast, derivedAt: new Date(now()).toISOString(), deriveMs: now() - t0,
-    }, ...status.recent].slice(0, 24);
+      // The archive (road-archive.mjs) keeps this log beyond 6 h — a blocked slot carries its reasons for Gate B.
+      ...(summary.publish ? {} : { reasons: summary.reasons }),
+    }, ...status.recent].slice(0, ROAD_RECENT_SLOTS);
     prune();
     return summary;
   }

@@ -87,6 +87,7 @@
     "verify:road-contract": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-contract.mjs",
     "verify:road-derive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-derive.mjs",
     "verify:road-ui": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-ui.mjs",
+    "verify:road-archive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-archive.mjs",
     "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",
     "verify:fire-detail": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-detail.mjs",
     "verify:fire-history": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-history.mjs",

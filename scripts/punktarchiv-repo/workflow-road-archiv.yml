@@ -1,0 +1,104 @@
+# ============================================================================
+# road-archiv.yml — Ablage des Straßenwetters (AW-6a, buscosun-web/audit/autobahnwetter.md §12)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/road-archiv.yml` im Archiv-Repo
+# `jppetry/buscosun-archiv` (Jans Freigabe 03.10.2026: „ja mache"). Der Code lebt in
+# `buscosun-web` (`scripts/road/road-archive.mjs`) und wird bei jedem Lauf frisch geklont,
+# die Daten kommen frisch aus `buscosun-data` `road/v1` — beide öffentlich, kein Token.
+# Geschrieben wird nur unter `road/`; das Punktarchiv daneben bleibt unberührt.
+#
+# ── Takt alle 3 h ───────────────────────────────────────────────────────────
+# `status.json` `recent` trägt die letzten 24 Slots (6 h), `quarantine/` 24 h, der Ring 96
+# Slots. Mit 3 h überlappt jeder Lauf das Slot-Protokoll um 3 h und die Quarantäne um 21 h —
+# ein ausgefallener oder verspäteter Lauf kostet nichts. verify:road-archive rechnet das nach.
+#
+# ── Checkout sparse, ohne Blobs ─────────────────────────────────────────────
+# Das Punktarchiv wächst um GB im Jahr; dieser Job braucht nur `road/` (+ die Dateien der
+# obersten Ebene, die der Kegel-Modus immer mitnimmt).
+#
+# ── Rot nur, wenn das Straßenwetter steht ───────────────────────────────────
+# Der Archivschritt endet mit 3, wenn der jüngste Ring älter als 180 min ist und kein
+# Kill-Schalter gesetzt ist — der Commit läuft trotzdem, rot wird erst der letzte Schritt.
+# Das ist seit dem Löschen von health.yml das einzige Lebenszeichen mit Zeitplan (V-AW-19).
+# ============================================================================
+
+name: road-archiv
+
+on:
+  schedule:
+    - cron: '25 */3 * * *'   # alle 3 h, :25 — abseits des Punktarchivs (23:10)
+  workflow_dispatch: {}
+
+concurrency:
+  group: road-archiv
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: road
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-road-archiv[bot]'
+          git config user.email 'road-archiv@users.noreply.github.com'
+
+      - name: Checkout archiver (buscosun-web, public, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts/road scripts/lib src/road package.json
+          git checkout --quiet
+          test -f scripts/road/road-archive.mjs || { echo "scripts/road/road-archive.mjs fehlt in buscosun-web main"; exit 1; }
+
+      - name: Checkout road store (buscosun-data, public, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git data
+          cd data
+          git sparse-checkout set --no-cone road/v1
+          git checkout --quiet
+          test -f road/v1/status.json || { echo "road/v1/status.json fehlt im Daten-Repo"; exit 1; }
+
+      - name: Archive
+        id: archive
+        continue-on-error: true
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-archive.mjs \
+            --store=../data/road/v1 --archive=../road/v1
+
+      # Append-only: normaler Push mit Wiederholung, NIE --force. Abgewiesen heißt hier nur, dass
+      # das Punktarchiv (oder ein manueller Lauf) dazwischenkam — rebase und erneut.
+      - name: Commit and push (append-only, with retry)
+        run: |
+          git add -A -- road
+          if git diff --cached --quiet; then echo "Nichts Neues — kein Commit."; exit 0; fi
+          git commit -m "road: archiv $(date -u +%Y-%m-%dT%H:%MZ)"
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then echo "Push in Versuch $attempt gelungen."; exit 0; fi
+            echo "Versuch $attempt scheiterte — rebase und erneut."
+            git pull --rebase origin main || true
+            sleep $((attempt * 15))
+          done
+          echo "Push nach 5 Versuchen gescheitert."; exit 1
+
+      - name: Road line alive
+        if: steps.archive.outcome == 'failure'
+        run: |
+          echo "Archivschritt rot: keine Ringe im Daten-Repo oder jüngster Ring älter als 180 min (siehe Schritt 'Archive')."
+          exit 1
