@@ -518,6 +518,8 @@ Kontrollbau (gleicher Baum ohne AW-4/AW-5) 108,6 / 1 517,5 KB gegen 108,9 / 1 53
 1 539,3 KB, +0,4 KB für Warnungs-Erneuerung, Sichtmodell und `warnField` im Seiten-Chunk): RoadPage +18,6, RoadRoute
 +1,45, roadFlag +0,26 (alle lazy), Startseite +0,33, Rail +0,10; eagerJs +0,3 KB (Routeneintrag, Lazy-Verweis).
 Ratschen mit Notiz angehoben: eagerJs 108,7 → **109,0**, totalJs 1 518 → **1 540** (Jan 30.09.: anheben erlaubt).
+Nach dem Merge von `main` (`5bb8af1`, Startseiten-Umbau RR/RI1 der parallelen Sitzung, `f9ea3d0`) neu gemessen:
+Kontrollbau `main` 108,6 / 1 522,0 gegen den Zweig 108,9 / **1 543,9** = +0,3 / +21,9 KB ⇒ totalJs-Grenze 1 523 → **1 545**.
 eagerCss bleibt 2,4: die `--aw-*`-Tokens stehen im lazy `roadDeck.css`, nicht in `designTokens.css` (erster
 Entwurf hob eagerCss auf 2,5).
 
@@ -570,13 +572,13 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | `verify:road-ui` | **36/36** | §6.3; dazu V1–V3, W1–W2, D5, M1–M4 aus der Gesamtprüfung (alle am alten Build rot) |
 | `verify:health` | **38/38** | Warm-Manifeste wie bisher (20) + R1–R5 mit Negativkontrollen (18) |
 | `npm run build` | grün | `verify-seo` 803/803, `verify-routing` **252/252** (vorher 249, +3 AW-Prüfungen) |
-| `npm run budget` | grün | eagerJs 108,9 / 109,0 · eagerCss 2,4 / 2,5 · largestChunk 278,4 / 302 · totalJs 1 539,0 / 1 540 |
+| `npm run budget` | grün | eagerJs 108,9 / 109,0 · eagerCss 2,4 / 2,5 · largestChunk 278,4 / 302 · totalJs 1 543,9 / 1 545 (nach dem Merge von `main`) |
 | `npm run typecheck` | 0 Fehler | |
 | `verify:fire-detail` | 483/483 | liest `designTokens.css` (unverändert) |
 | `verify:fire-behoerden` | 100/100 | liest `netlify.toml` |
 | `verify:dashboard-switch` | 50/50 (12:25 UTC) · 49/50 (13:55 UTC) | Router, Startseite, Karte ⇄ Dashboard im Browser. Um 13:55 rot: (B) „kein GPU-Render-Loop hinter dem Dashboard" — 3 900 Draws in 3 s; **am Kontrollbau ohne AW-4/AW-5 identisch** (49/50, gleiche Zahl) ⇒ unabhängig von dieser Phase, zeit-/datenabhängig; Beobachtung für die Dashboard-Linie (§10.4) |
 | `verify:share` | **527/528** | ✗ SH6 „Edge-Bündel passt Byte für Byte zur Quelle" — durch den Routeneintrag (mit LF-Bündel gemessen), mit dem Patch 528/528; E-AW-14, V-AW-15 (§6.7) |
-| Startseite/Rail ohne Flag | 0 px Unterschied in 6 Aufnahmen | Gegenprobe mit Flag 58 468 / 331 px (§6.5) |
+| Startseite/Rail ohne Flag | 0 px Unterschied in 6 Aufnahmen | Gegenprobe mit Flag 58 468 / 331 px (§6.5); nach dem Merge von `main` wiederholt mit eingefrorenen Animationen (die neuen Glyphen laufen ohne Reduced-Motion-Ausnahme — ohne Einfrieren 2 537 px Rauschen zwischen zwei Aufnahmen desselben Builds): 0 px in allen 6, Gegenprobe 75 219 / 331 px |
 
 Producer-Commit `691113c` vor dem Push im sauberen Worktree (Stand `a2bb63a` + nur diese Dateien): typecheck 0,
 `verify:road-decode` 15/15, `verify:road-contract` 58/58, `verify:road-derive` 27/27, `verify:health` 20/20, Build
