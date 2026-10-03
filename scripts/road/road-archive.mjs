@@ -237,7 +237,8 @@ export function archiveRoad({ storeDir, archiveDir, nowMs = Date.now() }) {
   }
   const readme = archiveReadme();
   const readmePath = join(archiveDir, 'README.md');
-  const readmeChanged = (existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : null) !== readme;
+  // A Windows checkout (core.autocrlf) carries CRLF — same text, no rewrite, no fresh index stamp.
+  const readmeChanged = (existsSync(readmePath) ? readFileSync(readmePath, 'utf8').replace(/\r\n/g, '\n') : null) !== readme;
   if (readmeChanged) writeAtomic(readmePath, readme);
   if (res.written.length || res.merged.length || res.slotLogs.length || readmeChanged) {
     index.updatedAt = new Date(nowMs).toISOString();

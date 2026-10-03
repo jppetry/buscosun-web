@@ -132,6 +132,10 @@ const msOf = (s) => roadStampToMs(s);
   add('A11 zweiter Lauf auf demselben Bestand schreibt nichts (Index byte-gleich, kein Commit)',
     r2.ok && !r2.written.length && !r2.merged.length && !r2.slotLogs.length && readFileSync(join(archive, 'index.json'), 'utf8') === idx1,
     JSON.stringify({ unchanged: r2.unchanged }));
+  writeFileSync(join(archive, 'README.md'), archiveReadme().replace(/\n/g, '\r\n'));   // a Windows checkout (autocrlf)
+  const rCrlf = archiveRoad({ storeDir: store, archiveDir: archive, nowMs: now + 6 * 3_600_000 });
+  add('A17 README mit CRLF (Windows-Checkout) gilt als unverändert — kein neuer Index-Stempel, kein leerer Commit',
+    readFileSync(join(archive, 'index.json'), 'utf8') === idx1 && !rCrlf.written.length && !rCrlf.slotLogs.length);
   const idx = JSON.parse(idx1);
   add('A12 Index: je Halbtag Stationen, gefüllte Slots, Quarantäne; je Tag Slot-Protokoll',
     idx.days['2026-10-03'].halves['00'].stations === 2 && idx.days['2026-10-03'].halves['00'].filledSlots === 48
@@ -151,9 +155,11 @@ const msOf = (s) => roadStampToMs(s);
   // The point archive next door rebuilds its index from the root's day folders only.
   const root = join(tmp, 'archiv');
   mkdirSync(join(root, '2026-10-03'), { recursive: true });
+  const snap = () => ['index.json', 'README.md', '2026-10-02/12.json.gz'].map((f) => readFileSync(join(archive, f)).toString('base64')).join('|');
+  const before = snap();
   const pIdx = rebuildIndexes(root);
-  add('A16 Punktarchiv daneben: sein Index sieht nur Tagesordner, road/ bleibt unberührt',
-    pIdx.days.length === 1 && pIdx.days[0].day === '2026-10-03' && existsSync(join(archive, 'index.json')) && readFileSync(join(archive, 'README.md'), 'utf8') === archiveReadme());
+  add('A16 Punktarchiv daneben: sein Index sieht nur Tagesordner, road/ bleibt Byte für Byte unberührt',
+    pIdx.days.length === 1 && pIdx.days[0].day === '2026-10-03' && snap() === before);
 }
 
 // --- B: the real producer ------------------------------------------------------------------------------
