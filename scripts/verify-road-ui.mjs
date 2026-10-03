@@ -9,7 +9,7 @@
  * interception for `…/buscosun-data@main/road/v1/*` and raw.githubusercontent; the page's clock is shifted to the slot.
  * The basemap tiles come from the network (they carry no checked content).
  *
- *   A  flag gate: without `?road=1` the route answers like an unknown path; with it the deck renders
+ *   A  flag gate: on for everyone since 03.10. (ROAD_LIVE) — page and start-page tile without parameter, `?road=0` hides
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · band over the map foot
  *   C  data: default corridor A 8 München → Salzburg, band ticks = corridor stations, readout shows a station
  *   D  selection: band tick ⇒ readout + URL `st=`; flipping the direction ⇒ `dir=1`; tabs Strecke/Quellen
@@ -168,9 +168,23 @@ const allErrors = [];
 
 // --- A: flag gate ---------------------------------------------------------------------------------
 {
-  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter' });
+  // Jan 03.10.: the flag is on for everyone (ROAD_LIVE); `?road=0` stays the per-visitor switch-off.
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=0' });
   const notFound = await until(ctx, `!!document.querySelector('h1') && /nicht gefunden|404/i.test(document.body.innerText) && !document.querySelector('.aw-root')`, 15_000);
-  add('A1 ohne ?road=1: Route antwortet wie ein unbekannter Pfad (bis Gate C)', notFound);
+  add('A1 mit ?road=0: Route antwortet wie ein unbekannter Pfad (Ausschalter je Besucher bleibt)', notFound);
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter' });
+  const deck = await until(ctx, `!!document.querySelector('.aw-root') && document.querySelectorAll('.aw-band-tick').length > 5`, 30_000);
+  add('A3 ohne Parameter: das Deck rendert (Flag an für alle, ROAD_LIVE)', deck);
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/' });
+  const tile = await until(ctx, `[...document.querySelectorAll('.deck-bento > .deck-tile')].some((t) => /Autobahnwetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null)`, 20_000);
+  const count = await ctx.evaluate(`document.querySelector('.deck-chips-count')?.textContent ?? ''`);
+  add('A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar, Zähler „11 Werkzeuge"', tile && /11/.test(count), count);
   off(); allErrors.push(...errors); await ctx.close();
 }
 
