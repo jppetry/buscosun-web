@@ -533,6 +533,25 @@ var ROUTES = [
     }
   },
   {
+    // Phase AW (audit/autobahnwetter.md): Pfadsegment = Korridor (`/autobahnwetter/a8`), entscheidet die Seite. Die
+    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) kommen erst mit Gate C in diese — eager geladene —
+    // Tabelle; bis dahin ist die Route noindex und steht in keiner Sitemap.
+    id: "autobahnwetter",
+    path: "/autobahnwetter",
+    aliases: ["/strassenwetter", "/glaette"],
+    featureId: "road",
+    subParam: "road",
+    subs: null,
+    meta: {
+      title: "Autobahnwetter — Glätte und Fahrbahnzustand",
+      description: "Fahrbahntemperatur und -zustand der Glättemeldeanlagen an deutschen Autobahnen, alle 15 Minuten gemessen — je Strecke als Band.",
+      h1: "Autobahnwetter: Ist die Strecke glatt?",
+      lead: "Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt.",
+      noindex: true
+      // Gate C (ROAD_LIVE)
+    }
+  },
+  {
     id: "feedback",
     path: "/feedback",
     aliases: [],
