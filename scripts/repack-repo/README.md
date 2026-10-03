@@ -3,14 +3,15 @@
 Vorprozessierte Wetterdaten für [buscosun.com](https://buscosun.com).
 
 **Dieses Repo enthält keinen Anwendungscode.** Es ist ein reiner Datenspeicher,
-ausgeliefert über [jsDelivr](https://www.jsdelivr.com/). Drei Produktlinien mit drei
-verschiedenen Takten und drei verschiedenen Zwecken:
+ausgeliefert über [jsDelivr](https://www.jsdelivr.com/). Vier Produktlinien mit verschiedenen
+Takten und verschiedenen Zwecken:
 
 | Linie | Verzeichnis | Achse | Takt | Wer schreibt |
 |---|---|---|---|---|
 | **Kartenlayer** | `runs/`, `index.json`, `hsurf-v1.png` | Fläche je Zeitpunkt | 8 × täglich | `.github/workflows/build.yml` |
 | **Radar-Spiegel** | `radar/` | Fläche je Zeitpunkt, Minuten | alle 1–2 min | `.github/workflows/radar.yml` |
 | **Punkt-Cube** | `point/` | **Zeitreihe je Ort** | **drei Jobs**: Stufe 1 8 ×, Stufe 2 4 ×, Stufe 3 2 × täglich | `.github/workflows/point.yml` |
+| **Straßenwetter** | `road/` | Messpunkte der Glättemeldeanlagen | alle 15 min | `.github/workflows/radar.yml` (Produkt im Radar-Spiegel) |
 
 ---
 
@@ -88,6 +89,41 @@ radar/img/v1/konrad3d/    Zellbahnen als JSON
 
 Aufbewahrung: `keep: 12` Schritte (≈ 1 Stunde). Der Job läuft 345 Minuten am Stück und
 pusht in seinem eigenen Takt; `radar-watchdog.yml` startet ihn neu, wenn er ausfällt.
+
+---
+
+## Straßenwetter — `road/`
+
+Messwerte der rund 1 500 Glättemeldeanlagen (GMA) des DWD und der Länder (SWIS), alle 15 Minuten
+— Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft, Taupunkt, Sicht, Wind, Niederschlag.
+Quelle: `opendata.dwd.de/weather/weather_reports/road_weather_stations/` (BUFR, 23 Reihen in 22 Ordnern).
+Kein eigener Cron: das Produkt läuft im Radar-Spiegel mit (`radar.yml`), die Logik liegt im
+Anwendungs-Repo (`scripts/road/road-mirror.mjs`, Dekodierung und Prüfung je Slot als Kindprozess
+`scripts/road/road-derive.mjs`, Regeln in `src/road/roadContract.ts`).
+
+```
+road/v1/status.json                    Job, letzter Slot, je Reihe Stand und Alter, Prüfer-Bilanz, Sperre, Kill-Switch
+road/v1/state.json                     Zustand des Producers (Lauflängen für „hängender Sensor") — nicht für den Client
+road/v1/obs/<YYMMDDHHMM>.json          alle GÜLTIGEN Messpunkte des Slots: Werte, Klasse, Herkunft
+road/v1/h24/<Reihe>/<YYMMDDHHMM>.json  24-h-Verlauf einer Reihe bis zu diesem Slot (Fahrbahn, Luft, Taupunkt)
+road/v1/quarantine/<YYMMDDHHMM>.json   verworfene Werte mit Regel und Rohwert, nur für die Diagnose
+road/v1/static/stations.json           Stationskatalog aus sws_stations_xls.xlsx (zeitlos, ETag täglich geprüft)
+road/v1/static/corridors.json          Autobahn-Korridore (BKG DLM250), km-Achse, Grenzmarken (zeitlos, von Hand)
+```
+
+**Unplausibles erreicht `obs/` nie.** Jeder Wert durchläuft die Prüfer des Vertrags (physikalische
+Grenzen, Geräteplatzhalter −75 °C, DWD-Flag, hängender Sensor, Zustand nur mit gültiger
+Fahrbahntemperatur); ein Slot, in dem zu wenige Reihen geliefert haben oder mehr als 10 % der Werte
+verworfen wurden, wird **nicht veröffentlicht** — der letzte gute Slot bleibt stehen. Statistische
+Prüfer (Sprung, Nachbarn, Modellabgleich) laufen zunächst nur beobachtend und stehen als „wäre
+verworfen" in `status.json` und `quarantine/`.
+
+Slot-Dateien sind inhaltlich unveränderlich — deshalb `@main` am CDN; der Client rechnet den
+erwarteten Slot aus der Uhr und tritt bei 404 einen Slot zurück. `static/corridors.json` wird nicht
+vom Spiegel gebaut (`scripts/road/build-corridors.mjs`); der Spiegel übernimmt die Fassung aus dem Repo.
+
+⚠️ Kein amtliches Warnprodukt und keine Fahrbahnprognose des DWD: Messwerte an Punkten, nicht für
+die ganze Strecke.
 
 ---
 
@@ -347,6 +383,9 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `point/stations-s/` | Alter ≤ **6 h**, mindestens 2 Läufe | ≈ 6 Läufe bei 24 Slots |
 | `runs/` | `keep: 4` | ≈ 12 h |
 | `radar/` | `keep: 12` Schritte | ≈ 1 h |
+| `road/v1/obs/` | Alter ≤ **3 h**, mindestens 2 Slots | 12 Slots |
+| `road/v1/quarantine/` | Alter ≤ 24 h, mindestens 2 Slots | 96 Slots |
+| `road/v1/h24/<Reihe>/` | Alter ≤ 1 h, mindestens 2 Dateien je Reihe (jede Datei trägt den ganzen 24-h-Verlauf) | ≈ 4 je Reihe |
 
 **Je Stufe**, weil die Stufen verschieden oft kommen: Stufe 1 achtmal täglich à ≈ 75 MiB
 würde bei 24 h acht Läufe halten und den Arbeitsbaum sprengen; die Fernstufe kommt
@@ -419,6 +458,8 @@ sonst läuft der alte Stand weiter. Dasselbe gilt für dieses README und für
 |---|---|---|
 | `runs/`, `point/` (ICON, MOSMIX) | **Deutscher Wetterdienst**, <https://opendata.dwd.de> | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) / GeoNutzV |
 | `radar/rv`, `radar/konrad3d` | Deutscher Wetterdienst | CC BY 4.0 |
+| `road/` (Messwerte, Stationsliste) | Deutscher Wetterdienst, Glättemeldeanlagen der Länder (SWIS) | GeoNutzV, Quellenvermerk DWD |
+| `road/v1/static/corridors.json` | © GeoBasis-DE / BKG (DLM250), GeoNames | dl-de/by-2.0, CC BY 4.0 |
 | `point/` (C-LAEF), `radar/img/v1/inca` | GeoSphere Austria | CC BY 4.0 |
 | `point/` (ICON-CH1/CH2), `radar/img/v1/rzc` | MeteoSchweiz | CC BY 4.0 |
 | `point/` (IFS/AIFS) | ECMWF Open Data | CC BY 4.0, ECMWF Terms of Use |
@@ -430,6 +471,7 @@ Die Producer liegen im Anwendungs-Repo:
 
 - [`scripts/repack-icon-d2.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/repack-icon-d2.mjs) — Kartenlayer
 - [`scripts/radar-mirror/radar-mirror.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/radar-mirror/radar-mirror.mjs) — Radar
+- [`scripts/road/road-mirror.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/road-mirror.mjs), [`road-derive.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/road-derive.mjs) — Straßenwetter
 - [`scripts/point/build-point-cube.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/build-point-cube.mjs) — Punkt-Cube
 - [`scripts/point/build-stations.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/build-stations.mjs) — Stationsprodukt
 - [`scripts/point/publish-point.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/publish-point.mjs) — Veröffentlichung und Aufbewahrung der Punktlinie

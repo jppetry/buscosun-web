@@ -58,6 +58,13 @@ const APP_DIR = process.env.APP_DIR ?? '';
 const DERIVE_SCRIPT = APP_DIR ? join(APP_DIR, 'scripts', 'radar-mirror', 'radar-derive.mjs') : '';
 const DERIVE = process.env.DERIVE !== '0' && !!APP_DIR && existsSync(DERIVE_SCRIPT);
 
+// AW-3 (buscosun-web/audit/autobahnwetter.md, E-AW-1): Autobahnwetter (`road/v1/`) als weiteres Produkt. Die Logik
+// liegt im buscosun-web-Klon (`scripts/road/road-mirror.mjs`, Derive als Kindprozess wie RD3); hier nur drei Haken:
+// seed() beim Start, poll() je Schleife, copyInto() in publish(). Ohne APP_DIR, ohne Modul oder mit ROAD=0 läuft der
+// Spiegel wie vorher; ein Fehler im Straßenwetter nimmt nie den Radar-Push.
+const ROAD_HOOK = APP_DIR ? join(APP_DIR, 'scripts', 'road', 'road-mirror.mjs') : '';
+let road = null;
+
 const INCA_CHECK_SEC = Number(process.env.INCA_CHECK_SEC ?? 45); // Rate-Limit 240/h ⇒ ≥ 15 s
 const RZC_CHECK_SEC = Number(process.env.RZC_CHECK_SEC ?? 30);
 const INCA_META_URL = 'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata';
@@ -212,8 +219,11 @@ function publish(msg) {
       if (existsSync(join(MIRROR, 'img'))) cpSync(join(MIRROR, 'img'), join(radar, 'img', IMG_VERSION), { recursive: true });
       status.updatedAt = nowIso();
       writeFileSync(join(radar, 'status.json'), JSON.stringify(status, null, 2) + '\n');
-      git(['add', '-A', 'radar']);
-      if (!git(['status', '--porcelain', 'radar'])) { log('nichts zu committen'); return { pushedAt: nowIso(), noop: true }; }
+      let roadOn = false;
+      try { roadOn = !!road?.copyInto(ROOT); } catch (e) { log(`road: Einkopieren fehlgeschlagen (${e.message}) — road/ bleibt wie auf main`); }
+      const paths = roadOn ? ['radar', 'road'] : ['radar'];
+      git(['add', '-A', ...paths]);
+      if (!git(['status', '--porcelain', ...paths])) { log('nichts zu committen'); return { pushedAt: nowIso(), noop: true }; }
       git(['commit', '--quiet', '-m', msg]);
       const t0 = Date.now();
       git(['push', '--quiet', REMOTE, `HEAD:${BRANCH}`]);
@@ -319,6 +329,13 @@ async function pollRzc() {
 async function main() {
   mkdirSync(MIRROR, { recursive: true });
   storeSeed();
+  if (ROAD_HOOK && existsSync(ROAD_HOOK) && process.env.ROAD !== '0') {
+    try {
+      const m = await import(pathToFileURL(ROAD_HOOK).href);
+      road = m.createRoadMirror({ appDir: APP_DIR, mirrorDir: MIRROR, log });
+      road.seed(ROOT);
+    } catch (e) { log(`road: Modul nicht ladbar (${e.message}) — Straßenwetter AUS`); road = null; }
+  }
   const deadline = Date.now() + RUN_MINUTES * 60_000;
   log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d'].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
 
@@ -371,6 +388,12 @@ async function main() {
     }
     if (await pollInca()) lastPushAt = Date.now();
     if (await pollRzc()) lastPushAt = Date.now();
+    if (road) {
+      try {
+        const msg = await road.poll();
+        if (msg) { const pub = publish(msg); lastPushAt = Date.now(); log(`${msg} · Push ${pub.pushedAt.slice(11, 19)}${pub.noop ? ' (nichts neu)' : ''}`); }
+      } catch (e) { log(`road: ${String(e.message ?? e).split('\n')[0]} — Radar läuft weiter`); }
+    }
     // Ende: nach Ablauf der Laufzeit, aber möglichst direkt nach einem Push (Nachfolger hat dann ≈ 4,5 min).
     if (Date.now() >= deadline && (Date.now() - lastPushAt < 20_000 || Date.now() >= deadline + 5 * 60_000)) break;
     await sleep(POLL_SEC);
