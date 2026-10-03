@@ -298,6 +298,14 @@
   from   = "/feuer"
   to     = "/waldbrand"
   status = 301
+[[redirects]]
+  from   = "/strassenwetter"
+  to     = "/autobahnwetter"
+  status = 301
+[[redirects]]
+  from   = "/glaette"
+  to     = "/autobahnwetter"
+  status = 301
 
 # 200-Rewrites je App-Route auf ihre Shell (Sub-Routen teilen die Eltern-Shell).
 [[redirects]]
@@ -544,6 +552,15 @@
 [[redirects]]
   from   = "/waldbrand/*"
   to     = "/waldbrand.html"
+  status = 200
+# Phase AW: Autobahnwetter — die Autobahn-Unterseiten (E-AW-4) bekommen erst mit Gate C eigene Shells.
+[[redirects]]
+  from   = "/autobahnwetter"
+  to     = "/autobahnwetter.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/*"
+  to     = "/autobahnwetter.html"
   status = 200
 [[redirects]]
   from   = "/feedback"

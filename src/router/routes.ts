@@ -23,7 +23,7 @@ export const SITE_NAME = 'buscosun';
 
 export type RouteId =
   | 'home' | 'wetterkarte' | 'warnungen' | 'regenradar' | 'vorhersage' | 'tourenplanung' | 'eventplanung'
-  | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'feedback' | 'validierung' | 'mobiletest';
+  | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'autobahnwetter' | 'feedback' | 'validierung' | 'mobiletest';
 
 export interface RouteMeta {
   /** `<title>` (ohne Marken-Suffix — der wird zentral angehängt). */
@@ -62,7 +62,7 @@ export interface RouteDef {
   /** Sub-Routen (`/<path>/<slug>`), null = keine. */
   subs: readonly SubRoute[] | null;
   /** Welcher Pfadparameter die Sub-Route trägt (für `router.tsx`). */
-  subParam?: 'layer' | 'lens' | 'view';
+  subParam?: 'layer' | 'lens' | 'view' | 'road';
   /**
    * SH1 („Teilen"): Diese Route darf als LETZTES Pfadsegment einen Ort-Slug
    * tragen — `/wetterkarte/wind/muenchen`, `/regenradar/muenchen`.
@@ -277,6 +277,20 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
+    // Phase AW (audit/autobahnwetter.md): Pfadsegment = Korridor (`/autobahnwetter/a8`), entscheidet die Seite. Die
+    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) kommen erst mit Gate C in diese — eager geladene —
+    // Tabelle; bis dahin ist die Route noindex und steht in keiner Sitemap.
+    id: 'autobahnwetter', path: '/autobahnwetter', aliases: ['/strassenwetter', '/glaette'], featureId: 'road', subParam: 'road',
+    subs: null,
+    meta: {
+      title: 'Autobahnwetter — Glätte und Fahrbahnzustand',
+      description: 'Fahrbahntemperatur und -zustand der Glättemeldeanlagen an deutschen Autobahnen, alle 15 Minuten gemessen — je Strecke als Band.',
+      h1: 'Autobahnwetter: Ist die Strecke glatt?',
+      lead: 'Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt.',
+      noindex: true, // Gate C (ROAD_LIVE)
+    },
+  },
+  {
     id: 'feedback', path: '/feedback', aliases: [], featureId: 'feedback', subs: null,
     meta: {
       title: 'Feedback — Ideen & Vorschläge',
@@ -320,6 +334,7 @@ export const FEATURE_PATH: Readonly<Record<FeatureId, string>> = {
   atmosphere: '/atmosphaere',
   globe: '/globus',
   fire: '/waldbrand',
+  road: '/autobahnwetter',
   feedback: '/feedback',
   validation: '/validierung',
   mobiletest: '/mobiletest',
@@ -536,6 +551,10 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));
   add('Sitemap trägt lastmod je Eintrag (ISO-Datum)', sitemapPaths().every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.lastmod)));
+  // Phase AW: Route, Aliase, 20 Autobahn-Unterseiten; bis Gate C noindex und ohne Sitemap.
+  add('[AW] /autobahnwetter ist eine Route, /strassenwetter und /glaette sind Aliase', routeForPath('/autobahnwetter')?.def.id === 'autobahnwetter' && aliasTarget('/strassenwetter') === '/autobahnwetter' && aliasTarget('/glaette') === '/autobahnwetter');
+  add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet), noindex', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex);
+  add('[AW] bis Gate C noindex und in keiner Sitemap', !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

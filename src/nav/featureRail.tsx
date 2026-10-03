@@ -9,10 +9,11 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { pathForFeature } from '../router/routes';
+import { roadFlagFrom } from '../road/roadFlag';
 
 export type RailFeature =
   | 'map2d' | 'nowcast' | 'route' | 'event' | 'forecast' | 'history' | 'atmosphere' | 'globe'
-  | 'fire' | 'feedback';
+  | 'fire' | 'road' | 'feedback';
 
 export function IconRailMap({ size = 21 }: { size?: number }) {
   return (
@@ -102,6 +103,14 @@ export function IconRailFire({ size = 21 }: { size?: number }) {
     </svg>
   );
 }
+export function IconRailRoad({ size = 21 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8.5 3 L4 21 M15.5 3 L20 21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 4 V7 M12 10.5 V13.5 M12 17 V21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
 export function IconRailHome({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -121,6 +130,8 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'atmosphere', label: 'Vertikalschnitt · 3D-Wetter', icon: <IconRailSection /> },
   { id: 'globe', label: '3D-Globus', icon: <IconRailGlobe /> },
   { id: 'fire', label: 'Waldbrand DACH', icon: <IconRailFire /> },
+  // Phase AW: bis Gate C nur mit `?road=1` sichtbar (`src/road/roadFlag.ts`), auf der eigenen Seite immer.
+  { id: 'road', label: 'Autobahnwetter', icon: <IconRailRoad /> },
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];
 
@@ -159,7 +170,7 @@ export function FeatureRail({
           Deck-Handler übernimmt (preventDefault), nur ohne Handler navigiert der
           Link selbst. Optik über dieselben Klassen; die Decks setzen display/
           color/border auf der Klasse, nicht auf dem Tag. */}
-      {FEATURE_RAIL_ITEMS.map((it) => {
+      {FEATURE_RAIL_ITEMS.filter((it) => it.id !== 'road' || active === 'road' || roadFlagFrom()).map((it) => {
         const isActive = it.id === active;
         const to = pathForFeature(it.id);
         const onClick = (e: MouseEvent<HTMLAnchorElement>) => {

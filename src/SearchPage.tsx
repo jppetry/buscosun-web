@@ -44,6 +44,8 @@ import IntroOverlay from './intro/IntroOverlay';
 import './mobile/safeArea.css';
 import './SearchPage.css';
 import { useMediaQuery } from './mobile/useIsMobile';
+// Phase AW: Autobahnwetter-Kachel, Palette und Fußlink nur mit `?road=1` bis Gate C (`ROAD_LIVE`).
+import { roadFlagFrom, rememberRoadFlag } from './road/roadFlag';
 
 interface Props {
   onSelect: (location: Location) => void;
@@ -77,6 +79,7 @@ const FEATURE: Record<string, FeatureInfo> = {
   atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre',    title: 'Die Atmosphäre über dir' },
   globe:      { id: 'globe',      eyebrow: '3D-Globus',     title: 'Das Wetter der ganzen Erde' },
   fire:       { id: 'fire',       eyebrow: 'Waldbrand',     title: 'Wie trocken ist der Wald?' },
+  road:       { id: 'road',       eyebrow: 'Autobahnwetter', title: 'Ist die Strecke glatt?' },
   feedback:   { id: 'feedback',   eyebrow: 'Feedback',      title: 'Ideen & Vorschläge' },
   validation: { id: 'validation', eyebrow: 'Validierung',   title: 'Wie gut ist der KI-Nowcast wirklich?' },
 };
@@ -89,7 +92,9 @@ const FEATURE: Record<string, FeatureInfo> = {
  * die kleinste Fassung, die nicht wieder auseinanderläuft — die Kacheln selbst
  * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
  */
-const TOOL_TILE_COUNT = 10;
+const TOOL_TILE_COUNT = 11;
+/** Bis Gate C zählt die Autobahnwetter-Kachel nur mit `?road=1` (`src/road/roadFlag.ts`). */
+const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1);
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
 const PALETTE: PaletteEntry[] = [
@@ -104,6 +109,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '09', label: 'Waldbrand DACH',         hint: 'Gefahr · Brände · Trockenheit', feature: FEATURE.fire },
   { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
+  { num: '12', label: 'Autobahnwetter',         hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
 ];
 
 // ============================================================================
@@ -112,6 +118,7 @@ const PALETTE: PaletteEntry[] = [
 export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   const tour = useIntroTour();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => { rememberRoadFlag(); }, []);
   const [activeCat, setActiveCat] = useState<'alle' | Category>('alle');
   const narrow = useMediaQuery(NARROW_QUERY);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -560,7 +567,7 @@ function FilterChips({ active, onChange }: { active: 'alle' | Category; onChange
     <section className="deck-chips" aria-label="Werkzeuge filtern">
       {/* Abgeleitet statt hartcodiert: stand hier bis Phase WB1 als „09 WERKZEUGE"
           und wäre bei der zehnten Kachel still falsch geworden. */}
-      <span className="deck-chips-count">{String(TOOL_TILE_COUNT).padStart(2, '0')} WERKZEUGE</span>
+      <span className="deck-chips-count">{String(toolTileCount()).padStart(2, '0')} WERKZEUGE</span>
       {CHIPS.map((c) => (
         <button
           key={c.key}
@@ -731,6 +738,30 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </p>
           </div>
         </>)}
+
+      {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — wie Waldbrand volle Breite am Ende, dieselben Klassen,
+          Farben inline (keine Regel in SearchPage.css). Lädt keine Daten. Bis Gate C nur mit `?road=1`. */}
+      {roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahnwetter öffnen',
+        <>
+          <div className="tile-feedback-icon" aria-hidden="true">
+            <svg width="34" height="34" viewBox="0 0 56 56">
+              <path d="M21 10 L11 46 M35 10 L45 46" fill="none" stroke="#8FB4E3" strokeWidth="2.6" strokeLinecap="round" />
+              <path d="M28 12 V18 M28 25 V31 M28 38 V44" fill="none" stroke="#C9BFA8" strokeWidth="2.4" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="tile-feedback-body">
+            <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
+            <div className="tile-title tile-title-lg">Ist die Strecke glatt?</div>
+            <p className="tile-desc">
+              Fahrbahntemperatur und -zustand von rund 1.200 Glättemeldeanlagen des DWD, alle 15 Minuten —
+              je Autobahn als Streckenband.
+              {' '}
+              <span className="tile-caveat">
+                Kein amtliches Warnprodukt. Österreich und die Schweiz ohne offene Fahrbahnmessung.
+              </span>
+            </p>
+          </div>
+        </>)}
     </section>
   );
 }
@@ -800,6 +831,7 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
               <button type="button" onClick={() => onOpenFeature(FEATURE.feedback)}>Feedback</button><br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.validation)}>Validierung</button><br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.globe)}>3D-Globus</button>
+              {roadFlagFrom() && (<><br /><button type="button" onClick={() => onOpenFeature(FEATURE.road)}>Autobahnwetter</button></>)}
             </div>
           </div>
           {/* Rechtsseiten werden vom SEO-Generator als echte Pfade erzeugt →
@@ -855,8 +887,9 @@ function CommandPalette({ open, onClose, onOpenFeature }: {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return PALETTE;
-    return PALETTE.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
+    const entries = roadFlagFrom() ? PALETTE : PALETTE.filter((p) => p.feature.id !== 'road');
+    if (!q) return entries;
+    return entries.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
   }, [query]);
 
   // Beim Öffnen zurücksetzen + Fokus. Auswahl bei Filterwechsel klemmen.

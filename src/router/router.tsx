@@ -119,6 +119,7 @@ export function createAppRouter() {
         { path: sub('atmosphaere'), ...page(() => import('./pages/AtmosphereRoute')) },
         { path: sub('globus'), ...page(() => import('./pages/GlobeRoute')) },
         { path: sub('waldbrand'), ...page(() => import('./pages/FireRoute')) },
+        { path: sub('autobahnwetter'), ...page(() => import('./pages/RoadRoute')) },
         { path: sub('feedback'), ...page(() => import('./pages/FeedbackRoute')) },
         { path: sub('validierung'), ...page(() => import('./pages/ValidationRoute')) },
         { path: sub('mobiletest'), ...page(() => import('./pages/MobileTestRoute')) },
