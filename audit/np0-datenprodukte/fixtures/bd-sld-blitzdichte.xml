@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor xmlns:sld="http://www.opengis.net/sld" xmlns="http://www.opengis.net/sld" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>dwd:Blitzdichte</sld:Name>
+        <sld:UserStyle>
+            <sld:Name>blitzdichte</sld:Name>
+            <sld:Title>Blitzdichte</sld:Title>
+            <sld:IsDefault>1</sld:IsDefault>
+            <sld:Abstract>SLD für NCM Blitzdichte</sld:Abstract>
+            <sld:FeatureTypeStyle>
+                <sld:Name>name</sld:Name>
+                <sld:Rule>
+                    <sld:Name>rule1</sld:Name>
+                    <sld:Title>Legende Blitzdichte</sld:Title>
+                    <sld:Abstract>Mapping 0-127 auf Farbskala (mapped from 0-3000)</sld:Abstract>
+                    <sld:RasterSymbolizer>
+                        <sld:ColorMap type="intervals">
+                            <sld:ColorMapEntry color="#7d7d7d" opacity="0.3" quantity="0.0" label="1/min * 100km²"/>
+                            <sld:ColorMapEntry color="#ffffff" opacity="0" quantity="0.0000000000000001" label="0"/>
+                            <sld:ColorMapEntry color="#fcffc1" opacity="1.0" quantity="0.1" label="0,1"/>
+                            <sld:ColorMapEntry color="#fbff5c" quantity="0.2" label="0,2 - 0,4"/>
+                            <sld:ColorMapEntry color="#dffc26" quantity="0.5" label="0,5 - 0,9"/>
+                            <sld:ColorMapEntry color="#a0d626" quantity="1.0" label="1,0 - 1,9"/>
+                            <sld:ColorMapEntry color="#45c379" quantity="2.0" label="2,0 - 4,9"/>
+                            <sld:ColorMapEntry color="#00d6d8" quantity="5.0" label="5,0 - 9,9"/>
+                            <sld:ColorMapEntry color="#11a1d6" quantity="10.0" label="10,0 - 14,9"/>
+                            <sld:ColorMapEntry color="#0702fc" quantity="15.0" label="15,0 - 24,9"/>
+                            <sld:ColorMapEntry color="#9232b7" quantity="25.0" label="25,0 - 39,9"/>
+                            <sld:ColorMapEntry color="#da28c6" quantity="40.0" label="40,0 - 59,9"/>
+                            <sld:ColorMapEntry color="#e70d0c" quantity="60.0" label="60,0 - 79,0"/>
+                            <sld:ColorMapEntry color="#880e0d" quantity="80.0" label="80,0 - 99,9"/>
+                            <sld:ColorMapEntry color="#4f0e0d" quantity="127" label="&gt; 100 &lt; 3000"/>
+                        </sld:ColorMap>
+                        <sld:ContrastEnhancement/>
+                    </sld:RasterSymbolizer>
+                </sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+

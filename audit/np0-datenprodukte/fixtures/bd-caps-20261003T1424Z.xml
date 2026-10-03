@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><WMS_Capabilities xmlns:inspire_vs="http://inspire.ec.europa.eu/schemas/inspire_vs/1.0" xmlns:inspire_common="http://inspire.ec.europa.eu/schemas/common/1.0" version="1.3.0" updateSequence="28500" xmlns="http://www.opengis.net/wms" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wms https://maps.dwd.de/geoserver/schemas/wms/1.3.0/capabilities_1_3_0.xsd http://inspire.ec.europa.eu/schemas/inspire_vs/1.0 https://inspire.ec.europa.eu/schemas/inspire_vs/1.0/inspire_vs.xsd">
+  <Service>
+    <Name>WMS</Name>
+    <Title>DWD GeoServer WMS</Title>
+    <Abstract>This is the Web Map Server of DWD.</Abstract>
+    <KeywordList>
+      <Keyword>meteorology</Keyword>
+      <Keyword>climatology</Keyword>
+    </KeywordList>
+    <OnlineResource xlink:type="simple" xlink:href="https://maps.dwd.de/geoserver/"/>
+    <ContactInformation>
+      <ContactPersonPrimary>
+        <ContactPerson/>
+        <ContactOrganization>Deutscher Wetterdienst</ContactOrganization>
+      </ContactPersonPrimary>
+      <ContactPosition/>
+      <ContactAddress>
+        <AddressType>postal</AddressType>
+        <Address>Frankfurter Strasse 135</Address>
+        <City>Offenbach</City>
+        <StateOrProvince>Hessen</StateOrProvince>
+        <PostCode>63067</PostCode>
+        <Country>Germany</Country>
+      </ContactAddress>
+      <ContactVoiceTelephone/>
+      <ContactFacsimileTelephone/>
+      <ContactElectronicMailAddress>info@dwd.de</ContactElectronicMailAddress>
+    </ContactInformation>
+    <Fees>none</Fees>
+    <AccessConstraints>https://www.dwd.de/copyright</AccessConstraints>
+  </Service>
+  <Capability>
+    <Request>
+      <GetCapabilities>
+        <Format>text/xml</Format>
+        <DCPType>
+          <HTTP>
+            <Get>
+              <OnlineResource xlink:type="simple" xlink:href="https://maps.dwd.de/geoserver/dwd/Blitzdichte/ows?SERVICE=WMS&amp;"/>
+            </Get>
+            <Post>
+              <OnlineResource xlink:type="simple" xlink:href="https://maps.dwd.de/geoserver/dwd/Blitzdichte/ows?SERVICE=WMS&amp;"/>
+            </Post>
+          </HTTP>
+        </DCPType>
+      </GetCapabilities>
+      <GetMap>
+        <Format>image/png</Format>
+        <Format>application/atom+xml</Format>
+        <Format>application/json;type=utfgrid</Format>
+        <Format>application/pdf</Format>
+        <Format>application/rss+xml</Format>
+        <Format>application/vnd.google-earth.kml+xml</Format>
+        <Format>application/vnd.google-earth.kml+xml;mode=networklink</Format>
+        <Format>application/vnd.google-earth.kmz</Format>
+        <Format>image/geotiff</Format>
+        <Format>image/geotiff8</Format>
+        <Format>image/gif</Format>
+        <Format>image/jpeg</Format>
+        <Format>image/png; mode=8bit</Format>
+        <Format>image/svg+xml</Format>
+        <Format>image/tiff</Format>
+        <Format>image/tiff8</Format>
+        <Format>image/vnd.jpeg-png</Format>
+        <Format>image/vnd.jpeg-png8</Format>
+        <Format>text/html; subtype=openlayers</Format>
+        <Format>text/html; subtype=openlayers2</Format>
+        <Format>text/html; subtype=openlayers3</Format>
+        <DCPType>
+          <HTTP>
+            <Get>
+              <OnlineResource xlink:type="simple" xlink:href="https://maps.dwd.de/geoserver/dwd/Blitzdichte/ows?SERVICE=WMS&amp;"/>
+            </Get>
+          </HTTP>
+        </DCPType>
+      </GetMap>
+      <GetFeatureInfo>
+        <Format>text/plain</Format>
+        <Format>application/vnd.ogc.gml</Format>
+        <Format>text/xml</Format>
+        <Format>application/vnd.ogc.gml/3.1.1</Format>
+        <Format>text/xml; subtype=gml/3.1.1</Format>
+        <Format>text/html</Format>
+        <Format>text/javascript</Format>
+        <Format>application/json</Format>
+        <DCPType>
+          <HTTP>
+            <Get>
+              <OnlineResource xlink:type="simple" xlink:href="https://maps.dwd.de/geoserver/dwd/Blitzdichte/ows?SERVICE=WMS&amp;"/>
+            </Get>
+          </HTTP>
+        </DCPType>
+      </GetFeatureInfo>
+    </Request>
+    <Exception>
+      <Format>XML</Format>
+      <Format>INIMAGE</Format>
+      <Format>BLANK</Format>
+      <Format>JSON</Format>
+      <Format>JSONP</Format>
+    </Exception>
+    <inspire_vs:ExtendedCapabilities>
+      <inspire_common:MetadataUrl>
+        <inspire_common:URL>https://gdk.gdi-de.org/gdi-de/srv/eng/csw?request=GetRecordById&amp;version=2.0.2&amp;service=CSW&amp;outputSchema=http://www.isotc211.org/2005/gmd&amp;elementSetName=full&amp;id=de.dwd.services.wms</inspire_common:URL>
+        <inspire_common:MediaType>application/vnd.iso.19139+xml</inspire_common:MediaType>
+      </inspire_common:MetadataUrl>
+      <inspire_common:SupportedLanguages>
+        <inspire_common:DefaultLanguage>
+          <inspire_common:Language>ger</inspire_common:Language>
+        </inspire_common:DefaultLanguage>
+      </inspire_common:SupportedLanguages>
+      <inspire_common:ResponseLanguage>
+        <inspire_common:Language>ger</inspire_common:Language>
+      </inspire_common:ResponseLanguage>
+    </inspire_vs:ExtendedCapabilities>
+    <Layer>
+      <Title>DWD GeoServer WMS</Title>
+      <Abstract>This is the Web Map Server of DWD.</Abstract>
+      <!--Limited list of EPSG projections:-->
+      <CRS>EPSG:3044</CRS>
+      <CRS>EPSG:3045</CRS>
+      <CRS>EPSG:3413</CRS>
+      <CRS>EPSG:3857</CRS>
+      <CRS>EPSG:4258</CRS>
+      <CRS>EPSG:4326</CRS>
+      <CRS>EPSG:4839</CRS>
+      <CRS>EPSG:25832</CRS>
+      <CRS>EPSG:25833</CRS>
+      <CRS>EPSG:31467</CRS>
+      <CRS>EPSG:31468</CRS>
+      <CRS>EPSG:900913</CRS>
+      <CRS>EPSG:1000001</CRS>
+      <EX_GeographicBoundingBox>
+        <westBoundLongitude>1.74381851575516</westBoundLongitude>
+        <eastBoundLongitude>18.4918075993866</eastBoundLongitude>
+        <southBoundLatitude>46.9512739260627</southBoundLatitude>
+        <northBoundLatitude>54.909063303503</northBoundLatitude>
+      </EX_GeographicBoundingBox>
+      <BoundingBox CRS="EPSG:3044" minx="5200355.769864565" miny="-52054.67010173283" maxx="6126010.173389713" maxy="1222041.5724716866"/>
+      <BoundingBox CRS="EPSG:3045" minx="5199983.917217145" miny="-508048.84094804106" maxx="6165470.915137565" maxy="765696.8793988451"/>
+      <BoundingBox CRS="EPSG:3413" minx="2854897.1879150905" miny="-3348876.517076561" maxx="4373236.614976781" maxy="-1749580.3369845233"/>
+      <BoundingBox CRS="EPSG:3857" minx="194120.98920974653" miny="5934124.3604340255" maxx="2058498.605810903" maxy="7344237.119191124"/>
+      <BoundingBox CRS="EPSG:4258" minx="46.95127396860473" miny="1.7438185157551598" maxx="54.90906333931432" maxy="18.4918075993866"/>
+      <BoundingBox CRS="EPSG:4326" minx="46.9512739260627" miny="1.74381851575516" maxx="54.909063303503" maxy="18.4918075993866"/>
+      <BoundingBox CRS="EPSG:4839" minx="-450171.61604264844" miny="-666123.6330290438" maxx="468345.0728516211" maxy="608214.3242606409"/>
+      <BoundingBox CRS="EPSG:25832" minx="-52054.67010173283" miny="5200355.769864565" maxx="1222041.5724716866" maxy="6126010.173389713"/>
+      <BoundingBox CRS="EPSG:25833" minx="-508048.84094804106" miny="5199983.917217145" maxx="765696.8793988451" maxy="6165470.915137565"/>
+      <BoundingBox CRS="EPSG:31467" minx="5201994.361087584" miny="2947798.899149669" maxx="6128030.352241408" maxy="4222412.769410382"/>
+      <BoundingBox CRS="EPSG:31468" minx="5201787.539770366" miny="3719651.2829683446" maxx="6134961.557068744" maxy="4994230.139241172"/>
+      <BoundingBox CRS="EPSG:900913" minx="194120.98920974653" miny="5934124.3604340255" maxx="2058498.605810903" maxy="7344237.119191124"/>
+      <BoundingBox CRS="EPSG:1000001" minx="-673.2109131412328" miny="-4688.108221955938" maxx="692.2850088104266" maxy="-3717.020234424786"/>
+      <Layer>
+        <Name>Fachlayer</Name>
+        <Title>Fachlayer</Title>
+        <Layer>
+          <Name>Wetter</Name>
+          <Title>Wetter</Title>
+          <Layer>
+            <Name>Beobachtungen</Name>
+            <Title>Beobachtungen</Title>
+            <Layer queryable="1" opaque="0">
+              <Name>Blitzdichte</Name>
+              <Title>NowCastMIX-Blitzdichte</Title>
+              <Abstract>Blitzdichte aus NowCastMix-Verfahren in generischen Einheiten; 5-minütige Aktualisierung mit Blitzen der letzten 15Minuten; nichtlineare Abbildung von 0 bis 3000 Blitze pro Zeiteinheit und 100qkm auf den Wertebereich 0 bis 127</Abstract>
+              <KeywordList>
+                <Keyword>Beobachtungssystem</Keyword>
+                <Keyword>GRIB</Keyword>
+                <Keyword>Rasterzelle (Gebietsraster)</Keyword>
+              </KeywordList>
+              <CRS>EPSG:4326</CRS>
+              <BoundingBox CRS="EPSG:4326" minx="46.9512739260627" miny="1.74381851575516" maxx="54.9080370590995" maxy="18.4918075993866"/>
+              <BoundingBox CRS="EPSG:3044" minx="5200355.769864565" miny="-52054.67010173283" maxx="6125896.516590657" maxy="1222041.5724716866"/>
+              <BoundingBox CRS="EPSG:3045" minx="5199983.917217145" miny="-508048.84094804106" maxx="6165357.792604006" maxy="765696.8793988451"/>
+              <BoundingBox CRS="EPSG:3413" minx="2854985.9402043605" miny="-3348876.517076561" maxx="4373236.614976781" maxy="-1749634.7274756506"/>
+              <BoundingBox CRS="EPSG:3857" minx="194120.98920974653" miny="5934124.3604340255" maxx="2058498.605810903" maxy="7344038.398801398"/>
+              <BoundingBox CRS="EPSG:4258" minx="46.95127396860473" miny="1.7438185157551596" maxx="54.90803709491218" maxy="18.4918075993866"/>
+              <BoundingBox CRS="EPSG:4839" minx="-450171.61604264844" miny="-666123.6330290438" maxx="468231.500793016" maxy="608214.3242606409"/>
+              <BoundingBox CRS="EPSG:25832" minx="-52054.67010173283" miny="5200355.769864565" maxx="1222041.5724716866" maxy="6125896.516590657"/>
+              <BoundingBox CRS="EPSG:25833" minx="-508048.84094804106" miny="5199983.917217145" maxx="765696.8793988451" maxy="6165357.792604006"/>
+              <BoundingBox CRS="EPSG:31467" minx="5201994.361087584" miny="2947798.899149669" maxx="6127916.6497154925" maxy="4222412.769410382"/>
+              <BoundingBox CRS="EPSG:31468" minx="5201787.539770366" miny="3719651.2829683446" maxx="6134847.94715448" maxy="4994230.139241172"/>
+              <BoundingBox CRS="EPSG:900913" minx="194120.98920974653" miny="5934124.3604340255" maxx="2058498.605810903" maxy="7344038.398801398"/>
+              <BoundingBox CRS="EPSG:1000001" minx="-673.2109131412328" miny="-4688.108221955938" maxx="692.2850088104266" maxy="-3717.13604554903"/>
+              <Dimension name="time" default="current" units="ISO8601">2025-07-02T16:10:00.000Z/2026-10-03T14:15:00.000Z/PT5M</Dimension>
+              <Style>
+                <Name>blitzdichte</Name>
+                <Title>Blitzdichte</Title>
+                <Abstract>SLD für NCM Blitzdichte</Abstract>
+                <LegendURL width="119" height="344">
+                  <Format>image/png</Format>
+                  <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://maps.dwd.de/geoserver/dwd/Blitzdichte/ows?service=WMS&amp;version=1.3.0&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=Blitzdichte"/>
+                </LegendURL>
+              </Style>
+            </Layer>
+          </Layer>
+        </Layer>
+      </Layer>
+    </Layer>
+  </Capability>
+</WMS_Capabilities>
