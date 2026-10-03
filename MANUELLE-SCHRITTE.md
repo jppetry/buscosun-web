@@ -1341,14 +1341,15 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
 - ~~**(b) E-AW-16 — Wächter**~~ — erledigt 03.10.: `health.yml` gelöscht („wird nicht mehr verwendet"). Damit prüft **kein Zeitplan** mehr die
   Straßen-Ableitung (V-AW-19); Handlauf: `node scripts/health-manifests.mjs --url https://buscosun.com` (R1–R5; H2/H3 bleiben rot). Vor Gate C
   entscheiden, ob ein schlanker Straßen-Wächter (stündlich, nur R1–R5) zurückkommt.
-- **(c) Gate B nach 7 Tagen Schatten (≈ 10.10.):** Anteil freigegebener Slots, Ankunft gegen Frist, Bilanz je Regel aus `status.json`/`quarantine/`,
-  Stichproben V-AW-5/6, Push-Last (V-AW-10), Radar ohne Rückschritt (Spiegel-Takt). Vorlage: Audit §5.
+- **(c) Gate B nach 7 Tagen Schatten (≈ 10.10.):** Anteil freigegebener Slots, Ankunft gegen Frist, Bilanz je Regel — aus dem Archiv
+  (`buscosun-archiv` `road/v1/<Tag>/slots.json` und Halbtage), Stichproben V-AW-5/6, Push-Last (V-AW-10), Radar ohne Rückschritt (Spiegel-Takt).
+  Vorlage: Audit §5.
 - **(d) Kalibrierung nach ≥ 14 Tagen (≈ 17.10.):** Startwerte der Beobachtungsregeln (`jump`, `neighbours`, `roadAir`, `catalog`, `cube`) aus
-  der Quarantäne; entscheiden, welche hart werden.
+  der Quarantäne der Archiv-Halbtage; entscheiden, welche hart werden.
 - **(e) Gate C — Flag an:** `ROAD_LIVE = true` in `src/road/roadFlag.ts`, Sitemap + die 20 Autobahn-Unterseiten (V-AW-8), E-AW-15 Vorschaukarte.
   Vorher Real-Device (V-AW-13): Handy mit `?road=1`, Karte, Blatt, Auswahl.
-- **(f) E-AW-13:** Voreingestellte Messstelle — heute die kälteste gemessene Fahrbahn; Vorschlag: kritischste Klasse zuerst (Glätte, Frost, Nässe),
-  bei Gleichstand die kälteste (eine gemessene Glätte an einer wärmeren Stelle stünde sonst dahinter).
+- ~~**(f) E-AW-13**~~ — erledigt 03.10. („so voreinstellen wie vorgeschlagen"): kritischste Klasse zuerst (Glätte, Frost, Nässe), bei Gleichstand
+  die kälteste Fahrbahn (`defaultRoadStation`, `verify:road-ui` 39/39).
 - ~~**(g) Archiv-Freigabe**~~ — erledigt 03.10. („ja mache"): **AW-6a** Tagesablage in `buscosun-archiv` unter `road/v1/` (Halbtage mit Verlauf + Quarantäne,
   Slot-Protokoll), Workflow `road-archiv.yml` alle 3 h, ≈ 0,47 MB/Tag (Audit §12). Ab da sammeln sich die Daten für Gate B und die Kalibrierung.
   Der Job wird rot (Mail), wenn der jüngste Ring > 3 h alt ist und kein Kill-Schalter gesetzt ist. Offen bleibt AW-6 selbst: Prognose +1/+3/+6 h mit

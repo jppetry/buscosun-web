@@ -22,8 +22,9 @@
 - **AW-6a Tagesablage (§12, dein „ja mache"):** alle 3 h nach `buscosun-archiv` `road/v1/` — Verlauf und Quarantäne je
   Halbtag, Slot-Protokoll; ≈ 0,47 MB/Tag. Damit sammeln sich die Daten für Gate B und die Kalibrierung; der Job wird rot,
   wenn das Straßenwetter > 3 h steht.
-- **Bitte entscheiden:** E-AW-13 (Voreinstellung der Messstelle), dann Gate B nach 7 Tagen Schatten (≈ 10.10.),
-  Kalibrierung ≥ 14 Tage, Gate C (Flag an), AW-6 (Prognose). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
+- **E-AW-13 entschieden:** Voreinstellung = kritischste Klasse zuerst, dann die kälteste Fahrbahn (§6.4).
+- **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Gate C (Flag an),
+  AW-6 (Prognose). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
 
@@ -502,9 +503,11 @@ bauartbedingt ab. Benannt je Modul:
 | Mobil | Pille öffnet die Autobahn-Auswahl (Vorlage: Chevron ohne Ziel), Blatt in zwei Stufen (414 px / offen), „Abfahrt" als zweiter Knopf | Bedienbarkeit, Touch ≥ 44 px |
 | Kachel | ohne Prognose-Versprechen, „rund 1.200" statt Beispielzahl | §6.1 |
 
-Voreingestellte Messstelle ist die **kälteste gemessene Fahrbahn** des Korridors, sonst seine erste Station
-(`RoadPage.tsx`; im Beispiel Schweinbach +16,0 °C, Zustand unbekannt). Die Vorlage zeigt die kritischste Stelle —
-Entscheidung E-AW-13 (§9). *(Erste Fassung dieses Absatzes beschrieb das Verhalten falsch; Befund der Gesamtprüfung.)*
+Voreingestellte Messstelle seit E-AW-13 (Jan 03.10.): **kritischste gemessene Klasse zuerst** (Glätte vor Frostgefahr
+vor Nässe), bei Gleichstand die kälteste Fahrbahn; ohne Warnklasse die kälteste gemessene Fahrbahn, ohne Messung die
+erste Station (`defaultRoadStation` in `roadView.ts`). Im Fixture-Slot 03.10. 08:00 zeigt die A 8 damit Brunnthal S
+(nass, +18,7 °C) statt Schweinbach (+16,0 °C, Zustand unbekannt) — wie die Vorlage die kritischste Stelle.
+`verify:road-ui` V4/V5 (Regel) und C4 (Seite zeigt genau diese Station) waren vor der Umsetzung rot.
 
 ### 6.5 Fünf Selbstverifikations-Fragen (Gate AW-4/AW-5)
 
@@ -578,7 +581,7 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | `verify:road-decode` | **15/15** | Decoder gegen den eccodes-Fixture (24 Bulletins, 78 670 Werte), drei Layouts, Latin-1, rechtsbündige Strings, Fehlerfälle |
 | `verify:road-contract` | **64/64** | Regeln B (Werte), C (hängend, Plateau, Sprung über Slots), D (Station), E (Slot-Sperre), F (Klassen, Client-Prüfer, Frische, Zeit-Gate, Flag, Ring-Prüfer, Wächter-Grenzen F17), K1–K5 Korridor-Bereinigung |
 | `verify:road-derive` | **31/31** | Spiegel-Haken im echten `radar-mirror.mjs`, Bare-Repo + Klon + nachgebauter DWD: erste Slots, Sperre, Heilung nach Force-Push, Aufbewahrung, atomares Schreiben, von Hand gepushte Korridore, Klassenspalte + Export (H1–H5), Job-Naht und hängender DWD (I1–I4) |
-| `verify:road-ui` | **36/36** | §6.3; dazu V1–V3, W1–W2, D5, M1–M4 aus der Gesamtprüfung (alle am alten Build rot) |
+| `verify:road-ui` | **39/39** (03.10. abends, +V4/V5/C4 E-AW-13) | §6.3; dazu V1–V3, W1–W2, D5, M1–M4 aus der Gesamtprüfung (alle am alten Build rot) |
 | `verify:health` | **38/38** | Warm-Manifeste wie bisher (20) + R1–R5 mit Negativkontrollen (18) |
 | `npm run build` | grün | `verify-seo` 803/803, `verify-routing` **252/252** (vorher 249, +3 AW-Prüfungen) |
 | `npm run budget` | grün | eagerJs 108,9 / 109,0 · eagerCss 2,4 / 2,5 · largestChunk 278,4 / 302 · totalJs 1 543,9 / 1 545 (nach dem Merge von `main`) |
@@ -597,7 +600,7 @@ Producer-Commit `691113c` vor dem Push im sauberen Worktree (Stand `a2bb63a` + n
 
 | Nr. | Frage | Vorschlag |
 |---|---|---|
-| **E-AW-13** | Voreingestellte Messstelle: heute die **kälteste gemessene Fahrbahn** (eine gemessene Glätte an einer wärmeren Stelle stünde dahinter); die Vorlage zeigt die kritischste Stelle | kritischste Klasse zuerst (Glätte, Frost, Nässe), bei Gleichstand die kälteste — eine Zeile in `RoadPage.tsx` |
+| ~~E-AW-13~~ | Voreingestellte Messstelle | **entschieden 03.10. (Jan): wie vorgeschlagen** — kritischste Klasse zuerst (Glätte, Frost, Nässe), bei Gleichstand die kälteste (`defaultRoadStation`, §6.4) |
 | ~~E-AW-14~~ | Bündel der Edge Function `og-meta` neu schreiben | **entschieden 03.10. (Jan): ja** — `npm run edge:share`, Ergebnis Zeile für Zeile gleich dem Patch, AW-4/AW-5 auf `main` (§11) |
 | **E-AW-15** | Vorschaukarte (Open Graph) für `/autobahnwetter` je Korridor | mit Gate C: `og-meta` um die Route erweitern, eine Karte „Autobahnwetter" (Stufe 1 wie SH6) |
 | ~~E-AW-16~~ | `health.yml` ist seit September dauerhaft rot | **entschieden 03.10. (Jan): „wird nicht mehr verwendet und kann gelöscht werden"** — gelöscht; Folge V-AW-19 (§4.4) |
