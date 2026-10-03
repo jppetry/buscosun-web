@@ -23,7 +23,8 @@
   Halbtag, Slot-Protokoll; ≈ 0,47 MB/Tag. Damit sammeln sich die Daten für Gate B und die Kalibrierung; der Job wird rot,
   wenn das Straßenwetter > 3 h steht.
 - **E-AW-13 entschieden:** Voreinstellung = kritischste Klasse zuerst, dann die kälteste Fahrbahn (§6.4).
-- **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Gate C (Flag an),
+- **Flag an für alle seit 03.10. abends (§13, dein „ja")** — vor Gate B/C; `?road=0` blendet je Besucher aus.
+- **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Rest von Gate C (Gerät, Wächter, SEO, Vorschaukarte),
   AW-6 (Prognose). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
@@ -736,3 +737,23 @@ Nur die Ablage, keine Prognose, kein `fc/` (das bleibt AW-6).
   Daten-Klon wie im Workflow, ohne Push): Checkout 12 s, Archiv-Klon 0,5 MB, Lauf „unverändert" — dabei gefunden: eine
   README mit CRLF (Windows-Checkout) galt als geändert und stempelte den Index neu ⇒ Vergleich ohne `\r`, Test A17
   (vorher rot).
+- **Erster geplanter Lauf** 03.10. 19:13 UTC (48 min nach dem Termin 18:25 — GitHub-Verzug), 11 s, grün, Archiv-Commit
+  `59f47fd`: Slot-Protokoll bis 19:00 UTC; beide Halbtage nur ergänzt (51 Stammdatenfelder von Stationen, die beim
+  lokalen Lauf nicht im jüngsten obs-Slot standen, z. B. P011), 0 Werte geändert.
+
+## 13. Flag an für alle (03.10. abends, Jans „ja")
+
+Jan, 03.10.: „kannst du das Feature jetzt auf der Startseite anzeigen?" — „ja". `ROAD_LIVE = true`
+(`src/road/roadFlag.ts`): Kachel (11 Werkzeuge), ⌘K, Footer-Link, Rail-Symbol und Seite ohne Parameter; `?road=0`
+blendet je Besucher aus, zurück für alle mit `false` + Push. Die automatische Rechteprüfung von Claude Code hielt die
+Verifier-Anpassung zunächst an; Jan hat sie freigegeben (`/permissions`).
+
+**Vor Gate B/C eingeschaltet — offen bleibt:** Gate B (7 Tage Schatten, ≈ 10.10.) und die Kalibrierung (≈ 17.10.; bis
+dahin wirken nur die harten Regeln), Test am echten Gerät (V-AW-13), feiner Wächter (V-AW-19; mit Zeitplan nur das
+Lebenszeichen des Archiv-Jobs, rot ab 3 h), Route weiter `noindex` ohne Sitemap und die 20 Unterseiten (V-AW-8),
+Vorschaukarte (E-AW-15).
+
+Gates: `verify:road-contract` **65/65** (F14 auf `ROAD_LIVE` umgestellt, F14b neu), `verify:road-ui` **41/41** (A1
+jetzt `?road=0` ⇒ unbekannter Pfad, A3 Seite ohne Parameter, A4 Startseite mit Kachel „11 Werkzeuge"), `verify:share`
+528/528, Build 252/252 (`verify-seo` 803), typecheck 0, Budget eagerJs 108,9 / 109,0 · totalJs 1 543,8 / 1 545,
+`verify:dashboard-switch` 49/50 (B wie vorher, unabhängig).
