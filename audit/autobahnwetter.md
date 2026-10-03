@@ -19,8 +19,11 @@
   u. a. Zeitlimits für DWD im Radar-Spiegel (greift ab dem nächsten Jobstart ≈ 18:35 UTC) und Korridor-km, die 15–22 %
   zu lang waren.
 - **E-AW-16 entschieden:** `health.yml` war unbenutzt und ist gelöscht — damit prüft kein Zeitplan mehr R1–R5 (§4.4).
+- **AW-6a Tagesablage (§12, dein „ja mache"):** alle 3 h nach `buscosun-archiv` `road/v1/` — Verlauf und Quarantäne je
+  Halbtag, Slot-Protokoll; ≈ 0,47 MB/Tag. Damit sammeln sich die Daten für Gate B und die Kalibrierung; der Job wird rot,
+  wenn das Straßenwetter > 3 h steht.
 - **Bitte entscheiden:** E-AW-13 (Voreinstellung der Messstelle), dann Gate B nach 7 Tagen Schatten (≈ 10.10.),
-  Kalibrierung ≥ 14 Tage, Gate C (Flag an), Archiv-Freigabe für AW-6. Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
+  Kalibrierung ≥ 14 Tage, Gate C (Flag an), AW-6 (Prognose). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
 
@@ -558,7 +561,7 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | V-AW-8 | 20 Autobahn-Unterseiten (E-AW-4) nicht geschaltet | Suchmaschinen finden „A 8 Glätte" | `roadSeo.ts` als Lazy-Sub-Texte wie `subRouteTexts`, Sitemap-Einträge — mit Gate C |
 | V-AW-9 | Ringautobahn heißt „A 10 bei Groß Kreutz", 1-Stations-Abschnitte (z. B. a1-3) | verständliche Namen, kürzere Liste | Namenstabelle für Ringe („Berliner Ring"); Abschnitte < 3 Stationen an den Nachbarabschnitt hängen oder im Dock einklappen |
 | V-AW-10 | jeder Slot schreibt 23 Ring-Dateien (voll ≈ 1,7 MB) | kleineres Daten-Repo, weniger Push-Last | im Schattenbetrieb messen (§5); Option: Ring nur stündlich, `obs` bleibt 15 min |
-| V-AW-11 | Rohwerte verworfener Messungen nur 24 h in `quarantine/` | Backtest der Regeln (Kalibrierung) über mehr als einen Tag | `road-export.mjs` um die Quarantäne erweitern, täglicher Lauf mit dem Archiv (AW-6) |
+| V-AW-11 | Rohwerte verworfener Messungen nur 24 h in `quarantine/` | Backtest der Regeln (Kalibrierung) über mehr als einen Tag | **erledigt 03.10. (AW-6a, §12):** die Halbtage im Archiv tragen jeden Quarantäne-Eintrag |
 | V-AW-12 | `/autobahnwetter` liefert ohne Flag kurz die statische Shell, dann „nicht gefunden" | sauberer bis Gate C | Shell erst mit `ROAD_LIVE` erzeugen, oder Shell ohne Lead — klein, nur wenn gewünscht |
 | V-AW-13 | Mobil-Karte (WebGL), Long Tasks, Touch nicht am Gerät geprüft | Sicherheit vor Gate C | Real-Device mit `?road=1` (scrcpy), Trace der ersten 10 s |
 | V-AW-14 | Radar-Ebene der Vorlage („Niederschlag jetzt") nicht gebaut | Schauer an der Strecke sehen | RV-Bild des Spiegels als Bild-Quelle auf der Straßenkarte (Module der Wetterkarte), eigene Ebene im Dock |
@@ -566,7 +569,7 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 | V-AW-16 | Stichäste einer Autobahn fallen bei der Bereinigung aus der Achse — 4 Stationen ohne Korridor (Larrelt A 31, AD Bayerisches Vogtland A 72, Fürth A 73, AD Hochfranken A 93) | auch diese Anlagen im Streckenband | Äste ≥ 2 km als eigene Abschnitte behalten (eigene Kennung `a31-x`), statt sie abzuschneiden; die Stationen erscheinen bis dahin als Kartenpunkt |
 | V-AW-17 | `health.yml` schlägt seit September bei jedem Lauf fehl (H2/H3 `latest-grib.json` ≈ 700 h alt) | ein immer roter Wächter meldet keinen echten Ausfall — auch nicht den des Straßenwetters | E-AW-16 |
 | V-AW-18 | Tauplateau-Ausnahme der `stuck`-Regel (Fahrbahn −10…0 °C bei Luft ±10 K) deckt den Großteil des Winters — ein bei −0,01 °C hängender Fühler (Muster K677) würde im Winter nie verworfen und zeigte bei Nässe „Frostgefahr" | weniger falsche Frost-Warnfarbe im Winter | in Gate B kalibrieren: Plateau nur, wenn auch die Luft sich bewegt, oder Ausnahme auf 12 h begrenzen (Hinweis der Gesamtprüfung) |
-| V-AW-19 | Seit dem Löschen von `health.yml` (E-AW-16) prüft kein Zeitplan mehr, ob die Straßen-Ableitung lebt (R1–R5) | ein Ausfall des Straßenwetters fällt auf, bevor Nutzer ihn sehen — spätestens ab Gate C nötig | eigener schlanker Workflow (stündlich, nur `ROAD_HEALTH`, ohne die H-Prüfungen) oder eine Zeile im Radar-Wachhund des Daten-Repos; bis dahin Handlauf §4.4 |
+| V-AW-19 | Seit dem Löschen von `health.yml` (E-AW-16) prüft kein Zeitplan mehr, ob die Straßen-Ableitung lebt (R1–R5) | ein Ausfall des Straßenwetters fällt auf, bevor Nutzer ihn sehen — spätestens ab Gate C nötig | **teilweise seit 03.10. (AW-6a):** der Archiv-Job (alle 3 h) wird rot, wenn der jüngste Ring > 180 min alt ist — grob, aber mit Zeitplan; feiner (45 min, CDN) nur mit eigenem Workflow `ROAD_HEALTH` ohne die H-Prüfungen, Handlauf §4.4 |
 
 ## 8. Verifier (Stand Zweig nach dem Fix-Durchgang, gelaufen 03.10. 13:50–14:10 UTC, PowerShell, ohne `2>&1`)
 
@@ -673,3 +676,54 @@ eagerJs 108,9 / 109,0 · totalJs 1 543,9 / 1 545, `verify:share` **528/528**, `v
 `verify:fire-detail` 483/483, `verify:fire-behoerden` 100/100, `verify:dashboard-switch` 49/50 — (B) wie in §8 auch ohne
 diese Phase rot. Für Nutzer ändert sich ohne `?road=1` nichts (§8, 0 px in 6 Aufnahmen); der Radar-Spiegel lädt mit dem
 nächsten Jobstart denselben Producer-Code wie vorher (der Zweig ändert unter `scripts/` nur Verifier und Fixtures).
+
+## 12. AW-6a — Tagesablage in `buscosun-archiv` (Jan 03.10.: „ja mache")
+
+Nur die Ablage, keine Prognose, kein `fc/` (das bleibt AW-6).
+
+### 12.1 Diagnose
+
+- **Das Daten-Repo vergisst:** `quarantine/` hält 24 h (96 Dateien, am 03.10. 15:30 UTC ältester Slot
+  `2610021545`), der 24-h-Ring trägt 96 Slots, `status.json` `recent` die letzten **24 Slots = 6 h**, `obs/` 3 h; die
+  Kartenlinie kappt die Git-Historie. Älter als 24 h gibt es nichts.
+- **Folge für die Gates:** Gate B (≈ 10.10.) misst „Anteil freigegebener Slots, Ankunft gegen Frist" über 7 Tage, die
+  Kalibrierung (≈ 17.10.) die Beobachtungsregeln über ≥ 14 Tage — beides läge ohne Ablage nur für 6 bzw. 24 h vor.
+- **Größe, gemessen am Stand 03.10. 15:30 UTC:** Ringfenster (`road-export.mjs`, 1 313 Stationen, 96 Slots) 2,1 MB roh /
+  **376 KB gz**; die 96 Quarantäne-Dateien 2,6 MB roh / **54 KB gz** (32 013 Einträge: catalog 14 940 beobachtet,
+  stateNoTemp 9 131, dwdSuspect 2 591, stuck 2 463, neighbours 931 beobachtet, limit 707, roadAir 512 beobachtet, …) ⇒
+  ≈ 0,43 MB/Tag ≈ **160 MB/Jahr**. Zum Vergleich: das Punktarchiv legt 10–18 MB je Tag ab.
+- **Archiv-Repo:** Tagesordner `JJJJ-MM-TT/` im Wurzelverzeichnis + `index.json` (Punktarchiv, Cron 23:10 UTC,
+  append-only, `GITHUB_TOKEN`); dessen Index liest nur Ordner `^\d{4}-\d{2}-\d{2}$` (`punktarchiv.mjs` Z. 383) — ein
+  Unterbaum `road/` stört ihn nicht. Der Punktarchiv-Job checkt das ganze Repo aus; ein Straßen-Job darf das nicht
+  (es wächst um ≈ 4–6 GB/Jahr) ⇒ sparse und ohne Blobs.
+
+### 12.2 Plan
+
+| Teil | Form |
+|---|---|
+| Takt | alle 3 h (`25 */3 * * *`) — `recent` (6 h) überlappt zweimal, die Quarantäne (24 h) achtmal; ein ausgefallener Lauf kostet nichts |
+| `road/v1/<Tag>/<HH>.json.gz` | Halbtag (00 / 12 UTC, 48 Slots): je Station Stammdaten, `rs/ta/td` (0,1 °C, nur Werte nach den harten Regeln) und `k` aus den Ringen, dazu jeder Quarantäne-Eintrag der 48 Slots. Geschrieben, sobald der Halbtag zu ist (letzter Slot ≤ jüngster Ring); ein späterer Lauf füllt nur Lücken (verspätete Reihe) — eine Datei verliert nie einen Wert, unverändert ⇒ kein Schreiben |
+| `road/v1/<Tag>/slots.json` | Slot-Protokoll aus `status.json` `recent` (freigegeben, Punkte, Anteil verworfen, Reihen, DWD-Ankunft, Ableitung) |
+| `road/v1/index.json`, `README.md` | Tage, Halbtage, gefüllte Slots; README aus den Konstanten des Skripts |
+| Code | `scripts/road/road-archive.mjs` (reine Merge-Funktionen + CLI), Vorlage `scripts/punktarchiv-repo/workflow-road-archiv.yml`, Verifier `verify:road-archive` |
+| Lebenszeichen (V-AW-19) | der Job wird nach dem Commit rot, wenn der jüngste Ring > 3 h alt ist und kein Kill-Schalter gesetzt ist — sonst grün; eine Zeile, entfernbar |
+| Erster Lauf | lokal, sofort (sichert die 24 h ab `2610021545`), danach der Cron |
+
+### 12.3 Umsetzung und Gates
+
+- `scripts/road/road-archive.mjs`: reine Funktionen `buildHalfDays` (nur geschlossene Halbtage), `mergeHalfDay` (füllt
+  nur Lücken, überschreibt nie, unverändert ⇒ kein Schreiben), `mergeSlotLog` (neu abgeleiteter Slot = späteres
+  `derivedAt` ersetzt), `archiveReadme` (README aus den Konstanten); CLI `archiveRoad` schreibt atomar, bricht bei einer
+  unlesbaren Archivdatei ab statt sie zu überschreiben, Exit 3 bei Ring > 180 min ohne Kill-Schalter.
+- `scripts/road/road-mirror.mjs`: `ROAD_RECENT_SLOTS = 24` als Konstante; ein **gesperrter** Slot trägt im Slot-Protokoll
+  `reasons` (für Gate B aus dem Archiv) — wirksam ab dem nächsten Spiegel-Job, sonst unverändert.
+- Vorlage `scripts/punktarchiv-repo/workflow-road-archiv.yml` → `.github/workflows/road-archiv.yml` im Archiv-Repo.
+- `verify:road-archive` **25/25** (A Halbtage/Merge/IO/Lebenszeichen/Punktarchiv daneben, B echter Producer am Slot
+  03.10. 08:00: 1 293/1 293 Stationen mit gleichen Werten und Klasse, 149 Quarantäne-Einträge unverändert, C Vorlage
+  gegen die Konstanten inkl. Importhülle im sparse-Muster). **Gegenproben:** acht eingebaute Fehler (offene Halbtage
+  schreiben, Merge überschreibt, Lebenszeichen nie rot, kaputte Datei überschreiben, Takt 8 h, `--force`, sparse ohne
+  `scripts/lib`, rot vor dem Commit) — jeder macht genau die zugehörige Prüfung rot. `verify:road-derive` **32/32** (neu
+  C3 Sperrgrund im Slot-Protokoll; ohne die Spiegel-Änderung 31/32).
+- **Probelauf gegen den echten Bestand** (03.10. 15:47 UTC, Fenster `2610021545…2610031530`): `2026-10-02/12.json.gz`
+  173 KB (Teil ab 15:45, 1 308 Stationen, 10 757 Quarantäne-Einträge), `2026-10-03/00.json.gz` **236 KB** (1 313
+  Stationen, 48/48 Slots, 16 041 Einträge), `slots.json` 6,6 KB ⇒ ≈ 0,47 MB/Tag ≈ 170 MB/Jahr.

@@ -1349,8 +1349,10 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
   Vorher Real-Device (V-AW-13): Handy mit `?road=1`, Karte, Blatt, Auswahl.
 - **(f) E-AW-13:** Voreingestellte Messstelle — heute die kälteste gemessene Fahrbahn; Vorschlag: kritischste Klasse zuerst (Glätte, Frost, Nässe),
   bei Gleichstand die kälteste (eine gemessene Glätte an einer wärmeren Stelle stünde sonst dahinter).
-- **(g) AW-6 — Archiv-Freigabe:** die Exportform liegt (`scripts/road/road-export.mjs`); Archiv-Ziel (`buscosun-archiv`?), Takt und Größe
-  entscheiden, dann Prognose +1/+3/+6 h mit Backtest (Gate D).
+- ~~**(g) Archiv-Freigabe**~~ — erledigt 03.10. („ja mache"): **AW-6a** Tagesablage in `buscosun-archiv` unter `road/v1/` (Halbtage mit Verlauf + Quarantäne,
+  Slot-Protokoll), Workflow `road-archiv.yml` alle 3 h, ≈ 0,47 MB/Tag (Audit §12). Ab da sammeln sich die Daten für Gate B und die Kalibrierung.
+  Der Job wird rot (Mail), wenn der jüngste Ring > 3 h alt ist und kein Kill-Schalter gesetzt ist. Offen bleibt AW-6 selbst: Prognose +1/+3/+6 h mit
+  Backtest (Gate D, frühestens Dezember).
 - **(h) V-AW-4:** P758 (A 94) mit Katalog-Koordinaten reparieren — Datenänderung, nur mit deinem Ja.
 - **Hinweis Arbeitsbaum:** nach dem Merge vom 03.10. vor dem nächsten eigenen Commit `git pull` im Haupt-Arbeitsbaum, falls er noch hinter
   `origin/main` steht.
