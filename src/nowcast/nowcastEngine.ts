@@ -1,6 +1,6 @@
 /**
- * Nowcast-Engine — führt Radar (0–2 h) und ICON-D2-Punktforecast (2–6 h) zu
- * einer 15-Min-Serie über 6 h zusammen.
+ * Nowcast-Engine — führt Radar (0–2 h) und die Punktvorhersage (2–6 h; seit Phase RR
+ * buscosun Fusion auf dem Punkt-Cube, Rückfall Live-Pfad) zu einer 15-Min-Serie über 6 h zusammen.
  *
  * `assembleNowcast` ist PUR (Zeit + Sampler-Closures rein) und damit testbar;
  * `buildNowcast` holt die echten Daten (Radar-Sampler + Punktforecast) aus der
@@ -9,6 +9,8 @@
 
 import { createRadarNowcastSampler } from '../pointForecast/radarNowcast';
 import { getPointForecast } from '../pointForecast/pointForecast';
+import type { PointForecast } from '../pointForecast/types';
+import { pfSourceFrom } from '../pointForecast/pfFlags';
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import type { Country } from '../types';
 import {
@@ -44,6 +46,8 @@ export interface AssembleInput {
   elevationM?: number | null;
   /** Temperatur-Höhengradient (°C/m) — für die alpine Tal/Grat-Trennung (US-F1). */
   lapseRatePerM?: number | null;
+  /** Phase RR: Herkunft der NWP-Stunden (wird nur durchgereicht, rechnet nicht mit). */
+  nwpSource?: 'cube' | 'live';
 }
 
 interface NwpInterp { mmH: number; conf: number; snowLineM: number | null; tempC: number | null }
@@ -149,6 +153,7 @@ export function assembleNowcast(input: AssembleInput): Nowcast {
     nowMs, runAtMs, fetchedAtMs,
     elevationM: elevationM ?? null,
     lapseRatePerM: input.lapseRatePerM ?? null,
+    ...(input.nwpSource ? { nwpSource: input.nwpSource } : {}),
   };
 }
 
@@ -311,37 +316,84 @@ export interface BuildNowcastOptions {
   signal?: AbortSignal;
   /** Bezugszeit (Default Date.now()) — für Tests injizierbar. */
   nowMs?: number;
+  /**
+   * Phase RR: buscosun Fusion liefert progressiv — die erste Antwort ab dem Kern, die Nachlieferung (Messungs-Anker,
+   * späte Produkte) bis zu `UPDATE_WAIT_MS` später, wie im Punkt-Panel. Mit diesem Rückruf bekommt der Aufrufer den
+   * Nowcast dazu ein zweites Mal (dieselben Zahlen wie Panel und Dashboard). Ohne Rückruf nur die erste Antwort.
+   */
+  onUpdate?: (nc: Nowcast) => void;
 }
 
-/** Holt Radar + Punktforecast und baut den Nowcast. */
-export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> {
-  const { lat, lon, country, signal } = opts;
-  const nowMs = opts.nowMs ?? Date.now();
-
-  const [sampler, forecast] = await Promise.all([
-    createRadarNowcastSampler(country, signal),
-    getPointForecast({ lat, lng: lon, country, hours: 8, signal }),
-  ]);
-
-  const nwp: NwpHour[] = forecast.hours.map((h) => ({
+/** Punktvorhersage → NWP-Stunden der Engine (Zuordnung unverändert seit vor RR, nur herausgezogen). */
+function nwpOf(forecast: PointForecast): NwpHour[] {
+  return forecast.hours.map((h) => ({
     tMs: h.timestamp.getTime(),
     mmH: h.precipitation ?? 0,
     conf: h.confidence?.precipitation ?? 0,
     snowLineM: h.snowLineM ?? null,
     tempC: h.temperature ?? null,
   }));
+}
 
-  return assembleNowcast({
+/**
+ * Holt Radar + Punktforecast und baut den Nowcast.
+ *
+ * Phase RR (RR-e, `audit/regenradar-datenangleich.md` §5 „Daten"): der Punktwert jenseits des Radars kommt aus
+ * **buscosun Fusion auf dem Punkt-Cube** — exakt dieselbe Kette wie Punkt-Panel und Dashboard: `getPointForecast`
+ * mit `pointSource: 'cube'` nach dem Laden von `cubeSource` (registriert `defaultCubeIo`, liest `?hm`/`?st`/…),
+ * `includeRadarNowcast: true` wie das Panel. Rückfall auf den Live-Pfad nur bei Fehler oder mit `?pf=live`, jeweils
+ * mit Konsolenmeldung. Der Radar-Sampler 0–2 h ist unverändert; `assembleNowcast` bleibt rein.
+ */
+export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> {
+  const { lat, lon, country, signal } = opts;
+  const nowMs = opts.nowMs ?? Date.now();
+  const samplerP = createRadarNowcastSampler(country, signal);
+  type Sampler = Awaited<typeof samplerP>;
+  let sampler: Sampler | undefined;
+  let latestCube: PointForecast | null = null;
+
+  const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => assembleNowcast({
     nowMs,
-    radarSampleAt: (etaMs) => (sampler ? sampler.sample(lat, lon, etaMs) : null),
-    radarValidUntilMs: sampler ? sampler.meta.validUntilMs : 0,
-    radarSource: sampler ? sampler.meta.source : '',
-    runAtMs: sampler && sampler.meta.validFromMs ? sampler.meta.validFromMs : forecast.fetchedAt,
+    radarSampleAt: (etaMs) => (s ? s.sample(lat, lon, etaMs) : null),
+    radarValidUntilMs: s ? s.meta.validUntilMs : 0,
+    radarSource: s ? s.meta.source : '',
+    runAtMs: s && s.meta.validFromMs ? s.meta.validFromMs : forecast.fetchedAt,
     fetchedAtMs: forecast.fetchedAt,
-    nwp,
+    nwp: nwpOf(forecast),
     elevationM: forecast.query?.elevation ?? null,
     lapseRatePerM: forecast.lapseRatePerM ?? null,
+    nwpSource,
   });
+
+  // Der Live-Pfad exakt wie vor RR (derselbe Aufruf) — Rückfall und `?pf=live`.
+  const live = () => getPointForecast({ lat, lng: lon, country, hours: 8, signal })
+    .then((forecast) => ({ forecast, source: 'live' as const }));
+  const cube = () => import('../pointForecast/cubeSource').then(() => getPointForecast({
+    lat, lng: lon, country, hours: 8, signal, includeRadarNowcast: true, pointSource: 'cube',
+    onUpdate: (fc) => {
+      latestCube = fc;
+      if (sampler !== undefined && !signal?.aborted) opts.onUpdate?.(assemble(sampler, fc, 'cube'));
+    },
+  })).then((forecast) => ({ forecast, source: 'cube' as const }));
+
+  const pf = pfSourceFrom(typeof window !== 'undefined' ? window.location.search : '');
+  let forecastP: Promise<{ forecast: PointForecast; source: 'cube' | 'live' }>;
+  if (pf === 'live') {
+    console.log('[buscosun Fusion] Regenradar-Streifen: ?pf=live — Live-Pfad statt Cube-Pfad');
+    forecastP = live();
+  } else {
+    forecastP = cube().catch((err: unknown) => {
+      if ((err as { name?: string })?.name === 'AbortError' || signal?.aborted) throw err;
+      const why = err instanceof Error ? err.message : String(err);
+      console.warn(`[buscosun Fusion] Regenradar-Streifen: Cube-Pfad gescheitert (${why}) — Rückfall auf den Live-Pfad`);
+      return live();
+    });
+  }
+
+  const [s, { forecast, source }] = await Promise.all([samplerP, forecastP]);
+  sampler = s;
+  // Kam die Nachlieferung, bevor der Radar-Sampler fertig war, rechnet die erste Ausgabe schon mit ihr.
+  return assemble(s, source === 'cube' && latestCube ? latestCube : forecast, source);
 }
 
 // --- Verifikation (pur, DEV) -------------------------------------------------

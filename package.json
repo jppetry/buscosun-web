@@ -81,6 +81,7 @@
     "verify:layer-erstbild": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-layer-erstbild.mjs",
     "verify:dem-build": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-dem-build.mjs",
     "verify:radar-fallback": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-fallback.mjs",
+    "verify:regenradar-profile": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-regenradar-profile.mjs",
     "verify:geosphere-nwp": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-geosphere-nwp.mjs",
     "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",
     "verify:fire-detail": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-detail.mjs",

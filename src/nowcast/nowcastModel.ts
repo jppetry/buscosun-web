@@ -198,6 +198,12 @@ export interface Nowcast {
   elevationM: number | null;
   /** Temperatur-Höhengradient (°C/m, i. d. R. negativ) für die Grat-Hochrechnung. */
   lapseRatePerM: number | null;
+  /**
+   * Phase RR (`audit/regenradar-datenangleich.md` §4 RR-e): woher der Punktwert jenseits des Radars kommt —
+   * `'cube'` = buscosun Fusion auf dem Punkt-Cube (dieselbe Kette wie Punkt-Panel und Dashboard), `'live'` = der
+   * Live-Pfad (Rückfall bei Fehler oder `?pf=live`). Fehlt das Feld, wurde es nicht gesetzt (Bestand vor RR).
+   */
+  nwpSource?: 'cube' | 'live';
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */

@@ -162,7 +162,7 @@
 /* Hero zweispaltig: Text + Suche links, Werkzeug-Quadrat (04–07) rechts. */
 .deck-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  grid-template-columns: minmax(0, 1fr) minmax(500px, 640px);
   /* Zeile "eye" entfiel mit dem Eyebrow (2026-08-09). */
   grid-template-areas:
     "title quad"
@@ -198,13 +198,14 @@
      Wortmarke klebt (Jan, 2026-08-09). */
   margin-top: 34px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Seit 2026-10-03 drei Kacheln: Waldbrand | Nowcast | Vorhersage (Jan). */
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: 1fr;
-  gap: 14px;
-  aspect-ratio: 2 / 1;
+  gap: 12px;
+  min-height: 236px;
 }
 .deck-quad .q-tile { padding: 16px; border-radius: 18px; min-height: 0; overflow: hidden; }
-.deck-quad .tile-desc.sm { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.deck-quad .tile-desc.sm { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Ortssuche — Hero-Pille */
 .deck-search-wrap { position: relative; margin-top: 30px; max-width: 720px; }
@@ -411,9 +412,15 @@
 /* Nowcast */
 .tile-nowcast { justify-content: space-between; min-height: 210px; padding: 22px; }
 .tile-radar { position: relative; height: 64px; display: flex; align-items: center; justify-content: center; }
-.tile-radar-sweep { transform-origin: 32px 32px; animation: deck-spin 4s linear infinite; }
-@keyframes deck-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .tile-radar-sweep { animation: none; } }
+/* Radar-Glyphe (src/RadarSweepIcon.tsx): Strahl mit Nachleuchten dreht gleichmäßig
+   langsam (14 s je Umlauf). Bewusst OHNE prefers-reduced-motion-Ausnahme (Jan 2026-10-03:
+   sein System meldet „reduzieren“, die Drehung soll trotzdem laufen — langsam, ohne Sprünge). */
+.tile-radar-beam-group { transform-origin: 32px 32px; animation: deck-radar-turn 14s linear infinite; }
+@keyframes deck-radar-turn { to { transform: rotate(360deg); } }
+.tile-radar-ring { fill: none; stroke: var(--sand-200); }
+.tile-radar-trail path { fill: var(--steel-600); fill-opacity: 0.019; }
+.tile-radar-beam { stroke: var(--steel-600); stroke-width: 1.5; stroke-linecap: round; }
+.tile-radar-echo, .tile-radar-hub { fill: var(--steel-600); }
 
 /* Forecast */
 .tile-forecast { justify-content: space-between; min-height: 210px; padding: 22px; }
@@ -432,21 +439,52 @@
 /* 3D-Wetter */
 .tile-threed { justify-content: space-between; min-height: 210px; padding: 22px; }
 .tile-terrain-svg { width: 100%; height: 52px; }
+/* Vertikalschnitt-Glyphe: Strömung (Strichfluss) über den Kamm, Wolken driften, Föhn im Lee in
+   Terrakotta. Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus (Jan 2026-10-03). */
+.tile-vs-ground { fill: var(--sand-100); stroke: var(--border-strong); vector-effect: non-scaling-stroke; }
+.tile-vs-flow { fill: none; stroke: var(--steel-600); stroke-opacity: .6; stroke-width: 1.4; stroke-linecap: round; vector-effect: non-scaling-stroke; stroke-dasharray: 6 8; animation: deck-vs-flow 1.6s linear infinite; }
+.tile-vs-foehn { stroke: var(--terracotta-500); stroke-opacity: .95; stroke-width: 2; stroke-dasharray: 8 6; animation-duration: 1.1s; }
+@keyframes deck-vs-flow { to { stroke-dashoffset: -14; } }
+.tile-vs-cloud { fill: var(--steel-50); stroke: var(--steel-600); stroke-opacity: .35; stroke-width: 1; vector-effect: non-scaling-stroke; animation: deck-vs-cloud 5s ease-in-out infinite alternate; }
+.tile-vs-cloud-b { animation-delay: -2.5s; }
+@keyframes deck-vs-cloud { from { transform: translateX(-4px); opacity: .75; } to { transform: translateX(4px); opacity: 1; } }
 
 /* Globus */
 .tile-globus { justify-content: space-between; min-height: 210px; padding: 22px; }
-.tile-center { display: flex; justify-content: center; height: 64px; align-items: center; }
+.tile-center { display: flex; justify-content: center; height: 92px; align-items: center; }
+/* Globus-Glyphe (src/GlobeIcon.tsx): Land scrollt hinter der Kugelschattierung (24 s je Umlauf),
+   Meridiane laufen mit. Wie beim Radar bewusst ohne prefers-reduced-motion-Ausnahme (Jan 2026-10-03). */
+.tile-globe-svg { overflow: visible; }
+.tile-globe-halo { fill: none; stroke: var(--steel-600); stroke-opacity: .16; stroke-width: 3; }
+.tile-globe-rim { fill: none; stroke: var(--steel-600); stroke-opacity: .55; stroke-width: 1; }
+.tile-globe-land path { fill: var(--sage-600); fill-opacity: .72; }
+.tile-globe-land { animation: deck-globe-land 24s linear infinite; }
+@keyframes deck-globe-land { to { transform: translateX(-52px); } }
+.tile-globe-grid { fill: none; stroke: var(--steel-600); stroke-opacity: .32; stroke-width: .8; }
+.tile-globe-meridian { transform-box: fill-box; transform-origin: center; animation: deck-globe-meridian 12s cubic-bezier(.37, 0, .63, 1) infinite; }
+@keyframes deck-globe-meridian { 0%, 100% { transform: scaleX(0); } 50% { transform: scaleX(1); } }
 
-/* Waldbrand (Slot 10, Phase WB1).
-   Volle Breite als Abschlussband statt Halbkachel: Das Bento hat vier Spalten
-   und die Reihe 06–09 (Historie · 3D · Globus · Feedback) ist voll. Eine zehnte
-   Halbkachel stünde allein neben drei Lücken. Das Band schließt die Liste sauber
-   ab — und vor allem bewegt sich dafür KEINE der neun bestehenden Kacheln
-   (Jans SA1-Raster vom 2026-08-09 bleibt unangetastet).
-   Die Bausteine der Feedback-Kachel werden mitbenutzt (Icon-Kachel, Body) statt
-   verdoppelt — `eagerCss` steht auf der Budget-Grenze, und die Startseite ist
-   eager. Jeder eigene Block hätte das Budget gesprengt. */
-.tile-fire { grid-column: span 4; flex-direction: row; align-items: center; gap: 22px; min-height: 150px; padding: 22px; }
+/* Waldbrand (Slot 10): kompakte Kachel links neben dem Regenradar (Jan, 2026-10-03).
+   Flamme (src/FireIcon.tsx): drei Flammenschichten flackern phasenversetzt, Glut steigt
+   auf, ein weicher Schein atmet. Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus. */
+.tile-fire { justify-content: space-between; min-height: 210px; padding: 22px; }
+.tile-flame { height: 64px; display: flex; align-items: center; justify-content: center; }
+.tile-flame-svg { overflow: visible; }
+.tile-flame-outer, .tile-flame-inner, .tile-flame-core { transform-origin: 32px 58px; animation: deck-flame 1.8s ease-in-out infinite; }
+.tile-flame-inner { animation-duration: 1.3s; animation-delay: -.4s; }
+.tile-flame-core { animation-duration: .9s; animation-delay: -.2s; }
+@keyframes deck-flame {
+  0%, 100% { transform: scale(1, 1) skewX(0deg); }
+  25% { transform: scale(.96, 1.06) skewX(-2.5deg); }
+  50% { transform: scale(1.03, .95) skewX(2deg); }
+  75% { transform: scale(.98, 1.04) skewX(-1deg); }
+}
+.tile-flame-glow { transform-origin: 32px 38px; animation: deck-flame-glow 2.4s ease-in-out infinite; }
+@keyframes deck-flame-glow { 0%, 100% { opacity: .6; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.06); } }
+.tile-flame-ember { fill: var(--amber-500); opacity: 0; animation: deck-flame-ember 2.6s ease-out infinite; }
+.tile-flame-ember-b { animation-delay: -.9s; animation-duration: 3s; }
+.tile-flame-ember-c { animation-delay: -1.7s; animation-duration: 2.2s; }
+@keyframes deck-flame-ember { 0% { opacity: 0; transform: translate(0, 8px); } 20% { opacity: .95; } 100% { opacity: 0; transform: translate(3px, -22px); } }
 
 /* Feedback (Slot 09) */
 /* Seit 2026-08-09 steht Feedback als vierte Kachel EINER Reihe (statt über zwei
@@ -586,14 +624,14 @@
   .tile-karte   { order: 1; }
   .tile-nowcast { order: 2; }
   .tile-forecast{ order: 3; }
-  .tile-tour    { order: 4; }
-  .tile-event   { order: 5; }
-  .tile-history { order: 6; }
-  .tile-threed  { order: 7; }
-  .tile-globus  { order: 8; }
-  /* Waldbrand vor Feedback: die Werkzeuge bleiben beieinander, Feedback schließt
-     die Liste weiterhin ab (Jans SA1-Anordnung bleibt in ihrer Logik erhalten). */
-  .tile-fire    { order: 9; }
+  /* Waldbrand (seit 2026-10-03 eine normale Kachel) steht direkt unter der Karten-Reihe vor den
+     Planungswerkzeugen; Raster 3 Spalten: 3+3+3+3+3 Zellen (Feedback unten über 2 Spalten). */
+  .tile-fire    { order: 4; }
+  .tile-tour    { order: 5; }
+  .tile-event   { order: 6; }
+  .tile-history { order: 7; }
+  .tile-threed  { order: 8; }
+  .tile-globus  { order: 9; }
   .tile-feedback{ order: 10; }
   /* Tablet-Spans */
   .tile-event { grid-column: span 1; }
@@ -608,8 +646,7 @@
   /* 06/07 stehen im Tablet wieder im Bento: je eine Spalte, damit die Reihe
      Historie · 3D-Wetter · Globus im 3-Spalten-Raster genau aufgeht. */
   .tile-history, .tile-threed { grid-column: span 1; }
-  .tile-feedback { grid-column: span 3; }
-  .tile-fire { grid-column: span 3; min-height: 140px; }
+  .tile-feedback { grid-column: span 2; }
   .deck-h1 { font-size: 52px; }
 }
 
@@ -653,7 +690,7 @@
   .tile-title-xl { font-size: 21px; }
   .tile-title-lg { font-size: 19px; }
   .tile-map { min-height: 118px; }
-  .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-history, .tile-threed, .tile-globus { min-height: 0; }
+  .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus { min-height: 0; }
   /* Mobil bleibt es bei zwei Spalten: Historie über die volle Breite (ihr
      Streifenband braucht sie), darunter 3D-Wetter + Globus als Paar — sonst
      stünde der Globus allein neben einer Lücke. */
@@ -664,8 +701,6 @@
   .tile-feedback-icon { width: 46px; height: 46px; border-radius: 13px; }
   .tile-feedback-icon svg { width: 22px; height: 22px; }
   .tile-feedback .tile-badge { display: none; }
-  /* Waldbrand mobil wie Feedback: volle Breite, kompakte Zeilenform. */
-  .tile-fire { grid-column: span 2; gap: 14px; min-height: 0; padding: 16px; }
 
   /* Sektionen kompakter */
   .deck-fundament, .deck-honesty { padding-left: var(--deck-pad-x); padding-right: var(--deck-pad-x); }

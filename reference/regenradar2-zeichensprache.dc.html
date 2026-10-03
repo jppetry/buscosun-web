@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Regenradar 2.0 – Zeichensprache</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A85E2E}a:hover{color:#C97B47}
+</style>
+</helmet>
+<div style="width: 880px; height: 900px; box-sizing: border-box; padding: 32px 36px; background: #FAF6EA; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #3A6FA8">REGENRADAR 2.0 · ZEICHENSPRACHE</span>
+<h1 style="margin: 0; font-size: 26px; font-weight: 700">Gemessen, Nowcast und Modell sehen verschieden aus</h1>
+<p style="margin: 0; font-size: 13px; color: #5C5447">Bestand bleibt Bestand (Regen-Rampe, Zell-Farben); neu sind nur die Tokens im Namensraum --np-*.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">ZEITZONEN</span>
+<div style="display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px 10px; align-items: center; font-size: 12px">
+<span style="height: 16px; border-radius: 4px; background: rgba(58,111,168,.38)"></span><span><b>gemessen</b> · Radar, Zellen, Blitze · Fläche gefüllt, Umriss durchgezogen</span>
+<span style="height: 16px; border-radius: 4px; background: repeating-linear-gradient(45deg, rgba(58,111,168,.32) 0 3px, rgba(58,111,168,.08) 3px 7px)"></span><span><b>Nowcast</b> · gefüllt, Zellumriss gestrichelt</span>
+<span style="height: 16px; border-radius: 4px; background: radial-gradient(circle, #8B9A7A 1.3px, rgba(122,148,102,.08) 1.5px) 0 0 / 7px 7px"></span><span><b>Modell (Cube)</b> · nie gefüllt im Radarstil, nur Punkte und Konturen</span>
+</div>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">NIEDERSCHLAG · MM/H (BESTAND precipRainRamp)</span>
+<div style="display: flex; height: 18px; border-radius: 4px; overflow: hidden">
+<span style="flex: 1 1 0; background: #96C8F5"></span><span style="flex: 1 1 0; background: #5FA5EB"></span><span style="flex: 1 1 0; background: #3278DC"></span><span style="flex: 1 1 0; background: #28AFE6"></span><span style="flex: 1 1 0; background: #3CC878"></span><span style="flex: 1 1 0; background: #C8D73C"></span><span style="flex: 1 1 0; background: #F09632"></span><span style="flex: 1 1 0; background: #E44B37"></span><span style="flex: 1 1 0; background: #BE285F"></span><span style="flex: 1 1 0; background: #96288C"></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); font-size: 10px; color: #5C5447; text-align: center"><span>0,06</span><span>0,2</span><span>0,5</span><span>1</span><span>2</span><span>3</span><span>5</span><span>8</span><span>12</span><span>≥ 20</span></div>
+<span style="font-size: 11px; color: #8B7355">Über 20 mm/h sättigt Radar v1; v2 (NP-5a) zeigt Starkregen-Kerne bis ≥ 100 mm/h.</span>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">PHASE ALS FARBTON, NIE ALS SYMBOL</span>
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 10px; align-items: center; font-size: 12px">
+<span style="height: 18px; border-radius: 4px; background: linear-gradient(90deg, #96C8F5, #3278DC, #3CC878, #F09632)"></span><span><b>Regen</b> · Bestandsrampe</span>
+<span style="height: 18px; border-radius: 4px; background: repeating-linear-gradient(45deg, rgba(255,255,255,.75) 0 2px, transparent 2px 7px), linear-gradient(90deg, #DCBEF0, #A47DC9, #7B4FA8)"></span><span><b>Schneeregen</b> · --np-mix, feine Schraffur</span>
+<span style="height: 18px; border-radius: 4px; background: linear-gradient(90deg, #E8EEFC, #9EAEE8, #5E6CC0); border: 1px solid #C9D3F4; box-sizing: border-box"></span><span><b>Schnee</b> · --np-snow-1…3</span>
+</div>
+<span style="font-size: 11px; color: #8B7355">Phase heute aus Temperatur + Gelände (Modell, gekennzeichnet); DE später gemessen aus HymecNG.</span>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">PROGNOSE-STIL: CHANCE ALS PUNKTDICHTE</span>
+<svg width="100%" height="58" viewBox="0 0 360 58" role="img" aria-label="Punktdichte für 10, 30, 50, 70 und 90 Prozent" style="display: block">
+<g fill="#3A6FA8" fill-opacity="0.78">
+<circle cx="14" cy="14" r="1"></circle><circle cx="28" cy="14" r="1"></circle><circle cx="42" cy="14" r="1"></circle><circle cx="14" cy="28" r="1"></circle><circle cx="28" cy="28" r="1"></circle><circle cx="42" cy="28" r="1"></circle>
+<circle cx="86" cy="14" r="1.9"></circle><circle cx="100" cy="14" r="1.9"></circle><circle cx="114" cy="14" r="1.9"></circle><circle cx="86" cy="28" r="1.9"></circle><circle cx="100" cy="28" r="1.9"></circle><circle cx="114" cy="28" r="1.9"></circle>
+<circle cx="158" cy="14" r="2.8"></circle><circle cx="172" cy="14" r="2.8"></circle><circle cx="186" cy="14" r="2.8"></circle><circle cx="158" cy="28" r="2.8"></circle><circle cx="172" cy="28" r="2.8"></circle><circle cx="186" cy="28" r="2.8"></circle>
+<circle cx="230" cy="14" r="3.7"></circle><circle cx="244" cy="14" r="3.7"></circle><circle cx="258" cy="14" r="3.7"></circle><circle cx="230" cy="28" r="3.7"></circle><circle cx="244" cy="28" r="3.7"></circle><circle cx="258" cy="28" r="3.7"></circle>
+<circle cx="302" cy="14" r="4.6"></circle><circle cx="316" cy="14" r="4.6"></circle><circle cx="330" cy="14" r="4.6"></circle><circle cx="302" cy="28" r="4.6"></circle><circle cx="316" cy="28" r="4.6"></circle><circle cx="330" cy="28" r="4.6"></circle>
+</g>
+<g font-size="11" fill="#5C5447" text-anchor="middle"><text x="28" y="52">10 %</text><text x="100" y="52">30 %</text><text x="172" y="52">50 %</text><text x="244" y="52">70 %</text><text x="316" y="52">90 %</text></g>
+</svg>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 12px"><svg width="60" height="14" viewBox="0 0 60 14" aria-hidden="true"><line x1="2" y1="7" x2="58" y2="7" stroke="#28507A" stroke-width="1.6" stroke-dasharray="6 4"></line></svg><span>Median-Menge als Kontur (0,5 / 2 / 5 mm/h)</span></div>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">SCHNEEFALLGRENZE</span>
+<svg width="100%" height="50" viewBox="0 0 360 50" role="img" aria-label="Schneefallgrenze als Linie mit Unsicherheitsgürtel" style="display: block">
+<path d="M4 26 C 60 14 110 38 170 24 C 230 12 290 36 356 22" fill="none" stroke="#8C9BE0" stroke-opacity="0.28" stroke-width="22"></path>
+<path d="M4 26 C 60 14 110 38 170 24 C 230 12 290 36 356 22" fill="none" stroke="#FFFFFF" stroke-width="5"></path>
+<path d="M4 26 C 60 14 110 38 170 24 C 230 12 290 36 356 22" fill="none" stroke="#4F5FB8" stroke-width="2.2"></path>
+</svg>
+<span style="font-size: 12px">Linie = p50 (Wetterkarten-Logik), Gürtel = p10–p90 aus dem Cube; Beschriftung immer in m ü. NN mit Band.</span>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">ZELLEN (BESTAND CELLS_SEVERITY_COLOR)</span>
+<svg width="100%" height="64" viewBox="0 0 360 64" role="img" aria-label="Zellsymbole: gemessen, prognostiziert, Spur, Trichter" style="display: block">
+<rect x="4" y="6" width="18" height="10" rx="2" fill="#C9A227"></rect><rect x="26" y="6" width="18" height="10" rx="2" fill="#E08A2E"></rect><rect x="48" y="6" width="18" height="10" rx="2" fill="#C9522E"></rect><rect x="70" y="6" width="18" height="10" rx="2" fill="#8F2140"></rect>
+<g font-size="10" fill="#5C5447"><text x="4" y="30">Stufe 0 · 1 · 2 · 3</text></g>
+<polygon points="134,30 128,44 112,48 98,42 94,30 100,18 114,14 128,18" fill="#C9522E" fill-opacity="0.24" stroke="#C9522E" stroke-width="2.4"></polygon>
+<polygon points="184,30 178,44 162,48 148,42 144,30 150,18 164,14 178,18" fill="#C9522E" fill-opacity="0.1" stroke="#C9522E" stroke-width="1.8" stroke-dasharray="5 4"></polygon>
+<circle cx="204" cy="36" r="2.6" fill="#C9522E" fill-opacity="0.3"></circle><circle cx="214" cy="34" r="2.6" fill="#C9522E" fill-opacity="0.5"></circle><circle cx="224" cy="32" r="2.6" fill="#C9522E" fill-opacity="0.8"></circle>
+<polygon points="240,30 356,14 356,46" fill="#C9522E" fill-opacity="0.12" stroke="#C9522E" stroke-opacity="0.55" stroke-dasharray="3 3"></polygon>
+<line x1="240" y1="30" x2="356" y2="30" stroke="#C9522E" stroke-width="2"></line>
+<g font-size="10" fill="#5C5447" text-anchor="middle"><text x="114" y="62">gemessen</text><text x="164" y="62">prognostiziert</text><text x="214" y="62">Spur</text><text x="298" y="62">amtlicher Trichter +60 min</text></g>
+</svg>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">BLITZE NACH ALTER · HAGEL</span>
+<div style="display: flex; gap: 16px; align-items: center; font-size: 12px; flex-wrap: wrap">
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><g stroke="#E3B23C" stroke-width="2.4" stroke-linecap="round"><line x1="2" y1="7" x2="12" y2="7"></line><line x1="7" y1="2" x2="7" y2="12"></line></g></svg>0–5 min</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><g stroke="#D9822B" stroke-width="2.4" stroke-linecap="round"><line x1="2" y1="7" x2="12" y2="7"></line><line x1="7" y1="2" x2="7" y2="12"></line></g></svg>5–10 min</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><g stroke="#9A5A2A" stroke-width="2.4" stroke-linecap="round"><line x1="2" y1="7" x2="12" y2="7"></line><line x1="7" y1="2" x2="7" y2="12"></line></g></svg>10–15 min</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 16px; height: 12px; border: 2px solid #C0307A; background: rgba(192,48,122,.25); box-sizing: border-box"></span>Hagel</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 18px; height: 0; border-top: 2px dashed #C79A3A"></span>Blitzprognose (Modell)</span>
+</div>
+<span style="font-size: 11px; color: #8B7355">DE Bodennetz-Raster (Blitzdichte), DACH Satellit MTG-LI mit Parallaxe-Hinweis; AT ohne Bodennetz.</span>
+</section>
+
+<section style="border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; background: #FFFFFF; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">NEUE TOKENS (--np-*, ADDITIV IN designTokens.css)</span>
+<div style="display: grid; grid-template-columns: 18px 128px 64px minmax(0, 1fr); gap: 4px 8px; align-items: center; font-size: 11.5px; font-family: 'IBM Plex Mono', monospace">
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #A47DC9"></span><span>--np-mix</span><span>#A47DC9</span><span style="font-family: 'League Spartan', sans-serif">Schneeregen</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #E8EEFC; border: 1px solid #C9D3F4; box-sizing: border-box"></span><span>--np-snow-1</span><span>#E8EEFC</span><span style="font-family: 'League Spartan', sans-serif">Schnee leicht</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #9EAEE8"></span><span>--np-snow-2</span><span>#9EAEE8</span><span style="font-family: 'League Spartan', sans-serif">Schnee mäßig</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #5E6CC0"></span><span>--np-snow-3</span><span>#5E6CC0</span><span style="font-family: 'League Spartan', sans-serif">Schnee stark</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #4F5FB8"></span><span>--np-snowline</span><span>#4F5FB8</span><span style="font-family: 'League Spartan', sans-serif">Schneefallgrenze</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #E3B23C"></span><span>--np-flash-0</span><span>#E3B23C</span><span style="font-family: 'League Spartan', sans-serif">Blitz 0–5 min</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #C0307A"></span><span>--np-hail</span><span>#C0307A</span><span style="font-family: 'League Spartan', sans-serif">Hagel-Umriss</span>
+<span style="width: 14px; height: 14px; border-radius: 3px; background: #7A9466"></span><span>--np-model</span><span>#7A9466</span><span style="font-family: 'League Spartan', sans-serif">Modell-Zone</span>
+</div>
+</section>
+</div>
+<span style="font-size: 10px; color: #A89A7A">Mockup · Farben aus src/designTokens.css, src/scalar/RainLayer.ts, src/radar/cellLayers.ts</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":880,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

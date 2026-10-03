@@ -26,6 +26,9 @@ import {
 import type { Location, NominatimResult } from './types';
 import type { FeatureInfo } from './App';
 import { parseCountry } from './countryProfiles';
+import RadarSweepIcon from './RadarSweepIcon';
+import GlobeIcon from './GlobeIcon';
+import FireIcon from './FireIcon';
 // Deko-Hero-Karte lazy: maplibre-gl bleibt aus dem Initial-Bundle (eigener Chunk).
 const HeroMapBackground = lazy(() => import('./HeroMapBackground'));
 // Touch-Geräte: die rein dekorative Hintergrundkarte gar nicht laden (SVG genügt).
@@ -273,7 +276,8 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: He
 function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
   const tile = makeTile(activeCat, onOpenFeature);
   return (
-    <div className="deck-quad" aria-label="Werkzeuge · Nowcast, Vorhersage">
+    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage">
+      {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
       {tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
     </div>
@@ -302,18 +306,34 @@ function makeTile(activeCat: 'alle' | Category, onOpenFeature: (f: FeatureInfo) 
 const TILE_NOWCAST = (
   <>
     <div className="tile-eyebrow">04 · NOWCAST</div>
+    {/* Radar-Glyphe mit Nachleuchten, Echos und Zeiger-Folgen
+        (audit/startseite-radar-icon.md). */}
     <div className="tile-radar">
-      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-        <circle cx="32" cy="32" r="30" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="20" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="10" fill="none" stroke="var(--sand-200)" />
-        <circle cx="32" cy="32" r="3" fill="var(--steel-600)" />
-        <line x1="32" y1="32" x2="58" y2="24" stroke="var(--steel-600)" strokeWidth="1.5" className="tile-radar-sweep" />
-      </svg>
+      <RadarSweepIcon />
     </div>
     <div>
       <div className="tile-title tile-title-sm">Regnet es in 40 Min?</div>
       {/* D-14: radar-only. Die Modellhälfte 2–12 h wurde mit N1 entfernt —
           der Text versprach sie weiterhin. */}
       <p className="tile-desc sm">Gemessenes Radar: jetzt bis 2 h (AT 3 h, CH 0,5 h). Blitz- &amp; Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
+    </div>
+  </>
+);
+
+// 10 · Waldbrand — kompakte Kachel wie 04/05 (Hero links neben dem Regenradar). Die Kernaussage
+// samt Ehrlichkeitshinweis bleibt; die früheren Langtexte des Bandes sind hier gekürzt.
+const TILE_FIRE = (
+  <>
+    <div className="tile-eyebrow">10 · WALDBRAND</div>
+    <div className="tile-flame">
+      <FireIcon />
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Wie trocken ist der Wald?</div>
+      <p className="tile-desc sm">
+        EU-Gefahrenindex bis +9 Tage, aktive Brände, Faktoren dahinter.{' '}
+        <span className="tile-caveat">Kein amtliches Warnprodukt; für Österreich keine offene amtliche Stufe.</span>
+      </p>
     </div>
   </>
 );
@@ -360,9 +380,14 @@ const TILE_THREED = (
       <span className="tile-badge badge-solid">Föhn</span>
     </div>
     <svg viewBox="0 0 220 70" preserveAspectRatio="none" className="tile-terrain-svg" aria-hidden="true">
-      <path d="M0 68 L60 40 L110 20 L150 34 L220 60 L220 70 L0 70 Z" fill="var(--sand-100)" stroke="var(--border-strong)" />
-      <g stroke="var(--steel-600)" strokeWidth="1.4" strokeOpacity=".6"><line x1="30" y1="16" x2="50" y2="14" /><line x1="90" y1="12" x2="112" y2="9" /><line x1="150" y1="14" x2="172" y2="11" /></g>
-      <path d="M110 20 L150 34" stroke="var(--terracotta-500)" strokeWidth="2" />
+      {/* Vertikalschnitt: Anströmung über den Kamm, Wolkenkappe luvseitig, Föhn warm im Lee.
+          Die Bewegung ist reines CSS (.tile-vs-*); kein Messwert, nur Sinnbild. */}
+      <path className="tile-vs-ground" d="M0 68 L60 40 L110 20 L150 34 L220 60 L220 70 L0 70 Z" />
+      <ellipse className="tile-vs-cloud" cx="78" cy="28" rx="15" ry="4.5" />
+      <ellipse className="tile-vs-cloud tile-vs-cloud-b" cx="104" cy="14" rx="12" ry="3.5" />
+      <path className="tile-vs-flow" d="M0 20 C60 18 90 3 110 3 C140 3 170 16 220 18" />
+      <path className="tile-vs-flow" style={{ animationDelay: '-.9s' }} d="M0 30 C45 28 80 9 110 8 C150 8 175 30 220 36" />
+      <path className="tile-vs-flow tile-vs-foehn" d="M0 38 C40 34 80 14 110 12 C135 11 150 30 175 40" />
     </svg>
     <div>
       <div className="tile-title tile-title-sm">Vertikalschnitt</div>
@@ -651,6 +676,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           ihrer angestammten Stelle — so bleibt die schmale Ansicht wie zuvor. */}
       {narrow && (
         <>
+          {tile(['erkunden'], 'tile-fire', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
           {tile(['radar'], 'tile-nowcast', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
           {tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
         </>
@@ -668,10 +694,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
         <>
           <div className="tile-eyebrow">08 · GLOBUS</div>
           <div className="tile-center">
-            <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden="true">
-              <circle cx="30" cy="30" r="26" fill="var(--sand-100)" stroke="var(--border-strong)" />
-              <g fill="none" stroke="var(--slate-500)" strokeWidth="1" strokeOpacity=".7"><ellipse cx="30" cy="30" rx="10" ry="26" /><ellipse cx="30" cy="30" rx="22" ry="26" /><line x1="4" y1="30" x2="56" y2="30" /><path d="M9 17 H51 M9 43 H51" /></g>
-            </svg>
+            <GlobeIcon />
           </div>
           <div>
             <div className="tile-title tile-title-sm">3D-Globus</div>
@@ -699,38 +722,8 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           <span className="tile-badge badge-mono-ghost">E-MAIL</span>
         </>)}
 
-      {/* 10 · WALDBRAND (Phase WB1) — bewusst ANS ENDE gehängt: die DOM-Reihenfolge
-          der neun bestehenden Kacheln stammt aus Jans handgelegtem SA1-Raster
-          (2026-08-09) und darf sich durch einen Zugang nicht verschieben. */}
-      {tile(['erkunden'], 'tile-fire', FEATURE.fire, 'Waldbrand DACH öffnen',
-        <>
-          <div className="tile-feedback-icon" aria-hidden="true">
-            <svg width="34" height="34" viewBox="0 0 56 56">
-              {/* Farben inline statt per CSS-Regel: die Icon-Kachel der Feedback-
-                  Kachel ist ink-900, und deren Vorgabefarben wären dunkel auf
-                  dunkel. `eagerCss` hat keinen Spielraum für eigene Regeln. */}
-              <path
-                d="M28 8 C28 17 20 19 20 27 C20 31.4 23.6 35 28 35 C32.4 35 36 31.4 36 27 C36 23.6 34 21.6 32.6 19.4"
-                fill="none" stroke="#E8A33C" strokeWidth="2.6"
-                strokeLinecap="round" strokeLinejoin="round"
-              />
-              <path d="M28 39 L20 50 H36 Z" fill="none" stroke="#C9BFA8" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div className="tile-feedback-body">
-            <div className="tile-eyebrow">10 · WALDBRAND</div>
-            <div className="tile-title tile-title-lg">Wie trocken ist der Wald?</div>
-            <p className="tile-desc">
-              EU-Gefahrenindex bis +9 Tage, amtliche Stufen für Deutschland und die Schweiz,
-              aktive Brände aus dem Satelliten und die Faktoren dahinter — in einer Ansicht statt
-              in drei nationalen Portalen.
-              {' '}
-              <span className="tile-caveat">
-                Kein amtliches Warnprodukt. Für Österreich gibt es keine offene amtliche Stufe.
-              </span>
-            </p>
-          </div>
-        </>)}
+      {/* 10 · WALDBRAND steht seit 2026-10-03 (Jan) links neben dem Regenradar: auf Desktop im
+          Hero (HeroQuad), auf ≤1024 px im narrow-Block oben (TILE_FIRE). */}
     </section>
   );
 }
