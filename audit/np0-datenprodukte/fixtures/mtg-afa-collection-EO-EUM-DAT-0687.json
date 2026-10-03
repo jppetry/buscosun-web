@@ -1,0 +1,52 @@
+
+  { "collection" : 
+    { "type" : "Feature",
+      "id" : "EO:EUM:DAT:0687",
+      "geometry" : 
+      { "type" : "Polygon",
+        "coordinates" : 
+        [ 
+          [ 
+            [ 79,
+              79 ],
+            
+            [ 79,
+              79 ],
+            
+            [ 79,
+              79 ],
+            
+            [ 79,
+              79 ],
+            
+            [ 79,
+              79 ] ] ] },
+      "properties" : 
+      { "type" : "Properties",
+        "kind" : "Dataset",
+        "identifier" : "EO:EUM:DAT:0687",
+        "title" : "LI Accumulated Flash Area - MTG - 0 degree",
+        "abstract" : "LI Level 2 Accumulated Flash Area (AFA) provides the user with data about flash mapping by using the area covered by the optical emission of each flash in LI Level 2 Lightning Flashes (LFL). It is important to keep in mind that each flash is treated as a flat (uniform) optical emission in this data. Accumulated Flash Area allows one to monitor the regions within a cloud top from which lightning-related optical emissions over 30 sec are emerging and accumulating and to know the number of flashes that were observed within the FCI grid pixels composing those regions. For example, from the Accumulated Flash Area, one can derive the flash rate for each pixel of the FCI 2km grid. This is a considerable improvement compared to the simple description of the flash using the variable flash_footprint available in Lightning Flashes. In EUMETView, this product is visualised as 5-minute accumulations, where, for example, the timestamp for 00:25 UTC corresponds to accumulations between 00:25 UTC and 00:30 UTC, combining 10 half-minute AFA products.",
+        "date" : "2024-07-04\/",
+        "updated" : "",
+        "rights" : 
+        [ "NoConditions" ],
+        "links" : 
+        [ 
+          { "type" : "Link",
+            "href" : "https:\/\/user.eumetsat.int\/s3\/eup-strapi-media\/MTG_FCI_LI_AF_area_509b99b116.png",
+            "mediaType" : "image\/jpeg",
+            "title" : "Quicklook" } ] } },
+    "links" : 
+    [ 
+      { "type" : "Link",
+        "href" : "https:\/\/api.eumetsat.int\/data\/browse\/1.0.0\/collections\/EO%3AEUM%3ADAT%3A0687\/dates?format=json",
+        "mediaType" : "application\/json",
+        "title" : "Browse collection",
+        "rel" : "collection\/dates" },
+      
+      { "type" : "Link",
+        "href" : "https:\/\/api.eumetsat.int\/data\/search-products\/1.0.0\/osdd?pi=EO:EUM:DAT:0687",
+        "mediaType" : "application\/xml",
+        "title" : "Show this collection's OpenSearch Description Document",
+        "rel" : "collection\/osdd" } ] }
