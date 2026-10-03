@@ -5,6 +5,8 @@
  */
 import { ROAD_CLASS_LABEL, ROAD_CLASS_RANK, ROAD_CONDITION_LABEL, type RoadClass } from './roadClasses';
 import { roadFreshness, type RoadFreshness, type RoadObsFile, type RoadPoint, type RoadRuleId } from './roadContract';
+import type { CapAlert } from '../warnings/capAlerts';
+import { isActiveAt } from '../warnings/warnField';
 import type { RoadCorridor } from './roadClient';
 
 /** Class colours (= `--aw-*` tokens; MapLibre paints need literal values). */
@@ -70,25 +72,40 @@ export function slotSummary(obs: RoadObsFile | null, nowMs: number): RoadSlotSum
 // --- corridors ----------------------------------------------------------------------------------
 
 export interface CorridorStatus {
+  /** Stations with a valid road temperature. */
   measured: number;
   critical: number;
+  /** Measured, but no valid road condition (class `unknown`). */
+  unknown: number;
+  /** No valid measurement at all (class `nodata` or no point in the slot). */
   nodata: number;
+  /** Class of the corridor's status dot (D-04: never `dry` when most stations do not know their state). */
   worst: RoadClass;
 }
 
+/**
+ * Status of a corridor for the dock. A measured warning class (ice, frost, wet) always decides. Otherwise the dot is
+ * `dry` only when more stations measured "dry" than "state unknown" — one dry station among 29 unknown ones must not
+ * paint the motorway green (review finding #7); else it is hatched (`unknown`, or `nodata` without any measurement).
+ */
 export function corridorStatus(c: RoadCorridor, byId: ReadonlyMap<string, RoadPoint>): CorridorStatus {
-  let measured = 0, critical = 0, nodata = 0;
-  let worst: RoadClass = 'nodata';
+  let measured = 0, critical = 0, unknown = 0, nodata = 0, dry = 0;
+  let warn: RoadClass | null = null;
   for (const s of c.stations) {
     const p = byId.get(s.id);
-    if (!p) { nodata++; continue; }
+    if (!p || p.cls === 'nodata') { nodata++; continue; }
     if (p.rs != null) measured++;
     if (isCritical(p.cls)) critical++;
-    if (isHatched(p.cls)) nodata++;
-    if (ROAD_CLASS_RANK[p.cls] > ROAD_CLASS_RANK[worst]) worst = p.cls;
+    if (p.cls === 'unknown') unknown++;
+    else if (p.cls === 'dry') dry++;
+    else if (!warn || ROAD_CLASS_RANK[p.cls] > ROAD_CLASS_RANK[warn]) warn = p.cls;
   }
-  return { measured, critical, nodata, worst };
+  const worst: RoadClass = warn ?? (dry > unknown ? 'dry' : unknown > 0 ? 'unknown' : dry > 0 ? 'dry' : 'nodata');
+  return { measured, critical, unknown, nodata, worst };
 }
+
+/** Tie rank in the band: warning classes first, then hatched (unknown, no data) before dry — the cautious reading. */
+const TIE_RANK: Readonly<Record<RoadClass, number>> = Object.freeze({ ice: 5, frost: 4, wet: 3, unknown: 2, nodata: 1, dry: 0 });
 
 /** Corridor km in the chosen direction (dir 1 = reversed axis). */
 export const kmIn = (c: RoadCorridor, km: number, dir: 0 | 1) => (dir ? c.lengthKm - km : km);
@@ -116,8 +133,8 @@ export function bandSegments(c: RoadCorridor, byId: ReadonlyMap<string, RoadPoin
     let best: { d: number; cls: RoadClass } | null = null;
     for (const s of st) {
       const d = Math.abs(s.km - mid);
-      // Equal distance: the more severe class wins (conservative).
-      if (!best || d < best.d || (d === best.d && ROAD_CLASS_RANK[s.cls] > ROAD_CLASS_RANK[best.cls])) best = { d, cls: s.cls };
+      // Equal distance: the more cautious class wins (warning, then "not known", then dry).
+      if (!best || d < best.d || (d === best.d && TIE_RANK[s.cls] > TIE_RANK[best.cls])) best = { d, cls: s.cls };
     }
     const cls: RoadClass | 'gap' = best && best.d <= BAND_REACH_KM ? best.cls : 'gap';
     const last = out[out.length - 1];
@@ -228,6 +245,18 @@ export function isRoadWarning(group: string | null, event: string): boolean {
   if (group) return ROAD_WARN_GROUPS.has(group);
   return /GLÄTTE|GLATTEIS|FROST|NEBEL|SCHNEE|STURM|ORKAN|GEWITTER|REGEN/i.test(event);
 }
+
+/**
+ * Warnings are re-fetched at least this often and filtered by the clock when drawn (docs/API.md §7: short TTL,
+ * "veraltete Warnungen sind gefährlicher als keine"; review finding #8). `fetchDwdWarnings` has its own cache.
+ */
+export const ROAD_WARN_REFRESH_MS = 5 * 60_000;
+/** The page's warnings at `nowMs`: an expired or not yet started warning is never shown. */
+export function activeRoadWarnings<T extends Pick<CapAlert, 'onsetMs' | 'effectiveMs' | 'expiresMs'>>(alerts: readonly T[], nowMs: number): T[] {
+  return alerts.filter((a) => isActiveAt(a as unknown as CapAlert, nowMs));
+}
+/** Official DWD warnings page — the fallback link when the feed cannot be read (docs/API.md §7). */
+export const DWD_WARNINGS_URL = 'https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html';
 
 // --- motorway rows of the dock ----------------------------------------------------------------------
 

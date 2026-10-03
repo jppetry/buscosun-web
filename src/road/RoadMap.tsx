@@ -117,6 +117,9 @@ export default function RoadMap(props: Props) {
   const propsRef = useRef(props);
   propsRef.current = props;
   const calloutRef = useRef<maplibregl.Marker | null>(null);
+  /** Set once on `load`. NOT `map.loaded()`: a `setData` in the same render marks the source busy, so `loaded()` is
+   *  false exactly when a corridor change needs the fit (review finding #5). */
+  const readyRef = useRef(false);
   /** Inputs of the last setData per source — only changed references are written (CLAUDE.md: setData loops). */
   const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown }>({});
 
@@ -180,9 +183,14 @@ export default function RoadMap(props: Props) {
     mapRef.current = map;
     if (import.meta.env.DEV) (window as unknown as { __roadMap?: maplibregl.Map }).__roadMap = map;
     map.on('style.load', () => germanLabels(map));
-    // Test hook (no behaviour): the time of the last idle frame, for screenshots that need a drawn map.
-    map.on('idle', () => { if (hostRef.current) hostRef.current.dataset.idle = String(Date.now()); });
+    // Test hooks (no behaviour): time of the last idle frame and the visible bounds (verify:road-ui M3).
+    map.on('idle', () => {
+      if (!hostRef.current) return;
+      hostRef.current.dataset.idle = String(Date.now());
+      hostRef.current.dataset.bounds = map.getBounds().toArray().flat().map((v) => v.toFixed(4)).join(',');
+    });
     map.on('load', () => {
+      readyRef.current = true;
       apply(map);
       map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
       const c = propsRef.current.corridor;
@@ -200,7 +208,7 @@ export default function RoadMap(props: Props) {
       map.getCanvas().style.cursor = hit ? 'pointer' : '';
     });
     props.onMap?.(map);
-    return () => { props.onMap?.(null); map.remove(); mapRef.current = null; };
+    return () => { props.onMap?.(null); map.remove(); mapRef.current = null; readyRef.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -242,12 +250,12 @@ export default function RoadMap(props: Props) {
     return () => { map.off('moveend', place); };
   }, [coKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Corridor change ⇒ fit to it.
+  // Corridor change ⇒ fit to it. Before `load` the load handler fits to the corridor of that moment.
   const corrId = props.corridor?.id ?? null;
   useEffect(() => {
     const map = mapRef.current;
     const c = propsRef.current.corridor;
-    if (!map || !c || !map.loaded()) return;
+    if (!map || !c || !readyRef.current) return;
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     map.fitBounds(boundsOf(c), { padding: propsRef.current.padding, duration: reduce ? 0 : 600 });
   }, [corrId]);

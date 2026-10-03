@@ -25,7 +25,7 @@ import RoadReadout from './RoadReadout';
 import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadUrlState } from './roadState';
 import {
   ROAD_CLASS_COLOR, bandSegments, corridorEnds, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
-  searchCorridors, slotSummary,
+  searchCorridors, slotSummary, activeRoadWarnings, ROAD_WARN_REFRESH_MS,
 } from './roadView';
 import './roadDeck.css';
 
@@ -34,13 +34,15 @@ export interface RoadPageProps {
   invalid: string[];
   onUrlState: (s: RoadUrlState) => void;
   onCorridor: (s: RoadUrlState, initial: boolean) => void;
+  /** Set on a back/forward navigation: the page takes corridor, station, direction and tab from the URL again. */
+  popState?: (RoadUrlState & { key: string }) | null;
 }
 
 const DEFAULT_CORRIDOR = 'a8';
 const REFRESH_MS = 60_000;
 const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false };
 
-export default function RoadPage({ initial, onUrlState, onCorridor }: RoadPageProps) {
+export default function RoadPage({ initial, onUrlState, onCorridor, popState }: RoadPageProps) {
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -57,11 +59,21 @@ export default function RoadPage({ initial, onUrlState, onCorridor }: RoadPagePr
   const [layers, setLayers] = useState<RoadMapLayers>(DEFAULT_LAYERS);
   const [departMin, setDepartMin] = useState(0);
   const [ring, setRing] = useState<RoadH24File | null>(null);
-  const [warn, setWarn] = useState<{ state: 'off' | 'loading' | 'ok' | 'error'; alerts: CapAlert[] }>({ state: 'off', alerts: [] });
+  const [warn, setWarn] = useState<{ state: 'off' | 'loading' | 'ok' | 'error'; alerts: CapAlert[]; at: number | null }>({ state: 'off', alerts: [], at: null });
   const [pointWarnings, setPointWarnings] = useState<CapAlert[]>([]);
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   const [picker, setPicker] = useState(false);
   const firstCorridor = useRef(true);
+
+  // Back/forward: the URL is the truth again (the corridor effect below then finds the URL equal and navigates nowhere).
+  const popKey = popState?.key ?? null;
+  useEffect(() => {
+    if (!popState) return;
+    setCorridorId(popState.corridor ?? DEFAULT_CORRIDOR);
+    setStId(popState.st);
+    setDir(popState.dir);
+    setTab(popState.tab);
+  }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- data ------------------------------------------------------------------------------------
   useEffect(() => {
@@ -126,35 +138,41 @@ export default function RoadPage({ initial, onUrlState, onCorridor }: RoadPagePr
     return () => ac.abort();
   }, [pointGroup, obsSlot]);
 
-  // DWD warnings (lazy modules, only with the layer on); quoted verbatim in the readout.
+  // DWD warnings (lazy module, only with the layer on), quoted verbatim in the readout. Re-fetched every
+  // ROAD_WARN_REFRESH_MS and filtered by the clock when drawn — an expired warning never stays on screen, a new one
+  // arrives within minutes (docs/API.md §7; review finding #8).
   useEffect(() => {
-    if (!layers.warn) { setWarn({ state: 'off', alerts: [] }); return; }
-    const ac = new AbortController();
-    setWarn((w) => ({ ...w, state: 'loading' }));
-    (async () => {
+    if (!layers.warn) { setWarn({ state: 'off', alerts: [], at: null }); return; }
+    let ac = new AbortController();
+    let alive = true;
+    const run = async () => {
       try {
-        const [{ fetchDwdWarnings }, { isActiveAt }] = await Promise.all([import('../sources/dwdCapAlerts'), import('../warnings/warnField')]);
-        const run = await fetchDwdWarnings(ac.signal);
-        const t = Date.now();
-        setWarn({ state: 'ok', alerts: run.alerts.filter((a) => isRoadWarning(a.group, a.event) && isActiveAt(a, t)) });
+        const { fetchDwdWarnings } = await import('../sources/dwdCapAlerts');
+        const r = await fetchDwdWarnings(ac.signal);
+        if (alive) setWarn({ state: 'ok', alerts: r.alerts.filter((a) => isRoadWarning(a.group, a.event)), at: Date.now() });
       } catch (e) {
-        if ((e as Error)?.name !== 'AbortError') setWarn({ state: 'error', alerts: [] });
+        // A failed refresh drops the old list: an outdated warning is more dangerous than none (docs/API.md §7).
+        if (alive && (e as Error)?.name !== 'AbortError') setWarn({ state: 'error', alerts: [], at: null });
       }
-    })();
-    return () => ac.abort();
+    };
+    setWarn((w) => (w.state === 'ok' ? w : { ...w, state: 'loading' }));
+    void run();
+    const id = window.setInterval(() => { ac.abort(); ac = new AbortController(); void run(); }, ROAD_WARN_REFRESH_MS);
+    return () => { alive = false; ac.abort(); window.clearInterval(id); };
   }, [layers.warn]);
+  const liveAlerts = useMemo(() => (warn.state === 'ok' ? activeRoadWarnings(warn.alerts, nowMs) : []), [warn, nowMs]);
   const warnAreas = useMemo<GeoJSON.FeatureCollection | null>(() => (warn.state !== 'ok' ? null : {
     type: 'FeatureCollection',
-    features: warn.alerts.flatMap((a) => a.areas.map((ar) => ({ type: 'Feature' as const, properties: { id: a.id }, geometry: { type: 'Polygon' as const, coordinates: ar.rings } }))),
-  }), [warn]);
+    features: liveAlerts.flatMap((a) => a.areas.map((ar) => ({ type: 'Feature' as const, properties: { id: a.id }, geometry: { type: 'Polygon' as const, coordinates: ar.rings } }))),
+  }), [warn.state, liveAlerts]);
   useEffect(() => {
     if (warn.state !== 'ok' || !point) { setPointWarnings([]); return; }
     let alive = true;
     import('../countryMask').then(({ pointInRings }) => {
-      if (alive) setPointWarnings(warn.alerts.filter((a) => a.areas.some((ar) => pointInRings(ar.rings as unknown as number[][][], point.lon, point.lat))));
+      if (alive) setPointWarnings(liveAlerts.filter((a) => a.areas.some((ar) => pointInRings(ar.rings as unknown as number[][][], point.lon, point.lat))));
     });
     return () => { alive = false; };
-  }, [warn, point]);
+  }, [warn.state, liveAlerts, point]);
 
   // --- URL ------------------------------------------------------------------------------------------
   const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: 0, dir, tab };
@@ -232,7 +250,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor }: RoadPagePr
   );
   const readout = (
     <RoadReadout tab={tab} onTab={setTab} point={point} corridor={corridor} byId={shownById} dir={dir} slotMs={obs?.slotMs ?? null} nowMs={nowMs}
-      stale={freshness === 'stale'} ring={ring} warnings={pointWarnings} warnState={warn.state} departOffsetMin={departMin}
+      stale={freshness === 'stale'} ring={ring} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} departOffsetMin={departMin}
       onDepart={(d) => setDepartMin((m) => Math.max(0, Math.min(345, m + d)))} onPick={pickStation} noData={noData} />
   );
 

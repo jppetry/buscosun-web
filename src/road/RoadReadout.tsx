@@ -10,7 +10,7 @@ import { ROAD_CLASS_LABEL } from './roadClasses';
 import type { RoadTab } from './roadState';
 import {
   ROAD_CLASS_COLOR, ROAD_CLASS_INK, ROAD_CLASS_TINT, ageMinText, classBadge, conditionText, corridorEnds, dec, driverHint,
-  etaRows, f1, hm, isCritical, isHatched, kmIn, shieldText, visText, DEFAULT_SPEED_KMH,
+  etaRows, f1, hm, isCritical, isHatched, kmIn, shieldText, visText, DEFAULT_SPEED_KMH, DWD_WARNINGS_URL,
 } from './roadView';
 
 const DIR_TEXT: Record<string, string> = { N: 'Fahrtrichtung Nord', S: 'Fahrtrichtung Süd', O: 'Fahrtrichtung Ost', W: 'Fahrtrichtung West', X: 'beide Richtungen' };
@@ -98,6 +98,8 @@ interface Props {
   ring: RoadH24File | null;
   warnings: CapAlert[] | null;
   warnState: 'off' | 'loading' | 'ok' | 'error';
+  /** When the warnings were fetched (shown as the age of the feed). */
+  warnAt?: number | null;
   departOffsetMin: number;
   onDepart: (deltaMin: number) => void;
   onPick: (id: string) => void;
@@ -189,15 +191,18 @@ function StationTab(p: Props) {
           <div className="aw-eyebrow is-warn">Amtliche Warnung · DWD{w.areas[0]?.desc ? ` · ${w.areas[0].desc}` : ''}</div>
           <p className="aw-warn-text">„{w.headline}“</p>
           {w.description && <p className="aw-warn-text">„{w.description}“</p>}
-          <div className="aw-warn-meta">gültig {w.onsetMs ? `ab ${hm(w.onsetMs)}` : ''}{w.expiresMs ? ` bis ${hm(w.expiresMs)}` : ' bis auf Widerruf'} · Quelle: Deutscher Wetterdienst</div>
+          <div className="aw-warn-meta">gültig {w.onsetMs ? `ab ${hm(w.onsetMs)}` : ''}{w.expiresMs ? ` bis ${hm(w.expiresMs)}` : ' bis auf Widerruf'} · Quelle: Deutscher Wetterdienst{p.warnAt ? ` · abgerufen ${hm(p.warnAt)}` : ''}</div>
         </div>
       ))}
-      {p.warnState === 'error' && <p className="aw-note">Amtliche Warnungen derzeit nicht abrufbar — kein Ersatztext.</p>}
+      {p.warnState === 'error' && (
+        <p className="aw-note">Amtliche Warnungen derzeit nicht abrufbar — kein Ersatztext. Die gültigen Warnungen stehen beim{' '}
+          <a href={DWD_WARNINGS_URL} target="_blank" rel="noopener noreferrer">Deutschen Wetterdienst</a>.</p>
+      )}
 
       <div className="aw-sources">
         {s.q === 'ok' ? 'Prüfung des DWD: durchgeführt, nichts beanstandet' : 'Prüfung des DWD: nicht durchgeführt (DWD-Flag)'} · Plausibilität buscosun: bestanden
         {s.f?.includes('noCatalog') ? ' · Position aus der Meldung (nicht im DWD-Stationskatalog)' : ''}<br />
-        Daten: Deutscher Wetterdienst, Glättemeldeanlagen der Länder (SWIS) · GeoNutzV · verändert: geprüft, umkodiert
+        Datenbasis: Deutscher Wetterdienst, Glättemeldeanlagen der Länder (SWIS) · GeoNutzV · verändert: geprüft, umkodiert
       </div>
     </>
   );
@@ -262,6 +267,7 @@ const SOURCES: ReadonlyArray<{ cc: string; name: string; what: string; status: '
   { cc: 'DE', name: 'DWD Straßenwetter (Glättemeldeanlagen)', what: 'Fahrbahntemperatur, -zustand, Wasserfilm, Luft, Sicht · 15 min · GeoNutzV', status: 'aktiv' },
   { cc: 'DE', name: 'DWD Warnungen (CAP)', what: 'Glätte, Glatteis, Nebel, Sturm · wörtlich zitiert', status: 'aktiv' },
   { cc: 'DE', name: 'BKG DLM250', what: 'Autobahnachsen der Korridore · © GeoBasis-DE / BKG, dl-de/by-2.0', status: 'aktiv' },
+  { cc: 'DACH', name: 'GeoNames', what: 'Ortsnamen der Korridore (Anfang, Ende, Städte) · geonames.org, CC BY 4.0', status: 'aktiv' },
   { cc: 'DACH', name: 'buscosun Fusion', what: 'Ableitung +1/+3/+6 h je Messpunkt — erst nach bestandenem Backtest', status: 'geplant' },
   { cc: 'AT', name: 'GeoSphere TAWES + Warnungen', what: 'Luft, 5-cm- und Bodentemperatur als Anker der Prognosepunkte · CC BY 4.0', status: 'geplant' },
   { cc: 'CH', name: 'MeteoSchweiz SwissMetNet', what: 'Luft, 5-cm- und Bodentemperatur als Anker der Prognosepunkte · CC BY 4.0', status: 'geplant' },

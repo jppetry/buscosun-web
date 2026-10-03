@@ -8,7 +8,7 @@
  * flag the route answers like an unknown path. The page itself is a lazy chunk of its own (`src/road/RoadPage.tsx`).
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
 import { roadFlagFrom, rememberRoadFlag } from '../../road/roadFlag';
@@ -21,6 +21,7 @@ export default function RoadRoute() {
   const { road } = useParams<{ road?: string }>();
   const loc = useLocation();
   const navigate = useNavigate();
+  const navType = useNavigationType();
   const enabled = useMemo(() => roadFlagFrom(loc.search), [loc.search]);
   useEffect(() => { rememberRoadFlag(loc.search); }, [loc.search]);
 
@@ -60,7 +61,10 @@ export default function RoadRoute() {
   if (!enabled) return <NotFoundRoute />;
   return (
     <Suspense fallback={<AppLoader />}>
-      <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor} />
+      {/* Back/forward (POP) hands the URL's state to the mounted page — `initial` is read only once (review #6,
+          pattern FireRoute `routeView`). */}
+      <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor}
+        popState={navType === 'POP' ? { ...parsed.state, key: loc.key } : null} />
     </Suspense>
   );
 }

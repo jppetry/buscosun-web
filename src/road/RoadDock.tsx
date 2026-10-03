@@ -67,6 +67,7 @@ export default function RoadDock(p: Props) {
           const on = c.id === p.selectedId;
           const parts = [`${st.measured} gemessen`];
           if (st.critical) parts.push(`${st.critical} kritisch`);
+          if (st.unknown) parts.push(`${st.unknown} ohne Zustand`);
           if (st.nodata) parts.push(`${st.nodata} ohne Messung`);
           return (
             <button key={c.id} type="button" className={`aw-road${on ? ' is-active' : ''}`} aria-pressed={on} onClick={() => p.onPick(c.id)}>

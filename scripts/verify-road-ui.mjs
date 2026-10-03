@@ -56,6 +56,28 @@ mkdirSync(join(killedSite, 'obs'), { recursive: true });
 }
 add('A0 Fixture-Slot über den echten Producer abgeleitet (1 555 Punkte, freigegeben)', sum.publish && sum.points > 1400, `${sum.points} Punkte`);
 
+// --- V: view model without a browser (review findings #7, #8) ---------------------------------------------
+{
+  const view = await import('../src/road/roadView.ts');
+  const corr = (n) => ({ id: 'x', stations: Array.from({ length: n }, (_, i) => ({ id: `S${i}`, km: i })) });
+  const by = (classes) => new Map(classes.map((c, i) => [`S${i}`, { id: `S${i}`, cls: c, rs: c === 'nodata' ? null : 4 }]));
+  const s1 = view.corridorStatus(corr(30), by(['dry', ...Array(29).fill('unknown')]));
+  add('V1 D-04 im Dock: 1 trockene + 29 Stationen ohne Zustand ⇒ Status-Punkt NICHT trocken', s1.worst !== 'dry' && view.isHatched(s1.worst), JSON.stringify(s1));
+  const s2 = view.corridorStatus(corr(25), by([...Array(20).fill('dry'), 'unknown', 'unknown', 'nodata']));
+  add('V2 überwiegend trocken gemessen ⇒ trocken; Zählung trennt „ohne Zustand" (2) von „ohne Messung" (1 + 2 fehlende)', s2.worst === 'dry' && s2.unknown === 2 && s2.nodata === 3 && s2.measured === 22, JSON.stringify(s2));
+  const s3 = view.corridorStatus(corr(10), by(['dry', 'dry', 'wet', 'unknown']));
+  add('V3 eine nasse Station bestimmt den Punkt (Warnwert vor allem anderen)', s3.worst === 'wet', JSON.stringify(s3));
+  const now = Date.UTC(2026, 9, 3, 8, 30);
+  const alerts = [
+    { id: 'old', onsetMs: now - 3 * 3_600_000, effectiveMs: null, expiresMs: now - 60_000 },
+    { id: 'now', onsetMs: now - 3_600_000, effectiveMs: null, expiresMs: now + 3_600_000 },
+    { id: 'later', onsetMs: now + 3_600_000, effectiveMs: null, expiresMs: now + 7_200_000 },
+  ];
+  const act = typeof view.activeRoadWarnings === 'function' ? view.activeRoadWarnings(alerts, now).map((a) => a.id).join(',') : 'activeRoadWarnings fehlt';
+  add('W1 Warnungen werden beim Zeichnen nach der Uhr gefiltert (abgelaufen/zukünftig fallen weg)', act === 'now', act);
+  add('W2 Warnungen werden spätestens alle 5 min neu geholt', typeof view.ROAD_WARN_REFRESH_MS === 'number' && view.ROAD_WARN_REFRESH_MS <= 5 * 60_000, String(view.ROAD_WARN_REFRESH_MS));
+}
+
 const SLOT_MS = Date.UTC(2026, 9, 3, 8, 0);
 /** Page clock = slot + offset (minutes), advancing in real time. */
 const clockScript = (offsetMin) => `(() => {
@@ -92,14 +114,20 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, offs
         }
         return;
       }
-      if (/opendata\.dwd\.de\/weather\/alerts\//.test(url)) {
+      // DWD warnings fail on purpose (the page fetches them through the same-origin proxy `/_dwd_opendata/…`):
+      // the test must never depend on the live feed.
+      if (/(?:opendata\.dwd\.de|\/_dwd_opendata)\/weather\/alerts\//.test(url)) {
         await ctx.send('Fetch.failRequest', { requestId: msg.params.requestId, errorReason: 'Failed' }).catch(() => {});
         return;
       }
       await ctx.send('Fetch.continueRequest', { requestId: msg.params.requestId }).catch(() => {});
     }
   });
-  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*road/v1/*' }, { urlPattern: '*opendata.dwd.de/weather/alerts/*' }] });
+  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*road/v1/*' }, { urlPattern: '*opendata.dwd.de/weather/alerts/*' }, { urlPattern: '*/_dwd_opendata/weather/alerts/*' }] });
+  // The app's service worker answers same-origin requests (warnings via `/_dwd_opendata/…`) before page-level
+  // interception sees them — bypass it, the test must not depend on the live DWD feed.
+  await ctx.send('Network.enable', {});
+  await ctx.send('Network.setBypassServiceWorker', { bypass: true });
   await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: clockScript(offsetMin) });
   await ctx.send('Page.navigate', { url: `${BASE}${path}` });
   return { ctx, errors, served, off };
@@ -160,8 +188,9 @@ const allErrors = [];
   await shot(ctx, 'desktop-1440-strecke');
   await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][2].click()`);
   await sleep(400);
-  const q = await ctx.evaluate(`({ blocked: document.querySelectorAll('.aw-source.is-blockiert').length, active: document.querySelectorAll('.aw-source.is-aktiv').length })`);
-  add('D4 Reiter Quellen: blockierte Quellen sichtbar (3), aktive genannt', q.blocked === 3 && q.active >= 2, JSON.stringify(q));
+  const q = await ctx.evaluate(`({ blocked: document.querySelectorAll('.aw-source.is-blockiert').length, active: document.querySelectorAll('.aw-source.is-aktiv').length, text: document.querySelector('.aw-readout')?.innerText ?? '' })`);
+  add('D4 Reiter Quellen: blockierte Quellen sichtbar (3), aktive genannt', q.blocked === 3 && q.active >= 2, JSON.stringify({ blocked: q.blocked, active: q.active }));
+  add('D5 Quellen nennen GeoNames (CC BY 4.0) für die Ortsnamen der Korridore (review #9)', /GeoNames/.test(q.text) && /CC BY 4\.0/.test(q.text));
   await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][0].click()`);
   await sleep(300);
 
@@ -201,6 +230,28 @@ const allErrors = [];
     return { labels: labels.length, covered: ticks.filter((t) => labels.some((l) => hit(l, t))).length };
   })()`);
   add('B3 Grenzbeschriftung im Band verdeckt keinen Messpunkt', overlap.labels > 0 && overlap.covered === 0, JSON.stringify(overlap));
+
+  // M: review findings #5, #6, #8, #9 in the browser.
+  const src = await ctx.evaluate(`({ line: document.querySelector('.aw-sources')?.textContent ?? '', dwd: !!document.querySelector('.aw-readout a[href*="dwd.de"]'), note: [...document.querySelectorAll('.aw-readout .aw-note')].map((e) => e.textContent).join(' | ') })`);
+  add('M1 Herkunftszeile in der Form „Datenbasis: Deutscher Wetterdienst …" (docs/API.md §7)', /Datenbasis: Deutscher Wetterdienst/.test(src.line), src.line.slice(0, 160));
+  add('M2 Warnungen nicht abrufbar ⇒ kein Ersatztext, aber ein Link zu den amtlichen DWD-Warnungen', src.dwd && /nicht abrufbar/.test(src.note), src.note.slice(0, 160));
+  const corrFix = JSON.parse(readFileSync(join(FIX, 'corridors-munich.json'), 'utf8')).corridors;
+  const before = await ctx.evaluate(`({ path: location.pathname, search: location.search, title: document.querySelector('.aw-pill-title')?.textContent })`);
+  const picked = await ctx.evaluate(`(() => { const rows = [...document.querySelectorAll('.aw-dock .aw-road:not(.is-static)')]; const r = rows.find((x) => !x.classList.contains('is-active') && /A 9\\b/.test(x.textContent)) ?? rows.find((x) => !x.classList.contains('is-active')); const t = r.querySelector('.aw-road-title')?.textContent; r.click(); return t; })()`);
+  const target = corrFix.find((c) => c.title === picked);
+  await sleep(1500);
+  await until(ctx, `Number(document.querySelector('.aw-map-canvas')?.dataset.idle ?? 0) > Date.now() - 1500`, 20_000);
+  await sleep(800);
+  const b = await ctx.evaluate(`(document.querySelector('.aw-map-canvas')?.dataset.bounds ?? '').split(',').map(Number)`);
+  const lons = target?.line.map((p) => p[0]) ?? [], lats = target?.line.map((p) => p[1]) ?? [];
+  const bb = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+  const inside = b.length === 4 && bb[0] >= b[0] && bb[1] >= b[1] && bb[2] <= b[2] && bb[3] <= b[3];
+  const tight = b.length === 4 && (b[2] - b[0]) < 6 * Math.max(0.2, bb[2] - bb[0]);
+  add('M3 Korridor im Dock gewählt ⇒ die Karte fährt zu ihm (ganz im Bild, nicht DACH-weit)', !!target && inside && tight, `${picked} · Karte ${b.map((v) => v.toFixed(2)).join(',')} · Korridor ${bb.map((v) => v.toFixed(2)).join(',')}`);
+  await ctx.evaluate(`history.back()`);
+  const back = await until(ctx, `location.pathname === ${JSON.stringify(before.path)} && document.querySelector('.aw-pill-title')?.textContent === ${JSON.stringify(before.title)}`, 10_000);
+  const after = await ctx.evaluate(`({ path: location.pathname, title: document.querySelector('.aw-pill-title')?.textContent })`);
+  add('M4 Zurück-Taste nach Korridorwechsel ⇒ Seite zeigt wieder den vorigen Korridor (URL und Inhalt gleich)', back, `${before.path} „${before.title}" → ${after.path} „${after.title}"`);
   off(); allErrors.push(...errors); await ctx.close();
 }
 
