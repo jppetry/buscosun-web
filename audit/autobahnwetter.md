@@ -403,9 +403,15 @@ belegbar (Force-Push der Kartenlinie, Aufbewahrung `obs/` 3 h).
 
 | Slot (UTC) | Reihen | Punkte | verworfen | letzte DWD-Datei | abgeleitet | Commit `origin/main` | nach Slotbeginn | jsDelivr (eine Anfrage ≥ 4 min nach dem Commit) |
 |---|---|---|---|---|---|---|---|---|
-| 13:30 | 23 | 1 546 | 1,54 % | 13:33:29 | 13:33:54 (576 ms) | 13:33:55 | **235 s** | 200 MISS, 1 546 Punkte, Client-Prüfer 0 verworfen, 960 ms |
+| 13:30 | 23 | 1 546 | 1,54 % | 13:33:29 | 13:33:54 (576 ms) | 13:33:55 | **235 s** | 200 MISS 960 ms (später HIT 42 ms), 1 546 Punkte, Client-Prüfer 0 verworfen |
+| 13:45 | 23 | 1 547 | 1,54 % | 13:48:12 | 13:48:14 (543 ms) | 13:48:15 | **195 s** | 200 MISS 356 ms, 1 547 / 0 |
+| 14:00 | 23 | 1 548 | 1,54 % | 14:03:03 | 14:03:15 (553 ms) | 14:03:16 | **196 s** | 200 MISS 448 ms, 1 548 / 0 |
+| 14:15 | 23 | 1 547 | 1,51 % | 14:18:04 | 14:18:33 (546 ms) | 14:18:34 | **214 s** | 200 MISS 517 ms, 1 547 / 0 |
 
-*(weitere Live-Slots §5.4)*
+Damit liegt jeder der ersten vier Live-Slots **3:15–3:55 min nach Slotbeginn** im Daten-Repo — gut vor dem Zeit-Gate
+des Clients (Slot + 10 min) und der Producer-Frist (Slot + 12 min). Die Zeit wird von der letzten DWD-Reihe bestimmt
+(183–209 s, KK/SH wie im Spike §2.7); Ableitung 0,5–0,6 s, Push ≤ 25 s danach. jsDelivr wurde je Slot genau einmal und
+erst ≥ 4 min nach dem Commit gefragt (keine früh festgesetzte 404).
 
 Klassen im Slot 13:30: trocken 999 · nass 91 · Zustand unbekannt 82 · keine gültige Messung 374. Ring
 `h24/FN-BY/2610031330.json`: 96 Slots, 160 Stationen, Klassenspalte `k` vorhanden. Bilanz harte Regeln (13:30):
