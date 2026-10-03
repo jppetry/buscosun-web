@@ -17,7 +17,7 @@ import { phaseLabelStep, intensityBand, intensityColor, NOWCAST_STEP_MIN, NOWCAS
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
-import { heroState, leadLabel, fmtDuration, fmtClock, fmtMmH, sourceLabel, freshness, type Nowcast } from './nowcastView';
+import { heroState, leadLabel, fmtDuration, fmtClock, fmtMmH, sourceLabel, nwpLabel, freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastRadarMap from './NowcastRadarMap';
 import NowcastBarChart from './NowcastBarChart';
@@ -179,7 +179,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           {nowcast && (
             <div className="rm-sourcepill">
               <span className="rm-src-dot" />
-              {nowcast.hasRadar ? 'RADOLAN-RV · 1 km' : 'ICON-D2 · 2,2 km'} · Lauf {fmtClock(nowcast.runAtMs || nowcast.fetchedAtMs)}
+              {nowcast.hasRadar ? 'RADOLAN-RV · 1 km' : nowcast.nwpSource === 'cube' ? 'buscosun Fusion' : 'ICON-D2 · 2,2 km'} · Lauf {fmtClock(nowcast.runAtMs || nowcast.fetchedAtMs)}
             </div>
           )}
           <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
@@ -290,7 +290,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
       <div className="rr-datalage">
         <div className="rr-datalage-eyebrow">Datenlage</div>
         <div className="rr-datalage-row">0–2 h · DWD RADOLAN-RV</div>
-        <div className="rr-datalage-row">2–6 h · ICON-D2 (2,2 km)</div>
+        <div className="rr-datalage-row">2–6 h · {nowcast?.nwpSource === 'live' ? 'ICON-D2 (2,2 km) · Live-Pfad' : 'buscosun Fusion (Punkt-Cube)'}</div>
         <div className={`rr-datalage-fresh${fresh?.stale ? ' is-stale' : ''}`}>
           <span className="rr-fresh-dot" />
           {fresh ? fresh.label : 'wird geladen …'}
@@ -332,7 +332,7 @@ function ReadoutBody({ nowcast, state, mode }: {
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
       <Sources nowcast={nowcast} />
-      <div className="rr-readout-foot">● DWD RADOLAN-RV (Radar-Nowcast) · ICON-D2 (2,2 km) · keine Tracker</div>
+      <div className="rr-readout-foot">● DWD RADOLAN-RV (Radar-Nowcast) · {nowcast.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : 'ICON-D2 (2,2 km)'} · keine Tracker</div>
     </>
   );
 }
@@ -433,7 +433,9 @@ function Sources({ nowcast }: { nowcast: Nowcast }) {
         <summary>Datenquellen &amp; Modelllauf</summary>
         <div>
           <strong>0–2 h:</strong> {nowcast.hasRadar ? `DWD RADOLAN-RV (Radar-Nowcast, 1 km)${nowcast.runAtMs ? ` · Lauf ${fmtClock(nowcast.runAtMs)}` : ''}` : 'kein Radar verfügbar — Modell ab jetzt'}<br />
-          <strong>2–6 h:</strong> ICON-D2 (2,2 km, DWD) — punktgenau höhenkorrigiert<br />
+          <strong>2–6 h:</strong> {nowcast.nwpSource === 'cube'
+            ? 'buscosun Fusion auf dem Punkt-Cube — dieselbe Vorhersage wie Punkt-Panel und Dashboard, Messungen der nächsten Stationen als Anker'
+            : `ICON-D2 (2,2 km, DWD) — punktgenau höhenkorrigiert${nowcast.nwpSource === 'live' ? ' (Live-Pfad, Rückfall)' : ''}`}<br />
           <strong>Blend:</strong> Radar wird zw. ~1,5–2,5 h gleitend aufs Modell übergeblendet.
         </div>
       </details>
@@ -701,7 +703,7 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
           <div className="rm-seclabel rm-seclabel--wide">Kumulierte Summe</div>
           <div className="rm-card rm-chartcard"><MobileCumChart nowcast={nowcast} /></div>
           <div className="rm-chartpage-foot">
-            <span className="rm-src-dot" /> RADOLAN-RV (0–2 h) · ICON-D2 (2–6 h) · Lauf {fmtClock(nowcast.runAtMs || nowcast.fetchedAtMs)}
+            <span className="rm-src-dot" /> RADOLAN-RV (0–2 h) · {nwpLabel(nowcast)} (2–6 h) · Lauf {fmtClock(nowcast.runAtMs || nowcast.fetchedAtMs)}
           </div>
         </>
       ) : <PanelState state={state} />}

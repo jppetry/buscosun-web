@@ -21,7 +21,7 @@
   zu lang waren.
 - **Bitte entscheiden:** E-AW-14 (Edge-Bündel), E-AW-16 (`health.yml` ist seit September immer rot — so meldet er auch
   keinen Straßenausfall), E-AW-13 (Voreinstellung der Messstelle), dann Gate B nach 7 Tagen Schatten (≈ 10.10.),
-  Kalibrierung ≥ 14 Tage, Gate C (Flag an), Archiv-Freigabe für AW-6. Einzelheiten: `MANUELLE-SCHRITTE.md` §33.
+  Kalibrierung ≥ 14 Tage, Gate C (Flag an), Archiv-Freigabe für AW-6. Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
 

@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Regenradar 2.0 – Desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A85E2E}a:hover{color:#C97B47}
+button{font-family:inherit}
+@keyframes npPulse{0%{transform:scale(.6);opacity:.75}100%{transform:scale(2.6);opacity:0}}
+.np-range{-webkit-appearance:none;appearance:none;background:transparent;width:100%;height:44px;margin:0;cursor:pointer}
+.np-range::-webkit-slider-runnable-track{height:44px;background:transparent}
+.np-range::-webkit-slider-thumb{-webkit-appearance:none;width:4px;height:44px;background:#2C2A26;border-radius:2px;box-shadow:0 0 0 3px rgba(250,246,234,.9)}
+.np-range::-moz-range-track{height:44px;background:transparent}
+.np-range::-moz-range-thumb{width:4px;height:44px;background:#2C2A26;border:0;border-radius:2px}
+.np-range:focus-visible{outline:2px solid #3A6FA8;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; overflow: hidden; background: #EDE6D3; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<nav aria-label="Bereiche" style="width: 62px; flex: 0 0 auto; background: #2C2A26; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; box-sizing: border-box">
+<button type="button" aria-label="buscosun Startseite" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #E0A567; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; cursor: pointer">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+</button>
+<button type="button" aria-label="Wetterkarte" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>
+</button>
+<div style="position: relative; display: flex">
+<div style="position: absolute; left: -10px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: #5E97D1"></div>
+<button type="button" aria-label="Regenradar" aria-current="page" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: #3A3833; color: #8FB4E3; display: flex; align-items: center; justify-content: center; cursor: default">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle><path d="M12 12l5.5-5.5"></path></svg>
+</button>
+</div>
+<button type="button" aria-label="Vorhersage" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"></path><path d="M4 15l4-5 4 3 4-6 4 4"></path></svg>
+</button>
+<button type="button" aria-label="Tourenplanung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="6" r="2.2"></circle><path d="M8 17c5-1 2-7 8-10"></path></svg>
+</button>
+<button type="button" aria-label="Event-Planung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+</button>
+<button type="button" aria-label="Historie" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3 2"></path></svg>
+</button>
+<button type="button" aria-label="Brandradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 21c-4 0-6.5-2.6-6.5-6 0-4 3.5-6 4-10 2.5 2 3 4 3 6 1-1 1.5-2 1.5-3.5 2 1.8 4.5 4.5 4.5 7.5 0 3.4-2.5 6-6.5 6z"></path></svg>
+</button>
+</nav>
+
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0">
+
+<header style="height: 60px; flex: 0 0 auto; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: #FAF6EA; border-bottom: 1px solid #E0D6BE; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px; flex: 0 0 auto">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+<div style="display: flex; flex-direction: column; line-height: 1.05">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #3A6FA8">REGENRADAR</span>
+<span style="font-size: 17px; font-weight: 700">Niederschlag</span>
+</div>
+</div>
+<label style="display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid #E0D6BE; border-radius: 10px; background: #FFFFFF; width: 270px; box-sizing: border-box; flex: 0 0 auto">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Ort suchen</span>
+<input type="text" value="Garmisch-Partenkirchen · 708 m" readonly="readonly" style="border: 0; outline: none; background: transparent; font-family: inherit; font-size: 13.5px; color: #2C2A26; width: 100%">
+</label>
+<div style="display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; overflow: hidden">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 13px; background: #F0F4EA; border: 1px solid #C3D2AF; font-size: 11.5px; color: #4D6A3B; white-space: nowrap"><span style="width: 7px; height: 7px; border-radius: 4px; background: #7A9466"></span>Radar 14:30 · 5 min</span>
+<span style="display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 13px; background: #F4EFE3; border: 1px solid #E0D6BE; font-size: 11.5px; color: #5C5447; white-space: nowrap">Zellen 14:30</span>
+<span style="display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 13px; background: #F4EFE3; border: 1px solid #E0D6BE; font-size: 11.5px; color: #5C5447; white-space: nowrap">Blitze 14:35</span>
+<span style="display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 13px; background: #E8F0FA; border: 1px solid #C7D6E4; font-size: 11.5px; color: #28507A; white-space: nowrap">Fusion 8 · Cube 09 UTC</span>
+</div>
+<div role="group" aria-label="Ansicht" style="display: flex; padding: 3px; gap: 2px; background: #EDE6D3; border-radius: 10px; flex: 0 0 auto">
+<button type="button" onClick="{{ viewMap }}" aria-pressed="{{ vb.mapOn }}" style="box-sizing: border-box; {{ vb.mapStyle }}">Karte</button>
+<button type="button" onClick="{{ viewSplit }}" aria-pressed="{{ vb.splitOn }}" style="box-sizing: border-box; {{ vb.splitStyle }}">Karte + 3D</button>
+<button type="button" onClick="{{ view3d }}" aria-pressed="{{ vb.d3On }}" style="box-sizing: border-box; {{ vb.d3Style }}">3D</button>
+</div>
+<button type="button" aria-label="Ansicht teilen" style="height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #E0D6BE; background: #FFFFFF; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2C2A26; cursor: pointer; flex: 0 0 auto">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5.5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="18.5" r="2.5"></circle><path d="M8.2 10.8l7.6-4M8.2 13.2l7.6 4"></path></svg>Teilen</button>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; min-height: 0">
+
+<sc-if value="{{ dockFull }}" hint-placeholder-val="{{ true }}">
+<aside aria-label="Ebenen und Darstellung" style="width: 250px; flex: 0 0 auto; background: #FAF6EA; border-right: 1px solid #E0D6BE; padding: 16px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; overflow-y: auto">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">EBENEN</span>
+<sc-for list="{{ layerRows }}" as="row" hint-placeholder-count="5">
+<button type="button" onClick="{{ row.toggle }}" aria-pressed="{{ row.on }}" style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 8px; border-radius: 10px; border: 1px solid {{ row.border }}; background: {{ row.bg }}; text-align: left; cursor: pointer; width: 100%; box-sizing: border-box">
+<span style="width: 30px; height: 30px; border-radius: 8px; background: {{ row.chip }}; display: flex; align-items: center; justify-content: center; flex: 0 0 auto"><span style="width: 12px; height: 12px; border-radius: 3px; background: {{ row.color }}"></span></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0">
+<span style="font-size: 13.5px; font-weight: 600; color: #2C2A26">{{ row.label }}</span>
+<span style="font-size: 10.5px; color: #8B7355; line-height: 1.2">{{ row.sub }}</span>
+</span>
+<span style="width: 30px; height: 18px; border-radius: 9px; background: {{ row.track }}; position: relative; flex: 0 0 auto"><span style="position: absolute; top: 2px; left: {{ row.knob }}px; width: 14px; height: 14px; border-radius: 7px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(44,42,38,.25)"></span></span>
+</button>
+</sc-for>
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355; margin-top: 6px">ZUSATZ</span>
+<sc-for list="{{ extraRows }}" as="row" hint-placeholder-count="2">
+<button type="button" onClick="{{ row.toggle }}" aria-pressed="{{ row.on }}" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 8px; border-radius: 10px; border: 1px solid {{ row.border }}; background: {{ row.bg }}; text-align: left; cursor: pointer; width: 100%; box-sizing: border-box">
+<span style="width: 12px; height: 12px; border-radius: 3px; background: {{ row.color }}; margin: 0 9px; flex: 0 0 auto"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto">
+<span style="font-size: 13px; font-weight: 600; color: #2C2A26">{{ row.label }}</span>
+<span style="font-size: 10.5px; color: #8B7355">{{ row.sub }}</span>
+</span>
+<span style="width: 30px; height: 18px; border-radius: 9px; background: {{ row.track }}; position: relative; flex: 0 0 auto"><span style="position: absolute; top: 2px; left: {{ row.knob }}px; width: 14px; height: 14px; border-radius: 7px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(44,42,38,.25)"></span></span>
+</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">DARSTELLUNG</span>
+<div role="group" aria-label="Darstellung" style="display: flex; padding: 3px; gap: 2px; background: #EDE6D3; border-radius: 10px">
+<sc-for list="{{ dispBtns }}" as="b" hint-placeholder-count="3">
+<button type="button" onClick="{{ b.pick }}" aria-pressed="{{ b.on }}" style="box-sizing: border-box; {{ b.style }}">{{ b.label }}</button>
+</sc-for>
+</div>
+<button type="button" onClick="{{ togglePhase }}" aria-pressed="{{ phase }}" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 8px; border-radius: 10px; border: 1px solid #E0D6BE; background: #FFFFFF; cursor: pointer; text-align: left">
+<span style="display: flex; gap: 2px; flex: 0 0 auto"><span style="width: 8px; height: 14px; border-radius: 2px; background: #3278DC"></span><span style="width: 8px; height: 14px; border-radius: 2px; background: #A47DC9"></span><span style="width: 8px; height: 14px; border-radius: 2px; background: #C9D3F4; border: 1px solid #7E8DD6; box-sizing: border-box"></span></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto">
+<span style="font-size: 13px; font-weight: 600">Phase einfärben</span>
+<span style="font-size: 10.5px; color: #8B7355">Regen · Schneeregen · Schnee (Modell, DE später gemessen)</span>
+</span>
+<span style="width: 30px; height: 18px; border-radius: 9px; background: {{ phaseTrack }}; position: relative; flex: 0 0 auto"><span style="position: absolute; top: 2px; left: {{ phaseKnob }}px; width: 14px; height: 14px; border-radius: 7px; background: #FFFFFF"></span></span>
+</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">DATENLAGE</span>
+<div style="display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 6px 8px; font-size: 11px; line-height: 1.3; color: #5C5447">
+<span style="font-weight: 700; color: #2C2A26">DE</span><span>Radar 5 min · Zellen · Blitze (Bodennetz)</span>
+<span style="font-weight: 700; color: #2C2A26">AT</span><span>INCA 15 min bis 3 h · keine Zellen · Blitze nur Satellit</span>
+<span style="font-weight: 700; color: #2C2A26">CH</span><span>Radar nur jetzt · Hagel MESHS · Blitze nur Satellit</span>
+</div>
+</div>
+</aside>
+</sc-if>
+<sc-if value="{{ dockSlim }}" hint-placeholder-val="{{ false }}">
+<aside aria-label="Ebenen (kompakt)" style="width: 64px; flex: 0 0 auto; background: #FAF6EA; border-right: 1px solid #E0D6BE; padding: 14px 8px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 8px">
+<sc-for list="{{ layerRows }}" as="row" hint-placeholder-count="5">
+<button type="button" onClick="{{ row.toggle }}" aria-pressed="{{ row.on }}" aria-label="{{ row.label }}" style="width: 46px; height: 46px; border-radius: 10px; border: 1px solid {{ row.border }}; background: {{ row.bg }}; display: flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 14px; height: 14px; border-radius: 4px; background: {{ row.color }}; opacity: {{ row.dim }}"></span></button>
+</sc-for>
+</aside>
+</sc-if>
+
+<main style="flex: 1 1 auto; position: relative; min-width: 0; display: flex; background: #E4DFD2">
+
+<sc-if value="{{ showMap }}" hint-placeholder-val="{{ true }}">
+<section aria-label="Karte" style="flex: 1 1 0; position: relative; min-width: 0; overflow: hidden; border-right: {{ mapBorder }}">
+<svg width="100%" height="100%" viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Niederschlagskarte Oberbayern und Tirol" style="display: block; position: absolute; inset: 0">
+<defs>
+<radialGradient id="gStrat"><stop offset="0" stop-color="rgb(50,120,220)" stop-opacity="0.78"></stop><stop offset="0.45" stop-color="rgb(95,165,235)" stop-opacity="0.62"></stop><stop offset="1" stop-color="rgb(150,200,245)" stop-opacity="0"></stop></radialGradient>
+<radialGradient id="gConv"><stop offset="0" stop-color="rgb(150,40,140)" stop-opacity="0.92"></stop><stop offset="0.16" stop-color="rgb(190,40,95)" stop-opacity="0.9"></stop><stop offset="0.3" stop-color="rgb(228,75,55)" stop-opacity="0.9"></stop><stop offset="0.43" stop-color="rgb(240,150,50)" stop-opacity="0.9"></stop><stop offset="0.55" stop-color="rgb(200,215,60)" stop-opacity="0.9"></stop><stop offset="0.67" stop-color="rgb(60,200,120)" stop-opacity="0.88"></stop><stop offset="0.8" stop-color="rgb(40,175,230)" stop-opacity="0.75"></stop><stop offset="1" stop-color="rgb(150,200,245)" stop-opacity="0"></stop></radialGradient>
+<radialGradient id="gSnow"><stop offset="0" stop-color="rgb(94,108,192)" stop-opacity="0.85"></stop><stop offset="0.45" stop-color="rgb(158,174,232)" stop-opacity="0.78"></stop><stop offset="1" stop-color="rgb(232,238,252)" stop-opacity="0"></stop></radialGradient>
+<radialGradient id="gMix"><stop offset="0" stop-color="rgb(150,90,190)" stop-opacity="0.8"></stop><stop offset="0.5" stop-color="rgb(186,140,220)" stop-opacity="0.6"></stop><stop offset="1" stop-color="rgb(220,190,240)" stop-opacity="0"></stop></radialGradient>
+<radialGradient id="gSum"><stop offset="0" stop-color="rgb(40,80,122)" stop-opacity="0.75"></stop><stop offset="0.5" stop-color="rgb(58,111,168)" stop-opacity="0.5"></stop><stop offset="1" stop-color="rgb(157,195,230)" stop-opacity="0"></stop></radialGradient>
+<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.75"></line></pattern>
+<pattern id="alpsHatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)"><line x1="0" y1="0" x2="0" y2="9" stroke="#D9D5CA" stroke-width="1"></line></pattern>
+</defs>
+<rect x="0" y="0" width="1000" height="760" fill="#F1F0EB"></rect>
+<path d="M0 470 C 120 455 220 470 330 450 C 430 430 520 445 620 425 C 720 410 820 420 1000 395 L 1000 760 L 0 760 Z" fill="#E8E6DF"></path>
+<path d="M0 470 C 120 455 220 470 330 450 C 430 430 520 445 620 425 C 720 410 820 420 1000 395 L 1000 760 L 0 760 Z" fill="url(#alpsHatch)"></path>
+<path d="M0 560 C 140 540 260 575 380 560 C 500 545 600 575 720 560 C 820 548 900 560 1000 540 L 1000 760 L 0 760 Z" fill="#E1DED5"></path>
+<g fill="#CBD9E3" stroke="#BCCCD8" stroke-width="1">
+<ellipse cx="431" cy="234" rx="15" ry="40"></ellipse>
+<ellipse cx="508" cy="281" rx="13" ry="54"></ellipse>
+<ellipse cx="519" cy="438" rx="12" ry="9"></ellipse>
+<ellipse cx="514" cy="474" rx="16" ry="10"></ellipse>
+<ellipse cx="673" cy="403" rx="9" ry="14"></ellipse>
+<ellipse cx="940" cy="312" rx="40" ry="30"></ellipse>
+</g>
+<g fill="none" stroke="#C3D3DE" stroke-width="2.4" stroke-linecap="round">
+<path d="M481 562 C 520 520 560 470 600 374 C 610 300 600 220 608 152 C 612 100 640 60 660 0"></path>
+<path d="M385 673 C 450 668 500 664 538 661 C 610 640 650 626 692 614 C 760 570 800 520 835 480 C 860 420 880 370 885 325 C 900 260 930 180 960 120"></path>
+<path d="M423 532 C 450 505 490 470 519 438"></path>
+</g>
+<g fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round">
+<path d="M608 152 C 560 260 470 380 423 532"></path>
+<path d="M608 152 C 690 210 760 270 819 316 C 850 380 845 440 835 480"></path>
+<path d="M608 152 C 500 160 420 170 346 190 C 260 240 180 320 119 392"></path>
+<path d="M835 480 C 760 560 650 640 538 661"></path>
+</g>
+<path d="M0 497 L 173 497 L 269 515 L 346 567 L 377 573 L 481 585 L 635 509 L 835 480 L 1000 421" fill="none" stroke="#A9A293" stroke-width="1.6" stroke-dasharray="7 5"></path>
+<text x="40" y="440" font-size="13" letter-spacing="3" fill="#A49D8E" font-weight="600">DEUTSCHLAND</text>
+<text x="700" y="740" font-size="13" letter-spacing="3" fill="#A49D8E" font-weight="600">ÖSTERREICH</text>
+<g font-size="15" fill="#5E5A52" font-weight="600">
+<circle cx="608" cy="152" r="4" fill="#5E5A52"></circle><text x="618" y="148">München</text>
+<circle cx="119" cy="392" r="3" fill="#5E5A52"></circle><text x="128" y="388">Kempten</text>
+<circle cx="269" cy="485" r="3" fill="#5E5A52"></circle><text x="236" y="470">Füssen</text>
+<circle cx="819" cy="316" r="3" fill="#5E5A52"></circle><text x="828" y="312">Rosenheim</text>
+<circle cx="538" cy="661" r="4" fill="#5E5A52"></circle><text x="548" y="680">Innsbruck</text>
+<circle cx="600" cy="374" r="3" fill="#5E5A52"></circle><text x="610" y="370">Bad Tölz</text>
+<circle cx="835" cy="480" r="3" fill="#5E5A52"></circle><text x="845" y="494">Kufstein</text>
+</g>
+<text x="352" y="596" font-size="12" fill="#8A8476">Zugspitze 2 962 m</text>
+
+<g visibility="{{ vis.snowCover }}">
+<path d="M330 572 C 350 556 380 552 410 566 C 420 584 392 598 360 596 Z" fill="rgb(224,238,253)" fill-opacity="0.85" stroke="rgb(172,207,244)" stroke-width="1"></path>
+<path d="M470 590 C 500 576 540 578 566 596 C 560 614 520 620 488 612 Z" fill="rgb(224,238,253)" fill-opacity="0.85" stroke="rgb(172,207,244)" stroke-width="1"></path>
+<path d="M300 700 C 380 684 470 690 560 700 C 640 696 700 704 760 716 L 760 760 L 300 760 Z" fill="rgb(172,207,244)" fill-opacity="0.6"></path>
+<text x="580" y="728" font-size="12" fill="#28507A">Schneedecke ICON-D2</text>
+</g>
+
+<g visibility="{{ vis.sum }}">
+<sc-for list="{{ sumBlobs }}" as="b" hint-placeholder-count="4">
+<ellipse cx="{{ b.x }}" cy="{{ b.y }}" rx="{{ b.rx }}" ry="{{ b.ry }}" fill="url(#gSum)"></ellipse>
+</sc-for>
+<text x="24" y="736" font-size="13" fill="#28507A" font-weight="600">Summe 12:00 bis {{ clockT }} · gemessen (RV-Analysen)</text>
+</g>
+
+<g visibility="{{ vis.radar }}">
+<sc-for list="{{ blobs }}" as="b" hint-placeholder-count="6">
+<ellipse cx="{{ b.x }}" cy="{{ b.y }}" rx="{{ b.rx }}" ry="{{ b.ry }}" fill="{{ b.fill }}" transform="rotate(-12 {{ b.x }} {{ b.y }})"></ellipse>
+<ellipse cx="{{ b.x }}" cy="{{ b.y }}" rx="{{ b.hrx }}" ry="{{ b.hry }}" fill="url(#hatch)" opacity="{{ b.hatchOp }}" transform="rotate(-12 {{ b.x }} {{ b.y }})"></ellipse>
+</sc-for>
+</g>
+
+<g visibility="{{ vis.prob }}">
+<sc-for list="{{ dots }}" as="d" hint-placeholder-count="40">
+<circle cx="{{ d.x }}" cy="{{ d.y }}" r="{{ d.r }}" fill="{{ d.c }}" fill-opacity="0.78"></circle>
+</sc-for>
+<sc-for list="{{ contours }}" as="c" hint-placeholder-count="2">
+<ellipse cx="{{ c.x }}" cy="{{ c.y }}" rx="{{ c.rx }}" ry="{{ c.ry }}" fill="none" stroke="#28507A" stroke-width="1.6" stroke-dasharray="6 4" transform="rotate({{ c.rot }} {{ c.x }} {{ c.y }})"></ellipse>
+<text x="{{ c.lx }}" y="{{ c.ly }}" font-size="12.5" fill="#28507A" font-weight="600">{{ c.label }}</text>
+</sc-for>
+</g>
+
+<g visibility="{{ vis.snowline }}">
+<path d="{{ snowPath }}" fill="none" stroke="#8C9BE0" stroke-opacity="0.28" stroke-width="{{ snowBeltW }}" stroke-linecap="round"></path>
+<path d="{{ snowPath }}" fill="none" stroke="#FFFFFF" stroke-width="5"></path>
+<path d="{{ snowPath }}" fill="none" stroke="#4F5FB8" stroke-width="2.2"></path>
+<rect x="18" y="{{ snowLabelY }}" width="300" height="24" rx="6" fill="#FAF6EA" fill-opacity="0.94" stroke="#C9D3F4"></rect>
+<text x="28" y="{{ snowTextY }}" font-size="13" fill="#3E4C9A" font-weight="600">Schneefallgrenze {{ snowH }} m · Band {{ snowLo }}–{{ snowHi }} m</text>
+</g>
+
+<g visibility="{{ vis.lpi }}">
+<path d="M640 300 C 720 260 860 270 930 330 C 960 400 900 460 820 470 C 730 470 650 430 630 370 Z" fill="none" stroke="#C79A3A" stroke-width="2" stroke-dasharray="3 5"></path>
+<text x="700" y="296" font-size="12.5" fill="#9A6A1E" font-weight="600">Blitzprognose LPI · Modell</text>
+</g>
+
+<g visibility="{{ vis.cells }}">
+<sc-for list="{{ cells }}" as="c" hint-placeholder-count="3">
+<g opacity="{{ c.op }}" onClick="{{ c.pick }}" style="cursor: pointer">
+<polygon points="{{ c.cone }}" fill="{{ c.color }}" fill-opacity="0.12" stroke="{{ c.color }}" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 3"></polygon>
+<line x1="{{ c.x0 }}" y1="{{ c.y0 }}" x2="{{ c.x60 }}" y2="{{ c.y60 }}" stroke="{{ c.color }}" stroke-width="2"></line>
+<sc-for list="{{ c.ticks }}" as="k" hint-placeholder-count="6">
+<line x1="{{ k.x1 }}" y1="{{ k.y1 }}" x2="{{ k.x2 }}" y2="{{ k.y2 }}" stroke="{{ c.color }}" stroke-width="1.6"></line>
+</sc-for>
+<text x="{{ c.x30l }}" y="{{ c.y30l }}" font-size="11.5" fill="{{ c.color }}" font-weight="700">+30</text>
+<text x="{{ c.x60l }}" y="{{ c.y60l }}" font-size="11.5" fill="{{ c.color }}" font-weight="700">+60 min</text>
+<sc-for list="{{ c.trail }}" as="p" hint-placeholder-count="6">
+<circle cx="{{ p.x }}" cy="{{ p.y }}" r="2.6" fill="{{ c.color }}" fill-opacity="{{ p.op }}"></circle>
+</sc-for>
+<polygon points="{{ c.hull }}" fill="{{ c.color }}" fill-opacity="{{ c.hullFill }}" stroke="{{ c.color }}" stroke-width="{{ c.hullW }}" stroke-dasharray="{{ c.hullDash }}"></polygon>
+<rect x="{{ c.lx }}" y="{{ c.ly }}" width="{{ c.lw }}" height="22" rx="6" fill="#FAF6EA" stroke="{{ c.color }}" stroke-width="{{ c.focusW }}"></rect>
+<text x="{{ c.ltx }}" y="{{ c.lty }}" font-size="12.5" fill="#2C2A26" font-weight="600">{{ c.label }}</text>
+</g>
+</sc-for>
+</g>
+
+<g visibility="{{ vis.hail }}">
+<polygon points="{{ hailHull }}" fill="#C0307A" fill-opacity="0.25" stroke="#C0307A" stroke-width="2"></polygon>
+</g>
+
+<g visibility="{{ vis.lightning }}">
+<sc-for list="{{ flashes }}" as="f" hint-placeholder-count="10">
+<g stroke="{{ f.c }}" stroke-width="2.4" stroke-linecap="round"><line x1="{{ f.x1 }}" y1="{{ f.y }}" x2="{{ f.x2 }}" y2="{{ f.y }}"></line><line x1="{{ f.x }}" y1="{{ f.y1 }}" x2="{{ f.x }}" y2="{{ f.y2 }}"></line></g>
+</sc-for>
+</g>
+
+<circle cx="423" cy="532" r="9" fill="#C97B47" fill-opacity="0.25" style="transform-origin: 423px 532px; animation: npPulse 2.2s ease-out infinite"></circle>
+<circle cx="423" cy="532" r="6.5" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2.4"></circle>
+<rect x="436" y="519" width="168" height="26" rx="7" fill="#2C2A26"></rect>
+<text x="446" y="537" font-size="13.5" fill="#F5F1E8" font-weight="600">Garmisch-P. · 708 m</text>
+</svg>
+
+<div style="position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; max-width: 70%">
+<div style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(250,246,234,.95); border: 1px solid #E0D6BE; font-size: 12px; color: #2C2A26">
+<span style="padding: 2px 8px; border-radius: 8px; background: {{ zone.bg }}; color: {{ zone.fg }}; font-size: 10px; font-weight: 700; letter-spacing: 1.2px">{{ zone.tag }}</span>
+<span>{{ zone.source }}</span>
+</div>
+<sc-if value="{{ zone.isModel }}" hint-placeholder-val="{{ false }}">
+<div style="max-width: 300px; padding: 8px 12px; border-radius: 10px; background: rgba(250,246,234,.95); border: 1px dashed #9AA7B5; font-size: 11.5px; line-height: 1.35; color: #5C5447">Kein Radar mehr: Punktdichte = Chance auf Niederschlag, Konturen = Median-Menge. Vorgerechnete Hälfte von buscosun Fusion, ohne Stationsanker.</div>
+</sc-if>
+</div>
+<div style="position: absolute; right: 14px; top: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end">
+<div style="padding: 8px 10px; border-radius: 10px; background: rgba(250,246,234,.95); border: 1px solid #E0D6BE; display: flex; flex-direction: column; gap: 5px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">{{ legend.title }}</span>
+<div style="display: flex; height: 8px; width: 150px; border-radius: 4px; overflow: hidden">
+<sc-for list="{{ legend.stops }}" as="s" hint-placeholder-count="8"><span style="flex: 1 1 0; background: {{ s }}"></span></sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 10px; color: #5C5447; width: 150px"><span>{{ legend.lo }}</span><span>{{ legend.mid }}</span><span>{{ legend.hi }}</span></div>
+</div>
+<div style="display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; border: 1px solid #E0D6BE; background: rgba(250,246,234,.95)">
+<button type="button" aria-label="Hineinzoomen" style="width: 44px; height: 44px; border: 0; border-bottom: 1px solid #E0D6BE; background: transparent; font-size: 20px; color: #2C2A26; cursor: pointer">+</button>
+<button type="button" aria-label="Herauszoomen" style="width: 44px; height: 44px; border: 0; background: transparent; font-size: 20px; color: #2C2A26; cursor: pointer">−</button>
+</div>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{ show3d }}" hint-placeholder-val="{{ false }}">
+<section aria-label="3D-Bühne" style="flex: 1 1 0; position: relative; min-width: 0; overflow: hidden; background: #F3EEE2">
+<div style="position: absolute; left: 14px; top: 14px; right: 14px; display: flex; align-items: center; gap: 10px; z-index: 2">
+<div role="group" aria-label="3D-Modus" style="display: flex; padding: 3px; gap: 2px; background: rgba(237,230,211,.95); border-radius: 10px">
+<button type="button" onClick="{{ setRelief }}" aria-pressed="{{ m3.reliefOn }}" style="box-sizing: border-box; {{ m3.reliefStyle }}">Relief</button>
+<button type="button" onClick="{{ setSection }}" aria-pressed="{{ m3.sectionOn }}" style="box-sizing: border-box; {{ m3.sectionStyle }}">Höhen-Zeit-Schnitt</button>
+</div>
+<span style="font-size: 11.5px; color: #5C5447">{{ m3.note }}</span>
+</div>
+
+<sc-if value="{{ m3.reliefOn }}" hint-placeholder-val="{{ true }}">
+<svg width="100%" height="100%" viewBox="0 0 600 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="3D-Relief mit Zelltürmen und Schneefallgrenze" style="position: absolute; inset: 0; display: block">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCE3EA"></stop><stop offset="1" stop-color="#F3EEE2"></stop></linearGradient>
+<linearGradient id="tower" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"></stop><stop offset="1" stop-color="#000000" stop-opacity="0.18"></stop></linearGradient>
+<sc-for list="{{ ridges }}" as="r" hint-placeholder-count="5">
+<clipPath id="{{ r.clipId }}"><rect x="-10" y="0" width="620" height="{{ r.snowY }}"></rect></clipPath>
+</sc-for>
+</defs>
+<rect x="0" y="0" width="600" height="560" fill="url(#sky)"></rect>
+<polygon points="{{ plane.back }}" fill="#7C8FD6" fill-opacity="0.12" stroke="#4F5FB8" stroke-opacity="0.5" stroke-dasharray="5 4"></polygon>
+<sc-for list="{{ ridges }}" as="r" hint-placeholder-count="5">
+<polygon points="{{ r.pts }}" fill="{{ r.fill }}" stroke="{{ r.edge }}" stroke-width="1"></polygon>
+<polygon points="{{ r.pts }}" fill="#FBFCFF" clip-path="url(#{{ r.clipId }})"></polygon>
+<sc-for list="{{ r.towers }}" as="w" hint-placeholder-count="1">
+<g>
+<sc-for list="{{ w.streaks }}" as="s" hint-placeholder-count="8"><line x1="{{ s.x1 }}" y1="{{ s.y1 }}" x2="{{ s.x2 }}" y2="{{ s.y2 }}" stroke="#4F86C9" stroke-width="1.4" stroke-opacity="0.7"></line></sc-for>
+<rect x="{{ w.x }}" y="{{ w.yTop }}" width="{{ w.w }}" height="{{ w.h }}" fill="{{ w.color }}" fill-opacity="0.62"></rect>
+<rect x="{{ w.x }}" y="{{ w.yTop }}" width="{{ w.w }}" height="{{ w.h }}" fill="url(#tower)"></rect>
+<rect x="{{ w.hx }}" y="{{ w.hyTop }}" width="{{ w.hw }}" height="{{ w.hh }}" fill="#8F2140" fill-opacity="{{ w.hailOp }}"></rect>
+<ellipse cx="{{ w.cx }}" cy="{{ w.yTop }}" rx="{{ w.rx }}" ry="5" fill="{{ w.color }}" fill-opacity="0.85"></ellipse>
+<ellipse cx="{{ w.cx }}" cy="{{ w.yBot }}" rx="{{ w.rx }}" ry="5" fill="{{ w.color }}" fill-opacity="0.45"></ellipse>
+<rect x="{{ w.lx }}" y="{{ w.ly }}" width="{{ w.lw }}" height="34" rx="6" fill="#FAF6EA" fill-opacity="0.95" stroke="{{ w.color }}"></rect>
+<text x="{{ w.ltx }}" y="{{ w.lty1 }}" font-size="11.5" font-weight="700" fill="#2C2A26">{{ w.name }}</text>
+<text x="{{ w.ltx }}" y="{{ w.lty2 }}" font-size="10.5" fill="#5C5447">{{ w.sub }}</text>
+</g>
+</sc-for>
+</sc-for>
+<polygon points="{{ plane.front }}" fill="#7C8FD6" fill-opacity="0.10"></polygon>
+<line x1="-10" y1="{{ plane.frontY }}" x2="610" y2="{{ plane.frontY }}" stroke="#4F5FB8" stroke-width="1.6" stroke-dasharray="7 5"></line>
+<sc-for list="{{ curtain }}" as="k" hint-placeholder-count="20">
+<line x1="{{ k.x1 }}" y1="{{ k.y1 }}" x2="{{ k.x2 }}" y2="{{ k.y2 }}" stroke="{{ k.c }}" stroke-width="{{ k.w }}" stroke-linecap="round" stroke-opacity="0.75"></line>
+</sc-for>
+<circle cx="258" cy="{{ pin.y }}" r="6" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2.2"></circle>
+<line x1="258" y1="{{ pin.y }}" x2="258" y2="{{ pin.ly }}" stroke="#2C2A26" stroke-width="1.4"></line>
+<rect x="198" y="{{ pin.ry }}" width="120" height="22" rx="6" fill="#2C2A26"></rect>
+<text x="208" y="{{ pin.ty }}" font-size="11.5" fill="#F5F1E8" font-weight="600">Garmisch-P. 708 m</text>
+<text x="300" y="118" font-size="11" fill="#5C5447">Zugspitze 2 962 m</text>
+<line x1="330" y1="122" x2="352" y2="146" stroke="#8B7355" stroke-width="1"></line>
+<rect x="296" y="{{ plane.labelY }}" width="290" height="22" rx="6" fill="#FAF6EA" fill-opacity="0.95" stroke="#C9D3F4"></rect>
+<text x="304" y="{{ plane.textY }}" font-size="11.5" fill="#3E4C9A" font-weight="600">Schneefallgrenze {{ snowH }} m (Band {{ snowLo }}–{{ snowHi }} m)</text>
+<text x="14" y="548" font-size="10.5" fill="#8B7355">Überhöhung 1,3 · Echohöhen über NN, über Grund umgerechnet · Zellen nur DE-Verbund</text>
+</svg>
+</sc-if>
+
+<sc-if value="{{ m3.sectionOn }}" hint-placeholder-val="{{ false }}">
+<svg width="100%" height="100%" viewBox="0 0 600 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Höhen-Zeit-Schnitt am Ort: Schneefallgrenze gegen Ortshöhe" style="position: absolute; inset: 0; display: block">
+<rect x="0" y="0" width="600" height="560" fill="#F7F3E9"></rect>
+<text x="64" y="62" font-size="9" letter-spacing="1.5" font-weight="700" fill="#8B7355">NIEDERSCHLAG AM ORT · FUSION 8</text>
+<sc-for list="{{ sec.bars }}" as="b" hint-placeholder-count="48">
+<rect x="{{ b.x }}" y="{{ b.y }}" width="9" height="{{ b.h }}" fill="{{ b.c }}" rx="1.5"></rect>
+</sc-for>
+<sc-for list="{{ sec.grid }}" as="g" hint-placeholder-count="7">
+<line x1="64" y1="{{ g.y }}" x2="576" y2="{{ g.y }}" stroke="#E0D6BE" stroke-width="1"></line>
+<text x="56" y="{{ g.ty }}" font-size="11" fill="#8B7355" text-anchor="end">{{ g.label }}</text>
+</sc-for>
+<rect x="64" y="{{ sec.terrTop }}" width="512" height="{{ sec.terrH }}" fill="#D9D3C3" fill-opacity="0.35"></rect>
+<text x="572" y="{{ sec.terrLabelY }}" font-size="10.5" fill="#8B7355" text-anchor="end">Gelände im Umkreis 10 km: 700 – 2 962 m</text>
+<polygon points="{{ sec.band }}" fill="#8C9BE0" fill-opacity="0.28"></polygon>
+<polyline points="{{ sec.zero }}" fill="none" stroke="#9AA7B5" stroke-width="1.4" stroke-dasharray="5 4"></polyline>
+<polyline points="{{ sec.med }}" fill="none" stroke="#4F5FB8" stroke-width="2.4"></polyline>
+<line x1="64" y1="{{ sec.ortY }}" x2="576" y2="{{ sec.ortY }}" stroke="#C97B47" stroke-width="2"></line>
+<text x="70" y="{{ sec.ortTY }}" font-size="11.5" fill="#A85E2E" font-weight="600">Garmisch-P. 708 m</text>
+<text x="{{ sec.zeroLX }}" y="{{ sec.zeroLY }}" font-size="10.5" fill="#6B7A8F">Nullgradgrenze</text>
+<text x="{{ sec.medLX }}" y="{{ sec.medLY }}" font-size="11" fill="#3E4C9A" font-weight="600">Schneefallgrenze p50, Band p10–p90</text>
+<circle cx="{{ sec.cx }}" cy="{{ sec.ortY }}" r="6" fill="#FFFFFF" stroke="#4F5FB8" stroke-width="2.4"></circle>
+<rect x="{{ sec.boxX }}" y="{{ sec.boxY }}" width="236" height="52" rx="8" fill="#FAF6EA" stroke="#4F5FB8"></rect>
+<text x="{{ sec.boxTX }}" y="{{ sec.boxTY1 }}" font-size="12.5" font-weight="700" fill="#2C2A26">{{ sec.line1 }}</text>
+<text x="{{ sec.boxTX }}" y="{{ sec.boxTY2 }}" font-size="11" fill="#5C5447">{{ sec.line2 }}</text>
+<sc-for list="{{ sec.ticks }}" as="k" hint-placeholder-count="9">
+<line x1="{{ k.x }}" y1="470" x2="{{ k.x }}" y2="476" stroke="#8B7355"></line>
+<text x="{{ k.x }}" y="492" font-size="11" fill="#5C5447" text-anchor="middle">{{ k.label }}</text>
+</sc-for>
+<line x1="{{ sec.playX }}" y1="66" x2="{{ sec.playX }}" y2="470" stroke="#2C2A26" stroke-width="1.6" opacity="{{ sec.playOp }}"></line>
+<text x="64" y="530" font-size="10.5" fill="#8B7355">Nullgradgrenze aus T925/T850/T700 des Cubes · Schneefallgrenze und Phase aus buscosun Fusion 8 · 0–48 h</text>
+</svg>
+</sc-if>
+</section>
+</sc-if>
+
+<div style="position: absolute; left: 16px; right: 16px; bottom: 16px; height: 132px; border-radius: 13px; background: rgba(250,246,234,.96); border: 1px solid #E0D6BE; box-shadow: 0 8px 32px rgba(44,42,38,.10); padding: 10px 14px 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355; width: 64px; flex: 0 0 auto">14 TAGE</span>
+<div style="position: relative; flex: 1 1 auto; height: 20px">
+<svg width="100%" height="20" viewBox="0 0 336 20" preserveAspectRatio="none" style="display: block">
+<sc-for list="{{ overview }}" as="o" hint-placeholder-count="80">
+<rect x="{{ o.x }}" y="{{ o.y }}" width="0.82" height="{{ o.h }}" fill="{{ o.c }}"></rect>
+</sc-for>
+<rect x="{{ win.x }}" y="0.5" width="{{ win.w }}" height="19" fill="#3A6FA8" fill-opacity="0.08" stroke="#2C2A26" stroke-width="1.2" vector-effect="non-scaling-stroke"></rect>
+</svg>
+</div>
+<span style="font-size: 10.5px; color: #8B7355; width: 116px; flex: 0 0 auto; text-align: right">Chance je Stunde · Farbe = Phase</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<button type="button" onClick="{{ togglePlay }}" aria-label="{{ playLabel }}" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #2C2A26; color: #F5F1E8; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto">
+<sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"></rect><rect x="9.5" y="2" width="3.5" height="12" rx="1"></rect></svg></sc-if>
+<sc-if value="{{ notPlaying }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9.5-5.5z"></path></svg></sc-if>
+</button>
+<div style="display: flex; flex-direction: column; width: 108px; flex: 0 0 auto; line-height: 1.1">
+<span style="font-size: 18px; font-weight: 700; font-family: 'IBM Plex Mono', monospace">{{ timeLabel }}</span>
+<span style="font-size: 10.5px; font-weight: 700; letter-spacing: 1px; color: {{ zone.fg2 }}">{{ zone.tagLong }}</span>
+</div>
+<div style="position: relative; flex: 1 1 auto; height: 44px">
+<svg width="100%" height="44" viewBox="0 0 1000 44" preserveAspectRatio="none" style="position: absolute; inset: 0; display: block">
+<defs><pattern id="nowHatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#3A6FA8" stroke-width="3" stroke-opacity="0.35"></line></pattern>
+<pattern id="modelDots" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.3" fill="#8B9A7A"></circle></pattern></defs>
+<rect x="{{ ax.m0 }}" y="12" width="{{ ax.mw }}" height="20" fill="#3A6FA8" fill-opacity="0.38"></rect>
+<rect x="{{ ax.n0 }}" y="12" width="{{ ax.nw }}" height="20" fill="url(#nowHatch)"></rect>
+<rect x="{{ ax.n0 }}" y="12" width="{{ ax.nw }}" height="20" fill="#3A6FA8" fill-opacity="0.08"></rect>
+<rect x="{{ ax.f0 }}" y="12" width="{{ ax.fw }}" height="20" fill="url(#modelDots)"></rect>
+<rect x="{{ ax.f0 }}" y="12" width="{{ ax.fw }}" height="20" fill="#7A9466" fill-opacity="0.08"></rect>
+<sc-for list="{{ ax.flashes }}" as="f" hint-placeholder-count="8"><rect x="{{ f.x }}" y="4" width="3" height="7" fill="#D9822B"></rect></sc-for>
+<rect x="{{ ax.eta0 }}" y="33" width="{{ ax.etaW }}" height="6" rx="3" fill="#C9522E" opacity="{{ ax.etaOp }}"></rect>
+<rect x="{{ ax.life0 }}" y="40" width="{{ ax.lifeW }}" height="3" fill="#C9522E" fill-opacity="0.45" opacity="{{ ax.lifeOp }}"></rect>
+<rect x="{{ ax.ph0 }}" y="33" width="{{ ax.phW }}" height="6" rx="3" fill="#8C9BE0" opacity="{{ ax.phOp }}"></rect>
+<line x1="{{ ax.nowX }}" y1="2" x2="{{ ax.nowX }}" y2="42" stroke="#C97B47" stroke-width="2" stroke-dasharray="3 3"></line>
+</svg>
+<sc-for list="{{ ax.ticks }}" as="k" hint-placeholder-count="5">
+<span style="position: absolute; top: -2px; left: {{ k.pct }}%; transform: translateX(-50%); font-size: 10px; color: #5C5447; white-space: nowrap; pointer-events: none">{{ k.label }}</span>
+</sc-for>
+<label style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)" for="np-time">Zeitpunkt</label>
+<input id="np-time" class="np-range" type="range" min="{{ zr.min }}" max="{{ zr.max }}" step="{{ zr.step }}" value="{{ t }}" onChange="{{ onScrub }}" style="position: absolute; inset: 0">
+</div>
+<div role="group" aria-label="Zeitraum" style="display: flex; padding: 3px; gap: 2px; background: #EDE6D3; border-radius: 10px; flex: 0 0 auto">
+<sc-for list="{{ zoomBtns }}" as="b" hint-placeholder-count="4">
+<button type="button" onClick="{{ b.pick }}" aria-pressed="{{ b.on }}" style="box-sizing: border-box; {{ b.style }}">{{ b.label }}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; gap: 14px; padding-left: 182px; font-size: 10.5px; color: #5C5447; flex-wrap: wrap">
+<span style="display: inline-flex; align-items: center; gap: 5px"><span style="width: 14px; height: 8px; background: rgba(58,111,168,.38)"></span>gemessen</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span style="width: 14px; height: 8px; background: rgba(58,111,168,.18); border: 1px dashed #3A6FA8; box-sizing: border-box"></span>Nowcast DE bis 2 h</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span style="width: 14px; height: 8px; background: rgba(122,148,102,.25)"></span>Modell (Cube)</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span style="width: 4px; height: 8px; background: #D9822B"></span>Blitze</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span style="width: 14px; height: 5px; border-radius: 3px; background: #C9522E"></span>Zelle am Ort</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span style="width: 14px; height: 5px; border-radius: 3px; background: #8C9BE0"></span>Schnee bis 708 m möglich</span>
+</div>
+</div>
+</main>
+
+<aside aria-label="Ort und Zelle" style="width: 380px; flex: 0 0 auto; background: #EDE6D3; border-left: 1px solid #E0D6BE; padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; overflow-y: auto">
+
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #3A6FA8">REGENFAHRPLAN · GARMISCH-P.</span>
+<span style="font-size: 10px; padding: 2px 7px; border-radius: 6px; background: #E8F0FA; color: #28507A; font-weight: 600">buscosun Fusion 8</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-size: 34px; font-weight: 700; line-height: 1">Regen ab {{ eta.start }}</span>
+</div>
+<div style="font-size: 13px; color: #5C5447; line-height: 1.35">Beginn zwischen <b style="color: #2C2A26">{{ eta.lo }}</b> und <b style="color: #2C2A26">{{ eta.hi }}</b> (80 %) · Gewitterschauer aus WSW, danach Landregen · Nacht auf So Schneeregen, Schnee bis ins Tal möglich</div>
+<div role="tablist" aria-label="Zeitraum am Ort" style="display: flex; gap: 2px; padding: 3px; background: #EDE6D3; border-radius: 10px">
+<sc-for list="{{ fpTabs }}" as="b" hint-placeholder-count="3">
+<button type="button" role="tab" onClick="{{ b.pick }}" aria-selected="{{ b.on }}" style="box-sizing: border-box; {{ b.style }}">{{ b.label }}</button>
+</sc-for>
+</div>
+<sc-if value="{{ fp.is2 }}" hint-placeholder-val="{{ true }}">
+<div>
+<svg width="100%" height="96" viewBox="0 0 352 96" role="img" aria-label="Niederschlag am Ort in 5-Minuten-Schritten, eine Stunde zurück bis zwei Stunden voraus" style="display: block">
+<rect x="{{ strip.etaX }}" y="4" width="{{ strip.etaW }}" height="70" fill="#C9522E" fill-opacity="0.08" stroke="#C9522E" stroke-opacity="0.4" stroke-dasharray="3 3"></rect>
+<sc-for list="{{ strip.bars }}" as="b" hint-placeholder-count="36">
+<rect x="{{ b.x }}" y="{{ b.y }}" width="7.4" height="{{ b.h }}" rx="1.2" fill="{{ b.c }}" fill-opacity="{{ b.op }}"></rect>
+</sc-for>
+<line x1="{{ strip.nowX }}" y1="0" x2="{{ strip.nowX }}" y2="78" stroke="#C97B47" stroke-width="1.6" stroke-dasharray="3 3"></line>
+<line x1="{{ strip.tX }}" y1="0" x2="{{ strip.tX }}" y2="78" stroke="#2C2A26" stroke-width="1.4"></line>
+<text x="2" y="92" font-size="10.5" fill="#8B7355">13:00</text>
+<text x="{{ strip.nowX }}" y="92" font-size="10.5" fill="#A85E2E" text-anchor="middle">jetzt</text>
+<text x="350" y="92" font-size="10.5" fill="#8B7355" text-anchor="end">16:00</text>
+<text x="{{ strip.etaLX }}" y="14" font-size="10.5" fill="#A23E22" font-weight="600">Zelle 4127</text>
+</svg>
+<div style="font-size: 11px; color: #5C5447">Links gemessen (trocken), rechts Nowcast · Spitze 14 mm/h um 14:32 · Stundenmittel des Radars fließt in Fusion 8</div>
+</div>
+</sc-if>
+<sc-if value="{{ fp.is48 }}" hint-placeholder-val="{{ false }}">
+<div>
+<svg width="100%" height="110" viewBox="0 0 480 110" role="img" aria-label="48 Stunden: Median-Menge, ungünstiger Fall und Regenchance" style="display: block">
+<sc-for list="{{ h48.bars }}" as="b" hint-placeholder-count="48">
+<rect x="{{ b.x }}" y="{{ b.yHi }}" width="8" height="{{ b.hHi }}" fill="{{ b.c }}" fill-opacity="0.22"></rect>
+<rect x="{{ b.x }}" y="{{ b.yMed }}" width="8" height="{{ b.hMed }}" fill="{{ b.c }}"></rect>
+</sc-for>
+<polyline points="{{ h48.pline }}" fill="none" stroke="#2C2A26" stroke-width="1.5"></polyline>
+<sc-for list="{{ h48.ticks }}" as="k" hint-placeholder-count="5"><text x="{{ k.x }}" y="106" font-size="11" fill="#8B7355" text-anchor="middle">{{ k.label }}</text></sc-for>
+</svg>
+<div style="font-size: 11px; color: #5C5447">Säule = Median, blass = p90 · Linie = Chance auf Niederschlag · lila = Schneeregen/Schnee am Ort</div>
+</div>
+</sc-if>
+<sc-if value="{{ fp.is14 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 3px">
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="14">
+<div style="display: grid; grid-template-columns: 54px 38px minmax(0, 1fr) 76px; align-items: center; gap: 6px; font-size: 11.5px; height: 18px">
+<span style="font-weight: 600">{{ d.name }}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px">{{ d.p }} %</span>
+<span style="height: 6px; border-radius: 3px; background: #E0D6BE; position: relative"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{ d.w }}%; border-radius: 3px; background: {{ d.c }}"></span></span>
+<span style="font-size: 11px; color: #5C5447; text-align: right">{{ d.sum }}</span>
+</div>
+</sc-for>
+<div style="font-size: 11px; color: #5C5447; margin-top: 4px">Ab Tag 7 nähert sich die Chance der Klimatologie · Summe als p10–p90</div>
+</div>
+</sc-if>
+</section>
+
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #A85E2E">ZELLE {{ fc.id }} · KONRAD3D</span>
+<span style="font-size: 10.5px; padding: 2px 7px; border-radius: 6px; background: {{ fc.trendBg }}; color: {{ fc.trendFg }}; font-weight: 700">{{ fc.trend }}</span>
+</div>
+<div role="group" aria-label="Zelle wählen" style="display: flex; gap: 6px">
+<sc-for list="{{ cellChips }}" as="b" hint-placeholder-count="3">
+<button type="button" onClick="{{ b.pick }}" aria-pressed="{{ b.on }}" style="box-sizing: border-box; {{ b.style }}"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: {{ b.color }}; margin-right: 6px"></span>{{ b.label }}</button>
+</sc-for>
+</div>
+<div style="font-size: 15px; font-weight: 700">{{ fc.where }}</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px">
+<sc-for list="{{ fc.rows }}" as="r" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column"><span style="font-size: 9px; letter-spacing: 1.2px; font-weight: 700; color: #8B7355">{{ r.k }}</span><span style="font-size: 13.5px; font-weight: 600">{{ r.v }}</span></div>
+</sc-for>
+</div>
+<div style="font-size: 11.5px; color: #5C5447; line-height: 1.35">{{ fc.hints }}</div>
+<div style="font-size: 10.5px; color: #8B7355">Hinweis aus dem Radar, keine Warnung · maßgeblich sind die DWD-Warnungen</div>
+</section>
+
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #4F5FB8">SCHNEE AM ORT · 708 m</span>
+<div style="font-size: 15px; font-weight: 700">Schnee bis 708 m ab So 04:30 möglich</div>
+<div style="font-size: 12px; color: #5C5447; line-height: 1.4">Schneefallgrenze jetzt {{ snowH }} m, sinkt bis So 05:00 auf 650 m (Band 410–890 m) · Chance auf Schnee am Ort 60 % · Neuschnee bis So 12:00: 1–6 cm (Median 3 cm)</div>
+<div style="font-size: 10.5px; color: #8B7355">Schnee-Wasser-Verhältnis temperaturabhängig (Literaturwert) · Höhen-Zeit-Schnitt in der 3D-Bühne</div>
+</section>
+
+<section style="background: #F4EFE3; border: 1px dashed #D9D0B8; border-radius: 13px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; color: #8B7355">AM ORT ZUR GEWÄHLTEN ZEIT · HERKUNFT</span>
+<span style="font-size: 13px; font-weight: 600">{{ pix.v }}</span>
+<span style="font-size: 11.5px; color: #5C5447">{{ pix.src }}</span>
+</section>
+<span style="font-size: 10px; color: #A89A7A; text-align: center">Mockup · Beispieldaten · Szenario Sa 03.10. 14:00</span>
+</aside>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+var NP_DAYS = ['Sa', 'So', 'Mo', 'Di', 'Mi', 'Do', 'Fr'];
+var NP_ZOOMS = {
+  z4: { min: -120, max: 120, step: 5, every: 60, label: '4 h' },
+  z12: { min: -120, max: 600, step: 15, every: 120, label: '12 h' },
+  z48: { min: -120, max: 2880, step: 60, every: 720, label: '48 h' },
+  z14: { min: -120, max: 20160, step: 360, every: 2880, label: '14 T' }
+};
+var NP_LOC = { x: 423, y: 532 };
+var NP_RAMP = [[0.06, '#96C8F5'], [0.2, '#5FA5EB'], [0.5, '#3278DC'], [1, '#28AFE6'], [2, '#3CC878'], [3, '#C8D73C'], [5, '#F09632'], [8, '#E44B37'], [12, '#BE285F'], [20, '#96288C']];
+var NP_SEV = ['#C9A227', '#E08A2E', '#C9522E', '#8F2140'];
+var NP_CELLS = [
+  { id: 4127, x0: 330, y0: 545, vx: 3.1, vy: -0.4, birth: -55, sev: 2, r: 26, top: 9.8, base: 1.2, vil: 28, lr: 14, trend: 'wächst', kmh: 38, dist: '22 km WSW', hints: 'Starkregen-Hinweis ja · Hagel-Hinweis (3 km², kein Großhagel) · Böen bis 75 km/h geschätzt · Echotop +1,1 km in 10 min (aus zwei Läufen)', fl: [-50, -43, -36, -30, -24, -19, -14, -11, -8, -6, -4, -2, -1, 0] },
+  { id: 4133, x0: 585, y0: 430, vx: 2.6, vy: -0.8, birth: -35, sev: 1, r: 20, top: 7.6, base: 1.4, vil: 16, lr: 6, trend: 'gleichbleibend', kmh: 31, dist: '19 km NO', hints: 'Starkregen-Hinweis ja · kein Hagel-Hinweis · Böen bis 55 km/h geschätzt', fl: [-28, -20, -13, -9, -5, -2] },
+  { id: 4119, x0: 735, y0: 255, vx: 2.4, vy: -0.9, birth: -110, sev: 0, r: 16, top: 5.1, base: 1.6, vil: 6, lr: 1, trend: 'schwächt ab', kmh: 29, dist: '48 km NO', hints: 'keine Hinweise · Echotop −1,8 km in 20 min', fl: [-70, -52, -31] }
+];
+var NP_HULLF = [1, 0.84, 1.12, 0.9, 1.2, 0.95, 0.8, 1.06, 0.9, 1.16, 0.86, 1.0];
+
+function npPad(n) { return (n < 10 ? '0' : '') + n; }
+function npClock(t) { var tot = 840 + t; var m = ((tot % 1440) + 1440) % 1440; return npPad(Math.floor(m / 60)) + ':' + npPad(m % 60); }
+function npDay(t) { var tot = 840 + t; var d = Math.floor(tot / 1440); return NP_DAYS[((d % 7) + 7) % 7]; }
+function npFmt(t) { return npDay(t) + ' ' + npClock(t); }
+function npColor(mm) { var c = 'transparent'; for (var i = 0; i < NP_RAMP.length; i++) { if (mm >= NP_RAMP[i][0]) c = NP_RAMP[i][1]; } return c; }
+function npThousands(x) { var s = String(Math.round(x)); return s.length > 3 ? s.slice(0, s.length - 3) + ' ' + s.slice(-3) : s; }
+function npSnowH(t) { var h = t / 60; if (h <= 4) return 1900 + Math.max(0, -h) * 15; if (h <= 15) return 1900 - 1250 * (h - 4) / 11; if (h <= 22) return 650 + (h - 15) * 10; if (h <= 36) return 720 + (h - 22) * 41; if (h <= 48) return 1294 + (h - 36) * 25; return 1500 + 350 * Math.sin((h - 48) / 28); }
+function npBand(t) { return Math.min(650, 150 + 6 * Math.max(0, t / 60)); }
+function npPhaseAt(h) { var d = npSnowH(h * 60) - 708; return d < 0 ? 'snow' : d < 250 ? 'mix' : 'rain'; }
+function npPhaseColor(ph) { return ph === 'snow' ? '#8C9BE0' : ph === 'mix' ? '#A47DC9' : '#3A6FA8'; }
+function npHourly(h) {
+  var p, med;
+  if (h < 4) { p = 0.86; med = 3.2 - 0.5 * h; }
+  else if (h < 10) { p = 0.72; med = 1.1; }
+  else if (h < 21) { p = 0.9; med = 1.5; }
+  else if (h < 30) { p = 0.45; med = 0.35; }
+  else if (h < 58) { p = 0.1 + 0.04 * Math.sin(h / 3); med = 0; }
+  else if (h < 82) { p = 0.2 + 0.2 * (h - 58) / 24; med = 0.1; }
+  else if (h < 102) { p = 0.76; med = 0.9; }
+  else if (h < 130) { p = 0.3; med = 0.15; }
+  else if (h < 154) { p = 0.16; med = 0.05; }
+  else if (h < 178) { p = 0.5 + 0.1 * Math.sin(h / 4); med = 0.4; }
+  else if (h < 202) { p = 0.26; med = 0.1; }
+  else if (h < 226) { p = 0.58; med = 0.6; }
+  else { p = 0.36 + 0.05 * Math.sin(h / 6); med = 0.25; }
+  return { p: Math.max(0, Math.min(1, p)), med: med, hi: med * 2.4 + 0.3 * p };
+}
+function npLocI(t) { if (t < 18) return 0; if (t < 32) return 14 * (t - 18) / 14; if (t < 60) return 14 - 12 * (t - 32) / 28; return 1.5 + 0.5 * Math.sin(t / 9); }
+function npSnowY(t) { return 600 - (1900 - npSnowH(t)) / 1250 * 170; }
+function npPos(c, tt) { return { x: c.x0 + c.vx * tt, y: c.y0 + c.vy * tt }; }
+function npR(v) { return Math.round(v * 10) / 10; }
+function npBtn(on, extra) { return 'height: 32px; padding: 0 11px; border: 0; border-radius: 8px; font-size: 12.5px; cursor: pointer; ' + (on ? 'background: #2C2A26; color: #F5F1E8; font-weight: 600;' : 'background: transparent; color: #5C5447;') + (extra || ''); }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { t: 0, zoom: 'z4', view: 'map', mode3d: 'relief', disp: 'int', phase: true, fp: 'f2', playing: false, focus: 4127,
+      L: { precip: true, cells: true, lightning: true, snow: false, snowline: true, hail: false, lpi: false } };
+    this.timer = null;
+  }
+  componentDidUpdate(pp, ps) {
+    if (ps.playing !== this.state.playing) {
+      if (this.timer) { clearInterval(this.timer); this.timer = null; }
+      if (this.state.playing) { var self = this; this.timer = setInterval(function () { self.tick(); }, 240); }
+    }
+  }
+  componentWillUnmount() { if (this.timer) clearInterval(this.timer); }
+  tick() { var z = NP_ZOOMS[this.state.zoom]; var t = this.state.t + z.step; if (t > z.max) t = z.min; this.setState({ t: t }); }
+  toggleLayer(k) { var L = Object.assign({}, this.state.L); L[k] = !L[k]; this.setState({ L: L }); }
+
+  renderVals() {
+    var self = this;
+    var s = this.state, t = s.t, L = s.L, z = NP_ZOOMS[s.zoom];
+    var zone = t <= 0 ? 'past' : t <= 120 ? 'now' : 'model';
+    var h = t / 60;
+    var snowH = npSnowH(t), band = npBand(t);
+    var snowY = npSnowY(t);
+
+    var layerDefs = [
+      { k: 'precip', label: 'Niederschlag', sub: 'Radar-Komposit · danach Cube', color: '#3278DC', chip: '#E8F0FA' },
+      { k: 'cells', label: 'Zellbahnen', sub: 'KONRAD3D · DE-Verbund', color: '#C9522E', chip: '#FBEFE2' },
+      { k: 'lightning', label: 'Blitze', sub: 'DE Blitzdichte · DACH MTG-LI', color: '#D9822B', chip: '#FBF3E7' },
+      { k: 'snow', label: 'Schnee', sub: 'Decke | Neuschnee · ICON-D2', color: '#ACCFF4', chip: '#EEF1F4' },
+      { k: 'snowline', label: 'Schneefallgrenze', sub: 'Linie + Band p10–p90', color: '#4F5FB8', chip: '#EEF1FB' }
+    ];
+    function row(d) {
+      var on = !!L[d.k];
+      return { label: d.label, sub: d.sub, color: d.color, chip: d.chip, on: on, dim: on ? 1 : 0.35,
+        border: on ? '#C7D6E4' : '#E0D6BE', bg: on ? '#FFFFFF' : 'transparent', track: on ? '#3A6FA8' : '#D9D0B8', knob: on ? 14 : 2,
+        toggle: function () { self.toggleLayer(d.k); } };
+    }
+    var layerRows = layerDefs.map(row);
+    var extraRows = [
+      { k: 'hail', label: 'Hagel', sub: 'MESHS/POH (CH) · KONRAD (DE) · AT keine Quelle', color: '#C0307A', chip: '#FBE9F1' },
+      { k: 'lpi', label: 'Blitzprognose', sub: 'ICON-D2 LPI · Modell, bis 48 h', color: '#C79A3A', chip: '#FBF3E7' }
+    ].map(row);
+
+    var dispBtns = [['int', 'Intensität'], ['chance', 'Chance'], ['sum', 'Summe']].map(function (d) {
+      var on = s.disp === d[0];
+      return { label: d[1], on: on, style: npBtn(on, ' flex: 1 1 0;'), pick: function () { self.setState({ disp: d[0] }); } };
+    });
+    var zoomBtns = ['z4', 'z12', 'z48', 'z14'].map(function (k) {
+      var on = s.zoom === k;
+      return { label: NP_ZOOMS[k].label, on: on, style: npBtn(on), pick: function () { var nz = NP_ZOOMS[k]; self.setState({ zoom: k, t: Math.max(nz.min, Math.min(nz.max, self.state.t)) }); } };
+    });
+    var fpTabs = [['f2', '2 h'], ['f48', '48 h'], ['f14', '14 Tage']].map(function (d) {
+      var on = s.fp === d[0];
+      return { label: d[1], on: on, style: npBtn(on, ' flex: 1 1 0; height: 30px;'), pick: function () { self.setState({ fp: d[0] }); } };
+    });
+    var vb = {
+      mapOn: s.view === 'map', splitOn: s.view === 'split', d3On: s.view === '3d',
+      mapStyle: npBtn(s.view === 'map'), splitStyle: npBtn(s.view === 'split'), d3Style: npBtn(s.view === '3d')
+    };
+    var m3 = {
+      reliefOn: s.mode3d === 'relief', sectionOn: s.mode3d === 'section',
+      reliefStyle: npBtn(s.mode3d === 'relief'), sectionStyle: npBtn(s.mode3d === 'section'),
+      note: s.mode3d === 'relief' ? 'folgt Zeit und Ausschnitt der Karte' : 'am Ort · 0–48 h · folgt der Zeit'
+    };
+
+    // ---- zone chip
+    var zoneInfo = zone === 'past'
+      ? { tag: 'GEMESSEN', tagLong: 'GEMESSEN', bg: '#3A6FA8', fg: '#FFFFFF', fg2: '#28507A', isModel: false, source: 'DACH-Komposit · RADOLAN · INCA · rzc' }
+      : zone === 'now'
+        ? { tag: 'NOWCAST', tagLong: 'NOWCAST +' + t + ' MIN', bg: '#E8F0FA', fg: '#28507A', fg2: '#3A6FA8', isModel: false, source: 'DE RV-Nowcast · AT INCA · CH ohne Vorhersage' }
+        : { tag: 'MODELL', tagLong: 'MODELL · CUBE', bg: '#EFF3E8', fg: '#4D6A3B', fg2: '#5F7A4C', isModel: true, source: (t <= 2880 ? 'Cube t1 0,05° · ' : t <= 7200 ? 'Cube t2 0,10° · ' : 'Cube t3 0,25° · ') + 'Chance auf Niederschlag' };
+
+    // ---- visibility
+    var radarZone = zone !== 'model';
+    var vis = {
+      radar: L.precip && radarZone && s.disp === 'int' ? 'visible' : 'hidden',
+      sum: L.precip && radarZone && s.disp === 'sum' ? 'visible' : 'hidden',
+      prob: L.precip && (zone === 'model' || s.disp === 'chance') ? 'visible' : 'hidden',
+      cells: L.cells && t <= 60 ? 'visible' : 'hidden',
+      lightning: L.lightning && t <= 0 ? 'visible' : 'hidden',
+      lpi: L.lpi && t > 0 && t <= 2880 ? 'visible' : 'hidden',
+      hail: L.hail && t <= 60 ? 'visible' : 'hidden',
+      snowCover: L.snow ? 'visible' : 'hidden',
+      snowline: L.snowline ? 'visible' : 'hidden'
+    };
+
+    // ---- radar blobs
+    var tc = Math.max(-120, Math.min(120, t));
+    var strat = [[180, 330, 190, 85, 1], [330, 420, 150, 70, 1], [120, 560, 140, 80, 0.9], [260, 650, 170, 70, 0.9], [470, 610, 120, 55, 0.7]];
+    var blobs = [];
+    strat.forEach(function (b) {
+      var x = b[0] + 2.2 * tc, y = b[1] - 0.45 * tc;
+      var fill = 'url(#gStrat)', hatchOp = 0;
+      if (s.phase) {
+        if (y > snowY + 25) fill = 'url(#gSnow)';
+        else if (y > snowY - 45) { fill = 'url(#gMix)'; hatchOp = 0.55; }
+      }
+      blobs.push({ x: npR(x), y: npR(y), rx: b[2], ry: b[3], hrx: b[2] * 0.7, hry: b[3] * 0.7, fill: fill, hatchOp: hatchOp });
+    });
+    var cells = [];
+    NP_CELLS.forEach(function (c) {
+      if (tc < c.birth) return;
+      var life = c.id === 4119 ? Math.max(0.35, 1 - (tc + 110) / 200) : 1;
+      var p = npPos(c, tc);
+      blobs.push({ x: npR(p.x), y: npR(p.y), rx: c.r * 2.1 * life, ry: c.r * 1.6 * life, hrx: 0, hry: 0, fill: 'url(#gConv)', hatchOp: 0 });
+    });
+    var sumBlobs = [[300, 470, 260, 120], [560, 380, 190, 90], [760, 250, 150, 70]].map(function (b) { var k = (tc + 120) / 240; return { x: b[0] + 60 * k, y: b[1] - 12 * k, rx: b[2] * (0.6 + 0.6 * k), ry: b[3] * (0.6 + 0.6 * k) }; });
+
+    // ---- cells (KONRAD3D)
+    NP_CELLS.forEach(function (c) {
+      if (t < c.birth || t > 60) return;
+      var sp = Math.sqrt(c.vx * c.vx + c.vy * c.vy), nx = -c.vy / sp, ny = c.vx / sp;
+      var left = [], right = [];
+      for (var k = 0; k <= 60; k += 10) { var q = npPos(c, k), w = 4 + 0.35 * k; left.push(npR(q.x + nx * w) + ',' + npR(q.y + ny * w)); right.unshift(npR(q.x - nx * w) + ',' + npR(q.y - ny * w)); }
+      var ticks = [];
+      for (var k2 = 10; k2 <= 60; k2 += 10) { var q2 = npPos(c, k2); ticks.push({ x1: npR(q2.x + nx * 5), y1: npR(q2.y + ny * 5), x2: npR(q2.x - nx * 5), y2: npR(q2.y - ny * 5) }); }
+      var trail = [];
+      for (var te = c.birth; te <= Math.min(t, 0); te += 5) { var q3 = npPos(c, te); trail.push({ x: npR(q3.x), y: npR(q3.y), op: npR(0.2 + 0.6 * (te - c.birth) / Math.max(1, -c.birth)) }); }
+      var cur = npPos(c, t);
+      var scale = c.id === 4119 ? Math.max(0.5, 1 - (t + 110) / 220) : 1;
+      var hull = NP_HULLF.map(function (f, i) { var a = i * Math.PI / 6; return npR(cur.x + Math.cos(a) * c.r * f * scale) + ',' + npR(cur.y + Math.sin(a) * c.r * f * scale * 0.8); }).join(' ');
+      var p0 = npPos(c, 0), p60 = npPos(c, 60), p30 = npPos(c, 30);
+      var label = String(c.id) + ' · ' + c.trend;
+      var lw = 18 + label.length * 6.6;
+      var focus = s.focus === c.id;
+      cells.push({
+        color: NP_SEV[c.sev], op: 1,
+        cone: left.concat(right).join(' '),
+        x0: npR(p0.x), y0: npR(p0.y), x60: npR(p60.x), y60: npR(p60.y),
+        x30l: npR(p30.x + nx * 18 - 8), y30l: npR(p30.y + ny * 18 + 4), x60l: npR(p60.x + 8), y60l: npR(p60.y - 8),
+        ticks: ticks, trail: trail, hull: hull,
+        hullFill: t <= 0 ? 0.24 : 0.1, hullW: t <= 0 ? 2.4 : 1.8, hullDash: t <= 0 ? 'none' : '5 4',
+        lx: npR(cur.x - lw / 2), ly: npR(cur.y - c.r - 30), lw: npR(lw), ltx: npR(cur.x - lw / 2 + 9), lty: npR(cur.y - c.r - 15),
+        label: label, focusW: focus ? 2.4 : 1,
+        pick: function () { self.setState({ focus: c.id }); }
+      });
+    });
+    var c1 = NP_CELLS[0], hp = npPos(c1, Math.max(c1.birth, Math.min(60, t)));
+    var hailHull = [[-8, -6], [6, -9], [12, 2], [2, 9], [-9, 5]].map(function (d) { return npR(hp.x + 6 + d[0]) + ',' + npR(hp.y + 2 + d[1]); }).join(' ');
+
+    // ---- lightning (measured, last 15 min)
+    var flashes = [];
+    NP_CELLS.forEach(function (c, ci) {
+      c.fl.forEach(function (te, i) {
+        if (te > t || te < t - 15 || t > 0) return;
+        var q = npPos(c, te), ox = ((i * 37 + ci * 11) % 23) - 11, oy = ((i * 53 + ci * 7) % 19) - 9;
+        var age = t - te, col = age < 5 ? '#E3B23C' : age < 10 ? '#D9822B' : '#9A5A2A';
+        var x = q.x + ox, y = q.y + oy;
+        flashes.push({ x: npR(x), y: npR(y), x1: npR(x - 5), x2: npR(x + 5), y1: npR(y - 5), y2: npR(y + 5), c: col });
+      });
+    });
+
+    // ---- probability dots
+    var dots = [];
+    var contours = [];
+    if (vis.prob === 'visible') {
+      for (var i = 0; i < 36; i++) {
+        for (var j = 0; j < 27; j++) {
+          var x = 14 + i * 27.8, y = 14 + j * 28, p;
+          if (zone !== 'model') {
+            p = 0;
+            NP_CELLS.forEach(function (c) { if (t < c.birth) return; var q = npPos(c, Math.min(60, t + 20)); var dx = (x - q.x) / 70, dy = (y - q.y) / 55; p = Math.max(p, 0.95 * Math.exp(-(dx * dx + dy * dy))); });
+            var sx = (x - (220 + 2.2 * tc)) / 260, sy = (y - (420 - 0.45 * tc)) / 150; p = Math.max(p, 0.6 * Math.exp(-(sx * sx + sy * sy)));
+          } else if (h <= 30) {
+            var yc = 40 + h * 26 - 0.35 * x; var dd = (y - yc) / 140; p = 0.92 * Math.exp(-dd * dd);
+            var ax2 = (x - 420) / 220, by2 = (y - 560) / 140; p = Math.max(p, (h > 18 ? 0.5 : 0.3) * Math.exp(-(ax2 * ax2 + by2 * by2)));
+          } else {
+            var base = npHourly(h).p; p = Math.max(0, Math.min(1, base * (0.8 + 0.3 * Math.sin(x / 130 + y / 95 + h / 7))));
+          }
+          if (p > 0.07) dots.push({ x: npR(x), y: npR(y), r: npR(0.6 + 4.4 * p), c: s.phase && y > snowY ? (y > snowY + 40 ? '#5E6CC0' : '#9A6FC8') : '#3A6FA8' });
+        }
+      }
+      if (zone === 'model' && h <= 30) {
+        var ycm = 40 + h * 26 - 0.35 * 500;
+        contours.push({ x: 500, y: npR(ycm), rx: 430, ry: 80, rot: -19, lx: 640, ly: npR(ycm - 70), label: '≥ 0,5 mm/h (Median)' });
+        contours.push({ x: 470, y: npR(ycm + 8), rx: 250, ry: 42, rot: -19, lx: 300, ly: npR(ycm + 64), label: '≥ 2 mm/h' });
+      }
+    }
+
+    // ---- snowline path on map
+    var sp2 = [];
+    for (var x3 = 0; x3 <= 1000; x3 += 40) { var y3 = snowY + 18 * Math.sin(x3 / 90) + 10 * Math.sin(x3 / 37); sp2.push((x3 === 0 ? 'M' : 'L') + x3 + ' ' + npR(y3)); }
+    var snowLabelY = npR(snowY - 46);
+
+    // ---- legend
+    var legend = vis.prob === 'visible'
+      ? { title: 'CHANCE AUF NIEDERSCHLAG', stops: ['#E8F0FA', '#C7D6E4', '#9DC3E6', '#6E9FD0', '#3A6FA8', '#28507A'], lo: '10 %', mid: '50 %', hi: '90 %' }
+      : vis.sum === 'visible'
+        ? { title: 'SUMME SEIT 12:00 · MM', stops: ['#D7E6F5', '#9DC3E6', '#6E9FD0', '#3A6FA8', '#28507A', '#1B3A5C'], lo: '0,5', mid: '5', hi: '25' }
+        : { title: 'NIEDERSCHLAG · MM/H', stops: NP_RAMP.map(function (r) { return r[1]; }), lo: '0,1', mid: '2', hi: '≥ 20' };
+
+    // ---- time axis
+    var span = z.max - z.min;
+    function X(tt) { return npR((Math.max(z.min, Math.min(z.max, tt)) - z.min) / span * 1000); }
+    var ax = {
+      m0: X(-120), mw: npR(X(0) - X(-120)), n0: X(0), nw: npR(X(120) - X(0)), f0: X(120), fw: npR(X(z.max) - X(120)), nowX: X(0),
+      flashes: [], ticks: [],
+      eta0: 0, etaW: 0, etaOp: 0, life0: 0, lifeW: 0, lifeOp: 0, ph0: 0, phW: 0, phOp: 0
+    };
+    if (s.zoom === 'z4' || s.zoom === 'z12') NP_CELLS[0].fl.concat(NP_CELLS[1].fl).forEach(function (te) { ax.flashes.push({ x: X(te) }); });
+    for (var tk = z.min; tk <= z.max; tk += z.every) {
+      var lbl = tk === 0 ? 'jetzt' : (s.zoom === 'z14' ? npDay(tk) + ' ' + npClock(tk) : s.zoom === 'z48' ? npFmt(tk) : npClock(tk));
+      ax.ticks.push({ pct: npR((tk - z.min) / span * 100), label: lbl });
+    }
+
+    // ---- ETA of focused cell at the location (official ellipses)
+    var fcell = NP_CELLS.filter(function (c) { return c.id === s.focus; })[0] || NP_CELLS[0];
+    var etaLo = null, etaHi = null, etaMid = null, best = 1e9;
+    for (var k3 = 0; k3 <= 60; k3++) { var q4 = npPos(fcell, k3); var d4 = Math.sqrt(Math.pow(q4.x - NP_LOC.x, 2) + Math.pow(q4.y - NP_LOC.y, 2)); var rad = fcell.r * 0.6 + 4 + 0.35 * k3; if (d4 < rad) { if (etaLo === null) etaLo = k3; etaHi = k3; } if (d4 < best) { best = d4; etaMid = k3; } }
+    if (etaLo !== null) { ax.eta0 = X(etaLo); ax.etaW = npR(X(etaHi) - X(etaLo)); ax.etaOp = 1; }
+    ax.life0 = X(fcell.birth); ax.lifeW = npR(X(60) - X(fcell.birth)); ax.lifeOp = 1;
+    ax.ph0 = X(12.3 * 60); ax.phW = npR(X(21 * 60) - X(12.3 * 60)); ax.phOp = s.zoom === 'z4' ? 0 : 1;
+
+    var c0 = NP_CELLS[0], e1 = null, e2 = null;
+    for (var k6 = 0; k6 <= 60; k6++) { var q6 = npPos(c0, k6); var d6 = Math.sqrt(Math.pow(q6.x - NP_LOC.x, 2) + Math.pow(q6.y - NP_LOC.y, 2)); if (d6 < c0.r * 0.6 + 4 + 0.35 * k6) { if (e1 === null) e1 = k6; e2 = k6; } }
+    var eta = { start: npClock(20), lo: npClock(12), hi: npClock(31) };
+
+    var fc = {
+      id: fcell.id, where: fcell.dist + ' · zieht nach ONO, ' + fcell.kmh + ' km/h',
+      trend: fcell.trend, trendBg: fcell.trend === 'wächst' ? '#FBE9E4' : fcell.trend === 'schwächt ab' ? '#EFF3E8' : '#F4EFE3', trendFg: fcell.trend === 'wächst' ? '#8A1C1C' : fcell.trend === 'schwächt ab' ? '#4D6A3B' : '#5C5447',
+      rows: [
+        { k: 'AM ORT', v: etaLo !== null ? npClock(etaLo) + '–' + npClock(etaHi) : 'zieht vorbei' },
+        { k: 'ECHOTOP · BASIS', v: String(fcell.top).replace('.', ',') + ' · ' + String(fcell.base).replace('.', ',') + ' km' },
+        { k: 'BLITZRATE', v: fcell.lr + ' je 5 min' },
+        { k: 'VIL', v: fcell.vil + ' kg/m²' },
+        { k: 'ERSTE DETEKTION', v: npClock(fcell.birth) },
+        { k: 'ZUGBAHN', v: 'amtlich bis +60 min' }
+      ],
+      hints: fcell.hints
+    };
+
+    // ---- overview band + window
+    var overview = [];
+    for (var hh = 0; hh < 336; hh++) { var hv = npHourly(hh); var hg = npR(2 + 17 * hv.p); overview.push({ x: hh, y: npR(20 - hg), h: hg, c: npPhaseColor(npPhaseAt(hh)) }); }
+    var w0 = Math.max(0, z.min / 60), w1 = Math.min(336, z.max / 60);
+    var win = { x: npR(w0), w: npR(Math.max(1.5, w1 - w0)) };
+
+    // ---- location strip (2 h)
+    var bars = [];
+    for (var m = -60; m < 120; m += 5) {
+      var mm = m < 0 ? 0 : npLocI(m);
+      var bh = mm <= 0 ? 2 : Math.min(70, 6 + mm * 4.4);
+      bars.push({ x: npR((m + 60) / 180 * 350), y: npR(74 - bh), h: npR(bh), c: mm <= 0 ? '#D9D0B8' : npColor(mm), op: m < 0 ? 0.9 : 0.78 });
+    }
+    function SX(tt) { return npR((Math.max(-60, Math.min(120, tt)) + 60) / 180 * 350); }
+    var strip = { bars: bars, nowX: SX(0), tX: SX(t), etaX: SX(e1 || 22), etaW: npR(SX(e2 || 40) - SX(e1 || 22)), etaLX: npR(SX(e1 || 22) + 2) };
+
+    // ---- 48 h
+    var h48 = { bars: [], pline: '', ticks: [] };
+    var pts = [];
+    for (var hb = 0; hb < 48; hb++) {
+      var v = npHourly(hb), ph = npPhaseAt(hb), c = npPhaseColor(ph);
+      var hm = Math.min(70, v.med * 18), hhi = Math.min(80, v.hi * 18);
+      h48.bars.push({ x: hb * 10, yMed: npR(90 - hm), hMed: npR(Math.max(1, hm)), yHi: npR(90 - hhi), hHi: npR(Math.max(1, hhi)), c: c });
+      pts.push(npR(hb * 10 + 4) + ',' + npR(90 - v.p * 80));
+    }
+    h48.pline = pts.join(' ');
+    [0, 12, 24, 36, 47].forEach(function (hk) { h48.ticks.push({ x: hk * 10 + 4, label: npFmt(hk * 60).replace(':00', ' h') }); });
+
+    // ---- 14 days
+    var dayStarts = [0, 10, 34, 58, 82, 106, 130, 154, 178, 202, 226, 250, 274, 298];
+    var dateNums = ['03.10.', '04.10.', '05.10.', '06.10.', '07.10.', '08.10.', '09.10.', '10.10.', '11.10.', '12.10.', '13.10.', '14.10.', '15.10.', '16.10.'];
+    var days = dayStarts.map(function (ds, di) {
+      var de = di === 0 ? 10 : ds + 24, pm = 0, sum = 0, snow = false;
+      for (var q5 = ds; q5 < de; q5++) { var v5 = npHourly(q5); pm = Math.max(pm, v5.p); sum += v5.med * v5.p; if (npPhaseAt(q5) !== 'rain' && v5.p > 0.4) snow = true; }
+      var lo = Math.max(0, sum * 0.4), hi = sum * 2 + (di > 6 ? 3 : 1);
+      return { name: NP_DAYS[di % 7] + ' ' + dateNums[di].slice(0, 3), p: Math.round(pm * 100), w: Math.round(pm * 100), c: snow ? '#8C9BE0' : '#3A6FA8',
+        sum: sum < 0.5 ? '< 1 mm' : Math.round(lo) + '–' + Math.round(hi) + ' mm' };
+    });
+
+    // ---- pixel origin at the location
+    var pix;
+    if (zone === 'past') pix = { v: npFmt(t) + ' · kein Niederschlag gemessen', src: 'gemessen · RADOLAN-RV, Slot ' + npClock(Math.floor(t / 5) * 5) + ' · Spiegel buscosun-data' };
+    else if (zone === 'now') pix = { v: npFmt(t) + ' · ' + String(npR(npLocI(t))).replace('.', ',') + ' mm/h', src: 'Nowcast · RV-Lauf 14:30, +' + t + ' min · Phase aus T + Gelände (Modell)' };
+    else { var hv2 = npHourly(h); pix = { v: npFmt(t) + ' · Chance ' + Math.round(hv2.p * 100) + ' % · Median ' + String(npR(hv2.med)).replace('.', ',') + ' mm/h', src: 'Modell · ' + (t <= 2880 ? 'Cube t1' : t <= 7200 ? 'Cube t2' : 'Cube t3') + ' am Ort, buscosun Fusion 8 mit Station und Lernstufe' }; }
+
+    // ---- 3D relief
+    var bases = [205, 250, 305, 370, 455], hs = [70, 95, 125, 165, 215];
+    var fills = ['#C9CED3', '#B9C0B6', '#A6AE99', '#929C82', '#7D896B'], edges = ['#B7BDC3', '#A6AEA2', '#949C86', '#808A70', '#6B765A'];
+    function alt(x, d) {
+      var a = 800 + 1600 * Math.pow(Math.max(0, Math.sin((x + d * 70) / 95)), 1.4) * (0.6 + 0.4 * Math.sin((x * 0.7 + d * 40) / 53));
+      if (d === 1) a += 1150 * Math.exp(-Math.pow((x - 362) / 38, 2));
+      if (d === 4) a = 700 + 700 * Math.pow(Math.max(0, Math.sin((x + 30) / 120)), 2);
+      if (d === 3) a = 750 + 1300 * Math.pow(Math.max(0, Math.sin((x + 140) / 80)), 1.6);
+      return Math.min(2962, a);
+    }
+    var ridges = [];
+    for (var d = 0; d < 5; d++) {
+      var rp = ['-10,560'];
+      for (var rx = -10; rx <= 610; rx += 10) rp.push(rx + ',' + npR(bases[d] - alt(rx, d) / 3000 * hs[d]));
+      rp.push('610,560');
+      ridges.push({ pts: rp.join(' '), fill: fills[d], edge: edges[d], clipId: 'snowclip' + d, snowY: npR(bases[d] - snowH / 3000 * hs[d]), towers: [] });
+    }
+    var plane = {
+      back: '-10,' + npR(bases[0] - snowH / 3000 * hs[0]) + ' 610,' + npR(bases[0] - snowH / 3000 * hs[0]) + ' 610,' + npR(bases[2] - snowH / 3000 * hs[2]) + ' -10,' + npR(bases[2] - snowH / 3000 * hs[2]),
+      front: '-10,' + npR(bases[2] - snowH / 3000 * hs[2]) + ' 610,' + npR(bases[2] - snowH / 3000 * hs[2]) + ' 610,' + npR(bases[4] - snowH / 3000 * hs[4]) + ' -10,' + npR(bases[4] - snowH / 3000 * hs[4]),
+      frontY: npR(bases[4] - snowH / 3000 * hs[4])
+    };
+    plane.labelY = npR(Math.min(500, plane.frontY + 10)); plane.textY = npR(plane.labelY + 15);
+    if (L.cells && t <= 60) {
+      NP_CELLS.forEach(function (c) {
+        if (t < c.birth) return;
+        var q = npPos(c, t), sx = 30 + q.x * 0.54;
+        var dd2 = Math.max(1, Math.min(3, 1 + (q.y - 200) / 180));
+        var di2 = Math.round(dd2);
+        var gy = bases[di2] - 900 / 3000 * hs[di2];
+        var scale2 = c.id === 4119 ? Math.max(0.5, 1 - (t + 110) / 220) : 1;
+        var yTop = gy - c.top * 16 * scale2, yBot = gy - c.base * 16, w = c.r * 1.3;
+        var streaks = [];
+        for (var si = 0; si < 7; si++) { var x0s = sx - w / 2 + 3 + si * (w - 6) / 6; streaks.push({ x1: npR(x0s), y1: npR(yBot + 4), x2: npR(x0s - 7), y2: npR(gy - 2) }); }
+        var name = String(c.id);
+        ridges[di2].towers.push({
+          x: npR(sx - w / 2), w: npR(w), yTop: npR(yTop), yBot: npR(yBot), h: npR(yBot - yTop), cx: npR(sx), rx: npR(w / 2), color: NP_SEV[c.sev],
+          hx: npR(sx - w / 5), hw: npR(w / 2.5), hyTop: npR(yTop + (yBot - yTop) * 0.25), hh: npR((yBot - yTop) * 0.35), hailOp: c.id === 4127 && L.hail ? 0.75 : 0,
+          streaks: streaks, name: name + ' · Echotop ' + String(c.top).replace('.', ',') + ' km', sub: c.trend + ' · ' + c.lr + ' Blitze/5 min',
+          lx: npR(sx + w / 2 + 6), ly: npR(yTop - 6), lw: 150, ltx: npR(sx + w / 2 + 13), lty1: npR(yTop + 9), lty2: npR(yTop + 22)
+        });
+      });
+    }
+    var curtain = [];
+    if (zone === 'model') {
+      var hv3 = npHourly(h), ph3 = npPhaseAt(h), n = Math.round(70 * hv3.p);
+      for (var ci = 0; ci < n; ci++) {
+        var cx = (ci * 73) % 600, cy = 150 + (ci * 47) % 230;
+        if (ph3 === 'rain') curtain.push({ x1: cx, y1: cy, x2: cx - 5, y2: cy + 12, c: '#4F86C9', w: 1.4 });
+        else curtain.push({ x1: cx, y1: cy, x2: cx + 0.5, y2: cy + 0.5, c: ph3 === 'snow' ? '#FFFFFF' : '#B79BDD', w: ph3 === 'snow' ? 4.2 : 3 });
+      }
+    }
+    var pinY = npR(bases[3] - 708 / 3000 * hs[3] + 6);
+    var pin = { y: pinY, ly: npR(pinY - 26), ry: npR(pinY - 48), ty: npR(pinY - 33) };
+
+    // ---- height-time section
+    function SXh(hh2) { return npR(64 + hh2 / 48 * 512); }
+    function SY(a) { return npR(470 - a / 3000 * 380); }
+    var secBand = [], secLo = [], secMed = [], secZero = [], secBars = [];
+    for (var h2 = 0; h2 <= 48; h2 += 1) {
+      var md = npSnowH(h2 * 60), bw = npBand(h2 * 60);
+      secMed.push(SXh(h2) + ',' + SY(md));
+      secBand.push(SXh(h2) + ',' + SY(Math.min(3000, md + bw)));
+      secLo.unshift(SXh(h2) + ',' + SY(Math.max(0, md - bw)));
+      secZero.push(SXh(h2) + ',' + SY(Math.min(3000, md + 350)));
+      if (h2 < 48) { var v6 = npHourly(h2); var bh6 = npR(Math.max(1, Math.min(34, (v6.med * 9 + 3) * v6.p))); secBars.push({ x: npR(SXh(h2) + 0.5), y: npR(108 - bh6), h: bh6, c: npPhaseColor(npPhaseAt(h2)) }); }
+    }
+    var hc = null; for (var h3 = 0; h3 <= 48; h3 += 0.1) { if (npSnowH(h3 * 60) <= 708) { hc = h3; break; } }
+    var cxs = SXh(hc === null ? 14.6 : hc);
+    var grid = [0, 500, 1000, 1500, 2000, 2500, 3000].map(function (a) { return { y: SY(a), ty: npR(SY(a) + 4), label: a === 0 ? '0' : npThousands(a) + ' m' }; });
+    var secTicks = [0, 6, 12, 18, 24, 30, 36, 42, 48].map(function (h4) { return { x: SXh(h4), label: npDay(h4 * 60) + ' ' + npClock(h4 * 60).slice(0, 2) }; });
+    var sec = {
+      bars: secBars, grid: grid, ticks: secTicks,
+      band: secBand.concat(secLo).join(' '), med: secMed.join(' '), zero: secZero.join(' '),
+      ortY: SY(708), ortTY: npR(SY(708) + 16), terrTop: SY(2962), terrH: npR(SY(700) - SY(2962)), terrLabelY: npR(SY(2962) - 6),
+      zeroLX: SXh(1), zeroLY: npR(SY(npSnowH(60) + 350) - 6), medLX: SXh(23), medLY: npR(SY(npSnowH(23 * 60)) - 10),
+      cx: cxs, boxX: npR(Math.min(330, cxs + 14)), boxY: npR(SY(708) + 22), boxTX: npR(Math.min(330, cxs + 14) + 12), boxTY1: npR(SY(708) + 42), boxTY2: npR(SY(708) + 62),
+      line1: 'Schnee bis 708 m ab So 04:30', line2: 'frühestens 02:20 · Chance am Ort 60 %',
+      playX: SXh(Math.max(0, Math.min(48, h))), playOp: h >= 0 && h <= 48 ? 0.85 : 0
+    };
+
+    return {
+      t: t, zr: z, timeLabel: npFmt(t), clockT: npClock(t), zone: zoneInfo, vis: vis,
+      layerRows: layerRows, extraRows: extraRows, dispBtns: dispBtns, zoomBtns: zoomBtns, fpTabs: fpTabs, vb: vb, m3: m3,
+      dockFull: s.view !== 'split', dockSlim: s.view === 'split', showMap: s.view !== '3d', show3d: s.view !== 'map', mapBorder: s.view === 'split' ? '1px solid #D9D0B8' : '0',
+      phase: s.phase, phaseTrack: s.phase ? '#3A6FA8' : '#D9D0B8', phaseKnob: s.phase ? 14 : 2,
+      blobs: blobs, sumBlobs: sumBlobs, cells: cells, hailHull: hailHull, flashes: flashes, dots: dots, contours: contours,
+      snowPath: sp2.join(' '), snowBeltW: npR(10 + band / 650 * 34), snowLabelY: snowLabelY, snowTextY: npR(snowLabelY + 16),
+      snowH: npThousands(Math.round(snowH / 50) * 50), snowLo: npThousands(Math.round((snowH - band) / 50) * 50), snowHi: npThousands(Math.round((snowH + band) / 50) * 50),
+      cellChips: NP_CELLS.map(function (c) { var on = s.focus === c.id; return { label: String(c.id), color: NP_SEV[c.sev], on: on, style: npBtn(on, ' height: 30px; display: inline-flex; align-items: center; border: 1px solid #E0D6BE;'), pick: function () { self.setState({ focus: c.id }); } }; }),
+      legend: legend, ax: ax, overview: overview, win: win, eta: eta, fc: fc, strip: strip, h48: h48, days: days, pix: pix,
+      fp: { is2: s.fp === 'f2', is48: s.fp === 'f48', is14: s.fp === 'f14' },
+      ridges: ridges, plane: plane, curtain: curtain, pin: pin, sec: sec,
+      playing: s.playing, notPlaying: !s.playing, playLabel: s.playing ? 'Anhalten' : 'Abspielen',
+      onScrub: function (e) { self.setState({ t: Number(e.target.value) }); },
+      togglePlay: function () { self.setState({ playing: !self.state.playing }); },
+      togglePhase: function () { self.setState({ phase: !self.state.phase }); },
+      viewMap: function () { self.setState({ view: 'map' }); },
+      viewSplit: function () { self.setState({ view: 'split' }); },
+      view3d: function () { self.setState({ view: '3d' }); },
+      setRelief: function () { self.setState({ mode3d: 'relief' }); },
+      setSection: function () { self.setState({ mode3d: 'section' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

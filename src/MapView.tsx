@@ -128,7 +128,9 @@ import type { QuadCorners } from './scalar/RainLayer';
 import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 // GeoSphere INCA-Nowcast als Grid — AT-„jetzt..+3h"; danach ICON-D2.
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
-import { PrecipCompositor } from './scalar/precipComposite';
+import { PrecipCompositor, type CompositeFrame, type RvPastFrame } from './scalar/precipComposite';
+// Phase RR: Niederschlags-Profil des Regenradars (reine Tabelle + Zeit-/Komposit-Regeln, headless geprüft).
+import { RADAR_PROFILE, radarProfileComposite, profileHourOf, morphStep, lerpValues, type MapProfile } from './map/mapProfile';
 import { precipCompositeReady, precipRadarHorizonHours, type PrecipAvailability } from './nowcast/precipSource';
 import {
   fetchDachStations,
@@ -556,6 +558,24 @@ interface Props {
   suspended?: boolean;
   /** Umschalter Dashboard|Karte in Topbar bzw. mobiler Schwebeleiste zeigen (E-DB-2); Klick auf „Dashboard". */
   onOpenDashboard?: () => void;
+  // --- Phase RR (audit/regenradar-datenangleich.md §4) — additiv; ohne `profile` exakt wie vorher ------------------
+  /** Niederschlags-Profil des Regenradars (`src/map/mapProfile.ts`): nur die Karte, keine Chrome; Layer über
+   *  `routeLayers`/`initialActive`, Zeit über `timeMs`. */
+  profile?: MapProfile;
+  /** Profil: absolute Gültigkeitszeit (ms) — führt statt des Sliders (Schnee, Schneefallgrenze, Zellen-Horizont). */
+  timeMs?: number;
+  /** Profil: Frame-Morph des Niederschlags — die zwei benachbarten Radarzeiten und der Anteil dazwischen (RR-c). */
+  timeBracket?: { aMs: number; bMs: number; frac: number } | null;
+  /** Profil: gemessene Analysen des Rückblicks aus dem Radar-Stack des Decks (RV: DE1200, rzc: Sitzungs-Cache). */
+  radarPast?: { rv?: ReadonlyArray<RvPastFrame> | null; rzc?: ReadonlyArray<RadarFrame> | null } | null;
+  /** Profil: Schnee-Modus von außen (Deck-Umschalter Decke | Neuschnee). */
+  profileSnowMode?: SnowMode;
+  /** Profil: Klick oder Marker-Zug → Punkt des Punkt-Streifens. */
+  onPointPick?: (lat: number, lon: number) => void;
+  /** Profil: Zeiger über der Karte; `null` = verlassen. */
+  onPointHover?: (pos: { lat: number; lon: number } | null) => void;
+  /** Profil: MapLibre-Instanz nach außen (Zoom-Knöpfe des Decks); `null` beim Abbau. */
+  onMapReady?: (map: MapLibreMap | null) => void;
 }
 
 // Layer-Katalog (SEO/GEO 2026, E1): Label + Tooltip je Layer stehen seit E1 in
@@ -673,7 +693,11 @@ export default function MapView({
   location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false,
   routeLayers, onLayersChange, routeHour, onHourChange, initialView, onViewChange, initialModelSource, routeModelSource, onModelSourceChange,
   suspended = false, onOpenDashboard,
+  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady,
 }: Props) {
+  // Phase RR: Rückkanäle des Profils als Ref (der Mount-Effekt mit [] liest sie ohne Stale-Closure).
+  const profileCbRef = useRef({ onPointPick, onPointHover, onMapReady });
+  profileCbRef.current = { onPointPick, onPointHover, onMapReady };
   // Phase DB: für die Stelle, an der der WindLayer entsteht (Mount-Effekt, liest ohne Stale-Closure).
   const suspendedRef = useRef(suspended);
   suspendedRef.current = suspended;
@@ -708,7 +732,7 @@ export default function MapView({
   });
   const [satProduct, setSatProduct] = useState<SatelliteProduct>('eu_rgb');
   // Schnee-Modus (Feature F4): 'depth' = Schneedecke (h_snow), 'fresh' = Neuschnee (snow_gsp).
-  const [snowMode, setSnowMode] = useState<SnowMode>('depth');
+  const [snowMode, setSnowMode] = useState<SnowMode>(profileSnowMode ?? 'depth');
   // Zellbahnen (Phase Z1): Zahl der erkannten Zellen + Messzeit des Laufs, für
   // Legende und Leerzustand. `null` = noch nichts geladen; `count === 0` ist ein
   // GÜLTIGES Ergebnis (konvektionsfreier Tag), kein Fehler.
@@ -769,7 +793,7 @@ export default function MapView({
   const euWindRef = useRef<Record<number, IconD2Wind>>({});
   // forecast cache + currently displayed hour (0 = "now", positive = hours into the future)
   const [forecast, setForecast] = useState<DwdForecastResult | null>(null);
-  const [forecastHour, setForecastHour] = useState(initialHour ?? 0);
+  const [forecastHour, setForecastHour] = useState(() => (profile && timeMs != null ? profileHourOf(timeMs, Date.now()) : (initialHour ?? 0)));
   // Spiegel für Effekte, die die Slider-Stunde LESEN müssen, ohne bei jeder
   // Sliderbewegung neu zu laufen (Hagel-Layer: Sichtbarkeit beim Anlegen der
   // erst zur Laufzeit entstehenden CH-Rasterquelle).
@@ -1151,8 +1175,9 @@ export default function MapView({
       // optisch sowieso unter, kostet aber trotzdem Rechenzeit.
       style: 'https://tiles.openfreemap.org/styles/positron',
       // Router (RT1): eine Kamera aus der URL (`lat`/`lon`/`z`) gewinnt gegen Default und DACH-Fit.
-      center: initialView ? [initialView.lon, initialView.lat] : embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
-      zoom: initialView ? initialView.zoom : embedded ? 7.4 : DACH_VIEW.defaultZoom,
+      // Phase RR: das Niederschlags-Profil startet wie die alte Radarkarte am Ort (Zoom 8), sofern die URL keine Kamera trägt.
+      center: initialView ? [initialView.lon, initialView.lat] : (embedded || profile) ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
+      zoom: initialView ? initialView.zoom : profile ? RADAR_PROFILE.camera.zoom : embedded ? 7.4 : DACH_VIEW.defaultZoom,
       pixelRatio: coarsePointer ? Math.min(dpr, 1.5) : dpr,
       // Load tuning. The OpenFreeMap basemap is effectively static, so don't
       // spend requests re-fetching expired tiles in the background. fadeDuration
@@ -1162,9 +1187,11 @@ export default function MapView({
       // interest, not a basemap label fade).
       refreshExpiredTiles: false,
       fadeDuration: 0,
+      // Phase RR: im Profil die kompakte Attribution (ⓘ) wie die alte Radarkarte — die Legende des Decks liegt unten.
+      ...(profile && RADAR_PROFILE.controls.compactAttribution ? { attributionControl: { compact: true } } : {}),
     });
 
-    map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+    if (!profile || RADAR_PROFILE.controls.scale) map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
     // Router (RT1): Kamera nach jeder Bewegung melden — der Wrapper schreibt sie
     // debounced (≥ 300 ms) per replaceState in die Query, nie als History-Eintrag.
@@ -1300,9 +1327,21 @@ export default function MapView({
     else map.once('load', () => { void initOverlays(); });
 
     if (!overview) {
-      markerRef.current = new maplibregl.Marker({ color: '#4a7dff' })
+      markerRef.current = new maplibregl.Marker({ color: '#4a7dff', ...(profile ? { draggable: RADAR_PROFILE.marker.draggable } : {}) })
         .setLngLat([location.lon, location.lat])
         .addTo(map);
+    }
+    // Phase RR (Profil): Punktwahl per Klick oder Marker-Zug, Zeiger-Position für den mm/h-Readout des Decks,
+    // Zoom- und Standort-Knopf wie die alte Radarkarte, Instanz nach außen. Ohne Profil kein Handler, kein Control.
+    if (profile) {
+      const marker = markerRef.current;
+      marker?.on('dragend', () => { const ll = marker.getLngLat(); profileCbRef.current.onPointPick?.(ll.lat, ll.lng); });
+      map.on('click', (e) => profileCbRef.current.onPointPick?.(e.lngLat.lat, e.lngLat.lng));
+      map.on('mousemove', (e) => profileCbRef.current.onPointHover?.({ lat: e.lngLat.lat, lon: e.lngLat.lng }));
+      map.on('mouseout', () => profileCbRef.current.onPointHover?.(null));
+      if (RADAR_PROFILE.controls.navigation) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+      if (RADAR_PROFILE.controls.geolocate) map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: false }), 'bottom-right');
+      profileCbRef.current.onMapReady?.(map);
     }
 
     // Layer instances. Order in the style stack (top → bottom):
@@ -2522,6 +2561,7 @@ export default function MapView({
       window.clearInterval(tD2);
       window.clearInterval(t7);
       markerRef.current?.remove();
+      if (profile) profileCbRef.current.onMapReady?.(null);
       map.remove();
       mapRef.current = null;
     };
@@ -2601,7 +2641,8 @@ export default function MapView({
   const prefetchAbortRef = useRef<AbortController | null>(null);
   useEffect(() => () => { prefetchAbortRef.current?.abort(); }, []);
   useEffect(() => {
-    if (prefetchDoneRef.current || embedded || !lzEnabled()) return;
+    // Phase RR: das Niederschlags-Profil zeigt diese Layer nie — kein Vorab-Abruf (RADAR_PROFILE.prefetch).
+    if (prefetchDoneRef.current || embedded || (profile && !RADAR_PROFILE.prefetch) || !lzEnabled()) return;
     if (!iconD2WindRef.current && !iconD2TempRef.current) return;
     prefetchDoneRef.current = true;
     const abort = new AbortController();
@@ -2680,7 +2721,9 @@ export default function MapView({
     if (!iconD2TempRef.current) {
       if (active.has('temp')) {
         void installTempRef.current?.();
-      } else {
+      } else if (!profile || RADAR_PROFILE.tempLabels || active.has('snowline')) {
+        // Phase RR: im Niederschlags-Profil gibt es keine Stadt-Temperaturen — das t_2m-Gitter lädt dort nur, solange die
+        // Schneefallgrenze es braucht (sie rechnet auf genau diesem Feld). Ohne Profil unverändert.
         // Stadt-Temperatur-Labels sind dauerhaft sichtbar (windy-Stil) → das
         // t_2m-Gitter (im Testmodus nur der Jetzt-Bracket) im Leerlauf NACH dem
         // Hero-Layer laden, damit die Labels echte aktuelle Werte zeigen. Jans
@@ -2816,6 +2859,9 @@ export default function MapView({
 
   // Schneefallgrenze (ML #2): Iso-Kontur neu rechnen, wenn sich Slider-Stunde,
   // Temp-Daten oder der aktive Layer ändern. terrainTemp(Frame) − T50 → GeoJSON.
+  // Phase RR: im Profil schreitet die Zeit beim Abspielen 2,5-mal je Sekunde — die Iso-Kontur (ML #2, gemessen ≈ 4,8 s
+  // Hauptthread je Rechnung headless) nur neu rechnen, wenn sich das stündliche Temperaturfeld wirklich ändert.
+  const profileSnowlineKeyRef = useRef<{ frame: unknown; dem: unknown; cf: unknown } | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !active.has('snowline')) return;
@@ -2823,6 +2869,11 @@ export default function MapView({
     const cf = climaFieldRef.current;
     if (!td || td.frames.length === 0 || !cf) return;
     const frame = frameAtValidTime(td.frames, Date.now() + forecastHour * 3600_000);
+    if (profile) {
+      const k = profileSnowlineKeyRef.current;
+      if (k && k.frame === frame && k.dem === td.demImage && k.cf === cf) return;
+      profileSnowlineKeyRef.current = { frame, dem: td.demImage, cf };
+    }
     const fc = buildSnowLine(frame, td.demImage, td.uvBounds, cf);
     (map.getSource(SNOWLINE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(fc);
     if (!snowlineReadyRef.current) {
@@ -2890,8 +2941,12 @@ export default function MapView({
       document.removeEventListener('visibilitychange', onVisible);
       // Layer aus ⇒ Quelle leeren: beim nächsten Einschalten darf kein alter
       // Stand aufblitzen, bevor der frische Lauf da ist (D-04).
-      (map.getSource(CELLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
-        ?.setData({ type: 'FeatureCollection', features: [] });
+      // V-RR-9: beim Abbau der Komponente hat der Mount-Effekt die Karte schon entfernt (`map.remove()`,
+      // `mapRef.current = null`) — `getSource` auf entfernter Karte wirft. Nur leeren, solange die Karte lebt.
+      if (mapRef.current === map) {
+        (map.getSource(CELLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+          ?.setData({ type: 'FeatureCollection', features: [] });
+      }
       setCellsInfo(null);
       setCellsRun(null);
     };
@@ -2983,8 +3038,11 @@ export default function MapView({
       abort.abort();
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
-      (map.getSource(HAIL_DE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
-        ?.setData({ type: 'FeatureCollection', features: [] });
+      // V-RR-9: Karte beim Abbau der Komponente schon entfernt ⇒ nicht mehr anfassen.
+      if (mapRef.current === map) {
+        (map.getSource(HAIL_DE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+          ?.setData({ type: 'FeatureCollection', features: [] });
+      }
       setHailInfo((s) => ({ ...s, deCells: null, deRefMs: null }));
     };
   }, [hailOn]);
@@ -3061,7 +3119,10 @@ export default function MapView({
       abort.abort();
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
-      if (map.getLayer(HAIL_CH_LAYER_ID)) map.setLayoutProperty(HAIL_CH_LAYER_ID, 'visibility', 'none');
+      // V-RR-9: Karte beim Abbau der Komponente schon entfernt ⇒ nicht mehr anfassen.
+      if (mapRef.current === map && map.getLayer(HAIL_CH_LAYER_ID)) {
+        map.setLayoutProperty(HAIL_CH_LAYER_ID, 'visibility', 'none');
+      }
       setHailInfo((s) => ({ ...s, chMax: null, chValidMs: null }));
     };
   }, [hailOn, hailProduct]);
@@ -3158,9 +3219,12 @@ export default function MapView({
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
       // Layer aus ⇒ Quelle leeren: beim nächsten Einschalten darf keine alte
-      // Warnlage aufblitzen, bevor der frische Stand da ist (D-04).
-      (map.getSource(WARN_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
-        ?.setData({ type: 'FeatureCollection', features: [] });
+      // Warnlage aufblitzen, bevor der frische Stand da ist (D-04). V-RR-9: beim Abbau der
+      // Komponente ist die Karte schon entfernt ⇒ nicht mehr anfassen.
+      if (mapRef.current === map) {
+        (map.getSource(WARN_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+          ?.setData({ type: 'FeatureCollection', features: [] });
+      }
       setWarnRun(null);
       setWarnInfo(null);
       setWarnFailed(false);
@@ -3384,6 +3448,17 @@ export default function MapView({
   //   CH: „jetzt" rzc-Radar      → ab ~+0,5 h ICON-D2.
   // Frame-Wechsel = Textur-Upload (kein PNG) → flüssiges Scrubbing; je Quelle
   // eigene Geo-Ecken (verschiedene Gitter).
+  // Phase RR (Profil): Komposit-Frames je Gültigkeitszeit zwischenspeichern — im Abspielen mischt der Morph nur zwei
+  // fertige Frames (RR-c). Neue Quelldaten (`nowcastTick`) oder ein neuer Rückblick verwerfen den Speicher; dieser
+  // Effekt steht VOR dem Zeichen-Effekt, damit beide im selben Commit in dieser Reihenfolge laufen.
+  const profileFramesRef = useRef<Map<number, CompositeFrame>>(new Map());
+  const profileMorphBufRef = useRef<Uint8Array | null>(null);
+  const profileMeshRef = useRef<Float32Array | null>(null);
+  useEffect(() => { profileFramesRef.current.clear(); }, [nowcastTick, radarPast]);
+  const profileMorphKey = profile && timeBracket
+    ? `${timeBracket.aMs}|${timeBracket.bMs}|${morphStep(timeBracket.frac)}`
+    : '';
+
   useEffect(() => {
     const rain = layerRefs.current.rain;
     if (!rain || !active.has('nowcast')) return;
@@ -3391,6 +3466,44 @@ export default function MapView({
     // der RainLayer ist IMMER die Quelle (auch im Fusion-Modus) — die Modell-/
     // Fusionshälfte ist draußen, also KEIN Zurücktreten vor `precip-forecast` mehr.
     if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
+    // Phase RR (Profil): Komposit zur ABSOLUTEN Gültigkeitszeit — RV nach Gültigkeitszeit inkl. Rückblick (`rvPast`),
+    // INCA nach Vorlauf wie oben, im Rückblick nur Messungen (`radarProfileComposite`). Zwischen zwei Radarzeiten
+    // mischt der Morph die beiden Frames in 5-%-Schritten. Ohne Profil läuft der Bestand darunter unverändert.
+    if (profile && timeMs != null) {
+      const compositor = compositorRef.current;
+      const cache = profileFramesRef.current;
+      const frameAt = (ms: number): CompositeFrame => {
+        const hit = cache.get(ms);
+        if (hit) return hit;
+        const now = Date.now();
+        const input = radarProfileComposite(ms, now, {
+          rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
+          rvPast: radarPast?.rv ?? null, rzcPast: radarPast?.rzc ?? null,
+        });
+        const f = compositor.build(input.h, input.sources, now);
+        cache.set(ms, f);
+        while (cache.size > 6) { const oldest = cache.keys().next().value; if (oldest === undefined) break; cache.delete(oldest); }
+        return f;
+      };
+      const tb = timeBracket;
+      const q = tb ? morphStep(tb.frac) : 0;
+      let shown: CompositeFrame;
+      if (tb && tb.bMs !== tb.aMs && q > 0 && q < 1) {
+        const a = frameAt(tb.aMs), b = frameAt(tb.bMs);
+        let buf = profileMorphBufRef.current;
+        if (!buf || buf.length !== a.values.length) { buf = new Uint8Array(a.values.length); profileMorphBufRef.current = buf; }
+        shown = { ...a, values: lerpValues(a.values, b.values, q, buf) };
+      } else {
+        shown = frameAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : timeMs);
+      }
+      // Ein Mesh für alle Profil-Frames: der RainLayer baut die Geometrie nur bei neuer Mesh-Referenz neu.
+      const mesh = (profileMeshRef.current ??= shown.warpLnglat);
+      rain.setFrame({
+        values: shown.values, width: shown.width, height: shown.height, corners: shown.corners,
+        warpLnglat: mesh, warpN: shown.warpN, warpRows: shown.warpRows,
+      });
+      return;
+    }
     // DACH-Komposit: pro Zelle das richtige Landesradar (DE RADOLAN / AT INCA /
     // CH rzc) im jeweiligen Nowcast-Horizont. Bewusst OHNE `d2` → jenseits des
     // Land-Horizonts bleiben Zellen leer (keine ICON-D2-Verlängerung).
@@ -3404,7 +3517,9 @@ export default function MapView({
       values: frame.values, width: frame.width, height: frame.height, corners: frame.corners,
       warpLnglat: frame.warpLnglat, warpN: frame.warpN, warpRows: frame.warpRows,
     });
-  }, [forecastHour, nowcastTick, active, modelSource, forecast]);
+    // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast]);
 
   // Wolken-Layer (ICON-D2 CLCT): bei jeder Slider-Bewegung den Frame mit der
   // nächstgelegenen Gültigkeitszeit setzen. Deckt den ganzen ICON-D2-Horizont ab.
@@ -3725,7 +3840,8 @@ export default function MapView({
       markers.forEach((m) => m.remove());
       markers.clear();
     };
-    if (!map) {
+    // Phase RR: keine Stadt-Temperaturen im Niederschlags-Profil (RADAR_PROFILE.tempLabels).
+    if (!map || (profile && !RADAR_PROFILE.tempLabels)) {
       removeAll();
       return;
     }
@@ -4087,8 +4203,21 @@ export default function MapView({
   // GEMELDET statt still vollzogen — `onHourChange` bekommt `'clamped'`.
   const clampedRef = useRef(false);
   useEffect(() => {
+    // Phase RR: im Profil führt das Deck die Zeit (`timeMs`) — kein Klemmen auf den eigenen Slider-Horizont.
+    if (profile) return;
     if (forecast && forecastHour > sliderMax) { clampedRef.current = true; setForecastHour(sliderMax); }
   }, [forecast, sliderMax, forecastHour]);
+
+  // Phase RR: die Zeit des Profils kommt von außen — absolute Gültigkeitszeit → Stunden ab jetzt für die Layer-Effekte.
+  useEffect(() => {
+    if (!profile || timeMs == null) return;
+    const h = profileHourOf(timeMs, Date.now());
+    setForecastHour((prev) => (Math.abs(prev - h) < 1e-9 ? prev : h));
+  }, [profile, timeMs]);
+  // Phase RR: Schnee-Modus des Decks übernehmen (der Modus-Effekt lädt das andere Feld nach).
+  useEffect(() => {
+    if (profile && profileSnowMode) setSnowMode(profileSnowMode);
+  }, [profile, profileSnowMode]);
 
   // Testmodus „Nur-Jetzt": Forecast-Frames (bis +NOWONLY_AHEAD_H) NACH BEDARF —
   // erst wenn der Nutzer den Slider das erste Mal von „jetzt" wegbewegt, das
@@ -4157,7 +4286,8 @@ export default function MapView({
   // sich durch das Karten-Layout → MapLibre zuverlässig nachmessen lassen, sonst
   // bleibt die Karte leer oder falsch dimensioniert.
   useEffect(() => {
-    if (!embedded) return;
+    // Phase RR: das Profil sitzt ebenfalls in einem fremden Rahmen (Regenradar-Bühne) — gleich nachmessen.
+    if (!embedded && !profile) return;
     const el = containerRef.current;
     if (!el) return;
     const doResize = () => mapRef.current?.resize();
@@ -4166,7 +4296,7 @@ export default function MapView({
     const ro = new ResizeObserver(doResize);
     ro.observe(el);
     return () => { cancelAnimationFrame(raf); clearTimeout(t); ro.disconnect(); };
-  }, [embedded]);
+  }, [embedded, profile]);
 
   // Router (RT1): Permalink ist jetzt Pfad + Query (`src/router/urlState.ts`) und
   // wird vom Route-Wrapper geschrieben — MapView MELDET nur. Der frühere
@@ -4275,6 +4405,16 @@ export default function MapView({
   // Alt-Chrome aus MapView.css (Karte + Tagesablauf-Slider + Quellen-Badge);
   // die Vollansicht rendert das Command-Deck (references/*-karte.png).
   // ==========================================================================
+
+  // Phase RR: Niederschlags-Profil — nur die Karte; Rail, Dock, Zeitachse und Readout bringt das Regenradar-Deck mit
+  // (RADAR_PROFILE.chrome). `map-view-embedded` füllt den Rahmen statt Vollbild.
+  if (profile) {
+    return (
+      <div className="map-view map-view-embedded map-view-profile" data-map-profile={profile}>
+        <div ref={containerRef} className="map-container" />
+      </div>
+    );
+  }
 
   if (embedded) {
     return (

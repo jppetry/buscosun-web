@@ -65,7 +65,26 @@ export interface CompositeSources {
   inca?: IncaGrid | null;
   rzc?: RadarFrame | null;
   d2?: IconD2Precip | null;
+  /**
+   * Phase RR (audit/regenradar-datenangleich.md §4 RR-b): measured RV analyses BEFORE the run of `rv` (DE1200 grid,
+   * same width/height as the `rv` frames) — the look-back of the radar profile. When this field is present (even as an
+   * empty list), `build()` picks the RV frame by VALIDITY TIME: among these analyses and the `rv` frames
+   * (`runAt + leadMinutes`) the one nearest to `nowMs + h·1 h`, at most `RV_PICK_TOL_MS` away, else no RV. Without the
+   * field `build()` is byte-identical to before (RV frame by lead from the run, as the Wetterkarte slider uses it).
+   */
+  rvPast?: ReadonlyArray<RvPastFrame> | null;
 }
+
+/** One measured RV analysis of the look-back (Phase RR). */
+export interface RvPastFrame {
+  validAt: Date;
+  values: Uint8Array;
+  width: number;
+  height: number;
+}
+
+/** Phase RR: farthest an RV frame may be from the asked validity time in the `rvPast` mode — one RV step (5 min). */
+export const RV_PICK_TOL_MS = 5 * 60_000;
 
 export interface CompositeFrame {
   values: Uint8Array;
@@ -220,7 +239,9 @@ export class PrecipCompositor {
   build(h: number, s: CompositeSources, nowMs: number): CompositeFrame {
     const out = new Uint8Array(G.w * G.h);
 
-    const rv = h <= RV_MAX_H + 1e-6 && s.rv?.frames.length ? nearestBy(s.rv.frames, (f) => Math.abs(f.leadMinutes - h * 60)) : null;
+    const rv = s.rvPast != null
+      ? rvAtValidTime(s.rv ?? null, s.rvPast, nowMs + h * 3600_000)
+      : h <= RV_MAX_H + 1e-6 && s.rv?.frames.length ? nearestBy(s.rv.frames, (f) => Math.abs(f.leadMinutes - h * 60)) : null;
     const inca = h <= INCA_MAX_H + 1e-6 && s.inca?.frames.length ? nearestBy(s.inca.frames, (f) => Math.abs(f.leadHours - h)) : null;
     const rzc = h < RZC_MAX_H && s.rzc ? s.rzc : null;
     const d2 = s.d2?.frames.length ? nearestBy(s.d2.frames, (f) => Math.abs(f.validAt.getTime() - (nowMs + h * 3600_000))) : null;
@@ -244,6 +265,31 @@ export class PrecipCompositor {
       warpLnglat: compositeWarpMesh(), warpN: COMPOSITE_WARP_N, warpRows: COMPOSITE_WARP_ROWS,
     };
   }
+}
+
+/**
+ * Phase RR (`rvPast` mode): the RV values valid nearest to `targetMs` — the look-back analyses older than the run, then the
+ * run's own frames (`runAt + leadMinutes`, lead ≤ RV_MAX_H). Frames on another grid than the run are skipped (the DE
+ * index map belongs to the run). `null` when nothing lies within `RV_PICK_TOL_MS` — a gap stays a gap.
+ */
+function rvAtValidTime(rv: RvNowcast | null, past: ReadonlyArray<RvPastFrame>, targetMs: number): { values: Uint8Array } | null {
+  if (!rv || !rv.frames.length) return null;
+  const runMs = rv.runAt.getTime();
+  const w = rv.frames[0].width, hgt = rv.frames[0].height;
+  let best: { values: Uint8Array } | null = null;
+  let bd = Infinity;
+  for (const p of past) {
+    const t = p.validAt.getTime();
+    if (t >= runMs || p.width !== w || p.height !== hgt) continue;
+    const d = Math.abs(t - targetMs);
+    if (d < bd) { bd = d; best = p; }
+  }
+  for (const f of rv.frames) {
+    if (f.leadMinutes > RV_MAX_H * 60 + 1e-6) continue;
+    const d = Math.abs(runMs + f.leadMinutes * 60_000 - targetMs);
+    if (d < bd) { bd = d; best = f; }
+  }
+  return bd <= RV_PICK_TOL_MS ? best : null;
 }
 
 function nearestBy<T>(arr: T[], dist: (x: T) => number): T {

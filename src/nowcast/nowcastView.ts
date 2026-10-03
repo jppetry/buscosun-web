@@ -95,11 +95,19 @@ export function fmtDuration(min: number): string {
 }
 
 /** Quellen-/Aktualitäts-Label (NFR Datenaktualität). */
+/**
+ * Phase RR: Name der Punktvorhersage jenseits des Radars (2–6 h). `cube` = buscosun Fusion auf dem Punkt-Cube;
+ * der Live-Pfad (Rückfall, `?pf=live`) behält die Bezeichnung von vor RR.
+ */
+export function nwpLabel(nc: Pick<Nowcast, 'nwpSource'>): string {
+  return nc.nwpSource === 'cube' ? 'buscosun Fusion' : 'ICON-D2';
+}
+
 export function sourceLabel(nc: Nowcast): string {
   if (nc.hasRadar && nc.radarSource) {
-    return `DWD RADOLAN-RV · ICON-D2 · Radar ${fmtClock(nc.runAtMs)}`;
+    return `DWD RADOLAN-RV · ${nwpLabel(nc)} · Radar ${fmtClock(nc.runAtMs)}`;
   }
-  return `ICON-D2 (2,2 km) · ${fmtClock(nc.fetchedAtMs)}`;
+  return nc.nwpSource === 'cube' ? `buscosun Fusion · ${fmtClock(nc.fetchedAtMs)}` : `ICON-D2 (2,2 km) · ${fmtClock(nc.fetchedAtMs)}`;
 }
 
 /** mm/h hübsch (deutsches Komma). */

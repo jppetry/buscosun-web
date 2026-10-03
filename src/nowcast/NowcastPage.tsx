@@ -5,7 +5,7 @@
  * Sobald ein Ort gewählt ist, übernimmt das „Command-Deck" (NowcastDeck) —
  * die vollflächige App-Shell im Stil der Wetterkarte (Sand/Ink, dunkles
  * Radarfeld, Steel-Akzent) mit dem realen 6-h-Nowcast aus Radar (0–2 h) +
- * ICON-D2 (2–6 h). Blaue Nowcast-Designsprache (#3A6FA8), abgesetzt von der
+ * buscosun Fusion (2–6 h, Punkt-Cube; seit Phase RR). Blaue Nowcast-Designsprache (#3A6FA8), abgesetzt von der
  * terracotta-getönten Event-Planung.
  */
 
@@ -116,7 +116,11 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
     setState((prev) => (prev.kind === 'ready' ? prev : { kind: 'loading' }));
     (async () => {
       try {
-        const nowcast = await buildNowcast({ lat: location.lat, lon: location.lon, country: location.country, signal: ac.signal });
+        // Phase RR: die Nachlieferung von buscosun Fusion (Messungs-Anker) ersetzt die erste Antwort, wie im Punkt-Panel.
+        const nowcast = await buildNowcast({
+          lat: location.lat, lon: location.lon, country: location.country, signal: ac.signal,
+          onUpdate: (nc) => { if (!ac.signal.aborted) setState({ kind: 'ready', nowcast: nc }); },
+        });
         if (ac.signal.aborted) return;
         setState({ kind: 'ready', nowcast });
       } catch (err) {
@@ -175,7 +179,7 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
             <span className="rm-idle-howto-ic" aria-hidden="true"><IconHowTo /></span>
             <p><b>So geht’s:</b> Ort wählen — danach zeigen wir Radar, Zeitverlauf &amp; die 6-h-Prognose.</p>
           </div>
-          <p className="rm-idle-source"><span className="rm-src-dot" /> DWD RADOLAN-RV · ICON-D2 (2,2 km) · keine Tracker</p>
+          <p className="rm-idle-source"><span className="rm-src-dot" /> DWD RADOLAN-RV · buscosun Fusion · keine Tracker</p>
         </main>
       </div>
     );
@@ -214,7 +218,7 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
             <h1 className="nc-intro-title">Regnet es bald?</h1>
             <p className="intro-body">
               High-End-Regenradar für deinen Standort: gemessenes DWD-Radar (0–2 h) mit
-              ehrlichem Übergang zur ICON-D2-Vorhersage — minutengenau bis zum Skill-Horizont.
+              ehrlichem Übergang zur Punktvorhersage von buscosun Fusion — minutengenau bis zum Skill-Horizont.
             </p>
             <ul className="intro-caps">
               {NC_INTRO_CAPS.map((c) => (
@@ -233,7 +237,7 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
         </section>
 
         <div className="rt-trust" style={{ marginTop: '1.6rem' }}>
-          <span className="dot nc-dot-static">●</span> DWD RADOLAN-RV (Radar-Nowcast) · ICON-D2 (2,2 km) · keine Tracker
+          <span className="dot nc-dot-static">●</span> DWD RADOLAN-RV (Radar-Nowcast) · buscosun Fusion (Punkt-Cube) · keine Tracker
         </div>
       </main>
     </div>

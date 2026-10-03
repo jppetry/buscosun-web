@@ -1277,7 +1277,48 @@ Auftrag Jan 02.10. („lass uns das umsetzen und prüfen, ob buscosun Fusion 8 d
   (verify:pv-cube 41). Push (f), Job-Abbruch und Prüfung (g) wie oben; die Wiederholung ≈ 15.10. bestätigt die Effektgröße.
 - (d) E-AX-10 (INCA-Anker-Gewicht) wird ab dem ersten vollständigen Slot messbar; Scorer-Variante folgt mit E-AX-8 (MOSMIX-S) ≈ 15.10.
 
-## 33. Phase AW — Autobahnwetter (Fahrbahn gemessen DE), 2026-10-03
+## 33. Phase RR — Regenradar auf der Karte der Wetterkarte und den Daten aus buscosun-data, 2026-10-03
+
+Auftrag Jan 03.10. (Kickoff `prompt-regenradar.md`, Entscheidungen E-RR-1…3 am selben Tag); Diagnose, Umsetzung und Gate in
+`audit/regenradar-datenangleich.md` (§1–§2.7 Befund und Datenwege, §5.1 Gate GRR, §9 Umsetzung, V-RR-1…15).
+
+**Stand (uncommitted, nichts gepusht, nichts gepurgt, Daten-Repo unberührt):**
+- `/regenradar` zeichnet auf `MapView` mit dem neuen Profil `radar` (positron, nur Niederschlag, Zellbahnen, Blitze, Schnee,
+  Schneefallgrenze der Wetterkarte); Zeit, Rückblick und Frame-Morph kommen aus dem Radar-Stack des Decks. Die alte Karte
+  bleibt hinter **`?rr=legacy`** (und als automatischer Rückfall, falls der Karten-Chunk nicht lädt).
+- Der Punkt-Streifen rechnet auf **buscosun Fusion 8** — dieselbe Kette wie Punkt-Panel und Dashboard; **`?pf=live`** ist
+  der Rückfall auf den Live-Pfad. Live gehen nur die Messungen des Landes (BrightSky / TAWES / SMN), Terrarium und WorldCover.
+- Gate GRR bestanden mit einer Einschränkung: das Einschalten der Schneefallgrenze friert einige Sekunden ein — dieselbe
+  Rechnung wie in der Wetterkarte (V-RR-15). Wetterkarte ohne Profil pixelgleich zu HEAD.
+- Geänderte/neue Dateien: `src/MapView.tsx` (nur hinter `profile`), `src/map/mapProfile.ts` (neu), `src/scalar/precipComposite.ts`
+  (`rvPast`, ohne das Feld byte-gleich), `src/nowcast/{NowcastRadarMap,NowcastDeck,NowcastPage,nowcastEngine,nowcastModel,nowcastView}.ts(x)`,
+  `src/radar/radar.css`, `budget.json` (totalJs 1520 → 1523 mit Notiz), `package.json` (Alias `verify:regenradar-profile`),
+  `scripts/{verify-regenradar-profile,regenradar-netcapture,regenradar-wk-pixeldiff}.mjs` (neu), `audit/regenradar-datenangleich.md`,
+  `CLAUDE.md`. Der Arbeitsbaum enthält daneben Dateien der Startseiten-Phase RI1 (`SearchPage.*`, `*Icon.tsx`) — nicht Teil von RR.
+
+**Deine Gates:**
+- (a) **Real-Device** (iPhone 12 Pro oder Android über scrcpy), Produktions-Build: `/regenradar/muenchen` — Abspielen 30 s,
+  Schritt zurück (Rückblick lädt), Zellbahnen an einem Gewittertag (Steckbrief per Antippen), **Schneefallgrenze einschalten**
+  (wie lange friert es ein?), Bildrate gegen `/regenradar/muenchen?rr=legacy`. Emulation ist für WebGL nicht repräsentativ; die
+  Headless-Zahlen stehen in §5.1.
+- (b) **Durchsicht** von Karte und Deck (Desktop + mobil), dann Commit von RR als eigener Commit (Scope `regenradar`, z. B.
+  „regenradar: draw on the Wetterkarte map (MapView radar profile), strip on buscosun Fusion 8, ?rr=legacy fallback") — ohne
+  die RI1-Dateien; danach Push/Deploy wie üblich.
+- (c) **V-RR-9 — erledigt 03.10. (Jans Freigabe „ja fix es"), geht mit dem RR-Commit mit:** Absicherung an Zellbahnen,
+  Hagel DE/CH und Warnungen; HEAD 4/4 Abstürze, Fix 0/4 (Beleg `audit/regenradar-datenangleich.md` V-RR-9). Ursprünglicher Text:
+  **V-RR-9 entscheiden — hohe Priorität, schon in Produktion:** Verlassen der Wetterkarte mit aktiven Zellbahnen (Rail →
+  andere Ansicht) endet in der React-Router-Fehlerbehandlung (`getSource` auf entfernter Karte; an HEAD `07cc7cf` reproduziert).
+  Abhilfe ist eine Zeile in `MapView` ohne neue Prop (`if (mapRef.current === map)`), Pixel unverändert — ich habe sie nur im
+  Profil gesetzt, weil die RR-Regel `MapView` außerhalb neuer Props sperrt. Freigabe ⇒ eigener kleiner Fix (Hagel/Warnungen mitprüfen).
+- (d) **V-RR-15 entscheiden:** Schneefallgrenze (ML #2) in einen Worker verlegen — wirkt in Wetterkarte und Regenradar, ändert
+  `MapView` ohne neue Prop.
+- (e) Optional V-RR-13 (ICON-D2-Niederschlag in beiden Karten nicht mehr laden, solange ihn nichts zeichnet), V-RR-14 (`MapView`
+  für `/regenradar` vorladen), V-RR-12 (Zellbahnen im Rückblick zur Zeit), V-RR-5 (Warm-up im Spiegel, E-NL-2 — Daten-Repo).
+- (f) Hinweis ohne Handlungsbedarf: das Radar-Stundenmittel `m<lead>.png` liegt schon im Spiegel (Slot `2610031040`) — der
+  Streifen rechnet bereits Fusion 8. `verify:dashboard-switch` (B) und `verify:point-client` (10s) scheitern an HEAD genauso
+  (nicht RR).
+
+## 34. Phase AW — Autobahnwetter (Fahrbahn gemessen DE), 2026-10-03
 
 Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwerte: `audit/autobahnwetter.md` (§0 Kurzfassung).
 

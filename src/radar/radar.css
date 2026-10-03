@@ -121,6 +121,16 @@
 }
 .rdr-map { position: absolute; inset: 0; }
 .rdr-map canvas { outline: none; }
+/* Phase RR: die Karte der Wetterkarte (`MapView`, Profil radar) füllt die Bühne wie die alte `.rdr-map`. */
+.nc-radar-stage > .map-view-profile { position: absolute; inset: 0; height: auto; }
+.nc-radar-stage > .map-view-profile canvas { outline: none; }
+/* Phase RR: `MapView.css` hebt mobil ALLE MapLibre-Ecksteuerungen über das Sheet der Wetterkarte (bottom 152 px, ohne
+   Scope). Das Regenradar hat dort kein Sheet über der Karte — Attribution und Knöpfe bleiben am Bühnenrand wie bei der
+   alten Karte. Gleiche Media Query wie die Regel, die hier aufgehoben wird. */
+@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
+  .nc-radar-stage > .map-view-profile .maplibregl-ctrl-bottom-left,
+  .nc-radar-stage > .map-view-profile .maplibregl-ctrl-bottom-right { bottom: 0; }
+}
 .nc-radar-loading {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   color: var(--stone-600, #5C5447); font-size: 0.9rem; text-align: center; padding: 1rem;

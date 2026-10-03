@@ -51,6 +51,18 @@ import {
 import { saveLastView, loadLastView, type Basemap } from '../radar/radarState';
 import { buildTerrain, snowLineGeoJSON, quadBBox, type RadarTerrain } from '../radar/precipPhase';
 import { loadElevationLookup } from '../fusion/elevation';
+// Phase RR (audit/regenradar-datenangleich.md §4 RR-d): die Karte ist die der Wetterkarte (`MapView`, eigener
+// Lazy-Chunk über denselben Loader wie die Kartenrouten) mit dem Niederschlags-Profil; die alte Radarkarte bleibt
+// hinter `?rr=legacy` (und als Rückfall, falls der Chunk nicht lädt).
+import { loadMapView, loadedMapView } from '../router/mapViewLoader';
+import { radarMapLegacyFrom, radarProfileLayers } from '../map/mapProfile';
+import { sampleRadarPoint } from '../pointForecast/radarSample';
+import { RADAR_VMAX } from '../radar/radarModel';
+import type { RvPastFrame } from '../scalar/precipComposite';
+import type { RadarFrame as RzcFrame } from '../sources/meteoSwissRadar';
+import { nwpLabel } from './nowcastView';
+
+type MapViewComponent = typeof import('../MapView').default;
 import {
   LayerIcon, IconSliders, IconChevron, IconStormCloud, IconBolt,
   IconRadarSignal, IconPalette, IconMap, IconContrast, IconClock,
@@ -122,6 +134,25 @@ type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' 
 
 export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth' }: Props) {
   const last = useMemo(() => loadLastView(), []);
+  // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
+  const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const [MapViewC, setMapViewC] = useState<MapViewComponent | null>(() => (legacyMap ? null : loadedMapView()?.default ?? null));
+  const [mapViewFailed, setMapViewFailed] = useState<string | null>(null);
+  const useProfile = !legacyMap && mapViewFailed == null;
+  useEffect(() => {
+    console.log(`[buscosun] Regenradar-Karte → ${legacyMap ? 'eigene Radarkarte (?rr=legacy)' : 'Karte der Wetterkarte (MapView, Profil radar)'}`);
+  }, [legacyMap]);
+  useEffect(() => {
+    if (legacyMap || MapViewC) return;
+    let alive = true;
+    loadMapView().then((m) => { if (alive) setMapViewC(() => m.default); }).catch((err: unknown) => {
+      if (!alive) return;
+      const why = err instanceof Error ? err.message : String(err);
+      console.warn(`[buscosun] Regenradar: Karte der Wetterkarte nicht ladbar (${why}) — Rückfall auf die eigene Radarkarte`);
+      setMapViewFailed(why);
+    });
+    return () => { alive = false; };
+  }, [legacyMap, MapViewC]);
   const [layersUnc, setLayersUnc] = useState<RadarLayerId[]>((last?.layers as RadarLayerId[]) ?? ['precip']);
   // Controlled/uncontrolled-Hybrid: steuert das Dock die Layer, gewinnt dessen
   // Auswahl; sonst der interne Zustand. Beide teilen dieselbe Persistenz.
@@ -278,8 +309,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   useEffect(() => {
     if (point.lat === location.lat && point.lon === location.lon) return;
     const ac = new AbortController();
-    buildNowcast({ lat: point.lat, lon: point.lon, country: point.country, signal: ac.signal })
-      .then((nc) => { if (!ac.signal.aborted) setPointNowcast(nc); }).catch(() => {});
+    // Phase RR: die Nachlieferung von buscosun Fusion ersetzt die erste Antwort (wie im Punkt-Panel).
+    buildNowcast({
+      lat: point.lat, lon: point.lon, country: point.country, signal: ac.signal,
+      onUpdate: (nc) => { if (!ac.signal.aborted) setPointNowcast(nc); },
+    }).then((nc) => { if (!ac.signal.aborted) setPointNowcast(nc); }).catch(() => {});
     return () => ac.abort();
   }, [point.lat, point.lon, point.country]);
 
@@ -306,6 +340,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // die beiden anderen werden parallel geholt. Schlägt alles fehl, bleibt
   // `neighbors` null und die Karte zeichnet das Landesradar wie bisher.
   useEffect(() => {
+    // Phase RR: im Profil lädt `MapView` alle drei Landesradare selbst (wie die Wetterkarte) — hier nur für die alte Karte.
+    if (useProfile) { setNeighbors(null); return; }
     const ac = new AbortController();
     const c = location.country;
     const jobs: Array<Promise<Partial<CompositeSources>>> = [];
@@ -327,7 +363,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       setNeighbors(got ? merged : null);
     });
     return () => ac.abort();
-  }, [location.country, reloadKey, autoTick]);
+  }, [location.country, reloadKey, autoTick, useProfile]);
 
   // RL1 — Zellbahnen (DWD KONRAD3D): Abruf nur bei aktivem Layer UND sichtbarem
   // Tab, alle 5 min (~0,6 MB je Datei) — dasselbe Muster wie `MapView.tsx`.
@@ -364,14 +400,15 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Effekts ersetzt den Seq-Guard). Über den Repack seit BW-6 vom CDN.
   const snowOn = layerSet.has('snow');
   useEffect(() => {
-    if (!snowOn) { setSnowData(null); return; }
+    // Phase RR: im Profil zeichnet `MapView` den Schnee selbst (derselbe Lader) — hier nur für die alte Karte.
+    if (!snowOn || useProfile) { setSnowData(null); return; }
     const ac = new AbortController();
     setSnowData(null);
     fetchIconD2Snow(snowMode, ac.signal, (partial) => { if (!ac.signal.aborted) setSnowData(partial); })
       .then((sd) => { if (!ac.signal.aborted) setSnowData(sd); })
       .catch(() => { if (!ac.signal.aborted) console.warn('[buscosun] ICON-D2 Schnee nicht erreichbar'); });
     return () => ac.abort();
-  }, [snowOn, snowMode]);
+  }, [snowOn, snowMode, useProfile]);
 
   // Persist + Abspiel-Engine.
   useEffect(() => { saveLastView({ layers, palette, basemap, opacity }); }, [layers, palette, basemap, opacity]);
@@ -427,8 +464,9 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const pointPop = useMemo(() => (stack ? pointPoPSeries(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
   const frameMmH = useMemo(() => (stack ? frameIntensities(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
 
-  // Phasen/Schneefallgrenze: Gelände-DEM lazy laden (nur wenn aktiv).
-  const needTerrain = layerSet.has('rain') || layerSet.has('graupel') || layerSet.has('hail') || layerSet.has('snowline');
+  // Phasen/Schneefallgrenze: Gelände-DEM lazy laden (nur wenn aktiv). Phase RR: nur für die alte Karte — im Profil
+  // zeichnet `MapView` die Schneefallgrenze der Wetterkarte (ICON-D2-Temperatur + Gelände + ML #2, RR-f).
+  const needTerrain = !useProfile && (layerSet.has('rain') || layerSet.has('graupel') || layerSet.has('hail') || layerSet.has('snowline'));
   useEffect(() => {
     if (!needTerrain || !stack || terrain) return;
     const fr = stack.frames[stack.nowIndex] ?? stack.frames[0];
@@ -451,6 +489,47 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       : { lat, lon, name: `${lat.toFixed(3)}, ${lon.toFixed(3)}`, country: point.country }))
       .catch(() => setPoint({ lat, lon, name: `${lat.toFixed(3)}, ${lon.toFixed(3)}`, country: point.country }));
   }, [point.country]);
+
+  // Phase RR (Profil): Eingaben der Wetterkarten-Karte aus dem Radar-Stack — Zeit des sichtbaren Frames, Morph zwischen
+  // den beiden Nachbar-Frames, gemessene Analysen des Rückblicks. Referenzen stabil halten (`radarPast` leert in
+  // `MapView` den Frame-Speicher), Layer über die Profil-Tabelle.
+  const profileLayers = useMemo(() => radarProfileLayers(layers), [layers]);
+  const radarPast = useMemo(() => {
+    if (!stack) return null;
+    const measured = stack.frames.filter((f) => f.measured);
+    if (stack.source === 'radolan_rv') {
+      return { rv: measured.map((f): RvPastFrame => ({ validAt: new Date(f.timeMs), values: f.values, width: f.width, height: f.height })), rzc: null };
+    }
+    if (stack.source === 'meteoswiss_rzc') {
+      return { rv: null, rzc: measured.map((f): RzcFrame => ({ validAt: new Date(f.timeMs), values: f.values, width: f.width, height: f.height, corners: stack.corners })) };
+    }
+    return null;
+  }, [stack]);
+  const shownIdx = stack ? Math.max(0, Math.min(stack.frames.length - 1, Math.round(framePos))) : 0;
+  const profileTimeMs = stack?.frames[shownIdx]?.timeMs;
+  const i0 = stack ? Math.max(0, Math.min(stack.frames.length - 1, Math.floor(framePos))) : 0;
+  const i1 = stack ? Math.min(stack.frames.length - 1, i0 + 1) : 0;
+  const bracketA = stack?.frames[i0]?.timeMs;
+  const bracketB = stack?.frames[i1]?.timeMs;
+  const bracketFrac = framePos - i0;
+  const timeBracket = useMemo(
+    () => (bracketA != null && bracketB != null ? { aMs: bracketA, bMs: bracketB, frac: bracketFrac } : null),
+    [bracketA, bracketB, bracketFrac],
+  );
+  const mapLocation = useMemo(
+    () => ({ name: point.name, lat: point.lat, lon: point.lon, country: point.country }),
+    [point.name, point.lat, point.lon, point.country],
+  );
+  // Hover-Readout wie die alte Karte: mm/h aus dem Landes-Frame des Stacks unter dem Zeiger.
+  const onProfileHover = useCallback((p: { lat: number; lon: number } | null) => {
+    const st = stackRef.current;
+    if (!p || !st) { setHover(null); return; }
+    const fr = st.frames[Math.max(0, Math.min(st.frames.length - 1, Math.round(framePosRef.current)))];
+    setHover(fr ? sampleRadarPoint(st.source, fr.values, fr.width, fr.height, st.corners, p.lat, p.lon, RADAR_VMAX) : null);
+  }, []);
+  // Im Profil zeichnet die Karte mit der Rampe der Wetterkarte (`precipRainRamp` = Palette „classic"); die Palettenwahl
+  // war seit dem Deck nicht erreichbar und wird nicht übernommen (E-RR-3) — Legende und Streifen folgen der Karte.
+  const shownPalette: PaletteId = useProfile ? 'classic' : palette;
 
   const toggleLayer = (id: RadarLayerId) => applyLayers(layers.includes(id) ? layers.filter((l) => l !== id) : [...layers, id]);
   const step = (d: number) => { if (d < 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
@@ -510,7 +589,20 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
 
       {/* Kartenbühne */}
       <div className="nc-radar-stage">
-        {stack ? (
+        {useProfile ? (
+          MapViewC ? (
+            <MapViewC
+              location={mapLocation} profile="radar"
+              initialActive={profileLayers} routeLayers={profileLayers}
+              timeMs={profileTimeMs} timeBracket={timeBracket} radarPast={radarPast} profileSnowMode={snowMode}
+              onPointPick={onPick} onPointHover={onProfileHover}
+              onMapReady={(m) => { mapRef.current = m; onMapReady?.(m); }}
+              initialView={initialView} onViewChange={onViewChange}
+            />
+          ) : (
+            <div className="nc-radar-loading"><span className="ev-spinner" /> Karte wird geladen …</div>
+          )
+        ) : stack ? (
           <RadarMap
             stack={stack} framePos={framePos} palette={palette} opacity={opacity} basemap={basemap}
             layers={layerSet} accumValues={accumValues} coverageValues={coverageValues}
@@ -525,7 +617,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         )}
 
         {/* Quelle/Alter */}
-        {stack && <div className="nc-radar-source"><IconRadarSignal size={13} /> {sourceAgeBadge(neighbors ? `${stack.sourceLabel} + Komposit DACH` : stack.sourceLabel, stack.runAtMs)}</div>}
+        {stack && <div className="nc-radar-source"><IconRadarSignal size={13} /> {sourceAgeBadge(neighbors || useProfile ? `${stack.sourceLabel} + Komposit DACH` : stack.sourceLabel, stack.runAtMs)}</div>}
 
         {/* Standortbezug der Zellbahnen (Wortlaut S-Z2-3b, wie die Wetterkarte) */}
         {cellsOn && cellRel && (
@@ -546,18 +638,28 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         {/* Legende */}
         <div className="nc-radar-legend">
           {RADAR_BANDS.filter((b) => b.band !== 'dry').map((b) => (
-            <span key={b.band} className="nc-radar-leg-item"><i style={{ background: PALETTES[palette].bandColors[b.band] }} /> {b.label}</span>
+            <span key={b.band} className="nc-radar-leg-item"><i style={{ background: PALETTES[shownPalette].bandColors[b.band] }} /> {b.label}</span>
           ))}
           {layerSet.has('snow') && (
             <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#d6e8fa,#78a6e6,#4660be)' }} /> {snowMode === 'fresh' ? 'Neuschnee 0–50 cm' : 'Schneedecke 0–150 cm'} · ICON-D2</span>
           )}
-          {layerSet.has('graupel') && (
+          {/* Phase RR: die Phasen-Heuristik gibt es nur auf der alten Karte (E-RR-3) — im Profil keine Legende dafür. */}
+          {!useProfile && layerSet.has('graupel') && (
             <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#dcaaee,#ba6ed2,#9630a0)' }} /> Graupel</span>
           )}
-          {layerSet.has('hail') && (
+          {!useProfile && layerSet.has('hail') && (
             <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#ff78aa,#f03c6e,#c81450)' }} /> Hagel</span>
           )}
         </div>
+
+        {/* Phase RR (RR-f): die Schneefallgrenze der Karte ist die der Wetterkarte — Quelle benannt; der Punktwert
+            am gewählten Ort kommt aus der Punktvorhersage des Streifens. */}
+        {useProfile && layerSet.has('snowline') && (
+          <div className="nc-radar-snownote">
+            ❄ Schneefallgrenze: ICON-D2-Temperatur + Gelände (ML #2)
+            {snowLineM != null && <> · am Punkt <strong>~{snowLineM} m</strong></>}
+          </div>
+        )}
 
         {/* Niederschlagsart-Hinweis */}
         {needTerrain && (
@@ -586,14 +688,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         const pointStrip = stack ? (
           <PointStrip
             name={point.name} country={point.country} samples={pointSamples}
-            nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={palette}
+            nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={shownPalette}
             nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
           />
         ) : null;
         const qualityList = (
           <ul>
             {stack && <li><strong>Quelle:</strong> {stack.attribution}</li>}
-            {stack && <li><strong>Skill-Horizont:</strong> minutengenau bis ~{Math.round((stack.skillMin || 0) / 60 * 10) / 10} h, danach Modell (ICON-D2).</li>}
+            {stack && <li><strong>Skill-Horizont:</strong> minutengenau bis ~{Math.round((stack.skillMin || 0) / 60 * 10) / 10} h, danach {pointNowcast?.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : `Modell (${pointNowcast ? nwpLabel(pointNowcast) : 'ICON-D2'})`}.</li>}
             <li><strong>Radarsicht:</strong> {coverageNote(point.lat, point.country)}</li>
             <li>Karte antippen für Punktabfrage. Raster sättigt ~20 mm/h (RADOLAN-RV-Kodierung).</li>
           </ul>
