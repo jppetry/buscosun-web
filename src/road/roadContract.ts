@@ -119,22 +119,9 @@ export const ROAD_H24_SLOTS = 96;
 /**
  * Two kill switches (D-31 pattern): producer side `ROAD_KILL=1` writes slot files with `killed: true` and no
  * points (and `status.killSwitch`); client side `?road=0` / `localStorage.road='0'` hides the page's data path.
- * `?road=1` / `localStorage.road='1'` is the phase flag (default OFF until Gate C).
+ * `?road=1` / `localStorage.road='1'` is the phase flag (default OFF until Gate C, `roadFlag.ts`).
  */
-export function roadFlagFrom(
-  search: string = typeof location !== 'undefined' ? location.search : '',
-  stored?: string | null,
-): boolean {
-  let q: string | null = null;
-  try { q = new URLSearchParams(search).get('road'); } catch { /* broken query = no vote */ }
-  if (q === '0') return false;
-  if (q === '1') return true;
-  let s = stored;
-  if (s === undefined) {
-    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('road') : null; } catch { s = null; }
-  }
-  return s === '1';
-}
+export { roadFlagFrom, ROAD_LIVE } from './roadFlag';
 
 // --- DWD series (groups) -----------------------------------------------------------------------
 
@@ -404,9 +391,18 @@ export interface RoadH24File {
   slot: string;
   /** Stamps oldest → newest (≤ 96). */
   slots: string[];
-  /** Per station the valid values per slot (0.1 °C; null = no valid value). */
-  stations: Record<string, { rs: Array<number | null>; ta: Array<number | null>; td: Array<number | null> }>;
+  /**
+   * Per station the valid values per slot (0.1 °C; null = no valid value) and `k`, the station class per slot as one
+   * character (`ROAD_CLASS_CODE`, `-` = no point in that slot) — for the backtest of AW-6 (E-AW-6). Rings written
+   * before `k` existed lack it; readers treat that as all `-`.
+   */
+  stations: Record<string, { rs: Array<number | null>; ta: Array<number | null>; td: Array<number | null>; k?: string }>;
 }
+
+/** One character per station class in the ring (`-` = no point in the slot). */
+export const ROAD_CLASS_CODE = Object.freeze({ ice: 'i', frost: 'f', wet: 'w', dry: 'd', unknown: 'u', nodata: 'n' } as const);
+export const ROAD_CLASS_NONE = '-';
+const RING_CODE_RE = /^[ifwdun-]*$/;
 
 export const ROAD_SOURCE_TEXT = 'Deutscher Wetterdienst, Glättemeldeanlagen (SWIS) der Länder — opendata.dwd.de, GeoNutzV; verändert: dekodiert, geprüft, umkodiert';
 
@@ -809,6 +805,7 @@ export function parseRoadH24(j: unknown): RoadH24File | null {
     for (const f of ['rs', 'ta', 'td'] as const) {
       if (!Array.isArray(r?.[f]) || (r[f] as unknown[]).length !== n || !(r[f] as unknown[]).every(numOrNull)) return null;
     }
+    if (r.k !== undefined && (typeof r.k !== 'string' || r.k.length !== n || !RING_CODE_RE.test(r.k))) return null;
   }
   return o as unknown as RoadH24File;
 }

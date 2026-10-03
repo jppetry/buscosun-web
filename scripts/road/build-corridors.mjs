@@ -206,8 +206,13 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
         if (pr.offKm <= SNAP_KM) st.push({ id: sid, km: Math.round(pr.km * 10) / 10, dir: s.dir ?? null });
       }
       st.sort((a, b) => a.km - b.km);
-      const a = nearestPlace(places, line[0], 5000, 12) ?? nearestPlace(places, line[0], 20000, 30) ?? nearestPlace(places, line[0], 1500, 30);
-      const b = nearestPlace(places, line.at(-1), 5000, 12) ?? nearestPlace(places, line.at(-1), 20000, 30) ?? nearestPlace(places, line.at(-1), 1500, 30);
+      const borderStart = borderAt(line[0], deRings, places);
+      const borderEnd = borderAt(line.at(-1), deRings, places);
+      // A corridor end at the border is named after the city across it (design: „München → Salzburg").
+      const endName = (p, border) => (border && border !== 'X' ? nearestPlace(places.filter((x) => x[4] === border), p, 20000, 15) : null)
+        ?? nearestPlace(places, p, 5000, 12) ?? nearestPlace(places, p, 20000, 30) ?? nearestPlace(places, p, 1500, 30);
+      const a = endName(line[0], borderStart);
+      const b = endName(line.at(-1), borderEnd);
       const towns = [];
       for (const pl of places) {
         if (pl[4] !== 'DE' || pl[5] < 50000) continue;
@@ -218,11 +223,10 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
       if (b) towns.push([Math.round(len), b[2]]);
       const seen = new Set();
       const townsOut = towns.sort((x, y) => x[0] - y[0]).filter((t) => (seen.has(t[1]) ? false : (seen.add(t[1]), true)));
-      const borderStart = borderAt(line[0], deRings, places);
-      const borderEnd = borderAt(line.at(-1), deRings, places);
       built.push({
         id: '', road, shields: [road.replace(/^A/, 'A ')],
-        title: a && b ? `${a[2]} → ${b[2]}` : road,
+        // Loop or short section with both ends at the same town: „A 1 bei Buchholz" instead of „Buchholz → Buchholz".
+        title: a && b ? (a[2] === b[2] ? `${road.replace(/^A/, 'A ')} bei ${a[2]}` : `${a[2]} → ${b[2]}`) : road,
         from: a?.[2] ?? null, to: b?.[2] ?? null,
         lengthKm: Math.round(len * 10) / 10,
         countries: ['DE'],

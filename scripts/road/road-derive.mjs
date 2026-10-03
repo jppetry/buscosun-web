@@ -24,7 +24,7 @@ import {
   ROAD_DEADLINE_MS, ROAD_DWD_BASE, ROAD_GROUPS, ROAD_H24_SLOTS, ROAD_POLL_MS, ROAD_REPO_DIR, ROAD_RETENTION,
   ROAD_SLOT_MS, ROAD_STATE_PATH, ROAD_STATIONS_PATH, ROAD_STATUS_PATH,
   roadH24Path, roadObsPath, roadQuarantinePath, roadStampToMs, roadStamp,
-  validateRoadSlot, roadObsRoundTripOk,
+  validateRoadSlot, roadObsRoundTripOk, ROAD_CLASS_CODE, ROAD_CLASS_NONE,
 } from '../../src/road/roadContract.ts';
 import { makeInDE } from './deMask.mjs';
 
@@ -47,7 +47,10 @@ function previousRing(storeDir, group, stamp) {
   return files.length ? readJson(join(dir, files.at(-1))) : null;
 }
 
-/** Next 24-h ring of one series: previous ring + this slot's VALID values (0.1 °C), at most 96 slots, ≤ 24 h. */
+/**
+ * Next 24-h ring of one series: previous ring + this slot's VALID values (0.1 °C) and the station class as one
+ * character (`k`, E-AW-6: the backtest of AW-6 needs the measured state, not only temperatures), at most 96 slots, ≤ 24 h.
+ */
 export function nextRing(prev, group, stamp, points) {
   const slotMs = roadStampToMs(stamp);
   const oldestMs = slotMs - (ROAD_H24_SLOTS - 1) * ROAD_SLOT_MS;
@@ -57,13 +60,16 @@ export function nextRing(prev, group, stamp, points) {
   const drop = prevSlots.length + 1 - slots.length;
   const stations = {};
   const take = (arr) => keepIdx.map((i) => arr[i] ?? null).slice(drop);
+  // A ring written before `k` existed counts as "no class" in its old slots.
+  const takeK = (k) => keepIdx.map((i) => (typeof k === 'string' ? k[i] ?? ROAD_CLASS_NONE : ROAD_CLASS_NONE)).slice(drop).join('');
   for (const [id, v] of Object.entries(prev?.stations ?? {})) {
-    stations[id] = { rs: [...take(v.rs), null], ta: [...take(v.ta), null], td: [...take(v.td), null] };
+    stations[id] = { rs: [...take(v.rs), null], ta: [...take(v.ta), null], td: [...take(v.td), null], k: takeK(v.k) + ROAD_CLASS_NONE };
   }
   const n = slots.length;
   for (const p of points) {
-    const s = (stations[p.id] ??= { rs: Array(n).fill(null), ta: Array(n).fill(null), td: Array(n).fill(null) });
+    const s = (stations[p.id] ??= { rs: Array(n).fill(null), ta: Array(n).fill(null), td: Array(n).fill(null), k: ROAD_CLASS_NONE.repeat(n) });
     s.rs[n - 1] = r1(p.rs); s.ta[n - 1] = r1(p.ta); s.td[n - 1] = r1(p.td);
+    s.k = s.k.slice(0, n - 1) + (ROAD_CLASS_CODE[p.cls] ?? ROAD_CLASS_NONE);
   }
   // Stations without a single value in the ring leave it.
   for (const [id, s] of Object.entries(stations)) if (![...s.rs, ...s.ta, ...s.td].some((v) => v != null)) delete stations[id];

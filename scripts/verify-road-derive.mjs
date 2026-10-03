@@ -195,6 +195,39 @@ add('E4 Nachfolger-Job: Zustand älter als die Nachholgrenze ⇒ Start an der Gr
     show('road/v1/static/corridors.json').corridors[0]?.id === 'a8' && storeCopy.corridors[0]?.id === 'a8' && remoteFiles('road/v1/obs/').length >= 2, res.noop ? 'nichts zu committen' : 'gepusht');
 }
 
+// --- H: class column of the ring + archive export (E-AW-6: prepared, no archive) -------------------
+{
+  const { exportRoadWindow, readRoadStore } = await import('./road/road-export.mjs');
+  // The 11:00 ring carries 08:00, 08:30, 10:45, 11:00 (08:15 locked, the rest not caught up) — k across a gap.
+  const r830 = parseRoadH24(show('road/v1/h24/FN-NB/2610031100.json'));
+  const o830 = parseRoadObs(show('road/v1/obs/2610031100.json'));
+  const okK = r830 && Object.values(r830.stations).every((s) => typeof s.k === 'string' && s.k.length === r830.slots.length && /^[ifwdun-]+$/.test(s.k));
+  const byId = new Map(o830.points.map((p) => [p.id, p]));
+  const code = { ice: 'i', frost: 'f', wet: 'w', dry: 'd', unknown: 'u', nodata: 'n' };
+  const ids = Object.keys(r830?.stations ?? {}).filter((id) => byId.has(id));
+  const match = ids.filter((id) => r830.stations[id].k.at(-1) === code[byId.get(id).cls]).length;
+  add('H1 Ring trägt die Klasse je Slot (k, ein Zeichen je Slot) — letzte Stelle = Klasse des Punkts im obs-Slot', okK && ids.length > 20 && match === ids.length, `${match}/${ids.length}`);
+  const bad = JSON.parse(JSON.stringify(r830));
+  const first = Object.keys(bad.stations)[0];
+  bad.stations[first].k = 'x';
+  const legacy = JSON.parse(JSON.stringify(r830));
+  for (const s of Object.values(legacy.stations)) delete s.k;
+  add('H2 Client-Prüfer: k mit falscher Länge/Zeichen ⇒ null; Ring ohne k (älterer Stand) bleibt gültig', parseRoadH24(bad) === null && !!parseRoadH24(legacy));
+  const store = readRoadStore(join(mirror, 'road'));
+  const ex = exportRoadWindow(store);
+  const ringEnd = parseRoadH24(JSON.parse(readFileSync(join(mirror, 'road', 'h24', 'FN-NB', '2610031100.json'), 'utf8')));
+  const sid = Object.keys(ringEnd.stations).find((id) => ex.stations[id]);
+  const e = ex.stations[sid];
+  const at = (stamp) => ex.slots.indexOf(stamp);
+  add('H3 Export-Fenster: 96 Slots bis zum jüngsten Ring (11:00), je Station Reihen der Länge 96, Werte am Slot = Ring',
+    ex.product === 'road-window' && ex.slots.length === 96 && ex.slots.at(-1) === '2610031100' && e.rs.length === 96 && e.k.length === 96
+      && e.rs[at('2610031100')] === ringEnd.stations[sid].rs.at(-1) && e.k[at('2610031100')] === ringEnd.stations[sid].k.at(-1) && e.rs[0] === null && e.k[0] === '-',
+    `${Object.keys(ex.stations).length} Stationen · ${sid}`);
+  add('H4 Export nennt Herkunft, Reihen, Lizenz und die Stammdaten aus dem jüngsten obs-Slot', /GeoNutzV/.test(ex.source) && ex.groups.length >= 20 && typeof e.lat === 'number' && typeof e.n === 'string' && e.g, JSON.stringify({ g: e.g, n: e.n, groups: ex.groups.length }));
+  const legacyEx = exportRoadWindow({ ...store, rings: store.rings.map((r) => ({ ...r, stations: Object.fromEntries(Object.entries(r.stations).map(([id, s]) => [id, { rs: s.rs, ta: s.ta, td: s.td }])) })) });
+  add('H5 Export aus Ringen ohne k: Klassen „-" (unbekannt), Werte unverändert', Object.values(legacyEx.stations).every((s) => /^-+$/.test(s.k)) && legacyEx.stations[sid].rs.join() === e.rs.join());
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const passed = checks.filter((c) => c.ok).length;
 const failed = checks.length - passed;
