@@ -75,7 +75,7 @@ Publish am CDN. Die auf den Commit gepinnte Form bleibt als Rückfall.
 Der dominante Commit-Treiber dieses Repos: alle 1–2 Minuten ein Push (RD1–RD3).
 
 ```
-radar/status.json         schema 2 — keep, pollSec, derive, Job-ID, letzte Läufe
+radar/status.json         schema 3 — keep, imgKeep je Quelle, pollSec, derive, Job-ID, letzte Läufe, Blitz-Haken
 radar/rv/                 DWD RADVOR RV, rohe tar.bz2 je 5-Minuten-Schritt
 radar/konrad3d/           DWD KONRAD3D, XML je 5-Minuten-Schritt
 radar/img/v1/rv/          RV als fertiges PNG + JSON (RD3: Derive im Spiegel statt im Browser)
@@ -85,10 +85,24 @@ radar/img/v1/rv/          RV als fertiges PNG + JSON (RD3: Derive im Spiegel sta
 radar/img/v1/inca/        GeoSphere INCA
 radar/img/v1/rzc/         MeteoSchweiz RZC/CombiPrecip
 radar/img/v1/konrad3d/    Zellbahnen als JSON
+radar/img/v1/rv-past/     RV-Analyse f000.png der letzten 2 h (Kopie der f000 des RV-Slots) — Rückblick
+radar/img/v1/lightning-de/   Blitze DWD Blitzdichte (NowCastMIX), nur DE-Verbund: frame.png + meta.json je 5 min
+radar/img/v1/lightning-mtg/  Blitze EUMETSAT MTG Lightning Imager, ganz DACH: frame.png + meta.json je 5 min
 ```
 
-Aufbewahrung: `keep: 12` Schritte (≈ 1 Stunde). Der Job läuft 345 Minuten am Stück und
-pusht in seinem eigenen Takt; `radar-watchdog.yml` startet ihn neu, wenn er ausfällt.
+Aufbewahrung: Radar-Rohdaten und volle RV-/INCA-Slots `keep: 12` Schritte (RV ≈ 1 Stunde, INCA ≈ 3 Stunden);
+die gemessenen Analysen und Zellen (`rv-past`, `rzc`, `konrad3d`) und die Blitze **2 Stunden** — Alter ≤ 23 × 5 min
+hinter dem jüngsten Slot derselben Quelle, mindestens 2 Slots. Der Job läuft 345 Minuten am Stück und pusht in seinem
+eigenen Takt; `radar-watchdog.yml` startet ihn neu, wenn er ausfällt.
+
+**Blitze sind Werte, keine Farben.** Beide Quellen werden über WCS im nativen Gitter geholt und mit nächstem Nachbarn auf
+ein festes EPSG:3857-Raster gelegt (DACH 5,5–17,5 °E × 45,5–55,5 °N, 2 000 m, 668 × 880). `lightning-de`: Wert =
+(R·256 + G) / 100, der Index 0…127 der Quelle; A = 0 heißt außerhalb des deutschen Verbunds (keine Messung, nicht
+„keine Blitze"). Die Fenster sind 15 Minuten lang und kommen alle 5 Minuten — **sie überlappen, nie aufsummieren**.
+`lightning-mtg`: R = Klasse 0…20 (≈ Blitze je 5 min und Pixel, ±1; 0 = keine Blitze **oder** keine Messung), optische
+Gesamtblitze aus dem geostationären Orbit, um einige Kilometer nach Norden versetzt (Parallaxe). Österreich und die
+Schweiz haben keine offenen Bodennetz-Blitze — dort gibt es nur MTG. Der Stempel ist das Fensterende; ein Slot, den die
+Quelle nicht veröffentlicht hat, fehlt (kein Verzeichnis), er ist nie „0". Vertrag: `src/sources/lightningImg.ts`.
 
 ---
 
@@ -382,7 +396,8 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `point/stations/` | Alter ≤ 24 h, mindestens 2 Läufe | ≈ 4 Läufe |
 | `point/stations-s/` | Alter ≤ **6 h**, mindestens 2 Läufe | ≈ 6 Läufe bei 24 Slots |
 | `runs/` | `keep: 4` | ≈ 12 h |
-| `radar/` | `keep: 12` Schritte | ≈ 1 h |
+| `radar/` (Rohdaten, volle RV-/INCA-Slots) | `keep: 12` Schritte | RV ≈ 1 h, INCA ≈ 3 h |
+| `radar/img/v1/` `rv-past`, `rzc`, `konrad3d`, `lightning-*` | Alter ≤ **115 min** hinter dem jüngsten Slot, mindestens 2 Slots | 24 Slots ≈ 2 h |
 | `road/v1/obs/` | Alter ≤ **3 h**, mindestens 2 Slots | 12 Slots |
 | `road/v1/quarantine/` | Alter ≤ 24 h, mindestens 2 Slots | 96 Slots |
 | `road/v1/h24/<Reihe>/` | Alter ≤ 1 h, mindestens 2 Dateien je Reihe (jede Datei trägt den ganzen 24-h-Verlauf) | ≈ 4 je Reihe |
@@ -458,6 +473,8 @@ sonst läuft der alte Stand weiter. Dasselbe gilt für dieses README und für
 |---|---|---|
 | `runs/`, `point/` (ICON, MOSMIX) | **Deutscher Wetterdienst**, <https://opendata.dwd.de> | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) / GeoNutzV |
 | `radar/rv`, `radar/konrad3d` | Deutscher Wetterdienst | CC BY 4.0 |
+| `radar/img/v1/lightning-de` | Datenbasis: Deutscher Wetterdienst (NowCastMIX-Blitzdichte), Werte auf eigenes Raster umgesetzt | CC BY 4.0 / GeoNutzV |
+| `radar/img/v1/lightning-mtg` | Contains modified EUMETSAT Meteosat data 2026 (MTG-I1 Lightning Imager, Accumulated Flash Area) | CC BY 4.0 |
 | `road/` (Messwerte, Stationsliste) | Deutscher Wetterdienst, Glättemeldeanlagen der Länder (SWIS) | GeoNutzV, Quellenvermerk DWD |
 | `road/v1/static/corridors.json` | © GeoBasis-DE / BKG (DLM250), GeoNames | dl-de/by-2.0, CC BY 4.0 |
 | `point/` (C-LAEF), `radar/img/v1/inca` | GeoSphere Austria | CC BY 4.0 |

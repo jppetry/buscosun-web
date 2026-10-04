@@ -31,7 +31,9 @@
    02.10. 14:20Z um 03.10. 14:26Z; WCS 500 / WMS `InvalidDimensionValue` davor). MTG liefert den vollen
    Bestand (Frames vom 01.08.2025 gelesen). **Backfill 2 h: beide problemlos** (26/26 bzw. 24/26 Slots — die
    zwei MTG-Fehlslots waren die zwei jüngsten, noch nicht erschienenen, HTTP 404).
-4. **Latenz** (Sampler, 60-s-Raster, 80 min): §1.4.
+4. **Latenz** (Sampler, 60-s-Raster, 80 min, 79 Proben je Quelle, 0 Fehler, keine Slot-Lücke): BD erscheint
+   **6,6–7,8 min** (p50 6,8) nach dem Fensterende, MTG **5,6–10,7 min** (p50 7,9) nach dem Fensterende
+   (= 10,6–15,7 min nach seinem Zeitstempel). Ältester „jüngster Stand" an der Quelle: BD 11,7 min, MTG 14,7 min.
 5. **Drei Fallen, die der Producer abfangen muss** (§3): (a) **DWD-WCS erfindet Frames** — jede Zeit ab
    Bestandsbeginn, auch Zukunft (18:00Z) und Zwischenzeiten (14:31Z), liefert HTTP 200 mit einem
    Frame aus lauter 0 **ohne** die Nodata-Maske, die jeder echte Frame trägt (159 386 × 9999 im DACH-Ausschnitt)
@@ -100,7 +102,19 @@ je Pfad einmal (Blob-Dedup über identische Inhalte).
 
 ### 1.4 Latenz (Sampler 60 s, 80 min)
 
-*(siehe §1.4-Tabelle unten — nach Sampler-Ende eingetragen)*
+Sampler `blitz-werkzeuge/sampler.mjs`: alle 60 s je Quelle die Per-Layer-Capabilities, jüngstes TIME gegen die
+Wanduhr, 03.10. 14:24–15:43Z, **79 Proben je Quelle, 0 Fehler**, 17 (BD) bzw. 16 (MTG) neue TIME-Werte, Schritt
+immer 5 min (keine Lücke). „Erscheinen" = erste Probe, die das neue TIME zeigt, minus **Fensterende** (BD: TIME;
+MTG: TIME + 5 min) — Obergrenze mit 1 min Auflösung.
+
+| | BD | MTG |
+|---|---|---|
+| Erscheinen nach Fensterende | min 6,6 · **p50 6,8** · p90 7,0 · **max 7,8 min** (sehr regelmäßig) | min 5,6 · **p50 7,9** · p90 9,9 · **max 10,7 min** (≙ 10,6–15,7 min nach TIME) |
+| Alter des jüngsten Fensterendes zu beliebiger Zeit | min 6,6 · p50 8,8 · p95 10,9 · **max 11,7 min** | min 5,6 · p50 10,0 · p95 13,7 · **max 14,7 min** |
+| Capabilities-Abruf | p50 88 ms · p95 294 · max 535 | p50 66 ms · p95 311 · max 1 514 |
+
+Zum Vergleich: `DATA_SOURCES.md` §7 nennt für MTG „~5 min" — das gilt gegen den Zeitstempel = Fensterbeginn
+gemessen nicht; gegen das Fensterende sind es 6–11 min, gegen TIME 11–16 min (V-Kandidat §7).
 
 ### 1.5 Backfill 2 h
 
@@ -281,7 +295,15 @@ der Quelle ⇒ Frame verwerfen, Log).
 
 ### 6.4 `LIGHTNING_GATE_MS` (Vorschlag)
 
-*(nach Sampler-Ende, §1.4)*
+Herleitung (Alter des Fensterendes beim Nutzer, schlechtester Fall): Quelle max (BD 11,7 / MTG 14,7 min) +
+Capabilities-Drossel ≤ 1 min + Mitfahrt im nächsten Produkt-Push ≤ 5 min (Plan NP-0a-4: sonst eigener Push nach
+5 min) + Push ≈ 0,5 min + CDN-Sichtbarkeit `@main` ≤ 3 min (CLAUDE.md, jsDelivr-Lehre) ⇒ BD ≈ 21 min, MTG ≈ 24 min.
+
+**Vorschlag: `LIGHTNING_GATE_MS = 25 · 60 000` (1 500 000 ms), eine Konstante für beide Quellen**, gemessen am
+**Fensterende** (`validAtMs`), nicht am Zeitstempel der Quelle. Älter ⇒ Client zeigt den Frame nicht als „jetzt"
+(Stand-Hinweis wie beim Radar). Getrennte Schranken (BD 20, MTG 25 min) wären knapper, die Messbasis (80 min,
+ein Nachmittag) trägt die 1-min-Unterscheidung aber nicht; nach dem Live-Lauf (`verify:np0-radar --live`, Lag aus
+`status.json`) nachschärfen.
 
 ## 7. Neue Befunde (V-Kandidaten für §8 des Phasendokuments)
 
@@ -296,6 +318,12 @@ der Quelle ⇒ Frame verwerfen, Log).
 - **`dwdLightning.ts`-Attribution falsch** („Sferics/Linet") für ein MTG-Produkt; Mehrwert: korrekte Quelle in der
   Karte. Skizze: Text an den Layer-Abstract binden (eigene kleine Phase, betrifft UI).
 - **EUMETSAT-Attribution:** Wortlaut aus dem Suchindex — vor Veröffentlichung gegen das Policy-PDF prüfen.
+- **MTG-Latenz „~5 min" in `DATA_SOURCES.md`/`API.md` zu knapp:** gegen das Fensterende 6–11 min, gegen den
+  Zeitstempel 11–16 min (Zeitstempel = Fensterbeginn). Mehrwert: ehrliche Altersangabe in der Karte. Skizze:
+  beide Doku-Stellen + der heutige Live-Layer berichtigen.
+- **Zweiter Gast in der Spiegel-Schleife:** seit 03.10. 12:47Z läuft das Autobahnwetter (`road.poll()`) im selben
+  seriellen Strang (Memory AW) — die Blitze wären der dritte Nicht-Radar-Abruf; Takt-Messung D-NP0-3 sollte den
+  Lag seit dem AW-Start getrennt ausweisen (Fork A).
 
 ## 8. Belege
 
@@ -309,4 +337,4 @@ der Quelle ⇒ Frame verwerfen, Log).
   (WCS nativ → Ziel-Raster, Klassenzählung), `wcs3857.mjs` (serverseitige Umprojektion — Randbefund),
   `wms-probe.mjs`, `backfill.mjs`, `sampler.mjs` (Latenz). `wms-probe.mjs`/`native.mjs` importieren
   `scripts/lib/png.mjs` per absolutem `file:///`-Pfad (Diagnose, nicht für CI).
-- Rohlogs: Session-Scratchpad `ltg/latency.log`, `ltg/backfill-1.log`.
+- Rohlogs: `blitz-werkzeuge/latency-20261003.log` (Sampler), `blitz-werkzeuge/backfill-20261003T1433Z.log`.

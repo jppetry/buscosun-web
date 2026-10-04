@@ -31,6 +31,18 @@
  *
  * Retention KEEP je Produkt (12 Slots: RV/KONRAD/rzc = 1 h, INCA = 3 h; der Rückblick des
  * Regenradars braucht 9). jsDelivr: 20 MB je Datei, 150 MB je Paket — Budgetrechnung §14.1.
+ * (D-NP0-1, 03.10.: die Paketgrenze trifft nur Verzeichnis-/Paketabrufe, jede Einzeldatei wird ausgeliefert.)
+ *
+ * NP-0a (buscosun-web/audit/np0-datenprodukte.md §8, E-NP0-1/-2/-7/-8) — Rückblick 2 h und Blitze:
+ *   · Bild-Retention JE QUELLE (`IMG_KEEP`, gleiche Tabelle wie `RADAR_IMG_KEEP` in src/sources/radarImg.ts):
+ *     rv/inca bleiben bei KEEP (Zählregel, byte-gleich); `rv-past`, `rzc`, `konrad3d` und die Blitze halten 2 h
+ *     über eine ALTERSREGEL (Slot bleibt, solange er ≤ (keep − 1) · 5 min älter ist als der jüngste derselben
+ *     Quelle, mindestens 2). Vorher kürzte jede Naht JEDE Quelle auf KEEP (Bare-Repo-Test, diag-a §5).
+ *   · `img/rv-past/<stempel>/f000.png` = Kopie der eben abgeleiteten `img/rv/<stempel>/f000.png` (Derive unverändert).
+ *   · Blitze: Haken `scripts/lightning/lightning-mirror.mjs` im Web-Klon (Muster road), Kindprozess asynchron,
+ *     Dateien fahren beim nächsten Produkt-Push mit; nach 5 min ohne Produkt-Push eigener Push.
+ *   · `.tmp-`-Reste abgebrochener Derives werden nicht mehr kopiert und nach 10 min gelöscht (V-NP0-4).
+ *   Rückweg: `PAST_KEEP=12` (≤ KEEP ⇒ kein rv-past, alle Quellen KEEP wie vor NP-0a) und `LIGHTNING=0`.
  *
  * Lizenz: DWD/GeoSphere/MeteoSwiss OpenData, CC BY 4.0 (Attribution im Client unverändert).
  *
@@ -38,8 +50,8 @@
  *   RUN_MINUTES=6 node radar-mirror.mjs   (im Arbeitsverzeichnis eines Klons des Remotes)
  */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readdirSync, rmSync, existsSync, copyFileSync, cpSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync, readdirSync, rmSync, existsSync, copyFileSync, cpSync, statSync } from 'node:fs';
+import { join, basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const RUN_MINUTES = Number(process.env.RUN_MINUTES ?? 345);
@@ -64,6 +76,25 @@ const DERIVE = process.env.DERIVE !== '0' && !!APP_DIR && existsSync(DERIVE_SCRI
 // Spiegel wie vorher; ein Fehler im Straßenwetter nimmt nie den Radar-Push.
 const ROAD_HOOK = APP_DIR ? join(APP_DIR, 'scripts', 'road', 'road-mirror.mjs') : '';
 let road = null;
+
+// NP-0a (E-NP0-1/-2): Rückblick 2 h + Blitze. `PAST_KEEP` ≤ KEEP stellt den Stand vor NP-0a her.
+const PAST_KEEP = Number(process.env.PAST_KEEP || 24);   // leer = Voreinstellung
+const PAST_ON = PAST_KEEP > KEEP;
+const LIGHTNING_HOOK = APP_DIR ? join(APP_DIR, 'scripts', 'lightning', 'lightning-mirror.mjs') : '';
+const LIGHTNING_ON = process.env.LIGHTNING !== '0';
+const LIGHTNING_DIRS = ['lightning-de', 'lightning-mtg'];
+const LIGHTNING_SELF_PUSH_MS = 5 * 60_000;   // Blitze ohne Produkt-Push spätestens nach 5 min selbst pushen
+let lightning = null;
+/** Erwarteter RV-Slot (aus `main()`): im Fenster +2:50…+5:30 nach seinem Stempel liefert der DWD (+3:13…3:43) — dann
+ *  startet der Blitz-Haken keinen Kindprozess, damit der RV-Derive die CPU allein hat. */
+let pendingRvSlotMs = null;
+const rvQuiet = () => pendingRvSlotMs != null && Date.now() - pendingRvSlotMs >= 170_000 && Date.now() - pendingRvSlotMs <= 330_000;
+/** Slots je Bild-Quelle — dieselbe Tabelle wie `RADAR_IMG_KEEP` (src/sources/radarImg.ts, `verify:np0-radar` vergleicht). */
+export const IMG_KEEP = { rv: KEEP, inca: KEEP, 'rv-past': PAST_KEEP, rzc: PAST_ON ? PAST_KEEP : KEEP, konrad3d: PAST_ON ? PAST_KEEP : KEEP, 'lightning-de': 24, 'lightning-mtg': 24 };
+/** Quellen mit Altersregel (nur mit PAST_ON; sonst Zählregel wie vor NP-0a). */
+export const IMG_AGE_RULE = ['rv-past', 'rzc', 'konrad3d', 'lightning-de', 'lightning-mtg'];
+export const IMG_MIN_KEEP = 2;
+const TMP_MAX_AGE_MS = 10 * 60_000;
 
 const INCA_CHECK_SEC = Number(process.env.INCA_CHECK_SEC ?? 45); // Rate-Limit 240/h ⇒ ≥ 15 s
 const RZC_CHECK_SEC = Number(process.env.RZC_CHECK_SEC ?? 30);
@@ -152,9 +183,59 @@ function storePut(p, file, buf) {
 // ── Bild-Bestand (RD3): je Quelle Slot-VERZEICHNISSE `img/<quelle>/<stempel>/` ──
 function imgSrcDir(source) { return join(MIRROR, 'img', source); }
 function imgSlots(source) { return existsSync(imgSrcDir(source)) ? readdirSync(imgSrcDir(source)).filter((f) => !f.startsWith('.') && !f.includes('.tmp-')).sort() : []; }
+
+/** Gültigkeitszeit eines Bild-Stempels: `YYMMDDHHMM` (rv, rv-past), `YYYYMMDDTHHMM` (inca, rzc, Blitze), `…HHMM00` (KONRAD). */
+export function imgSlotMs(stamp) {
+  let m = /^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(stamp);
+  if (m) return Date.UTC(2000 + +m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+  m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/.exec(stamp);
+  return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : NaN;
+}
+
+/**
+ * Welche Slots einer Quelle fallen weg? `slots` aufsteigend sortiert. Zählregel (rv, inca, alles ohne PAST_ON):
+ * die ältesten über `keep`. Altersregel (NP-0a): älter als der jüngste Slot − (keep − 1) · 5 min, aber nie unter
+ * `IMG_MIN_KEEP` — nach einem Ausfall bleibt der Rückblick kürzer, statt alte Slots als „vor 2 h" auszugeben.
+ */
+export function imgSlotsToDrop(source, slots, pastOn = PAST_ON) {
+  const keep = IMG_KEEP[source] ?? KEEP;
+  if (!(pastOn && IMG_AGE_RULE.includes(source))) return slots.slice(0, Math.max(0, slots.length - keep));
+  const ms = slots.map(imgSlotMs);
+  const newest = Math.max(...ms.filter(Number.isFinite));
+  if (!Number.isFinite(newest)) return slots.slice(0, Math.max(0, slots.length - IMG_MIN_KEEP));
+  const cut = newest - (keep - 1) * 300_000;
+  const drop = slots.filter((s, i) => !(ms[i] >= cut));
+  return drop.slice(0, Math.max(0, Math.min(drop.length, slots.length - IMG_MIN_KEEP)));
+}
+
 function imgPrune(source) {
-  const slots = imgSlots(source);
-  for (const s of slots.slice(0, Math.max(0, slots.length - KEEP))) rmSync(join(imgSrcDir(source), s), { recursive: true, force: true });
+  for (const s of imgSlotsToDrop(source, imgSlots(source))) rmSync(join(imgSrcDir(source), s), { recursive: true, force: true });
+  // V-NP0-4: Reste abgebrochener Derives (`<stempel>.tmp-<pid>`) — ein laufender Derive ist jünger als 10 min.
+  if (!existsSync(imgSrcDir(source))) return;
+  for (const f of readdirSync(imgSrcDir(source))) {
+    if (!f.includes('.tmp-')) continue;
+    try { if (Date.now() - statSync(join(imgSrcDir(source), f)).mtimeMs > TMP_MAX_AGE_MS) rmSync(join(imgSrcDir(source), f), { recursive: true, force: true }); } catch { /* schon weg */ }
+  }
+}
+
+/** `cpSync`-Filter der Bild-Ablage: keine `.tmp-`-Reste (V-NP0-4), keine abgeschalteten NP-0a-Quellen (Rückweg). */
+function imgCopyFilter(src) {
+  const name = basename(src);
+  if (name.includes('.tmp-')) return false;
+  if (name === 'rv-past' && !PAST_ON) return false;
+  if (LIGHTNING_DIRS.includes(name) && !LIGHTNING_ON) return false;
+  return true;
+}
+
+/** NP-0a: Analyse des RV-Slots in den Rückblick (`img/rv-past/<stempel>/f000.png`), byte-gleich kopiert. */
+function rvPastCopy(stamp) {
+  if (!PAST_ON) return false;
+  const src = join(imgSrcDir('rv'), stamp, 'f000.png');
+  const dst = join(imgSrcDir('rv-past'), stamp);
+  if (!existsSync(src) || existsSync(join(dst, 'f000.png'))) return false;
+  mkdirSync(dst, { recursive: true });
+  copyFileSync(src, join(dst, 'f000.png'));
+  return true;
 }
 
 /**
@@ -173,6 +254,7 @@ function derive(source, inPath, stamp) {
     const line = stdout.trim().split('\n').pop();
     const j = JSON.parse(line);
     imgPrune(source);
+    if (source === 'rv' && rvPastCopy(stamp)) imgPrune('rv-past');
     return { ms: Date.now() - t0, files: j.files, bytes: j.bytes };
   } catch (e) {
     log(`derive ${source} ${stamp}: FEHLGESCHLAGEN (${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? 'unbekannt'}) — Slot ohne Bild-Ablage`);
@@ -182,7 +264,7 @@ function derive(source, inPath, stamp) {
 }
 
 /** Beim Start: was `main` schon hat, in den Bestand übernehmen (Nachfolger-Job nach der Naht). */
-function storeSeed() {
+export function storeSeed() {
   for (const p of Object.values(PRODUCTS)) {
     const d = join(ROOT, 'radar', p.dir);
     if (!existsSync(d)) continue;
@@ -193,18 +275,23 @@ function storeSeed() {
   }
   const img = join(ROOT, 'radar', 'img', IMG_VERSION);
   if (existsSync(img)) {
-    cpSync(img, join(MIRROR, 'img'), { recursive: true, force: false });
+    cpSync(img, join(MIRROR, 'img'), { recursive: true, force: false, filter: imgCopyFilter });
+    // NP-0a: erster Start mit Rückblick — die f000 der vorhandenen RV-Slots sofort in den Rückblick.
+    for (const st of imgSlots('rv')) rvPastCopy(st);
     for (const source of readdirSync(join(MIRROR, 'img'))) imgPrune(source);
   }
 }
 
+// Schema 3 (NP-0a): + `imgKeep`/`imgAgeRule` (Aufbewahrung je Bild-Quelle), `pastKeep`, `lightning` (Zustand des Hakens).
+// `status.json` liest kein Code nach Schema — reine Telemetrie (D-NP0-3).
 const status = {
-  schema: 2, keep: KEEP, pollSec: POLL_SEC, derive: DERIVE,
-  job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: nowIso(), recent: [],
+  schema: 3, keep: KEEP, pastKeep: PAST_KEEP, imgKeep: IMG_KEEP, imgAgeRule: PAST_ON ? IMG_AGE_RULE : [],
+  pollSec: POLL_SEC, derive: DERIVE,
+  job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: nowIso(), recent: [], lightning: null,
 };
 
 /** `radar/` im Klon = exakt der lokale Bestand; dann commit + push, neu aufgesetzt auf origin/BRANCH. */
-function publish(msg) {
+export function publish(msg) {
   let lastErr;
   for (let attempt = 1; attempt <= PUSH_RETRIES; attempt++) {
     try {
@@ -216,8 +303,9 @@ function publish(msg) {
         mkdirSync(join(radar, p.dir), { recursive: true });
         for (const f of storeFiles(p)) copyFileSync(join(storeDir(p), f), join(radar, p.dir, f));
       }
-      if (existsSync(join(MIRROR, 'img'))) cpSync(join(MIRROR, 'img'), join(radar, 'img', IMG_VERSION), { recursive: true });
+      if (existsSync(join(MIRROR, 'img'))) cpSync(join(MIRROR, 'img'), join(radar, 'img', IMG_VERSION), { recursive: true, filter: imgCopyFilter });
       status.updatedAt = nowIso();
+      if (lightning) status.lightning = lightning.status;
       writeFileSync(join(radar, 'status.json'), JSON.stringify(status, null, 2) + '\n');
       let roadOn = false;
       try { roadOn = !!road?.copyInto(ROOT); } catch (e) { log(`road: Einkopieren fehlgeschlagen (${e.message}) — road/ bleibt wie auf main`); }
@@ -336,8 +424,16 @@ async function main() {
       road.seed(ROOT);
     } catch (e) { log(`road: Modul nicht ladbar (${e.message}) — Straßenwetter AUS`); road = null; }
   }
+  // NP-0a: Blitz-Haken (E-NP0-2) — ohne APP_DIR, ohne Modul oder mit LIGHTNING=0 läuft der Spiegel wie vorher.
+  if (LIGHTNING_ON && LIGHTNING_HOOK && existsSync(LIGHTNING_HOOK)) {
+    try {
+      const m = await import(pathToFileURL(LIGHTNING_HOOK).href);
+      lightning = m.createLightningMirror({ appDir: APP_DIR, mirrorDir: MIRROR, log, quiet: rvQuiet });
+      if (!lightning.enabled) lightning = null;
+    } catch (e) { log(`lightning: Modul nicht ladbar (${e.message}) — Blitze AUS`); lightning = null; }
+  }
   const deadline = Date.now() + RUN_MINUTES * 60_000;
-  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d'].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
+  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
 
   // Je Produkt der nächste erwartete Slot: der jüngste, der NICHT im Bestand ist,
   // rückwärts höchstens KEEP Slots (nach der Naht liegen die älteren schon auf main).
@@ -354,6 +450,8 @@ async function main() {
     pending[k] = { slot, polls: 0 };
   }
   let lastPushAt = 0;
+  let lightningDirtySince = 0;   // NP-0a: neue Blitz-Slots im Bestand, noch in keinem Push
+  const loopStartedAt = Date.now();   // V-NP0-22: die 5-min-Frist des eigenen Blitz-Pushs zählt ab dem Jobstart, nicht ab 0
 
   while (true) {
     for (const [k, p] of Object.entries(PRODUCTS)) {
@@ -394,6 +492,23 @@ async function main() {
         if (msg) { const pub = publish(msg); lastPushAt = Date.now(); log(`${msg} · Push ${pub.pushedAt.slice(11, 19)}${pub.noop ? ' (nichts neu)' : ''}`); }
       } catch (e) { log(`road: ${String(e.message ?? e).split('\n')[0]} — Radar läuft weiter`); }
     }
+    // NP-0a: Blitze — poll() blockiert nie (Kindprozess asynchron); neue Slots fahren beim nächsten Push mit.
+    if (lightning) {
+      pendingRvSlotMs = pending.rv?.slot.getTime() ?? null;
+      try {
+        if (lightning.poll().changed) {
+          for (const d of LIGHTNING_DIRS) imgPrune(d);
+          if (!lightningDirtySince) lightningDirtySince = Date.now();
+        }
+        if (lightningDirtySince && lastPushAt >= lightningDirtySince) lightningDirtySince = 0;
+        if (lightningDirtySince && Date.now() - Math.max(lastPushAt, loopStartedAt) >= LIGHTNING_SELF_PUSH_MS) {
+          const pub = publish('radar: lightning');
+          lastPushAt = Date.now();
+          lightningDirtySince = 0;
+          log(`lightning · eigener Push ${pub.pushedAt.slice(11, 19)}${pub.noop ? ' (nichts neu)' : ''} (5 min ohne Produkt-Push)`);
+        }
+      } catch (e) { log(`lightning: ${String(e.message ?? e).split('\n')[0]} — Radar läuft weiter`); }
+    }
     // Ende: nach Ablauf der Laufzeit, aber möglichst direkt nach einem Push (Nachfolger hat dann ≈ 4,5 min).
     if (Date.now() >= deadline && (Date.now() - lastPushAt < 20_000 || Date.now() >= deadline + 5 * 60_000)) break;
     await sleep(POLL_SEC);
@@ -402,4 +517,7 @@ async function main() {
   await ensureSuccessor();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// NP-0a: als Modul importierbar (`verify:np0-radar` prüft `IMG_KEEP`/`imgSlotsToDrop`), als Skript startet main().
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

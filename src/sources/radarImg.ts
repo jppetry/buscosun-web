@@ -13,6 +13,8 @@
  *   radar/img/v1/inca/<YYYYMMDDTHHMM>/f015.png … f180.png + meta.json (12 PNG 701×431)
  *   radar/img/v1/rzc/<YYYYMMDDTHHMM>/frame.png + meta.json            (1 PNG 710×640)
  *   radar/img/v1/konrad3d/<YYYYMMDDTHHMM00>/cells.json                (Konrad3dRun, schema-versioniert)
+ *   radar/img/v1/rv-past/<YYMMDDHHMM>/f000.png                        (NP-0a: Analyse 2 h, Kopie der f000 des RV-Slots)
+ *   radar/img/v1/lightning-de|lightning-mtg/<YYYYMMDDTHHMM>/frame.png + meta.json  (NP-0a: Blitze, Vertrag lightningImg.ts)
  *
  * Die PNGs tragen exakt die `precipToU8`-Bytes des jeweiligen Decoders (byte-verlustfrei für
  * alle Verbraucher, §14: die App hält Niederschlag nirgends feiner als u8/vMax 20). Meta trägt
@@ -27,6 +29,7 @@ import { decodeGrayPng, GrayPngUnsupported } from './grayPng';
 import {
   RADAR_CDN_BASE, RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
   radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
+  RV_PAST_KEEP, RADAR_PAST_WINDOW_MS, rvPastDir, rvPastEligible,
 } from './radolanRuns';
 
 // Die RV-/Schalter-/Gate-Primitiven leben in `radolanRuns.ts` (abhängigkeitsfrei,
@@ -35,7 +38,24 @@ import {
 export {
   RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
   radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
+  RV_PAST_KEEP, RADAR_PAST_WINDOW_MS, rvPastDir, rvPastEligible,
 };
+
+// --- Aufbewahrung je Quelle (NP-0a, audit/np0-datenprodukte.md §8, E-NP0-1/-2) -------------------
+/**
+ * Slots je Bild-Quelle im Spiegel. `rv`/`inca` = `KEEP` (Zählregel wie seit RD3, byte-gleich); die gemessenen
+ * Analysen und Zellen (`rv-past`, `rzc`, `konrad3d`) und die Blitze (`lightningImg.ts`) halten 2 h über eine
+ * **Altersregel**: ein Slot bleibt, solange er höchstens `(keep − 1) · 5 min` älter ist als der jüngste Slot derselben
+ * Quelle (mindestens 2 Slots). Der Spiegel (`scripts/radar-mirror/radar-mirror.mjs`, ohne TS-Lader) führt dieselbe
+ * Tabelle als Literal — `verify:np0-radar` vergleicht beide.
+ */
+export const RADAR_IMG_KEEP: Readonly<Record<string, number>> = Object.freeze({
+  rv: 12, inca: 12, 'rv-past': RV_PAST_KEEP, rzc: 24, konrad3d: 24, 'lightning-de': 24, 'lightning-mtg': 24,
+});
+/** Quellen mit Altersregel (alle anderen: Zählregel). */
+export const RADAR_IMG_AGE_RULE: readonly string[] = Object.freeze(['rv-past', 'rzc', 'konrad3d', 'lightning-de', 'lightning-mtg']);
+/** Untergrenze der Altersregel: nach einem Ausfall bleiben mindestens so viele Slots stehen. */
+export const RADAR_IMG_MIN_KEEP = 2;
 
 export const RV_IMG_WIDTH = 1100;
 export const RV_IMG_HEIGHT = 1200;

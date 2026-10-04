@@ -175,6 +175,27 @@ export function rvImgEligible(ts: string, nowMs: number = Date.now()): boolean {
   return age >= RV_IMG_GATE_MS && age <= RADAR_CDN_WINDOW_MS;
 }
 
+// NP-0a (audit/np0-datenprodukte.md §8, E-NP0-1): Rückblick 2 h. Die gemessene Analyse `f000.png` jedes RV-Slots
+// liegt zusätzlich unter `radar/img/v1/rv-past/<YYMMDDHHMM>/f000.png` — 24 Slots (Altersregel im Spiegel), während die
+// vollen RV-Slots (25 Frames + Stundenmittel) bei 12 bleiben. Byte-gleich zur `f000.png` des RV-Slots (der Spiegel
+// kopiert sie). `RV_IMG_GATE_MS` und `RADAR_CDN_WINDOW_MS` bleiben unverändert.
+/** Slots im Rückblick (2 h bei 5 min). Der Spiegel hält sie mit `PAST_KEEP` (Rückweg `PAST_KEEP=12` ⇒ kein rv-past). */
+export const RV_PAST_KEEP = 24;
+/** Lese-Fenster des Rückblicks: 24 Slots minus Reserve — dieselbe Herleitung wie die 55 min von `RADAR_CDN_WINDOW_MS`. */
+export const RADAR_PAST_WINDOW_MS = 115 * 60_000;
+
+/** Rückblick-Slot-Verzeichnis (nur `f000.png`); `ts` ist der Tar-Stempel `YYMMDDHHMM`. */
+export function rvPastDir(ts: string): string {
+  return `${RADAR_IMG_BASE}/rv-past/${ts}`;
+}
+
+/** Darf die Analyse DIESES Laufs jetzt aus dem Rückblick geholt werden? (Gate wie der Bild-Slot, Fenster 115 min) */
+export function rvPastEligible(ts: string, nowMs: number = Date.now()): boolean {
+  if (!radarCdnUsable() || !radarCdnEnabled() || !radarImgEnabled()) return false;
+  const age = nowMs - rvStampToMs(ts);
+  return age >= RV_IMG_GATE_MS && age <= RADAR_PAST_WINDOW_MS;
+}
+
 /** Zeitstempel `YYMMDDHHMM` (UTC) eines RV-Laufs. */
 export function rvStamp(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');

@@ -120,7 +120,7 @@ export interface NowcastSourceSpec {
   readonly cornersFrom: 'meta' | 'de1200';
   /** Nennweite des Takts in Minuten — gemessen, nicht aus der Matrix abgeschrieben. */
   readonly slotMinutes: number;
-  /** Vorhalt im Spiegel: `KEEP = 12` Slots, s. `workflow-radar.yml`. */
+  /** Vorhalt im Spiegel: RV/INCA `KEEP = 12` Slots, RZC seit NP-0a 24 (`RADAR_IMG_KEEP` in `sources/radarImg.ts`). */
   readonly keptSlots: number;
   /** Gibt es denselben Inhalt auch unquantisiert? */
   readonly lossless: string | null;
@@ -148,7 +148,7 @@ export const NOWCAST_SOURCES: readonly NowcastSourceSpec[] = Object.freeze([
   }),
   Object.freeze({
     id: 'combiprecip' as const, dir: 'rzc', grid: 'meteoswiss_rzc' as const,
-    cornersFrom: 'meta' as const, slotMinutes: 5, keptSlots: 12,
+    cornersFrom: 'meta' as const, slotMinutes: 5, keptSlots: 24,
     lossless: null,
     why: 'CombiPrecip (RZC), ein Frame je Slot (Analyse, keine Extrapolation). Nur als PNG gespiegelt.',
   }),
@@ -193,7 +193,7 @@ export function nowcastStampOf(id: NowcastSourceId, date: Date): string {
  * Kandidaten-Stempel, **jüngster zuerst** — die Suchreihenfolge eines Netz-Lesers.
  *
  * `backMinutes` deckelt die Suche. Voreinstellung 180 min: der Spiegel hält
- * `keptSlots = 12`, das sind bei RV/RZC ≈ 1 h und bei INCA 3 h. Wer länger sucht,
+ * `keptSlots` (RV 12 ≈ 1 h, RZC 24 ≈ 2 h, INCA 12 ≈ 3 h). Wer länger sucht,
  * bekommt garantiert nichts und zahlt nur Sonden.
  */
 export function nowcastSlotStamps(id: NowcastSourceId, nowMs: number, backMinutes = 180): string[] {
@@ -287,7 +287,7 @@ export function nowcastManifest() {
     // Ende 2026 kündigt MeteoSchweiz eine Einzelabfrage-API an — SCHEDULED_CHANGES).
     fallback: 'Jenseits `sources[].extrapolationH` trägt für 0–3 h das Modell: die Cube-Stunden 0–3 (ICON-D2 stündlich, ICON-CH1-EPS dreistündlich, C-LAEF). Ein Client, der dort einen Wert zeigt, nennt die Quelle — „Nowcast" wäre für die Schweiz jenseits der Analyse unwahr. Kein CH-Nowcast im Repo, weil E1 blockiert ist.',
     horizonH: Math.max(...NOWCAST_SOURCES.map((s) => SOURCE_BY_ID[s.id]?.horizonH.default ?? 0)),
-    retention: `Der Spiegel hält ${NOWCAST_SOURCES[0].keptSlots} Slots je Quelle (RV/RZC ≈ 1 h, INCA ≈ 3 h) — er ist ein LIVE-Spiegel, kein Archiv. Die 24-Stunden-Regel des Cubes gilt hier nicht.`,
+    retention: `Der Spiegel hält ${NOWCAST_SOURCES.map((s) => `${s.dir} ${s.keptSlots}`).join(', ')} Slots (RV ≈ 1 h, INCA ≈ 3 h, RZC ≈ 2 h; dazu die RV-Analyse f000 2 h unter rv-past) — er ist ein LIVE-Spiegel, kein Archiv. Die 24-Stunden-Regel des Cubes gilt hier nicht.`,
   };
 }
 

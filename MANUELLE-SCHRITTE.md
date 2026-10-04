@@ -1357,3 +1357,41 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
 - **(h) V-AW-4:** P758 (A 94) mit Katalog-Koordinaten reparieren — Datenänderung, nur mit deinem Ja.
 - **Hinweis Arbeitsbaum:** nach dem Merge vom 03.10. vor dem nächsten eigenen Commit `git pull` im Haupt-Arbeitsbaum, falls er noch hinter
   `origin/main` steht.
+
+## 35. Phase NP-0a — Rückblick 2 h + Blitz-Spiegel im Radar-Spiegel, 2026-10-03
+
+Auftrag Jan 03.10. (Kickoff `prompt-np0.md`), Entscheidungen E-NP0-1…8 am 03.10. (jeweils die Empfehlung). Befunde, Belege und
+Messwerte: `audit/np0-datenprodukte.md` §8 (Diagnose §8.1, Umsetzung NP-0a §8.5, Gate §2.4). Keine Oberfläche — sichtbar wird es
+erst mit NP-1.
+
+**Stand (uncommitted im Arbeitsbaum):** Vertrag `src/sources/radolanRuns.ts` (Rückblick: `RV_PAST_KEEP`, `RADAR_PAST_WINDOW_MS`,
+`rvPastDir`, `rvPastEligible`), `src/sources/radarImg.ts` (`RADAR_IMG_KEEP`), neu `src/sources/lightningImg.ts` (Blitz-Vertrag),
+`src/point/nowcastFormat.ts` (rzc hält 24 Slots — Text im Punkt-Manifest), neu `scripts/lib/tiff.mjs`, neu
+`scripts/lightning/lightning-mirror.mjs` + `lightning-derive.mjs` (Haken nach dem road-Muster), Kern
+`scripts/radar-mirror/radar-mirror.mjs` (Retention je Quelle, rv-past-Kopie, Blitz-Haken, `.tmp-`-Reste, `status.json` Schema 3),
+README-Vorlage, neu `verify:np0-radar`. Die road-Zeilen im Kern sind unverändert (E-NP0-7).
+
+**Deine Gates:**
+- **(a) Durchsicht + Commit** (Scope `radar-mirror`), z. B. „radar-mirror: 2-h look-back (rv-past, rzc/konrad 24) and lightning
+  mirror (DWD Blitzdichte, MTG-LI) as values". Vorher prüfen, dass die Autobahnwetter-Sitzung keine NP-0a-Datei mitnimmt (sie
+  committet im selben Arbeitsbaum; am 03.10. ist das mit den Diagnose-Dateien schon einmal passiert). **Push `buscosun-web`** — der
+  Spiegel klont `src/` und `scripts/` (Haken, Derive, Vertrag) beim Jobstart von `main`.
+- **(b) Kopie des Kerns ins Daten-Repo:** `scripts/radar-mirror/radar-mirror.mjs` → `buscosun-data/scripts/radar-mirror.mjs`. Vorher
+  `git pull` im Daten-Klon und `diff` der Daten-Repo-Fassung gegen `git show <NP-0a-Commit>~1:scripts/radar-mirror/radar-mirror.mjs`
+  (CRLF-normalisiert): muss leer sein — sonst hat die Autobahnwetter-Linie dort inzwischen etwas geändert, dann erst zusammenführen
+  (V-NP0-5). Commit + Push ins Daten-Repo nach Protokoll (nie force). **Workflow unverändert** (die neuen Variablen haben
+  Voreinstellungen im Skript), **README nicht kopieren** — die Kartenlinie legt sie aus der Vorlage im Web-Klon selbst aus.
+  Reihenfolge (a)/(b) ist egal: ohne neuen Kern lädt niemand den Haken; ohne Web-Push fehlt das Modul und die Blitze bleiben aus.
+- **(c) EUMETSAT-Attribution prüfen (1 Minute, V-NP0-10):** den Wortlaut „Contains modified EUMETSAT Meteosat data 2026 …" in
+  `src/sources/lightningImg.ts` gegen das Policy-PDF (<https://www-cdn.eumetsat.int/files/2026-01/45173%20-%20Data_Policy.pdf>)
+  halten — er stammt aus dem Suchindex, das PDF war maschinell nicht lesbar.
+- **(d) Wirksam ab dem nächsten Jobstart** (der laufende Job liest Skript und Klon nur beim Start): Nachfolger abwarten (≤ 5 h 45)
+  oder den Lauf abbrechen und `radar.yml` selbst auslösen. Im Log der ersten Zeile: `Rückblick 24 · Blitze an`.
+- **(e) Nach ≥ 2 h:** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-np0-radar.mjs --live`
+  (direkt, `npm run` schluckt `--`-Argumente): rv-past/rzc/konrad3d/Blitze je ≈ 24 Slots, Metas bestehen den Prüfer, RV-Lag aus
+  `status.json` (Median ≤ 12 s, max ≤ 30 s). Danach `LIGHTNING_GATE_MS` (25 min) mit den Live-Lagen nachschärfen (§8.5).
+- **(f) Rückweg:** im Workflow `radar.yml` unter `Mirror.env` `PAST_KEEP: '12'` (kein rv-past, rzc/KONRAD wieder 12) und/oder
+  `LIGHTNING: '0'` (keine Blitze) — nächster Jobstart baut den Stand vor NP-0a, Altbestand fällt mit dem ersten Push weg
+  (Lokaltest Lauf D). Client-seitig später `?ltg=0`.
+- **(g) V-NP0-17 an die Fusion-Linie** (nicht NP-0): am Archiv ist K-2 allein 0,5–4,8 % Brier besser als mit gelernter Hürde —
+  Wiederholung mit ≥ 30 Ausgabetagen und vorab eingefrorener Regel, ändert buscosun Fusion ⇒ dein Gate.

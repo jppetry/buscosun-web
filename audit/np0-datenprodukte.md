@@ -110,6 +110,8 @@
 | Verifier | `typecheck`, `verify:np0-radar` (neu), die fünf Radar-Verifier aus Frage 1, `build`, `budget` |
 | Live (nach Jans Push) | `verify:np0-radar --live` grün, nachdem der Spiegel ≥ 2 h mit dem neuen Stand lief |
 
+Ausgefüllt mit Belegen: §8.5 (Gate G-NP0a, 03.10.).
+
 ## 3. NP-0b — Vorhersage-Felder aus dem Cube (Punkt-Cron, `point.yml`)
 
 ### 3.1 Ziel und Abgrenzung
@@ -202,5 +204,196 @@ abwarten (t1 `:40`, t2 `:30`, t3 `:55`) oder `point.yml` mit `tiers=t1` auslöse
 
 ## 8. Diagnose-Ergebnis und Umsetzung (füllt die Phase)
 
-*(leer — D-NP0-1…14 mit Belegen, E-NP0-1…6 mit Jans Antworten, Umsetzung NP-0a / NP-0b, Gate-Tabellen §2.4/§3.4
-ausgefüllt, neue V-Einträge)*
+### 8.1 Diagnose (03.10., Arbeitsbaum nach dem RR-Commit, `main` ab `5bb8af1`)
+
+Vier Diagnose-Stränge, je mit Belegen, Befehlen und Skripten in einer eigenen Datei unter `audit/np0-datenprodukte/`:
+`diag-a-spiegel.md` (D-NP0-1/2/3/8), `diag-b-blitze.md` (D-NP0-4…7, Fixtures in `fixtures/`, Werkzeuge in
+`blitz-werkzeuge/`), `diag-c-cube.md` (D-NP0-9/11/13/14, Prototyp `field-proto.mjs`), `diag-d-chance.md` (D-NP0-10/12,
+Rohzahlen `diag-d-chance.json`, Skripte `diag-d-np0-chance.mjs`/`diag-d-np0-cost.mjs`). Laufzeiten der Stränge B–D wurden
+unter gegenseitiger Last gemessen (CPU bis 100 %) — sie sind obere Schranken.
+
+**Radar-Spiegel (NP-0a)**
+
+| # | Ergebnis | Beleg |
+|---|---|---|
+| D-NP0-1 | Baum `origin/main` (`7b7d90b`) **336,7 MiB** in 4 777 Dateien (Trees-API, nicht abgeschnitten): `point/` 272,6 · `runs/` 38,6 · `road/` 16,3 · `radar/` 8,9 MiB (trockener Tag); GitHub `size` 433 MiB (Historie). jsDelivr liefert **jede Einzeldatei** (10/10 × 200, `@main` und `@<commit>`); nur Verzeichnis-/Paketabrufe antworten nach 15 s **403 „Package size exceeded the configured limit of 50 MB"**. Die Paketgrenze trifft also nur Listings, die kein Client nutzt (V-NP0-1 bestätigt) | diag-a §2 |
+| D-NP0-2 | **Kein Leser fasst heute einen Slot älter als 55 min an:** DE-Rückblick 9 × `f000`, ML-Hindcast 4 × `f000`, rzc-Notweg ≤ 6 Slots, alle anderen nur den jüngsten. **Falle:** `src/point/nowcastFormat.ts` schreibt `keptSlots: 12` und „hält 12 Slots" ins veröffentlichte Punkt-Manifest (`manifest.ts:506`) — mit rzc 24 muss der Text mit | diag-a §3 |
+| D-NP0-3 | DWD→Push RV Median 10 s / max 16 s, KONRAD 7 / 15 s (Slot→Push RV 3,9–4,0 min, KONRAD 5,5–5,7, rzc 1,4, INCA 17–21 min = Quellverzug); Push 0,9–1,4 s, 24/24 im ersten Versuch; ≈ 53 Commits/h auf `main` (road ≈ 10); Job-Nähte lückenlos (−2…−10 s), 1 Ausfall 47 min in 39 Läufen (26.09.). Seit 03.10. 12:47Z läuft das **Autobahnwetter** im selben seriellen Strang (`road.poll()`) | diag-a §4 |
+| D-NP0-8 | Der Force-Push der Kartenlinie trägt neue `radar/img/v1/<quelle>/`, `road/` und `.tmp-`-Reste unverändert weiter (Code + Bare-Repo-Test). **Aber** `storeSeed()` und `imgPrune()` kürzen **jede** Quelle, auch unbekannte, auf das eine globale `KEEP` — im Test fiel `lightning-de` an einer Naht von 30 auf 3 Slots. ⇒ Retention je Quelle muss **im Kern** von `radar-mirror.mjs` stehen; ein Haken-Modul allein genügt nicht. Nach einem Ausfall holt der Spiegel nur `KEEP−1` Slots nach (Lücken im Rückblick, bis sie herausaltern — benannt) | diag-a §5 |
+| Größe | Je Slot trocken/nass: RV `f000` + rzc + KONRAD bei 24 statt 12 Slots ⇒ **+0,1 MB trocken, +1,0 MB nass, +3,9 MB extrem**; Blitze 24 × 2 Quellen ≈ 0,2 MB ruhig, ≈ 0,6 MB Gewittertag. Gegen 337 MiB vernachlässigbar. Der Roh-Tar ist **0,69–0,71 MB** heute (trocken), 3,66 MB war ein Nass-Wert (V-NP0-3 umformuliert) | diag-a §5, diag-b §1.3 |
+| Haken | Die Autobahnwetter-Linie hat ein Haken-Muster eingeführt (`ROAD_HOOK` → `scripts/road/road-mirror.mjs` aus dem Web-Klon: `seed`/`poll`/`copyInto`, Fehler nimmt nie den Radar-Push). Für Blitze empfohlen: **Haken-Modul im Web-Klon**, das in `MIRROR/img/lightning-*` schreibt ⇒ `publish()`/`storeSeed()` tragen die Dateien ohne `copyInto`; „kein eigener Push" = `poll()` liefert `null`, die Dateien fahren beim nächsten Produkt-Push mit. Der Kern-Eingriff (Retention je Quelle, Haken, `rv-past`-Kopie, `status.json` Schema 3) ist **einmalig**; spätere Blitz-Änderungen kommen über den Web-Push. `status.json` liest kein Code nach Schema (reine Telemetrie) | diag-a §6 |
+| README | Die Kartenlinie legt die Daten-Repo-README bei jedem Lauf aus der Vorlage im Web-Klon neu aus (`publish-repack.mjs:183`) ⇒ **keine README-Kopie als Jans Gate** nötig. Die README nennt das Prinzip „Alter statt Anzahl" ⇒ für den Rückblick eine Altersregel (≤ 2 h, mindestens 2 Slots) statt einer Zahl | diag-a §7 |
+
+**Blitze (NP-0a)**
+
+| # | Ergebnis | Beleg |
+|---|---|---|
+| D-NP0-4 | 80 min, je 60 s, 79 Proben je Quelle, 0 Fehler, keine Slot-Lücke: **DWD Blitzdichte** erscheint 6,6–7,8 min nach Fensterende (Median 6,8), Quelle nie älter als 11,7 min; **MTG `li_afa`** 5,6–10,7 min nach Fensterende (Median 7,9), höchstens 14,7 min — der MTG-Stempel ist der **Fensterbeginn** (Katalog EO:EUM:DAT:0687), gegen den Stempel also 11–16 min. GetMap/WCS je Frame DACH (5,5–17,5 °E, 45,5–55,5 °N, 2 000 m Mercator, **668 × 880**): Blitzdichte 0,30 s Median / 0,64 max, 17 KB; MTG 0,48 / **7,0 s**, 5–16 KB; dazu 0,1–0,2 s CPU. Backfill 2 h geht (BD 26/26 in 8,5 s — davon ein erfundener Slot, s. Falle; MTG 24/26 in 26 s, die zwei jüngsten korrekt 404) | diag-b §1 |
+| D-NP0-5 | **Werte sind exakt möglich, beide nur über WCS** mit nativem Ausschnitt + eigener Nearest-Abbildung auf das feste EPSG:3857-Raster (serverseitige Umprojektion rastet die Ränder ein). **BD:** WCS liefert das Rohfeld `GRAY_INDEX` (Float64, Nodata 9999); WMS auch als GeoTIFF nur Palette. **MTG:** die Quelle ist selbst ein RGB-Mosaik aus genau 20 Farben + Schwarz, Grünkanal streng fallend ⇒ Farbe ↔ Klasse 1…20 exakt (5 echte Frames, davon 4 DACH-Gewitter, 0 unbekannte Pixel). Styled WMS dagegen geglättet: 41 % der belegten Pixel ohne Klasse (DACH 01.08.2025). MTG-Klassen-Bedeutung nur ±1 belegt („Count / 5 min", 20 gleich breite Klassen, 20 = 20+). BD-Ganzzahligkeit 0…127 offen (in 24 h kein Blitz über DE) ⇒ `fractionalPx` im Meta | diag-b §2 |
+| Fallen | **BD-WCS antwortet für jede Zeit (Zukunft, Zwischenzeit) 200 mit einem Null-Frame ohne 9999-Maske** — „fehlt" würde als „keine Blitze" gespeichert ⇒ Existenz nur über das TIME-Ende der Capabilities + Maskenprüfung. WMS meldet fehlende Zeit mit 200 + XML-Ausnahme. MTG zeitweise 503/500, Einzelabruf bis 7 s; MTG-Nil = keine Blitze **oder** keine Messung. BD deklariert 13 Monate Bestand, liefert ≈ 24 h | diag-b §3 |
+| D-NP0-6 | DWD: „… dürfen unter den Bedingungen der Lizenz CC BY 4.0 unter Beigabe eines Quellenvermerks weiterverwendet werden" + Veränderungshinweis ⇒ „Datenbasis: Deutscher Wetterdienst (NowCastMIX-Blitzdichte), Werte auf eigenes Raster umgesetzt"; Blitzrohdaten von nowcast GmbH, für das Raster keine Beschränkung genannt. EUMETSAT: Core Data CC BY 4.0, Katalog `rights: NoConditions` ⇒ „Contains modified EUMETSAT Meteosat data 2026" — **Wortlaut aus dem Suchindex, gegen das Policy-PDF von Hand prüfen** | diag-b §4 |
+| D-NP0-7 | Die Schleife ist seriell; ein Blitzabruf im `await`-Strang kostet typisch 1–2 s, schlimmstenfalls ≈ 8 s — gegen das ≈ 11-s-Budget DWD→Push **nicht tragbar**, wenn er in den RV-Durchlauf fällt. ⇒ Abruf als Hintergrund-Promise (höchstens einer zugleich, Frist 20 s), Capabilities je Quelle alle 30–60 s, Backfill ≤ 2 Slots je Durchlauf, kein `execFileSync`, Mitfahrt im nächsten Produkt-Push. Vorschlag **`LIGHTNING_GATE_MS` = 25 min** ab Fensterende (Quelle ≤ 14,7 + Abfrage ≤ 1 + Mitfahrt ≤ 5 + Push 0,5 + CDN ≤ 3), nach dem Live-Lauf nachschärfen | diag-b §5–§6 |
+
+**Cube-Felder (NP-0b)**
+
+| # | Ergebnis | Beleg |
+|---|---|---|
+| D-NP0-9 | `precip` = **mittlere Rate mm/h über (t − Δ, t]**, Δ = 1/3/6 h je Stufe (`build-point-cube.mjs:428`) ⇒ eine t3-„Rate" ist ein 6-h-Mittel, das Feld nennt `stepH`. `snowlmt` in m ü. NN; ICON-CH maskiert ohne Niederschlag (fehlt, nicht 0). Abdeckung (Läufe t1 `2026093018`, t2/t3 `2026093012`): Mittel 100 % überall; σ_div t1 82 %, t2/t3 100 %; σ_ens t1 nur 8/49 Schritte, t2 bis 60/72 h, t3 4/36 Schritte; q10/q90 t1 nur C-LAEF-EPS ≤ 51,45° N (60 %), t2 bis 60/72 h, t3 4/36; **`snowlmt` t1/t2 100 %, t3 0 %** (keine t3-Quelle führt sie), `snowlmt_sd_ens` 0 %. Max: Mittel 17,5 mm/h, q90 29,3; `snowlmt` 891…3 789 m | diag-c D-NP0-9 |
+| D-NP0-10 | **F1 ist ohne Motor-Änderung aufrufbar:** `fuseCubePoint` je Zelle mit der Cube-Reihe der Zelle, `station: null`, `nowcast: []`, `obs: null`, `ClimaField` + `fusion.client.json`, Optionen der Stufe fs (`learned`, `learnedPrecip`, `learnedAtPoint`, `learnedClouds`, `priorShrink: false`, `anchorWindKm: 10`, `nowcastHourMean`). Gegenprobe: an 98,9 % von 191 529 Archivzeilen gleich Fusion 8 ohne eigene Station (bis auf Rundung), Brier-Differenz 0,0–0,3 %. **`precipCal` ist in Fusion 8 aus** ⇒ die Kette ist K-2 → gelernte Hürde (§1.1/§4 korrigiert, V-NP0-16). Pflicht-Eingänge, die eine Zelle nicht mitbringt: `elevationM` und ein Gelände-Block mit `scales.sampledCount > 0` (sonst keine Verteilung); neutrales Gelände ändert die Chance um Median 0,0001 / p99 0,0074, Brier gleich. **Kosten** (unter 84 % Fremdlast): t1 9,9 ms je Zelle (48 441 Zellen ⇒ ≈ 8 min lokal, **≈ 16 min Runner einfädig**), t2 3,8 ms (≈ 1,5 min Runner), t3 7,3 ms (≈ 0,5 min) | diag-d §1 |
+| D-NP0-11 | Fusion 8 nimmt am Punkt den rohen Zellwert und das Band Wert ∓ 1,2816·σ mit σ = σ_ens, sonst σ_div (`output.ts:284–299`); die C-LAEF-Quantile q10/q90 benutzt es **nicht** (`cubeSource.ts:2063`). ⇒ Das Feld folgt dieser Regel: symmetrisches Band, Herkunft σ_ens/σ_div; die im Plan vorgesehene Herkunft „1 = Quantile einer Quelle" entfällt (wo beide vorliegen, läge sie unten im Median 382 m, oben 88 m neben dem σ-Band) | diag-c D-NP0-11 |
+| D-NP0-12 | Archiv-Slots 16.09.–01.10. (15 Ausgabetage, 389 Stationspunkte, t1, Vorlauf 3–48 h, 219 538 Zeilen). **Wahrheit = Stationsstunde ≥ 0,1 mm** (wie der Scorer; Radar liegt im Archiv nur einmal je Slot — der Plan nahm die Radar-Analyse an). Tabelle unten. Nach Benjamini-Hochberg mit 15 Tagen kein Paar signifikant; die Bootstrap-Intervalle geben die Richtung | diag-d §2 |
+| D-NP0-13 | Prototyp (F2/F3 + Schneefallgrenze, Dekodieren dominiert): lokal t1 8,4–13,9 s, t2 2,1 s, t3 0,9 s ⇒ Runner ×2 t1 ≈ 17–28 s. PNG je Lauf t1 3,66 MB (precip 28 KB, snowlmt 47 KB je Schritt), t2 0,43, t3 0,13 MB; ständig im Repo ≈ 13–18 MB, ≈ 31 MB neue Daten je Tag (+4 % gegen die Chunks). **F1 dominiert die Laufzeit** (D-NP0-10). t1-Job heute (Actions-API, 11 Läufe 02.–03.10.): **Median 11,4 min, max 16,5 min**, Bauschritt Median 9,0 / max 11,6 min (t2 max 19,3, t3 max 7,5). Regel B bindet zweimal (t1 hinter t2 ⇒ ≤ 25, `stations-s` hinter t1 ⇒ ≤ 24) ⇒ `JOB_MAX_MIN.t1` höchstens **24**, nicht 30 wie im Plan | diag-c D-NP0-13, Actions-API |
+| D-NP0-14 | `git add` und der Sparse-Checkout decken `point/field/` schon ab (+ `*.png -text -diff` in `.gitattributes` empfohlen). `retainRuns` beschneidet nur `^\d{10}$` ⇒ Felder brauchen eine eigene Runde **im Publisher** (damit `POINT_FIELDS=0` den Altbestand trotzdem abbaut): ein Feld lebt, solange seine Cube-Stufe lebt. `classifyPointPath` ordnet `point/field/…` als „other" ein (weder Purge noch Warm-up) ⇒ Klassen `field-index` (purgen) und `field` (wärmen, nach `chunk`). Die heutigen Leser greifen per Schlüssel zu und vertragen Unbekanntes; `point/index.json`/`run.json` bleiben unberührt. Workflow-Schritt nach „Build point cube", `continue-on-error` **und** eigenes `timeout-minutes`; Bau-Ablage → Umbenennen → `field.json` zuletzt; überspringen, wenn das Feld für den Lauf schon da ist | diag-c D-NP0-14 |
+
+**D-NP0-12 — Chance-Kandidaten** (Brier, in Klammern Skill gegen die Orts-Klimatologie; t1, 389 Stationspunkte, 15 Ausgabetage)
+
+| Kandidat | 3–6 h | 7–24 h | 25–48 h | mittl. \|p − p_F8 ohne Station\| |
+|---|---|---|---|---|
+| **F1** Fusion-Kette, nur Cube (K-2 → gelernte Hürde) | 0,0268 (0,18) | 0,0256 (0,30) | 0,0281 (0,17) | 0,004–0,007 |
+| F0 K-2 allein (ohne gelernte Hürde) | 0,0256 (0,22) | 0,0255 (0,30) | 0,0267 (0,21) | 0,017–0,035 |
+| F2 Spread-Verteilung (σ_div/σ_ens, `dist.ts`) | 0,0326 (0,01) | 0,0306 (0,16) | 0,0350 (−0,03) | 0,040–0,066 |
+| F3 nur Menge (0/1) | 0,0468 (−0,43) | 0,0430 (−0,18) | 0,0464 (−0,37) | — |
+| Klimatologie | 0,0328 | 0,0365 | 0,0339 | — |
+| Fusion 8 an der Station | 0,0246 | 0,0236 | 0,0258 | — |
+| Fusion 8 ohne Station | 0,0266 | 0,0256 | 0,0280 | 0 |
+
+F1 schlägt F2 um 19–25 % und die Klimatologie um 17–30 % Brier. F2 ist grob überkonfident (bei p ≥ 0,9 regnet es in
+38–60 %; σ an 88 % der Zeilen 0). **F0 ist 0,5–4,8 % besser als F1** und besser kalibriert — F1 ist im Mittel zu nass
+(p̄ 5,6–6,9 % bei 3,3–3,7 % Regenstunden; roh p 0,02–0,03, nach BH n.s.) ⇒ das ist ein Befund über buscosun Fusion
+(V-NP0-17), kein NP-0-Thema.
+
+### 8.2 Änderungen am Plan aus der Diagnose
+
+- **§1.1 korrigiert:** Regen-Hürde = K-2 → gelernte Hürde (ohne `precipCal`); Roh-Tar 0,7 MB trocken / 3,66 MB nass;
+  t1-Job heute Median 11,4 / max 16,5 min.
+- **NP-0a-3 (Retention):** muss in den **Kern** von `radar-mirror.mjs` (`storeSeed`/`imgPrune` je Quelle), als
+  Altersregel; `rv-past/<stamp>/f000.png` entsteht im Spiegel als **Kopie** der eben abgeleiteten `rv/<stamp>/f000.png`
+  (Derive und jede heutige Datei bleiben byte-gleich); `RADAR_PAST_WINDOW_MS` = **115 min** (Herleitung wie die
+  heutigen 55 min). `src/point/nowcastFormat.ts` `keptSlots`/Text ziehen mit (kein Fusion-Code).
+- **NP-0a-4 (Blitze):** Haken-Modul im Web-Klon nach dem road-Muster, Abruf im Hintergrund (D-NP0-7), Werte über WCS
+  (D-NP0-5), Existenz nur über Capabilities (BD-Falle); kein eigenes Derive-Kindprozess-Skript.
+- **NP-0a-5:** README-Kopie entfällt (die Kartenlinie legt sie aus); die Kern-Datei wird **einmal** kopiert.
+- **NP-0b-2 (Kodierung):** precip R = Chance `round(254 p)`, G = Median | nass, B = q90 unbedingt, beide
+  log mit x₀ = 0,1 und x_max = 100 mm/h (0 = kein nasser Teil, 1 = 0 mm/h); **Alpha nur 0/255** (Canvas
+  vormultipliziert); `stepH` im Manifest. snowlmt R = Mitte in 25-m-Schritten (0…6 350 m), G = halbe Bandbreite
+  (symmetrisch, D-NP0-11), B = Herkunft (0 kein Band, 2 σ_div, 3 σ_ens), A 0/255; t3 ohne Schneefallgrenze (keine Quelle).
+- **NP-0b-3 (Producer):** Chance nach E-NP0-4; bei F1 je Zelle `fuseCubePoint` mit neutralem, benanntem Gelände-Block
+  (V-NP0-19), Worker-Threads (4 vCPU).
+- **NP-0b-4/5:** `JOB_MAX_MIN.t1` höchstens 24 (Regel B); Felder-Retention im Publisher; neue Pfadklassen im CDN-Sync.
+
+### 8.3 Neue V-Einträge
+
+- **V-NP0-4** Verwaiste Derive-Reste auf `main`: `radar/img/v1/inca/20260920T0030.tmp-3300/` (13 Dateien) seit 20.09.;
+  `imgSlots` filtert `.tmp-` (⇒ `imgPrune` räumt nie), `publish`/`storeSeed` kopieren es weiter. Mehrwert: sauberer Baum.
+  Skizze: `.tmp-`-Verzeichnisse > 10 min in `imgPrune` löschen bzw. nicht kopieren — ändert die Ablage ⇒ E-NP0-8.
+- **V-NP0-5** Zwei Linien im Kern `scripts/radar-mirror.mjs` (Autobahnwetter hat Rechte, Hook produktiv). Mehrwert: kein
+  Überschreiben fremder Änderungen bei der Kopie. Skizze: NP-0a baut auf dem Stand mit road-Hook auf, Eingriff klein und
+  getrennt kommentiert, vor der Kopie `diff` gegen die Daten-Repo-Kopie ⇒ E-NP0-7.
+- **V-NP0-6** DWD-Blitzdichte deklariert 13 Monate, liefert ≈ 24 h — Rückblick > 24 h nur aus dem eigenen Spiegel;
+  `DATA_SOURCES.md` §7 / `API.md` berichtigen.
+- **V-NP0-7** BD-Werte an einer Gewitterlage unbelegt (Ganzzahligkeit 0…127, Sättigung) — `fractionalPx` + Histogramm im
+  Live-Verifier nach dem ersten Gewitter.
+- **V-NP0-8** MTG-Klasse ↔ Zählung nur ±1 (schiefe Legende) — einmal ein LI-L2-AFA-NetCDF (EUMETSAT Data Store, Konto)
+  gegen denselben Frame zählen.
+- **V-NP0-9** `src/sources/dwdLightning.ts` nennt für ein MTG-Produkt „Sferics/Linet" — falsche Attribution in der Karte
+  (kleine UI-Phase).
+- **V-NP0-10** EUMETSAT-Attributionstext stammt aus dem Suchindex — vor Veröffentlichung gegen das Policy-PDF prüfen.
+- **V-NP0-11** MTG-Latenz „~5 min" in `DATA_SOURCES.md`/`API.md` zu knapp (gegen Fensterende 6–11, gegen Stempel 11–16 min,
+  Stempel = Fensterbeginn); auch der heutige Live-Layer.
+- **V-NP0-12** Stufenraten sind Intervallmittel (1/3/6 h) — eine gemeinsame Legende „mm/h" verwässert Schauer jenseits
+  48 h um Faktor 3–6; `stepH` im Feld, Darstellung in NP-2.
+- **V-NP0-13** ICON-EU-EPS liefert in t2 bei 84–120 h keine Niederschlagsrate (`noRate`) — σ_ens/q90 dort fehlen
+  (Producer, eigener Antrag).
+- **V-NP0-14** `JOB_MEASURED_MAX_MIN.t1` 14,2 min ist von vor Schema 6; gemessen 02.–03.10. max 16,5 (Median 11,4); **t2
+  max 19,3 min über dem Planwert 15** — Regeln A–F mit den echten Zahlen nachrechnen (in NP-0b-4).
+- **V-NP0-15** σ_div der Schneefallgrenze enthält die Auflösungsdifferenz (p90 831 m in t1) — Gürtel breit und
+  unkalibriert; Etikett „Spanne der Modelle, unkalibriert" bis zur Messung.
+- **V-NP0-16** Plan nannte `precipCal` als Kettenglied — in Fusion 8 aus (korrigiert in §1.1/§4).
+- **V-NP0-17** Am Archiv ist K-2 allein (F0) 0,5–4,8 % Brier besser als mit gelernter Hürde (F1), F1 im Mittel zu nass —
+  an die Fusion-Linie: Wiederholung mit ≥ 30 Ausgabetagen, Regel vorab einfrieren; ändert buscosun Fusion ⇒ Jans Gate.
+- **V-NP0-18** 1,1 % der Zeilen von „Fusion 8 ohne Station" weichen von F1 ab (max |Δp| 0,45), Ursache offen (Nachbar-Messung
+  als `obs`?).
+- **V-NP0-19** Der Motor verlangt `terrain.scales` auch für Größen, die ihn nicht lesen — im Producer ein neutraler,
+  benannter Block mit Gleichheitsprobe auf den Niederschlag (Konsistenz-Probe in `verify:np0-fields`), kein Motor-Eingriff.
+
+### 8.4 Entscheidungen (Jan)
+
+Vorgelegt am 03.10. mit den Zahlen aus §8.1; Jan hat jeweils die Empfehlung gewählt.
+
+| # | Entscheidung |
+|---|---|
+| E-NP0-1 | **A** — eigene Ablage `radar/img/v1/rv-past/<stamp>/f000.png` (Kopie der abgeleiteten `f000` im Spiegel), 24 Slots per Altersregel, `RADAR_PAST_WINDOW_MS` 115 min; volle RV-Slots bleiben 12; rzc und KONRAD-Bilder 24 |
+| E-NP0-2 | **A** — `radar/img/v1/lightning-de/` + `lightning-mtg/`, Logik als Haken-Modul im Web-Klon (road-Muster), Abruf im Hintergrund, Mitfahrt im nächsten Produkt-Push |
+| E-NP0-3 | **A** — Werte über WCS auf festem EPSG:3857-Raster 668 × 880 (2 km), Existenz nur über Capabilities, Gate 25 min ab Fensterende |
+| E-NP0-4 | **F1** — Fusion-Kette mit dem Cube als einziger Quelle (`fuseCubePoint` unverändert, Worker-Threads); V-NP0-17 geht an die Fusion-Linie |
+| E-NP0-5 | **(a) + (b)** — `point/field/v1/…` mit eigenem Index, Schritt in jedem Stufen-Job (`continue-on-error`, eigenes Timeout), `JOB_MAX_MIN.t1` 20 → 24; misst der Runner den t1-Feldschritt > 5 min, fällt t1 auf jeden zweiten Lauf (b′) |
+| E-NP0-6 | **nein** — Warm-up neuer Radar-Slots eigene Phase |
+| E-NP0-7 (neu) | NP-0a baut auf dem Stand mit road-Haken auf, road-Zeilen bleiben unverändert, Eingriff getrennt kommentiert, vor Jans Kopie `diff` gegen die Daten-Repo-Kopie |
+| E-NP0-8 (neu) | **ja** — `.tmp-`-Reste (> 10 min) mit dem Kern-Eingriff aufräumen bzw. nicht mehr kopieren |
+
+### 8.5 Umsetzung NP-0a (03.10., uncommitted) und Gate G-NP0a
+
+**Gebaut** (additiv; road-Zeilen im Kern unverändert, E-NP0-7):
+
+| Datei | Inhalt |
+|---|---|
+| `src/sources/radolanRuns.ts` | `RV_PAST_KEEP` 24, `RADAR_PAST_WINDOW_MS` 115 min, `rvPastDir`, `rvPastEligible` (Gate wie der Bild-Slot) — heutige Konstanten unverändert |
+| `src/sources/radarImg.ts` | `RADAR_IMG_KEEP` (rv/inca 12; rv-past, rzc, konrad3d, lightning-de/-mtg 24), `RADAR_IMG_AGE_RULE`, `RADAR_IMG_MIN_KEEP` 2; Re-Exporte |
+| `src/sources/lightningImg.ts` (neu) | Blitz-Vertrag: Raster 668 × 880 (2 000 m, EPSG:3857), Quellen DE/MTG, WCS-URL nativ, `capsTimeEnd` (einziger Existenzbeweis), BD-Klassen = SLD der Quelle, MTG-Palette exakt, Kodierer/Dekodierer (DE: Wert × 100 als 16 bit über R/G — exakt bis 2 Nachkommastellen, statt `round(v)` aus diag-b, damit 0,1…0,9 nicht auf 0 fallen; MTG: R = Klasse), `rasterizeLightning`, `lightningFrameProblem` (BD ohne Nodata = erfundener Null-Frame, MTG fremde Farbe ⇒ verworfen), Meta-Bauer/-Prüfer, Gate 25 min / Fenster 120 min, `?ltg=0` |
+| `src/point/nowcastFormat.ts` | rzc `keptSlots` 24, Text des Punkt-Manifests nennt die Zahlen je Quelle und rv-past (D-NP0-2-Falle) |
+| `scripts/lib/tiff.mjs` (neu) | GeoTIFF-Leser nur mit `node:zlib` (Strips/Tiles, Deflate, 8–64 bit) + Geo-Transformation |
+| `scripts/lightning/lightning-derive.mjs` (neu) | Kindprozess: `auto` liest beide Capabilities, holt fehlende Slots der letzten 2 h (≤ 3 je Quelle und Lauf, jüngster zuerst), prüft, schreibt atomar |
+| `scripts/lightning/lightning-mirror.mjs` (neu) | Haken (reines JS): `poll()` < 1 ms, Kindprozess **asynchron**, single-flight, Prüffrist 45 s, **kein Start im RV-Fenster** (`quiet`, s. Takt) |
+| `scripts/radar-mirror/radar-mirror.mjs` | Retention je Bild-Quelle (Zähl-/Altersregel, `imgSlotsToDrop`), `rv-past`-Kopie nach dem RV-Derive und beim Seed, Blitz-Haken + Mitfahrt im nächsten Push (eigener Push nach 5 min ohne Produkt-Push), `.tmp-`-Reste nicht kopieren und nach 10 min löschen (E-NP0-8), `status.json` Schema 3, `PAST_KEEP`/`LIGHTNING` (Rückweg), als Modul importierbar |
+| `scripts/repack-repo/README.md` | Radar-Abschnitt (rv-past, Blitze, Werte-Kodierung, Ehrlichkeit), Aufbewahrungstabelle, Lizenzzeilen |
+| `scripts/verify-np0-radar.mjs` (neu, `verify:np0-radar`) | A Vertrag 19 · B Retention + Haken 10 · C Ende-zu-Ende gegen Bare-Repo 10 · D `--derive-head` 7 · E `--live` |
+
+**Lokaltest NP-0a-6** (Bare-Repo mit echtem `radar/`+`road/` von `main`, echte Quellen, Arbeitsbaum als APP_DIR; Skripte und
+Logs im Session-Scratchpad `np0a-local/`):
+
+| Lauf | Einstellung | Ergebnis (Bestand auf main danach) |
+|---|---|---|
+| A 20 min, Force-Push nach 8 min | KEEP 3 / PAST 6 | rv 3, inca 3, rzc 6, konrad3d 6, rv-past 6, Blitze 24 je Quelle; der `.tmp-3300`-Rest von main weg; road 204 / point 1 Datei unverändert; Pushes nach dem Force-Push normal weiter |
+| B 12 min, Naht (frischer Bestand) | KEEP 3 / PAST 6 | Seed aus main: dieselben Zahlen — **Blitze 24 an der Naht nicht gekürzt** (vorher: auf KEEP) |
+| C 10 min | Voreinstellung 12 / 24 | rzc/konrad3d/rv-past wachsen (8), rv 5 |
+| D 6 min | `PAST_KEEP=12 LIGHTNING=0` | rv-past 0, lightning 0 — der Altbestand fiel mit dem ersten Push weg; Log „Rückblick AUS · Blitze AUS" |
+
+In A/B stieg der RV-Lag in den ersten Jobminuten auf 19/22 s: Erkennung sofort, aber der RV-Derive lief unter dem parallelen
+Blitz-Backfill 5,7–7,2 s statt 3,0–3,6 s (CPU). ⇒ Der Haken startet zwischen +2:50 und +5:30 nach dem erwarteten RV-Slot
+keinen Kindprozess (`quiet: rvQuiet`). Danach **A/B-Messung gleichzeitig** (HEAD-Spiegel `581f83c` gegen NP-0a, je eigenes
+Bare-Repo, gleicher echter Seed, Voreinstellung, `ROAD=0` bei beiden, 25 min, `np0a-local/ab/`):
+
+| | HEAD | NP-0a |
+|---|---|---|
+| RV DWD→Push (n = 6) | Median 5 s · max 10 s | **Median 4 s · max 6 s** |
+| RV-Derive | Median 3,7 s · max 5,4 s | Median 3,1 s · max 4,1 s |
+| KONRAD DWD→Push (n = 5) | Median 3 s · max 6 s | Median 0 s · max **58 s** (s. V-NP0-20) |
+| Commits in 25 min | 19 | 20 (+1: Blitz-Push beim Start, vor dem ersten Produkt-Push) |
+| Dateien unter `radar/` | 567 | 682 (rzc/konrad3d 17, rv-past 18 — wachsen auf 24; Blitze 24 + 24) |
+
+**Gate G-NP0a** (Plan §2.4):
+
+| Frage | Beleg | Ergebnis |
+|---|---|---|
+| 1 Funktionserhalt | `verify:np0-radar --derive-head=<HEAD-Worktree>`: RV ×2 (je 28 Dateien), KONRAD, rzc, INCA aus HEAD und Arbeitsbaum byte-gleich (INCA-`meta.json#fetchedAtMs` = Wanduhr, als einziges Feld genullt), Negativkontrolle zwei RV-Läufe verschieden; C9 Rückweg = unabhängig gerechneter Stand vor NP-0a Blob für Blob (72/72), C10 Negativkontrolle; A1 Gates/Fenster unverändert; `verify:radar-repack` 55/55 (+1 ⊘ CDN-Stichprobe wie an HEAD), `verify:radar-runs` 56/56, `verify:radar-fallback` 22/22, `verify:precip-source` grün, `verify:cells` grün, `verify:road-derive` 32/32 (die road-Haken im Kern), `verify:point-data` 1022/1022 | ✓ |
+| 2 Takt | A/B gleichzeitig: RV Median 4 / max 6 s gegen HEAD 5 / 10 s; Pushes +1 in 25 min (nur beim Start) | ✓ |
+| 3 Größe | gemessen: ruhiger Tag +115 Dateien unter `radar/`; Blitze ≈ 3,8 KB je Frame ohne Aktivität, 11,4 KB am DACH-Gewitter-Fixture (01.08.2025); rv-past/rzc/KONRAD 24 statt 12: +0,1 MB trocken / +1,0 MB nass (D-NP0-1/§8.1); Baum 336,7 MiB | ✓ |
+| 4 Ehrlichkeit | Meta: Fenster, `timePos`, `overlapping` (BD „nie aufsummieren"), Klassen, Lizenzzeilen, Parallaxe, Nil zweideutig, AT/CH ohne Bodennetz (A17); fehlt = kein Verzeichnis bzw. A 0, nie 0 (A6, A12) | ✓ — EUMETSAT-Wortlaut von Jan gegen das PDF zu prüfen (V-NP0-10) |
+| 5 Rückweg | `PAST_KEEP=12 LIGHTNING=0`: Lokaltest D + C8/C9; Client `?ltg=0` (A19) | ✓ |
+| Verifier | typecheck 0, `verify:np0-radar` **39/39** (offline) bzw. 44/44 mit `--derive-head`, Build 252/252, `npm run budget` grün (eagerJs unverändert, `lightningImg.ts` noch von keinem Client importiert) | ✓ |
+| Live (nach Jans Push) | `verify:np0-radar --live` nach ≥ 2 h | offen — Jans Gate §35 |
+
+Nicht geprüft: `verify:road-ui` (Browser-Verifier der AW-Linie, braucht einen laufenden `vite preview`; NP-0a fasst keine
+Oberfläche an).
+
+**Neue V-Einträge aus der Umsetzung:**
+- **V-NP0-20** Die Spiegel-Schleife ist seriell; ein INCA-Abruf (719 KB NetCDF + Derive ≈ 30–40 s gesamt) kann eine gleichzeitig
+  erscheinende KONRAD-/RV-Datei um bis zu ≈ 50 s verzögern — im A/B-Lauf traf es NP-0a (KONRAD 58 s), HEAD hatte dieselbe INCA-Dauer
+  (Push 17:16:42) und KONRAD zufällig vorher. Mehrwert: gleichmäßiger Lag. Skizze: INCA-Download wie die Blitze asynchron, Derive erst
+  im nächsten Durchlauf; eigene kleine Phase (betrifft den Kern).
+- **V-NP0-21** `LIGHTNING_GATE_MS` 25 min ist konservativ (ein Frame ist typisch nach ≈ 13 min da) — der Client sähe Blitze erst
+  25 min nach Fensterende. Mehrwert: aktuellere Blitze in NP-1. Skizze: nach dem Live-Lauf aus `status.json` nachschärfen oder im
+  Client jüngere Slots über raw.githubusercontent (keine hängende 404 am Edge, Muster `radarRawUrl`) anfragen.
+- **V-NP0-22 (behoben 03.10.)** Der eigene Blitz-Push beim Jobstart („5 min ohne Produkt-Push") entstand, weil `lastPushAt` mit 0
+  beginnt (+1 Commit je Job im A/B-Lauf). Jetzt zählt die 5-min-Frist ab dem Jobstart (`loopStartedAt`); `lastPushAt` und die
+  Ende-Bedingung des Jobs bleiben unverändert.
