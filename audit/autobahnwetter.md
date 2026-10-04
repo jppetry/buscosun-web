@@ -1,6 +1,6 @@
 # Autobahnwetter — Phase AW: Diagnose, Protokoll, Gates
 
-> Stand: 2026-10-03. Plan: `audit/autobahnwetter-plan.md` (bindend), Konzept/Datenlage: `audit/autobahnwetter-konzept.md`,
+> Stand: 2026-10-04. Plan: `audit/autobahnwetter-plan.md` (bindend), Konzept/Datenlage: `audit/autobahnwetter-konzept.md`,
 > UI-Vorgabe: `reference/autobahnwetter-*.dc.html` + `reference/README-autobahnwetter.md`.
 > Arbeitszweig `feat/autobahnwetter` im Worktree `C:\dev\buscosun-web-aw` (eine parallele Sitzung arbeitet im
 > Haupt-Arbeitsbaum auf `main`, §1.3).
@@ -24,8 +24,13 @@
   wenn das Straßenwetter > 3 h steht.
 - **E-AW-13 entschieden:** Voreinstellung = kritischste Klasse zuerst, dann die kälteste Fahrbahn (§6.4).
 - **Flag an für alle seit 03.10. abends (§13, dein „ja")** — vor Gate B/C; `?road=0` blendet je Besucher aus.
+- **AW-6.1 Streckenprognose als Datenprodukt (§14, dein Auftrag 04.10.):** buscosun Fusion 8 stündlich an 2 766
+  Achspunkten (alle 5 km, auf der OSM-Fahrbahn) und 1 658 Stationen, 0–48 h, in `buscosun-data/road/fc/v1/`; eigener
+  Workflow `road-fc.yml`, Leser im Client, Ablage der Stationsprognosen im Archiv. Erster Lauf 4 424/4 424 Punkte; im
+  Browser nachgerechnet (T/Td gleich). **Beim ersten Hand-Push stand das Daten-Repo 62 s auf einem alten Radar-/
+  Straßen-Stand — sofort zurückgesetzt (§14.5).** Die Seite zeigt die Prognose noch nicht (nächste Phase).
 - **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Rest von Gate C (Gerät, Wächter, SEO, Vorschaukarte),
-  AW-6 (Prognose). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
+  Anzeige der Prognose (AW-6.1b), Fahrbahn-Prognose AW-6.2 (Gate D). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
 ## 1. Auftrag, Entscheidungen, Rahmen
 
@@ -803,3 +808,74 @@ Fahrbahn vorher. Die Seite zeigt die Prognose noch nicht (eigene Phase); hier en
 7. **Live-Prüfung**: erster Lauf von Hand, geplanter Lauf, CDN, Vergleich mit dem Browser-Pfad am selben Ort, erste
    Stichprobe gegen die gemessene Lufttemperatur der Stationen.
 8. **Archiv** der Prognosen an den Stationspunkten in `buscosun-archiv` (vergangene Vorhersagen sind nicht nachholbar).
+
+### 14.4 Umsetzung (04.10.)
+
+| Teil | Datei | Was |
+|---|---|---|
+| Vertrag | `src/road/roadFc.ts` | Pfade `road/fc/v1/…`, Lauf-Stempel auf die Minute, ganzzahlige Kodierung mit Dekodierer (`t`, `ts`, `td`, `pp`, `rr`, `sn`, `ff`, `fx`, `dd`, `n`, `cf`, `q`), Wertschloss, Zeiger-Regel (Sperrfrist 5 min ab `publishedAt`), Aufbewahrung, Achs-Geometrie |
+| Punkte | `scripts/road/build-fc-points.mjs` | **2 766 Achspunkte** (alle 5 km auf 137 Korridoren) + **1 658 Stationen**; 2 747 Achspunkte auf der OSM-Fahrbahn (p50 17 m, p90 111 m, max 804 m von der Nennlage), 24 wegen Tunnel oder Korridor-Ende verschoben, 153 auf Brücken, **19 nicht eingerastet** (A 14 km 0–40 und 80–85, A 143, A 44, A 60: dort gibt es noch keine Autobahn — V-AW-22; A 71 km 120: nur Tunnel). Gelände und z0 je Punkt über die Leser des Clients vorab (8 813 Cache-Einträge, 0 Punkte unvollständig, 5,6 MB) |
+| Producer | `scripts/road/road-forecast.mjs` | Verzeichnis-Speicher über den Klon, `getPointForecastFromCube` mit den Optionen von `defaultCubeIo()` ohne Anker, Dekodier-Merker, Scherben als Kindprozesse, Freigabe-Regel (≤ 10 % Punkte ohne Ergebnis, Stufe `fs` an jedem Punkt, Stufe-1-Lauf gelesen), Push mit Neuaufsetzen |
+| Workflow | `scripts/road/workflow-road-fc.yml` → Daten-Repo `.github/workflows/road-fc.yml` | stündlich `:12`, sparse (`point`, `radar/img`, `road`), Producer aus `buscosun-web` `main`, `bz2`/`jsfive` neben dem Klon, Schalter `ROAD_FC=0` |
+| Leser | `src/road/roadClient.ts` | `loadRoadFcIndex` (nur raw), `loadRoadFc(kind, id, now)` (CDN mit raw-Rückfall, auch bei 404), Gründe `no-index`/`no-run`/`no-file` |
+| Archiv | `scripts/road/road-fc-archive.mjs`, Schritt in `road-archiv.yml` | alle 3 h der jüngste Lauf, nur Stationspunkte, 0–24 h, 10 Größen ⇒ `buscosun-archiv/road/fc/v1/<tag>/<lauf>.json.gz` (263 KB je Lauf, ≈ 2,1 MB/Tag — **E-AW-23**) |
+| Wächter | `scripts/road/road-fc-check.mjs` | von außen: Zeiger, jede Datei über den Leser, Prognose gegen die gemessene Luft an den Stationen |
+| Motor | `src/pointForecast/cubeSource.ts` | nur `CubeIo.decodeChunk` (durchgereicht, E-AW-22); ohne Option byte-gleich |
+
+Der Stub `road/v1/fc/` ist aus `roadContract.ts` entfernt (E-AW-18).
+
+### 14.5 Störung beim ersten Push ins Daten-Repo (04.10. 09:01:42–09:02:44 UTC) — Fehler dieser Sitzung
+
+Der Hand-Push von Punktdatei, Workflow und README (`24f5411`) trug einen **veralteten Index** des Klons: nach zwei
+abgelehnten Versuchen (der Spiegel pushte dazwischen) stand `HEAD` per `reset --soft` auf dem neuen `origin/main`, der
+Index aber auf dem alten Baum. Der Commit setzte damit `radar/` und `road/v1` um ≈ 30 min zurück (559 Dateien; `point/`
+und `runs/` unberührt — nachgezählt). Nach 62 s stellte `a0527c4` beide Bäume exakt auf den letzten Stand des Spiegels
+(`c6a34db`) zurück (aus dem guten Baum gebaut, Diff nur die vier gewollten Dateien); der Spiegel pushte um 09:03:32
+normal weiter. Zweiter Fehler im selben Push: README mit CRLF — `88d6f26` stellt LF wieder her (Diff zum Stand davor:
++44 Zeilen). Mögliche Folge: Clients, die in dieser Minute den jüngsten Radar- oder Straßen-Slot über `@main` anfragten,
+bekamen 404; jsDelivr kann so eine Antwort am Edge halten, der raw-Rückfall der Leser fängt Hänger und 403, **kein**
+404 (V-AW-25). Lehre, im Code: `publishRun` prüft nach dem frischen Checkout, dass der Index sauber ist, committet nur
+den Pfad `road/fc/v1` und prüft den Commit vor dem Push (`verify:road-fc` D9). Lehre für Hand-Pushes ins Daten-Repo: nie
+`reset --soft` in einer Wiederholschleife; den Commit aus einem frisch gelesenen Baum bauen oder mit Pfadangabe committen.
+
+### 14.6 Gates
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:road-fc` | **60/60** offline (A Vertrag 13 · B Punkt-Bauer 8 · C Producer Ende zu Ende 13 · D Push gegen lokales Bare-Repo 9 · E Workflow 6 · F Leser 4 · H Archiv 7), **66/66** mit `--data` (G: echte Punkt- und Gelände-Datei) |
+| C4/C5 | Datei = direkte Rechnung von buscosun Fusion 8 am selben Punkt (eigener Speicher, eigene Dekoder), T/Td/Böe/Bewölkung über 49 h an 4 Punkten gleich; Negativkontrollen (eine Stunde später, ohne Stufe `fs`) ergeben andere Reihen |
+| C8 | zwei Kindprozesse byte-gleich zu einem Prozess |
+| C9/C10 | ohne gelernte Tabellen und bei > 10 % verlorenen Punkten wird NICHT veröffentlicht |
+| D4–D6, D9 | abgelehnter Push, fremder Push dazwischen, Force-Push der Kartenlinie, fremde Änderung im Index |
+| Lage unabhängig | frische Overpass-Abfrage, nicht der Auszug des Bauers: 298/298 eingerastete Stichprobenpunkte mit OSM-Autobahn in 15 m, **179/179 in 3 m**; nicht eingerastete 0/3 |
+| sauberer Klon | Producer läuft im sparse-Klon ohne `node_modules` mit `bz2` + `jsfive` (E6 bindet die Liste an den Workflow) |
+| übrige | `verify:road-contract` 65/65, `road-derive` 32/32, `road-archive` 26/26, `pv-cube` **417/417**, `pv-fusion` 235/235, `point-data` 1010/1010, `punktarchiv` 127/127, typecheck 0, Build 252/252, Budget eagerJs 108,9 / 109 · totalJs 1 544,3 / 1 545 |
+| `verify:point-client` | 170/171 oder 171/171 — (10s) „z0mod nach dem Kern" ist zeitabhängig (V-EX-13): mit der ursprünglichen `cubeSource.ts` 2 von 4 Läufen rot, mit der neuen 4 von 7 |
+
+### 14.7 Live (04.10.)
+
+- `buscosun-web` `main` `89b3e92`, `418015d`; Daten-Repo `24f5411` (+ `a0527c4`, `88d6f26`), Archiv-Repo Workflow mit Prognose-Schritt.
+- **Erster Lauf von Hand** `2610040905`: 4 424/4 424 Punkte, 0 ohne Ergebnis, 137 Korridore + 13 Länder, 8,5 MB, 200 s
+  lokal mit 4 Prozessen, Commit `1ddb9da` im ersten Versuch. Cube t1 `2026100403`, t2 `2026100400`, MOSMIX `2026100403`,
+  Radar-Slot `2610040900`.
+- **Von außen** (`road-fc-check.mjs --files=all`, 4 min nach dem Push): Zeiger lesbar, 150/150 Dateien über den Leser des
+  Clients, 4 424 Punkte, 0 verworfen, kein Punkt ohne Prognose.
+- **Im Browser** (Jans Chrome, `localhost:5201`, Leser + buscosun Fusion 8 live am selben Ort, `obs: null`): Korridor
+  `a8-4` 27 Punkte; an `a8-4@70` (Stuttgart), `@35`, `@110` Höhe gleich, **T und Td über 49 h in 0,1 K gleich**, Wind
+  gleich bis auf einen Schritt mit 0,1 m/s an einem Punkt — das vorab gerechnete Gelände trägt dasselbe wie das im
+  Browser geladene.
+- **Gegen die Messung** (Slot 08:45, Vorlauf 0 h, 1 084 Stationen): Luft Bias +0,12 K, MAE 1,27 K, p90 2,6 K; Taupunkt
+  Bias −0,95 K, MAE 1,65 K. Ein Zeitpunkt, kein Backtest — er zeigt, was ohne Anker fehlt (V-AW-21).
+
+### 14.8 Offen
+
+| Nr. | Was | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AW-20 | Der DWD liefert die Ordner `LW` und `SD` (Baden-Württemberg, 114 Stationen, alle Autobahn-Anlagen um Stuttgart) leer aus | Messungen an A 8/A 81/A 6 in BW | Anfrage beim DWD-Open-Data-Support (Jan); auf der Seite bis dahin die Prognose und ein Hinweis |
+| V-AW-21 | Der Producer rechnet ohne Messungs-Anker; an den Stationen misst SWIS die Luft selbst (MAE 1,27 K am ersten Zeitpunkt) | genauere erste Stunden genau dort, wo die Fahrbahn bewertet wird | SWIS-Luft und -Taupunkt des jüngsten Slots als `CubeObs` am Stationspunkt (Abstand 0); neue Kette ⇒ am Archiv messen, bevor sie wirkt |
+| V-AW-22 | Korridore tragen Abschnitte, die noch nicht gebaut sind (A 14, A 143, A 44, A 60 — DLM250 führt sie als Autobahn) | keine Strecke auf der Karte, die es nicht gibt | `build-corridors.mjs`: Abschnitte ohne OSM-Fahrbahn auf ≥ 5 km abschneiden oder markieren |
+| V-AW-23 | Der Producer liest Manifeste und Tabellen je Punkt neu (≈ 25 % der Rechenzeit; 77 ms je Punkt einfädig) | Lauf in ≈ 2 statt 3–5 min | Merker für geparste Manifeste im Leser (`memoStore.json`) — Datei der Punktlinie |
+| V-AW-24 | Punkt- und Gelände-Datei liegen nur im Daten-Repo; fällt ein Hand-Push in das Fenster eines Force-Pushs der Kartenlinie, sind sie weg und der Job endet mit „points.json fehlt" | kein stiller Ausfall | Kopie beider Dateien im Archiv-Repo, der Job holt sie bei Bedarf zurück |
+| V-AW-25 | Die Leser der Radar- und Straßen-Slots holen bei 404 am CDN nicht von raw nach | ein kurz fehlender Slot heilt ohne Purge | wie `fetchRoadFcFile`: 404 am CDN einmal über raw prüfen |
+| E-AW-23 | Archiv der Prognosen: Stationen, 0–24 h, alle 3 h ≈ 2,1 MB/Tag (≈ 0,8 GB/Jahr) | Gate D messbar | Jan: Umfang bestätigen oder kürzen (z. B. 4 Läufe/Tag) |
+| Anzeige | Die Seite zeigt die Prognose noch nicht | Prognose-Zeile im Band, Kacheln +1/+3/+6 h, Wetter zur Ankunft | eigene Phase (AW-6.1b) |

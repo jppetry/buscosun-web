@@ -1320,6 +1320,18 @@ Auftrag Jan 03.10. (Kickoff `prompt-regenradar.md`, Entscheidungen E-RR-1…3 am
 
 ## 34. Phase AW — Autobahnwetter (Fahrbahn gemessen DE), 2026-10-03
 
+**Nachtrag 04.10. — AW-6.1 Streckenprognose (`audit/autobahnwetter.md` §14):** läuft ohne dein Zutun (Workflow
+`road-fc.yml` im Daten-Repo, stündlich; Archiv-Schritt in `road-archiv.yml`). Für dich:
+- **(h) ansehen:** Störung beim ersten Push (§14.5) — 62 s alter Radar-/Straßen-Stand auf `main` des Daten-Repos, zurückgesetzt.
+  Falls ein Radar-Slot um 09:00 UTC am CDN hängt: Purge ist dein Gate.
+- **(i) E-AW-17 bestätigen:** Lage der Achspunkte aus OpenStreetMap (ODbL, Nennung im README und in `points.json`). Ohne OSM
+  lägen die Punkte bis 224 m neben der Fahrbahn (`--no-snap` baut sie auf der BKG-Achse).
+- **(j) E-AW-23 entscheiden:** Archiv der Stationsprognosen ≈ 2,1 MB/Tag (≈ 0,8 GB/Jahr) — so lassen oder kürzen.
+- **(k) V-AW-20:** beim DWD nachfragen, warum die Ordner `LW`/`SD` (Baden-Württemberg) leer sind.
+- **(l) nächste Phase freigeben:** Anzeige der Prognose auf der Seite (AW-6.1b); danach V-AW-21 (SWIS-Luft als Anker).
+- Aus: Repo-Variable `ROAD_FC=0` im Daten-Repo. Prüfen von außen:
+  `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-check.mjs --files=all`.
+
 Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwerte: `audit/autobahnwetter.md` (§0 Kurzfassung).
 
 **Stand:**
