@@ -1342,6 +1342,12 @@ Auftrag Jan 03.10. (Kickoff `prompt-regenradar.md`, Entscheidungen E-RR-1…3 am
 - **(p) für die Fusion-Linie:** V-AW-32 (Versatz um Sonnenaufgang klingt zu langsam ab) und V-AW-33 (Messung wird mit
   dem Modellwert bis 30 min daneben gepaart — am Nachmittag fiel der Anker-Gewinn von 30 % auf 1 %) betreffen auch
   den Anker im Browser. Beides wäre ein Eingriff in buscosun Fusion.
+- **(q) V-AW-30 — Stationslage (du kümmerst dich, 04.10.):** die Liste liegt in `audit/autobahnwetter/stationslage.md`
+  (185 Stationen, weiteste zuerst, je Lage ein Kartenlink) und als `stationslage.csv`. Neu erzeugen:
+  `node scripts/road/road-station-positions.mjs --data=<Klon von buscosun-data> --md=… --csv=…`. Sag mir je Station (oder
+  als Regel), welche Lage gilt — dann trage ich sie in den Katalog bzw. die Prognosepunkte ein.
+- **(r) V-AW-31 erledigt:** der Job rechnet und committet nicht mehr, wenn der jüngste Lauf dieselbe Stunde und dieselben
+  Eingaben hatte (Log „kein neuer Lauf — …"). Ein Start von Hand rechnet immer.
 - **(m) E-AW-29:** der Job `road-fc` läuft zusätzlich nach jedem `point`-Lauf, weil GitHub den Zeitplan am 04.10. nicht
   startete (Daten-Repo `7374e46`). Wenn dir das zu oft ist: die drei Zeilen `workflow_run` in `road-fc.yml` entfernen.
 - Aus: Repo-Variable `ROAD_FC=0` im Daten-Repo. Prüfen von außen:

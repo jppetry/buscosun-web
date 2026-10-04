@@ -1074,8 +1074,69 @@ zum Stand davor (Verifier J6).
 |---|---|---|---|
 | **E-AW-30** | Anker an den Stationspunkten einschalten? Empfehlung: **ja** — +1 h 40 %, +3 h 12 % genauer; Preis: Prognosen aus der Messung um Sonnenaufgang sind 3–6 h später ≈ 0,05 K schlechter | genauere erste Stunden dort, wo die Fahrbahn bewertet wird (Gate D) | `ROAD_FC_ANCHOR_MODE = 'stations'` in `roadFc.ts`, Push — der nächste Job rechnet damit; zurück: `'none'` oder `ROAD_FC_ANCHOR: none` im Workflow |
 | E-AW-31 | Wind und Böe an den Stationen verankern (Böe +38 % bei +1 h)? | Wind, wie ihn der Mast an der Straße misst | Option `wind` in `anchorObsFor` ist gebaut; die Größe hieße dann „Wind an der Messstelle" |
-| V-AW-30 | 182 Stationen: Meldeposition ≠ Katalog (> 1 km, bis 131 km) | richtige Lage der Stationspunkte und Marker | Liste erzeugen, je Station Bulletin gegen Katalog entscheiden |
-| V-AW-31 | Der Job `road-fc` läuft nach jedem `point`-Lauf — am 04.10. dreimal in 11 min veröffentlicht (15:37, 15:39, 15:48 UTC) | weniger Leerlauf | `workflow_run` auf die t1-Jobs begrenzen oder Mindestabstand im Producer |
+| V-AW-30 | 182 Stationen: Meldeposition ≠ Katalog (> 1 km, bis 131 km) | richtige Lage der Stationspunkte und Marker | **Liste erzeugt 04.10. (§17.1, `audit/autobahnwetter/stationslage.md`)**; je Station Bulletin gegen Katalog entscheiden = Jan |
+| V-AW-31 | **behoben 04.10. (§17.2)** — Der Job `road-fc` läuft nach jedem `point`-Lauf — am 04.10. dreimal in 11 min veröffentlicht (15:37, 15:39, 15:48 UTC) | weniger Leerlauf | der Producer überspringt einen Lauf mit derselben Stunde und denselben Eingaben (`repeatVerdict`) |
 | V-AW-32 | Der Versatz einer Messung um Sonnenaufgang hält nicht (−4 … −9 % bei 3–6 h an Stationen ohne Stationswert) | Regel 1 erfüllt | Abklingen nach Tageszeit im Motor — buscosun Fusion, Jans Gate; betrifft auch den Browser-Pfad |
 | V-AW-33 | Der Motor paart eine Messung mit dem Modellschritt bis ± 30 min daneben; am Nachmittag fiel der Gewinn damit von 30 % auf 1 % | der Anker im Browser (BrightSky-Messung zur Minute) verliert vermutlich ebenso | Modellwert auf die Messzeit interpolieren oder nur Messungen der vollen Stunde paaren — buscosun Fusion, Jans Gate |
 | V-AW-34 | Wiederholung an weiteren Tagen, vor allem bei Frost | belastbare Zahl | `road-fc-anchor-backtest.mjs` an 2–3 Schnappschüssen je Tag; nach E-AW-30 liefert das Archiv verankerte Läufe mit `anc` |
+
+## 17. V-AW-30 Stationsliste und V-AW-31 Wiederholungsschutz (04.10., Jans „setze diese zwei Punkte um")
+
+### 17.1 V-AW-30 — Liste der Stationen mit zwei Lagen
+
+Werkzeug `scripts/road/road-station-positions.mjs` (nur lesend): liest alle Messdateien eines Klons von buscosun-data,
+nimmt je Station die Position der Meldung und stellt sie neben den Katalog. Ergebnis
+`audit/autobahnwetter/stationslage.md` (Tabelle mit Kartenlinks, weiteste zuerst) und `stationslage.csv`.
+Die Entscheidung je Station liegt bei Jan (seine Ansage 04.10.); die Liste entscheidet nichts.
+
+- Messdateien: 12 (2610041730 … 2610042015), Stationen mit Meldeposition: 1555, davon im Katalog mit Lage: 1400, ohne Katalogeintrag: 155
+- Abstand > 1 km: 185 — 100–… km: 1 · 20–100 km: 5 · 5–20 km: 22 · 2–5 km: 68 · 1–2 km: 89
+- davon durch die Rundung der Meldung allein erklärbar (Abstand ≤ größter Rundungsfehler ihrer Nachkommastellen): 6
+- Stationen mit mehr als einer Meldeposition in den Dateien: 0
+
+Befunde aus der Liste:
+
+- **Die Rundung der Meldung erklärt fast nichts** (6 Stationen). Meine Vermutung aus der Erklärung war falsch: die
+  Meldungen tragen meist fünf Nachkommastellen. Grob ist an vielen Stellen der **Katalog** — Lagen wie `51.41667, 7.6`
+  oder `51.25, 7.6` sind auf Bogenminuten gerundet (bis ≈ 1,2 km), bei einigen offenbar auf einen Ortsnamen statt
+  auf die Anlage gesetzt (H508, H448, H557: 6–9 km).
+- **Echte Fehler am oberen Ende:** P101 Kahl (131 km), P301 Ensbrücke (69 km), P142 Wildbach (55 km), K441, P670 —
+  hier liegt eine der beiden Lagen an einer anderen Straße. P301 und P159 melden dieselbe Position
+  (`49.82504, 11.0091`) — eine davon ist in der Meldung falsch.
+- **P925** heißt im Katalog „Vogelwirt", in der Meldung „Stuetzelsaege" (19,9 km): die Kennung ist vermutlich neu
+  vergeben.
+- 155 meldende Stationen stehen nicht im Katalog (bekannt, V-AW-7); keine Station meldet wechselnde Positionen.
+- Die Zahl 182 aus §16 stammt aus dem Schnappschuss vom Vormittag; im Bestand von 17:30–20:15 UTC sind es 185.
+
+Wirkung heute unverändert: Marker und Prognosepunkt liegen auf der Kataloglage; als Anker-Nachbar zählt eine Station
+nur bei ≤ 2 km Übereinstimmung (D-ANK-6).
+
+### 17.2 V-AW-31 — kein Lauf ohne neue Eingaben
+
+**Diagnose.** `workflow_run` feuert je abgeschlossenem **Lauf** des Workflows `point`; dessen vier Zeitpläne (t1, t2, t3,
+MOSMIX-S) sind vier getrennte Läufe, dazu kommt der eigene Stundenplan. Am Zeiger vom 04.10. abgelesen (Lauf · t1 ·
+Stationslauf): `1713`/`1736` (12z · 09z), `1801` (12z · 15z), `1813`/`1819` (15z · 15z), `1920`/`1952` (15z · 15z) —
+drei von sieben Läufen hatten dieselbe Stunde und dieselben Eingaben wie ihr Vorgänger; am Nachmittag 15:37, 15:39,
+15:48 UTC ebenso.
+
+**Entscheidung.** Nicht den Auslöser einschränken (er kann nicht nach Job filtern, und der t2-Job bringt MOSMIX-L —
+eine echte Eingabe), sondern im Producer vor dem Rechnen prüfen (`repeatVerdict`, `road-forecast.mjs`): ein Lauf ist
+eine Wiederholung, wenn der jüngste veröffentlichte Lauf
+
+1. in derselben Stunde beginnt (`t0Ms`),
+2. dieselben Cube- und Stationsläufe gelesen hat, die `point/index.json` des Klons jetzt anbietet (jede Eingabe, die
+   der Motor im letzten Lauf nannte: t1, t2, Stationen; MOSMIX-S und t3 sind keine Eingaben), mit denselben Tabellen,
+3. und keine Messdatei der vollen Stunde dazugekommen ist, die der Anker jetzt nähme und damals nicht hatte.
+
+Dann endet der Job grün mit „kein neuer Lauf — …", ohne Rechnung und ohne Commit. Unlesbares oder Unbekanntes ⇒ der
+Lauf findet statt. Neuere Radarbilder in derselben Stunde zählen bewusst nicht — der nächste Stundenlauf nimmt sie.
+`--always` / `ROAD_FC_ALWAYS=1` rechnet immer; der Workflow setzt das beim Start von Hand.
+
+**Wirkung.** Je Stunde ein Lauf, dazu einer je neuem t1-, t2- oder Stationslauf. Ein übersprungener Auslöser kostet
+noch Checkout und Klon (≈ 30–40 s), keine ≈ 75 s Rechnung und keinen Commit (≈ 8,5 MB). Am echten Klon geprüft:
+19:56 UTC ⇒ Wiederholung von `2610041952`; 20:40 UTC ⇒ „neue Stunde".
+
+**Gates.** `verify:road-fc` **89/89** — neu Block K (5): der Fall vom 04.10., zehn Gegenproben mit benanntem Grund,
+Anker-Fall, am Klon mit Tabellen-Hashes, Verdrahtung in Producer und Workflow. `src/` unberührt (kein Build nötig).
+Wirksam mit dem Push von `main` (der Job klont den Producer bei jedem Lauf); die Workflow-Kopie im Daten-Repo bringt
+nur den Schalter für den Start von Hand.

@@ -13,12 +13,13 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-forecast.mjs
  *     --data=<checkout of buscosun-data> [--out=<work dir>] [--now=<iso>] [--shards=4] [--publish]
- *     [--limit=N] [--ids=a8@0,Q441] [--remote=origin] [--branch=main]
+ *     [--limit=N] [--ids=a8@0,Q441] [--remote=origin] [--branch=main] [--always]
  *
  * `--publish`: the run is copied into the checkout, the pointer updated, old runs pruned, committed and pushed —
  * re-based onto a fresh `origin/main` on every attempt (the map line force-pushes this repo, the radar mirror pushes
- * every few minutes). Exit 0 = run published (or built, without `--publish`; or switched off with `ROAD_FC=0`),
- * 3 = run NOT published (too many points failed, tables not read, no tier-1 run), 1 = error.
+ * every few minutes). Exit 0 = run published (or built, without `--publish`; or switched off with `ROAD_FC=0`; or
+ * skipped because the newest published run already used the same hour and the same inputs — `repeatVerdict`,
+ * V-AW-31; `--always` / `ROAD_FC_ALWAYS=1` runs anyway), 3 = run NOT published (too many points failed, tables not read, no tier-1 run), 1 = error.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, cpSync, mkdtempSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -426,6 +427,50 @@ export function publishVerdict({ entry, stats }) {
   return { ok: reasons.length === 0, reasons };
 }
 
+// --- Repeat guard (V-AW-31) --------------------------------------------------------------------
+
+/**
+ * Would a run now repeat the newest published one? The job is woken by its hourly schedule AND after every run of the
+ * `point` workflow (tier 1, 2, 3 and hourly MOSMIX-S are four separate runs of it) — on 04.10.2026 that published three
+ * runs within 11 minutes from the same inputs. A run is a repeat when the newest run of the pointer
+ *   - starts in the same hour (`t0Ms`; a new hour moves the window and the radar hour mean ⇒ always a new run),
+ *   - read the same cube and station runs that the checkout's `point/index.json` offers now (every run the engine
+ *     named: t1, t2, t3 if used, stations — MOSMIX-S is not an input), from the same tables, and
+ *   - no measurement slot has arrived that the anchor would use now and did not use then.
+ * Radar frames newer than that run inside the same hour do not count: the next hourly run takes them.
+ * Anything unreadable or unknown ⇒ not a repeat (the run happens). `{ repeat, reason }`.
+ */
+export function repeatVerdict({ fcIndex, pointIndex, nowMs, tables = null, anchorSlotReady = false }) {
+  const no = (reason) => ({ repeat: false, reason });
+  const prev = fcIndex?.runs?.[0];
+  if (!prev || fcIndex.killed) return no('kein veröffentlichter Lauf');
+  if (prev.t0Ms !== roadFcT0(nowMs)) return no('neue Stunde');
+  const used = prev.engine?.runs;
+  if (!used?.t1) return no('Eingaben des letzten Laufs unbekannt');
+  const offered = {
+    t1: pointIndex?.latestByTier?.t1?.run, t2: pointIndex?.latestByTier?.t2?.run, t3: pointIndex?.latestByTier?.t3?.run,
+    stations: pointIndex?.stations?.runs?.[0]?.run,
+  };
+  for (const k of ['t1', 't2', 't3', 'stations']) {
+    if (used[k] == null) continue;
+    if (typeof offered[k] !== 'string') return no(`point/index.json nennt ${k} nicht`);
+    if (offered[k] !== used[k]) return no(`${k} ${used[k]} → ${offered[k]}`);
+  }
+  if (tables) for (const k of Object.keys(tables)) if (tables[k] !== prev.engine?.tables?.[k]) return no(`Tabelle ${k} geändert`);
+  if (anchorSlotReady && prev.engine?.anchor !== 'swis') return no('Messung der vollen Stunde ist jetzt da');
+  return { repeat: true, reason: `Lauf ${prev.run} hat dieselbe Stunde und dieselben Eingaben (t1 ${used.t1}, stations ${used.stations ?? '—'})` };
+}
+
+/** `repeatVerdict` on a checkout: reads the two pointers, the table hashes and whether the anchor's slot is there. */
+export function repeatVerdictOf(dataDir, nowMs, anchor = ROAD_FC_ANCHOR_MODE) {
+  const read = (f) => { try { return JSON.parse(readFileSync(join(dataDir, f), 'utf8')); } catch { return null; } };
+  return repeatVerdict({
+    fcIndex: read(join(ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH)), pointIndex: read('point/index.json'), nowMs,
+    tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
+    anchorSlotReady: anchor !== 'none' && existsSync(join(dataDir, ROAD_REPO_DIR, 'obs', `${roadStamp(roadFcT0(nowMs))}.json`)),
+  });
+}
+
 // --- Publish -----------------------------------------------------------------------------------
 
 /** Pointer after adding `entry` and pruning: `{ index, drop }` (run stamps to delete). */
@@ -511,6 +556,12 @@ async function main() {
   const shards = flags.shards ? Number(flags.shards) : Math.max(1, Math.min(4, cpus().length));
   // `ROAD_FC_ANCHOR=none` (workflow env) or `--anchor=` override the contract's mode — the way back without a commit.
   const anchor = ['none', 'stations', 'all'].find((m) => m === (typeof flags.anchor === 'string' ? flags.anchor : process.env.ROAD_FC_ANCHOR)) ?? ROAD_FC_ANCHOR_MODE;
+  // V-AW-31: a wake-up that would only repeat the newest published run ends here — no compute, no commit.
+  if (flags.publish && !flags.always && process.env.ROAD_FC_ALWAYS !== '1') {
+    const v = repeatVerdictOf(flags.data, nowMs, anchor);
+    if (v.repeat) { log(`kein neuer Lauf — ${v.reason}`); return; }
+    log(`neuer Lauf: ${v.reason}`);
+  }
   const built = await buildRun({ dataDir: flags.data, outDir, nowMs, shards, points, anchor, log });
   for (const f of built.stats.failed.slice(0, 10)) log(`  ohne Ergebnis: ${f.id} — ${f.error}`);
   const verdict = publishVerdict(built);

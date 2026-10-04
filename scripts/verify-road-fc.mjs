@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { encodePng, decodePng, toRgba } from './lib/png.mjs';
 import { FIX, buildCubeFixture } from './lib/pvCubeFixtures.mjs';
 import { installNodeShims } from './punktarchiv/lib/nodeShims.mjs';
@@ -30,7 +31,7 @@ import {
 } from '../src/road/roadFc.ts';
 import { ROAD_REPO_DIR, ROAD_STATIONS_PATH, roadSlotOf, roadStamp } from '../src/road/roadContract.ts';
 import { buildOsmIndex, nearestCarriageway, axisPointsOf, stationPointsOf, buildPoints, buildGeo, footOnSegment, refsOf } from './road/build-fc-points.mjs';
-import { dirStore, geoBackend, makeIo, buildRun, publishVerdict, publishRun, nextIndex, seriesOf, swisTable, readSwisTable, anchorObsFor, ROAD_FC_ANCHOR } from './road/road-forecast.mjs';
+import { dirStore, geoBackend, makeIo, buildRun, publishVerdict, publishRun, nextIndex, seriesOf, swisTable, readSwisTable, anchorObsFor, ROAD_FC_ANCHOR, repeatVerdict, repeatVerdictOf } from './road/road-forecast.mjs';
 import { memoryStore } from '../src/point/client/store.ts';
 import { POINT_LEARNED_PATH, POINT_STACK_PATH } from '../src/point/cubeFormat.ts';
 import { getPointForecastFromCube, clearCubeForecastCache, FUSION8_NOWCAST_HOUR_MEAN } from '../src/pointForecast/cubeSource.ts';
@@ -696,6 +697,50 @@ rmSync(tmp, { recursive: true, force: true });
     && /eigenen|dieser Messstelle/.test(texts[0]) && texts[0].includes(`Messung − Modell +${(stPts.S900.anc[0] / 10).toFixed(1).replace('.', ',')} K`) && /\d{2}:\d{2}/.test(texts[0]) && /im Umkreis/.test(texts[1]) && /Gewicht \d+ %/.test(texts[1])
     && texts[2] === 'ohne Messungs-Anker' && texts[3] === 'ohne Messungs-Anker' && texts[4] === 'ohne Messungs-Anker' && texts.every((t) => !roadWords.test(t)), texts[0]);
   add('J11 Schalter des Vertrags ist einer der drei Modi und der Producer kennt ihn als Voreinstellung', ['none', 'stations', 'all'].includes(ROAD_FC_ANCHOR_MODE), ROAD_FC_ANCHOR_MODE);
+}
+
+// --- K: repeat guard (V-AW-31) -----------------------------------------------------------------------------
+{
+  const T = Date.UTC(2026, 9, 4, 15, 37, 40);
+  const tables = { learned: 'aaa', stack: 'bbb', clima: 'ccc' };
+  const entry = (over = {}) => ({ run: roadFcStamp(T), t0Ms: roadFcT0(T), engine: { anchor: 'none', runs: { t1: '2026100412', t2: '2026100412', t3: null, stations: '2026100409', nowcast: 'radvor_rv:2610041530' }, tables, ...over } });
+  const pointIndex = (over = {}) => ({ latestByTier: { t1: { run: '2026100412' }, t2: { run: '2026100412' }, t3: { run: '2026100400' }, ...over.tiers }, stations: { runs: [{ run: over.stations ?? '2026100409' }, { run: '2026100403' }] }, stationsS: { runs: [{ run: over.s ?? '2026100414' }] } });
+  const v = (o = {}) => repeatVerdict({ fcIndex: { killed: false, runs: [entry(o.engine)] }, pointIndex: pointIndex(o.point), nowMs: o.now ?? T + 2 * 60_000, tables: o.tables ?? tables, anchorSlotReady: !!o.slot });
+  const same = v(), sameS = v({ point: { s: '2026100415' } }), sameT3 = v({ point: { tiers: { t3: { run: '2026100412' } } } });
+  add('K1 der Fall vom 04.10.: zweiter Auslöser 2 min nach dem Lauf, selbe Stunde, selbe Cube- und Stationsläufe ⇒ Wiederholung; ein neuer MOSMIX-S-Lauf und ein neuer t3-Lauf (beides keine Eingaben des letzten Laufs) ändern daran nichts',
+    same.repeat === true && sameS.repeat === true && sameT3.repeat === true && /2026100412/.test(same.reason), same.reason);
+  const cases = {
+    stunde: v({ now: T + 23 * 60_000 }), t1: v({ point: { tiers: { t1: { run: '2026100415' } } } }), t2: v({ point: { tiers: { t2: { run: '2026100418' } } } }),
+    stations: v({ point: { stations: '2026100415' } }), tabelle: v({ tables: { ...tables, stack: 'neu' } }), messung: v({ slot: true }),
+    leer: repeatVerdict({ fcIndex: { runs: [] }, pointIndex: pointIndex(), nowMs: T }), aus: repeatVerdict({ fcIndex: { killed: true, runs: [entry()] }, pointIndex: pointIndex(), nowMs: T }),
+    ohneIndex: repeatVerdict({ fcIndex: { runs: [entry()] }, pointIndex: null, nowMs: T }), ohneEingaben: repeatVerdict({ fcIndex: { runs: [{ run: roadFcStamp(T), t0Ms: roadFcT0(T) }] }, pointIndex: pointIndex(), nowMs: T }),
+  };
+  add('K2 Gegenproben, je ein neuer Lauf mit benanntem Grund: neue Stunde, neuer t1-, t2- oder Stationslauf, geänderte Tabelle, Messung der vollen Stunde jetzt da (Anker an, letzter Lauf ohne), leerer oder abgeschalteter Zeiger, point/index.json nicht lesbar, Eingaben des letzten Laufs unbekannt',
+    Object.values(cases).every((c) => c.repeat === false && c.reason) && /Stunde/.test(cases.stunde.reason) && /t1 2026100412 → 2026100415/.test(cases.t1.reason) && /stations/.test(cases.stations.reason) && /Messung/.test(cases.messung.reason),
+    Object.entries(cases).filter(([, c]) => c.repeat !== false).map(([k]) => k).join(',') || cases.t1.reason);
+  add('K3 ein Lauf, der schon mit Anker rechnete, wird durch dieselbe Messdatei nicht wiederholt', v({ engine: { anchor: 'swis' }, slot: true }).repeat === true);
+  // On a checkout: the pointer files of a real directory, the hashes of its tables.
+  const dir = mkdtempSync(join(tmpdir(), 'road-fc-k-'));
+  const put = (f, o) => { mkdirSync(dirname(join(dir, f)), { recursive: true }); writeFileSync(join(dir, f), typeof o === 'string' ? o : JSON.stringify(o)); };
+  put(POINT_LEARNED_PATH, 'L'); put(POINT_STACK_PATH, 'S');
+  put('point/index.json', pointIndex());
+  const first = repeatVerdictOf(dir, T + 2 * 60_000, 'none');
+  const h = (s) => createHash('sha256').update(s).digest('hex').slice(0, 12);
+  const real = entry(); real.engine.tables = { learned: h('L'), stack: h('S'), clima: null };
+  put(`${ROAD_FC_REPO_DIR}/${ROAD_FC_INDEX_PATH}`, { schema: 1, killed: false, runs: [real] });
+  const second = repeatVerdictOf(dir, T + 2 * 60_000, 'none');
+  put(POINT_STACK_PATH, 'S2');
+  const third = repeatVerdictOf(dir, T + 2 * 60_000, 'none');
+  put(POINT_STACK_PATH, 'S'); put(`${ROAD_REPO_DIR}/obs/${roadStamp(roadFcT0(T))}.json`, { points: [] });
+  const off = repeatVerdictOf(dir, T + 2 * 60_000, 'none'), on = repeatVerdictOf(dir, T + 2 * 60_000, 'stations');
+  rmSync(dir, { recursive: true, force: true });
+  add('K4 am Klon: ohne Zeiger kein Überspringen; mit Zeiger und gleichen Tabellen-Hashes Wiederholung; geänderte Tabellendatei ⇒ neuer Lauf; die Messdatei der Stunde zählt nur bei eingeschaltetem Anker',
+    first.repeat === false && second.repeat === true && third.repeat === false && /stack/.test(third.reason) && off.repeat === true && on.repeat === false, `${first.reason} | ${second.reason} | ${third.reason}`);
+  const src = readFileSync(join(HERE, 'road', 'road-forecast.mjs'), 'utf8');
+  const wf = readFileSync(join(HERE, 'road', 'workflow-road-fc.yml'), 'utf8').split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
+  add('K5 Verdrahtung: der Producer fragt nur bei --publish und vor buildRun, --always / ROAD_FC_ALWAYS=1 rechnet immer; der Workflow setzt ROAD_FC_ALWAYS nur beim Start von Hand',
+    /if \(flags\.publish && !flags\.always && process\.env\.ROAD_FC_ALWAYS !== '1'\)/.test(src) && src.indexOf('repeatVerdictOf(flags.data') < src.indexOf('await buildRun({ dataDir: flags.data') && src.indexOf('repeatVerdictOf(flags.data') > 0
+    && /ROAD_FC_ALWAYS:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && '1' \|\| '' \}\}/.test(wf));
 }
 
 const failed = results.filter((r) => !r.ok).length;
