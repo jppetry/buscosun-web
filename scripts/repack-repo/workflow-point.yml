@@ -145,9 +145,13 @@ jobs:
       (github.event_name == 'schedule' && github.event.schedule == '40 1,4,7,10,13,16,19,22 * * *')
       || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't1'))
     runs-on: ubuntu-latest
-    # Regel C: JOB_MAX_MIN(t1) + 10 ≤ 45 ≤ 60 (Abstand zum :30-Push der Kartenlinie).
+    # Regel C: JOB_MAX_MIN(t1) + 10 ≤ 45 ≤ 50 (Abstand zum naechsten Push der Kartenlinie). NP-0b (E-NP0-5 b): JOB_MAX_MIN(t1)
+    # 20 → 24 — Regel B bindet zweimal (t1 hinter t2 ⇒ ≤ 25, stations-s hinter t1 ⇒ ≤ 24), mehr geht nicht.
     timeout-minutes: 45
     steps:
+      # NP-0b (audit/np0-datenprodukte.md §8): Jobstart fuer die Frist des Feldschritts (FIELD_END_MIN, Regel F′).
+      - name: Job-Start merken (NP-0b)
+        run: echo "JOB_T0=$(date +%s)" >> "$GITHUB_ENV"
       # SPARSE: der Radar-Spiegel macht den Baum gross (gemessen 279 MiB am 2026-09-09).
       # Der Cube-Job braucht davon nichts ausser `point/` — UND `.gitattributes`.
       #
@@ -184,7 +188,7 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
           cd app
-          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md public/climaGrid.json
           git checkout --quiet
           test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
       - name: Install producer dependency
@@ -212,6 +216,23 @@ jobs:
             scripts/point/build-point-cube.mjs --tiers=t1 \
             ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
+      # NP-0b (audit/np0-datenprodukte.md §3.3, §8; E-NP0-4 F1, E-NP0-5): Kartenfelder `point/field/v1/<lauf>/t1/` aus dem
+      # eben gebauten Cube — buscosun Fusion mit dem Cube als einziger Quelle je Zelle („Modell · Cube“), Worker-Pool.
+      # ⚠ `continue-on-error` + eigenes Timeout: ein Feld-Fehler nimmt NIE den Cube mit. Frist: fertig spaetestens
+      # FIELD_END_MIN nach dem Jobstart (Regel F′: dahinter Publish + CDN + 1 min bis JOB_MAX_MIN); ist der Bau langsam,
+      # entfaellt das Feld dieses Laufs. Rueckweg: POINT_FIELDS: '0' (der Publisher baut den Altbestand dann ab).
+      - name: Build map fields — t1 (NP-0b)
+        continue-on-error: true
+        timeout-minutes: 8
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+          POINT_FIELDS: '1'
+          FIELD_JOB_T0: ${{ env.JOB_T0 }}
+          FIELD_END_MIN: '18'
+        run: |
+          cd app
+          test -f scripts/point/build-point-fields.mjs || { echo "Producer auf main ohne Kartenfelder (NP-0b nicht gepusht) — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-fields.mjs --tier=t1
       # Der Publisher committet, pusht (mit Wiederholung) und purgt DANACH den Index am
       # CDN — genau EINE Push-Stelle je Job (V-BW-58: fuenf Versuche mit `pull --rebase`).
       # AP12a (E-F-1, audit/fusion-implementierung.md §9.4): danach purgt er JEDE geaenderte Datei
@@ -219,9 +240,10 @@ jobs:
       # run.json auf Frische und waermt alles Neue mit Browser-`Accept-Encoding`; 403 und
       # Fristablauf zaehlen als Fehlschlag und werden wiederholt (V-FI-5). Nie fatal.
       # POINT_CDN_BUDGET_S = Wandzeit dieses Schritts, hergeleitet aus der Luft unter
-      # JOB_MAX_MIN_BY_TIER ueber die gemessenen Job-Maxima (Laeufe 56–71, 15./16.09.) minus 1 min:
-      #   t1 20 − 14,2 − 1 = 4,8 min ⇒ 240 s · t2 15 − 10,7 − 1 = 3,3 ⇒ 180 s · t3 10 − 5,4 − 1 = 3,6 ⇒ 180 s
-      # (Regel F im Verifier rechnet es nach). Rueckweg: POINT_CDN_SYNC: '0' (nur index.json purgen).
+      # JOB_MAX_MIN_BY_TIER ueber die gemessenen Job-Maxima minus 1 min:
+      #   t1 24 − 16,5 (02./03.10., V-NP0-14) − 1 ≥ 4 min ⇒ 240 s · t2 15 − 10,7 − 1 = 3,3 ⇒ 180 s · t3 15 − 8,4 − 1 ⇒ 180 s
+      # (Regel F im Verifier rechnet es nach). NP-0b Regel F′: der Feldschritt endet bis FIELD_END_MIN (t1 18) ⇒
+      #   18 + Publish 1 + CDN 4 + 1 = 24 = JOB_MAX_MIN(t1). Rueckweg: POINT_CDN_SYNC: '0' (nur index.json purgen).
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           # OHNE diese Variable schreibt der Publisher nur lokal und pusht NICHT.
@@ -245,6 +267,9 @@ jobs:
     # Regel C: JOB_MAX_MIN(t2) + 10 ≤ 60 ≤ 60 (Abstand zum :30-Push der Folgestunde, seit 14.09.).
     timeout-minutes: 60
     steps:
+      # NP-0b (audit/np0-datenprodukte.md §8): Jobstart fuer die Frist des Feldschritts (FIELD_END_MIN, Regel F′).
+      - name: Job-Start merken (NP-0b)
+        run: echo "JOB_T0=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -270,7 +295,7 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
           cd app
-          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md public/climaGrid.json
           git checkout --quiet
           test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
       - name: Install producer dependency
@@ -313,6 +338,23 @@ jobs:
           cd app
           grep -qF "POINT_STATIONS_SOURCE" scripts/point/build-stations.mjs || { echo "Producer auf main ohne MOSMIX-S (AX-8 nicht gepusht) — uebersprungen"; exit 0; }
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs --source=mosmix_s
+      # NP-0b (audit/np0-datenprodukte.md §3.3, §8; E-NP0-4 F1, E-NP0-5): Kartenfelder `point/field/v1/<lauf>/t2/` aus dem
+      # eben gebauten Cube — buscosun Fusion mit dem Cube als einziger Quelle je Zelle („Modell · Cube“), Worker-Pool.
+      # ⚠ `continue-on-error` + eigenes Timeout: ein Feld-Fehler nimmt NIE den Cube mit. Frist: fertig spaetestens
+      # FIELD_END_MIN nach dem Jobstart (Regel F′: dahinter Publish + CDN + 1 min bis JOB_MAX_MIN); ist der Bau langsam,
+      # entfaellt das Feld dieses Laufs. Rueckweg: POINT_FIELDS: '0' (der Publisher baut den Altbestand dann ab).
+      - name: Build map fields — t2 (NP-0b)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+          POINT_FIELDS: '1'
+          FIELD_JOB_T0: ${{ env.JOB_T0 }}
+          FIELD_END_MIN: '10'
+        run: |
+          cd app
+          test -f scripts/point/build-point-fields.mjs || { echo "Producer auf main ohne Kartenfelder (NP-0b nicht gepusht) — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-fields.mjs --tier=t2
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           POINT_PUSH: '1'
@@ -334,6 +376,9 @@ jobs:
     # 35 min nach t3 (09:55) und wartet hoechstens dessen Restlaufzeit (JOB_MAX_MIN(t3) = 10 < 35).
     timeout-minutes: 40
     steps:
+      # NP-0b (audit/np0-datenprodukte.md §8): Jobstart fuer die Frist des Feldschritts (FIELD_END_MIN, Regel F′).
+      - name: Job-Start merken (NP-0b)
+        run: echo "JOB_T0=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -359,7 +404,7 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
           cd app
-          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md public/climaGrid.json
           git checkout --quiet
           test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
       - name: Install producer dependency
@@ -380,6 +425,23 @@ jobs:
             scripts/point/build-point-cube.mjs --tiers=t3 \
             ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
+      # NP-0b (audit/np0-datenprodukte.md §3.3, §8; E-NP0-4 F1, E-NP0-5): Kartenfelder `point/field/v1/<lauf>/t3/` aus dem
+      # eben gebauten Cube — buscosun Fusion mit dem Cube als einziger Quelle je Zelle („Modell · Cube“), Worker-Pool.
+      # ⚠ `continue-on-error` + eigenes Timeout: ein Feld-Fehler nimmt NIE den Cube mit. Frist: fertig spaetestens
+      # FIELD_END_MIN nach dem Jobstart (Regel F′: dahinter Publish + CDN + 1 min bis JOB_MAX_MIN); ist der Bau langsam,
+      # entfaellt das Feld dieses Laufs. Rueckweg: POINT_FIELDS: '0' (der Publisher baut den Altbestand dann ab).
+      - name: Build map fields — t3 (NP-0b)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+          POINT_FIELDS: '1'
+          FIELD_JOB_T0: ${{ env.JOB_T0 }}
+          FIELD_END_MIN: '10'
+        run: |
+          cd app
+          test -f scripts/point/build-point-fields.mjs || { echo "Producer auf main ohne Kartenfelder (NP-0b nicht gepusht) — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-fields.mjs --tier=t3
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           POINT_PUSH: '1'

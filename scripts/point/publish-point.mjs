@@ -44,6 +44,7 @@ import { PUBLISH_PATHS, uncoveredPaths } from './sparseCover.mjs';
 // AP12a (E-F-1): nach dem Landen jede geänderte Datei purgen, den Index frisch prüfen, alles
 // Neue wärmen — Plan und Ausführung liegen dort, damit der Verifier sie netzfrei prüfen kann.
 import { syncCdn, parseNameStatus, CDN_BUDGET_S_DEFAULT } from './cdnSync.mjs';
+import { pruneFieldStore, writeFieldIndex } from './fieldStore.mjs';
 
 const args = {};
 for (const s of process.argv.slice(2)) {
@@ -197,6 +198,17 @@ const stationSRuns = runsIn(stationsSRoot).map((run) => {
   };
 });
 log(`stations-s/: ${stationSRuns.length} Lauf/Läufe, ${(stationSRuns.reduce((n, r) => n + r.bytes, 0) / 1048576).toFixed(2)} MiB`);
+
+// ── NP-0b: Kartenfelder `point/field/v1/` (audit/np0-datenprodukte.md §8) ──────────────
+// Ein Feld lebt, solange seine Cube-Stufe lebt: nach der Cube-Aufbewahrung oben fällt jedes Feld, dessen Lauf die
+// Stufe nicht mehr trägt (auch mit `POINT_FIELDS=0` — der Altbestand wird abgebaut), dazu Verzeichnisse ohne
+// `field.json` (abgebrochener Bau). Der Index wird aus den übrigen Manifesten neu geschrieben, nie fortgeschrieben.
+{
+  const fieldEvents = pruneFieldStore(join(REPO, POINT_DIR));
+  for (const e of fieldEvents) log(`Aufbewahrung field/: ${e.kind === 'drop' ? `${e.run}/${e.tier} entfernt (Cube-Stufe nicht mehr im Repo)` : e.kind === 'incomplete' ? `${e.run}/${e.tier} ohne field.json entfernt (abgebrochener Bau)` : `${e.path} entfernt (kein Lauf-Name)`}`);
+  const fieldIdx = writeFieldIndex(join(REPO, POINT_DIR));
+  if (fieldIdx) log(`field/: ${Object.entries(fieldIdx.runsByTier).map(([t, r]) => `${t} ${r.length}`).join(', ')} Feld-Läufe, ${(dirBytes(join(REPO, POINT_DIR, 'field')) / 1048576).toFixed(2)} MiB`);
+}
 
 // ── Die zeitlosen Produkte unter `point/static/` ──────────────────────
 // Sie fallen NICHT unter die Aufbewahrung (`TIMELESS_PATHS`) und werden hier deshalb

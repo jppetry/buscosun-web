@@ -43,7 +43,7 @@ import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
 import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest, runsToKeepFor, RETENTION_HOURS_BY_TIER, latestByTier, STATIONS_S_RETENTION } from '../src/point/manifest.ts';
 import { pruneTier, tiersOf, retainRuns, runsIn } from './point/prune.mjs';
-import { planCdnSync, parseNameStatus, missingManifestPurges, cdnContractViolations, syncCdn, CDN_BUDGET_S_BY_TIER, CDN_BUDGET_S_DEFAULT, JOB_MEASURED_MAX_MIN } from './point/cdnSync.mjs';
+import { planCdnSync, parseNameStatus, missingManifestPurges, cdnContractViolations, syncCdn, CDN_BUDGET_S_BY_TIER, CDN_BUDGET_S_DEFAULT, JOB_MEASURED_MAX_MIN, FIELD_END_MIN_BY_TIER } from './point/cdnSync.mjs';
 import { warmCdnFiles, WARM_ACCEPT_ENCODING } from './lib/repackManifest.mjs';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
 import { adapterFor, INGESTABLE, PENDING, DECLINED, ingestableFor } from './point/adapters/index.mjs';
@@ -834,7 +834,9 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     // nachtragen (kein Runner-Lauf vor dem Push von buscosun-web/main).
     // t3 10 → 15 (30.09., AX-7): der erste Schema-6-Lauf auf dem Runner brauchte 8,4 min (JOB_MEASURED_MAX_MIN), Regel F verlangt
     // gemessen + CDN-Budget 3 min + 1 ≤ JOB_MAX_MIN; Regel C hält (15 + 10 ≤ timeout-minutes 40 ≤ Abstand 12 h)
-    const JOB_MAX_MIN_BY_TIER = { t1: 20, t2: 15, t3: 15, 'stations-s': 6 };
+    // t1 20 → 24 (NP-0b, E-NP0-5 b, 03.10.): Kartenfelder im t1-Job; Regel B bindet zweimal (t1 hinter t2 ⇒ ≤ 25,
+    // stations-s hinter t1 ⇒ ≤ 24) — 24 ist das Maximum. Gemessen t1 02./03.10. max 16,5 min (JOB_MEASURED_MAX_MIN, V-NP0-14).
+    const JOB_MAX_MIN_BY_TIER = { t1: 24, t2: 15, t3: 15, 'stations-s': 6 };
     const JOB_MAX_MIN = Math.max(...Object.values(JOB_MAX_MIN_BY_TIER));
     const jobs = jobsOf(wf);
     add('(F3b) die Vorlage hat vier Jobs t1/t2/t3/stations-s; jeder Stufen-Job baut GENAU seine Stufe (--tiers=tX), stations-s baut MOSMIX-S (AX-8)',
@@ -904,7 +906,8 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     add('(F3b) MOSMIX-L haengt genau am t2-Job (viermal taeglich, continue-on-error); MOSMIX-S (AX-8) am t2-Job (t2-Stunden, continue-on-error) und am stations-s-Job',
       jobs.filter((j) => /build-stations\.mjs\s*$/m.test(j.body)).map((j) => j.name).join() === 't2'
       && jobs.filter((j) => /build-stations\.mjs --source=mosmix_s/.test(j.body)).map((j) => j.name).join() === 't2,stations-s'
-      && (jobs[1]?.body.match(/continue-on-error: true/g) || []).length === 2 && !/continue-on-error/.test(jobs[3]?.body ?? ''));
+      // NP-0b: der Feldschritt (`Build map fields`) bringt ein drittes continue-on-error in t2 — mitgezählt, nicht verschwiegen.
+      && (jobs[1]?.body.match(/continue-on-error: true/g) || []).length === 2 + (/build-point-fields/.test(jobs[1]?.body ?? '') ? 1 : 0) && !/continue-on-error/.test(jobs[3]?.body ?? ''));
     // V-AX-12: der erste Schutz suchte `mosmix_s` — ein TEILSTRING von `mosmix_stationskatalog`, das der alte Bauer auf main
     // enthaelt: der Leerlauf-Schutz griff nicht, der Lauf 14:03 UTC (30.09.) baute MOSMIX-L stuendlich neu. Deshalb ein
     // Marker, den es vor AX-8 nirgends gab (`POINT_STATIONS_SOURCE`), mit `-F` (fester String), und hier die Gegenprobe:
@@ -930,8 +933,25 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
         Number.isFinite(b) && ruleF(j.name, b) && b === CDN_BUDGET_S_BY_TIER[j.name],
         `${(JOB_MEASURED_MAX_MIN[j.name] + b / 60 + 1).toFixed(1)} min`);
     }
-    add('(F3b) Regel F: das Standard-Budget ohne Variable hält in jedem Job; Negativkontrolle: 400 s in t1 fiele durch (14,2 + 6,7 + 1 > 20)',
+    add('(F3b) Regel F: das Standard-Budget ohne Variable hält in jedem Job; Negativkontrolle: 400 s in t1 fiele durch (16,5 + 6,7 + 1 > 24)',
       ['t1', 't2', 't3'].every((t) => ruleF(t, CDN_BUDGET_S_DEFAULT)) && !ruleF('t1', 400), `Standard ${CDN_BUDGET_S_DEFAULT} s`);
+    // ── Regel F′ (NP-0b, E-NP0-5): der Feldschritt endet bis FIELD_END_MIN nach dem Jobstart; dahinter bleiben Publish
+    // (1 min) + CDN-Budget + 1 min Reserve bis JOB_MAX_MIN. Der Producer rechnet die Frist aus JOB_T0 (Workflow) selbst.
+    for (const j of jobs.filter((x) => /^t\d$/.test(x.name))) {
+      const end = Number(/FIELD_END_MIN: '(\d+)'/.exec(j.body)?.[1] ?? NaN);
+      const b = Number(/POINT_CDN_BUDGET_S: '(\d+)'/.exec(j.body)?.[1] ?? NaN);
+      const order = j.body.indexOf('build-point-cube.mjs') < j.body.indexOf('build-point-fields.mjs') && j.body.indexOf('build-point-fields.mjs') < j.body.indexOf('publish-point.mjs');
+      add(`(NP-0b) Regel F′ ${j.name}: Feldschritt nach dem Bau, vor dem Publish, continue-on-error, Frist ${end} + Publish 1 + CDN ${b} s + 1 ≤ JOB_MAX_MIN ${JOB_MAX_MIN_BY_TIER[j.name]}; = FIELD_END_MIN_BY_TIER`,
+        order && /name: Job-Start merken[\s\S]*?JOB_T0=\$\(date \+%s\)/.test(j.body) && /FIELD_JOB_T0: \$\{\{ env\.JOB_T0 \}\}/.test(j.body)
+        && /Build map fields[^\n]*\n\s+continue-on-error: true\n\s+timeout-minutes: \d+/.test(j.body.replace(/\r\n/g, '\n')) && /POINT_FIELDS: '1'/.test(j.body)
+        && Number.isFinite(end) && end + 1 + b / 60 + 1 <= JOB_MAX_MIN_BY_TIER[j.name] && end === FIELD_END_MIN_BY_TIER[j.name],
+        `${(end + 1 + b / 60 + 1).toFixed(1)} min`);
+    }
+    add('(NP-0b) Regel F′ Negativkontrolle: FIELD_END_MIN 20 in t1 fiele durch (20 + 1 + 4 + 1 > 24); stations-s hat keinen Feldschritt',
+      !(20 + 1 + 240 / 60 + 1 <= JOB_MAX_MIN_BY_TIER.t1) && !/build-point-fields/.test(jobs[3]?.body ?? ''));
+    add('(NP-0b) die Stufen-Jobs holen public/climaGrid.json (Klimatologie der Kette), stations-s nicht',
+      jobs.filter((x) => /^t\d$/.test(x.name)).every((x) => /sparse-checkout set --no-cone scripts src package\.json QUELLENMATRIX\.md public\/climaGrid\.json/.test(x.body))
+      && !/climaGrid/.test(jobs[3]?.body ?? ''));
     add('(F3b) jeder Job holt QUELLENMATRIX.md und prueft es nach',
       jobs.every((j) => /sparse-checkout set --no-cone scripts src package\.json QUELLENMATRIX\.md/.test(j.body) && /test -f QUELLENMATRIX\.md/.test(j.body)));
     // ── Regel E: der Slot muss die TRAGENDE Quelle der Stufe schon fertig vorfinden ──────

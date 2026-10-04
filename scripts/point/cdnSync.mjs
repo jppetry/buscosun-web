@@ -66,7 +66,17 @@ export const CDN_BUDGET_S_DEFAULT = Math.min(...Object.values(CDN_BUDGET_S_BY_TI
 // Job 8,4 min (Bau 6,0 statt 4,4, Publish 1,3 statt 0,6 gegen den letzten Schema-5-Lauf 09:58 UTC, 5,8 min); die Planungsgrenze
 // JOB_MAX_MIN_BY_TIER.t3 im Verifier ist deshalb 10 → 15 (Regel C: 15 + 10 ≤ timeout-minutes 40). `stations-s`: erster Runner-Lauf
 // 15:56 UTC 2,3 min, die Schätzung 3,2 bleibt als Schranke.
-export const JOB_MEASURED_MAX_MIN = Object.freeze({ t1: 14.2, t2: 10.7, t3: 8.4, 'stations-s': 3.2 });
+// t1 (NP-0b, V-NP0-14): nachgemessen an der Actions-API, 11 t1-Jobs 02.10. 07:50 … 03.10. 14:45 UTC (Schema 6, POINT_Z0MOD):
+// Median 11,4 min, max 16,5 min (Bau max 11,6, Publish max 3,9) — die alten 14,2 stammten von den Läufen 56–71 (15./16.09.).
+// t2 maß im selben Fenster einmal 19,3 min (Bau 15,8) über der Planungsgrenze 15 — benannt in V-NP0-14, hier NICHT
+// fortgeschrieben (nicht Teil von NP-0b, Jans Gate).
+export const JOB_MEASURED_MAX_MIN = Object.freeze({ t1: 16.5, t2: 10.7, t3: 8.4, 'stations-s': 3.2 });
+/**
+ * NP-0b (E-NP0-5): der Feldschritt endet spätestens `FIELD_END_MIN` nach dem Jobstart (`JOB_T0` im Workflow) — so bleibt
+ * hinter ihm immer Publish (1 min) + CDN-Budget + 1 min Reserve bis JOB_MAX_MIN (Regel F′ im Verifier). Ist der Bau
+ * langsam, entfällt das Feld dieses Laufs; der Cube wartet nie auf ein Feld.
+ */
+export const FIELD_END_MIN_BY_TIER = Object.freeze({ t1: 18, t2: 10, t3: 10 });
 export const CDN_WARM = Object.freeze({ concurrency: 8, timeoutMs: 20_000, retries: 3, backoffMs: 3_000 });
 
 /** `git diff --name-status --no-renames` → `[{ status: 'A'|'M'|'D', path }]`. */
@@ -94,10 +104,14 @@ export function classifyPointPath(path) {
   if (/^point\/static\//.test(path)) return 'static';
   if (/^point\/(sources|calib)\.json$/.test(path)) return 'register';
   if (/^point\/\.build\//.test(path)) return 'stage';
+  // NP-0b: Kartenfelder. Der Index ist veränderlich (purgen, auch beim ersten Anlegen — eine früh angefragte 404 hängt
+  // sonst am Edge); Manifeste und PNGs liegen unter einem Lauf-Pfad und ändern sich nie (nur wärmen, nach den Chunks).
+  if (path === 'point/field/v1/index.json' || path === 'point/field/v1/budget.json') return 'field-index';
+  if (/^point\/field\/v1\/\d{10}\/t\d\/(field\.json|[a-z]+-\d{3}\.png)$/.test(path)) return 'field';
   return 'other';
 }
 
-const WARM_ORDER = ['run-manifest', 'stations-manifest', 'stations-catalog', 'register', 'static', 'stations-bundle', 'chunk'];
+const WARM_ORDER = ['run-manifest', 'stations-manifest', 'stations-catalog', 'register', 'static', 'stations-bundle', 'chunk', 'field-index', 'field'];
 
 /**
  * Reiner Plan. `commit` = der Daten-Commit (`index.commit`), unter dem der Leser `run.json` pinnt.
@@ -120,7 +134,7 @@ export function planCdnSync(touched, { commit, base = CDN_BASE } = {}) {
     // Änderung unter der Auflösung; der Leser nimmt `static` ohnehin mit 12 h (V-FI-6). `static.json` wird
     // gepurgt: eine neue Spaltenliste muss ankommen (der Decoder prüft die Ebenenzahl laut).
     if (cls === 'static' && status === 'M' && !path.endsWith('/static.json')) { counts.staticChunksLeft = (counts.staticChunksLeft ?? 0) + 1; continue; }
-    if (status === 'M' && cls !== 'index') purge.push({ path, url: main(path), cls });
+    if ((status === 'M' && cls !== 'index') || (status === 'A' && cls === 'field-index')) purge.push({ path, url: main(path), cls });
     if (cls === 'index') continue;   // Frischeprüfung liest ihn ohnehin
     if (cls === 'run-manifest') {
       if (commit) warmBy.get(cls).push(`${base}@${commit}/${path}`);

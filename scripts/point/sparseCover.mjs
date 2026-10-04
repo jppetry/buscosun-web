@@ -100,9 +100,9 @@ export function jobsOf(yamlText) {
   });
 }
 
-/** `timeout-minutes:` je Job, in Dateireihenfolge. */
+/** `timeout-minutes:` je Job, in Dateireihenfolge — nur auf Job-Ebene (vier Leerzeichen); Schritt-Timeouts (NP-0b) zählen nicht. */
 export function timeoutMinutesOf(yamlText) {
-  return [...String(yamlText).matchAll(/^\s*timeout-minutes:\s*(\d+)\s*$/gm)].map((m) => Number(m[1]));
+  return [...String(yamlText).matchAll(/^ {4}timeout-minutes:\s*(\d+)\s*$/gm)].map((m) => Number(m[1]));
 }
 
 /** Namen der `workflow_dispatch.inputs` — jedes Eingabefeld braucht einen Leser im Producer. */

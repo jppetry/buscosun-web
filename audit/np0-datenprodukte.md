@@ -158,6 +158,8 @@ Ausgefüllt mit Belegen: §8.5 (Gate G-NP0a, 03.10.).
 | Verifier | `typecheck`, `verify:np0-fields` (neu), `verify:point-data`, `build`, `budget` |
 | Live (nach Jans Push) | `verify:np0-fields --live` nach je einem t1-, t2- und t3-Lauf |
 
+Ausgefüllt mit Belegen: §8.6 (Gate G-NP0b, 04.10.).
+
 ## 4. Entscheidungen (Jan) — die Phase legt sie mit Messwerten vor und wartet
 
 | # | Frage | Optionen | Empfehlung |
@@ -397,3 +399,66 @@ Oberfläche an).
 - **V-NP0-22 (behoben 03.10.)** Der eigene Blitz-Push beim Jobstart („5 min ohne Produkt-Push") entstand, weil `lastPushAt` mit 0
   beginnt (+1 Commit je Job im A/B-Lauf). Jetzt zählt die 5-min-Frist ab dem Jobstart (`loopStartedAt`); `lastPushAt` und die
   Ende-Bedingung des Jobs bleiben unverändert.
+
+### 8.6 Umsetzung NP-0b (04.10., uncommitted) und Gate G-NP0b
+
+**Gebaut** (buscosun Fusion nur aufgerufen, nicht geändert — `git diff src/pointForecast` leer):
+
+| Datei | Inhalt |
+|---|---|
+| `src/point/fieldFormat.ts` (neu) | Vertrag: Pfade `point/field/v1/<lauf>/<stufe>/{precip,snowlmt}-LLL.png` + `field.json`, Index; Raster = Gitter der Stufe (Zeile 0 = Norden); Kodierer **und** Dekodierer (precip R Chance · G Median \| nass · B q90 unbedingt, Log-Code x₀ 0,1 / x_max 100 mm/h; snowlmt R Mitte · G halbe Bandbreite in 25 m · B Herkunft 2 σ_div / 3 σ_ens; A nur 0/255, fehlt ≠ 0); Manifest-Bauer/-Prüfer mit Etikett „Modell · Cube", Chance-Definition F1 samt Messwerten D-NP0-12 und Einschränkung (V-NP0-17), `stepH`/Rate; Index-Bauer/-Prüfer |
+| `scripts/point/build-point-fields.mjs` (neu) | Producer: je Zelle `cubeSeriesFrom` (Client-Leser) → `fuseCubePoint` **unverändert** mit den Optionen der Stufe fs ohne Station/Radar (`FIELD_FUSE_OPTIONS`, dieselbe Menge wie D-NP0-10), Gelände flach in Modellhöhe (`terrainScales` mit konstanter Höhe, V-NP0-19), h_true = `hModEff`; Worker-Threads; Bau-Ablage `point/.build/` → Umbenennen → `field.json` zuletzt → Index; Frist = min(360 s, Restzeit bis `FIELD_END_MIN`), b′ über `field/v1/budget.json` |
+| `scripts/point/fieldStore.mjs` (neu) | jüngster Lauf je Stufe, Aufbewahrung („ein Feld lebt, solange seine Cube-Stufe lebt", unvollständige Bauten und Müll fallen), Index aus den Manifesten |
+| `scripts/point/publish-point.mjs` | Feld-Runde nach den Stationsprodukten (Aufbewahrung + Index, auch mit `POINT_FIELDS=0`) |
+| `scripts/point/cdnSync.mjs` | Klassen `field-index` (purgen, auch beim Anlegen) und `field` (nur wärmen, nach den Chunks); `JOB_MEASURED_MAX_MIN.t1` 14,2 → 16,5 (V-NP0-14); `FIELD_END_MIN_BY_TIER` {18, 10, 10} |
+| `scripts/point/sparseCover.mjs` | `timeoutMinutesOf` zählt nur Job-Timeouts (Schritt-Timeouts der Feldschritte verfälschten Regel C) |
+| `scripts/repack-repo/workflow-point.yml` | je Stufen-Job: „Job-Start merken" (`JOB_T0`), `public/climaGrid.json` im Sparse-Klon, Schritt „Build map fields — tX (NP-0b)" zwischen Bau und Publish (`continue-on-error`, Timeout 8/5/5 min, `POINT_FIELDS: '1'`, `FIELD_END_MIN` 18/10/10); Kommentare zu Regel C/F/F′ |
+| `scripts/verify-point-data.mjs` | `JOB_MAX_MIN.t1` 20 → 24 (E-NP0-5 b), Regel F′ je Stufen-Job + Negativkontrolle, climaGrid im Sparse-Klon, MOSMIX-Zählung um den Feldschritt erweitert |
+| `scripts/repack-repo/README.md` | Abschnitt „Kartenfelder — `point/field/v1/`", Zeile in der Aufbewahrungstabelle |
+| `scripts/verify-np0-fields.mjs` (neu, `verify:np0-fields`) | A Vertrag 9 · B echte Läufe 20 (s. Gate) · C `--live` |
+
+**Zwei Hebel ohne Motor-Eingriff** (gemessen, D-NP0-13 sah t1 ≈ 16 min Runner einfädig):
+1. **Ebenen-Teilmenge** wie der progressive Client-Leser (`cubeSeriesFrom(…, { wanted })`: nur `precip*`, `snowlmt*`,
+   `hModEff`) — der Motor rechnet die übrigen Größen dann nicht: t1 17,1 → 10,8 ms je Zelle; Niederschlag und Schneefallgrenze
+   **exakt** gleich (3 920 / 3 920 Zell·Schritte, und je Stufe in B3).
+2. **Kein `toPointForecastV2`** für 14 Größen, sondern dieselben Regeln nur für die zwei Größen (`fieldValuesFromResult`) — ≈ 3 ms
+   je Zelle; gegen V2 geprüft in B2.
+Dazu: Zellen ohne Cube-Niederschlag (Motor: reine Klimatologie, `climatologyOnly`) bekommen A = 0 — die Klimatologie stünde sonst
+unter dem Etikett „Modell · Cube" (B5).
+
+**Laufzeit und Größe** (lokal, i3-1005G1 2 Kerne/4 Threads, 4 Worker, echter Lauf aus dem Daten-Klon 30.09.):
+
+| Stufe | Zellen × Schritte | Dauer | Fehler | Bytes je Lauf | vorgehalten (Läufe) |
+|---|---|---|---|---|---|
+| t1 | 48 441 × 49 | **188 s** | 0 | 2,86 MiB (98 PNG + Manifest) | ≈ 3 ⇒ ≈ 9 MiB |
+| t2 | 12 221 × 24 | 32 s | 0 | 0,38 MiB | ≈ 4 ⇒ ≈ 1,5 MiB |
+| t3 | 2 009 × 36 | 12 s | 0 | 0,08 MiB (keine Schneefallgrenze) | 2 ⇒ 0,2 MiB |
+
+Der Runner-Faktor für reine Rechnung ist nicht gemessen (die ×2 aus CLAUDE.md stammen vom I/O-lastigen Bau). Deshalb keine feste
+Zahl im Job, sondern **Regel F′**: der Feldschritt endet spätestens `FIELD_END_MIN` nach dem Jobstart (t1 18 min) — dahinter
+bleiben Publish 1 + CDN 4 + 1 min bis `JOB_MAX_MIN.t1` 24. Ist der Bau langsam, entfällt das Feld dieses Laufs (der Cube wartet
+nie); dauert das t1-Feld selbst > 300 s oder bricht es an seiner Frist ab, rechnet nur jeder zweite t1-Lauf (E-NP0-5 b′).
+
+**Gate G-NP0b** (Plan §3.4):
+
+| Frage | Beleg | Ergebnis |
+|---|---|---|
+| 1 Funktionserhalt | B7 Builder fasst außerhalb `field/` nichts an (280 Dateien Hash-gleich, + Negativkontrolle B8); B14 Publisher mit/ohne Felder: `index.json` (ohne `publishedAt`), `run.json`, Chunks, Tabellen byte-gleich (282 Dateien); `verify:point-data` **1027/1027**, `verify:fusion-fit` **131/131**, `verify:point-client` 170/171 — rot nur (10s), zeitabhängig, an HEAD gleich (V-EX-13); `git diff src/pointForecast` leer | ✓ |
+| 2 Zeit | t1 188 s / t2 32 s / t3 12 s lokal (4 Worker); Regeln A–F grün mit `JOB_MAX_MIN.t1` 24 und gemessenem t1-Maximum 16,5; Regel F′ je Stufe (18/10/10 + Publish + CDN + 1 = 24/15/15) + Negativkontrolle | ✓ — Runner-Zeit misst erst der Live-Lauf (`field.json#timing`, `budget.json`) |
+| 3 Größe | Bytes je Lauf s. Tabelle; ständig ≈ 11 MiB, ≈ 26 MiB neue Daten je Tag (8 × 2,86 + 4 × 0,38 + 2 × 0,08) | ✓ |
+| 4 Ehrlichkeit | Etikett „Modell · Cube" im Manifest und Prüfer (A6 lehnt „buscosun Fusion 8" ab); Chance-Definition mit Brier/Skill und „zu nass" (A9); Spannen-Herkunft je Pixel (B-Kanal); fehlt ≠ 0 (A4, B5); Rate = Intervallmittel mit `stepH` | ✓ |
+| 5 Rückweg | `POINT_FIELDS=0` ⇒ Schritt tut nichts (B9); Publisher baut den Altbestand ab (B12); alte Leser unberührt (B14) | ✓ |
+| Konsistenz | B2 je Stufe an **60 Zellen**: Feld (PNG dekodiert) = volle Kette am Zellmittelpunkt über `toPointForecastV2`, innerhalb der Quantisierung — t1 5 880, t2 2 880, t3 2 160 Werte, **0 daneben**; B3 Teilmengen-Weg = voller Weg exakt; Negativkontrolle B6: ohne Lernstufe (K-2 allein) 23 von 24 Schritten anders ⇒ die Probe sieht eine falsche Kette | ✓ |
+| Verifier | typecheck 0, `verify:np0-fields` **29/29**, `verify:np0-radar` 39/39, Build 252/252, `npm run budget` grün (kein Client importiert die Felder) | ✓ |
+| Live (nach Jans Push) | `verify:np0-fields --live` nach je einem t1-, t2- und t3-Lauf | offen — Jans Gate §36 |
+
+**Neue V-Einträge:**
+- **V-NP0-23** Der Runner-Faktor für reine Rechnung ist unbekannt — die Feldzeit t1 auf dem Runner kann zwischen ≈ 2 und ≈ 6 min
+  liegen. Mehrwert: Gewissheit, ob t1 jeden Lauf ein Feld bekommt. Skizze: nach den ersten Läufen `field/v1/budget.json` und
+  `field.json#timing` lesen; ggf. `FIELD_BUDGET_S` oder Zellmaske (nur DACH-Zellen) nachziehen.
+- **V-NP0-24** Das Feld ist in Grad regulär; eine MapLibre-`image`-Source mit vier Ecken verzerrt es in der Breite (bei 10°
+  Spannweite sichtbar). Mehrwert: lagerichtige Felder in NP-2. Skizze: Mesh wie die Radar-Ebenen (`quadWarpMesh`) oder
+  Umprojektion beim Bau.
+- **V-NP0-25** `JOB_MEASURED_MAX_MIN.t2` (10,7) ist ebenfalls veraltet: am 02./03.10. maß ein t2-Job 19,3 min (Bau 15,8) — über
+  `JOB_MAX_MIN.t2` 15 (Regel F rot mit dieser Zahl). Mehrwert: ehrliche Zeitregeln. Skizze: t2-Läufe über eine Woche lesen;
+  Ursache (ICON-EU-Abruf?) vor einer Grenzänderung klären — Jans Gate, nicht NP-0b.

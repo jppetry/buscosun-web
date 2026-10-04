@@ -353,6 +353,32 @@ einen Hash und schreibt null Bytes, wenn sich nichts geändert hat. Ein Modell-U
 
 ---
 
+### Kartenfelder — `point/field/v1/`
+
+Nach jedem Stufenbau rechnet der Punkt-Cron aus **genau diesem Cube** Kartenfelder — Etikett **„Modell · Cube"**, nicht
+„buscosun Fusion": je Zelle der Stufe die Kette von buscosun Fusion mit dem Cube als **einziger** Quelle (keine Station,
+kein Radar, kein Gelände am Ort; am Zellmittelpunkt, Höhe = Modellhöhe der Zelle).
+
+```
+point/field/v1/index.json                       jüngster Lauf je Stufe (veränderlich)
+point/field/v1/budget.json                      letzter Versuch je Stufe (Dauer, Abbruch) — Grundlage „jeder zweite t1-Lauf"
+point/field/v1/<lauf>/<stufe>/field.json        Manifest: Raster, Vorläufe, Kodierung, Chance-Definition mit Messwerten, Kette
+point/field/v1/<lauf>/<stufe>/precip-LLL.png    R Chance P(nass) · G Median | nass · B q90 · A 255 gerechnet / 0 fehlt
+point/field/v1/<lauf>/<stufe>/snowlmt-LLL.png   R Mitte /25 m · G halbe Bandbreite /25 m · B Herkunft (2 σ_div, 3 σ_ens)
+```
+
+- **Raster** = Gitter der Stufe (0,05° / 0,10° / 0,25°), Zeile 0 = Norden; regulär in Grad, nicht in Mercator.
+- **Chance** = 1 − pDry der Niederschlags-Hürde (K-2 → gelernte Hürde, Tabellen `point/fusion.client.json`, Hash im
+  Manifest). Gemessen am Archiv (16.09.–01.10., 389 Stationen, t1): Brier 0,026–0,028, Skill gegen die Klimatologie
+  0,17–0,30 — im Mittel etwas zu nass. Am Ort ohne Station rechnet buscosun Fusion 8 dieselbe Kette.
+- **Mengen** sind mittlere Raten in mm/h über das Intervall der Stufe (1 / 3 / 6 h), log-kodiert bis 100 mm/h.
+- **Fehlt ≠ 0:** A = 0 heißt „nicht gerechnet" (keine Cube-Quelle, nur Klimatologie); „trocken" ist Chance 0 mit A = 255.
+- **Schneefallgrenze**: Mitte und Band ∓ 1,2816·σ wie am Punkt — σ_ens, sonst σ_div (Spanne der Modelle, unkalibriert);
+  t3 führt keine (keine Quelle der Stufe 3).
+- **Zeit**: der Feldschritt endet spätestens 18 (t1) bzw. 10 min (t2/t3) nach dem Jobstart; ist der Bau langsam, entfällt das
+  Feld dieses Laufs; dauert das t1-Feld länger als 5 min, rechnet nur jeder zweite t1-Lauf eines. Ein Feld-Fehler nimmt nie den Cube.
+- Vertrag: `src/point/fieldFormat.ts`; Producer `scripts/point/build-point-fields.mjs`.
+
 ## Warum es hier KEIN Geländeprodukt gibt
 
 Dieses Repo speichert **Wetterdaten**. Gelände gehört nicht dazu — nicht weil der
@@ -393,6 +419,7 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `point/` Stufe 1 | Alter ≤ **9 h**, mindestens 2 Läufe | ≈ 3 Läufe bei acht Slots |
 | `point/` Stufe 2 | Alter ≤ **24 h**, mindestens 2 Läufe | ≈ 4 Läufe |
 | `point/` Stufe 3 | Alter ≤ **24 h**, mindestens 2 Läufe | 2 Läufe |
+| `point/field/v1/<lauf>/<stufe>/` | solange die Cube-Stufe dieses Laufs im Repo liegt | wie die Stufe |
 | `point/stations/` | Alter ≤ 24 h, mindestens 2 Läufe | ≈ 4 Läufe |
 | `point/stations-s/` | Alter ≤ **6 h**, mindestens 2 Läufe | ≈ 6 Läufe bei 24 Slots |
 | `runs/` | `keep: 4` | ≈ 12 h |
