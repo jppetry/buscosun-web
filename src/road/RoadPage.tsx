@@ -5,7 +5,10 @@
  *
  * Data: `road/v1/` of buscosun-data via `roadClient.ts` (time gate, step back, CDN + raw hedge, client checks of the
  * contract). Freshness rules of the contract: > 45 min grey "veraltet", > 3 h or kill switch "derzeit keine Messdaten".
- * Measurements only — the time chips +1/+3/+6 h stay disabled until AW-6 passes Gate D.
+ * AW-6.1b: the time chips +1/+3/+6 h select the hour of the WEATHER forecast of buscosun Fusion 8 (`road/fc/v1`,
+ * read per corridor through `loadRoadFc`): forecast row of the band, dots on the map, tiles, chart and arrival rows of
+ * the readout. Map markers, band bar and road classes stay the MEASUREMENT of the slot at every chip; the road surface
+ * has no forecast before Gate D (AW-6.2).
  * `roadDeck.css` is imported only here (lazy chunk), tokens `--aw-*` live in `designTokens.css`.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,12 +20,17 @@ import { useMediaQuery } from '../mobile/useIsMobile';
 import type { CapAlert } from '../warnings/capAlerts';
 import { ROAD_DEAD_MS, roadFreshness, type RoadH24File, type RoadPoint } from './roadContract';
 import { ROAD_CLASS_LABEL } from './roadClasses';
-import { loadRoadCorridors, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadSlotLoad } from './roadClient';
-import RoadMap, { type RoadMapLayers } from './RoadMap';
+import { loadRoadCorridors, loadRoadFc, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadSlotLoad } from './roadClient';
+import type { RoadFcPoint } from './roadFc';
+import {
+  ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, defaultRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
+  roadFcRunView, roadFcValue,
+} from './roadFcView';
+import RoadMap, { type RoadFcDot, type RoadMapLayers } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
 import RoadReadout from './RoadReadout';
-import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadUrlState } from './roadState';
+import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import {
   ROAD_CLASS_COLOR, bandSegments, corridorEnds, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
@@ -40,7 +48,10 @@ export interface RoadPageProps {
 
 const DEFAULT_CORRIDOR = 'a8';
 const REFRESH_MS = 60_000;
-const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false };
+/** The pointer of the route forecast changes once an hour (plus the publish gate) — re-read every 10 min. */
+const FC_REFRESH_MS = 10 * 60_000;
+const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: true };
+const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
 export default function RoadPage({ initial, onUrlState, onCorridor, popState }: RoadPageProps) {
   const nav = useAppNav();
@@ -54,6 +65,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const [stId, setStId] = useState<string | null>(initial.st);
   const [dir, setDir] = useState<0 | 1>(initial.dir);
   const [tab, setTab] = useState<RoadTab>(initial.tab);
+  const [time, setTime] = useState<RoadTime>(initial.t);
+  const [fcLoad, setFcLoad] = useState<{ corridor: string; load: RoadFcLoad } | null>(null);
   const [country, setCountry] = useState<RoadCountry>('alle');
   const [query, setQuery] = useState('');
   const [layers, setLayers] = useState<RoadMapLayers>(DEFAULT_LAYERS);
@@ -73,6 +86,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
     setStId(popState.st);
     setDir(popState.dir);
     setTab(popState.tab);
+    setTime(popState.t);
   }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- data ------------------------------------------------------------------------------------
@@ -119,12 +133,46 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const inCorridor = useMemo(() => new Set(corridor?.stations.map((s) => s.id) ?? []), [corridor]);
   const mapPoints = useMemo(() => shownPoints.filter((p) => p.kind === 'A' || layers.bl || inCorridor.has(p.id)), [shownPoints, layers.bl, inCorridor]);
 
+  // Route forecast of the corridor (AW-6.1b): pointer + one immutable file; a failed refresh keeps the shown run.
+  const fcCorridorId = corridor?.id ?? null;
+  useEffect(() => {
+    if (!fcCorridorId) return;
+    let ac = new AbortController();
+    let alive = true;
+    const run = () => {
+      loadRoadFc('corridor', fcCorridorId, Date.now(), ac.signal).then((l) => {
+        if (alive) setFcLoad((prev) => (l.file || prev?.corridor !== fcCorridorId || !prev.load.file ? { corridor: fcCorridorId, load: l } : prev));
+      }, () => {});
+    };
+    run();
+    const id = window.setInterval(() => { ac.abort(); ac = new AbortController(); run(); }, FC_REFRESH_MS);
+    return () => { alive = false; ac.abort(); window.clearInterval(id); };
+  }, [fcCorridorId]);
+  const fcOwn = fcLoad && fcLoad.corridor === fcCorridorId ? fcLoad.load : null;
+  const fcRun = useMemo(() => roadFcRunView(fcOwn?.file ? fcOwn.run : null, nowMs), [fcOwn, nowMs]);
+  const fcFile = fcOwn?.file && fcRun.usable ? fcOwn.file : null;
+  const fcById = useMemo(() => (fcFile ? new Map(fcFile.points.map((p) => [p.id, p] as const)) : EMPTY_FC_BY_ID), [fcFile]);
+  const fcLabel = fcFile ? fcRun.label
+    : !fcOwn ? 'Prognose lädt' : fcOwn.reason === 'no-index' ? 'Zeiger nicht lesbar' : fcOwn.reason === 'no-run' ? 'kein Lauf veröffentlicht' : fcOwn.reason === 'no-file' ? 'kein Lauf für diese Strecke' : 'letzter Lauf älter als 12 Stunden';
+  // Without a usable forecast the chip falls back to "Jetzt" (the URL keeps the wish).
+  const t: RoadTime = fcFile ? time : 0;
+  const fcMs = nowMs + t * 3_600_000;
+
   // Default station (E-AW-13): most critical class first, then the coldest road, else the corridor's first station.
-  const point: RoadPoint | null = useMemo(() => {
-    if (stId && shownById.get(stId)) return shownById.get(stId)!;
+  const defaultPoint: RoadPoint | null = useMemo(() => {
     if (!corridor) return null;
     return defaultRoadStation(corridor.stations.map((s) => shownById.get(s.id)).filter((x): x is RoadPoint => !!x));
-  }, [stId, shownById, corridor]);
+  }, [shownById, corridor]);
+  // A forecast point of the axis is selected like a station (`st=a8@70`); a corridor without any measured station
+  // (e.g. Baden-Württemberg: the DWD delivers no series there) opens on its coldest forecast point.
+  const axis: RoadFcPoint | null = useMemo(() => {
+    if (!fcFile) return null;
+    if (isRoadFcAxisId(stId)) return fcById.get(stId) ?? null;
+    if (stId && shownById.get(stId)) return null;
+    return defaultPoint ? null : defaultRoadFcAxis(fcFile, fcMs);
+    // The default must not jump with the clock: only file and selection decide.
+  }, [fcFile, fcById, stId, shownById, defaultPoint]); // eslint-disable-line react-hooks/exhaustive-deps
+  const point: RoadPoint | null = axis ? null : stId && shownById.get(stId) ? shownById.get(stId)! : defaultPoint;
 
   // 24-h ring of the selected station's series.
   const pointGroup = point?.g ?? null;
@@ -173,7 +221,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   }, [warn.state, liveAlerts, point]);
 
   // --- URL ------------------------------------------------------------------------------------------
-  const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: 0, dir, tab };
+  const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: time, dir, tab };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstCorridor.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -186,6 +234,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const pickStation = useCallback((id: string) => {
     setStId(id);
     setTab((t) => (t === 'quellen' ? 'station' : t));
+    if (isRoadFcAxisId(id)) return;
     const owner = corridors?.find((c) => c.id === corridorId && c.stations.some((s) => s.id === id))
       ?? corridors?.find((c) => c.stations.some((s) => s.id === id));
     if (owner && owner.id !== corridorId) setCorridorId(owner.id);
@@ -195,7 +244,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const standLabel = obs && !noData ? `Messung ${hm(obs.slotMs)}${freshness === 'stale' ? ' · veraltet' : ''}` : 'keine Messdaten';
   const liveTone = noData || !obs ? 'none' : freshness === 'live' ? 'live' : 'stale';
   // Overlays cover the map: mobile pill + chips on top, the sheet (design 414 px) at the bottom; desktop band 165 px.
-  const padding = isMobile ? { top: 130, bottom: 430, left: 24, right: 24 } : { top: 110, bottom: 200, left: 40, right: 60 };
+  const padding = isMobile ? { top: 130, bottom: 430, left: 24, right: 24 } : { top: 110, bottom: 232, left: 40, right: 60 };
   const ends = corridor ? corridorEnds(corridor, dir) : null;
 
   // --- pieces -----------------------------------------------------------------------------------------
@@ -214,10 +263,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const times = (
     <div role="group" aria-label="Zeitpunkt" className="aw-seg aw-times">
       {ROAD_TIMES.map((h) => {
-        const enabled = h === 0 || ROAD_FORECAST_ENABLED;
+        const enabled = h === 0 || (ROAD_FORECAST_ENABLED && !!fcFile);
         return (
-          <button key={h} type="button" aria-pressed={h === 0} className={h === 0 ? 'is-active' : ''} disabled={!enabled}
-            title={enabled ? undefined : 'Die Ableitung +1/+3/+6 h kommt erst nach bestandenem Backtest (Gate D).'}>
+          <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTime(h)}
+            title={enabled ? (h === 0 ? undefined : `Wetterprognose von buscosun Fusion 8 für ${hm(nowMs + h * 3_600_000)} (${fcLabel}) — Karte und Band zeigen weiter die Messung`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
             {h === 0 ? `Jetzt${obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
           </button>
         );
@@ -230,26 +279,45 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
       {(['ice', 'frost', 'wet', 'dry'] as const).map((c) => <span key={c}><i style={{ background: ROAD_CLASS_COLOR[c] }} />{ROAD_CLASS_LABEL[c].label}</span>)}
       {/* Hatched = `unknown` (temperature, no condition) AND `nodata` — never "dry" (D-04). */}
       <span><i className="is-hatched" />Zustand unbekannt / keine Messung</span>
+      {fcFile && layers.fc && (
+        <>
+          <span className="aw-eyebrow aw-legend-fc">Prognose Luft · {t === 0 ? 'jetzt' : `+${t} h`}</span>
+          {(['frost', 'near', 'above'] as const).map((k) => <span key={k}><i className="is-dot" style={{ background: ROAD_FC_AIR_COLOR[k] }} />{ROAD_FC_AIR_LABEL[k]}</span>)}
+        </>
+      )}
     </div>
   );
   const emptyMap = noData && <div className="aw-map-note" role="status"><strong>Derzeit keine Messdaten.</strong> {noData}</div>;
   const corrFail = corrState === 'error' && <div className="aw-map-note" role="status"><strong>Korridore nicht ladbar.</strong> Die Messpunkte erscheinen trotzdem auf der Karte.</div>;
   const zoom = (d: number) => { const m = mapRef.current; if (m) { if (d > 0) m.zoomIn(); else m.zoomOut(); } };
 
-  const callout = point ? {
+  const axisValue = axis && fcFile ? roadFcValue(axis, fcFile, fcMs) : null;
+  const fcDots = useMemo<RoadFcDot[]>(() => (!fcFile ? [] : roadFcAxisPoints(fcFile).map((p) => {
+    const v = roadFcValue(p, fcFile, fcMs);
+    return { id: p.id, lon: p.lon, lat: p.lat, color: v ? ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] : null };
+    // Hour steps only: the dots change when the valid hour changes, not every minute.
+  })), [fcFile, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fcCells = useMemo(() => (fcFile && corridor ? roadFcBand(corridor, fcFile, dir, fcMs) : null), [fcFile, corridor, dir, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fcBandLabel = `Prognose Luft ${t === 0 ? 'jetzt' : `+${t} h`} · ${hm(Math.round(fcMs / 3_600_000) * 3_600_000)} · ${fcLabel}`;
+  const callout = axis && corridor ? {
+    lon: axis.lon, lat: axis.lat, name: roadFcAxisName(corridor, axis, dir),
+    line: axisValue ? `Prognose ${roadFcLine(axisValue)}` : 'keine Prognose für diese Stunde',
+    color: axisValue ? ROAD_FC_AIR_COLOR[roadFcAirClass(axisValue.t)] : null,
+  } : point ? {
     lon: point.lon, lat: point.lat, name: point.n,
     line: point.rs != null ? `Fahrbahn ${f1(point.rs)} °C · ${ROAD_CLASS_LABEL[point.cls].label}` : ROAD_CLASS_LABEL[point.cls].label,
     color: isHatched(point.cls) ? null : ROAD_CLASS_COLOR[point.cls],
   } : null;
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
-      selectedId={point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} />
+      selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
+      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} />
   );
   const readout = (
     <RoadReadout tab={tab} onTab={setTab} point={point} corridor={corridor} byId={shownById} dir={dir} slotMs={obs?.slotMs ?? null} nowMs={nowMs}
       stale={freshness === 'stale'} ring={ring} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} departOffsetMin={departMin}
-      onDepart={(d) => setDepartMin((m) => Math.max(0, Math.min(345, m + d)))} onPick={pickStation} noData={noData} />
+      onDepart={(d) => setDepartMin((m) => Math.max(0, Math.min(345, m + d)))} onPick={pickStation} noData={noData}
+      fcFile={fcFile} fcById={fcById} fcLabel={fcLabel} axis={axis} time={t} onTime={setTime} />
   );
 
   // --- mobile ---------------------------------------------------------------------------------------------
@@ -287,7 +355,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
           </div>
           <h2 className="aw-sheet-title">{noData ? 'Derzeit keine Messdaten' : coldest ? `Kälteste Stelle: ${coldest.p.n} ${f1(coldest.p.rs as number)} °C` : 'Keine gültige Fahrbahnmessung'}</h2>
           <p className="aw-sheet-lead">{noData ?? `${nCrit} von ${rows.length} DWD-Anlagen mit Glätte oder Frostgefahr gemessen${corridor?.borders.length ? '; ab der Grenze keine offene Fahrbahnmessung' : ''}.`}</p>
-          {corridor && <MiniBand corridor={corridor} byId={shownById} dir={dir} />}
+          {corridor && <MiniBand corridor={corridor} byId={shownById} dir={dir} fc={fcCells} fcLabel={fcBandLabel} />}
           {corridor && !noData && (
             <>
               <div className="aw-sheet-list">
@@ -339,6 +407,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
             <span className={`aw-live is-${liveTone}`} role="status"><span className="aw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Live' : liveTone === 'stale' ? 'Veraltet' : 'Keine Daten'}</span>
             <span className="aw-topbar-stand">
               {obs && !noData ? <>Messung <strong>{hm(obs.slotMs)}</strong> · {summary.activeGroups} von {summary.totalGroups} DWD-Reihen</> : 'derzeit keine Messdaten'}
+              {fcFile && <> · Prognose {fcRun.label}</>}
             </span>
             <ShareButton className="aw-share" text="Teilen" />
           </div>
@@ -346,7 +415,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
         <div className="aw-body">
           <RoadDock corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
             country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} />
-          <main className="aw-map" aria-label="Karte">
+          <main className={`aw-map${fcCells ? ' has-fc' : ''}`} aria-label="Karte">
             {map}
             <div className="aw-ov-left">{pill}{times}</div>
             <div className="aw-ov-right">
@@ -357,7 +426,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
               </div>
             </div>
             {emptyMap}{corrFail}
-            {corridor && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} />}
+            {corridor && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} />}
           </main>
           {readout}
         </div>
@@ -369,7 +438,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
 const EMPTY_BY_ID: ReadonlyMap<string, RoadPoint> = new Map();
 
 /** Mobile mini band (design: 10 px, towns underneath). */
-function MiniBand({ corridor, byId, dir }: { corridor: RoadCorridor; byId: ReadonlyMap<string, RoadPoint>; dir: 0 | 1 }) {
+function MiniBand({ corridor, byId, dir, fc, fcLabel }: { corridor: RoadCorridor; byId: ReadonlyMap<string, RoadPoint>; dir: 0 | 1; fc: ReturnType<typeof roadFcBand> | null; fcLabel: string }) {
   const segs = bandSegments(corridor, byId, dir);
   const len = corridor.lengthKm;
   const towns = corridor.towns.map(([km, n]) => [kmIn(corridor, km, dir), n] as const).sort((a, b) => a[0] - b[0]);
@@ -383,6 +452,13 @@ function MiniBand({ corridor, byId, dir }: { corridor: RoadCorridor; byId: Reado
         ))}
         {corridor.borders.map((b) => <div key={b.km} className="aw-miniband-border" style={{ left: `${(kmIn(corridor, b.km, dir) / len) * 100}%` }} />)}
       </div>
+      {fc && (
+        <div className="aw-miniband is-fc" role="img" aria-label={fcLabel} title={fcLabel}>
+          {fc.filter((g) => g.cls !== 'gap').map((g) => (
+            <div key={g.id} className="aw-band-seg" style={{ left: `${(g.fromKm / len) * 100}%`, width: `${((g.toKm - g.fromKm) / len) * 100}%`, background: ROAD_FC_AIR_COLOR[g.cls as 'frost' | 'near' | 'above'] }} />
+          ))}
+        </div>
+      )}
       <div className="aw-miniband-towns">{pick.map((t) => <span key={t[1]}>{t[1]}</span>)}</div>
     </>
   );

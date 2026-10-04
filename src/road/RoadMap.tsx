@@ -4,7 +4,9 @@
  *
  * Marker language (design `reference/autobahnwetter-desktop.dc.html`): filled dot = DWD road measurement, hatched =
  * no valid measurement / unknown state (never like "dry", D-04), selected = larger with a light ring. Ring markers for
- * AT/CH forecast points come with AW-6. No WebGL of our own: plain GeoJSON layers and canvas-drawn icons.
+ * AT/CH forecast points come with AW-6. Small plain dots on the selected corridor = forecast points of the weather
+ * forecast (AW-6.1b, air temperature class — other colours than the measured road classes). No WebGL of our own:
+ * plain GeoJSON layers and canvas-drawn icons.
  */
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
@@ -18,7 +20,10 @@ const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 46.8, 15.5, 55.2];
 const CLASSES: RoadClass[] = ['ice', 'frost', 'wet', 'dry', 'unknown', 'nodata'];
 
-export interface RoadMapLayers { zust: boolean; temp: boolean; fog: boolean; warn: boolean; bl: boolean }
+export interface RoadMapLayers { zust: boolean; temp: boolean; fog: boolean; warn: boolean; bl: boolean; fc: boolean }
+
+/** Forecast point of the corridor axis (AW-6.1b): a small dot in the colour of the forecast AIR class. */
+export interface RoadFcDot { id: string; lon: number; lat: number; color: string | null }
 
 interface Props {
   corridors: readonly RoadCorridor[];
@@ -35,7 +40,20 @@ interface Props {
   onMap?: (map: maplibregl.Map | null) => void;
   /** Callout above the selected station (design): name and one line. */
   callout?: { lon: number; lat: number; name: string; line: string; color: string | null } | null;
+  /** Forecast points of the selected corridor (weather forecast of buscosun Fusion 8, layer `fc`). */
+  fcDots?: readonly RoadFcDot[];
 }
+
+function dotFc(dots: readonly RoadFcDot[], sel: string | null): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: dots.map((d) => ({
+      type: 'Feature', properties: { id: d.id, color: d.color ?? '#8B8474', sel: d.id === sel ? 1 : 0 },
+      geometry: { type: 'Point', coordinates: [d.lon, d.lat] },
+    })),
+  };
+}
+const NO_DOTS: readonly RoadFcDot[] = [];
 
 /** One marker icon per class (+ grey "stale" variant): canvas, device pixel ratio 2. */
 function markerImage(cls: RoadClass, stale: boolean): ImageData {
@@ -121,7 +139,7 @@ export default function RoadMap(props: Props) {
    *  false exactly when a corridor change needs the fit (review finding #5). */
   const readyRef = useRef(false);
   /** Inputs of the last setData per source — only changed references are written (CLAUDE.md: setData loops). */
-  const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown }>({});
+  const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown; fc?: unknown[] }>({});
 
   function apply(map: maplibregl.Map) {
     if (!map.isStyleLoaded()) return;
@@ -140,13 +158,23 @@ export default function RoadMap(props: Props) {
     set('aw-corridors', () => corridorFc(p.corridors, p.corridor?.id ?? null), !same(last.corr as unknown[] | undefined, corrKey));
     set('aw-points', () => pointFc(p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust), !same(last.pts, ptsKey));
     set('aw-warn', () => (warnKey ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, last.warn !== warnKey);
-    lastRef.current = { corr: corrKey, pts: ptsKey, warn: warnKey };
+    const dots = p.layers.fc ? (p.fcDots ?? NO_DOTS) : NO_DOTS;
+    const fcKey = [dots, p.selectedId];
+    set('aw-fc', () => dotFc(dots, p.selectedId), !same(last.fc, fcKey));
+    lastRef.current = { corr: corrKey, pts: ptsKey, warn: warnKey, fc: fcKey };
     if (!map.getLayer('aw-warn-fill')) {
       map.addLayer({ id: 'aw-warn-fill', type: 'fill', source: 'aw-warn', paint: { 'fill-color': '#E39A3B', 'fill-opacity': 0.12 } });
       map.addLayer({ id: 'aw-warn-line', type: 'line', source: 'aw-warn', paint: { 'line-color': '#E39A3B', 'line-width': 1.2, 'line-dasharray': [4, 3] } });
       map.addLayer({ id: 'aw-corr-base', type: 'line', source: 'aw-corridors', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#39414D', 'line-width': 2.4 } });
       map.addLayer({ id: 'aw-corr-glow', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FAF6EA', 'line-width': 11, 'line-opacity': 0.16 } });
       map.addLayer({ id: 'aw-corr-sel', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#F3EDDF', 'line-width': 3.6 } });
+      map.addLayer({
+        id: 'aw-fc', type: 'circle', source: 'aw-fc',
+        paint: {
+          'circle-radius': ['case', ['==', ['get', 'sel'], 1], 8, 4.5], 'circle-color': ['get', 'color'],
+          'circle-stroke-color': ['case', ['==', ['get', 'sel'], 1], '#FAF6EA', '#0B0E12'], 'circle-stroke-width': ['case', ['==', ['get', 'sel'], 1], 2.5, 1.2],
+        },
+      });
       map.addLayer({ id: 'aw-sel-halo', type: 'circle', source: 'aw-points', filter: ['==', ['get', 'sel'], 1], paint: { 'circle-radius': 16, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#FAF6EA', 'circle-stroke-width': 3, 'circle-stroke-opacity': 0.9 } });
       map.addLayer({
         id: 'aw-points', type: 'symbol', source: 'aw-points',
@@ -199,12 +227,14 @@ export default function RoadMap(props: Props) {
     // After a style (re)load our layers are gone ⇒ re-install; any other styledata event is ignored.
     map.on('styledata', () => { if (!map.getLayer('aw-points')) { lastRef.current = {}; apply(map); } });
     map.on('click', (ev) => {
+      // A station wins over a forecast dot under the same pixel.
       const hits = map.getLayer('aw-points') ? map.queryRenderedFeatures(ev.point, { layers: ['aw-points'] }) : [];
-      const id = hits[0]?.properties?.id;
+      const dots = !hits.length && map.getLayer('aw-fc') ? map.queryRenderedFeatures(ev.point, { layers: ['aw-fc'] }) : [];
+      const id = (hits[0] ?? dots[0])?.properties?.id;
       if (typeof id === 'string') propsRef.current.onSelect(id);
     });
     map.on('mousemove', (ev) => {
-      const hit = map.getLayer('aw-points') && map.queryRenderedFeatures(ev.point, { layers: ['aw-points'] }).length > 0;
+      const hit = map.getLayer('aw-points') && map.queryRenderedFeatures(ev.point, { layers: map.getLayer('aw-fc') ? ['aw-points', 'aw-fc'] : ['aw-points'] }).length > 0;
       map.getCanvas().style.cursor = hit ? 'pointer' : '';
     });
     props.onMap?.(map);

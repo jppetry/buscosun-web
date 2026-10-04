@@ -353,6 +353,8 @@ let built, runFiles;
   add(`E1 Takt = ROAD_FC_CRON (${ROAD_FC_CRON}), stündlich; Aufbewahrung ${ROAD_FC_RETENTION.maxAgeMs / H} h deckt zwei ausgefallene Läufe`, cron === ROAD_FC_CRON && /^\d+ \* \* \* \*$/.test(cron) && ROAD_FC_RETENTION.maxAgeMs >= 3 * H && ROAD_FC_STALE_MS >= ROAD_FC_RETENTION.maxAgeMs, cron);
   add('E2 kein --force, contents: write, eigene concurrency-Gruppe ohne Abbruch, kein Eingriff in fremde Workflows (kein Dispatch, kein actions: write)',
     !/--force|push\s+-f\b/.test(code) && /contents:\s*write/.test(code) && /group:\s*road-fc\b/.test(code) && /cancel-in-progress:\s*false/.test(code) && !/actions:\s*write/.test(code) && !/dispatches/.test(code));
+  add('E7 zweiter Auslöser: nach jedem abgeschlossenen Lauf von „point" (workflow_run hört nur zu — kein Dispatch, point.yml unberührt); der Zeitplan bleibt',
+    /workflow_run:\s*\n\s+workflows:\s*\[point\]\s*\n\s+types:\s*\[completed\]/.test(code) && /schedule:/.test(code) && /workflow_dispatch:/.test(code));
   const sparse = /sparse-checkout:\s*\|\n((?:\s{12}\S.*\n)+)/.exec(code)?.[1].trim().split(/\s+/) ?? [];
   add('E3 Checkout des Daten-Repos: sparse mit point (Cube, MOSMIX, Tabellen), radar/img (Stundenmittel), road (Punkte, Zeiger); ohne Blobs der übrigen Pfade',
     eq(sparse, ['point', 'radar/img', 'road']) && /filter:\s*blob:none/.test(code) && /fetch-depth:\s*1/.test(code), sparse.join(' '));
@@ -499,6 +501,103 @@ if (typeof flags.data === 'string') {
 }
 
 rmSync(tmp, { recursive: true, force: true });
+// --- I: view model of the page (AW-6.1b) on a REAL run file ------------------------------------------------
+{
+  const V = await import('../src/road/roadFcView.ts');
+  const S = await import('../src/road/roadState.ts');
+  const RV = await import('../src/road/roadView.ts');
+  const { ROAD_CLASS_LABEL } = await import('../src/road/roadClasses.ts');
+  const file = JSON.parse(readFileSync(join(HERE, 'lib', 'fixtures', 'road', 'fc-a8-2610040905.json'), 'utf8'));
+  const parsed = parseRoadFcFile(file);
+  const a8 = JSON.parse(readFileSync(join(HERE, 'lib', 'fixtures', 'road', 'corridors-munich.json'), 'utf8')).corridors.find((c) => c.id === 'a8');
+  const t0 = file.t0Ms;
+  add('I0 Fixture ist ein echter Lauf: vom Leser des Clients angenommen, kein Punkt verworfen, Achspunkte alle 5 km',
+    !!parsed && parsed.dropped === 0 && V.roadFcAxisPoints(file).length === roadFcAxisKms(a8.lengthKm).length, `${file.points.length} Punkte, ${V.roadFcAxisPoints(file).length} Achspunkte`);
+
+  const st = [t0 - 31 * 60_000, t0 - 29 * 60_000, t0, t0 + 29 * 60_000, t0 + 31 * 60_000, t0 + 48 * H + 29 * 60_000, t0 + 48 * H + 31 * 60_000].map((ms) => V.roadFcStep(file, ms));
+  add('I1 Stunde = nächster voller Schritt; vor dem ersten und nach dem letzten Schritt gibt es KEINEN Wert (kein Festhalten am Rand)', eq(st, [null, 0, 0, 0, 1, 48, null]), JSON.stringify(st));
+
+  const ax = V.roadFcAxisPoints(file)[5];
+  const v7 = V.roadFcValue(ax, file, t0 + 7 * H + 10 * 60_000);
+  const manual = { t: ax.v.t[7] / 10, td: ax.v.td[7] / 10, pp: ax.v.pp[7], rr: ax.v.rr[7] / 100, ff: ax.v.ff[7] / 10, fx: ax.v.fx[7] / 10, n: ax.v.n[7] };
+  const holed = { ...ax, v: { ...ax.v, t: ax.v.t.map((x, i) => (i === 7 ? null : x)) } };
+  add('I2 Wert einer Stunde = Dekodierung des Vertrags am selben Schritt; fehlt die Lufttemperatur, gibt es keinen Wert (Gegenprobe: Nachbarschritt weicht ab oder ist ein anderer Schritt)',
+    !!v7 && v7.step === 7 && v7.validMs === t0 + 7 * H && eq({ t: v7.t, td: v7.td, pp: v7.pp, rr: v7.rr, ff: v7.ff, fx: v7.fx, n: v7.n }, manual)
+    && V.roadFcValue(holed, file, t0 + 7 * H) === null && V.roadFcValue(holed, file, t0 + 8 * H)?.step === 8, JSON.stringify(manual));
+
+  const cls = [-0.1, 0, 0.1, 3, 3.1].map(V.roadFcAirClass).join();
+  const marks = [[49, 0], [50, 0], [50, 29], [50, 30], [80, 100], [null, 100]].map(([pp, sn]) => V.roadFcPrecipMark({ pp, sn })).join();
+  const texts = [{ pp: 10, rr: 0, sn: 0 }, { pp: 30, rr: 0.04, sn: 0 }, { pp: 60, rr: 0.42, sn: 10 }, { pp: 70, rr: 1.2, sn: 50 }, { pp: 90, rr: 2, sn: 95 }, { pp: null, rr: null, sn: null }].map(V.roadFcPrecipText);
+  add('I3 Luft-Klassen an den Grenzen (≤ 0 · bis +3 · darüber), Niederschlags-Marke ab 50 %, Art aus dem Schnee-Anteil (30/70 %)',
+    cls === 'frost,frost,near,near,above' && marks === 'none,rain,rain,snow,snow,none'
+    && eq(texts, ['Niederschlag 10 %', 'Regen 30 %', 'Regen 60 % · 0,4 mm', 'Schneeregen 70 % · 1,2 mm', 'Schnee 90 % · 2,0 mm', '—']), `${cls} | ${marks} | ${texts.join(' / ')}`);
+
+  // Band row: one cell per axis point, gapless from 0 to the corridor end, mirrored for the other direction.
+  const ms = t0 + 5 * H;
+  const band = V.roadFcBand(a8, file, 0, ms), back = V.roadFcBand(a8, file, 1, ms);
+  const gapless = band.every((c, i) => (i === 0 ? c.fromKm === 0 : Math.abs(c.fromKm - band[i - 1].toKm) < 1e-9)) && Math.abs(band[band.length - 1].toKm - a8.lengthKm) < 1e-9;
+  const mirrored = back.length === band.length && back.every((c, i) => { const o = band[band.length - 1 - i]; return c.id === o.id && Math.abs(c.fromKm - (a8.lengthKm - o.toKm)) < 1e-6 && c.cls === o.cls && c.mark === o.mark; });
+  const byHand = V.roadFcAxisPoints(file).map((p) => V.roadFcAirClass(p.v.t[5] / 10)).join();
+  add('I4 Prognose-Zeile: je Achspunkt eine Zelle, lückenlos von km 0 bis zum Ende, Klasse = Luft des Schritts (von Hand nachgerechnet); Gegenrichtung gespiegelt',
+    band.length === V.roadFcAxisPoints(file).length && gapless && mirrored && band.map((c) => c.cls).join() === byHand, `${band.length} Zellen, Klassen ${[...new Set(band.map((c) => c.cls))].join('/')}`);
+
+  // A lost point leaves a hole (never stretched neighbours); a point without a value is a hatched cell.
+  const lostFile = { ...file, points: file.points.filter((p) => !(p.kind === 'axis' && (p.km === 50 || p.km === 55))) };
+  const lost = V.roadFcBand(a8, lostFile, 0, ms);
+  const i45 = lost.findIndex((c) => c.km === 45), i60 = lost.findIndex((c) => c.km === 60);
+  const nullFile = { ...file, points: file.points.map((p) => (p.id === ax.id ? holed : p)) };
+  const nullBand = V.roadFcBand(a8, nullFile, 0, t0 + 7 * H);
+  add('I5 fehlen zwei Achspunkte, bleibt ein Loch (Nachbarn reichen höchstens 5 km); ein Punkt ohne Wert ist eine schraffierte Zelle, keine Farbe',
+    i45 >= 0 && i60 === i45 + 1 && lost[i45].toKm === 50 && lost[i60].fromKm === 55 && nullBand.find((c) => c.id === ax.id)?.cls === 'gap' && nullBand.filter((c) => c.cls === 'gap').length === 1,
+    `Loch km ${lost[i45]?.toKm}–${lost[i60]?.fromKm}`);
+
+  // Gap rows of the route table: only axis points farther than 10 km from every station, on full 10 km.
+  const noGap = V.roadFcGapPoints(a8, file);
+  const thin = { ...a8, stations: a8.stations.filter((s) => s.km < 30 || s.km > 95) };
+  const gaps = V.roadFcGapPoints(thin, file).map((p) => p.km);
+  const wantGaps = V.roadFcAxisPoints(file).map((p) => p.km).filter((km) => km % 10 === 0 && thin.stations.every((s) => Math.abs(s.km - km) > 10));
+  add('I6 Prognosepunkte als Tabellenzeilen nur, wo keine Messstelle im 10-km-Umkreis liegt (auf vollen 10 km): echter Korridor ' + noGap.length + ', mit Lücke km 30–95 ' + gaps.length,
+    eq(gaps, wantGaps) && gaps.length >= 3 && gaps.every((km) => km > 30 && km < 95) && noGap.length < gaps.length, gaps.join(','));
+
+  // Trip summary against brute force.
+  const rows = V.roadFcAxisPoints(file).map((p, i) => ({ km: p.km, value: V.roadFcValue(p, file, t0 + (2 + Math.floor(i / 6)) * H) }));
+  const trip = V.roadFcTrip([...rows, { km: 999, value: null }]);
+  const brute = rows.reduce((a, r) => (r.value.t < a.value.t ? r : a));
+  const wet = rows.filter((r) => r.value.pp >= 50).length;
+  const txt = V.roadFcTripText(trip);
+  add('I7 Wetter zur Ankunft: kälteste Luft und Zahl der Punkte mit Niederschlag ab 50 % = von Hand; Zeilen ohne Prognose zählen nicht',
+    trip.n === rows.length && trip.coldest.km === brute.km && trip.coldest.value.t === brute.value.t && trip.wet === wet && txt.includes(RV.f1(brute.value.t)) && /^Prognose zur Ankunft: kälteste Luft/.test(txt), txt);
+
+  const issued = Date.parse(file.issuedAt);
+  const rv = [0, 2.9, 3.1, 11.9, 12.1].map((h) => V.roadFcRunView({ issuedAt: file.issuedAt }, issued + h * H));
+  const none = V.roadFcRunView(null, issued);
+  add('I8 Lauf-Etikett: bis 3 h „Lauf HH:MM", bis 12 h „· veraltet", danach und ohne Lauf keine Prognose (Chips gesperrt)',
+    rv.map((x) => x.freshness).join() === 'live,live,stale,stale,dead' && eq(rv.map((x) => x.usable), [true, true, true, true, false]) && /^Lauf \d\d:\d\d$/.test(rv[0].label) && / · veraltet$/.test(rv[2].label) && !none.usable && none.label === 'keine Prognose',
+    rv.map((x) => x.label).join(' | '));
+
+  // URL state: forecast hour and forecast point.
+  const u1 = S.parseRoadUrl('a8', '?st=a8%4070&t=3'), u2 = S.parseRoadUrl('a8-4', '?st=a8-4@127.5&t=6&dir=1'), u3 = S.parseRoadUrl('a8', '?st=a8@&t=2'), u4 = S.parseRoadUrl('a8', '?st=AB12&t=0');
+  const round = S.parseRoadUrl('a8-4', S.buildRoadUrl(u2.state).split('?')[1] ? `?${S.buildRoadUrl(u2.state).split('?')[1]}` : '');
+  add('I9 URL: t=1/3/6 und st=<Achspunkt> gültig (Rundweg gleich), t=2 und ein kaputter Achspunkt werden als ungültig gemeldet; Stations-Kennungen wie bisher',
+    S.ROAD_FORECAST_ENABLED === true && u1.invalid.length === 0 && u1.state.st === 'a8@70' && u1.state.t === 3 && u2.invalid.length === 0 && u2.state.st === 'a8-4@127.5' && eq(round.state, u2.state)
+    && eq(u3.invalid.sort(), ['st', 't']) && u4.invalid.length === 0 && u4.state.st === 'AB12' && V.isRoadFcAxisId('a8@70') && !V.isRoadFcAxisId('AB12') && !V.isRoadFcAxisId(null), S.buildRoadUrl(u2.state));
+
+  // No forecast text speaks the language of the measured road classes.
+  const roadWords = new RegExp(Object.values(ROAD_CLASS_LABEL).flatMap((l) => [l.label, l.short]).filter((w) => w && w.length > 3).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + '|Glätte|Glatteis|überfrier', 'i');
+  const produced = [
+    ...V.roadFcAxisPoints(file).flatMap((p) => [0, 6, 12, 30].map((h) => V.roadFcLine(V.roadFcValue(p, file, t0 + h * H)))),
+    ...Object.values(V.ROAD_FC_AIR_LABEL), txt, ...rv.map((x) => x.label), V.roadFcAxisName(a8, ax, 0),
+  ];
+  const control = roadWords.test(ROAD_CLASS_LABEL.frost.label) && roadWords.test(ROAD_CLASS_LABEL.dry.label) && roadWords.test('Glätte gemessen');
+  add('I10 kein Prognose-Text benutzt Wörter der gemessenen Fahrbahnklassen (Gegenprobe: das Muster trifft die Klassen-Etiketten); der Hinweis sagt „keine Prognose der Fahrbahn"',
+    control && produced.length > 100 && produced.every((s) => typeof s === 'string' && s.length > 0 && !roadWords.test(s)) && /keine Prognose der Fahrbahn/.test(V.ROAD_FC_UI_NOTE) && /buscosun Fusion 8/.test(V.ROAD_FC_UI_NOTE),
+    `${produced.length} Texte, z. B. „${produced[3]}"`);
+
+  const def = V.defaultRoadFcAxis(file, ms);
+  const coldest = V.roadFcAxisPoints(file).reduce((a, p) => (p.v.t[5] < a.v.t[5] ? p : a));
+  add('I11 Korridor ohne Messstelle öffnet auf dem Achspunkt mit der kältesten Prognose-Luft der Stunde', def?.v.t[5] === coldest.v.t[5], `${def?.id} ${def?.v.t[5] / 10} °C`);
+}
+
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\nverify:road-fc — ${results.length - failed}/${results.length}`);
 process.exit(failed ? 1 : 0);

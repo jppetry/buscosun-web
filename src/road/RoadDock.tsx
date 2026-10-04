@@ -37,6 +37,7 @@ const LAYERS: ReadonlyArray<{ key: keyof RoadMapLayers; label: string; sub: stri
   { key: 'temp', label: 'Temperaturwerte', sub: 'Fahrbahn, sonst Luft (L)' },
   { key: 'fog', label: 'Sicht und Nebel', sub: 'GMA-Sichtweite unter 150 m' },
   { key: 'bl', label: 'Bundes- und Landesstraßen', sub: 'Glättemeldeanlagen abseits der Autobahn' },
+  { key: 'fc', label: 'Prognosepunkte', sub: 'Luft alle 5 km, buscosun Fusion 8' },
   { key: 'warn', label: 'Amtliche Warnungen', sub: 'DWD (Deutschland), wörtlich zitiert' },
 ];
 
@@ -110,7 +111,7 @@ export default function RoadDock(p: Props) {
       <div className="aw-dock-countries">
         <div className="aw-eyebrow">Datenlage je Land</div>
         <div className="aw-country-grid">
-          <strong>DE</strong><span><b className="is-measured">gemessen</b> · Glättemeldeanlagen, 15 min</span>
+          <strong>DE</strong><span><b className="is-measured">gemessen</b> · Glättemeldeanlagen, 15 min · Wetterprognose 48 h je 5 km</span>
           <strong>AT</strong><span><b className="is-none">keine offene Fahrbahnmessung</b> · Prognose folgt</span>
           <strong>CH</strong><span><b className="is-none">keine offene Fahrbahnmessung</b> · Prognose folgt</span>
         </div>

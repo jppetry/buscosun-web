@@ -1328,7 +1328,11 @@ Auftrag Jan 03.10. (Kickoff `prompt-regenradar.md`, Entscheidungen E-RR-1…3 am
   lägen die Punkte bis 224 m neben der Fahrbahn (`--no-snap` baut sie auf der BKG-Achse).
 - **(j) E-AW-23 entscheiden:** Archiv der Stationsprognosen ≈ 2,1 MB/Tag (≈ 0,8 GB/Jahr) — so lassen oder kürzen.
 - **(k) V-AW-20:** beim DWD nachfragen, warum die Ordner `LW`/`SD` (Baden-Württemberg) leer sind.
-- **(l) nächste Phase freigeben:** Anzeige der Prognose auf der Seite (AW-6.1b); danach V-AW-21 (SWIS-Luft als Anker).
+- **(l) erledigt 04.10.:** Anzeige der Prognose auf der Seite (AW-6.1b, §15). Für dich: am Handy ansehen
+  (`/autobahnwetter/a8-4` = Stuttgart, dort gibt es nur Prognosepunkte), E-AW-24…28 bestätigen oder ändern (Luft-Stufen
+  0/+3 °C, Niederschlags-Marke ab 50 %, Karte bleibt Messung). Danach V-AW-21 (SWIS-Luft als Anker).
+- **(m) E-AW-29:** der Job `road-fc` läuft zusätzlich nach jedem `point`-Lauf, weil GitHub den Zeitplan am 04.10. nicht
+  startete (Daten-Repo `7374e46`). Wenn dir das zu oft ist: die drei Zeilen `workflow_run` in `road-fc.yml` entfernen.
 - Aus: Repo-Variable `ROAD_FC=0` im Daten-Repo. Prüfen von außen:
   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-check.mjs --files=all`.
 

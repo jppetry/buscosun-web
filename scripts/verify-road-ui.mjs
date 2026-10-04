@@ -13,7 +13,10 @@
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · band over the map foot
  *   C  data: default corridor A 8 München → Salzburg, band ticks = corridor stations, readout shows a station
  *   D  selection: band tick ⇒ readout + URL `st=`; flipping the direction ⇒ `dir=1`; tabs Strecke/Quellen
- *   E  time chips: only "Jetzt" enabled (AW-6 not built)
+ *   E  time chips: all four selectable while a forecast run is loaded (AW-6.1b)
+ *   P  weather forecast of buscosun Fusion 8 (AW-6.1b): band row, tiles, chip ⇒ URL `t=`, forecast point as selection,
+ *      arrival rows, shared link; the fixture is a REAL run file (`fc-a8-2610040905.json`) restamped to the fixture clock
+ *   Q  forecast states: no run, stale run, dead run ⇒ chips and band row follow, the measured page stays
  *   F  "no data" never looks like "dry": hatched ticks/badge for stations without a valid measurement
  *   G  states without data: all slots 404 ⇒ "Derzeit keine Messdaten"; kill switch; slot > 45 min ⇒ "Veraltet"; > 3 h ⇒ no data
  *   H  mobile 390 × 844: pill, share 44 px, time chips 36 px, sheet with grip; every visible button ≥ 44 px; motorway picker
@@ -25,6 +28,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openBrowser, findHeadlessChrome } from './lib/cdpBrowser.mjs';
 import { deriveRoadSlot } from './road/road-derive.mjs';
+import { roadFcStamp, roadFcT0 } from '../src/road/roadFc.ts';
+import { roadFcValue, roadFcAxisPoints } from '../src/road/roadFcView.ts';
+import { f1, hm } from '../src/road/roadView.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, 'lib', 'fixtures', 'road');
@@ -97,6 +103,28 @@ add('A0 Fixture-Slot über den echten Producer abgeleitet (1 555 Punkte, freigeg
 }
 
 const SLOT_MS = Date.UTC(2026, 9, 3, 8, 0);
+
+// --- fixture: route forecast — a real run file of corridor a8, restamped (run, issue time, first hour) -------------
+const fcReal = JSON.parse(readFileSync(join(FIX, 'fc-a8-2610040905.json'), 'utf8'));
+const mkFcSite = (name, issuedMs) => {
+  const dir = join(tmp, name);
+  const run = roadFcStamp(issuedMs), t0Ms = roadFcT0(issuedMs), issuedAt = new Date(issuedMs).toISOString();
+  const file = { ...fcReal, run, issuedAt, t0Ms };
+  mkdirSync(join(dir, run, 'c'), { recursive: true });
+  writeFileSync(join(dir, run, 'c', 'a8.json'), JSON.stringify(file));
+  writeFileSync(join(dir, 'index.json'), JSON.stringify({
+    schema: 1, product: 'road-fc-index', updatedAt: issuedAt, killed: false,
+    runs: [{ run, issuedAt, t0Ms, publishedAt: new Date(issuedMs + 120_000).toISOString(), points: file.points.length, failed: 0, corridors: 1, states: 0, engine: file.engine, ms: 1 }],
+  }));
+  return { dir, file };
+};
+const fcLive = mkFcSite('fc-live', SLOT_MS - 5 * 60_000);
+const fcStale = mkFcSite('fc-stale', SLOT_MS - 4 * 3_600_000);
+const fcDead = mkFcSite('fc-dead', SLOT_MS - 13 * 3_600_000);
+const fcNone = join(tmp, 'fc-none');
+mkdirSync(fcNone, { recursive: true });
+const fcAxis = roadFcAxisPoints(fcLive.file);
+add('A0b Prognose-Fixture: echter Lauf des Korridors a8 (Achspunkte + Stationen, 49 Schritte)', fcAxis.length >= 20 && fcLive.file.points.length > fcAxis.length && fcLive.file.steps === 49, `${fcAxis.length} Achspunkte, ${fcLive.file.points.length} Punkte`);
 /** Page clock = slot + offset (minutes), advancing in real time. */
 const clockScript = (offsetMin) => `(() => {
   const shift = ${SLOT_MS + offsetMin * 60_000} - Date.now();
@@ -112,7 +140,7 @@ const chrome = findHeadlessChrome();
 if (!chrome) { console.error('kein chrome-headless-shell gefunden'); process.exit(2); }
 const browser = await openBrowser(chrome, { timeoutMs: 90_000, extraArgs: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 
-async function openPage({ path, width = 1440, height = 900, mobile = false, offsetMin = 12, root = site }) {
+async function openPage({ path, width = 1440, height = 900, mobile = false, offsetMin = 12, root = site, fcRoot = fcLive.dir }) {
   const ctx = await browser.newContext({ width, height, mobile });
   const errors = [];
   const served = [];
@@ -121,6 +149,14 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, offs
     if (msg.method === 'Runtime.exceptionThrown') errors.push(msg.params.exceptionDetails?.exception?.description?.split('\n')[0] ?? msg.params.exceptionDetails?.text);
     if (msg.method === 'Fetch.requestPaused') {
       const url = msg.params.request.url;
+      const fcm = /(?:buscosun-data@main|buscosun-data\/main)\/road\/fc\/v1\/(.+?)(?:\?.*)?$/.exec(url);
+      if (fcm) {
+        const file = join(fcRoot, ...fcm[1].split('/'));
+        served.push(`fc/${fcm[1]}`);
+        const ok = existsSync(file);
+        await ctx.send('Fetch.fulfillRequest', { requestId: msg.params.requestId, responseCode: ok ? 200 : 404, responseHeaders: [{ name: 'content-type', value: 'application/json' }, { name: 'access-control-allow-origin', value: '*' }], body: ok ? readFileSync(file).toString('base64') : '' }).catch(() => {});
+        return;
+      }
       const m = /(?:buscosun-data@main|buscosun-data\/main)\/road\/v1\/(.+?)(?:\?.*)?$/.exec(url);
       if (m) {
         const file = join(root, ...m[1].split('/'));
@@ -141,7 +177,7 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, offs
       await ctx.send('Fetch.continueRequest', { requestId: msg.params.requestId }).catch(() => {});
     }
   });
-  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*road/v1/*' }, { urlPattern: '*opendata.dwd.de/weather/alerts/*' }, { urlPattern: '*/_dwd_opendata/weather/alerts/*' }] });
+  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*road/v1/*' }, { urlPattern: '*road/fc/v1/*' }, { urlPattern: '*opendata.dwd.de/weather/alerts/*' }, { urlPattern: '*/_dwd_opendata/weather/alerts/*' }] });
   // The app's service worker answers same-origin requests (warnings via `/_dwd_opendata/…`) before page-level
   // interception sees them — bypass it, the test must not depend on the live DWD feed.
   await ctx.send('Network.enable', {});
@@ -224,7 +260,7 @@ const allErrors = [];
   add('D2 Fahrtrichtung wechseln ⇒ „Salzburg → München", URL dir=1', flipped.t === 'Salzburg → München' && /dir=1/.test(flipped.url), JSON.stringify(flipped));
   await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][1].click()`);
   await sleep(600);
-  const strecke = await ctx.evaluate(`({ rows: document.querySelectorAll('.aw-table-row').length, url: location.search, note: document.querySelector('.aw-readout .aw-note')?.textContent ?? '' })`);
+  const strecke = await ctx.evaluate(`({ rows: document.querySelectorAll('.aw-table-row:not(.is-fc-row)').length, url: location.search, note: document.querySelector('.aw-readout .aw-note')?.textContent ?? '' })`);
   add('D3 Reiter Strecke: Tabelle mit allen 30 Messpunkten, URL tab=strecke, Hinweis „Messpunkt ≠ Strecke"', strecke.rows === 30 && /tab=strecke/.test(strecke.url) && /Zwischen zwei Messpunkten/.test(strecke.note), JSON.stringify({ rows: strecke.rows, url: strecke.url }));
   await shot(ctx, 'desktop-1440-strecke');
   await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][2].click()`);
@@ -236,8 +272,9 @@ const allErrors = [];
   await sleep(300);
 
   // E: time chips.
-  const tc = await ctx.evaluate(`[...document.querySelectorAll('.aw-times button')].map((b) => [b.textContent, b.disabled])`);
-  add('E1 Zeitchips: „Jetzt" aktiv, +1/+3/+6 h gesperrt (AW-6 nicht gebaut)', tc.length === 4 && tc[0][1] === false && tc.slice(1).every((x) => x[1] === true), JSON.stringify(tc));
+  await until(ctx, `!!document.querySelector('.aw-band-fc')`, 15_000);
+  const tc = await ctx.evaluate(`[...document.querySelectorAll('.aw-times button')].map((b) => [b.textContent, b.disabled, b.getAttribute('aria-pressed')])`);
+  add('E1 Zeitchips: alle vier wählbar, „Jetzt" aktiv (Prognose-Lauf geladen, AW-6.1b)', tc.length === 4 && tc.every((x) => x[1] === false) && tc[0][2] === 'true' && tc.slice(1).every((x) => x[2] === 'false'), JSON.stringify(tc));
 
   // F: hatched for no valid measurement.
   const hatch = await ctx.evaluate(`(() => {
@@ -293,6 +330,81 @@ const allErrors = [];
   const back = await until(ctx, `location.pathname === ${JSON.stringify(before.path)} && document.querySelector('.aw-pill-title')?.textContent === ${JSON.stringify(before.title)}`, 10_000);
   const after = await ctx.evaluate(`({ path: location.pathname, title: document.querySelector('.aw-pill-title')?.textContent })`);
   add('M4 Zurück-Taste nach Korridorwechsel ⇒ Seite zeigt wieder den vorigen Korridor (URL und Inhalt gleich)', back, `${before.path} „${before.title}" → ${after.path} „${after.title}"`);
+  // P: weather forecast of buscosun Fusion 8 (AW-6.1b). Expected values come from the fixture file through the view model.
+  {
+    const pageNow = async () => ctx.evaluate('Date.now()');
+    // The checks before changed the corridor and came back: the forecast of a8 is read again — wait for its row.
+    await until(ctx, `document.querySelectorAll('.aw-band-fc-cell').length > 5 && /a8/.test(location.pathname)`, 15_000);
+    const p1 = await ctx.evaluate(`({ cells: document.querySelectorAll('.aw-band-fc-cell').length, label: document.querySelector('.aw-band-fc-label')?.textContent ?? '', stand: document.querySelector('.aw-topbar-stand')?.textContent ?? '', legend: document.querySelector('.aw-legend')?.textContent ?? '' })`);
+    add('P1 Band: Prognose-Zeile mit einer Zelle je Achspunkt, Beschriftung „Prognose Luft jetzt … Lauf 09:55"', p1.cells === fcAxis.length && /Prognose Luft jetzt/.test(p1.label) && /Lauf 09:55/.test(p1.label) && /Prognose Lauf 09:55/.test(p1.stand) && /Prognose Luft/.test(p1.legend), JSON.stringify(p1));
+    // Tiles of the default station against the file.
+    const stName = await ctx.evaluate(`document.querySelector('.aw-station-name')?.textContent ?? ''`);
+    const obsFix = JSON.parse(readFileSync(join(site, 'obs', '2610030800.json'), 'utf8'));
+    const stId = obsFix.points.find((x) => x.n === stName)?.id;
+    const stFc = fcLive.file.points.find((x) => x.id === stId);
+    const now1 = await pageNow();
+    const wantTiles = [1, 3, 6].map((h) => { const v = stFc ? roadFcValue(stFc, fcLive.file, now1 + h * 3_600_000) : null; return v ? `${f1(v.t)}°` : '—'; });
+    const tiles = await ctx.evaluate(`[...document.querySelectorAll('button.aw-prog-tile')].map((b) => [b.querySelector('span')?.textContent, b.querySelector('strong')?.textContent, b.disabled])`);
+    add('P2 Kacheln +1/+3/+6 h der Station: Luft aus der Lauf-Datei (Wert = Rechenmodell auf der Fixture), „Jetzt" bleibt die gemessene Fahrbahn',
+      !!stFc && tiles.length === 4 && tiles[0][0] === 'Jetzt' && tiles.slice(1).every((x, i) => /Luft/.test(x[0]) && x[1] === wantTiles[i] && x[2] === false), JSON.stringify({ stId, tiles, wantTiles }));
+    const chart = await ctx.evaluate(`({ pts: (document.querySelector('.aw-chart-fc-t')?.getAttribute('points') ?? '').trim().split(/\\s+/).filter(Boolean).length, note: document.querySelector('.aw-fc-note')?.textContent ?? '' })`);
+    add('P3 Verlauf: gestrichelte Prognose-Luft rechts von „jetzt" (≥ 5 Stundenwerte), Hinweis „keine Prognose der Fahrbahn"', chart.pts >= 5 && /keine Prognose der Fahrbahn/.test(chart.note) && /Lauf 09:55/.test(chart.note), JSON.stringify(chart));
+    // Chip +3 h.
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-times button')][2].click()`);
+    const t3 = await until(ctx, `/[?&]t=3/.test(location.search) && /\\+3 h/.test(document.querySelector('.aw-band-fc-label')?.textContent ?? '')`, 8000);
+    const p4 = await ctx.evaluate(`({ on: [...document.querySelectorAll('button.aw-prog-tile.is-on')].map((b) => b.querySelector('span')?.textContent), grid: document.querySelector('.aw-fc-grid-title')?.textContent ?? '', cells: document.querySelectorAll('.aw-fc-grid .aw-cell').length, label: document.querySelector('.aw-band-fc-label')?.textContent, ticks: document.querySelectorAll('.aw-band-tick').length })`);
+    add('P4 Chip +3 h ⇒ URL t=3, Band-Zeile „+3 h · 13:00", Kachel +3 h markiert, Werte der Stunde (6 Zellen); die Messpunkte im Band bleiben',
+      t3 && p4.on.length === 1 && /\+3 h/.test(p4.on[0]) && /Prognose \+3 h · gültig 13:00/.test(p4.grid) && p4.cells === 6 && /13:00/.test(p4.label) && p4.ticks === 30, JSON.stringify(p4));
+    // A forecast point of the axis as the selection.
+    const pickIdx = Math.floor(fcAxis.length / 2);
+    const cellId = await ctx.evaluate(`(() => { const c = [...document.querySelectorAll('.aw-band-fc-cell')][${pickIdx}]; c.click(); return c.getAttribute('aria-label'); })()`);
+    const ax = await until(ctx, `!!document.querySelector('.aw-axis') && /st=a8(%40|@)/.test(location.search)`, 8000);
+    const now2 = await pageNow();
+    const p5 = await ctx.evaluate(`({ eyebrow: document.querySelector('.aw-axis .aw-eyebrow')?.textContent, name: document.querySelector('.aw-axis .aw-station-name')?.textContent, hero: document.querySelector('.aw-axis .aw-hero-val')?.textContent, st: new URLSearchParams(location.search).get('st'), callout: document.querySelector('.aw-callout')?.textContent ?? '', sel: document.querySelectorAll('.aw-band-fc-cell.is-sel').length, badge: document.querySelector('.aw-axis .aw-badge')?.textContent ?? '' })`);
+    const axFc = fcLive.file.points.find((x) => x.id === p5.st);
+    const axWant = axFc ? roadFcValue(axFc, fcLive.file, now2 + 3 * 3_600_000) : null;
+    add('P5 Klick auf eine Prognose-Zelle ⇒ Karte „Prognosepunkt · buscosun Fusion 8", URL st=a8@<km>, Luftwert = Datei (+3 h), Callout „Prognose Luft …", Klasse in Luft-Worten',
+      ax && /Prognosepunkt · buscosun Fusion 8/.test(p5.eyebrow ?? '') && /A 8 · km \d+/.test(p5.name ?? '') && !!axWant && p5.hero === `${f1(axWant.t)} °C` && /Prognose Luft/.test(p5.callout) && p5.sel === 1 && /^Luft /.test(p5.badge),
+      JSON.stringify({ ...p5, want: axWant ? f1(axWant.t) : null, cellId }));
+    await shot(ctx, 'desktop-1440-prognose');
+    // Arrival rows.
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][1].click()`);
+    await sleep(600);
+    const p6 = await ctx.evaluate(`({ fc: [...document.querySelectorAll('.aw-table-name em.is-fc')].map((e) => e.textContent), brief: document.querySelector('.aw-brief')?.textContent ?? '', rows: document.querySelectorAll('.aw-table-row:not(.is-fc-row)').length, chips: [...document.querySelectorAll('.aw-table-row:not(.is-fc-row) .aw-table-chip')].map((e) => e.textContent).join('|') })`);
+    add('P6 Reiter Strecke: Zeilen mit späterer Ankunft tragen „zur Ankunft: Luft … · Niederschlag/Regen/Schnee …", Briefing mit „Prognose zur Ankunft"; die Zustands-Chips bleiben Messklassen',
+      p6.rows === 30 && p6.fc.length >= 5 && p6.fc.every((x) => /^zur Ankunft: Luft [+−±][\d,]+ °C · (Niederschlag|Regen|Schneeregen|Schnee) \d+ %/.test(x)) && /Prognose zur Ankunft: kälteste Luft/.test(p6.brief) && !/Prognose/.test(p6.chips),
+      JSON.stringify({ n: p6.fc.length, first: p6.fc[0], brief: p6.brief.slice(-120) }));
+    await shot(ctx, 'desktop-1440-strecke-prognose');
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][2].click()`);
+    await sleep(300);
+    const p7 = await ctx.evaluate(`document.querySelector('.aw-readout')?.innerText ?? ''`);
+    add('P7 Quellen: buscosun Fusion 8 aktiv, OpenStreetMap (ODbL) genannt, Quelltext des Vertrags, Fahrbahn-Prognose weiter „geplant"',
+      /buscosun Fusion 8/.test(p7) && /OpenStreetMap-Mitwirkende, ODbL/.test(p7) && /keine Fahrbahnmessung, kein amtliches Warnprodukt/.test(p7) && /buscosun Fusion — Fahrbahn/.test(p7));
+  }
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  // P8: a shared link with a forecast point and hour opens exactly there.
+  const { ctx, errors, off } = await openPage({ path: `/autobahnwetter/a8?st=${encodeURIComponent(fcAxis[3].id)}&t=6&road=1` });
+  const ok = await until(ctx, `!!document.querySelector('.aw-axis') && [...document.querySelectorAll('.aw-times button')][3]?.getAttribute('aria-pressed') === 'true'`, 30_000);
+  await sleep(900);
+  const s = await ctx.evaluate(`({ q: location.search, grid: document.querySelector('.aw-fc-grid-title')?.textContent ?? '' })`);
+  const q = new URLSearchParams(s.q);
+  add('P8 geteilter Link mit st=<Achspunkt>&t=6 öffnet den Prognosepunkt bei +6 h, URL bleibt', ok && q.get('st') === fcAxis[3].id && q.get('t') === '6' && /Prognose \+6 h/.test(s.grid), JSON.stringify(s));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+
+// --- Q: forecast states --------------------------------------------------------------------------------------
+for (const [id, fcRoot, what, want] of [
+  ['Q1', fcNone, 'kein Zeiger (404)', { chips: true, row: false, note: /nicht verfügbar \(Zeiger nicht lesbar\)/ }],
+  ['Q2', fcStale.dir, 'Lauf 4 h alt', { chips: false, row: true, label: /veraltet/ }],
+  ['Q3', fcDead.dir, 'Lauf 13 h alt', { chips: true, row: false, note: /nicht verfügbar \(letzter Lauf älter als 12 Stunden\)/ }],
+]) {
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1', fcRoot });
+  await until(ctx, `document.querySelectorAll('.aw-band-tick').length > 5 && !!document.querySelector('.aw-station-name') && (!!document.querySelector('.aw-band-fc') || /nicht verfügbar \\((?!Prognose lädt)/.test(document.querySelector('.aw-fc-note')?.textContent ?? ''))`, 30_000);
+  const r = await ctx.evaluate(`({ dis: [...document.querySelectorAll('.aw-times button')].slice(1).every((b) => b.disabled), any: [...document.querySelectorAll('.aw-times button')].slice(1).some((b) => b.disabled), row: !!document.querySelector('.aw-band-fc'), label: document.querySelector('.aw-band-fc-label')?.textContent ?? '', note: document.querySelector('.aw-fc-note')?.textContent ?? '', station: !!document.querySelector('.aw-station .aw-hero-val'), ticks: document.querySelectorAll('.aw-band-tick').length })`);
+  const ok = r.station && r.ticks === 30 && r.row === want.row && (want.chips ? r.dis : !r.any) && (!want.note || want.note.test(r.note)) && (!want.label || want.label.test(r.label));
+  add(`${id} Prognose: ${what} ⇒ ${want.row ? 'Zeile und Chips bleiben, „veraltet" benannt' : 'Chips gesperrt, keine Prognose-Zeile, Grund genannt'}; die Messung bleibt vollständig`, ok, JSON.stringify(r));
   off(); allErrors.push(...errors); await ctx.close();
 }
 
@@ -304,6 +416,8 @@ const allErrors = [];
   const ok = await until(ctx, `/Derzeit keine Messdaten/.test(document.querySelector('.aw-map-note')?.textContent ?? '') && /Keine Daten/.test(document.querySelector('.aw-live')?.textContent ?? '')`, 25_000);
   const ticks = await ctx.evaluate(`[...document.querySelectorAll('.aw-band-tick')].every((t) => t.classList.contains('is-hatched'))`);
   add('G1 alle Slots 404 ⇒ Hinweis „Derzeit keine Messdaten", Topbar „Keine Daten", Band nur schraffiert', ok && ticks);
+  const q4 = await until(ctx, `!!document.querySelector('.aw-axis') && document.querySelectorAll('.aw-band-fc-cell').length > 5`, 15_000);
+  add('Q4 ohne Messdaten, aber mit Prognose-Lauf: die Detailspalte öffnet einen Prognosepunkt, die Prognose-Zeile steht', q4);
   await shot(ctx, 'state-nodata');
   off(); allErrors.push(...errors); await ctx.close();
   rmSync(empty, { recursive: true, force: true });
@@ -335,6 +449,8 @@ const allErrors = [];
   await sleep(1500);
   const m = await ctx.evaluate(`(() => { const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; }; return { pill: r('.aw-m-top .aw-pill'), share: r('.aw-m-share'), chip: r('.aw-m-times .aw-times button'), grip: r('.aw-sheet-grip'), rail: !!document.querySelector('.aw-rail') }; })()`);
   add('H1 mobil: Karte vollflächig ohne Rail, Pille 52 px hoch, Teilen 44 × 44, Zeitchips 36 px', ready && !m.rail && m.pill?.[1] === 52 && m.share?.[0] >= 44 && m.share?.[1] >= 44 && m.chip?.[1] === 36, JSON.stringify(m));
+  const mfc = await ctx.evaluate(`({ row: !!document.querySelector('.aw-miniband.is-fc'), segs: document.querySelectorAll('.aw-miniband.is-fc .aw-band-seg').length, chips: [...document.querySelectorAll('.aw-m-times .aw-times button')].every((b) => !b.disabled) })`);
+  add('H4 mobil: Prognose-Zeile unter dem Mini-Band, Zeitchips wählbar', mfc.row && mfc.segs > 5 && mfc.chips, JSON.stringify(mfc));
   await shot(ctx, 'mobile-390-peek');
   await ctx.evaluate(`document.querySelector('.aw-sheet-grip').click()`);
   await sleep(700);

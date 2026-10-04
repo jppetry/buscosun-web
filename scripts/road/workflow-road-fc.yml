@@ -30,9 +30,17 @@
 
 name: road-fc
 
+# ── Zweiter Auslöser: nach jedem Punkt-Job ──────────────────────────────────
+# Am 04.10.2026 startete GitHub den Zeitplan dieses neuen Workflows in den ersten zwei Stunden kein einziges Mal.
+# Deshalb läuft der Job zusätzlich nach jedem abgeschlossenen Lauf des Workflows `point` (Stufe 1 alle 3 h, MOSMIX-S
+# stündlich): genau dann liegen neue Eingaben im Repo. `point.yml` bleibt unberührt — `workflow_run` hört nur zu.
+# Die concurrency-Gruppe stellt zwei Auslöser hintereinander; der Client liest ohnehin den Zeiger.
 on:
   schedule:
     - cron: '12 * * * *'   # stündlich, :12
+  workflow_run:
+    workflows: [point]
+    types: [completed]
   workflow_dispatch: {}
 
 concurrency:

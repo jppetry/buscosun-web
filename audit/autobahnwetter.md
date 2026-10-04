@@ -28,7 +28,10 @@
   Achspunkten (alle 5 km, auf der OSM-Fahrbahn) und 1 658 Stationen, 0–48 h, in `buscosun-data/road/fc/v1/`; eigener
   Workflow `road-fc.yml`, Leser im Client, Ablage der Stationsprognosen im Archiv. Erster Lauf 4 424/4 424 Punkte; im
   Browser nachgerechnet (T/Td gleich). **Beim ersten Hand-Push stand das Daten-Repo 62 s auf einem alten Radar-/
-  Straßen-Stand — sofort zurückgesetzt (§14.5).** Die Seite zeigt die Prognose noch nicht (nächste Phase).
+  Straßen-Stand — sofort zurückgesetzt (§14.5).**
+- **AW-6.1b Anzeige (§15, dein „mache das" 04.10.):** Die Seite zeigt die Wetterprognose — eine Zeile „Prognose Luft"
+  im Streckenband (auch dort, wo keine Messstelle steht), Kacheln +1/+3/+6 h, gestrichelter Verlauf, Wetter zur
+  Ankunft im Reiter Strecke; Prognosepunkte sind wählbar wie Stationen. Die Fahrbahn selbst hat weiter keine Prognose.
 - **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Rest von Gate C (Gerät, Wächter, SEO, Vorschaukarte),
   Anzeige der Prognose (AW-6.1b), Fahrbahn-Prognose AW-6.2 (Gate D). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
@@ -878,4 +881,77 @@ den Pfad `road/fc/v1` und prüft den Commit vor dem Push (`verify:road-fc` D9). 
 | V-AW-24 | Punkt- und Gelände-Datei liegen nur im Daten-Repo; fällt ein Hand-Push in das Fenster eines Force-Pushs der Kartenlinie, sind sie weg und der Job endet mit „points.json fehlt" | kein stiller Ausfall | Kopie beider Dateien im Archiv-Repo, der Job holt sie bei Bedarf zurück |
 | V-AW-25 | Die Leser der Radar- und Straßen-Slots holen bei 404 am CDN nicht von raw nach | ein kurz fehlender Slot heilt ohne Purge | wie `fetchRoadFcFile`: 404 am CDN einmal über raw prüfen |
 | E-AW-23 | Archiv der Prognosen: Stationen, 0–24 h, alle 3 h ≈ 2,1 MB/Tag (≈ 0,8 GB/Jahr) | Gate D messbar | Jan: Umfang bestätigen oder kürzen (z. B. 4 Läufe/Tag) |
-| Anzeige | Die Seite zeigt die Prognose noch nicht | Prognose-Zeile im Band, Kacheln +1/+3/+6 h, Wetter zur Ankunft | eigene Phase (AW-6.1b) |
+| Anzeige | erledigt 04.10. (§15) | Prognose-Zeile im Band, Kacheln +1/+3/+6 h, Wetter zur Ankunft | — |
+
+## 15. AW-6.1b — Anzeige der Streckenprognose auf der Seite (Jan 04.10.: „mache das")
+
+Auftrag: die Prognose aus §14 auf der Seite zeigen — Zeile im Streckenband, Kacheln +1/+3/+6 h, Wetter zur Ankunft.
+
+### 15.1 Diagnose (gelesen am Code, 04.10.)
+
+| Nr. | Befund | Folge |
+|---|---|---|
+| D-FCB-1 | Die Seite zeigt nur Messungen: Zeitchips +1/+3/+6 h gesperrt (`ROAD_FORECAST_ENABLED = false`), Kacheln „Prognose folgt", im Verlauf ein leeres 6-h-Feld, im Reiter Strecke bei später Ankunft weiter die Messung | alle vier Stellen sind in der Vorlage schon angelegt — kein neues Layout nötig |
+| D-FCB-2 | Das Produkt ist **Wetter** (Luft 2 m, Taupunkt, Niederschlag, Wind, Bewölkung), keine Fahrbahn. Die Klassen der Seite (Glätte, Frostgefahr, Nass, Trocken) sind Fahrbahn-Klassen aus Messungen | die Prognose bekommt eigene Farben und eigene Wörter („Luft …", „Prognose"); keine Fahrbahn-Klasse aus der Prognose (AW-6.2, Gate D) |
+| D-FCB-3 | Korridore ohne Messstelle (Baden-Württemberg, V-AW-20) öffnen heute mit „Eine Messstelle wählen" und leerem Band | ein Prognosepunkt muss wählbar sein wie eine Station, sonst bleibt genau dort die Detailspalte leer |
+| D-FCB-4 | Der Leser `loadRoadFc` liefert eine Datei je Korridor (Achspunkte + dessen Stationen); Stationen an keinem Korridor liegen in Länder-Dateien, die Messung trägt das Land aber nicht (Reihen-Kürzel ≠ Land an 385 von 1 394 Stationen, nachgezählt) | für Stationen abseits der Korridore zeigt die Seite keine Prognose und sagt das (V-AW-26) |
+| D-FCB-5 | `og-meta` (Edge) liest den Autobahnwetter-Zustand nicht; `roadState.ts` hat nur die Route als Leser | `t` und `st=<Achspunkt>` ändern kein Edge-Bündel (kein STOPP) |
+| D-FCB-6 | Der Browser-Verifier fängt nur `road/v1/*` ab — Abrufe von `road/fc/v1/*` gingen ins Netz | Fixture: ein echter Lauf (`fc-a8-2610040905.json`), auf die Fixture-Uhr umgestempelt |
+
+### 15.2 Entscheidungen
+
+- **E-AW-24 — Zeitchips wählen die Stunde der Wetterprognose, Karte und Band bleiben Messung.** Marker, Band-Balken und
+  Klassen zeigen bei jedem Chip die Messung des Slots; die Prognose liegt als eigene Zeile darunter und als kleine
+  Punkte auf dem Korridor. Preis: bei „+3 h" stehen Messung (jetzt) und Prognose (+3 h) nebeneinander — jede Stelle
+  nennt ihre Zeit.
+- **E-AW-25 — Luft in drei Stufen mit eigenen Farben** (≤ 0 °C · bis +3 °C · darüber; `set`, +3 °C wie E-AW-11),
+  Niederschlags-Marke ab 50 % (`set`), Art aus dem Schnee-Anteil (30/70 %, `set`). Kein Wort der Fahrbahnklassen in
+  einem Prognose-Text (Prüfung I10 mit Gegenprobe).
+- **E-AW-26 — Prognosepunkt als Auswahl:** `st=<korridor>@<km>` in der URL, eigene Karte „Prognosepunkt · buscosun
+  Fusion 8"; ein Korridor ohne gemessene Station öffnet auf dem Achspunkt mit der kältesten Prognose-Luft.
+- **E-AW-27 — Stunde = nächster voller Schritt des Laufs**, keine Interpolation zwischen Stunden im Client, kein
+  Festhalten am Rand (außerhalb des Laufs: kein Wert). Jede Anzeige nennt die gültige Stunde.
+- **E-AW-28 — Zustände:** Lauf bis 3 h „Lauf HH:MM", bis 12 h „· veraltet", danach oder ohne Zeiger/Datei keine
+  Prognose: Chips gesperrt, Zeile weg, Grund im Text. Die Messung bleibt in jedem Fall vollständig.
+- **E-AW-29 — zweiter Auslöser des Jobs** (`workflow_run` nach jedem abgeschlossenen Lauf von `point`): GitHub startete
+  den Zeitplan des neuen Workflows am 04.10. in den ersten zwei Stunden nicht. `point.yml` unberührt.
+
+### 15.3 Umsetzung
+
+| Teil | Datei | Was |
+|---|---|---|
+| Rechenmodell | `src/road/roadFcView.ts` (neu, ohne DOM) | Schritt und Wert einer Stunde, Luft-Klassen, Niederschlags-Text, Band-Zellen (eine je Achspunkt, Loch statt gestreckter Nachbarn), Lauf-Etikett, Kacheln, Reihe für den Verlauf, Lücken-Punkte der Tabelle, Zusammenfassung „Wetter zur Ankunft" |
+| Seite | `RoadPage.tsx` | lädt je Korridor den Lauf (`loadRoadFc`, alle 10 min neu; ein fehlgeschlagener Abruf behält den gezeigten Lauf), Zeit-Zustand `t` in der URL, Auswahl Station oder Prognosepunkt |
+| Band | `RoadBand.tsx` | zweite, dünnere Zeile „Prognose Luft <Stunde> · Lauf …" mit einer klickbaren Zelle je 5 km, Marke für Regen/Schnee, eigene Legende; mobil eine Zeile unter dem Mini-Band |
+| Karte | `RoadMap.tsx`, Ebene „Prognosepunkte" im Dock | kleine Punkte je Achspunkt in der Luft-Farbe, wählbar (eine Station unter demselben Pixel gewinnt), Callout „Prognose Luft …" |
+| Detailspalte | `RoadReadout.tsx` | Kacheln +1/+3/+6 h mit Luft und Niederschlag (Klick = Zeitchip), Verlauf mit gestrichelter Prognose-Luft und -Taupunkt für 6 h, Werte der gewählten Stunde, Karte für Prognosepunkte (24-h-Verlauf), Reiter Strecke: „zur Ankunft: Luft … · Regen …" je Zeile mit später Ankunft, eigene Zeilen für Strecken ohne Messstelle im 10-km-Umkreis, ein Satz im Briefing; Quellen: buscosun Fusion 8 aktiv, OpenStreetMap (ODbL), Quelltext des Vertrags |
+| URL | `roadState.ts` | `t=1\|3\|6` gültig, `st` nimmt auch `<korridor>@<km>` |
+| Job | `scripts/road/workflow-road-fc.yml` → Daten-Repo `7374e46` | zweiter Auslöser nach `point` (E-AW-29) |
+
+Nicht angefasst: buscosun Fusion, Producer, Vertrag `roadFc.ts`, Edge Functions, Shader. Fahrbahn-Temperatur und
+Fahrbahn-Klasse haben weiter keine Prognose (Kachel „Jetzt" = Messung; Quellen nennen die Fahrbahn-Prognose „geplant").
+
+### 15.4 Gates
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:road-fc` | **73/73** — neu Block I (11 Prüfungen des Rechenmodells auf dem echten Lauf: Schrittwahl mit Rändern, Wert = Dekodierung des Vertrags mit Gegenprobe, Klassen an den Grenzen, Zeile lückenlos und gespiegelt, Loch bei verlorenen Punkten, Lücken-Zeilen, Ankunft von Hand nachgerechnet, Lauf-Etikett, URL-Rundweg, kein Fahrbahn-Wort in Prognose-Texten) und E7 (zweiter Auslöser) |
+| `verify:road-ui` | **55/55** im Headless-Browser (zweimal in Folge nach der letzten Änderung) — neu P1–P8 (Zeile, Kacheln = Datei, Verlauf, Chip ⇒ URL, Prognosepunkt = Datei, Ankunftszeilen, Quellen, geteilter Link), Q1–Q4 (kein Zeiger, 4 h alt, 13 h alt, Prognose ohne Messdaten), H4 (mobil); die bisherigen Prüfungen unverändert grün, geändert nur E1 (Chips jetzt wählbar) und der Zähler in D3 (Stationszeilen) |
+| Funktionserhalt | jede frühere Prüfung der Seite grün: Maße 62/60/250/400, Band über dem Kartenfuß, Voreinstellung E-AW-13, Auswahl, Richtung, Reiter, Zustände ohne Daten, mobil ≥ 44 px |
+| live | `/autobahnwetter/a8-4?t=3` (Ettlingen → Deggingen, 3 Messpunkte) gegen das echte Daten-Repo: 24 Prognose-Zellen, Prognosepunkt „A 8 · km 60", Lauf 11:05 |
+| übrige | `verify:road-contract` 65/65, `verify:share` 528/528, `verify:routing` 252/252, typecheck 0, Build 252/252, Budget eagerJs 108,9 / 109 · totalJs 1 549,8 / **1 551** (+5,5 KB, alles im nachgeladenen Seiten-Chunk; Notiz in `budget.json`) |
+
+Selbstprüfung: (1) Funktionserhalt — s. o., einzeln im Verifier; (2) Desktop — die Seite bekommt eine Zeile im Band
+(+ 32 px Höhe) und gefüllte Kacheln, sonst gleich; (3) Touch — Kacheln mobil ≥ 44 px (H2), Chips 36 px wie die Vorlage;
+(4) Konsole — I1 ohne Ausnahme; (5) Long Tasks — in headless-shell nicht messbar, die Rechnung je Anzeige ist ≤ 60
+Punkte × 49 Schritte.
+
+### 15.5 Offen
+
+| Nr. | Was | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AW-26 | Stationen an keinem Korridor (Bundes-/Landesstraßen) zeigen keine Prognose — sie liegt in den Länder-Dateien, die Messung nennt das Land nicht | Kacheln auch abseits der Autobahn | Land je Station in `obs` (Producer des Spiegels) oder eine kleine Zuordnung Station → Datei im Zeiger |
+| V-AW-27 | Der Test-Lauf der Fixture ist warm und trocken: Blau-Stufen und Niederschlags-Marken sind nur im Rechenmodell geprüft, nicht im Bild | Bild-Beleg der Winterlage | beim ersten Frost-Lauf eine zweite Fixture ablegen |
+| V-AW-28 | Zeitplan des Workflows startete am 04.10. nicht; der zweite Auslöser hängt am Workflow `point` | Lauf auch, wenn `point` steht | Wächter: Zeiger älter als 3 h ⇒ rot (z. B. im Archiv-Job, der schon alle 3 h liest) |
+| V-AW-29 | Reiter Strecke: bei drei Zeilen je Messpunkt wird die Tabelle lang | ruhigere Tabelle | Prognose in eine eigene Spalte ab 1 440 px |
+| Real-Device | nur Headless geprüft | — | Jan: Handy, `/autobahnwetter/a8-4` |

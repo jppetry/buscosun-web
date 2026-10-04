@@ -3,8 +3,9 @@
  * (plan AW-5, `roadState.ts`). The corridor is the path segment (`a8`, `a8-2` — ids of `static/corridors.json`),
  * the rest lives in the query, in a fixed order so equal states give equal URLs (share links, SH1 pattern).
  *
- * `t` is the time chip (0 = measurement, 1/3/6 h = derivation of AW-6). Until Gate D only 0 is valid; other values
- * are read, reported as invalid and dropped — a shared link from the future never shows a forecast early.
+ * `t` is the time chip (0 = now, 1/3/6 h ahead): since AW-6.1b it selects the hour of the WEATHER forecast of buscosun
+ * Fusion 8 (`road/fc/v1`) in the band row, the map dots and the readout. The road surface stays measured-only (AW-6.2,
+ * Gate D). `st` is a station id or, since AW-6.1b, a forecast point of the corridor axis (`a8@70`).
  */
 
 export type RoadTab = 'station' | 'strecke' | 'quellen';
@@ -12,8 +13,8 @@ export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen'];
 /** Time chips of the design (now, +1, +3, +6 h). */
 export const ROAD_TIMES = [0, 1, 3, 6] as const;
 export type RoadTime = (typeof ROAD_TIMES)[number];
-/** AW-6 is not built: only the measurement is selectable. */
-export const ROAD_FORECAST_ENABLED = false;
+/** AW-6.1b (04.10.2026): the weather forecast is selectable. `false` = chips disabled, `t` invalid in the URL again. */
+export const ROAD_FORECAST_ENABLED = true;
 
 export interface RoadUrlState {
   corridor: string | null;
@@ -26,7 +27,8 @@ export interface RoadUrlState {
 export const ROAD_DEFAULT_STATE: RoadUrlState = { corridor: null, st: null, t: 0, dir: 0, tab: 'station' };
 
 const SLUG_RE = /^[a-z][a-z0-9]{0,4}(?:-\d{1,2})?$/;
-const STATION_RE = /^[A-Z0-9]{3,6}$/;
+/** DWD station id, or an axis point of the route forecast (`<corridor>@<km>`, `roadFcAxisId`). */
+const STATION_RE = /^(?:[A-Z0-9]{3,6}|[a-z][a-z0-9]{0,4}(?:-\d{1,2})?@\d{1,4}(?:\.\d)?)$/;
 
 export function parseRoadUrl(slug: string | null | undefined, search: string): { state: RoadUrlState; invalid: string[] } {
   const invalid: string[] = [];

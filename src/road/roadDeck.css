@@ -317,3 +317,32 @@
 .aw-callout span { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11px; color: var(--stone-600, #5C5447); }
 .aw-callout i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; display: inline-block; }
 .aw-callout i.is-hatched { background: repeating-linear-gradient(135deg, #8B8474 0 2px, #3A3833 2px 4px); }
+
+/* --- AW-6.1b: weather forecast of buscosun Fusion 8 (band row, tiles, chart, arrival) --------- */
+.aw-band-track.has-fc { height: 52px; }
+.aw-band-fc { position: absolute; left: 0; right: 0; top: 41px; height: 9px; border-radius: 4.5px; overflow: hidden; background: var(--sand-100, #EDE6D3); }
+.aw-band-fc-cell { position: absolute; top: 0; bottom: 0; padding: 0; border: 0; border-right: 1px solid rgba(250, 246, 234, 0.7); box-sizing: border-box; cursor: pointer; }
+.aw-band-fc-cell.is-gap { background: repeating-linear-gradient(135deg, #C9BE9E 0 3px, #F5F1E8 3px 6px); }
+.aw-band-fc-cell.is-rain::after, .aw-band-fc-cell.is-snow::after { content: ''; position: absolute; left: 50%; top: 2px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #0B3D7A; }
+.aw-band-fc-cell.is-snow::after { background: #fff; box-shadow: 0 0 0 1px #0B3D7A; }
+.aw-band-fc-cell.is-sel { outline: 2px solid var(--ink-900, #2C2A26); outline-offset: -2px; }
+.aw-band-legend.is-fc { margin-top: 5px; padding-top: 0; border-top: 0; flex-wrap: wrap; row-gap: 3px; }
+.aw-band-fc-label { font-weight: 700; color: var(--stone-600, #5C5447); }
+.aw-sw.is-rain, .aw-sw.is-snow { width: 7px; height: 7px; border-radius: 50%; background: #0B3D7A; }
+.aw-sw.is-snow { background: #fff; box-shadow: 0 0 0 1px #0B3D7A; }
+.aw-legend-fc { margin-top: 3px; padding-top: 6px; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.aw-legend i.is-dot { width: 8px; height: 8px; box-shadow: 0 0 0 1px #0B0E12; }
+button.aw-prog-tile { font: inherit; text-align: left; cursor: pointer; color: inherit; }
+button.aw-prog-tile:disabled { cursor: default; }
+.aw-fc-note { margin: 8px 0 0; font-size: 10px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+.aw-fc-grid-title { margin-top: 12px; }
+.aw-chip.is-fc { background: #EAF1F7; color: #28507A; }
+.aw-chip.is-fc i { background: #3A6FA8; }
+.aw-table-name em.is-fc { color: #28507A; }
+.aw-table-chip.is-fc { background: #EAF1F7; color: #28507A; font-weight: 600; }
+.aw-miniband.is-fc { height: 6px; margin-top: 3px; }
+@media (max-width: 767px) {
+  button.aw-prog-tile { min-height: 44px; }
+}
+.aw-map.has-fc .maplibregl-ctrl-bottom-right, .aw-map.has-fc .maplibregl-ctrl-bottom-left { bottom: 204px; }
+.aw-brief-fc { color: #28507A; }
