@@ -12,6 +12,7 @@ Takten und verschiedenen Zwecken:
 | **Radar-Spiegel** | `radar/` | Fläche je Zeitpunkt, Minuten | alle 1–2 min | `.github/workflows/radar.yml` |
 | **Punkt-Cube** | `point/` | **Zeitreihe je Ort** | **drei Jobs**: Stufe 1 8 ×, Stufe 2 4 ×, Stufe 3 2 × täglich | `.github/workflows/point.yml` |
 | **Straßenwetter** | `road/` | Messpunkte der Glättemeldeanlagen | alle 15 min | `.github/workflows/radar.yml` (Produkt im Radar-Spiegel) |
+| **Streckenprognose** | `road/fc/` | Zeitreihe je Punkt der Autobahn | stündlich | `.github/workflows/road-fc.yml` |
 
 ---
 
@@ -124,6 +125,45 @@ vom Spiegel gebaut (`scripts/road/build-corridors.mjs`); der Spiegel übernimmt 
 
 ⚠️ Kein amtliches Warnprodukt und keine Fahrbahnprognose des DWD: Messwerte an Punkten, nicht für
 die ganze Strecke.
+
+---
+
+## Streckenprognose — `road/fc/`
+
+**buscosun Fusion 8** an festen Punkten der Autobahnen, stündlich gerechnet, 0–48 h in Stundenschritten:
+Lufttemperatur mit Streuung, Taupunkt, Niederschlagswahrscheinlichkeit und -menge, Schnee-Anteil, Wind,
+Böen, Bewölkung. Gerechnet wird aus dem, was in DIESEM Repo liegt — Punkt-Cube (`point/`), MOSMIX-L
+(`point/stations/`), Radar-Stundenmittel (`radar/img/v1/rv`) und die gelernten Tabellen — mit derselben
+Kette, die der Browser am Ort rechnet (`getPointForecastFromCube`, Stufe `fs`), nur ohne Messungs-Anker.
+Producer: `scripts/road/road-forecast.mjs` im Anwendungs-Repo, Vertrag `src/road/roadFc.ts`.
+
+```
+road/fc/v1/index.json                 Zeiger: die vorhandenen Läufe, neueste zuerst (veränderlich)
+road/fc/v1/<lauf>/c/<korridor>.json   ein Korridor: Achspunkte alle 5 km und seine Stationen, 49 Stunden
+road/fc/v1/<lauf>/s/<land>.json       Stationen ohne Korridor (Bundes- und Landesstraßen), je Bundesland
+road/fc/v1/static/points.json         die Punkte: Lage, Korridor-km, Brücke, Abstand zur Nennlage
+road/fc/v1/static/geo.json            Gelände und Rauhigkeit je Punkt, vorab gerechnet (nur für den Producer)
+```
+
+**Punkte.** Achspunkte liegen alle 5 km auf jedem Korridor und sind auf die Fahrbahn derselben Autobahn
+aus OpenStreetMap gelegt (`snap` = Abstand zur Nennlage auf der Korridor-Achse; `null` = keine Fahrbahn
+in 1 km, der Punkt bleibt auf der Achse — das sind Abschnitte, die noch nicht gebaut sind). Liegt die
+Nennlage in einem Tunnel, rückt der Punkt bis 2 km weiter (`slide`). Stationspunkte sind die
+Glättemeldeanlagen an ihrer Katalogposition. `<lauf>` = Ausgabezeit `YYMMDDHHMM` (UTC); Schritt i gilt
+zu `t0Ms + i · 1 h`.
+
+**Werte** sind ganze Zahlen, `null` = fehlt (fehlt ≠ 0): `t`, `ts`, `td` in 0,1 °C/K · `pp`, `sn`, `n`
+in % · `rr` in 0,01 mm/h · `ff`, `fx` in 0,1 m/s · `dd` in Grad · `cf` Konfidenz ×100 · `q` Herkunft
+des Schritts (0 Stufe 1, 1 Stufe 2, 2 Stufe 3, 3 Station, 4 Klimatologie; +8 = interpoliert).
+
+**Lesen.** `index.json` ist veränderlich und wird über `raw.githubusercontent.com` gelesen, die
+Lauf-Dateien sind unveränderlich (`@main` am CDN). Ein Lauf gilt erst 5 Minuten nach `publishedAt`;
+bis dahin der Lauf davor. Ein Lauf, in dem mehr als 10 % der Punkte ohne Ergebnis blieben oder die
+gelernten Tabellen nicht gelesen wurden, wird **nicht veröffentlicht** — der vorige bleibt der jüngste.
+Aus: Repo-Variable `ROAD_FC=0`.
+
+⚠️ Modellprognose für das **Wetter an der Strecke** — keine Fahrbahntemperatur, kein Fahrbahnzustand,
+kein amtliches Warnprodukt.
 
 ---
 
@@ -386,6 +426,7 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `road/v1/obs/` | Alter ≤ **3 h**, mindestens 2 Slots | 12 Slots |
 | `road/v1/quarantine/` | Alter ≤ 24 h, mindestens 2 Slots | 96 Slots |
 | `road/v1/h24/<Reihe>/` | Alter ≤ 1 h, mindestens 2 Dateien je Reihe (jede Datei trägt den ganzen 24-h-Verlauf) | ≈ 4 je Reihe |
+| `road/fc/v1/<lauf>/` | Alter ≤ **3 h**, mindestens 2 Läufe | 3 Läufe |
 
 **Je Stufe**, weil die Stufen verschieden oft kommen: Stufe 1 achtmal täglich à ≈ 75 MiB
 würde bei 24 h acht Läufe halten und den Arbeitsbaum sprengen; die Fernstufe kommt
@@ -460,6 +501,8 @@ sonst läuft der alte Stand weiter. Dasselbe gilt für dieses README und für
 | `radar/rv`, `radar/konrad3d` | Deutscher Wetterdienst | CC BY 4.0 |
 | `road/` (Messwerte, Stationsliste) | Deutscher Wetterdienst, Glättemeldeanlagen der Länder (SWIS) | GeoNutzV, Quellenvermerk DWD |
 | `road/v1/static/corridors.json` | © GeoBasis-DE / BKG (DLM250), GeoNames | dl-de/by-2.0, CC BY 4.0 |
+| `road/fc/` (Prognose) | buscosun Fusion 8 aus den Linien dieses Repos | wie die Quellen der Linien |
+| `road/fc/v1/static/points.json` (Lage der Achspunkte) | © OpenStreetMap-Mitwirkende | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) |
 | `point/` (C-LAEF), `radar/img/v1/inca` | GeoSphere Austria | CC BY 4.0 |
 | `point/` (ICON-CH1/CH2), `radar/img/v1/rzc` | MeteoSchweiz | CC BY 4.0 |
 | `point/` (IFS/AIFS) | ECMWF Open Data | CC BY 4.0, ECMWF Terms of Use |
@@ -472,6 +515,7 @@ Die Producer liegen im Anwendungs-Repo:
 - [`scripts/repack-icon-d2.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/repack-icon-d2.mjs) — Kartenlayer
 - [`scripts/radar-mirror/radar-mirror.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/radar-mirror/radar-mirror.mjs) — Radar
 - [`scripts/road/road-mirror.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/road-mirror.mjs), [`road-derive.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/road-derive.mjs) — Straßenwetter
+- [`scripts/road/road-forecast.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/road-forecast.mjs), [`build-fc-points.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/build-fc-points.mjs) — Streckenprognose
 - [`scripts/point/build-point-cube.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/build-point-cube.mjs) — Punkt-Cube
 - [`scripts/point/build-stations.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/build-stations.mjs) — Stationsprodukt
 - [`scripts/point/publish-point.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/publish-point.mjs) — Veröffentlichung und Aufbewahrung der Punktlinie

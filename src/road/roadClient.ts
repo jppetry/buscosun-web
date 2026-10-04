@@ -8,6 +8,10 @@ import {
   parseRoadObs, parseRoadH24, roadExpectedSlot, roadH24Path, roadObsPath, roadStamp,
   type RoadH24File, type RoadObsFile,
 } from './roadContract';
+import {
+  ROAD_FC_CDN_BASE, ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, parseRoadFcFile, parseRoadFcIndex, roadFcCorridorPath, roadFcPickRun, roadFcStatePath,
+  type RoadFcFile, type RoadFcIndex, type RoadFcRunEntry,
+} from './roadFc';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class RoadNotThere extends Error {}
@@ -23,9 +27,9 @@ function abortError(signal: AbortSignal): unknown {
  * One JSON file of `road/v1/`: CDN, after 2.5 s without headers (or on 403/5xx/network) the same path on
  * raw.githubusercontent. A 404 at the CDN means "not there" and is final (the time gate keeps requests behind the push).
  */
-export function fetchRoadJson(path: string, signal?: AbortSignal): Promise<unknown> {
-  const cdn = `${ROAD_CDN_BASE}/${path}`;
-  const raw = `${ROAD_RAW_BASE}/${path}`;
+export function fetchRoadJson(path: string, signal?: AbortSignal, bases: { cdn: string; raw: string } = { cdn: ROAD_CDN_BASE, raw: ROAD_RAW_BASE }): Promise<unknown> {
+  const cdn = `${bases.cdn}/${path}`;
+  const raw = `${bases.raw}/${path}`;
   const acC = new AbortController();
   const acR = new AbortController();
   return new Promise((resolve, reject) => {
@@ -175,4 +179,56 @@ export async function loadRoadCorridors(signal?: AbortSignal): Promise<RoadCorri
     if ((e as Error)?.name === 'AbortError') throw e;
     return null;
   }
+}
+
+// --- Route forecast (road/fc/v1, AW-6.1) --------------------------------------------------------
+
+/**
+ * The pointer of the route forecast. Mutable, so it is read from raw.githubusercontent only (5 min cache there, no
+ * sticky edge 404, no `@main` lag — E-AW-20); `null` when it cannot be read.
+ */
+export async function loadRoadFcIndex(signal?: AbortSignal): Promise<RoadFcIndex | null> {
+  try {
+    const res = await fetch(`${ROAD_FC_RAW_BASE}/${ROAD_FC_INDEX_PATH}`, { signal, cache: 'no-cache' });
+    if (!res.ok) return null;
+    return parseRoadFcIndex(await res.json());
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') throw e;
+    return null;
+  }
+}
+
+/** One immutable run file: jsDelivr with the raw hedge; a 404 at the CDN is retried once on raw (`@main` may lag). */
+async function fetchRoadFcFile(path: string, signal?: AbortSignal): Promise<(RoadFcFile & { dropped: number }) | null> {
+  const bases = { cdn: ROAD_FC_CDN_BASE, raw: ROAD_FC_RAW_BASE };
+  try {
+    return parseRoadFcFile(await fetchRoadJson(path, signal, bases));
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') throw e;
+    if (!(e instanceof RoadNotThere)) return null;
+  }
+  try {
+    const res = await fetch(`${ROAD_FC_RAW_BASE}/${path}`, { signal });
+    return res.ok ? parseRoadFcFile(await res.json()) : null;
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') throw e;
+    return null;
+  }
+}
+
+export interface RoadFcLoad {
+  run: RoadFcRunEntry | null;
+  file: (RoadFcFile & { dropped: number }) | null;
+  /** Why there is no forecast: pointer unreadable, no run (or kill switch), file missing or invalid. */
+  reason: 'ok' | 'no-index' | 'no-run' | 'no-file';
+}
+
+/** Forecast of one corridor (`kind: 'corridor'`) or of the corridor-less stations of a state (`kind: 'state'`). */
+export async function loadRoadFc(kind: 'corridor' | 'state', id: string, nowMs: number, signal?: AbortSignal, index?: RoadFcIndex | null): Promise<RoadFcLoad> {
+  const idx = index === undefined ? await loadRoadFcIndex(signal) : index;
+  if (!idx) return { run: null, file: null, reason: 'no-index' };
+  const run = roadFcPickRun(idx, nowMs);
+  if (!run) return { run: null, file: null, reason: 'no-run' };
+  const file = await fetchRoadFcFile(kind === 'corridor' ? roadFcCorridorPath(run.run, id) : roadFcStatePath(run.run, id), signal);
+  return file && file.run === run.run ? { run, file, reason: 'ok' } : { run, file: null, reason: 'no-file' };
 }
