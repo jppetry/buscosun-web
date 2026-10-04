@@ -1381,7 +1381,7 @@ Auftrag Jan 03.10. (Kickoff `prompt-np0.md`), Entscheidungen E-NP0-1…8 am 03.1
 Messwerte: `audit/np0-datenprodukte.md` §8 (Diagnose §8.1, Umsetzung NP-0a §8.5, Gate §2.4). Keine Oberfläche — sichtbar wird es
 erst mit NP-1.
 
-**Stand (lokal committet `66f489c` auf Jans Auftrag, nicht gepusht):** Vertrag `src/sources/radolanRuns.ts` (Rückblick: `RV_PAST_KEEP`, `RADAR_PAST_WINDOW_MS`,
+**Stand (`66f489c` auf `origin/main`; Kern im Daten-Repo `04cb861`):** Vertrag `src/sources/radolanRuns.ts` (Rückblick: `RV_PAST_KEEP`, `RADAR_PAST_WINDOW_MS`,
 `rvPastDir`, `rvPastEligible`), `src/sources/radarImg.ts` (`RADAR_IMG_KEEP`), neu `src/sources/lightningImg.ts` (Blitz-Vertrag),
 `src/point/nowcastFormat.ts` (rzc hält 24 Slots — Text im Punkt-Manifest), neu `scripts/lib/tiff.mjs`, neu
 `scripts/lightning/lightning-mirror.mjs` + `lightning-derive.mjs` (Haken nach dem road-Muster), Kern
@@ -1391,7 +1391,11 @@ README-Vorlage, neu `verify:np0-radar`. Die road-Zeilen im Kern sind unveränder
 **Deine Gates:**
 - **(a) Durchsicht** des Commits `66f489c` („feat(radar-mirror): 2-h look-back and lightning mirror as values (NP-0a)"), dann
   **Push `buscosun-web`** — der Spiegel klont `src/` und `scripts/` (Haken, Derive, Vertrag) beim Jobstart von `main`.
-- **(b) Kopie des Kerns ins Daten-Repo:** `scripts/radar-mirror/radar-mirror.mjs` → `buscosun-data/scripts/radar-mirror.mjs`. Vorher
+- ~~**(b) Kopie des Kerns ins Daten-Repo**~~ — **erledigt 04.10. 20:43 UTC** auf Jans Auftrag („alle notwendigen Änderungen im
+  buscosun-data"): Daten-Repo-Commit `04cb861`; vorher geprüft, dass die Daten-Repo-Fassung byte-gleich (CRLF-normalisiert) zur
+  Vorlage vor NP-0a war, nachher byte-gleich zur Vorlage auf `origin/main`; nie force. Wirksam ab dem nächsten Radar-Jobstart
+  (laufender Job seit 17:41 UTC ⇒ Übergabe ≈ 23:26 UTC). Ursprünglicher Text:
+  `scripts/radar-mirror/radar-mirror.mjs` → `buscosun-data/scripts/radar-mirror.mjs`. Vorher
   `git pull` im Daten-Klon und `diff` der Daten-Repo-Fassung gegen `git show <NP-0a-Commit>~1:scripts/radar-mirror/radar-mirror.mjs`
   (CRLF-normalisiert): muss leer sein — sonst hat die Autobahnwetter-Linie dort inzwischen etwas geändert, dann erst zusammenführen
   (V-NP0-5). Commit + Push ins Daten-Repo nach Protokoll (nie force). **Workflow unverändert** (die neuen Variablen haben
@@ -1416,7 +1420,7 @@ README-Vorlage, neu `verify:np0-radar`. Die road-Zeilen im Kern sind unveränder
 Auftrag Jan 03.10. (Kickoff `prompt-np0.md`), Entscheidungen E-NP0-4 (F1) und E-NP0-5 ((a) + (b)) am 03.10. Befunde, Belege und
 Messwerte: `audit/np0-datenprodukte.md` §8.6 (Gate G-NP0b). Keine Oberfläche — sichtbar wird es erst mit NP-2.
 
-**Stand (uncommitted im Arbeitsbaum):** Vertrag `src/point/fieldFormat.ts`, Producer `scripts/point/build-point-fields.mjs` +
+**Stand (Jans Commit `2aa82b4` auf `origin/main`; `point.yml` im Daten-Repo `04cb861`):** Vertrag `src/point/fieldFormat.ts`, Producer `scripts/point/build-point-fields.mjs` +
 `fieldStore.mjs`, Publisher (Feld-Aufbewahrung + Index), `cdnSync.mjs` (Klassen, t1-Messwert 16,5, `FIELD_END_MIN_BY_TIER`),
 `sparseCover.mjs` (Job-Timeouts), Vorlage `scripts/repack-repo/workflow-point.yml`, README-Vorlage, `verify-point-data.mjs`
 (`JOB_MAX_MIN.t1` 24, Regel F′), neu `verify:np0-fields`. buscosun Fusion unverändert (nur aufgerufen).
@@ -1425,7 +1429,10 @@ Messwerte: `audit/np0-datenprodukte.md` §8.6 (Gate G-NP0b). Keine Oberfläche �
 - **(a) Durchsicht + Commit** (Scope `point`), z. B. „point: map fields from the cube (Modell · Cube) — chance, amount, q90 and snow
   line per tier (NP-0b)". Wieder auf die Autobahnwetter-Sitzung im selben Arbeitsbaum achten. **Push `buscosun-web`** — der
   Punkt-Cron klont den Producer bei jedem Job von `main`.
-- **(b) Kopie der Workflow-Vorlage:** `scripts/repack-repo/workflow-point.yml` → `buscosun-data/.github/workflows/point.yml`
+- ~~(a) Commit + Push~~ — erledigt (Jans Commit `2aa82b4`, auf `origin/main`). ~~**(b) Kopie der Workflow-Vorlage**~~ —
+  **erledigt 04.10. 20:43 UTC** im selben Daten-Repo-Commit `04cb861` (vorher byte-gleich zur Vorlage vor NP-0b). Erste Läufe
+  mit Feldern: t3 21:55, t2 22:30, t1 22:40 UTC. Ursprünglicher Text:
+  `scripts/repack-repo/workflow-point.yml` → `buscosun-data/.github/workflows/point.yml`
   (Nutzer-Token). Neu darin: „Job-Start merken", `public/climaGrid.json` im Sparse-Klon, der Schritt „Build map fields — tX
   (NP-0b)" in t1/t2/t3. Reihenfolge: **erst (a), dann (b)** — ohne Web-Push überspringt der Schritt sich selbst (`test -f`), mit
   Web-Push und alter Vorlage passiert nichts. README nicht kopieren (die Kartenlinie legt sie aus).
