@@ -757,3 +757,49 @@ Gates: `verify:road-contract` **65/65** (F14 auf `ROAD_LIVE` umgestellt, F14b ne
 jetzt `?road=0` ⇒ unbekannter Pfad, A3 Seite ohne Parameter, A4 Startseite mit Kachel „11 Werkzeuge"), `verify:share`
 528/528, Build 252/252 (`verify-seo` 803), typecheck 0, Budget eagerJs 108,9 / 109,0 · totalJs 1 543,8 / 1 545,
 `verify:dashboard-switch` 49/50 (B wie vorher, unabhängig).
+
+## 14. AW-6.1 — Streckenprognose aus buscosun Fusion 8 (Jan 04.10.: „rechne alle Streckenpunkt-Prognosen in buscosun-data, zu fester Zeit, abgelegt für das Frontend; Punkte exakt auf der Autobahn")
+
+Abgrenzung: AW-6.1 ist **Wetter an der Strecke** (Luft, Taupunkt, Niederschlag, Schnee-Anteil, Wind, Böen, Bewölkung)
+aus buscosun Fusion 8. Fahrbahntemperatur und Glätte-Klasse bleiben AW-6.2 hinter Gate D — Fusion 8 sagt keine
+Fahrbahn vorher. Die Seite zeigt die Prognose noch nicht (eigene Phase); hier entsteht das Datenprodukt mit Leser.
+
+### 14.1 Diagnose (04.10., nur gelesen und gemessen)
+
+| Nr. | Frage | Befund | Beleg |
+|---|---|---|---|
+| D-FC-1 | Lässt sich Fusion 8 in Node am Autobahnpunkt rechnen, ohne den Motor anzufassen? | **Ja.** `getPointForecastFromCube` mit einem `CubeIo` wie `defaultCubeIo()` (Stufe `fs`, Tabellen `json`, Radar-Stundenmittel), nur Speicher und Dekoder für Node. Am Punkt A 8 bei Stuttgart: Quellen `cube-t1, cube-t2, mosmix, radolan`, Notiz „stage:fs — neueste Stufe (buscosun Fusion 8)", 49 Stunden, 0 Fehler | Prototyp `scripts/road/_proto-fc.mjs` (nicht committet) |
+| D-FC-2 | Was fehlt gegenüber dem Browser? | Nur der **Messungs-Anker** (BrightSky je Punkt — bei 4 400 Punkten nicht vertretbar): `obs: null`, der Motor sagt „kein Anker". Gelände (Terrarium z11 + z8) und z0 (WorldCover) sind je Punkt zeitlos ⇒ einmal vorab rechnen | wie oben; V-AW-21 |
+| D-FC-3 | Kosten je Punkt | gegen einen lokalen Klon: 393 ms, davon Lesen 355 (jeder Punkt dekodiert Chunks und ≈ 75 Radar-PNGs neu), Rechnung 31, Ausgabe 6 ⇒ mit Dekodier-Merker ≈ 50–60 ms; 4 400 Punkte ≈ 4 min einfädig, mit 4 Prozessen ≈ 1–2 min lokal | Prototyp, 40 Punkte, zweiter Durchlauf |
+| D-FC-4 | Wo ablegen? | **Nicht unter `road/v1/`**: der Radar-Spiegel setzt bei jedem Push `road/v1` = sein Bestand (`copyInto`: `rmSync` + Kopie, nur `corridors.json` nimmt er aus dem Repo) — ein fremdes `road/v1/fc/` wäre nach ≤ 5 min wieder weg. Der ICON-Publisher trägt den ganzen Baum mit (Klon → neue Historie), der Punkt-Publisher fasst nur `point/` an | `road-mirror.mjs` Z. 258–270, `publish-repack.mjs` Z. 216–265 |
+| D-FC-5 | Wann rechnen? | Eingänge ändern sich: Cube t1 alle 3 h (Start `:40`, fertig ≈ `:52–:57`), Radar-Stundenmittel alle 5 min (wirkt 0–2 h), MOSMIX-L 4×/Tag. GitHub-Zeitpläne starten 5–50 min verspätet (Archiv-Lauf 03.10.: 48 min) ⇒ der Client darf den Lauf nicht aus der Uhr ableiten | Actions-API, §12.3 |
+| D-FC-6 | Wie genau liegen die Korridor-Linien? | Punkt auf der vereinfachten Linie (Douglas-Peucker 80 m) gegen die OSM-Fahrbahn: **p50 15 m, p90 82 m, max 210 m** (60 Punkte); gegen die rohe DLM250-Achse p50 16, p99 73, max 553 m. Auch die rohe DLM250-Achse liegt bis 224 m daneben (A 4 bei Jena: Jagdbergtunnel, A 5 bei Karlsruhe) | `geo-acc.mjs` (Scratch), Overpass |
+| D-FC-7 | Größe | 4 400 Punkte × 49 h × 11 Größen ≈ 9 MB JSON je Lauf — als eine Datei zu groß, je Korridor 10–400 KB roh | Rechnung |
+
+### 14.2 Entscheidungen (Ruling, je mit Preis)
+
+| Nr. | Entscheidung | Warum | Preis, wenn falsch |
+|---|---|---|---|
+| E-AW-17 | Prognosepunkte der Achse werden auf die **OSM-Fahrbahn** (`highway=motorway`, passende Nummer, kein Tunnel) gelegt; Lage-Lizenz ODbL, Nennung „© OpenStreetMap-Mitwirkende" in der Punktdatei und im README | Jan: „exakt auf der Autobahn"; DLM250 liegt bis 224 m daneben (D-FC-6). ODbL ist klar und ohne NC (Regel 5); die Punktliste ist öffentlich, Share-alike damit erfüllt | Punktdatei neu bauen ohne Einrasten (ein Schalter) |
+| E-AW-18 | Ablage **`road/fc/v1/`** (eigene Linie neben `road/v1/`), der Stub `road/v1/fc/` im Vertrag entfällt | D-FC-4: der Spiegel besitzt `road/v1` | Pfadwechsel = neue Version, alte Clients sehen 404 |
+| E-AW-19 | Eigener Workflow `road-fc.yml` im Daten-Repo, **stündlich** (`12 * * * *`), kein Eingriff in `radar.yml`/`point.yml`/`build.yml` und nicht in den Spiegel-Kern | der Spiegel-Kern hat uncommittete NP-0a-Änderungen einer anderen Sitzung; ein eigener Job kann den Radar nie aufhalten | Lauf verspätet ⇒ Prognose bis 1–2 h älter, benannt (`issuedAt`) |
+| E-AW-20 | Der Client liest einen **Zeiger** `road/fc/v1/index.json` nur über raw.githubusercontent (5 min Cache, kein hängender 404), die Lauf-Dateien unveränderlich über jsDelivr mit raw als Rückfall — auch bei 404 | D-FC-5; jsDelivr `@main` löst bis 3 min nach dem Push alt auf | ein Abruf mehr |
+| E-AW-21 | Punkte: Achse alle **5 km** je Korridor + jede Katalog-Station mit Koordinate (auch Bundes-/Landesstraßen); Horizont **0–48 h stündlich** | Stufe 1 rechnet auf ≈ 2 km; Stationen sind der Ort, an dem die Prognose gegen die Messung prüfbar ist (AW-6.2, Gate D) | Rechenzeit, Dateigröße |
+| E-AW-22 | `CubeIo.decodeChunk` (additiv, durchgereicht an `readPointBundle`) für den Dekodier-Merker des Producers | D-FC-3; ohne die Option byte-gleich (der Leser nimmt wie bisher den Pool) | zwei Zeilen zurück |
+
+### 14.3 Plan
+
+1. **Punkte** `scripts/road/build-fc-points.mjs` (von Hand, wie die Korridore): Achspunkte alle 5 km, eingerastet auf OSM
+   (Overpass, lokal gecacht), Brücken-Merkmal, Stationspunkte aus dem Katalog; Gelände und z0 je Punkt mit den Lesern
+   des Clients vorab ⇒ `road/fc/v1/static/points.json` (öffentlich) und `static/geo.json` (nur Producer).
+2. **Vertrag** `src/road/roadFc.ts`: Pfade, Schema, ganzzahlige Kodierung mit Dekodierer, Prüfer, Lauf-Wahl des Clients.
+3. **Producer** `scripts/road/road-forecast.mjs`: Verzeichnis-Speicher über den Klon des Daten-Repos, Fusion 8 je Punkt
+   (`getPointForecastFromCube`, 48 h), Scherben als Kindprozesse, Dateien je Korridor und je Bundesland, Zeiger,
+   Aufbewahrung 3 h / ≥ 2 Läufe, Push mit Neuaufsetzen (Muster Spiegel).
+4. **Workflow** `road-fc.yml` (Vorlage `scripts/road/workflow-road-fc.yml`), README-Abschnitt des Daten-Repos.
+5. **Leser** in `roadClient.ts`. Anzeige = nächste Phase.
+6. **Verifier** `verify:road-fc`: Kodierung, Gleichheit Datei ⇄ direkte Rechnung (mit Negativkontrolle), Push gegen ein
+   lokales Bare-Repo (Aufbewahrung, Neuaufsetzen nach Force-Push), Workflow gegen Konstanten, Punktlage.
+7. **Live-Prüfung**: erster Lauf von Hand, geplanter Lauf, CDN, Vergleich mit dem Browser-Pfad am selben Ort, erste
+   Stichprobe gegen die gemessene Lufttemperatur der Stationen.
+8. **Archiv** der Prognosen an den Stationspunkten in `buscosun-archiv` (vergangene Vorhersagen sind nicht nachholbar).
