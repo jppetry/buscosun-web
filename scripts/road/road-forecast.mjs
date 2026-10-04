@@ -330,6 +330,10 @@ export function publishRun({ repoDir, runDir, entry, remote = 'origin', branch =
     try {
       git(['fetch', '--quiet', '--depth=1', remote, branch]);
       git(['checkout', '--quiet', '-B', branch, `${remote}/${branch}`]);
+      // Nothing but our own paths may ride along: a change staged in the clone (a stale index after an interrupted
+      // run) would be pushed as ours and set other lines back — 04.10.2026, `audit/autobahnwetter.md` §14.5.
+      const staged = git(['diff', '--cached', '--name-only']);
+      if (staged) throw Object.assign(new Error(`Index des Klons trägt fremde Änderungen (${staged.split('\n').slice(0, 3).join(', ')}) — kein Push`), { fatal: true });
       const indexFile = join(fcDir, ROAD_FC_INDEX_PATH);
       const prev = existsSync(indexFile) ? parseRoadFcIndex(JSON.parse(readFileSync(indexFile, 'utf8'))) : null;
       const now = nowMs();
@@ -343,10 +347,14 @@ export function publishRun({ repoDir, runDir, entry, remote = 'origin', branch =
       writeAtomic(indexFile, JSON.stringify(index, null, 1) + '\n');
       git(['add', '-A', '--', ROAD_FC_REPO_DIR]);
       if (!git(['status', '--porcelain', '--', ROAD_FC_REPO_DIR])) return { noop: true, attempt };
-      git(['commit', '--quiet', '-m', `road-fc: ${entry.run} (${entry.points} Punkte)`]);
+      // Path-limited commit: only `road/fc/v1` enters it, whatever else the index holds.
+      git(['commit', '--quiet', '-m', `road-fc: ${entry.run} (${entry.points} Punkte)`, '--', ROAD_FC_REPO_DIR]);
+      const outside = git(['diff', '--name-only', `${remote}/${branch}`, 'HEAD']).split('\n').filter((f) => f && !f.startsWith(`${ROAD_FC_REPO_DIR}/`));
+      if (outside.length) throw Object.assign(new Error(`Commit fasst fremde Pfade an (${outside.slice(0, 3).join(', ')}) — kein Push`), { fatal: true });
       git(['push', '--quiet', remote, `HEAD:${branch}`]);
       return { attempt, commit: git(['rev-parse', 'HEAD']), runs: index.runs.map((r) => r.run) };
     } catch (e) {
+      if (e.fatal) throw e;
       lastErr = e;
       log(`Push-Versuch ${attempt}/${retries} abgelehnt (${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? 'unbekannt'}) — neu aufsetzen`);
     }

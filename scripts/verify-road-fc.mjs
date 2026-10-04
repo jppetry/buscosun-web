@@ -330,6 +330,16 @@ let built, runFiles;
     && git(seed, 'log', '--format=%s', 'origin/main').split('\n').length === 2);
   const r9 = pub(T + 7 * H, {});
   add('D7 derselbe Lauf noch einmal (Wiederholung des Jobs): nichts zu committen außer publishedAt ⇒ kein zweites Verzeichnis, Zeiger weiter 1 Lauf', remoteIndex().runs.length === 1 && remoteDirs().length === 1 && (r9.noop === true || r9.attempt === 1));
+  // A change staged in the pushing clone (stale index) must never be pushed as ours — it set radar/ and road/v1 back
+  // for 67 s on 04.10.2026 (hand push, not this function; the guard is here so the job can never do it).
+  writeFileSync(join(repo, 'point', 'index.json'), '{"cube":"ALT"}\n');
+  git(repo, 'add', '--', 'point/index.json');
+  let refused = null;
+  try { pub(T + 8 * H); } catch (e) { refused = e; }
+  git(seed, 'fetch', '--quiet', 'origin', 'main');
+  add('D9 fremde Änderung im Index des Klons (veralteter Stand): kein Push, Fehler nennt die Datei; point/ auf dem Remote unverändert, kein neuer Lauf im Zeiger',
+    refused?.fatal === true && /point\/index\.json/.test(refused.message) && git(seed, 'show', 'origin/main:point/index.json') === '{"cube":true}' && remoteIndex().runs[0].run === roadFcStamp(T + 7 * H), refused?.message);
+  git(repo, 'reset', '--quiet', '--hard', 'origin/main');
   const ni = nextIndex({ runs: [{ run: roadFcStamp(T - 5 * H) }, { run: roadFcStamp(T - H) }] }, fake(T).entry, T);
   add('D8 nextIndex: neuer Lauf vorn, zu alter Lauf in drop, killed wird durchgereicht', ni.index.runs[0].run === roadFcStamp(T) && eq(ni.drop, [roadFcStamp(T - 5 * H)]) && ni.index.runs.length === 2 && nextIndex(null, fake(T).entry, T, true).index.killed === true);
 }
