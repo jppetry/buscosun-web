@@ -869,6 +869,10 @@ den Pfad `road/fc/v1` und prüft den Commit vor dem Push (`verify:road-fc` D9). 
   Browser geladene.
 - **Gegen die Messung** (Slot 08:45, Vorlauf 0 h, 1 084 Stationen): Luft Bias +0,12 K, MAE 1,27 K, p90 2,6 K; Taupunkt
   Bias −0,95 K, MAE 1,65 K. Ein Zeitpunkt, kein Backtest — er zeigt, was ohne Anker fehlt (V-AW-21).
+- **Erster geplanter Lauf** `2610041104` (Auslöser `schedule`, Start 11:04:11 UTC — der Zeitplan `:12` lief damit erst
+  2 h nach dem Anlegen des Workflows und 52 min nach seiner Marke an): 4 424/4 424 Punkte, Rechnung 72 s, Job 116 s,
+  veröffentlicht 11:06:02. Von außen 8 min danach: 150/150 Dateien, 0 verworfen; gegen die Messung 11:00 (1 081
+  Stationen) Luft Bias −0,50 K, MAE 1,22 K, Taupunkt MAE 1,68 K. Aufbewahrung: beide Läufe im Zeiger.
 
 ### 14.8 Offen
 
@@ -914,7 +918,8 @@ Auftrag: die Prognose aus §14 auf der Seite zeigen — Zeile im Streckenband, K
 - **E-AW-28 — Zustände:** Lauf bis 3 h „Lauf HH:MM", bis 12 h „· veraltet", danach oder ohne Zeiger/Datei keine
   Prognose: Chips gesperrt, Zeile weg, Grund im Text. Die Messung bleibt in jedem Fall vollständig.
 - **E-AW-29 — zweiter Auslöser des Jobs** (`workflow_run` nach jedem abgeschlossenen Lauf von `point`): GitHub startete
-  den Zeitplan des neuen Workflows am 04.10. in den ersten zwei Stunden nicht. `point.yml` unberührt.
+  den Zeitplan des neuen Workflows am 04.10. in den ersten zwei Stunden nicht (erster Lauf 11:04 UTC, §14.7). `point.yml`
+  unberührt. Der Auslöser bleibt als zweiter Weg; wirkt er zu oft, genügt das Entfernen der drei Zeilen.
 
 ### 15.3 Umsetzung
 
