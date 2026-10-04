@@ -84,6 +84,7 @@ import { TIERS, CUBE_PLANES, CUBE_ENS_MEAN_VARS, POINT_CALIB_PATH, POINT_LEARNED
 import { NOWCAST_SATURATION, NOWCAST_HOUR_MEAN_MIN_FRAMES as NOWCAST_HOUR_MEAN_MIN_FRAMES_FORMAT, NOWCAST_HOUR_MEAN_WINDOW_MIN, type NowcastSourceId } from '../point/nowcastFormat';
 import { distanceKm, type CubePointSeries, type CubePointStep } from '../point/client/cubePoint';
 import type { StaticPoint } from '../point/client/staticPoint';
+import type { ChunkDecoder } from '../point/client/decodePool';
 import type { PointSourceManifest } from '../point/manifest';
 import type { StationPointSeries } from '../point/client/stationPoint';
 import type { NowcastPointSeries } from '../point/client/nowcastPoint';
@@ -2022,6 +2023,13 @@ export interface CubeIo {
    * aus; `?inca=1` im Panel. Wirkt nur mit `obs` (der Abruf hängt dort an) und nur innerhalb des INCA-Rasters.
    */
   incaAnchor?: boolean;
+  /**
+   * AW-6.1 (`audit/autobahnwetter.md` §14, E-AW-22): the chunk decoder handed to `readPointBundle` — a producer that
+   * computes thousands of points in one process memoises decoded chunks with it. Default: none ⇒ the reader's own
+   * decoder (worker pool), byte-identical to before. Not part of the cache key: a decoder must return what
+   * `decodeCubeChunk` returns.
+   */
+  decodeChunk?: ChunkDecoder;
 }
 
 /** AP13: der Anteil der Io-Optionen am Cache-Schlüssel — leer ohne Optionen (byte-gleicher Schlüssel wie bisher). */
@@ -2540,6 +2548,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     { lat, lon, nowMs, fromMs: t0Ms, toMs: t0Ms + hours * H, stepH: 1 },
     {
       store: io.store, decodePng: io.decodePng, nowcast: withRadar, terrain: io.terrain, plan: false, neighbours: true, lateDeadlineMs: io.lateDeadlineMs,
+      ...(io.decodeChunk ? { decodeChunk: io.decodeChunk } : {}),
       ...(io.crossChunk ? { crossChunk: true } : {}),
       ...(io.z0mod ? { z0mod: true } : {}),
       ...(io.stationSource && io.stationSource !== 'mosmix_l' ? { stationSource: io.stationSource } : {}),
