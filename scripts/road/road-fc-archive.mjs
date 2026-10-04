@@ -38,6 +38,8 @@ export function thinRun(files) {
     if (p.kind !== 'station') continue;
     stations[p.id] = {
       lat: p.lat, lon: p.lon, h: p.h ?? null, mos: p.mos ?? null, at: f.kind === 'corridor' ? f.id : null,
+      // V-AW-21: whether (and by how much) this forecast was anchored on the station's measurement.
+      ...(p.anc ? { anc: p.anc } : {}),
       v: Object.fromEntries(ROAD_FC_ARCHIVE_VARS.map((k) => [k, p.v[k].slice(0, ROAD_FC_ARCHIVE_STEPS)])),
     };
   }

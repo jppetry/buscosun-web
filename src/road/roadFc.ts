@@ -149,14 +149,34 @@ export interface RoadFcPoint {
   name?: string;
   /** MOSMIX station that carried the station member (id, distance km) — `null`: none in reach. */
   mos: [string, number] | null;
+  /**
+   * V-AW-21: the measurement anchor at this point — [offset measurement − model in 0.1 K, representativity in %,
+   * own measurement 1 / neighbours 0]. Absent = no anchor here.
+   */
+  anc?: [number, number, 0 | 1];
   v: RoadFcSeries;
 }
+
+/**
+ * V-AW-21 — which points the producer anchors on the SWIS air temperature (`audit/autobahnwetter.md` §16):
+ * `'stations'` = every station point on its own measurement, `'all'` = other points on their neighbours too,
+ * `'none'`. The mode is the result of the measurement in §16.
+ */
+export type RoadFcAnchorMode = 'none' | 'stations' | 'all';
+export const ROAD_FC_ANCHOR_MODE: RoadFcAnchorMode = 'none';
 
 export interface RoadFcEngine {
   name: string;
   stage: 'fs';
-  /** No measurement anchor in the producer (D-FC-2) — said in every file. */
-  anchor: 'none';
+  /**
+   * What the run did, not what was asked for: `'swis'` = at least one point was anchored on a road weather station
+   * (then `anchorMode`, `anchorSlot` = stamp of the measurement slot, `anchored` = number of points); `'none'` = no
+   * anchor (mode off, or the measurement slot of the run's hour was not in the checkout).
+   */
+  anchor: 'none' | 'swis';
+  anchorMode?: RoadFcAnchorMode;
+  anchorSlot?: string | null;
+  anchored?: number;
   hourMean: boolean;
   /** Cube runs the run read, per tier, and the station product. */
   runs: Record<string, string | null>;
