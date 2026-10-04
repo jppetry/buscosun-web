@@ -1,0 +1,90 @@
+# ============================================================================
+# road-fc.yml — Streckenprognose des Autobahnwetters (AW-6.1, buscosun-web/audit/autobahnwetter.md §14)
+#
+# VORLAGE. Diese Datei wird in `buscosun-web/scripts/road/workflow-road-fc.yml` GEPFLEGT und liegt im
+# Daten-Repo als `.github/workflows/road-fc.yml` (Jans Auftrag 04.10.2026). Der Code lebt in `buscosun-web`
+# (`scripts/road/road-forecast.mjs`, Vertrag `src/road/roadFc.ts`) und wird bei jedem Lauf frisch geklont.
+#
+# Was der Job tut: buscosun Fusion 8 an jedem Punkt aus `road/fc/v1/static/points.json` (alle 5 km je
+# Autobahn-Korridor, auf der OSM-Fahrbahn; dazu jede Glättemeldeanlage), 0–48 h stündlich, aus dem Punkt-Cube
+# (`point/`), dem Radar-Stundenmittel (`radar/img/v1/rv`) und MOSMIX-L (`point/stations`) DIESES Checkouts.
+# Ergebnis: `road/fc/v1/<lauf>/c/<korridor>.json`, `…/s/<land>.json`, Zeiger `road/fc/v1/index.json`.
+#
+# ── Eigene Linie, eigener Job ───────────────────────────────────────────────
+# Geschrieben wird NUR unter `road/fc/v1/` — `road/v1/` gehört dem Radar-Spiegel (er setzt es bei jedem Push
+# auf seinen Bestand), `point/` dem Punkt-Cron, `runs/` der Kartenlinie. Kein Eingriff in deren Workflows.
+#
+# ── Takt stündlich, :12 ─────────────────────────────────────────────────────
+# Der Stufe-1-Job startet :40 jeder dritten Stunde und ist ≈ :55 fertig; das Radar-Stundenmittel ändert die
+# ersten zwei Stunden. GitHub startet Zeitpläne verspätet (gemessen bis 48 min) — der Client liest deshalb den
+# Zeiger und leitet den Lauf nie aus der Uhr ab.
+#
+# ── Push mit Neuaufsetzen ───────────────────────────────────────────────────
+# Das Skript setzt vor jedem Versuch auf ein frisches origin/main auf (Kartenlinie: Force-Push; Spiegel: Push
+# alle paar Minuten), nie --force. Läufe älter als 3 h werden entfernt, mindestens 2 bleiben.
+#
+# ── Rot ─────────────────────────────────────────────────────────────────────
+# Exit 3 = Lauf nicht veröffentlicht (mehr als 10 % der Punkte ohne Ergebnis, Tabellen der Lernstufe nicht
+# gelesen, kein Lauf der Stufe 1). Der vorige Lauf bleibt der jüngste. Aus: Repo-Variable ROAD_FC=0.
+# ============================================================================
+
+name: road-fc
+
+on:
+  schedule:
+    - cron: '12 * * * *'   # stündlich, :12
+  workflow_dispatch: {}
+
+concurrency:
+  group: road-fc
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            point
+            radar/img
+            road
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-road-fc[bot]'
+          git config user.email 'road-fc@users.noreply.github.com'
+
+      - name: Checkout producer (buscosun-web, public, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git "$RUNNER_TEMP/app"
+          cd "$RUNNER_TEMP/app"
+          git sparse-checkout set --no-cone scripts src public/climaGrid.json package.json
+          git checkout --quiet
+          test -f scripts/road/road-forecast.mjs || { echo "scripts/road/road-forecast.mjs fehlt in buscosun-web main"; exit 1; }
+
+      # Die Leser des Clients laden zwei Parser-Pakete (RADOLAN-bz2, HDF5) schon beim Import — dieselben zwei wie im
+      # Radar-Spiegel. Neben den Klon installiert (nicht hinein): im Klon läge package.json und npm holte alles.
+      - name: Parser packages (bz2, jsfive)
+        run: npm install --prefix "$RUNNER_TEMP" --no-save --no-audit --no-fund bz2@1 jsfive@0.4
+
+      - name: Forecast and publish
+        env:
+          ROAD_FC: ${{ vars.ROAD_FC }}
+        run: |
+          test -f road/fc/v1/static/points.json || { echo "road/fc/v1/static/points.json fehlt im Daten-Repo"; exit 1; }
+          cd "$RUNNER_TEMP/app"
+          node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs \
+            scripts/road/road-forecast.mjs --data="$GITHUB_WORKSPACE" --publish

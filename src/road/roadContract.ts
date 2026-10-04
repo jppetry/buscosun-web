@@ -10,7 +10,7 @@
  *   road/v1/obs/<YYMMDDHHMM>.json          every VALID point of the slot (values, class, provenance, age)
  *   road/v1/h24/<group>/<YYMMDDHHMM>.json  24-h ring of one DWD series up to that slot (immutable per slot; E-AW-10)
  *   road/v1/quarantine/<YYMMDDHHMM>.json   rejected values with rule and raw value (diagnosis only)
- *   road/v1/fc/<YYMMDDHHMM>.json           AW-6 forecast (stub: path and schema id only, nothing written yet)
+ *   (the AW-6.1 route forecast is its own line `road/fc/v1/` — contract `roadFc.ts`, E-AW-18)
  *   road/v1/static/stations.json           station catalogue from sws_stations_xls.xlsx (timeless)
  *   road/v1/static/corridors.json          corridors, km axis, border points, AT/CH forecast points (timeless)
  *
@@ -35,7 +35,6 @@ export const ROAD_REPO_DIR = `road/${ROAD_VERSION}`;
 
 export const roadObsPath = (stamp: string) => `obs/${stamp}.json`;
 export const roadQuarantinePath = (stamp: string) => `quarantine/${stamp}.json`;
-export const roadFcPath = (stamp: string) => `fc/${stamp}.json`;
 export const roadH24Path = (group: string, stamp: string) => `h24/${group}/${stamp}.json`;
 export const ROAD_STATUS_PATH = 'status.json';
 export const ROAD_STATE_PATH = 'state.json';

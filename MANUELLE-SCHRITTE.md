@@ -1320,6 +1320,18 @@ Auftrag Jan 03.10. (Kickoff `prompt-regenradar.md`, Entscheidungen E-RR-1…3 am
 
 ## 34. Phase AW — Autobahnwetter (Fahrbahn gemessen DE), 2026-10-03
 
+**Nachtrag 04.10. — AW-6.1 Streckenprognose (`audit/autobahnwetter.md` §14):** läuft ohne dein Zutun (Workflow
+`road-fc.yml` im Daten-Repo, stündlich; Archiv-Schritt in `road-archiv.yml`). Für dich:
+- **(h) ansehen:** Störung beim ersten Push (§14.5) — 62 s alter Radar-/Straßen-Stand auf `main` des Daten-Repos, zurückgesetzt.
+  Falls ein Radar-Slot um 09:00 UTC am CDN hängt: Purge ist dein Gate.
+- **(i) E-AW-17 bestätigen:** Lage der Achspunkte aus OpenStreetMap (ODbL, Nennung im README und in `points.json`). Ohne OSM
+  lägen die Punkte bis 224 m neben der Fahrbahn (`--no-snap` baut sie auf der BKG-Achse).
+- **(j) E-AW-23 entscheiden:** Archiv der Stationsprognosen ≈ 2,1 MB/Tag (≈ 0,8 GB/Jahr) — so lassen oder kürzen.
+- **(k) V-AW-20:** beim DWD nachfragen, warum die Ordner `LW`/`SD` (Baden-Württemberg) leer sind.
+- **(l) nächste Phase freigeben:** Anzeige der Prognose auf der Seite (AW-6.1b); danach V-AW-21 (SWIS-Luft als Anker).
+- Aus: Repo-Variable `ROAD_FC=0` im Daten-Repo. Prüfen von außen:
+  `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-check.mjs --files=all`.
+
 Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwerte: `audit/autobahnwetter.md` (§0 Kurzfassung).
 
 **Stand:**
@@ -1332,9 +1344,10 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
   Korridor-Achsen (A 8 161,3 → 128,7 km). jsDelivr für die geänderten `road/`-Dateien gepurgt. Workflows unverändert. Nach dem
   Force-Push der Kartenlinie (13:07 UTC) geprüft: alles noch da.
 - **Schattenbetrieb:** der Radar-Spiegel klont `main` von buscosun-web bei jedem Jobstart und schreibt seither je 15-min-Slot `road/v1/`
-  (Belege der ersten Slots: Audit §5). Keine Seite liest die Daten ohne `?road=1`.
-- **AW-4/AW-5 seit 03.10. abends auf `main`** (Zweig `feat/autobahnwetter` gemergt, Audit §11): Kachel, Route, Rail, ⌘K, Aliase und Seite
-  hinter `?road=1` — sichtbar auf buscosun.com nur mit `?road=1` (danach im Browser gemerkt, `?road=0` blendet aus).
+  (Belege der ersten Slots: Audit §5). Seit dem Flag (03.10. abends) liest `/autobahnwetter` die Daten für alle.
+- **AW-4/AW-5 seit 03.10. abends auf `main`** (Zweig `feat/autobahnwetter` gemergt, Audit §11): Kachel, Route, Rail, ⌘K, Aliase und Seite.
+  **Flag `ROAD_LIVE` seit 03.10. abends an** (dein „ja", Audit §13): für alle sichtbar; `?road=0` blendet je Besucher aus; zurück für alle mit
+  `ROAD_LIVE = false` in `src/road/roadFlag.ts` + Push.
 
 **Deine Gates:**
 - ~~**(a) E-AW-14 — Edge-Bündel `og-meta`**~~ — erledigt 03.10. mit deinem Ja (`npm run edge:share`, gleich dem Patch, `verify:share` 528/528).
@@ -1346,8 +1359,8 @@ Auftrag Jan 03.10. (Kickoff AW-0…AW-5, AW-6 nicht). Befunde, Belege und Messwe
   Vorlage: Audit §5.
 - **(d) Kalibrierung nach ≥ 14 Tagen (≈ 17.10.):** Startwerte der Beobachtungsregeln (`jump`, `neighbours`, `roadAir`, `catalog`, `cube`) aus
   der Quarantäne der Archiv-Halbtage; entscheiden, welche hart werden.
-- **(e) Gate C — Flag an:** `ROAD_LIVE = true` in `src/road/roadFlag.ts`, Sitemap + die 20 Autobahn-Unterseiten (V-AW-8), E-AW-15 Vorschaukarte.
-  Vorher Real-Device (V-AW-13): Handy mit `?road=1`, Karte, Blatt, Auswahl.
+- **(e) Gate C — Rest:** das Flag ist seit 03.10. an (vor Gate B/C). Offen: Real-Device (V-AW-13: Handy, Karte, Blatt, Auswahl), feiner
+  Wächter (V-AW-19), Sitemap + die 20 Autobahn-Unterseiten + `index` statt `noindex` (V-AW-8), E-AW-15 Vorschaukarte.
 - ~~**(f) E-AW-13**~~ — erledigt 03.10. („so voreinstellen wie vorgeschlagen"): kritischste Klasse zuerst (Glätte, Frost, Nässe), bei Gleichstand
   die kälteste Fahrbahn (`defaultRoadStation`, `verify:road-ui` 39/39).
 - ~~**(g) Archiv-Freigabe**~~ — erledigt 03.10. („ja mache"): **AW-6a** Tagesablage in `buscosun-archiv` unter `road/v1/` (Halbtage mit Verlauf + Quarantäne,

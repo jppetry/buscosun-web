@@ -2,13 +2,13 @@
  * Phase AW — visibility of Autobahnwetter (`audit/autobahnwetter.md`). Dependency-free on purpose: the start page,
  * the shared deck rail and the route import it; the contract re-exports `roadFlagFrom` for producer and verifiers.
  *
- * `ROAD_LIVE` is Jan's flag-on decision after Gate C (seite live). Until then tile, palette entry, footer link, rail
- * icon and page exist only with `?road=1` / `localStorage.road = '1'`; `?road=0` hides them again, also after the
- * switch (D-31 pattern: the query beats localStorage, localStorage beats the default).
+ * `ROAD_LIVE` is Jan's flag-on decision: switched on 03.10.2026 ("ja") ahead of Gate B/C — tile, palette entry, footer
+ * link, rail icon and page are visible to everyone; `?road=0` / `localStorage.road = '0'` hides them per visitor
+ * (D-31 pattern: the query beats localStorage, localStorage beats the default). Back: `false` and a push.
  */
 
-/** Gate C: flips to true when Jan switches the measurements on (plan: "Erst nach Gate C geht das Flag für Messungen an"). */
-export const ROAD_LIVE = false;
+/** On since 03.10.2026 (Jan), before Gate B/C — audit/autobahnwetter.md §13 names what is still open. */
+export const ROAD_LIVE = true;
 
 /** `?road=0|1` beats `localStorage.road`, which beats `ROAD_LIVE`. */
 export function roadFlagFrom(

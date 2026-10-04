@@ -16,7 +16,7 @@ import { decodeSwisFile } from '../src/road/swisBufr.ts';
 import {
   validateRoadSlot, parseRoadObs, parseRoadH24, roadObsRoundTripOk, roadFreshness, roadExpectedSlot, roadFlagFrom,
   roadStamp, roadStampToMs, normaliseRoad, ROAD_GROUPS, ROAD_SLOT_MS, ROAD_STUCK_RUN, ROAD_RULES, ROAD_OBS_GATE_MS,
-  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH,
+  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH, ROAD_LIVE,
 } from '../src/road/roadContract.ts';
 import { ROAD_HEALTH } from './health-manifests.mjs';
 import { classifySensor, mostSevereCondition } from '../src/road/roadClasses.ts';
@@ -197,8 +197,10 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
     roadFreshness(slot, slot + 44 * 60_000) === 'live' && roadFreshness(slot, slot + 46 * 60_000) === 'stale' && roadFreshness(slot, slot + 3 * 3_600_000 + 1) === 'dead' && roadFreshness(slot, slot + 60_000, true) === 'dead');
   add('F12 Zeit-Gate: um 08:09 gilt Slot 07:45, um 08:10 Slot 08:00', roadStamp(roadExpectedSlot(slot + 9 * 60_000)) === '2610030745' && roadStamp(roadExpectedSlot(slot + ROAD_OBS_GATE_MS)) === '2610030800');
   add('F13 Stempel: Rundweg und Ablehnung fremder Formen', roadStamp(roadStampToMs('2610030815')) === '2610030815' && Number.isNaN(roadStampToMs('2613030800')) && Number.isNaN(roadStampToMs('261003081')));
-  add('F14 Flag ?road: Voreinstellung AUS, ?road=1 an, ?road=0 schlägt localStorage',
-    roadFlagFrom('', null) === false && roadFlagFrom('?road=1', null) === true && roadFlagFrom('?road=0', '1') === false && roadFlagFrom('', '1') === true);
+  add('F14 Flag ?road: Voreinstellung = ROAD_LIVE, ?road=1 an, ?road=0 schlägt localStorage und ROAD_LIVE',
+    roadFlagFrom('', null, false) === false && roadFlagFrom('', null, true) === true && roadFlagFrom('?road=1', null, false) === true
+    && roadFlagFrom('?road=0', '1', true) === false && roadFlagFrom('', '0', true) === false && roadFlagFrom('', '1', false) === true);
+  add('F14b ROAD_LIVE an (Jan 03.10.: „ja") — ohne Parameter sichtbar', ROAD_LIVE === true && roadFlagFrom('', null) === true);
   add('F15 Straßennamen: A008 → A8, A095S → A95 (S), B017N → B17 (N), BAB 3 → A3',
     normaliseRoad('A008').road === 'A8' && normaliseRoad('A095S').road === 'A95' && normaliseRoad('A095S').dir === 'S' && normaliseRoad('B017N').road === 'B17' && normaliseRoad('BAB 3').road === 'A3');
   const h24 = { schema: 1, product: 'road-h24', group: 'FN-BY', slot: '2610030800', slots: ['2610030745', '2610030800'], stations: { V164: { rs: [1.2, null], ta: [3, 3.1], td: [1, 1] } } };

@@ -70,7 +70,7 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git data
           cd data
-          git sparse-checkout set --no-cone road/v1
+          git sparse-checkout set --no-cone road/v1 road/fc/v1
           git checkout --quiet
           test -f road/v1/status.json || { echo "road/v1/status.json fehlt im Daten-Repo"; exit 1; }
 
@@ -81,6 +81,15 @@ jobs:
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-archive.mjs \
             --store=../data/road/v1 --archive=../road/v1
+
+      # AW-6.1: der jüngste Lauf der Streckenprognose, nur Stationspunkte, 0–24 h (road/fc/v1/<tag>/<lauf>.json.gz).
+      # Vergangene Vorhersagen sind nicht nachholbar. Ein Fehler hier hält die Ablage der Messungen nicht auf.
+      - name: Archive route forecast
+        continue-on-error: true
+        run: |
+          cd app
+          test -f ../data/road/fc/v1/index.json || { echo "noch keine Streckenprognose im Daten-Repo"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-archive.mjs             --fc=../data/road/fc/v1 --archive=../road/fc/v1
 
       # Append-only: normaler Push mit Wiederholung, NIE --force. Abgewiesen heißt hier nur, dass
       # das Punktarchiv (oder ein manueller Lauf) dazwischenkam — rebase und erneut.
