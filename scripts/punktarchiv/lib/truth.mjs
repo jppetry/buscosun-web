@@ -17,6 +17,32 @@ export const TAWES_META_URL = 'https://dataset.api.hub.geosphere.at/v1/station/c
 export const TAWES_HISTORY_URL = 'https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min';
 /** SMN day file: ONLY the running UTC day (measured 2026-09-16: PAY first row 00:00, §9.3.1 (5)). */
 export const SMN_NOW_URL = (abbr) => `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${abbr.toLowerCase()}/ogd-smn_${abbr.toLowerCase()}_t_now.csv`;
+/**
+ * SMN year file: 1 January … the PREVIOUS UTC day, same columns (measured 2026-10-04: BER Last-Modified 11:23 UTC, last row
+ * 03.10. 23:50; 5,4 MB) — read only its end with an HTTP Range (`SMN_RECENT_TAIL_BYTES_PER_DAY` ≈ 144 rows × ≈ 175 B, rounded up).
+ * At 00:01 UTC it does NOT yet hold the day that just ended; it does from ≈ 12 UTC on.
+ */
+export const SMN_RECENT_URL = (abbr) => `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${abbr.toLowerCase()}/ogd-smn_${abbr.toLowerCase()}_t_recent.csv`;
+export const SMN_RECENT_TAIL_BYTES_PER_DAY = 30_000;
+
+/** Header line of a Range head + the tail of a Range end (its first, cut line dropped) ⇒ one CSV for `parseSmn10min`. */
+export function joinCsvRangeTail(headText, tailText) {
+  const head = headText.split(/\r?\n/)[0];
+  const lines = tailText.split(/\r?\n/);
+  return [head, ...lines.slice(1)].join('\n');
+}
+
+/** Two `parseSmn10min` results as one (`top` wins on a shared stamp — the day file over the year file). */
+export function mergeSmn10min(base, top) {
+  if (!base) return top; if (!top) return base;
+  const out = {};
+  for (const k of new Set([...Object.keys(base), ...Object.keys(top)])) {
+    const m = new Map(base[k] ?? []);
+    for (const [ms, v] of top[k] ?? []) m.set(ms, v);
+    out[k] = m;
+  }
+  return out;
+}
 
 const TEN_MIN = 600_000;
 const HOUR = 3_600_000;
@@ -269,5 +295,16 @@ export function truthSelfTest() {
   add('TAWES-Stationen: aktive nur, 11xxx trägt die Synop-Kennung als wmo, 8989xxx nicht', st.length === 2 && st[0].wmo === '11343' && st[0].h === 3109 && st[1].wmo === null);
   const ss = parseSmnStations('station_abbr;station_name;station_canton;station_wigos_id;station_height_masl;station_coordinates_wgs84_lat;station_coordinates_wgs84_lon\nVAD;Vaduz;FL;0-20000-0-06990;457.0;47.128;9.518\nXYZ;Ohne WMO;BE;0-756-0-1;900;46.5;7.5');
   add('SMN-Stationen: Kanton FL ⇒ LI, WIGOS-WMO übernommen, nationale WIGOS ⇒ wmo null', ss[0].country === 'LI' && ss[0].wmo === '06990' && ss[0].h === 457 && ss[1].country === 'CH' && ss[1].wmo === null);
+  // 04.10.2026: the year file's end (Range) + the day file. The Range end starts mid-line; that cut line must go.
+  const smnRows = smnCsv.split('\n');
+  const tail = `16.09.2026 10:5${smnRows[1].slice(-12)}\n${smnRows.slice(1, 4).join('\n')}`;   // a cut line, then 11:00…11:20
+  const joined = parseSmn10min(joinCsvRangeTail(`${smnHead}\nSAE;01.01.2026 00:00;…`, tail));
+  add('SMN-Jahresdatei: Kopf aus dem Range-Anfang, die abgeschnittene erste Zeile des Range-Endes fällt weg, die übrigen drei Stempel bleiben',
+    [...joined.t.keys()].join() === [11, 11 + 1 / 6, 11 + 2 / 6].map((h) => Date.UTC(2026, 8, 16, 0, Math.round(h * 60))).join(), [...joined.t.keys()].map((m) => new Date(m).toISOString()).join());
+  const dayFile = parseSmn10min([smnHead, ...smnRows.slice(3)].join('\n'));   // 11:20…12:00, with a different 11:20 temperature
+  dayFile.t.set(Date.UTC(2026, 8, 16, 11, 20), 5);
+  const both = mergeSmn10min(joined, dayFile);
+  add('SMN Jahres- + Tagesdatei: Vereinigung der Stempel 11:00…12:00, auf dem gemeinsamen Stempel gewinnt die Tagesdatei; ohne Jahresdatei unverändert die Tagesdatei',
+    both.t.size === 7 && both.t.get(Date.UTC(2026, 8, 16, 11, 20)) === 5 && both.t.get(Date.UTC(2026, 8, 16, 11, 0)) === 1 && hourSum10(both.rr10, h12) === 3.2 && mergeSmn10min(null, dayFile) === dayFile);
   return { checks, passed: checks.filter((c) => c.ok).length, total: checks.length };
 }

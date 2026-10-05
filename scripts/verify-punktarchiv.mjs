@@ -226,5 +226,38 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(7) collect.mjs liest über den Ausweichweg (außer mit --raw) und schreibt die Zahl der Ausweichwege in den Slot', /withRawSameRef\(httpStore\(\{\}\)\)/.test(csrc) && /fallbacks: store\.stats\.fallbacks/.test(csrc));
 }
 
+// (8) Wahrheits-Nachtrag (04.10.2026): der 03.10.-Lauf startete 00:01 UTC, SMN-Tagesdatei schon gerollt ⇒ Nachtrag neben den
+// Slots, Leser füllen nur auf; der Sammler liest bei einem Fenster vor dem laufenden UTC-Tag das Ende der Jahresdatei.
+{
+  const { addSupplementTruth, archiveTruth, TRUTH_SUPPLEMENT_KIND: KIND_A, TRUTH_SUPPLEMENT_RE: RE_A } = await import('./fusionfit/lib/archiveAdapter.mjs');
+  const { TRUTH_SUPPLEMENT_KIND: KIND_L, TRUTH_SUPPLEMENT_RE: RE_L } = await import('./punktarchiv/lib/punktarchiv.mjs');
+  const { compareRecords, smnRecord } = await import('./punktarchiv/truth-supplement.mjs');
+  add('(8) Nachtrag-Art und Dateimuster in Archiv-Bibliothek und Leser-Adapter gleich; ein Slot-Name (0001.json.gz) passt nicht', KIND_A === KIND_L && String(RE_A) === String(RE_L) && RE_L.test('truth-smn.json.gz') && !RE_L.test('0001.json.gz') && !/^\d{4}\.json\.gz$/.test('truth-smn.json.gz'));
+  const h0 = Date.UTC(2026, 9, 4, 0, 0), h1 = h0 - 3_600_000, h2 = h0 - 2 * 3_600_000;
+  const sc = { t: TRUTH_SCALES.t, ff: TRUTH_SCALES.ff, dd: TRUTH_SCALES.dd };
+  const mkSlot = (byPoint) => ({ scales: { truth: sc }, truth: { byPoint } });
+  const countryOf = () => 'CH';
+  const pool = new Map();
+  for (const [id, rec] of archiveTruth(mkSlot({ '06670': { smn: { obsAtMs: [h1, h0], count: 2, t: [SENTINEL, 1000], ff: [100, 200], dd: [90, 90] } } }), countryOf)) for (const r of rec.rows) pool.set(`${id}|${r.ms}`, { ...r });
+  const supp = mkSlot({ '06670': { smn: { obsAtMs: [h2, h1, h0], count: 3, t: [800, 900, 1100], ff: [100, 100, 200], dd: [90, 90, 90] } } });
+  const st = addSupplementTruth(pool, supp, countryOf);
+  add('(8) Leser: Nachtrag füllt auf — neue Stunde dazu, Sentinel-T gefüllt, ein Slot-Wert (10,0 °C) bleibt trotz anderem Nachtrag (11,0), gezählt',
+    st.added === 1 && pool.get(`06670|${h2}`)?.t === 8 && pool.get(`06670|${h1}`)?.t === 9 && pool.get(`06670|${h0}`)?.t === 10 && st.differing === 1 && st.kept === 2, JSON.stringify(st));
+  const before = JSON.stringify([...pool]);
+  addSupplementTruth(pool, mkSlot({}), countryOf);
+  add('(8) Negativkontrolle Leser: ein leerer Nachtrag ändert den Pool nicht (ohne Nachtrag-Dateien bleiben die Bewerter byte-gleich)', JSON.stringify([...pool]) === before);
+  const series = { t: new Map([[h1, 9], [h0, 10]]), ff: new Map([[h1, 1], [h0, 2]]) };
+  const rec = smnRecord(series, h1, h0 + 60_000);
+  add('(8) Nachtrag-Skript baut die Reihe wie der Sammler (Stempel, Skala 0,01, fehlende Spalte ⇒ Sentinel)', rec.count === 2 && rec.t.join() === '900,1000' && rec.dd.every((v) => v === SENTINEL));
+  const cmp = compareRecords({ obsAtMs: [h0], t: [SENTINEL], ff: [200] }, rec), cmpNeg = compareRecords({ obsAtMs: [h0], t: [1001], ff: [200] }, rec);
+  add('(8) Vergleich: Sentinel → Wert wird getrennt gezählt; Negativkontrolle: ein um 0,01 K anderer Wert ist eine Abweichung', cmp.sentinelToValue === 1 && cmp.differing.length === 0 && cmpNeg.differing.length === 1 && cmpNeg.differing[0].col === 't');
+  const csrc = readFileSync(join(ROOT, 'scripts/punktarchiv/collect.mjs'), 'utf8');
+  add('(8) Sammler: Jahresdatei nur, wenn das Fenster mehr als eine Stunde vor den laufenden UTC-Tag reicht (23:20-Slot unverändert); Tagesdatei gewinnt; Warnung smnTruthShort',
+    /smnNeedsRecent = fromMs < smnDayStartMs - H/.test(csrc) && /mergeSmn10min\(parseSmn10min\(joinCsvRangeTail\(head, tail\)\), s\)/.test(csrc) && /'smnTruthShort'/.test(csrc));
+  const regular = Date.UTC(2026, 9, 2, 23, 21), late = Date.UTC(2026, 9, 4, 0, 1);
+  const needs = (slotAtMs) => { const fromMs = Math.floor((slotAtMs - 24 * 3_600_000) / 3_600_000) * 3_600_000; return fromMs < Math.floor(slotAtMs / 86_400_000) * 86_400_000 - 3_600_000; };
+  add('(8) Regel nachgerechnet: 23:21-Slot (Fenster ab 23:00 Vortag) liest die Jahresdatei NICHT, der 00:01-Slot (ab 00:00 Vortag) schon', !needs(regular) && needs(late));
+}
+
 console.log(`\n${passed}/${total} Prüfungen bestanden.`);
 process.exitCode = passed === total ? 0 : 1;

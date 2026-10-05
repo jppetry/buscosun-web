@@ -22,9 +22,9 @@
  */
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { HINDCAST_ROOT, parseArgs, codeHash } from '../hindcast/lib/common.mjs';
-import { foldKeyFV, readArchiveSlot, archiveSeries, archiveStation, archiveNowcast, archiveTruth, archiveObs, archiveLive, liveFusionQ, losoClimaProduct, inputFromArchive } from './lib/archiveAdapter.mjs';
+import { foldKeyFV, readArchiveSlot, archiveSeries, archiveStation, archiveNowcast, archiveTruth, archiveObs, archiveLive, liveFusionQ, losoClimaProduct, inputFromArchive, truthSupplementPaths, readTruthSupplement, addSupplementTruth } from './lib/archiveAdapter.mjs';
 import { scoreDist, qs3Of, quantiles3 } from './lib/distScore.mjs';
 import { ScoreAcc, BrierAcc, PairAcc, benjaminiHochberg } from './lib/stats.mjs';
 import { siteOf } from './lib/rowFeatures.mjs';
@@ -98,6 +98,11 @@ for (const p of slotsUsed) {
     truth.set(k, { ...r, net: rec.net });
   }
   slotMeta.push({ path: p, slotAt: s.slotAt, slotAtMs: s.slotAtMs, schema: s.schema, codeHash: s.codeHash });
+}
+// truth supplements (04.10.2026) up to the last slot's day — fill-only, after every slot
+for (const p of truthSupplementPaths(ARCH, { to: slotsUsed.length ? basename(dirname(slotsUsed[slotsUsed.length - 1])) : null })) {
+  const st = addSupplementTruth(truth, readTruthSupplement(p), countryOf, { withNet: true });
+  say(`Wahrheits-Nachtrag ${p}: ${st.added} neue Paare, ${st.filled} Spalten aufgefüllt, ${st.differing} von ${st.kept} vorhandenen abweichend (Slot-Wert bleibt)`);
 }
 truthStats.pairs = truth.size;
 say(`Wahrheit: ${truth.size} (Punkt, Stunde)-Paare, ${truthStats.dup} doppelt, ${truthStats.mismatch} abweichend`);

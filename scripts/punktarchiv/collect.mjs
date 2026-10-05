@@ -76,6 +76,7 @@ import {
 } from './lib/punktarchiv.mjs';
 import {
   POI_URL, parsePoi, poiSeries, TAWES_HISTORY_URL, TAWES_10MIN, SMN_NOW_URL, parseTawes10min, parseSmn10min, tenMinColumns, tenMinHourStamps,
+  SMN_RECENT_URL, SMN_RECENT_TAIL_BYTES_PER_DAY, joinCsvRangeTail, mergeSmn10min,
 } from './lib/truth.mjs';
 import { loadPointList, PROFILE_WHY } from './points.mjs';
 
@@ -123,11 +124,11 @@ async function mapLimit(items, limit, fn) {
   return out;
 }
 
-async function fetchText(url, timeoutMs = 30_000) {
+async function fetchText(url, timeoutMs = 30_000, range = null) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   try {
-    const r = await fetch(url, { signal: ac.signal });
+    const r = await fetch(url, range ? { signal: ac.signal, headers: { Range: range } } : { signal: ac.signal });
     if (r.status === 404) return null;
     if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
     return await r.text();
@@ -677,8 +678,25 @@ async function collectTruth(points, slot, slotAtMs) {
       if (txt) for (const [id, rec] of parseTawes10min(JSON.parse(txt))) tenMin.set(`tawes:${id}`, rec);
     } catch (e) { slot.stats.errors.push(`truth/tawes-10min: ${e.message}`); }
   }
+  // 04.10.2026: the day file holds only the running UTC day. A window that starts more than the usual first hour before that
+  // day (cron started after midnight — the 03.10. slot ran at 00:01 and lost SMN's 03.10. —, or `--now` in the past) adds
+  // the END of the year file (Range); the day file wins on a shared stamp. The regular 23:20 slot (window from 23:00 of the
+  // day before) does not fetch it ⇒ byte-identical. The year file only holds the previous day from ≈ 12 UTC on: a slot at
+  // 00:01 still misses it — then the warning `smnTruthShort` names the gap and `truth-supplement.mjs` fetches it later.
+  const smnDayStartMs = Math.floor(slotAtMs / (24 * H)) * 24 * H;
+  const smnNeedsRecent = fromMs < smnDayStartMs - H;
+  const smnTailBytes = (Math.ceil((smnDayStartMs - fromMs) / (24 * H)) + 1) * SMN_RECENT_TAIL_BYTES_PER_DAY;
   await mapLimit(smnAbbrs, 6, async (abbr) => {
-    try { const txt = await fetchText(SMN_NOW_URL(abbr)); if (txt) tenMin.set(`smn:${abbr}`, parseSmn10min(txt)); } catch (e) { slot.stats.errors.push(`truth/smn-10min/${abbr}: ${e.message}`); }
+    try {
+      const txt = await fetchText(SMN_NOW_URL(abbr));
+      let s = txt ? parseSmn10min(txt) : null;
+      if (smnNeedsRecent) {
+        const head = await fetchText(SMN_RECENT_URL(abbr), 30_000, 'bytes=0-4095');
+        const tail = head ? await fetchText(SMN_RECENT_URL(abbr), 60_000, `bytes=-${smnTailBytes}`) : null;
+        if (head && tail) s = mergeSmn10min(parseSmn10min(joinCsvRangeTail(head, tail)), s);
+      }
+      if (s) tenMin.set(`smn:${abbr}`, s);
+    } catch (e) { slot.stats.errors.push(`truth/smn-10min/${abbr}: ${e.message}`); }
   });
   const networkRecord = (series) => {
     const obsAtMs = tenMinHourStamps(series, fromMs, slotAtMs);
@@ -700,6 +718,10 @@ async function collectTruth(points, slot, slotAtMs) {
     }
   }
   if (netMissing.length) warn(slot, 'networkTruthMissing', `${netMissing.length} Netzstationen ohne 10-min-Reihe im Slot: ${netMissing.join(' ')}`);
+  // 04.10.2026: name a short SMN record (more than two hours below what the files can hold for this window)
+  const smnExpected = Math.floor(slotAtMs / H) - Math.ceil((smnNeedsRecent ? fromMs : Math.max(fromMs, smnDayStartMs)) / H) + 1;
+  const smnShort = points.filter((p) => p.truth?.smn && (slot.truth.byPoint[p.id].smn?.count ?? 0) < smnExpected - 2).map((p) => `${p.id}:${slot.truth.byPoint[p.id].smn?.count ?? 0}`);
+  if (smnShort.length) warn(slot, 'smnTruthShort', `${smnShort.length} SMN-Punkte mit weniger als ${smnExpected - 2} von ${smnExpected} Stunden${smnNeedsRecent ? ' (Fenster reicht in den Vortag; die Jahresdatei traegt ihn erst ab ≈ 12 UTC — Nachholweg scripts/punktarchiv/truth-supplement.mjs)' : ''}: ${smnShort.join(' ')}`);
   slot.truth.caveats = [
     'POI: stündlich, 24-h-Rollfenster des DWD, Stationskennung = WMO-Kennung, Zeit = UTC aus den Spalten Datum/Uhrzeit; fx = Stundenmaximum der Böe (fxh = fx).',
     'TAWES/SMN (PA3): alle Spalten aus den 10-min-Reihen AM Stundenstempel (Stempel = Intervallende): t, td, rh, ff, dd, fx (Spitze der letzten 10 min), p (reduziert: TAWES PRED, SMN pp0qffs0). rr1 = 10-min-Menge am Stempel × 6 (mm/h, PA1-Rate, NICHT die Stundensumme).',
@@ -707,6 +729,7 @@ async function collectTruth(points, slot, slotAtMs) {
     'Bedeckung n: nur POI (weder TAWES noch SMN messen sie) — die Spalte fehlt in TAWES/SMN-Datensätzen.',
     'Druck (PA4): p ist der REDUZIERTE Druck des jeweiligen Netzes und das Bezugsniveau ist nicht einheitlich — POI pressure_reduced_to_mean_sea_level und SMN pp0qffs0 (QFF) auf Meeresniveau; TAWES PRED nur bis ≈ 1 000 m Stationshöhe auf Meeresniveau, bei 1 034–2 251 m auf 1 500 m (gemessen 22.09.: 856–861 hPa, PGPM ≈ 1 560–1 600 gpm = Höhe der 850-hPa-Fläche) und ab 2 317 m auf 3 000 m (714–717 hPa, PGPM ≈ 3 140–3 170 = 700-hPa-Fläche; GeoSphere: „PGPM gültiger Wert bei pred < 950 hPa"). SMN QFF ist an 56 von 102 Stationen leer (kein pp0qffs0 in der Datei). ps = Druck auf STATIONSNIVEAU (TAWES P, SMN prestas0; POI führt keinen) ist die netzübergreifend vergleichbare Größe; der Cube trägt ps auf hModEff — Vergleich über die hypsometrische Stufe p(h_station) = ps_cube · exp(−g·(h_station − hModEff)/(R·T_v)).',
     'SMN-Tagesdatei trägt nur den laufenden UTC-Tag: im 23:20-Slot fehlen die Vortagsstunde 23:00 und die Summen/Maxima um 00:00 (Sentinel); Nachholweg _t_recent.csv (4 MB je Station, nicht im Slot).',
+    'SMN seit 04.10.2026: reicht das Fenster mehr als eine Stunde vor den laufenden UTC-Tag (Lauf nach Mitternacht), liest der Sammler zusätzlich das Ende von _t_recent.csv (Range; die Tagesdatei gewinnt auf gemeinsamen Stempeln). Die Jahresdatei trägt den Vortag erst ab ≈ 12 UTC — fehlt er, nennt stats.warnings.smnTruthShort die Punkte; Nachträge stehen als <Tag>/truth-smn.json.gz neben den Slots.',
     'Punkte ohne POI-Datei (PA2, AT/CH an der Messstelle) tragen poi: null — nicht abgefragt. Eine POI-Datei ohne einen Messwert im Fenster steht in stats.warnings.poiEmpty.',
     'count = Zahl der Stunden im Datensatz; obsAtMs die Stempel. Alle Messzeiten liegen ≤ Slotzeit (As-of-Wächter der Bibliothek).',
     'Ueberlappung (seit Schema 2): die 23-UTC-Stunde von TAWES/SMN steht in ZWEI Slots — am Ende von Slot N (23:00 des Tages) und am Anfang von Slot N+1 (Fensterbeginn 23:00 Vortag). Der Bewerter (AP9) dedupliziert nach Punkt und Stempel; die Werte sind identisch, wenn die Reihe nicht nachkorrigiert wurde.',

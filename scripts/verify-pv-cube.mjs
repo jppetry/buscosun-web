@@ -603,6 +603,30 @@ function cubeSampleOfValues(r, i) {
     fuseCubePoint({ ...mkInput(), obs: obsAt(2, 3000, FIX.hTrue, t0Ms - 2 * H) }).notes.some((n) => /kein Paar/.test(n))
     && fuseCubePoint({ ...mkInput(), obs: obsAt(2, 3000, FIX.hTrue, t0Ms + 31 * 60_000) }).steps[1].members.some((m) => m.product === 'anchor'));
   add('(12) Setzung benannt: anchor:set mit τ und Deckel', anchored.calib.some((c) => c.startsWith('anchor:set') && /τ_T 4 h/.test(c) && /Deckel 8 K/.test(c)));
+  // V-AW-33: a measurement between two axis steps was compared with the model value of ONE step (first within ±30 min) — the
+  // model's own trend over the gap became a fake innovation. `anchorAtObsTime` interpolates the model value to the minute of the
+  // measurement. The measurement here sits exactly ON the model line at t0 + 30 min: the true innovation is 0.
+  {
+    const tCube1 = base.steps[1].vertical.t, halfMs = t0Ms + 30 * 60_000;
+    const onLine = [{ ...obsAt(0)[0], validAtMs: halfMs, temperature: (tCube0 + tCube1) / 2 }];
+    const offK = (r) => r.steps[0].members.find((m) => m.product === 'anchor')?.anchor.offsetK;
+    const rOff = fuseCubePoint({ ...mkInput(), obs: onLine }), rOn = fuseCubePoint({ ...mkInput(), obs: onLine }, { anchorAtObsTime: true });
+    add('(12) V-AW-33 Reproduktion: Messung um t0 + 30 min genau auf der Modelllinie ⇒ ohne Option Schein-Versatz = halber Stundengang des Modells (≠ 0); mit `anchorAtObsTime` Versatz 0 und Notiz',
+      Math.abs(tCube1 - tCube0) > 0.05 && near(offK(rOff), (tCube1 - tCube0) / 2, 1e-9) && near(offK(rOn), 0, 1e-9)
+      && rOn.notes.some((n) => /^anchorAtObsTime: Modellwert an 1 von 1 Messungen/.test(n)) && !rOff.notes.some((n) => n.startsWith('anchorAtObsTime')),
+      `Stundengang ${(tCube1 - tCube0).toFixed(3)} K · Versatz aus ${offK(rOff)?.toFixed(4)} K · an ${offK(rOn)?.toExponential(2)} K`);
+    const at41 = [{ ...obsAt(0)[0], validAtMs: t0Ms + 41 * 60_000, temperature: tCube0 + (41 / 60) * (tCube1 - tCube0) + 1 }];
+    add('(12) V-AW-33: Messung um t0 + 41 min, 1 K über der Modelllinie ⇒ mit Option Versatz genau 1 K (ohne: 1 K minus 19 min Modellgang gegen den Schritt t0 + 1 h)',
+      near(offK(fuseCubePoint({ ...mkInput(), obs: at41 }, { anchorAtObsTime: true })), 1, 1e-9)
+      && near(fuseCubePoint({ ...mkInput(), obs: at41 }).steps[1].members.find((m) => m.product === 'anchor').anchor.offsetK, 1 - (19 / 60) * (tCube1 - tCube0), 1e-9));
+    const before = obsAt(2, 3000, FIX.hTrue, t0Ms - 20 * 60_000);
+    add('(12) V-AW-33 Negativkontrollen: Messung zur vollen Stunde ⇒ mit Option byte-gleich zu ohne (fused, Anker-Member); Messung vor dem Achsenbeginn (kein Schritt davor) ⇒ Paarung wie bisher, byte-gleich, Notiz zählt 0; ohne Messung byte-gleich zur Basis',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorAtObsTime: true })) === fusedOf(anchored)
+      && JSON.stringify(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorAtObsTime: true }).steps[0].members) === JSON.stringify(anchored.steps[0].members)
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: before }))
+      && fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true }).notes.some((n) => /^anchorAtObsTime: Modellwert an 0 von 1 Messungen/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorAtObsTime: true })) === fusedOf(base));
+  }
 
   // ── Klimatologie-Schwanz ──
   const tail = fuseCubePoint(input, { tail: true });
@@ -2318,7 +2342,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const full = await run(filesOf(tables, stackFull), STAGE);
   const need = ['learned:hindcast', 'learnedAtPoint:set', 'learnedClouds:hindcast', 'priorShrink:off', 'stationValue:archive'];
   add('(29) mit Tabellen und Stationswert-Tabelle: calib trägt learned, learnedAtPoint, learnedClouds, priorShrink:off, stationValue:archive; die Notiz nennt die Stufe und zählt die gesetzten Schritte; ohne Messung trägt die Form S0; Schritte ≠ Basis',
-    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
+    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*Radar-Stundenmittel \(E-AX-17\), Anker am Messzeitpunkt \(V-AW-33\), Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
     full.cube.notes.find((n) => n.startsWith('stationValue: gesetzt'))?.slice(0, 120) ?? `fehlt: ${need.filter((k) => !keysOf(full).includes(k)).join()}`);
   const noI = await run(filesOf(tables, stackOnlyI), STAGE);
   add('(29) nie still (V-FS-12): eine Tabelle ohne die Formen ohne Messung setzt bei einer Abfrage ohne Messung NICHTS — die Notiz sagt „an keinem Schritt gesetzt"; die übrige Stufe wirkt weiter',
@@ -2326,7 +2350,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const broken = await run(filesOf(tables, 'broken'), STAGE);
   const noFile = await run(filesOf(tables, null), STAGE);
   add('(29) Stationswert-Tabelle kein JSON: die Stufe rechnet ohne Stationswert (Notiz „kein JSON", „ohne Stationswert"), Schritte byte-gleich zur Stufe ohne die Datei',
-    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
+    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
   const explicit = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { priorShrink: true, stationValue: false } });
   add('(29) ausdrückliche fuse-Optionen haben Vorrang vor der Stufe: priorShrink true und stationValue false ⇒ keine der beiden Zeilen, die übrige Stufe bleibt',
     !keysOf(explicit).includes('priorShrink:off') && !keysOf(explicit).includes('stationValue:archive') && keysOf(explicit).includes('learnedAtPoint:set'));
@@ -2336,7 +2360,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const noAnchor = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { anchorWindKm: 0 } });
   add(`(29) buscosun Fusion 7 (E-AX-14): mit Tabellen trägt die Stufe anchorWind:set mit ${FUSION7_ANCHOR_WIND_KM} km und nennt es in der Stufen-Notiz; ohne Tabellen keine anchorWind-Zeile (Rechnung wie ohne Schalter); fuse.anchorWindKm: 0 schaltet den Anker ab, der Rest der Stufe bleibt`,
     FUSION7_ANCHOR_WIND_KM === 10 && keysOf(full).includes('anchorWind:set') && full.cube.calib.some((c) => c.startsWith('anchorWind:set') && c.includes(`${FUSION7_ANCHOR_WIND_KM} km`))
-    && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Wind-Anker über die Messdistanz gedämpft \(10 km, E-AX-14\), Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n))
+    && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*Wind-Anker über die Messdistanz gedämpft \(10 km, E-AX-14\), Radar-Stundenmittel \(E-AX-17\), Anker am Messzeitpunkt \(V-AW-33\), Stationswert$/.test(n))
     && !keysOf(none).includes('anchorWind:set') && !keysOf(noAnchor).includes('anchorWind:set') && keysOf(noAnchor).includes('priorShrink:off') && keysOf(noAnchor).includes('stationValue:archive'),
     `full ${keysOf(full).filter((k) => k.startsWith('anchorWind')).join() || '—'} · none ${keysOf(none).filter((k) => k.startsWith('anchorWind')).join() || '—'} · anchorWindKm:0 ${keysOf(noAnchor).filter((k) => k.startsWith('anchorWind')).join() || '—'}`);
   // buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC): the stage takes the radar hour mean (FUSION8_NOWCAST_HOUR_MEAN) — calib line
@@ -2349,6 +2373,16 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     && f7.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 7 \(Stundenmittel per Schalter aus\)\): /.test(n) && !/Radar-Stundenmittel/.test(n))
     && stepsJson(f7) === stepsJson(full) && keysOf(f7).includes('anchorWind:set'),
     `full ${keysOf(full).filter((k) => k.startsWith('nowcastHourMean')).join() || '—'} · hm:false ${keysOf(f7).filter((k) => k.startsWith('nowcastHourMean')).join() || '—'}`);
+  // buscosun Fusion 9 (V-AW-33, Jan 04.10.2026): the stage sets anchorAtObsTime; `CubeIo.anchorAtObsTime: false` (?anc=0) is the named
+  // fallback — the note then names Fusion 8 with its former wording, and without a measurement the steps are byte-identical.
+  const { FUSION9_ANCHOR_AT_OBS_TIME } = await import('../src/pointForecast/cubeSource.ts');
+  const { pfAnchorAtObsFrom } = await import('../src/pointForecast/pfFlags.ts');
+  const f8 = await run(filesOf(tables, stackFull), { ...STAGE, anchorAtObsTime: false });
+  add('(29) buscosun Fusion 9 (V-AW-33): die Stufe nennt „buscosun Fusion 9" + „Anker am Messzeitpunkt (V-AW-33)" und trägt die Motor-Notiz anchorAtObsTime nur mit Messung; CubeIo.anchorAtObsTime: false ⇒ Notiz „buscosun Fusion 8" im alten Wortlaut, Schritte ohne Messung byte-gleich; Schalter: ?anc=0 aus, sonst an',
+    FUSION9_ANCHOR_AT_OBS_TIME === true && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): /.test(n))
+    && f8.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n)) && !f8.cube.notes.some((n) => n.startsWith('anchorAtObsTime'))
+    && stepsJson(f8) === stepsJson(full) && pfAnchorAtObsFrom('?anc=0') === false && pfAnchorAtObsFrom('') === true && pfAnchorAtObsFrom('?anc=1') === true,
+    f8.cube.notes.find((n) => n.startsWith('stage:fs — neueste'))?.slice(0, 60));
 }
 
 // ---------------------------------------------------------------------------

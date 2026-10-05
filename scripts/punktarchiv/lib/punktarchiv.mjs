@@ -377,6 +377,33 @@ function atomicWrite(abs, bytes) {
   renameSync(tmp, abs);
 }
 
+// ─── Truth supplements (04.10.2026) ────────────────────────────────────────
+/**
+ * A truth supplement carries measurements that a slot SHOULD have held but its source no longer
+ * offered at slot time (the 03.10.2026 cron started at 00:01 UTC; SMN's day file had already
+ * rolled to 04.10. ⇒ 97 of 102 CH/LI points without 03.10.). It is NOT a slot: no forecast,
+ * no slot time, its own kind, file `<day>/truth-<net>.json.gz` next to the slots. The truth block
+ * has the slot's form (`scales.truth`, `truth.window`, `truth.byPoint[id][net]`), so the readers
+ * decode it with the same code; they add its pairs fill-only (a slot value is never replaced).
+ * Append-only like the slots: written once; different bytes under the same name are refused.
+ */
+export const TRUTH_SUPPLEMENT_KIND = 'punktarchiv/truth-supplement';
+export const TRUTH_SUPPLEMENT_RE = /^truth-[a-z]+\.json\.gz$/;
+export const truthSupplementPath = (day, net) => `${day}/truth-${net}.json.gz`;
+
+export function writeTruthSupplement(root, supp) {
+  if (supp?.kind !== TRUTH_SUPPLEMENT_KIND || !ARCHIVE_SCHEMAS_READABLE.includes(supp.schema)) throw new Error(`punktarchiv: kein Wahrheits-Nachtrag (kind ${supp?.kind}, schema ${supp?.schema})`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(supp.day ?? '') || !/^[a-z]+$/.test(supp.network ?? '')) throw new Error('punktarchiv: Nachtrag ohne day/network');
+  const bytes = gzipSync(Buffer.from(JSON.stringify(supp), 'utf8'), { level: 9 });
+  const rel = truthSupplementPath(supp.day, supp.network), abs = join(root, rel), sha = sha256(bytes);
+  let written = false;
+  if (existsSync(abs)) {
+    if (sha256(readFileSync(abs)) !== sha) throw new Error(`punktarchiv: ${rel} existiert mit anderen Bytes — ein Nachtrag wird nie ersetzt`);
+  } else { atomicWrite(abs, bytes); written = true; }
+  rebuildIndexes(root);
+  return { written, file: rel, bytes: bytes.length, sha };
+}
+
 /** Day index + root index, always from the files on disk. */
 export function rebuildIndexes(root) {
   const days = existsSync(root)
@@ -393,8 +420,18 @@ export function rebuildIndexes(root) {
       return { file: f, bytes: bytes.length, sha256: sha256(bytes), conflict: /-r\d+\.json\.gz$/.test(f), ...head };
     });
     const dayIdx = { schema: ARCHIVE_SCHEMA, kind: 'punktarchiv/day', day, updatedAt: new Date().toISOString(), slots };
+    // truth supplements: the key appears only where one exists ⇒ every other day index keeps its form
+    const supps = readdirSync(dir).filter((f) => TRUTH_SUPPLEMENT_RE.test(f)).sort().map((f) => {
+      const bytes = readFileSync(join(dir, f));
+      let head = null;
+      try { const s = JSON.parse(gunzipSync(bytes).toString('utf8')); head = { kind: s.kind, network: s.network, supplements: s.supplements?.file ?? null, points: Object.keys(s.truth?.byPoint ?? {}).length, createdAt: s.createdAt, codeHash: s.codeHash }; } catch { head = null; }
+      return { file: f, bytes: bytes.length, sha256: sha256(bytes), ...head };
+    });
+    if (supps.length) dayIdx.supplements = supps;
     writeFileSync(join(dir, 'index.json'), `${JSON.stringify(dayIdx, null, 2)}\n`);
-    rootIdx.days.push({ day, slots: slots.length, bytes: slots.reduce((n, s) => n + s.bytes, 0), conflicts: slots.filter((s) => s.conflict).length, first: slots[0]?.slotAt ?? null, last: slots[slots.length - 1]?.slotAt ?? null });
+    const dayEntry = { day, slots: slots.length, bytes: slots.reduce((n, s) => n + s.bytes, 0), conflicts: slots.filter((s) => s.conflict).length, first: slots[0]?.slotAt ?? null, last: slots[slots.length - 1]?.slotAt ?? null };
+    if (supps.length) dayEntry.supplements = supps.length;
+    rootIdx.days.push(dayEntry);
   }
   mkdirSync(root, { recursive: true });
   writeFileSync(join(root, 'index.json'), `${JSON.stringify(rootIdx, null, 2)}\n`);
@@ -495,6 +532,19 @@ export function punktarchivSelfTest(tmpRoot) {
     add('Merge: der Konflikt-Slot ist beim zweiten Mal ebenfalls idempotent', !r4.written && r4.file === r3.file);
     const rootIdx = JSON.parse(readFileSync(join(tmpRoot, 'index.json'), 'utf8'));
     add('Merge: der Wurzelindex zählt 2 Slots und 1 Konflikt am Tag', rootIdx.days.length === 1 && rootIdx.days[0].slots === 2 && rootIdx.days[0].conflicts === 1);
+    add('Nachtrag: ein Tag ohne Nachtrag trägt keinen supplements-Schlüssel (Form unverändert)', !('supplements' in rootIdx.days[0]) && !('supplements' in JSON.parse(readFileSync(join(tmpRoot, slotPaths(slotAtMs).dayIndex), 'utf8'))));
+    // truth supplement (04.10.2026): written once, listed, never replaced; a supplement-only day has 0 slots
+    const day0 = slotPaths(slotAtMs).day;
+    const supp = { schema: ARCHIVE_SCHEMA, kind: TRUTH_SUPPLEMENT_KIND, day: day0, network: 'smn', supplements: { file: r1.file }, createdAt: 'x', codeHash: 'x', scales: { truth: TRUTH_SCALES }, truth: { window: { fromMs: slotAtMs - 3_600_000, toMs: slotAtMs }, byPoint: { '06670': { smn: { obsAtMs: [slotAtMs], count: 1, t: [1234] } } } } };
+    const w1 = writeTruthSupplement(tmpRoot, supp), w2 = writeTruthSupplement(tmpRoot, supp);
+    const dayIdx2 = JSON.parse(readFileSync(join(tmpRoot, slotPaths(slotAtMs).dayIndex), 'utf8')), rootIdx2 = JSON.parse(readFileSync(join(tmpRoot, 'index.json'), 'utf8'));
+    add('Nachtrag: erster Aufruf schreibt truth-smn.json.gz, zweiter nichts (idempotent)', w1.written && !w2.written && w1.file === `${day0}/truth-smn.json.gz`, w1.file);
+    add('Nachtrag: Tagesindex nennt ihn unter supplements (Netz, Bezug, Punktzahl), Slots unverändert 2; Wurzelindex zählt 1', dayIdx2.supplements?.length === 1 && dayIdx2.supplements[0].network === 'smn' && dayIdx2.supplements[0].supplements === r1.file && dayIdx2.supplements[0].points === 1 && dayIdx2.slots.length === 2 && rootIdx2.days[0].supplements === 1 && rootIdx2.days[0].slots === 2);
+    const supp2 = structuredClone(supp); supp2.truth.byPoint['06670'].smn.t[0] = 1235;
+    let refused = null; try { writeTruthSupplement(tmpRoot, supp2); } catch (e) { refused = e; }
+    add('Negativkontrolle Nachtrag: andere Bytes unter demselben Namen werden abgewiesen, die Datei bleibt', !!refused && sha256(readFileSync(join(tmpRoot, w1.file))) === w1.sha, refused?.message);
+    let refusedKind = null; try { writeTruthSupplement(tmpRoot, { ...supp, kind: 'punktarchiv/slot' }); } catch (e) { refusedKind = e; }
+    add('Negativkontrolle Nachtrag: ein Objekt mit kind punktarchiv/slot wird nicht als Nachtrag geschrieben', !!refusedKind);
   }
   return { checks, passed: checks.filter((c) => c.ok).length, total: checks.length };
 }

@@ -1445,3 +1445,13 @@ Messwerte: `audit/np0-datenprodukte.md` §8.6 (Gate G-NP0b). Keine Oberfläche �
   nächsten Lauf jeder Stufe ab. `JOB_MAX_MIN.t1` 24 ist nur eine Planungsgrenze im Verifier.
 - **(f) V-NP0-25:** ein t2-Job maß am 02./03.10. 19,3 min (über der Planungsgrenze 15) — unabhängig von NP-0b; Ursache klären, bevor
   eine Grenze geändert wird.
+
+## 37. Archiv — Wahrheits-Nachtrag 03.10. (SMN), 2026-10-04
+
+Kontext: `audit/fusion-implementierung.md` §9.18. Der Nachtrag `2026-10-03/truth-smn.json.gz` liegt auf Jans Auftrag schon im Archiv
+(`buscosun-archiv` `09385e5`, händisch gepusht). Offen:
+
+- **(a) Push von `buscosun-web/main`** mit `scripts/punktarchiv/{collect.mjs,truth-supplement.mjs,lib/punktarchiv.mjs,lib/truth.mjs}`,
+  `scripts/fusionfit/{lib/archiveAdapter.mjs,score-archive.mjs,stack-extract.mjs}`, `scripts/verify-punktarchiv.mjs` — am besten vor 23:10 UTC,
+  sonst stempelt der Archiv-Cron einmal ohne `supplements`-Eintrag (harmlos, Datei bleibt). `verify:punktarchiv` 141/141 vorher.
+- **(b) V-FI-111:** Nachtrag künftig automatisch (Workflow-Schritt) oder nur von Hand? **V-FI-112/113** ansehen.

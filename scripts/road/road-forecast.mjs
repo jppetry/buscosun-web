@@ -129,6 +129,8 @@ export function makeIo({ store, cache, nowMs }) {
     z0: { cache, cacheOnly: true },
     learnedSource: 'json', climaSource: 'json', stackSource: 'json', stage: 'fs',
     nowcastHourMean: FUSION8_NOWCAST_HOUR_MEAN,
+    // The product is named buscosun Fusion 8 and runs without measurements (`obs: null`) — Fusion 9 (V-AW-33) only changes the anchor.
+    anchorAtObsTime: false,
     nowMs: () => nowMs,
   };
 }

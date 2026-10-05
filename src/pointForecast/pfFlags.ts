@@ -41,6 +41,16 @@ export function pfHourMeanFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('hm') !== '0'; } catch { return true; }
 }
 
+/**
+ * V-AW-33 („buscosun Fusion 9", Jan 04.10.2026): the anchor compares a measurement with the model value at the minute of the
+ * measurement. Default ON.
+ *   `?anc=0` → off: the named fallback to buscosun Fusion 8 (model value of the step within ±30 min).
+ *   anything else → on.
+ */
+export function pfAnchorAtObsFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('anc') !== '0'; } catch { return true; }
+}
+
 /** AX-9: `?cg=1` reads `point/static/clima-grid` and takes its 1991–2020 normals as the daily mean of the temperature prior. */
 export function pfClimaGridFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('cg') === '1'; } catch { return false; }

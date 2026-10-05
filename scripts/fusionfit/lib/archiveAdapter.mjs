@@ -17,7 +17,8 @@
  * are never used. Gust truth = `fxh` (hour maximum; schema 1 has it only for POI, where `fx` is the hour maximum), precipitation
  * = POI `rr1` / TAWES+SMN `rr1h` (the hour sums, as `truthJoin.mjs`).
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { TIER_BY_ID, CUBE_PLANES } from '../../../src/point/cubeFormat.ts';
 import { SELECTION } from '../../../src/point/client/resolve.ts';
@@ -38,6 +39,40 @@ export function readArchiveSlot(path) {
   const s = JSON.parse(gunzipSync(readFileSync(path)).toString('utf8'));
   if (s.kind !== 'punktarchiv/slot' || !ARCHIVE_SCHEMAS_READABLE.includes(s.schema)) throw new Error(`${path}: kein Archiv-Slot mit Schema ${ARCHIVE_SCHEMAS_READABLE.join('/')} (kind ${s.kind}, schema ${s.schema})`);
   return s;
+}
+
+// Truth supplements (04.10.2026, `scripts/punktarchiv/lib/punktarchiv.mjs`): `<day>/truth-<net>.json.gz` next to the slots,
+// measurements a slot's source no longer offered at slot time. Same truth block as a slot ⇒ `archiveTruth` decodes it unchanged.
+export const TRUTH_SUPPLEMENT_KIND = 'punktarchiv/truth-supplement';
+export const TRUTH_SUPPLEMENT_RE = /^truth-[a-z]+\.json\.gz$/;
+/** Supplement paths of the archive, day ≤ `to` (YYYY-MM-DD, null = all), sorted. */
+export function truthSupplementPaths(arch, { to = null } = {}) {
+  const out = [];
+  for (const d of readdirSync(arch).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x) && (!to || x <= to)).sort()) {
+    for (const f of readdirSync(join(arch, d)).filter((x) => TRUTH_SUPPLEMENT_RE.test(x)).sort()) out.push(join(arch, d, f));
+  }
+  return out;
+}
+export function readTruthSupplement(path) {
+  const s = JSON.parse(gunzipSync(readFileSync(path)).toString('utf8'));
+  if (s.kind !== TRUTH_SUPPLEMENT_KIND || !ARCHIVE_SCHEMAS_READABLE.includes(s.schema)) throw new Error(`${path}: kein Wahrheits-Nachtrag (kind ${s.kind}, schema ${s.schema})`);
+  return s;
+}
+/**
+ * Adds a supplement's truth to a pool built from the slots — FILL-ONLY: a new (point, stamp) pair is added, a null column of an
+ * existing pair is filled, a slot value is never replaced (a value that differs is counted: a later revision at the source).
+ * Without supplement files nothing changes ⇒ the scorers stay byte-identical on an archive without them.
+ */
+export function addSupplementTruth(truth, supp, countryOf, { withNet = false } = {}) {
+  const st = { added: 0, filled: 0, kept: 0, differing: 0 };
+  for (const [id, rec] of archiveTruth(supp, countryOf)) for (const r of rec.rows) {
+    const k = `${id}|${r.ms}`, prev = truth.get(k);
+    if (!prev) { truth.set(k, withNet ? { ...r, net: rec.net } : { ...r }); st.added += 1; continue; }
+    st.kept += 1;
+    if (['t', 'td', 'ff', 'fxh', 'rr', 'n'].some((x) => prev[x] != null && r[x] != null && Math.abs(prev[x] - r[x]) > 1e-9)) st.differing += 1;
+    for (const x of Object.keys(r)) if (prev[x] == null && r[x] != null) { prev[x] = r[x]; st.filled += 1; }
+  }
+  return st;
 }
 
 const deq = (q, sc) => (q == null || q === ARCHIVE_SENTINEL || !sc ? null : q * sc.scale + sc.offset);

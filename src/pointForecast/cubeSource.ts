@@ -96,7 +96,7 @@ import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../po
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
-import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom } from './pfFlags';
+import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom } from './pfFlags';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
 
 const H = 3_600_000;
@@ -361,6 +361,8 @@ interface AxisStep { validAtMs: number; tier: TierId; step: CubePointStep; serie
 
 /** Gleiche Gültigzeit = innerhalb einer halben Stunde (die Achsen sind auf volle Stunden). */
 const SAME_TIME_MS = 30 * 60_000;
+/** V-AW-33 (set): largest gap between the two axis steps around a measurement for `anchorAtObsTime` (t1 is hourly, t2 3-hourly). */
+export const ANCHOR_BRACKET_MAX_H = 3;
 /** AX-7 (set): σ des Ensemble-Members = Faktor·σ_ens — σ_ens roh ist unterdispersiv (Bericht #1: 28,7 % statt 66,7 % im Band); c(p,f) fehlt bis zur Archivmessung. */
 export const ENS_MEMBER_SIGMA_FACTOR = 1.5;
 export const ENS_MEMBER_SIGMA_FLOOR = Object.freeze({ temperature: 0.6, wind: 0.5, precip: 0.05 });
@@ -586,6 +588,14 @@ export interface FuseCubeOptions {
    * INCA-Analyse sind unberührt. Voreinstellung aus (kein Wert) ⇒ byte-gleich.
    */
   anchorWindKm?: number;
+  /**
+   * V-AW-33: the anchor compares a measurement with the model value AT THE MINUTE of the measurement — linear between the two
+   * axis steps around it (gap ≤ `ANCHOR_BRACKET_MAX_H`) — instead of the value of the first step within ±30 min. Without it a
+   * measurement of 16:30 is paired with the model of 16:00 (or 17:00) and the model's own trend over that gap counts as
+   * innovation. A measurement exactly on a step, or without a step on both sides (before the axis start), pairs as before.
+   * Default off ⇒ byte-identical.
+   */
+  anchorAtObsTime?: boolean;
   /**
    * Phase FS (H14): die gelernte Bewölkungsverteilung wird durchgereicht statt nachfusioniert (`fused.clouds`), wo die
    * Lernstufe sie trägt. Wirkt nur mit `learned`; Voreinstellung aus ⇒ byte-gleich.
@@ -1362,26 +1372,48 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     const pairs: Record<'t' | 'u' | 'v' | 'gust', AnchorPair[]> = { t: [], u: [], v: [], gust: [] };
     const sources = new Set<string>();
     let fraction = 0;
+    const tCubeOf = (x: Prep) => x.learnedMu?.t ?? (x.vertical ? x.vertical.t : x.cubeSample.temperature);
+    let atObsTime = 0;
     for (const o of input.obs) {
-      const p = preps.find((x) => Math.abs(x.a.validAtMs - o.validAtMs) <= SAME_TIME_MS);
+      // V-AW-33: the two steps around the measurement (the axis is sorted) — only strictly between two steps, gap ≤ ANCHOR_BRACKET_MAX_H.
+      let p0: Prep | null = null, p1: Prep | null = null;
+      if (opts.anchorAtObsTime === true) {
+        const i1 = preps.findIndex((x) => x.a.validAtMs > o.validAtMs);
+        if (i1 > 0 && preps[i1 - 1].a.validAtMs < o.validAtMs && preps[i1].a.validAtMs - preps[i1 - 1].a.validAtMs <= ANCHOR_BRACKET_MAX_H * H) { p0 = preps[i1 - 1]; p1 = preps[i1]; }
+      }
+      const p = p0 && p1
+        ? (o.validAtMs - p0.a.validAtMs <= p1.a.validAtMs - o.validAtMs ? p0 : p1)
+        : preps.find((x) => Math.abs(x.a.validAtMs - o.validAtMs) <= SAME_TIME_MS);
       if (!p) continue;
+      const fr = p0 && p1 ? (o.validAtMs - p0.a.validAtMs) / (p1.a.validAtMs - p0.a.validAtMs) : 0;
+      /** The model value at the time of the measurement: interpolated where both steps carry it, else the paired step. */
+      const modelAt = (sel: (x: Prep) => number | null | undefined): number | null => {
+        if (p0 && p1) {
+          const a0 = sel(p0), a1 = sel(p1);
+          if (a0 != null && a1 != null && Number.isFinite(a0) && Number.isFinite(a1)) return a0 + fr * (a1 - a0);
+        }
+        return sel(p) ?? null;
+      };
+      if (p0 && p1) atObsTime += 1;
       // AX-10: eine Analyse (INCA) statt einer Messung trägt ihr eigenes Gewicht (set) — multiplikativ auf die Repräsentativität.
       const wsp = spatialWeight(Math.max(0, o.distanceM), Math.abs((o.elevM ?? hTrue) - hTrue)) * Math.min(1, Math.max(0, o.weight ?? 1));
       if (!(wsp > 0)) continue;
       const ageH = Math.max(0, (input.nowMs - o.validAtMs) / H);
       // FL-AP5: mit Lernstufe ist das gelernte Mittel der Cube-Wert am Punkt — sonst zählte der Ortsbias doppelt.
-      const tCube = p.learnedMu?.t ?? (p.vertical ? p.vertical.t : p.cubeSample.temperature);
+      const tCube = modelAt(tCubeOf);
       if (o.temperature != null && tCube != null) {
         const tObs = o.temperature + ((o.elevM ?? hTrue) - hTrue) * STANDARD_LAPSE_PER_M;
         pairs.t.push({ ageH, obs: tObs, model: tCube, wsp });
       }
       // E-AX-11: the wind anchor (u, v, gust) is damped over the distance of the measurement; T keeps `wsp`
       const wspW = anchorWindL != null ? wsp * Math.exp(-((Math.max(0, o.distanceM) / anchorWindL) ** 2)) : wsp;
-      if (o.u != null && p.cubeSample.u != null && wspW > 0) pairs.u.push({ ageH, obs: o.u, model: p.cubeSample.u, wsp: wspW });
-      if (o.v != null && p.cubeSample.v != null && wspW > 0) pairs.v.push({ ageH, obs: o.v, model: p.cubeSample.v, wsp: wspW });
-      if (o.gust != null && p.cubeSample.gust != null && wspW > 0) pairs.gust.push({ ageH, obs: o.gust, model: p.cubeSample.gust, wsp: wspW });
+      const uCube = modelAt((x) => x.cubeSample.u), vCube = modelAt((x) => x.cubeSample.v), gCube = modelAt((x) => x.cubeSample.gust);
+      if (o.u != null && uCube != null && wspW > 0) pairs.u.push({ ageH, obs: o.u, model: uCube, wsp: wspW });
+      if (o.v != null && vCube != null && wspW > 0) pairs.v.push({ ageH, obs: o.v, model: vCube, wsp: wspW });
+      if (o.gust != null && gCube != null && wspW > 0) pairs.gust.push({ ageH, obs: o.gust, model: gCube, wsp: wspW });
       sources.add(o.source); fraction = Math.max(fraction, wsp);
     }
+    if (opts.anchorAtObsTime === true) notes.push(`anchorAtObsTime: Modellwert an ${atObsTime} von ${input.obs.length} Messungen auf die Messminute interpoliert (zwischen zwei Achsenschritten, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h); sonst der Schritt im selben Stundenraster (V-AW-33)`);
     const t = innovation(pairs.t, ANCHOR_MAX.temperature), u = innovation(pairs.u, ANCHOR_MAX.wind), vv = innovation(pairs.v, ANCHOR_MAX.wind), g = innovation(pairs.gust, ANCHOR_MAX.gust);
     if (t || u || vv || g) anchorInfo = { sources: [...sources], fraction: Math.min(1, fraction), pairs: pairs.t.length, t, u, v: vv, gust: g };
     else notes.push('anchor: Messungen da, aber kein Paar (Messung, Cube) im selben Stundenraster — kein Anker');
@@ -1902,6 +1934,11 @@ export interface CubeIo {
    * exakt Fusion 7).
    */
   nowcastHourMean?: boolean;
+  /**
+   * buscosun Fusion 9 (V-AW-33): `false` is the named fallback to Fusion 8 (`?anc=0`) — it takes `anchorAtObsTime` from the stage fs.
+   * Without the field the stage sets the option (`FUSION9_ANCHOR_AT_OBS_TIME`).
+   */
+  anchorAtObsTime?: boolean;
   decodeRgbPng?: RgbPngDecoder;
   terrain: TerrainOptions | false;
   clima: () => Promise<ClimaField | null>;
@@ -2050,10 +2087,12 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const inca = io.incaAnchor ? 'inca' : null;
   // E-AX-16: das Stundenmittel ist ein anderes Produkt (anderer Radar-Member) — in den Schlüssel, ohne Option kein Anhang.
   const hm = io.nowcastHourMean ? 'hm' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm) return '';
+  // buscosun Fusion 9 (V-AW-33): the fallback to Fusion 8 is another product — into the key, no suffix without the switch.
+  const anc = io.anchorAtObsTime === false ? 'anc0' : null;
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm && !anc) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}${anc ? `|${anc}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -2130,6 +2169,15 @@ export const FUSION7_ANCHOR_WIND_KM = 10;
  * Until the mirror carries `m<lead>.png` for a slot the engine sees one frame per hour and computes exactly Fusion 7. `?hm=0` = Fusion 7.
  */
 export const FUSION8_NOWCAST_HOUR_MEAN = true;
+/**
+ * buscosun Fusion 9 (V-AW-33, Jan 04.10.2026: „ja schalte es default mäßig ein"): the stage `fs` compares a measurement with the model
+ * value at the MINUTE of the measurement (`FuseCubeOptions.anchorAtObsTime`, linear between the two axis steps around it) instead of
+ * the value of the first step within ±30 min. Not measured on the archive (it carries hourly values); measured at the road stations
+ * (anchor gain +30 % with a measurement of 16:00 against +1 % with one of 16:30). A measurement on the full hour and every point
+ * without a measurement compute exactly Fusion 8. Fusion 9 = Fusion 8 (tables of data-repo commit 1aaec969 unchanged) + this.
+ * `CubeIo.anchorAtObsTime: false` (`?anc=0`) = Fusion 8.
+ */
+export const FUSION9_ANCHOR_AT_OBS_TIME = true;
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
@@ -2272,6 +2320,8 @@ export function defaultCubeIo(): CubeIo {
     // buscosun Fusion 8 (E-AX-16/E-AX-17): Radar-Stundenmittel aus dem Spiegel, Leser und Motor-Option zusammen — Voreinstellung AN;
     // `?hm=0` ist der benannte Rückfall auf Fusion 7 (Einzelframe je Stunde).
     nowcastHourMean: hourMeanFlag,
+    // buscosun Fusion 9 (V-AW-33): `?anc=0` takes the anchor back to Fusion 8 (no entry otherwise, key unchanged).
+    ...(anchorAtObsFlag ? {} : { anchorAtObsTime: false }),
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2280,6 +2330,7 @@ const stationSourceFlag = pfStationSourceFrom(typeof window !== 'undefined' ? wi
 const climaGridFlag = pfClimaGridFrom(typeof window !== 'undefined' ? window.location.search : '');
 const incaFlag = pfIncaAnchorFrom(typeof window !== 'undefined' ? window.location.search : '');
 const hourMeanFlag = pfHourMeanFrom(typeof window !== 'undefined' ? window.location.search : '');
+const anchorAtObsFlag = pfAnchorAtObsFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 interface CubeCacheEntry { hours: number; forecast: PointForecast; ts: number; update?: Promise<PointForecast | null> }
 const CUBE_CACHE = new Map<string, CubeCacheEntry>();
@@ -2324,8 +2375,12 @@ function forecastFromBundle(
       // (`?hm=0`) is the named fallback to Fusion 7; without the mirror product for a slot the engine computes Fusion 7 anyway.
       const hourMean = FUSION8_NOWCAST_HOUR_MEAN && io.nowcastHourMean !== false;
       if (hourMean) stageFuse.nowcastHourMean = true;
+      // buscosun Fusion 9 (V-AW-33, Jan 04.10.2026): the anchor reads the model value at the minute of the measurement —
+      // `CubeIo.anchorAtObsTime: false` (`?anc=0`) is the named fallback to Fusion 8; without a measurement nothing changes.
+      const atObs = FUSION9_ANCHOR_AT_OBS_TIME && io.anchorAtObsTime !== false;
+      if (atObs) stageFuse.anchorAtObsTime = true;
       if (t.stack?.table) stageFuse.stationValue = true;
-      input.notes.push(`stage:fs — neueste Stufe (buscosun Fusion ${hourMean ? 8 : '7 (Stundenmittel per Schalter aus)'}): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)${hourMean ? ', Radar-Stundenmittel (E-AX-17)' : ''}${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
+      input.notes.push(`stage:fs — neueste Stufe (buscosun Fusion ${hourMean ? (atObs ? 9 : 8) : '7 (Stundenmittel per Schalter aus)'}): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)${hourMean ? ', Radar-Stundenmittel (E-AX-17)' : ''}${atObs ? ', Anker am Messzeitpunkt (V-AW-33)' : ''}${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
     } else input.notes.push('stage:fs — keine gelernten Tabellen ⇒ Rechnung wie ohne die Stufe (keine ihrer Optionen ist ohne Lernstufe gemessen)');
     // Phase AX, AX-3 (E-AX-3): T zwischen den nativen Schritten als Anomalie gegen μ_c — braucht nur das Klimatologieprodukt
     // (Orakel: 6-h-Schritte −15,5 %, 3-h −4,1 % MAE; `audit/fusion-ausbau.md` §3). Ohne Produkt linear wie bisher, benannt.
