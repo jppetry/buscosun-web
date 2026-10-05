@@ -9,7 +9,8 @@
  * (Node) and three producer facts differ: terrain and roughness come from `static/geo.json` (the client's own cache
  * entries, built once), decoded chunks and radar frames are memoised across points, and the measurement anchor does
  * not come from BrightSky (one request per point is not affordable) but from the road weather stations of the same
- * checkout (V-AW-21, `ROAD_FC_ANCHOR_MODE`; off ⇒ `obs: null`, the engine says "kein Anker").
+ * checkout (V-AW-21, `ROAD_FC_ANCHOR_MODE`: since E-AW-30 the station points on their own measurement; off ⇒ `obs: null`,
+ * the engine says "kein Anker").
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-forecast.mjs
  *     --data=<checkout of buscosun-data> [--out=<work dir>] [--now=<iso>] [--shards=4] [--publish]
@@ -31,7 +32,7 @@ import { decodePng, toRgba } from '../lib/png.mjs';
 import { installNodeShims } from '../punktarchiv/lib/nodeShims.mjs';
 import {
   ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH, ROAD_FC_POINTS_PATH, ROAD_FC_GEO_PATH, ROAD_FC_HOURS, ROAD_FC_STEPS, ROAD_FC_VAR_IDS,
-  ROAD_FC_SOURCE_TEXT, ROAD_FC_MAX_FAILED_SHARE, ROAD_FC_ANCHOR_MODE,
+  roadFcSourceText, ROAD_FC_MAX_FAILED_SHARE, ROAD_FC_ANCHOR_MODE,
   roadFcStamp, roadFcT0, roadFcEncode, roadFcOriginCode, roadFcSeriesProblems, roadFcPointUsable, roadFcCorridorPath, roadFcStatePath,
   roadFcPrune, parseRoadFcIndex, parseRoadFcPoints,
 } from '../../src/road/roadFc.ts';
@@ -396,7 +397,7 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     map.get(key).push(p);
   }
   const issuedAt = new Date(nowMs).toISOString();
-  const head = (kind, id) => ({ schema: 1, product: 'road-fc', run, issuedAt, t0Ms, steps: ROAD_FC_STEPS, kind, id, engine, source: ROAD_FC_SOURCE_TEXT });
+  const head = (kind, id) => ({ schema: 1, product: 'road-fc', run, issuedAt, t0Ms, steps: ROAD_FC_STEPS, kind, id, engine, source: roadFcSourceText(anchored > 0) });
   const runDir = join(outDir, run);
   rmSync(runDir, { recursive: true, force: true });
   let bytes = 0;

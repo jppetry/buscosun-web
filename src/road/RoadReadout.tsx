@@ -14,7 +14,7 @@ import { ROAD_CLASS_LABEL } from './roadClasses';
 import type { RoadTab, RoadTime } from './roadState';
 import { ROAD_FC_SOURCE_TEXT, type RoadFcFile, type RoadFcPoint } from './roadFc';
 import {
-  roadFcAnchorText, ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_NAME_PP, roadFcUiNote, roadFcEngineName, roadFcAirClass, roadFcAxisName, roadFcGapPoints, roadFcLine,
+  roadFcAnchorSummary, roadFcAnchorText, ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_NAME_PP, roadFcUiNote, roadFcEngineName, roadFcAirClass, roadFcAxisName, roadFcGapPoints, roadFcLine,
   roadFcPrecipKind, roadFcPrecipText, roadFcSeries, roadFcTiles, roadFcTrip, roadFcTripText, roadFcValue, roadFcWindText, type RoadFcValue,
 } from './roadFcView';
 import {
@@ -432,7 +432,7 @@ const SOURCES: ReadonlyArray<{ cc: string; name: string; what: string; status: '
   { cc: 'DE', name: 'DWD Warnungen (CAP)', what: 'Glätte, Glatteis, Nebel, Sturm · wörtlich zitiert', status: 'aktiv' },
   { cc: 'DE', name: 'BKG DLM250', what: 'Autobahnachsen der Korridore · © GeoBasis-DE / BKG, dl-de/by-2.0', status: 'aktiv' },
   { cc: 'DACH', name: 'GeoNames', what: 'Ortsnamen der Korridore (Anfang, Ende, Städte) · geonames.org, CC BY 4.0', status: 'aktiv' },
-  { cc: 'DE', name: FC_ENGINE_ROW, what: 'Wetterprognose 0–48 h (Luft, Taupunkt, Niederschlag, Wind) alle 5 km und an jeder Messstelle, stündlich neu · ohne Messungs-Anker', status: 'aktiv' },
+  { cc: 'DE', name: FC_ENGINE_ROW, what: 'Wetterprognose 0–48 h (Luft, Taupunkt, Niederschlag, Wind) alle 5 km und an jeder Messstelle, stündlich neu', status: 'aktiv' },
   { cc: 'DE', name: 'OpenStreetMap', what: 'Lage der Prognosepunkte auf der Fahrbahn · © OpenStreetMap-Mitwirkende, ODbL', status: 'aktiv' },
   { cc: 'DACH', name: 'buscosun Fusion — Fahrbahn', what: 'Fahrbahntemperatur und -zustand +1/+3/+6 h — erst nach bestandenem Backtest', status: 'geplant' },
   { cc: 'AT', name: 'GeoSphere TAWES + Warnungen', what: 'Luft, 5-cm- und Bodentemperatur als Anker der Prognosepunkte · CC BY 4.0', status: 'geplant' },
@@ -450,7 +450,7 @@ function QuellenTab({ file }: { file: RoadFcFile | null }) {
         {SOURCES.map((s) => (
           <div key={s.name} className={`aw-source is-${s.status}`}>
             <span className="aw-source-cc">{s.cc}</span>
-            <span className="aw-source-body"><strong>{s.name === FC_ENGINE_ROW ? roadFcEngineName(file) : s.name}</strong><span>{s.what}</span></span>
+            <span className="aw-source-body"><strong>{s.name === FC_ENGINE_ROW ? roadFcEngineName(file) : s.name}</strong><span>{s.name === FC_ENGINE_ROW ? `${s.what} · ${roadFcAnchorSummary(file)}` : s.what}</span></span>
             <span className="aw-source-status">{s.status}</span>
           </div>
         ))}

@@ -4,7 +4,8 @@
  * (`src/road/roadClient.ts`) and the verifier (`verify:road-fc`). Diagnosis and rulings: `audit/autobahnwetter.md` §14.
  *
  * What it is: buscosun Fusion in its newest stand (`fusionRelease.ts`; `getPointForecastFromCube`, stage `fs`, radar hour mean,
- * MOSMIX station member, terrain and roughness at the point; NO measurement anchor unless `ROAD_FC_ANCHOR_MODE` says so) computed hourly at fixed points — every 5 km on each
+ * MOSMIX station member, terrain and roughness at the point; the measurement anchor as `ROAD_FC_ANCHOR_MODE` says — since
+ * E-AW-30 the station points on their own SWIS air temperature, axis points without) computed hourly at fixed points — every 5 km on each
  * motorway corridor (snapped onto the OSM carriageway) and at every road-weather station of the catalogue. It is
  * WEATHER at the road (air temperature, dew point, precipitation, snow share, wind, gusts, cloud cover), not the road
  * surface: surface temperature and the ice class stay AW-6.2 behind Gate D.
@@ -162,10 +163,12 @@ export interface RoadFcPoint {
 /**
  * V-AW-21 — which points the producer anchors on the SWIS air temperature (`audit/autobahnwetter.md` §16):
  * `'stations'` = every station point on its own measurement, `'all'` = other points on their neighbours too,
- * `'none'`. The mode is the result of the measurement in §16.
+ * `'none'`. The mode is the result of the measurement in §16: `'stations'` since E-AW-30 (Jan, 06.10.2026 — +40 % at
+ * +1 h, +12 % at +3 h; price: runs anchored at sunrise ≈ 0.05 K worse at 3–6 h). Axis points stay unanchored (§16.4,
+ * rule 3). Way back without a commit: `ROAD_FC_ANCHOR=none` in the workflow.
  */
 export type RoadFcAnchorMode = 'none' | 'stations' | 'all';
-export const ROAD_FC_ANCHOR_MODE: RoadFcAnchorMode = 'none';
+export const ROAD_FC_ANCHOR_MODE: RoadFcAnchorMode = 'stations';
 
 export interface RoadFcEngine {
   /** The stand the run was BUILT with („buscosun Fusion <n>", `fusionRelease.ts`) — the pages show this name, not the stand of their own code. */
@@ -229,6 +232,10 @@ export interface RoadFcIndex {
 }
 
 export const ROAD_FC_SOURCE_TEXT = `${FUSION_NAME} auf dem Punkt-Cube (buscosun-data/point), Radar-Stundenmittel DWD RADOLAN-RV, Stationsmember DWD MOSMIX-L, Gelände Terrarium (Mapzen/AWS), Rauhigkeit ESA WorldCover 2021 (CC BY 4.0); Lage der Achspunkte © OpenStreetMap-Mitwirkende (ODbL), Korridore © GeoBasis-DE / BKG (dl-de/by-2.0), Stationen DWD (GeoNutzV). Modellprognose für das Wetter an der Strecke — keine Fahrbahnmessung, kein amtliches Warnprodukt.`;
+/** The sentence a run adds to its source text when it anchored points (E-AW-30): what was measured, where, by whom. */
+export const ROAD_FC_ANCHOR_SOURCE_TEXT = 'Messungs-Anker an den Stationspunkten: Lufttemperatur der Glättemeldeanlagen zur vollen Stunde des Laufs (DWD, GeoNutzV); Achspunkte ohne Anker.';
+/** Source text of a run file: the base text, plus the anchor sentence when the run anchored at least one point. */
+export const roadFcSourceText = (anchored: boolean) => (anchored ? `${ROAD_FC_SOURCE_TEXT} ${ROAD_FC_ANCHOR_SOURCE_TEXT}` : ROAD_FC_SOURCE_TEXT);
 
 /** Share of points a run may lose before it is NOT published (`set`; the run before stays the newest). */
 export const ROAD_FC_MAX_FAILED_SHARE = 0.1;

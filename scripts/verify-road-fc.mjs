@@ -699,6 +699,21 @@ rmSync(tmp, { recursive: true, force: true });
     && /eigenen|dieser Messstelle/.test(texts[0]) && texts[0].includes(`Messung − Modell +${(stPts.S900.anc[0] / 10).toFixed(1).replace('.', ',')} K`) && /\d{2}:\d{2}/.test(texts[0]) && /im Umkreis/.test(texts[1]) && /Gewicht \d+ %/.test(texts[1])
     && texts[2] === 'ohne Messungs-Anker' && texts[3] === 'ohne Messungs-Anker' && texts[4] === 'ohne Messungs-Anker' && texts.every((t) => !roadWords.test(t)), texts[0]);
   add('J11 Schalter des Vertrags ist einer der drei Modi und der Producer kennt ihn als Voreinstellung', ['none', 'stations', 'all'].includes(ROAD_FC_ANCHOR_MODE), ROAD_FC_ANCHOR_MODE);
+
+  // E-AW-30 (Jan, 06.10.2026): the station points are anchored by default.
+  const { ROAD_FC_ANCHOR_SOURCE_TEXT, ROAD_FC_SOURCE_TEXT: BASE_SOURCE } = await import('../src/road/roadFc.ts');
+  const def = await buildRun({ dataDir: dA, outDir: join(tmp, 'out-default'), nowMs, inProcess: true });
+  const defFiles = readRun(join(tmp, 'out-default'), def.run);
+  const wfLines = readFileSync(join(HERE, 'road', 'workflow-road-fc.yml'), 'utf8').split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
+  add('J12 E-AW-30: Voreinstellung „stations" — ein Lauf ohne Angabe verankert die Stationspunkte (byte-gleich zum Lauf „stations"), der Workflow setzt keinen anderen Modus; ohne Messdatei bleibt der Lauf byte-gleich zum Lauf ohne Anker (C)',
+    ROAD_FC_ANCHOR_MODE === 'stations' && def.entry.engine.anchored === 2 && def.entry.engine.anchorMode === 'stations' && eq(defFiles, stFiles) && !/ROAD_FC_ANCHOR\s*:/.test(wfLines),
+    `${def.entry.engine.anchor} · ${def.entry.engine.anchored} Punkte`);
+  const srcSt = JSON.parse(stFiles['c/a99.json']).source, srcNone = JSON.parse(runFiles['c/a99.json']).source;
+  const sumSt = V.roadFcAnchorSummary(parsed), sumNone = V.roadFcAnchorSummary({ engine: { ...eng, anchor: 'none' } }), sumNull = V.roadFcAnchorSummary(null);
+  add('J13 Quelle und Quellen-Reiter nennen den Anker nur, wenn der Lauf verankert hat: Quelltext + Satz zur Luftmessung der Glättemeldeanlagen (sonst der Grundtext); Zusammenfassung „verankert … von HH:MM" / „ohne Messungs-Anker" / ohne Datei keine Aussage — kein Wort der Fahrbahnklassen',
+    srcSt === `${BASE_SOURCE} ${ROAD_FC_ANCHOR_SOURCE_TEXT}` && srcNone === BASE_SOURCE && /Glättemeldeanlagen/.test(ROAD_FC_ANCHOR_SOURCE_TEXT)
+    && /verankert/.test(sumSt) && /\d{2}:\d{2}/.test(sumSt) && /ohne Anker/.test(sumSt) && /ohne Messungs-Anker/.test(sumNone) && !/verankert/.test(sumNull)
+    && [sumSt, sumNone, sumNull].every((t) => !roadWords.test(t)), sumSt);
 }
 
 // --- K: repeat guard (V-AW-31) -----------------------------------------------------------------------------

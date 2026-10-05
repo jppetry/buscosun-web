@@ -245,6 +245,17 @@ export function roadFcAnchorText(p: Pick<RoadFcPoint, 'anc'> | null, file: Pick<
 }
 
 /**
+ * E-AW-30: the run as a whole, for the sources tab — again what the run DID (`engine.anchor`), not the producer's mode.
+ * Without a file the text names no anchor state.
+ */
+export function roadFcAnchorSummary(file: Pick<RoadFcFile, 'engine'> | null): string {
+  if (!file) return 'Messungs-Anker je nach Lauf';
+  if (file.engine.anchor !== 'swis') return 'dieser Lauf ohne Messungs-Anker';
+  const slotMs = file.engine.anchorSlot ? roadStampToMs(file.engine.anchorSlot) : NaN;
+  return `Messstellen an ihrer eigenen Luftmessung${Number.isFinite(slotMs) ? ` von ${hm(slotMs)}` : ''} verankert, Prognosepunkte der Achse ohne Anker`;
+}
+
+/**
  * The engine's name as the RUN FILE states it („buscosun Fusion <n>", the stand the run was built with) — never the stand
  * of this code: a run built before a new stand keeps its number until the producer has followed. Without a file (or
  * with a file that names no stand) only the brand, no number.
