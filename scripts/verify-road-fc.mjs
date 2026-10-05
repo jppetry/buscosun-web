@@ -360,8 +360,10 @@ let built, runFiles;
   const sparse = /sparse-checkout:\s*\|\n((?:\s{12}\S.*\n)+)/.exec(code)?.[1].trim().split(/\s+/) ?? [];
   add('E3 Checkout des Daten-Repos: sparse mit point (Cube, MOSMIX, Tabellen), radar/img (Stundenmittel), road (Punkte, Zeiger); ohne Blobs der übrigen Pfade',
     eq(sparse, ['point', 'radar/img', 'road']) && /filter:\s*blob:none/.test(code) && /fetch-depth:\s*1/.test(code), sparse.join(' '));
-  add('E4 Aufruf: --data = Checkout, --publish; Schalter ROAD_FC aus der Repo-Variable; Punktdatei wird vor dem Lauf verlangt',
-    /road-forecast\.mjs --data="\$GITHUB_WORKSPACE" --publish/.test(code) && /ROAD_FC:\s*\$\{\{ vars\.ROAD_FC \}\}/.test(code) && code.includes(`${ROAD_FC_REPO_DIR}/${ROAD_FC_POINTS_PATH}`));
+  const prodSrc = readFileSync(join(HERE, 'road', 'road-forecast.mjs'), 'utf8');
+  add('E4 Aufruf: --data = Checkout, --publish; Schalter ROAD_FC aus der Repo-Variable; die Punktdatei verlangt nicht mehr der Workflow, der Producer holt sie bei Verlust aus dem Archiv, bevor er rechnet (V-AW-24)',
+    /road-forecast\.mjs --data="\$GITHUB_WORKSPACE" --publish/.test(code) && /ROAD_FC:\s*\$\{\{ vars\.ROAD_FC \}\}/.test(code) && !/test -f road\/fc\/v1\/static\/points\.json/.test(code)
+    && prodSrc.indexOf('await restoreFcStatic(') > 0 && prodSrc.indexOf('await restoreFcStatic(') < prodSrc.indexOf('await buildRun({ dataDir: flags.data') && /heal: healed\.restored/.test(prodSrc));
   const patterns = /sparse-checkout set --no-cone ([^\n]+)/.exec(code)?.[1].trim().split(/\s+/) ?? [];
   const seen = new Set(), bare = new Set();
   const walk = (abs) => {
@@ -701,7 +703,7 @@ rmSync(tmp, { recursive: true, force: true });
   add('J11 Schalter des Vertrags ist einer der drei Modi und der Producer kennt ihn als Voreinstellung', ['none', 'stations', 'all'].includes(ROAD_FC_ANCHOR_MODE), ROAD_FC_ANCHOR_MODE);
 
   // E-AW-30 (Jan, 06.10.2026): the station points are anchored by default.
-  const { ROAD_FC_ANCHOR_SOURCE_TEXT, ROAD_FC_SOURCE_TEXT: BASE_SOURCE } = await import('../src/road/roadFc.ts');
+  const { ROAD_FC_ANCHOR_SOURCE_TEXT, roadFcSourceText } = await import('../src/road/roadFc.ts');
   const def = await buildRun({ dataDir: dA, outDir: join(tmp, 'out-default'), nowMs, inProcess: true });
   const defFiles = readRun(join(tmp, 'out-default'), def.run);
   const wfLines = readFileSync(join(HERE, 'road', 'workflow-road-fc.yml'), 'utf8').split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
@@ -711,7 +713,7 @@ rmSync(tmp, { recursive: true, force: true });
   const srcSt = JSON.parse(stFiles['c/a99.json']).source, srcNone = JSON.parse(runFiles['c/a99.json']).source;
   const sumSt = V.roadFcAnchorSummary(parsed), sumNone = V.roadFcAnchorSummary({ engine: { ...eng, anchor: 'none' } }), sumNull = V.roadFcAnchorSummary(null);
   add('J13 Quelle und Quellen-Reiter nennen den Anker nur, wenn der Lauf verankert hat: Quelltext + Satz zur Luftmessung der Glättemeldeanlagen (sonst der Grundtext); Zusammenfassung „verankert … von HH:MM" / „ohne Messungs-Anker" / ohne Datei keine Aussage — kein Wort der Fahrbahnklassen',
-    srcSt === `${BASE_SOURCE} ${ROAD_FC_ANCHOR_SOURCE_TEXT}` && srcNone === BASE_SOURCE && /Glättemeldeanlagen/.test(ROAD_FC_ANCHOR_SOURCE_TEXT)
+    srcSt === `${roadFcSourceText(FUSION_NAME)} ${ROAD_FC_ANCHOR_SOURCE_TEXT}` && srcNone === roadFcSourceText(FUSION_NAME) && srcNone.startsWith(`${FUSION_NAME} `) && /Glättemeldeanlagen/.test(ROAD_FC_ANCHOR_SOURCE_TEXT)
     && /verankert/.test(sumSt) && /\d{2}:\d{2}/.test(sumSt) && /ohne Anker/.test(sumSt) && /ohne Messungs-Anker/.test(sumNone) && !/verankert/.test(sumNull)
     && [sumSt, sumNone, sumNull].every((t) => !roadWords.test(t)), sumSt);
 }
@@ -760,8 +762,100 @@ rmSync(tmp, { recursive: true, force: true });
   const src = readFileSync(join(HERE, 'road', 'road-forecast.mjs'), 'utf8');
   const wf = readFileSync(join(HERE, 'road', 'workflow-road-fc.yml'), 'utf8').split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
   add('K5 Verdrahtung: der Producer fragt nur bei --publish und vor buildRun, --always / ROAD_FC_ALWAYS=1 rechnet immer; der Workflow setzt ROAD_FC_ALWAYS nur beim Start von Hand',
-    /if \(flags\.publish && !flags\.always && process\.env\.ROAD_FC_ALWAYS !== '1'\)/.test(src) && src.indexOf('repeatVerdictOf(flags.data') < src.indexOf('await buildRun({ dataDir: flags.data') && src.indexOf('repeatVerdictOf(flags.data') > 0
+    /if \(flags\.publish && !flags\.always && process\.env\.ROAD_FC_ALWAYS !== '1'( && !healed\.restored\.length)?\)/.test(src) && src.indexOf('repeatVerdictOf(flags.data') < src.indexOf('await buildRun({ dataDir: flags.data') && src.indexOf('repeatVerdictOf(flags.data') > 0
     && /ROAD_FC_ALWAYS:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && '1' \|\| '' \}\}/.test(wf));
+}
+
+// --- L: pointer watch (V-AW-28) and copy of the static files (V-AW-24) ---------------------------------
+{
+  const A = await import('./road/road-fc-archive.mjs');
+  const T = Date.UTC(2026, 9, 6, 3, 25);
+  const idx = (minAgo, extra = {}) => ({ schema: 1, product: 'road-fc-index', killed: false, runs: minAgo == null ? [] : [{ run: roadFcStamp(T - minAgo * 60_000), issuedAt: new Date(T - minAgo * 60_000).toISOString(), t0Ms: 0, publishedAt: new Date(T - minAgo * 60_000).toISOString() }], ...extra });
+  const age = (i) => A.roadFcPointerAge(parseRoadFcIndex(i), T);
+  const fresh = age(idx(70)), edge = age(idx(180)), old = age(idx(181)), killed = age(idx(400, { killed: true })), empty = age(idx(null)), none = A.roadFcPointerAge(null, T);
+  add('L1 Wächter des Zeigers (V-AW-28): jüngster Lauf ≤ 3 h ⇒ grün, 3 h 1 min ⇒ rot mit Lauf und Alter; Schalter aus ⇒ grün und benannt; leerer oder fehlender Zeiger ⇒ rot — dieselbe Grenze wie „veraltet" auf der Seite',
+    !fresh.stale && !edge.stale && old.stale && /181 min/.test(old.reason) && !killed.stale && killed.killed && empty.stale && none.stale && ROAD_FC_STALE_MS === 180 * 60_000, old.reason);
+  // CLI of the archive job: the sibling road/fc/v1 of the store is checked without a workflow change.
+  const data = join(tmp, 'arch-data'), arch = join(tmp, 'arch-out');
+  const storeDir = join(data, 'road', 'v1'), fcDir = join(data, 'road', 'fc', 'v1');
+  mkdirSync(join(storeDir, 'h24', 'XX'), { recursive: true }); mkdirSync(fcDir, { recursive: true }); mkdirSync(arch, { recursive: true });
+  const slot = roadStamp(roadSlotOf(T - 10 * 60_000));
+  writeFileSync(join(storeDir, 'h24', 'XX', `${slot}.json`), JSON.stringify({ schema: 1, product: 'road-h24', group: 'XX', slot, slots: [slot], stations: { S1: { rs: [1], ta: [2], td: [0], k: 'd' } } }));
+  writeFileSync(join(storeDir, 'status.json'), JSON.stringify({ recent: [] }));
+  const cli = (fcAgeMin) => {
+    writeFileSync(join(fcDir, ROAD_FC_INDEX_PATH), JSON.stringify(idx(fcAgeMin)));
+    try {
+      const out = execFileSync(process.execPath, ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', '--import', pathToFileURL(join(HERE, 'lib', 'register-ts.mjs')).href, join(HERE, 'road', 'road-archive.mjs'), `--store=${storeDir}`, `--archive=${join(arch, 'road', 'v1')}`, `--now=${new Date(T).toISOString()}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      return { code: 0, out };
+    } catch (e) { return { code: e.status, out: String(e.stdout) }; }
+  };
+  const ok = cli(65), stale = cli(240);
+  add('L2 Archiv-Job (road-archive.mjs, Aufruf wie im Workflow, ohne --fc): Streckenprognose 65 min alt ⇒ Exit 0; 240 min alt ⇒ Exit 3 mit ::error:: „Streckenprognose", die Ablage ist trotzdem geschrieben',
+    ok?.code === 0 && /"fc":\{"stale":false/.test(ok.out) && stale.code === 3 && /::error::Streckenprognose: jüngster Lauf \d{10} ist 240 min alt/.test(stale.out) && existsSync(join(arch, 'road', 'v1', 'index.json')),
+    `${ok?.code} / ${stale.code}`);
+
+  // Static copy: written once, unchanged ⇒ nothing, changed ⇒ rewritten; an unreadable points file is no backup.
+  const src = mkData('static-src', new Map());
+  const archFc = join(tmp, 'static-arch');
+  const s1 = A.syncFcStatic({ fcDir: join(src, ROAD_FC_REPO_DIR), archiveDir: archFc }), s2 = A.syncFcStatic({ fcDir: join(src, ROAD_FC_REPO_DIR), archiveDir: archFc });
+  const man = JSON.parse(readFileSync(join(archFc, A.ROAD_FC_ARCHIVE_STATIC_MANIFEST), 'utf8'));
+  const plain = readFileSync(join(src, ROAD_FC_REPO_DIR, ROAD_FC_POINTS_PATH));
+  const { gunzipSync } = await import('node:zlib');
+  const roundTrip = gunzipSync(readFileSync(join(archFc, `${ROAD_FC_POINTS_PATH}.gz`)));
+  writeFileSync(join(src, ROAD_FC_REPO_DIR, ROAD_FC_GEO_PATH), JSON.stringify({ ...geoDoc, entries: geoDoc.entries.slice(1) }));
+  const s3 = A.syncFcStatic({ fcDir: join(src, ROAD_FC_REPO_DIR), archiveDir: archFc });
+  const bad = mkData('static-bad', new Map(), { schema: 1, product: 'falsch' });
+  const s4 = A.syncFcStatic({ fcDir: join(bad, ROAD_FC_REPO_DIR), archiveDir: join(tmp, 'static-arch-bad') });
+  add('L3 Kopie im Archiv (V-AW-24): beide Dateien als .gz + Manifest mit sha-256 der Klartextdatei, Rundweg byte-gleich; zweiter Lauf schreibt nichts; geänderte Geländedatei ⇒ nur sie neu; eine unlesbare Punktdatei wird nicht gesichert',
+    eq(s1.written, [ROAD_FC_POINTS_PATH, ROAD_FC_GEO_PATH]) && s2.written.length === 0 && Buffer.compare(roundTrip, plain) === 0 && man.files[ROAD_FC_POINTS_PATH].sha256 === createHash('sha256').update(plain).digest('hex')
+    && eq(s3.written, [ROAD_FC_GEO_PATH]) && eq(s4.written, [ROAD_FC_GEO_PATH]) && eq(s4.missing, [ROAD_FC_POINTS_PATH]), JSON.stringify(s1));
+
+  // Restore: the archive dir served as "raw" (bytes or null), tampered copy refused.
+  const served = (dir, tamper = null) => async (url) => { const rel = url.replace(/^.*?road\/fc\/v1\//, ''); const f = join(dir, rel); if (!existsSync(f)) return null; const b = readFileSync(f); return tamper && rel === tamper ? gzipBroken(b) : new Uint8Array(b); };
+  const { gzipSync } = await import('node:zlib');
+  const gzipBroken = () => new Uint8Array(gzipSync(Buffer.from('{"verändert":true}')));
+  const lost = mkData('static-lost', new Map());
+  const lostFc = join(lost, ROAD_FC_REPO_DIR);
+  rmSync(join(lostFc, ROAD_FC_POINTS_PATH)); rmSync(join(lostFc, ROAD_FC_GEO_PATH));
+  let calls = 0;
+  const fetchCount = (f) => async (u) => { calls++; return f(u); };
+  const back = await A.restoreFcStatic(lostFc, { fetchBytes: fetchCount(served(archFc)) });
+  const pointsBack = readFileSync(join(lostFc, ROAD_FC_POINTS_PATH));
+  const callsAfter = calls;
+  const again = await A.restoreFcStatic(lostFc, { fetchBytes: fetchCount(served(archFc)) });
+  const lost2 = mkData('static-lost2', new Map()); rmSync(join(lost2, ROAD_FC_REPO_DIR, ROAD_FC_POINTS_PATH));
+  const tampered = await A.restoreFcStatic(join(lost2, ROAD_FC_REPO_DIR), { fetchBytes: served(archFc, `${ROAD_FC_POINTS_PATH}.gz`) });
+  const noArchive = await A.restoreFcStatic(join(lost2, ROAD_FC_REPO_DIR), { fetchBytes: async () => null });
+  add('L4 Rückholung im Producer: fehlen beide Dateien, kommen sie aus dem Archiv (Prüfsumme gegen das Manifest), die Punktdatei ist byte-gleich zur Quelle; nichts fehlt ⇒ kein Abruf; veränderte Kopie ⇒ abgelehnt, Datei bleibt weg; kein Archiv ⇒ benannt, kein Absturz',
+    eq(back.restored.map((r) => r.rel), [ROAD_FC_POINTS_PATH, ROAD_FC_GEO_PATH]) && Buffer.compare(pointsBack, plain) === 0 && callsAfter === 3 && again.restored.length === 0 && calls === callsAfter
+    && tampered.restored.length === 0 && /Prüfsumme/.test(tampered.failed[0]?.reason) && !existsSync(join(lost2, ROAD_FC_REPO_DIR, ROAD_FC_POINTS_PATH)) && /Manifest/.test(noArchive.failed[0]?.reason),
+    JSON.stringify(tampered.failed));
+  // A restored file rides along with the next push and heals the data repo; if the remote got it back meanwhile, no clash.
+  const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const bare = join(tmp, 'heal.git'), url = pathToFileURL(bare).href;
+  mkdirSync(bare); git(bare, 'init', '--quiet', '--bare', '--initial-branch=main');
+  const clone = (name) => { const d = join(tmp, name); git(tmp, '-c', 'core.autocrlf=false', 'clone', '--quiet', url, name); git(d, 'config', 'user.name', 't'); git(d, 'config', 'user.email', 't@t'); git(d, 'config', 'core.autocrlf', 'false'); return d; };
+  const seed = clone('heal-seed');
+  writeTree(seed, new Map([[`${ROAD_REPO_DIR}/status.json`, Buffer.from('{}\n')]]));
+  git(seed, 'add', '-A'); git(seed, 'commit', '--quiet', '-m', 'seed'); git(seed, 'push', '--quiet', 'origin', 'HEAD:main');
+  // Two jobs both started without the static files; the first heals the repo, the second must not clash with it.
+  const work = clone('heal-work'), work2 = clone('heal-work2');
+  const healed = await A.restoreFcStatic(join(work, ROAD_FC_REPO_DIR), { fetchBytes: served(archFc) });
+  const healed2 = await A.restoreFcStatic(join(work2, ROAD_FC_REPO_DIR), { fetchBytes: served(archFc) });
+  const runDir = join(tmp, 'heal-run', '2610060312'); mkdirSync(join(runDir, 'c'), { recursive: true }); writeFileSync(join(runDir, 'c', 'a1.json'), '{}\n');
+  const entry = { run: '2610060312', issuedAt: new Date(T).toISOString(), t0Ms: roadFcT0(T), publishedAt: new Date(T).toISOString(), points: 1, failed: 0, corridors: 1, states: 0, engine: {}, ms: 1 };
+  publishRun({ repoDir: work, runDir, entry, nowMs: () => T, heal: healed.restored });
+  git(seed, 'fetch', '--quiet', 'origin', 'main');
+  const remoteHas = git(seed, 'show', `origin/main:${ROAD_FC_REPO_DIR}/${ROAD_FC_POINTS_PATH}`) === plain.toString('utf8').trim();
+  const touched = git(seed, 'diff', '--name-only', 'origin/main~1', 'origin/main').split('\n');
+  const runDir2 = join(tmp, 'heal-run', '2610060412'); mkdirSync(join(runDir2, 'c'), { recursive: true }); writeFileSync(join(runDir2, 'c', 'a1.json'), '{}\n');
+  let clash = null;
+  try { publishRun({ repoDir: work2, runDir: runDir2, entry: { ...entry, run: '2610060412' }, nowMs: () => T + H, heal: healed2.restored }); } catch (e) { clash = e; }
+  git(seed, 'fetch', '--quiet', 'origin', 'main');
+  const still = git(seed, 'show', `origin/main:${ROAD_FC_REPO_DIR}/${ROAD_FC_POINTS_PATH}`) === plain.toString('utf8').trim();
+  add('L5 Heilung: die zurückgeholten Dateien gehen mit dem nächsten Push ins Daten-Repo (Commit nur unter road/fc/v1); ein zweiter Job, der sie ebenfalls zurückgeholt hatte, pusht danach ohne Konflikt mit den nun verfolgten Dateien',
+    remoteHas && touched.every((f) => f.startsWith(`${ROAD_FC_REPO_DIR}/`)) && touched.includes(`${ROAD_FC_REPO_DIR}/${ROAD_FC_GEO_PATH}`) && clash === null && still && healed2.restored.length === 2,
+    clash ? String(clash.message).split('\n')[0] : touched.join(' '));
 }
 
 const failed = results.filter((r) => !r.ok).length;

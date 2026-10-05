@@ -20,7 +20,9 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-archive.mjs \
  *     --store=<buscosun-data>/road/v1 --archive=<buscosun-archiv>/road/v1 [--now=<ISO>]
  * Exit 0 = archived (or nothing new) · 1 = no rings in the store · 3 = archived, but the newest ring is older than
- * ROAD_ARCHIVE_STALE_MIN and no kill switch is set (the job's only liveness signal since health.yml is gone, V-AW-19).
+ * ROAD_ARCHIVE_STALE_MIN and no kill switch is set (the job's only liveness signal since health.yml is gone, V-AW-19),
+ * or the route forecast stands: its pointer `road/fc/v1/index.json` names no run younger than 3 h (V-AW-28; `--fc=<dir>`,
+ * by default the sibling `<store>/../fc/v1` of the same checkout — so the job checks it without a workflow change).
  */
 import { readFileSync, readdirSync, existsSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -30,6 +32,7 @@ import {
   ROAD_SLOT_MS, ROAD_SOURCE_TEXT, ROAD_CLASS_NONE, ROAD_STATUS_PATH, roadStamp, roadStampToMs,
 } from '../../src/road/roadContract.ts';
 import { readRoadStore, exportRoadWindow } from './road-export.mjs';
+import { roadFcPointerAgeOf } from './road-fc-archive.mjs';
 
 /** Hours between two archive runs (the workflow's cron); verify:road-archive keeps workflow and constant equal. */
 export const ROAD_ARCHIVE_EVERY_H = 3;
@@ -259,10 +262,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!storeDir || !archiveDir) { console.error('usage: road-archive.mjs --store=<road/v1 dir> --archive=<archive road/v1 dir> [--now=<ISO>]'); process.exit(2); }
   const nowMs = arg('now') ? Date.parse(arg('now')) : Date.now();
   const res = archiveRoad({ storeDir, archiveDir, nowMs });
-  console.log(JSON.stringify(res));
+  // V-AW-28: the route forecast's pointer, from the same checkout of buscosun-data.
+  const fcDir = arg('fc') ?? join(storeDir, '..', 'fc', 'v1');
+  const fc = arg('fc') || existsSync(fcDir) ? roadFcPointerAgeOf(fcDir, nowMs) : null;
+  console.log(JSON.stringify({ ...res, fc }));
   if (!res.ok) process.exit(1);
-  if (res.stale) {
-    console.log(`::error::Straßenwetter: jüngster Ring ${res.newestRing} ist ${res.ringAgeMin} min alt (Grenze ${ROAD_ARCHIVE_STALE_MIN} min) — die Ableitung im Radar-Spiegel steht.`);
-    process.exit(3);
-  }
+  if (res.stale) console.log(`::error::Straßenwetter: jüngster Ring ${res.newestRing} ist ${res.ringAgeMin} min alt (Grenze ${ROAD_ARCHIVE_STALE_MIN} min) — die Ableitung im Radar-Spiegel steht.`);
+  if (fc?.stale) console.log(`::error::Streckenprognose: ${fc.reason} — der Job road-fc im Daten-Repo läuft nicht (Zeitplan und Auslöser nach point prüfen).`);
+  if (res.stale || fc?.stale) process.exit(3);
 }

@@ -42,6 +42,7 @@ import { getPointForecastFromCube, clearCubeForecastCache, exceedance } from '..
 import { FUSION_CURRENT, FUSION_NAME, fusionName, fusionStage, fusionStageIo, fusionVersionOfNotes, fusionVersionOfEngine } from '../../src/pointForecast/fusion/fusionRelease.ts';
 import { getClimaField } from '../../src/pointForecast/fusion/attach.ts';
 import { ROAD_REPO_DIR, ROAD_STATIONS_PATH, roadStamp } from '../../src/road/roadContract.ts';
+import { restoreFcStatic } from './road-fc-archive.mjs';
 
 const H = 3_600_000;
 const SELF = fileURLToPath(import.meta.url);
@@ -397,7 +398,7 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     map.get(key).push(p);
   }
   const issuedAt = new Date(nowMs).toISOString();
-  const head = (kind, id) => ({ schema: 1, product: 'road-fc', run, issuedAt, t0Ms, steps: ROAD_FC_STEPS, kind, id, engine, source: roadFcSourceText(anchored > 0) });
+  const head = (kind, id) => ({ schema: 1, product: 'road-fc', run, issuedAt, t0Ms, steps: ROAD_FC_STEPS, kind, id, engine, source: roadFcSourceText(FUSION_NAME, anchored > 0) });
   const runDir = join(outDir, run);
   rmSync(runDir, { recursive: true, force: true });
   let bytes = 0;
@@ -490,14 +491,18 @@ export function nextIndex(prev, entry, nowMs, killed = false) {
  * Copies the run into the checkout and pushes. Every attempt starts from a fresh `origin/<branch>` (survives the
  * force-push of the map line and the pushes of the mirror); run directories the pointer does not name are removed.
  */
-export function publishRun({ repoDir, runDir, entry, remote = 'origin', branch = 'main', nowMs = () => Date.now(), log = () => {}, retries = PUSH_RETRIES }) {
+export function publishRun({ repoDir, runDir, entry, remote = 'origin', branch = 'main', nowMs = () => Date.now(), log = () => {}, retries = PUSH_RETRIES, heal = [] }) {
   const git = (args) => execFileSync('git', args, { cwd: repoDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const fcDir = join(repoDir, ROAD_FC_REPO_DIR);
   let lastErr;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       git(['fetch', '--quiet', '--depth=1', remote, branch]);
+      // V-AW-24: static files taken back from the archive are untracked here — out of the way of the checkout (the
+      // remote may have them again by now), written back afterwards only where the remote still lacks them.
+      for (const h of heal) { const f = join(fcDir, h.rel); if (existsSync(f) && !git(['ls-files', '--', `${ROAD_FC_REPO_DIR}/${h.rel}`])) rmSync(f); }
       git(['checkout', '--quiet', '-B', branch, `${remote}/${branch}`]);
+      for (const h of heal) if (!existsSync(join(fcDir, h.rel))) writeAtomic(join(fcDir, h.rel), h.bytes);
       // Nothing but our own paths may ride along: a change staged in the clone (a stale index after an interrupted
       // run) would be pushed as ours and set other lines back — 04.10.2026, `audit/autobahnwetter.md` §14.5.
       const staged = git(['diff', '--cached', '--name-only']);
@@ -551,6 +556,9 @@ async function main() {
   }
 
   if (process.env.ROAD_FC === '0') { log('ROAD_FC=0 — Schalter aus, kein Lauf'); return; }
+  // V-AW-24: points or geo file lost in the data repo ⇒ back from buscosun-archiv (checked), pushed with the run.
+  const healed = await restoreFcStatic(join(flags.data, ROAD_FC_REPO_DIR), { log });
+  for (const f of healed.failed) log(`${f.rel} fehlt im Daten-Repo und ist nicht zurückholbar: ${f.reason}`);
   const outDir = typeof flags.out === 'string' ? flags.out : mkdtempSync(join(tmpdir(), 'road-fc-out-'));
   let points = null;
   if (flags.ids || flags.limit) {
@@ -563,7 +571,8 @@ async function main() {
   // `ROAD_FC_ANCHOR=none` (workflow env) or `--anchor=` override the contract's mode — the way back without a commit.
   const anchor = ['none', 'stations', 'all'].find((m) => m === (typeof flags.anchor === 'string' ? flags.anchor : process.env.ROAD_FC_ANCHOR)) ?? ROAD_FC_ANCHOR_MODE;
   // V-AW-31: a wake-up that would only repeat the newest published run ends here — no compute, no commit.
-  if (flags.publish && !flags.always && process.env.ROAD_FC_ALWAYS !== '1') {
+  // A healed static file must be pushed: no repeat guard then.
+  if (flags.publish && !flags.always && process.env.ROAD_FC_ALWAYS !== '1' && !healed.restored.length) {
     const v = repeatVerdictOf(flags.data, nowMs, anchor);
     if (v.repeat) { log(`kein neuer Lauf — ${v.reason}`); return; }
     log(`neuer Lauf: ${v.reason}`);
@@ -573,7 +582,7 @@ async function main() {
   const verdict = publishVerdict(built);
   if (!verdict.ok) { log(`Lauf NICHT veröffentlicht: ${verdict.reasons.join(' · ')}`); process.exit(3); }
   if (!flags.publish) { log(`gebaut nach ${built.runDir} (ohne --publish)`); return; }
-  const r = publishRun({ repoDir: flags.data, runDir: built.runDir, entry: built.entry, remote: flags.remote || 'origin', branch: flags.branch || 'main', log });
+  const r = publishRun({ repoDir: flags.data, runDir: built.runDir, entry: built.entry, remote: flags.remote || 'origin', branch: flags.branch || 'main', log, heal: healed.restored });
   log(r.noop ? 'nichts zu committen' : `veröffentlicht ${r.commit.slice(0, 7)} (Versuch ${r.attempt}) · Läufe im Repo: ${r.runs.join(', ')}`);
 }
 

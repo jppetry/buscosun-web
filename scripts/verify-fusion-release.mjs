@@ -18,7 +18,7 @@ import {
   FUSION_RELEASES, FUSION_BASE, FUSION_BASE_OPTIONS, FUSION_CURRENT, FUSION_NAME, FUSION_BRAND, FUSION_STAGE_NOTE_PREFIX,
   fusionName, fusionStage, fusionStageIo, fusionStageNote, fusionVersionOfNotes, fusionVersionOfEngine, fusionProductBehind,
 } from '../src/pointForecast/fusion/fusionRelease.ts';
-import { ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, ROAD_FC_SOURCE_TEXT } from '../src/road/roadFc.ts';
+import { ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, ROAD_FC_SOURCE_TEXT, roadFcSourceText } from '../src/road/roadFc.ts';
 import { roadFcEngineName, roadFcUiNote } from '../src/road/roadFcView.ts';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -123,15 +123,15 @@ const NAME_RE = /buscosun Fusion \d/;
     { part: 'Punkt-Panel', file: 'src/pointForecast/PointForecastPanel.tsx', how: "pointSource: 'cube' ⇒ defaultCubeIo()", ok: (p) => has(p, "pointSource: 'cube'") },
     { part: 'Wetter-Dashboard', file: 'src/dashboard/data/forecastStore.ts', how: 'defaultCubeIo()', ok: (p) => has(p, 'defaultCubeIo()', "pointSource: 'cube'") },
     { part: 'Regenradar-Streifen', file: 'src/nowcast/nowcastEngine.ts', how: "pointSource: 'cube' ⇒ defaultCubeIo()", ok: (p) => has(p, "pointSource: 'cube'", "import('../pointForecast/cubeSource')") },
-    { part: 'Streckenprognose road/fc (Producer)', file: 'scripts/road/road-forecast.mjs', how: 'fusionStageIo(), Name + Nummer im Kopf, Neubau bei älterem Stand', ok: (p) => has(p, '...fusionStageIo(),', 'name: FUSION_NAME, version: FUSION_CURRENT', 'fusionVersionOfNotes(fc.cube.notes) === FUSION_CURRENT', 'fusionVersionOfEngine(prev.engine)') },
+    { part: 'Streckenprognose road/fc (Producer)', file: 'scripts/road/road-forecast.mjs', how: 'fusionStageIo(), Name + Nummer im Kopf, Neubau bei älterem Stand', ok: (p) => has(p, '...fusionStageIo(),', 'name: FUSION_NAME, version: FUSION_CURRENT', 'fusionVersionOfNotes(fc.cube.notes) === FUSION_CURRENT', 'fusionVersionOfEngine(prev.engine)', 'roadFcSourceText(FUSION_NAME') },
     { part: 'Autobahnwetter (Seite)', file: 'src/road/RoadReadout.tsx', how: 'Name aus der Laufdatei (roadFcEngineName)', ok: (p) => has(p, 'roadFcEngineName(file)', 'roadFcUiNote(p.fcFile)') },
     { part: 'Kartenfelder point/field (Producer)', file: 'scripts/point/build-point-fields.mjs', how: 'fusionStage().options, Stand im Manifest (chain.options.fusion)', ok: (p) => has(p, '...fusionStage().options,', 'fusion: FUSION_CURRENT') },
   ];
   const bad = PARTS.filter((x) => !x.ok(x.file));
   add(`C1 jeder der ${PARTS.length} Plattformteile hängt am Register`, bad.length === 0, bad.map((x) => x.part).join(', '));
   for (const x of PARTS) info(`${x.ok(x.file) ? FUSION_NAME : 'NICHT am Register'}  ${x.part} — ${x.how}`);
-  add('C2 Texte der Streckenprognose: der Vertragstext nennt den neuesten Stand; die Seite nennt den Stand der DATEI (älter ⇒ ältere Nummer), ohne Datei nur die Marke',
-    ROAD_FC_SOURCE_TEXT.startsWith(FUSION_NAME + ' ') && roadFcEngineName({ engine: { name: fusionName(FUSION_CURRENT - 1) } }) === fusionName(FUSION_CURRENT - 1)
+  add('C2 Texte der Streckenprognose: der Producer schreibt den neuesten Stand in den Quelltext (roadFcSourceText(FUSION_NAME)), der Vertrag selbst nennt ohne Datei nur die Marke (er lädt das Register nicht — Archiv-Job, V-AW-35); die Seite nennt den Stand der DATEI (älter ⇒ ältere Nummer)',
+    roadFcSourceText(FUSION_NAME).startsWith(FUSION_NAME + ' ') && ROAD_FC_SOURCE_TEXT.startsWith(FUSION_BRAND + ' auf') && roadFcEngineName({ engine: { name: fusionName(FUSION_CURRENT - 1) } }) === fusionName(FUSION_CURRENT - 1)
     && roadFcEngineName({ engine: { name: FUSION_NAME, version: FUSION_CURRENT } }) === FUSION_NAME && roadFcEngineName(null) === FUSION_BRAND && roadFcUiNote(null).startsWith(`Prognose: ${FUSION_BRAND},`));
 }
 

@@ -18,8 +18,6 @@
  *   road/fc/v1/static/geo.json             terrain and roughness per point, precomputed (producer only)
  */
 
-import { FUSION_NAME } from '../pointForecast/fusion/fusionRelease';
-
 export const ROAD_FC_VERSION = 'v1';
 export const ROAD_FC_REPO_DIR = `road/fc/${ROAD_FC_VERSION}`;
 export const ROAD_FC_CDN_BASE = `https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/${ROAD_FC_REPO_DIR}`;
@@ -231,11 +229,18 @@ export interface RoadFcIndex {
   runs: RoadFcRunEntry[];
 }
 
-export const ROAD_FC_SOURCE_TEXT = `${FUSION_NAME} auf dem Punkt-Cube (buscosun-data/point), Radar-Stundenmittel DWD RADOLAN-RV, Stationsmember DWD MOSMIX-L, Gelände Terrarium (Mapzen/AWS), Rauhigkeit ESA WorldCover 2021 (CC BY 4.0); Lage der Achspunkte © OpenStreetMap-Mitwirkende (ODbL), Korridore © GeoBasis-DE / BKG (dl-de/by-2.0), Stationen DWD (GeoNutzV). Modellprognose für das Wetter an der Strecke — keine Fahrbahnmessung, kein amtliches Warnprodukt.`;
 /** The sentence a run adds to its source text when it anchored points (E-AW-30): what was measured, where, by whom. */
 export const ROAD_FC_ANCHOR_SOURCE_TEXT = 'Messungs-Anker an den Stationspunkten: Lufttemperatur der Glättemeldeanlagen zur vollen Stunde des Laufs (DWD, GeoNutzV); Achspunkte ohne Anker.';
-/** Source text of a run file: the base text, plus the anchor sentence when the run anchored at least one point. */
-export const roadFcSourceText = (anchored: boolean) => (anchored ? `${ROAD_FC_SOURCE_TEXT} ${ROAD_FC_ANCHOR_SOURCE_TEXT}` : ROAD_FC_SOURCE_TEXT);
+/**
+ * Source text of a run file. `engineName` = the stand the run is built with (the producer passes `FUSION_NAME` of the
+ * register); the anchor sentence only when the run anchored at least one point. This contract does NOT import the
+ * register (`fusionRelease.ts`): the archive job checks out `src/road` only — an import there stopped the archive of the
+ * route forecast silently from 05.10.2026 (V-AW-35, `audit/autobahnwetter.md` §18).
+ */
+export const roadFcSourceText = (engineName: string, anchored = false) =>
+  `${engineName} auf dem Punkt-Cube (buscosun-data/point), Radar-Stundenmittel DWD RADOLAN-RV, Stationsmember DWD MOSMIX-L, Gelände Terrarium (Mapzen/AWS), Rauhigkeit ESA WorldCover 2021 (CC BY 4.0); Lage der Achspunkte © OpenStreetMap-Mitwirkende (ODbL), Korridore © GeoBasis-DE / BKG (dl-de/by-2.0), Stationen DWD (GeoNutzV). Modellprognose für das Wetter an der Strecke — keine Fahrbahnmessung, kein amtliches Warnprodukt.${anchored ? ` ${ROAD_FC_ANCHOR_SOURCE_TEXT}` : ''}`;
+/** Without a run file (page fallback): the brand only, no number — the page names the stand of a file, never its own. */
+export const ROAD_FC_SOURCE_TEXT = roadFcSourceText('buscosun Fusion');
 
 /** Share of points a run may lose before it is NOT published (`set`; the run before stays the newest). */
 export const ROAD_FC_MAX_FAILED_SHARE = 0.1;

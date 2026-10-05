@@ -98,8 +98,9 @@ jobs:
         env:
           ROAD_FC: ${{ vars.ROAD_FC }}
           ROAD_FC_ALWAYS: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
+        # V-AW-24: fehlen `static/points.json` oder `geo.json` (ein Force-Push der Kartenlinie im Fenster eines
+        # Hand-Pushs), holt der Producer sie aus buscosun-archiv zurück, prüft die Prüfsumme und pusht sie mit dem Lauf.
         run: |
-          test -f road/fc/v1/static/points.json || { echo "road/fc/v1/static/points.json fehlt im Daten-Repo"; exit 1; }
           cd "$RUNNER_TEMP/app"
           node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs \
             scripts/road/road-forecast.mjs --data="$GITHUB_WORKSPACE" --publish

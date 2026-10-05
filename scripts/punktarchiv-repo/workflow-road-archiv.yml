@@ -20,6 +20,12 @@
 # Der Archivschritt endet mit 3, wenn der jüngste Ring älter als 180 min ist und kein
 # Kill-Schalter gesetzt ist — der Commit läuft trotzdem, rot wird erst der letzte Schritt.
 # Das ist seit dem Löschen von health.yml das einzige Lebenszeichen mit Zeitplan (V-AW-19).
+# Seit V-AW-28 ebenso, wenn der Zeiger der Streckenprognose (`road/fc/v1/index.json`) keinen Lauf jünger als
+# 3 h nennt — der Job road-fc im Daten-Repo steht dann (die Seite zeigt nach 3 h „veraltet").
+#
+# ── Kopie der statischen Prognose-Dateien (V-AW-24) ─────────────────────────
+# Der Prognose-Schritt legt `road/fc/v1/static/points.json` und `geo.json` als .gz unter `road/fc/v1/static/`
+# ab (nur bei geänderter Prüfsumme). Fehlen sie im Daten-Repo, holt der Producer sie von hier zurück.
 # ============================================================================
 
 name: road-archiv
@@ -109,5 +115,5 @@ jobs:
       - name: Road line alive
         if: steps.archive.outcome == 'failure'
         run: |
-          echo "Archivschritt rot: keine Ringe im Daten-Repo oder jüngster Ring älter als 180 min (siehe Schritt 'Archive')."
+          echo "Archivschritt rot: keine Ringe im Daten-Repo, jüngster Ring älter als 180 min oder Streckenprognose älter als 3 h (siehe Schritt 'Archive')."
           exit 1
