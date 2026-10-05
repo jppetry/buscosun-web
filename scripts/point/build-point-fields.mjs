@@ -33,7 +33,8 @@ import { availableParallelism } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { decodeCubeChunk, TIER_BY_ID } from '../../src/point/cubeFormat.ts';
 import { cubeSeriesFrom } from '../../src/point/client/cubePoint.ts';
-import { fuseCubePoint, FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN } from '../../src/pointForecast/cubeSource.ts';
+import { fuseCubePoint } from '../../src/pointForecast/cubeSource.ts';
+import { FUSION_CURRENT, FUSION_NAME, fusionStage } from '../../src/pointForecast/fusion/fusionRelease.ts';
 import { cdfOf, quantileOf } from '../../src/pointForecast/fusion/dist.ts';
 import { terrainScales } from '../../src/pointForecast/fusion/terrainScale.ts';
 import { ClimaField } from '../../src/ml/climaField.ts';
@@ -49,15 +50,16 @@ const H = 3_600_000;
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 /**
- * Die Optionen der Stufe fs ohne Station/Radar — dieselbe Menge, mit der D-NP0-10 die Gleichheit zu buscosun Fusion 8
+ * Die Optionen der Stufe fs ohne Station/Radar, aus dem Register der Stände (`fusionRelease.ts`: ein neuer Stand von
+ * buscosun Fusion kommt hier ohne Eingriff an) — dieselbe Kette, mit der D-NP0-10 die Gleichheit zu buscosun Fusion
  * ohne Station am Archiv belegt hat (98,9 % von 191 529 Zeilen gleich, `audit/np0-datenprodukte/diag-d-chance.md` §2.4);
  * `cubeSource.ts` `forecastFromBundle` setzt sie mit Tabellen genauso. `stationValue` und `anomalyInterp` wirken ohne
- * Station bzw. mit nativen Schritten nicht und fehlen deshalb.
+ * Station bzw. mit nativen Schritten nicht und fehlen deshalb; Stände, die eine Messung brauchen, rechnen ohne Messung
+ * wie der Stand davor. Das Etikett des Produkts bleibt „Modell · Cube" (F1); das Manifest nennt den Stand in `chain`.
  */
 export const FIELD_FUSE_OPTIONS = Object.freeze({
   hourly: false, tail: false, learned: true,
-  learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false,
-  anchorWindKm: FUSION7_ANCHOR_WIND_KM, nowcastHourMean: FUSION8_NOWCAST_HOUR_MEAN,
+  ...fusionStage().options,
 });
 
 /** Flaches Gelände in Höhe h — mit der Funktion des Motors gebaut (`terrainScales`), nicht von Hand. */
@@ -352,7 +354,7 @@ async function main() {
   const manifest = makeFieldManifest({
     run, tier: tierId, runAtMs, builtAtMs: Date.now(), leads,
     chain: {
-      options: { ...FIELD_FUSE_OPTIONS, nowMs, terrain: 'flach in Modellhöhe (terrainScales, konstante Höhe)', elevation: 'hModEff der Zelle', station: null, radar: null },
+      options: { ...FIELD_FUSE_OPTIONS, fusion: FUSION_CURRENT, fusionName: FUSION_NAME, nowMs, terrain: 'flach in Modellhöhe (terrainScales, konstante Höhe)', elevation: 'hModEff der Zelle', station: null, radar: null },
       tables: { path: 'point/fusion.client.json', sha256: inputs.sha256 }, codeCommit, notes: inputs.notes,
     },
     stats, timing: { ms, workers },

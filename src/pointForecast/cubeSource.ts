@@ -98,6 +98,7 @@ import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SE
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
 import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom } from './pfFlags';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
+import { fusionStage, fusionStageIo, fusionStageNote } from './fusion/fusionRelease';
 
 const H = 3_600_000;
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -2152,32 +2153,8 @@ export interface CubeObsFetchOptions {
  * am Punkt, aber keine Messung. 0,6 = zwischen „volle Messung" und „nur Modell"; der Fit (AP10) kann es messen.
  */
 export const INCA_ANCHOR_WEIGHT = 0.6;
-/**
- * buscosun Fusion 7 (E-AX-14, Jan 01.10.2026): the stage `fs` damps the wind anchor over the distance of the measurement with
- * e^(−(d / 10 km)²) (`FuseCubeOptions.anchorWindKm`). Measured against buscosun Fusion 6 on the archive 16.–30.09.2026 (405 810
- * rows, 14 issue days, 389 station points; `audit/fusion-ausbau.md` §6i): nowhere significantly worse, wind/gust 0–6 h without a
- * station +0,5/+0,6 %*, with a station byte-identical. Fusion 7 = Fusion 6 (tables of data-repo commit 1aaec969 unchanged) + this.
- */
-export const FUSION7_ANCHOR_WIND_KM = 10;
-/**
- * buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC: „sofort aktiv schalten … diesen Stand ab jetzt buscosun Fusion 8 nennen"): the stage `fs`
- * takes the radar member of an hour as the HOUR MEAN of the 5-min frames in (t − 60 min, t] (`FuseCubeOptions.nowcastHourMean`, V-AX-23),
- * read with ONE fetch per hour from the mirror product `m<lead>.png` (E-AX-16, `CubeIo.nowcastHourMean`). Measured against buscosun
- * Fusion 7 on the archive 16.09.–01.10.2026 (446 141 rows, 15 issue days, 389 station points; `audit/fusion-ausbau.md` §6l.4/§6m.3, rule
- * frozen before the build): Brier at 1–2 h +9,8 %* (station) / +11,8 %* (no station), 0–6 h +2,7/+3,1 %*, DE hits 0,33 → 0,52, nowhere
- * worse, every other variable and lead byte-identical (K11/K14). Fusion 8 = Fusion 7 (tables of data-repo commit 1aaec969 unchanged) + this.
- * Until the mirror carries `m<lead>.png` for a slot the engine sees one frame per hour and computes exactly Fusion 7. `?hm=0` = Fusion 7.
- */
-export const FUSION8_NOWCAST_HOUR_MEAN = true;
-/**
- * buscosun Fusion 9 (V-AW-33, Jan 04.10.2026: „ja schalte es default mäßig ein"): the stage `fs` compares a measurement with the model
- * value at the MINUTE of the measurement (`FuseCubeOptions.anchorAtObsTime`, linear between the two axis steps around it) instead of
- * the value of the first step within ±30 min. Not measured on the archive (it carries hourly values); measured at the road stations
- * (anchor gain +30 % with a measurement of 16:00 against +1 % with one of 16:30). A measurement on the full hour and every point
- * without a measurement compute exactly Fusion 8. Fusion 9 = Fusion 8 (tables of data-repo commit 1aaec969 unchanged) + this.
- * `CubeIo.anchorAtObsTime: false` (`?anc=0`) = Fusion 8.
- */
-export const FUSION9_ANCHOR_AT_OBS_TIME = true;
+// The stands of buscosun Fusion (7, 8, 9, …) live in ONE register: `fusion/fusionRelease.ts`. Re-exported for the callers of this module.
+export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
@@ -2312,7 +2289,7 @@ export function defaultCubeIo(): CubeIo {
     // Phase FS (Jan, 28.09.): wer buscosun Fusion auf dem Cube abfragt, bekommt die neueste Stufe — Lernstufe (Fit 5e) mit
     // Klimatologieprodukt, beide Korrekturen, Bewölkung durchgereicht, Stationswert. Jede Datei nie blockierend; fehlt sie im
     // Daten-Repo, rechnet der Pfad ohne diesen Teil und nennt es.
-    learnedSource: 'json', climaSource: 'json', stackSource: 'json', stage: 'fs',
+    ...fusionStageIo(),
     // AX-9: `?cg=1` liest das Klimagitter (Voreinstellung aus, Schlüssel unverändert).
     ...(climaGridFlag ? { climaGrid: true } : {}),
     // AX-10: `?inca=1` — INCA-Analyse als Anker in AT (Voreinstellung aus).
@@ -2367,20 +2344,13 @@ function forecastFromBundle(
   const stageFuse: Partial<FuseCubeOptions> = {};
   if (io.stage === 'fs') {
     if (t.learned?.tables) {
-      // buscosun Fusion 7 (E-AX-14, Jan 01.10.2026): the wind anchor damped over the distance of the measurement, 10 km —
-      // measured against buscosun Fusion 6 on the archive 16.–30.09. (audit/fusion-ausbau.md §6i: nowhere worse, wind/gust
-      // 0–6 h without a station +0,5/+0,6 %*, with a station byte-identical). Everything else of the stage is Fusion 6.
-      Object.assign(stageFuse, { learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false, anchorWindKm: FUSION7_ANCHOR_WIND_KM });
-      // buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC): the radar member as the hour mean (V-AX-23/E-AX-16) — `CubeIo.nowcastHourMean: false`
-      // (`?hm=0`) is the named fallback to Fusion 7; without the mirror product for a slot the engine computes Fusion 7 anyway.
-      const hourMean = FUSION8_NOWCAST_HOUR_MEAN && io.nowcastHourMean !== false;
-      if (hourMean) stageFuse.nowcastHourMean = true;
-      // buscosun Fusion 9 (V-AW-33, Jan 04.10.2026): the anchor reads the model value at the minute of the measurement —
-      // `CubeIo.anchorAtObsTime: false` (`?anc=0`) is the named fallback to Fusion 8; without a measurement nothing changes.
-      const atObs = FUSION9_ANCHOR_AT_OBS_TIME && io.anchorAtObsTime !== false;
-      if (atObs) stageFuse.anchorAtObsTime = true;
+      // The stage is the base (buscosun Fusion 6) plus every stand of the register (`fusion/fusionRelease.ts`: 7 wind anchor damped
+      // over the measurement distance, 8 radar hour mean, 9 anchor at the measurement time, …). A stand with a `CubeIo` switch is taken
+      // back with `false` there (`?hm=0`, `?anc=0`) — the named fallback; the note names the stand actually computed.
+      const st = fusionStage((r) => !!r.io && io[r.io.key] === false);
+      Object.assign(stageFuse, st.options);
       if (t.stack?.table) stageFuse.stationValue = true;
-      input.notes.push(`stage:fs — neueste Stufe (buscosun Fusion ${hourMean ? (atObs ? 9 : 8) : '7 (Stundenmittel per Schalter aus)'}): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)${hourMean ? ', Radar-Stundenmittel (E-AX-17)' : ''}${atObs ? ', Anker am Messzeitpunkt (V-AW-33)' : ''}${t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'}`);
+      input.notes.push(fusionStageNote(st, t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'));
     } else input.notes.push('stage:fs — keine gelernten Tabellen ⇒ Rechnung wie ohne die Stufe (keine ihrer Optionen ist ohne Lernstufe gemessen)');
     // Phase AX, AX-3 (E-AX-3): T zwischen den nativen Schritten als Anomalie gegen μ_c — braucht nur das Klimatologieprodukt
     // (Orakel: 6-h-Schritte −15,5 %, 3-h −4,1 % MAE; `audit/fusion-ausbau.md` §3). Ohne Produkt linear wie bisher, benannt.

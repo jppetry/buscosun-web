@@ -40,7 +40,7 @@ interface Props {
   onMap?: (map: maplibregl.Map | null) => void;
   /** Callout above the selected station (design): name and one line. */
   callout?: { lon: number; lat: number; name: string; line: string; color: string | null } | null;
-  /** Forecast points of the selected corridor (weather forecast of buscosun Fusion 8, layer `fc`). */
+  /** Forecast points of the selected corridor (weather forecast of buscosun Fusion, layer `fc`). */
   fcDots?: readonly RoadFcDot[];
 }
 

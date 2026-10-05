@@ -1472,3 +1472,17 @@ Kontext: `audit/fusion-implementierung.md` §9.18. Der Nachtrag `2026-10-03/trut
   `scripts/fusionfit/{lib/archiveAdapter.mjs,score-archive.mjs,stack-extract.mjs}`, `scripts/verify-punktarchiv.mjs` — am besten vor 23:10 UTC,
   sonst stempelt der Archiv-Cron einmal ohne `supplements`-Eintrag (harmlos, Datei bleibt). `verify:punktarchiv` 141/141 vorher.
 - **(b) V-FI-111:** Nachtrag künftig automatisch (Workflow-Schritt) oder nur von Hand? **V-FI-112/113** ansehen.
+
+## 38. Phase FR — Register der Stände von buscosun Fusion, 2026-10-05
+
+Kontext: `audit/fusion-release.md`. Umgesetzt und lokal geprüft (`verify:fusion-release` 11/11, `verify:pv-cube` 421/421, `verify:road-fc` 90/90,
+`verify:np0-fields` 29/29, `verify:road-ui` 55/55, Build 252/252). Offen:
+
+- **(a) Commit + Push von `buscosun-web/main`.** Danach ohne weiteres Zutun: der nächste `road-fc`-Job (stündlich, klont `main`) baut einmal
+  neu, obwohl Stunde und Eingaben gleich sein können (Grund im Log: „buscosun Fusion 8 → buscosun Fusion 9“), und schreibt
+  `engine.name: buscosun Fusion 9`, `engine.version: 9`; der nächste Punkt-Cron schreibt den Stand ins Manifest der Kartenfelder.
+- **(b) Kontrolle nach ≈ 1 h:** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fusion-release.mjs --live`
+  — nennt je Datenprodukt den Stand im Daten-Repo („nachgezogen“ oder „zieht beim nächsten Lauf nach“).
+- **(c) E-FR-1 ansehen:** `road/fc` und die Autobahnwetter-Seite heißen dann „buscosun Fusion 9 … ohne Messungs-Anker“ (Rechnung unverändert).
+- **(d) V-FR-1:** Kopfkommentar der Vorlage `scripts/road/workflow-road-fc.yml` (und der Kopie im Daten-Repo) nennt noch „Fusion 8“ — nur Kommentar.
+- **(e) totalJs-Grenze:** siehe `audit/fusion-release.md` §6.

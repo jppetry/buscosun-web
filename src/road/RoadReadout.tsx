@@ -14,7 +14,7 @@ import { ROAD_CLASS_LABEL } from './roadClasses';
 import type { RoadTab, RoadTime } from './roadState';
 import { ROAD_FC_SOURCE_TEXT, type RoadFcFile, type RoadFcPoint } from './roadFc';
 import {
-  roadFcAnchorText, ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_NAME_PP, ROAD_FC_UI_NOTE, roadFcAirClass, roadFcAxisName, roadFcGapPoints, roadFcLine,
+  roadFcAnchorText, ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_NAME_PP, roadFcUiNote, roadFcEngineName, roadFcAirClass, roadFcAxisName, roadFcGapPoints, roadFcLine,
   roadFcPrecipKind, roadFcPrecipText, roadFcSeries, roadFcTiles, roadFcTrip, roadFcTripText, roadFcValue, roadFcWindText, type RoadFcValue,
 } from './roadFcView';
 import {
@@ -55,7 +55,7 @@ interface ChartProps {
 }
 
 /** Verlauf: road, air, dew point from the ring of the station's series; right of "jetzt" the forecast AIR temperature
- *  and dew point of buscosun Fusion 8 (dashed) — the road line has no forecast (AW-6.2, Gate D). */
+ *  and dew point of buscosun Fusion (dashed) — the road line has no forecast (AW-6.2, Gate D). */
 function Chart({ ring, id, slotMs, fc = [], fromH = -24, toH = 6 }: ChartProps) {
   const W = 368, H = 124, x0 = 30, x1 = 356, yTop = 10, yBot = 104;
   const X = (dh: number) => x0 + ((dh - fromH) / (toH - fromH)) * (x1 - x0);
@@ -183,7 +183,7 @@ function FcTiles({ p, fcPoint }: { p: Props; fcPoint: RoadFcPoint | null }) {
 /** Forecast values of the chosen hour + the product's one-sentence limits. */
 function FcDetail({ p, fcPoint, always }: { p: Props; fcPoint: RoadFcPoint | null; always?: boolean }) {
   const v = fcPoint && p.fcFile ? roadFcValue(fcPoint, p.fcFile, p.nowMs + p.time * 3_600_000) : null;
-  if (!p.fcFile) return <p className="aw-fc-note">Die Wetterprognose von buscosun Fusion 8 ist derzeit nicht verfügbar ({p.fcLabel}).</p>;
+  if (!p.fcFile) return <p className="aw-fc-note">Die Wetterprognose von {roadFcEngineName(null)} ist derzeit nicht verfügbar ({p.fcLabel}).</p>;
   if (!fcPoint) return <p className="aw-fc-note">Für diese Messstelle liegt keine Prognose vor (sie liegt an keinem Autobahn-Korridor oder fehlt im Lauf).</p>;
   return (
     <>
@@ -195,7 +195,7 @@ function FcDetail({ p, fcPoint, always }: { p: Props; fcPoint: RoadFcPoint | nul
           </div>
         </>
       )}
-      <p className="aw-fc-note">{ROAD_FC_UI_NOTE} {p.fcLabel} · {roadFcAnchorText(fcPoint, p.fcFile)}{v?.interpolated ? ' · Stunde zwischen zwei Modellschritten interpoliert' : ''}.</p>
+      <p className="aw-fc-note">{roadFcUiNote(p.fcFile)} {p.fcLabel} · {roadFcAnchorText(fcPoint, p.fcFile)}{v?.interpolated ? ' · Stunde zwischen zwei Modellschritten interpoliert' : ''}.</p>
     </>
   );
 }
@@ -211,7 +211,7 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
   return (
     <>
       <div className="aw-card aw-station aw-axis">
-        <div className="aw-eyebrow is-accent">Prognosepunkt · buscosun Fusion 8</div>
+        <div className="aw-eyebrow is-accent">Prognosepunkt · {roadFcEngineName(file)}</div>
         <h2 className="aw-station-name">{c ? roadFcAxisName(c, a, p.dir) : a.id}</h2>
         <div className="aw-station-sub">{[a.h != null ? `${Math.round(a.h)} m ü. NN` : null, a.bridge ? 'Brücke' : null, 'keine Messstelle an diesem Punkt'].filter(Boolean).join(' · ')}</div>
         <div className="aw-chip is-fc"><i />{p.fcLabel}{v ? ` · gültig ${hm(v.validMs)}` : ''}</div>
@@ -237,7 +237,7 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
         </div>
       </div>
       <div className="aw-sources">
-        Datenbasis: buscosun Fusion 8 auf dem Punkt-Cube, {roadFcAnchorText(a, file)} · Lage des Punkts auf der Fahrbahn: © OpenStreetMap-Mitwirkende (ODbL)
+        Datenbasis: {roadFcEngineName(file)} auf dem Punkt-Cube, {roadFcAnchorText(a, file)} · Lage des Punkts auf der Fahrbahn: © OpenStreetMap-Mitwirkende (ODbL)
       </div>
     </>
   );
@@ -255,7 +255,7 @@ export default function RoadReadout(p: Props) {
       </div>
       {p.tab === 'station' && <StationTab {...p} />}
       {p.tab === 'strecke' && <StreckeTab {...p} />}
-      {p.tab === 'quellen' && <QuellenTab />}
+      {p.tab === 'quellen' && <QuellenTab file={p.fcFile} />}
     </aside>
   );
 }
@@ -400,7 +400,7 @@ function StreckeTab(p: Props) {
               <span className="aw-mono">{dec(r.km, 0)}</span>
               <span className="aw-table-name"><strong>{r.name}</strong><em className="is-fc">{r.fc ? roadFcLine(r.fc) : 'keine Prognose für die Ankunftsstunde'}</em></span>
               <span>{hm(r.etaMs)}</span>
-              <span className="aw-table-chip is-fc" title="Keine Messstelle im 10-km-Umkreis — Wetterprognose von buscosun Fusion 8, keine Fahrbahnprognose">Prognose</span>
+              <span className="aw-table-chip is-fc" title={`Keine Messstelle im 10-km-Umkreis — Wetterprognose von ${roadFcEngineName(file)}, keine Fahrbahnprognose`}>Prognose</span>
             </button>
           );
           return (
@@ -420,17 +420,19 @@ function StreckeTab(p: Props) {
           );
         })}
       </div>
-      <p className="aw-note">Zustand zur Ankunftszeit: bis +30 min die Messung; später zeigt die Tabelle weiter die Messung (umrandet) und dazu das Wetter zur Ankunft aus buscosun Fusion 8 (Luft, Niederschlag{file ? ` · ${p.fcLabel}` : ' — derzeit nicht verfügbar'}). Eine Prognose der Fahrbahn folgt erst nach dem Backtest. Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>
+      <p className="aw-note">Zustand zur Ankunftszeit: bis +30 min die Messung; später zeigt die Tabelle weiter die Messung (umrandet) und dazu das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag{file ? ` · ${p.fcLabel}` : ' — derzeit nicht verfügbar'}). Eine Prognose der Fahrbahn folgt erst nach dem Backtest. Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>
     </>
   );
 }
 
+/** The row of the forecast engine: its name comes from the run file (`roadFcEngineName`), see `QuellenTab`. */
+const FC_ENGINE_ROW = 'fc-engine';
 const SOURCES: ReadonlyArray<{ cc: string; name: string; what: string; status: 'aktiv' | 'geplant' | 'blockiert' }> = [
   { cc: 'DE', name: 'DWD Straßenwetter (Glättemeldeanlagen)', what: 'Fahrbahntemperatur, -zustand, Wasserfilm, Luft, Sicht · 15 min · GeoNutzV', status: 'aktiv' },
   { cc: 'DE', name: 'DWD Warnungen (CAP)', what: 'Glätte, Glatteis, Nebel, Sturm · wörtlich zitiert', status: 'aktiv' },
   { cc: 'DE', name: 'BKG DLM250', what: 'Autobahnachsen der Korridore · © GeoBasis-DE / BKG, dl-de/by-2.0', status: 'aktiv' },
   { cc: 'DACH', name: 'GeoNames', what: 'Ortsnamen der Korridore (Anfang, Ende, Städte) · geonames.org, CC BY 4.0', status: 'aktiv' },
-  { cc: 'DE', name: 'buscosun Fusion 8', what: 'Wetterprognose 0–48 h (Luft, Taupunkt, Niederschlag, Wind) alle 5 km und an jeder Messstelle, stündlich neu · ohne Messungs-Anker', status: 'aktiv' },
+  { cc: 'DE', name: FC_ENGINE_ROW, what: 'Wetterprognose 0–48 h (Luft, Taupunkt, Niederschlag, Wind) alle 5 km und an jeder Messstelle, stündlich neu · ohne Messungs-Anker', status: 'aktiv' },
   { cc: 'DE', name: 'OpenStreetMap', what: 'Lage der Prognosepunkte auf der Fahrbahn · © OpenStreetMap-Mitwirkende, ODbL', status: 'aktiv' },
   { cc: 'DACH', name: 'buscosun Fusion — Fahrbahn', what: 'Fahrbahntemperatur und -zustand +1/+3/+6 h — erst nach bestandenem Backtest', status: 'geplant' },
   { cc: 'AT', name: 'GeoSphere TAWES + Warnungen', what: 'Luft, 5-cm- und Bodentemperatur als Anker der Prognosepunkte · CC BY 4.0', status: 'geplant' },
@@ -440,7 +442,7 @@ const SOURCES: ReadonlyArray<{ cc: string; name: string; what: string; status: '
   { cc: 'CH', name: 'ASTRA Strassenwetter / Traffic Situations', what: 'nicht offen · API-Key, Weitergabeverbot', status: 'blockiert' },
 ];
 
-function QuellenTab() {
+function QuellenTab({ file }: { file: RoadFcFile | null }) {
   return (
     <>
       <div className="aw-eyebrow aw-sources-title">Quellen dieser Ansicht</div>
@@ -448,12 +450,12 @@ function QuellenTab() {
         {SOURCES.map((s) => (
           <div key={s.name} className={`aw-source is-${s.status}`}>
             <span className="aw-source-cc">{s.cc}</span>
-            <span className="aw-source-body"><strong>{s.name}</strong><span>{s.what}</span></span>
+            <span className="aw-source-body"><strong>{s.name === FC_ENGINE_ROW ? roadFcEngineName(file) : s.name}</strong><span>{s.what}</span></span>
             <span className="aw-source-status">{s.status}</span>
           </div>
         ))}
       </div>
-      <p className="aw-note aw-fc-source">{ROAD_FC_SOURCE_TEXT}</p>
+      <p className="aw-note aw-fc-source">{file?.source || ROAD_FC_SOURCE_TEXT}</p>
       <div className="aw-box is-frost">
         <strong>Verkehrslage nur als Link:</strong>{' '}
         <a href="https://www.autobahn.de/" target="_blank" rel="noopener noreferrer">Autobahn GmbH</a> · <a href="https://www.asfinag.at/" target="_blank" rel="noopener noreferrer">ASFINAG</a> · <a href="https://www.astra.admin.ch/" target="_blank" rel="noopener noreferrer">ASTRA</a>. Blockierte Quellen bleiben sichtbar, werden aber nicht umgangen.

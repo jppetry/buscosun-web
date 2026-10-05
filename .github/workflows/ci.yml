@@ -96,6 +96,10 @@ jobs:
       # echter Container-Form; prueft auch, dass der Live-Pfad ohne Flag unveraendert bleibt.
       - name: Verifier — Punkt-Cube-Pfad (buscosun Fusion, FI)
         run: npm run verify:pv-cube
+      # Register der Stände von buscosun Fusion: kein fester Stand und keine handkopierte Option außerhalb
+      # des Registers, jeder Plattformteil hängt daran (audit/fusion-release.md) — netzfrei.
+      - name: Verifier — Stände von buscosun Fusion (Register)
+        run: npm run verify:fusion-release
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

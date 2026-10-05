@@ -35,6 +35,7 @@ import { dirStore, geoBackend, makeIo, buildRun, publishVerdict, publishRun, nex
 import { memoryStore } from '../src/point/client/store.ts';
 import { POINT_LEARNED_PATH, POINT_STACK_PATH } from '../src/point/cubeFormat.ts';
 import { getPointForecastFromCube, clearCubeForecastCache, FUSION8_NOWCAST_HOUR_MEAN } from '../src/pointForecast/cubeSource.ts';
+import { FUSION_CURRENT, FUSION_NAME, fusionName } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { getClimaField } from '../src/pointForecast/fusion/attach.ts';
 import { loadRoadFc, loadRoadFcIndex } from '../src/road/roadClient.ts';
 
@@ -203,9 +204,9 @@ let built, runFiles;
   add('C1 Lauf: 4 von 4 Punkten, ein Korridor (2 Achspunkte + seine Station, nach km sortiert) und ein Land (Station ohne Korridor); Gelände aus dem Vorab-Cache (0 Netz-Treffer)',
     built.entry.points === 4 && built.entry.failed === 0 && built.entry.corridors === 1 && built.entry.states === 1 && eq(cor.points.map((p) => p.id), ['a99@0', 'S900', 'a99@5']) && eq(st.points.map((p) => p.id), ['S901'])
     && built.stats.geo.terrainMiss === 0 && cor.points[2].bridge === true && cor.points[1].name === 'Fixture Nord', JSON.stringify(built.stats.geo));
-  add('C2 jede Datei besteht die Client-Prüfung ohne Verlust; Kopf: Lauf, t0 = volle Stunde, 49 Schritte, Motor „buscosun Fusion 8", Stufe fs, anchor none, Cube-Läufe und Tabellen-Hashes genannt',
+  add('C2 jede Datei besteht die Client-Prüfung ohne Verlust; Kopf: Lauf, t0 = volle Stunde, 49 Schritte, Motor = neuester Stand des Registers (Name und Nummer), Stufe fs, anchor none, Cube-Läufe und Tabellen-Hashes genannt',
     [cor, st].every((d) => { const p = parseRoadFcFile(d); return p && p.dropped === 0 && p.points.length === d.points.length; }) && cor.run === roadFcStamp(nowMs) && cor.t0Ms === roadFcT0(nowMs) && cor.steps === ROAD_FC_STEPS
-    && cor.engine.name === 'buscosun Fusion 8' && cor.engine.stage === 'fs' && cor.engine.anchor === 'none' && cor.engine.hourMean === FUSION8_NOWCAST_HOUR_MEAN && cor.engine.runs.t1 === FIX.runs.t1 && cor.engine.runs.t2 === FIX.runs.t2
+    && cor.engine.name === FUSION_NAME && cor.engine.version === FUSION_CURRENT && cor.engine.stage === 'fs' && cor.engine.anchor === 'none' && cor.engine.hourMean === FUSION8_NOWCAST_HOUR_MEAN && cor.engine.runs.t1 === FIX.runs.t1 && cor.engine.runs.t2 === FIX.runs.t2
     && /^[0-9a-f]{12}$/.test(cor.engine.tables.learned) && /^[0-9a-f]{12}$/.test(cor.engine.tables.stack), JSON.stringify(cor.engine.runs));
   const verdict = publishVerdict(built);
   add('C3 Freigabe: Lauf mit Stufe fs an jedem Punkt ist frei', verdict.ok && built.stats.noStage === 0, verdict.reasons.join(' · '));
@@ -477,7 +478,7 @@ if (typeof flags.data === 'string') {
   const src = JSON.parse(runFiles['c/a99.json']).points.find((p) => p.id === 'S900');
   add(`H1 Ablage: nur Stationspunkte (keine Achspunkte), die ersten ${ROAD_FC_ARCHIVE_STEPS} Stunden, Größen ${ROAD_FC_ARCHIVE_VARS.join('/')} — Werte = Anfang der Reihen der Lauf-Datei, Motor-Block übernommen`,
     r1.ok && r1.stations === 2 && eq(Object.keys(doc.stations), ['S900', 'S901']) && doc.steps === ROAD_FC_ARCHIVE_STEPS && eq(Object.keys(doc.stations.S900.v), [...ROAD_FC_ARCHIVE_VARS])
-    && ROAD_FC_ARCHIVE_VARS.every((k) => eq(doc.stations.S900.v[k], src.v[k].slice(0, ROAD_FC_ARCHIVE_STEPS))) && doc.engine.name === 'buscosun Fusion 8' && doc.stations.S900.at === 'a99' && doc.stations.S901.at === null
+    && ROAD_FC_ARCHIVE_VARS.every((k) => eq(doc.stations.S900.v[k], src.v[k].slice(0, ROAD_FC_ARCHIVE_STEPS))) && doc.engine.name === FUSION_NAME && doc.stations.S900.at === 'a99' && doc.stations.S901.at === null
     && doc.run === built.run && doc.t0Ms === roadFcT0(nowMs), `${r1.stored}, ${r1.bytes} B`);
   add('H2 Pfad = UTC-Tag der Ausgabezeit / Lauf; nur der JÜNGSTE Lauf des Zeigers wird abgelegt (der ältere nicht)',
     r1.stored === fcArchivePath(built.run) && r1.stored.startsWith(new Date(nowMs).toISOString().slice(0, 10)) && !existsSync(join(arch, fcArchivePath(older.run))));
@@ -591,7 +592,8 @@ rmSync(tmp, { recursive: true, force: true });
   ];
   const control = roadWords.test(ROAD_CLASS_LABEL.frost.label) && roadWords.test(ROAD_CLASS_LABEL.dry.label) && roadWords.test('Glätte gemessen');
   add('I10 kein Prognose-Text benutzt Wörter der gemessenen Fahrbahnklassen (Gegenprobe: das Muster trifft die Klassen-Etiketten); der Hinweis sagt „keine Prognose der Fahrbahn"',
-    control && produced.length > 100 && produced.every((s) => typeof s === 'string' && s.length > 0 && !roadWords.test(s)) && /keine Prognose der Fahrbahn/.test(V.ROAD_FC_UI_NOTE) && /buscosun Fusion 8/.test(V.ROAD_FC_UI_NOTE),
+    control && produced.length > 100 && produced.every((s) => typeof s === 'string' && s.length > 0 && !roadWords.test(s)) && /keine Prognose der Fahrbahn/.test(V.roadFcUiNote(null)) && V.roadFcUiNote(file).includes(V.roadFcEngineName(file))
+      && V.roadFcEngineName({ engine: { name: fusionName(8) } }) === 'buscosun Fusion 8' && V.roadFcEngineName({ engine: { name: 'x', version: 12 } }) === 'buscosun Fusion 12' && V.roadFcEngineName(null) === 'buscosun Fusion' && V.roadFcEngineName({ engine: {} }) === 'buscosun Fusion',
     `${produced.length} Texte, z. B. „${produced[3]}"`);
 
   const def = V.defaultRoadFcAxis(file, ms);
@@ -703,7 +705,7 @@ rmSync(tmp, { recursive: true, force: true });
 {
   const T = Date.UTC(2026, 9, 4, 15, 37, 40);
   const tables = { learned: 'aaa', stack: 'bbb', clima: 'ccc' };
-  const entry = (over = {}) => ({ run: roadFcStamp(T), t0Ms: roadFcT0(T), engine: { anchor: 'none', runs: { t1: '2026100412', t2: '2026100412', t3: null, stations: '2026100409', nowcast: 'radvor_rv:2610041530' }, tables, ...over } });
+  const entry = (over = {}) => ({ run: roadFcStamp(T), t0Ms: roadFcT0(T), engine: { name: FUSION_NAME, version: FUSION_CURRENT, anchor: 'none', runs: { t1: '2026100412', t2: '2026100412', t3: null, stations: '2026100409', nowcast: 'radvor_rv:2610041530' }, tables, ...over } });
   const pointIndex = (over = {}) => ({ latestByTier: { t1: { run: '2026100412' }, t2: { run: '2026100412' }, t3: { run: '2026100400' }, ...over.tiers }, stations: { runs: [{ run: over.stations ?? '2026100409' }, { run: '2026100403' }] }, stationsS: { runs: [{ run: over.s ?? '2026100414' }] } });
   const v = (o = {}) => repeatVerdict({ fcIndex: { killed: false, runs: [entry(o.engine)] }, pointIndex: pointIndex(o.point), nowMs: o.now ?? T + 2 * 60_000, tables: o.tables ?? tables, anchorSlotReady: !!o.slot });
   const same = v(), sameS = v({ point: { s: '2026100415' } }), sameT3 = v({ point: { tiers: { t3: { run: '2026100412' } } } });
@@ -718,6 +720,10 @@ rmSync(tmp, { recursive: true, force: true });
   add('K2 Gegenproben, je ein neuer Lauf mit benanntem Grund: neue Stunde, neuer t1-, t2- oder Stationslauf, geänderte Tabelle, Messung der vollen Stunde jetzt da (Anker an, letzter Lauf ohne), leerer oder abgeschalteter Zeiger, point/index.json nicht lesbar, Eingaben des letzten Laufs unbekannt',
     Object.values(cases).every((c) => c.repeat === false && c.reason) && /Stunde/.test(cases.stunde.reason) && /t1 2026100412 → 2026100415/.test(cases.t1.reason) && /stations/.test(cases.stations.reason) && /Messung/.test(cases.messung.reason),
     Object.entries(cases).filter(([, c]) => c.repeat !== false).map(([k]) => k).join(',') || cases.t1.reason);
+  // The product follows a new stand of buscosun Fusion by itself: a newest run built with an older stand is never a repeat.
+  const older = v({ engine: { name: fusionName(FUSION_CURRENT - 1), version: FUSION_CURRENT - 1 } }), byName = v({ engine: { name: fusionName(FUSION_CURRENT - 1), version: undefined } }), nameOnly = v({ engine: { version: undefined } }), unknown = v({ engine: { name: undefined, version: undefined } });
+  add('K2b Stand von buscosun Fusion: letzter Lauf mit dem Stand davor (als Nummer oder nur im Namen) ⇒ neuer Lauf, Grund nennt beide Stände; ohne Angabe ⇒ neuer Lauf; nur der Name mit dem aktuellen Stand ⇒ Wiederholung (Gegenprobe)',
+    older.repeat === false && older.reason === `${fusionName(FUSION_CURRENT - 1)} → ${FUSION_NAME}` && byName.repeat === false && byName.reason === older.reason && unknown.repeat === false && /unbekannt/.test(unknown.reason) && nameOnly.repeat === true, older.reason);
   add('K3 ein Lauf, der schon mit Anker rechnete, wird durch dieselbe Messdatei nicht wiederholt', v({ engine: { anchor: 'swis' }, slot: true }).repeat === true);
   // On a checkout: the pointer files of a real directory, the hashes of its tables.
   const dir = mkdtempSync(join(tmpdir(), 'road-fc-k-'));

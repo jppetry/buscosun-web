@@ -3,8 +3,8 @@
  * (`scripts/road/road-forecast.mjs`), the point builder (`scripts/road/build-fc-points.mjs`), the client
  * (`src/road/roadClient.ts`) and the verifier (`verify:road-fc`). Diagnosis and rulings: `audit/autobahnwetter.md` §14.
  *
- * What it is: buscosun Fusion 8 (`getPointForecastFromCube`, stage `fs`, radar hour mean, MOSMIX station member,
- * terrain and roughness at the point; NO measurement anchor) computed hourly at fixed points — every 5 km on each
+ * What it is: buscosun Fusion in its newest stand (`fusionRelease.ts`; `getPointForecastFromCube`, stage `fs`, radar hour mean,
+ * MOSMIX station member, terrain and roughness at the point; NO measurement anchor unless `ROAD_FC_ANCHOR_MODE` says so) computed hourly at fixed points — every 5 km on each
  * motorway corridor (snapped onto the OSM carriageway) and at every road-weather station of the catalogue. It is
  * WEATHER at the road (air temperature, dew point, precipitation, snow share, wind, gusts, cloud cover), not the road
  * surface: surface temperature and the ice class stay AW-6.2 behind Gate D.
@@ -16,6 +16,8 @@
  *   road/fc/v1/static/points.json          the points (timeless; position licence ODbL where snapped to OSM)
  *   road/fc/v1/static/geo.json             terrain and roughness per point, precomputed (producer only)
  */
+
+import { FUSION_NAME } from '../pointForecast/fusion/fusionRelease';
 
 export const ROAD_FC_VERSION = 'v1';
 export const ROAD_FC_REPO_DIR = `road/fc/${ROAD_FC_VERSION}`;
@@ -166,7 +168,10 @@ export type RoadFcAnchorMode = 'none' | 'stations' | 'all';
 export const ROAD_FC_ANCHOR_MODE: RoadFcAnchorMode = 'none';
 
 export interface RoadFcEngine {
+  /** The stand the run was BUILT with („buscosun Fusion <n>", `fusionRelease.ts`) — the pages show this name, not the stand of their own code. */
   name: string;
+  /** The number of that stand (since 05.10.2026; older runs carry it only in `name`). */
+  version?: number;
   stage: 'fs';
   /**
    * What the run did, not what was asked for: `'swis'` = at least one point was anchored on a road weather station
@@ -223,7 +228,7 @@ export interface RoadFcIndex {
   runs: RoadFcRunEntry[];
 }
 
-export const ROAD_FC_SOURCE_TEXT = 'buscosun Fusion 8 auf dem Punkt-Cube (buscosun-data/point), Radar-Stundenmittel DWD RADOLAN-RV, Stationsmember DWD MOSMIX-L, Gelände Terrarium (Mapzen/AWS), Rauhigkeit ESA WorldCover 2021 (CC BY 4.0); Lage der Achspunkte © OpenStreetMap-Mitwirkende (ODbL), Korridore © GeoBasis-DE / BKG (dl-de/by-2.0), Stationen DWD (GeoNutzV). Modellprognose für das Wetter an der Strecke — keine Fahrbahnmessung, kein amtliches Warnprodukt.';
+export const ROAD_FC_SOURCE_TEXT = `${FUSION_NAME} auf dem Punkt-Cube (buscosun-data/point), Radar-Stundenmittel DWD RADOLAN-RV, Stationsmember DWD MOSMIX-L, Gelände Terrarium (Mapzen/AWS), Rauhigkeit ESA WorldCover 2021 (CC BY 4.0); Lage der Achspunkte © OpenStreetMap-Mitwirkende (ODbL), Korridore © GeoBasis-DE / BKG (dl-de/by-2.0), Stationen DWD (GeoNutzV). Modellprognose für das Wetter an der Strecke — keine Fahrbahnmessung, kein amtliches Warnprodukt.`;
 
 /** Share of points a run may lose before it is NOT published (`set`; the run before stays the newest). */
 export const ROAD_FC_MAX_FAILED_SHARE = 0.1;

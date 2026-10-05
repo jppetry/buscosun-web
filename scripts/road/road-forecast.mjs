@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * AW-6.1 — Producer of the route forecast (`buscosun-data/road/fc/v1/`, contract `src/road/roadFc.ts`,
- * `audit/autobahnwetter.md` §14): buscosun Fusion 8 at every point of `static/points.json`, hourly, from a local
+ * `audit/autobahnwetter.md` §14): buscosun Fusion (the newest stand of the register, `fusionRelease.ts`) at every point of `static/points.json`, hourly, from a local
  * checkout of the data repo.
  *
  * The chain is the client's: `getPointForecastFromCube` with the options of `defaultCubeIo()` (stage `fs`, tables
@@ -37,7 +37,8 @@ import {
 } from '../../src/road/roadFc.ts';
 import { newStoreStats } from '../../src/point/client/store.ts';
 import { decodeCubeChunk, POINT_LEARNED_PATH, POINT_STACK_PATH, POINT_CLIMA_PATH } from '../../src/point/cubeFormat.ts';
-import { getPointForecastFromCube, clearCubeForecastCache, exceedance, FUSION8_NOWCAST_HOUR_MEAN } from '../../src/pointForecast/cubeSource.ts';
+import { getPointForecastFromCube, clearCubeForecastCache, exceedance } from '../../src/pointForecast/cubeSource.ts';
+import { FUSION_CURRENT, FUSION_NAME, fusionName, fusionStage, fusionStageIo, fusionVersionOfNotes, fusionVersionOfEngine } from '../../src/pointForecast/fusion/fusionRelease.ts';
 import { getClimaField } from '../../src/pointForecast/fusion/attach.ts';
 import { ROAD_REPO_DIR, ROAD_STATIONS_PATH, roadStamp } from '../../src/road/roadContract.ts';
 
@@ -130,10 +131,8 @@ export function makeIo({ store, cache, nowMs }) {
     obs: null,
     // Roughness only from the preloaded entries — never the network inside a run.
     z0: { cache, cacheOnly: true },
-    learnedSource: 'json', climaSource: 'json', stackSource: 'json', stage: 'fs',
-    nowcastHourMean: FUSION8_NOWCAST_HOUR_MEAN,
-    // The product is named buscosun Fusion 8 and runs without measurements (`obs: null`) — Fusion 9 (V-AW-33) only changes the anchor.
-    anchorAtObsTime: false,
+    // The newest stage of buscosun Fusion from the register — tables, stage and reader switches; a new stand needs no edit here.
+    ...fusionStageIo(),
     nowMs: () => nowMs,
   };
 }
@@ -285,7 +284,7 @@ export async function computePoint(p, io, nowMs, obs = null) {
       v,
     };
     if (!roadFcPointUsable(point)) return { error: 'weniger als die Hälfte der Stunden mit Temperatur' };
-    const stage = fc.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\)/.test(n));
+    const stage = fusionVersionOfNotes(fc.cube.notes) === FUSION_CURRENT;
     return { point, runs: runsOf(fc), stage, errors: fc.cube.errors.length, fc };
   } catch (e) {
     return { error: String(e?.message ?? e).split('\n')[0] };
@@ -379,9 +378,9 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
   const anchored = done.filter((p) => p.anc).length;
   const anchorSlot = parts.find((p) => p.anchorSlot)?.anchorSlot ?? null;
   const engine = {
-    name: 'buscosun Fusion 8', stage: 'fs', anchor: anchored ? 'swis' : 'none',
+    name: FUSION_NAME, version: FUSION_CURRENT, stage: 'fs', anchor: anchored ? 'swis' : 'none',
     ...(anchored ? { anchorMode: anchor, anchorSlot, anchored } : {}),
-    hourMean: FUSION8_NOWCAST_HOUR_MEAN, runs,
+    hourMean: fusionStage().options.nowcastHourMean === true, runs,
     tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
   };
   const noStage = parts.reduce((s, p) => s + p.noStage, 0);
@@ -424,7 +423,7 @@ export function publishVerdict({ entry, stats }) {
   const reasons = [];
   if (!entry.points) reasons.push('kein Punkt mit Ergebnis');
   if (stats.total && stats.failed.length / stats.total > ROAD_FC_MAX_FAILED_SHARE) reasons.push(`${stats.failed.length} von ${stats.total} Punkten ohne Ergebnis (> ${100 * ROAD_FC_MAX_FAILED_SHARE} %)`);
-  if (stats.noStage) reasons.push(`${stats.noStage} Punkte ohne Stufe fs (gelernte Tabellen nicht gelesen) — das wäre nicht buscosun Fusion 8`);
+  if (stats.noStage) reasons.push(`${stats.noStage} Punkte ohne Stufe fs (gelernte Tabellen nicht gelesen) — das wäre nicht ${FUSION_NAME}`);
   if (!entry.engine.runs.t1) reasons.push('kein Lauf der Stufe 1 gelesen');
   return { ok: reasons.length === 0, reasons };
 }
@@ -437,7 +436,9 @@ export function publishVerdict({ entry, stats }) {
  * runs within 11 minutes from the same inputs. A run is a repeat when the newest run of the pointer
  *   - starts in the same hour (`t0Ms`; a new hour moves the window and the radar hour mean ⇒ always a new run),
  *   - read the same cube and station runs that the checkout's `point/index.json` offers now (every run the engine
- *     named: t1, t2, t3 if used, stations — MOSMIX-S is not an input), from the same tables, and
+ *     named: t1, t2, t3 if used, stations — MOSMIX-S is not an input), from the same tables,
+ *   - was built with the stand of buscosun Fusion this code computes (`fusionRelease.ts`; an older stand ⇒ the run
+ *     happens — that is how the product follows a new stand by itself, once), and
  *   - no measurement slot has arrived that the anchor would use now and did not use then.
  * Radar frames newer than that run inside the same hour do not count: the next hourly run takes them.
  * Anything unreadable or unknown ⇒ not a repeat (the run happens). `{ repeat, reason }`.
@@ -447,6 +448,8 @@ export function repeatVerdict({ fcIndex, pointIndex, nowMs, tables = null, ancho
   const prev = fcIndex?.runs?.[0];
   if (!prev || fcIndex.killed) return no('kein veröffentlichter Lauf');
   if (prev.t0Ms !== roadFcT0(nowMs)) return no('neue Stunde');
+  const built = fusionVersionOfEngine(prev.engine);
+  if (built !== FUSION_CURRENT) return no(`${built == null ? 'Stand des letzten Laufs unbekannt' : fusionName(built)} → ${FUSION_NAME}`);
   const used = prev.engine?.runs;
   if (!used?.t1) return no('Eingaben des letzten Laufs unbekannt');
   const offered = {

@@ -5,7 +5,7 @@
  *
  * Data: `road/v1/` of buscosun-data via `roadClient.ts` (time gate, step back, CDN + raw hedge, client checks of the
  * contract). Freshness rules of the contract: > 45 min grey "veraltet", > 3 h or kill switch "derzeit keine Messdaten".
- * AW-6.1b: the time chips +1/+3/+6 h select the hour of the WEATHER forecast of buscosun Fusion 8 (`road/fc/v1`,
+ * AW-6.1b: the time chips +1/+3/+6 h select the hour of the WEATHER forecast of buscosun Fusion (`road/fc/v1`,
  * read per corridor through `loadRoadFc`): forecast row of the band, dots on the map, tiles, chart and arrival rows of
  * the readout. Map markers, band bar and road classes stay the MEASUREMENT of the slot at every chip; the road surface
  * has no forecast before Gate D (AW-6.2).
@@ -24,7 +24,7 @@ import { loadRoadCorridors, loadRoadFc, loadRoadH24, loadRoadSlot, type RoadCorr
 import type { RoadFcPoint } from './roadFc';
 import {
   ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, defaultRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
-  roadFcRunView, roadFcValue,
+  roadFcEngineName, roadFcRunView, roadFcValue,
 } from './roadFcView';
 import RoadMap, { type RoadFcDot, type RoadMapLayers } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
@@ -266,7 +266,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
         const enabled = h === 0 || (ROAD_FORECAST_ENABLED && !!fcFile);
         return (
           <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTime(h)}
-            title={enabled ? (h === 0 ? undefined : `Wetterprognose von buscosun Fusion 8 für ${hm(nowMs + h * 3_600_000)} (${fcLabel}) — Karte und Band zeigen weiter die Messung`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
+            title={enabled ? (h === 0 ? undefined : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel}) — Karte und Band zeigen weiter die Messung`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
             {h === 0 ? `Jetzt${obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
           </button>
         );

@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { openBrowser, findHeadlessChrome } from './lib/cdpBrowser.mjs';
 import { deriveRoadSlot } from './road/road-derive.mjs';
 import { roadFcStamp, roadFcT0 } from '../src/road/roadFc.ts';
-import { roadFcValue, roadFcAxisPoints } from '../src/road/roadFcView.ts';
+import { roadFcValue, roadFcAxisPoints, roadFcEngineName } from '../src/road/roadFcView.ts';
 import { f1, hm } from '../src/road/roadView.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -106,6 +106,8 @@ const SLOT_MS = Date.UTC(2026, 9, 3, 8, 0);
 
 // --- fixture: route forecast — a real run file of corridor a8, restamped (run, issue time, first hour) -------------
 const fcReal = JSON.parse(readFileSync(join(FIX, 'fc-a8-2610040905.json'), 'utf8'));
+// The page names the engine as the RUN FILE does (the stand it was built with), not as the code's register does.
+const FC_ENGINE_NAME = roadFcEngineName(fcReal);
 const mkFcSite = (name, issuedMs) => {
   const dir = join(tmp, name);
   const run = roadFcStamp(issuedMs), t0Ms = roadFcT0(issuedMs), issuedAt = new Date(issuedMs).toISOString();
@@ -363,8 +365,8 @@ const allErrors = [];
     const p5 = await ctx.evaluate(`({ eyebrow: document.querySelector('.aw-axis .aw-eyebrow')?.textContent, name: document.querySelector('.aw-axis .aw-station-name')?.textContent, hero: document.querySelector('.aw-axis .aw-hero-val')?.textContent, st: new URLSearchParams(location.search).get('st'), callout: document.querySelector('.aw-callout')?.textContent ?? '', sel: document.querySelectorAll('.aw-band-fc-cell.is-sel').length, badge: document.querySelector('.aw-axis .aw-badge')?.textContent ?? '' })`);
     const axFc = fcLive.file.points.find((x) => x.id === p5.st);
     const axWant = axFc ? roadFcValue(axFc, fcLive.file, now2 + 3 * 3_600_000) : null;
-    add('P5 Klick auf eine Prognose-Zelle ⇒ Karte „Prognosepunkt · buscosun Fusion 8", URL st=a8@<km>, Luftwert = Datei (+3 h), Callout „Prognose Luft …", Klasse in Luft-Worten',
-      ax && /Prognosepunkt · buscosun Fusion 8/.test(p5.eyebrow ?? '') && /A 8 · km \d+/.test(p5.name ?? '') && !!axWant && p5.hero === `${f1(axWant.t)} °C` && /Prognose Luft/.test(p5.callout) && p5.sel === 1 && /^Luft /.test(p5.badge),
+    add('P5 Klick auf eine Prognose-Zelle ⇒ Karte „Prognosepunkt · <Name aus der Datei>", URL st=a8@<km>, Luftwert = Datei (+3 h), Callout „Prognose Luft …", Klasse in Luft-Worten',
+      ax && (p5.eyebrow ?? '') === `Prognosepunkt · ${FC_ENGINE_NAME}` && /A 8 · km \d+/.test(p5.name ?? '') && !!axWant && p5.hero === `${f1(axWant.t)} °C` && /Prognose Luft/.test(p5.callout) && p5.sel === 1 && /^Luft /.test(p5.badge),
       JSON.stringify({ ...p5, want: axWant ? f1(axWant.t) : null, cellId }));
     await shot(ctx, 'desktop-1440-prognose');
     // Arrival rows.
@@ -378,8 +380,8 @@ const allErrors = [];
     await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][2].click()`);
     await sleep(300);
     const p7 = await ctx.evaluate(`document.querySelector('.aw-readout')?.innerText ?? ''`);
-    add('P7 Quellen: buscosun Fusion 8 aktiv, OpenStreetMap (ODbL) genannt, Quelltext des Vertrags, Fahrbahn-Prognose weiter „geplant"',
-      /buscosun Fusion 8/.test(p7) && /OpenStreetMap-Mitwirkende, ODbL/.test(p7) && /keine Fahrbahnmessung, kein amtliches Warnprodukt/.test(p7) && /buscosun Fusion — Fahrbahn/.test(p7));
+    add('P7 Quellen: Motor mit dem Namen aus der Datei aktiv, OpenStreetMap (ODbL) genannt, Quelltext des Vertrags, Fahrbahn-Prognose weiter „geplant"',
+      p7.includes(FC_ENGINE_NAME) && /OpenStreetMap-Mitwirkende, ODbL/.test(p7) && /keine Fahrbahnmessung, kein amtliches Warnprodukt/.test(p7) && /buscosun Fusion — Fahrbahn/.test(p7));
   }
   off(); allErrors.push(...errors); await ctx.close();
 }

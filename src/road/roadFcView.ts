@@ -2,7 +2,7 @@
  * AW-6.1b — View model of the route forecast on the Autobahnwetter page (`audit/autobahnwetter.md` §15). DOM-free, so
  * `verify:road-fc` checks it without a browser. Input is the run file of `road/fc/v1/` (contract `roadFc.ts`).
  *
- * The forecast is WEATHER at the road from buscosun Fusion 8 (air temperature 2 m, dew point, precipitation, wind,
+ * The forecast is WEATHER at the road from buscosun Fusion (air temperature 2 m, dew point, precipitation, wind,
  * cloud cover) — never the road surface. Every text built here names "Luft" or "Prognose"; the road classes
  * (ice, frost, wet, dry) stay reserved for measurements (AW-6.2, Gate D).
  */
@@ -13,6 +13,7 @@ import {
 import type { RoadCorridor } from './roadClient';
 import { roadStampToMs } from './roadContract';
 import { BAND_REACH_KM, dec, f1, hm, kmIn, shieldText } from './roadView';
+import { FUSION_BRAND, fusionName, fusionVersionOfEngine } from '../pointForecast/fusion/fusionRelease';
 
 const H = 3_600_000;
 
@@ -243,5 +244,16 @@ export function roadFcAnchorText(p: Pick<RoadFcPoint, 'anc'> | null, file: Pick<
     : `verankert an Messstellen im Umkreis${at} (Gewicht ${a[1]} %)`;
 }
 
+/**
+ * The engine's name as the RUN FILE states it („buscosun Fusion <n>", the stand the run was built with) — never the stand
+ * of this code: a run built before a new stand keeps its number until the producer has followed. Without a file (or
+ * with a file that names no stand) only the brand, no number.
+ */
+export function roadFcEngineName(file: Pick<RoadFcFile, 'engine'> | null): string {
+  const v = file ? fusionVersionOfEngine(file.engine) : null;
+  return v == null ? FUSION_BRAND : fusionName(v);
+}
+
 /** Shown wherever the forecast appears — the limits of the product in one sentence. */
-export const ROAD_FC_UI_NOTE = 'Prognose: buscosun Fusion 8, Wetter an der Strecke (Luft in 2 m, Niederschlag, Wind) — keine Prognose der Fahrbahn.';
+export const roadFcUiNote = (file: Pick<RoadFcFile, 'engine'> | null): string =>
+  `Prognose: ${roadFcEngineName(file)}, Wetter an der Strecke (Luft in 2 m, Niederschlag, Wind) — keine Prognose der Fahrbahn.`;

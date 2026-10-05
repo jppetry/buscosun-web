@@ -37,7 +37,7 @@ const LAYERS: ReadonlyArray<{ key: keyof RoadMapLayers; label: string; sub: stri
   { key: 'temp', label: 'Temperaturwerte', sub: 'Fahrbahn, sonst Luft (L)' },
   { key: 'fog', label: 'Sicht und Nebel', sub: 'GMA-Sichtweite unter 150 m' },
   { key: 'bl', label: 'Bundes- und Landesstraßen', sub: 'Glättemeldeanlagen abseits der Autobahn' },
-  { key: 'fc', label: 'Prognosepunkte', sub: 'Luft alle 5 km, buscosun Fusion 8' },
+  { key: 'fc', label: 'Prognosepunkte', sub: 'Luft alle 5 km, buscosun Fusion' },
   { key: 'warn', label: 'Amtliche Warnungen', sub: 'DWD (Deutschland), wörtlich zitiert' },
 ];
 

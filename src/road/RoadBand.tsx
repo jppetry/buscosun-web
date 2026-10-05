@@ -4,7 +4,7 @@
  * a valid measurement is hatched too — never coloured like "dry" (D-04). Border marker where the corridor leaves
  * Germany: beyond it there is no open road measurement (forecast points come with AW-6).
  *
- * AW-6.1b: a second, thinner row under the measured bar — the WEATHER forecast of buscosun Fusion 8 per axis point
+ * AW-6.1b: a second, thinner row under the measured bar — the WEATHER forecast of buscosun Fusion per axis point
  * (every 5 km) for the chosen hour: forecast air temperature in three bands (own colours, not the road classes) and a
  * mark where precipitation is likely. It also covers stretches without any station.
  */

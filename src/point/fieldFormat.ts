@@ -144,7 +144,7 @@ export const CHANCE_DEFINITION = Object.freeze({
   caveat: 'Im Mittel etwas zu nass (p̄ 5,6–6,9 % bei 3,3–3,7 % Regenstunden, V-NP0-17); jenseits 6 h ist Niederschlag laut Lernphase ohne Skill gegen den Cube — Chance und Spanne, keine exakte Menge.',
 });
 
-export const SNOWLINE_DEFINITION = 'Mitte = Zellwert `snowlmt` (m ü. NN) wie bei buscosun Fusion 8 am Punkt; Band Mitte ∓ 1,2816·σ (p10…p90) mit σ = σ_ens, sonst σ_div (Spanne der Modelle, unkalibriert — V-NP0-15).';
+export const SNOWLINE_DEFINITION = 'Mitte = Zellwert `snowlmt` (m ü. NN) wie bei buscosun Fusion am Punkt; Band Mitte ∓ 1,2816·σ (p10…p90) mit σ = σ_ens, sonst σ_div (Spanne der Modelle, unkalibriert — V-NP0-15).';
 
 // --- Manifest ----------------------------------------------------------------------------------
 
