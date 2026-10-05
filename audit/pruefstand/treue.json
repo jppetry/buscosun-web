@@ -1,0 +1,304 @@
+{
+ "kind": "pruefstand/treue",
+ "protocol": "cefeed50edc6ee6722ba2555a7a9c41194b8e88e00a3b9b750a313c1b05df21e",
+ "days": [
+  "2026-09-29",
+  "2026-09-30",
+  "2026-10-01",
+  "2026-10-02",
+  "2026-10-03",
+  "2026-10-04"
+ ],
+ "round": 0.00006,
+ "versions": {
+  "fusion-5e": {
+   "stored": "2026-10-02-f8r-b · P",
+   "byVar": {
+    "2026-09-29|t": {
+     "n": 16585,
+     "kindDiffers": 0,
+     "withinRounding": 16585,
+     "maxLocation": 0.00004999636259483964,
+     "maxScale": 0.00004999787128645572,
+     "maxOther": 0
+    },
+    "2026-09-29|td": {
+     "n": 16582,
+     "kindDiffers": 0,
+     "withinRounding": 16582,
+     "maxLocation": 0.00004999932824212294,
+     "maxScale": 0.00004999880545386581,
+     "maxOther": 0
+    },
+    "2026-09-29|ws": {
+     "n": 16570,
+     "kindDiffers": 0,
+     "withinRounding": 16570,
+     "maxLocation": 0.00004999910510150585,
+     "maxScale": 0.00004999271802030858,
+     "maxOther": 0
+    },
+    "2026-09-29|gust": {
+     "n": 16320,
+     "kindDiffers": 0,
+     "withinRounding": 16320,
+     "maxLocation": 0.000049999848899418,
+     "maxScale": 0.00004999832943486382,
+     "maxOther": 0
+    },
+    "2026-09-29|precip": {
+     "n": 15965,
+     "kindDiffers": 0,
+     "withinRounding": 15965,
+     "maxLocation": 0.00004999962133611646,
+     "maxScale": 0.00004988475475364851,
+     "maxOther": 0.00004999546828099444
+    },
+    "2026-09-29|clct": {
+     "n": 8112,
+     "kindDiffers": 0,
+     "withinRounding": 8112,
+     "maxLocation": 0.0000499992828437712,
+     "maxScale": 0.00004997366465175901,
+     "maxOther": 0
+    },
+    "2026-09-30|t": {
+     "n": 8481,
+     "kindDiffers": 0,
+     "withinRounding": 8481,
+     "maxLocation": 0.000049988082331253736,
+     "maxScale": 0.000049984629856503204,
+     "maxOther": 0
+    },
+    "2026-09-30|td": {
+     "n": 8478,
+     "kindDiffers": 0,
+     "withinRounding": 8478,
+     "maxLocation": 0.00004999249185999588,
+     "maxScale": 0.000049998655179628315,
+     "maxOther": 0
+    },
+    "2026-09-30|ws": {
+     "n": 8461,
+     "kindDiffers": 0,
+     "withinRounding": 8461,
+     "maxLocation": 0.00004999902345481644,
+     "maxScale": 0.000049997801706336276,
+     "maxOther": 0
+    },
+    "2026-09-30|gust": {
+     "n": 8337,
+     "kindDiffers": 0,
+     "withinRounding": 8337,
+     "maxLocation": 0.000049999234735143006,
+     "maxScale": 0.00004999573261876833,
+     "maxOther": 0
+    },
+    "2026-09-30|precip": {
+     "n": 8161,
+     "kindDiffers": 0,
+     "withinRounding": 8161,
+     "maxLocation": 0.00004999783413150993,
+     "maxScale": 0.000049983055978808366,
+     "maxOther": 0.0000499856745361793
+    },
+    "2026-09-30|clct": {
+     "n": 4064,
+     "kindDiffers": 0,
+     "withinRounding": 4064,
+     "maxLocation": 0.00004999387026316526,
+     "maxScale": 0.00004998837477643292,
+     "maxOther": 0
+    }
+   },
+   "determinism": {
+    "day": "2026-09-29",
+    "equal": true,
+    "sha256": "b99c634f489b7768"
+   }
+  },
+  "fusion-6": {
+   "stored": "2026-10-01-f7 · F6",
+   "byVar": {
+    "2026-09-29|t": {
+     "n": 8469,
+     "kindDiffers": 0,
+     "withinRounding": 5505,
+     "maxLocation": 0.01115633116595749,
+     "maxScale": 0.00004458708162036196,
+     "maxOther": 0
+    },
+    "2026-09-29|td": {
+     "n": 8469,
+     "kindDiffers": 0,
+     "withinRounding": 2349,
+     "maxLocation": 0.06606676106614368,
+     "maxScale": 0.00004449857371513488,
+     "maxOther": 0
+    },
+    "2026-09-29|ws": {
+     "n": 8477,
+     "kindDiffers": 0,
+     "withinRounding": 8477,
+     "maxLocation": 0.00004998919579851657,
+     "maxScale": 0.00004952262666813034,
+     "maxOther": 0
+    },
+    "2026-09-29|gust": {
+     "n": 8351,
+     "kindDiffers": 0,
+     "withinRounding": 1212,
+     "maxLocation": 0.07694068218623906,
+     "maxScale": 0.000049384299161570056,
+     "maxOther": 0
+    },
+    "2026-09-29|precip": {
+     "n": 8158,
+     "kindDiffers": 0,
+     "withinRounding": 8158,
+     "maxLocation": 0.00004962780050510318,
+     "maxScale": 0.00004874933338028242,
+     "maxOther": 0.00004999546828099444
+    },
+    "2026-09-29|clct": {
+     "n": 4047,
+     "kindDiffers": 0,
+     "withinRounding": 4047,
+     "maxLocation": 0.000049957659726374004,
+     "maxScale": 0.00004999363677882229,
+     "maxOther": 0.00004999973461017326
+    }
+   },
+   "determinism": {
+    "day": "2026-09-29",
+    "equal": true,
+    "sha256": "0607b32d140c1c47"
+   }
+  },
+  "fusion-7": {
+   "stored": "2026-10-02-f8r-b · F7",
+   "byVar": {},
+   "determinism": {
+    "day": "2026-09-29",
+    "equal": true,
+    "sha256": "3fe583c31a06be94"
+   }
+  },
+  "fusion-8": {
+   "stored": "2026-10-02-f8r-b · F8r",
+   "byVar": {
+    "2026-09-29|t": {
+     "n": 16585,
+     "kindDiffers": 0,
+     "withinRounding": 9067,
+     "maxLocation": 0.01719962321349744,
+     "maxScale": 0.0000474182699765624,
+     "maxOther": 0
+    },
+    "2026-09-29|td": {
+     "n": 16582,
+     "kindDiffers": 0,
+     "withinRounding": 3545,
+     "maxLocation": 0.06900482466969693,
+     "maxScale": 0.00004449857371513488,
+     "maxOther": 0
+    },
+    "2026-09-29|ws": {
+     "n": 16570,
+     "kindDiffers": 0,
+     "withinRounding": 16570,
+     "maxLocation": 0.00004999564444307936,
+     "maxScale": 0.00004952262666813034,
+     "maxOther": 0
+    },
+    "2026-09-29|gust": {
+     "n": 16320,
+     "kindDiffers": 0,
+     "withinRounding": 2712,
+     "maxLocation": 0.07694068218623906,
+     "maxScale": 0.000049775318632594434,
+     "maxOther": 0
+    },
+    "2026-09-29|precip": {
+     "n": 15965,
+     "kindDiffers": 0,
+     "withinRounding": 15965,
+     "maxLocation": 0.00004999962133611646,
+     "maxScale": 0.00004988475475364851,
+     "maxOther": 0.00004999546828099444
+    },
+    "2026-09-29|clct": {
+     "n": 8112,
+     "kindDiffers": 0,
+     "withinRounding": 8112,
+     "maxLocation": 0.00004999574429120912,
+     "maxScale": 0.00004999793104332184,
+     "maxOther": 0.00004999973461017326
+    },
+    "2026-09-30|t": {
+     "n": 8481,
+     "kindDiffers": 0,
+     "withinRounding": 5530,
+     "maxLocation": 0.011106758762261748,
+     "maxScale": 0.00004458708162036196,
+     "maxOther": 0
+    },
+    "2026-09-30|td": {
+     "n": 8478,
+     "kindDiffers": 0,
+     "withinRounding": 2384,
+     "maxLocation": 0.06645406689974609,
+     "maxScale": 0.00004449857371513488,
+     "maxOther": 0
+    },
+    "2026-09-30|ws": {
+     "n": 8461,
+     "kindDiffers": 0,
+     "withinRounding": 8461,
+     "maxLocation": 0.00004999927735305221,
+     "maxScale": 0.00004952262666813034,
+     "maxOther": 0
+    },
+    "2026-09-30|gust": {
+     "n": 8337,
+     "kindDiffers": 0,
+     "withinRounding": 1187,
+     "maxLocation": 0.07772759079556124,
+     "maxScale": 0.000049384299161570056,
+     "maxOther": 0
+    },
+    "2026-09-30|precip": {
+     "n": 8161,
+     "kindDiffers": 0,
+     "withinRounding": 8161,
+     "maxLocation": 0.00004999783413150993,
+     "maxScale": 0.000049983055978808366,
+     "maxOther": 0.0000499856745361793
+    },
+    "2026-09-30|clct": {
+     "n": 4064,
+     "kindDiffers": 0,
+     "withinRounding": 4064,
+     "maxLocation": 0.000049995007813663506,
+     "maxScale": 0.000049962100135303444,
+     "maxOther": 0.00004997570128168448
+    }
+   },
+   "determinism": {
+    "day": "2026-09-29",
+    "equal": true,
+    "sha256": "ba6e31dc83cc14d8"
+   }
+  },
+  "fusion-9": {
+   "stored": null,
+   "byVar": {},
+   "determinism": {
+    "day": "2026-09-29",
+    "equal": true,
+    "sha256": "ba6e31dc83cc14d8"
+   }
+  }
+ },
+ "hash": "bd582ed1ffed0caa49da40fa279e4b4e46961a26e2367a1795fdcb9cdcf7edac"
+}

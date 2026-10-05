@@ -1,0 +1,112 @@
+{
+ "schema": 1,
+ "kind": "pruefstand/protokoll",
+ "id": "P1",
+ "frozenAt": "2026-10-05",
+ "note": "Eingefrorenes Prüfprotokoll. Jede Änderung an dieser Datei, an pruefnetz.json oder tresor.json ist P2; Zahlen aus P1 und P2 werden nie verglichen. Herkunft je Wert: jan = Entscheidung E-PS-n, measured = in PS-0 gemessen, concept = Konzept §n, set = Setzung dieser Phase (von Jan zu bestätigen), literature = Quelle genannt.",
+ "quantiles": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
+ "quantiles3": [0.1, 0.5, 0.9],
+ "quantilesFrom": "jan E-PS-1",
+ "issue": {
+  "rule": "Ausgabezeit = Stundenboden der Slotzeit (Archiv) bzw. 00 UTC (Hindcast); Vorlauf zählt ab der Ausgabezeit, nicht ab dem Modellstart",
+  "from": "concept §5"
+ },
+ "leads": {
+  "rule": "Vorlauf 1–48 h jede Stunde; 49–120 h die Gültigkeitszeiten mit UTC-Stunde ≡ 0 mod 3; 121–336 h die mit UTC-Stunde ≡ 0 mod 6",
+  "hourlyToH": 48,
+  "threeHourlyToH": 120,
+  "sixHourlyToH": 336,
+  "diagnostic": "zusätzlich jede Stunde 49–72 h (Stundeninterpolation t2, nur Diagnose)",
+  "diagnosticHourlyToH": 72,
+  "from": "concept §5; plan §3"
+ },
+ "windows": [
+  { "id": "0-6", "fromH": 1, "toH": 6 },
+  { "id": "6-24", "fromH": 7, "toH": 24 },
+  { "id": "24-48", "fromH": 25, "toH": 48 },
+  { "id": "48-120", "fromH": 49, "toH": 120 },
+  { "id": "120-240", "fromH": 121, "toH": 240 },
+  { "id": "240-336", "fromH": 241, "toH": 336 }
+ ],
+ "seams": [48, 120, 180],
+ "variables": {
+  "t": { "name": "Temperatur 2 m", "unit": "°C", "truth": "10-min-Wert zum Termin", "cell": "kern" },
+  "td": { "name": "Taupunkt", "unit": "°C", "truth": "10-min-Wert zum Termin (AT: Magnus aus Temperatur und Feuchte)", "cell": "kern" },
+  "ws": { "name": "Wind 10 m", "unit": "m/s", "truth": "10-min-Mittel zum Termin (AT: vektorielles Mittel)", "cell": "kern" },
+  "gust": { "name": "Böe", "unit": "m/s", "truth": "Maximum im Intervall vor dem Termin (1 h bis 48 h, danach 3 h bzw. 6 h)", "cell": "kern", "kernToH": 48, "note": "jan E-PS-15: Kern stündlich bis 48 h; danach Nebenzelle gegen das Schrittmaximum, gemischte Modelldefinition (ICON Stundenmaximum, ECMWF Schrittmaximum)" },
+  "precip": { "name": "Niederschlag (Menge)", "unit": "mm/h", "truth": "mittlere Rate im Intervall vor dem Termin (Summe / Schrittlänge; 1 h bis 48 h, danach 3 h bzw. 6 h)", "cell": "kern" },
+  "wet": { "name": "Niederschlag (Ereignis nass)", "unit": "Wahrscheinlichkeit", "truth": "mittlere Rate im Intervall ≥ Schwelle", "cell": "kern", "thresholdMmH": 0.1, "thresholdFrom": "concept §7 (wie der bestehende Scorer)" },
+  "clct": { "name": "Bewölkung gesamt", "unit": "%", "truth": "DWD Stundenwert in Achteln × 12,5 (nur DE)", "cell": "neben" },
+  "dd": { "name": "Windrichtung", "unit": "°", "truth": "10-min-Wert zum Termin, nur bei gemessenem Wind ≥ minWindMs", "cell": "neben", "minWindMs": 1, "minWindFrom": "set" }
+ },
+ "notScored": {
+  "Globalstrahlung, Luftdruck, Sichtweite, Niederschlagsart": "keine Ausgabe von buscosun Fusion in der bewerteten Kette",
+  "Schneefallgrenze": "keine Bodenwahrheit (concept §5)",
+  "Tagessumme Niederschlag": "die Kette liefert Randverteilungen je Schritt, keine gemeinsame Verteilung über 24 h",
+  "Sprunghaftigkeit": "braucht mehr als einen Slot je Tag (E-PA5-1: ein Slot je Tag bleibt)"
+ },
+ "countries": ["DE", "AT", "CH"],
+ "truth": {
+  "stand": "W1",
+  "from": "2023-06-01",
+  "maturityDays": 7,
+  "maturityFrom": "concept §3",
+  "timeRule": "jan E-PS-15: einheitlich am Stempel H (UTC, Intervallende)"
+ },
+ "qc": {
+  "from": "set (Grobfehlergrenzen, nicht gefittet; nie anhand einer Vorhersage)",
+  "range": { "t": [-45, 45], "td": [-60, 35], "rh": [0, 100.5], "ff": [0, 75], "dd": [0, 360], "fx": [0, 90], "rr": [0, 50] },
+  "tdAboveT": 1,
+  "stepPerHour": { "t": 15, "td": 15 },
+  "stuckHours": { "t": 24, "td": 24, "ws": 12 },
+  "spatial": { "maxKm": 75, "maxDElevM": 400, "lapseKPerM": 0.0065, "maxDevK": 12, "minNeighbours": 3 }
+ },
+ "extremes": {
+  "rule": "twCRPS und SEDI über der Schwelle = 0,9-Quantil der lokalen Klimatologie zum Termin (Station × Kalendertag × Stunde); kein Filter nach dem beobachteten Ereignis",
+  "quantile": 0.9,
+  "from": "set (concept §9: klimatologische Schwellen)"
+ },
+ "references": {
+  "klima": { "name": "Klimatologie lokal", "rule": "empirische Quantile je Station × Kalendertag (± windowDays) × Stunde aus W1, nur Trainingszeiträume", "windowDays": 10, "minSamples": 10, "training": [["2023-06-01", "2024-03-24"], ["2025-09-08", "2026-09-06"]], "from": "concept §8; Fenster und Mindestzahl set; Trainingszeiträume = W1 ohne Tresor und Archivzeit, je 7 Tage Abstand" },
+  "persistenz": { "name": "Persistenz", "rule": "letzter Messwert zur Ausgabezeit; ab 24 h Vorlauf der Wert derselben Stunde am letzten Tag vor der Ausgabe; nur Rolle A", "from": "concept §8" },
+  "roh": { "name": "Cube roh (nächste Zelle)", "rule": "Cube-Wert der nächsten Zelle je Stufe ohne Höhenkorrektur; der Cube trägt keine Einzelquellen, sondern den Quellen-Mix je Stufe", "from": "concept §8; anchor correction D-PS-5" },
+  "roh-lapse": { "name": "Cube roh + 0,65 K/100 m", "rule": "wie roh, T und Taupunkt mit 0,0065 K/m von der effektiven Modellhöhe auf die Stationshöhe", "lapseKPerM": 0.0065, "from": "concept §8" },
+  "mosmix": { "name": "MOSMIX-L", "rule": "Stationsreihe der eigenen Katalogstation aus dem Slot, für beide Rollen (MOSMIX ist auf die Messungen der Station trainiert — als Referenz fair, im Bericht benannt); Böe und Niederschlag über den Schritt aus den Stundenwerten; nur Spur P und Entwicklungsmenge", "from": "concept §8" },
+  "naiv": { "name": "Naive Fusion", "rule": "Mittel aus roh-lapse und MOSMIX-L (wo vorhanden), Normalverteilung mit σ = RMSE dieses Mittels je Größe × Fenster × Land aus den ANDEREN Tagen der Menge (Tag selbst ± lockDays ausgespart)", "lockDays": 1, "minResiduals": 30, "from": "concept §8; Sperre und Mindestzahl set; die Nass-Wahrscheinlichkeit ist der Indikator des Mittels" }
+ },
+ "sets": {
+  "entwicklung": { "rule": "Archiv-Ausgabetage bis einschließlich des Freeze des Kandidaten (bei einem Paar: des späteren Freeze)" },
+  "schnell": { "rule": "jeder dritte Tag der Entwicklungsmenge (Tagesindex seit 1970 mod 3 = 0)", "every": 3, "from": "set" },
+  "spurP": { "rule": "Archiv-Ausgabetage nach dem späteren Freeze des Paars; nur mit reifer Wahrheit" },
+  "spurR": { "rule": "Hindcast-Tresor laut tresor.json; nur für nicht kontaminierte Versionen; die Kette läuft dort ohne Stationsprodukt, Nowcast und Messungen (D-PS-4)" }
+ },
+ "statistics": {
+  "unit": "Tag (Ausgabetag); Tagesmittel je Zelle über Stationen und Termine",
+  "test": "gepaarter t-Test auf den Tagesdifferenzen mit AR(2)-Inflation k; n_eff = n / k²",
+  "bootstrap": { "draws": 1000, "block": "floor(1,5 · n^(1/3)) + 1", "seed": 20261005, "from": "set (Blockregel wie scripts/fusionfit/lib/stats.mjs)" },
+  "alpha": 0.05,
+  "multiple": "Benjamini-Hochberg über die Kernzellen; Gates nutzen nur die korrigierte Marke",
+  "minDays": 4,
+  "power": 0.8,
+  "from": "concept §10"
+ },
+ "index": {
+  "cells": "Kernzellen = Kerngröße × Vorlauf-Fenster × Land an Rolle B",
+  "weights": "gleich",
+  "weightsFrom": "jan E-PS-4",
+  "fortschritt": "Σ w_c · (1 − ΣS_Kandidat / ΣS_Champion)",
+  "guete": "Σ w_c · (1 − ΣS_Version / ΣS_Klimatologie)"
+ },
+ "selfcheck": {
+  "from": "concept §14; Wiederholungen und Grenze set",
+  "aa": { "rule": "A/A-Test durch Vertauschen: die Tagesdifferenzen des Champions gegen aaPartner werden blockweise (Blocklänge wie im Bootstrap) mit zufälligem Vorzeichen versehen — der erwartete Unterschied ist exakt null, die Autokorrelation innerhalb der Blöcke bleibt. Anteil der Kernzellen mit p < alpha (zweiseitig) über alle Wiederholungen = gemessene Irrtumsrate; bestanden bis maxRate. Abweichung vom Plan: kein Bootstrap-Fit (ein Fit je Wiederholung dauert Stunden und ruft die Fit-Pipeline).", "partner": "fusion-5e", "partnerFallback": "ref-roh-lapse", "partnerFrom": "set: eine echte, andere Version mit ähnlicher Güte — der Fall, für den der Test gebraucht wird", "repetitions": 500, "maxRate": 0.1, "seed": 20261005 },
+  "controls": { "halvedBands": 0.5, "noise": 1, "widenedCandidate": 2 }
+ },
+ "gates": {
+  "G1": { "rule": "Fortschrittsindex in Spur P > 0, einseitig signifikant; Spur R (nicht kontaminiert) nicht signifikant negativ" },
+  "G2": { "rule": "keine Kernzelle nach Benjamini-Hochberg signifikant schlechter als der Champion um mehr als delta", "delta": 0, "deltaFrom": "jan E-PS-5" },
+  "G3": { "rule": "je Kerngröße × Fenster: Abdeckung q10–q90 im Binomialband um den Sollwert (aus n_eff) ODER nicht signifikant weiter vom Sollwert als beim Champion", "nominal": 0.8, "z": 1.96, "from": "concept §11; die Verknüpfung ODER ist eine Auslegung dieser Phase (sonst fiele der Champion gegen sich selbst durch)" },
+  "G4": { "rule": "Determinismus (zwei Läufe byte-gleich); Physik (Quantile monoton im Adapter-Vertrag; Td-Median ≤ T-Median + tolK, Böen-Median ≥ Wind-Median − tolMs, Niederschlag ≥ 0, Bewölkung 0–100): je Prüfung der Anteil verletzter Fälle höchstens physicsMaxShare ODER nicht größer als beim Champion; Vollständigkeit nicht schlechter als der Champion; Punktabfrage unter maxPointMs im Median; Leck-Prüfung (Freeze vor dem ersten Prüftag, Tresor nicht im Fit-Fenster)", "maxPointMs": 300, "tolK": 0.5, "tolMs": 0.5, "physicsMaxShare": 0.001, "from": "concept §11; Toleranzen und die Verknüpfung ODER set — der Champion (Fusion 9) verletzt Böe ≥ Wind in 0,29 % der Fälle der Entwicklungsmenge (gemessen 05.10.2026, V-PS-12); ohne die Verknüpfung fiele er gegen sich selbst durch" },
+  "overfit": { "rule": "Warnung, wenn der Skill-Gewinn gegen den Champion an Rolle A um mehr als margin über dem an Rolle B liegt", "margin": 0.05, "from": "set" }
+ }
+}

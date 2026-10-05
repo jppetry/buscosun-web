@@ -1,0 +1,10 @@
+{
+ "schema": 1,
+ "kind": "pruefstand/siegel",
+ "files": {
+  "protokoll.json": "50b623efe1898b4a28d81e41ea7cc69665c457c6a4597f679b267078252e9060",
+  "pruefnetz.json": "577a98c5a3a98e17bb91f26a73c40ed2f9fb1edcb9debe9c719674758da0f3df",
+  "tresor.json": "3f9b3120a1eff7a10980a4c24ee6a996db839e4e4fba8a6f4a397b16ad981041"
+ },
+ "hash": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb"
+}

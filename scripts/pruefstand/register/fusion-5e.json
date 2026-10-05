@@ -1,0 +1,45 @@
+{
+ "schema": 1,
+ "kind": "fusion",
+ "id": "fusion-5e",
+ "name": "buscosun Fusion 5e",
+ "order": 5,
+ "status": "historisch",
+ "commit": "56066ae47f01f05d6140b0952b139c28c44350f5",
+ "commitDate": "2026-09-29T17:40:45+02:00",
+ "adapter": "cube-1",
+ "options": {
+  "learned": true,
+  "learnedSpeed": true,
+  "learnedPrecip": true
+ },
+ "clima": "loso",
+ "tables": {
+  "learned": {
+   "file": "a71e53c9de12-learned.json",
+   "sha256": "a71e53c9de1286f7cfc46dfe06c86c7b1460f0d6f332a9b346df1c86ea4458c1",
+   "from": "C:/dev/buscosun-hindcast/fit/2026-09-27-fx5e/fusion.hindcast.json"
+  }
+ },
+ "freeze": "2026-09-26",
+ "freezeNote": "Kette der Validierung FV; die Entscheidung sah das Archiv bis 26.09. (D-PS-7)",
+ "fit": {
+  "learned": {
+   "source": "hindcast",
+   "from": "2025-09-01",
+   "to": "2026-09-21",
+   "what": "Lernstufe Fit 5e (40,8 Mio. Zeilen, 389 Punkte)"
+  }
+ },
+ "tresor": {
+  "contaminated": false,
+  "checkedAgainst": "2024-04-01 … 2025-08-31",
+  "note": "kein Fit am Hindcast hat Tage im Tresor gesehen"
+ },
+ "notes": [
+  "Alle 389 Archivstationen waren im Fit (D-PS-9); Rolle B ist im Replay maskiert, nicht „nie gesehen“.",
+  "Klimatologie am Punkt: Leave-Station-out-Schätzung aus der Fit-Tabelle (wie die Messläufe der Phase FV)",
+  "Tabelle nur lokal (kein Git): buscosun-hindcast/fit/2026-09-27-fx5e"
+ ],
+ "modelHash": "2ec94bc6d749b2a53e72b7cb33139f9d596dc0aaf9f37bab8f8521cf653c2000"
+}

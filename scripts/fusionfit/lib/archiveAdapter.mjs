@@ -34,7 +34,10 @@ export const TRUTH_NET_BY_COUNTRY = Object.freeze({ DE: 'poi', AT: 'tawes', CH: 
 // `archiveLive` already decodes via the AP9 decoder. Nothing in this adapter reads the parts that changed otherwise
 // (`live.asOf`, `finishedAt`, `plan` axis, `hmodel.absentBySlot`).
 // schema 4 (AX §6j, 01.10.2026) adds `stationsS` and `incaAnalysis` next to the schema-3 blocks — everything else byte-compatible
-export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4]);
+// schema 5 (PA5, 05.10.2026) adds input points (`points[].role` — read by no scorer: they take their ids from the feature table),
+// `cube[t].byPoint[].block` (not read here: `neighbours: []` as before) and station references for input points; the blocks of the
+// catalog points are byte-compatible with schema 4
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4, 5]);
 export function readArchiveSlot(path) {
   const s = JSON.parse(gunzipSync(readFileSync(path)).toString('utf8'));
   if (s.kind !== 'punktarchiv/slot' || !ARCHIVE_SCHEMAS_READABLE.includes(s.schema)) throw new Error(`${path}: kein Archiv-Slot mit Schema ${ARCHIVE_SCHEMAS_READABLE.join('/')} (kind ${s.kind}, schema ${s.schema})`);

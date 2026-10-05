@@ -3,13 +3,16 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs \
  *        [--limit=N] [--ids=a,b] [--live-hours=240] [--live-full=N] [--no-live] [--no-cube] [--no-nowcast] [--no-truth] \
- *        [--out=<archive root>] [--now=<iso>] [--raw] [--dry] [--vpa1=N] [--no-inca]
+ *        [--out=<archive root>] [--now=<iso>] [--raw] [--dry] [--vpa1=N] [--no-inca] [--no-extra] [--no-precip-only] [--extra-limit=N] [--no-block] [--fail-once=<path text>]
  *
  * What one slot holds, per point (see lib/punktarchiv.mjs for the form and the schema history):
  *   cube      t1/t2/t3 from `buscosun-data` via `src/point/client` — every plane, integer-coded
  *             with the run manifest's own scales (the container is int16, nothing is lost);
  *             per tier the age of the SOURCE run at the slot (`ageAtSlotH`), the manifest's
  *             skipped/pending/declined sources and how many points the quantile planes cover
+ *   points    the catalog points (`points.json`) and, since schema 5, the INPUT points (`points-extra.json`, `role: 'input'`):
+ *             stations of the official networks without a catalog point — inputs only, no live path (PA5, E-PS-11)
+ *   block     since schema 5 the other cells of PAP 3's 2×2 block next to every main cell (`cube[t].byPoint[].block`, E-PS-12)
  *   stations  the MOSMIX-L product at the point's own station (the point IS a catalog station;
  *             for AT/CH points at the measurement site the catalog id is `point.mosmix.id`)
  *   stationsS the MOSMIX-S product (hourly runs, `point/stations-s/`) of the same station in the same
@@ -58,12 +61,13 @@ installNodeShims();
 import { decodePng } from '../lib/png.mjs';
 import { httpStore, POINT_RAW_BASE } from '../../src/point/client/store.ts';
 import { withRawSameRef } from './lib/rawFallback.mjs';
-import { distanceKm, loadPointIndex, loadRunManifestFrom, manifestStore, readCubePoint } from '../../src/point/client/cubePoint.ts';
+import { cellsFromChunk, distanceKm, loadPointIndex, loadRunManifestFrom, manifestStore, readCubePoint } from '../../src/point/client/cubePoint.ts';
 import { loadStationCatalog, readStationPoint } from '../../src/point/client/stationPoint.ts';
 import { findLatestSlot, nowcastSourcesFor, readNowcastPoint } from '../../src/point/client/nowcastPoint.ts';
 import { loadHmodelManifest, readHmodelPoint } from '../../src/point/client/staticPoint.ts';
 import { planPointSources, SELECTION } from '../../src/point/client/resolve.ts';
-import { TIERS, CUBE_VARS } from '../../src/point/cubeFormat.ts';
+import { TIERS, CUBE_VARS, blockOffsets, blockCellsOutsideChunk, chunkOf, chunkPath, decodeCubeChunk } from '../../src/point/cubeFormat.ts';
+import { GRID_NEAREST_ONLY } from '../../src/pointForecast/fusion/grid.ts';
 import { NOWCAST_SOURCES } from '../../src/point/nowcastFormat.ts';
 import { MATRIX_BANDS } from '../../src/point/sourceMatrix.ts';
 import { getPointForecast } from '../../src/pointForecast/pointForecast.ts';
@@ -72,13 +76,14 @@ import { quantileOf, meanOf } from '../../src/pointForecast/fusion/dist.ts';
 
 import {
   newSlot, encodeValue, encodeSeries, LIVE_SCALES, TRUTH_SCALES, serialiseSlot, mergeSlot, slotPaths, SENTINEL,
-  encodeFusionColumns, FUSION_VARS,
+  encodeFusionColumns, FUSION_VARS, encodeBlockCells,
 } from './lib/punktarchiv.mjs';
 import {
   POI_URL, parsePoi, poiSeries, TAWES_HISTORY_URL, TAWES_10MIN, SMN_NOW_URL, parseTawes10min, parseSmn10min, tenMinColumns, tenMinHourStamps,
   SMN_RECENT_URL, SMN_RECENT_TAIL_BYTES_PER_DAY, joinCsvRangeTail, mergeSmn10min,
 } from './lib/truth.mjs';
 import { loadPointList, PROFILE_WHY } from './points.mjs';
+import { loadExtraList } from './points-extra.mjs';
 
 const H = 3_600_000;
 const PRODUCER = 'buscosun-web/scripts/punktarchiv/collect.mjs';
@@ -96,12 +101,18 @@ function parseArgs(argv) {
 }
 
 // ─── a memoising store: every chunk, manifest and PNG is fetched ONCE per slot ──
-function memoStore(inner, pinned = new Map()) {
+function memoStore(inner, pinned = new Map(), failOnce = null) {
   const bytes = new Map(), json = new Map();
+  // `--fail-once=<text>` (probe of the retry, PA5): the FIRST read of every path containing the text answers „not there".
+  const failed = new Set();
   return {
     get base() { return inner.base; },
     get stats() { return inner.stats; },
-    bytes(path) { if (!bytes.has(path)) bytes.set(path, inner.bytes(path)); return bytes.get(path); },
+    bytes(path) {
+      if (failOnce && path.includes(failOnce) && !failed.has(path)) { failed.add(path); bytes.set(path, Promise.resolve(null)); }
+      if (!bytes.has(path)) bytes.set(path, inner.bytes(path));
+      return bytes.get(path);
+    },
     json(path) { if (!json.has(path)) json.set(path, inner.json(path)); return json.get(path); },
     // V-FI-1: Manifeste werden an den Index-Commit gepinnt (`manifestStore`). Der gepinnte
     // Store ist derselbe Memo-Store unter anderer Basis — einmal je Basis, damit ein Manifest
@@ -111,6 +122,8 @@ function memoStore(inner, pinned = new Map()) {
       if (!pinned.has(base)) pinned.set(base, memoStore(inner.withBase(base), pinned));
       return pinned.get(base);
     },
+    // PA5: a path that answered „not there" may be asked again (a chunk jsDelivr did not serve yet) — only on request.
+    forget(path) { bytes.delete(path); },
     memo: { get chunks() { return bytes.size; }, get jsons() { return json.size; } },
   };
 }
@@ -183,7 +196,46 @@ function assignedButAbsent(tier, manifest, tierSources) {
   });
 }
 
-async function collectCube(store, index, points, slot, slotAtMs) {
+/**
+ * PA5: every chunk is decoded ONCE per slot. The memo store hands out the same byte array for a path, so the array is the key.
+ * Same decoder, same options as the reader's default — the series are unchanged; with input points several stations share a chunk.
+ */
+const decodedChunks = new WeakMap();
+/** Pause before the one retry of chunks that did not answer (set: long enough for a jsDelivr edge to recover from a 403 burst, V-FI-5; short against the job). */
+const CHUNK_RETRY_WAIT_MS = 30_000;
+function decodeChunkOnce(bytes, o) {
+  let c = decodedChunks.get(bytes);
+  if (!c) { c = decodeCubeChunk(bytes, { planes: o.planes, wanted: o.wanted }); decodedChunks.set(bytes, c); }
+  return c;
+}
+
+/**
+ * PA5 / E-PS-12: the other cells of the 2×2 block PAP 3 averages over (`blockOffsets`, the engine's own rule) — from the chunk
+ * of the nearest cell and, across a chunk border, from the neighbour chunk of the SAME run (AP14's rule `blockCellsOutsideChunk`).
+ * Every plane except those the engine reads at the nearest cell only (`GRID_NEAREST_ONLY`). A cell beyond the grid or in a chunk
+ * that is not in the repo is missing ⇒ `truncated`.
+ */
+async function readBlock(store, tier, run, manifest, ser, p) {
+  const offs = blockOffsets(p.lat - ser.cell.lat, p.lon - ser.cell.lon).filter((o) => o.dy || o.dx);
+  if (!offs.length) return { block: [], truncated: false, crossChunks: 0, missing: [] };
+  const home = await decodeChunkOnce(await store.bytes(ser.chunk.path), { planes: manifest.planes });
+  const ctx = { lat: p.lat, lon: p.lon, nt: home.nt };
+  const inHome = offs.map((o) => ({ iy: ser.cell.iy + o.dy, ix: ser.cell.ix + o.dx, dy: o.dy, dx: o.dx }))
+    .filter((c) => c.iy >= 0 && c.ix >= 0 && c.iy < tier.ny && c.ix < tier.nx && chunkOf(c.iy, c.ix).cy === ser.chunk.cy && chunkOf(c.iy, c.ix).cx === ser.chunk.cx);
+  const cells = inHome.length ? cellsFromChunk(home, tier, manifest.planes, inHome, ctx) : [];
+  let crossChunks = 0;
+  const missing = [];
+  for (const g of blockCellsOutsideChunk(tier, p.lat, p.lon)) {
+    const path = chunkPath(run, tier, g.cy, g.cx);
+    const bytes = await store.bytes(path);
+    if (!bytes) { missing.push(path); continue; }
+    cells.push(...cellsFromChunk(await decodeChunkOnce(bytes, { planes: manifest.planes }), tier, manifest.planes, g.cells, ctx));
+    crossChunks++;
+  }
+  return { block: encodeBlockCells(cells, manifest.planes, GRID_NEAREST_ONLY), truncated: cells.length < offs.length, crossChunks, missing };
+}
+
+async function collectCube(store, index, points, slot, slotAtMs, opts = {}) {
   for (const tier of TIERS) {
     const t = tier.id;
     const lb = index.latestByTier?.[t];
@@ -236,6 +288,10 @@ async function collectCube(store, index, points, slot, slotAtMs) {
         rh: 'rh925/850/700 stehen unveraendert im Cube, Werte ueber 100 % kommen aus den Modellfeldern (Deklaration [0,120]; im Slot 21.09. bis 106,2 %) — nicht auf 100 klemmen.',
         quantiles: tm?.quantiles ? `Die Quantilebenen (_q10/_q90) stammen aus ${tm.quantiles.source} (Lauf ${tm.quantiles.run}), das Mittel aus dem deterministischen Mix — in t1 liegt das Mittel bei t2m in ≈ 45 % der Stunden ausserhalb q10–q90 (V-FI-106). Der Cube-Pfad liest die Quantile nicht (V-FI-44).` : 'keine Quantilebenen in dieser Stufe.',
       },
+      // PA5 (schema 5): which planes the block cells do NOT carry and why; `null` when the slot was collected without the block.
+      blockExcluded: opts.block ? [...GRID_NEAREST_ONLY] : null,
+      blockNote: opts.block ? 'byPoint[].block = die weiteren Zellen des 2×2-Blocks von PAP 3 (naechste Zelle + die in Richtung des Punkts + die diagonale; liegt der Punkt in einer Achse auf der Zellmitte, entfaellt diese Achse — blockOffsets des Motors). Je Zelle dy/dx gegen die naechste Zelle, iy/ix, centre, distKm zum Punkt und alle Ebenen mit den Skalen von scales.cube[t]; blockExcluded = Ebenen, die der Motor nur an der naechsten Zelle liest (nie gemittelt). Zellen jenseits der Chunk-Grenze stammen aus dem Nachbar-Chunk DESSELBEN Laufs. blockTruncated: true = eine Blockzelle fehlt (Gitterrand oder Chunk nicht im Repo).' : null,
+      blockStats: null,
       byPoint: {},
     };
     // A warning only where the absence is a FAILURE (skipped) or unexplained; pending/declined
@@ -248,10 +304,25 @@ async function collectCube(store, index, points, slot, slotAtMs) {
     let ok = 0;
     const qPlanes = slot.cube[t].planeOrder.filter((id) => /_q(10|50|90)$/.test(id));
     let qWith = 0, qWithout = 0;
-    for (const p of points) {
+    const blockStat = { cells: 0, truncated: [], crossChunks: 0 };
+    // PA5: a chunk that is not readable costs every point in it this tier for good — and with input points a slot reads about
+    // twice as many chunks. So: points whose chunk (or a block chunk) did not answer are read ONCE more after a pause, with
+    // the path forgotten in the memo store; only what still fails is an error. Nothing changes where every chunk answers.
+    const again = [], againPaths = new Set();
+    for (const pass of [1, 2]) {
+      const list = pass === 1 ? points : again.splice(0);
+      if (pass === 2) {
+        if (!list.length) break;
+        for (const path of againPaths) store.forget?.(path);
+        console.log(`[collect] cube ${t}: ${list.length} Punkte in ${againPaths.size} nicht lesbaren Chunks — zweiter Versuch nach ${CHUNK_RETRY_WAIT_MS / 1000} s`);
+        await new Promise((r) => setTimeout(r, CHUNK_RETRY_WAIT_MS));
+        slot.cube[t].chunkRetry = { points: list.length, chunks: againPaths.size, waitMs: CHUNK_RETRY_WAIT_MS };
+      }
+    for (const p of list) {
       try {
         let skipReason = null;
-        const ser = await readCubePoint(store, index, t, p.lat, p.lon, { manifest, onSkip: (r) => { skipReason = r; } });
+        const ser = await readCubePoint(store, index, t, p.lat, p.lon, { manifest, onSkip: (r) => { skipReason = r; }, decodeChunk: decodeChunkOnce });
+        if (!ser && pass === 1 && /nicht im Repo/.test(skipReason ?? '')) { const m = /Chunk (\S+) nicht im Repo/.exec(skipReason); if (m) { again.push(p); againPaths.add(m[1]); continue; } }
         if (!ser) { slot.cube[t].byPoint[p.id] = null; if (skipReason && !/ausserhalb|außerhalb/.test(skipReason)) slot.stats.errors.push(`cube/${t}/${p.id}: ${skipReason}`); continue; }
         const enc = encodeCubeSeries(ser);
         slot.cube[t].byPoint[p.id] = {
@@ -260,16 +331,31 @@ async function collectCube(store, index, points, slot, slotAtMs) {
           belowGroundHPa: ser.steps.map((st) => st.belowGroundHPa),
           planes: enc.planes, empty: enc.empty,
         };
+        if (opts.block) {
+          // a block that cannot be read never costs the point its main cell: the error is named, `block` stays absent
+          try {
+            const b = await readBlock(store, tier, lb.run, manifest, ser, p);
+            if (b.missing.length && pass === 1) { for (const path of b.missing) againPaths.add(path); again.push(p); delete slot.cube[t].byPoint[p.id]; continue; }
+            slot.cube[t].byPoint[p.id].block = b.block;
+            if (b.truncated) { slot.cube[t].byPoint[p.id].blockTruncated = true; blockStat.truncated.push(p.id); }
+            blockStat.cells += b.block.length; blockStat.crossChunks += b.crossChunks;
+          } catch (e) { slot.stats.errors.push(`cube/${t}/${p.id}/block: ${e.message}`); }
+        }
         if (qPlanes.length) { if (qPlanes.every((q) => enc.empty.includes(q))) qWithout++; else qWith++; }
         ok++;
       } catch (e) { slot.stats.errors.push(`cube/${t}/${p.id}: ${e.message}`); slot.cube[t].byPoint[p.id] = null; }
+    }
     }
     if (qPlanes.length) {
       slot.cube[t].quantiles = { source: tm?.quantiles?.source ?? null, planes: qPlanes.length, points: { with: qWith, without: qWithout } };
       if (qWithout) warn(slot, 'cubeQuantilesMissing', `${t}: ${qWithout} von ${qWith + qWithout} Punkten ohne Quantile (${tm?.quantiles?.source}) — Flaeche der Quelle, nicht Zeitachse (stepsCoverage)`);
     }
+    if (opts.block) {
+      slot.cube[t].blockStats = { cells: blockStat.cells, pointsTruncated: blockStat.truncated.length, cellsFromNeighbourChunks: blockStat.crossChunks };
+      if (blockStat.truncated.length) warn(slot, 'cubeBlockTruncated', `${t}: ${blockStat.truncated.length} Punkte mit beschnittenem 2×2-Block (Gitterrand oder Nachbar-Chunk nicht im Repo): ${blockStat.truncated.join(' ')}`);
+    }
     slot.stats.timing[`cube.${t}`] = Date.now() - t0;
-    console.log(`[collect] cube ${t}: Lauf ${lb.run} (Quell-Lauf ${lb.sourceRun}, ${slot.cube[t].ageAtSlotH} h alt) · ${ok}/${points.length} Punkte · Quantile ${qWith}/${qWith + qWithout} · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    console.log(`[collect] cube ${t}: Lauf ${lb.run} (Quell-Lauf ${lb.sourceRun}, ${slot.cube[t].ageAtSlotH} h alt) · ${ok}/${points.length} Punkte · Quantile ${qWith}/${qWith + qWithout}${opts.block ? ` · Block ${blockStat.cells} Zellen (${blockStat.truncated.length} Punkte beschnitten)` : ''} · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   }
 }
 
@@ -300,19 +386,40 @@ async function collectStations(store, index, points, slot, slotAtMs, variant = S
     // — 45 of 57 planes are absent, only 7 of them named. `mapped`/`absent` are counted in this slot.
     planesNote: 'mapped = Ebenen, die das Stationsprodukt in diesem Slot an mindestens einem Punkt traegt; absent = alle uebrigen Ebenen des Cube-Formats (σ_div/σ_ens/Quantile/Druckflaechen/Profil — ein deterministisches Stationsprodukt traegt keine Unsicherheit); notMapped = davon die, die der Producer ausdruecklich mit Grund nennt. scales listet das ganze Cube-Format (Manifest), nicht nur die belegten Ebenen.',
     nearestNote: 'byPoint[].station = die KATALOGSTATION des Punkts (mosmix.id, PA2: Kennung, nicht Naehe). Waehlt der Plan (plan.byPoint[].station.candidate = naechste Katalogstation, so entscheidet der Cube-Pfad zur Laufzeit) eine ANDERE Station, steht deren Reihe zusaetzlich in byPoint[].nearest (Zell am See: 11143 Flugplatz 1,2 km statt 11144 4,6 km).',
+    // PA5 (schema 5): an input point (`points[].role === 'input'`) is no catalog station — it carries the NEAREST catalog station
+    // (the plan's candidate, as the cube path decides at run time) and a reference instead of a copy of the series.
+    refNote: 'Eingabe-Punkte (points[].role = input): byPoint[].station = die NAECHSTE Katalogstation (plan.byPoint[].station.candidate), planes: null und ref statt der Reihe — ref.byPoint = die Reihe steht unter diesem Katalogpunkt (dessen eigene Station), ref.byStation = sie steht einmal unter byStation[<Katalogkennung>] ({ planes, empty }). distanceKm/dElevM/dDemM gelten fuer den Eingabe-Punkt.',
+    byStation: {},
     byPoint: {},
   };
-  let ok = 0, nearestN = 0;
+  let ok = 0, nearestN = 0, refN = 0;
+  // PA5: a station whose bundle could not be read (CDN miss) was a silent `null` — named now, the slot is still written.
+  const unreadable = [];
+  // PA5: which catalog point owns a catalog station's series (its own station) — input points refer to it.
+  const ownerOf = new Map(points.filter((p) => p.role !== 'input').map((p) => [p.mosmix?.id ?? p.id, p.id]));
   // By id, not by proximity: a PA2 point sits at its measurement site, up to a few km from its
   // catalog position (§9.3.1 (4)); the nearest catalog station there can be a different one.
   // For DE points (point = catalog station) this is the same station with the same distance 0.
   const byId = new Map(catalog.stations.map((s) => [s.id, s]));
   const mapped = new Set();
+  const bundleRetry = new Map();
+  let bundlePause = null;
   const readStation = async (p, s) => {
     // PA3: dElevM against the point's STATION height (0 for DE, |Δ| ≤ 50 m for PA2 pairs);
     // dDemM against the DEM pixel, kept so a reader sees what the DEM says at a summit.
     const c = { ...s, distanceKm: distanceKm(p.lat, p.lon, s.lat, s.lon), dElevM: s.elev - p.elev };
-    const ser = await readStationPoint(store, manifest, c);
+    let ser = await readStationPoint(store, manifest, c, { decodeChunk: decodeChunkOnce });
+    if (!ser) {
+      // E-PA5-4 trial run: 23 MOSMIX-S series in a few bundles were not readable at the first try. Like a cube chunk, a bundle
+      // is asked ONCE more — after ONE pause for the whole product (it starts at the first failure; a product that is missing
+      // altogether costs the run one pause, not one per bundle).
+      const ch = manifest.chunks.find((x) => x.stations.includes(c.id));
+      if (!ch) return null;
+      bundlePause ??= new Promise((r) => setTimeout(r, CHUNK_RETRY_WAIT_MS));
+      await bundlePause;
+      if (!bundleRetry.has(ch.file)) { bundleRetry.set(ch.file, true); store.forget?.(ch.file); }
+      ser = await readStationPoint(store, manifest, c, { decodeChunk: decodeChunkOnce });
+    }
     if (!ser) return null;
     const planes = {};
     const empty = [];
@@ -325,11 +432,26 @@ async function collectStations(store, index, points, slot, slotAtMs, variant = S
   };
   for (const p of points) {
     try {
+      if (p.role === 'input') {
+        const cand = slot.plan.byPoint[p.id]?.station?.candidate ?? null;
+        const cs = cand ? byId.get(cand.id) : null;
+        if (!cs) { slot[key].byPoint[p.id] = { station: null, planes: null, note: 'keine Katalogstation als Kandidat im Plan' }; continue; }
+        const station = { id: cs.id, distanceKm: distanceKm(p.lat, p.lon, cs.lat, cs.lon), dElevM: cs.elev - p.elev, dDemM: p.demM == null ? null : cs.elev - p.demM };
+        const owner = ownerOf.get(cs.id);
+        if (owner == null && !(cs.id in slot[key].byStation)) {
+          const rec = await readStation(p, cs);
+          slot[key].byStation[cs.id] = rec ? { planes: rec.planes, empty: rec.empty } : null;
+          if (!rec) unreadable.push(`byStation:${cs.id}`);
+        }
+        slot[key].byPoint[p.id] = { station, planes: null, ref: owner != null ? { byPoint: owner } : { byStation: cs.id } };
+        ok++; refN++;
+        continue;
+      }
       const sid = p.mosmix?.id ?? p.id;
       const s = byId.get(sid);
       if (!s) { slot[key].byPoint[p.id] = { station: null, planes: null, note: `Katalogstation ${sid} steht nicht (mehr) im Katalog` }; continue; }
       const rec = await readStation(p, s);
-      if (!rec) { slot[key].byPoint[p.id] = null; continue; }
+      if (!rec) { slot[key].byPoint[p.id] = null; unreadable.push(p.id); continue; }
       // PA4: the plan's candidate (nearest catalog station) when it is not the point's own station.
       const cand = slot.plan.byPoint[p.id]?.station?.candidate ?? null;
       if (cand && cand.id !== sid && byId.has(cand.id)) {
@@ -340,10 +462,12 @@ async function collectStations(store, index, points, slot, slotAtMs, variant = S
       ok++;
     } catch (e) { slot.stats.errors.push(`${key}/${p.id}: ${e.message}`); slot[key].byPoint[p.id] = null; }
   }
+  if (bundleRetry.size) slot[key].bundleRetry = { bundles: bundleRetry.size, waitMs: CHUNK_RETRY_WAIT_MS };
+  if (unreadable.length) warn(slot, `${key}Unreadable`, `${unreadable.length} Stationsreihen nicht lesbar (Buendel nicht im Repo oder Abruf gescheitert — die Station steht im Katalog): ${unreadable.join(' ')}`);
   slot[key].mapped = (manifest.planes ?? []).map((p) => p.id).filter((id) => mapped.has(id));
   slot[key].absent = (manifest.planes ?? []).map((p) => p.id).filter((id) => !mapped.has(id));
   slot.stats.timing[key] = Date.now() - t0;
-  console.log(`[collect] ${key} (${product}): Lauf ${run.run} (${slot[key].ageAtSlotH} h alt zum Slot) · ${ok}/${points.length} Punkte · ${slot[key].mapped.length} Ebenen belegt · ${nearestN} Punkte mit anderer Plan-Station · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`[collect] ${key} (${product}): Lauf ${run.run} (${slot[key].ageAtSlotH} h alt zum Slot) · ${ok}/${points.length} Punkte · ${slot[key].mapped.length} Ebenen belegt · ${nearestN} Punkte mit anderer Plan-Station${refN ? ` · ${refN} Eingabe-Punkte mit Verweis (${Object.keys(slot[key].byStation).length} Reihen je Station)` : ''} · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 
 // ─── INCA analysis (schema 4, AX-10 / E-AX-10) ─────────────────────────────
@@ -396,6 +520,14 @@ async function collectIncaAnalysis(points, slot, slotAtMs) {
 // ─── nowcast + hmodel + plan ───────────────────────────────────────────────
 const VALID_AT_WHY = 'Der Spiegel schreibt fuer RV in JEDEM Frame die Laufzeit als validAtMs (V-PD-56); der Leser rechnet Slot + lead und zaehlt die Widersprueche. Bei RV sind es alle Frames mit lead > 0 — eine Eigenschaft des Spiegels, keine des Frames.';
 
+/** PA5: every radar frame is decoded once per slot (the memo store hands out the same bytes per path) — 1 025 points read the same frames. */
+const decodedPngs = new WeakMap();
+function decodePngOnce(raw) {
+  let img = decodedPngs.get(raw);
+  if (!img) { img = decodePng(raw); decodedPngs.set(raw, img); }
+  return img;
+}
+
 async function collectNowcast(store, points, slot, slotAtMs) {
   const t0 = Date.now();
   // PA3: one slot probe per source for the whole run (the memo store would dedupe the meta
@@ -416,7 +548,7 @@ async function collectNowcast(store, points, slot, slotAtMs) {
       const sl = slots[src];
       if (!sl) { out.bySource[src] = null; continue; }
       try {
-        const ser = await readNowcastPoint(store, src, p.lat, p.lon, { nowMs: slotAtMs, decodePng, fromMs: slotAtMs - 30 * 60_000, untilMs: slotAtMs + 3 * H, slot: sl });
+        const ser = await readNowcastPoint(store, src, p.lat, p.lon, { nowMs: slotAtMs, decodePng: decodePngOnce, fromMs: slotAtMs - 30 * 60_000, untilMs: slotAtMs + 3 * H, slot: sl });
         if (ser) {
           const suspect = ser.frames.filter((f) => f.validAtSuspect).length;
           out.bySource[src] = {
@@ -458,7 +590,7 @@ async function collectHmodel(store, points, slot) {
     const byTier = {};
     for (const tier of TIERS) {
       try {
-        const r = await readHmodelPoint(store, hm, tier.id, p.lat, p.lon);
+        const r = await readHmodelPoint(store, hm, tier.id, p.lat, p.lon, { decodeChunk: decodeChunkOnce });
         byTier[tier.id] = r ? { bySource: r.bySource, provenance: r.provenance, spreadM: r.spreadM } : null;
         // PA4: `absent` = the producer's own reason per source without a height (CLAEF: „GeoSphere
         // veroeffentlicht keine Modellorographie; die Ableitung aus Druckflaechen ist versperrt, weil
@@ -572,8 +704,11 @@ function liveCallOptions(p, hours) {
   return { lat: p.lat, lng: p.lon, country: p.profile ?? p.country, elevationM: p.elev, hours, includeRadarNowcast: false, distribution: true, anchorMode: 'offset' };
 }
 
-async function collectLive(points, slot, opts) {
+async function collectLive(allPoints, slot, opts) {
   const t0 = Date.now();
+  // PA5: input points carry no live path (it costs ≈ 60 % of a slot's bytes and many requests per point, and is the app's
+  // product at the catalog points — the inputs of the cube path are what must not be lost at the new stations).
+  const points = allPoints.filter((p) => p.role !== 'input');
   slot.live.options = { includeRadarNowcast: false, distribution: true, anchorMode: 'offset', elevationM: 'points[].elev', hoursDefault: opts.liveHours, hoursFullFirstN: opts.liveFull };
   slot.live.axis = {
     note: 't0Ms = Stundenboden der ABRUFZEIT des Live-Pfads (die App rechnet ab der laufenden Stunde), nicht die Slotzeit; Stunde i gilt fuer t0Ms + i h. tsMs ist null, wenn die Reihe lueckenlos stuendlich ist (der Regelfall), sonst die Zeitstempel je Stunde. fetchedAtMs je Punkt = Ende des Abrufs.',
@@ -781,14 +916,26 @@ async function main() {
   // PA4: `--ids=11144,06657` picks named points (probes of one finding); `--limit` the first N.
   if (flags.ids) { const want = new Set(String(flags.ids).split(',')); points = points.filter((p) => want.has(p.id)); }
   if (flags.limit) points = points.slice(0, Number(flags.limit));
+  // PA5 (E-PS-11): the input points (`points-extra.json`) AFTER the catalog points — every block of the slot keeps the catalog
+  // points first. `--no-extra` leaves them out, `--extra-limit=N` takes the first N, `--ids` also picks among them.
+  const extra = flags['no-extra'] ? null : loadExtraList();
+  let extraPoints = extra?.points ?? [];
+  if (flags.ids) { const want = new Set(String(flags.ids).split(',')); extraPoints = extraPoints.filter((p) => want.has(p.id)); }
+  // E-PA5-4: the precipitation-only stations sit behind the others in the list; `--no-precip-only` is the way back to the 620.
+  if (flags['no-precip-only']) extraPoints = extraPoints.filter((p) => !p.precipOnly);
+  if (flags['extra-limit'] != null) extraPoints = extraPoints.slice(0, Number(flags['extra-limit']));
+  const basePoints = points.length;
+  points = [...points, ...extraPoints];
   const liveHours = Number(flags['live-hours'] ?? 240);
   const liveFull = Number(flags['live-full'] ?? 0);
   const t0 = Date.now();
 
-  const store = memoStore(flags.raw ? httpStore({ base: POINT_RAW_BASE }) : withRawSameRef(httpStore({})));
+  const store = memoStore(flags.raw ? httpStore({ base: POINT_RAW_BASE }) : withRawSameRef(httpStore({})), new Map(), typeof flags['fail-once'] === 'string' ? flags['fail-once'] : null);
   const slot = newSlot({ slotAtMs, codeHash: codeHash(), producer: PRODUCER });
   slot.pointsFrom = {
-    file: 'scripts/punktarchiv/points.json', builtAt: list.builtAt, total: list.points.length, used: points.length,
+    file: 'scripts/punktarchiv/points.json', builtAt: list.builtAt, total: list.points.length, used: basePoints,
+    // PA5 (schema 5): the input points — stations of the official networks that are no catalog points (E-PS-11)
+    extra: extra ? { file: 'scripts/punktarchiv/points-extra.json', builtAt: extra.builtAt, total: extra.points.length, used: extraPoints.length, precipOnly: extraPoints.filter((p) => p.precipOnly).length, rule: extra.rule } : null,
     // PA3: what the keys mean — the expert read `id` as a WMO number and `demM` as the point height.
     rules: {
       id: 'MOSMIX-Katalogkennung: Schluessel ALLER byPoint-Bloecke und des Stationsprodukts. Bei DE = WMO-Kennung der POI-Datei; bei AT/CH-Paaren (Feld mosmix vorhanden) die Kennung der KATALOGSTATION, nicht der Messstelle (Innsbruck: id 11120, TAWES 11121); Katalogkennungen ohne WMO-Form (P0060 Patscherkofel) kommen vor.',
@@ -796,10 +943,11 @@ async function main() {
       profile: PROFILE_WHY,
       elev: 'Hoehe der Messstelle (Stationsmetadaten) = Punkthoehe fuer Plan und Stationskriterium.',
       demM: 'Terrarium z9, naechstes Pixel — nur Verortungskontrolle, keine Punkthoehe (an Gipfeln bis 270 m zu tief).',
+      role: 'Schema 5: fehlt = Katalogpunkt (wie bisher, mit Live-Pfad und eigener MOSMIX-Station). input = Eingabe-Punkt: Station eines amtlichen Messnetzes ohne Katalogpunkt (net tawes/smn/cdc, Kennung <Netz>:<Netzkennung>) — Cube, Block, Nowcast, hmodel, Plan und die Netz-Wahrheit (TAWES/SMN), KEIN Live-Pfad, MOSMIX nur als Verweis auf die naechste Katalogstation; truth.cdc nennt die CDC-Kennung, deren Messwerte NICHT im Slot stehen (nachladbar). precipOnly = reine Niederschlagsstation (E-PA5-4: DWD CDC ohne Temperatur und Wind, oder MeteoSwiss ogd-smn-precip mit net smnp und truth.smnPrecip); dieselbe Form wie jeder Eingabe-Punkt, Messwerte nicht im Slot.',
     },
   };
-  slot.points = points.map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon, elev: p.elev, demM: p.demM, country: p.country, profile: p.profile ?? p.country, wmo: p.wmo, truth: p.truth, ...(p.mosmix ? { mosmix: p.mosmix } : {}) }));
-  console.log(`[collect] Slot ${slot.slotAt} · ${points.length} Punkte · Repo ${store.base} · Ausgabe ${outRoot}${flags.dry ? ' (dry)' : ''}`);
+  slot.points = points.map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon, elev: p.elev, demM: p.demM, country: p.country, profile: p.profile ?? p.country, wmo: p.wmo, truth: p.truth, ...(p.mosmix ? { mosmix: p.mosmix } : {}), ...(p.role ? { role: p.role, net: p.net } : {}), ...(p.precipOnly ? { precipOnly: true } : {}) }));
+  console.log(`[collect] Slot ${slot.slotAt} · ${basePoints} Katalogpunkte + ${extraPoints.length} Eingabe-Punkte · Repo ${store.base} · Ausgabe ${outRoot}${flags.dry ? ' (dry)' : ''}`);
 
   const index = await loadPointIndex(store);
   if (!index) throw new Error('point/index.json nicht erreichbar');
@@ -820,7 +968,7 @@ async function main() {
   // slot as it can; everything else is pinned to the index commit read above and does not move.
   if (!flags['no-live']) await collectLive(points, slot, { liveHours, liveFull, liveConcurrency: Number(flags['live-concurrency'] ?? 3) });
   if (!flags['no-cube']) {
-    await collectCube(store, index, points, slot, slotAtMs);
+    await collectCube(store, index, points, slot, slotAtMs, { block: !flags['no-block'] });
     // Das statische Produkt aendert sich IN PLACE (static.json UND Chunks, viermal taeglich):
     // beides gepinnt an den Index-Commit, damit Ebenenliste und Bytes zusammenpassen.
     await collectHmodel(manifestStore(store, index), points, slot);

@@ -116,6 +116,7 @@
     "point:availability": "node scripts/point/measure-availability.mjs",
     "point:urban": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-urban.mjs",
     "verify:punktarchiv": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-punktarchiv.mjs",
+    "verify:pruefstand": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pruefstand.mjs",
     "punktarchiv:points": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/points.mjs",
     "punktarchiv:collect": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs",
     "verify:dashboard": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-dashboard.mjs",

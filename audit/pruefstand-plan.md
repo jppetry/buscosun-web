@@ -1,6 +1,6 @@
 # Prüfstand — feste Verifikationsroutine für buscosun Fusion (PS-0 … PS-4)
 
-> Stand: 2026-10-05 (Plan, vor Diagnose; ergänzt um Vergleichsmodus, Rekonstruktion alter Versionen und Archiv-Punktliste). Auftrag Jan 05.10.: eine Testroutine für das Postprocessing buscosun Fusion,
+> Stand: 2026-10-06 — **PS-0 … PS-4 umgesetzt** (Gates G-PS1 … G-PS4 in §14.15–§14.18, Auslegungen in §14.19). Ursprünglich 2026-10-05 (Plan, vor Diagnose; ergänzt um Vergleichsmodus, Rekonstruktion alter Versionen und Archiv-Punktliste). Auftrag Jan 05.10.: eine Testroutine für das Postprocessing buscosun Fusion,
 > die jede neue Version (buscosun Fusion [n]) an realen Stationen nach immer denselben Kriterien bewertet und gegen die
 > letzte und alle früheren Iterationen vergleicht. **Einmal bauen, danach je Version nur noch laufen lassen.**
 > Konzept: Claude-Doc „buscosun Prüfstand – Verifikationsroutine für Fusion-Postprocessing“
@@ -179,7 +179,7 @@ den Skill abgelehnt.
 | E-PS-3 | Tresor im Hindcast | jede 4. Woche · jede 5. Woche · ein ganzes Jahr · **neu: der ungenutzte Zeitraum vor 2025-09-01** | **Der ungenutzte Zeitraum**: kein Fit hat Hindcast-Tage vor dem 01.09.2025 gesehen (D-PS-4). 2024-04-01…2025-08-31 (17 Monate, alle drei Stufen, Provenienz Tag 0/dyn) ist für alle Bestandsversionen ohne Nachfit sauber. Künftige Fits müssen ihn per Regel aussparen. Abstand (D-PS-8): 7 Tage (r₁ bis 0,73, bei T schon ab 6 h Vorlauf 0,70) — aus nur 15–20 Tagen geschätzt | Tresor = Hindcast 2024-04-01 … 2025-08-31, Abstand 7 Tage; künftige Fits sparen ihn aus (Jan 05.10.2026) |
 | E-PS-4 | Index-Gewichte | gleich · nach Nutzung · kurze Vorläufe betont | gleich, bis Nutzungsdaten vorliegen (keine Messung in PS-0) | gleich (Jan 05.10.2026) |
 | E-PS-5 | Toleranz δ in G2 | 0 · 1 % · Nachweisgrenze | 0. Zur Einordnung (D-PS-8, Paar `live` gegen MOSMIX-L, 15–20 Tage): Nachweisgrenze heute je Zelle 3–69 %, bei 90 Tagen 1–32 %; n_eff 4–20 Tage | 0 (Jan 05.10.2026) |
-| E-PS-6 | Archiv-Cron mit 4 Slots je Tag | ja · nein | **ja, Eingaben viermal, `live` nur im 23:10-Slot.** Ein Slot hat heute 13,2 MB (5,3 MB ohne `live`); vier Slots: 29 MB/Tag = 10,6 GB/Jahr bei 405 Punkten. Sammelzeit 8,5–14 min je Slot, davon `live` 3 min | ja: vier Slots je Tag, `live` nur im 23:10-Slot (eigener Antrag) (Jan 05.10.2026) |
+| E-PS-6 (am 05.10. abends durch E-PA5-1 ersetzt: **ein Slot je Tag bleibt**, `audit/punktarchiv-erweiterung.md` §5) | Archiv-Cron mit 4 Slots je Tag | ja · nein | **ja, Eingaben viermal, `live` nur im 23:10-Slot.** Ein Slot hat heute 13,2 MB (5,3 MB ohne `live`); vier Slots: 29 MB/Tag = 10,6 GB/Jahr bei 405 Punkten. Sammelzeit 8,5–14 min je Slot, davon `live` 3 min | ja: vier Slots je Tag, `live` nur im 23:10-Slot (eigener Antrag) (Jan 05.10.2026) |
 | E-PS-7 | Ort | Code in `buscosun-web`, Daten in `C:\dev\buscosun-pruefstand\` · eigenes Repo | Code in `buscosun-web`, große Daten lokal. Gemessen (D-PS-10): Konserve je Slot × Version 19 MB roh auf dem P1-Raster (46 MB stündlich) | Code in `buscosun-web`, große Daten lokal (Jan 05.10.2026) |
 | E-PS-8 | Wo läuft es? | lokal · Actions | **lokal.** Gemessen: Replay 48 s je Slot × Version (389 Punkte, stündlich bis 336 h), ohne `npm ci` nicht lauffähig (Paket `bz2` wird importiert) | lokal (Jan 05.10.2026) |
 | E-PS-9 | Bestandsversionen unter Tresor nachfitten | ja · nein | **nein** — mit dem Tresor aus E-PS-3 unnötig. Der Stationswert ist ohnehin am Archiv gefittet (14.–28.09.), nicht am Hindcast | nein, kein Nachfit (Jan 05.10.2026) |
@@ -532,7 +532,102 @@ entschieden); Abstand Replay ↔ Browser.
   Archivtage. Mehrwert: Freeze je Version maschinenlesbar statt aus CLAUDE.md. Braucht eine Änderung unter
   `src/pointForecast/`, also eigener Antrag.
 
-*(Umsetzung PS-1…PS-4 und ihre Gate-Tabellen folgen je Phase.)*
+### 14.15 PS-1 — Fundament (05.10.2026, Gate G-PS1)
+
+Gebaut (Code nur unter `scripts/pruefstand/`, `src/pruefstand/`, `scripts/verify-pruefstand.mjs`; buscosun Fusion unberührt):
+
+| Schritt | Umsetzung |
+|---|---|
+| PS-1-1 Protokoll | `scripts/pruefstand/protokoll/p1/{protokoll,pruefnetz,tresor}.json` + `siegel.json` (sha256 der kanonischen Form je Datei; `lib/protokoll.mjs` lehnt jede Abweichung ab). Jeder Wert trägt seine Herkunft (`jan`, `measured`, `concept`, `set`). `src/pruefstand/protokoll.ts`: Strukturprüfung, Vorlauf-Raster (`leadsOf`), Fenster, Schrittlänge. Prüfnetz aus `build-pruefnetz.mjs` (reproduzierbar, Hash `b0a6e3ae…`): 389 Stationen, **365 mit W1-Wahrheit** (DE 179, AT 84, CH 102 inkl. LI), **Rolle B 95** (DE 47, AT 21, CH 27) aus 37 Schichten (7 ohne B), 36 Tal-/Berg-Paare, je Station der nächste Anker der Rolle A. Abweichung zu E-PS-2 (101 von 389): 24 DE-Flugplatz-Stationen haben keine 10-min-Daten in CDC — sie bleiben Anker (Eingaben für Nachbarn), werden aber nicht bewertet |
+| PS-1-2 Wahrheit W1 | `wahrheit/quellen.mjs` (DWD CDC 10 min historical/recent/now + stündliche Bewölkung, GeoSphere klima-v2-10min, MeteoSwiss `ogd-smn`; Rohdateien des Hindcast-Caches werden nur gelesen), `wahrheit/qc.mjs` (formal, zeitlich, räumlich; nie gegen eine Vorhersage), `wahrheit/build-w1.mjs`. Ablage `C:\dev\buscosun-pruefstand\wahrheit\W1\<Tag>.f32` (365 × 24 × 7), Manifest mit sha256 je Tag, Reifekennzeichen (7 Tage), Verworfenes als Protokoll. **Stand 05.10.: 1 223 Tage (2023-06-01 … 2026-10-05), 1 215 reif**; Rohdaten 2,4 GB; Bau 20 min. Verworfen: SMN 732 Werte (0,004 %, davon 712 räumlich), CDC 278 (0,0008 %), klima 234 (0,0016 %) |
+| PS-1-3 Fälle | `lib/wahrheit.mjs` `truthBlock`: Wahrheitsblock je Ausgabe (Stationen × Vorläufe × 7 Größen) in den Definitionen von P1 (Wert am Stempel, Böe = Schrittmaximum, Niederschlag = mittlere Rate), unter `…\faelle\P1\<Quelle>\<Stempel>.f32` mit Fall-Hash; final, sobald der letzte Gültigtag reif ist. Konserven adressiert nach (Modell-Hash, Fall-Hash, Replay-Hash des Protokolls) |
+| PS-1-4 Maße | `src/pruefstand/metrics.ts` (QS, CRPS_Q, twCRPS_Q über die Verkettung max(·, Schwelle), Brier-Zerlegung, PAV/CORP, RPS, SEDI, Winkelfehler, Typ-7-Quantil) und `src/pruefstand/stats.ts` (Student t, AR(2)-Inflation nach Yule-Walker, gepaarter Test, gleitender Block-Bootstrap, Benjamini-Hochberg, Binomialband) |
+| PS-1-5 Sollwerte | `scripts/pruefstand/fixtures/make_fixtures.py` → `metrics.scores.json` mit `scores` 2.7.0, numpy 2.0.2, scipy (einmal offline; zur Laufzeit kein Python) |
+| PS-1-6 Verifier | `npm run verify:pruefstand` (netzfrei, Blöcke A–H): **60/60** |
+
+**Gate G-PS1**
+
+| Frage | Beleg |
+|---|---|
+| Maße gegen `scores` | 13 Maße, größte Abweichung < 1e-9 (Normalquantil-Näherung 2e-9, nur für Intervalle); Gegenprobe: unsymmetrische Stufen geben für einen Punktwert nicht den absoluten Fehler |
+| Wahrheit: Rundlauf | `wahrheit/rundlauf.mjs` gegen die Echtzeit-Kopie des Archivs (`truth.byPoint`, 21 Slots, `audit/pruefstand/w1-rundlauf.json`): AT T 100 %, Wind 98,7 %, Böe 100 %, Niederschlag 99,6 %; CH T 99,5 % (einzelne Revisionen, max 10,9 K), Taupunkt 99,8 %, Wind 99,6 %, Böe 100 %, Niederschlag 100 %; DE Bewölkung 100 %, Niederschlag 96,3 %, **T 17,5 % gleich, mittlere Abweichung 0,26 K** — erwartet: die Archiv-Stunde ist der 10-min-Wert von H − 10 min (E-PS-15), W1 steht am Stempel H; AT-Taupunkt 34 % gleich, 0,09 K (Magnus, keine Messung). Keine unerklärte Abweichung |
+| Protokoll | lädt, Hash stabil; ein verändertes `G2.delta` und eine umgehängte Rolle werden abgelehnt (A3/A4); neu versiegelt lädt die Kopie mit anderem Hash (= P2) |
+| Verifier | `typecheck` 0, `verify:pruefstand` 60/60, Build 252/252, Budget unverändert (nichts davon im App-Bundle) |
+
+### 14.16 PS-2 — Register und Replay (05.10.2026, Gate G-PS2)
+
+| Schritt | Umsetzung |
+|---|---|
+| PS-2-1 Register | `scripts/pruefstand/register/<id>.json` (Commit 40-stellig, Adapter `cube-1`, Optionen, Klimatologie-Modus, Tabellen mit sha256 im Speicher `C:\dev\buscosun-pruefstand\tabellen\<sha12>-<name>` = V-PS-7, Freeze, Fit-Fenster, Tresor-Prüfung, Modell-Hash). Bestand über `register-bestand.mjs` (D-PS-7): 5e `56066ae`, 6 `a02f2b5`, 7 `751bee2`, 8 `07cc7cf`, 9 `0ad0615` (Champion, E-PS-14). Neue Versionen: `run.mjs --registriere=fusion-<n> --freeze=…` (Optionen aus `fusionRelease.ts` am HEAD; fehlt der Freeze, Exit 2 mit Frage an Jan) |
+| PS-2-2 Vertrag | `src/pruefstand/adapter.ts`: Block [Stationen × Vorläufe × (6 Größen × 19 Quantile + pWet + Richtung)], `checkBlock` lehnt falsche Einheit (Kelvin), nicht monotone Quantile, falsche Länge, pWet außerhalb 0…1 ab — ein abgelehnter Block wird nicht gespeichert, der Lauf endet mit Exit 4 |
+| PS-2-3 Adapter | `lib/replay.mjs`: Motor aus dem Worktree des Commits (`C:\dev\buscosun-pruefstand\worktrees\<id>`, gemeinsames `node_modules` der Laufzeit-Abhängigkeiten, keine Junctions), Adapter von heute (`scripts/fusionfit/lib/`). Rolle A: eigene Station + eigene Messung (mit Taupunkt und Stundenmaximum der Böe, wie die Messläufe); Rolle B: Stationsprodukt und Messung des nächsten Ankers (Produkt nur, wenn `SELECTION` sie annimmt), **Klimatologie als Leave-Station-out-Schätzung** (das veröffentlichte Produkt enthält die Station selbst; `climaHeldOut: 'loso'`). Hindcast: Tag-0-Stufe 1 nur Vorlauf 1–2 h, Stufen 2/3 ab 51 h. Referenzen `lib/referenzen.mjs`: Klimatologie (W1, ±10 Tage × Stunde, Typ-7-Quantile, im Mittel 21 Stichproben), Persistenz, Cube roh, Cube roh + 0,65 K/100 m, MOSMIX-L (eigene Station, beide Rollen), naive Fusion (`lib/modelle.mjs`, σ aus den anderen Tagen) |
+| PS-2-4 Runner | `lib/runner.mjs` + `replay-worker.mjs`: 3 Worker-Threads, je Ausgabe ein Slot-Parse für alle Modelle, inkrementell (vorhandene Konserven werden nie neu gerechnet). Gemessen: Archiv 30 s je Ausgabe × Version (Motor 66 ms je Punkt im Median), Tresor 15 s (16 ms je Punkt) |
+| PS-2-5 Konserven | `…\konserven\P1\<Modell-Hash>\<archiv|hindcast>\<Stempel>.f32`, 23 MB je Ausgabe × Quantilmodell; Stand 05.10.: 21 Archiv- + 70 Tresor-Ausgaben × 5 Versionen + 5 Referenzen = **12 GB** |
+| PS-2-6/8 Treue | `treue.mjs` gegen die gespeicherten Zeilen der AX-Messläufe (E-PS-13), Tage nach dem letzten Fit-Fenster am Archiv (29.09.–01.10.), `audit/pruefstand/treue.json` und `treue-loso.json` |
+| PS-2-7 | entfällt (E-PS-9: kein Nachfit; Tresor nach E-PS-3 für alle Bestandsversionen sauber) |
+
+**Gate G-PS2**
+
+| Frage | Beleg |
+|---|---|
+| Replay-Treue | **5e: 100 % innerhalb der Rundung** (6 Größen, 29./30.09., 16 585 Schritte je Tag, max 5·10⁻⁵). **6, 7, 8 in der Form der Messläufe (`--klima=loso`): 100 % innerhalb der Rundung** für alle sechs Größen an beiden Tagen. Die Taupunkt-Abweichung aus PS-0 (0,07 K) ist geklärt: zwei Eingaben — die Messung trägt den Taupunkt (die Messläufe gaben `dewPoint` mit), und die Messläufe nahmen für jede Variante die Leave-Station-out-Klimatologie der Fit-Tabelle statt des veröffentlichten Produkts. Mit dem veröffentlichten Produkt weichen T bis 0,017 K, Taupunkt bis 0,069 K und Böe bis 0,077 m/s ab (Größen mit μ_c), Wind/Niederschlag/Bewölkung exakt (`treue.json`) |
+| Fusion 9 | keine gespeicherten Zeilen (04.10. festgelegt, nicht am Archiv gemessen) ⇒ „Treue nicht prüfbar“ im Register; am Archiv und im Tresor byte-gleich mit Fusion 8 (Vergleich 9 gegen 8: +0,00 %, Konserven-Hashes gleich) |
+| Determinismus | zwei Läufe je Version byte-gleich (`treue.mjs`); G4 jeder Abnahme wiederholt eine Ausgabe im Worker: Hash gleich |
+| Vertragstests | Verifier E1–E5 grün (Negativkontrollen Kelvin, Monotonie, Länge, pWet, teilweise leerer Satz) |
+
+### 14.17 PS-3 — Statistik, Gates, Bericht (05.10.2026, Gate G-PS3)
+
+`lib/score.mjs` (Akkumulation je Zelle = Größe × Fenster × Land × Rolle und je Tag, Paare nur auf identischen Fällen),
+`lib/urteil.mjs` (Zellen, Paare, Index, G1–G4, Überanpassung), `lib/lauf.mjs` (Mengen, Konserven, Selbstprüfung),
+`lib/bericht.mjs` (eine HTML-Datei ohne Abhängigkeiten; erste Zeile = Urteil; Gates, Scorecards je Land und Rolle,
+Rangliste, Produktaussage, Kalibrierung mit Brier-Zerlegung und CORP, Sonderprüfungen, Skill je Station als SVG, die 20
+größten Verluste, Selbstprüfung, Quellen). Vergleichsmodus `--modus=vergleich` (PS-3-6): auf der gemeinsamen
+Entwicklungsmenge; die sauberen Mengen nur mit `--tresor`, protokolliert wie eine Abnahme (Auslegung von §10, s. 14.19).
+
+**Gate G-PS3** (Abnahme Fusion 9 gegen sich selbst, `audit/pruefstand/berichte/fusion-9/2026-10-05-abnahme/`)
+
+| Frage | Beleg |
+|---|---|
+| A/A-Test | Vertauschungs-A/A (blockweise zufälliges Vorzeichen der Tagesdifferenzen Fusion 9 − Fusion 5e, Spur R, 70 Tage, 63 Kernzellen, 500 Wiederholungen): **Irrtumsrate 5,29 % bei nominal 5 %**; je Zelle 0 … 15,8 %, je Wiederholung 5–95 %: 1,6 … 11,1 %. Abweichung vom Plan (Bootstrap-Fit): ein Fit je Wiederholung dauert Stunden und ruft die Fit-Pipeline — s. 14.19 |
+| Negativkontrollen | alle fünf schlagen an: Wahrheit als Version ⇒ Score 0; Klimatologie ⇒ Güteindex 0; halbierte Bänder ⇒ G3 rot (12 von 17 Zellen); Rauschen ⇒ G2 rot (50 von 63 Kernzellen); Leck-Modell ⇒ Gewinn an A 100 %, an B 0 ⇒ Warnung |
+| Byte-Gleichheit | Volltest Fusion 9 zweimal: `scores.json` und `bericht.html` byte-gleich (sha256 `92f18814…`, `56fd9fe1…`) |
+
+### 14.18 PS-4 — Befehl, Skill, erster Lauf (05./06.10.2026, Gate G-PS4)
+
+`scripts/pruefstand/run.mjs` (Modi `status`, `schnell`, `voll`, `abnahme`, `vergleich`, `--registriere`; Exit-Codes 2/3/4/5),
+`.claude/skills/pruefe-fusion/SKILL.md` (Anhang A, angepasst an die `--name=wert`-Form), `audit/pruefstand/README.md`.
+
+**Gate G-PS4**
+
+| Frage | Beleg |
+|---|---|
+| Selbsttest | `--kandidat=fusion-9 --modus=abnahme`: Spur P 0 Tage (noch kein Archivtag nach dem Freeze 04.10.), Spur R 70 Ausgaben: **„Kandidat — der Kandidat ist der Champion selbst, kein Fortschritt“**, G1 nicht nachweisbar, G2 grün (0 von 63), G3 grün (0 von 17 rot; 9 außerhalb des Bands, aber nicht schlechter als der Champion), G4 grün; Rangliste Spur R (Güteindex gegen Klimatologie, Rolle B): 6/7/8/9 +17,8 % (95 %: +15,5 … +19,7), 5e +15,4 %, naiv −15,9 %, roh + Lapse −32,9 %, roh −41,2 %, Persistenz −56,4 %; Produktaussage 63 von 63 Kernzellen |
+| Ablehnung | `test-fusion-9-breit` (Fusion 9 mit 2-fach breiten Bändern, `--registriere=test-… --basis=fusion-9 --breiter=2`): **abgelehnt** — G1 rot (Spur R −8,6 %, 95 %: −10,0 … −7,6), G2 rot (40 von 63), G3 rot (15 von 17), G4 grün |
+| Vergleich | Entwicklungsmenge (21 Tage): 6 gegen 5e +4,6 %* (95 %: +4,1 … +4,9), 7 gegen 6 +0,03 % (n. n.), 8 gegen 7 +0,18 %* (+0,10 … +0,29), 9 gegen 8 ±0; Spur R: 6 gegen 5e +3,1 %* (+2,1 … +4,1), 7/8/9 gegen den Vorgänger ±0 (dort ohne Messung und Radar per Bauart gleich) |
+
+### 14.19 Entscheidungen dieser Sitzung (Auslegungen, von Jan zu bestätigen — jede als `set` in P1 markiert)
+
+| # | Entscheidung | Grund | Kosten, falls falsch |
+|---|---|---|---|
+| R-1 | Spur R: Ausgaben alle 7 Tage (70 statt 518) | Abstand = gemessene Dekorrelationszeit (D-PS-8); Replay je Version ≈ 20 min statt 2,5 h auf 4 Kernen | weniger Power; Änderung = P2 |
+| R-2 | G3: rot nur, wenn außerhalb des Bands UND signifikant weiter weg als der Champion | der Champion liegt in 9 von 17 Zellen außerhalb des Bands um 80 % — mit der UND-Lesart fiele er gegen sich selbst durch | ein Kandidat mit ebenso schlechter Kalibrierung besteht G3 |
+| R-3 | G4 Physik: Anteil ≤ 0,1 % ODER nicht größer als beim Champion | Fusion 9 verletzt Böe ≥ Wind − 0,5 m/s in 0,29 % der Fälle der Entwicklungsmenge (0,105 % im Tresor), V-PS-12 | ein bestehender Defekt wird nicht zum Gate |
+| R-4 | A/A durch blockweise Vorzeichen statt Bootstrap-Fit; Partner Fusion 5e | ein Fit je Wiederholung dauert Stunden; der Partner ist eine echte, andere Version ähnlicher Güte | der Test ist nur so streng wie die Blockstruktur |
+| R-5 | `vergleich` auf der Entwicklungsmenge; saubere Mengen nur mit `--tresor` (protokolliert) | §10 erlaubt Tresor und Spur P nur der Abnahme; PS-3-6 will den Vergleich auf sauberen Mengen — beides bleibt möglich, keine stille Öffnung | ein Vergleich ohne `--tresor` ist in-sample |
+| R-6 | Klimatologie an Rolle B = Leave-Station-out | Treue-Probe: so rechneten die Messläufe; das Produkt enthält die Station selbst (Leck) | 6–9 an B minimal anders als das ausgelieferte Produkt (T ≤ 0,017 K) |
+| R-7 | Konserven hängen am Replay-Hash (Stationen, Quantile, Raster, Schwelle, Referenzen, Tresor), nicht am Wortlaut der Gates | eine Auslegung eines Gates kostet sonst 12 GB Rechnung | — |
+| R-8 | Entwicklungsmenge zählt unreife Wahrheit mit (gekennzeichnet); Abnahme nur reife | sonst gäbe es heute keinen Volltest | Volltest-Zahlen können sich mit Korrekturen der Netze ändern |
+| R-9 | Setzungen: Geländeklassen (D-PS-9), Seed 20261005, QC-Grobfehlergrenzen, Klima-Fenster ±10 Tage/≥ 10 Stichproben, naive Fusion ≥ 30 Residuen, Schnelltest jeder 3. Tag, Toleranzen G4 (0,5 K / 0,5 m/s / 300 ms), Überanpassung 5 %, A/A-Grenze 10 % | keine Messung verfügbar; jeweils als `set` in `protokoll.json` | Änderung = P2 |
+| R-10 | Rolle B: 95 statt 101 (24 Flugplätze ohne 10-min-Daten) | E-PS-15 fordert den Stempel H; stündliche CDC-Werte hätten H − 10 | DE-Pool kleiner |
+
+### 14.20 Neue V-Einträge
+
+- **V-PS-12** Fusion 9 verletzt Böe ≥ Wind − 0,5 m/s (Mediane) in 0,29 % der Fälle (Archiv) bzw. 0,105 % (Tresor), Td > T + 0,5 K in 0,02 %. Mehrwert: ein konsistentes Produkt. Skizze: im Motor Böe ≥ Wind erzwingen (Änderung an buscosun Fusion = eigener Antrag).
+- **V-PS-13** Nahtprüfung: die drei Schrittpaare liegen zu verschiedenen Tageszeiten; absolut ist die Zeile nicht lesbar (Archiv 180 h: 3,09 K über die Naht gegen 1,3/1,6 K daneben — vermutlich Tagesgang), nur zwischen Versionen. Skizze: Fehler der Änderung je Tageszeit normieren.
+- **V-PS-14** Windmesshöhe: DE aus den Gerätemetadaten der Stunden-ZIPs lesbar, AT/CH nicht offen; in P1 kein Filter. Mehrwert: Wind-Zelle „nur 10 m“.
+- **V-PS-15** Der Replay rechnet mit einer Cube-Zelle; seit Archiv-Schema 5 (06.10.) liegt der Block im Slot. Mehrwert: PAP 3 wie der Browser. Skizze: `archiveSeries` mit `neighbours` aus `block` — ändert die Eingaben ab dem ersten Schema-5-Slot (zu kennzeichnen; neue Adapter-Generation).
+- **V-PS-16** `scores.json` je Abnahme ≈ 3 MB im Repo. Skizze: Tagesreihen und Stationszeilen nur in der Abnahme, oder außerhalb des Repos mit Hash im Bericht.
+- **V-PS-17** Die Klimatologie-Referenz hat im Mittel 21 Stichproben (zwei Jahre Training). Mehrwert: glattere Quantile. Skizze: W1 ab 2020 (DWD historical, SMN historical) — Trainingszeitraum vor dem Tresor wächst.
 
 ## Anhang A — `.claude/skills/pruefe-fusion/SKILL.md` (Lieferobjekt PS-4-2)
 

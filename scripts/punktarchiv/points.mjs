@@ -177,7 +177,7 @@ async function mapLimit(items, limit, fn) {
 }
 
 /** Terrain height per point from Terrarium z9 (nearest pixel; 'finite' is all the list needs). */
-async function terrainHeights(points) {
+export async function terrainHeights(points) {
   const z = 9;
   const tileOf = (lat, lon) => {
     const n = 2 ** z;

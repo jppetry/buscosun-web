@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "kind": "pruefstand/tresor",
+ "protocol": "P1",
+ "frozenAt": "2026-10-05",
+ "from": "2024-04-01",
+ "to": "2025-08-31",
+ "gapDays": 7,
+ "from_": "jan E-PS-3: der Zeitraum, den kein Fit einer Bestandsversion gesehen hat (D-PS-4); Abstand 7 Tage aus der gemessenen Autokorrelation (D-PS-8)",
+ "fitRule": "Kein Fit darf Tage mit Ausgabe- ODER Gültigkeitszeit in [from, to] sehen; eine Version, deren Fit-Fenster hineinreicht, ist in Spur R kontaminiert. Der Abstand liegt INNEN: bewertet werden nur Ausgabe- und Gültigkeitszeiten in [from + gapDays, to − gapDays].",
+ "issues": {
+  "rule": "Ausgabezeiten 00 UTC, jeder 7. Tag ab from + gapDays; die letzte so, dass Ausgabe + 14 Tage ≤ to − gapDays",
+  "everyDays": 7,
+  "hourUtc": 0,
+  "everyFrom": "set: Tagesabstand = gemessene Dekorrelationszeit (D-PS-8), damit die Ausgabetage annähernd unabhängig sind und der Replay je Version etwa eine Stunde dauert (4 Kerne)"
+ },
+ "provenance": "Hindcast: t1 „Tag 0“, t2/t3 „dyn“ (D-PS-4) — nachgebaute Eingaben, ohne Stationsprodukt, Nowcast und Messungen"
+}

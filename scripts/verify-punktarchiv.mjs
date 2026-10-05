@@ -17,6 +17,7 @@ import { punktarchivSelfTest, tierForLead, LIVE_SCALES, TRUTH_SCALES, SENTINEL, 
 import { truthSelfTest } from './punktarchiv/lib/truth.mjs';
 import { nodeShimsSelfTest } from './punktarchiv/lib/nodeShims.mjs';
 import { pointsSelfTest, selectPoints, countryOfWmo, inCubeBox, COLOCATE, DACH, PROFILE_OF } from './punktarchiv/points.mjs';
+import { extraSelfTest, EXTRA_KIND, SAME_SITE } from './punktarchiv/points-extra.mjs';
 import { TIERS, CUBE_STEP_COUNT } from '../src/point/cubeFormat.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -32,6 +33,7 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   rmSync(tmp, { recursive: true, force: true });
   suite('truth', truthSelfTest());
   suite('points', pointsSelfTest());
+  suite('extra', extraSelfTest());
   suite('shim', await nodeShimsSelfTest());
 }
 
@@ -55,7 +57,7 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(3) jede Skala trägt scale > 0, offset und unit', all.every(([, s]) => s.scale > 0 && Number.isFinite(s.offset) && typeof s.unit === 'string'), `${all.length} Spalten`);
   add('(3) der größte plausible Wert je Spalte bleibt unter dem Sentinel-Betrag (kein stilles Klemmen)',
     encodeValue(60, LIVE_SCALES.temperature) < 32767 && encodeValue(1100, TRUTH_SCALES.p) < 32767 && encodeValue(100, LIVE_SCALES.precipitation) < 32767);
-  add('(3) Sentinel ist -32768 wie im Cube (MISSING); Schema 4 (AX §6j), Schema 1–3 bleiben lesbar', SENTINEL === -32768 && ARCHIVE_SCHEMA === 4 && [1, 2, 3, 4].every((n) => ARCHIVE_SCHEMAS_READABLE.includes(n)));
+  add('(3) Sentinel ist -32768 wie im Cube (MISSING); Schema 5 (PA5), Schema 1–4 bleiben lesbar', SENTINEL === -32768 && ARCHIVE_SCHEMA === 5 && [1, 2, 3, 4, 5].every((n) => ARCHIVE_SCHEMAS_READABLE.includes(n)));
   add('(3) PA4: ps (Stationsdruck) neben p (reduziert) in TRUTH_SCALES, gleiche Skala', TRUTH_SCALES.ps?.scale === TRUTH_SCALES.p.scale);
 }
 
@@ -257,6 +259,52 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   const regular = Date.UTC(2026, 9, 2, 23, 21), late = Date.UTC(2026, 9, 4, 0, 1);
   const needs = (slotAtMs) => { const fromMs = Math.floor((slotAtMs - 24 * 3_600_000) / 3_600_000) * 3_600_000; return fromMs < Math.floor(slotAtMs / 86_400_000) * 86_400_000 - 3_600_000; };
   add('(8) Regel nachgerechnet: 23:21-Slot (Fenster ab 23:00 Vortag) liest die Jahresdatei NICHT, der 00:01-Slot (ab 00:00 Vortag) schon', !needs(regular) && needs(late));
+}
+
+// (9) PA5 (05.10.2026, audit/punktarchiv-erweiterung.md): Eingabe-Punkte (E-PS-11) und 2×2-Block (E-PS-12), Schema 5.
+{
+  const pe = join(ROOT, 'scripts/punktarchiv/points-extra.json'), pb = join(ROOT, 'scripts/punktarchiv/points.json');
+  if (existsSync(pe) && existsSync(pb)) {
+    const ex = JSON.parse(readFileSync(pe, 'utf8')), base = JSON.parse(readFileSync(pb, 'utf8'));
+    const ids = ex.points.map((p) => p.id), baseIds = new Set(base.points.map((p) => p.id));
+    add('(9) points-extra.json: Art, Schema, Datum; Zählwerte je Netz summieren sich zur Punktzahl', ex.kind === EXTRA_KIND && ex.schema === 1 && !!ex.builtAt && Object.values(ex.counts.byNet).reduce((a, b) => a + b, 0) === ex.points.length && ex.counts.points === ex.points.length,
+      `${ex.points.length} Eingabe-Punkte (${Object.entries(ex.counts.byNet).map(([k, v]) => `${k} ${v}`).join(' · ')})`);
+    add('(9) Kennungen <Netz>:<Kennung>, eindeutig, keine stößt mit einer Katalogkennung zusammen', ids.every((id) => /^(tawes|smn|cdc|smnp):[0-9A-Za-z]+$/.test(id)) && new Set(ids).size === ids.length && ids.every((id) => !baseIds.has(id)));
+    add('(9) jeder Eingabe-Punkt: role input, in der Cube-Box, Höhe und DEM endlich, Wahrheit nur aus dem eigenen Netz und nie POI',
+      ex.points.every((p) => p.role === 'input' && inCubeBox(p.lat, p.lon) && Number.isFinite(p.elev) && Number.isFinite(p.demM) && p.truth.poi === false
+        && (p.net === 'tawes' ? p.truth.tawes && !p.truth.smn && !p.truth.cdc : p.net === 'smn' ? p.truth.smn && !p.truth.tawes && !p.truth.cdc : p.net === 'smnp' ? p.truth.smnPrecip && !p.truth.smn && !p.truth.tawes && !p.truth.cdc : p.net === 'cdc' && p.truth.cdc && !p.truth.tawes && !p.truth.smn)));
+    {
+      // E-PA5-4: precipitation-only stations sit BEHIND the others (so `--no-precip-only` and a growing list never move the 620)
+      const firstPo = ex.points.findIndex((p) => p.precipOnly), po = ex.points.filter((p) => p.precipOnly);
+      add('(9) Niederschlagsstationen: precipOnly genau dort, wo weder Temperatur noch Wind gemessen wird, alle hinter den übrigen; MeteoSwiss-Niederschlag (smnp) ist nie eine SwissMetNet-Station der Liste',
+        po.length === ex.counts.precipOnly && (firstPo < 0 || ex.points.slice(firstPo).every((p) => p.precipOnly === true))
+        && ex.points.every((p) => !!p.precipOnly === (p.net === 'smnp' || (p.net === 'cdc' && !p.vars.includes('tu') && !p.vars.includes('ff'))))
+        && !ex.points.some((p) => p.net === 'smnp' && ex.points.some((q) => q.net === 'smn' && q.truth.smn === p.truth.smnPrecip)),
+        `${po.length} von ${ex.points.length}`);
+    }
+    const haveT = new Set(base.points.map((p) => p.truth?.tawes).filter(Boolean)), haveS = new Set(base.points.map((p) => p.truth?.smn).filter(Boolean));
+    add('(9) kein Eingabe-Punkt doppelt eine Netzstation, die schon ein Katalogpunkt trägt; keine Position (3 Dezimalen) zweimal über beide Listen',
+      ex.points.every((p) => !(p.truth.tawes && haveT.has(p.truth.tawes)) && !(p.truth.smn && haveS.has(p.truth.smn)))
+      && new Set([...base.points, ...ex.points].map((p) => `${p.lat.toFixed(3)}/${p.lon.toFixed(3)}`)).size === base.points.length + ex.points.length);
+    add('(9) die Gleicher-Ort-Regel ist die gemessene Ko-Lokation aus points.mjs (keine eigene Zahl)', SAME_SITE.maxKm === COLOCATE.maxKm && SAME_SITE.maxDzM === COLOCATE.maxDzM && ex.sameSite.maxKm === COLOCATE.maxKm);
+  } else {
+    add('(9) points-extra.json noch nicht gebaut — übersprungen (kein Fehler: der Sammler läuft dann auf points.json allein)', true);
+  }
+  const src = readFileSync(join(ROOT, 'scripts/punktarchiv/collect.mjs'), 'utf8');
+  add('(9) Sammler: Eingabe-Punkte hinter den Katalogpunkten (points-extra.json, --no-extra/--extra-limit), im Slot mit role und net, Regel in pointsFrom.extra',
+    src.includes("const extra = flags['no-extra'] ? null : loadExtraList();") && src.includes('points = [...points, ...extraPoints];') && src.includes('...(p.role ? { role: p.role, net: p.net } : {})') && src.includes("extra: extra ? { file: 'scripts/punktarchiv/points-extra.json'"));
+  add('(9) Sammler: der Live-Pfad läuft nur an Katalogpunkten (kein getPointForecast für role input)', src.includes("const points = allPoints.filter((p) => p.role !== 'input');"));
+  add('(9) Sammler: Block nach der Regel des Motors (blockOffsets, GRID_NEAREST_ONLY aus fusion/grid.ts — keine Kopie), Nachbar-Chunk desselben Laufs, Fehler im Block kostet die Hauptzelle nicht, --no-block',
+    src.includes('blockOffsets(p.lat - ser.cell.lat, p.lon - ser.cell.lon)') && src.includes("import { GRID_NEAREST_ONLY } from '../../src/pointForecast/fusion/grid.ts';") && src.includes('encodeBlockCells(cells, manifest.planes, GRID_NEAREST_ONLY)')
+    && src.includes('blockCellsOutsideChunk(tier, p.lat, p.lon)') && src.includes('chunkPath(run, tier, g.cy, g.cx)') && src.includes('/block: ${e.message}`') && src.includes("{ block: !flags['no-block'] }"));
+  add('(9) Sammler: ein Eingabe-Punkt trägt die nächste Katalogstation als Verweis (ref.byPoint / ref.byStation), die Reihe steht einmal',
+    src.includes("if (p.role === 'input') {") && src.includes('ref: owner != null ? { byPoint: owner } : { byStation: cs.id }') && src.includes('slot[key].byStation[cs.id] = rec ? { planes: rec.planes, empty: rec.empty } : null;'));
+  add('(9) Sammler: jeder Chunk wird je Slot einmal dekodiert (Schlüssel = das Byte-Array des Memo-Stores), mit dem Dekoder des Lesers', src.includes('const decodedChunks = new WeakMap();') && src.includes('decodeCubeChunk(bytes, { planes: o.planes, wanted: o.wanted })') && src.includes('decodeChunk: decodeChunkOnce'));
+  add('(9) Sammler: ein nicht lesbarer Chunk (Hauptzelle oder Blockzelle) wird nach einer Pause EINMAL neu gefragt (Pfad im Memo-Store vergessen), erst dann ist er ein Fehler; nicht lesbare Stationsreihen stehen als Warnung im Slot',
+    src.includes('for (const path of againPaths) store.forget?.(path);') && src.includes('for (const pass of [1, 2]) {') && src.includes('if (b.missing.length && pass === 1)') && src.includes('forget(path) { bytes.delete(path); }')
+    && src.includes('warn(slot, `${key}Unreadable`'));
+  const asrc = readFileSync(join(ROOT, 'scripts/fusionfit/lib/archiveAdapter.mjs'), 'utf8');
+  add('(9) Leser-Adapter der Bewerter liest Schema 5 (sonst bricht jeder Lauf am ersten neuen Slot — die Falle V-AX-4)', asrc.includes('ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4, 5]);'));
 }
 
 console.log(`\n${passed}/${total} Prüfungen bestanden.`);

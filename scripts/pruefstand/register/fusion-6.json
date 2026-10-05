@@ -1,0 +1,72 @@
+{
+ "schema": 1,
+ "kind": "fusion",
+ "id": "fusion-6",
+ "name": "buscosun Fusion 6",
+ "order": 6,
+ "status": "historisch",
+ "commit": "a02f2b5ce92dc2c229e395f5e95f5c67f4493ad1",
+ "commitDate": "2026-09-30T17:33:04+02:00",
+ "adapter": "cube-1",
+ "options": {
+  "learned": true,
+  "learnedSpeed": true,
+  "learnedPrecip": true,
+  "learnedAtPoint": true,
+  "learnedClouds": true,
+  "priorShrink": false,
+  "stationValue": true,
+  "anomalyInterp": true
+ },
+ "clima": "product",
+ "climaHeldOut": "loso",
+ "tables": {
+  "learned": {
+   "file": "0714300fe2a5-learned.json",
+   "sha256": "0714300fe2a56d839b5d84f2d2c7286a925ee8c0c8c011b7cac6c6fc7c2d62d1",
+   "from": "C:/dev/buscosun-hindcast/publish/2026-09-30-ax12/fusion.client.json"
+  },
+  "stack": {
+   "file": "9d22ff35986f-stack.json",
+   "sha256": "9d22ff35986f609278cd483f52105e19dcb6683d2c05dcce90852707da02dc2b",
+   "from": "C:/dev/buscosun-hindcast/publish/2026-09-30-ax12/stack.client.json"
+  },
+  "clima": {
+   "file": "85d73cead2cb-clima.json",
+   "sha256": "85d73cead2cb9b0d83d1852701717d83c9b89008b611cba2bde8be9f46214ab7",
+   "from": "C:/dev/buscosun-data/point/static/clima/v1/stations.json"
+  },
+  "loso": {
+   "file": "a71e53c9de12-loso.json",
+   "sha256": "a71e53c9de1286f7cfc46dfe06c86c7b1460f0d6f332a9b346df1c86ea4458c1",
+   "from": "C:/dev/buscosun-hindcast/fit/2026-09-27-fx5e/fusion.hindcast.json"
+  }
+ },
+ "freeze": "2026-09-28",
+ "freezeNote": "Daten-Repo 1aaec969; die Entscheidung sah das Archiv bis 28.09.",
+ "fit": {
+  "learned": {
+   "source": "hindcast",
+   "from": "2025-09-01",
+   "to": "2026-09-21",
+   "what": "Lernstufe Fit 5e (40,8 Mio. Zeilen, 389 Punkte)"
+  },
+  "stack": {
+   "source": "archive",
+   "from": "2026-09-14",
+   "to": "2026-09-28",
+   "what": "Stationswert mit Landesparametern (14 Ausgabetage)"
+  }
+ },
+ "tresor": {
+  "contaminated": false,
+  "checkedAgainst": "2024-04-01 … 2025-08-31",
+  "note": "kein Fit am Hindcast hat Tage im Tresor gesehen"
+ },
+ "notes": [
+  "Alle 389 Archivstationen waren im Fit (D-PS-9); Rolle B ist im Replay maskiert, nicht „nie gesehen“.",
+  "Tabellen des Daten-Repo-Commits 1aaec969 (fusion.client.json, stack.client.json, static/clima/v1)",
+  "Klimatologie an Rolle B: Leave-Station-out-Schätzung aus der Fit-Tabelle 5e (das veröffentlichte Produkt enthält die Station selbst)"
+ ],
+ "modelHash": "27bdbe1ab0c427aea5e14dd996accb9ad5b063b3335c65ea374ac5a87714ba38"
+}

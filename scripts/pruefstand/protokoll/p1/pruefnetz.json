@@ -1,0 +1,10501 @@
+{
+ "schema": 1,
+ "kind": "pruefstand/pruefnetz",
+ "protocol": "P1",
+ "frozenAt": "2026-10-05",
+ "rule": {
+  "pool": "Archivpunkte DE/AT/CH/LI mit Merkmalszeile (LI zählt als CH); W1-Wahrheit: DE DWD CDC 10 min über das Stationslexikon, AT GeoSphere klima-v2-10min (Zuordnung des Hindcast mit Überlappungsbeweis), CH MeteoSwiss SwissMetNet",
+  "roleB": "je Schicht Land × Höhenstufe × Geländeklasse round(0.25·n), mindestens 1 ab n·0.25 ≥ 0,5; gezogen unter den Stationen mit W1-Wahrheit; LCG mit Seed 20261005",
+  "seed": 20261005,
+  "shareB": 0.25,
+  "provenance": {
+   "shareB": "Jan E-PS-2",
+   "seed": "set",
+   "terrainClass": "set (D-PS-9, nicht gefittet)",
+   "pairs": "≤ 15 km (Konzept §4), Δh ≥ 300 m (set, D-PS-9)"
+  },
+  "seenInFit": "Alle Stationen waren im Fit jeder Bestandsversion (D-PS-9); Rolle B heißt hier: im Replay ohne eigene Station und ohne eigene Messung."
+ },
+ "counts": {
+  "stations": {
+   "DE": 203,
+   "AT": 84,
+   "CH": 102
+  },
+  "withW1": {
+   "DE": 179,
+   "AT": 84,
+   "CH": 102
+  },
+  "roleB": {
+   "DE": 47,
+   "AT": 21,
+   "CH": 27
+  },
+  "pairs": 36,
+  "strata": 37,
+  "strataWithoutB": 7
+ },
+ "strata": [
+  {
+   "stratum": "AT|300-800|flat",
+   "n": 3,
+   "b": 1
+  },
+  {
+   "stratum": "AT|300-800|hill",
+   "n": 12,
+   "b": 3
+  },
+  {
+   "stratum": "AT|300-800|slope-ridge",
+   "n": 4,
+   "b": 1
+  },
+  {
+   "stratum": "AT|300-800|valley",
+   "n": 23,
+   "b": 6
+  },
+  {
+   "stratum": "AT|800-1500|hill",
+   "n": 1,
+   "b": 0
+  },
+  {
+   "stratum": "AT|800-1500|valley",
+   "n": 10,
+   "b": 3
+  },
+  {
+   "stratum": "AT|<300|flat",
+   "n": 7,
+   "b": 2
+  },
+  {
+   "stratum": "AT|<300|hill",
+   "n": 12,
+   "b": 3
+  },
+  {
+   "stratum": "AT|<300|valley",
+   "n": 1,
+   "b": 0
+  },
+  {
+   "stratum": "AT|>1500|hill",
+   "n": 1,
+   "b": 0
+  },
+  {
+   "stratum": "AT|>1500|slope-ridge",
+   "n": 1,
+   "b": 0
+  },
+  {
+   "stratum": "AT|>1500|summit",
+   "n": 5,
+   "b": 1
+  },
+  {
+   "stratum": "AT|>1500|valley",
+   "n": 4,
+   "b": 1
+  },
+  {
+   "stratum": "CH|300-800|flat",
+   "n": 1,
+   "b": 0
+  },
+  {
+   "stratum": "CH|300-800|hill",
+   "n": 31,
+   "b": 8
+  },
+  {
+   "stratum": "CH|300-800|slope-ridge",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "CH|300-800|valley",
+   "n": 24,
+   "b": 6
+  },
+  {
+   "stratum": "CH|800-1500|hill",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "CH|800-1500|slope-ridge",
+   "n": 1,
+   "b": 0
+  },
+  {
+   "stratum": "CH|800-1500|summit",
+   "n": 4,
+   "b": 1
+  },
+  {
+   "stratum": "CH|800-1500|valley",
+   "n": 12,
+   "b": 3
+  },
+  {
+   "stratum": "CH|<300|valley",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "CH|>1500|slope-ridge",
+   "n": 3,
+   "b": 1
+  },
+  {
+   "stratum": "CH|>1500|summit",
+   "n": 11,
+   "b": 3
+  },
+  {
+   "stratum": "CH|>1500|valley",
+   "n": 9,
+   "b": 2
+  },
+  {
+   "stratum": "DE|300-800|flat",
+   "n": 21,
+   "b": 5
+  },
+  {
+   "stratum": "DE|300-800|hill",
+   "n": 23,
+   "b": 6
+  },
+  {
+   "stratum": "DE|300-800|slope-ridge",
+   "n": 12,
+   "b": 3
+  },
+  {
+   "stratum": "DE|300-800|valley",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "DE|800-1500|hill",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "DE|800-1500|slope-ridge",
+   "n": 9,
+   "b": 2
+  },
+  {
+   "stratum": "DE|800-1500|summit",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "DE|800-1500|valley",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "DE|<300|flat",
+   "n": 79,
+   "b": 20
+  },
+  {
+   "stratum": "DE|<300|hill",
+   "n": 24,
+   "b": 6
+  },
+  {
+   "stratum": "DE|<300|slope-ridge",
+   "n": 2,
+   "b": 1
+  },
+  {
+   "stratum": "DE|>1500|summit",
+   "n": 1,
+   "b": 0
+  }
+ ],
+ "stations": [
+  {
+   "id": "06601",
+   "name": "Basel / Binningen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.541142,
+   "lon": 7.583525,
+   "elevM": 316,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BAS"
+   },
+   "anchor": {
+    "id": "06641",
+    "km": 22.359,
+    "dElevM": 27
+   }
+  },
+  {
+   "id": "06604",
+   "name": "Neuchâtel",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.000067,
+   "lon": 6.953297,
+   "elevM": 485,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "NEU"
+   },
+   "anchor": {
+    "id": "06605",
+    "km": 16.524,
+    "dElevM": 1109
+   }
+  },
+  {
+   "id": "06605",
+   "name": "Chasseral",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.131761,
+   "lon": 7.054367,
+   "elevM": 1594,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CHA"
+   },
+   "anchor": {
+    "id": "06710",
+    "km": 6.105,
+    "dElevM": -899
+   }
+  },
+  {
+   "id": "06606",
+   "name": "Cressier",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.047581,
+   "lon": 7.059147,
+   "elevM": 430,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CRM"
+   },
+   "anchor": {
+    "id": "06605",
+    "km": 9.367,
+    "dElevM": 1164
+   }
+  },
+  {
+   "id": "06609",
+   "name": "Le Moléson",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.546197,
+   "lon": 7.017753,
+   "elevM": 1974,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "MLS"
+   },
+   "anchor": {
+    "id": "06628",
+    "km": 29.359,
+    "dElevM": -932
+   }
+  },
+  {
+   "id": "06610",
+   "name": "Payerne",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.811581,
+   "lon": 6.942469,
+   "elevM": 490,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PAY"
+   },
+   "anchor": {
+    "id": "06604",
+    "km": 20.975,
+    "dElevM": -5
+   }
+  },
+  {
+   "id": "06612",
+   "name": "La Chaux-de-Fonds",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.082947,
+   "lon": 6.792314,
+   "elevM": 1017,
+   "band": "800-1500",
+   "cls": "hill",
+   "stratum": "CH|800-1500|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CDF"
+   },
+   "anchor": {
+    "id": "06604",
+    "km": 15.289,
+    "dElevM": -532
+   }
+  },
+  {
+   "id": "06616",
+   "name": "Fahy",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.423814,
+   "lon": 6.941194,
+   "elevM": 596,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "FAH"
+   },
+   "anchor": {
+    "id": "06710",
+    "km": 29.277,
+    "dElevM": 99
+   }
+  },
+  {
+   "id": "06619",
+   "name": "Bullet / La Frétaz",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.840622,
+   "lon": 6.576369,
+   "elevM": 1205,
+   "band": "800-1500",
+   "cls": "summit",
+   "stratum": "CH|800-1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "FRE"
+   },
+   "anchor": {
+    "id": "06604",
+    "km": 33.672,
+    "dElevM": -720
+   }
+  },
+  {
+   "id": "06620",
+   "name": "Schaffhausen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.689842,
+   "lon": 8.620142,
+   "elevM": 438,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SHA"
+   },
+   "anchor": {
+    "id": "06624",
+    "km": 11.233,
+    "dElevM": -19
+   }
+  },
+  {
+   "id": "06621",
+   "name": "Güttingen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.601733,
+   "lon": 9.279428,
+   "elevM": 440,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GUT"
+   },
+   "anchor": {
+    "id": "10929",
+    "km": 11.456,
+    "dElevM": 3
+   }
+  },
+  {
+   "id": "06623",
+   "name": "Salen-Reutenen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.651242,
+   "lon": 9.023911,
+   "elevM": 719,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "CH|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "HAI"
+   },
+   "anchor": {
+    "id": "10929",
+    "km": 12.118,
+    "dElevM": -276
+   }
+  },
+  {
+   "id": "06624",
+   "name": "Hallau",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.697278,
+   "lon": 8.470464,
+   "elevM": 419,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "HLL"
+   },
+   "anchor": {
+    "id": "06620",
+    "km": 11.233,
+    "dElevM": 19
+   }
+  },
+  {
+   "id": "06625",
+   "name": "Fribourg / Grangeneuve",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.7714,
+   "lon": 7.113736,
+   "elevM": 651,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GRA"
+   },
+   "anchor": {
+    "id": "06628",
+    "km": 11.914,
+    "dElevM": 391
+   }
+  },
+  {
+   "id": "06626",
+   "name": "Gösgen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.363147,
+   "lon": 7.973733,
+   "elevM": 380,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GOE"
+   },
+   "anchor": {
+    "id": "06633",
+    "km": 8.311,
+    "dElevM": 7
+   }
+  },
+  {
+   "id": "06628",
+   "name": "Plaffeien",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.747717,
+   "lon": 7.266264,
+   "elevM": 1042,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "CH|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PLF"
+   },
+   "anchor": {
+    "id": "06636",
+    "km": 25.098,
+    "dElevM": -562
+   }
+  },
+  {
+   "id": "06631",
+   "name": "Bern / Zollikofen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.990744,
+   "lon": 7.464061,
+   "elevM": 553,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BER"
+   },
+   "anchor": {
+    "id": "06636",
+    "km": 14.231,
+    "dElevM": -73
+   }
+  },
+  {
+   "id": "06632",
+   "name": "Grenchen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.179097,
+   "lon": 7.415144,
+   "elevM": 428,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GRE"
+   },
+   "anchor": {
+    "id": "06635",
+    "km": 15.878,
+    "dElevM": 57
+   }
+  },
+  {
+   "id": "06633",
+   "name": "Buchs / Aarau",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.384381,
+   "lon": 8.07955,
+   "elevM": 387,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BUS"
+   },
+   "anchor": {
+    "id": "06626",
+    "km": 8.311,
+    "dElevM": -7
+   }
+  },
+  {
+   "id": "06635",
+   "name": "Koppigen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.11885,
+   "lon": 7.605503,
+   "elevM": 485,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "KOP"
+   },
+   "anchor": {
+    "id": "06632",
+    "km": 15.878,
+    "dElevM": -57
+   }
+  },
+  {
+   "id": "06636",
+   "name": "Mühleberg",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.973278,
+   "lon": 7.278217,
+   "elevM": 480,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "MUB"
+   },
+   "anchor": {
+    "id": "06631",
+    "km": 14.231,
+    "dElevM": 73
+   }
+  },
+  {
+   "id": "06637",
+   "name": "Meiringen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.732222,
+   "lon": 8.169247,
+   "elevM": 589,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "MER"
+   },
+   "anchor": {
+    "id": "06657",
+    "km": 13.132,
+    "dElevM": -118
+   }
+  },
+  {
+   "id": "06638",
+   "name": "Langnau i.E.",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.939633,
+   "lon": 7.806425,
+   "elevM": 744,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "LAG"
+   },
+   "anchor": {
+    "id": "06639",
+    "km": 12.458,
+    "dElevM": 660
+   }
+  },
+  {
+   "id": "06639",
+   "name": "Napf",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.004667,
+   "lon": 7.940117,
+   "elevM": 1404,
+   "band": "800-1500",
+   "cls": "summit",
+   "stratum": "CH|800-1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "NAP"
+   },
+   "anchor": {
+    "id": "06651",
+    "km": 8.436,
+    "dElevM": -660
+   }
+  },
+  {
+   "id": "06641",
+   "name": "Möhlin",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.572197,
+   "lon": 7.877911,
+   "elevM": 343,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "MOE"
+   },
+   "anchor": {
+    "id": "06645",
+    "km": 15.304,
+    "dElevM": 268
+   }
+  },
+  {
+   "id": "06643",
+   "name": "Wynau",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.255025,
+   "lon": 7.787475,
+   "elevM": 422,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "WYN"
+   },
+   "anchor": {
+    "id": "06648",
+    "km": 18.438,
+    "dElevM": 100
+   }
+  },
+  {
+   "id": "06645",
+   "name": "Rünenberg",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.434572,
+   "lon": 7.879414,
+   "elevM": 611,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "RUE"
+   },
+   "anchor": {
+    "id": "06626",
+    "km": 10.652,
+    "dElevM": -231
+   }
+  },
+  {
+   "id": "06646",
+   "name": "Beznau",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.557256,
+   "lon": 8.233325,
+   "elevM": 326,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BEZ"
+   },
+   "anchor": {
+    "id": "06647",
+    "km": 2.36,
+    "dElevM": 8
+   }
+  },
+  {
+   "id": "06647",
+   "name": "Würenlingen / PSI",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.536475,
+   "lon": 8.226944,
+   "elevM": 334,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PSI"
+   },
+   "anchor": {
+    "id": "06646",
+    "km": 2.36,
+    "dElevM": -8
+   }
+  },
+  {
+   "id": "06648",
+   "name": "Egolzwil",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.179428,
+   "lon": 8.004758,
+   "elevM": 522,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "EGO"
+   },
+   "anchor": {
+    "id": "06643",
+    "km": 18.438,
+    "dElevM": -100
+   }
+  },
+  {
+   "id": "06650",
+   "name": "Luzern",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.036439,
+   "lon": 8.301022,
+   "elevM": 454,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "LUZ"
+   },
+   "anchor": {
+    "id": "06659",
+    "km": 7.393,
+    "dElevM": 1651
+   }
+  },
+  {
+   "id": "06651",
+   "name": "Schüpfheim",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.947042,
+   "lon": 8.012442,
+   "elevM": 744,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SPF"
+   },
+   "anchor": {
+    "id": "06639",
+    "km": 8.436,
+    "dElevM": 660
+   }
+  },
+  {
+   "id": "06655",
+   "name": "Engelberg",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.821639,
+   "lon": 8.410514,
+   "elevM": 1036,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ENG"
+   },
+   "anchor": {
+    "id": "06657",
+    "km": 17.04,
+    "dElevM": -565
+   }
+  },
+  {
+   "id": "06657",
+   "name": "Giswil",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.849447,
+   "lon": 8.190225,
+   "elevM": 471,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GIH"
+   },
+   "anchor": {
+    "id": "06637",
+    "km": 13.132,
+    "dElevM": 118
+   }
+  },
+  {
+   "id": "06659",
+   "name": "Pilatus",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.978869,
+   "lon": 8.252256,
+   "elevM": 2105,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PIL"
+   },
+   "anchor": {
+    "id": "06650",
+    "km": 7.393,
+    "dElevM": -1651
+   }
+  },
+  {
+   "id": "06660",
+   "name": "Zürich / Fluntern",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.381003,
+   "lon": 8.567194,
+   "elevM": 604,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "CH|300-800|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SMA"
+   },
+   "anchor": {
+    "id": "06664",
+    "km": 6.379,
+    "dElevM": -160
+   }
+  },
+  {
+   "id": "06664",
+   "name": "Zürich / Affoltern",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.427694,
+   "lon": 8.517953,
+   "elevM": 444,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "REH"
+   },
+   "anchor": {
+    "id": "06670",
+    "km": 5.93,
+    "dElevM": -18
+   }
+  },
+  {
+   "id": "06666",
+   "name": "Leibstadt",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.597361,
+   "lon": 8.1882,
+   "elevM": 341,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "LEI"
+   },
+   "anchor": {
+    "id": "06646",
+    "km": 5.599,
+    "dElevM": -15
+   }
+  },
+  {
+   "id": "06669",
+   "name": "Lägern",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.481933,
+   "lon": 8.397222,
+   "elevM": 845,
+   "band": "800-1500",
+   "cls": "summit",
+   "stratum": "CH|800-1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "LAE"
+   },
+   "anchor": {
+    "id": "06670",
+    "km": 10.429,
+    "dElevM": -419
+   }
+  },
+  {
+   "id": "06670",
+   "name": "Zürich / Kloten",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.479611,
+   "lon": 8.535961,
+   "elevM": 426,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "KLO"
+   },
+   "anchor": {
+    "id": "06664",
+    "km": 5.93,
+    "dElevM": 18
+   }
+  },
+  {
+   "id": "06672",
+   "name": "Altdorf",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.887069,
+   "lon": 8.621894,
+   "elevM": 438,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ALT"
+   },
+   "anchor": {
+    "id": "06655",
+    "km": 17.644,
+    "dElevM": 598
+   }
+  },
+  {
+   "id": "06673",
+   "name": "Wädenswil",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.220958,
+   "lon": 8.677706,
+   "elevM": 485,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "WAE"
+   },
+   "anchor": {
+    "id": "06675",
+    "km": 11.449,
+    "dElevM": 426
+   }
+  },
+  {
+   "id": "06674",
+   "name": "Cham",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.188278,
+   "lon": 8.464642,
+   "elevM": 443,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CHZ"
+   },
+   "anchor": {
+    "id": "06650",
+    "km": 20.937,
+    "dElevM": 11
+   }
+  },
+  {
+   "id": "06675",
+   "name": "Einsiedeln",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.133042,
+   "lon": 8.756556,
+   "elevM": 911,
+   "band": "800-1500",
+   "cls": "hill",
+   "stratum": "CH|800-1500|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "EIN"
+   },
+   "anchor": {
+    "id": "06683",
+    "km": 17.241,
+    "dElevM": -503
+   }
+  },
+  {
+   "id": "06676",
+   "name": "Oberägeri",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.133636,
+   "lon": 8.608206,
+   "elevM": 724,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "AEG"
+   },
+   "anchor": {
+    "id": "06675",
+    "km": 11.222,
+    "dElevM": 187
+   }
+  },
+  {
+   "id": "06678",
+   "name": "Bischofszell / Sitterdorf",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.508828,
+   "lon": 9.266797,
+   "elevM": 507,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BIZ"
+   },
+   "anchor": {
+    "id": "10929",
+    "km": 20.116,
+    "dElevM": -64
+   }
+  },
+  {
+   "id": "06679",
+   "name": "Aadorf / Tänikon",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.479892,
+   "lon": 8.904928,
+   "elevM": 539,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "TAE"
+   },
+   "anchor": {
+    "id": "06623",
+    "km": 21.041,
+    "dElevM": 180
+   }
+  },
+  {
+   "id": "06680",
+   "name": "Säntis",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.249447,
+   "lon": 9.343469,
+   "elevM": 2501,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SAE"
+   },
+   "anchor": {
+    "id": "06687",
+    "km": 16.519,
+    "dElevM": -2082
+   }
+  },
+  {
+   "id": "06681",
+   "name": "St. Gallen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.425475,
+   "lon": 9.398528,
+   "elevM": 776,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "STG"
+   },
+   "anchor": {
+    "id": "11105",
+    "km": 23.405,
+    "dElevM": -338
+   }
+  },
+  {
+   "id": "06682",
+   "name": "Elm",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.923742,
+   "lon": 9.175347,
+   "elevM": 958,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ELM"
+   },
+   "anchor": {
+    "id": "06688",
+    "km": 9.066,
+    "dElevM": 1510
+   }
+  },
+  {
+   "id": "06683",
+   "name": "Schmerikon",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.224933,
+   "lon": 8.9403,
+   "elevM": 408,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SCM"
+   },
+   "anchor": {
+    "id": "06693",
+    "km": 13.791,
+    "dElevM": 215
+   }
+  },
+  {
+   "id": "06685",
+   "name": "Glarus",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.034586,
+   "lon": 9.066961,
+   "elevM": 517,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GLA"
+   },
+   "anchor": {
+    "id": "06687",
+    "km": 15.396,
+    "dElevM": -98
+   }
+  },
+  {
+   "id": "06687",
+   "name": "Quinten",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.128739,
+   "lon": 9.21605,
+   "elevM": 419,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "QUI"
+   },
+   "anchor": {
+    "id": "06693",
+    "km": 18.02,
+    "dElevM": 204
+   }
+  },
+  {
+   "id": "06688",
+   "name": "Crap Masegn",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.842275,
+   "lon": 9.180042,
+   "elevM": 2468,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CMA"
+   },
+   "anchor": {
+    "id": "06786",
+    "km": 26.853,
+    "dElevM": -1912
+   }
+  },
+  {
+   "id": "06689",
+   "name": "Hörnli",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.370864,
+   "lon": 8.941644,
+   "elevM": 1133,
+   "band": "800-1500",
+   "cls": "summit",
+   "stratum": "CH|800-1500|summit",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "HOE"
+   },
+   "anchor": {
+    "id": "06679",
+    "km": 12.434,
+    "dElevM": -594
+   }
+  },
+  {
+   "id": "06690",
+   "name": "Altenrhein",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.483631,
+   "lon": 9.56685,
+   "elevM": 398,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ARH"
+   },
+   "anchor": {
+    "id": "11101",
+    "km": 13.579,
+    "dElevM": 26
+   }
+  },
+  {
+   "id": "06693",
+   "name": "Ebnat-Kappel",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.273389,
+   "lon": 9.108494,
+   "elevM": 623,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "EBK"
+   },
+   "anchor": {
+    "id": "06683",
+    "km": 13.791,
+    "dElevM": -215
+   }
+  },
+  {
+   "id": "06700",
+   "name": "Genève / Cointrin",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.247519,
+   "lon": 6.127742,
+   "elevM": 411,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "CH|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GVE"
+   },
+   "anchor": {
+    "id": "06705",
+    "km": 18.719,
+    "dElevM": 47
+   }
+  },
+  {
+   "id": "06702",
+   "name": "La Dôle",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.424794,
+   "lon": 6.099453,
+   "elevM": 1670,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "DOL"
+   },
+   "anchor": {
+    "id": "06705",
+    "km": 10.182,
+    "dElevM": -1212
+   }
+  },
+  {
+   "id": "06704",
+   "name": "Bière",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.524908,
+   "lon": 6.342386,
+   "elevM": 684,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BIE"
+   },
+   "anchor": {
+    "id": "06705",
+    "km": 16.334,
+    "dElevM": -226
+   }
+  },
+  {
+   "id": "06705",
+   "name": "Nyon / Changins",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.401053,
+   "lon": 6.227722,
+   "elevM": 458,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CGI"
+   },
+   "anchor": {
+    "id": "06702",
+    "km": 10.182,
+    "dElevM": 1212
+   }
+  },
+  {
+   "id": "06710",
+   "name": "Courtelary",
+   "land": "CH",
+   "country": "CH",
+   "lat": 47.180811,
+   "lon": 7.090656,
+   "elevM": 695,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "COY"
+   },
+   "anchor": {
+    "id": "06605",
+    "km": 6.105,
+    "dElevM": 899
+   }
+  },
+  {
+   "id": "06711",
+   "name": "Pully",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.512283,
+   "lon": 6.667517,
+   "elevM": 456,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PUY"
+   },
+   "anchor": {
+    "id": "06704",
+    "km": 24.917,
+    "dElevM": 228
+   }
+  },
+  {
+   "id": "06712",
+   "name": "Aigle",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.326647,
+   "lon": 6.924472,
+   "elevM": 381,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "AIG"
+   },
+   "anchor": {
+    "id": "06720",
+    "km": 33.417,
+    "dElevM": 101
+   }
+  },
+  {
+   "id": "06717",
+   "name": "Col du Grand St-Bernard",
+   "land": "CH",
+   "country": "CH",
+   "lat": 45.869092,
+   "lon": 7.170683,
+   "elevM": 2472,
+   "band": ">1500",
+   "cls": "slope-ridge",
+   "stratum": "CH|>1500|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GSB"
+   },
+   "anchor": {
+    "id": "06722",
+    "km": 37.583,
+    "dElevM": -647
+   }
+  },
+  {
+   "id": "06720",
+   "name": "Sion",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.21865,
+   "lon": 7.330203,
+   "elevM": 482,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SIO"
+   },
+   "anchor": {
+    "id": "06724",
+    "km": 13.427,
+    "dElevM": 941
+   }
+  },
+  {
+   "id": "06722",
+   "name": "Evolène / Villa",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.112211,
+   "lon": 7.508631,
+   "elevM": 1825,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "EVO"
+   },
+   "anchor": {
+    "id": "06720",
+    "km": 18.135,
+    "dElevM": -1343
+   }
+  },
+  {
+   "id": "06724",
+   "name": "Montana",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.298806,
+   "lon": 7.460814,
+   "elevM": 1423,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "MVE"
+   },
+   "anchor": {
+    "id": "06720",
+    "km": 13.427,
+    "dElevM": -941
+   }
+  },
+  {
+   "id": "06727",
+   "name": "Visp",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.3029,
+   "lon": 7.842958,
+   "elevM": 639,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "VIS"
+   },
+   "anchor": {
+    "id": "06730",
+    "km": 29.315,
+    "dElevM": 2932
+   }
+  },
+  {
+   "id": "06730",
+   "name": "Jungfraujoch",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.547556,
+   "lon": 7.985444,
+   "elevM": 3571,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "JUN"
+   },
+   "anchor": {
+    "id": "06734",
+    "km": 16.393,
+    "dElevM": -2993
+   }
+  },
+  {
+   "id": "06734",
+   "name": "Interlaken",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.672033,
+   "lon": 7.87045,
+   "elevM": 578,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "INT"
+   },
+   "anchor": {
+    "id": "06730",
+    "km": 16.393,
+    "dElevM": 2993
+   }
+  },
+  {
+   "id": "06735",
+   "name": "Adelboden",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.491703,
+   "lon": 7.560703,
+   "elevM": 1321,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ABO"
+   },
+   "anchor": {
+    "id": "06724",
+    "km": 22.776,
+    "dElevM": 102
+   }
+  },
+  {
+   "id": "06744",
+   "name": "Grimsel Hospiz",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.571689,
+   "lon": 8.333256,
+   "elevM": 1980,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GRH"
+   },
+   "anchor": {
+    "id": "06745",
+    "km": 7.671,
+    "dElevM": -634
+   }
+  },
+  {
+   "id": "06745",
+   "name": "Ulrichen",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.504881,
+   "lon": 8.308236,
+   "elevM": 1346,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ULR"
+   },
+   "anchor": {
+    "id": "06744",
+    "km": 7.671,
+    "dElevM": 634
+   }
+  },
+  {
+   "id": "06748",
+   "name": "Zermatt",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.029272,
+   "lon": 7.752433,
+   "elevM": 1638,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ZER"
+   },
+   "anchor": {
+    "id": "06722",
+    "km": 20.947,
+    "dElevM": 187
+   }
+  },
+  {
+   "id": "06750",
+   "name": "Gütsch, Andermatt",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.652475,
+   "lon": 8.615531,
+   "elevM": 2286,
+   "band": ">1500",
+   "cls": "slope-ridge",
+   "stratum": "CH|>1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "GUE"
+   },
+   "anchor": {
+    "id": "06753",
+    "km": 16.28,
+    "dElevM": -1296
+   }
+  },
+  {
+   "id": "06751",
+   "name": "Robièi",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.443067,
+   "lon": 8.513389,
+   "elevM": 1898,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ROE"
+   },
+   "anchor": {
+    "id": "06753",
+    "km": 15.572,
+    "dElevM": -908
+   }
+  },
+  {
+   "id": "06753",
+   "name": "Piotta",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.514811,
+   "lon": 8.688039,
+   "elevM": 990,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PIO"
+   },
+   "anchor": {
+    "id": "06750",
+    "km": 16.28,
+    "dElevM": 1296
+   }
+  },
+  {
+   "id": "06756",
+   "name": "Acquarossa / Comprovasco",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.459517,
+   "lon": 8.935486,
+   "elevM": 575,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "COM"
+   },
+   "anchor": {
+    "id": "06753",
+    "km": 19.917,
+    "dElevM": 415
+   }
+  },
+  {
+   "id": "06759",
+   "name": "Cimetta",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.200467,
+   "lon": 8.79165,
+   "elevM": 1661,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CIM"
+   },
+   "anchor": {
+    "id": "06762",
+    "km": 11.823,
+    "dElevM": -1458
+   }
+  },
+  {
+   "id": "06760",
+   "name": "Locarno / Monti",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.172256,
+   "lon": 8.787494,
+   "elevM": 367,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "OTL"
+   },
+   "anchor": {
+    "id": "06759",
+    "km": 3.153,
+    "dElevM": 1294
+   }
+  },
+  {
+   "id": "06762",
+   "name": "Magadino / Cadenazzo",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.160025,
+   "lon": 8.933672,
+   "elevM": 203,
+   "band": "<300",
+   "cls": "valley",
+   "stratum": "CH|<300|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "MAG"
+   },
+   "anchor": {
+    "id": "06759",
+    "km": 11.823,
+    "dElevM": 1458
+   }
+  },
+  {
+   "id": "06770",
+   "name": "Lugano",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.004217,
+   "lon": 8.960322,
+   "elevM": 273,
+   "band": "<300",
+   "cls": "valley",
+   "stratum": "CH|<300|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "LUG"
+   },
+   "anchor": {
+    "id": "06762",
+    "km": 17.447,
+    "dElevM": -70
+   }
+  },
+  {
+   "id": "06771",
+   "name": "Stabio",
+   "land": "CH",
+   "country": "CH",
+   "lat": 45.843444,
+   "lon": 8.932364,
+   "elevM": 351,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "CH|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SBO"
+   },
+   "anchor": {
+    "id": "06762",
+    "km": 35.202,
+    "dElevM": -148
+   }
+  },
+  {
+   "id": "06778",
+   "name": "Buffalora",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.648408,
+   "lon": 10.2672,
+   "elevM": 1971,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "BUF"
+   },
+   "anchor": {
+    "id": "06796",
+    "km": 13.19,
+    "dElevM": -585
+   }
+  },
+  {
+   "id": "06780",
+   "name": "Weissfluhjoch",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.833342,
+   "lon": 9.806397,
+   "elevM": 2691,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "WFJ"
+   },
+   "anchor": {
+    "id": "06784",
+    "km": 3.623,
+    "dElevM": -1097
+   }
+  },
+  {
+   "id": "06782",
+   "name": "Disentis",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.706569,
+   "lon": 8.853478,
+   "elevM": 1197,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "DIS"
+   },
+   "anchor": {
+    "id": "06750",
+    "km": 19.123,
+    "dElevM": 1089
+   }
+  },
+  {
+   "id": "06783",
+   "name": "S. Bernardino",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.463542,
+   "lon": 9.1847,
+   "elevM": 1639,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SBE"
+   },
+   "anchor": {
+    "id": "06756",
+    "km": 19.094,
+    "dElevM": -1064
+   }
+  },
+  {
+   "id": "06784",
+   "name": "Davos",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.812969,
+   "lon": 9.843558,
+   "elevM": 1594,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "DAV"
+   },
+   "anchor": {
+    "id": "06780",
+    "km": 3.623,
+    "dElevM": 1097
+   }
+  },
+  {
+   "id": "06786",
+   "name": "Chur",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.870572,
+   "lon": 9.530761,
+   "elevM": 556,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "CHU"
+   },
+   "anchor": {
+    "id": "06793",
+    "km": 12.972,
+    "dElevM": 1012
+   }
+  },
+  {
+   "id": "06787",
+   "name": "Andeer",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.610139,
+   "lon": 9.431981,
+   "elevM": 987,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "AND"
+   },
+   "anchor": {
+    "id": "06793",
+    "km": 18.624,
+    "dElevM": 581
+   }
+  },
+  {
+   "id": "06788",
+   "name": "Vicosoprano",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.353019,
+   "lon": 9.6278,
+   "elevM": 1089,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "VIO"
+   },
+   "anchor": {
+    "id": "06791",
+    "km": 16.51,
+    "dElevM": 2205
+   }
+  },
+  {
+   "id": "06790",
+   "name": "Schiers",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.975506,
+   "lon": 9.668075,
+   "elevM": 626,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SRS"
+   },
+   "anchor": {
+    "id": "06786",
+    "km": 15.649,
+    "dElevM": -70
+   }
+  },
+  {
+   "id": "06791",
+   "name": "Piz Corvatsch",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.418039,
+   "lon": 9.821308,
+   "elevM": 3294,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "COV"
+   },
+   "anchor": {
+    "id": "06792",
+    "km": 12.83,
+    "dElevM": -1585
+   }
+  },
+  {
+   "id": "06792",
+   "name": "Samedan",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.526247,
+   "lon": 9.879469,
+   "elevM": 1709,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SAM"
+   },
+   "anchor": {
+    "id": "06791",
+    "km": 12.83,
+    "dElevM": 1585
+   }
+  },
+  {
+   "id": "06793",
+   "name": "Valbella",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.755039,
+   "lon": 9.554433,
+   "elevM": 1568,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "CH|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "VAB"
+   },
+   "anchor": {
+    "id": "06786",
+    "km": 12.972,
+    "dElevM": -1012
+   }
+  },
+  {
+   "id": "06794",
+   "name": "Poschiavo / Robbia",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.347217,
+   "lon": 10.063031,
+   "elevM": 1078,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "ROB"
+   },
+   "anchor": {
+    "id": "06791",
+    "km": 20.145,
+    "dElevM": 2216
+   }
+  },
+  {
+   "id": "06795",
+   "name": "Piz Martegnas",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.577181,
+   "lon": 9.529544,
+   "elevM": 2668,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "CH|>1500|summit",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "PMA"
+   },
+   "anchor": {
+    "id": "06787",
+    "km": 8.307,
+    "dElevM": -1681
+   }
+  },
+  {
+   "id": "06796",
+   "name": "Sta. Maria, Val Müstair",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.602256,
+   "lon": 10.426314,
+   "elevM": 1386,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SMM"
+   },
+   "anchor": {
+    "id": "06778",
+    "km": 13.19,
+    "dElevM": 585
+   }
+  },
+  {
+   "id": "06798",
+   "name": "Scuol",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.793275,
+   "lon": 10.283267,
+   "elevM": 1304,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "CH|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "SCU"
+   },
+   "anchor": {
+    "id": "06799",
+    "km": 3.135,
+    "dElevM": 1076
+   }
+  },
+  {
+   "id": "06799",
+   "name": "Naluns / Schlivera",
+   "land": "CH",
+   "country": "CH",
+   "lat": 46.817164,
+   "lon": 10.2614,
+   "elevM": 2380,
+   "band": ">1500",
+   "cls": "slope-ridge",
+   "stratum": "CH|>1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "NAS"
+   },
+   "anchor": {
+    "id": "11312",
+    "km": 17.741,
+    "dElevM": -793
+   }
+  },
+  {
+   "id": "06990",
+   "name": "Vaduz",
+   "land": "CH",
+   "country": "LI",
+   "lat": 47.127472,
+   "lon": 9.517578,
+   "elevM": 457,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "CH|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "smn",
+    "id": "VAD"
+   },
+   "anchor": {
+    "id": "11105",
+    "km": 17.423,
+    "dElevM": -19
+   }
+  },
+  {
+   "id": "10015",
+   "name": "HELGOLAND",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.17,
+   "lon": 7.88,
+   "elevM": 4,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02115",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10124",
+    "km": 38.885,
+    "dElevM": 28
+   }
+  },
+  {
+   "id": "10020",
+   "name": "LIST/SYLT",
+   "land": "DE",
+   "country": "DE",
+   "lat": 55.02,
+   "lon": 8.42,
+   "elevM": 26,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03032",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10022",
+    "km": 41.787,
+    "dElevM": -19
+   }
+  },
+  {
+   "id": "10022",
+   "name": "LECK",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.8,
+   "lon": 8.95,
+   "elevM": 7,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02907",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10033",
+    "km": 35.397,
+    "dElevM": 20
+   }
+  },
+  {
+   "id": "10028",
+   "name": "ST. PETER ORDING",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.33,
+   "lon": 8.6,
+   "elevM": 5,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04393",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10130",
+    "km": 39.776,
+    "dElevM": -2
+   }
+  },
+  {
+   "id": "10033",
+   "name": "FLENSBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.83,
+   "lon": 9.5,
+   "elevM": 27,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10035",
+    "km": 33.513,
+    "dElevM": 20
+   }
+  },
+  {
+   "id": "10035",
+   "name": "SCHLESWIG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.53,
+   "lon": 9.55,
+   "elevM": 47,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04466",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10037",
+    "km": 6.947,
+    "dElevM": -25
+   }
+  },
+  {
+   "id": "10037",
+   "name": "SCHLESWIG-JAGEL",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.47,
+   "lon": 9.52,
+   "elevM": 22,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10035",
+    "km": 6.947,
+    "dElevM": 25
+   }
+  },
+  {
+   "id": "10038",
+   "name": "HOHN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.32,
+   "lon": 9.53,
+   "elevM": 10,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10037",
+    "km": 16.692,
+    "dElevM": 12
+   }
+  },
+  {
+   "id": "10042",
+   "name": "OLPENITZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.67,
+   "lon": 10.03,
+   "elevM": 4,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05930",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10046",
+    "km": 33.163,
+    "dElevM": 24
+   }
+  },
+  {
+   "id": "10046",
+   "name": "KIEL-H.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.38,
+   "lon": 10.15,
+   "elevM": 28,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02564",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10150",
+    "km": 26.719,
+    "dElevM": -2
+   }
+  },
+  {
+   "id": "10055",
+   "name": "WESTERMARKELSDORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.53,
+   "lon": 11.07,
+   "elevM": 3,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05516",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10152",
+    "km": 51.534,
+    "dElevM": -2
+   }
+  },
+  {
+   "id": "10091",
+   "name": "ARKONA",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.68,
+   "lon": 13.43,
+   "elevM": 42,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00183",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10093",
+    "km": 34.621,
+    "dElevM": -2
+   }
+  },
+  {
+   "id": "10093",
+   "name": "PUTBUS",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.37,
+   "lon": 13.48,
+   "elevM": 40,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04024",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10184",
+    "km": 30.275,
+    "dElevM": -38
+   }
+  },
+  {
+   "id": "10097",
+   "name": "GREIFSWALDER OIE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.23,
+   "lon": 13.92,
+   "elevM": 12,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01759",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10093",
+    "km": 32.518,
+    "dElevM": 28
+   }
+  },
+  {
+   "id": "10113",
+   "name": "NORDERNEY",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.72,
+   "lon": 7.15,
+   "elevM": 11,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03631",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10200",
+    "km": 38.174,
+    "dElevM": -11
+   }
+  },
+  {
+   "id": "10124",
+   "name": "LEUCHTTURM A. WESER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.85,
+   "lon": 8.12,
+   "elevM": 32,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00102",
+    "vars": [
+     "tu",
+     "ff",
+     "fx"
+    ]
+   },
+   "anchor": {
+    "id": "10136",
+    "km": 37.191,
+    "dElevM": -9
+   }
+  },
+  {
+   "id": "10126",
+   "name": "WITTMUNDHAVEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.55,
+   "lon": 7.67,
+   "elevM": 8,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10200",
+    "km": 34.723,
+    "dElevM": -8
+   }
+  },
+  {
+   "id": "10129",
+   "name": "BREMERHAVEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.53,
+   "lon": 8.58,
+   "elevM": 7,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00701",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10136",
+    "km": 27.338,
+    "dElevM": 16
+   }
+  },
+  {
+   "id": "10130",
+   "name": "ELPERSBUETTEL",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.07,
+   "lon": 9.02,
+   "elevM": 3,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01200",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10131",
+    "km": 29.658,
+    "dElevM": 2
+   }
+  },
+  {
+   "id": "10131",
+   "name": "CUXHAVEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.87,
+   "lon": 8.72,
+   "elevM": 5,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00891",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10136",
+    "km": 11.594,
+    "dElevM": 18
+   }
+  },
+  {
+   "id": "10136",
+   "name": "NORDHOLZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.77,
+   "lon": 8.67,
+   "elevM": 23,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10131",
+    "km": 11.594,
+    "dElevM": -18
+   }
+  },
+  {
+   "id": "10139",
+   "name": "BREMERVOERDE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.5,
+   "lon": 9.17,
+   "elevM": 3,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00704",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10129",
+    "km": 39.152,
+    "dElevM": 4
+   }
+  },
+  {
+   "id": "10142",
+   "name": "ITZEHOE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54,
+   "lon": 9.58,
+   "elevM": 25,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02429",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10038",
+    "km": 35.731,
+    "dElevM": -15
+   }
+  },
+  {
+   "id": "10146",
+   "name": "QUICKBORN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.73,
+   "lon": 9.88,
+   "elevM": 13,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04039",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10142",
+    "km": 35.893,
+    "dElevM": 12
+   }
+  },
+  {
+   "id": "10147",
+   "name": "HAMBURG-FU.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.63,
+   "lon": 10,
+   "elevM": 16,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01975",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10146",
+    "km": 13.642,
+    "dElevM": -3
+   }
+  },
+  {
+   "id": "10150",
+   "name": "DOERNICK",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.17,
+   "lon": 10.35,
+   "elevM": 26,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "06163",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10046",
+    "km": 26.719,
+    "dElevM": 2
+   }
+  },
+  {
+   "id": "10152",
+   "name": "PELZERHAKEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.08,
+   "lon": 10.88,
+   "elevM": 1,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03897",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10156",
+    "km": 31.218,
+    "dElevM": 13
+   }
+  },
+  {
+   "id": "10156",
+   "name": "LUEBECK",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.82,
+   "lon": 10.7,
+   "elevM": 14,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03086",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10152",
+    "km": 31.218,
+    "dElevM": -13
+   }
+  },
+  {
+   "id": "10161",
+   "name": "BOLTENHAGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54,
+   "lon": 11.18,
+   "elevM": 15,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00596",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10152",
+    "km": 21.514,
+    "dElevM": -14
+   }
+  },
+  {
+   "id": "10162",
+   "name": "SCHWERIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.63,
+   "lon": 11.38,
+   "elevM": 59,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04625",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10156",
+    "km": 49.475,
+    "dElevM": -45
+   }
+  },
+  {
+   "id": "10168",
+   "name": "GOLDBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.62,
+   "lon": 12.1,
+   "elevM": 58,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01694",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10264",
+    "km": 35.205,
+    "dElevM": 23
+   }
+  },
+  {
+   "id": "10170",
+   "name": "WARNEMUENDE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.18,
+   "lon": 12.08,
+   "elevM": 4,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04271",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10172",
+    "km": 31.722,
+    "dElevM": 38
+   }
+  },
+  {
+   "id": "10172",
+   "name": "LAAGE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.92,
+   "lon": 12.28,
+   "elevM": 42,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10268",
+    "km": 51.349,
+    "dElevM": 28
+   }
+  },
+  {
+   "id": "10180",
+   "name": "BARTH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.33,
+   "lon": 12.72,
+   "elevM": 7,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00298",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10093",
+    "km": 49.454,
+    "dElevM": 33
+   }
+  },
+  {
+   "id": "10184",
+   "name": "GREIFSWALD",
+   "land": "DE",
+   "country": "DE",
+   "lat": 54.1,
+   "lon": 13.42,
+   "elevM": 2,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01757",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10093",
+    "km": 30.275,
+    "dElevM": 38
+   }
+  },
+  {
+   "id": "10193",
+   "name": "UECKERMUENDE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.73,
+   "lon": 14.07,
+   "elevM": 1,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05142",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10289",
+    "km": 46.52,
+    "dElevM": 55
+   }
+  },
+  {
+   "id": "10200",
+   "name": "EMDEN-FLUGPLATZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.38,
+   "lon": 7.23,
+   "elevM": 0,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05839",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10126",
+    "km": 34.723,
+    "dElevM": 8
+   }
+  },
+  {
+   "id": "10210",
+   "name": "FRIESOYTHE-ALTENOYTH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.07,
+   "lon": 7.9,
+   "elevM": 6,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01503",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10126",
+    "km": 55.518,
+    "dElevM": 2
+   }
+  },
+  {
+   "id": "10224",
+   "name": "BREMEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.05,
+   "lon": 8.8,
+   "elevM": 3,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00691",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10129",
+    "km": 55.341,
+    "dElevM": 4
+   }
+  },
+  {
+   "id": "10235",
+   "name": "SOLTAU",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.97,
+   "lon": 9.78,
+   "elevM": 76,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04745",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10238",
+    "km": 19.479,
+    "dElevM": -6
+   }
+  },
+  {
+   "id": "10238",
+   "name": "BERGEN-HOHNE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.82,
+   "lon": 9.93,
+   "elevM": 70,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10246",
+    "km": 20.13,
+    "dElevM": 5
+   }
+  },
+  {
+   "id": "10246",
+   "name": "FASSBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.92,
+   "lon": 10.18,
+   "elevM": 75,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10238",
+    "km": 20.13,
+    "dElevM": -5
+   }
+  },
+  {
+   "id": "10249",
+   "name": "BOIZENBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.38,
+   "lon": 10.68,
+   "elevM": 45,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00591",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10156",
+    "km": 48.944,
+    "dElevM": -31
+   }
+  },
+  {
+   "id": "10253",
+   "name": "LUECHOW",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.97,
+   "lon": 11.13,
+   "elevM": 17,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03093",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10359",
+    "km": 52.792,
+    "dElevM": 30
+   }
+  },
+  {
+   "id": "10261",
+   "name": "SEEHAUSEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.88,
+   "lon": 11.73,
+   "elevM": 21,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04642",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10253",
+    "km": 41.447,
+    "dElevM": -4
+   }
+  },
+  {
+   "id": "10264",
+   "name": "MARNITZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.32,
+   "lon": 11.93,
+   "elevM": 81,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03196",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10162",
+    "km": 50.131,
+    "dElevM": -22
+   }
+  },
+  {
+   "id": "10267",
+   "name": "KYRITZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.93,
+   "lon": 12.42,
+   "elevM": 40,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02794",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10271",
+    "km": 28.901,
+    "dElevM": 10
+   }
+  },
+  {
+   "id": "10268",
+   "name": "WAREN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.52,
+   "lon": 12.67,
+   "elevM": 70,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05349",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10281",
+    "km": 42.55,
+    "dElevM": 1
+   }
+  },
+  {
+   "id": "10271",
+   "name": "NEURUPPIN-ALT RUPPIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.95,
+   "lon": 12.85,
+   "elevM": 50,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00096",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10267",
+    "km": 28.901,
+    "dElevM": -10
+   }
+  },
+  {
+   "id": "10281",
+   "name": "TROLLENHAGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.6,
+   "lon": 13.3,
+   "elevM": 71,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05109",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10282",
+    "km": 32.132,
+    "dElevM": 44
+   }
+  },
+  {
+   "id": "10282",
+   "name": "FELDBERG/MECKLENBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.32,
+   "lon": 13.42,
+   "elevM": 115,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07351",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10281",
+    "km": 32.132,
+    "dElevM": -44
+   }
+  },
+  {
+   "id": "10289",
+   "name": "GRUENOW",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.32,
+   "lon": 13.93,
+   "elevM": 56,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01869",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10291",
+    "km": 32.582,
+    "dElevM": 0
+   }
+  },
+  {
+   "id": "10291",
+   "name": "ANGERMUENDE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 53.03,
+   "lon": 14,
+   "elevM": 56,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00164",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10289",
+    "km": 32.582,
+    "dElevM": 0
+   }
+  },
+  {
+   "id": "10303",
+   "name": "LINGEN-BACCUM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.52,
+   "lon": 7.42,
+   "elevM": 40,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "15813",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10312",
+    "km": 55.51,
+    "dElevM": 63
+   }
+  },
+  {
+   "id": "10309",
+   "name": "AHAUS",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.08,
+   "lon": 6.93,
+   "elevM": 46,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07374",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10303",
+    "km": 59.194,
+    "dElevM": -6
+   }
+  },
+  {
+   "id": "10312",
+   "name": "BELM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.32,
+   "lon": 8.17,
+   "elevM": 103,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00342",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10321",
+    "km": 31.379,
+    "dElevM": -64
+   }
+  },
+  {
+   "id": "10315",
+   "name": "MUENSTER/OSNABR.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.13,
+   "lon": 7.7,
+   "elevM": 48,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01766",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10312",
+    "km": 38.356,
+    "dElevM": 55
+   }
+  },
+  {
+   "id": "10321",
+   "name": "DIEPHOLZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.58,
+   "lon": 8.35,
+   "elevM": 39,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00963",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10312",
+    "km": 31.379,
+    "dElevM": 64
+   }
+  },
+  {
+   "id": "10325",
+   "name": "BAD SALZUFLEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.1,
+   "lon": 8.75,
+   "elevM": 135,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04371",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10335",
+    "km": 30.11,
+    "dElevM": -65
+   }
+  },
+  {
+   "id": "10334",
+   "name": "WUNSTORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.45,
+   "lon": 9.43,
+   "elevM": 57,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10338",
+    "km": 17.084,
+    "dElevM": -1
+   }
+  },
+  {
+   "id": "10335",
+   "name": "BUECKEBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.28,
+   "lon": 9.08,
+   "elevM": 70,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10325",
+    "km": 30.11,
+    "dElevM": 65
+   }
+  },
+  {
+   "id": "10338",
+   "name": "HANNOVER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.47,
+   "lon": 9.68,
+   "elevM": 56,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02014",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10334",
+    "km": 17.084,
+    "dElevM": 1
+   }
+  },
+  {
+   "id": "10343",
+   "name": "CELLE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.6,
+   "lon": 10.02,
+   "elevM": 39,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00850",
+    "vars": [
+     "tu",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10238",
+    "km": 25.203,
+    "dElevM": 31
+   }
+  },
+  {
+   "id": "10348",
+   "name": "BRAUNSCHWG.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.28,
+   "lon": 10.45,
+   "elevM": 81,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00662",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10356",
+    "km": 51.205,
+    "dElevM": 81
+   }
+  },
+  {
+   "id": "10356",
+   "name": "UMMENDORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.17,
+   "lon": 11.18,
+   "elevM": 162,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05158",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10361",
+    "km": 27.855,
+    "dElevM": -83
+   }
+  },
+  {
+   "id": "10359",
+   "name": "GARDELEGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.52,
+   "lon": 11.38,
+   "elevM": 47,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01544",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10356",
+    "km": 41.221,
+    "dElevM": 115
+   }
+  },
+  {
+   "id": "10361",
+   "name": "MAGDEBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.12,
+   "lon": 11.58,
+   "elevM": 79,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03126",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10356",
+    "km": 27.855,
+    "dElevM": 83
+   }
+  },
+  {
+   "id": "10365",
+   "name": "GENTHIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.38,
+   "lon": 12.17,
+   "elevM": 35,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01605",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10361",
+    "km": 49.487,
+    "dElevM": 44
+   }
+  },
+  {
+   "id": "10368",
+   "name": "WIESENBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.12,
+   "lon": 12.47,
+   "elevM": 187,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05546",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10474",
+    "km": 28.847,
+    "dElevM": -82
+   }
+  },
+  {
+   "id": "10376",
+   "name": "BARUTH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.07,
+   "lon": 13.5,
+   "elevM": 55,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00303",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10476",
+    "km": 39.93,
+    "dElevM": 24
+   }
+  },
+  {
+   "id": "10379",
+   "name": "POTSDAM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.38,
+   "lon": 13.07,
+   "elevM": 99,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03987",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10381",
+    "km": 18.53,
+    "dElevM": -41
+   }
+  },
+  {
+   "id": "10381",
+   "name": "BERLIN-DAHLEM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.47,
+   "lon": 13.3,
+   "elevM": 58,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10379",
+    "km": 18.53,
+    "dElevM": 41
+   }
+  },
+  {
+   "id": "10384",
+   "name": "BERLIN-TEMPELHOF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.47,
+   "lon": 13.4,
+   "elevM": 50,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00433",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10381",
+    "km": 6.774,
+    "dElevM": 8
+   }
+  },
+  {
+   "id": "10385",
+   "name": "BERLIN-BRANDENBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.38,
+   "lon": 13.52,
+   "elevM": 47,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00427",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10381",
+    "km": 17.963,
+    "dElevM": 11
+   }
+  },
+  {
+   "id": "10393",
+   "name": "LINDENBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.22,
+   "lon": 14.12,
+   "elevM": 112,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03015",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10376",
+    "km": 45.476,
+    "dElevM": -57
+   }
+  },
+  {
+   "id": "10396",
+   "name": "MANSCHNOW",
+   "land": "DE",
+   "country": "DE",
+   "lat": 52.55,
+   "lon": 14.55,
+   "elevM": 12,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03158",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10393",
+    "km": 46.884,
+    "dElevM": 100
+   }
+  },
+  {
+   "id": "10400",
+   "name": "DUESSELDORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.3,
+   "lon": 6.77,
+   "elevM": 45,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01078",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10410",
+    "km": 17.792,
+    "dElevM": 116
+   }
+  },
+  {
+   "id": "10410",
+   "name": "ESSEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.4,
+   "lon": 6.97,
+   "elevM": 161,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01303",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10400",
+    "km": 17.792,
+    "dElevM": -116
+   }
+  },
+  {
+   "id": "10418",
+   "name": "LUEDENSCHEID",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.25,
+   "lon": 7.63,
+   "elevM": 387,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03098",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10424",
+    "km": 40.584,
+    "dElevM": -302
+   }
+  },
+  {
+   "id": "10424",
+   "name": "WERL",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.58,
+   "lon": 7.88,
+   "elevM": 85,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05480",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10418",
+    "km": 40.584,
+    "dElevM": 302
+   }
+  },
+  {
+   "id": "10427",
+   "name": "K.ASTEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.18,
+   "lon": 8.48,
+   "elevM": 839,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02483",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10439",
+    "km": 56.198,
+    "dElevM": -667
+   }
+  },
+  {
+   "id": "10430",
+   "name": "BAD LIPPSPRINGE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.78,
+   "lon": 8.83,
+   "elevM": 157,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03028",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10433",
+    "km": 31.852,
+    "dElevM": 101
+   }
+  },
+  {
+   "id": "10433",
+   "name": "LUEDGE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.87,
+   "lon": 9.27,
+   "elevM": 258,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "06197",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10430",
+    "km": 31.852,
+    "dElevM": -101
+   }
+  },
+  {
+   "id": "10435",
+   "name": "WARBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.5,
+   "lon": 9.12,
+   "elevM": 236,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05347",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10441",
+    "km": 29.989,
+    "dElevM": 81
+   }
+  },
+  {
+   "id": "10439",
+   "name": "FRITZLAR",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.12,
+   "lon": 9.28,
+   "elevM": 172,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10441",
+    "km": 18.864,
+    "dElevM": 145
+   }
+  },
+  {
+   "id": "10441",
+   "name": "SCHAUENBURG-ELGERSH.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.28,
+   "lon": 9.37,
+   "elevM": 317,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "15207",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10439",
+    "km": 18.864,
+    "dElevM": -145
+   }
+  },
+  {
+   "id": "10442",
+   "name": "ALFELD",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.97,
+   "lon": 9.8,
+   "elevM": 148,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07367",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10433",
+    "km": 38.011,
+    "dElevM": 110
+   }
+  },
+  {
+   "id": "10444",
+   "name": "GOETTINGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.5,
+   "lon": 9.95,
+   "elevM": 175,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01691",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10449",
+    "km": 28.909,
+    "dElevM": 181
+   }
+  },
+  {
+   "id": "10449",
+   "name": "LEINEFELDE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.38,
+   "lon": 10.32,
+   "elevM": 356,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02925",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10444",
+    "km": 28.909,
+    "dElevM": -181
+   }
+  },
+  {
+   "id": "10452",
+   "name": "BRAUNLAGE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.72,
+   "lon": 10.6,
+   "elevM": 607,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00656",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10453",
+    "km": 9.001,
+    "dElevM": 535
+   }
+  },
+  {
+   "id": "10453",
+   "name": "BROCKEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.8,
+   "lon": 10.62,
+   "elevM": 1142,
+   "band": "800-1500",
+   "cls": "summit",
+   "stratum": "DE|800-1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00722",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10452",
+    "km": 9.001,
+    "dElevM": -535
+   }
+  },
+  {
+   "id": "10454",
+   "name": "WERNIGERODE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.85,
+   "lon": 10.77,
+   "elevM": 234,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05490",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10453",
+    "km": 11.713,
+    "dElevM": 908
+   }
+  },
+  {
+   "id": "10458",
+   "name": "HARZGERODE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.65,
+   "lon": 11.13,
+   "elevM": 404,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02044",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10460",
+    "km": 32.82,
+    "dElevM": -240
+   }
+  },
+  {
+   "id": "10460",
+   "name": "ARTERN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.37,
+   "lon": 11.28,
+   "elevM": 164,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00198",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10554",
+    "km": 48.452,
+    "dElevM": 151
+   }
+  },
+  {
+   "id": "10469",
+   "name": "LEIPZIG/SCHKEUDITZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.42,
+   "lon": 12.23,
+   "elevM": 141,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02932",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10471",
+    "km": 17.251,
+    "dElevM": 0
+   }
+  },
+  {
+   "id": "10471",
+   "name": "LEIPZIG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.32,
+   "lon": 12.42,
+   "elevM": 141,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02928",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10565",
+    "km": 43.333,
+    "dElevM": 105
+   }
+  },
+  {
+   "id": "10474",
+   "name": "WITTENBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.88,
+   "lon": 12.63,
+   "elevM": 105,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05629",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10476",
+    "km": 39.729,
+    "dElevM": -26
+   }
+  },
+  {
+   "id": "10476",
+   "name": "HOLZDORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.77,
+   "lon": 13.18,
+   "elevM": 79,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10490",
+    "km": 30.002,
+    "dElevM": 18
+   }
+  },
+  {
+   "id": "10480",
+   "name": "OSCHATZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.3,
+   "lon": 13.08,
+   "elevM": 150,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03811",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10471",
+    "km": 45.929,
+    "dElevM": -9
+   }
+  },
+  {
+   "id": "10488",
+   "name": "DRESDEN/FLUGHAFEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.13,
+   "lon": 13.75,
+   "elevM": 230,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01048",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10582",
+    "km": 44.478,
+    "dElevM": 647
+   }
+  },
+  {
+   "id": "10490",
+   "name": "DOBERLUG-KIRCHHAIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.65,
+   "lon": 13.57,
+   "elevM": 97,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01001",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10476",
+    "km": 30.002,
+    "dElevM": -18
+   }
+  },
+  {
+   "id": "10495",
+   "name": "HOYERSWERDA",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.45,
+   "lon": 14.25,
+   "elevM": 116,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07393",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10496",
+    "km": 37.011,
+    "dElevM": -47
+   }
+  },
+  {
+   "id": "10496",
+   "name": "COTTBUS",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.78,
+   "lon": 14.32,
+   "elevM": 69,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00880",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10495",
+    "km": 37.011,
+    "dElevM": 47
+   }
+  },
+  {
+   "id": "10499",
+   "name": "GOERLITZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.17,
+   "lon": 14.95,
+   "elevM": 237,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01684",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10495",
+    "km": 57.765,
+    "dElevM": -121
+   }
+  },
+  {
+   "id": "10500",
+   "name": "GEILENKIRCHEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.97,
+   "lon": 6.05,
+   "elevM": 90,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10505",
+    "km": 18.955,
+    "dElevM": 141
+   }
+  },
+  {
+   "id": "10502",
+   "name": "NOERVENICH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.83,
+   "lon": 6.67,
+   "elevM": 118,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10513",
+    "km": 35.382,
+    "dElevM": -27
+   }
+  },
+  {
+   "id": "10505",
+   "name": "AACHEN-ORSBACH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.8,
+   "lon": 6.03,
+   "elevM": 231,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "15000",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10500",
+    "km": 18.955,
+    "dElevM": -141
+   }
+  },
+  {
+   "id": "10506",
+   "name": "NUERBURG-BARWEILER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.37,
+   "lon": 6.87,
+   "elevM": 485,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03660",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10613",
+    "km": 26.394,
+    "dElevM": -7
+   }
+  },
+  {
+   "id": "10513",
+   "name": "KOELN/BONN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.87,
+   "lon": 7.17,
+   "elevM": 91,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02667",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10519",
+    "km": 15.583,
+    "dElevM": 68
+   }
+  },
+  {
+   "id": "10519",
+   "name": "BONN-ROLEBER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.73,
+   "lon": 7.18,
+   "elevM": 159,
+   "band": "<300",
+   "cls": "slope-ridge",
+   "stratum": "DE|<300|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00603",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10513",
+    "km": 15.583,
+    "dElevM": -68
+   }
+  },
+  {
+   "id": "10520",
+   "name": "ANDERNACH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.43,
+   "lon": 7.43,
+   "elevM": 75,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00161",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10519",
+    "km": 37.741,
+    "dElevM": 84
+   }
+  },
+  {
+   "id": "10526",
+   "name": "B.MARIENBG.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.67,
+   "lon": 7.97,
+   "elevM": 547,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03167",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10520",
+    "km": 46.56,
+    "dElevM": -472
+   }
+  },
+  {
+   "id": "10532",
+   "name": "GIESSEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.6,
+   "lon": 8.63,
+   "elevM": 203,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01639",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10537",
+    "km": 32.147,
+    "dElevM": 147
+   }
+  },
+  {
+   "id": "10534",
+   "name": "HOHERODSKOPF (VOGELS",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.52,
+   "lon": 9.22,
+   "elevM": 743,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07396",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10537",
+    "km": 29.207,
+    "dElevM": -393
+   }
+  },
+  {
+   "id": "10537",
+   "name": "NEU-ULRICHSTEIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.75,
+   "lon": 9.02,
+   "elevM": 350,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07410",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10534",
+    "km": 29.207,
+    "dElevM": 393
+   }
+  },
+  {
+   "id": "10540",
+   "name": "EISENACH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51,
+   "lon": 10.37,
+   "elevM": 312,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07368",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10554",
+    "km": 42.054,
+    "dElevM": 3
+   }
+  },
+  {
+   "id": "10542",
+   "name": "BAD HERSFELD",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.85,
+   "lon": 9.73,
+   "elevM": 272,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02171",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10439",
+    "km": 43.515,
+    "dElevM": -100
+   }
+  },
+  {
+   "id": "10544",
+   "name": "WASSERKUPPE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.5,
+   "lon": 9.93,
+   "elevM": 921,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05371",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10658",
+    "km": 35.015,
+    "dElevM": -659
+   }
+  },
+  {
+   "id": "10548",
+   "name": "MEININGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.57,
+   "lon": 10.38,
+   "elevM": 450,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03231",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10552",
+    "km": 28.922,
+    "dElevM": 487
+   }
+  },
+  {
+   "id": "10552",
+   "name": "SCHMUECKE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.65,
+   "lon": 10.77,
+   "elevM": 937,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04501",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10554",
+    "km": 39.293,
+    "dElevM": -622
+   }
+  },
+  {
+   "id": "10554",
+   "name": "ERFURT",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.98,
+   "lon": 10.97,
+   "elevM": 315,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01270",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10552",
+    "km": 39.293,
+    "dElevM": 622
+   }
+  },
+  {
+   "id": "10557",
+   "name": "NEUHAUS A.R.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.5,
+   "lon": 11.13,
+   "elevM": 845,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03513",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10552",
+    "km": 30.405,
+    "dElevM": 92
+   }
+  },
+  {
+   "id": "10564",
+   "name": "SCHLEIZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.57,
+   "lon": 11.8,
+   "elevM": 501,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04464",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10685",
+    "km": 28.37,
+    "dElevM": 66
+   }
+  },
+  {
+   "id": "10565",
+   "name": "OSTERFELD",
+   "land": "DE",
+   "country": "DE",
+   "lat": 51.08,
+   "lon": 11.93,
+   "elevM": 246,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03821",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10567",
+    "km": 26.28,
+    "dElevM": 65
+   }
+  },
+  {
+   "id": "10567",
+   "name": "GERA",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.88,
+   "lon": 12.13,
+   "elevM": 311,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01612",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10565",
+    "km": 26.28,
+    "dElevM": -65
+   }
+  },
+  {
+   "id": "10569",
+   "name": "PLAUEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.48,
+   "lon": 12.13,
+   "elevM": 386,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03946",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10685",
+    "km": 25.11,
+    "dElevM": 181
+   }
+  },
+  {
+   "id": "10574",
+   "name": "CARLSFELD",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.43,
+   "lon": 12.62,
+   "elevM": 897,
+   "band": "800-1500",
+   "cls": "hill",
+   "stratum": "DE|800-1500|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00840",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10577",
+    "km": 42.731,
+    "dElevM": -479
+   }
+  },
+  {
+   "id": "10577",
+   "name": "CHEMNITZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.78,
+   "lon": 12.87,
+   "elevM": 418,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00853",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10579",
+    "km": 24.446,
+    "dElevM": 221
+   }
+  },
+  {
+   "id": "10578",
+   "name": "FICHTELBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.43,
+   "lon": 12.95,
+   "elevM": 1213,
+   "band": "800-1500",
+   "cls": "summit",
+   "stratum": "DE|800-1500|summit",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01358",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10574",
+    "km": 23.375,
+    "dElevM": -316
+   }
+  },
+  {
+   "id": "10579",
+   "name": "MARIENBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.65,
+   "lon": 13.15,
+   "elevM": 639,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03166",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10577",
+    "km": 24.446,
+    "dElevM": -221
+   }
+  },
+  {
+   "id": "10582",
+   "name": "ZINNWALD-G.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.73,
+   "lon": 13.75,
+   "elevM": 877,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05779",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10579",
+    "km": 43.192,
+    "dElevM": -238
+   }
+  },
+  {
+   "id": "10591",
+   "name": "LICHTENHAIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.93,
+   "lon": 14.22,
+   "elevM": 321,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02985",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10488",
+    "km": 39.685,
+    "dElevM": -91
+   }
+  },
+  {
+   "id": "10609",
+   "name": "TRIER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.75,
+   "lon": 6.67,
+   "elevM": 265,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05100",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10615",
+    "km": 27.386,
+    "dElevM": 216
+   }
+  },
+  {
+   "id": "10613",
+   "name": "BUECHEL",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.17,
+   "lon": 7.07,
+   "elevM": 478,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10506",
+    "km": 26.394,
+    "dElevM": 7
+   }
+  },
+  {
+   "id": "10615",
+   "name": "DEUSELBACH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.77,
+   "lon": 7.05,
+   "elevM": 481,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00953",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10618",
+    "km": 21.576,
+    "dElevM": -105
+   }
+  },
+  {
+   "id": "10616",
+   "name": "HAHN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.95,
+   "lon": 7.27,
+   "elevM": 502,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05871",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10615",
+    "km": 25.481,
+    "dElevM": -21
+   }
+  },
+  {
+   "id": "10618",
+   "name": "IDAR-OBERSTEIN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.7,
+   "lon": 7.33,
+   "elevM": 376,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10615",
+    "km": 21.576,
+    "dElevM": 105
+   }
+  },
+  {
+   "id": "10628",
+   "name": "GEISENHEIM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.98,
+   "lon": 7.95,
+   "elevM": 118,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01580",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10635",
+    "km": 44.542,
+    "dElevM": 687
+   }
+  },
+  {
+   "id": "10635",
+   "name": "KL.FELDBG./TS.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.22,
+   "lon": 8.45,
+   "elevM": 805,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02601",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10641",
+    "km": 28.199,
+    "dElevM": -686
+   }
+  },
+  {
+   "id": "10637",
+   "name": "FRANKFURT/M",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.05,
+   "lon": 8.6,
+   "elevM": 111,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01420",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10641",
+    "km": 13.274,
+    "dElevM": 8
+   }
+  },
+  {
+   "id": "10641",
+   "name": "OFFENBACH-WETTERPARK",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.08,
+   "lon": 8.78,
+   "elevM": 119,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07341",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10635",
+    "km": 28.199,
+    "dElevM": 686
+   }
+  },
+  {
+   "id": "10646",
+   "name": "NEUHUETTEN/SPESSART",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.02,
+   "lon": 9.42,
+   "elevM": 340,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07412",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10648",
+    "km": 40.481,
+    "dElevM": 113
+   }
+  },
+  {
+   "id": "10648",
+   "name": "MICHELSTADT-V.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.72,
+   "lon": 9.1,
+   "elevM": 453,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03287",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10646",
+    "km": 40.481,
+    "dElevM": -113
+   }
+  },
+  {
+   "id": "10655",
+   "name": "WUERZBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.77,
+   "lon": 9.97,
+   "elevM": 268,
+   "band": "<300",
+   "cls": "slope-ridge",
+   "stratum": "DE|<300|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05705",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10743",
+    "km": 41.142,
+    "dElevM": 200
+   }
+  },
+  {
+   "id": "10658",
+   "name": "KISSINGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.2,
+   "lon": 10.08,
+   "elevM": 262,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02597",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10646",
+    "km": 51.144,
+    "dElevM": 78
+   }
+  },
+  {
+   "id": "10671",
+   "name": "LAUTERTAL-OBERLAUTER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.28,
+   "lon": 10.98,
+   "elevM": 322,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00867",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10552",
+    "km": 43.745,
+    "dElevM": 615
+   }
+  },
+  {
+   "id": "10675",
+   "name": "BAMBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.88,
+   "lon": 10.92,
+   "elevM": 243,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00282",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10763",
+    "km": 43.277,
+    "dElevM": 75
+   }
+  },
+  {
+   "id": "10685",
+   "name": "HOF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.32,
+   "lon": 11.88,
+   "elevM": 567,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02261",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10564",
+    "km": 28.37,
+    "dElevM": -66
+   }
+  },
+  {
+   "id": "10686",
+   "name": "WUNSIEDEL-SCHOENBRUN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 50.03,
+   "lon": 11.97,
+   "elevM": 622,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07394",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10685",
+    "km": 32.877,
+    "dElevM": -55
+   }
+  },
+  {
+   "id": "10688",
+   "name": "WEIDEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.67,
+   "lon": 12.18,
+   "elevM": 438,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05397",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10771",
+    "km": 33.47,
+    "dElevM": -19
+   }
+  },
+  {
+   "id": "10704",
+   "name": "BERUS",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.27,
+   "lon": 6.68,
+   "elevM": 363,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00460",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10706",
+    "km": 35.537,
+    "dElevM": 33
+   }
+  },
+  {
+   "id": "10706",
+   "name": "THOLEY",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.48,
+   "lon": 7.05,
+   "elevM": 396,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05029",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10618",
+    "km": 31.714,
+    "dElevM": -20
+   }
+  },
+  {
+   "id": "10708",
+   "name": "SAARBRUECKEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.22,
+   "lon": 7.12,
+   "elevM": 322,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04336",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10706",
+    "km": 29.352,
+    "dElevM": 74
+   }
+  },
+  {
+   "id": "10724",
+   "name": "WEINBIET",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.38,
+   "lon": 8.12,
+   "elevM": 553,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05426",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10729",
+    "km": 34.765,
+    "dElevM": -457
+   }
+  },
+  {
+   "id": "10729",
+   "name": "MANNHEIM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.52,
+   "lon": 8.55,
+   "elevM": 96,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05906",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10724",
+    "km": 34.765,
+    "dElevM": 457
+   }
+  },
+  {
+   "id": "10731",
+   "name": "RHEINSTETTEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.97,
+   "lon": 8.32,
+   "elevM": 118,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04177",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10736",
+    "km": 40.147,
+    "dElevM": 126
+   }
+  },
+  {
+   "id": "10733",
+   "name": "WAIBSTADT",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.28,
+   "lon": 8.92,
+   "elevM": 237,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "13674",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10736",
+    "km": 34.662,
+    "dElevM": 7
+   }
+  },
+  {
+   "id": "10736",
+   "name": "MUEHLACKER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.97,
+   "lon": 8.87,
+   "elevM": 244,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03362",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10739",
+    "km": 28.709,
+    "dElevM": 70
+   }
+  },
+  {
+   "id": "10738",
+   "name": "STUTTGART-ECHT.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.68,
+   "lon": 9.22,
+   "elevM": 396,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04931",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10739",
+    "km": 16.744,
+    "dElevM": -82
+   }
+  },
+  {
+   "id": "10739",
+   "name": "STUTTGART-SCHN.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.83,
+   "lon": 9.2,
+   "elevM": 314,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04928",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10738",
+    "km": 16.744,
+    "dElevM": 82
+   }
+  },
+  {
+   "id": "10742",
+   "name": "OEHRINGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.22,
+   "lon": 9.52,
+   "elevM": 276,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "DE|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03761",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10747",
+    "km": 35.336,
+    "dElevM": 213
+   }
+  },
+  {
+   "id": "10743",
+   "name": "NIEDERSTETTEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.4,
+   "lon": 9.97,
+   "elevM": 468,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10742",
+    "km": 38.273,
+    "dElevM": -192
+   }
+  },
+  {
+   "id": "10747",
+   "name": "KAISERSBACH-CRONHUET",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.92,
+   "lon": 9.68,
+   "elevM": 489,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02485",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10742",
+    "km": 35.336,
+    "dElevM": -213
+   }
+  },
+  {
+   "id": "10756",
+   "name": "FEUCHTWANGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.17,
+   "lon": 10.37,
+   "elevM": 475,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07369",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10743",
+    "km": 38.676,
+    "dElevM": -7
+   }
+  },
+  {
+   "id": "10761",
+   "name": "WEISSENBURG-EMETZH.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.02,
+   "lon": 10.93,
+   "elevM": 439,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05440",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10765",
+    "km": 25.449,
+    "dElevM": -51
+   }
+  },
+  {
+   "id": "10763",
+   "name": "NUERNBERG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.5,
+   "lon": 11.05,
+   "elevM": 318,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03668",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10765",
+    "km": 31.344,
+    "dElevM": 70
+   }
+  },
+  {
+   "id": "10765",
+   "name": "ROTH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.22,
+   "lon": 11.1,
+   "elevM": 388,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04280",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10761",
+    "km": 25.449,
+    "dElevM": 51
+   }
+  },
+  {
+   "id": "10771",
+   "name": "KUEMMERSBRUCK",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.43,
+   "lon": 11.9,
+   "elevM": 419,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10688",
+    "km": 33.47,
+    "dElevM": 19
+   }
+  },
+  {
+   "id": "10776",
+   "name": "REGENSBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.03,
+   "lon": 12.1,
+   "elevM": 365,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04104",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10788",
+    "km": 40.908,
+    "dElevM": -15
+   }
+  },
+  {
+   "id": "10777",
+   "name": "GELBELSEE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.95,
+   "lon": 11.43,
+   "elevM": 539,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01587",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10860",
+    "km": 26.602,
+    "dElevM": -172
+   }
+  },
+  {
+   "id": "10782",
+   "name": "WALDMUENCHEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.38,
+   "lon": 12.68,
+   "elevM": 499,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07370",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10791",
+    "km": 43.62,
+    "dElevM": 947
+   }
+  },
+  {
+   "id": "10788",
+   "name": "STRAUBING",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.83,
+   "lon": 12.57,
+   "elevM": 350,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04911",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10872",
+    "km": 18.031,
+    "dElevM": 0
+   }
+  },
+  {
+   "id": "10791",
+   "name": "GR.ARBER",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.12,
+   "lon": 13.13,
+   "elevM": 1446,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01832",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10796",
+    "km": 12.378,
+    "dElevM": -834
+   }
+  },
+  {
+   "id": "10796",
+   "name": "ZWIESEL",
+   "land": "DE",
+   "country": "DE",
+   "lat": 49.03,
+   "lon": 13.23,
+   "elevM": 612,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "DE|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05800",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10791",
+    "km": 12.378,
+    "dElevM": 834
+   }
+  },
+  {
+   "id": "10803",
+   "name": "FREIBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.02,
+   "lon": 7.83,
+   "elevM": 236,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01443",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10908",
+    "km": 20.066,
+    "dElevM": 1250
+   }
+  },
+  {
+   "id": "10805",
+   "name": "LAHR",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.37,
+   "lon": 7.83,
+   "elevM": 156,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "DE|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02812",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10803",
+    "km": 38.918,
+    "dElevM": 80
+   }
+  },
+  {
+   "id": "10815",
+   "name": "FREUDENST.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.45,
+   "lon": 8.42,
+   "elevM": 797,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01468",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10805",
+    "km": 44.448,
+    "dElevM": -641
+   }
+  },
+  {
+   "id": "10818",
+   "name": "KLIPPENECK",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.12,
+   "lon": 8.75,
+   "elevM": 973,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "DE|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02638",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10815",
+    "km": 44.076,
+    "dElevM": -176
+   }
+  },
+  {
+   "id": "10827",
+   "name": "MESSSTETTEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.18,
+   "lon": 9,
+   "elevM": 920,
+   "band": "800-1500",
+   "cls": "hill",
+   "stratum": "DE|800-1500|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03268",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10815",
+    "km": 52.354,
+    "dElevM": -123
+   }
+  },
+  {
+   "id": "10836",
+   "name": "STOETTEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.67,
+   "lon": 9.87,
+   "elevM": 734,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "04887",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10747",
+    "km": 31.088,
+    "dElevM": -245
+   }
+  },
+  {
+   "id": "10837",
+   "name": "LAUPHEIM",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.22,
+   "lon": 9.92,
+   "elevM": 538,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10945",
+    "km": 47.413,
+    "dElevM": 134
+   }
+  },
+  {
+   "id": "10840",
+   "name": "ULM-MAEHRINGEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.45,
+   "lon": 9.92,
+   "elevM": 593,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "15444",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10837",
+    "km": 25.575,
+    "dElevM": -55
+   }
+  },
+  {
+   "id": "10850",
+   "name": "HARBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.78,
+   "lon": 10.72,
+   "elevM": 502,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02023",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10761",
+    "km": 30.787,
+    "dElevM": -63
+   }
+  },
+  {
+   "id": "10852",
+   "name": "AUGSBURG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.43,
+   "lon": 10.93,
+   "elevM": 463,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00232",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10856",
+    "km": 28.422,
+    "dElevM": 92
+   }
+  },
+  {
+   "id": "10853",
+   "name": "NEUBURG/DONAU",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.72,
+   "lon": 11.22,
+   "elevM": 380,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10860",
+    "km": 22.742,
+    "dElevM": -13
+   }
+  },
+  {
+   "id": "10856",
+   "name": "LECHFELD",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.18,
+   "lon": 10.85,
+   "elevM": 555,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10852",
+    "km": 28.422,
+    "dElevM": -92
+   }
+  },
+  {
+   "id": "10860",
+   "name": "INGOLSTADT",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.72,
+   "lon": 11.53,
+   "elevM": 367,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10853",
+    "km": 22.742,
+    "dElevM": 13
+   }
+  },
+  {
+   "id": "10863",
+   "name": "WEIHENSTEPHAN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.4,
+   "lon": 11.7,
+   "elevM": 470,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05404",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10865",
+    "km": 28.501,
+    "dElevM": 45
+   }
+  },
+  {
+   "id": "10865",
+   "name": "MUENCHEN STADT",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.17,
+   "lon": 11.53,
+   "elevM": 515,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03379",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10863",
+    "km": 28.501,
+    "dElevM": -45
+   }
+  },
+  {
+   "id": "10870",
+   "name": "MUENCHEN-FL.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.37,
+   "lon": 11.8,
+   "elevM": 453,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01262",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10863",
+    "km": 8.103,
+    "dElevM": 17
+   }
+  },
+  {
+   "id": "10872",
+   "name": "GOTTFRIEDING",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.67,
+   "lon": 12.53,
+   "elevM": 350,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07395",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10788",
+    "km": 18.031,
+    "dElevM": 0
+   }
+  },
+  {
+   "id": "10875",
+   "name": "MUEHLDORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.28,
+   "lon": 12.5,
+   "elevM": 406,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03366",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10872",
+    "km": 43.422,
+    "dElevM": -56
+   }
+  },
+  {
+   "id": "10895",
+   "name": "FUERSTENZELL",
+   "land": "DE",
+   "country": "DE",
+   "lat": 48.55,
+   "lon": 13.35,
+   "elevM": 476,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "DE|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05856",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "11055",
+    "km": 11.393,
+    "dElevM": -169
+   }
+  },
+  {
+   "id": "10908",
+   "name": "FELDBERG/S.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.88,
+   "lon": 8,
+   "elevM": 1486,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01346",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10803",
+    "km": 20.066,
+    "dElevM": -1250
+   }
+  },
+  {
+   "id": "10929",
+   "name": "KONSTANZ",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.68,
+   "lon": 9.18,
+   "elevM": 443,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02712",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "06623",
+    "km": 12.118,
+    "dElevM": 276
+   }
+  },
+  {
+   "id": "10945",
+   "name": "LEUTKIRCH-HERLAZHFN.",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.8,
+   "lon": 10.03,
+   "elevM": 672,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "07403",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10946",
+    "km": 24.125,
+    "dElevM": 33
+   }
+  },
+  {
+   "id": "10946",
+   "name": "KEMPTEN",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.72,
+   "lon": 10.33,
+   "elevM": 705,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "DE|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02559",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10945",
+    "km": 24.125,
+    "dElevM": -33
+   }
+  },
+  {
+   "id": "10948",
+   "name": "OBERSTDORF",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.4,
+   "lon": 10.28,
+   "elevM": 810,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "DE|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "03730",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "11110",
+    "km": 30.287,
+    "dElevM": 1269
+   }
+  },
+  {
+   "id": "10954",
+   "name": "ALTENSTADT",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.83,
+   "lon": 10.87,
+   "elevM": 739,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": null,
+   "w1Why": "keine 10-min-Daten in CDC (Flugplatz-Station)",
+   "anchor": {
+    "id": "10962",
+    "km": 11.687,
+    "dElevM": 238
+   }
+  },
+  {
+   "id": "10961",
+   "name": "ZUGSPITZE",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.42,
+   "lon": 10.98,
+   "elevM": 2960,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "DE|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "05792",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "11314",
+    "km": 21.556,
+    "dElevM": -2118
+   }
+  },
+  {
+   "id": "10962",
+   "name": "HOHENPEISS.BG",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.8,
+   "lon": 11.02,
+   "elevM": 977,
+   "band": "800-1500",
+   "cls": "slope-ridge",
+   "stratum": "DE|800-1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "02290",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10954",
+    "km": 11.687,
+    "dElevM": -238
+   }
+  },
+  {
+   "id": "10963",
+   "name": "GARMISCH",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.48,
+   "lon": 11.07,
+   "elevM": 719,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "DE|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "01550",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "10961",
+    "km": 9.503,
+    "dElevM": 2241
+   }
+  },
+  {
+   "id": "10982",
+   "name": "CHIEMING",
+   "land": "DE",
+   "country": "DE",
+   "lat": 47.88,
+   "lon": 12.53,
+   "elevM": 549,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "DE|300-800|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "cdc",
+    "id": "00856",
+    "vars": [
+     "tu",
+     "ff",
+     "fx",
+     "rr"
+    ]
+   },
+   "anchor": {
+    "id": "11140",
+    "km": 35.112,
+    "dElevM": 73
+   }
+  },
+  {
+   "id": "11001",
+   "name": "WOLFSEGG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.105555555555554,
+   "lon": 13.670833333333333,
+   "elevM": 635,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "AT|300-800|slope-ridge",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "4815",
+    "tawes": "11001"
+   },
+   "anchor": {
+    "id": "11053",
+    "km": 19.109,
+    "dElevM": -208
+   }
+  },
+  {
+   "id": "11008",
+   "name": "ROHRBACH",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.56722222222223,
+   "lon": 14.004444444444445,
+   "elevM": 613,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "1416",
+    "tawes": "11008"
+   },
+   "anchor": {
+    "id": "11060",
+    "km": 36.566,
+    "dElevM": -351
+   }
+  },
+  {
+   "id": "11010",
+   "name": "LINZ/HOERSCHING-FLUGHAFEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.23527777777778,
+   "lon": 14.188055555555556,
+   "elevM": 298,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5000",
+    "tawes": "11010"
+   },
+   "anchor": {
+    "id": "11060",
+    "km": 9.913,
+    "dElevM": -36
+   }
+  },
+  {
+   "id": "11012",
+   "name": "KREMSMUENSTER",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.055,
+   "lon": 14.131111111111112,
+   "elevM": 382,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "AT|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5012",
+    "tawes": "11012"
+   },
+   "anchor": {
+    "id": "11010",
+    "km": 20.486,
+    "dElevM": -84
+   }
+  },
+  {
+   "id": "11015",
+   "name": "FREISTADT",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.49472222222222,
+   "lon": 14.506388888888889,
+   "elevM": 539,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "1602",
+    "tawes": "11068"
+   },
+   "anchor": {
+    "id": "11060",
+    "km": 27.426,
+    "dElevM": -277
+   }
+  },
+  {
+   "id": "11018",
+   "name": "AMSTETTEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.10888888888889,
+   "lon": 14.895,
+   "elevM": 266,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5316",
+    "tawes": "11018"
+   },
+   "anchor": {
+    "id": "11170",
+    "km": 31.07,
+    "dElevM": 346
+   }
+  },
+  {
+   "id": "11019",
+   "name": "ALLENTSTEIG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.69083333333333,
+   "lon": 15.366944444444444,
+   "elevM": 599,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "1906",
+    "tawes": "11019"
+   },
+   "anchor": {
+    "id": "11020",
+    "km": 14.489,
+    "dElevM": -97
+   }
+  },
+  {
+   "id": "11020",
+   "name": "STIFT ZWETTL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.617777777777775,
+   "lon": 15.20361111111111,
+   "elevM": 502,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "1920",
+    "tawes": "11020"
+   },
+   "anchor": {
+    "id": "11075",
+    "km": 39.766,
+    "dElevM": -295
+   }
+  },
+  {
+   "id": "11021",
+   "name": "LITSCHAU",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.95472222222222,
+   "lon": 15.038333333333334,
+   "elevM": 558,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "AT|300-800|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "500",
+    "tawes": "11021"
+   },
+   "anchor": {
+    "id": "11020",
+    "km": 39.375,
+    "dElevM": -56
+   }
+  },
+  {
+   "id": "11022",
+   "name": "RETZ",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.76111111111111,
+   "lon": 15.941666666666666,
+   "elevM": 320,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "905",
+    "tawes": "11022"
+   },
+   "anchor": {
+    "id": "11075",
+    "km": 36.78,
+    "dElevM": -113
+   }
+  },
+  {
+   "id": "11028",
+   "name": "ST.POELTEN LANDHAUS",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.19972222222222,
+   "lon": 15.631111111111112,
+   "elevM": 274,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5609",
+    "tawes": "11389"
+   },
+   "anchor": {
+    "id": "11078",
+    "km": 19.361,
+    "dElevM": 422
+   }
+  },
+  {
+   "id": "11030",
+   "name": "TULLN/LANGENLEBARN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.323888888888895,
+   "lon": 16.118055555555557,
+   "elevM": 175,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "4081",
+    "tawes": "11030"
+   },
+   "anchor": {
+    "id": "11035",
+    "km": 19.52,
+    "dElevM": 23
+   }
+  },
+  {
+   "id": "11032",
+   "name": "POYSDORF",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.66916666666666,
+   "lon": 16.6375,
+   "elevM": 198,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "2503",
+    "tawes": "11032"
+   },
+   "anchor": {
+    "id": "11035",
+    "km": 51.152,
+    "dElevM": 0
+   }
+  },
+  {
+   "id": "11034",
+   "name": "WIEN-INNERE STADT",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.19833333333333,
+   "lon": 16.366944444444446,
+   "elevM": 177,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5925",
+    "tawes": "11034"
+   },
+   "anchor": {
+    "id": "11035",
+    "km": 5.645,
+    "dElevM": 21
+   }
+  },
+  {
+   "id": "11035",
+   "name": "WIEN/HOHE WARTE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.24861111111111,
+   "lon": 16.35638888888889,
+   "elevM": 198,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5904",
+    "tawes": "11035"
+   },
+   "anchor": {
+    "id": "11034",
+    "km": 5.645,
+    "dElevM": -21
+   }
+  },
+  {
+   "id": "11036",
+   "name": "WIEN/SCHWECHAT-FLUGHAFEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.1175,
+   "lon": 16.58138888888889,
+   "elevM": 183,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5990",
+    "tawes": "11036"
+   },
+   "anchor": {
+    "id": "11040",
+    "km": 12.05,
+    "dElevM": 17
+   }
+  },
+  {
+   "id": "11040",
+   "name": "WIEN/UNTERLAA",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.125,
+   "lon": 16.419444444444444,
+   "elevM": 200,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5917",
+    "tawes": "11040"
+   },
+   "anchor": {
+    "id": "11034",
+    "km": 9.036,
+    "dElevM": -23
+   }
+  },
+  {
+   "id": "11053",
+   "name": "RIED IM INNKREIS",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.217222222222226,
+   "lon": 13.475,
+   "elevM": 427,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "AT|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "4705",
+    "tawes": "11053"
+   },
+   "anchor": {
+    "id": "11055",
+    "km": 27.622,
+    "dElevM": -120
+   }
+  },
+  {
+   "id": "11055",
+   "name": "SCHAERDING",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.46416666666667,
+   "lon": 13.434444444444445,
+   "elevM": 307,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "2910",
+    "tawes": "11055"
+   },
+   "anchor": {
+    "id": "10895",
+    "km": 11.393,
+    "dElevM": 169
+   }
+  },
+  {
+   "id": "11060",
+   "name": "LINZ-STADT",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.296388888888885,
+   "lon": 14.285555555555556,
+   "elevM": 262,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "3202",
+    "tawes": "11060"
+   },
+   "anchor": {
+    "id": "11010",
+    "km": 9.913,
+    "dElevM": 36
+   }
+  },
+  {
+   "id": "11070",
+   "name": "KREMS",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.41861111111111,
+   "lon": 15.622222222222224,
+   "elevM": 202,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "3805",
+    "tawes": "11070"
+   },
+   "anchor": {
+    "id": "11075",
+    "km": 8.155,
+    "dElevM": 5
+   }
+  },
+  {
+   "id": "11075",
+   "name": "LANGENLOIS",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.472500000000004,
+   "lon": 15.697222222222223,
+   "elevM": 207,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "3811",
+    "tawes": "11075"
+   },
+   "anchor": {
+    "id": "11022",
+    "km": 36.78,
+    "dElevM": 113
+   }
+  },
+  {
+   "id": "11078",
+   "name": "LILIENFELD/TARSCHBERG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.028055555555554,
+   "lon": 15.5875,
+   "elevM": 696,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "AT|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5625",
+    "tawes": "11078"
+   },
+   "anchor": {
+    "id": "11380",
+    "km": 40.978,
+    "dElevM": -208
+   }
+  },
+  {
+   "id": "11082",
+   "name": "GUMPOLDSKIRCHEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 48.03583333333333,
+   "lon": 16.280833333333334,
+   "elevM": 212,
+   "band": "<300",
+   "cls": "valley",
+   "stratum": "AT|<300|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "5882",
+    "tawes": "11082"
+   },
+   "anchor": {
+    "id": "11040",
+    "km": 14.295,
+    "dElevM": -12
+   }
+  },
+  {
+   "id": "11101",
+   "name": "BREGENZ",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.49916666666667,
+   "lon": 9.74611111111111,
+   "elevM": 424,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "11104",
+    "tawes": "11101"
+   },
+   "anchor": {
+    "id": "11105",
+    "km": 27.359,
+    "dElevM": 14
+   }
+  },
+  {
+   "id": "11105",
+   "name": "FELDKIRCH",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.27111111111111,
+   "lon": 9.609722222222222,
+   "elevM": 438,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "11115",
+    "tawes": "11105"
+   },
+   "anchor": {
+    "id": "06990",
+    "km": 17.423,
+    "dElevM": 19
+   }
+  },
+  {
+   "id": "11109",
+   "name": "ST.ANTON/ARLBERG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.13138888888889,
+   "lon": 10.266666666666667,
+   "elevM": 1304,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "14302",
+    "tawes": "11311"
+   },
+   "anchor": {
+    "id": "11110",
+    "km": 2.759,
+    "dElevM": 775
+   }
+  },
+  {
+   "id": "11110",
+   "name": "GALZIG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.12972222222222,
+   "lon": 10.230277777777777,
+   "elevM": 2079,
+   "band": ">1500",
+   "cls": "slope-ridge",
+   "stratum": "AT|>1500|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "14305",
+    "tawes": "11110"
+   },
+   "anchor": {
+    "id": "11310",
+    "km": 17.646,
+    "dElevM": 248
+   }
+  },
+  {
+   "id": "11112",
+   "name": "LANDECK",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.140277777777776,
+   "lon": 10.563611111111111,
+   "elevM": 796,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "14403",
+    "tawes": "11112"
+   },
+   "anchor": {
+    "id": "11110",
+    "km": 25.242,
+    "dElevM": 1283
+   }
+  },
+  {
+   "id": "11113",
+   "name": "NAUDERS",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.89111111111111,
+   "lon": 10.496944444444443,
+   "elevM": 1330,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "17102",
+    "tawes": "11113"
+   },
+   "anchor": {
+    "id": "11310",
+    "km": 17.014,
+    "dElevM": 997
+   }
+  },
+  {
+   "id": "11120",
+   "name": "INNSBRUCK-FLUGHAFEN (AUTOMAT)",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.26,
+   "lon": 11.356666666666667,
+   "elevM": 578,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "11804",
+    "tawes": "11121"
+   },
+   "anchor": {
+    "id": "P0060",
+    "km": 9.788,
+    "dElevM": 1673
+   }
+  },
+  {
+   "id": "11127",
+   "name": "OBERGURGL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.86694444444444,
+   "lon": 11.024444444444445,
+   "elevM": 1941,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "AT|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "17301",
+    "tawes": "11127"
+   },
+   "anchor": {
+    "id": "11113",
+    "km": 40.183,
+    "dElevM": -611
+   }
+  },
+  {
+   "id": "11130",
+   "name": "KUFSTEIN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.57527777777778,
+   "lon": 12.162777777777778,
+   "elevM": 490,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "9016",
+    "tawes": "11130"
+   },
+   "anchor": {
+    "id": "11140",
+    "km": 39.955,
+    "dElevM": 132
+   }
+  },
+  {
+   "id": "11138",
+   "name": "RUDOLFSHUETTE-ALPINZENTRUM",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.135,
+   "lon": 12.625833333333334,
+   "elevM": 2317,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "AT|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15321",
+    "tawes": "11138"
+   },
+   "anchor": {
+    "id": "11252",
+    "km": 19.543,
+    "dElevM": -1105
+   }
+  },
+  {
+   "id": "11140",
+   "name": "LOFER",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.58444444444444,
+   "lon": 12.695277777777777,
+   "elevM": 622,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "9211",
+    "tawes": "11140"
+   },
+   "anchor": {
+    "id": "11340",
+    "km": 28.629,
+    "dElevM": 1334
+   }
+  },
+  {
+   "id": "11141",
+   "name": "BISCHOFSHOFEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.406666666666666,
+   "lon": 13.221111111111112,
+   "elevM": 550,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "12504",
+    "tawes": "11141"
+   },
+   "anchor": {
+    "id": "11145",
+    "km": 33.586,
+    "dElevM": 542
+   }
+  },
+  {
+   "id": "11144",
+   "name": "ZELL AM SEE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.29,
+   "lon": 12.786388888888888,
+   "elevM": 754,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "12323",
+    "tawes": "11144"
+   },
+   "anchor": {
+    "id": "11340",
+    "km": 5.631,
+    "dElevM": 1202
+   }
+  },
+  {
+   "id": "11145",
+   "name": "BAD GASTEIN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.11055555555556,
+   "lon": 13.133333333333333,
+   "elevM": 1092,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15501",
+    "tawes": "11372"
+   },
+   "anchor": {
+    "id": "11141",
+    "km": 33.586,
+    "dElevM": -542
+   }
+  },
+  {
+   "id": "11146",
+   "name": "SONNBLICK - AUTOM.",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.05416666666667,
+   "lon": 12.9575,
+   "elevM": 3109,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "AT|>1500|summit",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15411",
+    "tawes": "11343"
+   },
+   "anchor": {
+    "id": "11145",
+    "km": 14.716,
+    "dElevM": -2017
+   }
+  },
+  {
+   "id": "11148",
+   "name": "ST.MICHAEL/LUNGAU",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.09444444444445,
+   "lon": 13.622777777777777,
+   "elevM": 1052,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15702",
+    "tawes": "11148"
+   },
+   "anchor": {
+    "id": "11272",
+    "km": 35.323,
+    "dElevM": -510
+   }
+  },
+  {
+   "id": "11149",
+   "name": "OBERTAUERN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.24888888888889,
+   "lon": 13.559722222222224,
+   "elevM": 1772,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "AT|>1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15610",
+    "tawes": "11149"
+   },
+   "anchor": {
+    "id": "11148",
+    "km": 17.823,
+    "dElevM": -720
+   }
+  },
+  {
+   "id": "11150",
+   "name": "SALZBURG-FLUGHAFEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.78944444444444,
+   "lon": 13.008611111111112,
+   "elevM": 430,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "6300",
+    "tawes": "11150"
+   },
+   "anchor": {
+    "id": "11350",
+    "km": 3.408,
+    "dElevM": -11
+   }
+  },
+  {
+   "id": "11155",
+   "name": "FEUERKOGEL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.81666666666667,
+   "lon": 13.717777777777778,
+   "elevM": 1618,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "AT|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "6611",
+    "tawes": "11155"
+   },
+   "anchor": {
+    "id": "11357",
+    "km": 22.293,
+    "dElevM": -1074
+   }
+  },
+  {
+   "id": "11157",
+   "name": "AIGEN IM ENNSTAL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.532777777777774,
+   "lon": 14.138333333333334,
+   "elevM": 641,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "9801",
+    "tawes": "11157"
+   },
+   "anchor": {
+    "id": "11355",
+    "km": 25.154,
+    "dElevM": -41
+   }
+  },
+  {
+   "id": "11165",
+   "name": "ZELTWEG - AUTOM. STAT.",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.19972222222222,
+   "lon": 14.746944444444443,
+   "elevM": 678,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "16101",
+    "tawes": "11365"
+   },
+   "anchor": {
+    "id": "11221",
+    "km": 29.491,
+    "dElevM": -213
+   }
+  },
+  {
+   "id": "11170",
+   "name": "LUNZ",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.85444444444445,
+   "lon": 15.067499999999999,
+   "elevM": 612,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "7110",
+    "tawes": "11170"
+   },
+   "anchor": {
+    "id": "11018",
+    "km": 31.07,
+    "dElevM": -346
+   }
+  },
+  {
+   "id": "11173",
+   "name": "FISCHBACH",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.44416666666666,
+   "lon": 15.643888888888888,
+   "elevM": 1034,
+   "band": "800-1500",
+   "cls": "hill",
+   "stratum": "AT|800-1500|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "13515",
+    "tawes": "11173"
+   },
+   "anchor": {
+    "id": "11380",
+    "km": 31.894,
+    "dElevM": -546
+   }
+  },
+  {
+   "id": "11176",
+   "name": "KAPFENBERG-FLUGFELD",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.458333333333336,
+   "lon": 15.335555555555556,
+   "elevM": 515,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "13401",
+    "tawes": "11176"
+   },
+   "anchor": {
+    "id": "11173",
+    "km": 23.238,
+    "dElevM": 519
+   }
+  },
+  {
+   "id": "11182",
+   "name": "WIENER NEUSTADT",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.83222222222223,
+   "lon": 16.231388888888887,
+   "elevM": 275,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "7604",
+    "tawes": "11182"
+   },
+   "anchor": {
+    "id": "11082",
+    "km": 22.938,
+    "dElevM": -63
+   }
+  },
+  {
+   "id": "11190",
+   "name": "EISENSTADT",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.85416666666667,
+   "lon": 16.538333333333334,
+   "elevM": 184,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "7704",
+    "tawes": "11190"
+   },
+   "anchor": {
+    "id": "11194",
+    "km": 24.098,
+    "dElevM": -67
+   }
+  },
+  {
+   "id": "11192",
+   "name": "KLEINZICKEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.2075,
+   "lon": 16.326666666666668,
+   "elevM": 263,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "16800",
+    "tawes": "11192"
+   },
+   "anchor": {
+    "id": "11245",
+    "km": 49.169,
+    "dElevM": 6
+   }
+  },
+  {
+   "id": "11194",
+   "name": "NEUSIEDL AM SEE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.94916666666666,
+   "lon": 16.828888888888887,
+   "elevM": 117,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "7890",
+    "tawes": "11072"
+   },
+   "anchor": {
+    "id": "11190",
+    "km": 24.098,
+    "dElevM": 67
+   }
+  },
+  {
+   "id": "11201",
+   "name": "SILLIAN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.74638888888889,
+   "lon": 12.42361111111111,
+   "elevM": 1081,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "19505",
+    "tawes": "11201"
+   },
+   "anchor": {
+    "id": "11252",
+    "km": 28.614,
+    "dElevM": 131
+   }
+  },
+  {
+   "id": "11204",
+   "name": "LIENZ",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.82555555555556,
+   "lon": 12.80638888888889,
+   "elevM": 661,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "17901",
+    "tawes": "11204"
+   },
+   "anchor": {
+    "id": "11255",
+    "km": 22.113,
+    "dElevM": 44
+   }
+  },
+  {
+   "id": "11210",
+   "name": "MALLNITZ-BAD",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.99194444444444,
+   "lon": 13.166666666666666,
+   "elevM": 1197,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "18111",
+    "tawes": "11260"
+   },
+   "anchor": {
+    "id": "11145",
+    "km": 13.429,
+    "dElevM": -105
+   }
+  },
+  {
+   "id": "11212",
+   "name": "VILLACHER ALPE - AUTOM.",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.603611111111114,
+   "lon": 13.672777777777776,
+   "elevM": 2117,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "AT|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "20021",
+    "tawes": "11265"
+   },
+   "anchor": {
+    "id": "11272",
+    "km": 25.147,
+    "dElevM": -1575
+   }
+  },
+  {
+   "id": "11213",
+   "name": "VILLACH",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.61805555555556,
+   "lon": 13.873888888888889,
+   "elevM": 493,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "20123",
+    "tawes": "11213"
+   },
+   "anchor": {
+    "id": "11212",
+    "km": 15.446,
+    "dElevM": 1624
+   }
+  },
+  {
+   "id": "11221",
+   "name": "KOEFLACH",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.070277777777775,
+   "lon": 15.087222222222222,
+   "elevM": 465,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "16308",
+    "tawes": "11221"
+   },
+   "anchor": {
+    "id": "11240",
+    "km": 28.541,
+    "dElevM": -125
+   }
+  },
+  {
+   "id": "11231",
+   "name": "KLAGENFURT-FLUGHAFEN (AUTOMAT)",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.64833333333333,
+   "lon": 14.318333333333333,
+   "elevM": 450,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "20212",
+    "tawes": "11331"
+   },
+   "anchor": {
+    "id": "11212",
+    "km": 49.547,
+    "dElevM": 1667
+   }
+  },
+  {
+   "id": "11232",
+   "name": "FEISTRITZ OB BLEIBURG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.55888888888889,
+   "lon": 14.766666666666667,
+   "elevM": 522,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "20412",
+    "tawes": "11232"
+   },
+   "anchor": {
+    "id": "11231",
+    "km": 35.665,
+    "dElevM": -72
+   }
+  },
+  {
+   "id": "11240",
+   "name": "GRAZ-THALERHOF-FLUGHAFEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.980555555555554,
+   "lon": 15.44,
+   "elevM": 340,
+   "band": "300-800",
+   "cls": "flat",
+   "stratum": "AT|300-800|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "16400",
+    "tawes": "11240"
+   },
+   "anchor": {
+    "id": "11292",
+    "km": 15.498,
+    "dElevM": 190
+   }
+  },
+  {
+   "id": "11245",
+   "name": "BAD GLEICHENBERG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.87222222222222,
+   "lon": 15.903611111111111,
+   "elevM": 269,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "19204",
+    "tawes": "11244"
+   },
+   "anchor": {
+    "id": "11248",
+    "km": 21.149,
+    "dElevM": -62
+   }
+  },
+  {
+   "id": "11248",
+   "name": "BAD RADKERSBURG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.69222222222222,
+   "lon": 15.993333333333332,
+   "elevM": 207,
+   "band": "<300",
+   "cls": "flat",
+   "stratum": "AT|<300|flat",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "20903",
+    "tawes": "11264"
+   },
+   "anchor": {
+    "id": "11245",
+    "km": 21.149,
+    "dElevM": 62
+   }
+  },
+  {
+   "id": "11252",
+   "name": "VIRGEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.00277777777778,
+   "lon": 12.455833333333333,
+   "elevM": 1212,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15210",
+    "tawes": "11252"
+   },
+   "anchor": {
+    "id": "11138",
+    "km": 19.543,
+    "dElevM": 1105
+   }
+  },
+  {
+   "id": "11255",
+   "name": "KOETSCHACH-MAUTHEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.67638888888889,
+   "lon": 12.998333333333333,
+   "elevM": 705,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "19720",
+    "tawes": "11255"
+   },
+   "anchor": {
+    "id": "11270",
+    "km": 9.726,
+    "dElevM": -77
+   }
+  },
+  {
+   "id": "11270",
+   "name": "DELLACH IM DRAUTAL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.74194444444444,
+   "lon": 13.082777777777778,
+   "elevM": 628,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "19700",
+    "tawes": "11270"
+   },
+   "anchor": {
+    "id": "11255",
+    "km": 9.726,
+    "dElevM": 77
+   }
+  },
+  {
+   "id": "11272",
+   "name": "SPITTAL/DRAU",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.79055555555556,
+   "lon": 13.487222222222222,
+   "elevM": 542,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "18225",
+    "tawes": "11272"
+   },
+   "anchor": {
+    "id": "11212",
+    "km": 25.147,
+    "dElevM": 1575
+   }
+  },
+  {
+   "id": "11280",
+   "name": "MURAU",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.111111111111114,
+   "lon": 14.176944444444445,
+   "elevM": 816,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15920",
+    "tawes": "11280"
+   },
+   "anchor": {
+    "id": "11148",
+    "km": 41.985,
+    "dElevM": 236
+   }
+  },
+  {
+   "id": "11285",
+   "name": "DEUTSCHLANDSBERG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.82166666666667,
+   "lon": 15.226944444444445,
+   "elevM": 354,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "18906",
+    "tawes": "11285"
+   },
+   "anchor": {
+    "id": "11240",
+    "km": 23.962,
+    "dElevM": -14
+   }
+  },
+  {
+   "id": "11290",
+   "name": "GRAZ UNIVERSITAET/HEINRICHSTRASSE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.080000000000005,
+   "lon": 15.448055555555555,
+   "elevM": 366,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "16414",
+    "tawes": "11291"
+   },
+   "anchor": {
+    "id": "11292",
+    "km": 10.94,
+    "dElevM": 164
+   }
+  },
+  {
+   "id": "11292",
+   "name": "LASSNITZHOEHE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.07361111111111,
+   "lon": 15.592222222222222,
+   "elevM": 530,
+   "band": "300-800",
+   "cls": "slope-ridge",
+   "stratum": "AT|300-800|slope-ridge",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "16511",
+    "tawes": "11292"
+   },
+   "anchor": {
+    "id": "11240",
+    "km": 15.498,
+    "dElevM": -190
+   }
+  },
+  {
+   "id": "11295",
+   "name": "LEIBNITZ",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.7675,
+   "lon": 15.552777777777779,
+   "elevM": 268,
+   "band": "<300",
+   "cls": "hill",
+   "stratum": "AT|<300|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "19021",
+    "tawes": "11296"
+   },
+   "anchor": {
+    "id": "11240",
+    "km": 25.194,
+    "dElevM": 72
+   }
+  },
+  {
+   "id": "11308",
+   "name": "WARTH",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.255833333333335,
+   "lon": 10.186111111111112,
+   "elevM": 1478,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "11305",
+    "tawes": "11308"
+   },
+   "anchor": {
+    "id": "11110",
+    "km": 14.415,
+    "dElevM": 601
+   }
+  },
+  {
+   "id": "11310",
+   "name": "ISCHGL/IDALPE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.9825,
+   "lon": 10.317222222222222,
+   "elevM": 2327,
+   "band": ">1500",
+   "cls": "hill",
+   "stratum": "AT|>1500|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "17005",
+    "tawes": "11310"
+   },
+   "anchor": {
+    "id": "11312",
+    "km": 10.118,
+    "dElevM": -740
+   }
+  },
+  {
+   "id": "11312",
+   "name": "GALTUER",
+   "land": "AT",
+   "country": "AT",
+   "lat": 46.96805555555556,
+   "lon": 10.185555555555556,
+   "elevM": 1587,
+   "band": ">1500",
+   "cls": "valley",
+   "stratum": "AT|>1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "17002",
+    "tawes": "11312"
+   },
+   "anchor": {
+    "id": "11310",
+    "km": 10.118,
+    "dElevM": 740
+   }
+  },
+  {
+   "id": "11314",
+   "name": "REUTTE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.49444444444445,
+   "lon": 10.715277777777777,
+   "elevM": 842,
+   "band": "800-1500",
+   "cls": "valley",
+   "stratum": "AT|800-1500|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "11505",
+    "tawes": "11314"
+   },
+   "anchor": {
+    "id": "10961",
+    "km": 21.556,
+    "dElevM": 2118
+   }
+  },
+  {
+   "id": "11322",
+   "name": "MAYRHOFEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.1625,
+   "lon": 11.851666666666667,
+   "elevM": 640,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "15002",
+    "tawes": "11330"
+   },
+   "anchor": {
+    "id": "P0060",
+    "km": 29.879,
+    "dElevM": 1611
+   }
+  },
+  {
+   "id": "11340",
+   "name": "SCHMITTENHOEHE",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.328611111111115,
+   "lon": 12.738055555555555,
+   "elevM": 1956,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "AT|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "12311",
+    "tawes": "11340"
+   },
+   "anchor": {
+    "id": "11138",
+    "km": 23.136,
+    "dElevM": 361
+   }
+  },
+  {
+   "id": "11350",
+   "name": "SALZBURG-FREISAAL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.79111111111111,
+   "lon": 13.054166666666667,
+   "elevM": 419,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "6305",
+    "tawes": "11350"
+   },
+   "anchor": {
+    "id": "11150",
+    "km": 3.408,
+    "dElevM": 11
+   }
+  },
+  {
+   "id": "11355",
+   "name": "WINDISCHGARSTEN",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.72027777777778,
+   "lon": 14.32611111111111,
+   "elevM": 600,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "9919",
+    "tawes": "11355"
+   },
+   "anchor": {
+    "id": "11157",
+    "km": 25.154,
+    "dElevM": 41
+   }
+  },
+  {
+   "id": "11357",
+   "name": "ST.WOLFGANG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.74027777777778,
+   "lon": 13.441944444444445,
+   "elevM": 544,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "9512",
+    "tawes": "11357"
+   },
+   "anchor": {
+    "id": "11155",
+    "km": 22.293,
+    "dElevM": 1074
+   }
+  },
+  {
+   "id": "11380",
+   "name": "REICHENAU/RAX",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.69972222222222,
+   "lon": 15.836944444444445,
+   "elevM": 488,
+   "band": "300-800",
+   "cls": "valley",
+   "stratum": "AT|300-800|valley",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "10510",
+    "tawes": "11380"
+   },
+   "anchor": {
+    "id": "11173",
+    "km": 31.894,
+    "dElevM": 546
+   }
+  },
+  {
+   "id": "11390",
+   "name": "HARTBERG",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.28055555555555,
+   "lon": 15.97861111111111,
+   "elevM": 330,
+   "band": "300-800",
+   "cls": "hill",
+   "stratum": "AT|300-800|hill",
+   "role": "B",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "13605",
+    "tawes": "11390"
+   },
+   "anchor": {
+    "id": "11173",
+    "km": 31.09,
+    "dElevM": 704
+   }
+  },
+  {
+   "id": "P0060",
+   "name": "PATSCHERKOFEL",
+   "land": "AT",
+   "country": "AT",
+   "lat": 47.20888888888889,
+   "lon": 11.462222222222222,
+   "elevM": 2251,
+   "band": ">1500",
+   "cls": "summit",
+   "stratum": "AT|>1500|summit",
+   "role": "A",
+   "seenInFit": true,
+   "w1": {
+    "net": "klima",
+    "id": "14812",
+    "tawes": "11126"
+   },
+   "anchor": {
+    "id": "11322",
+    "km": 29.879,
+    "dElevM": -1611
+   }
+  }
+ ],
+ "pairs": [
+  {
+   "valley": "10963",
+   "mountain": "10961",
+   "km": 9.5,
+   "dhM": 2241
+  },
+  {
+   "valley": "11145",
+   "mountain": "11146",
+   "km": 14.72,
+   "dhM": 2017
+  },
+  {
+   "valley": "06787",
+   "mountain": "06795",
+   "km": 8.31,
+   "dhM": 1681
+  },
+  {
+   "valley": "11120",
+   "mountain": "P0060",
+   "km": 9.79,
+   "dhM": 1673
+  },
+  {
+   "valley": "06650",
+   "mountain": "06659",
+   "km": 7.39,
+   "dhM": 1651
+  },
+  {
+   "valley": "06792",
+   "mountain": "06791",
+   "km": 12.83,
+   "dhM": 1585
+  },
+  {
+   "valley": "06682",
+   "mountain": "06688",
+   "km": 9.07,
+   "dhM": 1510
+  },
+  {
+   "valley": "06762",
+   "mountain": "06759",
+   "km": 11.82,
+   "dhM": 1458
+  },
+  {
+   "valley": "06760",
+   "mountain": "06759",
+   "km": 3.15,
+   "dhM": 1294
+  },
+  {
+   "valley": "06705",
+   "mountain": "06702",
+   "km": 10.18,
+   "dhM": 1212
+  },
+  {
+   "valley": "11144",
+   "mountain": "11340",
+   "km": 5.63,
+   "dhM": 1202
+  },
+  {
+   "valley": "06606",
+   "mountain": "06605",
+   "km": 9.37,
+   "dhM": 1164
+  },
+  {
+   "valley": "06784",
+   "mountain": "06780",
+   "km": 3.62,
+   "dhM": 1097
+  },
+  {
+   "valley": "06798",
+   "mountain": "06799",
+   "km": 3.13,
+   "dhM": 1076
+  },
+  {
+   "valley": "06786",
+   "mountain": "06793",
+   "km": 12.97,
+   "dhM": 1012
+  },
+  {
+   "valley": "06720",
+   "mountain": "06724",
+   "km": 13.43,
+   "dhM": 941
+  },
+  {
+   "valley": "10454",
+   "mountain": "10453",
+   "km": 11.71,
+   "dhM": 908
+  },
+  {
+   "valley": "06710",
+   "mountain": "06605",
+   "km": 6.11,
+   "dhM": 899
+  },
+  {
+   "valley": "10796",
+   "mountain": "10791",
+   "km": 12.38,
+   "dhM": 834
+  },
+  {
+   "valley": "11109",
+   "mountain": "11110",
+   "km": 2.76,
+   "dhM": 775
+  },
+  {
+   "valley": "11312",
+   "mountain": "11310",
+   "km": 10.12,
+   "dhM": 740
+  },
+  {
+   "valley": "06638",
+   "mountain": "06639",
+   "km": 12.46,
+   "dhM": 660
+  },
+  {
+   "valley": "06651",
+   "mountain": "06639",
+   "km": 8.44,
+   "dhM": 660
+  },
+  {
+   "valley": "06745",
+   "mountain": "06744",
+   "km": 7.67,
+   "dhM": 634
+  },
+  {
+   "valley": "11308",
+   "mountain": "11110",
+   "km": 14.41,
+   "dhM": 601
+  },
+  {
+   "valley": "06679",
+   "mountain": "06689",
+   "km": 12.43,
+   "dhM": 594
+  },
+  {
+   "valley": "06796",
+   "mountain": "06778",
+   "km": 13.19,
+   "dhM": 585
+  },
+  {
+   "valley": "10452",
+   "mountain": "10453",
+   "km": 9,
+   "dhM": 535
+  },
+  {
+   "valley": "06646",
+   "mountain": "06669",
+   "km": 14.89,
+   "dhM": 519
+  },
+  {
+   "valley": "06647",
+   "mountain": "06669",
+   "km": 14.15,
+   "dhM": 511
+  },
+  {
+   "valley": "06685",
+   "mountain": "06682",
+   "km": 14.82,
+   "dhM": 441
+  },
+  {
+   "valley": "06673",
+   "mountain": "06675",
+   "km": 11.45,
+   "dhM": 426
+  },
+  {
+   "valley": "06670",
+   "mountain": "06669",
+   "km": 10.43,
+   "dhM": 419
+  },
+  {
+   "valley": "06664",
+   "mountain": "06669",
+   "km": 10.9,
+   "dhM": 401
+  },
+  {
+   "valley": "06625",
+   "mountain": "06628",
+   "km": 11.91,
+   "dhM": 391
+  },
+  {
+   "valley": "06690",
+   "mountain": "06681",
+   "km": 14.21,
+   "dhM": 378
+  }
+ ],
+ "hash": "b0a6e3ae4ac8bb1b77f36b55b90f57f99f8354b913aeb41403d92ae24a4befc1"
+}

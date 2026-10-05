@@ -1,0 +1,16 @@
+{
+ "schema": 1,
+ "kind": "abgeleitet",
+ "id": "test-fusion-9-breit",
+ "name": "buscosun Fusion 9 mit 2-fach breiten Bändern (Test)",
+ "order": 9.5,
+ "status": "test",
+ "base": "fusion-9",
+ "transform": {
+  "widen": 2
+ },
+ "freeze": "2026-10-04",
+ "notes": [
+  "Bewusst verschlechterter Kandidat für Gate G-PS4; nie ein Produktstand."
+ ]
+}

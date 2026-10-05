@@ -1382,17 +1382,19 @@ if (typeof flags.cases === 'string') {
     const ser3 = A.archiveSeries(r3, 't1', 'P1'), tr3 = A.archiveTruth(r3, (id) => (id === 'P1' ? 'DE' : 'AT'));
     let threw5 = false, threwKind = false;
     // AX §6j (01.10.2026): schema 4 adds `stationsS` (the MOSMIX-S series, same form) and `incaAnalysis` — read like schema 3;
-    // `archiveStation(…, 'stationsS')` reads the S block, null where a slot does not carry it; schema 5 is still refused
+    // `archiveStation(…, 'stationsS')` reads the S block, null where a slot does not carry it
     const s4 = mkSlot(4); s4.stationsS = { ...s4.stations, product: 'mosmix_s' };
     const r4 = A.readArchiveSlot(wr('s4.json.gz', s4));
     const stS4 = A.archiveStation(r4, 'P1', 500, 'stationsS'), stS3 = A.archiveStation(r3, 'P1', 500, 'stationsS');
-    try { A.readArchiveSlot(wr('s5.json.gz', mkSlot(5))); } catch { threw5 = true; }
+    // PA5 (05.10.2026): schema 5 (input points, block cells) is read like schema 4; schema 6 is refused
+    const r5 = A.readArchiveSlot(wr('s5.json.gz', mkSlot(5)));
+    try { A.readArchiveSlot(wr('s6.json.gz', mkSlot(6))); } catch { threw5 = true; }
     try { A.readArchiveSlot(wr('sk.json.gz', { ...mkSlot(3), kind: 'punktarchiv/index' })); } catch { threwKind = true; }
     rmSync(dir, { recursive: true, force: true });
-    add('16i readArchiveSlot (V-AX-4, AX §6j): Schema 3 wird gelesen wie Schema 2 (Serie, Wahrheit und Station gleich dekodiert); Schema 4 ebenso, archiveStation(…, \'stationsS\') liest die MOSMIX-S-Reihe und ist null, wo der Slot sie nicht trägt; Negativkontrollen: Schema 5 und ein fremder kind werfen; die Liste der lesbaren Schemata ist [1, 2, 3, 4]',
+    add('16i readArchiveSlot (V-AX-4, AX §6j): Schema 3 wird gelesen wie Schema 2 (Serie, Wahrheit und Station gleich dekodiert); Schema 4 ebenso, archiveStation(…, \'stationsS\') liest die MOSMIX-S-Reihe und ist null, wo der Slot sie nicht trägt; Schema 5 (PA5) wird gelesen wie Schema 4; Negativkontrollen: Schema 6 und ein fremder kind werfen; die Liste der lesbaren Schemata ist [1, 2, 3, 4, 5]',
       r3?.schema === 3 && ser3 && Math.abs(ser3.steps[1].values.u10 - 3) < 1e-12 && tr3.get('P2')?.rows[0].fxh === 10 && A.archiveStation(r3, 'P1', 500).series?.station.elev === 800
-        && r4?.schema === 4 && A.archiveSeries(r4, 't1', 'P1') && stS4.series?.station.elev === 800 && stS3.series === null && threw5 && threwKind && JSON.stringify(A.ARCHIVE_SCHEMAS_READABLE) === '[1,2,3,4]',
-      `Schema ${r3?.schema}/${r4?.schema} · u10 ${ser3?.steps[1].values.u10} · fxh ${tr3.get('P2')?.rows[0].fxh} · S-Reihe in 4 ${stS4.series ? 'ja' : 'nein'}, in 3 ${stS3.series ? 'ja' : 'null'} · Schema 5 wirft ${threw5} · fremder kind wirft ${threwKind}`);
+        && r4?.schema === 4 && A.archiveSeries(r4, 't1', 'P1') && stS4.series?.station.elev === 800 && stS3.series === null && r5?.schema === 5 && !!A.archiveSeries(r5, 't1', 'P1') && threw5 && threwKind && JSON.stringify(A.ARCHIVE_SCHEMAS_READABLE) === '[1,2,3,4,5]',
+      `Schema ${r3?.schema}/${r4?.schema} · u10 ${ser3?.steps[1].values.u10} · fxh ${tr3.get('P2')?.rows[0].fxh} · S-Reihe in 4 ${stS4.series ? 'ja' : 'nein'}, in 3 ${stS3.series ? 'ja' : 'null'} · Schema 5 gelesen ${r5?.schema === 5} · Schema 6 wirft ${threw5} · fremder kind wirft ${threwKind}`);
   }
 }
 

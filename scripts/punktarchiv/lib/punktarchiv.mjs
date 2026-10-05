@@ -73,10 +73,22 @@ import { join, dirname } from 'node:path';
  *      · `incaAnalysis`: die INCA-Analyse (GeoSphere, 1 km, stündlich) an jedem AT-Punkt für die letzten 4 Stunden ≤ Slot
  *        (`validAtMs`, t, td, rh, u, v; Gewicht 0,6 set) — die Anker-„Messung" der Option `incaAnchor` (E-AX-10).
  *      · `index.stationsS` (Lauf, Alter) im Kopf. Leser von Schema 3 lesen Schema 4 unverändert.
+ *   5  PA5 (2026-10-05, `audit/punktarchiv-erweiterung.md` — Eingaben für den Prüfstand, E-PS-11/E-PS-12; alles additiv):
+ *      · Eingabe-Punkte: `points[]` trägt zusätzlich die Stationen der drei amtlichen Messnetze, die KEINE Katalogpunkte sind
+ *        (`role: 'input'`, `net`, Kennung `tawes:<id>` / `smn:<abbr>` / `cdc:<id>`; Liste `points-extra.json`). Für sie stehen
+ *        Cube, Block, Nowcast, hmodel, Plan und die Netz-Wahrheit (TAWES/SMN) im Slot, aber KEIN Live-Pfad und für DE keine
+ *        Wahrheit (CDC wird nachgeladen — Messwerte sind jahrelang abrufbar, Cube-Zellen nicht).
+ *      · `cube[t].byPoint[].block`: die bis zu drei weiteren Zellen des 2×2-Blocks (PAP 3) mit allen Ebenen außer denen, die
+ *        der Motor nur an der nächsten Zelle liest (`cube[t].blockExcluded`); Form wie im Hindcast-Slot (`dy, dx, iy, ix,
+ *        centre, distKm, planes, empty`), Zellen jenseits der Chunk-Grenze aus dem Nachbar-Chunk desselben Laufs;
+ *        `blockTruncated`, wo eine Zelle fehlt. Ohne Block rechnete ein Replay PAP 3 mit N = 1 (Schema ≤ 4).
+ *      · `stations`/`stationsS`: ein Eingabe-Punkt trägt die NÄCHSTE Katalogstation (`station`) und einen Verweis statt der
+ *        Reihe — `ref.byPoint` (die Reihe steht unter diesem Punkt) oder `ref.byStation` (sie steht einmal unter
+ *        `byStation[<Katalogkennung>]`); Katalogpunkte unverändert. Leser von Schema 4 lesen die Katalogpunkte unverändert.
  */
-export const ARCHIVE_SCHEMA = 4;
+export const ARCHIVE_SCHEMA = 5;
 /** Schemata, die `parseSlot` liest — ein Archiv trägt alle Fassungen nebeneinander. */
-export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4]);
+export const ARCHIVE_SCHEMAS_READABLE = Object.freeze([1, 2, 3, 4, 5]);
 export const SENTINEL = -32768;
 export const SLOT_KIND = 'punktarchiv/slot';
 
@@ -246,6 +258,43 @@ export function decodeValue(q, sc) {
 }
 export function encodeSeries(arr, sc) { return arr.map((v) => encodeValue(v, sc)); }
 export function decodeSeries(arr, sc) { return arr.map((q) => decodeValue(q, sc)); }
+
+// ─── 2×2 block (schema 5, PA5 / E-PS-12) ───────────────────────────────────
+/**
+ * Encodes block cells (the reader's `CubeNeighbourCell`: `{ dy, dx, iy, ix, lat, lon, distKm, values[step][planeId] }`) with the run
+ * manifest's own plane scales — the same integers the main cell carries. `exclude`: plane ids the engine reads at the nearest
+ * cell only (never averaged over the block), left out. A plane that is empty over the whole axis goes to `empty`.
+ */
+export function encodeBlockCells(cells, planes, exclude = new Set()) {
+  return cells.map((n) => {
+    const out = {}, empty = [];
+    for (const pl of planes) {
+      if (exclude.has(pl.id)) continue;
+      let any = false;
+      const col = n.values.map((v) => { const x = v[pl.id]; if (x != null) any = true; return encodeValue(x, pl); });
+      if (any) out[pl.id] = col; else empty.push(pl.id);
+    }
+    return { dy: n.dy, dx: n.dx, iy: n.iy, ix: n.ix, centre: { lat: n.lat, lon: n.lon }, distKm: Math.round(n.distKm * 1000) / 1000, planes: out, empty };
+  });
+}
+/** The inverse for a reader: the block cells of a point as neighbour cells (`values` per step, `null` = missing). [] before schema 5. */
+export function decodeBlockCells(slot, tierId, pointId) {
+  const bp = slot.cube?.[tierId]?.byPoint?.[pointId];
+  const sc = slot.scales?.cube?.[tierId] ?? {};
+  const nt = slot.cube?.[tierId]?.leadHours?.length ?? 0;
+  return (bp?.block ?? []).map((b) => {
+    const values = [];
+    let hMod = null;
+    for (let it = 0; it < nt; it++) {
+      const v = {};
+      for (const [id, col] of Object.entries(b.planes)) v[id] = decodeValue(col[it], sc[id]);
+      for (const id of b.empty ?? []) v[id] = null;
+      if (hMod == null && v.hModEff != null) hMod = v.hModEff;
+      values.push(v);
+    }
+    return { dy: b.dy, dx: b.dx, iy: b.iy, ix: b.ix, lat: b.centre.lat, lon: b.centre.lon, distKm: b.distKm, hModEffM: hMod, values };
+  });
+}
 
 // ─── Slot skeleton ──────────────────────────────────────────────────────────
 /**
@@ -475,13 +524,27 @@ export function punktarchivSelfTest(tmpRoot) {
   const back = parseSlot(bytes);
   add('Rundweg: serialise → gunzip → parse ist inhaltsgleich', JSON.stringify(back) === JSON.stringify(s1));
   add('Rundweg: die Wahrheitswerte kommen auf 0,01 K zurück', Math.abs(decodeSeries(back.truth.byPoint['10865'].poi.t, TRUTH_SCALES.t)[0] - 12.3) < 1e-9);
-  // PA3/PA4/AX §6j: Schema 4 schreibt, Schema 1–3 (Slots im Archiv) lesen weiter, ein unbekanntes Schema nicht.
-  add('Schema: der Kopf trägt Schema 4, Schema-1/2/3-Slots werden weiterhin gelesen, Schema 5 abgewiesen', (() => {
-    const olds = [1, 2, 3].map((n) => { const o = mk(); o.schema = n; return o; });
-    const future = mk(); future.schema = 5;
+  // PA3/PA4/AX §6j/PA5: Schema 5 schreibt, Schema 1–4 (Slots im Archiv) lesen weiter, ein unbekanntes Schema nicht.
+  add('Schema: der Kopf trägt Schema 5, Schema-1/2/3/4-Slots werden weiterhin gelesen, Schema 6 abgewiesen', (() => {
+    const olds = [1, 2, 3, 4].map((n) => { const o = mk(); o.schema = n; return o; });
+    const future = mk(); future.schema = 6;
     const reads = (s) => { try { parseSlot(gzipSync(Buffer.from(JSON.stringify(s), 'utf8'))); return true; } catch { return false; } };
-    return s1.schema === 4 && ARCHIVE_SCHEMA === 4 && olds.every(reads) && !reads(future);
+    return s1.schema === 5 && ARCHIVE_SCHEMA === 5 && olds.every(reads) && !reads(future);
   })());
+  // PA5: block cells — round trip with the manifest's scales, an excluded plane stays out, an empty plane is named, a missing value stays null.
+  {
+    const planes = [{ id: 't2m', scale: 0.01, offset: 0 }, { id: 'hModEff', scale: 1, offset: 0 }, { id: 'gammaEff', scale: 0.01, offset: 0 }, { id: 'clcl', scale: 0.1, offset: 0 }];
+    const cells = [{ dy: 1, dx: 0, iy: 11, ix: 20, lat: 48.05, lon: 11.5, distKm: 3.14159, values: [{ t2m: 12.34, hModEff: 520, gammaEff: 6.5, clcl: null }, { t2m: null, hModEff: 520, gammaEff: 6.4, clcl: null }] }];
+    const enc = encodeBlockCells(cells, planes, new Set(['gammaEff']));
+    const slotB = { scales: { cube: { t1: Object.fromEntries(planes.map((p) => [p.id, p])) } }, cube: { t1: { leadHours: [0, 1], byPoint: { X: { block: enc } } } } };
+    const back = decodeBlockCells(slotB, 't1', 'X');
+    add('PA5 Block: Rundweg — Werte auf die Skala zurück, fehlender Wert bleibt null, leere Ebene benannt, nur-nächste-Zelle-Ebene nicht gespeichert',
+      enc.length === 1 && enc[0].planes.t2m.join() === `1234,${SENTINEL}` && !('gammaEff' in enc[0].planes) && enc[0].empty.join() === 'clcl' && enc[0].distKm === 3.142
+      && back.length === 1 && Math.abs(back[0].values[0].t2m - 12.34) < 1e-9 && back[0].values[1].t2m === null && back[0].values[0].clcl === null && back[0].hModEffM === 520 && back[0].dy === 1 && back[0].lat === 48.05,
+      JSON.stringify(enc[0].planes));
+    add('PA5 Block: ein Slot ohne Block (Schema ≤ 4) dekodiert zu einer leeren Liste', decodeBlockCells({ scales: { cube: { t1: {} } }, cube: { t1: { leadHours: [0], byPoint: { X: {} } } } }, 't1', 'X').length === 0);
+    add('Negativkontrolle PA5: ein um einen Schritt anderer Blockwert wird im Rundweg bemerkt', (() => { const e2 = structuredClone(enc); e2[0].planes.t2m[0] = 1235; slotB.cube.t1.byPoint.Y = { block: e2 }; return decodeBlockCells(slotB, 't1', 'Y')[0].values[0].t2m !== back[0].values[0].t2m; })());
+  }
   add('PA4: der Kopf trägt finishedAt (null bis zum Ende) neben createdAt (Beginn)', 'finishedAt' in s1 && s1.finishedAt === null && typeof s1.createdAt === 'string');
   add('Skalen: fxh (Stundenmaximum der Böe) trägt dieselbe Skala wie fx; count ist keine Skala (n = Bedeckung)',
     TRUTH_SCALES.fxh?.scale === TRUTH_SCALES.fx.scale && TRUTH_SCALES.fxh.unit === 'm/s' && !('count' in TRUTH_SCALES) && TRUTH_SCALES.n.unit === 'pct');

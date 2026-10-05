@@ -1,0 +1,152 @@
+{
+ "schema": 1,
+ "kind": "pruefstand/rangliste",
+ "note": "Güteindex gegen die lokale Klimatologie an Rolle B; nur der Modus abnahme schreibt.",
+ "updated": "2026-10-05",
+ "entries": [
+  {
+   "id": "fusion-6",
+   "name": "buscosun Fusion 6",
+   "guete": 0.17807,
+   "ci95": [
+    0.15517,
+    0.19748
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "fusion-7",
+   "name": "buscosun Fusion 7",
+   "guete": 0.17807,
+   "ci95": [
+    0.15517,
+    0.19748
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "fusion-8",
+   "name": "buscosun Fusion 8",
+   "guete": 0.17807,
+   "ci95": [
+    0.15517,
+    0.19748
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "fusion-9",
+   "name": "buscosun Fusion 9",
+   "guete": 0.17807,
+   "ci95": [
+    0.15517,
+    0.19748
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "fusion-5e",
+   "name": "buscosun Fusion 5e",
+   "guete": 0.1536,
+   "ci95": [
+    0.12831,
+    0.17506
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "ref-naiv",
+   "name": "Naive Fusion",
+   "guete": -0.15945,
+   "ci95": [
+    -0.23086,
+    -0.10501
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "ref-roh-lapse",
+   "name": "Cube roh + 0,65 K/100 m",
+   "guete": -0.32897,
+   "ci95": [
+    -0.39905,
+    -0.27333
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "ref-roh",
+   "name": "Cube roh (nächste Zelle)",
+   "guete": -0.41171,
+   "ci95": [
+    -0.48253,
+    -0.35175
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  },
+  {
+   "id": "ref-persistenz",
+   "name": "Persistenz",
+   "guete": -0.56435,
+   "ci95": [
+    -0.6797,
+    -0.4604
+   ],
+   "days": 70,
+   "cells": 99,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
+   "abnahme": "2026-10-05",
+   "by": "test-fusion-9-breit"
+  }
+ ]
+}

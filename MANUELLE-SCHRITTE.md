@@ -1486,3 +1486,45 @@ Kontext: `audit/fusion-release.md`. Umgesetzt und lokal geprüft (`verify:fusion
 - **(c) E-FR-1 ansehen:** `road/fc` und die Autobahnwetter-Seite heißen dann „buscosun Fusion 9 … ohne Messungs-Anker“ (Rechnung unverändert).
 - **(d) V-FR-1:** Kopfkommentar der Vorlage `scripts/road/workflow-road-fc.yml` (und der Kopie im Daten-Repo) nennt noch „Fusion 8“ — nur Kommentar.
 - **(e) totalJs-Grenze:** siehe `audit/fusion-release.md` §6.
+
+## 39. Phase PA5 — Punktarchiv: Eingabe-Punkte und 2×2-Block (Archiv-Antrag des Prüfstands), 2026-10-05
+
+Kontext: `audit/punktarchiv-erweiterung.md` (§7), Entscheidungen E-PS-11/E-PS-12 in `audit/pruefstand-plan.md` §9. Umgesetzt und lokal geprüft
+(`verify:punktarchiv` 162/162, `verify:fusion-fit` 131/131, zwei volle Probeläufe mit 1 025 Punkten). Im Archiv- und im Daten-Repo ist nichts geändert.
+
+- **(a) Commit + Push von `buscosun-web/main` VOR 23:10 UTC** — der Archiv-Cron klont `main`; ab diesem Slot Schema 5 (≈ 37 MB statt 13 MB).
+  Jeder Tag ohne Push ist für die 620 neuen Stationen verloren.
+- **(b) Nach dem ersten Slot:** Laufzeit des Jobs in Actions (Limit 60 min; lokal 37,5 min, auf dem Runner geschätzt 15–25 min, ungemessen) und
+  `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/check-slot.mjs C:/dev/buscosun-archiv/<Tag>/<HHMM>.json.gz`
+  nach `git pull --ff-only` im Archiv-Klon (innerhalb ≈ 8 h, solange der t1-Lauf im Daten-Repo liegt).
+- **(c) Rückweg**, falls der Job das Limit reißt: in `.github/workflows/punktarchiv.yml` des Archiv-Repos `--no-extra` an den Sammler-Aufruf hängen.
+- **(d) Entschieden (Jan 05.10.):** E-PA5-1 nicht · E-PA5-2 machen (eigener Schritt nach dem ersten Slot) · E-PA5-3 vorerst so lassen · E-PA5-4 jetzt.
+- **(e) Nachtrag Niederschlagsstationen (E-PA5-4, `audit/punktarchiv-erweiterung.md` §8):** der Slot hat jetzt 2 069 Punkte und **≈ 60 MB**
+  (21,9 GB/Jahr). GitHub warnt ab 50 MB je Datei, die harte Grenze ist 100 MB. Laufzeit auf dem Runner ungemessen (lokal 17,5 min).
+  Rückweg in zwei Stufen im Workflow des Archiv-Repos: `--no-precip-only` (zurück auf 620 Eingabe-Punkte), dann `--no-extra`.
+- **(f) Offen:** E-PA5-3 Ablage (Jan überlegt), E-PA5-5 Cube-Pfad-Ausgabe an allen 405 Katalogpunkten (+14 MB je Slot) oder als Stichprobe (§9).
+
+## 40. Phase PS — Prüfstand PS-1 … PS-4 gebaut, 2026-10-06
+
+- **(a) Durchsicht + Commit (Scope `pruefstand`):** `scripts/pruefstand/**`, `src/pruefstand/**`, `scripts/verify-pruefstand.mjs`,
+  `package.json` (Alias `verify:pruefstand`), `.claude/skills/pruefe-fusion/SKILL.md` (nur diese Datei aus `.claude/` — `settings.local.json`
+  bleibt lokal), `audit/pruefstand/**` (README, Rangliste, Berichte 05.10., Rundlauf- und Treue-Belege, ≈ 8 MB; V-PS-16),
+  `audit/pruefstand-plan.md` §14.15–§14.20, diese Datei, CLAUDE.md. Gates: `verify:pruefstand` 60/60, typecheck 0, Build 252/252,
+  Budget unverändert. Große Daten liegen außerhalb des Repos in `C:\dev\buscosun-pruefstand\` (W1 288 MB, Rohdaten 2,4 GB,
+  Konserven 12 GB, Tabellen, Worktrees) — nicht committen, bei Bedarf sichern (V-PS-7).
+- **(b) Auslegungen bestätigen (Plan §14.19, R-1 … R-10):** jede ist als `set` in `scripts/pruefstand/protokoll/p1/protokoll.json`
+  markiert. Eine Änderung ist P2 (neu versiegeln mit `scripts/pruefstand/seal.mjs` in einem Ordner `protokoll/p2/`), alle Versionen werden
+  dann neu bewertet; Konserven bleiben nutzbar, solange Stationen, Quantile, Raster, Schwelle, Referenzen und Tresor gleich bleiben (R-7).
+  Besonders ansehen: R-2 (G3 ODER-Lesart), R-3 (G4 Physik, weil Fusion 9 selbst Böe ≥ Wind in 0,29 % verletzt — V-PS-12), R-5
+  (`vergleich` ohne Tresor), R-6 (Klimatologie an Rolle B).
+- **(c) Register:** Fusion 9 ist Champion (E-PS-14). Der Status „Champion“ einer neuen Version wird von dir gesetzt
+  (`scripts/pruefstand/register/fusion-<n>.json`, Feld `status`), nie vom Skill.
+- **(d) Ab jetzt je Version:** `/pruefe-fusion <n>` (Volltest), `/pruefe-fusion <n> abnahme` (Urteil, öffnet Tresor und Spur P,
+  `register/zugriffe.log`). Spur P beginnt mit dem ersten Archivtag nach dem Freeze; reif nach 7 Tagen — die erste Abnahme mit Spur-P-Fällen
+  ist für Fusion 9 ab ≈ 13.10. möglich (Slot 05.10. + 7 Tage), mit allen Vorläufen bis 336 h erst drei Wochen später.
+- **(e) Bericht lesen:** `audit/pruefstand/berichte/fusion-9/2026-10-05-abnahme/bericht.html` — Fusion 9 gegen sich selbst (Selbsttest):
+  Güteindex Spur R +17,8 % gegen die Klimatologie, G2–G4 grün; `audit/pruefstand/vergleiche/2026-10-05-sauber/` — 5e … 9 im Tresor:
+  6 gegen 5e +3,1 %*, 7/8/9 dort per Bauart gleich.
+- **(f) Offen:** V-PS-12 (Böe < Wind im Motor, eigener Antrag), V-PS-15 (2×2-Block aus Archiv-Schema 5 in den Replay — neue
+  Adapter-Generation, ab dem ersten Schema-5-Slot), V-PS-16 (Berichtsgröße), V-PS-17 (längere Klimatologie), E-PA5-2/E-PA5-5
+  (Ausgabe des Cube-Pfads im Archiv ⇒ Treue-Probe gegen das echte Produkt).
