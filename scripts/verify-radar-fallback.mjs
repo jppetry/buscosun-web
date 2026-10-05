@@ -8,7 +8,8 @@
  * die gemessenen Läufe vom 01.10.: #0 (vorgestartete meta.json hängt), #9/#10 (ein Bild 403), #8 (vorgestarteter
  * roher Tar hängt ohne Frist), dazu die Gegenprobe 404 (Datei gibt es nicht ⇒ kein Ausweichweg).
  *
- *   A  `fetchImgRes`: Hedge nach 2,5 s ohne Kopfzeilen, 403/5xx/Netz ⇒ raw.githubusercontent, 404 bleibt 404,
+ *   A  `fetchImgRes`: Hedge nach 2,5 s ohne Kopfzeilen, 403/5xx/Netz ⇒ raw.githubusercontent, 404 am CDN ⇒ einmal raw
+ *      (V-AW-25: am Edge festgehaltener 404), „nicht da" erst bei 404 auf beiden Wegen,
  *      Schalter `radarraw`, fremde Basen ohne Ausweichweg, Abbruch des Aufrufers
  *   B  `fetchRvNowcast` Ende zu Ende über den Router-Frühstart (`warmRvTar`)
  */
@@ -103,7 +104,10 @@ if (mod) {
 
   reset(); rules = [[F, { status: 404, delayMs: 100 }], [Fr, { status: 200, body: 'raw' }]];
   r = await outcome(mod.fetchImgRes(F));
-  add('A6 CDN 404 ⇒ RadarImg404, KEIN Ausweichweg (die Datei gibt es nicht)', !r.ok && r.e instanceof mod.RadarImg404 && reqs(RAW).length === 0, `${r.e?.constructor?.name}`);
+  add('A6 CDN 404, raw hat die Datei (am Edge festgehaltener 404, V-AW-25) ⇒ raw-Bytes nach genau einem raw-Abruf', r.ok && (await r.v.text()) === 'raw' && reqs(RAW).length === 1 && r.ms < 1500, `${r.ms} ms, raw=${reqs(RAW).length}`);
+  reset(); rules = [[F, { status: 404, delayMs: 100 }], [Fr, { status: 404 }]];
+  r = await outcome(mod.fetchImgRes(F));
+  add('A6b CDN 404 + raw 404 ⇒ RadarImg404 (die Datei gibt es nicht), ein raw-Abruf, kein harter Fehler', !r.ok && r.e instanceof mod.RadarImg404 && reqs(RAW).length === 1, `${r.e?.constructor?.name}`);
 
   reset(); rules = [[F, { status: 403 }], [Fr, { status: 404 }]];
   r = await outcome(mod.fetchImgRes(F));
@@ -118,6 +122,9 @@ if (mod) {
   reset(); rules = [[F, { status: 403 }], [Fr, { status: 200, body: 'raw' }]];
   r = await outcome(mod.fetchImgRes(F));
   add('A9 Schalter localStorage.radarraw=0 ⇒ kein Ausweichweg, 403 bleibt RadarImg404 wie bisher', !r.ok && r.e instanceof mod.RadarImg404 && reqs(RAW).length === 0);
+  reset(); rules = [[F, { status: 404 }], [Fr, { status: 200, body: 'raw' }]];
+  r = await outcome(mod.fetchImgRes(F));
+  add('A9b Schalter radarraw=0 ⇒ 404 sofort RadarImg404 ohne raw (Rückweg zum Verhalten vor V-AW-25)', !r.ok && r.e instanceof mod.RadarImg404 && reqs(RAW).length === 0 && r.ms < 300, `${r.ms} ms`);
   if (realLS === undefined) delete globalThis.localStorage; else globalThis.localStorage = realLS;
   if (typeof mod.radarRawFlagFrom === 'function') {
     add('A9 Schalter: Query schlägt Speicher (beide Richtungen)',
@@ -204,14 +211,24 @@ if (nowcast && runs && mod) {
       nl ? `Netlify @${nl.at} ms` : `kein Netlify-Abruf (${r.ok ? 'ok' : r.e?.message} nach ${r.ms} ms)`);
     add('B3 der hängende CDN-Tar wird nicht ein zweites Mal angefragt', reqs(cdnTar).length === 1, `${reqs(cdnTar).length}×`);
   }
-  // B4 Gegenprobe: ein Bild 404 (es fehlt wirklich) ⇒ kein Ausweichweg, wie bisher der rohe Tar
+  // B4 (V-AW-25): ein Bild 404 am CDN, raw hat es (am Edge festgehaltener 404) ⇒ nur dieses über raw, kein 9,6-MB-Tar
   {
     const s = nextSlot(); const ts = stampOf(s); setClock(s + 400_000);
     runs._resetRadarCdn(); runs._resetWarmRv(); reset();
     rules = [...imgRules(ts, CDN, { frames: [[`${CDN}/img/v1/rv/${ts}/f060.png`, { status: 404 }]] }), ...imgRules(ts, RAW)];
     const r = await outcome(nowcast.fetchRvNowcast(), 30_000);
-    add('B4 Gegenprobe: Bild 404 ⇒ kein raw-Abruf, Rückfall auf den rohen Tar wie bisher',
-      reqs(RAW).length === 0 && reqs(runs.rvTarCdnUrl(ts)).length >= 1, `raw=${reqs(RAW).length}, tar=${reqs(runs.rvTarCdnUrl(ts)).length} (${r.ok ? 'ok' : 'Fehler erwartet'})`);
+    const rawReqs = reqs(RAW).map((x) => x.url.split('/').pop());
+    add('B4 Bild 404 am CDN, raw hat es (V-AW-25) ⇒ nur dieses über raw, Slot bleibt Bild-Weg, kein Tar',
+      r.ok && r.v.frames.length === 25 && rawReqs.length === 1 && rawReqs[0] === 'f060.png' && reqs(runs.rvTarCdnUrl(ts)).length === 0, `raw=${rawReqs.join(',')}, tar=${reqs(runs.rvTarCdnUrl(ts)).length}`);
+  }
+  // B5 Gegenprobe: das Bild fehlt WIRKLICH (404 auf beiden Wegen) ⇒ Rückfall auf den rohen Tar wie bisher
+  {
+    const s = nextSlot(); const ts = stampOf(s); setClock(s + 400_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    rules = [...imgRules(ts, CDN, { frames: [[`${CDN}/img/v1/rv/${ts}/f060.png`, { status: 404 }]] }), [`${RAW}/img/v1/rv/${ts}/f060.png`, { status: 404 }], ...imgRules(ts, RAW)];
+    const r = await outcome(nowcast.fetchRvNowcast(), 30_000);
+    add('B5 Gegenprobe: Bild auf beiden Wegen 404 ⇒ Rückfall auf den rohen Tar wie bisher, kein harter CDN-Fehler',
+      reqs(`${RAW}/img/v1/rv/${ts}/f060.png`).length === 1 && reqs(runs.rvTarCdnUrl(ts)).length >= 1 && failureCount() === 0, `tar=${reqs(runs.rvTarCdnUrl(ts)).length} (${r.ok ? 'ok' : 'Fehler erwartet'})`);
   }
   Date.now = realNow;
 }

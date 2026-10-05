@@ -271,7 +271,8 @@ export class RadarImg404 extends Error {}
 // Dasselbe Muster wie der Punkt-Leser seit V-FI-5 (`fallbackStore`, point/client/store.ts):
 // dieselbe Datei von raw.githubusercontent.com (CORS *, gemessen 0,27–0,35 s TTFB) — als Hedge,
 // wenn das CDN nach 2,5 s keine Kopfzeilen geschickt hat, sofort bei 403/5xx/Netzfehler.
-// Ein 404 heißt „gibt es nicht" und bleibt eins. Schalter `?radarraw=0|1` / `localStorage.radarraw`.
+// Seit V-AW-25 auch nach einem 404 am CDN EINMAL raw (jsDelivr hält einen zu früh erfragten 404 am Edge
+// fest); „gibt es nicht" ist ein 404 erst auf beiden Wegen. Schalter `?radarraw=0|1` / `localStorage.radarraw`.
 export const RADAR_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar';
 /** p95 der gemessenen MISS-TTFB (AP0/AP1) — wie `RAW_FALLBACK_HEDGE_MS` des Punkt-Lesers. */
 export const RADAR_RAW_HEDGE_MS = 2_500;
@@ -375,12 +376,10 @@ export function fetchImgRes(url: string, signal?: AbortSignal, priority?: Reques
         if (settled || won) return;
         if (timer) { clearTimeout(timer); timer = null; }   // Kopfzeilen da: kein Hedge mehr
         if (res.ok) { win(res, acF); return; }
-        if (res.status === 404) {                          // gibt es nicht ⇒ sofort, ohne Ausweichweg
-          acF.abort(new Error(`404 am CDN: ${url}`));
-          finish(() => reject(new RadarImg404(`404 ${url}`)));
-          return;
-        }
-        pErr = res.status === 403 ? new RadarImg404(`403 ${url}`) : new Error(`${res.status} ${url}`);
+        // V-AW-25 (audit/autobahnwetter.md §18): ein 404 am CDN kann ein am Edge festgehaltener 404 sein (eine
+        // Anfrage vor dem Push) — dann einmal raw.githubusercontent; sagt auch raw 404, bleibt es „nicht da".
+        // Ohne Ausweichweg (Schalter `radarraw=0`, fremde Basis) wie bisher sofort RadarImg404.
+        pErr = res.status === 403 || res.status === 404 ? new RadarImg404(`${res.status} ${url}`) : new Error(`${res.status} ${url}`);
         startFallback();   // ohne Ausweichweg (Schalter/fremde Basis) entscheidet settleFailure sofort
         settleFailure();
       },

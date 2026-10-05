@@ -24,8 +24,9 @@ function abortError(signal: AbortSignal): unknown {
 }
 
 /**
- * One JSON file of `road/v1/`: CDN, after 2.5 s without headers (or on 403/5xx/network) the same path on
- * raw.githubusercontent. A 404 at the CDN means "not there" and is final (the time gate keeps requests behind the push).
+ * One JSON file of `road/v1/` (or `road/fc/v1/`): CDN, after 2.5 s without headers (or on 403/404/5xx/network) the same
+ * path on raw.githubusercontent. A 404 at the CDN is checked once on raw (V-AW-25): jsDelivr keeps a 404 that was asked
+ * for before the push at the edge — "not there" is a 404 on BOTH ways.
  */
 export function fetchRoadJson(path: string, signal?: AbortSignal, bases: { cdn: string; raw: string } = { cdn: ROAD_CDN_BASE, raw: ROAD_RAW_BASE }): Promise<unknown> {
   const cdn = `${bases.cdn}/${path}`;
@@ -79,8 +80,7 @@ export function fetchRoadJson(path: string, signal?: AbortSignal, bases: { cdn: 
         if (settled) return;
         if (timer) { clearTimeout(timer); timer = null; }
         if (res.ok) { take(res, acR); return; }
-        if (res.status === 404) { acR.abort(); finish(() => reject(new RoadNotThere(`404 ${cdn}`))); return; }
-        cdnErr = res.status === 403 ? new RoadNotThere(`403 ${cdn}`) : new Error(`${res.status} ${cdn}`);
+        cdnErr = res.status === 403 || res.status === 404 ? new RoadNotThere(`${res.status} ${cdn}`) : new Error(`${res.status} ${cdn}`);
         startRaw();
         failed();
       },
@@ -198,18 +198,10 @@ export async function loadRoadFcIndex(signal?: AbortSignal): Promise<RoadFcIndex
   }
 }
 
-/** One immutable run file: jsDelivr with the raw hedge; a 404 at the CDN is retried once on raw (`@main` may lag). */
+/** One immutable run file: jsDelivr with the raw hedge; a 404 at the CDN is checked once on raw (`@main` may lag). */
 async function fetchRoadFcFile(path: string, signal?: AbortSignal): Promise<(RoadFcFile & { dropped: number }) | null> {
-  const bases = { cdn: ROAD_FC_CDN_BASE, raw: ROAD_FC_RAW_BASE };
   try {
-    return parseRoadFcFile(await fetchRoadJson(path, signal, bases));
-  } catch (e) {
-    if ((e as Error)?.name === 'AbortError') throw e;
-    if (!(e instanceof RoadNotThere)) return null;
-  }
-  try {
-    const res = await fetch(`${ROAD_FC_RAW_BASE}/${path}`, { signal });
-    return res.ok ? parseRoadFcFile(await res.json()) : null;
+    return parseRoadFcFile(await fetchRoadJson(path, signal, { cdn: ROAD_FC_CDN_BASE, raw: ROAD_FC_RAW_BASE }));
   } catch (e) {
     if ((e as Error)?.name === 'AbortError') throw e;
     return null;

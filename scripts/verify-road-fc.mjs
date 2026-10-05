@@ -426,6 +426,23 @@ let built, runFiles;
   serve((u) => (u.endsWith(ROAD_FC_INDEX_PATH) ? index : undefined));
   const idx = await loadRoadFcIndex();
   add('F4 loadRoadFcIndex liefert den geprüften Zeiger (neueste zuerst)', idx?.runs.length === 2 && idx.runs[0].run === newer);
+
+  // V-AW-25: the measured slots — a 404 held at the CDN edge is checked once on raw before the reader steps back.
+  const { loadRoadSlot } = await import('../src/road/roadClient.ts');
+  const { ROAD_CDN_BASE, ROAD_RAW_BASE, roadExpectedSlot, roadObsPath, ROAD_SLOT_MS } = await import('../src/road/roadContract.ts');
+  const exp = roadExpectedSlot(now), s0 = roadStamp(exp), s1 = roadStamp(exp - ROAD_SLOT_MS);
+  const obsFor = (stamp, ms) => ({ schema: 1, product: 'road-obs', slot: stamp, slotMs: ms, killed: false, groups: {}, points: [] });
+  calls.length = 0;
+  serve((u) => (u === `${ROAD_RAW_BASE}/${roadObsPath(s0)}` ? obsFor(s0, exp) : undefined));
+  const g = await loadRoadSlot(now);
+  const callsG = calls.slice();
+  calls.length = 0;
+  serve((u) => (u === `${ROAD_CDN_BASE}/${roadObsPath(s1)}` ? obsFor(s1, exp - ROAD_SLOT_MS) : undefined));
+  const h = await loadRoadSlot(now);
+  add('F5 Messslot (V-AW-25): 404 am CDN, raw hat den Slot ⇒ dieser Slot, kein Schritt zurück (2 Abrufe); 404 auf beiden Wegen ⇒ ein Slot zurück (je Slot CDN + raw)',
+    g.reason === 'ok' && g.obs.slot === s0 && callsG.length === 2 && callsG[0] === `${ROAD_CDN_BASE}/${roadObsPath(s0)}` && callsG[1] === `${ROAD_RAW_BASE}/${roadObsPath(s0)}`
+    && h.reason === 'ok' && h.obs.slot === s1 && eq(h.tried, [s0, s1]) && calls.length === 3 && calls[1] === `${ROAD_RAW_BASE}/${roadObsPath(s0)}`,
+    `${callsG.length} / ${calls.length} Abrufe`);
   globalThis.fetch = realFetch;
 }
 
