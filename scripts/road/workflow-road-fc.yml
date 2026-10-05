@@ -35,6 +35,12 @@ name: road-fc
 # Deshalb läuft der Job zusätzlich nach jedem abgeschlossenen Lauf des Workflows `point` (Stufe 1 alle 3 h, MOSMIX-S
 # stündlich): genau dann liegen neue Eingaben im Repo. `point.yml` bleibt unberührt — `workflow_run` hört nur zu.
 # Die concurrency-Gruppe stellt zwei Auslöser hintereinander; der Client liest ohnehin den Zeiger.
+#
+# ── Kein Lauf ohne neue Eingaben (V-AW-31) ──────────────────────────────────
+# `point` läuft in vier getrennten Läufen (t1, t2, t3, MOSMIX-S) — am 04.10.2026 veröffentlichte dieser Job deshalb
+# dreimal in 11 min dieselbe Prognose. Der Producer prüft jetzt vor dem Rechnen: hat der jüngste veröffentlichte Lauf
+# dieselbe Stunde und dieselben Cube-/Stationsläufe gelesen, endet der Job grün ohne Rechnung und ohne Commit
+# (Log: „kein neuer Lauf — …"). Ein Start von Hand (workflow_dispatch) rechnet immer.
 on:
   schedule:
     - cron: '12 * * * *'   # stündlich, :12
@@ -91,6 +97,7 @@ jobs:
       - name: Forecast and publish
         env:
           ROAD_FC: ${{ vars.ROAD_FC }}
+          ROAD_FC_ALWAYS: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: |
           test -f road/fc/v1/static/points.json || { echo "road/fc/v1/static/points.json fehlt im Daten-Repo"; exit 1; }
           cd "$RUNNER_TEMP/app"

@@ -1331,6 +1331,23 @@ Auftrag Jan 03.10. (Kickoff `prompt-regenradar.md`, Entscheidungen E-RR-1…3 am
 - **(l) erledigt 04.10.:** Anzeige der Prognose auf der Seite (AW-6.1b, §15). Für dich: am Handy ansehen
   (`/autobahnwetter/a8-4` = Stuttgart, dort gibt es nur Prognosepunkte), E-AW-24…28 bestätigen oder ändern (Luft-Stufen
   0/+3 °C, Niederschlags-Marke ab 50 %, Karte bleibt Messung). Danach V-AW-21 (SWIS-Luft als Anker).
+- **(n) E-AW-30 — Messungs-Anker einschalten (V-AW-21, Audit §16):** gebaut und gemessen, steht auf AUS. Mit der
+  eigenen Luftmessung der Station ist die Prognose dort bei +1 h um 40 % genauer, bei +3 h um 12 %; Preis: Prognosen
+  aus der Messung um Sonnenaufgang sind 3–6 h später ≈ 0,05 K schlechter (deshalb hat meine Vorab-Regel nicht
+  bestanden). Empfehlung: einschalten. Dein Wort genügt — dann setze ich `ROAD_FC_ANCHOR_MODE = 'stations'` in
+  `src/road/roadFc.ts` und pushe; der nächste Job rechnet damit. Zurück: `'none'` oder `ROAD_FC_ANCHOR: none` als
+  `env` in `road-fc.yml`.
+- **(o) E-AW-31 — Wind an den Stationen verankern?** Böe bei +1 h 38 % näher am Sensor, aber die Masten messen nicht
+  in 10 m: die Zahl hieße dann „Wind an der Messstelle". Gebaut, aus.
+- **(p) für die Fusion-Linie:** V-AW-32 (Versatz um Sonnenaufgang klingt zu langsam ab) und V-AW-33 (Messung wird mit
+  dem Modellwert bis 30 min daneben gepaart — am Nachmittag fiel der Anker-Gewinn von 30 % auf 1 %) betreffen auch
+  den Anker im Browser. Beides wäre ein Eingriff in buscosun Fusion.
+- **(q) V-AW-30 — Stationslage (du kümmerst dich, 04.10.):** die Liste liegt in `audit/autobahnwetter/stationslage.md`
+  (185 Stationen, weiteste zuerst, je Lage ein Kartenlink) und als `stationslage.csv`. Neu erzeugen:
+  `node scripts/road/road-station-positions.mjs --data=<Klon von buscosun-data> --md=… --csv=…`. Sag mir je Station (oder
+  als Regel), welche Lage gilt — dann trage ich sie in den Katalog bzw. die Prognosepunkte ein.
+- **(r) V-AW-31 erledigt:** der Job rechnet und committet nicht mehr, wenn der jüngste Lauf dieselbe Stunde und dieselben
+  Eingaben hatte (Log „kein neuer Lauf — …"). Ein Start von Hand rechnet immer.
 - **(m) E-AW-29:** der Job `road-fc` läuft zusätzlich nach jedem `point`-Lauf, weil GitHub den Zeitplan am 04.10. nicht
   startete (Daten-Repo `7374e46`). Wenn dir das zu oft ist: die drei Zeilen `workflow_run` in `road-fc.yml` entfernen.
 - Aus: Repo-Variable `ROAD_FC=0` im Daten-Repo. Prüfen von außen:

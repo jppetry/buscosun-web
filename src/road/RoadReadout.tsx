@@ -14,7 +14,7 @@ import { ROAD_CLASS_LABEL } from './roadClasses';
 import type { RoadTab, RoadTime } from './roadState';
 import { ROAD_FC_SOURCE_TEXT, type RoadFcFile, type RoadFcPoint } from './roadFc';
 import {
-  ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_NAME_PP, ROAD_FC_UI_NOTE, roadFcAirClass, roadFcAxisName, roadFcGapPoints, roadFcLine,
+  roadFcAnchorText, ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_NAME_PP, ROAD_FC_UI_NOTE, roadFcAirClass, roadFcAxisName, roadFcGapPoints, roadFcLine,
   roadFcPrecipKind, roadFcPrecipText, roadFcSeries, roadFcTiles, roadFcTrip, roadFcTripText, roadFcValue, roadFcWindText, type RoadFcValue,
 } from './roadFcView';
 import {
@@ -195,7 +195,7 @@ function FcDetail({ p, fcPoint, always }: { p: Props; fcPoint: RoadFcPoint | nul
           </div>
         </>
       )}
-      <p className="aw-fc-note">{ROAD_FC_UI_NOTE} {p.fcLabel}{v?.interpolated ? ' · Stunde zwischen zwei Modellschritten interpoliert' : ''}.</p>
+      <p className="aw-fc-note">{ROAD_FC_UI_NOTE} {p.fcLabel} · {roadFcAnchorText(fcPoint, p.fcFile)}{v?.interpolated ? ' · Stunde zwischen zwei Modellschritten interpoliert' : ''}.</p>
     </>
   );
 }
@@ -237,7 +237,7 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
         </div>
       </div>
       <div className="aw-sources">
-        Datenbasis: buscosun Fusion 8 auf dem Punkt-Cube, ohne Messungs-Anker · Lage des Punkts auf der Fahrbahn: © OpenStreetMap-Mitwirkende (ODbL)
+        Datenbasis: buscosun Fusion 8 auf dem Punkt-Cube, {roadFcAnchorText(a, file)} · Lage des Punkts auf der Fahrbahn: © OpenStreetMap-Mitwirkende (ODbL)
       </div>
     </>
   );

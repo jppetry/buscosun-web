@@ -32,6 +32,11 @@
 - **AW-6.1b Anzeige (§15, dein „mache das" 04.10.):** Die Seite zeigt die Wetterprognose — eine Zeile „Prognose Luft"
   im Streckenband (auch dort, wo keine Messstelle steht), Kacheln +1/+3/+6 h, gestrichelter Verlauf, Wetter zur
   Ankunft im Reiter Strecke; Prognosepunkte sind wählbar wie Stationen. Die Fahrbahn selbst hat weiter keine Prognose.
+- **V-AW-21 Messungs-Anker (§16, dein „mach das" 04.10.):** gebaut und an acht Ausgabezeiten des 04.10. gemessen — mit
+  der eigenen Luftmessung der Station ist die Prognose bei +1 h um 40 % genauer (1,31 → 0,79 K), bei +3 h um 12 %.
+  **Nicht eingeschaltet:** meine vorab festgelegte Regel verlangt, dass kein einzelner Lauf schlechter wird; der Lauf
+  mit der Messung um Sonnenaufgang ist es bei 3–6 h leicht (≈ 0,05 K). Einschalten = eine Zeile, deine Entscheidung
+  (E-AW-30, Empfehlung: ja). Achspunkte zwischen Stationen gewinnen nicht und bleiben ohne Anker.
 - **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Rest von Gate C (Gerät, Wächter, SEO, Vorschaukarte),
   Anzeige der Prognose (AW-6.1b), Fahrbahn-Prognose AW-6.2 (Gate D). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
@@ -879,7 +884,7 @@ den Pfad `road/fc/v1` und prüft den Commit vor dem Push (`verify:road-fc` D9). 
 | Nr. | Was | Mehrwert | Skizze |
 |---|---|---|---|
 | V-AW-20 | Der DWD liefert die Ordner `LW` und `SD` (Baden-Württemberg, 114 Stationen, alle Autobahn-Anlagen um Stuttgart) leer aus | Messungen an A 8/A 81/A 6 in BW | Anfrage beim DWD-Open-Data-Support (Jan); auf der Seite bis dahin die Prognose und ein Hinweis |
-| V-AW-21 | Der Producer rechnet ohne Messungs-Anker; an den Stationen misst SWIS die Luft selbst (MAE 1,27 K am ersten Zeitpunkt) | genauere erste Stunden genau dort, wo die Fahrbahn bewertet wird | SWIS-Luft und -Taupunkt des jüngsten Slots als `CubeObs` am Stationspunkt (Abstand 0); neue Kette ⇒ am Archiv messen, bevor sie wirkt |
+| V-AW-21 | **gebaut und gemessen 04.10. (§16), aus bis E-AW-30** — Der Producer rechnet ohne Messungs-Anker; an den Stationen misst SWIS die Luft selbst (MAE 1,27 K am ersten Zeitpunkt) | genauere erste Stunden genau dort, wo die Fahrbahn bewertet wird | SWIS-Luft und -Taupunkt des jüngsten Slots als `CubeObs` am Stationspunkt (Abstand 0); neue Kette ⇒ am Archiv messen, bevor sie wirkt |
 | V-AW-22 | Korridore tragen Abschnitte, die noch nicht gebaut sind (A 14, A 143, A 44, A 60 — DLM250 führt sie als Autobahn) | keine Strecke auf der Karte, die es nicht gibt | `build-corridors.mjs`: Abschnitte ohne OSM-Fahrbahn auf ≥ 5 km abschneiden oder markieren |
 | V-AW-23 | Der Producer liest Manifeste und Tabellen je Punkt neu (≈ 25 % der Rechenzeit; 77 ms je Punkt einfädig) | Lauf in ≈ 2 statt 3–5 min | Merker für geparste Manifeste im Leser (`memoStore.json`) — Datei der Punktlinie |
 | V-AW-24 | Punkt- und Gelände-Datei liegen nur im Daten-Repo; fällt ein Hand-Push in das Fenster eines Force-Pushs der Kartenlinie, sind sie weg und der Job endet mit „points.json fehlt" | kein stiller Ausfall | Kopie beider Dateien im Archiv-Repo, der Job holt sie bei Bedarf zurück |
@@ -961,3 +966,178 @@ Punkte × 49 Schritte.
 | V-AW-29 | Reiter Strecke: bei drei Zeilen je Messpunkt wird die Tabelle lang | ruhigere Tabelle | Prognose in eine eigene Spalte ab 1 440 px |
 | V-AW-33 | Anker von buscosun Fusion: Messung und Modellwert passen zeitlich nicht zusammen. Am Code bestätigt (04.10.): `cubeSource.ts` paarte jede Messung mit dem ERSTEN Achsenschritt innerhalb ±30 min (`SAME_TIME_MS`) und nahm dessen Modellwert — der Gang des Modells über bis zu 30 min zählte als Innovation. Trifft im Browser jede Messung abseits der vollen Stunde, auch die ohne Zeitstempel (`cubeObsOf` setzt dann „jetzt"). Reproduktion im Verifier: Messung um t0 + 30 min genau auf der Modelllinie ⇒ Schein-Versatz = halber Stundengang statt 0 | der Anker korrigiert den Ortsversatz, nicht den Tagesgang; an den Straßenstationen gemessen +30 % (16:00) gegen +1 % (16:30) | **gebaut:** `FuseCubeOptions.anchorAtObsTime` — Modellwert (T, u, v, Böe) linear auf die Messminute zwischen den zwei Achsenschritten (Lücke ≤ `ANCHOR_BRACKET_MAX_H` 3 h); Messung auf einem Schritt oder vor dem Achsenbeginn wie bisher; ohne Option byte-gleich. `verify:pv-cube` (12) 3 Prüfungen (rot vor der Umsetzung). Wirkung im Browser nicht gemessen (das Archiv trägt Stundenwerte). **Eingeschaltet am 04.10. (Jan: „ja schalte es default mäßig ein") = „buscosun Fusion 9":** `FUSION9_ANCHOR_AT_OBS_TIME` in der Stufe `fs`, Rückfall `?anc=0` / `CubeIo.anchorAtObsTime: false` = Fusion 8 (eigener Cache-Schlüssel); die Streckenprognose (`road-forecast.mjs`, ohne Messungen) setzt den Rückfall und bleibt „buscosun Fusion 8"; `verify:pv-cube` 421/421, `verify:road-fc` 73/73, `verify:pv-fusion` 235/235, `verify:point-client` 170/171 ((10s) wie an HEAD), Build 252/252, totalJs 1 550,3 / 1 551. Commit/Push = Jans Gate. Nicht angefasst: der Stationswert liest die Stationsvorhersage nur zur exakten Gültigzeit (`stationForecastAt`) — eine Messung abseits der vollen Stunde gibt dort gar keine Innovation |
 | Real-Device | nur Headless geprüft | — | Jan: Handy, `/autobahnwetter/a8-4` |
+
+## 16. V-AW-21 — gemessene Luft der Stationen als Anker der Prognose (Jan 04.10.: „mach das")
+
+Auftrag: die Luftmessung der Glättemeldeanlagen als Messungs-Anker in die Streckenprognose nehmen — erst messen, dann
+einschalten. **Ergebnis: gebaut, gemessen, NICHT eingeschaltet** — die vorab festgelegte Regel ist an einer Stelle
+verletzt (Morgenlauf, §16.4). Einschalten ist eine Zeile und Jans Entscheidung (E-AW-30).
+
+### 16.1 Diagnose (04.10., gelesen am Code)
+
+| Nr. | Befund | Folge |
+|---|---|---|
+| D-ANK-1 | Der Motor hat den Eingang schon: `CubeIo.obs` → `CubeObs[]` (Quelle, Ort, Höhe, Abstand, Zeit, Temperatur …). Der Producer setzte `obs: null` (D-FC-2) | kein Eingriff in buscosun Fusion; der Producer reicht die Messungen durch denselben Haken wie der Browser |
+| D-ANK-2 | Der Anker ist eine Innovations-Persistenz: Versatz Messung − gelerntes Cube-Mittel am Punkt, mal Repräsentativität (`spatialWeight`: 20 km ⇒ 0,5), mal Abklingen mit dem Vorlauf. Er wirkt auf T, u, v, Böe — **nicht** auf den Taupunkt | Taupunkt nur berichten |
+| D-ANK-3 | Paarung Messung ⇄ Modellschritt im Stundenraster mit ± 30 min Toleranz (`SAME_TIME_MS`); das Fenster beginnt an der vollen Stunde des Laufs | eine Messung von :15/:30/:45 wird mit dem Modellwert der vollen Stunde verglichen (V-AW-33); eine Messung der Vorstunde findet keinen Schritt |
+| D-ANK-4 | Der Stationswert (Phase FS) nimmt die jüngste Messung am Punkt als Innovation gegen die MOSMIX-Vorhersage **derselben Minute** — steht eine MOSMIX-Station ≤ 5 km / ≤ 50 m am Punkt (bei 41 % der Glättemeldeanlagen), greift er auch mit der SWIS-Messung, aber nur zur vollen Stunde | zweiter Wirkweg, an den Daten sichtbar (§16.3) |
+| D-ANK-5 | Messungen liegen im selben Klon (`road/v1/obs/<slot>.json`, 3 h) — der Workflow checkt `road` schon aus | kein Abruf, keine Workflow-Änderung |
+| D-ANK-6 | Die Meldeposition weicht an 182 von 1 369 Stationen um mehr als 1 km vom Katalog ab (bis 131 km) | als Nachbar zählt eine Station nur, wenn beide Lagen auf 2 km übereinstimmen und die Kataloghöhe bekannt ist (V-AW-30) |
+| D-ANK-7 | Die 24-h-Ringe tragen nur Fahrbahn, Luft, Taupunkt — keinen Wind | Wind ist nur in den 3-h-Fenstern der Obs-Dateien prüfbar |
+
+### 16.2 Messaufbau und Regel
+
+Regel vorab festgelegt in `audit/autobahnwetter/anker-regel.md` (vor der ersten Auswertung). Werkzeug
+`scripts/road/road-fc-anchor-backtest.mjs`: buscosun Fusion 8 an jeder Station mit Messung, je Variante einmal, auf
+einem Schnappschuss des Daten-Repos; Wahrheit = die spätere Luftmessung derselben Station; gepaart gegen „ohne Anker".
+Schnappschüsse (nur lokal, `C:\dev\buscosun-road-snap\`): 09:10, 19:00, 19:20 UTC; frühere Ausgabezeiten nachgestellt
+(Cube-Zeiger auf den damals jüngsten Lauf, Messung aus dem 24-h-Ring).
+
+### 16.3 Ergebnis
+
+**Runde 1 — sechs Ausgabezeiten, jüngste Messung** (`audit/autobahnwetter/anker-messung-1.md`, ≈ 1 090 Stationen je Lauf):
+
+| Variante | Luft +1 h | +2 h | +3 h | 4–6 h | schlechtester Lauf |
+|---|---|---|---|---|---|
+| S1 eigene Messung | 1,29 → 0,82 K (+36 %*) | +21 %* | +13 %* | +7 %* | 06:25: +15 / +5 / **−1,9** / **−2,9 %!** |
+| S6 eigene + Nachbarn | +27 %* | +15 %* | +8 %* | +4 %* | 06:25: −1,4 / −3,4 / −5,1 % |
+| L nur Nachbarn (Achspunkte) | +4 %* | +2 %* | −0,5 % | −0,9 % | 06:25: −5,8 / −5,2 / −4,9 % |
+| S1w Wind an der Station | Wind +14 %*, Böe +38 %* | +8 / +29 %* | +2 / +16 %* | — | kein Lauf schlechter |
+
+Der Lauf 06:25 fiel heraus — er war der einzige mit einer Viertelstunden-Messung (06:15). Zerlegt nach Wirkweg
+(D-ANK-4): mit Messung zur vollen Stunde gewinnen Stationen mit Stationswert +48…+74 % bei +1 h, die übrigen +25…+30 %.
+
+**Runde 2 — volle Stunde gegen Viertelstunde, selber Lauf** (S1, Luft am ersten Stundenschritt nach dem Lauf):
+
+| Lauf | jüngste Viertelstunde | letzte volle Stunde |
+|---|---|---|
+| 03:40 | 03:30: +15 % | 03:00: +47 % |
+| 06:25 | 06:15: +15 % | 06:00: +35 % |
+| 06:55 | 06:45: +24 % | 06:00: +35 % |
+| 16:40 | 16:30: **+1 %** | 16:00: +30 % |
+| 17:55 | 17:45: +23 % | 17:00: +36 % |
+| 18:55 | 18:45: +20 % | 18:00: +43 % |
+
+⇒ Der Producer nimmt die Messung der vollen Stunde, in der der Lauf startet (`readSwisTable`). Ein Lauf in den ersten
+Minuten einer Stunde, bevor der Spiegel den Slot hat, rechnet ohne Anker und sagt das im Kopf.
+
+**Schlussmessung — eigene Messung der vollen Stunde, acht Ausgabezeiten**
+(`audit/autobahnwetter/anker-messung-vollstunde.md`; 03:10 · 06:25 · 09:05 · 14:10 · 16:10 · 17:55 · 18:55 · 19:20):
+
+| Vorlauf | Paare | MAE ohne Anker | mit Anker | Gewinn | je Lauf |
+|---|---|---|---|---|---|
+| +1 h | 7 564 | 1,31 K | 0,79 K | **+40,0 %*** | +30 … +47 % |
+| +2 h | 6 469 | 1,34 | 1,04 | +22,5 %* | +10 … +35 % |
+| +3 h | 5 395 | 1,28 | 1,13 | +12,2 %* | +10 … +26 %, **06:25: −2,4 %** |
+| 4–6 h | 11 849 | 1,27 | 1,19 | +6,5 %* | +6 … +13 %, **06:25: −3,5 %!** |
+| 7–9 h | 9 690 | 1,21 | 1,20 | +0,7 % | −0,7 … +2,7 % |
+| 10–12 h | 7 545 | 1,19 | 1,18 | +0,9 %* | |
+
+Taupunkt (nicht verankert, profitiert über den Stationswert): +1 h 1,52 → 1,17 K (+23 %*), +3 h +11 %*, nirgends schlechter.
+Bias Luft −0,56 → −0,21 K bei +1 h.
+
+### 16.4 Verdikt nach der Regel
+
+| Regel | Ergebnis |
+|---|---|
+| 1 Stationspunkte (eigene Messung) | **nicht erfüllt.** Gepoolt bei 1, 2, 3 h signifikant besser und in keinem Bin signifikant schlechter — aber die Bedingung „in keinem einzelnen Lauf bei 1–3 h größer" ist verletzt: der Lauf mit der Messung von 06:00 UTC (Sonnenaufgang) ist bei +3 h um 2,4 % schlechter (nicht signifikant) und bei 4–6 h um 3,5 % (signifikant, ≈ 0,05 K). Der nächtliche Versatz einer Station hält nach Sonnenaufgang nicht; der Motor lässt ihn zu langsam abklingen (V-AW-32) |
+| 2 Nachbarn zusätzlich (S6) | nein — S6 ist in jedem Vorlauf schlechter als S1 |
+| 3 Achspunkte (nur Nachbarn) | **nein** — bei +3 h kein Gewinn, im Morgenlauf −5 … −6 %. Achspunkte bleiben ohne Anker |
+| 4 Wind | Regel erfüllt (Wind und Böe in jedem Lauf besser) — trotzdem nicht eingeschaltet: die Masten messen nicht in 10 m (Prognose-Bias +0,8 m/s Wind, +1,2 m/s Böe gegen die Sensoren); verankert hieße die Größe „Wind am Mast", nur an Stationen, und stünde neben unverankerten Achspunkten. Bedeutungsänderung ⇒ Jans Entscheidung (E-AW-31) |
+| 5 Taupunkt | berichtet (s. o.) |
+
+Grenzen: ein Tag, milde trockene Lage, kein Frost; nachgestellte Läufe lesen denselben MOSMIX-Stand wie der Schnappschuss;
+p-Werte bei räumlich korrelierten Stationen zu optimistisch. Die Läufe ab 16:10 haben erst einen Teil ihrer Vorläufe.
+
+### 16.5 Umsetzung (alles aus: `ROAD_FC_ANCHOR_MODE = 'none'`)
+
+| Teil | Datei | Was |
+|---|---|---|
+| Schalter | `src/road/roadFc.ts` | `ROAD_FC_ANCHOR_MODE` (`'none'` · `'stations'` · `'all'`), `RoadFcPoint.anc` = [Versatz 0,1 K, Gewicht %, eigene Messung 1/0], `RoadFcEngine.anchor` `'none' \| 'swis'` + `anchorMode`, `anchorSlot`, `anchored` — der Kopf sagt, was geschah, nicht was verlangt war |
+| Producer | `scripts/road/road-forecast.mjs` | `readSwisTable` (Obs-Datei der vollen Stunde des Laufs, nur Werte dieses Zeitpunkts), `swisTable` (Lageprüfung), `anchorObsFor` (eigene Messung allein; sonst ≤ 6 Nachbarn in 30 km), Übergabe über `CubeIo.obs`; Schalter auch per `--anchor=` und `ROAD_FC_ANCHOR` (Rückweg ohne Commit); ohne Messdatei Lauf ohne Anker, benannt |
+| Seite | `roadFcView.ts`, `RoadReadout.tsx` | je Punkt ein Halbsatz: „verankert an der Luftmessung dieser Messstelle von HH:MM (Messung − Modell ±x K)" / „… an Messstellen im Umkreis" / „ohne Messungs-Anker" |
+| Archiv | `scripts/road/road-fc-archive.mjs` | `anc` je Station mit abgelegt |
+| Messung | `scripts/road/road-fc-anchor-backtest.mjs` | `compute` / `score`, wiederholbar auf jedem Schnappschuss |
+
+Motor, Vertrag der Messungen, Workflow, Daten-Repo: unberührt. Mit Schalter `'none'` sind die Lauf-Dateien byte-gleich
+zum Stand davor (Verifier J6).
+
+### 16.6 Gates
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:road-fc` | **84/84** — neu Block J (11): Messtabelle und Lageprüfung, Auswahl je Punktart, Lauf „stations" (Kopf, `anc`, Richtung), Achspunkte byte-gleich, Lauf „all", fünf Gegenproben (Schalter aus, Messung der Vorstunde, nur Viertelstunde, `killed`, keine Datei ⇒ byte-gleich zum Lauf ohne Anker), Kindprozesse = ein Prozess, **Datei = direkte Rechnung von buscosun Fusion 8 mit derselben Messung**, Wind unberührt, Leser/Archiv/Text |
+| übrige | `verify:road-ui` 55/55, `verify:road-archive` 26/26, `verify:road-contract` 65/65, typecheck 0, Build 252/252, Budget eagerJs 108,9 / 109 · totalJs 1 550,0 / 1 551 |
+
+### 16.7 Offen
+
+| Nr. | Was | Mehrwert | Skizze |
+|---|---|---|---|
+| **E-AW-30** | Anker an den Stationspunkten einschalten? Empfehlung: **ja** — +1 h 40 %, +3 h 12 % genauer; Preis: Prognosen aus der Messung um Sonnenaufgang sind 3–6 h später ≈ 0,05 K schlechter | genauere erste Stunden dort, wo die Fahrbahn bewertet wird (Gate D) | `ROAD_FC_ANCHOR_MODE = 'stations'` in `roadFc.ts`, Push — der nächste Job rechnet damit; zurück: `'none'` oder `ROAD_FC_ANCHOR: none` im Workflow |
+| E-AW-31 | Wind und Böe an den Stationen verankern (Böe +38 % bei +1 h)? | Wind, wie ihn der Mast an der Straße misst | Option `wind` in `anchorObsFor` ist gebaut; die Größe hieße dann „Wind an der Messstelle" |
+| V-AW-30 | 182 Stationen: Meldeposition ≠ Katalog (> 1 km, bis 131 km) | richtige Lage der Stationspunkte und Marker | **Liste erzeugt 04.10. (§17.1, `audit/autobahnwetter/stationslage.md`)**; je Station Bulletin gegen Katalog entscheiden = Jan |
+| V-AW-31 | **behoben 04.10. (§17.2)** — Der Job `road-fc` läuft nach jedem `point`-Lauf — am 04.10. dreimal in 11 min veröffentlicht (15:37, 15:39, 15:48 UTC) | weniger Leerlauf | der Producer überspringt einen Lauf mit derselben Stunde und denselben Eingaben (`repeatVerdict`) |
+| V-AW-32 | Der Versatz einer Messung um Sonnenaufgang hält nicht (−4 … −9 % bei 3–6 h an Stationen ohne Stationswert) | Regel 1 erfüllt | Abklingen nach Tageszeit im Motor — buscosun Fusion, Jans Gate; betrifft auch den Browser-Pfad |
+| V-AW-33 | Der Motor paart eine Messung mit dem Modellschritt bis ± 30 min daneben; am Nachmittag fiel der Gewinn damit von 30 % auf 1 % | der Anker im Browser (BrightSky-Messung zur Minute) verliert vermutlich ebenso | Modellwert auf die Messzeit interpolieren oder nur Messungen der vollen Stunde paaren — buscosun Fusion, Jans Gate |
+| V-AW-34 | Wiederholung an weiteren Tagen, vor allem bei Frost | belastbare Zahl | `road-fc-anchor-backtest.mjs` an 2–3 Schnappschüssen je Tag; nach E-AW-30 liefert das Archiv verankerte Läufe mit `anc` |
+
+## 17. V-AW-30 Stationsliste und V-AW-31 Wiederholungsschutz (04.10., Jans „setze diese zwei Punkte um")
+
+### 17.1 V-AW-30 — Liste der Stationen mit zwei Lagen
+
+Werkzeug `scripts/road/road-station-positions.mjs` (nur lesend): liest alle Messdateien eines Klons von buscosun-data,
+nimmt je Station die Position der Meldung und stellt sie neben den Katalog. Ergebnis
+`audit/autobahnwetter/stationslage.md` (Tabelle mit Kartenlinks, weiteste zuerst) und `stationslage.csv`.
+Die Entscheidung je Station liegt bei Jan (seine Ansage 04.10.); die Liste entscheidet nichts.
+
+- Messdateien: 12 (2610041730 … 2610042015), Stationen mit Meldeposition: 1555, davon im Katalog mit Lage: 1400, ohne Katalogeintrag: 155
+- Abstand > 1 km: 185 — 100–… km: 1 · 20–100 km: 5 · 5–20 km: 22 · 2–5 km: 68 · 1–2 km: 89
+- davon durch die Rundung der Meldung allein erklärbar (Abstand ≤ größter Rundungsfehler ihrer Nachkommastellen): 6
+- Stationen mit mehr als einer Meldeposition in den Dateien: 0
+
+Befunde aus der Liste:
+
+- **Die Rundung der Meldung erklärt fast nichts** (6 Stationen). Meine Vermutung aus der Erklärung war falsch: die
+  Meldungen tragen meist fünf Nachkommastellen. Grob ist an vielen Stellen der **Katalog** — Lagen wie `51.41667, 7.6`
+  oder `51.25, 7.6` sind auf Bogenminuten gerundet (bis ≈ 1,2 km), bei einigen offenbar auf einen Ortsnamen statt
+  auf die Anlage gesetzt (H508, H448, H557: 6–9 km).
+- **Echte Fehler am oberen Ende:** P101 Kahl (131 km), P301 Ensbrücke (69 km), P142 Wildbach (55 km), K441, P670 —
+  hier liegt eine der beiden Lagen an einer anderen Straße. P301 und P159 melden dieselbe Position
+  (`49.82504, 11.0091`) — eine davon ist in der Meldung falsch.
+- **P925** heißt im Katalog „Vogelwirt", in der Meldung „Stuetzelsaege" (19,9 km): die Kennung ist vermutlich neu
+  vergeben.
+- 155 meldende Stationen stehen nicht im Katalog (bekannt, V-AW-7); keine Station meldet wechselnde Positionen.
+- Die Zahl 182 aus §16 stammt aus dem Schnappschuss vom Vormittag; im Bestand von 17:30–20:15 UTC sind es 185.
+
+Wirkung heute unverändert: Marker und Prognosepunkt liegen auf der Kataloglage; als Anker-Nachbar zählt eine Station
+nur bei ≤ 2 km Übereinstimmung (D-ANK-6).
+
+### 17.2 V-AW-31 — kein Lauf ohne neue Eingaben
+
+**Diagnose.** `workflow_run` feuert je abgeschlossenem **Lauf** des Workflows `point`; dessen vier Zeitpläne (t1, t2, t3,
+MOSMIX-S) sind vier getrennte Läufe, dazu kommt der eigene Stundenplan. Am Zeiger vom 04.10. abgelesen (Lauf · t1 ·
+Stationslauf): `1713`/`1736` (12z · 09z), `1801` (12z · 15z), `1813`/`1819` (15z · 15z), `1920`/`1952` (15z · 15z) —
+drei von sieben Läufen hatten dieselbe Stunde und dieselben Eingaben wie ihr Vorgänger; am Nachmittag 15:37, 15:39,
+15:48 UTC ebenso.
+
+**Entscheidung.** Nicht den Auslöser einschränken (er kann nicht nach Job filtern, und der t2-Job bringt MOSMIX-L —
+eine echte Eingabe), sondern im Producer vor dem Rechnen prüfen (`repeatVerdict`, `road-forecast.mjs`): ein Lauf ist
+eine Wiederholung, wenn der jüngste veröffentlichte Lauf
+
+1. in derselben Stunde beginnt (`t0Ms`),
+2. dieselben Cube- und Stationsläufe gelesen hat, die `point/index.json` des Klons jetzt anbietet (jede Eingabe, die
+   der Motor im letzten Lauf nannte: t1, t2, Stationen; MOSMIX-S und t3 sind keine Eingaben), mit denselben Tabellen,
+3. und keine Messdatei der vollen Stunde dazugekommen ist, die der Anker jetzt nähme und damals nicht hatte.
+
+Dann endet der Job grün mit „kein neuer Lauf — …", ohne Rechnung und ohne Commit. Unlesbares oder Unbekanntes ⇒ der
+Lauf findet statt. Neuere Radarbilder in derselben Stunde zählen bewusst nicht — der nächste Stundenlauf nimmt sie.
+`--always` / `ROAD_FC_ALWAYS=1` rechnet immer; der Workflow setzt das beim Start von Hand.
+
+**Wirkung.** Je Stunde ein Lauf, dazu einer je neuem t1-, t2- oder Stationslauf. Ein übersprungener Auslöser kostet
+noch Checkout und Klon (≈ 30–40 s), keine ≈ 75 s Rechnung und keinen Commit (≈ 8,5 MB). Am echten Klon geprüft:
+19:56 UTC ⇒ Wiederholung von `2610041952`; 20:40 UTC ⇒ „neue Stunde".
+
+**Gates.** `verify:road-fc` **89/89** — neu Block K (5): der Fall vom 04.10., zehn Gegenproben mit benanntem Grund,
+Anker-Fall, am Klon mit Tabellen-Hashes, Verdrahtung in Producer und Workflow. `src/` unberührt (kein Build nötig).
+Wirksam mit dem Push von `main` (der Job klont den Producer bei jedem Lauf); die Workflow-Kopie im Daten-Repo bringt
+nur den Schalter für den Start von Hand.

@@ -7,17 +7,19 @@
  * The chain is the client's: `getPointForecastFromCube` with the options of `defaultCubeIo()` (stage `fs`, tables
  * `json`, radar hour mean, MOSMIX station member) — only the store (a directory instead of the CDN), the decoders
  * (Node) and three producer facts differ: terrain and roughness come from `static/geo.json` (the client's own cache
- * entries, built once), decoded chunks and radar frames are memoised across points, and there is NO measurement
- * anchor (`obs: null` — one BrightSky request per point is not affordable; the engine says "kein Anker").
+ * entries, built once), decoded chunks and radar frames are memoised across points, and the measurement anchor does
+ * not come from BrightSky (one request per point is not affordable) but from the road weather stations of the same
+ * checkout (V-AW-21, `ROAD_FC_ANCHOR_MODE`; off ⇒ `obs: null`, the engine says "kein Anker").
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-forecast.mjs
  *     --data=<checkout of buscosun-data> [--out=<work dir>] [--now=<iso>] [--shards=4] [--publish]
- *     [--limit=N] [--ids=a8@0,Q441] [--remote=origin] [--branch=main]
+ *     [--limit=N] [--ids=a8@0,Q441] [--remote=origin] [--branch=main] [--always]
  *
  * `--publish`: the run is copied into the checkout, the pointer updated, old runs pruned, committed and pushed —
  * re-based onto a fresh `origin/main` on every attempt (the map line force-pushes this repo, the radar mirror pushes
- * every few minutes). Exit 0 = run published (or built, without `--publish`; or switched off with `ROAD_FC=0`),
- * 3 = run NOT published (too many points failed, tables not read, no tier-1 run), 1 = error.
+ * every few minutes). Exit 0 = run published (or built, without `--publish`; or switched off with `ROAD_FC=0`; or
+ * skipped because the newest published run already used the same hour and the same inputs — `repeatVerdict`,
+ * V-AW-31; `--always` / `ROAD_FC_ALWAYS=1` runs anyway), 3 = run NOT published (too many points failed, tables not read, no tier-1 run), 1 = error.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, cpSync, mkdtempSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -29,7 +31,7 @@ import { decodePng, toRgba } from '../lib/png.mjs';
 import { installNodeShims } from '../punktarchiv/lib/nodeShims.mjs';
 import {
   ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH, ROAD_FC_POINTS_PATH, ROAD_FC_GEO_PATH, ROAD_FC_HOURS, ROAD_FC_STEPS, ROAD_FC_VAR_IDS,
-  ROAD_FC_SOURCE_TEXT, ROAD_FC_MAX_FAILED_SHARE,
+  ROAD_FC_SOURCE_TEXT, ROAD_FC_MAX_FAILED_SHARE, ROAD_FC_ANCHOR_MODE,
   roadFcStamp, roadFcT0, roadFcEncode, roadFcOriginCode, roadFcSeriesProblems, roadFcPointUsable, roadFcCorridorPath, roadFcStatePath,
   roadFcPrune, parseRoadFcIndex, parseRoadFcPoints,
 } from '../../src/road/roadFc.ts';
@@ -37,6 +39,7 @@ import { newStoreStats } from '../../src/point/client/store.ts';
 import { decodeCubeChunk, POINT_LEARNED_PATH, POINT_STACK_PATH, POINT_CLIMA_PATH } from '../../src/point/cubeFormat.ts';
 import { getPointForecastFromCube, clearCubeForecastCache, exceedance, FUSION8_NOWCAST_HOUR_MEAN } from '../../src/pointForecast/cubeSource.ts';
 import { getClimaField } from '../../src/pointForecast/fusion/attach.ts';
+import { ROAD_REPO_DIR, ROAD_STATIONS_PATH, roadStamp } from '../../src/road/roadContract.ts';
 
 const H = 3_600_000;
 const SELF = fileURLToPath(import.meta.url);
@@ -135,6 +138,97 @@ export function makeIo({ store, cache, nowMs }) {
   };
 }
 
+// --- Measurement anchor (V-AW-21) ----------------------------------------------------------------
+
+/**
+ * The anchor of buscosun Fusion needs measurements (`CubeObs`); the browser fetches BrightSky per point, the producer
+ * has the road weather stations of the same checkout (`road/v1/obs`, SWIS air temperature). A station point takes its
+ * OWN measurement (distance 0); every other point takes the nearest stations. Which of the two is switched on, and
+ * why temperature only, is measured in audit/autobahnwetter.md §16.
+ *
+ * The measurement is the one of the last FULL HOUR, not the newest quarter-hour slot: the engine pairs a measurement
+ * with the model step of its hour grid (±30 min) and the station-value path needs the station forecast of the very
+ * minute — measured on 04.10.2026 (§16.3), a 16:30 measurement gained +1 % at +1 h where the 16:00 one gained +30 %,
+ * and a 55 min old full-hour value still beat a 10 min old quarter-hour value (+43 % against +20 %). It is the hour
+ * the run starts in (`roadFcT0`): the engine's window begins there, an older measurement finds no step to pair with.
+ * A run in the first minutes of an hour, before the mirror has that slot, runs without anchor and says so.
+ * `maxAgeMs` follows from that (< 1 h); the other numbers are `set`.
+ */
+export const ROAD_FC_ANCHOR = Object.freeze({ maxAgeMs: 3_600_000, maxKm: 30, maxN: 6, coordTolKm: 2 });
+
+const kmBetween = (aLat, aLon, bLat, bLon) => {
+  const r = Math.PI / 180, dLat = (bLat - aLat) * r, dLon = (bLon - aLon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+};
+
+/**
+ * Measurement table of one slot: `rows` = points of an obs file (or the same shape built from the 24-h rings).
+ * A station enters with a finite air temperature; `place` = may it serve as a NEIGHBOUR (position of the bulletin and
+ * of the catalogue agree within `coordTolKm`, catalogue height known) — its own point takes it either way.
+ */
+export function swisTable(rows, catalog, points) {
+  const byId = new Map(points.filter((p) => p.kind === 'station').map((p) => [p.id, p]));
+  const out = new Map();
+  for (const r of rows ?? []) {
+    if (!r || typeof r.id !== 'string' || !Number.isFinite(r.ta) || !Number.isFinite(r.t)) continue;
+    const p = byId.get(r.id), c = catalog?.[r.id];
+    const lat = p?.lat ?? c?.lat, lon = p?.lon ?? c?.lon;
+    const place = Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(r.lat) && Number.isFinite(r.lon)
+      && kmBetween(lat, lon, r.lat, r.lon) <= ROAD_FC_ANCHOR.coordTolKm && Number.isFinite(c?.h);
+    out.set(r.id, {
+      id: r.id, name: r.n ?? c?.n ?? r.id, lat: lat ?? r.lat, lon: lon ?? r.lon, h: Number.isFinite(c?.h) ? c.h : null, place, tMs: r.t,
+      ta: r.ta, td: Number.isFinite(r.td) ? r.td : null, rh: Number.isFinite(r.rh) ? r.rh : null,
+      ws: Number.isFinite(r.ws) ? r.ws : null, wd: Number.isFinite(r.wd) ? r.wd : null, wg: Number.isFinite(r.wg) ? r.wg : null,
+    });
+  }
+  return out;
+}
+
+/** The obs file of the full hour the run starts in → `{ slot, table }`, or `null` (not there yet, switched off, empty — named by the caller). */
+export function readSwisTable(dataDir, nowMs, points) {
+  const dir = join(dataDir, ROAD_REPO_DIR);
+  const catFile = join(dir, ROAD_STATIONS_PATH);
+  const catalog = existsSync(catFile) ? JSON.parse(readFileSync(catFile, 'utf8')).stations : null;
+  const ms = roadFcT0(nowMs);
+  const f = join(dir, 'obs', `${roadStamp(ms)}.json`);
+  if (!existsSync(f)) return null;
+  let doc; try { doc = JSON.parse(readFileSync(f, 'utf8')); } catch { return null; }
+  if (doc?.killed || !Array.isArray(doc?.points)) return null;
+  // Only values measured AT the slot: a station that repeats an older value would be paired with the wrong hour.
+  const table = swisTable(doc.points.filter((r) => r.t === ms), catalog, points);
+  return table.size ? { slot: roadStamp(ms), table } : null;
+}
+
+/**
+ * The measurements one point hands to the engine. `own`: the station's own value, alone (a neighbour 10 km away would
+ * weigh 0.8 against it in the engine's mean offset). Otherwise the `maxN` nearest placed stations within `maxKm`.
+ * Backtest variants: `opts.leaveOut` (never the own value), `opts.withNeighbours`, `opts.wind`, `opts.noNeighbours`.
+ */
+export function anchorObsFor(p, table, opts = {}) {
+  const toObs = (m, distanceM, elevM) => {
+    const wind = !!opts.wind && m.ws != null && m.wd != null;
+    const rad = wind ? (m.wd * Math.PI) / 180 : 0;
+    return {
+      source: 'swis', name: m.name, stationId: m.id, lat: m.lat, lon: m.lon, elevM, distanceM, validAtMs: m.tMs,
+      temperature: m.ta, relativeHumidity: m.rh, dewPoint: m.td,
+      u: wind ? -m.ws * Math.sin(rad) : null, v: wind ? -m.ws * Math.cos(rad) : null, gust: opts.wind ? m.wg : null,
+    };
+  };
+  const own = !opts.leaveOut && p.kind === 'station' ? table.get(p.id) : null;
+  const out = own ? [toObs({ ...own, lat: p.lat, lon: p.lon }, 0, null)] : [];
+  if ((own && !opts.withNeighbours) || opts.noNeighbours) return out;
+  const near = [];
+  for (const m of table.values()) {
+    if (!m.place || m.id === p.id) continue;
+    const km = kmBetween(p.lat, p.lon, m.lat, m.lon);
+    if (km <= ROAD_FC_ANCHOR.maxKm) near.push([km, m]);
+  }
+  near.sort((a, b) => a[0] - b[0] || (a[1].id < b[1].id ? -1 : 1));
+  for (const [km, m] of near.slice(0, ROAD_FC_ANCHOR.maxN - out.length)) out.push(toObs(m, km * 1000, m.h));
+  return out;
+}
+
 // --- One point ---------------------------------------------------------------------------------
 
 /** `PointForecast` (cube path) → the coded series of the contract. */
@@ -169,10 +263,12 @@ function runsOf(fc) {
 }
 
 /** One point → `{ point }` or `{ error }`; never throws. */
-export async function computePoint(p, io, nowMs) {
+export async function computePoint(p, io, nowMs, obs = null) {
   try {
     clearCubeForecastCache();
-    const fc = await getPointForecastFromCube({ lat: p.lat, lng: p.lon, country: 'DE', hours: ROAD_FC_HOURS, pointSource: 'cube', includeRadarNowcast: true }, io);
+    // V-AW-21: the measurements go in through the engine's own hook (`CubeIo.obs`), already resolved.
+    const pio = obs && obs.length ? { ...io, obs: async () => obs } : io;
+    const fc = await getPointForecastFromCube({ lat: p.lat, lng: p.lon, country: 'DE', hours: ROAD_FC_HOURS, pointSource: 'cube', includeRadarNowcast: true }, pio);
     if (!fc.cube?.v2) return { error: 'kein Cube-Ergebnis' };
     const t0Ms = roadFcT0(nowMs);
     const v = seriesOf(fc, t0Ms);
@@ -185,32 +281,49 @@ export async function computePoint(p, io, nowMs) {
       h: fc.cube.v2.point?.hTrue == null ? null : Math.round(fc.cube.v2.point.hTrue),
       ...(p.bridge ? { bridge: true } : {}), ...(p.kind === 'station' && p.name ? { name: p.name } : {}),
       mos: used ? [String(st.id), Math.round(st.distKm * 10) / 10] : null,
+      ...anchorOf(fc, obs),
       v,
     };
     if (!roadFcPointUsable(point)) return { error: 'weniger als die Hälfte der Stunden mit Temperatur' };
     const stage = fc.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\)/.test(n));
-    return { point, runs: runsOf(fc), stage, errors: fc.cube.errors.length };
+    return { point, runs: runsOf(fc), stage, errors: fc.cube.errors.length, fc };
   } catch (e) {
     return { error: String(e?.message ?? e).split('\n')[0] };
   }
 }
 
-/** A slice of points in one process. */
-export async function runShard({ dataDir, points, geoDoc, nowMs }) {
+/**
+ * What the anchor did at this point, read from the engine's own note: `anc` = [offset measurement − model in 0.1 K,
+ * representativity in %, own measurement 1/0]. Absent = no anchor at this point.
+ */
+export function anchorOf(fc, obs) {
+  if (!obs || !obs.length) return {};
+  const m = /^anchor: \d+ Paar\(e\) aus swis, Versatz T (-?\d+(?:\.\d+)?) K, Repräsentativität (\d+(?:\.\d+)?)$/.exec(fc.cube.notes.find((n) => n.startsWith('anchor: ') && n.includes(' aus swis')) ?? '');
+  return m ? { anc: [Math.round(Number(m[1]) * 10), Math.round(Number(m[2]) * 100), obs[0].distanceM === 0 ? 1 : 0] } : {};
+}
+
+/**
+ * A slice of points in one process. `anchor` (`ROAD_FC_ANCHOR_MODE`): `'stations'` = every station point takes its own
+ * measurement, `'all'` = other points take their neighbours too, `'none'`. No usable obs file ⇒ no anchor (named in
+ * the run's engine block).
+ */
+export async function runShard({ dataDir, points, geoDoc, nowMs, anchor = null, allPoints = null }) {
   installNodeShims();
   const cache = geoBackend(geoDoc);
   const io = makeIo({ store: dirStore(dataDir), cache, nowMs });
   const out = [], failed = [];
   let runs = null, noStage = 0, readerErrors = 0;
+  const opts = anchor === 'all' ? {} : anchor === 'stations' ? { noNeighbours: true } : null;
+  const swis = opts ? readSwisTable(dataDir, nowMs, allPoints ?? points) : null;
   for (const p of points) {
-    const r = await computePoint(p, io, nowMs);
+    const r = await computePoint(p, io, nowMs, swis ? anchorObsFor(p, swis.table, opts) : null);
     if (r.error) { failed.push({ id: p.id, error: r.error }); continue; }
     out.push(r.point);
     runs ??= r.runs;
     if (!r.stage) noStage++;
     readerErrors += r.errors;
   }
-  return { points: out, failed, runs, noStage, readerErrors, geo: cache.counts };
+  return { points: out, failed, runs, noStage, readerErrors, geo: cache.counts, anchorSlot: swis?.slot ?? null };
 }
 
 // --- A run -------------------------------------------------------------------------------------
@@ -235,7 +348,7 @@ function spawnShard(args) {
  * Computes one run into `<outDir>/<run>/…` and returns its index entry. `inProcess` (verifier) computes without child
  * processes; otherwise the points are cut into contiguous slices (neighbours share chunks) for `shards` processes.
  */
-export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1, points = null, inProcess = false, log = () => {} }) {
+export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1, points = null, inProcess = false, anchor = ROAD_FC_ANCHOR_MODE, log = () => {} }) {
   const T0 = Date.now();
   const fcDir = join(dataDir, ROAD_FC_REPO_DIR);
   const pointsDoc = parseRoadFcPoints(JSON.parse(readFileSync(join(fcDir, ROAD_FC_POINTS_PATH), 'utf8')));
@@ -246,7 +359,7 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
   const run = roadFcStamp(nowMs), t0Ms = roadFcT0(nowMs);
 
   let parts;
-  if (inProcess || shards <= 1) parts = [await runShard({ dataDir, points: all, geoDoc, nowMs })];
+  if (inProcess || shards <= 1) parts = [await runShard({ dataDir, points: all, geoDoc, nowMs, anchor, allPoints: pointsDoc.points })];
   else {
     const work = mkdtempSync(join(tmpdir(), 'road-fc-'));
     const n = Math.min(shards, Math.max(1, all.length));
@@ -255,15 +368,20 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     for (let i = 0; i < n; i++) {
       const pf = join(work, `p${i}.json`), rf = join(work, `r${i}.json`);
       writeFileSync(pf, JSON.stringify(all.slice(i * size, (i + 1) * size)));
-      jobs.push(spawnShard([`--data=${dataDir}`, `--now=${new Date(nowMs).toISOString()}`, `--shard-points=${pf}`, `--shard-result=${rf}`]).then(() => JSON.parse(readFileSync(rf, 'utf8'))));
+      jobs.push(spawnShard([`--data=${dataDir}`, `--now=${new Date(nowMs).toISOString()}`, `--shard-points=${pf}`, `--shard-result=${rf}`, `--anchor=${anchor}`]).then(() => JSON.parse(readFileSync(rf, 'utf8'))));
     }
     try { parts = await Promise.all(jobs); } finally { rmSync(work, { recursive: true, force: true }); }
   }
 
   const done = parts.flatMap((p) => p.points), failed = parts.flatMap((p) => p.failed);
   const runs = parts.find((p) => p.runs)?.runs ?? {};
+  // The anchor is named by what happened, not by what was asked for: no usable measurement slot ⇒ 'none'.
+  const anchored = done.filter((p) => p.anc).length;
+  const anchorSlot = parts.find((p) => p.anchorSlot)?.anchorSlot ?? null;
   const engine = {
-    name: 'buscosun Fusion 8', stage: 'fs', anchor: 'none', hourMean: FUSION8_NOWCAST_HOUR_MEAN, runs,
+    name: 'buscosun Fusion 8', stage: 'fs', anchor: anchored ? 'swis' : 'none',
+    ...(anchored ? { anchorMode: anchor, anchorSlot, anchored } : {}),
+    hourMean: FUSION8_NOWCAST_HOUR_MEAN, runs,
     tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
   };
   const noStage = parts.reduce((s, p) => s + p.noStage, 0);
@@ -297,7 +415,7 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     corridors: byCorridor.size, states: byState.size, engine, ms: Date.now() - T0,
   };
   const stats = { total: all.length, failed, noStage, geo, bytes, readerErrors: parts.reduce((s, p) => s + p.readerErrors, 0) };
-  log(`Lauf ${run}: ${done.length}/${all.length} Punkte · ${failed.length} ohne Ergebnis · ${byCorridor.size} Korridore + ${byState.size} Länder · ${(bytes / 1e6).toFixed(2)} MB · ${((Date.now() - T0) / 1000).toFixed(1)} s · Cube ${JSON.stringify(runs)}${noStage ? ` · ${noStage} Punkte OHNE Stufe fs` : ''}${geo.terrainMiss || geo.z0Miss ? ` · Gelände nicht vorab: ${geo.terrainMiss}, z0: ${geo.z0Miss}` : ''}`);
+  log(`Lauf ${run}: ${done.length}/${all.length} Punkte · ${failed.length} ohne Ergebnis · ${byCorridor.size} Korridore + ${byState.size} Länder · ${(bytes / 1e6).toFixed(2)} MB · ${((Date.now() - T0) / 1000).toFixed(1)} s · Cube ${JSON.stringify(runs)} · Anker ${anchored ? `SWIS ${anchorSlot} an ${anchored} Punkten (${anchor})` : `keiner${anchor !== 'none' ? ' — die Messung der vollen Stunde liegt (noch) nicht im Klon' : ''}`}${noStage ? ` · ${noStage} Punkte OHNE Stufe fs` : ''}${geo.terrainMiss || geo.z0Miss ? ` · Gelände nicht vorab: ${geo.terrainMiss}, z0: ${geo.z0Miss}` : ''}`);
   return { run, runDir, entry, stats };
 }
 
@@ -309,6 +427,50 @@ export function publishVerdict({ entry, stats }) {
   if (stats.noStage) reasons.push(`${stats.noStage} Punkte ohne Stufe fs (gelernte Tabellen nicht gelesen) — das wäre nicht buscosun Fusion 8`);
   if (!entry.engine.runs.t1) reasons.push('kein Lauf der Stufe 1 gelesen');
   return { ok: reasons.length === 0, reasons };
+}
+
+// --- Repeat guard (V-AW-31) --------------------------------------------------------------------
+
+/**
+ * Would a run now repeat the newest published one? The job is woken by its hourly schedule AND after every run of the
+ * `point` workflow (tier 1, 2, 3 and hourly MOSMIX-S are four separate runs of it) — on 04.10.2026 that published three
+ * runs within 11 minutes from the same inputs. A run is a repeat when the newest run of the pointer
+ *   - starts in the same hour (`t0Ms`; a new hour moves the window and the radar hour mean ⇒ always a new run),
+ *   - read the same cube and station runs that the checkout's `point/index.json` offers now (every run the engine
+ *     named: t1, t2, t3 if used, stations — MOSMIX-S is not an input), from the same tables, and
+ *   - no measurement slot has arrived that the anchor would use now and did not use then.
+ * Radar frames newer than that run inside the same hour do not count: the next hourly run takes them.
+ * Anything unreadable or unknown ⇒ not a repeat (the run happens). `{ repeat, reason }`.
+ */
+export function repeatVerdict({ fcIndex, pointIndex, nowMs, tables = null, anchorSlotReady = false }) {
+  const no = (reason) => ({ repeat: false, reason });
+  const prev = fcIndex?.runs?.[0];
+  if (!prev || fcIndex.killed) return no('kein veröffentlichter Lauf');
+  if (prev.t0Ms !== roadFcT0(nowMs)) return no('neue Stunde');
+  const used = prev.engine?.runs;
+  if (!used?.t1) return no('Eingaben des letzten Laufs unbekannt');
+  const offered = {
+    t1: pointIndex?.latestByTier?.t1?.run, t2: pointIndex?.latestByTier?.t2?.run, t3: pointIndex?.latestByTier?.t3?.run,
+    stations: pointIndex?.stations?.runs?.[0]?.run,
+  };
+  for (const k of ['t1', 't2', 't3', 'stations']) {
+    if (used[k] == null) continue;
+    if (typeof offered[k] !== 'string') return no(`point/index.json nennt ${k} nicht`);
+    if (offered[k] !== used[k]) return no(`${k} ${used[k]} → ${offered[k]}`);
+  }
+  if (tables) for (const k of Object.keys(tables)) if (tables[k] !== prev.engine?.tables?.[k]) return no(`Tabelle ${k} geändert`);
+  if (anchorSlotReady && prev.engine?.anchor !== 'swis') return no('Messung der vollen Stunde ist jetzt da');
+  return { repeat: true, reason: `Lauf ${prev.run} hat dieselbe Stunde und dieselben Eingaben (t1 ${used.t1}, stations ${used.stations ?? '—'})` };
+}
+
+/** `repeatVerdict` on a checkout: reads the two pointers, the table hashes and whether the anchor's slot is there. */
+export function repeatVerdictOf(dataDir, nowMs, anchor = ROAD_FC_ANCHOR_MODE) {
+  const read = (f) => { try { return JSON.parse(readFileSync(join(dataDir, f), 'utf8')); } catch { return null; } };
+  return repeatVerdict({
+    fcIndex: read(join(ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH)), pointIndex: read('point/index.json'), nowMs,
+    tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
+    anchorSlotReady: anchor !== 'none' && existsSync(join(dataDir, ROAD_REPO_DIR, 'obs', `${roadStamp(roadFcT0(nowMs))}.json`)),
+  });
 }
 
 // --- Publish -----------------------------------------------------------------------------------
@@ -378,7 +540,8 @@ async function main() {
     const fcDir = join(flags.data, ROAD_FC_REPO_DIR);
     const geoFile = join(fcDir, ROAD_FC_GEO_PATH);
     const geoDoc = existsSync(geoFile) ? JSON.parse(readFileSync(geoFile, 'utf8')) : { entries: [] };
-    const r = await runShard({ dataDir: flags.data, points: JSON.parse(readFileSync(flags['shard-points'], 'utf8')), geoDoc, nowMs });
+    const allPoints = JSON.parse(readFileSync(join(fcDir, ROAD_FC_POINTS_PATH), 'utf8')).points;
+    const r = await runShard({ dataDir: flags.data, points: JSON.parse(readFileSync(flags['shard-points'], 'utf8')), geoDoc, nowMs, anchor: flags.anchor, allPoints });
     writeFileSync(flags['shard-result'], JSON.stringify(r));
     return;
   }
@@ -393,7 +556,15 @@ async function main() {
     if (flags.limit) points = points.slice(0, Number(flags.limit));
   }
   const shards = flags.shards ? Number(flags.shards) : Math.max(1, Math.min(4, cpus().length));
-  const built = await buildRun({ dataDir: flags.data, outDir, nowMs, shards, points, log });
+  // `ROAD_FC_ANCHOR=none` (workflow env) or `--anchor=` override the contract's mode — the way back without a commit.
+  const anchor = ['none', 'stations', 'all'].find((m) => m === (typeof flags.anchor === 'string' ? flags.anchor : process.env.ROAD_FC_ANCHOR)) ?? ROAD_FC_ANCHOR_MODE;
+  // V-AW-31: a wake-up that would only repeat the newest published run ends here — no compute, no commit.
+  if (flags.publish && !flags.always && process.env.ROAD_FC_ALWAYS !== '1') {
+    const v = repeatVerdictOf(flags.data, nowMs, anchor);
+    if (v.repeat) { log(`kein neuer Lauf — ${v.reason}`); return; }
+    log(`neuer Lauf: ${v.reason}`);
+  }
+  const built = await buildRun({ dataDir: flags.data, outDir, nowMs, shards, points, anchor, log });
   for (const f of built.stats.failed.slice(0, 10)) log(`  ohne Ergebnis: ${f.id} — ${f.error}`);
   const verdict = publishVerdict(built);
   if (!verdict.ok) { log(`Lauf NICHT veröffentlicht: ${verdict.reasons.join(' · ')}`); process.exit(3); }

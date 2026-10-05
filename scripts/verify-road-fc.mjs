@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { encodePng, decodePng, toRgba } from './lib/png.mjs';
 import { FIX, buildCubeFixture } from './lib/pvCubeFixtures.mjs';
 import { installNodeShims } from './punktarchiv/lib/nodeShims.mjs';
@@ -26,11 +27,11 @@ import {
   ROAD_FC_CDN_BASE, ROAD_FC_RAW_BASE, ROAD_FC_ORIGIN, ROAD_FC_INTERPOLATED,
   roadFcStamp, roadFcStampToMs, roadFcT0, roadFcEncode, roadFcDecode, roadFcOriginCode, roadFcSeriesProblems, roadFcPointUsable, parseRoadFcFile,
   parseRoadFcIndex, roadFcPickRun, roadFcPrune, roadFcFreshness, roadFcAxisKms, roadFcAxisId, roadPointAtKm, roadLineKm, roadKmBetween,
-  roadFcCorridorPath, roadFcStatePath, parseRoadFcPoints,
+  roadFcCorridorPath, roadFcStatePath, parseRoadFcPoints, ROAD_FC_ANCHOR_MODE,
 } from '../src/road/roadFc.ts';
-import { ROAD_REPO_DIR } from '../src/road/roadContract.ts';
+import { ROAD_REPO_DIR, ROAD_STATIONS_PATH, roadSlotOf, roadStamp } from '../src/road/roadContract.ts';
 import { buildOsmIndex, nearestCarriageway, axisPointsOf, stationPointsOf, buildPoints, buildGeo, footOnSegment, refsOf } from './road/build-fc-points.mjs';
-import { dirStore, geoBackend, makeIo, buildRun, publishVerdict, publishRun, nextIndex, seriesOf } from './road/road-forecast.mjs';
+import { dirStore, geoBackend, makeIo, buildRun, publishVerdict, publishRun, nextIndex, seriesOf, swisTable, readSwisTable, anchorObsFor, ROAD_FC_ANCHOR, repeatVerdict, repeatVerdictOf } from './road/road-forecast.mjs';
 import { memoryStore } from '../src/point/client/store.ts';
 import { POINT_LEARNED_PATH, POINT_STACK_PATH } from '../src/point/cubeFormat.ts';
 import { getPointForecastFromCube, clearCubeForecastCache, FUSION8_NOWCAST_HOUR_MEAN } from '../src/pointForecast/cubeSource.ts';
@@ -596,6 +597,150 @@ rmSync(tmp, { recursive: true, force: true });
   const def = V.defaultRoadFcAxis(file, ms);
   const coldest = V.roadFcAxisPoints(file).reduce((a, p) => (p.v.t[5] < a.v.t[5] ? p : a));
   add('I11 Korridor ohne Messstelle öffnet auf dem Achspunkt mit der kältesten Prognose-Luft der Stunde', def?.v.t[5] === coldest.v.t[5], `${def?.id} ${def?.v.t[5] / 10} °C`);
+}
+
+// --- J: measurement anchor from the road weather stations (V-AW-21) ----------------------------------------
+{
+  const V = await import('../src/road/roadFcView.ts');
+  const { ROAD_CLASS_LABEL } = await import('../src/road/roadClasses.ts');
+  const { thinRun } = await import('./road/road-fc-archive.mjs');
+  const slotMs = roadSlotOf(nowMs);
+  const base = Object.fromEntries(Object.values(runFiles).flatMap((t) => JSON.parse(t).points).map((p) => [p.id, p]));
+  const OFF = 2;   // the stations measure 2 K above the unanchored forecast of their own point
+  const cat = {
+    S900: { n: 'Fixture Nord', lat: POINTS[2].lat, lon: POINTS[2].lon, h: FIX.hTrue },
+    S901: { n: 'Fixture Land', lat: POINTS[3].lat, lon: POINTS[3].lon, h: FIX.hTrue },
+    S902: { n: 'falsch verortet', lat: FIX.lat + 0.01, lon: FIX.lon, h: FIX.hTrue },
+    S903: { n: 'ohne Höhe', lat: FIX.lat - 0.01, lon: FIX.lon },
+    S904: { n: 'weit', lat: FIX.lat + 0.5, lon: FIX.lon, h: FIX.hTrue },
+  };
+  cat.S900x = cat.S900;
+  const row = (id, ta, extra = {}) => ({ id, n: cat[id].n, lat: cat[id].lat, lon: cat[id].lon, t: slotMs, ta, td: ta - 3, rh: 80, ws: 4, wd: 270, wg: 7, ...extra });
+  const rows = [
+    row('S900', base.S900.v.t[0] / 10 + OFF), row('S901', base.S901.v.t[0] / 10 + OFF),
+    row('S902', 5, { lat: FIX.lat + 0.6 }), row('S903', 5), row('S904', 5), row('S900x', null), { id: 'S905', lat: 1, lon: 1, t: slotMs },
+  ];
+  const table = swisTable(rows, cat, POINTS);
+  add('J1 Messtabelle: nur Stationen mit Lufttemperatur; als Nachbar taugt nur, wessen Meldeposition zum Katalog passt (≤ 2 km) und wessen Höhe bekannt ist — die eigene Station zählt in jedem Fall',
+    table.size === 5 && table.get('S900').place && table.get('S901').place && !table.get('S902').place && !table.get('S903').place && table.get('S904').place && !table.has('S900x') && !table.has('S905'),
+    [...table.values()].map((m) => `${m.id}:${m.place ? 1 : 0}`).join(' '));
+  const own = anchorObsFor(POINTS[2], table), ownW = anchorObsFor(POINTS[2], table, { wind: true });
+  const ax = anchorObsFor(POINTS[0], table), lo = anchorObsFor(POINTS[2], table, { leaveOut: true });
+  add('J2 Auswahl: Stationspunkt = genau die eigene Messung (Abstand 0, Höhe des Punkts, nur Temperatur/Feuchte — kein Wind); Achspunkt = platzierte Nachbarn nach Abstand, ≤ 30 km, mit Kataloghöhe; ausgelassen = nie die eigene',
+    own.length === 1 && own[0].distanceM === 0 && own[0].elevM === null && own[0].stationId === 'S900' && own[0].u === null && own[0].v === null && own[0].gust === null && own[0].validAtMs === slotMs && own[0].source === 'swis'
+    && Math.abs(ownW[0].u - 4) < 1e-9 && Math.abs(ownW[0].v) < 1e-9 && ownW[0].gust === 7
+    && eq(ax.map((o) => o.stationId), ['S900', 'S901']) && ax.every((o) => o.distanceM > 0 && o.distanceM <= ROAD_FC_ANCHOR.maxKm * 1000 && o.elevM === FIX.hTrue) && ax[0].distanceM <= ax[1].distanceM
+    && eq(lo.map((o) => o.stationId), ['S901']) && anchorObsFor(POINTS[0], table, { noNeighbours: true }).length === 0,
+    `Achspunkt: ${ax.map((o) => `${o.stationId} ${(o.distanceM / 1000).toFixed(1)} km`).join(', ')}`);
+
+  const withObs = (name, atMs, doc = {}) => {
+    const dir = mkData(name, files);
+    mkdirSync(join(dir, ROAD_REPO_DIR, 'obs'), { recursive: true });
+    mkdirSync(join(dir, ROAD_REPO_DIR, 'static'), { recursive: true });
+    writeFileSync(join(dir, ROAD_REPO_DIR, ROAD_STATIONS_PATH), JSON.stringify({ stations: cat }));
+    writeFileSync(join(dir, ROAD_REPO_DIR, 'obs', `${roadStamp(atMs)}.json`), JSON.stringify({ slot: roadStamp(atMs), killed: false, points: rows.map((r) => ({ ...r, t: atMs })), ...doc }));
+    return dir;
+  };
+  const dA = withObs('data-anchor', slotMs);
+  const rt = readSwisTable(dA, nowMs, POINTS);
+  const st = await buildRun({ dataDir: dA, outDir: join(tmp, 'out-st'), nowMs, inProcess: true, anchor: 'stations' });
+  const stFiles = readRun(join(tmp, 'out-st'), st.run);
+  const stPts = Object.fromEntries(Object.values(stFiles).flatMap((t) => JSON.parse(t).points).map((p) => [p.id, p]));
+  const eng = JSON.parse(stFiles['c/a99.json']).engine;
+  const d = (id, i) => (stPts[id].v.t[i] - base[id].v.t[i]) / 10;
+  add('J3 Lauf „stations": der Kopf nennt, was geschah (anchor swis, Messslot, 2 verankerte Punkte); an der Station steht der Versatz Messung − Cube-Wert am Punkt (positiv, eigene Messung, Gewicht 100 %) und die Prognose rückt in seine Richtung, nie über die Messung hinaus',
+    rt?.slot === roadStamp(slotMs) && eng.anchor === 'swis' && eng.anchorMode === 'stations' && eng.anchorSlot === roadStamp(slotMs) && eng.anchored === 2 && st.entry.engine.anchored === 2
+    && ['S900', 'S901'].every((id) => stPts[id].anc[0] > 0 && stPts[id].anc[1] === 100 && stPts[id].anc[2] === 1 && d(id, 0) > 0.3 && d(id, 0) <= OFF + 0.05 && [1, 6, 24].every((i) => d(id, i) >= 0 && d(id, i) <= OFF + 0.05)),
+    `S900: anc ${JSON.stringify(stPts.S900.anc)}, ΔT +0 h ${d('S900', 0)} · +1 h ${d('S900', 1)} · +6 h ${d('S900', 6)} · +24 h ${d('S900', 24)} K`);
+  add('J4 Lauf „stations": Achspunkte bleiben byte-gleich zum Lauf ohne Anker und tragen kein anc',
+    ['a99@0', 'a99@5'].every((id) => JSON.stringify(stPts[id]) === JSON.stringify(base[id]) && stPts[id].anc === undefined));
+  const all = await buildRun({ dataDir: dA, outDir: join(tmp, 'out-all'), nowMs, inProcess: true, anchor: 'all' });
+  const allPts = Object.fromEntries(Object.values(readRun(join(tmp, 'out-all'), all.run)).flatMap((t) => JSON.parse(t).points).map((p) => [p.id, p]));
+  add('J5 Lauf „all": Achspunkte nehmen die Nachbarn (anc: fremde Messung, Gewicht nach Abstand), die Prognose rückt in Richtung des Versatzes; Stationspunkte wie in „stations"',
+    ['a99@0', 'a99@5'].every((id) => allPts[id].anc && allPts[id].anc[2] === 0 && allPts[id].anc[1] > 0 && allPts[id].anc[1] <= 100 && allPts[id].v.t[0] > base[id].v.t[0]) && all.entry.engine.anchored === 4
+    && JSON.stringify(allPts.S900) === JSON.stringify(stPts.S900), `a99@0: anc ${JSON.stringify(allPts['a99@0'].anc)}`);
+
+  // Negative controls: the anchored run must be able to equal the unanchored one.
+  const none = await buildRun({ dataDir: dA, outDir: join(tmp, 'out-none'), nowMs, inProcess: true, anchor: 'none' });
+  const old = await buildRun({ dataDir: withObs('data-old', slotMs - 2 * H), outDir: join(tmp, 'out-old'), nowMs, inProcess: true, anchor: 'stations' });
+  const quarter = await buildRun({ dataDir: withObs('data-quarter', slotMs - 15 * 60_000), outDir: join(tmp, 'out-quarter'), nowMs, inProcess: true, anchor: 'stations' });
+  const hourAgo = await buildRun({ dataDir: withObs('data-hour', slotMs - H), outDir: join(tmp, 'out-hour'), nowMs, inProcess: true, anchor: 'stations' });
+  const dead = await buildRun({ dataDir: withObs('data-killed', slotMs, { killed: true }), outDir: join(tmp, 'out-killed'), nowMs, inProcess: true, anchor: 'stations' });
+  const noObs = await buildRun({ dataDir: mkData('data-noobs', files), outDir: join(tmp, 'out-noobs'), nowMs, inProcess: true, anchor: 'stations' });
+  add('J6 Gegenproben: Schalter „none", Messung der vorigen oder vorvorigen Stunde, nur eine Viertelstunden-Messung (keine volle Stunde), abgeschalteter Slot (killed) und Klon ohne Messdatei ergeben je den Lauf OHNE Anker — byte-gleich zu C, Kopf sagt anchor none',
+    [none, old, hourAgo, quarter, dead, noObs].every((b) => eq(readRun(b.runDir.replace(/[\\/][^\\/]+$/, ''), b.run), runFiles) && b.entry.engine.anchor === 'none' && b.entry.engine.anchored === undefined)
+    && !eq(stFiles, runFiles));
+  const sh = await buildRun({ dataDir: dA, outDir: join(tmp, 'out-st-sh'), nowMs, shards: 2, anchor: 'stations' });
+  add('J7 zwei Scherben als Kindprozesse = ein Prozess, auch mit Anker (der Schalter und die Messtabelle erreichen die Kindprozesse)', eq(readRun(join(tmp, 'out-st-sh'), sh.run), stFiles) && sh.entry.engine.anchored === 2);
+
+  // Direct computation: the engine with exactly this measurement through its own hook.
+  const rgba = (b) => { const png = decodePng(b); return { data: toRgba(png), width: png.width, height: png.height }; };
+  clearCubeForecastCache();
+  const cache = geoBackend(geoDoc);
+  const fcD = await getPointForecastFromCube({ lat: POINTS[2].lat, lng: POINTS[2].lon, country: 'DE', hours: ROAD_FC_HOURS, pointSource: 'cube', includeRadarNowcast: true }, {
+    store: memoryStore(files), decodePng, decodeRgbPng: rgba, terrain: { decodeRgba: rgba, cache }, clima: getClimaField, z0: { cache, cacheOnly: true },
+    obs: async () => [{ source: 'swis', lat: POINTS[2].lat, lon: POINTS[2].lon, elevM: null, distanceM: 0, validAtMs: slotMs, temperature: rows[0].ta, relativeHumidity: 80, dewPoint: rows[0].td, u: null, v: null, gust: null }],
+    learnedSource: 'json', climaSource: 'json', stackSource: 'json', stage: 'fs', nowcastHourMean: true, nowMs: () => nowMs,
+  });
+  const sD = seriesOf(fcD, roadFcT0(nowMs));
+  add('J8 Datei = direkte Rechnung von buscosun Fusion 8 mit derselben Messung am Eingang des Motors (eigener Speicher): T, Td, Wind, Böe über 49 Stunden gleich; der Motor nennt den Anker aus swis',
+    eq(sD.t, stPts.S900.v.t) && eq(sD.td, stPts.S900.v.td) && eq(sD.ff, stPts.S900.v.ff) && eq(sD.fx, stPts.S900.v.fx) && !eq(sD.t, base.S900.v.t) && fcD.cube.notes.some((n) => /^anchor: 1 Paar\(e\) aus swis/.test(n)),
+    fcD.cube.notes.find((n) => n.startsWith('anchor: ')));
+  add('J9 Wind und Böe der Station bleiben vom Temperatur-Anker unberührt (kein Wind am Eingang)', eq(stPts.S900.v.ff, base.S900.v.ff) && eq(stPts.S900.v.fx, base.S900.v.fx) && eq(stPts.S900.v.dd, base.S900.v.dd));
+
+  const parsed = parseRoadFcFile(JSON.parse(stFiles['c/a99.json']));
+  const thin = thinRun([parsed]);
+  const roadWords = new RegExp(Object.values(ROAD_CLASS_LABEL).flatMap((l) => [l.label, l.short]).filter((w) => w && w.length > 3).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + '|Glätte|Glatteis|überfrier', 'i');
+  const texts = [V.roadFcAnchorText(parsed.points.find((p) => p.id === 'S900'), parsed), V.roadFcAnchorText(allPts['a99@0'], { engine: all.entry.engine }), V.roadFcAnchorText(parsed.points.find((p) => p.id === 'a99@0'), parsed), V.roadFcAnchorText(stPts.S900, { engine: { ...eng, anchor: 'none' } }), V.roadFcAnchorText(null, null)];
+  add('J10 Leser, Archiv und Text: die Client-Prüfung behält anc, das Archiv legt es zur Station ab, der Text nennt eigene Messung mit Uhrzeit und Versatz / Messstellen im Umkreis mit Gewicht / „ohne Messungs-Anker" — kein Wort der Fahrbahnklassen',
+    parsed.dropped === 0 && eq(parsed.points.find((p) => p.id === 'S900').anc, stPts.S900.anc) && eq(thin.stations.S900.anc, stPts.S900.anc) && thin.engine.anchor === 'swis'
+    && /eigenen|dieser Messstelle/.test(texts[0]) && texts[0].includes(`Messung − Modell +${(stPts.S900.anc[0] / 10).toFixed(1).replace('.', ',')} K`) && /\d{2}:\d{2}/.test(texts[0]) && /im Umkreis/.test(texts[1]) && /Gewicht \d+ %/.test(texts[1])
+    && texts[2] === 'ohne Messungs-Anker' && texts[3] === 'ohne Messungs-Anker' && texts[4] === 'ohne Messungs-Anker' && texts.every((t) => !roadWords.test(t)), texts[0]);
+  add('J11 Schalter des Vertrags ist einer der drei Modi und der Producer kennt ihn als Voreinstellung', ['none', 'stations', 'all'].includes(ROAD_FC_ANCHOR_MODE), ROAD_FC_ANCHOR_MODE);
+}
+
+// --- K: repeat guard (V-AW-31) -----------------------------------------------------------------------------
+{
+  const T = Date.UTC(2026, 9, 4, 15, 37, 40);
+  const tables = { learned: 'aaa', stack: 'bbb', clima: 'ccc' };
+  const entry = (over = {}) => ({ run: roadFcStamp(T), t0Ms: roadFcT0(T), engine: { anchor: 'none', runs: { t1: '2026100412', t2: '2026100412', t3: null, stations: '2026100409', nowcast: 'radvor_rv:2610041530' }, tables, ...over } });
+  const pointIndex = (over = {}) => ({ latestByTier: { t1: { run: '2026100412' }, t2: { run: '2026100412' }, t3: { run: '2026100400' }, ...over.tiers }, stations: { runs: [{ run: over.stations ?? '2026100409' }, { run: '2026100403' }] }, stationsS: { runs: [{ run: over.s ?? '2026100414' }] } });
+  const v = (o = {}) => repeatVerdict({ fcIndex: { killed: false, runs: [entry(o.engine)] }, pointIndex: pointIndex(o.point), nowMs: o.now ?? T + 2 * 60_000, tables: o.tables ?? tables, anchorSlotReady: !!o.slot });
+  const same = v(), sameS = v({ point: { s: '2026100415' } }), sameT3 = v({ point: { tiers: { t3: { run: '2026100412' } } } });
+  add('K1 der Fall vom 04.10.: zweiter Auslöser 2 min nach dem Lauf, selbe Stunde, selbe Cube- und Stationsläufe ⇒ Wiederholung; ein neuer MOSMIX-S-Lauf und ein neuer t3-Lauf (beides keine Eingaben des letzten Laufs) ändern daran nichts',
+    same.repeat === true && sameS.repeat === true && sameT3.repeat === true && /2026100412/.test(same.reason), same.reason);
+  const cases = {
+    stunde: v({ now: T + 23 * 60_000 }), t1: v({ point: { tiers: { t1: { run: '2026100415' } } } }), t2: v({ point: { tiers: { t2: { run: '2026100418' } } } }),
+    stations: v({ point: { stations: '2026100415' } }), tabelle: v({ tables: { ...tables, stack: 'neu' } }), messung: v({ slot: true }),
+    leer: repeatVerdict({ fcIndex: { runs: [] }, pointIndex: pointIndex(), nowMs: T }), aus: repeatVerdict({ fcIndex: { killed: true, runs: [entry()] }, pointIndex: pointIndex(), nowMs: T }),
+    ohneIndex: repeatVerdict({ fcIndex: { runs: [entry()] }, pointIndex: null, nowMs: T }), ohneEingaben: repeatVerdict({ fcIndex: { runs: [{ run: roadFcStamp(T), t0Ms: roadFcT0(T) }] }, pointIndex: pointIndex(), nowMs: T }),
+  };
+  add('K2 Gegenproben, je ein neuer Lauf mit benanntem Grund: neue Stunde, neuer t1-, t2- oder Stationslauf, geänderte Tabelle, Messung der vollen Stunde jetzt da (Anker an, letzter Lauf ohne), leerer oder abgeschalteter Zeiger, point/index.json nicht lesbar, Eingaben des letzten Laufs unbekannt',
+    Object.values(cases).every((c) => c.repeat === false && c.reason) && /Stunde/.test(cases.stunde.reason) && /t1 2026100412 → 2026100415/.test(cases.t1.reason) && /stations/.test(cases.stations.reason) && /Messung/.test(cases.messung.reason),
+    Object.entries(cases).filter(([, c]) => c.repeat !== false).map(([k]) => k).join(',') || cases.t1.reason);
+  add('K3 ein Lauf, der schon mit Anker rechnete, wird durch dieselbe Messdatei nicht wiederholt', v({ engine: { anchor: 'swis' }, slot: true }).repeat === true);
+  // On a checkout: the pointer files of a real directory, the hashes of its tables.
+  const dir = mkdtempSync(join(tmpdir(), 'road-fc-k-'));
+  const put = (f, o) => { mkdirSync(dirname(join(dir, f)), { recursive: true }); writeFileSync(join(dir, f), typeof o === 'string' ? o : JSON.stringify(o)); };
+  put(POINT_LEARNED_PATH, 'L'); put(POINT_STACK_PATH, 'S');
+  put('point/index.json', pointIndex());
+  const first = repeatVerdictOf(dir, T + 2 * 60_000, 'none');
+  const h = (s) => createHash('sha256').update(s).digest('hex').slice(0, 12);
+  const real = entry(); real.engine.tables = { learned: h('L'), stack: h('S'), clima: null };
+  put(`${ROAD_FC_REPO_DIR}/${ROAD_FC_INDEX_PATH}`, { schema: 1, killed: false, runs: [real] });
+  const second = repeatVerdictOf(dir, T + 2 * 60_000, 'none');
+  put(POINT_STACK_PATH, 'S2');
+  const third = repeatVerdictOf(dir, T + 2 * 60_000, 'none');
+  put(POINT_STACK_PATH, 'S'); put(`${ROAD_REPO_DIR}/obs/${roadStamp(roadFcT0(T))}.json`, { points: [] });
+  const off = repeatVerdictOf(dir, T + 2 * 60_000, 'none'), on = repeatVerdictOf(dir, T + 2 * 60_000, 'stations');
+  rmSync(dir, { recursive: true, force: true });
+  add('K4 am Klon: ohne Zeiger kein Überspringen; mit Zeiger und gleichen Tabellen-Hashes Wiederholung; geänderte Tabellendatei ⇒ neuer Lauf; die Messdatei der Stunde zählt nur bei eingeschaltetem Anker',
+    first.repeat === false && second.repeat === true && third.repeat === false && /stack/.test(third.reason) && off.repeat === true && on.repeat === false, `${first.reason} | ${second.reason} | ${third.reason}`);
+  const src = readFileSync(join(HERE, 'road', 'road-forecast.mjs'), 'utf8');
+  const wf = readFileSync(join(HERE, 'road', 'workflow-road-fc.yml'), 'utf8').split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
+  add('K5 Verdrahtung: der Producer fragt nur bei --publish und vor buildRun, --always / ROAD_FC_ALWAYS=1 rechnet immer; der Workflow setzt ROAD_FC_ALWAYS nur beim Start von Hand',
+    /if \(flags\.publish && !flags\.always && process\.env\.ROAD_FC_ALWAYS !== '1'\)/.test(src) && src.indexOf('repeatVerdictOf(flags.data') < src.indexOf('await buildRun({ dataDir: flags.data') && src.indexOf('repeatVerdictOf(flags.data') > 0
+    && /ROAD_FC_ALWAYS:\s*\$\{\{ github\.event_name == 'workflow_dispatch' && '1' \|\| '' \}\}/.test(wf));
 }
 
 const failed = results.filter((r) => !r.ok).length;

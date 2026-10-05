@@ -11,6 +11,7 @@ import {
   type RoadFcFile, type RoadFcFreshness, type RoadFcPoint, type RoadFcRunEntry,
 } from './roadFc';
 import type { RoadCorridor } from './roadClient';
+import { roadStampToMs } from './roadContract';
 import { BAND_REACH_KM, dec, f1, hm, kmIn, shieldText } from './roadView';
 
 const H = 3_600_000;
@@ -226,6 +227,20 @@ export function roadFcTripText(trip: RoadFcTrip): string {
   const rain = trip.wet === 0 ? `an keinem Punkt Niederschlag ab ${ROAD_FC_PRECIP_PP} %`
     : `an ${trip.wet} von ${trip.n} Punkten Niederschlag ab ${ROAD_FC_PRECIP_PP} %${trip.snow ? ` (${trip.snow} mit Schnee-Anteil)` : ''}`;
   return `Prognose zur Ankunft: kälteste Luft ${f1(c.value.t)} °C bei km ${dec(c.km, 0)} gegen ${hm(c.value.validMs)}, ${rain}.`;
+}
+
+/**
+ * V-AW-21: one phrase per point on whether its forecast was anchored on a measurement — what the run DID at this
+ * point (`anc`), not what the producer was asked for. The measured air is the station's own sensor at the road.
+ */
+export function roadFcAnchorText(p: Pick<RoadFcPoint, 'anc'> | null, file: Pick<RoadFcFile, 'engine'> | null): string {
+  const a = p?.anc;
+  if (!a || !file || file.engine.anchor !== 'swis') return 'ohne Messungs-Anker';
+  const slotMs = file.engine.anchorSlot ? roadStampToMs(file.engine.anchorSlot) : NaN;
+  const at = Number.isFinite(slotMs) ? ` von ${hm(slotMs)}` : '';
+  return a[2] === 1
+    ? `verankert an der Luftmessung dieser Messstelle${at} (Messung − Modell ${f1(a[0] / 10)} K)`
+    : `verankert an Messstellen im Umkreis${at} (Gewicht ${a[1]} %)`;
 }
 
 /** Shown wherever the forecast appears — the limits of the product in one sentence. */
