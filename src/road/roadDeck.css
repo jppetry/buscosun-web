@@ -367,3 +367,5 @@ button.aw-prog-tile:disabled { cursor: default; }
 @media (max-width: 767px) {
   .aw-m-dock .aw-road-more { min-height: 44px; }
 }
+.aw-band-unbuilt { position: absolute; top: 22px; height: 14px; background: repeating-linear-gradient(45deg, rgba(44, 42, 38, 0.55) 0 2px, transparent 2px 6px); pointer-events: auto; border-radius: 2px; }
+.aw-sw.is-unbuilt { background: repeating-linear-gradient(45deg, rgba(44, 42, 38, 0.7) 0 2px, transparent 2px 5px); }

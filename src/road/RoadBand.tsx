@@ -69,6 +69,12 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
             ))}
           </div>
         )}
+        {/* V-AW-22: stretches without a carriageway in OpenStreetMap (under construction or routed elsewhere) — named, not hidden. */}
+        {(c.unbuilt ?? []).map(([a, b]) => {
+          const from = Math.min(kmIn(c, a, dir), kmIn(c, b, dir)), to = Math.max(kmIn(c, a, dir), kmIn(c, b, dir));
+          const t = `km ${dec(from, 0)}–${dec(to, 0)}: keine Fahrbahn in OpenStreetMap (im Bau oder anders geführt)`;
+          return <div key={`u${a}`} className="aw-band-unbuilt" style={{ left: pct(from), width: pct(to - from) }} title={t} role="img" aria-label={t} />;
+        })}
         {borders.map((b) => {
           // At a corridor end there is no room on the far side: both labels go inward.
           // Short label like the design ("DE · AT"): a long one covered the ticks next to it. The meaning sits in the
@@ -114,6 +120,7 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
       <div className="aw-band-legend">
         <span><i className="aw-sw" style={{ background: '#5E97D1' }} />Messung DWD</span>
         <span><i className="aw-sw is-gap" />keine Messung im 10-km-Umkreis</span>
+        {(c.unbuilt?.length ?? 0) > 0 && <span><i className="aw-sw is-unbuilt" />ohne Fahrbahn (OSM)</span>}
         <span className="aw-band-legend-note">{shieldText(c.road)}: Messpunkt, nicht Strecke</span>
       </div>
       {fc && (

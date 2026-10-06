@@ -476,10 +476,11 @@ if (typeof flags.data === 'string') {
   const ax = doc.points.filter((p) => p.kind === 'axis'), st = doc.points.filter((p) => p.kind === 'station');
   const ids = new Set(doc.points.map((p) => p.id));
   add('G1 echte Punktdatei: lesbar, Kennungen eindeutig, Zählung = Punkte, Quellen nennen OSM (ODbL), BKG und DWD',
-    !!doc && ids.size === doc.points.length && doc.counts.axis === ax.length && doc.counts.station === st.length && doc.sources.some((s) => /ODbL/.test(s.license) && /OpenStreetMap/.test(s.attribution)) && doc.sources.length === 3,
+    !!doc && ids.size === doc.points.length && doc.counts.axis === ax.length && doc.counts.station === st.length && doc.sources.some((s) => /ODbL/.test(s.license) && /OpenStreetMap/.test(s.attribution)) && doc.sources.length === (st.some((p) => p.noCatalog) ? 4 : 3),
     `${ax.length} Achse + ${st.length} Stationen`);
-  const want = cor.flatMap((c) => roadFcAxisKms(c.lengthKm).map((km) => roadFcAxisId(c.id, km)));
-  add('G2 Achspunkte = alle 5 km auf JEDEM Korridor der Korridordatei (keiner fehlt, keiner zu viel)', eq(ax.map((p) => p.id), want), `${want.length} erwartet, ${cor.length} Korridore`);
+  // V-AW-22: no axis point inside a corridor's `unbuilt` stretch.
+  const want = cor.flatMap((c) => roadFcAxisKms(c.lengthKm).filter((km) => !(c.unbuilt ?? []).some(([a, b]) => km >= a && km <= b)).map((km) => roadFcAxisId(c.id, km)));
+  add('G2 Achspunkte = alle 5 km auf JEDEM Korridor der Korridordatei, ohne die Lücken ohne Fahrbahn (unbuilt; keiner fehlt, keiner zu viel)', eq(ax.map((p) => p.id), want), `${want.length} erwartet, ${cor.length} Korridore, ${cor.filter((c) => c.unbuilt).length} mit Lücke`);
   const snapped = ax.filter((p) => p.snap != null), un = ax.filter((p) => p.snap == null);
   let offAxis = 0, maxMove = 0;
   const byC = new Map(cor.map((c) => [c.id, c]));
@@ -495,7 +496,10 @@ if (typeof flags.data === 'string') {
   add('G4 nicht eingerastete Punkte sind benannt und selten (< 2 %)', un.length / ax.length < 0.02 && un.every((p) => p.snap === null), un.map((p) => p.id).join(' '));
   const stations = JSON.parse(readFileSync(join(flags.data, ROAD_REPO_DIR, 'static', 'stations.json'), 'utf8')).stations;
   const live = Object.entries(stations).filter(([, s]) => !s.oob && Number.isFinite(s.lat) && Number.isFinite(s.lon));
-  add('G5 Stationspunkte = jede Katalogstation mit Koordinate, die nicht außer Betrieb ist, an der Katalogposition', st.length === live.length && st.every((p) => { const s = stations[p.id]; return s && Math.abs(s.lat - p.lat) < 1e-5 && Math.abs(s.lon - p.lon) < 1e-5; }), `${st.length}`);
+  const cat = st.filter((p) => !p.noCatalog), noCat = st.filter((p) => p.noCatalog);
+  add('G5 Stationspunkte = jede Katalogstation mit Koordinate, die nicht außer Betrieb ist, an der Katalogposition; dazu meldende Stationen OHNE Katalogzeile (V-AW-7, Lage der Meldung, benannt)',
+    cat.length === live.length && cat.every((p) => { const s = stations[p.id]; return s && Math.abs(s.lat - p.lat) < 1e-5 && Math.abs(s.lon - p.lon) < 1e-5; }) && noCat.every((p) => !stations[p.id] && /^[A-Z]{2}$/.test(p.state)) && (doc.counts.noCatalog ?? 0) === noCat.length,
+    `${cat.length} Katalog + ${noCat.length} ohne Katalogzeile`);
   const geo = JSON.parse(readFileSync(join(fcDir, ROAD_FC_GEO_PATH), 'utf8'));
   const terr = geo.entries.filter(([k]) => k.startsWith('terrain/')), z0 = geo.entries.filter(([k]) => k.startsWith('z0:'));
   const tKeys = new Set(terr.map(([k]) => k.split('/').pop()));

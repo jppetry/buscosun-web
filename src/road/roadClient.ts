@@ -157,6 +157,10 @@ export interface RoadCorridor {
   towns: Array<[number, string]>;
   stations: Array<{ id: string; km: number; dir: string | null }>;
   forecastPoints: unknown[];
+  /** V-AW-22: km ranges where OpenStreetMap knows no carriageway of this motorway and no station measures (under construction or routed elsewhere). */
+  unbuilt?: Array<[number, number]>;
+  /** V-AW-16: a spur of the motorway carrying a station of its own, numbered after the regular sections. */
+  spur?: boolean;
 }
 
 export interface RoadCorridorsFile {

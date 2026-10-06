@@ -242,6 +242,46 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
   const reach = (x) => out5.some((p) => Math.abs(p[0] - (11 + x * dLon)) < 2 * dLon);
   add('K5 Kette beginnt in der Mitte und kehrt über ihren Anfang hinaus zurück: ganze Strecke 0–4 km bleibt, beide Enden erreicht',
     Math.abs(kmLen(out5) - 4) < 0.15 && reach(0) && reach(400), `${kmLen(mid).toFixed(2)} → ${kmLen(out5).toFixed(2)} km`);
+
+  // V-AW-16 / V-AW-22 (06.10.2026): spurs as sections of their own, stretches without carriageway trimmed or named.
+  const { buildCorridors, unbuiltRuns } = await import('./road/build-corridors.mjs');
+  const dLat = 0.01 / 111.2;
+  const E = (km) => 11 + km * 100 * dLon;                              // km along the main axis (east)
+  const main = Array.from({ length: 2001 }, (_, i) => [E(i / 100), LAT]);  // 20 km, 10 m spacing
+  const spurOut = Array.from({ length: 300 }, (_, i) => [E(10) + 0.03 / (111.2 * Math.cos(LAT * Math.PI / 180)), LAT + (i + 1) * dLat]);   // 3 km north
+  const spurBack = Array.from({ length: 300 }, (_, i) => [E(10), LAT + (300 - i) * dLat]);
+  const line = [...main.slice(0, 1001), ...spurOut, ...spurBack, ...main.slice(1001)];
+  const axes = { features: [{ type: 'Feature', properties: { bez: 'A99' }, geometry: { type: 'LineString', coordinates: line } }] };
+  const places = [[LAT, E(0), 'Westdorf', null, 'DE', 9000], [LAT, E(20), 'Oststadt', null, 'DE', 9000], [LAT + 0.027, E(10), 'Nordweiler', null, 'DE', 6000]];
+  const stations = { S1: { kind: 'A', road: 'A99', lat: LAT, lon: E(15), n: 'Haupt' }, S2: { kind: 'A', road: 'A99', lat: LAT + 2.9 * 111.2 ** -1, lon: E(10), n: 'Ast' } };
+  const plain = buildCorridors({ axes, stations, obsPoints: [], places, deRings: [] });
+  const withSpur = buildCorridors({ axes, stations, obsPoints: [], places, deRings: [], spurs: true });
+  const cuts = [];
+  const noCut = removeLoops(line), withCut = removeLoops(line, undefined, undefined, cuts);
+  add('K6 removeLoops mit Sammler (V-AW-16): Ergebnis gleich wie ohne, der abgeschnittene Ast (≈ 3 km) liegt im Sammler',
+    JSON.stringify(noCut) === JSON.stringify(withCut) && cuts.some((c) => kmLen(c) > 2.5), cuts.map((c) => kmLen(c).toFixed(2)).join(','));
+  const sp = withSpur.find((c) => c.spur);
+  add('K7 buildCorridors: ohne Option wie bisher (Ast-Station ohne Korridor); mit spurs ein eigener Abschnitt a99-2 (spur) für die Station am Ast, nach den regulären nummeriert, Hauptabschnitt unverändert',
+    plain.length === 1 && plain[0].stations.map((s) => s.id).join() === 'S1' && withSpur.length === 2 && withSpur[0].id === 'a99' && JSON.stringify(withSpur[0]) === JSON.stringify(plain[0])
+    && sp?.id === 'a99-2' && sp.stations.map((s) => s.id).join() === 'S2' && sp.lengthKm >= 2, JSON.stringify(withSpur.map((c) => [c.id, c.lengthKm, c.stations.map((s) => s.id)])));
+  // OSM test: no carriageway on km 0–6 (start) and 12–18 (inside) of a straight 20-km axis.
+  const ax2 = { features: [{ type: 'Feature', properties: { bez: 'A98' }, geometry: { type: 'LineString', coordinates: main } }] };
+  const kmOf = (p) => (p[0] - 11) / (100 * dLon);
+  const isBuilt = (p) => { const k = kmOf(p); return !(k <= 6.01 || (k >= 11.99 && k <= 18.01)); };
+  const st2 = { T1: { kind: 'A', road: 'A98', lat: LAT, lon: E(9), n: 'Mitte' } };
+  const trimmed = buildCorridors({ axes: ax2, stations: st2, obsPoints: [], places, deRings: [], isBuilt })[0];
+  const guarded = buildCorridors({ axes: ax2, stations: { ...st2, T2: { kind: 'A', road: 'A98', lat: LAT, lon: E(15), n: 'Lücke' } }, obsPoints: [], places, deRings: [], isBuilt })[0];
+  add('K8 ohne OSM-Fahrbahn (V-AW-22): ≥ 5 km am Anfang ⇒ abgeschnitten (Station-km verschiebt sich mit), innen ⇒ als unbuilt benannt; eine Messstelle in der Lücke verhindert beides an dieser Stelle; unbuiltRuns tastet je 0,5 km',
+    trimmed.lengthKm === 14 && trimmed.trimmedKm === 6 && trimmed.stations[0].km === 3 && JSON.stringify(trimmed.unbuilt) === '[[6,12]]'
+    && !guarded.unbuilt && guarded.lengthKm === 14 && JSON.stringify(unbuiltRuns(main, 20, isBuilt)) === JSON.stringify([[0, 6], [12, 18]]),
+    JSON.stringify({ len: trimmed.lengthKm, trim: trimmed.trimmedKm, km: trimmed.stations[0].km, unbuilt: trimmed.unbuilt, guarded: guarded.unbuilt ?? null }));
+  const { axisPointsOf, stationPointsOf } = await import('./road/build-fc-points.mjs');
+  const pts = axisPointsOf({ id: 'a98', road: 'A98', lengthKm: trimmed.lengthKm, line: trimmed.line, unbuilt: trimmed.unbuilt }, null);
+  const sts = stationPointsOf({ C1: { id: 'C1', lat: 50, lon: 10, n: 'Katalog', bl: 'BY' } }, [{ id: 'a98', stations: [{ id: 'N1', km: 3 }] }],
+    [{ id: 'C1', lat: 51, lon: 11, g: 'FN-BY' }, { id: 'N1', lat: 50.5, lon: 10.5, g: 'KK-SH', n: 'Neu' }, { id: 'N2', lat: 52, lon: 9, g: 'xx' }, { id: 'N3', g: 'KK-SH' }]);
+  add('K9 Punkte: kein Achspunkt in einer unbuilt-Lücke (V-AW-22); Stationen ohne Katalogzeile kommen aus der Meldung dazu (V-AW-7: Lage der Meldung, Datei nach der Reihe, noCatalog), Katalog-Stationen bleiben bei ihrer Lage, ohne Koordinaten keine',
+    JSON.stringify(pts.map((p) => p.km)) === '[0,5,14]' && sts.length === 3 && sts[0].lat === 50 && sts[1].id === 'N1' && sts[1].noCatalog && sts[1].state === 'SH' && sts[1].corridor === 'a98' && sts[2].state === 'XX',
+    JSON.stringify({ axis: pts.map((p) => p.km), st: sts.map((p) => [p.id, p.state, p.corridor]) }));
 }
 
 const passed = checks.filter((c) => c.ok).length;

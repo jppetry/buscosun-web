@@ -8,14 +8,18 @@
  *                 nominal position slides the point along the axis; no carriageway in reach ⇒ the point stays on
  *                 the axis and says so (`snap: null`). Bridge = the OSM way carries `bridge`.
  *   station points every road-weather station of the catalogue with coordinates that is not out of service — at the
- *                 catalogue position (the measuring site), with corridor and km where the corridor lists it.
+ *                 catalogue position (the measuring site), with corridor and km where the corridor lists it; with
+ *                 `--obs=<obs files>` also every station that reports but has no catalogue row (V-AW-7, 136 on
+ *                 03.10.2026) — at the bulletin position (E-AW-7), file key = its DWD series (`noCatalog: true`).
+ *   unbuilt        axis points inside a corridor's `unbuilt` ranges (V-AW-22) are not built: no carriageway, no forecast.
  *   geo           terrain (Terrarium z11 + z8) and roughness (WorldCover) per point, computed with the CLIENT's loaders
  *                 through a recording cache — the producer preloads exactly these cache entries, so the engine sees
  *                 what a browser at that point would have computed.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/build-fc-points.mjs
  *     --corridors=<corridors.json> --stations=<stations.json> --osm=<cache.json> --out=<road/fc/v1/static>
- *     [--no-geo] [--no-snap] [--roads=A8,A81]
+ *     [--no-geo] [--no-snap] [--roads=A8,A81] [--obs=<obs.json,…>] [--geo-from=<previous geo.json>]
+ *   `--geo-from`: cache entries of the previous geo file are taken over — only new points go to the tile servers.
  *
  * OSM: one Overpass query for all motorways of Germany (≈ 55 MB), cached in `--osm`. Position licence of the snapped
  * points: ODbL, © OpenStreetMap contributors — named in the file.
@@ -109,6 +113,8 @@ export function axisPointsOf(corridor, index) {
   const out = [];
   const kms = roadFcAxisKms(corridor.lengthKm);
   for (const km of kms) {
+    // V-AW-22: no forecast point on a stretch without carriageway (corridors.json `unbuilt`).
+    if ((corridor.unbuilt ?? []).some(([a, b]) => km >= a && km <= b)) continue;
     const atEnd = km === kms[0] || km === kms[kms.length - 1];
     const id = roadFcAxisId(corridor.id, km);
     const nominal = roadPointAtKm(corridor.line, km);
@@ -134,8 +140,11 @@ export function axisPointsOf(corridor, index) {
   return out;
 }
 
-/** Station points from the catalogue; corridor and km from the corridors that list the station. */
-export function stationPointsOf(stations, corridors) {
+/**
+ * Station points from the catalogue; corridor and km from the corridors that list the station. `reporting` (V-AW-7):
+ * points of recent obs files — a station there without a catalogue row joins at its bulletin position.
+ */
+export function stationPointsOf(stations, corridors, reporting = []) {
   const where = new Map();
   for (const c of corridors) for (const s of c.stations) if (!where.has(s.id)) where.set(s.id, { corridor: c.id, km: s.km });
   const out = [];
@@ -145,14 +154,23 @@ export function stationPointsOf(stations, corridors) {
     const w = where.get(id);
     out.push({ id, kind: 'station', corridor: w?.corridor ?? null, km: w?.km ?? null, lat: round5(s.lat), lon: round5(s.lon), state: s.bl ?? 'XX', name: s.n ?? id });
   }
+  const known = new Set(out.map((p) => p.id));
+  const inCatalog = new Set(Object.entries(stations).map(([k, s]) => s.id ?? k));
+  for (const r of reporting) {
+    if (!r?.id || known.has(r.id) || inCatalog.has(r.id) || !Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
+    known.add(r.id);
+    const w = where.get(r.id);
+    const st = /-([A-Z]{2})$/.exec(r.g ?? '')?.[1] ?? 'XX';
+    out.push({ id: r.id, kind: 'station', corridor: w?.corridor ?? null, km: w?.km ?? null, lat: round5(r.lat), lon: round5(r.lon), state: st, name: r.n ?? r.id, noCatalog: true });
+  }
   return out;
 }
 
-export function buildPoints({ corridors, stations, index }) {
+export function buildPoints({ corridors, stations, index, reporting = [] }) {
   const axis = corridors.flatMap((c) => axisPointsOf(c, index));
-  const st = stationPointsOf(stations, corridors);
+  const st = stationPointsOf(stations, corridors, reporting);
   const counts = {
-    axis: axis.length, station: st.length,
+    axis: axis.length, station: st.length, noCatalog: st.filter((p) => p.noCatalog).length,
     snapped: axis.filter((p) => p.snap != null).length, unsnapped: axis.filter((p) => p.snap == null).length,
     slid: axis.filter((p) => p.slide).length, bridge: axis.filter((p) => p.bridge).length,
   };
@@ -161,18 +179,18 @@ export function buildPoints({ corridors, stations, index }) {
 
 /** Recording cache: result entries (`terrain/…`, `z0:…`) are kept for the file, tile bytes live in a bounded LRU. */
 export function recordingCache(tileCap = 500) {
-  const results = new Map(), tiles = new Map();
+  const results = new Map(), tiles = new Map(), touched = new Set();
   const isResult = (k) => k.startsWith('terrain/') || k.startsWith('z0:');
   return {
-    kind: 'recording', results,
+    kind: 'recording', results, touched,
     async get(k) {
-      if (isResult(k)) return results.get(k) ?? null;
+      if (isResult(k)) { touched.add(k); return results.get(k) ?? null; }
       const e = tiles.get(k);
       if (e) { tiles.delete(k); tiles.set(k, e); }
       return e ?? null;
     },
     async put(k, e) {
-      if (isResult(k)) { results.set(k, e); return; }
+      if (isResult(k)) { touched.add(k); results.set(k, e); return; }
       tiles.set(k, e);
       if (tiles.size > tileCap) tiles.delete(tiles.keys().next().value);
     },
@@ -186,8 +204,10 @@ const rgba = (b) => { const png = decodePng(b); return { data: toRgba(png), widt
  * Terrain and roughness for every point through the client's loaders; returns the cache entries as `[key, object]`.
  * `terrainOpts` (verifier: a tile source without network) and `z0: false` narrow the run.
  */
-export async function buildGeo(points, { concurrency = 6, log = () => {}, retries = 3, terrainOpts = {}, z0 = true } = {}) {
+export async function buildGeo(points, { concurrency = 6, log = () => {}, retries = 3, terrainOpts = {}, z0 = true, seed = [] } = {}) {
   const cache = recordingCache();
+  const enc = new TextEncoder();
+  for (const [k, v] of seed) cache.results.set(k, { bytes: enc.encode(JSON.stringify(v)), storedAt: 0 });
   const failed = [];
   let done = 0;
   const one = async (p) => {
@@ -212,7 +232,8 @@ export async function buildGeo(points, { concurrency = 6, log = () => {}, retrie
   // The result entries are stored a tick after the loader returns (`put` is not awaited there).
   await new Promise((r) => setTimeout(r, 50));
   const dec = new TextDecoder();
-  const entries = [...cache.results].map(([k, e]) => [k, JSON.parse(dec.decode(e.bytes))]).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  // With a seed only the entries this point list used stay (points of a trimmed stretch drop out).
+  const entries = [...cache.results].filter(([k]) => !seed.length || cache.touched.has(k)).map(([k, e]) => [k, JSON.parse(dec.decode(e.bytes))]).sort((a, b) => (a[0] < b[0] ? -1 : 1));
   return { entries, failed };
 }
 
@@ -246,8 +267,9 @@ async function main() {
     log(`OSM ${osmBase}: ${index.ways} Wege, ${index.segs} Segmente`);
   }
 
-  const { points, counts } = buildPoints({ corridors, stations: stationsDoc.stations, index });
-  log(`Punkte: ${counts.axis} Achse (${counts.snapped} eingerastet, ${counts.unsnapped} nicht, ${counts.slid} verschoben, ${counts.bridge} Brücke) + ${counts.station} Stationen`);
+  const reporting = typeof flags.obs === 'string' ? flags.obs.split(',').flatMap((f) => JSON.parse(readFileSync(f, 'utf8')).points ?? []) : [];
+  const { points, counts } = buildPoints({ corridors, stations: stationsDoc.stations, index, reporting });
+  log(`Punkte: ${counts.axis} Achse (${counts.snapped} eingerastet, ${counts.unsnapped} nicht, ${counts.slid} verschoben, ${counts.bridge} Brücke) + ${counts.station} Stationen (${counts.noCatalog} ohne Katalogzeile, Lage aus der Meldung)`);
   const builtAt = new Date().toISOString();
   const doc = {
     schema: 1, product: 'road-fc-points', builtAt, spacingKm: ROAD_FC_SPACING_KM,
@@ -255,6 +277,7 @@ async function main() {
       { what: 'Lage der Achspunkte (auf die Fahrbahn gelegt)', name: `OpenStreetMap, highway=motorway${osmBase ? `, Stand ${osmBase}` : ''}`, license: 'ODbL 1.0', attribution: '© OpenStreetMap-Mitwirkende' },
       { what: 'Korridor-Achse und Korridor-km', name: 'BKG DLM250 (road/v1/static/corridors.json)', license: 'dl-de/by-2.0', attribution: '© GeoBasis-DE / BKG' },
       { what: 'Stationen', name: 'DWD sws_stations_xls.xlsx (road/v1/static/stations.json)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' },
+      ...(counts.noCatalog ? [{ what: 'Stationen ohne Katalogzeile (V-AW-7)', name: 'Lage aus der Meldung, DWD Straßenwetter (SWIS)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' }] : []),
     ],
     note: 'Achspunkte: Nennlage alle 5 km auf der Korridor-Achse, Koordinate = nächster Punkt der OSM-Fahrbahn derselben Autobahn (snap = Abstand in m; null = nicht eingerastet, Punkt liegt auf der Achse; slide = wegen Tunnel um so viele km verschoben). Stationen: Katalogposition.',
     counts, points,
@@ -263,7 +286,8 @@ async function main() {
   log(`${ROAD_FC_POINTS_PATH} geschrieben`);
 
   if (!flags['no-geo']) {
-    const { entries, failed } = await buildGeo(points, { log });
+    const seed = typeof flags['geo-from'] === 'string' ? JSON.parse(readFileSync(flags['geo-from'], 'utf8')).entries ?? [] : [];
+    const { entries, failed } = await buildGeo(points, { log, seed });
     const geo = { schema: 1, product: 'road-fc-geo', builtAt, note: 'Cache-Einträge der Client-Leser loadTerrainAtPoint (Terrarium z11 + z8) und loadZ0AtPoint (ESA WorldCover 2021, CC BY 4.0) je Punkt — der Producer lädt sie vor; nur für den Producer.', failed, entries };
     writeAtomic(join(flags.out, ROAD_FC_GEO_PATH.replace(/^static\//, '')), JSON.stringify(geo) + '\n');
     log(`${ROAD_FC_GEO_PATH}: ${entries.length} Einträge, ${failed.length} Punkte unvollständig`);

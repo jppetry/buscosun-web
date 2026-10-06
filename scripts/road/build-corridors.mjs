@@ -29,6 +29,11 @@ const JOIN_M = 60, GAP_KM = 3, SNAP_KM = 2, SIMPLIFY_KM = 0.08;
 /** Loop removal (`set`): back within 50 m of a vertex ≥ 150 m earlier = revisit; ≥ 70 % of the next 300 m also
  *  revisiting = retrace (dropped), else a loop (cut). */
 const LOOP_NEAR_KM = 0.05, LOOP_MIN_KM = 0.15, LOOKAHEAD_KM = 0.3, RETRACE_SHARE = 0.7, REATTACH_KM = 0.5;
+/** V-AW-16 (`set`): a cut-away spur of at least this length may become a section of its own (only with a station on it). */
+export const SPUR_MIN_KM = 2;
+/** V-AW-22 (`set`): no OSM carriageway of the motorway's number within `UNBUILT_MAX_M` for this long and no station on it
+ *  ⇒ not built (yet); sampled every `UNBUILT_STEP_KM`. */
+export const UNBUILT_MIN_KM = 5, UNBUILT_STEP_KM = 0.5, UNBUILT_MAX_M = 300;
 
 const kmBetween = (a, b) => {
   const kx = 111.2 * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180);
@@ -130,8 +135,11 @@ export function sections(chains) {
  *     returning vertices are dropped, the line keeps its outbound part;
  *   - loop: the path leaves the visited ground again (cloverleaf, spur) ⇒ everything since that vertex is cut.
  * A grid of ≈ 70 m cells keeps it near linear.
+ *
+ * V-AW-16: `cuts` (optional array) collects every piece cut away — a spur of the motorway that the chain ran out on and
+ * back is one of them; `buildCorridors` keeps those ≥ `SPUR_MIN_KM` as sections of their own. Without it: unchanged.
  */
-export function removeLoops(c, nearKm = LOOP_NEAR_KM, minLoopKm = LOOP_MIN_KM) {
+export function removeLoops(c, nearKm = LOOP_NEAR_KM, minLoopKm = LOOP_MIN_KM, cuts = null) {
   const out = [], cum = [];
   const grid = new Map();
   const key = (cx, cy) => `${cx}:${cy}`;
@@ -170,7 +178,7 @@ export function removeLoops(c, nearKm = LOOP_NEAR_KM, minLoopKm = LOOP_MIN_KM) {
       const rev = out.slice().reverse();
       out.length = 0; cum.length = 0; grid.clear();
       for (const q of rev) push(q);
-    } else { out.length = j + 1; cum.length = j + 1; }
+    } else { cuts?.push(out.slice(j)); out.length = j + 1; cum.length = j + 1; }
   };
   let retracing = false;
   for (let i = 0; i < c.length; i++) {
@@ -191,7 +199,7 @@ export function removeLoops(c, nearKm = LOOP_NEAR_KM, minLoopKm = LOOP_MIN_KM) {
     }
     if (n === 0 || near / n >= RETRACE_SHARE) { retracing = true; continue; }   // retrace (or chain ends on visited ground): drop
     if (retracing) { reattach(p); retracing = false; push(p); continue; }       // a retrace ends: re-anchor, never cut the outbound
-    out.length = j + 1; cum.length = j + 1;                             // loop: cut back to where it began
+    cuts?.push(out.slice(j)); out.length = j + 1; cum.length = j + 1;  // loop: cut back to where it began
     push(p);
   }
   return out;
@@ -254,7 +262,11 @@ function borderAt(end, deRings, places) {
   return pl && pl.d < 40 ? pl.x[4] : 'X';
 }
 
-export function buildCorridors({ axes, stations, obsPoints, places, deRings, roads }) {
+/**
+ * `spurs` (V-AW-16) and `isBuilt(p, road)` (V-AW-22, OSM carriageway test) are off when not given: the result is then
+ * byte-equal to the build before (verify:road-contract K6).
+ */
+export function buildCorridors({ axes, stations, obsPoints, places, deRings, roads, spurs = false, isBuilt = null }) {
   const byRoad = new Map();
   for (const f of axes.features) for (const r of roadsOf(f)) {
     if (roads && !roads.includes(r)) continue;
@@ -269,22 +281,42 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
   const corridors = [];
   const num = (r) => Number(r.slice(1));
   for (const road of [...byRoad.keys()].sort((a, b) => num(a) - num(b))) {
-    const secs = sections(chain(byRoad.get(road))).map((c) => simplify(removeLoops(c)));
+    const cuts = [];
+    const secs = sections(chain(byRoad.get(road))).map((c) => simplify(removeLoops(c, LOOP_NEAR_KM, LOOP_MIN_KM, spurs ? cuts : null)));
     const built = [];
-    secs.forEach((line0) => {
+    const stationsOn = (line, cum, ok) => {
+      const st = [];
+      for (const [sid, s] of pos) {
+        if (s.road !== road || !ok(sid)) continue;
+        const pr = project(line, cum, [s.lon, s.lat]);
+        if (pr.offKm <= SNAP_KM) st.push({ id: sid, km: Math.round(pr.km * 10) / 10, dir: s.dir ?? null });
+      }
+      return st.sort((a, b) => a.km - b.km);
+    };
+    const make = (line0, ok, extra = {}) => {
       // Orientation: odd numbers north → south, even numbers west → east.
       let line = line0;
       const odd = num(road) % 2 === 1;
       if (odd ? line[0][1] < line.at(-1)[1] : line[0][0] > line.at(-1)[0]) line = line.slice().reverse();
-      const cum = cumKm(line);
-      const len = cum.at(-1);
-      const st = [];
-      for (const [sid, s] of pos) {
-        if (s.road !== road) continue;
-        const pr = project(line, cum, [s.lon, s.lat]);
-        if (pr.offKm <= SNAP_KM) st.push({ id: sid, km: Math.round(pr.km * 10) / 10, dir: s.dir ?? null });
+      let cum = cumKm(line);
+      let st = stationsOn(line, cum, ok);
+      // V-AW-22: stretches the DLM250 lists as motorway but OSM has no carriageway of this number for ≥ UNBUILT_MIN_KM and
+      // no station measures on: at an end they are cut off, inside the section they are named (`unbuilt`, band + points).
+      let unbuilt = [];
+      if (isBuilt) {
+        const gaps = unbuiltRuns(line, cum.at(-1), (p) => isBuilt(p, road)).filter(([a, b]) => b - a >= UNBUILT_MIN_KM && !st.some((s) => s.km >= a - 0.5 && s.km <= b + 0.5));
+        const len0 = cum.at(-1);
+        const head = gaps.find(([a]) => a <= UNBUILT_STEP_KM), tail = gaps.find(([, b]) => b >= len0 - UNBUILT_STEP_KM);
+        if (head || tail) {
+          line = sliceLine(line, cum, head ? head[1] : 0, tail ? tail[0] : len0);
+          cum = cumKm(line);
+          st = stationsOn(line, cum, ok);
+        }
+        const shift = head ? head[1] : 0;
+        unbuilt = gaps.filter((g) => g !== head && g !== tail).map(([a, b]) => [Math.round((a - shift) * 10) / 10, Math.round((b - shift) * 10) / 10]);
+        if (head || tail) extra = { ...extra, trimmedKm: Math.round(((head ? head[1] - head[0] : 0) + (tail ? tail[1] - tail[0] : 0)) * 10) / 10 };
       }
-      st.sort((a, b) => a.km - b.km);
+      const len = cum.at(-1);
       const borderStart = borderAt(line[0], deRings, places);
       const borderEnd = borderAt(line.at(-1), deRings, places);
       // A corridor end at the border is named after the city across it (design: „München → Salzburg").
@@ -302,7 +334,7 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
       if (b) towns.push([Math.round(len), b[2]]);
       const seen = new Set();
       const townsOut = towns.sort((x, y) => x[0] - y[0]).filter((t) => (seen.has(t[1]) ? false : (seen.add(t[1]), true)));
-      built.push({
+      return {
         id: '', road, shields: [road.replace(/^A/, 'A ')],
         // Loop or short section with both ends at the same town: „A 1 bei Buchholz" instead of „Buchholz → Buchholz".
         title: a && b ? (a[2] === b[2] ? `${road.replace(/^A/, 'A ')} bei ${a[2]}` : `${a[2]} → ${b[2]}`) : road,
@@ -318,15 +350,70 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
         towns: townsOut,
         stations: st,
         forecastPoints: [],
-      });
-    });
+        ...(unbuilt.length ? { unbuilt } : {}),
+        ...extra,
+      };
+    };
+    for (const line0 of secs) built.push(make(line0, () => true));
     // Only sections with at least one station are corridors; ids by station count (`a8` = the busiest section,
     // then `a8-2`, …) so `/autobahnwetter/a8` opens the section with the most measurements.
-    built.filter((c) => c.stations.length > 0)
-      .sort((x, y) => y.stations.length - x.stations.length || y.lengthKm - x.lengthKm)
-      .forEach((c, i) => { c.id = `${road.toLowerCase()}${i ? `-${i + 1}` : ''}`; corridors.push(c); });
+    const regular = built.filter((c) => c.stations.length > 0).sort((x, y) => y.stations.length - x.stations.length || y.lengthKm - x.lengthKm);
+    regular.forEach((c, i) => { c.id = `${road.toLowerCase()}${i ? `-${i + 1}` : ''}`; corridors.push(c); });
+    // V-AW-16: spurs the loop removal cut away (≥ SPUR_MIN_KM) become sections of their own when a station of this
+    // motorway that no regular section took lies on one. Numbered AFTER the regular sections: their ids stay stable.
+    if (spurs) {
+      const taken = new Set(regular.flatMap((c) => c.stations.map((s) => s.id)));
+      const byPiece = new Map();
+      for (const [sid, s] of pos) {
+        if (s.road !== road || taken.has(sid)) continue;
+        let best = null;
+        for (const piece of cuts) {
+          if (lengthKm(piece) < SPUR_MIN_KM) continue;
+          const line = simplify(piece);
+          const pr = project(line, cumKm(line), [s.lon, s.lat]);
+          if (pr.offKm <= SNAP_KM && (!best || pr.offKm < best.off)) best = { piece, line, off: pr.offKm };
+        }
+        if (!best) continue;
+        if (!byPiece.has(best.piece)) byPiece.set(best.piece, { line: best.line, ids: new Set() });
+        byPiece.get(best.piece).ids.add(sid);
+      }
+      [...byPiece.values()].map(({ line, ids }) => make(line, (sid) => ids.has(sid), { spur: true }))
+        .filter((c) => c.stations.length > 0)
+        .sort((x, y) => y.stations.length - x.stations.length || y.lengthKm - x.lengthKm)
+        .forEach((c, i) => { c.id = `${road.toLowerCase()}-${regular.length + i + 1}`; corridors.push(c); });
+    }
   }
   return corridors;
+}
+
+/** V-AW-22: km runs along `line` (sampled every UNBUILT_STEP_KM) where `built(p)` is false. */
+export function unbuiltRuns(line, len, built) {
+  const runs = [];
+  let cur = null;
+  for (let k = 0; k <= len + 1e-9; k += UNBUILT_STEP_KM) {
+    const p = pointAtKm(line, k);
+    if (!built(p)) { if (!cur) cur = [k, k]; cur[1] = k; } else if (cur) { runs.push(cur); cur = null; }
+  }
+  if (cur) runs.push(cur);
+  return runs.map(([a, b]) => [Math.round(a * 10) / 10, Math.round(Math.min(len, b) * 10) / 10]);
+}
+
+function pointAtKm(line, km) {
+  let acc = 0;
+  for (let i = 1; i < line.length; i++) {
+    const d = kmBetween(line[i - 1], line[i]);
+    if (acc + d >= km && d > 0) { const t = Math.max(0, (km - acc) / d); return [line[i - 1][0] + t * (line[i][0] - line[i - 1][0]), line[i - 1][1] + t * (line[i][1] - line[i - 1][1])]; }
+    acc += d;
+  }
+  return line.at(-1);
+}
+
+/** The part of `line` between km `a` and `b` (vertices inside plus the interpolated ends). */
+export function sliceLine(line, cum, a, b) {
+  const out = [pointAtKm(line, a)];
+  for (let i = 0; i < line.length; i++) if (cum[i] > a && cum[i] < b) out.push(line[i]);
+  out.push(pointAtKm(line, b));
+  return out;
 }
 
 async function main() {
@@ -337,15 +424,24 @@ async function main() {
   const stations = arg('stations') ? JSON.parse(readFileSync(arg('stations'), 'utf8')).stations : {};
   const obsPoints = arg('obs') ? JSON.parse(readFileSync(arg('obs'), 'utf8')).points : [];
   const places = JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'fire', 'places-dach.json'), 'utf8')).places;
-  const corridors = buildCorridors({ axes, stations, obsPoints, places, deRings: loadDeRings(), roads: arg('roads')?.split(',') });
+  // V-AW-16: spurs on unless --no-spurs. V-AW-22: with --osm=<Overpass cache of build-fc-points> unbuilt stretches are cut
+  // off or named (run with the TS loader then: the carriageway test comes from build-fc-points.mjs).
+  let isBuilt = null;
+  if (arg('osm')) {
+    const F = await import('./build-fc-points.mjs');
+    const index = F.buildOsmIndex(JSON.parse(readFileSync(arg('osm'), 'utf8')));
+    isBuilt = (p, road) => { const hit = F.nearestCarriageway(index, p, road); return !!hit && !hit.other && hit.d <= UNBUILT_MAX_M; };
+  }
+  const corridors = buildCorridors({ axes, stations, obsPoints, places, deRings: loadDeRings(), roads: arg('roads')?.split(','), spurs: !process.argv.includes('--no-spurs'), isBuilt });
   const year = (axes.fetchedAt ?? new Date().toISOString()).slice(0, 4);
   const file = {
     schema: 1, product: 'road-corridors', builtAt: new Date().toISOString(),
     sources: [
       { what: 'Autobahnachsen DE', name: 'BKG DLM250 (AX_Strassenachse, Widmung 1301), WFS wfs_dlm250', license: 'dl-de/by-2.0', attribution: `© GeoBasis-DE / BKG (${year})` },
       { what: 'Ortsnamen', name: 'GeoNames', license: 'CC BY 4.0', attribution: 'GeoNames (geonames.org)' },
+      ...(isBuilt ? [{ what: 'Pruefung, ob eine Strecke gebaut ist (V-AW-22)', name: 'OpenStreetMap (highway=motorway)', license: 'ODbL', attribution: '© OpenStreetMap-Mitwirkende' }] : []),
     ],
-    note: 'Korridor-km ist eine eigene, durchgehende Achse je Abschnitt (Ausrichtung: ungerade Nummern Nord → Süd, gerade West → Ost), nicht der amtliche Streckenkilometer. AT/CH-Fortsetzungen und Prognosepunkte folgen mit AW-6.',
+    note: `Korridor-km ist eine eigene, durchgehende Achse je Abschnitt (Ausrichtung: ungerade Nummern Nord → Süd, gerade West → Ost), nicht der amtliche Streckenkilometer. AT/CH-Fortsetzungen und Prognosepunkte folgen mit AW-6.${isBuilt ? ` Strecken, die das DLM250 als Autobahn führt, für die OpenStreetMap aber auf mindestens ${UNBUILT_MIN_KM} km keine Fahrbahn dieser Nummer kennt und an denen keine Messstelle liegt, sind am Ende abgeschnitten (trimmedKm) oder innen als unbuilt [von, bis km] benannt (V-AW-22).` : ''}${corridors.some((c) => c.spur) ? ' Abschnitte mit spur: true sind Stichäste einer Autobahn mit eigener Messstelle (V-AW-16), nach den übrigen Abschnitten nummeriert.' : ''}`,
     corridors,
   };
   mkdirSync(dirname(out), { recursive: true });

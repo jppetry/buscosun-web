@@ -698,6 +698,24 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     cases.length === 18 && cases.every(Boolean) && after && hidden === 0 && shown > 100, JSON.stringify({ ok: cases.filter(Boolean).length, after, hidden, shown }));
 }
 
+{
+  // R9 (V-AW-22): a corridor with a stretch without carriageway in OSM — named in band, legend and briefing.
+  const uSite = join(tmp, 'site-unbuilt');
+  cpSync(site, uSite, { recursive: true });
+  const cf = JSON.parse(readFileSync(join(uSite, 'static', 'corridors.json'), 'utf8'));
+  cf.corridors.find((c) => c.id === 'a8').unbuilt = [[100, 110]];
+  writeFileSync(join(uSite, 'static', 'corridors.json'), JSON.stringify(cf));
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a8?tab=strecke&road=1', root: uSite });
+  await until(ctx, `!!document.querySelector('.aw-band-unbuilt') && /OpenStreetMap/.test(document.querySelector('.aw-brief')?.textContent ?? '')`, 30_000);
+  const r = await ctx.evaluate(`(() => { const u = document.querySelector('.aw-band-unbuilt'), bar = document.querySelector('.aw-band-bar'); const a = u?.getBoundingClientRect(), b = bar?.getBoundingClientRect();
+    return { title: u?.getAttribute('title') ?? '', legend: document.querySelector('.aw-band-legend')?.textContent ?? '', brief: document.querySelector('.aw-brief')?.textContent ?? '', top: a && b ? Math.round(a.top - b.top) : null, h: a ? Math.round(a.height) : null, w: a && b ? a.width / b.width : null }; })()`);
+  await shot(ctx, 'r9-band-ohne-fahrbahn');
+  add('R9 Strecke ohne Fahrbahn in OSM (V-AW-22): im Band als dunkle Schraffur genau über km 100–110 (Breite ≈ 10 / Länge), Legende und Briefing nennen „keine Fahrbahn in OpenStreetMap (im Bau oder anders geführt)"',
+    /km 100–110: keine Fahrbahn in OpenStreetMap/.test(r.title) && /ohne Fahrbahn \(OSM\)/.test(r.legend) && /km 100–110: keine Fahrbahn in OpenStreetMap \(im Bau oder anders geführt\)/.test(r.brief) && r.top === 0 && r.h === 14 && Math.abs(r.w - 10 / cf.corridors.find((c) => c.id === 'a8').lengthKm) < 0.01,
+    JSON.stringify(r).slice(0, 300));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+
 add('I1 keine ungefangene Ausnahme in allen Abläufen', allErrors.length === 0, allErrors.slice(0, 3).join(' | '));
 
 await browser.close();

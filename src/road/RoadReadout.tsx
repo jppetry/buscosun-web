@@ -439,6 +439,7 @@ function StreckeTab(p: Props) {
           {coldest ? `Kälteste Messung: ${coldest.name} ${f1(coldest.point!.rs as number)} °C (${hm(coldest.point!.t)}). ` : 'Keine gültige Fahrbahnmessung auf diesem Abschnitt. '}
           {p.noData ? '' : `${crit} von ${nStations} Messpunkten mit Glätte oder Frostgefahr gemessen.`}
           {border ? ` Ab km ${dec(kmIn(c, border.km, p.dir), 0)} (Grenze ${border.country}) keine offene Fahrbahnmessung.` : ''}
+          {(c.unbuilt ?? []).map(([a, b]) => ` km ${dec(Math.min(kmIn(c, a, p.dir), kmIn(c, b, p.dir)), 0)}–${dec(Math.max(kmIn(c, a, p.dir), kmIn(c, b, p.dir)), 0)}: keine Fahrbahn in OpenStreetMap (im Bau oder anders geführt).`).join('')}
           {trip.coldest && <span className="aw-brief-fc"> {roadFcTripText(trip)}</span>}
         </div>
       </div>
