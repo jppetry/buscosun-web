@@ -20,19 +20,19 @@ import { useMediaQuery } from '../mobile/useIsMobile';
 import type { CapAlert } from '../warnings/capAlerts';
 import { ROAD_DEAD_MS, roadFreshness, type RoadH24File, type RoadPoint } from './roadContract';
 import { ROAD_CLASS_LABEL } from './roadClasses';
-import { loadRoadCorridors, loadRoadFc, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadSlotLoad } from './roadClient';
+import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadFcStationLoad, type RoadSlotLoad } from './roadClient';
 import type { RoadFcPoint } from './roadFc';
 import {
   ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, defaultRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
   roadFcEngineName, roadFcRunView, roadFcValue,
 } from './roadFcView';
-import RoadMap, { type RoadFcDot, type RoadMapLayers } from './RoadMap';
+import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
 import RoadReadout from './RoadReadout';
 import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import {
-  ROAD_CLASS_COLOR, bandSegments, corridorEnds, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
+  ROAD_CLASS_COLOR, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
 } from './roadView';
 import './roadDeck.css';
@@ -50,7 +50,8 @@ const DEFAULT_CORRIDOR = 'a8';
 const REFRESH_MS = 60_000;
 /** The pointer of the route forecast changes once an hour (plus the publish gate) — re-read every 10 min. */
 const FC_REFRESH_MS = 10 * 60_000;
-const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: true };
+// V-AW-14: the radar layer is off by default (one more download and a GL layer only when asked for).
+const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: true, rain: false };
 const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
 export default function RoadPage({ initial, onUrlState, onCorridor, popState }: RoadPageProps) {
@@ -70,6 +71,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const [country, setCountry] = useState<RoadCountry>('alle');
   const [query, setQuery] = useState('');
   const [layers, setLayers] = useState<RoadMapLayers>(DEFAULT_LAYERS);
+  const [rain, setRain] = useState<RoadRainState | null>(null);
   const [departMin, setDepartMin] = useState(0);
   const [ring, setRing] = useState<RoadH24File | null>(null);
   const [warn, setWarn] = useState<{ state: 'off' | 'loading' | 'ok' | 'error'; alerts: CapAlert[]; at: number | null }>({ state: 'off', alerts: [], at: null });
@@ -174,6 +176,21 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   }, [fcFile, fcById, stId, shownById, defaultPoint]); // eslint-disable-line react-hooks/exhaustive-deps
   const point: RoadPoint | null = axis ? null : stId && shownById.get(stId) ? shownById.get(stId)! : defaultPoint;
 
+  // V-AW-26: a selected station outside the open corridor's file (federal/state road, or another corridor) gets its
+  // forecast from the run's station map — loaded only for that station, cached per run.
+  const fcRunEntry = fcFile && fcOwn?.run ? fcOwn.run : null;
+  const needStation = point && fcRunEntry && !fcById.has(point.id) ? point.id : null;
+  const [fcStation, setFcStation] = useState<{ key: string; load: RoadFcStationLoad | null } | null>(null);
+  const fcStationKey = needStation && fcRunEntry ? `${fcRunEntry.run}/${needStation}` : null;
+  useEffect(() => {
+    if (!fcStationKey || !fcRunEntry || !needStation) return;
+    const ac = new AbortController();
+    setFcStation({ key: fcStationKey, load: null });
+    loadRoadFcStation(fcRunEntry, needStation, ac.signal).then((l) => setFcStation({ key: fcStationKey, load: l }), () => {});
+    return () => ac.abort();
+  }, [fcStationKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fcStationNow = fcStation && fcStation.key === fcStationKey ? fcStation : null;
+
   // 24-h ring of the selected station's series.
   const pointGroup = point?.g ?? null;
   const obsSlot = obs?.slot ?? null;
@@ -252,8 +269,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
     <div className="aw-pill">
       <span className="aw-pill-shields">{corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
       <span className="aw-pill-body">
-        <span className="aw-pill-title">{ends.from} → {ends.to}</span>
-        <span className="aw-pill-sub">Richtung {ends.to} · {corridor.countries.join(' · ')}{isMobile ? ` · ${corridor.stations.length} Messpunkte` : ''}</span>
+        <span className="aw-pill-title">{corridorRouteText(corridor, dir)}</span>
+        <span className="aw-pill-sub">{corridorHeading(corridor, dir)} · {corridor.countries.join(' · ')}{isMobile ? ` · ${corridor.stations.length} Messpunkte` : ''}</span>
       </span>
       <button type="button" className="aw-icon-btn" aria-label="Fahrtrichtung wechseln" onClick={() => setDir((d) => (d ? 0 : 1))}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4" /></svg>
@@ -279,6 +296,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
       {(['ice', 'frost', 'wet', 'dry'] as const).map((c) => <span key={c}><i style={{ background: ROAD_CLASS_COLOR[c] }} />{ROAD_CLASS_LABEL[c].label}</span>)}
       {/* Hatched = `unknown` (temperature, no condition) AND `nodata` — never "dry" (D-04). */}
       <span><i className="is-hatched" />Zustand unbekannt / keine Messung</span>
+      {layers.rain && (
+        <>
+          <span className="aw-eyebrow aw-legend-fc">Niederschlag jetzt</span>
+          <span className="aw-legend-rain" role="status"><i />{rain?.validAtMs != null && rain.state !== 'error' ? `Radar ${hm(rain.validAtMs)} · DWD RADOLAN` : rain?.state === 'none' || rain?.state === 'error' ? 'Radar derzeit nicht lesbar' : 'Radar lädt'}</span>
+        </>
+      )}
       {fcFile && layers.fc && (
         <>
           <span className="aw-eyebrow aw-legend-fc">Prognose Luft · {t === 0 ? 'jetzt' : `+${t} h`}</span>
@@ -311,13 +334,14 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} />
+      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} onRain={setRain} />
   );
   const readout = (
     <RoadReadout tab={tab} onTab={setTab} point={point} corridor={corridor} byId={shownById} dir={dir} slotMs={obs?.slotMs ?? null} nowMs={nowMs}
       stale={freshness === 'stale'} ring={ring} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} departOffsetMin={departMin}
       onDepart={(d) => setDepartMin((m) => Math.max(0, Math.min(345, m + d)))} onPick={pickStation} noData={noData}
-      fcFile={fcFile} fcById={fcById} fcLabel={fcLabel} axis={axis} time={t} onTime={setTime} />
+      fcFile={fcFile} fcById={fcById} fcLabel={fcLabel} axis={axis} time={t} onTime={setTime}
+      fcStation={fcStationNow ? (fcStationNow.load ?? 'loading') : null} />
   );
 
   // --- mobile ---------------------------------------------------------------------------------------------
@@ -332,8 +356,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
       <button type="button" className="aw-pill is-button" aria-haspopup="dialog" aria-expanded={picker} onClick={() => setPicker(true)}>
         <span className="aw-pill-shields">{corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
         <span className="aw-pill-body">
-          <span className="aw-pill-title">{ends.from} → {ends.to}</span>
-          <span className="aw-pill-sub">Richtung {ends.to} · {corridor.stations.length} Messpunkte</span>
+          <span className="aw-pill-title">{corridorRouteText(corridor, dir)}</span>
+          <span className="aw-pill-sub">{corridorHeading(corridor, dir)} · {corridor.stations.length} Messpunkte</span>
         </span>
         <svg className="aw-pill-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>

@@ -133,6 +133,61 @@ export function corridorEnds(c: RoadCorridor, dir: 0 | 1): { from: string; to: s
   return dir ? { from: b, to: a } : { from: a, to: b };
 }
 
+// --- names (V-AW-9) --------------------------------------------------------------------------------
+
+/**
+ * V-AW-9: the usual names of ring motorways (`set`). The corridor builder names a section after the towns at its ends —
+ * a ring whose both ends lie in one town became „A 10 bei Groß Kreutz", a section of it „Germering → Hohenbrunn".
+ */
+export const ROAD_RING_NAMES: Readonly<Record<string, string>> = Object.freeze({ A10: 'Berliner Ring', A99: 'Autobahnring München', A100: 'Berliner Stadtring' });
+
+/** A corridor that starts and ends in the same town (a ring or a short loop of junction ramps). */
+export const isLoopCorridor = (c: Pick<RoadCorridor, 'from' | 'to'>) => !c.from || !c.to || c.from === c.to;
+
+/** Display title: ring name (with the towns of a ring SECTION), else the builder's title. */
+export function corridorTitle(c: Pick<RoadCorridor, 'road' | 'title' | 'from' | 'to'>): string {
+  const ring = ROAD_RING_NAMES[c.road];
+  if (ring) return isLoopCorridor(c) ? ring : `${ring}: ${c.from} → ${c.to}`;
+  return c.title;
+}
+
+/** `Ettlingen → Deggingen` in the chosen direction; a loop is named by its title instead of „X → X". */
+export function corridorRouteText(c: RoadCorridor, dir: 0 | 1): string {
+  if (isLoopCorridor(c)) return ROAD_RING_NAMES[c.road] ?? c.title;
+  const e = corridorEnds(c, dir);
+  return `${e.from} → ${e.to}`;
+}
+
+/** Subtitle of the pill: `Richtung Deggingen` or, on a loop, `Ring` (a direction towards its own start says nothing). */
+export function corridorHeading(c: RoadCorridor, dir: 0 | 1): string {
+  return isLoopCorridor(c) ? (ROAD_RING_NAMES[c.road] ? 'Ring' : 'Abschnitt') : `Richtung ${corridorEnds(c, dir).to}`;
+}
+
+/**
+ * V-AW-9: sections with fewer stations than this are folded in the dock under their motorway — but never the busiest
+ * section of a motorway (its id has no `-n`), never the selected one, never while searching (`set`).
+ */
+export const ROAD_DOCK_FOLD_BELOW = 3;
+export const isFoldedSection = (c: Pick<RoadCorridor, 'id' | 'stations'>) => /-\d+$/.test(c.id) && c.stations.length < ROAD_DOCK_FOLD_BELOW;
+
+export interface DockEntry { kind: 'corridor'; corridor: RoadCorridor }
+export interface DockFoldEntry { kind: 'fold'; road: string; hidden: RoadCorridor[]; open: boolean }
+
+/** Dock list with folded short sections: after the last shown section of a motorway one toggle row names the folded ones. */
+export function dockEntries(cs: readonly RoadCorridor[], opts: { query: string; selectedId: string | null; open: ReadonlySet<string> }): Array<DockEntry | DockFoldEntry> {
+  const out: Array<DockEntry | DockFoldEntry> = [];
+  const searching = opts.query.trim().length > 0;
+  const byRoad = new Map<string, RoadCorridor[]>();
+  for (const c of cs) { if (!byRoad.has(c.road)) byRoad.set(c.road, []); byRoad.get(c.road)!.push(c); }
+  for (const [road, list] of byRoad) {
+    const fold = searching ? [] : list.filter((c) => isFoldedSection(c) && c.id !== opts.selectedId);
+    const open = opts.open.has(road);
+    for (const c of list) if (open || !fold.includes(c)) out.push({ kind: 'corridor', corridor: c });
+    if (fold.length) out.push({ kind: 'fold', road, hidden: fold, open });
+  }
+  return out;
+}
+
 export interface BandSegment {
   fromKm: number;
   toKm: number;
@@ -287,7 +342,7 @@ export function searchCorridors(cs: readonly RoadCorridor[], byId: ReadonlyMap<s
   // „A 8" / „a8" means exactly that motorway (not A 81, A 8x).
   if (/^[a-z]\d{1,3}$/.test(t)) return cs.filter((c) => c.road.toLowerCase() === t);
   return cs.filter((c) => {
-    const hay = `${c.road} ${c.title} ${c.towns.map((x) => x[1]).join(' ')}`.toLowerCase().replace(/\s+/g, '');
+    const hay = `${c.road} ${corridorTitle(c)} ${c.towns.map((x) => x[1]).join(' ')}`.toLowerCase().replace(/\s+/g, '');
     if (hay.includes(t)) return true;
     return c.stations.some((s) => (byId.get(s.id)?.n ?? '').toLowerCase().replace(/\s+/g, '').includes(t));
   });

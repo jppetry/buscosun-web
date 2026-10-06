@@ -543,7 +543,6 @@ if (typeof flags.data === 'string') {
     && code.indexOf('Archive route forecast') < code.indexOf('Commit and push') && /git add -A -- road\s*$/m.test(code));
 }
 
-rmSync(tmp, { recursive: true, force: true });
 // --- I: view model of the page (AW-6.1b) on a REAL run file ------------------------------------------------
 {
   const V = await import('../src/road/roadFcView.ts');
@@ -897,6 +896,32 @@ rmSync(tmp, { recursive: true, force: true });
     clash ? String(clash.message).split('\n')[0] : touched.join(' '));
 }
 
+// --- M: station map of a run (V-AW-26) ---------------------------------------------------------------
+{
+  const { parseRoadFcWhere, roadFcWherePath, roadFcWhereFile } = await import('../src/road/roadFc.ts');
+  const { loadRoadFcStation } = await import('../src/road/roadClient.ts');
+  const whereText = readFileSync(join(tmp, 'out', roadFcWherePath(built.run)), 'utf8');
+  const where = parseRoadFcWhere(JSON.parse(whereText));
+  add('M1 Lauf schreibt where.json: jede Station mit ihrer Datei (Korridor c/…, sonst Land s/…), keine Achspunkte; die Client-Prüfung nimmt sie, verwirft Unsinn',
+    where?.run === built.run && eq(where.stations, { S900: 'c/a99', S901: 's/BY' }) && roadFcWhereFile(built.run, 's/BY') === roadFcStatePath(built.run, 'BY') && roadFcWhereFile(built.run, 'c/a99') === roadFcCorridorPath(built.run, 'a99')
+    && eq(parseRoadFcWhere({ schema: 1, product: 'road-fc-where', run: 'x', stations: { A: 's/BY', B: '../x', C: 7 } })?.stations, { A: 's/BY' }) && parseRoadFcWhere({ schema: 1, product: 'road-fc', run: 'x', stations: {} }) === null,
+    whereText.trim());
+  const realFetch = globalThis.fetch;
+  const run = { ...built.entry, publishedAt: built.entry.issuedAt };
+  const served = (map) => { globalThis.fetch = async (u) => { const url = String(u); const rel = url.replace(ROAD_FC_CDN_BASE + '/', '').replace(ROAD_FC_RAW_BASE + '/', ''); return map[rel] ? new Response(map[rel], { status: 200 }) : new Response('nf', { status: 404 }); }; };
+  const files = { [roadFcWherePath(built.run)]: whereText, ...Object.fromEntries(Object.entries(runFiles).map(([k, v]) => [`${built.run}/${k}`, v])) };
+  served(files);
+  const s901 = await loadRoadFcStation(run, 'S901'), s900 = await loadRoadFcStation(run, 'S900'), none = await loadRoadFcStation(run, 'Q999');
+  const other = { ...run, run: '2610010000' };
+  served({});
+  const noWhere = await loadRoadFcStation(other, 'S901');
+  globalThis.fetch = realFetch;
+  add('M2 Leser loadRoadFcStation (V-AW-26): Station ohne Korridor ⇒ Punkt aus der Länder-Datei (= Datei des Laufs), Station eines Korridors ⇒ aus dessen Datei; unbekannte Station ⇒ not-in-run; Lauf ohne where.json ⇒ no-where (benannt, kein Absturz)',
+    s901.reason === 'ok' && s901.where === 's/BY' && eq(s901.point, JSON.parse(runFiles['s/BY.json']).points[0]) && s900.reason === 'ok' && s900.where === 'c/a99' && none.reason === 'not-in-run' && noWhere.reason === 'no-where',
+    `${s901.reason} ${s900.reason} ${none.reason} ${noWhere.reason}`);
+}
+
+rmSync(tmp, { recursive: true, force: true });
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\nverify:road-fc — ${results.length - failed}/${results.length}`);
 process.exit(failed ? 1 : 0);

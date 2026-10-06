@@ -28,6 +28,32 @@ export const ROAD_FC_POINTS_PATH = 'static/points.json';
 export const ROAD_FC_GEO_PATH = 'static/geo.json';
 export const roadFcCorridorPath = (run: string, corridorId: string) => `${run}/c/${corridorId}.json`;
 export const roadFcStatePath = (run: string, state: string) => `${run}/s/${state}.json`;
+/**
+ * V-AW-26: which file of the run carries a station point (`c/<corridor>` or `s/<state>`). The measured slot does not name
+ * the federal state (series id ≠ state at 385 of 1 394 stations), so the page asks this small map when a station lies on
+ * no corridor of the open page. Runs before 06.10.2026 have none ⇒ the page says so.
+ */
+export const roadFcWherePath = (run: string) => `${run}/where.json`;
+
+export interface RoadFcWhere {
+  schema: 1;
+  product: 'road-fc-where';
+  run: string;
+  /** Station id → `c/<corridor>` | `s/<state>`. */
+  stations: Record<string, string>;
+}
+
+const WHERE_RE = /^(?:c\/[a-z][a-z0-9]{0,4}(?:-\d{1,2})?|s\/[A-Z]{2})$/;
+export function parseRoadFcWhere(j: unknown): RoadFcWhere | null {
+  if (!j || typeof j !== 'object') return null;
+  const o = j as Record<string, unknown>;
+  if (o.schema !== 1 || o.product !== 'road-fc-where' || typeof o.run !== 'string' || !o.stations || typeof o.stations !== 'object') return null;
+  const stations: Record<string, string> = {};
+  for (const [id, v] of Object.entries(o.stations as Record<string, unknown>)) if (typeof v === 'string' && WHERE_RE.test(v)) stations[id] = v;
+  return { schema: 1, product: 'road-fc-where', run: o.run, stations };
+}
+/** `c/a8` ⇒ the corridor file of the run, `s/BY` ⇒ the state file. */
+export const roadFcWhereFile = (run: string, key: string) => (key.startsWith('c/') ? roadFcCorridorPath(run, key.slice(2)) : roadFcStatePath(run, key.slice(2)));
 
 // --- Shape of a run ----------------------------------------------------------------------------
 

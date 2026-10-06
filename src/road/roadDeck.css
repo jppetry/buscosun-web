@@ -346,3 +346,24 @@ button.aw-prog-tile:disabled { cursor: default; }
 }
 .aw-map.has-fc .maplibregl-ctrl-bottom-right, .aw-map.has-fc .maplibregl-ctrl-bottom-left { bottom: 204px; }
 .aw-brief-fc { color: #28507A; }
+
+/* --- 06.10.2026 (audit/autobahnwetter.md §18): V-AW-9 Dock, V-AW-2 Leiste, V-AW-29 Spalte, V-AW-14 Radar ---------------- */
+.aw-road-more { display: block; width: 100%; text-align: left; border: 1px dashed var(--sand-200, #E0D6BE); border-radius: 9px; background: transparent; color: var(--stone-600, #5C5447); font: inherit; font-size: 10.5px; line-height: 1.3; padding: 7px 10px; cursor: pointer; box-sizing: border-box; }
+.aw-road-more:hover { background: #fff; }
+.aw-road-more.is-open { border-style: solid; }
+.aw-chart-legend i.is-k { width: 18px; height: 6px; background: linear-gradient(90deg, #B5321F 0 25%, #E39A3B 25% 50%, #5E97D1 50% 75%, #8DB07A 75%); }
+.aw-table-fc { display: none; }
+@media (min-width: 1440px) {
+  .aw-table.has-fc-col .aw-table-head, .aw-table.has-fc-col .aw-table-row { grid-template-columns: 34px minmax(0, 1fr) 72px 38px 62px; gap: 6px; }
+  .aw-table.has-fc-col .aw-table-fc { display: flex; flex-direction: column; min-width: 0; font-size: 10.5px; line-height: 1.25; color: #28507A; }
+  .aw-table.has-fc-col .aw-table-head .aw-table-fc { display: block; color: inherit; font-size: inherit; }
+  .aw-table.has-fc-col .aw-table-fc b { font-weight: 600; white-space: nowrap; }
+  .aw-table.has-fc-col .aw-table-fc i { font-style: normal; font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aw-table.has-fc-col .aw-table-fc.is-none { color: var(--stone-400, #A89A7A); }
+  .aw-table.has-fc-col .aw-table-name em.is-fc { display: none; }
+}
+.aw-legend-rain { display: inline-flex; align-items: center; gap: 4px; }
+.aw-legend-rain i { width: 22px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(95,165,235,0.8), rgba(60,200,120,0.9), rgba(240,150,50,0.9), rgba(190,40,95,0.9)); }
+@media (max-width: 767px) {
+  .aw-m-dock .aw-road-more { min-height: 44px; }
+}

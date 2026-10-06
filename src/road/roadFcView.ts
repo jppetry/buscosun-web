@@ -101,6 +101,11 @@ export function roadFcPrecipText(v: Pick<RoadFcValue, 'pp' | 'rr' | 'sn'>): stri
 export function roadFcLine(v: RoadFcValue): string {
   return `Luft ${f1(v.t)} °C · ${roadFcPrecipText(v)}`;
 }
+/** V-AW-29: the arrival forecast as two short lines for its own table column (`+2,1 °C` · `Regen 60 %` / `Nd. 10 %`). */
+export function roadFcCompact(v: RoadFcValue): { air: string; precip: string } {
+  const pp = v.pp == null ? null : Math.round(v.pp);
+  return { air: `${f1(v.t)} °C`, precip: pp == null ? 'Nd. —' : pp >= ROAD_FC_PRECIP_NAME_PP ? `${roadFcPrecipKind(v.sn)} ${pp} %` : `Nd. ${pp} %` };
+}
 export function roadFcWindText(v: Pick<RoadFcValue, 'ff' | 'fx'>): string {
   if (v.ff == null && v.fx == null) return '—';
   return `${v.ff != null ? Math.round(v.ff * 3.6) : '—'} / ${v.fx != null ? Math.round(v.fx * 3.6) : '—'} km/h`;

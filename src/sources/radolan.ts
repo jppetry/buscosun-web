@@ -549,6 +549,19 @@ export async function fetchRvAnalysisSequence(count: number, signal?: AbortSigna
 }
 
 /**
+ * V-AW-14 (Autobahnwetter, `audit/autobahnwetter.md` §18): die JÜNGSTE beobachtete Analyse allein — der f000-Frame
+ * des neuesten gespiegelten RV-Slots (≈ 30 KB), gerechnete Stempel, nur der Bild-Weg (kein 9,6-MB-Tar für eine
+ * zuschaltbare Nebenebene). `null` = derzeit kein Slot über den Spiegel lesbar.
+ */
+export async function fetchRvLatestAnalysis(signal?: AbortSignal): Promise<{ frame: RvAnalysisFrame; corners: QuadCorners } | null> {
+  for (const ts of guessRvRuns(4).filter((t) => rvImgEligible(t))) {
+    const frame = await fetchRvAnalysisFromImg(ts, signal);
+    if (frame) return { frame, corners: DE1200_CORNERS };
+  }
+  return null;
+}
+
+/**
  * Lädt den jüngsten RY-Live-Frame (ungeeichte 5-Min-Analyse, Legacy-900×900).
  * Aktuell nicht im Slider verdrahtet — der RV-_000-Frame liefert die Live-
  * Analyse bereits auf dem DE1200-Gitter. Exportiert für eine spätere

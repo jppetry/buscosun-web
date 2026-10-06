@@ -6,10 +6,12 @@
  * no valid measurement / unknown state (never like "dry", D-04), selected = larger with a light ring. Ring markers for
  * AT/CH forecast points come with AW-6. Small plain dots on the selected corridor = forecast points of the weather
  * forecast (AW-6.1b, air temperature class — other colours than the measured road classes). No WebGL of our own:
- * plain GeoJSON layers and canvas-drawn icons.
+ * plain GeoJSON layers and canvas-drawn icons. V-AW-14: the layer „Niederschlag jetzt" is the Wetterkarte's own
+ * `RainLayer` (projection-exact DE1200 warp mesh) with the newest RV analysis of the radar mirror — loaded only when the
+ * dock switch is on (off by default), refreshed every 5 min, drawn under the basemap's place names and our layers.
  */
 import { useEffect, useRef } from 'react';
-import maplibregl from 'maplibre-gl';
+import maplibregl, { type CustomLayerInterface } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { RoadPoint } from './roadContract';
 import type { RoadClass } from './roadClasses';
@@ -20,7 +22,16 @@ const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 46.8, 15.5, 55.2];
 const CLASSES: RoadClass[] = ['ice', 'frost', 'wet', 'dry', 'unknown', 'nodata'];
 
-export interface RoadMapLayers { zust: boolean; temp: boolean; fog: boolean; warn: boolean; bl: boolean; fc: boolean }
+export interface RoadMapLayers { zust: boolean; temp: boolean; fog: boolean; warn: boolean; bl: boolean; fc: boolean; rain: boolean }
+
+/** V-AW-14: state of the radar layer for the legend (valid time of the shown analysis). */
+export interface RoadRainState { state: 'loading' | 'ok' | 'none' | 'error'; validAtMs: number | null }
+/** Refresh of the radar layer (`set`: the RV analysis comes every 5 min). */
+export const ROAD_RAIN_REFRESH_MS = 5 * 60_000;
+const RAIN_LAYER_ID = 'aw-rain';
+/** Under the basemap's place names (first symbol layer of the style) and so under every layer of ours. */
+const rainBeforeId = (map: maplibregl.Map): string | undefined =>
+  map.getStyle()?.layers?.find((l) => l.type === 'symbol' && !l.id.startsWith('aw-'))?.id ?? (map.getLayer('aw-warn-fill') ? 'aw-warn-fill' : undefined);
 
 /** Forecast point of the corridor axis (AW-6.1b): a small dot in the colour of the forecast AIR class. */
 export interface RoadFcDot { id: string; lon: number; lat: number; color: string | null }
@@ -42,7 +53,12 @@ interface Props {
   callout?: { lon: number; lat: number; name: string; line: string; color: string | null } | null;
   /** Forecast points of the selected corridor (weather forecast of buscosun Fusion, layer `fc`). */
   fcDots?: readonly RoadFcDot[];
+  /** V-AW-14: the radar layer reports its state (legend). */
+  onRain?: (s: RoadRainState | null) => void;
 }
+
+/** The custom layer and the last frame — kept across style reloads. */
+interface RainHold { layer: CustomLayerInterface & { setFrame(f: unknown): void } | null; frame: unknown; validAtMs: number | null }
 
 function dotFc(dots: readonly RoadFcDot[], sel: string | null): GeoJSON.FeatureCollection {
   return {
@@ -140,6 +156,7 @@ export default function RoadMap(props: Props) {
   const readyRef = useRef(false);
   /** Inputs of the last setData per source — only changed references are written (CLAUDE.md: setData loops). */
   const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown; fc?: unknown[] }>({});
+  const rainRef = useRef<RainHold>({ layer: null, frame: null, validAtMs: null });
 
   function apply(map: maplibregl.Map) {
     if (!map.isStyleLoaded()) return;
@@ -196,6 +213,12 @@ export default function RoadMap(props: Props) {
         paint: { 'text-color': '#C9D2DC', 'text-halo-color': '#0B0E12', 'text-halo-width': 1 },
       });
     }
+    // V-AW-14: after a style reload the radar layer comes back under our layers, with its last frame.
+    const rh = rainRef.current;
+    if (p.layers.rain && rh.layer && !map.getLayer(RAIN_LAYER_ID)) {
+      map.addLayer(rh.layer, rainBeforeId(map));
+      if (rh.frame) rh.layer.setFrame(rh.frame);
+    }
     const vis = (id: string, on: boolean) => { if (map.getLayoutProperty(id, 'visibility') !== (on ? 'visible' : 'none')) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
     vis('aw-labels', p.layers.temp);
     vis('aw-fog', p.layers.fog);
@@ -247,6 +270,50 @@ export default function RoadMap(props: Props) {
     const map = mapRef.current;
     if (map) apply(map);
   });
+
+  // V-AW-14: radar layer „Niederschlag jetzt" — loaded on demand, under the corridors, refreshed every 5 min.
+  const rainOn = props.layers.rain;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const report = (s: RoadRainState | null) => propsRef.current.onRain?.(s);
+    if (!rainOn) {
+      if (map.getLayer(RAIN_LAYER_ID)) map.removeLayer(RAIN_LAYER_ID);
+      rainRef.current.layer = null;
+      report(null);
+      return;
+    }
+    let alive = true;
+    let ac = new AbortController();
+    const load = async () => {
+      report({ state: 'loading', validAtMs: rainRef.current.validAtMs });
+      try {
+        const [{ fetchRvLatestAnalysis, de1200WarpMesh, DE1200_WARP_N }, { RainLayer, precipRainRamp }] = await Promise.all([import('../sources/radolan'), import('../scalar/RainLayer')]);
+        const r = await fetchRvLatestAnalysis(ac.signal);
+        if (!alive) return;
+        if (!r) { report({ state: 'none', validAtMs: rainRef.current.validAtMs }); return; }
+        const frame = { values: r.frame.values, width: r.frame.width, height: r.frame.height, corners: r.corners, warpLnglat: de1200WarpMesh(), warpN: DE1200_WARP_N };
+        const rh = rainRef.current;
+        rh.layer ??= new RainLayer({ id: RAIN_LAYER_ID, colorRamp: precipRainRamp, opacity: 0.7 }) as unknown as RainHold['layer'];
+        rh.frame = frame;
+        rh.validAtMs = r.frame.validAt.getTime();
+        const put = () => {
+          if (!alive || !rh.layer) return;
+          if (!map.getLayer(RAIN_LAYER_ID)) map.addLayer(rh.layer, rainBeforeId(map));
+          rh.layer.setFrame(frame);
+          map.triggerRepaint();
+        };
+        if (readyRef.current) put(); else map.once('load', put);
+        report({ state: 'ok', validAtMs: rh.validAtMs });
+      } catch (e) {
+        if (!alive || (e as Error)?.name === 'AbortError') return;
+        report({ state: 'error', validAtMs: rainRef.current.validAtMs });
+      }
+    };
+    void load();
+    const id = window.setInterval(() => { ac.abort(); ac = new AbortController(); void load(); }, ROAD_RAIN_REFRESH_MS);
+    return () => { alive = false; ac.abort(); window.clearInterval(id); };
+  }, [rainOn]);
 
   // Callout: one DOM marker, moved and refilled (no React portal into the map).
   const co = props.callout;

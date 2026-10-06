@@ -10,7 +10,7 @@
  */
 import type { RoadPoint } from './roadContract';
 import type { RoadCorridor } from './roadClient';
-import { ROAD_CLASS_COLOR, bandSegments, dec, isHatched, kmIn, kmTicks, shieldText, corridorEnds } from './roadView';
+import { ROAD_CLASS_COLOR, bandSegments, dec, isHatched, kmIn, kmTicks, shieldText, corridorRouteText } from './roadView';
 import { ROAD_CLASS_LABEL } from './roadClasses';
 import { ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_PP, roadFcLine, type RoadFcCell } from './roadFcView';
 
@@ -33,7 +33,6 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
   const len = c.lengthKm;
   const pct = (km: number) => `${Math.max(0, Math.min(100, (km / len) * 100))}%`;
   const segs = bandSegments(c, byId, dir);
-  const ends = corridorEnds(c, dir);
   const towns = c.towns.map(([km, name]) => [kmIn(c, km, dir), name] as const).sort((a, b) => a[0] - b[0]);
   const ticks = kmTicks(len);
   const borders = c.borders.map((b) => ({ km: kmIn(c, b.km, dir), country: COUNTRY[b.country] ?? b.country }));
@@ -41,7 +40,7 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
     <section className="aw-band" aria-label="Streckenband">
       <div className="aw-band-head">
         <span className="aw-eyebrow is-accent">Streckenband</span>
-        <span className="aw-band-title">{c.shields.join(' · ')} · {ends.from} → {ends.to} · {dec(len, 0)} km</span>
+        <span className="aw-band-title">{c.shields.join(' · ')} · {corridorRouteText(c, dir)} · {dec(len, 0)} km</span>
         <span className="aw-band-stand">{standLabel}</span>
       </div>
       <div className={`aw-band-track${fc ? ' has-fc' : ''}`}>

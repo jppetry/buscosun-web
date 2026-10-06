@@ -108,12 +108,14 @@ const SLOT_MS = Date.UTC(2026, 9, 3, 8, 0);
 const fcReal = JSON.parse(readFileSync(join(FIX, 'fc-a8-2610040905.json'), 'utf8'));
 // The page names the engine as the RUN FILE does (the stand it was built with), not as the code's register does.
 const FC_ENGINE_NAME = roadFcEngineName(fcReal);
-const mkFcSite = (name, issuedMs) => {
+const mkFcSite = (name, issuedMs, { base = fcReal, extra = null } = {}) => {
   const dir = join(tmp, name);
   const run = roadFcStamp(issuedMs), t0Ms = roadFcT0(issuedMs), issuedAt = new Date(issuedMs).toISOString();
-  const file = { ...fcReal, run, issuedAt, t0Ms };
+  const file = { ...base, run, issuedAt, t0Ms };
   mkdirSync(join(dir, run, 'c'), { recursive: true });
   writeFileSync(join(dir, run, 'c', 'a8.json'), JSON.stringify(file));
+  // Further files of the run (V-AW-26: where.json, state files), each restamped to this run.
+  for (const [rel, doc] of Object.entries(extra ? extra(run, file) : {})) { mkdirSync(join(dir, run, dirname(rel)), { recursive: true }); writeFileSync(join(dir, run, rel), JSON.stringify(doc)); }
   writeFileSync(join(dir, 'index.json'), JSON.stringify({
     schema: 1, product: 'road-fc-index', updatedAt: issuedAt, killed: false,
     runs: [{ run, issuedAt, t0Ms, publishedAt: new Date(issuedMs + 120_000).toISOString(), points: file.points.length, failed: 0, corridors: 1, states: 0, engine: file.engine, ms: 1 }],
@@ -142,7 +144,7 @@ const chrome = findHeadlessChrome();
 if (!chrome) { console.error('kein chrome-headless-shell gefunden'); process.exit(2); }
 const browser = await openBrowser(chrome, { timeoutMs: 90_000, extraArgs: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 
-async function openPage({ path, width = 1440, height = 900, mobile = false, offsetMin = 12, root = site, fcRoot = fcLive.dir }) {
+async function openPage({ path, width = 1440, height = 900, mobile = false, offsetMin = 12, root = site, fcRoot = fcLive.dir, radarPng = null, initScript = null, blockAssets = false }) {
   const ctx = await browser.newContext({ width, height, mobile });
   const errors = [];
   const served = [];
@@ -170,6 +172,18 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, offs
         }
         return;
       }
+      // R8: the app bundle blocked — what the static shell does on its own (the inline gate) stays visible.
+      if (blockAssets && /\/assets\/[^/]+\.js(?:\?|$)/.test(url)) {
+        await ctx.send('Fetch.failRequest', { requestId: msg.params.requestId, errorReason: 'BlockedByClient' }).catch(() => {});
+        return;
+      }
+      // V-AW-14: the radar mirror's RV analysis frames (f000.png) — served from a fixture when given, else 404.
+      if (/buscosun-data(?:@main|\/main)\/radar\/img\/v1\/rv\//.test(url)) {
+        served.push(`radar/${url.split('/rv/')[1]}`);
+        const ok = !!radarPng && /\/f000\.png(?:\?|$)/.test(url);
+        await ctx.send('Fetch.fulfillRequest', { requestId: msg.params.requestId, responseCode: ok ? 200 : 404, responseHeaders: [{ name: 'content-type', value: ok ? 'image/png' : 'text/plain' }, { name: 'access-control-allow-origin', value: '*' }], body: ok ? Buffer.from(radarPng).toString('base64') : '' }).catch(() => {});
+        return;
+      }
       // DWD warnings fail on purpose (the page fetches them through the same-origin proxy `/_dwd_opendata/…`):
       // the test must never depend on the live feed.
       if (/(?:opendata\.dwd\.de|\/_dwd_opendata)\/weather\/alerts\//.test(url)) {
@@ -179,12 +193,13 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, offs
       await ctx.send('Fetch.continueRequest', { requestId: msg.params.requestId }).catch(() => {});
     }
   });
-  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*road/v1/*' }, { urlPattern: '*road/fc/v1/*' }, { urlPattern: '*opendata.dwd.de/weather/alerts/*' }, { urlPattern: '*/_dwd_opendata/weather/alerts/*' }] });
+  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*road/v1/*' }, { urlPattern: '*road/fc/v1/*' }, { urlPattern: '*radar/img/v1/rv/*' }, ...(blockAssets ? [{ urlPattern: '*/assets/*' }] : []), { urlPattern: '*opendata.dwd.de/weather/alerts/*' }, { urlPattern: '*/_dwd_opendata/weather/alerts/*' }] });
   // The app's service worker answers same-origin requests (warnings via `/_dwd_opendata/…`) before page-level
   // interception sees them — bypass it, the test must not depend on the live DWD feed.
   await ctx.send('Network.enable', {});
   await ctx.send('Network.setBypassServiceWorker', { bypass: true });
   await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: clockScript(offsetMin) });
+  if (initScript) await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: initScript });
   await ctx.send('Page.navigate', { url: `${BASE}${path}` });
   return { ctx, errors, served, off };
 }
@@ -236,10 +251,11 @@ const allErrors = [];
   add('B1 Maße bei 1440 × 900: Rail 62 · Topbar 60 · Dock 250 · Readout 400 · Karte dazwischen',
     box.rail?.[2] === 62 && box.top?.[3] === 60 && box.dock?.[2] === 250 && box.readout?.[2] === 400 && box.map?.[2] === 1440 - 62 - 250 - 400, JSON.stringify(box));
   add('B2 Streckenband als Panel über dem Kartenfuß (16 px Rand)', box.band && box.band[0] === box.map[0] + 16 && Math.abs(box.band[1] + box.band[3] - (box.map[1] + box.map[3] - 16)) <= 1, JSON.stringify(box.band));
-  const c = await ctx.evaluate(`({ pill: document.querySelector('.aw-pill-title')?.textContent, ticks: document.querySelectorAll('.aw-band-tick').length, name: document.querySelector('.aw-station-name')?.textContent, url: location.pathname + location.search, live: document.querySelector('.aw-live')?.textContent, stand: document.querySelector('.aw-topbar-stand')?.textContent, rows: document.querySelectorAll('.aw-road').length })`);
+  const c = await ctx.evaluate(`({ pill: document.querySelector('.aw-pill-title')?.textContent, ticks: document.querySelectorAll('.aw-band-tick').length, name: document.querySelector('.aw-station-name')?.textContent, url: location.pathname + location.search, live: document.querySelector('.aw-live')?.textContent, stand: document.querySelector('.aw-topbar-stand')?.textContent, rows: document.querySelectorAll('.aw-road').length, folds: document.querySelectorAll('.aw-dock .aw-road-more').length })`);
   add('C1 Voreinstellung A 8 „München → Salzburg", 30 Messpunkte im Band, URL /autobahnwetter/a8', c.pill === 'München → Salzburg' && c.ticks === 30 && c.url.startsWith('/autobahnwetter/a8'), JSON.stringify(c));
   add('C2 Topbar: Live, Messung 10:00 Ortszeit, Reihenzahl', /Live/.test(c.live) && /10:00/.test(c.stand) && /von \d+ DWD-Reihen/.test(c.stand), `${c.live} · ${c.stand}`);
-  add('C3 Dock listet die Korridore + AT/CH-Zeilen ohne Messung', c.rows >= 9 + 4, String(c.rows));
+  // V-AW-9: short sections (< 3 stations, not the main section) fold — the fixture's a93-2 (2 stations) sits under one row.
+  add('C3 Dock listet die Korridore (kurze Abschnitte eingeklappt, V-AW-9) + AT/CH-Zeilen ohne Messung', c.rows === 8 + 4 && c.folds === 1, JSON.stringify({ rows: c.rows, folds: c.folds }));
   {
     // The page shows the station the view model picks on the fixture slot (E-AW-13), not its own choice.
     const view = await import('../src/road/roadView.ts');
@@ -468,8 +484,218 @@ for (const [id, fcRoot, what, want] of [
   await ctx.evaluate(`[...document.querySelectorAll('.aw-m-dock .aw-road')].find((b) => /A 93/.test(b.textContent))?.click()`);
   await sleep(900);
   const after = await ctx.evaluate(`({ open: !!document.querySelector('.aw-m-dock'), title: document.querySelector('.aw-m-top .aw-pill-title')?.textContent, url: location.pathname })`);
-  add('H3 Korridor-Pille öffnet die Autobahnwahl (≥ 44 px), Auswahl schließt sie und wechselt Korridor + Pfad', picker.open && picker.rows >= 9 && picker.small === 0 && !after.open && after.url.startsWith('/autobahnwetter/a93'), JSON.stringify({ picker, after }));
+  add('H3 Korridor-Pille öffnet die Autobahnwahl (≥ 44 px, auch die Zeile der eingeklappten Abschnitte), Auswahl schließt sie und wechselt Korridor + Pfad', picker.open && picker.rows >= 8 && picker.small === 0 && !after.open && after.url.startsWith('/autobahnwetter/a93'), JSON.stringify({ picker, after }));
   off(); allErrors.push(...errors); await ctx.close();
+}
+
+// --- R: improvements of 06.10.2026 (audit/autobahnwetter.md §18) ---------------------------------------------------
+const pngLib = await import('./lib/png.mjs');
+const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Page.captureScreenshot', { format: 'png' })).data, 'base64'));
+{
+  // R1 (V-AW-9) view model: ring names, loops, folding.
+  const view = await import('../src/road/roadView.ts');
+  const C = (id, road, from, to, n, title = `${from} → ${to}`) => ({ id, road, from, to, title, stations: Array.from({ length: n }, (_, i) => ({ id: `${id}-${i}`, km: i, dir: null })) });
+  const list = [C('a10', 'A10', 'Groß Kreutz', 'Groß Kreutz', 10, 'A 10 bei Groß Kreutz'), C('a99', 'A99', 'Germering', 'Hohenbrunn', 18), C('a1', 'A1', 'Heiligenhafen', 'Blankenheim', 51), C('a1-3', 'A1', 'Barsbüttel', 'Oststeinbek', 1), C('a1-4', 'A1', 'Buchholz', 'Buchholz', 1, 'A 1 bei Buchholz'), C('a17', 'A17', 'Gorbitz', 'Altenberg', 2)];
+  const kinds = (e) => e.map((x) => (x.kind === 'fold' ? `+${x.road}:${x.hidden.length}` : x.corridor.id)).join(' ');
+  const closed = view.dockEntries(list, { query: '', selectedId: null, open: new Set() });
+  const opened = view.dockEntries(list, { query: '', selectedId: null, open: new Set(['A1']) });
+  const sel = view.dockEntries(list, { query: '', selectedId: 'a1-3', open: new Set() });
+  const search = view.dockEntries(list, { query: 'Buchholz', selectedId: null, open: new Set() });
+  add('R1 Namen und Einklappen (V-AW-9): Ring „Berliner Ring", Ring-Abschnitt „Autobahnring München: Germering → Hohenbrunn", Schleife ohne „X → X"; Abschnitte < 3 Messpunkte (nicht der Hauptabschnitt, nicht der gewählte, nicht bei der Suche) unter EINER Zeile je Autobahn',
+    view.corridorTitle(list[0]) === 'Berliner Ring' && view.corridorTitle(list[1]) === 'Autobahnring München: Germering → Hohenbrunn' && view.corridorRouteText(list[4], 0) === 'A 1 bei Buchholz' && view.corridorHeading(list[0], 0) === 'Ring'
+    && view.corridorRouteText(list[1], 1) === 'Hohenbrunn → Germering' && kinds(closed) === 'a10 a99 a1 +A1:2 a17' && kinds(opened) === 'a10 a99 a1 a1-3 a1-4 +A1:2 a17' && kinds(sel) === 'a10 a99 a1 a1-3 +A1:1 a17' && kinds(search) === 'a10 a99 a1 a1-3 a1-4 a17',
+    `${kinds(closed)} | ${kinds(opened)} | ${kinds(sel)}`);
+}
+{
+  // R2 (V-AW-9) in the browser: the fold row opens the short section and folds it again; ring section named.
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1' });
+  await until(ctx, `document.querySelectorAll('.aw-road').length > 5`, 30_000);
+  const before = await ctx.evaluate(`({ more: document.querySelector('.aw-dock .aw-road-more')?.textContent ?? '', n: document.querySelectorAll('.aw-dock .aw-road:not(.is-static)').length, a99: [...document.querySelectorAll('.aw-road-title')].map((e) => e.textContent).find((t) => /Autobahnring/.test(t)) ?? '' })`);
+  await ctx.evaluate(`document.querySelector('.aw-dock .aw-road-more').click()`);
+  await sleep(300);
+  const opened = await ctx.evaluate(`({ n: document.querySelectorAll('.aw-dock .aw-road:not(.is-static)').length, exp: document.querySelector('.aw-dock .aw-road-more')?.getAttribute('aria-expanded'), has: [...document.querySelectorAll('.aw-road-title')].some((e) => /Raubling/.test(e.textContent)) })`);
+  await ctx.evaluate(`document.querySelector('.aw-dock .aw-road-more').click()`);
+  await sleep(300);
+  const closed = await ctx.evaluate(`document.querySelectorAll('.aw-dock .aw-road:not(.is-static)').length`);
+  add('R2 Dock im Browser (V-AW-9): Zeile „A 93: 1 kurzer Abschnitt …" klappt Raubling → Kiefersfelden auf und wieder zu; A 99 heißt „Autobahnring München: …"',
+    /A 93: 1 kurzer Abschnitt mit weniger als 3 Messpunkten/.test(before.more) && before.n === 8 && opened.n === 9 && opened.exp === 'true' && opened.has && closed === 8 && before.a99 === 'Autobahnring München: Germering → Hohenbrunn',
+    JSON.stringify({ before, opened, closed }));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  // R3 (V-AW-2): a 24-h ring with history — the fixture slot is one slot; the copy below adds 95 earlier slots with a
+  // fixed class pattern (every code incl. "no point") so that the strip shows each class, hatched where no state.
+  const ringSite = join(tmp, 'site-ring');
+  cpSync(site, ringSite, { recursive: true });
+  const PATTERN = 'iffwwddunn-d';
+  const extended = {};
+  for (const g of readdirSync(join(ringSite, 'h24'))) {
+    for (const f of readdirSync(join(ringSite, 'h24', g))) {
+      const p = join(ringSite, 'h24', g, f);
+      const r = JSON.parse(readFileSync(p, 'utf8'));
+      const t = SLOT_MS;
+      const earlier = Array.from({ length: 95 }, (_, i) => roadFcStamp(t - (95 - i) * 15 * 60_000));
+      r.slots = [...earlier, ...r.slots];
+      for (const [id, s] of Object.entries(r.stations)) {
+        const k = Array.from({ length: 95 }, (_, i) => PATTERN[i % PATTERN.length]).join('');
+        r.stations[id] = { rs: [...Array(95).fill(null), ...s.rs], ta: [...Array(95).fill(null), ...s.ta], td: [...Array(95).fill(null), ...s.td], k: k + (s.k ?? '-') };
+        extended[id] = r.stations[id].k;
+      }
+      writeFileSync(p, JSON.stringify(r));
+    }
+  }
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1', root: ringSite });
+  await until(ctx, `document.querySelectorAll('.aw-chart-k rect[data-k]').length > 50`, 30_000);
+  const r = await ctx.evaluate(`(() => {
+    const name = document.querySelector('.aw-station-name')?.textContent;
+    const rects = [...document.querySelectorAll('.aw-chart-k rect[data-k]')];
+    const by = {}; for (const e of rects) by[e.dataset.k] = (by[e.dataset.k] ?? 0) + 1;
+    const fills = {}; for (const e of rects) fills[e.dataset.k] = e.getAttribute('fill');
+    const svg = document.querySelector('.aw-chart'); const box = svg.getBoundingClientRect();
+    return { name, by, fills, label: svg.getAttribute('aria-label'), legend: document.querySelector('.aw-chart-legend')?.textContent ?? '', h: Math.round(box.height) };
+  })()`);
+  const obsFix = JSON.parse(readFileSync(join(site, 'obs', '2610030800.json'), 'utf8'));
+  const id = obsFix.points.find((x) => x.n === r.name)?.id;
+  const k = extended[id] ?? '';
+  const want = {}; for (const ch of k) if (ch !== '-') { const cls = { i: 'ice', f: 'frost', w: 'wet', d: 'dry', u: 'unknown', n: 'nodata' }[ch]; want[cls] = (want[cls] ?? 0) + 1; }
+  const view = await import('../src/road/roadView.ts');
+  add('R3 Verlauf 24 h mit Klassen-Leiste (V-AW-2): eine Zelle je Messung mit Klasse (Zählung = Ring), Farben der Fahrbahnklassen, „unbekannt"/„keine Messung" schraffiert (nie wie trocken), Lücke ohne Zelle; Legende und Bildbeschreibung nennen sie',
+    !!id && JSON.stringify(Object.entries(r.by).sort()) === JSON.stringify(Object.entries(want).sort()) && r.fills.ice === view.ROAD_CLASS_COLOR.ice && r.fills.dry === view.ROAD_CLASS_COLOR.dry && /^url\(#/.test(r.fills.unknown ?? '') && /^url\(#/.test(r.fills.nodata ?? '')
+    && /Fahrbahnzustand je 15 min/.test(r.legend) && /Leiste: Fahrbahnzustand je Messung/.test(r.label) && r.h === 134, JSON.stringify({ id, by: r.by, want, h: r.h }));
+  await shot(ctx, 'r3-verlauf-leiste');
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  // R4 (V-AW-29): the arrival forecast in its own column from 1 440 px; below, under the name as before.
+  const col = async (width, height) => {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a8?tab=strecke&road=1', width, height });
+    await until(ctx, `document.querySelectorAll('.aw-table-row').length > 20 && document.querySelectorAll('.aw-table-name em.is-fc').length > 3`, 30_000);
+    await sleep(500);
+    const r = await ctx.evaluate(`(() => {
+      const vis = (e) => !!e && getComputedStyle(e).display !== 'none';
+      const rows = [...document.querySelectorAll('.aw-table-row')];
+      const withFc = rows.filter((x) => x.querySelector('.aw-table-name em.is-fc'));
+      const cells = withFc.map((x) => x.querySelector('.aw-table-fc'));
+      return { head: vis(document.querySelector('.aw-table-head .aw-table-fc')), cellVis: cells.filter(vis).length, emVis: withFc.filter((x) => vis(x.querySelector('.aw-table-name em.is-fc'))).length, n: withFc.length,
+        h: Math.round(withFc[0]?.getBoundingClientRect().height ?? 0), txt: cells[0]?.textContent ?? '', em: withFc[0]?.querySelector('.aw-table-name em.is-fc')?.textContent ?? '' };
+    })()`);
+    if (width >= 1440) await shot(ctx, 'r4-strecke-spalte-1440');
+    off(); allErrors.push(...errors); await ctx.close();
+    return r;
+  };
+  const wide = await col(1440, 900), narrow = await col(1280, 800);
+  add('R4 Reiter Strecke (V-AW-29): ab 1 440 px eigene Spalte „Luft zur Ankunft" (Kopf + jede Zeile mit Prognose, Wert wie in der Zeile darunter), der Zusatz unter dem Namen entfällt, Zeilen niedriger; bei 1 280 px wie bisher',
+    wide.head && wide.n > 3 && wide.cellVis === wide.n && wide.emVis === 0 && !!/[+−±][\d,]+ °C/.exec(wide.txt) && wide.em.includes(/[+−±][\d,]+ °C/.exec(wide.txt)[0]) && !narrow.head && narrow.cellVis === 0 && narrow.emVis === narrow.n && wide.h < narrow.h,
+    JSON.stringify({ wide, narrow }));
+}
+{
+  // R5 (V-AW-14): the radar layer — off by default (no request), on ⇒ the newest RV analysis on the map under the corridors.
+  const W = 1100, H = 1200, g = new Uint8Array(W * H);
+  for (let y = 850; y < 1000; y++) for (let x = 0; x < W; x++) g[y * W + x] = 60;   // a rain band over southern Bavaria (≈ 4.7 mm/h)
+  const radarPng = new Uint8Array(pngLib.encodePng(W, H, g, 1));
+  const { ctx, errors, served, off } = await openPage({ path: '/autobahnwetter/a8?road=1', radarPng });
+  await until(ctx, `document.querySelectorAll('.aw-band-tick').length > 5`, 30_000);
+  await until(ctx, `!!document.querySelector('.aw-map-canvas')?.dataset.idle`, 45_000);
+  await sleep(2500);
+  const offShot = await shotPng(ctx);
+  const radarBefore = served.filter((s) => s.startsWith('radar/')).length;
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-layer')].find((b) => /Niederschlag jetzt/.test(b.textContent))?.click()`);
+  const legendOk = await until(ctx, `/Radar \\d{2}:\\d{2} · DWD RADOLAN/.test(document.querySelector('.aw-legend-rain')?.textContent ?? '')`, 20_000);
+  await sleep(3500);
+  const onShot = await shotPng(ctx);
+  const diff = (a, b) => { const A = pngLib.toRgba(a), B = pngLib.toRgba(b); let n = 0; for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) > 60) n++; return n; };
+  const changed = diff(offShot, onShot);
+  const legend = await ctx.evaluate(`document.querySelector('.aw-legend-rain')?.textContent ?? ''`);
+  await shot(ctx, 'r5-radar-an');
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-layer')].find((b) => /Niederschlag jetzt/.test(b.textContent))?.click()`);
+  await sleep(2500);
+  const backShot = await shotPng(ctx);
+  const back = diff(offShot, backShot);
+  const radarReq = served.filter((s) => s.startsWith('radar/'));
+  add('R5 Ebene „Niederschlag jetzt" (V-AW-14): aus ⇒ kein Radar-Abruf; an ⇒ jüngste RV-Analyse (f000.png des Spiegels) als Fläche auf der Karte (deutlich sichtbar), Legende „Radar HH:MM · DWD RADOLAN"; wieder aus ⇒ Karte wie vorher',
+    radarBefore === 0 && legendOk && radarReq.some((s) => /\/f000\.png/.test(s)) && changed > 20_000 && back < changed / 20, JSON.stringify({ radarBefore, req: radarReq.slice(0, 3), changed, back, legend }));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  // R6 (V-AW-26): a station on no corridor gets its forecast from the run's station map and state file.
+  const obsFix = JSON.parse(readFileSync(join(site, 'obs', '2610030800.json'), 'utf8'));
+  const corrFix = JSON.parse(readFileSync(join(FIX, 'corridors-munich.json'), 'utf8')).corridors;
+  const onCorr = new Set(corrFix.flatMap((c) => c.stations.map((s) => s.id)));
+  const bl = obsFix.points.find((p) => p.kind !== 'A' && !onCorr.has(p.id) && p.rs != null && p.lat > 47.5 && p.lat < 48.5);
+  const donor = fcReal.points.find((p) => p.kind === 'station');
+  const synth = { ...donor, id: bl.id, km: null, lat: bl.lat, lon: bl.lon, name: bl.n };
+  const whereSite = mkFcSite('fc-where', SLOT_MS - 5 * 60_000, { extra: (run, file) => ({
+    'where.json': { schema: 1, product: 'road-fc-where', run, stations: { ...Object.fromEntries(file.points.filter((p) => p.kind === 'station').map((p) => [p.id, 'c/a8'])), [bl.id]: 's/BY' } },
+    's/BY.json': { ...file, kind: 'state', id: 'BY', points: [synth] },
+  }) });
+  const run = async (fcRoot) => {
+    const { ctx, errors, served, off } = await openPage({ path: `/autobahnwetter/a8?st=${bl.id}&road=1`, fcRoot });
+    await until(ctx, `document.querySelector('.aw-station-name')?.textContent === ${JSON.stringify(bl.n)} && ([...document.querySelectorAll('button.aw-prog-tile')].slice(1).some((b) => !b.disabled) || /keine Zuordnung|nicht lesbar|rechnet der Lauf keine/.test(document.querySelector('.aw-fc-note')?.textContent ?? ''))`, 30_000);
+    await sleep(800);
+    const now = await ctx.evaluate('Date.now()');
+    const r = await ctx.evaluate(`({ name: document.querySelector('.aw-station-name')?.textContent, tiles: [...document.querySelectorAll('button.aw-prog-tile')].slice(1).map((b) => [b.querySelector('strong')?.textContent, b.disabled]), note: document.querySelector('.aw-fc-note')?.textContent ?? '' })`);
+    off(); allErrors.push(...errors); await ctx.close();
+    return { r, now, served };
+  };
+  const a = await run(whereSite.dir);
+  const want = [1, 3, 6].map((h) => { const v = roadFcValue(synth, whereSite.file, a.now + h * 3_600_000); return v ? `${f1(v.t)}°` : '—'; });
+  const b = await run(fcLive.dir);
+  add('R6 Messstelle abseits der Autobahn (V-AW-26): Kacheln +1/+3/+6 h aus der Länder-Datei des Laufs (über where.json gefunden, Werte = Datei); ein Lauf ohne where.json nennt den Grund statt „keine Prognose"',
+    a.r.name === bl.n && a.r.tiles.every((t, i) => t[0] === want[i] && t[1] === false) && a.served.some((s) => /where\.json$/.test(s)) && a.served.some((s) => /\/s\/BY\.json$/.test(s))
+    && b.r.tiles.every((t) => t[1] === true) && /keine Zuordnung/.test(b.r.note), JSON.stringify({ id: bl.id, a: a.r.tiles, want, bNote: b.r.note.slice(0, 90) }));
+}
+{
+  // R7 (V-AW-27): the synthetic winter run — blue air bands, snow and sleet marks, snow words in tiles and rows.
+  const { winterRun, WINTER_FIXTURE_NOTE } = await import('./lib/fixtures/road/winterFixture.mjs');
+  const fcWinter = mkFcSite('fc-winter', SLOT_MS - 5 * 60_000, { base: winterRun(fcReal) });
+  const { ROAD_FC_AIR_COLOR } = await import('../src/road/roadFcView.ts');
+  const rgb = (hex) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
+  const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a8?t=3&road=1', fcRoot: fcWinter.dir });
+  await until(ctx, `document.querySelectorAll('.aw-band-fc-cell').length > 5`, 30_000);
+  await sleep(800);
+  const r = await ctx.evaluate(`(() => {
+    const cells = [...document.querySelectorAll('.aw-band-fc-cell')];
+    const bg = (e) => e.style.background || getComputedStyle(e).backgroundColor;
+    return { n: cells.length, colors: cells.map(bg), snow: document.querySelectorAll('.aw-band-fc-cell.is-snow').length, rain: document.querySelectorAll('.aw-band-fc-cell.is-rain').length,
+      tiles: [...document.querySelectorAll('button.aw-prog-tile em')].map((e) => e.textContent).join(' | '), legend: document.querySelector('.aw-band-legend.is-fc')?.textContent ?? '' };
+  })()`);
+  const count = (hex) => r.colors.filter((c) => c === rgb(hex) || c.toLowerCase() === hex.toLowerCase()).length;
+  await shot(ctx, 'r7-winter-band');
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][1].click()`);
+  await sleep(600);
+  const rows = await ctx.evaluate(`[...document.querySelectorAll('.aw-table-name em.is-fc')].map((e) => e.textContent).join(' | ')`);
+  await shot(ctx, 'r7-winter-strecke');
+  add(`R7 Winterlage (V-AW-27, ${WINTER_FIXTURE_NOTE}): alle drei Luft-Stufen im Band (≤ 0 · bis +3 · darüber), Schnee- und Schneeregen-Marken, Kacheln und Ankunftszeilen nennen Schnee; keine Fahrbahnklasse in den Prognose-Texten`,
+    count(ROAD_FC_AIR_COLOR.frost) > 0 && count(ROAD_FC_AIR_COLOR.near) > 0 && count(ROAD_FC_AIR_COLOR.above) > 0 && r.snow > 0 && /Schnee/.test(r.tiles + rows) && /Schneeregen|Schnee/.test(rows) && !/Glätte|Frostgefahr|Nass\b/.test(rows),
+    JSON.stringify({ frost: count(ROAD_FC_AIR_COLOR.frost), near: count(ROAD_FC_AIR_COLOR.near), above: count(ROAD_FC_AIR_COLOR.above), snow: r.snow, rain: r.rain, tiles: r.tiles.slice(0, 80) }));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  // R8 (V-AW-12): the shell's inline gate empties the static lead at parse time for a visitor with the flag off —
+  // same precedence as roadFlagFrom in every case; in the built shell right after #root; in the browser before the app.
+  const { flagGateScript } = await import('./seo/flagGate.mjs');
+  const { roadFlagFrom } = await import('../src/road/roadFlag.ts');
+  const vm = await import('node:vm');
+  const cases = [];
+  for (const live of [true, false]) for (const q of [null, '0', '1']) for (const s of [null, '0', '1']) {
+    const root = { innerHTML: '<h1>Autobahnwetter</h1>' };
+    const ctxv = { location: { search: q == null ? '' : `?road=${q}` }, localStorage: { getItem: () => s }, document: { getElementById: () => root }, URLSearchParams };
+    vm.runInNewContext(flagGateScript('road', live).replace(/^<script>|<\/script>$/g, ''), ctxv);
+    const want = roadFlagFrom(ctxv.location.search, s, live);
+    cases.push(want === (root.innerHTML !== ''));
+  }
+  const html = readFileSync(join(HERE, '..', 'dist', 'autobahnwetter.html'), 'utf8');
+  const after = /<div id="root">[\s\S]*?<\/div><script>\(function\(\)\{try\{var q=null/.test(html) && html.includes("localStorage.getItem(\"road\")");
+  const len = async (path) => {
+    const { ctx, off } = await openPage({ path, blockAssets: true });
+    await until(ctx, `document.readyState === 'complete'`, 15_000);
+    const v = await ctx.evaluate(`(document.getElementById('root')?.innerHTML ?? '').length`);
+    off(); await ctx.close();
+    return v;
+  };
+  const hidden = await len('/autobahnwetter.html?road=0'), shown = await len('/autobahnwetter.html');
+  add('R8 Shell ohne Aufblitzen (V-AW-12): das Inline-Skript nach #root leert die Einleitung genau dann, wenn roadFlagFrom „aus" sagt (18 Fälle: Abfrage, Speicher, Voreinstellung); im Build vorhanden; im Browser ist #root bei DOMContentLoaded mit ?road=0 leer, ohne Schalter gefüllt',
+    cases.length === 18 && cases.every(Boolean) && after && hidden === 0 && shown > 100, JSON.stringify({ ok: cases.filter(Boolean).length, after, hidden, shown }));
 }
 
 add('I1 keine ungefangene Ausnahme in allen Abläufen', allErrors.length === 0, allErrors.slice(0, 3).join(' | '));

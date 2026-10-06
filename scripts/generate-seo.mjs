@@ -31,6 +31,8 @@ import {
 import { ROUTES, sitemapPaths, indexableSubRoutes, CONTENT_UPDATED } from '../src/router/routes.ts';
 import { subRouteText } from '../src/seo/subRouteTexts.ts';
 import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD } from '../src/dashboard/viewKey.ts';
+import { ROAD_LIVE } from '../src/road/roadFlag.ts';
+import { flagGateScript } from './seo/flagGate.mjs';
 import { PLACES_UPDATED } from './seo/places.mjs';
 import { LEGAL_UPDATED } from './seo/legal.mjs';
 
@@ -479,7 +481,9 @@ for (const route of ROUTES) {
   if (!shell.includes('og:site_name')) shell = shell.replace('</head>', `    ${routeHeadExtras(route)}\n  </head>`);
   const preload = routePreloadLinks(route.id);
   shell = withPreloads(shell, preload);
-  shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>`);
+  // V-AW-12: a flag-gated route empties its lead at parse time for visitors with the flag off (no flash before "404").
+  const gate = route.id === 'autobahnwetter' ? flagGateScript('road', ROAD_LIVE) : '';
+  shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>${gate}`);
   writeFileSync(join(DIST, `${route.id}.html`), shell, 'utf8');
   routeShells++;
 

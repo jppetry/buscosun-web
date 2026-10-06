@@ -9,8 +9,9 @@ import {
   type RoadH24File, type RoadObsFile,
 } from './roadContract';
 import {
-  ROAD_FC_CDN_BASE, ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, parseRoadFcFile, parseRoadFcIndex, roadFcCorridorPath, roadFcPickRun, roadFcStatePath,
-  type RoadFcFile, type RoadFcIndex, type RoadFcRunEntry,
+  ROAD_FC_CDN_BASE, ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, parseRoadFcFile, parseRoadFcIndex, parseRoadFcWhere, roadFcCorridorPath, roadFcPickRun, roadFcStatePath,
+  roadFcWhereFile, roadFcWherePath,
+  type RoadFcFile, type RoadFcIndex, type RoadFcPoint, type RoadFcRunEntry, type RoadFcWhere,
 } from './roadFc';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
@@ -213,6 +214,50 @@ export interface RoadFcLoad {
   file: (RoadFcFile & { dropped: number }) | null;
   /** Why there is no forecast: pointer unreadable, no run (or kill switch), file missing or invalid. */
   reason: 'ok' | 'no-index' | 'no-run' | 'no-file';
+}
+
+export interface RoadFcStationLoad {
+  point: RoadFcPoint | null;
+  /** `ok`; `no-where` = the run has no station map (runs before 06.10.2026) or it is unreadable; `not-in-run` = the run
+   *  carries no forecast for this station (not in the catalogue, or lost in the run); `no-file` = its file is missing. */
+  reason: 'ok' | 'no-where' | 'not-in-run' | 'no-file';
+  /** `c/<corridor>` or `s/<state>` when known. */
+  where?: string;
+}
+
+/** Station map and files of a run, read once per run (a run is immutable). */
+const whereCache = new Map<string, Promise<RoadFcWhere | null>>();
+const fileCache = new Map<string, Promise<(RoadFcFile & { dropped: number }) | null>>();
+const once = <T>(cache: Map<string, Promise<T>>, key: string, make: () => Promise<T>): Promise<T> => {
+  let p = cache.get(key);
+  if (!p) {
+    p = make();
+    cache.set(key, p);
+    // A failed or empty answer is not kept: the next selection may try again.
+    p.then((v) => { if (!v) cache.delete(key); }, () => cache.delete(key));
+    if (cache.size > 24) cache.delete(cache.keys().next().value as string);
+  }
+  return p;
+};
+
+/**
+ * V-AW-26: the forecast of ONE station of a run, wherever its file is — for stations on no corridor (federal and state
+ * roads) or on a corridor other than the open one. Reads the run's station map, then that file.
+ */
+export async function loadRoadFcStation(run: RoadFcRunEntry, stationId: string, signal?: AbortSignal): Promise<RoadFcStationLoad> {
+  const where = await once(whereCache, run.run, async () => {
+    try { const w = parseRoadFcWhere(await fetchRoadJson(roadFcWherePath(run.run), signal, { cdn: ROAD_FC_CDN_BASE, raw: ROAD_FC_RAW_BASE })); return w && w.run === run.run ? w : null; } catch (e) {
+      if ((e as Error)?.name === 'AbortError') throw e;
+      return null;
+    }
+  });
+  if (!where) return { point: null, reason: 'no-where' };
+  const key = where.stations[stationId];
+  if (!key) return { point: null, reason: 'not-in-run' };
+  const file = await once(fileCache, `${run.run}/${key}`, () => fetchRoadFcFile(roadFcWhereFile(run.run, key), signal));
+  if (!file || file.run !== run.run) return { point: null, reason: 'no-file', where: key };
+  const point = file.points.find((p) => p.id === stationId) ?? null;
+  return point ? { point, reason: 'ok', where: key } : { point: null, reason: 'not-in-run', where: key };
 }
 
 /** Forecast of one corridor (`kind: 'corridor'`) or of the corridor-less stations of a state (`kind: 'state'`). */

@@ -33,7 +33,7 @@ import { installNodeShims } from '../punktarchiv/lib/nodeShims.mjs';
 import {
   ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH, ROAD_FC_POINTS_PATH, ROAD_FC_GEO_PATH, ROAD_FC_HOURS, ROAD_FC_STEPS, ROAD_FC_VAR_IDS,
   roadFcSourceText, ROAD_FC_MAX_FAILED_SHARE, ROAD_FC_ANCHOR_MODE,
-  roadFcStamp, roadFcT0, roadFcEncode, roadFcOriginCode, roadFcSeriesProblems, roadFcPointUsable, roadFcCorridorPath, roadFcStatePath,
+  roadFcStamp, roadFcT0, roadFcEncode, roadFcOriginCode, roadFcSeriesProblems, roadFcPointUsable, roadFcCorridorPath, roadFcStatePath, roadFcWherePath,
   roadFcPrune, parseRoadFcIndex, parseRoadFcPoints,
 } from '../../src/road/roadFc.ts';
 import { newStoreStats } from '../../src/point/client/store.ts';
@@ -420,6 +420,10 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     pts.sort((a, b) => (a.id < b.id ? -1 : 1));
     write(roadFcStatePath(run, id), { ...head('state', id), points: pts });
   }
+  // V-AW-26: station → file, so the page finds the forecast of a station on no corridor (the slot names no state).
+  const where = {};
+  for (const [key, map] of [['c', byCorridor], ['s', byState]]) for (const [id, pts] of map) for (const p of pts) if (p.kind === 'station') where[p.id] = `${key}/${id}`;
+  write(roadFcWherePath(run), { schema: 1, product: 'road-fc-where', run, stations: Object.fromEntries(Object.keys(where).sort().map((k) => [k, where[k]])) });
   const entry = {
     run, issuedAt, t0Ms, publishedAt: issuedAt, points: done.length, failed: failed.length,
     corridors: byCorridor.size, states: byState.size, engine, ms: Date.now() - T0,
