@@ -260,6 +260,28 @@ let built, runFiles;
   const ds = dirStore(dataDir);
   add('C11 Verzeichnis-Speicher: fehlende Datei ⇒ null (wie 404), Datei wird einmal gelesen und als dieselbe Instanz geliefert (Dekodier-Merker), JSON lesbar',
     (await ds.bytes('point/gibtsnicht.bin')) === null && (await ds.bytes('point/index.json')) === (await ds.bytes('/point/index.json')) && (await ds.json('point/index.json'))?.schema != null && ds.stats.files === 1 && ds.withBase('x') === ds);
+  // V-AW-23: work derived from the bytes once per file — the reader's memo store forwards it, the table loaders use it.
+  {
+    const { memoStore, parseJsonBytes } = await import('../src/point/client/store.ts');
+    const { loadLearned } = await import('../src/point/client/learnedPoint.ts');
+    const { loadStack } = await import('../src/point/client/stackPoint.ts');
+    const on = dirStore(dataDir), off = dirStore(dataDir, { derivedMemo: false });
+    let makes = 0;
+    const b = await on.bytes('point/index.json');
+    const j1 = on.derived(b, 'json', () => { makes++; return parseJsonBytes({}, b); }), j2 = on.derived(b, 'json', () => { makes++; return {}; });
+    const m1 = memoStore(on), m2 = memoStore(on);
+    const [x1, x2] = [await m1.json('point/index.json'), await m2.json('point/index.json')];
+    const [l1, l2, s1, s2] = [await loadLearned(on, { nowMs }), await loadLearned(memoStore(on), { nowMs }), await loadStack(on, { nowMs }), await loadStack(on, { nowMs })];
+    const [o1, o2] = [await loadLearned(off, { nowMs }), await memoStore(off).json('point/index.json')];
+    add('C13 Merker des Producers (V-AW-23): je Datei EINMAL geparst und geprüft — zwei Leser-Instanzen (memoStore) und zwei Ladungen der Tabellen teilen dasselbe, eingefrorene Ergebnis; Hash, Notizen und Alter je Aufruf wie ohne Merker; ohne Merker (ROAD_FC_MEMO=0) frische Objekte wie bisher',
+      j1 === j2 && makes === 1 && x1 === x2 && Object.isFrozen(x1) && l1.tables === l2.tables && Object.isFrozen(l1.tables) && s1.table === s2.table && l1.hash === o1.hash && eq(l1.notes, o1.notes) && eq(l1.age, o1.age)
+      && o1.tables !== l1.tables && !Object.isFrozen(o1.tables) && eq(o1.tables, l1.tables) && eq(o2, x1) && o2 !== x1 && typeof off.derived === 'undefined', `${makes} Parse, Hash ${l1.hash?.slice(0, 12)}`);
+    const offRun = await buildRun({ dataDir: mkData('data-nomemo', files), outDir: join(tmp, 'out-nomemo'), nowMs, inProcess: true, anchor: 'none' });
+    process.env.ROAD_FC_MEMO = '0';
+    const offEnv = await buildRun({ dataDir: mkData('data-nomemo-env', files), outDir: join(tmp, 'out-nomemo-env'), nowMs, inProcess: true, anchor: 'none' });
+    delete process.env.ROAD_FC_MEMO;
+    add('C14 Lauf mit und ohne Merker (Schalter ROAD_FC_MEMO=0) byte-gleich', eq(readRun(join(tmp, 'out-nomemo'), offRun.run), runFiles) && eq(readRun(join(tmp, 'out-nomemo-env'), offEnv.run), runFiles));
+  }
   const io = makeIo({ store: ds, cache: geoBackend(geoDoc), nowMs });
   add('C12 io des Producers = Voreinstellung des Browsers ohne Anker: Stufe fs, Tabellen json, Stundenmittel, obs null, z0 nur aus dem Vorab-Cache',
     io.stage === 'fs' && io.learnedSource === 'json' && io.climaSource === 'json' && io.stackSource === 'json' && io.nowcastHourMean === FUSION8_NOWCAST_HOUR_MEAN && io.obs === null && io.z0.cacheOnly === true && io.nowMs() === nowMs);

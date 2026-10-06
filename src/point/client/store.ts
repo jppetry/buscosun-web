@@ -99,6 +99,19 @@ export interface PointStore {
   seed?(path: string, bytes: Uint8Array): void;
   /** AP12 (e): die zuletzt gesehene Fassung einer Datei mit SWR-Kopie (heute nur der Index), wenn jünger als `maxAgeMs`. */
   peek?(path: string, maxAgeMs: number): Promise<{ bytes: Uint8Array; ageMs: number } | null>;
+  /**
+   * V-AW-23 (`audit/autobahnwetter.md` §18): ein Merker für Arbeit, die aus den Bytes einer Datei folgt (geparstes JSON,
+   * geprüfte Tabelle) — Schlüssel ist DASSELBE Byte-Array (Identität) und eine Art. Nur ein Store, der je Datei immer
+   * dasselbe Array liefert, bietet ihn an (der Verzeichnis-Store des Producers, der tausende Punkte aus denselben
+   * Manifesten rechnet); er darf das Ergebnis einfrieren. Die Stores des Browsers haben ihn nicht ⇒ unverändert.
+   */
+  derived?<T>(bytes: Uint8Array, kind: string, make: () => T): T;
+}
+
+/** JSON aus Bytes — über den Merker des Stores, wenn er einen hat (V-AW-23). */
+export function parseJsonBytes<T>(store: Pick<PointStore, 'derived'>, bytes: Uint8Array, kind = 'json'): T {
+  const parse = () => JSON.parse(new TextDecoder().decode(bytes)) as T;
+  return store.derived ? store.derived(bytes, kind, parse) : parse();
 }
 
 export interface RangeResult {
@@ -467,10 +480,11 @@ export function memoStore(inner: PointStore, shared: Map<string, PointStore> = n
     } : {}),
     ...(inner.seed ? { seed: (path: string, b: Uint8Array) => inner.seed!(path, b) } : {}),
     ...(inner.peek ? { peek: (path: string, maxAgeMs: number) => inner.peek!(path, maxAgeMs) } : {}),
+    ...(inner.derived ? { derived: <T>(b: Uint8Array, kind: string, make: () => T) => inner.derived!(b, kind, make) } : {}),
     async json<T>(path: string, fo?: FetchOpts) {
       const b = await self.bytes(path, fo);
       if (!b) return null;
-      return JSON.parse(new TextDecoder().decode(b)) as T;
+      return parseJsonBytes<T>(inner, b);
     },
     withBase(base: string) {
       if (!inner.withBase) return self;

@@ -33,13 +33,22 @@ export async function loadLearned(store: PointStore, opts: { signal?: AbortSigna
   let bytes: Uint8Array | null = null;
   try { bytes = await store.bytes(path, { priority: 'low', ...(opts.signal ? { signal: opts.signal } : {}) }); } catch { bytes = null; }
   if (!bytes) return { path, hash: null, tables: null, notes: [`learned: ${path} nicht lesbar — Rechnung ohne Lernstufe`] };
-  const hash = await sha256Hex(bytes);
-  let doc: unknown;
-  try { doc = JSON.parse(new TextDecoder().decode(bytes)); } catch { return { path, hash, tables: null, notes: [`learned: ${path} ist kein JSON — Rechnung ohne Lernstufe`] }; }
-  const errs = validateTables(doc);
-  if (errs.length) return { path, hash, tables: null, notes: [`learned: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — Rechnung ohne Lernstufe`] };
-  const t = doc as FusionTables;
-  const written = Object.values(t.mean).filter((e) => e.status === 'written').length;
+  const b = bytes;
+  // Hash, Parsen und Prüfung hängen nur an den Bytes — über den Merker des Stores, wenn er einen hat (V-AW-23).
+  const core = async (): Promise<{ hash: string | null; tables: FusionTables | null; note: string | null; written: number }> => {
+    const hash = await sha256Hex(b);
+    let doc: unknown;
+    try { doc = JSON.parse(new TextDecoder().decode(b)); } catch { return { hash, tables: null, note: `learned: ${path} ist kein JSON — Rechnung ohne Lernstufe`, written: 0 }; }
+    const errs = validateTables(doc);
+    if (errs.length) return { hash, tables: null, note: `learned: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — Rechnung ohne Lernstufe`, written: 0 };
+    const t = doc as FusionTables;
+    return { hash, tables: t, note: null, written: Object.values(t.mean).filter((e) => e.status === 'written').length };
+  };
+  const c = await (store.derived ? store.derived(b, 'learned', core) : core());
+  const hash = c.hash;
+  if (!c.tables) return { path, hash, tables: null, notes: [c.note as string] };
+  const t = c.tables;
+  const written = c.written;
   // AX-2 (V-EX-6): das Alter wird genannt, nie stumm; eine veraltete Tabelle wirkt weiter (sie bleibt das Beste, was der Client hat).
   const age = tableAgeOf('learned', t, opts.nowMs ?? Date.now(), LEARNED_STALE_DAYS);
   return { path, hash, tables: t, notes: [...(written ? [] : ['learned: Tabellen ohne geschriebenes Stratum — Rechnung ohne Lernstufe']), age.note], age };

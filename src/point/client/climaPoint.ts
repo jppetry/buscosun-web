@@ -25,10 +25,16 @@ export async function loadClimaProduct(store: PointStore, opts: { signal?: Abort
   let bytes: Uint8Array | null = null;
   try { bytes = await store.bytes(path, { priority: 'low', ...(opts.signal ? { signal: opts.signal } : {}) }); } catch { bytes = null; }
   if (!bytes) return { path, hash: null, product: null, notes: [`learnedClima: ${path} nicht lesbar — station-Tabelle ohne μ_c`] };
-  const hash = await sha256Hex(bytes);
-  let doc: unknown;
-  try { doc = JSON.parse(new TextDecoder().decode(bytes)); } catch { return { path, hash, product: null, notes: [`learnedClima: ${path} ist kein JSON — station-Tabelle ohne μ_c`] }; }
-  const errs = validateClimaProduct(doc);
-  if (errs.length) return { path, hash, product: null, notes: [`learnedClima: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — station-Tabelle ohne μ_c`] };
-  return { path, hash, product: doc as ClimaProduct, notes: [] };
+  const b = bytes;
+  // Hash, Parsen und Prüfung hängen nur an den Bytes — über den Merker des Stores, wenn er einen hat (V-AW-23).
+  const core = async (): Promise<LoadedClimaProduct> => {
+    const hash = await sha256Hex(b);
+    let doc: unknown;
+    try { doc = JSON.parse(new TextDecoder().decode(b)); } catch { return { path, hash, product: null, notes: [`learnedClima: ${path} ist kein JSON — station-Tabelle ohne μ_c`] }; }
+    const errs = validateClimaProduct(doc);
+    if (errs.length) return { path, hash, product: null, notes: [`learnedClima: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — station-Tabelle ohne μ_c`] };
+    return { path, hash, product: doc as ClimaProduct, notes: [] };
+  };
+  const c = await (store.derived ? store.derived(b, 'clima', core) : core());
+  return { ...c, notes: [...c.notes] };
 }

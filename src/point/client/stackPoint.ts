@@ -26,12 +26,20 @@ export async function loadStack(store: PointStore, opts: { signal?: AbortSignal;
   let bytes: Uint8Array | null = null;
   try { bytes = await store.bytes(path, { priority: 'low', ...(opts.signal ? { signal: opts.signal } : {}) }); } catch { bytes = null; }
   if (!bytes) return { path, hash: null, table: null, notes: [`stationValue: ${path} nicht lesbar — Rechnung ohne Stationswert`] };
-  const hash = await sha256Hex(bytes);
-  let doc: unknown;
-  try { doc = JSON.parse(new TextDecoder().decode(bytes)); } catch { return { path, hash, table: null, notes: [`stationValue: ${path} ist kein JSON — Rechnung ohne Stationswert`] }; }
-  const errs = validateStackTable(doc);
-  if (errs.length) return { path, hash, table: null, notes: [`stationValue: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — Rechnung ohne Stationswert`] };
-  const table = doc as StackTable;
+  const b = bytes;
+  // Hash, Parsen und Prüfung hängen nur an den Bytes — über den Merker des Stores, wenn er einen hat (V-AW-23).
+  const core = async (): Promise<{ hash: string | null; table: StackTable | null; note: string | null }> => {
+    const hash = await sha256Hex(b);
+    let doc: unknown;
+    try { doc = JSON.parse(new TextDecoder().decode(b)); } catch { return { hash, table: null, note: `stationValue: ${path} ist kein JSON — Rechnung ohne Stationswert` }; }
+    const errs = validateStackTable(doc);
+    if (errs.length) return { hash, table: null, note: `stationValue: ${path} ungültig (${errs.slice(0, 3).join('; ')}) — Rechnung ohne Stationswert` };
+    return { hash, table: doc as StackTable, note: null };
+  };
+  const c = await (store.derived ? store.derived(b, 'stack', core) : core());
+  const hash = c.hash;
+  if (!c.table) return { path, hash, table: null, notes: [c.note as string] };
+  const table = c.table;
   // AX-2 (V-EX-6): die Tabelle des Stationswerts ist auf Ausgabetagen gefittet — ihr Alter wird genannt, sie wirkt weiter.
   const age = tableAgeOf('stationValue', table, opts.nowMs ?? Date.now(), STACK_STALE_DAYS);
   return { path, hash, table, notes: [age.note], age };

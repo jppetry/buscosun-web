@@ -51,9 +51,9 @@ const PUSH_RETRIES = 6;
 // --- Store, caches, io -------------------------------------------------------------------------
 
 /** `PointStore` over a directory (the checkout): bytes read once, a missing file is "not there" (null), like a 404. */
-export function dirStore(dir) {
+export function dirStore(dir, { derivedMemo: useDerived = process.env.ROAD_FC_MEMO !== '0' } = {}) {
   const stats = newStoreStats();
-  const memo = new Map(), parsed = new Map();
+  const memo = new Map(), parsed = new Map(), derivedMemo = new WeakMap();
   const bytes = async (path) => {
     const k = String(path).replace(/^\/+/, '');
     if (memo.has(k)) return memo.get(k);
@@ -77,6 +77,15 @@ export function dirStore(dir) {
       return j;
     },
     stats,
+    // V-AW-23: work derived from the bytes (the reader's parsed manifests, the validated learned/station/clima tables)
+    // once per file instead of once per point — keyed by the byte array this store hands out, frozen like `json`.
+    // `ROAD_FC_MEMO=0` (or `derivedMemo: false`) = without it, as before.
+    ...(useDerived ? { derived(b, kind, make) {
+      let m = derivedMemo.get(b);
+      if (!m) { m = new Map(); derivedMemo.set(b, m); }
+      if (!m.has(kind)) { const v = make(); m.set(kind, v && typeof v.then === 'function' ? v.then(deepFreeze) : deepFreeze(v)); }
+      return m.get(kind);
+    } } : {}),
     // A directory has no commits: the same bytes under every base (pinned manifests read the same files).
     withBase: () => self,
   };
@@ -416,7 +425,7 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     corridors: byCorridor.size, states: byState.size, engine, ms: Date.now() - T0,
   };
   const stats = { total: all.length, failed, noStage, geo, bytes, readerErrors: parts.reduce((s, p) => s + p.readerErrors, 0) };
-  log(`Lauf ${run}: ${done.length}/${all.length} Punkte · ${failed.length} ohne Ergebnis · ${byCorridor.size} Korridore + ${byState.size} Länder · ${(bytes / 1e6).toFixed(2)} MB · ${((Date.now() - T0) / 1000).toFixed(1)} s · Cube ${JSON.stringify(runs)} · Anker ${anchored ? `SWIS ${anchorSlot} an ${anchored} Punkten (${anchor})` : `keiner${anchor !== 'none' ? ' — die Messung der vollen Stunde liegt (noch) nicht im Klon' : ''}`}${noStage ? ` · ${noStage} Punkte OHNE Stufe fs` : ''}${geo.terrainMiss || geo.z0Miss ? ` · Gelände nicht vorab: ${geo.terrainMiss}, z0: ${geo.z0Miss}` : ''}`);
+  log(`Lauf ${run}: ${done.length}/${all.length} Punkte · ${failed.length} ohne Ergebnis · ${byCorridor.size} Korridore + ${byState.size} Länder · ${(bytes / 1e6).toFixed(2)} MB · ${((Date.now() - T0) / 1000).toFixed(1)} s · Cube ${JSON.stringify(runs)} · Anker ${anchored ? `SWIS ${anchorSlot} an ${anchored} Punkten (${anchor})` : `keiner${anchor === 'none' ? '' : anchorSlot ? ` — Messslot ${anchorSlot} da, aber kein gerechneter Punkt mit eigener Messung` : ' — die Messung der vollen Stunde liegt (noch) nicht im Klon'}`}${noStage ? ` · ${noStage} Punkte OHNE Stufe fs` : ''}${geo.terrainMiss || geo.z0Miss ? ` · Gelände nicht vorab: ${geo.terrainMiss}, z0: ${geo.z0Miss}` : ''}`);
   return { run, runDir, entry, stats };
 }
 
