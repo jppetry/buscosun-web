@@ -1,6 +1,6 @@
 # Autobahnwetter — Phase AW: Diagnose, Protokoll, Gates
 
-> Stand: 2026-10-04. Plan: `audit/autobahnwetter-plan.md` (bindend), Konzept/Datenlage: `audit/autobahnwetter-konzept.md`,
+> Stand: 2026-10-06 (§18: E-AW-30 und die offenen V-AW umgesetzt, nicht gepusht). Plan: `audit/autobahnwetter-plan.md` (bindend), Konzept/Datenlage: `audit/autobahnwetter-konzept.md`,
 > UI-Vorgabe: `reference/autobahnwetter-*.dc.html` + `reference/README-autobahnwetter.md`.
 > Arbeitszweig `feat/autobahnwetter` im Worktree `C:\dev\buscosun-web-aw` (eine parallele Sitzung arbeitet im
 > Haupt-Arbeitsbaum auf `main`, §1.3).
@@ -37,6 +37,10 @@
   **Nicht eingeschaltet:** meine vorab festgelegte Regel verlangt, dass kein einzelner Lauf schlechter wird; der Lauf
   mit der Messung um Sonnenaufgang ist es bei 3–6 h leicht (≈ 0,05 K). Einschalten = eine Zeile, deine Entscheidung
   (E-AW-30, Empfehlung: ja). Achspunkte zwischen Stationen gewinnen nicht und bleiben ohne Anker.
+- **Nacht 05./06.10. (§18, Jans Auftrag):** E-AW-30 eingeschaltet (Stationen verankert) und V-AW-1, -2, -7, -9, -12, -14,
+  -16, -22 … -29 umgesetzt, sieben Commits auf `main`, **nicht gepusht**; `verify:road-ui` 64/64 mit Aufnahmen in
+  `audit/autobahnwetter/ui-0610/`. Dabei gefunden: **die Ablage der Streckenprognose im Archiv steht seit 05.10. 15:36 UTC
+  still (V-AW-35, behoben — heilt mit dem Push)**. Neue Korridor-/Punktdateien als Paket für die Kopie ins Daten-Repo.
 - **Als Nächstes:** Gate B nach 7 Tagen Schatten (≈ 10.10.), Kalibrierung ≥ 14 Tage (≈ 17.10.), Rest von Gate C (Gerät, Wächter, SEO, Vorschaukarte),
   Anzeige der Prognose (AW-6.1b), Fahrbahn-Prognose AW-6.2 (Gate D). Einzelheiten: `MANUELLE-SCHRITTE.md` §34.
 
@@ -568,22 +572,22 @@ Byte mit der LF-Ausgabe von esbuild; der Haupt-Arbeitsbaum hat das Bündel mit L
 
 | Nr. | Befund | Mehrwert für Jan | Umsetzungsskizze |
 |---|---|---|---|
-| V-AW-1 | Regel `cube` (Luft gegen T2m) läuft ohne Referenz | zweite, unabhängige Prüfung der Lufttemperatur — fängt Anlagen, die alle Nachbarn mitreißen | Ableitung liest stündlich die t1-Stufe des Punkt-Cubes an den ≈ 1 550 Positionen (eine Zelle je Station, gecacht), 14 Tage beobachten, dann entscheiden |
-| V-AW-2 | „Verlauf 24 h" zeigt nur Temperaturen | man sieht, wann es nass oder glatt war, nicht nur wie kalt | Farbleiste unter dem Diagramm aus `k` (seit `691113c` im Ring), schraffiert für `u`/`n`/`-` |
+| V-AW-1 | Regel `cube` (Luft gegen T2m) läuft ohne Referenz | zweite, unabhängige Prüfung der Lufttemperatur — fängt Anlagen, die alle Nachbarn mitreißen | **erledigt 06.10. (§18):** Referenz = Stationsprognose aus `road/fc/v1` ohne Anker, Beobachtung läuft mit dem Push; ursprüngliche Skizze: Ableitung liest stündlich die t1-Stufe des Punkt-Cubes an den ≈ 1 550 Positionen (eine Zelle je Station, gecacht), 14 Tage beobachten, dann entscheiden |
+| V-AW-2 | „Verlauf 24 h" zeigt nur Temperaturen | man sieht, wann es nass oder glatt war, nicht nur wie kalt | **erledigt 06.10. (§18):**  Farbleiste unter dem Diagramm aus `k` (seit `691113c` im Ring), schraffiert für `u`/`n`/`-` |
 | V-AW-3 | `roadAir` (Fahrbahn gegen eigene Luft) nur beobachtet | defekte Fahrbahnfühler früher erkennen | nach ≥ 14 Tagen Quantile aus der Quarantäne, dann hart (Gate B) |
 | V-AW-4 | P758 „Am Moosfeld" (A 94) sendet Länge 0 | eine Anlage mehr an der A 94 | Position aus dem Katalog, wenn das Bulletin 0 meldet und die Katalogzeile passt; Herkunft `catalog` am Punkt — Datenänderung, Jans Entscheidung |
 | V-AW-5 | Wasserfilm > 10 mm fast nur FN-BY/JO-SO (100, 72, 44 …) | Wasserfilm in Bayern und Sachsen nutzbar statt verworfen | Werte gegen den Zustandscode über Gate B legen; vermutlich Einheit 0,01 mm; beim DWD nachfragen; bis dahin `limit` |
 | V-AW-6 | Taupunkt im 0,1-K-Raster hängt bei 65 Anlagen ≥ 6 h | weniger falsch verworfene Taupunkte (Frostgefahr hängt daran) | Stichprobe in Gate B; Option: `stuck` für den Taupunkt nur, wenn auch Luft und Feuchte hängen |
-| V-AW-7 | Stationskatalog von 2020, 136 aktive Anlagen fehlen | Straßenklasse und km auch für neue Anlagen | DWD um eine aktuelle Liste bitten; bis dahin Position aus dem Bulletin (E-AW-7) |
+| V-AW-7 | Stationskatalog von 2020, 136 aktive Anlagen fehlen | Straßenklasse und km auch für neue Anlagen | **erledigt 06.10. (§18):** Prognosepunkte für die 156 Anlagen ohne Katalogzeile; Anfrage an den DWD formuliert (§18.5). Skizze: DWD um eine aktuelle Liste bitten; bis dahin Position aus dem Bulletin (E-AW-7) |
 | V-AW-8 | 20 Autobahn-Unterseiten (E-AW-4) nicht geschaltet | Suchmaschinen finden „A 8 Glätte" | `roadSeo.ts` als Lazy-Sub-Texte wie `subRouteTexts`, Sitemap-Einträge — mit Gate C |
-| V-AW-9 | Ringautobahn heißt „A 10 bei Groß Kreutz", 1-Stations-Abschnitte (z. B. a1-3) | verständliche Namen, kürzere Liste | Namenstabelle für Ringe („Berliner Ring"); Abschnitte < 3 Stationen an den Nachbarabschnitt hängen oder im Dock einklappen |
+| V-AW-9 | Ringautobahn heißt „A 10 bei Groß Kreutz", 1-Stations-Abschnitte (z. B. a1-3) | verständliche Namen, kürzere Liste | **erledigt 06.10. (§18):**  Namenstabelle für Ringe („Berliner Ring"); Abschnitte < 3 Stationen an den Nachbarabschnitt hängen oder im Dock einklappen |
 | V-AW-10 | jeder Slot schreibt 23 Ring-Dateien (voll ≈ 1,7 MB) | kleineres Daten-Repo, weniger Push-Last | im Schattenbetrieb messen (§5); Option: Ring nur stündlich, `obs` bleibt 15 min |
 | V-AW-11 | Rohwerte verworfener Messungen nur 24 h in `quarantine/` | Backtest der Regeln (Kalibrierung) über mehr als einen Tag | **erledigt 03.10. (AW-6a, §12):** die Halbtage im Archiv tragen jeden Quarantäne-Eintrag |
-| V-AW-12 | `/autobahnwetter` liefert ohne Flag kurz die statische Shell, dann „nicht gefunden" | sauberer bis Gate C | Shell erst mit `ROAD_LIVE` erzeugen, oder Shell ohne Lead — klein, nur wenn gewünscht |
+| V-AW-12 | `/autobahnwetter` liefert ohne Flag kurz die statische Shell, dann „nicht gefunden" | sauberer bis Gate C | **erledigt 06.10. (§18):** Inline-Skript leert die Shell bei Flag aus. Skizze: Shell erst mit `ROAD_LIVE` erzeugen, oder Shell ohne Lead — klein, nur wenn gewünscht |
 | V-AW-13 | Mobil-Karte (WebGL), Long Tasks, Touch nicht am Gerät geprüft | Sicherheit vor Gate C | Real-Device mit `?road=1` (scrcpy), Trace der ersten 10 s |
-| V-AW-14 | Radar-Ebene der Vorlage („Niederschlag jetzt") nicht gebaut | Schauer an der Strecke sehen | RV-Bild des Spiegels als Bild-Quelle auf der Straßenkarte (Module der Wetterkarte), eigene Ebene im Dock |
+| V-AW-14 | Radar-Ebene der Vorlage („Niederschlag jetzt") nicht gebaut | Schauer an der Strecke sehen | **erledigt 06.10. (§18):**  RV-Bild des Spiegels als Bild-Quelle auf der Straßenkarte (Module der Wetterkarte), eigene Ebene im Dock |
 | V-AW-15 | `verify:share` SH6 ist in jedem frischen Windows-Checkout rot (CRLF durch `autocrlf`, Vergleich Byte für Byte) | ein Verifier, der nur auf einer Maschine grün ist, verdeckt echte Fehler | `.gitattributes`: `netlify/edge-shared/*.js text eol=lf` (dann ist der Checkout überall LF) oder im Verifier Zeilenenden vor dem Vergleich angleichen |
-| V-AW-16 | Stichäste einer Autobahn fallen bei der Bereinigung aus der Achse — 4 Stationen ohne Korridor (Larrelt A 31, AD Bayerisches Vogtland A 72, Fürth A 73, AD Hochfranken A 93) | auch diese Anlagen im Streckenband | Äste ≥ 2 km als eigene Abschnitte behalten (eigene Kennung `a31-x`), statt sie abzuschneiden; die Stationen erscheinen bis dahin als Kartenpunkt |
+| V-AW-16 | **erledigt 06.10. (§18):** (Daten-Paket, Jans Kopie) Stichäste einer Autobahn fallen bei der Bereinigung aus der Achse — 4 Stationen ohne Korridor (Larrelt A 31, AD Bayerisches Vogtland A 72, Fürth A 73, AD Hochfranken A 93) | auch diese Anlagen im Streckenband | Äste ≥ 2 km als eigene Abschnitte behalten (eigene Kennung `a31-x`), statt sie abzuschneiden; die Stationen erscheinen bis dahin als Kartenpunkt |
 | V-AW-17 | `health.yml` schlägt seit September bei jedem Lauf fehl (H2/H3 `latest-grib.json` ≈ 700 h alt) | ein immer roter Wächter meldet keinen echten Ausfall — auch nicht den des Straßenwetters | E-AW-16 |
 | V-AW-18 | Tauplateau-Ausnahme der `stuck`-Regel (Fahrbahn −10…0 °C bei Luft ±10 K) deckt den Großteil des Winters — ein bei −0,01 °C hängender Fühler (Muster K677) würde im Winter nie verworfen und zeigte bei Nässe „Frostgefahr" | weniger falsche Frost-Warnfarbe im Winter | in Gate B kalibrieren: Plateau nur, wenn auch die Luft sich bewegt, oder Ausnahme auf 12 h begrenzen (Hinweis der Gesamtprüfung) |
 | V-AW-19 | Seit dem Löschen von `health.yml` (E-AW-16) prüft kein Zeitplan mehr, ob die Straßen-Ableitung lebt (R1–R5) | ein Ausfall des Straßenwetters fällt auf, bevor Nutzer ihn sehen — spätestens ab Gate C nötig | **teilweise seit 03.10. (AW-6a):** der Archiv-Job (alle 3 h) wird rot, wenn der jüngste Ring > 180 min alt ist — grob, aber mit Zeitplan; feiner (45 min, CDN) nur mit eigenem Workflow `ROAD_HEALTH` ohne die H-Prüfungen, Handlauf §4.4 |
@@ -885,10 +889,10 @@ den Pfad `road/fc/v1` und prüft den Commit vor dem Push (`verify:road-fc` D9). 
 |---|---|---|---|
 | V-AW-20 | Der DWD liefert die Ordner `LW` und `SD` (Baden-Württemberg, 114 Stationen, alle Autobahn-Anlagen um Stuttgart) leer aus | Messungen an A 8/A 81/A 6 in BW | Anfrage beim DWD-Open-Data-Support (Jan); auf der Seite bis dahin die Prognose und ein Hinweis |
 | V-AW-21 | **gebaut und gemessen 04.10. (§16), aus bis E-AW-30** — Der Producer rechnet ohne Messungs-Anker; an den Stationen misst SWIS die Luft selbst (MAE 1,27 K am ersten Zeitpunkt) | genauere erste Stunden genau dort, wo die Fahrbahn bewertet wird | SWIS-Luft und -Taupunkt des jüngsten Slots als `CubeObs` am Stationspunkt (Abstand 0); neue Kette ⇒ am Archiv messen, bevor sie wirkt |
-| V-AW-22 | Korridore tragen Abschnitte, die noch nicht gebaut sind (A 14, A 143, A 44, A 60 — DLM250 führt sie als Autobahn) | keine Strecke auf der Karte, die es nicht gibt | `build-corridors.mjs`: Abschnitte ohne OSM-Fahrbahn auf ≥ 5 km abschneiden oder markieren |
-| V-AW-23 | Der Producer liest Manifeste und Tabellen je Punkt neu (≈ 25 % der Rechenzeit; 77 ms je Punkt einfädig) | Lauf in ≈ 2 statt 3–5 min | Merker für geparste Manifeste im Leser (`memoStore.json`) — Datei der Punktlinie |
-| V-AW-24 | Punkt- und Gelände-Datei liegen nur im Daten-Repo; fällt ein Hand-Push in das Fenster eines Force-Pushs der Kartenlinie, sind sie weg und der Job endet mit „points.json fehlt" | kein stiller Ausfall | Kopie beider Dateien im Archiv-Repo, der Job holt sie bei Bedarf zurück |
-| V-AW-25 | Die Leser der Radar- und Straßen-Slots holen bei 404 am CDN nicht von raw nach | ein kurz fehlender Slot heilt ohne Purge | wie `fetchRoadFcFile`: 404 am CDN einmal über raw prüfen |
+| V-AW-22 | **erledigt 06.10. (§18):** (Daten-Paket, Jans Kopie) Korridore tragen Abschnitte, die noch nicht gebaut sind (A 14, A 143, A 44, A 60 — DLM250 führt sie als Autobahn) | keine Strecke auf der Karte, die es nicht gibt | `build-corridors.mjs`: Abschnitte ohne OSM-Fahrbahn auf ≥ 5 km abschneiden oder markieren |
+| V-AW-23 | **erledigt 06.10. (§18):** −21 % Rechenzeit. Der Producer liest Manifeste und Tabellen je Punkt neu (≈ 25 % der Rechenzeit; 77 ms je Punkt einfädig) | Lauf in ≈ 2 statt 3–5 min | Merker für geparste Manifeste im Leser (`memoStore.json`) — Datei der Punktlinie |
+| V-AW-24 | **erledigt 06.10. (§18):** Punkt- und Gelände-Datei liegen nur im Daten-Repo; fällt ein Hand-Push in das Fenster eines Force-Pushs der Kartenlinie, sind sie weg und der Job endet mit „points.json fehlt" | kein stiller Ausfall | Kopie beider Dateien im Archiv-Repo, der Job holt sie bei Bedarf zurück |
+| V-AW-25 | **erledigt 06.10. (§18):** Die Leser der Radar- und Straßen-Slots holen bei 404 am CDN nicht von raw nach | ein kurz fehlender Slot heilt ohne Purge | wie `fetchRoadFcFile`: 404 am CDN einmal über raw prüfen |
 | E-AW-23 | Archiv der Prognosen: Stationen, 0–24 h, alle 3 h ≈ 2,1 MB/Tag (≈ 0,8 GB/Jahr) | Gate D messbar | Jan: Umfang bestätigen oder kürzen (z. B. 4 Läufe/Tag) |
 | Anzeige | erledigt 04.10. (§15) | Prognose-Zeile im Band, Kacheln +1/+3/+6 h, Wetter zur Ankunft | — |
 
@@ -960,10 +964,10 @@ Punkte × 49 Schritte.
 
 | Nr. | Was | Mehrwert | Skizze |
 |---|---|---|---|
-| V-AW-26 | Stationen an keinem Korridor (Bundes-/Landesstraßen) zeigen keine Prognose — sie liegt in den Länder-Dateien, die Messung nennt das Land nicht | Kacheln auch abseits der Autobahn | Land je Station in `obs` (Producer des Spiegels) oder eine kleine Zuordnung Station → Datei im Zeiger |
-| V-AW-27 | Der Test-Lauf der Fixture ist warm und trocken: Blau-Stufen und Niederschlags-Marken sind nur im Rechenmodell geprüft, nicht im Bild | Bild-Beleg der Winterlage | beim ersten Frost-Lauf eine zweite Fixture ablegen |
-| V-AW-28 | Zeitplan des Workflows startete am 04.10. nicht; der zweite Auslöser hängt am Workflow `point` | Lauf auch, wenn `point` steht | Wächter: Zeiger älter als 3 h ⇒ rot (z. B. im Archiv-Job, der schon alle 3 h liest) |
-| V-AW-29 | Reiter Strecke: bei drei Zeilen je Messpunkt wird die Tabelle lang | ruhigere Tabelle | Prognose in eine eigene Spalte ab 1 440 px |
+| V-AW-26 | **erledigt 06.10. (§18):** Stationen an keinem Korridor (Bundes-/Landesstraßen) zeigen keine Prognose — sie liegt in den Länder-Dateien, die Messung nennt das Land nicht | Kacheln auch abseits der Autobahn | Land je Station in `obs` (Producer des Spiegels) oder eine kleine Zuordnung Station → Datei im Zeiger |
+| V-AW-27 | **erledigt 06.10. (§18):** (synthetisch) Der Test-Lauf der Fixture ist warm und trocken: Blau-Stufen und Niederschlags-Marken sind nur im Rechenmodell geprüft, nicht im Bild | Bild-Beleg der Winterlage | beim ersten Frost-Lauf eine zweite Fixture ablegen |
+| V-AW-28 | **erledigt 06.10. (§18):** Zeitplan des Workflows startete am 04.10. nicht; der zweite Auslöser hängt am Workflow `point` | Lauf auch, wenn `point` steht | Wächter: Zeiger älter als 3 h ⇒ rot (z. B. im Archiv-Job, der schon alle 3 h liest) |
+| V-AW-29 | **erledigt 06.10. (§18):** Reiter Strecke: bei drei Zeilen je Messpunkt wird die Tabelle lang | ruhigere Tabelle | Prognose in eine eigene Spalte ab 1 440 px |
 | V-AW-33 | Anker von buscosun Fusion: Messung und Modellwert passen zeitlich nicht zusammen. Am Code bestätigt (04.10.): `cubeSource.ts` paarte jede Messung mit dem ERSTEN Achsenschritt innerhalb ±30 min (`SAME_TIME_MS`) und nahm dessen Modellwert — der Gang des Modells über bis zu 30 min zählte als Innovation. Trifft im Browser jede Messung abseits der vollen Stunde, auch die ohne Zeitstempel (`cubeObsOf` setzt dann „jetzt"). Reproduktion im Verifier: Messung um t0 + 30 min genau auf der Modelllinie ⇒ Schein-Versatz = halber Stundengang statt 0 | der Anker korrigiert den Ortsversatz, nicht den Tagesgang; an den Straßenstationen gemessen +30 % (16:00) gegen +1 % (16:30) | **gebaut:** `FuseCubeOptions.anchorAtObsTime` — Modellwert (T, u, v, Böe) linear auf die Messminute zwischen den zwei Achsenschritten (Lücke ≤ `ANCHOR_BRACKET_MAX_H` 3 h); Messung auf einem Schritt oder vor dem Achsenbeginn wie bisher; ohne Option byte-gleich. `verify:pv-cube` (12) 3 Prüfungen (rot vor der Umsetzung). Wirkung im Browser nicht gemessen (das Archiv trägt Stundenwerte). **Eingeschaltet am 04.10. (Jan: „ja schalte es default mäßig ein") = „buscosun Fusion 9":** `FUSION9_ANCHOR_AT_OBS_TIME` in der Stufe `fs`, Rückfall `?anc=0` / `CubeIo.anchorAtObsTime: false` = Fusion 8 (eigener Cache-Schlüssel); die Streckenprognose (`road-forecast.mjs`, ohne Messungen) setzt den Rückfall und bleibt „buscosun Fusion 8"; `verify:pv-cube` 421/421, `verify:road-fc` 73/73, `verify:pv-fusion` 235/235, `verify:point-client` 170/171 ((10s) wie an HEAD), Build 252/252, totalJs 1 550,3 / 1 551. Commit/Push = Jans Gate. Nicht angefasst: der Stationswert liest die Stationsvorhersage nur zur exakten Gültigzeit (`stationForecastAt`) — eine Messung abseits der vollen Stunde gibt dort gar keine Innovation |
 | Real-Device | nur Headless geprüft | — | Jan: Handy, `/autobahnwetter/a8-4` |
 
@@ -1073,7 +1077,7 @@ zum Stand davor (Verifier J6).
 
 | Nr. | Was | Mehrwert | Skizze |
 |---|---|---|---|
-| **E-AW-30** | Anker an den Stationspunkten einschalten? Empfehlung: **ja** — +1 h 40 %, +3 h 12 % genauer; Preis: Prognosen aus der Messung um Sonnenaufgang sind 3–6 h später ≈ 0,05 K schlechter | genauere erste Stunden dort, wo die Fahrbahn bewertet wird (Gate D) | `ROAD_FC_ANCHOR_MODE = 'stations'` in `roadFc.ts`, Push — der nächste Job rechnet damit; zurück: `'none'` oder `ROAD_FC_ANCHOR: none` im Workflow |
+| ~~E-AW-30~~ | **entschieden 06.10. (Jan: „setze … um"), eingeschaltet (§18, `a42d516`).** Anker an den Stationspunkten einschalten? Empfehlung: **ja** — +1 h 40 %, +3 h 12 % genauer; Preis: Prognosen aus der Messung um Sonnenaufgang sind 3–6 h später ≈ 0,05 K schlechter | genauere erste Stunden dort, wo die Fahrbahn bewertet wird (Gate D) | `ROAD_FC_ANCHOR_MODE = 'stations'` in `roadFc.ts`, Push — der nächste Job rechnet damit; zurück: `'none'` oder `ROAD_FC_ANCHOR: none` im Workflow |
 | E-AW-31 | Wind und Böe an den Stationen verankern (Böe +38 % bei +1 h)? | Wind, wie ihn der Mast an der Straße misst | Option `wind` in `anchorObsFor` ist gebaut; die Größe hieße dann „Wind an der Messstelle" |
 | V-AW-30 | 182 Stationen: Meldeposition ≠ Katalog (> 1 km, bis 131 km) | richtige Lage der Stationspunkte und Marker | **Liste erzeugt 04.10. (§17.1, `audit/autobahnwetter/stationslage.md`)**; je Station Bulletin gegen Katalog entscheiden = Jan |
 | V-AW-31 | **behoben 04.10. (§17.2)** — Der Job `road-fc` läuft nach jedem `point`-Lauf — am 04.10. dreimal in 11 min veröffentlicht (15:37, 15:39, 15:48 UTC) | weniger Leerlauf | der Producer überspringt einen Lauf mit derselben Stunde und denselben Eingaben (`repeatVerdict`) |
@@ -1141,3 +1145,92 @@ noch Checkout und Klon (≈ 30–40 s), keine ≈ 75 s Rechnung und keinen Commi
 Anker-Fall, am Klon mit Tabellen-Hashes, Verdrahtung in Producer und Workflow. `src/` unberührt (kein Build nötig).
 Wirksam mit dem Push von `main` (der Job klont den Producer bei jedem Lauf); die Workflow-Kopie im Daten-Repo bringt
 nur den Schalter für den Start von Hand.
+
+## 18. E-AW-30 und die offenen Verbesserungen (Nacht 05./06.10., Jans Auftrag „setze im automode um … committen, nicht pushen")
+
+Auftrag: E-AW-30 einschalten und V-AW-1, -2, -7, -9, -12, -14, -16, -22, -23, -24, -25, -26, -27, -28, -29 umsetzen, jede
+Änderung im Code und visuell prüfen, committen ohne Push. Alles liegt auf `main` in sieben Commits (`a42d516` … `9cc8c0c`),
+**nicht gepusht**. Wirksam wird der Code-Teil mit Jans Push von `main` (die Jobs klonen `main`); die neuen Korridor- und
+Punktdateien brauchen zusätzlich die Kopie ins Daten-Repo (§18.4, `MANUELLE-SCHRITTE.md` §41).
+
+### 18.1 Ergebnis je Punkt
+
+| Nr. | Umsetzung | Beleg | Commit |
+|---|---|---|---|
+| **E-AW-30** | `ROAD_FC_ANCHOR_MODE = 'stations'`: jede Station rechnet mit ihrer eigenen Luftmessung der vollen Stunde, Achspunkte ohne Anker. Der Quelltext des Laufs nennt den Anker nur, wenn der Lauf verankert hat; der Quellen-Reiter sagt, was der geladene Lauf tat. Rückweg ohne Commit: `ROAD_FC_ANCHOR=none` | `verify:road-fc` J12/J13; echter Klon 04.10. 20:20: 8 von 12 Stichproben-Stationen verankert, Achspunkte unverankert; Volllauf auf den neuen Dateien: 1 220 verankerte Punkte | `a42d516` |
+| V-AW-1 | Referenz der Beobachtungsregel `cube`: die Ableitung liest im Vollklon des Radar-Spiegels `road/fc/v1` (`groups.json` `_fcDir`, `road-fc-ref.mjs`) — Stationsprognose des jüngsten Laufs vor dem Slot, Schritt 0–1 h, **Anker herausgerechnet** (Reihe − Versatz × Gewicht). Bleibt Beobachtung (Quarantäne `cube`, Detail T2m); Zusammenfassung und `status.json` nennen Lauf und Zahl der Stationen | `verify:road-derive` J1–J4 (zwei Gegenproben); echter Klon 04.10. 20:00/20:15: 1 090 Paare, Median +0,5/+0,6 K, p01 −3,4/−3,7 K, p99 +5,1/+4,8 K, 2 Stationen > 8 K | `f3a5280` |
+| V-AW-2 | Verlauf 24 h: Leiste der gemessenen Klasse je 15-min-Slot aus dem Ring (`k`), „unbekannt"/„keine Messung" schraffiert, Lücke leer; Legende und Bildbeschreibung zählen | `verify:road-ui` R3 (Ring mit 96 Slots, Zählung = Ring), Aufnahme `ui-0610/r3-verlauf-leiste.png` | `d0c44b3` |
+| V-AW-7 | Stationen ohne Katalogzeile bekommen Prognosepunkte an der Meldeposition (E-AW-7), Datei nach DWD-Reihe, `noCatalog` (156 am 06.10.); Straßenklasse und km kommen weiter aus der Meldung. Die aktuelle Katalogliste kann nur der DWD liefern — Text der Anfrage in §18.5 | `verify:road-contract` K9, `verify:road-fc --data` G5 | `9cc8c0c` |
+| V-AW-9 | Ringnamen (`ROAD_RING_NAMES`: Berliner Ring, Autobahnring München, Berliner Stadtring), Schleifen ohne „X → X" in Pille, Band und Briefing; Abschnitte mit < 3 Messpunkten (nicht der Hauptabschnitt, nicht der gewählte, nicht bei der Suche) unter EINER Zeile je Autobahn im Dock | R1 (Rechenmodell), R2 (Browser auf/zu); C3/H3 zählen die Falt-Zeile | `d0c44b3` |
+| V-AW-12 | Inline-Skript direkt nach `#root` der Route-Shell (`scripts/seo/flagGate.mjs`) leert die Einleitung, wenn das Flag des Besuchers aus ist (dieselbe Rangfolge wie `roadFlagFrom`) — kein Aufblitzen vor „nicht gefunden" | R8: 18 Fälle gegen `roadFlagFrom`, im Build vorhanden, im Browser `#root` mit `?road=0` leer (App-Bündel blockiert), ohne Schalter gefüllt | `d0c44b3` |
+| V-AW-14 | Ebene „Niederschlag jetzt" im Dock: der `RainLayer` der Wetterkarte (exakte DE1200-Verortung) mit der jüngsten RV-Analyse des Spiegels (`fetchRvLatestAnalysis`, f000.png ≈ 30 KB, kein Tar), unter den Ortsnamen der Grundkarte, alle 5 min neu, **voreingestellt aus** | R5: aus ⇒ 0 Radar-Abrufe; an ⇒ 357 499 geänderte Pixel, Legende „Radar 10:05 · DWD RADOLAN"; wieder aus ⇒ 0 Pixel Unterschied. Aufnahme `r5-radar-an.png` | `d0c44b3` |
+| V-AW-16 | `removeLoops` sammelt Abgeschnittenes; Äste ≥ 2 km mit einer sonst nicht zugeordneten Station werden eigene Abschnitte (`spur: true`, nach den regulären nummeriert — bestehende Kennungen bleiben). Am Live-Bestand genau die vier Stationen: `a31-2` Larrelt, `a72-2` AD Bayerisches Vogtland, `a73-3` Fürth, `a93-4` AD Hochfranken | K6/K7; Neubau-Diff gegen die Live-Datei | `9cc8c0c` |
+| V-AW-22 | Mit `--osm`: Stücke ≥ 5 km ohne OSM-Fahrbahn der eigenen Nummer **und ohne Messstelle** werden am Abschnittsende abgeschnitten (`a14` −41,5 km, `a143` −13 km; `trimmedKm`) oder innen benannt (`unbuilt`: a14 km 36,5–46,5, a44-2 42–47, a44-5 36–45); dort keine Prognosepunkte; das Band schraffiert dunkel, Legende und Briefing sagen „keine Fahrbahn in OpenStreetMap (im Bau oder anders geführt)". a44-2: OSM führt die A 44 dort 1,4 km neben der DLM250-Achse — deshalb nicht „nicht gebaut". A 60 km 0,5–15,5 trägt Messstellen ⇒ bleibt | K8/K9, G2; R9 (Aufnahme `r9-band-ohne-fahrbahn.png`) | `9cc8c0c` |
+| V-AW-23 | Merker `PointStore.derived` (nur der Verzeichnis-Speicher des Producers bietet ihn an; der Browser bleibt unverändert): Manifeste je Datei einmal geparst, Tabellen (learned/stack/clima) einmal gehasht und geprüft. Rückweg `ROAD_FC_MEMO=0` | 400 echte Punkte, 4 Läufe abwechselnd: 24,9–26,2 s gegen 32,4–32,6 s (**−21 %**), Dateien mit Merker byte-gleich; C13/C14 | `5f483df` |
+| V-AW-24 | Der Archiv-Job legt `static/points.json` + `geo.json` als .gz mit sha-256-Manifest in `buscosun-archiv/road/fc/v1/static/` ab (nur bei Änderung); fehlen sie im Daten-Repo, holt der Producer sie zurück, prüft die Prüfsumme und pusht sie mit dem Lauf (dann ohne Wiederholungsschutz; kein Konflikt, wenn der Remote sie inzwischen wieder hat) | L3–L5 (lokales Bare-Repo), E4 | `fd27a6a` |
+| V-AW-25 | Ein 404 am CDN wird in den Lesern der Radar- und Straßen-Slots einmal über raw.githubusercontent geprüft; „nicht da" erst bei 404 auf beiden Wegen. `?radarraw=0` = altes Verhalten | `verify:radar-fallback` A6/A6b/A9b/B4/B5 (25/25), `verify:road-fc` F5; radar-runs 56/56, layer-erstbild 38/38, radar-repack 55/55, np0-radar 39/39 | `5649871` |
+| V-AW-26 | Jeder Lauf schreibt `where.json` (Station → `c/<Korridor>` oder `s/<Land/Reihe>`); die Seite lädt bei einer Station abseits der geöffneten Strecke deren Datei und nennt sonst den Grund | M1/M2, R6 (Kacheln = Datei; Lauf ohne where.json ⇒ „keine Zuordnung …") | `d0c44b3` |
+| V-AW-27 | Synthetische Winter-Fixture (`scripts/lib/fixtures/road/winterFixture.mjs`: echter Lauf a8, Luft −18…−22 K, Schnee/Schneeregen in den Stunden 1–12) — benannt synthetisch, nur im Verifier; durch den ersten echten Frost-Lauf aus dem Archiv ersetzen | R7: alle drei Luft-Stufen (9/17/1 Zellen), 14 Schnee-Marken, Kacheln und Zeilen „Schnee…", keine Fahrbahnwörter. Aufnahmen `r7-winter-*.png` | `d0c44b3` |
+| V-AW-28 | Der Archiv-Job wird rot (Exit 3 nach der Ablage), wenn der Zeiger der Streckenprognose keinen Lauf jünger als 3 h nennt — dieselbe Grenze wie „veraltet"; er liest das Geschwister `road/fc/v1` des Klons, also ohne Workflow-Änderung | L1/L2 (Aufruf wie im Workflow: 65 min ⇒ 0, 240 min ⇒ 3) | `fd27a6a` |
+| V-AW-29 | Reiter Strecke ab 1 440 px: eigene Spalte „Luft zur Ankunft" (zwei kurze Zeilen), der Zusatz unter dem Namen entfällt; darunter wie bisher | R4: 1 440 ⇒ 25/25 Zellen sichtbar, Zeilen 46 statt 82 px; 1 280 ⇒ wie bisher. Aufnahme `r4-strecke-spalte-1440.png` | `d0c44b3` |
+
+### 18.2 Neue Befunde dieser Nacht
+
+| Nr. | Befund | Mehrwert für Jan | Stand / Skizze |
+|---|---|---|---|
+| **V-AW-35** | **Die Ablage der Streckenprognose im Archiv steht seit 05.10. ≈ 15:36 UTC still.** Seit der Phase FR importiert `roadFc.ts` das Fusion-Register; der Archiv-Job checkt nur `src/road` aus ⇒ `road-fc-archive.mjs` scheitert, `continue-on-error` verdeckt es (Archiv-Index: letzter Lauf 2610051500; die Läufe 18:42 und 21:34 UTC legten nichts ab) | vergangene Prognosen sind nicht nachholbar — jede Stunde ohne Ablage fehlt Gate D | **behoben** (`fd27a6a`): der Vertrag lädt das Register nicht mehr (der Producer reicht den Namen hinein); `verify:road-archive` C5 prüft jetzt auch den Prognose-Archivierer. Wirksam ab dem ersten Archiv-Lauf nach dem Push von `main` |
+| **V-AW-36** | Der Producer ist nicht ganz deterministisch: zwei Läufe **ohne** Merker auf denselben Eingaben unterschieden sich an 1 von 400 Punkten (a620@5: σ, T um ≈ 0,2–0,5 K, Böe) — in 1 von 4 Läufen; mit Merker 4/4 gleich, im Prozess wiederholt 0/400. Ursache nicht gefunden (Kandidat: Zeitfristen im Motor, die im Browser Sinn haben und im Producer unter Last greifen) | dieselben Eingaben sollen dieselbe Prognose geben — sonst ist jeder Vergleich verrauscht | Notizen je Punkt mitschreiben und die Fristen des Motors im Producer abschalten oder benennen — buscosun Fusion, Jans Gate |
+| V-AW-37 | Achspunkte von a60 km 5–15 rasten weiter nicht ein, obwohl dort Messstellen liegen | Prognose genau auf der Fahrbahn | OSM-Nummer/Klasse dort prüfen (A 60 vermutlich anders getaggt) |
+| V-AW-38 | Die Stationsprognosen der Stationen ohne Katalogzeile liegen in Dateien je DWD-Reihe (`s/NB`, `s/SO`, `s/LH` …), nicht je Bundesland | für die Seite gleich (where.json), für Auswertungen uneinheitlich | mit der aktuellen Katalogliste (§18.5) das Land nachtragen |
+
+Beobachtungen außerhalb der Phase: `verify:share` SH6 ist auch im Haupt-Arbeitsbaum rot (Bündel mit CRLF ausgecheckt,
+V-AW-15; am Stand vor dieser Nacht gleich). `verify:fusion-release` B2/B3 rot durch `scripts/pruefstand/register-bestand.mjs`
+(Phase PS). `verify:pv-cube` (16) und `verify:point-client` (10s) zeitabhängig (im zweiten Lauf grün bzw. wie an HEAD).
+
+### 18.3 Gates (gelaufen 06.10. 00:10–03:20 UTC, PowerShell, ohne `2>&1`)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:road-fc` | **102/102** (neu J12/J13, C13/C14, F5, L1–L5, M1/M2; E4 geändert); mit `--data` auf den neuen Dateien **108/108** (G2/G5 angepasst) |
+| `verify:road-ui` | **64/64** gegen `vite preview` des Baus (neu R1–R9; C3/H3 zählen die Falt-Zeile) — Aufnahmen `audit/autobahnwetter/ui-0610/` |
+| `verify:road-contract` | **69/69** (K6–K9) |
+| `verify:road-derive` | **36/36** (J1–J4) |
+| `verify:road-archive` | 26/26 (C5 erfasst jetzt den Prognose-Archivierer) |
+| Radar | `radar-fallback` 25/25 · `radar-runs` 56/56 · `layer-erstbild` 38/38 · `radar-repack` 55/55 · `np0-radar` 39/39 · `regenradar-profile` 35/35 |
+| Punktlinie | `verify:pv-cube` 421/421 (erster Lauf 420/421, (16) zeitabhängig) · `verify:point-client` 170/171 ((10s), V-EX-13) |
+| Build | grün, `verify-routing` 252/252, `verify-seo` 803 |
+| Budget | eagerJs 108,9 / 109 · totalJs **1 555,5 / 1 557** (angehoben 1 553 → 1 557; Kontrollbau e6f7626: +3,6 KB, RoadPage +3,0, radolan +0,26) |
+| typecheck | 0 |
+
+Selbstprüfung: (1) Funktionserhalt — alle früheren Prüfungen der Seite grün; geändert nur Zählungen, die das Einklappen
+(V-AW-9) bewusst ändert; die Radar-Ebene ist voreingestellt aus. (2) Desktop — sichtbar neu: Leiste im Verlauf (+10 px),
+Falt-Zeile im Dock, Ringnamen, ab 1 440 px die Spalte in der Tabelle; sonst gleich (Aufnahmen). (3) Touch — Falt-Zeile mobil
+≥ 44 px (H3 grün). (4) Konsole — I1 ohne Ausnahme. (5) Long Tasks — headless nicht messbar; die Radar-Ebene lädt erst beim
+Einschalten (eine Werte-Textur ≈ 1,3 MB).
+
+### 18.4 Daten-Paket (Kopie ins Daten-Repo = Jans Gate)
+
+`C:\dev\buscosun-road-publish\2026-10-06\` mit `SHA256SUMS`: `road/v1/static/corridors.json` (141 Korridore: +4 Äste,
+a14/a143 gekürzt, 3 mit `unbuilt`; gebaut aus dem DLM250-Cache vom 04.10. und der Meldung 04.10. 20:15 wie die Live-Datei),
+`road/fc/v1/static/points.json` (2 755 Achse + 1 814 Stationen, davon 156 ohne Katalogzeile), `road/fc/v1/static/geo.json`
+(9 095 Einträge). Bauweg: `build-corridors.mjs --stations=… --obs=… --cache=… --osm=<Overpass-Cache>` (mit TS-Lader), dann
+`build-fc-points.mjs --corridors=… --obs=<obs>,<obs> --geo-from=<alte geo.json> --osm=…`. Ohne die neuen Optionen
+reproduzieren beide Bauer die Live-Dateien exakt (137/137 Korridore, 4 424/4 424 Punkte). Volllauf des Producers auf dem
+Paket: 4 569/4 569 Punkte, 0 ohne Ergebnis, 141 Korridore + 16 Dateien je Land/Reihe, 163 s mit 4 Prozessen.
+Achtung: die Kennungen der a14-Achspunkte zeigen nach dem Kürzen auf andere Orte (km zählt ab dem neuen Anfang) — geteilte
+Links `st=a14@…` landen dann woanders; alle übrigen Kennungen bleiben.
+
+### 18.5 Anfrage an den DWD (V-AW-7, Text für Jan)
+
+> Betreff: Aktueller Stationskatalog Straßenwetter (sws_stations_xls.xlsx)
+> Guten Tag, wir nutzen die Daten der Glättemeldeanlagen von opendata.dwd.de. Der Stationskatalog `sws_stations_xls.xlsx`
+> trägt den Stand vom 05.06.2020; 156 derzeit meldende Anlagen fehlen darin (u. a. Reihen FN-NB, JO-SO, LH-LH). Gibt es eine
+> aktuelle Fassung (Kennung, Name, Straße, Betriebs-km, Lage, Höhe, Bundesland) oder ist eine geplant? Zudem kommen die
+> Ordner LW und SD (Baden-Württemberg) seit Anfang Oktober leer an. Vielen Dank.
+
+### 18.6 Offen für Jan
+
+Push von `main` (sieben Commits; vor 23:10 UTC, damit V-AW-35 mit dem nächsten Archiv-Lauf heilt), Kopie des Daten-Pakets
+(§18.4) mit Purge der drei Pfade, optional die Workflow-Kopien (`workflow-road-fc.yml` ohne Pflichtprüfung der Punktdatei,
+`workflow-road-archiv.yml` mit erweiterter Meldung — der Code wirkt auch ohne), die DWD-Anfrage (§18.5), V-AW-36
+(Motor, Jans Gate), Real-Device der Radar-Ebene (WebGL) auf dem Handy.

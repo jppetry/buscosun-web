@@ -1528,3 +1528,30 @@ Kontext: `audit/punktarchiv-erweiterung.md` (§7), Entscheidungen E-PS-11/E-PS-1
 - **(f) Offen:** V-PS-12 (Böe < Wind im Motor, eigener Antrag), V-PS-15 (2×2-Block aus Archiv-Schema 5 in den Replay — neue
   Adapter-Generation, ab dem ersten Schema-5-Slot), V-PS-16 (Berichtsgröße), V-PS-17 (längere Klimatologie), E-PA5-2/E-PA5-5
   (Ausgabe des Cube-Pfads im Archiv ⇒ Treue-Probe gegen das echte Produkt).
+
+## 41. Phase AW — E-AW-30 und die offenen Verbesserungen V-AW-1 … V-AW-29, 2026-10-06
+
+Belege: `audit/autobahnwetter.md` §18. Sieben Commits auf `main` (`a42d516`, `fd27a6a`, `5649871`, `5f483df`, `d0c44b3`,
+`f3a5280`, `9cc8c0c`), **nicht gepusht**.
+
+1. **Push von `buscosun-web/main`** — möglichst vor 23:10 UTC. Damit wirken: Anker an den Stationen (E-AW-30, nächster
+   `road-fc`-Lauf), die wieder laufende Ablage der Streckenprognose im Archiv (**V-AW-35: steht seit 05.10. 15:36 UTC**),
+   Wächter des Zeigers (V-AW-28) und Kopie der statischen Dateien im Archiv (V-AW-24) beim nächsten `road-archiv`-Lauf,
+   die Referenz der Regel `cube` (V-AW-1) ab dem nächsten Start des Radar-Jobs, 404 über raw (V-AW-25), der schnellere
+   Producer (V-AW-23) und die Seite (V-AW-2/9/12/14/26/29) mit dem Deploy.
+   Prüfen danach: `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-check.mjs`
+   (Kopf `anchor: swis`, `anchored` ≈ 1 100), im Archiv `road/fc/v1/index.json` (neuer Tag), `road/fc/v1/static/manifest.json`.
+2. **Daten-Paket ins Daten-Repo** (V-AW-7, V-AW-16, V-AW-22): `C:\dev\buscosun-road-publish\2026-10-06\` — drei Dateien
+   (`SHA256SUMS` daneben) nach `road/v1/static/corridors.json`, `road/fc/v1/static/points.json`, `road/fc/v1/static/geo.json`;
+   Push nach dem Protokoll (build/point-Lauf abwarten, fetch, rebase, Pfad-Commit, nie force), danach Purge genau dieser drei
+   Pfade. Der Spiegel übernimmt `corridors.json` aus dem Repo (copyInto). Folge: 141 statt 137 Korridore (vier Äste mit
+   eigener Station), a14 und a143 gekürzt, drei Korridore mit benannter Lücke, 156 Stationen mehr mit Prognose.
+   Hinweis: Links `st=a14@<km>` zeigen danach auf andere Orte (km zählt ab dem neuen Anfang).
+3. **Optional: Workflow-Kopien** — `scripts/road/workflow-road-fc.yml` → Daten-Repo `.github/workflows/road-fc.yml` (ohne
+   Pflichtprüfung der Punktdatei: der Producer holt sie bei Verlust aus dem Archiv) und
+   `scripts/punktarchiv-repo/workflow-road-archiv.yml` → Archiv-Repo `.github/workflows/road-archiv.yml` (nur Kommentare
+   und die Meldung des roten Schritts). Ohne die Kopien wirkt der Code trotzdem; der alte Workflow bricht nur ab, wenn
+   `points.json` fehlt, statt sie zurückzuholen.
+4. **DWD-Anfrage** zum aktuellen Stationskatalog und zu den leeren Ordnern LW/SD — Text in `audit/autobahnwetter.md` §18.5.
+5. **Entscheiden:** V-AW-36 (Producer nicht ganz deterministisch, Kandidat: Zeitfristen im Motor — buscosun Fusion).
+6. **Real-Device:** Ebene „Niederschlag jetzt" (WebGL-Ebene der Wetterkarte) auf dem Handy einschalten, `/autobahnwetter/a8`.
