@@ -279,6 +279,61 @@ add('E4 Nachfolger-Job: Zustand älter als die Nachholgrenze ⇒ Start an der Gr
   add('I4 DWD hängt komplett: poll() kehrt binnen Zeitbudget zurück (der Radar-Takt bleibt frei)', b.r === 'done' && b.ms < 3000, `${b.r} nach ${b.ms} ms`);
 }
 
+// --- J: reference of the observe-only rule `cube` from the route forecast (V-AW-1) ---------------------------------
+{
+  const { deriveRoadSlot } = await import('./road/road-derive.mjs');
+  const { roadFcReference, unanchoredT, ROAD_FC_REF_MAX_LEAD_H } = await import('./road/road-fc-ref.mjs');
+  const { ROAD_FC_STEPS, ROAD_FC_VAR_IDS, roadFcStamp, roadFcT0 } = await import('../src/road/roadFc.ts');
+  const { ROAD_CUBE_MAX_K } = await import('../src/road/roadContract.ts');
+  const stamp = '2610030800', slotMs = Date.UTC(2026, 9, 3, 8, 0);
+  const mkIn = (name, extra = {}) => {
+    const d = join(tmp, name);
+    mkdirSync(d, { recursive: true });
+    for (const [g, b] of fixture) writeFileSync(join(d, `${g}.bin`), b);
+    writeFileSync(join(d, 'groups.json'), JSON.stringify(extra));
+    return d;
+  };
+  const derive = (name, extra) => deriveRoadSlot({ inDir: mkIn(`in-${name}`, extra), storeDir: join(tmp, `store-${name}`), outDir: join(tmp, `out-${name}`), stamp, nowIso: '2026-10-03T08:04:30Z' });
+  const plain = derive('plain', {});
+  const obsDoc = JSON.parse(readFileSync(join(tmp, 'out-plain', 'obs', `${stamp}.json`), 'utf8'));
+  const withTa = obsDoc.points.filter((p) => p.ta != null).slice(0, 3);
+  // A run issued 07:55 (step 1 = 08:00): A model = air, B model = air + 10 K (flagged), C anchored +10 K with anc 10 K × 100 % (model = air).
+  const issued = slotMs - 5 * 60_000, t0 = roadFcT0(issued), run = roadFcStamp(issued);
+  const series = (t1) => Object.fromEntries(ROAD_FC_VAR_IDS.map((v) => [v, Array.from({ length: ROAD_FC_STEPS }, (_, i) => (v === 't' ? (i === 1 ? Math.round(t1 * 10) : 100) : v === 'q' ? 0 : 5))]));
+  const pts = [
+    { id: withTa[0].id, kind: 'station', km: null, lat: 50, lon: 10, h: 1, mos: null, v: series(withTa[0].ta) },
+    { id: withTa[1].id, kind: 'station', km: null, lat: 50, lon: 10, h: 1, mos: null, v: series(withTa[1].ta + 10) },
+    { id: withTa[2].id, kind: 'station', km: null, lat: 50, lon: 10, h: 1, mos: null, anc: [100, 100, 1], v: series(withTa[2].ta + 10) },
+    { id: 'a99@0', kind: 'axis', km: 0, lat: 50, lon: 10, h: 1, mos: null, v: series(-30) },
+  ];
+  const mkFc = (name, issuedMs) => {
+    const d = join(tmp, name), r = roadFcStamp(issuedMs);
+    mkdirSync(join(d, r, 's'), { recursive: true });
+    writeFileSync(join(d, r, 's', 'BY.json'), JSON.stringify({ schema: 1, product: 'road-fc', run: r, issuedAt: new Date(issuedMs).toISOString(), t0Ms: roadFcT0(issuedMs), steps: ROAD_FC_STEPS, kind: 'state', id: 'BY', engine: {}, source: '', points: pts }));
+    writeFileSync(join(d, 'index.json'), JSON.stringify({ schema: 1, product: 'road-fc-index', updatedAt: 'x', killed: false, runs: [{ run: r, issuedAt: new Date(issuedMs).toISOString(), t0Ms: roadFcT0(issuedMs), publishedAt: new Date(issuedMs + 60_000).toISOString() }] }));
+    return d;
+  };
+  const fcDir = mkFc('fc-ref', issued);
+  const ref = roadFcReference(fcDir, slotMs);
+  add('J1 Referenz (V-AW-1): Lauf vor dem Slot, Schritt 1 = 08:00, je Station das Modell OHNE Messungs-Anker (Reihe − Versatz × Gewicht), keine Achspunkte',
+    ref?.run === run && ref.step === 1 && Math.abs(ref.cubeT2m[withTa[0].id] - withTa[0].ta) < 0.06 && Math.abs(ref.cubeT2m[withTa[1].id] - withTa[1].ta - 10) < 0.06
+    && Math.abs(ref.cubeT2m[withTa[2].id] - withTa[2].ta) < 0.06 && !('a99@0' in ref.cubeT2m) && Math.abs(unanchoredT(pts[2], 1) - withTa[2].ta) < 0.06, JSON.stringify(ref?.cubeT2m));
+  const later = roadFcReference(mkFc('fc-later', slotMs + 20 * 60_000), slotMs);
+  const old = roadFcReference(mkFc('fc-old', slotMs - (ROAD_FC_REF_MAX_LEAD_H + 1) * 3_600_000 - 5 * 60_000), slotMs);
+  add('J2 Gegenproben: ein Lauf nach dem Slot (beim Nachholen) und ein zu alter Lauf (Schritt > 1 h) geben KEINE Referenz; ohne Zeiger keine',
+    later === null && old === null && roadFcReference(join(tmp, 'gibtsnicht'), slotMs) === null);
+  const withRef = derive('ref', { _fcDir: fcDir });
+  const q = JSON.parse(readFileSync(join(tmp, 'out-ref', 'quarantine', `${stamp}.json`), 'utf8'));
+  const cube = q.entries.filter((e) => e.rule === 'cube');
+  const obsRef = readFileSync(join(tmp, 'out-ref', 'obs', `${stamp}.json`), 'utf8'), obsPlain = readFileSync(join(tmp, 'out-plain', 'obs', `${stamp}.json`), 'utf8');
+  add(`J3 Ableitung mit _fcDir: Regel cube im Beobachtungsmodus trifft genau die Station mit |Luft − T2m| > ${ROAD_CUBE_MAX_K} K (nicht die verankerte), nennt T2m; Zusammenfassung nennt Lauf und Zahl; die veröffentlichten Punkte bleiben unverändert (nur Beobachtung)`,
+    cube.length === 1 && cube[0].id === withTa[1].id && cube[0].observe === true && /T2m/.test(cube[0].detail) && withRef.cubeRef?.run === run && withRef.cubeRef.stations === 3 && plain.cubeRef === null
+    && JSON.parse(obsRef).points.length === JSON.parse(obsPlain).points.length && withRef.publish === plain.publish, JSON.stringify({ cube, cubeRef: withRef.cubeRef }));
+  const mirrorSrc = readFileSync(join(HERE, 'road', 'road-mirror.mjs'), 'utf8');
+  add('J4 der Spiegel reicht road/fc/v1 seines Klons an die Ableitung (_fcDir), nur wenn es dort liegt',
+    /rootRef = rootDir;/.test(mirrorSrc) && /_fcDir: fcDir/.test(mirrorSrc) && /existsSync\(fcDir\)/.test(mirrorSrc));
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const passed = checks.filter((c) => c.ok).length;
 const failed = checks.length - passed;

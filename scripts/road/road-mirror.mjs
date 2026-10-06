@@ -50,6 +50,7 @@ export function createRoadMirror({
   let catalog = { etag: null, state: 'missing', checkedAt: 0 };
   let caughtUp = 0;
   let seeded = false;
+  let rootRef = null;              // the mirror's clone of buscosun-data (V-AW-1: road/fc/v1 is read from it)
   const status = {
     schema: 1, product: 'road-status', job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: new Date(now()).toISOString(),
     updatedAt: null, killSwitch: killed, lastSlot: null, lastPublishedSlot: null, blocked: null,
@@ -98,6 +99,7 @@ export function createRoadMirror({
     if (!enabled) return;
     try { loadPlan(); } catch (e) { log(`road: --plan fehlgeschlagen (${String(e.stderr ?? e.message).split('\n')[0]}) — Straßenwetter AUS`); return; }
     const inRepo = join(rootDir, plan.repoDir);
+    rootRef = rootDir;
     mkdirSync(store, { recursive: true });
     if (existsSync(inRepo)) cpSync(inRepo, store, { recursive: true, force: false });
     prune();
@@ -176,7 +178,9 @@ export function createRoadMirror({
     const inDir = join(work, 'in', stamp);
     const outDir = join(work, 'out', stamp);
     mkdirSync(inDir, { recursive: true });
-    const groups = { _catalog: catalog.state, _killed: killed };
+    // V-AW-1: the route forecast in the clone is the reference of the observe-only rule `cube` (read by the derive).
+    const fcDir = rootRef ? join(rootRef, 'road', 'fc', 'v1') : null;
+    const groups = { _catalog: catalog.state, _killed: killed, ...(fcDir && existsSync(fcDir) ? { _fcDir: fcDir } : {}) };
     for (const g of plan.groups) {
       const f = have.get(g.id);
       if (f) { writeFileSync(join(inDir, `${g.id}.bin`), f.buf); groups[g.id] = { state: 'ok', ageMin: f.ageMin }; }

@@ -9,7 +9,8 @@
  *     <app>/scripts/road/road-derive.mjs <inDir> <storeDir> <outDir> <stamp>
  *
  * <inDir>     `<group>.bin` per DWD series of the slot + `groups.json` ({group: {state, ageMin}}, `_catalog`, `_killed`,
- *             optional `_cubeT2m` {stationId: °C} for the observe-only cube rule)
+ *             optional `_cubeT2m` {stationId: °C} for the observe-only cube rule, or `_fcDir` = the clone's
+ *             `road/fc/v1`, from which the reference is read: V-AW-1, `road-fc-ref.mjs`)
  * <storeDir>  the mirror's local `road/v1/` (read only here: `state.json`, `static/stations.json`, `h24/<group>/…`)
  * <outDir>    written atomically (tmp dir + rename): obs/, quarantine/, h24/, state.json, summary.json
  *
@@ -27,6 +28,7 @@ import {
   validateRoadSlot, roadObsRoundTripOk, ROAD_CLASS_CODE, ROAD_CLASS_NONE,
 } from '../../src/road/roadContract.ts';
 import { makeInDE } from './deMask.mjs';
+import { roadFcReference } from './road-fc-ref.mjs';
 
 const readJson = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
 const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10);
@@ -117,10 +119,13 @@ export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE
     }
   }
 
+  // V-AW-1: reference of the `cube` rule — given directly, or read from the route forecast of the mirror's clone.
+  let cubeRef = meta._cubeT2m ? { run: null, step: null, cubeT2m: meta._cubeT2m } : null;
+  if (!cubeRef && typeof meta._fcDir === 'string') { try { cubeRef = roadFcReference(meta._fcDir, slotMs); } catch { cubeRef = null; } }
   const res = validateRoadSlot({
     slotMs, stations, catalog, catalogEtag: catalogFile?.source?.etag ?? null,
     catalogState: meta._catalog === 'stale' ? 'stale' : catalogFile ? 'ok' : 'missing',
-    prev: readJson(join(storeDir, ROAD_STATE_PATH)), inDE, cubeT2m: meta._cubeT2m ?? undefined,
+    prev: readJson(join(storeDir, ROAD_STATE_PATH)), inDE, cubeT2m: cubeRef?.cubeT2m ?? undefined,
     groups, killed: !!meta._killed, createdAt: nowIso ?? new Date().toISOString(),
   });
   if (!roadObsRoundTripOk(res.obs)) {
@@ -155,6 +160,8 @@ export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE
     ok: true, stamp, publish: res.gate.publish, reasons: res.gate.reasons, points: res.obs.points.length,
     killed: res.obs.killed, groups, decodeErrors, h24Groups,
     balance: res.balance, files, bytes, ms: Date.now() - t0,
+    // V-AW-1: which run served as reference and for how many stations (the denominator of the observe rule).
+    cubeRef: cubeRef ? { run: cubeRef.run, step: cubeRef.step, stations: Object.keys(cubeRef.cubeT2m).length } : null,
   };
   put('summary.json', summary);
 
@@ -188,7 +195,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href &
   try {
     const s = deriveRoadSlot({ inDir, storeDir, outDir, stamp });
     const { balance, ...rest } = s;
-    console.log(JSON.stringify({ ...rest, balance: { values: balance.values, rejected: balance.rejected, share: balance.share, byRule: balance.byRule, observe: balance.observe, flags: balance.flags } }));
+    console.log(JSON.stringify({ ...rest, balance: { values: balance.values, rejected: balance.rejected, share: balance.share, byRule: balance.byRule, observe: balance.observe, flags: balance.flags, cubeRef: rest.cubeRef } }));
   } catch (e) {
     console.error(e.stack ?? e.message);
     process.exit(1);
