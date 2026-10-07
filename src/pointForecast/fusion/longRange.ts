@@ -27,6 +27,14 @@ export const LONG_RANGE_VARS: readonly LongRangeVar[] = ['t', 'td', 'ws', 'gust'
 /** Leads at or below this are never touched (w = 1, s = 1). */
 export const LONG_RANGE_FROM_H = 48;
 
+/**
+ * Second sub-feature of buscosun Fusion 10 (K3 of phase F10, `audit/fusion-10.md` §3.2): wind and gust keep the climatology
+ * step (`FusionContext.priorShrink` except-list) from this lead on, only at points in these countries — the E-AX-11 pattern
+ * (DE loses with the step, AT/CH gain) held in two independent pre-screen samples. `null` = sub-feature off.
+ */
+export const FUSION10_WIND_SHRINK_FROM_H: number | null = 126;
+export const FUSION10_WIND_SHRINK_COUNTRIES: readonly string[] = Object.freeze(['AT', 'CH']);
+
 export interface LongRangeEntry { w: number; s: number }
 export interface LongRangeBin { id: string; fromH: number; toH: number; centreH: number }
 

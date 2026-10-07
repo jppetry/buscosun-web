@@ -59,7 +59,7 @@ import { loadPrecipCal, type LoadedPrecipCal } from '../point/client/precipCalPo
 import { applyPrecipCal, precipCalEntry, validatePrecipCalTable, type PrecipCalSituation, type PrecipCalTable } from './fusion/precipCal';
 import { estimateCoefficients, muAt, trendVector, type ClimaProduct, type MuEstimate } from '../point/fusionFit/climaProduct';
 import { climaColumnsFor } from '../point/fusionFit/tables';
-import { blendDist, longRangeParams, sdOf, LONG_RANGE_FROM_H, LONG_RANGE_TABLE, LONG_RANGE_VARS, type LongRangeTable, type LongRangeVar } from './fusion/longRange';
+import { blendDist, longRangeParams, sdOf, FUSION10_WIND_SHRINK_COUNTRIES, FUSION10_WIND_SHRINK_FROM_H, LONG_RANGE_FROM_H, LONG_RANGE_TABLE, LONG_RANGE_VARS, type LongRangeTable, type LongRangeVar } from './fusion/longRange';
 import { predict as predictLearned, predictPrecip as predictPrecipLearned, type PredictSituation } from '../point/fusionFit/predict';
 import { speedLaw, type SpeedEntry } from '../point/fusionFit/fitSpeed';
 import { buildZ, dTsfcProxy, sourceToPoint } from '../point/fusionFit/features';
@@ -928,8 +928,14 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   // E-AX-11: wind/gust keep the climatological step; the wind anchor is damped over the distance of the measurement
   const keepWindShrink = noPriorShrink && opts.priorShrinkWind === true;
   // F10 K3 (a): the lead from which wind/gust keep the step (only without the all-leads form)
-  const windShrinkCountryOk = !opts.priorShrinkWindCountries || (input.country != null && opts.priorShrinkWindCountries.includes(input.country));
-  const windShrinkFromH = noPriorShrink && !keepWindShrink && windShrinkCountryOk && opts.priorShrinkWindFromH != null && Number.isFinite(opts.priorShrinkWindFromH) ? opts.priorShrinkWindFromH : null;
+  // F10 (buscosun Fusion 10, second sub-feature): with `longRange: 1` the wind/gust climatology step returns in AT/CH from 126 h
+  // (constants below) unless the caller sets `priorShrinkWindFromH`/`priorShrinkWindCountries` explicitly. Measured in the
+  // pre-screen (audit/fusion-10.md §3.2): AT/CH wind > 120 h +5/+10 % (quick set), +1/+4 % (hindcast), DE byte-identical.
+  const lrBundleShrink = opts.longRange === 1 && opts.priorShrinkWindFromH === undefined && opts.priorShrinkWindCountries === undefined && FUSION10_WIND_SHRINK_FROM_H != null;
+  const windShrinkCountries = lrBundleShrink ? FUSION10_WIND_SHRINK_COUNTRIES : opts.priorShrinkWindCountries;
+  const windShrinkFromOpt = lrBundleShrink ? FUSION10_WIND_SHRINK_FROM_H : opts.priorShrinkWindFromH;
+  const windShrinkCountryOk = !windShrinkCountries || (input.country != null && windShrinkCountries.includes(input.country));
+  const windShrinkFromH = noPriorShrink && !keepWindShrink && windShrinkCountryOk && windShrinkFromOpt != null && Number.isFinite(windShrinkFromOpt) ? windShrinkFromOpt : null;
   const priorShrinkAt = (leadH: number): FusionContext['priorShrink'] => (keepWindShrink || (windShrinkFromH != null && leadH >= windShrinkFromH) ? { except: ['wind', 'gust'] as const } : false);
   const windShrinkCount = { kept: 0, dropped: 0 };
   // F10 K3 (b): fixed σ-inflation of the long range
@@ -1067,7 +1073,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       ? 'learnedRoute:tier — Strata der Lernstufe je Stufe: t1 Route 1 (Lauf-Route), t2/t3 Route 3 (dyn, ganzjährig, 289 Tage) statt Route 1 mit 87–95 Sommertagen (E-FV-3, V-FV-1; AX-2)'
       : `learnedRoute:${learnedRouteOpt} — Strata der Lernstufe aus Route ${learnedRouteOpt} in jeder Stufe (AX-2)`] : []),
     ...(noPriorShrink ? ['priorShrink:off — kein Klimatologie-Schritt für Kombinationen aus Membern mit expliziter σ (Lernstufe, PAP 6, Stationsmember sind kalibrierte Vorhersagen); Niederschlag behält ihn (K-2); jenseits der Daten trägt weiter allein die Klimatologie (Phase FS, D2)'] : []),
-    ...(windShrinkFromH != null ? [`priorShrinkWindFromH:set — Wind und Böe behalten den Klimatologie-Schritt erst ab ${windShrinkFromH} h Vorlauf (F10 K3 a; E-AX-11: bei 0–120 h ohne Station schlechter, ab 126 h besser)${opts.priorShrinkWindCountries ? ` — nur in ${opts.priorShrinkWindCountries.join('/')}` : ''}`] : []),
+    ...(windShrinkFromH != null ? [`priorShrinkWindFromH:set — Wind und Böe behalten den Klimatologie-Schritt erst ab ${windShrinkFromH} h Vorlauf (F10 K3 a; E-AX-11: bei 0–120 h ohne Station schlechter, ab 126 h besser)${windShrinkCountries ? ` — nur in ${windShrinkCountries.join('/')}` : ''}${lrBundleShrink ? ' (Teilmerkmal von buscosun Fusion 10)' : ''}`] : []),
     ...(sigmaInflateFromH != null ? [`sigmaInflate:set — ab ${sigmaInflateFromH} h Vorlauf σ von T ×${SIGMA_INFLATE_LONG.temperature} und der Windgeschwindigkeit ×${SIGMA_INFLATE_LONG.wind} nach dem Stationswert (F10 K3 b, Setzung ohne Fit)`] : []),
     ...(keepWindShrink ? ['priorShrinkWind:set — Wind und Böe behalten den Klimatologie-Schritt trotz priorShrink:off (E-AX-11, V-AX-13): am Punkt ohne Station verlor der Wind ohne den Schritt gegen die Kette von 5e; T, Td und Bewölkung bleiben ohne Schritt'] : []),
     ...(anchorWindL != null ? [`anchorWind:set — der Anker für u, v und Böe ist über die Distanz der Messung mit e^(−(d/${opts.anchorWindKm} km)²) gedämpft (E-AX-11): eine 10–30 km entfernte Messung trägt beim Wind eine fremde Exposition; T behält das Gewicht von spatialWeight`] : []),
