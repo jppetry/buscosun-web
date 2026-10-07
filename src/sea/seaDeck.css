@@ -294,7 +294,10 @@
   .sw-sheet-win em { font-style: normal; font-size: 10.5px; }
   .sw-band.is-compact { position: static; margin-top: 10px; box-shadow: none; background: #fff; padding: 6px; }
   .sw-band.is-compact .sw-band-head, .sw-band.is-compact .sw-band-foot { display: none; }
-  .sw-band.is-compact .sw-band-table thead th button { height: 28px; }
+  /* V-SW-8: hour cells 44 px wide (design: 27 px) and the hour buttons 44 px high; the band scrolls sideways. */
+  .sw-band.is-compact .sw-band-table th, .sw-band.is-compact .sw-band-table td { width: 44px; min-width: 44px; max-width: 44px; }
+  .sw-band.is-compact .sw-band-table .sw-band-lab { width: 62px; min-width: 62px; max-width: 62px; }
+  .sw-band.is-compact .sw-band-table thead th button { height: 44px; }
   .sw-sheet-official { margin-top: 10px; padding: 9px 11px; border-radius: 10px; background: #fff; border: 1px solid #C9DCDE; }
   .sw-sheet-official.is-warn { background: #FBF3E7; border-color: #E3C39A; }
   .sw-sheet-official-head { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 1.4px; font-weight: 700; text-transform: uppercase; color: var(--sw-accent-dark, #0B5560); }

@@ -69,6 +69,44 @@ const dwdText = async (url) => {
 };
 const tx = await pollTexts({ storeDir: site, nowMs: T('2026-10-07T12:40:00Z'), fetchImpl: dwdText, killed: false });
 add('A0 Fixture-Speicher über den echten Producer (Lauf 2026100700, 59 + 27 Bilder, Spots, Texte)', built.built && tx.added === 5, JSON.stringify({ built: built.built, mb: built.mb, texts: tx.added }));
+// V-SW-10: the worker computes the very same bytes as the main thread (all four layers, both halves; value range incl. 254/255 and land).
+{
+  const { colourField } = await import('../src/sea/seaView.ts');
+  const { colourFieldAsync } = await import('../src/sea/seaFieldClient.ts');
+  const sent = [];
+  globalThis.self = { postMessage: (m, t) => sent.push([m, t]) };
+  await import('../src/sea/seaFieldWorker.ts');
+  const W = 1260, Hh = SEA_MODELS.cwam.grid.nj;
+  const src = new Uint8ClampedArray(W * Hh * 4);
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+  for (let i = 0; i < W * Hh; i++) {
+    src[i * 4] = rnd() < 0.08 ? 255 : rnd() < 0.03 ? 254 : Math.floor(rnd() * 254);
+    src[i * 4 + 1] = Math.floor(rnd() * 256);
+    src[i * 4 + 2] = rnd() < 0.05 ? 255 : Math.floor(rnd() * 255);
+    src[i * 4 + 3] = rnd() < 0.3 ? 0 : 255;
+  }
+  let same = true, n = 0, buffersOk = true, asyncOk = true;
+  for (const layer of ['hs', 'ws', 'sw', 'per']) {
+    for (const half of [0, 1]) {
+      const ref = colourField(src, W, half, layer);
+      sent.length = 0;
+      globalThis.self.onmessage({ data: { id: n, rgba: src, width: W, half, layer } });
+      const [reply, transfer] = sent[0];
+      same = same && reply.ok && reply.id === n && reply.out.length === ref.length && reply.out.every((v, i) => v === ref[i]);
+      buffersOk = buffersOk && transfer?.[0] === reply.out.buffer;
+      const viaClient = await colourFieldAsync(src, W, half, layer); // no Worker in Node ⇒ main-thread fallback
+      asyncOk = asyncOk && viaClient.length === ref.length && viaClient.every((v, i) => v === ref[i]);
+      n++;
+    }
+  }
+  add('W1 Worker-Ausgabe byte-gleich zur Hauptthread-Färbung (4 Ebenen × 2 Hälften, Wertebereich inkl. 254/255 und Land)', same && n === 8, `${n} Fälle`);
+  add('W2 Worker übergibt den Ergebnispuffer (transfer) und der Rückfall ohne Worker liefert dieselben Bytes', buffersOk && asyncOk, JSON.stringify({ buffersOk, asyncOk }));
+  // negative control: a different layer must differ (the comparison can fail)
+  const a = colourField(src, W, 0, 'hs'), b = colourField(src, W, 0, 'per');
+  add('W3 Gegenprobe: Hs- und Perioden-Färbung unterscheiden sich (der Vergleich kann scheitern)', a.some((v, i) => v !== b[i]), '');
+  delete globalThis.self;
+}
 const killedSite = join(tmp, 'site-killed');
 cpSync(site, killedSite, { recursive: true });
 writeFileSync(join(killedSite, 'status.json'), JSON.stringify({ ...JSON.parse(readFileSync(join(site, 'status.json'), 'utf8')), killSwitch: true }));
@@ -259,6 +297,8 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   add('G1 Mobil: Spot-Pille 52 px, Teilen 44 × 44, Sheet „Spot-Briefing“ am unteren Rand', ready && m.pill?.[3] === 52 && m.share?.[2] === 44 && m.share?.[3] === 44 && m.sheet && m.sheet[1] + m.sheet[3] === 844, JSON.stringify({ pill: m.pill, share: m.share, sheet: m.sheet }));
   add('G2 Mobil: Kopfzeile nennt zuerst die amtliche Meldung (German Bight) statt eines Urteils', /amtliche Meldung/.test(m.title ?? ''), m.title);
   add('G3 Mobil: jede sichtbare Schaltfläche außerhalb der Bandzellen ≥ 44 px hoch', m.small.length === 0, m.small.slice(0, 6).join(' '));
+  const bandM = await ctx.evaluate(`(() => { const th = [...document.querySelectorAll('.sw-band.is-compact .sw-band-table thead th')].filter((t) => t.querySelector('button')); const b = th.map((t) => { const r = t.querySelector('button').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); return { n: b.length, minW: Math.min(...b.map((x) => x[0])), minH: Math.min(...b.map((x) => x[1])) }; })()`);
+  add('G4 Mobil: Stundenzellen des Bandes ≥ 44 × 44 px (V-SW-8)', bandM.n > 10 && bandM.minW >= 44 && bandM.minH >= 44, JSON.stringify(bandM));
   await shot(ctx, 'mobile-default');
   off(); allErrors.push(...errors); await ctx.close();
 }

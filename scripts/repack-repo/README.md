@@ -3,7 +3,7 @@
 Vorprozessierte Wetterdaten für [buscosun.com](https://buscosun.com).
 
 **Dieses Repo enthält keinen Anwendungscode.** Es ist ein reiner Datenspeicher,
-ausgeliefert über [jsDelivr](https://www.jsdelivr.com/). Vier Produktlinien mit verschiedenen
+ausgeliefert über [jsDelivr](https://www.jsdelivr.com/). Sechs Produktlinien mit verschiedenen
 Takten und verschiedenen Zwecken:
 
 | Linie | Verzeichnis | Achse | Takt | Wer schreibt |

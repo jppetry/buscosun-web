@@ -26,8 +26,9 @@ import {
 } from './seaProfiles';
 import { SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
-  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, H, colourField, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
+  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
+import { colourFieldAsync } from './seaFieldClient';
 import SeaMap, { type SeaMapArea, type SeaMapSpot } from './SeaMap';
 import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
@@ -198,7 +199,14 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     return () => ac.abort();
   }, [fieldKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const half: 0 | 1 = layer === 'sw' ? 1 : 0;
-  const coloured = useMemo(() => (field && !noData ? colourField(field.rgba, field.width, half, layer) : null), [field, noData, half, layer]);
+  // V-SW-10: coloured off the main thread; the previous image stays until the new one is ready (no flicker on layer/hour change).
+  const [coloured, setColoured] = useState<Uint8ClampedArray | null>(null);
+  useEffect(() => {
+    if (!field || noData) { setColoured(null); return; }
+    const ac = new AbortController();
+    colourFieldAsync(field.rgba, field.width, half, layer, ac.signal).then(setColoured, () => {});
+    return () => ac.abort();
+  }, [field, noData, half, layer]);
   const arrows = useMemo(() => (field && !noData ? waveArrows(field.rgba, field.width, half) : null), [field, noData, half]);
 
   // POI measurement of the spot's station.
