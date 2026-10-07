@@ -86,13 +86,17 @@ export const LONG_RANGE_TABLE: LongRangeTable = Object.freeze({
     slots: 32,
     rows: { t: [92062, 184007, 92063, 138138, 184094], td: [92015, 183918, 92016, 138044, 183971], ws: [91937, 183744, 91924, 137877, 183812], gust: [91871, 183594, 91775, 137592, 183527] },
     date: '2026-10-07',
-    note: 'audit/fusion-10/longrange-fit.json — 32 slots 2025-09-08…2026-09-15 (every 12th day), 700 800 steps, chain as in track R (no station/obs, LOSO climatology at role B); country rule ≤ 1 % worse applied (shrunk bins marked there)',
+    note: 'audit/fusion-10/longrange-fit.json — 32 slots 2025-09-08…2026-09-15 (every 12th day), 700 800 steps, chain as in track R (no station/obs, LOSO climatology at role B); country rule ≤ 1 % worse applied (shrunk bins marked there); wind reset to identity after bench run 1 (A-F10-6)',
   },
   bins: [...LONG_RANGE_BINS],
   params: {
     t: [{ w: 0.975, s: 0.9 }, { w: 0.95, s: 0.95 }, { w: 0.9, s: 0.85 }, { w: 0.65, s: 0.9 }, { w: 1, s: 1.05 }],
     td: [{ w: 0.9, s: 0.75 }, { w: 0.925, s: 0.925 }, { w: 0.85, s: 0.8 }, { w: 0.55, s: 0.9 }, { w: 0.6, s: 1.05 }],
-    ws: [{ w: 1, s: 1 }, { w: 1, s: 1.05 }, { w: 1, s: 1.05 }, { w: 1, s: 1.05 }, { w: 1, s: 0.8 }],
+    // wind: the fit gave w = 1 everywhere and s = 1/1,05/1,05/1,05/0,8 (gain +0,0…+1,0 % on the fit window — within noise); the bench's
+    // full test of 07.10. (run 1, development set) showed the σ scale significantly WORSE for AT/CH wind at 48–240 h (G2 red:
+    // −0,2/−0,9/−1,5 %). Wind therefore stays at identity here; the wind sub-feature of Fusion 10 is the AT/CH climatology step
+    // (`FUSION10_WIND_SHRINK_*`). Decision A-F10-6, audit/fusion-10.md §3.3/§3.4.
+    ws: [{ w: 1, s: 1 }, { w: 1, s: 1 }, { w: 1, s: 1 }, { w: 1, s: 1 }, { w: 1, s: 1 }],
     gust: [{ w: 1, s: 1 }, { w: 0.9, s: 0.8 }, { w: 0.75, s: 0.875 }, { w: 0.7, s: 0.825 }, { w: 0.8, s: 0.875 }],
   },
 });
