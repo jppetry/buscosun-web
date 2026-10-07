@@ -11,6 +11,7 @@
  *   sea/v1/run/<model>/<run>/f/<sss>.png       total sea: R = Hs (5 cm), G = direction (256 steps), B = Tm−1,0 (0.1 s), A = water
  *   sea/v1/run/<model>/<run>/c/<sss>.png       components, double width: left wind sea, right swell, channels as f
  *   sea/v1/spots/<run>.json                    hourly series per spot: waves from CWAM, wind/gust from buscosun Fusion
+ *   sea/v1/spots/<run>-w<t1>.json              wind/gust/direction of that run again on a newer t1 cube (V-SW-2; pointer `status.wind`)
  *   sea/v1/text/<product>/<issue>.json         bulletin: raw (verbatim), header, issue time, display text, structure
  *   sea/v1/quarantine/<run|issue>.json         rejected runs/bulletins with rule and raw value (diagnosis only)
  *   sea/v1/static/spots.json                   spot catalogue (E-SW-5)
@@ -19,7 +20,8 @@
  *   sea/v1/static/spot-geo.json                producer-only terrain/z0 at the spot cells (E-SW-11)
  *
  * Run and issue files are immutable (content per path never changes), so `@main` is safe at the CDN; the client
- * derives the expected run/issue from the clock and steps back on 404 — no mutable pointer file.
+ * derives the expected run/issue from the clock and steps back on 404. The one pointer is `status.wind` (the newest
+ * wind refresh), read from `status.json`, which the client fetches raw and uncached anyway (kill switch).
  */
 
 // --- Paths -------------------------------------------------------------------------------------
@@ -39,6 +41,12 @@ export const seaRunJsonPath = (model: SeaModel, run: string) => `${seaRunDir(mod
 export const seaFieldPath = (model: SeaModel, run: string, step: number) => `${seaRunDir(model, run)}/f/${sss(step)}.png`;
 export const seaCompPath = (model: SeaModel, run: string, step: number) => `${seaRunDir(model, run)}/c/${sss(step)}.png`;
 export const seaSpotsPath = (run: string) => `spots/${run}.json`;
+/**
+ * V-SW-2: the wind of a published wave run, computed again on a newer t1 cube (`sea-derive.mjs --wind`). Named by the
+ * wave run and the t1 run; `status.json` → `wind` points at the newest one (the client lists nothing).
+ */
+export const seaSpotsWindPath = (run: string, t1: string) => `spots/${run}-w${t1}.json`;
+export const SEA_SPOTS_WIND_RE = /^(\d{10})-w(\d{10})\.json$/;
 export const seaTextPath = (product: string, issue: string) => `text/${product}/${issue}.json`;
 export const seaQuarantinePath = (key: string) => `quarantine/${key}.json`;
 export const seaMaskHashPath = (model: SeaModel) => `static/mask-${model}.hash`;
@@ -397,6 +405,21 @@ export function sanitizeGust(series: { wind: (number | null)[]; gust: (number | 
   let n = 0;
   series.gust.forEach((g, i) => { const w = series.wind[i]; if (g != null && w != null && g + SEA_GUST_BELOW_WIND < w) { series.gust[i] = null; n++; } });
   return n;
+}
+
+/** The three columns a wind refresh (V-SW-2) replaces. */
+export const SEA_WIND_VARS = Object.freeze(['wind', 'gust', 'windDir'] as const);
+export type SeaWindVar = typeof SEA_WIND_VARS[number];
+
+/**
+ * V-SW-2: a spot series with the wind of a later computation — from hour `from` on all three wind columns come from the
+ * refresh (also its nulls: a dropped gust stays dropped), before it the run's own wind stays (those hours are past for
+ * the refresh, the cube starts at its computation hour). Pure; works on encoded and on decoded columns alike.
+ */
+export function mergeSpotWind<T>(base: Record<SeaWindVar, (T | null)[]>, upd: Record<SeaWindVar, (T | null)[]>, from: number): Record<SeaWindVar, (T | null)[]> {
+  const out = {} as Record<SeaWindVar, (T | null)[]>;
+  for (const v of SEA_WIND_VARS) out[v] = base[v].map((x, i) => (i >= from ? (upd[v][i] ?? null) : x));
+  return out;
 }
 
 /** Value lock of a series (the client re-checks before display): ranges as the value rules, wind 0–80 m/s. */

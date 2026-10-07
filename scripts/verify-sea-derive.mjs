@@ -280,6 +280,61 @@ add('P9 Grenzen lokal änderbar (je Profil), kaputter Speicher ⇒ Startwerte', 
 const nl = nextAndLongest([{ from: 1, to: 5, hours: 4, tight: false }, { from: 10, to: 20, hours: 10, tight: true }], 6);
 add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.longest?.hours === 10, JSON.stringify(nl));
 
+// --- W: V-SW-2 wind refresh on a newer t1 cube (on the store of block A: run 2026100700, wind with t1 2026100703) ---
+{
+  const { windDue, windRefresh } = await import('./sea/sea-derive.mjs');
+  const { seaSpotsWindPath, mergeSpotWind, SEA_SPOT_VARS } = await import('../src/sea/seaContract.ts');
+  const { mergeWindDoc, windPointerOf, withWindRefresh } = await import('../src/sea/seaClient.ts');
+  const windT1 = (t1, at, base) => async ({ spots }) => ({
+    series: Object.fromEntries(spots.map((s) => [s.id, {
+      wind: SEA_SPOT_STEPS.map((h) => base + h), gust: SEA_SPOT_STEPS.map((h) => base + 40 + h), windDir: SEA_SPOT_STEPS.map((h) => (h * 11) % 360),
+    }])),
+    failed: [], meta: { engine: 'buscosun Fusion 9', version: 9, computedAt: new Date(at).toISOString(), runs: { t1 } },
+  });
+  const d0 = windDue(store, '2026100703'), d1 = windDue(store, '2026100706'), dN = windDue(store, null);
+  add('W1 Wind fällig nur bei neuerem t1: gleicher t1 wie der Lauf ⇒ nein, neuerer ⇒ ja, Index ohne t1 ⇒ nein',
+    d0.due === false && d1.due === true && d1.run === RUN && d1.usedT1 === '2026100703' && dN.due === false, JSON.stringify({ d0: d0.reason, d1, dN: dN.reason }));
+  const at1 = T('2026-10-07T09:20:00Z');
+  const r1 = await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at1, indexT1: '2026100706', windImpl: windT1('2026100706', at1, 50) });
+  const p1 = seaSpotsWindPath(RUN, '2026100706');
+  const st1 = JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8'));
+  const w1 = existsSync(join(store, p1)) ? JSON.parse(readFileSync(join(store, p1), 'utf8')) : null;
+  add('W2 Auffrischung geschrieben: spots/<lauf>-w<t1>.json ab Stunde 9 (Rechenstunde 09 UTC), Zeiger status.wind, Feld-Status unverändert, Lauf-Datei unverändert',
+    r1.built && w1?.product === 'sea-spots-wind' && w1.from === 9 && w1.t1 === '2026100706' && Object.keys(w1.spots).length === 2
+    && st1.wind?.path === p1 && st1.wind.run === RUN && st1.wind.t1 === '2026100706' && st1.field.lastPublishedRun === RUN
+    && JSON.parse(readFileSync(join(store, seaSpotsPath(RUN)), 'utf8')).wind.runs.t1 === '2026100703',
+    JSON.stringify({ built: r1.built, from: w1?.from, ptr: st1.wind?.path }));
+  const r1b = await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at1 + 15 * 60_000, indexT1: '2026100706', windImpl: windT1('2026100706', at1, 50) });
+  const rStale = await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at1, indexT1: '2026100709', windImpl: windT1('2026100706', at1, 50) });
+  add('W3 Gegenproben: derselbe t1 ein zweites Mal ⇒ nicht fällig; Index nennt neueren t1, die Rechnung trägt aber den alten ⇒ nichts geschrieben',
+    r1b.built === false && /schon mit t1 2026100706/.test(r1b.reason) && rStale.built === false && readdirSync(join(store, 'spots')).filter((f) => f.includes('-w')).length === 1,
+    `${r1b.reason} · ${rStale.reason}`);
+  const at2 = T('2026-10-07T12:20:00Z');
+  const r2 = await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at2, indexT1: '2026100709', windImpl: windT1('2026100709', at2, 60) });
+  const left = readdirSync(join(store, 'spots')).filter((f) => f.includes('-w'));
+  add('W4 nächster t1 ⇒ neue Datei ab Stunde 12, Zeiger folgt, je Lauf bleibt nur die neueste Auffrischung',
+    r2.built && r2.from === 12 && left.join() === `${RUN}-w2026100709.json` && JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind.t1 === '2026100709', left.join());
+  // Client: the decoded run doc + the refresh ⇒ hours < from keep the run's wind, from on the refresh's (all three columns).
+  const baseJ = JSON.parse(readFileSync(join(store, seaSpotsPath(RUN)), 'utf8'));
+  const decoded = { run: RUN, runMs: baseJ.runMs, steps: baseJ.steps, wind: baseJ.wind, gustDropped: {}, rejected: [],
+    series: Object.fromEntries(Object.entries(baseJ.spots).map(([id, s]) => [id, Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, s.v[k].map((q) => decodeSpotValue(k, q))]))])) };
+  const w2 = JSON.parse(readFileSync(join(store, 'spots', left[0]), 'utf8'));
+  const merged = mergeWindDoc(decoded, { from: w2.from, wind: w2.wind, spots: w2.spots });
+  const s0 = decoded.series['st-peter-ording'], s1 = merged.series['st-peter-ording'];
+  add('W5 Seite: vor Stunde 12 Wind/Böe/Richtung des Laufs, ab 12 die der Auffrischung; Wellen unverändert; Metadaten nennen den neuen t1 und windFrom 12',
+    s1.wind[11] === s0.wind[11] && s1.gust[11] === s0.gust[11] && s1.wind[12] === (60 + 12) / 10 && s1.gust[12] === (100 + 12) / 10 && s1.windDir[12] === (12 * 11) % 360
+    && s1.hs.every((x, i) => x === s0.hs[i]) && merged.windFrom === 12 && merged.wind.runs.t1 === '2026100709' && decoded.series['st-peter-ording'].wind[12] === s0.wind[12],
+    `h11 ${s1.wind[11]}/${s0.wind[11]} · h12 ${s1.wind[12]}`);
+  const enc = { wind: [1, 2, 3], gust: [4, 5, 6], windDir: [7, 8, 9] }, upd = { wind: [10, 20, null], gust: [40, 50, 60], windDir: [70, 80, 90] };
+  const m = mergeSpotWind(enc, upd, 1);
+  add('W6 mergeSpotWind: ab `from` alle drei Spalten aus der Auffrischung, auch ihre null; davor unverändert; Eingaben unverändert',
+    JSON.stringify(m) === JSON.stringify({ wind: [1, 20, null], gust: [4, 50, 60], windDir: [7, 80, 90] }) && enc.wind[1] === 2);
+  const ptr = windPointerOf({ wind: { run: RUN, t1: '2026100709', path: `spots/${RUN}-w2026100709.json` } });
+  const same = await withWindRefresh(decoded, { run: '2026100612', t1: '2026100709', path: 'spots/2026100612-w2026100709.json' });
+  add('W7 Zeiger: gültig nur mit passendem Pfad (sonst keiner); Zeiger eines anderen Laufs ⇒ Reihen unverändert (kein Abruf)',
+    ptr?.t1 === '2026100709' && windPointerOf({ wind: { run: RUN, t1: '2026100709', path: 'spots/x.json' } }) === null && windPointerOf(null) === null && same === decoded);
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const passed = checks.filter((c) => c.ok).length;
 const failed = checks.length - passed;

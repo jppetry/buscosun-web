@@ -2,6 +2,7 @@
 /**
  * SW Gate D — daily archive of the sea line in `buscosun-archiv` `sea/v1/` (pattern road/v1, append-only):
  *   sea/v1/<YYYY-MM-DD>/spots-<run>.json.gz   spot series of every published CWAM run (waves + buscosun Fusion wind)
+ *   sea/v1/<YYYY-MM-DD>/spots-<run>-w<t1>.json.gz   wind refresh of that run on a newer t1 cube (V-SW-2), as found in the store
  *   sea/v1/<YYYY-MM-DD>/poi.json.gz            hourly POI measurements of the coastal stations of the catalogue
  *                                               (mean wind, direction, gust of the last hour) — the truth for Gate D
  *   sea/v1/<YYYY-MM-DD>/text.json.gz           every text issue of that day (display text + raw + issue time)
@@ -16,7 +17,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rename
 import { join, resolve, dirname } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { SEA_SPOT_CATALOG_PATH, seaRunMs } from '../../src/sea/seaContract.ts';
+import { SEA_SPOT_CATALOG_PATH, SEA_SPOTS_WIND_RE, seaRunMs } from '../../src/sea/seaContract.ts';
 import { SEA_TEXT_STAGE1, seaIssueMs } from '../../src/sea/seaText.ts';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -69,6 +70,15 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     const e = touch(d); if (!e.spots.includes(run)) e.spots.push(run);
     spotsAdded++;
   }
+  // V-SW-2: the wind refreshes in the store (the newest per run — one archive pass every 6 h keeps what is there then).
+  for (const f of existsSync(sdir) ? readdirSync(sdir).filter((x) => SEA_SPOTS_WIND_RE.test(x)) : []) {
+    const key = f.slice(0, -'.json'.length), d = day(seaRunMs(f.slice(0, 10)));
+    const dst = join(archiveDir, d, `spots-${key}.json.gz`);
+    if (existsSync(dst)) continue;
+    writeGz(dst, readJson(join(sdir, f)));
+    const e = touch(d); (e.wind ??= []).includes(key) || e.wind.push(key);
+    spotsAdded++;
+  }
   // Text issues, merged per day by `<product>/<issue>`.
   const byDay = {};
   for (const p of SEA_TEXT_STAGE1) {
@@ -110,7 +120,7 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     }
   }
   index.updatedAt = new Date(nowMs).toISOString();
-  for (const e of Object.values(index.days)) e.spots.sort();
+  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); }
   mkdirSync(archiveDir, { recursive: true });
   writeFileSync(join(archiveDir, 'index.json'), JSON.stringify(index, null, 1) + '\n');
   return { spotsAdded, textsAdded, poiRows, days: Object.keys(index.days).length };

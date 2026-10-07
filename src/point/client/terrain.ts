@@ -66,7 +66,15 @@ export interface TerrainOptions {
 export interface TerrainPointResult {
   lat: number;
   lon: number;
+  /**
+   * Höhe am Punkt, nie unter 0 m (V-SW-4): über Nord- und Ostsee liefert Terrarium die Wassertiefe (gemessen bis
+   * −19 m an den Seewetter-Spots); die Luft liegt dort auf der Wasseroberfläche. Land unter Meeresniveau gibt es im
+   * Gebiet nur in Poldern (≤ −3,5 m ⇒ ≤ 0,02 K Lapse). TPI, Horizont, Ringe und Senkentiefe rechnen weiter mit dem
+   * gelesenen Wert (benannt in audit/seewetter.md V-SW-14).
+   */
   elevationM: number | null;
+  /** Der gelesene DEM-Wert, nur wenn er unter 0 m lag und `elevationM` deshalb 0 ist. */
+  elevationReadM?: number;
   tpi500M: number | null;
   tpi2000M: number | null;
   slopeDeg: number | null;
@@ -167,7 +175,7 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
     try {
       const hit = await cache.get(key);
       if (hit) {
-        const r = JSON.parse(new TextDecoder().decode(hit.bytes)) as TerrainPointResult;
+        const r = seaLevelFloor(JSON.parse(new TextDecoder().decode(hit.bytes)) as TerrainPointResult);
         r.fromCache = true;
         r.timing = { totalMs: now() - T0, fetchMs: 0, decodeMs: 0, computeMs: 0 };
         return r;
@@ -259,6 +267,7 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
     fromCache: false,
     timing: { totalMs: 0, fetchMs: Math.round(fetchMs), decodeMs: Math.round(decodeMs), computeMs: 0 },
   };
+  seaLevelFloor(result);
   result.timing.computeMs = Math.round(now() - c0);
   result.timing.totalMs = Math.round(now() - T0);
 
@@ -269,6 +278,18 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
       .catch(() => { /* gezählt vom Aufrufer, nicht hier */ });
   }
   return result;
+}
+
+/**
+ * V-SW-4: the point height never below sea level (also on results cached before the rule). Land points (≥ 0 m) are
+ * returned unchanged, byte for byte.
+ */
+export function seaLevelFloor(r: TerrainPointResult): TerrainPointResult {
+  if (r.elevationM != null && r.elevationM < 0) {
+    r.elevationReadM = r.elevationM;
+    r.elevationM = 0;
+  }
+  return r;
 }
 
 function round1(v: number | null): number | null {

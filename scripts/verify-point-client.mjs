@@ -958,8 +958,8 @@ let stationManifest;
   // ── (10j) Gelaende aus zwei Skalen — synthetische Terrarium-Kacheln ───────
   {
     const PEAK = { lat: 47.27, lon: 11.40 };
-    const hAt = (lat, lon, peak) => 700 + (peak ? 800 * Math.exp(-((distanceKm(lat, lon, PEAK.lat, PEAK.lon) / 3) ** 2)) : 0);
-    const mkOpts = (peak, cache) => {
+    const hAt = (lat, lon, peak, base = 700) => base + (peak ? 800 * Math.exp(-((distanceKm(lat, lon, PEAK.lat, PEAK.lon) / 3) ** 2)) : 0);
+    const mkOpts = (peak, cache, base = 700) => {
       let fetches = 0;
       const fetchImpl = async (url) => { fetches++; const m = String(url).match(/\/(\d+)\/(\d+)\/(\d+)\.png$/); return new Response(new TextEncoder().encode(JSON.stringify({ z: +m[1], x: +m[2], y: +m[3] })), { status: 200 }); };
       const decodeRgba = (bytes) => {
@@ -969,7 +969,7 @@ let stationManifest;
           const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + j / 256) / n))) * 180 / Math.PI;
           for (let i = 0; i < 256; i++) {
             const lon = (x + i / 256) / n * 360 - 180;
-            const v = hAt(lat, lon, peak) + 32768;
+            const v = hAt(lat, lon, peak, base) + 32768;
             const k = (j * 256 + i) * 4;
             data[k] = Math.floor(v / 256); data[k + 1] = Math.floor(v) % 256; data[k + 2] = Math.min(255, Math.round((v - Math.floor(v)) * 256)); data[k + 3] = 255;
           }
@@ -1008,6 +1008,29 @@ let stationManifest;
     const rp3 = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, { ...peak.opts, noResultCache: true });
     add('(10) Gelaende: ohne Ergebnis-Cache kommen die KACHELN aus dem Cache (0 Abrufe), das Ergebnis ist dasselbe',
       rp3.fromCache === false && peak.count() === before && rp3.tiles.fromCache === nNear + nFar && rp3.elevationM === rp.elevationM);
+    // V-SW-4: over the sea Terrarium carries the water depth; the point height is the sea surface (0 m), the read
+    // value stays visible; land is untouched (no extra field). Negative control: the depth really reaches the reader.
+    const { seaLevelFloor } = await import('../src/point/client/terrain.ts');
+    const seaKeys = [];
+    const seaMemRaw = memoryBackend();
+    const seaMem = { ...seaMemRaw, get: (k) => seaMemRaw.get(k), put: (k, e) => { seaKeys.push(k); return seaMemRaw.put(k, e); } };
+    const sea = mkOpts(false, seaMem, -12);
+    const rs = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, sea.opts);
+    add('(10) V-SW-4: Meeresboden −12 m ⇒ Punkthöhe 0 m, gelesener Wert −12 m bleibt sichtbar; TPI/Horizont rechnen weiter wie vorher (flach ⇒ 0)',
+      rs.elevationM === 0 && Math.abs(rs.elevationReadM + 12) < 0.2 && rs.tpi500M === 0 && rs.svf === 1, `h ${rs.elevationM} read ${rs.elevationReadM}`);
+    add('(10) V-SW-4: Land bleibt unverändert — kein Feld elevationReadM, Höhe wie vorher (flach 700 m, Gipfel)',
+      !('elevationReadM' in rf) && !('elevationReadM' in rp) && Math.abs(rf.elevationM - 700) < 0.2);
+    await new Promise((r) => setTimeout(r, 0));   // the result put is fire-and-forget
+    const rs2 = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, sea.opts);
+    const old = { ...rs, elevationM: -12, fromCache: false }; delete old.elevationReadM;
+    const oldMem = memoryBackend();
+    const keyOf = seaKeys.find((k) => String(k).startsWith('terrain/'));
+    if (keyOf) await oldMem.put(keyOf, { bytes: new TextEncoder().encode(JSON.stringify(old)), storedAt: Date.now() });
+    const rs3 = keyOf ? await loadTerrainAtPoint(PEAK.lat, PEAK.lon, mkOpts(false, oldMem, -12).opts) : null;
+    add('(10) V-SW-4: auch ein Ergebnis aus dem Cache von vor der Regel (−12 m gespeichert) kommt mit 0 m heraus; aus dem neuen Cache ebenso',
+      rs2.fromCache === true && rs2.elevationM === 0 && rs3?.fromCache === true && rs3.elevationM === 0 && rs3.elevationReadM === -12, `key ${keyOf ?? 'fehlt'}`);
+    add('(10) V-SW-4 Gegenprobe: seaLevelFloor lässt 0 m und positive Höhen stehen, hebt nur negative',
+      seaLevelFloor({ elevationM: 0 }).elevationM === 0 && !('elevationReadM' in seaLevelFloor({ elevationM: 3.5 })) && seaLevelFloor({ elevationM: -0.1 }).elevationM === 0);
   }
 
   // ── (10k) AP12, V-FI-40: Frist bis zur Antwort, Stillstand im Körper, Hedge nur bei langsamer Antwort ─

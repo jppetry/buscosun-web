@@ -10,6 +10,8 @@
 # Alle 15 min: die Texte (FQDL50/51, WODL45, FXDL40) jedes Mal; die Felder und
 # Spot-Reihen nur, wenn das Inventar einen vollständigen neuen CWAM-Lauf zeigt
 # (13 × 79 Dateien, gemessen ab Lauf + 4:07 h) — sonst endet der Schritt in Sekunden.
+# Dazwischen (V-SW-2): nennt point/index.json einen neueren t1-Lauf als der Wind des
+# veröffentlichten Laufs, wird nur die Windreihe neu gerechnet (spots/<lauf>-w<t1>.json).
 # Der Radar-Spiegel bleibt unberührt.
 #
 # ── Leerlauf bis zum Push von buscosun-web ────────────────────────────────
@@ -106,8 +108,21 @@ jobs:
           RUN=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.due||'')" "$OUT")
           echo "run=$RUN" >> "$GITHUB_OUTPUT"
 
+      # V-SW-2: between two wave runs the spot wind is computed again on every new t1 cube (3-hourly). The check reads
+      # point/index.json raw — no checkout; only a due refresh fetches the cube. Old producer (no --wind-check) ⇒ not due.
+      - name: Wind refresh due?
+        id: wdue
+        if: steps.app.outputs.ready == '1' && steps.due.outputs.run == ''
+        continue-on-error: true
+        run: |
+          cd app
+          OUT=$(node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs --store=../store --wind-check | tail -1)
+          echo "$OUT"
+          DUE=$(node -e "try { const j=JSON.parse(process.argv[1]); process.stdout.write(j.due===true ? (j.indexT1||'') : '') } catch { }" "$OUT")
+          echo "t1=$DUE" >> "$GITHUB_OUTPUT"
+
       - name: Cube checkout (point/, for buscosun Fusion wind at the spots)
-        if: steps.due.outputs.run != ''
+        if: steps.due.outputs.run != '' || steps.wdue.outputs.t1 != ''
         continue-on-error: true
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
@@ -124,15 +139,25 @@ jobs:
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs \
             --store=../store --data=../cube --cache=../cache --run=${{ steps.due.outputs.run }}
 
+      - name: Wind refresh
+        id: wind
+        if: steps.wdue.outputs.t1 != ''
+        continue-on-error: true
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs \
+            --store=../store --data=../cube --wind
+
       - name: Publish (sea/ only, never --force)
         if: steps.app.outputs.ready == '1'
         run: |
           MSG="sea: $(date -u +%Y-%m-%dT%H:%MZ)"
           if [ -n "${{ steps.due.outputs.run }}" ]; then MSG="$MSG · CWAM ${{ steps.due.outputs.run }}"; fi
+          if [ -n "${{ steps.wdue.outputs.t1 }}" ]; then MSG="$MSG · Wind t1 ${{ steps.wdue.outputs.t1 }}"; fi
           node app/scripts/sea/sea-publish.mjs --repo=data --store=store --message="$MSG"
 
       - name: Field run failed
-        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure'
+        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure'
         run: |
           echo "Text- oder Feldschritt rot (siehe oben); veröffentlicht wurde, was gültig war."
           exit 1

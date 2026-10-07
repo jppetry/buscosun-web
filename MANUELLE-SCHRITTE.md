@@ -1664,3 +1664,34 @@ habe ich nach der Vollmacht vom 07.10. selbst gepusht (nur `sea/` und die eigene
    Kill-Schalter jederzeit: Repo-Variable `SEA_KILL=1` im Daten-Repo (Seite zeigt „Keine Daten“), `?sea=0` je Besucher.
 8. **Ansehen:** V-SW-1 … V-SW-12 (§10), vor allem V-SW-3 (Böe < Wind in buscosun Fusion) und V-SW-4 (Bathymetrie als
    Höhe über Wasser) — beide betreffen die Fusion-Linie, nicht nur Seewetter.
+
+## 47. Seewetter — V-SW-2/3/4 (Wind je t1-Würfel, Böe ≥ Wind, Höhe auf See), 2026-10-07
+
+Belege: `audit/seewetter.md` §12. Nummer 47, weil 45/46 auf den Zweigen `fusion-10`/`fusion-11` vergeben sind.
+
+1. **Push von `buscosun-web/main`** mit dem Commit „feat(sea): …V-SW-2/3/4“. Wirkung sofort im Browser: Punkthöhe auf
+   dem Wasser 0 m (Land byte-gleich); die Seite liest `status.wind`, solange keiner da ist, wie bisher.
+2. **Danach** `scripts/sea/workflow-sea.yml` → `buscosun-data/.github/workflows/sea.yml` (ersetzen). Ab dem nächsten
+   15-min-Lauf mit neuem t1-Würfel: Commit „sea: … · Wind t1 <lauf>“, Datei `sea/v1/spots/<lauf>-w<t1>.json`, Zeiger
+   `status.wind`. Prüfen: `status.json` → `wind.t1` = `point/index.json` → `latestByTier.t1.run` (≤ 15 min + Verzug),
+   `wind.rejected` 0, `wind.buildS`.
+3. **E-SW-29:** `FuseCubeOptions.gustAtLeastWind` als Teil des nächsten Stands von buscosun Fusion (Register-Eintrag,
+   mit oder nach Fusion 11). Gemessen an 56 Spots: 6 von 4 536 Stunden betroffen (0,13 %, bis 0,85 m/s), sonst
+   byte-gleich. Bis dahin bleibt im Seewetter-Produkt E-SW-21 (Böe ⇒ `null`).
+4. Ansehen: V-SW-14 (Geländegeometrie über Wasser, nur mit Neufit) und V-SW-15 (Archiv sieht je Lauf nur die neueste
+   Auffrischung).
+
+## 47. Stationsmessungen DACH in `buscosun-data/obs/` (Phase OB), 2026-10-07
+
+Belege: `audit/stationsmessungen.md`. Im Daten-Repo **gepusht** (Jans Vollmacht 07.10.): Spiegel `scripts/obs-mirror.mjs`, Workflows
+`obs.yml` (Dauerlauf 340 min, startet den Nachfolger) und `obs-watchdog.yml` (:03/:23/:43), README-Abschnitt + `obs/README.md`, erster
+Datenstand `obs/v1/`. In buscosun-web **uncommitted**: `scripts/obs/*` (Quelle des Spiegels + Workflow-Vorlagen), README-Vorlage
+`scripts/repack-repo/README.md` (Abschnitt „Stationsmessungen“ + Lizenzzeilen), dieses Phasendokument.
+
+1. **Commit + Push von buscosun-web** (`scripts/obs/`, `scripts/repack-repo/README.md`, `audit/stationsmessungen.md`): bis dahin
+   überschreibt der Kartenpublisher das Haupt-README des Daten-Repos mit der alten Vorlage — der Abschnitt „Stationsmessungen“
+   verschwindet dort beim nächsten Kartenlauf; `obs/README.md` bleibt.
+2. **Eine Quelle, zwei Kopien:** jede Änderung am Spiegel in `buscosun-web/scripts/obs/obs-mirror.mjs` UND
+   `buscosun-data/scripts/obs-mirror.mjs` (V-OB-4: Wächter fehlt noch).
+3. **Abschalten:** Repo-Variable `OBS_KILL=1` im Daten-Repo (Spiegel und Wächter starten nicht mehr).
+4. Offen: V-OB-1 (AT-Hydrographie), V-OB-3 (NIME JUN 403), V-OB-5 (Plausibilitätsregeln), V-OB-6 (Leser in buscosun-web).

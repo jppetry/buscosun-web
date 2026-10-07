@@ -294,6 +294,33 @@ export function quantileOf(d: Dist, p: number): number {
 }
 
 /** E[Y]. */
+/**
+ * V-SW-3: the same distribution moved up along its LOCATION (μ, for Rice ν) until its mean reaches `target`; the
+ * spread parameter stays (spreads are only ever scaled, never shifted). A distribution whose mean already reaches the
+ * target comes back unchanged (same object). Families without a single location parameter (precipitation, clouds) are
+ * returned unchanged. The mean is monotone in the location for every family handled ⇒ bisection, |Δ| < 1e-9.
+ */
+export function raiseMeanTo(d: Dist, target: number): Dist {
+  if (!Number.isFinite(target)) return d;
+  const m0 = meanOf(d);
+  if (!(m0 < target)) return d;
+  let at: ((x: number) => Dist) | null = null, x0 = 0;
+  switch (d.kind) {
+    case 'normal': return { ...d, mu: d.mu + (target - m0) };
+    case 'censoredNormal': if (target >= d.hi) return d; at = (x) => ({ ...d, mu: x }); x0 = d.mu; break;
+    case 'truncatedNormal': at = (x) => ({ ...d, mu: x }); x0 = d.mu; break;
+    case 'rice': at = (x) => ({ ...d, nu: x }); x0 = d.nu; break;
+    default: return d;
+  }
+  let lo = x0, hi = x0 + (target - m0) + 1;
+  for (let k = 0; k < 60 && meanOf(at(hi)) < target; k++) hi += 2 * (hi - lo);
+  for (let k = 0; k < 200 && hi - lo > 1e-12; k++) {
+    const mid = 0.5 * (lo + hi);
+    if (meanOf(at(mid)) < target) lo = mid; else hi = mid;
+  }
+  return at(hi);
+}
+
 export function meanOf(d: Dist): number {
   switch (d.kind) {
     case 'normal':

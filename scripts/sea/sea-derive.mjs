@@ -14,6 +14,8 @@
  *     --store=<sea/v1 working copy> [--data=<buscosun-data checkout with point/>] [--cache=<dir>] [--run=YYYYMMDDHH]
  *     [--check]   only print the run that is due (or none) as JSON — the workflow decides on the cube checkout with it
  *     [--now=<iso>] [--ewam=0]
+ *     [--wind-check]   V-SW-2: is a wind refresh of the published run due (newer t1 run in the cube index, read raw)?
+ *     [--wind --data=<cube checkout|cdn>]   compute it: `spots/<run>-w<t1>.json` + `status.wind`, nothing else changes
  * Kill switch: SEA_KILL=1 (status.killSwitch, nothing built). Last stdout line = JSON summary.
  */
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync, renameSync, statSync, cpSync } from 'node:fs';
@@ -29,6 +31,7 @@ import {
   seaGribUrl, seaGribPath, seaRunMs, seaRunStamp, seaRunDir, seaRunJsonPath, seaFieldPath, seaCompPath, seaSpotsPath, seaMaskHashPath,
   seaQuarantinePath, newCounts, cleanHs, cleanDir, cleanPeriod, cleanPeakWindSea, validateSeaRun, packMask,
   encodeHs, encodeDir, encodePeriod, encodeSpotValue, spotSeriesProblems, sanitizeGust,
+  seaSpotsWindPath, SEA_SPOTS_WIND_RE, mergeSpotWind,
 } from '../../src/sea/seaContract.ts';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -277,6 +280,12 @@ export function pruneRuns(storeDir, model = MODEL) {
   if (existsSync(sdir)) {
     const files = readdirSync(sdir).filter((f) => /^\d{10}\.json$/.test(f)).sort();
     for (const f of files.slice(0, Math.max(0, files.length - SEA_RETENTION.spotsKept))) { rmSync(join(sdir, f), { force: true }); removed.push(`spots/${f}`); }
+    // V-SW-2: wind refreshes follow their run, and per run only the newest stays.
+    const kept = new Set(readdirSync(sdir).filter((f) => /^\d{10}\.json$/.test(f)).map((f) => f.slice(0, 10)));
+    const wind = readdirSync(sdir).map((f) => SEA_SPOTS_WIND_RE.exec(f)).filter(Boolean).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    const newest = new Map();
+    for (const m of wind) newest.set(m[1], m[0]);
+    for (const m of wind) if (!kept.has(m[1]) || newest.get(m[1]) !== m[0]) { rmSync(join(sdir, m[0]), { force: true }); removed.push(`spots/${m[0]}`); }
   }
   const qdir = join(storeDir, 'quarantine');
   if (existsSync(qdir)) {
@@ -365,6 +374,66 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, spotProblems: problems.length, removed, check };
 }
 
+// --- wind refresh on a newer t1 cube (V-SW-2) ---------------------------------------------------------------
+/**
+ * Which wind refresh is due: the published wave run and the t1 run its newest wind was computed with (`status.wind` for a
+ * refresh of THIS run, otherwise `spots/<run>.json`), against the newest t1 run of the cube index. Pure on the store.
+ */
+export function windDue(storeDir, indexT1) {
+  const st = readStatus(storeDir);
+  const run = st.field?.lastPublishedRun ?? null;
+  if (!run) return { due: false, reason: 'kein veröffentlichter Lauf' };
+  const base = readJson(join(storeDir, seaSpotsPath(run)));
+  if (!base?.spots) return { due: false, run, reason: `${seaSpotsPath(run)} fehlt` };
+  const usedT1 = st.wind?.run === run ? st.wind.t1 : base.wind?.runs?.t1 ?? null;
+  if (!indexT1) return { due: false, run, usedT1, reason: 'Cube-Index ohne t1-Lauf' };
+  if (usedT1 && indexT1 <= usedT1) return { due: false, run, usedT1, indexT1, reason: `Wind schon mit t1 ${usedT1}` };
+  return { due: true, run, usedT1, indexT1 };
+}
+
+/**
+ * Computes the spot wind of the published run again on the cube checkout (`spotWind`, same chain as the run) and writes
+ * `spots/<run>-w<t1>.json` + `status.wind`. From the computation hour on, the three wind columns replace the run's own
+ * (`mergeSpotWind`); a spot whose merged series fails the value lock keeps the run's wind (listed in `rejected`).
+ */
+export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), indexT1, log = () => {}, windImpl = spotWind }) {
+  const due = windDue(storeDir, indexT1);
+  if (!due.due) return { built: false, ...due };
+  const st = readStatus(storeDir);
+  const { run } = due;
+  const runMs = seaRunMs(run);
+  const base = readJson(join(storeDir, seaSpotsPath(run)));
+  const cat = readJson(join(storeDir, SEA_SPOT_CATALOG_PATH));
+  const geoDoc = readJson(join(storeDir, SEA_SPOT_GEO_PATH));
+  const started = Date.now();
+  const wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log });
+  const t1 = wind.meta?.runs?.t1 ?? null;
+  if (!t1 || (due.usedT1 && t1 <= due.usedT1)) return { built: false, run, reason: `Rechnung trug t1 ${t1 ?? '–'}, nicht neuer als ${due.usedT1}` };
+  const from = Math.max(0, Math.round((Math.floor(nowMs / H) * H - runMs) / H));
+  const spots = {}, rejected = [];
+  for (const [id, sp] of Object.entries(base.spots)) {
+    const w = wind.series[id];
+    if (!w) { rejected.push(`${id}: keine Rechnung`); continue; }
+    const v = { wind: w.wind.slice(), gust: w.gust.slice(), windDir: w.windDir.slice() };
+    const gustDropped = sanitizeGust(v);
+    const pr = spotSeriesProblems({ ...sp.v, ...mergeSpotWind(sp.v, v, from) });
+    if (pr.length) { rejected.push(`${id}: ${pr.slice(0, 2).join('; ')}`); continue; }
+    spots[id] = { v, ...(gustDropped ? { gustDropped } : {}) };
+  }
+  const path = seaSpotsWindPath(run, t1);
+  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed }, rejected, spots };
+  const text = JSON.stringify(doc) + '\n';
+  writeAtomic(join(storeDir, path), text);
+  st.wind = { run, t1, path, from, engine: wind.meta?.engine ?? null, version: wind.meta?.version ?? null, computedAt: wind.meta?.computedAt ?? null, spots: Object.keys(spots).length, rejected: rejected.length, buildS: Math.round((Date.now() - started) / 1000), bytes: Buffer.byteLength(text) };
+  const removed = pruneRuns(storeDir);
+  writeStatus(storeDir, st, nowMs);
+  log(`Wind ${run} neu mit t1 ${t1}: ${Object.keys(spots).length} Spots ab Stunde ${from}, ${rejected.length} abgelehnt, ${st.wind.buildS} s`);
+  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, rejected, removed };
+}
+
+/** The newest t1 run of a cube index document (`point/index.json`). */
+export const indexT1Of = (idx) => idx?.latestByTier?.t1?.run ?? null;
+
 /** EWAM against CWAM on common sea points at +0/24/48/72 h (nearest EWAM cell), median |ΔHs| — observation only. */
 export async function ewamCheck({ run, cacheDir, cwamDir, fetchImpl = fetch }) {
   const out = [];
@@ -395,6 +464,24 @@ async function main() {
   const storeDir = resolve(String(args.store ?? 'sea/v1'));
   const nowMs = typeof args.now === 'string' ? Date.parse(args.now) : Date.now();
   const log = (m) => console.log(`[sea-derive] ${m}`);
+  // V-SW-2: wind refresh. `--wind-check` reads the cube index raw (no checkout) and prints whether a refresh is due;
+  // `--wind --data=<cube checkout>` computes it from that checkout's index.
+  const rawIndexT1 = async () => {
+    try { const r = await fetch('https://raw.githubusercontent.com/jppetry/buscosun-data/main/point/index.json', { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(30_000) }); return r.ok ? indexT1Of(await r.json()) : null; } catch { return null; }
+  };
+  if (args['wind-check']) {
+    console.log(JSON.stringify(windDue(storeDir, await rawIndexT1())));
+    return;
+  }
+  if (args.wind) {
+    if (typeof args.data !== 'string') throw new Error('--wind braucht --data=<Cube-Checkout>');
+    const dataDir = args.data === 'cdn' ? 'cdn' : resolve(args.data);
+    const t1 = dataDir === 'cdn' ? await rawIndexT1() : indexT1Of(readJson(join(dataDir, 'point', 'index.json')));
+    const res = await windRefresh({ storeDir, dataDir, nowMs, indexT1: t1, log });
+    log(res.built ? `Wind-Auffrischung ${res.run} · t1 ${res.t1} geschrieben` : `keine Wind-Auffrischung: ${res.reason}`);
+    console.log(JSON.stringify(res));
+    return;
+  }
   const inv = await fetchInventory();
   const due = typeof args.run === 'string' ? { run: args.run } : dueRun(inv, storeDir, nowMs);
   if (args.check) { console.log(JSON.stringify({ due: due.run ?? null, reason: due.reason ?? null })); return; }

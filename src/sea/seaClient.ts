@@ -1,13 +1,14 @@
 /**
  * SW-5 — Data client of Seewetter: the expected run and the expected text issues from the clock, one step back on
  * 404, jsDelivr first with raw.githubusercontent as hedge (pattern `fetchRoadJson`, NL-2 / V-FI-5), every file through
- * the contract's client checks before it reaches the page. `status.json` is read only for the kill switch (raw, short
- * timeout, never blocking — unreachable = not killed).
+ * the contract's client checks before it reaches the page. `status.json` is read for the kill switch and the pointer
+ * to the newest wind refresh (raw, short timeout, never blocking — unreachable = not killed, no refresh).
  */
 import {
   SEA_CDN_BASE, SEA_RAW_BASE, SEA_MAX_STEP_BACK, SEA_RUN_EVERY_MS, SEA_SPOT_CATALOG_PATH, SEA_AREAS_PATH, SEA_STATUS_PATH, SEA_SPOT_VARS,
   SEA_MODELS, seaExpectedRun, seaRunStamp, seaRunMs, seaRunJsonPath, seaSpotsPath, seaFieldPath, seaCompPath, seaFreshness, spotSeriesProblems,
-  decodeSpotValue, spotCatalogProblems, seaTextPath, type SeaSpot, type SeaSpotVar, type SeaFreshness,
+  decodeSpotValue, encodeSpotValue, spotCatalogProblems, seaTextPath, seaSpotsWindPath, mergeSpotWind, SEA_WIND_VARS,
+  type SeaSpot, type SeaSpotVar, type SeaFreshness, type SeaWindVar,
 } from './seaContract';
 import { SEA_TEXT_PRODUCTS, seaExpectedIssues, seaTextFreshness, type SeaTextDoc, type SeaTextProduct } from './seaText';
 
@@ -146,6 +147,8 @@ export interface SeaSpotsDoc {
   series: Record<string, SeaSeries>;
   gustDropped: Record<string, number>;
   rejected: string[];
+  /** V-SW-2: hour index from which wind/gust/direction come from a later computation (`wind` then describes that one). */
+  windFrom?: number;
 }
 export async function loadSpots(run: string, signal?: AbortSignal): Promise<SeaSpotsDoc | null> {
   try {
@@ -160,6 +163,46 @@ export async function loadSpots(run: string, signal?: AbortSignal): Promise<SeaS
     }
     return { run, runMs: j.runMs ?? seaRunMs(run), steps: j.steps ?? 79, wind: j.wind ?? { engine: null, failed: [] }, series, gustDropped, rejected };
   } catch (e) { if (isAbort(e)) throw e; return null; }
+}
+
+/** `status.json` → `wind`: the newest wind refresh of a run (V-SW-2). Anything malformed counts as "none". */
+export interface SeaWindPointer { run: string; t1: string; path: string }
+export function windPointerOf(status: Record<string, unknown> | null | undefined): SeaWindPointer | null {
+  const w = status?.wind as Partial<SeaWindPointer> | undefined;
+  if (!w || typeof w.run !== 'string' || typeof w.t1 !== 'string' || typeof w.path !== 'string') return null;
+  return w.path === seaSpotsWindPath(w.run, w.t1) ? { run: w.run, t1: w.t1, path: w.path } : null;
+}
+
+/**
+ * V-SW-2: the spot series of `doc` with the wind of the refresh `ptr` (same run only). Without a pointer, on another run,
+ * on 404 or on a malformed file: `doc` unchanged. A merged spot that fails the value lock keeps its own wind.
+ */
+export async function withWindRefresh(doc: SeaSpotsDoc, ptr: SeaWindPointer | null, signal?: AbortSignal): Promise<SeaSpotsDoc> {
+  if (!ptr || ptr.run !== doc.run) return doc;
+  try {
+    const j = await fetchSea(ptr.path, 'json', signal) as { product?: string; run?: string; t1?: string; from?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, { v: Record<SeaWindVar, (number | null)[]>; gustDropped?: number }> };
+    if (j?.product !== 'sea-spots-wind' || j.run !== doc.run || j.t1 !== ptr.t1 || !j.spots || !Number.isInteger(j.from)) return doc;
+    return mergeWindDoc(doc, { from: j.from as number, wind: j.wind ?? null, spots: j.spots });
+  } catch (e) { if (isAbort(e)) throw e; return doc; }
+}
+
+/** Pure part of `withWindRefresh` (encoded refresh columns onto a decoded doc). */
+export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpotsDoc['wind'] | null; spots: Record<string, { v: Record<SeaWindVar, (number | null)[]>; gustDropped?: number }> }): SeaSpotsDoc {
+  const series: Record<string, SeaSeries> = { ...doc.series }, gustDropped = { ...doc.gustDropped };
+  let applied = 0;
+  for (const [id, s] of Object.entries(doc.series)) {
+    const u = upd.spots[id]?.v;
+    if (!u || SEA_WIND_VARS.some((k) => !Array.isArray(u[k]) || u[k].length !== s[k].length)) continue;
+    const decoded = Object.fromEntries(SEA_WIND_VARS.map((k) => [k, u[k].map((q) => decodeSpotValue(k, q))])) as Record<SeaWindVar, (number | null)[]>;
+    const merged = { ...s, ...mergeSpotWind(s, decoded, upd.from) };
+    const encoded = Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, merged[k].map((x) => encodeSpotValue(k, x))]));
+    if (spotSeriesProblems(encoded).length) continue;
+    series[id] = merged;
+    if (upd.spots[id].gustDropped) gustDropped[id] = upd.spots[id].gustDropped as number; else delete gustDropped[id];
+    applied++;
+  }
+  if (!applied) return doc;
+  return { ...doc, series, gustDropped, wind: upd.wind ? { ...upd.wind, failed: upd.wind.failed ?? [] } : doc.wind, windFrom: upd.from };
 }
 
 // --- Fields ------------------------------------------------------------------------------------------

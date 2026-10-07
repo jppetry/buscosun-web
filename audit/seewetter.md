@@ -313,16 +313,18 @@ statisch erzeugten Shell, die es im Dev-Server nicht gibt); gegen `vite preview`
 | Nr. | Was | Mehrwert | Skizze |
 |---|---|---|---|
 | V-SW-1 | Ob die offenen CAP-Dateien Küsten-, Seegebiets- oder Binnenseezellen (WarncellID 5/4/2) tragen, ist ohne aktive Warnung nicht zu sehen | Warnungen als Flächen statt nur WODL45; Seen-Ausbau | `cap-watch.mjs` läuft; beim ersten Treffer Fixture ablegen und auswerten |
-| V-SW-2 | Wind am Spot wird nur zweimal täglich gerechnet | bis zu 12 h frischerer Wind | im 15-min-Workflow bei jedem neuen t1-Würfel nur die Windreihe nachrechnen (`spots/<lauf>-w<t1>.json`, Client nimmt die neueste) |
-| V-SW-3 | buscosun Fusion liefert an einzelnen Stunden Böe < Wind (Fehmarn +42 h) | stimmige Böen überall | an die Fusion-Linie: Böe ≥ Wind in der Ausgabe erzwingen oder begründen |
-| V-SW-4 | Über Wasser liest der Geländeleser die Bathymetrie als Höhe (bis −19 m) — jede Punktvorhersage auf dem Wasser (Panel, Dashboard) rechnet mit negativer Höhe | richtige Höhe auf See | im Leser Höhe 0 für Wasser (WorldCover-Klasse 80); Motor-/Leser-Gate (Jan) |
+| V-SW-2 | ~~Wind am Spot wird nur zweimal täglich gerechnet~~ **umgesetzt 07.10. (§12.3)** | bis zu 12 h frischerer Wind | `sea-derive.mjs --wind-check`/`--wind`, `spots/<lauf>-w<t1>.json`, Zeiger `status.wind`, Seite überlagert ab der Rechenstunde |
+| V-SW-3 | ~~buscosun Fusion liefert an einzelnen Stunden Böe < Wind~~ **Motor-Option gebaut und gemessen 07.10. (§12.2), aus bis zum nächsten Stand** | stimmige Böen überall | `FuseCubeOptions.gustAtLeastWind`; Einschalten = Register-Eintrag (E-SW-29) |
+| V-SW-4 | ~~Über Wasser liest der Geländeleser die Bathymetrie als Höhe~~ **umgesetzt 07.10. (§12.1)** | richtige Höhe auf See | Leser: Punkthöhe ≥ 0 m (`seaLevelFloor`), gelesener Wert in `elevationReadM` |
 | V-SW-5 | Edge-Bündel `shareParser.js` neu bauen | `verify:share` grün | `npm run edge:share` (E-SW-15) |
 | V-SW-6 | Windpartikel als gekennzeichnete ICON-Ebene | Flächenbild des Windes | `WindLayer` der Wetterkarte, Legende „Modell ICON, nicht buscosun Fusion“ |
 | V-SW-7 | Ausblick bis 174 h (GWAM) | Wochenendplanung | SW-8 |
-| V-SW-8 | Bandzellen 27 px breit (Vorlage) unter 44 px | Touch | mobil Spalten 44 px breit, Band wischt |
+| V-SW-8 | ~~Bandzellen 27 px breit (Vorlage) unter 44 px~~ **umgesetzt 07.10. (`6e25dd9`, Prüfung G4)** | Touch | mobil Spalten 44 px breit, Band wischt |
 | V-SW-9 | Ufernormale aus der Maske ist an Hafenbecken grob | bessere Uferwinkel | Normale aus der Küstenlinie der CWAM-Maske im 500-m-Band (OSM nur mit ODbL-Freigabe) |
-| V-SW-10 | Long Tasks auf dem Gerät nicht gemessen | Flüssigkeit mobil | `colourField` in einen Worker, Klassen je Spot cachen; Real-Device |
-| V-SW-11 | `scripts/repack-repo/README.md` spricht noch von „vier Produktlinien“ | korrekte Doku | Zählwort ersetzen |
+| V-SW-10 | Long Tasks auf dem Gerät nicht gemessen — **`colourField` im Worker seit `6e25dd9` (W1–W3 byte-gleich)**, offen: Klassen-Cache, Real-Device | Flüssigkeit mobil | Klassen je Spot cachen; Real-Device |
+| V-SW-11 | ~~`scripts/repack-repo/README.md` spricht noch von „vier Produktlinien“~~ **umgesetzt 07.10. (`6e25dd9`)** | korrekte Doku | Zählwort ersetzen |
+| V-SW-14 | Über Wasser rechnen TPI, Horizont, Ringe und Senkentiefe weiter mit der Wassertiefe (nur die Punkthöhe ist seit V-SW-4 0 m); an Küstenpunkten mischt der 2-km-Ring Land mit Meeresboden | Wind-Geländeterm auf See und an der Küste ohne Bathymetrie | die Höhenfunktion des Lesers (`elev`) auf ≥ 0 m klemmen — ändert TPI/Ringe an 10 der 405 Archivstationen (Merkmale der Lernstufe wurden MIT Wassertiefe gefittet) ⇒ nur zusammen mit einem Neufit, Stand von buscosun Fusion |
+| V-SW-15 | Die Wind-Auffrischung landet je Lauf nur als neueste Datei im Speicher; das Archiv (alle 6 h) sieht etwa jede zweite | Gate D auch für die aufgefrischten Reihen | Archiv-Schritt in `sea.yml` nach jeder Auffrischung, oder Aufbewahrung „alle Auffrischungen des laufenden Laufs“ |
 | V-SW-13 | Die Hintergrundläufe der Sitzung (Text-Sammler, Inventar-Schnappschüsse, CAP-Wächter) wurden am 07.10. gegen 16 UTC vom System wegen Speichermangels beendet und nicht neu gestartet; der zweite lokale Lauf (CWAM 12 UTC) wurde deshalb nicht mehr gebaut. Gesammelt sind 53 Bulletins (48 h Fenster bis 07.10. 12 UTC), drei Inventar-Schnappschüsse, CAP-Protokoll bis 14 UTC | Textsammlung über 7 Tage, Warnfall Küste | nach Jans Push übernimmt `sea.yml` die Texte (jede Ausgabe archiviert); die Spike-Skripte bei Bedarf von Hand wieder starten (`scripts/sea/spike/*.mjs --loop`) |
 | V-SW-12 | Der Text-Sammler des Spikes schrieb sein `index.json` dreimal nicht (Windows EPERM beim Umbenennen, Datei kurz gesperrt); die Bulletins selbst sind alle da | robuster Sammler | Umbenennen mit Wiederholung |
 
@@ -335,3 +337,88 @@ statisch erzeugten Shell, die es im Dev-Server nicht gibt); gegen `vite preview`
 | C Seite live | vorbereitet: Prüfer grün außer E-SW-15, Pixelvergleich mit begründeten Abweichungen, beide Fragenkataloge beantwortet (§9.4/§9.5) | Real-Device, Seite ansehen, `npm run edge:share`, dann `SEA_LIVE = true` und noindex/Sitemap |
 | D Wind am Spot | Archiv sammelt (`sea-archiv.yml` nach dem Push alle 6 h; der 07.10. ist lokal angelegt); Auswertung `sea-gate-d.mjs` | nach ≥ 14 Tagen `node scripts/sea/sea-gate-d.mjs --archive=<buscosun-archiv>/sea/v1 --catalog=<…>/sea/v1/static/spots.json` |
 | E Stufe 2 | nicht begonnen | — |
+
+## 12. V-SW-2, V-SW-3, V-SW-4 (umgesetzt 07.10. abends, Jan: „jede Freiheit“)
+
+Ausgangslage: auf `main` gilt buscosun Fusion 9; Fusion 10 und 11 sind Kandidaten auf eigenen Zweigen (`fusion-10`,
+`fusion-11`, nicht gemergt). Jede Änderung, die die Ausgabe von buscosun Fusion an einem gemessenen Punkt ändert, wäre
+ein neuer Stand — die Nummern 10/11 sind belegt. Regel dieser Umsetzung: an keiner der 405 Archivstationen ändert sich
+eine Zahl, oder die Änderung steht hinter einer Option (aus).
+
+### 12.1 V-SW-4 — Punkthöhe über Wasser
+
+- **Diagnose.** `loadTerrainAtPoint` (`src/point/client/terrain.ts`) gab den Terrarium-Wert direkt als `elevationM` aus;
+  über Nord-/Ostsee ist das die Wassertiefe. Gegenprobe an den Merkmalen der Lernstufe
+  (`C:\dev\buscosun-hindcast\features\points.v1.json`): **10 der 405 Archivstationen** haben `demM < 0` (10015 −8,
+  10042 −3, 10055 −3, 10097 −5, 10113 −1, 10124 −11, 10130 −1, 10131 −1, 10152 −11, 10200 −1 m — Inseln, Küste, Hafen).
+  Dort gilt aber die **Stationshöhe** als h_true (E-F-12, `elevationFrom: 'station'`), `terrain.elevationM` wirkt nur ohne
+  Station. Der Prüfstand rechnet mit der Merkmalstabelle (nicht mit dem Leser), `demM` der Tabelle kommt aus der
+  Punktliste des Archivs (`featureLib.mjs:95`), nicht aus dem Leser.
+- **Umsetzung.** `seaLevelFloor`: `elevationM < 0` ⇒ `elevationM = 0`, der gelesene Wert bleibt in `elevationReadM`;
+  gilt auch für Ergebnisse aus dem Cache von vor der Regel (Schlüssel `terrain/v2` unverändert, Land bleibt gültig).
+  TPI, Horizont, Ringe und Senkentiefe rechnen unverändert mit dem gelesenen Wert (V-SW-14: an 10 Stationen ginge sonst
+  die Geometrie gegen die Merkmale des Fits). Dieselbe Regel stand schon im Seewetter-Producer (`build-spots.mjs:164`).
+- **Wirkung.** Land (≥ 0 m) byte-gleich (Gegenprobe: kein Feld `elevationReadM`); Punkte auf dem Wasser ohne Station
+  rechnen mit 0 m statt −19 … −1 m (Lapse ≤ 0,12 K); Polder ≤ −3,5 m ⇒ 0 m (≤ 0,02 K).
+- **Beleg.** `verify:point-client` 174/175 — vier neue Prüfungen „(10) V-SW-4“ grün (Meeresboden −12 m ⇒ 0 m mit
+  `elevationReadM` −12; Land ohne Feld; alter Cache-Eintrag ⇒ 0 m; Gegenprobe der Funktion); rot nur (10s) progressiv
+  `z0mod` — zeitabhängig, fällt unter Last auch an HEAD (V-EX-13).
+
+### 12.2 V-SW-3 — Böe unter dem Wind
+
+- **Diagnose.** Der Live-Pfad hebt seit PV0 `gust = max(gust, ws)` (`pointForecast.ts:606`), der Cube-Pfad hat keine
+  solche Regel: Wind und Böe bekommen getrennte Korrekturen (gelerntes Windgesetz, Anker, Stationswert) und ihre Mittel
+  können sich kreuzen. Im Grundmotor hält der Böen-Prior die Böe darüber (Fixture der Prüfung (12): kleinster Abstand
+  +0,18 m/s selbst mit allen Eingangs-Böen auf 10–30 %); die Kreuzung entsteht in der Stufe `fs`.
+- **Messung in der echten Kette** (`scratchpad/probe-vsw3.mjs`, Stufe `fs` = Fusion 9, Cube über jsDelivr, alle 56
+  Spots, 07.10. 21:35 UTC, 80 h): **6 von 4 536 Stunden** (0,13 %) an 4 Spots mit Böe < Wind — Fehmarn Wulfen +19/+20 h
+  (−0,84/−0,56 m/s), Fehmarn Burgtiefe +19/+20 h (−0,76/−0,61), Heiligenhafen +19 h (−0,31), Langeoog +38 h (−0,13),
+  immer bei 13–14 m/s Wind. Mit der Option: **0 Stunden**, alle anderen Größen byte-gleich (0 abweichende Werte).
+- **Umsetzung.** `raiseMeanTo` (`fusion/dist.ts`): Verteilung entlang der Lage (μ, bei Rice ν) bis zum Zielmittel,
+  Streuparameter unverändert, Bisektion; Niederschlag/Wolken unverändert. `gustAtLeastWindOf` (`cubeSource.ts`, rein)
+  und `FuseCubeOptions.gustAtLeastWind` — nach allen anderen Korrekturen der Stunde (auch an Stunden, die die Station
+  füllt), Notiz `gustAtLeastWind: Böe an n Schritten …`. **Voreinstellung aus ⇒ Fusion 9 byte-gleich.**
+- **Nicht eingeschaltet, weil** jede Änderung der Kette eine neue Nummer ist (Namensregel) und 10/11 auf den
+  Kandidaten-Zweigen liegen. **E-SW-29 (Jans Gate):** `gustAtLeastWind` als Eintrag des nächsten Stands im Register
+  (`fusionRelease.ts`) — mit dem Merge von Fusion 11 oder danach als 12. Bis dahin bleibt E-SW-21 im Seewetter-Produkt
+  (Böe > 0,5 m/s unter dem Wind ⇒ `null`, gezählt).
+- **Beleg.** `verify:pv-cube` **424/424** (drei neue Prüfungen in (12): `gustAtLeastWindOf` an einer gekreuzten Stunde,
+  Option ohne Kreuzung byte-gleich + `false` = ohne, `raiseMeanTo` je Familie).
+
+### 12.3 V-SW-2 — Wind am Spot je neuem t1-Würfel
+
+- **Vertrag** (`seaContract.ts`): `spots/<lauf>-w<t1>.json` (`sea-spots-wind`: `from`, `t1`, `wind`-Metadaten, je Spot
+  `wind/gust/windDir` kodiert wie im Lauf, `gustDropped`), Zeiger `status.wind` (`run, t1, path, from, engine, …`),
+  `mergeSpotWind` (rein: ab `from` alle drei Spalten aus der Auffrischung, auch ihre `null`).
+- **Producer** (`sea-derive.mjs`): `windDue` (t1 des Cube-Index neuer als der t1 des zuletzt benutzten Winds dieses
+  Laufs), `windRefresh` (dieselbe Kette `spotWind`, `sanitizeGust`, Wertsperre auf der zusammengesetzten Reihe, Spot
+  sonst abgelehnt), CLI `--wind-check` (Index raw, kein Checkout) und `--wind --data=<checkout|cdn>`. Aufbewahrung: je
+  Lauf nur die neueste Auffrischung, nur für behaltene Läufe (`pruneRuns`). Archiv (`sea-archive.mjs`): Auffrischungen
+  als `spots-<lauf>-w<t1>.json.gz`, Index `days[d].wind` (additiv; V-SW-15).
+- **Workflow** (`scripts/sea/workflow-sea.yml`, Vorlage): Schritt „Wind refresh due?“ nur ohne fälligen Wellenlauf;
+  Cube-Checkout bei Wellenlauf ODER Auffrischung; Schritt „Wind refresh“; Commit-Nachricht nennt „Wind t1 …“. Alter
+  Producer kennt `--wind-check` nicht ⇒ Ausgabe kein JSON ⇒ nicht fällig (Schritt `continue-on-error`).
+- **Seite** (`seaClient.ts`, `SeaPage.tsx`): `windPointerOf(status)` (nur mit passendem Pfad), `withWindRefresh` /
+  `mergeWindDoc` (Spot mit verletzter Wertsperre behält seinen Wind); `SeaSpotsDoc.windFrom`; die Metadaten (`gerechnet …`,
+  Läufe) nennen danach die Auffrischung. Unverändert ohne Zeiger, bei anderem Lauf, 404 oder kaputter Datei.
+- **Beleg.** `verify:sea-derive` **47/47** — Block W (W1–W7, neu): fällig nur bei neuerem t1; Datei ab Stunde 9, Zeiger, Lauf-Datei
+  unverändert; Gegenproben (gleicher t1, alter t1 trotz neuerem Index); nächster t1 ersetzt die vorige Datei; Seite:
+  Stunden < `from` vom Lauf, ab `from` von der Auffrischung, Wellen unverändert; `mergeSpotWind`; Zeiger.
+- **Kosten** (nicht gemessen): eine Auffrischung = `spotWind` an 56 Spots (die Windphase eines Wellenlaufs; der ganze
+  Lauf 07.10. 12 UTC brauchte 57 s laut `status.json`, der Windanteil ist nicht getrennt erfasst) + Cube-Checkout;
+  8 t1-Läufe am Tag ⇒ ≈ 6 zusätzliche Jobs mit Rechnung. `status.wind.buildS`/`bytes` messen es ab dem ersten Lauf.
+
+### 12.4 Jans Gates (MANUELLE-SCHRITTE §47)
+
+1. Push von `buscosun-web/main` (Leser, Option, Producer, Seite).
+2. **Danach** `scripts/sea/workflow-sea.yml` als `.github/workflows/sea.yml` ins Daten-Repo (vorher kennt der Producer
+   auf `main` `--wind-check` nicht; die Reihenfolge ist trotzdem ungefährlich, s. o.).
+3. E-SW-29: `gustAtLeastWind` in den nächsten Stand von buscosun Fusion.
+
+### 12.5 Gates dieses Abschnitts (08.10., Arbeitsbaum mit allen drei Punkten)
+
+`npm run typecheck` 0 · `npm run build` 255/255 · `npm run budget` grün (totalJs 1 598,7 / **1 600**, angehoben mit Notiz;
+eagerJs-Ratsche unverändert) · `verify:pv-cube` 424/424 · `verify:point-client` 174/175 ((10s) zeitabhängig, V-EX-13) ·
+`verify:sea-derive` 47/47 · `verify:sea-ui` 37/37 (gegen `vite preview --host 127.0.0.1` des frischen Baus). Messung
+V-SW-3 in der echten Kette: §12.2. Nicht geprüft: ein echter `--wind`-Lauf gegen einen Cube-Checkout (der lokale Lauf
+bräuchte den ganzen `point/`-Checkout; der Weg ist derselbe `spotWind` wie im Wellenlauf, der am 07.10. zweimal lief).

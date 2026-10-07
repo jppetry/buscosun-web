@@ -72,7 +72,7 @@ import type { Country } from '../types';
 import { skyViewFactor, type TerrainScales } from './fusion/terrainScale';
 import { CLIMA_SIGMA_FALLBACK, DEWPOINT_LAPSE_PER_M } from './fusion/priors';
 import { rhFromDewPoint, dewPointC } from './fusion/meteo';
-import { meanOf, quantileOf, type Dist } from './fusion/dist';
+import { meanOf, quantileOf, raiseMeanTo, type Dist } from './fusion/dist';
 import { getClimaField } from './fusion/attach';
 import { toPointForecastV2, quantileMemo, type PointForecastV2 } from './fusion/output';
 import type { FusionVariable } from './fusion/priors';
@@ -221,6 +221,18 @@ export interface CubeObsHint {
 }
 
 /** Aus dem AP1-Bündel — die Produktion. Der Archiv-Adapter (AP9) baut dieselbe Form aus dem Slot. */
+/**
+ * V-SW-3 (`FuseCubeOptions.gustAtLeastWind`): one hour's fused point with the gust mean lifted to the wind mean when it lies
+ * below it (`raiseMeanTo`: location only, spread unchanged). `gapMs` = how far it lay below (0 ⇒ the same object back).
+ */
+export function gustAtLeastWindOf(fused: FusedPoint): { fused: FusedPoint; gapMs: number } {
+  if (!fused.gust || !fused.windSpeed) return { fused, gapMs: 0 };
+  const w = meanOf(fused.windSpeed.dist), g0 = meanOf(fused.gust.dist);
+  const d = raiseMeanTo(fused.gust.dist, w);
+  if (d === fused.gust.dist) return { fused, gapMs: 0 };
+  return { fused: { ...fused, gust: { ...fused.gust, dist: d } }, gapMs: w - g0 };
+}
+
 export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null = null): CubeFusionInput {
   return {
     obs, nowcastCovering: nowcastSourcesFor(b.input.lat, b.input.lon),
@@ -597,6 +609,14 @@ export interface FuseCubeOptions {
    * Default off ⇒ byte-identical.
    */
   anchorAtObsTime?: boolean;
+  /**
+   * V-SW-3: the gust is never weaker than the mean wind. Wind and gust get separate corrections (learned speed law, anchor,
+   * station value), so their means can cross at single hours (Fehmarn +42 h: gust 13,1 < wind 13,8 m/s). With the option
+   * the gust distribution is moved up along its location until its mean reaches the wind mean (`raiseMeanTo`, spread
+   * unchanged) — the rule the live path has had since PV0 (`pointForecast.ts`, `max(gust, ws)`). Counted in the notes.
+   * Default off ⇒ byte-identical (buscosun Fusion 9).
+   */
+  gustAtLeastWind?: boolean;
   /**
    * Phase FS (H14): die gelernte Bewölkungsverteilung wird durchgereicht statt nachfusioniert (`fused.clouds`), wo die
    * Lernstufe sie trägt. Wirkt nur mit `learned`; Voreinstellung aus ⇒ byte-gleich.
@@ -1159,6 +1179,15 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       stackInn = { atMs: best.validAtMs, source: best.source, stationId: best.stationId, name: best.name, distanceKm: Math.max(0, best.distanceM) / 1000, byStation: !!best.byStation, I: { t: diff(best.temperature, m0.t), td: diff(tdObs, m0.td), ws: diff(wsObs, m0.ws), gust: diff(best.gust, m0.gust) } };
     }
   }
+  // V-SW-3: gust ≥ wind (means), after every other correction of the hour.
+  const gustFloorOn = opts.gustAtLeastWind === true;
+  const gustRaised = { steps: 0, maxMs: 0 };
+  const floorGust = (fused: FusedPoint): FusedPoint => {
+    if (!gustFloorOn) return fused;
+    const r = gustAtLeastWindOf(fused);
+    if (r.gapMs > 0) { gustRaised.steps += 1; gustRaised.maxMs = Math.max(gustRaised.maxMs, r.gapMs); }
+    return r.fused;
+  };
   type LearnedDist = ReturnType<typeof predictLearned>['dist'];
   const FUSED_OF: Record<StackVar, 'temperature' | 'dewPoint' | 'windSpeed' | 'gust'> = { t: 'temperature', td: 'dewPoint', ws: 'windSpeed', gust: 'gust' };
   const applyStationValue = (fused: FusedPoint, atMs: number, leadH: number, ld: LearnedDist | null): { fused: FusedPoint; info: NonNullable<NonNullable<CubeStep['post']>['stationValue']> } | null => {
@@ -1607,6 +1636,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const r = applyStationValue(fused, a.validAtMs, leadH, flags.includes('learned') ? p.learnedDist : null);
       if (r) { fused = r.fused; post = { ...post, stationValue: r.info }; }
     }
+    if (fused) fused = floorGust(fused);
     if (useUnc) {
       for (const v of UNC_VARS) {
         const m = memberSig[v]!;
@@ -1634,6 +1664,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     : 'stationValue: an keinem Schritt gesetzt — die Tabelle trägt keinen Eintrag für die Form, die diese Abfrage tragen kann');
   if (useAtPoint && learnedT) notes.push(`learnedAtPoint: Member an ${fsCount.atPoint} Schritten vorkompensiert`);
   if (useLearnedClouds && learnedT) notes.push(`learnedClouds: gelernte Bewölkung an ${fsCount.clouds} Schritten durchgereicht`);
+  if (gustFloorOn) notes.push(`gustAtLeastWind: Böe an ${gustRaised.steps} Schritten auf das Windmittel angehoben (größte Lücke ${gustRaised.maxMs.toFixed(2)} m/s, V-SW-3)`);
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
   if (opts.stationValue === true && stackT) {
@@ -1676,6 +1707,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         // Phase FS: auch die Stunde, die die Station füllt, bekommt den Stationswert (ohne Lernstufe: die Formen ohne L).
         let post: CubeStep['post'];
         if (fused && stackOn) { const r = applyStationValue(fused, t, leadH, null); if (r) { fused = r.fused; post = { stationValue: r.info }; } }
+        if (fused) fused = floorGust(fused);
         const flags: StepFlag[] = ['stationOnly'];
         if (input.nowcastCovering.length && inHorizon(t)) flags.push('nowcastFallbackModel');
         const uncertainty: CubeStep['uncertainty'] = {};

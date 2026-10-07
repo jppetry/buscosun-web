@@ -627,6 +627,32 @@ function cubeSampleOfValues(r, i) {
       && fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true }).notes.some((n) => /^anchorAtObsTime: Modellwert an 0 von 1 Messungen/.test(n))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorAtObsTime: true })) === fusedOf(base));
   }
+  // V-SW-3: wind and gust get separate corrections, their means can cross. In the plain engine the gust prior keeps the gust
+  // above the wind (this fixture: min gust − wind ≥ +0,18 m/s even with every input gust at 10–30 %); the crossing comes from
+  // the separate corrections of the stage fs (learned speed law, station value — Fehmarn +42 h). The rule is the pure
+  // `gustAtLeastWindOf`, tested on a crossed hour; the option wires it into every step after all other corrections.
+  {
+    const { meanOf, raiseMeanTo } = await import('../src/pointForecast/fusion/dist.ts');
+    const { gustAtLeastWindOf } = await import('../src/pointForecast/cubeSource.ts');
+    const s0 = base.steps.find((s) => s.fused?.gust && s.fused?.windSpeed).fused;
+    const w = meanOf(s0.windSpeed.dist);
+    const crossed = { ...s0, gust: { ...s0.gust, dist: { kind: 'normal', mu: w - 1.5, sigma: 1.2 } } };
+    const r = gustAtLeastWindOf(crossed), same = gustAtLeastWindOf(s0);
+    add('(12) V-SW-3 gustAtLeastWindOf: Böe 1,5 m/s unter dem Wind ⇒ Böen-Mittel = Wind-Mittel (|Δ| < 1e-6), σ unverändert, Lücke 1,5 m/s, alle anderen Größen dasselbe Objekt; Böe darüber ⇒ dasselbe Objekt zurück, Lücke 0',
+      Math.abs(meanOf(r.fused.gust.dist) - w) < 1e-6 && r.fused.gust.dist.sigma === 1.2 && Math.abs(r.gapMs - 1.5) < 1e-9
+      && r.fused.windSpeed === crossed.windSpeed && r.fused.temperature === crossed.temperature && same.fused === s0 && same.gapMs === 0,
+      `Wind ${w.toFixed(2)} · Böe danach ${meanOf(r.fused.gust.dist).toFixed(6)} · Lücke ${r.gapMs.toFixed(3)}`);
+    const rOn = fuseCubePoint(mkInput(), { gustAtLeastWind: true });
+    add('(12) V-SW-3 Option: ohne Kreuzung byte-gleich zur Basis, Notiz zählt 0 Schritte; `false` = ohne Option; ohne Option keine Notiz',
+      fusedOf(rOn) === fusedOf(base) && rOn.notes.some((n) => /^gustAtLeastWind: Böe an 0 Schritten/.test(n))
+      && fusedOf(fuseCubePoint(mkInput(), { gustAtLeastWind: false })) === fusedOf(base) && !base.notes.some((n) => n.startsWith('gustAtLeastWind')));
+    const n0 = { kind: 'normal', mu: 5, sigma: 2 }, c0 = { kind: 'censoredNormal', mu: 2, sigma: 3, lo: 0, hi: 90 }, r0 = { kind: 'rice', nu: 3, sigma: 1.5 }, t0d = { kind: 'truncatedNormal', mu: 4, sigma: 2, lo: 0 };
+    const lifted = [n0, c0, r0, t0d].map((d) => raiseMeanTo(d, 9));
+    add('(12) V-SW-3 raiseMeanTo: Normal/Zensiert/Rice/Gestutzt auf Mittel 9 gehoben (|Δ| < 1e-6), Streuparameter unverändert; schon darüber ⇒ dasselbe Objekt; Niederschlag/Wolken unverändert',
+      lifted.every((d) => Math.abs(meanOf(d) - 9) < 1e-6) && lifted[0].sigma === 2 && lifted[1].sigma === 3 && lifted[2].sigma === 1.5 && lifted[3].sigma === 2
+      && raiseMeanTo(n0, 4) === n0 && raiseMeanTo({ kind: 'hurdleLogNormal', pDry: 0.5, mu: 0, sigma: 1 }, 9).mu === 0,
+      lifted.map((d) => meanOf(d).toFixed(6)).join(' '));
+  }
 
   // ── Klimatologie-Schwanz ──
   const tail = fuseCubePoint(input, { tail: true });

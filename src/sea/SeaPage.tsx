@@ -17,7 +17,7 @@ import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, type SeaSpot } from './seaContract';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import {
-  loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadPoi, loadSpots, loadText,
+  loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadPoi, loadSpots, loadText, windPointerOf, withWindRefresh,
   type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
 import {
@@ -61,6 +61,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [killed, setKilled] = useState(false);
   const [runLoad, setRunLoad] = useState<SeaRunLoad | null>(null);
   const [spotsDoc, setSpotsDoc] = useState<SeaSpotsDoc | null>(null);
+  const [windPtr, setWindPtr] = useState<string | null>(null);
   const [texts, setTexts] = useState<Partial<Record<SeaTextProduct, import('./seaText').SeaTextDoc | null>>>({});
   const [textsLoading, setTextsLoading] = useState(true);
   const [spotId, setSpotId] = useState<string>(initial.spot ?? DEFAULT_SPOT);
@@ -104,6 +105,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       const k = await loadKillSwitch(ac.signal);
       if (!alive) return;
       setKilled(k.killed);
+      // V-SW-2: the newest wind refresh — kept as its path (a string), so an unchanged pointer reloads nothing.
+      const wp = windPointerOf(k.status);
+      setWindPtr((prev) => (k.status == null ? prev : wp ? `${wp.run}|${wp.t1}|${wp.path}` : null));
       const r = await loadLatestRun(now, k.killed, ac.signal).catch(() => null);
       if (!alive || !r) return;
       // A refresh never replaces a good run by "nothing" — the shown run stays and ages by the freshness rules.
@@ -123,9 +127,12 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   useEffect(() => {
     if (!runKey) return;
     const ac = new AbortController();
-    loadSpots(runKey, ac.signal).then(setSpotsDoc, () => setSpotsDoc(null));
+    const [wRun, wT1, wPath] = windPtr ? windPtr.split('|') : [];
+    loadSpots(runKey, ac.signal)
+      .then((doc) => (doc && wPath ? withWindRefresh(doc, { run: wRun, t1: wT1, path: wPath }, ac.signal) : doc))
+      .then(setSpotsDoc, () => { if (!ac.signal.aborted) setSpotsDoc(null); });
     return () => ac.abort();
-  }, [runKey]);
+  }, [runKey, windPtr]);
 
   const noData: string | null = !runLoad ? null
     : killed ? 'Die Veröffentlichung ist angehalten (Kill-Schalter des Datenspeichers).'
