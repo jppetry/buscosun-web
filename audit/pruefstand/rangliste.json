@@ -18,7 +18,23 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
+  },
+  {
+   "id": "fusion-11",
+   "name": "buscosun Fusion 11",
+   "guete": 0.18687,
+   "ci95": [
+    0.16456,
+    0.20523
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-11"
   },
   {
    "id": "fusion-6",
@@ -34,7 +50,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "fusion-7",
@@ -50,7 +66,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "fusion-8",
@@ -66,7 +82,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "fusion-9",
@@ -82,7 +98,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "fusion-5e",
@@ -98,7 +114,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "ref-naiv",
@@ -114,7 +130,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "ref-roh-lapse",
@@ -130,7 +146,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "ref-roh",
@@ -146,7 +162,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   },
   {
    "id": "ref-persistenz",
@@ -162,7 +178,7 @@
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
    "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
    "abnahme": "2026-10-07",
-   "by": "fusion-10"
+   "by": "fusion-11"
   }
  ]
 }

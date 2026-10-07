@@ -1716,3 +1716,48 @@ unter `C:\dev\buscosun-web-wt\`; dazu `base` = `4bdade3` für den Identitätsver
 7. **Nach dem Push prüfen:** `npm run verify:fusion-release -- --live` (nennt den Stand von `road/fc` und `point/field`
    im Daten-Repo; beide ziehen beim nächsten Lauf nach), Panel mit `?pflog=1`: Stufen-Notiz „buscosun Fusion 10“ und die
    Zeile `longRange: …` in den Notizen eines Punkts; `?pf=live` bleibt der Rückfall.
+
+## 46. buscosun Fusion 11 (Phase F11) — die zwei Abnahme-Defekte von Fusion 10 entfernt, neu geprüft, 2026-10-07
+
+Belege: `audit/fusion-11.md` (§0 Zeitprotokoll, §1 Vorbedingungen/Diagnose, §2 Regel vor den Zahlen, §3 Pre-Screen, §4 A-F11-n,
+§5 Identität, §6 Prüfstand-Läufe, §7 Gates, §8 V-F11-n), Pre-Screen-Vergleiche `audit/fusion-11/prescreen/`, Prüfstand-Berichte
+`audit/fusion-11/laeufe/<n>-<modus>/`, Register `scripts/pruefstand/register/fusion-11.json`. **Nichts gepusht, nichts auf `main`
+gemergt**; alles liegt auf dem lokalen Branch `fusion-11` (von `fusion-10`, Tag `f11-lauf-1` = Register-Commit `ace255d`).
+
+1. **Entscheidungen im Auto-Modus prüfen** (§4): A-F11-1 … A-F11-6 — darunter das Freeze-Datum 2026-10-07 als Setzung (Vollmacht 4),
+   der Verzicht auf den monotonen Neufit (am Fit-Gitter verworfen), die Stufenform der T-Identität (Fusion-10-Tabelle bis 240 h), der
+   Interpolationsrand und die tolerierte Wind-T-Kopplung in der zweiten Negativkontrolle, die σ-Boden-Form gebaut und aus.
+2. **Was Fusion 11 ist** (Register-Eintrag `n: 11`, Option `longRangeFix: 1`, Konstanten `FUSION11_*` in `longRange.ts`; Tabellen des
+   Daten-Repos unverändert `1aaec969`, Langfrist-Tabelle = die von Fusion 10, kein neuer Fit): Fusion 10 **mit** (1) dem T-Bin 241–336 h
+   der Langfrist-Rückführung auf Identität (V-F10-7) und (2) dem AT/CH-Klimatologie-Schritt für Wind/Böe erst ab 241 h statt 126 h
+   (V-F10-8) — sonst nichts. Ohne die Option rechnet der Motor byte-gleich Fusion 10, ohne `longRange` byte-gleich Fusion 9
+   (Identitätsverifier §5). **Nebenwirkung, deklariert (V-F11-5):** der wegfallende Windschritt bewegt T in AT/CH bei 126–240 h um bis zu
+   0,3 K je Wert (Zellmittel 0,00 %) — die aus F10 bekannte Kopplung V-F10-r3, Ursache offen.
+3. **Formwahl** nach vorab geschriebener Regel (§2) am Hindcast außerhalb des Tresors (8 Slots 09/2025) und auf der Schnellmenge (7 Tage):
+   T-Rampe verlor dort −0,54 % gegen Fusion 9, die Stufe ist exakt Identität; der Windschritt ab 241 h hält die Abdeckung von Fusion 9 und
+   verliert nirgends, der σ-Boden bei 126 h gewann nur +0,01 % und verlor in CH. **Vorbehalt:** die Schnellmenge (Herbst 2026, Abdeckung
+   t 240–336 h nur 65 %) hätte die Rampe bevorzugt (V-F11-1).
+4. **Prüfstand Volltest** (Entwicklungsmenge 23 Tage, Rolle B, gegen Fusion 9): **+0,47 % (95 %: +0,33 … +0,66 %)**, G2/G3/G4 grün,
+   77 von 99 Kernzellen besser als jede Einzelquelle (Fusion 10: +0,69 %, 80 Zellen — die Differenz sind genau die zwei zurückgenommenen
+   Teile, die auf der Entwicklungsmenge halfen und im Tresor schadeten).
+5. **Abnahme (Spur R 70 Ausgaben, Spur P leer, einmalig 18:48 UTC, `zugriffe.log`):** Urteil des Prüfstands **„Kandidat“** — Fortschrittsindex
+   gegen Fusion 9 **+0,97 % (95 %: +0,64 … +1,28 %)**, **G2 grün (0 von 63), G3 grün, G4 grün**, G1 „nicht nachweisbar“ (Spur P leer);
+   63 von 63 Kernzellen besser als jede Einzelquelle; Rangliste gleichauf mit Fusion 10 (+18,69 %). Die zwei roten Zellen von Fusion 10
+   sind grün: t 240–336 h AT 0,00 % (byte-gleich zu Fusion 9, vorher −0,44 %**), Abdeckung ws 120–240 h 76,4 % = Champion (vorher 75,7 %).
+   Gegen Fusion 10 ist der Index +0,00 % (−0,03 … +0,03) — Fusion 11 ist protokollkonform, nicht besser als Fusion 10; Preis: Böe 120–240 h
+   AT −4,7 % gegen Fusion 10 (Nebenzelle, n. s.; gegen Fusion 9 weiter +14,6 %). **Erreicht: das Ziel des Auftrags (Kandidat).** Vorbehalt:
+   die zwei korrigierten Zellen sind nicht blind (Korrekturen aus dem Tresor-Ergebnis von Fusion 10 abgeleitet) — s. Schritt 7.
+6. **Merge nach `main` (Jan):** `git checkout main && git merge --no-ff fusion-11` — `fusion-11` enthält `fusion-10` vollständig (ein Merge
+   bringt beide Stände). **Achtung:** der Commit mit dem Eintrag `n: 11` schaltet mit dem Push JEDE Stelle der Plattform auf Fusion 11
+   (Panel, Dashboard, Regenradar-Streifen, Routen-/Eventplaner, Schnitt, Benachrichtigungen, Streckenprognose `road/fc` und Kartenfelder
+   beim nächsten Cron-Lauf). Wer nur Fusion 10 will, setzt `FUSION11_LONG_RANGE_FIX = 0` (Stand heißt dann Fusion 10); wer Fusion 9 will,
+   zusätzlich `FUSION10_LONG_RANGE = 0`. Für die Abnahme in Spur P muss der Kandidat am Commit mit `= 1` registriert bleiben (nicht `--neu`).
+7. **Echte Abnahme in Spur P:** frühestens, wenn ≥ 4 Archivtage NACH dem Freeze 2026-10-07 reife Wahrheit haben (Ausgabetage 08.–11.10.
+   sind ab **19.10.2026** reif): `/pruefe-fusion 11 abnahme`. Die Abnahme dieser Sitzung (Spur R + leere Spur P) ist ein Vorab-Urteil, und in
+   den Zellen t 240–336 h und ws 120–240 h **nicht blind** (die Korrekturen stammen aus dem Tresor-Ergebnis von Fusion 10) — Spur P ist der
+   saubere Richter.
+8. **Champion-Status und Liveschaltung:** nur Jan (`status: champion` im Register setzt der Skill nicht); die Liveschaltung ist der Push von
+   `main` (Schritt 6). Nach dem Push: `npm run verify:fusion-release -- --live`, Panel mit `?pflog=1` (Stufen-Notiz „buscosun Fusion 11“,
+   Zeile `longRangeFix:set …`), `?pf=live` bleibt der Rückfall.
+9. **Aufräumen nach der Durchsicht:** Worktrees `C:\dev\buscosun-web-wt\{base,f10-stat,f10-range,f10-terrain}` mit `git worktree remove`;
+   Pre-Screen-Daten `C:\dev\buscosun-fusion11-data\` (≈ 100 MB) löschbar.

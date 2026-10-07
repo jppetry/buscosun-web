@@ -12,8 +12,9 @@
  *     [--vs='{"longRange":1}']   phase F11: second negative control — the candidate with `--on` against the candidate with `--vs`
  *                               (Fusion 11 against Fusion 10, both on): differences only in t at leads ≥ 235 h (the identity starts at
  *                               the native step 241 h; the hourly axis interpolates the hours 235–240 h from a native neighbour at 243 h on
- *                               runs whose t3 axis is offset by 3 h) and in ws/gust/dd at leads > 120 h, the latter only at AT/CH stations;
- *                               td, precip, pWet, clct untouched.
+ *                               runs whose t3 axis is offset by 3 h) — below that only the known coupling of the AT/CH wind step to T
+ *                               (V-F10-r3 / V-F11-5: AT/CH, > 120 h, ≤ 0,5 K per value, reported) — and in ws/gust/dd at leads > 120 h,
+ *                               the latter only at AT/CH stations; td, precip, pWet, clct untouched.
  *
  * Read-only towards the bench (`C:\dev\buscosun-pruefstand`): conserves are read, nothing is written there. Exit 1 on any
  * failed check.
@@ -82,8 +83,9 @@ function diffProfile(a, b, leads) {
     if (x === y || (x !== x && y !== y)) continue;
     const st = Math.floor(i / (ch * nL)), l = Math.floor(i / ch) % nL, c = i % ch;
     const v = c < QUANTITY_VARS.length * nq ? QUANTITY_VARS[Math.floor(c / nq)] : c === QUANTITY_VARS.length * nq ? 'pWet' : 'dd';
-    const e = (byVar[v] ??= { n: 0, le120: 0, le234: 0, le240: 0, lands: new Set() });
-    e.n += 1; if (leads[l] <= 120) e.le120 += 1; if (leads[l] <= 234) e.le234 += 1; if (leads[l] <= 240) e.le240 += 1; e.lands.add(proto.scored[st]?.land ?? '?');
+    const e = (byVar[v] ??= { n: 0, le120: 0, le234: 0, le240: 0, lands: new Set(), le234Lands: new Set(), le234Max: 0, le234MinLead: Infinity });
+    e.n += 1; if (leads[l] <= 120) e.le120 += 1; if (leads[l] <= 240) e.le240 += 1; e.lands.add(proto.scored[st]?.land ?? '?');
+    if (leads[l] <= 234) { e.le234 += 1; e.le234Lands.add(proto.scored[st]?.land ?? '?'); const d = Math.abs(x - y); if (Number.isFinite(d) && d > e.le234Max) e.le234Max = d; if (leads[l] < e.le234MinLead) e.le234MinLead = leads[l]; }
   }
   return byVar;
 }
@@ -91,13 +93,15 @@ function diffProfile(a, b, leads) {
 function vsCheck(prof) {
   const bad = [];
   for (const [v, e] of Object.entries(prof)) {
-    if (v === 't') { if (e.le234) bad.push(`t ${e.le234} Werte ≤ 234 h`); }
+    // t: identity from 241 h (interpolation margin from 235 h); below that only the known coupling of the AT/CH wind step to T
+    // (V-F10-r3 / V-F11-5: ≤ 0,3 K per value, AT/CH only, > 120 h) is tolerated and reported in the detail text
+    if (v === 't') { if (e.le120) bad.push(`t ${e.le120} Werte ≤ 120 h`); for (const land of e.le234Lands) if (land !== 'AT' && land !== 'CH') bad.push(`t ≤ 234 h in ${land}`); if (e.le234Max > 0.5) bad.push(`t ≤ 234 h max |Δ| ${e.le234Max.toPrecision(3)} > 0,5`); }
     else if (v === 'ws' || v === 'gust' || v === 'dd') { if (e.le120) bad.push(`${v} ${e.le120} Werte ≤ 120 h`); for (const land of e.lands) if (land !== 'AT' && land !== 'CH') bad.push(`${v} in ${land}`); }
     else bad.push(`${v} ${e.n} Werte`);
   }
   return bad;
 }
-const profTxt = (prof) => Object.entries(prof).map(([v, e]) => `${v} ${e.n} (≤120 h ${e.le120}, ≤234 h ${e.le234}, ≤240 h ${e.le240}, ${[...e.lands].sort().join('/')})`).join('; ') || '—';
+const profTxt = (prof) => Object.entries(prof).map(([v, e]) => `${v} ${e.n} (≤120 h ${e.le120}, ≤234 h ${e.le234}${e.le234 ? ` [${[...e.le234Lands].sort().join('/')}, ab ${e.le234MinLead} h, max |Δ| ${e.le234Max.toPrecision(3)}]` : ''}, ≤240 h ${e.le240}, ${[...e.lands].sort().join('/')})`).join('; ') || '—';
 
 const base = await loadEngine(baseRoot), cand = await loadEngine(candRoot);
 const tables = loadTables(withTablePaths(champ));
@@ -121,7 +125,7 @@ for (const issue of issues) {
   if (vsReg) {
     const v = predictArchive(cand, tables, vsReg, proto, slot, leads);
     const prof = diffProfile(v.data, o.data, leads), bad = vsCheck(prof), n = Object.values(prof).reduce((a, e) => a + e.n, 0);
-    add(`Archiv ${issue.day}: zweite Negativkontrolle — --on gegen --vs: Unterschiede nur t ≥ 235 h, ws/gust/dd > 120 h in AT/CH`, n > 0 && !bad.length, `${n} Werte: ${profTxt(prof)}${bad.length ? ` — VERLETZT: ${bad.join(', ')}` : ''}`);
+    add(`Archiv ${issue.day}: zweite Negativkontrolle — --on gegen --vs: Unterschiede nur t ≥ 235 h (darunter nur die Wind-T-Kopplung AT/CH, ≤ 0,5), ws/gust/dd > 120 h in AT/CH`, n > 0 && !bad.length, `${n} Werte: ${profTxt(prof)}${bad.length ? ` — VERLETZT: ${bad.join(', ')}` : ''}`);
   }
 }
 const hcPath = hindcastSlotPath(Date.parse(`${hcDay}T00:00:00Z`));
@@ -137,7 +141,7 @@ if (existsSync(hcPath)) {
   if (vsReg) {
     const v = predictHindcast(cand, tables, vsReg, proto, slot, leads);
     const prof = diffProfile(v.data, o.data, leads), bad = vsCheck(prof), n = Object.values(prof).reduce((a, e) => a + e.n, 0);
-    add(`Hindcast ${hcDay}: zweite Negativkontrolle — --on gegen --vs: Unterschiede nur t ≥ 235 h, ws/gust/dd > 120 h in AT/CH`, n > 0 && !bad.length, `${n} Werte: ${profTxt(prof)}${bad.length ? ` — VERLETZT: ${bad.join(', ')}` : ''}`);
+    add(`Hindcast ${hcDay}: zweite Negativkontrolle — --on gegen --vs: Unterschiede nur t ≥ 235 h (darunter nur die Wind-T-Kopplung AT/CH, ≤ 0,5), ws/gust/dd > 120 h in AT/CH`, n > 0 && !bad.length, `${n} Werte: ${profTxt(prof)}${bad.length ? ` — VERLETZT: ${bad.join(', ')}` : ''}`);
   }
 } else console.log(`  (Hindcast-Slot ${hcDay} fehlt — Hindcast-Prüfung entfällt)`);
 
