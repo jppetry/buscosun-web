@@ -59,6 +59,7 @@ import { loadPrecipCal, type LoadedPrecipCal } from '../point/client/precipCalPo
 import { applyPrecipCal, precipCalEntry, validatePrecipCalTable, type PrecipCalSituation, type PrecipCalTable } from './fusion/precipCal';
 import { estimateCoefficients, muAt, trendVector, type ClimaProduct, type MuEstimate } from '../point/fusionFit/climaProduct';
 import { climaColumnsFor } from '../point/fusionFit/tables';
+import { blendDist, longRangeParams, sdOf, LONG_RANGE_FROM_H, LONG_RANGE_TABLE, LONG_RANGE_VARS, type LongRangeTable, type LongRangeVar } from './fusion/longRange';
 import { predict as predictLearned, predictPrecip as predictPrecipLearned, type PredictSituation } from '../point/fusionFit/predict';
 import { speedLaw, type SpeedEntry } from '../point/fusionFit/fitSpeed';
 import { buildZ, dTsfcProxy, sourceToPoint } from '../point/fusionFit/features';
@@ -251,7 +252,7 @@ export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, ob
 export type StepFlag =
   | 'extrapolatedBelowModel' | 'inversionBody' | 'stdLapseFallback' | 'chunkBorderTruncated' | 'belowGround925'
   | 'nowcastFallbackModel' | 'climatologyOnly' | 'stale' | 'seam' | 'interpolated' | 'noTerrain' | 'nowcastSaturated'
-  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal';
+  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal' | 'longRange';
 
 export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'anchor' | 'climatology';
 export type StepTier = TierId | 'station' | 'clima';
@@ -312,6 +313,17 @@ export interface CubeStep {
   post?: {
     stationValue?: Partial<Record<StackVar, { form: StackForm; group: number; M: number; I: number | null; L: number | null; value: number }>>;
     learnedClouds?: boolean;
+    /**
+     * F10-K1 (`longRange`): what the long-range blend used at this step — the climatology (mean, sd and the distribution
+     * it was read from) per variable, and the (w, s) applied. The fit script reads it (with the identity table the
+     * distributions are unblended). Fehlt ohne die Option oder bei Vorlauf ≤ 48 h.
+     */
+    longRange?: {
+      leadH: number;
+      clima: Partial<Record<LongRangeVar, { mu: number; sigma: number; dist: Dist }>>;
+      w: Partial<Record<LongRangeVar, number>>;
+      s: Partial<Record<LongRangeVar, number>>;
+    };
   };
 }
 
@@ -626,6 +638,17 @@ export interface FuseCubeOptions {
    */
   nowcastHourMean?: boolean;
   /**
+   * F10-K1 „Langfrist-Rückführung auf die Klimatologie" (`fusion/longRange.ts`, `audit/fusion-10/stat.md`): bei Vorlauf
+   * > 48 h werden T, Td, Windgeschwindigkeit und Böe nach dem Stationswert mit Gewicht w zur Klimatologie des Motors
+   * gezogen (μ_c aus dem Klimatologieprodukt für T/Td, sonst die Klimatologie-only-Fusion des Schritts) und die Streuung
+   * mit s skaliert (momentgleiche Mischung, gleiche Verteilungsfamilie). (w, s) je Größe × Vorlauf-Bin aus
+   * `longRangeTable` (Voreinstellung `LONG_RANGE_TABLE`, Provenienz hindcast, nie measured), linear im Vorlauf
+   * interpoliert. Voreinstellung aus ⇒ der Haken läuft nicht, byte-gleich.
+   */
+  longRange?: 0 | 1;
+  /** F10-K1: die Tabelle der (w, s); fehlt sie, gilt `LONG_RANGE_TABLE`. `LONG_RANGE_IDENTITY` ⇒ byte-gleich (Fit-Weg). */
+  longRangeTable?: LongRangeTable;
+  /**
    * AP7: stündliche Achse — Stunden ohne nativen Schritt füllt die Station (wenn sie den Punkt vertritt),
    * sonst werden die Quantile der Nachbarschritte linear interpoliert und markiert. Voreinstellung nein
    * (nur native Schritte); `getPointForecastFromCube` verlangt sie, weil `PointForecast.hours` stündlich ist.
@@ -879,6 +902,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const keepWindShrink = noPriorShrink && opts.priorShrinkWind === true;
   const anchorWindL = opts.anchorWindKm != null && Number.isFinite(opts.anchorWindKm) && opts.anchorWindKm > 0 ? opts.anchorWindKm * 1000 : null;
   const useLearnedClouds = useLearned && opts.learnedClouds === true;
+  // F10-K1: long-range blend towards the climatology (`fusion/longRange.ts`); default off ⇒ the hook never runs.
+  const useLongRange = opts.longRange === 1;
+  const lrTable: LongRangeTable = opts.longRangeTable ?? LONG_RANGE_TABLE;
+  const lrCount = { steps: 0, vars: 0, changed: 0 };
   const stackErrors = opts.stationValue === true && input.stack ? validateStackTable(input.stack) : [];
   const stackT: StackTable | null = opts.stationValue === true && input.stack && !stackErrors.length ? input.stack : null;
   const fsCount = { atPoint: 0, clouds: 0, stationValue: 0, byForm: {} as Record<string, number>, byCountry: {} as Record<string, number> };
@@ -1607,6 +1634,37 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const r = applyStationValue(fused, a.validAtMs, leadH, flags.includes('learned') ? p.learnedDist : null);
       if (r) { fused = r.fused; post = { ...post, stationValue: r.info }; }
     }
+    // F10-K1: long-range blend towards the engine's climatology — after the station value, before the uncertainty block.
+    if (fused && useLongRange && leadH > LONG_RANGE_FROM_H) {
+      const climOnly = fuseAt([], leadH, a.validAtMs, null);
+      const mc = climaEst ? muAt(climaEst, a.validAtMs, lon) : null;
+      const sigT = sigmaClimaFor('temperature', a.validAtMs);
+      const normalC = (mu: number | null | undefined, fallback: FusedVariable | null | undefined): Dist | null => {
+        const m = mu != null && Number.isFinite(mu) ? mu : fallback ? meanOf(fallback.dist) : null;
+        return m != null && Number.isFinite(m) && sigT > 0 ? { kind: 'normal', mu: m, sigma: sigT } : null;
+      };
+      const climaOf: Record<LongRangeVar, Dist | null> = {
+        t: normalC(mc?.t, climOnly?.temperature),
+        td: normalC(mc?.td, climOnly?.dewPoint),
+        ws: climOnly?.windSpeed?.dist ?? null,
+        gust: climOnly?.gust?.dist ?? null,
+      };
+      const keyOf: Record<LongRangeVar, 'temperature' | 'dewPoint' | 'windSpeed' | 'gust'> = { t: 'temperature', td: 'dewPoint', ws: 'windSpeed', gust: 'gust' };
+      const info: NonNullable<NonNullable<CubeStep['post']>['longRange']> = { leadH, clima: {}, w: {}, s: {} };
+      let touched = 0;
+      for (const v of LONG_RANGE_VARS) {
+        const c = climaOf[v];
+        const fv: FusedVariable | null = fused[keyOf[v]];
+        if (!c || !fv) continue;
+        const { w, s } = longRangeParams(v, leadH, lrTable);
+        info.clima[v] = { mu: meanOf(c), sigma: sdOf(c), dist: c }; info.w[v] = w; info.s[v] = s;
+        const nd = blendDist(fv.dist, c, w, s);
+        if (nd !== fv.dist) { fused = { ...fused, [keyOf[v]]: { ...fv, dist: nd } }; touched += 1; }
+      }
+      post = { ...post, longRange: info };
+      lrCount.steps += 1; lrCount.vars += Object.keys(info.w).length; lrCount.changed += touched;
+      if (touched) flags.push('longRange');
+    }
     if (useUnc) {
       for (const v of UNC_VARS) {
         const m = memberSig[v]!;
@@ -1634,6 +1692,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     : 'stationValue: an keinem Schritt gesetzt — die Tabelle trägt keinen Eintrag für die Form, die diese Abfrage tragen kann');
   if (useAtPoint && learnedT) notes.push(`learnedAtPoint: Member an ${fsCount.atPoint} Schritten vorkompensiert`);
   if (useLearnedClouds && learnedT) notes.push(`learnedClouds: gelernte Bewölkung an ${fsCount.clouds} Schritten durchgereicht`);
+  if (useLongRange) notes.push(`longRange: Langfrist-Rückführung (${lrTable.provenance.kind}${lrTable.provenance.fitWindow ? ` ${lrTable.provenance.fitWindow.from}…${lrTable.provenance.fitWindow.to}` : ''}) an ${lrCount.steps} Schritten > ${LONG_RANGE_FROM_H} h, ${lrCount.vars} Größen-Schritte, davon ${lrCount.changed} verändert (w, s ≠ 1); μ_c für T/Td aus ${climaEst ? 'dem Klimatologieprodukt' : 'der Klimatologie-only-Fusion'}, Wind/Böe aus der Klimatologie-only-Fusion`);
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
   if (opts.stationValue === true && stackT) {
