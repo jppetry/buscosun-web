@@ -14,6 +14,16 @@ export function pfSourceFrom(search: string): PfSource {
   try { return new URLSearchParams(search).get('pf') === 'live' ? 'live' : 'cube'; } catch { return 'cube'; }
 }
 
+/**
+ * FR-2 (`audit/fusion-release.md` §8): the explicit choice for the parts that reach buscosun Fusion through `getFusionForecast`.
+ *   `?pf=live` → every part on the live path (the same kill switch as the panel).
+ *   `?pf=cube` → every part on the cube path, also a part that is not switched on yet (measurement, review).
+ *   anything else → `null`: the register decides (`FUSION_PARTS`).
+ */
+export function pfForceFrom(search: string): PfSource | null {
+  try { const v = new URLSearchParams(search).get('pf'); return v === 'live' || v === 'cube' ? v : null; } catch { return null; }
+}
+
 export function pfLogFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('pflog') === '1'; } catch { return false; }
 }

@@ -5,7 +5,8 @@
  *   A  the register itself: stands without gaps, the newest stand, the stage per switch, notes and product stamps
  *   B  no fixed stand outside the register: no „buscosun Fusion <n>" in code (comments are free), no hand-copied
  *      option of a stand — each with a counter-probe on the pattern, exceptions listed WITH their reason
- *   C  every part of the platform is wired to the register (table: part → how it follows)
+ *   C  every part of the platform is wired to the register (table: part → how it follows); FR-2: no part calls the live path
+ *      directly (C3), the entry `getFusionForecast` chooses the path, adds the DWD UV and calls the stage (C4)
  *   D  --live: the published data products — which stand they were built with (informational; a product behind
  *      follows at its next producer run, `repeatVerdict` does not skip that run)
  *
@@ -16,7 +17,7 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   FUSION_RELEASES, FUSION_BASE, FUSION_BASE_OPTIONS, FUSION_CURRENT, FUSION_NAME, FUSION_BRAND, FUSION_STAGE_NOTE_PREFIX,
-  fusionName, fusionStage, fusionStageIo, fusionStageNote, fusionVersionOfNotes, fusionVersionOfEngine, fusionProductBehind,
+  fusionName, fusionStage, fusionStageIo, fusionStageNote, fusionVersionOfNotes, fusionVersionOfEngine, fusionProductBehind, FUSION_PARTS,
 } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, ROAD_FC_SOURCE_TEXT, roadFcSourceText } from '../src/road/roadFc.ts';
 import { roadFcEngineName, roadFcUiNote } from '../src/road/roadFcView.ts';
@@ -80,8 +81,9 @@ const walk = (dir, out = []) => {
   }
   return out;
 };
-// Not scanned: verifiers (they pin wordings on purpose), the offline research of the learning phase (its variants ARE fixed stands).
-const SKIP = (p) => /^scripts\/verify-/.test(p) || /^scripts\/(fusionfit|hindcast)\//.test(p) || p === REGISTER;
+// Not scanned: verifiers (they pin wordings on purpose), the offline research of the learning phase (its variants ARE fixed stands),
+// the test bench (`scripts/pruefstand/`: it registers and replays the historical stands 5e…9 with their commits — fixed on purpose).
+const SKIP = (p) => /^scripts\/verify-/.test(p) || /^scripts\/(fusionfit|hindcast|pruefstand)\//.test(p) || p === REGISTER;
 const FILES = [...walk('src'), ...walk('scripts'), ...walk('netlify')].filter((p) => !SKIP(p));
 
 /** Fixed numbers that are right as they are — the stand that INTRODUCED an option, in the engine's provenance lines. */
@@ -126,10 +128,81 @@ const NAME_RE = /buscosun Fusion \d/;
     { part: 'Streckenprognose road/fc (Producer)', file: 'scripts/road/road-forecast.mjs', how: 'fusionStageIo(), Name + Nummer im Kopf, Neubau bei älterem Stand', ok: (p) => has(p, '...fusionStageIo(),', 'name: FUSION_NAME, version: FUSION_CURRENT', 'fusionVersionOfNotes(fc.cube.notes) === FUSION_CURRENT', 'fusionVersionOfEngine(prev.engine)', 'roadFcSourceText(FUSION_NAME') },
     { part: 'Autobahnwetter (Seite)', file: 'src/road/RoadReadout.tsx', how: 'Name aus der Laufdatei (roadFcEngineName)', ok: (p) => has(p, 'roadFcEngineName(file)', 'roadFcUiNote(p.fcFile)') },
     { part: 'Kartenfelder point/field (Producer)', file: 'scripts/point/build-point-fields.mjs', how: 'fusionStage().options, Stand im Manifest (chain.options.fusion)', ok: (p) => has(p, '...fusionStage().options,', 'fusion: FUSION_CURRENT') },
+    // FR-2 (§8): the parts that used to call the live path reach buscosun Fusion through the entry; each follows once it is on.
+    ...[
+      ['route', 'src/pointForecast/weatherEnrichment.ts', 'Wetter je Abschnitt'],
+      ['route', 'src/route/windSampling.ts', 'Wind der Tourzeit'],
+      ['event', 'src/event/EventResult.tsx', 'Tage bewerten'],
+      ['event', 'src/event/eventZoneScan.ts', 'Ecken der Fläche'],
+      ['event', 'src/event/eventAltLocation.ts', 'besserer Ort'],
+      ['section', 'src/threed/buildCrossSection.ts', 'Anker des Schnitts'],
+      ['section', 'src/atmosphere/TalwindPanel.tsx', 'Talwind'],
+      ['notify', 'src/notifications/useNotifications.tsx', 'Abo-Prüfung'],
+    ].map(([id, file, what]) => {
+      const part = FUSION_PARTS.find((p) => p.id === id);
+      return { part: `${part.name} (${what})`, file, gate: part, how: `getFusionForecast(…, '${id}') — ${part.on ? 'an' : 'aus bis zur Messung (§8.4), rechnet den Live-Pfad'}`, ok: (p) => has(p, `getFusionForecast(`, `}, '${id}')`) };
+    }),
   ];
   const bad = PARTS.filter((x) => !x.ok(x.file));
   add(`C1 jeder der ${PARTS.length} Plattformteile hängt am Register`, bad.length === 0, bad.map((x) => x.part).join(', '));
-  for (const x of PARTS) info(`${x.ok(x.file) ? FUSION_NAME : 'NICHT am Register'}  ${x.part} — ${x.how}`);
+  for (const x of PARTS) info(`${!x.ok(x.file) ? 'NICHT am Register' : x.gate && !x.gate.on ? 'Live-Pfad (Teil aus)' : FUSION_NAME}  ${x.part} — ${x.how}`);
+
+  // C3: no part of the platform calls the live path directly — every `getPointForecast(` in src asks for the cube or is a named
+  // fallback of a part that already computes on the cube. A future part that calls the live path makes this red.
+  const CORE = new Set(['src/pointForecast/pointForecast.ts', 'src/pointForecast/fusionForecast.ts', 'src/pointForecast/cubeSource.ts']);
+  const LIVE_EXCEPTIONS = [
+    { file: 'src/pointForecast/PointForecastPanel.tsx', n: 2, why: 'Rückfall und ?pf=live des Punkt-Panels (rechnet sonst auf dem Cube, E-FS-7)' },
+    { file: 'src/nowcast/nowcastEngine.ts', n: 1, why: 'Rückfall und ?pf=live des Regenradar-Streifens (rechnet sonst auf dem Cube, RR-e)' },
+  ];
+  const liveCalls = (code) => {
+    const out = [];
+    for (const m of code.matchAll(/(?<![\w.])getPointForecast\(/g)) {
+      if (/function\s+$/.test(code.slice(Math.max(0, m.index - 16), m.index))) continue;
+      let depth = 0, i = m.index + m[0].length - 1;
+      for (; i < code.length; i++) { if (code[i] === '(') depth++; else if (code[i] === ')' && --depth === 0) break; }
+      const call = code.slice(m.index, i + 1);
+      if (!/pointSource:\s*'cube'/.test(call)) out.push(code.slice(0, m.index).split('\n').length);
+    }
+    return out;
+  };
+  const found = new Map();
+  for (const p of FILES) if (p.startsWith('src/') && !CORE.has(p)) { const l = liveCalls(codeOf(src(p))); if (l.length) found.set(p, l); }
+  const open = [...found].filter(([p, l]) => !LIVE_EXCEPTIONS.some((e) => e.file === p && e.n === l.length));
+  const probe = liveCalls("const a = await getPointForecast({ lat, lng, country, hours: 24 });\nconst b = await getPointForecast({ lat, lng, country, pointSource: 'cube' });\nexport async function getPointForecast(opts) {}\nx.getPointForecast(q);\nconst c = getFusionForecast({ lat }, 'route');");
+  add('C3 Gegenprobe: das Muster trifft einen direkten Live-Aufruf, nicht den Cube-Aufruf, die Definition, eine Methode oder den Einstieg', probe.length === 1 && probe[0] === 1, `Treffer in Zeile ${probe.join(', ')}`);
+  add(`C3 kein Plattformteil ruft den Live-Pfad direkt (src ohne Kern; ${LIVE_EXCEPTIONS.length} benannte Rückfälle, Zahl je Datei fest)`,
+    open.length === 0 && LIVE_EXCEPTIONS.every((e) => found.get(e.file)?.length === e.n), open.map(([p, l]) => `${p}:${l.join('/')}`).join(', '));
+  for (const e of LIVE_EXCEPTIONS) info(`Rückfall ${e.file} (${e.n}×): ${e.why}`);
+
+  // C4: the entry itself — path choice, UV supplement without touching the shared cube object, the cube call it makes.
+  const ff = await import('../src/pointForecast/fusionForecast.ts');
+  const pf = await import('../src/pointForecast/pointForecast.ts');
+  add('C4 Weg je Teil: aus ⇒ live, an ⇒ Cube, ?pf=cube erzwingt den Cube, ?pf=live erzwingt live, ein fremder Wert ändert nichts',
+    ff.fusionPathFor('route', '', false) === 'live' && ff.fusionPathFor('route', '', true) === 'cube' && ff.fusionPathFor('route', '?pf=cube', false) === 'cube'
+    && ff.fusionPathFor('event', '?pf=live', true) === 'live' && ff.fusionPathFor('event', '?pf=xyz', false) === 'live' && ff.fusionPathFor('event', '?pf=xyz', true) === 'cube'
+    && FUSION_PARTS.every((p) => ff.fusionPathFor(p.id, '') === (p.on ? 'cube' : 'live')));
+  const H = 3_600_000, t0 = Math.floor(Date.UTC(2026, 9, 6, 9, 20) / H) * H;
+  const conf0 = { temperature: 0.5, wind: 0.5, gust: 0.5, humidity: 0.5, precipitation: 0.5, clouds: 0.5, snowLine: 0, uvIndex: 0 };
+  const hour = (k, uv) => ({ timestamp: new Date(t0 + k * H), temperature: 10, uvIndex: uv, confidence: { ...conf0 } });
+  const fc = { query: { lat: 48.1, lng: 11.6, elevation: 520, country: 'DE' }, hours: [hour(0, null), hour(1, 3.5), hour(2, null), hour(3, null)], fetchedAt: t0, lapseRatePerM: 0.0065, nearestStations: [], sourcesAvailable: ['cube'], cube: { notes: ['n'] } };
+  const before = JSON.stringify(fc);
+  const uv = [{ time: new Date(t0), uvIndex: 1.2 }, { time: new Date(t0 + H), uvIndex: 9 }, { time: new Date(t0 + 2 * H), uvIndex: 2.4 }, { time: new Date(t0 + 3 * H), uvIndex: null }];
+  const out = ff.withDwdUv(fc, uv, t0 + 20 * 60_000);
+  add('C4 DWD-UV: nur leere Stunden gefüllt (Cube-Wert bleibt), Sicherheit wie eine Einzelquelle im Live-Pfad, Herkunft dwd_uv + cube.uv, das geteilte Cube-Objekt unverändert; ohne UV-Wert dasselbe Objekt',
+    out !== fc && JSON.stringify(fc) === before && out.hours[0].uvIndex === 1.2 && out.hours[1].uvIndex === 3.5 && out.hours[2].uvIndex === 2.4 && out.hours[3].uvIndex === null
+    && out.hours[2].confidence.uvIndex === pf.singleSourceConfidence('uvIndex', 2) && out.hours[1].confidence.uvIndex === 0 && out.hours[0].confidence.temperature === 0.5
+    && out.sourcesAvailable.includes('dwd_uv') && out.cube.uv?.hours === 2 && out.cube.notes[0] === 'n'
+    && ff.withDwdUv(fc, [], t0) === fc && ff.withDwdUv(fc, [{ time: new Date(t0 + 99 * H), uvIndex: 4 }], t0) === fc,
+    `UV ${out.hours.map((h) => h.uvIndex).join('/')}`);
+  // The cube call: the entry loads cubeSource (it registers itself), then the stub registered here stands in for it.
+  await import('../src/pointForecast/cubeSource.ts');
+  const seen = [];
+  pf.registerPointSource('cube', async (o) => { seen.push(o); if (o.lat === 0) { const e = new Error('stop'); e.name = 'AbortError'; throw e; } return { ...fc, query: { ...fc.query, country: o.country } }; });
+  const got = await ff.getFusionForecast({ lat: 47.3, lng: 11.4, country: 'AT', hours: 36 }, 'section', { path: 'cube' });
+  let aborted = false;
+  try { await ff.getFusionForecast({ lat: 0, lng: 0, country: 'AT', hours: 8 }, 'route', { path: 'cube' }); } catch (e) { aborted = e?.name === 'AbortError'; }
+  add('C4 Cube-Aufruf des Einstiegs: Stufe mit Radar (includeRadarNowcast), pointSource cube, Stunden des Teils; außerhalb DE kein UV-Abruf; ein Abbruch fällt NICHT auf live zurück',
+    seen[0]?.pointSource === 'cube' && seen[0]?.includeRadarNowcast === true && seen[0]?.hours === 36 && got.query.country === 'AT' && !got.sourcesAvailable.includes('dwd_uv') && aborted && seen.length === 2);
   add('C2 Texte der Streckenprognose: der Producer schreibt den neuesten Stand in den Quelltext (roadFcSourceText(FUSION_NAME)), der Vertrag selbst nennt ohne Datei nur die Marke (er lädt das Register nicht — Archiv-Job, V-AW-35); die Seite nennt den Stand der DATEI (älter ⇒ ältere Nummer)',
     roadFcSourceText(FUSION_NAME).startsWith(FUSION_NAME + ' ') && ROAD_FC_SOURCE_TEXT.startsWith(FUSION_BRAND + ' auf') && roadFcEngineName({ engine: { name: fusionName(FUSION_CURRENT - 1) } }) === fusionName(FUSION_CURRENT - 1)
     && roadFcEngineName({ engine: { name: FUSION_NAME, version: FUSION_CURRENT } }) === FUSION_NAME && roadFcEngineName(null) === FUSION_BRAND && roadFcUiNote(null).startsWith(`Prognose: ${FUSION_BRAND},`));

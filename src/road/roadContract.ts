@@ -320,8 +320,11 @@ export interface RoadPoint {
   pr: number | null;
   /** Precipitation amount over the period, mm. */
   pa: number | null;
-  /** Flags: `spread` (sensors disagree), `duplicate`, `unknownCode`, `noCatalog` (E-AW-7). */
+  /** Flags: `spread` (sensors disagree), `duplicate`, `unknownCode`, `noCatalog` (E-AW-7), `posCatalog` (position from the
+   *  catalogue: only it lies at the station's road, M6) and `posUnverified` (neither position lies at the road). */
   f?: string[];
+  /** M6: the bulletin's own position `[lat, lon]` when the point shows another one (`posCatalog`). */
+  rpos?: [number, number];
   /** Fields rejected by a hard rule: field → rule id (raw value only in quarantine/). */
   x?: Partial<Record<RoadField, RoadRuleId>>;
 }
@@ -430,6 +433,13 @@ export interface RoadRawStation {
   precipRateMmH: number | null;
   precipMm: number | null;
   quality: number | null;
+  /**
+   * M6 (`scripts/road/station-positions.mjs`): how `lat`/`lon` were chosen — `posCatalog` = the catalogue position
+   * replaces the bulletin's (then `reportPos` = the bulletin's), `posUnverified` = the bulletin's, but neither lies at
+   * the station's road. Absent = the bulletin's position as reported.
+   */
+  posFlag?: 'posCatalog' | 'posUnverified' | null;
+  reportPos?: [number, number] | null;
 }
 
 /** Catalogue row (static/stations.json) as far as the rules need it. */
@@ -655,6 +665,7 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
     if (dupFlag.has(s.id)) { flags.push('duplicate'); bump(balance.flags, 'duplicate'); }
     if (unknownCode) flags.push('unknownCode');
     if (input.catalog && !cat) flags.push('noCatalog');
+    if (s.posFlag) flags.push(s.posFlag);
 
     // Road vs. own air (observe, V-AW-3).
     if (rs != null && ta != null && (rs < ta - ROAD_AIR.belowK || rs > ta + ROAD_AIR.aboveK)) wouldReject('rs', rs, 'roadAir', `Luft ${ta}`);
@@ -682,6 +693,7 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
       rs, ...(rsHi !== undefined ? { rsHi } : {}), ns: roads.length,
       ta, td, rh, vis, wf, cond, ws, wg, wd, pt, pr, pa,
       ...(flags.length ? { f: flags } : {}),
+      ...(s.posFlag === 'posCatalog' && s.reportPos ? { rpos: [round(s.reportPos[0], 5), round(s.reportPos[1], 5)] as [number, number] } : {}),
       ...(Object.keys(x).length ? { x } : {}),
     };
     countRejected(nRejected);
@@ -778,6 +790,7 @@ export function roadPointOk(p: unknown): p is RoadPoint {
   if (!lim('rs') || !lim('ta') || !lim('td') || !lim('rh') || !lim('ws') || !lim('wg') || !lim('wf') || !lim('vis')) return false;
   if (o.cond != null && !isKnownCondition(o.cond as number)) return false;
   if (typeof o.cls !== 'string' || !isNum(o.ns)) return false;
+  if (o.rpos !== undefined && !(Array.isArray(o.rpos) && o.rpos.length === 2 && isNum(o.rpos[0]) && isNum(o.rpos[1]))) return false;
   return roadPointClass(o as unknown as RoadPoint) === o.cls;
 }
 

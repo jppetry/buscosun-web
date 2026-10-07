@@ -34,6 +34,7 @@ import {
 } from '../../src/road/roadFc.ts';
 import { loadTerrainAtPoint } from '../../src/point/client/terrain.ts';
 import { loadZ0AtPoint } from '../../src/point/client/z0Point.ts';
+import { readStationPositions, stationPosition } from './station-positions.mjs';
 
 const OVERPASS = 'https://overpass-api.de/api/interpreter';
 const UA = 'buscosun-road-fc-points (buscosun-web/audit/autobahnwetter.md)';
@@ -143,16 +144,27 @@ export function axisPointsOf(corridor, index) {
 /**
  * Station points from the catalogue; corridor and km from the corridors that list the station. `reporting` (V-AW-7):
  * points of recent obs files — a station there without a catalogue row joins at its bulletin position.
+ * M6: with `positions` (`station-positions.json`) a reporting station sits where its measured marker sits — the
+ * bulletin's position, or the catalogue's where only that one lies at the station's road (`pos: 'catalog'`); a station
+ * that does not report keeps the catalogue position. Without `positions` the catalogue position as before.
  */
-export function stationPointsOf(stations, corridors, reporting = []) {
+export function stationPointsOf(stations, corridors, reporting = [], positions = null) {
   const where = new Map();
   for (const c of corridors) for (const s of c.stations) if (!where.has(s.id)) where.set(s.id, { corridor: c.id, km: s.km });
+  // The bulletin's own position: `rpos` where a slot already shows another one (since M6), else the point's.
+  const reported = new Map();
+  for (const r of reporting) if (r?.id) reported.set(r.id, Array.isArray(r.rpos) ? { lat: r.rpos[0], lon: r.rpos[1] } : { lat: r.lat, lon: r.lon });
   const out = [];
   for (const [key, s] of Object.entries(stations)) {
     const id = s.id ?? key;
     if (s.oob || !Number.isFinite(s.lat) || !Number.isFinite(s.lon)) continue;
     const w = where.get(id);
-    out.push({ id, kind: 'station', corridor: w?.corridor ?? null, km: w?.km ?? null, lat: round5(s.lat), lon: round5(s.lon), state: s.bl ?? 'XX', name: s.n ?? id });
+    let lat = s.lat, lon = s.lon, pos = null;
+    if (positions && reported.has(id)) {
+      const p = stationPosition(positions, id, reported.get(id), { lat: s.lat, lon: s.lon });
+      if (Number.isFinite(p.lat) && Number.isFinite(p.lon)) { lat = p.lat; lon = p.lon; pos = p.flag === 'posCatalog' ? 'catalog' : 'report'; }
+    }
+    out.push({ id, kind: 'station', corridor: w?.corridor ?? null, km: w?.km ?? null, lat: round5(lat), lon: round5(lon), state: s.bl ?? 'XX', name: s.n ?? id, ...(pos ? { pos } : {}) });
   }
   const known = new Set(out.map((p) => p.id));
   const inCatalog = new Set(Object.entries(stations).map(([k, s]) => s.id ?? k));
@@ -166,9 +178,10 @@ export function stationPointsOf(stations, corridors, reporting = []) {
   return out;
 }
 
-export function buildPoints({ corridors, stations, index, reporting = [] }) {
-  const axis = corridors.flatMap((c) => axisPointsOf(c, index));
-  const st = stationPointsOf(stations, corridors, reporting);
+export function buildPoints({ corridors, stations, index, reporting = [], positions = null, axisFrom = null }) {
+  // `axisFrom`: the axis points of an existing points file, taken over unchanged (M6 rebuilds only the stations).
+  const axis = axisFrom ? axisFrom.filter((p) => p.kind === 'axis') : corridors.flatMap((c) => axisPointsOf(c, index));
+  const st = stationPointsOf(stations, corridors, reporting, positions);
   const counts = {
     axis: axis.length, station: st.length, noCatalog: st.filter((p) => p.noCatalog).length,
     snapped: axis.filter((p) => p.snap != null).length, unsnapped: axis.filter((p) => p.snap == null).length,
@@ -252,8 +265,12 @@ async function main() {
   let corridors = corridorsDoc.corridors;
   if (typeof flags.roads === 'string') { const want = new Set(flags.roads.split(',')); corridors = corridors.filter((c) => want.has(c.road)); }
 
-  let index = null, osmBase = null;
-  if (!flags['no-snap']) {
+  // M6: `--axis-from=<points.json>` keeps the axis points of that file (no OSM download, no re-snap); the station table
+  // `scripts/road/station-positions.json` is read unless `--no-positions`.
+  const axisDoc = typeof flags['axis-from'] === 'string' ? JSON.parse(readFileSync(flags['axis-from'], 'utf8')) : null;
+  const positions = flags['no-positions'] ? null : readStationPositions(typeof flags.positions === 'string' ? flags.positions : undefined);
+  let index = null, osmBase = axisDoc ? (/Stand ([^,]+)$/.exec(axisDoc.sources?.[0]?.name ?? '')?.[1] ?? null) : null;
+  if (!flags['no-snap'] && !axisDoc) {
     if (!flags.osm) { console.error('--osm=<cache.json> fehlt (oder --no-snap)'); process.exit(2); }
     if (!existsSync(flags.osm)) {
       log('Overpass: alle Autobahnen Deutschlands …');
@@ -268,8 +285,10 @@ async function main() {
   }
 
   const reporting = typeof flags.obs === 'string' ? flags.obs.split(',').flatMap((f) => JSON.parse(readFileSync(f, 'utf8')).points ?? []) : [];
-  const { points, counts } = buildPoints({ corridors, stations: stationsDoc.stations, index, reporting });
-  log(`Punkte: ${counts.axis} Achse (${counts.snapped} eingerastet, ${counts.unsnapped} nicht, ${counts.slid} verschoben, ${counts.bridge} Brücke) + ${counts.station} Stationen (${counts.noCatalog} ohne Katalogzeile, Lage aus der Meldung)`);
+  const { points, counts } = buildPoints({ corridors, stations: stationsDoc.stations, index, reporting, positions, axisFrom: axisDoc?.points ?? null });
+  const posCatalog = points.filter((p) => p.pos === 'catalog').length, posReport = points.filter((p) => p.pos === 'report').length;
+  if (positions) Object.assign(counts, { posReport, posCatalog });
+  log(`Punkte: ${counts.axis} Achse (${counts.snapped} eingerastet, ${counts.unsnapped} nicht, ${counts.slid} verschoben, ${counts.bridge} Brücke) + ${counts.station} Stationen (${counts.noCatalog} ohne Katalogzeile, Lage aus der Meldung${positions ? `; M6: ${posReport} Meldung, ${posCatalog} Katalog` : ''})`);
   const builtAt = new Date().toISOString();
   const doc = {
     schema: 1, product: 'road-fc-points', builtAt, spacingKm: ROAD_FC_SPACING_KM,
@@ -277,9 +296,10 @@ async function main() {
       { what: 'Lage der Achspunkte (auf die Fahrbahn gelegt)', name: `OpenStreetMap, highway=motorway${osmBase ? `, Stand ${osmBase}` : ''}`, license: 'ODbL 1.0', attribution: '© OpenStreetMap-Mitwirkende' },
       { what: 'Korridor-Achse und Korridor-km', name: 'BKG DLM250 (road/v1/static/corridors.json)', license: 'dl-de/by-2.0', attribution: '© GeoBasis-DE / BKG' },
       { what: 'Stationen', name: 'DWD sws_stations_xls.xlsx (road/v1/static/stations.json)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' },
-      ...(counts.noCatalog ? [{ what: 'Stationen ohne Katalogzeile (V-AW-7)', name: 'Lage aus der Meldung, DWD Straßenwetter (SWIS)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' }] : []),
+      ...(counts.noCatalog || positions ? [{ what: positions ? 'Lage der meldenden Stationen (M6)' : 'Stationen ohne Katalogzeile (V-AW-7)', name: 'Lage aus der Meldung, DWD Straßenwetter (SWIS)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' }] : []),
+      ...(positions ? [{ what: 'Prüfung, welche Lage an der eigenen Straße liegt (M6)', name: 'OpenStreetMap (Wege mit ref)', license: 'ODbL 1.0', attribution: '© OpenStreetMap-Mitwirkende' }] : []),
     ],
-    note: 'Achspunkte: Nennlage alle 5 km auf der Korridor-Achse, Koordinate = nächster Punkt der OSM-Fahrbahn derselben Autobahn (snap = Abstand in m; null = nicht eingerastet, Punkt liegt auf der Achse; slide = wegen Tunnel um so viele km verschoben). Stationen: Katalogposition.',
+    note: `Achspunkte: Nennlage alle 5 km auf der Korridor-Achse, Koordinate = nächster Punkt der OSM-Fahrbahn derselben Autobahn (snap = Abstand in m; null = nicht eingerastet, Punkt liegt auf der Achse; slide = wegen Tunnel um so viele km verschoben). Stationen: ${positions ? 'dieselbe Lage wie der Messpunkt (M6, scripts/road/station-positions.json): Meldung, Katalog nur wo allein er an der eigenen Straße liegt (pos); nicht meldende Stationen Katalogposition' : 'Katalogposition'}.`,
     counts, points,
   };
   writeAtomic(join(flags.out, ROAD_FC_POINTS_PATH.replace(/^static\//, '')), JSON.stringify(doc) + '\n');

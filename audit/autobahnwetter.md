@@ -1182,6 +1182,7 @@ Punktdateien brauchen zusätzlich die Kopie ins Daten-Repo (§18.4, `MANUELLE-SC
 | **V-AW-36** | Der Producer ist nicht ganz deterministisch: zwei Läufe **ohne** Merker auf denselben Eingaben unterschieden sich an 1 von 400 Punkten (a620@5: σ, T um ≈ 0,2–0,5 K, Böe) — in 1 von 4 Läufen; mit Merker 4/4 gleich, im Prozess wiederholt 0/400. Ursache nicht gefunden (Kandidat: Zeitfristen im Motor, die im Browser Sinn haben und im Producer unter Last greifen) | dieselben Eingaben sollen dieselbe Prognose geben — sonst ist jeder Vergleich verrauscht | Notizen je Punkt mitschreiben und die Fristen des Motors im Producer abschalten oder benennen — buscosun Fusion, Jans Gate |
 | V-AW-37 | Achspunkte von a60 km 5–15 rasten weiter nicht ein, obwohl dort Messstellen liegen | Prognose genau auf der Fahrbahn | OSM-Nummer/Klasse dort prüfen (A 60 vermutlich anders getaggt) |
 | V-AW-38 | Die Stationsprognosen der Stationen ohne Katalogzeile liegen in Dateien je DWD-Reihe (`s/NB`, `s/SO`, `s/LH` …), nicht je Bundesland | für die Seite gleich (where.json), für Auswertungen uneinheitlich | mit der aktuellen Katalogliste (§18.5) das Land nachtragen |
+| V-AW-39 | Der Wiederholungsschutz (`repeatVerdict`, V-AW-31) sieht geänderte statische Dateien nicht: nach dem Einspielen von `points.json` am 06.10. 17:24 UTC übersprang der Lauf 17:58 als Wiederholung; erst 2610061831 rechnete mit 4 569 Punkten | neue Punkte wirken sofort statt bis zu einer Stunde später | Blob-Hash oder `builtAt` von `points.json`/`geo.json` in den Lauf schreiben und in `repeatVerdict` vergleichen |
 
 Beobachtungen außerhalb der Phase: `verify:share` SH6 ist auch im Haupt-Arbeitsbaum rot (Bündel mit CRLF ausgecheckt,
 V-AW-15; am Stand vor dieser Nacht gleich). `verify:fusion-release` B2/B3 rot durch `scripts/pruefstand/register-bestand.mjs`
@@ -1219,6 +1220,15 @@ reproduzieren beide Bauer die Live-Dateien exakt (137/137 Korridore, 4 424/4 424
 Paket: 4 569/4 569 Punkte, 0 ohne Ergebnis, 141 Korridore + 16 Dateien je Land/Reihe, 163 s mit 4 Prozessen.
 Achtung: die Kennungen der a14-Achspunkte zeigen nach dem Kürzen auf andere Orte (km zählt ab dem neuen Anfang) — geteilte
 Links `st=a14@…` landen dann woanders; alle übrigen Kennungen bleiben.
+
+**Eingespielt 06.10. 17:24 UTC (Jans Freigabe):** Daten-Repo `e5597ba` auf `329b609` (Radar-Commit), gebaut aus frischem
+`origin/main` mit temporärem Index (`read-tree` + `update-index --cacheinfo`), nur diese drei Pfade, nicht force; der lokale
+Klon `buscosun-data-road` hatte nach einem Force-Push der Kartenlinie keinen gemeinsamen Stand mehr (Workflows und statische
+Dateien auf dem Remote gleich oder neuer, nichts verloren). Blob-Hashes auf `main` = Paket; jsDelivr-Purge der drei
+`@main`-Pfade, danach CDN-Inhalt per sha256 = Paket. Straßen-Slot `2610061730` des laufenden Spiegels (`d6a03b5`) hat die
+neue `corridors.json` behalten (`copyInto`: die Datei im Repo gewinnt). Der Lauf 17:58 übersprang als Wiederholung (V-AW-39);
+der erste Lauf der 18-UTC-Stunde `2610061831` rechnete **4 569 Punkte, 0 ohne Ergebnis** (`road-fc-check`: „in Ordnung",
+12/12 Dateien über den Leser des Clients).
 
 ### 18.5 Anfrage an den DWD (V-AW-7, Text für Jan)
 

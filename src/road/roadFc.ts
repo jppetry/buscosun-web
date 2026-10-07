@@ -403,6 +403,8 @@ export interface RoadFcStaticPoint {
   osmRef?: string;
   /** Axis points, not snapped: a tunnel is all there is in reach. */
   tunnel?: true;
+  /** Station points (M6): the position shared with the measured marker — the bulletin's or the catalogue's. */
+  pos?: 'report' | 'catalog';
 }
 
 export interface RoadFcPointsFile {

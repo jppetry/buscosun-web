@@ -113,6 +113,16 @@ const SKILL_DECAY: Record<Variable, { tau: number; floor: number }> = {
 };
 
 /**
+ * Confidence of a variable carried by ONE source at lead `hour` — exactly what `blendVariable` gives a single sample without
+ * spread (agreement capped at 0.6 × skill decay). The entry of buscosun Fusion (`fusionForecast.ts`, FR-2) gives the DWD UV
+ * it adds to a cube forecast the same confidence the live path gives it.
+ */
+export function singleSourceConfidence(variable: Variable, hour: number): number {
+  const decay = SKILL_DECAY[variable];
+  return 0.6 * Math.max(decay.floor, Math.exp(-hour / decay.tau));
+}
+
+/**
  * Stationsanker: Default ist die Innovations-Persistenz (`anchor.ts`, V-PV-19).
  * Kill-Switch zurück zum alten Wert-Anker per URL `?anchor=value` — der benannte
  * Rückfallweg (D-11), damit ein Vergleich im Produkt jederzeit möglich bleibt.

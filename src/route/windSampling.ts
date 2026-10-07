@@ -15,7 +15,7 @@
  * meldet das (null), die Tour-Berechnung degradiert dann sauber (kein Wind).
  */
 
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import {
   clusterSamples, clusterRepIndex, radiusForTerrain, pickCountry, windElevationFactor,
   DEFAULT_ELEV_BAND_M,
@@ -71,7 +71,7 @@ export async function createWindSampler(
     const hours = COUNTRY_PROFILES[country].forecastHours ?? 24;
     let fc;
     try {
-      fc = await getPointForecast({ lat: rep.lat, lng: rep.lon, country, hours, signal: opts.signal });
+      fc = await getFusionForecast({ lat: rep.lat, lng: rep.lon, country, hours, signal: opts.signal }, 'route');
     } catch {
       return;
     }

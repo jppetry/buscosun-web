@@ -8,7 +8,7 @@
  */
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import type { LayerKey } from '../MapView';
 import { flagForCountry, shortLocationName } from '../geocode';
 import { fmtPhaseHours, phasesLatestHour, planBVenueDef, type EventQuery } from './eventModel';
@@ -105,10 +105,10 @@ export default function EventResult({ query, onEdit, onBack, onOpenFeature }: Pr
     (async () => {
       try {
         const hours = hoursNeededFor(candidateDays(query.window), phasesLatestHour(query.phases));
-        const forecast = await getPointForecast({
+        const forecast = await getFusionForecast({
           lat: query.location.lat, lng: query.location.lon, country: query.location.country,
           hours, signal: ac.signal, includeRadarNowcast: true,
-        });
+        }, 'event');
         if (!alive) return;
         setState({ kind: 'ready', rec: recommendBestDay(query, forecast), forecast });
       } catch (err) {

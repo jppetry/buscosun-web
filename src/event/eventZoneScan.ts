@@ -20,7 +20,7 @@
  */
 
 import type { Location } from '../types';
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import { recommendBestDay, hoursNeededFor, type DaySummary } from './eventScoring';
 import { phasesLatestHour, type EventQuery } from './eventModel';
 import { phasesWindow, representativeWindHour, windAtHour } from './eventTerrain';
@@ -76,9 +76,9 @@ async function scorePoint(
   // Ort — ein erfundener Ortsname wäre eine Aussage, die wir nicht haben.
   const location: Location = { name: p.label, lat: p.lat, lon: p.lon, country: query.location.country };
   const hours = hoursNeededFor([targetDate], phasesLatestHour(query.phases));
-  const forecast = await getPointForecast({
+  const forecast = await getFusionForecast({
     lat: p.lat, lng: p.lon, country: location.country, hours, signal,
-  });
+  }, 'event');
   const subQuery: EventQuery = { ...query, location, zone: null, window: { mode: 'dates', dates: [targetDate] } };
   const day = recommendBestDay(subQuery, forecast).days[0];
   if (!day || !day.summary) return null; // jenseits des Horizonts ⇒ nicht vergleichbar

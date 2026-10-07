@@ -1,0 +1,23 @@
+K441  B410   Daleiden/Dasburg/Daleiden/ Dasburg Abstand  46.6 | Meldung an Straße: nein [] | Katalog an Straße: JA ["L 1","B 410"]
+P670  B15    Laabertal Bruecke/Laabertalbruecke Abstand  43.0 | Meldung an Straße: nein ["A 3","R 13"] | Katalog an Straße: JA ["B 15"]
+P925  B12    Stuetzelsaege/Vogelwirt            Abstand  19.9 | Meldung an Straße: nein ["St 2007"] | Katalog an Straße: JA ["B 12","OA 18"]
+K512  B50    Hinzerath/Hinzerath                Abstand  17.2 | Meldung an Straße: ? null | Katalog an Straße: JA ["L 159","K 106","B 327","B 50"]
+K502  B257   Irrel-Zweikreuz/Irrel/Zweikreuz    Abstand  11.0 | Meldung an Straße: nein [] | Katalog an Straße: JA ["B 257","K 20"]
+P214  ST226  Graefenneuses/Graefenneuses        Abstand  10.4 | Meldung an Straße: nein ["St 2260"] | Katalog an Straße: nein ["St 2260"]
+O455  -      Dresden RWY2 GMA/Dresden rwy2      Abstand  10.0 | Meldung an Straße: nein [] | Katalog an Straße: ? null
+O454  -      Dresden RWY1 GMA/Dresden rwy1      Abstand   9.5 | Meldung an Straße: nein [] | Katalog an Straße: ? null
+J710  B51    Hardt/Hardt                        Abstand   8.1 | Meldung an Straße: nein ["L 157"] | Katalog an Straße: JA ["B 51"]
+Q444  -      Stuttgart RWY4/Stuttgart rwy4      Abstand   5.0 | Meldung an Straße: nein [] | Katalog an Straße: nein []
+P728  B388   Flughafen Muenchen/Flughafen Muenchen Abstand   4.2 | Meldung an Straße: ? null | Katalog an Straße: ? null
+V069  B279   Schwedenschanze/Schwedenschanze (BY) Abstand   4.1 | Meldung an Straße: nein ["B 278"] | Katalog an Straße: JA ["B 279"]
+P419  ST222  Windsbach/Windsbach                Abstand   3.9 | Meldung an Straße: nein ["St 2220"] | Katalog an Straße: nein ["St 2220"]
+H472  L751   Oerlinghausen/Oerlinghausen        Abstand   2.9 | Meldung an Straße: JA ["L 967","L 751","K 10"] | Katalog an Straße: ? null
+P110  -      Holzkirchhausen/Holzkirchhausen    Abstand   2.9 | Meldung an Straße: nein [] | Katalog an Straße: nein ["WÜ 59"]
+L465  B253   Eifa/Eifa                          Abstand   2.2 | Meldung an Straße: JA ["B 253"] | Katalog an Straße: JA ["L 553","B 253"]
+L225  B252   Hessensteinkurve/Hessensteinkurve  Abstand   2.2 | Meldung an Straße: nein [] | Katalog an Straße: ? null
+L284  B452   Eschwege/Eschwege (gsm)            Abstand   2.2 | Meldung an Straße: nein [] | Katalog an Straße: JA ["B 452"]
+C501  -      Bergedorfer Strasse/Bergedorfer Straße Abstand   2.2 | Meldung an Straße: nein [] | Katalog an Straße: nein ["B 5"]
+C502  -      Jahnring/Jahnring                  Abstand   2.2 | Meldung an Straße: nein ["Ring 2"] | Katalog an Straße: nein []
+H232  B67    Darup/H232                         Abstand   2.0 | Meldung an Straße: ? null | Katalog an Straße: nein []
+
+[exited with code 0]

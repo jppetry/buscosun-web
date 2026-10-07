@@ -12,7 +12,7 @@
  */
 
 import type { Location } from '../types';
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import { reverseGeocode } from '../geocode';
 import { recommendBestDay, hoursNeededFor } from './eventScoring';
 import { phasesLatestHour, type EventQuery } from './eventModel';
@@ -74,9 +74,9 @@ async function scoreCandidate(
   }
 
   const hours = hoursNeededFor([targetDate], phasesLatestHour(query.phases));
-  const forecast = await getPointForecast({
+  const forecast = await getFusionForecast({
     lat: location.lat, lng: location.lon, country: location.country, hours, signal,
-  });
+  }, 'event');
   const subQuery: EventQuery = { ...query, location, window: { mode: 'dates', dates: [targetDate] } };
   const rec = recommendBestDay(subQuery, forecast);
   const day = rec.days[0];

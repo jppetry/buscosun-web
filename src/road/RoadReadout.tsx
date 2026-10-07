@@ -391,7 +391,9 @@ function StationTab(p: Props) {
 
       <div className="aw-sources">
         {s.q === 'ok' ? 'Prüfung des DWD: durchgeführt, nichts beanstandet' : 'Prüfung des DWD: nicht durchgeführt (DWD-Flag)'} · Plausibilität buscosun: bestanden
-        {s.f?.includes('noCatalog') ? ' · Position aus der Meldung (nicht im DWD-Stationskatalog)' : ''}<br />
+        {s.f?.includes('noCatalog') ? ' · Position aus der Meldung (nicht im DWD-Stationskatalog)' : ''}
+        {s.f?.includes('posCatalog') ? ' · Position aus dem DWD-Stationskatalog — die Meldung nennt eine Stelle abseits dieser Straße' : ''}
+        {s.f?.includes('posUnverified') ? ' · Position nicht bestätigt: weder Meldung noch Katalog liegen an dieser Straße' : ''}<br />
         Datenbasis: Deutscher Wetterdienst, Glättemeldeanlagen der Länder (SWIS) · GeoNutzV · verändert: geprüft, umkodiert
       </div>
     </>

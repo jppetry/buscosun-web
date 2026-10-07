@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import { loadElevationLookup } from '../fusion/elevation';
 import { pickCountry } from '../pointForecast/clustering';
 import { talwindReversals, type TalwindReversal } from '../threed/dynamics';
@@ -56,7 +56,7 @@ export default function TalwindPanel() {
           } catch { /* DEM optional */ }
           if (ac.signal.aborted) return;
 
-          const fc = await getPointForecast({ lat, lng: lon, country: pickCountry(lat, lon), hours: 48, signal: ac.signal });
+          const fc = await getFusionForecast({ lat, lng: lon, country: pickCountry(lat, lon), hours: 48, signal: ac.signal }, 'section');
           if (ac.signal.aborted) return;
           const series: TimeSample[] = fc.hours.map((h) => ({
             tMs: h.timestamp.getTime(),

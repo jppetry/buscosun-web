@@ -12,7 +12,7 @@
  */
 
 import { loadElevationLookup } from '../fusion/elevation';
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import { pickCountry } from '../pointForecast/clustering';
 import { resampleLine, lineBounds, type GeoPoint, type SectionColumn } from './sectionGeometry';
 import {
@@ -138,7 +138,7 @@ export async function prepareCrossSection(
   // laden, um rate-limitierte Quellen (GeoSphere AT) nicht zu überlasten.
   const anchorCols = pickAnchorColumns(columns, ANCHORS);
   const forecasts = await mapLimit(anchorCols, ANCHOR_CONCURRENCY, (col) =>
-    getPointForecast({ lat: col.lat, lng: col.lon, country: pickCountry(col.lat, col.lon), hours: FORECAST_HOURS, signal })
+    getFusionForecast({ lat: col.lat, lng: col.lon, country: pickCountry(col.lat, col.lon), hours: FORECAST_HOURS, signal }, 'section')
       .then((fc) => ({ col, fc }))
       .catch(() => null)
       .finally(() => { done++; onProgress?.({ phase: `Wetterdaten ${Math.min(done - 1, ANCHORS)}/${ANCHORS} …`, done, total }); }),

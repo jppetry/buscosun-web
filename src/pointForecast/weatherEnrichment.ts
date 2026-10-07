@@ -29,7 +29,7 @@
  * Output: Samples mit befülltem `weather` plus eine Meta-Statistik der Calls.
  */
 
-import { getPointForecast } from './pointForecast';
+import { getFusionForecast } from './fusionForecast';
 import { createRadarNowcastSampler, type RadarNowcastSampler } from './radarNowcast';
 import { createWarningChecker, type WarningChecker } from './warningsCrossCheck';
 import { classifyPrecipitation, type PrecipitationType } from './precipType';
@@ -217,10 +217,10 @@ export async function enrichSampleWeather(
     horizonHrs[i] = neededHours;
     pfCalls++;
     try {
-      forecasts[i] = await getPointForecast({
+      forecasts[i] = await getFusionForecast({
         lat: c.queryLat, lng: c.queryLon, country: c.country,
         hours: neededHours, signal: opts.signal,
-      });
+      }, 'route');
     } catch {
       pfFailed++;
       forecasts[i] = null;

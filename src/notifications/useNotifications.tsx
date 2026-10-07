@@ -13,7 +13,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { getPointForecast } from '../pointForecast/pointForecast';
+import { getFusionForecast } from '../pointForecast/fusionForecast';
 import { recommendBestDay, candidateDays, hoursNeededFor } from '../event/eventScoring';
 import { phasesLatestHour, todayISO, type EventQuery } from '../event/eventModel';
 import {
@@ -235,12 +235,12 @@ export function NotificationProvider({ children, store }: { children: React.Reac
     for (const sub of subs) {
       try {
         const hours = hoursNeededFor(candidateDays(sub.query.window), phasesLatestHour(sub.query.phases));
-        const forecast = await getPointForecast({
+        const forecast = await getFusionForecast({
           lat: sub.query.location.lat,
           lng: sub.query.location.lon,
           country: sub.query.location.country,
           hours,
-        });
+        }, 'notify');
         const rec = recommendBestDay(sub.query, forecast);
         // jüngste Version dieser Subscription aus der Arbeitskopie holen
         const fresh = curSubs.find((s) => s.id === sub.id) ?? sub;

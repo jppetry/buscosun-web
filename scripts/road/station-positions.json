@@ -1,0 +1,6296 @@
+{
+ "schema": 1,
+ "product": "road-station-positions",
+ "builtAt": "2026-10-06T21:28:59.435Z",
+ "rule": "Lage an der eigenen Straße gewinnt (Weg mit derselben Nummer in OSM ≤ 300 m); beide → Meldung; keine → Meldung, gekennzeichnet; ≤ 0.3 km → Meldung. Eine Entscheidung gilt, solange die Meldung (≤ 0.3 km) dieselbe Lage nennt.",
+ "sources": [
+  {
+   "what": "Lage aus der Meldung",
+   "name": "DWD Straßenwetter (SWIS), road/v1/obs",
+   "license": "GeoNutzV",
+   "attribution": "Deutscher Wetterdienst"
+  },
+  {
+   "what": "Lage aus dem Katalog",
+   "name": "DWD sws_stations_xls.xlsx (road/v1/static/stations.json)",
+   "license": "GeoNutzV",
+   "attribution": "Deutscher Wetterdienst"
+  },
+  {
+   "what": "Prüfung an der Straße",
+   "name": "OpenStreetMap (Wege mit ref)",
+   "license": "ODbL 1.0",
+   "attribution": "© OpenStreetMap-Mitwirkende"
+  }
+ ],
+ "obs": [
+  "2610061900",
+  "2610062000"
+ ],
+ "counts": {
+  "listed": 368,
+  "report": 153,
+  "catalog": 58,
+  "both": 134,
+  "neither": 13,
+  "unchecked": 10
+ },
+ "stations": {
+  "P101": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Kahl",
+   "road": "A45x",
+   "distKm": 130.79,
+   "report": [
+    49.20859,
+    10.24814
+   ],
+   "catalog": [
+    50.08435,
+    9.03535
+   ],
+   "reportToRoadM": 124987,
+   "catalogToRoadM": 16
+  },
+  "P301": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Ensbruecke",
+   "road": "A7S",
+   "distKm": 69.02,
+   "report": [
+    49.82504,
+    11.0091
+   ],
+   "catalog": [
+    49.44218,
+    10.25471
+   ],
+   "reportToRoadM": 63459,
+   "catalogToRoadM": 8
+  },
+  "P142": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Wildbach",
+   "road": "A70x",
+   "distKm": 54.99,
+   "report": [
+    50.19964,
+    9.93803
+   ],
+   "catalog": [
+    49.97796,
+    10.62704
+   ],
+   "reportToRoadM": 23824,
+   "catalogToRoadM": 8
+  },
+  "K441": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Daleiden/ Dasburg",
+   "road": "B410",
+   "distKm": 46.63,
+   "report": [
+    50.35718,
+    6.58664
+   ],
+   "catalog": [
+    50.0462,
+    6.14717
+   ],
+   "reportToRoadM": 18695,
+   "catalogToRoadM": 6
+  },
+  "P670": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Laabertalbruecke",
+   "road": "B15N",
+   "distKm": 42.98,
+   "report": [
+    49.08224,
+    11.90157
+   ],
+   "catalog": [
+    48.73444,
+    12.15806
+   ],
+   "reportToRoadM": 25014,
+   "catalogToRoadM": 3
+  },
+  "H273": {
+   "use": "report",
+   "check": "both",
+   "name": "Toppmannsbach",
+   "road": "A44E",
+   "distKm": 21.62,
+   "report": [
+    52.074,
+    8.25196
+   ],
+   "catalog": [
+    51.9566,
+    8.5038
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 6
+  },
+  "P925": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Vogelwirt",
+   "road": "B12x",
+   "distKm": 19.86,
+   "report": [
+    47.58705,
+    10.38165
+   ],
+   "catalog": [
+    47.76124,
+    10.44014
+   ],
+   "reportToRoadM": 19608,
+   "catalogToRoadM": 12
+  },
+  "K512": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Hinzerath",
+   "road": "B50",
+   "distKm": 17.21,
+   "report": [
+    49.97043,
+    7.32328
+   ],
+   "catalog": [
+    49.8544,
+    7.16431
+   ],
+   "reportToRoadM": 5726,
+   "catalogToRoadM": 15
+  },
+  "P159": {
+   "use": "report",
+   "check": "report",
+   "name": "Hirschaid",
+   "road": "A73x",
+   "distKm": 15.78,
+   "report": [
+    49.82504,
+    11.0091
+   ],
+   "catalog": [
+    49.9183,
+    10.8432
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 5188
+  },
+  "F053": {
+   "use": "report",
+   "check": "report",
+   "name": "Pasewalk Sued",
+   "road": "A20E",
+   "distKm": 11.36,
+   "report": [
+    53.46878,
+    13.95992
+   ],
+   "catalog": [
+    53.36667,
+    13.96667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 748
+  },
+  "K502": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Irrel/Zweikreuz",
+   "road": "B257x",
+   "distKm": 11.04,
+   "report": [
+    49.92969,
+    6.45229
+   ],
+   "catalog": [
+    49.83043,
+    6.44797
+   ],
+   "reportToRoadM": 10352,
+   "catalogToRoadM": 10
+  },
+  "P214": {
+   "use": "report",
+   "check": "both",
+   "name": "Graefenneuses",
+   "road": "St2260",
+   "distKm": 10.44,
+   "report": [
+    49.84159,
+    10.30298
+   ],
+   "catalog": [
+    49.79282,
+    10.42728
+   ],
+   "reportToRoadM": 36,
+   "catalogToRoadM": 7
+  },
+  "O455": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Dresden rwy2",
+   "road": "RWYx",
+   "distKm": 10.03,
+   "report": [
+    51.12722,
+    13.75664
+   ],
+   "catalog": [
+    51.13333,
+    13.9
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "O454": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Dresden rwy1",
+   "road": "RWYx",
+   "distKm": 9.54,
+   "report": [
+    51.13383,
+    13.76569
+   ],
+   "catalog": [
+    51.15,
+    13.9
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "H508": {
+   "use": "report",
+   "check": "report",
+   "name": "Moenchengladbach-West",
+   "road": "A61S",
+   "distKm": 8.84,
+   "report": [
+    51.19289,
+    6.37886
+   ],
+   "catalog": [
+    51.21667,
+    6.5
+   ],
+   "reportToRoadM": 104,
+   "catalogToRoadM": 8036
+  },
+  "J710": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Hardt",
+   "road": "B051x",
+   "distKm": 8.07,
+   "report": [
+    49.48833,
+    6.71722
+   ],
+   "catalog": [
+    49.48889,
+    6.60556
+   ],
+   "reportToRoadM": 7851,
+   "catalogToRoadM": 30
+  },
+  "H448": {
+   "use": "report",
+   "check": "report",
+   "name": "Lichtendorf",
+   "road": "A1S",
+   "distKm": 7.07,
+   "report": [
+    51.4799,
+    7.61042
+   ],
+   "catalog": [
+    51.41667,
+    7.6
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 5004
+  },
+  "M417": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Talbruecke Nessetal",
+   "road": "A004W",
+   "distKm": 6.83,
+   "report": [
+    50.96167,
+    10.39028
+   ],
+   "catalog": [
+    50.9789,
+    10.48391
+   ],
+   "reportToRoadM": 4374,
+   "catalogToRoadM": 10
+  },
+  "H557": {
+   "use": "report",
+   "check": "report",
+   "name": "Dahl",
+   "road": "A45S",
+   "distKm": 6.81,
+   "report": [
+    51.30417,
+    7.55433
+   ],
+   "catalog": [
+    51.25,
+    7.6
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 1033
+  },
+  "H379": {
+   "use": "report",
+   "check": "report",
+   "name": "Lohme-Alme TB",
+   "road": "A33S",
+   "distKm": 6.5,
+   "report": [
+    51.67508,
+    8.71272
+   ],
+   "catalog": [
+    51.61667,
+    8.71667
+   ],
+   "reportToRoadM": 15,
+   "catalogToRoadM": 837
+  },
+  "H179": {
+   "use": "report",
+   "check": "report",
+   "name": "Bielefelder Berg Tms",
+   "road": "A2E",
+   "distKm": 5.89,
+   "report": [
+    51.97372,
+    8.61478
+   ],
+   "catalog": [
+    51.96667,
+    8.7
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 5891
+  },
+  "H453": {
+   "use": "report",
+   "check": "report",
+   "name": "AK Hagen",
+   "road": "A46E",
+   "distKm": 5.89,
+   "report": [
+    51.36867,
+    7.51592
+   ],
+   "catalog": [
+    51.31667,
+    7.5
+   ],
+   "reportToRoadM": 30,
+   "catalogToRoadM": 5905
+  },
+  "H582": {
+   "use": "report",
+   "check": "both",
+   "name": "Graenscheid",
+   "road": "A46W",
+   "distKm": 5.8,
+   "report": [
+    51.36083,
+    8.36019
+   ],
+   "catalog": [
+    51.36092,
+    8.27669
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 233
+  },
+  "E146": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Uthlede",
+   "road": "A27S",
+   "distKm": 5.65,
+   "report": [
+    53.35667,
+    8.59722
+   ],
+   "catalog": [
+    53.30754,
+    8.61864
+   ],
+   "reportToRoadM": 460,
+   "catalogToRoadM": 12
+  },
+  "H530": {
+   "use": "report",
+   "check": "report",
+   "name": "Grunewald Bruecke",
+   "road": "A59N",
+   "distKm": 5.43,
+   "report": [
+    51.41361,
+    6.77136
+   ],
+   "catalog": [
+    51.36667,
+    6.75
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 1257
+  },
+  "E745": {
+   "use": "report",
+   "check": "report",
+   "name": "Caecilienhoehe",
+   "road": "A2E",
+   "distKm": 5.21,
+   "report": [
+    52.32343,
+    9.3908
+   ],
+   "catalog": [
+    52.31667,
+    9.46667
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 4256
+  },
+  "J816": {
+   "use": "report",
+   "check": "both",
+   "name": "Schwarzenholz",
+   "road": "A8W",
+   "distKm": 5.15,
+   "report": [
+    49.31938,
+    6.86236
+   ],
+   "catalog": [
+    49.34167,
+    6.8
+   ],
+   "reportToRoadM": 25,
+   "catalogToRoadM": 64
+  },
+  "Q444": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Stuttgart rwy4",
+   "road": "RWY4x",
+   "distKm": 5.04,
+   "report": [
+    48.6931,
+    9.23911
+   ],
+   "catalog": [
+    48.66667,
+    9.18333
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "F360": {
+   "use": "report",
+   "check": "both",
+   "name": "Finowfurt",
+   "road": "A11E",
+   "distKm": 4.82,
+   "report": [
+    52.81185,
+    13.63245
+   ],
+   "catalog": [
+    52.85,
+    13.66667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 6
+  },
+  "Q394": {
+   "use": "report",
+   "check": "report",
+   "name": "Agnesburg A",
+   "road": "A7N",
+   "distKm": 4.45,
+   "report": [
+    48.86924,
+    10.17315
+   ],
+   "catalog": [
+    48.83333,
+    10.2
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 406
+  },
+  "Q396": {
+   "use": "report",
+   "check": "report",
+   "name": "Agnesburg B",
+   "road": "A7S",
+   "distKm": 4.45,
+   "report": [
+    48.86924,
+    10.17315
+   ],
+   "catalog": [
+    48.83333,
+    10.2
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 406
+  },
+  "P728": {
+   "use": "report",
+   "check": "report",
+   "name": "Flughafen Muenchen",
+   "road": "B388ax",
+   "distKm": 4.22,
+   "report": [
+    48.25605,
+    11.70691
+   ],
+   "catalog": [
+    48.29389,
+    11.71119
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 3840
+  },
+  "V069": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Schwedenschanze (BY)",
+   "road": "B 279",
+   "distKm": 4.09,
+   "report": [
+    50.42064,
+    9.99382
+   ],
+   "catalog": [
+    50.42228,
+    9.93621
+   ],
+   "reportToRoadM": 3460,
+   "catalogToRoadM": 22
+  },
+  "H266": {
+   "use": "report",
+   "check": "both",
+   "name": "H266",
+   "road": "A2E",
+   "distKm": 4,
+   "report": [
+    51.86797,
+    8.37825
+   ],
+   "catalog": [
+    51.8546,
+    8.32423
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 24
+  },
+  "H084": {
+   "use": "report",
+   "check": "both",
+   "name": "AS Roedinghausen",
+   "road": "A30W",
+   "distKm": 3.87,
+   "report": [
+    52.19746,
+    8.47336
+   ],
+   "catalog": [
+    52.2,
+    8.41667
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 233
+  },
+  "P419": {
+   "use": "report",
+   "check": "both",
+   "name": "Windsbach",
+   "road": "St2220",
+   "distKm": 3.86,
+   "report": [
+    49.24946,
+    10.86167
+   ],
+   "catalog": [
+    49.24323,
+    10.80932
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 6
+  },
+  "H526": {
+   "use": "report",
+   "check": "report",
+   "name": "Neersen",
+   "road": "A44W",
+   "distKm": 3.77,
+   "report": [
+    51.25019,
+    6.49194
+   ],
+   "catalog": [
+    51.21667,
+    6.5
+   ],
+   "reportToRoadM": 83,
+   "catalogToRoadM": 730
+  },
+  "H241": {
+   "use": "report",
+   "check": "report",
+   "name": "Ascheberg",
+   "road": "A1S",
+   "distKm": 3.71,
+   "report": [
+    51.7652,
+    7.64142
+   ],
+   "catalog": [
+    51.7541,
+    7.6923
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 3129
+  },
+  "H326": {
+   "use": "report",
+   "check": "report",
+   "name": "Huenxe",
+   "road": "A3S",
+   "distKm": 3.52,
+   "report": [
+    51.64464,
+    6.74064
+   ],
+   "catalog": [
+    51.61667,
+    6.71667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 2788
+  },
+  "H329": {
+   "use": "report",
+   "check": "report",
+   "name": "Bottrop AK",
+   "road": "A2E",
+   "distKm": 3.52,
+   "report": [
+    51.55169,
+    6.91827
+   ],
+   "catalog": [
+    51.58333,
+    6.91667
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 3160
+  },
+  "H732": {
+   "use": "report",
+   "check": "report",
+   "name": "Worringen",
+   "road": "A57S",
+   "distKm": 3.4,
+   "report": [
+    51.04494,
+    6.83528
+   ],
+   "catalog": [
+    51.01667,
+    6.81667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 2448
+  },
+  "M774": {
+   "use": "report",
+   "check": "both",
+   "name": "Moßbach",
+   "road": "A009S",
+   "distKm": 3.29,
+   "report": [
+    50.71,
+    11.85194
+   ],
+   "catalog": [
+    50.68346,
+    11.83119
+   ],
+   "reportToRoadM": 30,
+   "catalogToRoadM": 13
+  },
+  "A795": {
+   "use": "report",
+   "check": "both",
+   "name": "Bad Schwartau",
+   "road": "A1S",
+   "distKm": 3.23,
+   "report": [
+    53.93015,
+    10.72892
+   ],
+   "catalog": [
+    53.9092,
+    10.6948
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 5
+  },
+  "H327": {
+   "use": "report",
+   "check": "report",
+   "name": "Parwicker Bach",
+   "road": "A52x",
+   "distKm": 3.21,
+   "report": [
+    51.59544,
+    7.0372
+   ],
+   "catalog": [
+    51.56667,
+    7.03333
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 1247
+  },
+  "H949": {
+   "use": "report",
+   "check": "report",
+   "name": "Meckenheim AK",
+   "road": "A61S",
+   "distKm": 3.21,
+   "report": [
+    50.59431,
+    7.02972
+   ],
+   "catalog": [
+    50.56667,
+    7.01667
+   ],
+   "reportToRoadM": 100,
+   "catalogToRoadM": 3004
+  },
+  "P255": {
+   "use": "report",
+   "check": "both",
+   "name": "Baiersdorf",
+   "road": "A73x",
+   "distKm": 3.16,
+   "report": [
+    49.65852,
+    11.03714
+   ],
+   "catalog": [
+    49.68425,
+    11.05568
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 9
+  },
+  "H371": {
+   "use": "report",
+   "check": "neither",
+   "name": "Erwitte",
+   "road": "A043x/B55x",
+   "distKm": 3.1,
+   "report": [
+    51.58378,
+    8.3135
+   ],
+   "catalog": [
+    51.60616,
+    8.34034
+   ],
+   "reportToRoadM": 63153,
+   "catalogToRoadM": 63257
+  },
+  "F515": {
+   "use": "report",
+   "check": "report",
+   "name": "Grebs",
+   "road": "A2E",
+   "distKm": 3.09,
+   "report": [
+    52.34225,
+    12.63206
+   ],
+   "catalog": [
+    52.31667,
+    12.65
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 2162
+  },
+  "N422": {
+   "use": "report",
+   "check": "both",
+   "name": "Morsleben",
+   "road": "A2E",
+   "distKm": 3.05,
+   "report": [
+    52.20917,
+    11.10972
+   ],
+   "catalog": [
+    52.21667,
+    11.06667
+   ],
+   "reportToRoadM": 33,
+   "catalogToRoadM": 65
+  },
+  "P105": {
+   "use": "report",
+   "check": "both",
+   "name": "Weibersbrunn",
+   "road": "A003N",
+   "distKm": 3.05,
+   "report": [
+    49.96152,
+    9.3149
+   ],
+   "catalog": [
+    49.94194,
+    9.34472
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 172
+  },
+  "F528": {
+   "use": "report",
+   "check": "report",
+   "name": "Beelitz-Heilstaetten",
+   "road": "A9S",
+   "distKm": 3.04,
+   "report": [
+    52.25617,
+    12.90889
+   ],
+   "catalog": [
+    52.28348,
+    12.90842
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 365
+  },
+  "L917": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Gernsheim",
+   "road": "A067S",
+   "distKm": 3,
+   "report": [
+    49.71667,
+    8.55
+   ],
+   "catalog": [
+    49.74333,
+    8.54361
+   ],
+   "reportToRoadM": 391,
+   "catalogToRoadM": 13
+  },
+  "H726": {
+   "use": "report",
+   "check": "report",
+   "name": "Bergheim",
+   "road": "A61S",
+   "distKm": 3,
+   "report": [
+    50.94303,
+    6.62567
+   ],
+   "catalog": [
+    50.91667,
+    6.61667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 2964
+  },
+  "H451": {
+   "use": "report",
+   "check": "report",
+   "name": "Rhynern",
+   "road": "A2x",
+   "distKm": 2.95,
+   "report": [
+    51.63825,
+    7.8915
+   ],
+   "catalog": [
+    51.61667,
+    7.86667
+   ],
+   "reportToRoadM": 68,
+   "catalogToRoadM": 1169
+  },
+  "H472": {
+   "use": "report",
+   "check": "report",
+   "name": "Oerlinghausen",
+   "road": "L751S",
+   "distKm": 2.92,
+   "report": [
+    51.95944,
+    8.65431
+   ],
+   "catalog": [
+    51.93333,
+    8.65
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 2327
+  },
+  "P110": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Holzkirchhausen",
+   "road": "WÜ59",
+   "distKm": 2.87,
+   "report": [
+    49.75504,
+    9.62213
+   ],
+   "catalog": [
+    49.75504,
+    9.66202
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "H933": {
+   "use": "report",
+   "check": "both",
+   "name": "Wisskirchen",
+   "road": "A1S",
+   "distKm": 2.85,
+   "report": [
+    50.64206,
+    6.72175
+   ],
+   "catalog": [
+    50.61667,
+    6.71667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 87
+  },
+  "H821": {
+   "use": "report",
+   "check": "report",
+   "name": "Rurbruecke Dueren",
+   "road": "A4E",
+   "distKm": 2.84,
+   "report": [
+    50.83642,
+    6.44239
+   ],
+   "catalog": [
+    50.81667,
+    6.41667
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 2076
+  },
+  "H553": {
+   "use": "report",
+   "check": "report",
+   "name": "Brunsbecke TB",
+   "road": "A45S",
+   "distKm": 2.84,
+   "report": [
+    51.32776,
+    7.52981
+   ],
+   "catalog": [
+    51.31667,
+    7.56667
+   ],
+   "reportToRoadM": 17,
+   "catalogToRoadM": 957
+  },
+  "N793": {
+   "use": "report",
+   "check": "both",
+   "name": "Zoerbig",
+   "road": "A9S",
+   "distKm": 2.76,
+   "report": [
+    51.62427,
+    12.192
+   ],
+   "catalog": [
+    51.6,
+    12.18333
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 11
+  },
+  "H201": {
+   "use": "report",
+   "check": "report",
+   "name": "Elten",
+   "road": "A3S",
+   "distKm": 2.67,
+   "report": [
+    51.87006,
+    6.20514
+   ],
+   "catalog": [
+    51.86667,
+    6.16667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 1971
+  },
+  "H427": {
+   "use": "report",
+   "check": "report",
+   "name": "H427",
+   "road": "A40E",
+   "distKm": 2.59,
+   "report": [
+    51.43603,
+    6.92914
+   ],
+   "catalog": [
+    51.41667,
+    6.95
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 2175
+  },
+  "H422": {
+   "use": "report",
+   "check": "both",
+   "name": "AK Oberhausen",
+   "road": "A516S",
+   "distKm": 2.59,
+   "report": [
+    51.53739,
+    6.83381
+   ],
+   "catalog": [
+    51.51667,
+    6.81667
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 78
+  },
+  "H852": {
+   "use": "report",
+   "check": "both",
+   "name": "BB Muelheim",
+   "road": "A3S",
+   "distKm": 2.59,
+   "report": [
+    50.96947,
+    7.03057
+   ],
+   "catalog": [
+    50.9899,
+    7.0128
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 5
+  },
+  "H538": {
+   "use": "report",
+   "check": "report",
+   "name": "ueF A44/A52",
+   "road": "A44E",
+   "distKm": 2.53,
+   "report": [
+    51.28944,
+    6.80153
+   ],
+   "catalog": [
+    51.26667,
+    6.8
+   ],
+   "reportToRoadM": 28,
+   "catalogToRoadM": 1432
+  },
+  "H730": {
+   "use": "report",
+   "check": "both",
+   "name": "Rodenkirchen",
+   "road": "A4W",
+   "distKm": 2.48,
+   "report": [
+    50.89967,
+    6.99083
+   ],
+   "catalog": [
+    50.88333,
+    6.96667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 172
+  },
+  "H049": {
+   "use": "report",
+   "check": "report",
+   "name": "Heek (B70)",
+   "road": "A31S",
+   "distKm": 2.47,
+   "report": [
+    52.11861,
+    7.08639
+   ],
+   "catalog": [
+    52.1,
+    7.06667
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 1290
+  },
+  "E674": {
+   "use": "report",
+   "check": "report",
+   "name": "Hannover-Nord",
+   "road": "A7S",
+   "distKm": 2.44,
+   "report": [
+    52.55478,
+    9.79237
+   ],
+   "catalog": [
+    52.53333,
+    9.8
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 441
+  },
+  "N700": {
+   "use": "report",
+   "check": "both",
+   "name": "Thyratal",
+   "road": "A38x",
+   "distKm": 2.39,
+   "report": [
+    51.46782,
+    10.96523
+   ],
+   "catalog": [
+    51.47083,
+    10.99944
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 5
+  },
+  "H062": {
+   "use": "report",
+   "check": "report",
+   "name": "Mittellandkanal",
+   "road": "A30N",
+   "distKm": 2.39,
+   "report": [
+    52.28775,
+    7.60689
+   ],
+   "catalog": [
+    52.26667,
+    7.6
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 2332
+  },
+  "O329": {
+   "use": "report",
+   "check": "neither",
+   "name": "Doebeln-Nord",
+   "road": "A14E",
+   "distKm": 2.39,
+   "report": [
+    51.17702,
+    13.00332
+   ],
+   "catalog": [
+    51.16667,
+    13.03333
+   ],
+   "reportToRoadM": 1348,
+   "catalogToRoadM": 788
+  },
+  "H659": {
+   "use": "report",
+   "check": "report",
+   "name": "Meinerzhagen",
+   "road": "A45S",
+   "distKm": 2.38,
+   "report": [
+    51.07636,
+    7.697
+   ],
+   "catalog": [
+    51.06667,
+    7.66667
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 2271
+  },
+  "H555": {
+   "use": "report",
+   "check": "report",
+   "name": "Suerenhagen TB",
+   "road": "A45S",
+   "distKm": 2.35,
+   "report": [
+    51.31121,
+    7.55474
+   ],
+   "catalog": [
+    51.3,
+    7.58333
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 1444
+  },
+  "F843": {
+   "use": "report",
+   "check": "report",
+   "name": "Calau",
+   "road": "A13N",
+   "distKm": 2.29,
+   "report": [
+    51.73725,
+    13.86699
+   ],
+   "catalog": [
+    51.71667,
+    13.86667
+   ],
+   "reportToRoadM": 101,
+   "catalogToRoadM": 1252
+  },
+  "H409": {
+   "use": "report",
+   "check": "report",
+   "name": "Wachtendonk",
+   "road": "A40x",
+   "distKm": 2.28,
+   "report": [
+    51.39617,
+    6.36492
+   ],
+   "catalog": [
+    51.41667,
+    6.36667
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 1969
+  },
+  "H488": {
+   "use": "report",
+   "check": "report",
+   "name": "Diemelstadt",
+   "road": "A44W",
+   "distKm": 2.23,
+   "report": [
+    51.50281,
+    8.97564
+   ],
+   "catalog": [
+    51.48333,
+    8.98333
+   ],
+   "reportToRoadM": 21,
+   "catalogToRoadM": 1425
+  },
+  "O620": {
+   "use": "report",
+   "check": "both",
+   "name": "Gloesa",
+   "road": "A4W",
+   "distKm": 2.23,
+   "report": [
+    50.876,
+    12.914
+   ],
+   "catalog": [
+    50.89031,
+    12.93627
+   ],
+   "reportToRoadM": 15,
+   "catalogToRoadM": 2
+  },
+  "H426": {
+   "use": "report",
+   "check": "report",
+   "name": "H426",
+   "road": "A40x",
+   "distKm": 2.22,
+   "report": [
+    51.45444,
+    7.04197
+   ],
+   "catalog": [
+    51.46667,
+    7.01667
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 1788
+  },
+  "H458": {
+   "use": "report",
+   "check": "report",
+   "name": "Blumenthaler Graben",
+   "road": "A44x",
+   "distKm": 2.21,
+   "report": [
+    51.53617,
+    7.92314
+   ],
+   "catalog": [
+    51.51667,
+    7.91667
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 2125
+  },
+  "F758": {
+   "use": "report",
+   "check": "report",
+   "name": "Luebbenau",
+   "road": "A15S",
+   "distKm": 2.2,
+   "report": [
+    51.83642,
+    13.96447
+   ],
+   "catalog": [
+    51.81667,
+    13.96667
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 1943
+  },
+  "L465": {
+   "use": "report",
+   "check": "both",
+   "name": "Eifa",
+   "road": "B253x",
+   "distKm": 2.19,
+   "report": [
+    50.95,
+    8.56667
+   ],
+   "catalog": [
+    50.96667,
+    8.58333
+   ],
+   "reportToRoadM": 77,
+   "catalogToRoadM": 148
+  },
+  "L225": {
+   "use": "report",
+   "check": "neither",
+   "name": "Hessensteinkurve",
+   "road": "B252X",
+   "distKm": 2.19,
+   "report": [
+    51.1,
+    8.86667
+   ],
+   "catalog": [
+    51.11667,
+    8.88333
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "L284": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Eschwege (gsm)",
+   "road": "B452x",
+   "distKm": 2.19,
+   "report": [
+    51.18333,
+    10.03333
+   ],
+   "catalog": [
+    51.16667,
+    10.01667
+   ],
+   "reportToRoadM": 1750,
+   "catalogToRoadM": 61
+  },
+  "H302": {
+   "use": "report",
+   "check": "report",
+   "name": "Grenze/Goch",
+   "road": "A57S",
+   "distKm": 2.17,
+   "report": [
+    51.67397,
+    6.05417
+   ],
+   "catalog": [
+    51.66667,
+    6.08333
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 706
+  },
+  "C501": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Bergedorfer Straße",
+   "road": "xxxx",
+   "distKm": 2.16,
+   "report": [
+    53.50288,
+    10.13958
+   ],
+   "catalog": [
+    53.51,
+    10.17
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "C502": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Jahnring",
+   "road": "xxxx",
+   "distKm": 2.16,
+   "report": [
+    53.60039,
+    10.02396
+   ],
+   "catalog": [
+    53.586,
+    10.002
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "H097": {
+   "use": "report",
+   "check": "both",
+   "name": "Steinegge-Exter TB",
+   "road": "A2E",
+   "distKm": 2.12,
+   "report": [
+    52.15442,
+    8.80828
+   ],
+   "catalog": [
+    52.14308,
+    8.78335
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 5
+  },
+  "H741": {
+   "use": "report",
+   "check": "report",
+   "name": "RB Lev",
+   "road": "A1S",
+   "distKm": 2.1,
+   "report": [
+    51.03544,
+    6.96292
+   ],
+   "catalog": [
+    51.01667,
+    6.96667
+   ],
+   "reportToRoadM": 21,
+   "catalogToRoadM": 1754
+  },
+  "H228": {
+   "use": "report",
+   "check": "report",
+   "name": "Kaltenbach",
+   "road": "A31S",
+   "distKm": 2.09,
+   "report": [
+    51.78222,
+    6.967
+   ],
+   "catalog": [
+    51.76667,
+    6.95
+   ],
+   "reportToRoadM": 36,
+   "catalogToRoadM": 1075
+  },
+  "L474": {
+   "use": "report",
+   "check": "neither",
+   "name": "Rimberg",
+   "road": "A005N",
+   "distKm": 2.08,
+   "report": [
+    50.8,
+    9.48
+   ],
+   "catalog": [
+    50.78333,
+    9.46667
+   ],
+   "reportToRoadM": 448,
+   "catalogToRoadM": 728
+  },
+  "F233": {
+   "use": "report",
+   "check": "report",
+   "name": "Netzeband",
+   "road": "A24W",
+   "distKm": 2.07,
+   "report": [
+    52.98525,
+    12.61728
+   ],
+   "catalog": [
+    52.96667,
+    12.61667
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 1048
+  },
+  "H881": {
+   "use": "report",
+   "check": "report",
+   "name": "Schloss Roetgen R+T",
+   "road": "A59S",
+   "distKm": 2.05,
+   "report": [
+    50.89889,
+    7.08233
+   ],
+   "catalog": [
+    50.88333,
+    7.06667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 1918
+  },
+  "H531": {
+   "use": "report",
+   "check": "report",
+   "name": "Stockweg",
+   "road": "A3N",
+   "distKm": 2.04,
+   "report": [
+    51.36708,
+    6.8275
+   ],
+   "catalog": [
+    51.35,
+    6.81667
+   ],
+   "reportToRoadM": 25,
+   "catalogToRoadM": 1554
+  },
+  "H969": {
+   "use": "report",
+   "check": "report",
+   "name": "Bad Honnef AS",
+   "road": "A3N",
+   "distKm": 2.03,
+   "report": [
+    50.64842,
+    7.33283
+   ],
+   "catalog": [
+    50.63333,
+    7.31667
+   ],
+   "reportToRoadM": 25,
+   "catalogToRoadM": 1951
+  },
+  "H232": {
+   "use": "report",
+   "check": "neither",
+   "name": "H232",
+   "road": "B67X",
+   "distKm": 2.01,
+   "report": [
+    51.93225,
+    7.28158
+   ],
+   "catalog": [
+    51.91667,
+    7.26667
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "H470": {
+   "use": "report",
+   "check": "report",
+   "name": "Westerschledde TB",
+   "road": "A44E",
+   "distKm": 1.94,
+   "report": [
+    51.59244,
+    8.47403
+   ],
+   "catalog": [
+    51.58333,
+    8.45
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 766
+  },
+  "H844": {
+   "use": "report",
+   "check": "report",
+   "name": "Bruehl",
+   "road": "A553S",
+   "distKm": 1.93,
+   "report": [
+    50.79772,
+    6.88203
+   ],
+   "catalog": [
+    50.78333,
+    6.86667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 1245
+  },
+  "H442": {
+   "use": "report",
+   "check": "both",
+   "name": "Wambeln",
+   "road": "B236x",
+   "distKm": 1.92,
+   "report": [
+    51.5339,
+    7.51845
+   ],
+   "catalog": [
+    51.51667,
+    7.51667
+   ],
+   "reportToRoadM": 27,
+   "catalogToRoadM": 211
+  },
+  "N397": {
+   "use": "report",
+   "check": "report",
+   "name": "Ziesar",
+   "road": "A2W",
+   "distKm": 1.91,
+   "report": [
+    52.24944,
+    12.25694
+   ],
+   "catalog": [
+    52.23333,
+    12.26667
+   ],
+   "reportToRoadM": 29,
+   "catalogToRoadM": 1635
+  },
+  "H885": {
+   "use": "report",
+   "check": "report",
+   "name": "Kalteiche",
+   "road": "A45S",
+   "distKm": 1.9,
+   "report": [
+    50.78172,
+    8.14625
+   ],
+   "catalog": [
+    50.76667,
+    8.13333
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 1233
+  },
+  "H433": {
+   "use": "report",
+   "check": "report",
+   "name": "Stahlhausen",
+   "road": "A40E",
+   "distKm": 1.88,
+   "report": [
+    51.47925,
+    7.16806
+   ],
+   "catalog": [
+    51.46667,
+    7.15
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 915
+  },
+  "H523": {
+   "use": "report",
+   "check": "report",
+   "name": "Schoenwasserpark-Bruecke",
+   "road": "A57S",
+   "distKm": 1.87,
+   "report": [
+    51.33217,
+    6.62728
+   ],
+   "catalog": [
+    51.31667,
+    6.61667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 1029
+  },
+  "H660": {
+   "use": "report",
+   "check": "both",
+   "name": "Bremecke TB",
+   "road": "A45S",
+   "distKm": 1.86,
+   "report": [
+    51.20094,
+    7.67589
+   ],
+   "catalog": [
+    51.21667,
+    7.66667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 125
+  },
+  "L102": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Willingen",
+   "road": "B251x",
+   "distKm": 1.85,
+   "report": [
+    51.26667,
+    8.63333
+   ],
+   "catalog": [
+    51.28333,
+    8.63333
+   ],
+   "reportToRoadM": 1386,
+   "catalogToRoadM": 177
+  },
+  "H882": {
+   "use": "report",
+   "check": "report",
+   "name": "Siegtalbruecke",
+   "road": "A45S",
+   "distKm": 1.84,
+   "report": [
+    50.84506,
+    7.99169
+   ],
+   "catalog": [
+    50.85,
+    7.96667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 1402
+  },
+  "H439": {
+   "use": "report",
+   "check": "report",
+   "name": "Martenerbruecke",
+   "road": "A45x",
+   "distKm": 1.83,
+   "report": [
+    51.5089,
+    7.38994
+   ],
+   "catalog": [
+    51.51667,
+    7.36667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 1120
+  },
+  "H549": {
+   "use": "report",
+   "check": "report",
+   "name": "TB Rutenbeck",
+   "road": "L418S",
+   "distKm": 1.83,
+   "report": [
+    51.23048,
+    7.09751
+   ],
+   "catalog": [
+    51.21667,
+    7.08333
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 1005
+  },
+  "H267": {
+   "use": "report",
+   "check": "report",
+   "name": "Beckum",
+   "road": "A2E",
+   "distKm": 1.79,
+   "report": [
+    51.78144,
+    8.03981
+   ],
+   "catalog": [
+    51.76667,
+    8.05
+   ],
+   "reportToRoadM": 42,
+   "catalogToRoadM": 1726
+  },
+  "F618": {
+   "use": "report",
+   "check": "report",
+   "name": "Flaeming",
+   "road": "A9N",
+   "distKm": 1.78,
+   "report": [
+    52.03158,
+    12.60956
+   ],
+   "catalog": [
+    52.01667,
+    12.6
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 716
+  },
+  "L985": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Beerfelden",
+   "road": "B045x",
+   "distKm": 1.78,
+   "report": [
+    49.55,
+    8.98333
+   ],
+   "catalog": [
+    49.56597,
+    8.98508
+   ],
+   "reportToRoadM": 1163,
+   "catalogToRoadM": 7
+  },
+  "B822": {
+   "use": "report",
+   "check": "both",
+   "name": "AD Schwerin",
+   "road": "A24W",
+   "distKm": 1.78,
+   "report": [
+    53.43038,
+    11.49604
+   ],
+   "catalog": [
+    53.42389,
+    11.52056
+   ],
+   "reportToRoadM": 22,
+   "catalogToRoadM": 3
+  },
+  "H580": {
+   "use": "report",
+   "check": "report",
+   "name": "Fulmecke TB",
+   "road": "A46E",
+   "distKm": 1.77,
+   "report": [
+    51.36372,
+    8.27954
+   ],
+   "catalog": [
+    51.35,
+    8.26667
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 1216
+  },
+  "H507": {
+   "use": "report",
+   "check": "report",
+   "name": "Boisheim",
+   "road": "A61S",
+   "distKm": 1.76,
+   "report": [
+    51.27825,
+    6.29936
+   ],
+   "catalog": [
+    51.26667,
+    6.31667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 1126
+  },
+  "L840": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Opelrondell",
+   "road": "A648W",
+   "distKm": 1.76,
+   "report": [
+    50.13,
+    8.63
+   ],
+   "catalog": [
+    50.11667,
+    8.61667
+   ],
+   "reportToRoadM": 1537,
+   "catalogToRoadM": 196
+  },
+  "H754": {
+   "use": "report",
+   "check": "report",
+   "name": "Engelskirchen",
+   "road": "A4W",
+   "distKm": 1.73,
+   "report": [
+    50.98222,
+    7.40031
+   ],
+   "catalog": [
+    50.96667,
+    7.4
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 1630
+  },
+  "H640": {
+   "use": "report",
+   "check": "report",
+   "name": "Haan-Ost",
+   "road": "A46W",
+   "distKm": 1.71,
+   "report": [
+    51.20786,
+    7.03681
+   ],
+   "catalog": [
+    51.21667,
+    7.01667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 1125
+  },
+  "H331": {
+   "use": "report",
+   "check": "both",
+   "name": "Haltern",
+   "road": "A43N",
+   "distKm": 1.66,
+   "report": [
+    51.71492,
+    7.15131
+   ],
+   "catalog": [
+    51.7,
+    7.15
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 189
+  },
+  "Q984": {
+   "use": "report",
+   "check": "both",
+   "name": "HerfatzTunnel Nord",
+   "road": "A96S",
+   "distKm": 1.66,
+   "report": [
+    47.71075,
+    9.81534
+   ],
+   "catalog": [
+    47.7,
+    9.8
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 277
+  },
+  "O459": {
+   "use": "report",
+   "check": "report",
+   "name": "Zellwald",
+   "road": "A4W",
+   "distKm": 1.65,
+   "report": [
+    51.03125,
+    13.2714
+   ],
+   "catalog": [
+    51.01667,
+    13.26667
+   ],
+   "reportToRoadM": 16,
+   "catalogToRoadM": 831
+  },
+  "H560": {
+   "use": "report",
+   "check": "report",
+   "name": "Iserlohn-West",
+   "road": "A46S",
+   "distKm": 1.61,
+   "report": [
+    51.38114,
+    7.666
+   ],
+   "catalog": [
+    51.36667,
+    7.66667
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 1472
+  },
+  "H172": {
+   "use": "report",
+   "check": "report",
+   "name": "Bielef. Berg West Tms",
+   "road": "A2E",
+   "distKm": 1.6,
+   "report": [
+    51.9635,
+    8.59136
+   ],
+   "catalog": [
+    51.95,
+    8.58333
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 994
+  },
+  "H887": {
+   "use": "report",
+   "check": "report",
+   "name": "F.E. Bruecke",
+   "road": "A565S",
+   "distKm": 1.59,
+   "report": [
+    50.75667,
+    7.0995
+   ],
+   "catalog": [
+    50.76667,
+    7.08333
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 1549
+  },
+  "C309": {
+   "use": "report",
+   "check": "report",
+   "name": "HH-Suedwest",
+   "road": "A261N",
+   "distKm": 1.59,
+   "report": [
+    53.43591,
+    9.9264
+   ],
+   "catalog": [
+    53.45,
+    9.9225
+   ],
+   "reportToRoadM": 36,
+   "catalogToRoadM": 1133
+  },
+  "H449": {
+   "use": "report",
+   "check": "report",
+   "name": "Siddinghauser Weg",
+   "road": "A44x",
+   "distKm": 1.57,
+   "report": [
+    51.5245,
+    7.78554
+   ],
+   "catalog": [
+    51.51667,
+    7.76667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 969
+  },
+  "L962": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Heppenheim (Landesgrenze)",
+   "road": "A005x",
+   "distKm": 1.56,
+   "report": [
+    49.63,
+    8.62
+   ],
+   "catalog": [
+    49.61626,
+    8.6247
+   ],
+   "reportToRoadM": 450,
+   "catalogToRoadM": 7
+  },
+  "H546": {
+   "use": "report",
+   "check": "both",
+   "name": "Elberfeld",
+   "road": "A46W",
+   "distKm": 1.56,
+   "report": [
+    51.27647,
+    7.17194
+   ],
+   "catalog": [
+    51.27026,
+    7.15177
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 17
+  },
+  "P779": {
+   "use": "report",
+   "check": "both",
+   "name": "Schwabstadl",
+   "road": "St2027",
+   "distKm": 1.56,
+   "report": [
+    48.14925,
+    10.88972
+   ],
+   "catalog": [
+    48.15045,
+    10.86881
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 12
+  },
+  "K324": {
+   "use": "report",
+   "check": "neither",
+   "name": "Dockweiler",
+   "road": "B421x",
+   "distKm": 1.54,
+   "report": [
+    50.25961,
+    6.78216
+   ],
+   "catalog": [
+    50.24868,
+    6.79537
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "O325": {
+   "use": "report",
+   "check": "report",
+   "name": "Doebeln-Ost",
+   "road": "A14E",
+   "distKm": 1.5,
+   "report": [
+    51.1113,
+    13.17845
+   ],
+   "catalog": [
+    51.1,
+    13.16667
+   ],
+   "reportToRoadM": 16,
+   "catalogToRoadM": 1438
+  },
+  "L818": {
+   "use": "report",
+   "check": "neither",
+   "name": "Schiersteiner Bruecke",
+   "road": "A643x",
+   "distKm": 1.5,
+   "report": [
+    50.03,
+    8.22
+   ],
+   "catalog": [
+    50.01667,
+    8.21667
+   ],
+   "reportToRoadM": 594,
+   "catalogToRoadM": 657
+  },
+  "D001": {
+   "use": "report",
+   "check": "report",
+   "name": "Meyenburg",
+   "road": "A27N",
+   "distKm": 1.5,
+   "report": [
+    53.27387,
+    8.6357
+   ],
+   "catalog": [
+    53.26667,
+    8.61667
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 1284
+  },
+  "H636": {
+   "use": "report",
+   "check": "report",
+   "name": "Langenfeld AK",
+   "road": "A3S",
+   "distKm": 1.48,
+   "report": [
+    51.11203,
+    6.98661
+   ],
+   "catalog": [
+    51.11667,
+    6.96667
+   ],
+   "reportToRoadM": 46,
+   "catalogToRoadM": 1094
+  },
+  "H720": {
+   "use": "report",
+   "check": "both",
+   "name": "Buir",
+   "road": "A4W",
+   "distKm": 1.46,
+   "report": [
+    50.87056,
+    6.59361
+   ],
+   "catalog": [
+    50.8639,
+    6.5757
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 11
+  },
+  "F136": {
+   "use": "report",
+   "check": "report",
+   "name": "Karstedtshof",
+   "road": "A24W",
+   "distKm": 1.46,
+   "report": [
+    53.10242,
+    12.48811
+   ],
+   "catalog": [
+    53.1,
+    12.46667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 1111
+  },
+  "H765": {
+   "use": "report",
+   "check": "report",
+   "name": "Wiehltalbruecke",
+   "road": "A4W",
+   "distKm": 1.45,
+   "report": [
+    50.97444,
+    7.48337
+   ],
+   "catalog": [
+    50.96667,
+    7.46667
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 758
+  },
+  "J847": {
+   "use": "report",
+   "check": "report",
+   "name": "Waldmohr",
+   "road": "A6W",
+   "distKm": 1.44,
+   "report": [
+    49.35624,
+    7.32853
+   ],
+   "catalog": [
+    49.36667,
+    7.31667
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 1455
+  },
+  "E926": {
+   "use": "report",
+   "check": "report",
+   "name": "Parensen",
+   "road": "A7N",
+   "distKm": 1.44,
+   "report": [
+    51.60567,
+    9.90569
+   ],
+   "catalog": [
+    51.61667,
+    9.91667
+   ],
+   "reportToRoadM": 30,
+   "catalogToRoadM": 437
+  },
+  "H435": {
+   "use": "report",
+   "check": "both",
+   "name": "Gelsenkirchen",
+   "road": "A40W",
+   "distKm": 1.43,
+   "report": [
+    51.47147,
+    7.10244
+   ],
+   "catalog": [
+    51.46667,
+    7.08333
+   ],
+   "reportToRoadM": 84,
+   "catalogToRoadM": 156
+  },
+  "H715": {
+   "use": "report",
+   "check": "both",
+   "name": "Rurbruecke Juelich",
+   "road": "A44W",
+   "distKm": 1.43,
+   "report": [
+    50.93811,
+    6.34236
+   ],
+   "catalog": [
+    50.95,
+    6.35
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 50
+  },
+  "H532": {
+   "use": "report",
+   "check": "report",
+   "name": "Mintarder Bruecke",
+   "road": "A52W",
+   "distKm": 1.42,
+   "report": [
+    51.3794,
+    6.90153
+   ],
+   "catalog": [
+    51.36667,
+    6.9
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 924
+  },
+  "H735": {
+   "use": "report",
+   "check": "report",
+   "name": "Koeln-Ost AK",
+   "road": "A3S",
+   "distKm": 1.41,
+   "report": [
+    50.953,
+    7.03625
+   ],
+   "catalog": [
+    50.95,
+    7.01667
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 1419
+  },
+  "H454": {
+   "use": "report",
+   "check": "report",
+   "name": "Luener Bach TB",
+   "road": "A44W",
+   "distKm": 1.4,
+   "report": [
+    51.5287,
+    7.74422
+   ],
+   "catalog": [
+    51.51667,
+    7.75
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 1255
+  },
+  "L832": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Westhafen",
+   "road": "A005S",
+   "distKm": 1.39,
+   "report": [
+    50.1,
+    8.62
+   ],
+   "catalog": [
+    50.08758,
+    8.61762
+   ],
+   "reportToRoadM": 512,
+   "catalogToRoadM": 13
+  },
+  "Q983": {
+   "use": "report",
+   "check": "report",
+   "name": "Herfatz Tunnel Sued",
+   "road": "A96N",
+   "distKm": 1.37,
+   "report": [
+    47.71151,
+    9.82086
+   ],
+   "catalog": [
+    47.7,
+    9.8142
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 1070
+  },
+  "N760": {
+   "use": "report",
+   "check": "both",
+   "name": "Pappelgrund",
+   "road": "A143x",
+   "distKm": 1.37,
+   "report": [
+    51.47661,
+    11.84895
+   ],
+   "catalog": [
+    51.46556,
+    11.85778
+   ],
+   "reportToRoadM": 18,
+   "catalogToRoadM": 2
+  },
+  "Q892": {
+   "use": "report",
+   "check": "both",
+   "name": "Altmannshofen",
+   "road": "A96N",
+   "distKm": 1.36,
+   "report": [
+    47.86967,
+    10.02247
+   ],
+   "catalog": [
+    47.87809,
+    10.03569
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 2
+  },
+  "O252": {
+   "use": "report",
+   "check": "report",
+   "name": "Schoenborn",
+   "road": "A13S",
+   "distKm": 1.35,
+   "report": [
+    51.32878,
+    13.71852
+   ],
+   "catalog": [
+    51.31667,
+    13.71667
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 427
+  },
+  "H742": {
+   "use": "report",
+   "check": "report",
+   "name": "Leverkusen AK",
+   "road": "A1S",
+   "distKm": 1.35,
+   "report": [
+    51.04547,
+    7.01706
+   ],
+   "catalog": [
+    51.03333,
+    7.01667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 1140
+  },
+  "H328": {
+   "use": "report",
+   "check": "report",
+   "name": "Marl",
+   "road": "A52x",
+   "distKm": 1.35,
+   "report": [
+    51.64081,
+    7.03206
+   ],
+   "catalog": [
+    51.63333,
+    7.01667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 1139
+  },
+  "H441": {
+   "use": "report",
+   "check": "both",
+   "name": "H441",
+   "road": "B236x",
+   "distKm": 1.34,
+   "report": [
+    51.5782,
+    7.49424
+   ],
+   "catalog": [
+    51.56667,
+    7.5
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 138
+  },
+  "J829": {
+   "use": "report",
+   "check": "both",
+   "name": "Huehnerfeld",
+   "road": "A623S",
+   "distKm": 1.3,
+   "report": [
+    49.3033,
+    7.05057
+   ],
+   "catalog": [
+    49.3,
+    7.03333
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 234
+  },
+  "E719": {
+   "use": "report",
+   "check": "report",
+   "name": "Hankenberg/Talbruecke",
+   "road": "A33S",
+   "distKm": 1.29,
+   "report": [
+    52.15599,
+    8.15924
+   ],
+   "catalog": [
+    52.16667,
+    8.16667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 534
+  },
+  "H445": {
+   "use": "report",
+   "check": "neither",
+   "name": "Schnettkerbruecke",
+   "road": "B1x",
+   "distKm": 1.25,
+   "report": [
+    51.49778,
+    7.43444
+   ],
+   "catalog": [
+    51.5,
+    7.41667
+   ],
+   "reportToRoadM": 12440,
+   "catalogToRoadM": 13639
+  },
+  "H088": {
+   "use": "report",
+   "check": "both",
+   "name": "Buende-Ost",
+   "road": "A30E",
+   "distKm": 1.25,
+   "report": [
+    52.17764,
+    8.60089
+   ],
+   "catalog": [
+    52.18333,
+    8.61667
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 133
+  },
+  "E963": {
+   "use": "report",
+   "check": "report",
+   "name": "Werratalbruecke",
+   "road": "A7E",
+   "distKm": 1.22,
+   "report": [
+    51.40573,
+    9.71741
+   ],
+   "catalog": [
+    51.41667,
+    9.71667
+   ],
+   "reportToRoadM": 22,
+   "catalogToRoadM": 1093
+  },
+  "E264": {
+   "use": "report",
+   "check": "report",
+   "name": "Sittensen",
+   "road": "A1N",
+   "distKm": 1.22,
+   "report": [
+    53.29389,
+    9.51194
+   ],
+   "catalog": [
+    53.28333,
+    9.51667
+   ],
+   "reportToRoadM": 70,
+   "catalogToRoadM": 1121
+  },
+  "L606": {
+   "use": "report",
+   "check": "report",
+   "name": "Lahntalbruecke",
+   "road": "A003S",
+   "distKm": 1.2,
+   "report": [
+    50.39,
+    8.08
+   ],
+   "catalog": [
+    50.38333,
+    8.06667
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 1118
+  },
+  "A950": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Moelln",
+   "road": "B207N",
+   "distKm": 1.19,
+   "report": [
+    53.62,
+    10.68
+   ],
+   "catalog": [
+    53.62934,
+    10.67112
+   ],
+   "reportToRoadM": 987,
+   "catalogToRoadM": 6
+  },
+  "J722": {
+   "use": "report",
+   "check": "report",
+   "name": "Soetern",
+   "road": "A62E",
+   "distKm": 1.18,
+   "report": [
+    49.59002,
+    7.02219
+   ],
+   "catalog": [
+    49.6,
+    7.01667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 1106
+  },
+  "H234": {
+   "use": "report",
+   "check": "report",
+   "name": "Duelmen",
+   "road": "A43S",
+   "distKm": 1.18,
+   "report": [
+    51.83933,
+    7.24743
+   ],
+   "catalog": [
+    51.83333,
+    7.23333
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 374
+  },
+  "H864": {
+   "use": "report",
+   "check": "both",
+   "name": "Hennef",
+   "road": "A560W",
+   "distKm": 1.14,
+   "report": [
+    50.77756,
+    7.29633
+   ],
+   "catalog": [
+    50.7708,
+    7.3086
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 4
+  },
+  "L536": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Reiskirchen",
+   "road": "A005N",
+   "distKm": 1.14,
+   "report": [
+    50.61,
+    8.82
+   ],
+   "catalog": [
+    50.6,
+    8.81667
+   ],
+   "reportToRoadM": 316,
+   "catalogToRoadM": 25
+  },
+  "H571": {
+   "use": "report",
+   "check": "report",
+   "name": "Wannebach TB",
+   "road": "A46N",
+   "distKm": 1.14,
+   "report": [
+    51.42636,
+    8.05517
+   ],
+   "catalog": [
+    51.41667,
+    8.05
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 862
+  },
+  "O554": {
+   "use": "report",
+   "check": "both",
+   "name": "Possendorf",
+   "road": "B170",
+   "distKm": 1.13,
+   "report": [
+    50.96002,
+    13.70246
+   ],
+   "catalog": [
+    50.95,
+    13.7
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 18
+  },
+  "H418": {
+   "use": "report",
+   "check": "report",
+   "name": "Niepkanal-Bruecke",
+   "road": "A40x",
+   "distKm": 1.13,
+   "report": [
+    51.42653,
+    6.51292
+   ],
+   "catalog": [
+    51.41667,
+    6.51667
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 1118
+  },
+  "E237": {
+   "use": "report",
+   "check": "report",
+   "name": "Nordkreuz",
+   "road": "A293N",
+   "distKm": 1.12,
+   "report": [
+    53.20694,
+    8.22111
+   ],
+   "catalog": [
+    53.21667,
+    8.21667
+   ],
+   "reportToRoadM": 26,
+   "catalogToRoadM": 710
+  },
+  "H858": {
+   "use": "report",
+   "check": "report",
+   "name": "Bonn-Ost",
+   "road": "A59S",
+   "distKm": 1.11,
+   "report": [
+    50.72611,
+    7.16133
+   ],
+   "catalog": [
+    50.71667,
+    7.16667
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 710
+  },
+  "L827": {
+   "use": "report",
+   "check": "neither",
+   "name": "Hochheimer Bruecke",
+   "road": "A671S",
+   "distKm": 1.11,
+   "report": [
+    50.01,
+    8.35
+   ],
+   "catalog": [
+    50,
+    8.35
+   ],
+   "reportToRoadM": 552,
+   "catalogToRoadM": 325
+  },
+  "L142": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Hoofer Berg",
+   "road": "A044x",
+   "distKm": 1.11,
+   "report": [
+    51.3,
+    9.36
+   ],
+   "catalog": [
+    51.29003,
+    9.35892
+   ],
+   "reportToRoadM": 953,
+   "catalogToRoadM": 13
+  },
+  "C315": {
+   "use": "report",
+   "check": "report",
+   "name": "Suederelbe",
+   "road": "A1S",
+   "distKm": 1.11,
+   "report": [
+    53.47606,
+    10.02233
+   ],
+   "catalog": [
+    53.46667,
+    10.01667
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 515
+  },
+  "L542": {
+   "use": "report",
+   "check": "both",
+   "name": "Homberg/Ohm",
+   "road": "A005S",
+   "distKm": 1.1,
+   "report": [
+    50.65,
+    9
+   ],
+   "catalog": [
+    50.6432,
+    8.98866
+   ],
+   "reportToRoadM": 211,
+   "catalogToRoadM": 12
+  },
+  "H774": {
+   "use": "report",
+   "check": "report",
+   "name": "Reichshof",
+   "road": "A4W",
+   "distKm": 1.08,
+   "report": [
+    50.97381,
+    7.74728
+   ],
+   "catalog": [
+    50.98333,
+    7.75
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 1039
+  },
+  "H554": {
+   "use": "report",
+   "check": "report",
+   "name": "Nahmer",
+   "road": "A45S",
+   "distKm": 1.07,
+   "report": [
+    51.31535,
+    7.55144
+   ],
+   "catalog": [
+    51.31667,
+    7.56667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 957
+  },
+  "H447": {
+   "use": "report",
+   "check": "report",
+   "name": "Romberg Holz TB",
+   "road": "A45S",
+   "distKm": 1.06,
+   "report": [
+    51.44228,
+    7.47194
+   ],
+   "catalog": [
+    51.43333,
+    7.46667
+   ],
+   "reportToRoadM": 29,
+   "catalogToRoadM": 941
+  },
+  "E132": {
+   "use": "report",
+   "check": "report",
+   "name": "Wilhelmshaven",
+   "road": "A29N",
+   "distKm": 1.05,
+   "report": [
+    53.56111,
+    8.08194
+   ],
+   "catalog": [
+    53.56389,
+    8.06667
+   ],
+   "reportToRoadM": 105,
+   "catalogToRoadM": 819
+  },
+  "D995": {
+   "use": "report",
+   "check": "both",
+   "name": "Bremer Kreuz",
+   "road": "A27S",
+   "distKm": 1.05,
+   "report": [
+    53.04307,
+    8.98087
+   ],
+   "catalog": [
+    53.03647,
+    8.99219
+   ],
+   "reportToRoadM": 23,
+   "catalogToRoadM": 13
+  },
+  "O453": {
+   "use": "report",
+   "check": "report",
+   "name": "Kaditz",
+   "road": "A4W",
+   "distKm": 1.05,
+   "report": [
+    51.0742,
+    13.67582
+   ],
+   "catalog": [
+    51.06667,
+    13.66667
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 587
+  },
+  "E713": {
+   "use": "report",
+   "check": "report",
+   "name": "Osnabrueck",
+   "road": "A1N",
+   "distKm": 1.05,
+   "report": [
+    52.32611,
+    7.96611
+   ],
+   "catalog": [
+    52.31667,
+    7.96667
+   ],
+   "reportToRoadM": 249,
+   "catalogToRoadM": 553
+  },
+  "H006": {
+   "use": "report",
+   "check": "both",
+   "name": "Rheine (Dek-Bruecke)",
+   "road": "A30W",
+   "distKm": 1.04,
+   "report": [
+    52.31347,
+    7.46444
+   ],
+   "catalog": [
+    52.31667,
+    7.45
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 16
+  },
+  "F122": {
+   "use": "report",
+   "check": "report",
+   "name": "Rapshagen",
+   "road": "A24W",
+   "distKm": 1.04,
+   "report": [
+    53.22364,
+    12.22703
+   ],
+   "catalog": [
+    53.21667,
+    12.21667
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 1017
+  },
+  "L852": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Mainbruecke Steinheim",
+   "road": "B43Ax",
+   "distKm": 1.03,
+   "report": [
+    50.1,
+    8.91667
+   ],
+   "catalog": [
+    50.10833,
+    8.92306
+   ],
+   "reportToRoadM": 359,
+   "catalogToRoadM": 5
+  },
+  "H338": {
+   "use": "report",
+   "check": "report",
+   "name": "Recklinghausen",
+   "road": "A43N",
+   "distKm": 1.03,
+   "report": [
+    51.60684,
+    7.17667
+   ],
+   "catalog": [
+    51.6,
+    7.16667
+   ],
+   "reportToRoadM": 74,
+   "catalogToRoadM": 1081
+  },
+  "E108": {
+   "use": "report",
+   "check": "report",
+   "name": "Emden-Nord",
+   "road": "A31S",
+   "distKm": 1.01,
+   "report": [
+    53.38611,
+    7.23111
+   ],
+   "catalog": [
+    53.38333,
+    7.21667
+   ],
+   "reportToRoadM": 127,
+   "catalogToRoadM": 509
+  },
+  "E217": {
+   "use": "report",
+   "check": "report",
+   "name": "Filsum",
+   "road": "A28E",
+   "distKm": 1,
+   "report": [
+    53.25818,
+    7.5884
+   ],
+   "catalog": [
+    53.26667,
+    7.58333
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 850
+  },
+  "N453": {
+   "use": "report",
+   "check": "report",
+   "name": "Burg",
+   "road": "A2E",
+   "distKm": 1,
+   "report": [
+    52.22759,
+    11.75539
+   ],
+   "catalog": [
+    52.23333,
+    11.76667
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 450
+  },
+  "K424": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Steinborn",
+   "road": "B257",
+   "distKm": 1,
+   "report": [
+    50.08273,
+    6.63201
+   ],
+   "catalog": [
+    50.07386,
+    6.63414
+   ],
+   "reportToRoadM": 412,
+   "catalogToRoadM": 5
+  },
+  "H438": {
+   "use": "report",
+   "check": "neither",
+   "name": "Witten-Annen",
+   "road": "A44W",
+   "distKm": 1,
+   "report": [
+    51.46023,
+    7.37669
+   ],
+   "catalog": [
+    51.46667,
+    7.36667
+   ],
+   "reportToRoadM": 20233,
+   "catalogToRoadM": 20660
+  },
+  "J837": {
+   "use": "report",
+   "check": "report",
+   "name": "Spiesen",
+   "road": "A8W",
+   "distKm": 0.99,
+   "report": [
+    49.32559,
+    7.16582
+   ],
+   "catalog": [
+    49.31667,
+    7.16667
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 969
+  },
+  "H806": {
+   "use": "report",
+   "check": "report",
+   "name": "Lichtenbusch",
+   "road": "A44W",
+   "distKm": 0.99,
+   "report": [
+    50.72231,
+    6.12758
+   ],
+   "catalog": [
+    50.71667,
+    6.11667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 326
+  },
+  "H644": {
+   "use": "report",
+   "check": "both",
+   "name": "Wermelskirchen",
+   "road": "B51N",
+   "distKm": 0.98,
+   "report": [
+    51.13976,
+    7.2116
+   ],
+   "catalog": [
+    51.13389,
+    7.20111
+   ],
+   "reportToRoadM": 24,
+   "catalogToRoadM": 8
+  },
+  "N992": {
+   "use": "report",
+   "check": "report",
+   "name": "Droyssig",
+   "road": "A009S",
+   "distKm": 0.98,
+   "report": [
+    51.04081,
+    11.94072
+   ],
+   "catalog": [
+    51.03333,
+    11.93333
+   ],
+   "reportToRoadM": 21,
+   "catalogToRoadM": 364
+  },
+  "J907": {
+   "use": "report",
+   "check": "report",
+   "name": "Goldene Bremm",
+   "road": "A6W",
+   "distKm": 0.96,
+   "report": [
+    49.21109,
+    6.97318
+   ],
+   "catalog": [
+    49.21667,
+    6.98333
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 666
+  },
+  "N452": {
+   "use": "report",
+   "check": "report",
+   "name": "Hohenwarthe-Elbebruecke",
+   "road": "A2E",
+   "distKm": 0.95,
+   "report": [
+    52.22095,
+    11.70463
+   ],
+   "catalog": [
+    52.21667,
+    11.71667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 603
+  },
+  "L776": {
+   "use": "report",
+   "check": "report",
+   "name": "Aufenauer Berg",
+   "road": "A066W",
+   "distKm": 0.95,
+   "report": [
+    50.25,
+    9.33
+   ],
+   "catalog": [
+    50.25,
+    9.31667
+   ],
+   "reportToRoadM": 128,
+   "catalogToRoadM": 816
+  },
+  "N443": {
+   "use": "report",
+   "check": "report",
+   "name": "Irxleben",
+   "road": "A2E",
+   "distKm": 0.95,
+   "report": [
+    52.18361,
+    11.45278
+   ],
+   "catalog": [
+    52.18333,
+    11.46667
+   ],
+   "reportToRoadM": 46,
+   "catalogToRoadM": 308
+  },
+  "B696": {
+   "use": "report",
+   "check": "both",
+   "name": "Zirchow",
+   "road": "B110x",
+   "distKm": 0.95,
+   "report": [
+    53.88677,
+    14.09786
+   ],
+   "catalog": [
+    53.8881,
+    14.0836
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 11
+  },
+  "C311": {
+   "use": "report",
+   "check": "report",
+   "name": "Norderelbe",
+   "road": "A1x",
+   "distKm": 0.93,
+   "report": [
+    53.50933,
+    10.05978
+   ],
+   "catalog": [
+    53.51667,
+    10.06667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 831
+  },
+  "K480": {
+   "use": "report",
+   "check": "both",
+   "name": "Laudert",
+   "road": "A061S",
+   "distKm": 0.93,
+   "report": [
+    50.10335,
+    7.60176
+   ],
+   "catalog": [
+    50.09505,
+    7.60346
+   ],
+   "reportToRoadM": 133,
+   "catalogToRoadM": 11
+  },
+  "O224": {
+   "use": "report",
+   "check": "report",
+   "name": "Grimma (Mulde)",
+   "road": "A14E",
+   "distKm": 0.93,
+   "report": [
+    51.25862,
+    12.77983
+   ],
+   "catalog": [
+    51.26667,
+    12.78333
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 937
+  },
+  "H733": {
+   "use": "report",
+   "check": "report",
+   "name": "Koeln-Niehl AS",
+   "road": "A1N",
+   "distKm": 0.93,
+   "report": [
+    51.00872,
+    6.91267
+   ],
+   "catalog": [
+    51.01667,
+    6.91667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 387
+  },
+  "H800": {
+   "use": "report",
+   "check": "report",
+   "name": "Grenze Vetschau",
+   "road": "A4x",
+   "distKm": 0.92,
+   "report": [
+    50.81444,
+    6.02931
+   ],
+   "catalog": [
+    50.81667,
+    6.01667
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 598
+  },
+  "E328": {
+   "use": "report",
+   "check": "report",
+   "name": "Astrup",
+   "road": "A29S",
+   "distKm": 0.9,
+   "report": [
+    53.05306,
+    8.22611
+   ],
+   "catalog": [
+    53.05306,
+    8.21261
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 849
+  },
+  "E401": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Lathen",
+   "road": "A31S",
+   "distKm": 0.9,
+   "report": [
+    52.87,
+    7.22889
+   ],
+   "catalog": [
+    52.86667,
+    7.21667
+   ],
+   "reportToRoadM": 359,
+   "catalogToRoadM": 288
+  },
+  "K425": {
+   "use": "report",
+   "check": "both",
+   "name": "Kylltalbruecke",
+   "road": "A060N",
+   "distKm": 0.9,
+   "report": [
+    50.0234,
+    6.56261
+   ],
+   "catalog": [
+    50.02001,
+    6.57401
+   ],
+   "reportToRoadM": 178,
+   "catalogToRoadM": 3
+  },
+  "H748": {
+   "use": "report",
+   "check": "report",
+   "name": "Koenigsforst AS",
+   "road": "A3S",
+   "distKm": 0.89,
+   "report": [
+    50.91511,
+    7.10425
+   ],
+   "catalog": [
+    50.91667,
+    7.11667
+   ],
+   "reportToRoadM": 17,
+   "catalogToRoadM": 662
+  },
+  "K677": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Freimersheim",
+   "road": "A063S",
+   "distKm": 0.88,
+   "report": [
+    49.7211,
+    8.07117
+   ],
+   "catalog": [
+    49.71319,
+    8.07064
+   ],
+   "reportToRoadM": 426,
+   "catalogToRoadM": 11
+  },
+  "O862": {
+   "use": "report",
+   "check": "report",
+   "name": "Marienhoehe",
+   "road": "A72W",
+   "distKm": 0.88,
+   "report": [
+    50.606,
+    12.39143
+   ],
+   "catalog": [
+    50.6,
+    12.38333
+   ],
+   "reportToRoadM": 49,
+   "catalogToRoadM": 806
+  },
+  "H886": {
+   "use": "report",
+   "check": "both",
+   "name": "Am Wildenstein",
+   "road": "A45N",
+   "distKm": 0.88,
+   "report": [
+    50.77453,
+    8.15103
+   ],
+   "catalog": [
+    50.76667,
+    8.15
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 66
+  },
+  "L366": {
+   "use": "report",
+   "check": "report",
+   "name": "Pommer",
+   "road": "A007N",
+   "distKm": 0.88,
+   "report": [
+    50.94,
+    9.54
+   ],
+   "catalog": [
+    50.93333,
+    9.53333
+   ],
+   "reportToRoadM": 72,
+   "catalogToRoadM": 699
+  },
+  "H737": {
+   "use": "report",
+   "check": "both",
+   "name": "Frechen",
+   "road": "A4W",
+   "distKm": 0.87,
+   "report": [
+    50.92761,
+    6.76217
+   ],
+   "catalog": [
+    50.92857,
+    6.77447
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 12
+  },
+  "L632": {
+   "use": "report",
+   "check": "both",
+   "name": "Pwc Stauferburg",
+   "road": "A045x",
+   "distKm": 0.86,
+   "report": [
+    50.43333,
+    8.8
+   ],
+   "catalog": [
+    50.44083,
+    8.79694
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 4
+  },
+  "J824": {
+   "use": "report",
+   "check": "both",
+   "name": "Riegelsberg",
+   "road": "A1x",
+   "distKm": 0.86,
+   "report": [
+    49.29467,
+    6.95935
+   ],
+   "catalog": [
+    49.28722,
+    6.95611
+   ],
+   "reportToRoadM": 32,
+   "catalogToRoadM": 11
+  },
+  "H446": {
+   "use": "report",
+   "check": "report",
+   "name": "Unna-West/AK A44-A1",
+   "road": "A44E",
+   "distKm": 0.86,
+   "report": [
+    51.5222,
+    7.65797
+   ],
+   "catalog": [
+    51.51667,
+    7.66667
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 517
+  },
+  "H605": {
+   "use": "report",
+   "check": "report",
+   "name": "Guedderath",
+   "road": "A61S",
+   "distKm": 0.86,
+   "report": [
+    51.11836,
+    6.42869
+   ],
+   "catalog": [
+    51.11667,
+    6.41667
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 855
+  },
+  "N642": {
+   "use": "report",
+   "check": "report",
+   "name": "Ploetzkau",
+   "road": "A14x",
+   "distKm": 0.86,
+   "report": [
+    51.72416,
+    11.68637
+   ],
+   "catalog": [
+    51.71667,
+    11.68333
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 817
+  },
+  "E678": {
+   "use": "report",
+   "check": "report",
+   "name": "Kaltenweide",
+   "road": "A352E",
+   "distKm": 0.86,
+   "report": [
+    52.49,
+    9.72694
+   ],
+   "catalog": [
+    52.48333,
+    9.73333
+   ],
+   "reportToRoadM": 56,
+   "catalogToRoadM": 716
+  },
+  "H834": {
+   "use": "report",
+   "check": "report",
+   "name": "Ville R+T",
+   "road": "A1x",
+   "distKm": 0.85,
+   "report": [
+    50.86481,
+    6.80486
+   ],
+   "catalog": [
+    50.86667,
+    6.81667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 830
+  },
+  "H459": {
+   "use": "report",
+   "check": "both",
+   "name": "Neheim (Moehne)",
+   "road": "A46N",
+   "distKm": 0.83,
+   "report": [
+    51.45675,
+    7.95525
+   ],
+   "catalog": [
+    51.45,
+    7.95
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 266
+  },
+  "M730": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Dolmar",
+   "road": "A071S",
+   "distKm": 0.83,
+   "report": [
+    50.59298,
+    10.52564
+   ],
+   "catalog": [
+    50.59941,
+    10.53162
+   ],
+   "reportToRoadM": 536,
+   "catalogToRoadM": 9
+  },
+  "H837": {
+   "use": "report",
+   "check": "report",
+   "name": "Bliesheim DZ L33",
+   "road": "A1S",
+   "distKm": 0.82,
+   "report": [
+    50.75928,
+    6.81747
+   ],
+   "catalog": [
+    50.76667,
+    6.81667
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 336
+  },
+  "K138": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Wehr",
+   "road": "A061N",
+   "distKm": 0.82,
+   "report": [
+    50.41516,
+    7.22835
+   ],
+   "catalog": [
+    50.41029,
+    7.237
+   ],
+   "reportToRoadM": 430,
+   "catalogToRoadM": 32
+  },
+  "F622": {
+   "use": "report",
+   "check": "report",
+   "name": "Linther Busch",
+   "road": "A9N",
+   "distKm": 0.81,
+   "report": [
+    52.17278,
+    12.82311
+   ],
+   "catalog": [
+    52.16667,
+    12.81667
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 467
+  },
+  "H804": {
+   "use": "report",
+   "check": "both",
+   "name": "Aachen R+T",
+   "road": "A4E",
+   "distKm": 0.81,
+   "report": [
+    50.813,
+    6.20675
+   ],
+   "catalog": [
+    50.81667,
+    6.21667
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 123
+  },
+  "L716": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Idstein",
+   "road": "A003N",
+   "distKm": 0.8,
+   "report": [
+    50.22,
+    8.26
+   ],
+   "catalog": [
+    50.21667,
+    8.25
+   ],
+   "reportToRoadM": 636,
+   "catalogToRoadM": 1
+  },
+  "E068": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Nordholz",
+   "road": "A27S",
+   "distKm": 0.8,
+   "report": [
+    53.71028,
+    8.67222
+   ],
+   "catalog": [
+    53.71667,
+    8.66667
+   ],
+   "reportToRoadM": 584,
+   "catalogToRoadM": 255
+  },
+  "A553": {
+   "use": "report",
+   "check": "both",
+   "name": "Bordesholmer Damm",
+   "road": "A215S",
+   "distKm": 0.8,
+   "report": [
+    54.18127,
+    9.95745
+   ],
+   "catalog": [
+    54.1741,
+    9.9568
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 1
+  },
+  "H810": {
+   "use": "report",
+   "check": "both",
+   "name": "Aachen AK",
+   "road": "A4E",
+   "distKm": 0.79,
+   "report": [
+    50.8028,
+    6.1558
+   ],
+   "catalog": [
+    50.80426,
+    6.16684
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 34
+  },
+  "H325": {
+   "use": "report",
+   "check": "both",
+   "name": "Dorsten / Lippebr.",
+   "road": "A31S",
+   "distKm": 0.79,
+   "report": [
+    51.66142,
+    6.92436
+   ],
+   "catalog": [
+    51.66667,
+    6.91667
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 242
+  },
+  "E136": {
+   "use": "report",
+   "check": "report",
+   "name": "Zetel",
+   "road": "A29N",
+   "distKm": 0.78,
+   "report": [
+    53.44806,
+    8.02806
+   ],
+   "catalog": [
+    53.45,
+    8.01667
+   ],
+   "reportToRoadM": 180,
+   "catalogToRoadM": 400
+  },
+  "H175": {
+   "use": "report",
+   "check": "report",
+   "name": "Ostwestfalen/Lippe",
+   "road": "A2E",
+   "distKm": 0.78,
+   "report": [
+    52.04017,
+    8.64781
+   ],
+   "catalog": [
+    52.03333,
+    8.65
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 611
+  },
+  "K572": {
+   "use": "report",
+   "check": "both",
+   "name": "AD Mainz",
+   "road": "A060W",
+   "distKm": 0.77,
+   "report": [
+    50.00134,
+    8.17657
+   ],
+   "catalog": [
+    50.00114,
+    8.16574
+   ],
+   "reportToRoadM": 154,
+   "catalogToRoadM": 4
+  },
+  "O372": {
+   "use": "report",
+   "check": "report",
+   "name": "Burkauer Berg",
+   "road": "A4E",
+   "distKm": 0.77,
+   "report": [
+    51.17323,
+    14.12033
+   ],
+   "catalog": [
+    51.16667,
+    14.11667
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 766
+  },
+  "F283": {
+   "use": "report",
+   "check": "report",
+   "name": "Joachimsthal",
+   "road": "A11S",
+   "distKm": 0.77,
+   "report": [
+    52.95442,
+    13.80789
+   ],
+   "catalog": [
+    52.95,
+    13.81667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 726
+  },
+  "B850": {
+   "use": "report",
+   "check": "both",
+   "name": "Malchow",
+   "road": "A19",
+   "distKm": 0.77,
+   "report": [
+    53.46194,
+    12.38222
+   ],
+   "catalog": [
+    53.46873,
+    12.38029
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 11
+  },
+  "F562": {
+   "use": "report",
+   "check": "report",
+   "name": "Spreeau",
+   "road": "A12x",
+   "distKm": 0.77,
+   "report": [
+    52.32336,
+    13.76267
+   ],
+   "catalog": [
+    52.31667,
+    13.76
+   ],
+   "reportToRoadM": 20,
+   "catalogToRoadM": 729
+  },
+  "H770": {
+   "use": "report",
+   "check": "report",
+   "name": "BlecheTB",
+   "road": "A45S",
+   "distKm": 0.75,
+   "report": [
+    51.05533,
+    7.72675
+   ],
+   "catalog": [
+    51.05,
+    7.73333
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 483
+  },
+  "E668": {
+   "use": "report",
+   "check": "report",
+   "name": "Garbsen",
+   "road": "A2S",
+   "distKm": 0.74,
+   "report": [
+    52.42212,
+    9.56033
+   ],
+   "catalog": [
+    52.41667,
+    9.56667
+   ],
+   "reportToRoadM": 35,
+   "catalogToRoadM": 607
+  },
+  "E130": {
+   "use": "report",
+   "check": "report",
+   "name": "Fedderwardergroden",
+   "road": "A29N",
+   "distKm": 0.74,
+   "report": [
+    53.56889,
+    8.10611
+   ],
+   "catalog": [
+    53.56667,
+    8.11667
+   ],
+   "reportToRoadM": 31,
+   "catalogToRoadM": 738
+  },
+  "L637": {
+   "use": "report",
+   "check": "both",
+   "name": "Wetterau",
+   "road": "A005S",
+   "distKm": 0.73,
+   "report": [
+    50.36,
+    8.7
+   ],
+   "catalog": [
+    50.355,
+    8.6933
+   ],
+   "reportToRoadM": 194,
+   "catalogToRoadM": 15
+  },
+  "J826": {
+   "use": "report",
+   "check": "both",
+   "name": "Saarbrücken Klarenthal",
+   "road": "A620",
+   "distKm": 0.72,
+   "report": [
+    49.23891,
+    6.93422
+   ],
+   "catalog": [
+    49.24088,
+    6.92477
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 1
+  },
+  "E770": {
+   "use": "report",
+   "check": "report",
+   "name": "Hildesheimer Boerde",
+   "road": "A7N",
+   "distKm": 0.72,
+   "report": [
+    52.12683,
+    10.05274
+   ],
+   "catalog": [
+    52.12036,
+    10.05274
+   ],
+   "reportToRoadM": 23,
+   "catalogToRoadM": 571
+  },
+  "L881": {
+   "use": "report",
+   "check": "both",
+   "name": "Talbruecke Langen",
+   "road": "A661x",
+   "distKm": 0.72,
+   "report": [
+    49.98333,
+    8.7
+   ],
+   "catalog": [
+    49.98784,
+    8.69284
+   ],
+   "reportToRoadM": 270,
+   "catalogToRoadM": 11
+  },
+  "E227": {
+   "use": "report",
+   "check": "report",
+   "name": "Hollwege",
+   "road": "A28W",
+   "distKm": 0.72,
+   "report": [
+    53.27889,
+    7.90889
+   ],
+   "catalog": [
+    53.28333,
+    7.91667
+   ],
+   "reportToRoadM": 102,
+   "catalogToRoadM": 802
+  },
+  "L677": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Steinaubachtalbruecke",
+   "road": "A066x",
+   "distKm": 0.71,
+   "report": [
+    50.33333,
+    9.46667
+   ],
+   "catalog": [
+    50.32694,
+    9.46667
+   ],
+   "reportToRoadM": 696,
+   "catalogToRoadM": 0
+  },
+  "L857": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Waldschneise",
+   "road": "A003S",
+   "distKm": 0.71,
+   "report": [
+    50.04,
+    8.94
+   ],
+   "catalog": [
+    50.0339,
+    8.9372
+   ],
+   "reportToRoadM": 360,
+   "catalogToRoadM": 14
+  },
+  "H095": {
+   "use": "report",
+   "check": "report",
+   "name": "Weserflutbruecke",
+   "road": "A2E",
+   "distKm": 0.7,
+   "report": [
+    52.20606,
+    8.84725
+   ],
+   "catalog": [
+    52.2,
+    8.85
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 684
+  },
+  "H073": {
+   "use": "report",
+   "check": "both",
+   "name": "AK Lotte",
+   "road": "A30N",
+   "distKm": 0.7,
+   "report": [
+    52.26819,
+    7.92664
+   ],
+   "catalog": [
+    52.26667,
+    7.91667
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 173
+  },
+  "L684": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Thalaubachbruecke",
+   "road": "A007N",
+   "distKm": 0.69,
+   "report": [
+    50.44,
+    9.75
+   ],
+   "catalog": [
+    50.44374,
+    9.74221
+   ],
+   "reportToRoadM": 414,
+   "catalogToRoadM": 13
+  },
+  "K130": {
+   "use": "report",
+   "check": "both",
+   "name": "Sinzig",
+   "road": "A061N",
+   "distKm": 0.69,
+   "report": [
+    50.53264,
+    7.17962
+   ],
+   "catalog": [
+    50.52812,
+    7.18631
+   ],
+   "reportToRoadM": 80,
+   "catalogToRoadM": 11
+  },
+  "O789": {
+   "use": "report",
+   "check": "report",
+   "name": "Zinnwald",
+   "road": "B170",
+   "distKm": 0.69,
+   "report": [
+    50.73535,
+    13.7574
+   ],
+   "catalog": [
+    50.73333,
+    13.76667
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 681
+  },
+  "H098": {
+   "use": "report",
+   "check": "both",
+   "name": "Kleinenbremen nrw/ns",
+   "road": "A2x",
+   "distKm": 0.69,
+   "report": [
+    52.22181,
+    9.02675
+   ],
+   "catalog": [
+    52.22056,
+    9.03666
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 1
+  },
+  "H075": {
+   "use": "report",
+   "check": "both",
+   "name": "Habichtswald TB",
+   "road": "A1S",
+   "distKm": 0.69,
+   "report": [
+    52.22211,
+    7.87147
+   ],
+   "catalog": [
+    52.21667,
+    7.86667
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 94
+  },
+  "M130": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Roestebachtalbruecke",
+   "road": "A038W",
+   "distKm": 0.68,
+   "report": [
+    51.39252,
+    10.38383
+   ],
+   "catalog": [
+    51.39864,
+    10.38416
+   ],
+   "reportToRoadM": 630,
+   "catalogToRoadM": 7
+  },
+  "F461": {
+   "use": "report",
+   "check": "report",
+   "name": "Ruedersdorf",
+   "road": "A10x",
+   "distKm": 0.68,
+   "report": [
+    52.47078,
+    13.77406
+   ],
+   "catalog": [
+    52.46667,
+    13.76667
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 668
+  },
+  "E431": {
+   "use": "report",
+   "check": "both",
+   "name": "Hoelscher Holz",
+   "road": "A1S",
+   "distKm": 0.67,
+   "report": [
+    52.92,
+    8.475
+   ],
+   "catalog": [
+    52.91667,
+    8.46667
+   ],
+   "reportToRoadM": 16,
+   "catalogToRoadM": 111
+  },
+  "F863": {
+   "use": "report",
+   "check": "report",
+   "name": "Haenchen",
+   "road": "A15N",
+   "distKm": 0.67,
+   "report": [
+    51.7225,
+    14.26897
+   ],
+   "catalog": [
+    51.71667,
+    14.26667
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 650
+  },
+  "F884": {
+   "use": "report",
+   "check": "report",
+   "name": "Sergener Teiche",
+   "road": "A15N",
+   "distKm": 0.66,
+   "report": [
+    51.71367,
+    14.47513
+   ],
+   "catalog": [
+    51.71667,
+    14.48333
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 385
+  },
+  "K140": {
+   "use": "report",
+   "check": "both",
+   "name": "Krahnenbergbruecke",
+   "road": "B9x",
+   "distKm": 0.65,
+   "report": [
+    50.44527,
+    7.3863
+   ],
+   "catalog": [
+    50.44091,
+    7.39244
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 0
+  },
+  "F547": {
+   "use": "report",
+   "check": "both",
+   "name": "Dahlewitzer Heide",
+   "road": "A10E",
+   "distKm": 0.65,
+   "report": [
+    52.30611,
+    13.42611
+   ],
+   "catalog": [
+    52.30611,
+    13.41657
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 7
+  },
+  "K600": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Sauertalbruecke",
+   "road": "A064E",
+   "distKm": 0.65,
+   "report": [
+    49.73657,
+    6.50123
+   ],
+   "catalog": [
+    49.73456,
+    6.50969
+   ],
+   "reportToRoadM": 361,
+   "catalogToRoadM": 2
+  },
+  "E134": {
+   "use": "report",
+   "check": "neither",
+   "name": "Roffhausen(Sande)",
+   "road": "A29S",
+   "distKm": 0.63,
+   "report": [
+    53.52194,
+    8.02
+   ],
+   "catalog": [
+    53.51667,
+    8.01667
+   ],
+   "reportToRoadM": 985,
+   "catalogToRoadM": 1100
+  },
+  "H769": {
+   "use": "report",
+   "check": "report",
+   "name": "Heumar",
+   "road": "A3N",
+   "distKm": 0.63,
+   "report": [
+    50.92214,
+    7.06456
+   ],
+   "catalog": [
+    50.91667,
+    7.06667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 485
+  },
+  "M521": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Hoerselgau",
+   "road": "A004W",
+   "distKm": 0.62,
+   "report": [
+    50.90835,
+    10.58365
+   ],
+   "catalog": [
+    50.91391,
+    10.58387
+   ],
+   "reportToRoadM": 436,
+   "catalogToRoadM": 14
+  },
+  "A650": {
+   "use": "report",
+   "check": "both",
+   "name": "Klein Kummerfeld",
+   "road": "B205N",
+   "distKm": 0.62,
+   "report": [
+    54.02,
+    10.07
+   ],
+   "catalog": [
+    54.02475,
+    10.06508
+   ],
+   "reportToRoadM": 102,
+   "catalogToRoadM": 249
+  },
+  "E329": {
+   "use": "report",
+   "check": "report",
+   "name": "Kimmen",
+   "road": "A28E",
+   "distKm": 0.62,
+   "report": [
+    53.06111,
+    8.44306
+   ],
+   "catalog": [
+    53.06667,
+    8.44306
+   ],
+   "reportToRoadM": 215,
+   "catalogToRoadM": 833
+  },
+  "K749": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Hueffler",
+   "road": "A062S",
+   "distKm": 0.62,
+   "report": [
+    49.50202,
+    7.39002
+   ],
+   "catalog": [
+    49.49809,
+    7.39605
+   ],
+   "reportToRoadM": 324,
+   "catalogToRoadM": 10
+  },
+  "C506": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Koehlbrand West",
+   "road": "xxxx",
+   "distKm": 0.62,
+   "report": [
+    53.52233,
+    9.93549
+   ],
+   "catalog": [
+    53.517,
+    9.933
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "E532": {
+   "use": "report",
+   "check": "report",
+   "name": "Ahlhorner Heide",
+   "road": "A29N",
+   "distKm": 0.61,
+   "report": [
+    52.86389,
+    8.22306
+   ],
+   "catalog": [
+    52.86,
+    8.21667
+   ],
+   "reportToRoadM": 89,
+   "catalogToRoadM": 446
+  },
+  "A554": {
+   "use": "report",
+   "check": "both",
+   "name": "Bordesholmer Bruecke",
+   "road": "A215S",
+   "distKm": 0.6,
+   "report": [
+    54.17429,
+    9.95661
+   ],
+   "catalog": [
+    54.1797,
+    9.9573
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 1
+  },
+  "L648": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Altenstadt",
+   "road": "A045S",
+   "distKm": 0.6,
+   "report": [
+    50.32,
+    8.94
+   ],
+   "catalog": [
+    50.31667,
+    8.93333
+   ],
+   "reportToRoadM": 312,
+   "catalogToRoadM": 253
+  },
+  "F137": {
+   "use": "report",
+   "check": "report",
+   "name": "Wittstock",
+   "road": "A19N",
+   "distKm": 0.6,
+   "report": [
+    53.18686,
+    12.45683
+   ],
+   "catalog": [
+    53.18333,
+    12.45
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 405
+  },
+  "L414": {
+   "use": "report",
+   "check": "report",
+   "name": "Haigerbruecke",
+   "road": "A045N",
+   "distKm": 0.6,
+   "report": [
+    50.75513,
+    8.20261
+   ],
+   "catalog": [
+    50.75,
+    8.2
+   ],
+   "reportToRoadM": 37,
+   "catalogToRoadM": 582
+  },
+  "H347": {
+   "use": "report",
+   "check": "both",
+   "name": "Mengede Dek-Bruecke",
+   "road": "A2E",
+   "distKm": 0.6,
+   "report": [
+    51.58388,
+    7.40807
+   ],
+   "catalog": [
+    51.58333,
+    7.41667
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 148
+  },
+  "A390": {
+   "use": "report",
+   "check": "both",
+   "name": "Fehmarnsundbruecke",
+   "road": "B207S",
+   "distKm": 0.59,
+   "report": [
+    54.41,
+    11.11
+   ],
+   "catalog": [
+    54.40544,
+    11.11474
+   ],
+   "reportToRoadM": 247,
+   "catalogToRoadM": 6
+  },
+  "K583": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Klein-Winternheim",
+   "road": "A063W",
+   "distKm": 0.58,
+   "report": [
+    49.94912,
+    8.20832
+   ],
+   "catalog": [
+    49.94698,
+    8.21578
+   ],
+   "reportToRoadM": 468,
+   "catalogToRoadM": 12
+  },
+  "A260": {
+   "use": "report",
+   "check": "both",
+   "name": "Twedt/Hoffnungstal",
+   "road": "B201N",
+   "distKm": 0.58,
+   "report": [
+    54.6,
+    9.68
+   ],
+   "catalog": [
+    54.60468,
+    9.68395
+   ],
+   "reportToRoadM": 109,
+   "catalogToRoadM": 101
+  },
+  "L836": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Moenchhofdreieck",
+   "road": "A003x",
+   "distKm": 0.58,
+   "report": [
+    50.03333,
+    8.5
+   ],
+   "catalog": [
+    50.02825,
+    8.49835
+   ],
+   "reportToRoadM": 390,
+   "catalogToRoadM": 11
+  },
+  "L879": {
+   "use": "report",
+   "check": "both",
+   "name": "Darmstaedter Kreuz",
+   "road": "A005S",
+   "distKm": 0.57,
+   "report": [
+    49.86,
+    8.6
+   ],
+   "catalog": [
+    49.85506,
+    8.59773
+   ],
+   "reportToRoadM": 100,
+   "catalogToRoadM": 19
+  },
+  "Q443": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Stuttgart rwy1",
+   "road": "RWY1x",
+   "distKm": 0.57,
+   "report": [
+    48.68682,
+    9.20572
+   ],
+   "catalog": [
+    48.68333,
+    9.2
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "C503": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "Koehlbrand Ost",
+   "road": "xxxx",
+   "distKm": 0.57,
+   "report": [
+    53.52125,
+    9.94167
+   ],
+   "catalog": [
+    53.518,
+    9.935
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "F945": {
+   "use": "report",
+   "check": "report",
+   "name": "Ruhland",
+   "road": "A13N",
+   "distKm": 0.57,
+   "report": [
+    51.46483,
+    13.859
+   ],
+   "catalog": [
+    51.46667,
+    13.86667
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 313
+  },
+  "K301": {
+   "use": "report",
+   "check": "neither",
+   "name": "Eigelscheid",
+   "road": "A060N",
+   "distKm": 0.57,
+   "report": [
+    50.20465,
+    6.24778
+   ],
+   "catalog": [
+    50.20911,
+    6.24393
+   ],
+   "reportToRoadM": 4424,
+   "catalogToRoadM": 3935
+  },
+  "A401": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Tating Haferacker",
+   "road": "B202W",
+   "distKm": 0.56,
+   "report": [
+    54.33,
+    8.66
+   ],
+   "catalog": [
+    54.325,
+    8.6589
+   ],
+   "reportToRoadM": 566,
+   "catalogToRoadM": 5
+  },
+  "K447": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "K447",
+   "road": "A001W",
+   "distKm": 0.55,
+   "report": [
+    49.95065,
+    6.87851
+   ],
+   "catalog": [
+    49.94631,
+    6.88234
+   ],
+   "reportToRoadM": 303,
+   "catalogToRoadM": 26
+  },
+  "O807": {
+   "use": "report",
+   "check": "both",
+   "name": "Culitzscher Hoehe",
+   "road": "A72W",
+   "distKm": 0.55,
+   "report": [
+    50.65,
+    12.49115
+   ],
+   "catalog": [
+    50.65,
+    12.48333
+   ],
+   "reportToRoadM": 17,
+   "catalogToRoadM": 149
+  },
+  "E236": {
+   "use": "report",
+   "check": "both",
+   "name": "Wemkendorf",
+   "road": "A29S",
+   "distKm": 0.55,
+   "report": [
+    53.26194,
+    8.16889
+   ],
+   "catalog": [
+    53.26667,
+    8.16667
+   ],
+   "reportToRoadM": 108,
+   "catalogToRoadM": 195
+  },
+  "K791": {
+   "use": "report",
+   "check": "both",
+   "name": "Wiesoppenheim",
+   "road": "A061N",
+   "distKm": 0.54,
+   "report": [
+    49.59981,
+    8.28436
+   ],
+   "catalog": [
+    49.60387,
+    8.28859
+   ],
+   "reportToRoadM": 264,
+   "catalogToRoadM": 9
+  },
+  "J898": {
+   "use": "report",
+   "check": "both",
+   "name": "Völklingen Ost",
+   "road": "A620",
+   "distKm": 0.54,
+   "report": [
+    49.25073,
+    6.8813
+   ],
+   "catalog": [
+    49.25054,
+    6.87385
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 0
+  },
+  "M080": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Heringen",
+   "road": "A038W",
+   "distKm": 0.54,
+   "report": [
+    51.4723,
+    10.87413
+   ],
+   "catalog": [
+    51.47605,
+    10.8791
+   ],
+   "reportToRoadM": 442,
+   "catalogToRoadM": 10
+  },
+  "L246": {
+   "use": "report",
+   "check": "both",
+   "name": "Kuhberg",
+   "road": "A049x",
+   "distKm": 0.54,
+   "report": [
+    51.06667,
+    9.23333
+   ],
+   "catalog": [
+    51.0625,
+    9.23722
+   ],
+   "reportToRoadM": 231,
+   "catalogToRoadM": 8
+  },
+  "P580": {
+   "use": "report",
+   "check": "both",
+   "name": "Biering",
+   "road": "St2110",
+   "distKm": 0.53,
+   "report": [
+    48.36905,
+    13.09081
+   ],
+   "catalog": [
+    48.36889,
+    13.08361
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 12
+  },
+  "K304": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Pruemtalbruecke",
+   "road": "A060N",
+   "distKm": 0.53,
+   "report": [
+    50.19097,
+    6.38076
+   ],
+   "catalog": [
+    50.18744,
+    6.38577
+   ],
+   "reportToRoadM": 745,
+   "catalogToRoadM": 226
+  },
+  "J820": {
+   "use": "report",
+   "check": "both",
+   "name": "Schiffweiler",
+   "road": "B41x",
+   "distKm": 0.53,
+   "report": [
+    49.37306,
+    7.14667
+   ],
+   "catalog": [
+    49.3683,
+    7.1464
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 17
+  },
+  "J899": {
+   "use": "report",
+   "check": "both",
+   "name": "J899",
+   "road": "A620",
+   "distKm": 0.53,
+   "report": [
+    49.25042,
+    6.87379
+   ],
+   "catalog": [
+    49.25077,
+    6.88106
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 7
+  },
+  "N571": {
+   "use": "report",
+   "check": "both",
+   "name": "Cobbelsdorf",
+   "road": "A9N",
+   "distKm": 0.53,
+   "report": [
+    51.97114,
+    12.48596
+   ],
+   "catalog": [
+    51.96667,
+    12.48333
+   ],
+   "reportToRoadM": 37,
+   "catalogToRoadM": 290
+  },
+  "L890": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Rondell",
+   "road": "B045x",
+   "distKm": 0.53,
+   "report": [
+    49.81667,
+    8.96667
+   ],
+   "catalog": [
+    49.81895,
+    8.97309
+   ],
+   "reportToRoadM": 457,
+   "catalogToRoadM": 6
+  },
+  "K732": {
+   "use": "report",
+   "check": "both",
+   "name": "Hahnweiler",
+   "road": "A062S",
+   "distKm": 0.52,
+   "report": [
+    49.57677,
+    7.24101
+   ],
+   "catalog": [
+    49.57577,
+    7.2339
+   ],
+   "reportToRoadM": 176,
+   "catalogToRoadM": 9
+  },
+  "P450": {
+   "use": "report",
+   "check": "both",
+   "name": "Saalhaupt A93",
+   "road": "B15N",
+   "distKm": 0.52,
+   "report": [
+    48.8903,
+    12.0747
+   ],
+   "catalog": [
+    48.88825,
+    12.08108
+   ],
+   "reportToRoadM": 251,
+   "catalogToRoadM": 15
+  },
+  "J810": {
+   "use": "report",
+   "check": "both",
+   "name": "Saarbrücken Schönbach",
+   "road": "A620",
+   "distKm": 0.52,
+   "report": [
+    49.21602,
+    7.0208
+   ],
+   "catalog": [
+    49.21143,
+    7.02208
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 12
+  },
+  "E450": {
+   "use": "report",
+   "check": "both",
+   "name": "Etelsen",
+   "road": "A27S",
+   "distKm": 0.52,
+   "report": [
+    53.015,
+    9.12389
+   ],
+   "catalog": [
+    53.01667,
+    9.11667
+   ],
+   "reportToRoadM": 102,
+   "catalogToRoadM": 265
+  },
+  "K513": {
+   "use": "report",
+   "check": "both",
+   "name": "Ehrang",
+   "road": "B052S",
+   "distKm": 0.51,
+   "report": [
+    49.80365,
+    6.69685
+   ],
+   "catalog": [
+    49.80092,
+    6.70261
+   ],
+   "reportToRoadM": 205,
+   "catalogToRoadM": 1
+  },
+  "H484": {
+   "use": "report",
+   "check": "report",
+   "name": "Apfelbaumgrund TB",
+   "road": "A44W",
+   "distKm": 0.51,
+   "report": [
+    51.53739,
+    8.86317
+   ],
+   "catalog": [
+    51.53333,
+    8.86667
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 421
+  },
+  "H243": {
+   "use": "report",
+   "check": "both",
+   "name": "Muenster-Nord",
+   "road": "A1N",
+   "distKm": 0.51,
+   "report": [
+    51.99658,
+    7.56757
+   ],
+   "catalog": [
+    51.99258,
+    7.56396
+   ],
+   "reportToRoadM": 0,
+   "catalogToRoadM": 22
+  },
+  "A581": {
+   "use": "report",
+   "check": "both",
+   "name": "Bungsberg",
+   "road": "L216S",
+   "distKm": 0.5,
+   "report": [
+    54.21,
+    10.74
+   ],
+   "catalog": [
+    54.21445,
+    10.73958
+   ],
+   "reportToRoadM": 16,
+   "catalogToRoadM": 97
+  },
+  "K266": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Moseltalbruecke",
+   "road": "A061S",
+   "distKm": 0.49,
+   "report": [
+    50.31701,
+    7.4908
+   ],
+   "catalog": [
+    50.31258,
+    7.49051
+   ],
+   "reportToRoadM": 345,
+   "catalogToRoadM": 4
+  },
+  "K514": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Bekond",
+   "road": "A001W",
+   "distKm": 0.48,
+   "report": [
+    49.85459,
+    6.78989
+   ],
+   "catalog": [
+    49.85353,
+    6.79645
+   ],
+   "reportToRoadM": 426,
+   "catalogToRoadM": 18
+  },
+  "M070": {
+   "use": "report",
+   "check": "both",
+   "name": "Rodebachtalbruecke",
+   "road": "A038W",
+   "distKm": 0.48,
+   "report": [
+    51.45638,
+    10.68514
+   ],
+   "catalog": [
+    51.46064,
+    10.68635
+   ],
+   "reportToRoadM": 22,
+   "catalogToRoadM": 8
+  },
+  "J817": {
+   "use": "report",
+   "check": "both",
+   "name": "Saarbrücken St. Amual",
+   "road": "A620",
+   "distKm": 0.48,
+   "report": [
+    49.2241,
+    7.00892
+   ],
+   "catalog": [
+    49.22154,
+    7.01419
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 1
+  },
+  "L158": {
+   "use": "report",
+   "check": "both",
+   "name": "Berghaeuser Bruecke",
+   "road": "A044E",
+   "distKm": 0.47,
+   "report": [
+    51.26,
+    9.5
+   ],
+   "catalog": [
+    51.25953,
+    9.49335
+   ],
+   "reportToRoadM": 25,
+   "catalogToRoadM": 11
+  },
+  "L675": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Distelrasen",
+   "road": "A066E",
+   "distKm": 0.45,
+   "report": [
+    50.38,
+    9.53
+   ],
+   "catalog": [
+    50.38303,
+    9.5257
+   ],
+   "reportToRoadM": 435,
+   "catalogToRoadM": 9
+  },
+  "K265": {
+   "use": "report",
+   "check": "both",
+   "name": "Ochtendung",
+   "road": "A048E",
+   "distKm": 0.45,
+   "report": [
+    50.33352,
+    7.40821
+   ],
+   "catalog": [
+    50.32949,
+    7.40908
+   ],
+   "reportToRoadM": 298,
+   "catalogToRoadM": 20
+  },
+  "E736": {
+   "use": "report",
+   "check": "both",
+   "name": "Papenbrink",
+   "road": "A2S",
+   "distKm": 0.45,
+   "report": [
+    52.21889,
+    9.05556
+   ],
+   "catalog": [
+    52.21667,
+    9.05
+   ],
+   "reportToRoadM": 13,
+   "catalogToRoadM": 165
+  },
+  "K213": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Stadtkyll",
+   "road": "B051x",
+   "distKm": 0.45,
+   "report": [
+    50.33507,
+    6.50989
+   ],
+   "catalog": [
+    50.33271,
+    6.51505
+   ],
+   "reportToRoadM": 355,
+   "catalogToRoadM": 14
+  },
+  "F592": {
+   "use": "report",
+   "check": "both",
+   "name": "Oderbruecke",
+   "road": "A12W",
+   "distKm": 0.45,
+   "report": [
+    52.31519,
+    14.57283
+   ],
+   "catalog": [
+    52.31667,
+    14.56667
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 227
+  },
+  "O102": {
+   "use": "report",
+   "check": "unchecked",
+   "name": "eddp rwy wman2",
+   "road": "RWYXX",
+   "distKm": 0.45,
+   "report": [
+    51.43256,
+    12.26483
+   ],
+   "catalog": [
+    51.43583,
+    12.26111
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "H308": {
+   "use": "report",
+   "check": "report",
+   "name": "Sonsbeck",
+   "road": "A57S",
+   "distKm": 0.44,
+   "report": [
+    51.60383,
+    6.35181
+   ],
+   "catalog": [
+    51.6,
+    6.35
+   ],
+   "reportToRoadM": 10,
+   "catalogToRoadM": 384
+  },
+  "A680": {
+   "use": "report",
+   "check": "both",
+   "name": "Dodauerforst",
+   "road": "B76W",
+   "distKm": 0.44,
+   "report": [
+    54.13,
+    10.54
+   ],
+   "catalog": [
+    54.13397,
+    10.53933
+   ],
+   "reportToRoadM": 281,
+   "catalogToRoadM": 160
+  },
+  "A161": {
+   "use": "report",
+   "check": "both",
+   "name": "Kabelhaus Flensburg",
+   "road": "A7N",
+   "distKm": 0.44,
+   "report": [
+    54.7373,
+    9.38571
+   ],
+   "catalog": [
+    54.7339,
+    9.3892
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 2
+  },
+  "Q393": {
+   "use": "report",
+   "check": "both",
+   "name": "Westhausen B",
+   "road": "A7N",
+   "distKm": 0.44,
+   "report": [
+    48.89795,
+    10.17824
+   ],
+   "catalog": [
+    48.9,
+    10.18333
+   ],
+   "reportToRoadM": 22,
+   "catalogToRoadM": 161
+  },
+  "E882": {
+   "use": "report",
+   "check": "both",
+   "name": "Sonnenberg",
+   "road": "B242W",
+   "distKm": 0.43,
+   "report": [
+    51.76754,
+    10.46186
+   ],
+   "catalog": [
+    51.76877,
+    10.45586
+   ],
+   "reportToRoadM": 12,
+   "catalogToRoadM": 32
+  },
+  "L601": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Elzer Berg",
+   "road": "A003N",
+   "distKm": 0.43,
+   "report": [
+    50.41667,
+    7.96667
+   ],
+   "catalog": [
+    50.41278,
+    7.96667
+   ],
+   "reportToRoadM": 432,
+   "catalogToRoadM": 0
+  },
+  "A190": {
+   "use": "report",
+   "check": "both",
+   "name": "Scheideheck",
+   "road": "B199S",
+   "distKm": 0.43,
+   "report": [
+    54.7,
+    9.94
+   ],
+   "catalog": [
+    54.70348,
+    9.943
+   ],
+   "reportToRoadM": 130,
+   "catalogToRoadM": 23
+  },
+  "F894": {
+   "use": "report",
+   "check": "both",
+   "name": "Bademeusel",
+   "road": "A15N",
+   "distKm": 0.43,
+   "report": [
+    51.66858,
+    14.72208
+   ],
+   "catalog": [
+    51.66667,
+    14.71667
+   ],
+   "reportToRoadM": 17,
+   "catalogToRoadM": 299
+  },
+  "L242": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Scharfenstein",
+   "road": "A049S",
+   "distKm": 0.42,
+   "report": [
+    51.19,
+    9.4
+   ],
+   "catalog": [
+    51.1907,
+    9.39401
+   ],
+   "reportToRoadM": 354,
+   "catalogToRoadM": 7
+  },
+  "L831": {
+   "use": "report",
+   "check": "both",
+   "name": "Frankfurter Kreuz",
+   "road": "A003S",
+   "distKm": 0.42,
+   "report": [
+    50.05337,
+    8.60675
+   ],
+   "catalog": [
+    50.05115,
+    8.60196
+   ],
+   "reportToRoadM": 58,
+   "catalogToRoadM": 198
+  },
+  "F057": {
+   "use": "report",
+   "check": "both",
+   "name": "Schmoelln",
+   "road": "A11N",
+   "distKm": 0.42,
+   "report": [
+    53.29441,
+    14.12129
+   ],
+   "catalog": [
+    53.29499,
+    14.12753
+   ],
+   "reportToRoadM": 4,
+   "catalogToRoadM": 7
+  },
+  "N771": {
+   "use": "report",
+   "check": "report",
+   "name": "Teufelsgrundbruecke",
+   "road": "A14x",
+   "distKm": 0.42,
+   "report": [
+    51.56953,
+    11.96272
+   ],
+   "catalog": [
+    51.56667,
+    11.96667
+   ],
+   "reportToRoadM": 3,
+   "catalogToRoadM": 314
+  },
+  "A400": {
+   "use": "report",
+   "check": "both",
+   "name": "Toenning",
+   "road": "B202W",
+   "distKm": 0.42,
+   "report": [
+    54.33,
+    8.95
+   ],
+   "catalog": [
+    54.32633,
+    8.95131
+   ],
+   "reportToRoadM": 265,
+   "catalogToRoadM": 174
+  },
+  "L687": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Forsthausbruecke",
+   "road": "A007N",
+   "distKm": 0.41,
+   "report": [
+    50.38,
+    9.74
+   ],
+   "catalog": [
+    50.38118,
+    9.73445
+   ],
+   "reportToRoadM": 416,
+   "catalogToRoadM": 11
+  },
+  "E225": {
+   "use": "report",
+   "check": "both",
+   "name": "Vareler Wald",
+   "road": "A29S",
+   "distKm": 0.41,
+   "report": [
+    53.38694,
+    8.11806
+   ],
+   "catalog": [
+    53.38333,
+    8.11667
+   ],
+   "reportToRoadM": 142,
+   "catalogToRoadM": 118
+  },
+  "K323": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Kelberg",
+   "road": "A001",
+   "distKm": 0.41,
+   "report": [
+    50.27135,
+    6.82388
+   ],
+   "catalog": [
+    50.26789,
+    6.82594
+   ],
+   "reportToRoadM": 391,
+   "catalogToRoadM": 13
+  },
+  "K135": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Vinxtbachtalbruecke",
+   "road": "A061x",
+   "distKm": 0.4,
+   "report": [
+    50.48984,
+    7.21424
+   ],
+   "catalog": [
+    50.48927,
+    7.21988
+   ],
+   "reportToRoadM": 376,
+   "catalogToRoadM": 4
+  },
+  "E785": {
+   "use": "report",
+   "check": "report",
+   "name": "Koenigslutter",
+   "road": "A2S",
+   "distKm": 0.4,
+   "report": [
+    52.31306,
+    10.8
+   ],
+   "catalog": [
+    52.31667,
+    10.8
+   ],
+   "reportToRoadM": 45,
+   "catalogToRoadM": 443
+  },
+  "H345": {
+   "use": "report",
+   "check": "both",
+   "name": "Werne (Lippebr.)",
+   "road": "A1S",
+   "distKm": 0.4,
+   "report": [
+    51.6631,
+    7.68259
+   ],
+   "catalog": [
+    51.66667,
+    7.68333
+   ],
+   "reportToRoadM": 6,
+   "catalogToRoadM": 76
+  },
+  "H643": {
+   "use": "report",
+   "check": "both",
+   "name": "Blume",
+   "road": "A1S",
+   "distKm": 0.4,
+   "report": [
+    51.2035,
+    7.24897
+   ],
+   "catalog": [
+    51.2,
+    7.25
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 259
+  },
+  "Q987": {
+   "use": "report",
+   "check": "both",
+   "name": "Argenbruecke Mitte",
+   "road": "A96S",
+   "distKm": 0.39,
+   "report": [
+    47.64323,
+    9.74704
+   ],
+   "catalog": [
+    47.64594,
+    9.75039
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 2
+  },
+  "K123": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Kreuzberg",
+   "road": "B257N",
+   "distKm": 0.39,
+   "report": [
+    50.51474,
+    6.97844
+   ],
+   "catalog": [
+    50.5119,
+    6.98171
+   ],
+   "reportToRoadM": 303,
+   "catalogToRoadM": 3
+  },
+  "A535": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Boxberg",
+   "road": "B430E",
+   "distKm": 0.39,
+   "report": [
+    54.07,
+    9.75
+   ],
+   "catalog": [
+    54.06648,
+    9.75005
+   ],
+   "reportToRoadM": 369,
+   "catalogToRoadM": 10
+  },
+  "K585": {
+   "use": "report",
+   "check": "both",
+   "name": "Rheinbruecke Weisenau",
+   "road": "A060E",
+   "distKm": 0.39,
+   "report": [
+    49.97441,
+    8.31853
+   ],
+   "catalog": [
+    49.97543,
+    8.32374
+   ],
+   "reportToRoadM": 122,
+   "catalogToRoadM": 13
+  },
+  "K865": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Johanniskreuz",
+   "road": "B48",
+   "distKm": 0.38,
+   "report": [
+    49.33265,
+    7.82398
+   ],
+   "catalog": [
+    49.3358,
+    7.82608
+   ],
+   "reportToRoadM": 336,
+   "catalogToRoadM": 5
+  },
+  "M111": {
+   "use": "report",
+   "check": "both",
+   "name": "Steinbachtalbruecke",
+   "road": "A038E",
+   "distKm": 0.37,
+   "report": [
+    51.40234,
+    10.20721
+   ],
+   "catalog": [
+    51.40389,
+    10.21201
+   ],
+   "reportToRoadM": 190,
+   "catalogToRoadM": 8
+  },
+  "K443": {
+   "use": "report",
+   "check": "both",
+   "name": "Liesertalbruecke",
+   "road": "A001N",
+   "distKm": 0.37,
+   "report": [
+    50.23043,
+    6.84842
+   ],
+   "catalog": [
+    50.22778,
+    6.85167
+   ],
+   "reportToRoadM": 27,
+   "catalogToRoadM": 5
+  },
+  "K613": {
+   "use": "catalog",
+   "check": "catalog",
+   "name": "Ruwer",
+   "road": "A602E",
+   "distKm": 0.37,
+   "report": [
+    49.78381,
+    6.69976
+   ],
+   "catalog": [
+    49.78306,
+    6.70482
+   ],
+   "reportToRoadM": 327,
+   "catalogToRoadM": 8
+  },
+  "O951": {
+   "use": "report",
+   "check": "both",
+   "name": "Heinersgruen",
+   "road": "A72E",
+   "distKm": 0.37,
+   "report": [
+    50.3933,
+    11.98857
+   ],
+   "catalog": [
+    50.39108,
+    11.98463
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 13
+  },
+  "L051": {
+   "use": "report",
+   "check": "report",
+   "name": "Am Quast",
+   "road": "A044W",
+   "distKm": 0.37,
+   "report": [
+    51.48,
+    9.05
+   ],
+   "catalog": [
+    51.48333,
+    9.05
+   ],
+   "reportToRoadM": 117,
+   "catalogToRoadM": 474
+  },
+  "L817": {
+   "use": "report",
+   "check": "both",
+   "name": "Salzbachtalbruecke",
+   "road": "A066x",
+   "distKm": 0.37,
+   "report": [
+    50.05,
+    8.25
+   ],
+   "catalog": [
+    50.05194,
+    8.25417
+   ],
+   "reportToRoadM": 226,
+   "catalogToRoadM": 16
+  },
+  "A391": {
+   "use": "report",
+   "check": "both",
+   "name": "Puttgarden",
+   "road": "B207S",
+   "distKm": 0.37,
+   "report": [
+    54.49,
+    11.22
+   ],
+   "catalog": [
+    54.49329,
+    11.21969
+   ],
+   "reportToRoadM": 94,
+   "catalogToRoadM": 3
+  },
+  "P003": {
+   "use": "report",
+   "check": "both",
+   "name": "Grenzwald",
+   "road": "A7x",
+   "distKm": 0.36,
+   "report": [
+    50.35092,
+    9.74335
+   ],
+   "catalog": [
+    50.35332,
+    9.73989
+   ],
+   "reportToRoadM": 8,
+   "catalogToRoadM": 7
+  },
+  "H456": {
+   "use": "report",
+   "check": "both",
+   "name": "Ostoenner Bach TB",
+   "road": "A44W",
+   "distKm": 0.36,
+   "report": [
+    51.5365,
+    7.99417
+   ],
+   "catalog": [
+    51.53652,
+    7.98896
+   ],
+   "reportToRoadM": 49,
+   "catalogToRoadM": 4
+  },
+  "H775": {
+   "use": "report",
+   "check": "both",
+   "name": "Eckenhagen",
+   "road": "A4E",
+   "distKm": 0.36,
+   "report": [
+    50.96875,
+    7.72061
+   ],
+   "catalog": [
+    50.96667,
+    7.71667
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 61
+  },
+  "Q091": {
+   "use": "report",
+   "check": "both",
+   "name": "Buchbachtalbruecke",
+   "road": "A7S",
+   "distKm": 0.35,
+   "report": [
+    49.0594,
+    10.17969
+   ],
+   "catalog": [
+    49.05636,
+    10.17822
+   ],
+   "reportToRoadM": 2,
+   "catalogToRoadM": 5
+  },
+  "A540": {
+   "use": "report",
+   "check": "neither",
+   "name": "Dellbrueck",
+   "road": "B7N",
+   "distKm": 0.35,
+   "report": [
+    54.14,
+    9.64
+   ],
+   "catalog": [
+    54.14042,
+    9.64537
+   ],
+   "reportToRoadM": null,
+   "catalogToRoadM": null
+  },
+  "K164": {
+   "use": "report",
+   "check": "both",
+   "name": "Kannenbaeckerland",
+   "road": "A048W",
+   "distKm": 0.35,
+   "report": [
+    50.45409,
+    7.72677
+   ],
+   "catalog": [
+    50.45145,
+    7.72408
+   ],
+   "reportToRoadM": 244,
+   "catalogToRoadM": 16
+  },
+  "H691": {
+   "use": "report",
+   "check": "both",
+   "name": "Albrechtsplatz",
+   "road": "B48x",
+   "distKm": 0.35,
+   "report": [
+    51.13613,
+    8.42787
+   ],
+   "catalog": [
+    51.13528,
+    8.42306
+   ],
+   "reportToRoadM": 186,
+   "catalogToRoadM": 13
+  },
+  "K263": {
+   "use": "report",
+   "check": "both",
+   "name": "Luetzelbachtal",
+   "road": "A061S",
+   "distKm": 0.34,
+   "report": [
+    50.36241,
+    7.47782
+   ],
+   "catalog": [
+    50.36404,
+    7.47369
+   ],
+   "reportToRoadM": 5,
+   "catalogToRoadM": 6
+  },
+  "H552": {
+   "use": "report",
+   "check": "both",
+   "name": "Ruhrbruecke",
+   "road": "A45X",
+   "distKm": 0.34,
+   "report": [
+    51.41972,
+    7.55047
+   ],
+   "catalog": [
+    51.41667,
+    7.55
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 102
+  },
+  "M731": {
+   "use": "report",
+   "check": "both",
+   "name": "Haseltalbruecke",
+   "road": "A073S",
+   "distKm": 0.34,
+   "report": [
+    50.60193,
+    10.63987
+   ],
+   "catalog": [
+    50.60321,
+    10.64423
+   ],
+   "reportToRoadM": 267,
+   "catalogToRoadM": 9
+  },
+  "K180": {
+   "use": "report",
+   "check": "both",
+   "name": "Nentershausen",
+   "road": "A003N",
+   "distKm": 0.34,
+   "report": [
+    50.4254,
+    7.92382
+   ],
+   "catalog": [
+    50.42386,
+    7.92795
+   ],
+   "reportToRoadM": 229,
+   "catalogToRoadM": 18
+  },
+  "P778": {
+   "use": "report",
+   "check": "both",
+   "name": "Lagerlechfeld",
+   "road": "B17x",
+   "distKm": 0.33,
+   "report": [
+    48.1964,
+    10.85207
+   ],
+   "catalog": [
+    48.19918,
+    10.85367
+   ],
+   "reportToRoadM": 14,
+   "catalogToRoadM": 12
+  },
+  "H638": {
+   "use": "report",
+   "check": "both",
+   "name": "Dormagen",
+   "road": "A57N",
+   "distKm": 0.33,
+   "report": [
+    51.10289,
+    6.80081
+   ],
+   "catalog": [
+    51.1,
+    6.8
+   ],
+   "reportToRoadM": 11,
+   "catalogToRoadM": 88
+  },
+  "H991": {
+   "use": "report",
+   "check": "both",
+   "name": "Nettersheim",
+   "road": "A1x",
+   "distKm": 0.32,
+   "report": [
+    50.51442,
+    6.66389
+   ],
+   "catalog": [
+    50.51667,
+    6.66667
+   ],
+   "reportToRoadM": 7,
+   "catalogToRoadM": 130
+  },
+  "A210": {
+   "use": "report",
+   "check": "both",
+   "name": "Nordstrand",
+   "road": "L30W",
+   "distKm": 0.32,
+   "report": [
+    54.51,
+    8.94
+   ],
+   "catalog": [
+    54.51199,
+    8.9365
+   ],
+   "reportToRoadM": 257,
+   "catalogToRoadM": 23
+  },
+  "H083": {
+   "use": "report",
+   "check": "both",
+   "name": "Horst-Hoehe",
+   "road": "B239x",
+   "distKm": 0.32,
+   "report": [
+    52.28757,
+    8.62654
+   ],
+   "catalog": [
+    52.28637,
+    8.63074
+   ],
+   "reportToRoadM": 1,
+   "catalogToRoadM": 9
+  },
+  "J825": {
+   "use": "report",
+   "check": "both",
+   "name": "AK Saarbruecken",
+   "road": "A1S",
+   "distKm": 0.31,
+   "report": [
+    49.35263,
+    7.01823
+   ],
+   "catalog": [
+    49.35,
+    7.01667
+   ],
+   "reportToRoadM": 30,
+   "catalogToRoadM": 2
+  },
+  "L538": {
+   "use": "report",
+   "check": "both",
+   "name": "Talbruecke Langgoens",
+   "road": "A045x",
+   "distKm": 0.31,
+   "report": [
+    50.5,
+    8.68333
+   ],
+   "catalog": [
+    50.49722,
+    8.68333
+   ],
+   "reportToRoadM": 37,
+   "catalogToRoadM": 4
+  },
+  "E787": {
+   "use": "report",
+   "check": "both",
+   "name": "BS-Flughafen",
+   "road": "A2W",
+   "distKm": 0.31,
+   "report": [
+    52.31333,
+    10.55268
+   ],
+   "catalog": [
+    52.3133,
+    10.5572
+   ],
+   "reportToRoadM": 9,
+   "catalogToRoadM": 11
+  },
+  "A281": {
+   "use": "report",
+   "check": "both",
+   "name": "Karby",
+   "road": "B203N",
+   "distKm": 0.31,
+   "report": [
+    54.61,
+    9.97
+   ],
+   "catalog": [
+    54.61271,
+    9.96915
+   ],
+   "reportToRoadM": 164,
+   "catalogToRoadM": 91
+  },
+  "L160": {
+   "use": "report",
+   "check": "both",
+   "name": "Lutterberg",
+   "road": "A007S",
+   "distKm": 0.31,
+   "report": [
+    51.3688,
+    9.63612
+   ],
+   "catalog": [
+    51.36667,
+    9.63333
+   ],
+   "reportToRoadM": 20,
+   "catalogToRoadM": 82
+  }
+ }
+}

@@ -29,6 +29,7 @@ import {
 } from '../../src/road/roadContract.ts';
 import { makeInDE } from './deMask.mjs';
 import { roadFcReference } from './road-fc-ref.mjs';
+import { readStationPositions, stationPosition } from './station-positions.mjs';
 
 const readJson = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
 const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10);
@@ -79,13 +80,14 @@ export function nextRing(prev, group, stamp, points) {
 }
 
 /** In-process entry (verifiers) — same as the CLI. */
-export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE(), nowIso }) {
+export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE(), nowIso, positions = readStationPositions() }) {
   const t0 = Date.now();
   const slotMs = roadStampToMs(stamp);
   if (!Number.isFinite(slotMs)) throw new Error(`unlesbarer Slot ${stamp}`);
   const meta = readJson(join(inDir, 'groups.json')) ?? {};
   const catalogFile = readJson(join(storeDir, ROAD_STATIONS_PATH));
   const catalog = catalogView(catalogFile);
+  const posCount = { posCatalog: 0, posUnverified: 0 };
   const groups = {};
   const stations = [];
   const decodeErrors = {};
@@ -106,11 +108,17 @@ export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE
     for (const r of recs) {
       if (!r.id) continue;
       const cat = catalog?.[r.id];
+      // M6: one position for marker and forecast point — the bulletin's, unless only the catalogue's lies at the
+      // station's road (`station-positions.json`). Without a bulletin position nothing changes (rule `outsideDE`).
+      const hasPos = r.lat != null && r.lon != null;
+      const pos = hasPos ? stationPosition(positions, r.id, { lat: r.lat, lon: r.lon }, cat ? { lat: cat.lat, lon: cat.lon } : null) : null;
+      if (pos?.flag) posCount[pos.flag]++;
       stations.push({
         id: r.id, group: g.id, name: r.name, highway: r.highway,
         // AW-0: Saxony sends route km 0 for every station — then the catalogue's km (100-m units) counts.
         km: r.km != null && r.km > 0 ? r.km : (cat?.km ?? null),
-        lat: r.lat, lon: r.lon, elevM: r.elevM, obsMs: r.obsMs,
+        lat: pos ? pos.lat : r.lat, lon: pos ? pos.lon : r.lon, elevM: r.elevM, obsMs: r.obsMs,
+        ...(pos?.flag ? { posFlag: pos.flag } : {}), ...(pos?.flag === 'posCatalog' ? { reportPos: [r.lat, r.lon] } : {}),
         airT: r.airT, dewT: r.dewT, rh: r.rh, visM: r.visM,
         sensors: r.sensors.map((s) => ({ roadT: s.roadT, filmMm: s.filmMm, cond: s.cond })),
         windMs: r.windMs, gustMs: r.gustMs, windDir: r.windDir,
@@ -159,6 +167,8 @@ export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE
   const summary = {
     ok: true, stamp, publish: res.gate.publish, reasons: res.gate.reasons, points: res.obs.points.length,
     killed: res.obs.killed, groups, decodeErrors, h24Groups,
+    // M6: how many stations show the catalogue position / a position that lies at no road of theirs.
+    positions: positions ? { builtAt: positions.builtAt ?? null, ...posCount } : null,
     balance: res.balance, files, bytes, ms: Date.now() - t0,
     // V-AW-1: which run served as reference and for how many stations (the denominator of the observe rule).
     cubeRef: cubeRef ? { run: cubeRef.run, step: cubeRef.step, stations: Object.keys(cubeRef.cubeT2m).length } : null,

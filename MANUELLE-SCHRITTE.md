@@ -1541,7 +1541,10 @@ Belege: `audit/autobahnwetter.md` §18. Sieben Commits auf `main` (`a42d516`, `f
    Producer (V-AW-23) und die Seite (V-AW-2/9/12/14/26/29) mit dem Deploy.
    Prüfen danach: `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-check.mjs`
    (Kopf `anchor: swis`, `anchored` ≈ 1 100), im Archiv `road/fc/v1/index.json` (neuer Tag), `road/fc/v1/static/manifest.json`.
-2. **Daten-Paket ins Daten-Repo** (V-AW-7, V-AW-16, V-AW-22): `C:\dev\buscosun-road-publish\2026-10-06\` — drei Dateien
+2. ~~**Daten-Paket ins Daten-Repo**~~ — **erledigt 06.10. 17:24 UTC mit Jans Freigabe** (Daten-Repo `e5597ba`, nur die drei
+   Pfade, auf frischem `origin/main` gebaut, nicht force; jsDelivr für die drei `@main`-Pfade gepurgt, CDN-Inhalt = Paket;
+   Straßen-Slot `2610061730` des Spiegels hat die neue `corridors.json` behalten; Audit §18.4).
+   Ursprünglicher Auftrag: (V-AW-7, V-AW-16, V-AW-22): `C:\dev\buscosun-road-publish\2026-10-06\` — drei Dateien
    (`SHA256SUMS` daneben) nach `road/v1/static/corridors.json`, `road/fc/v1/static/points.json`, `road/fc/v1/static/geo.json`;
    Push nach dem Protokoll (build/point-Lauf abwarten, fetch, rebase, Pfad-Commit, nie force), danach Purge genau dieser drei
    Pfade. Der Spiegel übernimmt `corridors.json` aus dem Repo (copyInto). Folge: 141 statt 137 Korridore (vier Äste mit
@@ -1555,3 +1558,37 @@ Belege: `audit/autobahnwetter.md` §18. Sieben Commits auf `main` (`a42d516`, `f
 4. **DWD-Anfrage** zum aktuellen Stationskatalog und zu den leeren Ordnern LW/SD — Text in `audit/autobahnwetter.md` §18.5.
 5. **Entscheiden:** V-AW-36 (Producer nicht ganz deterministisch, Kandidat: Zeitfristen im Motor — buscosun Fusion).
 6. **Real-Device:** Ebene „Niederschlag jetzt" (WebGL-Ebene der Wetterkarte) auf dem Handy einschalten, `/autobahnwetter/a8`.
+
+## 42. Phase FR-2 — die ganze Plattform rechnet mit buscosun Fusion, 2026-10-06
+
+Beleg: `audit/fusion-release.md` §8 (Messung `audit/fusion-release/platform-measure.md`). Stand: gebaut, **uncommitted**, Gates grün;
+Routenplaner **an** (E-FR-7, Jan 06.10.), die übrigen drei Teile **aus** (Messregel §8.4 nicht bestanden).
+
+1. **Ansehen und committen** (Vorschlag `feat(fusion): one entry for every part of the platform (FR-2)`): `fusionForecast.ts`,
+   `FUSION_PARTS` im Register, acht Aufrufe, Wächter C3/C4, Messwerkzeug, `budget.json` (totalJs 1 559). Ohne Schalter byte-gleich.
+2. **E-FR-5 Windrichtung** (V-FR-5): (a) Teile zeigen „keine Richtung" ehrlich — Empfehlung; (b) Einstieg ergänzt die Richtung des
+   Modellmittels, gekennzeichnet (berührt die Ausgabe von buscosun Fusion); (c) Routen-, Event-, Schnitt-Teil bleiben aus.
+3. **E-FR-6 Benachrichtigungen:** trotz K2 kalt (+0,35 s, Hintergrundprüfung) einschalten?
+4. ~~E-FR-7 Routenplaner~~ — **entschieden 06.10.: eingeschaltet** („nutze es einfach“), §8.10. Neu: **V-FR-9** Südbayern wird als AT gerechnet (`pickCountry`, älter als FR-2) — beheben lassen?
+5. Danach je Teil: `on: true` in `FUSION_PARTS`, Push, Deploy-Prüfung im Browser mit dem Teil (Konsole: kein „Rückfall").
+
+## 43. Phase AW — Datenprüfung und M6 Stationslage, 2026-10-06/07
+
+Belege: `audit/autobahnwetter-datenpruefung.md` (§0–§5, M6a/M6b), Liste `audit/autobahnwetter/datenpruefung/lage-liste.md`.
+Nichts committet, nichts gepusht.
+
+1. **Commit + Push von `buscosun-web/main`** mit M6: `scripts/road/station-positions.mjs` + `.json` (Tabelle),
+   `road-derive.mjs`, `build-fc-points.mjs`, `src/road/roadContract.ts`, `roadFc.ts`, `RoadReadout.tsx`,
+   `scripts/verify-road-positions.mjs`, `package.json` (Alias). Wirksam für die Messmarker ab dem nächsten Start des
+   Radar-Spiegels (klont `main`); Gates: `verify:road-positions` 23/23, `verify:road-derive` 36/36, `verify:road-contract`
+   69/69, `verify:road-fc` 102/102, `verify:road-archive` 26/26, `verify:road-decode` 15/15, `verify:road-ui` 64/64,
+   typecheck 0, Build + Budget grün.
+2. **Daten-Paket ins Daten-Repo** (Prognosepunkte auf derselben Lage): `C:\dev\buscosun-road-publish\2026-10-07-m6\` —
+   `road/fc/v1/static/points.json` und `geo.json` (`SHA256SUMS` daneben); Achspunkte bytegleich zum Stand `e5597ba`,
+   807 Stationspunkte verschoben (p50 71 m, 80 > 2 km). Protokoll wie 06.10. (frischer `origin/main`, nur die zwei Pfade,
+   nie force), danach Purge genau dieser zwei `@main`-Pfade. Reihenfolge zu Schritt 1 egal (vorher: Katalog-Stationen
+   stehen schon auf Katalog). Achtung V-AW-39: der erste Lauf danach kann als Wiederholung überspringen.
+3. **Liste ansehen** (13 Stationen ohne Lage an der eigenen Straße, 10 ohne Straßennummer): je Station Katalog, Meldung
+   oder eine eigene Lage festlegen — oder so lassen (Meldelage, „Position nicht bestätigt“).
+4. Offen aus der Datenprüfung (Entscheidung): M1 Füllwerte/Frost hart, M2 unmögliche Werte, M3 Niederschlags-Füllwert,
+   M4 Anker-Filter, M5 Texte, M7 Sägezahn, D-10 vierstellige Straßennummern.

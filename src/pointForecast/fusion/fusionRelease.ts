@@ -155,3 +155,22 @@ export function fusionVersionOfEngine(engine: { name?: unknown; version?: unknow
 
 /** Is a published product behind the code? `true` ⇒ the next producer run must not be skipped as a repeat. */
 export const fusionProductBehind = (engine: { name?: unknown; version?: unknown } | null | undefined): boolean => fusionVersionOfEngine(engine) !== FUSION_CURRENT;
+
+/**
+ * The parts of the platform that used to call the live path and reach buscosun Fusion through the entry
+ * `getFusionForecast(opts, part)` (`fusionForecast.ts`, phase FR-2, `audit/fusion-release.md` §8). A part that is `on` computes
+ * the newest stand of the stage `fs` (cube, radar, measurement, DWD UV in DE); a part that is off calls the live path exactly as
+ * before. E-FR-3 (Jan 06.10.2026): every part is switched on after its measurement (§8.4), not before. A new stand needs nothing
+ * here — every part that is on follows it by itself; a new part is a new line. `?pf=cube` / `?pf=live` force all parts.
+ */
+export type FusionPartId = 'route' | 'event' | 'section' | 'notify';
+export interface FusionPart { id: FusionPartId; name: string; on: boolean; ref: string }
+export const FUSION_PARTS: readonly FusionPart[] = Object.freeze([
+  // E-FR-7 (Jan 06.10.2026: „nutze es einfach, die Zeit ist erstmal nicht so wichtig"): on despite K2 cold (+0,7 s, §8.6);
+  // hours without a wind direction (V-FR-5) are dropped by the tour-time wind sampler — E-FR-5 open.
+  { id: 'route', name: 'Routenplaner', on: true, ref: 'audit/fusion-release.md §8.10' },
+  { id: 'event', name: 'Eventplaner', on: false, ref: 'audit/fusion-release.md §8' },
+  { id: 'section', name: 'Vertikalschnitt / 3D / Föhn', on: false, ref: 'audit/fusion-release.md §8' },
+  { id: 'notify', name: 'Benachrichtigungen', on: false, ref: 'audit/fusion-release.md §8' },
+] as const);
+export const fusionPartOn = (id: FusionPartId): boolean => FUSION_PARTS.find((p) => p.id === id)?.on === true;
