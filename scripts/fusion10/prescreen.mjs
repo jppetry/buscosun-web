@@ -30,6 +30,20 @@ import { QUANTITY_VARS, TRUTH_VARS, windowOf } from '../../src/pruefstand/protok
 import { crpsQ } from '../../src/pruefstand/metrics.ts';
 import { channelsOf } from '../../src/pruefstand/adapter.ts';
 
+/** `--opts`: JSON, or — because PowerShell 5.1 strips inner double quotes — `key:value,key:value` (true/false/numbers/strings). */
+function parseOpts(raw) {
+  if (raw == null || raw === true) return null;
+  const s = String(raw).trim();
+  try { return JSON.parse(s); } catch { /* relaxed form */ }
+  const out = {};
+  for (const part of s.replace(/^\{|\}$/g, '').split(',').map((x) => x.trim()).filter(Boolean)) {
+    const m = /^"?([A-Za-z0-9_]+)"?\s*:\s*(.+)$/.exec(part);
+    if (!m) throw new Error(`Option ${part}: Form key:value`);
+    const v = m[2].trim().replace(/^"|"$/g, '');
+    out[m[1]] = v === 'true' ? true : v === 'false' ? false : v === 'null' ? null : Number.isFinite(Number(v)) && v !== '' ? Number(v) : v;
+  }
+  return out;
+}
 const args = parseArgs();
 const proto = loadProtocol();
 const CH = ['t', 'td', 'ws', 'gust', 'precip', 'clct', 'wet'];
@@ -100,7 +114,7 @@ async function run() {
   if (!out) { console.error('--out=<dir> fehlt'); process.exit(1); }
   mkdirSync(out, { recursive: true });
   const champ = champion();
-  const extra = args.opts ? JSON.parse(String(args.opts)) : {};
+  const extra = parseOpts(args.opts) ?? {};
   const reg = { ...champ, options: { ...champ.options, ...extra } };
   const root = args.root ? String(args.root).replace(/\\/g, '/') : REPO;
   const set = String(args.set ?? 'schnell');

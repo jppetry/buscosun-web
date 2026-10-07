@@ -36,6 +36,17 @@ export const FUSION8_NOWCAST_HOUR_MEAN = true;
  * `CubeIo.anchorAtObsTime: false` (`?anc=0`) = Fusion 8.
  */
 export const FUSION9_ANCHOR_AT_OBS_TIME = true;
+/**
+ * buscosun Fusion 10 (phase F10, autonomous session 07.10.2026, `audit/fusion-10.md`; status KANDIDAT until Jan's champion
+ * decision after ≥ 4 mature track-P days): the stage `fs` leads the long range back to the climatology — for leads > 48 h the
+ * fused distributions of T, Td, wind speed and gust are blended moment-true towards the engine's own climatology with weights
+ * and a σ scale per variable × lead bin (`FuseCubeOptions.longRange`, module `longRange.ts`), FITTED on hindcast slots outside
+ * the vault (2025-09-08 … 2026-09-21, 00 UTC, every third day; the development set of the bench was not used for the fit).
+ * Evidence (development set, role B, CRPS skill vs station climatology before Fusion 10): wind 120–240 h −17 %, 240–336 h −54 %,
+ * T 240–336 h +9,6 % with coverage 63 %. Measured on the bench: see the register entry `scripts/pruefstand/register/fusion-10.json`
+ * and `audit/fusion-10.md` §3. Fusion 10 = Fusion 9 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 9.
+ */
+export const FUSION10_LONG_RANGE: 0 | 1 = 1;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
 export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime';
@@ -79,6 +90,11 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
     n: 9, date: '2026-10-04', ref: 'V-AW-33, audit/autobahnwetter.md',
     option: 'anchorAtObsTime', value: FUSION9_ANCHOR_AT_OBS_TIME,
     note: 'Anker am Messzeitpunkt (V-AW-33)', io: { key: 'anchorAtObsTime', flag: '?anc=0' }, needs: 'measurement',
+  },
+  {
+    n: 10, date: '2026-10-07', ref: 'Phase F10, audit/fusion-10.md (Kandidat, Champion-Entscheidung = Jan)',
+    option: 'longRange', value: FUSION10_LONG_RANGE,
+    note: 'Langfrist zur Klimatologie zurückgeführt (> 48 h, gefittete Gewichte je Größe und Vorlauf-Bin, F10)',
   },
 ] as const);
 
