@@ -72,7 +72,10 @@ const tables = loadTables(withTablePaths(champ));
 const w1 = openW1(proto);
 const feat = features().byPoint;
 const stations = proto.scored;
-const opts = { ...champ.options, longRange: 1, longRangeTable: LR.LONG_RANGE_IDENTITY, hourly: false, tail: false };
+// the option of the newest stand is read from the register of the stands (fusionRelease.ts) — no hand-copied key (verify:fusion-release B3)
+const { FUSION_RELEASES } = await import('../../src/pointForecast/fusion/fusionRelease.ts');
+const lrKey = FUSION_RELEASES.find((r) => r.n === 10)?.option ?? 'longRange';
+const opts = { ...champ.options, [lrKey]: 1, longRangeTable: LR.LONG_RANGE_IDENTITY, hourly: false, tail: false };
 const climaOf = (reg, row, held) => (held && reg.climaHeldOut === 'loso' ? null : tables.clima);
 const A = await import('../fusionfit/lib/archiveAdapter.mjs');
 const learnedClimaOf = (row, held) => (champ.clima === 'loso' || (held && champ.climaHeldOut === 'loso') ? A.losoClimaProduct(tables.loso ?? tables.losoTable ?? tables.learned, row) : tables.clima);
