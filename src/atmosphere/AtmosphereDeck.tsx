@@ -181,7 +181,6 @@ function DesktopDeck(ctx: DeckCtx) {
           ) : (
             <>
               <div className="vsd-live"><span className="vsd-live-dot" /><span className="vsd-live-txt">{data.kind === 'ready' ? `${dataOrigin(data)} · ${hhmm(data.prepared.runAtMs)} Uhr` : dataOrigin(data)}</span></div>
-              <span className="vsd-avatar">JK</span>
             </>
           )}
           {/* SH3: Teilen steht in JEDER Linse — vorher gab es den Knopf (als

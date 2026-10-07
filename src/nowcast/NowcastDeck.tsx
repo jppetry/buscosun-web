@@ -153,7 +153,6 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-live-text">RADAR LIVE</span>
             </span>
             <ShareButton className="rr-share" />
-            <span className="rr-avatar">JK</span>
           </div>
         </div>
       )}

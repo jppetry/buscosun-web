@@ -245,7 +245,6 @@ function DesktopDeck(ctx: DeckCtx) {
         <div className="fcd-topright">
           <div className="fcd-live"><span className="fcd-live-dot" /><span className="fcd-live-txt">{state.kind === 'ready' ? `${state.forecast.models.length} QUELLEN AKTIV` : 'MODELLVERGLEICH'}</span></div>
           <ShareButton className="fcd-share" />
-          <span className="fcd-avatar">JK</span>
         </div>
       </div>
 

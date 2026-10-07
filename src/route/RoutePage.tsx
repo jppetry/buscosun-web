@@ -172,7 +172,6 @@ export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView, 
   const right = (
     <>
       <DeckLive />
-      {!isMobile && <span className="rd-avatar">JK</span>}
     </>
   );
   const mobileHeader = (

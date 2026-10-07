@@ -10,10 +10,11 @@ import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { pathForFeature } from '../router/routes';
 import { roadFlagFrom } from '../road/roadFlag';
+import { seaFlagFrom } from '../sea/seaFlag';
 
 export type RailFeature =
   | 'map2d' | 'nowcast' | 'route' | 'event' | 'forecast' | 'history' | 'atmosphere' | 'globe'
-  | 'fire' | 'road' | 'feedback';
+  | 'fire' | 'road' | 'sea' | 'feedback';
 
 export function IconRailMap({ size = 21 }: { size?: number }) {
   return (
@@ -111,6 +112,16 @@ export function IconRailRoad({ size = 21 }: { size?: number }) {
     </svg>
   );
 }
+/** Phase SW: three waves (design `reference/seewetter-desktop.dc.html`). */
+export function IconRailSea({ size = 21 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 export function IconRailHome({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -132,6 +143,8 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'fire', label: 'Waldbrand DACH', icon: <IconRailFire /> },
   // Phase AW: sichtbar nach `ROAD_LIVE` (seit 03.10. an), `?road=0` blendet aus (`src/road/roadFlag.ts`); auf der eigenen Seite immer.
   { id: 'road', label: 'Autobahnwetter', icon: <IconRailRoad /> },
+  // Phase SW: nur mit `?sea=1` bis Gate C (`SEA_LIVE`, `src/sea/seaFlag.ts`); auf der eigenen Seite immer.
+  { id: 'sea', label: 'Seewetter', icon: <IconRailSea /> },
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];
 
@@ -170,7 +183,7 @@ export function FeatureRail({
           Deck-Handler übernimmt (preventDefault), nur ohne Handler navigiert der
           Link selbst. Optik über dieselben Klassen; die Decks setzen display/
           color/border auf der Klasse, nicht auf dem Tag. */}
-      {FEATURE_RAIL_ITEMS.filter((it) => it.id !== 'road' || active === 'road' || roadFlagFrom()).map((it) => {
+      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom())).map((it) => {
         const isActive = it.id === active;
         const to = pathForFeature(it.id);
         const onClick = (e: MouseEvent<HTMLAnchorElement>) => {

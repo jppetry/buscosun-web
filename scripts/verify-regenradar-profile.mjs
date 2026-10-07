@@ -99,15 +99,7 @@ mkdirSync(WORK, { recursive: true });
 async function loadHeadCompositor() {
   const src = execFileSync('git', ['show', 'HEAD:src/scalar/precipComposite.ts'], { encoding: 'utf8', maxBuffer: 1 << 24 });
   const base = resolve('src/scalar');
-  // The country partition is part of the reference: HEAD's `clustering.ts` too (V-FR-9 changed `pickCountry` in the working
-  // tree; the composite keeps the box rule as `pickCountryByBox` — the reference must not pick up the new function).
-  const clSrc = execFileSync('git', ['show', 'HEAD:src/pointForecast/clustering.ts'], { encoding: 'utf8', maxBuffer: 1 << 24 });
-  const clBase = resolve('src/pointForecast');
-  const clFile = resolve(WORK, 'head-clustering.ts');
-  writeFileSync(clFile, clSrc.replace(/from '(\.{1,2}\/[^']+)'/g, (_m, spec) => `from '${pathToFileURL(resolve(clBase, spec)).href}.ts'`));
-  const rewritten = src.replace(/from '(\.{1,2}\/[^']+)'/g, (_m, spec) => (spec === '../pointForecast/clustering'
-    ? `from '${pathToFileURL(clFile).href}'`
-    : `from '${pathToFileURL(resolve(base, spec)).href}.ts'`));
+  const rewritten = src.replace(/from '(\.{1,2}\/[^']+)'/g, (_m, spec) => `from '${pathToFileURL(resolve(base, spec)).href}.ts'`);
   const file = resolve(WORK, 'head-precipComposite.ts');
   writeFileSync(file, rewritten);
   return (await import(pathToFileURL(file).href)).PrecipCompositor;
@@ -191,6 +183,10 @@ if (real) {
   const HeadCompositor = await loadHeadCompositor();
   const head = new HeadCompositor();
   const cur = new PrecipCompositor();
+  // V-FR-11 (audit/fusion-release.md §8.13): the compositor changed nothing but its country of each cell — HEAD gets the new
+  // country partition, then every build must be byte-identical (C1, C2, D*). `boxHead` keeps HEAD's own (box rule) for C1b.
+  const boxHead = new HeadCompositor();
+  head.country.set(cur.country);
   const { rv, inca, rzc, pastSlot } = real;
   const nowMs = rv.runAt.getTime() + 7 * MIN;
   const hours = [0, 0.1, 0.25, 0.5, 1, 1.5, 2, 2.05, 2.5, 3, 3.5];
@@ -202,8 +198,28 @@ if (real) {
     if (!same(a, b)) { allSame = false; detail.push(`h=${h}`); }
     cells += a.length;
   }
-  add('C1 build() without rvPast byte-identical to HEAD — real RV/INCA/rzc, 11 slider hours 0…3,5 h',
+  add('C1 build() without rvPast byte-identical to HEAD (HEAD given the country partition of V-FR-11) — real RV/INCA/rzc, 11 slider hours 0…3,5 h',
     allSame, allSame ? `${cells} cells compared` : `differs at ${detail.join(', ')}`);
+  // C1b (V-FR-11, audit/fusion-release.md §8.13): against the composite as it was (box rule) the image differs ONLY in cells
+  // whose country changed — and there the source changed (RADOLAN ⇄ INCA ⇄ rzc). Counted on the same real frames.
+  {
+    const box = boxHead;
+    const N = ['DE', 'AT', 'CH'];
+    const moved = new Uint8Array(cur.country.length);
+    const trans = {};
+    for (let i = 0; i < moved.length; i++) {
+      const a = box.country[i], b = cur.country[i];
+      if (a !== b) { moved[i] = 1; const k = `${N[a]}→${N[b]}`; trans[k] = (trans[k] ?? 0) + 1; }
+    }
+    let outside = 0, diffCells = 0;
+    for (const h of [0, 1, 2.5]) {
+      const a = box.build(h, { rv, inca, rzc }, nowMs).values, b = cur.build(h, { rv, inca, rzc }, nowMs).values;
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) { diffCells++; if (!moved[i % moved.length]) outside++; }
+    }
+    add('C1b against the box rule (before V-FR-11): differences only where the country of the cell changed',
+      outside === 0 && Object.keys(trans).length > 0,
+      `${Object.entries(trans).map(([k, v]) => `${k} ${v}`).join(', ')} Zellen; an h 0/1/2,5 ${diffCells} Werte anders, ${outside} außerhalb`);
+  }
   {
     const a = head.build(0.5, { rv }, nowMs).values, b = cur.build(0.5, { rv, rvPast: null }, nowMs).values;
     add('C2 rvPast: null counts as "absent" (byte-identical)', same(a, b));

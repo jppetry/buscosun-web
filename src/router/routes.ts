@@ -23,7 +23,7 @@ export const SITE_NAME = 'buscosun';
 
 export type RouteId =
   | 'home' | 'wetterkarte' | 'warnungen' | 'regenradar' | 'vorhersage' | 'tourenplanung' | 'eventplanung'
-  | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'autobahnwetter' | 'feedback' | 'validierung' | 'mobiletest';
+  | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'autobahnwetter' | 'seewetter' | 'feedback' | 'validierung' | 'mobiletest';
 
 export interface RouteMeta {
   /** `<title>` (ohne Marken-Suffix — der wird zentral angehängt). */
@@ -62,7 +62,7 @@ export interface RouteDef {
   /** Sub-Routen (`/<path>/<slug>`), null = keine. */
   subs: readonly SubRoute[] | null;
   /** Welcher Pfadparameter die Sub-Route trägt (für `router.tsx`). */
-  subParam?: 'layer' | 'lens' | 'view' | 'road';
+  subParam?: 'layer' | 'lens' | 'view' | 'road' | 'spot';
   /**
    * SH1 („Teilen"): Diese Route darf als LETZTES Pfadsegment einen Ort-Slug
    * tragen — `/wetterkarte/wind/muenchen`, `/regenradar/muenchen`.
@@ -291,6 +291,19 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
+    // Phase SW (audit/seewetter.md): Pfadsegment = Spot (`/seewetter/st-peter-ording`), entscheidet die Seite. Bis Gate C
+    // (`SEA_LIVE`, `src/sea/seaFlag.ts`) noindex und in keiner Sitemap; die Seite gibt es nur mit `?sea=1`.
+    id: 'seewetter', path: '/seewetter', aliases: ['/kuestenwetter', '/segelwetter', '/wellen'], featureId: 'sea', subParam: 'spot',
+    subs: null,
+    meta: {
+      title: 'Seewetter Nord- und Ostsee — Wind und Welle',
+      description: 'Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Seewetterbericht im Wortlaut.',
+      h1: 'Seewetter: Wie wird es auf dem Wasser?',
+      lead: 'Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.',
+      noindex: true, // Gate C (SEA_LIVE)
+    },
+  },
+  {
     id: 'feedback', path: '/feedback', aliases: [], featureId: 'feedback', subs: null,
     meta: {
       title: 'Feedback — Ideen & Vorschläge',
@@ -335,6 +348,7 @@ export const FEATURE_PATH: Readonly<Record<FeatureId, string>> = {
   globe: '/globus',
   fire: '/waldbrand',
   road: '/autobahnwetter',
+  sea: '/seewetter',
   feedback: '/feedback',
   validation: '/validierung',
   mobiletest: '/mobiletest',
@@ -555,6 +569,9 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[AW] /autobahnwetter ist eine Route, /strassenwetter und /glaette sind Aliase', routeForPath('/autobahnwetter')?.def.id === 'autobahnwetter' && aliasTarget('/strassenwetter') === '/autobahnwetter' && aliasTarget('/glaette') === '/autobahnwetter');
   add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet), noindex', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex);
   add('[AW] bis Gate C noindex und in keiner Sitemap', !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
+  add('[SW] /seewetter ist eine Route, /kuestenwetter, /segelwetter, /wellen sind Aliase', routeForPath('/seewetter')?.def.id === 'seewetter' && aliasTarget('/kuestenwetter') === '/seewetter' && aliasTarget('/segelwetter') === '/seewetter' && aliasTarget('/wellen') === '/seewetter');
+  add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet), noindex', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && metaForPath('/seewetter/st-peter-ording').noindex);
+  add('[SW] bis Gate C noindex und in keiner Sitemap', !!ROUTE_BY_ID.seewetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/seewetter')));
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

@@ -1,0 +1,138 @@
+# ============================================================================
+# sea.yml — Seewetter (Phase SW, buscosun-web/audit/seewetter.md §6)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/sea.yml` im Daten-Repo
+# `jppetry/buscosun-data` (Vollmacht prompt-seewetter.md, 07.10.2026). Der Code lebt
+# in `buscosun-web` (`scripts/sea/*`, Vertrag `src/sea/seaContract.ts` + `seaText.ts`)
+# und wird bei jedem Lauf frisch von `main` geklont.
+#
+# ── Eine Linie, ein Workflow (E-SW-4) ─────────────────────────────────────
+# Alle 15 min: die Texte (FQDL50/51, WODL45, FXDL40) jedes Mal; die Felder und
+# Spot-Reihen nur, wenn das Inventar einen vollständigen neuen CWAM-Lauf zeigt
+# (13 × 79 Dateien, gemessen ab Lauf + 4:07 h) — sonst endet der Schritt in Sekunden.
+# Der Radar-Spiegel bleibt unberührt.
+#
+# ── Leerlauf bis zum Push von buscosun-web ────────────────────────────────
+# Fehlt der Producer auf `main`, meldet der Job „producer not on main yet“ und endet
+# grün, ohne etwas zu schreiben. Er startet von selbst, sobald Jan pusht.
+#
+# ── Veröffentlichung ──────────────────────────────────────────────────────
+# `sea-publish.mjs`: jeder Versuch baut auf dem AKTUELLEN origin/main auf (kein
+# Rebase, Force-Pushes der Karten- und Punktlinie sind kein Hindernis), ersetzt
+# `sea/v1` durch den ganzen Speicher (heilt), committet nur `sea/`, pusht ohne Force.
+#
+# Kill-Schalter: Repo-Variable SEA_KILL=1 (status.killSwitch, Client zeigt „Keine Daten“).
+# ============================================================================
+
+name: sea
+
+on:
+  schedule:
+    - cron: '4,19,34,49 * * * *'   # alle 15 min, 4 min nach den DWD-Ausgaben (:15 / :45)
+  workflow_dispatch: {}
+
+concurrency:
+  group: sea
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sea:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SEA_KILL: ${{ vars.SEA_KILL || '0' }}
+      REPACK_BZIP2: '1'
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web main, sparse)
+        id: app
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/sea/sea-derive.mjs scripts/sea/sea-text.mjs scripts/sea/sea-publish.mjs src/sea/seaContract.ts src/sea/seaText.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on main yet ($f fehlt in buscosun-web main) — Seewetter wartet auf den Push, Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          npm install --no-save --no-audit --no-fund bz2@1 jsfive@0.4
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout sea store (buscosun-data, sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: sea
+          sparse-checkout-cone-mode: true
+
+      - name: Prepare store
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd data
+          git config user.name  'buscosun-sea[bot]'
+          git config user.email 'sea@users.noreply.github.com'
+          mkdir -p ../store
+          if [ -d sea/v1 ]; then cp -r sea/v1/. ../store/; fi
+          test -f ../store/static/spots.json || { echo "sea/v1/static/spots.json fehlt im Daten-Repo"; exit 1; }
+
+      - name: Texts
+        id: text
+        if: steps.app.outputs.ready == '1'
+        continue-on-error: true
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-text.mjs --store=../store | tee ../text.log
+          echo "summary=$(tail -1 ../text.log)" >> "$GITHUB_OUTPUT"
+
+      - name: Field run due?
+        id: due
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          OUT=$(node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs --store=../store --check | tail -1)
+          echo "$OUT"
+          RUN=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.due||'')" "$OUT")
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Cube checkout (point/, for buscosun Fusion wind at the spots)
+        if: steps.due.outputs.run != ''
+        continue-on-error: true
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
+          cd cube
+          git sparse-checkout set point
+          git checkout --quiet
+
+      - name: Field run
+        id: field
+        if: steps.due.outputs.run != ''
+        continue-on-error: true
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs \
+            --store=../store --data=../cube --cache=../cache --run=${{ steps.due.outputs.run }}
+
+      - name: Publish (sea/ only, never --force)
+        if: steps.app.outputs.ready == '1'
+        run: |
+          MSG="sea: $(date -u +%Y-%m-%dT%H:%MZ)"
+          if [ -n "${{ steps.due.outputs.run }}" ]; then MSG="$MSG · CWAM ${{ steps.due.outputs.run }}"; fi
+          node app/scripts/sea/sea-publish.mjs --repo=data --store=store --message="$MSG"
+
+      - name: Field run failed
+        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure'
+        run: |
+          echo "Text- oder Feldschritt rot (siehe oben); veröffentlicht wurde, was gültig war."
+          exit 1

@@ -1,0 +1,93 @@
+# ============================================================================
+# sea-archiv.yml — Ablage der Seewetter-Linie für Gate D (Phase SW, buscosun-web/audit/seewetter.md §7)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/sea-archiv.yml` im Archiv-Repo
+# `jppetry/buscosun-archiv` (Vollmacht prompt-seewetter.md, 07.10.2026). Der Code lebt in
+# `buscosun-web` (`scripts/sea/sea-archive.mjs`), die Daten kommen aus `buscosun-data` `sea/v1`.
+# Geschrieben wird nur unter `sea/`; Punktarchiv und Straßenwetter daneben bleiben unberührt.
+#
+# Alle 6 h: Spot-Reihen jedes veröffentlichten CWAM-Laufs (Wind aus buscosun Fusion — vergangene
+# Vorhersagen sind nicht nachholbar), die stündlichen POI-Messungen der Küstenstationen des Katalogs
+# (die POI-Datei hält 25 h ⇒ vierfache Überlappung) und alle Textausgaben. Append-only, nie --force.
+#
+# Leerlauf bis zum Push von buscosun-web: fehlt das Skript auf `main`, endet der Job grün.
+# ============================================================================
+
+name: sea-archiv
+
+on:
+  schedule:
+    - cron: '41 */6 * * *'   # alle 6 h, :41 — abseits von road-archiv (:25) und Punktarchiv (23:10)
+  workflow_dispatch: {}
+
+concurrency:
+  group: sea-archiv
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout archiver (buscosun-web, public, sparse)
+        id: app
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts/sea scripts/lib src/sea package.json
+          git checkout --quiet
+          if [ ! -f scripts/sea/sea-archive.mjs ] || [ ! -f src/sea/seaContract.ts ]; then
+            echo "producer not on main yet (scripts/sea/sea-archive.mjs fehlt in buscosun-web main) — Ende ohne Fehler."
+            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.app.outputs.ready == '1'
+        with:
+          ref: main
+          path: archiv
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: sea
+          sparse-checkout-cone-mode: true
+
+      - name: Checkout sea store (buscosun-data, public, sparse)
+        if: steps.app.outputs.ready == '1'
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git data
+          cd data
+          git sparse-checkout set --no-cone sea/v1
+          git checkout --quiet
+          test -f sea/v1/status.json || { echo "sea/v1/status.json fehlt im Daten-Repo"; exit 1; }
+
+      - name: Archive
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-archive.mjs \
+            --store=../data/sea/v1 --archive=../archiv/sea/v1
+
+      - name: Commit and push (append-only, with retry)
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd archiv
+          git config user.name  'buscosun-sea-archiv[bot]'
+          git config user.email 'sea-archiv@users.noreply.github.com'
+          git add -A -- sea
+          if git diff --cached --quiet; then echo "Nichts Neues — kein Commit."; exit 0; fi
+          git commit -m "sea: archiv $(date -u +%Y-%m-%dT%H:%MZ)"
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then echo "Push in Versuch $attempt gelungen."; exit 0; fi
+            echo "Versuch $attempt scheiterte — rebase und erneut."
+            git pull --rebase origin main || true
+            sleep $((attempt * 15))
+          done
+          echo "Push nach 5 Versuchen gescheitert."; exit 1

@@ -192,6 +192,37 @@ export function checkRoadCdn(obs, slot) {
   return { id: 'R5 CDN', name, pass: true, detail: obs.killed ? 'Kill-Schalter: Slot ohne Punkte' : `${obs.points.length} Punkte` };
 }
 
+/**
+ * Phase SW (audit/seewetter.md §6): `sea/v1/status.json` of the Seewetter line (workflow `sea.yml`). `SEA_HEALTH=0` off.
+ *   S1  lesbar, `product: sea-status`; ein gesetzter Kill-Schalter ist kein Ausfall (grün, benannt)
+ *   S2  letzter veröffentlichter CWAM-Lauf ≤ 18 h alt (= SEA_STALE_MS; danach zeigt die Seite „veraltet")
+ *   S3  Texte: Warnstatus WODL45 ≤ 4 h, Seewetterbericht FQDL50 ≤ 6 h alt (Ausgabezeit; Plan SW-1, Client-Regeln)
+ */
+export const SEA_HEALTH = Object.freeze({
+  statusUrl: 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json',
+  runStaleH: 18, wodlStaleH: 4, fqStaleH: 6,
+});
+const seaRunMs = (r) => (typeof r === 'string' && /^\d{10}$/.test(r) ? Date.UTC(+r.slice(0, 4), +r.slice(4, 6) - 1, +r.slice(6, 8), +r.slice(8, 10)) : NaN);
+/** Reine Prüflogik für `sea/v1/status.json` — von `verify-health.mjs` netzfrei getestet. */
+export function checkSeaStatus(s, { nowMs }) {
+  const out = [];
+  const ok = (id, pass, detail) => out.push({ id, name: `sea/v1/status.json · ${id}`, pass, detail });
+  if (s == null || typeof s !== 'object' || s.product !== 'sea-status') {
+    ok('S1 Status lesbar', false, s && typeof s === 'object' ? `product ${s.product ?? '(fehlt)'}` : 'nicht lesbar oder kein Objekt');
+    return out;
+  }
+  ok('S1 Status lesbar', true, s.killSwitch ? 'Kill-Schalter SEA_KILL=1 aktiv — keine Daten, bewusst' : undefined);
+  if (s.killSwitch) { ok('S2 Lauf', true, 'Kill-Schalter aktiv — nicht bewertet'); ok('S3 Texte', true, 'Kill-Schalter aktiv — nicht bewertet'); return out; }
+  const runH = (nowMs - seaRunMs(s.field?.lastPublishedRun)) / 3_600_000;
+  const blocked = s.field?.blocked?.run ? ` · zuletzt gesperrt ${s.field.blocked.run} (${(s.field.blocked.reasons ?? []).map((r) => r.rule).join(', ')})` : '';
+  ok('S2 Lauf', Number.isFinite(runH) && runH <= SEA_HEALTH.runStaleH, Number.isFinite(runH) ? `CWAM ${s.field.lastPublishedRun} ist ${runH.toFixed(1)} h alt (Grenze ${SEA_HEALTH.runStaleH} h)${blocked}` : `kein veröffentlichter Lauf${blocked}`);
+  const age = (p) => (nowMs - Date.parse(s.text?.[p]?.issuedAt ?? '')) / 3_600_000;
+  const w = age('WODL45'), f = age('FQDL50');
+  ok('S3 Texte', Number.isFinite(w) && w <= SEA_HEALTH.wodlStaleH && Number.isFinite(f) && f <= SEA_HEALTH.fqStaleH,
+    `WODL45 ${Number.isFinite(w) ? `${w.toFixed(1)} h` : 'fehlt'} (≤ ${SEA_HEALTH.wodlStaleH} h) · FQDL50 ${Number.isFinite(f) ? `${f.toFixed(1)} h` : 'fehlt'} (≤ ${SEA_HEALTH.fqStaleH} h)`);
+  return out;
+}
+
 async function loadRemote(url) {
   const res = await fetch(url, { headers: { 'cache-control': 'no-cache' } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -238,6 +269,13 @@ async function main() {
         }
       }
     }
+  }
+
+  if (!fileMode && process.env.SEA_HEALTH !== '0') {
+    let s = null;
+    try { s = await loadRemote(process.env.SEA_STATUS_URL ?? SEA_HEALTH.statusUrl); }
+    catch (e) { results.push({ id: 'S1', name: 'sea/v1/status.json · S1 erreichbar', pass: false, detail: String(e?.message ?? e) }); }
+    if (s) results.push(...checkSeaStatus(s, { nowMs }));
   }
 
   const failed = results.filter((r) => !r.pass);

@@ -11,11 +11,10 @@
  *   • AT-Fläche  → GeoSphere INCA (0–3 h)
  *   • CH-Fläche  → MeteoSchweiz rzc (nur „jetzt")
  *   • sonst / jenseits des jeweiligen Nowcast-Horizonts → ICON-D2 (Forecast)
- * Die Länderzuordnung nutzt die Box-Heuristik ({@link pickCountryByBox}) und
- * partitioniert jede Zelle eindeutig. Achtung V-FR-11: wo sich DE- und AT-Box
- * überlappen (bis 49,5° N), gewinnt die tiefere Lage — Südbayern samt München
- * fällt dabei an AT, INCA malt dort. Der Punktforecast nimmt seit V-FR-9 die
- * Landesgrenze (`pickCountry`); das Gitter folgt erst nach eigener Entscheidung.
+ * Die Länderzuordnung ist dieselbe wie die der Punktvorhersage ({@link countryRowPicker}
+ * = `pickCountry` je Zelle): Box, wo nur eine Box gilt, sonst die Landesgrenze —
+ * jede Zelle eindeutig. Bis V-FR-11 (07.10.2026) entschied allein die tiefere Lage
+ * in der Box; Südbayern samt München fiel dabei an AT und zeigte INCA statt RADOLAN.
  *
  * Gerendert wird EIN reguläres lat/lon-Gitter über DACH (ein RainLayer-Frame).
  * Die Zelle→Quellgitter-Zuordnung ist geometrisch fix → wird je Quelle EINMAL
@@ -25,7 +24,7 @@
  * vier Geo-Ecken.
  */
 
-import { pickCountryByBox } from '../countryProfiles';
+import { countryRowPicker } from '../pointForecast/countryOfPoint';
 import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon, type GridKind } from './precipIndexMap';
 import type { QuadCorners } from './RainLayer';
 import { quadWarpMesh, quadWarpRows, QUAD_WARP_COLS } from './quadWarpMesh';
@@ -175,9 +174,13 @@ export class PrecipCompositor {
   constructor() {
     const { lat, lon } = gridLatLon();
     this.lat = lat; this.lon = lon;
+    // V-FR-11: dieselbe Länderregel wie die Punktvorhersage (Landesgrenze, wo sich die Boxen überlappen), je Gitterzeile
+    // einmal die Grenzschnitte — Zelle für Zelle gleich `pickCountry` (verify:fusion-release C6).
+    let rowLat = NaN;
+    let pick = countryRowPicker(lat[0]);
     for (let i = 0; i < lat.length; i++) {
-      // Box-Regel bewusst: die Radarquelle je Pixel (RADOLAN/INCA/RZC) ist eine eigene Entscheidung (V-FR-11).
-      const cc = pickCountryByBox(lat[i], lon[i]);
+      if (lat[i] !== rowLat) { rowLat = lat[i]; pick = countryRowPicker(rowLat); }
+      const cc = pick(lon[i]);
       this.country[i] = cc === 'AT' ? 1 : cc === 'CH' ? 2 : 0;
     }
   }

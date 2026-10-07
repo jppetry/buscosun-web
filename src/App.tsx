@@ -15,7 +15,7 @@ import './designTokens.css';
 // (`useState<View>`, Hash-Lesen beim Mount) ist ersetzt; Alt-Links migriert
 // `src/router/legacyHash.ts` in `main.tsx`, bevor der Router die URL liest.
 
-export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'fire' | 'road' | 'feedback' | 'validation' | 'mobiletest';
+export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'fire' | 'road' | 'sea' | 'feedback' | 'validation' | 'mobiletest';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */

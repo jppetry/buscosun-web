@@ -11,9 +11,7 @@
  */
 
 import { haversine } from '../route/routeModel';
-import { countryBoxSlack, pickCountryByBox } from '../countryProfiles';
-import { COUNTRY_BORDERS } from './countryBorders';
-import type { Country } from '../types';
+import { pickCountryByBox } from '../countryProfiles';
 import type { Terrain } from '../route/tourTrack';
 
 export const DEFAULT_CLUSTER_RADIUS_M = 10_000;     // 10 km — ≈ DWD-Warn-Zelle
@@ -35,35 +33,10 @@ export function radiusForTerrain(terrain?: Terrain): number {
   }
 }
 
-const COUNTRIES: readonly Country[] = ['DE', 'AT', 'CH'];
-/** Die frühere Box-Regel (jetzt in `countryProfiles.ts`) — hier weitergereicht für Aufrufer und Verifier. */
+/** Land eines Punkts: Box, in der Überlappung die Landesgrenze (V-FR-9) — in `countryOfPoint.ts`, hier weitergereicht;
+ *  die frühere Box-Regel heißt `pickCountryByBox` (`countryProfiles.ts`). */
+export { pickCountry, inCountry } from './countryOfPoint';
 export { pickCountryByBox };
-
-/** Punkt im Land: alle Ringe des Landes zusammen nach der Gerade-Ungerade-Regel (Löcher = Enklaven). Gilt nur im
- *  Rechteck `COUNTRY_BORDER_CLIP[c]` (Überlappung der Boxen) — die Ringe sind darauf beschnitten. */
-export function inCountry(c: Country, lat: number, lng: number): boolean {
-  const x = lng * 1e4, y = lat * 1e4;
-  let inside = false;
-  for (const r of COUNTRY_BORDERS[c]) {
-    for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
-      const xi = r[i], yi = r[i + 1], xj = r[j], yj = r[j + 1];
-      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-    }
-  }
-  return inside;
-}
-
-/**
- * Land eines Punkts (V-FR-9, `audit/fusion-release.md` §8.12). Liegt er in genau einer
- * Länder-Box, ist es dieses Land (wie bisher). Wo sich Boxen überlappen, entscheidet die
- * Landesgrenze (`public/countries`, in `countryBorders.ts`); liegt er in keinem der Länder
- * (Liechtenstein, Italien, Frankreich …), bleibt es bei der Box-Regel — dort ändert sich nichts.
- */
-export function pickCountry(lat: number, lng: number): Country {
-  const boxes = COUNTRIES.filter((c) => countryBoxSlack(c, lat, lng) >= 0);
-  if (boxes.length >= 2) for (const c of boxes) if (inCountry(c, lat, lng)) return c;
-  return pickCountryByBox(lat, lng);
-}
 
 /** Minimaler Geo-Punkt — SampleETA und TourPoint erfüllen ihn strukturell. */
 export interface GeoPoint {

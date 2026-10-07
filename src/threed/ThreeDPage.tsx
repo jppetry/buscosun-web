@@ -143,7 +143,6 @@ export default function ThreeDPage({ onBack }: Props) {
         </div>
         <div className="rt-nav-right">
           <span className="rt-nav-live td-live">{sectionOrigin(data.kind === 'ready' ? data.prepared : null)} + DEM</span>
-          <span className="rt-nav-avatar">JK</span>
         </div>
       </nav>
 

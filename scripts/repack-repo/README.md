@@ -13,6 +13,7 @@ Takten und verschiedenen Zwecken:
 | **Punkt-Cube** | `point/` | **Zeitreihe je Ort** | **drei Jobs**: Stufe 1 8 ×, Stufe 2 4 ×, Stufe 3 2 × täglich | `.github/workflows/point.yml` |
 | **Straßenwetter** | `road/` | Messpunkte der Glättemeldeanlagen | alle 15 min | `.github/workflows/radar.yml` (Produkt im Radar-Spiegel) |
 | **Streckenprognose** | `road/fc/` | Zeitreihe je Punkt der Autobahn | stündlich | `.github/workflows/road-fc.yml` |
+| **Seewetter** | `sea/` | Seegangsfelder, Spot-Reihen, amtliche Texte | Texte alle 15 min, Felder 2 × täglich | `.github/workflows/sea.yml` |
 
 ---
 
@@ -178,6 +179,49 @@ Aus: Repo-Variable `ROAD_FC=0`.
 
 ⚠️ Modellprognose für das **Wetter an der Strecke** — keine Fahrbahntemperatur, kein Fahrbahnzustand,
 kein amtliches Warnprodukt.
+
+---
+
+## Seewetter — `sea/`
+
+Seegang an der deutschen Nord- und Ostseeküste aus dem Küstenseegangsmodell **CWAM** des DWD (900 m, zwei
+Läufe am Tag, 0–78 h), Reihen an rund 60 Spots mit **Wind und Böen aus buscosun Fusion** (nie der Antriebswind
+des Wellenmodells), dazu die amtlichen Texte des Seewetterdienstes Hamburg **wörtlich**. Producer:
+`scripts/sea/*` im Anwendungs-Repo, Vertrag `src/sea/seaContract.ts` + `src/sea/seaText.ts`, Workflow
+`.github/workflows/sea.yml` (alle 15 min; die Felder nur, wenn das DWD-Inventar einen vollständigen neuen Lauf
+zeigt — gemessen ab Lauf + 4:07 h).
+
+```
+sea/v1/status.json                          Linien, letzter Lauf, letzte Ausgabe je Text, Prüfer-Bilanz, Sperre, Kill-Switch
+sea/v1/run/cwam/<lauf>/run.json             Lauf, Schritte, Gitter, Maskenhash, Prüfer-Bilanz (zuletzt geschrieben)
+sea/v1/run/cwam/<lauf>/f/<sss>.png          630 × 387 RGBA: R = Hs (5 cm; 254 = ≥ 12,70 m, 255 = kein Wert), G = Richtung (kommt aus, 256 Stufen), B = Tm−1,0 (0,1 s; 255 = kein Wert), A = 255 Wasser / 0 Land
+sea/v1/run/cwam/<lauf>/c/<sss>.png          1260 × 387, links Windsee, rechts Dünung, Kanäle wie f
+sea/v1/spots/<lauf>.json                    Stundenreihen je Spot: Welle (Modell CWAM), Wind/Böe/Richtung (buscosun Fusion), Herkunft je Spalte
+sea/v1/text/<produkt>/<YYMMDDHHMM>.json     FQDL50, FQDL51, WODL45, FXDL40: raw (Latin-1, Zeichen für Zeichen), Anzeigetext, Gliederung
+sea/v1/quarantine/<lauf|text-datei>.json    Verworfenes mit Regel (nur Diagnose)
+sea/v1/static/spots.json                    Spotkatalog: Lage, Ufernormale (aus der CWAM-Maske), Seegebiet, Küstenabschnitt, Station, Gitterzelle
+sea/v1/static/areas.json                    Seegebiete und Küstenabschnitte (DWD-Warngebiete; © GeoBasis-DE / BKG 2021, Daten modifiziert; VMAP0)
+sea/v1/static/mask-cwam.hash                sha256 der Landmaske
+sea/v1/static/spot-geo.json                 Gelände/Rauhigkeit an den Spot-Zellen (nur für den Producer; Höhe über Wasser = 0)
+```
+
+**Schritte.** `f/` stündlich 0–48 h, dann dreistündlich bis 78 h (59 Bilder), `c/` dreistündlich (27), Spots
+stündlich 0–78 h. `<lauf>` = `YYYYMMDDHH` (00 oder 12 UTC); Schritt `sss` gilt zu Lauf + `sss` h.
+
+**Lesen.** Lauf- und Ausgabedateien sind unveränderlich (`@main` am CDN). Der Client rechnet den erwarteten Lauf
+aus der Uhr (Lauf + 5 h) und die erwartete Ausgabe je Text, und tritt bei 404 zurück — es gibt keine Zeiger-Datei.
+Lauf älter als 18 h = „veraltet“, älter als 30 h oder Kill-Schalter = „Keine Daten“, keine Fläche.
+
+**Sperren.** Ein Lauf wird nur veröffentlicht, wenn das Inventar 13 × 79 Dateien zeigt und jedes Feld Gitter,
+Seepunkte (124 011) und Landmaske des Vertrags trägt und höchstens 0,1 % Werte außerhalb hat; sonst bleibt der
+vorige. Perioden-Platzhalter (1,0 s bei Hs < 0,05 m) und Windsee-Spitzenperioden über 12 s bei unter 0,3 m
+Windsee werden `null`. Ein Bulletin ohne Kopf, Textende oder Ausgabezeit wird verworfen. „Keine Warnung“ gilt nur
+aus dem exakten Satz des Seewetterdienstes, alles andere ist „unbekannt“ und steht wörtlich da.
+
+Aufbewahrung: aktueller + voriger Lauf, Texte 48 h. Jeder Push kopiert den ganzen `sea/`-Bestand (heilt nach
+Force-Pushes der Karten- und Punktlinie). Aus: Repo-Variable `SEA_KILL=1`.
+
+⚠️ Modell und amtlicher Text — kein amtliches Warnprodukt von buscosun, keine Sicherheitsbewertung.
 
 ---
 

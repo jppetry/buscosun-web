@@ -193,7 +193,6 @@ function ResultTopbar({ query, onEdit, onBack }: { query: EventQuery; onEdit: ()
       <div className="evd-topright">
         <div className="evd-live"><span className="evd-live-dot" /><span className="evd-live-txt">DATEN LIVE</span></div>
         <NotificationCenter />
-        <span className="evd-avatar">JK</span>
       </div>
     </div>
   );

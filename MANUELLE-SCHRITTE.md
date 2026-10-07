@@ -1585,8 +1585,12 @@ Routenplaner **an** (E-FR-7, Jan 06.10.), die übrigen drei Teile **aus** (Messr
    hängt an der der AW-Sitzung — dieselbe Datei, beide Commits berühren sie). Vorschlag `fix(fusion): border instead of box for the
    country of a point, the cross section names buscosun Fusion (V-FR-9/10)`. `verify:regenradar-profile` E7 wird erst nach dem Commit grün.
 6. ~~V-FR-10~~ — **behoben 07.10.** (§8.12): der Schnitt nennt den Stand von buscosun Fusion, die Methode und die echte Auflösung.
-7. **Neu, entscheiden:** **V-FR-11** Niederschlagsgitter der Karte malt Südbayern weiter mit INCA (Box-Regel; Umstellung ändert die
-   Radarbilder — eigene Messung mit Pixel-Diff). **V-FR-12** feste Initialen „JK“ im Kopf von Atmosphäre/3D (Vorlage).
+7. ~~V-FR-11 / V-FR-12~~ — **umgesetzt 07.10.** (§8.13): Niederschlagsgitter mit derselben Länderregel (Südbayern RADOLAN statt INCA,
+   5 519 Zellen), „JK“ auf neun Seiten entfernt. **Commit + Push** (Vorschlag `fix(map,ui): precipitation grid by country border,
+   no template initials (V-FR-11/12)`): `src/pointForecast/{countryOfPoint.ts (neu),clustering.ts}`, `src/scalar/precipComposite.ts`,
+   die neun Seiten (`EventResult`, `ForecastPage`, `ForecastDeck`, `ThreeDPage`, `NowcastPage`, `NowcastDeck`, `AtmosphereDeck`,
+   `HistoryPage`, `RoutePage`), `scripts/verify-{fusion-release,regenradar-profile}.mjs`, Audit §8.13. Danach im Deploy: Regenradar
+   über München ansehen (Quelle RADOLAN, Vorlauf bis 2 h).
 
 ## 43. Phase AW — Datenprüfung und M6 Stationslage, 2026-10-06/07
 
@@ -1603,7 +1607,7 @@ Nichts committet, nichts gepusht.
    `road/fc/v1/static/points.json` und `geo.json` (`SHA256SUMS` daneben); Achspunkte bytegleich zum Stand `e5597ba`,
    807 Stationspunkte verschoben (p50 71 m, 80 > 2 km). Protokoll wie 06.10. (frischer `origin/main`, nur die zwei Pfade,
    nie force), danach Purge genau dieser zwei `@main`-Pfade. Reihenfolge zu Schritt 1 egal (vorher: Katalog-Stationen
-   stehen schon auf Katalog). Achtung V-AW-39: der erste Lauf danach kann als Wiederholung überspringen. **07.10.: Jan bat um das Einspielen; der Push ins Daten-Repo wurde vom Berechtigungsfilter der Sitzung abgelehnt — bleibt Jans Schritt.**
+   stehen schon auf Katalog). Achtung V-AW-39: der erste Lauf danach kann als Wiederholung überspringen. **Erledigt 07.10.2026 07:39 UTC mit Jans Freigabe:** Daten-Repo `6075c37` auf `9ff6464` (nur die zwei Pfade, frischer `origin/main`, nicht force; ein erster Versuch lief in einen Radar-Commit und wurde neu gebaut), Blobs auf `main` = Paket, beide `@main`-Pfade gepurgt, CDN-Inhalt per sha256 = Paket (`ad2dad05c40e…`, `447deba5d7a2…`).
 3. **Liste ansehen** (13 Stationen ohne Lage an der eigenen Straße, 10 ohne Straßennummer): je Station Katalog, Meldung
    oder eine eigene Lage festlegen — oder so lassen (Meldelage, „Position nicht bestätigt“).
 4. ~~Offen aus der Datenprüfung~~ — **M1–M5 umgesetzt 07.10.2026 (Jans Auftrag), M7 diagnostiziert** (Audit §5.1 und
@@ -1617,3 +1621,46 @@ Nichts committet, nichts gepusht.
    Klasse `frost` bei Luft > 10 °C; `road-fc-check.mjs` (Kopf `anchored` ≈ 20 weniger als bisher).
 5. **Entscheiden (M7, Sägezahn):** Producer-Kur (3-h/6-h-Quellen vor dem Mitteln auf die Stundenachse) oder PAP 4 in
    buscosun Fusion (= Fusion 10) — Audit §5 „M7 Diagnose“. Ebenso offen: D-10 (vierstellige Straßennummern), Gate B.
+
+## 44. Seewetter (Phase SW), Stufe 1 SW-0 … SW-6 im Auto-Modus, 2026-10-07
+
+Belege: `audit/seewetter.md` (§2 Spike, §3 Entscheidungen im Auto-Modus, §4–§9 Umsetzung mit Prüfer-Ausgaben, §8 Commits,
+§10 V-SW, §11 Gates). In `buscosun-web` ist **nichts committet** (Jans Gate). In `buscosun-data` und `buscosun-archiv`
+habe ich nach der Vollmacht vom 07.10. selbst gepusht (nur `sea/` und die eigenen Workflows, nie force).
+
+1. **Entscheidungen prüfen** (Gate A im Auto-Modus): E-SW-1 … E-SW-14 (§3) und E-SW-15 … E-SW-28 (Umsetzung). Die
+   wichtigsten Abweichungen vom Plan: **E-SW-4** Felder UND Texte in einem eigenen Workflow `sea.yml` statt im
+   Radar-Spiegel (der Spiegel blieb unberührt; ein Haken dort war nicht gefahrlos nachweisbar), **E-SW-10** kein fester
+   Abrufzeitpunkt (Lauf vollständig erst + 4:07 h), **E-SW-11** Höhe 0 m am Spot (Terrarium liefert über Wasser die
+   Wassertiefe), **E-SW-15** Edge-Bündel nicht neu gebaut, **E-SW-16** Tokens im lazy CSS, **E-SW-17** Stundenband als
+   Tabelle statt nivo-Heatmap, **E-SW-19** Wind auf der Karte als Fusion-Pfeile an den Spots statt Partikeln.
+2. **Vor dem Push von `buscosun-web`:** `npm run edge:share` (baut `netlify/edge-shared/shareParser.js` neu — einziger
+   Unterschied: der Routeneintrag `seewetter`, Diff `audit/seewetter/edge-share-bundle.diff`; danach `verify:share`
+   528/528). Das berührt die Edge Function `og-meta` (nur die Routentabelle) — deshalb nicht von mir.
+3. **Commit + Push von `buscosun-web/main`** (Vorschlag `feat(sea): Seewetter stage 1 behind ?sea=1 — CWAM fields, spot
+   series with buscosun Fusion wind, official texts verbatim`): `src/sea/*`, `src/router/pages/SeaRoute.tsx`,
+   `src/router/routes.ts`, `src/router/router.tsx`, `src/App.tsx`, `src/SearchPage.tsx`, `src/nav/featureRail.tsx`,
+   `scripts/sea/*` (ohne `spike/` nach Wahl), `scripts/verify-sea-*.mjs`, `scripts/lib/fixtures/sea/*`,
+   `scripts/health-manifests.mjs`, `scripts/verify-health.mjs`, `scripts/generate-seo.mjs`, `scripts/repack-repo/README.md`,
+   `netlify.toml`, `package.json` (fünf Aliase), `budget.json` (E-SW-24), `.gitattributes` (neu), `audit/seewetter*`,
+   `audit/seewetter/fixtures/**`, `reference/seewetter*`, `prompt-seewetter.md`. Nicht dazu gehören die Änderungen der
+   parallelen Sitzungen im Arbeitsbaum. Gates: `verify:sea-contract` 29/29, `sea-decode` 13/13, `sea-text` 35/35,
+   `sea-derive` 40/40, `sea-ui` 33/33, `verify:health` 44/44, `verify:road-ui` 64/64 (Preview), `verify:fusion-release`
+   28/28, `verify:share` 527/528 bis Schritt 2, typecheck 0, Build 255/255, Budget grün.
+   **Wirkung:** `sea.yml` im Daten-Repo findet den Producer beim nächsten 15-min-Lauf und beginnt den Schattenbetrieb
+   (Gate B): Texte sofort, der nächste vollständige CWAM-Lauf ab Lauf + 4:07 h; `sea-archiv.yml` im Archiv-Repo
+   archiviert ab dann alle 6 h. Die Seite bleibt unsichtbar (`SEA_LIVE = false`, nur `?sea=1`, noindex, keine Sitemap).
+4. **Nach dem Push prüfen:** im Daten-Repo erscheinen Commits „sea: … · CWAM <lauf>“ zweimal täglich und Text-Commits;
+   `npm run health -- --url https://buscosun.com` zeigt S1–S3 grün; Actions `sea` grün (rot nur bei Feld- oder
+   Textfehler, veröffentlicht wird trotzdem, was gültig ist).
+5. **Nach 7 Tagen (Gate B):** ≥ 95 % der Läufe vor Lauf + 5 h veröffentlicht (`sea/v1/status.json` `field.recent`), jede
+   Quarantäne begründet (`sea/v1/quarantine/`), Lauf ≤ 25 MB (`run.json` `bytes`; gemessen 13,2 MB), keine Textausgabe
+   verloren (Archiv `text.json.gz` gegen das DWD-Fenster).
+6. **Nach 14 Tagen (Gate D):** `node scripts/sea/sea-gate-d.mjs --archive=<buscosun-archiv>/sea/v1
+   --catalog=<buscosun-data>/sea/v1/static/spots.json` — Wind/Böe am Spot gegen die POI-Messung (17 liefernde
+   Küstenstationen, nicht nur Arkona), Abweichung dokumentieren.
+7. **Gate C — Seite einschalten:** Real-Device (scrcpy/ADB, mobil das Sheet und das Band), Seite ansehen, dann
+   `SEA_LIVE = true` in `src/sea/seaFlag.ts`, `noindex` in `routes.ts` entfernen (Sitemap folgt daraus) und pushen.
+   Kill-Schalter jederzeit: Repo-Variable `SEA_KILL=1` im Daten-Repo (Seite zeigt „Keine Daten“), `?sea=0` je Besucher.
+8. **Ansehen:** V-SW-1 … V-SW-12 (§10), vor allem V-SW-3 (Böe < Wind in buscosun Fusion) und V-SW-4 (Bathymetrie als
+   Höhe über Wasser) — beide betreffen die Fusion-Linie, nicht nur Seewetter.

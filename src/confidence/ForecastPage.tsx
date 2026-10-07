@@ -89,7 +89,6 @@ export default function ForecastPage({ onBack, onOpenFeature, initialPlace, init
         </a>
         <div className="rt-nav-right">
           <span className="rt-nav-live fc-live">Modellvergleich</span>
-          <span className="rt-nav-avatar">JK</span>
         </div>
       </nav>
 

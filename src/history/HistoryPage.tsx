@@ -397,7 +397,6 @@ function Topbar({ view, loc, available, dark, onToggleDark, onBrand, onChangeLoc
         {view === 'modus' && <span className="hd-live-txt">KLIMA-RÜCKBLICK</span>}
         {/* SH4: teilbar, sobald ein Ort gewählt ist — vorher trägt die URL nichts. */}
         {loc && <ShareButton className="hd-share" />}
-        <span className="hd-avatar">JK</span>
       </div>
     </header>
   );

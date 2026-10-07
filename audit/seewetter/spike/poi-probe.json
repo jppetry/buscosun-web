@@ -1,0 +1,727 @@
+{
+ "at": "2026-10-07T12:24:40.848Z",
+ "stations": [
+  {
+   "id": "10007",
+   "name": "UFS DEUTSCHE BUCHT",
+   "lat": 54.1667,
+   "lon": 7.45,
+   "elev": 0,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 0,
+    "dd": 0,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10015",
+   "name": "HELGOLAND",
+   "lat": 54.1667,
+   "lon": 7.8833,
+   "elev": 4,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10020",
+   "name": "LIST/SYLT",
+   "lat": 55.0167,
+   "lon": 8.4167,
+   "elev": 26,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10022",
+   "name": "LECK",
+   "lat": 54.8,
+   "lon": 8.95,
+   "elev": 7,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10028",
+   "name": "ST. PETER ORDING",
+   "lat": 54.3333,
+   "lon": 8.6,
+   "elev": 5,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10033",
+   "name": "FLENSBURG",
+   "lat": 54.8333,
+   "lon": 9.5,
+   "elev": 27,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 0.76,
+    "dd": 0.76,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10035",
+   "name": "SCHLESWIG",
+   "lat": 54.5333,
+   "lon": 9.55,
+   "elev": 47,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10037",
+   "name": "SCHLESWIG-JAGEL",
+   "lat": 54.4667,
+   "lon": 9.5167,
+   "elev": 22,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10038",
+   "name": "HOHN",
+   "lat": 54.3167,
+   "lon": 9.5333,
+   "elev": 10,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10042",
+   "name": "OLPENITZ",
+   "lat": 54.6667,
+   "lon": 10.0333,
+   "elev": 4,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10044",
+   "name": "LEUCHTTURM KIEL",
+   "lat": 54.5,
+   "lon": 10.2667,
+   "elev": 5,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 0,
+    "dd": 0,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10046",
+   "name": "KIEL-H.",
+   "lat": 54.3833,
+   "lon": 10.15,
+   "elev": 28,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10055",
+   "name": "WESTERMARKELSDORF",
+   "lat": 54.5333,
+   "lon": 11.0667,
+   "elev": 3,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10091",
+   "name": "ARKONA",
+   "lat": 54.6833,
+   "lon": 13.4333,
+   "elev": 42,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10093",
+   "name": "PUTBUS",
+   "lat": 54.3667,
+   "lon": 13.4833,
+   "elev": 40,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10097",
+   "name": "GREIFSWALDER OIE",
+   "lat": 54.2333,
+   "lon": 13.9167,
+   "elev": 12,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10113",
+   "name": "NORDERNEY",
+   "lat": 53.7167,
+   "lon": 7.15,
+   "elev": 11,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10124",
+   "name": "LEUCHTTURM A. WESER",
+   "lat": 53.85,
+   "lon": 8.1167,
+   "elev": 32,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10126",
+   "name": "WITTMUNDHAVEN",
+   "lat": 53.55,
+   "lon": 7.6667,
+   "elev": 8,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10129",
+   "name": "BREMERHAVEN",
+   "lat": 53.5333,
+   "lon": 8.5833,
+   "elev": 7,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 0.84,
+    "dd": 0.84,
+    "fx": 0.8
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10130",
+   "name": "ELPERSBUETTEL",
+   "lat": 54.0667,
+   "lon": 9.0167,
+   "elev": 3,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10131",
+   "name": "CUXHAVEN",
+   "lat": 53.8667,
+   "lon": 8.7167,
+   "elev": 5,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10136",
+   "name": "NORDHOLZ",
+   "lat": 53.7667,
+   "lon": 8.6667,
+   "elev": 23,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10139",
+   "name": "BREMERVOERDE",
+   "lat": 53.5,
+   "lon": 9.1667,
+   "elev": 3,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10142",
+   "name": "ITZEHOE",
+   "lat": 54,
+   "lon": 9.5833,
+   "elev": 25,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10146",
+   "name": "QUICKBORN",
+   "lat": 53.7333,
+   "lon": 9.8833,
+   "elev": 13,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10147",
+   "name": "HAMBURG-FU.",
+   "lat": 53.6333,
+   "lon": 10,
+   "elev": 16,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10150",
+   "name": "DOERNICK",
+   "lat": 54.1667,
+   "lon": 10.35,
+   "elev": 26,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 0.92,
+    "dd": 0.92,
+    "fx": 0.92
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10152",
+   "name": "PELZERHAKEN",
+   "lat": 54.0833,
+   "lon": 10.8833,
+   "elev": 1,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10156",
+   "name": "LUEBECK",
+   "lat": 53.8167,
+   "lon": 10.7,
+   "elev": 14,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10161",
+   "name": "BOLTENHAGEN",
+   "lat": 54,
+   "lon": 11.1833,
+   "elev": 15,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10162",
+   "name": "SCHWERIN",
+   "lat": 53.6333,
+   "lon": 11.3833,
+   "elev": 59,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10168",
+   "name": "GOLDBERG",
+   "lat": 53.6167,
+   "lon": 12.1,
+   "elev": 58,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10170",
+   "name": "WARNEMUENDE",
+   "lat": 54.1833,
+   "lon": 12.0833,
+   "elev": 4,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10172",
+   "name": "LAAGE",
+   "lat": 53.9167,
+   "lon": 12.2833,
+   "elev": 42,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 0
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10180",
+   "name": "BARTH",
+   "lat": 54.3333,
+   "lon": 12.7167,
+   "elev": 7,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10184",
+   "name": "GREIFSWALD",
+   "lat": 54.1,
+   "lon": 13.4167,
+   "elev": 2,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 0.96,
+    "dd": 0.96,
+    "fx": 0.96
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  },
+  {
+   "id": "10193",
+   "name": "UECKERMUENDE",
+   "lat": 53.7333,
+   "lon": 14.0667,
+   "elev": 1,
+   "rows": 25,
+   "newestAgeH": 1.4,
+   "fill": {
+    "ff": 1,
+    "dd": 1,
+    "fx": 1
+   },
+   "cols": {
+    "ff": 23,
+    "dd": 22,
+    "fx": 21
+   }
+  }
+ ]
+}

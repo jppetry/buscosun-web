@@ -7,7 +7,7 @@
  * Der Wächter ist selbst ein Prüfmittel — er muss also nachweislich rot werden
  * können, sonst wiederholt er den Fehler, den er aufdecken soll (V-91).
  */
-import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH } from './health-manifests.mjs';
+import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH, checkSeaStatus, SEA_HEALTH } from './health-manifests.mjs';
 
 const NOW = Date.parse('2026-08-03T12:00:00.000Z');
 const OPTS = { origin: 'https://buscosun.com', nowMs: NOW, maxRunAgeH: 9, maxUpdateAgeH: 6, proxyPath: '/_dwd_grib' };
@@ -138,6 +138,19 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   add('R5 rot bei fremdem Slot, leerer oder fehlender Datei', checkRoadCdn({ ...obs, slot: '2610031245' }, '2610031300').pass === false
     && checkRoadCdn({ ...obs, points: [] }, '2610031300').pass === false && checkRoadCdn(null, '2610031300').pass === false);
   add('Grenzen = Vertrag (45 min)', ROAD_HEALTH.staleMin === 45);
+}
+
+// ── S: Seewetter sea/v1/status.json (Phase SW, audit/seewetter.md §6) ────────────────────────────────
+{
+  const SNOW = Date.parse('2026-10-07T13:00:00Z');
+  const ok = { schema: 1, product: 'sea-status', killSwitch: false, field: { lastPublishedRun: '2026100700', blocked: null }, text: { WODL45: { issuedAt: '2026-10-07T12:00:00.000Z' }, FQDL50: { issuedAt: '2026-10-07T11:00:00.000Z' } } };
+  const pass = (s, now = SNOW) => checkSeaStatus(s, { nowMs: now }).map((r) => r.pass);
+  add('S1–S3 grün bei frischem Lauf (13 h) und frischen Texten', pass(ok).every(Boolean), JSON.stringify(pass(ok)));
+  add('S1 rot bei fremdem Produkt', pass({ ...ok, product: 'road-status' })[0] === false);
+  add('S2 rot bei Lauf älter als 18 h (Grenze der Seite „veraltet“)', pass(ok, Date.parse('2026-10-07T19:30:00Z'))[1] === false);
+  add('S3 rot bei Warnstatus älter als 4 h', pass({ ...ok, text: { ...ok.text, WODL45: { issuedAt: '2026-10-07T08:00:00.000Z' } } })[2] === false);
+  add('Kill-Schalter: grün, benannt', pass({ ...ok, killSwitch: true, field: {} }).every(Boolean) && /Kill-Schalter/.test(checkSeaStatus({ ...ok, killSwitch: true }, { nowMs: SNOW })[0].detail ?? ''));
+  add('Grenzen = Vertrag (18 h, 4 h, 6 h)', SEA_HEALTH.runStaleH === 18 && SEA_HEALTH.wodlStaleH === 4 && SEA_HEALTH.fqStaleH === 6);
 }
 
 const passed = checks.filter((c) => c.ok).length;

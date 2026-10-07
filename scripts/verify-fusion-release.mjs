@@ -246,6 +246,17 @@ const NAME_RE = /buscosun Fusion \d/;
   }
   const outside = [[47.141, 9.521], [46.498, 11.354], [48.573, 7.752]].every(([la, lo]) => cl.pickCountry(la, lo) === cl.pickCountryByBox(la, lo));
   add('C6 Raster 0,05°: jede Abweichung von der Box-Regel liegt im gewählten Land; außerhalb von DE/AT/CH die Box-Regel', outsideOwn === 0 && changed > 0 && outside, `${changed} von ${n} Punkten anders (Überlappung der Boxen)`);
+  // V-FR-11 (§8.13): the precipitation grid of the map takes the same rule row by row — cell for cell equal to pickCountry.
+  {
+    const { countryRowPicker } = await import('../src/pointForecast/countryOfPoint.ts');
+    const { gridLatLon } = await import('../src/scalar/precipIndexMap.ts');
+    const { lat, lon } = gridLatLon();
+    let neq = 0, row = NaN, pick = null;
+    for (let i = 0; i < lat.length; i++) { if (lat[i] !== row) { row = lat[i]; pick = countryRowPicker(row); } if (pick(lon[i]) !== cl.pickCountry(lat[i], lon[i])) neq++; }
+    const precip = src('src/scalar/precipComposite.ts');
+    add('C6 Niederschlagsgitter der Karte: dieselbe Länderregel (countryRowPicker), Zelle für Zelle gleich pickCountry; keine Box-Regel mehr im Gitter',
+      neq === 0 && /countryRowPicker\(/.test(codeOf(precip)) && !/pickCountryByBox\(/.test(codeOf(precip)), `${lat.length} Zellen, ${neq} anders`);
+  }
   const geo = (c) => { const f = JSON.parse(src(`public/countries/${c}.geojson`)); const polys = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates]; return new Set(polys.flat().flat().map(([x, y]) => `${Math.round(x * 1e4)},${Math.round(y * 1e4)}`)); };
   const onClip = (c, x, y) => { const [x0, y0, x1, y1] = COUNTRY_BORDER_CLIP[c].map((v) => Math.round(v * 1e4)); return Math.abs(x - x0) <= 1 || Math.abs(x - x1) <= 1 || Math.abs(y - y0) <= 1 || Math.abs(y - y1) <= 1; };
   const notFromSource = ['DE', 'AT', 'CH'].flatMap((c) => { const s = geo(c); const miss = []; for (const r of COUNTRY_BORDERS[c]) for (let i = 0; i < r.length; i += 2) if (!s.has(`${r[i]},${r[i + 1]}`) && !onClip(c, r[i], r[i + 1])) miss.push(c); return miss; });

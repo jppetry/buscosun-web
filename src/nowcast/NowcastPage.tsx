@@ -207,7 +207,6 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
         </a>
         <div className="rt-nav-right">
           <span className="rt-nav-live nc-live"><span className="live-dot nc-dot" /> Radar live</span>
-          <span className="rt-nav-avatar">JK</span>
         </div>
       </nav>
 

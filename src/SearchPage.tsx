@@ -49,6 +49,8 @@ import './SearchPage.css';
 import { useMediaQuery } from './mobile/useIsMobile';
 // Phase AW: Autobahnwetter-Kachel, Palette und Fußlink nur mit `?road=1` bis Gate C (`ROAD_LIVE`).
 import { roadFlagFrom, rememberRoadFlag } from './road/roadFlag';
+// Phase SW: Seewetter-Kachel, Palette und Fußlink nur mit `?sea=1` bis Gate C (`SEA_LIVE`).
+import { seaFlagFrom, rememberSeaFlag } from './sea/seaFlag';
 
 interface Props {
   onSelect: (location: Location) => void;
@@ -83,6 +85,7 @@ const FEATURE: Record<string, FeatureInfo> = {
   globe:      { id: 'globe',      eyebrow: '3D-Globus',     title: 'Das Wetter der ganzen Erde' },
   fire:       { id: 'fire',       eyebrow: 'Waldbrand',     title: 'Wie trocken ist der Wald?' },
   road:       { id: 'road',       eyebrow: 'Autobahnwetter', title: 'Ist die Strecke glatt?' },
+  sea:        { id: 'sea',        eyebrow: 'Seewetter',     title: 'Wie wird es auf dem Wasser?' },
   feedback:   { id: 'feedback',   eyebrow: 'Feedback',      title: 'Ideen & Vorschläge' },
   validation: { id: 'validation', eyebrow: 'Validierung',   title: 'Wie gut ist der KI-Nowcast wirklich?' },
 };
@@ -95,12 +98,14 @@ const FEATURE: Record<string, FeatureInfo> = {
  * die kleinste Fassung, die nicht wieder auseinanderläuft — die Kacheln selbst
  * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
  */
-const TOOL_TILE_COUNT = 11;
-/** Bis Gate C zählt die Autobahnwetter-Kachel nur mit `?road=1` (`src/road/roadFlag.ts`). */
-const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1);
+const TOOL_TILE_COUNT = 12;
+/** Bis Gate C zählen die Autobahnwetter- und die Seewetter-Kachel nur mit `?road=1` bzw. `?sea=1` (Flag-Module). */
+const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1);
 /** Autobahnwetter-Kachel: hinter allen Tablet-Rängen (`order` 1–10 in SearchPage.css) und über die volle Breite —
  *  inline, weil SearchPage.css für diese Phase unverändert bleibt (E-AW-5). */
 const AW_TILE_STYLE: CSSProperties = { order: 11, gridColumn: '1 / -1' };
+/** Seewetter-Kachel (Phase SW, E-SW-8): Nr. 12, volle Breite hinter Autobahnwetter — inline wie AW (SearchPage.css bleibt unverändert). */
+const SW_TILE_STYLE: CSSProperties = { order: 12, gridColumn: '1 / -1' };
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
 const PALETTE: PaletteEntry[] = [
@@ -116,6 +121,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
   { num: '12', label: 'Autobahnwetter',         hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
+  { num: '13', label: 'Seewetter',              hint: 'Küste · Segeln · Kiten · Wellen', feature: FEATURE.sea },
 ];
 
 // ============================================================================
@@ -124,7 +130,7 @@ const PALETTE: PaletteEntry[] = [
 export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   const tour = useIntroTour();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  useEffect(() => { rememberRoadFlag(); }, []);
+  useEffect(() => { rememberRoadFlag(); rememberSeaFlag(); }, []);
   const [activeCat, setActiveCat] = useState<'alle' | Category>('alle');
   const narrow = useMediaQuery(NARROW_QUERY);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -759,6 +765,31 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </p>
           </div>
         </>, AW_TILE_STYLE)}
+      {/* 12 · SEEWETTER (Phase SW, E-SW-8) — volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`), Farben
+          inline: keine Regel in SearchPage.css. Lädt keine Daten. Bis Gate C nur mit `?sea=1`. */}
+      {seaFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.sea, 'Seewetter öffnen',
+        <>
+          <div className="tile-feedback-icon" aria-hidden="true">
+            <svg width="34" height="34" viewBox="0 0 24 24">
+              <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" fill="none" stroke="#7FC4CC" strokeWidth="1.6" strokeLinecap="round" />
+              <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#2A9AA6" strokeWidth="1.6" strokeLinecap="round" />
+              <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#C9BFA8" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="tile-feedback-body">
+            <div className="tile-eyebrow">12 · SEEWETTER</div>
+            <div className="tile-title tile-title-lg">Wie wird es auf dem Wasser?</div>
+            <p className="tile-desc">
+              Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots,
+              Seewetterbericht und Warnstatus im Wortlaut — mit deinen eigenen Grenzen je Profil.
+              {' '}
+              <span className="tile-caveat">
+                Kein amtliches Warnprodukt, keine Sicherheitsbewertung. Binnenseen ohne Welle (nicht im DWD-Bestand).
+              </span>
+            </p>
+          </div>
+          <span className="tile-badge badge-mono-ghost">DWD · NORD- UND OSTSEE</span>
+        </>, SW_TILE_STYLE)}
     </section>
   );
 }
@@ -829,6 +860,7 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
               <button type="button" onClick={() => onOpenFeature(FEATURE.validation)}>Validierung</button><br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.globe)}>3D-Globus</button>
               {roadFlagFrom() && (<><br /><button type="button" onClick={() => onOpenFeature(FEATURE.road)}>Autobahnwetter</button></>)}
+              {seaFlagFrom() && (<><br /><button type="button" onClick={() => onOpenFeature(FEATURE.sea)}>Seewetter</button></>)}
             </div>
           </div>
           {/* Rechtsseiten werden vom SEO-Generator als echte Pfade erzeugt →
@@ -884,7 +916,7 @@ function CommandPalette({ open, onClose, onOpenFeature }: {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const entries = roadFlagFrom() ? PALETTE : PALETTE.filter((p) => p.feature.id !== 'road');
+    const entries = PALETTE.filter((p) => (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()));
     if (!q) return entries;
     return entries.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
   }, [query]);

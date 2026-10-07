@@ -398,3 +398,41 @@ HEAD `18ab8ca` 1 557,9 gegen HEAD + diese Änderungen (§8.11 + §8.12) 1 564,1 
 Die fünf Fragen: (1) Funktionserhalt — nichts entfernt; die Box-Regel bleibt (`pickCountryByBox`). (2) Desktop — nur Texte
 der Atmosphären-/3D-Ansicht geändert (Länge ähnlich), Karte byte-gleich (`verify:regenradar-profile` C1). (3) Touch-Targets
 unberührt. (4) Konsole sauber. (5) Polygontest nur in der Überlappung, je Abfrage ≈ 700 Kanten — kein Long Task.
+
+### 8.13 V-FR-11 und V-FR-12 umgesetzt (Jan 07.10.2026: „setze das hier jetzt um")
+
+Jans Rückfrage vorab: „in Österreich wird aber schon INCA dann später verwendet?" — ja: das Gitter nimmt je Zelle das Radar
+ihres Landes (DE RADOLAN-RV 0–2 h, AT INCA 0–3 h, CH rzc „jetzt“, danach ICON-D2); V-FR-11 ändert nur, welches Land eine
+Zelle in der Überlappung der Boxen bekommt.
+
+**V-FR-11 — Niederschlagsgitter der Karte (Wetterkarte, Regenradar, `?rr=legacy`).** `PrecipCompositor` ordnet jede Zelle mit
+derselben Regel zu wie die Punktvorhersage. Die Regel liegt jetzt in `src/pointForecast/countryOfPoint.ts` (`pickCountry`,
+`inCountry`, neu `countryRowPicker`); `clustering.ts` reicht sie weiter. `countryRowPicker(lat)` rechnet je Gitterzeile einmal
+die Schnittpunkte der Grenzen und die Box-Abstände, je Zelle dann eine binäre Suche — Zelle für Zelle gleich `pickCountry`
+(307 200 Zellen, 0 anders) und **gleich schnell wie die Box-Regel** (Node, Median 7 Läufe: 51,5 gegen 54,4 ms; die erste
+Fassung mit `pickCountry`-Aufrufen je Zelle brauchte 184 ms ⇒ verworfen).
+
+Gemessen auf echten Frames (RV 07.10. ≈ 09 UTC, INCA, rzc): Zellen mit neuem Land **AT→DE 5 519** (Südbayern samt München:
+jetzt RADOLAN statt INCA), DE→AT 971, DE→CH 921, AT→CH 467, CH→AT 98; das Bild ändert sich NUR in diesen Zellen (an h 0/1/2,5
+14 Werte anders, 0 außerhalb — wenig Regen an diesem Morgen). Folge in Südbayern: RADOLAN reicht 2 h, INCA reichte 3 h ⇒
+zwischen 2 und 3 h zeigt das Gitter dort jetzt ICON-D2 (mit Jan besprochen).
+
+Kosten: die Grenzen liegen jetzt in einem eigenen Lazy-Chunk `countryOfPoint` (6,3 KB gzip), den Karte, Route und Atmosphäre
+teilen — die Karte lädt sie beim Öffnen mit (vorher nur Route/Atmosphäre). totalJs 1 566,2 unverändert (Chunk verschoben,
+nicht verdoppelt), eagerJs unverändert, nicht in `index.html`.
+
+**V-FR-12 — Initialen „JK".** Die Vorlagen-Initialen standen auf NEUN Seiten (Event, Vorhersage ×2, 3D, Regenradar ×2,
+Atmosphäre, Historie, Route), ohne Funktion, ohne Konto. Alle entfernt; die CSS-Regeln (`*-avatar`) bleiben stehen
+(ungenutzt; `tourTheme.css` wird nach Projektregel nicht angefasst).
+
+**Prüfungen:** `verify:fusion-release` **28/28** (C6 neu: Gitter nutzt `countryRowPicker`, keine Box-Regel mehr, Zelle für
+Zelle gleich `pickCountry`); `verify:regenradar-profile` **35/36** — C1 jetzt „HEADs Gitter mit der neuen Länderzuordnung
+byte-gleich" (3 379 200 Zellwerte; HEAD = `f9ba2d1`, das selbst noch die Box-Regel trägt), neu **C1b** „gegen die Box-Regel nur
+Zellen mit Landwechsel anders"; C2/D1–D7 grün; E7 („`src/pointForecast` ohne Diff zu HEAD", Wache der Phase RR) grün nach dem
+Commit. `verify:precip-source` 30/30, `verify:layer-geometry` 76/76, typecheck 0, Build grün, Budget grün (1 566,2 / 1 567).
+Browser (Dev-Server): Wetterkarte/Niederschlag, Regenradar, Regenradar `?rr=legacy`, Vorhersage, Tourenplanung,
+Eventplanung, Wetterarchiv, Atmosphäre — keine Konsolenfehler, kein „JK".
+
+Die fünf Fragen: (1) Funktionserhalt — die Initialen hatten keine Funktion; jede Zelle hat weiter genau eine Quelle.
+(2) Desktop — Köpfe ohne den 32-px-Kreis (gewollt); Radarbild nur in den umgeordneten Zellen anders (C1b). (3) Touch-Targets
+unberührt. (4) Konsole sauber. (5) Gitterbau gleich schnell wie vorher (≈ 50 ms, wie bisher einmal beim Öffnen der Karte).

@@ -263,7 +263,8 @@ AK Hagen 6 km), der Marker für die 12 der zweiten Zeile an falscher Stelle.
 - **Prognosepunkte neu** (`--axis-from`, `--geo-from`): 4 569 Punkte, gleiche Kennungen, Achspunkte bytegleich,
   1 320 Stationen auf Meldelage + 58 Katalog (übrige melden nicht / ohne Katalog), 807 Stationspunkte verschoben
   (p50 71 m, p90 1,9 km, 80 > 2 km — alle zur Meldelage, weil der Katalog dort neben der Straße lag), geo 9 096 Einträge,
-  0 unvollständig. Paket `C:\dev\buscosun-road-publish\2026-10-07-m6\` (MANUELLE-SCHRITTE §43).
+  0 unvollständig. Paket `C:\dev\buscosun-road-publish\2026-10-07-m6\` (MANUELLE-SCHRITTE §43) — **eingespielt 07.10.
+  07:39 UTC** (Daten-Repo `6075c37`, gepurgt, CDN = Paket).
 - **Gates:** `verify:road-positions` 23/23 (mit Gegenproben E5, H2b), `verify:road-derive` 36/36, `verify:road-contract`
   69/69, `verify:road-fc` 102/102, `verify:road-archive` 26/26, `verify:road-decode` 15/15, `verify:road-ui` 64/64
   (gegen `vite preview` des frischen Builds), typecheck 0, Build, Budget grün.

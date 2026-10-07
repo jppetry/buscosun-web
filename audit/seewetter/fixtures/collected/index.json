@@ -1,0 +1,391 @@
+{
+ "source": "https://opendata.dwd.de/weather/maritime/forecast/german/",
+ "license": "Deutscher Wetterdienst, GeoNutzV",
+ "files": {
+  "FQEN50_EDZW_051400": {
+   "bytes": 3341,
+   "sha256": "a1772d88288e97511453ed47427af3f6b443e8b0b8a3384e0b119b3c3a9052ae",
+   "lastModified": "Mon, 05 Oct 2026 14:15:03 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.234Z",
+   "header": "FQDL50 DWHA 051400"
+  },
+  "FQEN50_EDZW_051700": {
+   "bytes": 3341,
+   "sha256": "aaed16a1a78d08b1ed770bb02e22ddb0ed7c96b3e27d585e6ed4ca73a42a1dc8",
+   "lastModified": "Mon, 05 Oct 2026 17:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.259Z",
+   "header": "FQDL50 DWHA 051700"
+  },
+  "FQEN50_EDZW_052000": {
+   "bytes": 3341,
+   "sha256": "bb80bc163707fb8ab5f9a8f7a47ea8d9b5f1265b024a0eb841c441cb37cdf0ac",
+   "lastModified": "Mon, 05 Oct 2026 20:15:09 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.278Z",
+   "header": "FQDL50 DWHA 052000"
+  },
+  "FQEN50_EDZW_060000": {
+   "bytes": 3465,
+   "sha256": "102316b5398f33bd9daea84004d8b994b94354172e064d3e0ae08cf3a6e6dedf",
+   "lastModified": "Tue, 06 Oct 2026 00:15:09 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.301Z",
+   "header": "FQDL50 DWHA 060000"
+  },
+  "FQEN50_EDZW_060300": {
+   "bytes": 3472,
+   "sha256": "4b49b71d03b7ddf7e33d188e673ecb96728f04362c6c93e92cf83f5f6095ffef",
+   "lastModified": "Tue, 06 Oct 2026 03:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.323Z",
+   "header": "FQDL50 DWHA 060300"
+  },
+  "FQEN50_EDZW_060500": {
+   "bytes": 3472,
+   "sha256": "b88c8b5aa5cfea4d414e16024c464026d40dcea47c14091b2459652c4845cfcf",
+   "lastModified": "Tue, 06 Oct 2026 05:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.345Z",
+   "header": "FQDL50 DWHA 060500"
+  },
+  "FQEN50_EDZW_060800": {
+   "bytes": 3422,
+   "sha256": "e7691316566cfa5ff6e5b62bc54c2bceffaa8e11ce040c540ae9ab77457196b6",
+   "lastModified": "Tue, 06 Oct 2026 08:15:04 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.363Z",
+   "header": "FQDL50 DWHA 060800"
+  },
+  "FQEN50_EDZW_061100": {
+   "bytes": 3569,
+   "sha256": "ba7afa5d4c42c01f58217e43046a94d414be25ce1969b5b25f53cd1fcc4d0a07",
+   "lastModified": "Tue, 06 Oct 2026 11:15:22 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.383Z",
+   "header": "FQDL50 DWHA 061100"
+  },
+  "FQEN50_EDZW_061400": {
+   "bytes": 3569,
+   "sha256": "1e04aee6927e9050f9cd94fd9b6badd3b04f7aebf43849a9e402aff60d3d0ee0",
+   "lastModified": "Tue, 06 Oct 2026 14:15:19 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.409Z",
+   "header": "FQDL50 DWHA 061400"
+  },
+  "FQEN50_EDZW_061700": {
+   "bytes": 3659,
+   "sha256": "df4289eb218eac3664db95b6332e84b89588ffb0202114fc7d13d1cb7aeda819",
+   "lastModified": "Tue, 06 Oct 2026 17:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.433Z",
+   "header": "FQDL50 DWHA 061700"
+  },
+  "FQEN50_EDZW_062000": {
+   "bytes": 3659,
+   "sha256": "474087c2a4cb4dbd99e0f909005c3d70b12886d9b5f556674c75781807f145e9",
+   "lastModified": "Tue, 06 Oct 2026 20:15:04 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.450Z",
+   "header": "FQDL50 DWHA 062000"
+  },
+  "FQEN50_EDZW_070000": {
+   "bytes": 4076,
+   "sha256": "8c87e439cc21ff6eb03f687748612d850773f7bf86659e7d1a1510a9894c5747",
+   "lastModified": "Wed, 07 Oct 2026 00:15:10 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.470Z",
+   "header": "FQDL50 DWHA 070000"
+  },
+  "FQEN50_EDZW_070300": {
+   "bytes": 4076,
+   "sha256": "caadc9070989ab9fc483b4ec0988d2fc39e103e4ae23a7103510d548c3223b74",
+   "lastModified": "Wed, 07 Oct 2026 03:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.488Z",
+   "header": "FQDL50 DWHA 070300"
+  },
+  "FQEN50_EDZW_070500": {
+   "bytes": 4076,
+   "sha256": "1bd600a5290c15049f3dd8aa29953d116027c846b3469399508ff39a9641314b",
+   "lastModified": "Wed, 07 Oct 2026 05:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.506Z",
+   "header": "FQDL50 DWHA 070500"
+  },
+  "FQEN50_EDZW_070800": {
+   "bytes": 4051,
+   "sha256": "d77cc404b327bca84060cee03b4ca89b6cd977e9cacab7d2e449d43a34ff1aea",
+   "lastModified": "Wed, 07 Oct 2026 08:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.525Z",
+   "header": "FQDL50 DWHA 070800"
+  },
+  "FQEN50_EDZW_071100": {
+   "bytes": 4051,
+   "sha256": "855fadf42d4f1715e18eed765146ea335d4e6da0b084254283ff3d468ad822d8",
+   "lastModified": "Wed, 07 Oct 2026 11:15:24 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.544Z",
+   "header": "FQDL50 DWHA 071100"
+  },
+  "FQEN51_EDZW_051400": {
+   "bytes": 1425,
+   "sha256": "173258ba2da4e6a6ab60c678043893cc15bff03b45003efe60eeedd9d29fd4b1",
+   "lastModified": "Mon, 05 Oct 2026 14:15:03 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.560Z",
+   "header": "FQDL51 DWHA 051400"
+  },
+  "FQEN51_EDZW_051700": {
+   "bytes": 1425,
+   "sha256": "44425ecf7622f9b88224d2666d4078cde9cd1f6bc0e692dc86ba98132eaa8411",
+   "lastModified": "Mon, 05 Oct 2026 17:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.584Z",
+   "header": "FQDL51 DWHA 051700"
+  },
+  "FQEN51_EDZW_052000": {
+   "bytes": 1425,
+   "sha256": "32a14ffa21ed22f4518cfb24491ecf3e54feed9e6ee85305c889aeab30281b13",
+   "lastModified": "Mon, 05 Oct 2026 20:15:09 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.600Z",
+   "header": "FQDL51 DWHA 052000"
+  },
+  "FQEN51_EDZW_060000": {
+   "bytes": 1698,
+   "sha256": "056d6eb1b39d0e4728326ce7b262618ef2d5f986052029aa6c9b498b1b18a9bb",
+   "lastModified": "Tue, 06 Oct 2026 00:15:09 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.624Z",
+   "header": "FQDL51 DWHA 060000"
+  },
+  "FQEN51_EDZW_060300": {
+   "bytes": 1705,
+   "sha256": "cf0f8b5fd518f2bc2731475f81c60ec67dfec09bbd72068ae3e5ee92f0b5600f",
+   "lastModified": "Tue, 06 Oct 2026 03:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.649Z",
+   "header": "FQDL51 DWHA 060300"
+  },
+  "FQEN51_EDZW_060500": {
+   "bytes": 1705,
+   "sha256": "ed64037af518e102319942adbc02eb92950da26960cc0a85e6b9dc94a3d8c985",
+   "lastModified": "Tue, 06 Oct 2026 05:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.669Z",
+   "header": "FQDL51 DWHA 060500"
+  },
+  "FQEN51_EDZW_060800": {
+   "bytes": 1655,
+   "sha256": "008092286b5212e21ca60077db3b5b41bf6b4258de6e62fa0e51c5401dfd264a",
+   "lastModified": "Tue, 06 Oct 2026 08:15:04 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.693Z",
+   "header": "FQDL51 DWHA 060800"
+  },
+  "FQEN51_EDZW_061100": {
+   "bytes": 1520,
+   "sha256": "ae193a35008675027ed0a8134a6a8c15772d0d09837d62fab154c4ae96cdf8a6",
+   "lastModified": "Tue, 06 Oct 2026 11:15:22 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.713Z",
+   "header": "FQDL51 DWHA 061100"
+  },
+  "FQEN51_EDZW_061400": {
+   "bytes": 1520,
+   "sha256": "1aab8d64793d78eadb971163f63042d0615d17df379e3e3b58bb5c5554bd4636",
+   "lastModified": "Tue, 06 Oct 2026 14:15:19 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.744Z",
+   "header": "FQDL51 DWHA 061400"
+  },
+  "FQEN51_EDZW_061700": {
+   "bytes": 1610,
+   "sha256": "1be2c29cd95ce87f4db63cc7c1c5bf6516bf4518227b841da89eb899f3c3944e",
+   "lastModified": "Tue, 06 Oct 2026 17:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.763Z",
+   "header": "FQDL51 DWHA 061700"
+  },
+  "FQEN51_EDZW_062000": {
+   "bytes": 1610,
+   "sha256": "f7d719c95b336f7198cb330180dba8f3f3bd7fe474cd58e081e56d78ddc913c4",
+   "lastModified": "Tue, 06 Oct 2026 20:15:04 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.783Z",
+   "header": "FQDL51 DWHA 062000"
+  },
+  "FQEN51_EDZW_070000": {
+   "bytes": 1811,
+   "sha256": "9aba4f1707e439979c79318cdfb33ef31210b260fdb94fe784321fe36e03a285",
+   "lastModified": "Wed, 07 Oct 2026 00:15:10 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.802Z",
+   "header": "FQDL51 DWHA 070000"
+  },
+  "FQEN51_EDZW_070300": {
+   "bytes": 1811,
+   "sha256": "ac57d6e79426395eacc19dd2c39c13b2346ab1f863c99fee6f59970bccd791a1",
+   "lastModified": "Wed, 07 Oct 2026 03:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.823Z",
+   "header": "FQDL51 DWHA 070300"
+  },
+  "FQEN51_EDZW_070500": {
+   "bytes": 1811,
+   "sha256": "ef363fd65bd9d065d3fb066da5abd477fa1ea2765f98b89eb556ae815f171b57",
+   "lastModified": "Wed, 07 Oct 2026 05:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.841Z",
+   "header": "FQDL51 DWHA 070500"
+  },
+  "FQEN51_EDZW_070800": {
+   "bytes": 1786,
+   "sha256": "1487e68444e3f215a2b9d09741639f4006b0f98d2b248e11f04cc0f63a5c246c",
+   "lastModified": "Wed, 07 Oct 2026 08:15:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.866Z",
+   "header": "FQDL51 DWHA 070800"
+  },
+  "FQEN51_EDZW_071100": {
+   "bytes": 1717,
+   "sha256": "388e15512e07f397b0f1fda4a127f70f420706fd8316b1080a5860306b7cd93c",
+   "lastModified": "Wed, 07 Oct 2026 11:15:24 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.885Z",
+   "header": "FQDL51 DWHA 071100"
+  },
+  "FQMM60_EDZW_051400": {
+   "bytes": 983,
+   "sha256": "fd1ec0dca2d5b82fff99fbdfe2e338888fb141723fde8f24aacb9da560c985ed",
+   "lastModified": "Mon, 05 Oct 2026 12:16:19 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.903Z",
+   "header": "FQDL60 DWHA 051400"
+  },
+  "FQMM60_EDZW_061400": {
+   "bytes": 1063,
+   "sha256": "bcddbfb35e7c043cd88734fd1d2006ccb27d92b275d9e89bd7d1234714c43cfa",
+   "lastModified": "Tue, 06 Oct 2026 12:16:21 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.921Z",
+   "header": "FQDL60 DWHA 061400"
+  },
+  "FXDL40_EDZW_060000": {
+   "bytes": 1609,
+   "sha256": "d47be1c68a757d49baf45992a037462aaaf059c1272d1a15782b1199671db2f5",
+   "lastModified": "Tue, 06 Oct 2026 07:52:58 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.943Z",
+   "header": "FXDL40 DWHA 060000"
+  },
+  "FXDL40_EDZW_070000": {
+   "bytes": 1849,
+   "sha256": "beae1b607240ca8d60913076da6d486644af2e547a3fa1f39073a6fdab71fb80",
+   "lastModified": "Wed, 07 Oct 2026 10:59:30 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.966Z",
+   "header": "FXDL40 DWHA 070000"
+  },
+  "WODL45_EDZW_051500": {
+   "bytes": 882,
+   "sha256": "703858ba71a08ab5e855f395f26431e2929f546afa6de1e9b61c9d1ce4b5d3c6",
+   "lastModified": "Mon, 05 Oct 2026 14:45:26 GMT",
+   "fetchedAt": "2026-10-07T12:01:17.989Z",
+   "header": "WODL45 DWHA 051500"
+  },
+  "WODL45_EDZW_051800": {
+   "bytes": 881,
+   "sha256": "bce51278e9c87beefd0e5a5bcf72636087144a46297c7e6ca6ee27e235586809",
+   "lastModified": "Mon, 05 Oct 2026 17:45:19 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.018Z",
+   "header": "WODL45 DWHA 051800"
+  },
+  "WODL45_EDZW_052100": {
+   "bytes": 881,
+   "sha256": "f86db20e3d9ed471af5fb205a154ffbd90bb8b076bf5113662cef3905347d8a6",
+   "lastModified": "Mon, 05 Oct 2026 20:45:14 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.051Z",
+   "header": "WODL45 DWHA 052100"
+  },
+  "WODL45_EDZW_060000": {
+   "bytes": 881,
+   "sha256": "7bfb81b3a8c05bbd916f7419c89facb30d06d3a4b6ba9848c4c31ea99a5a8e11",
+   "lastModified": "Mon, 05 Oct 2026 23:45:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.069Z",
+   "header": "WODL45 DWHA 060000"
+  },
+  "WODL45_EDZW_060300": {
+   "bytes": 881,
+   "sha256": "4810ef7cae21b9b06626e1e0f1be1c6cb8afa858c8f471b817f28ad5fb8a8efd",
+   "lastModified": "Tue, 06 Oct 2026 02:45:35 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.085Z",
+   "header": "WODL45 DWHA 060300"
+  },
+  "WODL45_EDZW_060600": {
+   "bytes": 881,
+   "sha256": "dd63471837e73a87397d46faa9a166fbf2c92a76be84b9924f4466292bdf0f5d",
+   "lastModified": "Tue, 06 Oct 2026 05:45:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.113Z",
+   "header": "WODL45 DWHA 060600"
+  },
+  "WODL45_EDZW_060900": {
+   "bytes": 881,
+   "sha256": "877f43ccd1aeafeb558e9169d6fa3e1e897ebf5d650529d1efbad605e07443df",
+   "lastModified": "Tue, 06 Oct 2026 08:45:09 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.133Z",
+   "header": "WODL45 DWHA 060900"
+  },
+  "WODL45_EDZW_061200": {
+   "bytes": 881,
+   "sha256": "8ca9dde43eb7a33b6768290d1d5476616139afe81d8e1acee45ea23b30a0626e",
+   "lastModified": "Tue, 06 Oct 2026 11:45:09 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.157Z",
+   "header": "WODL45 DWHA 061200"
+  },
+  "WODL45_EDZW_061500": {
+   "bytes": 882,
+   "sha256": "6fc08d1d984303de9520d1c9c52b92fc3b38da921a1c52475a607a255c2c8814",
+   "lastModified": "Tue, 06 Oct 2026 14:47:22 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.175Z",
+   "header": "WODL45 DWHA 061500"
+  },
+  "WODL45_EDZW_061800": {
+   "bytes": 881,
+   "sha256": "48f455170e2b11201c71b532c1d1e0ce82cbc25ed0e52c2745dcf925adce4d26",
+   "lastModified": "Tue, 06 Oct 2026 17:45:16 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.191Z",
+   "header": "WODL45 DWHA 061800"
+  },
+  "WODL45_EDZW_062100": {
+   "bytes": 881,
+   "sha256": "3d46961d332c1adadc29ea3749484f05537135e6a55400e2948bf43183167a1c",
+   "lastModified": "Tue, 06 Oct 2026 20:45:50 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.208Z",
+   "header": "WODL45 DWHA 062100"
+  },
+  "WODL45_EDZW_070000": {
+   "bytes": 881,
+   "sha256": "ed4eb2403eb162480b5781079c9488a51702436df953eb3288676ea32104190b",
+   "lastModified": "Tue, 06 Oct 2026 23:45:08 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.226Z",
+   "header": "WODL45 DWHA 070000"
+  },
+  "WODL45_EDZW_070300": {
+   "bytes": 881,
+   "sha256": "40886e2d83c039564d19f36cacbb1e2fc6ae55ac3bffe09fd22723a87f7e57b4",
+   "lastModified": "Wed, 07 Oct 2026 02:48:14 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.250Z",
+   "header": "WODL45 DWHA 070300"
+  },
+  "WODL45_EDZW_070600": {
+   "bytes": 881,
+   "sha256": "9f431fe9db6adca9ec6cf7a2380133dbf2decc67ffc30d27eddc8a82a0a6900e",
+   "lastModified": "Wed, 07 Oct 2026 05:45:07 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.271Z",
+   "header": "WODL45 DWHA 070600"
+  },
+  "WODL45_EDZW_070900": {
+   "bytes": 881,
+   "sha256": "cd08acd50856d06ccdde19b83d6638bba1f7f5c347adfe0d4f4f0140119664a8",
+   "lastModified": "Wed, 07 Oct 2026 08:45:33 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.289Z",
+   "header": "WODL45 DWHA 070900"
+  },
+  "WODL45_EDZW_071200": {
+   "bytes": 886,
+   "sha256": "e0f44b31e1cb289aa9d4221fb368ac8becff64b1ceeecd75e40cdd5830659d04",
+   "lastModified": "Wed, 07 Oct 2026 11:45:29 GMT",
+   "fetchedAt": "2026-10-07T12:01:18.312Z",
+   "header": "WODL45 DWHA 071200"
+  },
+  "FQMM60_EDZW_071400": {
+   "bytes": 1069,
+   "sha256": "d0465ed3b0944a467f20564fc7b344f06a5c2ec0ea063ea2f557cb42d86ba99e",
+   "lastModified": "Wed, 07 Oct 2026 12:16:19 GMT",
+   "fetchedAt": "2026-10-07T12:16:18.470Z",
+   "header": "FQDL60 DWHA 071400"
+  },
+  "FQEN50_EDZW_071400": {
+   "bytes": 4031,
+   "sha256": "a5a3165701ce129862901930b9dde90edbf56f65b3afed45d23ea7d5ed3f77cc",
+   "lastModified": "Wed, 07 Oct 2026 14:15:10 GMT",
+   "fetchedAt": "2026-10-07T14:16:20.009Z",
+   "header": "FQDL50 DWHA 071400"
+  },
+  "FQEN51_EDZW_071400": {
+   "bytes": 1697,
+   "sha256": "232063fb98895fd1749c2dcc1b0b73a1ea2aed84c8d9693acd6e8c3c82b16a15",
+   "lastModified": "Wed, 07 Oct 2026 14:15:10 GMT",
+   "fetchedAt": "2026-10-07T14:16:20.030Z",
+   "header": "FQDL51 DWHA 071400"
+  }
+ }
+}

@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Seewetter – Desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5560}a:hover{color:#0F6E7A}
+button{font-family:inherit}
+@keyframes swPulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; overflow: hidden; background: #EDE6D3; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<nav aria-label="Bereiche" style="width: 62px; flex: 0 0 auto; background: #2C2A26; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; box-sizing: border-box">
+<button type="button" aria-label="buscosun Startseite" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #E0A567; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; cursor: pointer">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+</button>
+<button type="button" aria-label="Wetterkarte" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>
+</button>
+<button type="button" aria-label="Regenradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle><path d="M12 12l5.5-5.5"></path></svg>
+</button>
+<button type="button" aria-label="Vorhersage" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"></path><path d="M4 15l4-5 4 3 4-6 4 4"></path></svg>
+</button>
+<button type="button" aria-label="Tourenplanung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="6" r="2.2"></circle><path d="M8 17c5-1 2-7 8-10"></path></svg>
+</button>
+<button type="button" aria-label="Historie" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3 2"></path></svg>
+</button>
+<button type="button" aria-label="Brandradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 21c-4 0-6.5-2.6-6.5-6 0-4 3.5-6 4-10 2.5 2 3 4 3 6 1-1 1.5-2 1.5-3.5 2 1.8 4.5 4.5 4.5 7.5 0 3.4-2.5 6-6.5 6z"></path></svg>
+</button>
+<button type="button" aria-label="Autobahnwetter" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 3L4 21M15.5 3L20 21"></path><path d="M12 4v3M12 10.5v3M12 17v4"></path></svg>
+</button>
+<div style="position: relative; display: flex">
+<div style="position: absolute; left: -10px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: #2A9AA6"></div>
+<button type="button" aria-label="Seewetter" aria-current="page" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: #3A3833; color: #7FC4CC; display: flex; align-items: center; justify-content: center; cursor: default">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6"></path><path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6"></path><path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6"></path></svg>
+</button>
+</div>
+</nav>
+
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0">
+
+<header style="height: 60px; flex: 0 0 auto; display: flex; align-items: center; gap: 18px; padding: 0 20px; background: #FAF6EA; border-bottom: 1px solid #E0D6BE; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+<span style="font-size: 19px; font-weight: 700; letter-spacing: -0.4px">buscosun</span>
+</div>
+<div style="width: 1px; height: 26px; background: #E0D6BE"></div>
+<span style="font-size: 13px; font-weight: 500; color: #8B7355">Seewetter Nord- und Ostsee</span>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 16px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1.5px; font-weight: 600; text-transform: uppercase; color: #5F7A4C">
+<span style="position: relative; width: 8px; height: 8px; display: inline-block"><span style="position: absolute; inset: 0; border-radius: 50%; background: #5F7A4C"></span><span style="position: absolute; inset: 0; border-radius: 50%; background: #5F7A4C; animation: swPulse 2.4s ease-out infinite"></span></span>
+Aktuell
+</span>
+<span style="font-size: 11px; color: #8B7355">Lauf <strong style="color: #2C2A26; font-weight: 600">CWAM 00 UTC</strong> · bereit 05:31 · Seewetterbericht 10:00 · Warnstatus 11:00 MESZ</span>
+<div role="group" aria-label="Einheit Wind" style="display: flex; gap: 2px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 2px">
+<sc-for list="{{units}}" as="u" hint-placeholder-count="3">
+<button type="button" onClick="{{u.pick}}" aria-pressed="{{u.on}}" style="border: 0; border-radius: 7px; padding: 0 9px; height: 28px; font-size: 11.5px; cursor: pointer; {{u.style}}">{{u.label}}</button>
+</sc-for>
+</div>
+<button type="button" style="display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border: 1px solid #E0D6BE; border-radius: 9px; background: #FFFFFF; color: #2C2A26; font-size: 12px; font-weight: 600; cursor: pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>
+Teilen
+</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; min-height: 0">
+
+<aside aria-label="Spots, Profil und Ebenen" style="width: 250px; flex: 0 0 auto; background: #FAF6EA; border-right: 1px solid #E0D6BE; overflow-y: auto; padding: 16px 12px; box-sizing: border-box">
+<label for="sw-search" style="display: block; font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-bottom: 6px">Spot, Hafen oder Ort</label>
+<div style="display: flex; align-items: center; gap: 8px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 0 10px; height: 36px">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+<input id="sw-search" type="text" placeholder="Fehmarn, Büsum, Schilksee …" style="border: 0; outline: none; background: transparent; font-family: inherit; font-size: 12.5px; color: #2C2A26; width: 100%">
+</div>
+
+<div role="group" aria-label="Revier" style="display: flex; gap: 3px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 8px; padding: 3px; margin-top: 10px">
+<sc-for list="{{reviere}}" as="rv" hint-placeholder-count="3">
+<button type="button" onClick="{{rv.pick}}" aria-pressed="{{rv.on}}" style="flex: 1; border: 0; border-radius: 5px; padding: 6px 0; font-size: 11px; cursor: pointer; {{rv.style}}">{{rv.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 8px">
+<span style="font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Mein Profil</span>
+<button type="button" onClick="{{toggleLimits}}" aria-expanded="{{limitsOpen}}" style="border: 0; background: transparent; color: #0B5560; font-size: 11px; font-weight: 600; cursor: pointer; padding: 4px 0; min-height: 28px">{{limitsLabel}}</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 5px">
+<sc-for list="{{profiles}}" as="pf" hint-placeholder-count="7">
+<button type="button" onClick="{{pf.pick}}" aria-pressed="{{pf.on}}" style="border: 1px solid #E0D6BE; border-radius: 16px; padding: 0 11px; height: 30px; font-size: 11.5px; cursor: pointer; {{pf.style}}">{{pf.label}}</button>
+</sc-for>
+</div>
+<p style="margin: 8px 0 0; font-size: 10.5px; line-height: 1.45; color: #5C5447">{{profSum}}</p>
+<sc-if value="{{limitsOpen}}" hint-placeholder-val="{{ false }}">
+<div style="margin-top: 8px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 8px 10px">
+<sc-for list="{{limitRows}}" as="lr" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 4px 0; border-bottom: 1px solid #F5F1E8"><span style="color: #8B7355">{{lr.k}}</span><span style="font-weight: 600">{{lr.v}}</span></div>
+</sc-for>
+<div style="margin-top: 6px; font-size: 9.5px; line-height: 1.4; color: #8B7355">Startwerte, im Browser änderbar. Deine Grenzen, keine Sicherheitsbewertung.</div>
+</div>
+</sc-if>
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 8px">
+<span style="font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Spots</span>
+<span style="font-size: 10px; color: #5C5447; font-weight: 500; background: #EDE6D3; border-radius: 6px; padding: 2px 7px">{{spotCount}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px">
+<sc-for list="{{spotItems}}" as="si" hint-placeholder-count="6">
+<button type="button" onClick="{{si.pick}}" aria-pressed="{{si.on}}" style="display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; border: 1px solid #E0D6BE; border-radius: 9px; padding: 8px 10px; cursor: pointer; color: #2C2A26; {{si.style}}">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12.5px; font-weight: 600; line-height: 1.2">{{si.name}}</span>
+<span style="font-size: 9.5px; color: #8B7355">{{si.sub}}</span>
+</span>
+<span style="width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; {{si.dot}}"></span>
+</button>
+</sc-for>
+</div>
+
+<div style="font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin: 18px 0 8px">Ebenen</div>
+<div role="group" aria-label="Seegang-Ebene" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{layers}}" as="ly" hint-placeholder-count="4">
+<button type="button" onClick="{{ly.pick}}" aria-pressed="{{ly.on}}" style="border: 1px solid #E0D6BE; border-radius: 8px; padding: 0 8px; height: 32px; font-size: 11.5px; cursor: pointer; text-align: left; {{ly.style}}">{{ly.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px; margin-top: 6px">
+<sc-for list="{{toggles}}" as="tg" hint-placeholder-count="3">
+<button type="button" onClick="{{tg.toggle}}" aria-pressed="{{tg.on}}" style="display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 7px 10px; cursor: pointer; {{tg.row}}">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 12px; {{tg.lab}}">{{tg.label}}</span>
+<span style="font-size: 9.5px; color: #8B7355">{{tg.sub}}</span>
+</span>
+<span style="width: 30px; height: 17px; border-radius: 9px; position: relative; flex: 0 0 auto; {{tg.sw}}"><span style="position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #FFFFFF; {{tg.knob}}"></span></span>
+</button>
+</sc-for>
+<div style="display: flex; align-items: center; gap: 9px; background: #F4F0E4; border: 1px dashed #D9D0B8; border-radius: 9px; padding: 8px 10px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 12px; font-weight: 500; color: #5C5447">Wasserstand-Vorhersage</span>
+<span style="font-size: 9.5px; color: #8B7355">blockiert · BSH-Lizenz ungeklärt</span>
+</span>
+</div>
+</div>
+
+<div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #E0D6BE">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-bottom: 8px">Datenlage je Revier</div>
+<div style="display: grid; grid-template-columns: 54px 1fr; gap: 7px 8px; font-size: 10.5px; line-height: 1.4; color: #5C5447">
+<span style="font-weight: 700; color: #2C2A26">Küste DE</span><span><strong style="color: #5F7A4C">voll</strong> · CWAM 900 m, Seewetterbericht, Warnstatus, Messung</span>
+<span style="font-weight: 700; color: #2C2A26">Europa</span><span><strong style="color: #9A5A2A">Stufe 2</strong> · EWAM 5 km, ohne Warnung des Ziellands</span>
+<span style="font-weight: 700; color: #2C2A26">DACH-Seen</span><span><strong style="color: #9A5A2A">keine Welle</strong> · nicht im DWD-Bestand</span>
+</div>
+</div>
+</aside>
+
+<main aria-label="Karte" style="width: 728px; flex: 0 0 auto; position: relative; overflow: hidden; background: #0B0E12">
+<img src="{{frameSrc}}" alt="Seegangskarte Deutsche Bucht und westliche Ostsee, {{frameLabel}}" width="728" height="840" style="position: absolute; left: 0; top: 0; width: 728px; height: 840px; display: block">
+<svg viewBox="0 0 728 840" width="728" height="840" aria-hidden="true" style="position: absolute; left: 0; top: 0; pointer-events: none; font-family: 'League Spartan', system-ui, sans-serif">
+<g fill="#8B95A3" font-size="12">
+<circle cx="371" cy="425" r="2.5" fill="#8B95A3"></circle><text x="377" y="429">Husum</text>
+<circle cx="424" cy="353" r="2.5" fill="#8B95A3"></circle><text x="430" y="357">Flensburg</text>
+<circle cx="522" cy="463" r="2.5" fill="#8B95A3"></circle><text x="490" y="484">Kiel</text>
+<circle cx="600" cy="571" r="2.5" fill="#8B95A3"></circle><text x="606" y="575">Lübeck</text>
+<circle cx="287" cy="187" r="2.5" fill="#8B95A3"></circle><text x="294" y="191">Esbjerg</text>
+</g>
+<g fill="#6E8FA6" font-size="11" letter-spacing="2.4" font-weight="600">
+<text x="64" y="420">DEUTSCHE BUCHT</text>
+<text x="560" y="372">WESTLICHE OSTSEE</text>
+<text x="96" y="250">NORDSEE</text>
+</g>
+</svg>
+
+<sc-for list="{{markers}}" as="mk" hint-placeholder-count="10">
+<button type="button" onClick="{{mk.pick}}" aria-label="{{mk.label}}" style="position: absolute; border-radius: 50%; padding: 0; cursor: pointer; box-sizing: border-box; {{mk.style}}"></button>
+</sc-for>
+
+<div style="position: absolute; pointer-events: none; width: 196px; background: rgba(250,246,234,0.96); border: 1px solid #E0D6BE; border-radius: 10px; padding: 7px 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); {{callout.style}}">
+<div style="font-size: 12.5px; font-weight: 700">{{callout.name}}</div>
+<div style="display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11px; color: #5C5447"><span style="width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; {{callout.dot}}"></span>{{callout.line}}</div>
+</div>
+
+<div style="position: absolute; left: 14px; top: 14px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px; background: rgba(250,246,234,0.96); border: 1px solid #E0D6BE; border-radius: 12px; padding: 8px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3)">
+<span style="display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #FFFFFF; background: #0F6E7A; border-radius: 5px; padding: 2px 6px">{{pill.badge}}</span>
+<span style="display: flex; flex-direction: column">
+<span style="font-size: 13px; font-weight: 600">{{pill.name}}</span>
+<span style="font-size: 10.5px; color: #8B7355">{{pill.sub}}</span>
+</span>
+</div>
+<div role="group" aria-label="Zeitpunkt" style="display: flex; gap: 3px; background: rgba(250,246,234,0.96); border: 1px solid #E0D6BE; border-radius: 10px; padding: 3px; align-self: flex-start">
+<sc-for list="{{chips}}" as="ch" hint-placeholder-count="4">
+<button type="button" onClick="{{ch.pick}}" aria-pressed="{{ch.on}}" style="border: 0; border-radius: 7px; padding: 0 11px; height: 32px; font-size: 12px; cursor: pointer; {{ch.style}}">{{ch.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; right: 14px; top: 14px; width: 206px; background: rgba(250,246,234,0.96); border: 1px solid #E0D6BE; border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3)">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Seegang Hs · {{layerName}}</div>
+<div style="height: 10px; border-radius: 5px; margin-top: 7px; background: linear-gradient(90deg, #11283A 0%, #164B64 8.3%, #1B6F7F 16.7%, #3E9284 25%, #86AE6F 33.3%, #C8B75B 41.7%, #E39A3B 50%, #C9572E 66.7%, #A33A4F 83.3%, #7A2E6E 100%)"></div>
+<div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #8B7355; margin-top: 3px"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6 m</span></div>
+<div style="display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 10.5px; color: #5C5447">
+<svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"><path d="M2 6h13M11 2l4 4-4 4"></path></svg>Wellen laufen in Pfeilrichtung</div>
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-top: 9px">Spot · {{profLabel}}</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; margin-top: 5px; font-size: 10.5px; color: #5C5447">
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #8DB07A"></span>passt</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #E39A3B"></span>knapp</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #B5482E"></span>außerhalb</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 9px; height: 9px; border-radius: 50%; background: repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)"></span>keine Daten</span>
+</div>
+<div style="margin-top: 8px; padding-top: 7px; border-top: 1px solid #E0D6BE; font-size: 10px; line-height: 1.4; color: #8B7355">{{mapNote}}</div>
+</div>
+
+<section aria-label="Stundenband" style="position: absolute; left: 14px; right: 14px; bottom: 12px; background: rgba(250,246,234,0.97); border: 1px solid #E0D6BE; border-radius: 12px; padding: 9px 10px 8px; box-shadow: 0 -6px 24px rgba(0,0,0,0.3)">
+<div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 5px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #0F6E7A">Stundenband</span>
+<span style="font-size: 12.5px; font-weight: 700">{{band.title}}</span>
+<span style="margin-left: auto; font-size: 10px; color: #8B7355">{{band.sub}}</span>
+</div>
+<div style="display: flex; align-items: stretch">
+<div aria-hidden="true" style="width: 62px; flex: 0 0 auto; display: flex; flex-direction: column; font-size: 9.5px; color: #8B7355; font-weight: 600">
+<span style="height: 14px"></span>
+<span style="height: 16px; display: flex; align-items: center">MESZ</span>
+<span style="height: 20px; display: flex; align-items: center">Wind</span>
+<span style="height: 16px; display: flex; align-items: center">{{unitShort}}</span>
+<span style="height: 16px; display: flex; align-items: center">Böen</span>
+<span style="height: 16px; display: flex; align-items: center">Welle m</span>
+<span style="height: 16px; display: flex; align-items: center">Periode s</span>
+<span style="height: 20px; display: flex; align-items: center">Wellen</span>
+<span style="height: 12px; display: flex; align-items: center">Profil</span>
+</div>
+<div style="display: flex; flex: 1; min-width: 0">
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="23">
+<button type="button" onClick="{{c.pick}}" aria-label="{{c.aria}}" aria-pressed="{{c.on}}" style="width: 27px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 0; border-radius: 5px; cursor: pointer; font-family: inherit; color: #2C2A26; {{c.style}}">
+<span style="height: 14px; font-size: 9px; font-weight: 700; color: #0B5560; text-align: left; white-space: nowrap; overflow: visible; padding-left: 2px">{{c.day}}</span>
+<span style="height: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: #8B7355; display: flex; align-items: center; justify-content: center">{{c.hour}}</span>
+<span style="height: 20px; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate({{c.windRot}} 7 7)"><path d="M7 2v10M3.6 8.6L7 12l3.4-3.4"></path></g></svg></span>
+<span style="height: 16px; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{c.wind}}</span>
+<span style="height: 16px; font-size: 10px; color: #5C5447; display: flex; align-items: center; justify-content: center">{{c.gust}}</span>
+<span style="height: 16px; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{c.hs}}</span>
+<span style="height: 16px; font-size: 10px; color: #5C5447; display: flex; align-items: center; justify-content: center">{{c.tm}}</span>
+<span style="height: 20px; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0F6E7A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate({{c.waveRot}} 7 7)"><path d="M7 2v10M3.6 8.6L7 12l3.4-3.4"></path></g></svg></span>
+<span style="height: 12px; display: flex; align-items: center; padding: 0 1px"><span style="display: block; width: 100%; height: 8px; border-radius: 2px; {{c.prof}}"></span></span>
+</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; gap: 14px; margin-top: 5px; font-size: 9.5px; color: #8B7355">
+<span>Pfeile zeigen, wohin Wind und Wellen laufen</span>
+<span>dunkler Grund = Nacht</span>
+<span style="margin-left: auto">Wind: ICON-Antrieb des Laufs · Böen im Mockup geschätzt</span>
+</div>
+</section>
+</main>
+
+<aside aria-label="Details" style="width: 400px; flex: 0 0 auto; background: #EDE6D3; overflow-y: auto; padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+<div role="tablist" aria-label="Ansicht" style="display: flex; gap: 3px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 10px; padding: 3px">
+<sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3">
+<button type="button" role="tab" onClick="{{tb.pick}}" aria-selected="{{tb.on}}" style="flex: 1; border: 0; border-radius: 7px; height: 34px; font-size: 12.5px; cursor: pointer; {{tb.style}}">{{tb.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{isSpot}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 14px 16px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #0F6E7A">{{rd.eyebrow}}</div>
+<h2 style="margin: 4px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.4px">{{rd.name}}</h2>
+<div style="font-size: 11.5px; color: #5C5447; margin-top: 2px">{{rd.sub}}</div>
+<div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 10.5px; font-weight: 600; border-radius: 6px; padding: 3px 8px; background: #E3F0F1; color: #0B5560"><span style="width: 7px; height: 7px; border-radius: 50%; background: #0F6E7A"></span>{{rd.chip}}</div>
+
+<div style="display: flex; gap: 12px; margin-top: 12px; align-items: flex-start">
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Wind {{rd.timeLabel}}</div>
+<div style="font-size: 34px; font-weight: 700; letter-spacing: -1px; line-height: 1.05; margin-top: 2px">{{rd.wind}}</div>
+<div style="font-size: 11.5px; color: #5C5447">{{rd.windSub}}</div>
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-top: 10px">Seegang</div>
+<div style="font-size: 26px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.1; margin-top: 2px">{{rd.hs}}</div>
+<div style="font-size: 11.5px; color: #5C5447">{{rd.hsSub}}</div>
+</div>
+<figure style="margin: 0; width: 112px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="{{rd.compassAria}}">
+<circle cx="56" cy="56" r="46" fill="#E3F0F1" stroke="#C9DCDE" stroke-width="1"></circle>
+<path d="M10 56 A46 46 0 0 1 102 56 Z" fill="#E7DCC3" transform="rotate({{rd.landRot}} 56 56)"></path>
+<circle cx="56" cy="56" r="46" fill="none" stroke="#D9D0B8" stroke-width="1"></circle>
+<text x="56" y="8" text-anchor="middle" font-size="8" font-family="IBM Plex Mono, monospace" fill="#8B7355">N</text>
+<g transform="rotate({{rd.waveFrom}} 56 56)"><path d="M56 16v62M49 70l7 9 7-9" fill="none" stroke="#0F6E7A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 3"></path></g>
+<g transform="rotate({{rd.windFrom}} 56 56)"><path d="M56 12v66M48 69l8 10 8-10" fill="none" stroke="#2C2A26" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></g>
+</svg>
+<figcaption style="font-size: 10px; color: #5C5447; text-align: center; line-height: 1.3"><strong style="color: #2C2A26">{{rd.shore}}</strong><br>Sand = Land · gestrichelt = Welle</figcaption>
+</figure>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 11px; border-radius: 10px; {{rd.verdictStyle}}">
+<span style="width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; {{rd.verdictDot}}"></span>
+<span style="display: flex; flex-direction: column"><span style="font-size: 12.5px; font-weight: 700">{{rd.verdict}}</span><span style="font-size: 10.5px">{{rd.verdictWhy}}</span></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin-top: 10px">
+<sc-for list="{{rd.vals}}" as="v" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 8px; padding: 6px 9px"><div style="font-size: 9.5px; color: #8B7355">{{v.k}}</div><div style="font-size: 13px; font-weight: 600">{{v.v}}</div></div>
+</sc-for>
+</div>
+</section>
+
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 16px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #0F6E7A">Fenster für {{profLabel}}</div>
+<div style="font-size: 16px; font-weight: 700; margin-top: 4px">{{win.head}}</div>
+<div style="font-size: 11px; color: #5C5447; margin-top: 2px">{{win.sub}}</div>
+</section>
+
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Verlauf bis Samstag früh</span>
+<span style="font-size: 10px; color: #8B7355">Modell CWAM, Lauf 00 UTC</span>
+</div>
+<svg width="370" height="168" viewBox="0 0 370 168" role="img" aria-label="{{ch2.aria}}" style="display: block; margin-top: 6px; font-family: 'IBM Plex Mono', monospace">
+<rect x="{{ch2.nightX1}}" y="8" width="{{ch2.nightW1}}" height="148" fill="#EDE6D3"></rect>
+<rect x="{{ch2.nightX2}}" y="8" width="{{ch2.nightW2}}" height="148" fill="#EDE6D3"></rect>
+<rect x="{{ch2.nightX3}}" y="8" width="{{ch2.nightW3}}" height="148" fill="#EDE6D3"></rect>
+<line x1="34" x2="356" y1="68" y2="68" stroke="#D9D0B8"></line>
+<line x1="34" x2="356" y1="{{ch2.limY}}" y2="{{ch2.limY}}" stroke="#B5482E" stroke-dasharray="3 3" opacity="{{ch2.limOp}}"></line>
+<text x="356" y="{{ch2.limTY}}" text-anchor="end" font-size="8.5" fill="#9A5A2A" opacity="{{ch2.limOp}}">{{ch2.limLabel}}</text>
+<polyline points="{{ch2.gust}}" fill="none" stroke="#8B7355" stroke-width="1.4" stroke-dasharray="3 2"></polyline>
+<polyline points="{{ch2.wind}}" fill="none" stroke="#2C2A26" stroke-width="2.2"></polyline>
+<text x="2" y="16" font-size="8.5" fill="#8B7355">{{ch2.unit}}</text>
+<text x="28" y="22" text-anchor="end" font-size="8.5" fill="#8B7355">{{ch2.topLab}}</text>
+<text x="28" y="66" text-anchor="end" font-size="8.5" fill="#8B7355">0</text>
+<line x1="34" x2="356" y1="156" y2="156" stroke="#D9D0B8"></line>
+<polyline points="{{ch2.sw}}" fill="none" stroke="#7A9466" stroke-width="1.4" stroke-dasharray="1.5 2.5"></polyline>
+<polyline points="{{ch2.ws}}" fill="none" stroke="#3E9284" stroke-width="1.4" stroke-dasharray="4 2"></polyline>
+<polyline points="{{ch2.hs}}" fill="none" stroke="#0F6E7A" stroke-width="2.2"></polyline>
+<text x="2" y="90" font-size="8.5" fill="#8B7355">m</text>
+<text x="28" y="98" text-anchor="end" font-size="8.5" fill="#8B7355">3</text>
+<text x="28" y="154" text-anchor="end" font-size="8.5" fill="#8B7355">0</text>
+<line x1="{{ch2.selX}}" x2="{{ch2.selX}}" y1="8" y2="156" stroke="#0F6E7A" stroke-width="1.5"></line>
+<text x="{{ch2.d1}}" y="166" font-size="8.5" fill="#8B7355">Do</text>
+<text x="{{ch2.d2}}" y="166" font-size="8.5" fill="#8B7355">Fr</text>
+<text x="{{ch2.d3}}" y="166" font-size="8.5" fill="#8B7355">Sa</text>
+<text x="36" y="166" font-size="8.5" fill="#8B7355">Mi 12</text>
+</svg>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10px; color: #5C5447; margin-top: 4px">
+<span>━ Wind</span><span style="color: #8B7355">┅ Böen (geschätzt)</span><span style="color: #0F6E7A">━ Seegang gesamt</span><span style="color: #3E9284">╍ Windsee</span><span style="color: #7A9466">┈ Dünung</span>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #C9DCDE; border-radius: 14px; padding: 12px 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<span style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #0B5560">Amtlich · Seewetterdienst Hamburg</span>
+<span style="font-size: 9.5px; color: #8B7355">wörtlich</span>
+</div>
+<div style="font-size: 10.5px; color: #8B7355; margin-top: 6px">Warnstatus {{off.coastName}} · {{off.nr}} · Stand WODL45 11:00 MESZ</div>
+<p style="margin: 3px 0 0; font-size: 12.5px; line-height: 1.45; font-weight: 600">{{off.warn}}</p>
+<div style="font-size: 9.5px; color: #8B7355; margin-top: 2px">{{off.issued}}</div>
+<div style="font-size: 10.5px; color: #8B7355; margin-top: 10px">Küstenbericht {{off.coast}} · FQDL51 07.10. 08:00 UTC</div>
+<p style="margin: 3px 0 0; font-size: 12px; line-height: 1.45; white-space: pre-line">{{off.coastText}}</p>
+<button type="button" onClick="{{goArea}}" style="margin-top: 8px; border: 0; background: transparent; padding: 6px 0; min-height: 32px; font-size: 11.5px; font-weight: 600; color: #0B5560; cursor: pointer">Seewetterbericht {{off.area}} lesen →</button>
+</section>
+
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #5F7A4C">Gemessen an der Küste</div>
+<div style="font-size: 12.5px; font-weight: 600; margin-top: 4px">{{meas.line}}</div>
+<div style="font-size: 10.5px; color: #8B7355; margin-top: 2px">{{meas.sub}}</div>
+</section>
+
+<p style="margin: 0; font-size: 10px; line-height: 1.5; color: #8B7355">Kein amtliches Warnprodukt. Die Profile vergleichen das Modell mit deinen Grenzen und sind keine Sicherheitsbewertung. Verbindlich sind die Meldungen des Seewetterdienstes Hamburg. Daten: Deutscher Wetterdienst (GeoNutzV).</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isArea}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<section style="background: #FFFFFF; border: 1px solid #C9DCDE; border-radius: 14px; padding: 14px 16px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #0B5560">Seewetterbericht · Seegebiet</div>
+<h2 style="margin: 4px 0 0; font-size: 21px; font-weight: 700">{{area.name}}</h2>
+<div style="font-size: 10.5px; color: #8B7355; margin-top: 2px">FQDL50 DWHA · herausgegeben vom Seewetterdienst Hamburg, 07.10.2026, 0800 UTC · Windstärke in Beaufort</div>
+<div style="font-size: 10.5px; font-weight: 700; color: #0B5560; margin-top: 10px">Vorhersage fuer Mittwoch:</div>
+<p style="margin: 3px 0 0; font-size: 12px; line-height: 1.5; white-space: pre-line">{{area.mi}}</p>
+<div style="font-size: 10.5px; font-weight: 700; color: #0B5560; margin-top: 10px">Vorhersage fuer Donnerstag:</div>
+<p style="margin: 3px 0 0; font-size: 12px; line-height: 1.5; white-space: pre-line">{{area.do}}</p>
+</section>
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Mittelfrist · FXDL40 vom 06.10.</div>
+<p style="margin: 5px 0 0; font-size: 12px; line-height: 1.5">{{area.mf}}</p>
+<div style="font-size: 10.5px; color: #8B7355; margin-top: 6px">Temperaturen Wasser</div>
+<p style="margin: 2px 0 0; font-size: 12px; line-height: 1.5">{{area.water}}</p>
+</section>
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Lesehilfe Beaufort</div>
+<div style="display: grid; grid-template-columns: 44px 1fr 1fr; gap: 0; margin-top: 6px; font-size: 11.5px">
+<span style="color: #8B7355; padding: 3px 0">Bft</span><span style="color: #8B7355; padding: 3px 0">Knoten</span><span style="color: #8B7355; padding: 3px 0">Bezeichnung</span>
+<span style="padding: 3px 0; font-weight: 600">4</span><span style="padding: 3px 0">11–16 kn</span><span style="padding: 3px 0">mäßig</span>
+<span style="padding: 3px 0; font-weight: 600">5</span><span style="padding: 3px 0">17–21 kn</span><span style="padding: 3px 0">frisch</span>
+<span style="padding: 3px 0; font-weight: 600">6</span><span style="padding: 3px 0">22–27 kn</span><span style="padding: 3px 0">stark · Starkwind</span>
+<span style="padding: 3px 0; font-weight: 600">7</span><span style="padding: 3px 0">28–33 kn</span><span style="padding: 3px 0">steif · Starkwind</span>
+<span style="padding: 3px 0; font-weight: 600">8</span><span style="padding: 3px 0">34–40 kn</span><span style="padding: 3px 0">stürmisch · Sturm</span>
+</div>
+<div style="font-size: 10px; color: #8B7355; margin-top: 6px">„Seegang“ im Bericht meint die signifikante Wellenhöhe; einzelne Wellen können fast doppelt so hoch sein.</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isSrc}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Quellen dieses Spots</div>
+<div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px">
+<sc-for list="{{sources}}" as="sq" hint-placeholder-count="6">
+<div style="display: flex; gap: 9px; align-items: flex-start; background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 9px; padding: 7px 9px">
+<span style="font-size: 9.5px; font-weight: 700; border-radius: 5px; padding: 2px 6px; flex: 0 0 auto; {{sq.badge}}">{{sq.status}}</span>
+<span style="display: flex; flex-direction: column"><span style="font-size: 12px; font-weight: 600">{{sq.name}}</span><span style="font-size: 10px; color: #8B7355">{{sq.what}}</span></span>
+</div>
+</sc-for>
+</div>
+</section>
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Prüfer-Bilanz · CWAM 07.10. 00 UTC</div>
+<div style="display: flex; flex-direction: column; gap: 4px; margin-top: 7px; font-size: 11.5px; line-height: 1.4">
+<span>1.027 von 1.027 Dateien · Lauf veröffentlicht</span>
+<span>3.191 Perioden-Platzhalter (1,0 s) → „keine Wellen“</span>
+<span>468 Windsee-Spitzenperioden über 15 s → gefiltert</span>
+<span>Modellwind 2,00 m/s an 7.487 Punkten → nie als Wind gezeigt</span>
+</div>
+</section>
+<section style="background: #FAF6EA; border: 1px solid #E0D6BE; border-radius: 14px; padding: 12px 14px">
+<div style="font-size: 9px; letter-spacing: 1.8px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Modellabgleich, keine Wahrscheinlichkeit</div>
+<p style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.45">CWAM, EWAM und GWAM lagen bis 72 h an vier Seepunkten höchstens 0,53 m auseinander. In Küstennähe rechnet nur CWAM; östlich von Sylt zeigt EWAM 1,95 m gegen 0,58 m.</p>
+</section>
+</div>
+</sc-if>
+</aside>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const FRAMES = [
+  { src: './seewetter/map_d_10.png', step: 10, label: 'Mi 12:00' },
+  { src: './seewetter/map_d_22.png', step: 22, label: 'Do 00:00' },
+  { src: './seewetter/map_d_34.png', step: 34, label: 'Do 12:00' },
+  { src: './seewetter/map_d_58.png', step: 58, label: 'Fr 12:00' }
+];
+const SP = {
+spo:{name:"St. Peter-Ording",type:"Kite- und Badestrand",sea:"Nordsee",area:"Deutsche Bucht",coast:"Nordfriesische Kueste",normal:265,x:310.8,y:468.0,hs:[0.4,0.3,0.3,0.3,0.3,0.2,0.2,1.0,2.2,1.8,1.4,1.9,2.1,1.5,1.1,1.6,1.8,2.4,2.3,2.3,2.4,1.9,1.5],wd:[270,259,276,281,276,264,276,309,304,298,292,292,292,292,281,264,242,242,253,259,276,276,264],tm:[5.8,5.8,5.8,6.2,6.2,6.4,6.4,3.6,6.0,6.2,5.2,5.4,6.0,6.0,5.0,4.4,4.8,5.8,5.8,5.6,6.4,6.4,6.0],ws:[0.2,0.1,0.1,0.1,0.1,0.0,0.0,1.0,2.2,1.8,1.4,1.9,2.1,1.2,1.1,1.6,1.6,2.4,2.3,2.3,1.9,1.2,1.1],sw:[0.4,0.3,0.3,0.3,0.3,0.2,0.2,0.2,0.1,0.1,0.1,0.0,0.0,1.0,0.0,0.0,0.9,0.0,0.0,0.0,1.4,1.5,1.1],kn:[9,7,6,7,6,4,10,20,25,24,19,20,19,17,15,24,24,26,23,21,17,16,17],dd:[135,135,129,118,129,68,11,343,343,338,326,321,315,304,270,225,197,214,231,231,281,264,242],stn:'St. Peter-Ording'},
+sylt:{name:"Westerland (Sylt)",type:"Surf- und Badestrand",sea:"Nordsee",area:"Deutsche Bucht",coast:"Nordfriesische Kueste",normal:270,x:266.0,y:321.6,hs:[0.7,0.6,0.5,0.5,0.5,0.4,0.6,1.9,3.2,2.8,2.1,2.7,2.8,2.1,1.5,1.4,2.0,2.8,1.5,2.1,2.3,2.0,1.8],wd:[298,292,287,292,292,298,309,321,326,326,321,309,309,309,298,281,231,231,248,259,270,270,270],tm:[6.6,6.4,6.6,6.6,6.4,7.0,4.2,4.8,6.4,6.2,5.6,6.2,6.6,6.2,5.6,5.0,4.8,5.8,6.2,6.0,6.2,6.2,6.2],ws:[0.2,0.1,0.0,0.1,0.1,0.1,0.5,1.9,3.2,2.8,2.1,2.7,2.8,2.1,0.9,0.8,1.9,2.7,0.9,2.1,2.3,1.2,1.0],sw:[0.7,0.6,0.5,0.5,0.5,0.4,0.3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.2,1.1,0.6,0.2,1.3,0.0,0.0,1.6,1.5],kn:[9,10,7,8,7,4,13,25,27,25,22,22,21,19,15,14,23,25,16,19,19,16,15],dd:[141,146,141,135,152,309,349,343,349,338,326,321,309,298,276,225,197,214,253,270,276,264,259],stn:'List auf Sylt'},
+helgo:{name:"Helgoland",type:"Hafen",sea:"Nordsee",area:"Deutsche Bucht",coast:"Helgoland",normal:90,x:208.6,y:496.8,hs:[0.7,0.6,0.6,0.5,0.5,0.5,0.9,2.2,3.6,3.1,2.7,2.9,2.7,2.0,1.6,2.1,2.3,2.6,2.3,2.7,2.6,2.2,1.9],wd:[304,287,292,298,304,304,321,321,315,321,309,304,309,309,292,248,219,236,242,253,264,270,264],tm:[5.8,5.4,6.0,6.4,6.8,6.6,4.0,4.8,7.2,7.2,6.6,6.6,7.0,6.6,5.8,5.2,5.2,6.0,6.2,6.4,6.6,6.6,6.2],ws:[0.3,0.4,0.2,0.1,0.1,0.1,0.8,2.2,3.5,3.1,2.7,2.9,2.7,2.0,1.1,1.8,2.1,2.6,2.3,2.6,2.6,1.3,1.9],sw:[0.7,0.5,0.5,0.5,0.5,0.4,0.3,0.0,0.2,0.2,0.2,0.1,0.1,0.1,1.2,1.1,0.9,0.2,0.1,0.6,0.1,1.7,0.1],kn:[12,10,8,6,6,12,17,30,28,26,26,25,23,20,17,22,27,27,21,19,20,17,20],dd:[135,129,124,129,129,343,349,343,338,338,326,321,309,292,264,214,191,214,236,253,276,264,248],stn:'Helgoland'},
+buesum:{name:"Büsum",type:"Hafen, Badestrand",sea:"Nordsee",area:"Deutsche Bucht",coast:"Elbmuendung",normal:250,x:341.6,y:508.8,hs:[0.1,0.1,0.0,0.1,0.2,0.1,0.0,0.5,1.0,1.0,0.6,0.7,0.9,0.8,0.6,0.7,0.9,1.1,0.7,0.7,0.8,0.9,0.7],wd:[287,281,276,298,124,287,304,304,304,309,298,298,292,292,276,264,225,231,253,264,276,276,270],tm:[3.4,3.8,3.0,4.4,1.8,4.6,2.4,2.4,3.6,3.6,3.0,2.8,3.8,4.0,3.4,2.6,3.0,3.2,3.0,2.6,3.6,4.0,3.6],ws:[0.1,0.0,0.0,0.0,0.2,0.0,0.0,0.5,1.0,1.0,0.6,0.7,0.9,0.8,0.6,0.7,0.9,1.1,0.7,0.7,0.8,0.9,0.7],sw:[0.1,0.1,0.0,0.1,0.1,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.1,0.1,0.0,0.0,0.0,0.0],kn:[9,8,6,9,8,4,7,19,25,26,21,23,20,18,17,25,24,26,25,23,20,18,20],dd:[124,129,129,118,124,101,17,343,338,332,326,315,315,304,276,225,197,208,225,225,281,259,242],stn:'Büsum'},
+cux:{name:"Cuxhaven-Duhnen",type:"Badestrand, Elbmündung",sea:"Nordsee",area:"Deutsche Bucht",coast:"Elbmuendung",normal:330,x:315.0,y:568.8,hs:[0.2,0.1,0.0,0.1,0.2,0.1,0.0,0.8,1.4,1.0,0.7,0.8,0.9,0.5,0.2,0.2,0.3,0.3,0.2,0.3,0.5,0.4,0.2],wd:[62,45,332,343,79,45,349,349,354,343,349,338,343,332,332,326,124,163,219,259,309,321,315],tm:[1.8,1.8,3.2,3.4,2.0,2.0,2.8,2.8,3.8,4.0,3.4,3.4,3.8,3.8,3.4,3.2,3.0,2.0,1.6,2.2,3.2,4.0,3.4],ws:[0.2,0.1,0.0,0.0,0.1,0.1,0.0,0.8,1.4,1.0,0.7,0.8,0.9,0.5,0.1,0.1,0.2,0.2,0.2,0.2,0.5,0.2,0.1],sw:[0.1,0.1,0.0,0.1,0.1,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.0,0.2,0.2,0.2,0.1,0.1,0.2,0.2,0.3,0.2],kn:[8,7,5,7,6,4,8,19,25,25,20,22,19,17,16,17,19,21,20,19,17,17,16],dd:[112,124,129,124,124,96,11,343,332,326,321,315,309,292,248,219,191,202,219,219,270,253,236],stn:'Cuxhaven'},
+norderney:{name:"Norderney",type:"Surfspot, Badestrand",sea:"Nordsee",area:"Deutsche Bucht",coast:"Ostfriesische Kueste",normal:345,x:106.4,y:609.6,hs:[0.7,0.6,0.6,0.6,0.6,0.8,0.9,3.1,3.8,3.5,3.0,3.0,2.6,2.1,1.6,1.4,1.4,1.4,1.6,2.1,2.0,1.7,1.7],wd:[338,338,326,332,338,338,326,326,338,343,332,332,338,338,321,315,259,281,304,298,304,309,304],tm:[7.2,7.0,7.0,6.8,7.2,5.0,4.8,6.4,7.6,7.6,7.4,7.2,7.2,7.0,6.6,6.0,4.4,5.0,6.6,6.0,6.0,6.0,6.2],ws:[0.0,0.1,0.0,0.0,0.1,0.7,0.8,3.1,3.8,3.5,3.0,3.0,1.4,0.8,0.6,0.5,1.1,1.0,0.7,1.2,2.0,1.1,1.0],sw:[0.7,0.6,0.6,0.6,0.6,0.5,0.5,0.0,0.0,0.0,0.0,0.0,2.2,2.0,1.5,1.3,0.9,0.9,1.5,1.7,0.0,1.4,1.4],kn:[7,5,5,5,10,15,13,27,25,23,23,22,18,17,19,21,26,25,22,19,20,21,21],dd:[129,124,112,124,321,349,338,343,343,326,326,321,309,281,231,197,202,219,225,242,276,259,242],stn:'Norderney'},
+eckernfoerde:{name:"Eckernförde",type:"Hafen, Badestrand",sea:"Ostsee",area:"Westliche Ostsee",coast:"Flensburg bis Fehmarn",normal:90,x:481.6,y:427.2,hs:[0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.0,0.0,0.0,0.0,0.1,0.3,0.2,0.2,0.1,0.0,0.0],wd:[68,73,73,73,73,73,73,79,73,51,51,51,51,309,281,202,202,180,191,202,214,231,214],tm:[2.0,2.2,2.4,2.6,2.8,3.0,3.0,2.8,2.4,3.4,4.2,3.8,2.4,1.8,1.8,1.4,1.2,1.6,1.6,1.6,1.4,1.4,1.4],ws:[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.3,0.2,0.2,0.1,0.0,0.0],sw:[0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],kn:[6,7,5,5,5,4,4,6,11,15,12,7,8,9,5,8,13,15,12,14,9,8,9],dd:[135,124,112,124,135,124,17,338,321,321,315,276,276,276,253,208,208,197,208,225,242,236,219],stn:'Kiel-Holtenau'},
+schilksee:{name:"Kiel-Schilksee",type:"Olympiahafen",sea:"Ostsee",area:"Westliche Ostsee",coast:"Flensburg bis Fehmarn",normal:80,x:527.8,y:436.8,hs:[0.1,0.1,0.2,0.2,0.2,0.2,0.2,0.1,0.3,0.5,0.6,0.4,0.2,0.2,0.1,0.1,0.1,0.2,0.2,0.3,0.2,0.1,0.0],wd:[39,68,73,68,68,73,73,73,28,28,34,34,28,28,28,22,158,169,180,202,208,163,208],tm:[1.8,2.2,2.4,2.6,2.8,2.8,2.8,2.6,3.0,4.0,4.8,4.8,4.0,4.2,4.2,3.4,1.6,1.8,1.8,1.6,1.4,1.6,1.4],ws:[0.0,0.1,0.1,0.1,0.0,0.0,0.0,0.0,0.3,0.3,0.2,0.0,0.0,0.0,0.0,0.0,0.1,0.2,0.2,0.3,0.2,0.1,0.0],sw:[0.1,0.1,0.1,0.2,0.2,0.2,0.2,0.1,0.0,0.3,0.6,0.4,0.2,0.2,0.1,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0],kn:[7,7,6,6,6,5,4,4,15,20,17,9,11,11,7,10,14,16,14,17,13,10,11],dd:[141,124,107,129,141,146,56,0,321,321,315,276,276,276,248,214,208,191,202,225,231,242,225],stn:'Kiel-Leuchtturm'},
+laboe:{name:"Laboe",type:"Badestrand",sea:"Ostsee",area:"Westliche Ostsee",coast:"Flensburg bis Fehmarn",normal:20,x:534.8,y:441.6,hs:[0.1,0.1,0.1,0.1,0.2,0.1,0.1,0.1,0.7,1.1,1.2,0.8,0.4,0.4,0.3,0.2,0.3,0.3,0.2,0.3,0.2,0.2,0.2],wd:[22,62,62,62,62,62,62,68,349,349,349,354,349,349,349,354,225,208,208,219,225,236,236],tm:[2.0,2.2,2.4,2.6,2.8,2.8,2.8,2.6,3.0,3.8,4.4,4.4,3.4,3.4,3.6,3.2,1.8,1.8,1.8,2.0,1.8,1.6,1.4],ws:[0.0,0.0,0.1,0.0,0.0,0.0,0.0,0.0,0.7,1.1,1.2,0.2,0.2,0.2,0.1,0.0,0.3,0.3,0.2,0.3,0.2,0.2,0.2],sw:[0.1,0.1,0.1,0.1,0.2,0.1,0.1,0.1,0.0,0.0,0.0,0.8,0.4,0.4,0.3,0.2,0.1,0.0,0.0,0.0,0.0,0.0,0.0],kn:[7,7,6,7,6,5,4,4,16,21,19,10,12,12,8,11,14,16,15,17,14,10,11],dd:[141,124,107,129,141,146,90,17,326,321,315,281,276,276,248,214,208,197,202,219,231,242,225],stn:'Kiel-Leuchtturm'},
+heiligenhafen:{name:"Heiligenhafen",type:"Kite-Spot, Hafen",sea:"Ostsee",area:"Westliche Ostsee",coast:"Flensburg bis Fehmarn",normal:20,x:641.2,y:448.8,hs:[0.0,0.1,0.1,0.1,0.1,0.0,0.0,0.0,0.0,1.2,1.8,1.7,1.0,1.4,1.1,0.5,0.4,0.2,0.2,0.3,0.5,0.5,0.4],wd:[51,79,73,79,79,79,79,79,28,315,326,326,321,321,321,321,292,281,253,276,292,292,298],tm:[1.6,1.6,1.6,1.6,1.8,2.2,2.2,2.2,1.8,4.0,5.0,5.0,4.0,4.6,4.4,3.6,2.8,2.6,2.2,2.6,3.4,3.2,3.0],ws:[0.0,0.1,0.1,0.1,0.0,0.0,0.0,0.0,0.0,1.2,1.8,1.7,0.8,1.4,0.5,0.2,0.2,0.1,0.2,0.3,0.3,0.3,0.3],sw:[0.0,0.0,0.0,0.0,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.6,0.0,1.0,0.5,0.3,0.2,0.1,0.2,0.4,0.3,0.3],kn:[7,8,7,8,7,7,8,5,9,19,20,18,16,18,13,12,14,15,14,15,14,13,13],dd:[129,124,112,124,135,146,158,141,304,309,321,315,281,287,270,231,219,191,202,225,225,248,242],stn:'Fehmarn'},
+fehmarn:{name:"Fehmarn Grüner Brink",type:"Kite- und Surfspot",sea:"Ostsee",area:"Westliche Ostsee",coast:"Flensburg bis Fehmarn",normal:0,x:667.8,y:412.8,hs:[0.2,0.3,0.3,0.3,0.4,0.3,0.3,0.3,0.2,1.1,1.6,1.6,1.4,1.6,1.4,0.8,0.7,0.6,0.5,0.7,1.1,0.9,0.8],wd:[101,107,101,96,101,101,107,107,101,304,315,309,304,304,304,298,276,259,225,264,281,281,281],tm:[2.2,2.2,2.2,2.2,2.6,2.6,2.6,2.6,2.6,3.6,4.2,4.4,4.0,4.2,4.0,3.4,3.2,3.2,3.2,3.6,4.2,4.0,3.8],ws:[0.2,0.3,0.3,0.3,0.3,0.2,0.2,0.2,0.1,1.1,1.6,1.6,1.4,1.6,1.4,0.8,0.6,0.4,0.4,0.5,1.1,0.9,0.8],sw:[0.0,0.0,0.0,0.0,0.2,0.3,0.2,0.2,0.2,0.1,0.0,0.0,0.0,0.0,0.0,0.1,0.4,0.4,0.4,0.5,0.1,0.1,0.1],kn:[8,10,9,11,10,9,9,8,6,21,24,23,21,23,21,14,18,19,17,18,21,16,16],dd:[135,124,118,129,135,146,141,135,281,315,321,309,292,298,292,248,225,197,197,219,236,259,242],stn:'Fehmarn'}
+};
+const ORDER = ['spo', 'sylt', 'helgo', 'buesum', 'cux', 'norderney', 'eckernfoerde', 'schilksee', 'laboe', 'heiligenhafen', 'fehmarn'];
+const PROF = {
+  kite: { label: 'Kite', w: [15, 28], g: 33, spread: 10, noOff: true, day: true },
+  wing: { label: 'Wing/Surf', w: [12, 25], g: 30, noOff: true, day: true },
+  sup: { label: 'SUP/Kajak', w: [0, 10], g: 14, hs: 0.5, noOff: true, day: true },
+  jolle: { label: 'Jolle', w: [5, 16], g: 20, hs: 0.8, day: true },
+  yacht: { label: 'Yacht', w: [8, 22], g: 27, hs: 2.0 },
+  motor: { label: 'Motorboot', w: [0, 18], g: 24, ws: 1.0 },
+  angeln: { label: 'Angeln', w: [0, 16], g: 22, hs: 1.2 }
+};
+const PORDER = ['kite', 'wing', 'sup', 'jolle', 'yacht', 'motor', 'angeln'];
+const FQ50 = {
+  'Deutsche Bucht': { mi: 'Wind: Wechselnde Richtungen 2 bis 4, spaeter norddrehend und zunehmend um 6.\nSicht/Wetter: Anfangs Kuestennebel, sonst strichweise Gewitter mit schlechter Sicht.\nSeegang: Zunehmend 2,5 Meter.', do: 'Wind: Nord um 6, nordwestdrehend, abnehmend um 5.\nSicht/Wetter: Strichweise Gewitter mit schlechter Sicht.\nSeegang: Voruebergehend 3 Meter.', mf: 'Donnerstag: Nordwest bis Nord um 6. Freitag: Nordwest um 5, vorübergehend südwestdrehend und zunehmend 6 bis 7. Samstag: Nordwestliche Winde um 6, Nordteile strichweise 8.', water: 'Norden 12 bis 15 Grad · Mitte 13 bis 16 Grad · Süden 16 bis 18 Grad' },
+  'Westliche Ostsee': { mi: 'Wind: Schwachwindig, suedostdrehend, zunehmend 4.\nSicht/Wetter: Anfangs Nebel.\nSeegang: Unter 0,5 Meter.', do: 'Wind: Suedost 4, rasch rechtdrehend auf Nordwest, zunehmend um 6.\nSicht/Wetter: Zeitweise Regen, spaeter strichweise Gewitter mit schlechter Sicht.\nSeegang: Ostteil spaeter 2 Meter.', mf: 'Donnerstag: Südost um 4, westdrehend, zunehmend um 6, Skagerrak rückdrehend auf Nord um 6. Freitag: Westliche Winde um 6, Ostteil vorübergehend zunehmend 7 bis 8. Samstag: Westliche Winde um 7, abnehmend um 5.', water: 'Osten 12 bis 17 Grad · Süden 13 bis 17 Grad · Westen 14 bis 17 Grad' }
+};
+const FQ51 = {
+  'Nordfriesische Kueste': 'Wind: Anfangs schwachwindig, sonst Suedost 3 bis 4, spaeter rechtdrehend auf Nordwest.\nSicht/Wetter: Anfangs Kuestennebel, sonst Regen mit schlechter Sicht.',
+  'Elbmuendung': 'Wind: Schwachwindig, spaeter Nord 3 bis 4.\nSicht/Wetter: Anfangs Kuestennebel, spaeter Regen mit schlechter Sicht.',
+  'Helgoland': 'Wind: Schwachwindig, nordwestdrehend, zunehmend 4.\nSicht/Wetter: Regen mit mittlerer Sicht.',
+  'Ostfriesische Kueste': 'Wind: Schwachwindig, spaeter nordwestdrehend und zunehmend 3 bis 4.\nSicht/Wetter: Anfangs Kuestennebel, spaeter Regen mit schlechter Sicht.',
+  'Flensburg bis Fehmarn': 'Wind: Schwachwindig, suedostdrehend, zunehmend 4.\nSicht/Wetter: Anfangs Kuestennebel.'
+};
+const WARN = {
+  Nordsee: { name: 'Nordseeküste', nr: 'NR. 479', text: 'Fuer die deutsche Nordseekueste besteht keine Starkwind-, Sturm- oder Orkanwarnung.', issued: 'Amtliche Aufhebung / Meldung des Seewetterdienstes Hamburg, herausgegeben am Dienstag, den 29.09.2026 um 11:25 Uhr GZ' },
+  Ostsee: { name: 'Ostseeküste', nr: 'NR. 414', text: 'Fuer die deutsche Ostseekueste besteht keine Starkwind-, Sturm- oder Orkanwarnung.', issued: 'Amtliche Aufhebung / Meldung des Seewetterdienstes Hamburg, herausgegeben am Mittwoch, den 30.09.2026 um 17:55 Uhr GZ' }
+};
+const CLS = {
+  ok: { label: 'passt zu deinen Grenzen', color: '#8DB07A', tint: 'background:#EFF3E8; border:1px solid #C3D2AF; color:#4D6A3B' },
+  tight: { label: 'knapp an deinen Grenzen', color: '#E39A3B', tint: 'background:#FBF3E7; border:1px solid #E3C39A; color:#7A4520' },
+  out: { label: 'außerhalb deiner Grenzen', color: '#B5482E', tint: 'background:#FBE9E4; border:1px solid #E8C9BD; color:#8A2A16' },
+  nodata: { label: 'keine gültigen Daten', color: '#8B8474', tint: 'background:#F4F0E4; border:1px solid #D9D0B8; color:#5C5447' }
+};
+const DIRS = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+const DAYS = ['Mi', 'Do', 'Fr', 'Sa'];
+const N = 23;
+function hourOf(i) { return (12 + 3 * i) % 24; }
+function dayOf(i) { return Math.floor((12 + 3 * i) / 24); }
+function isDay(i) { const h = hourOf(i); return h >= 9 && h <= 18; }
+function tlabel(i) { const h = hourOf(i); return DAYS[dayOf(i)] + ' ' + (h < 10 ? '0' : '') + h + ':00'; }
+function dirName(d) { return DIRS[Math.round(((d % 360) + 360) % 360 / 22.5) % 16]; }
+function dec1(v) { return v.toFixed(1).replace('.', ','); }
+function gustOf(kn) { return Math.round(kn * 1.25 + 1); }
+function bft(kn) { const t = [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64]; let b = 0; t.forEach((x) => { if (kn >= x) b++; }); return b; }
+function angDiff(a, b) { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; }
+function shore(dd, normal) { const a = angDiff(dd, normal); if (a <= 30) return 'auflandig'; if (a <= 75) return 'schräg auflandig'; if (a <= 105) return 'sideshore'; if (a <= 150) return 'schräg ablandig'; return 'ablandig'; }
+function classify(s, i, p) {
+  const kn = s.kn[i], hs = s.hs[i];
+  if (kn === null || kn === undefined || hs === null || hs === undefined) return { k: 'nodata', why: ['Modellwert fehlt'] };
+  const g = gustOf(kn); let k = 'ok'; const why = [];
+  const out = (t) => { k = 'out'; why.push(t); };
+  const tight = (t) => { if (k === 'ok') k = 'tight'; why.push(t); };
+  if (kn < p.w[0]) out('zu wenig Wind (' + kn + ' kn)'); else if (kn > p.w[1]) out('Wind über ' + p.w[1] + ' kn');
+  else if (kn > p.w[1] * 0.9 || (p.w[0] > 0 && kn < p.w[0] * 1.1)) tight('Wind nahe Grenze');
+  if (g > p.g) out('Böen über ' + p.g + ' kn'); else if (g > p.g * 0.9) tight('Böen nahe ' + p.g + ' kn');
+  if (p.spread && g - kn > p.spread) out('Böenspanne über ' + p.spread + ' kn');
+  if (p.hs !== undefined) { if (hs > p.hs) out('Welle über ' + dec1(p.hs) + ' m'); else if (hs > p.hs * 0.9) tight('Welle nahe Grenze'); }
+  if (p.ws !== undefined) { if (s.ws[i] > p.ws) out('Windsee über ' + dec1(p.ws) + ' m'); }
+  if (p.noOff) { const sh = shore(s.dd[i], s.normal); if (sh === 'ablandig' || sh === 'schräg ablandig') out(sh + 'er Wind'); }
+  if (p.day && !isDay(i)) out('Dunkelheit');
+  return { k: k, why: why };
+}
+function windows(s, p) {
+  const res = []; let a = -1;
+  for (let i = 0; i <= N; i++) {
+    const c = i < N ? classify(s, i, p).k : 'out';
+    const good = c === 'ok' || c === 'tight';
+    if (good && a < 0) a = i;
+    if (!good && a >= 0) { if (i - a >= 2) res.push([a, i - 1]); a = -1; }
+  }
+  return res;
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const spotId = st.spot || 'spo';
+    const t = st.t !== undefined ? st.t : 0;
+    const pid = st.prof || 'kite';
+    const tab = st.tab || 'spot';
+    const unit = st.unit || 'kn';
+    const rev = st.rev || 'alle';
+    const layer = st.layer || 'hs';
+    const lOpen = !!st.limits;
+    const tog = (k) => (st[k] !== undefined ? st[k] : k !== 'tStations');
+    const set = (o) => this.setState(o);
+    const s = SP[spotId];
+    const p = PROF[pid];
+
+    const wfmt = (kn) => (unit === 'bft' ? String(bft(kn)) : (unit === 'kmh' ? String(Math.round(kn * 1.852)) : String(kn)));
+    const wunit = unit === 'bft' ? 'Bft' : (unit === 'kmh' ? 'km/h' : 'kn');
+
+    const units = [['kn', 'kn'], ['bft', 'Bft'], ['kmh', 'km/h']].map((u) => ({ label: u[1], on: u[0] === unit, style: u[0] === unit ? 'background:#0F6E7A; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ unit: u[0] }) }));
+    const reviere = [['alle', 'Alle'], ['Nordsee', 'Nordsee'], ['Ostsee', 'Ostsee']].map((r) => ({ label: r[1], on: r[0] === rev, style: r[0] === rev ? 'background:#2C2A26; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ rev: r[0] }) }));
+    const profiles = PORDER.map((k) => ({ label: PROF[k].label, on: k === pid, style: k === pid ? 'background:#0F6E7A; color:#FAF6EA; border-color:#0F6E7A; font-weight:600' : 'background:#FFFFFF; color:#5C5447; font-weight:500', pick: () => set({ prof: k }) }));
+    const sumParts = [];
+    sumParts.push('Wind ' + (p.w[0] > 0 ? p.w[0] + '–' : '≤ ') + p.w[1] + ' kn');
+    sumParts.push('Böen ≤ ' + p.g + ' kn');
+    if (p.spread) sumParts.push('Spanne ≤ ' + p.spread + ' kn');
+    if (p.hs !== undefined) sumParts.push('Welle ≤ ' + dec1(p.hs) + ' m');
+    if (p.ws !== undefined) sumParts.push('Windsee ≤ ' + dec1(p.ws) + ' m');
+    if (p.noOff) sumParts.push('nicht ablandig');
+    if (p.day) sumParts.push('Tageslicht');
+    const limitRows = [{ k: 'Wind', v: (p.w[0] > 0 ? p.w[0] + '–' : '≤ ') + p.w[1] + ' kn' }, { k: 'Böen', v: '≤ ' + p.g + ' kn' + (p.spread ? ', Spanne ≤ ' + p.spread : '') }, { k: 'Welle', v: p.hs !== undefined ? '≤ ' + dec1(p.hs) + ' m' : (p.ws !== undefined ? 'Windsee ≤ ' + dec1(p.ws) + ' m' : 'egal') }, { k: 'Richtung', v: p.noOff ? 'nicht ablandig' : 'egal' }, { k: 'Zeit', v: p.day ? 'nur Tageslicht' : 'rund um die Uhr' }];
+
+    const ids = ORDER.filter((id) => rev === 'alle' || SP[id].sea === rev);
+    const spotItems = ids.map((id) => {
+      const x = SP[id]; const c = classify(x, t, p); const w = windows(x, p);
+      const next = w.find((ww) => ww[1] >= t);
+      const nx = next ? (next[0] <= t ? 'passt bis ' + tlabel(next[1]).slice(3) : 'Fenster ' + tlabel(next[0])) : 'kein Fenster bis Sa';
+      const sel = id === spotId;
+      return { name: x.name, sub: x.type + ' · ' + nx, on: sel, dot: c.k === 'nodata' ? 'background:repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)' : 'background:' + CLS[c.k].color, style: sel ? 'border-color:#0F6E7A; background:#EEF6F6' : 'background:#FFFFFF', pick: () => set({ spot: id }) };
+    });
+
+    const LY = [['hs', 'Seegang gesamt'], ['ws', 'Windsee'], ['sw', 'Dünung'], ['tm', 'Periode']];
+    const layers = LY.map((l) => ({ label: l[1], on: l[0] === layer, style: l[0] === layer ? 'background:#0F6E7A; color:#FAF6EA; border-color:#0F6E7A; font-weight:600' : 'background:#FFFFFF; color:#5C5447; font-weight:500', pick: () => set({ layer: l[0] }) }));
+    const TG = [['tWind', 'Wind-Partikel', 'ICON wie in der Wetterkarte'], ['tWarn', 'Warnstatus Küste', 'DWD Seewetterdienst, wörtlich'], ['tStations', 'Messstationen', 'DWD-Küstenstationen, stündlich']];
+    const toggles = TG.map((g) => { const o = tog(g[0]); return { label: g[1], sub: g[2], on: o, row: o ? 'border-color:#0F6E7A' : 'border-color:#E0D6BE', lab: o ? 'color:#2C2A26; font-weight:600' : 'color:#8B7355; font-weight:500', sw: o ? 'background:#0F6E7A' : 'background:#E0D6BE', knob: o ? 'transform:translateX(13px)' : 'transform:none', toggle: () => { const q = {}; q[g[0]] = !o; set(q); } }; });
+
+    const fi = t <= 1 ? 0 : (t <= 5 ? 1 : (t <= 11 ? 2 : 3));
+    const fr = FRAMES[fi];
+    const exact = Math.abs(fr.step - (10 + 3 * t)) === 0;
+    const mapNote = 'Karte: Lauf 07.10. 00 UTC + ' + fr.step + ' h (' + fr.label + ')' + (exact ? '' : ' · im Mockup nächste hinterlegte Stufe') + (layer === 'hs' ? '' : ' · Ebene im Mockup nur für Seegang gesamt hinterlegt');
+
+    const markers = ORDER.map((id) => {
+      const x = SP[id]; const c = classify(x, t, p); const sel = id === spotId; const sz = sel ? 22 : 14;
+      const bg = c.k === 'nodata' ? 'repeating-linear-gradient(135deg,#8B8474 0 3px,#3A3833 3px 6px)' : CLS[c.k].color;
+      const ring = sel ? ' box-shadow:0 0 0 3px #FAF6EA, 0 0 0 7px rgba(250,246,234,0.25);' : '';
+      const dim = (rev === 'alle' || x.sea === rev) ? 1 : 0.35;
+      return { label: x.name + ', ' + CLS[c.k].label, pick: () => set({ spot: id }), style: 'left:' + (x.x - sz / 2) + 'px; top:' + (x.y - sz / 2) + 'px; width:' + sz + 'px; height:' + sz + 'px; background:' + bg + '; border:2px solid #0B0E12; opacity:' + dim + ';' + ring };
+    });
+    const cs = classify(s, t, p);
+    const callout = { name: s.name, line: wfmt(s.kn[t]) + ' ' + wunit + ' aus ' + dirName(s.dd[t]) + ' · Welle ' + dec1(s.hs[t]) + ' m', dot: 'background:' + CLS[cs.k].color, style: 'left:' + (s.x > 520 ? s.x - 16 - 196 : s.x + 18) + 'px; top:' + (s.y - 50) + 'px' };
+    const pill = { badge: s.sea.toUpperCase(), name: s.name, sub: s.area + ' · ' + s.type };
+    const chips = [[0, 'Jetzt · Mi 12:00'], [4, '+12 h'], [8, '+24 h'], [16, '+48 h']].map((c) => ({ label: c[1], on: c[0] === t, style: c[0] === t ? 'background:#0F6E7A; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ t: c[0] }) }));
+
+    const cols = [];
+    for (let i = 0; i < N; i++) {
+      const c = classify(s, i, p); const h = hourOf(i); const sel = i === t;
+      const night = !isDay(i);
+      const bg = sel ? 'background:#DDEEEF; box-shadow: inset 0 0 0 1.5px #0F6E7A' : (night ? 'background:#EDE6D3' : 'background:transparent');
+      const prof = c.k === 'nodata' ? 'background:repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)' : 'background:' + CLS[c.k].color;
+      cols.push({ day: (i === 0 || h === 0) ? DAYS[dayOf(i)] : '', hour: (h < 10 ? '0' : '') + h, windRot: (s.dd[i] + 180) % 360, wind: wfmt(s.kn[i]), gust: wfmt(gustOf(s.kn[i])), hs: dec1(s.hs[i]), tm: s.hs[i] < 0.05 ? '–' : String(Math.round(s.tm[i])), waveRot: (s.wd[i] + 180) % 360, prof: prof, on: sel, style: bg, aria: tlabel(i) + ', Wind ' + s.kn[i] + ' kn aus ' + dirName(s.dd[i]) + ', Welle ' + dec1(s.hs[i]) + ' m, ' + CLS[c.k].label, pick: () => set({ t: i }) });
+    }
+    const band = { title: s.name + ' · Profil ' + p.label, sub: 'alle 3 h bis Sa 06:00 · stündlich in Produktion' };
+
+    const tabs = [['spot', 'Spot'], ['area', 'Seegebiet'], ['src', 'Quellen']].map((x) => ({ label: x[1], on: x[0] === tab, style: x[0] === tab ? 'background:#0F6E7A; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ tab: x[0] }) }));
+
+    const kn = s.kn[t], g = gustOf(kn);
+    const sh = shore(s.dd[t], s.normal);
+    const why = cs.why.length ? cs.why.join(' · ') : 'alle Werte innerhalb deiner Grenzen';
+    const rd = {
+      eyebrow: 'Spot · ' + s.type, name: s.name, sub: s.coast.replace('ue', 'ü').replace('Kueste', 'Küste') + ' · Seegebiet ' + s.area + ' · Ufer zeigt nach ' + dirName(s.normal) + ' (' + s.normal + '°)',
+      chip: 'Modell CWAM 900 m · Lauf 00 UTC · ' + tlabel(t), timeLabel: tlabel(t),
+      wind: wfmt(kn) + ' ' + wunit, windSub: 'aus ' + dirName(s.dd[t]) + ' (' + s.dd[t] + '°) · Böen ' + wfmt(g) + ' ' + wunit + ' · Bft ' + bft(kn),
+      hs: dec1(s.hs[t]) + ' m', hsSub: (s.hs[t] < 0.05 ? 'keine nennenswerten Wellen' : 'Periode ' + dec1(s.tm[t]) + ' s · aus ' + dirName(s.wd[t])),
+      landRot: (s.normal + 180) % 360, windFrom: s.dd[t], waveFrom: s.wd[t], shore: 'Wind ' + sh,
+      compassAria: 'Wind aus ' + dirName(s.dd[t]) + ', Wellen aus ' + dirName(s.wd[t]) + ', Ufer zeigt nach ' + dirName(s.normal) + ', Wind ' + sh,
+      verdict: CLS[cs.k].label, verdictWhy: 'Profil ' + p.label + ': ' + why, verdictStyle: CLS[cs.k].tint, verdictDot: 'background:' + CLS[cs.k].color,
+      vals: [{ k: 'Windsee', v: dec1(s.ws[t]) + ' m' }, { k: 'Dünung', v: dec1(s.sw[t]) + ' m' }, { k: 'Wellenrichtung', v: 'aus ' + dirName(s.wd[t]) + ' (' + s.wd[t] + '°)' }, { k: 'Wasser (Mittelfrist)', v: s.sea === 'Nordsee' ? '13–16 °C Mitte' : '14–17 °C West' }]
+    };
+    const ws = windows(s, p);
+    const nextW = ws.find((w) => w[1] >= t);
+    const longW = ws.reduce((a, b) => (!a || (b[1] - b[0]) > (a[1] - a[0]) ? b : a), null);
+    const wtxt = (w) => tlabel(w[0]).slice(0, 2) + ' ' + tlabel(w[0]).slice(3, 5) + '–' + (hourOf(w[1]) < 10 ? '0' : '') + hourOf(w[1]) + ' Uhr';
+    const win = nextW ? { head: (nextW[0] <= t ? 'Im Fenster: ' : 'Nächstes: ') + wtxt(nextW), sub: (ws.length > 1 ? ws.length + ' Fenster bis Samstag früh · längstes ' + wtxt(longW) : 'einziges Fenster bis Samstag früh') + ' · Zeitpunkte im 3-h-Raster' } : { head: 'Kein Fenster bis Samstag früh', sub: 'Mindestens eine Grenze liegt in jeder Stunde darüber oder es ist dunkel.' };
+
+    const X = (i) => 36 + i * (318 / (N - 1));
+    const ymaxW = 35;
+    const YW = (v) => 68 - Math.min(v, ymaxW) / ymaxW * 56;
+    const YH = (v) => 156 - Math.min(v, 3.5) / 3.5 * 64;
+    const pts = (arr, fy) => arr.map((v, i) => X(i).toFixed(1) + ',' + fy(v).toFixed(1)).join(' ');
+    const conv = (v) => (unit === 'bft' ? bft(v) : (unit === 'kmh' ? v * 1.852 : v));
+    const topV = unit === 'bft' ? 8 : (unit === 'kmh' ? 65 : 35);
+    const YWu = (v) => 68 - Math.min(v, topV) / topV * 56;
+    const nightRect = (a, b) => ({ x: (X(a) - 6).toFixed(1), w: (X(b) - X(a) + 12).toFixed(1) });
+    const n1 = nightRect(3, 6), n2 = nightRect(11, 14), n3 = nightRect(19, 22);
+    const limV = conv(p.g);
+    const ch2 = {
+      wind: pts(s.kn.map(conv), YWu), gust: pts(s.kn.map((k) => conv(gustOf(k))), YWu),
+      hs: pts(s.hs, YH), ws: pts(s.ws, YH), sw: pts(s.sw, YH),
+      selX: X(t).toFixed(1), unit: wunit, topLab: String(topV),
+      limY: YWu(limV).toFixed(1), limTY: (YWu(limV) - 3).toFixed(1), limOp: limV <= topV ? 1 : 0, limLabel: 'Böen-Grenze ' + p.label,
+      nightX1: n1.x, nightW1: n1.w, nightX2: n2.x, nightW2: n2.w, nightX3: n3.x, nightW3: n3.w,
+      d1: X(4).toFixed(1), d2: X(12).toFixed(1), d3: X(20).toFixed(1),
+      aria: 'Verlauf ' + s.name + ': Wind, Böen und Seegang von Mittwoch 12 Uhr bis Samstag 6 Uhr'
+    };
+
+    const W = WARN[s.sea];
+    const off = { coastName: W.name, nr: W.nr, warn: W.text, issued: W.issued, coast: s.coast, coastText: FQ51[s.coast] || '', area: s.area };
+    const meas = { line: 'DWD-Station ' + s.stn + ': Wind ' + wfmt(Math.max(2, s.kn[0] - 1)) + ' ' + wunit + ', Böe ' + wfmt(gustOf(s.kn[0]) + 1) + ' ' + wunit, sub: 'Mi 11:00 MESZ · Beispielwert im Mockup · Quelle in Produktion: DWD POI, stündlich' };
+    const A = FQ50[s.area];
+    const area = { name: s.area, mi: A.mi, do: A.do, mf: A.mf, water: A.water };
+    const sources = [
+      { name: 'DWD CWAM (Küstenseegang)', what: '900 m · 00/12 UTC · 0–78 h stündlich · GeoNutzV', status: 'aktiv', badge: 'background:#EFF3E8; color:#4D6A3B' },
+      { name: 'DWD EWAM / GWAM', what: 'Europa 5 km bis 78 h · global 0,25° bis 174 h · Ausblick', status: 'aktiv', badge: 'background:#EFF3E8; color:#4D6A3B' },
+      { name: 'buscosun Fusion · ICON', what: 'Wind und Böen am Spot (im Mockup: ICON-Antrieb des CWAM-Laufs)', status: 'aktiv', badge: 'background:#EFF3E8; color:#4D6A3B' },
+      { name: 'DWD Seewetterbericht und Warnstatus', what: 'FQDL50/51 8 × täglich · WODL45 alle 3 h · wörtlich', status: 'aktiv', badge: 'background:#EFF3E8; color:#4D6A3B' },
+      { name: 'DWD POI Küstenstationen', what: 'stündlich gemessen · Feuerschiffe UFS derzeit ohne Werte', status: 'teilweise', badge: 'background:#FBF3E7; color:#7A4520' },
+      { name: 'BSH Wasserstandsvorhersage', what: 'Lizenz nicht geklärt · nur Deep-Link', status: 'blockiert', badge: 'background:#F4F0E4; color:#5C5447' }
+    ];
+
+    return {
+      units: units, unitShort: wunit, reviere: reviere, profiles: profiles, profLabel: p.label, profSum: sumParts.join(' · '),
+      limitsOpen: lOpen, limitsLabel: lOpen ? 'Grenzen ausblenden' : 'Grenzen anzeigen', toggleLimits: () => set({ limits: !lOpen }), limitRows: limitRows,
+      spotItems: spotItems, spotCount: ids.length, layers: layers, layerName: LY.find((l) => l[0] === layer)[1], toggles: toggles,
+      frameSrc: fr.src, frameLabel: fr.label, mapNote: mapNote, markers: markers, callout: callout, pill: pill, chips: chips,
+      cols: cols, band: band, tabs: tabs, isSpot: tab === 'spot', isArea: tab === 'area', isSrc: tab === 'src',
+      rd: rd, win: win, ch2: ch2, off: off, meas: meas, area: area, sources: sources, goArea: () => set({ tab: 'area' })
+    };
+  }
+}
+</script>
+</body>
+</html>

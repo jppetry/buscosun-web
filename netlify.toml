@@ -306,6 +306,18 @@
   from   = "/glaette"
   to     = "/autobahnwetter"
   status = 301
+[[redirects]]
+  from   = "/kuestenwetter"
+  to     = "/seewetter"
+  status = 301
+[[redirects]]
+  from   = "/segelwetter"
+  to     = "/seewetter"
+  status = 301
+[[redirects]]
+  from   = "/wellen"
+  to     = "/seewetter"
+  status = 301
 
 # 200-Rewrites je App-Route auf ihre Shell (Sub-Routen teilen die Eltern-Shell).
 [[redirects]]
@@ -561,6 +573,15 @@
 [[redirects]]
   from   = "/autobahnwetter/*"
   to     = "/autobahnwetter.html"
+  status = 200
+# Phase SW: Seewetter — Spot als Pfadsegment teilt die Shell der Route; noindex bis Gate C (SEA_LIVE).
+[[redirects]]
+  from   = "/seewetter"
+  to     = "/seewetter.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/*"
+  to     = "/seewetter.html"
   status = 200
 [[redirects]]
   from   = "/feedback"
