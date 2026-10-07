@@ -323,6 +323,7 @@ statisch erzeugten Shell, die es im Dev-Server nicht gibt); gegen `vite preview`
 | V-SW-9 | Ufernormale aus der Maske ist an Hafenbecken grob | bessere Uferwinkel | Normale aus der Küstenlinie der CWAM-Maske im 500-m-Band (OSM nur mit ODbL-Freigabe) |
 | V-SW-10 | Long Tasks auf dem Gerät nicht gemessen | Flüssigkeit mobil | `colourField` in einen Worker, Klassen je Spot cachen; Real-Device |
 | V-SW-11 | `scripts/repack-repo/README.md` spricht noch von „vier Produktlinien“ | korrekte Doku | Zählwort ersetzen |
+| V-SW-13 | Die Hintergrundläufe der Sitzung (Text-Sammler, Inventar-Schnappschüsse, CAP-Wächter) wurden am 07.10. gegen 16 UTC vom System wegen Speichermangels beendet und nicht neu gestartet; der zweite lokale Lauf (CWAM 12 UTC) wurde deshalb nicht mehr gebaut. Gesammelt sind 53 Bulletins (48 h Fenster bis 07.10. 12 UTC), drei Inventar-Schnappschüsse, CAP-Protokoll bis 14 UTC | Textsammlung über 7 Tage, Warnfall Küste | nach Jans Push übernimmt `sea.yml` die Texte (jede Ausgabe archiviert); die Spike-Skripte bei Bedarf von Hand wieder starten (`scripts/sea/spike/*.mjs --loop`) |
 | V-SW-12 | Der Text-Sammler des Spikes schrieb sein `index.json` dreimal nicht (Windows EPERM beim Umbenennen, Datei kurz gesperrt); die Bulletins selbst sind alle da | robuster Sammler | Umbenennen mit Wiederholung |
 
 ## 11. Gates

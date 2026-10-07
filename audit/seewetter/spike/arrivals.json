@@ -11,6 +11,10 @@
   {
    "at": "2026-10-07T14:05:34.190Z",
    "rows": 12
+  },
+  {
+   "at": "2026-10-07T16:05:35.887Z",
+   "rows": 14
   }
  ],
  "runs": {
@@ -169,6 +173,45 @@
    "firstMin": 222,
    "lastMin": 251,
    "completeMin": 251
+  },
+  "ewam/2026100712": {
+   "model": "ewam",
+   "run": "2026100712",
+   "files": 1027,
+   "expected": 1027,
+   "mb": 146.4,
+   "firstAt": "2026-10-07T15:16:05.000Z",
+   "lastAt": "2026-10-07T15:51:55.000Z",
+   "completeAt": "2026-10-07T15:51:55.000Z",
+   "firstMin": 196,
+   "lastMin": 232,
+   "completeMin": 232
+  },
+  "cwam/2026100712": {
+   "model": "cwam",
+   "run": "2026100712",
+   "files": 897,
+   "expected": 1027,
+   "mb": 89.9,
+   "firstAt": "2026-10-07T15:30:52.000Z",
+   "lastAt": "2026-10-07T16:02:00.000Z",
+   "completeAt": null,
+   "firstMin": 211,
+   "lastMin": 242,
+   "completeMin": null
+  },
+  "gwam/2026100712": {
+   "model": "gwam",
+   "run": "2026100712",
+   "files": 546,
+   "expected": 767,
+   "mb": 317.7,
+   "firstAt": "2026-10-07T15:41:55.000Z",
+   "lastAt": "2026-10-07T16:02:00.000Z",
+   "completeAt": null,
+   "firstMin": 222,
+   "lastMin": 242,
+   "completeMin": null
   }
  },
  "texts": {
@@ -489,6 +532,18 @@
    "issue": "071400",
    "bytes": 1069,
    "at": "2026-10-07T12:16:19.000Z"
+  },
+  "FQEN51_071400": {
+   "product": "FQEN51",
+   "issue": "071400",
+   "bytes": 1697,
+   "at": "2026-10-07T14:15:10.000Z"
+  },
+  "FQEN50_071400": {
+   "product": "FQEN50",
+   "issue": "071400",
+   "bytes": 4031,
+   "at": "2026-10-07T14:15:10.000Z"
   }
  }
 }
