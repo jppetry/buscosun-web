@@ -35,6 +35,34 @@ export const LONG_RANGE_FROM_H = 48;
 export const FUSION10_WIND_SHRINK_FROM_H: number | null = 126;
 export const FUSION10_WIND_SHRINK_COUNTRIES: readonly string[] = Object.freeze(['AT', 'CH']);
 
+/**
+ * buscosun Fusion 11 (phase F11, `audit/fusion-11.md`): the two acceptance defects of Fusion 10 (V-F10-7/8) removed, nothing
+ * else changed. With `FuseCubeOptions.longRangeFix: 1` (only together with `longRange: 1`):
+ *  (1) V-F10-7 — the T bin 241–336 h is the identity (w = 1, s = 1; `LONG_RANGE_TABLE_F11`): the F10 fit had no blend gain
+ *      there (w = 1) and the σ widening s = 1,05 cost 0,2–0,4 % CRPS in track R (coverage 80,8 → 82,3 %, too wide). A refit with a
+ *      monotonicity constraint was rejected on the out-of-vault fit grid itself (every w ≤ 0,8 loses ≥ 0,5 % against the identity in
+ *      that bin, `audit/fusion-10/longrange-fit.json`). `FUSION11_T_TAIL` = how the bin is reached: 'ramp' = the knot interpolation
+ *      of `longRangeParams` towards (1, 1) at 288,5 h (`LONG_RANGE_TABLE_F11`), 'step' = the Fusion 10 table up to 240 h and the exact
+ *      identity at every T lead ≥ 241 h — so T differs from Fusion 10 ONLY beyond 240 h. Pre-screen (hindcast outside the vault,
+ *      8 slots 09/2025, role B, t 240–336 h vs Fusion 9): ramp −0,54 % (every country), step ±0,00 % ⇒ step (rule §2.1); the quick
+ *      set (7 autumn days 2026, coverage there only 65 %) preferred the ramp (+0,43 %) — noted as V-F11-1.
+ *  (2) V-F10-8 — the AT/CH wind/gust climatology step starts at `FUSION11_WIND_SHRINK_FROM_H` instead of 126 h and/or keeps the
+ *      combination's σ (`FUSION11_WIND_SIGMA_FLOOR`, `FusionContext.priorShrink.sigmaFloor`): at 126–240 h the full step narrowed
+ *      the AT bands 3,69 → 3,30 m/s for +0,6/+0,2 % CRPS and pushed the q10–q90 coverage below the champion's (G3 red); at 241–336 h
+ *      the same step gained +8,9/+6,6 %.
+ * The forms were chosen by the rule written down in `audit/fusion-11.md` §2 BEFORE the pre-screen numbers (hindcast outside the
+ * vault + quick set), never on vault numbers. Set, not measured at the point.
+ */
+export const FUSION11_T_TAIL: 'ramp' | 'step' = 'step';
+export const FUSION11_T_IDENTITY_FROM_H = 241;
+/**
+ * Pre-screen (rule §2.2 of `audit/fusion-11.md`, written before the numbers; role B vs Fusion 9): both forms keep Fusion 9's ws coverage
+ * at 120–240 h (hindcast 75,3/75,3 %, quick set 75,1/75,1 %); 241 h loses in no ws/gust cell and gains ws 240–336 h +4,1 % (hindcast)
+ * / +10,2 % (quick set); the σ floor at 126 h gains only +0,01/+0,37 % at 120–240 h and loses 0,25 % in CH there ⇒ 241 h, no floor.
+ */
+export const FUSION11_WIND_SHRINK_FROM_H: number = 241;
+export const FUSION11_WIND_SIGMA_FLOOR: boolean = false;
+
 export interface LongRangeEntry { w: number; s: number }
 export interface LongRangeBin { id: string; fromH: number; toH: number; centreH: number }
 
@@ -99,6 +127,16 @@ export const LONG_RANGE_TABLE: LongRangeTable = Object.freeze({
     ws: [{ w: 1, s: 1 }, { w: 1, s: 1 }, { w: 1, s: 1 }, { w: 1, s: 1 }, { w: 1, s: 1 }],
     gust: [{ w: 1, s: 1 }, { w: 0.9, s: 0.8 }, { w: 0.75, s: 0.875 }, { w: 0.7, s: 0.825 }, { w: 0.8, s: 0.875 }],
   },
+});
+
+/**
+ * Fusion 11 table (V-F10-7): `LONG_RANGE_TABLE` with the T bin 241–336 h at the identity (w = 1, s = 1). Every other entry is
+ * byte-identical to the Fusion 10 table; the provenance names the change.
+ */
+export const LONG_RANGE_TABLE_F11: LongRangeTable = Object.freeze({
+  ...LONG_RANGE_TABLE,
+  provenance: { ...LONG_RANGE_TABLE.provenance, note: `${LONG_RANGE_TABLE.provenance.note}; F11 (V-F10-7): T bin 241–336 h set to the identity (w = 1, s = 1) — the fit gave w = 1 there and s = 1,05 widened already-right bands (track R of Fusion 10)` },
+  params: { ...LONG_RANGE_TABLE.params, t: LONG_RANGE_TABLE.params.t.map((e, i) => (LONG_RANGE_BINS[i].fromH >= FUSION11_T_IDENTITY_FROM_H ? { w: 1, s: 1 } : e)) },
 });
 
 /** Index of the bin that holds `leadH`, or −1 for leads ≤ 48 h / beyond the last bin. */

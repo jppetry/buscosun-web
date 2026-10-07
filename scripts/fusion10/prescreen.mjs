@@ -14,8 +14,10 @@
  * `--set=schnell` (default) = every third day of the development set of the champion's freeze (the bench's own rule);
  * `voll` = the whole development set; `hindcast` = the first `--limit` out-of-vault 00-UTC hindcast slots after
  * 2025-09-08 (every third day) — NEVER a vault issue (the tool refuses dates inside tresor.json).
- * Per run it writes `<out>/<day>.f32` (scores per station × lead × channel, channels t td ws gust precip clct wet) and
- * `<out>/summary.json` (sums per cell). Options are merged over the champion's register options (Fusion 9).
+ * Per run it writes `<out>/<day>.f32` (scores per station × lead × channel, channels t td ws gust precip clct wet),
+ * since phase F11 also `<out>/<day>.cov.f32` (q10–q90 coverage 1/0 per station × lead for t td ws gust — the measure of
+ * gate G3) and `<out>/summary.json` (sums per cell). Options are merged over the champion's register options (Fusion 9).
+ * `--compare` prints the coverage table too when both runs carry `.cov.f32` files.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -58,7 +60,7 @@ function cellsOf(file) {
 
 /** --compare=A,B: skill 1 − A/B per cell on rows finite in both runs. */
 function compare(dirA, dirB) {
-  const days = readdirSync(dirA).filter((f) => f.endsWith('.f32') && existsSync(join(dirB, f))).sort();
+  const days = readdirSync(dirA).filter((f) => f.endsWith('.f32') && !f.endsWith('.cov.f32') && existsSync(join(dirB, f))).sort();
   if (!days.length) { console.error('compare: keine gemeinsamen Tage'); process.exit(1); }
   const sa = cellsOf(join(dirA, 'summary.json')), sb = cellsOf(join(dirB, 'summary.json'));
   if (sa.shape.join() !== sb.shape.join()) { console.error('compare: verschiedene Form'); process.exit(1); }
@@ -85,6 +87,26 @@ function compare(dirA, dirB) {
     for (const [k, e] of dayAcc) { let t = acc.get(k); if (!t) { t = [0, 0, 0, 0, 0]; acc.set(k, t); } t[0] += e[0]; t[1] += e[1]; t[2] += e[2]; if (e[0] < e[1]) t[3] += 1; else if (e[0] > e[1]) t[4] += 1; }
   }
   const kern = (v, w) => { const d = proto.variables[v]; return d.cell === 'kern' && (d.kernToH == null || proto.windows[w].toH <= d.kernToH); };
+  // F11: q10–q90 coverage per cell (A against B), from the `.cov.f32` companions when both runs have them
+  const COV = ['t', 'td', 'ws', 'gust'];
+  const cov = new Map();   // key → [inA, inB, n]
+  const covDays = days.filter((f) => existsSync(join(dirA, f.replace(/\.f32$/, '.cov.f32'))) && existsSync(join(dirB, f.replace(/\.f32$/, '.cov.f32'))));
+  for (const f of covDays) {
+    const cf = f.replace(/\.f32$/, '.cov.f32');
+    const a = new Float32Array(readFileSync(join(dirA, cf)).buffer.slice(0)), b = new Float32Array(readFileSync(join(dirB, cf)).buffer.slice(0));
+    for (let s = 0; s < nSt; s++) for (let l = 0; l < nL; l++) {
+      const w = windowOf(proto, leads[l]); if (w < 0) continue;
+      for (let c = 0; c < COV.length; c++) {
+        const i = (s * nL + l) * COV.length + c, x = a[i], y = b[i];
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+        for (const land of [stations[s].land, 'alle']) for (const role of [stations[s].role, 'AB']) {
+          const k = key(COV[c], proto.windows[w].id, land, role);
+          let e = cov.get(k); if (!e) { e = [0, 0, 0]; cov.set(k, e); } e[0] += x; e[1] += y; e[2] += 1;
+        }
+      }
+    }
+  }
+  const covTxt = (k) => { const e = cov.get(k); return e && e[2] ? `${(100 * e[0] / e[2]).toFixed(1)}/${(100 * e[1] / e[2]).toFixed(1)}` : '-'; };
   for (const role of ['B', 'A']) {
     console.log(`\n── Rolle ${role} — Skill 1 − A/B je Zelle (Tage ${days.length}; „+“ = A besser; [Tage besser/schlechter]) ──`);
     console.log(`${'Größe'.padEnd(7)}${proto.windows.map((w) => w.id.padStart(26)).join('')}`);
@@ -106,6 +128,12 @@ function compare(dirA, dirB) {
     }
     console.log(`Index-Näherung (Kernzellen × Land, gleich gewichtet, ${idxN} Zellen): ${pct(idxN ? idxSum / idxN : null)}   (* = Kernzelle; nur Hinweis, kein Prüfstand-Maß)`);
     console.log('Je Land (Kernzellen):', LANDS.map((land) => { let s = 0, n = 0; for (const v of CH) for (let w = 0; w < proto.windows.length; w++) if (kern(v, w)) { const t = acc.get(key(v, proto.windows[w].id, land, role)); if (t && t[1]) { s += 1 - t[0] / t[1]; n += 1; } } return `${land} ${pct(n ? s / n : null)}`; }).join(' · '));
+    // per-country skill of the long-range cells (the F11 rule reads ws/gust/t per country)
+    for (const v of ['t', 'td', 'ws', 'gust']) console.log(`  ${v.padEnd(5)} je Land (DE/AT/CH) ` + proto.windows.slice(3).map((w) => `${w.id}: ${LANDS.map((land) => { const t = acc.get(key(v, w.id, land, role)); return t && t[1] ? pct(1 - t[0] / t[1]).trim() : '-'; }).join(' ')}`).join(' | '));
+    if (covDays.length) {
+      console.log(`-- Rolle ${role} - Abdeckung q10-q90 in % A/B (Soll 80; Tage ${covDays.length}) --`);
+      for (const v of COV) console.log(`${v.padEnd(7)}${proto.windows.map((w) => covTxt(key(v, w.id, 'alle', role)).padStart(14)).join('')}   je Land > 48 h: ${proto.windows.slice(3).map((w) => `${w.id} ${LANDS.map((land) => covTxt(key(v, w.id, land, role))).join(' ')}`).join(' | ')}`);
+    }
   }
 }
 
@@ -161,6 +189,21 @@ async function run() {
       if (Number.isFinite(pw) && Number.isFinite(yp)) sc[(s * nL + l) * nCh + 6] = (pw - (yp >= wetThr ? 1 : 0)) ** 2;
     }
     writeFileSync(join(out, `${issue.day}.f32`), Buffer.from(sc.buffer));
+    // F11: q10–q90 coverage of t td ws gust (1 = truth inside, 0 = outside, NaN = no pair)
+    const i10 = taus.findIndex((t) => Math.abs(t - 0.1) < 1e-6), i90 = taus.findIndex((t) => Math.abs(t - 0.9) < 1e-6);
+    if (i10 >= 0 && i90 >= 0) {
+      const cv = new Float32Array(nSt * nL * 4).fill(NaN);
+      for (let s = 0; s < nSt; s++) for (let l = 0; l < nL; l++) {
+        const w = windowOf(proto, leads[l]); if (w < 0) continue;
+        const o = (s * nL + l) * ch, to = (s * nL + l) * TRUTH_VARS.length;
+        for (let v = 0; v < 4; v++) {
+          const y = T[to + v], lo = block.data[o + v * nq + i10], hi = block.data[o + v * nq + i90];
+          if (!Number.isFinite(y) || !Number.isFinite(lo) || !Number.isFinite(hi)) continue;
+          cv[(s * nL + l) * 4 + v] = y >= lo && y <= hi ? 1 : 0;
+        }
+      }
+      writeFileSync(join(out, `${issue.day}.cov.f32`), Buffer.from(cv.buffer));
+    }
     for (let s = 0; s < nSt; s++) for (let l = 0; l < nL; l++) { const w = windowOf(proto, leads[l]); if (w < 0) continue; for (let c = 0; c < nCh; c++) { const x = sc[(s * nL + l) * nCh + c]; if (!Number.isFinite(x)) continue; const k = `${CH[c]}|${proto.windows[w].id}|${proto.scored[s].land}|${proto.scored[s].role}`; const e = (sums[k] ??= { n: 0, s: 0 }); e.n += 1; e.s += x; } }
     console.log(`  ${issue.day}: ${((Date.now() - t0) / 1000).toFixed(0)} s, Punkte ${block.info.points}, Fehler ${block.info.errors}${block.info.firstErrors?.length ? ` (${block.info.firstErrors[0]})` : ''}`);
   }

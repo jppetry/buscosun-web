@@ -9,6 +9,11 @@
  *
  *   node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs scripts/verify-fusion10-identity.mjs
  *     [--base=C:/dev/buscosun-web-wt/base] [--cand=<this repo>] [--on='{"longRange":1}'] [--days=3] [--hindcast=2026-06-15]
+ *     [--vs='{"longRange":1}']   phase F11: second negative control — the candidate with `--on` against the candidate with `--vs`
+ *                               (Fusion 11 against Fusion 10, both on): differences only in t at leads ≥ 235 h (the identity starts at
+ *                               the native step 241 h; the hourly axis interpolates the hours 235–240 h from a native neighbour at 243 h on
+ *                               runs whose t3 axis is offset by 3 h) and in ws/gust/dd at leads > 120 h, the latter only at AT/CH stations;
+ *                               td, precip, pWet, clct untouched.
  *
  * Read-only towards the bench (`C:\dev\buscosun-pruefstand`): conserves are read, nothing is written there. Exit 1 on any
  * failed check.
@@ -43,6 +48,7 @@ const champ = champion();
 const baseRoot = String(args.base ?? 'C:/dev/buscosun-web-wt/base').replace(/\\/g, '/');
 const candRoot = String(args.cand ?? REPO).replace(/\\/g, '/');
 const on = parseOpts(args.on);
+const vs = parseOpts(args.vs);
 const nDays = Number(args.days ?? 3);
 const hcDay = String(args.hindcast ?? '2026-06-15');
 if (hcDay >= proto.tresor.from && hcDay <= proto.tresor.to) { console.error(`Hindcast-Tag ${hcDay} liegt im Tresor — verboten`); process.exit(1); }
@@ -67,9 +73,36 @@ function diffStats(a, b, leads) {
   return { n, le48, gt48, vars: [...vars].sort() };
 }
 
+/** F11: per-variable lead/land profile of the differences between two blocks (station index → land of the protocol). */
+function diffProfile(a, b, leads) {
+  const nL = leads.length;
+  const byVar = {};   // var → { n, maxLeLead: count at leads ≤ limit, lands: Set }
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i], y = b[i];
+    if (x === y || (x !== x && y !== y)) continue;
+    const st = Math.floor(i / (ch * nL)), l = Math.floor(i / ch) % nL, c = i % ch;
+    const v = c < QUANTITY_VARS.length * nq ? QUANTITY_VARS[Math.floor(c / nq)] : c === QUANTITY_VARS.length * nq ? 'pWet' : 'dd';
+    const e = (byVar[v] ??= { n: 0, le120: 0, le234: 0, le240: 0, lands: new Set() });
+    e.n += 1; if (leads[l] <= 120) e.le120 += 1; if (leads[l] <= 234) e.le234 += 1; if (leads[l] <= 240) e.le240 += 1; e.lands.add(proto.scored[st]?.land ?? '?');
+  }
+  return byVar;
+}
+/** F11 rule of the second negative control: t only ≥ 235 h (one native 6-h step below the identity start 241 h, see header); ws/gust/dd only > 120 h and only in AT/CH; nothing else. */
+function vsCheck(prof) {
+  const bad = [];
+  for (const [v, e] of Object.entries(prof)) {
+    if (v === 't') { if (e.le234) bad.push(`t ${e.le234} Werte ≤ 234 h`); }
+    else if (v === 'ws' || v === 'gust' || v === 'dd') { if (e.le120) bad.push(`${v} ${e.le120} Werte ≤ 120 h`); for (const land of e.lands) if (land !== 'AT' && land !== 'CH') bad.push(`${v} in ${land}`); }
+    else bad.push(`${v} ${e.n} Werte`);
+  }
+  return bad;
+}
+const profTxt = (prof) => Object.entries(prof).map(([v, e]) => `${v} ${e.n} (≤120 h ${e.le120}, ≤234 h ${e.le234}, ≤240 h ${e.le240}, ${[...e.lands].sort().join('/')})`).join('; ') || '—';
+
 const base = await loadEngine(baseRoot), cand = await loadEngine(candRoot);
 const tables = loadTables(withTablePaths(champ));
 const offReg = { ...champ }, onReg = { ...champ, options: { ...champ.options, ...on } };
+const vsReg = vs ? { ...champ, options: { ...champ.options, ...vs } } : null;
 const mHash = modelHash(champ);
 console.log(`Basis ${baseRoot} · Kandidat ${candRoot} · Option an: ${JSON.stringify(on)} · Champion ${champ.id} (${champ.commit.slice(0, 7)})`);
 
@@ -85,6 +118,11 @@ for (const issue of issues) {
   const o = predictArchive(cand, tables, onReg, proto, slot, leads);
   const d = diffStats(c.data, o.data, leads);
   add(`Archiv ${issue.day}: Negativkontrolle — Option an unterscheidet sich`, d.n > 0, `${d.n} Werte verschieden (≤ 48 h ${d.le48}, > 48 h ${d.gt48}; Größen ${d.vars.join(', ') || '—'})`);
+  if (vsReg) {
+    const v = predictArchive(cand, tables, vsReg, proto, slot, leads);
+    const prof = diffProfile(v.data, o.data, leads), bad = vsCheck(prof), n = Object.values(prof).reduce((a, e) => a + e.n, 0);
+    add(`Archiv ${issue.day}: zweite Negativkontrolle — --on gegen --vs: Unterschiede nur t ≥ 235 h, ws/gust/dd > 120 h in AT/CH`, n > 0 && !bad.length, `${n} Werte: ${profTxt(prof)}${bad.length ? ` — VERLETZT: ${bad.join(', ')}` : ''}`);
+  }
 }
 const hcPath = hindcastSlotPath(Date.parse(`${hcDay}T00:00:00Z`));
 if (existsSync(hcPath)) {
@@ -96,6 +134,11 @@ if (existsSync(hcPath)) {
   const o = predictHindcast(cand, tables, onReg, proto, slot, leads);
   const d = diffStats(c.data, o.data, leads);
   add(`Hindcast ${hcDay}: Negativkontrolle — Option an unterscheidet sich`, d.n > 0, `${d.n} Werte verschieden (≤ 48 h ${d.le48}, > 48 h ${d.gt48}; Größen ${d.vars.join(', ') || '—'})`);
+  if (vsReg) {
+    const v = predictHindcast(cand, tables, vsReg, proto, slot, leads);
+    const prof = diffProfile(v.data, o.data, leads), bad = vsCheck(prof), n = Object.values(prof).reduce((a, e) => a + e.n, 0);
+    add(`Hindcast ${hcDay}: zweite Negativkontrolle — --on gegen --vs: Unterschiede nur t ≥ 235 h, ws/gust/dd > 120 h in AT/CH`, n > 0 && !bad.length, `${n} Werte: ${profTxt(prof)}${bad.length ? ` — VERLETZT: ${bad.join(', ')}` : ''}`);
+  }
 } else console.log(`  (Hindcast-Slot ${hcDay} fehlt — Hindcast-Prüfung entfällt)`);
 
 console.log(`\nverify:fusion10-identity — ${passed}/${checks.length}`);
