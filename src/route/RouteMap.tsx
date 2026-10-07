@@ -154,10 +154,10 @@ export default function RouteMap({ points, samples = [], breaks = [], waypoints 
         },
       });
 
-      // Windpfeil — gedreht in Strömungsrichtung (woher+180°), ab Mindeststärke.
+      // Windpfeil — gedreht in Strömungsrichtung (woher+180°), ab Mindeststärke; ohne Richtung kein Pfeil (E-FR-5).
       map.addLayer({
         id: 'weather-wind', type: 'symbol', source: 'route-weather',
-        filter: ['>=', ['get', 'windSpeed'], WIND_ARROW_MIN_MPS],
+        filter: ['all', ['>=', ['get', 'windSpeed'], WIND_ARROW_MIN_MPS], ['!=', ['get', 'windDir'], null]],
         layout: {
           'icon-image': ['concat', 'wind-arrow-', ['coalesce', ['get', 'windRel'], 'cross']],
           'icon-rotate': ['+', ['get', 'windDir'], 180],
@@ -286,7 +286,7 @@ function weatherToFC(markers: WeatherMarker[]): GeoJSON.FeatureCollection {
       precipType: m.precipType,
       precipSource: m.precipSource ?? '',
       windSpeed: m.windSpeedMps ?? 0,
-      windDir: m.windDirectionDeg ?? 0,
+      windDir: m.windDirectionDeg ?? null,
       windRel: m.windRel ?? 'cross',
       temp: m.temperatureC ?? null,
       uv: m.uvIndex ?? null,
@@ -423,8 +423,8 @@ function weatherPopupHtml(p: Record<string, unknown>): string {
     lines.push({ icon: 'drop', text: `${precip.toFixed(1).replace('.', ',')} mm/h ${label}${src}` });
   }
   if (wind != null && wind > 0) {
-    const dir = num(p.windDir) ?? 0;
-    lines.push({ icon: 'compass', text: `${wind.toFixed(1).replace('.', ',')} m/s aus ${Math.round(dir)}°` });
+    const dir = num(p.windDir);
+    lines.push({ icon: 'compass', text: `${wind.toFixed(1).replace('.', ',')} m/s ${dir == null ? '· keine Richtung' : `aus ${Math.round(dir)}°`}` });
   }
   if (uv != null && uv > 0) lines.push({ icon: 'sun', text: `UV ${uv.toFixed(1).replace('.', ',')}` });
   if (p.foehn === 1) lines.push({ icon: 'wind', text: 'Föhn-Lage (heuristisch)' });

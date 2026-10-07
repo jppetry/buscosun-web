@@ -16,7 +16,7 @@ import { decodeSwisFile } from '../src/road/swisBufr.ts';
 import {
   validateRoadSlot, parseRoadObs, parseRoadH24, roadObsRoundTripOk, roadFreshness, roadExpectedSlot, roadFlagFrom,
   roadStamp, roadStampToMs, normaliseRoad, ROAD_GROUPS, ROAD_SLOT_MS, ROAD_STUCK_RUN, ROAD_RULES, ROAD_OBS_GATE_MS,
-  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH, ROAD_LIVE,
+  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH, ROAD_LIVE, ROAD_STUCK_PLATEAU, dwdCheckText, roadPointOk,
 } from '../src/road/roadContract.ts';
 import { ROAD_HEALTH } from './health-manifests.mjs';
 import { classifySensor, mostSevereCondition } from '../src/road/roadClasses.ts';
@@ -110,7 +110,7 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
   add('C5 hängende Lufttemperatur ⇒ verworfen', q(air, 'stuck', 'ta').length === 1 && pt(air).ta === null);
   let prev = run([raw({ sensors: [{ roadT: 1, filmMm: 0, cond: 0 }] })]).state;
   const jump = validateRoadSlot({ slotMs: T0 + ROAD_SLOT_MS, stations: [{ ...raw({ sensors: [{ roadT: 12, filmMm: 0, cond: 0 }] }), obsMs: T0 + ROAD_SLOT_MS }], catalog, catalogEtag: 'x', catalogState: 'ok', prev, inDE, groups: allGroupsOk() });
-  add('C6 Sprung 1 → 12 °C: nur „wäre verworfen" (Beobachtung), Wert bleibt', jump.quarantine.entries.some((e) => e.rule === 'jump' && e.observe) && pt(jump).rs === 12 && jump.balance.observe.jump === 1 && !jump.balance.byRule.jump);
+  add('C6 Sprung 1 → 12 °C: nur „wäre verworfen" (Beobachtung), Wert bleibt, Marke o.rs = jump (M2)', jump.quarantine.entries.some((e) => e.rule === 'jump' && e.observe) && pt(jump).rs === 12 && jump.balance.observe.jump === 1 && !jump.balance.byRule.jump && pt(jump).o?.rs === 'jump');
   prev = run([raw({ sensors: [{ roadT: 1, filmMm: 0, cond: 0 }] })]).state;
   const small = validateRoadSlot({ slotMs: T0 + ROAD_SLOT_MS, stations: [{ ...raw({ sensors: [{ roadT: 5, filmMm: 0, cond: 0 }] }), obsMs: T0 + ROAD_SLOT_MS }], catalog, catalogEtag: 'x', catalogState: 'ok', prev, inDE, groups: allGroupsOk() });
   add('C7 Gegenprobe: Sprung 4 K bleibt unauffällig', !small.quarantine.entries.some((e) => e.rule === 'jump'));
@@ -148,8 +148,84 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
     nb.quarantine.entries.some((e) => e.rule === 'neighbours' && e.id === 'V164' && e.observe) && pt(nb).rs === 19);
   const cube = run([raw({ airT: 20 })], { cubeT2m: { V164: 5 } });
   add('D11 Cube-Abgleich: Luft 20 °C gegen T2m 5 °C ⇒ „wäre verworfen" (Beobachtung)', cube.balance.observe.cube === 1 && pt(cube).ta === 20);
-  const ra = run([raw({ airT: 18, sensors: [{ roadT: 0, filmMm: 0, cond: 0 }] })]);
-  add('D12 Fahrbahn 18 K unter der eigenen Luft ⇒ roadAir „wäre verworfen" (V-AW-3)', ra.balance.observe.roadAir === 1 && pt(ra).rs === 0);
+  add('D10b M2: der beobachtete Wert trägt die Marke o.rs = neighbours (Seite: „auffällig")', pt(nb).o?.rs === 'neighbours' && !pt(nb).x);
+  add('D11b M2: Luft gegen T2m trägt die Marke o.ta = cube', pt(cube).o?.ta === 'cube');
+  const ra = run([raw({ airT: 18, sensors: [{ roadT: 0.3, filmMm: 0, cond: 0 }] })]);
+  add('D12 M1: Fahrbahn 17,7 K unter der eigenen Luft, keine Nachbarn ⇒ roadAir HART, Fahrbahn verworfen, keine Frostgefahr',
+    q(ra, 'roadAir', 'rs').length === 1 && pt(ra).rs === null && pt(ra).x.rs === 'roadAir' && pt(ra).cls !== 'frost' && !ra.balance.observe.roadAir);
+}
+
+// --- M: data audit 06.10.2026 (audit/autobahnwetter-datenpruefung.md §5, M1–M5) — values from the real slot 06.10. 19:00 UTC
+{
+  const mk = (id, dLat, over) => ({ ...raw(over), id, lat: base.lat + dLat, elevM: base.elevM });
+  const hood = (rs, ta) => [mk('N1', 0.02, { airT: ta, dewT: ta - 3, sensors: [{ roadT: rs, filmMm: 0, cond: 0 }] }), mk('N2', 0.04, { airT: ta + 0.4, dewT: ta - 3, sensors: [{ roadT: rs + 0.3, filmMm: 0, cond: 0 }] }),
+    mk('N3', -0.03, { airT: ta - 0.3, dewT: ta - 3, sensors: [{ roadT: rs - 0.2, filmMm: 0, cond: 0 }] }), mk('N4', 0.05, { airT: ta + 0.1, dewT: ta - 3, sensors: [{ roadT: rs + 0.1, filmMm: 0, cond: 0 }] })];
+  // M1 fill values (R-b, R-c) and road far below the air (R-a).
+  const k677 = run([raw({ airT: 15.4, dewT: 9.1, sensors: [{ roadT: 0, filmMm: 0, cond: 0 }] })]);
+  add('M1 Fahrbahn genau 0,00 °C bei Luft 15,4 °C (K677/O932) ⇒ fillValue, Zustand folgt, keine Frostgefahr',
+    q(k677, 'fillValue', 'rs').length === 1 && pt(k677).rs === null && pt(k677).cls !== 'frost' && q(k677, 'stateNoTemp').length === 2);
+  const f461 = run([raw({ airT: 12.3, dewT: 8, sensors: [{ roadT: 0, filmMm: 0.1, cond: 5 }] })]);
+  add('M1b Eis-Code bei Fahrbahn 0,00 und Luft 12,3 °C (F461, die einzige „Glätte gemessen") ⇒ verworfen, keine Glätte',
+    pt(f461).rs === null && pt(f461).cond === null && pt(f461).cls !== 'ice');
+  const p969 = run([raw({ airT: -1, dewT: -1, sensors: [{ roadT: -1, filmMm: 0, cond: 0 }] })]);
+  add('M1c Fahrbahn = Luft = Taupunkt = −1,00 (P969) ⇒ alle drei fillValue',
+    ['rs', 'ta', 'td'].every((f) => q(p969, 'fillValue', f).length === 1) && pt(p969).rs === null && pt(p969).ta === null && pt(p969).cls !== 'frost');
+  const real0 = run([raw({ airT: 1.8, dewT: 0.4, sensors: [{ roadT: 0, filmMm: 0.2, cond: 1 }] })]);
+  add('M1d Gegenprobe: echte 0,00 °C bei Luft +1,8 °C bleibt (Frostgefahr bleibt Frostgefahr)', pt(real0).rs === 0 && pt(real0).cls === 'frost' && !q(real0, 'fillValue').length);
+  const fog = run([raw({ airT: 9.4, dewT: 9.4, sensors: [{ roadT: 9.4, filmMm: 0, cond: 0 }] })]);
+  add('M1e Gegenprobe Nebel-Sättigung 9,4/9,4/9,4 bleibt (kein Füllwert)', pt(fog).rs === 9.4 && pt(fog).ta === 9.4 && fog.balance.rejected === 0);
+  const h637 = run([raw({ airT: 18.2, sensors: [{ roadT: -25, filmMm: 0, cond: 0 }] }), ...hood(17, 18)]);
+  add('M1f Fahrbahn −25,00 °C bei Luft 18,2 und Nachbarn 17 °C (H637 Richrath) ⇒ Fahrbahn roadAir, Luft bleibt',
+    q(h637, 'roadAir', 'rs').some((e) => e.id === 'V164') && pt(h637).rs === null && pt(h637).ta === 18.2 && pt(h637).cls !== 'frost');
+  const n443 = run([raw({ airT: 41.69, dewT: 31.7, sensors: [{ roadT: 15.1, filmMm: 0, cond: 0 }] }), ...hood(14.8, 12.5)]);
+  add('M1g Luft +41,7 °C bei Fahrbahn 15,1 und Nachbarn 14,8/12,5 °C (N443 Irxleben) ⇒ LUFT und Taupunkt roadAir, Fahrbahn bleibt',
+    pt(n443).ta === null && pt(n443).td === null && pt(n443).x.ta === 'roadAir' && pt(n443).rs === 15.1);
+  const m080 = run([raw({ airT: -23.7, dewT: -25, sensors: [{ roadT: 14.6, filmMm: 0, cond: 0 }] }), ...hood(14.6, 11.4)]);
+  add('M1h Luft −23,7 °C bei Fahrbahn 14,6 und Nachbarn normal (M080 Heringen, nachts) ⇒ Luft verworfen, Fahrbahn bleibt',
+    pt(m080).ta === null && pt(m080).rs === 14.6 && pt(m080).x.ta === 'roadAir');
+  const e237 = run([raw({ airT: 11, sensors: [{ roadT: 42.8, filmMm: 0, cond: 0 }] }), ...hood(12.4, 9.6)]);
+  add('M1i Fahrbahn 42,8 °C bei Luft 11 und Nachbarn 12,4 °C (E237 Nordkreuz) ⇒ Fahrbahn roadAir', pt(e237).rs === null && pt(e237).x.rs === 'roadAir');
+  const hot = run([raw({ airT: 12, sensors: [{ roadT: 43, filmMm: 0, cond: 0 }] })]);
+  add('M1j Fahrbahn 31 K über der Luft OHNE Nachbarn ⇒ nur beobachtet (Sommermittag nicht gemessen), Marke o.rs',
+    pt(hot).rs === 43 && hot.balance.observe.roadAir === 1 && pt(hot).o?.rs === 'roadAir');
+  // Thaw plateau cap: a value that never moves is stuck after 12 h even in thaw weather.
+  const series = (n, mk2) => { let prev = null, res = null; for (let i = 0; i < n; i++) { res = validateRoadSlot({ slotMs: T0 + i * ROAD_SLOT_MS, stations: [{ ...raw(mk2(i)), obsMs: T0 + i * ROAD_SLOT_MS }], catalog, catalogEtag: 'x', catalogState: 'ok', prev, inDE, groups: allGroupsOk() }); prev = res.state; } return res; };
+  const pl47 = series(ROAD_STUCK_PLATEAU.maxRun - 1, () => ({ airT: 0.4, dewT: -0.5, sensors: [{ roadT: 0, filmMm: 0.3, cond: 2 }] }));
+  const pl48 = series(ROAD_STUCK_PLATEAU.maxRun, () => ({ airT: 0.4, dewT: -0.5, sensors: [{ roadT: 0, filmMm: 0.3, cond: 2 }] }));
+  add('M1k Tauplateau gilt höchstens 12 h: 47 gleiche 0,00 °C bleiben, der 48. wird als hängend verworfen',
+    pt(pl47).rs === 0 && q(pl48, 'stuck', 'rs').length === 1 && pt(pl48).rs === null);
+  // M2 humidity and anemometer.
+  const v049 = run([raw({ airT: 12.1, dewT: -39.8, rh: 0 })]);
+  add('M2 Taupunkt −39,8 °C bei Luft 12,1 (V049, Feuchte 0 %) ⇒ Taupunkt und Feuchte dewSpread', pt(v049).td === null && pt(v049).rh === null && pt(v049).x.td === 'dewSpread');
+  const jul = Date.UTC(2026, 6, 15, 14, 0);
+  const summer = run([{ ...raw({ airT: 34, dewT: 6, rh: 18 }), obsMs: jul }], { slotMs: jul });
+  add('M2b Gegenprobe Juli: Luft 34 / Taupunkt 6 (28 K) bleibt — Schwelle Mai–Sep. 30 K', pt(summer).td === 6 && pt(summer).rh === 18);
+  const oct28 = run([raw({ airT: 34, dewT: 6, rh: 18 })]);
+  add('M2c dieselben 28 K im Oktober ⇒ verworfen', pt(oct28).td === null);
+  const p415 = run([raw({ windMs: 0.4, gustMs: 57.6 })]);
+  add('M2d Böe 57,6 m/s bei Mittelwind 0,4 (P415 Rügland) ⇒ gustNoWind', pt(p415).wg === null && pt(p415).x.wg === 'gustNoWind');
+  const storm = run([raw({ windMs: 14, gustMs: 41 })]);
+  add('M2e Gegenprobe Sturm 41 m/s bei Mittelwind 14 m/s bleibt', pt(storm).wg === 41);
+  // M3 precipitation fill value.
+  const ko = run([raw({ precipRateMmH: 21.6, precipIntensity: 0, precipType: 0 })]);
+  add('M3 21,6 mm/h bei Intensität 0 („No phenomena") und Art 0 (KO-RP) ⇒ precipFill', pt(ko).pr === null && pt(ko).x.pr === 'precipFill');
+  const fn = run([raw({ precipRateMmH: 10.08, precipIntensity: 1, precipType: 0 })]);
+  const mc = run([raw({ precipRateMmH: 20.16, precipIntensity: 3, precipType: null })]);
+  const rain = run([raw({ precipRateMmH: 4.32, precipIntensity: null, precipType: 2 ** 25 })]);
+  add('M3b Gegenproben: Intensität 1 (FN-BY 10,08), Intensität 3 (MC-MV 20,16), Art Regen ohne Intensität ⇒ bleiben',
+    pt(fn).pr === 10.08 && pt(mc).pr === 20.16 && pt(rain).pr === 4.32);
+  const legacy = run([raw({ precipRateMmH: 21.6, precipType: 0 })]);
+  add('M3c Aufrufer ohne Feld precipIntensity (vor M3) wird nicht beurteilt', pt(legacy).pr === 21.6);
+  // M5 DWD check text from the raw flag.
+  add('M5 qf am Punkt: 0 ⇒ 0, Bit 1 ⇒ 2^29, fehlend (alle 30 Bits) ⇒ kein Feld',
+    pt(run([raw({ quality: 0 })])).qf === 0 && pt(run([raw({ quality: 2 ** 29 })])).qf === 2 ** 29 && pt(run([raw({ quality: 2 ** 30 - 1 })])).qf === undefined);
+  const t = (qf) => dwdCheckText(qf);
+  add('M5b Prüftext: 0 ⇒ nichts beanstandet · Bit 1 ⇒ nicht durchgeführt · fehlt ⇒ unbekannt · FN-BY 11+17+28 ⇒ beanstandet, benannt',
+    /nichts beanstandet/.test(t(0)) && /nicht durchgeführt/.test(t(2 ** 29)) && /unbekannt/.test(t(null)) && /unbekannt/.test(t(2 ** 30 - 1))
+    && t(2 ** 19 + 2 ** 13 + 2 ** 2) === 'Prüfung des DWD: durchgeführt, beanstandet: Bodentemperatur (Tiefe 4), Eisansatz, reservierte Bits', t(2 ** 19 + 2 ** 13 + 2 ** 2));
+  const good = pt(run([raw()]));
+  add('M5c Client-Prüfer: gültige o/qf bestehen, kaputte fallen (o mit fremder Regel, qf negativ)',
+    roadPointOk({ ...good, o: { rs: 'neighbours' } }) && !roadPointOk({ ...good, o: { rs: 'erfunden' } }) && !roadPointOk({ ...good, o: { zz: 'jump' } }) && !roadPointOk({ ...good, qf: -1 }));
 }
 
 // --- E: slot lock -------------------------------------------------------------------------------
@@ -170,9 +246,10 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
   const killed = run([raw()], { killed: true });
   add('E5 Kill-Switch ⇒ Slot ohne Punkte, killed: true', killed.obs.killed === true && killed.obs.points.length === 0);
   add('E6 Bilanz zählt verworfene Werte je Regel und je Reihe', share.balance.byRule.placeholder === 18 && share.balance.byRule.stateNoTemp === 36 && share.balance.byGroup['FN-BY'].rejected === 54, JSON.stringify(share.balance.byRule));
-  add('E7 statistische Regeln stehen im Beobachtungsmodus, harte sind hart',
-    ['jump', 'neighbours', 'cube', 'catalog', 'roadAir'].every((r) => ROAD_RULES[r].mode === 'observe')
-    && ['limit', 'placeholder', 'dewAboveAir', 'gustBelowWind', 'dwdSuspect', 'stuck', 'stateNoTemp', 'iceWarm', 'time', 'outsideDE'].every((r) => ROAD_RULES[r].mode === 'hard'));
+  add('E7 statistische Regeln stehen im Beobachtungsmodus, harte sind hart (seit M1–M3: roadAir, fillValue, dewSpread, gustNoWind, precipFill hart)',
+    ['jump', 'neighbours', 'cube', 'catalog'].every((r) => ROAD_RULES[r].mode === 'observe')
+    && ['limit', 'placeholder', 'dewAboveAir', 'gustBelowWind', 'dwdSuspect', 'stuck', 'stateNoTemp', 'iceWarm', 'time', 'outsideDE',
+      'roadAir', 'fillValue', 'dewSpread', 'gustNoWind', 'precipFill'].every((r) => ROAD_RULES[r].mode === 'hard'));
 }
 
 // --- F: classes and client ----------------------------------------------------------------------

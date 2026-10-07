@@ -80,7 +80,8 @@ export function buildRouteSection(
   let cloudsUsable = true;
   const anchors: AnchorSurface[] = [];
   for (const c of columns) {
-    if (c.tempC == null || c.windKmh == null || c.windDirDeg == null) continue;
+    // Ohne Windrichtung bleibt die Spalte (Temperatur, Betrag) — der Schnitt zeichnet dort keinen Pfeil (E-FR-5).
+    if (c.tempC == null || c.windKmh == null) continue;
     if (c.cloudCoverPct == null || c.humidityPct == null) cloudsUsable = false;
     anchors.push({
       distanceM: c.distM,
@@ -418,7 +419,7 @@ export function buildGroundLayers(
   const arrows = windPicks(scene.columns, arrowCount).map((c) => ({
     lon: c.lon,
     lat: c.lat,
-    rot: ((((c.windDirDeg ?? 0) + 180) % 360) + 360) % 360,
+    rot: ((((c.windDirDeg as number) + 180) % 360) + 360) % 360, // windPicks lässt nur Spalten mit Richtung durch
     rel: c.windRel as 'head' | 'cross' | 'tail',
   }));
   return { tempSegments, warnSegments, arrows };

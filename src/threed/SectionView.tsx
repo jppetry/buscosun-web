@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { PreparedSection } from './buildCrossSection';
+import { sectionOrigin, type PreparedSection } from './buildCrossSection';
 import { SHEAR_THRESHOLD_KMH_PER_300M, type CrossSection } from './crossSection';
 import type { LayerState } from './ThreeDPage';
 import SectionChart, { BAND_COLORS, BAND_LABELS, type PickedPoint, type SectionGeo } from './SectionChart';
@@ -25,7 +25,7 @@ interface Props {
 }
 
 const comma = (n: number) => n.toLocaleString('de-DE');
-const dirName = (deg: number) => ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'][Math.round(((deg % 360) / 45)) % 8];
+const dirName = (deg: number | null) => (deg == null ? 'keine Richtung' : ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'][Math.round(((deg % 360) / 45)) % 8]);
 const fmtTemp = (c: number | null) => (c == null ? '—' : `${c > 0 ? '+' : ''}${Math.round(c)} °C`);
 
 const LAYER_DEFS: Array<{ key: keyof LayerState; label: string }> = [
@@ -171,7 +171,7 @@ export default function SectionView({ prepared, section, timeMs, onTime, layers,
       </div>
 
       {/* Datenstand (US-N6) */}
-      <p className="td-runstamp">Datenstand: ICON-D2 + DEM · abgerufen {new Date(prepared.runAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</p>
+      <p className="td-runstamp">Datenstand: {sectionOrigin(prepared)} + Gelände (DEM) · abgerufen {new Date(prepared.runAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</p>
 
       {/* Go/No-Go (US-E) */}
       {showGng && <GoNoGoPanel prepared={prepared} locationName={locationName} timeMs={timeMs} />}
@@ -193,6 +193,7 @@ export default function SectionView({ prepared, section, timeMs, onTime, layers,
             <span><svg width="20" height="8"><line x1="1" y1="4" x2="15" y2="4" stroke="#2C2A26" strokeWidth="1.6" /></svg> Mittelwind</span>
             <span><svg width="20" height="8"><line x1="1" y1="4" x2="15" y2="4" stroke="#D7263D" strokeWidth="1.6" strokeDasharray="4 3" /></svg> Böen</span>
             <span><svg width="20" height="8"><line x1="1" y1="4" x2="15" y2="4" stroke="#8B9AAB" strokeWidth="1.4" strokeDasharray="4 3" /></svg> Wolkenbasis</span>
+            <span>ohne Pfeil = keine eindeutige Richtung</span>
             {layers.cloudLayers && <span><i className="td-cloud-swatch" /> Wolkenschichten (tief/mittel/hoch)</span>}
             {layers.shear && <span><i className="td-shear-swatch" /> Shear &gt; {SHEAR_THRESHOLD_KMH_PER_300M} km/h/300 m</span>}
           </div>

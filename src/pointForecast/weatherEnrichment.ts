@@ -30,6 +30,7 @@
  */
 
 import { getFusionForecast } from './fusionForecast';
+import { fusionSourceOf, type FusionSource } from './fusion/fusionRelease';
 import { createRadarNowcastSampler, type RadarNowcastSampler } from './radarNowcast';
 import { createWarningChecker, type WarningChecker } from './warningsCrossCheck';
 import { classifyPrecipitation, type PrecipitationType } from './precipType';
@@ -131,6 +132,8 @@ export interface EnrichmentMeta {
   uvEstimated: number;
   /** Länder, die entlang der Route abgefragt wurden (für Abdeckungs-Hinweise). */
   countries: Country[];
+  /** Welcher Weg die Punktvorhersagen geliefert hat (buscosun Fusion / Live-Rückfall) — für die Quellenzeile (V-FR-10). */
+  pointSource: FusionSource | null;
   /**
    * Strukturelle Variablen-Abdeckung — unabhängig vom Fetch-Erfolg. Trennt
    * „Datenlücke" (Quelle ausgefallen) von „im Land gar nicht verfügbar":
@@ -365,6 +368,7 @@ export async function enrichSampleWeather(
       elevationCorrected,
       uvEstimated,
       countries,
+      pointSource: fusionSourceOf(forecasts),
       coverage: {
         snowLine: countries.some((c) => c === 'AT' || c === 'CH'),
         uvIndex: countries.includes('DE'),
@@ -568,8 +572,8 @@ function lerp(a: number | null, b: number | null, f: number): number | null {
   return a + (b - a) * f;
 }
 function lerpAngle(a: number | null, b: number | null, f: number): number | null {
-  if (a == null) return b ?? null;
-  if (b == null) return a;
+  // Fehlt die Richtung an einem Ende: die der näheren Stunde, sonst keine — nie eine geborgte (E-FR-5).
+  if (a == null || b == null) return f < 0.5 ? a : b;
   let diff = b - a;
   if (diff > 180) diff -= 360;
   else if (diff < -180) diff += 360;
@@ -682,7 +686,7 @@ function emptyMeta(elapsedMs: number): EnrichmentMeta {
   return {
     clusterCount: 0, pointForecastCalls: 0, pointForecastFailed: 0,
     radarOverrides: 0, warningHits: 0, beyondHorizonCount: 0,
-    elevationCorrected: 0, uvEstimated: 0, countries: [], coverage: { snowLine: false, uvIndex: false },
+    elevationCorrected: 0, uvEstimated: 0, countries: [], pointSource: null, coverage: { snowLine: false, uvIndex: false },
     radar: [], startWindow: [],
     elapsedMs,
   };

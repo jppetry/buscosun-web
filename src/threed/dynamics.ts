@@ -39,17 +39,21 @@ export interface TalwindReversal { tMs: number; toUpValley: boolean }
  * Liefert die Zeitpunkte mit Richtung (auf-/abwärts).
  */
 export function talwindReversals(hours: TimeSample[], upBearingDeg: number): TalwindReversal[] {
-  const along = hours.map((h) => {
+  // Stunden ohne Richtung (E-FR-5) tragen keine Komponente — der Wechsel wird über sie hinweg
+  // zwischen den Stunden mit Richtung gesucht und an der ersten Stunde der neuen Richtung gemeldet.
+  const along: Array<{ tMs: number; v: number }> = [];
+  for (const h of hours) {
+    if (h.windDirDeg == null) continue;
     const toDir = (h.windDirDeg + 180) % 360; // wohin der Wind weht
     const d = ((toDir - upBearingDeg) * Math.PI) / 180;
-    return h.windKmh * Math.cos(d); // > 0 = taleinwärts/bergauf
-  });
+    along.push({ tMs: h.tMs, v: h.windKmh * Math.cos(d) }); // > 0 = taleinwärts/bergauf
+  }
   const out: TalwindReversal[] = [];
   for (let i = 1; i < along.length; i++) {
-    const prev = along[i - 1], cur = along[i];
+    const prev = along[i - 1].v, cur = along[i].v;
     // Echter Vorzeichenwechsel mit etwas Hysterese gegen Rauschen.
-    if (prev <= -1 && cur >= 1) out.push({ tMs: hours[i].tMs, toUpValley: true });
-    else if (prev >= 1 && cur <= -1) out.push({ tMs: hours[i].tMs, toUpValley: false });
+    if (prev <= -1 && cur >= 1) out.push({ tMs: along[i].tMs, toUpValley: true });
+    else if (prev >= 1 && cur <= -1) out.push({ tMs: along[i].tMs, toUpValley: false });
   }
   return out;
 }
@@ -96,6 +100,12 @@ export function verifyDynamics(): { checks: DynCheck[]; passed: number; failed: 
   const rev = talwindReversals(series, 0);
   add('Talwind: 2 Umkehrungen', rev.length === 2, `${rev.length}`);
   add('Talwind: erst bergauf dann bergab', rev[0]?.toUpValley === true && rev[1]?.toUpValley === false);
+  // E-FR-5: Stunden ohne Richtung sind weder Nord- noch Südwind — der Wechsel wird über sie hinweg gefunden, an der
+  // ersten Stunde der neuen Richtung; nur Stunden ohne Richtung ⇒ keine Umkehr (mit 0° gelesen wären es zwei).
+  const gap = talwindReversals(mk([0, 0, 0, 0, 180, 180, 0]).map((h, i) => (i === 2 || i === 3 ? { ...h, windDirDeg: null } : h)), 0);
+  add('Talwind: über Stunden ohne Richtung hinweg, gemeldet an der ersten Stunde mit neuer Richtung', gap.length === 2 && gap[0].tMs === 4 * 3600_000 && gap[0].toUpValley, gap.map((r) => r.tMs / 3600_000).join(','));
+  const none = talwindReversals(mk([180, 180, 180, 180]).map((h, i) => (i % 2 ? { ...h, windDirDeg: null } : h)), 0);
+  add('Talwind: Stunden ohne Richtung erzeugen keine Umkehr', none.length === 0, `${none.length}`);
 
   // Bearing-Helfer: West→Ost ≈ 90°.
   add('Bearing West→Ost ≈ 90°', Math.abs(bearingDeg({ lat: 47, lon: 11 }, { lat: 47, lon: 11.2 }) - 90) < 2);

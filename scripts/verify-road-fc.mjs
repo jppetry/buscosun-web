@@ -670,6 +670,14 @@ if (typeof flags.data === 'string') {
   add('J1 Messtabelle: nur Stationen mit Lufttemperatur; als Nachbar taugt nur, wessen Meldeposition zum Katalog passt (≤ 2 km) und wessen Höhe bekannt ist — die eigene Station zählt in jedem Fall',
     table.size === 5 && table.get('S900').place && table.get('S901').place && !table.get('S902').place && !table.get('S903').place && table.get('S904').place && !table.has('S900x') && !table.has('S905'),
     [...table.values()].map((m) => `${m.id}:${m.place ? 1 : 0}`).join(' '));
+  // M4 (data audit D-4): a station whose slot point carries an observe-mode mark (`o`) does not anchor — neither its own
+  // point nor as a neighbour; an empty `o` changes nothing (negative control).
+  const marked = swisTable(rows.map((r) => (r.id === 'S904' ? { ...r, o: { ta: 'cube' } } : r)), cat, POINTS);
+  const emptyO = swisTable(rows.map((r) => ({ ...r, o: {} })), cat, POINTS);
+  const n443 = swisTable([row('S900', 41.7, { o: { rs: 'neighbours' } })], cat, POINTS);
+  add('J1b M4: Station mit Marke o (Beobachtungsregel gerissen) verankert nicht — weder sich selbst noch als Nachbar; leeres o ändert nichts',
+    !marked.has('S904') && marked.size === 4 && emptyO.size === 5 && n443.size === 0 && anchorObsFor(POINTS[2], n443).length === 0,
+    `${marked.size} ${emptyO.size} ${n443.size}`);
   const own = anchorObsFor(POINTS[2], table), ownW = anchorObsFor(POINTS[2], table, { wind: true });
   const ax = anchorObsFor(POINTS[0], table), lo = anchorObsFor(POINTS[2], table, { leaveOut: true });
   add('J2 Auswahl: Stationspunkt = genau die eigene Messung (Abstand 0, Höhe des Punkts, nur Temperatur/Feuchte — kein Wind); Achspunkt = platzierte Nachbarn nach Abstand, ≤ 30 km, mit Kataloghöhe; ausgelassen = nie die eigene',

@@ -14,7 +14,7 @@ import ThreeDMap from './ThreeDMap';
 import SectionView from './SectionView';
 import TerrainView from './TerrainView';
 import SoundingPanel from './SoundingPanel';
-import { prepareCrossSection, sectionAtTime, type PreparedSection, type PrepareProgress } from './buildCrossSection';
+import { prepareCrossSection, sectionAtTime, sectionOrigin, SECTION_METHOD, type PreparedSection, type PrepareProgress } from './buildCrossSection';
 import { decodeState, encodeState, type ThreeDLayers } from './threedState';
 import { tourFileToCutLine } from './tourImport';
 import { pickCountry } from '../pointForecast/clustering';
@@ -142,7 +142,7 @@ export default function ThreeDPage({ onBack }: Props) {
           <button type="button" className="rt-nav-item" onClick={onBack}>Event-Planung</button>
         </div>
         <div className="rt-nav-right">
-          <span className="rt-nav-live td-live">{data.kind === 'ready' ? 'ICON-D2 + DEM' : 'Multi-Quelle'}</span>
+          <span className="rt-nav-live td-live">{sectionOrigin(data.kind === 'ready' ? data.prepared : null)} + DEM</span>
           <span className="rt-nav-avatar">JK</span>
         </div>
       </nav>
@@ -151,7 +151,7 @@ export default function ThreeDPage({ onBack }: Props) {
         <header className="rt-intro td-intro">
           <span className="rt-eyebrow td-eyebrow">Höhenwind-Geländeschnitt · Inversion</span>
           <h1>Wetter im 3D-Raum</h1>
-          <p>Setze eine Schnittlinie auf der Karte und sieh den vertikalen Wetterschnitt über echtem Gelände — Höhenwind (AGL), Böen und Inversion. Aus ICON-D2 + DEM abgeleitet.</p>
+          <p>Setze eine Schnittlinie auf der Karte und sieh den vertikalen Wetterschnitt über echtem Gelände — Höhenwind (AGL), Böen und Inversion. Aus buscosun Fusion + Gelände (DEM) abgeleitet.</p>
         </header>
 
         {/* 2D/3D-Umschalter (US-F1/F2) */}
@@ -233,7 +233,7 @@ export default function ThreeDPage({ onBack }: Props) {
         )}
 
         <div className="rt-trust" style={{ marginTop: '1.6rem' }}>
-          <span className="dot td-dot">●</span> Höhenwind aus ICON-D2-10-m + DEM auf AGL abgeleitet · Auflösung ≈ 2 km · werbefrei
+          <span className="dot td-dot">●</span> {sectionOrigin(data.kind === 'ready' ? data.prepared : null)} · {SECTION_METHOD} · werbefrei
         </div>
       </main>
 

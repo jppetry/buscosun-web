@@ -21,8 +21,9 @@ import { HOUR_MIN, HOUR_MAX } from './atmosphereState';
 import ThreeDMap from '../threed/ThreeDMap';
 import SectionChart, { BAND_COLORS, BAND_LABELS, type PickedPoint } from '../threed/SectionChart';
 import {
-  prepareCrossSection, sectionAtTime, type PreparedSection, type PrepareProgress,
+  prepareCrossSection, sectionAtTime, sectionOrigin, SECTION_ANCHORS, SECTION_METHOD, type PreparedSection, type PrepareProgress,
 } from '../threed/buildCrossSection';
+import { SECTION_LEVEL_STEP_M } from '../threed/crossSection';
 import type { CrossSection } from '../threed/crossSection';
 import { evaluateGoNoGo, loadGoNoGo, saveGoNoGo, type GoNoGoConfig } from '../threed/goNoGo';
 // E-7: der PDF-Knopf war eine Attrappe — jetzt druckt er einen echten Bericht.
@@ -152,8 +153,12 @@ type DeckCtx = {
 };
 
 // ============================ Desktop / Tablet ============================
+/** Herkunft des Schnitts für Texte (V-FR-10): erst mit Daten der Stand, der gerechnet hat; vorher nur die Marke. */
+const dataOrigin = (d: DataState): string => sectionOrigin(d.kind === 'ready' ? d.prepared : null);
+const hhmm = (ms: number): string => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
 function DesktopDeck(ctx: DeckCtx) {
-  const { deckLens, onBack, onOpenFeature, location } = ctx;
+  const { deckLens, onBack, onOpenFeature, location, data } = ctx;
   const isGoNoGo = deckLens === 'gonogo';
   return (
     <div className="vsd-root">
@@ -175,7 +180,7 @@ function DesktopDeck(ctx: DeckCtx) {
             </>
           ) : (
             <>
-              <div className="vsd-live"><span className="vsd-live-dot" /><span className="vsd-live-txt">ICON-D2 · 08:00 UTC</span></div>
+              <div className="vsd-live"><span className="vsd-live-dot" /><span className="vsd-live-txt">{data.kind === 'ready' ? `${dataOrigin(data)} · ${hhmm(data.prepared.runAtMs)} Uhr` : dataOrigin(data)}</span></div>
               <span className="vsd-avatar">JK</span>
             </>
           )}
@@ -297,7 +302,7 @@ function HoehenwindDesktop(ctx: DeckCtx) {
               <LayerChip label="Shear" on={sectionLayers.shear} onClick={() => setSectionLayers({ ...sectionLayers, shear: !sectionLayers.shear })} />
               <LayerChip label="Streamlines" on={sectionLayers.streamlines} onClick={() => setSectionLayers({ ...sectionLayers, streamlines: !sectionLayers.streamlines })} />
               <LayerChip label="Wolkenbasis" on={sectionLayers.cloudBase} onClick={() => setSectionLayers({ ...sectionLayers, cloudBase: !sectionLayers.cloudBase })} />
-              <span className="vsd-chip-info"><span className="vsd-ibadge">i</span>Gitterzellen ≈ 2 km · 333 m · Auflösung begrenzt die Genauigkeit</span>
+              <span className="vsd-chip-info"><span className="vsd-ibadge">i</span>{SECTION_ANCHORS} Wetterpunkte entlang der Linie · Höhenstufen {SECTION_LEVEL_STEP_M} m · Auflösung begrenzt die Genauigkeit</span>
             </div>
 
             <div className="vsd-plot">
@@ -325,10 +330,12 @@ function HoehenwindDesktop(ctx: DeckCtx) {
               <span className="vsd-legend-div" />
               <div className="vsd-legend-item"><span className="vsd-legend-line" /><span>Mittelwind</span></div>
               <div className="vsd-legend-item"><span className="vsd-legend-line vsd-legend-line--dash" /><span>Böen</span></div>
+              {/* E-FR-5: buscosun Fusion withholds the direction of weak/unsteady wind — no arrow instead of a north arrow. */}
+              <div className="vsd-legend-item"><span>ohne Pfeil = keine eindeutige Richtung</span></div>
             </div>
 
             <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />
-            <p className="vsd-caption">Wind auf realer Höhe über Grund (AGL) aus ICON-D2-Druckflächen + DEM interpoliert · ≥30 FPS · werbefrei</p>
+            <p className="vsd-caption">{dataOrigin(data)} · {SECTION_METHOD} · ≥30 FPS · werbefrei</p>
           </>
         )}
       </div>
@@ -475,7 +482,7 @@ function InversionDesktop(ctx: DeckCtx) {
                 <div>
                   <div className="vsd-hint-title">{inv!.stable ? 'Stabile Inversion · Luftqualität' : 'Schwache Inversion'}</div>
                   <div className="vsd-hint-text">{inv!.note || 'Feinstaub reichert sich im Tal an. Frostgefahr in den Morgenstunden.'}</div>
-                  <div className="vsd-hint-fine">Hinweis nicht verbindlich · ICON-D2 + DWD-Beobachtung</div>
+                  <div className="vsd-hint-fine">Hinweis nicht verbindlich · {dataOrigin(data)}</div>
                 </div>
               </div>
               <div className="vsd-hint">
@@ -596,7 +603,7 @@ function GoNoGoDesktop(ctx: DeckCtx) {
             </div>
             <div className="vsd-sec-lab">Go / No-Go über den Tag · {cfg.heightAglM} m AGL</div>
             <div className="vsd-panel"><GoNoGoBand res={res} prepared={prepared} /></div>
-            <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — über „PDF" druckbar (im Druckdialog „Als PDF speichern") oder als Link teilbar. Modell ICON-D2, Gitterzellen ≈ 2 km.</span></div>
+            <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — über „PDF" druckbar (im Druckdialog „Als PDF speichern") oder als Link teilbar. Daten: {dataOrigin(data)}, {SECTION_ANCHORS} Wetterpunkte entlang der Schnittlinie.</span></div>
           </>
         ) : (
           <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => setDeckLens('hoehenwind')} /></div>
@@ -811,7 +818,7 @@ function HoehenwindMobile(ctx: DeckCtx) {
         ) : <div className="vsd-pquery-empty">Tippe in den Schnitt für Werte an einem Punkt.</div>}
       </div>
       {section && <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />}
-      <p className="vsd-m-caption">Wind auf AGL aus ICON-D2-Druckflächen + DEM · Gitterzellen ≈ 2 km · werbefrei.</p>
+      <p className="vsd-m-caption">{dataOrigin(data)} · {SECTION_METHOD} · werbefrei.</p>
     </>
   );
 }
@@ -874,7 +881,7 @@ function GoNoGoMobile(ctx: DeckCtx) {
         ><IconDownload /> PDF</button>
         <ShareButton className="vsd-share vsd-share--wide" text="Link teilen" />
       </div>
-      <p className="vsd-m-caption">Der Ausdruck enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — im Druckdialog „Als PDF speichern". Modell ICON-D2 · Gitterzellen ≈ 2 km.</p>
+      <p className="vsd-m-caption">Der Ausdruck enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — im Druckdialog „Als PDF speichern". Daten: {dataOrigin(data)} · {SECTION_ANCHORS} Wetterpunkte entlang der Linie.</p>
     </>
   );
 }
@@ -1021,7 +1028,7 @@ function TourPill() {
 }
 
 // ---------------------------- Helpers ----------------------------
-const compass = (deg: number) => ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(((deg % 360) / 22.5)) % 16];
+const compass = (deg: number | null) => (deg == null ? 'keine Richtung' : ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(((deg % 360) / 22.5)) % 16]);
 const fmtTemp = (c: number) => (Math.round(c * 10) / 10).toFixed(1).replace('.', ',');
 const fmtSigned = (c: number) => (c > 0 ? '+' : c < 0 ? '−' : '') + Math.abs(Math.round(c * 10) / 10).toFixed(c % 1 === 0 ? 0 : 1).replace('.', ',');
 const fmtM = (m: number) => Math.round(m).toLocaleString('de-DE');

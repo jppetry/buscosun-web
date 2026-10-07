@@ -5,7 +5,7 @@
  *  • DEM-Geländeprofil entlang der Schnittlinie (`loadElevationLookup`, feiner
  *    Zoom) — dieselbe Höhenquelle wie der Rest der App.
  *  • Oberflächen-Wetter an wenigen Ankerpunkten über die Zeit
- *    (`getPointForecast` — Multi-Quellen-Blend wie überall in der App).
+ *    (`getFusionForecast(…, 'section')` — buscosun Fusion, Rückfall Live-Pfad; die Herkunft steht in `source`).
  *
  * `sectionAtTime` rechnet daraus synchron den Vertikalschnitt für einen
  * Zeitpunkt — so bleibt der Zeit-Slider (US-A5) flüssig, ohne neu zu laden.
@@ -13,6 +13,7 @@
 
 import { loadElevationLookup } from '../fusion/elevation';
 import { getFusionForecast } from '../pointForecast/fusionForecast';
+import { fusionSourceOf, fusionSourceText, type FusionSource } from '../pointForecast/fusion/fusionRelease';
 import { pickCountry } from '../pointForecast/clustering';
 import { resampleLine, lineBounds, type GeoPoint, type SectionColumn } from './sectionGeometry';
 import {
@@ -21,6 +22,10 @@ import {
 
 const COLUMNS = 64;
 const ANCHORS = 5;            // wenige Ankerpunkte → rate-limitierte Quellen (GeoSphere) schonen
+/** Wetterpunkte entlang der Schnittlinie — die horizontale Auflösung des Wetters im Schnitt (V-FR-10: nicht „Gitterzellen ≈ 2 km“). */
+export const SECTION_ANCHORS = ANCHORS;
+/** Wie der Schnitt rechnet — ein Satz für Bildunterschriften (V-FR-10; Druckflächen liest er nicht). */
+export const SECTION_METHOD = `Bodenwind an ${ANCHORS} Punkten der Linie, Höhe über Grund nach Potenzgesetz + Gelände (DEM)`;
 const ANCHOR_CONCURRENCY = 3; // nicht alle gleichzeitig (vermeidet 429-Bursts)
 const DEM_ZOOM = 11; // ~76 m/px — fein genug für ein Talschnittprofil
 const FORECAST_HOURS = 36;
@@ -30,7 +35,8 @@ const MS_PER_S = 3.6; // m/s → km/h
 export interface TimeSample {
   tMs: number;
   windKmh: number;
-  windDirDeg: number;
+  /** null = buscosun Fusion meldet keine Richtung (schwacher/unsteter Wind) — nie als Nordwind lesen (E-FR-5). */
+  windDirDeg: number | null;
   gustKmh: number;
   tempC: number;
   cloudPct: number;
@@ -54,16 +60,21 @@ export interface PreparedSection {
   /** Verfügbares Zeitfenster (ms). */
   startMs: number;
   endMs: number;
-  /** Jüngster Modelllauf-/Abrufzeitpunkt (ms) — Aktualität (US-N6). */
+  /** Jüngster Abrufzeitpunkt der Ankerpunkte (ms) — Aktualität (US-N6). */
   runAtMs: number;
+  /** Welcher Weg die Ankerpunkte geliefert hat (buscosun Fusion / Live-Rückfall) — für jede Herkunftsangabe (V-FR-10). */
+  source: FusionSource | null;
   points: GeoPoint[];
 }
+
+/** Herkunft des Schnitt-Wetters (V-FR-10): der Stand von buscosun Fusion, der gerechnet hat, oder der Live-Rückfall. */
+export const sectionOrigin = (p: Pick<PreparedSection, 'source'> | null | undefined): string => fusionSourceText(p?.source ?? null);
 
 /** Lineare Interpolation der Stunden-Serie eines Ankers auf einen Zeitpunkt. */
 export function sampleAnchorAt(anchor: PreparedAnchor, tMs: number): AnchorSurface {
   const h = anchor.hours;
   const base = { distanceM: anchor.distanceM, elevM: anchor.elevM };
-  if (!h.length) return { ...base, windKmh: 0, windDirDeg: 0, gustKmh: 0, tempC: 0, cloudPct: 0, humidityPct: 0 };
+  if (!h.length) return { ...base, windKmh: 0, windDirDeg: null, gustKmh: 0, tempC: 0, cloudPct: 0, humidityPct: 0 };
   if (tMs <= h[0].tMs) return surf(base, h[0]);
   const last = h[h.length - 1];
   if (tMs >= last.tMs) return surf(base, last);
@@ -73,13 +84,20 @@ export function sampleAnchorAt(anchor: PreparedAnchor, tMs: number): AnchorSurfa
       const t = (tMs - a.tMs) / (b.tMs - a.tMs);
       const lerp = (x: number, y: number) => x + (y - x) * t;
       // Wind als Vektor mitteln (Richtungs-Wrap vermeiden).
-      const toUV = (s: number, d: number) => ({ u: -s * Math.sin((d * Math.PI) / 180), v: -s * Math.cos((d * Math.PI) / 180) });
-      const ua = toUV(a.windKmh, a.windDirDeg), ub = toUV(b.windKmh, b.windDirDeg);
-      const u = lerp(ua.u, ub.u), v = lerp(ua.v, ub.v);
-      const windKmh = Math.hypot(u, v);
+      // Ohne Richtung an einem Ende (E-FR-5): Betrag linear, Richtung der näheren Stunde (oder keine).
+      let windKmh: number, windDirDeg: number | null;
+      if (a.windDirDeg == null || b.windDirDeg == null) {
+        windKmh = lerp(a.windKmh, b.windKmh);
+        windDirDeg = t < 0.5 ? a.windDirDeg : b.windDirDeg;
+      } else {
+        const toUV = (s: number, d: number) => ({ u: -s * Math.sin((d * Math.PI) / 180), v: -s * Math.cos((d * Math.PI) / 180) });
+        const ua = toUV(a.windKmh, a.windDirDeg), ub = toUV(b.windKmh, b.windDirDeg);
+        const u = lerp(ua.u, ub.u), v = lerp(ua.v, ub.v);
+        windKmh = Math.hypot(u, v);
+        windDirDeg = ((((Math.atan2(-u, -v) * 180) / Math.PI) % 360) + 360) % 360;
+      }
       return {
-        ...base, windKmh,
-        windDirDeg: ((((Math.atan2(-u, -v) * 180) / Math.PI) % 360) + 360) % 360,
+        ...base, windKmh, windDirDeg,
         gustKmh: lerp(a.gustKmh, b.gustKmh),
         tempC: lerp(a.tempC, b.tempC),
         cloudPct: lerp(a.cloudPct, b.cloudPct),
@@ -152,7 +170,7 @@ export async function prepareCrossSection(
     const hours: TimeSample[] = fc.hours.map((hr) => ({
       tMs: hr.timestamp.getTime(),
       windKmh: (hr.windSpeed ?? 0) * MS_PER_S,
-      windDirDeg: hr.windDirection ?? 0,
+      windDirDeg: hr.windDirection ?? null,
       gustKmh: (hr.gustSpeed ?? hr.windSpeed ?? 0) * MS_PER_S,
       tempC: hr.temperature ?? 0,
       cloudPct: hr.cloudCoverTotal ?? 0,
@@ -169,7 +187,7 @@ export async function prepareCrossSection(
   }
   if (!anchors.length) throw new Error('Keine Wetterdaten für die Schnittlinie verfügbar.');
 
-  return { columns, anchors, startMs, endMs, runAtMs: runAtMs || Date.now(), points };
+  return { columns, anchors, startMs, endMs, runAtMs: runAtMs || Date.now(), source: fusionSourceOf(forecasts.map((f) => f?.fc)), points };
 }
 
 /** map mit begrenzter Parallelität (Reihenfolge des Ergebnisses bleibt erhalten). */

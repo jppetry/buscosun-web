@@ -24,6 +24,8 @@ interface Props {
   onToggle: (k: keyof RoadMapLayers) => void;
   summary: RoadSlotSummary;
   hasData: boolean;
+  /** M5 (D-9): still loading — corridors and/or the measurement slot; loading must not read like an outage. */
+  loading?: { corridors: boolean; obs: boolean };
 }
 
 const STATIC_ROWS: ReadonlyArray<{ cc: 'AT' | 'CH'; shield: string; title: string }> = [
@@ -91,13 +93,13 @@ export default function RoadDock(p: Props) {
               <span className="aw-road-shields">{c.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
               <span className="aw-road-body">
                 <span className="aw-road-title">{corridorTitle(c)}</span>
-                <span className="aw-road-sub">{p.hasData ? parts.join(' · ') : 'keine Messdaten'}</span>
+                <span className="aw-road-sub">{p.hasData ? parts.join(' · ') : p.loading?.obs ? 'Messung lädt …' : 'keine Messdaten'}</span>
               </span>
               <span className={`aw-road-dot${isHatched(st.worst) || !p.hasData ? ' is-hatched' : ''}`} style={!isHatched(st.worst) && p.hasData ? { background: ROAD_CLASS_COLOR[st.worst] } : undefined} aria-hidden="true" />
             </button>
           );
         })}
-        {!rows.length && showDE && <p className="aw-note">Keine Autobahn passt zu „{p.query}“.</p>}
+        {!rows.length && showDE && <p className="aw-note">{p.query.trim() ? `Keine Autobahn passt zu „${p.query}“.` : p.loading?.corridors ? 'Autobahnen laden …' : 'Keine Autobahn geladen.'}</p>}
         {staticRows.map((r) => (
           <div key={r.cc + r.shield} className="aw-road is-static">
             <span className={`aw-shield${r.cc === 'CH' ? ' is-ch' : ''}`}>{r.shield}</span>

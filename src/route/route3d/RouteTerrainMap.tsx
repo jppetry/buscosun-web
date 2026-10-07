@@ -510,7 +510,7 @@ function flowSignAlongLine(section: CrossSection): number {
   if (cols.length < 2) return 1;
   let meanU = 0;
   let n = 0;
-  for (const c of cols) for (const cell of c.cells) { meanU += -cell.windKmh * Math.sin((cell.windDirDeg * Math.PI) / 180); n++; }
+  for (const c of cols) for (const cell of c.cells) { if (cell.windDirDeg == null) continue; meanU += -cell.windKmh * Math.sin((cell.windDirDeg * Math.PI) / 180); n++; }
   meanU = n ? meanU / n : 0;
   const eastSign = Math.sign(cols[cols.length - 1].lon - cols[0].lon) || 1;
   return meanU * eastSign >= 0 ? 1 : -1;

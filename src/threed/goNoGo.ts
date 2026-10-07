@@ -108,7 +108,7 @@ function mkPrepared(gustSeriesKmh: number[]): PreparedSection {
   return {
     columns: [], points: [],
     anchors: [{ distanceM: 0, lat: 47, lon: 11, elevM: 1500, hours }],
-    startMs: now, endMs: now + (gustSeriesKmh.length - 1) * STEP, runAtMs: now,
+    startMs: now, endMs: now + (gustSeriesKmh.length - 1) * STEP, runAtMs: now, source: 'fusion',
   };
 }
 

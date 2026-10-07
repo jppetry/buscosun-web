@@ -34,7 +34,8 @@ export interface PickedPoint {
   windKmh: number;
   gustKmh: number;
   tempC: number;
-  windDirDeg: number;
+  /** null = keine Richtung (E-FR-5). */
+  windDirDeg: number | null;
 }
 
 interface Props {
@@ -178,7 +179,7 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
       {layers.mean && arrowCols.flatMap((col) =>
         arrowLevels.filter((lv) => lv >= col.terrainM).map((lv) => {
           const cell = nearestCell(col, lv);
-          if (!cell) return null;
+          if (!cell || cell.windDirDeg == null) return null; // keine Richtung ⇒ kein Pfeil (E-FR-5)
           return <Arrow key={`m-${col.index}-${lv}`} cx={x(col.distanceM)} cy={y(lv)} dirFromDeg={cell.windDirDeg} kmh={cell.windKmh} color="#2C2A26" />;
         }),
       )}
@@ -186,7 +187,7 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
       {layers.gust && arrowCols.flatMap((col) =>
         arrowLevels.filter((lv) => lv >= col.terrainM).map((lv) => {
           const cell = nearestCell(col, lv);
-          if (!cell) return null;
+          if (!cell || cell.windDirDeg == null) return null;
           return <Arrow key={`g-${col.index}-${lv}`} cx={x(col.distanceM)} cy={y(lv)} dirFromDeg={cell.windDirDeg} kmh={cell.gustKmh} color="#D7263D" dashed />;
         }),
       )}
@@ -260,7 +261,7 @@ function Streamlines({ section, x, y, topM }: { section: CrossSection; x: (d: nu
   if (cols.length < 2) return null;
   // Flussrichtung: Ost-Komponente des Windes × Ost-Richtung der Schnittlinie.
   let meanU = 0, n = 0;
-  for (const c of cols) for (const cell of c.cells) { meanU += -cell.windKmh * Math.sin((cell.windDirDeg * Math.PI) / 180); n++; }
+  for (const c of cols) for (const cell of c.cells) { if (cell.windDirDeg == null) continue; meanU += -cell.windKmh * Math.sin((cell.windDirDeg * Math.PI) / 180); n++; }
   meanU = n ? meanU / n : 0;
   const eastSign = Math.sign(cols[cols.length - 1].lon - cols[0].lon) || 1;
   const flowSign = (meanU * eastSign) >= 0 ? 1 : -1; // +1 = nach rechts (steigende Distanz)

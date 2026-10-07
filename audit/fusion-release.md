@@ -282,3 +282,119 @@ Budget grün (totalJs 1 557,7 / 1 559), `verify:route-3d` grün.
   Horizont 60 h) für Routenplaner, Vertikalschnitt und Talwind in Südbayern. Mehrwert der Behebung: richtige Quellen und
   UV in Südbayern. Skizze: Landesgrenze per Punkt-in-Polygon (die Grenzen liegen in `public/countries`) statt Rechteck-Abstand;
   eigenes Thema, eigene Messung.
+
+### 8.11 E-FR-5 und E-FR-6 entschieden — Eventplaner, Vertikalschnitt, Benachrichtigungen eingeschaltet (Jan 07.10.2026)
+
+Jan: „bei Windrichtung setze a um und bei 2. ist die Ladezeit erstmal irrelevant, solange sie nicht zu extrem hoch wird …
+setze jetzt Eventplaner und Vertikalschnitt mit buscosun Fusion um." Der Vorschlag davor (Eventplaner und Benachrichtigungen
+gemeinsam, weil beide die Tage mit derselben Funktion bewerten) war „okay" ⇒ **alle vier Teile `on: true`**.
+
+**E-FR-5 (a) umgesetzt — eine fehlende Richtung bleibt fehlend, nie 0° = Nord.** Regel überall gleich: zwischen zwei Stunden
+(oder zwei Ankern) mit Richtung wie bisher als Vektor; fehlt sie an einem Ende, gilt die Richtung der **näheren** Stunde, sonst
+keine; der Betrag wird immer linear weitergerechnet. Geändert (nur Teile, buscosun Fusion unberührt):
+
+| Teil | Stelle | vorher | jetzt |
+|---|---|---|---|
+| Vertikalschnitt | `buildCrossSection.ts` (`TimeSample`, `sampleAnchorAt`), `crossSection.ts` (`AnchorSurface`, `SectionCell`, `interpAnchor`) | `windDirection ?? 0` | `null` bis in die Zelle |
+| Vertikalschnitt | `SectionChart.tsx` (Pfeile Mittel/Böe, Strömungsrichtung), `TerrainMap.tsx`, `RouteTerrainMap.tsx` | Nordpfeil | kein Pfeil; Strömungsrichtung nur aus Zellen mit Richtung |
+| Vertikalschnitt | Punkt-Abfrage `AtmosphereDeck.tsx`, `SectionView.tsx`; Legende beider Ansichten | „N" | „keine Richtung"; Legende „ohne Pfeil = keine eindeutige Richtung" |
+| Talwind | `TalwindPanel.tsx`, `dynamics.ts` `talwindReversals` | Nordwind ⇒ falsche Umkehrungen | Stunden ohne Richtung tragen keine Komponente; Wechsel über sie hinweg, gemeldet an der ersten Stunde der neuen Richtung |
+| Föhn | `dynamics.ts` `estimateFoehn` | — | reicht `null` an `detectFoehn` (nahm es schon an) |
+| Routenplaner | `windSampling.ts` + `tourTiming.ts` | Stunden ohne Richtung verworfen, Nachbarstunden geborgt | Stunden bleiben; ohne Richtung kein Gegen-/Rückenwind in der Tourzeit |
+| Routenplaner | `weatherEnrichment.ts` `lerpAngle` (Abschnittsanzeige) | Richtung der anderen Stunde geborgt | nähere Stunde oder keine (Live-Pfad: Richtung immer da ⇒ unverändert) |
+| Routenplaner | `RouteMap.tsx` (Pfeil-Layer, Popup) | `?? 0` ⇒ Nordpfeil | Filter ohne Richtung, Popup „keine Richtung" |
+| Routenplaner 3D | `routeSection.ts` | Spalte ohne Richtung ganz verworfen (auch Temperatur) | Spalte bleibt, ohne Pfeil |
+| Eventplaner | `eventTerrain.ts`, `EventTerrainMap.tsx`, `eventZoneScan.ts` | las `null` schon richtig | unverändert |
+
+**E-FR-6:** Benachrichtigungen an (Ladezeit kalt +0,35 s im Hintergrund, Jan: „irrelevant, solange nicht extrem").
+
+**Wächter** `verify:fusion-release` **20/20** — neu C5: (1) Gegenprobe des Musters „Richtung `?? 0`" (trifft `?? 0`, nicht
+`?? 0.5`, `?? null`, Kommentar); (2) kein Treffer in `src` (vorher drei: Schnitt, Talwind, Routenkarte); (3) die
+Selbsttests `verifyCrossSection`/`verifyDynamics` grün, mit den neuen Fällen ohne Richtung (Anker-Interpolation, Zellen
+`null`, Talwind über Lücken, nur Lücken ⇒ keine Umkehr); (4) `sampleAnchorAt` über die Zeit (270 / null / null / null).
+`verify:route-3d` prüfte den Quelltext `(c.windDirDeg ?? 0) + 180` wörtlich ⇒ angepasst (Pfeil nur aus Spalten mit Richtung,
+kein `?? 0`), 589/589.
+
+**Durchlauf im Browser** (Dev-Server :5231, ohne `?pf`, 07.10. ≈ 04 UTC): alle vier Teile wählen den Cube
+(`fusionPathFor` = cube), 0 Rückfälle. Schnitt Inntal (47,2/11,3 → 47,4/11,5): 85 von 185 Anker-Stunden ohne Richtung,
+0 als 0° gelesen; über 8 Zeitpunkte 4 338 von 10 640 Zellen ohne Pfeil. Seite `/atmosphaere/querschnitt`: links und am
+Ende Pfeile, über dem Inntal keine; Punkt-Abfrage „17 km/h · keine Richtung"; Legende mit dem neuen Eintrag; Föhn-Linse
+Talwind „Mi 22:00 — dreht auf bergab"; Konsole ohne Fehler und Warnungen (gesammelt ab Dokumentstart). Eventplaner München
+180 h auf dem Cube (94 von 181 Stunden ohne Richtung, 45 UV-Stunden aus dem DWD), Benachrichtigungen Zürich auf dem Cube.
+Schnitt-Vorbereitung kalt 7,3 s (DEM + 5 Anker, Dev-Server).
+
+**Gates:** `verify:fusion-release` 20/20, `verify:route-3d` 589/589, `verify:event-zone` 102/102, typecheck 0, Build grün.
+Budget: diese Änderung allein (Worktree HEAD `18ab8ca` gegen HEAD + Patch) totalJs 1 557,9 → 1 558,0 KB — keine Anhebung;
+der Arbeitsbaum steht wegen der parallelen Autobahn-Sitzung bei 1 560,1 / 1 561 (deren Anhebung, §43).
+
+Die fünf Fragen: (1) Funktionserhalt — nichts entfernt; die 3D-Routenspalten ohne Richtung kommen sogar zurück. (2) Desktop —
+Schnitt-Legende um einen Eintrag länger; Pfeile fehlen genau dort, wo buscosun Fusion keine Richtung meldet (gewollt).
+(3) Touch-Targets unberührt. (4) Konsole sauber (s. o.). (5) Rechnung unverändert (Cube-Pfad wie im Panel, V-FI-50).
+
+- **V-FR-10 (älter als FR-2) Bildunterschrift des Schnitts:** „Wind auf realer Höhe über Grund (AGL) aus
+  ICON-D2-Druckflächen + DEM interpoliert" — der Schnitt nimmt den Bodenwind der Punktvorhersage (jetzt buscosun Fusion) und
+  rechnet die Höhe mit dem Potenzgesetz, Druckflächen liest er nicht. Mehrwert: die Herkunft stimmt (Ehrlichkeitsregel). Skizze:
+  „Bodenwind aus buscosun Fusion, Höhenprofil nach Potenzgesetz + Gelände (DEM)"; dasselbe in der Liste der Startseite.
+
+### 8.12 V-FR-10 und V-FR-9 behoben (Jan 07.10.2026: „beides beheben")
+
+**V-FR-10 — Herkunft im Vertikalschnitt.** Der Schnitt nannte sich an neun Stellen „ICON-D2“ („ICON-D2-Druckflächen“,
+„Gitterzellen ≈ 2 km · 333 m“, im Kopf fest „ICON-D2 · 08:00 UTC“ unabhängig vom Abruf, „Modelllauf“ = in Wahrheit die
+Abrufzeit). Er rechnet aber den Bodenwind der Punktvorhersage an 5 Punkten der Linie mit dem Potenzgesetz über das Gelände
+hoch, mit Höhenstufen von 150 m, und liest keine Druckflächen. Jetzt steht die Herkunft an EINER Stelle:
+`PreparedSection.source` = welcher Weg die Anker wirklich geliefert hat (`fusionSourceOf`: Cube ⇒ `fc.cube`), Text
+`sectionOrigin` = `fusionSourceText` im Register (`fusionRelease.ts`, importfrei): „buscosun Fusion ‹n›“, bei Rückfall
+„Live-Punktvorhersage“, gemischt beides. `SECTION_ANCHORS`, `SECTION_METHOD`, `SECTION_LEVEL_STEP_M` als Konstanten.
+
+| Stelle | vorher | jetzt |
+|---|---|---|
+| Kopf der Atmosphären-Ansicht | „ICON-D2 · 08:00 UTC" (fest) | „buscosun Fusion 9 · 09:04 Uhr" (Stand + Abrufzeit), ohne Schnitt nur die Marke |
+| Hinweis über dem Schnitt | „Gitterzellen ≈ 2 km · 333 m" | „5 Wetterpunkte entlang der Linie · Höhenstufen 150 m" |
+| Bildunterschrift Desktop / mobil | „… aus ICON-D2-Druckflächen + DEM" | „buscosun Fusion 9 · Bodenwind an 5 Punkten der Linie, Höhe über Grund nach Potenzgesetz + Gelände (DEM)" |
+| Inversion-Hinweis | „ICON-D2 + DWD-Beobachtung" | Herkunft des Schnitts |
+| Go/No-Go (Desktop, mobil, Text-Export `GoNoGoPanel`, PDF-Bericht) | „Modell ICON-D2, Gitterzellen ≈ 2 km", „Modelllauf" | „Daten: buscosun Fusion 9, 5 Wetterpunkte …", „Abgerufen … · buscosun Fusion 9" |
+| 3D-Ansichten `SectionView`/`TerrainView`/`ThreeDPage` | „Datenstand: ICON-D2 + DEM", „Auflösung ≈ 2 km" | Herkunft + „Gelände (DEM)", Methode |
+| Einstieg `AtmospherePage` | „Aus ICON-D2-Druckflächen …" | „Bodenwind aus buscosun Fusion, Höhenprofil aus ICON-EU-Druckflächen, Gelände (DEM)" (Emagramm/Föhn lesen wirklich ICON-EU) |
+| 3D-Route im Routenplaner (`sourceNote`) | Live-Stacks je Land „DWD (ICON-D2 / MOSMIX …)" — seit E-FR-7 falsch | auf dem Cube „buscosun Fusion 9 (Punkt-Cube + Messungen + Radar)"; live wie bisher (`EnrichmentMeta.pointSource`) |
+
+**V-FR-9 — Land eines Punkts.** `pickCountry` nahm die Länder-Box, in der der Punkt am tiefsten liegt; die AT-Box reicht bis
+49,5° N ⇒ **München, Rosenheim, Kempten, Garmisch** galten als AT (AT-Profil: TAWES statt DWD-Messungen, kein DWD-UV,
+60 h). Am Raster 0,05° über 45–56° N × 5–18° O lagen **919 Punkte in Deutschland falsch in AT (4,7 % der deutschen Fläche)**,
+dazu 124 DE→CH, 72 AT→CH, 135 DE→AT, 15 CH→AT. Jetzt: liegt der Punkt in genau einer Box, wie bisher; wo sich Boxen
+überlappen, entscheidet die Landesgrenze (`public/countries`, erzeugt nach `src/pointForecast/countryBorders.ts` von
+`scripts/gen-country-borders.mjs`, auf die Überlappungs-Rechtecke beschnitten — 1 014 statt 1 716 Punkte, Gerade-Ungerade-Regel
+mit Enklaven Büsingen und Jungholz); außerhalb von DE/AT/CH (Vaduz, Bozen, Straßburg) die Box-Regel. Beschnitten und
+unbeschnitten ändern dieselben 1 265 Rasterpunkte. Wirkt in Routenplaner (Anreicherung, Tourwind), Vertikalschnitt, Talwind,
+Atmosphäre-/3D-Tourimport.
+
+- **V-FR-11 (älter) Niederschlagsgitter der Karte** (`precipComposite.ts`): ordnet jede Zelle mit der Box-Regel einer
+  Radarquelle zu — Südbayern samt München malt INCA statt RADOLAN; der Kommentar dort behauptete das Gegenteil (jetzt
+  richtiggestellt). Bewusst NICHT umgestellt: es ändert die Radarbilder von Wetterkarte und Regenradar und bräuchte eine
+  Nachschlagetabelle statt eines Polygontests je Pixel. Die Box-Regel liegt jetzt als `pickCountryByBox` in
+  `countryProfiles.ts`, damit die Karte die Grenzen nicht lädt. Mehrwert: Südbayern bekommt das DWD-Radar. Skizze: Länderraster
+  einmalig beim Bau (oder als statische Maske), dann `PrecipCompositor` daraus; Pixel-Diff gegen HEAD als Gate.
+- **V-FR-12 (älter)** Kopf der Atmosphären- und der 3D-Ansicht zeigt feste Initialen „JK" (Vorlage) — kein Konto dahinter.
+
+**Wächter** `verify:fusion-release` **27/27**: neu C6 (23 Orte an den Grenzen inkl. Büsingen; Gegenprobe: Box-Regel allein ⇒
+München/Rosenheim AT; Raster: jede Abweichung liegt im gewählten Land, außerhalb von DE/AT/CH unverändert; Grenzdatei
+stammt aus `public/countries` — jeder Punkt ein Quellpunkt oder ein Schnitt mit dem Rechteck) und C7 (kein „ICON-D2" in
+sieben Dateien des Schnitts, mit Gegenprobe; Herkunftstext folgt dem Weg cube/live/gemischt; 3D-Route ebenso).
+`verify:regenradar-profile`: seine HEAD-Referenz des Niederschlagsgitters lud HEADs `precipComposite.ts` gegen das
+AKTUELLE `clustering.ts` ⇒ C1/C2/D1/D2/D6/D7 rot, obwohl das Gitter unverändert ist — die Referenz lädt jetzt auch HEADs
+`clustering.ts`; danach 34/35, offen nur E7 („`src/pointForecast` ohne Diff zu HEAD", Wache der Phase RR — grün nach dem
+Commit, wie bei FR-2).
+
+**Durchlauf im Browser** (Dev-Server :5231): `pickCountry` München/Rosenheim DE, Innsbruck AT; Testtour München → Südwest
+`countries: ['DE']` (vorher `['AT']`), `pointSource: 'fusion'`, UV 1,9–2,6 an allen 6 Abschnitten (vorher keiner);
+Querschnitt München → Süd (48,10/11,45 → 47,70/11,75): Anker `fusion`, Kopf „buscosun Fusion 9 · 09:04 Uhr", Hinweis
+„5 Wetterpunkte entlang der Linie · Höhenstufen 150 m", Bildunterschrift wie oben, Go/No-Go „Daten: buscosun Fusion 9, 5
+Wetterpunkte entlang der Schnittlinie"; auf keiner der beiden Seiten „ICON-D2"; Konsole ohne Fehler und Warnungen.
+
+**Gates:** `verify:fusion-release` 27/27, `verify:route-3d` 589/589, `verify:event-zone` 102/102, `verify:regenradar-profile`
+34/35 (E7 s. o.), `verify:precip-source`/`verify:layer-geometry` grün, typecheck 0, Build grün. Budget: Kontrollbau Worktree
+HEAD `18ab8ca` 1 557,9 gegen HEAD + diese Änderungen (§8.11 + §8.12) 1 564,1 KB = **+6,2** (Grenzdaten ≈ 5,5 im Lazy-Chunk
+`clustering`); Grenze 1 561 → **1 567** mit Notiz (Arbeitsbaum mit der AW-Sitzung 1 566,2); eagerJs 108,9 unverändert.
+
+Die fünf Fragen: (1) Funktionserhalt — nichts entfernt; die Box-Regel bleibt (`pickCountryByBox`). (2) Desktop — nur Texte
+der Atmosphären-/3D-Ansicht geändert (Länge ähnlich), Karte byte-gleich (`verify:regenradar-profile` C1). (3) Touch-Targets
+unberührt. (4) Konsole sauber. (5) Polygontest nur in der Überlappung, je Abfrage ≈ 700 Kanten — kein Long Task.

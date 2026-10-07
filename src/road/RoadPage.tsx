@@ -33,7 +33,7 @@ import RoadReadout from './RoadReadout';
 import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import {
   ROAD_CLASS_COLOR, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
-  searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
+  searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS, DEFAULT_SPEED_KMH,
 } from './roadView';
 import './roadDeck.css';
 
@@ -260,6 +260,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const filtered = useMemo(() => searchCorridors(corridors ?? [], shownById, query), [corridors, shownById, query]);
   const standLabel = obs && !noData ? `Messung ${hm(obs.slotMs)}${freshness === 'stale' ? ' · veraltet' : ''}` : 'keine Messdaten';
   const liveTone = noData || !obs ? 'none' : freshness === 'live' ? 'live' : 'stale';
+  // M5 (D-9): before the first answer the page is loading, not without data.
+  const loadingObs = !load;
+  const dockLoading = { corridors: corrState === 'loading', obs: loadingObs };
   // Overlays cover the map: mobile pill + chips on top, the sheet (design 414 px) at the bottom; desktop band 165 px.
   const padding = isMobile ? { top: 130, bottom: 430, left: 24, right: 24 } : { top: 110, bottom: 232, left: 40, right: 60 };
   const ends = corridor ? corridorEnds(corridor, dir) : null;
@@ -375,10 +378,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
             onClick={() => setSheet((s) => (s === 'open' ? 'peek' : 'open'))}><span /></button>
           <div className="aw-sheet-head">
             <span className="aw-eyebrow is-accent">Strecken-Briefing</span>
-            <span className={`aw-eyebrow is-${liveTone}`}>{liveTone === 'live' ? `Live · ${hm(obs!.slotMs)}` : liveTone === 'stale' ? `veraltet · ${hm(obs!.slotMs)}` : 'keine Messdaten'}</span>
+            <span className={`aw-eyebrow is-${liveTone}`}>{liveTone === 'live' ? `Live · ${hm(obs!.slotMs)}` : liveTone === 'stale' ? `veraltet · ${hm(obs!.slotMs)}` : loadingObs ? 'Messung lädt …' : 'keine Messdaten'}</span>
           </div>
-          <h2 className="aw-sheet-title">{noData ? 'Derzeit keine Messdaten' : coldest ? `Kälteste Stelle: ${coldest.p.n} ${f1(coldest.p.rs as number)} °C` : 'Keine gültige Fahrbahnmessung'}</h2>
-          <p className="aw-sheet-lead">{noData ?? `${nCrit} von ${rows.length} DWD-Anlagen mit Glätte oder Frostgefahr gemessen${corridor?.borders.length ? '; ab der Grenze keine offene Fahrbahnmessung' : ''}.`}</p>
+          <h2 className="aw-sheet-title">{loadingObs ? 'Messung lädt …' : noData ? 'Derzeit keine Messdaten' : coldest ? `Kälteste Stelle: ${coldest.p.n} ${f1(coldest.p.rs as number)} °C` : 'Keine gültige Fahrbahnmessung'}</h2>
+          <p className="aw-sheet-lead">{loadingObs ? 'Die jüngste Messung der DWD-Glättemeldeanlagen wird geladen.' : noData ?? `${nCrit} von ${rows.length} DWD-Anlagen mit Glätte oder Frostgefahr gemessen${corridor?.borders.length ? '; ab der Grenze keine offene Fahrbahnmessung' : ''}.`}</p>
           {corridor && <MiniBand corridor={corridor} byId={shownById} dir={dir} fc={fcCells} fcLabel={fcBandLabel} />}
           {corridor && !noData && (
             <>
@@ -387,13 +390,13 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
                   <button key={s.id} type="button" className="aw-sheet-row" onClick={() => { pickStation(s.id); setTab('station'); }}>
                     <i className={isHatched(p.cls) ? 'is-hatched' : ''} style={!isHatched(p.cls) ? { background: ROAD_CLASS_COLOR[p.cls] } : undefined} />
                     <span><strong>{p.n} · km {Math.round(kmIn(corridor, s.km, dir))}</strong><em>{p.rs != null ? `jetzt ${f1(p.rs)} °C, ${ROAD_CLASS_LABEL[p.cls].label}` : ROAD_CLASS_LABEL[p.cls].label} · gemessen {hm(p.t)}</em></span>
-                    <span className="aw-sheet-eta"><em>an</em><strong>{hm(slot15 + (kmIn(corridor, s.km, dir) / 100) * 3_600_000)}</strong></span>
+                    <span className="aw-sheet-eta" title={`Ankunft bei Abfahrt jetzt am Anfang der Strecke, Ø ${DEFAULT_SPEED_KMH} km/h`}><em>an · Ø {DEFAULT_SPEED_KMH}</em><strong>{hm(slot15 + (kmIn(corridor, s.km, dir) / DEFAULT_SPEED_KMH) * 3_600_000)}</strong></span>
                   </button>
                 ))}
               </div>
               <div className="aw-sheet-actions">
                 <button type="button" className="aw-btn is-primary" onClick={() => { setTab('strecke'); setSheet('open'); }}>Alle {rows.length} Messpunkte</button>
-                <button type="button" className="aw-btn is-auto" onClick={() => { setTab('strecke'); setSheet('open'); }}>Abfahrt {hm(slot15 + departMin * 60_000)}</button>
+                <button type="button" className="aw-btn is-auto" onClick={() => { setTab('strecke'); setSheet('open'); }}>Abfahrt {hm(slot15 + departMin * 60_000)} · Ø {DEFAULT_SPEED_KMH} km/h</button>
               </div>
               {sheet === 'open' && <div className="aw-sheet-readout">{readout}</div>}
             </>
@@ -407,7 +410,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
               <button type="button" onClick={() => setPicker(false)} aria-label="Schließen">✕</button>
             </div>
             <RoadDock corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
-              country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} />
+              country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
           </div>
         )}
       </div>
@@ -428,9 +431,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
           <span className="aw-topdiv" aria-hidden="true" />
           <span className="aw-topbar-sub">Autobahnwetter DACH</span>
           <div className="aw-topbar-right">
-            <span className={`aw-live is-${liveTone}`} role="status"><span className="aw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Live' : liveTone === 'stale' ? 'Veraltet' : 'Keine Daten'}</span>
+            <span className={`aw-live is-${liveTone}`} role="status"><span className="aw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Live' : liveTone === 'stale' ? 'Veraltet' : loadingObs ? 'Lädt' : 'Keine Daten'}</span>
             <span className="aw-topbar-stand">
-              {obs && !noData ? <>Messung <strong>{hm(obs.slotMs)}</strong> · {summary.activeGroups} von {summary.totalGroups} DWD-Reihen</> : 'derzeit keine Messdaten'}
+              {obs && !noData ? <>Messung <strong>{hm(obs.slotMs)}</strong> · {summary.activeGroups} von {summary.totalGroups} DWD-Reihen</> : loadingObs ? 'Messung lädt …' : 'derzeit keine Messdaten'}
               {fcFile && <> · Prognose {fcRun.label}</>}
             </span>
             <ShareButton className="aw-share" text="Teilen" />
@@ -438,7 +441,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
         </header>
         <div className="aw-body">
           <RoadDock corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
-            country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} />
+            country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
           <main className={`aw-map${fcCells ? ' has-fc' : ''}`} aria-label="Karte">
             {map}
             <div className="aw-ov-left">{pill}{times}</div>

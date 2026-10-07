@@ -1564,13 +1564,29 @@ Belege: `audit/autobahnwetter.md` §18. Sieben Commits auf `main` (`a42d516`, `f
 Beleg: `audit/fusion-release.md` §8 (Messung `audit/fusion-release/platform-measure.md`). Stand: gebaut, **uncommitted**, Gates grün;
 Routenplaner **an** (E-FR-7, Jan 06.10.), die übrigen drei Teile **aus** (Messregel §8.4 nicht bestanden).
 
-1. **Ansehen und committen** (Vorschlag `feat(fusion): one entry for every part of the platform (FR-2)`): `fusionForecast.ts`,
-   `FUSION_PARTS` im Register, acht Aufrufe, Wächter C3/C4, Messwerkzeug, `budget.json` (totalJs 1 559). Ohne Schalter byte-gleich.
-2. **E-FR-5 Windrichtung** (V-FR-5): (a) Teile zeigen „keine Richtung" ehrlich — Empfehlung; (b) Einstieg ergänzt die Richtung des
-   Modellmittels, gekennzeichnet (berührt die Ausgabe von buscosun Fusion); (c) Routen-, Event-, Schnitt-Teil bleiben aus.
-3. **E-FR-6 Benachrichtigungen:** trotz K2 kalt (+0,35 s, Hintergrundprüfung) einschalten?
-4. ~~E-FR-7 Routenplaner~~ — **entschieden 06.10.: eingeschaltet** („nutze es einfach“), §8.10. Neu: **V-FR-9** Südbayern wird als AT gerechnet (`pickCountry`, älter als FR-2) — beheben lassen?
-5. Danach je Teil: `on: true` in `FUSION_PARTS`, Push, Deploy-Prüfung im Browser mit dem Teil (Konsole: kein „Rückfall").
+1. ~~Ansehen und committen~~ — FR-2 liegt in `18ab8ca` („update“).
+2. ~~E-FR-5 Windrichtung~~ — **entschieden 07.10.: (a)**, umgesetzt (§8.11): eine fehlende Richtung bleibt fehlend in Schnitt, Talwind,
+   Routenkarte, Tourzeit und 3D-Route; kein Nordpfeil mehr; Wächter C5.
+3. ~~E-FR-6 Benachrichtigungen~~ — **entschieden 07.10.: an** (Ladezeit irrelevant, solange nicht extrem). Eventplaner und Vertikalschnitt
+   ebenfalls an ⇒ **alle vier Teile rechnen buscosun Fusion**.
+4. ~~E-FR-7 Routenplaner~~ — **entschieden 06.10.: eingeschaltet** („nutze es einfach“), §8.10. ~~V-FR-9~~ — **behoben 07.10.** (§8.12):
+   Landesgrenze statt Box-Regel, München/Südbayern wieder DE.
+5. **Commit + Push** (uncommitted, Vorschlag `feat(fusion): event, section and notifications on buscosun Fusion; a missing wind
+   direction stays missing (E-FR-5/6)`): `src/pointForecast/fusion/fusionRelease.ts`, `src/pointForecast/weatherEnrichment.ts`,
+   `src/threed/{buildCrossSection,crossSection,dynamics}.ts`, `src/threed/{SectionChart,SectionView,TerrainMap}.tsx`,
+   `src/atmosphere/{AtmosphereDeck,TalwindPanel}.tsx`, `src/route/{windSampling,tourTiming}.ts`, `src/route/RouteMap.tsx`,
+   `src/route/route3d/{routeSection.ts,RouteTerrainMap.tsx}`, `scripts/verify-fusion-release.mjs`, `scripts/verify-route-3d.mjs`,
+   `audit/fusion-release.md` §8.11. **Nicht** dazu: die Autobahn-Dateien der parallelen Sitzung (§43). Danach Deploy-Prüfung im
+   Browser: Querschnitt, Event, Tour — Konsole ohne „Rückfall“.
+   **Dazu seit §8.12 (V-FR-9/10):** `src/countryProfiles.ts`, `src/pointForecast/clustering.ts`, neu `src/pointForecast/countryBorders.ts`
+   + `scripts/gen-country-borders.mjs`, `src/scalar/precipComposite.ts` (nur Import + Kommentar, Gitter byte-gleich),
+   `src/atmosphere/{AtmospherePage,GoNoGoReport}.tsx`, `src/threed/{GoNoGoPanel,TerrainView,ThreeDPage,goNoGo}.ts(x)`,
+   `src/route/route3d/{model.ts,Route3DView.tsx}`, `scripts/verify-regenradar-profile.mjs`; `budget.json` totalJs 1 567 (meine Notiz
+   hängt an der der AW-Sitzung — dieselbe Datei, beide Commits berühren sie). Vorschlag `fix(fusion): border instead of box for the
+   country of a point, the cross section names buscosun Fusion (V-FR-9/10)`. `verify:regenradar-profile` E7 wird erst nach dem Commit grün.
+6. ~~V-FR-10~~ — **behoben 07.10.** (§8.12): der Schnitt nennt den Stand von buscosun Fusion, die Methode und die echte Auflösung.
+7. **Neu, entscheiden:** **V-FR-11** Niederschlagsgitter der Karte malt Südbayern weiter mit INCA (Box-Regel; Umstellung ändert die
+   Radarbilder — eigene Messung mit Pixel-Diff). **V-FR-12** feste Initialen „JK“ im Kopf von Atmosphäre/3D (Vorlage).
 
 ## 43. Phase AW — Datenprüfung und M6 Stationslage, 2026-10-06/07
 
@@ -1587,8 +1603,17 @@ Nichts committet, nichts gepusht.
    `road/fc/v1/static/points.json` und `geo.json` (`SHA256SUMS` daneben); Achspunkte bytegleich zum Stand `e5597ba`,
    807 Stationspunkte verschoben (p50 71 m, 80 > 2 km). Protokoll wie 06.10. (frischer `origin/main`, nur die zwei Pfade,
    nie force), danach Purge genau dieser zwei `@main`-Pfade. Reihenfolge zu Schritt 1 egal (vorher: Katalog-Stationen
-   stehen schon auf Katalog). Achtung V-AW-39: der erste Lauf danach kann als Wiederholung überspringen.
+   stehen schon auf Katalog). Achtung V-AW-39: der erste Lauf danach kann als Wiederholung überspringen. **07.10.: Jan bat um das Einspielen; der Push ins Daten-Repo wurde vom Berechtigungsfilter der Sitzung abgelehnt — bleibt Jans Schritt.**
 3. **Liste ansehen** (13 Stationen ohne Lage an der eigenen Straße, 10 ohne Straßennummer): je Station Katalog, Meldung
    oder eine eigene Lage festlegen — oder so lassen (Meldelage, „Position nicht bestätigt“).
-4. Offen aus der Datenprüfung (Entscheidung): M1 Füllwerte/Frost hart, M2 unmögliche Werte, M3 Niederschlags-Füllwert,
-   M4 Anker-Filter, M5 Texte, M7 Sägezahn, D-10 vierstellige Straßennummern.
+4. ~~Offen aus der Datenprüfung~~ — **M1–M5 umgesetzt 07.10.2026 (Jans Auftrag), M7 diagnostiziert** (Audit §5.1 und
+   „M7 Diagnose“); uncommitted. **Commit + Push von `main`** (Vorschlag `fix(road): reject device fill values and broken
+   sensors, honest texts (M1–M5)`): `src/road/roadContract.ts`, `RoadReadout.tsx`, `RoadPage.tsx`, `RoadDock.tsx`,
+   `scripts/road/road-derive.mjs`, `road-forecast.mjs`, `scripts/verify-road-contract.mjs`, `verify-road-fc.mjs`,
+   `budget.json` (totalJs 1 561), Audit + `audit/autobahnwetter/datenpruefung/m1-*/m4-*/m5-*/m7-*`. Nicht dazu gehören
+   die Änderungen der parallelen Sitzung (atmosphere, route, threed, fusionRelease, verify-route-3d, verify-fusion-release).
+   Wirkung: Regeln ab dem nächsten Start des Radar-Spiegels (klont `main`), Anker-Filter ab dem nächsten `road-fc`-Lauf,
+   Texte mit dem Deploy. Prüfen danach: im nächsten `road/v1/obs/<slot>.json` `byRule` mit `fillValue`/`precipFill`, keine
+   Klasse `frost` bei Luft > 10 °C; `road-fc-check.mjs` (Kopf `anchored` ≈ 20 weniger als bisher).
+5. **Entscheiden (M7, Sägezahn):** Producer-Kur (3-h/6-h-Quellen vor dem Mitteln auf die Stundenachse) oder PAP 4 in
+   buscosun Fusion (= Fusion 10) — Audit §5 „M7 Diagnose“. Ebenso offen: D-10 (vierstellige Straßennummern), Gate B.

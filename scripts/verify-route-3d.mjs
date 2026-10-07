@@ -1816,7 +1816,9 @@ console.log('\n— Verdrahtung der Gelände-Ansicht (R3D-5) —');
   })());
   add('die Strecke trägt Temperatur, Warnung und Windpfeile',
     /routeSegments\(scene\.columns/.test(rs16) && /warnSegments/.test(rs16) && /windPicks\(scene\.columns/.test(rs16));
-  add('der Pfeil zeigt, WOHIN der Wind weht', /\(c\.windDirDeg \?\? 0\) \+ 180/.test(rs16));
+  // E-FR-5: no arrow from a column without a direction (windPicks filters them) — never a north arrow from `?? 0`.
+  add('der Pfeil zeigt, WOHIN der Wind weht', /\(c\.windDirDeg as number\) \+ 180/.test(rs16)
+    && /c\.windRel != null && c\.windDirDeg != null/.test(rs16) && !/windDirDeg \?\? 0/.test(rs16));
   add('… und ein leerer Pfeil-Layer sagt, dass der Wind zu schwach ist',
     /empty: av\.wind\.any \? 'zu schwach'/.test(rs16)
     && /Unter 4 m\/s schiebt und bremst der Wind nicht/.test(rs16));

@@ -8,7 +8,7 @@
  * can be selected like a station and gets its own card.
  */
 import type { CapAlert } from '../warnings/capAlerts';
-import { ROAD_CLASS_CODE, type RoadH24File, type RoadPoint, type RoadRuleId } from './roadContract';
+import { ROAD_CLASS_CODE, dwdCheckText, type RoadField, type RoadH24File, type RoadPoint, type RoadRuleId } from './roadContract';
 import type { RoadCorridor, RoadFcStationLoad } from './roadClient';
 import { ROAD_CLASS_LABEL, type RoadClass } from './roadClasses';
 import type { RoadTab, RoadTime } from './roadState';
@@ -26,9 +26,35 @@ const DIR_TEXT: Record<string, string> = { N: 'Fahrtrichtung Nord', S: 'Fahrtric
 const RULE_TEXT: Partial<Record<RoadRuleId, string>> = {
   placeholder: 'Platzhalter', stuck: 'hängender Sensor', limit: 'außerhalb der Grenzen', dwdSuspect: 'DWD: zweifelhaft',
   dewAboveAir: 'über der Lufttemperatur', gustBelowWind: 'unter dem Mittelwind', stateNoTemp: 'ohne Fahrbahntemperatur', iceWarm: 'Eis-Code bei Plusgraden',
+  roadAir: 'Fühler defekt, Abgleich mit Nachbaranlagen', fillValue: 'Gerätefüllwert', dewSpread: 'Feuchtefühler defekt', gustNoWind: 'Böe ohne Wind',
+  precipFill: 'Füllwert, kein Niederschlag gemeldet',
 };
+/** M2: observe-mode rules that keep a value but mark it („auffällig“). */
+const OBSERVE_TEXT: Partial<Record<RoadRuleId, string>> = {
+  neighbours: 'weicht stark von den Nachbaranlagen ab', jump: 'springt gegenüber der Messung davor', cube: 'weicht mehr als 8 K vom Modell ab',
+  roadAir: 'liegt mehr als 30 K über der eigenen Luft',
+};
+const FIELD_TEXT: Partial<Record<RoadField, string>> = {
+  rs: 'Fahrbahn', ta: 'Luft', td: 'Taupunkt', rh: 'Feuchte', vis: 'Sicht', wf: 'Wasserfilm', cond: 'Zustand', ws: 'Wind', wg: 'Böe', wd: 'Windrichtung',
+  pt: 'Niederschlagsart', pr: 'Niederschlagsrate', pa: 'Niederschlagsmenge',
+};
+/**
+ * „Plausibilität buscosun: …“ — bestanden only when nothing was rejected and nothing is conspicuous; otherwise which values
+ * were rejected (hard rules, `x`; values without temperature follow their sensor and are not listed) and which kept value
+ * is conspicuous and why (observe rules, `o`, M2).
+ */
+export function plausibilityText(p: Pick<RoadPoint, 'o' | 'x'>): string {
+  const rejected = (Object.entries(p.x ?? {}) as Array<[RoadField, RoadRuleId]>).filter(([, r]) => r !== 'stateNoTemp').map(([f]) => FIELD_TEXT[f] ?? f);
+  const hits = Object.entries(p.o ?? {}) as Array<[RoadField, RoadRuleId]>;
+  const parts: string[] = [];
+  if (rejected.length) parts.push(`verworfen: ${rejected.join(', ')}`);
+  if (hits.length) parts.push(`auffällig: ${hits.map(([f, r]) => `${FIELD_TEXT[f] ?? f} ${OBSERVE_TEXT[r] ?? ''}`.trim()).join('; ')} (Wert gezeigt, nicht verworfen)`);
+  return parts.length ? `Plausibilität buscosun: ${parts.join(' · ')}` : 'Plausibilität buscosun: bestanden';
+}
 
 function precipText(p: RoadPoint): string {
+  // M3: a fill value without type and intensity is no precipitation — say so instead of a bare „verworfen“.
+  if (p.x?.pr === 'precipFill' && !p.x?.pt && !p.pt) return 'kein (Rate war Gerätefüllwert)';
   if (p.x?.pt || p.x?.pr) return 'verworfen';
   if (p.pt == null && p.pr == null) return '—';
   const bit = (n: number) => p.pt != null && Math.floor(p.pt / 2 ** (30 - n)) % 2 === 1;
@@ -61,7 +87,7 @@ export function ringClassCells(ring: RoadH24File | null, id: string, slotMs: num
 const val = (p: RoadPoint, f: keyof RoadPoint, fmt: (v: number) => string) => {
   const v = p[f];
   if (p.x && (p.x as Record<string, RoadRuleId>)[f as string]) return `verworfen (${RULE_TEXT[(p.x as Record<string, RoadRuleId>)[f as string]] ?? 'Prüfung'})`;
-  return typeof v === 'number' ? fmt(v) : '—';
+  return typeof v === 'number' ? `${fmt(v)}${p.o?.[f as RoadField] ? ' · auffällig' : ''}` : '—';
 };
 
 interface ChartProps {
@@ -152,7 +178,7 @@ function Chart({ ring, id, slotMs, fc = [], fromH = -24, toH = 6 }: ChartProps) 
         {fromH < 0 && (
           <>
             <span className={rs.length ? '' : 'is-off'}><i style={{ background: '#2C2A26', height: 2.4 }} />Fahrbahn</span>
-            <span className={ta.length ? '' : 'is-off'}><i style={{ background: '#3A6FA8' }} />Luft 2 m</span>
+            <span className={ta.length ? '' : 'is-off'}><i style={{ background: '#3A6FA8' }} />Luft</span>
             <span className={td.length ? '' : 'is-off'}><i className="is-dash" />Taupunkt</span>
             {cells.length > 0 && <span><i className="is-k" />Leiste: Fahrbahnzustand je 15 min</span>}
           </>
@@ -325,7 +351,8 @@ function StationTab(p: Props) {
   const sub = [s.road ? shieldText(s.road) : null, km != null ? `Korridor-km ${dec(km, 0)}` : s.km != null ? `km ${dec(s.km)}` : null, s.dir ? DIR_TEXT[s.dir] : null, s.h != null ? `${Math.round(s.h)} m ü. NN` : null].filter(Boolean).join(' · ');
   const age = p.slotMs != null ? p.nowMs - s.t : 0;
   const values: Array<[string, string]> = [
-    ['Luft 2 m', val(s, 'ta', (v) => `${f1(v)} °C`)],
+    // M5 (D-6): the SWIS air sensors hang at 4–5 m (0 07 032), not 2 m — the forecast keeps „2 m“.
+    ['Luft', val(s, 'ta', (v) => `${f1(v)} °C`)],
     ['Taupunkt', val(s, 'td', (v) => `${f1(v)} °C`)],
     ['Rel. Feuchte', val(s, 'rh', (v) => `${Math.round(v)} %`)],
     ['Sichtweite', val(s, 'vis', visText)],
@@ -349,7 +376,7 @@ function StationTab(p: Props) {
           <div>
             <div className="aw-eyebrow">Fahrbahn</div>
             <div className="aw-hero-val">{s.rs != null ? `${f1(s.rs)} °C` : '—'}</div>
-            <div className="aw-hero-sub">{s.rs != null ? (s.ns > 1 ? `kältester von ${s.ns} Sensoren · ${f1(s.rs)} … ${f1(s.rsHi ?? s.rs)} °C` : '1 Sensor') : s.x?.rs ? `Fahrbahnwert verworfen (${RULE_TEXT[s.x.rs] ?? 'Prüfung'})` : 'keine Fahrbahntemperatur gemeldet'}</div>
+            <div className="aw-hero-sub">{s.rs != null ? `${s.ns > 1 ? `kältester von ${s.ns} Sensoren · ${f1(s.rs)} … ${f1(s.rsHi ?? s.rs)} °C` : '1 Sensor'}${s.o?.rs ? ` · auffällig: ${OBSERVE_TEXT[s.o.rs] ?? 'Prüfung'}` : ''}` : s.x?.rs ? `Fahrbahnwert verworfen (${RULE_TEXT[s.x.rs] ?? 'Prüfung'})` : 'keine Fahrbahntemperatur gemeldet'}</div>
           </div>
           <div className={`aw-badge${hatched ? ' is-hatched' : ''}`} style={!hatched ? { background: ROAD_CLASS_COLOR[s.cls], color: ROAD_CLASS_INK[s.cls] } : undefined}>{classBadge(s)}</div>
         </div>
@@ -390,7 +417,8 @@ function StationTab(p: Props) {
       )}
 
       <div className="aw-sources">
-        {s.q === 'ok' ? 'Prüfung des DWD: durchgeführt, nichts beanstandet' : 'Prüfung des DWD: nicht durchgeführt (DWD-Flag)'} · Plausibilität buscosun: bestanden
+        {/* M5 (D-7): the DWD check from the raw flag; slots written before `qf` know only „0“ (ok) and the rest. */}
+        {s.qf !== undefined ? dwdCheckText(s.qf) : s.q === 'ok' ? dwdCheckText(0) : dwdCheckText(null)} · {plausibilityText(s)}
         {s.f?.includes('noCatalog') ? ' · Position aus der Meldung (nicht im DWD-Stationskatalog)' : ''}
         {s.f?.includes('posCatalog') ? ' · Position aus dem DWD-Stationskatalog — die Meldung nennt eine Stelle abseits dieser Straße' : ''}
         {s.f?.includes('posUnverified') ? ' · Position nicht bestätigt: weder Meldung noch Katalog liegen an dieser Straße' : ''}<br />
@@ -429,7 +457,7 @@ function StreckeTab(p: Props) {
       <div className="aw-card">
         <div className="aw-eyebrow is-accent">Strecken-Briefing</div>
         <h2 className="aw-station-name is-small">{corridorRouteText(c, p.dir)}</h2>
-        <div className="aw-station-sub">{c.shields.join(' · ')} · {dec(c.lengthKm, 0)} km · DE</div>
+        <div className="aw-station-sub">{c.shields.join(' · ')} · {dec(c.lengthKm, 0)} km · {c.countries.join(' · ')}</div>
         <div className="aw-depart">
           <span>Abfahrt</span>
           <button type="button" aria-label="30 Minuten früher" disabled={p.departOffsetMin <= 0} onClick={() => p.onDepart(-30)}>−</button>

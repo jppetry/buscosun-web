@@ -28,6 +28,7 @@ import { bearingAtDist, headwindComponentMps } from '../windEffect';
 import type { SampleETA } from '../tourTiming';
 import type { Terrain, TourPoint } from '../tourTrack';
 import type { Country } from '../../types';
+import { FUSION_NAME, fusionSourceText, type FusionSource } from '../../pointForecast/fusion/fusionRelease';
 
 /** m/s → km/h. */
 const MS_TO_KMH = 3.6;
@@ -661,9 +662,13 @@ export function resolutionChip(terrain: Terrain): string {
 
 /**
  * B2/E5 — welche Quellen tatsächlich beteiligt sind. Bei Grenztouren sind es
- * zwei Stacks; ein einzelnes Modell zu nennen wäre falsch.
+ * zwei Stacks; ein einzelnes Modell zu nennen wäre falsch. Seit FR-2 rechnet der
+ * Routenplaner buscosun Fusion (`pointSource` 'fusion') — dann nennt die Zeile
+ * den Stand; die Länder-Stacks gelten nur für den Live-Pfad (V-FR-10).
  */
-export function sourceNote(countries: Country[]): string {
+export function sourceNote(countries: Country[], pointSource: FusionSource | null = 'live'): string {
+  if (pointSource === 'fusion') return `${FUSION_NAME} (Punkt-Cube + Messungen + Radar)`;
+  if (pointSource === 'mixed') return `${fusionSourceText('mixed')}`;
   const label: Record<Country, string> = {
     DE: 'DWD (ICON-D2 / MOSMIX + Live + RADOLAN)',
     AT: 'GeoSphere (AROME + INCA + TAWES)',

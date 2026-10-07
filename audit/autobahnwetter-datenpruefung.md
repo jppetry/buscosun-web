@@ -276,10 +276,112 @@ AK Hagen 6 km), der Marker für die 12 der zweiten Zeile an falscher Stelle.
 **M7 Sägezahn (D-8):** nur Diagnose (welche Quelle liefert die Werte zu den synoptischen Stunden an den betroffenen
 Punkten) — buscosun Fusion/Producer, Jans Gate.
 
+**M7 Diagnose (07.10.2026, nur gelesen, kein Code geändert):**
+
+*Noch da.* Lauf `2610070105` (buscosun Fusion 9, t1 `2026100621`, t2 `2026100618`, 4 523 Punkte; Skript
+`datenpruefung/m7-curv.mjs`): Einbrüche > 2 K (t(i) − Mittel der Nachbarstunden) liegen um **06 UTC 30 + 8 (07 UTC)**,
+**18 UTC 32 + 6 (19 UTC)**, dazu 00/03/21 UTC je 5–7; 12 UTC keiner. Alle Schritte Herkunft-Code 0 (t1 nativ).
+Schlimmste: P890 Siegsdorf 18 UTC 13,4 · **5,5** · 11,7, a8@70 06 UTC 9,7 · **5,4** · 12,7, P876 06 UTC, a49@45 18 UTC
+17,8 · **11,4** · 13,2 — v. a. Chiemgau/Alpenvorland, Bodensee, aber auch Nordhessen.
+
+*Nachgerechnet.* Der Punkt über die io des Producers (`makeIo` + `getPointForecastFromCube`, Stufe fs, Daten von
+raw.githubusercontent; `datenpruefung/m7-point.mjs`) gibt den veröffentlichten Wert wieder (P890 06 UTC 3,9 / 18 UTC 5,4
+gegen 3,9 / 5,5). Der Einbruch steckt schon im **Cube-Member nach PAP 3–5** (P890 18 UTC 12,9 · **4,6** · 11,3); die
+Lernstufe legt nur +0,4…+0,8 K gleichmäßig darauf. Die **rohe Zelle** des Cubes (`point:read`, t1 Zelle 47,85/12,65) hat
+ihn dagegen kaum: 15,4 · 13,7 · 13,0 (06 UTC 9,7 · 10,1 · 13,1).
+
+*Ursache — gemessen, nicht angenommen.* Die Ebene `hModEff` (Mittel der Modellhöhen der beitragenden Quellen) springt an
+genau diesen Schritten: an P890 667 m stündlich, **727 m** um 03/09/15/21 UTC (IFS, ICON-CH1 dazu) und **752 m** um
+00/06/12/18 UTC (zusätzlich AIFS; Modellhöhen ifs_hres 896 m, aifs_single 852 m gegen icon_d2 648 m) — das ist der
+Quellmix aus V-FI-104. Das Inversionsprofil (`gammaEff/zBase/zInv/dTInv`) kommt dagegen stündlich aus EINER Quelle, der
+feinsten (ICON-D2, `build-point-cube.mjs` „Profilfelder"), `zBase` = 658 m. PAP 4 (`vertical.ts`) rechnet
+T = T̄ + P(h_true) − P(hModEff): steht hModEff wie um 18 UTC (752 m) **über** der ICON-D2-Inversionsobergrenze (720 m),
+wird T̄ wie ein Wert am Inversionsdach behandelt und die ganze Inversion (4,77 K) plus die Fortsetzung in die Mulde
+(Fall C, 49 m · 77 K/km) abgezogen: Δ = −3,77 − 4,75 = **−8,5 K** (von Hand und im Skript gleich). Mit hModEff 667 m
+wären es −4,5 K, eine Stunde davor/danach −2,7 / −2,0 K. Nachts und abends (Bodeninversion) wirkt das, mittags (keine
+Inversion, Fall A) nicht — daher 06/18 statt 12 UTC.
+
+*Zerlegung an den 14 schlimmsten Punkten* (`datenpruefung/m7-decomp.mjs`, Gegenrechnung mit hModEff je Punkt fest auf
+dem stündlichen Wert = Median der Achse): 47 Einbrüche > 2 K, **44 davon an Schritten mit hModEff-Sprung** (die sind
+33 % aller Schritte). Krümmung dort im Mittel: Ausgabe −3,45 K, Cube-Member −3,84 K, **mit festem hModEff −1,88 K**, rohes
+T̄ −1,51 K. Also: rund die Hälfte ist der Quellmix-Sägezahn im Cube-Mittel selbst (V-FI-104), die andere Hälfte macht
+erst buscosun Fusion daraus, weil PAP 4 den gesprungenen hModEff gegen ein Profil einer anderen Quelle rechnet. In
+Alpentälern (V048 und a95@68,3 mit Zellhöhe 300–400 m über dem Punkt, P784) liegt der Einbruch ganz im rohen T̄
+(−3…−5 K: die groben Modelle mischen andere Tal-Temperaturen ein). Drei Einbrüche ohne Sprung (P871 und P239 19 UTC)
+kommen aus einer dünnen, steilen Abend-Inversion des ICON-D2-Profils (Γ_inv bis ≈ 77 K/km, Fall C).
+
+*Gegen V-FI-104:* gleiche Wurzel (wechselnde Zusammensetzung der t1-Stunde), aber hier **größer**: V-FI-104 maß am
+Archiv den Rest gegen die Nachbarstunden mit 0,76 K (Betrag, nach Standard-Lapse), hier 3–8 K, weil die Verstärkung
+durch PAP 4 bei Inversionen dazukommt — das hat V-FI-104 nicht gemessen (dort ohne Profil gerechnet). Annahme, nicht
+geprüft: dieselbe Kette rechnet im Browser (Panel, Dashboard, Routenplaner — die Streckenprognose nimmt „die Kette des
+Clients", `road-forecast.mjs` Kopf), der Sägezahn steht also auch dort.
+
+*Was es beheben würde (Jans Gate, nichts geändert):*
+1. **Producer, V-FI-104 Kur (a):** 3-h/6-h-Quellen vor dem Mitteln auf die Stundenachse interpolieren (oder nur in
+   σ_div zählen) — dann sind T̄ und hModEff je Punkt über die Stunden konstant zusammengesetzt; beseitigt beide Hälften.
+   Ort `build-point-cube.mjs` (Join), wirkt nach Push auf jeden Cube-Lauf; messbar mit `m7-curv.mjs` vor/nach.
+2. **buscosun Fusion, PAP 4 (STOPP & Jan):** das Profil nur gegen die Höhe seiner eigenen Quelle anwenden (Bezug
+   zBase/Modellboden der Profilquelle) und den Höhenunterschied hModEff ↔ Profilquelle mit Γ_eff rechnen, statt T̄ an
+   einem gesprungenen hModEff ins Inversionsdach zu legen. Gegenrechnung oben (hModEff fest): Krümmung −3,84 → −1,88 K.
+   Ändert die Kette ⇒ neue Nummer (Fusion 10), Messung am Prüfstand.
+3. Nebenpunkt: Γ_inv der Fall-C-Fortsetzung begrenzen (heute nur die Tiefe, V-FI-15) — betrifft die drei Fälle ohne Sprung.
+
 Reihenfolge: M1 → M3 → M5 → M2 → M6 → M4 → M7. M1–M3 ändern den Vertrag `roadContract.ts` (Producer UND Client, je
 Slot sofort wirksam nach Push), mit vorher roten Fällen im Verifier (`verify:road-contract`) aus den echten Werten oben.
 
+### 5.1 Umsetzung M1–M5 (Jan 07.10.2026: „danach setze M1–M5 und M7 um“; uncommitted)
+
+M7 ist nach seiner Definition Diagnose (oben); die Behebung berührt Producer bzw. buscosun Fusion = Jans Gate.
+
+| Nr | Umsetzung | Ort |
+|---|---|---|
+| M1 | `roadAir` **hart**: Fahrbahn < Luft − 12 K oder > Luft + 30 K ⇒ der Fühler fällt, der nicht zu den Nachbarn passt (`roadNeighbourStat`: 25 km, gleiche 300-m-Höhenklasse, ≥ 3, Band max(8·MAD, 8 K), Rohwerte nach Platzhalter/Grenzen). Fahrbahn passt, Luft nicht ⇒ Luft + Taupunkt (N443, M080); sonst die Fahrbahn; > +30 K ohne Nachbarn nur beobachtet. Neu `fillValue`: Fahrbahn genau 0,00/−1,00 bei Luft ≥ 5 K wärmer (R-b) bzw. Fahrbahn = Luft = Taupunkt genau 0,00/−1,00 (R-c). Tauplateau der Hänger-Regel höchstens 48 Slots (12 h, `set`) | `roadContract.ts` |
+| M2 | `dewSpread` (Luft − Taupunkt > 25 K Okt–Apr, > 30 K Mai–Sep ⇒ Taupunkt + Feuchte), `gustNoWind` (Böe > 40 m/s bei Wind < 10 m/s). Beobachtungsregeln (`neighbours`, `jump`, `cube`, `roadAir` ohne Nachbarn) markieren den gezeigten Wert im Punkt (`o`: Feld → Regel); die Seite schreibt „auffällig: …“ statt „bestanden“, bei harten Verwürfen „verworfen: <Felder>“ | `roadContract.ts`, `RoadReadout.tsx` |
+| M3 | `precipFill`: Rate > 0 ohne Intensität > 0 (0 20 024) und ohne Art (0 20 021) ⇒ verworfen; Anzeige „kein (Rate war Gerätefüllwert)“. Der Derive reicht `precipIntensity` durch; Aufrufer ohne das Feld werden nicht beurteilt | `roadContract.ts`, `road-derive.mjs`, `RoadReadout.tsx` |
+| M4 | Anker der Streckenprognose: eine Station mit Marke `o` im Anker-Slot verankert nicht (weder sich noch als Nachbar); verworfene Luft ist ohnehin `null` | `road-forecast.mjs` (`swisTable`) |
+| M5 | „Luft“ statt „Luft 2 m“ bei Messwerten (Prognose bleibt 2 m); DWD-Prüftext aus dem Flag `qf` (0 33 005, neu im Punkt) mit WMO-Bitnamen (`dwdCheckText`: fehlt ⇒ „unbekannt“, Bit 1 ⇒ „nicht durchgeführt“, sonst „durchgeführt, beanstandet: …“); Höhe 0 m ⇒ Katalog, sonst keine (`elevOf`); Briefing nennt `corridor.countries` statt „DE“; Ladezustand „lädt“ in Topbar, Blatt und Dock; mobil „an · Ø 100“ und „Abfahrt … · Ø 100 km/h“ | `roadContract.ts`, `road-derive.mjs`, `RoadReadout.tsx`, `RoadPage.tsx`, `RoadDock.tsx` |
+
+Neue Felder im Punkt (`o`, `qf`) sind optional; ein älterer Client ignoriert sie, der neue Client liest ältere Slots
+(ohne `qf`: „nichts beanstandet“ bei Herkunft `ok`, sonst „unbekannt“). Kein Format-Bump.
+
+**Messungen (Belege, Skripte in `datenpruefung/`):**
+
+- *Echter Slot 06.10. 19:00 UTC*, DWD-Originale, alter gegen neuen Vertrag (`m1-ab-slot.mjs`) und echter Derive:
+  Frostgefahr **7 → 0** (C500, H267, H488, H637, H691, K677, V528 — alles Gerätefehler), Glätte 0 → 0; Niederschlag
+  **76 Füllwerte verworfen, 8 Raten bleiben** (A041, B338, B773, E368, P731, P819, P837, P961); `roadAir` 12, `dewSpread`
+  10, `gustNoWind` 2 (P415, P595), `fillValue` 1; Anteil verworfen 1,06 → 2,05 % (Sperre 10 %), Slot veröffentlicht,
+  Rundlauf gut; 6 Punkte „auffällig“ (Nachbarn); P970/P780 jetzt 710/645 m statt 0 m.
+- *Archiv 03.10. 00 UTC – 06.10. 12 UTC* (336 Slots, 1,21 Mio. Werte, Zustand je Slot verkettet; `m1-archiv-replay.mjs`):
+  **144 von 145** Frost-/Glätte-Zuständen fallen (übrig E751 Lahe, −1,3 bei Luft 9,3 — wie vorab gemessen), Slot-Anteil
+  zusätzlich verworfen höchstens **0,44 %**. `roadAir` 1 805 an 15 Stationen — jede einzeln angesehen: Fahrbahn 42–75 °C
+  bei Nachbarn 12–31 °C (E237, E774, P003, P814, P478, P619, M821), −20/−30 °C (E108), 0,2 °C bei Luft 14 (V528), Luft
+  −30/−23/+1/+42 °C bei normaler Fahrbahn (H418, M080, Q244, N443, P837, H172); kein Fall mit plausibler Messung.
+- *M4 am Slot 19:00* gegen Lauf `2610061831` (`m4-anker.mjs`): **19 von 1 239** Stationen verankern nicht mehr —
+  Q983/H462 Luft −30 °C (Versatz −43,7/−42,6 K), M080 −26,6 K, drei Luft = 0,00 °C (V516, Q463, V515: −14…−16 K, vom
+  `cube` markiert), E080 +13,1 K, N443, acht weitere vom `cube` markierte, sechs mit auffälliger Fahrbahn
+  (Versatz 0,3–3,4 K). Verbleibende Anker |Versatz| p50 1,6 / p99 6,6 / max 7,7 K. Ein Backtest gegen die späteren
+  Messungen derselben Stationen ist hier nicht aussagekräftig (ihre „Wahrheit“ ist der defekte Fühler) — benannt.
+- *Seite* (lokaler Bau, echter Slot per Umleitung auf die aktuelle Zeit gelegt): Irxleben „Luft verworfen (Fühler
+  defekt, Abgleich mit Nachbaranlagen)“, „Plausibilität buscosun: verworfen: Luft, Taupunkt“
+  (`datenpruefung/m1-irxleben-luft-verworfen.png`); E237 „auffällig: Fahrbahn weicht stark von den Nachbaranlagen ab“
+  (`m2-auffaellig-e237.png`); P970 „Prüfung des DWD: durchgeführt, beanstandet: Bodentemperatur (Tiefe 4), Eisansatz,
+  reservierte Bits“; K275 „Niederschlag kein (Rate war Gerätefüllwert)“; mobil `m5-mobil-laedt.png`, `m5-mobil-ankunft.png`.
+
+**Gates:** `verify:road-contract` **93/93** (neu D10b/D11b/D12/M1…M5c/E7; Gegenprobe: dieselbe Datei gegen den Vertrag
+von HEAD 72/93 — alle 21 neuen Fehlerfälle rot, die Gegenproben echte 0 °C, Nebel 9,4/9,4/9,4, Juli-Trockenheit, Sturm,
+echte Raten grün), `verify:road-fc` **103/103** (J1b mit Gegenprobe leeres `o`), `verify:road-derive` 36/36,
+`verify:road-positions` 23/23, `verify:road-archive` 26/26, `verify:road-decode` 15/15, `verify:road-ui` 64/64,
+`verify:fusion-release` 20/20, typecheck 0, Build 252/252, Budget grün nach Anhebung totalJs 1 559 → 1 561 (gemessen per
+Kontrollbau HEAD: RoadPage +1,94 KB gzip, lazy; eagerJs unverändert).
+
+**Offen / bewusst nicht gemacht:** Luft genau 0,00 °C ohne gleiche Fahrbahn (V516, Q463, V515) bleibt nur markiert —
+eine Regel dafür ist nicht am Archiv gemessen; D-10 (vierstellige Straßennummern) war nicht Teil des Auftrags; der
+Nebenfund `?st=` ohne Korridor öffnet A 8 ist älter (D-9). Gate B (Beobachtungsregeln kalibrieren) bleibt
+offen — `roadAir` ist mit diesem Auftrag vorgezogen hart.
+
 ## 6. Vorschläge (V-AW, nicht umgesetzt — Entscheidung Jan)
+
+> Stand 07.10.2026: V-AW-40, -41, -42, -43, -45 (ohne Fühlerhöhe) und -46 sind mit M1–M5 umgesetzt (§5.1), V-AW-44 mit M6 (§5 M6b).
 
 | Nr | Vorschlag | Mehrwert | Skizze |
 |---|---|---|---|

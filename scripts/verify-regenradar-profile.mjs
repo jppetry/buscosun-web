@@ -99,7 +99,15 @@ mkdirSync(WORK, { recursive: true });
 async function loadHeadCompositor() {
   const src = execFileSync('git', ['show', 'HEAD:src/scalar/precipComposite.ts'], { encoding: 'utf8', maxBuffer: 1 << 24 });
   const base = resolve('src/scalar');
-  const rewritten = src.replace(/from '(\.{1,2}\/[^']+)'/g, (_m, spec) => `from '${pathToFileURL(resolve(base, spec)).href}.ts'`);
+  // The country partition is part of the reference: HEAD's `clustering.ts` too (V-FR-9 changed `pickCountry` in the working
+  // tree; the composite keeps the box rule as `pickCountryByBox` — the reference must not pick up the new function).
+  const clSrc = execFileSync('git', ['show', 'HEAD:src/pointForecast/clustering.ts'], { encoding: 'utf8', maxBuffer: 1 << 24 });
+  const clBase = resolve('src/pointForecast');
+  const clFile = resolve(WORK, 'head-clustering.ts');
+  writeFileSync(clFile, clSrc.replace(/from '(\.{1,2}\/[^']+)'/g, (_m, spec) => `from '${pathToFileURL(resolve(clBase, spec)).href}.ts'`));
+  const rewritten = src.replace(/from '(\.{1,2}\/[^']+)'/g, (_m, spec) => (spec === '../pointForecast/clustering'
+    ? `from '${pathToFileURL(clFile).href}'`
+    : `from '${pathToFileURL(resolve(base, spec)).href}.ts'`));
   const file = resolve(WORK, 'head-precipComposite.ts');
   writeFileSync(file, rewritten);
   return (await import(pathToFileURL(file).href)).PrecipCompositor;

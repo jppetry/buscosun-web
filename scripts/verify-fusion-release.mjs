@@ -203,6 +203,70 @@ const NAME_RE = /buscosun Fusion \d/;
   try { await ff.getFusionForecast({ lat: 0, lng: 0, country: 'AT', hours: 8 }, 'route', { path: 'cube' }); } catch (e) { aborted = e?.name === 'AbortError'; }
   add('C4 Cube-Aufruf des Einstiegs: Stufe mit Radar (includeRadarNowcast), pointSource cube, Stunden des Teils; außerhalb DE kein UV-Abruf; ein Abbruch fällt NICHT auf live zurück',
     seen[0]?.pointSource === 'cube' && seen[0]?.includeRadarNowcast === true && seen[0]?.hours === 36 && got.query.country === 'AT' && !got.sourcesAvailable.includes('dwd_uv') && aborted && seen.length === 2);
+  // C5 (E-FR-5, Jan 07.10.2026, option a): an hour without a wind direction stays without one — no part reads a missing direction
+  // as 0° (= north wind). Source guard with counter-probe, the self-tests of the section, the time interpolation of an anchor.
+  const ZERO_DIR = /\bwindDir\w*\s*\?\?\s*0(?![.\d])/g;
+  const zeroProbe = codeOf("a = h.windDirection ?? 0;\nb = m.windDirectionDeg ?? 0.5;\nc = x.windDirDeg ?? null;\n// d = h.windDirection ?? 0").match(ZERO_DIR) ?? [];
+  add('C5 Gegenprobe: das Muster trifft „Richtung ?? 0", nicht ?? 0.5, nicht ?? null, nicht im Kommentar', zeroProbe.length === 1, zeroProbe.join(' | '));
+  const zeroHits = FILES.filter((p) => p.startsWith('src/')).flatMap((p) => (codeOf(src(p)).match(ZERO_DIR) ?? []).map((m) => `${p}: ${m}`));
+  add('C5 kein Teil liest eine fehlende Windrichtung als 0° (Nordwind)', zeroHits.length === 0, zeroHits.join(', '));
+  const { verifyCrossSection } = await import('../src/threed/crossSection.ts');
+  const { verifyDynamics } = await import('../src/threed/dynamics.ts');
+  const { sampleAnchorAt } = await import('../src/threed/buildCrossSection.ts');
+  const vcs = verifyCrossSection(), vdy = verifyDynamics();
+  add('C5 Selbsttests Schnitt + Föhn/Talwind grün (mit den Fällen ohne Richtung)', vcs.failed === 0 && vdy.failed === 0 && vcs.checks.some((c) => c.case.startsWith('ohne Richtung')) && vdy.checks.some((c) => c.case.includes('ohne Richtung')),
+    [...vcs.checks, ...vdy.checks].filter((c) => !c.ok).map((c) => c.case).join(', ') || `${vcs.passed + vdy.passed} Fälle`);
+  const ts = (k, dir) => ({ tMs: k * H, windKmh: 10 + k, windDirDeg: dir, gustKmh: 20, tempC: 5, cloudPct: 0, humidityPct: 50, cloudLowPct: 0, cloudMidPct: 0, cloudHighPct: 0 });
+  const anc = { distanceM: 0, lat: 47, lon: 11, elevM: 600, hours: [ts(0, 270), ts(1, null), ts(2, 90)] };
+  const s1 = sampleAnchorAt(anc, 0.25 * H), s2 = sampleAnchorAt(anc, 0.75 * H), s3 = sampleAnchorAt(anc, 1 * H), s4 = sampleAnchorAt({ ...anc, hours: [] }, 0);
+  add('C5 Anker über die Zeit: Betrag linear, Richtung der näheren Stunde oder keine; ohne Stunden keine Richtung',
+    Math.abs(s1.windKmh - 10.25) < 1e-9 && s1.windDirDeg === 270 && s2.windDirDeg === null && s3.windDirDeg === null && s4.windDirDeg === null, `${s1.windDirDeg}/${s2.windDirDeg}/${s3.windDirDeg}/${s4.windDirDeg}`);
+
+  // C6 (V-FR-9, §8.12): the country of a point decides the sources of every part (measurements, UV, horizon). Where the country
+  // boxes overlap the border decides; elsewhere the box rule stays. Counter-probe: the box rule alone puts Munich into AT.
+  const cl = await import('../src/pointForecast/clustering.ts');
+  const { COUNTRY_BORDERS, COUNTRY_BORDER_CLIP } = await import('../src/pointForecast/countryBorders.ts');
+  const PLACES = [
+    ['München', 48.137, 11.575, 'DE'], ['Garmisch-Partenkirchen', 47.492, 11.095, 'DE'], ['Passau', 48.574, 13.431, 'DE'], ['Rosenheim', 47.856, 12.128, 'DE'],
+    ['Berchtesgaden', 47.631, 13.002, 'DE'], ['Lindau', 47.546, 9.684, 'DE'], ['Konstanz', 47.660, 9.175, 'DE'], ['Lörrach', 47.614, 7.664, 'DE'],
+    ['Büsingen (Enklave in CH)', 47.697, 8.690, 'DE'], ['Regensburg', 49.013, 12.101, 'DE'], ['Hamburg', 53.551, 9.993, 'DE'],
+    ['Innsbruck', 47.269, 11.404, 'AT'], ['Salzburg', 47.800, 13.044, 'AT'], ['Kufstein', 47.583, 12.170, 'AT'], ['Bregenz', 47.503, 9.747, 'AT'],
+    ['Schärding', 48.457, 13.432, 'AT'], ['Linz', 48.306, 14.286, 'AT'], ['Wien', 48.208, 16.373, 'AT'],
+    ['Zürich', 47.377, 8.540, 'CH'], ['Basel', 47.560, 7.588, 'CH'], ['Kreuzlingen', 47.650, 9.175, 'CH'], ['St. Gallen', 47.424, 9.376, 'CH'], ['Davos', 46.802, 9.836, 'CH'],
+  ];
+  const wrong = PLACES.filter(([, la, lo, c]) => cl.pickCountry(la, lo) !== c);
+  add(`C6 Land je Ort an den Grenzen (${PLACES.length} Orte DE/AT/CH, mit Enklave)`, wrong.length === 0, wrong.map(([n, la, lo]) => `${n} → ${cl.pickCountry(la, lo)}`).join(', '));
+  add('C6 Gegenprobe: die Box-Regel allein rechnet München und Rosenheim als AT (der Fehler, den C6 abfängt)', cl.pickCountryByBox(48.137, 11.575) === 'AT' && cl.pickCountryByBox(47.856, 12.128) === 'AT');
+  // Grid 45–56° N × 5–18° O, 0,05°: every point where the result differs from the box rule lies inside the chosen country;
+  // points outside all three countries (Vaduz, Bozen, Strasbourg) keep the box rule.
+  let changed = 0, outsideOwn = 0, n = 0;
+  for (let la = 45; la <= 56; la += 0.05) for (let lo = 5; lo <= 18; lo += 0.05) {
+    n++; const a = cl.pickCountry(la, lo), b = cl.pickCountryByBox(la, lo);
+    if (a !== b) { changed++; if (!cl.inCountry(a, la, lo)) outsideOwn++; }
+  }
+  const outside = [[47.141, 9.521], [46.498, 11.354], [48.573, 7.752]].every(([la, lo]) => cl.pickCountry(la, lo) === cl.pickCountryByBox(la, lo));
+  add('C6 Raster 0,05°: jede Abweichung von der Box-Regel liegt im gewählten Land; außerhalb von DE/AT/CH die Box-Regel', outsideOwn === 0 && changed > 0 && outside, `${changed} von ${n} Punkten anders (Überlappung der Boxen)`);
+  const geo = (c) => { const f = JSON.parse(src(`public/countries/${c}.geojson`)); const polys = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates]; return new Set(polys.flat().flat().map(([x, y]) => `${Math.round(x * 1e4)},${Math.round(y * 1e4)}`)); };
+  const onClip = (c, x, y) => { const [x0, y0, x1, y1] = COUNTRY_BORDER_CLIP[c].map((v) => Math.round(v * 1e4)); return Math.abs(x - x0) <= 1 || Math.abs(x - x1) <= 1 || Math.abs(y - y0) <= 1 || Math.abs(y - y1) <= 1; };
+  const notFromSource = ['DE', 'AT', 'CH'].flatMap((c) => { const s = geo(c); const miss = []; for (const r of COUNTRY_BORDERS[c]) for (let i = 0; i < r.length; i += 2) if (!s.has(`${r[i]},${r[i + 1]}`) && !onClip(c, r[i], r[i + 1])) miss.push(c); return miss; });
+  add('C6 countryBorders.ts ist aus public/countries erzeugt (jeder Punkt ein Punkt der Quelle oder ein Schnitt mit dem Rechteck der Überlappung, gen-country-borders.mjs)', notFromSource.length === 0 && ['DE', 'AT', 'CH'].every((c) => COUNTRY_BORDERS[c].length > 0), `${notFromSource.length} fremde Punkte`);
+
+  // C7 (V-FR-10, §8.12): the section and the route stack name what they computed — the stand of buscosun Fusion, or the live
+  // fallback; no part calls itself ICON-D2 (the cut never read pressure levels). Counter-probe on the pattern.
+  const fr = await import('../src/pointForecast/fusion/fusionRelease.ts');
+  const { sourceNote } = await import('../src/route/route3d/model.ts');
+  const ORIGIN_FILES = ['src/atmosphere/AtmosphereDeck.tsx', 'src/atmosphere/GoNoGoReport.tsx', 'src/atmosphere/AtmospherePage.tsx', 'src/threed/SectionView.tsx', 'src/threed/TerrainView.tsx', 'src/threed/GoNoGoPanel.tsx', 'src/threed/ThreeDPage.tsx'];
+  const D2 = /ICON-D2/;
+  const d2Probe = [codeOf("const a = 'aus ICON-D2-Druckflächen';"), codeOf('// ICON-D2 im Kommentar')].map((t) => D2.test(t));
+  add('C7 Gegenprobe: das Muster trifft „ICON-D2" im Text, nicht im Kommentar', d2Probe[0] && !d2Probe[1]);
+  const d2Hits = ORIGIN_FILES.filter((p) => D2.test(codeOf(src(p))));
+  add(`C7 Schnitt, Go/No-Go, 3D und Einstieg nennen kein ICON-D2 mehr (${ORIGIN_FILES.length} Dateien)`, d2Hits.length === 0, d2Hits.join(', '));
+  add('C7 Herkunft folgt dem Weg: alles Cube ⇒ neuester Stand, alles live ⇒ „Live-Punktvorhersage", gemischt ⇒ beides; 3D-Route ebenso, live mit den Länder-Stacks',
+    fr.fusionSourceOf([{ cube: {} }, { cube: {} }]) === 'fusion' && fr.fusionSourceOf([{}, null]) === 'live' && fr.fusionSourceOf([{ cube: {} }, {}]) === 'mixed' && fr.fusionSourceOf([null]) === null
+    && fr.fusionSourceText('fusion') === FUSION_NAME && fr.fusionSourceText('live') === 'Live-Punktvorhersage' && fr.fusionSourceText('mixed').startsWith(FUSION_NAME) && fr.fusionSourceText(null) === FUSION_BRAND
+    && sourceNote(['DE'], 'fusion').startsWith(FUSION_NAME) && !sourceNote(['DE'], 'fusion').includes('ICON-D2') && sourceNote(['DE'], 'live').includes('DWD'),
+    sourceNote(['DE', 'AT'], 'fusion'));
+
   add('C2 Texte der Streckenprognose: der Producer schreibt den neuesten Stand in den Quelltext (roadFcSourceText(FUSION_NAME)), der Vertrag selbst nennt ohne Datei nur die Marke (er lädt das Register nicht — Archiv-Job, V-AW-35); die Seite nennt den Stand der DATEI (älter ⇒ ältere Nummer)',
     roadFcSourceText(FUSION_NAME).startsWith(FUSION_NAME + ' ') && ROAD_FC_SOURCE_TEXT.startsWith(FUSION_BRAND + ' auf') && roadFcEngineName({ engine: { name: fusionName(FUSION_CURRENT - 1) } }) === fusionName(FUSION_CURRENT - 1)
     && roadFcEngineName({ engine: { name: FUSION_NAME, version: FUSION_CURRENT } }) === FUSION_NAME && roadFcEngineName(null) === FUSION_BRAND && roadFcUiNote(null).startsWith(`Prognose: ${FUSION_BRAND},`));

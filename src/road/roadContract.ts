@@ -162,6 +162,7 @@ export function roadLatestUrl(g: RoadGroup): string {
 
 export type RoadRuleId =
   | 'limit' | 'placeholder' | 'dewAboveAir' | 'gustBelowWind' | 'dwdSuspect' | 'stuck' | 'stateNoTemp' | 'iceWarm' | 'jump' | 'roadAir' | 'unknownCode'
+  | 'fillValue' | 'dewSpread' | 'gustNoWind' | 'precipFill'
   | 'catalog' | 'outsideDE' | 'cube' | 'neighbours' | 'time' | 'spread' | 'duplicate'
   | 'slotGroups' | 'slotShare' | 'slotSchema';
 
@@ -183,6 +184,10 @@ export interface RoadRule {
  * E-AW-11 (Jan, 03.10.2026): `stateNoTemp` and `iceWarm` are hard rules beyond the plan's table — a sensor's
  * condition and water film count only with a valid road temperature of the SAME sensor, and an ice code (3–6)
  * only at ≤ +3 °C (AW-0: 557 of 579 ice codes at air > +10 °C, all from broken sensors).
+ * Data audit 06.10.2026 (`audit/autobahnwetter-datenpruefung.md` §5, Jan 07.10.: "setze M1–M5 um"): `roadAir` is hard
+ * before Gate B — the neighbours decide whether the road or the air sensor is broken —, and four hard rules join:
+ * `fillValue` (M1: device fill values 0.00/−1.00), `dewSpread` and `gustNoWind` (M2), `precipFill` (M3). Each was
+ * measured on the archive 03.–06.10. before it was switched on; every frost/ice state of that window came from them.
  */
 export const ROAD_RULES: Readonly<Record<RoadRuleId, RoadRule>> = Object.freeze({
   limit: { id: 'limit', level: 'value', mode: 'hard', text: 'außerhalb der physikalischen Grenzen' },
@@ -194,7 +199,11 @@ export const ROAD_RULES: Readonly<Record<RoadRuleId, RoadRule>> = Object.freeze(
   stateNoTemp: { id: 'stateNoTemp', level: 'value', mode: 'hard', text: 'Zustand/Wasserfilm ohne gültige Fahrbahntemperatur desselben Sensors (E-AW-11)' },
   iceWarm: { id: 'iceWarm', level: 'value', mode: 'hard', text: 'Eis-/Glätte-/Reif-/Schnee-Code bei Fahrbahn über +3 °C (E-AW-11)' },
   jump: { id: 'jump', level: 'value', mode: 'observe', text: 'Sprung der Fahrbahntemperatur zum Vorslot über der Schwelle' },
-  roadAir: { id: 'roadAir', level: 'value', mode: 'observe', text: 'Fahrbahn mehr als 12 K unter oder 30 K über der eigenen Lufttemperatur (V-AW-3)' },
+  roadAir: { id: 'roadAir', level: 'value', mode: 'hard', text: 'Fahrbahn mehr als 12 K unter oder 30 K über der eigenen Lufttemperatur — verworfen wird der Fühler, der nicht zu den Nachbarn passt (M1/M2)' },
+  fillValue: { id: 'fillValue', level: 'value', mode: 'hard', text: 'Gerätefüllwert: Fahrbahn genau 0,00/−1,00 °C bei mindestens 5 K wärmerer Luft, oder Fahrbahn = Luft = Taupunkt genau 0,00/−1,00 °C (M1)' },
+  dewSpread: { id: 'dewSpread', level: 'value', mode: 'hard', text: 'Taupunkt mehr als 25 K (Mai–Sep. 30 K) unter der Luft — Feuchtefühler defekt (M2)' },
+  gustNoWind: { id: 'gustNoWind', level: 'value', mode: 'hard', text: 'Böe über 40 m/s bei Mittelwind unter 10 m/s (M2)' },
+  precipFill: { id: 'precipFill', level: 'value', mode: 'hard', text: 'Niederschlagsrate ohne Niederschlag: Intensität (0 20 024) „keine“ und keine Art (0 20 021) gemeldet (M3)' },
   unknownCode: { id: 'unknownCode', level: 'value', mode: 'flag', text: 'unbekannter Zustandscode — Zustand unbekannt, nie trocken' },
   catalog: { id: 'catalog', level: 'station', mode: 'observe', text: 'keine Zeile im Stationskatalog (E-AW-7)' },
   outsideDE: { id: 'outsideDE', level: 'station', mode: 'hard', text: 'Koordinaten fehlen oder liegen außerhalb Deutschlands' },
@@ -226,13 +235,27 @@ export const ROAD_STUCK_RUN = 24;
 /** A missing value or a missing slot is neutral for the run for up to 4 slots (1 h, `set`) — AW-0: H267 alternated
  *  between −30.00 °C and "missing" and leaked 64 slots when every gap restarted the count. */
 export const ROAD_STUCK_GAP_SLOTS = 4;
-/** Thaw-plateau exception: road −10…0 °C while air within ±10 K of 0 °C (plan). */
-export const ROAD_STUCK_PLATEAU = Object.freeze({ roadMin: -10, roadMax: 0, airAbsMax: 10 });
+/** Thaw-plateau exception: road −10…0 °C while air within ±10 K of 0 °C (plan) — but only for a run shorter than
+ *  `maxRun` slots (M1, `set`: 12 h). A melting surface holds near 0 °C for hours, not for days; without the cap a fill
+ *  value 0.00 stayed "frost" for the whole winter. */
+export const ROAD_STUCK_PLATEAU = Object.freeze({ roadMin: -10, roadMax: 0, airAbsMax: 10, maxRun: 48 });
+/** M1 fill values of the road sensors (archive 03.–06.10.: exactly 0.00 or −1.00 °C at 10 stations, −25.00 at H637 is
+ *  caught by `roadAir`). A road at a fill value counts as broken when the air is at least `airK` warmer (`set`; real
+ *  0.0 °C at air near 0 stays: 27 cases in the archive untouched), or when road, air and dew point carry it alike. */
+export const ROAD_FILL = Object.freeze({ valuesC: [0, -1] as readonly number[], airK: 5, eps: 0.005 });
+/** M2 humidity sensor: air − dew point above this ⇒ dew point and humidity rejected (archive p99 15.2 K; 25 K Oct–Apr,
+ *  30 K May–Sep for hot dry afternoons, `set`). */
+export const ROAD_DEW_SPREAD_K = Object.freeze({ cold: 25, warm: 30, warmMonths: [5, 6, 7, 8, 9] as readonly number[] });
+/** M2 gust without wind (`set`): 57.6 / 56.5 m/s at 0.4 / 0.9 m/s mean wind on 06.10. 19:00 UTC. */
+export const ROAD_GUST_NO_WIND = Object.freeze({ gustMs: 40, windMs: 10 });
 /** E-AW-11: an ice code (rime, snow, ice, glaze) needs a road surface at most this warm (`set`: melting surfaces stay
  *  near 0 °C; +3 K margin for sensor offset and the 15-min interval). */
 export const ROAD_ICE_MAX_C = 3;
-/** Road vs. own air temperature (observe, V-AW-3, `set`): AW-0 road − air p1 = −5.4 K, p99 = +16.2 K; below −12 K or above
- *  +30 K only broken sensors were seen (−30.00/−25.00/0.00 °C at +15…+22 °C air). */
+/** Road vs. own air temperature (V-AW-3, `set`; hard since M1/M2): AW-0 road − air p1 = −5.4 K, p99 = +16.2 K; below −12 K
+ *  or above +30 K only broken sensors were seen (−30.00/−25.00/0.00 °C at +15…+22 °C air; N443 air +41.7 °C, M080 air
+ *  −23.7 °C at a normal road). Which sensor falls is decided against the neighbours (`ROAD_NEIGHBOUR`): road normal and air
+ *  off ⇒ the air (and its dew point); otherwise the road sensor — above +30 K without neighbours only observed (summer
+ *  midday not measured yet). */
 export const ROAD_AIR = Object.freeze({ belowK: 12, aboveK: 30 });
 /** Jump rule start value (observe): AW-0 window |Δ road| over 15 min p99.9 = 4.0 K, p99.99 = 24 K (flips of broken
  *  sensors) ⇒ 8 K (2 × p99.9; 72 of 218 701 steps in 48 h above it). Calibrated after ≥ 14 days. */
@@ -263,6 +286,32 @@ export const DWD_SUSPECT_BITS: Readonly<Record<number, readonly RoadField[]>> = 
 });
 export const dwdBit = (q: number, bit: number) => Math.floor(q / 2 ** (30 - bit)) % 2 === 1;
 export const DWD_QUALITY_MISSING = 2 ** 30 - 1;
+
+/** German names of the bits of 0 33 005 (WMO BUFR4 `BUFRCREX_CodeFlag_en_33.csv`; bit 1 = no checks, 24–29 reserved). */
+export const DWD_QUALITY_BIT_TEXT: Readonly<Record<number, string>> = Object.freeze({
+  2: 'Luftdruck', 3: 'Wind', 4: 'Lufttemperatur', 5: 'Feuchttemperatur', 6: 'Feuchte', 7: 'Fahrbahn-/Bodentemperatur',
+  8: 'Bodentemperatur (Tiefe 1)', 9: 'Bodentemperatur (Tiefe 2)', 10: 'Bodentemperatur (Tiefe 3)', 11: 'Bodentemperatur (Tiefe 4)',
+  12: 'Bodentemperatur (Tiefe 5)', 13: 'Wolken', 14: 'Sicht', 15: 'Wetter', 16: 'Blitze', 17: 'Eisansatz', 18: 'Niederschlag',
+  19: 'Fahrbahnzustand', 20: 'Schnee', 21: 'Wasserfilm', 22: 'Verdunstung', 23: 'Sonnenschein',
+});
+
+/**
+ * M5 (D-7): what the DWD's own check says, from the raw flag `qf` (0 33 005) — not from the provenance, which knows only
+ * "0" and "anything else". Absent flag ⇒ unknown; bit 1 ⇒ not performed; other bits ⇒ checked and flagged (named).
+ */
+export function dwdCheckText(qf: number | null | undefined): string {
+  if (qf == null || qf === DWD_QUALITY_MISSING) return 'Prüfung des DWD: unbekannt (kein Prüf-Flag gemeldet)';
+  if (qf === 0) return 'Prüfung des DWD: durchgeführt, nichts beanstandet';
+  if (dwdBit(qf, 1)) return 'Prüfung des DWD: nicht durchgeführt (DWD-Flag)';
+  const names: string[] = [];
+  let other = false;
+  for (let bit = 2; bit <= 29; bit++) {
+    if (!dwdBit(qf, bit)) continue;
+    if (DWD_QUALITY_BIT_TEXT[bit]) names.push(DWD_QUALITY_BIT_TEXT[bit]); else other = true;
+  }
+  if (other) names.push('reservierte Bits');
+  return `Prüfung des DWD: durchgeführt, beanstandet: ${names.join(', ')}`;
+}
 
 // --- Values ------------------------------------------------------------------------------------
 
@@ -327,6 +376,12 @@ export interface RoadPoint {
   rpos?: [number, number];
   /** Fields rejected by a hard rule: field → rule id (raw value only in quarantine/). */
   x?: Partial<Record<RoadField, RoadRuleId>>;
+  /** M2: fields KEPT although an observe-mode rule would reject them (`jump`, `neighbours`, `cube`, `roadAir` above
+   *  without neighbours): field → rule id. The page says "auffällig" instead of "bestanden"; the route forecast does not
+   *  anchor on such a station (M4). */
+  o?: Partial<Record<RoadField, RoadRuleId>>;
+  /** M5: the DWD quality flag 0 33 005 as delivered (absent = not delivered / missing) — the page words the DWD check from it. */
+  qf?: number;
 }
 
 export interface RoadGroupState {
@@ -432,6 +487,8 @@ export interface RoadRawStation {
   precipType: number | null;
   precipRateMmH: number | null;
   precipMm: number | null;
+  /** Intensity of phenomena 0 20 024 (0 = none … 3 = heavy, null = missing) — M3. Absent in callers built before M3. */
+  precipIntensity?: number | null;
   quality: number | null;
   /**
    * M6 (`scripts/road/station-positions.mjs`): how `lat`/`lon` were chosen — `posCatalog` = the catalogue position
@@ -508,6 +565,32 @@ function inRange(v: number, [lo, hi]: readonly [number, number]): boolean {
 
 const round = (v: number, d: number) => Number(v.toFixed(d));
 
+/** One station as seen by the neighbour statistics (raw values for `roadAir`, valid ones for the `neighbours` rule). */
+export interface RoadNeighbourCandidate { id: string; lat: number; lon: number; h: number | null; rs: number | null; ta: number | null }
+
+/**
+ * Median and spread of a field over the neighbours of `me` (`ROAD_NEIGHBOUR`: radius, same 300-m elevation class, ≥ 3
+ * neighbours; `me` itself excluded). `thr` = max(k·MAD, minAbsK) — the band in which a value counts as "fits".
+ */
+export function roadNeighbourStat(me: RoadNeighbourCandidate, all: readonly RoadNeighbourCandidate[], field: 'rs' | 'ta'):
+  { med: number; mad: number; thr: number; n: number } | null {
+  const elevClass = (h: number | null) => (h == null ? -1 : Math.floor(h / ROAD_NEIGHBOUR.elevClassM));
+  const cosLat = Math.cos((me.lat * Math.PI) / 180);
+  const nb: number[] = [];
+  for (const c of all) {
+    const v = c[field];
+    if (c.id === me.id || v == null || elevClass(c.h) !== elevClass(me.h)) continue;
+    const dy = (c.lat - me.lat) * 111.2, dx = (c.lon - me.lon) * 111.2 * cosLat;
+    if (dx * dx + dy * dy <= ROAD_NEIGHBOUR.radiusKm ** 2) nb.push(v);
+  }
+  if (nb.length < ROAD_NEIGHBOUR.minNeighbours) return null;
+  nb.sort((a, b) => a - b);
+  const med = nb[Math.floor(nb.length / 2)];
+  const devs = nb.map((v) => Math.abs(v - med)).sort((a, b) => a - b);
+  const mad = Math.max(devs[Math.floor(devs.length / 2)], ROAD_NEIGHBOUR.madFloorK);
+  return { med, mad, thr: Math.max(ROAD_NEIGHBOUR.k * mad, ROAD_NEIGHBOUR.minAbsK), n: nb.length };
+}
+
 /**
  * The derive's rule engine for one slot: hard rules reject (value → quarantine), observe rules only count,
  * flags mark. Pure: everything it needs comes in `input`, the next producer state goes out.
@@ -535,8 +618,22 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
   interface Work { raw: RoadRawStation; point: RoadPoint; }
   const work: Work[] = [];
 
+  // M1/M2: the referee of `roadAir` — neighbour medians of the raw road (coldest sensor) and air values, only the
+  // placeholder and limit rules applied (the median is robust against the few broken neighbours).
+  const nbCands: RoadNeighbourCandidate[] = [];
+  for (const s of byId.values()) {
+    if (s.lat == null || s.lon == null) continue;
+    const ok = (v: number | null, lim: readonly [number, number]) => v != null && v >= ROAD_PLACEHOLDER_C && inRange(v, lim);
+    const roads = s.sensors.map((z) => z.roadT).filter((v): v is number => ok(v, ROAD_LIMITS.rs));
+    nbCands.push({ id: s.id, lat: s.lat, lon: s.lon, h: s.elevM, rs: roads.length ? Math.min(...roads) : null, ta: ok(s.airT, ROAD_LIMITS.ta) ? s.airT : null });
+  }
+  const dewSpreadK = ROAD_DEW_SPREAD_K.warmMonths.includes(new Date(input.slotMs).getUTCMonth() + 1) ? ROAD_DEW_SPREAD_K.warm : ROAD_DEW_SPREAD_K.cold;
+  const isFill = (v: number | null): v is number => v != null && ROAD_FILL.valuesC.some((f) => Math.abs(v - f) < ROAD_FILL.eps);
+  const same = (a: number, b: number) => Math.abs(a - b) < ROAD_FILL.eps;
+
   for (const s of byId.values()) {
     const grp = (balance.byGroup[s.group] ??= { values: 0, rejected: 0 });
+    const o: Partial<Record<RoadField, RoadRuleId>> = {};
     const reject = (field: RoadField | 'station', raw: number | string | null, rule: RoadRuleId, detail?: string) => {
       entries.push({ id: s.id, g: s.group, field, raw, rule, ...(detail ? { detail } : {}) });
       bump(balance.byRule, rule);
@@ -544,6 +641,7 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
     const wouldReject = (field: RoadField | 'station', raw: number | string | null, rule: RoadRuleId, detail?: string) => {
       entries.push({ id: s.id, g: s.group, field, raw, rule, observe: true, ...(detail ? { detail } : {}) });
       bump(balance.observe, rule);
+      if (field !== 'station') o[field] ??= rule;
     };
 
     // Count every delivered value once (denominator of the slot share).
@@ -591,17 +689,24 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
 
     let ta = scalar('ta', s.airT, ROAD_LIMITS.ta, true);
     let td = scalar('td', s.dewT, ROAD_LIMITS.td, true);
-    const rh = scalar('rh', s.rh, ROAD_LIMITS.rh, false);
+    let rh = scalar('rh', s.rh, ROAD_LIMITS.rh, false);
     const vis = scalar('vis', s.visM, ROAD_LIMITS.vis, false);
     const ws = scalar('ws', s.windMs, ROAD_LIMITS.ws, false);
     let wg = scalar('wg', s.gustMs, ROAD_LIMITS.wg, false);
     const wd = scalar('wd', s.windDir, [0, 360], false);
     let pt = s.precipType;
     if (pt != null && suspect.has('pt')) { reject('pt', pt, 'dwdSuspect', `0 33 005 = ${q}`); x.pt = 'dwdSuspect'; nRejected++; pt = null; }
-    const pr = scalar('pr', s.precipRateMmH, [0, 500], false);
+    let pr = scalar('pr', s.precipRateMmH, [0, 500], false);
     const pa = scalar('pa', s.precipMm, [0, 500], false);
     if (td != null && ta != null && td > ta + ROAD_DEW_ABOVE_AIR_K) { reject('td', td, 'dewAboveAir', `Luft ${ta}`); x.td = 'dewAboveAir'; nRejected++; td = null; }
     if (wg != null && ws != null && wg < ws) { reject('wg', wg, 'gustBelowWind', `Wind ${ws}`); x.wg = 'gustBelowWind'; nRejected++; wg = null; }
+    // M2: a gust of a storm under a calm mean wind is a broken anemometer channel.
+    if (wg != null && ws != null && wg > ROAD_GUST_NO_WIND.gustMs && ws < ROAD_GUST_NO_WIND.windMs) { reject('wg', wg, 'gustNoWind', `Wind ${ws}`); x.wg = 'gustNoWind'; nRejected++; wg = null; }
+    // M3: KO-RP/RP-RP send 0.006 kg m⁻² s⁻¹ (21.6 mm/h) with intensity "no phenomena" and no type — a fill value. A rate
+    // counts only with an intensity > 0 or a precipitation type. Callers without the field (before M3) are not judged.
+    if (pr != null && pr > 0 && s.precipIntensity !== undefined && !(s.precipIntensity != null && s.precipIntensity > 0) && !(pt != null && pt > 0)) {
+      reject('pr', pr, 'precipFill', `Intensität ${s.precipIntensity ?? 'fehlt'}, Art ${pt ?? 'fehlt'}`); x.pr = 'precipFill'; nRejected++; pr = null;
+    }
 
     // Road sensors: placeholder, limits, DWD flag per sensor; film and condition alongside.
     const sensors: Array<{ roadT: number | null; filmMm: number | null; cond: number | null }> = [];
@@ -637,7 +742,7 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
       if (n >= ROAD_STUCK_RUN) {
         const plateau = f.startsWith('rs') && v >= ROAD_STUCK_PLATEAU.roadMin && v <= ROAD_STUCK_PLATEAU.roadMax
           && s.airT != null && Math.abs(s.airT) <= ROAD_STUCK_PLATEAU.airAbsMax;
-        if (!plateau) stuck.add(f);
+        if (!plateau || n >= ROAD_STUCK_PLATEAU.maxRun) stuck.add(f);
       }
     }
     if (stuck.has('ta') && ta != null) { reject('ta', ta, 'stuck', `${st.run.ta?.[1]} Slots`); x.ta = 'stuck'; nRejected++; ta = null; }
@@ -645,6 +750,48 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
     sensors.forEach((sen, i) => {
       if (stuck.has(`rs${i}`) && sen.roadT != null) { reject('rs', sen.roadT, 'stuck', `${st.run[`rs${i}`]?.[1]} Slots`); x.rs = 'stuck'; nRejected++; sen.roadT = null; }
     });
+
+    // M1 fill values: road = air = dew point at exactly 0.00/−1.00 ⇒ all three (P969, P134, J909, O453); a road sensor at a
+    // fill value under an air at least 5 K warmer ⇒ that sensor (K677, O932, P285 … and F461's ice code with it).
+    if (ta != null && td != null && isFill(ta) && same(ta, td) && sensors.some((z) => z.roadT != null && same(z.roadT, ta as number))) {
+      const fv = ta;
+      for (const z of sensors) if (z.roadT != null && same(z.roadT, fv)) { reject('rs', z.roadT, 'fillValue', 'Fahrbahn = Luft = Taupunkt'); x.rs = 'fillValue'; nRejected++; z.roadT = null; }
+      reject('ta', ta, 'fillValue', 'Fahrbahn = Luft = Taupunkt'); x.ta = 'fillValue'; nRejected++; ta = null;
+      reject('td', td, 'fillValue', 'Fahrbahn = Luft = Taupunkt'); x.td = 'fillValue'; nRejected++; td = null;
+    }
+    for (const z of sensors) {
+      if (ta != null && isFill(z.roadT) && ta - z.roadT >= ROAD_FILL.airK) { reject('rs', z.roadT, 'fillValue', `Luft ${ta}`); x.rs = 'fillValue'; nRejected++; z.roadT = null; }
+    }
+
+    // M1/M2 road vs. own air (hard): which sensor is broken decides the neighbourhood. Road normal for the area and air
+    // not ⇒ the air and its dew point (N443 +41.7 °C); otherwise the road sensor (H637 −25.00 °C). Road far above the air
+    // without neighbours to decide stays observed (summer midday not measured).
+    if (ta != null) {
+      const airT = ta;
+      const off = sensors.filter((z) => z.roadT != null && (z.roadT < airT - ROAD_AIR.belowK || z.roadT > airT + ROAD_AIR.aboveK));
+      if (off.length) {
+        const me = nbCands.find((c) => c.id === s.id);
+        const nbRs = me ? roadNeighbourStat(me, nbCands, 'rs') : null;
+        const nbTa = me ? roadNeighbourStat(me, nbCands, 'ta') : null;
+        const roadFits = (v: number) => nbRs != null && Math.abs(v - nbRs.med) <= nbRs.thr;
+        const nbText = `Nachbarn Fahrbahn ${nbRs ? round(nbRs.med, 1) : '–'}, Luft ${nbTa ? round(nbTa.med, 1) : '–'}`;
+        if (nbTa != null && Math.abs(airT - nbTa.med) > nbTa.thr && off.every((z) => roadFits(z.roadT as number))) {
+          reject('ta', airT, 'roadAir', nbText); x.ta = 'roadAir'; nRejected++; ta = null;
+          if (td != null) { reject('td', td, 'roadAir', `Taupunkt desselben Luftfühlers; ${nbText}`); x.td = 'roadAir'; nRejected++; td = null; }
+        } else {
+          for (const z of off) {
+            const v = z.roadT as number;
+            if ((nbRs != null && !roadFits(v)) || v < airT - ROAD_AIR.belowK) { reject('rs', v, 'roadAir', `Luft ${airT}; ${nbText}`); x.rs = 'roadAir'; nRejected++; z.roadT = null; }
+            else wouldReject('rs', v, 'roadAir', `Luft ${airT}; ${nbText}`);
+          }
+        }
+      }
+    }
+    // M2: dew point far below the air = broken humidity sensor (after `roadAir`, so a broken AIR does not take it along).
+    if (ta != null && td != null && ta - td > dewSpreadK) {
+      reject('td', td, 'dewSpread', `Luft ${ta}`); x.td = 'dewSpread'; nRejected++; td = null;
+      if (rh != null) { reject('rh', rh, 'dewSpread', `Luft ${ta}`); x.rh = 'dewSpread'; nRejected++; rh = null; }
+    }
 
     // E-AW-11: state and film of a sensor only together with its valid road temperature; ice codes only ≤ +3 °C.
     for (const sen of sensors) {
@@ -666,9 +813,6 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
     if (unknownCode) flags.push('unknownCode');
     if (input.catalog && !cat) flags.push('noCatalog');
     if (s.posFlag) flags.push(s.posFlag);
-
-    // Road vs. own air (observe, V-AW-3).
-    if (rs != null && ta != null && (rs < ta - ROAD_AIR.belowK || rs > ta + ROAD_AIR.aboveK)) wouldReject('rs', rs, 'roadAir', `Luft ${ta}`);
 
     // Jump (observe): against the coldest plausible road temperature of the previous slot.
     st.rs = rs;
@@ -695,6 +839,8 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
       ...(flags.length ? { f: flags } : {}),
       ...(s.posFlag === 'posCatalog' && s.reportPos ? { rpos: [round(s.reportPos[0], 5), round(s.reportPos[1], 5)] as [number, number] } : {}),
       ...(Object.keys(x).length ? { x } : {}),
+      ...(Object.keys(o).length ? { o } : {}),
+      ...(qValid ? { qf: q as number } : {}),
     };
     countRejected(nRejected);
     nextState.stations[s.id] = st;
@@ -706,28 +852,18 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
     if (!nextState.stations[id] && Math.round((input.slotMs - roadStampToMs(ps.last)) / ROAD_SLOT_MS) <= ROAD_STUCK_GAP_SLOTS) nextState.stations[id] = ps;
   }
 
-  // Station rules on the whole slot (observe): neighbours and buscosun Fusion T2m.
-  const elevClass = (h: number | null) => (h == null ? -1 : Math.floor(h / ROAD_NEIGHBOUR.elevClassM));
+  // Station rules on the whole slot (observe): neighbours and buscosun Fusion T2m. A hit marks the kept value (`o`, M2).
+  const mark = (p: RoadPoint, field: RoadField, rule: RoadRuleId) => { (p.o ??= {})[field] ??= rule; };
   const withRoad = work.filter((w) => w.point.rs != null);
-  for (const w of withRoad) {
-    const p = w.point;
-    const nb: number[] = [];
-    const cosLat = Math.cos((p.lat * Math.PI) / 180);
-    for (const o of withRoad) {
-      if (o === w || elevClass(o.point.h) !== elevClass(p.h)) continue;
-      const dy = (o.point.lat - p.lat) * 111.2, dx = (o.point.lon - p.lon) * 111.2 * cosLat;
-      if (dx * dx + dy * dy <= ROAD_NEIGHBOUR.radiusKm ** 2) nb.push(o.point.rs as number);
-    }
-    if (nb.length < ROAD_NEIGHBOUR.minNeighbours) continue;
-    nb.sort((a, b) => a - b);
-    const med = nb[Math.floor(nb.length / 2)];
-    const devs = nb.map((v) => Math.abs(v - med)).sort((a, b) => a - b);
-    const mad = Math.max(devs[Math.floor(devs.length / 2)], ROAD_NEIGHBOUR.madFloorK);
-    if (Math.abs((p.rs as number) - med) > Math.max(ROAD_NEIGHBOUR.k * mad, ROAD_NEIGHBOUR.minAbsK)) {
-      entries.push({ id: p.id, g: p.g, field: 'rs', raw: p.rs, rule: 'neighbours', observe: true, detail: `Median ${round(med, 2)}, MAD ${round(mad, 2)}, n ${nb.length}` });
-      bump(balance.observe, 'neighbours');
-    }
-  }
+  const valid: RoadNeighbourCandidate[] = withRoad.map((w) => ({ id: w.point.id, lat: w.point.lat, lon: w.point.lon, h: w.point.h, rs: w.point.rs, ta: null }));
+  valid.forEach((c, i) => {
+    const p = withRoad[i].point;
+    const nb = roadNeighbourStat(c, valid, 'rs');
+    if (!nb || Math.abs((p.rs as number) - nb.med) <= nb.thr) return;
+    entries.push({ id: p.id, g: p.g, field: 'rs', raw: p.rs, rule: 'neighbours', observe: true, detail: `Median ${round(nb.med, 2)}, MAD ${round(nb.mad, 2)}, n ${nb.n}` });
+    bump(balance.observe, 'neighbours');
+    mark(p, 'rs', 'neighbours');
+  });
   if (input.cubeT2m) {
     for (const w of work) {
       const ref = input.cubeT2m[w.point.id];
@@ -735,6 +871,7 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
       if (Math.abs(w.point.ta - ref) > ROAD_CUBE_MAX_K) {
         entries.push({ id: w.point.id, g: w.point.g, field: 'ta', raw: w.point.ta, rule: 'cube', observe: true, detail: `T2m ${round(ref, 1)}` });
         bump(balance.observe, 'cube');
+        mark(w.point, 'ta', 'cube');
       }
     }
   }
@@ -791,6 +928,13 @@ export function roadPointOk(p: unknown): p is RoadPoint {
   if (o.cond != null && !isKnownCondition(o.cond as number)) return false;
   if (typeof o.cls !== 'string' || !isNum(o.ns)) return false;
   if (o.rpos !== undefined && !(Array.isArray(o.rpos) && o.rpos.length === 2 && isNum(o.rpos[0]) && isNum(o.rpos[1]))) return false;
+  if (o.qf !== undefined && !(isNum(o.qf) && Number.isInteger(o.qf) && o.qf >= 0 && o.qf < 2 ** 30)) return false;
+  if (o.o !== undefined) {
+    if (!o.o || typeof o.o !== 'object' || Array.isArray(o.o)) return false;
+    for (const [f, r] of Object.entries(o.o as Record<string, unknown>)) {
+      if (!(ROAD_FIELDS as readonly string[]).includes(f) || typeof r !== 'string' || !(r in ROAD_RULES)) return false;
+    }
+  }
   return roadPointClass(o as unknown as RoadPoint) === o.cls;
 }
 

@@ -117,3 +117,24 @@ export function parseCountry(raw: string | undefined): Country | null {
   if (up === 'DE' || up === 'AT' || up === 'CH') return up;
   return null;
 }
+
+/** How deep a point lies inside a country's box (min. distance to its edges, degrees; < 0 = outside). */
+export function countryBoxSlack(c: Country, lat: number, lng: number): number {
+  const b = COUNTRY_PROFILES[c].bounds;
+  return Math.min(lat - b.latMin, b.latMax - lat, lng - b.lngMin, b.lngMax - lng);
+}
+
+/**
+ * Country by box alone: the box the point lies deepest inside. Wrong where the boxes overlap (V-FR-9: Munich lies deeper
+ * in the AT box) — `pickCountry` (`pointForecast/clustering.ts`) decides there by the border. Kept for the precipitation
+ * grid of the map (V-FR-11) and for points outside DE/AT/CH. Here, not in `clustering`, so the map does not load the borders.
+ */
+export function pickCountryByBox(lat: number, lng: number): Country {
+  let best: Country = 'DE';
+  let bestSlack = -Infinity;
+  for (const c of ['DE', 'AT', 'CH'] as Country[]) {
+    const slack = countryBoxSlack(c, lat, lng);
+    if (slack > bestSlack) { bestSlack = slack; best = c; }
+  }
+  return best;
+}

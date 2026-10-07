@@ -91,7 +91,8 @@ const ATM_INTRO_CAPS = [
   'Höhenwind-Geländeschnitt mit Vektoren, Isotachen, Shear & Wolkenbasis',
   'Inversion / Kaltluftsee — Temperatur-Umkehr, Nebelobergrenze, Aufstiegs-Delta',
   'Go/No-Go Betriebs-Check (B2B): Böen auf Arbeitshöhe, Grenzwerte, Zeitfenster',
-  'Aus ICON-D2-Druckflächen + Gelände (DEM), höhenkorrigiert — werbefrei, keine Tracker',
+  // V-FR-10: der Schnitt rechnet den Bodenwind von buscosun Fusion hoch; das Höhenprofil (Emagramm, Föhn) kommt aus ICON-EU.
+  'Bodenwind aus buscosun Fusion, Höhenprofil aus ICON-EU-Druckflächen, Gelände (DEM) — werbefrei, keine Tracker',
 ];
 
 function AtmosphereIntro() {
@@ -124,7 +125,7 @@ function AtmosphereIntro() {
       </p>
 
       <div className="rt-trust" style={{ marginTop: '1rem' }}>
-        <span className="dot">●</span> ICON-D2 + Gelände, höhenkorrigiert · werbefrei · keine Tracker
+        <span className="dot">●</span> buscosun Fusion + ICON-EU + Gelände · werbefrei · keine Tracker
       </div>
     </section>
   );

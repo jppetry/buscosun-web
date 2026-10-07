@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { PreparedSection } from './buildCrossSection';
+import { sectionOrigin, type PreparedSection } from './buildCrossSection';
 import type { CrossSection } from './crossSection';
 import type { LayerState } from './ThreeDPage';
 import type { GeoPoint } from './sectionGeometry';
@@ -87,7 +87,7 @@ export default function TerrainView({ center, points, onPoints, prepared, sectio
         ))}
       </div>
 
-      <p className="td-runstamp">Datenstand: ICON-D2 + DEM · abgerufen {new Date(prepared.runAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr · Relief © AWS Terrain Tiles</p>
+      <p className="td-runstamp">Datenstand: {sectionOrigin(prepared)} + Gelände (DEM) · abgerufen {new Date(prepared.runAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr · Relief © AWS Terrain Tiles</p>
 
       {/* Geländekarte mit Vorhang */}
       <div className="rt-card td-terrain-card">

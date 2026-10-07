@@ -881,13 +881,13 @@ export default function Route3DView({
           <>
             {curtainNote({ useGust: tLayers.gust, temp: tLayers.wallTemp, clouds: tLayers.clouds })}{' '}
             {NO_INVERSION_NOTE}{' '}
-            Quellen: {sourceNote(meta.countries)} · {resolutionNote(terrain)} ·{' '}
+            Quellen: {sourceNote(meta.countries, meta.pointSource)} · {resolutionNote(terrain)} ·{' '}
             {terrainNote(elevation.source, elevation.deltaM, relief.map((r) => r.offsetM))} · {HAIL_NOTE}
           </>
         ) : dmode === 'zeit' ? (
           <>
             {radarHorizonNote(meta.radar, scene.endMs)} · Perlen zeigen die höhenkorrigierte Temperatur zur
-            Ankunftszeit · Quellen: {sourceNote(meta.countries)} · {resolutionNote(terrain)} ·{' '}
+            Ankunftszeit · Quellen: {sourceNote(meta.countries, meta.pointSource)} · {resolutionNote(terrain)} ·{' '}
             {terrainNote(elevation.source, elevation.deltaM, relief.map((r) => r.offsetM))}
           </>
         ) : dmode === 'gonogo' ? (
@@ -896,13 +896,13 @@ export default function Route3DView({
             Empfehlung. Werte gelten auf der Höhe, auf der du stehst (Cluster-Forecast auf die Sample-Höhe korrigiert).
             Bei einer Konfidenz unter {UNCLEAR_TEXT} steht „unklar" statt einer Entscheidung — nie „Go".
             Eine Sichtweite führt keine der drei Quellen; einen Grenzwert dafür gibt es deshalb nicht.
-            Quellen: {sourceNote(meta.countries)} · {resolutionNote(terrain)} ·{' '}
+            Quellen: {sourceNote(meta.countries, meta.pointSource)} · {resolutionNote(terrain)} ·{' '}
             {terrainNote(elevation.source, elevation.deltaM, relief.map((r) => r.offsetM))}
           </>
         ) : (
           <>
             Höhen in m ü. NN · Wind über Grund aus dem Bodenwert hochgerechnet (Potenzprofil α&nbsp;{DEFAULT_ALPHA}) ·
-            Quellen: {sourceNote(meta.countries)} · {resolutionNote(terrain)} ·{' '}
+            Quellen: {sourceNote(meta.countries, meta.pointSource)} · {resolutionNote(terrain)} ·{' '}
             {terrainNote(elevation.source, elevation.deltaM, relief.map((r) => r.offsetM))} · {HAIL_NOTE}
           </>
         )}
@@ -921,7 +921,7 @@ export default function Route3DView({
       startMs: scene.startMs,
       endMs: scene.endMs,
       totalM: total,
-      stackLabel: sourceNote(meta.countries),
+      stackLabel: sourceNote(meta.countries, meta.pointSource),
       sections,
       limits,
       unavailable: summaries.filter((x) => x.kind === 'missing').map((x) => x.id),

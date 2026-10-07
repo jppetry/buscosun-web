@@ -11,9 +11,11 @@
  *   • AT-Fläche  → GeoSphere INCA (0–3 h)
  *   • CH-Fläche  → MeteoSchweiz rzc (nur „jetzt")
  *   • sonst / jenseits des jeweiligen Nowcast-Horizonts → ICON-D2 (Forecast)
- * Die Länderzuordnung nutzt dieselbe Box-Heuristik wie der Punktforecast
- * ({@link pickCountry}) und partitioniert jede Zelle eindeutig — INCA übermalt
- * also nicht mehr Süddeutschland/Schweiz.
+ * Die Länderzuordnung nutzt die Box-Heuristik ({@link pickCountryByBox}) und
+ * partitioniert jede Zelle eindeutig. Achtung V-FR-11: wo sich DE- und AT-Box
+ * überlappen (bis 49,5° N), gewinnt die tiefere Lage — Südbayern samt München
+ * fällt dabei an AT, INCA malt dort. Der Punktforecast nimmt seit V-FR-9 die
+ * Landesgrenze (`pickCountry`); das Gitter folgt erst nach eigener Entscheidung.
  *
  * Gerendert wird EIN reguläres lat/lon-Gitter über DACH (ein RainLayer-Frame).
  * Die Zelle→Quellgitter-Zuordnung ist geometrisch fix → wird je Quelle EINMAL
@@ -23,7 +25,7 @@
  * vier Geo-Ecken.
  */
 
-import { pickCountry } from '../pointForecast/clustering';
+import { pickCountryByBox } from '../countryProfiles';
 import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon, type GridKind } from './precipIndexMap';
 import type { QuadCorners } from './RainLayer';
 import { quadWarpMesh, quadWarpRows, QUAD_WARP_COLS } from './quadWarpMesh';
@@ -174,7 +176,8 @@ export class PrecipCompositor {
     const { lat, lon } = gridLatLon();
     this.lat = lat; this.lon = lon;
     for (let i = 0; i < lat.length; i++) {
-      const cc = pickCountry(lat[i], lon[i]);
+      // Box-Regel bewusst: die Radarquelle je Pixel (RADOLAN/INCA/RZC) ist eine eigene Entscheidung (V-FR-11).
+      const cc = pickCountryByBox(lat[i], lon[i]);
       this.country[i] = cc === 'AT' ? 1 : cc === 'CH' ? 2 : 0;
     }
   }

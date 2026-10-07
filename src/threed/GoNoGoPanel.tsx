@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import type { PreparedSection } from './buildCrossSection';
+import { sectionOrigin, type PreparedSection } from './buildCrossSection';
 import { evaluateGoNoGo, loadGoNoGo, saveGoNoGo, type GoNoGoConfig } from './goNoGo';
 
 const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -28,7 +28,7 @@ export default function GoNoGoPanel({ prepared, locationName, timeMs }: { prepar
     L.push('='.repeat(44));
     L.push(`Ort:           ${locationName}`);
     L.push(`Bezugszeit:    ${new Date(timeMs).toLocaleString('de-DE')}`);
-    L.push(`Datenstand:    ICON-D2 + DEM, abgerufen ${fmtClock(prepared.runAtMs)} Uhr`);
+    L.push(`Datenstand:    ${sectionOrigin(prepared)} + DEM, abgerufen ${fmtClock(prepared.runAtMs)} Uhr`);
     L.push(`Arbeitshöhe:   ${cfg.heightAglM} m AGL`);
     L.push(`Böen-Grenzwert:${cfg.gustLimitKmh} km/h`);
     L.push('');

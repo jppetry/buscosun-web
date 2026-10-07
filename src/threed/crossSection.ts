@@ -36,7 +36,7 @@ export interface AnchorSurface {
   distanceM: number;
   elevM: number;
   windKmh: number;
-  windDirDeg: number; // meteorologisch (woher der Wind weht)
+  windDirDeg: number | null; // meteorologisch (woher der Wind weht); null = keine Richtung (E-FR-5)
   gustKmh: number;
   tempC: number;
   cloudPct: number;
@@ -62,7 +62,7 @@ export interface SectionCell {
   windKmh: number;
   gustKmh: number;
   tempC: number;
-  windDirDeg: number;
+  windDirDeg: number | null;
 }
 
 export interface ColumnProfile {
@@ -233,17 +233,24 @@ export function interpAnchor(anchors: AnchorSurface[], distanceM: number): Ancho
   const t = span > 0 ? (distanceM - a.distanceM) / span : 0;
   const lerp = (x: number, y: number) => x + (y - x) * t;
   // Wind als Vektor interpolieren (Richtungs-Wrap vermeiden).
-  const toUV = (spd: number, dir: number) => ({ u: -spd * Math.sin((dir * Math.PI) / 180), v: -spd * Math.cos((dir * Math.PI) / 180) });
-  const ua = toUV(a.windKmh, a.windDirDeg), ub = toUV(b.windKmh, b.windDirDeg);
-  const u = lerp(ua.u, ub.u), v = lerp(ua.v, ub.v);
-  const windKmh = Math.hypot(u, v);
-  const windDirDeg = (Math.atan2(-u, -v) * 180) / Math.PI + (windKmh < 0.1 ? a.windDirDeg : 0);
+  // Ohne Richtung an einem Anker (E-FR-5): Betrag linear, Richtung des näheren Ankers (oder keine).
+  let windKmh: number, windDirDeg: number | null;
+  if (a.windDirDeg == null || b.windDirDeg == null) {
+    windKmh = lerp(a.windKmh, b.windKmh);
+    windDirDeg = t < 0.5 ? a.windDirDeg : b.windDirDeg;
+  } else {
+    const toUV = (spd: number, dir: number) => ({ u: -spd * Math.sin((dir * Math.PI) / 180), v: -spd * Math.cos((dir * Math.PI) / 180) });
+    const ua = toUV(a.windKmh, a.windDirDeg), ub = toUV(b.windKmh, b.windDirDeg);
+    const u = lerp(ua.u, ub.u), v = lerp(ua.v, ub.v);
+    windKmh = Math.hypot(u, v);
+    windDirDeg = (Math.atan2(-u, -v) * 180) / Math.PI + (windKmh < 0.1 ? a.windDirDeg : 0);
+  }
   const lerpOpt = (x: number | undefined, y: number | undefined) => lerp(x ?? 0, y ?? 0);
   return {
     distanceM,
     elevM: lerp(a.elevM, b.elevM),
     windKmh,
-    windDirDeg: ((windDirDeg % 360) + 360) % 360,
+    windDirDeg: windDirDeg == null ? null : ((windDirDeg % 360) + 360) % 360,
     gustKmh: lerp(a.gustKmh, b.gustKmh),
     tempC: lerp(a.tempC, b.tempC),
     cloudPct: lerp(a.cloudPct, b.cloudPct),
@@ -399,8 +406,11 @@ export function shearCellFlags(cells: SectionCell[]): boolean[] {
   return columnShear(cells).map((s) => s >= SHEAR_THRESHOLD_KMH_PER_300M);
 }
 
+/** Höhenstufen des Schnitts (m) — steht so auch in der Ansicht. */
+export const SECTION_LEVEL_STEP_M = 150;
+
 function defaultLevels(topM: number): number[] {
-  const step = 150;
+  const step = SECTION_LEVEL_STEP_M;
   const out: number[] = [];
   for (let z = 0; z <= topM; z += step) out.push(z);
   return out;
@@ -437,6 +447,14 @@ export function verifyCrossSection(): { checks: CsCheck[]; passed: number; faile
   const mid = interpAnchor(an, 10000);
   add('Interp Wind Mitte ≈ 20', Math.abs(mid.windKmh - 20) < 1, mid.windKmh.toFixed(1));
   add('Interp Temp Mitte ≈ 6', Math.abs(mid.tempC - 6) < 0.5, mid.tempC.toFixed(1));
+
+  // E-FR-5: ein Anker ohne Richtung — Betrag linear, Richtung des näheren Ankers oder keine; Zellen tragen null, nie 0° (Nord).
+  const anNull: AnchorSurface[] = [an[0], { ...an[1], windDirDeg: null }];
+  const nearA = interpAnchor(anNull, 4000), nearB = interpAnchor(anNull, 16000);
+  add('ohne Richtung: Betrag linear, Richtung des näheren Ankers bzw. keine', Math.abs(nearA.windKmh - 14) < 0.01 && nearA.windDirDeg === 270 && nearB.windDirDeg === null, `${nearA.windDirDeg}/${nearB.windDirDeg}`);
+  const csNull = assembleCrossSection({ columns: mkCols([600, 900, 1400, 2000, 1400, 900, 600]), anchors: anNull });
+  const lastCells = csNull.columns[csNull.columns.length - 1].cells;
+  add('ohne Richtung: Zellen tragen null (kein Nordwind)', lastCells.length > 0 && lastCells.every((c) => c.windDirDeg === null) && csNull.columns[0].cells.every((c) => c.windDirDeg === 270));
 
   // Assembly: keine Zellen unter Grund.
   const cs = assembleCrossSection({ columns: mkCols([600, 900, 1400, 2000, 1400, 900, 600]), anchors: an });

@@ -27,8 +27,9 @@ import type { Terrain, TourTrack } from './tourTrack';
 
 export interface WindAt {
   speedMps: number;
-  /** Meteorologische Richtung (Grad), aus der der Wind kommt. */
-  dirFromDeg: number;
+  /** Meteorologische Richtung (Grad), aus der der Wind kommt; null = buscosun Fusion meldet keine
+   *  (schwacher/unsteter Wind) — dann wirkt kein Gegen-/Rückenwind auf die Tourzeit (E-FR-5). */
+  dirFromDeg: number | null;
 }
 
 export interface WindSampler {
@@ -51,7 +52,7 @@ interface ClusterWind {
   country: Country;
   ts: number[];
   speeds: number[];
-  dirs: number[];
+  dirs: Array<number | null>;
 }
 
 export async function createWindSampler(
@@ -75,13 +76,13 @@ export async function createWindSampler(
     } catch {
       return;
     }
-    const hourly = fc.hours.filter((h) => h.windSpeed != null && h.windDirection != null);
+    const hourly = fc.hours.filter((h) => h.windSpeed != null);
     if (hourly.length < 2) return;
     built.push({
       repLat: rep.lat, repLon: rep.lon, repElev: fc.query.elevation, country,
       ts: hourly.map((h) => h.timestamp.getTime()),
       speeds: hourly.map((h) => h.windSpeed as number),
-      dirs: hourly.map((h) => h.windDirection as number),
+      dirs: hourly.map((h) => h.windDirection),
     });
   }));
   if (built.length === 0) return null;
@@ -116,9 +117,11 @@ function interpWind(cw: ClusterWind, etaMs: number): WindAt | null {
   for (let i = 1; i <= last; i++) {
     if (etaMs <= ts[i]) {
       const t = (etaMs - ts[i - 1]) / (ts[i] - ts[i - 1]);
+      const a = dirs[i - 1], b = dirs[i];
       return {
         speedMps: speeds[i - 1] + (speeds[i] - speeds[i - 1]) * t,
-        dirFromDeg: lerpAngle(dirs[i - 1], dirs[i], t),
+        // Fehlt die Richtung an einem Ende: die der näheren Stunde, sonst keine (E-FR-5).
+        dirFromDeg: a != null && b != null ? lerpAngle(a, b, t) : t < 0.5 ? a : b,
       };
     }
   }

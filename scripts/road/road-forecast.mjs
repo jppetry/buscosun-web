@@ -176,12 +176,17 @@ const kmBetween = (aLat, aLon, bLat, bLon) => {
  * Measurement table of one slot: `rows` = points of an obs file (or the same shape built from the 24-h rings).
  * A station enters with a finite air temperature; `place` = may it serve as a NEIGHBOUR (position of the bulletin and
  * of the catalogue agree within `coordTolKm`, catalogue height known) — its own point takes it either way.
+ * M4 (data audit D-4, Jan 07.10.2026): a station whose slot point carries an observe-mode hit (`o`: neighbours, jump,
+ * cube, roadAir) does not anchor — on 06.10. N443 Irxleben's broken air sensor turned its 19 UTC forecast into +36.9 °C.
+ * Rejected values (M1/M2 hard rules) are null in the point and keep the station out anyway. `cube` alone would be
+ * circular (its reference is the anchored run), so the other rules decide as well. Without `o` (rings) nothing changes.
  */
 export function swisTable(rows, catalog, points) {
   const byId = new Map(points.filter((p) => p.kind === 'station').map((p) => [p.id, p]));
   const out = new Map();
   for (const r of rows ?? []) {
     if (!r || typeof r.id !== 'string' || !Number.isFinite(r.ta) || !Number.isFinite(r.t)) continue;
+    if (r.o && typeof r.o === 'object' && Object.keys(r.o).length) continue;
     const p = byId.get(r.id), c = catalog?.[r.id];
     const lat = p?.lat ?? c?.lat, lon = p?.lon ?? c?.lon;
     const place = Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(r.lat) && Number.isFinite(r.lon)

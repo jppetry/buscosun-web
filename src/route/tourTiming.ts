@@ -208,7 +208,7 @@ export function computeTimingIterated(
   // über benachbarte Segmente; für unsere stündliche Auflösung ausreichend).
   const makeCtxFor = (wind: Array<WindAt | null>): SegmentCtxProvider => (i) => {
     const w = wind[i] ?? wind[i - 1];
-    if (!w) return {};
+    if (!w || w.dirFromDeg == null) return {}; // ohne Richtung kein Gegen-/Rückenwind (E-FR-5)
     const comp = headwindComponentMps(bearings[i], w.dirFromDeg, w.speedMps);
     return { windFactor: windSpeedFactor(comp, category) };
   };

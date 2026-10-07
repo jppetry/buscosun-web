@@ -166,11 +166,32 @@ export const fusionProductBehind = (engine: { name?: unknown; version?: unknown 
 export type FusionPartId = 'route' | 'event' | 'section' | 'notify';
 export interface FusionPart { id: FusionPartId; name: string; on: boolean; ref: string }
 export const FUSION_PARTS: readonly FusionPart[] = Object.freeze([
-  // E-FR-7 (Jan 06.10.2026: „nutze es einfach, die Zeit ist erstmal nicht so wichtig"): on despite K2 cold (+0,7 s, §8.6);
-  // hours without a wind direction (V-FR-5) are dropped by the tour-time wind sampler — E-FR-5 open.
+  // E-FR-7 (Jan 06.10.2026: „nutze es einfach, die Zeit ist erstmal nicht so wichtig"): on despite K2 cold (+0,7 s, §8.6).
+  // E-FR-5 (Jan 07.10.2026, option a): an hour without a wind direction (V-FR-5) stays without one in every part — no arrow,
+  // „keine Richtung", no head-/tailwind in the tour time; never read as 0° = north (§8.11).
+  // E-FR-6 (Jan 07.10.2026: load time irrelevant as long as it does not get extreme): event and notifications on together, so
+  // that a notification and the event page rate the days from the same forecast.
   { id: 'route', name: 'Routenplaner', on: true, ref: 'audit/fusion-release.md §8.10' },
-  { id: 'event', name: 'Eventplaner', on: false, ref: 'audit/fusion-release.md §8' },
-  { id: 'section', name: 'Vertikalschnitt / 3D / Föhn', on: false, ref: 'audit/fusion-release.md §8' },
-  { id: 'notify', name: 'Benachrichtigungen', on: false, ref: 'audit/fusion-release.md §8' },
+  { id: 'event', name: 'Eventplaner', on: true, ref: 'audit/fusion-release.md §8.11' },
+  { id: 'section', name: 'Vertikalschnitt / 3D / Föhn', on: true, ref: 'audit/fusion-release.md §8.11' },
+  { id: 'notify', name: 'Benachrichtigungen', on: true, ref: 'audit/fusion-release.md §8.11' },
 ] as const);
 export const fusionPartOn = (id: FusionPartId): boolean => FUSION_PARTS.find((p) => p.id === id)?.on === true;
+
+/** Which path actually delivered a set of forecasts of a part: the cube (`fc.cube` set), the live path (off, `?pf=live` or
+ *  its fallback after an error) or both. null when none arrived. Read by the texts that name the origin (V-FR-10). */
+export type FusionSource = 'fusion' | 'live' | 'mixed';
+export function fusionSourceOf(fcs: ReadonlyArray<{ cube?: unknown } | null | undefined>): FusionSource | null {
+  const got = fcs.filter((f): f is { cube?: unknown } => f != null);
+  if (!got.length) return null;
+  const cube = got.filter((f) => f.cube != null).length;
+  return cube === got.length ? 'fusion' : cube === 0 ? 'live' : 'mixed';
+}
+
+/** The origin as the page says it: the stand of buscosun Fusion the client computed, or the live path that stood in for it. */
+export function fusionSourceText(src: FusionSource | null | undefined): string {
+  if (src === 'fusion') return FUSION_NAME;
+  if (src === 'live') return 'Live-Punktvorhersage';
+  if (src === 'mixed') return `${FUSION_NAME} + Live-Punktvorhersage (Rückfall)`;
+  return FUSION_BRAND;
+}

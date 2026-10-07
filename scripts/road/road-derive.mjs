@@ -38,8 +38,17 @@ const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10);
 function catalogView(file) {
   if (!file?.stations) return null;
   const out = {};
-  for (const [id, s] of Object.entries(file.stations)) out[id] = { road: s.roadRaw ?? s.road ?? null, dir: s.dir ?? null, lat: s.lat ?? null, lon: s.lon ?? null, km: s.km ?? null };
+  for (const [id, s] of Object.entries(file.stations)) out[id] = { road: s.roadRaw ?? s.road ?? null, dir: s.dir ?? null, lat: s.lat ?? null, lon: s.lon ?? null, km: s.km ?? null, h: s.h ?? null };
   return out;
+}
+
+/**
+ * M5 (D-9): six stations report "0 m a.s.l." (P970 lies at 710 m by the catalogue, P780 at 645 m) — a missing elevation, not
+ * a height. Then the catalogue's elevation counts, without one none.
+ */
+export function elevOf(elevM, cat) {
+  if (elevM == null || elevM !== 0) return elevM ?? null;
+  return cat?.h != null && cat.h > 0 ? cat.h : null;
 }
 
 /** Newest ring file of a group strictly before `stamp`. */
@@ -117,12 +126,12 @@ export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE
         id: r.id, group: g.id, name: r.name, highway: r.highway,
         // AW-0: Saxony sends route km 0 for every station — then the catalogue's km (100-m units) counts.
         km: r.km != null && r.km > 0 ? r.km : (cat?.km ?? null),
-        lat: pos ? pos.lat : r.lat, lon: pos ? pos.lon : r.lon, elevM: r.elevM, obsMs: r.obsMs,
+        lat: pos ? pos.lat : r.lat, lon: pos ? pos.lon : r.lon, elevM: elevOf(r.elevM, cat), obsMs: r.obsMs,
         ...(pos?.flag ? { posFlag: pos.flag } : {}), ...(pos?.flag === 'posCatalog' ? { reportPos: [r.lat, r.lon] } : {}),
         airT: r.airT, dewT: r.dewT, rh: r.rh, visM: r.visM,
         sensors: r.sensors.map((s) => ({ roadT: s.roadT, filmMm: s.filmMm, cond: s.cond })),
         windMs: r.windMs, gustMs: r.gustMs, windDir: r.windDir,
-        precipType: r.precipType, precipRateMmH: r.precipRateMmH, precipMm: r.precipMm, quality: r.quality,
+        precipType: r.precipType, precipRateMmH: r.precipRateMmH, precipMm: r.precipMm, precipIntensity: r.precipIntensity, quality: r.quality,
       });
     }
   }

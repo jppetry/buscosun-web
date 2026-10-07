@@ -61,7 +61,7 @@ export default function TalwindPanel() {
           const series: TimeSample[] = fc.hours.map((h) => ({
             tMs: h.timestamp.getTime(),
             windKmh: (h.windSpeed ?? 0) * 3.6,
-            windDirDeg: h.windDirection ?? 0,
+            windDirDeg: h.windDirection ?? null,
             gustKmh: (h.gustSpeed ?? 0) * 3.6,
             tempC: h.temperature ?? 0,
             cloudPct: h.cloudCoverTotal ?? 0,

@@ -30,7 +30,7 @@
  */
 import { createPortal } from 'react-dom';
 import type { GoNoGoConfig, GoNoGoResult } from '../threed/goNoGo';
-import type { PreparedSection } from '../threed/buildCrossSection';
+import { sectionOrigin, SECTION_ANCHORS, type PreparedSection } from '../threed/buildCrossSection';
 import { DEFAULT_ALPHA } from '../threed/crossSection';
 import type { Location } from '../types';
 
@@ -89,7 +89,7 @@ export default function GoNoGoReport({ res, prepared, cfg, location }: GoNoGoRep
               <tr><th>Arbeitshöhe</th><td>{cfg.heightAglM} m über Grund</td></tr>
               <tr><th>Böen-Limit</th><td>{cfg.gustLimitKmh} km/h (eigener Grenzwert)</td></tr>
               <tr><th>Zeitfenster</th><td>{dt(prepared.startMs)} bis {dt(prepared.endMs)}</td></tr>
-              <tr><th>Modelllauf</th><td>{dt(prepared.runAtMs)}</td></tr>
+              <tr><th>Abgerufen</th><td>{dt(prepared.runAtMs)} · {sectionOrigin(prepared)}</td></tr>
             </tbody>
           </table>
 
@@ -138,7 +138,7 @@ export default function GoNoGoReport({ res, prepared, cfg, location }: GoNoGoRep
 
           <h2>Woher die Zahlen kommen</h2>
           <p className="vsd-print-p">
-            Böen aus dem Vertikalschnitt über DWD ICON-D2 (Gitterzellen ≈ 2 km), ausgewertet
+            Böen aus dem Vertikalschnitt ({sectionOrigin(prepared)}, Bodenwind an {SECTION_ANCHORS} Punkten der Linie), ausgewertet
             am exponiertesten Punkt der Schnittlinie im 15-Minuten-Raster. Die Umrechnung vom
             10-m-Wert auf die Arbeitshöhe ist ein Potenzprofil mit α = {de(DEFAULT_ALPHA, 2)},
             begrenzt auf die Grenzschicht — eine Modellannahme, keine Messung in dieser Höhe.
