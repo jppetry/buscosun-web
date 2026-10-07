@@ -2,8 +2,24 @@
  "schema": 1,
  "kind": "pruefstand/rangliste",
  "note": "Güteindex gegen die lokale Klimatologie an Rolle B; nur der Modus abnahme schreibt.",
- "updated": "2026-10-05",
+ "updated": "2026-10-07",
  "entries": [
+  {
+   "id": "fusion-10",
+   "name": "buscosun Fusion 10",
+   "guete": 0.18689,
+   "ci95": [
+    0.16456,
+    0.20518
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
+  },
   {
    "id": "fusion-6",
    "name": "buscosun Fusion 6",
@@ -16,9 +32,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "fusion-7",
@@ -32,9 +48,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "fusion-8",
@@ -48,9 +64,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "fusion-9",
@@ -64,9 +80,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "fusion-5e",
@@ -80,9 +96,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "ref-naiv",
@@ -96,9 +112,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "ref-roh-lapse",
@@ -112,9 +128,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "ref-roh",
@@ -128,9 +144,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   },
   {
    "id": "ref-persistenz",
@@ -144,9 +160,9 @@
    "cells": 99,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "e973c1f31a9f24defe1eec75b18edbf49268cde1ca76d09b6113ba9a83b04599",
-   "abnahme": "2026-10-05",
-   "by": "test-fusion-9-breit"
+   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
+   "abnahme": "2026-10-07",
+   "by": "fusion-10"
   }
  ]
 }
