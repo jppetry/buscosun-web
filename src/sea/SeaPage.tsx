@@ -21,9 +21,10 @@ import {
   type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
 import {
-  SEA_PROFILE_BY_ID, classify, loadLimits, saveLimits, nextAndLongest, windows, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN,
-  type SeaHour, type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
+  SEA_PROFILE_BY_ID, loadLimits, saveLimits, nextAndLongest, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN,
+  type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
 } from './seaProfiles';
+import { SeaVerdictCache } from './seaVerdicts';
 import { SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
@@ -160,12 +161,16 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       ws: s.ws[i], wsDir: s.wsDir[i], wsPer: s.wsPer[i], wsPeak: s.wsPeak[i], sw: s.sw[i], swDir: s.swDir[i], swPer: s.swPer[i], swPeak: s.swPeak[i],
     };
   }, [spotsDoc, firstIdx, nowHour]);
-  const toSeaHour = (h: SeaReadoutHour | null, tt: number): SeaHour => (h ? { t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, ws: h.ws, wsPer: h.wsPer } : { t: tt, windMs: null, gustMs: null, windDir: null, hs: null, ws: null, wsPer: null });
-  const verdictAt = useCallback((sp: SeaSpot, kk: number): SeaVerdict => classify(toSeaHour(usable ? hourOf(sp.id, kk) : null, nowHour + kk * H), limits, sp.normal, sp.lat, sp.lon), [usable, hourOf, limits, nowHour]); // eslint-disable-line react-hooks/exhaustive-deps
+  // V-SW-10: verdicts per spot are computed once per (spots document, limits by content, axis); hour, layer, revier,
+  // query, unit and tab reuse the rows (`seaVerdicts.ts`, deep-equal to the uncached reference — verify:sea-derive V).
+  const limitsKey = JSON.stringify(limits);
+  const verdicts = useMemo(() => new SeaVerdictCache({ series: usable ? spotsDoc!.series : null, limits, firstIdx, nowHour, nHours }),
+    [usable, spotsDoc, limitsKey, firstIdx, nowHour, nHours]); // eslint-disable-line react-hooks/exhaustive-deps
+  const verdictAt = useCallback((sp: SeaSpot, kk: number): SeaVerdict => verdicts.at(sp, kk), [verdicts]);
 
   const spotHours = useMemo(() => (spot && usable ? Array.from({ length: nHours }, (_, kk) => hourOf(spot.id, kk)!) : []), [spot, usable, nHours, hourOf]);
-  const spotVerdicts = useMemo(() => (spot ? spotHours.map((_, kk) => verdictAt(spot, kk)) : []), [spot, spotHours, verdictAt]);
-  const wins = useMemo(() => nextAndLongest(windows(spotVerdicts, spotHours.map((h) => h.t)), nowMs), [spotVerdicts, spotHours, nowMs]);
+  const spotVerdicts = useMemo(() => (spot && usable ? verdicts.row(spot) : []), [spot, usable, verdicts]);
+  const wins = useMemo(() => nextAndLongest(spot && usable ? verdicts.windows(spot) : [], nowMs), [spot, usable, verdicts, nowMs]);
   const hour = spotHours[k] ?? null;
   const verdict = spot ? (spotVerdicts[k] ?? verdictAt(spot, k)) : null;
 
@@ -251,13 +256,12 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       const v = verdictAt(s, k);
       let win = '';
       if (usable) {
-        const vs = Array.from({ length: nHours }, (_, kk) => verdictAt(s, kk));
-        const nw = nextAndLongest(windows(vs, vs.map((_, kk) => nowHour + kk * H)), nowMs).next;
+        const nw = nextAndLongest(verdicts.windows(s), nowMs).next;
         win = nw ? ` · Fenster ${dayShort(nw.from)} ${hh(nw.from)}:00` : ' · kein Fenster im Lauf';
       }
       return { id: s.id, name: s.name, sub: `${kindsLabel(s.kinds)}${win}`, cls: v.cls, reason: v.reasons[0] ?? '' };
     }),
-  [spots, revier, query, verdictAt, k, usable, nHours, nowHour, nowMs]);
+  [spots, revier, query, verdictAt, verdicts, k, usable, nowMs]);
   const mapSpots: SeaMapSpot[] = useMemo(() => spots.filter((s) => revier === 'alle' || s.region === revier).map((s) => {
     const h = usable ? hourOf(s.id, k) : null;
     return { id: s.id, name: s.name, lon: s.lon, lat: s.lat, cls: verdictAt(s, k).cls, windTo: h?.windDir == null ? null : (h.windDir + 180) % 360, windKn: h?.windMs == null ? null : h.windMs * MS_TO_KN };

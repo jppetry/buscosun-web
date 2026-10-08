@@ -280,6 +280,40 @@ add('P9 Grenzen lokal änderbar (je Profil), kaputter Speicher ⇒ Startwerte', 
 const nl = nextAndLongest([{ from: 1, to: 5, hours: 4, tight: false }, { from: 10, to: 20, hours: 10, tight: true }], 6);
 add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.longest?.hours === 10, JSON.stringify(nl));
 
+// --- V: V-SW-10 verdict cache = uncached reference (real catalogue, real run 2026100700, all profiles) ----------
+{
+  const { isDeepStrictEqual } = await import('node:util');
+  const { SeaVerdictCache, verdictRow, verdictOf } = await import('../src/sea/seaVerdicts.ts');
+  const { SEA_PROFILES } = await import('../src/sea/seaProfiles.ts');
+  const cat = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')).spots;
+  const series = Object.fromEntries(Object.entries(real.spots).map(([id, s]) => [id, Object.fromEntries(Object.entries(s.v).map(([k2, q]) => [k2, q.map((x) => decodeSpotValue(k2, x))]))]));
+  const firstIdx = 9, nHours = 79 - firstIdx, nowHour = real.runMs + firstIdx * 3_600_000;
+  let equalRows = 0, equalWins = 0, rows = 0;
+  for (const p of SEA_PROFILES) {
+    const inp = { series, limits: p.limits, firstIdx, nowHour, nHours };
+    const cache = new SeaVerdictCache(inp);
+    for (const sp of cat) {
+      rows++;
+      const ref = verdictRow(inp, sp);
+      if (isDeepStrictEqual(cache.row(sp), ref)) equalRows++;
+      if (isDeepStrictEqual(cache.windows(sp), windows(ref, ref.map((_, kk) => nowHour + kk * 3_600_000)))) equalWins++;
+    }
+  }
+  add(`V1 Klassen-Cache = ungecachte Referenz: ${SEA_PROFILES.length} Profile × ${cat.length} Spots × ${nHours} Stunden, Zeilen und Fenster tief gleich`,
+    equalRows === rows && equalWins === rows && rows === SEA_PROFILES.length * cat.length, `${equalRows}/${rows} Zeilen, ${equalWins}/${rows} Fenster`);
+  const inpK = { series, limits: SEA_PROFILE_BY_ID.kite.limits, firstIdx, nowHour, nHours };
+  const ck = new SeaVerdictCache(inpK);
+  for (let kk = 0; kk < nHours; kk += 7) for (const sp of cat) ck.at(sp, kk);
+  add('V2 Stundenwechsel rechnet nichts neu: 10 Stunden × 56 Spots ⇒ 56 Zeilen je einmal gerechnet', ck.computed === cat.length, `computed ${ck.computed}`);
+  const empty = new SeaVerdictCache({ series: null, limits: inpK.limits, firstIdx: 0, nowHour, nHours: 0 });
+  add('V3 ohne Daten (nHours 0): at() = Referenz an der Stunde, Klasse „keine“ bzw. ohne Werte', isDeepStrictEqual(empty.at(cat[0], 3), verdictOf({ ...empty.inputs }, cat[0], 3)) && empty.computed === 0, empty.at(cat[0], 3).cls);
+  // Negative controls: the comparison must see a different limit or a shifted hour axis.
+  const negL = verdictRow({ ...inpK, limits: { ...inpK.limits, gustMax: inpK.limits.gustMax - 8 } }, cat.find((s) => s.id === 'st-peter-ording'));
+  const negT = verdictRow({ ...inpK, nowHour: nowHour + 3_600_000 }, cat.find((s) => s.id === 'st-peter-ording'));
+  const ckRow = ck.row(cat.find((s) => s.id === 'st-peter-ording'));
+  add('V4 Gegenprobe: andere Böengrenze (−8 kn) oder um 1 h verschobene Achse ⇒ NICHT tief gleich', !isDeepStrictEqual(ckRow, negL) && !isDeepStrictEqual(ckRow, negT), '');
+}
+
 // --- W: V-SW-2 wind refresh on a newer t1 cube (on the store of block A: run 2026100700, wind with t1 2026100703) ---
 {
   const { windDue, windRefresh } = await import('./sea/sea-derive.mjs');
