@@ -280,12 +280,16 @@ export function pruneRuns(storeDir, model = MODEL) {
   if (existsSync(sdir)) {
     const files = readdirSync(sdir).filter((f) => /^\d{10}\.json$/.test(f)).sort();
     for (const f of files.slice(0, Math.max(0, files.length - SEA_RETENTION.spotsKept))) { rmSync(join(sdir, f), { force: true }); removed.push(`spots/${f}`); }
-    // V-SW-2: wind refreshes follow their run, and per run only the newest stays.
+    // V-SW-2/V-SW-15: wind refreshes follow their run; all of a kept run stay (the newest `windPerRunKept`), so the 6-hourly
+    // archive sees every refresh, not only the newest at its pass.
     const kept = new Set(readdirSync(sdir).filter((f) => /^\d{10}\.json$/.test(f)).map((f) => f.slice(0, 10)));
-    const wind = readdirSync(sdir).map((f) => SEA_SPOTS_WIND_RE.exec(f)).filter(Boolean).sort((a, b) => (a[0] < b[0] ? -1 : 1));
-    const newest = new Map();
-    for (const m of wind) newest.set(m[1], m[0]);
-    for (const m of wind) if (!kept.has(m[1]) || newest.get(m[1]) !== m[0]) { rmSync(join(sdir, m[0]), { force: true }); removed.push(`spots/${m[0]}`); }
+    const wind = readdirSync(sdir).map((f) => SEA_SPOTS_WIND_RE.exec(f)).filter(Boolean).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+    const perRun = new Map();
+    for (const m of wind) {
+      const n = (perRun.get(m[1]) ?? 0) + 1;
+      perRun.set(m[1], n);
+      if (!kept.has(m[1]) || n > SEA_RETENTION.windPerRunKept) { rmSync(join(sdir, m[0]), { force: true }); removed.push(`spots/${m[0]}`); }
+    }
   }
   const qdir = join(storeDir, 'quarantine');
   if (existsSync(qdir)) {

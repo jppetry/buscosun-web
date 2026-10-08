@@ -70,7 +70,7 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     const e = touch(d); if (!e.spots.includes(run)) e.spots.push(run);
     spotsAdded++;
   }
-  // V-SW-2: the wind refreshes in the store (the newest per run — one archive pass every 6 h keeps what is there then).
+  // V-SW-2/V-SW-15: the wind refreshes in the store — since V-SW-15 all of a kept run stay ≥ 12 h, so every 6-h pass sees each one.
   for (const f of existsSync(sdir) ? readdirSync(sdir).filter((x) => SEA_SPOTS_WIND_RE.test(x)) : []) {
     const key = f.slice(0, -'.json'.length), d = day(seaRunMs(f.slice(0, 10)));
     const dst = join(archiveDir, d, `spots-${key}.json.gz`);

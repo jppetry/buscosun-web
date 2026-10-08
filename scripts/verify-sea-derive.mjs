@@ -341,7 +341,7 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
 // --- W: V-SW-2 wind refresh on a newer t1 cube (on the store of block A: run 2026100700, wind with t1 2026100703) ---
 {
   const { windDue, windRefresh } = await import('./sea/sea-derive.mjs');
-  const { seaSpotsWindPath, mergeSpotWind, SEA_SPOT_VARS } = await import('../src/sea/seaContract.ts');
+  const { seaSpotsWindPath, mergeSpotWind, SEA_SPOT_VARS, SEA_RETENTION } = await import('../src/sea/seaContract.ts');
   const { mergeWindDoc, windPointerOf, withWindRefresh } = await import('../src/sea/seaClient.ts');
   const windT1 = (t1, at, base) => async ({ spots }) => ({
     series: Object.fromEntries(spots.map((s) => [s.id, {
@@ -369,14 +369,14 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
     `${r1b.reason} · ${rStale.reason}`);
   const at2 = T('2026-10-07T12:20:00Z');
   const r2 = await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at2, indexT1: '2026100709', windImpl: windT1('2026100709', at2, 60) });
-  const left = readdirSync(join(store, 'spots')).filter((f) => f.includes('-w'));
-  add('W4 nächster t1 ⇒ neue Datei ab Stunde 12, Zeiger folgt, je Lauf bleibt nur die neueste Auffrischung',
-    r2.built && r2.from === 12 && left.join() === `${RUN}-w2026100709.json` && JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind.t1 === '2026100709', left.join());
+  const left = readdirSync(join(store, 'spots')).filter((f) => f.includes('-w')).sort();
+  add('W4 nächster t1 ⇒ neue Datei ab Stunde 12, Zeiger folgt; die vorige Auffrischung des Laufs BLEIBT (V-SW-15: das Archiv sieht jede)',
+    r2.built && r2.from === 12 && left.join() === `${RUN}-w2026100706.json,${RUN}-w2026100709.json` && JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind.t1 === '2026100709', left.join());
   // Client: the decoded run doc + the refresh ⇒ hours < from keep the run's wind, from on the refresh's (all three columns).
   const baseJ = JSON.parse(readFileSync(join(store, seaSpotsPath(RUN)), 'utf8'));
   const decoded = { run: RUN, runMs: baseJ.runMs, steps: baseJ.steps, wind: baseJ.wind, gustDropped: {}, rejected: [],
     series: Object.fromEntries(Object.entries(baseJ.spots).map(([id, s]) => [id, Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, s.v[k].map((q) => decodeSpotValue(k, q))]))])) };
-  const w2 = JSON.parse(readFileSync(join(store, 'spots', left[0]), 'utf8'));
+  const w2 = JSON.parse(readFileSync(join(store, 'spots', `${RUN}-w2026100709.json`), 'utf8'));
   const merged = mergeWindDoc(decoded, { from: w2.from, wind: w2.wind, spots: w2.spots });
   const s0 = decoded.series['st-peter-ording'], s1 = merged.series['st-peter-ording'];
   add('W5 Seite: vor Stunde 12 Wind/Böe/Richtung des Laufs, ab 12 die der Auffrischung; Wellen unverändert; Metadaten nennen den neuen t1 und windFrom 12',
@@ -391,6 +391,24 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
   const same = await withWindRefresh(decoded, { run: '2026100612', t1: '2026100709', path: 'spots/2026100612-w2026100709.json' });
   add('W7 Zeiger: gültig nur mit passendem Pfad (sonst keiner); Zeiger eines anderen Laufs ⇒ Reihen unverändert (kein Abruf)',
     ptr?.t1 === '2026100709' && windPointerOf({ wind: { run: RUN, t1: '2026100709', path: 'spots/x.json' } }) === null && windPointerOf(null) === null && same === decoded);
+  // V-SW-15: the archive (one pass) takes every refresh of the store; the cap keeps the newest 8 per run; refreshes of a
+  // run that is no longer kept go with it.
+  const archW = join(tmp, 'archiv-w');
+  const aw = await archiveSea({ storeDir: store, archiveDir: archW, nowMs: at2, fetchImpl: poiFetch });
+  const awIdx = JSON.parse(readFileSync(join(archW, 'index.json'), 'utf8'));
+  const awKeys = Object.values(awIdx.days).flatMap((d) => d.wind ?? []).sort();
+  const sd = join(store, 'spots');
+  const one = readFileSync(join(sd, `${RUN}-w2026100709.json`));
+  const extraT1 = ['2026100712', '2026100715', '2026100718', '2026100721', '2026100800', '2026100803', '2026100806', '2026100809'];
+  for (const t of extraT1) writeFileSync(join(sd, `${RUN}-w${t}.json`), one);
+  writeFileSync(join(sd, '2026100512-w2026100515.json'), one);   // refresh of a run that is not kept
+  const pr = pruneRuns(store);
+  const after = readdirSync(sd).filter((f) => f.includes('-w')).sort();
+  add('W8 V-SW-15: ein Archivdurchlauf nimmt BEIDE Auffrischungen des Laufs; Obergrenze 8 je Lauf (die ältesten gehen), Auffrischung eines nicht behaltenen Laufs geht mit',
+    awKeys.join() === `${RUN}-w2026100706,${RUN}-w2026100709` && aw.spotsAdded >= 2 && SEA_RETENTION.windPerRunKept === 8
+    && after.length === 8 && after[0] === `${RUN}-w2026100712.json` && after[7] === `${RUN}-w2026100809.json` && !after.includes('2026100512-w2026100515.json')
+    && pr.includes(`spots/${RUN}-w2026100706.json`) && pr.includes(`spots/${RUN}-w2026100709.json`),
+    `Archiv ${awKeys.join(' ')} · Speicher ${after.length}: ${after[0]} … ${after[after.length - 1]}`);
 }
 
 rmSync(tmp, { recursive: true, force: true });

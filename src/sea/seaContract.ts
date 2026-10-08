@@ -11,7 +11,7 @@
  *   sea/v1/run/<model>/<run>/f/<sss>.png       total sea: R = Hs (5 cm), G = direction (256 steps), B = Tm−1,0 (0.1 s), A = water
  *   sea/v1/run/<model>/<run>/c/<sss>.png       components, double width: left wind sea, right swell, channels as f
  *   sea/v1/spots/<run>.json                    hourly series per spot: waves from CWAM, wind/gust from buscosun Fusion
- *   sea/v1/spots/<run>-w<t1>.json              wind/gust/direction of that run again on a newer t1 cube (V-SW-2; pointer `status.wind`)
+ *   sea/v1/spots/<run>-w<t1>.json              wind/gust/direction of that run again on a newer t1 cube (V-SW-2; pointer `status.wind` = newest; all of a kept run stay, V-SW-15)
  *   sea/v1/text/<product>/<issue>.json         bulletin: raw (verbatim), header, issue time, display text, structure
  *   sea/v1/quarantine/<run|issue>.json         rejected runs/bulletins with rule and raw value (diagnosis only)
  *   sea/v1/static/spots.json                   spot catalogue (E-SW-5)
@@ -204,6 +204,12 @@ export const SEA_RETENTION = Object.freeze({
   runsKept: 2,
   /** Spot files follow the runs. */
   spotsKept: 2,
+  /**
+   * V-SW-15: wind refreshes (`spots/<run>-w<t1>.json`) follow their run, and ALL of a kept run stay (newest 8 at most), so the
+   * 6-hourly archive sees every one: ≤ 4 per run in its 12 h as the newest run (t1 every 3 h), ≈ 70 KB each (live 08.10.:
+   * 69 599 B) ⇒ ≈ 0.56 MB for two runs, worst case 16 × 70 KB ≈ 1.1 MB.
+   */
+  windPerRunKept: 8,
   /** Text issues: 48 h per product (the DWD window), at least 2. */
   textMaxAgeMs: 48 * 3_600_000, textMinKeep: 2,
   /** Quarantine: 7 days (diagnosis for Gate B), at least 2. */
