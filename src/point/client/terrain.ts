@@ -61,6 +61,13 @@ export interface TerrainOptions {
   signal?: AbortSignal;
   /** Nur Ergebnis rechnen, nie den Ergebnis-Cache lesen (für Vorher/Nachher-Messungen). */
   noResultCache?: boolean;
+  /**
+   * V-SW-14 (voreingestellt aus): die Höhenfunktion selbst auf ≥ 0 m klemmen — dann rechnen auch TPI, Horizont, Hang,
+   * Ringe (`scales`) und Senkentiefe mit der Meeresoberfläche statt mit der Wassertiefe. Ändert die Merkmale an Küsten-
+   * und Inselstationen, mit denen die Lernstufe gefittet wurde ⇒ nur mit Neufit und neuem Stand von buscosun Fusion
+   * (E-SW-30). Eigener Cache-Schlüssel (`…/sea0/…`); ohne die Option Schlüssel und Ergebnis unverändert.
+   */
+  clampSeaFloor?: boolean;
 }
 
 export interface TerrainPointResult {
@@ -151,10 +158,11 @@ function sampleTileSet(set: TileSet, lat: number, lon: number): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
-function resultKey(lat: number, lon: number, near: TerrainScale, far: TerrainScale): string {
+function resultKey(lat: number, lon: number, near: TerrainScale, far: TerrainScale, clampSeaFloor = false): string {
   // v2 seit AP2: das Ergebnis trägt zusätzlich `scales` und `sinkDepthM` — ein v1-Eintrag
   // im Cache hätte beides nicht und sähe aus wie ein Ort ohne Gelände.
-  return `terrain/v2/z${near.z}r${near.radiusM}+z${far.z}r${far.radiusM}/${lat.toFixed(4)},${lon.toFixed(4)}`;
+  // V-SW-14: mit geklemmter Höhenfunktion ein eigener Eintrag (`sea0`), ohne die Option der Schlüssel wie bisher.
+  return `terrain/v2/z${near.z}r${near.radiusM}+z${far.z}r${far.radiusM}${clampSeaFloor ? '/sea0' : ''}/${lat.toFixed(4)},${lon.toFixed(4)}`;
 }
 
 /**
@@ -169,7 +177,7 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
   const near = opts.near ?? TERRAIN_SCALES.near;
   const far = opts.far ?? TERRAIN_SCALES.far;
   const cache = opts.cache ?? null;
-  const key = resultKey(lat, lon, near, far);
+  const key = resultKey(lat, lon, near, far, opts.clampSeaFloor === true);
 
   if (cache && !opts.noResultCache) {
     try {
@@ -238,13 +246,16 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
   const c0 = now();
   const dLatNear = near.radiusM / M_PER_DEG_LAT;
   const dLonNear = near.radiusM / mPerDegLon(lat);
-  const elev: ElevationAt = (la, lo) => {
+  const elevRead: ElevationAt = (la, lo) => {
     if (Math.abs(la - lat) <= dLatNear && Math.abs(lo - lon) <= dLonNear) {
       const v = sampleTileSet(nearSet, la, lo);
       if (v != null) return v;
     }
     return sampleTileSet(farSet, la, lo);
   };
+  // V-SW-14 (aus ⇒ dieselbe Funktion wie bisher): Meeresboden wird Meeresoberfläche, auch in Ringen und Horizont.
+  const elev: ElevationAt = opts.clampSeaFloor === true ? (la, lo) => { const v = elevRead(la, lo); return v == null ? null : Math.max(0, v); } : elevRead;
+  const hRead = opts.clampSeaFloor === true ? elevRead(lat, lon) : null;
   const h = elev(lat, lon);
   const hor = horizonAngles(lat, lon, elev, { radiusM: SX_RADIUS_M });
   const sa = slopeAspect(lat, lon, elev, 90);
@@ -268,6 +279,9 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
     timing: { totalMs: 0, fetchMs: Math.round(fetchMs), decodeMs: Math.round(decodeMs), computeMs: 0 },
   };
   seaLevelFloor(result);
+  // Mit geklemmter Funktion ist `elevationM` schon 0 — der gelesene Wert bleibt wie bei V-SW-4 sichtbar.
+  const hReadR = hRead == null ? null : Math.round(hRead * 10) / 10;
+  if (hReadR != null && hReadR < 0 && result.elevationM === 0) result.elevationReadM = hReadR;
   result.timing.computeMs = Math.round(now() - c0);
   result.timing.totalMs = Math.round(now() - T0);
 

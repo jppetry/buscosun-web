@@ -959,7 +959,7 @@ let stationManifest;
   {
     const PEAK = { lat: 47.27, lon: 11.40 };
     const hAt = (lat, lon, peak, base = 700) => base + (peak ? 800 * Math.exp(-((distanceKm(lat, lon, PEAK.lat, PEAK.lon) / 3) ** 2)) : 0);
-    const mkOpts = (peak, cache, base = 700) => {
+    const mkOpts = (peak, cache, base = 700, hFn = null) => {
       let fetches = 0;
       const fetchImpl = async (url) => { fetches++; const m = String(url).match(/\/(\d+)\/(\d+)\/(\d+)\.png$/); return new Response(new TextEncoder().encode(JSON.stringify({ z: +m[1], x: +m[2], y: +m[3] })), { status: 200 }); };
       const decodeRgba = (bytes) => {
@@ -969,7 +969,7 @@ let stationManifest;
           const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + j / 256) / n))) * 180 / Math.PI;
           for (let i = 0; i < 256; i++) {
             const lon = (x + i / 256) / n * 360 - 180;
-            const v = hAt(lat, lon, peak, base) + 32768;
+            const v = (hFn ? hFn(lat, lon) : hAt(lat, lon, peak, base)) + 32768;
             const k = (j * 256 + i) * 4;
             data[k] = Math.floor(v / 256); data[k + 1] = Math.floor(v) % 256; data[k + 2] = Math.min(255, Math.round((v - Math.floor(v)) * 256)); data[k + 3] = 255;
           }
@@ -1031,6 +1031,33 @@ let stationManifest;
       rs2.fromCache === true && rs2.elevationM === 0 && rs3?.fromCache === true && rs3.elevationM === 0 && rs3.elevationReadM === -12, `key ${keyOf ?? 'fehlt'}`);
     add('(10) V-SW-4 Gegenprobe: seaLevelFloor lässt 0 m und positive Höhen stehen, hebt nur negative',
       seaLevelFloor({ elevationM: 0 }).elevationM === 0 && !('elevationReadM' in seaLevelFloor({ elevationM: 3.5 })) && seaLevelFloor({ elevationM: -0.1 }).elevationM === 0);
+
+    // V-SW-14: reader option `clampSeaFloor` (default off). Coast fixture: land 20 m west of the point, sea bed −15 m east
+    // (point 300 m inland). Off ⇒ identical to no option (value AND cache key); on ⇒ rings/TPI/sink see the sea surface.
+    const coastLon = PEAK.lon + 0.3 / (111.32 * Math.cos(PEAK.lat * Math.PI / 180));
+    const coastH = (lat, lon) => (lon < coastLon ? 20 : -15);
+    const strip = (r) => { const { timing: _t, ...rest } = r; void _t; return JSON.stringify(rest); };
+    const keysOf = () => { const keys = []; const raw = memoryBackend(); return { keys, mem: { ...raw, get: (k) => raw.get(k), put: (k, e) => { keys.push(k); return raw.put(k, e); } } }; };
+    const kNo = keysOf(), kOff = keysOf(), kOn = keysOf();
+    const cNo = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, mkOpts(false, kNo.mem, 0, coastH).opts);
+    const cOff = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, { ...mkOpts(false, kOff.mem, 0, coastH).opts, clampSeaFloor: false });
+    const cOn = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, { ...mkOpts(false, kOn.mem, 0, coastH).opts, clampSeaFloor: true });
+    const sOn = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, { ...mkOpts(false, null, -12).opts, clampSeaFloor: true });
+    const pOn = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, { ...mkOpts(true, null).opts, clampSeaFloor: true });
+    await new Promise((r) => setTimeout(r, 0));
+    const tKey = (ks) => ks.keys.find((k) => String(k).startsWith('terrain/')) ?? '';
+    add('(10) V-SW-14: clampSeaFloor aus (false) = ohne Option — Ergebnis Zeichen für Zeichen und Cache-Schlüssel gleich (ohne /sea0)',
+      strip(cNo) === strip(cOff) && tKey(kNo) === tKey(kOff) && !tKey(kNo).includes('/sea0') && tKey(kNo).length > 0, tKey(kNo));
+    add('(10) V-SW-14: Land bleibt auch MIT Option gleich (Gipfel: Höhe, TPI, Horizont, Ringe, Senke)',
+      strip({ ...pOn, tiles: null }) === strip({ ...rp, tiles: null, fromCache: false }), `tpi ${pOn.tpi2000M}/${rp.tpi2000M}`);
+    add('(10) V-SW-14: Küste MIT Option ⇒ TPI 2 km und Senkentiefe ändern sich (Ring sieht 0 m statt −15 m), eigener Schlüssel …/sea0/…',
+      cOn.tpi2000M !== cOff.tpi2000M && cOn.tpi2000M < cOff.tpi2000M && cOn.sinkDepthM >= cOff.sinkDepthM && cOn.elevationM === 20 && tKey(kOn).includes('/sea0/'),
+      `tpi2000 aus ${cOff.tpi2000M} an ${cOn.tpi2000M} · Senke ${cOff.sinkDepthM} → ${cOn.sinkDepthM} · ${tKey(kOn)}`);
+    // `terrainScales` clamps its own samples at 0 m already; `sinkDepthM` = ring mean (clamped) − point (read) therefore
+    // carries the water depth over open sea without the option — the inconsistency V-SW-14 removes.
+    add('(10) V-SW-14: offene See MIT Option ⇒ Punkthöhe 0, gelesener Wert −12 sichtbar wie bei V-SW-4, Senkentiefe 0; Gegenprobe ohne Option: Senkentiefe 12 m (Ring 0 m gegen Punkt −12 m)',
+      sOn.elevationM === 0 && sOn.elevationReadM === -12 && sOn.sinkDepthM === 0 && Math.abs(rs.sinkDepthM - 12) < 0.2 && sOn.scales?.ringMeanM?.[2] === rs.scales?.ringMeanM?.[2],
+      `Senke an ${sOn.sinkDepthM} aus ${rs.sinkDepthM} · Ring 2 km ${sOn.scales?.ringMeanM?.[2]}/${rs.scales?.ringMeanM?.[2]}`);
   }
 
   // ── (10k) AP12, V-FI-40: Frist bis zur Antwort, Stillstand im Körper, Hedge nur bei langsamer Antwort ─
