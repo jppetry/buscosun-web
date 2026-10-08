@@ -59,6 +59,7 @@ import { loadPrecipCal, type LoadedPrecipCal } from '../point/client/precipCalPo
 import { applyPrecipCal, precipCalEntry, validatePrecipCalTable, type PrecipCalSituation, type PrecipCalTable } from './fusion/precipCal';
 import { estimateCoefficients, muAt, trendVector, type ClimaProduct, type MuEstimate } from '../point/fusionFit/climaProduct';
 import { climaColumnsFor } from '../point/fusionFit/tables';
+import { blendDist, longRangeParams, sdOf, FUSION10_WIND_SHRINK_COUNTRIES, FUSION10_WIND_SHRINK_FROM_H, FUSION11_T_IDENTITY_FROM_H, FUSION11_T_TAIL, FUSION11_WIND_SHRINK_FROM_H, FUSION11_WIND_SIGMA_FLOOR, LONG_RANGE_FROM_H, LONG_RANGE_TABLE, LONG_RANGE_TABLE_F11, LONG_RANGE_VARS, type LongRangeTable, type LongRangeVar } from './fusion/longRange';
 import { predict as predictLearned, predictPrecip as predictPrecipLearned, type PredictSituation } from '../point/fusionFit/predict';
 import { speedLaw, type SpeedEntry } from '../point/fusionFit/fitSpeed';
 import { buildZ, dTsfcProxy, sourceToPoint } from '../point/fusionFit/features';
@@ -263,7 +264,7 @@ export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, ob
 export type StepFlag =
   | 'extrapolatedBelowModel' | 'inversionBody' | 'stdLapseFallback' | 'chunkBorderTruncated' | 'belowGround925'
   | 'nowcastFallbackModel' | 'climatologyOnly' | 'stale' | 'seam' | 'interpolated' | 'noTerrain' | 'nowcastSaturated'
-  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal';
+  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal' | 'longRange' | 'sigmaInflate';
 
 export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'anchor' | 'climatology';
 export type StepTier = TierId | 'station' | 'clima';
@@ -324,6 +325,17 @@ export interface CubeStep {
   post?: {
     stationValue?: Partial<Record<StackVar, { form: StackForm; group: number; M: number; I: number | null; L: number | null; value: number }>>;
     learnedClouds?: boolean;
+    /**
+     * F10-K1 (`longRange`): what the long-range blend used at this step — the climatology (mean, sd and the distribution
+     * it was read from) per variable, and the (w, s) applied. The fit script reads it (with the identity table the
+     * distributions are unblended). Fehlt ohne die Option oder bei Vorlauf ≤ 48 h.
+     */
+    longRange?: {
+      leadH: number;
+      clima: Partial<Record<LongRangeVar, { mu: number; sigma: number; dist: Dist }>>;
+      w: Partial<Record<LongRangeVar, number>>;
+      s: Partial<Record<LongRangeVar, number>>;
+    };
   };
 }
 
@@ -378,6 +390,13 @@ const SAME_TIME_MS = 30 * 60_000;
 export const ANCHOR_BRACKET_MAX_H = 3;
 /** AX-7 (set): σ des Ensemble-Members = Faktor·σ_ens — σ_ens roh ist unterdispersiv (Bericht #1: 28,7 % statt 66,7 % im Band); c(p,f) fehlt bis zur Archivmessung. */
 export const ENS_MEMBER_SIGMA_FACTOR = 1.5;
+/**
+ * Phase F10, candidate K3 (b): fixed σ-inflation of the long range — factors per variable applied to the combined
+ * distribution at steps with `leadH ≥ sigmaInflateFromH` (after the station value). Set, not fitted: the development set
+ * showed q10–q90 coverage 63–68 % (T) and 68–74 % (wind) at 120–336 h against the 80 % target (`audit/fusion-10.md` §1.3).
+ * Gust and Td are not inflated (coverage 79–83 % there).
+ */
+export const SIGMA_INFLATE_LONG = Object.freeze({ temperature: 1.15, wind: 1.25 } as const);
 export const ENS_MEMBER_SIGMA_FLOOR = Object.freeze({ temperature: 0.6, wind: 0.5, precip: 0.05 });
 
 /**
@@ -595,6 +614,26 @@ export interface FuseCubeOptions {
    */
   priorShrinkWind?: boolean;
   /**
+   * Phase F10, candidate K3 (a) — lead-dependent form of `priorShrinkWind`: with `priorShrink: false`, WIND and GUST keep
+   * the climatology step only at steps with `leadH ≥ priorShrinkWindFromH` (E-AX-11 measured the step as worse at 0–120 h
+   * without a station, better at 126–240 h and in AT/CH; the development set of F10 shows wind below the station climatology
+   * from 120 h on). `priorShrinkWind: true` takes precedence (all leads). Default off (no value) ⇒ byte-identical.
+   */
+  priorShrinkWindFromH?: number;
+  /**
+   * Phase F10, candidate K3 (a′): `priorShrinkWindFromH` acts only at points whose `input.country` is in this list (pre-screen
+   * on the quick set: the long-range step helped AT +7/+14 % and CH +12/+21 % wind CRPS at 120–240/240–336 h but cost DE
+   * −7/−3 % — the pattern of E-AX-11). A point without a country keeps the stage as is. Default off ⇒ byte-identical.
+   */
+  priorShrinkWindCountries?: readonly string[];
+  /**
+   * Phase F10, candidate K3 (b): at steps with `leadH ≥ sigmaInflateFromH` the σ of T (×`SIGMA_INFLATE_LONG.temperature`) and
+   * of the wind speed (×`SIGMA_INFLATE_LONG.wind`) is widened after the station value — means unchanged (`normal`,
+   * `truncatedNormal`; a `rice` speed is left alone because its mean moves with σ). Set constants, zero fit. Default off
+   * (no value) ⇒ byte-identical.
+   */
+  sigmaInflateFromH?: number;
+  /**
    * Phase AX, E-AX-11 (zweite Hypothese): der Anker für u, v und Böe wird über die DISTANZ der Messung zusätzlich mit
    * e^(−(d / anchorWindKm)²) gedämpft — `spatialWeight` (D_REF 20 km) gibt einer 20 km entfernten Messung noch 0,5, doch beim
    * Wind trägt sie eine fremde Exposition und Richtung. T bleibt beim bisherigen Gewicht. Messungen am Punkt (d = 0) und die
@@ -645,6 +684,32 @@ export interface FuseCubeOptions {
    * (E-AX-16) oder — im Archiv — gemittelt aus den Frames des Bündels.
    */
   nowcastHourMean?: boolean;
+  /**
+   * F10-K1 „Langfrist-Rückführung auf die Klimatologie" (`fusion/longRange.ts`, `audit/fusion-10/stat.md`): bei Vorlauf
+   * > 48 h werden T, Td, Windgeschwindigkeit und Böe nach dem Stationswert mit Gewicht w zur Klimatologie des Motors
+   * gezogen (μ_c aus dem Klimatologieprodukt für T/Td, sonst die Klimatologie-only-Fusion des Schritts) und die Streuung
+   * mit s skaliert (momentgleiche Mischung, gleiche Verteilungsfamilie). (w, s) je Größe × Vorlauf-Bin aus
+   * `longRangeTable` (Voreinstellung `LONG_RANGE_TABLE`, Provenienz hindcast, nie measured), linear im Vorlauf
+   * interpoliert. Voreinstellung aus ⇒ der Haken läuft nicht, byte-gleich.
+   */
+  longRange?: 0 | 1;
+  /** F10-K1: die Tabelle der (w, s); fehlt sie, gilt `LONG_RANGE_TABLE`. `LONG_RANGE_IDENTITY` ⇒ byte-gleich (Fit-Weg). */
+  longRangeTable?: LongRangeTable;
+  /**
+   * Phase F11 (buscosun Fusion 11, `audit/fusion-11.md`): the two acceptance defects of Fusion 10 removed — only together with
+   * `longRange: 1`. (1) V-F10-7: the T bin 241–336 h of the blend is the identity (`LONG_RANGE_TABLE_F11`, reached as
+   * `FUSION11_T_TAIL`); (2) V-F10-8: the AT/CH wind/gust climatology step starts at `FUSION11_WIND_SHRINK_FROM_H` and/or keeps the
+   * combination's σ (`FUSION11_WIND_SIGMA_FLOOR`). Explicit `priorShrinkWind*`/`longRangeTable`/`longRangeTTail` options take
+   * precedence (pre-screen path). Absent or 0 ⇒ exactly Fusion 10, byte-identical.
+   */
+  longRangeFix?: 0 | 1;
+  /** F11 pre-screen knob: how the identity T bin is reached ('ramp' = knot interpolation, 'step' = identity at every T lead ≥ 241 h). */
+  longRangeTTail?: 'ramp' | 'step';
+  /**
+   * Phase F11 (K3 c): the wind/gust climatology step of `priorShrinkWind`/`priorShrinkWindFromH` keeps the combination's σ and
+   * moves the mean only (`FusionContext.priorShrink.sigmaFloor`). Default off ⇒ byte-identical.
+   */
+  priorShrinkWindSigmaFloor?: boolean;
   /**
    * AP7: stündliche Achse — Stunden ohne nativen Schritt füllt die Station (wenn sie den Punkt vertritt),
    * sonst werden die Quantile der Nachbarschritte linear interpoliert und markiert. Voreinstellung nein
@@ -897,8 +962,36 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const noPriorShrink = opts.priorShrink === false;
   // E-AX-11: wind/gust keep the climatological step; the wind anchor is damped over the distance of the measurement
   const keepWindShrink = noPriorShrink && opts.priorShrinkWind === true;
+  // F10 K3 (a): the lead from which wind/gust keep the step (only without the all-leads form)
+  // F10 (buscosun Fusion 10, second sub-feature): with `longRange: 1` the wind/gust climatology step returns in AT/CH from 126 h
+  // (constants below) unless the caller sets `priorShrinkWindFromH`/`priorShrinkWindCountries` explicitly. Measured in the
+  // pre-screen (audit/fusion-10.md §3.2): AT/CH wind > 120 h +5/+10 % (quick set), +1/+4 % (hindcast), DE byte-identical.
+  // F11 (buscosun Fusion 11): `longRangeFix: 1` changes exactly two things of the bundle — the lead/σ form of the AT/CH wind step
+  // (V-F10-8) and the T bin 241–336 h (V-F10-7, below). Without it the bundle computes exactly Fusion 10.
+  const lrFix = opts.longRange === 1 && opts.longRangeFix === 1;
+  const lrBundleShrink = opts.longRange === 1 && opts.priorShrinkWindFromH === undefined && opts.priorShrinkWindCountries === undefined && FUSION10_WIND_SHRINK_FROM_H != null;
+  const windShrinkCountries = lrBundleShrink ? FUSION10_WIND_SHRINK_COUNTRIES : opts.priorShrinkWindCountries;
+  const windShrinkFromOpt = lrBundleShrink ? (lrFix ? FUSION11_WIND_SHRINK_FROM_H : FUSION10_WIND_SHRINK_FROM_H) : opts.priorShrinkWindFromH;
+  const windShrinkCountryOk = !windShrinkCountries || (input.country != null && windShrinkCountries.includes(input.country));
+  const windShrinkFromH = noPriorShrink && !keepWindShrink && windShrinkCountryOk && windShrinkFromOpt != null && Number.isFinite(windShrinkFromOpt) ? windShrinkFromOpt : null;
+  // F11 (K3 c): σ floor of the kept step — explicit option first, else the Fusion 11 constant when the bundle supplies the step
+  const windShrinkSigmaFloor = opts.priorShrinkWindSigmaFloor ?? (lrBundleShrink && lrFix ? FUSION11_WIND_SIGMA_FLOOR : false);
+  const windShrinkCtx: FusionContext['priorShrink'] = windShrinkSigmaFloor ? { except: ['wind', 'gust'] as const, sigmaFloor: true } : { except: ['wind', 'gust'] as const };
+  const priorShrinkAt = (leadH: number): FusionContext['priorShrink'] => (keepWindShrink || (windShrinkFromH != null && leadH >= windShrinkFromH) ? windShrinkCtx : false);
+  const windShrinkCount = { kept: 0, dropped: 0 };
+  // F10 K3 (b): fixed σ-inflation of the long range
+  const sigmaInflateFromH = opts.sigmaInflateFromH != null && Number.isFinite(opts.sigmaInflateFromH) ? opts.sigmaInflateFromH : null;
+  const sigmaInflateCount = { t: 0, wind: 0, windSkipped: 0 };
+  const inflateDist = (d: Dist, f: number): Dist | null => (d.kind === 'normal' || d.kind === 'truncatedNormal' ? { ...d, sigma: d.sigma * f } : null);
   const anchorWindL = opts.anchorWindKm != null && Number.isFinite(opts.anchorWindKm) && opts.anchorWindKm > 0 ? opts.anchorWindKm * 1000 : null;
   const useLearnedClouds = useLearned && opts.learnedClouds === true;
+  // F10-K1: long-range blend towards the climatology (`fusion/longRange.ts`); default off ⇒ the hook never runs.
+  const useLongRange = opts.longRange === 1;
+  // F11 (V-F10-7): 'step' = the Fusion 10 table up to 240 h and the exact identity for T at every lead ≥ FUSION11_T_IDENTITY_FROM_H
+  // (T differs from Fusion 10 only beyond 240 h); 'ramp' = the knot interpolation of `LONG_RANGE_TABLE_F11` towards (1, 1) at 288,5 h
+  const lrTTail: 'ramp' | 'step' | null = lrFix ? (opts.longRangeTTail ?? FUSION11_T_TAIL) : null;
+  const lrTable: LongRangeTable = opts.longRangeTable ?? (lrTTail === 'ramp' ? LONG_RANGE_TABLE_F11 : LONG_RANGE_TABLE);
+  const lrCount = { steps: 0, vars: 0, changed: 0 };
   const stackErrors = opts.stationValue === true && input.stack ? validateStackTable(input.stack) : [];
   const stackT: StackTable | null = opts.stationValue === true && input.stack && !stackErrors.length ? input.stack : null;
   const fsCount = { atPoint: 0, clouds: 0, stationValue: 0, byForm: {} as Record<string, number>, byCountry: {} as Record<string, number> };
@@ -1024,6 +1117,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       ? 'learnedRoute:tier — Strata der Lernstufe je Stufe: t1 Route 1 (Lauf-Route), t2/t3 Route 3 (dyn, ganzjährig, 289 Tage) statt Route 1 mit 87–95 Sommertagen (E-FV-3, V-FV-1; AX-2)'
       : `learnedRoute:${learnedRouteOpt} — Strata der Lernstufe aus Route ${learnedRouteOpt} in jeder Stufe (AX-2)`] : []),
     ...(noPriorShrink ? ['priorShrink:off — kein Klimatologie-Schritt für Kombinationen aus Membern mit expliziter σ (Lernstufe, PAP 6, Stationsmember sind kalibrierte Vorhersagen); Niederschlag behält ihn (K-2); jenseits der Daten trägt weiter allein die Klimatologie (Phase FS, D2)'] : []),
+    ...(windShrinkFromH != null ? [`priorShrinkWindFromH:set — Wind und Böe behalten den Klimatologie-Schritt erst ab ${windShrinkFromH} h Vorlauf (F10 K3 a; E-AX-11: bei 0–120 h ohne Station schlechter, ab 126 h besser)${windShrinkCountries ? ` — nur in ${windShrinkCountries.join('/')}` : ''}${windShrinkSigmaFloor ? ' — mit σ-Boden: der Schritt bewegt nur das Mittel, σ bleibt die der Kombination (F11)' : ''}${lrBundleShrink ? ' (zweites Teilmerkmal der Option longRange)' : ''}`] : []),
+    ...(lrFix ? [`longRangeFix:set — Langfrist-Korrekturen (F11, V-F10-7/8): T ab ${FUSION11_T_IDENTITY_FROM_H} h Identität (${lrTTail}), Windschritt AT/CH ab ${windShrinkFromOpt ?? '–'} h${windShrinkSigmaFloor ? ' mit σ-Boden' : ''}`] : []),
+    ...(sigmaInflateFromH != null ? [`sigmaInflate:set — ab ${sigmaInflateFromH} h Vorlauf σ von T ×${SIGMA_INFLATE_LONG.temperature} und der Windgeschwindigkeit ×${SIGMA_INFLATE_LONG.wind} nach dem Stationswert (F10 K3 b, Setzung ohne Fit)`] : []),
     ...(keepWindShrink ? ['priorShrinkWind:set — Wind und Böe behalten den Klimatologie-Schritt trotz priorShrink:off (E-AX-11, V-AX-13): am Punkt ohne Station verlor der Wind ohne den Schritt gegen die Kette von 5e; T, Td und Bewölkung bleiben ohne Schritt'] : []),
     ...(anchorWindL != null ? [`anchorWind:set — der Anker für u, v und Böe ist über die Distanz der Messung mit e^(−(d/${opts.anchorWindKm} km)²) gedämpft (E-AX-11): eine 10–30 km entfernte Messung trägt beim Wind eine fremde Exposition; T behält das Gewicht von spatialWeight`] : []),
     ...(useLearnedClouds && learnedT ? ['learnedClouds:hindcast — die Bewölkungsverteilung der Lernstufe wird durchgereicht statt nachfusioniert (Phase FS, H14)'] : []),
@@ -1142,7 +1238,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       clima: climaAt(atMs),
       climaAt,
       terrainDeltaAt: () => 0,
-      ...(noPriorShrink ? { priorShrink: keepWindShrink ? { except: ['wind', 'gust'] as const } : false } : {}),
+      ...(noPriorShrink ? { priorShrink: priorShrinkAt(leadH) } : {}),
     };
     return fuseHour(samples, leadH, ctx);
   };
@@ -1636,6 +1732,44 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const r = applyStationValue(fused, a.validAtMs, leadH, flags.includes('learned') ? p.learnedDist : null);
       if (r) { fused = r.fused; post = { ...post, stationValue: r.info }; }
     }
+    // F10-K1: long-range blend towards the engine's climatology — after the station value, before the uncertainty block.
+    if (fused && useLongRange && leadH > LONG_RANGE_FROM_H) {
+      const climOnly = fuseAt([], leadH, a.validAtMs, null);
+      const mc = climaEst ? muAt(climaEst, a.validAtMs, lon) : null;
+      const sigT = sigmaClimaFor('temperature', a.validAtMs);
+      const normalC = (mu: number | null | undefined, fallback: FusedVariable | null | undefined): Dist | null => {
+        const m = mu != null && Number.isFinite(mu) ? mu : fallback ? meanOf(fallback.dist) : null;
+        return m != null && Number.isFinite(m) && sigT > 0 ? { kind: 'normal', mu: m, sigma: sigT } : null;
+      };
+      const climaOf: Record<LongRangeVar, Dist | null> = {
+        t: normalC(mc?.t, climOnly?.temperature),
+        td: normalC(mc?.td, climOnly?.dewPoint),
+        ws: climOnly?.windSpeed?.dist ?? null,
+        gust: climOnly?.gust?.dist ?? null,
+      };
+      const keyOf: Record<LongRangeVar, 'temperature' | 'dewPoint' | 'windSpeed' | 'gust'> = { t: 'temperature', td: 'dewPoint', ws: 'windSpeed', gust: 'gust' };
+      const info: NonNullable<NonNullable<CubeStep['post']>['longRange']> = { leadH, clima: {}, w: {}, s: {} };
+      let touched = 0;
+      for (const v of LONG_RANGE_VARS) {
+        const c = climaOf[v];
+        const fv: FusedVariable | null = fused[keyOf[v]];
+        if (!c || !fv) continue;
+        const { w, s } = lrTTail === 'step' && v === 't' && leadH >= FUSION11_T_IDENTITY_FROM_H ? { w: 1, s: 1 } : longRangeParams(v, leadH, lrTable);
+        info.clima[v] = { mu: meanOf(c), sigma: sdOf(c), dist: c }; info.w[v] = w; info.s[v] = s;
+        const nd = blendDist(fv.dist, c, w, s);
+        if (nd !== fv.dist) { fused = { ...fused, [keyOf[v]]: { ...fv, dist: nd } }; touched += 1; }
+      }
+      post = { ...post, longRange: info };
+      lrCount.steps += 1; lrCount.vars += Object.keys(info.w).length; lrCount.changed += touched;
+      if (touched) flags.push('longRange');
+    }
+    if (fused && windShrinkFromH != null) { if (leadH >= windShrinkFromH) windShrinkCount.kept += 1; else windShrinkCount.dropped += 1; }
+    // F10 K3 (b): widen the long-range σ of T and wind speed after everything that sets the mean — the mean stays.
+    if (fused && sigmaInflateFromH != null && leadH >= sigmaInflateFromH) {
+      if (fused.temperature) { const d = inflateDist(fused.temperature.dist, SIGMA_INFLATE_LONG.temperature); if (d) { fused = { ...fused, temperature: { ...fused.temperature, dist: d } }; sigmaInflateCount.t += 1; } }
+      if (fused.windSpeed) { const d = inflateDist(fused.windSpeed.dist, SIGMA_INFLATE_LONG.wind); if (d) { fused = { ...fused, windSpeed: { ...fused.windSpeed, dist: d } }; sigmaInflateCount.wind += 1; } else sigmaInflateCount.windSkipped += 1; }
+      flags.push('sigmaInflate');
+    }
     if (fused) fused = floorGust(fused);
     if (useUnc) {
       for (const v of UNC_VARS) {
@@ -1664,6 +1798,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     : 'stationValue: an keinem Schritt gesetzt — die Tabelle trägt keinen Eintrag für die Form, die diese Abfrage tragen kann');
   if (useAtPoint && learnedT) notes.push(`learnedAtPoint: Member an ${fsCount.atPoint} Schritten vorkompensiert`);
   if (useLearnedClouds && learnedT) notes.push(`learnedClouds: gelernte Bewölkung an ${fsCount.clouds} Schritten durchgereicht`);
+  if (useLongRange) notes.push(`longRange: Langfrist-Rückführung (${lrTable.provenance.kind}${lrTable.provenance.fitWindow ? ` ${lrTable.provenance.fitWindow.from}…${lrTable.provenance.fitWindow.to}` : ''}) an ${lrCount.steps} Schritten > ${LONG_RANGE_FROM_H} h, ${lrCount.vars} Größen-Schritte, davon ${lrCount.changed} verändert (w, s ≠ 1); μ_c für T/Td aus ${climaEst ? 'dem Klimatologieprodukt' : 'der Klimatologie-only-Fusion'}, Wind/Böe aus der Klimatologie-only-Fusion`);
   if (gustFloorOn) notes.push(`gustAtLeastWind: Böe an ${gustRaised.steps} Schritten auf das Windmittel angehoben (größte Lücke ${gustRaised.maxMs.toFixed(2)} m/s, V-SW-3)`);
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
@@ -1770,6 +1905,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   }
 
   if (stackOn) notes.push(stationValueApplied());
+  if (windShrinkFromH != null) notes.push(`priorShrinkWindFromH: Klimatologie-Schritt für Wind/Böe an ${windShrinkCount.kept} Schritten ab ${windShrinkFromH} h behalten, an ${windShrinkCount.dropped} davor ausgelassen`);
+  if (sigmaInflateFromH != null) notes.push(`sigmaInflate: σ geweitet an ${sigmaInflateCount.t} T- und ${sigmaInflateCount.wind} Wind-Schritten ab ${sigmaInflateFromH} h${sigmaInflateCount.windSkipped ? `; ${sigmaInflateCount.windSkipped} Wind-Schritte mit Rice-Verteilung unverändert` : ''}`);
   if (useEnsMember) {
     notes.push(ensMemberCount.applied
       ? `ensMember: Ensemble-Mittel als Member an ${ensMemberCount.applied} t3-Schritten (T ${ensMemberCount.t} · Wind ${ensMemberCount.wind} · Niederschlag ${ensMemberCount.precip}), σ = ${ENS_MEMBER_SIGMA_FACTOR}·σ_ens (set)${ensMemberCount.noPlanes ? `; ${ensMemberCount.noPlanes} t3-Schritte ohne _ens-Ebenen` : ''}${ensMemberCount.noSigma ? `; ${ensMemberCount.noSigma} ohne σ_ens` : ''}`

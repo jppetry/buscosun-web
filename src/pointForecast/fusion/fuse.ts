@@ -111,8 +111,12 @@ export interface FusionContext {
    * Phase AX, E-AX-11 (V-AX-13): the object form `{ except: [...] }` switches the step off for every variable EXCEPT the listed
    * ones — measured at the archive, the point WITHOUT a station lost wind skill against the chain with the step (0–6 h −1,2 %!,
    * 126–240 h −4,1 %!) while T/Td/gust gained; the wind combination keeps the step, the others drop it.
+   *
+   * Phase F11 (`sigmaFloor`, `audit/fusion-11.md`): with the object form the step of the listed variables may move the MEAN
+   * only — the posterior variance is floored at the variance of the combination (σ never below the members' σ). Without the
+   * field the step is the full Bayesian shrink as before (byte-identical).
    */
-  priorShrink?: boolean | { except: ReadonlyArray<FusionVariable> };
+  priorShrink?: boolean | { except: ReadonlyArray<FusionVariable>; sigmaFloor?: boolean };
 }
 
 export interface FusedVariable {
@@ -515,7 +519,9 @@ export function fuseScalar(
   const beta = noShrink ? 1 : sc2 / (sc2 + se2);
   const climaMean = opt.climaMean + (opt.microDelta ?? 0);
   const mu = climaMean + beta * c.mu;
-  const varPost = noShrink ? se2 : (sc2 * se2) / (sc2 + se2);
+  // Phase F11: the σ floor of the except-form keeps the combination's variance (the step moves the mean only).
+  const sigmaFloor = !noShrink && typeof ctx.priorShrink === 'object' && ctx.priorShrink !== null && ctx.priorShrink.sigmaFloor === true && ctx.priorShrink.except.includes(variable);
+  const varPost = noShrink || sigmaFloor ? se2 : (sc2 * se2) / (sc2 + se2);
   const sigma = Math.sqrt(Math.max(1e-9, varPost + (opt.extraVar ?? 0)));
 
   const total = c.weights.reduce((a, w) => a + Math.abs(w), 0) || 1;

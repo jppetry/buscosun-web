@@ -36,6 +36,28 @@ export const FUSION8_NOWCAST_HOUR_MEAN = true;
  * `CubeIo.anchorAtObsTime: false` (`?anc=0`) = Fusion 8.
  */
 export const FUSION9_ANCHOR_AT_OBS_TIME = true;
+/**
+ * buscosun Fusion 10 (phase F10, autonomous session 07.10.2026, `audit/fusion-10.md`; status KANDIDAT until Jan's champion
+ * decision after ≥ 4 mature track-P days): the stage `fs` leads the long range back to the climatology — for leads > 48 h the
+ * fused distributions of T, Td, wind speed and gust are blended moment-true towards the engine's own climatology with weights
+ * and a σ scale per variable × lead bin (`FuseCubeOptions.longRange`, module `longRange.ts`), FITTED on hindcast slots outside
+ * the vault (2025-09-08 … 2026-09-21, 00 UTC, every third day; the development set of the bench was not used for the fit).
+ * Evidence (development set, role B, CRPS skill vs station climatology before Fusion 10): wind 120–240 h −17 %, 240–336 h −54 %,
+ * T 240–336 h +9,6 % with coverage 63 %. Measured on the bench: see the register entry `scripts/pruefstand/register/fusion-10.json`
+ * and `audit/fusion-10.md` §3. Fusion 10 = Fusion 9 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 9.
+ */
+export const FUSION10_LONG_RANGE: 0 | 1 = 1;
+/**
+ * buscosun Fusion 11 (phase F11, autonomous session 07.10.2026, `audit/fusion-11.md`; status KANDIDAT): Fusion 10 with the two
+ * acceptance defects of its track-R test removed and nothing else changed (`FuseCubeOptions.longRangeFix`, constants `FUSION11_*`
+ * in `longRange.ts`): (1) V-F10-7 — the T bin 241–336 h of the long-range blend is the identity (the F10 fit had w = 1 there and
+ * the σ scale 1,05 cost 0,2–0,4 % CRPS in track R, AT significant); (2) V-F10-8 — the AT/CH wind/gust climatology step no longer
+ * narrows the 126–240 h bands below the champion's coverage (form chosen on the out-of-vault hindcast and the quick set by a rule
+ * written before the numbers). Both corrections were derived from the vault result of Fusion 10 ⇒ the vault cells t 240–336 h
+ * and ws 120–240 h are NOT blind for Fusion 11; track P stays the clean judge. Fusion 11 = Fusion 10 (tables of data-repo commit
+ * 1aaec969 unchanged) + this. Value 0 = Fusion 10. Acts only together with `longRange: 1`.
+ */
+export const FUSION11_LONG_RANGE_FIX: 0 | 1 = 1;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
 export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime';
@@ -79,6 +101,16 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
     n: 9, date: '2026-10-04', ref: 'V-AW-33, audit/autobahnwetter.md',
     option: 'anchorAtObsTime', value: FUSION9_ANCHOR_AT_OBS_TIME,
     note: 'Anker am Messzeitpunkt (V-AW-33)', io: { key: 'anchorAtObsTime', flag: '?anc=0' }, needs: 'measurement',
+  },
+  {
+    n: 10, date: '2026-10-07', ref: 'Phase F10, audit/fusion-10.md (Kandidat, Champion-Entscheidung = Jan)',
+    option: 'longRange', value: FUSION10_LONG_RANGE,
+    note: 'Langfrist zur Klimatologie zurückgeführt (> 48 h, gefittete Gewichte je Größe und Vorlauf-Bin, F10)',
+  },
+  {
+    n: 11, date: '2026-10-07', ref: 'Phase F11, audit/fusion-11.md (Kandidat, Champion-Entscheidung = Jan)',
+    option: 'longRangeFix', value: FUSION11_LONG_RANGE_FIX,
+    note: 'Langfrist-Korrekturen: T 241–336 h Identität, Windschritt AT/CH ohne Bandverengung bei 126–240 h (F11)',
   },
 ] as const);
 

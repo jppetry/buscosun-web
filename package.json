@@ -91,6 +91,7 @@
     "verify:road-ui": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-ui.mjs",
     "verify:road-archive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-archive.mjs",
     "verify:fusion-release": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fusion-release.mjs",
+    "verify:fusion10-identity": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fusion10-identity.mjs",
     "verify:road-fc": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-fc.mjs",
     "verify:road-positions": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-positions.mjs",
     "verify:sea-contract": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-contract.mjs",
