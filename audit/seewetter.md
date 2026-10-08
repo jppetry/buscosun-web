@@ -616,3 +616,50 @@ Nicht geprüft: Real-Device (V-SW-10), ein echter `sea.yml`-Lauf mit der neuen A
 3. **Touch-Targets ≥ 44 px:** unverändert, `verify:sea-ui` G3/G4 grün.
 4. **Konsole sauber:** `verify:sea-ui` I1 grün.
 5. **Long Tasks > 200 ms:** in headless-shell nicht messbar; der Stundenwechsel kostet in Node 0,02 statt 8,6 ms (§13.2). Gerät = Jans Gate.
+
+### 13.8 E-SW-31 (b) — Lagen auf die DLM250-Küste gezogen (08.10., uncommitted bis zum Commit dieses Abschnitts)
+
+- **Werkzeug.** `scripts/sea/dlmCoast.mjs` (DLM-Leser und Küstensegmente, aus `diag-shore-normal.mjs` herausgelöst, Regel
+  wortgleich) und `scripts/sea/snap-spots.mjs`: je markiertem Spot der nächste Punkt einer **AX_Meer-Kante gegen Land** (44007) im
+  4-km-Kreis, deren seewärtige Normale ±60° zur Hand-Blickrichtung `snap.facing` liegt; gewinnt der nächste Kandidat, dessen
+  0,5-km-Band der DLM-Küste ±45° zur Blickrichtung zeigt; Lage auf 4 Stellen (≈ 10 m). Die Blickrichtung wählt nur, WELCHES Ufer —
+  die Katalog-Normale rechnet weiter die Maskenregel (`build-spots.mjs`). Die frühere Handlage bleibt als `snap.was` in
+  `spots-src.json`, ein zweiter Lauf startet dort und gibt dasselbe (Trockenlauf am 08.10. nachmittags: 12/12 identisch).
+- **Gezogen (12 Spots):**
+
+  | Spot | Blick | Weg km | Normale alt → neu | DLM | Δ zur DLM vorher / nachher | Spot–Küste km vorher / nachher |
+  |---|---|---|---|---|---|---|
+  | borkum | 315° | 1,07 | 280 → 316° | 352° | 72 / 36° | 1,07 / 0,00 |
+  | norderney | 0° | 0,53 | 284 → 328° | 331° | 137 / 3° | 0,52 / 0,01 |
+  | spiekeroog | 0° | 0,52 | 335 → 321° | 344° | 9 / 23° | 0,52 / 0,00 |
+  | wangerooge | 0° | 0,47 | 21 → 29° | 2° | 19 / 27° | 0,47 / 0,00 |
+  | st-peter-ording | 270° | 1,04 | 235 → 217° | 232° | 111 / 15° | 0,32 / 0,00 |
+  | pellworm | 225° | 2,09 | 340 → 268° | 264° | 64 / 4° | 0,68 / 0,00 |
+  | amrum | 270° | 0,90 | 251 → 220° | 231° | 20 / 11° | 0,90 / 0,00 |
+  | flensburg | 15° | 1,38 | 329 → 341° | 336° | 31 / 5° | 1,21 / 0,00 |
+  | schoenberger-strand | 10° | 0,89 | 38 → 34° | 27° | 11 / 7° | 0,89 / 0,00 |
+  | fehmarn-gruener-brink | 10° | 0,67 | 36 → 17° | 22° | 14 / 5° | 0,67 / 0,00 |
+  | graal-mueritz | 330° | 0,56 | 334 → 344° | 331° | 3 / 13° | 0,57 / 0,00 |
+  | hiddensee | 270° | 0,66 | 242 → 281° | 279° | 37 / 2° | 0,66 / 0,00 |
+
+  Spiekeroog/Wangerooge/Graal-Müritz liegen danach etwas WEITER von der DLM-Normale (+10…+14°): auf der Küste sieht die
+  2,5-km-Maskenregel mehr vom Hinterland-Watt; alle drei bleiben ≤ 27°. Pellworm (2,09 km) ist der weiteste Weg — die Handlage lag
+  im Koog, die Badestelle am Südwestdeich ist das nächste Ufer mit dieser Blickrichtung.
+- **Wirkung über alle 56 Spots** (`diag-shore-normal.mjs --dlm=<dir> [--spots=<katalog>]`, Katalogregel gegen DLM-Küste im
+  0,5-km-Band): **p50 19 → 13°, p90 79 → 41°, > 20° 24 → 21, > 45° 8 → 4**. Die vier verbliebenen > 45° sind genau die Liste von
+  E-SW-31 (c): holnis (160°), ueckermuende (104°), schleimuende (80°), heiligenhafen (79°) — alle ≤ 0,2 km an der Küste, dort ist
+  die Lage nicht das Problem, sondern die Maske (Landspitzen/Haff). Nebenbei: auch die Maskenregel 0,5 km (V-SW-9) wäre an den
+  neuen Lagen besser (p90 78 → 39°), bleibt aber gegen die alte Regel ohne Gewinn (p50 16 gegen 13°) — Katalogregel unverändert.
+- **Was sich sonst im Katalog bewegt:** Gitterzelle bei 6 Spots (i/j ±1–2), Zellabstand meist kleiner (Pellworm 2,18 → 0,77 km;
+  St. Peter-Ording 1,52 → 2,03 km, die Sandbank liegt außerhalb der CWAM-Seemaske näher an der Küste), Stationsabstand ±1,3 km,
+  Seegebiet und Küstenabschnitt unverändert, `areas.json` byte-gleich. Die übrigen 44 Spots sind feldgleich.
+- **Beleg.** `verify:sea-derive` **57/57** (+2): **N4** Katalog = Handliste je Lage, 12 gezogene Lagen 0,2–2,5 km von `snap.was`,
+  mit Blickrichtung und Grund; **N4 Gegenprobe** um 0,01° verschobener Katalog ⇒ keine Lage gleich. N3 (Katalogregel = Katalog)
+  56/56 an den neuen Lagen. Weiter grün: `verify:sea-ui` **37/37** (gegen `vite preview --host 127.0.0.1 --port 5241` des neuen
+  Builds, Katalog-Fixture mit den neuen Lagen), `sea-contract` 29/29, `sea-text` 35/35, `sea-decode` 13/13, typecheck 0, Build
+  255/255. `src/` unberührt ⇒ Budget unverändert.
+- **Lizenz.** Nur Lagen, keine Geometrie aus dem DLM im Produkt; Quellenvermerk „© GeoBasis-DE / BKG (DLM250), dl-de/by-2.0“ steht im
+  `about` des Katalogs (dl-de/by-2.0 verlangt Namensnennung, sonst frei). OSM bleibt außen vor.
+- **Wirksam** erst, wenn der neue `spots.json` im Daten-Repo unter `sea/static/` liegt (Jans Gate, MANUELLE-SCHRITTE §48 Punkt 4).
+- **Offen.** E-SW-31 (a) (Normale direkt aus der DLM-Küste für Spots ≤ 0,2 km — nach (b) sind das 34 von 56) und (c) (Hand-Normalen
+  holnis/schleimuende/heiligenhafen/ueckermuende, Binz/Pelzerhaken prüfen) bleiben Jans Entscheidung.

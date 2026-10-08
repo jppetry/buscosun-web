@@ -1718,3 +1718,9 @@ V-SW-15 `04bf787`, V-SW-14 `d5ccd06`), nicht gepusht. Daten- und Archiv-Repo unb
    10 Küsten-/Inselstationen und an 12 der 56 Spots.
 6. **Aufräumen (V-SW-17):** `E-SW-29` ist im Audit doppelt vergeben; diese Datei hat zwei Abschnitte „47.“ (Seewetter und
    Stationsmessungen) — die Nummerierung der anderen Sitzung nicht ohne Absprache ändern.
+7. **E-SW-31 (b) umgesetzt (08.10. nachmittags, `audit/seewetter.md` §13.8):** 12 Spots auf die DLM250-Küste gezogen
+   (`scripts/sea/snap-spots.mjs`, frühere Lage als `snap.was` in `spots-src.json`), Katalog neu gebaut. Katalogregel gegen die
+   DLM-Küste p50 19 → 13°, p90 79 → 41°, > 45° 8 → 4 (verbleibend genau die (c)-Liste). Damit gilt Punkt 1 „kein neuer Katalog“
+   NICHT mehr: **Kopie von `scripts/lib/fixtures/sea/static/spots.json` nach `buscosun-data/sea/v1/static/spots.json`**
+   (`areas.json` unverändert), danach Push des Daten-Repos — wirksam ab dem nächsten Seitenaufruf, die Wind-Auffrischung rechnet ab
+   dem nächsten `sea.yml`-Lauf an den neuen Lagen. Offen bleiben (a) DLM-Normale für die 34 Spots ≤ 0,2 km an der Küste und (c).
