@@ -8,7 +8,8 @@
 //
 // Usage: node scripts/sea/spike/arrivals.mjs [--out=audit/seewetter/spike/arrivals.json] [--loop] [--every=60]
 
-import { mkdirSync, readFileSync, writeFileSync, existsSync, renameSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { renameRetrySync } from './renameRetry.mjs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decompressBz2 } from '../../lib/bz2.mjs';
@@ -78,7 +79,7 @@ async function snapshot() {
   prev.snapshots.push({ at: new Date().toISOString(), rows: Object.keys(s.runs).length });
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT + '.tmp', JSON.stringify(prev, null, 1) + '\n');
-  renameSync(OUT + '.tmp', OUT);
+  renameRetrySync(OUT + '.tmp', OUT);
   console.log(`[arrivals] ${new Date().toISOString()} runs ${Object.keys(prev.runs).length}, texts ${Object.keys(prev.texts).length}`);
 }
 

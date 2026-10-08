@@ -10,9 +10,10 @@
 // Usage: node scripts/sea/spike/collect-text.mjs [--loop] [--every=15] [--out=<dir>]
 
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync, existsSync, renameSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renameRetrySync } from './renameRetry.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const BASE = 'https://opendata.dwd.de/weather/maritime/forecast/german/';
@@ -35,7 +36,7 @@ function loadIndex() {
 function saveIndex(idx) {
   const tmp = indexPath + '.tmp';
   writeFileSync(tmp, JSON.stringify(idx, null, 1) + '\n');
-  renameSync(tmp, indexPath);
+  renameRetrySync(tmp, indexPath);
 }
 
 function headerLine(buf) {
