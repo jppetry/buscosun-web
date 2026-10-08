@@ -1833,3 +1833,11 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
 8. **Offen / Real-Device:** Stationen-Layer der Karte im Browser (Chrome fror unter Last ein; Logik im Verifier), Mobil-4G-Lab
    (V-OF-5), Dashboard-Herkunftstexte nennen weiter „BrightSky" (V-OF-14: Wort anpassen), V-OF-1 WMO-Spalte im Katalog, V-OF-2
    Kacheln, V-OF-9 Vortag-Lücke der Messdateien, V-OF-11/12 Messgeräte-Optionen nach ≥ 30 Regentagen.
+9. **OF-7 (08.10. nachmittags, `audit/obs-fusion.md` §11; Commit `4b8f15a` + Doku-Commit):** Hebel 1 (gemessenes ρ(d, Δh) in der
+   σ-Kopplung, Option `anchorRho`) und Hebel 4 (σ-Skala je Vorlauf auf 80 % Abdeckung, Option `sigmaScale` 1/2), beide am Hindcast
+   außerhalb des Tresors gefittet, beide **aus**. Drei vorab benannte Kandidaten im Volltest: **keiner grün** — `fusion-12r` (beides)
+   G2 rot (Wind > 48 h AT/CH, Td 0–6 h AT/CH) + G3 rot 2 (T/Td 0–6 h zu schmal: Sommer-Knoten im Herbst), `fusion-12q` (nur ρ) G3 rot 6,
+   `fusion-12p` (Skala nur > 48 h) G2 + G3 rot. **E-OF-5 (Jan):** (a) Hypothese für Spur P ab 09.10. benennen (Skala für T/Td erst ab
+   6 h, Wind/Böe-Skala ≤ 48 h, Knoten > 48 h je Land — aus 12r abgeleitet, darf auf der Entwicklungsmenge nicht mehr bewertet werden),
+   (b) V-OF-15 (Anker-Formel für K Stationen, ein Hindcast-Lauf) und V-OF-16 (Land-Knoten aus den vorhandenen Reservoirs) jetzt messen,
+   (c) nichts tun bis der Hindcast Herbst-t1 trägt (V-OF-17, ≈ Dezember). Nichts gepusht, `FUSION12_OBS_DENSE` bleibt 0.

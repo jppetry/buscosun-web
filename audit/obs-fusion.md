@@ -549,7 +549,7 @@ keine Nachstellung von f_min oder der Form nach dem Lauf in dieser Phase.
   `innovation()` mittelt es mit denselben Gewichten wie den Versatz (Feld `rho` nur, wenn jedes gezählte Paar eins trägt — ohne
   Option Objektform unverändert). Faktor² = min(1, max(f_min², 1 − r·a²·(2ρ/f − 1))) (`anchorSigmaFactorRho`): ρ = f ⇒ OF-6
   exakt; ρ < f/2 hieße „der Anker vergrößert die Varianz" ⇒ Deckel 1 (die Streuung wächst nie durch den Anker; das
-  Mittelwertgewicht bleibt unangetastet, s. V-OF-14). Wind: ρ von u und v gemittelt, f der u-Innovation.
+  Mittelwertgewicht bleibt unangetastet, s. V-OF-15). Wind: ρ von u und v gemittelt, f der u-Innovation.
 - `sigmaScale`: nach Stationswert, Anker-Kopplung, Langfrist und σ-Inflation (als Letztes, was Mittel oder σ setzt) wird σ von
   T, Td, Windgeschwindigkeit und Böe mit `sigmaScaleAt(SIGMA_SCALE_TABLE, v, Vorlauf)` multipliziert; Größen, die der
   Stationswert gesetzt hat, behalten ihre σ. `sigmaScaleTable` im Aufruf (Identität/Testtabelle) für Fit und Verifier.
@@ -603,3 +603,54 @@ oder der Form nach dem Lauf; rote Zellen, die bleiben, werden benannt und gehör
     gemessene Teil des Fits — aus dem Datenlage-Argument, nicht aus Prüfstandzahlen).
   Das Urteil nach §11.4 gilt für `fusion-12r`; die beiden anderen sind benannte Varianten, deren Wahl Jans Entscheidung bleibt und
   die — weil an der Entwicklungsmenge betrachtet — nur Spur P (ab 09.10.) sauber bestätigt. Keine weitere Variante nach den Läufen.
+
+### 11.6 Ergebnis (drei Volltests, Commit `4b8f15a`, Läufe `laeufe/07-voll-12{r,q,p}.log`, Berichte `audit/pruefstand/berichte/fusion-12{r,q,p}/2026-10-08-voll/`)
+
+| Kandidat | Optionen | Index gegen Fusion 9 | G1 | G2 | G3 | G4 |
+|---|---|---|---|---|---|---|
+| `fusion-12s` (OF-6, zum Vergleich) | anchorSigma | +1,55 % (+1,36 … +1,79) | grün | grün | **rot** (3: ws 6–24, Böe 24–48, T 0–6 zu schmal) | grün |
+| **`fusion-12r`** (Regel §11.4) | + anchorRho + sigmaScale 1 | **+1,58 %** (+1,44 … +1,79) | grün | **rot** (7: Td 0–6 AT/CH −0,8/−0,7 %, Wind 24–48 AT/CH −0,2 %, Wind 48–120 AT −1,7 %, Wind 120–240 AT −2,4 % / CH −4,1 %) | **rot** (2: **T 0–6 h 72,7 %**, **Td 0–6 h 71,1 %**, beide zu schmal; alle anderen 25 Zellen grün, auch ws 6–24 h 82,4 % und Böe 24–48 h 86,6 %) | grün |
+| `fusion-12q` (Hebel 1 allein) | + anchorRho | +1,49 % (+1,30 … +1,74) | grün | grün | **rot** (6: T 6–24/24–48, ws 6–24, Böe 0–6/6–24/24–48 — das Bild von Fusion 12 ohne Kopplung) | grün |
+| `fusion-12p` (Skala nur > 48 h) | + anchorRho + sigmaScale 2 | +1,34 % (+1,20 … +1,53) | grün | **rot** (4: Wind 24–48 CH, 48–120 AT, 120–240 AT/CH) | **rot** (6, wie 12q) | grün |
+
+**Verdikt nach §11.4: nicht grün — keiner der drei Kandidaten.** Drei Befunde, alle vor dem Lauf angelegt, jetzt gemessen:
+
+1. **Die σ-Skala ≤ 48 h aus dem Sommer passt nicht in den Herbst** (§11.5 vorab benannt): T 0–6 h 82,4 → 72,7 %, Td 0–6 h
+   74,3 → 71,1 % — unter dem Band und signifikant weiter vom Soll als der Champion. In 12r sind dafür ALLE übrigen 25 Zellen grün:
+   die Skala allein hat die geerbte Über-Abdeckung von Wind 6–24 h (85,2 → 82,4 %) und Böe 0–48 h (89,5–90,6 → 85,6–86,6 %)
+   abgebaut. Das Problem ist die Jahreszeit, nicht der Hebel. ⇒ **V-OF-17.**
+2. **Das gemessene ρ nimmt der Kopplung fast die ganze Wirkung** (12q ≈ Fusion 12): an typischen Ankerdistanzen (5–15 km) ist
+   ρ_T 0,4–0,55 gegen f 0,6–0,85, bei Böe/Wind noch kleiner ⇒ 2ρ/f − 1 ≈ 0 … 0,3, bei Wind meist < 0 (Deckel 1). Und doch hatte
+   OF-6 bei Böe 0–6 h die Abdeckung genau auf den Champion gebracht (90,0 → 87,5 %), d. h. der Anker nimmt dort wirklich
+   ≈ 13 % Fehlervarianz weg. Die Erklärung liegt in der Form: der dichte Anker mittelt die Innovationen von bis zu
+   `OBS_DENSE_ANCHOR_K` Stationen; die Varianz dieses Mittels ist kleiner als σ₁² einer Einzelstation, und seine Korrelation mit
+   dem Punktfehler größer als das ρ einer Einzelstation — die Formel setzt konservativ var(I) = σ₁² und ρ je Station. Gemessen
+   ist ρ richtig, aber es ist nicht die Größe, die der K-Stationen-Anker braucht. ⇒ **V-OF-15.**
+3. **Die gepoolte Skala > 48 h kostet in AT/CH CRPS** (G2 rot in 12r und 12p, bis −4,1 % Wind 120–240 h CH): der Fit sah
+   schon am Hindcast, dass Wind 48–336 h nach dem Fit in DE 84,5–85,4 % und in AT/CH 74,8–75,8 % abdeckt (§11.5) — eine Skala
+   für alle Länder verbreitert DE zu stark und AT/CH zu wenig; am Archiv wird das zur CRPS-Verschlechterung. ⇒ **V-OF-16.**
+
+Keine Nachstellung nach den Läufen (§11.4/§11.5). `FUSION12_OBS_DENSE` bleibt 0; `anchorRho`/`sigmaScale` bleiben aus; Register
+`fusion-12r/q/p` = Kandidaten. Was aus den drei Läufen folgt, steht in §11.7.
+
+- **V-OF-15** Anker-Formel für K Stationen: die σ-Kopplung braucht cov(e_τ, Ī) und var(Ī) des GEMITTELTEN Innovationssatzes, nicht
+  ρ und σ₁² einer Einzelstation; dazu gehört die Frage, ob auch das Mittelwertgewicht f·w(τ) (f = max spatialWeight) am gemessenen ρ
+  neu zu setzen ist (optimal wäre k = ρ_eff·w). Mehrwert: die Kopplung wirkt, wo sie wirkt (Böe/Wind 0–6 h), ohne bei T zu
+  überziehen. Umsetzung: am Hindcast die Innovation der K nächsten Stationen (ohne die eigene) je Punkt bilden und corr(e_τ, Ī),
+  var(Ī)/σ₁² je Größe, Distanzklasse und Vorlauf messen — dieselbe Pipeline wie `of7.mjs`, ein Lauf.
+- **V-OF-16** σ-Skala je Land (oder die Windfamilie > 48 h): Wind 48–336 h deckt in AT/CH 72–76 % ab, in DE 80–85 % — die
+  gestutzte Normal der Lernstufe trägt die Bergländer nicht. Umsetzung: Knoten je Land × Fenster (Tabelle 3 × 6 je Größe) aus
+  denselben Reservoirs (`part-*.json`, Zellen tragen das Land) — ohne neuen Sammellauf; oder σ-Skala in der Lernstufe (Stratum).
+- **V-OF-17** σ-Skala ≤ 48 h braucht Herbst/Winter-Läufe der Stufe 1: der Hindcast hat t1-Läufe erst ab 2026-06-17 (Route `run`);
+  die Nachhol-Kette `follow` (§8.8 des Hindcast-Audits) füllt den Herbst 2026 laufend nach — ab ≈ Dezember liegen zwei
+  Jahreszeiten vor. Bis dahin ist nur Spur P (ab 09.10.) ein sauberes Fenster für 0–48 h; die gelernte σ (7–48 h aus 95
+  Sommertagen, E-FL-3) hat dieselbe Lücke.
+
+### 11.7 Was folgt (keine Entscheidung dieser Phase; Jans Gates MANUELLE-SCHRITTE §48.9)
+
+- Die **Kombination, die G3 am nächsten kommt**, ist in 12r sichtbar: 25 von 27 Zellen grün, rot nur T/Td 0–6 h durch die Sommer-
+  Knoten. Ein Kandidat „Skala für T/Td erst ab 6 h, Wind/Böe-Skala ≤ 48 h, Knoten > 48 h je Land" wäre aus diesen Zahlen abgeleitet
+  — er darf auf der Entwicklungsmenge nicht mehr bewertet werden (§11.4). Als vorab benannte Hypothese für **Spur P ab 09.10.**
+  ist er zulässig (E-OF-5).
+- Sauber messbar jetzt: V-OF-16 (Land-Knoten aus den vorhandenen Reservoirs, kein Sammellauf) und V-OF-15 (ein Hindcast-Lauf).
+- Fusion 12 bleibt aus; `fusion-12s` bleibt der beste Stand nach Index (+1,55 %) mit G3 rot (3).
