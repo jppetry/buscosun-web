@@ -717,6 +717,15 @@ export interface FuseCubeOptions {
    */
   gaugeRadar?: 0 | 1;
   /**
+   * V-OF-10 (`audit/obs-fusion/claims-addendum-1.md`): the station value forms its innovation only when the newest measurement's
+   * stamp lies EXACTLY on a step of the station product (hourly) — with 10-min stamps (the product `obs/v1`, BrightSky in the
+   * browser; TAWES/SMN had no stamp at all) it fired at every sixth stamp (DE) or never (AT/CH). With this option the station
+   * product is interpolated linearly to the minute of the measurement between the two steps around it (gap ≤
+   * `ANCHOR_BRACKET_MAX_H`, the form of `anchorAtObsTime`); a stamp on a step is unchanged. Only with `obsDense: 1`; explicit
+   * value wins over the bundle (`FUSION12_SV_AT_OBS`); absent ⇒ the bundle; 0 ⇒ off (byte-identical).
+   */
+  stationValueAtObsTime?: 0 | 1;
+  /**
    * F10-K1 „Langfrist-Rückführung auf die Klimatologie" (`fusion/longRange.ts`, `audit/fusion-10/stat.md`): bei Vorlauf
    * > 48 h werden T, Td, Windgeschwindigkeit und Böe nach dem Stationswert mit Gewicht w zur Klimatologie des Motors
    * gezogen (μ_c aus dem Klimatologieprodukt für T/Td, sonst die Klimatologie-only-Fusion des Schritts) und die Streuung
@@ -1037,6 +1046,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const useObsDense = opts.obsDense === 1;
   const useGaugeOcc = useObsDense && (opts.gaugeOccurrence ?? FUSION12_GAUGE.occurrence) === 1;
   const useGaugeRadar = useObsDense && (opts.gaugeRadar ?? FUSION12_GAUGE.radar) === 1;
+  const useSvAtObs = useObsDense && (opts.stationValueAtObsTime ?? FUSION12_SV_AT_OBS) === 1;
+  const svAtObsCount = { interpolated: 0, onStep: 0, none: 0 };
   const hmCount = { mean: 0, frames: 0, single: 0, mirror: 0 };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
   // gültiger Kurve (`anchorCurveValid`); je Größe ohne Kurve gilt die Setzung e^(−τ/τ_v). Ohne `anchor`-Block in den
@@ -1164,6 +1175,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       : `precipCal:absent — Option an, aber keine Tabelle im Eingang${pcErrors.length ? ` (ungültig: ${pcErrors.slice(0, 2).join('; ')})` : ''} ⇒ Hürde unverändert`] : []),
     ...(useObsDense ? [`obsDense:set — Anker auf dem dichten Messsatz (bis ${OBS_DENSE_MAX} nächste 10-min-Stationen inkl. Niederschlagsstationen): je Größe die ${OBS_DENSE_ANCHOR_K} besten nach spatialWeight unter den Stationen, die sie messen; gemessener Taupunkt in den Stationswert (Phase OF)`] : []),
     ...(useGaugeOcc ? [`gaugeOccurrence:set — Regenwahrscheinlichkeit bei Vorlauf ≤ ${GAUGE_OCC_LEAD_H} h zum gewichteten Anteil der Messgeräte ≤ ${GAUGE_OCC_KM} km mit Regen in den letzten 10 min gezogen (k = ${GAUGE_OCC_K0}·min(1, Σw)·e^(−(Vorlauf − 1)/${GAUGE_OCC_TAU_H} h), Stempel ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt; Phase OF, Option b)`] : []),
+    ...(useSvAtObs ? [`stationValueAtObsTime:set — der Stationswert nimmt das Stationsprodukt linear an der Messminute (zwei Schritte um die Messung, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h) statt nur auf einem Schritt (V-OF-10)`] : []),
     ...(useGaugeRadar ? [`gaugeRadar:set — Radar-Member bei Vorlauf ≤ ${GAUGE_RADAR_LEAD_H} h mit dem Faktor Messgeräte-Stundensumme / Radar-Stundenmittel am Punkt skaliert (Geräte ≤ ${GAUGE_RADAR_KM} km, ε ${GAUGE_RADAR_EPS_MM} mm, Deckel ${GAUGE_RADAR_MAX}×, Abklingen τ ${GAUGE_RADAR_TAU_H} h, nur ab ${GAUGE_RADAR_MIN_MM} mm; Phase OF, Option a′)`] : []),
     ...(useHourMean ? [`nowcastHourMean:set — Radar-Member je Stunde t als Mittel der Frame-Raten im Fenster (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] bei ≥ ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames, sonst der Einzelframe; die Wahrheit ist die Stundensumme (V-AX-23, Kandidat buscosun Fusion 8 B)`] : []),
     ...(opts.stationValue === true ? [stackT
@@ -1241,6 +1253,21 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   // ── Station: Schritt je Gültigzeit ───────────────────────────────────────
   const stationAt = new Map<number, Record<string, number | null>>();
   if (input.station) for (const st of input.station.steps) stationAt.set(st.validAtMs, st.values);
+  const stationMs = [...stationAt.keys()].sort((a, b) => a - b);
+  /** V-OF-10: the station values at an arbitrary minute — the step when the minute is one, else the linear interpolation between the two steps around it (gap ≤ ANCHOR_BRACKET_MAX_H). */
+  const stationValuesAtMinute = (atMs: number): Record<string, number | null> | null => {
+    const exact = stationAt.get(atMs);
+    if (exact) { svAtObsCount.onStep += 1; return exact; }
+    if (!useSvAtObs) return null;
+    const i1 = stationMs.findIndex((ms) => ms > atMs);
+    if (i1 <= 0 || stationMs[i1] - stationMs[i1 - 1] > ANCHOR_BRACKET_MAX_H * H) { svAtObsCount.none += 1; return null; }
+    const m0 = stationMs[i1 - 1], m1 = stationMs[i1], v0 = stationAt.get(m0)!, v1 = stationAt.get(m1)!;
+    const fr = (atMs - m0) / (m1 - m0);
+    const out: Record<string, number | null> = {};
+    for (const k of new Set([...Object.keys(v0), ...Object.keys(v1)])) { const a = v0[k], b = v1[k]; out[k] = a != null && b != null && Number.isFinite(a) && Number.isFinite(b) ? a + fr * (b - a) : null; }
+    svAtObsCount.interpolated += 1;
+    return out;
+  };
 
   // ── Radar: Frames je Quelle, dem nächsten Schritt zugeordnet ────────────
   const tol = opts.nowcastToleranceMs ?? SAME_TIME_MS;
@@ -1291,7 +1318,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   };
   /** Die Stationsvorhersage einer Gültigzeit je Größe, T/Td auf die Höhe `hTo` gebracht. */
   const stationForecastAt = (atMs: number, hTo: number): Partial<Record<StackVar, number | null>> | null => {
-    const sv = stationAt.get(atMs);
+    const sv = stationValuesAtMinute(atMs);
     if (!sv || !input.station) return null;
     const se = input.station.station.elev;
     const t = num(sv.t2m), td = num(sv.td2m), u = num(sv.u10), v = num(sv.v10);
@@ -1861,6 +1888,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
   if (useObsDense) notes.push(`obsDense: ${input.obs?.length ?? 0} Messung(en) im dichten Satz, davon ${input.obs?.filter((o) => o.rr10 != null || o.rr1h != null).length ?? 0} mit Niederschlagssumme, ${input.obs?.filter((o) => o.dewPoint != null).length ?? 0} mit gemessenem Taupunkt`);
   if (useGaugeOcc) notes.push(gaugeOcc ? `gaugeOccurrence: ${gaugeOcc.n} Messgerät(e) ≤ ${GAUGE_OCC_KM} km (Σw ${gaugeOcc.weight.toFixed(2)}), Anteil nass ${gaugeOcc.pWet.toFixed(2)} — an ${gaugeCount.occSteps} Schritten angewandt` : `gaugeOccurrence: Option an, aber kein Messgerät ≤ ${GAUGE_OCC_KM} km mit 10-min-Wert ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt ⇒ unverändert`);
+  if (useSvAtObs) notes.push(`stationValueAtObsTime: Stationsprodukt an ${svAtObsCount.interpolated} Messminute(n) zwischen zwei Schritten interpoliert, ${svAtObsCount.onStep} auf einem Schritt, ${svAtObsCount.none} ohne Schrittpaar (Lücke > ${ANCHOR_BRACKET_MAX_H} h oder außerhalb; V-OF-10)`);
   if (useGaugeRadar) notes.push(gaugeRadarF ? `gaugeRadar: Faktor ${gaugeRadarF.factor.toFixed(2)} aus ${gaugeRadarF.n} Messgerät(en) ≤ ${GAUGE_RADAR_KM} km (Geräte ${gaugeRadarF.gaugeMm.toFixed(2)} mm gegen Radar ${gaugeRadarF.radarMm.toFixed(2)} mm in der letzten Stunde) — an ${gaugeCount.radarSteps} Radar-Schritten` : `gaugeRadar: Option an, aber kein Paar (Messgerät ≤ ${GAUGE_RADAR_KM} km mit vollständiger Stundensumme, Radar-Stundenmittel am Punkt) oder unter ${GAUGE_RADAR_MIN_MM} mm ⇒ unverändert`);
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
   if (opts.stationValue === true && stackT) {
@@ -2417,7 +2445,9 @@ export const GAUGE_RADAR_MIN_MM = 0.3;
  * The bundle of buscosun Fusion 12: which gauge options `obsDense: 1` carries when the caller sets none explicitly. Decided
  * by the pre-written rule of OF-4 (`audit/obs-fusion.md` §3) on the pre-screen; 0/0 until then.
  */
-export const FUSION12_GAUGE = Object.freeze({ occurrence: 0 as 0 | 1, radar: 0 as 0 | 1 });
+export const FUSION12_GAUGE = Object.freeze({ occurrence: 0 as 0 | 1, radar: 1 as 0 | 1 });
+/** V-OF-10: whether `obsDense: 1` carries the station value at the measurement minute (decided by `claims-addendum-1.md`); 0 until then. */
+export const FUSION12_SV_AT_OBS: 0 | 1 = 1;
 
 /** Distance weight of a gauge around the point: e^(−(d/R)²). */
 const gaugeWeight = (distanceM: number, radiusKm: number): number => Math.exp(-((Math.max(0, distanceM) / (radiusKm * 1000)) ** 2));

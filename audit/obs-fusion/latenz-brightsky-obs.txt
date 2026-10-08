@@ -1,0 +1,5 @@
+Zyklen 31 (07:56–10:28 UTC), Paare 372, Fehler/Nicht-200 0
+Vorsprung BrightSky − obs (min): 0: 6, 10: 282, 30: 2, 40: 82
+Alter BrightSky p10/p50/p90 6.7/18.3/29.0 min · obs 22.8/36.5/47.2 min
+gleicher Stempel: 6 Paare, T gleich 3; BrightSky ms p50 31, obs latest.json ms p50 372, Fallback-Werte 0
+je Station Median-Vorsprung: 10046 10, 10147 10, 10338 10, 10384 10, 10469 10, 10488 10, 10513 10, 10637 10, 10738 10, 10763 10, 10803 10, 10865 10
