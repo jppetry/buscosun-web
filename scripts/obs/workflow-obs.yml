@@ -1,0 +1,75 @@
+# ============================================================================
+# obs.yml — Stationsmessungen DACH (Phase OB, buscosun-web/audit/stationsmessungen.md)
+#
+# Kopie aus buscosun-web/scripts/obs/workflow-obs.yml. Der Spiegel selbst ist
+# `scripts/obs-mirror.mjs` in DIESEM Repo (Kopie von buscosun-web/scripts/obs/
+# obs-mirror.mjs, ohne Abhängigkeiten) — er läuft ohne Klon von buscosun-web.
+#
+# Ein Lauf hält 340 min und fragt jede Quelle in IHREM gemessenen Takt ab
+# (`SOURCES[*].slots` im Skript): DWD CDC 10 min halbstündlich je Produkt,
+# TAWES alle 10 min, SwissMetNet + Niederschlagsstationen alle 20 min, die
+# Tagesnetze stündlich. Neue Werte ⇒ Publish nach `obs/v1/` (nur dieser Pfad,
+# frische Basis je Versuch, kein Force) + Purge der veränderlichen Dateien.
+# Am Ende startet der Lauf seinen Nachfolger (Concurrency-Gruppe ⇒ nahtlos);
+# `obs-watchdog.yml` startet ihn, falls keiner läuft.
+#
+# Kill-Schalter: Repo-Variable OBS_KILL=1.
+# ============================================================================
+
+name: obs
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: obs-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    if: ${{ vars.OBS_KILL != '1' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout obs store (sparse)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            obs
+            scripts
+          sparse-checkout-cone-mode: true
+
+      - name: Prepare
+        run: |
+          cd data
+          git config user.name  'buscosun-obs[bot]'
+          git config user.email 'obs@users.noreply.github.com'
+          cp scripts/obs-mirror.mjs "$RUNNER_TEMP/obs-mirror.mjs"
+          mkdir -p "$RUNNER_TEMP/store"
+          if [ -d obs/v1 ]; then cp -r obs/v1/. "$RUNNER_TEMP/store/"; fi
+          node "$RUNNER_TEMP/obs-mirror.mjs" --self-test
+
+      - name: Mirror
+        run: node "$RUNNER_TEMP/obs-mirror.mjs" --store="$RUNNER_TEMP/store" --repo=data --push --minutes=340
+
+      - name: Start successor
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -s -o /dev/null -w "dispatch: HTTP %{http_code}\n" -X POST \
+            -H "authorization: Bearer $GH_TOKEN" -H "accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/obs.yml/dispatches" \
+            -d '{"ref":"main"}'
