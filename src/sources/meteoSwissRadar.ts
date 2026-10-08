@@ -22,7 +22,8 @@ import { parseRzcOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertiger Frame vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, RadarImg404 } from './radarImg';
+import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, loadRadarGrayAlphaPng, RadarImg404 } from './radarImg';
+import { radarDualFlagFrom } from '../scalar/radarHd';
 
 const STAC_ITEM = (day: string) =>
   `https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/${day}-ch`;
@@ -33,6 +34,8 @@ export const METEOSWISS_RADAR_ATTRIBUTION =
 
 export interface RadarFrame {
   values: Uint8Array;
+  /** Phase HD-3: Log-Ebene (0,06 … 200 mm/h) aus dem Dual-PNG des Spiegels — nur mit `?hdv2=1` und wenn der Slot sie trägt. */
+  values2?: Uint8Array;
   width: number;
   height: number;
   corners: QuadCorners;
@@ -79,11 +82,20 @@ async function loadRzcFromImg(priority?: RequestPriority, quelleWeg = false): Pr
       const dir = rzcImgDir(stamp);
       const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
       if (!meta || meta.stamp !== stamp) continue;
-      const values = await loadRadarGrayPng(await fetchImgRes(`${dir}/frame.png`, dl.signal, priority), meta.width, meta.height);
+      // HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), `frame.png` wie bisher.
+      let values: Uint8Array | null = null, values2: Uint8Array | undefined;
+      const g = radarDualFlagFrom() && meta.dual ? meta.dual.frames[0]?.file : null;
+      if (g) {
+        try {
+          const d = await loadRadarGrayAlphaPng(await fetchImgRes(`${dir}/${g}`, dl.signal, priority), meta.width, meta.height);
+          values = d.values; values2 = d.values2;
+        } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
+      }
+      if (!values) values = await loadRadarGrayPng(await fetchImgRes(`${dir}/frame.png`, dl.signal, priority), meta.width, meta.height);
       if (quelleWeg) console.warn(`[buscosun] MeteoSwiss rzc nicht erreichbar — Daten-Repo (PNG), Slot ${stamp} (${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt)`);
       else console.log(`[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG)`);
       return {
-        values, width: meta.width, height: meta.height, corners: meta.corners as QuadCorners,
+        values, ...(values2 ? { values2 } : {}), width: meta.width, height: meta.height, corners: meta.corners as QuadCorners,
         validAt: meta.validAtMs != null ? new Date(meta.validAtMs) : new Date(radarImgStampToMs(stamp)),
       };
     } catch (err) {

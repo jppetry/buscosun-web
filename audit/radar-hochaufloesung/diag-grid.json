@@ -1,0 +1,365 @@
+{
+ "at": "2026-10-08T15:21:45.790Z",
+ "slot": {
+  "rv": "2610081505",
+  "rvLead": 10,
+  "inca": "20261008T1445",
+  "incaLead": 30,
+  "rzc": "20261008T1510"
+ },
+ "geometry": {
+  "composite": {
+   "cols": 600,
+   "rows": 512,
+   "dLatDeg": 0.01992,
+   "dLonDeg": 0.01983,
+   "kmNS": 2.22,
+   "kmEW": {
+    "47": 1.5,
+    "50": 1.42,
+    "55": 1.26
+   },
+   "cellKm2": {
+    "47": 3.33,
+    "50": 3.14,
+    "55": 2.8
+   }
+  },
+  "native": {
+   "DE": {
+    "cols": 1100,
+    "rows": 1200,
+    "kmX": 1,
+    "kmY": 1
+   },
+   "AT": {
+    "cols": 701,
+    "rows": 431,
+    "kmX": 1,
+    "kmY": 1
+   },
+   "CH": {
+    "cols": 710,
+    "rows": 640,
+    "kmX": 1,
+    "kmY": 1
+   }
+  }
+ },
+ "isolated": {
+  "bsplineCentre": 0.4444,
+  "bsplineNeighbour": 0.1111,
+  "catmullCentre": 1,
+  "bilinearCentre": 1
+ },
+ "stats": {
+  "DE": {
+   "name": "RADOLAN-RV (DE)",
+   "nativeOwnPx": 419571,
+   "compositeCells": 124468,
+   "nativeReferencedPx": 124468,
+   "coveragePct": 29.7,
+   "native": {
+    "wet": {
+     "px": 169619,
+     "massMmKm2": 129857
+    },
+    "ge1": {
+     "px": 39009,
+     "massMmKm2": 88371
+    },
+    "ge5": {
+     "px": 2315,
+     "massMmKm2": 15457
+    },
+    "ge10": {
+     "px": 66,
+     "massMmKm2": 812
+    }
+   },
+   "composite": {
+    "wet": {
+     "cells": 49480,
+     "massMmKm2": 117119
+    },
+    "ge1": {
+     "cells": 11404,
+     "massMmKm2": 79801
+    },
+    "ge5": {
+     "cells": 695,
+     "massMmKm2": 14322
+    },
+    "ge10": {
+     "cells": 23,
+     "massMmKm2": 862
+    }
+   }
+  },
+  "AT": {
+   "name": "INCA (AT)",
+   "nativeOwnPx": 83868,
+   "compositeCells": 25375,
+   "nativeReferencedPx": 25375,
+   "coveragePct": 30.3,
+   "native": {
+    "wet": {
+     "px": 26412,
+     "massMmKm2": 45352
+    },
+    "ge1": {
+     "px": 12943,
+     "massMmKm2": 40180
+    },
+    "ge5": {
+     "px": 1826,
+     "massMmKm2": 14287
+    },
+    "ge10": {
+     "px": 321,
+     "massMmKm2": 4279
+    }
+   },
+   "composite": {
+    "wet": {
+     "cells": 8001,
+     "massMmKm2": 45371
+    },
+    "ge1": {
+     "cells": 3931,
+     "massMmKm2": 40200
+    },
+    "ge5": {
+     "cells": 560,
+     "massMmKm2": 14285
+    },
+    "ge10": {
+     "cells": 95,
+     "massMmKm2": 4093
+    }
+   }
+  },
+  "CH": {
+   "name": "rzc (CH)",
+   "nativeOwnPx": 41259,
+   "compositeCells": 12283,
+   "nativeReferencedPx": 12283,
+   "coveragePct": 29.8,
+   "native": {
+    "wet": {
+     "px": 29532,
+     "massMmKm2": 30983
+    },
+    "ge1": {
+     "px": 9586,
+     "massMmKm2": 22641
+    },
+    "ge5": {
+     "px": 563,
+     "massMmKm2": 3919
+    },
+    "ge10": {
+     "px": 43,
+     "massMmKm2": 600
+    }
+   },
+   "composite": {
+    "wet": {
+     "cells": 8802,
+     "massMmKm2": 30929
+    },
+    "ge1": {
+     "cells": 2863,
+     "massMmKm2": 22629
+    },
+    "ge5": {
+     "cells": 157,
+     "massMmKm2": 3720
+    },
+    "ge10": {
+     "cells": 11,
+     "massMmKm2": 485
+    }
+   }
+  }
+ },
+ "cores": {
+  "DE": {
+   "name": "RADOLAN-RV (DE)",
+   "total": 101,
+   "bySize": [
+    {
+     "sizePx": "1",
+     "cores": 30,
+     "lostInComposite": 13,
+     "shownTodayBelow5mm": 30,
+     "medianPeakRatioToday": 0.582,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "2–4",
+     "cores": 26,
+     "lostInComposite": 6,
+     "shownTodayBelow5mm": 23,
+     "medianPeakRatioToday": 0.696,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "5–9",
+     "cores": 19,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 10,
+     "medianPeakRatioToday": 0.725,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "10–24",
+     "cores": 13,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 1,
+     "medianPeakRatioToday": 0.707,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "25+",
+     "cores": 13,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 0,
+     "medianPeakRatioToday": 0.805,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    }
+   ]
+  },
+  "AT": {
+   "name": "INCA (AT)",
+   "total": 34,
+   "bySize": [
+    {
+     "sizePx": "1",
+     "cores": 4,
+     "lostInComposite": 3,
+     "shownTodayBelow5mm": 4,
+     "medianPeakRatioToday": 0,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "2–4",
+     "cores": 8,
+     "lostInComposite": 2,
+     "shownTodayBelow5mm": 8,
+     "medianPeakRatioToday": 0.892,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "5–9",
+     "cores": 7,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 7,
+     "medianPeakRatioToday": 0.86,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "10–24",
+     "cores": 8,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 3,
+     "medianPeakRatioToday": 0.834,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "25+",
+     "cores": 7,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 0,
+     "medianPeakRatioToday": 0.818,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    }
+   ]
+  },
+  "CH": {
+   "name": "rzc (CH)",
+   "total": 42,
+   "bySize": [
+    {
+     "sizePx": "1",
+     "cores": 9,
+     "lostInComposite": 9,
+     "shownTodayBelow5mm": 9,
+     "medianPeakRatioToday": 0,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "2–4",
+     "cores": 12,
+     "lostInComposite": 5,
+     "shownTodayBelow5mm": 11,
+     "medianPeakRatioToday": 0.645,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "5–9",
+     "cores": 10,
+     "lostInComposite": 1,
+     "shownTodayBelow5mm": 6,
+     "medianPeakRatioToday": 0.642,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "10–24",
+     "cores": 7,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 1,
+     "medianPeakRatioToday": 0.705,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    },
+    {
+     "sizePx": "25+",
+     "cores": 4,
+     "lostInComposite": 0,
+     "shownTodayBelow5mm": 0,
+     "medianPeakRatioToday": 0.835,
+     "medianPeakRatioHdCatmull": 1,
+     "medianPeakRatioHdBilinear": 1
+    }
+   ]
+  }
+ },
+ "windows": [
+  {
+   "country": "DE",
+   "lon": 14.5985,
+   "lat": 51.4003,
+   "corePx": 792,
+   "peakMm": 13.8
+  },
+  {
+   "country": "AT",
+   "lon": 9.7836,
+   "lat": 47.1472,
+   "corePx": 652,
+   "peakMm": 16.9
+  },
+  {
+   "country": "CH",
+   "lon": 8.4954,
+   "lat": 46.249,
+   "corePx": 216,
+   "peakMm": 15
+  }
+ ],
+ "imageLayout": "oben links: nativ nearest · oben rechts: Komposit nearest · unten links: Komposit + B-Spline (heute) · unten rechts: nativ + Catmull-Rom geklemmt (HD)"
+}

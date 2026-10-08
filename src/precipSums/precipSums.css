@@ -1,0 +1,79 @@
+/* Phase NS — Niederschlagssummen im Regenradar (Command-Deck: Sand/Ink, League Spartan).
+   Mobil ausschließlich über den Mobil-Breakpoint (max-width: 767px). */
+
+/* --- Dock „Darstellung" --- */
+.ns-controls { display: flex; flex-direction: column; }
+.ns-controls--dock .rr-seg { margin-bottom: 8px; }
+.ns-subsegs { display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; }
+.ns-miniseg { display: flex; flex-wrap: wrap; gap: 3px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 8px; padding: 2px; }
+.ns-miniseg button { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; border-radius: 6px; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 500; color: var(--stone-500, #8B7355); padding: 5px 4px;
+  font-variant-numeric: tabular-nums; }
+.ns-miniseg button.is-active { background: var(--sand-100, #EDE6D3); color: var(--ink-900, #2C2A26); font-weight: 700; }
+.ns-miniseg--win button { flex: 1 1 28px; }
+
+/* --- Legende auf der Karte --- */
+.ns-legend {
+  position: absolute; bottom: 0.65rem; left: 0.65rem; z-index: 3; max-width: min(430px, calc(100% - 1.3rem));
+  background: rgba(250,246,234,0.95); border: 1px solid rgba(224,214,190,0.8); border-radius: 9px;
+  padding: 0.45rem 0.65rem 0.5rem; box-shadow: 0 2px 8px rgba(20,30,50,0.1); backdrop-filter: blur(4px);
+  font-size: 0.7rem; color: var(--ink-800, #3A3833); line-height: 1.35;
+}
+.ns-legend-head { font-size: 0.72rem; margin-bottom: 0.3rem; }
+.ns-legend-head b { font-weight: 700; color: var(--ink-900, #2C2A26); }
+.ns-legend-scale { display: flex; align-items: flex-end; gap: 0; margin-bottom: 0.3rem; }
+.ns-legend-step { display: flex; flex-direction: column; align-items: flex-start; font-size: 0.62rem; color: var(--stone-500, #8B7355);
+  font-variant-numeric: tabular-nums; }
+.ns-legend-step i { display: block; width: 2.1rem; height: 0.5rem; margin-bottom: 0.12rem; }
+.ns-legend-step:first-child i { border-radius: 3px 0 0 3px; }
+.ns-legend-unit { font-size: 0.62rem; color: var(--stone-500, #8B7355); margin-left: 0.3rem; }
+.ns-legend-keys { display: flex; flex-wrap: wrap; gap: 0.25rem 0.7rem; margin-bottom: 0.25rem; }
+.ns-legend-key { display: inline-flex; align-items: center; gap: 0.3rem; }
+.ns-legend-key i { display: inline-block; width: 0.95rem; height: 0.6rem; border-radius: 2px; }
+.ns-hatch { background: repeating-linear-gradient(135deg, rgba(120,112,98,0.55) 0 1px, rgba(120,112,98,0.12) 1px 5px); }
+.ns-dots { background: radial-gradient(circle, #1E1630 0.9px, rgba(60,74,154,0.85) 1.2px); background-size: 4px 4px; }
+.ns-stdot { width: 0.6rem !important; height: 0.6rem !important; border-radius: 50% !important; background: #FBF8F1;
+  border: 1px solid #2A2520; }
+.ns-legend-src { display: flex; flex-direction: column; gap: 0.1rem; }
+.ns-legend-note { color: var(--stone-500, #8B7355); }
+
+/* --- Karte am Ort --- */
+.ns-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 13px 14px 10px; margin-bottom: 10px; }
+.ns-card-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ns-card-col--exp { border-left: 1px solid var(--sand-200, #E0D6BE); padding-left: 12px; }
+.ns-card-label { font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 700; color: var(--stone-400, #A89A7A); }
+.ns-card-val { font-size: 21px; font-weight: 700; color: var(--ink-900, #2C2A26); margin-top: 3px; letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums; }
+.ns-card-val.is-muted { color: var(--stone-500, #8B7355); font-size: 17px; }
+.ns-card-num { white-space: nowrap; }
+.ns-card-pre { font-size: 12px; font-weight: 600; color: var(--stone-500, #8B7355); letter-spacing: 0; }
+.ns-card-sub { font-size: 11px; color: var(--stone-500, #8B7355); margin-top: 3px; line-height: 1.35; }
+.ns-card-sub b { color: var(--ink-800, #3A3833); font-weight: 600; }
+.ns-strip { display: block; width: 100%; height: auto; margin-top: 10px; }
+.ns-strip-base { stroke: var(--sand-200, #E0D6BE); stroke-width: 1; }
+.ns-strip-meas { fill: var(--steel-600, #3A6FA8); }
+.ns-strip-exp { fill: rgba(58,111,168,0.32); }
+.ns-strip-exp.is-radar { fill: rgba(58,111,168,0.5); }
+.ns-strip-range { stroke: rgba(58,111,168,0.55); stroke-width: 1; }
+.ns-strip-gap { fill: rgba(120,112,98,0.28); }
+.ns-strip-now { stroke: var(--ink-900, #2C2A26); stroke-width: 1.2; }
+.ns-strip-lbl { font-size: 8.5px; fill: var(--stone-500, #8B7355); font-family: inherit; }
+.ns-strip-lbl--now { fill: var(--ink-900, #2C2A26); font-weight: 700; }
+.ns-card-foot { font-size: 10px; color: var(--stone-400, #A89A7A); margin-top: 2px; }
+
+@media (max-width: 767px) {
+  /* Die Intensitäts-Legende ist mobil ausgeblendet (`.rm-map .nc-radar-legend`); die Summe braucht ihre Skala —
+     knapp, über der Bottom-Sheet-Kante. */
+  /* über der Leiste „Punktabfrage & Datenqualität" (≈ 2,6 rem) und der Sheet-Kante (34 vh) */
+  /* Bezug wie die Leiste (`nowcastMobile.css`: bottom 34vh + 12px am Viewport) — die Kartenbühne endet mobil über der
+     Zeitachse, eine Angabe relativ zur Bühne würde mit der Höhe der Zeitachse wandern. */
+  .rm-map .ns-legend { position: fixed; bottom: calc(34vh + 12px + 46px); left: 0.5rem; right: 0.5rem; max-width: none; padding: 0.35rem 0.5rem;
+    font-size: 0.64rem; }
+  .rm-map .ns-legend-src span + span { display: none; }
+  .rm-map .ns-legend-step i { width: 1.6rem; }
+  .ns-controls--mobile .rm-seg { margin-bottom: 8px; }
+  .ns-miniseg button { font-size: 14px; padding: 9px 4px; min-height: 44px; }
+  .ns-card { margin: 4px 0 10px; }
+  .ns-card-val { font-size: 22px; }
+}

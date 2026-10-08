@@ -1,0 +1,32 @@
+{
+ "at": "2026-10-08T17:14:05.779Z",
+ "head": "http://127.0.0.1:5213",
+ "cur": "http://127.0.0.1:5212",
+ "threshold": 12,
+ "scenarios": [
+  {
+   "id": "wk-overview-mobile",
+   "path": "/wetterkarte",
+   "mobile": true,
+   "block": true,
+   "waitS": 14,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 42.4553,
+   "differPx": 1257712,
+   "exactPct": 45.3989
+  },
+  {
+   "id": "wk-niederschlag-live-mobile",
+   "path": "/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 0,
+   "differPx": 0,
+   "exactPct": 100
+  }
+ ]
+}

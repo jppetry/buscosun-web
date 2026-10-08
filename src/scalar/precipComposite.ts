@@ -26,7 +26,9 @@
 
 import { countryRowPicker } from '../pointForecast/countryOfPoint';
 import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon, type GridKind } from './precipIndexMap';
-import type { QuadCorners } from './RainLayer';
+import { countryMaskForGrid, type HdGridKind } from './radarCountryMask';
+import { estimateMorphFlow } from './radarMorphFlow';
+import type { QuadCorners, RainFlow } from './RainLayer';
 import { quadWarpMesh, quadWarpRows, QUAD_WARP_COLS } from './quadWarpMesh';
 import type { RvNowcast } from '../sources/radolan';
 import type { IncaGrid } from '../sources/geosphereIncaGrid';
@@ -107,11 +109,11 @@ export interface CompositeFrame {
 // zuschaltet. Fällt bei fehlendem/abgestürztem Worker transparent auf denselben
 // Code zurück (gleiches Muster wie decompress.ts/gribGridWorker/radolanWorker).
 // ---------------------------------------------------------------------------
-interface PiMsg { id: number; ok: boolean; error?: string; idxBuf?: ArrayBuffer }
+interface PiMsg { id: number; ok: boolean; error?: string; idxBuf?: ArrayBuffer; maskBuf?: ArrayBuffer; flow?: { uBuf: ArrayBuffer; vBuf: ArrayBuffer; w: number; h: number } }
 const PI_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 2) - 1, 2));
 let piWorkers: Worker[] = [];
 let piUsable = true, piInited = false, piRr = 0, piNextId = 1;
-const piPending = new Map<number, { resolve: (r: Int32Array) => void; reject: (e: Error) => void }>();
+const piPending = new Map<number, { resolve: (r: Int32Array | Uint8Array) => void; reject: (e: Error) => void }>();
 
 function piInit(): void {
   if (piInited) return;
@@ -125,6 +127,8 @@ function piInit(): void {
         if (!p) return;
         piPending.delete(d.id);
         if (d.ok && d.idxBuf) p.resolve(new Int32Array(d.idxBuf));
+        else if (d.ok && d.maskBuf) p.resolve(new Uint8Array(d.maskBuf));
+        else if (d.ok && d.flow) (p.resolve as unknown as (r: RainFlow) => void)({ u: new Float32Array(d.flow.uBuf), v: new Float32Array(d.flow.vBuf), w: d.flow.w, h: d.flow.h });
         else p.reject(new Error(d.error || 'precip index worker error'));
       };
       w.onerror = () => {
@@ -146,13 +150,100 @@ async function buildIndexMapOffMain(corners: QuadCorners, sCols: number, sRows: 
   const id = piNextId++;
   try {
     return await new Promise<Int32Array>((resolve, reject) => {
-      piPending.set(id, { resolve, reject });
+      piPending.set(id, { resolve: resolve as (r: Int32Array | Uint8Array) => void, reject });
       w.postMessage({ id, corners, sCols, sRows, grid });
     });
   } catch {
     piPending.delete(id);
     return buildCompositeIndexMap(corners, sCols, sRows, grid);
   }
+}
+
+/**
+ * Phase HD-1: ownership mask of a native radar grid (`countryMaskForGrid`), built in the same worker pool — the same
+ * fallback to the main thread as the index maps. Memoised per grid (kind + size + first corner), the promise is shared.
+ */
+const hdMasks = new Map<string, Promise<Uint8Array>>();
+export function countryMaskOffMain(kind: HdGridKind, corners: QuadCorners, sCols: number, sRows: number): Promise<Uint8Array> {
+  const key = `${kind}:${sCols}x${sRows}:${corners[0][0]},${corners[0][1]}`;
+  const hit = hdMasks.get(key);
+  if (hit) return hit;
+  const p = (async () => {
+    piInit();
+    if (!piUsable || piWorkers.length === 0) return countryMaskForGrid(kind, corners, sCols, sRows);
+    const w = piWorkers[piRr++ % piWorkers.length];
+    const id = piNextId++;
+    try {
+      return await new Promise<Uint8Array>((resolve, reject) => {
+        piPending.set(id, { resolve: resolve as (r: Int32Array | Uint8Array) => void, reject });
+        w.postMessage({ id, op: 'mask', corners, sCols, sRows, grid: kind });
+      });
+    } catch {
+      piPending.delete(id);
+      return countryMaskForGrid(kind, corners, sCols, sRows);
+    }
+  })();
+  hdMasks.set(key, p);
+  p.catch(() => hdMasks.delete(key));
+  return p;
+}
+
+/**
+ * Phase HD-4: motion field A → B (native texels per interval) in the worker pool, memoised per frame pair (weak on A).
+ * `flowCached` answers synchronously what is already there; `flowOffMain` starts the estimate (fallback: main thread).
+ */
+const flows = new WeakMap<Uint8Array, Map<Uint8Array, { flow: RainFlow | null; p: Promise<RainFlow> }>>();
+export function flowCached(a: Uint8Array, b: Uint8Array): RainFlow | null {
+  return flows.get(a)?.get(b)?.flow ?? null;
+}
+export function flowOffMain(a: Uint8Array, b: Uint8Array, w: number, h: number, factor: number): Promise<RainFlow> {
+  let per = flows.get(a);
+  if (!per) { per = new Map(); flows.set(a, per); }
+  const hit = per.get(b);
+  if (hit) return hit.p;
+  const entry: { flow: RainFlow | null; p: Promise<RainFlow> } = { flow: null, p: Promise.resolve({ u: new Float32Array(0), v: new Float32Array(0), w: 0, h: 0 }) };
+  entry.p = (async () => {
+    piInit();
+    let f: RainFlow;
+    if (!piUsable || piWorkers.length === 0) f = estimateMorphFlow(a, b, w, h, factor);
+    else {
+      const wk = piWorkers[piRr++ % piWorkers.length];
+      const id = piNextId++;
+      try {
+        f = await new Promise<RainFlow>((resolve, reject) => {
+          piPending.set(id, { resolve: resolve as unknown as (r: Int32Array | Uint8Array) => void, reject });
+          // copies (no transfer): the frames stay in use by the layers
+          wk.postMessage({ id, op: 'flow', corners: [[0, 0], [0, 0], [0, 0], [0, 0]], sCols: w, sRows: h, grid: 'radolan', aBuf: a.slice().buffer, bBuf: b.slice().buffer, factor });
+        });
+      } catch {
+        piPending.delete(id);
+        f = estimateMorphFlow(a, b, w, h, factor);
+      }
+    }
+    entry.flow = f;
+    return f;
+  })();
+  per.set(b, entry);
+  entry.p.catch(() => per!.delete(b));
+  return entry.p;
+}
+
+/** The frames `build()` draws for slider hour `h` — one rule for the composite and the HD layers (Phase HD-1). */
+export interface CompositePick {
+  /** `values2` (HD-3): Log-Ebene, wenn der Frame eine trägt. */
+  rv: { values: Uint8Array; values2?: Uint8Array } | null;
+  inca: IncaGrid['frames'][number] | null;
+  rzc: RadarFrame | null;
+  d2: IconD2Precip['frames'][number] | null;
+}
+export function pickCompositeFrames(h: number, s: CompositeSources, nowMs: number): CompositePick {
+  const rv = s.rvPast != null
+    ? rvAtValidTime(s.rv ?? null, s.rvPast, nowMs + h * 3600_000)
+    : h <= RV_MAX_H + 1e-6 && s.rv?.frames.length ? nearestBy(s.rv.frames, (f) => Math.abs(f.leadMinutes - h * 60)) : null;
+  const inca = h <= INCA_MAX_H + 1e-6 && s.inca?.frames.length ? nearestBy(s.inca.frames, (f) => Math.abs(f.leadHours - h)) : null;
+  const rzc = h < RZC_MAX_H && s.rzc ? s.rzc : null;
+  const d2 = s.d2?.frames.length ? nearestBy(s.d2.frames, (f) => Math.abs(f.validAt.getTime() - (nowMs + h * 3600_000))) : null;
+  return { rv, inca, rzc, d2 };
 }
 
 /**
@@ -245,12 +336,7 @@ export class PrecipCompositor {
   build(h: number, s: CompositeSources, nowMs: number): CompositeFrame {
     const out = new Uint8Array(G.w * G.h);
 
-    const rv = s.rvPast != null
-      ? rvAtValidTime(s.rv ?? null, s.rvPast, nowMs + h * 3600_000)
-      : h <= RV_MAX_H + 1e-6 && s.rv?.frames.length ? nearestBy(s.rv.frames, (f) => Math.abs(f.leadMinutes - h * 60)) : null;
-    const inca = h <= INCA_MAX_H + 1e-6 && s.inca?.frames.length ? nearestBy(s.inca.frames, (f) => Math.abs(f.leadHours - h)) : null;
-    const rzc = h < RZC_MAX_H && s.rzc ? s.rzc : null;
-    const d2 = s.d2?.frames.length ? nearestBy(s.d2.frames, (f) => Math.abs(f.validAt.getTime() - (nowMs + h * 3600_000))) : null;
+    const { rv, inca, rzc, d2 } = pickCompositeFrames(h, s, nowMs);
 
     if (rv) this.ensureDe(s.rv!);
     if (inca) this.ensureAt(s.inca!);
@@ -278,11 +364,11 @@ export class PrecipCompositor {
  * run's own frames (`runAt + leadMinutes`, lead ≤ RV_MAX_H). Frames on another grid than the run are skipped (the DE
  * index map belongs to the run). `null` when nothing lies within `RV_PICK_TOL_MS` — a gap stays a gap.
  */
-function rvAtValidTime(rv: RvNowcast | null, past: ReadonlyArray<RvPastFrame>, targetMs: number): { values: Uint8Array } | null {
+function rvAtValidTime(rv: RvNowcast | null, past: ReadonlyArray<RvPastFrame>, targetMs: number): { values: Uint8Array; values2?: Uint8Array } | null {
   if (!rv || !rv.frames.length) return null;
   const runMs = rv.runAt.getTime();
   const w = rv.frames[0].width, hgt = rv.frames[0].height;
-  let best: { values: Uint8Array } | null = null;
+  let best: { values: Uint8Array; values2?: Uint8Array } | null = null;
   let bd = Infinity;
   for (const p of past) {
     const t = p.validAt.getTime();

@@ -25,6 +25,7 @@ import {
   type ProgramWrapper,
 } from '../wind/glUtil';
 import { warpMeshGeometry, mercatorOf } from './quadWarpMesh';
+import { RAIN_FILTER_CODE, RADAR_MORPH_MAX_TEXELS, type RainFilter } from './radarHd';
 
 // KL9/V-KL-3 (2026-08-27, Jans Go): die Knoten kommen als fertige Mercator-
 // Koordinaten (`a_merc`, auf der CPU in double — `mercatorOf`). Vorher rechnete
@@ -50,13 +51,64 @@ void main() {
 // zu 1 → reine konvexe Mischung: kein Überschwingen, keine negativen Werte,
 // nichts oberhalb des lokalen Maximums (also kein künstlicher Regen an Kanten).
 // 4-Tap-Variante (nutzt die bereits aktive LINEAR-Filterung der Textur).
+//
+// Phase HD-2 (`audit/radar-hochaufloesung.md` §1.4): der B-Spline geht nicht durch
+// die Messwerte — ein Einzeltexel behält an seiner Mitte (4/6)² = 44 %. `u_filter`
+// wählt deshalb je Layer: 0 = B-Spline (wie bisher, Voreinstellung), 1 = Catmull-Rom
+// 16 Taps an Texelmitten, geklemmt auf Min/Max der inneren 2×2 (interpolierend,
+// kein Überschwingen), 2 = bilinear, 3 = nearest. Phase HD-1: `u_mask` (NEAREST,
+// 0/255) verwirft Texel, die nach `pickCountry` einem anderen Land gehören.
 const frag = `
 precision highp float;
 uniform sampler2D u_value;        // LUMINANCE: r = mm/h / vMax  (0 = trocken/keine Abdeckung)
 uniform sampler2D u_color_ramp;   // 16x16 Farbverlauf (rgba)
+uniform sampler2D u_mask;         // HD-1: LUMINANCE 0/255 je Texel (1 = zeichnen), nur mit u_mask_on
 uniform float u_opacity;
 uniform vec2 u_texsize;           // (Breite, Höhe) der Werte-Textur
+uniform int u_filter;             // HD-2: 0 B-Spline · 1 Catmull-Rom geklemmt · 2 bilinear · 3 nearest
+uniform float u_mask_on;
 varying vec2 v_uv;
+
+vec4 catmullWeights(float t) {
+  float t2 = t * t, t3 = t2 * t;
+  return vec4((-t3 + 2.0 * t2 - t) * 0.5, (3.0 * t3 - 5.0 * t2 + 2.0) * 0.5, (-3.0 * t3 + 4.0 * t2 + t) * 0.5, (t3 - t2) * 0.5);
+}
+
+// HD-4: zweiter Frame + Bewegungsfeld für Zwischenbilder (Morph) — A rückwärts, B vorwärts entlang des Felds verschoben.
+uniform sampler2D u_value_b;      // Frame B (gleiche Form wie u_value), nur mit u_morph_on
+uniform sampler2D u_flow;         // RG8: (u, v) in [−1, 1] · u_flow_scale Texel je Frame-Intervall, grobes Gitter, LINEAR
+uniform float u_morph_on;
+uniform float u_frac;             // 0 = Frame A … 1 = Frame B
+uniform float u_flow_scale;       // Texel je Einheit der Flusstextur
+
+// Texelwert an der GANZZAHLIGEN Texelkoordinate ij (Mitte = (ij + 0,5)/n; CLAMP_TO_EDGE klemmt den Rand).
+float texelAt(sampler2D s, vec2 ij) {
+  return texture2D(s, (ij + 0.5) / u_texsize).r;
+}
+
+float sampleCatmull(sampler2D sm, vec2 uv) {
+  vec2 coord = uv * u_texsize - 0.5;
+  vec2 f = fract(coord);
+  vec2 i0 = coord - f;
+  vec4 wx = catmullWeights(f.x);
+  vec4 wy = catmullWeights(f.y);
+  float s = 0.0;
+  float lo = 1.0, hi = 0.0;
+  for (int j = 0; j < 4; j++) {
+    float row = 0.0;
+    for (int i = 0; i < 4; i++) {
+      float t = texelAt(sm, i0 + vec2(float(i) - 1.0, float(j) - 1.0));
+      row += wx[i] * t;
+      if (i >= 1 && i <= 2 && j >= 1 && j <= 2) { lo = min(lo, t); hi = max(hi, t); }
+    }
+    s += wy[j] * row;
+  }
+  return clamp(s, lo, hi);
+}
+
+float sampleNearest(sampler2D sm, vec2 uv) {
+  return texelAt(sm, floor(uv * u_texsize));
+}
 
 vec4 cubicWeights(float v) {
   vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
@@ -68,7 +120,7 @@ vec4 cubicWeights(float v) {
   return vec4(x, y, z, w) * (1.0 / 6.0);
 }
 
-float sampleBicubic(vec2 uv) {
+float sampleBicubic(sampler2D sm, vec2 uv) {
   vec2 texSize = u_texsize;
   vec2 invTex = 1.0 / texSize;
   vec2 coord = uv * texSize - 0.5;
@@ -80,18 +132,35 @@ float sampleBicubic(vec2 uv) {
   vec4 s = vec4(xw.xz + xw.yw, yw.xz + yw.yw);
   vec4 off = c + vec4(xw.yw, yw.yw) / s;
   off *= invTex.xxyy;
-  float s0 = texture2D(u_value, off.xz).r;
-  float s1 = texture2D(u_value, off.yz).r;
-  float s2 = texture2D(u_value, off.xw).r;
-  float s3 = texture2D(u_value, off.yw).r;
+  float s0 = texture2D(sm, off.xz).r;
+  float s1 = texture2D(sm, off.yz).r;
+  float s2 = texture2D(sm, off.xw).r;
+  float s3 = texture2D(sm, off.yw).r;
   float sx = s.x / (s.x + s.y);
   float sy = s.z / (s.z + s.w);
   return mix(mix(s3, s2, sx), mix(s1, s0, sx), sy);
 }
 
+float sampleAny(sampler2D sm, vec2 uv) {
+  if (u_filter == 1) return sampleCatmull(sm, uv);
+  if (u_filter == 2) return texture2D(sm, uv).r;
+  if (u_filter == 3) return sampleNearest(sm, uv);
+  return sampleBicubic(sm, uv);
+}
+
 void main() {
   if (v_uv.x < 0.0 || v_uv.x > 1.0 || v_uv.y < 0.0 || v_uv.y > 1.0) discard;
-  float t = sampleBicubic(v_uv);
+  if (u_mask_on > 0.5 && texture2D(u_mask, (floor(v_uv * u_texsize) + 0.5) / u_texsize).r < 0.5) discard;
+  float t;
+  if (u_morph_on > 0.5) {
+    // HD-4: Verschiebung (Texel) aus dem Bewegungsfeld an dieser Stelle; A um −frac, B um +(1 − frac) versetzt lesen.
+    vec2 d = (texture2D(u_flow, v_uv).rg * 2.0 - 1.0) * u_flow_scale / u_texsize;
+    float ta = sampleAny(u_value, v_uv - u_frac * d);
+    float tb = sampleAny(u_value_b, v_uv + (1.0 - u_frac) * d);
+    t = mix(ta, tb, u_frac);
+  } else {
+    t = sampleAny(u_value, v_uv);
+  }
   if (t < 0.002) discard; // 0 = trocken oder außerhalb der Abdeckung
   vec2 rp = vec2(fract(16.0 * t), floor(16.0 * t) / 16.0);
   vec4 c = texture2D(u_color_ramp, rp);
@@ -123,13 +192,28 @@ export interface RainFrameData {
   warpN?: number;
   /** Zeilen des Meshs; Default = `warpN` (quadratisch — projizierte Gitter). */
   warpRows?: number;
+  /**
+   * Phase HD-1: Besitz-Maske, `width·height` Bytes, 1 = Texel zeichnen (gehört nach `pickCountry` diesem Land), 0 =
+   * verwerfen (`radarCountryMask.ts`). Wird nur bei neuer Referenz hochgeladen; ohne Maske zeichnet der Layer alles.
+   */
+  mask?: Uint8Array | null;
 }
 
 export interface RainLayerOptions {
   id: string;
   colorRamp: Record<number, string>;
   opacity?: number;
+  /** Phase HD-2: Abtastung zwischen den Texelmitten; Voreinstellung `bspline` = Stand vor HD (byte-gleich). */
+  filter?: RainFilter;
 }
+
+/**
+ * Phase HD-4: Bewegungsfeld auf einem GROBEN Gitter (`w × h`), Werte in NATIVEN Texeln je Frame-Intervall (Frame A → B),
+ * x nach Osten (Spalten), y nach Süden (Zeilen) — die Konvention von `estimateFlowHS` auf dem north-up-Werte-Grid.
+ */
+export interface RainFlow { u: Float32Array; v: Float32Array; w: number; h: number }
+/** Phase HD-4: Morph-Auftrag — Frame B (gleiche Form wie der gesetzte Frame A), Fluss, Anteil 0…1. */
+export interface RainMorph { b: Uint8Array; flow: RainFlow; frac: number }
 
 export class RainLayer implements CustomLayerInterface {
   readonly id: string;
@@ -137,6 +221,8 @@ export class RainLayer implements CustomLayerInterface {
   readonly renderingMode = '2d' as const;
 
   opacity: number;
+  /** HD-2: aktive Abtastung (`setFilter`). */
+  filter: RainFilter;
   private colorRampStops: Record<number, string>;
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
@@ -145,6 +231,14 @@ export class RainLayer implements CustomLayerInterface {
   private mercBuf: WebGLBuffer | null = null;
   private uvBuf: WebGLBuffer | null = null;
   private valueTex: WebGLTexture | null = null;
+  /** HD-1: Masken-Textur (NEAREST) und die Referenz, die sie trägt. */
+  private maskTex: WebGLTexture | null = null;
+  private maskRef: Uint8Array | null = null;
+  /** HD-4: Frame B + Flusstextur des Morphs; `morph` = aktueller Auftrag (null = aus). */
+  private valueTexB: WebGLTexture | null = null;
+  private flowTex: WebGLTexture | null = null;
+  private morph: RainMorph | null = null;
+  private morphRefs: { b: Uint8Array | null; flow: RainFlow | null } = { b: null, flow: null };
   private colorRampTex!: WebGLTexture;
   private ready = false;
   private _pending: RainFrameData | null = null;
@@ -162,7 +256,14 @@ export class RainLayer implements CustomLayerInterface {
   constructor(options: RainLayerOptions) {
     this.id = options.id;
     this.opacity = options.opacity ?? 0.85;
+    this.filter = options.filter ?? 'bspline';
     this.colorRampStops = options.colorRamp;
+  }
+
+  /** HD-2: Abtastung zur Laufzeit wechseln (ein Uniform, kein Upload). */
+  setFilter(filter: RainFilter) {
+    this.filter = filter;
+    this.map?.triggerRepaint();
   }
 
   onAdd(map: MapLibreMap, gl: WebGLRenderingContext) {
@@ -190,8 +291,51 @@ export class RainLayer implements CustomLayerInterface {
     this.mercBuf = null; this.uvBuf = null; this.indexBuf = null; this.lastGeomKey = null;
     if (this.valueTex) gl.deleteTexture(this.valueTex);
     this.valueTex = null;
+    if (this.maskTex) gl.deleteTexture(this.maskTex);
+    this.maskTex = null; this.maskRef = null;
+    if (this.valueTexB) gl.deleteTexture(this.valueTexB);
+    if (this.flowTex) gl.deleteTexture(this.flowTex);
+    this.valueTexB = null; this.flowTex = null; this.morph = null; this.morphRefs = { b: null, flow: null };
     gl.deleteTexture(this.colorRampTex);
     this.ready = false;
+  }
+
+  /**
+   * HD-4: Zwischenbild zwischen dem gesetzten Frame A (`setFrame`) und Frame B entlang des Bewegungsfelds — `null`
+   * schaltet den Morph aus (Frame A allein, wie ohne HD-4). Frame B und Fluss werden nur bei neuer Referenz hochgeladen,
+   * ein reiner `frac`-Wechsel ist ein Uniform. Form von B muss der von A gleichen, sonst wird der Auftrag verworfen.
+   */
+  setMorph(morph: RainMorph | null) {
+    const gl = this.gl;
+    if (!gl || !this.ready) { this.morph = morph; return; }
+    if (morph && morph.b.length !== this.texW * this.texH) morph = null;
+    this.morph = morph;
+    if (!morph) { this.map?.triggerRepaint(); return; }
+    if (morph.b !== this.morphRefs.b) {
+      this.morphRefs.b = morph.b;
+      if (!this.valueTexB) this.valueTexB = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.valueTexB);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, this.texW, this.texH, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, morph.b);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    }
+    if (morph.flow !== this.morphRefs.flow) {
+      this.morphRefs.flow = morph.flow;
+      if (!this.flowTex) this.flowTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.flowTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, morph.flow.w, morph.flow.h, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, encodeFlow(morph.flow));
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    }
+    this.map?.triggerRepaint();
   }
 
   /**
@@ -261,6 +405,23 @@ export class RainLayer implements CustomLayerInterface {
       gl.TEXTURE_2D, 0, gl.LUMINANCE, frame.width, frame.height, 0,
       gl.LUMINANCE, gl.UNSIGNED_BYTE, frame.values,
     );
+    // HD-1: Maske nur bei neuer Referenz hochladen (NEAREST — exakter Texelbesitz, keine Mischung am Rand).
+    const mask = frame.mask ?? null;
+    if (mask !== this.maskRef) {
+      this.maskRef = mask;
+      if (mask) {
+        if (!this.maskTex) this.maskTex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        const bytes = new Uint8Array(mask.length);
+        for (let i = 0; i < mask.length; i++) bytes[i] = mask[i] ? 255 : 0;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, frame.width, frame.height, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, bytes);
+      }
+    }
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4); // Default wiederherstellen (MapLibre)
     this.map?.triggerRepaint();
   }
@@ -291,8 +452,23 @@ export class RainLayer implements CustomLayerInterface {
     bindAttribute(gl, this.uvBuf, p.a_uv as number, 2);
     bindTexture(gl, this.valueTex, 0);
     bindTexture(gl, this.colorRampTex, 1);
+    // HD-1: Einheit 2 trägt die Maske — ohne Maske die Werte-Textur (nie eine unvollständige Textur am Sampler).
+    const maskOn = !!(this.maskRef && this.maskTex);
+    bindTexture(gl, maskOn ? this.maskTex! : this.valueTex, 2);
     gl.uniform1i(p.u_value as WebGLUniformLocation, 0);
     gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 1);
+    gl.uniform1i(p.u_mask as WebGLUniformLocation, 2);
+    gl.uniform1f(p.u_mask_on as WebGLUniformLocation, maskOn ? 1 : 0);
+    gl.uniform1i(p.u_filter as WebGLUniformLocation, RAIN_FILTER_CODE[this.filter]);
+    // HD-4: Einheiten 3/4 tragen Frame B und den Fluss — ohne Morph die Werte-Textur (nie eine unvollständige Textur).
+    const morphOn = !!(this.morph && this.valueTexB && this.flowTex && this.morphRefs.b === this.morph.b);
+    bindTexture(gl, morphOn ? this.valueTexB! : this.valueTex, 3);
+    bindTexture(gl, morphOn ? this.flowTex! : this.valueTex, 4);
+    gl.uniform1i(p.u_value_b as WebGLUniformLocation, 3);
+    gl.uniform1i(p.u_flow as WebGLUniformLocation, 4);
+    gl.uniform1f(p.u_morph_on as WebGLUniformLocation, morphOn ? 1 : 0);
+    gl.uniform1f(p.u_frac as WebGLUniformLocation, morphOn ? Math.max(0, Math.min(1, this.morph!.frac)) : 0);
+    gl.uniform1f(p.u_flow_scale as WebGLUniformLocation, RADAR_MORPH_MAX_TEXELS);
     gl.uniform1f(p.u_opacity as WebGLUniformLocation, this.opacity);
     gl.uniform2f(p.u_texsize as WebGLUniformLocation, this.texW, this.texH);
     gl.uniformMatrix4fv(p.u_matrix as WebGLUniformLocation, false, matrix);
@@ -306,6 +482,17 @@ export class RainLayer implements CustomLayerInterface {
     gl.depthMask(prevDepthMask);
     if (!prevDepth) gl.disable(gl.DEPTH_TEST);
   }
+}
+
+/**
+ * HD-4: Fluss (native Texel je Intervall) → LUMINANCE_ALPHA-Bytes, u = L, v = A, je in [−MAX, MAX] auf 0…255
+ * (Nullpunkt 127,5 → im Shader `· 2 − 1`). Rein, für den Verifier nachrechenbar.
+ */
+export function encodeFlow(flow: RainFlow): Uint8Array {
+  const out = new Uint8Array(flow.w * flow.h * 2);
+  const q = (x: number) => { const c = x < -RADAR_MORPH_MAX_TEXELS ? -RADAR_MORPH_MAX_TEXELS : x > RADAR_MORPH_MAX_TEXELS ? RADAR_MORPH_MAX_TEXELS : x; return Math.round(((c / RADAR_MORPH_MAX_TEXELS) + 1) * 127.5); };
+  for (let i = 0; i < flow.w * flow.h; i++) { out[i * 2] = q(flow.u[i]); out[i * 2 + 1] = q(flow.v[i]); }
+  return out;
 }
 
 /**
@@ -335,6 +522,50 @@ export function precipToU8(mmph: number): number {
   const t = mmph / PRECIP_VMAX;
   return Math.max(1, Math.min(255, Math.round(t * 255)));
 }
+
+// Phase HD-3 (`audit/radar-hochaufloesung.md` §5): die zweite, LOGARITHMISCHE Ebene des Spiegels
+// (`g<lead>.png`, Kanal 2) — 0,06 … 200 mm/h in 254 Stufen (3,2 % je Stufe), damit Starkregen über 20 mm/h
+// nicht mehr auf einen Wert fällt. Dieselbe Trocken-Schwelle wie `precipToU8` (0 ⇔ 0): die Masken beider
+// Ebenen sind gleich. Kanal 1 bleibt der `precipToU8`-Byte, byte-gleich zu v1 — alle Verbraucher lesen ihn weiter.
+export const PRECIP_LOG_MIN = 0.06;
+export const PRECIP_LOG_MAX = 200;
+export const PRECIP_LOG_STEPS = 254;
+const LOG_SPAN = Math.log(PRECIP_LOG_MAX / PRECIP_LOG_MIN);
+
+/** mm/h → Uint8 logarithmisch (0 = trocken, 1 = 0,06 mm/h … 255 = 200 mm/h). */
+export function precipToU8Log(mmph: number): number {
+  if (!(mmph >= PRECIP_LOG_MIN)) return 0;
+  const u = 1 + Math.round((PRECIP_LOG_STEPS * Math.log(mmph / PRECIP_LOG_MIN)) / LOG_SPAN);
+  return u < 1 ? 1 : u > 255 ? 255 : u;
+}
+
+/** Umkehrung von {@link precipToU8Log}: Stufenmitte in mm/h (0 für 0). */
+export function precipFromU8Log(u: number): number {
+  if (!(u >= 1)) return 0;
+  return PRECIP_LOG_MIN * Math.exp((LOG_SPAN * (Math.min(255, u) - 1)) / PRECIP_LOG_STEPS);
+}
+
+/**
+ * Farbskala für die Log-Ebene: dieselben Farben an denselben mm/h wie `precipRainRamp` (die Stützen wandern nur auf
+ * ihre Log-Position), darüber die Starkregen-Stufen 30 / 50 / 100 / 200 mm/h (`set`, E-HD-4 — Jans Gate).
+ */
+export const precipRainRampLog: Record<number, string> = Object.fromEntries([
+  [0, 'rgba(150,200,245,0)'],
+  [0.06, 'rgba(150,200,245,0.59)'],
+  [0.2, 'rgba(95,165,235,0.59)'],
+  [0.5, 'rgba(50,120,220,0.78)'],
+  [1, 'rgba(40,175,230,0.78)'],
+  [2, 'rgba(60,200,120,0.90)'],
+  [3, 'rgba(200,215,60,0.90)'],
+  [5, 'rgba(240,150,50,0.90)'],
+  [8, 'rgba(228,75,55,0.90)'],
+  [12, 'rgba(190,40,95,0.90)'],
+  [20, 'rgba(150,40,140,0.90)'],
+  [30, 'rgba(110,30,170,0.92)'],
+  [50, 'rgba(80,20,190,0.94)'],
+  [100, 'rgba(190,130,255,0.96)'],
+  [200, 'rgba(255,255,255,0.98)'],
+].map(([mm, c]) => [mm === 0 ? 0 : precipToU8Log(mm as number) / 255, c as string]));
 
 /**
  * Wolken-Farbskala (Bewölkungsgrad % → weiß/grau, Alpha steigt mit dem Grad).

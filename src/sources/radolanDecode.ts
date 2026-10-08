@@ -109,9 +109,9 @@ export function decodeRadolanRaw(raw: Uint8Array): RadolanGrid {
 }
 
 /** mm/h-Feld → kompaktes Uint8-Werte-Grid (north-up) für die RainLayer-Textur. */
-function ratesToValues(rate: Float32Array): Uint8Array {
+function ratesToValues(rate: Float32Array, quantise: (mmph: number) => number = precipToU8): Uint8Array {
   const v = new Uint8Array(rate.length);
-  for (let k = 0; k < rate.length; k++) v[k] = precipToU8(rate[k]);
+  for (let k = 0; k < rate.length; k++) v[k] = quantise(rate[k]);
   return v;
 }
 
@@ -190,6 +190,8 @@ export interface DecodedRvFrame {
   leadMinutes: number;
   validAtMs: number;
   values: Uint8Array;
+  /** Phase HD-3: zweite Quantisierung derselben Raten (nur mit `secondary` bzw. aus dem Dual-PNG). */
+  values2?: Uint8Array;
   width: number;
   height: number;
 }
@@ -200,7 +202,7 @@ export interface DecodedRvFrame {
  * verschachtelter Loop), off-main lauffähig (radolanWorker.ts) mit demselben
  * Code als Main-Thread-Fallback.
  */
-export function decodeRvTar(tarBytes: Uint8Array): { runAtMs: number; frames: DecodedRvFrame[] } {
+export function decodeRvTar(tarBytes: Uint8Array, opts: { secondary?: (mmph: number) => number } = {}): { runAtMs: number; frames: DecodedRvFrame[] } {
   const entries = untar(tarBytes);
   if (!entries.length) throw new Error('RADOLAN-RV: leeres tar');
 
@@ -213,6 +215,7 @@ export function decodeRvTar(tarBytes: Uint8Array): { runAtMs: number; frames: De
       leadMinutes: grid.leadMinutes,
       validAtMs: grid.validAt.getTime(),
       values: ratesToValues(grid.rainRate),
+      ...(opts.secondary ? { values2: ratesToValues(grid.rainRate, opts.secondary) } : {}),
       width: grid.cols,
       height: grid.rows,
     });

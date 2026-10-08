@@ -19,17 +19,51 @@
 export class GrayPngUnsupported extends Error {}
 
 export interface GrayPng { width: number; height: number; values: Uint8Array }
+/** Phase HD-3: Dual-PNG des Spiegels (Farbtyp 4 = Grau + Alpha): Kanal 1 = v1-Byte, Kanal 2 = Log-Ebene. */
+export interface GrayAlphaPng { width: number; height: number; values: Uint8Array; values2: Uint8Array }
 
 const SIG = [137, 80, 78, 71, 13, 10, 26, 10];
 
 /**
- * Dekodiert ein Graustufen-PNG. Wirft `GrayPngUnsupported`, wenn die Datei nicht
- * exakt die Bauart des Spiegels hat.
+ * Phase HD-3: Dual-PNG (Farbtyp 4, 8 bit, 2 Byte je Pixel) → zwei Ebenen. Derselbe Weg wie `decodeGrayPng`
+ * (Chunks, natives Deflate, Un-Filter je Zeile — hier mit 2 Byte je Pixel: der linke Nachbar liegt 2 Byte zurück).
+ * Kein Canvas-Rückfall: der würde den zweiten Kanal als Alpha vormultiplizieren.
  */
-export async function decodeGrayPng(bytes: Uint8Array): Promise<GrayPng> {
+export async function decodeGrayAlphaPng(bytes: Uint8Array): Promise<GrayAlphaPng> {
+  const { width, height, raw } = await inflatePng(bytes, 4);
+  const bpp = 2, stride = width * bpp;
+  if (raw.length < height * (stride + 1)) throw new GrayPngUnsupported('Datenstrom zu kurz');
+  const line = new Uint8Array(stride * height);
+  let s = 0;
+  for (let y = 0; y < height; y++) {
+    const ft = raw[s++];
+    const row = y * stride, prev = row - stride;
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? line[row + x - bpp] : 0;
+      const b = y > 0 ? line[prev + x] : 0;
+      const c = x >= bpp && y > 0 ? line[prev + x - bpp] : 0;
+      let pred = 0;
+      switch (ft) {
+        case 0: pred = 0; break;
+        case 1: pred = a; break;
+        case 2: pred = b; break;
+        case 3: pred = (a + b) >> 1; break;
+        case 4: { const p = a + b - c; const pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); pred = (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c); break; }
+        default: throw new GrayPngUnsupported(`Filter ${ft}`);
+      }
+      line[row + x] = (raw[s + x] + pred) & 255;
+    }
+    s += stride;
+  }
+  const values = new Uint8Array(width * height), values2 = new Uint8Array(width * height);
+  for (let i = 0; i < values.length; i++) { values[i] = line[i * 2]; values2[i] = line[i * 2 + 1]; }
+  return { width, height, values, values2 };
+}
+
+/** Chunks lesen, Farbtyp prüfen, IDAT nativ entpacken — geteilt von beiden Lesern. */
+async function inflatePng(bytes: Uint8Array, wantColourType: number): Promise<{ width: number; height: number; raw: Uint8Array }> {
   if (bytes.length < 8) throw new GrayPngUnsupported('zu kurz');
   for (let i = 0; i < 8; i++) if (bytes[i] !== SIG[i]) throw new GrayPngUnsupported('keine PNG-Signatur');
-
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let pos = 8;
   let width = 0, height = 0;
@@ -46,18 +80,16 @@ export async function decodeGrayPng(bytes: Uint8Array): Promise<GrayPng> {
       const colourType = bytes[body + 9];
       const interlace = bytes[body + 12];
       if (bitDepth !== 8) throw new GrayPngUnsupported(`${bitDepth} bit (erwartet 8)`);
-      if (colourType !== 0) throw new GrayPngUnsupported(`Farbtyp ${colourType} (erwartet 0 = Grau)`);
+      if (colourType !== wantColourType) throw new GrayPngUnsupported(`Farbtyp ${colourType} (erwartet ${wantColourType})`);
       if (interlace !== 0) throw new GrayPngUnsupported('Interlace');
     } else if (type === 'IDAT') {
       idat.push(bytes.subarray(body, body + len));
     } else if (type === 'IEND') {
       break;
     }
-    pos = body + len + 4;                       // + CRC
+    pos = body + len + 4;
   }
   if (!(width > 0 && height > 0) || idat.length === 0) throw new GrayPngUnsupported('kein Bild im Datenstrom');
-
-  // zlib-gewrapptes Deflate (PNG-Vorgabe) — dasselbe native `deflate` wie im COG-Leser.
   let comp: Uint8Array;
   if (idat.length === 1) {
     comp = idat[0];
@@ -70,6 +102,16 @@ export async function decodeGrayPng(bytes: Uint8Array): Promise<GrayPng> {
   }
   const stream = new Blob([comp as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'));
   const raw = new Uint8Array(await new Response(stream).arrayBuffer());
+  return { width, height, raw };
+}
+
+/**
+ * Dekodiert ein Graustufen-PNG. Wirft `GrayPngUnsupported`, wenn die Datei nicht
+ * exakt die Bauart des Spiegels hat.
+ */
+export async function decodeGrayPng(bytes: Uint8Array): Promise<GrayPng> {
+  // Chunks + natives Deflate in `inflatePng` (seit HD-3 geteilt mit dem Dual-Leser; Farbtyp 0 = Grau).
+  const { width, height, raw } = await inflatePng(bytes, 0);
   if (raw.length < height * (width + 1)) throw new GrayPngUnsupported('Datenstrom zu kurz');
 
   // Un-Filter je Zeile (PNG-Filter 0…4) — bei 1 Byte/Pixel ist der linke Nachbar

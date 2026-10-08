@@ -40,7 +40,8 @@ import {
   rvImgEligible, rvImgDir, rvStampToMs,
 } from './radolanRuns';
 import { parseRvImgMeta, RadarImg404, fetchImgRes, loadRadarGrayPng } from './radarImg';
-import { decodeGrayPng } from './grayPng';
+import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
+import { radarDualFlagFrom } from '../scalar/radarHd';
 export { guessRvRuns } from './radolanRuns';
 
 const RY_LATEST =
@@ -78,6 +79,8 @@ export interface RvFrame {
   validAt: Date;
   /** Kompaktes Werte-Grid (1 Byte/Zelle, north-up) für RainLayer.setFrame. */
   values: Uint8Array;
+  /** Phase HD-3: Log-Ebene (0,06 … 200 mm/h) aus dem Dual-PNG des Spiegels — nur mit `?hdv2=1` und wenn der Slot sie trägt. */
+  values2?: Uint8Array;
   width: number;
   height: number;
 }
@@ -248,7 +251,8 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
 interface RwMsg {
   id: number; ok: boolean; error?: string;
   runAtMs?: number;
-  frames?: { leadMinutes: number; validAtMs: number; width: number; height: number; valuesBuf: ArrayBuffer }[];
+  /** HD-3: `values2Buf` = Log-Ebene eines Dual-PNGs. */
+  frames?: { leadMinutes: number; validAtMs: number; width: number; height: number; valuesBuf: ArrayBuffer; values2Buf?: ArrayBuffer }[];
 }
 let rwWorker: Worker | null = null;
 let rwUsable = true, rwInited = false, rwNextId = 1;
@@ -270,6 +274,7 @@ function rwInit(): void {
           frames: d.frames.map((f) => ({
             leadMinutes: f.leadMinutes, validAtMs: f.validAtMs,
             width: f.width, height: f.height, values: new Uint8Array(f.valuesBuf),
+            ...(f.values2Buf ? { values2: new Uint8Array(f.values2Buf) } : {}),
           })),
         });
       } else {
@@ -334,16 +339,24 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
     // Erst alle Bytes holen (das Netz ist der schnelle Teil: 26 Dateien ≈ 1,4 s
     // gemessen), dann in EINEM Zug off-main dekodieren — 33 MPixel gehören nicht
     // auf den Hauptthread (§14.7). Ohne Worker läuft derselbe Code hier.
-    const bytes = await Promise.all(meta.frames.map(async (f) => ({
-      leadMinutes: f.lead,
-      validAtMs: f.validAtMs ?? meta.runAtMs + f.lead * 60_000,
-      buf: await (await imgRes(`${dir}/${f.file}`, dl.signal, priority)).arrayBuffer(),
-    })));
+    // HD-3: mit `?hdv2=1` das Dual-PNG je Frame (beide Ebenen in einem Abruf); fehlt es (404), das `f`-Bild wie bisher.
+    const dualFile = radarDualFlagFrom() && meta.dual ? new Map(meta.dual.frames.map((d) => [d.lead, d.file])) : null;
+    const bytes = await Promise.all(meta.frames.map(async (f) => {
+      const validAtMs = f.validAtMs ?? meta.runAtMs + f.lead * 60_000;
+      const g = dualFile?.get(f.lead);
+      if (g) {
+        try {
+          return { leadMinutes: f.lead, validAtMs, buf: await (await imgRes(`${dir}/${g}`, dl.signal, priority)).arrayBuffer(), dual: true };
+        } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
+      }
+      return { leadMinutes: f.lead, validAtMs, buf: await (await imgRes(`${dir}/${f.file}`, dl.signal, priority)).arrayBuffer(), dual: false };
+    }));
     const decoded = await decodeGrayPngsOffMain(bytes, meta.width, meta.height);
     const frames: RvFrame[] = decoded.map((f) => ({
       leadMinutes: f.leadMinutes,
       validAt: new Date(f.validAtMs),
       values: f.values,
+      ...(f.values2 ? { values2: f.values2 } : {}),
       width: f.width,
       height: f.height,
     }));
@@ -373,11 +386,17 @@ async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise
  * Worker-Problemen derselbe Code auf dem Hauptthread (Muster `decodeRvTarOffMain`).
  */
 async function decodeGrayPngsOffMain(
-  pngs: { leadMinutes: number; validAtMs: number; buf: ArrayBuffer }[], width: number, height: number,
+  pngs: { leadMinutes: number; validAtMs: number; buf: ArrayBuffer; dual?: boolean }[], width: number, height: number,
 ): Promise<DecodedRvFrame[]> {
   const onMain = async (): Promise<DecodedRvFrame[]> => {
     const out: DecodedRvFrame[] = [];
     for (const p of pngs) {
+      if (p.dual) {   // HD-3: Dual-PNG → beide Ebenen
+        const g = await decodeGrayAlphaPng(new Uint8Array(p.buf));
+        if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
+        out.push({ leadMinutes: p.leadMinutes, validAtMs: p.validAtMs, width: g.width, height: g.height, values: g.values, values2: g.values2 });
+        continue;
+      }
       const g = await decodeGrayPng(new Uint8Array(p.buf));
       if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
       out.push({ leadMinutes: p.leadMinutes, validAtMs: p.validAtMs, width: g.width, height: g.height, values: g.values });

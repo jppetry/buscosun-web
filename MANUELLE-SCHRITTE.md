@@ -1724,3 +1724,65 @@ V-SW-15 `04bf787`, V-SW-14 `d5ccd06`), nicht gepusht. Daten- und Archiv-Repo unb
    NICHT mehr: **Kopie von `scripts/lib/fixtures/sea/static/spots.json` nach `buscosun-data/sea/v1/static/spots.json`**
    (`areas.json` unverändert), danach Push des Daten-Repos — wirksam ab dem nächsten Seitenaufruf, die Wind-Auffrischung rechnet ab
    dem nächsten `sea.yml`-Lauf an den neuen Lagen. Offen bleiben (a) DLM-Normale für die 34 Spots ≤ 0,2 km an der Küste und (c).
+
+## 49. Niederschlagssummen im Regenradar (Phase NS), Diagnose, 2026-10-08
+
+Nur Diagnose, kein Code (`audit/niederschlagssummen.md` §0–§9). Zu entscheiden:
+
+1. **E-NS-1/2/3/5/6** (§6): Spiegel-Haken für gemessene Summen (RW + SF + CombiPrecip, INCA-Analyse für AT als eigener Schritt),
+   Randstück „Stand RW“, Nowcast-Summen exakt aus der RV-Tar, keine Teilsummen in der Karte, nur „bis jetzt“/„ab jetzt“.
+2. **E-NS-7** Reihenfolge: Stufe A ohne neue Daten (Karte am Ort: Gefallen aus `obs/v1` bis 24 h, Erwartet als Erwartungssumme
+   von buscosun Fusion), danach Stufe B mit den Datenprodukten und der vollen Karte.
+3. **E-NS-8** Spanne der Fenstersumme erst nach einem Fit der Abhängigkeit zwischen den Stunden am Prüfstand (Kopula, Regel vorab);
+   bis dahin nur der Erwartungswert — die Spanne „(2–5 mm)“ der Vorgabe kommt damit später.
+4. **E-NS-9** Neues Feldprodukt `point/field/v1/…/precipcum-<LLL>.png` (kumulierte Erwartung) im Punkt-Cron — Producer-Eingriff,
+   Daten-Repo; das heutige Feld trägt kein Mittel (an 43–65 % der Zellen nicht exakt rückrechenbar, §9.4).
+5. **E-NS-10** Legende „buscosun Fusion ‹n› · Modell · Cube · Lauf HH UTC“ (Etikett nach E-FR-1 behalten).
+6. **E-NS-11** Mobil gibt es keinen Reiter „Jetzt“ — Karte am Ort in „Schnellblick“.
+7. **E-NS-12** (V-NS-7): die bestehende „Summe 6 h · Band“ addiert gesetzte Schrittbänder — ersetzen durch die Erwartungssumme.
+
+### 49.1 Umsetzung Stufe A + B1 (08.10. abends; Jan: „setze es nach deinen Empfehlungen um“)
+
+E-NS-3/5/6/7/8/9/10/11/12 nach Empfehlung umgesetzt (`audit/niederschlagssummen.md` §10), uncommitted. E-NS-1/2 (Spiegel-Haken
+RW/SF/CombiPrecip, INCA-Analyse) = Stufe B2/B3, nicht gebaut.
+
+1. **Commit + Push von `main`** (Client + Producer gehören zusammen): `src/precipSums/**`, `src/nowcast/NowcastDeck.tsx`,
+   `src/nowcast/NowcastRadarMap.tsx`, `src/point/fieldFormat.ts`, `scripts/point/build-point-fields.mjs`,
+   `scripts/verify-precip-sums.mjs` + Fixture, `package.json`, `.github/workflows/ci.yml`, `budget.json`, Audit. ACHTUNG: im
+   selben Arbeitsbaum liegen uncommittete Änderungen der Radar-HD-Sitzung (`MapView.tsx`, `RainLayer.ts`, `precipComposite.ts`,
+   `precipIndexWorker.ts`, `radarHd.ts` …) — nicht mit in diesen Commit nehmen.
+2. **Mit dem Push** baut der Punkt-Cron je Feld zusätzlich `precipcum-<LLL>.png` (t1 ≈ +1,8 MB je Lauf, t2 ≈ +0,25 MB);
+   abschalten ohne Code: `POINT_FIELD_CUM=0` in der Cron-Vorlage. Danach `node … scripts/verify-precip-sums.mjs --live` (L1).
+3. **Budget:** totalJs-Grenze 1 600 → 1 617 (Phase NS +16,6 KB, alles lazy, Notiz in `budget.json`). Der Arbeitsbaum steht mit
+   der Radar-HD-Sitzung bei 1 626,6 — deren +10,7 KB begründet jene Sitzung.
+4. **Real-Device** (Mobil): Summen-Ansicht, Legende über der Leiste, Long Tasks beim Rechnen der Karte (V-NS-11).
+5. **Offen:** Stufe B2/B3 (E-NS-1/2), Spanne der Fenstersumme (E-NS-8, Kopula-Fit am Prüfstand), V-NS-8…11.
+
+## 50. Hochauflösendes Niederschlagsradar (Phase HD), HD-0 … HD-4, 2026-10-08
+
+`audit/radar-hochaufloesung.md` (§0 Kurzfassung, §1 Messung, §5 Plan, §7 Umsetzung, §8 Gates, §9 Befunde/Entscheidungen).
+Alles uncommitted im gemeinsamen Arbeitsbaum (parallel zur Phase NS), Schalter aus, ohne Schalter pixelgleich zu HEAD
+(Pixel-Diff 0 px auf allen Niederschlags-Szenarien, Wetterkarte und Regenradar).
+
+1. **Ansehen (Browser):** Wetterkarte „Niederschlag" und `/regenradar/<ort>` mit `?hd=1` (= Catmull-Rom auf dem 1-km-Gitter),
+   `?hd=nearest` (1-km-Pixel roh), `?hd=bilinear`, `?hd=bspline` (alter Filter auf dem neuen Gitter); zum Vergleich ohne
+   Schalter. Bilder: `audit/radar-hochaufloesung/bilder/` (DACH z6, Steiermark z8/z10, je mit und ohne HD) und die
+   Diagnosetafeln `audit/radar-hochaufloesung/diag-*.png`.
+2. **E-HD-2 Voreinstellung:** HD (`?hd=1`) als Normalfall einschalten? Vorschlag: ja, nach Real-Device (Mobil: Textur
+   1100 × 1200 + Maske, Upload je Frame 1,3 MB statt 0,3 MB; im Lab ohne Long Task > 200 ms, s. §8) — dann in
+   `radarHdFlagFrom` die Voreinstellung drehen (`?hd=0` bleibt der Rückfall) und die Legende („Radar 1 km") ergänzen.
+3. **E-HD-3 Dual-Frames (Daten-Repo, Jans Gate):** `RADAR_IMG_DUAL=1` in den Spiegel-Workflow (Radar-Job, Umgebung des
+   Derive-Schritts). Wirkung: je Slot zusätzlich `g<lead>.png` (RV +5,1 MB je Slot ⇒ bei 12 Slots ≈ +61 MB im Repo,
+   INCA ≈ +0,7 MB, rzc ≈ +0,05 MB) und `meta.dual`; alte Clients ignorieren beides. Erst danach zeigt `?hd=1&hdv2=1`
+   Starkregen über 20 mm/h (Log-Ebene bis 200 mm/h, Farbstufen 30/50/100/200 = **E-HD-4**, gesetzt — Farben bitte
+   ansehen, `precipRainRampLog` in `src/scalar/RainLayer.ts`). Rückweg: Variable entfernen, die `g`-Dateien laufen mit der
+   Retention aus. Prüfung danach: `RADAR_HD_RAW=<dir mit composite_rv_*.tar> npm run verify:radar-hd` (F10–F13) und
+   `scripts/radar-hd-pixelcheck.mjs` ohne `--dualDir` mit `&hdv2=1` in den Varianten.
+4. **E-HD-5 Morph (`?hdmorph=1`):** Zwischenbilder entlang der Zugbahn im Regenradar; braucht je Frame-Paar ein
+   Bewegungsfeld (Worker, vorab gerechnet). Ansehen beim Abspielen; Entscheidung: an als Voreinstellung mit HD?
+5. **Budget:** totalJs im gemeinsamen Arbeitsbaum über der Grenze der Phase NS (1 617); HD trägt gemessen gegen den
+   HEAD-Build +10,7 KB (HD-1/2) und die HD-3/4-Anteile (s. Notiz in `budget.json`, Grenze angehoben) — alles lazy, eagerJs
+   unverändert 109,3.
+6. **Real-Device:** `?hd=1` auf dem Telefon (Textur-Upload, Catmull-Rom 16 Taps je Fragment, Long Tasks beim Frame-Wechsel).
+7. **Nebenbefund (nicht HD):** Phasenwache E8 in `verify:regenradar-profile` ist rot, solange `RainLayer.ts` zu HEAD
+   abweicht (gewollte Shader-Änderung, HD-2); grün nach dem Commit. E7 dort gehört zur Phase NS (`fieldFormat.ts`).

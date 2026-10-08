@@ -15,6 +15,8 @@ import { precipToU8, type QuadCorners } from '../scalar/RainLayer';
 
 export interface RzcParsed {
   values: Uint8Array;
+  /** Phase HD-3: zweite Quantisierung derselben Raten (nur mit `secondary`). */
+  values2?: Uint8Array;
   width: number;
   height: number;
   corners: QuadCorners;
@@ -22,7 +24,10 @@ export interface RzcParsed {
   validAtMs: number | null;
 }
 
-export function parseRzcHdf5(buf: ArrayBuffer): RzcParsed {
+/** Phase HD-3: optional second quantisation of the same rates (`values2`, e.g. `precipToU8Log`) — without it byte-identical. */
+export interface ParseSecondary { secondary?: (mmph: number) => number }
+
+export function parseRzcHdf5(buf: ArrayBuffer, opts: ParseSecondary = {}): RzcParsed {
   const f = new H5File(buf, 'rzc.h5');
   const where = (f.get('where') as { attrs: Record<string, number> }).attrs;
   const width = where.xsize;
@@ -32,6 +37,11 @@ export function parseRzcHdf5(buf: ArrayBuffer): RzcParsed {
 
   const values = new Uint8Array(width * height);
   for (let k = 0; k < values.length; k++) values[k] = precipToU8(rate[k]);
+  let values2: Uint8Array | undefined;
+  if (opts.secondary) {
+    values2 = new Uint8Array(width * height);
+    for (let k = 0; k < values2.length; k++) values2[k] = opts.secondary(rate[k]);
+  }
 
   // Ecken: [NW, NE, SE, SW] = [UL, UR, LR, LL] (RainLayer-Reihenfolge).
   const corners: QuadCorners = [
@@ -54,5 +64,5 @@ export function parseRzcHdf5(buf: ArrayBuffer): RzcParsed {
     if (Number.isFinite(t)) validAtMs = t;
   } catch { /* Fallback: Aufrufer nimmt „jetzt" */ }
 
-  return { values, width, height, corners, validAtMs };
+  return { values, ...(values2 ? { values2 } : {}), width, height, corners, validAtMs };
 }

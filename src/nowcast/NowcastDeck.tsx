@@ -9,7 +9,7 @@
  * (Layer/Ansicht/Modus/Datenlage) · dunkles Radarfeld (Center) · rechter Readout.
  * Mobile: Radar oben + ziehbares Bottom-Sheet.
  */
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
@@ -29,6 +29,10 @@ import './nowcastMobile.css';
 // SH2: Teilen-Knopf (lazy — s. src/share/ShareButton.tsx).
 import ShareButton from '../share/ShareButton';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
+// Phase NS (audit/niederschlagssummen.md §9): Niederschlagssummen — Dock „Darstellung", Karte am Ort; `?sum=0` = vorher.
+import { SumControls, PointSumCard } from '../precipSums/PrecipSumsUi';
+import { usePointSums, type PastSide, type FutureSide } from '../precipSums/usePointSums';
+import { SUM_DEFAULT, sumsEnabledFrom, isSumWindow, type SumSelection } from '../precipSums/sumModel';
 
 type DeckState =
   | { kind: 'loading' }
@@ -73,6 +77,19 @@ const comma = (n: number) => n.toString().replace('.', ',');
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
 type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail';
 
+/** Phase NS: die Auswahl der Summen-Ansicht je Browser merken (Komfort; ohne Speicher gilt die Voreinstellung). */
+const SUM_SEL_KEY = 'buscosun.regenradar.sum.v1';
+function loadSumSel(): SumSelection {
+  try {
+    const j = JSON.parse(localStorage.getItem(SUM_SEL_KEY) ?? 'null') as Partial<SumSelection> | null;
+    if (j && (j.mode === 'intensity' || j.mode === 'sum') && (j.dir === 'past' || j.dir === 'future') && isSumWindow(j.windowH)) return { mode: j.mode, dir: j.dir, windowH: j.windowH };
+  } catch { /* privater Modus / gesperrter Speicher */ }
+  return SUM_DEFAULT;
+}
+
+/** Phase NS: was Readout und Schnellblick für die Karte am Ort brauchen. */
+interface PointSums { on: boolean; windowH: number; past: PastSide; future: FutureSide }
+
 export default function NowcastDeck({ location, state, onChangeLocation, reloadNonce, onReload, onBack, onOpenFeature, initialView, onViewChange }: Props) {
   const isMobile = useIsMobile();
   const [layers, setLayers] = useState<RadarLayerId[]>(() => {
@@ -86,11 +103,19 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const [mTab, setMTab] = useState<MobileTab>('glance');
   const [mSnap, setMSnap] = useState<'peek' | 'full'>('peek');
   const mapRef = useRef<maplibregl.Map | null>(null);
+  // Phase NS: Summen-Ansicht (Dock „Darstellung") und die Karte am Ort.
+  const sumsOn = useMemo(() => sumsEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const [sumSel, setSumSel] = useState<SumSelection>(loadSumSel);
+  useEffect(() => { try { localStorage.setItem(SUM_SEL_KEY, JSON.stringify(sumSel)); } catch { /* ohne Speicher */ } }, [sumSel]);
   // Tabwechsel: Schnellblick als Peek, alle inhaltsreichen Bereiche als Voll.
   const selectMTab = (t: MobileTab) => { setMTab(t); setMSnap(t === 'glance' ? 'peek' : 'full'); };
 
   const nowcast = state.kind === 'ready' ? state.nowcast : null;
   const activeLayerCount = layers.length;
+  // Erst nach dem Nowcast laden — die Karte am Ort soll den Kaltstart des Radars nicht ausbremsen.
+  const ps = usePointSums({ lat: location.lat, lon: location.lon, country: location.country }, sumSel.windowH, nowcast, sumsOn && nowcast != null);
+  const pointSums: PointSums = { on: sumsOn, windowH: sumSel.windowH, past: ps.past, future: ps.future };
+  const sumProp = sumsOn ? sumSel : undefined;
 
   const toggleLayer = (id: RadarLayerId) =>
     setLayers((ls) => (ls.includes(id) ? ls.filter((l) => l !== id) : [...ls, id]));
@@ -102,7 +127,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
         <div className="rr-stage">
           <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
             layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-            initialView={initialView} onViewChange={onViewChange} />
+            initialView={initialView} onViewChange={onViewChange} sum={sumProp} />
         </div>
       ) : (
         <div className="rr-chart">
@@ -164,7 +189,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rm-map">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-              initialView={initialView} onViewChange={onViewChange}
+              initialView={initialView} onViewChange={onViewChange} sum={sumProp}
               onMapReady={(m) => { mapRef.current = m; }} />
           </div>
           <div className="rm-topfloat">
@@ -184,7 +209,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
             layers={layers} toggleLayer={toggleLayer} location={location}
-            snowMode={snowMode} setSnowMode={setSnowMode} />
+            snowMode={snowMode} setSnowMode={setSnowMode}
+            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} />
         </div>
       ) : (
@@ -194,6 +220,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             layers={layers} toggleLayer={toggleLayer} activeLayerCount={activeLayerCount}
             view={view} setView={setView} mode={mode} setMode={setMode}
             nowcast={nowcast} onReload={onReload} snowMode={snowMode} setSnowMode={setSnowMode}
+            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel}
           />
           {center}
           <div className="rr-readout">
@@ -201,7 +228,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-readout-eyebrow">Regenradar · {flagForCountry(location.country)} {shortPlace(location.name)}</span>
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} />
           </div>
         </div>
       )}
@@ -244,12 +271,13 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, nowcast, onReload, snowMode, setSnowMode }: {
+function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
   view: 'map' | 'chart'; setView: (v: 'map' | 'chart') => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; onReload: () => void;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
+  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void;
 }) {
   const fresh = nowcast ? freshness(nowcast) : null;
   return (
@@ -273,6 +301,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
         })}
       </div>
       {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
+
+      {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="dock" />}
 
       <span className="rr-eyebrow">Ansicht</span>
       <div className="rr-seg">
@@ -306,8 +336,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Hero · Kennzahlen · Timeline · Verlauf · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail';
+function ReadoutBody({ nowcast, state, mode, pointSums }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums;
 }) {
   if (state.kind === 'loading' || !nowcast) {
     return <div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> Radar &amp; Modell werden ausgewertet …</div>;
@@ -319,6 +349,13 @@ function ReadoutBody({ nowcast, state, mode }: {
     <>
       <Hero nowcast={nowcast} />
 
+      {pointSums.on && (
+        <>
+          <div className="rr-section-label">Niederschlagssumme</div>
+          <PointSumCard past={pointSums.past} future={pointSums.future} windowH={pointSums.windowH} />
+        </>
+      )}
+
       {/* Verlauf & Ereignisse (Referenz) — dort, wo vorher das Intensitäts-Diagramm war:
           Niederschlagssumme (Balken) + Ereignis-Liste aus der Engine. */}
       <div className="rr-section-label">Verlauf &amp; Ereignisse</div>
@@ -326,7 +363,7 @@ function ReadoutBody({ nowcast, state, mode }: {
       <EventsTimeline nowcast={nowcast} />
 
       <div className="rr-section-label">Kennzahlen · 6 h</div>
-      <Metrics nowcast={nowcast} mode={mode} />
+      <Metrics nowcast={nowcast} mode={mode} honestSum={pointSums.on} />
 
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
@@ -389,7 +426,7 @@ function HeroBadges({ nowcast }: { nowcast: Nowcast }) {
   return <div className="rr-hero-badges">{badges}</div>;
 }
 
-function Metrics({ nowcast, mode }: { nowcast: Nowcast; mode: 'standard' | 'detail' }) {
+function Metrics({ nowcast, mode, honestSum }: { nowcast: Nowcast; mode: 'standard' | 'detail'; honestSum: boolean }) {
   const s = nowcast.summary;
   const trans = s.phaseTransitions[0];
   const phaseSub = trans
@@ -401,7 +438,7 @@ function Metrics({ nowcast, mode }: { nowcast: Nowcast; mode: 'standard' | 'deta
   return (
     <div className="rr-metrics">
       <Metric label="Phase" value={s.phase === 'dry' ? 'Trocken' : phaseLabelStep(s.dominantPhase)} sub={phaseSub} alert={s.dominantPhase === 'freezing'} />
-      <Metric label="Summe 6 h" value={`${comma(s.sumMm)} mm`} sub={`Band ${comma(s.sumMinMm)} – ${comma(s.sumMaxMm)}`} />
+      <Metric label="Summe 6 h" value={`${comma(s.sumMm)} mm`} sub={honestSum ? SUM6_HONEST_SUB : `Band ${comma(s.sumMinMm)} – ${comma(s.sumMaxMm)}`} />
       <Metric label="Gewitter" value={`${s.thunderRiskPct} %`} sub={s.thunderLabel} alert={s.thunderRiskPct >= 30} />
       <Metric label="Schneegrenze" value={s.snowLineM != null ? `${s.snowLineM} m` : '—'} sub={s.snowLineNote} />
       {mode === 'detail' && (
@@ -414,6 +451,12 @@ function Metrics({ nowcast, mode }: { nowcast: Nowcast; mode: 'standard' | 'deta
     </div>
   );
 }
+
+/**
+ * E-NS-12 (V-NS-7): das frühere „Band a – b" der 6-h-Summe addierte GESETZTE Schrittbänder (komonoton, ungemessen). Mit
+ * Phase NS steht dort, was die Zahl ist; die Spanne einer Summe folgt erst mit gemessener Abhängigkeit (E-NS-8).
+ */
+const SUM6_HONEST_SUB = 'Radar + Modell · Erwartung, ohne Spanne';
 
 function Metric({ label, value, sub, alert, wide }: { label: string; value: string; sub: string; alert?: boolean; wide?: boolean }) {
   return (
@@ -583,11 +626,12 @@ function MobileTabBar({ tab, onSelect }: { tab: MobileTab; onSelect: (t: MobileT
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
+  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void; pointSums: PointSums;
 }) {
   const PEEK = 34, FULL = 92; // vh
   const [dragVh, setDragVh] = useState(0);
@@ -612,10 +656,10 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       role="region" aria-label={`Bereich ${tab}`}>
       <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
       <div className="rm-sheet-body rm-tabsheet-body">
-        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} />}
+        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
-        {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} snowMode={snowMode} setSnowMode={setSnowMode} />}
+        {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} />}
         {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} />}
       </div>
     </div>
@@ -640,7 +684,7 @@ function PanelState({ state }: { state: DeckState }) {
 }
 
 // --- Panel: Schnellblick ----------------------------------------------------
-function GlancePanel({ nowcast, state, place }: { nowcast: Nowcast | null; state: DeckState; place: string }) {
+function GlancePanel({ nowcast, state, place, pointSums }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
   const h = heroState(nowcast);
   let line: ReactNode, sub: ReactNode;
@@ -665,6 +709,7 @@ function GlancePanel({ nowcast, state, place }: { nowcast: Nowcast | null; state
         <p className="rm-peek-line">{line}</p>
         <p className="rm-peek-sub">{sub}</p>
         <MobileAlertChips nowcast={nowcast} />
+        {pointSums.on && <PointSumCard past={pointSums.past} future={pointSums.future} windowH={pointSums.windowH} />}
         <p className="rm-glance-hint">Unten wechseln: <b>Zeitachse</b>, <b>Diagramm</b>, <b>Layer</b> &amp; <b>Detail</b>.</p>
       </div>
     </>
@@ -711,11 +756,12 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
 }
 
 // --- Panel: Layer -----------------------------------------------------------
-function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, snowMode, setSnowMode }: {
+function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, snowMode, setSnowMode, sumSel, setSumSel }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; place: string;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
+  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void;
 }) {
   const activeCount = DECK_LAYERS.filter((l) => layers.includes(l.id)).length;
   const snowSub = nowcast?.summary?.snowLineM != null
@@ -742,6 +788,7 @@ function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, snowMo
         })}
       </div>
       {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
+      {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="mobile" />}
       <div className="rm-seclabel">Modus</div>
       <div className="rm-seg rm-seg--modus" role="tablist" aria-label="Modus">
         <button type="button" role="tab" aria-selected={mode === 'standard'} className={mode === 'standard' ? 'is-active' : ''} onClick={() => setMode('standard')}>Standard</button>
@@ -761,7 +808,7 @@ function DetailPanel({ nowcast, state, mode, place }: {
       {nowcast ? (
         <>
           <div className="rm-seclabel">Kennzahlen · 6 h</div>
-          <MobileMetrics nowcast={nowcast} />
+          <MobileMetrics nowcast={nowcast} honestSum={sumsOnGlobal()} />
           <div className="rm-seclabel">Niederschlagssumme</div>
           <PrecipSumCard nowcast={nowcast} hideTitle />
           <div className="rm-seclabel">Ereignisse</div>
@@ -774,6 +821,9 @@ function DetailPanel({ nowcast, state, mode, place }: {
   );
 }
 
+/** `?sum=0` gilt auch im Detail-Reiter (dieselbe Regel wie das Deck). */
+function sumsOnGlobal(): boolean { return sumsEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''); }
+
 function characterSub(nowcast: Nowcast): string {
   let sh = 0, st = 0;
   for (const s of nowcast.steps) { if (s.character === 'showery') sh++; else if (s.character === 'steady') st++; }
@@ -783,12 +833,12 @@ function characterSub(nowcast: Nowcast): string {
   return nowcast.summary.character || '—';
 }
 
-function MobileMetrics({ nowcast }: { nowcast: Nowcast }) {
+function MobileMetrics({ nowcast, honestSum }: { nowcast: Nowcast; honestSum: boolean }) {
   const s = nowcast.summary;
   return (
     <div className="rm-metrics">
       <Metric label="Phase" value={s.phase === 'dry' ? 'Trocken' : phaseLabelStep(s.dominantPhase)} sub={characterSub(nowcast)} alert={s.dominantPhase === 'freezing'} />
-      <Metric label="Summe 6 h" value={`${comma(s.sumMm)} mm`} sub={`Band ${comma(s.sumMinMm)} – ${comma(s.sumMaxMm)}`} />
+      <Metric label="Summe 6 h" value={`${comma(s.sumMm)} mm`} sub={honestSum ? SUM6_HONEST_SUB : `Band ${comma(s.sumMinMm)} – ${comma(s.sumMaxMm)}`} />
       <Metric label="Gewitter" value={`${s.thunderRiskPct} %`} sub={s.thunderLabel} alert={s.thunderRiskPct >= 30} />
       <Metric label="Starkregen" value={s.heavyRain ? 'Ja' : 'Nein'} sub={`Spitze ${comma(s.peakMmH)} mm/h`} alert={s.heavyRain} />
       <Metric label="Schneegrenze" value={s.snowLineM != null ? `${s.snowLineM} m` : '—'} sub={s.snowLineNote} />

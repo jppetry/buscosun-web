@@ -7,6 +7,8 @@
  *              ist der Grund, warum der Bild-Weg sich anfühlt wie der Tar-Weg: 33
  *              MPixel je Lauf gehören nicht auf den Hauptthread, sonst steht die
  *              Karte still, während sie ankommen (§14.7).
+ *              Phase HD-3: ein Eintrag mit `dual: true` ist das Dual-PNG des Spiegels
+ *              (Grau + Alpha) — Kanal 1 = v1-Byte, Kanal 2 = Log-Ebene (`values2Buf`).
  *
  * Gibt in beiden Fällen die fertigen Werte-Grids zurück (transferiert).
  * Nur DOM-freie Importe → läuft sauber im Worker.
@@ -14,13 +16,13 @@
 /// <reference lib="webworker" />
 
 import { decodeRvTar } from './radolanDecode';
-import { decodeGrayPng } from './grayPng';
+import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
 
 interface Req {
   id: number;
   tarBuf?: ArrayBuffer;
   /** RD3: je Frame die PNG-Bytes + der Lead, für den sie stehen. */
-  pngs?: { leadMinutes: number; validAtMs: number; buf: ArrayBuffer }[];
+  pngs?: { leadMinutes: number; validAtMs: number; buf: ArrayBuffer; dual?: boolean }[];
 }
 
 const post = (m: unknown, t?: Transferable[]) =>
@@ -30,15 +32,20 @@ self.onmessage = async (e: MessageEvent<Req>) => {
   const { id, tarBuf, pngs } = e.data;
   try {
     if (pngs) {
-      const out = [];
+      const out: { leadMinutes: number; validAtMs: number; width: number; height: number; valuesBuf: ArrayBuffer; values2Buf?: ArrayBuffer }[] = [];
       for (const p of pngs) {
+        if (p.dual) {
+          const g = await decodeGrayAlphaPng(new Uint8Array(p.buf));
+          out.push({ leadMinutes: p.leadMinutes, validAtMs: p.validAtMs, width: g.width, height: g.height, valuesBuf: g.values.buffer, values2Buf: g.values2.buffer });
+          continue;
+        }
         const g = await decodeGrayPng(new Uint8Array(p.buf));
         out.push({
           leadMinutes: p.leadMinutes, validAtMs: p.validAtMs,
           width: g.width, height: g.height, valuesBuf: g.values.buffer,
         });
       }
-      post({ id, ok: true, runAtMs: 0, frames: out }, out.map((f) => f.valuesBuf));
+      post({ id, ok: true, runAtMs: 0, frames: out }, out.flatMap((f) => (f.values2Buf ? [f.valuesBuf, f.values2Buf] : [f.valuesBuf])));
       return;
     }
     const { runAtMs, frames } = decodeRvTar(new Uint8Array(tarBuf!));

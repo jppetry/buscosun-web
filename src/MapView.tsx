@@ -13,7 +13,7 @@ import { GLOBE_PARTICLE_RAMP as PARTICLE_RAMP } from './wind/particlePreset';
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
-import { RainLayer, precipRainRamp } from './scalar/RainLayer';
+import { RainLayer, precipRainRamp, precipRainRampLog } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { uvBoundsToCorners } from './scalar/quadWarpMesh';
 import { loadFusedForecast, type ModelChoice } from './fusion/loadFusedForecast';
@@ -128,7 +128,12 @@ import type { QuadCorners } from './scalar/RainLayer';
 import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 // GeoSphere INCA-Nowcast als Grid — AT-„jetzt..+3h"; danach ICON-D2.
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
-import { PrecipCompositor, type CompositeFrame, type RvPastFrame } from './scalar/precipComposite';
+import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
+// Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
+import { radarHdFlagFrom, radarMorphFlagFrom, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
+import type { RainFrameData, RainMorph } from './scalar/RainLayer';
+import { incaWarpMesh, INCA_WARP_N } from './sources/geosphereIncaGeo';
+import { rzcWarpMesh, RZC_WARP_N } from './sources/meteoSwissGeo';
 // Phase RR: Niederschlags-Profil des Regenradars (reine Tabelle + Zeit-/Komposit-Regeln, headless geprüft).
 import { RADAR_PROFILE, radarProfileComposite, profileHourOf, morphStep, lerpValues, type MapProfile } from './map/mapProfile';
 import { precipCompositeReady, precipRadarHorizonHours, type PrecipAvailability } from './nowcast/precipSource';
@@ -921,7 +926,19 @@ export default function MapView({
   // Fusion-Ladefehler (Phase A) → nicht-blockierender Indikator am Switch. Während
   // des normalen Ladens (noch kein Fehler, noch keine Daten) rendert still nativ.
   const [fusionError, setFusionError] = useState(false);
-  const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer; thunder?: ScalarLayer; lightningfc?: ScalarLayer; snow?: ScalarLayer; rotation?: ScalarLayer }>({});
+  const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer; thunder?: ScalarLayer; lightningfc?: ScalarLayer; snow?: ScalarLayer; rotation?: ScalarLayer; hdDe?: RainLayer; hdAt?: RainLayer; hdCh?: RainLayer }>({});
+  // Phase HD-1: switch read once per mount (URL/localStorage), ownership masks per native grid (worker), frame cache of the
+  // profile per validity time and the morph buffers — all unused with the switch off.
+  const hdRef = useRef(radarHdFlagFrom());
+  /** HD-4: in-between pictures along the motion field (profile morph) — only with HD on. */
+  const hdMorphRef = useRef(radarMorphFlagFrom());
+  const [hdFlowTick, setHdFlowTick] = useState(0);
+  const hdMaskRef = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
+  const hdFramesRef = useRef<Map<number, CompositePick>>(new Map());
+  const hdMorphBufRef = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
+  const hdMorphBuf2Ref = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
+  /** HD-3: which ramp each HD layer currently carries (`linear` = `precipRainRamp`, `log` = `precipRainRampLog`). */
+  const hdEncodingRef = useRef<Record<string, 'linear' | 'log'>>({});
   // Flow-Nowcast: geschätztes Bewegungsfeld + Basis-Frame (gröber) je RADOLAN-Lauf.
   const flowRef = useRef<{ key: string; base: Float32Array; flow: Flow; corners: QuadCorners; intervalMin: number } | null>(null);
   const popReadyRef = useRef(false);
@@ -1547,7 +1564,16 @@ export default function MapView({
     const popLayer = new RainLayer({ id: POP_LAYER_ID, colorRamp: popRamp, opacity: 0.78 });
     // Vertrauens-Schleier (Kreuzschraffur) — über den Datenschichten.
     const confidenceLayer = new ConfidenceLayer({ id: CONFIDENCE_LAYER_ID, opacity: 0.8 });
-    layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer };
+    // Phase HD-1: three RainLayers on the native 1-km grids (DE1200 / INCA / rzc), only with the switch — without it the
+    // layer list is the one before HD.
+    const hd = hdRef.current;
+    const hdLayers = hd.on ? [
+      new RainLayer({ id: RADAR_HD_LAYER_IDS.DE, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter }),
+      new RainLayer({ id: RADAR_HD_LAYER_IDS.AT, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter }),
+      new RainLayer({ id: RADAR_HD_LAYER_IDS.CH, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter }),
+    ] : [];
+    layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer,
+      ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2] } : {}) };
     // Phase DB: entsteht die Karte, während das Dashboard schon wieder vorn liegt, startet der Wind-Loop angehalten.
     if (suspendedRef.current) wind.setSuspended(true);
 
@@ -1573,6 +1599,8 @@ export default function MapView({
       if (!map.getLayer(rotationLayer.id)) map.addLayer(rotationLayer, beforeId);
       if (!map.getLayer(precipLayer.id)) map.addLayer(precipLayer, beforeId);
       if (!map.getLayer(rainLayer.id)) map.addLayer(rainLayer, beforeId);
+      // Phase HD-1: directly above the composite, under the Länder-Maske like it.
+      for (const l of hdLayers) if (!map.getLayer(l.id)) map.addLayer(l, beforeId);
       if (!map.getLayer(kiLayer.id)) map.addLayer(kiLayer, beforeId);
       if (!map.getLayer(popLayer.id)) map.addLayer(popLayer, beforeId);
       if (!map.getLayer(cloudLayer.id)) map.addLayer(cloudLayer, beforeId);
@@ -1696,7 +1724,11 @@ export default function MapView({
         // (precipSource.ts, DACH-OR über die DE/AT/CH-Radarhorizonte) — jenseits des
         // Horizonts aus (keine Modellverlängerung). Der RainLayer ist die EINZIGE
         // Precip-Quelle (auch im Fusion-Modus); die Fusion-Modellhälfte ist raus.
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar && !hdRef.current.on,
+        // Phase HD-1: the native layers take the composite's place (same readiness rule); they only exist with the switch.
+        ...Object.fromEntries(Object.values(RADAR_HD_LAYER_IDS).map((id) => [
+          id, hdRef.current.on && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        ])),
         // Fusion-/Modell-Niederschlag (`precip-forecast`) stillgelegt → nie sichtbar.
         'precip-forecast': false,
         [SAT_LAYER_ID]: active.has('sat'),
@@ -1763,6 +1795,11 @@ export default function MapView({
     mapRef.current = map;
     if (import.meta.env.DEV) {
       (window as unknown as { __map: MapLibreMap }).__map = map;
+      // Phase HD gate G2 (`scripts/radar-hd-pixelcheck.mjs`): the radar frames the map draws right now, so the oracle
+      // renders the same bytes. DEV only, read-only.
+      (window as unknown as { __precipSources: () => unknown }).__precipSources = () => ({
+        rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current, hd: hdRef.current, masks: hdMaskRef.current,
+      });
     }
 
     const abort = new AbortController();
@@ -2074,6 +2111,15 @@ export default function MapView({
     // der Wettlauf um die Leitung im Startfenster entfällt (LE0 §3 D).
     const prioFor = (country: 'DE' | 'AT' | 'CH') =>
       (countryRef.current === country ? undefined : { priority: 'low' as const });
+    // Phase HD-1: ownership mask of the loaded grid (worker, memoised per grid); a tick redraws once it is there. Off = nothing.
+    const hdMask = (c: 'DE' | 'AT' | 'CH', kind: 'radolan' | 'inca' | 'rzc', corners: QuadCorners, w: number, h: number) => {
+      if (!hdRef.current.on) return;
+      void countryMaskOffMain(kind, corners, w, h).then((m) => {
+        if (abort.signal.aborted) return;
+        hdMaskRef.current[c] = m;
+        setNowcastTick((t) => t + 1);
+      }).catch(() => { /* without a mask the layer draws the whole grid — the composite stays the named fallback */ });
+    };
     const loadRzc = async () => {
       try {
         meteoRadarRef.current = await fetchRzcLatest(abort.signal, prioFor('CH'));
@@ -2081,6 +2127,7 @@ export default function MapView({
         // Tick, damit build() im Render-Pfad gleich den warmen Cache trifft statt
         // den Newton-Solver synchron nachzuholen.
         if (compositorRef.current) await compositorRef.current.primeCh(meteoRadarRef.current);
+        hdMask('CH', 'rzc', meteoRadarRef.current.corners, meteoRadarRef.current.width, meteoRadarRef.current.height);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
@@ -2093,6 +2140,7 @@ export default function MapView({
       try {
         nowcastRef.current = await fetchRvNowcast(abort.signal, prioFor('DE'));
         if (compositorRef.current) await compositorRef.current.primeDe(nowcastRef.current);
+        if (nowcastRef.current.frames[0]) hdMask('DE', 'radolan', nowcastRef.current.corners, nowcastRef.current.frames[0].width, nowcastRef.current.frames[0].height);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
@@ -2105,6 +2153,7 @@ export default function MapView({
       try {
         incaGridRef.current = await fetchIncaGrid(abort.signal, prioFor('AT'));
         if (compositorRef.current) await compositorRef.current.primeAt(incaGridRef.current);
+        if (incaGridRef.current.frames[0]) hdMask('AT', 'inca', incaGridRef.current.corners, incaGridRef.current.frames[0].width, incaGridRef.current.frames[0].height);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
@@ -2136,7 +2185,7 @@ export default function MapView({
       if (nowcastRef.current) parts.push('DE RADOLAN');
       if (incaGridRef.current) parts.push('AT INCA');
       if (meteoRadarRef.current) parts.push('CH rzc');
-      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}` : '';
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}` : '';
       // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
       // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
       // AT-INCA-Grid tut es nicht (`geosphereIncaGrid.ts` parst nur `leadtime`)
@@ -3454,7 +3503,45 @@ export default function MapView({
   const profileFramesRef = useRef<Map<number, CompositeFrame>>(new Map());
   const profileMorphBufRef = useRef<Uint8Array | null>(null);
   const profileMeshRef = useRef<Float32Array | null>(null);
-  useEffect(() => { profileFramesRef.current.clear(); }, [nowcastTick, radarPast]);
+  useEffect(() => { profileFramesRef.current.clear(); hdFramesRef.current.clear(); }, [nowcastTick, radarPast]);
+  // Phase HD-4: with the morph switch, the motion fields of the consecutive frame pairs are computed AHEAD of the
+  // playback (one worker job at a time, forward from „now" first, then the look-back) — at 2,5 frames/s a field
+  // requested only when its pair is shown would always arrive too late. Each pair is memoised (`flowOffMain`).
+  useEffect(() => {
+    if (!hdRef.current.on || !hdMorphRef.current || !profile) return;
+    let alive = true;
+    const pairs: [Uint8Array, Uint8Array, number, number, 'DE' | 'AT' | 'CH'][] = [];
+    const rv = nowcastRef.current;
+    if (rv) {
+      const fr = [...rv.frames].sort((a, b) => a.leadMinutes - b.leadMinutes);
+      for (let i = 0; i + 1 < fr.length; i++) pairs.push([fr[i].values, fr[i + 1].values, fr[i].width, fr[i].height, 'DE']);
+      const past = [...(radarPast?.rv ?? [])].filter((p) => p.width === fr[0]?.width && p.height === fr[0]?.height).sort((a, b) => b.validAt.getTime() - a.validAt.getTime());
+      let next: { values: Uint8Array; width: number; height: number } | undefined = fr[0];
+      for (const p of past) { if (next) pairs.push([p.values, next.values, p.width, p.height, 'DE']); next = p; }
+    }
+    const inca = incaGridRef.current;
+    if (inca) {
+      const fr = [...inca.frames].sort((a, b) => a.leadHours - b.leadHours);
+      for (let i = 0; i + 1 < fr.length; i++) pairs.push([fr[i].values, fr[i + 1].values, fr[i].width, fr[i].height, 'AT']);
+    }
+    const rzc = meteoRadarRef.current;
+    if (rzc) {
+      const past = [...(radarPast?.rzc ?? [])].filter((p) => p.width === rzc.width && p.height === rzc.height).sort((a, b) => b.validAt.getTime() - a.validAt.getTime());
+      let next: { values: Uint8Array; width: number; height: number } = rzc;
+      for (const p of past) { if (p !== next) pairs.push([p.values, next.values, p.width, p.height, 'CH']); next = p; }
+    }
+    void (async () => {
+      let any = false;
+      for (const [a, b, w, h, c] of pairs) {
+        if (!alive) return;
+        if (flowCached(a, b)) continue;
+        await flowOffMain(a, b, w, h, RADAR_MORPH_FACTOR[c]).then(() => { any = true; }).catch(() => {});
+      }
+      if (alive && any) setHdFlowTick((t) => t + 1);
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowcastTick, radarPast, profile]);
   const profileMorphKey = profile && timeBracket
     ? `${timeBracket.aMs}|${timeBracket.bMs}|${morphStep(timeBracket.frac)}`
     : '';
@@ -3466,6 +3553,41 @@ export default function MapView({
     // der RainLayer ist IMMER die Quelle (auch im Fusion-Modus) — die Modell-/
     // Fusionshälfte ist draußen, also KEIN Zurücktreten vor `precip-forecast` mehr.
     if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
+    // Phase HD-1 (`audit/radar-hochaufloesung.md` §5): with the switch, the three native layers get the SAME frames the
+    // composite picks (`pickCompositeFrames`), each on its own grid with its ownership mask; a missing source hides its
+    // layer. The composite below keeps running unchanged (it is the named fallback and feeds nothing else here).
+    const hd = hdRef.current;
+    type HdMorphs = { DE?: RainMorph | null; AT?: RainMorph | null; CH?: RainMorph | null };
+    const syncHd = (pick: CompositePick | null, morphs: HdMorphs = {}) => {
+      if (!hd.on) return;
+      const L = layerRefs.current;
+      const masks = hdMaskRef.current;
+      // HD-3: a frame with a log plane (`values2`, dual PNG of the mirror) is drawn from that plane with the log ramp;
+      // the ramp is swapped only when the encoding of the layer's frame changes (16 × 16 upload).
+      // HD-4: `morph` = frame B + flow + fraction for the in-between picture; null switches the morph off.
+      const show = (layer: RainLayer | undefined, frame: RainFrameData | null, log: boolean, morph: RainMorph | null | undefined) => {
+        if (!layer) return;
+        if (!frame) { if (layer.opacity !== 0) { layer.opacity = 0; mapRef.current?.triggerRepaint(); } return; }
+        if (frame.mask && frame.mask.length !== frame.width * frame.height) frame.mask = null;
+        const enc = log ? 'log' : 'linear';
+        if (hdEncodingRef.current[layer.id] !== enc) { hdEncodingRef.current[layer.id] = enc; layer.setColorRamp(log ? precipRainRampLog : precipRainRamp); }
+        layer.opacity = 0.85;
+        layer.setFrame(frame);
+        layer.setMorph(morph ?? null);
+      };
+      const plane = (f: { values: Uint8Array; values2?: Uint8Array } | null | undefined) => (f?.values2 ?? f?.values ?? null);
+      const rvSrc = nowcastRef.current, incaSrc = incaGridRef.current;
+      const f0 = rvSrc?.frames[0];
+      show(L.hdDe, pick?.rv && rvSrc && f0
+        ? { values: plane(pick.rv)!, width: f0.width, height: f0.height, corners: rvSrc.corners, warpLnglat: de1200WarpMesh(), warpN: DE1200_WARP_N, mask: masks.DE ?? null }
+        : null, !!pick?.rv?.values2, morphs.DE);
+      show(L.hdAt, pick?.inca && incaSrc
+        ? { values: plane(pick.inca)!, width: pick.inca.width, height: pick.inca.height, corners: incaSrc.corners, warpLnglat: incaWarpMesh(incaSrc.corners), warpN: INCA_WARP_N, mask: masks.AT ?? null }
+        : null, !!pick?.inca?.values2, morphs.AT);
+      show(L.hdCh, pick?.rzc
+        ? { values: plane(pick.rzc)!, width: pick.rzc.width, height: pick.rzc.height, corners: pick.rzc.corners, warpLnglat: rzcWarpMesh(pick.rzc.corners), warpN: RZC_WARP_N, mask: masks.CH ?? null }
+        : null, !!pick?.rzc?.values2, morphs.CH);
+    };
     // Phase RR (Profil): Komposit zur ABSOLUTEN Gültigkeitszeit — RV nach Gültigkeitszeit inkl. Rückblick (`rvPast`),
     // INCA nach Vorlauf wie oben, im Rückblick nur Messungen (`radarProfileComposite`). Zwischen zwei Radarzeiten
     // mischt der Morph die beiden Frames in 5-%-Schritten. Ohne Profil läuft der Bestand darunter unverändert.
@@ -3502,6 +3624,83 @@ export default function MapView({
         values: shown.values, width: shown.width, height: shown.height, corners: shown.corners,
         warpLnglat: mesh, warpN: shown.warpN, warpRows: shown.warpRows,
       });
+      // Phase HD-1: the same validity times on the native grids; the morph mixes per source (both frames present),
+      // a source present on one side only is shown as it is (no fade against nothing).
+      if (hd.on) {
+        const hdCache = hdFramesRef.current;
+        const pickAt = (ms: number): CompositePick => {
+          const hit = hdCache.get(ms);
+          if (hit) return hit;
+          const now = Date.now();
+          const input = radarProfileComposite(ms, now, {
+            rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
+            rvPast: radarPast?.rv ?? null, rzcPast: radarPast?.rzc ?? null,
+          });
+          const p = pickCompositeFrames(input.h, input.sources, now);
+          hdCache.set(ms, p);
+          while (hdCache.size > 6) { const oldest = hdCache.keys().next().value; if (oldest === undefined) break; hdCache.delete(oldest); }
+          return p;
+        };
+        if (tb && tb.bMs !== tb.aMs && q > 0 && q < 1) {
+          const a = pickAt(tb.aMs), b = pickAt(tb.bMs);
+          const bufs = hdMorphBufRef.current, bufs2 = hdMorphBuf2Ref.current;
+          // HD-4: with the morph switch, a source whose flow A → B is ready is drawn as frame A + morph (GPU); a flow not
+          // yet there is started in the worker (a tick redraws on arrival), the source meanwhile mixes linearly as before.
+          if (hdMorphRef.current) {
+            const morphOf = (x: { values: Uint8Array; values2?: Uint8Array; width?: number; height?: number } | null, y: typeof x, key: 'DE' | 'AT' | 'CH', w: number, h: number): RainMorph | null => {
+              if (!x || !y || x === y || x.values.length !== y.values.length || x.values.length !== w * h) return null;
+              if (!!x.values2 !== !!y.values2) return null;   // one side with a log plane only ⇒ linear mix (planes must match)
+              const flow = flowCached(x.values, y.values);
+              if (!flow) {
+                void flowOffMain(x.values, y.values, w, h, RADAR_MORPH_FACTOR[key]).then(() => setHdFlowTick((t) => t + 1)).catch(() => {});
+                return null;
+              }
+              const pb = y.values2 && x.values2 ? y.values2 : y.values;
+              return { b: pb, flow, frac: q };
+            };
+            const rvW = nowcastRef.current?.frames[0]?.width ?? 0, rvH = nowcastRef.current?.frames[0]?.height ?? 0;
+            const morphs: HdMorphs = {
+              DE: morphOf(a.rv, b.rv, 'DE', rvW, rvH),
+              AT: morphOf(a.inca, b.inca, 'AT', a.inca?.width ?? 0, a.inca?.height ?? 0),
+              CH: morphOf(a.rzc, b.rzc, 'CH', a.rzc?.width ?? 0, a.rzc?.height ?? 0),
+            };
+            // frame A for the morphing sources, the linear mix for the others (mixedLinear below)
+            const mixedOrA = <T extends { values: Uint8Array; values2?: Uint8Array }>(x: T | null, y: T | null, key: 'DE' | 'AT' | 'CH'): T | null => (morphs[key] ? x : mixed(x, y, key));
+            const mixed = <T extends { values: Uint8Array; values2?: Uint8Array }>(x: T | null, y: T | null, key: 'DE' | 'AT' | 'CH'): T | null => {
+              if (!x || !y || x === y || x.values.length !== y.values.length) return q >= 0.5 ? (y ?? x) : (x ?? y);
+              let buf = bufs[key];
+              if (!buf || buf.length !== x.values.length) { buf = new Uint8Array(x.values.length); bufs[key] = buf; }
+              if (x.values2 && y.values2 && x.values2.length === y.values2.length) {
+                let buf2 = bufs2[key];
+                if (!buf2 || buf2.length !== x.values2.length) { buf2 = new Uint8Array(x.values2.length); bufs2[key] = buf2; }
+                return { ...x, values: lerpValues(x.values, y.values, q, buf), values2: lerpValues(x.values2, y.values2, q, buf2) };
+              }
+              const { values2: _drop, ...rest } = x as T & { values2?: Uint8Array };
+              void _drop;
+              return { ...(rest as T), values: lerpValues(x.values, y.values, q, buf) };
+            };
+            syncHd({ rv: mixedOrA(a.rv, b.rv, 'DE'), inca: mixedOrA(a.inca, b.inca, 'AT'), rzc: mixedOrA(a.rzc, b.rzc, 'CH'), d2: null }, morphs);
+            return;
+          }
+          const mixed = <T extends { values: Uint8Array; values2?: Uint8Array }>(x: T | null, y: T | null, key: 'DE' | 'AT' | 'CH'): T | null => {
+            if (!x || !y || x === y || x.values.length !== y.values.length) return q >= 0.5 ? (y ?? x) : (x ?? y);
+            let buf = bufs[key];
+            if (!buf || buf.length !== x.values.length) { buf = new Uint8Array(x.values.length); bufs[key] = buf; }
+            // HD-3: both sides with a log plane ⇒ mix that plane (geometric in mm/h); otherwise the linear plane only.
+            if (x.values2 && y.values2 && x.values2.length === y.values2.length) {
+              let buf2 = bufs2[key];
+              if (!buf2 || buf2.length !== x.values2.length) { buf2 = new Uint8Array(x.values2.length); bufs2[key] = buf2; }
+              return { ...x, values: lerpValues(x.values, y.values, q, buf), values2: lerpValues(x.values2, y.values2, q, buf2) };
+            }
+            const { values2: _drop, ...rest } = x as T & { values2?: Uint8Array };
+            void _drop;
+            return { ...(rest as T), values: lerpValues(x.values, y.values, q, buf) };
+          };
+          syncHd({ rv: mixed(a.rv, b.rv, 'DE'), inca: mixed(a.inca, b.inca, 'AT'), rzc: mixed(a.rzc, b.rzc, 'CH'), d2: null });
+        } else {
+          syncHd(pickAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : timeMs));
+        }
+      }
       return;
     }
     // DACH-Komposit: pro Zelle das richtige Landesradar (DE RADOLAN / AT INCA /
@@ -3517,9 +3716,11 @@ export default function MapView({
       values: frame.values, width: frame.width, height: frame.height, corners: frame.corners,
       warpLnglat: frame.warpLnglat, warpN: frame.warpN, warpRows: frame.warpRows,
     });
+    if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
     // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.
+    // Phase HD-4: `hdFlowTick` tickt nur, wenn ein Bewegungsfeld fertig ist (nur mit `?hdmorph=1`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast]);
+  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast, hdFlowTick]);
 
   // Wolken-Layer (ICON-D2 CLCT): bei jeder Slider-Bewegung den Frame mit der
   // nächstgelegenen Gültigkeitszeit setzen. Deckt den ganzen ICON-D2-Horizont ab.
@@ -4035,7 +4236,11 @@ export default function MapView({
         // (precipSource.ts, DACH-OR über die DE/AT/CH-Radarhorizonte) — jenseits des
         // Horizonts aus (keine Modellverlängerung). Der RainLayer ist die EINZIGE
         // Precip-Quelle (auch im Fusion-Modus); die Fusion-Modellhälfte ist raus.
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar && !hdRef.current.on,
+        // Phase HD-1: the native layers take the composite's place (same readiness rule); they only exist with the switch.
+        ...Object.fromEntries(Object.values(RADAR_HD_LAYER_IDS).map((id) => [
+          id, hdRef.current.on && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        ])),
         // Fusion-/Modell-Niederschlag (`precip-forecast`) stillgelegt → nie sichtbar.
         'precip-forecast': false,
         [SAT_LAYER_ID]: active.has('sat'),

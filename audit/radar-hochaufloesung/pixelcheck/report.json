@@ -1,0 +1,400 @@
+{
+ "at": "2026-10-08T17:22:15.846Z",
+ "base": "http://127.0.0.1:5231",
+ "zoom": 10,
+ "tol": 8,
+ "dualDir": null,
+ "runs": [
+  {
+   "window": {
+    "c": "DE",
+    "lon": 14.83,
+    "lat": 51,
+    "s": 1907
+   },
+   "variant": "hd-nearest",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "nearest"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 14.83,
+    "lat": 51,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 328009,
+    "agreePct": 99.934,
+    "wetCounted": 326655,
+    "wetAgreePct": 99.935,
+    "meanDiff": 0.26
+   }
+  },
+  {
+   "window": {
+    "c": "DE",
+    "lon": 14.83,
+    "lat": 51,
+    "s": 1907
+   },
+   "variant": "hd-catmull",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 14.83,
+    "lat": 51,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 328009,
+    "agreePct": 99.996,
+    "wetCounted": 327113,
+    "wetAgreePct": 99.997,
+    "meanDiff": 0.27
+   }
+  },
+  {
+   "window": {
+    "c": "DE",
+    "lon": 14.83,
+    "lat": 51,
+    "s": 1907
+   },
+   "variant": "head",
+   "masks": false,
+   "hd": {
+    "on": false,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-layer"
+   ],
+   "cam": {
+    "lon": 14.83,
+    "lat": 51,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 56925,
+    "agreePct": 0,
+    "wetCounted": 56925,
+    "wetAgreePct": 0,
+    "meanDiff": 94.14
+   },
+   "nativeOracleAsControl": {
+    "counted": 56925,
+    "agreePct": 0,
+    "wetCounted": 56925,
+    "wetAgreePct": 0,
+    "meanDiff": 92.72
+   }
+  },
+  {
+   "window": {
+    "c": "AT",
+    "lon": 14.83,
+    "lat": 47.55,
+    "s": 6375
+   },
+   "variant": "hd-nearest",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "nearest"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 14.83,
+    "lat": 47.55,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 21868,
+    "agreePct": 0,
+    "wetCounted": 21868,
+    "wetAgreePct": 0,
+    "meanDiff": 34.63
+   }
+  },
+  {
+   "window": {
+    "c": "AT",
+    "lon": 14.83,
+    "lat": 47.55,
+    "s": 6375
+   },
+   "variant": "hd-catmull",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 14.83,
+    "lat": 47.55,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 657280,
+    "agreePct": 99.992,
+    "wetCounted": 650956,
+    "wetAgreePct": 99.993,
+    "meanDiff": 0.32
+   }
+  },
+  {
+   "window": {
+    "c": "AT",
+    "lon": 14.83,
+    "lat": 47.55,
+    "s": 6375
+   },
+   "variant": "head",
+   "masks": false,
+   "hd": {
+    "on": false,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-layer"
+   ],
+   "cam": {
+    "lon": 14.83,
+    "lat": 47.55,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 657280,
+    "agreePct": 99.987,
+    "wetCounted": 653749,
+    "wetAgreePct": 99.987,
+    "meanDiff": 0.31
+   },
+   "nativeOracleAsControl": {
+    "counted": 657280,
+    "agreePct": 59.803,
+    "wetCounted": 650309,
+    "wetAgreePct": 59.98,
+    "meanDiff": 9.12
+   }
+  },
+  {
+   "window": {
+    "c": "CH",
+    "lon": 9.09,
+    "lat": 46.2,
+    "s": 3274
+   },
+   "variant": "hd-nearest",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "nearest"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 9.09,
+    "lat": 46.2,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 429354,
+    "agreePct": 99.92,
+    "wetCounted": 427639,
+    "wetAgreePct": 99.92,
+    "meanDiff": 0.32
+   }
+  },
+  {
+   "window": {
+    "c": "CH",
+    "lon": 9.09,
+    "lat": 46.2,
+    "s": 3274
+   },
+   "variant": "hd-catmull",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 9.09,
+    "lat": 46.2,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 429354,
+    "agreePct": 99.996,
+    "wetCounted": 427709,
+    "wetAgreePct": 99.996,
+    "meanDiff": 0.32
+   }
+  },
+  {
+   "window": {
+    "c": "CH",
+    "lon": 9.09,
+    "lat": 46.2,
+    "s": 3274
+   },
+   "variant": "head",
+   "masks": false,
+   "hd": {
+    "on": false,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": false,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-layer"
+   ],
+   "cam": {
+    "lon": 9.09,
+    "lat": 46.2,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 429354,
+    "agreePct": 99.993,
+    "wetCounted": 428827,
+    "wetAgreePct": 99.993,
+    "meanDiff": 0.34
+   },
+   "nativeOracleAsControl": {
+    "counted": 429354,
+    "agreePct": 40.331,
+    "wetCounted": 427639,
+    "wetAgreePct": 40.369,
+    "meanDiff": 13.75
+   }
+  }
+ ],
+ "slot": {
+  "rvRunAtMs": 1791479700000,
+  "rzcValidAtMs": 1791480000000,
+  "rvHasLogPlane": false
+ },
+ "windows": [
+  {
+   "c": "DE",
+   "lon": 14.83,
+   "lat": 51,
+   "s": 1907
+  },
+  {
+   "c": "AT",
+   "lon": 14.83,
+   "lat": 47.55,
+   "s": 6375
+  },
+  {
+   "c": "CH",
+   "lon": 9.09,
+   "lat": 46.2,
+   "s": 3274
+  }
+ ]
+}

@@ -183,7 +183,10 @@ export function isHdf5(bytes: Uint8Array): boolean {
  * Das HDF5-Tar eines RV-Laufs → dieselbe Ausgabe wie `decodeRvTar` für das Altformat: fertige Werte-Grids
  * (`precipToU8`-Bytes), nach Vorlauf aufsteigend.
  */
-export async function decodeRvHdf5Tar(tarBytes: Uint8Array, opts: Omit<RvHdf5Options, 'name'> = {}): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
+export async function decodeRvHdf5Tar(
+  tarBytes: Uint8Array, opts: Omit<RvHdf5Options, 'name'> & { secondary?: (mmph: number) => number } = {},
+): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
+  const { secondary, ...h5opts } = opts;   // Phase HD-3: zweite Quantisierung (`values2`), ohne sie byte-gleich
   const entries = untar(tarBytes);
   if (!entries.length) throw new Error('RV-HDF5: leeres tar');
   const frames: DecodedRvFrame[] = [];
@@ -191,7 +194,7 @@ export async function decodeRvHdf5Tar(tarBytes: Uint8Array, opts: Omit<RvHdf5Opt
   for (const e of entries) {
     if (!isHdf5(e.data)) throw new Error(`RV-HDF5: ${e.name} ist keine HDF5-Datei`);
     // jsfive braucht einen eigenen ArrayBuffer — der Tar-Eintrag ist eine Teilsicht.
-    const grid = await decodeRvHdf5(e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength) as ArrayBuffer, { ...opts, name: e.name });
+    const grid = await decodeRvHdf5(e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength) as ArrayBuffer, { ...h5opts, name: e.name });
     const named = /_(\d{3})-hd5$/.exec(e.name);
     if (named && Number(named[1]) !== grid.leadMinutes) {
       throw new Error(`RV-HDF5: ${e.name} trägt Vorlauf ${grid.leadMinutes} min`);
@@ -199,7 +202,12 @@ export async function decodeRvHdf5Tar(tarBytes: Uint8Array, opts: Omit<RvHdf5Opt
     if (grid.leadMinutes === 0 || !Number.isFinite(runAtMs)) runAtMs = grid.validAt.getTime();
     const values = new Uint8Array(grid.rainRate.length);
     for (let k = 0; k < values.length; k++) values[k] = precipToU8(grid.rainRate[k]);
-    frames.push({ leadMinutes: grid.leadMinutes, validAtMs: grid.validAt.getTime(), values, width: grid.cols, height: grid.rows });
+    let values2: Uint8Array | undefined;
+    if (secondary) {
+      values2 = new Uint8Array(grid.rainRate.length);
+      for (let k = 0; k < values2.length; k++) values2[k] = secondary(grid.rainRate[k]);
+    }
+    frames.push({ leadMinutes: grid.leadMinutes, validAtMs: grid.validAt.getTime(), values, width: grid.cols, height: grid.rows, ...(values2 ? { values2 } : {}) });
   }
   frames.sort((a, b) => a.leadMinutes - b.leadMinutes);
   return { runAtMs, frames };

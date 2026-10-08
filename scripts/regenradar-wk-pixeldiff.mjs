@@ -30,6 +30,9 @@ const SCENARIOS = [
   { id: 'warnungen-desktop', path: '/warnungen/muenchen', mobile: false, block: true, waitS: 14 },
   { id: 'wk-niederschlag-live-desktop', path: '/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze', mobile: false, block: false, waitS: 40 },
   { id: 'wk-niederschlag-live-mobile', path: '/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze', mobile: true, block: false, waitS: 40 },
+  // Phase HD gate G3: the Regenradar (profile `radar`) without the switch must render as at HEAD too.
+  { id: 'rr-live-desktop', path: '/regenradar', mobile: false, block: false, waitS: 40 },
+  { id: 'rr-live-mobile', path: '/regenradar', mobile: true, block: false, waitS: 40 },
 ].filter((s) => !args.only || args.only.split(',').includes(s.id));
 
 mkdirSync(OUT, { recursive: true });

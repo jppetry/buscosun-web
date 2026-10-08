@@ -24,8 +24,8 @@
  * (Derive ≈ 2 s, gemessen §14.1) — das RV-Bild-Gate liegt deshalb über dem Tar-Gate.
  */
 
-import { PRECIP_VMAX, type QuadCorners } from '../scalar/RainLayer';
-import { decodeGrayPng, GrayPngUnsupported } from './grayPng';
+import { PRECIP_VMAX, PRECIP_LOG_MIN, PRECIP_LOG_MAX, PRECIP_LOG_STEPS, type QuadCorners } from '../scalar/RainLayer';
+import { decodeGrayPng, decodeGrayAlphaPng, GrayPngUnsupported } from './grayPng';
 import {
   RADAR_CDN_BASE, RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
   radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
@@ -110,6 +110,33 @@ export function konradImgUrl(stamp: string): string {
   return `${RADAR_IMG_BASE}/konrad3d/${stamp}/cells.json`;
 }
 
+// --- Phase HD-3: Dual-Frames (audit/radar-hochaufloesung.md §5, E-HD-3) ----------------------------------------
+/**
+ * Je Frame ein zweites PNG `g<lead>.png` im SELBEN Slot-Verzeichnis (Farbtyp 4 = Grau + Alpha, 2 Byte je Pixel):
+ * Kanal 1 = der `precipToU8`-Byte des `f<lead>.png` (byte-gleich), Kanal 2 = logarithmisch 0,06 … 200 mm/h
+ * (`precipToU8Log`, 254 Stufen, 3,2 % je Stufe). Die `f`-Dateien bleiben; alte Clients ignorieren `meta.dual`
+ * (dieselbe Regel wie `hourMeans`). Der Producer schreibt sie nur mit `RADAR_IMG_DUAL=1` (Jans Gate), der Client
+ * liest sie nur mit `?hdv2=1` (`radarDualFlagFrom`) und fällt je Frame auf `f` zurück, wenn das `g` fehlt.
+ */
+export const RADAR_IMG_DUAL_LOG = Object.freeze({ min: PRECIP_LOG_MIN, max: PRECIP_LOG_MAX, steps: PRECIP_LOG_STEPS });
+export function radarImgDualFile(leadMin: number): string {
+  return `g${String(leadMin).padStart(3, '0')}.png`;
+}
+export interface RadarImgDualFrame { lead: number; file: string; bytes: number }
+export interface RadarImgDual { log: { min: number; max: number; steps: number }; frames: RadarImgDualFrame[] }
+export function makeRadarImgDual(frames: RadarImgDualFrame[]): RadarImgDual {
+  return { log: { ...RADAR_IMG_DUAL_LOG }, frames };
+}
+/** Form des Zusatzfelds: Log-Konstanten = die des Clients, genau ein `g`-Frame je `f`-Frame, gleiche Leads. */
+function dualOk(v: unknown, leads: readonly number[]): v is RadarImgDual {
+  const d = v as RadarImgDual | null;
+  if (!d || typeof d !== 'object' || !d.log || !Array.isArray(d.frames)) return false;
+  if (d.log.min !== RADAR_IMG_DUAL_LOG.min || d.log.max !== RADAR_IMG_DUAL_LOG.max || d.log.steps !== RADAR_IMG_DUAL_LOG.steps) return false;
+  if (d.frames.length !== leads.length) return false;
+  return d.frames.every((f, i) => f && typeof f === 'object' && f.lead === leads[i] && f.file === radarImgDualFile(f.lead)
+    && Number.isFinite(f.bytes) && f.bytes > 0);
+}
+
 // --- Meta-Schema (schema 1) --------------------------------------------------------------------
 
 export interface RadarImgFrame {
@@ -134,6 +161,8 @@ export interface RvImgMeta {
   frames: RadarImgFrame[];
   /** E-AX-16: Zusatzfeld seit 02.10.2026 — Slots davor haben es nicht; alte Clients ignorieren es. */
   hourMeans?: RvImgHourMean[];
+  /** Phase HD-3: Zusatzfeld, nur mit `RADAR_IMG_DUAL=1` geschrieben; alte Clients ignorieren es. */
+  dual?: RadarImgDual;
 }
 
 export interface IncaImgMeta {
@@ -141,6 +170,7 @@ export interface IncaImgMeta {
   width: number; height: number; vMax: number;
   corners: QuadCorners;
   frames: RadarImgFrame[]; // lead in Minuten (15…180)
+  dual?: RadarImgDual;
 }
 
 export interface RzcImgMeta {
@@ -148,12 +178,14 @@ export interface RzcImgMeta {
   width: number; height: number; vMax: number;
   corners: QuadCorners;
   frames: RadarImgFrame[]; // genau eines, lead 0, file 'frame.png'
+  dual?: RadarImgDual;
 }
 
-export function makeRvImgMeta(stamp: string, runAtMs: number, frames: RadarImgFrame[], hourMeans?: RvImgHourMean[]): RvImgMeta {
+export function makeRvImgMeta(stamp: string, runAtMs: number, frames: RadarImgFrame[], hourMeans?: RvImgHourMean[], dual?: RadarImgDual): RvImgMeta {
   return {
     schema: 1, source: 'rv', stamp, runAtMs, width: RV_IMG_WIDTH, height: RV_IMG_HEIGHT, vMax: PRECIP_VMAX, frames,
     ...(hourMeans ? { hourMeans } : {}),
+    ...(dual ? { dual } : {}),
   };
 }
 
@@ -176,14 +208,14 @@ function hourMeansOk(v: unknown): v is RvImgHourMean[] {
   });
 }
 
-export function makeIncaImgMeta(stamp: string, fetchedAtMs: number, corners: QuadCorners, frames: RadarImgFrame[]): IncaImgMeta {
-  return { schema: 1, source: 'inca', stamp, fetchedAtMs, width: INCA_IMG_WIDTH, height: INCA_IMG_HEIGHT, vMax: PRECIP_VMAX, corners, frames };
+export function makeIncaImgMeta(stamp: string, fetchedAtMs: number, corners: QuadCorners, frames: RadarImgFrame[], dual?: RadarImgDual): IncaImgMeta {
+  return { schema: 1, source: 'inca', stamp, fetchedAtMs, width: INCA_IMG_WIDTH, height: INCA_IMG_HEIGHT, vMax: PRECIP_VMAX, corners, frames, ...(dual ? { dual } : {}) };
 }
 
-export function makeRzcImgMeta(stamp: string, validAtMs: number | null, corners: QuadCorners, bytes: number): RzcImgMeta {
+export function makeRzcImgMeta(stamp: string, validAtMs: number | null, corners: QuadCorners, bytes: number, dual?: RadarImgDual): RzcImgMeta {
   return {
     schema: 1, source: 'rzc', stamp, validAtMs, width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX,
-    corners, frames: [{ lead: 0, file: 'frame.png', bytes }],
+    corners, frames: [{ lead: 0, file: 'frame.png', bytes }], ...(dual ? { dual } : {}),
   };
 }
 
@@ -228,6 +260,8 @@ export function parseRvImgMeta(j: unknown): RvImgMeta | null {
   if (!framesOk(m.frames, RV_IMG_LEADS)) return null;
   // E-AX-16: das Zusatzfeld ist optional (Slots vor dem 02.10.2026 haben es nicht) — ist es da, muss es stimmen.
   if (m.hourMeans !== undefined && !hourMeansOk(m.hourMeans)) return null;
+  // HD-3: dasselbe für die Dual-Frames.
+  if (m.dual !== undefined && !dualOk(m.dual, m.frames.map((f) => f.lead))) return null;
   return m;
 }
 
@@ -237,6 +271,7 @@ export function parseIncaImgMeta(j: unknown): IncaImgMeta | null {
   if (m.width !== INCA_IMG_WIDTH || m.height !== INCA_IMG_HEIGHT || m.vMax !== PRECIP_VMAX) return null;
   if (typeof m.stamp !== 'string' || !Number.isFinite(m.fetchedAtMs) || !cornersOk(m.corners)) return null;
   if (!incaFramesOk(m.frames)) return null;
+  if (m.dual !== undefined && !dualOk(m.dual, m.frames.map((f) => f.lead))) return null;
   return m;
 }
 
@@ -247,6 +282,7 @@ export function parseRzcImgMeta(j: unknown): RzcImgMeta | null {
   if (typeof m.stamp !== 'string' || !cornersOk(m.corners)) return null;
   if (m.validAtMs !== null && !Number.isFinite(m.validAtMs)) return null;
   if (!framesOk(m.frames, [0]) || m.frames[0].file !== 'frame.png') return null;
+  if (m.dual !== undefined && !dualOk(m.dual, [0])) return null;
   return m;
 }
 
@@ -415,6 +451,18 @@ export async function loadRadarGrayPng(res: Response, width: number, height: num
     if (!(err instanceof GrayPngUnsupported)) throw err;   // Maß-/Datenfehler bleiben Fehler
   }
   return loadRadarGrayPngViaCanvas(bytes, width, height);
+}
+
+/**
+ * HD-3: Dual-PNG des Spiegels → beide Ebenen (Kanal 1 = v1-Byte, byte-gleich zum `f`-Bild; Kanal 2 = Log-Ebene).
+ * Kein Canvas-Rückfall (er würde den zweiten Kanal als Alpha vormultiplizieren) — ein unlesbares Bild ist ein
+ * harter Fehler, der Aufrufer nimmt dann das `f`-Bild.
+ */
+export async function loadRadarGrayAlphaPng(res: Response, width: number, height: number): Promise<{ values: Uint8Array; values2: Uint8Array }> {
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const g = await decodeGrayAlphaPng(bytes);
+  if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
+  return { values: g.values, values2: g.values2 };
 }
 
 /** Benannter Rückfall (Rule 2): der Canvas-Weg des ICON-Repacks. */

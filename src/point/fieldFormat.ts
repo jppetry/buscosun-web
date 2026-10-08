@@ -31,7 +31,7 @@ export const FIELD_PROVENANCE = 'cube';
 export function fieldRunDir(run: string, tierId: TierId): string {
   return `${FIELD_DIR}/${run}/${tierId}`;
 }
-export function fieldFileName(kind: 'precip' | 'snowlmt', leadH: number): string {
+export function fieldFileName(kind: 'precip' | 'snowlmt' | 'precipcum', leadH: number): string {
   return `${kind}-${String(leadH).padStart(3, '0')}.png`;
 }
 
@@ -104,6 +104,31 @@ export function decodePrecipPixel(r: number, g: number, b: number, a: number): P
   return { chance: r / 254, medianWet: g === 0 ? null : precipLogValue(g), q90: precipLogValue(b) };
 }
 
+// --- Kodierung kumulierte Erwartung (Phase NS, E-NS-9) -------------------------------------------
+
+/**
+ * precipcum-<LLL>.png, RGBA — die über die Vorläufe AUFSUMMIERTE Erwartung des Niederschlags (mm) ab dem Beginn des ersten
+ * Intervalls der Stufe: C(L) = Σ_{k ≤ L} meanOf(Hürde_k) · stepH. Mittelwerte addieren sich ohne Annahme über die
+ * Abhängigkeit der Stunden (`audit/niederschlagssummen.md` §9.2/§9.4); die Summe über ein Fenster ist C(Ende) − C(Anfang),
+ * zwei Dateien statt aller Vorläufe. Quantile stehen hier bewusst NICHT — sie addieren sich nicht.
+ *   R·65536 + G·256 + B = C in 0,01 mm (24 bit, bis 167 772 mm)
+ *   A = 255 gerechnet; 0 = fehlt — und bleibt für ALLE späteren Vorläufe der Zelle 0 (eine fehlende Stufe macht jede
+ *       Summe über sie unbekannt; nie wird sie als 0 mm weitergezählt)
+ */
+export const PRECIP_CUM_UNIT_MM = 0.01;
+export const PRECIP_CUM_MAX_MM = (2 ** 24 - 1) * PRECIP_CUM_UNIT_MM;
+
+export function encodePrecipCumPixel(mm: number | null, out: Uint8Array, o: number): boolean {
+  if (mm == null || !Number.isFinite(mm) || mm < 0) { out[o] = 0; out[o + 1] = 0; out[o + 2] = 0; out[o + 3] = 0; return false; }
+  const q = Math.min(2 ** 24 - 1, Math.round(mm / PRECIP_CUM_UNIT_MM));
+  out[o] = (q >>> 16) & 255; out[o + 1] = (q >>> 8) & 255; out[o + 2] = q & 255; out[o + 3] = 255;
+  return q === 2 ** 24 - 1;
+}
+export function decodePrecipCumPixel(r: number, g: number, b: number, a: number): number | null {
+  if (a !== 255) return null;
+  return ((r << 16) | (g << 8) | b) * PRECIP_CUM_UNIT_MM;
+}
+
 // --- Kodierung Schneefallgrenze -----------------------------------------------------------------
 
 /**
@@ -153,6 +178,8 @@ export interface FieldLead {
   validAtMs: number;
   precip: string | null;
   snowlmt: string | null;
+  /** Phase NS (E-NS-9): kumulierte Erwartung bis zu diesem Vorlauf; fehlt in Feldern vor Phase NS (additiv). */
+  precipcum?: string | null;
 }
 
 export interface FieldStats {
@@ -165,6 +192,8 @@ export interface FieldStats {
   saturated: number;
   /** Zellen, an denen die Kette einen Fehler warf (gezählt, Feld dort A = 0). */
   errors: number;
+  /** Phase NS: Zellen, deren kumulierte Erwartung ab einem Vorlauf fehlt (eine Stufe ohne Verteilung). */
+  cumBroken?: number;
 }
 
 export interface FieldManifest {
@@ -181,7 +210,7 @@ export interface FieldManifest {
   rate: string;
   grid: FieldGrid;
   leads: FieldLead[];
-  encoding: { precip: string; snowlmt: string; x0: number; xMax: number; snowStepM: number };
+  encoding: { precip: string; snowlmt: string; x0: number; xMax: number; snowStepM: number; precipcum?: string; cumUnitMm?: number };
   chance: typeof CHANCE_DEFINITION;
   snowline: string;
   /** Kette: Motor-Optionen, Tabellen (sha256 von `fusion.client.json`), Code-Stand des Producers. */
@@ -190,7 +219,7 @@ export interface FieldManifest {
   timing: { ms: number; workers: number };
 }
 
-export function makeFieldManifest(p: Omit<FieldManifest, 'schema' | 'product' | 'version' | 'label' | 'provenance' | 'grid' | 'stepH' | 'rate' | 'encoding' | 'chance' | 'snowline'>): FieldManifest {
+export function makeFieldManifest(p: Omit<FieldManifest, 'schema' | 'product' | 'version' | 'label' | 'provenance' | 'grid' | 'stepH' | 'rate' | 'encoding' | 'chance' | 'snowline'> & { cum?: boolean }): FieldManifest {
   const tier = TIER_BY_ID[p.tier];
   return {
     schema: 1, product: 'point-field', version: FIELD_VERSION, label: FIELD_LABEL, provenance: FIELD_PROVENANCE,
@@ -201,6 +230,10 @@ export function makeFieldManifest(p: Omit<FieldManifest, 'schema' | 'product' | 
       precip: 'R = round(254·Chance); G = Median | nass (0 = kein nasser Teil); B = q90 unbedingt (0 = 0 mm/h); Log-Code 1 + round(254·ln(1 + x/x0)/ln(1 + xMax/x0)); A = 255 gerechnet, 0 fehlt',
       snowlmt: 'R = Mitte / 25 m; G = halbe Bandbreite / 25 m (p10…p90 symmetrisch); B = Herkunft 0 kein Band · 2 σ_div · 3 σ_ens; A = 255 gerechnet, 0 fehlt',
       x0: PRECIP_X0, xMax: PRECIP_XMAX, snowStepM: SNOW_STEP_M,
+      ...(p.cum ? {
+        precipcum: 'R·65536 + G·256 + B = kumulierte Erwartung C(L) = Σ meanOf(Hürde) · stepH ab dem ersten Intervall der Stufe, in 0,01 mm; A = 255 gerechnet, 0 fehlt (ab einer fehlenden Stufe für alle späteren Vorläufe); Fenstersumme = C(Ende) − C(Anfang); keine Quantile',
+        cumUnitMm: PRECIP_CUM_UNIT_MM,
+      } : {}),
     },
     chance: CHANCE_DEFINITION, snowline: SNOWLINE_DEFINITION,
     chain: p.chain, stats: p.stats, timing: p.timing,
@@ -224,6 +257,7 @@ export function parseFieldManifest(j: unknown): FieldManifest | null {
     if (!leadSet.has(l.leadH) || l.validAtMs !== (m.runAtMs as number) + l.leadH * 3_600_000) return null;
     if (l.precip !== null && l.precip !== fieldFileName('precip', l.leadH)) return null;
     if (l.snowlmt !== null && l.snowlmt !== fieldFileName('snowlmt', l.leadH)) return null;
+    if (l.precipcum != null && l.precipcum !== fieldFileName('precipcum', l.leadH)) return null;
   }
   if (!m.encoding || m.encoding.x0 !== PRECIP_X0 || m.encoding.xMax !== PRECIP_XMAX || m.encoding.snowStepM !== SNOW_STEP_M) return null;
   if (!m.chance || m.chance.id !== CHANCE_DEFINITION.id || !m.stats || typeof m.stats.cells !== 'number') return null;

@@ -33,6 +33,8 @@ export interface IncaParsedFrame {
   leadHours: number;
   /** Kompaktes Werte-Grid (1 Byte/Zelle, north-up) für RainLayer.setFrame. */
   values: Uint8Array;
+  /** Phase HD-3: zweite Quantisierung derselben Raten (nur mit `secondary`). */
+  values2?: Uint8Array;
   width: number;
   height: number;
 }
@@ -47,7 +49,8 @@ export interface IncaParsed {
  * leeren Lauf schickt (V-RL-2) — die Entscheidung „Fehler oder Rückfall" trifft
  * der Aufrufer (`geosphereIncaGrid.ts`), nicht der Parser.
  */
-export function parseIncaNetcdf(buf: ArrayBuffer): IncaParsed {
+/** Phase HD-3: optional second quantisation of the same rates (`values2`) — without it byte-identical. */
+export function parseIncaNetcdf(buf: ArrayBuffer, opts: { secondary?: (mmph: number) => number } = {}): IncaParsed {
   const f = new H5File(buf, 'inca.nc');
   const rr = f.get('rr') as { shape: number[]; value: ArrayLike<number> };
   const [nt, ny, nx] = rr.shape;
@@ -75,6 +78,7 @@ export function parseIncaNetcdf(buf: ArrayBuffer): IncaParsed {
   for (let t = 0; t < nt; t++) {
     const base = t * ny * nx;
     const values = new Uint8Array(nx * ny);
+    const values2 = opts.secondary ? new Uint8Array(nx * ny) : undefined;
     for (let r = 0; r < ny; r++) {
       const dstRow = (ny - 1 - r) * nx; // Süd→Nord flippen
       const srcRow = base + r * nx;
@@ -82,9 +86,10 @@ export function parseIncaNetcdf(buf: ArrayBuffer): IncaParsed {
         const raw = v[srcRow + c];
         const mmph = raw === RR_FILL ? NaN : raw * RR_SCALE * PER_STEP_TO_MMH;
         values[dstRow + c] = precipToU8(mmph);
+        if (values2) values2[dstRow + c] = opts.secondary!(mmph);
       }
     }
-    frames.push({ leadHours: lead[t], values, width: nx, height: ny });
+    frames.push({ leadHours: lead[t], values, width: nx, height: ny, ...(values2 ? { values2 } : {}) });
   }
   return { frames, corners };
 }

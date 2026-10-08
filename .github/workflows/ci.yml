@@ -100,6 +100,14 @@ jobs:
       # des Registers, jeder Plattformteil hängt daran (audit/fusion-release.md) — netzfrei.
       - name: Verifier — Stände von buscosun Fusion (Register)
         run: npm run verify:fusion-release
+      # NS: Niederschlagssummen im Regenradar — Rechenregeln (Lücke ≠ 0, keine addierten Quantile), echte Datenform obs/v1,
+      # Kartenfeld kumuliert, Zusammensetzung (audit/niederschlagssummen.md) — netzfrei.
+      - name: Verifier — Niederschlagssummen (Regenradar, NS)
+        run: npm run verify:precip-sums
+      # HD: hochauflösendes Niederschlagsradar — Schalter, Besitz-Maske = pickCountry Pixel für Pixel auf den echten
+      # Gittern, Frame-Regel byte-gleich, Shader-Algebra, Dual-Frames (Log-Ebene), Morph (audit/radar-hochaufloesung.md) — netzfrei.
+      - name: Verifier — Niederschlagsradar HD
+        run: npm run verify:radar-hd
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

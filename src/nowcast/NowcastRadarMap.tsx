@@ -61,6 +61,10 @@ import { RADAR_VMAX } from '../radar/radarModel';
 import type { RvPastFrame } from '../scalar/precipComposite';
 import type { RadarFrame as RzcFrame } from '../sources/meteoSwissRadar';
 import { nwpLabel } from './nowcastView';
+// Phase NS (audit/niederschlagssummen.md §9): Summen-Ansicht der Karte — eigene MapLibre-Ebenen, kein Shader.
+import { useSumMap } from '../precipSums/useSumMap';
+import { SumLegend } from '../precipSums/PrecipSumsUi';
+import type { SumSelection } from '../precipSums/sumModel';
 
 type MapViewComponent = typeof import('../MapView').default;
 import {
@@ -98,6 +102,8 @@ interface Props {
   onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
   /** RL1: Schnee-Modus des ICON-D2-Layers (Deck-Umschalter). Default Schneedecke. */
   snowMode?: SnowMode;
+  /** Phase NS: Darstellung Intensität | Summe (Dock). Fehlt = Stand vor Phase NS (`?sum=0`). */
+  sum?: SumSelection;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -132,7 +138,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth' }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum }: Props) {
   const last = useMemo(() => loadLastView(), []);
   // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
   const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -195,6 +201,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const [warnLevel, setWarnLevel] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  // Phase NS: die Karte als Zustand, damit die Summen-Ebene an ihr hängen kann.
+  const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const layerSet = useMemo(() => new Set(layers), [layers]);
   // RL1: Nachbarquellen des DACH-Komposits, KONRAD3D-Lauf, ICON-D2-Schnee.
   const [neighbors, setNeighbors] = useState<CompositeSources | null>(null);
@@ -238,6 +246,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     }, 5 * 60_000);
     return () => window.clearInterval(id);
   }, []);
+
+  // Phase NS: Summen-Ansicht. In „Summe" zeigt die Karte statt der Intensität die Summe (eigene Ebenen); die übrigen
+  // Ebenen (Zellbahnen, Blitze, Schnee …) bleiben, wie sie sind.
+  const sumMode = sum?.mode === 'sum';
+  const sumMap = useSumMap(mapInst, sum ?? { mode: 'intensity', dir: 'past', windowH: 6 }, !!sum, reloadKey * 1000 + autoTick);
 
   // Radar-Stack laden + AKTUELL HALTEN:
   //  · Ortswechsel       → Karte leeren + Spinner, frischer Stack (+ DE-Rückblick).
@@ -493,7 +506,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Phase RR (Profil): Eingaben der Wetterkarten-Karte aus dem Radar-Stack — Zeit des sichtbaren Frames, Morph zwischen
   // den beiden Nachbar-Frames, gemessene Analysen des Rückblicks. Referenzen stabil halten (`radarPast` leert in
   // `MapView` den Frame-Speicher), Layer über die Profil-Tabelle.
-  const profileLayers = useMemo(() => radarProfileLayers(layers), [layers]);
+  // Phase NS: in der Summen-Ansicht ruht die Intensitäts-Ebene (der Schalter im Dock bleibt, wie er ist).
+  const profileLayers = useMemo(() => radarProfileLayers(sumMode ? layers.filter((l) => l !== 'precip') : layers), [layers, sumMode]);
   const radarPast = useMemo(() => {
     if (!stack) return null;
     const measured = stack.frames.filter((f) => f.measured);
@@ -521,7 +535,12 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     [point.name, point.lat, point.lon, point.country],
   );
   // Hover-Readout wie die alte Karte: mm/h aus dem Landes-Frame des Stacks unter dem Zeiger.
+  const sumHoverRef = useRef<((lat: number, lon: number) => string | null) | null>(null);
+  sumHoverRef.current = sumMode ? sumMap.hoverAt : null;
+  const [sumHover, setSumHover] = useState<string | null>(null);
   const onProfileHover = useCallback((p: { lat: number; lon: number } | null) => {
+    if (sumHoverRef.current) { setHover(null); setSumHover(p ? sumHoverRef.current(p.lat, p.lon) : null); return; }
+    setSumHover(null);
     const st = stackRef.current;
     if (!p || !st) { setHover(null); return; }
     const fr = st.frames[Math.max(0, Math.min(st.frames.length - 1, Math.round(framePosRef.current)))];
@@ -596,7 +615,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
               initialActive={profileLayers} routeLayers={profileLayers}
               timeMs={profileTimeMs} timeBracket={timeBracket} radarPast={radarPast} profileSnowMode={snowMode}
               onPointPick={onPick} onPointHover={onProfileHover}
-              onMapReady={(m) => { mapRef.current = m; onMapReady?.(m); }}
+              onMapReady={(m) => { mapRef.current = m; setMapInst(m); onMapReady?.(m); }}
               initialView={initialView} onViewChange={onViewChange}
             />
           ) : (
@@ -609,7 +628,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
             composite={neighbors} cellFeatures={cellFeatures} snow={snowData}
             elevFull={terrain?.elevFull ?? null} snowLineM={snowLineM} snowLineFeatures={snowLineFeatures}
             point={{ lat: point.lat, lon: point.lon }} comparePoint={null}
-            onPick={onPick} onHover={(mmH) => setHover(mmH)} onMapRef={(m) => { mapRef.current = m; onMapReady?.(m); }}
+            onPick={onPick} onHover={(mmH) => setHover(mmH)} onMapRef={(m) => { mapRef.current = m; setMapInst(m); onMapReady?.(m); }}
             initialView={initialView} onViewChange={onViewChange}
           />
         ) : (
@@ -631,12 +650,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         )}
 
         {/* Hover-Readout */}
-        {hover != null && (
+        {sumMode && sumHover && <div className="nc-radar-hover">{sumHover}</div>}
+        {!sumMode && hover != null && (
           <div className="nc-radar-hover">{hover >= 0.06 ? `${hover.toFixed(1).replace('.', ',')} mm/h` : 'trocken'}</div>
         )}
 
-        {/* Legende */}
-        <div className="nc-radar-legend">
+        {/* Legende — Phase NS: in der Summen-Ansicht die Summen-Legende */}
+        {sumMode && sum && <SumLegend info={sumMap.info} sel={sum} />}
+        {!sumMode && <div className="nc-radar-legend">
           {RADAR_BANDS.filter((b) => b.band !== 'dry').map((b) => (
             <span key={b.band} className="nc-radar-leg-item"><i style={{ background: PALETTES[shownPalette].bandColors[b.band] }} /> {b.label}</span>
           ))}
@@ -650,7 +671,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           {!useProfile && layerSet.has('hail') && (
             <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#ff78aa,#f03c6e,#c81450)' }} /> Hagel</span>
           )}
-        </div>
+        </div>}
 
         {/* Phase RR (RR-f): die Schneefallgrenze der Karte ist die der Wetterkarte — Quelle benannt; der Punktwert
             am gewählten Ort kommt aus der Punktvorhersage des Streifens. */}

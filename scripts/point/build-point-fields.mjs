@@ -35,12 +35,12 @@ import { decodeCubeChunk, TIER_BY_ID } from '../../src/point/cubeFormat.ts';
 import { cubeSeriesFrom } from '../../src/point/client/cubePoint.ts';
 import { fuseCubePoint } from '../../src/pointForecast/cubeSource.ts';
 import { FUSION_CURRENT, FUSION_NAME, fusionStage } from '../../src/pointForecast/fusion/fusionRelease.ts';
-import { cdfOf, quantileOf } from '../../src/pointForecast/fusion/dist.ts';
+import { cdfOf, quantileOf, meanOf } from '../../src/pointForecast/fusion/dist.ts';
 import { terrainScales } from '../../src/pointForecast/fusion/terrainScale.ts';
 import { ClimaField } from '../../src/ml/climaField.ts';
 import { validateTables } from '../../src/point/fusionFit/tables.ts';
 import {
-  fieldRunDir, fieldFileName, fieldPixelOffset, encodePrecipPixel, encodeSnowPixel, makeFieldManifest,
+  fieldRunDir, fieldFileName, fieldPixelOffset, encodePrecipPixel, encodeSnowPixel, encodePrecipCumPixel, makeFieldManifest,
   FIELD_MANIFEST_FILE, PRECIP_XMAX,
 } from '../../src/point/fieldFormat.ts';
 import { encodePng } from '../lib/png.mjs';
@@ -112,7 +112,7 @@ export function fieldValuesFromResult(r, leadsMs) {
     let precip = null;
     if (pr) {
       const pDry = Math.min(1, Math.max(0, cdfOf(pr, 0)));
-      precip = { chance: 1 - pDry, medianWet: pDry < 1 ? quantileOf(pr, pDry + 0.5 * (1 - pDry)) : null, q90: pDry >= 0.9 ? 0 : Math.max(0, quantileOf(pr, 0.9)) };
+      precip = { chance: 1 - pDry, medianWet: pDry < 1 ? quantileOf(pr, pDry + 0.5 * (1 - pDry)) : null, q90: pDry >= 0.9 ? 0 : Math.max(0, quantileOf(pr, 0.9)), mean: meanOf(pr) };
     }
     let snow = null;
     if (s) {
@@ -146,6 +146,7 @@ export function fieldValuesOf(v2, leadsMs) {
         chance: 1 - pDry,
         medianWet: pDry < 1 ? quantileOf(pr, pDry + 0.5 * (1 - pDry)) : null,
         q90: pDry >= 0.9 ? 0 : Math.max(0, quantileOf(pr, 0.9)),
+        mean: meanOf(pr),
       };
     }
     const sl = s?.vars?.snowline ?? null;
@@ -197,6 +198,7 @@ async function runWorker() {
     const out = {
       iy: new Int16Array(n), ix: new Int16Array(n),
       chance: new Float32Array(n * nl).fill(NaN), med: new Float32Array(n * nl).fill(NaN), q90: new Float32Array(n * nl).fill(NaN),
+      mean: new Float64Array(n * nl).fill(NaN),
       snowMid: new Float32Array(n * nl).fill(NaN), snowHalf: new Float32Array(n * nl).fill(NaN), snowProv: new Int8Array(n * nl),
     };
     for (let c = 0; c < n; c++) {
@@ -214,7 +216,7 @@ async function runWorker() {
         const vals = fieldValuesFromResult(r, leadsMs);
         for (let k = 0; k < nl; k++) {
           const o = c * nl + k, v = vals[k];
-          if (v.precip) { out.chance[o] = v.precip.chance; out.med[o] = v.precip.medianWet ?? -1; out.q90[o] = v.precip.q90; }
+          if (v.precip) { out.chance[o] = v.precip.chance; out.med[o] = v.precip.medianWet ?? -1; out.q90[o] = v.precip.q90; out.mean[o] = v.precip.mean; }
           if (v.snow) { out.snowMid[o] = v.snow.mid; out.snowHalf[o] = v.snow.half; out.snowProv[o] = v.snow.prov === 'ensemble' ? 3 : v.snow.prov === 'divergence' ? 2 : 0; }
         }
       } catch { errors++; }
@@ -278,7 +280,12 @@ async function main() {
   const N = tier.ny * tier.nx;
   const precipImg = Array.from({ length: nl }, () => new Uint8Array(N * 4));
   const snowImg = Array.from({ length: nl }, () => new Uint8Array(N * 4));
-  const stats = { cells: 0, precipMissing: 0, snowMissing: 0, saturated: 0, errors: 0 };
+  // Phase NS (E-NS-9, audit/niederschlagssummen.md §9.4): kumulierte Erwartung je Vorlauf — Σ meanOf · stepH in Vorlauf-
+  // Reihenfolge; eine fehlende Stufe macht die Zelle für alle späteren Vorläufe „fehlt" (nie 0). `POINT_FIELD_CUM=0` = aus.
+  const withCum = process.env.POINT_FIELD_CUM !== '0';
+  const cumImg = withCum ? Array.from({ length: nl }, () => new Uint8Array(N * 4)) : null;
+  const leadHasCum = new Array(nl).fill(false);
+  const stats = { cells: 0, precipMissing: 0, snowMissing: 0, saturated: 0, errors: 0, ...(withCum ? { cumBroken: 0 } : {}) };
   const leadHasPrecip = new Array(nl).fill(false), leadHasSnow = new Array(nl).fill(false);
 
   const groups = Array.from({ length: workers }, () => []);
@@ -306,6 +313,17 @@ async function main() {
       const o = m.out;
       for (let c = 0; c < o.iy.length; c++) {
         const off = fieldPixelOffset(tier, o.iy[c], o.ix[c]);
+        if (cumImg) {
+          // Vorläufe sind aufsteigend (`tm.leadHours`); A bleibt 0, sobald eine Stufe fehlt.
+          let cum = 0, broken = false;
+          for (let k = 0; k < nl; k++) {
+            const m = o.mean[c * nl + k];
+            if (!broken && Number.isFinite(m) && m >= 0) cum += m * tier.stepH;
+            else if (!broken) { broken = true; stats.cumBroken++; }
+            encodePrecipCumPixel(broken ? null : cum, cumImg[k], off);
+            if (!broken) leadHasCum[k] = true;
+          }
+        }
         for (let k = 0; k < nl; k++) {
           const i = c * nl + k;
           if (Number.isFinite(o.chance[i])) {
@@ -340,9 +358,10 @@ async function main() {
   let bytes = 0;
   for (let k = 0; k < nl; k++) {
     const L = tm.leadHours[k];
-    const lead = { leadH: L, validAtMs: runAtMs + L * H, precip: null, snowlmt: null };
+    const lead = { leadH: L, validAtMs: runAtMs + L * H, precip: null, snowlmt: null, ...(cumImg ? { precipcum: null } : {}) };
     if (leadHasPrecip[k]) { const png = encodePng(tier.nx, tier.ny, precipImg[k], 4); writeFileSync(join(stage, fieldFileName('precip', L)), png); bytes += png.length; lead.precip = fieldFileName('precip', L); }
     if (leadHasSnow[k]) { const png = encodePng(tier.nx, tier.ny, snowImg[k], 4); writeFileSync(join(stage, fieldFileName('snowlmt', L)), png); bytes += png.length; lead.snowlmt = fieldFileName('snowlmt', L); }
+    if (cumImg && leadHasCum[k]) { const png = encodePng(tier.nx, tier.ny, cumImg[k], 4); writeFileSync(join(stage, fieldFileName('precipcum', L)), png); bytes += png.length; lead.precipcum = fieldFileName('precipcum', L); }
     leads.push(lead);
   }
   rmSync(target, { recursive: true, force: true });
@@ -352,7 +371,7 @@ async function main() {
   try { codeCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: APP, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { /* kein Git */ }
   const ms = Date.now() - t0;
   const manifest = makeFieldManifest({
-    run, tier: tierId, runAtMs, builtAtMs: Date.now(), leads,
+    run, tier: tierId, runAtMs, builtAtMs: Date.now(), leads, cum: !!cumImg,
     chain: {
       options: { ...FIELD_FUSE_OPTIONS, fusion: FUSION_CURRENT, fusionName: FUSION_NAME, nowMs, terrain: 'flach in Modellhöhe (terrainScales, konstante Höhe)', elevation: 'hModEff der Zelle', station: null, radar: null },
       tables: { path: 'point/fusion.client.json', sha256: inputs.sha256 }, codeCommit, notes: inputs.notes,

@@ -22,7 +22,8 @@ import { parseIncaOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertig aufbereitete Frames vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, RadarImg404 } from './radarImg';
+import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, loadRadarGrayAlphaPng, RadarImg404 } from './radarImg';
+import { radarDualFlagFrom } from '../scalar/radarHd';
 
 const GRID_URL =
   'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km';
@@ -34,6 +35,8 @@ export interface IncaFrame {
   leadHours: number;
   /** Kompaktes Werte-Grid (1 Byte/Zelle, north-up) für RainLayer.setFrame. */
   values: Uint8Array;
+  /** Phase HD-3: Log-Ebene (0,06 … 200 mm/h) aus dem Dual-PNG des Spiegels — nur mit `?hdv2=1` und wenn der Slot sie trägt. */
+  values2?: Uint8Array;
   width: number;
   height: number;
 }
@@ -145,12 +148,23 @@ async function loadIncaSlot(stamp: string, signal: AbortSignal, priority?: Reque
   const dir = incaImgDir(stamp);
   const meta = parseIncaImgMeta(await (await fetchImgRes(`${dir}/meta.json`, signal, priority)).json());
   if (!meta || meta.stamp !== stamp) return null;
-  const frames: IncaFrame[] = await Promise.all(meta.frames.map(async (f) => ({
-    leadHours: f.lead / 60,
-    values: await loadRadarGrayPng(await fetchImgRes(`${dir}/${f.file}`, signal, priority), meta.width, meta.height),
-    width: meta.width,
-    height: meta.height,
-  })));
+  // HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), je Frame das `f`-Bild wie bisher.
+  const dualFile = radarDualFlagFrom() && meta.dual ? new Map(meta.dual.frames.map((d) => [d.lead, d.file])) : null;
+  const frames: IncaFrame[] = await Promise.all(meta.frames.map(async (f) => {
+    const g = dualFile?.get(f.lead);
+    if (g) {
+      try {
+        const d = await loadRadarGrayAlphaPng(await fetchImgRes(`${dir}/${g}`, signal, priority), meta.width, meta.height);
+        return { leadHours: f.lead / 60, values: d.values, values2: d.values2, width: meta.width, height: meta.height };
+      } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
+    }
+    return {
+      leadHours: f.lead / 60,
+      values: await loadRadarGrayPng(await fetchImgRes(`${dir}/${f.file}`, signal, priority), meta.width, meta.height),
+      width: meta.width,
+      height: meta.height,
+    };
+  }));
   return { frames, corners: meta.corners as QuadCorners };
 }
 
