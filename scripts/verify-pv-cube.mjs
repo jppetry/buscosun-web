@@ -630,6 +630,32 @@ function cubeSampleOfValues(r, i) {
       && fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true }).notes.some((n) => /^anchorAtObsTime: Modellwert an 0 von 1 Messungen/.test(n))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorAtObsTime: true })) === fusedOf(base));
   }
+  // OF-6 (audit/obs-fusion.md §10): the spread shrinks with the share of the error the anchor explains, σ·√max(0,5², 1 − a²·r).
+  // This fixture has no learned σ ⇒ r = 1; the T anchor uses the setting e^(−τ/4 h).
+  {
+    const { anchorSigmaFactor, ANCHOR_SIGMA_MIN_FACTOR } = await import('../src/pointForecast/cubeSource.ts');
+    add('(12) OF-6 Formel: a 0 ⇒ 1; a 0,6, r 1 ⇒ 0,8; a 0,6, r 0,25 ⇒ √0,91; a 1 ⇒ Boden 0,5; |a| > 1 wie 1; NaN ⇒ 1',
+      anchorSigmaFactor(0, 1) === 1 && near(anchorSigmaFactor(0.6, 1), 0.8, 1e-12) && near(anchorSigmaFactor(-0.6, 0.25), Math.sqrt(0.91), 1e-12)
+      && anchorSigmaFactor(1, 1) === ANCHOR_SIGMA_MIN_FACTOR && ANCHOR_SIGMA_MIN_FACTOR === 0.5 && anchorSigmaFactor(3, 1) === 0.5 && anchorSigmaFactor(NaN, 1) === 1
+      && near(anchorSigmaFactor(0.6, NaN), 0.8, 1e-12));
+    const on = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 });
+    const sdT = (r, i) => r.steps[i].fused.temperature.dist.sigma;
+    const a4 = wsp * Math.exp(-(on.steps[4].leadH ?? 4) / 4);
+    const want4 = Math.sqrt(Math.max(0.25, 1 - a4 * a4));
+    add('(12) OF-6 mit Option: T-σ bei +0 h auf den Boden 0,5 (a = 0,978), bei +4 h × √(1 − a²) mit a = 0,978·e^(−1); Median unverändert; ab +40 h byte-gleich; Flag `anchorSigma`, Notiz mit Zählung',
+      near(sdT(on, 0) / sdT(anchored, 0), 0.5, 1e-9) && near(sdT(on, 4) / sdT(anchored, 4), want4, 1e-9)
+      && near(med(on.steps[0]), med(anchored.steps[0]), 1e-9) && near(med(on.steps[4]), med(anchored.steps[4]), 1e-9)
+      && JSON.stringify(on.steps[40].fused) === JSON.stringify(anchored.steps[40].fused)
+      && on.steps[0].flags.includes('anchorSigma') && !anchored.steps[0].flags.includes('anchorSigma')
+      && on.notes.some((n) => /^anchorSigma: σ verkleinert an \d+ Schritten \(T \d+/.test(n)) && on.calib.some((c) => c.startsWith('anchorSigma:set')),
+      `+0 h ${(sdT(on, 0) / sdT(anchored, 0)).toFixed(4)} · +4 h ${(sdT(on, 4) / sdT(anchored, 4)).toFixed(4)} (Soll ${want4.toFixed(4)})`);
+    add('(12) OF-6 Negativkontrollen: ohne Option byte-gleich zum Anker von heute; Option ohne Messung byte-gleich zur Basis (Notiz „kein Anker“); Option mit `anchor: false` byte-gleich zur Basis; ferne hohe Station ⇒ Faktor > 0,999',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 0 })) === fusedOf(anchored)
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1 })) === fusedOf(base)
+      && fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1 }).notes.some((n) => /^anchorSigma: Option an, aber kein Anker/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchor: false, anchorSigma: 1 })) === fusedOf(base)
+      && sdT(fuseCubePoint({ ...mkInput(), obs: obsAt(2, 60_000, FIX.hTrue + 900) }, { anchorSigma: 1 }), 1) / sdT(fuseCubePoint({ ...mkInput(), obs: obsAt(2, 60_000, FIX.hTrue + 900) }), 1) > 0.999);
+  }
   // V-SW-3: wind and gust get separate corrections, their means can cross. In the plain engine the gust prior keeps the gust
   // above the wind (this fixture: min gust − wind ≥ +0,18 m/s even with every input gust at 10–30 %); the crossing comes from
   // the separate corrections of the stage fs (learned speed law, station value — Fehmarn +42 h). The rule is the pure

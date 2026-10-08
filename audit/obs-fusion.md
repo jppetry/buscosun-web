@@ -440,3 +440,38 @@ Zerlegung des Stands (Rolle B, t 0–6 h): Quellwechsel +11,6 % (R1 gegen R0) ·
 - **V-OF-9** `build-dense-obs.mjs`: der jüngste Tag ist vor ≈ 12 UTC des Folgetags unvollständig (MeteoSchweiz-Jahresdatei, CDC `now`) —
   der Prüfstand sollte den Tag vor der Registrierung neu bauen (`--force --days=<Tag>`); Skizze: Wächter im Provider, der eine
   Tagesdatei mit < 90 % der Stationen des Vortags meldet.
+
+## 10 OF-6 — σ an den Anker gekoppelt (Vorschlag 1 nach G3 rot; Auftrag Jan 08.10.: „setze Vorschlag 1 um und schaue, ob G3 noch rot ist")
+
+### 10.1 Diagnose
+
+- G3 wird **nur an Rolle B** gemessen (`urteil.mjs`, Zeile 134: alle Länder, ohne eigene Station und Messung). Dort feuert der
+  Stationswert nie (keine Station am Punkt); was Fusion 12 an Rolle B vom Champion trennt, ist der **Anker** auf dem dichten Satz
+  (+ Messgerät–Radar, nur Niederschlag, nicht in G3).
+- Der Anker verschiebt nur den Mittelwert des Cube-Members (`cubeSource.ts`, `finishStep`: `cubeSample.temperature += termK` usw.);
+  die σ des Members ist die gelernte σ der Lernstufe (Fit 5e, Hindcast **ohne** Anker) und bleibt unverändert. Der Anker erklärt
+  einen Teil des Fehlers, die Verteilung behauptet ihn weiter ⇒ Über-Abdeckung, am stärksten dort, wo der Anker am stärksten wirkt
+  (Böe 0–6 h: 90,0 % gegen 87,3 %).
+- Größenordnung: Abdeckung 87,3 % → 90,0 % bei Normalverteilung heißt effektiver Fehler 0,84 σ → 0,78 σ, d. h. der Anker nimmt
+  ≈ 13 % der Fehlervarianz weg, die σ bleibt.
+
+### 10.2 Form (Struktur, kein Fit)
+
+Der Anker setzt `offset · a` mit `a = fraction · w(τ)` (fraction = Repräsentativität der besten Station, w = Kurve der Lernstufe bzw.
+e^(−τ/τ_v)). Ist w der Regressionskoeffizient des Fehlers bei τ auf die Innovation (so ist die Kurve gefittet: w = cov(e₁,e_τ)/var(e₁)),
+dann erklärt der Zuschlag den Varianzanteil `a² · σ₁²/σ_τ²` (σ₁, σ_τ = gelernte σ bei Vorlauf ≈ 1 h und τ). Daraus:
+
+    σ_neu = σ · √max(f_min², 1 − a² · min(1, σ₁²/σ_τ²))
+
+je Größe mit Anker (T; Wind aus u und v gemittelt; Böe); Td und Niederschlag ohne Anker ⇒ unverändert. Angewandt auf die
+fusionierte Verteilung nach dem Stationswert; eine Größe, die der Stationswert gesetzt hat, bleibt (dessen σ ist die Rest-σ MIT
+Innovation). `f_min` = 0,5 (Setzung, Schutz gegen eine kollabierende Verteilung bei ko-lokalisierter Messung — an Rolle B nie bindend
+erwartet). Neue Option `FuseCubeOptions.anchorSigma` (0/1, aus), Flag `anchorSigma`, Notiz mit Zählung. Ohne Option byte-gleich.
+
+### 10.3 Regel vor den Zahlen (eingefroren vor dem Lauf)
+
+Kandidat `fusion-12s` = Register `fusion-12` + `anchorSigma: 1` (Commit dieser Änderung, sonst gleiche Optionen und Tabellen).
+Volltest auf der Entwicklungsmenge (`--modus=voll --offline`, zwei Worker). **G3 gilt als behoben**, wenn G3 grün ist; **die Kopplung
+ist brauchbar**, wenn zusätzlich G2 grün bleibt und der Fortschrittsindex gegen Fusion 9 im 95-%-Intervall von Fusion 12
+(+1,28 … +1,72 %) oder darüber liegt (σ ändert den Median nicht, nur CRPS/Abdeckung). Rote Zellen, die bleiben, werden benannt;
+keine Nachstellung von f_min oder der Form nach dem Lauf in dieser Phase.

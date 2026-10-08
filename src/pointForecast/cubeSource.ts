@@ -271,7 +271,7 @@ export type StepFlag =
   | 'extrapolatedBelowModel' | 'inversionBody' | 'stdLapseFallback' | 'chunkBorderTruncated' | 'belowGround925'
   | 'nowcastFallbackModel' | 'climatologyOnly' | 'stale' | 'seam' | 'interpolated' | 'noTerrain' | 'nowcastSaturated'
   | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal' | 'longRange' | 'sigmaInflate'
-  | 'gaugeOccurrence' | 'gaugeRadar';
+  | 'gaugeOccurrence' | 'gaugeRadar' | 'anchorSigma';
 
 export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'anchor' | 'climatology';
 export type StepTier = TierId | 'station' | 'clima';
@@ -405,6 +405,17 @@ export const ENS_MEMBER_SIGMA_FACTOR = 1.5;
  */
 export const SIGMA_INFLATE_LONG = Object.freeze({ temperature: 1.15, wind: 1.25 } as const);
 export const ENS_MEMBER_SIGMA_FLOOR = Object.freeze({ temperature: 0.6, wind: 0.5, precip: 0.05 });
+/** OF-6 (set): the smallest factor `anchorSigma` puts on σ — a guard against a collapsing distribution at a co-located measurement. */
+export const ANCHOR_SIGMA_MIN_FACTOR = 0.5;
+/** OF-6 (set): below this anchor weight the factor stays 1 (|a| < 0,01 ⇒ σ changes by < 0,005 %) — a decayed anchor leaves the step byte-identical. */
+export const ANCHOR_SIGMA_MIN_A = 0.01;
+/** OF-6: σ·√max(f_min², 1 − a²·r) — `a` = fraction·w(τ) of the anchor, `r` = min(1, σ₁²/σ_τ²); pure, exported for the verifier. */
+export function anchorSigmaFactor(a: number, ratio: number): number {
+  if (!Number.isFinite(a) || a === 0) return 1;
+  const r = Number.isFinite(ratio) ? Math.min(1, Math.max(0, ratio)) : 1;
+  const aa = Math.min(1, Math.abs(a));
+  return Math.sqrt(Math.max(ANCHOR_SIGMA_MIN_FACTOR * ANCHOR_SIGMA_MIN_FACTOR, 1 - aa * aa * r));
+}
 
 /**
  * Die nativen Schritte im Fenster, je Gültigzeit EINER — die feinere Stufe gewinnt
@@ -726,6 +737,15 @@ export interface FuseCubeOptions {
    */
   stationValueAtObsTime?: 0 | 1;
   /**
+   * OF-6 (`audit/obs-fusion.md` §10, Vorschlag 1 after G3 red): the anchor explains part of the error, so the spread shrinks with
+   * it. Per variable with an anchor term (T; wind speed from u and v; gust) the fused σ becomes σ·√max(f_min², 1 − a²·min(1, σ₁²/σ_τ²))
+   * with a = fraction·w(τ) — the same weight the anchor puts on its offset (curve of the learned tables or e^(−τ/τ_v)) — and σ₁, σ_τ
+   * the learned σ near lead 1 h and at this step (without learned σ the ratio is 1). Applied after the station value; a variable the
+   * station value set keeps its own σ (residual σ WITH innovation). Structure, no fit; f_min = `ANCHOR_SIGMA_MIN_FACTOR` (set).
+   * Absent or 0 ⇒ byte-identical.
+   */
+  anchorSigma?: 0 | 1;
+  /**
    * F10-K1 „Langfrist-Rückführung auf die Klimatologie" (`fusion/longRange.ts`, `audit/fusion-10/stat.md`): bei Vorlauf
    * > 48 h werden T, Td, Windgeschwindigkeit und Böe nach dem Stationswert mit Gewicht w zur Klimatologie des Motors
    * gezogen (μ_c aus dem Klimatologieprodukt für T/Td, sonst die Klimatologie-only-Fusion des Schritts) und die Streuung
@@ -1024,6 +1044,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const sigmaInflateFromH = opts.sigmaInflateFromH != null && Number.isFinite(opts.sigmaInflateFromH) ? opts.sigmaInflateFromH : null;
   const sigmaInflateCount = { t: 0, wind: 0, windSkipped: 0 };
   const inflateDist = (d: Dist, f: number): Dist | null => (d.kind === 'normal' || d.kind === 'truncatedNormal' ? { ...d, sigma: d.sigma * f } : null);
+  /** OF-6: σ of the families T, wind speed and gust can carry (normal, censored/truncated normal, Rice) scaled by f; else null. */
+  const scaleDistSigma = (d: Dist, f: number): Dist | null => (d.kind === 'normal' || d.kind === 'truncatedNormal' || d.kind === 'censoredNormal' || d.kind === 'rice' ? { ...d, sigma: d.sigma * f } : null);
   const anchorWindL = opts.anchorWindKm != null && Number.isFinite(opts.anchorWindKm) && opts.anchorWindKm > 0 ? opts.anchorWindKm * 1000 : null;
   const useLearnedClouds = useLearned && opts.learnedClouds === true;
   // F10-K1: long-range blend towards the climatology (`fusion/longRange.ts`); default off ⇒ the hook never runs.
@@ -1048,6 +1070,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const useGaugeRadar = useObsDense && (opts.gaugeRadar ?? FUSION12_GAUGE.radar) === 1;
   const useSvAtObs = useObsDense && (opts.stationValueAtObsTime ?? FUSION12_SV_AT_OBS) === 1;
   const svAtObsCount = { interpolated: 0, onStep: 0, none: 0 };
+  // OF-6: σ coupled to the anchor (independent of obsDense; acts wherever the anchor acts).
+  const useAnchorSigma = opts.anchorSigma === 1;
+  const anchorSigmaCount = { steps: 0, t: 0, ws: 0, gust: 0, keptByStation: 0, minF: { t: 1, ws: 1, gust: 1 } as Record<'t' | 'ws' | 'gust', number> };
   const hmCount = { mean: 0, frames: 0, single: 0, mirror: 0 };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
   // gültiger Kurve (`anchorCurveValid`); je Größe ohne Kurve gilt die Setzung e^(−τ/τ_v). Ohne `anchor`-Block in den
@@ -1175,7 +1200,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       : `precipCal:absent — Option an, aber keine Tabelle im Eingang${pcErrors.length ? ` (ungültig: ${pcErrors.slice(0, 2).join('; ')})` : ''} ⇒ Hürde unverändert`] : []),
     ...(useObsDense ? [`obsDense:set — Anker auf dem dichten Messsatz (bis ${OBS_DENSE_MAX} nächste 10-min-Stationen inkl. Niederschlagsstationen): je Größe die ${OBS_DENSE_ANCHOR_K} besten nach spatialWeight unter den Stationen, die sie messen; gemessener Taupunkt in den Stationswert (Phase OF)`] : []),
     ...(useGaugeOcc ? [`gaugeOccurrence:set — Regenwahrscheinlichkeit bei Vorlauf ≤ ${GAUGE_OCC_LEAD_H} h zum gewichteten Anteil der Messgeräte ≤ ${GAUGE_OCC_KM} km mit Regen in den letzten 10 min gezogen (k = ${GAUGE_OCC_K0}·min(1, Σw)·e^(−(Vorlauf − 1)/${GAUGE_OCC_TAU_H} h), Stempel ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt; Phase OF, Option b)`] : []),
-    ...(useSvAtObs ? [`stationValueAtObsTime:set — der Stationswert nimmt das Stationsprodukt linear an der Messminute (zwei Schritte um die Messung, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h) statt nur auf einem Schritt (V-OF-10)`] : []),
+    ...(useAnchorSigma ? [`anchorSigma:set — σ von T, Windgeschwindigkeit und Böe mit dem Anker verkleinert: σ·√max(${ANCHOR_SIGMA_MIN_FACTOR}², 1 − a²·min(1, σ₁²/σ_τ²)), a = Repräsentativität·Gewicht des Ankers bei diesem Vorlauf, σ₁/σ_τ gelernte σ bei ≈ 1 h und hier; nach dem Stationswert, dessen Größen behalten ihre σ (Phase OF, OF-6; Struktur, kein Fit)`] : []),
+    ...(useSvAtObs ? [`stationValueAtObsTime:set —der Stationswert nimmt das Stationsprodukt linear an der Messminute (zwei Schritte um die Messung, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h) statt nur auf einem Schritt (V-OF-10)`] : []),
     ...(useGaugeRadar ? [`gaugeRadar:set — Radar-Member bei Vorlauf ≤ ${GAUGE_RADAR_LEAD_H} h mit dem Faktor Messgeräte-Stundensumme / Radar-Stundenmittel am Punkt skaliert (Geräte ≤ ${GAUGE_RADAR_KM} km, ε ${GAUGE_RADAR_EPS_MM} mm, Deckel ${GAUGE_RADAR_MAX}×, Abklingen τ ${GAUGE_RADAR_TAU_H} h, nur ab ${GAUGE_RADAR_MIN_MM} mm; Phase OF, Option a′)`] : []),
     ...(useHourMean ? [`nowcastHourMean:set — Radar-Member je Stunde t als Mittel der Frame-Raten im Fenster (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] bei ≥ ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames, sonst der Einzelframe; die Wahrheit ist die Stundensumme (V-AX-23, Kandidat buscosun Fusion 8 B)`] : []),
     ...(opts.stationValue === true ? [stackT
@@ -1616,6 +1642,20 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const gaugeOcc = useGaugeOcc && input.obs ? gaugeOccurrenceOf(input.obs, input.nowMs) : null;
   const gaugeRadarF = useGaugeRadar && input.obs ? gaugeRadarFactorOf(input.obs, input.nowcast, input.nowMs) : null;
   const gaugeCount = { occSteps: 0, radarSteps: 0 };
+  // OF-6: σ₁ = the learned σ at the step nearest lead 1 h (the lead the anchor curve is referred to); memoised per variable.
+  const anchorRefMemo = new Map<UncVar, number | null>();
+  const anchorRefSigma = (v: UncVar): number | null => {
+    if (anchorRefMemo.has(v)) return anchorRefMemo.get(v) as number | null;
+    let best: number | null = null, bestD = Infinity;
+    for (const x of preps) {
+      const s = x.learnedSigma?.[v];
+      if (s == null || !(s > 0) || !(x.leadH > 0)) continue;
+      const d = Math.abs(x.leadH - 1);
+      if (d < bestD) { bestD = d; best = s; }
+    }
+    anchorRefMemo.set(v, best);
+    return best;
+  };
 
   // ── Durchgang 3: je Schritt fertig rechnen (Anker, PAP 6, Station, Radar, Motor) ─
   const inHorizon = (atMs: number) => atMs >= input.nowMs - SAME_TIME_MS && atMs <= input.nowMs + NOWCAST_HORIZON_H * H;
@@ -1623,8 +1663,17 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     const { a, leadH, flags, cubeSample, vertical } = p;
     const members: CubeMemberInfo[] = [];
     const samples: PointSourceSample[] = [];
+    // OF-6: the anchor's weight a = fraction·w(τ) per variable (the term of a unit offset) — the share of the error it explains.
+    const anchorA = { t: 0, u: 0, v: 0, gust: 0 };
     // AP7: der Anker verschiebt das Cube-Member — Modell trägt den Tagesgang, die Messung den Ortsversatz.
     if (anchorInfo) {
+      if (useAnchorSigma) {
+        const unit = (inn: Innovation | null): Innovation | null => (inn ? { ...inn, offset: 1 } : null);
+        anchorA.t = anchorInfo.t ? anchorTermOf(unit(anchorInfo.t), 't', leadH, ANCHOR_TAU_H.temperature) : 0;
+        anchorA.u = anchorInfo.u ? anchorTermOf(unit(anchorInfo.u), 'u', leadH, ANCHOR_TAU_H.wind) : 0;
+        anchorA.v = anchorInfo.v ? anchorTermOf(unit(anchorInfo.v), 'v', leadH, ANCHOR_TAU_H.wind) : 0;
+        anchorA.gust = anchorInfo.gust ? anchorTermOf(unit(anchorInfo.gust), 'gust', leadH, ANCHOR_TAU_H.gust) : 0;
+      }
       // FL-AP8b (V-FL-20): mit Option und Kurve das gemessene Gewicht w(τ), sonst e^(−τ/τ_v) — je Größe.
       const termK = anchorInfo.t ? anchorTermOf(anchorInfo.t, 't', leadH, ANCHOR_TAU_H.temperature) : 0;
       const termU = anchorInfo.u ? anchorTermOf(anchorInfo.u, 'u', leadH, ANCHOR_TAU_H.wind) : 0;
@@ -1817,6 +1866,29 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const r = applyStationValue(fused, a.validAtMs, leadH, flags.includes('learned') ? p.learnedDist : null);
       if (r) { fused = r.fused; post = { ...post, stationValue: r.info }; }
     }
+    // OF-6: the spread shrinks with the share of the error the anchor explains — after the station value, whose variables keep their σ.
+    if (fused && useAnchorSigma && anchorInfo) {
+      const sv = post?.stationValue ?? {};
+      const items: { key: 'temperature' | 'windSpeed' | 'gust'; sv: 't' | 'ws' | 'gust'; unc: UncVar; a: number }[] = [
+        { key: 'temperature', sv: 't', unc: 'temperature', a: anchorA.t },
+        { key: 'windSpeed', sv: 'ws', unc: 'wind', a: Math.sqrt(0.5 * (anchorA.u * anchorA.u + anchorA.v * anchorA.v)) },
+        { key: 'gust', sv: 'gust', unc: 'gust', a: anchorA.gust },
+      ];
+      let touched = false;
+      for (const it of items) {
+        const fv: FusedVariable | null | undefined = fused[it.key];
+        if (!fv || !(Math.abs(it.a) >= ANCHOR_SIGMA_MIN_A)) continue;
+        if (sv[it.sv]) { anchorSigmaCount.keptByStation += 1; continue; }
+        const sT = p.learnedSigma?.[it.unc], s1 = anchorRefSigma(it.unc);
+        const f = anchorSigmaFactor(it.a, sT != null && s1 != null && sT > 0 ? (s1 * s1) / (sT * sT) : 1);
+        const d: Dist | null = f < 1 ? scaleDistSigma(fv.dist, f) : null;
+        if (!d) continue;
+        fused = { ...fused, [it.key]: { ...fv, dist: d } };
+        anchorSigmaCount[it.sv] += 1; anchorSigmaCount.minF[it.sv] = Math.min(anchorSigmaCount.minF[it.sv], f);
+        touched = true;
+      }
+      if (touched) { anchorSigmaCount.steps += 1; flags.push('anchorSigma'); }
+    }
     // F10-K1: long-range blend towards the engine's climatology — after the station value, before the uncertainty block.
     if (fused && useLongRange && leadH > LONG_RANGE_FROM_H) {
       const climOnly = fuseAt([], leadH, a.validAtMs, null);
@@ -1888,6 +1960,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
   if (useObsDense) notes.push(`obsDense: ${input.obs?.length ?? 0} Messung(en) im dichten Satz, davon ${input.obs?.filter((o) => o.rr10 != null || o.rr1h != null).length ?? 0} mit Niederschlagssumme, ${input.obs?.filter((o) => o.dewPoint != null).length ?? 0} mit gemessenem Taupunkt`);
   if (useGaugeOcc) notes.push(gaugeOcc ? `gaugeOccurrence: ${gaugeOcc.n} Messgerät(e) ≤ ${GAUGE_OCC_KM} km (Σw ${gaugeOcc.weight.toFixed(2)}), Anteil nass ${gaugeOcc.pWet.toFixed(2)} — an ${gaugeCount.occSteps} Schritten angewandt` : `gaugeOccurrence: Option an, aber kein Messgerät ≤ ${GAUGE_OCC_KM} km mit 10-min-Wert ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt ⇒ unverändert`);
+  if (useAnchorSigma) notes.push(anchorSigmaCount.steps
+    ? `anchorSigma: σ verkleinert an ${anchorSigmaCount.steps} Schritten (T ${anchorSigmaCount.t}, Wind ${anchorSigmaCount.ws}, Böe ${anchorSigmaCount.gust}; kleinster Faktor T ${anchorSigmaCount.minF.t.toFixed(3)} · Wind ${anchorSigmaCount.minF.ws.toFixed(3)} · Böe ${anchorSigmaCount.minF.gust.toFixed(3)})${anchorSigmaCount.keptByStation ? `; ${anchorSigmaCount.keptByStation} Größen-Schritte behalten die σ des Stationswerts` : ''}`
+    : `anchorSigma: Option an, aber ${anchorInfo ? 'kein Schritt mit wirksamem Ankergewicht' : 'kein Anker'} ⇒ σ unverändert`);
   if (useSvAtObs) notes.push(`stationValueAtObsTime: Stationsprodukt an ${svAtObsCount.interpolated} Messminute(n) zwischen zwei Schritten interpoliert, ${svAtObsCount.onStep} auf einem Schritt, ${svAtObsCount.none} ohne Schrittpaar (Lücke > ${ANCHOR_BRACKET_MAX_H} h oder außerhalb; V-OF-10)`);
   if (useGaugeRadar) notes.push(gaugeRadarF ? `gaugeRadar: Faktor ${gaugeRadarF.factor.toFixed(2)} aus ${gaugeRadarF.n} Messgerät(en) ≤ ${GAUGE_RADAR_KM} km (Geräte ${gaugeRadarF.gaugeMm.toFixed(2)} mm gegen Radar ${gaugeRadarF.radarMm.toFixed(2)} mm in der letzten Stunde) — an ${gaugeCount.radarSteps} Radar-Schritten` : `gaugeRadar: Option an, aber kein Paar (Messgerät ≤ ${GAUGE_RADAR_KM} km mit vollständiger Stundensumme, Radar-Stundenmittel am Punkt) oder unter ${GAUGE_RADAR_MIN_MM} mm ⇒ unverändert`);
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
