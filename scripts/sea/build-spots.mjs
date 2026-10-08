@@ -7,7 +7,7 @@
  * Computed per spot (reproducible, no OSM):
  *   cell     nearest CWAM sea cell that is not a dead corner: mean Hs of the four fixture steps ≥ 2 cm and ≥ 3 of its
  *            8 neighbours water (SW-0: Wangerooge's nearest cell stayed 0 all run long)
- *   normal   shore normal (bearing pointing SEAWARD): vector mean of the directions to every cell within 2.5 km,
+ *   normal   shore normal (bearing pointing SEAWARD, `shoreNormal.mjs`): vector mean of the directions to every cell within 2.5 km,
  *            water +1, land −1 — the mask of the very model the waves come from
  *   seaArea / coast   point in polygon of the cell centre in the DWD shapes (nearest polygon edge as fallback)
  *   station  nearest DWD POI station that delivered wind, direction and gust (SW-0 probe, fill ≥ 0.8)
@@ -28,6 +28,7 @@ import { decodeGrib2 } from '../../src/sources/gribDecode.ts';
 import { decompressBz2 } from '../lib/bz2.mjs';
 import { SEA_MODELS, seaCellCentre, seaCellOf, spotCatalogProblems, SEA_SPOT_MAX_CELL_KM } from '../../src/sea/seaContract.ts';
 import { SEA_AREA_IDS, SEA_COAST_IDS } from '../../src/sea/seaText.ts';
+import { maskVectorNormal } from './shoreNormal.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../..');
@@ -47,11 +48,6 @@ const km = (aLat, aLon, bLat, bLon) => {
   const r = Math.PI / 180, dLat = (bLat - aLat) * r, dLon = (bLon - aLon) * r;
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLon / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(h));
-};
-const bearing = (aLat, aLon, bLat, bLon) => {
-  const r = Math.PI / 180, y = Math.sin((bLon - aLon) * r) * Math.cos(bLat * r);
-  const x = Math.cos(aLat * r) * Math.sin(bLat * r) - Math.sin(aLat * r) * Math.cos(bLat * r) * Math.cos((bLon - aLon) * r);
-  return (Math.atan2(y, x) / r + 360) % 360;
 };
 
 // --- zip + shapefile (no dependency) -----------------------------------------------------------------
@@ -186,17 +182,9 @@ export async function buildSpots({ gribDir, shapesCache = null, poiFile, src }) 
       const d = km(s.lat, s.lon, p.lat, p.lon);
       if (!best || d < best.km) best = { i, j, km: d };
     }
-    // Shore normal from the mask within 2.5 km of the spot.
-    let ve = 0, vn = 0;
-    for (let j = Math.floor(c.j) - 12; j <= Math.ceil(c.j) + 12; j++) for (let i = Math.floor(c.i) - 8; i <= Math.ceil(c.i) + 8; i++) {
-      if (i < 0 || j < 0 || i >= g.ni || j >= g.nj) continue;
-      const p = seaCellCentre('cwam', i, j);
-      const d = km(s.lat, s.lon, p.lat, p.lon);
-      if (d < 0.2 || d > 2.5) continue;
-      const b = bearing(s.lat, s.lon, p.lat, p.lon) * Math.PI / 180, w = water(i, j) ? 1 : -1;
-      ve += w * Math.sin(b) / d; vn += w * Math.cos(b) / d;
-    }
-    const normal = Math.round((Math.atan2(ve, vn) * 180 / Math.PI + 360) % 360) % 360;
+    // Shore normal from the mask within 2.5 km of the spot (V-SW-9: the coastline rule `maskCoastNormal` was measured
+    // against the BKG DLM250 coastline and is NOT better at these positions — audit/seewetter.md §13.3).
+    const normal = maskVectorNormal(water, g, s.lat, s.lon);
     const cc = best ? seaCellCentre('cwam', best.i, best.j) : { lat: s.lat, lon: s.lon };
     const find = (list, ids) => {
       const cand = list.filter((a) => ids.has(a.id));

@@ -314,6 +314,30 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
   add('V4 Gegenprobe: andere Böengrenze (−8 kn) oder um 1 h verschobene Achse ⇒ NICHT tief gleich', !isDeepStrictEqual(ckRow, negL) && !isDeepStrictEqual(ckRow, negT), '');
 }
 
+// --- N: V-SW-9 shore normal rules (scripts/sea/shoreNormal.mjs) ------------------------------------------------------
+{
+  const { maskCoastNormal, maskVectorNormal, angleDiff } = await import('./sea/shoreNormal.mjs');
+  const g = SEA_MODELS.cwam.grid, R = Math.PI / 180, lat0 = 54.3, lon0 = 11.0, kx = 111.32 * Math.cos(lat0 * R), ky = 110.574;
+  const straight = (a, flip = false) => (i, j) => {
+    const x = (g.lon1 + i * g.di - lon0) * kx, y = (g.lat1 - j * g.dj - lat0) * ky;
+    return ((x * Math.sin(a * R) + y * Math.cos(a * R)) > 0.3) !== flip;
+  };
+  let w05 = 0, w11 = 0, flipMin = 180;
+  for (let a = 0; a < 360; a += 7) {
+    w05 = Math.max(w05, angleDiff(maskCoastNormal(straight(a), g, lat0, lon0, { bandKm: 0.5 }).normal, a));
+    w11 = Math.max(w11, angleDiff(maskCoastNormal(straight(a), g, lat0, lon0, { bandKm: 1, smooth: 1 }).normal, a));
+    flipMin = Math.min(flipMin, angleDiff(maskCoastNormal(straight(a, true), g, lat0, lon0, { bandKm: 0.5 }).normal, a));
+  }
+  add('N1 Küstenregel an geraden Küsten (52 Winkel, CWAM-Gitter): roh/Band 0,5 km ≤ 20° (Treppe der 0,93-km-Zellen), Glättung 1/Band 1 km ≤ 10°',
+    w05 <= 20 && w11 <= 10, `größte Abweichung ${w05}° bzw. ${w11}°`);
+  add('N2 Gegenprobe: vertauschte Maske ⇒ Normale zeigt landwärts (≥ 160° daneben)', flipMin >= 160, `kleinste Abweichung ${flipMin}°`);
+  const swh10 = decodeGrib2(new Uint8Array(await decompressBz2(readFileSync(join(FIX, 'cwam-2026100700', 'CWAM_SWH_2026100700_010.grib2.bz2'))))).values;
+  const wet = (i, j) => i >= 0 && j >= 0 && i < g.ni && j < g.nj && !Number.isNaN(swh10[j * g.ni + i]);
+  const catN = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')).spots;
+  const same = catN.filter((s) => maskVectorNormal(wet, g, s.lat, s.lon) === (s.normalFrom === 'set' ? s.normalMask : s.normal)).length;
+  add('N3 Katalogregel nach dem Umzug in shoreNormal.mjs: alle 56 Masken-Normalen gleich dem Katalog (bei „set“ normalMask)', same === catN.length, `${same}/${catN.length}`);
+}
+
 // --- W: V-SW-2 wind refresh on a newer t1 cube (on the store of block A: run 2026100700, wind with t1 2026100703) ---
 {
   const { windDue, windRefresh } = await import('./sea/sea-derive.mjs');
