@@ -718,3 +718,57 @@ seine Verbreiterung um 2,6 % kostete in 12r und 12p in AT/CH 0,2 % CRPS (signifi
 eine Zelle verschlechtert hat. **Vorzugsreihenfolge vorab:** beide grün ⇒ 12u; nur einer grün ⇒ dieser; keiner ⇒ rote Zellen beider
 benennen, kein dritter Kandidat ohne neues Fenster. Beide nur `--modus=abnahme`. `verify:pv-cube` prüft, dass 4 sich von 3 nur
 beim Wind unterscheidet.
+
+## 12 E-OF-4 entschieden — „buscosun Fusion 12“ = Kandidat `fusion-12s`, eingeschaltet ohne Spur P (Jan 08.10. spät)
+
+**Auftrag (wörtlich):** „ich möchte eine buscosun fusion version 12 jetzt schon aktiv schalten ohne P spur und dabei die beste mit der
+besten performance und im optimal mit allen Gates grün.“ Vorher gefragt: „welches buscosun fusion 12 hat alle gates bestanden?“ —
+Antwort: keines (Tabelle §11.6; 12 und 12s G3 rot, 12q G3 rot, 12r/12p G2 + G3 rot; 12t/12u ungemessen, nur Spur P).
+
+### 12.1 Wahl
+
+| Kandidat | Index gegen 9 (Rolle B) | G2 | G3 | Entscheidung |
+|---|---|---|---|---|
+| `fusion-12s` | **+1,55 %** (95 %: +1,36 … +1,79) | grün, 0 von 99 schlechter | rot 3 von 27 | **gewählt** |
+| `fusion-12r` | +1,58 % (95 %: +1,44 … +1,79) | **rot, 7 Kernzellen** (ws 120–240 h CH −4,1 %, ws 48–120 h AT −1,7 %, td 0–6 h AT/CH −0,8 %) | rot 2 von 27 | nicht gewählt |
+| `fusion-12` | +1,47 % | grün | rot 6 von 27 | überholt |
+
+Der Index-Vorsprung von 12r (+0,03 pp) liegt innerhalb beider Konfidenzintervalle; sein G2-Rot ist dagegen signifikant und trifft
+Nutzer in AT/CH bei Wind jenseits 48 h. „Beste Performance bei möglichst grünen Gates“ ist damit 12s: nirgends signifikant schlechter
+als Fusion 9, 80 von 99 Kernzellen besser als jede Einzelquelle, ein Gate rot. Die drei roten G3-Zellen von 12s (Bericht
+`berichte/fusion-12s/2026-10-08-voll/`): **T 0–6 h 74,4 %** (Champion 77,8 %, Band 76,1–83,9 %: zu schmal — die σ-Kopplung ohne Skala),
+**Wind 6–24 h 85,1 %** (Champion 84,7 %) und **Böe 24–48 h 90,5 %** (Champion 90,3 %) — zu breit, geerbt von Fusion 9, von 12s um 0,4
+bzw. 0,2 pp weiter vom Ziel entfernt (signifikant, aber minimal). **Das ist Jans Wort, kein Prüfstand-Urteil:** kein Kandidat hat alle
+vier Gates bestanden, Spur P war leer, Spur R unterscheidet die Messungs-Kandidaten nicht (§11.7).
+
+### 12.2 Umsetzung (Commit auf `fusion-12`)
+
+- `fusionRelease.ts`: `FUSION12_OBS_DENSE = 1`; neue Konstante `FUSION12_ANCHOR_SIGMA = 1`; neues Register-Feld `also` (Begleit-Optionen
+  eines Stands, die mit seiner Option und seinem Schalter zusammen an- und ausgehen — Fusion 12 ist der erste Stand mit zwei
+  Motor-Optionen); Eintrag `n: 12` = `obsDense: 1` + `also: { anchorSigma: 1 }`, Notiz und Beleg angepasst. `fusionStage` schreibt die
+  Begleit-Optionen nur, wenn der Stand an ist; `?dense=0` nimmt beide zurück ⇒ exakt Fusion 11 (Stufen-Label „buscosun Fusion 11
+  (dichter Messsatz per Schalter aus)“).
+- `cubeSource.ts`: nur der Re-Export der neuen Konstante. Der Motor ist unverändert — die Optionen `obsDense`/`anchorSigma` existieren
+  seit OF-5/OF-6 und sind im Prüfstand als `fusion-12s` (Commit `bec557c`) gemessen; die Stufe `fs` setzt sie jetzt.
+- `verify-fusion-release.mjs`: A1/A2/A3/A3b kennen `also` (Schlüssel eindeutig, keine Basis-Option, in der Stufe, mit dem Schalter weg),
+  neu **A3c** (Begleit-Optionen gehen mit dem Schalter aus; Gegenprobe: Stände ohne `also` verlieren genau eine Option), B3 sucht auch
+  Begleit-Schlüssel als handkopierte Option außerhalb von Motor und Leser.
+- Was damit folgt, ohne weiteren Code (Phase FR): jeder Teil der Plattform heißt nach dem Push „buscosun Fusion 12“; Streckenprognose
+  und Kartenfelder bauen sich beim nächsten Lauf neu (`repeatVerdict`), bis dahin nennen sie den Stand, mit dem sie gebaut sind.
+- **Nicht geändert:** der Prüfstand-Champion bleibt `fusion-9` (nur die Abnahme setzt einen Champion; H-OF-5/5b sind gegen Fusion 9
+  formuliert — **E-OF-7**, Jans Gate); die Register-Einträge 12s/12t/12u bleiben, wie sie sind; 12t/12u heißen bei grün in Spur P
+  **Fusion 13** (sie enthalten 12s vollständig). Daten-Repo unverändert.
+
+### 12.3 Gates (Worktree `fusion-12`, 08.10. 22:30–23:00 UTC, zwei fremde Vite-Dev-Server auf der Maschine)
+
+| Gate | Ergebnis |
+|---|---|
+| `npm run typecheck` | 0 Fehler |
+| `verify:fusion-release` | **30/30** (A3c neu; „?dense=0 ⇒ buscosun Fusion 11 (dichter Messsatz per Schalter aus)“) |
+| `verify:pv-fusion` | 235/235 |
+| `verify:road-fc` | 103/103 |
+| `verify:pv-cube` | 438/441 — rot nur (4) Laufzeit (170 ms, vorher am selben Abend ohne Änderung 110 ms und 97 ms), (9) Kosten PAP 3, (16) SWR-Frist: alle drei zeitabhängig (V-FR-8); Block (4) rechnet eine feste Eingabe ohne die Stufe, die Änderung berührt ihn nicht |
+| `verify:point-client` | 174/175 — (10s) zeitabhängig, auch an HEAD (V-EX-13) |
+| `verify:np0-fields` | 23/24 — B rot: `publish-point` meldet in der Kopie des lokalen Daten-Klons 208 Manifesteinträge ohne Datei für den Lauf 2026100812 (der Klon trägt seit 22:32 UTC einen lokalen HD-Commit der parallelen Sitzung); der Fehler fällt vor jeder Feldrechnung, die Felder lesen das Register unverändert über `fusionStage()` — Umgebung, nicht diese Änderung; Wiederholung mit frischem Klon = Jans Gate |
+| Build | grün |
+| `npm run budget` | totalJs **1 611,5 KB** gegen HEAD `f16f82d` 1 611,4 (Kontrollbau, +0,1 KB); Grenze 1 609 → **1 612** (OF-7/OF-7b lagen schon 2,4 KB darüber, ungemessen; Notiz in `budget.json`); eagerJs 109,3 unverändert |

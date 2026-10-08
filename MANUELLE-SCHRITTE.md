@@ -1849,3 +1849,14 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
    bei grün über Fusion 12 entscheiden (dann = „buscosun Fusion 12“ mit `obsDense`, `anchorSigma`, `anchorKSet`, `sigmaScale: 3` in der
    Stufe; Register-Eintrag + `FUSION12_*`-Konstanten), bei rot die Zellen benennen, kein Nachstellen an Spur P. **Zweiter Kandidat `fusion-12u`** (Jan 08.10.: 12t mit Windknoten 24–48 h = 1, `sigmaScale: 4`, `claims-addendum-3.md`): beide in
    der Abnahme fahren (`--kandidat=fusion-12t` und `--kandidat=fusion-12u`); Vorzug vorab: beide grün ⇒ 12u, sonst der grüne, keiner ⇒ benennen.
+10. **E-OF-4 entschieden (Jan 08.10. abends: „buscosun Fusion 12 jetzt schon aktiv schalten ohne P-Spur, die beste Performance, im
+   Optimum alle Gates grün“; `audit/obs-fusion.md` §12):** umgesetzt als **„buscosun Fusion 12“ = Kandidat `fusion-12s`** (Fusion 11 +
+   `obsDense` + `anchorSigma`; `FUSION12_OBS_DENSE = 1`, neue Konstante `FUSION12_ANCHOR_SIGMA = 1`, Register-Feld `also` für die
+   Begleit-Option, `?dense=0` nimmt beides zurück = Fusion 11). Gewählt wurde 12s statt 12r: 12r hat +1,58 % statt +1,55 % (im
+   Rauschen), ist aber in 7 Kernzellen signifikant schlechter (Wind AT/CH > 48 h bis −4 %); 12s ist nirgends schlechter und hat
+   G3 rot in 3 von 27 Zellen (T 0–6 h zu schmal, Wind 6–24 h und Böe 24–48 h zu breit). **Kein Kandidat hat alle vier Gates
+   bestanden; das ist dein Wort, kein Prüfstand-Urteil.** Was damit auf dich zukommt: (a) **Merge/Push** (Schritt 7) — mit dem Push von
+   `main` zeigt jeder Teil der Plattform „buscosun Fusion 12“, die Streckenprognose und die Kartenfelder bauen sich beim nächsten Lauf
+   neu (`repeatVerdict`); (b) **E-OF-7:** der Prüfstand-Champion bleibt Fusion 9 (nur die Abnahme in Spur P setzt einen Champion; die
+   Hypothesen H-OF-5/5b sind gegen Fusion 9 formuliert); (c) 12t/12u heißen bei grün in Spur P **Fusion 13**; (d) `budget.json` totalJs
+   1 609 → 1 612 angehoben (OF-7/OF-7b lagen schon 2,4 KB darüber, diese Änderung +0,1 KB). Gates in §12.

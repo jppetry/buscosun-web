@@ -2701,7 +2701,7 @@ export function gaugeRadarFactorOf(obs: readonly CubeObs[], nowcast: readonly No
  */
 export const INCA_ANCHOR_WEIGHT = 0.6;
 // The stands of buscosun Fusion (7, 8, 9, …) live in ONE register: `fusion/fusionRelease.ts`. Re-exported for the callers of this module.
-export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION12_OBS_DENSE, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
+export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION12_OBS_DENSE, FUSION12_ANCHOR_SIGMA, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
