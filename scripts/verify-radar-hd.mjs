@@ -20,7 +20,7 @@
 // Call: npm run verify:radar-hd   (optional: RADAR_HD_RAW=<dir with rzc*.h5 / composite_rv_*.tar>)
 // ---------------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
-import { radarHdFlagFrom, RAIN_FILTERS, RAIN_FILTER_CODE, RADAR_HD_DEFAULT_FILTER, RADAR_HD_LAYER_IDS, RADAR_HD_COUNTRIES } from '../src/scalar/radarHd.ts';
+import { radarHdFlagFrom, RAIN_FILTERS, RAIN_FILTER_CODE, RADAR_HD_DEFAULT_FILTER, RADAR_HD_DEFAULT_ON, RADAR_DUAL_DEFAULT_ON, RADAR_MORPH_DEFAULT_ON, RADAR_HD_LAYER_IDS, RADAR_HD_COUNTRIES } from '../src/scalar/radarHd.ts';
 import { countryMaskForGrid, fastCountryPicker, gridNodeFn, projectedSampler, HD_GRID_COUNTRY } from '../src/scalar/radarCountryMask.ts';
 import { pickCountry } from '../src/pointForecast/countryOfPoint.ts';
 import { DE1200_CORNERS } from '../src/sources/radolanGeo.ts';
@@ -33,13 +33,14 @@ const skip = (name, why) => { skipped++; console.log(`⊘ ${name} — ${why}`); 
 const same = (a, b) => a.length === b.length && Buffer.compare(Buffer.from(a.buffer, a.byteOffset, a.byteLength), Buffer.from(b.buffer, b.byteOffset, b.byteLength)) === 0;
 
 // ── A: switches ──────────────────────────────────────────────────────────────
-add('A1 off without any vote', !radarHdFlagFrom('', null).on);
+// E-HD-2 (Jan 08.10.): HD is the default; `?hd=0` / store `0` is the named fallback (the composite picture of HEAD 96d9725).
+add('A1 on without any vote (E-HD-2), with the default filter', RADAR_HD_DEFAULT_ON === true && radarHdFlagFrom('', null).on && radarHdFlagFrom('', null).filter === RADAR_HD_DEFAULT_FILTER);
 add('A2 `?hd=1` on with the default filter', radarHdFlagFrom('?hd=1', null).on && radarHdFlagFrom('?hd=1', null).filter === RADAR_HD_DEFAULT_FILTER);
 add('A3 `?hd=<filter>` picks the filter', RAIN_FILTERS.every((f) => radarHdFlagFrom(`?hd=${f}`, null).on && radarHdFlagFrom(`?hd=${f}`, null).filter === f));
 add('A4 `?hd=0` beats the stored value', !radarHdFlagFrom('?hd=0', '1').on && !radarHdFlagFrom('?hd=0', 'catmull').on);
 add('A5 stored value counts without a query vote', radarHdFlagFrom('', '1').on && radarHdFlagFrom('', 'nearest').filter === 'nearest' && !radarHdFlagFrom('', '0').on);
-add('A6 unknown word = no vote (falls through to the store, else off)', !radarHdFlagFrom('?hd=foo', null).on && radarHdFlagFrom('?hd=foo', '1').on);
-add('A7 broken query = no vote', !radarHdFlagFrom('%E0%A4%A', null).on);
+add('A6 unknown word = no vote (falls through to the store, else the default)', !radarHdFlagFrom('?hd=foo', '0').on && radarHdFlagFrom('?hd=foo', '1').on && radarHdFlagFrom('?hd=foo', null).on === RADAR_HD_DEFAULT_ON);
+add('A7 broken query = no vote', radarHdFlagFrom('%E0%A4%A', null).on === RADAR_HD_DEFAULT_ON && !radarHdFlagFrom('%E0%A4%A', '0').on);
 add('A8 default filter is Catmull-Rom; codes 0..3 unique; bspline is 0 (the pre-HD path)',
   RADAR_HD_DEFAULT_FILTER === 'catmull' && RAIN_FILTER_CODE.bspline === 0 && new Set(RAIN_FILTERS.map((f) => RAIN_FILTER_CODE[f])).size === 4);
 add('A9 three layer ids, one per country, distinct from the composite layer', RADAR_HD_COUNTRIES.length === 3
@@ -204,7 +205,7 @@ for (const g of GRIDS) {
   add('F3 log ramp: 15 stops, strictly increasing, same colours as the linear ramp up to 20 mm/h, white at 200', stops.length === 15 && stops.every((s, i) => i === 0 || s > stops[i - 1])
     && precipRainRampLog[precipToU8Log(20) / 255] === 'rgba(150,40,140,0.90)' && precipRainRampLog[precipToU8Log(0.06) / 255] === 'rgba(150,200,245,0.59)' && precipRainRampLog[1] === 'rgba(255,255,255,0.98)');
   // switch
-  add('F4 `?hdv2=1` on, `?hdv2=0` beats the store, store `1` counts, default off', radarDualFlagFrom('?hdv2=1', null) && !radarDualFlagFrom('?hdv2=0', '1') && radarDualFlagFrom('', '1') && !radarDualFlagFrom('', null));
+  add('F4 `?hdv2=1` on, `?hdv2=0` beats the store, store `0`/`1` count, default on (E-HD-3)', radarDualFlagFrom('?hdv2=1', null) && !radarDualFlagFrom('?hdv2=0', '1') && radarDualFlagFrom('', '1') && !radarDualFlagFrom('', '0') && radarDualFlagFrom('', null) === RADAR_DUAL_DEFAULT_ON && RADAR_DUAL_DEFAULT_ON === true);
   // meta
   const frames = Array.from({ length: 25 }, (_, k) => ({ lead: k * 5, file: `f${String(k * 5).padStart(3, '0')}.png`, bytes: 10 }));
   const dual = makeRadarImgDual(frames.map((f) => ({ lead: f.lead, file: radarImgDualFile(f.lead), bytes: 20 })));
@@ -292,7 +293,7 @@ for (const g of GRIDS) {
   const { estimateMorphFlow, morphAt } = await import('../src/scalar/radarMorphFlow.ts');
   const { encodeFlow } = await import('../src/scalar/RainLayer.ts');
   const { radarMorphFlagFrom, RADAR_MORPH_MAX_TEXELS, RADAR_MORPH_FACTOR } = await import('../src/scalar/radarHd.ts');
-  add('G1 `?hdmorph=1` on, `?hdmorph=0` beats the store, default off; factors DE 8 / AT 4 / CH 4', radarMorphFlagFrom('?hdmorph=1', null) && !radarMorphFlagFrom('?hdmorph=0', '1') && !radarMorphFlagFrom('', null) && RADAR_MORPH_FACTOR.DE === 8 && RADAR_MORPH_FACTOR.AT === 4);
+  add('G1 `?hdmorph=1` on, `?hdmorph=0` beats the store, store `0` off, default on (E-HD-5); factors DE 8 / AT 4 / CH 4', radarMorphFlagFrom('?hdmorph=1', null) && !radarMorphFlagFrom('?hdmorph=0', '1') && !radarMorphFlagFrom('', '0') && radarMorphFlagFrom('', null) === RADAR_MORPH_DEFAULT_ON && RADAR_MORPH_DEFAULT_ON === true && RADAR_MORPH_FACTOR.DE === 8 && RADAR_MORPH_FACTOR.AT === 4);
   // flow encoding round trip (LUMINANCE_ALPHA bytes ↔ texels)
   const fl = { u: Float32Array.from([-40, -3.3, 0, 7.25, 40, 99]), v: Float32Array.from([1, -1, 0.5, -0.5, 0, -99]), w: 3, h: 2 };
   const enc = encodeFlow(fl);

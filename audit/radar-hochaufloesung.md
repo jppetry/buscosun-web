@@ -166,13 +166,22 @@ Nicht in dieser Phase: Polarvolumen (§4), Änderungen an buscosun Fusion (liest
 ## §6 Entscheidungen
 
 - **E-HD-1 (Jan 08.10., „setze genau das so um"):** HD-1…HD-4 bauen, Schalter aus, optische Verifikation danach.
-- **E-HD-2 (offen):** HD als Voreinstellung einschalten (nach Real-Device und Jans Durchsicht der Bilder).
-- **E-HD-3 (offen, Jans Gate):** `RADAR_IMG_V2=1` in den Spiegel-Workflow des Daten-Repos; davor liest der Client v1.
-- **E-HD-4 (offen):** Farbstufen über 20 mm/h (`precipRainRampLog`, `set`).
+- **E-HD-2 (Jan 08.10. abends, „schalte alles aktiv, ich habe alles gepushed"):** HD ist die Voreinstellung
+  (`RADAR_HD_DEFAULT_ON`, Filter Catmull-Rom); `?hd=0` / `localStorage.radarhd = '0'` = das Komposit-Bild von HEAD `96d9725`.
+  Ohne Real-Device-Messung — Jans Entscheidung, Befund V-HD-9.
+- **E-HD-3 (Jan 08.10., dieselbe Freigabe):** `RADAR_IMG_DUAL: '1'` im Spiegel-Workflow (`scripts/radar-mirror/workflow-radar.yml`
+  = Vorlage, Kopie `.github/workflows/radar.yml` im Daten-Repo — mit Jans Push-Vollmacht vom 08.10. abends als Daten-Repo-Commit
+  `01400047` auf `origin/main`). Der Client liest Dual-Frames voreingestellt (`RADAR_DUAL_DEFAULT_ON`, `?hdv2=0` = v1-Byte);
+  ein Slot ohne `meta.dual` liest exakt wie vorher — wirksam ab dem ERSTEN Spiegel-Job nach dem Push (der laufende Job
+  behält seine Umgebung, ≤ 5 h 45).
+- **E-HD-4 (Jan 08.10., mit E-HD-2/3):** Farbstufen 30/50/100/200 mm/h (`precipRainRampLog`, `set`) bleiben wie gebaut.
+- **E-HD-5 (Jan 08.10.):** Morph im Regenradar voreingestellt an (`RADAR_MORPH_DEFAULT_ON`, `?hdmorph=0` = lineare Mischung).
 
 ## §7 Umsetzung (08.10.2026, uncommitted)
 
-Alle Teile additiv, hinter Schaltern (Voreinstellung aus); ohne Schalter ist das Produkt pixelgleich zu HEAD `e2d875c` (§8 G3).
+Alle Teile additiv, hinter Schaltern; bis E-HD-2 Voreinstellung aus — ohne Schalter war das Produkt pixelgleich zu HEAD `e2d875c`
+(§8 G3), seit E-HD-2 (08.10. abends, nach Jans Push `96d9725`) sind HD, Dual und Morph voreingestellt an und `?hd=0`
+ist der benannte Rückfall (§8 G3′).
 Flags in `src/scalar/radarHd.ts` (rein, headless geprüft): `?hd=0|1|catmull|bilinear|nearest|bspline` / `localStorage.radarhd`,
 `?hdv2=0|1` / `radarhdv2`, `?hdmorph=0|1` / `radarhdmorph` (Query schlägt Speicher, D-31-Muster).
 
@@ -238,6 +247,7 @@ geklemmt auf Min/Max der inneren 2 × 2 Texel (interpolierend, Spitze 1,00, kein
 | G1 Maske = `pickCountry` Pixel für Pixel | `verify:radar-hd` B2 (exakte Inverse je Pixelmitte auf den echten Gittern), B1 200 000 Zufallspunkte, B4 Negativkontrolle | **0 von 1 320 000 / 302 131 / 454 400 Pixeln anders**; Verfeinerung ≤ 14 mm |
 | G2 Bildschirm = Radarpixel | `scripts/radar-hd-pixelcheck.mjs` z10 (Fenster um den größten Kern je Land; Canvas per `toDataURL` im `render`, Hintergrund je Pixel aus einem zweiten Shot ohne Niederschlag, Rampe genau wie der Shader liest — 16 × 16 LINEAR mittelt vier Texel —, Vergleich premultipliziert, Toleranz 8/255, Kamera gegen `map.unproject` 0,00 px, Frames und Shot auf denselben Slot-Stempeln) | **HD nearest 99,92–99,94 %, HD Catmull 99,99–100 %** der Pixel (mittl. \|Δ\| 0,3); HEAD gegen sein Komposit-Orakel 99,75–99,99 %; **Negativkontrolle** (HEAD gegen das native Orakel) 31–73 %. z8: HD 92–99,7 % = HEAD-Niveau (Texel ≈ 2,5 px, Randpixel), Kontrolle 66–76 %. `audit/radar-hochaufloesung/pixelcheck/` |
 | G3 ohne Schalter pixelgleich zu HEAD | `regenradar-wk-pixeldiff.mjs` (Produktionsbuilds HEAD `e2d875c` ↔ Arbeitsbaum mit dem ENDSTAND, derselbe Slot) | Niederschlag Desktop + Mobil, Regenradar Mobil, Warnungen **0 px**; Regenradar Desktop 114 px (0,009 %, Uhrzeit), Übersicht Desktop 73 px (Uhr); Übersicht Mobil in 2 von 4 Läufen 0 px, sonst 42 % — die Länder-Maske (`/countries/*.geojson`) war in EINEM der beiden Builds nach 14 s noch nicht gezeichnet (HEAD-Shot ohne Maske), beide Richtungen beobachtet ⇒ Ladezeit-Flake des Labs, kein HD-Pfad (V-HD-8); `audit/radar-hochaufloesung/pixeldiff/` |
+| G3′ Rückfall nach E-HD-2 (08.10. abends) | `regenradar-wk-pixeldiff.mjs --curQuery=hd=0&hdmorph=0&hdv2=0` HEAD `96d9725` (Schalter aus) gegen Arbeitsbaum (Voreinstellung an) mit dem Rückfall; Negativkontrolle ohne `--curQuery`; neue Szenarien `rr-ort-*` (`/regenradar/muenchen`, die Landeseite `/regenradar` trägt keine Karte) | **Rückfall:** Wetterkarte Desktop 8 px / Mobil 158 px, Regenradar Ort Desktop 32 px / Mobil 1 372 px (0,05 %) — jede Abweichung ist Uhrzeit, Live-Punkt oder der pulsierende Marker, kein Radarpixel (`pixeldiff-fallback/*.diff.png`); **Negativkontrolle:** Wetterkarte 15 950 px (1,23 %), Regenradar Ort 32 420 px (2,5 %), ausschließlich Regenränder + Statuszeile „1-km-Gitter (HD)" (`pixeldiff-default/`). Voreinstellung im Browser ohne Query: drei HD-Ebenen sichtbar (`tex=1100x1200/701x431/710x640`, Maske da, Filter catmull), Komposit-Ebene versteckt, Konsole sauber; Regenradar beim Abspielen Morph aktiv 2/2 Stichproben (`.cache/hd-default-{wk,rr}.png`) |
 | G4 `build()`/Fusion byte-gleich | `verify:radar-hd` C1 (292 Slider-Stunden × Quellensätze), C2; `verify:precip-source` 30/30, `verify:layer-geometry` 76/76, `verify:radar-sampling` 25/25, `verify:fusion-release` 28/28, `verify:regenradar-profile` 33/36 (E8 = gewollte Shader-Änderung, E7 = Phase NS, C1b fällt an HEAD ebenso — Live-Frames) | grün |
 | G5 Shader-Algebra | `verify:radar-hd` D1–D4 (B-Spline (1,4,1,0)/6, Einzeltexel 4/9 gegen 1, Catmull interpolierend 256/256, Klemmung 0 Ausreißer bei 3 390 rohen Überschwingern) | grün |
 | G7 Dual-Rundlauf | `verify:radar-hd` F1–F13 mit `RADAR_HD_RAW` (echte rzc-Datei und RV-Tar 08.10. 16:15): ohne Schalter byte-gleich, 25/25 `g`-Frames, Kanal 1 = `f` byte-gleich, Kanal 2 = `precipToU8Log` der Raten; Codec ≤ ½ Stufe, trocken ⇔ trocken | grün |
@@ -270,5 +280,9 @@ Ausnahme); (5) Long Tasks: headless nicht messbar — Real-Device offen (§9).
   0 %) — dieselben Varianten standen in den anderen Läufen des Tages bei 99,9 %. Endstand z10 (letzter Lauf, 7 gültige
   Zeilen): HD nearest 99,92–99,93 %, HD Catmull 99,996 %, HEAD 99,987–99,993 %, Negativkontrolle 40–60 %. Ein
   Wiederholungslauf im Leerlauf gehört zur Abnahme.
-- Entscheidungen offen (Jan, `MANUELLE-SCHRITTE.md` §50): E-HD-2 Voreinstellung, E-HD-3 `RADAR_IMG_DUAL=1`, E-HD-4 Farben,
-  E-HD-5 Morph als Voreinstellung, Real-Device.
+- **V-HD-9** Die Voreinstellung ist seit E-HD-2 an, ohne Real-Device-Messung (Jans Entscheidung): auf dem Telefon kostet
+  jeder Frame-Wechsel den Upload von bis zu 1100 × 1200 Bytes + Maske statt 600 × 512, der Catmull-Rom-Filter 16 Taps je
+  Fragment; im Lab (SwiftShader) ohne Long Task > 200 ms. Erste Messung auf einem echten Gerät gehört zur Abnahme;
+  Rückweg für Nutzer `?hd=0`, für alle `RADAR_HD_DEFAULT_ON = false`.
+- Entscheidungen: E-HD-2…5 entschieden (§6, 08.10. abends); offen nur Real-Device (V-HD-9) und der Push des Daten-Repo-Workflows
+  (`MANUELLE-SCHRITTE.md` §50).

@@ -1,0 +1,33 @@
+{
+ "at": "2026-10-08T20:22:41.288Z",
+ "head": "http://127.0.0.1:5213",
+ "cur": "http://127.0.0.1:5212",
+ "curQuery": "hd=0&hdmorph=0&hdv2=0",
+ "threshold": 12,
+ "scenarios": [
+  {
+   "id": "rr-ort-desktop",
+   "path": "/regenradar/muenchen",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0025,
+   "differPx": 32,
+   "exactPct": 99.9887
+  },
+  {
+   "id": "rr-ort-mobile",
+   "path": "/regenradar/muenchen",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 0.0463,
+   "differPx": 1372,
+   "exactPct": 99.9094
+  }
+ ]
+}

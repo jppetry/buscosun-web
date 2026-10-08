@@ -2,13 +2,15 @@
  * Phase HD — switches and names of the high-resolution precipitation radar (`audit/radar-hochaufloesung.md` §5).
  *
  * Pure (no DOM, no maplibre): the verifier reads it headless. With the switch off, `MapView` draws exactly as before
- * (the DACH composite on the 600 × 512 grid); with it on, each country's radar is drawn on its own 1-km grid through its
- * own `RainLayer` (HD-1) with a value-preserving filter (HD-2). The composite layer stays as the named fallback.
+ * Phase HD (the DACH composite on the 600 × 512 grid); with it on, each country's radar is drawn on its own 1-km grid
+ * through its own `RainLayer` (HD-1) with a value-preserving filter (HD-2). The composite layer stays as the named
+ * fallback. **Default on since E-HD-2 (Jan 08.10.2026, "schalte alles aktiv")** — `?hd=0` is the way back to the
+ * composite picture of HEAD `96d9725`.
  *
  *   `?hd=1`                → on, filter `RADAR_HD_DEFAULT_FILTER`
  *   `?hd=catmull|bilinear|nearest|bspline` → on with that filter
  *   `?hd=0`                → off (beats the stored value)
- *   otherwise `localStorage.radarhd` with the same grammar; otherwise off.
+ *   otherwise `localStorage.radarhd` with the same grammar; otherwise `RADAR_HD_DEFAULT_ON`.
  */
 
 /** How `RainLayer` reads its value texture between texel centres. `bspline` is the state before HD (smoothing, an
@@ -19,12 +21,19 @@ export const RAIN_FILTERS: readonly RainFilter[] = Object.freeze(['bspline', 'ca
 export const RAIN_FILTER_CODE: Readonly<Record<RainFilter, number>> = Object.freeze({ bspline: 0, catmull: 1, bilinear: 2, nearest: 3 });
 /** HD-2: Catmull-Rom clamped to the inner 2 × 2 texels — interpolating (peak 1,00 at the texel centre), no overshoot. */
 export const RADAR_HD_DEFAULT_FILTER: RainFilter = 'catmull';
+/** E-HD-2: the native 1-km grids are the normal case; `?hd=0` / `localStorage.radarhd = '0'` = the composite as before. */
+export const RADAR_HD_DEFAULT_ON = true;
+/** E-HD-3: dual frames (log plane up to 200 mm/h) are read whenever a slot offers them; `?hdv2=0` keeps the v1 byte. */
+export const RADAR_DUAL_DEFAULT_ON = true;
+/** E-HD-5: in-between pictures along the motion field in the Regenradar; `?hdmorph=0` = linear mix as before. */
+export const RADAR_MORPH_DEFAULT_ON = true;
 
 export interface RadarHdFlags { on: boolean; filter: RainFilter }
 
 /**
  * HD-4: in-between pictures along the motion field (Regenradar profile, between two radar times) instead of the linear
- * mix — `?hdmorph=1` on, `?hdmorph=0` off (beats the store), else `localStorage.radarhdmorph`; default off. Needs HD on.
+ * mix — `?hdmorph=1` on, `?hdmorph=0` off (beats the store), else `localStorage.radarhdmorph`; default
+ * `RADAR_MORPH_DEFAULT_ON`. Needs HD on.
  */
 export function radarMorphFlagFrom(
   search: string = typeof location !== 'undefined' ? location.search : '',
@@ -38,7 +47,9 @@ export function radarMorphFlagFrom(
   if (s === undefined) {
     try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarhdmorph') : null; } catch { s = null; }
   }
-  return s === '1';
+  if (s === '0') return false;
+  if (s === '1') return true;
+  return RADAR_MORPH_DEFAULT_ON;
 }
 
 /** HD-4: coarsening factor of the motion estimate per native grid (RV 1100 → 138 columns, INCA/rzc 701/710 → 175/178). */
@@ -68,13 +79,15 @@ export function radarHdFlagFrom(
   if (s === undefined) {
     try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarhd') : null; } catch { s = null; }
   }
-  return parse(s) ?? { on: false, filter: RADAR_HD_DEFAULT_FILTER };
+  return parse(s) ?? { on: RADAR_HD_DEFAULT_ON, filter: RADAR_HD_DEFAULT_FILTER };
 }
 
 /**
  * HD-3: read the mirror's dual frames (`g<lead>.png`: channel 1 = v1 byte, channel 2 = log 0,06…200 mm/h) when the slot
- * offers them. `?hdv2=1` on, `?hdv2=0` off (beats the store), else `localStorage.radarhdv2`; default off. The HD layers
- * then draw the log plane with `precipRainRampLog`; every other consumer keeps the v1 byte.
+ * offers them. `?hdv2=1` on, `?hdv2=0` off (beats the store), else `localStorage.radarhdv2`; default
+ * `RADAR_DUAL_DEFAULT_ON`. The HD layers then draw the log plane with `precipRainRampLog`; every other consumer keeps
+ * the v1 byte. A slot without `meta.dual` (every slot before the mirror runs with `RADAR_IMG_DUAL=1`) reads exactly as
+ * with the switch off.
  */
 export function radarDualFlagFrom(
   search: string = typeof location !== 'undefined' ? location.search : '',
@@ -88,7 +101,9 @@ export function radarDualFlagFrom(
   if (s === undefined) {
     try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarhdv2') : null; } catch { s = null; }
   }
-  return s === '1';
+  if (s === '0') return false;
+  if (s === '1') return true;
+  return RADAR_DUAL_DEFAULT_ON;
 }
 
 /** The three HD layers of `MapView` (one per country radar), drawn right above the composite layer. */

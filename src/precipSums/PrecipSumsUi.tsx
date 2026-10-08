@@ -55,9 +55,17 @@ export function SumControls({ sel, onChange, variant }: { sel: SumSelection; onC
 function legendSource(info: SumMapInfo): ReactNode[] {
   const lines: ReactNode[] = [];
   if (info.dir === 'past') {
-    if (info.stationNote) lines.push(<span key="n">{info.stationNote}</span>);
-    else lines.push(<span key="st">Punkte: {info.stations} Stationen DWD · GeoSphere · MeteoSchweiz{info.stationsEndMs ? <> · Stand {fmtHour(info.stationsEndMs)}</> : null}</span>);
-    lines.push(<span key="area">Fläche: amtliche Radar-Summen (DWD RW, CombiPrecip, INCA) noch nicht angebunden</span>);
+    const m = info.measured;
+    if (m) {
+      // Fläche: Quelle je Land, Stand E (das Fenster endet an E, nicht „jetzt" — E-NS-3); ein fehlendes Land beim Namen.
+      // DE 24/48 h aus SF endet 10 min früher als AT/CH — dann steht das eigene Ende hinter DE.
+      const deEnd = m.de && m.de.endMs !== m.endMs ? ` bis ${fmtHour(m.de.endMs)}` : '';
+      lines.push(<span key="area">Fläche bis {fmtHour(m.endMs)}{m.stale ? ' (veraltet)' : ''}: Radar mit Regenmessern angeeicht · {m.countries.filter((c) => c.ok).map((c) => `${c.cc} ${c.provider} ${c.label}${c.cc === 'DE' ? deEnd : ''}`).join(' · ') || 'kein Land vollständig'}</span>);
+      for (const c of m.countries.filter((x) => !x.ok)) lines.push(<span key={`gap-${c.cc}`} className="ns-legend-note">{c.cc} Lücke: {c.note ?? 'unvollständig'}</span>);
+    } else if (info.measuredNote) lines.push(<span key="area">Fläche: {info.measuredNote}</span>);
+    if (info.stationNote) lines.push(<span key="n" className="ns-legend-note">{info.stationNote}</span>);
+    else lines.push(<span key="st" className="ns-legend-note">Punkte: {info.stations} Stationen DWD · GeoSphere · MeteoSchweiz{info.stationsEndMs ? <> · Stand {fmtHour(info.stationsEndMs)}</> : null}</span>);
+    if (m) lines.push(<span key="out" className="ns-legend-note">nur DE · AT · CH — außerhalb keine angeeichte Summe</span>);
     return lines;
   }
   const hOf = (ms: number) => String(Math.round(((ms - info.nowMs) / H) * 2) / 2).replace('.', ',');
@@ -156,7 +164,11 @@ export function PointSumCard({ past, future, windowH }: { past: PastSide; future
   else if (past.status === 'ready' && past.sum) {
     pastVal = <Val text={fmtMeasuredMm(past.sum.mm)} partial={!past.sum.complete} />;
     pastSub = <>{past.station?.station.name} · {past.station ? `${past.station.distKm.toFixed(1).replace('.', ',')} km` : ''} · Stand {fmtHour(past.sum.endMs)}{past.reason ? <><br />{past.reason}</> : null}</>;
-  } else { pastVal = 'Lücke'; pastSub = past.reason ?? 'keine Messung'; }
+  } else if (past.area && past.area.mm != null) {
+    // Rückfall: amtliche Flächensumme an der Zelle — eigene Herkunft, nie als Stationswert.
+    pastVal = <Val text={fmtMeasuredMm(past.area.mm)} />;
+    pastSub = <><b>Radar angeeicht</b> · {past.area.provider} {past.area.label} · Stand {fmtHour(past.area.endMs)}<br />{past.reason}</>;
+  } else { pastVal = 'Lücke'; pastSub = <>{past.reason ?? 'keine Messung'}{past.area?.reason ? <><br />Fläche: {past.area.reason}</> : null}</>; }
   // Erwartet
   let futVal: ReactNode, futSub: ReactNode;
   if (future.status === 'loading') { futVal = '…'; futSub = 'buscosun Fusion rechnet'; }

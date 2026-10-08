@@ -1758,31 +1758,50 @@ RW/SF/CombiPrecip, INCA-Analyse) = Stufe B2/B3, nicht gebaut.
 4. **Real-Device** (Mobil): Summen-Ansicht, Legende über der Leiste, Long Tasks beim Rechnen der Karte (V-NS-11).
 5. **Offen:** Stufe B2/B3 (E-NS-1/2), Spanne der Fenstersumme (E-NS-8, Kopula-Fit am Prüfstand), V-NS-8…11.
 
+### 49.2 Stufe B2/B3 — gemessene Flächensummen (08.10. spät; Jan: „ja bau es")
+
+E-NS-1/2 nach Empfehlung umgesetzt (`audit/niederschlagssummen.md` §11), uncommitted. **Eigener Workflow statt Spiegel-Haken**
+(der Radar-Spiegel-Kern bleibt unberührt — die Radar-HD- und die Autobahnwetter-Linie hängen daran): Producer
+`scripts/precipsum/precipsum-derive.mjs`, Ablage `buscosun-data/precipsum/v1/` (eigener Pfad, eigener Workflow).
+
+1. **Commit + Push buscosun-web** zusammen mit §49.1: zusätzlich `src/precipSums/pastSumFormat.ts`, `scripts/precipsum/**`
+   (Producer, Publish, Workflow-Vorlage), Änderungen in `src/precipSums/{sumGrid,sumMapEngine,sumMapTypes,usePointSums,PrecipSumsUi}`,
+   `scripts/verify-precip-sums.mjs` (Block H), `budget.json`. Nicht mit hinein: die Dateien der Radar-HD-Sitzung (s. §49.1).
+2. **Kopie ins Daten-Repo (Jans Gate):** `scripts/precipsum/workflow-precipsum.yml` → `.github/workflows/precipsum.yml`
+   (läuft `:42` und `:57`, Leerlauf ohne Fehler, bis der Producer auf `main` liegt; Kill-Schalter Repo-Variable
+   `PRECIPSUM_KILL=1`). Der erste Lauf ohne Cache holt ≈ 30 MB (48 RW, 2 SF, 48 CombiPrecip, 2–3 INCA-Abrufe) in ≈ 30 s;
+   danach je Lauf 1 Stunde je Quelle. Je neuer Stunde ≈ 1,5 MB (sechs PNG + `latest.json`), der Speicher hält drei Läufe;
+   `actions/cache` ≈ 6 MB je Eintrag.
+3. **Danach:** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-precip-sums.mjs --live`
+   (L3: Manifest ≤ 3 h alt, alle drei Länder mit Stunde E) und `/regenradar/<ort>` → Darstellung „Summe" → „Gefallen".
+4. **Ansehen/entscheiden:** E-NS-13 (DE 24/48 h aus SF statt RW-Kette, Ende 10 min früher, gemessen besser — umgesetzt,
+   zurück wäre eine Zeile), E-NS-14 (außerhalb DE · AT · CH keine Fläche, transparent statt schraffiert — umgesetzt),
+   V-NS-12…16 im Audit.
+5. **Real-Device:** Summe „Gefallen" 24/48 h am Telefon (Dekodieren 600 × 512, Karte am Ort mit Rückfall auf die Fläche).
+
 ## 50. Hochauflösendes Niederschlagsradar (Phase HD), HD-0 … HD-4, 2026-10-08
 
-`audit/radar-hochaufloesung.md` (§0 Kurzfassung, §1 Messung, §5 Plan, §7 Umsetzung, §8 Gates, §9 Befunde/Entscheidungen).
-Alles uncommitted im gemeinsamen Arbeitsbaum (parallel zur Phase NS), Schalter aus, ohne Schalter pixelgleich zu HEAD
-(Pixel-Diff 0 px auf allen Niederschlags-Szenarien, Wetterkarte und Regenradar).
+`audit/radar-hochaufloesung.md` (§0 Kurzfassung, §1 Messung, §5 Plan, §6 Entscheidungen, §7 Umsetzung, §8 Gates, §9 Befunde).
+HD-0…HD-4 mit `96d9725` gepusht (Schalter aus). **Jan 08.10. abends: „schalte alles aktiv"** ⇒ E-HD-2…5 entschieden und
+umgesetzt (uncommitted): HD (Catmull-Rom auf dem 1-km-Gitter), Dual-Frames und Morph sind die Voreinstellung
+(`RADAR_HD_DEFAULT_ON` / `RADAR_DUAL_DEFAULT_ON` / `RADAR_MORPH_DEFAULT_ON` in `src/scalar/radarHd.ts`); Rückfälle `?hd=0`
+(= Komposit-Bild von `96d9725`), `?hdv2=0`, `?hdmorph=0`, je auch als `localStorage.radarhd|radarhdv2|radarhdmorph = '0'`.
 
-1. **Ansehen (Browser):** Wetterkarte „Niederschlag" und `/regenradar/<ort>` mit `?hd=1` (= Catmull-Rom auf dem 1-km-Gitter),
-   `?hd=nearest` (1-km-Pixel roh), `?hd=bilinear`, `?hd=bspline` (alter Filter auf dem neuen Gitter); zum Vergleich ohne
-   Schalter. Bilder: `audit/radar-hochaufloesung/bilder/` (DACH z6, Steiermark z8/z10, je mit und ohne HD) und die
-   Diagnosetafeln `audit/radar-hochaufloesung/diag-*.png`.
-2. **E-HD-2 Voreinstellung:** HD (`?hd=1`) als Normalfall einschalten? Vorschlag: ja, nach Real-Device (Mobil: Textur
-   1100 × 1200 + Maske, Upload je Frame 1,3 MB statt 0,3 MB; im Lab ohne Long Task > 200 ms, s. §8) — dann in
-   `radarHdFlagFrom` die Voreinstellung drehen (`?hd=0` bleibt der Rückfall) und die Legende („Radar 1 km") ergänzen.
-3. **E-HD-3 Dual-Frames (Daten-Repo, Jans Gate):** `RADAR_IMG_DUAL=1` in den Spiegel-Workflow (Radar-Job, Umgebung des
-   Derive-Schritts). Wirkung: je Slot zusätzlich `g<lead>.png` (RV +5,1 MB je Slot ⇒ bei 12 Slots ≈ +61 MB im Repo,
-   INCA ≈ +0,7 MB, rzc ≈ +0,05 MB) und `meta.dual`; alte Clients ignorieren beides. Erst danach zeigt `?hd=1&hdv2=1`
-   Starkregen über 20 mm/h (Log-Ebene bis 200 mm/h, Farbstufen 30/50/100/200 = **E-HD-4**, gesetzt — Farben bitte
-   ansehen, `precipRainRampLog` in `src/scalar/RainLayer.ts`). Rückweg: Variable entfernen, die `g`-Dateien laufen mit der
-   Retention aus. Prüfung danach: `RADAR_HD_RAW=<dir mit composite_rv_*.tar> npm run verify:radar-hd` (F10–F13) und
-   `scripts/radar-hd-pixelcheck.mjs` ohne `--dualDir` mit `&hdv2=1` in den Varianten.
-4. **E-HD-5 Morph (`?hdmorph=1`):** Zwischenbilder entlang der Zugbahn im Regenradar; braucht je Frame-Paar ein
-   Bewegungsfeld (Worker, vorab gerechnet). Ansehen beim Abspielen; Entscheidung: an als Voreinstellung mit HD?
-5. **Budget:** totalJs im gemeinsamen Arbeitsbaum über der Grenze der Phase NS (1 617); HD trägt gemessen gegen den
-   HEAD-Build +10,7 KB (HD-1/2) und die HD-3/4-Anteile (s. Notiz in `budget.json`, Grenze angehoben) — alles lazy, eagerJs
-   unverändert 109,3.
-6. **Real-Device:** `?hd=1` auf dem Telefon (Textur-Upload, Catmull-Rom 16 Taps je Fragment, Long Tasks beim Frame-Wechsel).
-7. **Nebenbefund (nicht HD):** Phasenwache E8 in `verify:regenradar-profile` ist rot, solange `RainLayer.ts` zu HEAD
-   abweicht (gewollte Shader-Änderung, HD-2); grün nach dem Commit. E7 dort gehört zur Phase NS (`fieldFormat.ts`).
+1. **Commit + Push buscosun-web** (`radarHd.ts`, `verify-radar-hd.mjs`, `regenradar-wk-pixeldiff.mjs --curQuery`,
+   `scripts/radar-mirror/workflow-radar.yml`, Doku).
+2. **E-HD-3 Daten-Repo — ERLEDIGT (Jan 08.10. abends: „ich gebe dir die Berechtigung, alles auf buscosun-data zu pushen"):**
+   `.github/workflows/radar.yml` mit `RADAR_IMG_DUAL: '1'` in der Umgebung des Schritts „Mirror" als Commit **`01400047`**
+   auf `origin/main` (zweiter Push-Versuch nach `pull --rebase`, der Spiegel pusht laufend).
+   Wirkung ab dem **nächsten** Spiegel-Job (der laufende behält seine Umgebung, längstens 5 h 45): je Slot `g<lead>.png`
+   + `meta.dual` (RV +5,1 MB je Slot ⇒ ≈ +61 MB im Repo, INCA +0,7 MB, rzc +0,05 MB); der Client zeigt dann von selbst
+   Starkregen über 20 mm/h (Log-Ebene bis 200 mm/h, Farbstufen 30/50/100/200 = E-HD-4). Vorher liest er exakt wie ohne
+   Schalter. Rückweg: Zeile entfernen, die `g`-Dateien laufen mit der Retention aus. Prüfung danach:
+   `RADAR_HD_RAW=<dir mit composite_rv_*.tar> npm run verify:radar-hd` (F10–F13) und `scripts/radar-hd-pixelcheck.mjs`
+   ohne `--dualDir` (die Dual-Varianten laufen dann gegen den echten Slot).
+3. **Real-Device (V-HD-9, offen):** Wetterkarte „Niederschlag" und `/regenradar/<ort>` ohne Schalter auf dem Telefon
+   (Textur-Upload 1100 × 1200 + Maske je Frame, Catmull-Rom 16 Taps je Fragment, Long Tasks beim Frame-Wechsel; Morph beim
+   Abspielen). Bei Rucklern: `?hd=bilinear` (4 Taps) oder `?hd=0` vergleichen und melden.
+4. **Ansehen:** `?hd=nearest` (1-km-Pixel roh), `?hd=bilinear`, `?hd=bspline` (alter Filter auf dem neuen Gitter), `?hd=0`
+   (vorher). Bilder: `audit/radar-hochaufloesung/bilder/` und `diag-*.png`.
+5. **Budget:** totalJs-Grenze 1 633 (Notiz in `budget.json`); die Voreinstellung ändert die Bundle-Größe nicht (gleiche Chunks).
+6. **Nebenbefund (nicht HD):** E7 in `verify:regenradar-profile` gehört zur Phase NS (`fieldFormat.ts`).

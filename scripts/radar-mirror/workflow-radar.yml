@@ -74,6 +74,9 @@ jobs:
           BRANCH: main
           APP_DIR: ${{ github.workspace }}/app
           REPACK_BZIP2: '1'
+          # Phase HD-3 (E-HD-3, Jan 08.10.2026): je Frame zusätzlich `g<lead>.png` (Kanal 1 = v1-Byte, Kanal 2 = Log-Ebene
+          # 0,06…200 mm/h) + `meta.dual`; RV +5,1 MB je Slot. Rückweg: Zeile entfernen, die `g`-Dateien laufen mit der Retention aus.
+          RADAR_IMG_DUAL: '1'
           GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_FILE: radar.yml
         run: node scripts/radar-mirror.mjs

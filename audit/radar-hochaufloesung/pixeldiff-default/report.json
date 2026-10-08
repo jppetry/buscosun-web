@@ -1,0 +1,21 @@
+{
+ "at": "2026-10-08T20:24:05.851Z",
+ "head": "http://127.0.0.1:5213",
+ "cur": "http://127.0.0.1:5212",
+ "curQuery": "",
+ "threshold": 12,
+ "scenarios": [
+  {
+   "id": "rr-ort-desktop",
+   "path": "/regenradar/muenchen",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 2.5015,
+   "differPx": 32420,
+   "exactPct": 88.524
+  }
+ ]
+}

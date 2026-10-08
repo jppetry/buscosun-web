@@ -2,7 +2,8 @@
  * Phase NS: die zwei Zahlen am Ort für das gewählte Fenster.
  *
  *   Gefallen  — die nächste Station mit Niederschlagsmessung (`obs/v1`, ≤ 10 km, Name und Abstand), Fenster bis zu ihrem
- *               jüngsten Wert. 48 h: keine gemessene Quelle (Lücke, benannt).
+ *               jüngsten Wert. Trägt keine Station (keine ≤ 10 km, Fenster > 24 h, unvollständig), steht die amtliche,
+ *               angeeichte Flächensumme an der Zelle des Orts (`precipsum/v1`, Stufe B2/B3) — mit Quelle und Stand.
  *   Erwartet  — buscosun Fusion in der aktuellen Stufe für das GANZE Fenster (`getPointForecast` mit `pointSource: 'cube'`,
  *               derselbe Weg wie Streifen und Punkt-Panel; die ersten Stunden tragen dort schon das Radar), Erwartungswert
  *               aus den nativen Schritten (`fusionWindowSum`). Nur wenn buscosun Fusion nicht antwortet (oder `?pf=live`),
@@ -28,6 +29,8 @@ export interface PastSide {
   network: string | null;
   reason: string | null;
   bars: Array<{ fromMs: number; toMs: number; mm: number | null }>;
+  /** Rückfall ohne Stationssumme: die amtliche Flächensumme am Ort (lazy aus `sumMapEngine`). */
+  area?: import('./sumMapEngine').PastAreaAtPoint | null;
 }
 export interface FutureSide {
   status: 'loading' | 'ready' | 'gap' | 'error';
@@ -77,13 +80,21 @@ export function usePointSums(p: { lat: number; lon: number; country: Country } |
       const [cat, latest] = await withSignal(Promise.all([loadObsCatalog(), loadObsLatest()]), ac.signal);
       const st = nearestRainStation(cat, latest.stations, lat, lon, now);
       const binH = barBinH(windowH);
+      // Ohne Stationssumme: die Flächensumme am Ort (eigener Lazy-Chunk; fehlt auch sie, bleibt die benannte Lücke).
+      const gapWithArea = async (reason: string, network: string | null) => {
+        const area = await withSignal(import('./sumMapEngine').then((e) => e.pastSumAtPoint(lat, lon, windowH)), ac.signal).catch(() => null);
+        if (ac.signal.aborted) return;
+        // Mit Flächenwert sagt der Grund nur, warum keine Station trägt — nicht „keine gemessene Quelle".
+        const why = area?.mm != null ? (windowH > OBS_SERIES_H - 1 ? `keine Station: Reihen reichen ${OBS_SERIES_H} h` : st ? `keine vollständigen Werte von ${st.station.name}` : 'keine Station im Umkreis') : reason;
+        setPast({ status: area?.mm != null ? 'ready' : 'gap', sum: null, station: st, network, reason: why, bars: [], area });
+      };
       if (!st || windowH > OBS_SERIES_H - 1) {
-        setPast({ status: 'gap', sum: null, station: st, network: st ? OBS_NETWORK_LABEL[st.src] ?? st.src : null, reason: obsGapReason(windowH, st), bars: [] });
+        await gapWithArea(obsGapReason(windowH, st), st ? OBS_NETWORK_LABEL[st.src] ?? st.src : null);
         return;
       }
       const doc = await withSignal(loadObsSeries(st.src), ac.signal);
       const sum = obsWindowSumFromSeries(doc, st.station.id, doc.stations[st.station.id]?.rr, windowH, Date.now());
-      if (!sum) { setPast({ status: 'gap', sum: null, station: st, network: OBS_NETWORK_LABEL[st.src] ?? st.src, reason: obsGapReason(windowH, st), bars: [] }); return; }
+      if (!sum) { await gapWithArea(obsGapReason(windowH, st), OBS_NETWORK_LABEL[st.src] ?? st.src); return; }
       setPast({ status: 'ready', sum, station: st, network: OBS_NETWORK_LABEL[st.src] ?? st.src, reason: sum.complete ? null : `nur ${sum.n} von ${sum.of} Werten — Teilsumme`, bars: obsBars(sum, binH) });
     })().catch((e) => {
       if (ac.signal.aborted) return;

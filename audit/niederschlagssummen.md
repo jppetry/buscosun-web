@@ -408,8 +408,106 @@ Der Punkt-Cron klont `main`: erst mit dem Push baut der Feldschritt `precipcum` 
 auf der Karte jenseits des Radars die Felder (0–2 h Radar · danach buscosun Fusion ‹n› · Modell · Cube · Lauf HH UTC).
 `verify-precip-sums.mjs --live` prüft danach, ob das jüngste t1-Feld `precipcum` trägt.
 
-### 10.6 Nicht gebaut (Stufe B2/B3)
+### 10.6 Nicht gebaut (Stufe B2/B3) — nachgeholt in §11
 
 Spiegel-Haken für die amtlichen Summen (RW, SF, CombiPrecip; INCA-Analyse für AT) mit Summenbildern je Fenster
 `radar/img/v1/sum/…` — Eingriff in den Spiegel-Kern (Aufbewahrung, mit der Autobahnwetter-Linie geteilt), eigener Schritt.
-Bis dahin zeigt „Gefallen" auf der Karte die Stationen als Punkte und die Fläche als benannte Lücke.
+Bis dahin zeigt „Gefallen" auf der Karte die Stationen als Punkte und die Fläche als benannte Lücke. **Gebaut am selben Abend
+als eigener Workflow (§11).**
+
+## 11. Umsetzung 08.10. spät — Stufe B2/B3: gemessene Flächensummen (Jan: „ja bau es")
+
+> E-NS-1 (amtliche Summen, DE + CH) und E-NS-2 (INCA-Analyse AT) nach Empfehlung, mit einer Abweichung im Weg: **eigener
+> Workflow statt Haken im Radar-Spiegel.** Der Spiegel-Kern veröffentlicht `radar/img/v1` als Ganzes und wird von der
+> Radar-HD- und der Autobahnwetter-Linie mitbenutzt; ein eigener Pfad `precipsum/v1/` mit eigenem Workflow (Muster
+> Seewetter, `sea.yml`) braucht keinen Kern-Eingriff und keine Retention-Tabelle dort. Kein Push, keine Kopie ins
+> Daten-Repo (Jans Gate §49.2).
+
+### 11.1 Messungen vor dem Bau (08.10. 19–20 UTC, Rohdaten im Session-Scratchpad)
+
+| Frage | Messung | Folge |
+|---|---|---|
+| INCA-Analyse: Stempel = Anfang oder Ende? Skala? | `RR` int32, jsfive liest keine Attribute. Gegen **269 TAWES-Stationen** (nächste Zelle ≤ 0,8 km, Stunden 14–19 UTC): Fensterende **r 0,93**, Fensteranfang r 0,27; Mittel INCA/Station 934 ⇒ **0,001 mm**; 90 % der Stunden ±0,05 mm | Stempel = Ende, `INCA_RR_SCALE` 0,001 |
+| INCA `time` | 2075482800 ⇔ 08.10. 19:00 UTC ⇒ **Sekunden seit 1961-01-01** (erst falsch als 1979 gelesen: Jahr 2044 — die Prüfung „keine angefragte Stunde in der Antwort" fing es) | `INCA_EPOCH_MS`, Verifier H8 |
+| INCA-Abruf 48 h | HTTP 400 „limit is 10000000 data points, you requested 15279600"; eine Stunde = 281 101 Punkte ⇒ ≤ 35 h | Blöcke ≤ 24 h (`incaBlocks`, H7) |
+| RW gegen DWD-Stationen | 5 Stunden, 6 718 Paare: Ende **r 0,83**, Anfang r 0,36; Mittel RW 0,59 / Station 0,73 mm | Stempel = Ende, Georeferenz `radolan` + `DE1200_CORNERS` stimmt |
+| CombiPrecip gegen SMN | 1 399 Paare: Ende **r 0,95**, Anfang r 0,56 | Stempel = Ende; Asset-Name trägt eine Qualitätsziffer ⇒ Namen aus dem STAC-Item |
+| CombiPrecip-Produkte | im Tages-Item nur `_00060` (241 Assets, 5-min-Takt) | stündliche Kette auch für 24/48 h |
+
+Die Regenmesser stecken teils in den Eichungen (RW/SF/CPC/INCA) — die Korrelationen belegen Lage und Zeitbezug, keine
+unabhängige Güte.
+
+### 11.2 Produkt `precipsum/v1/`
+
+Vertrag `src/precipSums/pastSumFormat.ts`. Ein Lauf = ein Ende E (volle UTC-Stunde), sechs Bilder `sum-<WWW>h.png` auf dem
+DACH-Gitter G (600 × 512, wie die Summen-Karte), Kodierung wie `precipcum` (0,01 mm, 24 bit) mit **drei Zuständen** über den
+Alphakanal: 255 Wert, 0 Lücke (schraffiert), 128 außerhalb DE · AT · CH (durchsichtig). Ordnername `<E>-<länder>[-rw]` —
+derselbe Name trägt immer denselben Inhalt (CDN-tauglich); `latest.json` ist mutabel und wird raw zuerst gelesen.
+
+| Regel | Umsetzung |
+|---|---|
+| Quelle je Land | Länderregel der Karte (`sumGeometry`/`countryRowPicker`): DE RW, AT INCA, CH CombiPrecip |
+| nur DACH | Maske aus `public/countries/{DE,AT,CH}.geojson` (E-NS-14). Vorher lagen die Maxima in Norditalien (CombiPrecip, 1 h 32,6 mm) und Slowenien (INCA, 24 h 192 mm) — dort ist keine Quelle mit Regenmessern ihres Landes angeeicht |
+| fehlend ≠ 0 | eine fehlende Stunde / `nodata` / NaN ⇒ Lücke der Zelle im Fenster (`windowSumOnGrid`, H1) |
+| Wartestufe | fehlt an der jüngsten RW-Stunde ein Land (INCA + 35 min) und ist die Vorstunde vollständig, bleibt der Lauf bis 75 min nach E bei E − 1 h — sonst stünde jede Stunde ein Land 10–30 min als Lücke (H6) |
+| DE 24/48 h | **SF** statt RW-Kette (E-NS-13, §11.3), Ende E − 10 min, in Manifest und Legende benannt; fehlt SF ⇒ RW-Kette, Ordner `-rw` (H5b) |
+| Rückblick | Fenster enden an E, kein Randstück aus der RV-Analyse (E-NS-3 „Stand") |
+| Cache | Stundenfelder auf G gz (≈ 6 MB), `actions/cache`; ohne Cache alles neu — das Ergebnis hängt nicht daran |
+
+Lokal gegen die echten Quellen (08.10., E = 19 bzw. 20 UTC): erster Lauf ohne Cache 31 s (48 RW, 48 CPC, INCA in 2 Blöcken),
+danach 2,6–12,5 s; Bilder 91–354 KB, ≈ 1,5 MB je Lauf; Lücken in DACH 199–575 Zellen von ≈ 162 000 (0,1–0,4 %); 24 h
+Maximum in DACH 61 mm (Tessin).
+
+### 11.3 E-NS-13: DE 24/48 h aus SF — gemessen
+
+An der Station München-Stadt zeigte die RW-Kette für 12 h 1,9 mm gegen 4,83 mm im Regenmesser. Über alle DWD-Stationen mit
+vollständiger Reihe (1 251, 24 h bis 19:00 bzw. 18:50 UTC):
+
+| Produkt | Mittel / Regenmesser | r | MAE |
+|---|---|---|---|
+| SF (18:50) | 8,92 / 9,60 mm | **0,94** | **1,35 mm** |
+| RW-Kette (19:00) | 8,77 / 9,60 mm | 0,84 | 2,15 mm |
+
+SF ist die von DWD täglich mit mehr Regenmessern angeeichte Summe; beide sind nicht unabhängig von diesen Stationen (SF
+hat dort den größeren Heimvorteil). Folge: DE 24 h = SF(E − 10 min), 48 h = SF(E − 10 min) + SF(E − 10 min − 24 h) (nicht
+überlappend, DWD hält SF 48 h); 1–12 h bleiben die RW-Kette. München 48 h danach 5,9 mm (vorher RW-Kette 2,5 mm) bei 4,8 mm
+der Station in 24 h.
+
+### 11.4 Client
+
+`sumMapEngine.ts` liest `latest.json` + das Bild des Fensters (gedächtnisgestützt, zwei dekodierte Bilder), `pastSumGridFromRgba`
+(`sumGrid.ts`) macht daraus das Gitter: Wert = `FLAG_MEASURED`, Lücke = NaN (schraffiert), außerhalb = `FLAG_OUTSIDE` (nicht
+gezeichnet). Legende: „Fläche bis ‹E›: Radar mit Regenmessern angeeicht · DE DWD RADOLAN RW|SF [bis ‹E − 10 min›] · AT GeoSphere
+Austria INCA-Analyse · CH MeteoSchweiz CombiPrecip", je fehlendem Land „‹CC› Lücke: ‹Grund›", „nur DE · AT · CH"; ab 3 h Alter
+„(veraltet)". Stationen bleiben als Punkte darüber. Karte am Ort: trägt keine Station (keine ≤ 10 km, Fenster > 24 h,
+unvollständig), steht der Flächenwert der Zelle mit „Radar angeeicht · ‹Anbieter› ‹Produkt› · Stand ‹Zeit›" — nie als
+Stationswert. Hover: „‹x› mm gemessen · Radar angeeicht".
+
+Browser (Dev-Server, Daten-Repo-Pfad `precipsum/v1/**` per Playwright-Route auf den lokal erzeugten Speicher umgeleitet, weil
+das Produkt erst nach Jans Kopie entsteht): München 24 h Fläche + 1 690 Stationen, Grenze DACH sauber (Bild
+`.playwright-mcp/ns-b2-desktop-past24-dach.png`), 48 h Karte am Ort „5,9 mm · Radar angeeicht · DWD RADOLAN SF · Stand 21:50",
+mobil Legende vollständig (`ns-b2-mobile-48.png`). Konsole: nur die bekannten 404 der Radar-Slot-Sonden.
+
+### 11.5 Gates
+
+`verify:precip-sums` **56/56** (CI-Form; mit `--raw` **61/61**: H10a–e an echten RW/SF/CombiPrecip/INCA-Dateien), Block H:
+Fenstersumme, Kodierung + Zustände, Client-Leser, DACH-Maske (7 Orte innen, 11 außen), Lauf je Land, SF-Weg + Rückfall,
+Wartestufe, INCA-Blöcke, Zeit/Namen, Speicher (älterer Lauf schreibt nichts — ein Fehler, den H9 fand: der Ordner eines
+älteren Laufs wurde vor der Prüfung angelegt). `verify:fusion-release` 28/28, typecheck 0, Build 255/255, Budget grün:
+totalJs 1 634,4 / **1 635** (+2,0 KB, Notiz), eagerJs 109,3 / 109,4. `verify:np0-fields` 23/24 — Block B (Punkt-Publisher
+gegen den lokalen Klon `C:\dev\buscosun-data`, dort am 08.10. 22:32 neu bestückt) scheitert an fehlenden Chunk-Dateien des
+Klons; diese Stufe berührt weder Publisher noch Feld-Producer.
+
+### 11.6 Befunde
+
+- **V-NS-12** Die INCA-Analyse deckt Slowenien/Norditalien ab, CombiPrecip die Lombardei — ohne Maske hätte die Karte dort
+  „angeeicht" behauptet. Mehrwert: ehrliche Grenze. Erledigt (E-NS-14).
+- **V-NS-13** RW unterschätzt im Mittel (0,59 gegen 0,73 mm je Stunde an DWD-Stationen) — 1–12 h bleiben RW. Skizze: an
+  mehreren Regentagen RW-Kette gegen Regenmesser je Fenster messen; ggf. 12 h aus SF-Differenzen nicht möglich (SF nur 24 h).
+- **V-NS-14** Zellwert = nächstes Quellpixel (wie die Niederschlagskarte), keine Flächenmittelung auf 2 km. Skizze: Mittel
+  der Quellpixel je Zelle im Producer (Kosten einmal je Stunde).
+- **V-NS-15** `docs/API.md` §5.2 (CombiPrecip 10 min) — weiter offen (V-NS-4).
+- **V-NS-16** `actions/cache` legt je Lauf einen Eintrag (≈ 6 MB, 48/Tag) an; GitHub räumt nach Alter/10 GB. Skizze: fester
+  Schlüssel je Tag, falls das Daten-Repo andere Caches bekommt.
+
+Offen bleiben E-NS-8 (Spanne der Fenstersumme) und V-NS-8…11.

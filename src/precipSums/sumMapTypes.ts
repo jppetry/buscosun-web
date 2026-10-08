@@ -22,6 +22,18 @@ export interface SumMapInfo {
   stations: number;
   stationsEndMs: number | null;
   stationNote: string | null;
+  /**
+   * Gefallen, Fläche (Stufe B2/B3): Ende E der amtlichen Summe, je Land Quelle und Zustand; `null` ohne Produkt (dann sagt
+   * `measuredNote` warum). `stale`: E liegt mehr als `PAST_SUM_STALE_MS` zurück.
+   */
+  measured: {
+    endMs: number;
+    stale: boolean;
+    /** DE im gewählten Fenster: RW-Kette bis E oder SF bis E − 10 min (24/48 h). */
+    de: { product: 'RW' | 'SF'; endMs: number } | null;
+    countries: Array<{ cc: 'DE' | 'AT' | 'CH'; label: string; provider: string; ok: boolean; note?: string }>;
+  } | null;
+  measuredNote: string | null;
 }
 
-export const SUM_MAP_IDLE: SumMapInfo = { status: 'idle', dir: 'past', windowH: 6, nowMs: 0, radar: [], field: [], fieldNotes: [], stats: null, stations: 0, stationsEndMs: null, stationNote: null };
+export const SUM_MAP_IDLE: SumMapInfo = { status: 'idle', dir: 'past', windowH: 6, nowMs: 0, radar: [], field: [], fieldNotes: [], stats: null, stations: 0, stationsEndMs: null, stationNote: null, measured: null, measuredNote: null };

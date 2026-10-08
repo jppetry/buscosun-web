@@ -1,0 +1,117 @@
+# ============================================================================
+# precipsum.yml — gemessene Niederschlagssummen 1–48 h als Flächen (Phase NS, Stufe B2/B3,
+# buscosun-web/audit/niederschlagssummen.md §11)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/precipsum.yml` im Daten-Repo
+# `jppetry/buscosun-data` (Jans Gate, MANUELLE-SCHRITTE §49.2). Der Code lebt in
+# `buscosun-web` (`scripts/precipsum/*`, Vertrag `src/precipSums/pastSumFormat.ts`)
+# und wird bei jedem Lauf frisch von `main` geklont.
+#
+# Zweimal je Stunde (:42 und :57): DWD RADOLAN RW (+≈ 26 min), MeteoSchweiz
+# CombiPrecip (+≈ 5 min), GeoSphere INCA-Analyse (+≈ 35 min). Der Lauf holt nur die
+# Stunden, die der Cache (actions/cache) noch nicht hat — ohne Cache alles neu
+# (≈ 30 MB, ≈ 30 s), das Ergebnis hängt nicht am Cache. INCA: ≤ 3 Abrufe je Lauf
+# (Rate-Limit 240/h, der Radar-Spiegel braucht ≈ 80/h).
+# Der Radar-Spiegel bleibt unberührt (eigener Pfad `precipsum/`, eigener Workflow).
+#
+# Leerlauf bis zum Push von buscosun-web: fehlt der Producer auf `main`, endet der
+# Job grün ohne Schreiben.
+# Veröffentlichung: `precipsum-publish.mjs` — frische Basis je Versuch, nur `precipsum/`,
+# kein Force. Ein Lauf schreibt ≈ 1,5 MB (sechs PNG + latest.json); der Speicher hält
+# die drei jüngsten Läufe.
+#
+# Kill-Schalter: Repo-Variable PRECIPSUM_KILL=1 (der Client zeigt dann den letzten
+# Stand mit seiner Uhrzeit und ab 3 h „veraltet").
+# ============================================================================
+
+name: precipsum
+
+on:
+  schedule:
+    - cron: '42,57 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: precipsum
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  precipsum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ vars.PRECIPSUM_KILL != '1' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web main, sparse)
+        id: app
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src public/countries package.json
+          git checkout --quiet
+          for f in scripts/precipsum/precipsum-derive.mjs scripts/precipsum/precipsum-publish.mjs src/precipSums/pastSumFormat.ts public/countries/AT.geojson; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on main yet ($f fehlt in buscosun-web main) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          npm install --no-save --no-audit --no-fund jsfive@0.4
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Restore hour cache
+        if: steps.app.outputs.ready == '1'
+        uses: actions/cache/restore@v4
+        with:
+          path: cache
+          key: precipsum-${{ github.run_id }}
+          restore-keys: precipsum-
+
+      - name: Checkout store (buscosun-data, sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: precipsum
+          sparse-checkout-cone-mode: true
+
+      - name: Prepare store
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd data
+          git config user.name  'buscosun-precipsum[bot]'
+          git config user.email 'precipsum@users.noreply.github.com'
+          mkdir -p ../store
+          if [ -d precipsum/v1 ]; then cp -r precipsum/v1/. ../store/; fi
+
+      - name: Derive
+        id: derive
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          OUT=$(node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/precipsum/precipsum-derive.mjs --store=../store --cache=../cache | tail -1)
+          echo "$OUT"
+          CHANGED=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.changed ? '1' : '0')" "$OUT")
+          DIR=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.dir || '')" "$OUT")
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Save hour cache
+        if: steps.app.outputs.ready == '1' && !cancelled()
+        uses: actions/cache/save@v4
+        with:
+          path: cache
+          key: precipsum-${{ github.run_id }}
+
+      - name: Publish
+        if: steps.derive.outputs.changed == '1'
+        run: |
+          node app/scripts/precipsum/precipsum-publish.mjs --repo=data --store=store --message="precipsum: ${{ steps.derive.outputs.dir }}"

@@ -19,6 +19,10 @@ import { decodePng, encodePng, toRgba } from './lib/png.mjs';
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] ?? '1'] : [a, '1']; }));
 const HEAD = args.head ?? 'http://localhost:5213';
 const CUR = args.cur ?? 'http://localhost:5212';
+// `--curQuery=hd=0&hdmorph=0` appends query words to the CUR side only — the named fallback of a default-on switch must
+// still render as HEAD did (Phase HD gate G3 after E-HD-2); without it both sides load the same path.
+const CUR_QUERY = args.curQuery ? String(args.curQuery).replace(/^[?&]/, '') : '';
+const withQuery = (path, q) => (q ? `${path}${path.includes('?') ? '&' : '?'}${q}` : path);
 const OUT = args.out ?? join(process.cwd(), '.cache', 'rr-pixeldiff');
 const THRESH = 12;
 
@@ -33,6 +37,9 @@ const SCENARIOS = [
   // Phase HD gate G3: the Regenradar (profile `radar`) without the switch must render as at HEAD too.
   { id: 'rr-live-desktop', path: '/regenradar', mobile: false, block: false, waitS: 40 },
   { id: 'rr-live-mobile', path: '/regenradar', mobile: true, block: false, waitS: 40 },
+  // `/regenradar` without a place has no map (landing page) — the place route carries the radar picture (G3′ after E-HD-2).
+  { id: 'rr-ort-desktop', path: '/regenradar/muenchen', mobile: false, block: false, waitS: 40 },
+  { id: 'rr-ort-mobile', path: '/regenradar/muenchen', mobile: true, block: false, waitS: 40 },
 ].filter((s) => !args.only || args.only.split(',').includes(s.id));
 
 mkdirSync(OUT, { recursive: true });
@@ -93,10 +100,10 @@ function diff(a, b) {
   return { w, h, differ, exact, total: w * h, sizeMatch: a.width === b.width && a.height === b.height, png: encodePng(w, h, out, 4) };
 }
 
-const report = { at: new Date().toISOString(), head: HEAD, cur: CUR, threshold: THRESH, scenarios: [] };
+const report = { at: new Date().toISOString(), head: HEAD, cur: CUR, curQuery: CUR_QUERY, threshold: THRESH, scenarios: [] };
 for (const sc of SCENARIOS) {
   const [ca, cb] = await Promise.all([open(HEAD, sc), open(CUR, sc)]);
-  await Promise.all([ca.send('Page.navigate', { url: HEAD + sc.path }), cb.send('Page.navigate', { url: CUR + sc.path })]);
+  await Promise.all([ca.send('Page.navigate', { url: HEAD + sc.path }), cb.send('Page.navigate', { url: CUR + withQuery(sc.path, CUR_QUERY) })]);
   await sleep(sc.waitS * 1000);
   const [sa, sb] = await Promise.all([ca.send('Page.captureScreenshot', { format: 'png' }), cb.send('Page.captureScreenshot', { format: 'png' })]);
   const pa = Buffer.from(sa.data, 'base64'), pb = Buffer.from(sb.data, 'base64');

@@ -9,8 +9,9 @@
  *   Trägt das Radar das ganze Fenster (1 h), steht der Nowcast allein. Ohne Radar (CH, außerhalb der Radarsicht) trägt
  *   das Feld ab „jetzt". Reicht beides nicht über das ganze Fenster, ist die Zelle eine Lücke (NaN) — nie eine
  *   Teilsumme in der Karte (E-NS-5).
- * Gefallen (zurück): Stufe A hat keine Flächenquelle (die amtlichen Radar-Summen RW/SF/CombiPrecip kommen mit dem
- *   Spiegel-Haken, E-NS-1) ⇒ die ganze Fläche ist eine Lücke; die Stationen zeichnet die Karte als Punkte.
+ * Gefallen (zurück): die amtlichen, angeeichten Flächensummen aus `precipsum/v1` (Stufe B2/B3: DE RADOLAN RW, AT INCA-
+ *   Analyse, CH CombiPrecip; `pastSumFormat.ts`), außerhalb DE · AT · CH keine Aussage; ohne das Produkt ist die Fläche
+ *   eine benannte Lücke. Die Stationen zeichnet die Karte zusätzlich als Punkte.
  *
  * Bild: Zeilen gleichabständig in Web-Mercator (eine MapLibre-`image`-Source interpoliert linear in Mercator — ein in
  * Grad reguläres Bild läge bis 30 km zu weit nördlich, `audit/karten-layer-verortung.md` §14). Lücken grau schraffiert,
@@ -23,11 +24,16 @@ import { G, gridLatLon } from '../scalar/precipIndexMap';
 import { countryRowPicker } from '../pointForecast/countryOfPoint';
 import { sumColor, SUM_ALPHA } from './sumModel';
 import type { RadarWindowSum } from './radarWindowSum';
+import { decodePastSumPixel, pastSumCellState } from './pastSumFormat';
 import { cumPixelOf, cumSpan, prepareCumAt, cumAtPix, type CumTier, type CumPrep } from './fieldCum';
 
 export const FLAG_SATURATED = 1;
 export const FLAG_RADAR = 2;
 export const FLAG_FIELD = 4;
+/** Gefallen: amtliche, angeeichte Flächensumme (`pastSumFormat.ts`). */
+export const FLAG_MEASURED = 8;
+/** Gefallen: außerhalb DE · AT · CH — keine Aussage, transparent statt schraffiert. */
+export const FLAG_OUTSIDE = 16;
 
 export interface SumGeometry {
   width: number;
@@ -151,6 +157,26 @@ export function emptySumGrid(geom: SumGeometry): SumGridResult {
   return { width: geom.width, height: geom.height, mm: new Float32Array(n).fill(NaN), flags: new Uint8Array(n), stats: { cells: n, valid: 0, radar: 0, field: 0, saturated: 0, gap: n } };
 }
 
+/**
+ * Gefallen: Gitter aus einem Bild von `precipsum/v1` (RGBA auf G, Zeile 0 = Norden). Lücke = NaN (schraffiert), außerhalb
+ * DACH = NaN mit `FLAG_OUTSIDE` (nicht gezeichnet). Nie wird eine Lücke zu 0 mm.
+ */
+export function pastSumGridFromRgba(geom: SumGeometry, rgba: ArrayLike<number>, width: number, height: number): SumGridResult {
+  if (width !== geom.width || height !== geom.height) throw new Error(`precipsum: Bild ${width}×${height} statt ${geom.width}×${geom.height}`);
+  const n = width * height;
+  const mm = new Float32Array(n), flags = new Uint8Array(n);
+  let valid = 0, gap = 0;
+  for (let i = 0; i < n; i++) {
+    const o = i * 4;
+    const state = pastSumCellState(rgba[o + 3]);
+    if (state === 'outside') { mm[i] = NaN; flags[i] = FLAG_OUTSIDE; continue; }
+    const v = state === 'value' ? decodePastSumPixel(rgba[o], rgba[o + 1], rgba[o + 2], rgba[o + 3]) : null;
+    if (v == null) { mm[i] = NaN; gap++; continue; }
+    mm[i] = v; flags[i] = FLAG_MEASURED; valid++;
+  }
+  return { width, height, mm, flags, stats: { cells: n, valid, radar: 0, field: 0, saturated: 0, gap } };
+}
+
 /** Wert an (lat, lon) für den Hover — Zelle des Gitters, `undefined` außerhalb. */
 export function sumGridAt(g: SumGridResult, lat: number, lon: number): { mm: number | null; flags: number } | undefined {
   const c = Math.floor(((lon - G.lonMin) / (G.lonMax - G.lonMin)) * G.w);
@@ -191,6 +217,7 @@ export function renderSumRgba(g: SumGridResult, width = G.w): { data: Uint8Clamp
       const gc = Math.min(G.w - 1, Math.floor(((c + 0.5) / width) * G.w));
       const i = gr * G.w + gc, o = (r * width + c) * 4;
       const v = g.mm[i];
+      if (g.flags[i] & FLAG_OUTSIDE) continue;
       if (Number.isNaN(v)) {
         const line = (c + r) % 7 === 0;
         data[o] = 120; data[o + 1] = 112; data[o + 2] = 98; data[o + 3] = line ? 120 : 26;

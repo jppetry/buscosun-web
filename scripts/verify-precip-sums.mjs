@@ -3,7 +3,8 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-precip-sums.mjs
  *        [--fields=<dir>]   Ausgabe von build-point-fields (`<dir>/field/v1/<lauf>/<stufe>`) für Block F; fehlt ⇒ F ⊘
- *        [--live]           obs/v1 und point/field/v1 im Daten-Repo (nur lesend)
+ *        [--raw=<dir>]      echte Dateien rw<HHMM>.h5, cpc<HHMM>.h5, inca-range.nc für H10; fehlt ⇒ H10 ⊘
+ *        [--live]           obs/v1, point/field/v1 und precipsum/v1 im Daten-Repo (nur lesend)
  *
  * A Modell: Fenster, Schalter `?sum=0`, Palette (ruhig, getrennt von der Intensität), Zahlen (0 gemessen ≠ Lücke).
  * B Erwartungssumme am Ort (`fusionWindowSum`): Hand-Fälle, Teilstücke, Zwischenstunden zählen nie (mit Gegenprobe),
@@ -16,6 +17,9 @@
  * F (mit --fields) Producer an echten Läufen: C monoton, Differenz je Vorlauf = Mittel der Hürde aus dem UNABHÄNGIGEN
  *   Weg über Chance/Median/q90 (wo σ rückrechenbar) innerhalb der Log-Stufe; Negativkontrolle mit verschobenem Vorlauf.
  * G Verdrahtung: Deck, Karte, `?sum=0`-Weg.
+ * H Gefallen als Fläche (Stufe B2/B3, `precipsum/v1`): Fenstersumme je Land, Kodierung + Zustände, Client-Leser, DACH-Maske,
+ *   Lauf an synthetischen Feldern, Wartestufe, INCA-Blöcke, Zeit-/Namensregeln, Speicher; mit --raw=<dir> die Leser an
+ *   echten RW-/CombiPrecip-/INCA-Dateien.
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -382,6 +386,189 @@ console.log('\n== G Verdrahtung ==');
   add('G5 Karte ohne Shader: nur raster- und circle-Ebenen von MapLibre', /type: 'raster'/.test(layer) && /type: 'circle'/.test(layer) && !/customLayer|type: 'custom'|gl\.|WebGL/i.test(layer));
 }
 
+// ─── H Gefallen als Fläche (Stufe B2/B3: precipsum/v1) ───────────────────────────────────────
+console.log('\n== H Gefallen als Fläche (amtliche Summen, B2/B3) ==');
+{
+  const PS = await import('../src/precipSums/pastSumFormat.ts');
+  const D = await import('./precipsum/precipsum-derive.mjs');
+  const { pastSumGridFromRgba, FLAG_OUTSIDE, FLAG_MEASURED } = await import('../src/precipSums/sumGrid.ts');
+  const geom = sumGeometry();
+  const n = geom.width * geom.height;
+  // H1 Fenstersumme: alle Stunden gültig ⇒ Summe; eine fehlende Datei / NaN / negativ ⇒ Lücke (nie 0, nie Teilsumme)
+  {
+    const country = new Uint8Array([0, 1, 2, 0, 0, 0]);
+    const f = (vals) => Float32Array.from(vals);
+    const de = [f([1, 0, 0, 0.5, NaN, 0]), f([2, 0, 0, 0.5, 1, -1]), f([0.25, 0, 0, 0.5, 1, 0])];
+    const at = [f([0, 3, 0, 0, 0, 0]), null, f([0, 3, 0, 0, 0, 0])];
+    const ch = [f([0, 0, 0.1, 0, 0, 0]), f([0, 0, 0.2, 0, 0, 0]), f([0, 0, 0.3, 0, 0, 0])];
+    const s3 = PS.windowSumOnGrid(country, [de, at, ch]);
+    const s1 = PS.windowSumOnGrid(country, [de.slice(0, 1), at.slice(0, 1), ch.slice(0, 1)]);
+    add('H1 Fenstersumme je Land; fehlende Stunde, NaN oder negativ ⇒ Lücke; das 1-h-Fenster liest nur die Stunde E',
+      near(s3[0], 3.25, 1e-6) && Number.isNaN(s3[1]) && near(s3[2], 0.6, 1e-6) && near(s3[3], 1.5, 1e-6) && Number.isNaN(s3[4]) && Number.isNaN(s3[5])
+      && near(s1[1], 3, 1e-6) && Number.isNaN(s1[4]) && s1[5] === 0,
+      `${Array.from(s3).map((x) => x.toFixed(2)).join(' ')} | ${Array.from(s1).map((x) => x.toFixed(2)).join(' ')}`);
+  }
+  // H2 Kodierung im Rundlauf + drei Zustände
+  {
+    const buf = new Uint8Array(16);
+    PS.encodePastSumPixel(12.34, buf, 0); PS.encodePastSumPixel(null, buf, 4); PS.encodePastSumOutside(buf, 8); PS.encodePastSumPixel(0, buf, 12);
+    const st = [0, 4, 8, 12].map((o) => PS.pastSumCellState(buf[o + 3]));
+    add('H2 Rundlauf 0,01 mm; Zustände Wert / Lücke (A 0) / außerhalb (A 128); 0 mm ist ein Wert',
+      near(PS.decodePastSumPixel(buf[0], buf[1], buf[2], buf[3]), 12.34, 1e-9) && st.join() === 'value,gap,outside,value'
+      && PS.decodePastSumPixel(buf[12], buf[13], buf[14], buf[15]) === 0 && PS.decodePastSumPixel(buf[8], buf[9], buf[10], buf[11]) === null, st.join());
+  }
+  // H3 Leser des Clients: Lücke bleibt NaN (nicht 0), außerhalb DACH gekennzeichnet; Bild: außerhalb durchsichtig, Lücke schraffiert
+  {
+    const rgba = new Uint8Array(n * 4);
+    for (let i = 0; i < n; i++) { if (i % 3 === 0) PS.encodePastSumPixel(i % 7, rgba, i * 4); else if (i % 3 === 1) PS.encodePastSumOutside(rgba, i * 4); }
+    const g = pastSumGridFromRgba(geom, rgba, geom.width, geom.height);
+    let bad = 0;
+    for (let i = 0; i < n; i++) {
+      if (i % 3 === 0 && !((g.flags[i] & FLAG_MEASURED) && g.mm[i] === i % 7)) bad++;
+      if (i % 3 === 1 && !((g.flags[i] & FLAG_OUTSIDE) && Number.isNaN(g.mm[i]))) bad++;
+      if (i % 3 === 2 && !(g.flags[i] === 0 && Number.isNaN(g.mm[i]))) bad++;
+    }
+    // Zeile 0 des Mercator-Bilds liest Gitterzeile 0, Spalte c liest Zelle c (gleiche Breite) ⇒ Zustand je Spalte prüfbar.
+    const img = renderSumRgba(g);
+    let outsideDrawn = 0, gapHidden = 0;
+    for (let c = 0; c < img.width; c++) {
+      const a = img.data[c * 4 + 3];
+      if (c % 3 === 1 && a !== 0) outsideDrawn++;
+      if (c % 3 === 2 && a === 0) gapHidden++;
+    }
+    add('H3 Client: Lücke = NaN, außerhalb = Kennung; Bild: außerhalb durchsichtig, Lücke schraffiert',
+      bad === 0 && outsideDrawn === 0 && gapHidden === 0 && g.stats.gap === Math.ceil((n - 2) / 3), `falsch ${bad} · außerhalb gezeichnet ${outsideDrawn} · Lücke unsichtbar ${gapHidden} · Lücken ${g.stats.gap}`);
+  }
+  // H4 DACH-Maske aus den Landesumrissen: Orte innen, Nachbarländer außen
+  {
+    const mask = D.dachMask(geom);
+    const at = (lat, lon) => { const c = Math.floor((lon - G.lonMin) / (G.lonMax - G.lonMin) * G.w), r = Math.floor((G.latMax - lat) / (G.latMax - G.latMin) * G.h); return c >= 0 && r >= 0 && c < G.w && r < G.h ? mask[r * G.w + c] : -1; };
+    const inside = [[48.14, 11.58], [52.52, 13.40], [48.21, 16.37], [47.27, 11.39], [46.95, 7.45], [46.0, 8.95], [54.3, 10.1]];
+    const outside = [[45.46, 9.19], [46.05, 14.51], [50.08, 14.42], [48.58, 7.75], [49.61, 6.13], [50.63, 5.57], [48.15, 17.11], [45.70, 9.67], [45.91, 13.96], [45.81, 15.98], [45.44, 12.33]];
+    const okIn = inside.filter(([a, b]) => at(a, b) === 1).length, okOut = outside.filter(([a, b]) => at(a, b) === 0).length;
+    const share = mask.reduce((s, x) => s + x, 0) / n;
+    add('H4 DACH-Maske (public/countries): München, Berlin, Wien, Innsbruck, Bern, Lugano, Kiel innen; Mailand, Ljubljana, Prag, Straßburg, Luxemburg, Lüttich, Bratislava, Bergamo, Slowenien, Zagreb, Venedig außen (alle im Gitter G)',
+      okIn === inside.length && okOut === outside.length && share > 0.3 && share < 0.7, `innen ${okIn}/${inside.length} · außen ${okOut}/${outside.length} · Anteil ${(share * 100).toFixed(1)} %`);
+  }
+  // H5 buildRun an synthetischen Stundenfeldern: Land je Zelle aus seiner Quelle, Lücke je Land, außerhalb gekennzeichnet
+  {
+    const E = Date.UTC(2026, 9, 8, 19);
+    const fill = (v) => new Float32Array(n).fill(v);
+    const hours = (v, upto = 48) => new Map(Array.from({ length: upto }, (_, k) => [E - k * H, fill(v)]));
+    const run = D.buildRun({ endMs: E, fields: { DE: hours(0.1), AT: hours(0.5, 6), CH: hours(1) } });
+    const img = run.images[PS.pastSumFileName(6)], img48 = run.images[PS.pastSumFileName(48)];
+    const mask = D.dachMask(geom);
+    const val = (im, i) => PS.decodePastSumPixel(im[i * 4], im[i * 4 + 1], im[i * 4 + 2], im[i * 4 + 3]);
+    let ok6 = 0, ok48 = 0, bad = 0;
+    for (let i = 0; i < n; i += 13) {
+      if (!mask[i]) { if (img[i * 4 + 3] !== PS.PAST_SUM_ALPHA_OUTSIDE) bad++; continue; }
+      const c = geom.country[i];
+      const v6 = val(img, i), v48 = val(img48, i);
+      if (v6 != null && near(v6, [0.6, 3, 6][c], 0.006)) ok6++; else bad++;
+      if (c === 1 ? v48 === null : (v48 != null && near(v48, [4.8, 0, 48][c], 0.006))) ok48++; else bad++;
+    }
+    add('H5 Lauf: je Land seine Quelle; AT nur 6 h vorhanden ⇒ 48 h Lücke in AT, DE/CH voll; außerhalb A 128',
+      bad === 0 && ok6 > 0 && ok48 > 0 && run.manifest.countries.AT.maxWindowH === 6 && run.manifest.countries.DE.maxWindowH === 48
+      && run.dir === '2026100819-de-at-ch-rw' && run.manifest.windows['48'].de.product === 'RW',
+      `ok ${ok6}/${ok48} · falsch ${bad} · ${run.dir}`);
+    // H5b DE 24/48 h aus SF (Ende E − 10 min): 24 h = SF(E − 10 min), 48 h = + SF(E − 10 min − 24 h); kürzere Fenster bleiben RW
+    const sfEnd = E - 10 * MIN;
+    const sf = new Map([[sfEnd, fill(7)], [sfEnd - 24 * H, fill(2)]]);
+    const runSf = D.buildRun({ endMs: E, fields: { DE: hours(0.1), AT: hours(0.5), CH: hours(1) }, sf });
+    const sfOnly = D.buildRun({ endMs: E, fields: { DE: hours(0.1), AT: hours(0.5), CH: hours(1) }, sf: new Map([[sfEnd, fill(7)]]) });
+    let okSf = 0, badSf = 0;
+    for (let i = 0; i < n; i += 13) {
+      if (!mask[i] || geom.country[i] !== 0) continue;
+      const v24 = val(runSf.images[PS.pastSumFileName(24)], i), v48 = val(runSf.images[PS.pastSumFileName(48)], i), v12 = val(runSf.images[PS.pastSumFileName(12)], i);
+      if (near(v24, 7, 0.006) && near(v48, 9, 0.006) && near(v12, 1.2, 0.006)) okSf++; else badSf++;
+    }
+    const w = runSf.manifest.windows;
+    add('H5b DE 24/48 h aus SF (24 h = SF, 48 h = SF + SF Vortag, Ende E − 10 min), 1–12 h RW; ein SF fehlt ⇒ RW-Kette, Ordner -rw',
+      badSf === 0 && okSf > 0 && w['24'].de.product === 'SF' && w['48'].de.product === 'SF' && w['12'].de.product === 'RW'
+      && w['24'].de.end === new Date(sfEnd).toISOString() && runSf.dir === '2026100819-de-at-ch'
+      && sfOnly.manifest.windows['24'].de.product === 'SF' && sfOnly.manifest.windows['48'].de.product === 'RW' && sfOnly.dir.endsWith('-rw'),
+      `ok ${okSf} · falsch ${badSf} · ${runSf.dir} / ${sfOnly.dir}`);
+  }
+  // H6 Wartestufe: spätes Land ⇒ Vorstunde, aber nur bis 75 min nach E und nur, wenn die Vorstunde vollständig ist
+  {
+    const E = Date.UTC(2026, 9, 8, 20);
+    const hasAll = (c, e) => !(c === 'AT' && e === E);
+    const a = D.chooseEnd(E, E + 40 * MIN, hasAll), b = D.chooseEnd(E, E + 80 * MIN, hasAll);
+    const c = D.chooseEnd(E, E + 40 * MIN, (cc, e) => !(cc === 'AT' && e >= E - H));
+    const d = D.chooseEnd(E, E + 40 * MIN, () => true);
+    add('H6 Wartestufe: 40 min ⇒ Vorstunde (wartet auf AT), 80 min ⇒ E mit Lücke, Vorstunde unvollständig ⇒ E, alles da ⇒ E',
+      a.endMs === E - H && a.waitingFor.join() === 'AT' && b.endMs === E && c.endMs === E && d.endMs === E && d.waitingFor.length === 0);
+  }
+  // H7 INCA-Abrufe: ≤ 24 h je Block (Grenze 10 Mio. Datenpunkte ≈ 35 h), getrennte Bedarfe ⇒ getrennte Blöcke
+  {
+    const E = Date.UTC(2026, 9, 8, 19);
+    const bl = D.incaBlocks(Array.from({ length: 49 }, (_, k) => E - k * H));
+    const sparse = D.incaBlocks([E, E - 30 * H, E - 31 * H]);
+    const lens = bl.map(([a, b2]) => (b2 - a) / H + 1);
+    add('H7 INCA-Blöcke ≤ 24 h (Grenze 35 h), ganze Abdeckung, getrennte Bedarfe getrennt',
+      lens.every((l) => l <= D.INCA_BLOCK_H) && lens.reduce((s, l) => s + l, 0) === 49 && bl.length === 3 && sparse.length === 2 && 281101 * D.INCA_BLOCK_H < 1e7, lens.join('+'));
+  }
+  // H8 Zeit- und Namensregeln
+  {
+    const E = Date.UTC(2026, 9, 8, 19);
+    let rejects = false;
+    try { PS.parsePastSumManifest({ schema: 1, kind: 'precipsum/past', end: 'x' }); } catch { rejects = true; }
+    add('H8 RW-Stempel, INCA-Epoche 1961 (2075482800 s ⇔ 08.10. 19 UTC), Ordnername je Länder, Manifest-Prüfung lehnt ab',
+      D.rwStamp(E) === '2610081900' && D.INCA_EPOCH_MS + 2075482800 * 1000 === E && PS.pastSumRunDir(E, ['CH', 'DE']) === '2026100819-de-ch'
+      && PS.pastSumRunDir(E, []) === '2026100819-none' && PS.pastSumRunDir(E, ['DE'], true) === '2026100819-de-rw' && rejects);
+  }
+  // H9 Speicher: Ordner unveränderlich, Manifest nie zurück, Beschneiden behält die jüngsten + den Manifest-Ordner
+  {
+    const { mkdtempSync, rmSync } = await import('node:fs');
+    const os = await import('node:os');
+    const dir = mkdtempSync(join(os.tmpdir(), 'precipsum-'));
+    try {
+      const fieldsAt = (E) => ({ DE: new Map(Array.from({ length: 48 }, (_, j) => [E - j * H, new Float32Array(n).fill(0.2)])), AT: new Map(), CH: new Map() });
+      const runs = [];
+      for (let k = 0; k < 5; k++) { const E = Date.UTC(2026, 9, 8, 15 + k); runs.push(D.writeRun(dir, D.buildRun({ endMs: E, fields: fieldsAt(E) }))); }
+      const again = D.writeRun(dir, D.buildRun({ endMs: Date.UTC(2026, 9, 8, 19), fields: fieldsAt(Date.UTC(2026, 9, 8, 19)) }));
+      const older = D.writeRun(dir, D.buildRun({ endMs: Date.UTC(2026, 9, 8, 14), fields: fieldsAt(Date.UTC(2026, 9, 8, 14)) }));
+      const latest = JSON.parse(readFileSync(join(dir, 'latest.json'), 'utf8'));
+      const dirs = readdirSync(dir).filter((d) => /^\d{10}-/.test(d)).sort();
+      add('H9 Speicher: gleicher Lauf ⇒ unverändert, älteres Ende schreibt weder Ordner noch Manifest, ≤ 3 Läufe + Manifest-Ordner',
+        runs.every((r) => r.changed) && !again.changed && older.older === true && latest.end === '2026-10-08T19:00:00.000Z'
+        && dirs.length <= PS.PAST_SUM_KEEP_RUNS + 1 && dirs.includes(latest.dir) && !dirs.some((d) => d.startsWith('2026100814')) && existsSync(join(dir, latest.dir, PS.pastSumFileName(48))), dirs.join(' '));
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }
+  // H10 Leser an echten Dateien (optional, --raw=<dir> mit rw<HHMM>.h5, cpc<HHMM>.h5, inca-range.nc)
+  if (!args.raw) skipped('H10 Leser an echten RW-/CombiPrecip-/INCA-Dateien', '--raw=<dir> fehlt');
+  else {
+    const rd = (f) => new Uint8Array(readFileSync(join(args.raw, f)));
+    const files = readdirSync(args.raw);
+    const sfF = files.find((f) => /^sf\d{4}\.h5$/.test(f));
+    const sfv = sfF ? D.readSf(rd(sfF)) : null;
+    add('H10e SF: 24-h-Intervall, Ende :50, 0,1-mm-Stufen', !!sfv && new Date(sfv.endMs).getUTCMinutes() === 50 && sfv.cols === 1100, sfF ?? 'fehlt');
+    const rwF = files.find((f) => /^rw\d{4}\.h5$/.test(f)), cpcF = files.find((f) => /^cpc\d{4}\.h5$/.test(f)), incaF = files.find((f) => f === 'inca-range.nc');
+    const rw = rwF ? D.readRw(rd(rwF)) : null, cpc = cpcF ? D.readCpc(rd(cpcF)) : null, inca = incaF ? D.readIncaRange(rd(incaF)) : null;
+    const nanShare = (v) => v.reduce((s, x) => s + (Number.isNaN(x) ? 1 : 0), 0) / v.length;
+    let steps = true;
+    if (rw) for (let i = 0; i < rw.values.length; i += 7) { const x = rw.values[i]; if (!Number.isNaN(x) && Math.abs(Math.round(x * 10) - x * 10) > 1e-3) { steps = false; break; } }
+    add('H10a RW: 1100 × 1200, Stundenende = Stempel, 0,1-mm-Stufen, nodata 20–60 % (Ausland)', !!rw && rw.cols === 1100 && rw.endMs % H === 0 && steps
+      && nanShare(rw.values) > 0.2 && nanShare(rw.values) < 0.6, rwF ?? 'fehlt');
+    add('H10b CombiPrecip: 710 × 640, NaN bleibt NaN, Ecken aus /where', !!cpc && cpc.cols === 710 && cpc.rows === 640 && nanShare(cpc.values) > 0.05 && cpc.corners[0][1] > 49, cpcF ?? 'fehlt');
+    add('H10c INCA: volle Stunden in Folge (Epoche 1961), 701 × 401', !!inca && inca.length > 1 && inca.every((h, k) => k === 0 || h.endMs - inca[k - 1].endMs === H)
+      && inca[0].cols === 701 && inca[0].rows === 401 && inca.every((h) => h.endMs > Date.UTC(2020, 0, 1) && h.endMs < Date.UTC(2040, 0, 1)), incaF ?? 'fehlt');
+    const g = rw ? D.toGrid(rw) : null;
+    const m = D.dachMask(geom);
+    let deValid = 0, deCells = 0;
+    if (g) for (let i = 0; i < n; i++) if (m[i] && geom.country[i] === 0) { deCells++; if (!Number.isNaN(g[i])) deValid++; }
+    add('H10d RW auf G: in DE ≥ 95 % der Zellen gültig', !!g && deValid / deCells > 0.95, g ? `${(deValid / deCells * 100).toFixed(1)} %` : '');
+  }
+  // H11 Oberfläche: Legende nennt Quelle je Land und Stand aus dem Manifest, Rückfall am Ort benannt
+  {
+    const ui = readFileSync(join(ROOT, 'src/precipSums/PrecipSumsUi.tsx'), 'utf8');
+    const eng = readFileSync(join(ROOT, 'src/precipSums/sumMapEngine.ts'), 'utf8');
+    add('H11 Legende: Fläche bis E mit Anbieter + Produkt je Land, Lücke je Land, „nur DE · AT · CH"; Karte am Ort: „Radar angeeicht" mit Stand',
+      /Fläche bis \{fmtHour\(m\.endMs\)\}/.test(ui) && /c\.provider\} \$\{c\.label/.test(ui) && /Lücke: \{c\.note/.test(ui) && /nur DE · AT · CH/.test(ui)
+      && /<b>Radar angeeicht<\/b> · \{past\.area\.provider\}/.test(ui) && !/noch nicht angebunden/.test(ui) && /PAST_SUM_DIR\}\/latest\.json/.test(eng));
+  }
+}
+
 // ─── Live (optional) ──────────────────────────────────────────────────────────────────────────
 if (args.live) {
   console.log('\n== L live (Daten-Repo, nur lesend) ==');
@@ -397,6 +584,14 @@ if (args.live) {
     const l = await (await fetch(`${raw}/obs/v1/latest.json`)).json();
     add('L2 obs/v1 latest lesbar, rr1h/rr24h vorhanden', l.schema === 1 && Object.values(l.stations).some((s) => s.rr1h), l.builtAt);
   } catch (e) { add('L2 obs/v1 lesbar', false, String(e)); }
+  try {
+    const { parsePastSumManifest, pastSumFileName } = await import('../src/precipSums/pastSumFormat.ts');
+    const m = parsePastSumManifest(await (await fetch(`${raw}/precipsum/v1/latest.json`)).json());
+    const age = (Date.now() - Date.parse(m.end)) / H;
+    const img = await fetch(`${raw}/precipsum/v1/${m.dir}/${pastSumFileName(6)}`);
+    add('L3 precipsum/v1: Manifest gültig, Ende ≤ 3 h alt, alle Länder mit Stunde E, Bild 6 h lesbar (erst nach Jans Workflow-Kopie)',
+      age <= 3 && Object.values(m.countries).every((c) => c.hasEnd) && img.ok, `${m.dir} · ${age.toFixed(1)} h · ${Object.entries(m.countries).map(([k, c]) => `${k} ${c.maxWindowH} h`).join(' ')}`);
+  } catch (e) { add('L3 precipsum/v1 lesbar (erst nach Jans Workflow-Kopie)', false, String(e)); }
 }
 
 console.log(`\n${pass} PASS · ${fail} FAIL${skip ? ` · ${skip} ⊘` : ''}`);
