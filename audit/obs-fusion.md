@@ -475,3 +475,33 @@ Volltest auf der Entwicklungsmenge (`--modus=voll --offline`, zwei Worker). **G3
 ist brauchbar**, wenn zusätzlich G2 grün bleibt und der Fortschrittsindex gegen Fusion 9 im 95-%-Intervall von Fusion 12
 (+1,28 … +1,72 %) oder darüber liegt (σ ändert den Median nicht, nur CRPS/Abdeckung). Rote Zellen, die bleiben, werden benannt;
 keine Nachstellung von f_min oder der Form nach dem Lauf in dieser Phase.
+
+### 10.4 Ergebnis (Volltest `fusion-12s`, Commit `bec557c`, Lauf `laeufe/05-voll-12s.log`, Bericht `audit/pruefstand/berichte/fusion-12s/2026-10-08-voll/`)
+
+- Fortschrittsindex gegen Fusion 9 **+1,55 %** (95 %: +1,36 … +1,79 %; Fusion 12: +1,47 %), G1/G2/G4 grün, **G3 rot — 3 statt 6 Zellen**.
+- G3 je Zelle (Abdeckung q10–q90, Rolle B; Fusion 12 → 12s, Champion):
+
+  | Zelle | Fusion 12 | 12s | Champion | Urteil 12s |
+  |---|---|---|---|---|
+  | gust 0–6 h | 90,0 % | **87,5 %** | 87,3 % | behoben |
+  | gust 6–24 h | 89,9 % | 89,6 % | 89,5 % | behoben |
+  | t 6–24 h | 84,8 % | 84,3 % | 84,2 % | behoben |
+  | t 24–48 h | 84,6 % | 84,2 % | 84,3 % | behoben |
+  | ws 0–6 h | 82,0 % | 79,3 % | 78,2 % | im Band |
+  | ws 6–24 h | 85,2 % | 85,1 % | 84,7 % | **rot** (+0,30 … +0,62 pp) |
+  | gust 24–48 h | 90,6 % | 90,5 % | 90,3 % | **rot** (+0,02 … +0,32 pp) |
+  | t 0–6 h | 82,7 % | **74,4 %** | 77,8 % | **rot, NEU: zu schmal** (−2,1 … −5,0 pp weiter als der Champion) |
+
+- **Verdikt nach §10.3:** G3 nicht behoben. Die Kopplung wirkt bei Wind und Böe wie vorhergesagt (Böe 0–6 h zurück auf Champion-Niveau),
+  **überzieht aber bei T 0–6 h**: dort fällt die Abdeckung unter das Band. Ursache (Form): `a = fraction · w(τ)` setzt die
+  Repräsentativität (`spatialWeight`, Distanz/Höhe) an die Stelle der Fehlerkorrelation zwischen Station und Punkt; w(τ) ist an der
+  Station SELBST gefittet (cov(e₁,e_τ)/var(e₁)). An Rolle B ist der Fehler des Nachbarn bei T schwächer mit dem des Punkts
+  korreliert, als `fraction` behauptet (Mikroklima, Inversionen) — der Mittelwert profitiert, die σ wird zu stark verkleinert.
+  Die zwei übrigen roten Zellen (ws 6–24 h, Böe 24–48 h, je ≤ 0,6 pp) liegen dort, wo der Anker kaum noch wirkt: das ist die geerbte
+  Über-Abdeckung des Champions (Böe 87–90 % in jedem Fenster), keine Folge des Ankers.
+- Keine Nachstellung in dieser Phase (Regel §10.3). `FUSION12_OBS_DENSE` bleibt 0, `anchorSigma` aus; Register `fusion-12s` = Kandidat.
+- **V-OF-13a** (nächster Schritt, Jans Wahl): (1) die Korrelation ρ(d, Δh) der Anker-Innovation mit dem Punktfehler je Größe am
+  Archiv messen (Rolle-B-Paare, außerhalb der Entwicklungsmenge) und `a = ρ · w(τ)` statt `fraction · w(τ)` — ein kleiner Fit, sauber
+  nur mit eigenem Fenster; (2) als neue, vorab eingefrorene Regel die Kopplung nur für Wind und Böe (T ohne) — begründet durch §10.4,
+  aber an denselben Tagen entwickelt ⇒ nur Spur P (ab 09.10.) entscheidet sauber; (3) unabhängig davon die Böen-σ des Champions
+  (87–90 % in allen Fenstern ≤ 48 h).
