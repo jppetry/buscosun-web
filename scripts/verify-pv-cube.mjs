@@ -14,6 +14,9 @@
  */
 import { performance } from 'node:perf_hooks';
 import { buildCubeFixture, FIX, signature } from './lib/pvCubeFixtures.mjs';
+import { FUSION_NAME as STAGE_NAME } from '../src/pointForecast/fusion/fusionRelease.ts';
+// Phase OF: block (29) names the stage through the register (the branch carries the candidates 10, 11, 12), never a fixed number.
+const STAGE_RE = (tail) => new RegExp('^stage:fs — neueste Stufe \\(' + STAGE_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\): ' + tail);
 import { memoryStore } from '../src/point/client/store.ts';
 import { readPointBundle } from '../src/point/client/readPoint.ts';
 import { CUBE_PLANES, TIER_BY_ID, cellOf, chunkExtent, chunkOf, quantStep } from '../src/point/cubeFormat.ts';
@@ -2368,7 +2371,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const full = await run(filesOf(tables, stackFull), STAGE);
   const need = ['learned:hindcast', 'learnedAtPoint:set', 'learnedClouds:hindcast', 'priorShrink:off', 'stationValue:archive'];
   add('(29) mit Tabellen und Stationswert-Tabelle: calib trägt learned, learnedAtPoint, learnedClouds, priorShrink:off, stationValue:archive; die Notiz nennt die Stufe und zählt die gesetzten Schritte; ohne Messung trägt die Form S0; Schritte ≠ Basis',
-    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*Radar-Stundenmittel \(E-AX-17\), Anker am Messzeitpunkt \(V-AW-33\), Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
+    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => STAGE_RE('.*Radar-Stundenmittel \\(E-AX-17\\), Anker am Messzeitpunkt \\(V-AW-33\\).*, Stationswert$').test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
     full.cube.notes.find((n) => n.startsWith('stationValue: gesetzt'))?.slice(0, 120) ?? `fehlt: ${need.filter((k) => !keysOf(full).includes(k)).join()}`);
   const noI = await run(filesOf(tables, stackOnlyI), STAGE);
   add('(29) nie still (V-FS-12): eine Tabelle ohne die Formen ohne Messung setzt bei einer Abfrage ohne Messung NICHTS — die Notiz sagt „an keinem Schritt gesetzt"; die übrige Stufe wirkt weiter',
@@ -2376,7 +2379,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const broken = await run(filesOf(tables, 'broken'), STAGE);
   const noFile = await run(filesOf(tables, null), STAGE);
   add('(29) Stationswert-Tabelle kein JSON: die Stufe rechnet ohne Stationswert (Notiz „kein JSON", „ohne Stationswert"), Schritte byte-gleich zur Stufe ohne die Datei',
-    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
+    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => STAGE_RE('.*ohne Stationswert').test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
   const explicit = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { priorShrink: true, stationValue: false } });
   add('(29) ausdrückliche fuse-Optionen haben Vorrang vor der Stufe: priorShrink true und stationValue false ⇒ keine der beiden Zeilen, die übrige Stufe bleibt',
     !keysOf(explicit).includes('priorShrink:off') && !keysOf(explicit).includes('stationValue:archive') && keysOf(explicit).includes('learnedAtPoint:set'));
@@ -2386,7 +2389,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const noAnchor = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { anchorWindKm: 0 } });
   add(`(29) buscosun Fusion 7 (E-AX-14): mit Tabellen trägt die Stufe anchorWind:set mit ${FUSION7_ANCHOR_WIND_KM} km und nennt es in der Stufen-Notiz; ohne Tabellen keine anchorWind-Zeile (Rechnung wie ohne Schalter); fuse.anchorWindKm: 0 schaltet den Anker ab, der Rest der Stufe bleibt`,
     FUSION7_ANCHOR_WIND_KM === 10 && keysOf(full).includes('anchorWind:set') && full.cube.calib.some((c) => c.startsWith('anchorWind:set') && c.includes(`${FUSION7_ANCHOR_WIND_KM} km`))
-    && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*Wind-Anker über die Messdistanz gedämpft \(10 km, E-AX-14\), Radar-Stundenmittel \(E-AX-17\), Anker am Messzeitpunkt \(V-AW-33\), Stationswert$/.test(n))
+    && full.cube.notes.some((n) => STAGE_RE('.*Wind-Anker über die Messdistanz gedämpft \\(10 km, E-AX-14\\), Radar-Stundenmittel \\(E-AX-17\\), Anker am Messzeitpunkt \\(V-AW-33\\).*, Stationswert$').test(n))
     && !keysOf(none).includes('anchorWind:set') && !keysOf(noAnchor).includes('anchorWind:set') && keysOf(noAnchor).includes('priorShrink:off') && keysOf(noAnchor).includes('stationValue:archive'),
     `full ${keysOf(full).filter((k) => k.startsWith('anchorWind')).join() || '—'} · none ${keysOf(none).filter((k) => k.startsWith('anchorWind')).join() || '—'} · anchorWindKm:0 ${keysOf(noAnchor).filter((k) => k.startsWith('anchorWind')).join() || '—'}`);
   // buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC): the stage takes the radar hour mean (FUSION8_NOWCAST_HOUR_MEAN) — calib line
@@ -2405,8 +2408,8 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const { pfAnchorAtObsFrom } = await import('../src/pointForecast/pfFlags.ts');
   const f8 = await run(filesOf(tables, stackFull), { ...STAGE, anchorAtObsTime: false });
   add('(29) buscosun Fusion 9 (V-AW-33): die Stufe nennt „buscosun Fusion 9" + „Anker am Messzeitpunkt (V-AW-33)" und trägt die Motor-Notiz anchorAtObsTime nur mit Messung; CubeIo.anchorAtObsTime: false ⇒ Notiz „buscosun Fusion 8" im alten Wortlaut, Schritte ohne Messung byte-gleich; Schalter: ?anc=0 aus, sonst an',
-    FUSION9_ANCHOR_AT_OBS_TIME === true && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): /.test(n))
-    && f8.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n)) && !f8.cube.notes.some((n) => n.startsWith('anchorAtObsTime'))
+    FUSION9_ANCHOR_AT_OBS_TIME === true && full.cube.notes.some((n) => STAGE_RE('').test(n))
+    && f8.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\)(?!.*Anker am Messzeitpunkt).*, Stationswert$/.test(n)) && !f8.cube.notes.some((n) => n.startsWith('anchorAtObsTime'))
     && stepsJson(f8) === stepsJson(full) && pfAnchorAtObsFrom('?anc=0') === false && pfAnchorAtObsFrom('') === true && pfAnchorAtObsFrom('?anc=1') === true,
     f8.cube.notes.find((n) => n.startsWith('stage:fs — neueste'))?.slice(0, 60));
 }

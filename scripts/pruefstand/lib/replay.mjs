@@ -24,6 +24,7 @@ import { seriesFromSlotTier, inputFromSlot } from '../../fusionfit/lib/slotAdapt
 import { SELECTION } from '../../../src/point/client/resolve.ts';
 import { QUANTITY_VARS } from '../../../src/pruefstand/protokoll.ts';
 import { channelsOf } from '../../../src/pruefstand/adapter.ts';
+import { denseObsFor } from './obsDense.mjs';
 
 const FUSED = { t: 'temperature', td: 'dewPoint', ws: 'windSpeed', gust: 'gust', precip: 'precipitation', clct: 'clouds' };
 export const FEATURES_PATH = p(HINDCAST_ROOT, 'features/points.v1.json');
@@ -41,7 +42,15 @@ export async function loadEngine(root) {
   const { ClimaField } = await imp('src/ml/climaField.ts');
   const D = await imp('src/pointForecast/fusion/dist.ts');
   const clima = new ClimaField(JSON.parse(readFileSync(join(root, 'public/climaGrid.json'), 'utf8')));
-  return { root, fuseCubePoint, quantileOf: D.quantileOf, exceedance: D.exceedance, clima };
+  // Phase OF: the candidate's own reader of the measurement product (selection + mapping of the dense set, `obsDense.mjs`);
+  // a version before OF has no `obsStore.ts` — then `dense` is null and the replay feeds the archive measurement as before.
+  let dense = null;
+  try {
+    const S = await imp('src/sources/obsStore.ts');
+    const C = await imp('src/pointForecast/cubeSource.ts');
+    if (S.nearestObsStations && S.obsStoreOf && C.cubeObsOf) dense = { nearestObsStations: S.nearestObsStations, obsStoreOf: S.obsStoreOf, OBS_DENSE_MAX: S.OBS_DENSE_MAX ?? 12, cubeObsOf: C.cubeObsOf };
+  } catch { dense = null; }
+  return { root, fuseCubePoint, quantileOf: D.quantileOf, exceedance: D.exceedance, clima, dense };
 }
 
 /** Reads the tables a register entry names; every file is checked against the sha256 of the entry. */
@@ -100,7 +109,15 @@ function fillBlock(out, sIdx, nL, ch, nq, leads, floorMs, res, eng, taus, wetThr
  * station with its own station and measurement (the replay-fidelity form of the stored measurement rows).
  * `engineOpts` overrides the product form (`hourly: true, tail: true`) — the fidelity check uses the native steps.
  */
-export function predictArchive(eng, tables, reg, proto, slot, leads, { mode = 'P1', engineOpts = null, onStep = null } = {}) {
+/**
+ * Phase OF: which measurements the engine gets — `archive` (the slot's truth rows: own station for role A, the nearest role-A
+ * station for role B — every version before Fusion 12), `dense` (the dense set from the day files of the originals, the input
+ * of `obsDense`) or `store6` (the product's six nearest full stations, the OF-1 effect alone). Default: dense when the
+ * register option `obsDense` is on, else archive. Without a day file the replay keeps the archive measurement and counts it.
+ */
+export function obsModeOf(reg, forced = null) { return forced ?? (reg?.options?.obsDense === 1 ? 'dense' : 'archive'); }
+
+export function predictArchive(eng, tables, reg, proto, slot, leads, { mode = 'P1', engineOpts = null, onStep = null, obsMode = null } = {}) {
   const feat = features().byPoint;
   const stations = proto.scored, nSt = stations.length, nL = leads.length, taus = proto.quantiles, nq = taus.length, ch = channelsOf(nq);
   const out = new Float32Array(nSt * nL * ch).fill(NaN);
@@ -110,6 +127,9 @@ export function predictArchive(eng, tables, reg, proto, slot, leads, { mode = 'P
   const wetThr = proto.variables.wet.thresholdMmH;
   const ms = [], errors = [];
   let withStation = 0, withObs = 0;
+  const obsWanted = obsModeOf(reg, obsMode);
+  let denseUsed = 0, denseMissing = 0;
+  const day = new Date(slot.slotAtMs).toISOString().slice(0, 10);
   for (let s = 0; s < nSt; s++) {
     const stn0 = stations[s], row = feat[stn0.id];
     const cube = {};
@@ -131,6 +151,11 @@ export function predictArchive(eng, tables, reg, proto, slot, leads, { mode = 'P
       } else stationReason = 'Rolle B: Nachbar ohne Stationsprodukt im Slot';
       obs = obsOf(slot, truthSlot.get(an.id), rowB, an.km * 1000);
     } else stationReason = 'Rolle B: kein Anker in der Liste';
+    // Phase OF: the dense measurement set from the originals (role B without its own station: the leak rule of §1.6)
+    if (obsWanted !== 'archive') {
+      const d = denseObsFor(eng, day, row.lat, row.lon, row.country ?? 'DE', { nowMs: slot.slotAtMs, mode: obsWanted, maskOwn: mode !== 'S' && stn0.role === 'B' });
+      if (d) { obs = d; denseUsed += 1; } else denseMissing += 1;
+    }
     if (station) withStation += 1;
     if (obs?.length) withObs += 1;
     const nc = A.archiveNowcast(slot, stn0.id);
@@ -145,7 +170,7 @@ export function predictArchive(eng, tables, reg, proto, slot, leads, { mode = 'P
     fillBlock(out, s, nL, ch, nq, leads, floorMs, res, eng, taus, wetThr, null);
   }
   ms.sort((a, b) => a - b);
-  return { data: out, nq, info: { points: ms.length, withStation, withObs, errors: errors.length, firstErrors: errors.slice(0, 3), pointMsMedian: ms.length ? Math.round(ms[Math.floor(ms.length / 2)] * 10) / 10 : null, pointMsP95: ms.length ? Math.round(ms[Math.floor(ms.length * 0.95)] * 10) / 10 : null } };
+  return { data: out, nq, info: { points: ms.length, withStation, withObs, obsMode: obsWanted, denseUsed, denseMissing, errors: errors.length, firstErrors: errors.slice(0, 3), pointMsMedian: ms.length ? Math.round(ms[Math.floor(ms.length / 2)] * 10) / 10 : null, pointMsP95: ms.length ? Math.round(ms[Math.floor(ms.length * 0.95)] * 10) / 10 : null } };
 }
 
 export const hindcastSlotPath = (issueMs) => p(HINDCAST_ROOT, 'slots', new Date(issueMs).toISOString().slice(0, 10), `${new Date(issueMs).toISOString().slice(11, 13)}00.json.gz`);

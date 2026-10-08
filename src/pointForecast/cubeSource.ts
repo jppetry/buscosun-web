@@ -97,7 +97,8 @@ import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../po
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
-import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom } from './pfFlags';
+import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom } from './pfFlags';
+import { OBS_DENSE_MAX } from '../sources/obsStore';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
 import { fusionStage, fusionStageIo, fusionStageNote } from './fusion/fusionRelease';
 
@@ -210,6 +211,11 @@ export interface CubeObs {
    * (INCA am Punkt: Abstand 0, aber Analysefehler abseits der Stationen ≈ 1 K). Fehlt: 1 (eine echte Messung).
    */
   weight?: number;
+  /** OF-1: the measurement came from the mirror product `obs/v1` (`obsStore.ts`); the direct adapters and INCA set nothing. */
+  via?: 'obs';
+  /** OF-2/OF-3 (only from the dense reader, `CubeIo.obsDense`): precipitation of the last 10 min at the stamp (mm) and the hour sum ending at the stamp. */
+  rr10?: number | null;
+  rr1h?: { mm: number; complete: boolean } | null;
 }
 
 /**
@@ -264,7 +270,8 @@ export function cubeInputFromBundle(b: PointBundle, clima: ClimaField | null, ob
 export type StepFlag =
   | 'extrapolatedBelowModel' | 'inversionBody' | 'stdLapseFallback' | 'chunkBorderTruncated' | 'belowGround925'
   | 'nowcastFallbackModel' | 'climatologyOnly' | 'stale' | 'seam' | 'interpolated' | 'noTerrain' | 'nowcastSaturated'
-  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal' | 'longRange' | 'sigmaInflate';
+  | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal' | 'longRange' | 'sigmaInflate'
+  | 'gaugeOccurrence' | 'gaugeRadar';
 
 export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'anchor' | 'climatology';
 export type StepTier = TierId | 'station' | 'clima';
@@ -685,6 +692,31 @@ export interface FuseCubeOptions {
    */
   nowcastHourMean?: boolean;
   /**
+   * Phase OF (buscosun Fusion 12 candidate, `audit/obs-fusion.md` §5.2): the anchor on the DENSE measurement set of the mirror
+   * product (`CubeIo.obsDense`: the `OBS_DENSE_MAX` nearest 10-min stations including the precipitation-only gauges, with the
+   * measured dew point and the gauge sums). The anchor math is unchanged (`anchor.ts`); only the station set changes: per
+   * variable the `OBS_DENSE_ANCHOR_K` best stations by `spatialWeight` among those that carry it (a rain gauge never displaces
+   * a temperature station), and the measured Td reaches the station value through `CubeObs.dewPoint`. The two gauge
+   * options below are bundled by `FUSION12_GAUGE` unless set explicitly (pre-screen path). Value 0/absent ⇒ byte-identical.
+   */
+  obsDense?: 0 | 1;
+  /**
+   * OF-3 (b): the occurrence anchor „rains now / does not" — for leads ≤ `GAUGE_OCC_LEAD_H` the wet probability of the hurdle is
+   * blended towards the weighted share of gauges within `GAUGE_OCC_KM` reporting rain in their last 10 min (`CubeObs.rr10`,
+   * stamp ≤ `GAUGE_OCC_MAX_AGE_MIN` old): p′ = (1 − k)·p + k·p_obs, k = `GAUGE_OCC_K0` · min(1, Σw) · e^(−(lead − 1)/`GAUGE_OCC_TAU_H`).
+   * Constants set, not fitted (`audit/obs-fusion.md` §3). Explicit value wins over the bundle; absent ⇒ the bundle; 0 ⇒ off.
+   */
+  gaugeOccurrence?: 0 | 1;
+  /**
+   * OF-3 (a′): the gauge–radar correction of the radar member — the ratio of the gauges' last hour sums (`CubeObs.rr1h`,
+   * complete, within `GAUGE_RADAR_KM`) to the radar hour mean AT THE POINT over the same hour (the client samples the radar
+   * only at the point; a gauge ≤ `GAUGE_RADAR_KM` stands for it), regularised with `GAUGE_RADAR_EPS_MM`, clipped to
+   * [1/`GAUGE_RADAR_MAX`, `GAUGE_RADAR_MAX`], applied to the radar member's rate for leads ≤ `GAUGE_RADAR_LEAD_H` with
+   * F(lead) = 1 + (F − 1)·e^(−lead/`GAUGE_RADAR_TAU_H`). Only when gauges and radar together carry ≥ `GAUGE_RADAR_MIN_MM`.
+   * Constants set, not fitted. Explicit value wins over the bundle; absent ⇒ the bundle; 0 ⇒ off.
+   */
+  gaugeRadar?: 0 | 1;
+  /**
    * F10-K1 „Langfrist-Rückführung auf die Klimatologie" (`fusion/longRange.ts`, `audit/fusion-10/stat.md`): bei Vorlauf
    * > 48 h werden T, Td, Windgeschwindigkeit und Böe nach dem Stationswert mit Gewicht w zur Klimatologie des Motors
    * gezogen (μ_c aus dem Klimatologieprodukt für T/Td, sonst die Klimatologie-only-Fusion des Schritts) und die Streuung
@@ -1001,6 +1033,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const pcCount = { applied: 0, k2: 0, learned: 0, identity: 0 };
   // V-AX-23: the radar hour mean (option, default off) — hours served by the mean, hours that fell back to the single frame
   const useHourMean = opts.nowcastHourMean === true;
+  // Phase OF (buscosun Fusion 12 candidate): dense anchor set; the gauge options follow the bundle unless set explicitly.
+  const useObsDense = opts.obsDense === 1;
+  const useGaugeOcc = useObsDense && (opts.gaugeOccurrence ?? FUSION12_GAUGE.occurrence) === 1;
+  const useGaugeRadar = useObsDense && (opts.gaugeRadar ?? FUSION12_GAUGE.radar) === 1;
   const hmCount = { mean: 0, frames: 0, single: 0, mirror: 0 };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
   // gültiger Kurve (`anchorCurveValid`); je Größe ohne Kurve gilt die Setzung e^(−τ/τ_v). Ohne `anchor`-Block in den
@@ -1126,6 +1162,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ...(opts.precipCal === true ? [pcT
       ? `precipCal:archive — Regenwahrscheinlichkeit nachkalibriert, p′ = Φ(a + b·Φ⁻¹(p)) aus ${pcT.fitVersion} (${pcT.period.from}…${pcT.period.to}, ${pcT.period.issueDays} Ausgabetage, ${pcT.rows} Zeilen; Provenienz archive, nie measured) je Situation (K-2-Kette mit Station/Radar, gelernte Hürde) × Vorlaufgruppe; Menge (μ, σ | nass) unverändert (buscosun Fusion 8, §6l)`
       : `precipCal:absent — Option an, aber keine Tabelle im Eingang${pcErrors.length ? ` (ungültig: ${pcErrors.slice(0, 2).join('; ')})` : ''} ⇒ Hürde unverändert`] : []),
+    ...(useObsDense ? [`obsDense:set — Anker auf dem dichten Messsatz (bis ${OBS_DENSE_MAX} nächste 10-min-Stationen inkl. Niederschlagsstationen): je Größe die ${OBS_DENSE_ANCHOR_K} besten nach spatialWeight unter den Stationen, die sie messen; gemessener Taupunkt in den Stationswert (Phase OF)`] : []),
+    ...(useGaugeOcc ? [`gaugeOccurrence:set — Regenwahrscheinlichkeit bei Vorlauf ≤ ${GAUGE_OCC_LEAD_H} h zum gewichteten Anteil der Messgeräte ≤ ${GAUGE_OCC_KM} km mit Regen in den letzten 10 min gezogen (k = ${GAUGE_OCC_K0}·min(1, Σw)·e^(−(Vorlauf − 1)/${GAUGE_OCC_TAU_H} h), Stempel ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt; Phase OF, Option b)`] : []),
+    ...(useGaugeRadar ? [`gaugeRadar:set — Radar-Member bei Vorlauf ≤ ${GAUGE_RADAR_LEAD_H} h mit dem Faktor Messgeräte-Stundensumme / Radar-Stundenmittel am Punkt skaliert (Geräte ≤ ${GAUGE_RADAR_KM} km, ε ${GAUGE_RADAR_EPS_MM} mm, Deckel ${GAUGE_RADAR_MAX}×, Abklingen τ ${GAUGE_RADAR_TAU_H} h, nur ab ${GAUGE_RADAR_MIN_MM} mm; Phase OF, Option a′)`] : []),
     ...(useHourMean ? [`nowcastHourMean:set — Radar-Member je Stunde t als Mittel der Frame-Raten im Fenster (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] bei ≥ ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames, sonst der Einzelframe; die Wahrheit ist die Stundensumme (V-AX-23, Kandidat buscosun Fusion 8 B)`] : []),
     ...(opts.stationValue === true ? [stackT
       ? `stationValue:archive — Stationswert M + b + w·I + c·(L − M) aus ${stackT.fitVersion} (${stackT.period.from}…${stackT.period.to}, ${stackT.period.issueDays} Ausgabetage, ${stackT.rows} Zeilen; Provenienz archive, nie measured) für T, Td, Windgeschwindigkeit, Böe — nur mit einer Station am Punkt (≤ ${stackT.range.maxKm} km, |Δh| ≤ ${stackT.range.maxDElevM} m); I aus der jüngsten Messung einer Station am Punkt; Richtung, Feuchte und Phase bleiben aus der Kombination`
@@ -1500,6 +1539,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     let fraction = 0;
     const tCubeOf = (x: Prep) => x.learnedMu?.t ?? (x.vertical ? x.vertical.t : x.cubeSample.temperature);
     let atObsTime = 0;
+    // OF-2 (`obsDense`): per variable only the OBS_DENSE_ANCHOR_K best stations by spatialWeight among those carrying it; without the option every station as before.
+    const allow = useObsDense ? anchorDenseAllow(input.obs, hTrue, OBS_DENSE_ANCHOR_K) : null;
     for (const o of input.obs) {
       // V-AW-33: the two steps around the measurement (the axis is sorted) — only strictly between two steps, gap ≤ ANCHOR_BRACKET_MAX_H.
       let p0: Prep | null = null, p1: Prep | null = null;
@@ -1527,16 +1568,16 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const ageH = Math.max(0, (input.nowMs - o.validAtMs) / H);
       // FL-AP5: mit Lernstufe ist das gelernte Mittel der Cube-Wert am Punkt — sonst zählte der Ortsbias doppelt.
       const tCube = modelAt(tCubeOf);
-      if (o.temperature != null && tCube != null) {
+      if (o.temperature != null && tCube != null && (!allow || allow.t.has(o))) {
         const tObs = o.temperature + ((o.elevM ?? hTrue) - hTrue) * STANDARD_LAPSE_PER_M;
         pairs.t.push({ ageH, obs: tObs, model: tCube, wsp });
       }
       // E-AX-11: the wind anchor (u, v, gust) is damped over the distance of the measurement; T keeps `wsp`
       const wspW = anchorWindL != null ? wsp * Math.exp(-((Math.max(0, o.distanceM) / anchorWindL) ** 2)) : wsp;
       const uCube = modelAt((x) => x.cubeSample.u), vCube = modelAt((x) => x.cubeSample.v), gCube = modelAt((x) => x.cubeSample.gust);
-      if (o.u != null && uCube != null && wspW > 0) pairs.u.push({ ageH, obs: o.u, model: uCube, wsp: wspW });
-      if (o.v != null && vCube != null && wspW > 0) pairs.v.push({ ageH, obs: o.v, model: vCube, wsp: wspW });
-      if (o.gust != null && gCube != null && wspW > 0) pairs.gust.push({ ageH, obs: o.gust, model: gCube, wsp: wspW });
+      if (o.u != null && uCube != null && wspW > 0 && (!allow || allow.wind.has(o))) pairs.u.push({ ageH, obs: o.u, model: uCube, wsp: wspW });
+      if (o.v != null && vCube != null && wspW > 0 && (!allow || allow.wind.has(o))) pairs.v.push({ ageH, obs: o.v, model: vCube, wsp: wspW });
+      if (o.gust != null && gCube != null && wspW > 0 && (!allow || allow.gust.has(o))) pairs.gust.push({ ageH, obs: o.gust, model: gCube, wsp: wspW });
       sources.add(o.source); fraction = Math.max(fraction, wsp);
     }
     if (opts.anchorAtObsTime === true) notes.push(`anchorAtObsTime: Modellwert an ${atObsTime} von ${input.obs.length} Messungen auf die Messminute interpoliert (zwischen zwei Achsenschritten, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h); sonst der Schritt im selben Stundenraster (V-AW-33)`);
@@ -1544,6 +1585,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     if (t || u || vv || g) anchorInfo = { sources: [...sources], fraction: Math.min(1, fraction), pairs: pairs.t.length, t, u, v: vv, gust: g };
     else notes.push('anchor: Messungen da, aber kein Paar (Messung, Cube) im selben Stundenraster — kein Anker');
   }
+  // ── Phase OF, OF-3: what the rain gauges of the dense set say (once per point; pure helpers below) ──
+  const gaugeOcc = useGaugeOcc && input.obs ? gaugeOccurrenceOf(input.obs, input.nowMs) : null;
+  const gaugeRadarF = useGaugeRadar && input.obs ? gaugeRadarFactorOf(input.obs, input.nowcast, input.nowMs) : null;
+  const gaugeCount = { occSteps: 0, radarSteps: 0 };
 
   // ── Durchgang 3: je Schritt fertig rechnen (Anker, PAP 6, Station, Radar, Motor) ─
   const inHorizon = (atMs: number) => atMs >= input.nowMs - SAME_TIME_MS && atMs <= input.nowMs + NOWCAST_HORIZON_H * H;
@@ -1671,8 +1716,12 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         }
       }
       if (!hourMean && !best) continue;
-      const mmh = hourMean ? hourMean.mmh : best!.saturated ? NOWCAST_SATURATION : best!.mmh;
-      if (mmh == null) continue;
+      const mmh0 = hourMean ? hourMean.mmh : best!.saturated ? NOWCAST_SATURATION : best!.mmh;
+      if (mmh0 == null) continue;
+      // OF-3 (a′): the gauge–radar factor on the radar rate for the first leads, decaying with the lead
+      const gF = gaugeRadarF && leadH <= GAUGE_RADAR_LEAD_H ? 1 + (gaugeRadarF.factor - 1) * Math.exp(-leadH / GAUGE_RADAR_TAU_H) : 1;
+      const mmh = gF !== 1 ? mmh0 * gF : mmh0;
+      if (gF !== 1) { gaugeCount.radarSteps += 1; if (!flags.includes('gaugeRadar')) flags.push('gaugeRadar'); }
       const saturated = hourMean ? hourMean.saturated : !!best!.saturated;
       if (saturated && !flags.includes('nowcastSaturated')) flags.push('nowcastSaturated');
       if (nc.slotAgeMin > NOWCAST_STALE_MIN && !flags.includes('stale')) flags.push('stale');
@@ -1721,6 +1770,15 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       const e = precipCalEntry(pcT, sit, leadH);
       if (e && e.written) { fused = { ...fused, precipitation: { ...fused.precipitation, dist: applyPrecipCal(fused.precipitation.dist, e) } }; flags.push('precipCal'); pcCount.applied += 1; pcCount[sit] += 1; }
       else pcCount.identity += 1;
+    }
+    // OF-3 (b): the occurrence anchor on the wet probability of the first leads (after every hurdle, before the station value)
+    if (fused && gaugeOcc && leadH >= 1 && leadH <= GAUGE_OCC_LEAD_H && fused.precipitation && fused.precipitation.dist.kind === 'hurdleLogNormal') {
+      const k = GAUGE_OCC_K0 * Math.min(1, gaugeOcc.weight) * Math.exp(-(leadH - 1) / GAUGE_OCC_TAU_H);
+      if (k > 0) {
+        const pWet = (1 - k) * (1 - fused.precipitation.dist.pDry) + k * gaugeOcc.pWet;
+        fused = { ...fused, precipitation: { ...fused.precipitation, dist: { ...fused.precipitation.dist, pDry: Math.min(1, Math.max(0, 1 - pWet)) } } };
+        flags.push('gaugeOccurrence'); gaugeCount.occSteps += 1;
+      }
     }
     // Phase FS: nach der Kombination — die gelernte Bewölkung durchreichen (H14), der Stationswert (H9/H10).
     let post: CubeStep['post'];
@@ -1801,6 +1859,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   if (useLongRange) notes.push(`longRange: Langfrist-Rückführung (${lrTable.provenance.kind}${lrTable.provenance.fitWindow ? ` ${lrTable.provenance.fitWindow.from}…${lrTable.provenance.fitWindow.to}` : ''}) an ${lrCount.steps} Schritten > ${LONG_RANGE_FROM_H} h, ${lrCount.vars} Größen-Schritte, davon ${lrCount.changed} verändert (w, s ≠ 1); μ_c für T/Td aus ${climaEst ? 'dem Klimatologieprodukt' : 'der Klimatologie-only-Fusion'}, Wind/Böe aus der Klimatologie-only-Fusion`);
   if (gustFloorOn) notes.push(`gustAtLeastWind: Böe an ${gustRaised.steps} Schritten auf das Windmittel angehoben (größte Lücke ${gustRaised.maxMs.toFixed(2)} m/s, V-SW-3)`);
   if (opts.precipCal === true && pcT) notes.push(`precipCal: Regenwahrscheinlichkeit nachkalibriert an ${pcCount.applied} Schritten (K-2-Kette ${pcCount.k2}, gelernte Hürde ${pcCount.learned}); ohne geschriebenen Eintrag ${pcCount.identity}`);
+  if (useObsDense) notes.push(`obsDense: ${input.obs?.length ?? 0} Messung(en) im dichten Satz, davon ${input.obs?.filter((o) => o.rr10 != null || o.rr1h != null).length ?? 0} mit Niederschlagssumme, ${input.obs?.filter((o) => o.dewPoint != null).length ?? 0} mit gemessenem Taupunkt`);
+  if (useGaugeOcc) notes.push(gaugeOcc ? `gaugeOccurrence: ${gaugeOcc.n} Messgerät(e) ≤ ${GAUGE_OCC_KM} km (Σw ${gaugeOcc.weight.toFixed(2)}), Anteil nass ${gaugeOcc.pWet.toFixed(2)} — an ${gaugeCount.occSteps} Schritten angewandt` : `gaugeOccurrence: Option an, aber kein Messgerät ≤ ${GAUGE_OCC_KM} km mit 10-min-Wert ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt ⇒ unverändert`);
+  if (useGaugeRadar) notes.push(gaugeRadarF ? `gaugeRadar: Faktor ${gaugeRadarF.factor.toFixed(2)} aus ${gaugeRadarF.n} Messgerät(en) ≤ ${GAUGE_RADAR_KM} km (Geräte ${gaugeRadarF.gaugeMm.toFixed(2)} mm gegen Radar ${gaugeRadarF.radarMm.toFixed(2)} mm in der letzten Stunde) — an ${gaugeCount.radarSteps} Radar-Schritten` : `gaugeRadar: Option an, aber kein Paar (Messgerät ≤ ${GAUGE_RADAR_KM} km mit vollständiger Stundensumme, Radar-Stundenmittel am Punkt) oder unter ${GAUGE_RADAR_MIN_MM} mm ⇒ unverändert`);
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
   if (opts.stationValue === true && stackT) {
     notes.push(stackOn
@@ -2231,6 +2292,19 @@ export interface CubeIo {
    */
   incaAnchor?: boolean;
   /**
+   * OF-1 (`audit/obs-fusion.md` §5.1): `false` = the measurement fetch asks the providers directly (BrightSky `current_weather`,
+   * TAWES current, SMN files — `?obs=direct`); otherwise (default) it reads the mirror product `buscosun-data/obs/v1` and the
+   * providers stand in only when that fails. Not a stand of buscosun Fusion: the engine sees the same `CubeObs` form either way.
+   */
+  obsStore?: boolean;
+  /**
+   * Phase OF (buscosun Fusion 12 candidate): the measurement fetch returns the DENSE set of the mirror product (OBS_DENSE_MAX
+   * nearest 10-min stations incl. precipitation-only gauges, measured Td, rr10/rr1h) — the input of `FuseCubeOptions.obsDense`.
+   * Set by the stage (register `io.set`); `false` (`?dense=0`) = the six nearest full stations as before. Needs `obsStore`
+   * (the providers carry no gauges); with the direct adapters the engine computes the stand before.
+   */
+  obsDense?: boolean;
+  /**
    * AW-6.1 (`audit/autobahnwetter.md` §14, E-AW-22): the chunk decoder handed to `readPointBundle` — a producer that
    * computes thousands of points in one process memoises decoded chunks with it. Default: none ⇒ the reader's own
    * decoder (worker pool), byte-identical to before. Not part of the cache key: a decoder must return what
@@ -2315,7 +2389,97 @@ export interface CubeObsFetchOptions {
   inca?: boolean;
   /** Die Uhr des Aufrufers (Verifier/Replay) — Fenster der INCA-Abfrage. */
   nowMs?: number;
+  /** OF-1: `false` = the provider adapters (`?obs=direct`); otherwise the mirror product `obs/v1` with the adapters as fallback. */
+  store?: boolean;
+  /** OF-2: the dense set (OBS_DENSE_MAX nearest 10-min stations incl. precipitation-only gauges, Td, rr10, rr1h) — only from the product. */
+  dense?: boolean;
 }
+// ---------------------------------------------------------------------------
+// Phase OF (buscosun Fusion 12 candidate, `audit/obs-fusion.md` §5.2/§5.3): the dense anchor set and the two gauge options.
+// Every number here is SET, not fitted (`audit/obs-fusion.md` §3 names them before the measurement).
+// ---------------------------------------------------------------------------
+/** OF-2: per variable the K best stations of the dense set (today's readers hand the engine 6 nearest full stations). */
+export const OBS_DENSE_ANCHOR_K = 6;
+/** OF-3 (b): leads the occurrence anchor touches, radius, weight, decay, age limit of a gauge value. */
+export const GAUGE_OCC_LEAD_H = 2;
+export const GAUGE_OCC_KM = 10;
+export const GAUGE_OCC_K0 = 0.5;
+export const GAUGE_OCC_TAU_H = 1;
+export const GAUGE_OCC_MAX_AGE_MIN = 40;
+/** OF-3 (a′): leads, radius, regularisation, clip, decay and the minimum amount of the gauge–radar factor. */
+export const GAUGE_RADAR_LEAD_H = 3;
+export const GAUGE_RADAR_KM = 10;
+export const GAUGE_RADAR_EPS_MM = 0.2;
+export const GAUGE_RADAR_MAX = 3;
+export const GAUGE_RADAR_TAU_H = 2;
+export const GAUGE_RADAR_MIN_MM = 0.3;
+/**
+ * The bundle of buscosun Fusion 12: which gauge options `obsDense: 1` carries when the caller sets none explicitly. Decided
+ * by the pre-written rule of OF-4 (`audit/obs-fusion.md` §3) on the pre-screen; 0/0 until then.
+ */
+export const FUSION12_GAUGE = Object.freeze({ occurrence: 0 as 0 | 1, radar: 0 as 0 | 1 });
+
+/** Distance weight of a gauge around the point: e^(−(d/R)²). */
+const gaugeWeight = (distanceM: number, radiusKm: number): number => Math.exp(-((Math.max(0, distanceM) / (radiusKm * 1000)) ** 2));
+
+/**
+ * OF-2: which stations of the dense set the anchor uses per variable — the `k` best by `spatialWeight` (distance, height
+ * against h_true) among those that carry the variable at a stamp ≤ now. Pure; the verifier checks it.
+ */
+export function anchorDenseAllow(obs: readonly CubeObs[], hTrue: number, k: number): { t: Set<CubeObs>; wind: Set<CubeObs>; gust: Set<CubeObs> } {
+  const pick = (has: (o: CubeObs) => boolean): Set<CubeObs> => {
+    const c = obs.filter(has).map((o) => ({ o, w: spatialWeight(Math.max(0, o.distanceM), Math.abs((o.elevM ?? hTrue) - hTrue)) * Math.min(1, Math.max(0, o.weight ?? 1)) }));
+    c.sort((x, y) => y.w - x.w || x.o.distanceM - y.o.distanceM);
+    return new Set(c.slice(0, k).map((x) => x.o));
+  };
+  return { t: pick((o) => o.temperature != null), wind: pick((o) => o.u != null && o.v != null), gust: pick((o) => o.gust != null) };
+}
+
+/**
+ * OF-3 (b): the gauges' verdict „rains now": the distance-weighted share of gauges within GAUGE_OCC_KM whose last 10-min
+ * value (stamp ≤ now, at most GAUGE_OCC_MAX_AGE_MIN old) is > 0. `weight` = Σw (the evidence; capped by the caller),
+ * null when no gauge qualifies. Pure.
+ */
+export function gaugeOccurrenceOf(obs: readonly CubeObs[], nowMs: number): { pWet: number; weight: number; n: number } | null {
+  let sw = 0, swet = 0, n = 0;
+  for (const o of obs) {
+    if (o.rr10 == null || !Number.isFinite(o.rr10) || o.validAtMs > nowMs || nowMs - o.validAtMs > GAUGE_OCC_MAX_AGE_MIN * 60_000) continue;
+    if (o.distanceM > GAUGE_OCC_KM * 1000 * 1.5) continue;
+    const w = gaugeWeight(o.distanceM, GAUGE_OCC_KM);
+    if (!(w > 0)) continue;
+    sw += w; if (o.rr10 > 0) swet += w; n += 1;
+  }
+  return n ? { pWet: swet / sw, weight: sw, n } : null;
+}
+
+/**
+ * OF-3 (a′): the gauge–radar factor at the point — Σw·G (gauge hour sums, complete, stamp within the last 70 min) against
+ * Σw·R (the radar rate at the point averaged over the same hour per gauge, from the nowcast frames valid in
+ * (stamp − 60 min, stamp]), both regularised with GAUGE_RADAR_EPS_MM and clipped to [1/GAUGE_RADAR_MAX, GAUGE_RADAR_MAX].
+ * null when no gauge–radar pair exists or both sides carry less than GAUGE_RADAR_MIN_MM. Pure.
+ */
+export function gaugeRadarFactorOf(obs: readonly CubeObs[], nowcast: readonly NowcastPointSeries[], nowMs: number): { factor: number; n: number; gaugeMm: number; radarMm: number } | null {
+  const frames: Array<{ ms: number; mmh: number }> = [];
+  for (const nc of nowcast) for (const f of nc.frames) { if (f.hourMean || f.validAtMs == null || f.validAtMs > nowMs) continue; const r = f.saturated ? NOWCAST_SATURATION : f.mmh; if (r != null && Number.isFinite(r)) frames.push({ ms: f.validAtMs, mmh: r }); }
+  if (!frames.length) return null;
+  const radarHourMm = (endMs: number): number | null => { let s = 0, n = 0; for (const f of frames) if (f.ms > endMs - H && f.ms <= endMs) { s += f.mmh; n += 1; } return n >= 3 ? s / n : null; };
+  let sw = 0, sg = 0, sr = 0, n = 0;
+  for (const o of obs) {
+    if (!o.rr1h || !o.rr1h.complete || !Number.isFinite(o.rr1h.mm) || o.validAtMs > nowMs || nowMs - o.validAtMs > 70 * 60_000) continue;
+    if (o.distanceM > GAUGE_RADAR_KM * 1000 * 1.5) continue;
+    const r = radarHourMm(o.validAtMs);
+    if (r == null) continue;
+    const w = gaugeWeight(o.distanceM, GAUGE_RADAR_KM);
+    if (!(w > 0)) continue;
+    sw += w; sg += w * o.rr1h.mm; sr += w * r; n += 1;
+  }
+  if (!n || !(sw > 0)) return null;
+  const gaugeMm = sg / sw, radarMm = sr / sw;
+  if (gaugeMm + radarMm < GAUGE_RADAR_MIN_MM) return null;
+  const factor = Math.min(GAUGE_RADAR_MAX, Math.max(1 / GAUGE_RADAR_MAX, (gaugeMm + GAUGE_RADAR_EPS_MM) / (radarMm + GAUGE_RADAR_EPS_MM)));
+  return { factor, n, gaugeMm, radarMm };
+}
+
 /**
  * AX-10 (Bericht #14): Gewicht der INCA-Analyse im Anker (set). INCA zieht die Analyse an den Stationen auf die Messung
  * (Fehler dort ≈ 0,3 K), abseits davon bleibt der Modellfehler zum Teil (≈ 1 K, GeoSphere-Verifikation) — die Analyse ist
@@ -2323,7 +2487,7 @@ export interface CubeObsFetchOptions {
  */
 export const INCA_ANCHOR_WEIGHT = 0.6;
 // The stands of buscosun Fusion (7, 8, 9, …) live in ONE register: `fusion/fusionRelease.ts`. Re-exported for the callers of this module.
-export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
+export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION12_OBS_DENSE, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
@@ -2410,12 +2574,12 @@ export async function fetchCubeObs(lat: number, lon: number, country: Country, s
   const st = hint?.station ? { id: hint.station.id, lat: hint.station.lat, lon: hint.station.lon } : null;
   // AX-10: die INCA-Analyse parallel zu den Stationen — ein Scheitern dort kostet keine Messung (die Notiz benennt es).
   const incaP: Promise<CubeObs[]> = opts?.inca && country === 'AT' ? fetchIncaAnalysisObs(lat, lon, opts.nowMs ?? Date.now(), signal).catch(() => []) : Promise.resolve([]);
-  const list = await fetchNearestStationObs(lat, lon, country, 6, signal, { near: true, station: st });
+  const list = await fetchNearestStationObs(lat, lon, country, opts?.dense ? OBS_DENSE_MAX : 6, signal, { near: true, station: st, nowMs: opts?.nowMs, ...(opts?.store === undefined ? {} : { store: opts.store }), ...(opts?.dense ? { dense: true } : {}) });
   return [...cubeObsOf(list, Date.now()), ...(await incaP)];
 }
 
 /** AX-1: die Abbildung Stationsliste → `CubeObs` (rein; der Verifier prüft sie ohne Netz). */
-export function cubeObsOf(list: ReadonlyArray<{ source: string; name?: string; stationId?: string; byStation?: boolean; lat: number; lng: number; elevation: number; distanceMeters: number; point: unknown }>, nowMs: number): CubeObs[] {
+export function cubeObsOf(list: ReadonlyArray<{ source: string; name?: string; stationId?: string; byStation?: boolean; via?: 'obs'; obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null; lat: number; lng: number; elevation: number; distanceMeters: number; point: unknown }>, nowMs: number): CubeObs[] {
   const out: CubeObs[] = [];
   for (const s of list) {
     // Der Live-Pfad nimmt die Messung als „jetzt gültig" (`stationsToHour0Samples`); der Anker paart sie
@@ -2425,7 +2589,9 @@ export function cubeObsOf(list: ReadonlyArray<{ source: string; name?: string; s
     out.push({
       source: s.source, name: s.name ?? p.name ?? p.stationName, lat: s.lat, lon: s.lng, elevM: Number.isFinite(s.elevation) ? s.elevation : null, distanceM: s.distanceMeters, validAtMs: t,
       temperature: p.temperature ?? null, relativeHumidity: p.relativeHumidity ?? null, u: p.u ?? null, v: p.v ?? null, gust: p.gust ?? null,
-      ...(s.stationId ? { stationId: s.stationId } : {}), ...(s.byStation ? { byStation: true } : {}),
+      ...(s.stationId ? { stationId: s.stationId } : {}), ...(s.byStation ? { byStation: true } : {}), ...(s.via === 'obs' ? { via: 'obs' as const } : {}),
+      // OF-2: the dense reader's extras — measured dew point (the station value reads `dewPoint`), the gauge values of OF-3
+      ...(s.obs ? { ...(s.obs.td != null ? { dewPoint: s.obs.td } : {}), rr10: s.obs.rr10, rr1h: s.obs.rr1h } : {}),
     });
   }
   return out;
@@ -2463,11 +2629,15 @@ export function defaultCubeIo(): CubeIo {
     ...(climaGridFlag ? { climaGrid: true } : {}),
     // AX-10: `?inca=1` — INCA-Analyse als Anker in AT (Voreinstellung aus).
     ...(incaFlag ? { incaAnchor: true } : {}),
+    // OF-1: `?obs=direct` asks the providers for the measurements again (default: the mirror product obs/v1, adapters as fallback).
+    ...(obsStoreFlag ? {} : { obsStore: false }),
     // buscosun Fusion 8 (E-AX-16/E-AX-17): Radar-Stundenmittel aus dem Spiegel, Leser und Motor-Option zusammen — Voreinstellung AN;
     // `?hm=0` ist der benannte Rückfall auf Fusion 7 (Einzelframe je Stunde).
     nowcastHourMean: hourMeanFlag,
     // buscosun Fusion 9 (V-AW-33): `?anc=0` takes the anchor back to Fusion 8 (no entry otherwise, key unchanged).
     ...(anchorAtObsFlag ? {} : { anchorAtObsTime: false }),
+    // Phase OF (buscosun Fusion 12): `?dense=0` takes the dense measurement set back (the stage sets `obsDense` through fusionStageIo).
+    ...(obsDenseFlag ? {} : { obsDense: false }),
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2477,6 +2647,8 @@ const climaGridFlag = pfClimaGridFrom(typeof window !== 'undefined' ? window.loc
 const incaFlag = pfIncaAnchorFrom(typeof window !== 'undefined' ? window.location.search : '');
 const hourMeanFlag = pfHourMeanFrom(typeof window !== 'undefined' ? window.location.search : '');
 const anchorAtObsFlag = pfAnchorAtObsFrom(typeof window !== 'undefined' ? window.location.search : '');
+const obsStoreFlag = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
+const obsDenseFlag = pfObsDenseFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 interface CubeCacheEntry { hours: number; forecast: PointForecast; ts: number; update?: Promise<PointForecast | null> }
 const CUBE_CACHE = new Map<string, CubeCacheEntry>();
@@ -2598,7 +2770,10 @@ function obsNoteOf(io: CubeIo, obs: CubeObs[] | null, obsMs: number, deadlineMs:
     return [...(obs.length ? [] : [`anchor: keine Messung erhalten (${obsMs} ms) — kein Anker`]), 'incaAnchor: Option an, aber keine INCA-Analyse erhalten (Abruf leer, gescheitert, zu langsam oder Punkt außerhalb des INCA-Rasters) ⇒ Anker nur aus Stationen'];
   }
   if (!obs.length) return [`anchor: keine Messung erhalten (${obsMs} ms — keine Station in Reichweite oder Abruf nach ${deadlineMs} ms abgebrochen; der Abruf liefert dann eine leere Liste) — kein Anker`];
-  return [];
+  // OF-1: where the station measurements came from — the mirror product, or the providers (by switch or as the fallback).
+  const fromStore = obs.filter((o) => o.via === 'obs').length;
+  const stations = obs.filter((o) => o.source !== 'inca').length;
+  return [fromStore ? `obs: ${fromStore} Stationsmessung(en) aus buscosun-data obs/v1` : io.obsStore === false ? `obs: ${stations} Stationsmessung(en) per Direktabruf (?obs=direct)` : `obs: ${stations} Stationsmessung(en) per Direktabruf — Rückfall, obs/v1 nicht lesbar oder ohne aktuelle Station`];
 }
 
 function cacheForecast(key: string, hours: number, forecast: PointForecast, opts: PointForecastOptions, update?: Promise<PointForecast | null>): void {
@@ -2635,7 +2810,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
   // AP12: im progressiven Modus startet sie erst mit dem Kern (unten).
   const obsT0 = now();
   const obsP: Promise<CubeObs[] | null> = io.obs && !progressive
-    ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS), undefined, { inca: !!io.incaAnchor, nowMs }).catch(() => null)
+    ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS), undefined, { inca: !!io.incaAnchor, nowMs, ...(io.obsStore === false ? { store: false } : {}), ...(io.obsDense && io.obsStore !== false ? { dense: true } : {}) }).catch(() => null)
     : Promise.resolve(null);
   const climaP = io.clima().catch(() => null);
   // AP13: `calib.json` parallel zum Index — nie blockierend. Entschieden wird EINMAL, bei der ersten Ausgabe;
@@ -2790,7 +2965,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     const obs2T0 = now();
     // AX-1: der Abruf kennt jetzt die Station des Punkts (das Bündel ist da) und holt deren eigene Messung mit.
     const obs2P: Promise<CubeObs[] | null> = io.obs
-      ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_PROGRESSIVE_DEADLINE_MS), obsHintOf(bundle), { inca: !!io.incaAnchor, nowMs }).catch(() => null)
+      ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_PROGRESSIVE_DEADLINE_MS), obsHintOf(bundle), { inca: !!io.incaAnchor, nowMs, ...(io.obsStore === false ? { store: false } : {}), ...(io.obsDense && io.obsStore !== false ? { dense: true } : {}) }).catch(() => null)
       : Promise.resolve(null);
     // V-FI-17: kein Cache-Treffer ⇒ der Netzabruf startet jetzt, mit dem Kern (die Leitung ist frei), und wirkt in der Nachlieferung.
     const z0NetP: Promise<Z0AtPoint | null> | null = io.z0 && z0Missing(z0c)

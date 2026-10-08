@@ -9,6 +9,8 @@ import type { Country } from '../types';
 import { fetchBrightSkyCurrentGrid, fetchBrightSkyCurrentAt } from '../sources/brightSkyCurrent';
 import { fetchTawesCurrentGrid, fetchTawesHistory } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid, fetchSmnHistory } from '../sources/meteoSwissSmn';
+import { fetchObsNearest } from '../sources/obsStore';
+import { pfObsStoreFrom } from './pfFlags';
 import type { ForecastBounds, ForecastHourPoint } from '../sources/openMeteoForecast';
 import { geoSphereNwpVersion, geoSphereNwpUrl, readGeoSphereHour, GEOSPHERE_NWP_SOURCE, GEOSPHERE_NWP_DATASET } from '../sources/geosphereNwp';
 import type { PointSourceSample, PointHourSamples } from './types';
@@ -493,7 +495,14 @@ export interface NearestStationObs {
   elevation: number;
   distanceMeters: number;
   point: ForecastHourPoint;
+  /** OF-1: the measurement came from the mirror product `obs/v1` (`obsStore.ts`); the direct adapters set nothing. */
+  via?: 'obs';
+  /** OF-2 (dense reader only): measured dew point and the gauge values at the stamp. */
+  obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null;
 }
+
+/** OF-1: `?obs=direct` = the provider adapters only; otherwise the mirror product `obs/v1` first (`pfObsStoreFrom`). */
+const OBS_STORE_FLAG = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 const stationIdOf = (p: ForecastHourPoint): string | undefined => {
   const q = p as ForecastHourPoint & { stationId?: string; stationName?: string };
@@ -510,6 +519,17 @@ const stationNameOf = (p: ForecastHourPoint): string | undefined => (p as Foreca
 export interface NearestObsOptions {
   near?: boolean;
   station?: { id: string; lat: number; lon: number } | null;
+  /**
+   * OF-1 (`audit/obs-fusion.md` §5.1): read the measurements from the mirror product `obs/v1` (two memoised requests for every
+   * point instead of 20–22 at BrightSky) — default the module flag (`?obs=direct` ⇒ false). On an error or an empty answer the
+   * provider adapters below stand in, named through `onNote`. The product carries the measurement stamp for every network.
+   */
+  store?: boolean;
+  /** The caller's clock (verifier/replay) for the age rule of the store. */
+  nowMs?: number;
+  onNote?: (note: string) => void;
+  /** OF-2: the dense set (precipitation-only gauges, Td, rr10/rr1h) — only with the store; the adapters know no gauges. */
+  dense?: boolean;
 }
 
 /** DE, AX-1: the station's own measurement by WMO id (5 digits = the id of the MOSMIX catalogue), and the nearest station to the point. */
@@ -536,6 +556,17 @@ export async function fetchNearestStationObs(
   signal?: AbortSignal,
   options: NearestObsOptions = {},
 ): Promise<NearestStationObs[]> {
+  // OF-1: the mirror product first — the adapters below are the named fallback.
+  if (options.store ?? OBS_STORE_FLAG) {
+    try {
+      const list = await fetchObsNearest(lat, lng, country, { max: maxStations, station: options.station ?? null, nowMs: options.nowMs, signal, onNote: options.onNote, ...(options.dense ? { dense: true } : {}) });
+      if (list.length) return list;
+      options.onNote?.('obs: keine aktuelle Station des Landes im Produkt — Direktabruf');
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') throw err;
+      options.onNote?.(`obs: ${(err as Error)?.message ?? String(err)} — Direktabruf`);
+    }
+  }
   const lookups: Array<Promise<NearestStationObs[]>> = [];
   const near = options.near ? { lat, lon: lng } : null;
 

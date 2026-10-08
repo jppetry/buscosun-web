@@ -108,6 +108,7 @@
     "verify:pv-fusion": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-fusion.mjs",
     "verify:point-data": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs",
     "verify:point-client": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-client.mjs",
+    "verify:obs-reader": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-obs-reader.mjs",
     "point:cube": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-cube.mjs",
     "point:stations": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs",
     "point:publish": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs",

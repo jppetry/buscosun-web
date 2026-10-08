@@ -100,6 +100,10 @@ jobs:
       # des Registers, jeder Plattformteil hängt daran (audit/fusion-release.md) — netzfrei.
       - name: Verifier — Stände von buscosun Fusion (Register)
         run: npm run verify:fusion-release
+      # OF: der Leser von buscosun-data obs/v1 (Stationsmessungen) und sein Schalter in den Messpfad — netzfrei auf einem
+      # echten Auszug des Produkts (audit/obs-fusion.md).
+      - name: Verifier — Stationsmessungen aus obs/v1 (Leser)
+        run: npm run verify:obs-reader
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

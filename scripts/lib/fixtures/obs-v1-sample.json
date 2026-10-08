@@ -1,0 +1,1379 @@
+{
+ "note": "OF-1 fixture: real excerpt of buscosun-data obs/v1 (stations.json + latest.json, built 2026-10-08T07:31:15.703Z), 08.10.2026; values unchanged",
+ "catalog": {
+  "schema": 1,
+  "kind": "obs/stations",
+  "builtAt": "2026-10-08T07:31:15.703Z",
+  "count": 26,
+  "idRule": "de:<DWD-Stationskennung> · at:<TAWES-Kennung> · ch:<MeteoSchweiz-Kürzel>",
+  "stations": [
+   {
+    "id": "at:11001",
+    "name": "WOLFSEGG",
+    "lat": 48.10556,
+    "lon": 13.67083,
+    "elev": 635,
+    "country": "AT",
+    "region": "Oberösterreich",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "at:11035",
+    "name": "WIEN/HOHE WARTE",
+    "lat": 48.24861,
+    "lon": 16.35639,
+    "elev": 198,
+    "country": "AT",
+    "region": "Wien",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "at:11121",
+    "name": "INNSBRUCK-FLUGHAFEN (AUTOMAT)",
+    "lat": 47.26,
+    "lon": 11.35667,
+    "elev": 578,
+    "country": "AT",
+    "region": "Tirol",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "ch:ABE",
+    "name": "Aarberg",
+    "lat": 47.057969,
+    "lon": 7.28535,
+    "elev": 444,
+    "country": "CH",
+    "region": "BE",
+    "networks": [
+     "smnp"
+    ],
+    "vars": [
+     "rr"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "ch:ABO",
+    "name": "Adelboden",
+    "lat": 46.491703,
+    "lon": 7.560703,
+    "elev": 1321,
+    "country": "CH",
+    "region": "BE",
+    "networks": [
+     "nime",
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "nsnow",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "ch:GVE",
+    "name": "Genève / Cointrin",
+    "lat": 46.247519,
+    "lon": 6.127742,
+    "elev": 411,
+    "country": "CH",
+    "region": "GE",
+    "networks": [
+     "nime",
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "nsnow",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "ch:SMA",
+    "name": "Zürich / Fluntern",
+    "lat": 47.381003,
+    "lon": 8.567194,
+    "elev": 604,
+    "country": "CH",
+    "region": "ZH",
+    "networks": [
+     "nime",
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "nsnow",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "ch:VAD",
+    "name": "Vaduz",
+    "lat": 47.127472,
+    "lon": 9.517578,
+    "elev": 457,
+    "country": "LI",
+    "region": "FL",
+    "networks": [
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "de:00006",
+    "name": "Aalen-Unterrombach",
+    "lat": 48.8361,
+    "lon": 10.0598,
+    "elev": 455,
+    "country": "DE",
+    "region": "Baden-Württemberg",
+    "networks": [
+     "dwdDay"
+    ],
+    "vars": [
+     "nsnow",
+     "rr",
+     "snow"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "de:00433",
+    "name": "Berlin-Tempelhof",
+    "lat": 52.4676,
+    "lon": 13.402,
+    "elev": 48,
+    "country": "DE",
+    "region": "Berlin",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:01262",
+    "name": "München-Flughafen",
+    "lat": 48.3477,
+    "lon": 11.8134,
+    "elev": 446,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:03379",
+    "name": "München-Stadt",
+    "lat": 48.1632,
+    "lon": 11.5429,
+    "elev": 515,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:05705",
+    "name": "Würzburg",
+    "lat": 49.7704,
+    "lon": 9.9576,
+    "elev": 268,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:06288",
+    "name": "Gramais/Österreich",
+    "lat": 47.2689,
+    "lon": 10.5355,
+    "elev": 1320,
+    "country": "DE",
+    "region": "Tirol",
+    "networks": [
+     "dwd10"
+    ],
+    "vars": [
+     "rr"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:07431",
+    "name": "Oberhaching-Laufzorn",
+    "lat": 48.013,
+    "lon": 11.5524,
+    "elev": 604,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:06346",
+    "name": "Maisach-Galgen",
+    "lat": 48.207,
+    "lon": 11.2035,
+    "elev": 531,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:02319",
+    "name": "Holzkirchen",
+    "lat": 47.8823,
+    "lon": 11.6961,
+    "elev": 685,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:05404",
+    "name": "Weihenstephan-Dürnast",
+    "lat": 48.4024,
+    "lon": 11.6946,
+    "elev": 477,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "de:01103",
+    "name": "Ebersberg-Halbing",
+    "lat": 48.1003,
+    "lon": 11.9872,
+    "elev": 592,
+    "country": "DE",
+    "region": "Bayern",
+    "networks": [
+     "dwd10",
+     "dwdDay"
+    ],
+    "vars": [
+     "nsnow",
+     "ps",
+     "rh",
+     "rr",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "ch:REH",
+    "name": "Zürich / Affoltern",
+    "lat": 47.427694,
+    "lon": 8.517953,
+    "elev": 444,
+    "country": "CH",
+    "region": "ZH",
+    "networks": [
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "ch:KLO",
+    "name": "Zürich / Kloten",
+    "lat": 47.479611,
+    "lon": 8.535961,
+    "elev": 426,
+    "country": "CH",
+    "region": "ZH",
+    "networks": [
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "ch:LAE",
+    "name": "Lägern",
+    "lat": 47.481933,
+    "lon": 8.397222,
+    "elev": 845,
+    "country": "CH",
+    "region": "ZH",
+    "networks": [
+     "smn"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-07"
+   },
+   {
+    "id": "at:11320",
+    "name": "INNSBRUCK/UNIVERSITAET",
+    "lat": 47.26,
+    "lon": 11.38417,
+    "elev": 578,
+    "country": "AT",
+    "region": "Tirol",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "at:8989037",
+    "name": "INNSBRUCK/HAUPTBAHNHOF",
+    "lat": 47.26056,
+    "lon": 11.405,
+    "elev": 611,
+    "country": "AT",
+    "region": "Tirol",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "at:8989036",
+    "name": "INNSBRUCK/ALPENZOO",
+    "lat": 47.28111,
+    "lon": 11.3975,
+    "elev": 668,
+    "country": "AT",
+    "region": "Tirol",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   },
+   {
+    "id": "at:8989035",
+    "name": "INNSBRUCK/HUNGERBURG",
+    "lat": 47.28778,
+    "lon": 11.3975,
+    "elev": 920,
+    "country": "AT",
+    "region": "Tirol",
+    "networks": [
+     "tawes"
+    ],
+    "vars": [
+     "dd",
+     "ff",
+     "fx",
+     "gr",
+     "p",
+     "ps",
+     "rh",
+     "rr",
+     "sd",
+     "snow",
+     "t",
+     "td"
+    ],
+    "seen": "2026-10-08"
+   }
+  ]
+ },
+ "latest": {
+  "schema": 1,
+  "kind": "obs/latest",
+  "builtAt": "2026-10-08T07:31:15.703Z",
+  "count": 26,
+  "units": {
+   "t": "°C Lufttemperatur 2 m",
+   "td": "°C Taupunkt",
+   "rh": "% relative Feuchte",
+   "ps": "hPa Luftdruck in Stationshöhe",
+   "p": "hPa Luftdruck reduziert (QFF/PRED, Bezugsniveau je Netz)",
+   "ff": "m/s Wind 10-min-Mittel",
+   "dd": "° Windrichtung",
+   "fx": "m/s Böenspitze im Intervall",
+   "rr": "mm Niederschlag im Intervall",
+   "sd": "min Sonnenscheindauer im Intervall",
+   "gr": "W/m² Globalstrahlung (Intervallmittel)",
+   "snow": "cm Schneehöhe",
+   "nsnow": "cm Neuschnee (Tageswert)"
+  },
+  "stamp": "10-min-Werte: UTC, Ende des Intervalls; day: Datum des Messtags",
+  "stations": {
+   "at:11001": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 15.9,
+     "td": 8.9,
+     "rh": 63,
+     "ps": 936.7,
+     "p": 1006.6,
+     "ff": 1,
+     "dd": 98,
+     "fx": 2.8,
+     "rr": 0,
+     "sd": 10,
+     "gr": 361
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 96,
+     "of": 144,
+     "complete": false
+    }
+   },
+   "at:11035": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 13.2,
+     "td": 10.6,
+     "rh": 84,
+     "ps": 984.1,
+     "p": 1008.7,
+     "ff": 1.5,
+     "dd": 146,
+     "fx": 2.3,
+     "rr": 0,
+     "sd": 0,
+     "gr": 100
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 96,
+     "of": 144,
+     "complete": false
+    }
+   },
+   "at:11121": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 12.9,
+     "td": 9.2,
+     "rh": 78,
+     "ps": 941.2,
+     "p": 1008.5,
+     "ff": 3.4,
+     "dd": 281,
+     "fx": 5.7,
+     "rr": 0,
+     "sd": 4.8,
+     "gr": 156
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 96,
+     "of": 144,
+     "complete": false
+    }
+   },
+   "ch:ABE": {
+    "t": "2026-10-08T07:10:00.000Z",
+    "src": "smnp",
+    "v": {
+     "rr": 0.4
+    },
+    "rr1h": {
+     "mm": 3.3,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 9.1,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    }
+   },
+   "ch:ABO": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 9.5,
+     "td": 8.6,
+     "rh": 94.4,
+     "ps": 861.9,
+     "ff": 1.1,
+     "dd": 219,
+     "fx": 1.8,
+     "rr": 0,
+     "sd": 0,
+     "gr": 58,
+     "snow": 0
+    },
+    "rr1h": {
+     "mm": 0.3,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 1.9,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "nime",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "ch:GVE": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 15.4,
+     "td": 13.5,
+     "rh": 88.7,
+     "ps": 962.4,
+     "p": 1010.1,
+     "ff": 3.7,
+     "dd": 205,
+     "fx": 6.1,
+     "rr": 0,
+     "sd": 0,
+     "gr": 93,
+     "snow": 0
+    },
+    "rr1h": {
+     "mm": 0.2,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 13.7,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "nime",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "ch:SMA": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 13.6,
+     "td": 13.2,
+     "rh": 97.3,
+     "ps": 938.8,
+     "p": 1008.1,
+     "ff": 1.7,
+     "dd": 261,
+     "fx": 2.7,
+     "rr": 0.2,
+     "sd": 0,
+     "gr": 33,
+     "snow": 0
+    },
+    "rr1h": {
+     "mm": 1.3,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 1.3,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "nime",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "ch:VAD": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 15.4,
+     "td": 10.6,
+     "rh": 73.1,
+     "ps": 955.1,
+     "p": 1007.9,
+     "ff": 1.2,
+     "dd": 143,
+     "fx": 2.3,
+     "rr": 0,
+     "sd": 0,
+     "gr": 33
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    }
+   },
+   "de:00006": {
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0,
+     "nsnow": 0
+    }
+   },
+   "de:00433": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0.06,
+     "ff": 1.3,
+     "dd": 180,
+     "fx": 3.1,
+     "t": 12.5,
+     "rh": 83.8,
+     "td": 9.8,
+     "ps": 997.4
+    },
+    "rr1h": {
+     "mm": 0.38,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0.38,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "de:01262": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "ff": 2.3,
+     "dd": 220,
+     "fx": 3.4,
+     "t": 15.5,
+     "rh": 78,
+     "td": 11.7,
+     "ps": 955.3
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "de:03379": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "ff": 2.3,
+     "dd": 220,
+     "fx": 4.1,
+     "sd": 0,
+     "t": 16.7,
+     "rh": 69.5,
+     "td": 11.1,
+     "ps": 946.6
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "de:05705": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "ff": 2.4,
+     "dd": 150,
+     "fx": 3.2,
+     "sd": 0,
+     "gr": 41.7,
+     "t": 14.4,
+     "rh": 95.6,
+     "td": 13.7,
+     "ps": 973.7
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 2.51,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "de:06288": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    }
+   },
+   "de:07431": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "t": 15.2,
+     "rh": 72.4,
+     "td": 10.3
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 1.3,
+     "snow": 0,
+     "nsnow": 0
+    }
+   },
+   "de:06346": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "t": 15.6,
+     "rh": 77.5,
+     "td": 11.7
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0,
+     "nsnow": 0
+    }
+   },
+   "de:02319": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "t": 15.2,
+     "rh": 71,
+     "td": 10
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0.3
+    }
+   },
+   "de:05404": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "ff": 0.4,
+     "dd": 200,
+     "fx": 1,
+     "sd": 0,
+     "gr": 63.3,
+     "t": 14.3,
+     "rh": 84,
+     "td": 11.6,
+     "ps": 951.6
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0,
+     "snow": 0
+    }
+   },
+   "de:01103": {
+    "t": "2026-10-08T06:50:00.000Z",
+    "src": "dwd10",
+    "v": {
+     "rr": 0,
+     "t": 15.4,
+     "rh": 74.6,
+     "td": 10.9
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0.17,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    },
+    "day": {
+     "date": "2026-10-06",
+     "src": "dwdDay",
+     "rr": 0.2
+    }
+   },
+   "ch:REH": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 14.6,
+     "td": 13.5,
+     "rh": 93.2,
+     "ps": 956.9,
+     "p": 1008.3,
+     "ff": 1.5,
+     "dd": 210,
+     "fx": 2.8,
+     "rr": 0.2,
+     "sd": 0,
+     "gr": 26,
+     "snow": 0
+    },
+    "rr1h": {
+     "mm": 1.3,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 1.3,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    }
+   },
+   "ch:KLO": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 14.6,
+     "td": 13.2,
+     "rh": 91.4,
+     "ps": 958.8,
+     "p": 1008.3,
+     "ff": 1.5,
+     "dd": 239,
+     "fx": 3.1,
+     "rr": 0.2,
+     "sd": 0,
+     "gr": 20,
+     "snow": 0
+    },
+    "rr1h": {
+     "mm": 1.5,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 1.5,
+     "n": 144,
+     "of": 144,
+     "complete": true
+    }
+   },
+   "ch:LAE": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": 11.6,
+     "td": 11.2,
+     "rh": 97.6,
+     "ps": 912.1,
+     "ff": 6,
+     "dd": 215,
+     "fx": 9.9,
+     "sd": 0,
+     "gr": 19
+    }
+   },
+   "at:11320": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 13.6,
+     "td": 9,
+     "rh": 74,
+     "ps": 938.5,
+     "p": 1008.3,
+     "ff": 1.9,
+     "dd": 267,
+     "fx": 4.9,
+     "rr": 0,
+     "sd": 3,
+     "gr": 136
+    },
+    "rr1h": {
+     "mm": 0,
+     "n": 6,
+     "of": 6,
+     "complete": true
+    },
+    "rr24h": {
+     "mm": 0,
+     "n": 96,
+     "of": 144,
+     "complete": false
+    }
+   },
+   "at:8989037": {
+    "t": "2026-10-08T07:20:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 13.2,
+     "td": 9,
+     "rh": 76,
+     "ff": 3.6,
+     "dd": 262,
+     "fx": 6.3
+    }
+   },
+   "at:8989036": {
+    "t": "2026-10-08T07:10:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 13.6,
+     "td": 9.5,
+     "rh": 75
+    }
+   },
+   "at:8989035": {
+    "t": "2026-10-08T07:10:00.000Z",
+    "src": "tawes",
+    "v": {
+     "t": 15.1,
+     "td": 7.6,
+     "rh": 60
+    }
+   }
+  }
+ }
+}

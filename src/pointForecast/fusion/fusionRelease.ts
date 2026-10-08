@@ -58,9 +58,21 @@ export const FUSION10_LONG_RANGE: 0 | 1 = 1;
  * 1aaec969 unchanged) + this. Value 0 = Fusion 10. Acts only together with `longRange: 1`.
  */
 export const FUSION11_LONG_RANGE_FIX: 0 | 1 = 1;
+/**
+ * buscosun Fusion 12 (phase OF, autonomous session 08.10.2026, `audit/obs-fusion.md`; status KANDIDAT until Jan's decision after the
+ * Prüfstand): the anchor reads the DENSE measurement set of the mirror product `buscosun-data/obs/v1` — the OBS_DENSE_MAX nearest
+ * 10-min stations of the point's country including the ≈ 1 100 precipitation-only gauges, with the measured dew point and the gauge
+ * sums (`FuseCubeOptions.obsDense`, reader switch `CubeIo.obsDense` set by the stage; `?dense=0` = the six nearest full stations
+ * = Fusion 11). The anchor math is unchanged; per variable the OBS_DENSE_ANCHOR_K best stations by spatialWeight among those that
+ * carry it; the gauge options of OF-3 (occurrence anchor, gauge–radar factor) join only through `FUSION12_GAUGE` after the
+ * pre-written rule of OF-4. Measurement source: since OF-1 every measurement (also of Fusion 11 on this branch) comes from
+ * `obs/v1` instead of BrightSky/TAWES/SMN (`?obs=direct` = the providers) — not a stand of its own, named in the engine notes.
+ * Fusion 12 = Fusion 11 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 11.
+ */
+export const FUSION12_OBS_DENSE: 0 | 1 = 1;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
-export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime';
+export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense';
 
 export interface FusionRelease {
   /** The number of the stand: „buscosun Fusion <n>". Ascending, without gaps. */
@@ -111,6 +123,12 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
     n: 11, date: '2026-10-07', ref: 'Phase F11, audit/fusion-11.md (Kandidat, Champion-Entscheidung = Jan)',
     option: 'longRangeFix', value: FUSION11_LONG_RANGE_FIX,
     note: 'Langfrist-Korrekturen: T 241–336 h Identität, Windschritt AT/CH ohne Bandverengung bei 126–240 h (F11)',
+  },
+  {
+    n: 12, date: '2026-10-08', ref: 'Phase OF, audit/obs-fusion.md (Kandidat, Champion-Entscheidung = Jan)',
+    option: 'obsDense', value: FUSION12_OBS_DENSE,
+    note: 'Anker auf dem dichten Messsatz aus obs/v1 (Niederschlagsstationen, gemessener Taupunkt; Phase OF)', io: { key: 'obsDense', set: true, flag: '?dense=0' },
+    offLabel: 'dichter Messsatz per Schalter aus', needs: 'measurement',
   },
 ] as const);
 

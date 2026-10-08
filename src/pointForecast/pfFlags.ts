@@ -66,6 +66,26 @@ export function pfClimaGridFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('cg') === '1'; } catch { return false; }
 }
 
+/**
+ * Phase OF (`audit/obs-fusion.md` §5.1): every current station measurement comes from the mirror product `buscosun-data/obs/v1`
+ * (`src/sources/obsStore.ts`). Default ON.
+ *   `?obs=direct` → off: the named fallback — the provider adapters (BrightSky `current_weather`, TAWES current, SMN files) as before.
+ *   anything else → on (the adapters stand in by themselves when the product cannot be read).
+ */
+export function pfObsStoreFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('obs') !== 'direct'; } catch { return true; }
+}
+
+/**
+ * Phase OF (buscosun Fusion 12): the dense measurement set of the mirror product for the anchor (reader switch `CubeIo.obsDense`,
+ * set by the stage). Default ON.
+ *   `?dense=0` → off: the named fallback to the stand before (six nearest full stations).
+ *   anything else → on.
+ */
+export function pfObsDenseFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('dense') !== '0'; } catch { return true; }
+}
+
 export function pfStationSourceFrom(search: string): PfStationSource {
   try {
     const v = new URLSearchParams(search).get('st');
