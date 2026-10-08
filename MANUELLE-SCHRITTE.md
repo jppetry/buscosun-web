@@ -1695,3 +1695,26 @@ Datenstand `obs/v1/`. In buscosun-web **uncommitted**: `scripts/obs/*` (Quelle d
    `buscosun-data/scripts/obs-mirror.mjs` (V-OB-4: Wächter fehlt noch).
 3. **Abschalten:** Repo-Variable `OBS_KILL=1` im Daten-Repo (Spiegel und Wächter starten nicht mehr).
 4. Offen: V-OB-1 (AT-Hydrographie), V-OB-3 (NIME JUN 403), V-OB-5 (Plausibilitätsregeln), V-OB-6 (Leser in buscosun-web).
+
+## 48. Seewetter — V-SW-12/10/9/15/14 (Folgeauftrag), 2026-10-08
+
+Belege: `audit/seewetter.md` §13. Fünf lokale Commits auf `main` (V-SW-12 `6777973`, V-SW-10 `9800483`, V-SW-9 `d5ffc48`,
+V-SW-15 `04bf787`, V-SW-14 `d5ccd06`), nicht gepusht. Daten- und Archiv-Repo unberührt.
+
+1. **Push von `buscosun-web/main`.** Wirkt sofort für die Seite (Klassen-Cache) und ab dem nächsten `sea.yml`-Lauf für die
+   Aufbewahrung (V-SW-15: alle Auffrischungen behaltener Läufe bleiben, höchstens 8 je Lauf, ≈ 0,56 MB). **Keine Kopie** einer
+   Workflow-Vorlage nötig (unverändert), kein neuer Katalog (V-SW-9 lässt ihn byte-gleich).
+2. **Prüfen nach ≥ 12 h:** im Daten-Repo liegen unter `sea/v1/spots/` mehrere `<lauf>-w<t1>.json` desselben Laufs; im Archiv
+   `sea/v1/index.json` nennt `days[d].wind` jede Auffrischung (nicht nur jede zweite).
+3. **Real-Device (V-SW-10):** `/seewetter?sea=1` auf dem Telefon, im Band schnell durch die Stunden wischen — Long Tasks im
+   Performance-Panel (vorher erwartet ≈ 35–70 ms je Schritt, jetzt nahe 0).
+4. **E-SW-31 (V-SW-9, Ufernormale):** entscheiden zwischen (a) Normale aus der BKG-DLM250-Küste (dl-de/by-2.0) für Spots ≤ 0,2 km an
+   der Küste, (b) Lagen der markierten Spots auf den Strand ziehen und neu rechnen, (c) Hand-Normalen für holnis, schleimuende,
+   heiligenhafen, ueckermuende; dazu Binz (Hand 90°, Karte ≈ 45°) und Pelzerhaken (Hand 80°, Karte ≈ 150°) ansehen.
+   Empfehlung (b), dann (a). OSM bleibt außen vor (ODbL nicht entschieden).
+5. **E-SW-30 (V-SW-14, Meeresboden in den Geländegrößen):** Leser-Option `clampSeaFloor` ist gebaut und AUS. Einschalten nur mit
+   Neubau von `points.v1.json`, Neufit der Lern- und Klimatabellen und neuer Nummer von buscosun Fusion (Empfehlung: mit dem
+   nächsten Stand nach 10/11, zusammen mit `gustAtLeastWind`, Prüfstand P1 vorher/nachher). Wirkung: Kaltluft-Tor kippt an 4 der
+   10 Küsten-/Inselstationen und an 12 der 56 Spots.
+6. **Aufräumen (V-SW-17):** `E-SW-29` ist im Audit doppelt vergeben; diese Datei hat zwei Abschnitte „47.“ (Seewetter und
+   Stationsmessungen) — die Nummerierung der anderen Sitzung nicht ohne Absprache ändern.

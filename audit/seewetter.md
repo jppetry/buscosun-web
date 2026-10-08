@@ -320,13 +320,15 @@ statisch erzeugten Shell, die es im Dev-Server nicht gibt); gegen `vite preview`
 | V-SW-6 | Windpartikel als gekennzeichnete ICON-Ebene | Flächenbild des Windes | `WindLayer` der Wetterkarte, Legende „Modell ICON, nicht buscosun Fusion“ |
 | V-SW-7 | Ausblick bis 174 h (GWAM) | Wochenendplanung | SW-8 |
 | V-SW-8 | ~~Bandzellen 27 px breit (Vorlage) unter 44 px~~ **umgesetzt 07.10. (`6e25dd9`, Prüfung G4)** | Touch | mobil Spalten 44 px breit, Band wischt |
-| V-SW-9 | Ufernormale aus der Maske ist an Hafenbecken grob | bessere Uferwinkel | Normale aus der Küstenlinie der CWAM-Maske im 500-m-Band (OSM nur mit ODbL-Freigabe) |
-| V-SW-10 | Long Tasks auf dem Gerät nicht gemessen — **`colourField` im Worker seit `6e25dd9` (W1–W3 byte-gleich)**, offen: Klassen-Cache, Real-Device | Flüssigkeit mobil | Klassen je Spot cachen; Real-Device |
+| V-SW-9 | Ufernormale aus der Maske ist an Hafenbecken grob — **diagnostiziert und gemessen 08.10. (§13.3): die Küstenregel der Maske ist an den Spot-Lagen NICHT besser; Ursache Lage der Spots + 0,93-km-Zellen; Katalog unverändert, E-SW-31** | bessere Uferwinkel | Normale aus der BKG-DLM250-Küste bei Spots, die ≤ 0,2 km an der Küste liegen, sonst Lage nachziehen (E-SW-31) |
+| V-SW-10 | Long Tasks auf dem Gerät nicht gemessen — **`colourField` im Worker seit `6e25dd9` (W1–W3 byte-gleich); Klassen-Cache umgesetzt 08.10. (§13.2, Stundenwechsel 8,6 → 0,02 ms)**, offen: Real-Device | Flüssigkeit mobil | Real-Device (Jans Gate) |
 | V-SW-11 | ~~`scripts/repack-repo/README.md` spricht noch von „vier Produktlinien“~~ **umgesetzt 07.10. (`6e25dd9`)** | korrekte Doku | Zählwort ersetzen |
-| V-SW-14 | Über Wasser rechnen TPI, Horizont, Ringe und Senkentiefe weiter mit der Wassertiefe (nur die Punkthöhe ist seit V-SW-4 0 m); an Küstenpunkten mischt der 2-km-Ring Land mit Meeresboden | Wind-Geländeterm auf See und an der Küste ohne Bathymetrie | die Höhenfunktion des Lesers (`elev`) auf ≥ 0 m klemmen — ändert TPI/Ringe an 10 der 405 Archivstationen (Merkmale der Lernstufe wurden MIT Wassertiefe gefittet) ⇒ nur zusammen mit einem Neufit, Stand von buscosun Fusion |
-| V-SW-15 | Die Wind-Auffrischung landet je Lauf nur als neueste Datei im Speicher; das Archiv (alle 6 h) sieht etwa jede zweite | Gate D auch für die aufgefrischten Reihen | Archiv-Schritt in `sea.yml` nach jeder Auffrischung, oder Aufbewahrung „alle Auffrischungen des laufenden Laufs“ |
+| V-SW-14 | Über Wasser rechnen TPI, Horizont, Hang und Senkentiefe weiter mit der Wassertiefe (die Ringe `scales` klemmen schon selbst, §13.5) — **Leser-Option `clampSeaFloor` gebaut (aus, = HEAD an 66/66 echten Orten), Wirkung gemessen 08.10. (§13.5): Senke > 5 m kippt an 4/10 Stationen und 12/56 Spots; nicht eingeschaltet, E-SW-30** | Nacht-Kaltluftregime nicht aus Wassertiefe | Neufit + Stand von buscosun Fusion (E-SW-30) |
+| V-SW-15 | ~~Die Wind-Auffrischung landet je Lauf nur als neueste Datei im Speicher; das Archiv (alle 6 h) sieht etwa jede zweite~~ **umgesetzt 08.10. (§13.4): alle Auffrischungen behaltener Läufe bleiben (höchstens 8 je Lauf), ≈ 0,56 MB** | Gate D auch für die aufgefrischten Reihen | wirksam mit Jans Push (keine Workflow-Kopie nötig) |
 | V-SW-13 | Die Hintergrundläufe der Sitzung (Text-Sammler, Inventar-Schnappschüsse, CAP-Wächter) wurden am 07.10. gegen 16 UTC vom System wegen Speichermangels beendet und nicht neu gestartet; der zweite lokale Lauf (CWAM 12 UTC) wurde deshalb nicht mehr gebaut. Gesammelt sind 53 Bulletins (48 h Fenster bis 07.10. 12 UTC), drei Inventar-Schnappschüsse, CAP-Protokoll bis 14 UTC | Textsammlung über 7 Tage, Warnfall Küste | nach Jans Push übernimmt `sea.yml` die Texte (jede Ausgabe archiviert); die Spike-Skripte bei Bedarf von Hand wieder starten (`scripts/sea/spike/*.mjs --loop`) |
-| V-SW-12 | Der Text-Sammler des Spikes schrieb sein `index.json` dreimal nicht (Windows EPERM beim Umbenennen, Datei kurz gesperrt); die Bulletins selbst sind alle da | robuster Sammler | Umbenennen mit Wiederholung |
+| V-SW-12 | ~~Der Text-Sammler des Spikes schrieb sein `index.json` dreimal nicht (Windows EPERM beim Umbenennen, Datei kurz gesperrt)~~ **umgesetzt 08.10. (`6777973`, §13.1)** | robuster Sammler | `renameRetry.mjs` |
+| V-SW-16 | `bandHours`/`chartHours` in `SeaPage.tsx` lesen `h.t` jeder Stunde; ein Spot, dessen Reihe die Seite verworfen hat (`rejected`), liefert `null`-Stunden ⇒ Absturz beim Wählen dieses Spots (vorbestehend, am 08.10. beim Lesen gefunden, nicht ausgelöst) | Seite bleibt bei einem kaputten Spot stehen | Stunden ohne Reihe als leere Stunde (`seaHourOf` aus `seaVerdicts.ts`) oder Spot in der Liste als „keine Daten“ |
+| V-SW-17 | `E-SW-29` ist im Dokument doppelt vergeben (§3: Commits des 15-min-Workflows; §12.2: `gustAtLeastWind`); `MANUELLE-SCHRITTE.md` hat zwei Abschnitte „47.“ | eindeutige Verweise | die Böen-Entscheidung in E-SW-29b umbenennen, Abschnitt Stationsmessungen auf 48 (die andere Sitzung fragen) |
 
 ## 11. Gates
 
@@ -422,3 +424,195 @@ eagerJs-Ratsche unverändert) · `verify:pv-cube` 424/424 · `verify:point-clien
 `verify:sea-derive` 47/47 · `verify:sea-ui` 37/37 (gegen `vite preview --host 127.0.0.1` des frischen Baus). Messung
 V-SW-3 in der echten Kette: §12.2. Nicht geprüft: ein echter `--wind`-Lauf gegen einen Cube-Checkout (der lokale Lauf
 bräuchte den ganzen `point/`-Checkout; der Weg ist derselbe `spotWind` wie im Wellenlauf, der am 07.10. zweimal lief).
+
+## 13. V-SW-12, V-SW-10, V-SW-9, V-SW-15, V-SW-14 (08.10., Folgeauftrag)
+
+Regel wie in §12: Fusion 9 auf `main` bleibt an jeder gemessenen Stelle byte-gleich; was die Ausgabe von buscosun Fusion ändern
+würde, steht hinter einer Option (aus) und ist Jans Gate. Daten-Repo und Archiv-Repo unberührt. Commits je Punkt lokal, nicht gepusht.
+
+### 13.1 V-SW-12 — Umbenennen mit Wiederholung (`6777973`)
+
+- **Diagnose.** `collect-text.mjs` und `arrivals.mjs` schreiben ihr `index.json` über `.tmp` + `renameSync`; unter Windows schlägt
+  das Umbenennen fehl (EPERM/EACCES/EBUSY), solange ein anderer Prozess (Virenscanner, Indexer, Editor) die Zieldatei kurz offen hält.
+  Am 07.10. dreimal, die Bulletins selbst waren da.
+- **Umsetzung.** `scripts/sea/spike/renameRetry.mjs`: nur diese drei Codes werden wiederholt, Wartezeit 25 · 2^k ms, höchstens 8
+  Versuche (≈ 3,2 s), alles andere sofort weitergeworfen. Beide Sammler benutzen es.
+- **Beleg.** `node scripts/sea/spike/renameRetry.mjs --self-check` **5/5** (EPERM ×3 ⇒ 4. Versuch, Wartezeiten 25/50/100; EBUSY und
+  EACCES wiederholt; Gegenproben: dauerhafte Sperre gibt nach `tries` auf und wirft EPERM, ENOENT wird nicht wiederholt); echter
+  Dateisystem-Lauf (tmp → Ziel, Inhalt ersetzt, tmp weg).
+
+### 13.2 V-SW-10 (Rest) — Klassen je Spot einmal (`9800483`)
+
+- **Diagnose.** `SeaPage.tsx` rechnete die Liste im Dock bei JEDEM Stundenwechsel neu: `dockSpots` hängt an `k`, und je Spot liefen
+  alle Stunden durch `classify` (inkl. Sonnenhöhe) plus `windows` — 56 Spots × 67 Stunden + 2 × 56 Einzelstunden (Karte, Dock)
+  = 3 864 `classify` je Wechsel. Dazu setzt der Effekt `setLimitsState(loadLimits(profile))` beim Start einen inhaltsgleichen, aber
+  neuen `limits`-Bezug (ein Neuberechnen ohne Anlass).
+- **Umsetzung.** `src/sea/seaVerdicts.ts` (rein): `SeaVerdictCache` gehört zu einem Eingabesatz (Spots-Dokument als Bezug,
+  Grenzen, erste Laufstunde, Stunde 0, Stundenzahl) und rechnet die Zeile eines Spots beim ersten Bedarf, dazu seine Fenster;
+  `verdictRow`/`verdictOf` sind die ungecachte Referenz. Die Seite baut den Cache nur neu, wenn sich Dokument, Grenzen **dem Inhalt
+  nach** (`JSON.stringify`), Achse oder Datenlage ändern. Die Einheit gehört nicht in den Schlüssel: `classify` rechnet in kn, die
+  Einheit formatiert nur Zahlen. Profilwechsel = andere Grenzen = neuer Cache. `nextAndLongest` bleibt je Aufruf (hängt an „jetzt“).
+- **Messung (Node, Desktop, echter Lauf 2026100700, 56 Spots × 67 h, Profil Kite).** Bisher je Stundenwechsel p50 **8,6 ms**
+  (p90 14,8, max 22,5); mit Cache: erste Füllung 9,1 ms (einmal je Eingabesatz), danach je Wechsel p50 **0,02 ms** (p90 0,05).
+  Ob der alte Weg auf dem Telefon Long Tasks erzeugte, bleibt Real-Device (Jans Gate). Messskript nur im Sitzungs-Scratchpad; die
+  Gleichheit prüft V1.
+- **Beleg.** `verify:sea-derive` Block V: **V1** Cache = Referenz tief gleich für 7 Profile × 56 Spots × 70 Stunden (392/392
+  Zeilen, 392/392 Fenster); **V2** zehn Stundenwechsel an allen Spots ⇒ 56 Zeilen je einmal gerechnet; **V3** ohne Daten (0 Stunden)
+  = Referenz; **V4** Gegenprobe: andere Böengrenze bzw. um 1 h verschobene Achse sind NICHT gleich. `verify:sea-ui` **37/37** gegen
+  `vite preview --host 127.0.0.1` des frischen Baus; Build 255/255; `npm run budget` grün (totalJs 1 599,2 / 1 600, +0,5 KB).
+
+### 13.3 V-SW-9 — Ufernormale (`d5ffc48`): gemessen, Katalog unverändert
+
+- **Referenz.** Die DWD-Shapes der Seegebiete taugen nicht (Stützpunkte 1,5–2 km). Unabhängige Küste: **BKG DLM250** über den WFS,
+  den die Autobahnlinie schon nutzt (dl-de/by-2.0, kein OSM): AX_Meer 44007, AX_Hafenbecken 44005, AX_Fliessgewaesser 44001,
+  AX_StehendesGewaesser 44006 (Stützpunkte ≈ 100 m). Falle: `BBOX` in lon/lat-Reihenfolge, sonst 0 Objekte. Die Referenz wird nur
+  für die Diagnose gelesen, sie geht nicht in den Katalog. Küstennormale im 0,5-km-Band: nächster Küstenpunkt P zum Spot, Länge jeder
+  Küstenstrecke innerhalb 0,5 km um P mal ihre seewärtige Normale; Wasser-an-Wasser-Kanten (Meer | Hafen | Fluss) zählen nicht.
+- **Neue Regel aus der Maske** (`scripts/sea/shoreNormal.mjs` `maskCoastNormal`): 0,5-Isolinie des Wasser-Indikators (Marching
+  Squares, Sattel: Wasser verbunden), Kanten interpoliert, optional binomial geglättet; dieselbe Bandregel wie die Referenz.
+  Prüfung an geraden Küsten auf dem echten CWAM-Gitter (52 Winkel): roh/0,5 km höchstens 19° daneben (die Treppe der 0,93-km-Zellen —
+  im 0,5-km-Band liegen nur ein bis zwei Treppenstufen), geglättet/1 km höchstens 8°; die alte Regel dort höchstens 12°.
+- **Ergebnis an den 56 Spots** (`scripts/sea/diag-shore-normal.mjs --dlm=<dir>`; |Δ| zur DLM-Küste im 0,5-km-Band):
+
+  | Regel | Median | p90 | > 20° | > 45° | Hand-Spots Pelzerhaken/Travemünde/Warnemünde/Binz |
+  |---|---|---|---|---|---|
+  | alt: Vektormittel der Maske, 2,5 km | 19° | 79° | 24 | 8 | 88/84/92/46° |
+  | Küste der Maske, 0,5 km, roh (wie beauftragt) | 19° | 78° | 25 | 7 | 98/56/63/44° |
+  | Küste der Maske, 1 km, roh | 15° | 78° | 20 | 9 | 87/70/72/44° |
+  | Küste der Maske, 0,5 km, Glättung 1 | 14° | 93° | 20 | 11 | 89/65/79/46° |
+  | Küste der Maske, 2 km, Glättung 2 | 16° | 81° | 21 | 12 | 82/51/75/54° |
+  | (Referenz DLM 1,0 km gegen DLM 0,5 km) | 5° | 29° | 11 | 3 | — |
+
+  Keine Variante der Maske ist besser als die alte Regel: der Median sinkt um wenige Grad, das Ende (> 45°) bleibt oder wächst,
+  die vier Hand-Spots bleiben 44–98° daneben. Die Grenze ist nicht die Mittelungsregel, sondern **die Lage der Spots** und die
+  Zellgröße: die Lagen sind von Hand (laut Liste ≈ 100–500 m, St. Peter-Ording sogar 54,3/8,6), der Spot liegt teils landeinwärts
+  (St. Peter-Ording ≈ 1 km hinter der DLM-Hochwasserlinie, Norderney im Ort je ≈ 0,5 km von Nord- und Südufer) oder auf einer
+  Landspitze zwischen zwei Ufern (Warnemünde: Strand nach NW, Warnow-Mündung nach O — jedes 0,5-km-Band mischt beide; die Hand-Normale
+  320° meint den Strand). Eine Regel „nächstes Ufer“ ist an solchen Lagen empfindlicher als das 2,5-km-Mittel.
+- **Was sich mit der Maskenregel (0,5 km, roh) um > 20° änderte — gebaut, gemessen, NICHT übernommen** (14 Spots):
+
+  | Spot | alt | neu | Δ | DLM | Δ alt–DLM / neu–DLM | Spot–DLM-Küste km |
+  |---|---|---|---|---|---|---|
+  | wangerooge | 21° | 225° | 156° | 2° | 19° / 137° | 0,47 |
+  | holnis | 314° | 23° | 69° | 114° | 160° / 91° | 0,03 |
+  | norderney | 284° | 352° | 68° | 147° | 137° / 155° | 0,52 |
+  | helgoland | 30° | 75° | 45° | 75° | 45° / 0° | 0,32 |
+  | borkum | 280° | 315° | 35° | 352° | 72° / 37° | 1,07 |
+  | juist | 329° | 0° | 31° | 351° | 22° / 9° | 0,30 |
+  | poel | 331° | 0° | 29° | 333° | 2° / 27° | 0,30 |
+  | warnemuende (Hand 320°) | 52° | 23° | 29° | 27° | 25° / 4° | 0,13 |
+  | travemuende (Hand 45°) | 129° | 101° | 28° | 97° | 32° / 4° | 0,29 |
+  | hiddensee | 242° | 270° | 28° | 279° | 37° / 9° | 0,66 |
+  | langeoog | 329° | 354° | 25° | 341° | 12° / 13° | 0,39 |
+  | sylt-list | 141° | 164° | 23° | 135° | 6° / 29° | 0,30 |
+  | fehmarn-gruener-brink | 36° | 13° | 23° | 22° | 14° / 9° | 0,67 |
+  | foehr-wyk | 117° | 95° | 22° | 111° | 6° / 16° | 0,05 |
+
+- **Spots, an denen die alte Normale der DLM-Küste um > 45° widerspricht** (ohne Hand-Wert): borkum (280° gegen 352°, Spot 1,07 km
+  von der Küste), norderney (284/147, 0,52 — Lage), st-peter-ording (235/124, 0,32 — Lage), pellworm (340/44, 0,68), **holnis
+  (314/114, 0,03)**, **schleimuende (88/168, 0,09)**, **heiligenhafen (359/78, 0,13)**, **ueckermuende (29/133, 0,17)**. Fett: der
+  Spot liegt ≤ 0,2 km an der DLM-Küste, dort ist die Referenz belastbar — Kandidaten für eine Hand-Normale. Außerdem widersprechen
+  an zwei Hand-Spots Karte und Hand-Wert: **Binz** (Küste an der Katalog-Lage NW → SO, See im NO: Maske 44°, DLM 41°, Hand 90°) und
+  **Pelzerhaken** (See im SO: DLM 149°, Hand 80°) — entweder die Hand-Normale oder die Lage stimmt nicht.
+- **Umsetzung.** Die Katalogregel zog wörtlich nach `shoreNormal.mjs` (`maskVectorNormal`); `build-spots.mjs` benutzt sie. Lokal neu
+  gebaut (Shapes aus dem Cache): `spots.json` ohne `built` **gleich** dem Bau vor der Änderung, `areas.json` byte-gleich, alle 56
+  Normalen gleich der Fixture (Gegenprobe: 1° an einem Spot wird erkannt). **Nichts ins Daten-Repo zu kopieren.**
+- **Beleg.** `verify:sea-derive` Block N: **N1** gerade Küsten ≤ 20° roh / ≤ 10° geglättet (gemessen 19°/8°), **N2** Gegenprobe
+  vertauschte Maske ⇒ ≥ 160° daneben (161°), **N3** Katalogregel nach dem Umzug 56/56 gleich dem Katalog.
+- **E-SW-31 (Jans Gate):** (a) Normale aus der DLM250-Küste (dl-de/by-2.0, Quellenvermerk im Katalog) für Spots, die ≤ 0,2 km an
+  der Küste liegen, sonst wie bisher; (b) die Lagen der markierten Spots von Hand auf den Strand ziehen (ohne OSM: DLM250 oder
+  Ortskenntnis) und danach neu rechnen; (c) Hand-Normalen für holnis, schleimuende, heiligenhafen, ueckermuende und eine Prüfung
+  von Binz/Pelzerhaken. Empfehlung: (b) zuerst, dann (a) — die Normale hängt an der Lage, nicht an der Regel.
+
+### 13.4 V-SW-15 — alle Auffrischungen des Laufs bleiben (`04bf787`)
+
+- **Messung am Live-Speicher** (`raw …/sea/v1/status.json`, 08.10. 08:00 UTC): `wind.path` `spots/2026100800-w2026100803.json`,
+  **`bytes` 69 599**, `buildS` 2; der Wellenlauf daneben 13,67 MB. Takt: t1 alle 3 h ⇒ ≤ 4 Auffrischungen je Lauf in seinen 12 h als
+  neuester Lauf (`windDue` rechnet nur den zuletzt veröffentlichten Lauf auf).
+- **Entscheidung (a) statt (b).** (a) Aufbewahrung „alle Auffrischungen behaltener Läufe“: ≈ 4 × 70 KB je Lauf, zwei Läufe
+  ⇒ ≈ 0,56 MB (≈ 2 % des ≈ 27-MB-Speichers); jede Auffrischung bleibt ≥ 12 h stehen (bis ihr Lauf aus der Aufbewahrung fällt), das
+  Archiv alle 6 h sieht damit jede, auch wenn ein Archivlauf ausfällt. Obergrenze `SEA_RETENTION.windPerRunKept` = 8 je Lauf für den
+  Fall, dass ein Lauf lange der neueste bleibt (schlimmstenfalls 16 × 70 KB ≈ 1,1 MB). (b) Archiv-Schritt nach jeder Auffrischung
+  bräuchte im 15-min-Job von `sea.yml` einen zweiten Checkout und Schreibrechte auf `buscosun-archiv` — mehr Fehlerfläche für dasselbe
+  Ergebnis. Die Seite liest weiter nur die Datei aus dem Zeiger `status.wind` (die neueste).
+- **Umsetzung.** `seaContract.ts` (`windPerRunKept`, Kommentare), `sea-derive.mjs` `pruneRuns` (je Lauf die neuesten 8, nicht
+  behaltene Läufe mit ihren Auffrischungen weg), Kommentar in `sea-archive.mjs`. Workflow-Vorlagen unverändert ⇒ **keine Kopie ins
+  Daten-Repo**; wirksam mit Jans Push von `main`.
+- **Beleg.** `verify:sea-derive` Block W: **W4** neu — nach dem zweiten t1 bleiben `-w2026100706` UND `-w2026100709`, Zeiger auf
+  der neueren; **W5** liest die Auffrischung jetzt beim Namen; **W8** neu — ein Archivdurchlauf nimmt beide, Obergrenze 8 (zehn
+  Dateien ⇒ die ältesten zwei gehen), Auffrischung eines nicht behaltenen Laufs geht mit.
+
+### 13.5 V-SW-14 — Meeresboden in den Geländegrößen: Diagnose, Option (aus), E-SW-30 (`d5ccd06`)
+
+- **Korrektur der V-SW-14-Beschreibung.** `terrainScales` (`fusion/terrainScale.ts:87,106`) klemmt Punkt und jede Ringprobe
+  schon selbst auf ≥ 0 m — die Ringgeometrie `scales` (Ringmittel, Streuung, TPI je Skala, Horizont je Oktant) sieht die
+  Meeresoberfläche bereits. Mit dem gelesenen Wert rechnen nur die Größen aus der rohen Höhenfunktion des Lesers: `tpi500M`,
+  `tpi2000M`, `slopeDeg`/`aspectDeg`, `horizonDeg`/`svf` und **`sinkDepthM` = Ringmittel 2 km (geklemmt) − Punkthöhe (gelesen)** —
+  über offener See ist die Senkentiefe damit die Wassertiefe.
+- **Wer liest was** (Verbraucher in `cubeSource.ts`, `fusion/*.ts`, `point/fusionFit/*.ts`, `scripts/fusionfit/**`):
+
+  | Größe | Verbraucher in der Stufe `fs` | bewegt sich mit `elev ≥ 0`? |
+  |---|---|---|
+  | `scales.*` | `windTerrainFactor` (`fuse.ts:261`, Wind/Böe-Faktor aus `tpiM`), Repräsentativität σ_rep (`spreadM`), Wind-σ_clima (`tpiAt(scales, 4 km)`), `geometryOk` | **nein** (schon geklemmt) |
+  | `elevationM` | h_true nur ohne Station/Eingabehöhe | nein (seit V-SW-4 ≥ 0) |
+  | `sinkDepthM` | `basinDepthM = max(sinkDepthM, −tpiM)` ⇒ `assessRegime`/`coldPoolStrength` nachts (Tor `sinkDepthM > 5` m, Tiefe min(1, d/250)); Lernspalte `sink` (/100) mit `sink·hCos1`, `sink·hSin1`, `sink·dCos1`; Klima-Trend `sink` | **ja** — größter Hebel |
+  | `tpi500M`, `tpi2000M` | Lernspalten `tpi500`, `tpi2000` (/100) mit Wechselwirkungen, Varianz-, Auftritts- und Mengen-Design (`tpi2000`); Klima-Trend; `terrainTerms` (Becken-Tor, derzeit wirkungslos: A/A_uhi/tpiSigma in `calib.json` null) | ja |
+  | `svf` / `horizonDeg` | Lernspalten `svf`, `svf·hCos1`, Varianz- und Atom-Design; Strahlungsfaktor 0,7 + 0,3·svf in `coldPoolStrength` | ja (über See ≈ 0) |
+  | `slopeDeg`/`aspectDeg` | Lernspalten `slope`, `slopeCosA`, `slopeSinA`, Mengen-Design; Klima-Trend | ja |
+  | Live-Pfad (`pointForecast.ts`) | eigenes z9-Gelände, `terrainContext` klemmt die Mitte | nein |
+
+  Die Lernstufe bekommt ihre Merkmale aus `points.v1.json` (`scripts/fusionfit/features.mjs` ruft `loadTerrainAtPoint` OHNE Klemme;
+  Stand 23.09., vor V-SW-4: 12 Zeilen mit negativem `terrain.elevationM`); der Browser rechnet dieselben Spalten zur Laufzeit aus dem
+  Leser (`readPoint.ts` → `cubeSource.ts` `buildZ`, `trendVector`) ⇒ jede Leser-Änderung ohne Neubau der Tabelle und Neufit wäre ein
+  Unterschied zwischen Fit und Anwendung.
+- **Option.** `TerrainOptions.clampSeaFloor` (`src/point/client/terrain.ts`, voreingestellt aus): die Höhenfunktion selbst wird
+  `max(0, ·)`, damit rechnen alle Größen oben mit der Meeresoberfläche; `elevationReadM` bleibt wie bei V-SW-4 sichtbar; eigener
+  Cache-Schlüssel `…/sea0/…`. Ohne Option ist es dieselbe Funktion wie bisher (`elev = elevRead`), derselbe Schlüssel.
+- **Messung auf echten Terrarium-Kacheln** (`scripts/sea/diag-sea-floor.mjs --head=<Kopie des HEAD-Lesers>`, 10 Stationen mit
+  `demM < 0` + 56 Spot-Wasserzellen): **Option aus = HEAD-Leser an 66/66 Orten** (Ergebnis ohne Laufzeitfelder Zeichen für Zeichen).
+  Mit Option: `scales` an 66/66 unverändert; Lernspalten |ΔZ| höchstens tpi500 0,017/0,021, tpi2000 0,032/0,030, slope 0,08/0,07,
+  svf 0/0,001, sink 0,111/0,086 (Stationen/Spots); **das Kaltluft-Tor (Senke > 5 m) kippt an 4 von 10 Stationen** (10015 9 → 0,7 m,
+  10097 7,1 → 1,5, 10124 11,1 → 0, 10152 14,1 → 3,2) **und an 12 von 56 Spots** (u. a. Helgoland 8,6 → 0, Fehmarn Grüner Brink
+  7,4 → 0, Kühlungsborn 11,5 → 4,1, Ahrenshoop 7,6 → 1,1). Heute rechnet buscosun Fusion an diesen Orten nachts also mit einem
+  „Becken“ aus Wassertiefe; die Seewetter-Spots erben das über `spot-geo.json` (Producer-Cache der Leser, dort nur `elevationM` auf 0).
+- **Beleg.** `verify:point-client` vier neue Prüfungen „(10) V-SW-14“: aus = ohne Option (Ergebnis und Schlüssel, ohne `/sea0`); Land
+  mit Option unverändert (Gipfel); Küste mit Option ⇒ TPI 2 km 14,4 → 8,3, Schlüssel `…/sea0/…`; offene See mit Option ⇒ Höhe 0,
+  `elevationReadM` −12, Senke 0 — **Gegenprobe** ohne Option Senke 12 m. Die V-SW-4-Prüfungen bleiben unverändert grün.
+- **Nicht getan:** kein Neufit, nicht eingeschaltet. **E-SW-30 (Jans Gate):** (a) Leser mit `clampSeaFloor` + Neubau von
+  `points.v1.json` + Neufit der Lern- und Klimatabellen ⇒ neuer Stand von buscosun Fusion (nach dem Merge von 10/11 als 12, zusammen
+  mit `gustAtLeastWind`), Prüfstand P1 vorher/nachher; (b) kleiner: nur `sinkDepthM` gegen die geklemmte Punkthöhe rechnen (die
+  Inkonsistenz Ring geklemmt / Punkt gelesen) — bewegt an den 10 Stationen nur die Spalte `sink` und das Tor, braucht aber ebenso
+  Neufit und Nummer; (c) nur im Seewetter-Producer (`spot-geo.json` mit Option bauen): ändert keine Archivstation, aber die
+  Spot-Merkmale lägen außerhalb dessen, womit gefittet wurde, und der Wind der Seite wäre nicht mehr genau „buscosun Fusion 9“ —
+  nicht empfohlen. Empfehlung: (a) mit dem nächsten Stand, bis dahin unverändert.
+
+### 13.6 Gates dieses Abschnitts
+
+Stand nach allen fünf Punkten (Arbeitsbaum = Commits `6777973` … `d5ccd06`), Maschine ohne Fremdlast wo vermerkt:
+
+```
+npm run typecheck        0 Fehler
+npm run build            grün, verify-routing 255/255
+npm run budget           grün — totalJs 1 599,3 / 1 600 (+0,6 KB gegenüber §12.5, keine Grenze angehoben), eagerJs-Ratsche unverändert
+verify:sea-derive        55/55   (+8: V1–V4, N1–N3, W8; W4/W5 auf V-SW-15 umgestellt)
+verify:sea-ui            37/37   gegen `npx vite preview --host 127.0.0.1 --port 5241` (nach V-SW-10)
+verify:point-client      178/179 (+4: „(10) V-SW-14“); rot nur (10s) z0mod progressiv — zeitabhängig, auch an HEAD (V-EX-13).
+                         Unter Last (paralleler sea-derive-Lauf) zusätzlich (10r) Kostenprüfung rot (43,8 > 30 ms), ohne Last grün
+renameRetry --self-check 5/5
+diag-sea-floor.mjs       Leser ohne Option = HEAD-Leser an 66/66 echten Orten
+build-spots.mjs          Katalog lokal neu gebaut: gleich dem Bau vor der Änderung (ohne `built`), areas.json byte-gleich
+```
+
+Nicht geprüft: Real-Device (V-SW-10), ein echter `sea.yml`-Lauf mit der neuen Aufbewahrung (wirksam erst nach Jans Push),
+`verify:pv-cube` (der Cube-Pfad ruft den Leser ohne die neue Option; die Gleichheit belegen die Leser-Prüfungen).
+
+### 13.7 Die fünf Selbstverifikations-Fragen (CLAUDE.md)
+
+1. **Funktionserhalt:** nichts entfernt. Seite: dieselben Klassen, Fenster und Listen (V1 tief gleich, `verify:sea-ui` 37/37);
+   Katalog unverändert (N3, Neubau gleich); der Speicher behält MEHR Dateien, die Seite liest unverändert den Zeiger; Leser ohne
+   Option = HEAD (66/66 echte Orte, V-SW-14-Prüfungen).
+2. **Desktop pixelgleich:** berührt ist nur der Rechenweg der Seewetter-Seite, keine Darstellung; `verify:sea-ui` 37/37 inkl. Maße und
+   Zustände; außerhalb `?sea=1` lädt kein Byte davon. Der Pixelvergleich wurde nicht neu gefahren (keine Darstellungsänderung).
+3. **Touch-Targets ≥ 44 px:** unverändert, `verify:sea-ui` G3/G4 grün.
+4. **Konsole sauber:** `verify:sea-ui` I1 grün.
+5. **Long Tasks > 200 ms:** in headless-shell nicht messbar; der Stundenwechsel kostet in Node 0,02 statt 8,6 ms (§13.2). Gerät = Jans Gate.
