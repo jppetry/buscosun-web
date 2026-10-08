@@ -709,3 +709,12 @@ Entwicklungsmenge (§11.6: 25 von 27 Zellen grün, rot nur T/Td 0–6 h) und aus
 reifer Wahrheit), frühestens mit ≥ 4 reifen Tagen (≈ 20.10.), belastbar mit ≥ 14 (≈ 30.10.). **Behauptung:** auf Spur P sind G1–G4
 grün und der Fortschrittsindex gegen Fusion 9 liegt ≥ +1,3 %. Trifft G3 nicht zu, wird die Zelle benannt; keine Nachstellung an den
 Spur-P-Zahlen — ein Nachfolger braucht ein neues Fenster.
+
+### 11.8.4 Zweite Hypothese `fusion-12u` (Jan 08.10. abends: „dann tue das genau so"; `claims-addendum-3.md` + Hash, vor dem ersten Spur-P-Tag)
+
+`fusion-12u` = `fusion-12t` mit `sigmaScale: 4` (`SIGMA_SCALE_TABLE_U`): dieselbe Tabelle, nur der Windknoten 24–48 h auf 1 statt
+1,026. Der Knoten war ein Nebenprodukt des gemeinsamen Fits (Fenster am Hindcast schon bei 79,8 %, die Nachbarn zogen ihn hoch) und
+seine Verbreiterung um 2,6 % kostete in 12r und 12p in AT/CH 0,2 % CRPS (signifikant) — der einzige Teil der Skala ≤ 48 h, der je
+eine Zelle verschlechtert hat. **Vorzugsreihenfolge vorab:** beide grün ⇒ 12u; nur einer grün ⇒ dieser; keiner ⇒ rote Zellen beider
+benennen, kein dritter Kandidat ohne neues Fenster. Beide nur `--modus=abnahme`. `verify:pv-cube` prüft, dass 4 sich von 3 nur
+beim Wind unterscheidet.

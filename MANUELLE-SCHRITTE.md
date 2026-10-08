@@ -1847,4 +1847,5 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
    in Spur P: `node … scripts/pruefstand/run.mjs --kandidat=fusion-12t --modus=abnahme --offline` (PRUEFSTAND_WORKERS=2), frühestens
    mit ≥ 4 reifen Archivtagen nach dem 08.10. (≈ 20.10.), belastbar ≥ 14 (≈ 30.10.) — **E-OF-6 (Jan):** den Abnahmelauf starten und
    bei grün über Fusion 12 entscheiden (dann = „buscosun Fusion 12“ mit `obsDense`, `anchorSigma`, `anchorKSet`, `sigmaScale: 3` in der
-   Stufe; Register-Eintrag + `FUSION12_*`-Konstanten), bei rot die Zellen benennen, kein Nachstellen an Spur P.
+   Stufe; Register-Eintrag + `FUSION12_*`-Konstanten), bei rot die Zellen benennen, kein Nachstellen an Spur P. **Zweiter Kandidat `fusion-12u`** (Jan 08.10.: 12t mit Windknoten 24–48 h = 1, `sigmaScale: 4`, `claims-addendum-3.md`): beide in
+   der Abnahme fahren (`--kandidat=fusion-12t` und `--kandidat=fusion-12u`); Vorzug vorab: beide grün ⇒ 12u, sonst der grüne, keiner ⇒ benennen.

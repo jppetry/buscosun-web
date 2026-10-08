@@ -735,6 +735,13 @@ function cubeSampleOfValues(r, i) {
       && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 3 })) === fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TP })) && fuseCubePoint(mkInput(), { sigmaScale: 3 }).calib.some((c) => /sigmaScale: 3/.test(c))
       && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, 'AT') === 0.5 && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, 'DE') === 0.8
       && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, null) === 0.8);
+    const TU = S.SIGMA_SCALE_TABLE_U;
+    add('(12) OF-7b zweite Spur-P-Tabelle (sigmaScale: 4): wie 3, nur Windknoten 24–48 h = 1; alle anderen Knoten gleich; `sigmaScale: 4` byte-gleich zu `sigmaScale: 1` mit dieser Tabelle und ≠ 3 nur bei Wind; calib nennt „sigmaScale: 4“',
+      TU.nodes.ws[2] === 1 && TP.nodes.ws[2] !== 1 && S.SIGMA_SCALE_VARS.every((v) => TU.nodes[v].every((s, i) => (v === 'ws' && i === 2) || s === TP.nodes[v][i]))
+      && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 4 })) === fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TU }))
+      && JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 4 }).steps[30].fused.temperature) === JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 3 }).steps[30].fused.temperature)
+      && JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 4 }).steps[30].fused.windSpeed) !== JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 3 }).steps[30].fused.windSpeed)
+      && fuseCubePoint(mkInput(), { sigmaScale: 4 }).calib.some((c) => /sigmaScale: 4/.test(c)));
     // engine with the fitted K-set table: the T factor at +0/+2/+4 h follows anchorSigmaFactorKSet with (C, V) of the class of f = 0,978
     const kT = S.anchorKSetOf(S.ANCHOR_KSET_TABLE.t, wsp);
     const kOn = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 1 });

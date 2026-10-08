@@ -92,6 +92,18 @@ export const SIGMA_SCALE_TABLE_P: SigmaScaleTable = Object.freeze({
 });
 
 /**
+ * `FuseCubeOptions.sigmaScale: 4` — the second track-P hypothesis (E-OF-5, `claims-addendum-3.md`, declared before the first track-P
+ * day like 12t): `SIGMA_SCALE_TABLE_P` with the wind node 24–48 h at 1. That node (1,026) is a by-product of the joint fit — the
+ * window was on target (79,8 %) and its neighbours pulled it up — and the 2,6 % widening cost 0,2 % CRPS in AT/CH in 12r and 12p
+ * (significant at this row count), the only part of the ≤ 48 h scale that ever made a cell worse.
+ */
+export const SIGMA_SCALE_TABLE_U: SigmaScaleTable = Object.freeze({
+  ...SIGMA_SCALE_TABLE_P,
+  provenance: { ...SIGMA_SCALE_TABLE_P.provenance, note: `${SIGMA_SCALE_TABLE_P.provenance.note.replace('(sigmaScale: 3)', '')}; wind node 24–48 h = 1 (sigmaScale: 4)` },
+  nodes: Object.freeze({ ...SIGMA_SCALE_TABLE_P.nodes, ws: Object.freeze(SIGMA_SCALE_TABLE_P.nodes.ws.map((s, i) => (i === 2 ? 1 : s))) }),
+});
+
+/**
  * Scale at lead `leadH`: linear between the nodes, flat before the first and beyond the last centre. 1 when the table has no
  * node. With `country` and a `byCountry` entry for it, that country's nodes; otherwise the pooled nodes.
  */
