@@ -336,6 +336,16 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
   const catN = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')).spots;
   const same = catN.filter((s) => maskVectorNormal(wet, g, s.lat, s.lon) === (s.normalFrom === 'set' ? s.normalMask : s.normal)).length;
   add('N3 Katalogregel nach dem Umzug in shoreNormal.mjs: alle 56 Masken-Normalen gleich dem Katalog (bei „set“ normalMask)', same === catN.length, `${same}/${catN.length}`);
+  // E-SW-31 (b): positions pulled onto the DLM250 coastline live in the hand list (`snap.was` = former hand position).
+  const srcN = JSON.parse(readFileSync(join(HERE, 'sea', 'spots-src.json'), 'utf8')).spots;
+  const kmN = (a, b) => Math.hypot((a[0] - b[0]) * 110.574, (a[1] - b[1]) * 111.32 * Math.cos((a[0] * Math.PI) / 180));
+  const snapped = srcN.filter((s) => s.snap);
+  const posSame = srcN.filter((s) => { const c = catN.find((x) => x.id === s.id); return c && c.lat === s.lat && c.lon === s.lon; }).length;
+  const snapOk = snapped.filter((s) => Array.isArray(s.snap.was) && Number.isFinite(s.snap.facing) && s.snap.why && kmN([s.lat, s.lon], s.snap.was) > 0.2 && kmN([s.lat, s.lon], s.snap.was) <= 2.5).length;
+  add('N4 Katalog = Handliste (Lage je Spot) und jede auf die DLM250-Küste gezogene Lage 0,2–2,5 km von der früheren Handlage, mit Blickrichtung und Grund (E-SW-31 b)',
+    posSame === srcN.length && srcN.length === catN.length && snapped.length === 12 && snapOk === snapped.length, `${posSame}/${srcN.length} Lagen gleich, ${snapOk}/${snapped.length} gezogen`);
+  const flipped = catN.map((s) => ({ ...s, lat: s.lat + 0.01 }));
+  add('N4 Gegenprobe: um 0,01° verschobener Katalog ⇒ keine Lage gleich', srcN.every((s) => { const c = flipped.find((x) => x.id === s.id); return c.lat !== s.lat; }), '');
 }
 
 // --- W: V-SW-2 wind refresh on a newer t1 cube (on the store of block A: run 2026100700, wind with t1 2026100703) ---
