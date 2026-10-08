@@ -656,6 +656,67 @@ function cubeSampleOfValues(r, i) {
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchor: false, anchorSigma: 1 })) === fusedOf(base)
       && sdT(fuseCubePoint({ ...mkInput(), obs: obsAt(2, 60_000, FIX.hTrue + 900) }, { anchorSigma: 1 }), 1) / sdT(fuseCubePoint({ ...mkInput(), obs: obsAt(2, 60_000, FIX.hTrue + 900) }), 1) > 0.999);
   }
+  // OF-7 (audit/obs-fusion.md §11): (1) the σ coupling with the MEASURED error correlation ρ instead of spatialWeight —
+  // factor² = 1 − r·a²·(2ρ/f − 1), capped at 1; (2) the coverage factor on σ per lead (`sigmaScale`, table with one node per window).
+  {
+    const { anchorSigmaFactorRho, anchorSigmaFactor } = await import('../src/pointForecast/cubeSource.ts');
+    const S = await import('../src/pointForecast/fusion/sigmaScale.ts');
+    const f978 = 1 / (1 + (3000 / 20000) ** 2);
+    add('(12) OF-7 Formel ρ: ρ = f ⇒ OF-6 (0,8); ρ = f/2 ⇒ 1; ρ = 0 ⇒ Deckel 1; ρ 1 bei f 0,5 ⇒ Boden 0,5; ρ NaN oder f 0 ⇒ OF-6; a 0 ⇒ 1; a 0,6 r 0,25 ρ 0,5 f 0,978 ⇒ √(1 − 0,09·(1/0,978 − 1))',
+      near(anchorSigmaFactorRho(0.6, 1, f978, f978), anchorSigmaFactor(0.6, 1), 1e-12) && near(anchorSigmaFactorRho(0.6, 1, f978, f978), 0.8, 1e-12)
+      && anchorSigmaFactorRho(0.6, 1, f978 / 2, f978) === 1 && anchorSigmaFactorRho(0.6, 1, 0, f978) === 1 && anchorSigmaFactorRho(0.6, 1, 1, 0.5) === 0.5
+      && anchorSigmaFactorRho(0.6, 1, NaN, f978) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorRho(0.6, 1, 0.5, 0) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorRho(0, 1, 0.5, 0.5) === 1
+      && near(anchorSigmaFactorRho(0.6, 0.25, 0.5, f978), Math.sqrt(1 - 0.25 * 0.36 * (1 / f978 - 1)), 1e-12));
+    const TEST = { version: 1, provenance: { kind: 'hindcast', note: 'Testtabelle des Verifiers' }, centresH: S.SIGMA_SCALE_CENTRES_H, nodes: { t: [0.8, 0.9, 1, 1.1, 1.2, 1.3], td: [1, 1, 1, 1, 1, 1], ws: [0.7, 0.7, 0.7, 0.7, 0.7, 0.7], gust: [1.5, 1, 1, 1, 1, 1] } };
+    add('(12) OF-7 sigmaScaleAt: Identität 1 überall; Testtabelle: vor dem ersten Knoten flach 0,8, zwischen 3,5 und 15,5 h linear (9,5 h ⇒ 0,85), am letzten Knoten 1,3, danach flach; Tabelle ohne Knoten ⇒ 1',
+      [1, 3.5, 100, 400].every((L) => S.sigmaScaleAt(S.SIGMA_SCALE_IDENTITY, 't', L) === 1) && S.sigmaScaleAt(TEST, 't', 1) === 0.8 && near(S.sigmaScaleAt(TEST, 't', 9.5), 0.85, 1e-12)
+      && S.sigmaScaleAt(TEST, 't', 288.5) === 1.3 && S.sigmaScaleAt(TEST, 't', 336) === 1.3 && S.sigmaScaleAt({ ...TEST, nodes: { ...TEST.nodes, t: [] } }, 't', 5) === 1 && S.SIGMA_SCALE_CENTRES_H.join() === '3.5,15.5,36.5,84.5,180.5,288.5');
+    const P = { rho0: 0.7, c: 0.2, dKm: 10, hM: 200 };
+    add('(12) OF-7 anchorRhoOf: (0, 0) ⇒ ρ₀; d = D ⇒ ρ₀·(c + (1 − c)/e); d → ∞ ⇒ ρ₀·c (Boden); Δh = H ⇒ halbiert (Vorzeichen egal); ρ₀ > 1 auf 1 gedeckelt; c 1 ⇒ keine Distanzabhängigkeit',
+      near(S.anchorRhoOf(P, 0, 0), 0.7, 1e-12) && near(S.anchorRhoOf(P, 10_000, 0), 0.7 * (0.2 + 0.8 / Math.E), 1e-12) && near(S.anchorRhoOf(P, 1e9, 0), 0.14, 1e-9)
+      && near(S.anchorRhoOf(P, 0, -200), 0.35, 1e-12) && near(S.anchorRhoOf(P, 10_000, 200), 0.5 * 0.7 * (0.2 + 0.8 / Math.E), 1e-12)
+      && S.anchorRhoOf({ ...P, rho0: 1.5 }, 0, 0) === 1 && near(S.anchorRhoOf({ ...P, c: 1 }, 50_000, 0), 0.7, 1e-12) && S.anchorRhoOf({ ...P, dKm: 0 }, 0, 0) === 0);
+    // engine: sigmaScale with the test table — σ of T and wind speed × s(lead), median unchanged, precipitation/clouds untouched
+    const ssOn = fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TEST });
+    const sdOf = (r, i, k) => r.steps[i].fused[k].dist.sigma;
+    const stepsOk = [0, 4, 40, base.steps.length - 1].every((i) => {
+      const L = base.steps[i].leadH, sT = S.sigmaScaleAt(TEST, 't', L);
+      return near(sdOf(ssOn, i, 'temperature') / sdOf(base, i, 'temperature'), sT, 1e-9) && near(sdOf(ssOn, i, 'windSpeed') / sdOf(base, i, 'windSpeed'), 0.7, 1e-9)
+        && near(med(ssOn.steps[i]), med(base.steps[i]), 1e-9) && JSON.stringify(ssOn.steps[i].fused.precipitation) === JSON.stringify(base.steps[i].fused.precipitation)
+        && JSON.stringify(ssOn.steps[i].fused.clouds) === JSON.stringify(base.steps[i].fused.clouds) && JSON.stringify(ssOn.steps[i].fused.dewPoint) === JSON.stringify(base.steps[i].fused.dewPoint);
+    });
+    add('(12) OF-7 sigmaScale mit Testtabelle: T-σ × s(Vorlauf) (0,8 bei +0 h … 1,3 am Ende), Wind-σ × 0,7, Td/Niederschlag/Bewölkung byte-gleich, Median unverändert; Flag `sigmaScale`, Notiz mit Zählung, calib `sigmaScale:hindcast`',
+      stepsOk && ssOn.steps[0].flags.includes('sigmaScale') && !base.steps[0].flags.includes('sigmaScale')
+      && ssOn.notes.some((n) => /^sigmaScale: σ an \d+ Schritten skaliert \(\d+ Größen-Schritte, Faktor 0\.700 … 1\.(300|500)\)/.test(n)) && ssOn.calib.some((c) => c.startsWith('sigmaScale:hindcast')),
+      `+0 h T ${(sdOf(ssOn, 0, 'temperature') / sdOf(base, 0, 'temperature')).toFixed(4)} · Ende T ${(sdOf(ssOn, base.steps.length - 1, 'temperature') / sdOf(base, base.steps.length - 1, 'temperature')).toFixed(4)}`);
+    add('(12) OF-7 sigmaScale Negativkontrollen: Option 0 byte-gleich; Option mit Identitätstabelle byte-gleich (Notiz „Identitätstabelle“); die eingebaute Tabelle nennt ihre Herkunft (identity oder hindcast) in calib',
+      fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 0 })) === fusedOf(base) && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: S.SIGMA_SCALE_IDENTITY })) === fusedOf(base)
+      && fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: S.SIGMA_SCALE_IDENTITY }).notes.some((n) => /^sigmaScale: Option an, aber Identitätstabelle/.test(n))
+      && fuseCubePoint(mkInput(), { sigmaScale: 1 }).calib.some((c) => /^sigmaScale:(identity|hindcast) — /.test(c)));
+    // the built-in tables: every node finite in (0,6; 1,6]; LONG = the same fit with the three nodes ≤ 48 h at 1; option 2 reads LONG
+    const nodesOk = (tab) => S.SIGMA_SCALE_VARS.every((v) => tab.nodes[v].length === 6 && tab.nodes[v].every((s) => Number.isFinite(s) && s >= 0.6 && s <= 1.6));
+    const longOk = S.SIGMA_SCALE_VARS.every((v) => S.SIGMA_SCALE_TABLE_LONG.nodes[v].every((s, i) => (S.SIGMA_SCALE_CENTRES_H[i] <= 48 ? s === 1 : s === S.SIGMA_SCALE_TABLE.nodes[v][i])));
+    const ss2 = fuseCubePoint(mkInput(), { sigmaScale: 2 }), ssLong = fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: S.SIGMA_SCALE_TABLE_LONG });
+    add('(12) OF-7 eingebaute Tabellen: Knoten endlich in [0,6; 1,6], Herkunft hindcast; LONG = dieselben Knoten > 48 h, 1 bei ≤ 48 h; `sigmaScale: 2` byte-gleich zu `sigmaScale: 1` mit LONG; mit LONG ist +0 h byte-gleich zur Basis',
+      nodesOk(S.SIGMA_SCALE_TABLE) && S.SIGMA_SCALE_TABLE.provenance.kind === 'hindcast' && S.ANCHOR_RHO_TABLE.provenance.kind === 'hindcast' && longOk
+      && fusedOf(ss2) === fusedOf(ssLong) && JSON.stringify(ss2.steps[0].fused) === JSON.stringify(base.steps[0].fused) && ss2.calib.some((c) => /sigmaScale: 2/.test(c)));
+    // engine: anchorRho — the factor follows anchorSigmaFactorRho with ρ of the fixture station (3 km, Δh 0) from the built-in table
+    const rhoT = S.anchorRhoOf(S.ANCHOR_RHO_TABLE.t, 3000, 0);
+    const rOn = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorRho: 1 });
+    const sdT = (r, i) => r.steps[i].fused.temperature.dist.sigma;
+    const aOf = (i) => wsp * Math.exp(-(rOn.steps[i].leadH ?? i) / 4);
+    const want = (i) => anchorSigmaFactorRho(aOf(i), 1, rhoT, wsp);
+    add('(12) OF-7 anchorRho mit Option: T-σ-Faktor bei +0/+2/+4 h = anchorSigmaFactorRho(a, 1, ρ(3 km, 0), 0,978) mit ρ aus ANCHOR_RHO_TABLE; Median wie OF-6; Notiz nennt ρ und f; calib `anchorRho:`',
+      [0, 2, 4].every((i) => near(sdT(rOn, i) / sdT(anchored, i), want(i), 1e-9)) && near(med(rOn.steps[0]), med(anchored.steps[0]), 1e-9)
+      && rOn.notes.some((n) => new RegExp(`^anchorRho: ρ der Ankerstation\\(en\\) mit dem Punkt T ${rhoT.toFixed(3).replace('.', '\\.')} `).test(n)) && rOn.calib.some((c) => /^anchorRho:(set|hindcast) — /.test(c)),
+      `ρ_T(3 km) ${rhoT.toFixed(3)} · Faktor +0 h ${(sdT(rOn, 0) / sdT(anchored, 0)).toFixed(4)} (Soll ${want(0).toFixed(4)}) · +4 h ${(sdT(rOn, 4) / sdT(anchored, 4)).toFixed(4)} (Soll ${want(4).toFixed(4)})`);
+    add('(12) OF-7 anchorRho Negativkontrollen: ohne anchorSigma byte-gleich zum Anker von heute (Notiz „anchorSigma aus“); mit anchorSigma, aber anchorRho 0 byte-gleich zu OF-6; ohne Messung byte-gleich zur Basis; Anker-Member ohne ρ-Feld',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorRho: 1 })) === fusedOf(anchored)
+      && fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorRho: 1 }).notes.some((n) => /^anchorRho: Option an, aber anchorSigma aus/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorRho: 0 })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 }))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorRho: 1 })) === fusedOf(base)
+      && !('rho' in rOn.steps[0].members.find((m) => m.product === 'anchor').anchor));
+  }
   // V-SW-3: wind and gust get separate corrections, their means can cross. In the plain engine the gust prior keeps the gust
   // above the wind (this fixture: min gust − wind ≥ +0,18 m/s even with every input gust at 10–30 %); the crossing comes from
   // the separate corrections of the stage fs (learned speed law, station value — Fehmarn +42 h). The rule is the pure

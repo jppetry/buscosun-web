@@ -505,3 +505,101 @@ keine Nachstellung von f_min oder der Form nach dem Lauf in dieser Phase.
   nur mit eigenem Fenster; (2) als neue, vorab eingefrorene Regel die Kopplung nur für Wind und Böe (T ohne) — begründet durch §10.4,
   aber an denselben Tagen entwickelt ⇒ nur Spur P (ab 09.10.) entscheidet sauber; (3) unabhängig davon die Böen-σ des Champions
   (87–90 % in allen Fenstern ≤ 48 h).
+
+## 11 OF-7 — ρ gemessen, σ-Skala auf Abdeckung (Hebel 1 + 4 nach §10.4; Auftrag Jan 08.10.: „setze diese Hebel um … Punkt 1 und 4, prüfe danach ob alles grün ist")
+
+### 11.1 Diagnose (aus §10.4, ohne neue Zahlen)
+
+- **T 0–6 h zu schmal (74,4 %):** die OF-6-Formel setzt die Repräsentativität `fraction` (= `spatialWeight`, Distanz/Höhe) an die
+  Stelle der Fehlerkorrelation ρ zwischen Ankerstation und Punkt. Mit dem Gewicht k = f·w(τ), das der Anker tatsächlich auf die
+  Innovation legt, bleibt die Varianz σ_τ² − 2k·ρ·w·σ₁² + k²·σ₁²; OF-6 ist der Sonderfall ρ = f. Ist ρ < f (Mikroklima,
+  Inversion), schrumpft OF-6 zu stark — genau das Bild bei T.
+- **Wind 6–24 h, Böe 24–48 h (+0,3 … +0,6 pp über dem Champion, Böe 87–90 % in jedem Fenster ≤ 48 h):** die gelernte σ (Fit 5e,
+  CRPS-optimal) deckt bei Böe und Wind breiter ab als 80 % — die Verteilungsform trifft die Ränder nicht. Das ist die geerbte
+  Über-Abdeckung des Champions; der Anker ändert sie kaum.
+- Beides lässt sich **am Hindcast** messen, ohne einen Archivtag der Entwicklungsmenge anzufassen: Wahrheit und ankerlose Kette an
+  389 Stationen (ρ zwischen Stationen = ρ zwischen Nachbarstation und Rolle-B-Punkt; Abdeckung der ankerlosen Kette = das, was
+  die σ-Kopplung voraussetzt).
+
+### 11.2 Messung (`scripts/obsfusion/of7.mjs`, nur lesend; Rohdaten `audit/obs-fusion/of7/part-*.json`, Fit `audit/obs-fusion/of7-fit.json`)
+
+- Replay der Register-Optionen von `fusion-12s` (ohne Messungen ⇒ `obsDense`/`anchorSigma` wirkungslos; `hourly`, `tail` wie der
+  Prüfstand) auf Hindcast-Slots **außerhalb des Tresors** (2024-04-01 … 2025-08-31 ⇒ Abbruch) und **vor der Entwicklungsmenge**
+  (Archiv ab 2026-09-14 ⇒ Abbruch): Fenster A = t1-Route `run` 2026-06-18 … 2026-09-13, 00 + 12 UTC, jeder 2. Tag (die einzige
+  Periode mit echtem Stufe-1-Lauf im Hindcast ⇒ Vorläufe 1–48 h und ρ nur von hier); Fenster B = 00 UTC 2025-09-08 … 2026-06-16,
+  jeder 4. Tag, nur t2/t3 (Vorläufe ≥ 51 h, Tag-0-Regel wie `predictHindcast`). Prüfnetz 365 Stationen, Wahrheit W1, Rolle B mit
+  Leave-Station-out-Klimatologie wie im Prüfstand.
+- **(1) ρ(d, Δh):** Fehler e = Wahrheit − Median der Kette je Station bei Vorlauf 1/2/3 h; je Stationspaar ≤ 120 km zur selben
+  Gültigkeitszeit Summen n/Σx/Σy/Σxy/Σx²/Σy² in Bins d (0–5/5–10/10–20/20–35/35–60/60–120 km) × |Δh| (0–100/100–300/300–700/≥ 700 m),
+  je Größe t/ws/gust (Wind am Geschwindigkeitsfehler gemessen, auf u/v angewandt). Fit je Größe: ρ = ρ₀/((1+(d/D)²)(1+(Δh/H)²))
+  — die Form von `spatialWeight` mit GEMESSENEN ρ₀/D/H — gewichtete kleinste Quadrate (Gewicht n) auf den Bin-Mittelpunkten mit
+  n ≥ 200, Raster ρ₀ 0,20…1,00 (0,01), D {3…400 km}, H {50…10 000 m}.
+- **(2) σ-Skala:** je Zelle (Größe t/td/ws/gust × Fenster × Land × Rolle) ein Reservoir (Algorithmus R, 8 000 Zeilen, Gewicht
+  n/behalten) der fusionierten Verteilung (Familie, Parameter) und der Wahrheit; Abdeckung = Anteil q10 ≤ y ≤ q90 (exakte
+  Quantile je Familie). Ein Knoten je Protokollfenster an dessen Mitte (3,5/15,5/36,5/84,5/180,5/288,5 h), linear dazwischen, flach
+  außen; alle Knoten GEMEINSAM per Bisektion (drei Durchläufe) so, dass jedes Fenster der gepoolten Zeilen (alle Länder, beide
+  Rollen) 80,0 % abdeckt; Deckel [0,6; 1,6]; Fenster mit < 2 000 Zeilen behält 1. CRPS_Q vorher/nachher je Fenster wird berichtet,
+  entscheidet nicht. (Die erste Fassung schrieb eine Skala nur bei |Abdeckung − 80 %| ≥ 1 pp; nach dem Rauchtest an EINEM Slot
+  — vor den Zahlen des vollen Laufs — auf den gemeinsamen Fit geändert, weil die Interpolation die Knoten koppelt: ein auf 1
+  gehaltener Knoten ließ sein Fenster vom Sollwert abrutschen, sobald die Nachbarn sich bewegten.)
+
+### 11.3 Form im Motor (beides Optionen, aus; ohne Option byte-gleich — `verify:pv-cube` Block (12) OF-7)
+
+- `anchorRho` (nur mit `anchorSigma`): jedes Anker-Paar trägt ρ(d, Δh) aus `ANCHOR_RHO_TABLE` (`fusion/sigmaScale.ts`);
+  `innovation()` mittelt es mit denselben Gewichten wie den Versatz (Feld `rho` nur, wenn jedes gezählte Paar eins trägt — ohne
+  Option Objektform unverändert). Faktor² = min(1, max(f_min², 1 − r·a²·(2ρ/f − 1))) (`anchorSigmaFactorRho`): ρ = f ⇒ OF-6
+  exakt; ρ < f/2 hieße „der Anker vergrößert die Varianz" ⇒ Deckel 1 (die Streuung wächst nie durch den Anker; das
+  Mittelwertgewicht bleibt unangetastet, s. V-OF-14). Wind: ρ von u und v gemittelt, f der u-Innovation.
+- `sigmaScale`: nach Stationswert, Anker-Kopplung, Langfrist und σ-Inflation (als Letztes, was Mittel oder σ setzt) wird σ von
+  T, Td, Windgeschwindigkeit und Böe mit `sigmaScaleAt(SIGMA_SCALE_TABLE, v, Vorlauf)` multipliziert; Größen, die der
+  Stationswert gesetzt hat, behalten ihre σ. `sigmaScaleTable` im Aufruf (Identität/Testtabelle) für Fit und Verifier.
+  Die Tabellen stehen als Konstanten mit Provenienz im Modul (wie `longRange.ts`), nicht als Datei des Daten-Repos.
+
+### 11.4 Regel vor den Zahlen (eingefroren, bevor der Fit gelesen und der Prüfstand gestartet wird)
+
+Kandidat **`fusion-12r`** = Register `fusion-12s` + `anchorRho: 1` + `sigmaScale: 1` (Commit mit den gefitteten Tabellen; sonst
+gleiche Optionen und Tabellen; Register von Hand per `writeRegister`, order 12.2). Volltest auf der Entwicklungsmenge
+(`--modus=voll --offline`, zwei Worker). **Alles grün** heißt: G1–G4 grün. **Die Hebel sind brauchbar**, wenn G3 grün ist, G2 grün
+bleibt und der Fortschrittsindex gegen Fusion 9 im 95-%-Intervall von `fusion-12s` (+1,36 … +1,79 %) oder darüber liegt. Die
+Fit-Tabellen werden so übernommen, wie der Fit sie nach §11.2 schreibt — keine Nachstellung von Knoten, ρ-Parametern, Deckeln
+oder der Form nach dem Lauf; rote Zellen, die bleiben, werden benannt und gehören in Spur P.
+
+### 11.5 Fit-Ergebnis (`of7-fit.json`, 2026-10-08 14:09 UTC; 159 Slots, 58 035 Aufrufe, 19,8 Mio. Zeilen, 0 Fehler; Log `laeufe/06-of7-*.log`)
+
+- **ρ(d, Δh), Bins Δh < 100 m, gemessen (vs. `spatialWeight`):**
+
+  | Größe | 2,5 km | 7,5 km | 15 km | 27,5 km | 47,5 km | 90 km | Fit ρ₀ / c / D / H |
+  |---|---|---|---|---|---|---|---|
+  | T | 0,71 (0,93) | 0,54 (0,83) | 0,34 (0,60) | 0,29 (0,33) | 0,17 (0,14) | 0,12 (0,04) | 0,71 / 0,20 / 20 km / 300 m |
+  | Wind (Geschwindigkeit) | 0,26 | 0,36 | 0,23 | 0,21 | 0,13 | 0,08 | 0,30 / 0,24 / 40 km / 500 m |
+  | Böe | 0,43 | 0,54 | 0,30 | 0,29 | 0,18 | 0,11 | 0,60 / 0,16 / 25 km / 500 m |
+
+  Befund: schon bei 2,5 km teilt die Nachbarstation bei T nur 71 % der Fehlerkorrelation (spatialWeight behauptet 93 %), bei
+  Wind 26 %, bei Böe 43 %; dafür bleibt bei 60–120 km ein Boden von 0,08–0,12 (gemeinsamer synoptischer Fehler). Bei |Δh| ≥ 700 m
+  fällt T auf 0,16 auch bei 0–5 km (Tal gegen Gipfel). **Zwei Methodenkorrekturen vor dem Prüfstandlauf** (beide am Hindcast-
+  Residuum entschieden, kein Prüfstandwert gesehen): (a) Gewicht min(n, 5 000) je Bin statt n — mit n diktierten die 60–120-km-Bins
+  (Hunderttausende Paare) den Fit, T bei 2,5 km kam auf 0,28 statt 0,71; (b) Form ρ₀·(c + (1 − c)·e^(−d/D))/(1 + (Δh/H)²) statt
+  des Cauchy-Produkts von spatialWeight, das den Boden nicht tragen kann (mit Kappung T 2,5 km 0,45). RMS der Bins ≤ 20 km:
+  T 0,146 · Wind 0,110 · Böe 0,107.
+- **σ-Skala (gepoolt, Abdeckung vorher → 80,0 %; Knoten; CRPS_Q-Änderung):**
+
+  | Größe | 0–6 h | 6–24 h | 24–48 h | 48–120 h | 120–240 h | 240–336 h |
+  |---|---|---|---|---|---|---|
+  | T | 88,6 % · **0,775** · +1,8 % | 87,1 · 0,834 · +1,0 | 86,3 · 0,829 · +1,0 | 82,1 · 0,972 · +0,1 | 81,2 · 0,963 · 0,0 | 79,4 · 1,021 · 0,0 |
+  | Td | 83,2 · 0,926 · +0,2 | 83,5 · 0,911 · +0,2 | 83,7 · 0,900 · +0,3 | 80,7 · 1,000 · 0,0 | 80,4 · 0,991 · 0,0 | 80,8 · 0,980 · 0,0 |
+  | Wind | 83,1 · 0,897 · +0,4 | 83,5 · 0,859 · +0,5 | 79,8 · 1,026 · −0,1 | 76,2 · 1,192 · −0,3 | 78,0 · 1,064 · −0,1 | 77,6 · 1,132 · −0,9 |
+  | Böe | 84,7 · 0,885 · +0,2 | 84,9 · 0,871 · +0,3 | 84,8 · 0,869 · +0,3 | 80,4 · 1,020 · 0,0 | 80,8 · 0,963 · 0,0 | 80,2 · 0,995 · 0,0 |
+
+  Je Rolle liegen A und B nach dem Fit innerhalb ±0,6 pp; je Land streut es (T 0–6 h DE 77,7 / AT 81,9 / CH 82,5 %; Wind
+  48–336 h DE 84,5–85,4 gegen AT/CH 74,8–75,8 % — V-OF-16). Zeilen: 97–100 % Normal/gestutzte Normal/zensierte Normal.
+- **Befund zur Datenlage, VOR dem Lauf benannt:** die Knoten ≤ 48 h stammen allein aus dem Sommer 2026 (die einzigen Stufe-1-Läufe
+  im Hindcast); die Entwicklungsmenge ist Herbst (14.09.–08.10.). Am Hindcast deckt die ankerlose Kette T 0–6 h mit 88,6 % ab,
+  am Archiv deckt der Champion MIT Anker 77,8 % und Fusion 12 82,7 % — die Herbstfehler sind größer als die Sommer-σ (die gelernte
+  σ bei 7–48 h stammt selbst aus 95 Sommertagen, E-FL-3). Ein T-Faktor 0,775 bei 0–6 h kann die Herbstabdeckung daher unter das
+  Band drücken. Deshalb werden — **alle drei vor dem ersten Prüfstandlauf festgelegt, alle berichtet** — drei Kandidaten gefahren:
+  - **`fusion-12r`** = 12s + `anchorRho: 1` + `sigmaScale: 1` (die Regel §11.4, voller Fit);
+  - **`fusion-12q`** = 12s + `anchorRho: 1` (Hebel 1 allein — trennt die Wirkung der beiden Hebel);
+  - **`fusion-12p`** = 12s + `anchorRho: 1` + `sigmaScale: 2` (`SIGMA_SCALE_TABLE_LONG`: Knoten ≤ 48 h auf 1, nur der ganzjährig
+    gemessene Teil des Fits — aus dem Datenlage-Argument, nicht aus Prüfstandzahlen).
+  Das Urteil nach §11.4 gilt für `fusion-12r`; die beiden anderen sind benannte Varianten, deren Wahl Jans Entscheidung bleibt und
+  die — weil an der Entwicklungsmenge betrachtet — nur Spur P (ab 09.10.) sauber bestätigt. Keine weitere Variante nach den Läufen.
