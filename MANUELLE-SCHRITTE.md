@@ -1791,3 +1791,45 @@ Datenstand `obs/v1/`. In buscosun-web **uncommitted**: `scripts/obs/*` (Quelle d
    `buscosun-data/scripts/obs-mirror.mjs` (V-OB-4: Wächter fehlt noch).
 3. **Abschalten:** Repo-Variable `OBS_KILL=1` im Daten-Repo (Spiegel und Wächter starten nicht mehr).
 4. Offen: V-OB-1 (AT-Hydrographie), V-OB-3 (NIME JUN 403), V-OB-5 (Plausibilitätsregeln), V-OB-6 (Leser in buscosun-web).
+
+## 48. Phase OF — buscosun Fusion liest Stationsmessungen aus `buscosun-data/obs/v1`; Kandidat buscosun Fusion 12 (Volltest G3 rot ⇒ aus), 2026-10-08
+
+Belege: `audit/obs-fusion.md` (§0 Zeitprotokoll, §1 Diagnose, §3 eingefrorene Regel, §4 A-OF-n, §5 Umsetzung, §6 Pre-Screen, §7
+Prüfstand, §8 Verdikt, §9 V-OF-n), `audit/obs-fusion/claims.md` + `claims-addendum-1.md` (Hashes in `claims-frozen.sha256`),
+Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/obs-fusion/laeufe/`, Register
+`scripts/pruefstand/register/fusion-12.json`. **Nichts gepusht, nichts auf `main`**; alles liegt auf dem lokalen Branch `fusion-12`
+(Worktree `C:\dev\buscosun-web-wt\fusion-12`; von `main` mit `fusion-11` hineingemergt, Tags `of-lauf-1`, `of-lauf-2`, `of-lauf-3`).
+
+1. **Entscheidungen im Auto-Modus prüfen** (§4): A-OF-1 Nummer 12 und Merge von `fusion-11` in den Branch (das Register verlangt
+   lückenlose Nummern), A-OF-2 Commits auf dem Branch, A-OF-3 Worktree (eine parallele Seewetter-Sitzung schrieb im Hauptarbeitsbaum),
+   A-OF-4 Client-Form `latest.json` + `stations.json`, A-OF-5 Option (a) als (a′) ohne Radar am Gerät, A-OF-6 Setzungen statt Fit,
+   A-OF-7 Stationen-Layer mit allen 10-min-Stationen, A-OF-8 Nachtrag 1 (V-OF-10), A-OF-9 Vordergrund-Läufe nach dem Speicherwächter.
+2. **Was auf dem Branch AN ist (OF-1, kein Stand):** jede aktuelle Stationsmessung kommt aus `obs/v1` (`src/sources/obsStore.ts`;
+   Cube-Pfad, Live-Pfad, Rasterfusion, Stationen-Layer + Popup); `?obs=direct` = die Adapter wie bisher, die auch als Rückfall
+   stehen. Folgen, die Jan sehen soll: (a) **E-OF-1** das Stationen-Popup zeigt keine Bewölkung mehr (DWD-10-min-Dateien tragen keine;
+   BrightSky nahm sie aus dem Synop-Strom); (b) **V-OF-3 / E-OF-2** DE-Messungen sind an Synop-Stationen im Median 20 min älter als
+   bei BrightSky (18 gegen 37 min, 372 Paare) — Abhilfe wäre der Synop-BUFR-Strom im Spiegel; (c) der Stationswert (Phase FS)
+   feuerte im Browser bisher fast nie (V-OF-10) — mit OF-1 allein bleibt das so, die Korrektur steckt im ausgeschalteten Bündel.
+3. **Was Fusion 12 ist** (Register `n: 12`, Option `obsDense`, Leser-Schalter `CubeIo.obsDense` / `?dense=0`; Konstanten
+   `FUSION12_GAUGE` radar 1 / occurrence 0, `FUSION12_SV_AT_OBS` 1 in `cubeSource.ts`): Anker auf bis zu 12 nächsten Stationen inkl.
+   Niederschlagsstationen (je Größe die 6 besten nach spatialWeight), gemessener Taupunkt, Messgerät–Radar-Faktor am Punkt (Vorlauf
+   ≤ 3 h), Stationswert an der Messminute. Tabellen unverändert (`1aaec969`). **`FUSION12_OBS_DENSE = 0`** seit `of-lauf-3`: der Branch
+   rechnet Fusion 11 (Volltest G3 rot, Schritt 5); Wert 1 schaltet die ganze Plattform auf Fusion 12.
+4. **Pre-Screen nach vorab eingefrorener Regel** (§6): Quellwechsel allein Rolle B t 0–6 h +11,6 % (Rolle A −16 % ⇒ V-OF-10);
+   dichter Satz +1,3 %; Auftrittsanker **nicht** bestanden (`wet` 1 h +1,1 %, 2 h −1,6 %) ⇒ aus; Messgerät–Radar bestanden
+   (`precip` 1 h +3,3 %, nur 3 aktive Tage) ⇒ an; Stationswert-Minute Rolle A t +19,4 %, td +19,9 % ⇒ an.
+5. **Prüfstand Volltest** (§7): **+1,47 % gegen Fusion 9 (95 %: +1,28 … +1,72), +1,00 % gegen Fusion 11 (signifikant)**, G1/G2/G4
+   grün, **G3 rot** (Abdeckung q10–q90 über dem Champion: t 6–48 h, ws 6–24 h, gust 0–48 h, bis +3,2 pp bei Böe 0–6 h — der Anker
+   verkleinert den Fehler, die Bänder bleiben) ⇒ Stand aus (OF-5 Punkt 5). **Keine Abnahme** (nur auf dein Wort); Tresor/Spur P nicht
+   geöffnet.
+6. **E-OF-4 (deine Entscheidung):** G3 als Defekt (dann V-OF-13: σ-Skalen je Vorlauf für den Stand nachstellen = Fit, eigene Phase)
+   oder als Auslegung (Über-Abdeckung bei kleinerem Fehler) — im zweiten Fall `FUSION12_OBS_DENSE = 1`, Tag, Abnahme nach ≥ 4 reifen
+   Spur-P-Tagen (ab 16.10.) auf dein Wort „abnahme". **E-OF-3:** V-OF-10 (Stationswert an der Messminute) als eigener Stand ohne
+   dichten Satz (Fusion 12 ohne `obsDense`) — braucht einen eigenen Bench-Lauf.
+7. **Merge/Push (Jan):** `fusion-12` enthält `fusion-10` + `fusion-11` + OF; `git checkout main && git merge --no-ff fusion-12` schaltet
+   OF-1 (Messquelle) und die Register-Einträge 10/11 (an) und 12 (aus) auf `main`; Daten-Repo unverändert (keine Spiegeländerung).
+   Vor dem Merge: `tsconfig.app.tsbuildinfo` im Worktree ist nur ein Bauartefakt. **Nie `git worktree remove` für
+   `C:\dev\buscosun-web-wt\fusion-12` oder `…\base12` ohne vorher die `node_modules`-Junction zu löschen** (`rmdir` der Junction).
+8. **Offen / Real-Device:** Stationen-Layer der Karte im Browser (Chrome fror unter Last ein; Logik im Verifier), Mobil-4G-Lab
+   (V-OF-5), Dashboard-Herkunftstexte nennen weiter „BrightSky" (V-OF-14: Wort anpassen), V-OF-1 WMO-Spalte im Katalog, V-OF-2
+   Kacheln, V-OF-9 Vortag-Lücke der Messdateien, V-OF-11/12 Messgeräte-Optionen nach ≥ 30 Regentagen.

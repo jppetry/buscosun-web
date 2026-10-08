@@ -11,7 +11,7 @@
  *   (4) hindcast (no measurements): option ON byte-identical to OFF — the option acts only through measurements
  *
  *   node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs scripts/verify-fusion12-identity.mjs
- *     [--base=C:/dev/buscosun-web-wt/base12] [--cand=<this repo>] [--basis=fusion-11] [--on=obsDense:1] [--days=3] [--hindcast=2026-06-15]
+ *     [--base=C:/dev/buscosun-web-wt/base12] [--cand=<this repo>] [--basis=fusion-11] [--on=obsDense:1] [--days=3 | --day=YYYY-MM-DD,…] [--hindcast=2026-06-15]
  *
  * Read-only towards the bench (`C:\dev\buscosun-pruefstand`): conserves and day files are read, nothing is written there.
  * Exit 1 on any failed check.
@@ -81,7 +81,7 @@ const mHash = modelHash(basis);
 console.log(`Basis ${baseRoot} · Kandidat ${candRoot} · Option an: ${JSON.stringify(on)} · Register ${basis.id} (${basis.commit.slice(0, 7)}) · Kandidat-Leser ${cand.dense ? 'vorhanden' : 'FEHLT'}`);
 add('Kandidat trägt den Leser des Messprodukts (obsStore.ts) — die Basis nicht', !!cand.dense && !base.dense);
 
-const issues = archiveIssues().filter((i) => i.day <= basis.freeze).slice(-nDays);
+const issues = args.day ? archiveIssues().filter((i) => String(args.day).split(',').includes(i.day)) : archiveIssues().filter((i) => i.day <= basis.freeze).slice(-nDays);
 for (const issue of issues) {
   const leads = leadsOfIssue(proto, issue).all;
   const slot = readArchiveSlot(issue.path);

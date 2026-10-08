@@ -69,7 +69,11 @@ export const FUSION11_LONG_RANGE_FIX: 0 | 1 = 1;
  * `obs/v1` instead of BrightSky/TAWES/SMN (`?obs=direct` = the providers) — not a stand of its own, named in the engine notes.
  * Fusion 12 = Fusion 11 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 11.
  */
-export const FUSION12_OBS_DENSE: 0 | 1 = 1;
+// Full test 08.10.2026 (development set, audit/obs-fusion.md §7): index +1,47 % against Fusion 9, +1,00 % against Fusion 11, G2/G4 green,
+// G3 RED (q10–q90 coverage above the champion at t 6–48 h, ws 6–24 h, gust 0–48 h: the anchor tightens the error, the spread stays)
+// ⇒ per the order of the phase the stand stays DEFINED BUT OFF (value 0) until Jan decides (E-OF-4); the bench entry fusion-12
+// (commit 9765d9e, value 1) is the measured candidate. Value 1 switches the whole platform to Fusion 12.
+export const FUSION12_OBS_DENSE: 0 | 1 = 0;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
 export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense';
@@ -169,7 +173,8 @@ export function fusionStage(off: (r: FusionRelease) => boolean = () => false): F
   for (const r of FUSION_RELEASES) {
     const on = isOn(r) && !off(r);
     if (on) { options[r.option] = r.value; notes.push(r.note); if (!firstOff && r.n === version + 1) version = r.n; }
-    else firstOff ??= r;
+    // a stand that is defined but not switched by VALUE is simply absent; only a caller switch (io) earns the „per Schalter aus" label
+    else if (isOn(r)) firstOff ??= r;
   }
   const label = `${fusionName(version)}${firstOff?.offLabel ? ` (${firstOff.offLabel})` : ''}`;
   return { version, label, options, note: notes.join(', '), current: version === FUSION_CURRENT };

@@ -41,17 +41,23 @@ const src = (p) => readFileSync(join(ROOT, p), 'utf8');
   add('A2 neuester Stand = höchster eingeschalteter Stand ohne Lücke; Name daraus; die Stufe ohne Schalter rechnet ihn mit Basis + jeder Option',
     FUSION_CURRENT === (on.length ? on[on.length - 1].n : FUSION_BASE) && FUSION_NAME === `${FUSION_BRAND} ${FUSION_CURRENT}` && full.version === FUSION_CURRENT && full.current && full.label === FUSION_NAME
     && Object.entries(FUSION_BASE_OPTIONS).every(([k, v]) => full.options[k] === v) && on.every((r) => full.options[r.option] === r.value) && on.every((r) => full.note.includes(r.note)), FUSION_NAME);
-  // Every stand with a switch: off ⇒ the stand before, its option gone, the others kept.
-  const sw = FUSION_RELEASES.filter((r) => r.io);
+  // Every stand with a switch: off ⇒ the stand before, its option gone, the others kept. A stand that is defined but not
+  // switched by VALUE (Fusion 12 after its full test, phase OF) has no switch effect: its switch changes nothing (A3b).
+  const isOnR = (r) => r.value !== false && r.value !== 0;
+  const sw = FUSION_RELEASES.filter((r) => r.io && isOnR(r));
+  const offByValue = FUSION_RELEASES.filter((r) => !isOnR(r));
   const offOk = sw.every((r) => {
     const s = fusionStage((x) => x.n === r.n);
     return s.version === r.n - 1 && !s.current && !(r.option in s.options) && !s.note.includes(r.note) && s.label.startsWith(fusionName(r.n - 1)) && (r.offLabel ? s.label === `${fusionName(r.n - 1)} (${r.offLabel})` : s.label === fusionName(r.n - 1))
-      && FUSION_RELEASES.filter((x) => x.n !== r.n).every((x) => s.options[x.option] === x.value);
+      && FUSION_RELEASES.filter((x) => x.n !== r.n && isOnR(x)).every((x) => s.options[x.option] === x.value);
   });
   add('A3 je Schalter (CubeIo-Feld = false): der Stand davor, Option und Notiz dieses Stands fehlen, alle anderen bleiben', offOk && sw.length > 0, sw.map((r) => `${r.io.flag} ⇒ ${fusionStage((x) => x.n === r.n).label}`).join(' · '));
+  add('A3b ein definierter, per Wert ausgeschalteter Stand: nicht in der Stufe, sein Schalter ändert nichts, kein „per Schalter aus"-Zusatz, kein Leser-Schalter',
+    offByValue.every((r) => { const s = fusionStage((x) => x.n === r.n); return s.label === FUSION_NAME && s.current && !(r.option in s.options) && !(r.option in full.options) && !s.note.includes(r.note) && (!r.io?.set || !(r.io.key in fusionStageIo())); }),
+    offByValue.length ? offByValue.map((r) => `n ${r.n} (${r.option}) aus`).join(' · ') : 'keiner');
   const io = fusionStageIo();
   add('A4 CubeIo der Stufe: Tabellen json, stage fs, Leser-Schalter der Stände mit `set`',
-    io.learnedSource === 'json' && io.climaSource === 'json' && io.stackSource === 'json' && io.stage === 'fs' && FUSION_RELEASES.every((r) => (r.io?.set ? io[r.io.key] === true : !r.io || !(r.io.key in io))));
+    io.learnedSource === 'json' && io.climaSource === 'json' && io.stackSource === 'json' && io.stage === 'fs' && FUSION_RELEASES.every((r) => (r.io?.set && isOnR(r) ? io[r.io.key] === true : !r.io || !(r.io.key in io))));
   const note = fusionStageNote(full, ', Stationswert');
   add('A5 Stufen-Notiz ⇄ Stand: geschrieben und zurückgelesen, auch hinter einem Schalter; ohne Stufen-Notiz kein Stand (Gegenprobe)',
     note.startsWith(FUSION_STAGE_NOTE_PREFIX + FUSION_NAME + '): ') && fusionVersionOfNotes(['x', note]) === FUSION_CURRENT
