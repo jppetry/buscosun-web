@@ -1841,3 +1841,10 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
    6 h, Wind/Böe-Skala ≤ 48 h, Knoten > 48 h je Land — aus 12r abgeleitet, darf auf der Entwicklungsmenge nicht mehr bewertet werden),
    (b) V-OF-15 (Anker-Formel für K Stationen, ein Hindcast-Lauf) und V-OF-16 (Land-Knoten aus den vorhandenen Reservoirs) jetzt messen,
    (c) nichts tun bis der Hindcast Herbst-t1 trägt (V-OF-17, ≈ Dezember). Nichts gepusht, `FUSION12_OBS_DENSE` bleibt 0.
+   **Jan 08.10. abends: b) + a).** b) gemessen (§11.8.1/§11.8.2): Länder-Knoten berichtet, nicht benutzt (Wind > 48 h AT/CH am Deckel 1,6,
+   Hindcast ≠ Archiv jenseits 48 h, V-OF-18); K-Stationen-Tabelle gebaut (`anchorKSet`, aus). a) festgeschrieben (§11.8.3,
+   `claims-addendum-2.md` + Hash): **Kandidat `fusion-12t`** = 12s + `anchorKSet: 1` + `sigmaScale: 3`, Register von Hand; Bewertung NUR
+   in Spur P: `node … scripts/pruefstand/run.mjs --kandidat=fusion-12t --modus=abnahme --offline` (PRUEFSTAND_WORKERS=2), frühestens
+   mit ≥ 4 reifen Archivtagen nach dem 08.10. (≈ 20.10.), belastbar ≥ 14 (≈ 30.10.) — **E-OF-6 (Jan):** den Abnahmelauf starten und
+   bei grün über Fusion 12 entscheiden (dann = „buscosun Fusion 12“ mit `obsDense`, `anchorSigma`, `anchorKSet`, `sigmaScale: 3` in der
+   Stufe; Register-Eintrag + `FUSION12_*`-Konstanten), bei rot die Zellen benennen, kein Nachstellen an Spur P.

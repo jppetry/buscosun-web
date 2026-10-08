@@ -233,27 +233,36 @@ async function fit() {
   const NOMINAL = proto.gates.G3.nominal, MIN_ROWS = 2000, S_LO = 0.6, S_HI = 1.6;
   const result = { kind: 'obsfusion/of7-fit', date: new Date().toISOString(), register: parts[0].register, parts: parts.map((p) => ({ part: p.part, slots: p.slots.length, rows: p.rows, calls: p.calls, errors: p.errors })), tresor: parts[0].tresor, archiveFrom: parts[0].archiveFrom, rule: { nominal: NOMINAL, minRows: MIN_ROWS, clamp: [S_LO, S_HI], note: 'one node per window, fitted jointly so that every window of the pooled rows (all countries, both roles) covers the nominal share; piecewise linear in lead between the window centres; 3 coordinate sweeps of bisection per window; a window with fewer than minRows rows keeps 1' }, windows: windows.map((w) => w.id), centresH: centres, sigmaScale: {}, rho: {} };
   // (2) σ-scale
-  for (const v of VARS) {
+  /** Joint fit of the six nodes on the cells `keysForW(w)` — every window with enough rows is fitted JOINTLY (the interpolation
+   * couples neighbouring nodes — a node held at 1 would leave its window off the nominal value once the neighbours move); a
+   * window with few rows keeps 1. */
+  const fitJoint = (keysForW) => {
     const nodes = windows.map(() => 1), before = [], n = [];
-    for (let w = 0; w < windows.length; w++) { const keys = keysOf(v, w); before.push(evalCells(keys, nodes).cov); n.push(nOf(keys)); }
-    // every window with enough rows is fitted JOINTLY (the interpolation couples neighbouring nodes — a node held at 1 would
-    // leave its window off the nominal value once the neighbours move); a window with few rows keeps 1.
+    for (let w = 0; w < windows.length; w++) { const keys = keysForW(w); before.push(evalCells(keys, nodes).cov); n.push(nOf(keys)); }
     const fitW = windows.map((_, w) => Number.isFinite(before[w]) && n[w] >= MIN_ROWS);
     for (let sweep = 0; sweep < 3; sweep++) for (let w = 0; w < windows.length; w++) {
       if (!fitW[w]) continue;
-      const keys = keysOf(v, w);
+      const keys = keysForW(w);
       let lo = S_LO, hi = S_HI;
       for (let it = 0; it < 18; it++) { const mid = 0.5 * (lo + hi); nodes[w] = mid; if (evalCells(keys, nodes).cov < NOMINAL) lo = mid; else hi = mid; }
       nodes[w] = Math.round(0.5 * (lo + hi) * 1000) / 1000;
     }
-    const after = windows.map((_, w) => evalCells(keysOf(v, w), nodes).cov);
+    const after = windows.map((_, w) => evalCells(keysForW(w), nodes).cov);
+    return { nodes, before, after, n, fitted: fitW };
+  };
+  for (const v of VARS) {
+    const { nodes, before, after, n, fitted: fitW } = fitJoint((w) => keysOf(v, w));
+    // V-OF-16: the same joint fit per country (nodes by land) from the same reservoirs
+    const byLandNodes = {};
+    for (const l of LANDS) { const r = fitJoint((w) => keysOf(v, w, [l])); byLandNodes[l] = { nodes: r.nodes, before: r.before, after: r.after, n: r.n }; }
     const byLand = {}, byRole = {};
     for (const l of LANDS) byLand[l] = windows.map((_, w) => { const ks = keysOf(v, w, [l]); return { n: nOf(ks), before: evalCells(ks, windows.map(() => 1)).cov, after: evalCells(ks, nodes).cov }; });
     for (const r of ROLES) byRole[r] = windows.map((_, w) => { const ks = keysOf(v, w, LANDS, [r]); return { n: nOf(ks), before: evalCells(ks, windows.map(() => 1)).cov, after: evalCells(ks, nodes).cov }; });
     const crps = windows.map((_, w) => { const ks = keysOf(v, w); const a = evalCells(ks, windows.map(() => 1), true, 4), b = evalCells(ks, nodes, true, 4); return { before: a.crps, after: b.crps, skill: 1 - b.crps / a.crps }; });
     const kinds = {}; for (let w = 0; w < windows.length; w++) for (const k of keysOf(v, w)) { const e = cells.get(k); if (!e) continue; for (const ch of e.chunks) for (let i = 0; i < ch.rows.length; i += RF) { const kk = KINDS[ch.rows[i]]; kinds[kk] = (kinds[kk] ?? 0) + 1; } }
-    result.sigmaScale[v] = { nodes, fitted: fitW, n, before, after, byLand, byRole, crps, kinds };
+    result.sigmaScale[v] = { nodes, fitted: fitW, n, before, after, byLand, byRole, crps, kinds, byLandNodes };
     console.log(`σ-Skala ${v}: ${windows.map((w, i) => `${w.id} n ${n[i]} ${(100 * before[i]).toFixed(1)} → ${(100 * after[i]).toFixed(1)} % s ${nodes[i]}${fitW[i] ? '' : ' (=1)'} CRPS ${(100 * crps[i].skill).toFixed(2)} %`).join(' · ')}`);
+    for (const l of LANDS) console.log(`  je Land ${l}: ${windows.map((w, i) => `${w.id} ${(100 * byLandNodes[l].before[i]).toFixed(1)} → ${(100 * byLandNodes[l].after[i]).toFixed(1)} % s ${byLandNodes[l].nodes[i]}`).join(' · ')}`);
   }
   // (1) ρ(d, Δh)
   const nD = D_BINS.length - 1, nH = H_BINS.length - 1;
@@ -299,6 +308,162 @@ async function fit() {
   console.log(`geschrieben: ${OUT_FIT}`);
 }
 
+// ── V-OF-15: the anchor of K stations — what the σ coupling needs is cov/var of the AVERAGED innovation set ─────────────────
+// Per point i (hindcast, window A = real stage-1 runs): the K = OBS_DENSE_ANCHOR_K best of the 12 nearest OTHER stations by
+// spatialWeight (the dense-set rule), weights w_j = spatialWeight (T) or spatialWeight·e^(−(d/10 km)²) (wind, gust — E-AX-11);
+// Ī = Σ w_j e_j(1 h) / Σ w_j, f = max w_j. Accumulated per variable × f-class × lead τ: n, Σe_τ, ΣĪ, Σe_τĪ, Σe_τ², ΣĪ², Σe_τe_1
+// (e_1 = the point's own error at 1 h, for w(τ) on the same rows). From that: C = cov(e_1, Ī)/var(e_1), V = var(Ī)/var(e_1),
+// R(τ) = cov(e_τ, Ī)/var(e_1) and w(τ) = cov(e_τ, e_1)/var(e_1) — the factorisation check R(τ) ≈ w(τ)·C.
+const KSET_K = 6, KSET_NEAREST = 12, KSET_WIND_KM = 10;
+const KSET_TAUS = [1, 2, 3, 4, 6, 9, 12, 18, 24, 36, 48];
+const F_CLASSES = [0, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0001];
+const fClass = (f) => { for (let i = 0; i < F_CLASSES.length - 1; i++) if (f >= F_CLASSES[i] && f < F_CLASSES[i + 1]) return i; return -1; };
+const spatialWeightOf = (dM, dhM) => (1 / (1 + (dM / 20_000) ** 2)) * (1 / (1 + (dhM / 200) ** 2));
+const KV = ['t', 'ws', 'gust'];
+const KF = 7;   // sums per (var, class, tau)
+const KSET_MIN_N = 2000;
+
+/** Window A at EVERY day and all four daily slots (00/06/12/18 UTC): the high-f classes (close stations) are rare in the
+ * Prüfnetz spacing and need every row; a slot costs only 4 s here (48-h window). */
+function slotList15() {
+  const out = [];
+  const di = (d) => Math.round(dayMs(d) / 86_400_000);
+  for (let d = di('2026-06-18'); d <= di('2026-09-13'); d += 1) {
+    const day = isoDay(d * 86_400_000);
+    if (day >= proto.tresor.from && day <= proto.tresor.to) throw new Error(`of7: ${day} liegt im Tresor — verboten`);
+    if (day >= ARCHIVE_FROM) throw new Error(`of7: ${day} liegt in der Entwicklungsmenge — verboten`);
+    for (const hr of [0, 6, 12, 18]) { const ms = d * 86_400_000 + hr * H; const path = hindcastSlotPath(ms); if (existsSync(path)) out.push({ day, hr, ms, path, win: 'A' }); }
+  }
+  return out;
+}
+
+async function collect15() {
+  const [pi, pn] = String(args.part ?? '1/1').split('/').map(Number);
+  const slots = slotList15().filter((_, i) => i % pn === pi - 1);
+  const limit = args.limit ? Number(args.limit) : Infinity;
+  const used = slots.slice(0, limit);
+  console.log(`of7 collect15 Teil ${pi}/${pn}: ${used.length} Slots (Fenster A), Register ${regId}`);
+  const eng = await loadEngine(REPO);
+  const reg = withTablePaths(loadRegister(regId));
+  const tables = loadTables(reg);
+  const w1 = openW1(proto);
+  const feat = features().byPoint;
+  const stations = proto.scored;
+  const nSt = stations.length;
+  const opts = { ...reg.options, hourly: true, tail: true };
+  const climaOf = (row, held) => (reg.clima === 'loso' || (held && reg.climaHeldOut === 'loso') ? A.losoClimaProduct(tables.loso ?? tables.losoTable ?? tables.learned, row) : tables.clima);
+  // per point: the 12 nearest other stations, then the K best by spatialWeight; weights per variable family
+  const kset = [];
+  for (let i = 0; i < nSt; i++) {
+    const near = [];
+    for (let j = 0; j < nSt; j++) { if (j === i) continue; near.push({ j, dM: distKm(stations[i], stations[j]) * 1000, dhM: Math.abs(stations[j].elevM - stations[i].elevM) }); }
+    near.sort((a, b) => a.dM - b.dM);
+    const cand = near.slice(0, KSET_NEAREST).map((c) => ({ ...c, wsp: spatialWeightOf(c.dM, c.dhM) }));
+    cand.sort((a, b) => b.wsp - a.wsp || a.dM - b.dM);
+    const best = cand.slice(0, KSET_K);
+    kset.push({
+      t: best.map((c) => ({ j: c.j, w: c.wsp })),
+      wind: best.map((c) => ({ j: c.j, w: c.wsp * Math.exp(-((c.dM / (KSET_WIND_KM * 1000)) ** 2)) })).filter((c) => c.w > 0),
+    });
+  }
+  const nC = F_CLASSES.length - 1, nT = KSET_TAUS.length;
+  const acc = Object.fromEntries(KV.map((v) => [v, new Float64Array(nC * nT * KF)]));
+  const err = Object.fromEntries(KV.map((v) => [v, KSET_TAUS.map(() => new Float64Array(nSt).fill(NaN))]));
+  const t0 = Date.now();
+  let errors = 0, calls = 0, points = 0;
+  for (let si = 0; si < used.length; si++) {
+    const sl = used[si];
+    const slot = readHindcastSlot(sl.path);
+    const t0Ms = slot.slotAtMs;
+    if (slot.cube.t1?.route === 'day0' || !slot.cube.t1?.run) { console.log(`  ${sl.day} ${sl.hr}z: t1 ohne Lauf — übersprungen`); continue; }
+    for (const v of KV) for (const e of err[v]) e.fill(NaN);
+    for (let s = 0; s < nSt; s++) {
+      const stn = stations[s], row = feat[stn.id];
+      const series = {};
+      for (const t of ['t1', 't2', 't3']) if (slot.cube[t]) { const ser = seriesFromSlotTier(slot, t, stn.id); if (ser) series[t] = ser; }
+      if (!Object.keys(series).length) continue;
+      const window = { fromMs: t0Ms, toMs: t0Ms + 48 * H, stepH: 1 };
+      const input = { ...inputFromSlot(slot, row, series, eng.clima, { nowMs: t0Ms, window }), country: row.country ?? null, learned: tables.learned, learnedClima: climaOf(row, stn.role === 'B'), ...(tables.stack ? { stack: tables.stack } : {}) };
+      let r;
+      try { r = eng.fuseCubePoint(input, opts); } catch (e) { errors += 1; if (errors <= 3) console.error(`  ${stn.id}: ${e?.message ?? e}`); continue; }
+      calls += 1;
+      const byMs = new Map();
+      for (const st of r.steps) if (st.fused) byMs.set(st.validAtMs, st);
+      for (let ti = 0; ti < nT; ti++) {
+        const L = KSET_TAUS[ti], st = byMs.get(t0Ms + L * H);
+        if (!st) continue;
+        for (const v of KV) {
+          const fv = st.fused[KEY[v]]; if (!fv) continue;
+          const y = truthValue(w1, s, st.validAtMs, v, 1);
+          if (Number.isFinite(y)) err[v][ti][s] = y - eng.quantileOf(fv.dist, 0.5);
+        }
+      }
+    }
+    for (const v of KV) {
+      const fam = v === 't' ? 't' : 'wind';
+      for (let i = 0; i < nSt; i++) {
+        const e1 = err[v][0][i];
+        if (e1 !== e1) continue;
+        let sw = 0, sI = 0, f = 0, cnt = 0;
+        for (const { j, w } of kset[i][fam]) { const ej = err[v][0][j]; if (ej !== ej) continue; sw += w; sI += w * ej; f = Math.max(f, w); cnt += 1; }
+        if (!cnt || !(sw > 0)) continue;
+        const I = sI / sw, c = fClass(Math.min(1, f));
+        if (c < 0) continue;
+        points += v === 't' ? 1 : 0;
+        for (let ti = 0; ti < nT; ti++) {
+          const et = err[v][ti][i];
+          if (et !== et) continue;
+          const o = (c * nT + ti) * KF, a = acc[v];
+          a[o] += 1; a[o + 1] += et; a[o + 2] += I; a[o + 3] += et * I; a[o + 4] += et * et; a[o + 5] += I * I; a[o + 6] += et * e1;
+        }
+      }
+    }
+    console.log(`  ${si + 1}/${used.length} ${sl.day} ${sl.hr}z: ${((Date.now() - t0) / 1000).toFixed(0)} s, Aufrufe ${calls}, Punkte ${points}, Fehler ${errors}`);
+  }
+  mkdirSync(OUT_DIR, { recursive: true });
+  const out = { kind: 'obsfusion/of7-kset-part', part: `${pi}/${pn}`, register: regId, date: new Date().toISOString(), slots: used.map((s) => `${s.day}T${String(s.hr).padStart(2, '0')}`), k: KSET_K, nearest: KSET_NEAREST, windKm: KSET_WIND_KM, taus: KSET_TAUS, fClasses: F_CLASSES, calls, errors, points, acc: Object.fromEntries(KV.map((v) => [v, Array.from(acc[v])])) };
+  const path = join(OUT_DIR, `part15-${pi}.json`);
+  writeFileSync(path, JSON.stringify(out));
+  console.log(`geschrieben: ${path} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+}
+
+async function fit15() {
+  const files = readdirSync(OUT_DIR).filter((f) => /^part15-\d+\.json$/.test(f)).map((f) => join(OUT_DIR, f));
+  if (!files.length) throw new Error(`of7 fit15: keine Teile in ${OUT_DIR}`);
+  const parts = files.map((f) => JSON.parse(readFileSync(f, 'utf8')));
+  const nC = F_CLASSES.length - 1, nT = KSET_TAUS.length;
+  const result = { kind: 'obsfusion/of7-kset-fit', date: new Date().toISOString(), register: parts[0].register, parts: parts.map((p) => ({ part: p.part, slots: p.slots.length, calls: p.calls, points: p.points, errors: p.errors })), k: KSET_K, nearest: KSET_NEAREST, windKm: KSET_WIND_KM, taus: KSET_TAUS, fClasses: F_CLASSES, vars: {} };
+  for (const v of KV) {
+    const a = new Float64Array(nC * nT * KF);
+    for (const p of parts) { const b = p.acc[v]; for (let i = 0; i < a.length; i++) a[i] += b[i]; }
+    const classes = [];
+    for (let c = 0; c < nC; c++) {
+      const o1 = (c * nT + 0) * KF, n1 = a[o1];
+      const me = a[o1 + 1] / n1, mI = a[o1 + 2] / n1;
+      const varE1 = a[o1 + 4] / n1 - me * me, varI = a[o1 + 5] / n1 - mI * mI, cov1 = a[o1 + 3] / n1 - me * mI;
+      const C = cov1 / varE1, V = varI / varE1;
+      // quality rule of a class: ≥ KSET_MIN_N rows and C > 0 (a negative C — the innovation set anti-correlated with the point's
+      // error — is not an anchor, it is noise of a thin class: wind/gust f 0,85–1 had 704 rows and C −0,29 at the 500-row rule)
+      if (!(n1 >= KSET_MIN_N) || !(C > 0)) { classes.push({ f: [F_CLASSES[c], Math.min(1, F_CLASSES[c + 1])], n: n1, C: null, V: null, raw: n1 ? { C: Math.round(C * 1000) / 1000, V: Math.round(V * 1000) / 1000 } : null }); continue; }
+      const byTau = KSET_TAUS.map((tau, ti) => {
+        const o = (c * nT + ti) * KF, n = a[o];
+        if (n < 500) return { tau, n, R: null, w: null };
+        const mt = a[o + 1] / n, mi = a[o + 2] / n;
+        const covTI = a[o + 3] / n - mt * mi, covT1 = a[o + 6] / n - mt * me;
+        return { tau, n, R: Math.round((covTI / varE1) * 1000) / 1000, w: Math.round((covT1 / varE1) * 1000) / 1000, ratio: covT1 !== 0 ? Math.round(((covTI / varE1) / (C * (covT1 / varE1))) * 100) / 100 : null };
+      });
+      classes.push({ f: [F_CLASSES[c], Math.min(1, F_CLASSES[c + 1])], n: n1, C: Math.round(C * 1000) / 1000, V: Math.round(V * 1000) / 1000, sdE1: Math.round(Math.sqrt(varE1) * 1000) / 1000, sdI: Math.round(Math.sqrt(varI) * 1000) / 1000, byTau });
+    }
+    result.vars[v] = classes;
+    console.log(`K-Satz ${v}: ${classes.map((c) => `f ${c.f[0]}–${c.f[1]}: n ${c.n} C ${c.C} V ${c.V}${c.byTau ? ` (R/wC bei τ 2/4/6/24: ${[1, 3, 4, 8].map((i) => c.byTau[i].ratio ?? '—').join('/')})` : ''}`).join(' · ')}`);
+  }
+  const outPath = String(args.out ?? join(REPO, 'audit/obs-fusion/of7-kset.json'));
+  writeFileSync(outPath, JSON.stringify(result, null, 1));
+  console.log(`geschrieben: ${outPath}`);
+}
+
 if (args.collect) await collect();
 else if (args.fit) await fit();
-else { console.error('of7: --collect [--part=i/n] [--limit=n] oder --fit'); process.exit(2); }
+else if (args.collect15) await collect15();
+else if (args.fit15) await fit15();
+else { console.error('of7: --collect [--part=i/n] [--limit=n] | --fit | --collect15 [--part=i/n] | --fit15'); process.exit(2); }

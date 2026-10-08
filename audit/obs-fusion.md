@@ -654,3 +654,58 @@ Keine Nachstellung nach den Läufen (§11.4/§11.5). `FUSION12_OBS_DENSE` bleibt
   ist er zulässig (E-OF-5).
 - Sauber messbar jetzt: V-OF-16 (Land-Knoten aus den vorhandenen Reservoirs, kein Sammellauf) und V-OF-15 (ein Hindcast-Lauf).
 - Fusion 12 bleibt aus; `fusion-12s` bleibt der beste Stand nach Index (+1,55 %) mit G3 rot (3).
+
+## 11.8 OF-7b — b) die zwei Messungen, a) die Hypothese für Spur P (Jan 08.10.: „b) machen und a) parallel für Spur P festschreiben")
+
+### 11.8.1 V-OF-16 — Knoten je Land aus den vorhandenen Reservoirs (`of7.mjs --fit`, `of7-fit.json` → `sigmaScale[v].byLandNodes`, Log `laeufe/08-of7-fit-land.log`)
+
+Derselbe gemeinsame Fit je Land (Abdeckung vorher → nachher, Knoten; Deckel 1,6):
+
+| Größe · Land | 0–6 h | 6–24 h | 24–48 h | 48–120 h | 120–240 h | 240–336 h |
+|---|---|---|---|---|---|---|
+| T · DE / AT / CH | 87,0→80 · 0,818 / 89,9 · 0,739 / 90,5 · 0,731 | 0,897 / 0,792 / 0,769 | 0,854 / 0,794 / 0,808 | 0,935 / 0,980 / 1,037 | 0,979 / 0,925 / 0,972 | 1,060 / 0,952 / 1,001 |
+| Td · DE / AT / CH | 0,864 / 0,931 / 1,033 | 0,865 / 0,932 / 0,976 | 0,855 / 0,873 / 1,005 | 0,926 / 1,025 / 1,130 | 0,992 / 0,952 / 1,017 | 0,987 / 0,933 / 1,009 |
+| Wind · DE / AT / CH | 0,839 / 0,995 / 0,984 | 0,818 / 0,963 / 0,879 | 0,919 / 1,208 / 1,163 | 1,030 / **1,6 (72,2→79,7 %)** / 1,512 | 0,918 / **1,6 (74,5→78,3)** / **1,6 (73,5→79,7)** | 0,907 / **1,6 (72,8→77,6)** / **1,6 (72,6→79,0)** |
+| Böe · DE / AT / CH | 0,850 / 0,891 / 0,937 | 0,859 / 0,843 / 0,915 | 0,836 / 0,895 / 0,912 | 1,021 / 0,971 / 1,064 | 1,028 / 0,907 / 0,865 | 1,028 / 0,952 / 0,961 |
+
+Befund: die Länder unterscheiden sich vor allem bei **Wind > 48 h** (AT/CH 72–75 % Abdeckung, DE 80–83 %) und bei **T ≤ 48 h**
+(AT/CH 88–90 %, DE 85–87 %). Beim Wind > 48 h erreicht AT selbst am Deckel 1,6 keine 80 % — und auf der Entwicklungsmenge hatte schon
+die gepoolte Verbreiterung um 19 % in AT/CH 1,7–4,1 % CRPS gekostet (12r, §11.6), auf dem Hindcast selbst verschlechterte sie CRPS
+(−0,3/−0,9 %, §11.5). Das ist kein Skalenproblem, sondern ein Formproblem der Windfamilie > 48 h, und obendrein widersprechen sich
+Hindcast und Archiv dort (⇒ **V-OF-18**: Hindcast-t2/t3 kalibrieren die echte Cube-Kette jenseits 48 h nicht — T 240–336 h deckt am
+Hindcast 79 %, am Archiv 64 %). **Die Länder-Knoten werden berichtet, nicht benutzt** (Tabelle trägt `byCountry` als Form, leer).
+
+### 11.8.2 V-OF-15 — die Anker-Formel für K Stationen (`of7.mjs --collect15/--fit15`, `of7-kset.json`, Logs `laeufe/08-of7-collect15-*.log`, `08-of7-fit15.log`)
+
+Messung: 352 Hindcast-Slots (2026-06-18 … 09-13, alle vier Tagesslots — die Stufe-1-Läufe), 128 480 Aufrufe, 0 Fehler. Je Punkt der
+K = 6 beste Satz aus den 12 nächsten ANDEREN Prüfnetz-Stationen (die Regel des dichten Satzes; Gewichte `spatialWeight`, Wind/Böe über
+10 km gedämpft), Ī = gewichtetes Mittel der Fehler bei 1 h, f = größtes Gewicht; je Größe × f-Klasse: C = cov(e₁, Ī)/var(e₁),
+V = var(Ī)/var(e₁); dazu R(τ) = cov(e_τ, Ī)/var(e₁) gegen w(τ)·C (Faktorisierungsprobe). Klassenregel: ≥ 2 000 Zeilen und C > 0
+(mit 500 Zeilen trugen Wind/Böe bei f ≥ 0,85 704 Zeilen mit C −0,29 — kein Anker, Rauschen einer dünnen Klasse; Regel vor dem
+Einbau gesetzt).
+
+| Größe | f 0–0,15 | 0,15–0,3 | 0,3–0,5 | 0,5–0,7 | 0,7–0,85 | 0,85–1 |
+|---|---|---|---|---|---|---|
+| T · C / V (n) | 0,18 / 0,36 (27 186) | 0,26 / 0,39 (51 699) | 0,32 / 0,48 (21 703) | 0,30 / 0,48 (14 760) | 0,45 / 0,53 (5 972) | 0,44 / 0,50 (5 280) |
+| Wind · C / V (n) | 0,12 / 0,74 (116 713) | 0,11 / 0,86 (3 514) | 0,44 / 0,92 (3 516) | 0,46 / 0,78 (2 112) | — (0) | — (704, C < 0) |
+| Böe · C / V (n) | 0,21 / 0,80 (116 682) | 0,36 / 0,90 (3 513) | 0,57 / 0,89 (3 514) | 0,54 / 0,81 (2 112) | — (0) | — (702) |
+
+Befund: der gemittelte Satz hat bei T nur ein Drittel bis die Hälfte der Varianz einer Einzelstation (V 0,36–0,53) und erklärt mit
+C 0,44 bei f ≥ 0,85 so viel wie die ρ-Form (0,63 bei 2,5 km) — der Zuschlag 2C/f − V liegt bei 0,45 gegen 0,35 (ρ) und 1 (OF-6):
+die Kopplung schrumpft bei T auf ≈ 0,78 statt auf den Boden 0,5. Bei Wind und Böe liegt V nahe 0,8–0,9 (die 10-km-Dämpfung lässt
+meist eine Station übrig), C 0,44–0,57 bei f 0,3–0,7 ⇒ Zuschlag 0,6–1,0 — nahe OF-6, das bei Böe die Abdeckung getroffen hatte.
+Faktorisierung R(τ)/(w·C) bei T 0,9–1,3 für τ 2–6 h; bei Böe in dünnen Klassen unruhig (im JSON je Klasse und Vorlauf).
+Grenze: das Prüfnetz ist weitmaschiger als der dichte Satz des Produkts — die hohen f-Klassen (nahe Stationen), in denen der
+echte Anker meist liegt, sind bei Wind/Böe leer; dort steht die Klasse 0,5–0,7 ein (`anchorKSetOf`, konservativ). Option
+`anchorKSet` (Vorrang vor `anchorRho`; `ANCHOR_KSET_TABLE`, Provenienz hindcast), Faktor² = 1 − r·a²·(2C/f − V), Deckel 1, Boden 0,5;
+`verify:pv-cube` Block (12) OF-7b.
+
+### 11.8.3 Hypothese für Spur P (E-OF-5 a; festgeschrieben 2026-10-08, VOR dem ersten Tag der Spur P; Hash in `claims-frozen.sha256`, Text `claims-addendum-2.md`)
+
+Kandidat **`fusion-12t`** = Register `fusion-12s` + `anchorKSet: 1` + `sigmaScale: 3` (Tabelle `SIGMA_SCALE_TABLE_P`: Wind/Böe-Knoten
+≤ 48 h aus dem Fit, T/Td ab 6 h — Knoten 0–6 h = 1 —, jenseits 48 h nichts; V-OF-18). Abgeleitet aus dem Bild von 12r auf der
+Entwicklungsmenge (§11.6: 25 von 27 Zellen grün, rot nur T/Td 0–6 h) und aus den Hindcast-Befunden §11.8.1/§11.8.2 — deshalb wird er
+**nie mehr auf der Entwicklungsmenge bewertet**. Bewertung: `--modus=abnahme` (Spur P = Archivtage nach dem Freeze 2026-10-08 mit
+reifer Wahrheit), frühestens mit ≥ 4 reifen Tagen (≈ 20.10.), belastbar mit ≥ 14 (≈ 30.10.). **Behauptung:** auf Spur P sind G1–G4
+grün und der Fortschrittsindex gegen Fusion 9 liegt ≥ +1,3 %. Trifft G3 nicht zu, wird die Zelle benannt; keine Nachstellung an den
+Spur-P-Zahlen — ein Nachfolger braucht ein neues Fenster.

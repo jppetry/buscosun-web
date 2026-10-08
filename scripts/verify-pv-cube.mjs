@@ -716,6 +716,38 @@ function cubeSampleOfValues(r, i) {
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorRho: 0 })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 }))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorRho: 1 })) === fusedOf(base)
       && !('rho' in rOn.steps[0].members.find((m) => m.product === 'anchor').anchor));
+    // OF-7b (V-OF-15/V-OF-16/E-OF-5): the K-set formula, the class pick, the track-P table and the engine with the fitted K-set table
+    const { anchorSigmaFactorKSet } = await import('../src/pointForecast/cubeSource.ts');
+    add('(12) OF-7b Formel K-Satz: C = ρ, V = 1 ⇒ ρ-Form; C = f, V = 1 ⇒ OF-6; C = f/2, V = 1 ⇒ 1; V > 2C/f ⇒ Deckel 1; C 1, V 0, f 0,5 ⇒ Boden; C/V NaN oder f 0 ⇒ OF-6; a 0 ⇒ 1; a 0,6 r 0,25 C 0,5 V 0,6 f 0,978 ⇒ √(1 − 0,09·(1/0,978 − 0,6))',
+      near(anchorSigmaFactorKSet(0.6, 1, 0.5, 1, f978), anchorSigmaFactorRho(0.6, 1, 0.5, f978), 1e-12) && near(anchorSigmaFactorKSet(0.6, 1, f978, 1, f978), 0.8, 1e-12)
+      && anchorSigmaFactorKSet(0.6, 1, f978 / 2, 1, f978) === 1 && anchorSigmaFactorKSet(0.6, 1, 0.3, 1.5, f978) === 1 && anchorSigmaFactorKSet(0.6, 1, 1, 0, 0.5) === 0.5
+      && anchorSigmaFactorKSet(0.6, 1, NaN, 1, f978) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorKSet(0.6, 1, 0.5, null, f978) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorKSet(0.6, 1, 0.5, 1, 0) === anchorSigmaFactor(0.6, 1)
+      && anchorSigmaFactorKSet(0, 1, 0.5, 1, 0.5) === 1 && near(anchorSigmaFactorKSet(0.6, 0.25, 0.5, 0.6, f978), Math.sqrt(1 - 0.25 * 0.36 * (1 / f978 - 0.6)), 1e-12));
+    const CL = [{ fLo: 0, fHi: 0.3, n: 1000, C: 0.2, V: 0.5 }, { fLo: 0.3, fHi: 0.7, n: 100, C: null, V: null }, { fLo: 0.7, fHi: 1.0001, n: 1000, C: 0.6, V: 0.9 }];
+    add('(12) OF-7b anchorKSetOf: f in besetzter Klasse ⇒ deren (C, V); f in leerer Klasse ⇒ nächste besetzte DARUNTER; f ≥ 1 ⇒ letzte Klasse; leere Tabelle oder nur leere Klassen ⇒ null; unterste leer ⇒ nächste darüber',
+      S.anchorKSetOf(CL, 0.1).C === 0.2 && S.anchorKSetOf(CL, 0.5).C === 0.2 && S.anchorKSetOf(CL, 1).C === 0.6 && S.anchorKSetOf(CL, 0.8).V === 0.9
+      && S.anchorKSetOf([], 0.5) === null && S.anchorKSetOf([{ fLo: 0, fHi: 1.0001, n: 1, C: null, V: null }], 0.5) === null
+      && S.anchorKSetOf([{ fLo: 0, fHi: 0.5, n: 1, C: null, V: null }, { fLo: 0.5, fHi: 1.0001, n: 9, C: 0.4, V: 0.7 }], 0.2).C === 0.4);
+    const TP = S.SIGMA_SCALE_TABLE_P;
+    add('(12) OF-7b Spur-P-Tabelle (sigmaScale: 3): T/Td Knoten 0–6 h = 1, Wind/Böe ≤ 48 h = gepoolter Fit, jede Größe > 48 h = 1; `sigmaScale: 3` byte-gleich zu `sigmaScale: 1` mit dieser Tabelle; calib nennt „sigmaScale: 3“; Land-Knoten: Tabelle mit byCountry nimmt sie nur für dieses Land',
+      TP.nodes.t[0] === 1 && TP.nodes.td[0] === 1 && [1, 2].every((i) => TP.nodes.t[i] === S.SIGMA_SCALE_TABLE.nodes.t[i] && TP.nodes.td[i] === S.SIGMA_SCALE_TABLE.nodes.td[i])
+      && [0, 1, 2].every((i) => TP.nodes.ws[i] === S.SIGMA_SCALE_TABLE.nodes.ws[i] && TP.nodes.gust[i] === S.SIGMA_SCALE_TABLE.nodes.gust[i]) && S.SIGMA_SCALE_VARS.every((v) => [3, 4, 5].every((i) => TP.nodes[v][i] === 1))
+      && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 3 })) === fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TP })) && fuseCubePoint(mkInput(), { sigmaScale: 3 }).calib.some((c) => /sigmaScale: 3/.test(c))
+      && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, 'AT') === 0.5 && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, 'DE') === 0.8
+      && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, null) === 0.8);
+    // engine with the fitted K-set table: the T factor at +0/+2/+4 h follows anchorSigmaFactorKSet with (C, V) of the class of f = 0,978
+    const kT = S.anchorKSetOf(S.ANCHOR_KSET_TABLE.t, wsp);
+    const kOn = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 1 });
+    const wantK = (i) => anchorSigmaFactorKSet(aOf(i), 1, kT?.C, kT?.V, wsp);
+    add('(12) OF-7b anchorKSet mit Option: Tabelle hindcast mit besetzter Klasse für f 0,978; T-σ-Faktor bei +0/+2/+4 h = anchorSigmaFactorKSet(a, 1, C, V, f); Median wie OF-6; Notiz und calib `anchorKSet:hindcast`; Vorrang vor anchorRho (beide an = nur K-Satz)',
+      S.ANCHOR_KSET_TABLE.provenance.kind === 'hindcast' && !!kT && [0, 2, 4].every((i) => near(sdT(kOn, i) / sdT(anchored, i), wantK(i), 1e-9)) && near(med(kOn.steps[0]), med(anchored.steps[0]), 1e-9)
+      && kOn.notes.some((n) => /^anchorKSet: K-Satz-Tabelle an \d+ Größen-Schritten/.test(n)) && kOn.calib.some((c) => c.startsWith('anchorKSet:hindcast'))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 1, anchorRho: 1 })) === fusedOf(kOn),
+      kT ? `C ${kT.C} V ${kT.V} (f ${kT.cls.fLo}–${kT.cls.fHi}) · Faktor +0 h ${(sdT(kOn, 0) / sdT(anchored, 0)).toFixed(4)} (Soll ${wantK(0).toFixed(4)}) · +4 h ${(sdT(kOn, 4) / sdT(anchored, 4)).toFixed(4)} (Soll ${wantK(4).toFixed(4)})` : 'keine Klasse');
+    add('(12) OF-7b anchorKSet Negativkontrollen: ohne anchorSigma byte-gleich zum Anker von heute (Notiz „anchorSigma aus“); Option 0 byte-gleich zu OF-6; ohne Messung byte-gleich zur Basis',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 1 })) === fusedOf(anchored) && fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 1 }).notes.some((n) => /^anchorKSet: Option an, aber anchorSigma aus/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 0 })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 }))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorKSet: 1 })) === fusedOf(base));
   }
   // V-SW-3: wind and gust get separate corrections, their means can cross. In the plain engine the gust prior keeps the gust
   // above the wind (this fixture: min gust − wind ≥ +0,18 m/s even with every input gust at 10–30 %); the crossing comes from

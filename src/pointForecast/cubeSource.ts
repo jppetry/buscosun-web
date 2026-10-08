@@ -66,7 +66,7 @@ import { buildZ, dTsfcProxy, sourceToPoint } from '../point/fusionFit/features';
 import { binIndex, binRange } from '../point/fusionFit/strata';
 import type { FusionTables } from '../point/fusionFit/tables';
 import { ANCHOR_MAX, ANCHOR_TAU_H, anchorTerm, anchorTermLearned, anchorCurveValid, innovation, type AnchorCurvePoint, type AnchorPair, type Innovation } from './anchor';
-import { ANCHOR_RHO_TABLE, SIGMA_SCALE_TABLE, SIGMA_SCALE_TABLE_LONG, SIGMA_SCALE_VARS, anchorRhoOf, sigmaScaleAt, type SigmaScaleTable, type SigmaScaleVar } from './fusion/sigmaScale';
+import { ANCHOR_KSET_TABLE, ANCHOR_RHO_TABLE, SIGMA_SCALE_TABLE, SIGMA_SCALE_TABLE_LONG, SIGMA_SCALE_TABLE_P, SIGMA_SCALE_VARS, anchorKSetOf, anchorRhoOf, sigmaScaleAt, type SigmaScaleTable, type SigmaScaleVar } from './fusion/sigmaScale';
 import { spatialWeight } from './leadTimeWeights';
 import { nowcastSourcesFor } from '../point/client/nowcastPoint';
 import { SELECTION } from '../point/client/resolve';
@@ -425,6 +425,19 @@ export function anchorSigmaFactor(a: number, ratio: number): number {
  * capped at 1 (the spread never grows through the anchor; the mean weight is not touched here), floor `ANCHOR_SIGMA_MIN_FACTOR`.
  * A non-finite ρ or f ≤ 0 falls back to the OF-6 formula. Pure, exported for the verifier.
  */
+/**
+ * V-OF-15 (`anchorKSet`): the same budget with the MEASURED cov/var of the averaged innovation set — factor² = 1 − r·a²·(2C/f − V),
+ * C = cov(e₁, Ī)/var(e₁), V = var(Ī)/var(e₁) of the f-class (`fusion/sigmaScale.ts`); C = ρ, V = 1 gives `anchorSigmaFactorRho`.
+ * Capped at 1, floor `ANCHOR_SIGMA_MIN_FACTOR`; non-finite C/V or f ≤ 0 ⇒ the OF-6 formula. Pure, exported for the verifier.
+ */
+export function anchorSigmaFactorKSet(a: number, ratio: number, C: number | null | undefined, V: number | null | undefined, fraction: number): number {
+  if (!Number.isFinite(a) || a === 0) return 1;
+  if (C == null || V == null || !Number.isFinite(C) || !Number.isFinite(V) || !(fraction > 0)) return anchorSigmaFactor(a, ratio);
+  const r = Number.isFinite(ratio) ? Math.min(1, Math.max(0, ratio)) : 1;
+  const aa = Math.min(1, Math.abs(a));
+  const g = (2 * C) / Math.min(1, fraction) - Math.max(0, V);
+  return Math.sqrt(Math.min(1, Math.max(ANCHOR_SIGMA_MIN_FACTOR * ANCHOR_SIGMA_MIN_FACTOR, 1 - r * aa * aa * g)));
+}
 export function anchorSigmaFactorRho(a: number, ratio: number, rho: number | null | undefined, fraction: number): number {
   if (!Number.isFinite(a) || a === 0) return 1;
   if (rho == null || !Number.isFinite(rho) || !(fraction > 0)) return anchorSigmaFactor(a, ratio);
@@ -770,13 +783,21 @@ export interface FuseCubeOptions {
    */
   anchorRho?: 0 | 1;
   /**
+   * OF-7b, V-OF-15 (`audit/obs-fusion.md` §11.8): the σ coupling with the measured cov/var of the AVERAGED innovation set of the
+   * K-station anchor (`ANCHOR_KSET_TABLE`, class of f = the set's largest weight): factor² = 1 − r·a²·(2C/f − V), capped at 1
+   * (`anchorSigmaFactorKSet`). Acts only together with `anchorSigma: 1` and takes precedence over `anchorRho`; a variable whose
+   * table has no populated class falls back to `anchorRho` (if on) or OF-6. Absent or 0 ⇒ byte-identical.
+   */
+  anchorKSet?: 0 | 1;
+  /**
    * OF-7, lever 4: a factor on σ of the fused T, Td, wind speed and gust per lead (`SIGMA_SCALE_TABLE`, fitted on the hindcast
    * outside the vault so that the q10–q90 coverage of the chain without anchor meets the nominal 80 % of gate G3; linear in
    * lead between the window centres). Applied after everything that sets the mean and σ (station value, anchor coupling,
    * long range, σ inflation); a variable the station value set keeps its σ. 2 = `SIGMA_SCALE_TABLE_LONG` (the nodes ≤ 48 h held
-   * at 1 — only the seasonally founded part of the fit). Absent or 0 ⇒ byte-identical.
+   * at 1 — only the seasonally founded part of the fit). 3 = `SIGMA_SCALE_TABLE_P` (the track-P hypothesis E-OF-5: T/Td from
+   * 6 h on, wind/gust from 0 h, nothing beyond 48 h; a table may carry `byCountry` nodes, V-OF-16). Absent or 0 ⇒ byte-identical.
    */
-  sigmaScale?: 0 | 1 | 2;
+  sigmaScale?: 0 | 1 | 2 | 3;
   /** OF-7: the table `sigmaScale` uses — the fit and the verifier pass the identity or a test table; absent ⇒ `SIGMA_SCALE_TABLE`. */
   sigmaScaleTable?: SigmaScaleTable;
   /**
@@ -1109,8 +1130,11 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const anchorSigmaCount = { steps: 0, t: 0, ws: 0, gust: 0, keptByStation: 0, minF: { t: 1, ws: 1, gust: 1 } as Record<'t' | 'ws' | 'gust', number> };
   // OF-7: ρ only matters inside the σ coupling — without `anchorSigma` the pairs carry no ρ and everything is byte-identical.
   const useAnchorRho = useAnchorSigma && opts.anchorRho === 1;
-  const useSigmaScale = opts.sigmaScale === 1 || opts.sigmaScale === 2;
-  const ssTable: SigmaScaleTable = opts.sigmaScaleTable ?? (opts.sigmaScale === 2 ? SIGMA_SCALE_TABLE_LONG : SIGMA_SCALE_TABLE);
+  const useAnchorKSet = useAnchorSigma && opts.anchorKSet === 1;
+  const kSetCount = { t: 0, ws: 0, gust: 0, fallback: 0 };
+  const useSigmaScale = opts.sigmaScale === 1 || opts.sigmaScale === 2 || opts.sigmaScale === 3;
+  const ssTable: SigmaScaleTable = opts.sigmaScaleTable ?? (opts.sigmaScale === 3 ? SIGMA_SCALE_TABLE_P : opts.sigmaScale === 2 ? SIGMA_SCALE_TABLE_LONG : SIGMA_SCALE_TABLE);
+  const ssCountry = ssTable.byCountry && input.country && ssTable.byCountry[input.country] ? input.country : null;
   const sigmaScaleCount = { steps: 0, vars: 0, keptByStation: 0, minF: 1, maxF: 1 };
   const hmCount = { mean: 0, frames: 0, single: 0, mirror: 0 };
   // FL-AP8b (V-FL-20): die gemessene Persistenzkurve des Ankers je Größe aus denselben Tabellen — nur mit Option UND
@@ -1241,7 +1265,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ...(useGaugeOcc ? [`gaugeOccurrence:set — Regenwahrscheinlichkeit bei Vorlauf ≤ ${GAUGE_OCC_LEAD_H} h zum gewichteten Anteil der Messgeräte ≤ ${GAUGE_OCC_KM} km mit Regen in den letzten 10 min gezogen (k = ${GAUGE_OCC_K0}·min(1, Σw)·e^(−(Vorlauf − 1)/${GAUGE_OCC_TAU_H} h), Stempel ≤ ${GAUGE_OCC_MAX_AGE_MIN} min alt; Phase OF, Option b)`] : []),
     ...(useAnchorSigma ? [`anchorSigma:set — σ von T, Windgeschwindigkeit und Böe mit dem Anker verkleinert: σ·√max(${ANCHOR_SIGMA_MIN_FACTOR}², 1 − a²·min(1, σ₁²/σ_τ²)), a = Repräsentativität·Gewicht des Ankers bei diesem Vorlauf, σ₁/σ_τ gelernte σ bei ≈ 1 h und hier; nach dem Stationswert, dessen Größen behalten ihre σ (Phase OF, OF-6; Struktur, kein Fit)`] : []),
     ...(useAnchorRho ? [`anchorRho:${ANCHOR_RHO_TABLE.provenance.kind} — die Fehlerkorrelation ρ(d, Δh) zwischen Ankerstation und Punkt statt spatialWeight in der σ-Kopplung: Faktor² = 1 − r·a²·(2ρ/f − 1), gedeckelt bei 1; ρ = ρ₀/((1+(d/D)²)(1+(Δh/H)²)) mit T ρ₀ ${ANCHOR_RHO_TABLE.t.rho0} D ${ANCHOR_RHO_TABLE.t.dKm} km H ${ANCHOR_RHO_TABLE.t.hM} m · Wind ${ANCHOR_RHO_TABLE.wind.rho0}/${ANCHOR_RHO_TABLE.wind.dKm} km/${ANCHOR_RHO_TABLE.wind.hM} m · Böe ${ANCHOR_RHO_TABLE.gust.rho0}/${ANCHOR_RHO_TABLE.gust.dKm} km/${ANCHOR_RHO_TABLE.gust.hM} m (${ANCHOR_RHO_TABLE.provenance.note}; OF-7)`] : []),
-    ...(useSigmaScale ? [`sigmaScale:${ssTable.provenance.kind} — σ von T, Td, Windgeschwindigkeit und Böe mit dem Faktor je Vorlauf skaliert (Knoten bei ${ssTable.centresH.join('/')} h: T ${ssTable.nodes.t.join('/')} · Td ${ssTable.nodes.td.join('/')} · Wind ${ssTable.nodes.ws.join('/')} · Böe ${ssTable.nodes.gust.join('/')}; linear dazwischen), nach Stationswert, Anker-Kopplung, Langfrist und σ-Inflation; Größen des Stationswerts behalten ihre σ (${ssTable.provenance.note}; OF-7)`] : []),
+    ...(useSigmaScale ? [`sigmaScale:${ssTable.provenance.kind} — σ von T, Td, Windgeschwindigkeit und Böe mit dem Faktor je Vorlauf skaliert (Knoten bei ${ssTable.centresH.join('/')} h${ssCountry ? `, Land ${ssCountry}` : ''}: T ${(ssCountry ? ssTable.byCountry![ssCountry].t : ssTable.nodes.t).join('/')} · Td ${(ssCountry ? ssTable.byCountry![ssCountry].td : ssTable.nodes.td).join('/')} · Wind ${(ssCountry ? ssTable.byCountry![ssCountry].ws : ssTable.nodes.ws).join('/')} · Böe ${(ssCountry ? ssTable.byCountry![ssCountry].gust : ssTable.nodes.gust).join('/')}; linear dazwischen), nach Stationswert, Anker-Kopplung, Langfrist und σ-Inflation; Größen des Stationswerts behalten ihre σ (${ssTable.provenance.note}; OF-7${opts.sigmaScale === 3 ? ', sigmaScale: 3' : opts.sigmaScale === 2 ? ', sigmaScale: 2' : ''})`] : []),
+    ...(useAnchorKSet ? [`anchorKSet:${ANCHOR_KSET_TABLE.provenance.kind} — die σ-Kopplung mit cov/var des gemittelten Innovationssatzes des K-Stationen-Ankers je f-Klasse: Faktor² = 1 − r·a²·(2C/f − V), gedeckelt bei 1 (${ANCHOR_KSET_TABLE.provenance.note}; V-OF-15)`] : []),
     ...(useSvAtObs ? [`stationValueAtObsTime:set —der Stationswert nimmt das Stationsprodukt linear an der Messminute (zwei Schritte um die Messung, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h) statt nur auf einem Schritt (V-OF-10)`] : []),
     ...(useGaugeRadar ? [`gaugeRadar:set — Radar-Member bei Vorlauf ≤ ${GAUGE_RADAR_LEAD_H} h mit dem Faktor Messgeräte-Stundensumme / Radar-Stundenmittel am Punkt skaliert (Geräte ≤ ${GAUGE_RADAR_KM} km, ε ${GAUGE_RADAR_EPS_MM} mm, Deckel ${GAUGE_RADAR_MAX}×, Abklingen τ ${GAUGE_RADAR_TAU_H} h, nur ab ${GAUGE_RADAR_MIN_MM} mm; Phase OF, Option a′)`] : []),
     ...(useHourMean ? [`nowcastHourMean:set — Radar-Member je Stunde t als Mittel der Frame-Raten im Fenster (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] bei ≥ ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames, sonst der Einzelframe; die Wahrheit ist die Stundensumme (V-AX-23, Kandidat buscosun Fusion 8 B)`] : []),
@@ -1931,7 +1956,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         // OF-7: the measured ρ and the representativity f of THIS variable's innovation (wind: u and v share stations ⇒ mean)
         const inn: Innovation | null = it.sv === 't' ? anchorInfo.t : it.sv === 'gust' ? anchorInfo.gust : anchorInfo.u ?? anchorInfo.v;
         const rhoV = useAnchorRho && inn ? (it.sv === 'ws' && anchorInfo.u?.rho != null && anchorInfo.v?.rho != null ? 0.5 * (anchorInfo.u.rho + anchorInfo.v.rho) : inn.rho ?? null) : null;
-        const f = useAnchorRho && inn ? anchorSigmaFactorRho(it.a, ratio, rhoV, inn.fraction) : anchorSigmaFactor(it.a, ratio);
+        // V-OF-15: the K-set table by the class of f (precedence over ρ); without a populated class the ρ form or OF-6
+        const ks = useAnchorKSet && inn ? anchorKSetOf(it.sv === 't' ? ANCHOR_KSET_TABLE.t : it.sv === 'gust' ? ANCHOR_KSET_TABLE.gust : ANCHOR_KSET_TABLE.wind, inn.fraction) : null;
+        if (useAnchorKSet) { if (ks) kSetCount[it.sv] += 1; else kSetCount.fallback += 1; }
+        const f = ks ? anchorSigmaFactorKSet(it.a, ratio, ks.C, ks.V, inn!.fraction) : useAnchorRho && inn ? anchorSigmaFactorRho(it.a, ratio, rhoV, inn.fraction) : anchorSigmaFactor(it.a, ratio);
         const d: Dist | null = f < 1 ? scaleDistSigma(fv.dist, f) : null;
         if (!d) continue;
         fused = { ...fused, [it.key]: { ...fv, dist: d } };
@@ -1987,7 +2015,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
         const fv: FusedVariable | null | undefined = fused[keyOf[v]];
         if (!fv) continue;
         if (sv[v]) { sigmaScaleCount.keptByStation += 1; continue; }
-        const s = sigmaScaleAt(ssTable, v, leadH);
+        const s = sigmaScaleAt(ssTable, v, leadH, ssCountry);
         if (!(s > 0) || Math.abs(s - 1) < 1e-12) continue;
         const d: Dist | null = scaleDistSigma(fv.dist, s);
         if (!d) continue;
@@ -2036,6 +2064,10 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     ? `anchorRho: ρ der Ankerstation(en) mit dem Punkt T ${anchorInfo.t?.rho != null ? anchorInfo.t.rho.toFixed(3) : '—'} · Wind ${anchorInfo.u?.rho != null ? anchorInfo.u.rho.toFixed(3) : '—'} · Böe ${anchorInfo.gust?.rho != null ? anchorInfo.gust.rho.toFixed(3) : '—'} (Repräsentativität f T ${anchorInfo.t?.fraction.toFixed(3) ?? '—'} · Wind ${anchorInfo.u?.fraction.toFixed(3) ?? '—'} · Böe ${anchorInfo.gust?.fraction.toFixed(3) ?? '—'})`
     : 'anchorRho: Option an, aber kein Anker ⇒ ohne Wirkung');
   if (opts.anchorRho === 1 && !useAnchorSigma) notes.push('anchorRho: Option an, aber anchorSigma aus ⇒ ohne Wirkung (ρ wirkt nur in der σ-Kopplung)');
+  if (useAnchorKSet) notes.push(anchorInfo
+    ? `anchorKSet: K-Satz-Tabelle an ${kSetCount.t + kSetCount.ws + kSetCount.gust} Größen-Schritten (T ${kSetCount.t}, Wind ${kSetCount.ws}, Böe ${kSetCount.gust})${kSetCount.fallback ? `, ${kSetCount.fallback} ohne besetzte Klasse ⇒ ${useAnchorRho ? 'ρ-Form' : 'OF-6'}` : ''}; f T ${anchorInfo.t?.fraction.toFixed(3) ?? '—'} · Wind ${anchorInfo.u?.fraction.toFixed(3) ?? '—'} · Böe ${anchorInfo.gust?.fraction.toFixed(3) ?? '—'}`
+    : 'anchorKSet: Option an, aber kein Anker ⇒ ohne Wirkung');
+  if (opts.anchorKSet === 1 && !useAnchorSigma) notes.push('anchorKSet: Option an, aber anchorSigma aus ⇒ ohne Wirkung');
   if (useSigmaScale) notes.push(sigmaScaleCount.steps
     ? `sigmaScale: σ an ${sigmaScaleCount.steps} Schritten skaliert (${sigmaScaleCount.vars} Größen-Schritte, Faktor ${sigmaScaleCount.minF.toFixed(3)} … ${sigmaScaleCount.maxF.toFixed(3)})${sigmaScaleCount.keptByStation ? `; ${sigmaScaleCount.keptByStation} Größen-Schritte behalten die σ des Stationswerts` : ''}`
     : `sigmaScale: Option an, aber ${ssTable.provenance.kind === 'identity' ? 'Identitätstabelle' : 'kein Schritt mit Faktor ≠ 1'} ⇒ σ unverändert`);

@@ -29,6 +29,8 @@ export interface SigmaScaleTable {
   centresH: readonly number[];
   /** Factor on σ at each node, per variable; 1 = unchanged. */
   nodes: Record<SigmaScaleVar, readonly number[]>;
+  /** V-OF-16: nodes per country (ISO-2); a point in a listed country takes these, any other point the pooled `nodes`. */
+  byCountry?: Readonly<Record<string, Record<SigmaScaleVar, readonly number[]>>>;
 }
 
 export const SIGMA_SCALE_CENTRES_H: readonly number[] = Object.freeze([3.5, 15.5, 36.5, 84.5, 180.5, 288.5]);
@@ -74,15 +76,102 @@ export const SIGMA_SCALE_TABLE_LONG: SigmaScaleTable = Object.freeze({
   nodes: Object.freeze(Object.fromEntries(SIGMA_SCALE_VARS.map((v) => [v, Object.freeze(SIGMA_SCALE_TABLE.nodes[v].map((s, i) => (SIGMA_SCALE_CENTRES_H[i] <= 48 ? 1 : s)))])) as Record<SigmaScaleVar, readonly number[]>),
 });
 
-/** Scale at lead `leadH`: linear between the nodes, flat before the first and beyond the last centre. 1 when the table has no node. */
-export function sigmaScaleAt(table: SigmaScaleTable, v: SigmaScaleVar, leadH: number): number {
-  const c = table.centresH, s = table.nodes[v];
+/**
+ * `FuseCubeOptions.sigmaScale: 3` — the track-P hypothesis of E-OF-5 (`audit/obs-fusion.md` §11.8; written before any track-P day
+ * exists, derived from the development-set picture of 12r and therefore never judged on it again): the fitted nodes ≤ 48 h for
+ * wind and gust, for T and Td from 6 h on (node 0–6 h = 1: the summer-only 0–6 h node narrowed the autumn bands below the band),
+ * and NO scaling beyond 48 h for any variable — there the hindcast and the archive disagree (V-OF-18: wind in AT/CH covers 72–75 %
+ * on the hindcast but widening it by 19 % cost 1,7–4,1 % CRPS on the archive; T 240–336 h covers 79 % on the hindcast, 64 % on the
+ * archive), and on the hindcast itself the wind nodes > 48 h improved coverage while worsening CRPS (a shape, not a scale, problem).
+ * The per-country fit of V-OF-16 is reported in `of7-fit.json` (`byLandNodes`) and not used.
+ */
+export const SIGMA_SCALE_TABLE_P: SigmaScaleTable = Object.freeze({
+  ...SIGMA_SCALE_TABLE,
+  provenance: { ...SIGMA_SCALE_TABLE.provenance, note: `${SIGMA_SCALE_TABLE.provenance.note}; track-P hypothesis E-OF-5: T/Td node 0–6 h = 1, every node > 48 h = 1 (sigmaScale: 3)` },
+  nodes: Object.freeze(Object.fromEntries(SIGMA_SCALE_VARS.map((v) => [v, Object.freeze(SIGMA_SCALE_TABLE.nodes[v].map((s, i) => (SIGMA_SCALE_CENTRES_H[i] > 48 || ((v === 't' || v === 'td') && i === 0) ? 1 : s)))])) as Record<SigmaScaleVar, readonly number[]>),
+});
+
+/**
+ * Scale at lead `leadH`: linear between the nodes, flat before the first and beyond the last centre. 1 when the table has no
+ * node. With `country` and a `byCountry` entry for it, that country's nodes; otherwise the pooled nodes.
+ */
+export function sigmaScaleAt(table: SigmaScaleTable, v: SigmaScaleVar, leadH: number, country?: string | null): number {
+  const c = table.centresH, s = (country && table.byCountry?.[country]?.[v]) || table.nodes[v];
   if (!c?.length || !s || s.length !== c.length || !Number.isFinite(leadH)) return 1;
   if (leadH <= c[0]) return s[0];
   for (let i = 1; i < c.length; i++) {
     if (leadH <= c[i]) { const f = (leadH - c[i - 1]) / (c[i] - c[i - 1]); return s[i - 1] + f * (s[i] - s[i - 1]); }
   }
   return s[s.length - 1];
+}
+
+// ---------------------------------------------------------------------------
+// V-OF-15: the anchor of K stations. The σ coupling needs cov and var of the AVERAGED innovation set Ī the dense anchor
+// really uses (K = OBS_DENSE_ANCHOR_K best of the nearest stations, weights spatialWeight, wind/gust damped over 10 km), not
+// ρ and σ₁² of a single station: with k = f·w(τ) on Ī the variance left is σ_τ² − 2k·w·cov(e₁, Ī) + k²·var(Ī), i.e.
+// factor² = 1 − r·a²·(2C/f − V) with C = cov(e₁, Ī)/var(e₁) and V = var(Ī)/var(e₁), both measured on the hindcast per
+// variable × class of f (= max weight of the set). OF-7's ρ form is the special case C = ρ, V = 1.
+// ---------------------------------------------------------------------------
+export interface AnchorKSetClass { fLo: number; fHi: number; n: number; C: number | null; V: number | null }
+export interface AnchorKSetTable {
+  version: 1;
+  provenance: { kind: 'set' | 'hindcast'; note: string; fitWindow?: { from: string; to: string }; slots?: number; date?: string; k?: number };
+  t: readonly AnchorKSetClass[];
+  /** Measured on the wind speed error with the damped weights, applied to u and v. */
+  wind: readonly AnchorKSetClass[];
+  gust: readonly AnchorKSetClass[];
+}
+
+/**
+ * The fitted K-set table (OF-7b, `audit/obs-fusion/of7-kset.json`, 2026-10-08): 352 hindcast slots (2026-06-18 … 2026-09-13, all
+ * four daily slots — the stage-1 runs), 128 480 calls, per point the K = 6 best of the 12 nearest other Prüfnetz stations. A class
+ * needs ≥ 2 000 rows and C > 0; an unpopulated class is taken from the nearest populated one below (`anchorKSetOf`). The Prüfnetz
+ * is sparser than the dense set of the product, so the high-f classes (close stations) are thin: wind/gust have no rows at
+ * f 0,7–0,85 and 704 rows with C < 0 at f ≥ 0,85 (⇒ null, the 0,5–0,7 class stands in). Factorisation check R(τ)/(w(τ)·C) ≈ 0,9–1,3
+ * for T at τ 2–6 h (reported in the JSON per class and lead).
+ */
+export const ANCHOR_KSET_TABLE: AnchorKSetTable = Object.freeze({
+  version: 1 as const,
+  provenance: { kind: 'hindcast' as const, note: 'OF-7b fit 2026-10-08 — cov/var of the averaged innovation set of the K = 6 best of the 12 nearest stations per f-class, hindcast t1 runs 2026-06-18 … 2026-09-13 (summer), classes with ≥ 2 000 rows and C > 0', fitWindow: { from: '2026-06-18', to: '2026-09-13' }, slots: 352, date: '2026-10-08', k: 6 },
+  t: Object.freeze([
+    { fLo: 0, fHi: 0.15, n: 27_186, C: 0.176, V: 0.359 },
+    { fLo: 0.15, fHi: 0.3, n: 51_699, C: 0.259, V: 0.385 },
+    { fLo: 0.3, fHi: 0.5, n: 21_703, C: 0.321, V: 0.482 },
+    { fLo: 0.5, fHi: 0.7, n: 14_760, C: 0.299, V: 0.476 },
+    { fLo: 0.7, fHi: 0.85, n: 5_972, C: 0.452, V: 0.529 },
+    { fLo: 0.85, fHi: 1.0001, n: 5_280, C: 0.438, V: 0.503 },
+  ]),
+  wind: Object.freeze([
+    { fLo: 0, fHi: 0.15, n: 116_713, C: 0.12, V: 0.737 },
+    { fLo: 0.15, fHi: 0.3, n: 3_514, C: 0.105, V: 0.861 },
+    { fLo: 0.3, fHi: 0.5, n: 3_516, C: 0.438, V: 0.921 },
+    { fLo: 0.5, fHi: 0.7, n: 2_112, C: 0.459, V: 0.776 },
+    { fLo: 0.7, fHi: 0.85, n: 0, C: null, V: null },
+    { fLo: 0.85, fHi: 1.0001, n: 704, C: null, V: null },
+  ]),
+  gust: Object.freeze([
+    { fLo: 0, fHi: 0.15, n: 116_682, C: 0.208, V: 0.797 },
+    { fLo: 0.15, fHi: 0.3, n: 3_513, C: 0.364, V: 0.901 },
+    { fLo: 0.3, fHi: 0.5, n: 3_514, C: 0.571, V: 0.888 },
+    { fLo: 0.5, fHi: 0.7, n: 2_112, C: 0.54, V: 0.814 },
+    { fLo: 0.7, fHi: 0.85, n: 0, C: null, V: null },
+    { fLo: 0.85, fHi: 1.0001, n: 702, C: null, V: null },
+  ]),
+});
+
+/**
+ * (C, V) for the class that holds `f`; a class without values (too few rows) takes the nearest populated class BELOW it (a
+ * sparser set, conservative), else the nearest above; null when the table has no populated class at all.
+ */
+export function anchorKSetOf(classes: readonly AnchorKSetClass[], f: number): { C: number; V: number; cls: AnchorKSetClass } | null {
+  if (!classes?.length || !Number.isFinite(f)) return null;
+  const ff = Math.min(1, Math.max(0, f));
+  let idx = classes.findIndex((c) => ff >= c.fLo && ff < c.fHi);
+  if (idx < 0) idx = ff >= 1 ? classes.length - 1 : 0;
+  const ok = (c: AnchorKSetClass | undefined) => !!c && c.C != null && c.V != null && Number.isFinite(c.C) && Number.isFinite(c.V);
+  for (let i = idx; i >= 0; i--) if (ok(classes[i])) return { C: classes[i].C as number, V: classes[i].V as number, cls: classes[i] };
+  for (let i = idx + 1; i < classes.length; i++) if (ok(classes[i])) return { C: classes[i].C as number, V: classes[i].V as number, cls: classes[i] };
+  return null;
 }
 
 /** ρ = ρ₀ · (c + (1 − c)·e^(−d/D)) / (1 + (Δh/H)²): `c` = the floor the shared synoptic error keeps at 60–120 km, D in km, H in m. */
