@@ -129,6 +129,10 @@ jobs:
       # Gittern, Frame-Regel byte-gleich, Shader-Algebra, Dual-Frames (Log-Ebene), Morph (audit/radar-hochaufloesung.md) — netzfrei.
       - name: Verifier — Niederschlagsradar HD
         run: npm run verify:radar-hd
+      # RS: Randregel gegen den hellblauen Saum — Schalter, Shader-Nachbau an synthetischen Frames mit Negativkontrollen,
+      # Morph/CPU-Mischung, Shader-Text, Verdrahtung (audit/radar-randsaum.md) — netzfrei (echte Frames nur mit RADAR_EDGE_RAW).
+      - name: Verifier — Randregel Niederschlagsradar
+        run: npm run verify:radar-edge
       # R250: 250-m-Kacheln aus den DWD-Standortradaren — Schalter, Kachelgeometrie, Komposit-/Verankerungs-Algebra,
       # Vertrag (audit/radar-250m.md) — netzfrei (die Rundläufe an echten Dateien nur mit RADAR_250_RAW).
       - name: Verifier — Niederschlagsradar 250 m

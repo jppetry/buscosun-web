@@ -1976,3 +1976,15 @@ Skript und die Workflow-Zeile `RADAR_HD250: '1'` (s. 2.).
    Regenradars; E-R250-3 Extrapolation auf 250 m (nur als Verschiebung der Analyse entlang des Bewegungsfelds = Interpolation,
    bewusst nicht gebaut); E-R250-4 AT/CH (keine offene Quelle feiner als 1 km; MeteoSwiss-Polarvolumen über die
    EUMETNET-ODR-API mit Token = eigene Phase); V-R250-1…5 (§8).
+
+## 58. Hellblauer Saum am Rand der Niederschlagsgebiete (Phase RS), 2026-10-10
+
+Diagnose, Umsetzung, Gates: `audit/radar-randsaum.md`. Alles uncommitted in buscosun-web; Daten-Repo unberührt.
+
+1. **Ansehen:** `/regenradar/<ort>` bzw. `/wetterkarte/niederschlag/<ort>` mit `?hdedge=1` (glatte Kontur) und
+   `?hdedge=nearest` (exakt pixelgenau, Treppenkante) gegen ohne Schalter — am Rand eines Regengebiets und beim Abspielen.
+2. **E-RS-1 einschalten:** `RADAR_EDGE_DEFAULT` in `src/scalar/radarHd.ts` auf `'round'` (Empfehlung) oder `'nearest'`;
+   dazu `verify-radar-edge.mjs` A1 anpassen. Rückweg `?hdedge=0`.
+3. **Commit/Push** — Vorschlag `fix(radar): draw rain only where the radar measured it (edge rule, ?hdedge)`; die Phasenwache
+   E8 in `verify:regenradar-profile` wird mit dem Commit grün.
+4. **Real-Device** (V-RS-3): GPU-Zeit des Kantenzweigs beim Abspielen im Regenradar.

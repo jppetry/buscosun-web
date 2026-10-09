@@ -52,6 +52,43 @@ export function radarMorphFlagFrom(
   return RADAR_MORPH_DEFAULT_ON;
 }
 
+/**
+ * Phase RS (`audit/radar-randsaum.md`): edge rule of the HD layers. Without it the filter and the in-between pictures mix a
+ * wet texel with the 0 of its dry neighbour — on the log plane that paints a ½–1 km ring of the light-blue classes
+ * 0,06 … 0,5 mm/h around every rain area where the radar measured nothing. With it, wet/dry is decided from the measured
+ * texels (`round`: bilinear share of wet texels ≥ ½ — the nearest-pixel border on straight edges, corners rounded; `nearest`:
+ * the texel under the point, stair edges) and dry texels never enter the value.
+ */
+export type RainEdge = 'off' | 'round' | 'nearest';
+export const RAIN_EDGES: readonly RainEdge[] = Object.freeze(['off', 'round', 'nearest']);
+/** Shader uniform value per edge rule (`u_edge`); 0 = the path before Phase RS. */
+export const RAIN_EDGE_CODE: Readonly<Record<RainEdge, number>> = Object.freeze({ off: 0, round: 1, nearest: 2 });
+/** Rule 2: off until Jan switches it on (`?hdedge=1` = `round`). */
+export const RADAR_EDGE_DEFAULT: RainEdge = 'off';
+
+function parseEdge(v: string | null | undefined): RainEdge | null {
+  if (v == null) return null;
+  if (v === '0') return 'off';
+  if (v === '1') return 'round';
+  return (RAIN_EDGES as readonly string[]).includes(v) ? (v as RainEdge) : null;   // unknown word = no vote
+}
+
+/** `?hdedge=0|1|round|nearest|off` beats `localStorage.radarhdedge` (same grammar), else `RADAR_EDGE_DEFAULT`. */
+export function radarEdgeFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): RainEdge {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('hdedge'); } catch { /* broken query = no vote */ }
+  const fromQuery = parseEdge(q);
+  if (fromQuery) return fromQuery;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarhdedge') : null; } catch { s = null; }
+  }
+  return parseEdge(s) ?? RADAR_EDGE_DEFAULT;
+}
+
 /** HD-4: coarsening factor of the motion estimate per native grid (RV 1100 → 138 columns, INCA/rzc 701/710 → 175/178). */
 export const RADAR_MORPH_FACTOR: Readonly<Record<'DE' | 'AT' | 'CH', number>> = Object.freeze({ DE: 8, AT: 4, CH: 4 });
 /** HD-4: Horn–Schunck settings (as the flow nowcast of the Wetterkarte, `MapView` FLOW_*). */

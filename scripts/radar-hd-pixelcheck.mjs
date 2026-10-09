@@ -28,6 +28,7 @@ import { incaFwd } from '../src/sources/geosphereIncaGeo.ts';
 import { rzcFwd } from '../src/sources/meteoSwissGeo.ts';
 import { precipRainRamp, precipRainRampLog } from '../src/scalar/RainLayer.ts';
 import { G } from '../src/scalar/precipIndexMap.ts';
+import { texelReader, shade } from './lib/rainEdgeAlgebra.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] ?? '1'] : [a, '1']; }));
 const BASE = args.base ?? 'http://127.0.0.1:5231';
@@ -42,6 +43,12 @@ const ONLY = args.windows ? args.windows.split(',') : null;
  * and the oracle draws from the log plane the page received (`values2`) with the log ramp.
  */
 const DUAL_DIR = args.dualDir ?? null;
+/**
+ * Phase RS (`audit/radar-randsaum.md`): `--edge=1` runs the edge-rule variants against the live slot (log plane where the page
+ * has one): `?hdedge=1` (round) and `?hdedge=nearest` with the edge oracle, `?hd=catmull` without (the picture before RS), and
+ * per run the halo on the canvas itself — drawn pixels (|shot − background| > tol) whose nearest texel of the owning grid is dry.
+ */
+const EDGE = args.edge === '1';
 const W = 1440, H = 900;
 const OPACITY = 0.85;   // RainLayer opacity of the precipitation layers in MapView
 mkdirSync(OUT, { recursive: true });
@@ -76,7 +83,8 @@ const clampI = (x, n) => (x < 0 ? 0 : x >= n ? n - 1 : x);
 const bsplineW = (t) => { const t2 = t * t, t3 = t2 * t; return [(-t3 + 3 * t2 - 3 * t + 1) / 6, (3 * t3 - 6 * t2 + 4) / 6, (-3 * t3 + 3 * t2 + 3 * t + 1) / 6, t3 / 6]; };
 const catmullW = (t) => { const t2 = t * t, t3 = t2 * t; return [(-t3 + 2 * t2 - t) / 2, (3 * t3 - 5 * t2 + 2) / 2, (-3 * t3 + 4 * t2 + t) / 2, (t3 - t2) / 2]; };
 /** value 0..1 at continuous uv on a W×H u8 texture. */
-function sampleTex(values, W, H, u, v, mode) {
+function sampleTex(values, W, H, u, v, mode, edge = 'off') {
+  if (edge !== 'off') return shade(texelReader(values, W, H), u * W, v * H, mode, edge);
   const x = u * W - 0.5, y = v * H - 0.5;
   const at = (xx, yy) => values[clampI(yy, H) * W + clampI(xx, W)] / 255;
   if (mode === 'nearest') return at(Math.floor(u * W), Math.floor(v * H));
@@ -248,7 +256,7 @@ function rampReader(entries) {
 }
 
 /** Oracle: expected colour per pixel + which pixels count. `ramps` = { linear, log } readers; a grid's `log` flag picks one. */
-function oracle(cam, grids, mode, filter, bgImg, ramps) {
+function oracle(cam, grids, mode, filter, bgImg, ramps, edge = 'off') {
   const un = unprojector(cam);
   const pick = fastCountryPicker();
   const comp = mode === 'composite' ? compositeOf(grids) : null;
@@ -263,7 +271,7 @@ function oracle(cam, grids, mode, filter, bgImg, ramps) {
     const g = comp ?? grids[pick(lat, lon)];
     const [u, v] = g.uv(lon, lat);
     let t = 0;
-    if (u >= 0 && u <= 1 && v >= 0 && v <= 1) t = sampleTex(g.values, g.W, g.H, u, v, filter);
+    if (u >= 0 && u <= 1 && v >= 0 && v <= 1) t = sampleTex(g.values, g.W, g.H, u, v, filter, edge);
     // premultiplied space = what the GL blend (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) leaves in the buffer, whatever its alpha
     const ba = bgImg[i * 4 + 3] / 255;
     const bg = [bgImg[i * 4] * ba, bgImg[i * 4 + 1] * ba, bgImg[i * 4 + 2] * ba];
@@ -334,7 +342,11 @@ report.slot = { rvRunAtMs: probeFrames.rv.runAtMs, rzcValidAtMs: probeFrames.rzc
 report.windows = windows;
 console.log('windows', JSON.stringify(windows), DUAL_DIR ? `· RV-Log-Ebene in der Seite: ${!!probeFrames.rv.values2}` : '');
 
-const VARIANTS = DUAL_DIR ? [
+const VARIANTS = EDGE ? [
+  { q: '?hd=catmull&hdedge=1', tag: 'edge-round', mode: 'native', filter: 'catmull', plane: 2, edge: 'round' },
+  { q: '?hd=catmull&hdedge=nearest', tag: 'edge-nearest', mode: 'native', filter: 'catmull', plane: 2, edge: 'nearest' },
+  { q: '?hd=catmull', tag: 'edge-off', mode: 'native', filter: 'catmull', plane: 2, edge: 'off' },
+] : DUAL_DIR ? [
   { q: '?hd=nearest&hdv2=1', tag: 'hd-nearest-dual', mode: 'native', filter: 'nearest', plane: 2 },
   { q: '?hd=catmull&hdv2=1', tag: 'hd-catmull-dual', mode: 'native', filter: 'catmull', plane: 2 },
   { q: '?hd=nearest&hdv2=1', tag: 'hd-nearest-dual-vs-linear', mode: 'native', filter: 'nearest', plane: 1 },   // negative control: linear oracle must agree less
@@ -377,13 +389,30 @@ for (const w of windows) {
       return Math.hypot((lo - mlo) / 360 * worldSize, (la - mla) * DEG / (2 * Math.PI) / Math.cos(la * DEG) * worldSize);
     }));
     const grids = gridsOf(fr, variant.plane ?? 1);
-    const o = oracle(cam, grids, variant.mode, variant.filter, bgShot.data, ramps);
+    const o = oracle(cam, grids, variant.mode, variant.filter, bgShot.data, ramps, variant.edge ?? 'off');
     const r = compare(cam, shot.data, o, name);
     let control = null;
+    // RS: the other rule's oracle as control (edge canvas vs. the old algebra and back) + the halo on the canvas itself
+    if (variant.edge) {
+      const other = oracle(cam, grids, variant.mode, variant.filter, bgShot.data, ramps, variant.edge === 'off' ? 'round' : 'off');
+      control = compare(cam, shot.data, other, `${name}.vs-${variant.edge === 'off' ? 'round' : 'off'}`);
+      const un2 = unprojector(cam), pick2 = fastCountryPicker();
+      let drawn = 0, halo = 0;
+      for (let y = 0; y < cam.h; y++) for (let x = 0; x < cam.w; x++) {
+        const i = y * cam.w + x; if (!o.counted[i]) continue;
+        const d = Math.max(Math.abs(shot.data[i * 4] - bgShot.data[i * 4]), Math.abs(shot.data[i * 4 + 1] - bgShot.data[i * 4 + 1]), Math.abs(shot.data[i * 4 + 2] - bgShot.data[i * 4 + 2]));
+        if (d <= TOL) continue;
+        drawn++;
+        const [lon, lat] = un2(x + 0.5, y + 0.5);
+        const v = nearestOf(grids[pick2(lat, lon)], lon, lat);
+        if (!v) halo++;
+      }
+      r.canvasHalo = { drawnPx: drawn, haloPx: halo, haloPct: +(100 * halo / Math.max(1, drawn)).toFixed(3) };
+    }
     if (variant.mode === 'composite') { const on = oracle(cam, grids, 'native', 'nearest', bgShot.data, ramps); control = compare(cam, shot.data, on, `${name}.vs-native`); }
     const row = { window: w, variant: variant.tag, masks: st.masks, hd: fr.hd, logPlane: { DE: !!fr.rv.values2, AT: !!fr.inca.values2, CH: !!fr.rzc.values2 }, layersShown: shown, cam: { lon: cam.lon, lat: cam.lat, zoom: cam.zoom, w: cam.w, h: cam.h, cornerErrPx: +cornerErrPx.toFixed(3) }, oracle: r, ...(control ? { nativeOracleAsControl: control } : {}) };
     report.runs.push(row);
-    console.log(`${name.padEnd(28)} Orakel (${variant.mode}/${variant.filter}${variant.plane === 2 ? '/log' : ''}): ${r.agreePct} % von ${r.counted} px (nass ${r.wetAgreePct} % von ${r.wetCounted}, mittl. |Δ| ${r.meanDiff})${control ? ` · Negativkontrolle nativ-nearest: ${control.agreePct} %` : ''} · Kamera ${cornerErrPx.toFixed(2)} px`);
+    console.log(`${name.padEnd(28)} Orakel (${variant.mode}/${variant.filter}${variant.plane === 2 ? '/log' : ''}${variant.edge ? `/edge ${variant.edge}` : ''}): ${r.agreePct} % von ${r.counted} px (nass ${r.wetAgreePct} % von ${r.wetCounted}, mittl. |Δ| ${r.meanDiff})${control ? ` · Gegenprobe ${variant.edge ? 'andere Regel' : 'nativ-nearest'}: ${control.agreePct} % (nass ${control.wetAgreePct} %)` : ''}${r.canvasHalo ? ` · Canvas: ${r.canvasHalo.drawnPx} px gezeichnet, davon ${r.canvasHalo.haloPx} (${r.canvasHalo.haloPct} %) über trockenem Pixel` : ''} · Kamera ${cornerErrPx.toFixed(2)} px`);
     await ctx.close();
   }
 }

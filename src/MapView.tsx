@@ -130,7 +130,7 @@ import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
-import { radarHdFlagFrom, radarMorphFlagFrom, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
+import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
 import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM } from './scalar/radarHd250';
 import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
@@ -142,7 +142,7 @@ import type { RainFrameData, RainMorph, RainFlow } from './scalar/RainLayer';
 import { incaWarpMesh, INCA_WARP_N } from './sources/geosphereIncaGeo';
 import { rzcWarpMesh, RZC_WARP_N } from './sources/meteoSwissGeo';
 // Phase RR: Niederschlags-Profil des Regenradars (reine Tabelle + Zeit-/Komposit-Regeln, headless geprüft).
-import { RADAR_PROFILE, radarProfileComposite, profileHourOf, morphStep, lerpValues, type MapProfile } from './map/mapProfile';
+import { RADAR_PROFILE, radarProfileComposite, profileHourOf, morphStep, lerpValues, lerpValuesWet, type MapProfile } from './map/mapProfile';
 import { precipCompositeReady, precipRadarHorizonHours, type PrecipAvailability } from './nowcast/precipSource';
 import {
   fetchDachStations,
@@ -964,6 +964,8 @@ export default function MapView({
   const hdRef = useRef(radarHdFlagFrom());
   /** HD-4: in-between pictures along the motion field (profile morph) — only with HD on. */
   const hdMorphRef = useRef(radarMorphFlagFrom());
+  /** Phase RS (`audit/radar-randsaum.md`): edge rule of the HD layers and the 250-m tiles — `off` = the picture before RS. */
+  const hdEdgeRef = useRef(radarEdgeFlagFrom());
   const [hdFlowTick, setHdFlowTick] = useState(0);
   const hdMaskRef = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
   const hdFramesRef = useRef<Map<number, CompositePick>>(new Map());
@@ -1613,15 +1615,15 @@ export default function MapView({
     // layer list is the one before HD.
     const hd = hdRef.current;
     const hdLayers = hd.on ? [
-      new RainLayer({ id: RADAR_HD_LAYER_IDS.DE, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter }),
-      new RainLayer({ id: RADAR_HD_LAYER_IDS.AT, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter }),
-      new RainLayer({ id: RADAR_HD_LAYER_IDS.CH, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter }),
+      new RainLayer({ id: RADAR_HD_LAYER_IDS.DE, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter, edge: hdEdgeRef.current }),
+      new RainLayer({ id: RADAR_HD_LAYER_IDS.AT, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter, edge: hdEdgeRef.current }),
+      new RainLayer({ id: RADAR_HD_LAYER_IDS.CH, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter, edge: hdEdgeRef.current }),
     ] : [];
     layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer,
       ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2] } : {}) };
     // Phase R250: one RainLayer per 250-m tile (log ramp — the tiles carry the HD-3 log byte), invisible until a tile is set.
     const hd250Layers = hd250Ref.current
-      ? HD250_TILE_LIST.map((t) => new RainLayer({ id: t.id, colorRamp: precipRainRampLog, opacity: 0, filter: hd.filter }))
+      ? HD250_TILE_LIST.map((t) => new RainLayer({ id: t.id, colorRamp: precipRainRampLog, opacity: 0, filter: hd.filter, edge: hdEdgeRef.current }))
       : [];
     hd250LayersRef.current = new Map(hd250Layers.map((l) => [l.id, l]));
     // Phase DB: entsteht die Karte, während das Dashboard schon wieder vorn liegt, startet der Wind-Loop angehalten.
@@ -3617,7 +3619,9 @@ export default function MapView({
     // composite picks (`pickCompositeFrames`), each on its own grid with its ownership mask; a missing source hides its
     // layer. The composite below keeps running unchanged (it is the named fallback and feeds nothing else here).
     const hd = hdRef.current;
-    type HdMorphs = { DE?: RainMorph | null; AT?: RainMorph | null; CH?: RainMorph | null };
+    // Phase RS: with the edge rule, rain on one side only is not faded in through small bytes (= light-rain classes on the log plane).
+    const mixHd = hdEdgeRef.current === 'off' ? lerpValues : lerpValuesWet;
+    type HdMorphs ={ DE?: RainMorph | null; AT?: RainMorph | null; CH?: RainMorph | null };
     const syncHd = (pick: CompositePick | null, morphs: HdMorphs = {}) => {
       if (!hd.on) return;
       const L = layerRefs.current;
@@ -3724,7 +3728,7 @@ export default function MapView({
           else {
             let buf = hd250MixBufRef.current.get(id);
             if (!buf || buf.length !== va.length) { buf = new Uint8Array(va.length); hd250MixBufRef.current.set(id, buf); }
-            layer.setFrame({ ...frame, values: lerpValues(va, vb, q, buf) });
+            layer.setFrame({ ...frame, values: mixHd(va, vb, q, buf) });
             layer.setMorph(null);
           }
         } else { layer.setFrame(frame); layer.setMorph(null); }
@@ -3839,11 +3843,11 @@ export default function MapView({
               if (x.values2 && y.values2 && x.values2.length === y.values2.length) {
                 let buf2 = bufs2[key];
                 if (!buf2 || buf2.length !== x.values2.length) { buf2 = new Uint8Array(x.values2.length); bufs2[key] = buf2; }
-                return { ...x, values: lerpValues(x.values, y.values, q, buf), values2: lerpValues(x.values2, y.values2, q, buf2) };
+                return { ...x, values: mixHd(x.values, y.values, q, buf), values2: mixHd(x.values2, y.values2, q, buf2) };
               }
               const { values2: _drop, ...rest } = x as T & { values2?: Uint8Array };
               void _drop;
-              return { ...(rest as T), values: lerpValues(x.values, y.values, q, buf) };
+              return { ...(rest as T), values: mixHd(x.values, y.values, q, buf) };
             };
             syncHd({ rv: mixedOrA(a.rv, b.rv, 'DE'), inca: mixedOrA(a.inca, b.inca, 'AT'), rzc: mixedOrA(a.rzc, b.rzc, 'CH'), d2: null }, morphs);
             syncHd250(a.rv, b.rv, q);
@@ -3857,11 +3861,11 @@ export default function MapView({
             if (x.values2 && y.values2 && x.values2.length === y.values2.length) {
               let buf2 = bufs2[key];
               if (!buf2 || buf2.length !== x.values2.length) { buf2 = new Uint8Array(x.values2.length); bufs2[key] = buf2; }
-              return { ...x, values: lerpValues(x.values, y.values, q, buf), values2: lerpValues(x.values2, y.values2, q, buf2) };
+              return { ...x, values: mixHd(x.values, y.values, q, buf), values2: mixHd(x.values2, y.values2, q, buf2) };
             }
             const { values2: _drop, ...rest } = x as T & { values2?: Uint8Array };
             void _drop;
-            return { ...(rest as T), values: lerpValues(x.values, y.values, q, buf) };
+            return { ...(rest as T), values: mixHd(x.values, y.values, q, buf) };
           };
           syncHd({ rv: mixed(a.rv, b.rv, 'DE'), inca: mixed(a.inca, b.inca, 'AT'), rzc: mixed(a.rzc, b.rzc, 'CH'), d2: null });
           syncHd250(a.rv, b.rv, q);

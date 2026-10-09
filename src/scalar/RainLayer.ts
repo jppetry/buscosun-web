@@ -25,7 +25,7 @@ import {
   type ProgramWrapper,
 } from '../wind/glUtil';
 import { warpMeshGeometry, mercatorOf } from './quadWarpMesh';
-import { RAIN_FILTER_CODE, RADAR_MORPH_MAX_TEXELS, type RainFilter } from './radarHd';
+import { RAIN_EDGE_CODE, RAIN_FILTER_CODE, RADAR_MORPH_MAX_TEXELS, type RainEdge, type RainFilter } from './radarHd';
 
 // KL9/V-KL-3 (2026-08-27, Jans Go): die Knoten kommen als fertige Mercator-
 // Koordinaten (`a_merc`, auf der CPU in double — `mercatorOf`). Vorher rechnete
@@ -148,11 +148,61 @@ float sampleAny(sampler2D sm, vec2 uv) {
   return sampleBicubic(sm, uv);
 }
 
+// Phase RS (audit/radar-randsaum.md): edge rule. Wet/dry comes from the measured texels, never from the filtered value
+// (mixing a wet byte with the 0 of a dry neighbour painted a ring of light-rain classes on the log plane). ind = share of
+// wet texels (u_edge 1: bilinear over the inner 2×2; u_edge 2: the texel under the point, 0/1). Dry texels of the 4×4
+// neighbourhood take the wet fill (bilinear mean of the wet inner texels) before the filter; Catmull-Rom is clamped to the
+// range of the WET inner texels. Returns 0 when no inner texel is wet.
+uniform int u_edge;               // 0 = off (path before RS) · 1 = round · 2 = nearest
+const float WET = 0.5 / 255.0;
+float sampleWet(sampler2D sm, vec2 uv, out float ind) {
+  vec2 coord = uv * u_texsize - 0.5;
+  vec2 f = fract(coord);
+  vec2 i0 = coord - f;
+  vec4 v = vec4(texelAt(sm, i0), texelAt(sm, i0 + vec2(1.0, 0.0)), texelAt(sm, i0 + vec2(0.0, 1.0)), texelAt(sm, i0 + vec2(1.0, 1.0)));
+  vec4 bw = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
+  vec4 w = step(WET, v);
+  float iw = dot(bw, w);
+  float own = sampleNearest(sm, uv);
+  ind = u_edge == 2 ? step(WET, own) : iw;
+  if (iw <= 0.0) return 0.0;
+  if (u_filter == 3) return own;
+  float fill = dot(bw * w, v) / iw;
+  if (u_filter == 2) return fill;
+  vec4 lo4 = mix(vec4(1.0), v, w), hi4 = v * w;
+  float lo = min(min(lo4.x, lo4.y), min(lo4.z, lo4.w)), hi = max(max(hi4.x, hi4.y), max(hi4.z, hi4.w));
+  vec4 wx = u_filter == 1 ? catmullWeights(f.x) : cubicWeights(f.x);
+  vec4 wy = u_filter == 1 ? catmullWeights(f.y) : cubicWeights(f.y);
+  float s = 0.0;
+  for (int j = 0; j < 4; j++) {
+    float row = 0.0;
+    for (int i = 0; i < 4; i++) {
+      float t = texelAt(sm, i0 + vec2(float(i) - 1.0, float(j) - 1.0));
+      row += wx[i] * (t >= WET ? t : fill);
+    }
+    s += wy[j] * row;
+  }
+  return u_filter == 1 ? clamp(s, lo, hi) : max(s, 0.0);
+}
+
 void main() {
   if (v_uv.x < 0.0 || v_uv.x > 1.0 || v_uv.y < 0.0 || v_uv.y > 1.0) discard;
   if (u_mask_on > 0.5 && texture2D(u_mask, (floor(v_uv * u_texsize) + 0.5) / u_texsize).r < 0.5) discard;
   float t;
-  if (u_morph_on > 0.5) {
+  if (u_edge != 0) {
+    float ia, ib;
+    if (u_morph_on > 0.5) {
+      // the contour moves continuously from A to B (mixed wet share); a side that is dry here never enters the value
+      vec2 d = (texture2D(u_flow, v_uv).rg * 2.0 - 1.0) * u_flow_scale / u_texsize;
+      float ta = sampleWet(u_value, v_uv - u_frac * d, ia);
+      float tb = sampleWet(u_value_b, v_uv + (1.0 - u_frac) * d, ib);
+      if (mix(ia, ib, u_frac) < 0.5) discard;
+      t = ta > 0.0 && tb > 0.0 ? mix(ta, tb, u_frac) : max(ta, tb);
+    } else {
+      t = sampleWet(u_value, v_uv, ia);
+      if (ia < 0.5) discard;
+    }
+  } else if (u_morph_on > 0.5) {
     // HD-4: Verschiebung (Texel) aus dem Bewegungsfeld an dieser Stelle; A um −frac, B um +(1 − frac) versetzt lesen.
     vec2 d = (texture2D(u_flow, v_uv).rg * 2.0 - 1.0) * u_flow_scale / u_texsize;
     float ta = sampleAny(u_value, v_uv - u_frac * d);
@@ -205,6 +255,8 @@ export interface RainLayerOptions {
   opacity?: number;
   /** Phase HD-2: Abtastung zwischen den Texelmitten; Voreinstellung `bspline` = Stand vor HD (byte-gleich). */
   filter?: RainFilter;
+  /** Phase RS: edge rule (`audit/radar-randsaum.md`); default `off` = the path before RS. */
+  edge?: RainEdge;
 }
 
 /**
@@ -223,6 +275,8 @@ export class RainLayer implements CustomLayerInterface {
   opacity: number;
   /** HD-2: aktive Abtastung (`setFilter`). */
   filter: RainFilter;
+  /** Phase RS: active edge rule (`setEdge`). */
+  edge: RainEdge;
   private colorRampStops: Record<number, string>;
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
@@ -257,12 +311,19 @@ export class RainLayer implements CustomLayerInterface {
     this.id = options.id;
     this.opacity = options.opacity ?? 0.85;
     this.filter = options.filter ?? 'bspline';
+    this.edge = options.edge ?? 'off';
     this.colorRampStops = options.colorRamp;
   }
 
   /** HD-2: Abtastung zur Laufzeit wechseln (ein Uniform, kein Upload). */
   setFilter(filter: RainFilter) {
     this.filter = filter;
+    this.map?.triggerRepaint();
+  }
+
+  /** Phase RS: edge rule at runtime (one uniform, no upload). */
+  setEdge(edge: RainEdge) {
+    this.edge = edge;
     this.map?.triggerRepaint();
   }
 
@@ -460,6 +521,7 @@ export class RainLayer implements CustomLayerInterface {
     gl.uniform1i(p.u_mask as WebGLUniformLocation, 2);
     gl.uniform1f(p.u_mask_on as WebGLUniformLocation, maskOn ? 1 : 0);
     gl.uniform1i(p.u_filter as WebGLUniformLocation, RAIN_FILTER_CODE[this.filter]);
+    gl.uniform1i(p.u_edge as WebGLUniformLocation, RAIN_EDGE_CODE[this.edge]);
     // HD-4: Einheiten 3/4 tragen Frame B und den Fluss — ohne Morph die Werte-Textur (nie eine unvollständige Textur).
     const morphOn = !!(this.morph && this.valueTexB && this.flowTex && this.morphRefs.b === this.morph.b);
     bindTexture(gl, morphOn ? this.valueTexB! : this.valueTex, 3);

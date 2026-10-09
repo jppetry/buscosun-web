@@ -134,3 +134,19 @@ export function lerpValues(a: Uint8Array, b: Uint8Array, frac: number, out: Uint
   for (let i = 0; i < n; i++) out[i] = (a[i] + (b[i] - a[i]) * f) | 0;
   return out;
 }
+
+/**
+ * Phase RS (`audit/radar-randsaum.md`): the mix with the edge rule — a cell wet on both sides mixes as `lerpValues`; a cell wet
+ * on one side only keeps that side's value up to the half (A before, B from `frac` ½) instead of fading through small bytes,
+ * which on the log plane are the light-rain classes. Dry on both sides stays 0. Never a value below both measurements' minimum.
+ */
+export function lerpValuesWet(a: Uint8Array, b: Uint8Array, frac: number, out: Uint8Array): Uint8Array {
+  const f = Math.max(0, Math.min(1, frac));
+  const n = Math.min(a.length, b.length, out.length);
+  const bSide = f >= 0.5;
+  for (let i = 0; i < n; i++) {
+    const x = a[i], y = b[i];
+    out[i] = x && y ? Math.max(1, (x + (y - x) * f) | 0) : bSide ? y : x;
+  }
+  return out;
+}
