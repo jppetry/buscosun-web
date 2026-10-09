@@ -1,0 +1,60 @@
+﻿Desktop: Umschalter ["Karte","Karte + 3D *","3D"]
+Desktop: Dock {"cls":"zt-dockwrap is-slim","w":64}
+Desktop: idle true
+Desktop split: {
+ "note": null,
+ "stamp": "Zellen: Messung 17:50 · Türme am Messort, Zukunft als Bahn",
+ "legend": "ZELLTÜRME · MAX. REFLEKTIVITÄT (DBZ) < 45 45–50 50–55 ≥ 55 Hagelkern · Fläche gemessen, Lage schematisch Zugbahn und Unsicherheit bis +60 min Höhen über Grund (Echohöhen ü. NN minus Gelände am Zellmittelpunkt) · Gelände und Türme 1,3-fach überhöht · Zellen nur im DE-Radarverbund (DWD KONRAD3D)",
+ "towers": 12,
+ "cores": 4,
+ "radarVisible": null,
+ "pitch": 60,
+ "stageW": 481,
+ "mapW": 481,
+ "mapVis": "visible"
+}
+Desktop: Hauptkarte folgt {"stage":["11.620","47.120","8.60"]}
+  → audit/zelltuerme-3d/desktop-split.png
+Desktop: Turm 12 auf dem Schirm {"x":1002.3396158343403,"y":405.67290863178096}
+Desktop: Steckbrief "ZELLE 12 · TURM IM 3D | wächst | ECHOBASIS | unter Geländehöhe | 1.609 m ü. NN | ECHOTOP | 5,5 km über Grund | 8.670 m ü. NN | BLITZRATE | 14 / 5 min | TREND | wächst | Echotop +450 m · VIL +0,0 kg/m² je 5 min | REFLEKTIVITÄT | 59,0 dBZ max. | HAGEL | 5,5 km² | bis 3,1 km über Grund | Messzeit 17:50 · Höhen über Grund am Zellmittelpunkt (Gelände 3.133 m ü. NN, Terrarium) · Trend gegen den Lauf 5 min davor · Hinweis aus dem Radar, keine Warnung · maßgeblich sind die DWD-Warnungen"
+  → audit/zelltuerme-3d/desktop-split-steckbrief.png
+  → audit/zelltuerme-3d/desktop-readout-steckbrief.png
+  → audit/zelltuerme-3d/drape-test-1-magenta.png
+  → audit/zelltuerme-3d/drape-test-2-gruen.png
+Desktop: Dock offen 226
+  → audit/zelltuerme-3d/desktop-dock-offen.png
+Desktop: 3D true
+Desktop 3D: {"note":null,"stamp":"Zellen: Messung 17:50 · Türme am Messort, Zukunft als Bahn","legend":"ZELLTÜRME · MAX. REFLEKTIVITÄT (DBZ) < 45 45–50 50–55 ≥ 55 Hagelkern · Fläche gemessen, Lage schematisch Zugbahn und Unsicherheit bis +60 min Höhen über Grund (Echohöhen ü. NN minus Gelände am Zellmittelpunkt) · Gelände und Türme 1,3-fach überhöht · Zellen nur im DE-Radarverbund (DWD KONRAD3D)","towers":12,"cores":4,"radarVisible":"visible","pitch":60,"stageW":800,"mapW":400,"mapVis":"hidden"}
+  → audit/zelltuerme-3d/desktop-3d.png
+Desktop: Zeitachse Text "18:13\nin 15 min · Vorhersage\nJETZT\nJetzt\n0.5×\n1×\n2×"
+Desktop Rückblick (Zustand): {"note":null,"stamp":"Zellen: Messung 17:50 · Türme am Messort, Zukunft als Bahn","legend":"ZELLTÜRME · MAX. REFLEKTIVITÄT (DBZ) < 45 45–50 50–55 ≥ 55 Hagelkern · Fläche gemessen, Lage schematisch Zugbahn und Unsicherheit bis +60 min Höhen über Grund (Echohöhen ü. NN minus Gelände am Zellmittelpunkt) · Gelände und Türme 1,3-fach überhöht · Zellen nur im DE-Radarverbund (DWD KONRAD3D)","towers":12,"cores":4,"radarVisible":"visible","pitch":60,"stageW":481,"mapW":481,"mapVis":"visible"}
+Desktop Schritt +1: 18:28 in 30 min · Vorhersage · Ellipse ["==",["get","leadMin"],40] · Türme 16
+Desktop Schritt +2: 18:43 in 45 min · Vorhersage · Ellipse ["==",["get","leadMin"],55] · Türme 16
+  → audit/zelltuerme-3d/desktop-zukunft-ellipse.png
+Desktop Schritt +3: 18:58 in 1 h · Vorhersage · Ellipse ["==",["get","leadMin"],-1] · Türme 0
+Desktop Schritt +4: 19:13 in 1 h 15 min · Vorhersage · Ellipse ["==",["get","leadMin"],-1] · Türme 0
+Desktop Zukunft: Zeitachse "20:58\nin 3 h · Vorhersage\nJETZT\nJetzt\n0." Ellipse "[\"all\",[\"==\",[\"get\",\"kind\"],\"cone-step\"],[\"==\",[\"get\",\"leadMin\"],-1]]" {"note":"Die Zellvorhersage reicht bis 18:55 (+60 min) — danach keine Türme.","stamp":null,"legend":"ZELLTÜRME · MAX. REFLEKTIVITÄT (DBZ) < 45 45–50 50–55 ≥ 55 Hagelkern · Fläche gemessen, Lage schematisch (keine im Lauf) Zugbahn und Unsicherheit bis +60 min Höhen über Grund (Echohöhen ü. NN minus Gelände am Zellmittelpunkt) · Gelände und Türme 1,3-fach überhöht · Zellen nur im DE-Radarverbund (DWD KONRAD3D)","towers":0,"cores":0,"radarVisible":"visible","pitch":60,"stageW":481,"mapW":481,"mapVis":"visible"}
+  → audit/zelltuerme-3d/desktop-zukunft.png
+Desktop: Zeitachse "11"
+Desktop Rückblick: {"note":"Die Zellvorhersage reicht bis 18:55 (+60 min) — danach keine Türme.","stamp":null,"legend":"ZELLTÜRME · MAX. REFLEKTIVITÄT (DBZ) < 45 45–50 50–55 ≥ 55 Hagelkern · Fläche gemessen, Lage schematisch (keine im Lauf) Zugbahn und Unsicherheit bis +60 min Höhen über Grund (Echohöhen ü. NN minus Gelände am Zellmittelpunkt) · Gelände und Türme 1,3-fach überhöht · Zellen nur im DE-Radarverbund (DWD KONRAD3D)","towers":0,"cores":0,"radarVisible":"visible","pitch":60,"stageW":481,"mapW":481,"mapVis":"visible"}
+  → audit/zelltuerme-3d/desktop-rueckblick.png
+Desktop Wien: {"note":"Keine Zelldaten: der deutsche Radarverbund reicht hier nicht hin (Österreich und Schweiz ohne Zellprodukt).","stamp":null,"legend":"ZELLTÜRME · MAX. REFLEKTIVITÄT (DBZ) < 45 45–50 50–55 ≥ 55 Hagelkern · Fläche gemessen, Lage schematisch (keine im Lauf) Zugbahn und Unsicherheit bis +60 min Höhen über Grund (Echohöhen ü. NN minus Gelände am Zellmittelpunkt) · Gelände und Türme 1,3-fach überhöht · Zellen nur im DE-Radarverbund (DWD KONRAD3D)","towers":0,"cores":0,"radarVisible":"visible","pitch":60,"stageW":481,"mapW":481,"mapVis":"visible"}
+  → audit/zelltuerme-3d/desktop-wien.png
+Desktop: nach Zurücksetzen {"pitch":60,"bearing":0}
+Desktop Karte: {"stage":false,"aside":false,"slim":false}
+  → audit/zelltuerme-3d/desktop-karte.png
+Voreinstellung: {"viewseg":["Karte *","Karte + 3D","3D"],"stage":false,"chunk":false}
+  → audit/zelltuerme-3d/desktop-voreinstellung.png
+Rückfall ?z3d=0: {"zt":0,"viewseg":false}
+  → audit/zelltuerme-3d/desktop-ohne-schalter.png
+Mobil: Reiter 3D true
+Mobil: {"note":null,"stamp":"Zellen: Messung 17:55 · Türme am Messort, Zukunft als Bahn","legend":"Legende","towers":9,"cores":3,"radarVisible":"visible","pitch":60,"stageW":354,"mapW":390,"mapVis":"visible"}
+Mobil: pixelRatio 1.5
+Mobil: Steckbrief "ZELLE 12 · TURM IM 3D | wächst | ECHOBASIS | unter Geländehöhe | 1.609 m ü. NN | ECHOTOP | 5,5 km über Grund | 8.670 m ü. NN | BLITZRATE | 14 / 5 min | TREND | wächst | Echotop +450 m · VIL +0,0 kg/m² je 5 min | REFLEKTIVITÄT | 59,0 dBZ max. | HAGEL | 5,5 km² | bis 3,1 km über Grund | Messzeit 17:55 · Höhen über Grund am Zellmittelpunkt (Gelände 3.133 m ü. NN, Terrarium) · Trend gegen den Lauf 5 min davor · Hinweis aus dem Radar, keine Warnung · maßgeblich sind die DWD-Warnungen"
+Mobil: Ziele ["Find my location 0×0","Zoom in 0×0","Zoom out 0×0","Zoom in 0×0","Zoom out 0×0","Drag to rotate map 0×0","Ansicht zurücksetz 44×44","Legende 69×44","Schnellblick 62×59","Zeitachse 55×59","Diagramm 55×59","Höhe 55×59","3D 55×59","Layer 55×59","Detail 55×59"]
+  → audit/zelltuerme-3d/mobil-3d.png
+
+KONRAD3D-Slots bedient: 3 (20261009T155000, 20261009T154500, 20261009T155500 …)
+Konsole (Fehler/Warnungen): 2
+  [warning] cannot calculate elevation if elevation maxzoom > source.maxzoom
+  [warning] cannot calculate elevation if elevation maxzoom > source.maxzoom

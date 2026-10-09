@@ -584,6 +584,20 @@ interface Props {
   /** Phase RB (`audit/regenbeginn-spanne.md`, an, `?rb=0` aus): kleines Label am Ortsmarker („Regen 14:05–14:20"). Nur im
    *  Profil; ohne Prop (oder `null`) kein Element — der Marker exakt wie vorher. */
   profileMarkerLabel?: string | null;
+  /** Phase ZO (V-ZO-4, `audit/zell-orte.md`): die Zelle, die der Satz zum Ort nennt (Regel E-ZO-1), wird auf der Karte
+   *  hervorgehoben — `null` = keine. Nur im Profil; ohne Prop (`undefined`) rechnet die Karte wie vorher mit S-Z2-3a. */
+  profileAffectsCellId?: number | null;
+  /** Phase ZT (`audit/zelltuerme-3d.md`, on; `?z3d=0` off): the HD frames (native grid per country) of the shown time, for the
+   *  radar picture on the relief of the 3D stage. Only in the profile with HD on; without the prop nothing is reported. */
+  onProfileRadarPick?: (pick: ProfileRadarPick) => void;
+}
+
+/** Phase ZT: HD frames of one validity time, per country on its native grid (null = no frame of that country). */
+export interface ProfileRadarPick {
+  timeMs: number;
+  DE: { values: Uint8Array; values2?: Uint8Array; width: number; height: number; corners: QuadCorners } | null;
+  AT: { values: Uint8Array; values2?: Uint8Array; width: number; height: number; corners: QuadCorners } | null;
+  CH: { values: Uint8Array; values2?: Uint8Array; width: number; height: number; corners: QuadCorners } | null;
 }
 
 // Layer-Katalog (SEO/GEO 2026, E1): Label + Tooltip je Layer stehen seit E1 in
@@ -701,8 +715,16 @@ export default function MapView({
   location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false,
   routeLayers, onLayersChange, routeHour, onHourChange, initialView, onViewChange, initialModelSource, routeModelSource, onModelSourceChange,
   suspended = false, onOpenDashboard,
-  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady, profileMarkerLabel,
+  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady, profileMarkerLabel, profileAffectsCellId,
+  onProfileRadarPick,
 }: Props) {
+  // Phase ZT: last reported HD pick (re-sent when a listener appears later, e.g. the 3D stage opens after the slider moved).
+  const radarPickCbRef = useRef(onProfileRadarPick);
+  radarPickCbRef.current = onProfileRadarPick;
+  const lastRadarPickRef = useRef<ProfileRadarPick | null>(null);
+  const lastRadarPickSrcRef = useRef<object | null>(null);
+  const hasRadarPickCb = !!onProfileRadarPick;
+  useEffect(() => { if (hasRadarPickCb && lastRadarPickRef.current) radarPickCbRef.current?.(lastRadarPickRef.current); }, [hasRadarPickCb]);
   // Phase RR: Rückkanäle des Profils als Ref (der Mount-Effekt mit [] liest sie ohne Stale-Closure).
   const profileCbRef = useRef({ onPointPick, onPointHover, onMapReady });
   profileCbRef.current = { onPointPick, onPointHover, onMapReady };
@@ -3019,7 +3041,9 @@ export default function MapView({
       if (!src) return false;
       const target: [number, number] | null = overview ? null : [location.lon, location.lat];
       const rel = target ? cellLocationRelevance(cellsRun, target) : null;
-      const fc = buildCellFeatures(cellsRun, { affectsCellId: rel?.cellId ?? null });
+      // V-ZO-4: im Profil mit Vorgabe hebt die Karte die Zelle hervor, die der Satz zum Ort nennt (Regel E-ZO-1).
+      const affectsCellId = profile && profileAffectsCellId !== undefined ? profileAffectsCellId : (rel?.cellId ?? null);
+      const fc = buildCellFeatures(cellsRun, { affectsCellId });
       src.setData(fc);
       setCellsRelevance(rel ? { cellId: rel.cellId, text: cellRelevanceText(rel) } : null);
       // „no silent caps": was die Ausdünnung wegnimmt, wird benannt statt
@@ -3033,7 +3057,8 @@ export default function MapView({
         + `(${JSON.stringify(counts)}) · Ausdünnung: Trichterstufen erst ab z${CELLS_CONE_STEP_MINZOOM} `
         + `und ab sev ${CELLS_CONE_STEP_MIN_SEV} (${thinned} Zelle(n) darunter — deren Umriss, Spur und `
         + `Trichterhülle bleiben), Zeitmarken ab z${CELLS_MARK_MINZOOM}, Pfeile ab z${CELLS_ARROW_MINZOOM}`
-        + `${rel ? ` · Standortbezug: Zelle ${rel.cellId}` : ' · kein Standortbezug'}`,
+        + `${rel ? ` · Standortbezug: Zelle ${rel.cellId}` : ' · kein Standortbezug'}`
+        + `${affectsCellId !== (rel?.cellId ?? null) ? ` · hervorgehoben nach ZO: ${affectsCellId ?? 'keine'}` : ''}`,
       );
       return true;
     };
@@ -3049,7 +3074,7 @@ export default function MapView({
     };
     map.on('styledata', retry);
     return () => { done = true; map.off('styledata', retry); };
-  }, [cellsRun, location.lon, location.lat, overview]);
+  }, [cellsRun, location.lon, location.lat, overview, profile, profileAffectsCellId]);
 
   // ---- Hagel (Phase HA1) -----------------------------------------------------
   // Zwei Quellen, zwei Effekte: der DE-Teil hängt nur am Layer-Zustand, der
@@ -3644,6 +3669,24 @@ export default function MapView({
           while (hdCache.size > 6) { const oldest = hdCache.keys().next().value; if (oldest === undefined) break; hdCache.delete(oldest); }
           return p;
         };
+        // Phase ZT: report the frames of the nearer radar time (no morph — the relief picture shows measured/nowcast frames).
+        if (radarPickCbRef.current) {
+          const nearMs = tb ? (q >= 0.5 ? tb.bMs : tb.aMs) : timeMs;
+          const p = pickAt(nearMs);   // cached per time; a new object after a new nowcast (cache cleared) ⇒ report again
+          if (lastRadarPickSrcRef.current !== p) {
+            lastRadarPickSrcRef.current = p;
+            const log = (f: object) => (f as { values2?: Uint8Array }).values2;
+            const rvSrc = nowcastRef.current, incaSrc = incaGridRef.current, rf0 = rvSrc?.frames[0];
+            const pick: ProfileRadarPick = {
+              timeMs: nearMs,
+              DE: p.rv && rvSrc && rf0 ? { values: p.rv.values, values2: log(p.rv), width: rf0.width, height: rf0.height, corners: rvSrc.corners } : null,
+              AT: p.inca && incaSrc ? { values: p.inca.values, values2: log(p.inca), width: p.inca.width, height: p.inca.height, corners: incaSrc.corners } : null,
+              CH: p.rzc ? { values: p.rzc.values, values2: log(p.rzc), width: p.rzc.width, height: p.rzc.height, corners: p.rzc.corners } : null,
+            };
+            lastRadarPickRef.current = pick;
+            radarPickCbRef.current(pick);
+          }
+        }
         if (tb && tb.bMs !== tb.aMs && q > 0 && q < 1) {
           const a = pickAt(tb.aMs), b = pickAt(tb.bMs);
           const bufs = hdMorphBufRef.current, bufs2 = hdMorphBuf2Ref.current;

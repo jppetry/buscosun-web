@@ -1,0 +1,9 @@
+cells: 23 (3 fixtures; 3 alpine, 20 lowland)
+maxzoom 7: foot error |DEM_z − DEM_12| median 9 m, p90 47 m, max 147 m · cells cut by a tile border 1/23
+maxzoom 8: foot error |DEM_z − DEM_12| median 3 m, p90 13 m, max 28 m · cells cut by a tile border 3/23
+maxzoom 9: foot error |DEM_z − DEM_12| median 3 m, p90 14 m, max 30 m · cells cut by a tile border 5/23
+maxzoom 10: foot error |DEM_z − DEM_12| median 2 m, p90 8 m, max 22 m · cells cut by a tile border 10/23
+  alpine (3) maxzoom 7: 47 / 14 / 147 m
+  alpine (3) maxzoom 8: 3 / 13 / 28 m
+  alpine (3) maxzoom 9: 14 / 10 / 23 m
+  alpine (3) maxzoom 10: 10 / 0 / 8 m

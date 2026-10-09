@@ -112,6 +112,19 @@ jobs:
       # 5-min-Raster, Satz zum Ort, Reichweite der deutschen Radare, Wortsperre D-19 (audit/zell-orte.md) — netzfrei.
       - name: Verifier — Betroffene Orte der Zellen (Regenradar, ZO)
         run: npm run verify:cell-places
+      # ZT: Zelltürme auf Gelände — Höhen über Grund, Hagelkern, Trend aus zwei Läufen, Rückblick-Slots, Radarbild fürs
+      # Relief, Verdrahtung hinter `?z3d=1` (audit/zelltuerme-3d.md) — netzfrei, an echten KONRAD3D-Läufen.
+      - name: Verifier — Zelltürme auf Gelände (Regenradar, ZT)
+        run: npm run verify:cell-towers
+      # HZS: Höhen-Zeit-Schnitt — Schneefallgrenze/Säulen nur an nativen Schritten aus buscosun Fusion, Nullgradgrenze
+      # gegen Handrechnung, Satz „Schnee bis zu dir", Gelände-Scheibe, Verdrahtung hinter `?hzs=1`
+      # (audit/hoehen-zeit-schnitt.md) — netzfrei, an echten Antworten von buscosun Fusion.
+      - name: Verifier — Höhen-Zeit-Schnitt (Regenradar, HZS)
+        run: npm run verify:height-time
+      # SK: Schneefallgrenze als Fläche im Gelände — Feld lesen, Kappe/Band/Linie gegen Gelände, Nässe, Satz am Ort
+      # (snowSentence von HZS), Verdrahtung hinter ?sk=1 (audit/schneefallgrenze-flaeche.md) — netzfrei.
+      - name: Verifier — Schneefallgrenze als Fläche (Regenradar, SK)
+        run: npm run verify:snowcap
       # HD: hochauflösendes Niederschlagsradar — Schalter, Besitz-Maske = pickCountry Pixel für Pixel auf den echten
       # Gittern, Frame-Regel byte-gleich, Shader-Algebra, Dual-Frames (Log-Ebene), Morph (audit/radar-hochaufloesung.md) — netzfrei.
       - name: Verifier — Niederschlagsradar HD

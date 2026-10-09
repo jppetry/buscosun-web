@@ -154,6 +154,14 @@
 .nc-radar-eta em { font-style: normal; opacity: 0.72; font-size: 0.7em; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 0.2rem; }
 /* Ruhe-Hinweis der Zellbahnen (kein Ereignis): Ink statt Bordeaux. */
 .nc-radar-eta--quiet { background: rgba(44,42,38,0.82); }
+/* Phase ZO (V-ZO-5): Hinweis, keine Warnung — Sand/Ink wie das Marker-Label (RB) statt Bordeaux. Nur mit ZO (`?zo=0` = vorher). */
+.nc-radar-eta--hint {
+  background: rgba(250,246,234,0.96); color: var(--ink-900, #2C2A26);
+  border: 1px solid var(--sand-200, #E0D6BE); font-weight: 500;
+  box-shadow: 0 1px 4px rgba(44,42,38,0.16); backdrop-filter: blur(4px);
+}
+.nc-radar-eta--hint svg { color: var(--ink-700, #5C5447); }
+.nc-radar-eta--hint em { opacity: 0.6; }
 /* Im Command-Deck sitzt oben die Quellen-Pille (`rr-source-pill`) — der
    Standortbezug rückt darunter, statt sie zu überlagern. */
 .rr-stage .nc-radar-eta { top: 3.1rem; }

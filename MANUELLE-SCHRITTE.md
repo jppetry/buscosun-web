@@ -1887,6 +1887,61 @@ Diagnose und Umsetzung: `audit/zell-orte.md` (E-ZO-1…6 entschieden, Gates §9)
 2. **Real-Device** (scrcpy): Haltestellen-Marker beim Zoomen/Ziehen, Antippen eines Orts, Long Tasks bei vielen Zellen.
 3. **Commit/Push** — eigener Commit, z. B. `feat(regenradar): affected places and arrival windows per storm cell (ZO)`;
    danach wird `verify:cell-places` H1–H3 gegen den neuen HEAD gerechnet (in CI).
-4. **Offen zur Entscheidung:** V-ZO-4 (Hervorhebung auf der Karte mit derselben Regel — additive Prop in `MapView`),
-   V-ZO-5 (rote Leiste über der Karte → Sand/Ink), V-ZO-2 (Ellipsen-Konvention beim DWD erfragen).
+4. **V-ZO-4 und V-ZO-5 umgesetzt (09.10., uncommitted, `audit/zell-orte.md` §10):** Karte hebt die Zelle des Satzes hervor
+   (additive Prop `profileAffectsCellId` in `MapView`), Leiste als Hinweis in Sand/Ink; `?zo=0` = vorher. Commit z. B.
+   `feat(regenradar): map highlight follows the place sentence, calm hint bar (ZO)` — Achtung: `src/MapView.tsx`,
+   `NowcastRadarMap.tsx` und `NowcastDeck.tsx` tragen zugleich Zeilen der Phasen ZT/HZS; beim Commit hunkweise trennen.
+5. **Offen zur Entscheidung:** V-ZO-2 (Ellipsen-Konvention beim DWD erfragen), V-ZO-7 (Leiste mobil verdeckt die Pille
+   „Über diese Ansicht“, seit RL1).
 
+
+## 54. Höhen-Zeit-Schnitt am Ort im Regenradar (Phase HZS), 2026-10-09
+
+Diagnose und Umsetzung: `audit/hoehen-zeit-schnitt.md` (E-HZS-1…10 entschieden, Umsetzung §7). Uncommitted; seit
+E-HZS-10 (Jan 09.10.) voreingestellt **an**, `?hzs=0` = Rückfall ohne Schnitt (§7.4).
+
+1. **Ansehen:** `/regenradar/<ort>` — Desktop: Ansicht „Karte + Höhe" (Glas-Umschalter oben rechts oder Dock
+   „Ansicht"); mobil: Reiter „Höhe". Hochgelegener Ort für den Schnittpunkt-Satz (z. B. Obergurgl), Bilder in
+   `audit/hoehen-zeit-schnitt/*.png`.
+2. **Real-Device** (scrcpy): Tippen ins Diagramm, Wechsel 48 h ↔ 14 Tage, Long Tasks (headless nicht messbar).
+3. **Commit/Push** — eigener Commit, z. B. `feat(regenradar): height-time section at the chosen point (HZS)`; enthält
+   `budget.json` (totalJs 1 658 → 1 669, Notiz) und den CI-Schritt `verify:height-time`.
+4. **Offen zur Entscheidung:** Umzug in die 3D-Hülle der Phase ZT, sobald sie steht (V-HZS-6);
+   V-HZS-1 (Kennzahl „Schneegrenze" aus `v2.snowline.p50`), V-HZS-2 (echter Grat für den Tal/Grat-Satz).
+
+## 55. Zelltürme auf Gelände im Regenradar (Phase ZT), 2026-10-09
+
+Diagnose, Entscheidungen und Umsetzung: `audit/zelltuerme-3d.md` (E-ZT-1…10 je die Empfehlung, Entwurf §6a freigegeben,
+Umsetzung §6b, Gates §7). Uncommitted; seit 09.10. eingeschaltet (Jan), `?z3d=0` = Regenradar wie vor ZT (§7b).
+
+1. **Ansehen:** `/regenradar/<ort>` — Desktop: Topbar „Karte | Karte + 3D | 3D", mobil: Reiter „3D". Zurzeit
+   meldet KONRAD3D kaum Zellen; Bilder mit eingespieltem Alpen-Lauf in `audit/zelltuerme-3d/*.png`
+   (`node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/cell-towers-probe.mjs --base=<vite preview>`).
+2. **Real-Device** (scrcpy, an einem Gewittertag): Reiter „3D" flüssig? Drehen/Kippen mit zwei Fingern, Antippen eines
+   Turms, Rückblick über die Zeitachse (in headless nicht belegbar, V-ZT-7), Long Tasks.
+3. **Commit/Push** — eigener Commit, z. B. `feat(regenradar): 3D stage with cell towers on terrain (ZT)`; enthält
+   `budget.json` (totalJs 1 669 → 1 679, Notiz), den CI-Schritt und das npm-Skript `verify:cell-towers`. `MapView.tsx`,
+   `NowcastRadarMap.tsx`, `NowcastDeck.tsx` tragen im Arbeitsbaum auch ungecommittete Zeilen von HZS, ZO und SK —
+   beim Aufteilen der Commits nach Phase `git add -p` nutzen (die ZT-Zeilen sind mit „Phase ZT" kommentiert).
+4. **Offen zur Entscheidung:** V-ZT-5 (Turmfuß bis 147 m neben dem Gelände und zwei
+   MapLibre-Warnungen bei `maxzoom: 7` — eine exakte Lösung bräuchte einen Shader = STOPP & FRAGEN), V-ZT-6 (Kompass mobil),
+   V-ZT-1 (DWD-Trend aus dem XML = Producer + `cells.json` Schema 2), V-ZT-4 (Ansicht im geteilten Link).
+
+## 56. Schneefallgrenze als Fläche im Gelände (Phase SK), 2026-10-09
+
+Diagnose, Messung, Entscheidungen und Umsetzung: `audit/schneefallgrenze-flaeche.md` (E-SK-1…7, Nachtrag 09.10.;
+Umsetzung §7, Gates §7.1). Uncommitted, **hinter `?sk=1` (aus)**; ohne Schalter bleibt die ICON-D2-Linie.
+
+1. **Ansehen:** `/regenradar/innsbruck?sk=1`, Ebene „Schneegrenze“ einschalten — Fläche + Linie + Band in der Karte,
+   „Karte + 3D“ zeigt die Kappe auf dem Relief (Hang antippen), rechts „Schneefallgrenze am Ort“ mit 48-h-Leiste
+   (Klick setzt die Kartenzeit). Bilder `audit/schneefallgrenze-flaeche/sk-*.png`; Sonde
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sk-probe.mjs --base=<vite>`.
+2. **Real-Device** (iPhone/Android): Verschieben/Zoomen mit eingeschalteter Kappe flüssig? „Karte + 3D“ bzw. Reiter
+   „3D“; Bauzeiten mit `&sklog=1` in der Konsole (`[sk] … ms`). Deckkraft trocken/nass (0,16/0,55) und die Schraffur am
+   Gerät ansehen — Werte sind `set`.
+3. **Einschalten** (Voreinstellung an, `?sk=0` als Rückfall) = dein Wort (E-SK-7), am besten an einem Tag mit Schneefall.
+4. **Commit/Push** — eigener Commit, z. B. `feat(regenradar): snowfall line as terrain surface (SK)`; enthält `src/snowCap/**`,
+   `scripts/verify-snowcap.mjs`, `scripts/sk-probe.mjs`, den CI-Schritt, `verify:snowcap` in `package.json` und
+   `budget.json` (totalJs 1 679 → 1 693, Notiz). `NowcastRadarMap.tsx`/`NowcastDeck.tsx` tragen auch Zeilen von ZT/HZS/ZO —
+   `git add -p` (SK-Zeilen nennen „Phase SK“ bzw. `snowCap`/`sk`). Danach Pixel-Diff ohne Schalter nachholen (§7.2 Frage 2).
+5. **Offen:** V-SK-1 (Winter: Messung mit echter Niederschlagsart), V-SK-3 (Feld-Grenze ≈ T_w 0,5 °C), V-SK-5…11.

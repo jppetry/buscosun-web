@@ -9,7 +9,7 @@
  * (Layer/Ansicht/Modus/Datenlage) · dunkles Radarfeld (Center) · rechter Readout.
  * Mobile: Radar oben + ziehbares Bottom-Sheet.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
@@ -49,6 +49,19 @@ import { cellPlacesEnabledFrom } from '../radar/cellPlaces';
 import { useCellPlaces } from './useCellPlaces';
 import { useCellFusionHint } from './useCellFusionHint';
 import CellPlacesCard from './CellPlacesCard';
+// Phase HZS (audit/hoehen-zeit-schnitt.md): Höhen-Zeit-Schnitt am gewählten Ort — nur `?hzs=1`, Lazy-Chunk.
+import { heightTimeEnabledFrom } from './heightTime/heightTimeFlag';
+const HeightTimePanel = lazy(() => import('./heightTime/HeightTimePanel'));
+// Phase ZT (audit/zelltuerme-3d.md): 3D stage "Zelltürme auf Gelände" — on by default (Jan 09.10.), `?z3d=0` = before; lazy chunk (stage + Steckbrief block).
+import { towers3dEnabledFrom, view3dFrom, VIEW3D_LABEL, type View3d } from './cellTowers/towerFlag';
+import type { TowerSnapshot } from './cellTowers/TowerStage';
+import type { ProfileRadarPick } from '../MapView';
+import './cellTowers/cellTowersShell.css';
+const TowerStage = lazy(() => import('./cellTowers/TowerStage'));
+const TowerFacts = lazy(() => import('./cellTowers/TowerStage').then((m) => ({ default: m.TowerFacts })));
+// Phase SK (`?sk=1`, audit/schneefallgrenze-flaeche.md): snowfall line as a surface — flag here, place card lazy.
+import { snowCapEnabledFrom } from '../snowCap/snowCapModel';
+const SnowArrivalPanel = lazy(() => import('../snowCap/SnowArrivalPanel'));
 
 type DeckState =
   | { kind: 'loading' }
@@ -91,7 +104,9 @@ function shortPlace(name: string): string { return name.split(',')[0]; }
 const comma = (n: number) => n.toString().replace('.', ',');
 
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
-type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail';
+type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail' | 'height' | '3d';
+/** Ansicht der Bühne; `height` = „Karte + Höhe" (Phase HZS, nur `?hzs=1`). */
+type DeckView = 'map' | 'chart' | 'height';
 
 /** Phase NS: die Auswahl der Summen-Ansicht je Browser merken (Komfort; ohne Speicher gilt die Voreinstellung). */
 const SUM_SEL_KEY = 'buscosun.regenradar.sum.v1';
@@ -122,7 +137,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     const saved = loadLastView()?.layers as RadarLayerId[] | undefined;
     return saved && saved.length ? saved : ['precip', 'cells', 'lightning'];
   });
-  const [view, setView] = useState<'map' | 'chart'>('map');
+  const [view, setView] = useState<DeckView>('map');
   const [mode, setMode] = useState<'standard' | 'detail'>('detail');
   // RL1: Modus des ICON-D2-Schneelayers (Decke | Neuschnee) — wie die Wetterkarte.
   const [snowMode, setSnowMode] = useState<SnowMode>('depth');
@@ -156,11 +171,25 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     slot: { thresholdSeg: <ChanceThresholdSeg value={chanceThr} onChange={setChanceThr} /> },
     card: chanceActive ? <PointChanceCard pc={pointChance} threshold={chanceThr} sliderMs={sliderMs} pickMs={pickMs} onPick={setPickMs} nowMs={Date.now()} /> : null,
   } : null;
+  // Phase HZS: Höhen-Zeit-Schnitt (nur `?hzs=1`) — gewählter Punkt der Karte, sonst der Ort der Seite (E-HZS-7).
+  const hzsOn = useMemo(() => heightTimeEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const hzsVisible = hzsOn && (isMobile ? mTab === 'height' : view === 'height');
+  const [hzsPoint, setHzsPoint] = useState<{ lat: number; lon: number; name: string; country: Location['country'] } | null>(null);
+  useEffect(() => { setHzsPoint(null); }, [location.lat, location.lon, location.country]);
+  const hzsAt = hzsPoint ?? { lat: location.lat, lon: location.lon, name: location.name, country: location.country };
+  const hzsMapProps = hzsOn ? { onPointChange: setHzsPoint } : {};
   const chanceMapProps = rcOn ? {
     chance: chanceActive ? { threshold: chanceThr, pickMs } : undefined,
     onTimeChange: chanceActive ? setSliderMs : undefined,
     onUserTime: chanceActive ? () => setPickMs(null) : undefined,
   } : {};
+  // Phase HZS (E-HZS-8): die Zeit des Sliders auch für die senkrechte Linie im Schnitt; ohne Schalter unverändert.
+  const timeMapProps = hzsVisible ? { onTimeChange: setSliderMs } : {};
+  const hzsPanel = (variant: 'desktop' | 'mobile') => (
+    <Suspense fallback={<div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> Höhen-Zeit-Schnitt lädt …</div>}>
+      <HeightTimePanel point={hzsAt} sliderMs={sliderMs} variant={variant} />
+    </Suspense>
+  );
   // Phase RB: Radar-Stack der Karte (undefined = noch keiner, null = Radar nicht erreichbar) + Fenster am Ort der Seite.
   const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const [rbStack, setRbStack] = useState<RadarStack | null | undefined>(undefined);
@@ -193,19 +222,72 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const cellCardDesktop = zoOn ? <CellPlacesCard zo={zo} fusion={zoFusion} onPickPlace={pickPlace} variant="desktop" /> : null;
   const cellCardMobile = zoOn ? <CellPlacesCard zo={zo} fusion={zoFusion} onPickPlace={pickPlace} variant="mobile" /> : null;
 
+  // Phase SK (`?sk=1`): flag and ZT stage map declared BEFORE the ZT block — `towerStage(…)` reads them during render.
+  const skOn = useMemo(() => snowCapEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const [skStageMap, setSkStageMap] = useState<maplibregl.Map | null>(null);
+
+  // Phase ZT (on, `?z3d=0` off): view Karte | Karte + 3D | 3D (topbar), mobile tab "3D". The stage gets the slider time, the HD
+  // frames of `MapView` and the main map; a tapped tower selects the cell and shows its Steckbrief block.
+  const z3dOn = useMemo(() => towers3dEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const [view3d, setView3dState] = useState<View3d>(() => (z3dOn ? view3dFrom(typeof window !== 'undefined' ? window.location.search : '') : 'map'));
+  const setView3d = (v: View3d) => { setView3dState(v); if (v !== 'map') setView('map'); };
+  useEffect(() => { if (view !== 'map') setView3dState('map'); }, [view]);
+  const [ztMainMap, setZtMainMap] = useState<maplibregl.Map | null>(null);
+  const [ztRadar, setZtRadar] = useState<ProfileRadarPick | null>(null);
+  const [towerSnap, setTowerSnap] = useState<TowerSnapshot | null>(null);
+  const [towerSel, setTowerSel] = useState<number | null>(null);
+  const [dockOpen, setDockOpen] = useState(false);
+  const ztDesktop = z3dOn && !isMobile && view === 'map' && view3d !== 'map';
+  const ztMobile = z3dOn && isMobile && mTab === '3d';
+  const ztActive = ztDesktop || ztMobile;
+  const pickTower = (id: number) => { setTowerSel(id); if (zoOn) zo.select(id); };
+  const towerInfo = towerSel != null ? towerSnap?.infos.find((i) => i.id === towerSel) ?? null : null;
+  const towerStage = (variant: 'desktop' | 'mobile') => (
+    <Suspense fallback={<div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> 3D-Bühne lädt …</div>}>
+      <TowerStage timeMs={sliderMs} mainMap={ztMainMap} radar={ztRadar} selectedId={towerSel} onTowerPick={pickTower}
+        onTowers={setTowerSnap} variant={variant} fallbackCenter={{ lat: location.lat, lon: location.lon }} onStageReady={skOn ? setSkStageMap : undefined} />
+    </Suspense>
+  );
+  const towerFacts = (variant: 'desktop' | 'mobile') => (ztActive && towerInfo
+    ? <Suspense fallback={null}><TowerFacts info={towerInfo} variant={variant} /></Suspense>
+    : null);
+  // Main map always reported with the switch (camera link starts with the right view); mapRef as the other phases use it.
+  const ztMapProps = z3dOn ? {
+    onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; setZtMainMap(m); },
+    ...(ztActive ? { onProfileRadarPick: setZtRadar, onTimeChange: setSliderMs } : {}),
+    ...(ztDesktop ? { stageAside: towerStage('desktop'), stage3d: view3d === '3d' ? '3d' as const : 'split' as const } : {}),
+  } : {};
+
+  // Phase SK (`?sk=1`): cap on the map + on ZT's stage (its map arrives via `onStageReady`), place card with 48-h bar.
+  const skActive = skOn && layers.includes('snowline');
+  const [skPickMs, setSkPickMs] = useState<number | null>(null);
+  useEffect(() => { setSkPickMs(null); }, [location.lat, location.lon, location.country]);
+  const skCard = (variant: 'desktop' | 'mobile') => (skActive && nowcast ? (
+    <Suspense fallback={null}>
+      <SnowArrivalPanel place={{ lat: location.lat, lon: location.lon, country: location.country }} mapMs={sliderMs} pickMs={skPickMs} onPick={setSkPickMs} variant={variant} />
+    </Suspense>
+  ) : null);
+  const skMapProps = skOn ? {
+    snowCap: { pickMs: skPickMs, stageMap: skStageMap, mapHidden: ztDesktop && view3d === '3d' },
+    ...(skActive ? { onTimeChange: setSliderMs, onUserTime: () => { setSkPickMs(null); if (chanceActive) setPickMs(null); } } : {}),
+  } : {};
+
   const toggleLayer = (id: RadarLayerId) =>
     setLayers((ls) => (ls.includes(id) ? ls.filter((l) => l !== id) : [...ls, id]));
 
   // --- gemeinsame Bausteine (Readout / Sheet) --------------------------------
   const center = (
-    <div className="rr-center">
-      {view === 'map' ? (
-        <div className="rr-stage">
-          <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
-            layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-            initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps}
-            {...zoMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; } } : {})} />
-        </div>
+    <div className={`rr-center${view === 'height' ? ' is-split' : ''}`}>
+      {view === 'map' || view === 'height' ? (
+        <>
+          <div className="rr-stage">
+            <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
+              layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
+              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
+              {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; } } : {})} {...ztMapProps} {...skMapProps} />
+          </div>
+          {view === 'height' && <div className="rr-hzs-pane">{hzsPanel('desktop')}</div>}
+        </>
       ) : (
         <div className="rr-chart">
           {nowcast
@@ -222,9 +304,10 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
 
       {!isMobile && (
         <div className="rr-topright-map">
-          <div className="rr-viewtoggle rr-glass" role="tablist" aria-label="Karte oder Diagramm">
+          <div className="rr-viewtoggle rr-glass" role="tablist" aria-label={hzsOn ? 'Karte, Diagramm oder Karte mit Höhen-Zeit-Schnitt' : 'Karte oder Diagramm'}>
             <button type="button" role="tab" aria-selected={view === 'map'} className={view === 'map' ? 'is-active' : ''} onClick={() => setView('map')}>Karte</button>
             <button type="button" role="tab" aria-selected={view === 'chart'} className={view === 'chart' ? 'is-active' : ''} onClick={() => setView('chart')}>Diagramm</button>
+            {hzsOn && <button type="button" role="tab" aria-selected={view === 'height'} className={view === 'height' ? 'is-active' : ''} onClick={() => setView('height')}>Karte + Höhe</button>}
           </div>
         </div>
       )}
@@ -250,6 +333,14 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <NowcastLocationField value={location} onChange={onChangeLocation} />
           </div>
           <div className="rr-topright">
+            {z3dOn && (
+              <div className="zt-viewseg" role="group" aria-label="Ansicht">
+                {(['map', 'split', '3d'] as const).map((v) => (
+                  <button key={v} type="button" className={view3d === v && view === 'map' ? 'is-active' : ''} aria-pressed={view3d === v && view === 'map'}
+                    onClick={() => setView3d(v)}>{VIEW3D_LABEL[v]}</button>
+                ))}
+              </div>
+            )}
             <span className="rr-live">
               <span className="rr-live-dot"><span /><span /></span>
               <span className="rr-live-text">RADAR LIVE</span>
@@ -266,8 +357,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rm-map">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps}
-              {...zoMapProps} onMapReady={(m) => { mapRef.current = m; }} />
+              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
+              {...zoMapProps} {...hzsMapProps} onMapReady={(m) => { mapRef.current = m; }} {...ztMapProps} {...skMapProps} />
           </div>
           <div className="rm-topfloat">
             <div className="rm-search"><NowcastLocationField value={location} onChange={onChangeLocation} showCountryCode /></div>
@@ -288,25 +379,46 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
             sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} rainWindow={rainWindow} chance={chance}
-            cellCard={cellCardMobile} />
-          <MobileTabBar tab={mTab} onSelect={selectMTab} />
+            cellCard={cellCardMobile} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
+            {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}{towerFacts('mobile')}</div> : null } : {})} />
+          <MobileTabBar tab={mTab} onSelect={selectMTab} withHeight={hzsOn} with3d={z3dOn} />
         </div>
       ) : (
         <div className="rr-body">
           <Rail onBack={onBack} onOpenFeature={onOpenFeature} />
-          <Dock
-            layers={layers} toggleLayer={toggleLayer} activeLayerCount={activeLayerCount}
-            view={view} setView={setView} mode={mode} setMode={setMode}
-            nowcast={nowcast} onReload={onReload} snowMode={snowMode} setSnowMode={setSnowMode}
-            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} chance={chance}
-          />
+          {(() => {
+            const dock = (
+              <Dock
+                layers={layers} toggleLayer={toggleLayer} activeLayerCount={activeLayerCount}
+                view={view} setView={setView} mode={mode} setMode={setMode} withHeight={hzsOn}
+                nowcast={nowcast} onReload={onReload} snowMode={snowMode} setSnowMode={setSnowMode}
+                sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} chance={chance}
+              />
+            );
+            // Phase ZT (E-ZT-7): in "Karte + 3D" the dock shrinks to 64 px icons; "Alle Einstellungen" opens it in full.
+            if (!z3dOn) return dock;
+            const slim = ztDesktop && view3d === 'split';
+            return (
+              <div className={`zt-dockwrap${slim ? ' is-slim' : ''}${slim && dockOpen ? ' is-open' : ''}`}>
+                {dock}
+                {slim && (
+                  <button type="button" className="zt-dockmore" onClick={() => setDockOpen((o) => !o)} aria-expanded={dockOpen}
+                    aria-label={dockOpen ? 'Einstellungen schließen' : 'Alle Einstellungen'} title={dockOpen ? 'Einstellungen schließen' : 'Alle Einstellungen'}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">{dockOpen
+                      ? <path d="M15 6 9 12l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      : <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}</svg>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
           {center}
           <div className="rr-readout">
             <div className="rr-readout-head">
               <span className="rr-readout-eyebrow">Regenradar · {flagForCountry(location.country)} {shortPlace(location.name)}</span>
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={ztDesktop && towerInfo ? <>{towerFacts('desktop')}{cellCardDesktop}</> : cellCardDesktop} snowCard={skCard('desktop')} />
           </div>
         </div>
       )}
@@ -349,9 +461,11 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance }: {
+function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
-  view: 'map' | 'chart'; setView: (v: 'map' | 'chart') => void;
+  view: DeckView; setView: (v: DeckView) => void;
+  /** Phase HZS (`?hzs=1`): dritte Ansicht „Karte + Höhe". */
+  withHeight?: boolean;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; onReload: () => void;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
@@ -387,6 +501,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
       <div className="rr-seg">
         <button type="button" className={`rr-seg-btn${view === 'map' ? ' is-active' : ''}`} onClick={() => setView('map')}>Karte</button>
         <button type="button" className={`rr-seg-btn${view === 'chart' ? ' is-active' : ''}`} onClick={() => setView('chart')}>Diagramm</button>
+        {withHeight && <button type="button" className={`rr-seg-btn${view === 'height' ? ' is-active' : ''}`} onClick={() => setView('height')} title="Karte mit Höhen-Zeit-Schnitt am gewählten Ort">Karte + Höhe</button>}
       </div>
 
       <span className="rr-eyebrow">Modus</span>
@@ -415,10 +530,12 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Hero · Kennzahlen · Timeline · Verlauf · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null }: {
+function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: {
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
+  /** Phase SK (`?sk=1`): Schneefallgrenze am Ort (`null` = aus). */
+  snowCard?: ReactNode;
 }) {
   if (state.kind === 'loading' || !nowcast) {
     return <div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> Radar &amp; Modell werden ausgewertet …</div>;
@@ -431,6 +548,7 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
       {rainWindow && <RainWindowCard w={rainWindow} variant="desktop" />}
       <Hero nowcast={nowcast} />
       {cellCard}
+      {snowCard && (<><div className="rr-section-label">Schneefallgrenze am Ort</div>{snowCard}</>)}
 
       {chance?.card && (
         <>
@@ -701,10 +819,20 @@ const MOBILE_TABS: Array<{ id: MobileTab; label: string; icon: ReactNode }> = [
   { id: 'detail', label: 'Detail', icon: <TabDetailIcon /> },
 ];
 
-function MobileTabBar({ tab, onSelect }: { tab: MobileTab; onSelect: (t: MobileTab) => void }) {
+/** Phase HZS (`?hzs=1`): Reiter „Höhe" nach dem Diagramm. */
+const HEIGHT_TAB: { id: MobileTab; label: string; icon: ReactNode } = { id: 'height', label: 'Höhe', icon: <TabHeightIcon /> };
+function TabHeightIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 19 L9 9 L12 13 L15 8 L21 19 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M3 11.5 H21" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2.4 2.2" strokeLinecap="round"/></svg>; }
+
+/** Phase ZT (on, `?z3d=0` off): tab "3D" after the chart (and after "Höhe" when HZS is on). */
+const TOWERS_TAB: { id: MobileTab; label: string; icon: ReactNode } = { id: '3d', label: '3D', icon: <Tab3dIcon /> };
+function Tab3dIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 19 L8 12 L11 15 L15 9 L21 19 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 12 V4 H14 V10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>; }
+
+function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { tab: MobileTab; onSelect: (t: MobileTab) => void; withHeight?: boolean; with3d?: boolean }) {
+  const base = withHeight ? [...MOBILE_TABS.slice(0, 3), HEIGHT_TAB, ...MOBILE_TABS.slice(3)] : MOBILE_TABS;
+  const tabs = with3d ? [...base.slice(0, withHeight ? 4 : 3), TOWERS_TAB, ...base.slice(withHeight ? 4 : 3)] : base;
   return (
     <nav className="rm-tabbar" aria-label="Regenradar-Bereiche">
-      {MOBILE_TABS.map((t) => (
+      {tabs.map((t) => (
         <button key={t.id} type="button" className={`rm-tab${tab === t.id ? ' is-active' : ''}`}
           onClick={() => onSelect(t.id)} aria-current={tab === t.id ? 'page' : undefined}>
           <span className="rm-tab-ic">{t.icon}</span>
@@ -716,7 +844,7 @@ function MobileTabBar({ tab, onSelect }: { tab: MobileTab; onSelect: (t: MobileT
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums, rainWindow, chance, cellCard = null }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
@@ -725,6 +853,12 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
   chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen im Schnellblick (`null` = aus). */
   cellCard?: ReactNode;
+  /** Phase HZS (`?hzs=1`): Inhalt des Reiters „Höhe". */
+  heightPanel?: ReactNode;
+  /** Phase ZT (on, `?z3d=0` off): content of the tab "3D" (stage + Steckbrief block). */
+  towersPanel?: ReactNode;
+  /** Phase SK (`?sk=1`): Schneefallgrenze am Ort im Schnellblick. */
+  snowCard?: ReactNode;
 }) {
   const PEEK = 34, FULL = 92; // vh
   const [dragVh, setDragVh] = useState(0);
@@ -749,11 +883,13 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       role="region" aria-label={`Bereich ${tab}`}>
       <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
       <div className="rm-sheet-body rm-tabsheet-body">
-        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCard} />}
+        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
         {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} />}
+        {tab === 'height' && heightPanel && <div className="rm-hzs">{heightPanel}</div>}
+        {tab === '3d' && towersPanel}
       </div>
     </div>
   );
@@ -777,7 +913,7 @@ function PanelState({ state }: { state: DeckState }) {
 }
 
 // --- Panel: Schnellblick ----------------------------------------------------
-function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cellCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode }) {
+function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
   const h = heroState(nowcast);
   let line: ReactNode, sub: ReactNode;
@@ -804,6 +940,7 @@ function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cel
         <p className="rm-peek-sub">{sub}</p>
         <MobileAlertChips nowcast={nowcast} />
         {cellCard}
+        {snowCard}
         {chance?.card}
         {pointSums.on && <PointSumCard past={pointSums.past} future={pointSums.future} windowH={pointSums.windowH} />}
         <p className="rm-glance-hint">Unten wechseln: <b>Zeitachse</b>, <b>Diagramm</b>, <b>Layer</b> &amp; <b>Detail</b>.</p>

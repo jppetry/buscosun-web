@@ -150,11 +150,12 @@ vor. buscosun Fusion wird nur gelesen.
   Skizze: Anfrage an opendata@dwd.de, bis dahin geometrisch.
 - **V-ZO-3** Reichweite der Zellerkennung an einem Sommertag nachmessen (heute 80 Zellen) — Skizze: dasselbe
   Skript über 48 h im Juni (`audit/zell-orte/coverage.mjs`).
-- **V-ZO-4** Die Hervorhebung der Zelle des Orts auf der Karte (`affects` in `MapView.tsx`) rechnet weiter mit der alten
-  Regel S-Z2-3a (∪). In seltenen Randfällen nennt der Satz eine Zelle, die die Karte nicht hervorhebt — Mehrwert: Karte und
-  Satz sagen immer dasselbe; Skizze: optionale Prop `profileAffectsCellId` im Profil (additiv in `MapView`, Jans Gate).
-- **V-ZO-5** Die Leiste über der Karte (`nc-radar-eta`) ist seit RL1 karminrot hinterlegt — für einen Hinweis kräftig.
-  Mehrwert: optisch „Hinweis, nicht Warnung"; Skizze: Sand/Ink-Pille wie das Marker-Label RB (nur CSS, Jans Entscheidung).
+- **V-ZO-4** ~~Die Hervorhebung der Zelle des Orts auf der Karte rechnet weiter mit der alten Regel S-Z2-3a (∪).~~
+  **Erledigt 09.10. (§10):** Prop `profileAffectsCellId` in `MapView`, die Karte hebt die Zelle des Satzes hervor. Gemessen:
+  an den echten Läufen nicht „selten“ — 323 von 5 030 betroffenen Gitterpunkten (6 %), dort wo sich Zellen überlappen;
+  unter den Orten ab 5 000 Ew. im Lauf 07.10. 16 (Moers, Leverkusen, Neuss …).
+- **V-ZO-5** ~~Die Leiste über der Karte (`nc-radar-eta`) ist karminrot hinterlegt.~~ **Erledigt 09.10. (§10):** mit ZO als
+  Hinweis in Sand/Ink (Zusatzklasse `nc-radar-eta--hint`), `?zo=0` = Bordeaux wie vorher.
 - **V-ZO-6** Die Ortsliste kommt aus GeoNames ≥ 5 000 Ew. — Stadtteile großer Städte (z. B. Köln-Porz) fehlen als eigene
   Orte; Mehrwert: in Ballungsräumen genauere Fenster; Skizze: Stadtteile aus `urban/v1` oder OSM `place=suburb`.
 
@@ -195,3 +196,44 @@ Element (Probe: 0 Karten, 0 Marker). Ein Pixel-Diff gegen HEAD ist ohne Schalter
 voreingestellt an ist (E-ZO-6). (3) Touch-Ziele mobil: Zeilen und Chips 44 px (gemessen). (4) Konsole sauber. (5) Long Tasks:
 in headless-shell nicht messbar; die Rechnung ist je Lauf einmal ≈ 3 217 Orte × Vorfilter (Reichweite) — Real-Device offen.
 Real-Device = Jans Gate.
+
+## 10. V-ZO-4 und V-ZO-5 (09.10.2026, Jans Auftrag „mach V-ZO-4 und V-ZO-5“, uncommitted)
+
+**V-ZO-4 — Karte und Satz sagen dasselbe.** `MapView` bekommt die optionale Prop `profileAffectsCellId` (nur im Profil): mit
+Wert hebt die Karte genau diese Zelle hervor (`affects: 1`, `null` = keine), ohne Prop rechnet sie wie vorher mit
+`cellLocationRelevance` (S-Z2-3a). `NowcastRadarMap` reicht mit ZO die Zelle des Satzes durch (aus `cellPlaceVerdict`, derselbe
+Aufruf wie die Leiste: Kern, Rand oder Vorbeizug), auch an die alte Karte `?rr=legacy`; mit `?zo=0` fehlt die Prop. Die
+Konsolenzeile „Zellbahnen gezeichnet“ nennt beide, wenn sie sich unterscheiden („Standortbezug: Zelle 58 · hervorgehoben
+nach ZO: 41“). `cellPolygons.ts`/`cellLayers.ts` unverändert, kein neuer Layer, kein Stil.
+
+Messung (warum es nötig war): an den drei echten Läufen auf einem Gitter um jede Zelle nennen alte Regel und Satz an
+**323 von 5 030** betroffenen Punkten eine andere Zelle — immer dort, wo sich Zellen überlappen (die alte Regel nimmt die
+früheste ETA über Umriss ∪ Ellipsen, der Satz den Kern vor dem Rand). Unter den Orten ab 5 000 Ew. im Lauf 07.10. sind
+es 16, z. B. Moers (alt 58, Satz „Zelle 41 erreicht dich voraussichtlich …“), Leverkusen (55 → 46), Neuss (56 → 58).
+
+**V-ZO-5 — Hinweis, keine Warnung.** Die Leiste über der Karte trägt mit ZO die Zusatzklasse `nc-radar-eta--hint`:
+Sand `rgba(250,246,234,0.96)`, Ink `#2C2A26`, Rand Sand-200, leiser Schatten — wie das Marker-Label (RB). Auch der
+Ruhe-Hinweis „keine konvektiven Zellen erkannt“ nimmt sie an. Lage, Größe, Mobil-Regeln (`.rm-map .nc-radar-eta`) und die
+Grundklasse bleiben (Bordeaux mit `?zo=0`).
+
+**Gates**
+
+| Gate | Ergebnis |
+|---|---|
+| `verify:cell-places` | **60/60** (54 + H2b + I1–I5): H2 jetzt „MapView nur additiv“ — ohne die V-ZO-4-Zeilen stehen alle Zellbahn-Zeilen wortgleich wie an HEAD (die parallele Phase ZT ergänzt MapView ebenfalls; ihre Zeilen werden nur gezählt), Gegenprobe H2b; I1 Unterschied der Regeln an echten Läufen (323/5 030), I2 hervorgehoben genau die Zelle des Satzes (20 Fälle, nie die der alten Regel), I3 Verdrahtung nur mit Schalter, I4 Sand/Ink ohne Bordeaux und Grundklasse unverändert, I5 Klasse nur mit Schalter |
+| `verify:cells` | 133/133 |
+| `verify:rain-window` · `verify:regenradar-profile` | 63/63 · 24 bestanden, 0 rot, 1 übersprungen |
+| typecheck · Build · Budget | 0 · 255/255 · alle Budgets eingehalten (nur CSS + wenige Zeilen) |
+| Browser (CDP, Lauf 07.10. auf jetzt verschoben, Moers) | `zell-orte/v-zo-4-5-desktop-moers.png`: Leiste Sand/Ink „Zelle 41 erreicht dich voraussichtlich 16:20–16:35.“, Konsole „Standortbezug: Zelle 58 · hervorgehoben nach ZO: 41“; `…-moers-zo0.png`: Leiste Bordeaux „Zelle 58 erreicht dich in 50–60 min.“, ohne ZO-Zusatz; `v-zo-4-5-mobil-moers.png` wie Desktop; Konsole ohne Fehler/Warnungen. Werkzeug `zell-orte/v-zo-4-5-probe.mjs` + `shift-run.mjs` |
+
+**Fünf Fragen:** (1) Funktionserhalt — Hervorhebung bleibt (jetzt nach der Regel des Satzes), Leiste, Popup, Haltestellen,
+Dashboard unverändert; `?zo=0` exakt vorher (belegt). (2) Desktop — mit ZO nur Farbe der Leiste und ggf. eine andere
+hervorgehobene Zelle; die Wetterkarte ohne Profil rechnet unverändert (Prop nur im Profil). (3) Touch-Ziele: nicht berührt
+(die Leiste ist kein Bedienelement). (4) Konsole sauber. (5) Long Tasks: keine neue Rechnung (derselbe `cellPlaceVerdict`
+wie die Leiste). Bekannt und nicht neu: mobil überdeckt die Leiste die Pille „Über diese Ansicht“ teilweise — Lage seit RL1
+unverändert (V-ZO-7).
+
+- **V-ZO-7** Mobil sitzt die Leiste (`top: 6.7rem`) unter der Pille „Über diese Ansicht“ und den Zoom-Knöpfen und schneidet
+  sie an (`audit/zell-orte/v-zo-4-5-mobil-moers.png`) — Mehrwert: nichts verdeckt; Skizze: Leiste mobil unter die
+  Quellen-Pille links, `max-width: calc(100% - 7rem)`, nur im Mobil-Breakpoint.
+

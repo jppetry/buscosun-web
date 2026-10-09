@@ -1,0 +1,40 @@
+/* Phase SK — Schneefallgrenze als Fläche (audit/schneefallgrenze-flaeche.md). Command-Deck tokens (Sand/Ink). */
+
+/* Legend: desktop items inside the radar legend (`.nc-radar-legend`), mobile a compact status note. */
+.sk-leg-status { flex-basis: 100%; color: var(--stone-600, #5C5447); }
+.sk-warn { color: #8B4A1F; }
+.sk-sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; }
+.sk-sw-cap { background: #FBFCFF; border: 1px solid #C9D3F4; }
+.sk-sw-band { background: repeating-linear-gradient(45deg, #4F5FB8 0 1.5px, #FBFCFF 1.5px 5px); border: 1px solid #C9D3F4; }
+.sk-sw-line { height: 3px; box-shadow: 0 0 0 1.5px #FFFFFF; }
+.nc-radar-snownote.sk-legend-m { display: none; }
+@media (max-width: 767px) {
+  /* above the "Punktabfrage" pill (bottom: 34vh + 12px), clear of the search bar and source chips at the top */
+  .rm-map .nc-radar-snownote.sk-legend-m { display: block; top: auto; bottom: calc(34vh + 64px); left: 12px; max-width: calc(100% - 24px); font-size: 0.64rem; }
+}
+
+/* Place card (readout, mobile Schnellblick). */
+.sk-card { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; font-family: 'League Spartan', system-ui, sans-serif; color: var(--ink-900, #2C2A26); }
+.sk-sentence { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.sk-meta { font-size: 12px; color: var(--stone-600, #5C5447); margin-top: 3px; }
+.sk-bar { display: grid; grid-template-columns: repeat(48, 1fr); gap: 1px; margin-top: 8px; height: 18px; }
+.sk-cell { border: 0; padding: 0; min-width: 0; height: 100%; border-radius: 2px; cursor: pointer; background: #E6DFCF; }
+.sk-cell--snow { background: #4F5FB8; }
+.sk-cell--band { background: repeating-linear-gradient(45deg, #4F5FB8 0 1.5px, #E9ECF8 1.5px 4px); }
+.sk-cell--rain { background: #D7CFBD; }
+.sk-cell--gap { background: repeating-linear-gradient(45deg, #C9BFA8 0 1px, #F3EEE2 1px 4px); }
+.sk-cell.is-on { outline: 2px solid var(--ink-900, #2C2A26); outline-offset: 1px; }
+.sk-cell:focus-visible { outline: 2px solid #3E4C9A; outline-offset: 1px; }
+.sk-bar-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--stone-500, #8B7355); margin-top: 2px; }
+.sk-follow { margin-top: 2px; background: none; border: 0; color: #3E4C9A; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; padding: 0; min-height: 44px; }
+.sk-legend-key { display: flex; flex-wrap: wrap; gap: 0.2rem 0.7rem; font-size: 11px; color: var(--stone-600, #5C5447); margin-top: 4px; }
+.sk-legend-key > span { display: inline-flex; align-items: center; gap: 0.3rem; }
+/* Mobile: 3-h cells as 44 × 44 px targets in a horizontally scrolling row (16 × 44 px does not fit 390 px). */
+@media (max-width: 767px) {
+  .sk-bar { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 44px; height: 44px; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+}
+
+/* 3D tap card (MapLibre popup on ZT's stage). */
+.sk-popup .maplibregl-popup-content { border-radius: 10px; background: #FAF6EA; border: 1px solid #E0D6BE; padding: 8px 26px 8px 10px; }
+.sk-tap { font: 500 12px/1.4 'League Spartan', system-ui, sans-serif; color: #2C2A26; }
+.sk-tap span { color: #8B7355; font-size: 11px; }

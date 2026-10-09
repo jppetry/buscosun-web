@@ -18,7 +18,8 @@
  * ICON-D2-Punktforecast; Warnungen/Blitze aus den DWD-Quellen).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { ProfileRadarPick } from '../MapView';
 import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { reverseGeocode } from '../geocode';
@@ -74,6 +75,10 @@ import type { SumSelection } from '../precipSums/sumModel';
 import { useChanceMap } from '../precipChance/useChanceMap';
 import { ChanceLegend } from '../precipChance/PrecipChanceUi';
 import type { ChanceThreshold } from '../precipChance/chanceModel';
+// Phase SK (`?sk=1`, audit/schneefallgrenze-flaeche.md): snowfall line of buscosun Fusion as a surface on the terrain.
+import { useSnowCap } from '../snowCap/useSnowCap';
+import { SK_PALETTE_2D, SK_PALETTE_3D } from '../snowCap/snowCapModel';
+import { SnowCapLegend, snowTapHtml } from '../snowCap/SnowCapUi';
 
 type MapViewComponent = typeof import('../MapView').default;
 import {
@@ -130,6 +135,18 @@ interface Props {
   cellStops?: { rows: readonly CellPass[]; nowMs: number } | null;
   /** Phase ZO: Klick auf einen Zell-Schwerpunkt wählt die Zelle im Readout (der Steckbrief-Popup bleibt). */
   onCellPick?: (id: number) => void;
+  /** Phase HZS (`?hzs=1`, audit/hoehen-zeit-schnitt.md): der gewählte Punkt nach oben (Höhen-Zeit-Schnitt am gewählten Ort). Fehlt = Stand vorher. */
+  onPointChange?: (p: { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' }) => void;
+  /** Phase ZT (on, `?z3d=0` off; audit/zelltuerme-3d.md): 3D stage next to the map (`split`) or instead of it (`3d`; the map stays
+   *  mounted and suspended — time, data and camera live there). Missing = exactly as before. */
+  stageAside?: ReactNode;
+  stage3d?: 'split' | '3d';
+  /** Phase ZT: HD frames of the shown time from `MapView` (radar picture on the relief). */
+  onProfileRadarPick?: (pick: ProfileRadarPick) => void;
+  /** Phase SK (`?sk=1`): snow cap instead of the ICON-D2 line; `pickMs` = hour chosen in the place bar (else the slider);
+   *  `stageMap` = ZT's 3D map (second instance); `mapHidden` = the 2D map rests behind the "3D"-only view (no cap build).
+   *  Missing = exactly as before. */
+  snowCap?: { pickMs: number | null; stageMap: maplibregl.Map | null; mapHidden?: boolean };
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -164,7 +181,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick, onPointChange, snowCap, stageAside, stage3d, onProfileRadarPick }: Props) {
   const last = useMemo(() => loadLastView(), []);
   // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
   const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -228,6 +245,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
 
   const [point, setPoint] = useState<PointInfo>({ lat: location.lat, lon: location.lon, name: location.name, country: location.country });
   const [pointNowcast, setPointNowcast] = useState<Nowcast | null>(nowcast);
+  // Phase HZS: den gewählten Punkt melden (nur mit Abnehmer).
+  const onPointChangeRef = useRef(onPointChange);
+  onPointChangeRef.current = onPointChange;
+  const hasPointCb = !!onPointChange;
+  useEffect(() => { onPointChangeRef.current?.(point); }, [point, hasPointCb]);
   // Gewittergefahr-Zutaten (DE): CAPE-Spitze + DWD-Gewitterwarnstufe am Punkt.
   const [capePeak, setCapePeak] = useState<number | null>(null);
   const [warnLevel, setWarnLevel] = useState(0);
@@ -504,7 +526,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Abgeleitet: Zellbahnen mit Standortbezug (EINE Entscheidung, `cellLocationRelevance`),
   // Akkumulation, Coverage.
   const cellRel = useMemo(() => (cellsRun ? cellLocationRelevance(cellsRun, [point.lon, point.lat]) : null), [cellsRun, point.lon, point.lat]);
-  const cellFeatures = useMemo(() => (cellsRun ? buildCellFeatures(cellsRun, { affectsCellId: cellRel?.cellId ?? null }) : null), [cellsRun, cellRel]);
   const relCell = useMemo(() => (cellsRun && cellRel ? cellsRun.cells.find((c) => c.id === cellRel.cellId) ?? null : null), [cellsRun, cellRel]);
   // Phase ZO (E-ZO-1): der Satz der Leiste nach der neuen Regel (Ellipse ⊕ Zellkörper, Uhrzeit, Kern/Rand) — `?zo=0` = vorher.
   const zoLeiste = useMemo(() => {
@@ -513,8 +534,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     const v = cellPlaceVerdict(cellsRun, point.lat, point.lon, nowMs);
     const text = cellPlaceSentence(v, nowMs);
     const cell = v.kind === 'pass' || v.kind === 'passby' ? cellsRun.cells.find((c) => c.id === v.cellId) ?? null : null;
-    return text ? { text, bolt: (cell?.lightningRate ?? 0) > 0 } : null;
+    return text ? { text, bolt: (cell?.lightningRate ?? 0) > 0, cellId: cell?.id ?? null } : null;
   }, [zoOn, cellsRun, point.lat, point.lon]);
+  // V-ZO-4: hervorgehoben wird die Zelle, die der Satz nennt — Karte und Satz sagen dasselbe. `undefined` = alte Regel S-Z2-3a.
+  const zoAffectsCellId: number | null | undefined = zoOn ? (zoLeiste?.cellId ?? null) : undefined;
+  const cellFeatures = useMemo(
+    () => (cellsRun ? buildCellFeatures(cellsRun, { affectsCellId: zoAffectsCellId !== undefined ? zoAffectsCellId : (cellRel?.cellId ?? null) }) : null),
+    [cellsRun, cellRel, zoAffectsCellId],
+  );
 
   // Gewittergefahr-Index am Punkt: fusioniert CAPE (Potenzial), Zellintensität
   // (Realisierung) und amtliche Warnung zu EINER Aussage. cellPeak aus dem
@@ -587,7 +614,13 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // den beiden Nachbar-Frames, gemessene Analysen des Rückblicks. Referenzen stabil halten (`radarPast` leert in
   // `MapView` den Frame-Speicher), Layer über die Profil-Tabelle.
   // Phase NS: in der Summen-Ansicht ruht die Intensitäts-Ebene (der Schalter im Dock bleibt, wie er ist).
-  const profileLayers = useMemo(() => radarProfileLayers(sumMode || chanceMode ? layers.filter((l) => l !== 'precip') : layers), [layers, sumMode, chanceMode]);
+  // Phase SK: a boolean, so the deck's new `snowCap` object per render does not rebuild the layer list.
+  const skOnMap = !!snowCap;
+  const profileLayers = useMemo(() => {
+    const base = sumMode || chanceMode ? layers.filter((l) => l !== 'precip') : layers;
+    // Phase SK: with `?sk=1` the cap replaces the ICON-D2 line (E-SK-1); without it the list is the one before.
+    return radarProfileLayers(skOnMap ? base.filter((l) => l !== 'snowline') : base);
+  }, [layers, sumMode, chanceMode, skOnMap]);
   const radarPast = useMemo(() => {
     if (!stack) return null;
     const measured = stack.frames.filter((f) => f.measured);
@@ -607,6 +640,41 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const hasTimeCb = !!onTimeChange;
   useEffect(() => { if (profileTimeMs != null) onTimeChangeRef.current?.(profileTimeMs); }, [profileTimeMs, hasTimeCb]);
   const chanceMap = useChanceMap(mapInst, chanceMode, chance?.threshold ?? 'any', chanceMode ? (chance?.pickMs ?? profileTimeMs ?? Date.now()) : null, reloadKey * 1000 + autoTick);
+  // Phase SK: one hook per map — 2D below the radar layers, 3D (ZT stage) before `zt-cone` (above the radar picture).
+  // Only on the profile map (`MapView`) — never on the legacy map (`?rr=legacy`, automatic fallback on a chunk error).
+  const skActive = !!snowCap && useProfile && layerSet.has('snowline');
+  const skTimeMs = snowCap ? (snowCap.pickMs ?? profileTimeMs ?? Date.now()) : null;
+  const skBeforeId2d = useCallback(() => {
+    // The radar layers are custom layers — `getStyle().layers` does not list them, `getLayer` finds them. `MapView` adds
+    // `precip-rain-layer` first (then HD, flow, PoP), so it is the lowest radar layer and above `basemap-dim`.
+    const radar = ['precip-rain-layer', 'precip-rain-hd-de', 'precip-rain-hd-at', 'precip-rain-hd-ch', 'flow-nowcast-layer'].find((id) => !!mapInst?.getLayer(id));
+    return radar ?? mapInst?.getStyle()?.layers?.find((l) => l.type === 'symbol')?.id;
+  }, [mapInst]);
+  const skStageMap = snowCap?.stageMap ?? null;
+  const skBeforeId3d = useCallback(() => (skStageMap?.getLayer('zt-cone') ? 'zt-cone' : undefined), [skStageMap]);
+  const skMobile = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches;
+  const snowCap2d = useSnowCap(mapInst, skActive && !snowCap?.mapHidden, skTimeMs, { palette: SK_PALETTE_2D, beforeId: skBeforeId2d, prefix: 'sk', mobile: skMobile });
+  const snowCap3d = useSnowCap(snowCap?.stageMap ?? null, skActive, skTimeMs, { palette: SK_PALETTE_3D, beforeId: skBeforeId3d, prefix: 'sk3', mobile: skMobile });
+  const skHoverRef = useRef<((lat: number, lon: number) => string | null) | null>(null);
+  skHoverRef.current = skActive ? snowCap2d.hoverAt : null;
+  const [skHover, setSkHover] = useState<string | null>(null);
+  // Phase SK: tap a slope on the 3D stage → height, snowline, phase. A tap on a tower stays ZT's (towers first).
+  const skPickAt = snowCap3d.pickAt;
+  useEffect(() => {
+    const m = skStageMap;
+    if (!m || !skActive) return;
+    let popup: maplibregl.Popup | null = null;
+    let alive = true;
+    const onClick = (e: maplibregl.MapMouseEvent) => {
+      const towerIds = (m.getStyle()?.layers ?? []).filter((l) => l.id.startsWith('zt-tower')).map((l) => l.id);
+      if (towerIds.length && m.queryRenderedFeatures(e.point, { layers: towerIds }).length) return;
+      const html = snowTapHtml(skPickAt(e.lngLat.lat, e.lngLat.lng));
+      if (!html) return;
+      void import('../snowCap/snowCapEngine').then(({ openSnowTap }) => { if (alive) popup = openSnowTap(m, e.lngLat, html, popup); });
+    };
+    m.on('click', onClick);
+    return () => { alive = false; m.off('click', onClick); popup?.remove(); };
+  }, [skStageMap, skActive, skPickAt]);
   const i0 = stack ? Math.max(0, Math.min(stack.frames.length - 1, Math.floor(framePos))) : 0;
   const i1 = stack ? Math.min(stack.frames.length - 1, i0 + 1) : 0;
   const bracketA = stack?.frames[i0]?.timeMs;
@@ -625,6 +693,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   sumHoverRef.current = sumMode ? sumMap.hoverAt : chanceMode ? chanceMap.hoverAt : null;
   const [sumHover, setSumHover] = useState<string | null>(null);
   const onProfileHover = useCallback((p: { lat: number; lon: number } | null) => {
+    // Phase SK: snowfall line under the pointer next to the radar value (null without `?sk=1`).
+    setSkHover(p && skHoverRef.current ? skHoverRef.current(p.lat, p.lon) : null);
     if (sumHoverRef.current) { setHover(null); setSumHover(p ? sumHoverRef.current(p.lat, p.lon) : null); return; }
     setSumHover(null);
     const st = stackRef.current;
@@ -641,7 +711,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const jumpNow = () => { onUserTime?.(); applyPlaying(false); if (stack) setFramePos(stack.nowIndex); };
 
   return (
-    <div className="rt-card nc-radar">
+    <div className={`rt-card nc-radar${stageAside ? ` zt-has-aside zt-mode-${stage3d ?? 'split'}` : ''}`}>
       {/* Ebenen + Einstellungen */}
       {!hideLayerbar && (
       <div className="nc-radar-layersbar">
@@ -704,6 +774,9 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
               onMapReady={(m) => { mapRef.current = m; setMapInst(m); onMapReady?.(m); }}
               initialView={initialView} onViewChange={onViewChange}
               {...(markerLabel ? { profileMarkerLabel: markerLabel } : {})}
+              {...(zoAffectsCellId !== undefined ? { profileAffectsCellId: zoAffectsCellId } : {})}
+              {...(onProfileRadarPick ? { onProfileRadarPick } : {})}
+              {...(stageAside && stage3d === '3d' ? { suspended: true } : {})}
             />
           ) : (
             <div className="nc-radar-loading"><span className="ev-spinner" /> Karte wird geladen …</div>
@@ -727,7 +800,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
 
         {/* Standortbezug der Zellbahnen (Wortlaut S-Z2-3b, wie die Wetterkarte) — Phase ZO: neuer Satz, `?zo=0` = dieser */}
         {zoOn && cellsOn && zoLeiste && (
-          <div className="nc-radar-eta">
+          <div className="nc-radar-eta nc-radar-eta--hint">
             {zoLeiste.bolt ? <IconBolt size={15} /> : <IconStormCloud size={15} />}
             <span>{zoLeiste.text} <em>DWD KONRAD3D</em></span>
           </div>
@@ -739,14 +812,15 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           </div>
         )}
         {cellsOn && cellsRun && cellsRun.cells.length === 0 && (
-          <div className="nc-radar-eta nc-radar-eta--quiet"><IconStormCloud size={15} /><span>KONRAD3D: aktuell keine konvektiven Zellen erkannt (DE).</span></div>
+          <div className={`nc-radar-eta nc-radar-eta--quiet${zoOn ? ' nc-radar-eta--hint' : ''}`}><IconStormCloud size={15} /><span>KONRAD3D: aktuell keine konvektiven Zellen erkannt (DE).</span></div>
         )}
 
         {/* Hover-Readout */}
         {(sumMode || chanceMode) && sumHover && <div className="nc-radar-hover">{sumHover}</div>}
         {!sumMode && !chanceMode && hover != null && (
-          <div className="nc-radar-hover">{hover >= 0.06 ? `${hover.toFixed(1).replace('.', ',')} mm/h` : 'trocken'}</div>
+          <div className="nc-radar-hover">{hover >= 0.06 ? `${hover.toFixed(1).replace('.', ',')} mm/h` : 'trocken'}{skHover && <> · {skHover}</>}</div>
         )}
+        {!sumMode && !chanceMode && hover == null && skHover && <div className="nc-radar-hover">{skHover}</div>}
 
         {/* Legende — Phase NS: in der Summen-Ansicht die Summen-Legende */}
         {sumMode && sum && <SumLegend info={sumMap.info} sel={sum} />}
@@ -765,16 +839,20 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           {!useProfile && layerSet.has('hail') && (
             <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#ff78aa,#f03c6e,#c81450)' }} /> Hagel</span>
           )}
+          {/* Phase SK: the cap of buscosun Fusion instead of the ICON-D2 line (desktop legend). */}
+          {useProfile && skActive && <SnowCapLegend info={snowCap2d.info} variant="inline" />}
         </div>}
 
         {/* Phase RR (RR-f): die Schneefallgrenze der Karte ist die der Wetterkarte — Quelle benannt; der Punktwert
             am gewählten Ort kommt aus der Punktvorhersage des Streifens. */}
-        {useProfile && layerSet.has('snowline') && (
+        {useProfile && layerSet.has('snowline') && !snowCap && (
           <div className="nc-radar-snownote">
             ❄ Schneefallgrenze: ICON-D2-Temperatur + Gelände (ML #2)
             {snowLineM != null && <> · am Punkt <strong>~{snowLineM} m</strong></>}
           </div>
         )}
+        {/* Phase SK: mobile status note (map legends are hidden on mobile) — source, run, validity, gaps. */}
+        {useProfile && skActive && <SnowCapLegend info={snowCap2d.info} variant="note" />}
 
         {/* Niederschlagsart-Hinweis */}
         {needTerrain && (
@@ -786,6 +864,9 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           </div>
         )}
       </div>
+
+      {/* Phase ZT: 3D stage beside the map (grid of `.zt-has-aside`, `cellTowersShell.css`); the time axis below spans both. */}
+      {stageAside && <div className="zt-aside">{stageAside}</div>}
 
       {/* Zeitachse (Scrubber) · Punkt-Streifen · Datenqualität.
           Deck (compact): alles in ein eingeklapptes Akkordeon gefaltet — der

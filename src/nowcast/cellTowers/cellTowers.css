@@ -1,0 +1,66 @@
+/* Phase ZT (audit/zelltuerme-3d.md): 3D stage "Zelltürme auf Gelände" — Command-Deck look (sand/ink, League Spartan).
+   Lazy chunk (loaded only when the 3D view is chosen; `?z3d=0` = never). Mobile only via the 767 px breakpoint. */
+
+.zt-stage { position: relative; flex: 1 1 0; min-width: 0; min-height: 0; overflow: hidden;
+  background: #F3EEE2; font-family: 'League Spartan', var(--font-base); color: var(--ink-900, #2C2A26); }
+.zt-map { position: absolute; inset: 0; }
+.zt-map .maplibregl-ctrl-top-right { margin-top: 44px; }
+
+.zt-stamp, .zt-note, .zt-reset, .zt-legend {
+  position: absolute; z-index: 3; background: rgba(250, 246, 234, 0.94); border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 10px; box-shadow: var(--shadow-card, 0 2px 8px rgba(44, 42, 38, 0.08));
+}
+.zt-stamp { left: 12px; top: 12px; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--stone-600, #6F5E45); }
+.zt-note { left: 12px; top: 46px; max-width: min(420px, calc(100% - 24px)); padding: 9px 12px; font-size: 13px; line-height: 1.4;
+  color: var(--ink-800, #3A3833); }
+.zt-note--center { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+.zt-reset { right: 12px; top: 10px; height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px;
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink-900, #2C2A26); cursor: pointer; }
+.zt-reset:hover { background: var(--sand-100, #EDE6D3); }
+.zt-reset:focus-visible { outline: 2px solid var(--steel-600, #3A6FA8); outline-offset: 2px; }
+
+/* Desktop: the deck's "Karte | Diagramm" toggle floats top right over the stage (rr-topright-map) — keep clear of it. */
+.zt-stage--desktop .zt-reset { top: 62px; }
+.zt-stage--desktop .zt-map .maplibregl-ctrl-top-right { margin-top: 104px; }
+/* …and of the deck's source pill top left (in "3D" the stage starts at the left edge). */
+.zt-stage--desktop .zt-stamp { top: 54px; max-width: calc(100% - 200px); }
+.zt-stage--desktop .zt-note { top: 92px; max-width: min(420px, calc(100% - 200px)); }
+
+.zt-legend { left: 12px; bottom: 12px; max-width: min(360px, calc(100% - 24px)); padding: 9px 11px; font-size: 11.5px; line-height: 1.35; }
+.zt-leg-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: var(--stone-500, #8B7355); margin-bottom: 5px; }
+.zt-leg-scale { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 5px; }
+.zt-leg-item, .zt-leg-row { display: inline-flex; align-items: center; gap: 5px; }
+.zt-leg-row { display: flex; margin-top: 3px; }
+.zt-leg-item i, .zt-leg-row i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
+.zt-leg-track { border: 2px dashed #A85E2E; border-radius: 50% !important; background: rgba(168, 94, 46, 0.12); }
+.zt-leg-foot { margin-top: 6px; color: var(--stone-600, #6F5E45); font-size: 11px; }
+
+/* Steckbrief block */
+.zt-facts { border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: var(--cream-50, #FAF6EA); padding: 12px 14px; margin-bottom: 12px; }
+.zt-facts-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.zt-facts-eyebrow { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #A85E2E; }
+.zt-trend { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 9px; background: #F4EFE3; color: #5C5447; }
+.zt-trend--grows { background: #FBE9E4; color: #8A1C1C; }
+.zt-trend--weakens { background: #EFF3E8; color: #4D6A3B; }
+.zt-facts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 0; }
+.zt-facts-grid dt { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--stone-500, #8B7355); font-weight: 700; }
+.zt-facts-grid dd { margin: 1px 0 0; font-size: 14px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.zt-facts-grid dd.zt-sub { font-size: 11.5px; font-weight: 400; color: var(--stone-600, #6F5E45); }
+.zt-facts-foot { margin: 9px 0 0; font-size: 11px; line-height: 1.4; color: var(--stone-600, #6F5E45); }
+
+/* Mobile: the stage lives in the sheet tab "3D" */
+@media (max-width: 767px) {
+  .zt-mobile { display: flex; flex-direction: column; gap: 10px; }
+  .zt-stage--mobile { flex: 0 0 auto; height: 56vh; border-radius: 14px; border: 1px solid var(--sand-200, #E0D6BE); }
+  .zt-stage--mobile .zt-reset span { display: none; }
+  .zt-stage--mobile .zt-reset { width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .zt-stage--mobile .zt-map .maplibregl-ctrl-top-right { margin-top: 56px; }
+  .zt-stage--mobile .zt-note { top: 40px; font-size: 12.5px; }
+  .zt-legend--mobile { bottom: 8px; left: 8px; padding: 0; }
+  .zt-legend--mobile > summary { list-style: none; cursor: pointer; padding: 0 12px; min-height: 44px; display: flex; align-items: center;
+    font-size: 12.5px; font-weight: 600; }
+  .zt-legend--mobile > summary::-webkit-details-marker { display: none; }
+  .zt-legend--mobile[open] { padding: 0 11px 9px; }
+  .zt-legend--mobile[open] > summary { padding: 0; }
+  .zt-facts--mobile .zt-facts-grid dd { font-size: 13.5px; }
+}

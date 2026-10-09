@@ -1,0 +1,38 @@
+/* Phase ZT (audit/zelltuerme-3d.md): shell rules the deck needs before the lazy 3D chunk loads (switch, slim dock,
+   split row). Only classes that exist with the switch (on; `?z3d=0` off). */
+
+/* Split inside the radar widget (`.nc-radar.zt-has-aside`): row 1 = map | 3D (50 : 50), every other child spans both
+   columns below (time axis, point strip). Only with a stage aside (z3d). */
+.nc-radar.zt-has-aside { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr); grid-auto-rows: auto; position: relative; }
+.nc-radar.zt-has-aside > * { grid-column: 1 / -1; }
+.nc-radar.zt-has-aside > .nc-radar-stage { grid-column: 1; grid-row: 1; min-height: 340px; border-right: 1px solid #D9D0B8; }
+.nc-radar.zt-has-aside > .zt-aside { grid-column: 2; grid-row: 1; display: flex; min-width: 0; min-height: 340px; }
+/* "3D" only: the map stays mounted (time, data, camera) but is hidden; the stage takes both columns. */
+/* `opacity` as well: MapLibre controls set their own `visibility`, which would show through a hidden parent. */
+.nc-radar.zt-mode-3d > .nc-radar-stage { position: absolute; left: 0; top: 0; width: 50%; height: 340px; visibility: hidden;
+  opacity: 0; pointer-events: none; z-index: -1; }
+.nc-radar.zt-mode-3d > .zt-aside { grid-column: 1 / -1; }
+
+/* Topbar switch "Karte | Karte + 3D | 3D" (reference regenradar2-desktop: track #EDE6D3, active ink). */
+.zt-viewseg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--sand-100, #EDE6D3); }
+.zt-viewseg button { height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink-800, #3A3833); }
+.zt-viewseg button.is-active { background: var(--ink-900, #2C2A26); color: var(--sand-50, #F5F1E8); }
+.zt-viewseg button:focus-visible { outline: 2px solid var(--steel-600, #3A6FA8); outline-offset: 1px; }
+
+/* Slim dock in "Karte + 3D" (64 px, icons; everything reachable through "Alle Einstellungen"). */
+.zt-dockwrap { position: relative; display: flex; flex: 0 0 auto; }
+.zt-dockwrap.is-slim { width: 64px; }
+.zt-dockwrap.is-slim:not(.is-open) .rr-dock { width: 64px; padding: 12px 8px; overflow: hidden; }
+.zt-dockwrap.is-slim:not(.is-open) .rr-dock > :not(.rr-layers) { display: none; }
+.zt-dockwrap.is-slim:not(.is-open) .rr-layer-label,
+.zt-dockwrap.is-slim:not(.is-open) .rr-switch { display: none; }
+.zt-dockwrap.is-slim:not(.is-open) .rr-layer { width: 46px; height: 46px; justify-content: center; padding: 0; }
+.zt-dockwrap.is-slim.is-open .rr-dock { position: absolute; left: 0; top: 0; bottom: 0; z-index: 30; box-shadow: var(--shadow-float, 0 8px 24px rgba(44, 42, 38, 0.18)); }
+.zt-dockmore { position: absolute; left: 9px; bottom: 12px; z-index: 31; width: 46px; height: 46px; border-radius: 10px;
+  border: 1px solid var(--sand-200, #E0D6BE); background: var(--cream-50, #FAF6EA); cursor: pointer; color: var(--ink-900, #2C2A26);
+  display: inline-flex; align-items: center; justify-content: center; }
+.zt-dockwrap.is-open .zt-dockmore { left: 168px; }
+.zt-dockmore:focus-visible { outline: 2px solid var(--steel-600, #3A6FA8); outline-offset: 2px; }
+

@@ -15,8 +15,10 @@
  * F Wortsperre D-19 über alle erzeugten Sätze: nie „Warnung", „Gefahr", „Unwetter", „trifft", „Tornado".
  * G buscosun Fusion: P(≥ 5 mm) = exceedance derselben Verteilung, Böe ≥ 60 km/h in m/s, Lücke = null (nie 0),
  *   interpolierte Schritte zählen nie; nur Typen aus dem Motor importiert.
- * H Verdrahtung: cellPolygons.ts, MapView.tsx und der Motor unverändert gegen HEAD; Ortsliste lazy (`?url`), Schalter
- *   gelesen; Leiste ohne Schalter wie vorher (`cellRelevanceText`).
+ * H Verdrahtung: cellPolygons.ts und der Motor unverändert gegen HEAD, MapView.tsx nur additiv (V-ZO-4); Ortsliste lazy
+ *   (`?url`), Schalter gelesen; Leiste ohne Schalter wie vorher (`cellRelevanceText`).
+ * I V-ZO-4/V-ZO-5: die Karte hebt die Zelle hervor, die der Satz nennt (alte Regel nur ohne Schalter); Gegenprobe an
+ *   echten Läufen, dass beide Regeln sich unterscheiden; Leiste in Sand/Ink nur mit Schalter, Grundklasse unverändert.
  */
 process.env.TZ = 'Europe/Berlin';
 import { readFileSync } from 'node:fs';
@@ -24,7 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { parseKonrad3d } from '../src/radar/konrad3d.ts';
-import { pointInEllipse } from '../src/radar/cellPolygons.ts';
+import { pointInEllipse, cellLocationRelevance, buildCellFeatures } from '../src/radar/cellPolygons.ts';
 import {
   parseCellPlaces, cellPlacesEnabledFrom, nearEllipse, prepareCell, cellPassAt, cellPlaceList, cellPlaceVerdict,
   cellPlaceSentence, inKonradReach, windowText, windowBand, cellChoiceOrder, CELL_PLACES_MAX_ROWS,
@@ -255,7 +257,36 @@ const sentences = [];
 {
   const unchanged = (p) => { try { execFileSync('git', ['diff', '--quiet', 'HEAD', '--', p], { cwd: ROOT }); return true; } catch { return false; } };
   add('H1 cellPolygons.ts, cellLayers.ts, konrad3d.ts unverändert gegen HEAD', unchanged('src/radar/cellPolygons.ts') && unchanged('src/radar/cellLayers.ts') && unchanged('src/radar/konrad3d.ts'));
-  add('H2 MapView.tsx unverändert gegen HEAD', unchanged('src/MapView.tsx'));
+  // V-ZO-4: MapView nur additiv — ohne die Zeilen der Prop `profileAffectsCellId` byte-gleich zu HEAD.
+  const lf = (t) => t.replace(/\r\n/g, '\n');
+  const mvHead = lf(execFileSync('git', ['show', 'HEAD:src/MapView.tsx'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20 }));
+  const stripZo4 = (t) => {
+    const steps = [
+      [/\n  \/\*\* Phase ZO \(V-ZO-4[^\n]*\n[^\n]*\n  profileAffectsCellId\?: number \| null;/, ''],
+      [' profileMarkerLabel, profileAffectsCellId,\n', ' profileMarkerLabel,\n'],
+      [/      \/\/ V-ZO-4:[^\n]*\n      const affectsCellId = profile && profileAffectsCellId !== undefined \? profileAffectsCellId : \(rel\?\.cellId \?\? null\);\n      const fc = buildCellFeatures\(cellsRun, \{ affectsCellId \}\);/,
+        '      const fc = buildCellFeatures(cellsRun, { affectsCellId: rel?.cellId ?? null });'],
+      [', overview, profile, profileAffectsCellId]);', ', overview]);'],
+      [/\n        \+ `\$\{affectsCellId !== \(rel\?\.cellId \?\? null\) \? [^\n]*: ''\}`,/, ','],
+    ];
+    let out = t, all = true;
+    for (const [a, b] of steps) { const n = out.replace(a, b); all &&= n !== out; out = n; }
+    return all ? out : null;
+  };
+  // Andere Phasen (z. B. ZT) ergänzen MapView parallel — maßgeblich für ZO sind die Zeilen der Zellbahnen: ohne die
+  // V-ZO-4-Zeilen stehen sie wortgleich und in derselben Reihenfolge wie an HEAD. Rest = fremde Phasen, nur benannt.
+  const cellLines = (t) => t.split('\n').filter((l) => /affects|buildCellFeatures|cellLocationRelevance|cellsRelevance|CELLS_SOURCE_ID|cellRelevanceText/.test(l));
+  const zo4Ok = (t) => { const s = stripZo4(t); return s != null && JSON.stringify(cellLines(s)) === JSON.stringify(cellLines(mvHead)); };
+  const mvCur = lf(read('src/MapView.tsx'));
+  const mvStripped = stripZo4(mvCur);
+  const foreign = mvStripped == null ? null : (() => {
+    const a = new Set(mvHead.split('\n')); return mvStripped.split('\n').filter((l) => !a.has(l)).length;
+  })();
+  add('H2 MapView.tsx nur additiv: ohne die Zeilen von `profileAffectsCellId` die Zellbahnen wortgleich zu HEAD (ohne Prop die alte Regel)',
+    zo4Ok(mvCur), mvStripped === mvHead ? 'sonst byte-gleich zu HEAD' : `${foreign ?? '?'} Zeilen anderer Phasen (nicht ZO)`);
+  add('H2b Gegenprobe: eine geänderte Zellbahn-Zeile fiele auf',
+    !zo4Ok(mvCur.replace("affectsCellId = profile && profileAffectsCellId !== undefined ? profileAffectsCellId : (rel?.cellId ?? null)", "affectsCellId = profileAffectsCellId ?? null"))
+    && !zo4Ok(mvCur.replace('const fc = buildCellFeatures(cellsRun, { affectsCellId });', 'const fc = buildCellFeatures(cellsRun, { affectsCellId: null });')));
   add('H3 buscosun Fusion unverändert gegen HEAD (src/pointForecast/fusion)', unchanged('src/pointForecast/fusion'));
   const hook = read('src/nowcast/useCellPlaces.ts');
   add('H4 Ortsliste lazy als gehashtes Asset (`?url`), nur bei Zellen geladen', /cellPlacesDach\.json\?url/.test(hook) && /import\('\.\.\/radar\/cellPlacesDach\.json\?url'\)/.test(hook));
@@ -266,6 +297,49 @@ const sentences = [];
   const card = read('src/nowcast/CellPlacesCard.tsx');
   add('H7 außerhalb der Radarreichweite nur der Satz (keine Liste, keine Haltestellen), außer die Zelle wurde angetippt',
     /zo\.verdict\.kind === 'no-coverage' && !zo\.picked/.test(card) && /zoQuiet = zo\.verdict\?\.kind === 'no-coverage' && !zo\.picked/.test(deck) && /zo\.list && !zoQuiet/.test(deck));
+}
+
+// ---------------------------------------------------------------------------- I
+{
+  // V-ZO-4: an echten Läufen nennen alte Regel (S-Z2-3a, ∪) und Satz (E-ZO-1) dort, wo sich Zellen überlappen, oft eine
+  // andere Zelle — die Karte folgt jetzt dem Satz.
+  let pts = 0, diff = 0, checked = 0, marked = true;
+  for (const run of RUNS) {
+    const prep = new Map(run.cells.map((c) => [c.id, prepareCell(c)]));
+    for (const c of run.cells) for (let dy = -0.5; dy <= 0.5; dy += 0.05) for (let dx = -0.7; dx <= 0.7; dx += 0.07) {
+      const lat = c.lat + dy, lon = c.lon + dx;
+      const old = cellLocationRelevance(run, [lon, lat])?.cellId ?? null;
+      const v = cellPlaceVerdict(run, lat, lon, run.refMs, prep);
+      const id = v.kind === 'pass' || v.kind === 'passby' ? v.cellId : null;
+      if (old == null && id == null) continue;
+      pts++;
+      if (old === id) continue;
+      diff++;
+      if (checked >= 20) continue;
+      checked++;
+      const fc = buildCellFeatures(run, { affectsCellId: id });
+      const aff = new Set(fc.features.filter((f) => f.properties?.affects === 1).map((f) => f.properties.id));
+      marked &&= id == null ? aff.size === 0 : aff.size === 1 && aff.has(id) && !aff.has(old);
+    }
+  }
+  add('I1 Gegenprobe: alte Regel und Satz nennen an echten Läufen verschiedene Zellen', diff > 0, `${diff} von ${pts} betroffenen Gitterpunkten`);
+  add('I2 hervorgehoben ist genau die Zelle des Satzes, nicht die der alten Regel', checked > 0 && marked, `${checked} Fälle`);
+  const map = read('src/nowcast/NowcastRadarMap.tsx');
+  add('I3 Karte bekommt die Zelle des Satzes nur mit Schalter (MapView-Profil und alte Karte `?rr=legacy`)',
+    /zoAffectsCellId: number \| null \| undefined = zoOn \? \(zoLeiste\?\.cellId \?\? null\) : undefined/.test(map)
+    && /profileAffectsCellId: zoAffectsCellId/.test(map)
+    && /affectsCellId: zoAffectsCellId !== undefined \? zoAffectsCellId : \(cellRel\?\.cellId \?\? null\)/.test(map)
+    && /cellPlaceVerdict\(cellsRun, point\.lat, point\.lon, nowMs\)/.test(map));
+  // V-ZO-5: Sand/Ink nur über die Zusatzklasse; die Grundklasse (`?zo=0`) bleibt Bordeaux.
+  const css = read('src/radar/radar.css');
+  const hint = css.match(/\.nc-radar-eta--hint \{[^}]*\}/)?.[0] ?? '';
+  const cssDiff = execFileSync('git', ['diff', '-U0', 'HEAD', '--', 'src/radar/radar.css'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  add('I4 Leiste als Hinweis in Sand/Ink (kein Bordeaux), Grundklasse unverändert',
+    hint !== '' && !/7e0028/i.test(hint) && /250,246,234/.test(hint) && /ink-900/.test(hint)
+    && !cssDiff.split('\n').some((l) => /^-(?!--)/.test(l)) && /\.nc-radar-eta \{[^}]*#7e0028/.test(css));
+  add('I5 Hinweis-Klasse nur mit Schalter', /className="nc-radar-eta nc-radar-eta--hint"/.test(map)
+    && /nc-radar-eta--quiet\$\{zoOn \? ' nc-radar-eta--hint' : ''\}/.test(map)
+    && /!zoOn && cellsOn && cellRel && \(\s*<div className="nc-radar-eta">/.test(map));
 }
 
 console.log(`\n${fail === 0 ? '✓' : '✗'} verify:cell-places ${pass}/${pass + fail}`);
