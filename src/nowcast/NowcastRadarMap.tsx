@@ -30,6 +30,8 @@ import RadarTimeline from '../radar/RadarTimeline';
 import PointStrip, { stripSamples, frameIntensities } from '../radar/PointStrip';
 import { getRadarStack, seedDePastArchive, DE_PAST_SEED_FRAMES, type RadarStack } from '../radar/radarFrames';
 import { pointPoPSeries } from '../radar/pointPoP';
+import { computeRainWindow, rainWindowEnabledFrom } from './rainWindow';
+import { radarTimesAt } from './rainWindowRadar';
 import { convectiveIndex, type ConvectiveIndex } from '../radar/convectiveIndex';
 import { fetchPeakCapeAtPoint } from '../sources/iconD2Cape';
 import { fetchDwdAlerts } from '../sources/dwdAlerts';
@@ -104,6 +106,8 @@ interface Props {
   snowMode?: SnowMode;
   /** Phase NS: Darstellung Intensität | Summe (Dock). Fehlt = Stand vor Phase NS (`?sum=0`). */
   sum?: SumSelection;
+  /** Phase RB (`?rb=1`): der Radar-Stack nach oben (Deck rechnet das Fenster am Ort); `null` = Radar nicht erreichbar. */
+  onRadarStack?: (stack: RadarStack | null) => void;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -138,7 +142,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack }: Props) {
   const last = useMemo(() => loadLastView(), []);
   // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
   const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -174,6 +178,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const [accumIdx, setAccumIdx] = useState(1);
 
   const [stack, setStack] = useState<RadarStack | null>(null);
+  const onRadarStackRef = useRef(onRadarStack);
+  onRadarStackRef.current = onRadarStack;
   const [terrain, setTerrain] = useState<RadarTerrain | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [framePos, setFramePos] = useState(0);
@@ -281,6 +287,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       .then((st) => {
         if (ac.signal.aborted) return;
         setStack(st); setLoadErr(null); repin(st);
+        onRadarStackRef.current?.(st);
         // DE-Rückblick-Archiv einmal je Location nachladen (schwer): acht
         // zusätzliche RV-Tars, gemessen 2,28 MiB und 27 s (audit/bandbreite.md
         // §24.3). Seit BW-5 NICHT mehr beim Öffnen, sondern beim ersten Griff in
@@ -314,7 +321,9 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       })
       // Fehler-Overlay nur beim Ortswechsel zeigen; ein fehlgeschlagener
       // Soft-Refresh behält still das bisherige Bild.
-      .catch((err) => { if (!ac.signal.aborted && isLocChange) setLoadErr(err instanceof Error ? err.message : 'Radar nicht erreichbar'); });
+      .catch((err) => {
+        if (!ac.signal.aborted && isLocChange) { setLoadErr(err instanceof Error ? err.message : 'Radar nicht erreichbar'); onRadarStackRef.current?.(null); }
+      });
     return () => ac.abort();
   }, [location.lat, location.lon, location.country, reloadKey, autoTick]);
 
@@ -475,6 +484,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const pointSamples = useMemo(() => (stack ? stripSamples(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
   // Ensemble-Regenwahrscheinlichkeit am Punkt (nur DE) — hängt an stack+Punkt, nicht am Slider.
   const pointPop = useMemo(() => (stack ? pointPoPSeries(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
+  // Phase RB (`?rb=1`): dieselbe Spanne als Label am Ortsmarker — für den Punkt am Marker (kann vom Ort der Seite abweichen).
+  const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const markerLabel = useMemo(() => {
+    if (!rbOn || !stack || !pointNowcast) return null;
+    const nowMs = Date.now();
+    const w = computeRainWindow({ nowMs, radar: radarTimesAt(stack, point.lat, point.lon, nowMs), fusion: pointNowcast.fusionPWet ?? null });
+    return w.kind === 'none' ? null : w.label;
+  }, [rbOn, stack, point.lat, point.lon, pointNowcast]);
   const frameMmH = useMemo(() => (stack ? frameIntensities(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
 
   // Phasen/Schneefallgrenze: Gelände-DEM lazy laden (nur wenn aktiv). Phase RR: nur für die alte Karte — im Profil
@@ -617,6 +634,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
               onPointPick={onPick} onPointHover={onProfileHover}
               onMapReady={(m) => { mapRef.current = m; setMapInst(m); onMapReady?.(m); }}
               initialView={initialView} onViewChange={onViewChange}
+              {...(markerLabel ? { profileMarkerLabel: markerLabel } : {})}
             />
           ) : (
             <div className="nc-radar-loading"><span className="ev-spinner" /> Karte wird geladen …</div>

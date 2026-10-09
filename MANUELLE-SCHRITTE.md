@@ -1815,3 +1815,15 @@ umgesetzt (uncommitted): HD (Catmull-Rom auf dem 1-km-Gitter), Dual-Frames und M
    zeichnet der Client die lineare Rampe. **Ansehen danach** am selben Zeitpunkt wie Kachelmann (`/regenradar/<ort>`, zurückblättern).
    Nicht geändert: die lineare Rampe (Wetterkarte `?hd=0`, KI-Nowcast, PoP, Autobahn) und die Helligkeitsdelle 0,5 → 1 → 3 mm/h
    beider Rampen (V-HD-10) — wenn du die Mitte auch heller abgestuft willst, ist das eine gemeinsame Neufassung beider Rampen.
+
+## 51. Regenbeginn als Spanne im Regenradar (Phase RB), 2026-10-09
+
+`audit/regenbeginn-spanne.md`. Gebaut hinter `?rb=1` (voreingestellt aus), buscosun Fusion unverändert.
+
+1. **Ansehen:** `/regenradar/<ort>?rb=1` — Desktop oben im Readout, mobil oben im Schnellblick, Label am Ortsmarker.
+   Am besten an einem Regentag (heute in München nur der Fusion-Fall „Regen möglich ab 23 Uhr" gesehen, kein Radar-Fenster).
+2. **Commit + Push buscosun-web** (neu: `src/nowcast/rainWindow.ts`, `rainWindowRadar.ts`, `RainWindowCard.tsx`, `rainWindow.css`,
+   `scripts/verify-rain-window.mjs`, Audit; geändert: `NowcastDeck.tsx`, `NowcastRadarMap.tsx`, `nowcastEngine.ts`,
+   `nowcastModel.ts`, `MapView.tsx` (Prop `profileMarkerLabel`, nur Profil), `package.json`, `budget.json` (totalJs 1635 → 1640 mit Notiz)).
+3. **Entscheiden:** Schalter einschalten (Voreinstellung) — erst nach Real-Device und einem Regentag; V-RB-3 (Schwellen am Archiv
+   messen), V-RB-4 (Flow-Ensemble/PoP-Chip sieht herannahenden Regen kaum — eigene Phase?), V-RB-5 (Richtungsunsicherheit).

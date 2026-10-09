@@ -11,6 +11,9 @@ import { createRadarNowcastSampler } from '../pointForecast/radarNowcast';
 import { getPointForecast } from '../pointForecast/pointForecast';
 import type { PointForecast } from '../pointForecast/types';
 import { pfSourceFrom } from '../pointForecast/pfFlags';
+import type { PointForecastV2 } from '../pointForecast/fusion/output';
+import type { Dist } from '../pointForecast/fusion/dist';
+import { rainWindowEnabledFrom, RB_HORIZON_H } from './rainWindow';
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import type { Country } from '../types';
 import {
@@ -336,6 +339,22 @@ function nwpOf(forecast: PointForecast): NwpHour[] {
 }
 
 /**
+ * Phase RB: P(precip ≥ 0,1 mm/h) per hour from the cube path's distributions (`v2`), only read — the same reading as
+ * the dashboard's `pWetOf`, at the hero's wet threshold instead of 0. `null` without `v2`.
+ */
+export function fusionPWetOf(forecast: PointForecast, exceedance: (d: Dist, x: number) => number): Array<{ tMs: number; p: number }> | null {
+  const v2 = (forecast.cube as { v2?: PointForecastV2 } | undefined)?.v2;
+  if (!v2?.axis.steps.length) return null;
+  const out: Array<{ tMs: number; p: number }> = [];
+  for (const st of v2.axis.steps) {
+    const d = st.vars.precip?.dist;
+    const p = d ? exceedance(d, WET_MMH) : NaN;
+    if (Number.isFinite(p)) out.push({ tMs: st.validAtMs, p: Math.max(0, Math.min(1, p)) });
+  }
+  return out.length ? out : null;
+}
+
+/**
  * Holt Radar + Punktforecast und baut den Nowcast.
  *
  * Phase RR (RR-e, `audit/regenradar-datenangleich.md` §5 „Daten"): der Punktwert jenseits des Radars kommt aus
@@ -352,29 +371,42 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   let sampler: Sampler | undefined;
   let latestCube: PointForecast | null = null;
 
-  const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => assembleNowcast({
-    nowMs,
-    radarSampleAt: (etaMs) => (s ? s.sample(lat, lon, etaMs) : null),
-    radarValidUntilMs: s ? s.meta.validUntilMs : 0,
-    radarSource: s ? s.meta.source : '',
-    runAtMs: s && s.meta.validFromMs ? s.meta.validFromMs : forecast.fetchedAt,
-    fetchedAtMs: forecast.fetchedAt,
-    nwp: nwpOf(forecast),
-    elevationM: forecast.query?.elevation ?? null,
-    lapseRatePerM: forecast.lapseRatePerM ?? null,
-    nwpSource,
-  });
+  // Phase RB (`?rb=1`): buscosun Fusion up to +24 h for the rain window; the engine keeps its 8-h series (hours beyond
+  // are cut before `assembleNowcast`). Without the switch the request and the series are exactly as before.
+  const rb = rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  const cubeHours = rb ? RB_HORIZON_H + 1 : 8;
+  let exceed: ((d: Dist, x: number) => number) | null = null;
+  const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
+    const nwpAll = nwpOf(forecast);
+    const nc = assembleNowcast({
+      nowMs,
+      radarSampleAt: (etaMs) => (s ? s.sample(lat, lon, etaMs) : null),
+      radarValidUntilMs: s ? s.meta.validUntilMs : 0,
+      radarSource: s ? s.meta.source : '',
+      runAtMs: s && s.meta.validFromMs ? s.meta.validFromMs : forecast.fetchedAt,
+      fetchedAtMs: forecast.fetchedAt,
+      nwp: rb ? nwpAll.filter((h) => h.tMs < Math.floor(nowMs / 3_600_000) * 3_600_000 + 8 * 3_600_000) : nwpAll,
+      elevationM: forecast.query?.elevation ?? null,
+      lapseRatePerM: forecast.lapseRatePerM ?? null,
+      nwpSource,
+    });
+    if (rb && nwpSource === 'cube' && exceed) {
+      const pw = fusionPWetOf(forecast, exceed);
+      if (pw) nc.fusionPWet = pw;
+    }
+    return nc;
+  };
 
   // Der Live-Pfad exakt wie vor RR (derselbe Aufruf) — Rückfall und `?pf=live`.
   const live = () => getPointForecast({ lat, lng: lon, country, hours: 8, signal })
     .then((forecast) => ({ forecast, source: 'live' as const }));
-  const cube = () => import('../pointForecast/cubeSource').then(() => getPointForecast({
-    lat, lng: lon, country, hours: 8, signal, includeRadarNowcast: true, pointSource: 'cube',
+  const cube = () => import('../pointForecast/cubeSource').then((mod) => { exceed = mod.exceedance; return getPointForecast({
+    lat, lng: lon, country, hours: cubeHours, signal, includeRadarNowcast: true, pointSource: 'cube',
     onUpdate: (fc) => {
       latestCube = fc;
       if (sampler !== undefined && !signal?.aborted) opts.onUpdate?.(assemble(sampler, fc, 'cube'));
     },
-  })).then((forecast) => ({ forecast, source: 'cube' as const }));
+  }); }).then((forecast) => ({ forecast, source: 'cube' as const }));
 
   const pf = pfSourceFrom(typeof window !== 'undefined' ? window.location.search : '');
   let forecastP: Promise<{ forecast: PointForecast; source: 'cube' | 'live' }>;

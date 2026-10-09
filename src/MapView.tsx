@@ -581,6 +581,9 @@ interface Props {
   onPointHover?: (pos: { lat: number; lon: number } | null) => void;
   /** Profil: MapLibre-Instanz nach außen (Zoom-Knöpfe des Decks); `null` beim Abbau. */
   onMapReady?: (map: MapLibreMap | null) => void;
+  /** Phase RB (`audit/regenbeginn-spanne.md`, `?rb=1`): kleines Label am Ortsmarker („Regen 14:05–14:20"). Nur im
+   *  Profil; ohne Prop (oder `null`) kein Element — der Marker exakt wie vorher. */
+  profileMarkerLabel?: string | null;
 }
 
 // Layer-Katalog (SEO/GEO 2026, E1): Label + Tooltip je Layer stehen seit E1 in
@@ -698,7 +701,7 @@ export default function MapView({
   location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false,
   routeLayers, onLayersChange, routeHour, onHourChange, initialView, onViewChange, initialModelSource, routeModelSource, onModelSourceChange,
   suspended = false, onOpenDashboard,
-  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady,
+  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady, profileMarkerLabel,
 }: Props) {
   // Phase RR: Rückkanäle des Profils als Ref (der Mount-Effekt mit [] liest sie ohne Stale-Closure).
   const profileCbRef = useRef({ onPointPick, onPointHover, onMapReady });
@@ -4423,6 +4426,17 @@ export default function MapView({
   useEffect(() => {
     if (profile && profileSnowMode) setSnowMode(profileSnowMode);
   }, [profile, profileSnowMode]);
+  // Phase RB: Label am Ortsmarker (nur Profil). Ein Kind-Element des Marker-Elements — es wandert mit dem Marker,
+  // auch beim Ziehen; ohne Label wird es entfernt.
+  useEffect(() => {
+    if (!profile) return;
+    const el = markerRef.current?.getElement();
+    if (!el) return;
+    let lab = el.querySelector<HTMLSpanElement>(':scope > .rb-marker-label');
+    if (!profileMarkerLabel) { lab?.remove(); return; }
+    if (!lab) { lab = document.createElement('span'); lab.className = 'rb-marker-label'; el.appendChild(lab); }
+    lab.textContent = profileMarkerLabel;
+  }, [profile, profileMarkerLabel]);
 
   // Testmodus „Nur-Jetzt": Forecast-Frames (bis +NOWONLY_AHEAD_H) NACH BEDARF —
   // erst wenn der Nutzer den Slider das erste Mal von „jetzt" wegbewegt, das

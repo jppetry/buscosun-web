@@ -1,0 +1,51 @@
+/* Phase RB — Regenbeginn als Spanne (`?rb=1`). Command-Deck (Sand/Ink), Mobil nur über den 767-px-Breakpoint. */
+.rb-card { margin-top: 12px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 14px 16px 12px; }
+.rb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.rb-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; padding-top: 4px; }
+.rb-chips { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.rb-chip { font-size: 10.5px; font-weight: 600; border-radius: 999px; padding: 3px 8px; white-space: nowrap; cursor: help;
+  color: var(--stone-600, #5C5447); background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); }
+.rb-chip--prob { color: var(--steel-600, #3A6FA8); border-color: #B7CBE0; background: #F3F7FB; }
+.rb-kind-dry .rb-chip--prob { color: #5F7A4C; border-color: #C9D6BC; background: #F3F6EE; }
+.rb-sentence { font-size: 24px; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.6px; line-height: 1.12;
+  margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+.rb-card.is-uncertain .rb-sentence { font-size: 20px; }
+
+.rb-strip { margin-top: 12px; }
+.rb-track { position: relative; height: 10px; border-radius: 5px; background: var(--sand-100, #EFE8D6); overflow: hidden; }
+/* Band: in the middle strongest, fading out to the edges; the core (window) a little firmer. */
+.rb-band { position: absolute; top: 0; bottom: 0;
+  background: linear-gradient(90deg,
+    rgba(58, 111, 168, 0) 0%,
+    rgba(58, 111, 168, 0.28) var(--rb-c0, 25%),
+    rgba(58, 111, 168, 0.85) var(--rb-peak, 50%),
+    rgba(58, 111, 168, 0.28) var(--rb-c1, 75%),
+    rgba(58, 111, 168, 0) 100%); }
+.rb-card.is-uncertain .rb-band { opacity: 0.7; }
+.rb-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 5px 0 0 5px; }
+.rb-fill--dry { background: linear-gradient(90deg, rgba(122, 148, 102, 0.45), rgba(122, 148, 102, 0.18)); }
+.rb-fill--wet { background: linear-gradient(90deg, rgba(58, 111, 168, 0.7), rgba(58, 111, 168, 0.3)); }
+.rb-now { position: absolute; left: 0; top: -1px; bottom: -1px; width: 3px; border-radius: 2px; background: var(--ink-900, #2C2A26); }
+.rb-axis { position: relative; height: 14px; margin-top: 4px; font-size: 10px; color: var(--stone-400, #A89A7A); font-variant-numeric: tabular-nums; }
+.rb-tick { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.rb-tick:last-child { transform: translateX(-100%); }
+.rb-tick--now { transform: none; color: var(--ink-900, #2C2A26); font-weight: 600; }
+.rb-note { font-size: 11px; color: var(--stone-500, #8B7355); margin: 8px 0 0; line-height: 1.4; }
+
+@media (max-width: 767px) {
+  .rb-card { margin-top: 0; margin-bottom: 14px; border-radius: 16px; padding: 14px 14px 12px; }
+  .rb-eyebrow { font-size: 11px; }
+  .rb-chip { font-size: 12.5px; padding: 5px 10px; }
+  .rb-sentence { font-size: 26px; }
+  .rb-card.is-uncertain .rb-sentence { font-size: 22px; }
+  .rb-track { height: 12px; }
+  .rb-axis { font-size: 12px; height: 16px; }
+  .rb-note { font-size: 13px; }
+}
+
+/* Label am Ortsmarker der Radarkarte (MapView-Profil). Sitzt rechts neben der Nadel, folgt ihr beim Ziehen. */
+.rb-marker-label { position: absolute; left: calc(100% + 4px); top: 4px; white-space: nowrap; pointer-events: none;
+  font: 600 11px/1 var(--font-sans, 'League Spartan', system-ui, sans-serif); color: var(--ink-900, #2C2A26);
+  background: rgba(250, 246, 234, 0.94); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; padding: 4px 8px;
+  box-shadow: 0 1px 3px rgba(44, 42, 38, 0.18); font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) { .rb-marker-label { font-size: 12px; padding: 5px 9px; } }

@@ -204,6 +204,11 @@ export interface Nowcast {
    * Live-Pfad (Rückfall bei Fehler oder `?pf=live`). Fehlt das Feld, wurde es nicht gesetzt (Bestand vor RR).
    */
   nwpSource?: 'cube' | 'live';
+  /**
+   * Phase RB (`audit/regenbeginn-spanne.md`, nur mit `?rb=1`): P(Niederschlag ≥ 0,1 mm/h) je Stunde bis +24 h aus der
+   * Verteilung von buscosun Fusion (Cube-Pfad, `exceedance`). Fehlt ohne Schalter und im Live-Pfad (keine Verteilung).
+   */
+  fusionPWet?: Array<{ tMs: number; p: number }>;
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */

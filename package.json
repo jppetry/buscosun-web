@@ -25,6 +25,7 @@
     "verify:np0-radar": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-np0-radar.mjs",
     "verify:np0-fields": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-np0-fields.mjs",
     "verify:precip-sums": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-precip-sums.mjs",
+    "verify:rain-window": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-rain-window.mjs",
     "verify:radar-sampling": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-sampling.mjs",
     "verify:layer-geometry": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-layer-geometry.mjs",
     "verify:event-zone": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-event-zone.mjs",

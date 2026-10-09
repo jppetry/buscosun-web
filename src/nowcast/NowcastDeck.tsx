@@ -33,6 +33,11 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import { SumControls, PointSumCard } from '../precipSums/PrecipSumsUi';
 import { usePointSums, type PastSide, type FutureSide } from '../precipSums/usePointSums';
 import { SUM_DEFAULT, sumsEnabledFrom, isSumWindow, type SumSelection } from '../precipSums/sumModel';
+// Phase RB (audit/regenbeginn-spanne.md): Regenbeginn als Spanne — nur mit `?rb=1`.
+import { computeRainWindow, rainWindowEnabledFrom, type RainWindow } from './rainWindow';
+import { radarTimesAt } from './rainWindowRadar';
+import type { RadarStack } from '../radar/radarFrames';
+import RainWindowCard from './RainWindowCard';
 
 type DeckState =
   | { kind: 'loading' }
@@ -116,6 +121,20 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const ps = usePointSums({ lat: location.lat, lon: location.lon, country: location.country }, sumSel.windowH, nowcast, sumsOn && nowcast != null);
   const pointSums: PointSums = { on: sumsOn, windowH: sumSel.windowH, past: ps.past, future: ps.future };
   const sumProp = sumsOn ? sumSel : undefined;
+  // Phase RB: Radar-Stack der Karte (undefined = noch keiner, null = Radar nicht erreichbar) + Fenster am Ort der Seite.
+  const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const [rbStack, setRbStack] = useState<RadarStack | null | undefined>(undefined);
+  useEffect(() => { setRbStack(undefined); }, [location.lat, location.lon, location.country]);
+  const rainWindow: RainWindow | null = useMemo(() => {
+    if (!rbOn || !nowcast || rbStack === undefined) return null;
+    const nowMs = Date.now();
+    return computeRainWindow({
+      nowMs,
+      radar: rbStack ? radarTimesAt(rbStack, location.lat, location.lon, nowMs) : null,
+      fusion: nowcast.fusionPWet ?? null,
+    });
+  }, [rbOn, nowcast, rbStack, location.lat, location.lon]);
+  const onRadarStack = rbOn ? setRbStack : undefined;
 
   const toggleLayer = (id: RadarLayerId) =>
     setLayers((ls) => (ls.includes(id) ? ls.filter((l) => l !== id) : [...ls, id]));
@@ -127,7 +146,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
         <div className="rr-stage">
           <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
             layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-            initialView={initialView} onViewChange={onViewChange} sum={sumProp} />
+            initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} />
         </div>
       ) : (
         <div className="rr-chart">
@@ -189,7 +208,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rm-map">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-              initialView={initialView} onViewChange={onViewChange} sum={sumProp}
+              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack}
               onMapReady={(m) => { mapRef.current = m; }} />
           </div>
           <div className="rm-topfloat">
@@ -210,7 +229,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
-            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} />
+            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} rainWindow={rainWindow} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} />
         </div>
       ) : (
@@ -228,7 +247,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-readout-eyebrow">Regenradar · {flagForCountry(location.country)} {shortPlace(location.name)}</span>
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} />
           </div>
         </div>
       )}
@@ -336,8 +355,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Hero · Kennzahlen · Timeline · Verlauf · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, pointSums }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums;
+function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null;
 }) {
   if (state.kind === 'loading' || !nowcast) {
     return <div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> Radar &amp; Modell werden ausgewertet …</div>;
@@ -347,6 +366,7 @@ function ReadoutBody({ nowcast, state, mode, pointSums }: {
   }
   return (
     <>
+      {rainWindow && <RainWindowCard w={rainWindow} variant="desktop" />}
       <Hero nowcast={nowcast} />
 
       {pointSums.on && (
@@ -626,12 +646,12 @@ function MobileTabBar({ tab, onSelect }: { tab: MobileTab; onSelect: (t: MobileT
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums, rainWindow }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
-  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void; pointSums: PointSums;
+  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void; pointSums: PointSums; rainWindow: RainWindow | null;
 }) {
   const PEEK = 34, FULL = 92; // vh
   const [dragVh, setDragVh] = useState(0);
@@ -656,7 +676,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       role="region" aria-label={`Bereich ${tab}`}>
       <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
       <div className="rm-sheet-body rm-tabsheet-body">
-        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} />}
+        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} />}
@@ -684,7 +704,7 @@ function PanelState({ state }: { state: DeckState }) {
 }
 
 // --- Panel: Schnellblick ----------------------------------------------------
-function GlancePanel({ nowcast, state, place, pointSums }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums }) {
+function GlancePanel({ nowcast, state, place, pointSums, rainWindow }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
   const h = heroState(nowcast);
   let line: ReactNode, sub: ReactNode;
@@ -706,6 +726,7 @@ function GlancePanel({ nowcast, state, place, pointSums }: { nowcast: Nowcast | 
     <>
       <PanelHead place={place} title="Schnellblick" />
       <div className="rm-glance">
+        {rainWindow && <RainWindowCard w={rainWindow} variant="mobile" />}
         <p className="rm-peek-line">{line}</p>
         <p className="rm-peek-sub">{sub}</p>
         <MobileAlertChips nowcast={nowcast} />
