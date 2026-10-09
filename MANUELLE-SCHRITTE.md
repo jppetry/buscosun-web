@@ -1830,3 +1830,63 @@ umgesetzt (uncommitted): HD (Catmull-Rom auf dem 1-km-Gitter), Dual-Frames und M
 4. **E-RB-7 (09.10.):** auf dein Wort voreingestellt AN (`rainWindow.ts`, `?rb=0` = Rückfall). **Commit + Push** dieser Umschaltung
    (`src/nowcast/rainWindow.ts`, Kommentare in Deck/Karte/Engine/Model/MapView/CSS, Verifier Block A, Doku). Nach dem Deploy sehen
    Besucher mit installiertem Service Worker die Anzeige erst nach dessen Update (nächster Besuch/Neuladen).
+5. **V-RB-6 (09.10., dringend):** die Fusion-Stunden der Regenbeginn-Anzeige standen eine Stunde zu spät (live seit `3eeed6d`).
+   Korrektur in `src/nowcast/nowcastEngine.ts` (+ Kommentar `rainWindow.ts`, Verifier G10) — **Commit + Push**.
+
+## 52. Regenchance im Regenradar (Phase RC), 2026-10-09
+
+`audit/regenchance.md`. Gebaut hinter `?rc=1` (voreingestellt aus), buscosun Fusion unverändert (`git diff` unter `src/pointForecast` leer).
+Im selben Arbeitsbaum liegen die Änderungen der Sitzung RB (§51 Punkt 5: `nowcastEngine.ts`, `rainWindow.ts`, `verify-rain-window.mjs`) —
+getrennt committen.
+
+1. **Ansehen:** `/regenradar/<ort>?rc=1` → Dock „Darstellung" → **Chance**; Schwelle „> 0 · ≥ 1 mm · ≥ 5 mm"; Readout „Chance am Ort"
+   (mobil im Schnellblick); ein Klick in die 48-h-Leiste setzt die Kartenzeit, „Karte folgt wieder dem Slider" kehrt zurück.
+2. **Commit + Push buscosun-web** (neu: `src/precipChance/*`, `scripts/verify-regenchance.mjs`, `audit/regenchance.md` + Bilder;
+   geändert: `src/point/fieldFormat.ts`, `scripts/point/build-point-fields.mjs`, `scripts/verify-np0-fields.mjs`,
+   `scripts/verify-precip-sums.mjs`, `src/precipSums/{PrecipSumsUi.tsx,sumModel.ts}`, `src/nowcast/{NowcastDeck,NowcastRadarMap}.tsx`,
+   `package.json`, `.github/workflows/ci.yml`, `budget.json` (totalJs 1640 → 1651 mit Notiz)). Der Punkt-Cron klont `main`: **erst mit dem
+   Push schreibt der Feldschritt `pexc-<LLL>.png`** (P(≥ 1/≥ 5 mm), +1 Bild je Vorlauf, Größe am ersten Lauf ablesen); bis dahin zeigt die
+   Karte bei „≥ 1/≥ 5 mm" eine benannte Lücke. `POINT_FIELD_PEXC=0` = Rückweg. Nach dem Commit wird `verify:regenradar-profile` E7 grün.
+3. **Nach dem ersten Feldlauf:** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-regenchance.mjs --live`
+   (L1 meldet „pexc im Manifest: ja").
+4. **Entscheiden:** Einschalten (Voreinstellung) — nach Real-Device (Lesbarkeit der Dichtestufen auf dem dunklen Feld, V-RC-6) und einem
+   Regentag; V-RC-1 (RB rechnet „nass" als Rate > 0,1 mm/h, die Chance als 1 − pDry — eine Definition für beide?), V-RC-2 (t2-Feld fehlt im
+   Index), V-RC-4 (Gate B14 von `verify:np0-fields` am lokalen Klon), V-RC-5 (Radar in den ersten 2 h der Karte).
+
+### 52.1 V-RC-2 behoben + Wächter, V-RC-1 gemessen und umgestellt (2026-10-09, Jans Auftrag „1 und 2 so machen")
+
+`audit/regenchance.md` §10/§11. Uncommitted, im selben Arbeitsbaum wie §52 und die RB-Sitzung (§51).
+
+1. **V-RC-2 — t2-Feld (dringend, mit dem nächsten Push von `main`):** Ursache belegt an der Actions-API (11 t2-Jobs 06.–09.10.): der
+   t2-Bau schwankt 5,7…11,9 min, der Feldschritt startet erst nach `FIELD_END_MIN` 10 und endet in 0 s ohne Feld (6 von 11 Jobs, seit
+   08.10. 16:42 UTC jeder; der Lauf 22:39 baute eins, sein Publish schlug fehl). Der Schritt selbst braucht 6–10 s. **Fix im Producer
+   (wirkt mit dem Push, keine Workflow-Kopie nötig):** Mindestfenster 45 s für t2/t3 (`FIELD_MIN_S_BY_TIER`, `fieldStore.mjs`;
+   `FIELD_MIN_S=0` = vorher). Geändert: `scripts/point/{build-point-fields,fieldStore}.mjs`, `scripts/verify-np0-fields.mjs` (B15–B18, C0;
+   B14 jetzt eigener try), `scripts/verify-point-data.mjs` (Prüfung V-RC-2). Neu: `scripts/point/field-watch.mjs`.
+2. **Wächter (Jans Gate: Kopie der Vorlage ins Daten-Repo):** `scripts/repack-repo/workflow-point.yml` hat je Stufen-Job nach dem Publish
+   den Schritt „Waechter Kartenfelder — tX" (ohne `continue-on-error`): bleiben **zwei Läufe einer Stufe hintereinander ohne Feld**, wird
+   der Job rot (GitHub-Mail) mit einer `::error`-Annotation. Erst NACH dem Push von `main` kopieren (vorher überspringt der Schritt sich
+   selbst, `test -f`). Danach `.github/workflows/point.yml` = Vorlage.
+3. **Nach dem nächsten t2-Job** (`30 4,10,16,22`): `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs
+   scripts/verify-np0-fields.mjs --live` — C0 und „C t2" werden grün (heute rot: t2 Cube `2026100900`, kein Feld).
+4. **V-RC-1 — eine Lesart von „nass":** gemessen nach vorab eingefrorener Regel (`audit/regenchance/vrc1-regel.md`, Hash 10:46:07Z) an
+   249 816 Archivzeilen: **gleichauf** (0/0 von 4 Tupeln) ⇒ der Regenbeginn rechnet jetzt wie Karte, Chance und Dashboard mit
+   **1 − pDry**; `?rbwet=0.1` = Rückfall. Geändert: `src/nowcast/{rainWindow,nowcastEngine,nowcastModel}.ts`, `NowcastDeck.tsx`,
+   `NowcastRadarMap.tsx`, `scripts/verify-rain-window.mjs` (H1–H5). Neu: `scripts/fusionfit/vrc1-wet-definition.mjs`,
+   `audit/regenchance/vrc1-*`. **Ansehen:** Regenbeginn-Karte an einem Regentag mit und ohne `?rbwet=0.1` — die Prozente liegen mit
+   1 − pDry etwas höher (im Mittel +13…+26 % relativ), die Schwellen 30/50/20 % bleiben gesetzt (V-RB-3).
+5. **Offen (Jans Gate):** `JOB_MAX_MIN` t2 = 15 min wird vom Cube-Bau allein überschritten (Jobs bis 16,9 min, V-NP0-14) — nicht Teil
+   dieses Fixes; der Fix verlängert einen Job um höchstens 45 s.
+
+## 53. Betroffene Orte und Ankunftsfenster der Gewitterzellen (Phase ZO), 2026-10-09
+
+Diagnose und Umsetzung: `audit/zell-orte.md` (E-ZO-1…6 entschieden, Gates §9). Uncommitted, voreingestellt an, `?zo=0` = vorher.
+
+1. **Ansehen** im Regenradar mit Zellbahnen an einem Tag mit Gewittern (Desktop: rechtes Panel nach „Schnellblick"; mobil:
+   Reiter „Schnellblick", im Blatt nach unten). Belege mit eingespieltem Lauf vom 07.10. in `audit/zell-orte/*.png`.
+2. **Real-Device** (scrcpy): Haltestellen-Marker beim Zoomen/Ziehen, Antippen eines Orts, Long Tasks bei vielen Zellen.
+3. **Commit/Push** — eigener Commit, z. B. `feat(regenradar): affected places and arrival windows per storm cell (ZO)`;
+   danach wird `verify:cell-places` H1–H3 gegen den neuen HEAD gerechnet (in CI).
+4. **Offen zur Entscheidung:** V-ZO-4 (Hervorhebung auf der Karte mit derselben Regel — additive Prop in `MapView`),
+   V-ZO-5 (rote Leiste über der Karte → Sand/Ink), V-ZO-2 (Ellipsen-Konvention beim DWD erfragen).
+

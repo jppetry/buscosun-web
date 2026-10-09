@@ -1,0 +1,51 @@
+/* Phase RC — Regenchance im Regenradar (Command-Deck: Sand/Ink, League Spartan).
+   Mobil ausschließlich über den Mobil-Breakpoint (max-width: 767px). Dock-Leisten und Legenden-Hülle aus precipSums.css. */
+
+/* --- Dock: Schwelle --- */
+.rc-thr { margin: 0 0 16px; }
+
+/* --- Legende --- */
+.rc-legend-scale { display: flex; align-items: flex-end; gap: 0.35rem; margin-bottom: 0.3rem; }
+.rc-legend-step { display: flex; flex-direction: column; align-items: center; font-size: 0.62rem; color: var(--stone-500, #8B7355);
+  font-variant-numeric: tabular-nums; }
+.rc-swatch { width: 1.5rem; height: 1.5rem; display: block; margin-bottom: 0.12rem; border-radius: 3px; }
+.rc-swatch-bg { fill: #4A4740; stroke: var(--sand-200, #E0D6BE); stroke-width: 0.6; } /* wie das dunkle Radarfeld */
+.rc-swatch-dot { fill: rgb(176, 208, 238); }
+.rc-key-line { height: 0 !important; border-top: 1.6px solid #6B655A; border-radius: 0 !important; }
+
+/* --- Karte am Ort --- */
+.rc-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 13px 14px 10px; margin-bottom: 10px; }
+.rc-card-line { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.2px; line-height: 1.3;
+  font-variant-numeric: tabular-nums; }
+.rc-card-sub { font-size: 11px; color: var(--stone-500, #8B7355); margin-top: 4px; line-height: 1.35; }
+.rc-card-sub b { color: var(--ink-800, #3A3833); font-weight: 600; }
+.rc-strip { display: block; width: 100%; height: auto; margin-top: 10px; cursor: pointer; outline: none; touch-action: manipulation; }
+.rc-strip:focus-visible { outline: 2px solid var(--steel-600, #3A6FA8); outline-offset: 2px; border-radius: 4px; }
+.rc-strip-base { stroke: var(--sand-200, #E0D6BE); stroke-width: 1; }
+.rc-strip-grid { stroke: var(--sand-200, #E0D6BE); stroke-width: 0.6; stroke-dasharray: 2 3; }
+.rc-strip-bar { fill: rgba(47, 94, 143, 0.62); }
+.rc-strip-bar.is-radar { fill: rgba(47, 94, 143, 0.85); }
+.rc-strip-bar.is-station { fill: rgba(47, 94, 143, 0.42); }
+.rc-strip-bar.is-clima { fill: rgba(139, 115, 85, 0.45); }
+.rc-strip-bar.is-wide { fill-opacity: 0.75; }
+.rc-strip-bar.is-sel { fill: rgb(32, 66, 104); }
+.rc-strip-shown { fill: rgba(58, 111, 168, 0.08); stroke: rgba(44, 42, 38, 0.55); stroke-width: 0.8; }
+.rc-strip-day { stroke: var(--sand-200, #E0D6BE); stroke-width: 0.8; }
+.rc-strip-slider { stroke: var(--ink-900, #2C2A26); stroke-width: 1.3; }
+.rc-strip-lbl { font-size: 8.5px; fill: var(--stone-500, #8B7355); font-family: inherit; }
+.rc-strip-lbl--now { fill: var(--ink-900, #2C2A26); font-weight: 700; }
+.rc-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; font-size: 10px;
+  color: var(--stone-400, #A89A7A); margin-top: 2px; }
+.rc-foot-mark { display: inline-block; width: 0; height: 9px; border-left: 1.3px solid var(--ink-900, #2C2A26); vertical-align: -1px; margin: 0 2px; }
+.rc-card-reset { border: 1px solid var(--sand-200, #E0D6BE); background: var(--sand-50, #FAF6EA); color: var(--ink-800, #3A3833);
+  border-radius: 6px; font: inherit; font-size: 10.5px; font-weight: 600; padding: 3px 8px; cursor: pointer; }
+.rc-card-note { font-size: 10px; color: var(--stone-500, #8B7355); margin-top: 4px; }
+
+@media (max-width: 767px) {
+  /* Legende knapp über der Leiste „Punktabfrage" wie die Summen-Legende (`precipSums.css`); nur die erste Quellzeile. */
+  .rm-map .rc-legend .rc-swatch { width: 1.2rem; height: 1.2rem; }
+  .rc-card { margin: 4px 0 10px; }
+  .rc-card-line { font-size: 18px; }
+  .rc-strip { min-height: 44px; }
+  .rc-card-reset { min-height: 44px; padding: 6px 12px; font-size: 13px; }
+}

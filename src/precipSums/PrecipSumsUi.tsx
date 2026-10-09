@@ -16,11 +16,14 @@ import type { PastSide, FutureSide } from './usePointSums';
 import { kindsText } from './fusionWindowSum';
 import './precipSums.css';
 
+/** Phase RC: die dritte Taste „Chance" und ihre Schwellen-Leiste — fehlt die Angabe, ist das Dock wie vor RC. */
+export interface SumChanceSlot { thresholdSeg: ReactNode }
+
 const H = 3_600_000;
 
 // --- Dock -----------------------------------------------------------------------------------------
 
-export function SumControls({ sel, onChange, variant }: { sel: SumSelection; onChange: (s: SumSelection) => void; variant: 'dock' | 'mobile' }) {
+export function SumControls({ sel, onChange, variant, chance }: { sel: SumSelection; onChange: (s: SumSelection) => void; variant: 'dock' | 'mobile'; chance?: SumChanceSlot }) {
   const seg = variant === 'dock' ? 'rr-seg' : 'rm-seg';
   const btn = (active: boolean) => (variant === 'dock' ? `rr-seg-btn${active ? ' is-active' : ''}` : active ? 'is-active' : '');
   const eyebrow = variant === 'dock' ? 'rr-eyebrow' : 'rm-seclabel';
@@ -29,8 +32,10 @@ export function SumControls({ sel, onChange, variant }: { sel: SumSelection; onC
       <span className={eyebrow}>Darstellung</span>
       <div className={seg} role="tablist" aria-label="Darstellung">
         <button type="button" role="tab" aria-selected={sel.mode === 'intensity'} className={btn(sel.mode === 'intensity')} onClick={() => onChange({ ...sel, mode: 'intensity' })} title="Momentane Intensität in mm/h">Intensität</button>
+        {chance && <button type="button" role="tab" aria-selected={sel.mode === 'chance'} className={btn(sel.mode === 'chance')} onClick={() => onChange({ ...sel, mode: 'chance' })} title="Wahrscheinlichkeit für Niederschlag in der Stunde — buscosun Fusion">Chance</button>}
         <button type="button" role="tab" aria-selected={sel.mode === 'sum'} className={btn(sel.mode === 'sum')} onClick={() => onChange({ ...sel, mode: 'sum' })} title="Niederschlagssumme in mm über ein Fenster">Summe</button>
       </div>
+      {chance && sel.mode === 'chance' && chance.thresholdSeg}
       {sel.mode === 'sum' && (
         <div className="ns-subsegs">
           <div className="ns-miniseg" role="tablist" aria-label="Richtung">

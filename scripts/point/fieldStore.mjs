@@ -83,3 +83,43 @@ export function writeFieldIndex(pointDir, nowMs = Date.now()) {
   writeFileSync(join(root, 'index.json'), `${JSON.stringify(idx, null, 2)}\n`);
   return idx;
 }
+
+/**
+ * V-RC-2 (audit/regenchance.md §10): Mindestfenster des Feldschritts je Stufe (s). Regel F′ rechnet die Frist ab dem
+ * Jobstart; seit der t2-Bau 5,7 → 11,9 min schwankt (Actions-API 06.–09.10.), kam der t2-Feldschritt in 6 von 11 Jobs
+ * erst nach `FIELD_END_MIN` an die Reihe und endete ohne Feld — dabei braucht er auf dem Runner nur 6–10 s (t3 4 s).
+ * Mit dem Mindestfenster läuft er immer, höchstens so lange; der Cube wartet also höchstens diese Zeit auf das Feld.
+ * t1 (30–42 s, E-NP0-5 b′) bleibt an der Frist allein. `FIELD_MIN_S` im Workflow überschreibt (0 = Verhalten vorher).
+ */
+export const FIELD_MIN_S_BY_TIER = Object.freeze({ t1: 0, t2: 45, t3: 45 });
+
+/**
+ * Höchstens so viele Cube-Läufe einer Stufe dürfen hintereinander ohne Feld bleiben, bevor der Wächter anschlägt
+ * (V-RC-2): ein ausgelassener Lauf ist erlaubt (t1 lässt nach E-NP0-5 b′ planmäßig jeden zweiten aus, wenn er langsam
+ * war), zwei nicht — t1 nach 6 h, t2 nach 12 h, t3 nach 24 h.
+ */
+export const FIELD_WATCH_MAX_MISSED = 1;
+
+/**
+ * Wächter der Kartenfelder (V-RC-2), rein: je Stufe die Cube-Läufe (neueste zuerst) gegen die Feld-Läufe. `missed` = Zahl der
+ * Cube-Läufe, die jünger sind als das jüngste Feld der Stufe (ohne Feld: alle). `stale` ⇔ missed > FIELD_WATCH_MAX_MISSED.
+ * @param {Record<string, string[]>} cubeRunsByTier  je Stufe die Läufe, die die Stufe tragen
+ * @param {Record<string, string[]>} fieldRunsByTier je Stufe die Läufe mit fertigem Feld (`runsByTier` des Feld-Index)
+ */
+export function fieldStaleness(cubeRunsByTier, fieldRunsByTier, tiers = TIERS.map((t) => t.id)) {
+  return tiers.map((tier) => {
+    const cube = [...(cubeRunsByTier[tier] ?? [])].sort().reverse();
+    const fields = [...(fieldRunsByTier?.[tier] ?? [])].sort().reverse();
+    const lastField = fields[0] ?? null;
+    const missedRuns = cube.filter((r) => !lastField || r > lastField);
+    return { tier, latestCube: cube[0] ?? null, lastField, missed: missedRuns.length, missedRuns, stale: cube.length > 0 && missedRuns.length > FIELD_WATCH_MAX_MISSED };
+  });
+}
+
+/** Dieselbe Prüfung auf einer lokalen Ablage `<point>` (Workflow nach dem Publish). */
+export function fieldStalenessOfStore(pointDir, tiers) {
+  const cubeRunsByTier = {};
+  for (const [run, ts] of cubeTiersByRun(pointDir)) for (const t of ts) (cubeRunsByTier[t] ??= []).push(run);
+  const idx = readJson(join(fieldRoot(pointDir), 'index.json'));
+  return fieldStaleness(cubeRunsByTier, idx?.runsByTier ?? {}, tiers);
+}

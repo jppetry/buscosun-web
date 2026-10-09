@@ -22,8 +22,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   computeRainWindow, rainWindowEnabledFrom, bandGeometry, dayWord, radarSpeedWindow,
-  RB_P_CORE, RB_P_EDGE, RB_P_DRY, RB_SPEED_LO, RB_SPEED_HI,
+  RB_P_CORE, RB_P_EDGE, RB_P_DRY, RB_SPEED_LO, RB_SPEED_HI, rbWetThresholdFrom, RB_WET_X_MMH,
 } from '../src/nowcast/rainWindow.ts';
+import { exceedance } from '../src/pointForecast/fusion/dist.ts';
 import { radarTimesAt } from '../src/nowcast/rainWindowRadar.ts';
 import { estimateFlowHS } from '../src/ml/opticalFlowNowcast.ts';
 import { coarsenFrameU8 } from '../src/ml/coarsen.ts';
@@ -230,8 +231,30 @@ console.log('\nG Verdrahtung');
   add('G6 MapView: Label nur im Profil, ohne Label entfernt', /if \(!profile\) return;[\s\S]{0,200}if \(!profileMarkerLabel\) \{ lab\?\.remove\(\); return; \}/.test(mv));
   add('G7 buildNowcast ohne Schalter: 8 h, Reihe ungefiltert, keine Wahrscheinlichkeit', /const cubeHours = rb \? RB_HORIZON_H \+ 1 : 8;/.test(eng) && /nwp: rb \? nwpAll\.filter\([^)]*\)[^:]*: nwpAll,/.test(eng) && /if \(rb && nwpSource === 'cube' && exceed\)/.test(eng));
   add('G8 Gegenprobe: Muster G7 erkennt eine Änderung', !/const cubeHours = rb \? RB_HORIZON_H \+ 1 : 8;/.test(eng.replace('RB_HORIZON_H + 1 : 8', 'RB_HORIZON_H + 1 : 12')));
+  add('G10 Stunde = Beginn: Cube-Schritt t deckt (t − 1 h, t] ⇒ tMs = validAtMs − 1 h (V-RB-6)', /tMs: st\.validAtMs - 3_600_000/.test(eng));
+  add('G10b Gegenprobe: ohne Verschiebung erkannt', !/tMs: st\.validAtMs - 3_600_000/.test(eng.replace('st.validAtMs - 3_600_000', 'st.validAtMs')));
   add('G9 kein Flow-Ensemble/Horn–Schunck im Weg (V-RB-4)', !/^import[^\n]*(flowEnsemble|estimateFlowHS|opticalFlow)/m.test(rr));
   add('G9b Gegenprobe: Muster G9 erkennt einen Import', /^import[^\n]*(flowEnsemble|estimateFlowHS|opticalFlow)/m.test(`import { estimateFlowHS } from '../ml/opticalFlowNowcast';\n${rr}`));
+}
+
+console.log('\nH Eine Lesart von „nass" (V-RC-1, audit/regenchance.md §11)');
+{
+  const eng = readFileSync(join(ROOT, 'src/nowcast/nowcastEngine.ts'), 'utf8');
+  const deck = readFileSync(join(ROOT, 'src/nowcast/NowcastDeck.tsx'), 'utf8');
+  const map = readFileSync(join(ROOT, 'src/nowcast/NowcastRadarMap.tsx'), 'utf8');
+  const d = { kind: 'hurdleLogNormal', pDry: 0.3, mu: Math.log(0.5), sigma: 1.2 };
+  add('H1 Voreinstellung 0 mm/h; ?rbwet=0.1 = Rückfall (0,1), alles andere 0', RB_WET_X_MMH === 0 && rbWetThresholdFrom('') === 0 && rbWetThresholdFrom('?rbwet=0.1') === 0.1 && rbWetThresholdFrom('?rbwet=1') === 0 && rbWetThresholdFrom('?rb=0') === 0);
+  add('H2 exceedance(d, 0) = 1 − pDry (die Lesart von Feld, Chance, Dashboard); bei 0,1 mm/h kleiner', Math.abs(exceedance(d, 0) - 0.7) < 1e-12 && exceedance(d, 0.1) < 0.7, `${exceedance(d, 0).toFixed(4)} gegen ${exceedance(d, 0.1).toFixed(4)}`);
+  add('H3 fusionPWetOf liest an x (Voreinstellung RB_WET_X_MMH), buildNowcast reicht ?rbwet durch und merkt die Schwelle',
+    /export function fusionPWetOf\(forecast: PointForecast, exceedance: \(d: Dist, x: number\) => number, x: number = RB_WET_X_MMH\)/.test(eng)
+    && /const p = d \? exceedance\(d, x\) : NaN;/.test(eng) && /const wetX = rbWetThresholdFrom\(/.test(eng) && /fusionPWetOf\(forecast, exceed, wetX\)/.test(eng) && /nc\.fusionPWetMmH = wetX/.test(eng));
+  add('H3b Gegenprobe: die alte Lesart (exceedance(d, WET_MMH)) fiele auf', !/const p = d \? exceedance\(d, x\) : NaN;/.test(eng.replace('exceedance(d, x)', 'exceedance(d, WET_MMH)')));
+  add('H4 beide Aufrufer reichen die Schwelle an computeRainWindow (Hinweistext)', /fusionWetMmH: nowcast\.fusionPWetMmH/.test(deck) && /fusionWetMmH: pointNowcast\.fusionPWetMmH/.test(map));
+  const now = Date.parse('2026-10-09T10:00:00Z');
+  const hours = Array.from({ length: 6 }, (_, i) => ({ tMs: now + i * 3_600_000, p: i >= 2 ? 0.8 : 0.05 }));
+  const n0 = computeRainWindow({ nowMs: now, radar: null, fusion: hours }).notes.join(' | ');
+  const n1 = computeRainWindow({ nowMs: now, radar: null, fusion: hours, fusionWetMmH: 0.1 }).notes.join(' | ');
+  add('H5 Hinweis nennt die Lesart: „1 − pDry wie Karte und Dashboard", im Rückfall „P(≥ 0,1 mm/h)"', /1 − pDry wie Karte und Dashboard/.test(n0) && !/0,1 mm\/h/.test(n0) && /P\(≥ 0,1 mm\/h\)/.test(n1), n0.slice(0, 90));
 }
 
 console.log(`\nverify:rain-window ${pass}/${pass + fail}`);

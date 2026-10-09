@@ -252,6 +252,15 @@ jobs:
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
+      # V-RC-2 (audit/regenchance.md §10): Waechter der Kartenfelder — NACH dem Publish (der Cube ist dann veroeffentlicht).
+      # Bleiben mehr als ein Lauf dieser Stufe hintereinander ohne Feld, endet der Schritt mit Exit 1 und der Job wird rot
+      # (GitHub meldet es) — bewusst OHNE continue-on-error: am 08./09.10. fehlte t2 einen Tag lang still. Ein Lesen der
+      # Ablage, ~1 s. Mit POINT_FIELDS: '0' still.
+      - name: Waechter Kartenfelder — t1 (V-RC-2)
+        run: |
+          cd app
+          test -f scripts/point/field-watch.mjs || { echo "Producer auf main ohne Feld-Waechter — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/field-watch.mjs --repo=${{ github.workspace }} --tier=t1
 
   # ── Stufe 2 (51–120 h, 0,10°) + Stationsprodukt — viermal täglich ────────
   t2:
@@ -362,6 +371,15 @@ jobs:
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
+      # V-RC-2 (audit/regenchance.md §10): Waechter der Kartenfelder — NACH dem Publish (der Cube ist dann veroeffentlicht).
+      # Bleiben mehr als ein Lauf dieser Stufe hintereinander ohne Feld, endet der Schritt mit Exit 1 und der Job wird rot
+      # (GitHub meldet es) — bewusst OHNE continue-on-error: am 08./09.10. fehlte t2 einen Tag lang still. Ein Lesen der
+      # Ablage, ~1 s. Mit POINT_FIELDS: '0' still.
+      - name: Waechter Kartenfelder — t2 (V-RC-2)
+        run: |
+          cd app
+          test -f scripts/point/field-watch.mjs || { echo "Producer auf main ohne Feld-Waechter — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/field-watch.mjs --repo=${{ github.workspace }} --tier=t2
 
   # ── Stufe 3 (126–336 h, 0,25°) — zweimal täglich, in der Gruppe VOR t2 (seit 14.09.) ─
   t3:
@@ -449,6 +467,15 @@ jobs:
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
+      # V-RC-2 (audit/regenchance.md §10): Waechter der Kartenfelder — NACH dem Publish (der Cube ist dann veroeffentlicht).
+      # Bleiben mehr als ein Lauf dieser Stufe hintereinander ohne Feld, endet der Schritt mit Exit 1 und der Job wird rot
+      # (GitHub meldet es) — bewusst OHNE continue-on-error: am 08./09.10. fehlte t2 einen Tag lang still. Ein Lesen der
+      # Ablage, ~1 s. Mit POINT_FIELDS: '0' still.
+      - name: Waechter Kartenfelder — t3 (V-RC-2)
+        run: |
+          cd app
+          test -f scripts/point/field-watch.mjs || { echo "Producer auf main ohne Feld-Waechter — uebersprungen"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/field-watch.mjs --repo=${{ github.workspace }} --tier=t3
 
   # ── Stationsprodukt MOSMIX-S (AX-8, 2026-09-30) — stündlich, :50 ausser in den t2-Stunden ──
   # Kein Cube-Bau: ein Abruf (37 MB), ein Parsen (7,5 s lokal), zwölf Bündel, ein Publish. Regel A: :50 → :20

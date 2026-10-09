@@ -38,7 +38,10 @@ import { fetchDwdAlerts } from '../sources/dwdAlerts';
 import { fetchKonrad3d } from '../sources/dwdKonrad3d';
 import type { Konrad3dRun } from '../radar/konrad3d';
 import { buildCellFeatures, cellLocationRelevance, cellRelevanceText } from '../radar/cellPolygons';
-import { CELLS_POLL_MS } from '../radar/cellLayers';
+import { CELLS_POLL_MS, CELLS_DOT_LAYER_ID } from '../radar/cellLayers';
+// Phase ZO (audit/zell-orte.md): betroffene Orte je Zelle — Satz der Leiste und Haltestellen der gewählten Zelle.
+import { cellPlacesEnabledFrom, cellPlaceVerdict, cellPlaceSentence, type CellPass } from '../radar/cellPlaces';
+import { CellPlaceStops } from './cellPlaceStops';
 import { fetchIconD2Snow, type IconD2Snow, type SnowMode } from '../sources/iconD2Snow';
 import type { CompositeSources } from '../scalar/precipComposite';
 import { fetchRvNowcast } from '../sources/radolan';
@@ -67,6 +70,10 @@ import { nwpLabel } from './nowcastView';
 import { useSumMap } from '../precipSums/useSumMap';
 import { SumLegend } from '../precipSums/PrecipSumsUi';
 import type { SumSelection } from '../precipSums/sumModel';
+// Phase RC (audit/regenchance.md): Ansicht „Chance" — eigene MapLibre-Ebenen (fill-pattern, line, symbol), kein Shader.
+import { useChanceMap } from '../precipChance/useChanceMap';
+import { ChanceLegend } from '../precipChance/PrecipChanceUi';
+import type { ChanceThreshold } from '../precipChance/chanceModel';
 
 type MapViewComponent = typeof import('../MapView').default;
 import {
@@ -108,6 +115,21 @@ interface Props {
   sum?: SumSelection;
   /** Phase RB (an, `?rb=0` aus): der Radar-Stack nach oben (Deck rechnet das Fenster am Ort); `null` = Radar nicht erreichbar. */
   onRadarStack?: (stack: RadarStack | null) => void;
+  /**
+   * Phase RC (`?rc=1`): Ansicht „Chance" mit Schwelle; `pickMs` = in der 48-h-Leiste gewählte Zeit (sonst folgt die Karte
+   * dem Slider). Fehlt = Stand vor Phase RC.
+   */
+  chance?: { threshold: ChanceThreshold; pickMs: number | null };
+  /** Phase RC: Zeit des sichtbaren Frames nach oben (Marke in der Leiste am Ort). */
+  onTimeChange?: (ms: number) => void;
+  /** Phase RC: der Nutzer hat die Zeit selbst bewegt (Slider, Schritt, Abspielen, „jetzt") — die Wahl aus der Leiste endet. */
+  onUserTime?: () => void;
+  /** Phase ZO (an, `?zo=0` aus): der KONRAD3D-Lauf nach oben (Readout rechnet die Orte); `null` = Zell-Layer aus. */
+  onCellsRun?: (run: Konrad3dRun | null) => void;
+  /** Phase ZO: Haltestellen der gewählten Zelle auf der Karte. Fehlt = keine Marker. */
+  cellStops?: { rows: readonly CellPass[]; nowMs: number } | null;
+  /** Phase ZO: Klick auf einen Zell-Schwerpunkt wählt die Zelle im Readout (der Steckbrief-Popup bleibt). */
+  onCellPick?: (id: number) => void;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -142,7 +164,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick }: Props) {
   const last = useMemo(() => loadLastView(), []);
   // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
   const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -193,7 +215,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Vergangenheit. Bewusst ein Ref und keine Dependency — der Auslöser darf
   // die Abspielschleife nicht neu aufsetzen.
   const requestPastSeedRef = useRef<(() => void) | null>(null);
+  // Phase RC: Meldung „der Nutzer bewegt die Zeit" — als Ref, damit die Callbacks stabil bleiben.
+  const onUserTimeRef = useRef(onUserTime);
+  onUserTimeRef.current = onUserTime;
   const applyPlaying = useCallback((next: boolean) => {
+    if (next) onUserTimeRef.current?.();
     if (next) requestPastSeedRef.current?.();
     if (onPlayingChange) onPlayingChange(next); else setPlayingUnc(next);
   }, [onPlayingChange]);
@@ -210,10 +236,36 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Phase NS: die Karte als Zustand, damit die Summen-Ebene an ihr hängen kann.
   const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const layerSet = useMemo(() => new Set(layers), [layers]);
+  // Phase RC: alte Karte (`?rr=legacy`) in „Chance" ohne gefüllte Radarfläche.
+  const layerSetNoPrecip = useMemo(() => new Set(layers.filter((l) => l !== 'precip')), [layers]);
   // RL1: Nachbarquellen des DACH-Komposits, KONRAD3D-Lauf, ICON-D2-Schnee.
   const [neighbors, setNeighbors] = useState<CompositeSources | null>(null);
   const [cellsRun, setCellsRun] = useState<Konrad3dRun | null>(null);
   const [snowData, setSnowData] = useState<IconD2Snow | null>(null);
+  // Phase ZO: Lauf nach oben, Zellwahl per Klick, Haltestellen — alles nur mit gesetzten Props.
+  const zoOn = useMemo(() => cellPlacesEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const onCellsRunRef = useRef(onCellsRun);
+  onCellsRunRef.current = onCellsRun;
+  useEffect(() => { onCellsRunRef.current?.(cellsRun); }, [cellsRun]);
+  const onCellPickRef = useRef(onCellPick);
+  onCellPickRef.current = onCellPick;
+  const hasCellPick = onCellPick != null;
+  useEffect(() => {
+    if (!mapInst || !hasCellPick) return;
+    const map = mapInst;
+    const onClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const id = Number(e.features?.[0]?.properties?.id);
+      if (Number.isFinite(id)) onCellPickRef.current?.(id);
+    };
+    map.on('click', CELLS_DOT_LAYER_ID, onClick);
+    return () => { try { map.off('click', CELLS_DOT_LAYER_ID, onClick); } catch { /* Karte schon abgebaut */ } };
+  }, [mapInst, hasCellPick]);
+  const stopsRef = useRef<CellPlaceStops | null>(null);
+  useEffect(() => {
+    const stops = (stopsRef.current ??= new CellPlaceStops());
+    stops.set(mapInst, cellStops?.rows ?? [], cellStops?.nowMs ?? Date.now());
+  }, [mapInst, cellStops]);
+  useEffect(() => () => { stopsRef.current?.clear(); }, []);
 
   // Punkt zurücksetzen, wenn die Seite den Ort wechselt.
   useEffect(() => {
@@ -256,6 +308,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Phase NS: Summen-Ansicht. In „Summe" zeigt die Karte statt der Intensität die Summe (eigene Ebenen); die übrigen
   // Ebenen (Zellbahnen, Blitze, Schnee …) bleiben, wie sie sind.
   const sumMode = sum?.mode === 'sum';
+  // Phase RC: in „Chance" ruht die Intensitäts-Ebene wie in „Summe"; die Karte zeigt die Chance von buscosun Fusion.
+  const chanceMode = sum?.mode === 'chance' && !!chance;
   const sumMap = useSumMap(mapInst, sum ?? { mode: 'intensity', dir: 'past', windowH: 6 }, !!sum, reloadKey * 1000 + autoTick);
 
   // Radar-Stack laden + AKTUELL HALTEN:
@@ -452,6 +506,15 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const cellRel = useMemo(() => (cellsRun ? cellLocationRelevance(cellsRun, [point.lon, point.lat]) : null), [cellsRun, point.lon, point.lat]);
   const cellFeatures = useMemo(() => (cellsRun ? buildCellFeatures(cellsRun, { affectsCellId: cellRel?.cellId ?? null }) : null), [cellsRun, cellRel]);
   const relCell = useMemo(() => (cellsRun && cellRel ? cellsRun.cells.find((c) => c.id === cellRel.cellId) ?? null : null), [cellsRun, cellRel]);
+  // Phase ZO (E-ZO-1): der Satz der Leiste nach der neuen Regel (Ellipse ⊕ Zellkörper, Uhrzeit, Kern/Rand) — `?zo=0` = vorher.
+  const zoLeiste = useMemo(() => {
+    if (!zoOn || !cellsRun) return null;
+    const nowMs = Date.now();
+    const v = cellPlaceVerdict(cellsRun, point.lat, point.lon, nowMs);
+    const text = cellPlaceSentence(v, nowMs);
+    const cell = v.kind === 'pass' || v.kind === 'passby' ? cellsRun.cells.find((c) => c.id === v.cellId) ?? null : null;
+    return text ? { text, bolt: (cell?.lightningRate ?? 0) > 0 } : null;
+  }, [zoOn, cellsRun, point.lat, point.lon]);
 
   // Gewittergefahr-Index am Punkt: fusioniert CAPE (Potenzial), Zellintensität
   // (Realisierung) und amtliche Warnung zu EINER Aussage. cellPeak aus dem
@@ -489,7 +552,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const markerLabel = useMemo(() => {
     if (!rbOn || !stack || !pointNowcast) return null;
     const nowMs = Date.now();
-    const w = computeRainWindow({ nowMs, radar: radarTimesAt(stack, point.lat, point.lon, nowMs), fusion: pointNowcast.fusionPWet ?? null });
+    const w = computeRainWindow({ nowMs, radar: radarTimesAt(stack, point.lat, point.lon, nowMs), fusion: pointNowcast.fusionPWet ?? null, fusionWetMmH: pointNowcast.fusionPWetMmH });
     return w.kind === 'none' ? null : w.label;
   }, [rbOn, stack, point.lat, point.lon, pointNowcast]);
   const frameMmH = useMemo(() => (stack ? frameIntensities(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
@@ -524,7 +587,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // den beiden Nachbar-Frames, gemessene Analysen des Rückblicks. Referenzen stabil halten (`radarPast` leert in
   // `MapView` den Frame-Speicher), Layer über die Profil-Tabelle.
   // Phase NS: in der Summen-Ansicht ruht die Intensitäts-Ebene (der Schalter im Dock bleibt, wie er ist).
-  const profileLayers = useMemo(() => radarProfileLayers(sumMode ? layers.filter((l) => l !== 'precip') : layers), [layers, sumMode]);
+  const profileLayers = useMemo(() => radarProfileLayers(sumMode || chanceMode ? layers.filter((l) => l !== 'precip') : layers), [layers, sumMode, chanceMode]);
   const radarPast = useMemo(() => {
     if (!stack) return null;
     const measured = stack.frames.filter((f) => f.measured);
@@ -538,6 +601,12 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   }, [stack]);
   const shownIdx = stack ? Math.max(0, Math.min(stack.frames.length - 1, Math.round(framePos))) : 0;
   const profileTimeMs = stack?.frames[shownIdx]?.timeMs;
+  // Phase RC: Zeit nach oben melden; die Chance-Karte folgt der Wahl aus der Leiste, sonst dem Slider.
+  const onTimeChangeRef = useRef(onTimeChange);
+  onTimeChangeRef.current = onTimeChange;
+  const hasTimeCb = !!onTimeChange;
+  useEffect(() => { if (profileTimeMs != null) onTimeChangeRef.current?.(profileTimeMs); }, [profileTimeMs, hasTimeCb]);
+  const chanceMap = useChanceMap(mapInst, chanceMode, chance?.threshold ?? 'any', chanceMode ? (chance?.pickMs ?? profileTimeMs ?? Date.now()) : null, reloadKey * 1000 + autoTick);
   const i0 = stack ? Math.max(0, Math.min(stack.frames.length - 1, Math.floor(framePos))) : 0;
   const i1 = stack ? Math.min(stack.frames.length - 1, i0 + 1) : 0;
   const bracketA = stack?.frames[i0]?.timeMs;
@@ -553,7 +622,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   );
   // Hover-Readout wie die alte Karte: mm/h aus dem Landes-Frame des Stacks unter dem Zeiger.
   const sumHoverRef = useRef<((lat: number, lon: number) => string | null) | null>(null);
-  sumHoverRef.current = sumMode ? sumMap.hoverAt : null;
+  sumHoverRef.current = sumMode ? sumMap.hoverAt : chanceMode ? chanceMap.hoverAt : null;
   const [sumHover, setSumHover] = useState<string | null>(null);
   const onProfileHover = useCallback((p: { lat: number; lon: number } | null) => {
     if (sumHoverRef.current) { setHover(null); setSumHover(p ? sumHoverRef.current(p.lat, p.lon) : null); return; }
@@ -568,8 +637,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const shownPalette: PaletteId = useProfile ? 'classic' : palette;
 
   const toggleLayer = (id: RadarLayerId) => applyLayers(layers.includes(id) ? layers.filter((l) => l !== id) : [...layers, id]);
-  const step = (d: number) => { if (d < 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
-  const jumpNow = () => { applyPlaying(false); if (stack) setFramePos(stack.nowIndex); };
+  const step = (d: number) => { onUserTime?.(); if (d < 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
+  const jumpNow = () => { onUserTime?.(); applyPlaying(false); if (stack) setFramePos(stack.nowIndex); };
 
   return (
     <div className="rt-card nc-radar">
@@ -642,7 +711,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         ) : stack ? (
           <RadarMap
             stack={stack} framePos={framePos} palette={palette} opacity={opacity} basemap={basemap}
-            layers={layerSet} accumValues={accumValues} coverageValues={coverageValues}
+            layers={chanceMode ? layerSetNoPrecip : layerSet} accumValues={accumValues} coverageValues={coverageValues}
             composite={neighbors} cellFeatures={cellFeatures} snow={snowData}
             elevFull={terrain?.elevFull ?? null} snowLineM={snowLineM} snowLineFeatures={snowLineFeatures}
             point={{ lat: point.lat, lon: point.lon }} comparePoint={null}
@@ -656,8 +725,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         {/* Quelle/Alter */}
         {stack && <div className="nc-radar-source"><IconRadarSignal size={13} /> {sourceAgeBadge(neighbors || useProfile ? `${stack.sourceLabel} + Komposit DACH` : stack.sourceLabel, stack.runAtMs)}</div>}
 
-        {/* Standortbezug der Zellbahnen (Wortlaut S-Z2-3b, wie die Wetterkarte) */}
-        {cellsOn && cellRel && (
+        {/* Standortbezug der Zellbahnen (Wortlaut S-Z2-3b, wie die Wetterkarte) — Phase ZO: neuer Satz, `?zo=0` = dieser */}
+        {zoOn && cellsOn && zoLeiste && (
+          <div className="nc-radar-eta">
+            {zoLeiste.bolt ? <IconBolt size={15} /> : <IconStormCloud size={15} />}
+            <span>{zoLeiste.text} <em>DWD KONRAD3D</em></span>
+          </div>
+        )}
+        {!zoOn && cellsOn && cellRel && (
           <div className="nc-radar-eta">
             {(relCell?.lightningRate ?? 0) > 0 ? <IconBolt size={15} /> : <IconStormCloud size={15} />}
             <span>{cellRelevanceText(cellRel)} <em>DWD KONRAD3D</em></span>
@@ -668,14 +743,15 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         )}
 
         {/* Hover-Readout */}
-        {sumMode && sumHover && <div className="nc-radar-hover">{sumHover}</div>}
-        {!sumMode && hover != null && (
+        {(sumMode || chanceMode) && sumHover && <div className="nc-radar-hover">{sumHover}</div>}
+        {!sumMode && !chanceMode && hover != null && (
           <div className="nc-radar-hover">{hover >= 0.06 ? `${hover.toFixed(1).replace('.', ',')} mm/h` : 'trocken'}</div>
         )}
 
         {/* Legende — Phase NS: in der Summen-Ansicht die Summen-Legende */}
         {sumMode && sum && <SumLegend info={sumMap.info} sel={sum} />}
-        {!sumMode && <div className="nc-radar-legend">
+        {chanceMode && chance && <ChanceLegend info={chanceMap.info} threshold={chance.threshold} nowMs={Date.now()} />}
+        {!sumMode && !chanceMode && <div className="nc-radar-legend">
           {RADAR_BANDS.filter((b) => b.band !== 'dry').map((b) => (
             <span key={b.band} className="nc-radar-leg-item"><i style={{ background: PALETTES[shownPalette].bandColors[b.band] }} /> {b.label}</span>
           ))}
@@ -719,7 +795,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         const scrubber = stack ? (
           <RadarTimeline
             stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
-            onScrub={(p) => { if (p <= 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos(p); }}
+            onScrub={(p) => { onUserTime?.(); if (p <= 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos(p); }}
             onTogglePlay={() => applyPlaying(!playing)} onStep={step} onJumpNow={jumpNow}
             onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
           />

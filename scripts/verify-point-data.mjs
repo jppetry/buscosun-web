@@ -45,6 +45,7 @@ import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS
 import { pruneTier, tiersOf, retainRuns, runsIn } from './point/prune.mjs';
 import { planCdnSync, parseNameStatus, missingManifestPurges, cdnContractViolations, syncCdn, CDN_BUDGET_S_BY_TIER, CDN_BUDGET_S_DEFAULT, JOB_MEASURED_MAX_MIN, FIELD_END_MIN_BY_TIER } from './point/cdnSync.mjs';
 import { warmCdnFiles, WARM_ACCEPT_ENCODING } from './lib/repackManifest.mjs';
+import { FIELD_MIN_S_BY_TIER } from './point/fieldStore.mjs';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
 import { adapterFor, INGESTABLE, PENDING, DECLINED, ingestableFor } from './point/adapters/index.mjs';
 import {
@@ -949,6 +950,17 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     }
     add('(NP-0b) Regel F′ Negativkontrolle: FIELD_END_MIN 20 in t1 fiele durch (20 + 1 + 4 + 1 > 24); stations-s hat keinen Feldschritt',
       !(20 + 1 + 240 / 60 + 1 <= JOB_MAX_MIN_BY_TIER.t1) && !/build-point-fields/.test(jobs[3]?.body ?? ''));
+    // V-RC-2 (audit/regenchance.md §10): das Mindestfenster des Feldschritts verlängert einen langsamen Job um höchstens
+    // FIELD_MIN_S (t2/t3 45 s; gemessen 6–10 s bzw. 4 s auf dem Runner), t1 bleibt an der Frist allein. Der Wächter läuft
+    // nach dem Publish jeder Stufe, ohne continue-on-error (ein veraltetes Feld macht den Job rot), und nur mit der eigenen Stufe.
+    add('(V-RC-2) Mindestfenster des Feldschritts: t1 0 s, t2/t3 ≤ 60 s; Wächter je Stufen-Job nach dem Publish, ohne continue-on-error, eigene Stufe; stations-s ohne',
+      FIELD_MIN_S_BY_TIER.t1 === 0 && FIELD_MIN_S_BY_TIER.t2 > 0 && FIELD_MIN_S_BY_TIER.t2 <= 60 && FIELD_MIN_S_BY_TIER.t3 > 0 && FIELD_MIN_S_BY_TIER.t3 <= 60
+      && jobs.filter((x) => /^t\d$/.test(x.name)).every((x) => {
+        const b = x.body.replace(/\r\n/g, '\n'), w = b.indexOf('field-watch.mjs');
+        return w > b.indexOf('publish-point.mjs') && b.indexOf('publish-point.mjs') > 0 && new RegExp(`field-watch\\.mjs --repo=.+ --tier=${x.name}\\n`).test(b)
+          && !/continue-on-error/.test(b.slice(b.lastIndexOf('- name:', w), w));
+      }) && !/field-watch/.test(jobs[3]?.body ?? ''),
+      `t2 ${FIELD_MIN_S_BY_TIER.t2} s, t3 ${FIELD_MIN_S_BY_TIER.t3} s`);
     add('(NP-0b) die Stufen-Jobs holen public/climaGrid.json (Klimatologie der Kette), stations-s nicht',
       jobs.filter((x) => /^t\d$/.test(x.name)).every((x) => /sparse-checkout set --no-cone scripts src package\.json QUELLENMATRIX\.md public\/climaGrid\.json/.test(x.body))
       && !/climaGrid/.test(jobs[3]?.body ?? ''));

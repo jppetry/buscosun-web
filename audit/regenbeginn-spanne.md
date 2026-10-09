@@ -107,5 +107,9 @@ Bedienelemente; (4) Konsole sauber; (5) Long Tasks: der Radar-Teil ist eine Punk
   Pyramide; im Worker. Nicht angefasst (außerhalb des Auftrags).
 - **V-RB-5** Richtungsunsicherheit fehlt in der Radar-Spanne (ob der Rand den Ort überhaupt trifft). Skizze: Frames
   seitlich versetzt abtasten (±12° × Abstand), Anteil der Treffer als zweiter Sicherheitswert.
+- **V-RB-6 (behoben 09.10.)** Die Fusion-Stunden waren um eine Stunde zu spät beschriftet: ein Cube-Schritt mit Zeitstempel
+  t ist die mittlere Rate über (t − 1 h, t] (`tot_prec`, dieselbe Regel wie `fusionWindowSum`), RB nahm t als Stundenbeginn ⇒
+  „17–19 Uhr" statt „16–18 Uhr". Gefunden beim Abfragen von Herborn mit buscosun Fusion 12. Korrektur in `fusionPWetOf`
+  (`tMs = validAtMs − 1 h`), Wächter G10/G10b; `verify:rain-window` 57/57. War mit `3eeed6d` live ⇒ Push nötig.
 - **V-RB-2** Der Hero nutzt das gesetzte Band `mmHMin/Max` der Engine nicht, die 6-h-Summe nennt es seit NS nicht mehr —
   das Band ist im Readout tot. Mehrwert: weniger Scheinpräzision im Code. Skizze: nach RB prüfen, wer es noch liest.

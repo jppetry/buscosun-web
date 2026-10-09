@@ -205,10 +205,12 @@ export interface Nowcast {
    */
   nwpSource?: 'cube' | 'live';
   /**
-   * Phase RB (`audit/regenbeginn-spanne.md`, an, `?rb=0` aus): P(Niederschlag ≥ 0,1 mm/h) je Stunde bis +24 h aus der
+   * Phase RB (`audit/regenbeginn-spanne.md`, an, `?rb=0` aus): P(Niederschlag) = 1 − pDry (V-RC-1; `?rbwet=0.1`: ≥ 0,1 mm/h) je Stunde bis +24 h aus der
    * Verteilung von buscosun Fusion (Cube-Pfad, `exceedance`). Fehlt ohne Schalter und im Live-Pfad (keine Verteilung).
    */
   fusionPWet?: Array<{ tMs: number; p: number }>;
+  /** V-RC-1: die Schwelle, an der `fusionPWet` gelesen ist (mm/h) — 0 = 1 − pDry, 0,1 = Rückfall `?rbwet=0.1`. */
+  fusionPWetMmH?: number;
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */

@@ -15,7 +15,8 @@
 export const SUM_WINDOWS_H = Object.freeze([1, 3, 6, 12, 24, 48] as const);
 export type SumWindowH = typeof SUM_WINDOWS_H[number];
 export type SumDir = 'past' | 'future';
-export type SumMode = 'intensity' | 'sum';
+/** `chance` = Phase RC (Regenchance, `audit/regenchance.md`), nur mit `?rc=1` erreichbar — die Summen-Logik kennt sie nicht. */
+export type SumMode = 'intensity' | 'sum' | 'chance';
 
 export interface SumSelection { mode: SumMode; dir: SumDir; windowH: SumWindowH }
 export const SUM_DEFAULT: SumSelection = Object.freeze({ mode: 'intensity', dir: 'past', windowH: 6 });

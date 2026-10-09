@@ -19,7 +19,8 @@
  * zuletzt → Index. Ein Fehler beendet NUR diesen Schritt (Exit ≠ 0, Workflow `continue-on-error`) — der Cube ist schon gebaut.
  *
  * Schalter: `POINT_FIELDS=0` ⇒ nichts tun (Exit 0). Frist: die kleinere aus `FIELD_DEADLINE_S` (360 s) und der Restzeit
- * bis `FIELD_END_MIN` nach dem Jobstart (`FIELD_JOB_T0`, Workflow) — Regel F′; danach kein Feld für diesen Lauf.
+ * bis `FIELD_END_MIN` nach dem Jobstart (`FIELD_JOB_T0`, Workflow) — Regel F′; danach kein Feld für diesen Lauf. V-RC-2: aber nie
+ * weniger als das Mindestfenster der Stufe (`FIELD_MIN_S_BY_TIER`, t2/t3 45 s; `fieldStore.mjs`).
  * Zeitbudget t1 (E-NP0-5 b′): dauerte das letzte t1-Feld länger als `FIELD_BUDGET_S` (300 s) oder brach es an der eigenen
  * Frist ab und liegt es höchstens 3 h zurück, wird dieser t1-Lauf ausgelassen (jeder zweite Lauf) — `field/v1/budget.json`.
  * Gemessen lokal (4 Worker, i3-1005G1): t1 188 s, t2 32 s, t3 12 s (audit §8.6).
@@ -35,16 +36,16 @@ import { decodeCubeChunk, TIER_BY_ID } from '../../src/point/cubeFormat.ts';
 import { cubeSeriesFrom } from '../../src/point/client/cubePoint.ts';
 import { fuseCubePoint } from '../../src/pointForecast/cubeSource.ts';
 import { FUSION_CURRENT, FUSION_NAME, fusionStage } from '../../src/pointForecast/fusion/fusionRelease.ts';
-import { cdfOf, quantileOf, meanOf } from '../../src/pointForecast/fusion/dist.ts';
+import { cdfOf, quantileOf, meanOf, exceedance } from '../../src/pointForecast/fusion/dist.ts';
 import { terrainScales } from '../../src/pointForecast/fusion/terrainScale.ts';
 import { ClimaField } from '../../src/ml/climaField.ts';
 import { validateTables } from '../../src/point/fusionFit/tables.ts';
 import {
-  fieldRunDir, fieldFileName, fieldPixelOffset, encodePrecipPixel, encodeSnowPixel, encodePrecipCumPixel, makeFieldManifest,
+  fieldRunDir, fieldFileName, fieldPixelOffset, encodePrecipPixel, encodeSnowPixel, encodePrecipCumPixel, encodePexcPixel, makeFieldManifest,
   FIELD_MANIFEST_FILE, PRECIP_XMAX,
 } from '../../src/point/fieldFormat.ts';
 import { encodePng } from '../lib/png.mjs';
-import { latestTierRun, fieldRoot, writeFieldIndex } from './fieldStore.mjs';
+import { latestTierRun, fieldRoot, writeFieldIndex, FIELD_MIN_S_BY_TIER } from './fieldStore.mjs';
 
 const H = 3_600_000;
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -96,12 +97,20 @@ export function fieldPlanes(planes) {
 const r1 = (x) => (x == null || !Number.isFinite(x) ? null : Math.round(x));
 
 /**
+ * Phase RC (E-RC-2, `audit/regenchance.md` §3): P(≥ 1 mm) und P(≥ 5 mm) im Intervall des Schritts aus DERSELBEN Verteilung —
+ * `exceedance` auf der mittleren Rate, Schwelle x mm über stepH Stunden = Rate x/stepH. Nur gelesen, kein Motor-Eingriff.
+ */
+export function pexcOf(pr, stepH) {
+  return { ge1: exceedance(pr, 1 / stepH), ge5: exceedance(pr, 5 / stepH) };
+}
+
+/**
  * Feldwerte je nativem Schritt DIREKT aus dem Motor-Ergebnis — dieselben Regeln wie `toPointForecastV2` für genau diese
  * zwei Größen (Niederschlag: `fused.precipitation.dist`; Schneefallgrenze: `fromCell` — Cube-Sample, sonst Zellwert;
  * σ_ens vor σ_div; auf 1 m gerundet). Spart die Ausgabe der übrigen Größen (≈ 3 ms je Zelle). `verify:np0-fields` hält
  * beide Wege an ≥ 50 Zellen je Stufe gegeneinander.
  */
-export function fieldValuesFromResult(r, leadsMs) {
+export function fieldValuesFromResult(r, leadsMs, stepH = 1) {
   const byT = new Map(r.steps.filter((s) => !s.interpolated).map((s) => [s.validAtMs, s]));
   return leadsMs.map((t) => {
     const s = byT.get(t);
@@ -112,7 +121,7 @@ export function fieldValuesFromResult(r, leadsMs) {
     let precip = null;
     if (pr) {
       const pDry = Math.min(1, Math.max(0, cdfOf(pr, 0)));
-      precip = { chance: 1 - pDry, medianWet: pDry < 1 ? quantileOf(pr, pDry + 0.5 * (1 - pDry)) : null, q90: pDry >= 0.9 ? 0 : Math.max(0, quantileOf(pr, 0.9)), mean: meanOf(pr) };
+      precip = { chance: 1 - pDry, medianWet: pDry < 1 ? quantileOf(pr, pDry + 0.5 * (1 - pDry)) : null, q90: pDry >= 0.9 ? 0 : Math.max(0, quantileOf(pr, 0.9)), mean: meanOf(pr), ...pexcOf(pr, stepH) };
     }
     let snow = null;
     if (s) {
@@ -133,7 +142,7 @@ export function fieldValuesFromResult(r, leadsMs) {
 }
 
 /** Feldwerte je nativem Schritt aus der Ausgabe `toPointForecastV2` (Referenzweg des Verifiers). */
-export function fieldValuesOf(v2, leadsMs) {
+export function fieldValuesOf(v2, leadsMs, stepH = 1) {
   const byT = new Map(v2.axis.steps.filter((s) => !s.interpolated).map((s) => [s.validAtMs, s]));
   return leadsMs.map((t) => {
     const s = byT.get(t);
@@ -147,6 +156,7 @@ export function fieldValuesOf(v2, leadsMs) {
         medianWet: pDry < 1 ? quantileOf(pr, pDry + 0.5 * (1 - pDry)) : null,
         q90: pDry >= 0.9 ? 0 : Math.max(0, quantileOf(pr, 0.9)),
         mean: meanOf(pr),
+        ...pexcOf(pr, stepH),
       };
     }
     const sl = s?.vars?.snowline ?? null;
@@ -199,6 +209,7 @@ async function runWorker() {
       iy: new Int16Array(n), ix: new Int16Array(n),
       chance: new Float32Array(n * nl).fill(NaN), med: new Float32Array(n * nl).fill(NaN), q90: new Float32Array(n * nl).fill(NaN),
       mean: new Float64Array(n * nl).fill(NaN),
+      ge1: new Float32Array(n * nl).fill(NaN), ge5: new Float32Array(n * nl).fill(NaN),
       snowMid: new Float32Array(n * nl).fill(NaN), snowHalf: new Float32Array(n * nl).fill(NaN), snowProv: new Int8Array(n * nl),
     };
     for (let c = 0; c < n; c++) {
@@ -213,10 +224,10 @@ async function runWorker() {
         const input = cellInput({ series, tier, runAtMs, nowMs, clima, learned });
         if (input.elevationM == null) continue;
         const r = fuseCubePoint(input, FIELD_FUSE_OPTIONS);
-        const vals = fieldValuesFromResult(r, leadsMs);
+        const vals = fieldValuesFromResult(r, leadsMs, tier.stepH);
         for (let k = 0; k < nl; k++) {
           const o = c * nl + k, v = vals[k];
-          if (v.precip) { out.chance[o] = v.precip.chance; out.med[o] = v.precip.medianWet ?? -1; out.q90[o] = v.precip.q90; out.mean[o] = v.precip.mean; }
+          if (v.precip) { out.chance[o] = v.precip.chance; out.med[o] = v.precip.medianWet ?? -1; out.q90[o] = v.precip.q90; out.mean[o] = v.precip.mean; out.ge1[o] = v.precip.ge1; out.ge5[o] = v.precip.ge5; }
           if (v.snow) { out.snowMid[o] = v.snow.mid; out.snowHalf[o] = v.snow.half; out.snowProv[o] = v.snow.prov === 'ensemble' ? 3 : v.snow.prov === 'divergence' ? 2 : 0; }
         }
       } catch { errors++; }
@@ -285,6 +296,10 @@ async function main() {
   const withCum = process.env.POINT_FIELD_CUM !== '0';
   const cumImg = withCum ? Array.from({ length: nl }, () => new Uint8Array(N * 4)) : null;
   const leadHasCum = new Array(nl).fill(false);
+  // Phase RC (E-RC-2): P(≥ 1 mm), P(≥ 5 mm) je Vorlauf aus derselben Verteilung. `POINT_FIELD_PEXC=0` = aus.
+  const withPexc = process.env.POINT_FIELD_PEXC !== '0';
+  const pexcImg = withPexc ? Array.from({ length: nl }, () => new Uint8Array(N * 4)) : null;
+  const leadHasPexc = new Array(nl).fill(false);
   const stats = { cells: 0, precipMissing: 0, snowMissing: 0, saturated: 0, errors: 0, ...(withCum ? { cumBroken: 0 } : {}) };
   const leadHasPrecip = new Array(nl).fill(false), leadHasSnow = new Array(nl).fill(false);
 
@@ -294,12 +309,18 @@ async function main() {
   // dahinter bleiben Publish + CDN + Reserve bis JOB_MAX_MIN (Regel F′). 20 s Rand für PNG-Kodierung und Manifest.
   let limitMs = deadlineS * 1000, reason = 'deadline';
   const jobT0 = Number(process.env.FIELD_JOB_T0 || 0) * 1000, endMin = Number(process.env.FIELD_END_MIN || 0);
+  // V-RC-2: Mindestfenster je Stufe (`FIELD_MIN_S_BY_TIER`, t2/t3 45 s) — ein langsamer Cube-Bau nimmt dem Feld nicht mehr
+  // die ganze Frist; der Cube wartet höchstens dieses Fenster. `FIELD_MIN_S=0` = Verhalten vorher.
+  const floorMs = Number(process.env.FIELD_MIN_S ?? FIELD_MIN_S_BY_TIER[tierId] ?? 0) * 1000;
   if (jobT0 > 0 && endMin > 0) {
     const rest = jobT0 + endMin * 60_000 - Date.now() - 20_000;
-    if (rest < limitMs) { limitMs = rest; reason = 'job-time'; }
+    const lim = Math.max(rest, floorMs);
+    if (lim < limitMs) { limitMs = lim; reason = rest >= floorMs ? 'job-time' : 'floor'; }
+    if (reason === 'floor') log(`${run}/${tierId}: nur noch ${Math.max(0, rest / 1000).toFixed(0)} s bis FIELD_END_MIN ${endMin} — Feld im Mindestfenster ${(floorMs / 1000).toFixed(0)} s (V-RC-2)`);
   }
   if (limitMs < 30_000) {
     log(`${run}/${tierId}: nur noch ${Math.max(0, limitMs / 1000).toFixed(0)} s bis FIELD_END_MIN ${endMin} — kein Feld für diesen Lauf (Bau war langsam; der Cube ist davon unberührt)`);
+    noteBudget({ run, runAtMs, durationMs: 0, aborted: true, reason: 'job-time', skipped: true, at: new Date().toISOString() });
     return 0;
   }
   const pool = [];
@@ -331,6 +352,11 @@ async function main() {
             leadHasPrecip[k] = true;
             if (o.q90[i] >= PRECIP_XMAX || o.med[i] >= PRECIP_XMAX) stats.saturated++;
           } else stats.precipMissing++;
+          if (pexcImg) {
+            const ok = Number.isFinite(o.chance[i]) && Number.isFinite(o.ge1[i]) && Number.isFinite(o.ge5[i]);
+            encodePexcPixel(ok ? { ge1: o.ge1[i], ge5: o.ge5[i] } : null, pexcImg[k], off);
+            if (ok) leadHasPexc[k] = true;
+          }
           if (Number.isFinite(o.snowMid[i])) {
             if (encodeSnowPixel({ mid: o.snowMid[i], half: o.snowHalf[i], prov: o.snowProv[i] === 3 ? 'ensemble' : o.snowProv[i] === 2 ? 'divergence' : 'none' }, snowImg[k], off)) stats.saturated++;
             leadHasSnow[k] = true;
@@ -344,7 +370,7 @@ async function main() {
   clearTimeout(deadline);
   if (aborted) {
     noteBudget({ run, runAtMs, durationMs: Date.now() - t0, aborted: true, reason, at: new Date().toISOString() });
-    log(`${run}/${tierId}: Frist ${(limitMs / 1000).toFixed(0)} s (${reason === 'job-time' ? `Restzeit bis FIELD_END_MIN ${endMin}` : 'FIELD_DEADLINE_S'}) überschritten — KEIN Feld für diesen Lauf (der Cube ist davon unberührt)${tierId === 't1' && reason === 'deadline' ? '; der nächste t1-Lauf wird ausgelassen' : ''}`);
+    log(`${run}/${tierId}: Frist ${(limitMs / 1000).toFixed(0)} s (${reason === 'job-time' ? `Restzeit bis FIELD_END_MIN ${endMin}` : reason === 'floor' ? 'Mindestfenster FIELD_MIN_S' : 'FIELD_DEADLINE_S'}) überschritten — KEIN Feld für diesen Lauf (der Cube ist davon unberührt)${tierId === 't1' && reason === 'deadline' ? '; der nächste t1-Lauf wird ausgelassen' : ''}`);
     return 0;
   }
   const failed = settled.find((s) => s.status === 'rejected');
@@ -358,10 +384,11 @@ async function main() {
   let bytes = 0;
   for (let k = 0; k < nl; k++) {
     const L = tm.leadHours[k];
-    const lead = { leadH: L, validAtMs: runAtMs + L * H, precip: null, snowlmt: null, ...(cumImg ? { precipcum: null } : {}) };
+    const lead = { leadH: L, validAtMs: runAtMs + L * H, precip: null, snowlmt: null, ...(cumImg ? { precipcum: null } : {}), ...(pexcImg ? { pexc: null } : {}) };
     if (leadHasPrecip[k]) { const png = encodePng(tier.nx, tier.ny, precipImg[k], 4); writeFileSync(join(stage, fieldFileName('precip', L)), png); bytes += png.length; lead.precip = fieldFileName('precip', L); }
     if (leadHasSnow[k]) { const png = encodePng(tier.nx, tier.ny, snowImg[k], 4); writeFileSync(join(stage, fieldFileName('snowlmt', L)), png); bytes += png.length; lead.snowlmt = fieldFileName('snowlmt', L); }
     if (cumImg && leadHasCum[k]) { const png = encodePng(tier.nx, tier.ny, cumImg[k], 4); writeFileSync(join(stage, fieldFileName('precipcum', L)), png); bytes += png.length; lead.precipcum = fieldFileName('precipcum', L); }
+    if (pexcImg && leadHasPexc[k]) { const png = encodePng(tier.nx, tier.ny, pexcImg[k], 4); writeFileSync(join(stage, fieldFileName('pexc', L)), png); bytes += png.length; lead.pexc = fieldFileName('pexc', L); }
     leads.push(lead);
   }
   rmSync(target, { recursive: true, force: true });
@@ -371,7 +398,7 @@ async function main() {
   try { codeCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: APP, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { /* kein Git */ }
   const ms = Date.now() - t0;
   const manifest = makeFieldManifest({
-    run, tier: tierId, runAtMs, builtAtMs: Date.now(), leads, cum: !!cumImg,
+    run, tier: tierId, runAtMs, builtAtMs: Date.now(), leads, cum: !!cumImg, pexc: !!pexcImg,
     chain: {
       options: { ...FIELD_FUSE_OPTIONS, fusion: FUSION_CURRENT, fusionName: FUSION_NAME, nowMs, terrain: 'flach in Modellhöhe (terrainScales, konstante Höhe)', elevation: 'hModEff der Zelle', station: null, radar: null },
       tables: { path: 'point/fusion.client.json', sha256: inputs.sha256 }, codeCommit, notes: inputs.notes,

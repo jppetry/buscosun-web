@@ -377,8 +377,8 @@ console.log('\n== G Verdrahtung ==');
     (deck.match(/<SumControls /g) ?? []).length === 2 && (deck.match(/<PointSumCard /g) ?? []).length === 2 && /variant="dock"/.test(deck) && /variant="mobile"/.test(deck));
   add('G2 `?sum=0`: Deck reicht weder Auswahl noch Summen weiter, die alte Band-Zeile bleibt für diesen Weg',
     /sumsOn \? sumSel : null/.test(deck) && /sumsOn \? sumSel : undefined/.test(deck) && (deck.match(/Band \$\{comma\(s\.sumMinMm\)\}/g) ?? []).length === 2 && /honestSum \? SUM6_HONEST_SUB/.test(deck));
-  add('G3 Karte: in „Summe" ruht nur die Intensitäts-Ebene (precip), Legende und Hover der Summe; ohne `sum` unverändert',
-    /sumMode \? layers\.filter\(\(l\) => l !== 'precip'\) : layers/.test(map) && /\{sumMode && sum && <SumLegend/.test(map) && /useSumMap\(mapInst, sum \?\? /.test(map));
+  add('G3 Karte: in „Summe" (und seit Phase RC in „Chance") ruht nur die Intensitäts-Ebene (precip), Legende und Hover der Summe; ohne `sum` unverändert',
+    /sumMode(?: \|\| chanceMode)? \? layers\.filter\(\(l\) => l !== 'precip'\) : layers/.test(map) && /\{sumMode && sum && <SumLegend/.test(map) && /useSumMap\(mapInst, sum \?\? /.test(map));
   const css = readFileSync(join(ROOT, 'src/precipSums/precipSums.css'), 'utf8');
   const mq = [...css.matchAll(/@media\s*\(([^)]*)\)/g)].map((m) => m[1].trim());
   add('G4 Mobil nur über den Mobil-Breakpoint (max-width: 767px), Touch-Ziele mobil ≥ 44 px', mq.length >= 1 && mq.every((q) => q === 'max-width: 767px') && /min-height: 44px/.test(css), mq.join(' | '));

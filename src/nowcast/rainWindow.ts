@@ -12,7 +12,7 @@
  *    (×0,85…×1,15) ⇒ t/1,15 … t/0,85 (E-RB-5/6; the flow ensemble itself does not carry, V-RB-4). Direction uncertainty
  *    is not covered (named). Probability = P(wet) of buscosun Fusion in the hour of the window (Fusion 8 carries the
  *    radar hour mean as a member). CH: rzc is one analysis without nowcast ⇒ radar only tells "wet now".
- *  - beyond the radar: buscosun Fusion, P(≥ 0,1 mm/h) per hour up to +24 h, thresholds SET (edge 30 %, core 50 %,
+ *  - beyond the radar: buscosun Fusion, P(> 0) = 1 − pDry per hour up to +24 h (V-RC-1; `?rbwet=0.1` = P(≥ 0,1 mm/h)), thresholds SET (edge 30 %, core 50 %,
  *    "dry" < 20 %, E-RB-4), full hours only.
  *  - wide or unsure windows say so in words ("Beginn unsicher, zwischen 14 und 15 Uhr").
  */
@@ -40,6 +40,16 @@ export function rainWindowEnabledFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('rb') !== '0'; } catch { return true; }
 }
 
+/**
+ * V-RC-1 (audit/regenchance.md §11, Jan 09.10.2026): EINE Lesart von „Niederschlag in dieser Stunde" in der App — P(> 0) =
+ * 1 − pDry wie Kartenfeld, Regenchance und Dashboard. Gemessen am Archiv (Regel vorab eingefroren): gegen P(≥ 0,1 mm/h)
+ * gleichauf in allen vier Tupeln. `?rbwet=0.1` = der benannte Rückfall (Phase RB bis 09.10.: P(≥ 0,1 mm/h)).
+ */
+export const RB_WET_X_MMH = 0;
+export function rbWetThresholdFrom(search: string): number {
+  try { return new URLSearchParams(search).get('rbwet') === '0.1' ? 0.1 : RB_WET_X_MMH; } catch { return RB_WET_X_MMH; }
+}
+
 /** Radar at the point. Minutes are leads from `nowMs`; `null` = no onset/end within `horizonMin`. */
 export interface RadarTimes {
   /** `extrapolation` = a nowcast with frames (RV, INCA); `analysis` = one image without nowcast (rzc). */
@@ -51,13 +61,16 @@ export interface RadarTimes {
   endMin: number | null;
 }
 
+/** One hour of buscosun Fusion: `tMs` = START of the hour (a cube step at t covers (t − 1 h, t]), `p` = P(> 0) = 1 − pDry (V-RC-1; `?rbwet=0.1`: P(≥ 0,1 mm/h)). */
 export interface FusionHour { tMs: number; p: number }
 
 export interface RainWindowInput {
   nowMs: number;
   radar: RadarTimes | null;
-  /** P(rain ≥ 0,1 mm/h) per hour from buscosun Fusion; `null` = not available (live fallback, error). */
+  /** P(precipitation) per hour from buscosun Fusion; `null` = not available (live fallback, error). */
   fusion: FusionHour[] | null;
+  /** The threshold `fusion` was read at (mm/h): 0 = 1 − pDry (V-RC-1, default), 0.1 = the fallback `?rbwet=0.1`. Only for the note. */
+  fusionWetMmH?: number;
   horizonH?: number;
 }
 
@@ -227,7 +240,7 @@ export function computeRainWindow(inp: RainWindowInput): RainWindow {
   const wetNow = radar ? radar.wetNow : (pAt(fusionAll, nowMs) ?? 0) >= RB_P_CORE;
   if (radar?.kind === 'extrapolation') notes.push(`Radar: Minute der ${radar.product}-Extrapolation, Spanne aus der Tempo-Unsicherheit ×${String(RB_SPEED_LO).replace('.', ',')}…×${String(RB_SPEED_HI).replace('.', ',')} (gesetzt, mittlere Hälfte der Tempo-Member des Ensemble-Designs); Richtungsunsicherheit nicht erfasst`);
   if (radar?.kind === 'analysis') notes.push('Radar: MeteoSchweiz rzc ist ein Analysebild ohne Nowcast — Beginn/Ende kommen aus buscosun Fusion');
-  if (inp.fusion) notes.push(`buscosun Fusion: P(≥ 0,1 mm/h) je Stunde; Schwellen Rand ${pct(RB_P_EDGE)} / Kern ${pct(RB_P_CORE)} / trocken < ${pct(RB_P_DRY)} gesetzt`);
+  if (inp.fusion) notes.push(`buscosun Fusion: ${(inp.fusionWetMmH ?? RB_WET_X_MMH) > 0 ? `P(≥ ${String(inp.fusionWetMmH).replace('.', ',')} mm/h)` : 'P(Niederschlag) = 1 − pDry wie Karte und Dashboard'} je Stunde; Schwellen Rand ${pct(RB_P_EDGE)} / Kern ${pct(RB_P_CORE)} / trocken < ${pct(RB_P_DRY)} gesetzt`);
   const minMs = (m: number) => nowMs + m * MIN;
   const radarProbNote = inp.fusion
     ? 'Regenwahrscheinlichkeit von buscosun Fusion in der Stunde des Fensters (enthält das Radar-Stundenmittel als Member)'

@@ -22,14 +22,14 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { decodePng, toRgba } from './lib/png.mjs';
-import { TIERS, TIER_BY_ID, decodeCubeChunk } from '../src/point/cubeFormat.ts';
+import { TIERS, TIER_BY_ID, decodeCubeChunk, POINT_INDEX_PATH } from '../src/point/cubeFormat.ts';
 import {
   FIELD_DIR, FIELD_INDEX_PATH, FIELD_LABEL, fieldGrid, fieldPixelOffset, fieldFileName, fieldRunDir,
-  precipLogCode, precipLogValue, encodePrecipPixel, decodePrecipPixel, encodeSnowPixel, decodeSnowPixel,
+  precipLogCode, precipLogValue, encodePrecipPixel, decodePrecipPixel, decodePexcPixel, encodeSnowPixel, decodeSnowPixel,
   makeFieldManifest, parseFieldManifest, makeFieldIndex, parseFieldIndex, PRECIP_XMAX, SNOW_STEP_M, CHANCE_DEFINITION,
 } from '../src/point/fieldFormat.ts';
 import { classifyPointPath, planCdnSync } from './point/cdnSync.mjs';
-import { pruneFieldStore, writeFieldIndex } from './point/fieldStore.mjs';
+import { pruneFieldStore, writeFieldIndex, fieldStaleness, FIELD_MIN_S_BY_TIER, FIELD_WATCH_MAX_MISSED } from './point/fieldStore.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] ?? '1'] : [a, '1']; }));
@@ -159,7 +159,7 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
       const leadsMs = tm.leadHours.map((L) => runAtMs + L * H);
       const pngs = new Map();
       const pixel = (kind, k) => { const f = fieldFileName(kind, tm.leadHours[k]); if (!pngs.has(f)) pngs.set(f, existsSync(join(dir, f)) ? toRgba(decodePng(readFileSync(join(dir, f)))) : null); return pngs.get(f); };
-      let cells = 0, cmp = 0, bad = 0, subsetSame = 0, subsetDiff = 0, worst = '';
+      let cells = 0, cmp = 0, bad = 0, subsetSame = 0, subsetDiff = 0, worst = '', pexcCmp = 0;
       const pointer = { run, runAt: man.runAt };
       for (const f of tm.files) {
         if (cells >= N_PROBE) break;
@@ -175,8 +175,8 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
           const full = cubeSeriesFrom(chunk, addr, man.planes, { bytes: 0, manifest: man, manifestFrom: 'caller', ...c, neighbours: false });
           const sub = cubeSeriesFrom(chunk, addr, man.planes, { bytes: 0, manifest: man, manifestFrom: 'caller', ...c, neighbours: false, wanted: B.fieldPlanes(man.planes) });
           const rFull = fuseCubePoint(B.cellInput({ series: full, tier, runAtMs, nowMs, clima, learned }), B.FIELD_FUSE_OPTIONS);
-          const ref = B.fieldValuesOf(toPointForecastV2(rFull, { nowMs }), leadsMs);
-          const fast = B.fieldValuesFromResult(fuseCubePoint(B.cellInput({ series: sub, tier, runAtMs, nowMs, clima, learned }), B.FIELD_FUSE_OPTIONS), leadsMs);
+          const ref = B.fieldValuesOf(toPointForecastV2(rFull, { nowMs }), leadsMs, tier.stepH);
+          const fast = B.fieldValuesFromResult(fuseCubePoint(B.cellInput({ series: sub, tier, runAtMs, nowMs, clima, learned }), B.FIELD_FUSE_OPTIONS), leadsMs, tier.stepH);
           for (let k = 0; k < leadsMs.length; k++) {
             const a = ref[k], b = fast[k];
             const same = JSON.stringify(a) === JSON.stringify(b);
@@ -189,6 +189,14 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
                 && (a.precip.q90 === 0 ? d.q90 === 0 || precipLogCode(a.precip.q90) === 0 : precipLogCode(a.precip.q90) === pp[off + 2])
                 && (a.precip.medianWet == null || a.precip.chance === 0 ? true : precipLogCode(a.precip.medianWet) === pp[off + 1]);
               if (!okP) { bad++; worst ||= `${iy}/${ix} L${tm.leadHours[k]} ref ${JSON.stringify(a.precip)} feld ${JSON.stringify(d)}`; }
+              // Phase RC: P(≥ 1 mm), P(≥ 5 mm) — nur Felder, die schon `pexc` tragen (gebaut nach dem RC-Producer).
+              const xp = fm.leads[k]?.pexc ? pixel('pexc', k) : null;
+              if (xp) {
+                cmp++; pexcCmp++;
+                const e = decodePexcPixel(xp[off], xp[off + 1], xp[off + 2], xp[off + 3]);
+                const okX = e && Math.abs(e.ge1 - a.precip.ge1) <= 1 / 508 + 1e-9 && Math.abs(e.ge5 - a.precip.ge5) <= 1 / 508 + 1e-9 && e.ge1 <= d.chance + 1 / 254 && e.ge5 <= e.ge1 + 1 / 254;
+                if (!okX) { bad++; worst ||= `${iy}/${ix} L${tm.leadHours[k]} pexc ref ${a.precip.ge1}/${a.precip.ge5} feld ${JSON.stringify(e)}`; }
+              }
             }
             if (a.snow) {
               cmp++;
@@ -200,7 +208,7 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
         }
       }
       add(`B2 ${tierId}: Konsistenz-Probe an ${cells} Zellen (≥ 50) — Feld = Kette am Zellmittelpunkt über die volle Ausgabe (toPointForecastV2), innerhalb der Quantisierung`,
-        cells >= 50 && cmp > 0 && bad === 0, `${cmp} Werte, ${bad} daneben${worst ? ` (${worst})` : ''}`);
+        cells >= 50 && cmp > 0 && bad === 0, `${cmp} Werte (davon ${pexcCmp} P(≥ 1/5 mm)), ${bad} daneben${worst ? ` (${worst})` : ''}`);
       add(`B3 ${tierId}: Teilmengen-Weg (nur Niederschlag/Schneefallgrenze/hModEff, ohne V2) = voller Weg, exakt`, subsetDiff === 0 && subsetSame > 0, `${subsetSame} gleich, ${subsetDiff} verschieden`);
       if (tierId === 't3') add('B4 t3: keine Schneefallgrenzen-Datei (keine t3-Quelle führt sie), im Manifest null statt Datei', fm.leads.every((l) => l.snowlmt === null));
     }
@@ -233,7 +241,8 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
     const probe = new Map(before); probe.set([...probe.keys()][0], 'x');
     add('B8 Negativkontrolle: eine geänderte Datei fiele im Vergleich auf', ![...probe].every(([p, h]) => after.get(p) === h));
     // Publisher mit und ohne Felder (ohne .git: er schreibt nur den Baum): alles außer field/ gleich, bis auf die Uhrzeit.
-    {
+    // V-RC-2: eigener try — ein Abbruch des Publishers (V-RC-4, unabhängig von den Feldern) verdeckte sonst B9…B18.
+    try {
       const withF = mkdtempSync(join(tmpdir(), 'np0-pub-with-')), without = mkdtempSync(join(tmpdir(), 'np0-pub-without-'));
       cpSync(join(T, 'point'), join(withF, 'point'), { recursive: true });
       cpSync(join(T, 'point'), join(without, 'point'), { recursive: true, filter: (s) => !/[\\/]point[\\/]field([\\/]|$)/.test(s) });
@@ -250,6 +259,8 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
         aCube.size === b.size && [...b].every(([p, h]) => aCube.get(p) === h) && a.has('field/v1/index.json') && !b.has('field/v1/index.json'),
         `${b.size} Dateien ohne field/, ${a.size - aCube.size} Feld-Dateien`);
       rmSync(withF, { recursive: true, force: true }); rmSync(without, { recursive: true, force: true });
+    } catch (e) {
+      add('B14 Publisher mit/ohne Felder lief durch', false, String(e.stderr ?? e.message).split('\n').filter((l) => !/ExperimentalWarning|trace-warnings/.test(l)).slice(0, 2).join(' | '));
     }
     // POINT_FIELDS=0
     const P0 = join(T, 'off');
@@ -291,6 +302,42 @@ if (!existsSync(join(DATA, 'point', 'index.json'))) {
         ev.map((e) => e.kind).join(', '));
       add('B13 Index nur aus gültigen Manifesten (ein ungültiges field.json zählt nicht) — ohne Feld kein Index', writeFieldIndex(R) === null && !existsSync(join(R, 'field', 'v1', 'index.json')));
     }
+    // V-RC-2: Mindestfenster — ein langsamer Cube-Bau (Jobstart 20 min zurück, FIELD_END_MIN 10 ⇒ Restzeit negativ) nimmt
+    // t3 das Feld nicht mehr; mit FIELD_MIN_S=0 (Verhalten vorher) entfällt es und budget.json hält den Versuch fest.
+    if (pick.t3) {
+      const run = pick.t3;
+      const late = { FIELD_JOB_T0: String(Math.floor(Date.now() / 1000) - 20 * 60), FIELD_END_MIN: '10' };
+      const fdir = join(T, 'floor'), odir = join(T, 'floor0');
+      for (const d of [fdir, odir]) cpSync(P, d, { recursive: true, filter: (s) => !s.replace(/\\/g, '/').includes('/field') });
+      const sF = node('scripts/point/build-point-fields.mjs', ['--tier=t3', `--point=${fdir}`, '--cells=4', '--workers=1'], late);
+      const s0 = node('scripts/point/build-point-fields.mjs', ['--tier=t3', `--point=${odir}`, '--cells=4', '--workers=1'], { ...late, FIELD_MIN_S: '0' });
+      const b0 = JSON.parse(readFileSync(join(odir, 'field', 'v1', 'budget.json'), 'utf8')).byTier.t3;
+      add(`B15 V-RC-2: Restzeit bis FIELD_END_MIN aufgebraucht ⇒ Feld im Mindestfenster ${FIELD_MIN_S_BY_TIER.t3} s (t3/t2), t1 ohne Fenster`,
+        /Mindestfenster/.test(sF) && existsSync(join(fdir, 'field', 'v1', run, 't3', 'field.json')) && FIELD_MIN_S_BY_TIER.t2 === FIELD_MIN_S_BY_TIER.t3 && FIELD_MIN_S_BY_TIER.t1 === 0);
+      add('B16 Negativkontrolle FIELD_MIN_S=0: dasselbe ohne Fenster ⇒ kein Feld (Fehler vom 08./09.10.) — und budget.json hält den ausgelassenen Versuch jetzt fest',
+        /kein Feld für diesen Lauf/.test(s0) && !existsSync(join(odir, 'field', 'v1', run, 't3')) && b0?.run === run && b0.skipped === true && b0.reason === 'job-time');
+    }
+    // V-RC-2: Wächter — mehr als ein Cube-Lauf hintereinander ohne Feld ⇒ Exit 1 (Job rot).
+    {
+      const st = fieldStaleness({ t1: ['2026100903', '2026100906'], t2: ['2026100818', '2026100900', '2026100812'], t3: ['2026100900'] },
+        { t1: ['2026100903'], t2: ['2026100806'], t3: ['2026100900'] });
+      const by = Object.fromEntries(st.map((r) => [r.tier, r]));
+      add(`B17 Wächter: t1 ein Lauf ohne Feld = in Ordnung (b′), t2 drei Läufe seit dem letzten Feld = veraltet (Fall 09.10.), t3 aktuell; ohne Cube kein Alarm`,
+        !by.t1.stale && by.t1.missed === 1 && by.t2.stale && by.t2.missed === 3 && by.t2.missedRuns.join() === '2026100900,2026100818,2026100812' && !by.t3.stale
+        && !fieldStaleness({}, {})[0].stale && fieldStaleness({ t2: ['2026100900', '2026100818'] }, {}, ['t2'])[0].stale && FIELD_WATCH_MAX_MISSED === 1,
+        st.map((r) => `${r.tier} ${r.missed}${r.stale ? ' ⚠' : ''}`).join(', '));
+      const W = join(T, 'watch', 'point');
+      for (const r of ['2026100812', '2026100818', '2026100900']) { mkdirSync(join(W, r), { recursive: true }); writeFileSync(join(W, r, 'run.json'), JSON.stringify({ tiers: [{ id: 't2', files: [{ file: 'x' }] }, ...(r === '2026100900' ? [{ id: 't1', files: [{ file: 'y' }] }] : [])] })); }
+      mkdirSync(join(W, 'field', 'v1'), { recursive: true });
+      writeFileSync(join(W, 'field', 'v1', 'index.json'), JSON.stringify({ runsByTier: { t1: ['2026100900'], t2: ['2026100812'] } }));
+      const run = (tier, env = {}) => { try { return { code: 0, out: node('scripts/point/field-watch.mjs', [`--point=${W}`, `--tier=${tier}`], env) }; } catch (e) { return { code: e.status, out: String(e.stdout ?? '') }; } };
+      const w2 = run('t2'), w1 = run('t1'), w0 = run('t2', { POINT_FIELDS: '0' });
+      writeFileSync(join(W, 'field', 'v1', 'index.json'), JSON.stringify({ runsByTier: { t1: ['2026100900'], t2: ['2026100818'] } }));
+      const w2b = run('t2');
+      add('B18 field-watch.mjs auf der Ablage: t2 zwei Läufe ohne Feld ⇒ Exit 1 mit ::error-Annotation; t1 aktuell ⇒ Exit 0; POINT_FIELDS=0 ⇒ still; ein Lauf ohne Feld ⇒ Exit 0',
+        w2.code === 1 && /::error title=Kartenfeld t2 veraltet/.test(w2.out) && w1.code === 0 && w0.code === 0 && /absichtlich aus/.test(w0.out) && w2b.code === 0,
+        `t2 ${w2.code}, t1 ${w1.code}, aus ${w0.code}, nach Nachbau ${w2b.code}`);
+    }
   } catch (e) {
     add('B lief durch', false, String(e.stderr ?? e.stack ?? e.message).split('\n').slice(0, 4).join(' | '));
   } finally {
@@ -306,6 +353,15 @@ if (args.live) {
   const raw = (p) => `https://raw.githubusercontent.com/jppetry/buscosun-data/${head}/${p}`;
   let idx = null;
   try { idx = parseFieldIndex(await (await api(raw(FIELD_INDEX_PATH))).json()); } catch (e) { add('C1 Feld-Index lesbar', false, e.message); }
+  // V-RC-2: derselbe Wächter wie im Punkt-Job, gegen den Cube-Index des Daten-Repos.
+  try {
+    const pidx = await (await api(raw(POINT_INDEX_PATH))).json();
+    const cubeRunsByTier = {};
+    for (const r of pidx.runs ?? []) for (const t of r.tiers ?? []) (cubeRunsByTier[t] ??= []).push(r.run);
+    const st = fieldStaleness(cubeRunsByTier, idx?.runsByTier ?? {});
+    add('C0 Wächter (V-RC-2): keine Stufe mit mehr als einem Cube-Lauf hintereinander ohne Feld', st.every((r) => !r.stale),
+      st.map((r) => `${r.tier} Cube ${r.latestCube ?? '–'} / Feld ${r.lastField ?? 'keins'} (${r.missed} ohne)${r.stale ? ' ⚠' : ''}`).join(' · '));
+  } catch (e) { add('C0 Wächter lesbar', false, e.message); }
   if (idx) {
     add('C1 Feld-Index besteht den Prüfer', true, Object.entries(idx.latestByTier).map(([t, e]) => `${t} ${e.run} (${(e.durationMs / 1000).toFixed(0)} s)`).join(', '));
     for (const t of TIERS) {

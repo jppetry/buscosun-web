@@ -104,6 +104,14 @@ jobs:
       # Kartenfeld kumuliert, Zusammensetzung (audit/niederschlagssummen.md) — netzfrei.
       - name: Verifier — Niederschlagssummen (Regenradar, NS)
         run: npm run verify:precip-sums
+      # RC: Regenchance im Regenradar — Schwellen exakt aus der Verteilung, Lücke ≠ 0 %, Konturen (Ringe/Löcher/Ränder),
+      # 3-h-Werte nie verteilt, Verdrahtung hinter `?rc=1` (audit/regenchance.md) — netzfrei.
+      - name: Verifier — Regenchance (Regenradar, RC)
+        run: npm run verify:regenchance
+      # ZO: betroffene Orte und Ankunftsfenster je Gewitterzelle — Kern/Rand aus den amtlichen Ellipsen, Fenster im
+      # 5-min-Raster, Satz zum Ort, Reichweite der deutschen Radare, Wortsperre D-19 (audit/zell-orte.md) — netzfrei.
+      - name: Verifier — Betroffene Orte der Zellen (Regenradar, ZO)
+        run: npm run verify:cell-places
       # HD: hochauflösendes Niederschlagsradar — Schalter, Besitz-Maske = pickCountry Pixel für Pixel auf den echten
       # Gittern, Frame-Regel byte-gleich, Shader-Algebra, Dual-Frames (Log-Ebene), Morph (audit/radar-hochaufloesung.md) — netzfrei.
       - name: Verifier — Niederschlagsradar HD

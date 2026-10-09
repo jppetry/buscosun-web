@@ -13,7 +13,7 @@ import type { PointForecast } from '../pointForecast/types';
 import { pfSourceFrom } from '../pointForecast/pfFlags';
 import type { PointForecastV2 } from '../pointForecast/fusion/output';
 import type { Dist } from '../pointForecast/fusion/dist';
-import { rainWindowEnabledFrom, RB_HORIZON_H } from './rainWindow';
+import { rainWindowEnabledFrom, rbWetThresholdFrom, RB_HORIZON_H, RB_WET_X_MMH } from './rainWindow';
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import type { Country } from '../types';
 import {
@@ -339,17 +339,20 @@ function nwpOf(forecast: PointForecast): NwpHour[] {
 }
 
 /**
- * Phase RB: P(precip ≥ 0,1 mm/h) per hour from the cube path's distributions (`v2`), only read — the same reading as
- * the dashboard's `pWetOf`, at the hero's wet threshold instead of 0. `null` without `v2`.
+ * Phase RB: P(precip > x) per hour (keyed by the hour's START) from the cube path's distributions (`v2`), only read — since V-RC-1
+ * (audit/regenchance.md §11) x = 0, i.e. 1 − pDry, the same reading as the dashboard's `pWetOf`, the map field and the chance;
+ * `?rbwet=0.1` passes 0.1 (phase RB before 09.10.: the hero's wet threshold). `null` without `v2`.
  */
-export function fusionPWetOf(forecast: PointForecast, exceedance: (d: Dist, x: number) => number): Array<{ tMs: number; p: number }> | null {
+export function fusionPWetOf(forecast: PointForecast, exceedance: (d: Dist, x: number) => number, x: number = RB_WET_X_MMH): Array<{ tMs: number; p: number }> | null {
   const v2 = (forecast.cube as { v2?: PointForecastV2 } | undefined)?.v2;
   if (!v2?.axis.steps.length) return null;
   const out: Array<{ tMs: number; p: number }> = [];
   for (const st of v2.axis.steps) {
     const d = st.vars.precip?.dist;
-    const p = d ? exceedance(d, WET_MMH) : NaN;
-    if (Number.isFinite(p)) out.push({ tMs: st.validAtMs, p: Math.max(0, Math.min(1, p)) });
+    const p = d ? exceedance(d, x) : NaN;
+    // A cube step at t is the mean rate over (t − 1 h, t] (accumulated `tot_prec`, same rule as `fusionWindowSum`) — the
+    // rain window wants the hour it STARTS, so the step labelled 13:00 is the hour 12–13.
+    if (Number.isFinite(p)) out.push({ tMs: st.validAtMs - 3_600_000, p: Math.max(0, Math.min(1, p)) });
   }
   return out.length ? out : null;
 }
@@ -374,6 +377,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   // Phase RB (on by default, `?rb=0` off): buscosun Fusion up to +24 h for the rain window; the engine keeps its 8-h series (hours beyond
   // are cut before `assembleNowcast`). Without the switch the request and the series are exactly as before.
   const rb = rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  const wetX = rbWetThresholdFrom(typeof window !== 'undefined' ? window.location.search : '');
   const cubeHours = rb ? RB_HORIZON_H + 1 : 8;
   let exceed: ((d: Dist, x: number) => number) | null = null;
   const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
@@ -391,8 +395,8 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       nwpSource,
     });
     if (rb && nwpSource === 'cube' && exceed) {
-      const pw = fusionPWetOf(forecast, exceed);
-      if (pw) nc.fusionPWet = pw;
+      const pw = fusionPWetOf(forecast, exceed, wetX);
+      if (pw) { nc.fusionPWet = pw; nc.fusionPWetMmH = wetX; }
     }
     return nc;
   };

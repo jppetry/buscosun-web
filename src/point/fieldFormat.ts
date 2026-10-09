@@ -9,6 +9,8 @@
  *   point/field/v1/<lauf>/<stufe>/field.json          Manifest des Felds (zuletzt geschrieben)
  *   point/field/v1/<lauf>/<stufe>/precip-<LLL>.png    Niederschlag je nativem Vorlauf LLL (Stunden, dreistellig)
  *   point/field/v1/<lauf>/<stufe>/snowlmt-<LLL>.png   Schneefallgrenze je nativem Vorlauf (t3: keine — keine Quelle führt sie)
+ *   point/field/v1/<lauf>/<stufe>/precipcum-<LLL>.png kumulierte Erwartung (Phase NS)
+ *   point/field/v1/<lauf>/<stufe>/pexc-<LLL>.png      P(≥ 1 mm), P(≥ 5 mm) im Intervall (Phase RC)
  *
  * Etikett: **„Modell · Cube"** — nie „buscosun Fusion 8". Das Feld ist die Fusion-Kette mit dem Cube als EINZIGER Quelle
  * (E-NP0-4 F1): keine Station, kein Radar, kein Gelände am Ort; am Zellmittelpunkt. Der Ort bekommt Fusion 8.
@@ -31,7 +33,7 @@ export const FIELD_PROVENANCE = 'cube';
 export function fieldRunDir(run: string, tierId: TierId): string {
   return `${FIELD_DIR}/${run}/${tierId}`;
 }
-export function fieldFileName(kind: 'precip' | 'snowlmt' | 'precipcum', leadH: number): string {
+export function fieldFileName(kind: 'precip' | 'snowlmt' | 'precipcum' | 'pexc', leadH: number): string {
   return `${kind}-${String(leadH).padStart(3, '0')}.png`;
 }
 
@@ -129,6 +131,32 @@ export function decodePrecipCumPixel(r: number, g: number, b: number, a: number)
   return ((r << 16) | (g << 8) | b) * PRECIP_CUM_UNIT_MM;
 }
 
+// --- Kodierung Überschreitung (Phase RC, E-RC-2) ------------------------------------------------
+
+/**
+ * pexc-<LLL>.png, RGBA — Wahrscheinlichkeit, dass im Intervall (t − stepH, t] MINDESTENS x mm fallen, aus derselben
+ * Verteilung wie die Chance (`exceedance(dist, x / stepH)` auf der mittleren Rate; `audit/regenchance.md` §3):
+ *   R = round(254 · P(≥ 1 mm)), G = round(254 · P(≥ 5 mm)), B = 0
+ *   A = 255 gerechnet, 0 = fehlt — **fehlt ist nie 0 %**
+ * Die Schwellen sind Mengen im Intervall der Stufe: t1 ⇒ je Stunde, t2 ⇒ je 3 h, t3 ⇒ je 6 h. Keine Rückrechnung aus
+ * Median/q90 (sie hinge an der Familie der Verteilung).
+ */
+export const PEXC_THRESHOLDS_MM = Object.freeze([1, 5] as const);
+
+export interface PexcCell { ge1: number; ge5: number }
+
+export function encodePexcPixel(v: PexcCell | null, out: Uint8Array, o: number): void {
+  if (!v || !Number.isFinite(v.ge1) || !Number.isFinite(v.ge5)) { out[o] = 0; out[o + 1] = 0; out[o + 2] = 0; out[o + 3] = 0; return; }
+  out[o] = Math.round(254 * Math.max(0, Math.min(1, v.ge1)));
+  out[o + 1] = Math.round(254 * Math.max(0, Math.min(1, v.ge5)));
+  out[o + 2] = 0;
+  out[o + 3] = 255;
+}
+export function decodePexcPixel(r: number, g: number, _b: number, a: number): PexcCell | null {
+  if (a !== 255) return null;
+  return { ge1: r / 254, ge5: g / 254 };
+}
+
 // --- Kodierung Schneefallgrenze -----------------------------------------------------------------
 
 /**
@@ -180,6 +208,8 @@ export interface FieldLead {
   snowlmt: string | null;
   /** Phase NS (E-NS-9): kumulierte Erwartung bis zu diesem Vorlauf; fehlt in Feldern vor Phase NS (additiv). */
   precipcum?: string | null;
+  /** Phase RC (E-RC-2): P(≥ 1 mm), P(≥ 5 mm) im Intervall; fehlt in Feldern vor Phase RC (additiv). */
+  pexc?: string | null;
 }
 
 export interface FieldStats {
@@ -210,7 +240,7 @@ export interface FieldManifest {
   rate: string;
   grid: FieldGrid;
   leads: FieldLead[];
-  encoding: { precip: string; snowlmt: string; x0: number; xMax: number; snowStepM: number; precipcum?: string; cumUnitMm?: number };
+  encoding: { precip: string; snowlmt: string; x0: number; xMax: number; snowStepM: number; precipcum?: string; cumUnitMm?: number; pexc?: string; pexcMm?: readonly number[] };
   chance: typeof CHANCE_DEFINITION;
   snowline: string;
   /** Kette: Motor-Optionen, Tabellen (sha256 von `fusion.client.json`), Code-Stand des Producers. */
@@ -219,7 +249,7 @@ export interface FieldManifest {
   timing: { ms: number; workers: number };
 }
 
-export function makeFieldManifest(p: Omit<FieldManifest, 'schema' | 'product' | 'version' | 'label' | 'provenance' | 'grid' | 'stepH' | 'rate' | 'encoding' | 'chance' | 'snowline'> & { cum?: boolean }): FieldManifest {
+export function makeFieldManifest(p: Omit<FieldManifest, 'schema' | 'product' | 'version' | 'label' | 'provenance' | 'grid' | 'stepH' | 'rate' | 'encoding' | 'chance' | 'snowline'> & { cum?: boolean; pexc?: boolean }): FieldManifest {
   const tier = TIER_BY_ID[p.tier];
   return {
     schema: 1, product: 'point-field', version: FIELD_VERSION, label: FIELD_LABEL, provenance: FIELD_PROVENANCE,
@@ -233,6 +263,10 @@ export function makeFieldManifest(p: Omit<FieldManifest, 'schema' | 'product' | 
       ...(p.cum ? {
         precipcum: 'R·65536 + G·256 + B = kumulierte Erwartung C(L) = Σ meanOf(Hürde) · stepH ab dem ersten Intervall der Stufe, in 0,01 mm; A = 255 gerechnet, 0 fehlt (ab einer fehlenden Stufe für alle späteren Vorläufe); Fenstersumme = C(Ende) − C(Anfang); keine Quantile',
         cumUnitMm: PRECIP_CUM_UNIT_MM,
+      } : {}),
+      ...(p.pexc ? {
+        pexc: `R = round(254·P(≥ 1 mm)), G = round(254·P(≥ 5 mm)) im Intervall (t − ${tier.stepH} h, t] = exceedance(dist, x/${tier.stepH} mm/h) derselben Verteilung; B = 0; A = 255 gerechnet, 0 fehlt`,
+        pexcMm: PEXC_THRESHOLDS_MM,
       } : {}),
     },
     chance: CHANCE_DEFINITION, snowline: SNOWLINE_DEFINITION,
@@ -258,6 +292,7 @@ export function parseFieldManifest(j: unknown): FieldManifest | null {
     if (l.precip !== null && l.precip !== fieldFileName('precip', l.leadH)) return null;
     if (l.snowlmt !== null && l.snowlmt !== fieldFileName('snowlmt', l.leadH)) return null;
     if (l.precipcum != null && l.precipcum !== fieldFileName('precipcum', l.leadH)) return null;
+    if (l.pexc != null && l.pexc !== fieldFileName('pexc', l.leadH)) return null;
   }
   if (!m.encoding || m.encoding.x0 !== PRECIP_X0 || m.encoding.xMax !== PRECIP_XMAX || m.encoding.snowStepM !== SNOW_STEP_M) return null;
   if (!m.chance || m.chance.id !== CHANCE_DEFINITION.id || !m.stats || typeof m.stats.cells !== 'number') return null;
