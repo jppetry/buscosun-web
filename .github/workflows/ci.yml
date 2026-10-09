@@ -129,6 +129,10 @@ jobs:
       # Gittern, Frame-Regel byte-gleich, Shader-Algebra, Dual-Frames (Log-Ebene), Morph (audit/radar-hochaufloesung.md) — netzfrei.
       - name: Verifier — Niederschlagsradar HD
         run: npm run verify:radar-hd
+      # R250: 250-m-Kacheln aus den DWD-Standortradaren — Schalter, Kachelgeometrie, Komposit-/Verankerungs-Algebra,
+      # Vertrag (audit/radar-250m.md) — netzfrei (die Rundläufe an echten Dateien nur mit RADAR_250_RAW).
+      - name: Verifier — Niederschlagsradar 250 m
+        run: npm run verify:radar-250m
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

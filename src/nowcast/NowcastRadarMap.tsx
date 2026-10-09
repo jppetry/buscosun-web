@@ -75,7 +75,7 @@ import type { SumSelection } from '../precipSums/sumModel';
 import { useChanceMap } from '../precipChance/useChanceMap';
 import { ChanceLegend } from '../precipChance/PrecipChanceUi';
 import type { ChanceThreshold } from '../precipChance/chanceModel';
-// Phase SK (`?sk=1`, audit/schneefallgrenze-flaeche.md): snowfall line of buscosun Fusion as a surface on the terrain.
+// Phase SK (on, `?sk=0` off, audit/schneefallgrenze-flaeche.md): snowfall line of buscosun Fusion as a surface on the terrain.
 import { useSnowCap } from '../snowCap/useSnowCap';
 import { SK_PALETTE_2D, SK_PALETTE_3D } from '../snowCap/snowCapModel';
 import { SnowCapLegend, snowTapHtml } from '../snowCap/SnowCapUi';
@@ -143,7 +143,7 @@ interface Props {
   stage3d?: 'split' | '3d';
   /** Phase ZT: HD frames of the shown time from `MapView` (radar picture on the relief). */
   onProfileRadarPick?: (pick: ProfileRadarPick) => void;
-  /** Phase SK (`?sk=1`): snow cap instead of the ICON-D2 line; `pickMs` = hour chosen in the place bar (else the slider);
+  /** Phase SK (on, `?sk=0` off): snow cap instead of the ICON-D2 line; `pickMs` = hour chosen in the place bar (else the slider);
    *  `stageMap` = ZT's 3D map (second instance); `mapHidden` = the 2D map rests behind the "3D"-only view (no cap build).
    *  Missing = exactly as before. */
   snowCap?: { pickMs: number | null; stageMap: maplibregl.Map | null; mapHidden?: boolean };
@@ -618,7 +618,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const skOnMap = !!snowCap;
   const profileLayers = useMemo(() => {
     const base = sumMode || chanceMode ? layers.filter((l) => l !== 'precip') : layers;
-    // Phase SK: with `?sk=1` the cap replaces the ICON-D2 line (E-SK-1); without it the list is the one before.
+    // Phase SK: with Phase SK on the cap replaces the ICON-D2 line (E-SK-1); without it the list is the one before.
     return radarProfileLayers(skOnMap ? base.filter((l) => l !== 'snowline') : base);
   }, [layers, sumMode, chanceMode, skOnMap]);
   const radarPast = useMemo(() => {
@@ -693,7 +693,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   sumHoverRef.current = sumMode ? sumMap.hoverAt : chanceMode ? chanceMap.hoverAt : null;
   const [sumHover, setSumHover] = useState<string | null>(null);
   const onProfileHover = useCallback((p: { lat: number; lon: number } | null) => {
-    // Phase SK: snowfall line under the pointer next to the radar value (null without `?sk=1`).
+    // Phase SK: snowfall line under the pointer next to the radar value (null with `?sk=0`).
     setSkHover(p && skHoverRef.current ? skHoverRef.current(p.lat, p.lon) : null);
     if (sumHoverRef.current) { setHover(null); setSumHover(p ? sumHoverRef.current(p.lat, p.lon) : null); return; }
     setSumHover(null);

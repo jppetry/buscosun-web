@@ -200,7 +200,11 @@ src/pointForecast` leer.
 - **V-SK-4** Gelände-Setup (DEM, Terrain, Schummerung) steht viermal kopiert. Mehrwert: ein Ort für Terrarium-URL und
   Stil. Skizze: geteiltes Modul, nur für neue Nutzer, Bestand unberührt.
 
-## 7 Umsetzung (09.10.2026, uncommitted, hinter `?sk=1`)
+## 7 Umsetzung (09.10.2026; von Jan committet als `aa46451`; seit 09.10. eingeschaltet, `?sk=0` = Rückweg)
+
+**E-SK-7 (Jan 09.10.2026, nach der Umsetzung): eingeschaltet.** `snowCapEnabledFrom` ist voreingestellt an, `?sk=0` (oder `false`)
+zeigt die ICON-D2-Linie wie vor SK. Belegt: `verify:snowcap` 56/56 (A1 neu), Sonde ohne Parameter (Kappe, Linie, Beschriftung
+2D + 3D, Satz am Ort, Antippen), `?sk=0` = ICON-D2-Linie + Notiz, 0 `sk`-Elemente; Konsole 0.
 
 Plan: `docs/superpowers/plans/2026-10-09-schneefallgrenze-flaeche.md` (10 Aufgaben), Ledger mit allen Abweichungen
 `audit/schneefallgrenze-flaeche/ledger.md`. buscosun Fusion, Feldvertrag und `MapView.tsx`

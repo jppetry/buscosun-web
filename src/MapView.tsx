@@ -131,7 +131,14 @@ import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
 import { radarHdFlagFrom, radarMorphFlagFrom, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
-import type { RainFrameData, RainMorph } from './scalar/RainLayer';
+// Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
+import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM } from './scalar/radarHd250';
+import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
+import { HD250_TILE_W, HD250_TILE_H, HD250_FACTOR } from './sources/radarHd250';
+/** Phase R250: a dry tile on one side of a mix (the slot has no file for it = every cell 0). */
+const HD250_ZERO = new Uint8Array(HD250_TILE_W * HD250_TILE_H);
+import { rvStamp } from './sources/radolanRuns';
+import type { RainFrameData, RainMorph, RainFlow } from './scalar/RainLayer';
 import { incaWarpMesh, INCA_WARP_N } from './sources/geosphereIncaGeo';
 import { rzcWarpMesh, RZC_WARP_N } from './sources/meteoSwissGeo';
 // Phase RR: Niederschlags-Profil des Regenradars (reine Tabelle + Zeit-/Komposit-Regeln, headless geprüft).
@@ -964,6 +971,17 @@ export default function MapView({
   const hdMorphBuf2Ref = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
   /** HD-3: which ramp each HD layer currently carries (`linear` = `precipRainRamp`, `log` = `precipRainRampLog`). */
   const hdEncodingRef = useRef<Record<string, 'linear' | 'log'>>({});
+  // Phase R250: 250-m tiles of the RV analyses (DE) — switch, the 16 tile layers, tick on tile arrival / view change,
+  // tile masks derived from the DE 1-km mask, mix buffers and the per-tile motion fields (all unused with the switch off).
+  const hd250Ref = useRef(hdRef.current.on && radarHd250FlagFrom());
+  const hd250LayersRef = useRef<Map<string, RainLayer>>(new Map());
+  const [hd250Tick, setHd250Tick] = useState(0);
+  const hd250MaskRef = useRef<{ src: Uint8Array | null; tiles: Map<string, Uint8Array> }>({ src: null, tiles: new Map() });
+  const hd250MixBufRef = useRef<Map<string, Uint8Array>>(new Map());
+  const hd250FlowRef = useRef<WeakMap<RainFlow, Map<string, RainFlow>>>(new WeakMap());
+  /** R250: the tile sync of the last draw run and its arguments — a tile arrival or a map move re-runs ONLY it (not the
+   *  whole draw effect with its texture uploads). */
+  const hd250SyncRef = useRef<{ run: (ra: CompositePick['rv'], rb: CompositePick['rv'], q: number) => void; args: [CompositePick['rv'], CompositePick['rv'], number] } | null>(null);
   // Flow-Nowcast: geschätztes Bewegungsfeld + Basis-Frame (gröber) je RADOLAN-Lauf.
   const flowRef = useRef<{ key: string; base: Float32Array; flow: Flow; corners: QuadCorners; intervalMin: number } | null>(null);
   const popReadyRef = useRef(false);
@@ -1241,6 +1259,8 @@ export default function MapView({
     map.on('moveend', () => {
       const c = map.getCenter();
       routeCbRef.current.onViewChange?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() });
+      // Phase R250: the set of visible 250-m tiles depends on the view — redraw the tile layers after every move.
+      if (hd250Ref.current) setHd250Tick((t) => t + 1);
     });
 
     // Startansicht: DACH exakt einpassen statt fester Zoomstufe (Jans Auftrag
@@ -1599,6 +1619,11 @@ export default function MapView({
     ] : [];
     layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer,
       ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2] } : {}) };
+    // Phase R250: one RainLayer per 250-m tile (log ramp — the tiles carry the HD-3 log byte), invisible until a tile is set.
+    const hd250Layers = hd250Ref.current
+      ? HD250_TILE_LIST.map((t) => new RainLayer({ id: t.id, colorRamp: precipRainRampLog, opacity: 0, filter: hd.filter }))
+      : [];
+    hd250LayersRef.current = new Map(hd250Layers.map((l) => [l.id, l]));
     // Phase DB: entsteht die Karte, während das Dashboard schon wieder vorn liegt, startet der Wind-Loop angehalten.
     if (suspendedRef.current) wind.setSuspended(true);
 
@@ -1626,6 +1651,8 @@ export default function MapView({
       if (!map.getLayer(rainLayer.id)) map.addLayer(rainLayer, beforeId);
       // Phase HD-1: directly above the composite, under the Länder-Maske like it.
       for (const l of hdLayers) if (!map.getLayer(l.id)) map.addLayer(l, beforeId);
+      // Phase R250: the 250-m tiles directly above the DE 1-km layer (same place in the stack, under the Länder-Maske).
+      for (const l of hd250Layers) if (!map.getLayer(l.id)) map.addLayer(l, beforeId);
       if (!map.getLayer(kiLayer.id)) map.addLayer(kiLayer, beforeId);
       if (!map.getLayer(popLayer.id)) map.addLayer(popLayer, beforeId);
       if (!map.getLayer(cloudLayer.id)) map.addLayer(cloudLayer, beforeId);
@@ -1753,6 +1780,10 @@ export default function MapView({
         // Phase HD-1: the native layers take the composite's place (same readiness rule); they only exist with the switch.
         ...Object.fromEntries(Object.values(RADAR_HD_LAYER_IDS).map((id) => [
           id, hdRef.current.on && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        ])),
+        // Phase R250: the 250-m tiles follow the DE 1-km layer's rule (they exist only with the switch; opacity does the rest).
+        ...Object.fromEntries(HD250_TILE_LIST.map((t) => [
+          t.id, hd250Ref.current && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
         ])),
         // Fusion-/Modell-Niederschlag (`precip-forecast`) stillgelegt → nie sichtbar.
         'precip-forecast': false,
@@ -2210,7 +2241,8 @@ export default function MapView({
       if (nowcastRef.current) parts.push('DE RADOLAN');
       if (incaGridRef.current) parts.push('AT INCA');
       if (meteoRadarRef.current) parts.push('CH rzc');
-      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}` : '';
+      // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}${hd250Ref.current && nowcastRef.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})` : ''}` : '';
       // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
       // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
       // AT-INCA-Grid tut es nicht (`geosphereIncaGrid.ts` parst nur `leadtime`)
@@ -3616,6 +3648,94 @@ export default function MapView({
         ? { values: plane(pick.rzc)!, width: pick.rzc.width, height: pick.rzc.height, corners: pick.rzc.corners, warpLnglat: rzcWarpMesh(pick.rzc.corners), warpN: RZC_WARP_N, mask: masks.CH ?? null }
         : null, !!pick?.rzc?.values2, morphs.CH);
     };
+    // Phase R250 (`audit/radar-250m.md` §6): the 250-m tiles of the RV ANALYSES above the DE 1-km layer — only from zoom 9
+    // and only when every tile in view is resolved (decoded or dry) for the shown slot(s); until then, and between an
+    // analysis and a nowcast frame, the 1-km layer carries the picture exactly as before. `ra`/`rb` = the picked RV
+    // frames of the two bracket times, `q` their mix (0 = a, 1 = b). Between two analyses the tiles morph with the 1-km
+    // motion field (× 4) when it is there, else they mix linearly like the 1-km layer without a field.
+    type RvPick = CompositePick['rv'];
+    const analysisStampOf = (p: RvPick): string | null => {
+      const src = nowcastRef.current;
+      if (!p || !src) return null;
+      const f0 = src.frames.find((f) => f.leadMinutes === 0);
+      if (f0 && (p === f0 || p.values === f0.values)) return rvStamp(src.runAt);
+      const past = radarPast?.rv?.find((x) => x === p || x.values === p.values);
+      return past ? rvStamp(past.validAt) : null;
+    };
+    const syncHd250 = (ra: RvPick, rb: RvPick, q: number) => {
+      const layers = hd250LayersRef.current;
+      if (!hd250Ref.current || !layers.size) return;
+      hd250SyncRef.current = { run: syncHd250, args: [ra, rb, q] };
+      const map = mapRef.current;
+      const L = layerRefs.current;
+      let changed = false;
+      const hideAll = () => { for (const l of layers.values()) if (l.opacity !== 0) { l.opacity = 0; changed = true; } };
+      if (!map) { hideAll(); return; }
+      const zoom = map.getZoom();
+      const bb = map.getBounds();
+      const vis = hd250VisibleTiles([bb.getWest(), bb.getSouth(), bb.getEast(), bb.getNorth()], zoom);
+      const first = q >= 1 ? rb : ra;
+      const second = q > 0 && q < 1 && rb !== ra ? rb : null;
+      const sa = analysisStampOf(first);
+      const sb = second ? analysisStampOf(second) : null;
+      const notify = () => setHd250Tick((t) => t + 1);
+      const resolved = (s: Hd250TileState) => s.kind === 'ready' || s.kind === 'dry';
+      const states = sa && (!second || sb)
+        ? vis.map((t) => ({ t, A: hd250Store.get(sa, t.tx, t.ty, notify), B: sb ? hd250Store.get(sb, t.tx, t.ty, notify) : null }))
+        : [];
+      if (!vis.length || !states.length || states.some((s) => !resolved(s.A) || (s.B && !resolved(s.B)))) {
+        hideAll();
+        if (changed) map.triggerRepaint();
+        return;
+      }
+      const mask1km = hdMaskRef.current.DE ?? null;
+      const mk = hd250MaskRef.current;
+      if (mk.src !== mask1km) { mk.src = mask1km; mk.tiles.clear(); }
+      const tileMask = (id: string, tx: number, ty: number): Uint8Array | null => {
+        if (!mask1km) return null;
+        let m = mk.tiles.get(id);
+        if (!m) { m = hd250TileMask(mask1km, tx, ty); mk.tiles.set(id, m); }
+        return m;
+      };
+      const flow1km = second && hdMorphRef.current && first && second ? flowCached(first.values, second.values) : null;
+      const tileFlow = (id: string, tx: number, ty: number): RainFlow | null => {
+        if (!flow1km) return null;
+        let per = hd250FlowRef.current.get(flow1km);
+        if (!per) { per = new Map(); hd250FlowRef.current.set(flow1km, per); }
+        let f = per.get(id);
+        if (!f) { f = hd250TileFlow(flow1km, tx, ty, HD250_FACTOR); per.set(id, f); }
+        return f;
+      };
+      const shown = new Set<string>();
+      for (const { t, A, B } of states) {
+        const id = hd250LayerId(t.tx, t.ty);
+        const layer = layers.get(id);
+        if (!layer) continue;
+        if (A.kind === 'dry' && (!B || B.kind === 'dry')) continue;   // dry on both sides: nothing to draw (RV is dry there too)
+        const va = A.kind === 'ready' ? A.values : HD250_ZERO;
+        const vb = B ? (B.kind === 'ready' ? B.values : HD250_ZERO) : null;
+        const frame: RainFrameData = {
+          values: va, width: HD250_TILE_W, height: HD250_TILE_H, corners: hd250TileCorners(t.tx, t.ty),
+          warpLnglat: hd250TileMesh(t.tx, t.ty), warpN: HD250_TILE_WARP_N, mask: tileMask(id, t.tx, t.ty),
+        };
+        if (vb) {
+          const fl = tileFlow(id, t.tx, t.ty);
+          if (fl) { layer.setFrame(frame); layer.setMorph({ b: vb, flow: fl, frac: q }); }
+          else {
+            let buf = hd250MixBufRef.current.get(id);
+            if (!buf || buf.length !== va.length) { buf = new Uint8Array(va.length); hd250MixBufRef.current.set(id, buf); }
+            layer.setFrame({ ...frame, values: lerpValues(va, vb, q, buf) });
+            layer.setMorph(null);
+          }
+        } else { layer.setFrame(frame); layer.setMorph(null); }
+        if (layer.opacity !== 0.85) { layer.opacity = 0.85; changed = true; }
+        shown.add(id);
+      }
+      for (const [id, l] of layers) if (!shown.has(id) && l.opacity !== 0) { l.opacity = 0; changed = true; }
+      // every tile in view is resolved ⇒ the 1-km DE layer steps back (its picture is the 1-km mean of what the tiles show)
+      if (L.hdDe && L.hdDe.opacity !== 0) { L.hdDe.opacity = 0; changed = true; }
+      if (changed) map.triggerRepaint();
+    };
     // Phase RR (Profil): Komposit zur ABSOLUTEN Gültigkeitszeit — RV nach Gültigkeitszeit inkl. Rückblick (`rvPast`),
     // INCA nach Vorlauf wie oben, im Rückblick nur Messungen (`radarProfileComposite`). Zwischen zwei Radarzeiten
     // mischt der Morph die beiden Frames in 5-%-Schritten. Ohne Profil läuft der Bestand darunter unverändert.
@@ -3726,6 +3846,7 @@ export default function MapView({
               return { ...(rest as T), values: lerpValues(x.values, y.values, q, buf) };
             };
             syncHd({ rv: mixedOrA(a.rv, b.rv, 'DE'), inca: mixedOrA(a.inca, b.inca, 'AT'), rzc: mixedOrA(a.rzc, b.rzc, 'CH'), d2: null }, morphs);
+            syncHd250(a.rv, b.rv, q);
             return;
           }
           const mixed = <T extends { values: Uint8Array; values2?: Uint8Array }>(x: T | null, y: T | null, key: 'DE' | 'AT' | 'CH'): T | null => {
@@ -3743,8 +3864,11 @@ export default function MapView({
             return { ...(rest as T), values: lerpValues(x.values, y.values, q, buf) };
           };
           syncHd({ rv: mixed(a.rv, b.rv, 'DE'), inca: mixed(a.inca, b.inca, 'AT'), rzc: mixed(a.rzc, b.rzc, 'CH'), d2: null });
+          syncHd250(a.rv, b.rv, q);
         } else {
-          syncHd(pickAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : timeMs));
+          const pe = pickAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : timeMs);
+          syncHd(pe);
+          syncHd250(pe.rv, pe.rv, 0);
         }
       }
       return;
@@ -3763,10 +3887,24 @@ export default function MapView({
       warpLnglat: frame.warpLnglat, warpN: frame.warpN, warpRows: frame.warpRows,
     });
     if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
+    // Phase R250: only the analysis (slider at „jetzt") is an RV analysis ⇒ tiles; every other hour stays 1 km.
+    if (hd.on && hd250Ref.current) {
+      const pw = pickCompositeFrames(forecastHour, { rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now());
+      syncHd250(pw.rv, pw.rv, 0);
+    }
     // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.
     // Phase HD-4: `hdFlowTick` tickt nur, wenn ein Bewegungsfeld fertig ist (nur mit `?hdmorph=1`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast, hdFlowTick]);
+
+  // Phase R250: a tile arrival or a map move (`hd250Tick`) re-runs only the tile sync of the last draw run — the 1-km
+  // frames and the composite are untouched (no texture upload for them). Nothing happens without the switch.
+  useEffect(() => {
+    const s = hd250SyncRef.current;
+    if (!s || !hd250Ref.current || !active.has('nowcast')) return;
+    s.run(...s.args);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hd250Tick]);
 
   // Wolken-Layer (ICON-D2 CLCT): bei jeder Slider-Bewegung den Frame mit der
   // nächstgelegenen Gültigkeitszeit setzen. Deckt den ganzen ICON-D2-Horizont ab.
@@ -4286,6 +4424,10 @@ export default function MapView({
         // Phase HD-1: the native layers take the composite's place (same readiness rule); they only exist with the switch.
         ...Object.fromEntries(Object.values(RADAR_HD_LAYER_IDS).map((id) => [
           id, hdRef.current.on && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        ])),
+        // Phase R250: the 250-m tiles follow the DE 1-km layer's rule (they exist only with the switch; opacity does the rest).
+        ...Object.fromEntries(HD250_TILE_LIST.map((t) => [
+          t.id, hd250Ref.current && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
         ])),
         // Fusion-/Modell-Niederschlag (`precip-forecast`) stillgelegt → nie sichtbar.
         'precip-forecast': false,

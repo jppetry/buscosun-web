@@ -3,9 +3,9 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sk-probe.mjs --base=http://127.0.0.1:5197 [--place=innsbruck] [--out=audit/schneefallgrenze-flaeche] [--secs=12]
  *
- * Desktop 1440×900 with `?sk=1&z3d=1&ansicht3d=split`: layer "Schneegrenze" on, 2D cap/line/legend, ZT stage with the cap
+ * Desktop 1440×900 (SK on by default since 09.10.; no parameter): layer "Schneegrenze" on, 2D cap/line/legend, ZT stage with the cap
  * below `zt-cone`, tap on a slope (popup), place card + bar click (map time), hover text. Field index blocked ⇒ hint, no
- * tint. Without the flag: today's ICON-D2 line note, no `sk-` layer. Mobile 390×844: Schnellblick card, 44-px targets.
+ * tint. With `?sk=0`: the ICON-D2 line note as before, no `sk-` layer. Mobile 390×844: Schnellblick card, 44-px targets.
  * Console errors/warnings of every run, plus the `[sk]` build times (`?sklog=1`).
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -55,7 +55,7 @@ const mapState = (ctx, handle) => ctx.evaluate(`(() => { const m = ${handle}; if
 {
   const ctx = await browser.newContext({ width: 1440, height: 900 });
   watch(ctx, { tag: 'D ' });
-  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}?sk=1&z3d=1&ztdebug=1&sklog=1` });
+  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}?ztdebug=1&sklog=1` });
   await waitFor(ctx, `!!window.__map && [...document.querySelectorAll('.rr-layer')].some((b) => /Schneegrenze/.test(b.textContent))`, 90);
   await sleep(SECS * 1000);
   console.log('Desktop: Ebene „Schneegrenze" an', await clickText(ctx, '.rr-layer', /^Schneegrenze/));
@@ -109,7 +109,7 @@ const mapState = (ctx, handle) => ctx.evaluate(`(() => { const m = ${handle}; if
   const ctx = await browser.newContext({ width: 1440, height: 900 });
   watch(ctx, { tag: 'B ' });
   await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*point/field/v1/index.json*' }] });
-  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}?sk=1` });
+  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}` });
   await sleep(SECS * 1000);
   await waitFor(ctx, `!!window.__map && [...document.querySelectorAll('.rr-layer')].some((b) => /Schneegrenze/.test(b.textContent))`, 90); await clickText(ctx, '.rr-layer', /^Schneegrenze/);
   await waitFor(ctx, `/Keine Tönung|nicht verfügbar|gültig/.test(document.querySelector('.sk-leg-status')?.innerText ?? '')`, 60);
@@ -122,18 +122,18 @@ const mapState = (ctx, handle) => ctx.evaluate(`(() => { const m = ${handle}; if
 {
   const ctx = await browser.newContext({ width: 1440, height: 900 });
   watch(ctx, { tag: 'N ' });
-  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}` });
+  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}?sk=0` });
   await sleep(SECS * 1000);
   await waitFor(ctx, `!!window.__map && [...document.querySelectorAll('.rr-layer')].some((b) => /Schneegrenze/.test(b.textContent))`, 90); await clickText(ctx, '.rr-layer', /^Schneegrenze/);
   await sleep(9000);
-  console.log('Ohne Schalter:', JSON.stringify(await mapState(ctx, 'window.__map')), 'Notiz ICON-D2:', await ctx.evaluate(`[...document.querySelectorAll('.nc-radar-snownote')].some((e) => /ICON-D2-Temperatur/.test(e.textContent))`), 'sk-Elemente:', await ctx.evaluate(`document.querySelectorAll('[class*="sk-"]').length`));
+  console.log('Mit ?sk=0 (Rückweg):', JSON.stringify(await mapState(ctx, 'window.__map')), 'Notiz ICON-D2:', await ctx.evaluate(`[...document.querySelectorAll('.nc-radar-snownote')].some((e) => /ICON-D2-Temperatur/.test(e.textContent))`), 'sk-Elemente:', await ctx.evaluate(`document.querySelectorAll('[class*="sk-"]').length`));
   await ctx.close();
 }
 // ---------------------------------------------------------------- Mobile
 {
   const ctx = await browser.newContext({ width: 390, height: 844, mobile: true });
   watch(ctx, { tag: 'M ' });
-  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}?sk=1&sklog=1` });
+  await ctx.send('Page.navigate', { url: `${BASE}/regenradar/${PLACE}?sklog=1` });
   await sleep(SECS * 1000);
   console.log('Mobil: Reiter Layer', await clickText(ctx, '.rm-tab', /Layer/)); await sleep(600);
   console.log('Mobil: Schneegrenze an', await clickText(ctx, '.rm-layer', /Schneegrenze/)); await sleep(600);

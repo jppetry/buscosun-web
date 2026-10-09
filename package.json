@@ -92,6 +92,7 @@
     "verify:radar-fallback": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-fallback.mjs",
     "verify:regenradar-profile": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-regenradar-profile.mjs",
     "verify:radar-hd": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-hd.mjs",
+    "verify:radar-250m": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-250m.mjs",
     "verify:geosphere-nwp": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-geosphere-nwp.mjs",
     "verify:road-decode": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-decode.mjs",
     "verify:road-contract": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-contract.mjs",

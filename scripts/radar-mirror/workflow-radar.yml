@@ -77,6 +77,10 @@ jobs:
           # Phase HD-3 (E-HD-3, Jan 08.10.2026): je Frame zusätzlich `g<lead>.png` (Kanal 1 = v1-Byte, Kanal 2 = Log-Ebene
           # 0,06…200 mm/h) + `meta.dual`; RV +5,1 MB je Slot. Rückweg: Zeile entfernen, die `g`-Dateien laufen mit der Retention aus.
           RADAR_IMG_DUAL: '1'
+          # Phase R250 (buscosun-web/audit/radar-250m.md, 09.10.2026): nach jedem RV-Derive die 250-m-Kacheln der Analyse aus den
+          # 17 DWD-Standortbildern (`px250`) in den Rückblick-Slot `rv-past/<stamp>/` (`h<ty><tx>.png` + `hd250.json`, ≈ 2 MB je
+          # Slot, Retention 2 h). Voreinstellung an, sobald der Web-Klon den Vertrag trägt; Rückweg: RADAR_HD250 auf '0'.
+          RADAR_HD250: '1'
           GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_FILE: radar.yml
         run: node scripts/radar-mirror.mjs

@@ -1,5 +1,5 @@
 /**
- * Phase SK: the place card as its own lazy piece (the deck loads it only with `?sk=1` and the layer on) — it pulls the HZS
+ * Phase SK: the place card as its own lazy piece (the deck loads it only while Phase SK is on (`?sk=0` off) and the layer on) — it pulls the HZS
  * model and buscosun Fusion modules, which must not enter the deck or map chunk.
  */
 import type { Country } from '../types';

@@ -80,6 +80,11 @@ let road = null;
 // NP-0a (E-NP0-1/-2): Rückblick 2 h + Blitze. `PAST_KEEP` ≤ KEEP stellt den Stand vor NP-0a her.
 const PAST_KEEP = Number(process.env.PAST_KEEP || 24);   // leer = Voreinstellung
 const PAST_ON = PAST_KEEP > KEEP;
+// Phase R250 (buscosun-web/audit/radar-250m.md §5 R250-3): nach jedem RV-Derive die 250-m-Kacheln der ANALYSE aus den
+// 17 DWD-Standortbildern (`px250`, ≈ 6,5 MB je Slot vom DWD, Kacheln ≈ 2 MB) in den Rückblick-Slot `img/rv-past/<stamp>/`
+// (`h<ty><tx>.png` + `hd250.json`, Retention wie rv-past). Nur mit Rückblick und nur, wenn der Web-Klon den Vertrag kennt
+// (sonst läuft der Spiegel wie vorher). Rückweg: `RADAR_HD250=0`. Ein Fehler nimmt nur die Kacheln des Slots, nie den Push.
+const HD250_ON = process.env.RADAR_HD250 !== '0' && PAST_ON && !!APP_DIR && existsSync(join(APP_DIR, 'src', 'sources', 'radarHd250.ts'));
 const LIGHTNING_HOOK = APP_DIR ? join(APP_DIR, 'scripts', 'lightning', 'lightning-mirror.mjs') : '';
 const LIGHTNING_ON = process.env.LIGHTNING !== '0';
 const LIGHTNING_DIRS = ['lightning-de', 'lightning-mtg'];
@@ -263,6 +268,32 @@ function derive(source, inPath, stamp) {
   }
 }
 
+/**
+ * Phase R250: 250-m-Kacheln der Analyse in den Rückblick-Slot — Kindprozess wie `derive()`, lädt die Standortbilder
+ * selbst (DWD liefert sie ≈ 75 s nach dem Scan, das RV-Tar kommt ≈ 3,3 min danach — sie liegen also schon da).
+ * Liefert {ms, files, bytes, tiles, sites, missing} oder null (geloggt; der Slot bleibt ohne Kacheln = 1 km).
+ */
+function deriveHd250(stamp, tarPath) {
+  if (!HD250_ON || !DERIVE) return null;
+  const outDir = join(imgSrcDir('rv-past'), stamp);
+  if (!existsSync(join(outDir, 'f000.png'))) return null;
+  try {
+    const t0 = Date.now();
+    const stdout = execFileSync(process.execPath, [
+      '--experimental-strip-types', '--import', pathToFileURL(join(APP_DIR, 'scripts', 'lib', 'register-ts.mjs')).href,
+      DERIVE_SCRIPT, 'hd250', tarPath, outDir, stamp,
+    ], { encoding: 'utf8', timeout: 150_000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const j = JSON.parse(stdout.trim().split('\n').pop());
+    return { ms: Date.now() - t0, files: j.files, bytes: j.bytes, tiles: j.tiles, sites: j.sites, missing: j.missing };
+  } catch (e) {
+    log(`hd250 ${stamp}: FEHLGESCHLAGEN (${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? 'unbekannt'}) — Slot ohne 250-m-Kacheln`);
+    // Reste einer halben Ablage: unverzeichnete Kacheln sind harmlos (der Client liest nur gelistete), aber ein halbes
+    // `hd250.json` darf nicht stehen bleiben.
+    rmSync(join(outDir, 'hd250.json'), { force: true });
+    return null;
+  }
+}
+
 /** Beim Start: was `main` schon hat, in den Bestand übernehmen (Nachfolger-Job nach der Naht). */
 export function storeSeed() {
   for (const p of Object.values(PRODUCTS)) {
@@ -286,7 +317,7 @@ export function storeSeed() {
 // `status.json` liest kein Code nach Schema — reine Telemetrie (D-NP0-3).
 const status = {
   schema: 3, keep: KEEP, pastKeep: PAST_KEEP, imgKeep: IMG_KEEP, imgAgeRule: PAST_ON ? IMG_AGE_RULE : [],
-  pollSec: POLL_SEC, derive: DERIVE,
+  pollSec: POLL_SEC, derive: DERIVE, hd250: HD250_ON,
   job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: nowIso(), recent: [], lightning: null,
 };
 
@@ -433,7 +464,7 @@ async function main() {
     } catch (e) { log(`lightning: Modul nicht ladbar (${e.message}) — Blitze AUS`); lightning = null; }
   }
   const deadline = Date.now() + RUN_MINUTES * 60_000;
-  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
+  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · 250 m ${HD250_ON ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
 
   // Je Produkt der nächste erwartete Slot: der jüngste, der NICHT im Bestand ist,
   // rückwärts höchstens KEEP Slots (nach der Naht liegen die älteren schon auf main).
@@ -476,12 +507,14 @@ async function main() {
       try { dl = await download(p.url(file)); } catch (e) { log(`${k} ${file}: ${e.message} — nächster Versuch`); continue; }
       storePut(p, file, dl.buf);
       const d = p.derive ? derive(p.derive, join(storeDir(p), file), p.imgStamp(st.slot, s)) : null;
+      // Phase R250: die 250-m-Kacheln der Analyse (nur RV, nur mit Bild-Ablage) — vor dem Push, damit sie mitfahren.
+      const hd = k === 'rv' && d ? deriveHd250(p.imgStamp(st.slot, s), join(storeDir(p), file)) : null;
       const pub = publish(`radar: ${file}`);
       lastPushAt = Date.now();
-      const row = { product: k, file, slot: st.slot.toISOString(), dwdAt, seenAt, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d?.ms ?? null, imgBytes: d?.bytes ?? null, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null, attempt: pub.attempt ?? null };
+      const row = { product: k, file, slot: st.slot.toISOString(), dwdAt, seenAt, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d?.ms ?? null, imgBytes: d?.bytes ?? null, hd250: hd ? { ms: hd.ms, bytes: hd.bytes, tiles: hd.tiles, sites: hd.sites, missing: hd.missing } : null, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null, attempt: pub.attempt ?? null };
       noteRow(row);
       const lag = dwdAt ? ((Date.parse(pub.pushedAt) - Date.parse(dwdAt)) / 1000).toFixed(0) : '—';
-      log(`${k} ${file} · DWD ${dwdAt?.slice(11, 19) ?? '?'} · gesehen ${seenAt.slice(11, 19)} (${st.polls}) · ${(dl.buf.length / 1024).toFixed(0)} KB in ${dl.ms} ms${d ? ` · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB` : ''} · Push ${pub.pushedAt.slice(11, 19)}${pub.attempt > 1 ? ` (Versuch ${pub.attempt})` : ''} · DWD→Push ${lag} s`);
+      log(`${k} ${file} · DWD ${dwdAt?.slice(11, 19) ?? '?'} · gesehen ${seenAt.slice(11, 19)} (${st.polls}) · ${(dl.buf.length / 1024).toFixed(0)} KB in ${dl.ms} ms${d ? ` · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB` : ''}${hd ? ` · hd250 ${hd.ms} ms → ${hd.tiles} Kacheln ${(hd.bytes / 1024).toFixed(0)} KB (${hd.sites}/17 Standorte)` : ''} · Push ${pub.pushedAt.slice(11, 19)}${pub.attempt > 1 ? ` (Versuch ${pub.attempt})` : ''} · DWD→Push ${lag} s`);
       pending[k] = { slot: new Date(st.slot.getTime() + 300_000), polls: 0 };
     }
     if (await pollInca()) lastPushAt = Date.now();

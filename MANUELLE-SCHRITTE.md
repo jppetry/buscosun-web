@@ -1930,18 +1930,49 @@ Umsetzung §6b, Gates §7). Uncommitted; seit 09.10. eingeschaltet (Jan), `?z3d=
 ## 56. Schneefallgrenze als Fläche im Gelände (Phase SK), 2026-10-09
 
 Diagnose, Messung, Entscheidungen und Umsetzung: `audit/schneefallgrenze-flaeche.md` (E-SK-1…7, Nachtrag 09.10.;
-Umsetzung §7, Gates §7.1). Uncommitted, **hinter `?sk=1` (aus)**; ohne Schalter bleibt die ICON-D2-Linie.
+Umsetzung §7, Gates §7.1). Committet als `aa46451`; **seit 09.10. eingeschaltet (Jan)**, `?sk=0` = ICON-D2-Linie wie vorher.
+Die Umschaltung selbst (`snowCapModel.ts`, Verifier A1, Sonde, Kommentare) ist uncommitted.
 
-1. **Ansehen:** `/regenradar/innsbruck?sk=1`, Ebene „Schneegrenze“ einschalten — Fläche + Linie + Band in der Karte,
+1. **Ansehen:** `/regenradar/innsbruck`, Ebene „Schneegrenze“ einschalten — Fläche + Linie + Band in der Karte,
    „Karte + 3D“ zeigt die Kappe auf dem Relief (Hang antippen), rechts „Schneefallgrenze am Ort“ mit 48-h-Leiste
    (Klick setzt die Kartenzeit). Bilder `audit/schneefallgrenze-flaeche/sk-*.png`; Sonde
    `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sk-probe.mjs --base=<vite>`.
 2. **Real-Device** (iPhone/Android): Verschieben/Zoomen mit eingeschalteter Kappe flüssig? „Karte + 3D“ bzw. Reiter
    „3D“; Bauzeiten mit `&sklog=1` in der Konsole (`[sk] … ms`). Deckkraft trocken/nass (0,16/0,55) und die Schraffur am
    Gerät ansehen — Werte sind `set`.
-3. **Einschalten** (Voreinstellung an, `?sk=0` als Rückfall) = dein Wort (E-SK-7), am besten an einem Tag mit Schneefall.
-4. **Commit/Push** — eigener Commit, z. B. `feat(regenradar): snowfall line as terrain surface (SK)`; enthält `src/snowCap/**`,
-   `scripts/verify-snowcap.mjs`, `scripts/sk-probe.mjs`, den CI-Schritt, `verify:snowcap` in `package.json` und
-   `budget.json` (totalJs 1 679 → 1 693, Notiz). `NowcastRadarMap.tsx`/`NowcastDeck.tsx` tragen auch Zeilen von ZT/HZS/ZO —
-   `git add -p` (SK-Zeilen nennen „Phase SK“ bzw. `snowCap`/`sk`). Danach Pixel-Diff ohne Schalter nachholen (§7.2 Frage 2).
+3. **Eingeschaltet** am 09.10. (E-SK-7). Am ersten Schneefalltag ansehen, ob Kappe und Satz am Ort stimmen.
+4. **Commit/Push** der Umschaltung, z. B. `feat(regenradar): switch on snowfall surface (SK, ?sk=0 fallback)`; danach Pixel-Diff
+   mit `?sk=0` gegen den Stand vor SK nachholen (§7.2 Frage 2). Hinweis: `verify:cell-towers` G8/G9 vergleichen ZT-Zeilen
+   gegen HEAD und sind seit `aa46451` (ZT in HEAD) rot — Phasenwache der ZT-Linie, unabhängig von SK (`MapView.tsx` unverändert).
 5. **Offen:** V-SK-1 (Winter: Messung mit echter Niederschlagsart), V-SK-3 (Feld-Grenze ≈ T_w 0,5 °C), V-SK-5…11.
+
+## 57. Niederschlagsradar 250 m aus den DWD-Standortradaren (Phase R250), 2026-10-09
+
+Diagnose, Quellenprüfung, Verfahren und Umsetzung: `audit/radar-250m.md` (§0 Kurzfassung, §2 Quellen, §3 Messung,
+§4 Verfahren, §6 Umsetzung, §7 Gates, §8 Befunde). Alles uncommitted in buscosun-web; im Daten-Repo liegen das Spiegel-
+Skript und die Workflow-Zeile `RADAR_HD250: '1'` (s. 2.).
+
+1. **Commit/Push von buscosun-web `main`** — das ist der Schalter: der Spiegel-Job klont `main` sparse und baut die
+   250-m-Kacheln erst, wenn `src/sources/radarHd250.ts` dort liegt (vorher läuft er byte-gleich wie bisher). Vorschlag
+   `feat(radar): 250-m precipitation tiles from the DWD site radars (R250, ?hd250=0 fallback)`; enthält `budget.json`
+   (totalJs 1 693 → 1 697, Notiz), CI-Schritt und npm-Skript `verify:radar-250m`, die Mirror-Vorlage
+   `scripts/radar-mirror/{radar-mirror.mjs,workflow-radar.yml,radar-derive.mjs}`. Wirksam ab dem ERSTEN Spiegel-Job nach dem
+   Push (der laufende Job behält seinen Klon, ≤ 5 h 45) — danach trägt jeder neue RV-Slot `rv-past/<stamp>/hd250.json` +
+   bis zu 16 Kacheln; die Slots davor bleiben 1 km (der Client sagt es nicht eigens, er zeigt dort das 1-km-Bild).
+2. **Daten-Repo:** `scripts/radar-mirror.mjs` und `.github/workflows/radar.yml` sind nach Jans Vollmacht vom 09.10. („Du darfst
+   dieses Repo in dieser Session verändern") eingespielt und gepusht — Commits `dd5327334` und `b9ad9092a` (Korrektur
+   V-R250-7, `audit/radar-250m.md` §6.4/§8). Rückweg ohne Deploy: `RADAR_HD250: '0'` in der Workflow-Datei; die Kacheln
+   laufen mit der rv-past-Altersregel (2 h) aus. Bitte den ersten Spiegel-Job nach dem Web-Push im Log ansehen: Zeile
+   „Start · … · 250 m an" und je RV-Slot „hd250 … ms → n Kacheln … KB (17/17 Standorte)".
+3. **Ansehen nach dem ersten Slot mit Kacheln** (≈ 4 min nach einem RV-Slot): `/wetterkarte/niederschlag/<ort>` bei Zoom ≥ 9
+   über Regen — Status nennt „DE 250 m (Standortradare, ab Zoom 9)"; `/regenradar/<ort>` im Rückblick (nur Analysen tragen
+   Kacheln, die Extrapolation +5 … +120 min bleibt 1 km — gewollt, Messung ≠ Vorhersage). `?hd250=0` = Stand vor R250.
+   Live-Prüfung: `node scripts/radar-250m-probe.mjs --base=<vite preview> --dir=<Slot-Verzeichnis>` (die Sonde schiebt einen
+   lokal abgeleiteten Slot unter; ohne `--dir` nur mit dem Live-Spiegel sinnvoll, sobald er Kacheln trägt).
+4. **Real-Device** (Telefon, Regentag, Zoom 10–12): je Frame 1–4 Kacheln à 1,3 MB Textur-Upload statt einer; Abspielen im
+   Regenradar über 2 h = bis zu 24 Slots × sichtbare Kacheln (LRU 40 Kacheln ≈ 53 MB); Long Tasks (headless nicht messbar).
+   Rückweg je Nutzer `?hd250=0`, für alle `RADAR_HD250_DEFAULT_ON = false` in `src/scalar/radarHd250.ts`.
+5. **Offen zur Entscheidung:** E-R250-2 Legende/Hinweis zur Messauflösung („250 m radial · 1° Azimut", §2) im Dock des
+   Regenradars; E-R250-3 Extrapolation auf 250 m (nur als Verschiebung der Analyse entlang des Bewegungsfelds = Interpolation,
+   bewusst nicht gebaut); E-R250-4 AT/CH (keine offene Quelle feiner als 1 km; MeteoSwiss-Polarvolumen über die
+   EUMETNET-ODR-API mit Token = eigene Phase); V-R250-1…5 (§8).

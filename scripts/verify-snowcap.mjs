@@ -41,8 +41,8 @@ const NOW = Date.UTC(2026, 9, 9, 12, 20, 0);
 void args; void execFileSync;
 
 console.log('\n== A Modell ==');
-add('A1 Schalter: `?sk=1`/`?sk=true` an, sonst aus',
-  snowCapEnabledFrom('?sk=1') && snowCapEnabledFrom('?a=2&sk=true') && !snowCapEnabledFrom('') && !snowCapEnabledFrom('?sk=0') && !snowCapEnabledFrom('?sk=2'));
+add('A1 Schalter (E-SK-7, Jan 09.10.: eingeschaltet): voreingestellt an, `?sk=0`/`?sk=false` = ICON-D2-Linie wie vorher',
+  snowCapEnabledFrom('') && snowCapEnabledFrom('?sk=1') && snowCapEnabledFrom('?a=2&sk=true') && !snowCapEnabledFrom('?sk=0') && !snowCapEnabledFrom('?a=2&sk=false'));
 add('A2 P(Schnee) in der Höhe: Mitte ⇒ 0,5; p90-Höhe ⇒ 0,9; p10-Höhe ⇒ 0,1; ohne Band Stufe',
   Math.abs(snowProbAt(1400, 1400, 250) - 0.5) < 1e-9 && Math.abs(snowProbAt(1650, 1400, 250) - 0.9) < 2e-3
   && Math.abs(snowProbAt(1150, 1400, 250) - 0.1) < 2e-3 && snowProbAt(1400, 1400, 0) === 1 && snowProbAt(1399, 1400, 0) === 0);

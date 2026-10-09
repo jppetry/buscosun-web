@@ -5,10 +5,10 @@
  */
 export type SkPhase = 'snow' | 'sleet' | 'rain';
 
-/** Rule 2: `?sk=1` (or `true`) on, default off (E-SK-7). */
+/** E-SK-7, switched on by Jan 09.10.2026: on by default; `?sk=0` (or `false`) = the ICON-D2 line as before (fallback). */
 export function snowCapEnabledFrom(search: string): boolean {
   const v = new URLSearchParams(search).get('sk');
-  return v === '1' || v === 'true';
+  return v !== '0' && v !== 'false';
 }
 
 /** Cap opacity where it is dry / where it precipitates (E-SK-3) — set, tuned on the device. */

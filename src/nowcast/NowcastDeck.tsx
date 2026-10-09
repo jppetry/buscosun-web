@@ -59,7 +59,7 @@ import type { ProfileRadarPick } from '../MapView';
 import './cellTowers/cellTowersShell.css';
 const TowerStage = lazy(() => import('./cellTowers/TowerStage'));
 const TowerFacts = lazy(() => import('./cellTowers/TowerStage').then((m) => ({ default: m.TowerFacts })));
-// Phase SK (`?sk=1`, audit/schneefallgrenze-flaeche.md): snowfall line as a surface — flag here, place card lazy.
+// Phase SK (on, `?sk=0` off, audit/schneefallgrenze-flaeche.md): snowfall line as a surface — flag here, place card lazy.
 import { snowCapEnabledFrom } from '../snowCap/snowCapModel';
 const SnowArrivalPanel = lazy(() => import('../snowCap/SnowArrivalPanel'));
 
@@ -222,7 +222,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const cellCardDesktop = zoOn ? <CellPlacesCard zo={zo} fusion={zoFusion} onPickPlace={pickPlace} variant="desktop" /> : null;
   const cellCardMobile = zoOn ? <CellPlacesCard zo={zo} fusion={zoFusion} onPickPlace={pickPlace} variant="mobile" /> : null;
 
-  // Phase SK (`?sk=1`): flag and ZT stage map declared BEFORE the ZT block — `towerStage(…)` reads them during render.
+  // Phase SK (on, `?sk=0` off): flag and ZT stage map declared BEFORE the ZT block — `towerStage(…)` reads them during render.
   const skOn = useMemo(() => snowCapEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const [skStageMap, setSkStageMap] = useState<maplibregl.Map | null>(null);
 
@@ -258,7 +258,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     ...(ztDesktop ? { stageAside: towerStage('desktop'), stage3d: view3d === '3d' ? '3d' as const : 'split' as const } : {}),
   } : {};
 
-  // Phase SK (`?sk=1`): cap on the map + on ZT's stage (its map arrives via `onStageReady`), place card with 48-h bar.
+  // Phase SK (on, `?sk=0` off): cap on the map + on ZT's stage (its map arrives via `onStageReady`), place card with 48-h bar.
   const skActive = skOn && layers.includes('snowline');
   const [skPickMs, setSkPickMs] = useState<number | null>(null);
   useEffect(() => { setSkPickMs(null); }, [location.lat, location.lon, location.country]);
@@ -534,7 +534,7 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
-  /** Phase SK (`?sk=1`): Schneefallgrenze am Ort (`null` = aus). */
+  /** Phase SK (on, `?sk=0` off): Schneefallgrenze am Ort (`null` = aus). */
   snowCard?: ReactNode;
 }) {
   if (state.kind === 'loading' || !nowcast) {
@@ -857,7 +857,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
   heightPanel?: ReactNode;
   /** Phase ZT (on, `?z3d=0` off): content of the tab "3D" (stage + Steckbrief block). */
   towersPanel?: ReactNode;
-  /** Phase SK (`?sk=1`): Schneefallgrenze am Ort im Schnellblick. */
+  /** Phase SK (on, `?sk=0` off): Schneefallgrenze am Ort im Schnellblick. */
   snowCard?: ReactNode;
 }) {
   const PEEK = 34, FULL = 92; // vh

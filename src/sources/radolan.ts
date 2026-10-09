@@ -423,6 +423,31 @@ async function decodeGrayPngsOffMain(
   }
 }
 
+/**
+ * Phase R250: EIN Graustufen-PNG (z. B. eine 250-m-Kachel) off-main über denselben Worker — Form wird nicht geprüft,
+ * das tut der Aufrufer (`radarHd250Read.ts`).
+ */
+export async function decodeGrayPngOffMain(buf: ArrayBuffer): Promise<{ width: number; height: number; values: Uint8Array }> {
+  const onMain = async () => { const g = await decodeGrayPng(new Uint8Array(buf)); return { width: g.width, height: g.height, values: g.values }; };
+  rwInit();
+  if (!rwUsable || !rwWorker) return onMain();
+  const w = rwWorker;
+  const id = rwNextId++;
+  const copy = buf.slice(0);   // der Worker bekommt eine Kopie — bei einem Worker-Fehler bleibt der Hauptthread-Weg möglich
+  try {
+    const res = await new Promise<{ runAtMs: number; frames: DecodedRvFrame[] }>((resolve, reject) => {
+      rwPending.set(id, { resolve, reject });
+      w.postMessage({ id, pngs: [{ leadMinutes: 0, validAtMs: 0, buf: copy }] }, [copy]);
+    });
+    const f = res.frames[0];
+    if (!f) throw new Error('hd250: Worker ohne Frame');
+    return { width: f.width, height: f.height, values: f.values };
+  } catch {
+    rwPending.delete(id);
+    return onMain();
+  }
+}
+
 /** In welcher Lieferform kam der letzte Roh-Lauf? Nur fürs Log. */
 let _lastRvFormat: RvFormat = 'hdf5';
 

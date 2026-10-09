@@ -1,5 +1,5 @@
 /**
- * Phase SK: the computing part of the snow cap — own lazy chunk (`useSnowCap` loads it only with `?sk=1` and the layer
+ * Phase SK: the computing part of the snow cap — own lazy chunk (`useSnowCap` loads it only while Phase SK is on (`?sk=0` off) and the layer
  * "Schneefallgrenze" on). Per map time: field step (t1, then t2) + wet grid (radar of the country, else field chance);
  * per viewport: Terrarium tiles + `buildCap`. Network via the data-repo paths of the sums (raw first, jsDelivr hedge).
  */
