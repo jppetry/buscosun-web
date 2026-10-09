@@ -1778,6 +1778,9 @@ E-NS-1/2 nach Empfehlung umgesetzt (`audit/niederschlagssummen.md` §11), uncomm
    zurück wäre eine Zeile), E-NS-14 (außerhalb DE · AT · CH keine Fläche, transparent statt schraffiert — umgesetzt),
    V-NS-12…16 im Audit.
 5. **Real-Device:** Summe „Gefallen" 24/48 h am Telefon (Dekodieren 600 × 512, Karte am Ort mit Rückfall auf die Fläche).
+6. **Erledigt 08.10. 21:06 UTC (Jans Genehmigung):** Workflow als `.github/workflows/precipsum.yml` im Daten-Repo (`309dcea`); erste
+   Läufe 21:47/21:58 UTC grün. **Offen: Commit + Push des Fixes V-NS-17** (`src/precipSums/pastSumFormat.ts`,
+   `scripts/precipsum/precipsum-derive.mjs`, `scripts/verify-precip-sums.mjs`, Audit) — danach `--live` L3/L4 grün.
 
 ## 50. Hochauflösendes Niederschlagsradar (Phase HD), HD-0 … HD-4, 2026-10-08
 
@@ -1805,3 +1808,10 @@ umgesetzt (uncommitted): HD (Catmull-Rom auf dem 1-km-Gitter), Dual-Frames und M
    (vorher). Bilder: `audit/radar-hochaufloesung/bilder/` und `diag-*.png`.
 5. **Budget:** totalJs-Grenze 1 633 (Notiz in `budget.json`); die Voreinstellung ändert die Bundle-Größe nicht (gleiche Chunks).
 6. **Nebenbefund (nicht HD):** E7 in `verify:regenradar-profile` gehört zur Phase NS (`fieldFormat.ts`).
+7. **E-HD-6 (Jan 08.10. spät, „verfeinere die Farbskala auf der Log-Ebene") — umgesetzt, uncommitted (nach `e3ef84e`):**
+   `precipRainRampLog` mit sechs Stützen in 0,06 … 0,5 mm/h (Audit §7.6, Bild `bilder/rampe-log-fein.png`), `verify:radar-hd`
+   F3/F3b/F3c (60/60). **Commit + Push buscosun-web** (`src/scalar/RainLayer.ts`, `scripts/verify-radar-hd.mjs`,
+   `audit/radar-hochaufloesung/ramp-log-bild.mjs`, Bilder, Doku). Sichtbar erst mit `g`-Frames im Spiegel (Punkt 2); bis dahin
+   zeichnet der Client die lineare Rampe. **Ansehen danach** am selben Zeitpunkt wie Kachelmann (`/regenradar/<ort>`, zurückblättern).
+   Nicht geändert: die lineare Rampe (Wetterkarte `?hd=0`, KI-Nowcast, PoP, Autobahn) und die Helligkeitsdelle 0,5 → 1 → 3 mm/h
+   beider Rampen (V-HD-10) — wenn du die Mitte auch heller abgestuft willst, ist das eine gemeinsame Neufassung beider Rampen.

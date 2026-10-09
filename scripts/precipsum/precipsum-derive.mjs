@@ -22,6 +22,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { join, resolve } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { File as H5File } from 'jsfive';
 import { encodePng } from '../lib/png.mjs';
 import { G, buildCompositeIndexMap } from '../../src/scalar/precipIndexMap.ts';
@@ -31,7 +32,7 @@ import { sumGeometry } from '../../src/precipSums/sumGrid.ts';
 import {
   PAST_SUM_SCHEMA, PAST_SUM_WINDOWS_H, PAST_SUM_HOURS, PAST_SUM_UNIT_MM, PAST_SUM_KEEP_RUNS, PAST_SUM_COUNTRIES,
   PAST_SUM_COUNTRY_INDEX, PAST_SUM_SOURCES, pastSumStamp, pastSumRunDir, pastSumFileName, encodePastSumPixel, encodePastSumOutside,
-  windowSumOnGrid, insideMaskOnGrid, PAST_SUM_DE_DAILY,
+  windowSumOnGrid, insideMaskOnGrid, PAST_SUM_DE_DAILY, PAST_SUM_DIR_RE,
 } from '../../src/precipSums/pastSumFormat.ts';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -372,7 +373,8 @@ export function buildRun({ endMs, fields, sf = new Map(), geom = sumGeometry(), 
   const deFallback = PAST_SUM_DE_DAILY.windowsH.some((w) => !deDaily[w]);
   if (deFallback) countries.DE.note = [countries.DE.note, '24/48 h ohne SF — RW-Kette'].filter(Boolean).join(' · ');
   const withEnd = PAST_SUM_COUNTRIES.filter((c) => countries[c].hasEnd);
-  const dir = pastSumRunDir(endMs, withEnd, deFallback);
+  const baseDir = pastSumRunDir(endMs, withEnd, deFallback);
+  const hash = createHash('sha256');
   const windows = {}, images = {};
   for (const w of PAST_SUM_WINDOWS_H) {
     const useSf = deDaily[w] === true;
@@ -388,11 +390,14 @@ export function buildRun({ endMs, fields, sf = new Map(), geom = sumGeometry(), 
     }
     const file = pastSumFileName(w);
     images[file] = rgba;
+    hash.update(file).update(rgba);
     windows[String(w)] = {
       file, de: { product: useSf ? 'SF' : 'RW', end: new Date(useSf ? sfEnd : endMs).toISOString() },
       valid, gap: sum.length - valid - outside, wet, maxMm: Math.round(maxMm * 100) / 100,
     };
   }
+  // Inhalts-Hash im Ordnernamen: ein Ordner wird nie überschrieben, also muss jeder andere Inhalt einen anderen Namen haben.
+  const dir = `${baseDir}-${hash.digest('hex').slice(0, 8)}`;
   const manifest = {
     schema: PAST_SUM_SCHEMA, kind: 'precipsum/past', end: new Date(endMs).toISOString(), dir,
     grid: { w: G.w, h: G.h, lonMin: G.lonMin, lonMax: G.lonMax, latMin: G.latMin, latMax: G.latMax },
@@ -420,7 +425,7 @@ export function writeRun(store, { manifest, images, dir }) {
   }
   const strip = (m) => (m ? JSON.stringify({ ...m, builtAt: null }) : '');
   if (strip(prev) !== strip(manifest)) { writeFileSync(latestPath, JSON.stringify(manifest, null, 1) + '\n'); changed = true; }
-  const runs = readdirSync(store).filter((d) => /^\d{10}-[a-z-]+$/.test(d)).sort();
+  const runs = readdirSync(store).filter((d) => PAST_SUM_DIR_RE.test(d) && !/\.tmp-\d+$/.test(d)).sort();
   // Behalten: der Ordner des Manifests + die jüngsten Läufe (Reserve für einen veralteten Manifest-Stand am CDN).
   const keep = new Set([dir, ...runs.slice(-PAST_SUM_KEEP_RUNS)]);
   for (const d of runs) if (!keep.has(d)) { rmSync(join(store, d), { recursive: true, force: true }); changed = true; }

@@ -546,13 +546,25 @@ export function precipFromU8Log(u: number): number {
 }
 
 /**
- * Farbskala für die Log-Ebene: dieselben Farben an denselben mm/h wie `precipRainRamp` (die Stützen wandern nur auf
- * ihre Log-Position), darüber die Starkregen-Stufen 30 / 50 / 100 / 200 mm/h (`set`, E-HD-4 — Jans Gate).
+ * Farbskala für die Log-Ebene. Ab 0,5 mm/h dieselben Farben an denselben mm/h wie `precipRainRamp` (die Stützen wandern
+ * nur auf ihre Log-Position — der Rückfall auf den v1-Byte wechselt dort die Farbe nicht), darüber die Starkregen-Stufen
+ * 30 / 50 / 100 / 200 mm/h (`set`, E-HD-4).
+ *
+ * E-HD-6 (Jan 08.10.2026, „verfeinere die Farbskala auf der Log-Ebene"): der leichte Regen 0,06 … 0,5 mm/h — auf dem
+ * v1-Byte sechs Werte, auf der Log-Ebene 66 Stufen — bekommt sechs abgestufte Stützen statt zwei fast gleicher Blautöne
+ * (vorher 0,06 und 0,2 mm/h beide α 0,59; ein Landregen-Gebiet war EINE Fläche): Helligkeit und Deckkraft steigen mit
+ * der Rate (über der Basiskarte ΔE ≥ 5 je Schritt, L* streng fallend — `verify:radar-hd` F3b). Die Stützen zwischen
+ * 0,5 und 20 mm/h bleiben, weil die Rampe dazwischen ohnehin linear verläuft (zusätzliche Stützen auf der Geraden
+ * änderten nichts). `set` — Farben nach Augenmaß, kein Messwert.
  */
+export const PRECIP_LOG_RAMP_LIGHT_STOPS = 6; // Stützen in 0,06 … 0,5 mm/h (für den Verifier)
 export const precipRainRampLog: Record<number, string> = Object.fromEntries([
-  [0, 'rgba(150,200,245,0)'],
-  [0.06, 'rgba(150,200,245,0.59)'],
-  [0.2, 'rgba(95,165,235,0.59)'],
+  [0, 'rgba(196,224,250,0)'],
+  [0.06, 'rgba(196,224,250,0.42)'],
+  [0.1, 'rgba(170,210,247,0.52)'],
+  [0.15, 'rgba(142,194,243,0.60)'],
+  [0.2, 'rgba(114,174,238,0.66)'],
+  [0.3, 'rgba(84,148,230,0.72)'],
   [0.5, 'rgba(50,120,220,0.78)'],
   [1, 'rgba(40,175,230,0.78)'],
   [2, 'rgba(60,200,120,0.90)'],

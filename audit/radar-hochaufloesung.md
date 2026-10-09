@@ -176,6 +176,11 @@ Nicht in dieser Phase: Polarvolumen (§4), Änderungen an buscosun Fusion (liest
   behält seine Umgebung, ≤ 5 h 45).
 - **E-HD-4 (Jan 08.10., mit E-HD-2/3):** Farbstufen 30/50/100/200 mm/h (`precipRainRampLog`, `set`) bleiben wie gebaut.
 - **E-HD-5 (Jan 08.10.):** Morph im Regenradar voreingestellt an (`RADAR_MORPH_DEFAULT_ON`, `?hdmorph=0` = lineare Mischung).
+- **E-HD-6 (Jan 08.10. spät, „verfeinere die Farbskala auf der Log-Ebene"):** nach dem Vergleich mit Kachelmann (ein
+  Landregen-Gebiet war bei uns EINE hellblaue Fläche): der leichte Regen 0,06 … 0,5 mm/h bekommt auf `precipRainRampLog`
+  sechs abgestufte Stützen (0,06 / 0,1 / 0,15 / 0,2 / 0,3 / 0,5) statt zwei fast gleicher (§7.6). Nur die Log-Ebene —
+  `precipRainRamp` (v1-Byte, Komposit, `?hd=0`, KI-Nowcast, PoP, Autobahnkarte) bleibt unverändert; ab 0,5 mm/h tragen beide
+  Rampen dieselben Farben. Wirksam, sobald der Spiegel `g`-Frames schreibt (E-HD-3).
 
 ## §7 Umsetzung (08.10.2026, uncommitted)
 
@@ -238,7 +243,28 @@ geklemmt auf Min/Max der inneren 2 × 2 Texel (interpolierend, Spitze 1,00, kein
 ### §7.5 Werkzeuge
 `scripts/verify-radar-hd.mjs` (`npm run verify:radar-hd`, in CI) · `scripts/radar-hd-pixelcheck.mjs` (Browser-Orakel, s. §8) ·
 `scripts/radar-hd-console-probe.mjs` (Konsole, Ebenen-Zustand, Kamera, Klick, Shot) · `audit/radar-hochaufloesung/diag-grid.mjs`
-(Diagnose §1) · `regenradar-wk-pixeldiff.mjs` um die zwei Regenradar-Szenarien ergänzt.
+(Diagnose §1) · `regenradar-wk-pixeldiff.mjs` um die zwei Regenradar-Szenarien ergänzt · `audit/radar-hochaufloesung/ramp-log-bild.mjs`
+(Rampenbild alt/neu + ΔE je Stufe, §7.6).
+
+### §7.6 E-HD-6 — feinere Farbskala auf der Log-Ebene (08.10. spät)
+**Befund (Kachelmann-Vergleich, Wetzlar 08.10. abends):** unser Regenradar zeigte ein Landregen-Gebiet als EINE hellblaue
+Fläche. Zwei Ursachen, die der Client bis dahin nicht trennen konnte: (a) der v1-Byte hat zwischen 0,06 und 0,5 mm/h nur
+6 Werte (0,078 mm/h je Stufe), die Log-Ebene 66; (b) `precipRainRampLog` trug dort nur die Stützen 0,06 und 0,2 mm/h mit
+derselben Deckkraft 0,59 — ΔE76 über der Basiskarte 11,6 für 0,06 → 0,2, dann ein harter Sprung 28,5 auf das dunkle Blau
+bei 0,5 (gemessen mit `ramp-log-bild.mjs`, CIELAB über dem Positron-Sand 240/238/232).
+
+**Umsetzung (`src/scalar/RainLayer.ts`):** sechs Stützen 0,06 / 0,1 / 0,15 / 0,2 / 0,3 / 0,5 mm/h, Deckkraft 0,42 → 0,78 und
+Helligkeit L* 91 → 88 → 83 → 78 → 70 → 60 streng fallend, ΔE je Schritt 6,5 / 7,9 / 9,5 / 12,8 / 15,4 (jeder Schritt über der
+Unterscheidbarkeitsschwelle, keiner ein Sprung); Weg in CIELAB über 0,06 … 0,5 mm/h 40 → 52 ΔE. Ab 0,5 mm/h unverändert
+die Farben der linearen Rampe an denselben mm/h (ein Rückfall auf den v1-Byte je Frame wechselt dort keine Farbe), darüber
+30/50/100/200 (E-HD-4). Zwischen 0,5 und 20 mm/h kamen KEINE Stützen dazu: die Rampe verläuft dort ohnehin linear, eine
+Stütze auf der Geraden änderte nichts. Farben `set` (Augenmaß, verifiziert nur die Abstufung). Bild: `bilder/rampe-log-fein.png`
+(oben alt, unten neu; Striche = Stützen, lange Striche 0,1 / 1 / 10 / 100 mm/h). Legende (fünf Klassen, `bandColors`) und
+Status unverändert — die Klassenfarben liegen weiter auf der Rampe (V-HD-6 bleibt).
+
+**Nicht geändert, Befund V-HD-10:** die Rampe fällt bei 0,5 mm/h auf L* 60 (dunkles Blau) und wird bei 1 mm/h (Cyan, L* 72)
+und 3 mm/h (Gelb, L* 83) wieder HELLER — die mittlere Intensität ist hue-kodiert, nicht helligkeitsmonoton. Das ist die Sprache
+der linearen Rampe (Wetterkarte seit Juli) und bliebe nur mit einer gemeinsamen Neufassung beider Rampen zu ändern = Jans Gate.
 
 ## §8 Gates
 
@@ -253,7 +279,8 @@ geklemmt auf Min/Max der inneren 2 × 2 Texel (interpolierend, Spitze 1,00, kein
 | G7 Dual-Rundlauf | `verify:radar-hd` F1–F13 mit `RADAR_HD_RAW` (echte rzc-Datei und RV-Tar 08.10. 16:15): ohne Schalter byte-gleich, 25/25 `g`-Frames, Kanal 1 = `f` byte-gleich, Kanal 2 = `precipToU8Log` der Raten; Codec ≤ ½ Stufe, trocken ⇔ trocken | grün |
 | G8 Client liest Dual | `radar-hd-pixelcheck.mjs --dualDir` (der lokal erzeugte Slot wird der Seite per CDP untergeschoben, Stempel umgeschrieben): Log-Ebene in der Seite = true | **nearest 99,97 %, Catmull 99,99 %** gegen das Log-Orakel; Negativkontrolle (lineares Orakel) 76,8 %, nass 21 % |
 | G9 Morph | `verify:radar-hd` G1–G8 (Synthetik: Blob (+4, +1): Fluss (3,9, 1,0), Zwischenbild bei ½ EIN Blob auf der Bahn, Spitze 0,97 gegen 0,87 der linearen Mischung; frac 0/1 = A/B exakt; Vergröberung Faktor 8 zurück in native Texel); Browser `/regenradar/muenchen?hd=catmull&hdmorph=1` beim Abspielen: aktiver Morph in 2/2 Stichproben (`bilder/rr-morph-on.png`, Vergleich `rr-morph-off.png`) | grün |
-| Verifier gesamt | `verify:radar-hd` **58/58** (+ F10–F13 mit `RADAR_HD_RAW`), `verify:radar-repack` 54/55 (B2c = Laufzeit unter Last, B1h = Live-Slot — an HEAD 55/55 im Leerlauf), typecheck 0, Build 255/255, `npm run budget` grün nach Anhebung (totalJs 1 632,4 / **1 633**; HD ≈ +13,9 KB gzip, alles lazy; eagerJs 109,3 unverändert) | grün |
+| G10 E-HD-6 feine Log-Rampe (§7.6) | `verify:radar-hd` F3 (18 Stützen, streng steigend, ab 0,5 mm/h = lineare Rampe, Weiß bei 200), **F3b** (sechs Stützen 0,06 … 0,5 mm/h, L* 91 → 88 → 83 → 78 → 70 → 60 streng fallend, ΔE76 über der Basiskarte 6,5 / 7,9 / 9,5 / 12,8 / 15,4 ≥ 5), F3c (Deckkraft nie fallend); `ramp-log-bild.mjs` (alt: 0,06 → 0,2 ΔE 11,6, dann Sprung 28,5; Weg 0,06 … 0,5 mm/h 40 → 52 ΔE); Browser-Orakel mit dem lokalen Dual-Slot 16:15 UTC (`pixelcheck-dual-fein/`, Fenster DE 8,11/51,8 z10, Orakel liest die NEUE Rampe wie der Shader) | **60/60**; Orakel **nearest 99,97 % (nass 99,92 % von 192 877), Catmull 99,99 % (nass 99,98 %)**, Negativkontrolle (lineares Orakel) 74,0 %, nass **11,5 %** (vor E-HD-6 21 % — die Log-Rampe unterscheidet sich im leichten Regen jetzt deutlicher vom v1-Bild); erster Lauf ohne Dual-Slot in den Messkontexten (Interception, V-HD-8-Flake), Wiederholung grün; Bild `bilder/rampe-log-fein.png`, Canvas-Shot `pixelcheck-dual-fein/DE-z10-hd-catmull-dual.png` gegen `pixelcheck-dual/` (alte Rampe); typecheck 0, Build 255/255, Budget grün (totalJs 1 634,6 / 1 635, eagerJs 109,3 unverändert — die Rampe sind Konstanten) |
+| Verifier gesamt | `verify:radar-hd` **60/60** (+ F10–F13 mit `RADAR_HD_RAW`), `verify:radar-repack` 54/55 (B2c = Laufzeit unter Last, B1h = Live-Slot — an HEAD 55/55 im Leerlauf), typecheck 0, Build 255/255, `npm run budget` grün nach Anhebung (totalJs 1 632,4 / **1 633**; HD ≈ +13,9 KB gzip, alles lazy; eagerJs 109,3 unverändert) | grün |
 | Bilder für das Auge | `audit/radar-hochaufloesung/bilder/` (DACH z6, Steiermark z8/z10, je ohne/mit HD; Regenradar Morph an/aus), `diag-*.png` (§1.5), `pixelcheck/*.png` (Canvas-Shots HD nearest/Catmull/HEAD) | — |
 
 Selbstverifikation: (1) Funktionserhalt — Komposit-Ebene, Live-Pfad, `?rr=legacy`, KI-Nowcast/PoP (B-Spline) unverändert;
@@ -280,9 +307,11 @@ Ausnahme); (5) Long Tasks: headless nicht messbar — Real-Device offen (§9).
   0 %) — dieselben Varianten standen in den anderen Läufen des Tages bei 99,9 %. Endstand z10 (letzter Lauf, 7 gültige
   Zeilen): HD nearest 99,92–99,93 %, HD Catmull 99,996 %, HEAD 99,987–99,993 %, Negativkontrolle 40–60 %. Ein
   Wiederholungslauf im Leerlauf gehört zur Abnahme.
+- **V-HD-10** (§7.6) Beide Rampen sind zwischen 0,5 und 3 mm/h nicht helligkeitsmonoton (dunkles Blau bei 0,5, heller bei 1 und 3);
+  eine Neufassung beträfe die lineare Rampe der Wetterkarte mit — Jans Gate, nicht Teil von E-HD-6.
 - **V-HD-9** Die Voreinstellung ist seit E-HD-2 an, ohne Real-Device-Messung (Jans Entscheidung): auf dem Telefon kostet
   jeder Frame-Wechsel den Upload von bis zu 1100 × 1200 Bytes + Maske statt 600 × 512, der Catmull-Rom-Filter 16 Taps je
   Fragment; im Lab (SwiftShader) ohne Long Task > 200 ms. Erste Messung auf einem echten Gerät gehört zur Abnahme;
   Rückweg für Nutzer `?hd=0`, für alle `RADAR_HD_DEFAULT_ON = false`.
-- Entscheidungen: E-HD-2…5 entschieden (§6, 08.10. abends); offen nur Real-Device (V-HD-9) und der Push des Daten-Repo-Workflows
-  (`MANUELLE-SCHRITTE.md` §50).
+- Entscheidungen: E-HD-2…6 entschieden (§6, 08.10. abends); der Daten-Repo-Workflow ist gepusht (`01400047`); offen Real-Device
+  (V-HD-9), Commit/Push von E-HD-6 in buscosun-web und V-HD-10 (`MANUELLE-SCHRITTE.md` §50).

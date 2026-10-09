@@ -25,6 +25,8 @@
 import { decodePrecipCumPixel, encodePrecipCumPixel, PRECIP_CUM_UNIT_MM } from '../point/fieldFormat';
 
 export const PAST_SUM_SCHEMA = 1;
+/** Ordner eines Laufs: `<JJJJMMTTHH>-<länder>[-rw]-<8 hex>` (ältere Läufe ohne Hash bleiben lesbar). */
+export const PAST_SUM_DIR_RE = /^\d{10}-[a-z0-9-]+$/;
 export const PAST_SUM_DIR = 'precipsum/v1';
 export const PAST_SUM_WINDOWS_H = [1, 3, 6, 12, 24, 48] as const;
 export const PAST_SUM_HOURS = 48;
@@ -98,8 +100,10 @@ export function pastSumStampMs(stamp: string): number {
   return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]);
 }
 /**
- * Ordnername eines Laufs: Stempel + die Länder mit Stunde E (in fester Reihenfolge) + `-rw`, wenn DE 24/48 h ohne SF
- * gerechnet ist — derselbe Name hat immer denselben Inhalt.
+ * Grundname eines Laufs: Stempel + die Länder mit Stunde E (in fester Reihenfolge) + `-rw`, wenn DE 24/48 h ohne SF
+ * gerechnet ist. Der Producer hängt einen Inhalts-Hash an (`-<8 hex>`): gleiches Ende und gleiche Länder heißen nicht
+ * gleicher Inhalt — eine nachgeholte Stunde (z. B. eine verlorene CombiPrecip-Datei) ändert die Bilder, nicht den Grundnamen
+ * (V-NS-17, erster Live-Lauf 08.10.). Erst mit dem Hash trägt derselbe Name immer denselben Inhalt.
  */
 export function pastSumRunDir(endMs: number, withEnd: readonly PastSumCountry[], deDailyFallback = false): string {
   const cc = PAST_SUM_COUNTRIES.filter((c) => withEnd.includes(c)).map((c) => c.toLowerCase());
@@ -152,7 +156,7 @@ export function parsePastSumManifest(j: unknown): PastSumManifest {
   const m = j as Partial<PastSumManifest> | null;
   if (!m || m.schema !== PAST_SUM_SCHEMA || m.kind !== 'precipsum/past') throw new Error('precipsum: Manifest unbekannt');
   if (typeof m.end !== 'string' || !Number.isFinite(Date.parse(m.end))) throw new Error('precipsum: Ende fehlt');
-  if (typeof m.dir !== 'string' || !/^\d{10}-[a-z-]+$/.test(m.dir)) throw new Error('precipsum: Ordner ungültig');
+  if (typeof m.dir !== 'string' || !PAST_SUM_DIR_RE.test(m.dir)) throw new Error('precipsum: Ordner ungültig');
   if (!m.windows || !m.countries || !m.grid) throw new Error('precipsum: Manifest unvollständig');
   for (const [k, w] of Object.entries(m.windows)) {
     if (!PAST_SUM_WINDOWS_H.includes(Number(k) as typeof PAST_SUM_WINDOWS_H[number])) throw new Error(`precipsum: Fenster ${k}`);

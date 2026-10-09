@@ -202,8 +202,34 @@ for (const g of GRIDS) {
   add('F1 log codec: dry ⇔ dry exactly as v1 (0,06 mm/h), monotone, round trip ≤ ½ step (3,2 %/2)', dryMismatch === 0 && nonMono === 0 && maxRel <= halfStep + 1e-12, `max |ln| ${maxRel.toFixed(5)} ≤ ${halfStep.toFixed(5)}`);
   add('F2 log codec ends: 0,06 → 1, 200 → 255, > 200 clamps to 255, NaN → 0', precipToU8Log(0.06) === 1 && precipToU8Log(200) === 255 && precipToU8Log(5000) === 255 && precipToU8Log(NaN) === 0 && precipToU8Log(0.059) === 0);
   const stops = Object.keys(precipRainRampLog).map(Number).sort((a, b) => a - b);
-  add('F3 log ramp: 15 stops, strictly increasing, same colours as the linear ramp up to 20 mm/h, white at 200', stops.length === 15 && stops.every((s, i) => i === 0 || s > stops[i - 1])
-    && precipRainRampLog[precipToU8Log(20) / 255] === 'rgba(150,40,140,0.90)' && precipRainRampLog[precipToU8Log(0.06) / 255] === 'rgba(150,200,245,0.59)' && precipRainRampLog[1] === 'rgba(255,255,255,0.98)');
+  const { precipRainRamp, PRECIP_VMAX, PRECIP_LOG_RAMP_LIGHT_STOPS } = await import('../src/scalar/RainLayer.ts');
+  const atLog = (mm) => precipRainRampLog[precipToU8Log(mm) / 255];
+  // E-HD-6: from 0,5 mm/h up the log ramp carries the linear ramp's colour at the same rate (a per-frame fallback to the
+  // v1 byte changes no hue there); 0,06 … 0,5 mm/h is refined (F3b); 30/50/100/200 stay (E-HD-4).
+  add('F3 log ramp: 18 stops, strictly increasing, colours of the linear ramp at 0,5 … 20 mm/h, white at 200', stops.length === 18 && stops.every((s, i) => i === 0 || s > stops[i - 1])
+    && [0.5, 1, 2, 3, 5, 8, 12, 20].every((mm) => atLog(mm) === precipRainRamp[mm / PRECIP_VMAX]) && precipRainRampLog[1] === 'rgba(255,255,255,0.98)');
+  {
+    // F3b (E-HD-6): the six light-rain stops are distinguishable OVER THE BASEMAP — composited at their alpha on the
+    // positron sand (240,238,232): CIE L* strictly decreasing with the rate, ΔE76 ≥ 5 between neighbours (the old ramp
+    // had 0,06 and 0,2 mm/h at the same alpha and one hue step: ΔE 7 over 0,06…0,2, then NOTHING until 0,5).
+    const parse = (s) => s.match(/[\d.]+/g).map(Number);
+    const lab = ([r, g, b]) => {
+      const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+      const [R, G, B] = [lin(r), lin(g), lin(b)];
+      const X = (0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047, Y = 0.2126 * R + 0.7152 * G + 0.0722 * B, Z = (0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883;
+      const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+      return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+    };
+    const over = (s, bg = [240, 238, 232]) => { const [r, g, b, a] = parse(s); return [r * a + bg[0] * (1 - a), g * a + bg[1] * (1 - a), b * a + bg[2] * (1 - a)]; };
+    const light = stops.filter((s) => s > 0 && precipFromU8Log(Math.round(s * 255)) <= 0.5 + 1e-9);
+    const labs = light.map((s) => lab(over(precipRainRampLog[s])));
+    const dE = labs.slice(1).map((l, i) => Math.hypot(l[0] - labs[i][0], l[1] - labs[i][1], l[2] - labs[i][2]));
+    const lDown = labs.every((l, i) => i === 0 || l[0] < labs[i - 1][0] - 1);
+    add(`F3b light rain 0,06 … 0,5 mm/h: ${PRECIP_LOG_RAMP_LIGHT_STOPS} stops, L* falls with the rate, ΔE76 ≥ 5 between neighbours over the basemap`,
+      light.length === PRECIP_LOG_RAMP_LIGHT_STOPS && PRECIP_LOG_RAMP_LIGHT_STOPS >= 6 && lDown && dE.every((d) => d >= 5),
+      `L* ${labs.map((l) => l[0].toFixed(0)).join(' → ')} · ΔE ${dE.map((d) => d.toFixed(1)).join(' / ')}`);
+    add('F3c log ramp alpha never falls with the rate; dry stop transparent', stops.every((s, i) => i === 0 ? parse(precipRainRampLog[s])[3] === 0 : parse(precipRainRampLog[s])[3] >= parse(precipRainRampLog[stops[i - 1]])[3]));
+  }
   // switch
   add('F4 `?hdv2=1` on, `?hdv2=0` beats the store, store `0`/`1` count, default on (E-HD-3)', radarDualFlagFrom('?hdv2=1', null) && !radarDualFlagFrom('?hdv2=0', '1') && radarDualFlagFrom('', '1') && !radarDualFlagFrom('', '0') && radarDualFlagFrom('', null) === RADAR_DUAL_DEFAULT_ON && RADAR_DUAL_DEFAULT_ON === true);
   // meta

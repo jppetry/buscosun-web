@@ -469,7 +469,7 @@ console.log('\n== H Gefallen als Fläche (amtliche Summen, B2/B3) ==');
     }
     add('H5 Lauf: je Land seine Quelle; AT nur 6 h vorhanden ⇒ 48 h Lücke in AT, DE/CH voll; außerhalb A 128',
       bad === 0 && ok6 > 0 && ok48 > 0 && run.manifest.countries.AT.maxWindowH === 6 && run.manifest.countries.DE.maxWindowH === 48
-      && run.dir === '2026100819-de-at-ch-rw' && run.manifest.windows['48'].de.product === 'RW',
+      && /^2026100819-de-at-ch-rw-[0-9a-f]{8}$/.test(run.dir) && run.manifest.windows['48'].de.product === 'RW',
       `ok ${ok6}/${ok48} · falsch ${bad} · ${run.dir}`);
     // H5b DE 24/48 h aus SF (Ende E − 10 min): 24 h = SF(E − 10 min), 48 h = + SF(E − 10 min − 24 h); kürzere Fenster bleiben RW
     const sfEnd = E - 10 * MIN;
@@ -485,8 +485,8 @@ console.log('\n== H Gefallen als Fläche (amtliche Summen, B2/B3) ==');
     const w = runSf.manifest.windows;
     add('H5b DE 24/48 h aus SF (24 h = SF, 48 h = SF + SF Vortag, Ende E − 10 min), 1–12 h RW; ein SF fehlt ⇒ RW-Kette, Ordner -rw',
       badSf === 0 && okSf > 0 && w['24'].de.product === 'SF' && w['48'].de.product === 'SF' && w['12'].de.product === 'RW'
-      && w['24'].de.end === new Date(sfEnd).toISOString() && runSf.dir === '2026100819-de-at-ch'
-      && sfOnly.manifest.windows['24'].de.product === 'SF' && sfOnly.manifest.windows['48'].de.product === 'RW' && sfOnly.dir.endsWith('-rw'),
+      && w['24'].de.end === new Date(sfEnd).toISOString() && /^2026100819-de-at-ch-[0-9a-f]{8}$/.test(runSf.dir)
+      && sfOnly.manifest.windows['24'].de.product === 'SF' && sfOnly.manifest.windows['48'].de.product === 'RW' && /-rw-[0-9a-f]{8}$/.test(sfOnly.dir),
       `ok ${okSf} · falsch ${badSf} · ${runSf.dir} / ${sfOnly.dir}`);
   }
   // H6 Wartestufe: spätes Land ⇒ Vorstunde, aber nur bis 75 min nach E und nur, wenn die Vorstunde vollständig ist
@@ -515,7 +515,7 @@ console.log('\n== H Gefallen als Fläche (amtliche Summen, B2/B3) ==');
     try { PS.parsePastSumManifest({ schema: 1, kind: 'precipsum/past', end: 'x' }); } catch { rejects = true; }
     add('H8 RW-Stempel, INCA-Epoche 1961 (2075482800 s ⇔ 08.10. 19 UTC), Ordnername je Länder, Manifest-Prüfung lehnt ab',
       D.rwStamp(E) === '2610081900' && D.INCA_EPOCH_MS + 2075482800 * 1000 === E && PS.pastSumRunDir(E, ['CH', 'DE']) === '2026100819-de-ch'
-      && PS.pastSumRunDir(E, []) === '2026100819-none' && PS.pastSumRunDir(E, ['DE'], true) === '2026100819-de-rw' && rejects);
+      && PS.pastSumRunDir(E, []) === '2026100819-none' && PS.pastSumRunDir(E, ['DE'], true) === '2026100819-de-rw' && PS.PAST_SUM_DIR_RE.test('2026100819-de-at-ch-0a1b2c3d') && rejects);
   }
   // H9 Speicher: Ordner unveränderlich, Manifest nie zurück, Beschneiden behält die jüngsten + den Manifest-Ordner
   {
@@ -530,6 +530,21 @@ console.log('\n== H Gefallen als Fläche (amtliche Summen, B2/B3) ==');
       const older = D.writeRun(dir, D.buildRun({ endMs: Date.UTC(2026, 9, 8, 14), fields: fieldsAt(Date.UTC(2026, 9, 8, 14)) }));
       const latest = JSON.parse(readFileSync(join(dir, 'latest.json'), 'utf8'));
       const dirs = readdirSync(dir).filter((d) => /^\d{10}-/.test(d)).sort();
+      // V-NS-17 (erster Live-Lauf): gleiches Ende, gleiche Länder, aber eine nachgeholte Stunde ⇒ anderer Inhalt ⇒ anderer
+      // Ordner, und der Ordner trägt die neuen Bilder (vorher: Ordner übersprungen, Manifest neu, Bilder alt).
+      const E19 = Date.UTC(2026, 9, 8, 19);
+      const gapped = fieldsAt(E19); gapped.DE.delete(E19 - 10 * H);
+      const d0 = mkdtempSync(join(os.tmpdir(), 'precipsum-'));
+      try {
+        const r1 = D.buildRun({ endMs: E19, fields: gapped }), r2 = D.buildRun({ endMs: E19, fields: fieldsAt(E19) });
+        D.writeRun(d0, r1); const w2 = D.writeRun(d0, r2);
+        const m2 = JSON.parse(readFileSync(join(d0, 'latest.json'), 'utf8'));
+        const img = toRgba(decodePng(readFileSync(join(d0, m2.dir, PS.pastSumFileName(12)))));
+        let gaps = 0; for (let i = 3; i < img.length; i += 4) if (img[i] === 0) gaps++;
+        add('H12 Nachgeholte Stunde bei gleichem Ende ⇒ neuer Ordner (Inhalts-Hash), Bild und Manifest stimmen überein (V-NS-17)',
+          r1.dir !== r2.dir && r1.dir.split('-').slice(0, -1).join('-') === r2.dir.split('-').slice(0, -1).join('-') && w2.changed && m2.dir === r2.dir
+          && gaps === r2.manifest.windows['12'].gap && r1.manifest.windows['12'].gap > gaps, `${r1.dir} → ${r2.dir} · Lücken 12 h ${gaps}`);
+      } finally { rmSync(d0, { recursive: true, force: true }); }
       add('H9 Speicher: gleicher Lauf ⇒ unverändert, älteres Ende schreibt weder Ordner noch Manifest, ≤ 3 Läufe + Manifest-Ordner',
         runs.every((r) => r.changed) && !again.changed && older.older === true && latest.end === '2026-10-08T19:00:00.000Z'
         && dirs.length <= PS.PAST_SUM_KEEP_RUNS + 1 && dirs.includes(latest.dir) && !dirs.some((d) => d.startsWith('2026100814')) && existsSync(join(dir, latest.dir, PS.pastSumFileName(48))), dirs.join(' '));
@@ -591,6 +606,15 @@ if (args.live) {
     const img = await fetch(`${raw}/precipsum/v1/${m.dir}/${pastSumFileName(6)}`);
     add('L3 precipsum/v1: Manifest gültig, Ende ≤ 3 h alt, alle Länder mit Stunde E, Bild 6 h lesbar (erst nach Jans Workflow-Kopie)',
       age <= 3 && Object.values(m.countries).every((c) => c.hasEnd) && img.ok, `${m.dir} · ${age.toFixed(1)} h · ${Object.entries(m.countries).map(([k, c]) => `${k} ${c.maxWindowH} h`).join(' ')}`);
+    // L4 (V-NS-17): die Bilder des Manifest-Ordners tragen genau die Lücken, die das Manifest nennt.
+    const bad = [];
+    for (const [w, e] of Object.entries(m.windows)) {
+      const r = await fetch(`${raw}/precipsum/v1/${m.dir}/${e.file}`);
+      const px = toRgba(decodePng(Buffer.from(await r.arrayBuffer())));
+      let gaps = 0; for (let i = 3; i < px.length; i += 4) if (px[i] === 0) gaps++;
+      if (gaps !== e.gap) bad.push(`${w} h: Bild ${gaps} ≠ Manifest ${e.gap}`);
+    }
+    add('L4 precipsum/v1: Lücken je Bild = Manifest (V-NS-17)', bad.length === 0, bad.join(' · ') || m.dir);
   } catch (e) { add('L3 precipsum/v1 lesbar (erst nach Jans Workflow-Kopie)', false, String(e)); }
 }
 

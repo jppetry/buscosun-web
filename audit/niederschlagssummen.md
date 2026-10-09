@@ -490,7 +490,7 @@ mobil Legende vollständig (`ns-b2-mobile-48.png`). Konsole: nur die bekannten 4
 
 ### 11.5 Gates
 
-`verify:precip-sums` **56/56** (CI-Form; mit `--raw` **61/61**: H10a–e an echten RW/SF/CombiPrecip/INCA-Dateien), Block H:
+`verify:precip-sums` **57/57** (CI-Form; mit `--raw` **62/62**: H10a–e an echten RW/SF/CombiPrecip/INCA-Dateien), Block H:
 Fenstersumme, Kodierung + Zustände, Client-Leser, DACH-Maske (7 Orte innen, 11 außen), Lauf je Land, SF-Weg + Rückfall,
 Wartestufe, INCA-Blöcke, Zeit/Namen, Speicher (älterer Lauf schreibt nichts — ein Fehler, den H9 fand: der Ordner eines
 älteren Laufs wurde vor der Prüfung angelegt). `verify:fusion-release` 28/28, typecheck 0, Build 255/255, Budget grün:
@@ -509,5 +509,13 @@ Klons; diese Stufe berührt weder Publisher noch Feld-Producer.
 - **V-NS-15** `docs/API.md` §5.2 (CombiPrecip 10 min) — weiter offen (V-NS-4).
 - **V-NS-16** `actions/cache` legt je Lauf einen Eintrag (≈ 6 MB, 48/Tag) an; GitHub räumt nach Alter/10 GB. Skizze: fester
   Schlüssel je Tag, falls das Daten-Repo andere Caches bekommt.
+
+- **V-NS-17 (erster Live-Lauf, 08.10. 21:47/21:58 UTC):** Lauf 1 verlor eine CombiPrecip-Stunde (Abruffehler; bei
+  MeteoSchweiz lagen alle Stunden vor) ⇒ CH nur 6 h vollständig. Lauf 2 holte sie nach — bei gleichem Ende und gleichen
+  Ländern aber mit **demselben Ordnernamen** `2026100821-de-at-ch`; der Producer überspringt vorhandene Ordner ⇒ Manifest neu
+  (CH 48 h, Lücken 12 h: 423), Bilder alt (12 721 Lücken) — die Karte hätte die alte Schweizer Lücke unter einer Legende
+  „vollständig" gezeigt. Behoben: Ordnername mit Inhalts-Hash (`…-<8 hex>`, `PAST_SUM_DIR_RE`), Verifier H12 (nachgeholte
+  Stunde ⇒ neuer Ordner, Bild = Manifest) und L4 live (Lücken je Bild = Manifest; rot am Stand 22:24 UTC, das ist die
+  Gegenprobe). Wirksam mit Jans Push; bis dahin heilt jede neue Stunde E von selbst (neuer Grundname).
 
 Offen bleiben E-NS-8 (Spanne der Fenstersumme) und V-NS-8…11.
