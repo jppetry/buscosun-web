@@ -3,7 +3,7 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-rain-window.mjs
  *
- * A Schalter `?rb=1` (nur exakt „1"; sonst aus).
+ * A Schalter: voreingestellt an (E-RB-7), `?rb=0` = Rückfall.
  * B buscosun Fusion: Beginn (Kern/Rand), „möglich", „Kein Regen bis", breites Fenster ⇒ „unsicher", Ende, Regen hält
  *   an, Tageswörter, Grenzen der gesetzten Schwellen (mit Gegenprobe knapp darunter).
  * C Radar (E-RB-5/6): Minute der Extrapolation ± Tempo-Unsicherheit t/1,15 … t/0,85 (DE und AT gleich), Sicherheit aus
@@ -41,8 +41,8 @@ const rad = (onset, end = null, wetNow = false, product = 'RADOLAN-RV', horizonM
 
 // ---------------------------------------------------------------------------
 console.log('\nA Schalter');
-add('A1 ?rb=1 an', rainWindowEnabledFrom('?rb=1'));
-add('A2 ohne/0/true/RB=1 aus', !rainWindowEnabledFrom('') && !rainWindowEnabledFrom('?rb=0') && !rainWindowEnabledFrom('?rb=true') && !rainWindowEnabledFrom('?RB=1'));
+add('A1 Voreinstellung an (E-RB-7): ohne Parameter, ?rb=1, anderer Wert', rainWindowEnabledFrom('') && rainWindowEnabledFrom('?rb=1') && rainWindowEnabledFrom('?rb=true') && rainWindowEnabledFrom('?RB=0'));
+add('A2 ?rb=0 = Rückfall (aus)', !rainWindowEnabledFrom('?rb=0'));
 
 // ---------------------------------------------------------------------------
 console.log('\nB buscosun Fusion');

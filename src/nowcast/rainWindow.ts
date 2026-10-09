@@ -32,9 +32,12 @@ export const RB_WIDE_FUSION_H = 3;
 const MIN = 60_000;
 const H = 3_600_000;
 
-/** `?rb=1` switches the display on; anything else keeps the Regenradar exactly as before (rule 2). */
+/**
+ * Default ON since Jan's decision 09.10.2026 (E-RB-7). `?rb=0` = the named fallback: the Regenradar exactly as before
+ * phase RB (no card, no marker label, cube request 8 h). Anything else (missing, `?rb=1`, another value) = on.
+ */
 export function rainWindowEnabledFrom(search: string): boolean {
-  try { return new URLSearchParams(search).get('rb') === '1'; } catch { return false; }
+  try { return new URLSearchParams(search).get('rb') !== '0'; } catch { return true; }
 }
 
 /** Radar at the point. Minutes are leads from `nowMs`; `null` = no onset/end within `horizonMin`. */

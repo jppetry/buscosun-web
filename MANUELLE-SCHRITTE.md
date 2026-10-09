@@ -1827,3 +1827,6 @@ umgesetzt (uncommitted): HD (Catmull-Rom auf dem 1-km-Gitter), Dual-Frames und M
    `nowcastModel.ts`, `MapView.tsx` (Prop `profileMarkerLabel`, nur Profil), `package.json`, `budget.json` (totalJs 1635 → 1640 mit Notiz)).
 3. **Entscheiden:** Schalter einschalten (Voreinstellung) — erst nach Real-Device und einem Regentag; V-RB-3 (Schwellen am Archiv
    messen), V-RB-4 (Flow-Ensemble/PoP-Chip sieht herannahenden Regen kaum — eigene Phase?), V-RB-5 (Richtungsunsicherheit).
+4. **E-RB-7 (09.10.):** auf dein Wort voreingestellt AN (`rainWindow.ts`, `?rb=0` = Rückfall). **Commit + Push** dieser Umschaltung
+   (`src/nowcast/rainWindow.ts`, Kommentare in Deck/Karte/Engine/Model/MapView/CSS, Verifier Block A, Doku). Nach dem Deploy sehen
+   Besucher mit installiertem Service Worker die Anzeige erst nach dessen Update (nächster Besuch/Neuladen).

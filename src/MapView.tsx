@@ -581,7 +581,7 @@ interface Props {
   onPointHover?: (pos: { lat: number; lon: number } | null) => void;
   /** Profil: MapLibre-Instanz nach außen (Zoom-Knöpfe des Decks); `null` beim Abbau. */
   onMapReady?: (map: MapLibreMap | null) => void;
-  /** Phase RB (`audit/regenbeginn-spanne.md`, `?rb=1`): kleines Label am Ortsmarker („Regen 14:05–14:20"). Nur im
+  /** Phase RB (`audit/regenbeginn-spanne.md`, an, `?rb=0` aus): kleines Label am Ortsmarker („Regen 14:05–14:20"). Nur im
    *  Profil; ohne Prop (oder `null`) kein Element — der Marker exakt wie vorher. */
   profileMarkerLabel?: string | null;
 }

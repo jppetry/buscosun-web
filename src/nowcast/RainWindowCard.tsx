@@ -1,5 +1,5 @@
 /**
- * Phase RB (`audit/regenbeginn-spanne.md`, `?rb=1`): „Regenbeginn als Spanne" am gewählten Ort — großer Satz, Chip mit
+ * Phase RB (`audit/regenbeginn-spanne.md`, an, `?rb=0` aus): „Regenbeginn als Spanne" am gewählten Ort — großer Satz, Chip mit
  * Sicherheit + Quelle, schmale Zeitleiste mit weich auslaufendem Band und „jetzt"-Marke. Reine Darstellung von
  * `computeRainWindow`; alle Zahlen kommen aus dem Fenster.
  */

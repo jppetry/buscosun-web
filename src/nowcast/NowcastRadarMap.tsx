@@ -106,7 +106,7 @@ interface Props {
   snowMode?: SnowMode;
   /** Phase NS: Darstellung Intensität | Summe (Dock). Fehlt = Stand vor Phase NS (`?sum=0`). */
   sum?: SumSelection;
-  /** Phase RB (`?rb=1`): der Radar-Stack nach oben (Deck rechnet das Fenster am Ort); `null` = Radar nicht erreichbar. */
+  /** Phase RB (an, `?rb=0` aus): der Radar-Stack nach oben (Deck rechnet das Fenster am Ort); `null` = Radar nicht erreichbar. */
   onRadarStack?: (stack: RadarStack | null) => void;
 }
 
@@ -484,7 +484,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const pointSamples = useMemo(() => (stack ? stripSamples(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
   // Ensemble-Regenwahrscheinlichkeit am Punkt (nur DE) — hängt an stack+Punkt, nicht am Slider.
   const pointPop = useMemo(() => (stack ? pointPoPSeries(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
-  // Phase RB (`?rb=1`): dieselbe Spanne als Label am Ortsmarker — für den Punkt am Marker (kann vom Ort der Seite abweichen).
+  // Phase RB (an, `?rb=0` aus): dieselbe Spanne als Label am Ortsmarker — für den Punkt am Marker (kann vom Ort der Seite abweichen).
   const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const markerLabel = useMemo(() => {
     if (!rbOn || !stack || !pointNowcast) return null;

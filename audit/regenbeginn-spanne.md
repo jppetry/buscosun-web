@@ -55,6 +55,7 @@ zwischen 14 und 15 Uhr" statt Minuten; Minuten nur bei Radar, gerundet auf 5 min
 | E-RB-4 | Schwellen 30/50/20 % | gesetzt starten, gekennzeichnet, später am Archiv messen (V-RB-3) |
 | E-RB-5 | Radar DE nach V-RB-4 | Mitte = Minute der DWD-RV-Extrapolation (dieselbe wie im Hero), Spanne = Tempo-Unsicherheit ×0,85…×1,15 (mittlere Hälfte der Tempo-Member des Ensemble-Designs) ⇒ t/1,15 … t/0,85; Sicherheit = P(nass) von buscosun Fusion in der Stunde des Fensters; Richtung nicht erfasst (benannt) |
 | E-RB-6 | AT (INCA) | dieselbe Regel wie DE |
+| E-RB-7 | Einschalten | Jan 09.10. nach Commit `59ca8d9`: **voreingestellt an**, `?rb=0` = Rückfall (Regenradar wie vor RB). Geprüft in der Vorschau: ohne Parameter Karte + Label, mit `?rb=0` 0 Karten / 0 Labels / Hero da; `verify:rain-window` 55/55. Hinweis: ein bestehender Service Worker liefert bis zu seinem Update das vorige Bundle (im Test gesehen, nach Abmelden neu) |
 
 ## 4 Umsetzung (09.10., uncommitted, Schalter `?rb=1`, voreingestellt aus)
 

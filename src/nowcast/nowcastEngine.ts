@@ -371,7 +371,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   let sampler: Sampler | undefined;
   let latestCube: PointForecast | null = null;
 
-  // Phase RB (`?rb=1`): buscosun Fusion up to +24 h for the rain window; the engine keeps its 8-h series (hours beyond
+  // Phase RB (on by default, `?rb=0` off): buscosun Fusion up to +24 h for the rain window; the engine keeps its 8-h series (hours beyond
   // are cut before `assembleNowcast`). Without the switch the request and the series are exactly as before.
   const rb = rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
   const cubeHours = rb ? RB_HORIZON_H + 1 : 8;

@@ -1,4 +1,4 @@
-/* Phase RB — Regenbeginn als Spanne (`?rb=1`). Command-Deck (Sand/Ink), Mobil nur über den 767-px-Breakpoint. */
+/* Phase RB — Regenbeginn als Spanne (an, `?rb=0` aus). Command-Deck (Sand/Ink), Mobil nur über den 767-px-Breakpoint. */
 .rb-card { margin-top: 12px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 14px 16px 12px; }
 .rb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .rb-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; padding-top: 4px; }

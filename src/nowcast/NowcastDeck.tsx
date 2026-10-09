@@ -33,7 +33,7 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import { SumControls, PointSumCard } from '../precipSums/PrecipSumsUi';
 import { usePointSums, type PastSide, type FutureSide } from '../precipSums/usePointSums';
 import { SUM_DEFAULT, sumsEnabledFrom, isSumWindow, type SumSelection } from '../precipSums/sumModel';
-// Phase RB (audit/regenbeginn-spanne.md): Regenbeginn als Spanne — nur mit `?rb=1`.
+// Phase RB (audit/regenbeginn-spanne.md): Regenbeginn als Spanne — voreingestellt an, `?rb=0` = Rückfall.
 import { computeRainWindow, rainWindowEnabledFrom, type RainWindow } from './rainWindow';
 import { radarTimesAt } from './rainWindowRadar';
 import type { RadarStack } from '../radar/radarFrames';
