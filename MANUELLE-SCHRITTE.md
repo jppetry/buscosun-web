@@ -1994,11 +1994,14 @@ Diagnose, Messprotokoll (eingefroren), Ergebnis: `audit/radar-regenschwelle.md` 
 `C:\dev\buscosun-radar-truth\` (kein Repo).
 
 1. ~~E-RG-1…3~~ — entschieden (Jan 10.10.): Z = 90 % ⇒ **0,060 mm/h**, EINE Schwelle, darunter unsichtbar; umgesetzt (§6 im Audit).
-2. **Kopie der Workflow-Zeile ins Daten-Repo:** `RADAR_LOG_NATIVE: '1'` aus `scripts/radar-mirror/workflow-radar.yml` nach
+2. ~~Kopie der Workflow-Zeile ins Daten-Repo~~ — erledigt (Jan 10.10.: „es ist commited, schalte es jetzt auch aktiv"): buscosun-web
+   `646142b` auf `origin/main`, Daten-Repo **`ea8884e44`** (`RADAR_LOG_NATIVE: '1'` in `.github/workflows/radar.yml`, nach vier
+   Rebases gegen den laufenden Spiegel gepusht). Wirksam ab dem ERSTEN Spiegel-Job nach dem Push (der laufende behält seine
+   Umgebung, ≤ 5 h 45); Kennzeichen `meta.dual.native: true` im RV-Slot. Ursprünglicher Schritt: `RADAR_LOG_NATIVE: '1'` aus `scripts/radar-mirror/workflow-radar.yml` nach
    `.github/workflows/radar.yml` (unter `RADAR_HD250`) + Push — wirksam ab dem ersten Spiegel-Job nach dem Push (der laufende
    behält seine Umgebung, ≤ 5 h 45); die Slots davor zeigen weiter jedes Echo (ihre `g`-Frames sind angehoben; Retention 1 h).
    Reihenfolge: ERST buscosun-web `main` pushen (der Spiegel liest `rvHdf5.ts`/`radar-derive.mjs` aus dem Web-Klon), DANN die Zeile.
-3. **Commit/Push buscosun-web** — Vorschlag `feat(radar): display threshold 0,06 mm/h measured at stations (RG, RADAR_LOG_NATIVE)`.
+3. ~~Commit/Push buscosun-web~~ — erledigt (`646142b`).
 4. **Nach dem Deploy ansehen:** Statuszeile „· ab 0,06 mm/h"; leichter Regen am Rand eines Gebiets (Herborn-Fall); `?rmin=0.12`
    zum Vergleich; `?hdv2=0` = jedes Echo (v1-Byte). **Nach dem ersten nativen Spiegel-Slot** (meta.dual.native = true):
    `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/radar-hd-pixelcheck.mjs --base=http://127.0.0.1:5231 --edge=1 --windows=DE`

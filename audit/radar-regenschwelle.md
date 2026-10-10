@@ -11,8 +11,10 @@
 ## §0 Kurzfassung für Jan
 
 **Stand RG-3 (10.10.2026): Diagnose, Messung (Regel vorab eingefroren), Entscheidungen E-RG-1…3 (Jan 10.10.: Z = 90 % ⇒ 0,060 mm/h,
-EINE Schwelle, darunter unsichtbar) und Umsetzung (§6) fertig, Gates grün (§7); Push von `main`, dann die Workflow-Zeile ins
-Daten-Repo = Jans Gate (`MANUELLE-SCHRITTE.md` §59).**
+EINE Schwelle, darunter unsichtbar) und Umsetzung (§6) fertig, Gates grün (§7). Eingeschaltet 10.10.: buscosun-web `646142b`
+auf `origin/main` (Jan), Daten-Repo `ea8884e44` mit `RADAR_LOG_NATIVE: '1'` (auf Jans Wort „schalte es jetzt auch aktiv" gepusht);
+wirksam ab dem ersten Spiegel-Job nach dem Push, Kennzeichen `meta.dual.native: true`. Offen: Orakel am Live-Slot danach,
+Real-Device, V-RG-1 Nachmessung (§59).**
 
 - **Gemessen:** an 175 DWD-Stationen mit Niederschlags-**Indikator** (ein eigener Sensor, der auch Niederschlag unter der
   Auflösung des Messbechers meldet — genau „mindestens ein bisschen"), 48 h RV-Analysen 08.–10.10., 49 386 Stations-Intervalle
