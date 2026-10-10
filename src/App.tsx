@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from 'react';
-import { Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router';
+import { Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation } from 'react-router';
 import type { Location } from './types';
 import AppLoader from './router/AppLoader';
 import RouteMeta from './router/RouteMeta';
@@ -27,6 +27,25 @@ export interface FeatureInfo {
   title: string;
 }
 
+/**
+ * Phase PF (M5, audit/performance-2026-10-10.md): immediate feedback for a click that changes the route. React Router commits a
+ * navigation only when the lazy route chunk (and `MapView` for the map routes) is loaded and evaluated — measured 10.10.2026:
+ * 0,6–2,0 s on the desktop between the tile click and the new view, nothing visible in between. The bar appears with the
+ * first render after the click (`navigation.state === 'loading'`) and leaves with the commit. Tokens only, no layout shift.
+ */
+function NavProgress() {
+  // `useNavigation` lives HERE, not in `App`: a navigation-state change then re-renders only this bar, not the whole route tree
+  // (measured 10.10.2026, desktop: the bar in `App` cost the home page a re-render in the click window, +150–250 ms to the commit).
+  const navigation = useNavigation();
+  if (navigation.state !== 'loading') return null;
+  return (
+    <div aria-hidden="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, zIndex: 2147483000, pointerEvents: 'none', background: 'color-mix(in srgb, var(--sand-200, #E0D6BE) 60%, transparent)' }}>
+      <style>{'@keyframes app-nav-bar{0%{transform:translateX(-100%)}60%{transform:translateX(30%)}100%{transform:translateX(100%)}}'}</style>
+      <div style={{ width: '45%', height: '100%', background: 'var(--terracotta-500, #C97B47)', animation: 'app-nav-bar 1.1s ease-in-out infinite' }} />
+    </div>
+  );
+}
+
 export default function App() {
   const { pathname, search, hash } = useLocation();
   const navigate = useNavigate();
@@ -45,6 +64,7 @@ export default function App() {
       <RouteMeta />
       <RouteAnnouncer />
       <ScrollRestoration />
+      <NavProgress />
       <Suspense fallback={<AppLoader />}>
         <Outlet />
       </Suspense>

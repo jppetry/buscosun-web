@@ -1,0 +1,14 @@
+ready base {"rv":25,"inca":true,"rzc":true,"masks":3} cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+OK   radar rv (25 Frames, values + values2, Zeiten): identisch (2907 Zeichen)
+OK   radar inca: identisch (920 Zeichen)
+OK   radar rzc: identisch (254 Zeichen)
+OK   radar masks: identisch (71 Zeichen)
+fusion base {"hours":"4fb5365b:5655","v2":"d6bfe49b:294496","notes":"ac3edea8:3407","skips":"741638a5:2","n":49,"fromUpdate":true}
+fusion cur  {"hours":"4fb5365b:5655","v2":"90e7ba98:294493","notes":"ac3edea8:3407","skips":"741638a5:2","n":49,"fromUpdate":true}
+OK   fusion Stunden (alle Werte je Stunde): identisch (277 Zeichen)
+DIFF fusion v2 (Verteilungen, Member, Konfidenz):
+  base {"v2":"d6bfe49b:294496"}
+  cur  {"v2":"90e7ba98:294493"}
+OK   fusion Notizen/Skips (ohne Alterswerte): identisch (120 Zeichen)
+FEHLER: 1 Unterschied(e)
+IDENTITY-EXIT 1

@@ -1,0 +1,25 @@
+desktop radar head #1: firstDraw=1254 radarDraw=6619 radarAllMs=6142 radarKb=6892 dataKb=8938 jsKb=858 gaps max 1517 >100:35 >200:25 play inputDelay=18 feedback=null
+desktop radar cur #1: firstDraw=1530 radarDraw=2520 radarAllMs=9008 radarKb=5769 dataKb=7218 jsKb=1303 gaps max 1083 >100:35 >200:21 play inputDelay=1 feedback=null
+desktop radar head #2: firstDraw=2131 radarDraw=8644 radarAllMs=6728 radarKb=6857 dataKb=12427 jsKb=1302 gaps max 1333 >100:30 >200:26 play inputDelay=1 feedback=null
+desktop radar cur #2: firstDraw=1164 radarDraw=3172 radarAllMs=7218 radarKb=5769 dataKb=7218 jsKb=1303 gaps max 417 >100:15 >200:5 play inputDelay=0 feedback=null
+== desktop radar cur p50: {"firstDraw":1530,"radarDraw":3172,"radarAllMs":9008,"radarKb":5769,"dataKb":7218,"jsKb":1303,"gapsMax":1083,"gapsOver200":21,"gapsOver100":35,"playInputDelay":1,"playFeedback":null}
+== desktop radar head p50: {"firstDraw":2131,"radarDraw":8644,"radarAllMs":6728,"radarKb":6892,"dataKb":12427,"jsKb":1302,"gapsMax":1517,"gapsOver200":26,"gapsOver100":35,"playInputDelay":18,"playFeedback":null}
+desktop layer head #1: inputDelay=61 feedback=1272 paint=405 radarDrawAfterClick=12932 radarAllAfterClick=9796 radarKb=2317 gaps max 1017 >100:27 >200:14 
+desktop layer cur #1: inputDelay=2 feedback=637 paint=106 radarDrawAfterClick=7883 radarAllAfterClick=11877 radarKb=34 gaps max 1017 >100:25 >200:16 
+desktop layer head #2: inputDelay=1 feedback=216 paint=63 radarDrawAfterClick=2684 radarAllAfterClick=1679 radarKb=1123 gaps max 1567 >100:30 >200:19 
+desktop layer cur #2: inputDelay=1 feedback=319 paint=79 radarDrawAfterClick=6025 radarAllAfterClick=7749 radarKb=34 gaps max 883 >100:22 >200:12 
+== desktop layer cur p50: {"inputDelay":2,"feedback":637,"paint":106,"radarDrawAfterClick":7883,"radarAllAfterClick":11877,"radarKb":34,"gapsMax":1017,"gapsOver200":16,"gapsOver100":25}
+== desktop layer head p50: {"inputDelay":61,"feedback":1272,"paint":405,"radarDrawAfterClick":12932,"radarAllAfterClick":9796,"radarKb":2317,"gapsMax":1567,"gapsOver200":19,"gapsOver100":30}
+mobile4g radar head #1: firstDraw=2400 radarDraw=10391 radarAllMs=12899 radarKb=4846 dataKb=6910 jsKb=1302 gaps max 2183 >100:29 >200:16 play inputDelay=0 feedback=null
+mobile4g radar cur #1: firstDraw=2104 radarDraw=5479 radarAllMs=12114 radarKb=4889 dataKb=6270 jsKb=1303 gaps max 1333 >100:29 >200:24 play inputDelay=0 feedback=null
+mobile4g radar head #2: firstDraw=2769 radarDraw=9537 radarAllMs=9903 radarKb=6871 dataKb=8278 jsKb=1302 gaps max 3167 >100:72 >200:35 play inputDelay=31 feedback=null
+mobile4g radar cur #2: firstDraw=10824 radarDraw=17637 radarAllMs=29439 radarKb=3825 dataKb=5353 jsKb=1303 gaps max 1383 >100:70 >200:44 play inputDelay=0 feedback=null
+== mobile4g radar cur p50: {"firstDraw":10824,"radarDraw":17637,"radarAllMs":29439,"radarKb":4889,"dataKb":6270,"jsKb":1303,"gapsMax":1383,"gapsOver200":44,"gapsOver100":70,"playInputDelay":0,"playFeedback":null}
+== mobile4g radar head p50: {"firstDraw":2769,"radarDraw":10391,"radarAllMs":12899,"radarKb":6871,"dataKb":8278,"jsKb":1302,"gapsMax":3167,"gapsOver200":35,"gapsOver100":72,"playInputDelay":31,"playFeedback":null}
+mobile4g layer head #1: inputDelay=46 feedback=502 paint=510 radarDrawAfterClick=5908 radarAllAfterClick=5579 radarKb=4824 gaps max 2567 >100:43 >200:32 
+mobile4g layer cur #1: inputDelay=1 feedback=335 paint=344 radarDrawAfterClick=3123 radarAllAfterClick=9287 radarKb=4790 gaps max 617 >100:35 >200:23 
+mobile4g layer head #2: inputDelay=10 feedback=510 paint=521 radarDrawAfterClick=5433 radarAllAfterClick=8399 radarKb=5865 gaps max 5750 >100:32 >200:27 
+mobile4g layer cur #2: inputDelay=6 feedback=325 paint=337 radarDrawAfterClick=5374 radarAllAfterClick=11875 radarKb=4790 gaps max 650 >100:35 >200:25 
+== mobile4g layer cur p50: {"inputDelay":6,"feedback":335,"paint":344,"radarDrawAfterClick":5374,"radarAllAfterClick":11875,"radarKb":4790,"gapsMax":650,"gapsOver200":25,"gapsOver100":35}
+== mobile4g layer head p50: {"inputDelay":46,"feedback":510,"paint":521,"radarDrawAfterClick":5908,"radarAllAfterClick":8399,"radarKb":5865,"gapsMax":5750,"gapsOver200":32,"gapsOver100":43}
+fertig

@@ -570,7 +570,12 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     if (!out.length) skips.push(`nowcast: ${sources.join('/')} — kein Slot oder kein Frame auf den Ausgabezeiten`);
     return out;
   };
-  const nowcastP = guard('nowcast', readNowcast()).then((r) => { mark('nowcast'); progress('nowcast'); return r ?? []; });
+  // Phase PF (M2, audit/performance-2026-10-10.md): in the progressive mode the radar products (hour-mean images of 300+ KB,
+  // frames, the slot probes) start only once the first tier's bytes are in. Measured 10.10.2026 on mobile 4G: they shared
+  // the line with the 523-KB t1 chunk (1 828 → 4 144 ms) and the first output came at 4,5 s; they are late products anyway
+  // (own deadline, delivered with the update), so the result is the same — only the order on the wire changes.
+  const nowcastStart: Promise<unknown> = opts.progressive && firstTier != null ? Promise.race([firstBytesP, tierPs.get(firstTier)!]) : Promise.resolve();
+  const nowcastP = guard('nowcast', nowcastStart.then(() => readNowcast())).then((r) => { mark('nowcast'); progress('nowcast'); return r ?? []; });
 
   // ── Erste Darstellung: die Stufe, die den Fensteranfang trägt + Gelände ──────
   // Der Nowcast gehört NICHT dazu: seine Dateien sind alle fünf Minuten neu und damit am

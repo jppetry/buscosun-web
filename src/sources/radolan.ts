@@ -37,9 +37,9 @@ import {
   // RD2 (audit/radar-datenrepo.md §13): CDN-Weg über das Daten-Repo
   rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
   // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
-  rvImgEligible, rvImgDir, rvStampToMs,
+  rvImgEligible, rvImgDir, rvStampToMs, RV_STEP_MIN,
 } from './radolanRuns';
-import { parseRvImgMeta, RadarImg404, fetchImgRes, loadRadarGrayPng } from './radarImg';
+import { parseRvImgMeta, RadarImg404, fetchImgRes, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll } from './radarImg';
 import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
 import { radarDualFlagFrom } from '../scalar/radarHd';
 export { guessRvRuns } from './radolanRuns';
@@ -324,6 +324,25 @@ function imgRes(url: string, signal: AbortSignal, priority?: RequestPriority): P
   return fetchImgRes(url, signal, priority, wf ? wf.then((w) => w.res) : undefined);
 }
 
+/** Phase PF (M1): the analysis frame of the RV slot being loaded, published as soon as it is decoded — before the forecast frames. */
+export interface RvAnalysisEarly { ts: string; runAt: Date; frame: RvFrame; corners: QuadCorners }
+const rvAnalysisEarlyListeners = new Set<(a: RvAnalysisEarly) => void>();
+/** The newest published analysis frame — replayed to a listener that subscribes after the publish (the map and the strip share one
+ *  in-flight slot load, `shareInFlight`; whoever started it first may have passed the analysis before the other subscribed). */
+let lastRvAnalysisEarly: { a: RvAnalysisEarly; at: number } | null = null;
+const RV_EARLY_REPLAY_MS = RV_STEP_MIN * 60_000;
+/** Subscribe to the early analysis frame (`fetchRvFromImg`); returns the unsubscribe function. Listeners must never throw into the loader. */
+export function onRvAnalysisEarly(cb: (a: RvAnalysisEarly) => void): () => void {
+  rvAnalysisEarlyListeners.add(cb);
+  const last = lastRvAnalysisEarly;
+  if (last && Date.now() - last.at < RV_EARLY_REPLAY_MS) { try { cb(last.a); } catch { /* see publish */ } }
+  return () => { rvAnalysisEarlyListeners.delete(cb); };
+}
+function publishRvAnalysisEarly(a: RvAnalysisEarly): void {
+  lastRvAnalysisEarly = { a, at: Date.now() };
+  for (const cb of rvAnalysisEarlyListeners) { try { cb(a); } catch { /* a listener's error must not break the slot load */ } }
+}
+
 /**
  * Ganzer Slot vom Bild-Weg — ALLES-ODER-NICHTS: fehlt ein Frame oder reißt die
  * CDN-Frist, übernimmt der Tar-Weg (Verbraucher brauchen den kompletten
@@ -336,30 +355,62 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
     const metaRes = await imgRes(`${dir}/meta.json`, dl.signal, priority);
     const meta = parseRvImgMeta(await metaRes.json());
     if (!meta || meta.stamp !== ts) return null; // Drift/fremder Slot ⇒ benannter Rohweg
+    dl.touch();   // Phase PF (M8): progress — the deadline measures a hanging CDN, not a slow slot
     // Erst alle Bytes holen (das Netz ist der schnelle Teil: 26 Dateien ≈ 1,4 s
     // gemessen), dann in EINEM Zug off-main dekodieren — 33 MPixel gehören nicht
     // auf den Hauptthread (§14.7). Ohne Worker läuft derselbe Code hier.
     // HD-3: mit `?hdv2=1` das Dual-PNG je Frame (beide Ebenen in einem Abruf); fehlt es (404), das `f`-Bild wie bisher.
     const dualFile = radarDualFlagFrom() && meta.dual ? new Map(meta.dual.frames.map((d) => [d.lead, d.file])) : null;
-    const bytes = await Promise.all(meta.frames.map(async (f) => {
+    const frameBytes = async (f: (typeof meta.frames)[number], prio: RequestPriority | undefined) => {
       const validAtMs = f.validAtMs ?? meta.runAtMs + f.lead * 60_000;
       const g = dualFile?.get(f.lead);
       if (g) {
         try {
-          return { leadMinutes: f.lead, validAtMs, buf: await (await imgRes(`${dir}/${g}`, dl.signal, priority)).arrayBuffer(), dual: true };
+          return { leadMinutes: f.lead, validAtMs, buf: await (await imgRes(`${dir}/${g}`, dl.signal, prio)).arrayBuffer(), dual: true };
         } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
       }
-      return { leadMinutes: f.lead, validAtMs, buf: await (await imgRes(`${dir}/${f.file}`, dl.signal, priority)).arrayBuffer(), dual: false };
-    }));
-    const decoded = await decodeGrayPngsOffMain(bytes, meta.width, meta.height);
-    const frames: RvFrame[] = decoded.map((f) => ({
+      return { leadMinutes: f.lead, validAtMs, buf: await (await imgRes(`${dir}/${f.file}`, dl.signal, prio)).arrayBuffer(), dual: false };
+    };
+    const toFrame = (f: DecodedRvFrame): RvFrame => ({
       leadMinutes: f.leadMinutes,
       validAt: new Date(f.validAtMs),
       values: f.values,
       ...(f.values2 ? { values2: f.values2 } : {}),
       width: f.width,
       height: f.height,
-    }));
+    });
+    // Phase PF (audit/performance-2026-10-10.md, M1): the ANALYSIS frame (lead 0) goes first — its own fetch at high priority
+    // before the 24 forecast frames start, decoded alone off-main and published to `onRvAnalysisEarly` listeners (the map
+    // draws it while the rest of the slot is still on the wire; measured before: the first picture waited for the last of
+    // 25 files, 5–12 s). The forecast frames then load and decode in one batch as before; the decoded analysis is reused
+    // (same decoder, same bytes) so the resulting stack is byte-identical to the all-at-once path, in meta order.
+    // M8: six frames on the wire — unless the CDN is hedging (hangs/refuses): then every file waits for the raw way and a pool would
+    // multiply that wait, so the limit is lifted as soon as one hedge fired during this slot (verify:radar-fallback B1–B3).
+    const hedges0 = radarRawHedgeCount();
+    const poolLimit = () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : RADAR_IMG_CONCURRENCY);
+    const f0 = meta.frames.find((f) => f.lead === 0);
+    let early: DecodedRvFrame | null = null;
+    let rest = meta.frames;
+    let bytesP: Promise<Awaited<ReturnType<typeof frameBytes>>[]>;
+    if (f0) {
+      const b0 = await frameBytes(f0, 'high');
+      dl.touch();
+      // the forecast frames start as soon as the analysis BYTES are in (the line stays busy while the worker decodes it);
+      // M8: at most RADAR_IMG_CONCURRENCY on the wire, every arrival restarts the deadline (D-PF-13/14)
+      rest = meta.frames.filter((f) => f !== f0);
+      bytesP = pooledAll(rest, poolLimit, (f) => frameBytes(f, priority), dl.touch);
+      bytesP.catch(() => { /* awaited below */ });
+      const [d0] = await decodeGrayPngsOffMain([b0], meta.width, meta.height);
+      early = d0 ?? null;
+      if (early) publishRvAnalysisEarly({ ts, runAt: new Date(meta.runAtMs), frame: toFrame(early), corners: DE1200_CORNERS });
+      else rest = meta.frames;   // unexpected: no decoded analysis ⇒ the batch below reads the whole slot as before
+    } else {
+      bytesP = pooledAll(rest, poolLimit, (f) => frameBytes(f, priority), dl.touch);
+    }
+    const bytes = early ? await bytesP : await pooledAll(rest, poolLimit, (f) => frameBytes(f, priority), dl.touch);
+    const decodedRest = await decodeGrayPngsOffMain(bytes, meta.width, meta.height);
+    const decoded = early ? meta.frames.map((f) => (f === f0 ? early! : decodedRest[rest.indexOf(f)])) : decodedRest;
+    const frames: RvFrame[] = decoded.map(toFrame);
     return { runAt: new Date(meta.runAtMs), frames, corners: DE1200_CORNERS };
   } catch (err) {
     if (signal?.aborted) throw err;             // Abbruch des Aufrufers bleibt ein Abbruch
@@ -372,7 +423,7 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
 async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise<RvAnalysisFrame | null> {
   const dl = radarCdnDeadline(signal);
   try {
-    const values = await loadRadarGrayPng(await imgRes(`${rvImgDir(ts)}/f000.png`, dl.signal), 1100, 1200);
+    const values = await loadRadarGrayPngOffMain(await imgRes(`${rvImgDir(ts)}/f000.png`, dl.signal), 1100, 1200);   // Phase PF (M4): off-main
     return { validAt: new Date(rvStampToMs(ts)), values, width: 1100, height: 1200 };
   } catch (err) {
     if (signal?.aborted) throw err;
@@ -446,6 +497,49 @@ export async function decodeGrayPngOffMain(buf: ArrayBuffer): Promise<{ width: n
     rwPending.delete(id);
     return onMain();
   }
+}
+
+/**
+ * Phase PF (M4, audit/performance-2026-10-10.md): ONE radar PNG (grey, or grey + alpha = the mirror's dual frame) decoded off-main
+ * over the RV worker — the SAME decoder (`grayPng.ts`) the main thread would run, so the bytes are identical; the main thread
+ * is the fallback. Measured before: INCA (16 frames 701 × 431 × 2) and rzc were un-filtered on the main thread while the map
+ * was drawing (`B radarImg` up to 1,8 s self time per load).
+ */
+async function decodeRadarPngOffMain(buf: ArrayBuffer, dual: boolean): Promise<{ width: number; height: number; values: Uint8Array; values2?: Uint8Array }> {
+  const onMain = async () => {
+    if (dual) { const g = await decodeGrayAlphaPng(new Uint8Array(buf)); return { width: g.width, height: g.height, values: g.values, values2: g.values2 }; }
+    const g = await decodeGrayPng(new Uint8Array(buf)); return { width: g.width, height: g.height, values: g.values };
+  };
+  rwInit();
+  if (!rwUsable || !rwWorker) return onMain();
+  const w = rwWorker;
+  const id = rwNextId++;
+  const copy = buf.slice(0);   // the worker gets a copy — after a worker error the main-thread way stays possible
+  try {
+    const res = await new Promise<{ runAtMs: number; frames: DecodedRvFrame[] }>((resolve, reject) => {
+      rwPending.set(id, { resolve, reject });
+      w.postMessage({ id, pngs: [{ leadMinutes: 0, validAtMs: 0, buf: copy, dual }] }, [copy]);
+    });
+    const f = res.frames[0];
+    if (!f || (dual && !f.values2)) throw new Error('radar png: Worker ohne Frame');
+    return { width: f.width, height: f.height, values: f.values, ...(f.values2 ? { values2: f.values2 } : {}) };
+  } catch {
+    rwPending.delete(id);
+    return onMain();
+  }
+}
+/** `loadRadarGrayPng` of `radarImg.ts`, decoded off-main (Rule 2: on a worker error the same main-thread decoder runs). */
+export async function loadRadarGrayPngOffMain(res: Response, width: number, height: number): Promise<Uint8Array> {
+  const g = await decodeRadarPngOffMain(await res.arrayBuffer(), false);
+  if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
+  return g.values;
+}
+/** `loadRadarGrayAlphaPng` of `radarImg.ts`, decoded off-main; an unreadable dual frame stays a hard error (the caller takes the `f` image). */
+export async function loadRadarGrayAlphaPngOffMain(res: Response, width: number, height: number): Promise<{ values: Uint8Array; values2: Uint8Array }> {
+  const g = await decodeRadarPngOffMain(await res.arrayBuffer(), true);
+  if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
+  if (!g.values2) throw new Error('Dual-PNG ohne zweite Ebene');
+  return { values: g.values, values2: g.values2 };
 }
 
 /** In welcher Lieferform kam der letzte Roh-Lauf? Nur fürs Log. */

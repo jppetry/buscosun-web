@@ -1,0 +1,17 @@
+desktop radar head #1: firstDraw=942 radarDraw=5752 radarAllMs=3365 radarKb=7196 dataKb=9120 jsKb=1302 gaps max 1433 >100:31 >200:28 play inputDelay=33 feedback=null
+desktop radar cur #1: firstDraw=982 radarDraw=5054 radarAllMs=4785 radarKb=7143 dataKb=9700 jsKb=1303 gaps max 1267 >100:34 >200:28 play inputDelay=1 feedback=null
+desktop radar head #2: firstDraw=1392 radarDraw=5425 radarAllMs=3563 radarKb=7143 dataKb=9068 jsKb=1302 gaps max 1467 >100:39 >200:36 play inputDelay=1 feedback=null
+desktop radar cur #2: firstDraw=1143 radarDraw=5289 radarAllMs=7164 radarKb=2321 dataKb=3738 jsKb=1302 gaps max 2083 >100:45 >200:38 play inputDelay=1 feedback=null
+desktop radar head #3: firstDraw=1158 radarDraw=4620 radarAllMs=9799 radarKb=3213 dataKb=5137 jsKb=1301 gaps max 767 >100:23 >200:13 play inputDelay=0 feedback=null
+desktop radar cur #3: firstDraw=995 radarDraw=4804 radarAllMs=9454 radarKb=7005 dataKb=10103 jsKb=1303 gaps max 1300 >100:35 >200:29 play inputDelay=2 feedback=null
+== desktop radar cur p50: {"firstDraw":995,"radarDraw":5054,"radarAllMs":7164,"radarKb":7005,"dataKb":9700,"jsKb":1303,"gapsMax":1300,"gapsOver200":29,"gapsOver100":35,"playInputDelay":1,"playFeedback":null}
+== desktop radar head p50: {"firstDraw":1158,"radarDraw":5425,"radarAllMs":3563,"radarKb":7143,"dataKb":9068,"jsKb":1302,"gapsMax":1433,"gapsOver200":28,"gapsOver100":31,"playInputDelay":1,"playFeedback":null}
+mobile4g radar head #1: firstDraw=1905 radarDraw=8054 radarAllMs=9453 radarKb=7126 dataKb=8406 jsKb=1301 gaps max 2350 >100:21 >200:12 play inputDelay=0 feedback=null
+mobile4g radar cur #1: firstDraw=1720 radarDraw=7213 radarAllMs=14185 radarKb=2807 dataKb=4087 jsKb=1303 gaps max 1483 >100:24 >200:14 play inputDelay=0 feedback=null
+mobile4g radar head #2: firstDraw=1989 radarDraw=6336 radarAllMs=12802 radarKb=2800 dataKb=4725 jsKb=1302 gaps max 1917 >100:29 >200:20 play inputDelay=2 feedback=null
+mobile4g radar cur #2: firstDraw=1718 radarDraw=5855 radarAllMs=16033 radarKb=5766 dataKb=8335 jsKb=1303 gaps max 2250 >100:22 >200:18 play inputDelay=17 feedback=null
+mobile4g radar head #3: firstDraw=1909 radarDraw=7036 radarAllMs=13489 radarKb=5586 dataKb=10411 jsKb=1304 gaps max 2750 >100:38 >200:32 play inputDelay=4 feedback=null
+mobile4g radar cur #3: firstDraw=1796 radarDraw=9406 radarAllMs=13639 radarKb=2453 dataKb=11925 jsKb=1302 gaps max 2933 >100:26 >200:17 play inputDelay=0 feedback=null
+== mobile4g radar cur p50: {"firstDraw":1720,"radarDraw":7213,"radarAllMs":14185,"radarKb":2807,"dataKb":8335,"jsKb":1303,"gapsMax":2250,"gapsOver200":17,"gapsOver100":24,"playInputDelay":0,"playFeedback":null}
+== mobile4g radar head p50: {"firstDraw":1909,"radarDraw":7036,"radarAllMs":12802,"radarKb":5586,"dataKb":8406,"jsKb":1302,"gapsMax":2350,"gapsOver200":20,"gapsOver100":29,"playInputDelay":2,"playFeedback":null}
+fertig

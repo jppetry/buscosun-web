@@ -1,0 +1,20 @@
+ready base {"rv":25,"inca":true,"rzc":true,"masks":3} cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+OK   radar rv (25 Frames, values + values2, Zeiten): identisch (2907 Zeichen)
+DIFF radar inca:
+  base {"n":12,"corners":"[[8.090898567448969,49.36722050753486],[17.749633984088593,49.4007844902649],[17.436301138588583,45.529428764230374],[8.462551055500136,45.498222963663224]]","frames":[{"lead":0.25,"w":701,"h":431,"v":"f9632046:302131","v2":null},{"lead":0.5,"w":701,"h":431,"v":"cd9d6b40:302131","v2":null},{"lead":0.75,"w":701,"h":431,"v":"9baf1d9e:302131","v2":null},{"lead":1,"w":701,"h":431,"v":"1d7b600c:302131","v2":null},{"lead":1.25,"w":701,"h":431,"v":"601c5899:302131","v2":null},{"lead":1.5,"w":701,"h":431,"v":"78e0c60f:302131","v2":null},{"lead":1.75,"w":701,"h":431,"v":"8a8d7911:302
+  cur  {"n":11,"corners":"[[8.090898567448969,49.36722050753486],[17.749633984088593,49.400784490264904],[17.436301138588583,45.529428764230374],[8.462551055500136,45.498222963663224]]","frames":[{"lead":0.5,"w":701,"h":431,"v":"d040954e:302131","v2":"37cacc90:302131"},{"lead":0.75,"w":701,"h":431,"v":"9342e13b:302131","v2":"f8628a58:302131"},{"lead":1,"w":701,"h":431,"v":"4487ade9:302131","v2":"6f5d6d52:302131"},{"lead":1.25,"w":701,"h":431,"v":"4268cab4:302131","v2":"f077e82f:302131"},{"lead":1.5,"w":701,"h":431,"v":"70ef370e:302131","v2":"5eaf168b:302131"},{"lead":1.75,"w":701,"h":431,"v":"15ac683
+OK   radar rzc: identisch (254 Zeichen)
+OK   radar masks: identisch (71 Zeichen)
+fusion base {"hours":"387e351a:5640","v2":"86d0d90a:293765","notes":"c34f5e57:3494","skips":"741638a5:2","n":49,"fromUpdate":true}
+fusion cur  {"hours":"387e351a:5640","v2":"9c49bab4:293766","notes":"c34f5e57:3494","skips":"741638a5:2","n":49,"fromUpdate":true}
+OK   fusion Stunden (alle Werte je Stunde): identisch (277 Zeichen)
+DIFF fusion v2 (Verteilungen, Member, Konfidenz):
+  base {"v2":"86d0d90a:293765"}
+  cur  {"v2":"9c49bab4:293766"}
+OK   fusion Notizen/Skips (ohne Alterswerte): identisch (120 Zeichen)
+  v2 first difference at 293185 of 293313 / 293314
+  base …|Korrektur| Mittel — K, max 0.00 K), Td an 0 Stunden auf T gekappt","anchor: 0 Paar(e) aus dwd_obs, Versatz T — K, Repräsentativität 0.96"],"fetched":{"files":66,"bytes":5695287,"ms":843}},"timing":{"readMs":843,"terrainMs":15,"decodeMs":null,"algoMs":50.8,"outputMs":9.6,"totalMs
+  cur  …|Korrektur| Mittel — K, max 0.00 K), Td an 0 Stunden auf T gekappt","anchor: 0 Paar(e) aus dwd_obs, Versatz T — K, Repräsentativität 0.96"],"fetched":{"files":68,"bytes":5707650,"ms":716}},"timing":{"readMs":716,"terrainMs":15,"decodeMs":null,"algoMs":164.4,"outputMs":4.5,"totalM
+  differing chars (aligned): 48
+FEHLER: 2 Unterschied(e)
+IDENTITY-EXIT 1

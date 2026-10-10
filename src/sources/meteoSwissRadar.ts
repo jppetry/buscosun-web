@@ -22,7 +22,8 @@ import { parseRzcOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertiger Frame vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, loadRadarGrayAlphaPng, RadarImg404 } from './radarImg';
+import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404 } from './radarImg';
+import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';   // Phase PF (M4)
 import { radarDualFlagFrom } from '../scalar/radarHd';
 
 const STAC_ITEM = (day: string) =>
@@ -87,11 +88,11 @@ async function loadRzcFromImg(priority?: RequestPriority, quelleWeg = false): Pr
       const g = radarDualFlagFrom() && meta.dual ? meta.dual.frames[0]?.file : null;
       if (g) {
         try {
-          const d = await loadRadarGrayAlphaPng(await fetchImgRes(`${dir}/${g}`, dl.signal, priority), meta.width, meta.height);
+          const d = await loadRadarGrayAlphaPngOffMain(await fetchImgRes(`${dir}/${g}`, dl.signal, priority), meta.width, meta.height);   // Phase PF (M4): off-main
           values = d.values; values2 = d.values2;
         } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
       }
-      if (!values) values = await loadRadarGrayPng(await fetchImgRes(`${dir}/frame.png`, dl.signal, priority), meta.width, meta.height);
+      if (!values) values = await loadRadarGrayPngOffMain(await fetchImgRes(`${dir}/frame.png`, dl.signal, priority), meta.width, meta.height);   // Phase PF (M4): off-main
       if (quelleWeg) console.warn(`[buscosun] MeteoSwiss rzc nicht erreichbar — Daten-Repo (PNG), Slot ${stamp} (${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt)`);
       else console.log(`[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG)`);
       return {

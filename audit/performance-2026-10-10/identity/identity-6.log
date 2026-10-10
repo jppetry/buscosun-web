@@ -1,0 +1,18 @@
+ready base {"rv":25,"inca":true,"rzc":true,"masks":3} cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+OK   radar rv (25 Frames, values + values2, Zeiten): identisch (2907 Zeichen)
+OK   radar inca: identisch (1078 Zeichen)
+OK   radar rzc: identisch (267 Zeichen)
+OK   radar masks: identisch (71 Zeichen)
+fusion base {"hours":"2efca8b3:5656","v2":"a780b584:294558","notes":"ac3edea8:3407","skips":"741638a5:2","n":49,"fromUpdate":true}
+fusion cur  {"hours":"2efca8b3:5656","v2":"44fd1f5c:294556","notes":"ac3edea8:3407","skips":"741638a5:2","n":49,"fromUpdate":true}
+OK   fusion Stunden (alle Werte je Stunde): identisch (277 Zeichen)
+DIFF fusion v2 (Verteilungen, Member, Konfidenz):
+  base {"v2":"a780b584:294558"}
+  cur  {"v2":"44fd1f5c:294556"}
+OK   fusion Notizen/Skips (ohne Alterswerte): identisch (120 Zeichen)
+  v2 first difference at 290658 of 294115 / 294113
+  base …g","gust":"m/s","precip":"mm/h","clct":"pct","clcl":"pct","clcm":"pct","clch":"pct","ps":"hPa","snowline":"m","pSnow":"1"},"notes":["index: aus der SWR-Kopie (46 s alt, Commit ab2503e) — Nachprüfung läuft (AP12)","obs: 12 Stationsmessung(en) aus buscosun-data obs/v1","learned: Ta
+  cur  …g","gust":"m/s","precip":"mm/h","clct":"pct","clcl":"pct","clcm":"pct","clch":"pct","ps":"hPa","snowline":"m","pSnow":"1"},"notes":["index: aus der SWR-Kopie (45 s alt, Commit ab2503e) — Nachprüfung läuft (AP12)","obs: 12 Stationsmessung(en) aus buscosun-data obs/v1","learned: Ta
+  differing chars (aligned): 73
+FEHLER: 1 Unterschied(e)
+IDENTITY-EXIT 1

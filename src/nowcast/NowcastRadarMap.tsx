@@ -418,9 +418,12 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // Gewittergefahr-Index: CAPE (ICON-D2) + amtliche Gewitterwarnung am Punkt lazy
   // im Hintergrund laden (NUR DE — beides DACH-weit nicht verfügbar). Blockiert den
   // Radar-Kaltstart nicht; AT/CH fallen sauber auf das Radarsignal zurück.
+  // Phase PF (M11, audit/performance-2026-10-10.md): CAPE (4 ICON-D2 PNGs, 450 KB) and the warnings start once the radar stack
+  // is there — before, they competed with the RV frames for the line on mobile 4G (the index is a background value).
+  const hasStack = !!stack;
   useEffect(() => {
     setCapePeak(null); setWarnLevel(0);
-    if (point.country !== 'DE') return;
+    if (point.country !== 'DE' || !hasStack) return;
     const ac = new AbortController();
     void fetchPeakCapeAtPoint(point.lat, point.lon, ac.signal)
       .then((c) => { if (!ac.signal.aborted && c != null) setCapePeak(c); }).catch(() => {});
@@ -431,7 +434,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         setWarnLevel(lvl);
       }).catch(() => {});
     return () => ac.abort();
-  }, [point.lat, point.lon, point.country]);
+  }, [point.lat, point.lon, point.country, hasStack]);
 
   // RL1 — Nachbarquellen des DACH-Komposits (best-effort, entdoppelt über
   // `shareInFlight` wie in der Wetterkarte). Das eigene Land kommt aus dem Stack;
