@@ -36,9 +36,59 @@ export const FUSION8_NOWCAST_HOUR_MEAN = true;
  * `CubeIo.anchorAtObsTime: false` (`?anc=0`) = Fusion 8.
  */
 export const FUSION9_ANCHOR_AT_OBS_TIME = true;
+/**
+ * buscosun Fusion 10 (phase F10, autonomous session 07.10.2026, `audit/fusion-10.md`; status KANDIDAT until Jan's champion
+ * decision after ≥ 4 mature track-P days): the stage `fs` leads the long range back to the climatology — for leads > 48 h the
+ * fused distributions of T, Td, wind speed and gust are blended moment-true towards the engine's own climatology with weights
+ * and a σ scale per variable × lead bin (`FuseCubeOptions.longRange`, module `longRange.ts`), FITTED on hindcast slots outside
+ * the vault (2025-09-08 … 2026-09-21, 00 UTC, every third day; the development set of the bench was not used for the fit).
+ * Evidence (development set, role B, CRPS skill vs station climatology before Fusion 10): wind 120–240 h −17 %, 240–336 h −54 %,
+ * T 240–336 h +9,6 % with coverage 63 %. Measured on the bench: see the register entry `scripts/pruefstand/register/fusion-10.json`
+ * and `audit/fusion-10.md` §3. Fusion 10 = Fusion 9 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 9.
+ */
+export const FUSION10_LONG_RANGE: 0 | 1 = 1;
+/**
+ * buscosun Fusion 11 (phase F11, autonomous session 07.10.2026, `audit/fusion-11.md`; status KANDIDAT): Fusion 10 with the two
+ * acceptance defects of its track-R test removed and nothing else changed (`FuseCubeOptions.longRangeFix`, constants `FUSION11_*`
+ * in `longRange.ts`): (1) V-F10-7 — the T bin 241–336 h of the long-range blend is the identity (the F10 fit had w = 1 there and
+ * the σ scale 1,05 cost 0,2–0,4 % CRPS in track R, AT significant); (2) V-F10-8 — the AT/CH wind/gust climatology step no longer
+ * narrows the 126–240 h bands below the champion's coverage (form chosen on the out-of-vault hindcast and the quick set by a rule
+ * written before the numbers). Both corrections were derived from the vault result of Fusion 10 ⇒ the vault cells t 240–336 h
+ * and ws 120–240 h are NOT blind for Fusion 11; track P stays the clean judge. Fusion 11 = Fusion 10 (tables of data-repo commit
+ * 1aaec969 unchanged) + this. Value 0 = Fusion 10. Acts only together with `longRange: 1`.
+ */
+export const FUSION11_LONG_RANGE_FIX: 0 | 1 = 1;
+/**
+ * buscosun Fusion 12 (phase OF, autonomous session 08.10.2026, `audit/obs-fusion.md`; switched on by E-OF-4, see below): the anchor reads the DENSE measurement set of the mirror product `buscosun-data/obs/v1` — the OBS_DENSE_MAX nearest
+ * 10-min stations of the point's country including the ≈ 1 100 precipitation-only gauges, with the measured dew point and the gauge
+ * sums (`FuseCubeOptions.obsDense`, reader switch `CubeIo.obsDense` set by the stage; `?dense=0` = the six nearest full stations
+ * = Fusion 11). The anchor math is unchanged; per variable the OBS_DENSE_ANCHOR_K best stations by spatialWeight among those that
+ * carry it; the gauge options of OF-3 (occurrence anchor, gauge–radar factor) join only through `FUSION12_GAUGE` after the
+ * pre-written rule of OF-4. Measurement source: since OF-1 every measurement (also of Fusion 11 on this branch) comes from
+ * `obs/v1` instead of BrightSky/TAWES/SMN (`?obs=direct` = the providers) — not a stand of its own, named in the engine notes.
+ * Fusion 12 = Fusion 11 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 11.
+ */
+// Full test 08.10.2026 (development set, audit/obs-fusion.md §7): index +1,47 % against Fusion 9, +1,00 % against Fusion 11, G2/G4 green,
+// G3 RED (q10–q90 coverage above the champion at t 6–48 h, ws 6–24 h, gust 0–48 h: the anchor tightens the error, the spread stays)
+// ⇒ the stand stayed DEFINED BUT OFF (value 0) until Jan's decision.
+// E-OF-4 (Jan 08.10.2026 evening, audit/obs-fusion.md §12): „buscosun Fusion 12 jetzt aktiv schalten, ohne Spur P, die beste Performance,
+// im Optimum alle Gates grün" ⇒ value 1, and the stand is the bench candidate `fusion-12s` (commit bec557c) = the dense set PLUS the
+// anchor-coupled σ of OF-6 (`anchorSigma`, companion option below): index +1,55 % against Fusion 9 (95 %: +1,36 … +1,79), G1/G2/G4
+// green, G3 red in 3 of 27 cells (band width: T 0–6 h too narrow, wind 6–24 h and gust 24–48 h too wide) — nowhere significantly
+// worse than Fusion 9. 12r (+1,58 %)
+// was not chosen: G2 red in 7 cells (wind AT/CH > 48 h up to −4 %). Judged on the development set only — no track-P verdict
+// (the Prüfstand champion stays Fusion 9 until Jan rules otherwise, E-OF-7). Value 1 switches the whole platform to Fusion 12.
+export const FUSION12_OBS_DENSE: 0 | 1 = 1;
+/**
+ * Companion option of Fusion 12 (OF-6, `audit/obs-fusion.md` §10): the σ of T, wind speed and gust is tightened with the anchor,
+ * σ·√max(f_min², 1 − a²·min(1, σ₁²/σ_τ²)) (`FuseCubeOptions.anchorSigma`, `anchorSigmaFactor` in `cubeSource.ts`; structure, no fit).
+ * Switched WITH the stand: `?dense=0` takes both back (= Fusion 11). Value 0 = Fusion 12 without the σ coupling (the bench entry
+ * `fusion-12`, G3 red in 6 cells) — not a stand of its own.
+ */
+export const FUSION12_ANCHOR_SIGMA: 0 | 1 = 1;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
-export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime';
+export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense';
 
 export interface FusionRelease {
   /** The number of the stand: „buscosun Fusion <n>". Ascending, without gaps. */
@@ -49,6 +99,12 @@ export interface FusionRelease {
   /** The `FuseCubeOptions` entry this stand adds to the stage. A `false`/`0` value = the stand is defined but not switched. */
   option: string;
   value: number | boolean;
+  /**
+   * Companion options the stand adds and takes back TOGETHER with `option` (one stand, one switch, one note) — for a stand whose
+   * measured candidate carries more than one engine option (Fusion 12 = `obsDense` + `anchorSigma`). Keys unique across stands and
+   * never a base option; a `false`/`0` value is not written.
+   */
+  also?: Readonly<Record<string, number | boolean>>;
   /** What the stage note says when the stand is on. */
   note: string;
   /**
@@ -79,6 +135,22 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
     n: 9, date: '2026-10-04', ref: 'V-AW-33, audit/autobahnwetter.md',
     option: 'anchorAtObsTime', value: FUSION9_ANCHOR_AT_OBS_TIME,
     note: 'Anker am Messzeitpunkt (V-AW-33)', io: { key: 'anchorAtObsTime', flag: '?anc=0' }, needs: 'measurement',
+  },
+  {
+    n: 10, date: '2026-10-07', ref: 'Phase F10, audit/fusion-10.md (Kandidat, Champion-Entscheidung = Jan)',
+    option: 'longRange', value: FUSION10_LONG_RANGE,
+    note: 'Langfrist zur Klimatologie zurückgeführt (> 48 h, gefittete Gewichte je Größe und Vorlauf-Bin, F10)',
+  },
+  {
+    n: 11, date: '2026-10-07', ref: 'Phase F11, audit/fusion-11.md (Kandidat, Champion-Entscheidung = Jan)',
+    option: 'longRangeFix', value: FUSION11_LONG_RANGE_FIX,
+    note: 'Langfrist-Korrekturen: T 241–336 h Identität, Windschritt AT/CH ohne Bandverengung bei 126–240 h (F11)',
+  },
+  {
+    n: 12, date: '2026-10-08', ref: 'E-OF-4, audit/obs-fusion.md §12 (Kandidat fusion-12s; Prüfstand-Champion bleibt 9 bis E-OF-7)',
+    option: 'obsDense', value: FUSION12_OBS_DENSE, also: { anchorSigma: FUSION12_ANCHOR_SIGMA },
+    note: 'Anker auf dem dichten Messsatz aus obs/v1 (Niederschlagsstationen, gemessener Taupunkt) und σ an den Anker gekoppelt (Phase OF, OF-6)', io: { key: 'obsDense', set: true, flag: '?dense=0' },
+    offLabel: 'dichter Messsatz per Schalter aus', needs: 'measurement',
   },
 ] as const);
 
@@ -118,8 +190,14 @@ export function fusionStage(off: (r: FusionRelease) => boolean = () => false): F
   let version = FUSION_BASE, firstOff: FusionRelease | null = null;
   for (const r of FUSION_RELEASES) {
     const on = isOn(r) && !off(r);
-    if (on) { options[r.option] = r.value; notes.push(r.note); if (!firstOff && r.n === version + 1) version = r.n; }
-    else firstOff ??= r;
+    if (on) {
+      options[r.option] = r.value;
+      for (const [k, v] of Object.entries(r.also ?? {})) if (v !== false && v !== 0) options[k] = v;
+      notes.push(r.note);
+      if (!firstOff && r.n === version + 1) version = r.n;
+    }
+    // a stand that is defined but not switched by VALUE is simply absent; only a caller switch (io) earns the „per Schalter aus" label
+    else if (isOn(r)) firstOff ??= r;
   }
   const label = `${fusionName(version)}${firstOff?.offLabel ? ` (${firstOff.offLabel})` : ''}`;
   return { version, label, options, note: notes.join(', '), current: version === FUSION_CURRENT };

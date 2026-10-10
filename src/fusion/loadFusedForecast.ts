@@ -16,7 +16,7 @@
  * kein Open-Meteo.
  */
 
-import { DACH_BOUNDS, type ForecastBounds } from '../sources/openMeteoForecast';
+import { DACH_BOUNDS, type ForecastBounds, type ForecastGrid } from '../sources/openMeteoForecast';
 import { fetchBrightSkyGrid } from '../sources/brightSkyForecast';
 import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
 import { fetchGeoSphereIncaGrid } from '../sources/geosphereInca';
@@ -32,7 +32,12 @@ import { fetchAiconGrid } from '../sources/aiconSource';
 import { fetchArpegeGrid } from '../sources/arpegeSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
+import { fetchObsGrid } from '../sources/obsStore';
+import { pfObsStoreFrom } from '../pointForecast/pfFlags';
 import { FusionEngine } from './fusionEngine';
+
+/** OF-1: `?obs=direct` = provider adapters only. */
+const OBS_STORE = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
 import { loadElevationLookup, type ElevationGrid } from './elevation';
 import type { DwdForecastResult } from '../wind/brightSkySource';
 import { COUNTRY_PROFILES, DACH_VIEW, type CountryProfile } from '../countryProfiles';
@@ -310,9 +315,14 @@ export async function loadFusedForecast(options: FusedLoadOptions): Promise<DwdF
   const wantAicon = useAicon;
   const wantArpege = useArpege;
 
+  // OF-1 (`audit/obs-fusion.md` §5.1): the station measurements of a country come from the mirror product `obs/v1` with ONE read
+  // (BrightSky needed 80 `current_weather` probes, SMN one file per station); the provider adapter is the named fallback,
+  // `?obs=direct` the switch back. The interpolation of the raster fusion is untouched — it sees the same 1×N grid form.
+  const obsOr = (country: 'DE' | 'AT' | 'CH', direct: () => Promise<ForecastGrid>): Promise<ForecastGrid> =>
+    (OBS_STORE ? fetchObsGrid(country, { signal: options.signal }).catch(() => direct()) : direct());
   const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal, aicon, arpege] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
-        fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
+        obsOr('DE', () => fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 }))).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
         fetchBrightSkyGrid({ bounds, cols: 16, rows: 13, hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
     wantInca ? getCachedSource(sourceKey('inca', hours), () =>
@@ -320,9 +330,9 @@ export async function loadFusedForecast(options: FusedLoadOptions): Promise<DwdF
     wantArome ? getCachedSource(sourceKey('arome', hours), () =>
         fetchGeoSphereAromeGrid({ cols: 12, rows: 7, hours })).catch(() => null) : Promise.resolve(null),
     wantTawes ? getCachedSource(sourceKey('tawes', hours), () =>
-        fetchTawesCurrentGrid()).catch(() => null) : Promise.resolve(null),
+        obsOr('AT', () => fetchTawesCurrentGrid())).catch(() => null) : Promise.resolve(null),
     wantSmn ? getCachedSource(sourceKey('smn', hours), () =>
-        fetchSmnCurrentGrid({ maxStations: 80 })).catch(() => null) : Promise.resolve(null),
+        obsOr('CH', () => fetchSmnCurrentGrid({ maxStations: 80 }))).catch(() => null) : Promise.resolve(null),
     wantEps ? getCachedSource(sourceKey('icon-d2-eps', hours), () =>
         fetchIconD2EpsGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
     wantCh1 ? getCachedSource(sourceKey('icon-ch1-eps', hours), () =>

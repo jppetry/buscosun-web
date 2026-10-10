@@ -18,6 +18,15 @@
 
 import { fetchTawesCurrentGrid } from './geosphereTawes';
 import { fetchSmnCurrentGrid } from './meteoSwissSmn';
+import { loadObsStore, obsStationFeatures, obsStationLive } from './obsStore';
+import { pfObsStoreFrom } from '../pointForecast/pfFlags';
+
+/**
+ * OF-1 (`audit/obs-fusion.md` §5.1): the stations of the map and the popup values come from the mirror product `obs/v1`
+ * (every station with a current 10-min value, WITH its values — DE no longer lazy; cloud cover is not in the product, E-OF-1).
+ * `?obs=direct` = the provider calls below as before; they also stand in when the product cannot be read.
+ */
+const OBS_STORE = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 export interface StationFeatureProps {
   source: 'dwd_obs' | 'tawes' | 'smn';
@@ -123,6 +132,14 @@ async function fetchDwdSourcesList(signal?: AbortSignal): Promise<BrightSkySourc
 export async function fetchDwdStationLive(
   dwdStationId: string, signal?: AbortSignal,
 ): Promise<Pick<StationFeatureProps, 'temperature' | 'windSpeed' | 'windDirection' | 'precipitation' | 'cloudCover'>> {
+  if (OBS_STORE) {
+    try {
+      const live = obsStationLive(await loadObsStore({ signal }), dwdStationId);
+      if (live) return live;
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') throw err;
+    }
+  }
   const url = `https://api.brightsky.dev/current_weather?dwd_station_id=${encodeURIComponent(dwdStationId)}`;
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`BrightSky current HTTP ${res.status}`);
@@ -152,6 +169,15 @@ export async function fetchDwdStationLive(
  * full live readings directly from their grid endpoints.
  */
 export async function fetchDachStations(signal?: AbortSignal): Promise<StationsFeatureCollection> {
+  if (OBS_STORE) {
+    try {
+      const store = await loadObsStore({ signal });
+      const features = obsStationFeatures(store);
+      if (features.length) return { type: 'FeatureCollection', features, fetchedAt: Date.now() };
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') throw err;
+    }
+  }
   const [dwdRes, tawesRes, smnRes] = await Promise.allSettled([
     fetchDwdSourcesList(signal),
     fetchTawesCurrentGrid({ signal }),

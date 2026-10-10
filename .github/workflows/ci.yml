@@ -142,6 +142,10 @@ jobs:
       # (audit/radar-regenschwelle.md) — netzfrei (die Rundläufe an echten Dateien nur mit RADAR_RG_RAW).
       - name: Verifier — Darstellungsschwelle Niederschlagsradar
         run: npm run verify:radar-threshold
+      # OF: der Leser von buscosun-data obs/v1 (Stationsmessungen) und sein Schalter in den Messpfad — netzfrei auf einem
+      # echten Auszug des Produkts (audit/obs-fusion.md).
+      - name: Verifier — Stationsmessungen aus obs/v1 (Leser)
+        run: npm run verify:obs-reader
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

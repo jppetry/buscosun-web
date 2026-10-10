@@ -32,26 +32,41 @@ const src = (p) => readFileSync(join(ROOT, p), 'utf8');
 // ── A: the register ──────────────────────────────────────────────────────────
 {
   const ns = FUSION_RELEASES.map((r) => r.n);
-  add('A1 Stände lückenlos aufsteigend ab der Basis, jeder mit Datum, Beleg, Option, Notiz; Optionen und Schalter je einmal',
+  // Every option key a stand brings: its own and its companions (`also`, Fusion 12 = obsDense + anchorSigma).
+  const alsoOf = (r) => Object.entries(r.also ?? {}).filter(([, v]) => v !== false && v !== 0);
+  const allKeys = FUSION_RELEASES.flatMap((r) => [r.option, ...Object.keys(r.also ?? {})]);
+  add('A1 Stände lückenlos aufsteigend ab der Basis, jeder mit Datum, Beleg, Option, Notiz; Optionen (auch Begleit-Optionen) und Schalter je einmal, keine Basis-Option',
     ns.every((n, i) => n === FUSION_BASE + 1 + i) && FUSION_RELEASES.every((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.ref && r.option && r.note)
-    && new Set(FUSION_RELEASES.map((r) => r.option)).size === ns.length && new Set(FUSION_RELEASES.filter((r) => r.io).map((r) => r.io.key)).size === FUSION_RELEASES.filter((r) => r.io).length
-    && FUSION_RELEASES.every((r) => !(r.option in FUSION_BASE_OPTIONS)), ns.join(', '));
+    && new Set(allKeys).size === allKeys.length && new Set(FUSION_RELEASES.filter((r) => r.io).map((r) => r.io.key)).size === FUSION_RELEASES.filter((r) => r.io).length
+    && allKeys.every((k) => !(k in FUSION_BASE_OPTIONS)), `${ns.join(', ')} · Begleit-Optionen: ${FUSION_RELEASES.filter((r) => r.also).map((r) => `${r.n}: ${Object.keys(r.also).join('+')}`).join(' · ') || 'keine'}`);
   const on = FUSION_RELEASES.filter((r) => r.value !== false && r.value !== 0);
   const full = fusionStage();
-  add('A2 neuester Stand = höchster eingeschalteter Stand ohne Lücke; Name daraus; die Stufe ohne Schalter rechnet ihn mit Basis + jeder Option',
+  add('A2 neuester Stand = höchster eingeschalteter Stand ohne Lücke; Name daraus; die Stufe ohne Schalter rechnet ihn mit Basis + jeder Option (auch den Begleit-Optionen)',
     FUSION_CURRENT === (on.length ? on[on.length - 1].n : FUSION_BASE) && FUSION_NAME === `${FUSION_BRAND} ${FUSION_CURRENT}` && full.version === FUSION_CURRENT && full.current && full.label === FUSION_NAME
-    && Object.entries(FUSION_BASE_OPTIONS).every(([k, v]) => full.options[k] === v) && on.every((r) => full.options[r.option] === r.value) && on.every((r) => full.note.includes(r.note)), FUSION_NAME);
-  // Every stand with a switch: off ⇒ the stand before, its option gone, the others kept.
-  const sw = FUSION_RELEASES.filter((r) => r.io);
+    && Object.entries(FUSION_BASE_OPTIONS).every(([k, v]) => full.options[k] === v) && on.every((r) => full.options[r.option] === r.value && alsoOf(r).every(([k, v]) => full.options[k] === v)) && on.every((r) => full.note.includes(r.note)), FUSION_NAME);
+  // Every stand with a switch: off ⇒ the stand before, its option gone, the others kept. A stand that is defined but not
+  // switched by VALUE (Fusion 12 after its full test, phase OF) has no switch effect: its switch changes nothing (A3b).
+  const isOnR = (r) => r.value !== false && r.value !== 0;
+  const sw = FUSION_RELEASES.filter((r) => r.io && isOnR(r));
+  const offByValue = FUSION_RELEASES.filter((r) => !isOnR(r));
   const offOk = sw.every((r) => {
     const s = fusionStage((x) => x.n === r.n);
-    return s.version === r.n - 1 && !s.current && !(r.option in s.options) && !s.note.includes(r.note) && s.label.startsWith(fusionName(r.n - 1)) && (r.offLabel ? s.label === `${fusionName(r.n - 1)} (${r.offLabel})` : s.label === fusionName(r.n - 1))
-      && FUSION_RELEASES.filter((x) => x.n !== r.n).every((x) => s.options[x.option] === x.value);
+    return s.version === r.n - 1 && !s.current && !(r.option in s.options) && Object.keys(r.also ?? {}).every((k) => !(k in s.options)) && !s.note.includes(r.note) && s.label.startsWith(fusionName(r.n - 1)) && (r.offLabel ? s.label === `${fusionName(r.n - 1)} (${r.offLabel})` : s.label === fusionName(r.n - 1))
+      && FUSION_RELEASES.filter((x) => x.n !== r.n && isOnR(x)).every((x) => s.options[x.option] === x.value && alsoOf(x).every(([k, v]) => s.options[k] === v));
   });
-  add('A3 je Schalter (CubeIo-Feld = false): der Stand davor, Option und Notiz dieses Stands fehlen, alle anderen bleiben', offOk && sw.length > 0, sw.map((r) => `${r.io.flag} ⇒ ${fusionStage((x) => x.n === r.n).label}`).join(' · '));
+  add('A3 je Schalter (CubeIo-Feld = false): der Stand davor, Option, Begleit-Optionen und Notiz dieses Stands fehlen, alle anderen bleiben', offOk && sw.length > 0, sw.map((r) => `${r.io.flag} ⇒ ${fusionStage((x) => x.n === r.n).label}`).join(' · '));
+  add('A3b ein definierter, per Wert ausgeschalteter Stand: nicht in der Stufe, sein Schalter ändert nichts, kein „per Schalter aus"-Zusatz, kein Leser-Schalter',
+    offByValue.every((r) => { const s = fusionStage((x) => x.n === r.n); return s.label === FUSION_NAME && s.current && !(r.option in s.options) && !(r.option in full.options) && Object.keys(r.also ?? {}).every((k) => !(k in full.options)) && !s.note.includes(r.note) && (!r.io?.set || !(r.io.key in fusionStageIo())); }),
+    offByValue.length ? offByValue.map((r) => `n ${r.n} (${r.option}) aus`).join(' · ') : 'keiner');
+  // Companion options: one switch for the whole stand — off ⇒ none of them in the options (counter-probe: a stand without `also` has none to lose).
+  const withAlso = FUSION_RELEASES.filter((r) => r.also && isOnR(r));
+  add('A3c Begleit-Optionen eines Stands gehen mit seinem Schalter aus und ohne Schalter an (Gegenprobe: ein Stand ohne Begleit-Option)',
+    withAlso.length > 0 && withAlso.every((r) => alsoOf(r).length > 0 && alsoOf(r).every(([k, v]) => full.options[k] === v) && (!r.io || Object.keys(r.also).every((k) => !(k in fusionStage((x) => x.n === r.n).options))))
+    && FUSION_RELEASES.filter((r) => !r.also).length > 0 && FUSION_RELEASES.filter((r) => !r.also && isOnR(r) && r.io).every((r) => Object.keys(fusionStage((x) => x.n === r.n).options).length === Object.keys(full.options).length - 1),
+    withAlso.map((r) => `${r.n}: ${alsoOf(r).map(([k, v]) => `${k}=${v}`).join(', ')}`).join(' · '));
   const io = fusionStageIo();
   add('A4 CubeIo der Stufe: Tabellen json, stage fs, Leser-Schalter der Stände mit `set`',
-    io.learnedSource === 'json' && io.climaSource === 'json' && io.stackSource === 'json' && io.stage === 'fs' && FUSION_RELEASES.every((r) => (r.io?.set ? io[r.io.key] === true : !r.io || !(r.io.key in io))));
+    io.learnedSource === 'json' && io.climaSource === 'json' && io.stackSource === 'json' && io.stage === 'fs' && FUSION_RELEASES.every((r) => (r.io?.set && isOnR(r) ? io[r.io.key] === true : !r.io || !(r.io.key in io))));
   const note = fusionStageNote(full, ', Stationswert');
   add('A5 Stufen-Notiz ⇄ Stand: geschrieben und zurückgelesen, auch hinter einem Schalter; ohne Stufen-Notiz kein Stand (Gegenprobe)',
     note.startsWith(FUSION_STAGE_NOTE_PREFIX + FUSION_NAME + '): ') && fusionVersionOfNotes(['x', note]) === FUSION_CURRENT
@@ -105,7 +120,7 @@ const NAME_RE = /buscosun Fusion \d/;
   for (const e of NAME_EXCEPTIONS) info(`Ausnahme ${e.file} „${e.has}": ${e.why}`);
 
   // Hand-copied options of a stand: an object key of a stand's option outside the engine and the reader.
-  const keys = [...FUSION_RELEASES.map((r) => r.option), ...Object.keys(FUSION_BASE_OPTIONS)];
+  const keys = [...FUSION_RELEASES.flatMap((r) => [r.option, ...Object.keys(r.also ?? {})]), ...Object.keys(FUSION_BASE_OPTIONS)];
   const KEY_RE = new RegExp(`(^|[^.\\w])(${keys.join('|')})\\s*:\\s*[^;]`);
   // Where these keys are DEFINED or read as options: the engine and its reader, the URL switches, the scorer of the archive.
   const KEY_HOME = (p) => /^src\/pointForecast\//.test(p) || /^src\/point\//.test(p);

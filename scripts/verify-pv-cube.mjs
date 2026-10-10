@@ -14,6 +14,9 @@
  */
 import { performance } from 'node:perf_hooks';
 import { buildCubeFixture, FIX, signature } from './lib/pvCubeFixtures.mjs';
+import { FUSION_NAME as STAGE_NAME } from '../src/pointForecast/fusion/fusionRelease.ts';
+// Phase OF: block (29) names the stage through the register (the branch carries the candidates 10, 11, 12), never a fixed number.
+const STAGE_RE = (tail) => new RegExp('^stage:fs — neueste Stufe \\(' + STAGE_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\): ' + tail);
 import { memoryStore } from '../src/point/client/store.ts';
 import { readPointBundle } from '../src/point/client/readPoint.ts';
 import { CUBE_PLANES, TIER_BY_ID, cellOf, chunkExtent, chunkOf, quantStep } from '../src/point/cubeFormat.ts';
@@ -626,6 +629,132 @@ function cubeSampleOfValues(r, i) {
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: before }))
       && fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true }).notes.some((n) => /^anchorAtObsTime: Modellwert an 0 von 1 Messungen/.test(n))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorAtObsTime: true })) === fusedOf(base));
+  }
+  // OF-6 (audit/obs-fusion.md §10): the spread shrinks with the share of the error the anchor explains, σ·√max(0,5², 1 − a²·r).
+  // This fixture has no learned σ ⇒ r = 1; the T anchor uses the setting e^(−τ/4 h).
+  {
+    const { anchorSigmaFactor, ANCHOR_SIGMA_MIN_FACTOR } = await import('../src/pointForecast/cubeSource.ts');
+    add('(12) OF-6 Formel: a 0 ⇒ 1; a 0,6, r 1 ⇒ 0,8; a 0,6, r 0,25 ⇒ √0,91; a 1 ⇒ Boden 0,5; |a| > 1 wie 1; NaN ⇒ 1',
+      anchorSigmaFactor(0, 1) === 1 && near(anchorSigmaFactor(0.6, 1), 0.8, 1e-12) && near(anchorSigmaFactor(-0.6, 0.25), Math.sqrt(0.91), 1e-12)
+      && anchorSigmaFactor(1, 1) === ANCHOR_SIGMA_MIN_FACTOR && ANCHOR_SIGMA_MIN_FACTOR === 0.5 && anchorSigmaFactor(3, 1) === 0.5 && anchorSigmaFactor(NaN, 1) === 1
+      && near(anchorSigmaFactor(0.6, NaN), 0.8, 1e-12));
+    const on = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 });
+    const sdT = (r, i) => r.steps[i].fused.temperature.dist.sigma;
+    const a4 = wsp * Math.exp(-(on.steps[4].leadH ?? 4) / 4);
+    const want4 = Math.sqrt(Math.max(0.25, 1 - a4 * a4));
+    add('(12) OF-6 mit Option: T-σ bei +0 h auf den Boden 0,5 (a = 0,978), bei +4 h × √(1 − a²) mit a = 0,978·e^(−1); Median unverändert; ab +40 h byte-gleich; Flag `anchorSigma`, Notiz mit Zählung',
+      near(sdT(on, 0) / sdT(anchored, 0), 0.5, 1e-9) && near(sdT(on, 4) / sdT(anchored, 4), want4, 1e-9)
+      && near(med(on.steps[0]), med(anchored.steps[0]), 1e-9) && near(med(on.steps[4]), med(anchored.steps[4]), 1e-9)
+      && JSON.stringify(on.steps[40].fused) === JSON.stringify(anchored.steps[40].fused)
+      && on.steps[0].flags.includes('anchorSigma') && !anchored.steps[0].flags.includes('anchorSigma')
+      && on.notes.some((n) => /^anchorSigma: σ verkleinert an \d+ Schritten \(T \d+/.test(n)) && on.calib.some((c) => c.startsWith('anchorSigma:set')),
+      `+0 h ${(sdT(on, 0) / sdT(anchored, 0)).toFixed(4)} · +4 h ${(sdT(on, 4) / sdT(anchored, 4)).toFixed(4)} (Soll ${want4.toFixed(4)})`);
+    add('(12) OF-6 Negativkontrollen: ohne Option byte-gleich zum Anker von heute; Option ohne Messung byte-gleich zur Basis (Notiz „kein Anker“); Option mit `anchor: false` byte-gleich zur Basis; ferne hohe Station ⇒ Faktor > 0,999',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 0 })) === fusedOf(anchored)
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1 })) === fusedOf(base)
+      && fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1 }).notes.some((n) => /^anchorSigma: Option an, aber kein Anker/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchor: false, anchorSigma: 1 })) === fusedOf(base)
+      && sdT(fuseCubePoint({ ...mkInput(), obs: obsAt(2, 60_000, FIX.hTrue + 900) }, { anchorSigma: 1 }), 1) / sdT(fuseCubePoint({ ...mkInput(), obs: obsAt(2, 60_000, FIX.hTrue + 900) }), 1) > 0.999);
+  }
+  // OF-7 (audit/obs-fusion.md §11): (1) the σ coupling with the MEASURED error correlation ρ instead of spatialWeight —
+  // factor² = 1 − r·a²·(2ρ/f − 1), capped at 1; (2) the coverage factor on σ per lead (`sigmaScale`, table with one node per window).
+  {
+    const { anchorSigmaFactorRho, anchorSigmaFactor } = await import('../src/pointForecast/cubeSource.ts');
+    const S = await import('../src/pointForecast/fusion/sigmaScale.ts');
+    const f978 = 1 / (1 + (3000 / 20000) ** 2);
+    add('(12) OF-7 Formel ρ: ρ = f ⇒ OF-6 (0,8); ρ = f/2 ⇒ 1; ρ = 0 ⇒ Deckel 1; ρ 1 bei f 0,5 ⇒ Boden 0,5; ρ NaN oder f 0 ⇒ OF-6; a 0 ⇒ 1; a 0,6 r 0,25 ρ 0,5 f 0,978 ⇒ √(1 − 0,09·(1/0,978 − 1))',
+      near(anchorSigmaFactorRho(0.6, 1, f978, f978), anchorSigmaFactor(0.6, 1), 1e-12) && near(anchorSigmaFactorRho(0.6, 1, f978, f978), 0.8, 1e-12)
+      && anchorSigmaFactorRho(0.6, 1, f978 / 2, f978) === 1 && anchorSigmaFactorRho(0.6, 1, 0, f978) === 1 && anchorSigmaFactorRho(0.6, 1, 1, 0.5) === 0.5
+      && anchorSigmaFactorRho(0.6, 1, NaN, f978) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorRho(0.6, 1, 0.5, 0) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorRho(0, 1, 0.5, 0.5) === 1
+      && near(anchorSigmaFactorRho(0.6, 0.25, 0.5, f978), Math.sqrt(1 - 0.25 * 0.36 * (1 / f978 - 1)), 1e-12));
+    const TEST = { version: 1, provenance: { kind: 'hindcast', note: 'Testtabelle des Verifiers' }, centresH: S.SIGMA_SCALE_CENTRES_H, nodes: { t: [0.8, 0.9, 1, 1.1, 1.2, 1.3], td: [1, 1, 1, 1, 1, 1], ws: [0.7, 0.7, 0.7, 0.7, 0.7, 0.7], gust: [1.5, 1, 1, 1, 1, 1] } };
+    add('(12) OF-7 sigmaScaleAt: Identität 1 überall; Testtabelle: vor dem ersten Knoten flach 0,8, zwischen 3,5 und 15,5 h linear (9,5 h ⇒ 0,85), am letzten Knoten 1,3, danach flach; Tabelle ohne Knoten ⇒ 1',
+      [1, 3.5, 100, 400].every((L) => S.sigmaScaleAt(S.SIGMA_SCALE_IDENTITY, 't', L) === 1) && S.sigmaScaleAt(TEST, 't', 1) === 0.8 && near(S.sigmaScaleAt(TEST, 't', 9.5), 0.85, 1e-12)
+      && S.sigmaScaleAt(TEST, 't', 288.5) === 1.3 && S.sigmaScaleAt(TEST, 't', 336) === 1.3 && S.sigmaScaleAt({ ...TEST, nodes: { ...TEST.nodes, t: [] } }, 't', 5) === 1 && S.SIGMA_SCALE_CENTRES_H.join() === '3.5,15.5,36.5,84.5,180.5,288.5');
+    const P = { rho0: 0.7, c: 0.2, dKm: 10, hM: 200 };
+    add('(12) OF-7 anchorRhoOf: (0, 0) ⇒ ρ₀; d = D ⇒ ρ₀·(c + (1 − c)/e); d → ∞ ⇒ ρ₀·c (Boden); Δh = H ⇒ halbiert (Vorzeichen egal); ρ₀ > 1 auf 1 gedeckelt; c 1 ⇒ keine Distanzabhängigkeit',
+      near(S.anchorRhoOf(P, 0, 0), 0.7, 1e-12) && near(S.anchorRhoOf(P, 10_000, 0), 0.7 * (0.2 + 0.8 / Math.E), 1e-12) && near(S.anchorRhoOf(P, 1e9, 0), 0.14, 1e-9)
+      && near(S.anchorRhoOf(P, 0, -200), 0.35, 1e-12) && near(S.anchorRhoOf(P, 10_000, 200), 0.5 * 0.7 * (0.2 + 0.8 / Math.E), 1e-12)
+      && S.anchorRhoOf({ ...P, rho0: 1.5 }, 0, 0) === 1 && near(S.anchorRhoOf({ ...P, c: 1 }, 50_000, 0), 0.7, 1e-12) && S.anchorRhoOf({ ...P, dKm: 0 }, 0, 0) === 0);
+    // engine: sigmaScale with the test table — σ of T and wind speed × s(lead), median unchanged, precipitation/clouds untouched
+    const ssOn = fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TEST });
+    const sdOf = (r, i, k) => r.steps[i].fused[k].dist.sigma;
+    const stepsOk = [0, 4, 40, base.steps.length - 1].every((i) => {
+      const L = base.steps[i].leadH, sT = S.sigmaScaleAt(TEST, 't', L);
+      return near(sdOf(ssOn, i, 'temperature') / sdOf(base, i, 'temperature'), sT, 1e-9) && near(sdOf(ssOn, i, 'windSpeed') / sdOf(base, i, 'windSpeed'), 0.7, 1e-9)
+        && near(med(ssOn.steps[i]), med(base.steps[i]), 1e-9) && JSON.stringify(ssOn.steps[i].fused.precipitation) === JSON.stringify(base.steps[i].fused.precipitation)
+        && JSON.stringify(ssOn.steps[i].fused.clouds) === JSON.stringify(base.steps[i].fused.clouds) && JSON.stringify(ssOn.steps[i].fused.dewPoint) === JSON.stringify(base.steps[i].fused.dewPoint);
+    });
+    add('(12) OF-7 sigmaScale mit Testtabelle: T-σ × s(Vorlauf) (0,8 bei +0 h … 1,3 am Ende), Wind-σ × 0,7, Td/Niederschlag/Bewölkung byte-gleich, Median unverändert; Flag `sigmaScale`, Notiz mit Zählung, calib `sigmaScale:hindcast`',
+      stepsOk && ssOn.steps[0].flags.includes('sigmaScale') && !base.steps[0].flags.includes('sigmaScale')
+      && ssOn.notes.some((n) => /^sigmaScale: σ an \d+ Schritten skaliert \(\d+ Größen-Schritte, Faktor 0\.700 … 1\.(300|500)\)/.test(n)) && ssOn.calib.some((c) => c.startsWith('sigmaScale:hindcast')),
+      `+0 h T ${(sdOf(ssOn, 0, 'temperature') / sdOf(base, 0, 'temperature')).toFixed(4)} · Ende T ${(sdOf(ssOn, base.steps.length - 1, 'temperature') / sdOf(base, base.steps.length - 1, 'temperature')).toFixed(4)}`);
+    add('(12) OF-7 sigmaScale Negativkontrollen: Option 0 byte-gleich; Option mit Identitätstabelle byte-gleich (Notiz „Identitätstabelle“); die eingebaute Tabelle nennt ihre Herkunft (identity oder hindcast) in calib',
+      fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 0 })) === fusedOf(base) && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: S.SIGMA_SCALE_IDENTITY })) === fusedOf(base)
+      && fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: S.SIGMA_SCALE_IDENTITY }).notes.some((n) => /^sigmaScale: Option an, aber Identitätstabelle/.test(n))
+      && fuseCubePoint(mkInput(), { sigmaScale: 1 }).calib.some((c) => /^sigmaScale:(identity|hindcast) — /.test(c)));
+    // the built-in tables: every node finite in (0,6; 1,6]; LONG = the same fit with the three nodes ≤ 48 h at 1; option 2 reads LONG
+    const nodesOk = (tab) => S.SIGMA_SCALE_VARS.every((v) => tab.nodes[v].length === 6 && tab.nodes[v].every((s) => Number.isFinite(s) && s >= 0.6 && s <= 1.6));
+    const longOk = S.SIGMA_SCALE_VARS.every((v) => S.SIGMA_SCALE_TABLE_LONG.nodes[v].every((s, i) => (S.SIGMA_SCALE_CENTRES_H[i] <= 48 ? s === 1 : s === S.SIGMA_SCALE_TABLE.nodes[v][i])));
+    const ss2 = fuseCubePoint(mkInput(), { sigmaScale: 2 }), ssLong = fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: S.SIGMA_SCALE_TABLE_LONG });
+    add('(12) OF-7 eingebaute Tabellen: Knoten endlich in [0,6; 1,6], Herkunft hindcast; LONG = dieselben Knoten > 48 h, 1 bei ≤ 48 h; `sigmaScale: 2` byte-gleich zu `sigmaScale: 1` mit LONG; mit LONG ist +0 h byte-gleich zur Basis',
+      nodesOk(S.SIGMA_SCALE_TABLE) && S.SIGMA_SCALE_TABLE.provenance.kind === 'hindcast' && S.ANCHOR_RHO_TABLE.provenance.kind === 'hindcast' && longOk
+      && fusedOf(ss2) === fusedOf(ssLong) && JSON.stringify(ss2.steps[0].fused) === JSON.stringify(base.steps[0].fused) && ss2.calib.some((c) => /sigmaScale: 2/.test(c)));
+    // engine: anchorRho — the factor follows anchorSigmaFactorRho with ρ of the fixture station (3 km, Δh 0) from the built-in table
+    const rhoT = S.anchorRhoOf(S.ANCHOR_RHO_TABLE.t, 3000, 0);
+    const rOn = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorRho: 1 });
+    const sdT = (r, i) => r.steps[i].fused.temperature.dist.sigma;
+    const aOf = (i) => wsp * Math.exp(-(rOn.steps[i].leadH ?? i) / 4);
+    const want = (i) => anchorSigmaFactorRho(aOf(i), 1, rhoT, wsp);
+    add('(12) OF-7 anchorRho mit Option: T-σ-Faktor bei +0/+2/+4 h = anchorSigmaFactorRho(a, 1, ρ(3 km, 0), 0,978) mit ρ aus ANCHOR_RHO_TABLE; Median wie OF-6; Notiz nennt ρ und f; calib `anchorRho:`',
+      [0, 2, 4].every((i) => near(sdT(rOn, i) / sdT(anchored, i), want(i), 1e-9)) && near(med(rOn.steps[0]), med(anchored.steps[0]), 1e-9)
+      && rOn.notes.some((n) => new RegExp(`^anchorRho: ρ der Ankerstation\\(en\\) mit dem Punkt T ${rhoT.toFixed(3).replace('.', '\\.')} `).test(n)) && rOn.calib.some((c) => /^anchorRho:(set|hindcast) — /.test(c)),
+      `ρ_T(3 km) ${rhoT.toFixed(3)} · Faktor +0 h ${(sdT(rOn, 0) / sdT(anchored, 0)).toFixed(4)} (Soll ${want(0).toFixed(4)}) · +4 h ${(sdT(rOn, 4) / sdT(anchored, 4)).toFixed(4)} (Soll ${want(4).toFixed(4)})`);
+    add('(12) OF-7 anchorRho Negativkontrollen: ohne anchorSigma byte-gleich zum Anker von heute (Notiz „anchorSigma aus“); mit anchorSigma, aber anchorRho 0 byte-gleich zu OF-6; ohne Messung byte-gleich zur Basis; Anker-Member ohne ρ-Feld',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorRho: 1 })) === fusedOf(anchored)
+      && fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorRho: 1 }).notes.some((n) => /^anchorRho: Option an, aber anchorSigma aus/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorRho: 0 })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 }))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorRho: 1 })) === fusedOf(base)
+      && !('rho' in rOn.steps[0].members.find((m) => m.product === 'anchor').anchor));
+    // OF-7b (V-OF-15/V-OF-16/E-OF-5): the K-set formula, the class pick, the track-P table and the engine with the fitted K-set table
+    const { anchorSigmaFactorKSet } = await import('../src/pointForecast/cubeSource.ts');
+    add('(12) OF-7b Formel K-Satz: C = ρ, V = 1 ⇒ ρ-Form; C = f, V = 1 ⇒ OF-6; C = f/2, V = 1 ⇒ 1; V > 2C/f ⇒ Deckel 1; C 1, V 0, f 0,5 ⇒ Boden; C/V NaN oder f 0 ⇒ OF-6; a 0 ⇒ 1; a 0,6 r 0,25 C 0,5 V 0,6 f 0,978 ⇒ √(1 − 0,09·(1/0,978 − 0,6))',
+      near(anchorSigmaFactorKSet(0.6, 1, 0.5, 1, f978), anchorSigmaFactorRho(0.6, 1, 0.5, f978), 1e-12) && near(anchorSigmaFactorKSet(0.6, 1, f978, 1, f978), 0.8, 1e-12)
+      && anchorSigmaFactorKSet(0.6, 1, f978 / 2, 1, f978) === 1 && anchorSigmaFactorKSet(0.6, 1, 0.3, 1.5, f978) === 1 && anchorSigmaFactorKSet(0.6, 1, 1, 0, 0.5) === 0.5
+      && anchorSigmaFactorKSet(0.6, 1, NaN, 1, f978) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorKSet(0.6, 1, 0.5, null, f978) === anchorSigmaFactor(0.6, 1) && anchorSigmaFactorKSet(0.6, 1, 0.5, 1, 0) === anchorSigmaFactor(0.6, 1)
+      && anchorSigmaFactorKSet(0, 1, 0.5, 1, 0.5) === 1 && near(anchorSigmaFactorKSet(0.6, 0.25, 0.5, 0.6, f978), Math.sqrt(1 - 0.25 * 0.36 * (1 / f978 - 0.6)), 1e-12));
+    const CL = [{ fLo: 0, fHi: 0.3, n: 1000, C: 0.2, V: 0.5 }, { fLo: 0.3, fHi: 0.7, n: 100, C: null, V: null }, { fLo: 0.7, fHi: 1.0001, n: 1000, C: 0.6, V: 0.9 }];
+    add('(12) OF-7b anchorKSetOf: f in besetzter Klasse ⇒ deren (C, V); f in leerer Klasse ⇒ nächste besetzte DARUNTER; f ≥ 1 ⇒ letzte Klasse; leere Tabelle oder nur leere Klassen ⇒ null; unterste leer ⇒ nächste darüber',
+      S.anchorKSetOf(CL, 0.1).C === 0.2 && S.anchorKSetOf(CL, 0.5).C === 0.2 && S.anchorKSetOf(CL, 1).C === 0.6 && S.anchorKSetOf(CL, 0.8).V === 0.9
+      && S.anchorKSetOf([], 0.5) === null && S.anchorKSetOf([{ fLo: 0, fHi: 1.0001, n: 1, C: null, V: null }], 0.5) === null
+      && S.anchorKSetOf([{ fLo: 0, fHi: 0.5, n: 1, C: null, V: null }, { fLo: 0.5, fHi: 1.0001, n: 9, C: 0.4, V: 0.7 }], 0.2).C === 0.4);
+    const TP = S.SIGMA_SCALE_TABLE_P;
+    add('(12) OF-7b Spur-P-Tabelle (sigmaScale: 3): T/Td Knoten 0–6 h = 1, Wind/Böe ≤ 48 h = gepoolter Fit, jede Größe > 48 h = 1; `sigmaScale: 3` byte-gleich zu `sigmaScale: 1` mit dieser Tabelle; calib nennt „sigmaScale: 3“; Land-Knoten: Tabelle mit byCountry nimmt sie nur für dieses Land',
+      TP.nodes.t[0] === 1 && TP.nodes.td[0] === 1 && [1, 2].every((i) => TP.nodes.t[i] === S.SIGMA_SCALE_TABLE.nodes.t[i] && TP.nodes.td[i] === S.SIGMA_SCALE_TABLE.nodes.td[i])
+      && [0, 1, 2].every((i) => TP.nodes.ws[i] === S.SIGMA_SCALE_TABLE.nodes.ws[i] && TP.nodes.gust[i] === S.SIGMA_SCALE_TABLE.nodes.gust[i]) && S.SIGMA_SCALE_VARS.every((v) => [3, 4, 5].every((i) => TP.nodes[v][i] === 1))
+      && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 3 })) === fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TP })) && fuseCubePoint(mkInput(), { sigmaScale: 3 }).calib.some((c) => /sigmaScale: 3/.test(c))
+      && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, 'AT') === 0.5 && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, 'DE') === 0.8
+      && S.sigmaScaleAt({ ...TEST, byCountry: { AT: { ...TEST.nodes, t: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] } } }, 't', 1, null) === 0.8);
+    const TU = S.SIGMA_SCALE_TABLE_U;
+    add('(12) OF-7b zweite Spur-P-Tabelle (sigmaScale: 4): wie 3, nur Windknoten 24–48 h = 1; alle anderen Knoten gleich; `sigmaScale: 4` byte-gleich zu `sigmaScale: 1` mit dieser Tabelle und ≠ 3 nur bei Wind; calib nennt „sigmaScale: 4“',
+      TU.nodes.ws[2] === 1 && TP.nodes.ws[2] !== 1 && S.SIGMA_SCALE_VARS.every((v) => TU.nodes[v].every((s, i) => (v === 'ws' && i === 2) || s === TP.nodes[v][i]))
+      && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 4 })) === fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: TU }))
+      && JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 4 }).steps[30].fused.temperature) === JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 3 }).steps[30].fused.temperature)
+      && JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 4 }).steps[30].fused.windSpeed) !== JSON.stringify(fuseCubePoint(mkInput(), { sigmaScale: 3 }).steps[30].fused.windSpeed)
+      && fuseCubePoint(mkInput(), { sigmaScale: 4 }).calib.some((c) => /sigmaScale: 4/.test(c)));
+    // engine with the fitted K-set table: the T factor at +0/+2/+4 h follows anchorSigmaFactorKSet with (C, V) of the class of f = 0,978
+    const kT = S.anchorKSetOf(S.ANCHOR_KSET_TABLE.t, wsp);
+    const kOn = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 1 });
+    const wantK = (i) => anchorSigmaFactorKSet(aOf(i), 1, kT?.C, kT?.V, wsp);
+    add('(12) OF-7b anchorKSet mit Option: Tabelle hindcast mit besetzter Klasse für f 0,978; T-σ-Faktor bei +0/+2/+4 h = anchorSigmaFactorKSet(a, 1, C, V, f); Median wie OF-6; Notiz und calib `anchorKSet:hindcast`; Vorrang vor anchorRho (beide an = nur K-Satz)',
+      S.ANCHOR_KSET_TABLE.provenance.kind === 'hindcast' && !!kT && [0, 2, 4].every((i) => near(sdT(kOn, i) / sdT(anchored, i), wantK(i), 1e-9)) && near(med(kOn.steps[0]), med(anchored.steps[0]), 1e-9)
+      && kOn.notes.some((n) => /^anchorKSet: K-Satz-Tabelle an \d+ Größen-Schritten/.test(n)) && kOn.calib.some((c) => c.startsWith('anchorKSet:hindcast'))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 1, anchorRho: 1 })) === fusedOf(kOn),
+      kT ? `C ${kT.C} V ${kT.V} (f ${kT.cls.fLo}–${kT.cls.fHi}) · Faktor +0 h ${(sdT(kOn, 0) / sdT(anchored, 0)).toFixed(4)} (Soll ${wantK(0).toFixed(4)}) · +4 h ${(sdT(kOn, 4) / sdT(anchored, 4)).toFixed(4)} (Soll ${wantK(4).toFixed(4)})` : 'keine Klasse');
+    add('(12) OF-7b anchorKSet Negativkontrollen: ohne anchorSigma byte-gleich zum Anker von heute (Notiz „anchorSigma aus“); Option 0 byte-gleich zu OF-6; ohne Messung byte-gleich zur Basis',
+      fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 1 })) === fusedOf(anchored) && fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 1 }).notes.some((n) => /^anchorKSet: Option an, aber anchorSigma aus/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 0 })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 }))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorKSet: 1 })) === fusedOf(base));
   }
   // V-SW-3: wind and gust get separate corrections, their means can cross. In the plain engine the gust prior keeps the gust
   // above the wind (this fixture: min gust − wind ≥ +0,18 m/s even with every input gust at 10–30 %); the crossing comes from
@@ -2368,7 +2497,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const full = await run(filesOf(tables, stackFull), STAGE);
   const need = ['learned:hindcast', 'learnedAtPoint:set', 'learnedClouds:hindcast', 'priorShrink:off', 'stationValue:archive'];
   add('(29) mit Tabellen und Stationswert-Tabelle: calib trägt learned, learnedAtPoint, learnedClouds, priorShrink:off, stationValue:archive; die Notiz nennt die Stufe und zählt die gesetzten Schritte; ohne Messung trägt die Form S0; Schritte ≠ Basis',
-    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*Radar-Stundenmittel \(E-AX-17\), Anker am Messzeitpunkt \(V-AW-33\), Stationswert$/.test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
+    need.every((k) => keysOf(full).includes(k)) && full.cube.notes.some((n) => STAGE_RE('.*Radar-Stundenmittel \\(E-AX-17\\), Anker am Messzeitpunkt \\(V-AW-33\\).*, Stationswert$').test(n)) && full.cube.notes.some((n) => /^stationValue: gesetzt an \d+ Schritten \(Formen .*S0 \d+/.test(n)) && stepsJson(full) !== stepsJson(base),
     full.cube.notes.find((n) => n.startsWith('stationValue: gesetzt'))?.slice(0, 120) ?? `fehlt: ${need.filter((k) => !keysOf(full).includes(k)).join()}`);
   const noI = await run(filesOf(tables, stackOnlyI), STAGE);
   add('(29) nie still (V-FS-12): eine Tabelle ohne die Formen ohne Messung setzt bei einer Abfrage ohne Messung NICHTS — die Notiz sagt „an keinem Schritt gesetzt"; die übrige Stufe wirkt weiter',
@@ -2376,7 +2505,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const broken = await run(filesOf(tables, 'broken'), STAGE);
   const noFile = await run(filesOf(tables, null), STAGE);
   add('(29) Stationswert-Tabelle kein JSON: die Stufe rechnet ohne Stationswert (Notiz „kein JSON", „ohne Stationswert"), Schritte byte-gleich zur Stufe ohne die Datei',
-    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*ohne Stationswert/.test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
+    broken.cube.notes.some((n) => /^stationValue: .*kein JSON/.test(n)) && broken.cube.notes.some((n) => STAGE_RE('.*ohne Stationswert').test(n)) && !keysOf(broken).includes('stationValue:archive') && stepsJson(broken) === stepsJson(noFile));
   const explicit = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { priorShrink: true, stationValue: false } });
   add('(29) ausdrückliche fuse-Optionen haben Vorrang vor der Stufe: priorShrink true und stationValue false ⇒ keine der beiden Zeilen, die übrige Stufe bleibt',
     !keysOf(explicit).includes('priorShrink:off') && !keysOf(explicit).includes('stationValue:archive') && keysOf(explicit).includes('learnedAtPoint:set'));
@@ -2386,7 +2515,7 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const noAnchor = await run(filesOf(tables, stackFull), { ...STAGE, fuse: { anchorWindKm: 0 } });
   add(`(29) buscosun Fusion 7 (E-AX-14): mit Tabellen trägt die Stufe anchorWind:set mit ${FUSION7_ANCHOR_WIND_KM} km und nennt es in der Stufen-Notiz; ohne Tabellen keine anchorWind-Zeile (Rechnung wie ohne Schalter); fuse.anchorWindKm: 0 schaltet den Anker ab, der Rest der Stufe bleibt`,
     FUSION7_ANCHOR_WIND_KM === 10 && keysOf(full).includes('anchorWind:set') && full.cube.calib.some((c) => c.startsWith('anchorWind:set') && c.includes(`${FUSION7_ANCHOR_WIND_KM} km`))
-    && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): .*Wind-Anker über die Messdistanz gedämpft \(10 km, E-AX-14\), Radar-Stundenmittel \(E-AX-17\), Anker am Messzeitpunkt \(V-AW-33\), Stationswert$/.test(n))
+    && full.cube.notes.some((n) => STAGE_RE('.*Wind-Anker über die Messdistanz gedämpft \\(10 km, E-AX-14\\), Radar-Stundenmittel \\(E-AX-17\\), Anker am Messzeitpunkt \\(V-AW-33\\).*, Stationswert$').test(n))
     && !keysOf(none).includes('anchorWind:set') && !keysOf(noAnchor).includes('anchorWind:set') && keysOf(noAnchor).includes('priorShrink:off') && keysOf(noAnchor).includes('stationValue:archive'),
     `full ${keysOf(full).filter((k) => k.startsWith('anchorWind')).join() || '—'} · none ${keysOf(none).filter((k) => k.startsWith('anchorWind')).join() || '—'} · anchorWindKm:0 ${keysOf(noAnchor).filter((k) => k.startsWith('anchorWind')).join() || '—'}`);
   // buscosun Fusion 8 (E-AX-17, Jan 02.10.2026 22:30 UTC): the stage takes the radar hour mean (FUSION8_NOWCAST_HOUR_MEAN) — calib line
@@ -2405,8 +2534,8 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   const { pfAnchorAtObsFrom } = await import('../src/pointForecast/pfFlags.ts');
   const f8 = await run(filesOf(tables, stackFull), { ...STAGE, anchorAtObsTime: false });
   add('(29) buscosun Fusion 9 (V-AW-33): die Stufe nennt „buscosun Fusion 9" + „Anker am Messzeitpunkt (V-AW-33)" und trägt die Motor-Notiz anchorAtObsTime nur mit Messung; CubeIo.anchorAtObsTime: false ⇒ Notiz „buscosun Fusion 8" im alten Wortlaut, Schritte ohne Messung byte-gleich; Schalter: ?anc=0 aus, sonst an',
-    FUSION9_ANCHOR_AT_OBS_TIME === true && full.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 9\): /.test(n))
-    && f8.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\), Stationswert$/.test(n)) && !f8.cube.notes.some((n) => n.startsWith('anchorAtObsTime'))
+    FUSION9_ANCHOR_AT_OBS_TIME === true && full.cube.notes.some((n) => STAGE_RE('').test(n))
+    && f8.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\)(?!.*Anker am Messzeitpunkt).*, Stationswert$/.test(n)) && !f8.cube.notes.some((n) => n.startsWith('anchorAtObsTime'))
     && stepsJson(f8) === stepsJson(full) && pfAnchorAtObsFrom('?anc=0') === false && pfAnchorAtObsFrom('') === true && pfAnchorAtObsFrom('?anc=1') === true,
     f8.cube.notes.find((n) => n.startsWith('stage:fs — neueste'))?.slice(0, 60));
 }
