@@ -663,3 +663,73 @@ Nicht geprüft: Real-Device (V-SW-10), ein echter `sea.yml`-Lauf mit der neuen A
 - **Wirksam** erst, wenn der neue `spots.json` im Daten-Repo unter `sea/static/` liegt (Jans Gate, MANUELLE-SCHRITTE §48 Punkt 4).
 - **Offen.** E-SW-31 (a) (Normale direkt aus der DLM-Küste für Spots ≤ 0,2 km — nach (b) sind das 34 von 56) und (c) (Hand-Normalen
   holnis/schleimuende/heiligenhafen/ueckermuende, Binz/Pelzerhaken prüfen) bleiben Jans Entscheidung.
+
+## 14. Einschalten für alle (Jan 10.10.: „in main freischalten“, Kachel auf der Startseite) — und V-SW-18: kein Wind seit dem 07.10.
+
+Auftrag: Seewetter auf `main` freischalten, eine Feature-Karte auf der Startseite, inhaltliche Lücken nennen. Stand vorher:
+`SEA_LIVE = false`, Schattenbetrieb seit 07.10. (8 von 8 CWAM-Läufen veröffentlicht, 12,9–13,7 MB, Texte mit 2–7 min Verzug).
+Uncommitted bis zum Commit dieses Abschnitts; nichts gepusht, nichts im Daten-Repo geändert.
+
+### 14.1 V-SW-18 — an keinem Spot Wind, seit dem ersten Lauf des Workflows (gefunden beim Ansehen der Live-Seite)
+
+- **Befund.** Die Seite zeigte am 10.10. 19:40 UTC an jedem Spot „kein Wind für diese Stunde berechnet“, die Windzeile des
+  Stundenbands war leer, jede Tagesstunde „keine Daten“. Im Archiv (`buscosun-archiv/sea/v1`, 27 Spot-Dateien): nur der lokal
+  gebaute erste Lauf 2026100700 trägt Wind (56 Spots, 3 752 Werte); **jeder Lauf und jede Auffrischung aus dem Workflow seit
+  07.10. 16:24 UTC trägt 0 Windwerte an 0 von 56 Spots** — mit `failed: []`, `rejected: 0`, Job grün.
+- **Ursache (nachgestellt, nicht vermutet).** `sea.yml` holt den Producer mit `git sparse-checkout set --no-cone scripts src
+  package.json`. buscosun Fusion liest die Klimatologie aus `public/climaGrid.json` (`nodeShims.mjs`); fehlt sie, gibt
+  `getClimaField()` `null` zurück, der Motor vermerkt „keine Klimatologie — keine Verteilungen (K-3)“ und liefert Schritte ohne
+  einen Wert für T, Wind, Böe — der Producer schrieb sie als Reihe aus `null`. `road-fc.yml` und `point.yml` führen die Datei in
+  ihrer Sparse-Liste, `sea.yml` nicht. Nachbau: Export von `scripts src package.json` + die Pakete des Workflows ⇒ 0 Windwerte;
+  dieselbe Ablage mit `public/climaGrid.json` ⇒ 69 Windstunden je Spot, Zahl für Zahl gleich dem vollen Arbeitsbaum.
+- **Behoben in `buscosun-web`:** (1) Vorlage `scripts/sea/workflow-sea.yml` mit `public/climaGrid.json` in der Sparse-Liste;
+  (2) `spotWind` bricht ohne Klimatologie mit benanntem Grund ab; (3) `spotWindSeries`: ein Spot ohne einen einzigen Windwert ist
+  ein `failed`-Eintrag, keine Reihe aus `null`; (4) `windRefresh` wirft, wenn kein Spot Wind trägt (Schritt rot, nichts
+  geschrieben); (5) ein Feldlauf mit Cube-Checkout und 0 Spots mit Wind endet mit Exit 1 — die Welle ist dann veröffentlicht, der
+  Job rot. `verify:sea-derive` **61/61** (+4: W3b Sparse-Liste, W9 Reihe/keine Reihe an der gemessenen Form, W10 Auffrischung
+  ohne Spot, W11 Zähler; vor der Umsetzung rot).
+- **Wirksam erst mit der Kopie der Vorlage nach `buscosun-data/.github/workflows/sea.yml` (Jans Gate, MANUELLE-SCHRITTE §63).**
+  Mit dem Push von `buscosun-web` allein wird der Job ab dem nächsten fälligen Lauf ROT statt still leer — der Wind fehlt weiter.
+- **Folge für Gate D:** die 14 Tage Wind am Spot gegen die Küstenmessung beginnen erst mit dem ersten Lauf nach der Kopie; die
+  Tage 07.–10.10. tragen im Archiv keinen Wind.
+
+### 14.2 Einschalten
+
+- `SEA_LIVE = true` (`src/sea/seaFlag.ts`): Kachel 12, Palette 13, Fußlink, Rail-Symbol und `/seewetter` ohne Parameter;
+  `?sea=0` / `localStorage.sea = '0'` blendet je Besucher aus. Wie bei Autobahnwetter (03.10.) **vor** den Gates B und D.
+- **noindex bleibt** (`routes.ts`), keine Sitemap — wie Autobahnwetter; Indexieren ist ein eigener Schritt nach Gate B/D (E-SW-32).
+- **Kachel:** bisher Text über die volle Breite; jetzt Text links (Symbol, Titel, Beschreibung mit Einschränkung, fünf
+  Stichworte) und rechts eine schematische Seekarte (Wellenfeld, Küste, Spots in den Klassenfarben, Pfeile) — eine Zeichnung,
+  kein Datenbild, lädt nichts. Regeln `.tile-sea*` in `SearchPage.css` (E-SW-8 „CSS unverändert“ damit aufgehoben), mobil
+  gestapelt (≤ 767 px). Stellung im Raster unverändert inline (`order: 12`, volle Breite).
+- **Verlaufsdiagramme:** eine Reihe ohne einen Wert wird nicht gezeichnet (`SeaCharts.tsx` `drawn`) — vorher sechs
+  Konsolenfehler `<path> attribute d: … "null"` je Aufruf, sobald der Wind fehlte; Farben je Reihe nach Name.
+
+### 14.3 Gates
+
+`verify:sea-contract` **30/30** (F1 Rangfolge mit beiden Voreinstellungen, F1b `SEA_LIVE` an), `verify:sea-derive` **61/61**,
+`verify:sea-ui` **39/39** gegen `vite preview` des Baus (A1/A2 `?sea=0` blendet aus, A3 Kachel ohne Parameter mit Vorschau 550 × 184
+und Zähler 12, A4 Deck ohne Parameter, A5 mobil 390 px ohne Überlauf), `verify:road-ui` **64/64** (A4 Zähler 12),
+`sea-text` 35/35, `sea-decode` 13/13, `verify:routing` 255/255, `verify:seo` 803, `verify:health` 44/44,
+`verify:fusion-release` 30/30, typecheck 0, Build 255/255, Budget grün (eagerJs 109,6 / 109,7, totalJs 1 714,2 / 1 715);
+`verify:share` 527/528 — SH6 Edge-Bündel ohne die Route `seewetter` (E-SW-15, Jans `npm run edge:share`).
+Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewetter` ohne Parameter, Konsole 0 Fehler
+(eine MapLibre-Warnung „circle-11“ der Basiskarte).
+
+### 14.4 Inhaltliche Lücken (Stand 10.10., nach Gewicht)
+
+| Nr. | Lücke | Beleg | Weg |
+|---|---|---|---|
+| V-SW-18 | **Kein Wind an den Spots** bis zur Workflow-Kopie; damit auch keine Fenster und tagsüber „keine Daten“ | §14.1 | MANUELLE-SCHRITTE §63.1 |
+| V-SW-19 | Gate D (Wind am Spot gegen die Küstenmessung) hat noch keinen einzigen Tag | Archiv 07.–10.10. ohne Wind | 14 Tage ab der Kopie |
+| V-SW-20 | **Watt-Spots zeigen „0,0 m“ ohne Erklärung:** im Lauf 2026101012 trägt die Welle an 17 von 56 Spots Stunden mit Hs = 0; Schillig 74 von 79 h, Cuxhaven-Duhnen 72, Dangast 67, Langeoog 36, Spiekeroog 33, Norddeich 33, **St. Peter-Ording (Voreinstellung) 32**, Pellworm 32, Amrum 31. Den Hinweis „Watt: … bei Niedrigwasser …“ tragen nur 7 Spots (`tidal`); Schillig, Langeoog, Spiekeroog, St. Peter-Ording, Amrum, Borkum nicht | `spots/2026101012.json`, Katalog | `tidal` aus den Daten ableiten (Anteil trockener Stunden) statt von Hand; Anzeige „trockengefallen (Modell)“ statt „0,0 m“; drei Spots mit > 80 % trockener Stunden auf eine nasse Zelle ziehen |
+| V-SW-21 | Der Katalog im Daten-Repo ist noch der alte: 12 Lagen aus E-SW-31 (b) liegen nicht live | `sea/v1/static/spots.json` live gegen den Katalog im Repo: 12 Lagen verschieden | MANUELLE-SCHRITTE §48.7 |
+| V-SW-7 | Vorhersage endet nach 78 h (CWAM); kein Ausblick fürs Wochenende | — | GWAM bis 174 h (SW-8) |
+| V-SW-6 | Wind nur als Zahl am Spot, kein Flächenbild | — | ICON-Partikel, gekennzeichnet |
+| — | Kein Wasserstand / keine Gezeit (BSH-Vorhersage gesperrt), Wassertemperatur nur als amtlicher Mittelfrist-Satz je Meer | Reiter Quellen | Quelle offen |
+| — | Nur Nord- und Ostsee: kein Binnensee (Bodensee, Chiemsee, Neusiedler See), also nichts für AT und CH — steht auf der Kachel | Stufe 2 nicht begonnen | Gate E |
+| V-SW-1 | Warnungen nur als Text je Küste/Seegebiet, nicht als Fläche | — | CAP-Zellen |
+| V-SW-5 | Geteilte Seewetter-Links ohne eigene Vorschau (Edge-Bündel kennt die Route nicht) | `verify:share` SH6 | `npm run edge:share` |
+| V-SW-16 | Ein von der Seite verworfener Spot lässt sie beim Anwählen abstürzen (nicht ausgelöst) | §10 | leere Stunde statt `null` |
+| V-SW-3/14 | Böe < Wind an Einzelstunden (Option aus), Senkentiefe über Wasser | §12.2, §13.5 | nächster Stand von buscosun Fusion |
+| — | Real-Device nicht geprüft; Suchmaschinen sehen die Seite nicht (noindex), keine Unterseiten je Spot | — | Gate C, E-SW-32 |

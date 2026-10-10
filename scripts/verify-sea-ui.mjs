@@ -10,7 +10,7 @@
  * served by request interception for `…/buscosun-data@main/sea/v1/*` and raw.githubusercontent, the page clock is shifted.
  * The coastal measurement (POI) is a frozen file of Arkona. Basemap tiles come from the network (no checked content).
  *
- *   A  flag gate: off by default (SEA_LIVE false) — route 404, no tile; `?sea=1` page + tile 12 + palette 13
+ *   A  flag gate: on for everyone since 10.10. (SEA_LIVE) — page and start-page tile 12 without parameter, `?sea=0` hides
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · map 728 · band over the map foot
  *   C  data: default spot St. Peter-Ording, one band column per hour to the end of the run, origin at the numbers
  *   D  state: hour, spot, profile, unit, layer, tab ⇒ URL; Bft changes the numbers; limits editable
@@ -176,25 +176,43 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
 
 // --- A: flag gate --------------------------------------------------------------------------------------
 {
-  const { ctx, errors, off } = await openPage({ path: '/seewetter' });
+  // Jan 10.10.: the flag is on for everyone (SEA_LIVE); `?sea=0` stays the per-visitor switch-off.
+  const { ctx, errors, off } = await openPage({ path: '/seewetter?sea=0' });
   const notFound = await until(ctx, `!!document.querySelector('h1') && /nicht gefunden|404/i.test(document.body.innerText) && !document.querySelector('.sw-root')`, 20_000);
-  add('A1 ohne ?sea=1: /seewetter antwortet wie ein unbekannter Pfad (SEA_LIVE aus)', notFound);
+  add('A1 mit ?sea=0: /seewetter antwortet wie ein unbekannter Pfad (Ausschalter je Besucher bleibt)', notFound);
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/?sea=0' });
+  await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
+  await sleep(800);
+  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '', rail: [...document.querySelectorAll('a[title]')].some((a) => a.getAttribute('title') === 'Seewetter') })`);
+  add('A2 Startseite mit ?sea=0: keine Seewetter-Kachel, Zähler „11 Werkzeuge“', !r.tile && /11/.test(r.count) && !r.rail, JSON.stringify(r));
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
   const { ctx, errors, off } = await openPage({ path: '/' });
   await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
   await sleep(800);
-  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '', rail: [...document.querySelectorAll('a[title]')].some((a) => a.getAttribute('title') === 'Seewetter') })`);
-  add('A2 Startseite ohne Flag: keine Seewetter-Kachel, Zähler unverändert „11 Werkzeuge“', !r.tile && /11/.test(r.count) && !r.rail, JSON.stringify(r));
+  const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Seewetter/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); const pv = t?.querySelector('.tile-sea-preview')?.getBoundingClientRect(); return { tile: !!t, eyebrow: t?.querySelector('.tile-eyebrow')?.textContent ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '', preview: pv ? [Math.round(pv.width), Math.round(pv.height)] : null, inside: !!(b && pv && pv.left >= b.left && pv.right <= b.right && pv.top >= b.top && pv.bottom <= b.bottom), tags: [...(t?.querySelectorAll('.tile-tag') ?? [])].map((e) => e.textContent), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+  add('A3 Startseite ohne Parameter (Flag an für alle, SEA_LIVE): Kachel „12 · SEEWETTER“ sichtbar mit Vorschau und Stichworten, Zähler 12',
+    r.tile && r.eyebrow === '12 · SEEWETTER' && /12/.test(r.count) && r.preview && r.preview[0] >= 300 && r.preview[1] >= 120 && r.inside && r.tags.length >= 4 && !r.overflow, JSON.stringify(r));
+  await shot(ctx, 'home-tile-desktop');
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
-  const { ctx, errors, off } = await openPage({ path: '/?sea=1' });
-  await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
+  const { ctx, errors, off } = await openPage({ path: '/seewetter' });
+  const deck = await until(ctx, READY, 60_000);
+  add('A4 /seewetter ohne Parameter: das Deck rendert (Flag an für alle)', deck);
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/', width: 390, height: 844, mobile: true });
+  await until(ctx, `!!document.querySelector('.deck-bento')`, 20_000);
   await sleep(800);
-  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null), eyebrow: [...document.querySelectorAll('.tile-eyebrow')].map((e) => e.textContent).find((t) => /SEEWETTER/.test(t)) ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '' })`);
-  add('A3 Startseite mit ?sea=1: Kachel „12 · SEEWETTER“ sichtbar, Zähler 12', r.tile && r.eyebrow === '12 · SEEWETTER' && /12/.test(r.count), JSON.stringify(r));
+  const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Seewetter/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); const pv = t?.querySelector('.tile-sea-preview')?.getBoundingClientRect(); return { tile: !!t, w: b ? Math.round(b.width) : 0, inside: !!(b && pv && pv.width > 0 && pv.left >= b.left && pv.right <= b.right), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+  add('A5 Startseite mobil 390 px: Seewetter-Kachel über die volle Breite, Vorschau innerhalb der Kachel, kein seitlicher Überlauf', r.tile && r.w >= 320 && r.inside && !r.overflow, JSON.stringify(r));
+  await shot(ctx, 'home-tile-mobile');
   off(); allErrors.push(...errors); await ctx.close();
 }
 

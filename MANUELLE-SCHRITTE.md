@@ -2266,3 +2266,34 @@ Temperatur-Anker zum Stundenanfang an 8 von 8 Städten, ohne die Option an 1 von
 - `?obsvar=0` — der Leser vor V-AF-9 (nur die Werte am Stationsstempel), byte-gleich.
 - `?dense=0` — buscosun Fusion 11 (sechs volle Stationen, liest ebenfalls je Größe).
 - `?obs=direct` — Messungen von den Anbietern (BrightSky, TAWES, SMN) wie vor Phase OF.
+
+## 63. Seewetter für alle eingeschaltet (`SEA_LIVE`), Kachel 12 — und V-SW-18: kein Wind seit dem 07.10., 2026-10-10
+
+Belege: `audit/seewetter.md` §14 (Befund, Ursache, Umsetzung, Gates, Lücken). Lokal auf `main` committet, **nicht gepusht**;
+im Daten-Repo nichts geändert.
+
+### 63.1 Reihenfolge (der Wind zuerst)
+
+1. **Workflow kopieren:** `buscosun-web/scripts/sea/workflow-sea.yml` → `buscosun-data/.github/workflows/sea.yml` (eine Zeile
+   anders: `public/climaGrid.json` in der Sparse-Liste des Producers, dazu ein Kommentar) und pushen. Ohne diese Kopie rechnet
+   buscosun Fusion im Job keinen Wind — seit dem 07.10. 16:24 UTC stand an keinem der 56 Spots ein Wert.
+2. **Prüfen** nach dem nächsten Wind-Durchlauf (alle 3 h mit dem neuen t1-Würfel, sonst mit dem CWAM-Lauf gegen 04:25 / 16:25
+   UTC): `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` → `wind.path`; in dieser Datei
+   tragen die Reihen `wind` ab der Rechenstunde Zahlen statt `null`, `wind.engine` nennt „buscosun Fusion 12“.
+3. **Dann `buscosun-web/main` pushen** (schaltet die Seite für alle ein). Wird zuerst gepusht, ist die Seite ohne Wind live und
+   der Job `sea` im Daten-Repo ab dem nächsten Lauf rot („Klimatologie von buscosun Fusion fehlt …“) — gewollt statt still leer.
+
+### 63.2 Danach
+
+- `npm run edge:share` (Edge-Bündel mit der Route `seewetter`; `verify:share` 528/528) — geteilte Links bekommen sonst keine
+  eigene Vorschau (E-SW-15).
+- Katalog mit den 12 gezogenen Lagen ins Daten-Repo (§48.7) — live liegt noch der alte.
+- **Gate D zählt neu:** 14 Tage ab dem ersten Lauf mit Wind, dann `sea-gate-d.mjs` (§44 Punkt 6).
+- **E-SW-32 Indexieren:** `noindex` in `routes.ts` bleibt wie bei Autobahnwetter, bis Gate B/D durch sind — dann die eine Zeile
+  entfernen (Sitemap folgt daraus).
+- Ansehen: V-SW-20 (Watt-Spots zeigen „0,0 m“ ohne Erklärung — auch die Voreinstellung St. Peter-Ording), Real-Device.
+
+### 63.3 Rückwege
+
+- `SEA_LIVE = false` + Push — wieder nur mit `?sea=1`.
+- `?sea=0` je Besucher; `SEA_KILL=1` als Repo-Variable im Daten-Repo (Seite zeigt „Keine Daten“).

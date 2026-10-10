@@ -468,6 +468,19 @@
    Flamme (src/FireIcon.tsx): drei Flammenschichten flackern phasenversetzt, Glut steigt
    auf, ein weicher Schein atmet. Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus. */
 .tile-fire { justify-content: space-between; min-height: 210px; padding: 22px; }
+
+/* Seewetter (Kachel 12, Phase SW; seit 2026-10-10 für alle): Text links, rechts eine schematische
+   Seekarte — Wellenfeld, Küste, Spots in den Klassenfarben. Zeichnung, kein Datenbild; Stellung
+   und Breite im Raster bleiben inline (`SW_TILE_STYLE`). */
+.tile-sea { flex-direction: row; align-items: stretch; gap: 26px; padding: 22px; }
+.tile-sea-text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.tile-sea-head { display: flex; align-items: center; gap: 14px; }
+.tile-sea-head .tile-title { margin-top: 5px; }
+.tile-sea-preview {
+  flex: 0 0 44%; min-height: 184px; position: relative; overflow: hidden; border-radius: 14px;
+  background: var(--ink-900); border: 1px solid var(--border-default);
+}
+.tile-sea-preview svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .tile-flame { height: 64px; display: flex; align-items: center; justify-content: center; }
 .tile-flame-svg { overflow: visible; }
 .tile-flame-outer, .tile-flame-inner, .tile-flame-core { transform-origin: 32px 58px; animation: deck-flame 1.8s ease-in-out infinite; }
@@ -701,6 +714,9 @@
   .tile-feedback-icon { width: 46px; height: 46px; border-radius: 13px; }
   .tile-feedback-icon svg { width: 22px; height: 22px; }
   .tile-feedback .tile-badge { display: none; }
+  /* Seewetter: Text über der Seekarte */
+  .tile-sea { flex-direction: column; gap: 14px; padding: 18px; }
+  .tile-sea-preview { flex: 0 0 auto; min-height: 0; height: 128px; }
 
   /* Sektionen kompakter */
   .deck-fundament, .deck-honesty { padding-left: var(--deck-pad-x); padding-right: var(--deck-pad-x); }
