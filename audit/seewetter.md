@@ -697,7 +697,13 @@ Uncommitted bis zum Commit dieses Abschnitts; nichts gepusht, nichts im Daten-Re
 
 - `SEA_LIVE = true` (`src/sea/seaFlag.ts`): Kachel 12, Palette 13, Fußlink, Rail-Symbol und `/seewetter` ohne Parameter;
   `?sea=0` / `localStorage.sea = '0'` blendet je Besucher aus. Wie bei Autobahnwetter (03.10.) **vor** den Gates B und D.
-- **noindex bleibt** (`routes.ts`), keine Sitemap — wie Autobahnwetter; Indexieren ist ein eigener Schritt nach Gate B/D (E-SW-32).
+- **Indexierbar (E-SW-32, Jan 10.10.: „setze beides um“):** `noindex` der Route entfernt, `/seewetter` steht in `sitemap-pages.xml`.
+  Die App schreibt `/seewetter` auf den Standard-Spot um — nach der alten Regel „unbekannter Sub-Slug ⇒ noindex“ hätte die
+  gerenderte Seite dort wieder `noindex` getragen. Neu in `metaForPath`: die Regel gilt nur für Routen MIT Sub-Liste; bei
+  Seewetter (und Autobahnwetter) entscheidet die Seite über das Segment, alle Spot-Pfade tragen Canonical `/seewetter`
+  (keine eigenen Unterseiten je Spot — eigener SEO-Schritt). Mit der Indexierung erscheint der Chip „Über diese Ansicht“
+  (`RouteSeoBlock`, trägt die einzige H1): Desktop unten rechts über der Readout-Spalte (58 px Fußraum im Readout),
+  mobil links unter der Chipzeile statt auf den Zeitchips +24 h/+48 h (`seaDeck.css`). `llms.txt` nennt Seewetter noch nicht.
 - **Kachel:** bisher Text über die volle Breite; jetzt Text links (Symbol, Titel, Beschreibung mit Einschränkung, fünf
   Stichworte) und rechts eine schematische Seekarte (Wellenfeld, Küste, Spots in den Klassenfarben, Pfeile) — eine Zeichnung,
   kein Datenbild, lädt nichts. Regeln `.tile-sea*` in `SearchPage.css` (E-SW-8 „CSS unverändert“ damit aufgehoben), mobil
@@ -708,9 +714,10 @@ Uncommitted bis zum Commit dieses Abschnitts; nichts gepusht, nichts im Daten-Re
 ### 14.3 Gates
 
 `verify:sea-contract` **30/30** (F1 Rangfolge mit beiden Voreinstellungen, F1b `SEA_LIVE` an), `verify:sea-derive` **61/61**,
-`verify:sea-ui` **39/39** gegen `vite preview` des Baus (A1/A2 `?sea=0` blendet aus, A3 Kachel ohne Parameter mit Vorschau 550 × 184
-und Zähler 12, A4 Deck ohne Parameter, A5 mobil 390 px ohne Überlauf), `verify:road-ui` **64/64** (A4 Zähler 12),
-`sea-text` 35/35, `sea-decode` 13/13, `verify:routing` 255/255, `verify:seo` 803, `verify:health` 44/44,
+`verify:sea-ui` **41/41** gegen `vite preview` des Baus (A1/A2 `?sea=0` blendet aus, A3 Kachel ohne Parameter mit Vorschau 550 × 184
+und Zähler 12, A4 Deck ohne Parameter, A5 mobil 390 px ohne Überlauf, A6 kein noindex am Spot-Pfad + Canonical + eine H1,
+A7 Chip mobil auf keiner Schaltfläche), `verify:road-ui` **64/64** (A4 Zähler 12),
+`sea-text` 35/35, `sea-decode` 13/13, `verify:routing` 256/256 (drei [SW]-Prüfungen neu gefasst, mit Gegenprobe), `verify:seo` 803, `verify:health` 44/44,
 `verify:fusion-release` 30/30, typecheck 0, Build 255/255, Budget grün (eagerJs 109,6 / 109,7, totalJs 1 714,2 / 1 715);
 `verify:share` 527/528 — SH6 Edge-Bündel ohne die Route `seewetter` (E-SW-15, Jans `npm run edge:share`).
 Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewetter` ohne Parameter, Konsole 0 Fehler
@@ -732,4 +739,11 @@ Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewe
 | V-SW-5 | Geteilte Seewetter-Links ohne eigene Vorschau (Edge-Bündel kennt die Route nicht) | `verify:share` SH6 | `npm run edge:share` |
 | V-SW-16 | Ein von der Seite verworfener Spot lässt sie beim Anwählen abstürzen (nicht ausgelöst) | §10 | leere Stunde statt `null` |
 | V-SW-3/14 | Böe < Wind an Einzelstunden (Option aus), Senkentiefe über Wasser | §12.2, §13.5 | nächster Stand von buscosun Fusion |
-| — | Real-Device nicht geprüft; Suchmaschinen sehen die Seite nicht (noindex), keine Unterseiten je Spot | — | Gate C, E-SW-32 |
+| — | Real-Device nicht geprüft; keine eigenen Unterseiten je Spot (alle zeigen per Canonical auf `/seewetter`), `llms.txt` ohne Seewetter | — | Gate C, SEO-Linie |
+
+### 14.5 Daten-Repo (Jan 10.10.: „ja setze beides um“)
+
+- **Gepusht 10.10. 20:28 UTC: `buscosun-data` `cd9e29f`** — `.github/workflows/sea.yml` = Vorlage (Diff gegen den Live-Stand: genau
+  die Sparse-Zeile + ein Kommentar), ohne Force, über einen frischen Sparse-Klon.
+- Die Auffrischung mit t1 2026101018 lief 9 min vorher (20:20 UTC) noch mit dem alten Workflow ⇒ wieder ohne Wind; die erste
+  mit Wind ist die mit t1 2026101021 (gegen 23:10 UTC) — Beleg siehe Nachtrag unten.

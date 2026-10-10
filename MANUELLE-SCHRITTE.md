@@ -2269,8 +2269,8 @@ Temperatur-Anker zum Stundenanfang an 8 von 8 Städten, ohne die Option an 1 von
 
 ## 63. Seewetter für alle eingeschaltet (`SEA_LIVE`), Kachel 12 — und V-SW-18: kein Wind seit dem 07.10., 2026-10-10
 
-Belege: `audit/seewetter.md` §14 (Befund, Ursache, Umsetzung, Gates, Lücken). Lokal auf `main` committet, **nicht gepusht**;
-im Daten-Repo nichts geändert.
+Belege: `audit/seewetter.md` §14 (Befund, Ursache, Umsetzung, Gates, Lücken). **Jan 10.10. abends: „ja setze beides um“** —
+Schritt 1 erledigt (`buscosun-data` `cd9e29f`, 20:28 UTC), Indexierung umgesetzt (E-SW-32); Schritt 2/3 siehe §14.5 im Audit.
 
 ### 63.1 Reihenfolge (der Wind zuerst)
 
@@ -2289,8 +2289,8 @@ im Daten-Repo nichts geändert.
   eigene Vorschau (E-SW-15).
 - Katalog mit den 12 gezogenen Lagen ins Daten-Repo (§48.7) — live liegt noch der alte.
 - **Gate D zählt neu:** 14 Tage ab dem ersten Lauf mit Wind, dann `sea-gate-d.mjs` (§44 Punkt 6).
-- **E-SW-32 Indexieren:** `noindex` in `routes.ts` bleibt wie bei Autobahnwetter, bis Gate B/D durch sind — dann die eine Zeile
-  entfernen (Sitemap folgt daraus).
+- **E-SW-32 Indexieren: erledigt** (Jan 10.10.) — `/seewetter` in der Sitemap, Spot-Pfade mit Canonical auf die Route. Nach dem
+  Deploy in der Search Console die Sitemap neu einreichen, wenn es schnell gehen soll; `llms.txt` um Seewetter ergänzen (SEO-Linie).
 - Ansehen: V-SW-20 (Watt-Spots zeigen „0,0 m“ ohne Erklärung — auch die Voreinstellung St. Peter-Ording), Real-Device.
 
 ### 63.3 Rückwege

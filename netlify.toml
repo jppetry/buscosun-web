@@ -574,7 +574,7 @@
   from   = "/autobahnwetter/*"
   to     = "/autobahnwetter.html"
   status = 200
-# Phase SW: Seewetter — Spot als Pfadsegment teilt die Shell der Route; noindex bis Gate C (SEA_LIVE).
+# Phase SW: Seewetter — Spot als Pfadsegment teilt die Shell der Route (Canonical /seewetter); indexierbar seit 10.10.2026.
 [[redirects]]
   from   = "/seewetter"
   to     = "/seewetter.html"

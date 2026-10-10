@@ -292,8 +292,8 @@ export const ROUTES: readonly RouteDef[] = [
   },
   {
     // Phase SW (audit/seewetter.md): Pfadsegment = Spot (`/seewetter/st-peter-ording`), entscheidet die Seite. Seit
-    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`); noindex und in keiner Sitemap bleibt sie bis
-    // nach den Gates B/D (wie Autobahnwetter).
+    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32): `/seewetter`
+    // steht in der Sitemap; die Spot-Pfade teilen Shell und Canonical der Route (keine eigenen Unterseiten).
     id: 'seewetter', path: '/seewetter', aliases: ['/kuestenwetter', '/segelwetter', '/wellen'], featureId: 'sea', subParam: 'spot',
     subs: null,
     meta: {
@@ -301,7 +301,6 @@ export const ROUTES: readonly RouteDef[] = [
       description: 'Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Seewetterbericht im Wortlaut.',
       h1: 'Seewetter: Wie wird es auf dem Wasser?',
       lead: 'Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.',
-      noindex: true, // bis nach Gate B/D (audit/seewetter.md §14)
     },
   },
   {
@@ -469,7 +468,9 @@ export function metaForPath(pathname: string): { title: string; description: str
   return {
     title: m.sub ? m.sub.title : base.title,
     description: m.sub ? m.sub.description : base.description,
-    noindex: !!base.noindex || !!m.sub?.noindex || (!!m.subSlug && !m.sub),
+    // Unbekannter Sub-Slug ⇒ noindex — außer die Route führt keine Sub-Liste: dann entscheidet die Seite über das Segment
+    // (Spot, Korridor) und die URL zeigt per Canonical auf die Route.
+    noindex: !!base.noindex || !!m.sub?.noindex || (!!m.subSlug && !m.sub && !!m.def.subs),
     ogImage: ogCardPath(m.def.id, m.sub?.slug ?? null) ?? undefined,
     routeId: m.def.id,
   };
@@ -571,8 +572,9 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet), noindex', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex);
   add('[AW] bis Gate C noindex und in keiner Sitemap', !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
   add('[SW] /seewetter ist eine Route, /kuestenwetter, /segelwetter, /wellen sind Aliase', routeForPath('/seewetter')?.def.id === 'seewetter' && aliasTarget('/kuestenwetter') === '/seewetter' && aliasTarget('/segelwetter') === '/seewetter' && aliasTarget('/wellen') === '/seewetter');
-  add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet), noindex', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && metaForPath('/seewetter/st-peter-ording').noindex);
-  add('[SW] bis Gate C noindex und in keiner Sitemap', !!ROUTE_BY_ID.seewetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/seewetter')));
+  add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet): indexierbar, Canonical = /seewetter', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter');
+  add('[SW] seit 10.10. indexierbar (E-SW-32): /seewetter genau einmal in der Sitemap, kein Spot-Pfad', !ROUTE_BY_ID.seewetter.meta.noindex && !metaForPath('/seewetter').noindex && sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path).join() === '/seewetter');
+  add('[SW] Gegenprobe: ein unbekannter Sub-Slug einer Route MIT Sub-Liste bleibt noindex', metaForPath('/wetterkarte/xyz').noindex && metaForPath('/waldbrand/xyz').noindex);
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

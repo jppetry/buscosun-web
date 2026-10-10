@@ -204,6 +204,19 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   const { ctx, errors, off } = await openPage({ path: '/seewetter' });
   const deck = await until(ctx, READY, 60_000);
   add('A4 /seewetter ohne Parameter: das Deck rendert (Flag an für alle)', deck);
+  // E-SW-32 (Jan 10.10.): indexable. The app moves /seewetter to the default spot — that URL must not turn noindex at runtime.
+  await sleep(1500);
+  const seo = await ctx.evaluate(`({ path: location.pathname, robots: document.querySelector('meta[name=robots]')?.content ?? null, canonical: document.querySelector('link[rel=canonical]')?.href ?? null, h1: document.querySelectorAll('h1').length, chip: !!document.querySelector('.rsb[data-route="seewetter"] summary') })`);
+  add('A6 indexierbar: auf /seewetter/st-peter-ording kein robots-noindex, Canonical /seewetter, genau eine H1, Chip „Über diese Ansicht“ da',
+    seo.path === '/seewetter/st-peter-ording' && !/noindex/.test(seo.robots ?? '') && /\/seewetter$/.test(seo.canonical ?? '') && seo.h1 === 1 && seo.chip, JSON.stringify(seo));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/seewetter/st-peter-ording', width: 390, height: 844, mobile: true });
+  await until(ctx, `!!document.querySelector('.rsb summary') && !!document.querySelector('.sw-m-top')`, 60_000);
+  await sleep(1500);
+  const r = await ctx.evaluate(`(() => { const c = document.querySelector('.rsb summary').getBoundingClientRect(); const hit = [...document.querySelectorAll('.sw-root button, .sw-root a')].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left < c.right && b.right > c.left && b.top < c.bottom && b.bottom > c.top; }).map((e) => (e.getAttribute('aria-label') ?? e.textContent ?? '').trim().slice(0, 24)); return { chip: [Math.round(c.x), Math.round(c.y), Math.round(c.width), Math.round(c.height)], hit }; })()`);
+  add('A7 mobil: der Chip „Über diese Ansicht“ liegt auf keiner Schaltfläche des Decks (Zeitchips, Pille, Teilen) und ist ≥ 44 px hoch', r.hit.length === 0 && r.chip[3] >= 44 && r.chip[0] >= 0, JSON.stringify(r));
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
