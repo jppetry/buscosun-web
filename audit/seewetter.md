@@ -727,8 +727,8 @@ Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewe
 
 | Nr. | Lücke | Beleg | Weg |
 |---|---|---|---|
-| V-SW-18 | **Kein Wind an den Spots** bis zur Workflow-Kopie; damit auch keine Fenster und tagsüber „keine Daten“ | §14.1 | MANUELLE-SCHRITTE §63.1 |
-| V-SW-19 | Gate D (Wind am Spot gegen die Küstenmessung) hat noch keinen einzigen Tag | Archiv 07.–10.10. ohne Wind | 14 Tage ab der Kopie |
+| V-SW-18 | ~~**Kein Wind an den Spots** bis zur Workflow-Kopie; damit auch keine Fenster und tagsüber „keine Daten“~~ **behoben in Produktion seit 10.10. 23:19 UTC (56/56 Spots, §14.5 Nachtrag)** | §14.1 | erledigt |
+| V-SW-19 | Gate D (Wind am Spot gegen die Küstenmessung) hat noch keinen einzigen Tag | Archiv 07.–10.10. ohne Wind | 14 Tage ab dem 10.10. 23:19 UTC ⇒ frühestens 24.10. |
 | V-SW-20 | **Watt-Spots zeigen „0,0 m“ ohne Erklärung:** im Lauf 2026101012 trägt die Welle an 17 von 56 Spots Stunden mit Hs = 0; Schillig 74 von 79 h, Cuxhaven-Duhnen 72, Dangast 67, Langeoog 36, Spiekeroog 33, Norddeich 33, **St. Peter-Ording (Voreinstellung) 32**, Pellworm 32, Amrum 31. Den Hinweis „Watt: … bei Niedrigwasser …“ tragen nur 7 Spots (`tidal`); Schillig, Langeoog, Spiekeroog, St. Peter-Ording, Amrum, Borkum nicht | `spots/2026101012.json`, Katalog | `tidal` aus den Daten ableiten (Anteil trockener Stunden) statt von Hand; Anzeige „trockengefallen (Modell)“ statt „0,0 m“; drei Spots mit > 80 % trockener Stunden auf eine nasse Zelle ziehen |
 | V-SW-21 | Der Katalog im Daten-Repo ist noch der alte: 12 Lagen aus E-SW-31 (b) liegen nicht live | `sea/v1/static/spots.json` live gegen den Katalog im Repo: 12 Lagen verschieden | MANUELLE-SCHRITTE §48.7 |
 | V-SW-7 | Vorhersage endet nach 78 h (CWAM); kein Ausblick fürs Wochenende | — | GWAM bis 174 h (SW-8) |
@@ -746,8 +746,17 @@ Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewe
 - **Gepusht 10.10. 20:28 UTC: `buscosun-data` `cd9e29f`** — `.github/workflows/sea.yml` = Vorlage (Diff gegen den Live-Stand: genau
   die Sparse-Zeile + ein Kommentar), ohne Force, über einen frischen Sparse-Klon.
 - Die Auffrischung mit t1 2026101018 lief 9 min vorher (20:20 UTC) noch mit dem alten Workflow ⇒ wieder ohne Wind; die erste
-  mit Wind ist die mit t1 2026101021 (gegen 23:10 UTC) — Beleg siehe Nachtrag unten.
+  mit Wind ist die mit t1 2026101021 (gegen 23:10 UTC) — Beleg im Nachtrag unten.
 - **`buscosun-web/main` von Jan gepusht:** `998334c` (SEA_LIVE, Kachel, Producer) 20:19 UTC, `4a6d2b9` (Indexierung) 20:42 UTC.
   Produktion 20:44 UTC geprüft: Shell `/seewetter` ohne `robots`, Canonical `/seewetter`, H1 da; `sitemap-pages.xml` führt
   `/seewetter`; Startseite (390 px) mit Kachel 12 samt Vorschau, „12 Werkzeuge“, Fußlink; `/seewetter` rendert das Deck am
   Standard-Spot ohne `noindex`, eine H1, Chip da, Konsole 0 Fehler. Wind zu diesem Zeitpunkt noch leer (s. o.).
+- **Nachtrag 10.10. 23:19 UTC — V-SW-18 in Produktion behoben.** Der Lauf des Workflows von 23:18 UTC (grün, der erste mit
+  dem neuen t1-Würfel 2026101021) schrieb `spots/2026101012-w2026101021.json`: **56 von 56 Spots mit Wind**, je Spot 68 Stunden
+  (Stunde 11…78 des CWAM-Laufs, davor `null` = vor der Rechenstunde), zusammen 3 808 Wind-, 3 808 Böen- und 3 614
+  Richtungswerte (eine fehlende Richtung bleibt fehlend, E-FR-5), 0 Stunden mit Böe unter Wind, `rejected` leer, `failed`
+  leer; `status.json` → `wind.engine` „buscosun Fusion 12“, `version` 12, `stageCurrent` true, Läufe t1 2026101021 /
+  t2 2026101018 / Stationen 2026101021, Bau 3 s, 51,8 KB. Die zehn Läufe dazwischen (20:42 … 22:52 UTC) waren grün und ohne
+  Auffrischung (kein neuer t1). Produktion 23:25 UTC im Browser: `/seewetter` → St. Peter-Ording lädt die neue Datei über
+  jsDelivr, Stundenband mit Wind 17 kn aus W (268°) und Böen 25 kn, 68 Spalten, Fußzeile „Wind buscosun Fusion 12“,
+  „keine Daten“ steht nur noch in der Legende, Konsole 0 Fehler. **Gate D zählt ab diesem Lauf** (14 Tage ⇒ frühestens 24.10.).
