@@ -2207,13 +2207,13 @@ gelten für beide Stände. Keine Daten- oder Archiv-Repo-Änderung, kein Purge, 
 
 (Auf diesem Zweig bis zum Abend des 10.10. als §61 geführt; §61 ist auf `main` seit `9c0fd1c` die Performance-Phase PF.)
 
-Phasendokument `audit/autobahn-fusion12-lueckenlos.md` (§8.3 = V-AF-9, §8.4 = V-AF-10). Alles liegt lokal im Arbeitsbaum
-`C:\dev\buscosun-web\.wt-af` auf dem Zweig `af/merge-fusion-12` — **V-AF-9 und V-AF-10 sind dort UNCOMMITTET**; `af/dense-anchor` (AF-4)
-setzt auf dem Zweig auf. **Nichts ist gepusht, nichts ins Daten-Repo kopiert; die Produktion rechnet weiter buscosun Fusion 9.**
+Phasendokument `audit/autobahn-fusion12-lueckenlos.md` (§8.3 = V-AF-9, §8.4 = V-AF-10, §8.5 = Merge, Push und Live-Test).
 
-**Achtung, Reihenfolge:** `main` trägt seit dem Merge der Performance-Phase (`3e5297a`, 10.10. 20:14, nicht gepusht) schon buscosun
-Fusion 12 — **ohne** V-AF-9 und V-AF-10. Ein Push von `main` in diesem Zustand brächte Fusion 12 mit dem Lesefehler live (in jedem
-Halbstunden-Fenster kein deutscher Temperatur-Anker). Erst die beiden Korrekturen committen und nach `main` mergen, dann pushen.
+**Stand 10.10. 19:05 UTC: buscosun Fusion 12 läuft mit beiden Korrekturen live.** `main` = `origin/main` = `7213962` (Jans Commit
+`a4bc2a5` + Merge mit der Performance-Phase), auf Jans Wort („schalte sie jetzt bitte live“) gepusht um 18:41 UTC, auf buscosun.com
+ausgeliefert 18:43 UTC. Von 18:19 bis 18:43 UTC lief Fusion 12 ohne die Korrekturen (Push der Performance-Phase `9c0fd1c`). Live-Test:
+Temperatur-Anker zum Stundenanfang an 8 von 8 Städten, ohne die Option an 1 von 8; 0 BrightSky-Anfragen; Konsole nur die bekannten
+`404` des Radar-Slots. `af/dense-anchor` (AF-4) setzt auf dem Zweig auf und ist nicht Teil davon. Das Daten-Repo ist unverändert.
 
 ### 62.1 Entscheidungen
 
@@ -2245,17 +2245,14 @@ Halbstunden-Fenster kein deutscher Temperatur-Anker). Erst die beiden Korrekture
 - **E-AF-8 (offen) — V-AF-13:** Spiegel hält den letzten Wert einer Größe länger als 60 min (`scripts/obs/obs-mirror.mjs`, Auftrag
   Schritt 3, optional). Nicht gebaut: die Änderung macht `verify:obs-reader --live` (10) rot, bis die Kopie im Daten-Repo liegt, und
   der Leser begrenzt ohnehin auf 90 min. Auf dein Wort baue ich sie als eigenen Commit.
-- **E-AF-9 (offen) — Bezeichnung:** die Option aus V-AF-10 ist als Teil des noch nicht veröffentlichten Stands 12 gebaut (wie der
-  Leser aus V-AF-9). Nach der Namensregel wäre eine Änderung an der Kette ein neuer Stand (Fusion 13). Empfehlung: Teil von 12 —
-  Stand 12 war nie live. Als 13 wäre es ein Eintrag im Register.
+- **E-AF-9 (entschieden, Jan 10.10. abends: „wir belassen es bei Fusion 12“) — Bezeichnung:** die Option aus V-AF-10 ist Teil des
+  Stands 12 (wie der Leser aus V-AF-9), kein eigener Stand.
 
 ### 62.2 Was nur du tun kannst
 
-1. **Commit freigeben:** V-AF-9 und V-AF-10 liegen uncommittet im Arbeitsbaum `.wt-af`. Auf dein Wort committe ich (Code + Verifier +
-   Fixtures, dann Doku) und merge den Zweig nach `main` (dort liegt inzwischen die Performance-Phase; `MANUELLE-SCHRITTE.md` und
-   `CLAUDE.md` brauchen dabei Handarbeit, der Code nicht — `main` hat die berührten Motor-Dateien seit dem Merge nicht geändert).
-2. **Push von `buscosun-web/main`** erst danach. Im Chat ausdrücklich „pushe main“ sagen — der Auto-Modus-Filter lehnt den Push
-   sonst ab.
+1. Erledigt: Commit (`a4bc2a5`, Jan), Merge mit `main` und Push (`7213962`), Live-Test (§8.5 im Audit).
+2. **Offen: messen, ob es genauer ist** (V-AF-19) — ein Prüfstand-Lauf, dessen Messungen vor der Ausgabestunde liegen. Der Live-Test
+   zeigt nur, dass der Anker greift.
 3. **Nach dem Push prüfen:** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-obs-reader.mjs --live`
    in einem schlechten Fenster (:12–:20 oder :42–:50) — Block (19) nennt den Anteil der deutschen Temperaturstationen mit Wert
    (Grenze 95 %). Im Browser `…/wetterkarte/wind/muenchen?ansicht=dashboard&pflog=1`: Vermerk `obsPerVar:set …`, 0 Anfragen an

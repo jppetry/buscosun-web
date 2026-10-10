@@ -1,7 +1,8 @@
 # Autobahnwetter — Phase AF: Streckenprognose lückenlos mit buscosun Fusion 12
 
 > Stand 2026-10-10. Diagnose und Entwurf (Spezifikation) in §0–§7; **Umsetzungsprotokoll in §8** (AF-1 Merge §8.1, V-AF-9 Leser je
-> Größe §8.3, V-AF-10 Anker vor dem Achsenbeginn §8.4 (E-AF-6 = Weg a, Jan 10.10.) — lokal, uncommittet, nichts gepusht). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
+> Größe §8.3, V-AF-10 Anker vor dem Achsenbeginn §8.4 (E-AF-6 = Weg a, Jan 10.10.), Merge mit `main`, Push `7213962` und Live-Test §8.5 — buscosun
+> Fusion 12 läuft seit 10.10. 18:43 UTC mit beiden Korrekturen live). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
 > (Fusion 12, Branch `fusion-12`), `audit/fusion-release.md` (Register der Stände).
 
 ## 0. Kurzfassung für Jan
@@ -704,7 +705,7 @@ vor der Ausgabestunde (aus der kleinen Zahl geschlossen, nicht nachgezählt). Di
 | V-AF-20 | `fusion-12s` im Prüfstand-Register nennt die Option nicht; „buscosun Fusion 12“ im Code trägt sie | Register und Code sagen dasselbe | E-AF-9 |
 
 - **E-AF-6 (entschieden, Jan 10.10.: „setze a um“):** Weg (a), Motor. Umgesetzt wie oben.
-- **E-AF-9 (offen, Jans Gate): Teil von buscosun Fusion 12 oder buscosun Fusion 13?** Gebaut ist die Option als Begleit-Option des noch
+- **E-AF-9 (entschieden, Jan 10.10. abends: „wir belassen es bei Fusion 12“).** Die Frage war: Teil von buscosun Fusion 12 oder buscosun Fusion 13? Gebaut ist die Option als Begleit-Option des noch
   nicht veröffentlichten Stands 12, wie der Leser aus V-AF-9. Nach der Namensregel („jede Änderung an Kette ⇒ neue Nummer“) wäre sie ein
   eigener Stand. Empfehlung: Teil von 12 lassen — Stand 12 war nie live, und ohne die Option wäre er in Deutschland in einem Drittel
   der Zeit ohne Temperatur-Anker; die Definition in `CLAUDE.md` nennt die Option. Als Fusion 13 wäre es EIN neuer Eintrag im Register
@@ -735,3 +736,81 @@ Gegenprobe-Lauf trifft §8.3.5; `prepOf` ist derselbe Rumpf, alle 441 Bestandspr
 entfernt. (2) Desktop pixelgleich — keine UI geändert; Werte ändern sich, wo eine Messung vor dem Achsenbeginn liegt (§8.4.4). (3) kein
 neues Bedienelement. (4) Konsole — nicht im Browser geprüft. (5) Long Tasks — höchstens drei zusätzliche Schritte auf 102, nur mit
 einer Messung vor dem Achsenbeginn; nicht gemessen.
+
+### 8.5 Zusammenführung, Veröffentlichung und Live-Test (10.10.2026, 18:30–19:05 UTC; Jan: „schalte sie jetzt bitte live, danach teste sie“)
+
+#### 8.5.1 Ausgangslage
+
+`main` war seit dem Push der Performance-Phase (`9c0fd1c`, 18:19 UTC) mit buscosun Fusion 12 live — **ohne** V-AF-9 und V-AF-10. Beleg
+auf buscosun.com um 18:32 UTC: Bundle `cubeSource-DVZu7wjr.js` ohne `obsvar` und ohne `ancpre`, Stufen-Notiz „buscosun Fusion 12“,
+`anchorAtObsTime: Modellwert an 0 von 12 Messungen …`. Jan hatte V-AF-9 und V-AF-10 als `a4bc2a5` committet.
+
+#### 8.5.2 Merge und Gates
+
+`main` (Phase PF) in `af/merge-fusion-12` gemergt (`7213962`). Konflikte: `CLAUDE.md` (Statuszeilen RG/PF von `main`, AF vom Zweig),
+`MANUELLE-SCHRITTE.md` (§61 PF, §62 AF), `budget.json` (eagerJs-Grenze 109,7 von PF, totalJs-Grenze 1 715 von AF). Die berührten
+Motor-Dateien hatte `main` seit dem Abzweig nicht geändert. Gates auf dem zusammengeführten Baum, vor dem Push:
+
+| Gate | Ergebnis |
+|---|---|
+| typecheck · build · budget | 0 Fehler · grün (SEO 255/255) · eagerJs 109,6 / 109,7, largestChunk 278,4 / 302, totalJs **1 713,5 / 1 715** |
+| `verify:pv-cube` | 445/446 — rot nur (21) (V-AF-7) |
+| `verify:obs-reader` · `fusion-release` · `fusion12-identity` | 70/70 · 30/30 · 18/18 |
+| `verify:pv-fusion` · `road-fc` · `point-client` | 235/235 · 103/103 · 179/179 |
+
+Push `9c0fd1c..7213962` nach `origin/main` um 18:41 UTC; buscosun.com lieferte das neue Start-Bundle (`index-DJnTi1l8.js`) 70 s später.
+
+#### 8.5.3 Live-Test auf buscosun.com (Playwright-Chromium, `/wetterkarte/wind/muenchen?ansicht=dashboard&pflog=1`)
+
+| Zeit (UTC) | Fenster | Schalter | Bundle | Vermerke des Motors (Seite) | BrightSky | `obs/v1` | Konsole |
+|---|---|---|---|---|---|---|---|
+| 18:32:57 (vor dem Push) | gut | — | `cubeSource-DVZu7wjr.js`, ohne `obsvar`/`ancpre` | `obs: 12 …` · `anchorAtObsTime: 0 von 12` | 0 | 2 | 3 × 404 Radar-Slot |
+| 18:43:44 | schlecht für den Leser (T 30 min hinter dem Stempel) | — | `cubeSource-CRyWfYfX.js`, mit `obsvar`, `ancpre`, `anchorBeforeAxis` | `obs: 16 …` · `obsPerVar:set — … 12 Station(en), davon 4 mit Messungen an mehr als einem Stempel` · `anchorAtObsTime: 16 von 16` · **`anchorBeforeAxis: 4 von 4 Messung(en) vor dem Achsenbeginn … gepaart`** · Stufe „buscosun Fusion 12“; Ausgaben nach 344 / 443 / 772 ms | 0 | 2 | 2 × 404 Radar-Slot |
+| 18:44:06 | schlecht | `&obsvar=0` | dasselbe | `obs: 12 …` · kein `obsPerVar`, kein `anchorBeforeAxis` (Gegenprobe: ohne den Leser keine Temperatur im Satz) | 0 | 2 | 2 × 404 |
+| **19:03:18** | **Stundenanfang** (Stempel der Messungen vor 19:00) | — | dasselbe | `obs: 12 …` · `anchorAtObsTime: 12 von 12` · **`anchorBeforeAxis: 12 von 12 Messung(en) vor dem Achsenbeginn … gepaart`**; Ausgaben nach 261 / 330 / 2 013 / 2 103 ms | 0 | 2 | 6 × 404 Radar-Slot |
+
+Screenshots `browser/live-1843-desktop.png`, `browser/live-1903-desktop-top-of-hour.png`. Die Seite zeigt mit `?pflog=1` nur die ersten
+zwölf Vermerke; die Zahl der Anker-Paare steht weiter hinten.
+
+#### 8.5.4 Derselbe Stand (`7213962`) im Browser gegen die Live-Daten, volle Vermerke (Dev-Server des Arbeitsbaums, `getPointForecastFromCube` mit `defaultCubeIo()`)
+
+**18:42:52 UTC, schlechtes Fenster für den Leser, fünf Städte:** Stufe „buscosun Fusion 12“ an allen; Temperatur-Paare München 4 · Berlin 1 ·
+Hamburg 6 · Frankfurt 6 · Köln 4. München mit Gegenproben:
+
+| Lauf | Anker-Vermerk | Temperatur Stunde 0 |
+|---|---|---|
+| Voreinstellung | `anchor: 4 Paar(e) aus dwd_obs, Versatz T -1.23 K, Repräsentativität 0.96` | 10,91 °C |
+| `obsPerVar: false` (Leser vor V-AF-9 = der Stand, der bis 18:41 live war) | `anchor: Messungen da, aber kein Paar … — kein Anker`; Stationswert ohne Innovation (Formen S0/B statt S/AB) | **11,50 °C** |
+| `anchorBeforeAxis: false` | `anchor: 4 Paar(e) …, Versatz T -1.09 K` | 10,98 °C |
+
+**19:03:32 UTC, Stundenanfang, acht Städte, je mit und ohne `anchorBeforeAxis`:**
+
+| Stadt | mit Option | ohne Option (Gegenprobe) | Temperatur Stunde 0 mit / ohne |
+|---|---|---|---|
+| München | 4 Paare, Versatz −1,69 K | kein Paar | 10,12 / 10,12 |
+| Berlin | 1 Paar, +0,67 K | kein Paar | 11,54 / 11,33 |
+| Hamburg | 6 Paare, −0,99 K | 1 Paar, −1,03 K | 10,53 / 10,52 |
+| Frankfurt | 6 Paare, +0,70 K | kein Paar | 12,77 / 12,77 |
+| Köln | 4 Paare, −0,46 K | kein Paar | 11,34 / 11,46 |
+| Dresden | 5 Paare, −1,42 K | kein Paar | 10,14 / 10,69 |
+| Stuttgart | 6 Paare, −1,26 K | kein Paar | 9,88 / 10,28 |
+| Hannover | 3 Paare, −0,88 K | kein Paar | 10,93 / 11,25 |
+
+- **Temperatur-Anker zum Stundenanfang an 8 von 8 Punkten, ohne die Option an 1 von 8** (Hamburg: eine Station mit jüngerem Stempel) — das
+  Bild der Wiederholung aus §8.4.4, jetzt mit den Daten der Stunde und im Browser.
+- München und Frankfurt zeigen trotz Anker dieselbe Temperatur mit und ohne Option: dort trägt der Stationswert die Temperatur (Station
+  am Punkt), und der rechnet an der Messminute (§8.3.5). An den übrigen Punkten verschiebt der Anker die Stunde 0 um 0,01–0,55 K.
+- Konsole: 29 Einträge, alle `404` auf den noch nicht veröffentlichten Radar-Slot (bestehendes Verhalten, je Lauf einer).
+
+#### 8.5.5 Was der Live-Test nicht sagt
+
+- **Keine Genauigkeitsaussage.** Gezeigt ist, dass der Anker greift und der Rückweg schaltet — nicht, dass die Vorhersage näher an der
+  Wahrheit liegt (V-AF-19).
+- Kein Real-Device, kein Mobil-Viewport in diesem Lauf, kein Pixel-Diff. Datenprodukte: `road/fc` Lauf 18:29 UTC ist mit buscosun
+  Fusion 12 gebaut (`verify:fusion-release --live`); er verankert an den Straßenstationen zur vollen Stunde, V-AF-9/10 ändern dort erst
+  mit AF-4 (dichter Messsatz) etwas. `point/field` nennt in den Manifesten von t1/t2/t3 keinen Stand (Meldung des Wächters „vor dem
+  Register gebaut“) — nicht aus dieser Änderung, als V-AF-21 notiert.
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AF-21 | `verify:fusion-release --live` ≈ 18:45 UTC: die Kartenfelder t1 (Lauf 15 UTC), t2 (12 UTC), t3 (00 UTC) tragen keinen Stand im Manifest | die Legende „buscosun Fusion ‹n› · Modell · Cube“ nennt den Stand, mit dem das Feld gebaut ist | prüfen, ob der Feldschritt des Punkt-Crons läuft (V-RC-2, Workflow-Kopie) und ob `chain.options.fusion` geschrieben wird |
