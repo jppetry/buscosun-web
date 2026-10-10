@@ -4,7 +4,7 @@
 // Light-blue ring around rain areas: the filter and the in-between pictures mixed a wet texel with the 0 of its dry
 // neighbour; on the log plane that is the light-rain classes. The edge rule decides wet/dry from the measured texels.
 //
-// A  switch grammar (`radarEdgeFlagFrom`): `?hdedge=0|1|round|nearest|off`, store, default off (Rule 2)
+// A  switch grammar (`radarEdgeFlagFrom`): `?hdedge=0|1|round|nearest|off`, store, default `round` (E-RS-1)
 // B  synthetic frames (Node replica of the shader, `scripts/lib/rainEdgeAlgebra.mjs`): a disc of 5 mm/h on the log plane —
 //    old path paints where the nearest texel is dry (negative control), `round` only inside corner rounding, `nearest` never;
 //    inside the disc the edge rule shows the measurement (no fade towards the border); a lone texel stays visible
@@ -31,11 +31,11 @@ const add = (name, ok, detail) => { if (ok) passed++; else failed++; console.log
 const skip = (name, why) => { skipped++; console.log(`⊘ ${name} — ${why}`); };
 
 // ── A: switch ────────────────────────────────────────────────────────────────
-add('A1 default off without a vote (Rule 2)', RADAR_EDGE_DEFAULT === 'off' && radarEdgeFlagFrom('', null) === 'off');
+add('A1 default `round` without a vote (E-RS-1), `?hdedge=0` beats a stored vote', RADAR_EDGE_DEFAULT === 'round' && radarEdgeFlagFrom('', null) === 'round' && radarEdgeFlagFrom('?hdedge=0', 'nearest') === 'off');
 add('A2 `?hdedge=1` = round, `?hdedge=0` = off, words pick the rule', radarEdgeFlagFrom('?hdedge=1', null) === 'round' && radarEdgeFlagFrom('?hdedge=0', 'round') === 'off'
   && radarEdgeFlagFrom('?hdedge=nearest', null) === 'nearest' && radarEdgeFlagFrom('?hdedge=round', '0') === 'round');
 add('A3 store counts without a query vote, unknown word / broken query = no vote', radarEdgeFlagFrom('', '1') === 'round' && radarEdgeFlagFrom('', 'nearest') === 'nearest'
-  && radarEdgeFlagFrom('?hdedge=foo', 'nearest') === 'nearest' && radarEdgeFlagFrom('%E0%A4%A', null) === 'off');
+  && radarEdgeFlagFrom('?hdedge=foo', 'nearest') === 'nearest' && radarEdgeFlagFrom('%E0%A4%A', null) === RADAR_EDGE_DEFAULT && radarEdgeFlagFrom('', '0') === 'off');
 add('A4 codes off 0 · round 1 · nearest 2', RAIN_EDGES.length === 3 && RAIN_EDGE_CODE.off === 0 && RAIN_EDGE_CODE.round === 1 && RAIN_EDGE_CODE.nearest === 2);
 
 // ── shared measurement ───────────────────────────────────────────────────────

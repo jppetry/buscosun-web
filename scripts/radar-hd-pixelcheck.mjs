@@ -17,6 +17,9 @@
  * LINEAR, `rp = (fract(16t), floor(16t)/16)`), alpha-blended over the measured background. All style layers but the
  * precipitation layers, the background, the dim wash and the Länder-Maske are hidden (flat background). Agreement =
  * |ΔRGB| ≤ tol in every channel, counted inside DACH away from the mask edge. Output: canvas shots, diff images, `report.json`.
+ *
+ * Phase RS (E-RS-1): the edge rule is the default since 10.10.2026 — the HD variants above ask for `hdedge=0`, their oracle is
+ * the algebra before RS.
  */
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -45,7 +48,7 @@ const ONLY = args.windows ? args.windows.split(',') : null;
 const DUAL_DIR = args.dualDir ?? null;
 /**
  * Phase RS (`audit/radar-randsaum.md`): `--edge=1` runs the edge-rule variants against the live slot (log plane where the page
- * has one): `?hdedge=1` (round) and `?hdedge=nearest` with the edge oracle, `?hd=catmull` without (the picture before RS), and
+ * has one): `?hdedge=1` (round) and `?hdedge=nearest` with the edge oracle, `?hdedge=0` (the picture before RS), and
  * per run the halo on the canvas itself — drawn pixels (|shot − background| > tol) whose nearest texel of the owning grid is dry.
  */
 const EDGE = args.edge === '1';
@@ -332,7 +335,7 @@ function windowsOf(fr) {
 }
 
 const report = { at: new Date().toISOString(), base: BASE, zoom: ZOOM, tol: TOL, dualDir: DUAL_DIR, runs: [] };
-const probe = await openPage(DUAL_DIR ? '?hd=nearest&hdv2=1' : '?hd=nearest');
+const probe = await openPage(DUAL_DIR ? '?hd=nearest&hdv2=1&hdedge=0' : '?hd=nearest&hdedge=0');
 await waitForFrames(probe, true);
 const probeFrames = await framesFromPage(probe);
 const ramps = { linear: rampReader(await rampFromPage(probe, precipRainRamp)), log: rampReader(await rampFromPage(probe, precipRainRampLog)) };
@@ -345,14 +348,14 @@ console.log('windows', JSON.stringify(windows), DUAL_DIR ? `· RV-Log-Ebene in d
 const VARIANTS = EDGE ? [
   { q: '?hd=catmull&hdedge=1', tag: 'edge-round', mode: 'native', filter: 'catmull', plane: 2, edge: 'round' },
   { q: '?hd=catmull&hdedge=nearest', tag: 'edge-nearest', mode: 'native', filter: 'catmull', plane: 2, edge: 'nearest' },
-  { q: '?hd=catmull', tag: 'edge-off', mode: 'native', filter: 'catmull', plane: 2, edge: 'off' },
+  { q: '?hd=catmull&hdedge=0', tag: 'edge-off', mode: 'native', filter: 'catmull', plane: 2, edge: 'off' },
 ] : DUAL_DIR ? [
-  { q: '?hd=nearest&hdv2=1', tag: 'hd-nearest-dual', mode: 'native', filter: 'nearest', plane: 2 },
-  { q: '?hd=catmull&hdv2=1', tag: 'hd-catmull-dual', mode: 'native', filter: 'catmull', plane: 2 },
-  { q: '?hd=nearest&hdv2=1', tag: 'hd-nearest-dual-vs-linear', mode: 'native', filter: 'nearest', plane: 1 },   // negative control: linear oracle must agree less
+  { q: '?hd=nearest&hdv2=1&hdedge=0', tag: 'hd-nearest-dual', mode: 'native', filter: 'nearest', plane: 2 },
+  { q: '?hd=catmull&hdv2=1&hdedge=0', tag: 'hd-catmull-dual', mode: 'native', filter: 'catmull', plane: 2 },
+  { q: '?hd=nearest&hdv2=1&hdedge=0', tag: 'hd-nearest-dual-vs-linear', mode: 'native', filter: 'nearest', plane: 1 },   // negative control: linear oracle must agree less
 ] : [
-  { q: '?hd=nearest', tag: 'hd-nearest', mode: 'native', filter: 'nearest' },
-  { q: '?hd=catmull', tag: 'hd-catmull', mode: 'native', filter: 'catmull' },
+  { q: '?hd=nearest&hdedge=0', tag: 'hd-nearest', mode: 'native', filter: 'nearest' },
+  { q: '?hd=catmull&hdedge=0', tag: 'hd-catmull', mode: 'native', filter: 'catmull' },
   { q: '', tag: 'head', mode: 'composite', filter: 'bspline' },
 ];
 for (const w of windows) {

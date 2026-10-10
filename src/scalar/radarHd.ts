@@ -63,8 +63,8 @@ export type RainEdge = 'off' | 'round' | 'nearest';
 export const RAIN_EDGES: readonly RainEdge[] = Object.freeze(['off', 'round', 'nearest']);
 /** Shader uniform value per edge rule (`u_edge`); 0 = the path before Phase RS. */
 export const RAIN_EDGE_CODE: Readonly<Record<RainEdge, number>> = Object.freeze({ off: 0, round: 1, nearest: 2 });
-/** Rule 2: off until Jan switches it on (`?hdedge=1` = `round`). */
-export const RADAR_EDGE_DEFAULT: RainEdge = 'off';
+/** E-RS-1 (Jan 10.10.2026, "setze den Schalter immer aktiv"): `round` is the default; `?hdedge=0` = the picture before RS. */
+export const RADAR_EDGE_DEFAULT: RainEdge = 'round';
 
 function parseEdge(v: string | null | undefined): RainEdge | null {
   if (v == null) return null;

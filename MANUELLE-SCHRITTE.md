@@ -1981,10 +1981,8 @@ Skript und die Workflow-Zeile `RADAR_HD250: '1'` (s. 2.).
 
 Diagnose, Umsetzung, Gates: `audit/radar-randsaum.md`. Alles uncommitted in buscosun-web; Daten-Repo unberührt.
 
-1. **Ansehen:** `/regenradar/<ort>` bzw. `/wetterkarte/niederschlag/<ort>` mit `?hdedge=1` (glatte Kontur) und
-   `?hdedge=nearest` (exakt pixelgenau, Treppenkante) gegen ohne Schalter — am Rand eines Regengebiets und beim Abspielen.
-2. **E-RS-1 einschalten:** `RADAR_EDGE_DEFAULT` in `src/scalar/radarHd.ts` auf `'round'` (Empfehlung) oder `'nearest'`;
-   dazu `verify-radar-edge.mjs` A1 anpassen. Rückweg `?hdedge=0`.
-3. **Commit/Push** — Vorschlag `fix(radar): draw rain only where the radar measured it (edge rule, ?hdedge)`; die Phasenwache
-   E8 in `verify:regenradar-profile` wird mit dem Commit grün.
+1. ~~Ansehen / E-RS-1~~ — erledigt: Phase committet (`c02308f`), Jan 10.10. „setze den Schalter immer aktiv" ⇒
+   `RADAR_EDGE_DEFAULT = 'round'` (uncommitted). Rückweg `?hdedge=0`, pixelgenaue Kante `?hdedge=nearest`.
+2. **Commit/Push der Umschaltung** — Vorschlag `feat(radar): edge rule on by default (E-RS-1, ?hdedge=0 fallback)`.
+3. **Nach dem Deploy ansehen:** Rand eines Regengebiets und Abspielen im Regenradar.
 4. **Real-Device** (V-RS-3): GPU-Zeit des Kantenzweigs beim Abspielen im Regenradar.

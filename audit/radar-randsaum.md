@@ -126,3 +126,15 @@ Nicht angefasst: Farbskalen, Daten-Repo, Spiegel, buscosun Fusion, die Komposit-
   Telefonen GPU-Zeit messen.
 - **E-RS-1 (Jan):** Schalter einschalten — `RADAR_EDGE_DEFAULT = 'round'` (Empfehlung: glatte Kontur, 0,4 % Restfläche in
   Ecken) oder `'nearest'` (exakt pixelgenau, Treppenkante bei Zoom ≥ 9 sichtbar); `?hdedge=0` bleibt der Rückweg.
+
+## §6 E-RS-1 umgesetzt (Jan 10.10.2026: „setze den Schalter immer aktiv", nach Jans Commit `c02308f`)
+
+`RADAR_EDGE_DEFAULT = 'round'` (`src/scalar/radarHd.ts`) — die Randregel ist die Voreinstellung der drei HD-Ebenen und der
+250-m-Kacheln; `?hdedge=0` (oder `localStorage.radarhdedge = '0'`) ist der Rückweg auf das Bild vor RS, `?hdedge=nearest` die
+pixelgenaue Kante. `RainLayer` selbst bleibt ohne Option bei `off` (Komposit, Flow-Nowcast, PoP, Wolken unberührt).
+`radar-hd-pixelcheck.mjs`: die HD-Varianten verlangen jetzt `hdedge=0` (ihr Orakel ist die Algebra vor RS).
+
+Gates: `verify:radar-edge` A1 auf die neue Voreinstellung (24/24 netzfrei, 1 ⊘), `verify:radar-hd` 53/53, `verify:regenradar-profile`
+35/36 (E8 nach dem Commit grün; C1b = V-FR-11), typecheck 0, Build 255/255, Budget grün. Browser (Vite-Dev, CDP-Sonde): ohne
+Parameter tragen `precip-rain-hd-de/at/ch` `edge: 'round'` auf `/wetterkarte/niederschlag/muenchen` und `/regenradar/muenchen`,
+mit `?hdedge=0` `off`; Konsole 0 Fehler. Das Bild selbst ist in §4 (2.) mit `?hdedge=1` gemessen (gleicher Pfad).
