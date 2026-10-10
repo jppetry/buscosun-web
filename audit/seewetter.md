@@ -719,7 +719,7 @@ und Zähler 12, A4 Deck ohne Parameter, A5 mobil 390 px ohne Überlauf, A6 kein 
 A7 Chip mobil auf keiner Schaltfläche), `verify:road-ui` **64/64** (A4 Zähler 12),
 `sea-text` 35/35, `sea-decode` 13/13, `verify:routing` 256/256 (drei [SW]-Prüfungen neu gefasst, mit Gegenprobe), `verify:seo` 803, `verify:health` 44/44,
 `verify:fusion-release` 30/30, typecheck 0, Build 255/255, Budget grün (eagerJs 109,6 / 109,7, totalJs 1 714,2 / 1 715);
-`verify:share` 527/528 — SH6 Edge-Bündel ohne die Route `seewetter` (E-SW-15, Jans `npm run edge:share`).
+`verify:share` **528/528** seit dem Neubau des Edge-Bündels (10.10. abends, vorher 527/528 an SH6).
 Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewetter` ohne Parameter, Konsole 0 Fehler
 (eine MapLibre-Warnung „circle-11“ der Basiskarte).
 
@@ -736,7 +736,7 @@ Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewe
 | — | Kein Wasserstand / keine Gezeit (BSH-Vorhersage gesperrt), Wassertemperatur nur als amtlicher Mittelfrist-Satz je Meer | Reiter Quellen | Quelle offen |
 | — | Nur Nord- und Ostsee: kein Binnensee (Bodensee, Chiemsee, Neusiedler See), also nichts für AT und CH — steht auf der Kachel | Stufe 2 nicht begonnen | Gate E |
 | V-SW-1 | Warnungen nur als Text je Küste/Seegebiet, nicht als Fläche | — | CAP-Zellen |
-| V-SW-5 | Geteilte Seewetter-Links ohne eigene Vorschau (Edge-Bündel kennt die Route nicht) | `verify:share` SH6 | `npm run edge:share` |
+| V-SW-5 | ~~Edge-Bündel ohne die Route `seewetter`~~ **neu gebaut 10.10. (Jan: „setze das noch um“): +17 Zeilen = der Routeneintrag, `verify:share` 528/528.** Berichtigung: das ändert die Vorschau NICHT — `og-meta` läuft nur auf neun Pfaden, `/seewetter` ist keiner davon. Ein geteilter Seewetter-Link trägt schon heute Titel und Beschreibung der Route aus der Shell, aber das allgemeine Bild `og/home.png` und nicht den Spot | Produktion: `og:title` „Seewetter Nord- und Ostsee — Wind und Welle“, `og:image` home.png | eigene Karte `og/seewetter.png`; Vorschau je Spot = Seewetter im Teilen-Parser + Pfad in `og-meta` (Edge-Funktion, Jans Gate) |
 | V-SW-16 | Ein von der Seite verworfener Spot lässt sie beim Anwählen abstürzen (nicht ausgelöst) | §10 | leere Stunde statt `null` |
 | V-SW-3/14 | Böe < Wind an Einzelstunden (Option aus), Senkentiefe über Wasser | §12.2, §13.5 | nächster Stand von buscosun Fusion |
 | — | Real-Device nicht geprüft; keine eigenen Unterseiten je Spot (alle zeigen per Canonical auf `/seewetter`), `llms.txt` ohne Seewetter | — | Gate C, SEO-Linie |
@@ -747,3 +747,7 @@ Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewe
   die Sparse-Zeile + ein Kommentar), ohne Force, über einen frischen Sparse-Klon.
 - Die Auffrischung mit t1 2026101018 lief 9 min vorher (20:20 UTC) noch mit dem alten Workflow ⇒ wieder ohne Wind; die erste
   mit Wind ist die mit t1 2026101021 (gegen 23:10 UTC) — Beleg siehe Nachtrag unten.
+- **`buscosun-web/main` von Jan gepusht:** `998334c` (SEA_LIVE, Kachel, Producer) 20:19 UTC, `4a6d2b9` (Indexierung) 20:42 UTC.
+  Produktion 20:44 UTC geprüft: Shell `/seewetter` ohne `robots`, Canonical `/seewetter`, H1 da; `sitemap-pages.xml` führt
+  `/seewetter`; Startseite (390 px) mit Kachel 12 samt Vorschau, „12 Werkzeuge“, Fußlink; `/seewetter` rendert das Deck am
+  Standard-Spot ohne `noindex`, eine H1, Chip da, Konsole 0 Fehler. Wind zu diesem Zeitpunkt noch leer (s. o.).

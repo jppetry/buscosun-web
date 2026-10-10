@@ -2270,7 +2270,8 @@ Temperatur-Anker zum Stundenanfang an 8 von 8 Städten, ohne die Option an 1 von
 ## 63. Seewetter für alle eingeschaltet (`SEA_LIVE`), Kachel 12 — und V-SW-18: kein Wind seit dem 07.10., 2026-10-10
 
 Belege: `audit/seewetter.md` §14 (Befund, Ursache, Umsetzung, Gates, Lücken). **Jan 10.10. abends: „ja setze beides um“** —
-Schritt 1 erledigt (`buscosun-data` `cd9e29f`, 20:28 UTC), Indexierung umgesetzt (E-SW-32); Schritt 2/3 siehe §14.5 im Audit.
+Schritt 1 erledigt (`buscosun-data` `cd9e29f`, 20:28 UTC), Indexierung umgesetzt (E-SW-32), **Schritt 3 erledigt: `main` von Jan
+gepusht (`4a6d2b9`, 20:42 UTC), Produktion geprüft**; offen Schritt 2 (Wind in der ersten Auffrischung, §14.5 im Audit).
 
 ### 63.1 Reihenfolge (der Wind zuerst)
 
@@ -2285,8 +2286,10 @@ Schritt 1 erledigt (`buscosun-data` `cd9e29f`, 20:28 UTC), Indexierung umgesetzt
 
 ### 63.2 Danach
 
-- `npm run edge:share` (Edge-Bündel mit der Route `seewetter`; `verify:share` 528/528) — geteilte Links bekommen sonst keine
-  eigene Vorschau (E-SW-15).
+- ~~`npm run edge:share`~~ **erledigt 10.10.** (Jan: „setze das noch um“; Bündel +17 Zeilen = der Routeneintrag, `verify:share`
+  528/528; wirksam mit dem nächsten Push). Berichtigt: an der Link-Vorschau ändert das nichts — `og-meta` läuft auf
+  `/seewetter` nicht; geteilte Links zeigen Titel/Beschreibung der Route mit dem allgemeinen Bild `og/home.png`. Eigene
+  Karte oder Vorschau je Spot = eigener Schritt (V-SW-5).
 - Katalog mit den 12 gezogenen Lagen ins Daten-Repo (§48.7) — live liegt noch der alte.
 - **Gate D zählt neu:** 14 Tage ab dem ersten Lauf mit Wind, dann `sea-gate-d.mjs` (§44 Punkt 6).
 - **E-SW-32 Indexieren: erledigt** (Jan 10.10.) — `/seewetter` in der Sitemap, Spot-Pfade mit Canonical auf die Route. Nach dem

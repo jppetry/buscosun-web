@@ -552,6 +552,23 @@ var ROUTES = [
     }
   },
   {
+    // Phase SW (audit/seewetter.md): Pfadsegment = Spot (`/seewetter/st-peter-ording`), entscheidet die Seite. Seit
+    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32): `/seewetter`
+    // steht in der Sitemap; die Spot-Pfade teilen Shell und Canonical der Route (keine eigenen Unterseiten).
+    id: "seewetter",
+    path: "/seewetter",
+    aliases: ["/kuestenwetter", "/segelwetter", "/wellen"],
+    featureId: "sea",
+    subParam: "spot",
+    subs: null,
+    meta: {
+      title: "Seewetter Nord- und Ostsee — Wind und Welle",
+      description: "Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Seewetterbericht im Wortlaut.",
+      h1: "Seewetter: Wie wird es auf dem Wasser?",
+      lead: "Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung."
+    }
+  },
+  {
     id: "feedback",
     path: "/feedback",
     aliases: [],
