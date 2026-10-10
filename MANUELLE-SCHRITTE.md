@@ -2178,10 +2178,13 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
 ## 61. Performance-Phase PF — verzögerte Klicks, buscosun Fusion 12, Niederschlagsradar (`audit/performance-2026-10-10.md`), 2026-10-10
 
 Alles liegt auf dem Branch **`perf/ladezeit-2026-10-10`** (Worktree `C:\dev\buscosun-web-wt\perf`), abgezweigt von `af/merge-fusion-12`
-(= `main` + buscosun Fusion 10/11/12, E-AF-2) — nicht committet, nicht gepusht. Produktion läuft auf `main` (Fusion 9); die Maßnahmen
+(= `main` + buscosun Fusion 10/11/12, E-AF-2) — committet (`5c05166`) und am 10.10. auf Jans Wort nach `main` gemergt (`3e5297a`, lokal; damit liegt auch buscosun Fusion
+10/11/12 = `b9765a0` auf `main`), **nicht gepusht**. Produktion läuft bis zum Push auf Fusion 9 — der Push von `main` schaltet
+Fusion 12 UND die Maßnahmen dieser Phase live; die Maßnahmen
 gelten für beide Stände. Keine Daten- oder Archiv-Repo-Änderung, kein Purge, kein Cron.
 
-1. **Durchsicht und Merge:** `git diff af/merge-fusion-12..perf/ladezeit-2026-10-10` — Dateien: `src/sources/radolan.ts`,
+1. **Durchsicht und Push (Merge erledigt, `3e5297a`; `af/merge-fusion-12` trägt noch den Doku-Commit `1308df2` und
+   uncommittete Arbeit in `.wt-af`, die `main` einholen muss):** `git diff b9765a0..perf/ladezeit-2026-10-10` — Dateien: `src/sources/radolan.ts`,
    `radolanRuns.ts`, `radarImg.ts`, `geosphereIncaGrid.ts`, `meteoSwissRadar.ts` (Radar-Leser), `src/MapView.tsx` (Frühbild, eigenes Radar
    zuerst; „Ebenen bei `style.load`" = M9 ist zurückgenommen, V-PF-9), `src/point/client/readPoint.ts` (Fusion: Radarprodukte nach den Bytes der ersten Stufe),
    `src/App.tsx` (Fortschrittsbalken), `src/HeroMapBackground.tsx` (Abbau nach dem Paint), `src/precipSums/obsSumStore.ts` (ein
