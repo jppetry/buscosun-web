@@ -1,0 +1,82 @@
+{
+ "schema": 1,
+ "kind": "fusion",
+ "id": "fusion-12t",
+ "name": "buscosun Fusion 12 mit K-Stationen-Kopplung und σ-Skala der Spur-P-Hypothese (OF-7b, E-OF-5, nur Spur P)",
+ "order": 12.5,
+ "status": "kandidat",
+ "commit": "68728ff188e30dd18e24ed78de24f72300bad768",
+ "commitDate": "2026-10-08T17:18:23+02:00",
+ "adapter": "cube-1",
+ "options": {
+  "learned": true,
+  "stationValue": true,
+  "anomalyInterp": true,
+  "learnedSpeed": true,
+  "learnedPrecip": true,
+  "learnedAtPoint": true,
+  "learnedClouds": true,
+  "priorShrink": false,
+  "anchorWindKm": 10,
+  "nowcastHourMean": true,
+  "anchorAtObsTime": true,
+  "longRange": 1,
+  "longRangeFix": 1,
+  "obsDense": 1,
+  "anchorSigma": 1,
+  "anchorKSet": 1,
+  "sigmaScale": 3
+ },
+ "clima": "product",
+ "climaHeldOut": "loso",
+ "tables": {
+  "learned": {
+   "file": "0714300fe2a5-learned.json",
+   "sha256": "0714300fe2a56d839b5d84f2d2c7286a925ee8c0c8c011b7cac6c6fc7c2d62d1",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/0714300fe2a5-learned.json"
+  },
+  "stack": {
+   "file": "9d22ff35986f-stack.json",
+   "sha256": "9d22ff35986f609278cd483f52105e19dcb6683d2c05dcce90852707da02dc2b",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/9d22ff35986f-stack.json"
+  },
+  "clima": {
+   "file": "85d73cead2cb-clima.json",
+   "sha256": "85d73cead2cb9b0d83d1852701717d83c9b89008b611cba2bde8be9f46214ab7",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/85d73cead2cb-clima.json"
+  },
+  "loso": {
+   "file": "a71e53c9de12-loso.json",
+   "sha256": "a71e53c9de1286f7cfc46dfe06c86c7b1460f0d6f332a9b346df1c86ea4458c1",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/a71e53c9de12-loso.json"
+  }
+ },
+ "freeze": "2026-10-08",
+ "freezeNote": "von Jan bei der Registrierung genannt",
+ "fit": {
+  "learned": {
+   "source": "hindcast",
+   "from": "2025-09-01",
+   "to": "2026-09-21",
+   "what": "Lernstufe Fit 5e (40,8 Mio. Zeilen, 389 Punkte)"
+  },
+  "stack": {
+   "source": "archive",
+   "from": "2026-09-14",
+   "to": "2026-09-28",
+   "what": "Stationswert mit Landesparametern (14 Ausgabetage)"
+  }
+ },
+ "tresor": {
+  "contaminated": false,
+  "checkedAgainst": "2024-04-01 … 2025-08-31",
+  "note": "kein Fit am Hindcast hat Tage im Tresor gesehen"
+ },
+ "notes": [
+  "registriert am 2026-10-08 von Hand (scratchpad reg12t.mjs): Optionen = fusion-12s + anchorKSet: 1 + sigmaScale: 3, Tabellen und Freeze von fusion-12s; Hypothese H-OF-5 in audit/obs-fusion/claims-addendum-2.md (Hash in claims-frozen.sha256) — NUR in Spur P bewerten (--modus=abnahme), nie mehr auf der Entwicklungsmenge",
+  "Option obsDense = Anker auf dem dichten Messsatz aus buscosun-data obs/v1 (bis 12 nächste 10-min-Stationen inkl. Niederschlagsstationen, gemessener Taupunkt; je Größe die 6 besten nach spatialWeight) + Bündel FUSION12_GAUGE radar 1 (Messgerät-Radar-Faktor am Punkt, Vorlauf <= 3 h), occurrence 0 (Auftrittsanker gebaut, aus) + FUSION12_SV_AT_OBS 1 (Stationswert an der Messminute, V-OF-10). Setzungen, kein Fit; Regel vorab eingefroren (audit/obs-fusion/claims.md, claims-addendum-1.md).",
+  "Replay: Messungen aus den dichten Tagesdateien C:/dev/buscosun-pruefstand/obs-dense/<Tag>.json.gz (Originale DWD CDC 10 min, GeoSphere TAWES 10 min, MeteoSchweiz SMN/SMN-precip; scripts/obsfusion/build-dense-obs.mjs), Rolle B ohne Station <= 0,25 km vom Punkt; jede frühere Version rechnet weiter mit der Archiv-Messung (obsDense.mjs greift nur bei obsDense: 1).",
+  "Nicht blind: die Entwicklungsmenge 14.09.–07.10. trug den Pre-Screen aller Optionen; Spur P ab dem 09.10. (reif ab 16.10.) richtet sauber. Der jüngste Tag (07.10.) der Messdateien wurde vor dem Volltest nach 12 UTC aus den vollständigen Originalen neu gebaut (V-OF-9)."
+ ],
+ "modelHash": "be40e1ed3055a2ddbffb6efaeb0a8c8314b2cdad36b17d7ba9ff90525727561f"
+}

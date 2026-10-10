@@ -1,0 +1,3 @@
+desktop radar cur #1: firstDraw=1567 radarDraw=4885 radarAllMs=3029 radarKb=7124 dataKb=10459 jsKb=1302 gaps max 1000 >100:36 >200:34 play inputDelay=1 feedback=null
+== desktop radar cur p50: {"firstDraw":1567,"radarDraw":4885,"radarAllMs":3029,"radarKb":7124,"dataKb":10459,"jsKb":1302,"gapsMax":1000,"gapsOver200":34,"gapsOver100":36,"playInputDelay":1,"playFeedback":null}
+fertig

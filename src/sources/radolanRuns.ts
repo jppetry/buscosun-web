@@ -113,13 +113,23 @@ export function rvTarUrlFor(ts: string, nowMs: number = Date.now()): string {
  *  ein hängendes CDN darf das Radar nicht länger aufhalten als das. Koppelt
  *  das Abbruch-Signal des Aufrufers, ohne `AbortSignal.any` vorauszusetzen. */
 export const RADAR_CDN_DEADLINE_MS = 8_000;
-export function radarCdnDeadline(signal: AbortSignal | undefined, ms: number = RADAR_CDN_DEADLINE_MS): { signal: AbortSignal; done: () => void } {
+/**
+ * Phase PF (M8, audit/performance-2026-10-10.md D-PF-13): `touch()` restarts the clock. The deadline is meant to catch a HANGING
+ * CDN, not a slow link that is making progress — measured 10.10.2026 on mobile 4G: the 25 dual frames of an RV slot (5,4 MB)
+ * take 8–13 s, the 8-s deadline cut them off and the reader fell back to the TAR (7,4 MB, another 10+ s). A reader that
+ * calls `touch()` whenever a file of the slot has arrived keeps the hang detection (8 s without ANY progress) and loses the
+ * false fallback. Readers that never call it behave exactly as before.
+ */
+export function radarCdnDeadline(signal: AbortSignal | undefined, ms: number = RADAR_CDN_DEADLINE_MS): { signal: AbortSignal; done: () => void; touch: () => void } {
   const c = new AbortController();
-  const t = setTimeout(() => c.abort(new Error(`CDN-Frist ${ms} ms`)), ms);
+  const fire = () => c.abort(new Error(`CDN-Frist ${ms} ms ohne Fortschritt`));
+  let t = setTimeout(fire, ms);
   const onAbort = () => c.abort(signal?.reason);
   signal?.addEventListener('abort', onAbort, { once: true });
-  return { signal: c.signal, done: () => { clearTimeout(t); signal?.removeEventListener('abort', onAbort); } };
+  const touch = () => { if (c.signal.aborted) return; clearTimeout(t); t = setTimeout(fire, ms); };
+  return { signal: c.signal, done: () => { clearTimeout(t); signal?.removeEventListener('abort', onAbort); }, touch };
 }
+
 
 /** Nur für Verifier/Tests. */
 export function _resetRadarCdn(): void { _cdnHardFails = 0; }
@@ -161,6 +171,11 @@ export function radarImgEnabled(): boolean { return radarImgFlagFrom(); }
 /** Frame-Dateiname je Lead-Minute (`f000.png` … `f120.png`). */
 export function radarImgFrameFile(leadMin: number): string {
   return `f${String(leadMin).padStart(3, '0')}.png`;
+}
+/** HD-3: Dual-Frame je Lead-Minute (`g000.png` … Grau + Alpha = v1-Byte + Log-Ebene). Lebt hier (abhängigkeitsfrei) seit
+ *  Phase PF, weil der Frühstart es wärmt; `radarImg.ts` re-exportiert es als Vertragsadresse. */
+export function radarImgDualFile(leadMin: number): string {
+  return `g${String(leadMin).padStart(3, '0')}.png`;
 }
 
 /** RV-Bild-Slot-Verzeichnis; `ts` ist der Tar-Stempel `YYMMDDHHMM`. */
@@ -241,7 +256,9 @@ export function warmRvTar(nowMs: number = Date.now()): string | null {
   // beide über dieselben URL-Schlüssel entgegen.
   if (rvImgEligible(ts, nowMs)) {
     const dir = rvImgDir(ts);
-    for (const u of [`${dir}/meta.json`, `${dir}/${radarImgFrameFile(0)}`]) {
+    // Phase PF (M1): the dual analysis frame (`g000.png`, log plane) is warmed as well — the reader takes it first and draws it
+    // before the forecast frames; on a slot without dual frames it is a cheap 404 and the `f000.png` stays the first picture.
+    for (const u of [`${dir}/meta.json`, `${dir}/${radarImgDualFile(0)}`, `${dir}/${radarImgFrameFile(0)}`]) {
       const curImg = warm.get(u);
       if (curImg && nowMs - curImg.at < RV_WARM_TTL_MS) continue;
       const pi = (async (): Promise<WarmRvTar> => ({ res: await fetch(u, { priority: 'high' } as RequestInit), fromCache: false }))();

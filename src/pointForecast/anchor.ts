@@ -40,7 +40,11 @@ export const ANCHOR_HISTORY_TAU_H = 3;
 export const ANCHOR_MAX = Object.freeze({ temperature: 8, humidity: 40, wind: 6, gust: 8 });
 
 /** Ein Paar aus Messung und Modellwert zur selben Zeit, `wsp` = räumliches Gewicht der Station. */
-export interface AnchorPair { ageH: number; obs: number; model: number; wsp: number }
+export interface AnchorPair {
+  ageH: number; obs: number; model: number; wsp: number;
+  /** OF-7 (`anchorRho`): measured error correlation of this station with the point (`fusion/sigmaScale.ts`); absent = not asked for. */
+  rho?: number;
+}
 
 export interface Innovation {
   /** Altersgewichteter Versatz Messung − Modell, gedeckelt. */
@@ -48,20 +52,24 @@ export interface Innovation {
   /** Repräsentativität der Station(en) in [0,1] — eine ferne, höhere Station trägt nur einen Bruchteil. */
   fraction: number;
   pairs: number;
+  /** OF-7: the pairs' `rho` averaged with the SAME weights as the offset; present only when every counted pair carried one. */
+  rho?: number;
 }
 
 /** Versatz aus den Paaren; `null`, wenn keins trägt. */
 export function innovation(pairs: AnchorPair[], maxAbs: number): Innovation | null {
-  let sw = 0, sd = 0, fr = 0, n = 0;
+  let sw = 0, sd = 0, fr = 0, n = 0, sr = 0, withRho = 0;
   for (const p of pairs) {
     if (!Number.isFinite(p.obs) || !Number.isFinite(p.model) || !(p.wsp > 0)) continue;
     const w = p.wsp * Math.exp(-Math.max(0, p.ageH) / ANCHOR_HISTORY_TAU_H);
     if (!(w > 0)) continue;
     sw += w; sd += w * (p.obs - p.model); fr = Math.max(fr, p.wsp); n++;
+    if (p.rho != null && Number.isFinite(p.rho)) { sr += w * p.rho; withRho++; }
   }
   if (!n || !(sw > 0)) return null;
   const offset = Math.max(-maxAbs, Math.min(maxAbs, sd / sw));
-  return { offset, fraction: Math.min(1, fr), pairs: n };
+  // the object keeps its shape (offset, fraction, pairs) unless every counted pair carried a ρ — byte-identical without OF-7
+  return withRho === n ? { offset, fraction: Math.min(1, fr), pairs: n, rho: sr / sw } : { offset, fraction: Math.min(1, fr), pairs: n };
 }
 
 /** Abklingen des Versatzes mit dem Vorlauf. */

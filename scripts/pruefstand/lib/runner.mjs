@@ -9,7 +9,7 @@ import { PS_DIR, p } from './common.mjs';
 import { hasConserve } from './konserven.mjs';
 import { engineRoot, modelHash } from './register.mjs';
 
-export async function ensureConserves(proto, models, issues, { workers = Math.max(1, Math.min(3, os.cpus().length - 1)), say = () => {} } = {}) {
+export async function ensureConserves(proto, models, issues, { workers = Math.max(1, Math.min(Number(process.env.PRUEFSTAND_WORKERS) || 3, os.cpus().length - 1)), say = () => {} } = {}) {
   const tasks = [];
   const roots = new Map();
   for (const issue of issues) for (const reg of models) {

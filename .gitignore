@@ -42,3 +42,6 @@ data/repo/
 data/ref-producer/
 # PD-Umsetzungsplan (2026-09-14): lokaler Probelauf des Stadt-Rasters (reproduzierbar aus .cache/urban/)
 data/urban-probe/
+
+# OF-7 raw collection parts (29 MB each, reproducible from the hindcast)
+audit/obs-fusion/of7/

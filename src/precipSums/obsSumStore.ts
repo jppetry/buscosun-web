@@ -9,6 +9,7 @@
  */
 
 import type { ObsCatalogStation, ObsLatestStation, ObsSeriesDoc } from './obsWindowSum';
+import { loadObsCatalog as loadFusionObsCatalog, loadObsLatest as loadFusionObsLatest } from '../sources/obsStore';   // Phase PF (M6)
 
 export const DATA_RAW = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main';
 export const DATA_CDN = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main';
@@ -71,19 +72,24 @@ export function memoized<T>(key: string, kind: keyof typeof MEMO_MS, load: () =>
 }
 
 // Die Netz-Abrufe laufen ohne das Signal des Aufrufers (ein Abbruch durch den Ortswechsel soll das Gedächtnis nicht vergiften).
+/**
+ * Phase PF (M6, audit/performance-2026-10-10.md): catalogue and newest values come from the memoised reader of buscosun Fusion
+ * (`sources/obsStore.ts`, same two files, same product) instead of a second download — measured 10.10.2026 on the Regenradar:
+ * both readers fetched `stations.json` + `latest.json` (2 × 138 KB gz). The JSON is the same; the Fusion reader normalises
+ * `name`/`elev`/`networks`/`vars` of a station, which this reader never uses for a sum. The sums' own files (`series/`) and
+ * fields keep `fetchDataRepo`.
+ */
 export function loadObsCatalog(): Promise<ObsCatalogStation[]> {
   return memoized('catalog', 'catalog', async () => {
-    const j = await fetchDataRepo(`${OBS_SUM_DIR}/stations.json`, 'json') as { schema?: number; kind?: string; stations?: ObsCatalogStation[] };
-    if (j?.schema !== 1 || j.kind !== 'obs/stations' || !Array.isArray(j.stations)) throw new Error('obs: Katalog unbekannt');
-    return j.stations.filter((s) => s && typeof s.id === 'string' && Number.isFinite(s.lat) && Number.isFinite(s.lon));
+    const c = await loadFusionObsCatalog();
+    return c.stations.filter((s) => s && typeof s.id === 'string' && Number.isFinite(s.lat) && Number.isFinite(s.lon));
   });
 }
 
 export function loadObsLatest(): Promise<{ builtAt: string; stations: Record<string, ObsLatestStation> }> {
   return memoized('latest', 'latest', async () => {
-    const j = await fetchDataRepo(`${OBS_SUM_DIR}/latest.json`, 'json') as { schema?: number; kind?: string; builtAt?: string; stations?: Record<string, ObsLatestStation> };
-    if (j?.schema !== 1 || j.kind !== 'obs/latest' || !j.stations) throw new Error('obs: latest unbekannt');
-    return { builtAt: String(j.builtAt ?? ''), stations: j.stations };
+    const l = await loadFusionObsLatest();
+    return { builtAt: l.builtAt, stations: l.stations as Record<string, ObsLatestStation> };
   });
 }
 

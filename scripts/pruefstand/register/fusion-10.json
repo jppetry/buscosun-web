@@ -1,0 +1,77 @@
+{
+ "schema": 1,
+ "kind": "fusion",
+ "id": "fusion-10",
+ "name": "buscosun Fusion 10",
+ "order": 10,
+ "status": "kandidat",
+ "commit": "eac9a43e66a2c421da65973daea2646b4dcd5691",
+ "commitDate": "2026-10-07T18:39:59+02:00",
+ "adapter": "cube-1",
+ "options": {
+  "learned": true,
+  "stationValue": true,
+  "anomalyInterp": true,
+  "learnedSpeed": true,
+  "learnedPrecip": true,
+  "learnedAtPoint": true,
+  "learnedClouds": true,
+  "priorShrink": false,
+  "anchorWindKm": 10,
+  "nowcastHourMean": true,
+  "anchorAtObsTime": true,
+  "longRange": 1
+ },
+ "clima": "product",
+ "climaHeldOut": "loso",
+ "tables": {
+  "learned": {
+   "file": "0714300fe2a5-learned.json",
+   "sha256": "0714300fe2a56d839b5d84f2d2c7286a925ee8c0c8c011b7cac6c6fc7c2d62d1",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/0714300fe2a5-learned.json"
+  },
+  "stack": {
+   "file": "9d22ff35986f-stack.json",
+   "sha256": "9d22ff35986f609278cd483f52105e19dcb6683d2c05dcce90852707da02dc2b",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/9d22ff35986f-stack.json"
+  },
+  "clima": {
+   "file": "85d73cead2cb-clima.json",
+   "sha256": "85d73cead2cb9b0d83d1852701717d83c9b89008b611cba2bde8be9f46214ab7",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/85d73cead2cb-clima.json"
+  },
+  "loso": {
+   "file": "a71e53c9de12-loso.json",
+   "sha256": "a71e53c9de1286f7cfc46dfe06c86c7b1460f0d6f332a9b346df1c86ea4458c1",
+   "from": "C:/dev/buscosun-pruefstand/tabellen/a71e53c9de12-loso.json"
+  }
+ },
+ "freeze": "2026-10-07",
+ "freezeNote": "von Jan bei der Registrierung genannt",
+ "fit": {
+  "learned": {
+   "source": "hindcast",
+   "from": "2025-09-01",
+   "to": "2026-09-21",
+   "what": "Lernstufe Fit 5e (40,8 Mio. Zeilen, 389 Punkte)"
+  },
+  "stack": {
+   "source": "archive",
+   "from": "2026-09-14",
+   "to": "2026-09-28",
+   "what": "Stationswert mit Landesparametern (14 Ausgabetage)"
+  }
+ },
+ "tresor": {
+  "contaminated": false,
+  "checkedAgainst": "2024-04-01 … 2025-08-31",
+  "note": "kein Fit am Hindcast hat Tage im Tresor gesehen"
+ },
+ "notes": [
+  "registriert am 2026-10-07 aus HEAD; Optionen = Stufe des Registers der Stände (fusionRelease.ts) plus die festen Optionen des Champions",
+  "Phase F10 (autonome Sitzung 07.10.2026, audit/fusion-10.md): Freeze = UTC-Sitzungsdatum 2026-10-07 unter Vollmacht 4 des Auftrags gesetzt (Setzung, nicht von Jan genannt); Status kandidat bis zu Jans Entscheidung nach >= 4 reifen Spur-P-Tagen.",
+  "Option longRange = Buendel aus (1) Langfrist-Rueckfuehrung von T, Td, Boee zur Klimatologie (fusion/longRange.ts; w, s je Groesse x Vorlauf-Bin gefittet an Hindcast-Slots 00 UTC AUSSERHALB des Tresors, Fenster 2025-09-08..2026-09-15, jeder 12. Tag, 32 Slots, audit/fusion-10/longrange-fit.json; Wind nach Lauf 1 auf Identitaet gesetzt, A-F10-6) und (2) Klimatologie-Schritt fuer Wind/Boee ab 126 h nur in AT/CH (FUSION10_WIND_SHRINK_*, Pre-Screen auf Schnellmenge und 6 Hindcast-Slots, §3.2). Das Fit-Fenster liegt im Fit-Fenster der Lernstufe (fit.learned) und wird von der Kontaminationspruefung mit abgedeckt. Die Entwicklungsmenge wurde fuer Lauf 2 zur Zuruecknahme der Wind-Skala genutzt (G2 rot in Lauf 1) - deklariert.",
+  "Tabellen unveraendert (Daten-Repo 1aaec969); Spur-R-Ergebnisse von Fusion 9 waren der Sitzung bekannt (Kontext), die Abnahme von Fusion 10 ist deshalb nicht vollstaendig blind - Spur P bleibt der saubere Richter. Rechnung identisch zum Commit 27c9c5e (Lauf 2, +0,69 %): eac9a43 aendert nur einen Notiz-Text."
+ ],
+ "modelHash": "6180c2555392900d4cb4915c5ee44c5de010ad19f6b358f331d7aee86eb4e022"
+}

@@ -1,0 +1,47 @@
+  0.3 s  early=false rv=0 inca=false rzc=false masks= draws=0 lastDraw=null tex=[]
+ 17.6 s  early=false rv=0 inca=false rzc=false masks= draws=2 lastDraw={"t":17674,"profile":true,"timeMs":null,"tMs":null,"rv":false,"early":false,"tick":0,"active":"nowcast,cells,lightning"} tex=[]
+ 18.1 s  early=true rv=0 inca=false rzc=false masks= draws=3 lastDraw={"t":17811,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":0,"active":"nowcast,cells,lightning"} tex=[]
+ 18.7 s  early=true rv=0 inca=false rzc=false masks= draws=4 lastDraw={"t":18795,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":1,"active":"nowcast,cells,lightning"} tex=[]
+ 19.4 s  early=true rv=0 inca=false rzc=true masks= draws=4 lastDraw={"t":18795,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":1,"active":"nowcast,cells,lightning"} tex=[]
+ 19.7 s  early=true rv=0 inca=false rzc=true masks=DE draws=5 lastDraw={"t":19622,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":2,"active":"nowcast,cells,lightning"} tex=[]
+ 22.1 s  early=true rv=0 inca=false rzc=true masks=DE draws=5 lastDraw={"t":19622,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":2,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"]]
+ 24.6 s  early=true rv=0 inca=false rzc=true masks=DE draws=6 lastDraw={"t":22597,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":3,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"]]
+ 25.3 s  early=true rv=0 inca=false rzc=true masks=DE draws=7 lastDraw={"t":23926,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":4,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 27.1 s  early=true rv=0 inca=false rzc=true masks=DECH draws=8 lastDraw={"t":25500,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":5,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 27.4 s  early=true rv=0 inca=true rzc=true masks=DECH draws=8 lastDraw={"t":25500,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":5,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 28.4 s  early=true rv=0 inca=true rzc=true masks=DECH draws=9 lastDraw={"t":27737,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":6,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 29.5 s  early=true rv=0 inca=true rzc=true masks=DECHAT draws=10 lastDraw={"t":28774,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":7,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 32.8 s  early=false rv=25 inca=true rzc=true masks=DECHAT draws=10 lastDraw={"t":28774,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":7,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 34.8 s  early=false rv=25 inca=true rzc=true masks=DECHAT draws=11 lastDraw={"t":32865,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":9,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 35.1 s  early=false rv=25 inca=true rzc=true masks=DECHAT draws=12 lastDraw={"t":34209,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":9,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 35.9 s  early=false rv=25 inca=true rzc=true masks=DECHAT draws=13 lastDraw={"t":35293,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":10,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 37.3 s  early=false rv=25 inca=true rzc=true masks=DECHAT draws=14 lastDraw={"t":36785,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":11,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+ 47.5 s  early=false rv=25 inca=true rzc=true masks=DECHAT draws=15 lastDraw={"t":47278,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":11,"active":"nowcast,cells,lightning"} tex=[[21160,"600x512","nz"],[21197,"1100x1200","nz"],[21209,"1100x1200","nz"],[22601,"600x512","nz"],[22601,"1100x1200","nz"],[23930,"600x512","nz"]]
+--- draw effect runs ---
+{"t":17643,"profile":true,"timeMs":null,"tMs":null,"rv":false,"early":false,"tick":0,"active":"nowcast,cells,lightning"}
+{"t":17674,"profile":true,"timeMs":null,"tMs":null,"rv":false,"early":false,"tick":0,"active":"nowcast,cells,lightning"}
+{"t":17811,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":0,"active":"nowcast,cells,lightning"}
+{"t":18795,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":1,"active":"nowcast,cells,lightning"}
+{"t":19622,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":2,"active":"nowcast,cells,lightning"}
+{"t":22597,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":3,"active":"nowcast,cells,lightning"}
+{"t":23926,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":4,"active":"nowcast,cells,lightning"}
+{"t":25500,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":5,"active":"nowcast,cells,lightning"}
+{"t":27737,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":6,"active":"nowcast,cells,lightning"}
+{"t":28774,"profile":true,"timeMs":null,"tMs":1791638700000,"rv":false,"early":true,"tick":7,"active":"nowcast,cells,lightning"}
+{"t":32865,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":9,"active":"nowcast,cells,lightning"}
+{"t":34209,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":9,"active":"nowcast,cells,lightning"}
+{"t":35293,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":10,"active":"nowcast,cells,lightning"}
+{"t":36785,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":11,"active":"nowcast,cells,lightning"}
+{"t":47278,"profile":true,"timeMs":1791638700000,"tMs":1791638700000,"rv":true,"early":false,"tick":11,"active":"nowcast,cells,lightning"}
+--- console (first 25) ---
+[vite] connecting...
+[vite] connected.
+%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[buscosun] Regenradar-Karte → Karte der Wetterkarte (MapView, Profil radar)
+[buscosun] Regenradar-Karte → Karte der Wetterkarte (MapView, Profil radar)
+[buscosun] Regenradar Zellbahnen → KONRAD3D-Datei: KONRAD3D_20261010T132500.xml · Messzeit 10.10.2026, 15:25:00 · 5 Zellen
+[buscosun] Zellbahnen-Layer → KONRAD3D-Datei: KONRAD3D_20261010T132500.xml · Messzeit 10.10.2026, 15:25:00 · 5 Zellen
+[buscosun] Zellbahnen-Layer → KONRAD3D-Datei: KONRAD3D_20261010T132500.xml · Messzeit 10.10.2026, 15:25:00 · 5 Zellen
+[buscosun] Zellbahnen gezeichnet → 5 Zellen, 100 Features ({"cone":5,"cone-step":60,"hull":5,"path":5,"mark":15,"arrow":5,"dot":5}) · Ausdünnung: Trichterstufen erst ab z6 und ab sev 0.5 (4 Zelle(n) d
+[buscosun] GeoSphere INCA → Lauf 20261010T1300 · 11 Frames · Quelle Daten-Repo (PNG)
+[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2610101325 · Lauf 10.10.2026, 15:25:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
