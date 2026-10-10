@@ -1,0 +1,69 @@
+{
+ "at": "2026-10-10T09:42:03.125Z",
+ "head": "http://127.0.0.1:5313",
+ "cur": "http://127.0.0.1:5312",
+ "curQuery": "",
+ "threshold": 12,
+ "scenarios": [
+  {
+   "id": "wk-overview-mobile",
+   "path": "/wetterkarte",
+   "mobile": true,
+   "block": true,
+   "waitS": 14,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 0,
+   "differPx": 0,
+   "exactPct": 100
+  },
+  {
+   "id": "wk-niederschlag-live-desktop",
+   "path": "/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0504,
+   "differPx": 653,
+   "exactPct": 99.941
+  },
+  {
+   "id": "wk-niederschlag-live-mobile",
+   "path": "/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 1.395,
+   "differPx": 41325,
+   "exactPct": 93.2364
+  },
+  {
+   "id": "rr-ort-desktop",
+   "path": "/regenradar/muenchen",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0076,
+   "differPx": 98,
+   "exactPct": 99.9817
+  },
+  {
+   "id": "rr-ort-mobile",
+   "path": "/regenradar/muenchen",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 0,
+   "differPx": 0,
+   "exactPct": 100
+  }
+ ]
+}

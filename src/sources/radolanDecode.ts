@@ -18,6 +18,8 @@ export interface RadolanGrid {
   rows: number;
   /** Niederschlagsrate in mm/h, NaN = außerhalb der Radarabdeckung. Norden oben. */
   rainRate: Float32Array;
+  /** Phase RG: die feinen Werte (0,012-mm/h-Stufen) neben den RADOLAN-Einheiten — nur vom HDF5-Leser mit `withNative`. */
+  rainRateNative?: Float32Array;
   validAt: Date;
   /** Vorhersage-Vorlaufzeit in Minuten (0 für die Analyse / RY-live). */
   leadMinutes: number;

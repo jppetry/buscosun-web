@@ -594,9 +594,17 @@ export const PRECIP_LOG_MAX = 200;
 export const PRECIP_LOG_STEPS = 254;
 const LOG_SPAN = Math.log(PRECIP_LOG_MAX / PRECIP_LOG_MIN);
 
+/**
+ * Phase RG (`audit/radar-regenschwelle.md` §6, V-RG-7): Toleranz an der Untergrenze. Die nativen RV-Werte liegen als
+ * Float32 vor, und 0,06 ist dort 0,0599999986 — ohne Toleranz fiele genau die gemessene Schwellenstufe (5 · 0,012 mm/h)
+ * aus dem Bild. 1e-6 liegt weit unter jeder Quellstufe (0,01 / 0,012 / 0,04 mm/h); kein heute gespiegelter Wert liegt in
+ * (0,06 − 1e-6, 0,06), die bestehenden Produkte bleiben byte-gleich (`verify:radar-threshold` B4, `verify:radar-hd` F).
+ */
+export const PRECIP_LOG_EPS = 1e-6;
+
 /** mm/h → Uint8 logarithmisch (0 = trocken, 1 = 0,06 mm/h … 255 = 200 mm/h). */
 export function precipToU8Log(mmph: number): number {
-  if (!(mmph >= PRECIP_LOG_MIN)) return 0;
+  if (!(mmph >= PRECIP_LOG_MIN - PRECIP_LOG_EPS)) return 0;
   const u = 1 + Math.round((PRECIP_LOG_STEPS * Math.log(mmph / PRECIP_LOG_MIN)) / LOG_SPAN);
   return u < 1 ? 1 : u > 255 ? 255 : u;
 }

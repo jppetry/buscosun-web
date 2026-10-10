@@ -1,0 +1,141 @@
+{
+ "at": "2026-10-10T09:21:48.753Z",
+ "head": "http://127.0.0.1:5313",
+ "cur": "http://127.0.0.1:5312",
+ "curQuery": "",
+ "threshold": 12,
+ "scenarios": [
+  {
+   "id": "wk-wind-desktop",
+   "path": "/wetterkarte/wind/muenchen",
+   "mobile": false,
+   "block": true,
+   "waitS": 14,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0015,
+   "differPx": 20,
+   "exactPct": 99.9753
+  },
+  {
+   "id": "wk-wind-mobile",
+   "path": "/wetterkarte/wind/muenchen",
+   "mobile": true,
+   "block": true,
+   "waitS": 14,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 0,
+   "differPx": 0,
+   "exactPct": 100
+  },
+  {
+   "id": "wk-overview-desktop",
+   "path": "/wetterkarte",
+   "mobile": false,
+   "block": true,
+   "waitS": 14,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0063,
+   "differPx": 82,
+   "exactPct": 99.9848
+  },
+  {
+   "id": "wk-overview-mobile",
+   "path": "/wetterkarte",
+   "mobile": true,
+   "block": true,
+   "waitS": 14,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 68.8977,
+   "differPx": 2041052,
+   "exactPct": 18.5875
+  },
+  {
+   "id": "warnungen-desktop",
+   "path": "/warnungen/muenchen",
+   "mobile": false,
+   "block": true,
+   "waitS": 14,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0015,
+   "differPx": 20,
+   "exactPct": 99.989
+  },
+  {
+   "id": "wk-niederschlag-live-desktop",
+   "path": "/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 1.1389,
+   "differPx": 14760,
+   "exactPct": 97.6529
+  },
+  {
+   "id": "wk-niederschlag-live-mobile",
+   "path": "/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 1.804,
+   "differPx": 53443,
+   "exactPct": 93.6081
+  },
+  {
+   "id": "rr-live-desktop",
+   "path": "/regenradar",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0024,
+   "differPx": 31,
+   "exactPct": 99.9586
+  },
+  {
+   "id": "rr-live-mobile",
+   "path": "/regenradar",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 0,
+   "differPx": 0,
+   "exactPct": 100
+  },
+  {
+   "id": "rr-ort-desktop",
+   "path": "/regenradar/muenchen",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.2897,
+   "differPx": 3754,
+   "exactPct": 99.0963
+  },
+  {
+   "id": "rr-ort-mobile",
+   "path": "/regenradar/muenchen",
+   "mobile": true,
+   "block": false,
+   "waitS": 40,
+   "size": "1170×2532",
+   "sizeMatch": true,
+   "differPct": 63.0323,
+   "differPx": 1867295,
+   "exactPct": 25.8473
+  }
+ ]
+}

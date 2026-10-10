@@ -1,0 +1,139 @@
+{
+ "at": "2026-10-10T09:32:33.562Z",
+ "base": "http://127.0.0.1:5231",
+ "zoom": 10,
+ "tol": 8,
+ "dualDir": "C:/dev/buscosun-radar-truth/derive/rv-native",
+ "runs": [
+  {
+   "window": {
+    "c": "DE",
+    "lon": 7.48,
+    "lat": 53.8,
+    "s": 5229
+   },
+   "variant": "hd-nearest-dual",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "nearest"
+   },
+   "logPlane": {
+    "DE": true,
+    "AT": true,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 7.48,
+    "lat": 53.8,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 363608,
+    "agreePct": 67.932,
+    "wetCounted": 116602,
+    "wetAgreePct": 0,
+    "meanDiff": 27.61
+   }
+  },
+  {
+   "window": {
+    "c": "DE",
+    "lon": 7.48,
+    "lat": 53.8,
+    "s": 5229
+   },
+   "variant": "hd-catmull-dual",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "catmull"
+   },
+   "logPlane": {
+    "DE": false,
+    "AT": true,
+    "CH": false
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 7.48,
+    "lat": 53.8,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 338629,
+    "agreePct": 86.337,
+    "wetCounted": 46267,
+    "wetAgreePct": 0,
+    "meanDiff": 10.62
+   }
+  },
+  {
+   "window": {
+    "c": "DE",
+    "lon": 7.48,
+    "lat": 53.8,
+    "s": 5229
+   },
+   "variant": "hd-nearest-dual-vs-linear",
+   "masks": true,
+   "hd": {
+    "on": true,
+    "filter": "nearest"
+   },
+   "logPlane": {
+    "DE": true,
+    "AT": true,
+    "CH": true
+   },
+   "layersShown": [
+    "precip-rain-hd-de",
+    "precip-rain-hd-at",
+    "precip-rain-hd-ch"
+   ],
+   "cam": {
+    "lon": 7.48,
+    "lat": 53.8,
+    "zoom": 10,
+    "w": 794,
+    "h": 836,
+    "cornerErrPx": 0
+   },
+   "oracle": {
+    "counted": 373354,
+    "agreePct": 60.619,
+    "wetCounted": 147030,
+    "wetAgreePct": 0,
+    "meanDiff": 32.89
+   }
+  }
+ ],
+ "slot": {
+  "rvRunAtMs": 1791624300000,
+  "rzcValidAtMs": 1791624600000,
+  "rvHasLogPlane": true
+ },
+ "windows": [
+  {
+   "c": "DE",
+   "lon": 7.48,
+   "lat": 53.8,
+   "s": 5229
+  }
+ ]
+}

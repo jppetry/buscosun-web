@@ -123,9 +123,15 @@ export function radarImgDualFile(leadMin: number): string {
   return `g${String(leadMin).padStart(3, '0')}.png`;
 }
 export interface RadarImgDualFrame { lead: number; file: string; bytes: number }
-export interface RadarImgDual { log: { min: number; max: number; steps: number }; frames: RadarImgDualFrame[] }
-export function makeRadarImgDual(frames: RadarImgDualFrame[]): RadarImgDual {
-  return { log: { ...RADAR_IMG_DUAL_LOG }, frames };
+export interface RadarImgDual {
+  log: { min: number; max: number; steps: number }; frames: RadarImgDualFrame[];
+  /** Phase RG (`audit/radar-regenschwelle.md` §6): Kanal 2 aus den NATIVEN RV-Werten (nur mit `RADAR_LOG_NATIVE=1`) — die
+   *  Untergrenze `log.min` ist dann die Darstellungsschwelle; `displayMin` nennt sie (mm/h). Fehlt das Feld, ist die Ebene
+   *  aus den RADOLAN-Einheiten gebaut (jedes Echo ≥ 0,12 mm/h) — Slots vor RG; alte Clients ignorieren beides. */
+  native?: true; displayMin?: number;
+}
+export function makeRadarImgDual(frames: RadarImgDualFrame[], extra?: { native: true; displayMin: number }): RadarImgDual {
+  return { log: { ...RADAR_IMG_DUAL_LOG }, frames, ...(extra ? { native: true, displayMin: extra.displayMin } : {}) };
 }
 /** Form des Zusatzfelds: Log-Konstanten = die des Clients, genau ein `g`-Frame je `f`-Frame, gleiche Leads. */
 function dualOk(v: unknown, leads: readonly number[]): v is RadarImgDual {
@@ -133,6 +139,10 @@ function dualOk(v: unknown, leads: readonly number[]): v is RadarImgDual {
   if (!d || typeof d !== 'object' || !d.log || !Array.isArray(d.frames)) return false;
   if (d.log.min !== RADAR_IMG_DUAL_LOG.min || d.log.max !== RADAR_IMG_DUAL_LOG.max || d.log.steps !== RADAR_IMG_DUAL_LOG.steps) return false;
   if (d.frames.length !== leads.length) return false;
+  // Phase RG: optionales Paar; ist es da, muss es stimmig sein (native nur als `true`, displayMin eine endliche Rate ≥ log.min).
+  if (d.native !== undefined && d.native !== true) return false;
+  if (d.displayMin !== undefined && !(Number.isFinite(d.displayMin) && d.displayMin >= d.log.min)) return false;
+  if ((d.native === undefined) !== (d.displayMin === undefined)) return false;
   return d.frames.every((f, i) => f && typeof f === 'object' && f.lead === leads[i] && f.file === radarImgDualFile(f.lead)
     && Number.isFinite(f.bytes) && f.bytes > 0);
 }

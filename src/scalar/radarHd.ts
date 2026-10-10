@@ -147,3 +147,53 @@ export function radarDualFlagFrom(
 export const RADAR_HD_LAYER_IDS = Object.freeze({ DE: 'precip-rain-hd-de', AT: 'precip-rain-hd-at', CH: 'precip-rain-hd-ch' });
 export type RadarHdCountry = keyof typeof RADAR_HD_LAYER_IDS;
 export const RADAR_HD_COUNTRIES: readonly RadarHdCountry[] = Object.freeze(['DE', 'AT', 'CH']);
+
+// --- Phase RG (`audit/radar-regenschwelle.md`): display threshold of the precipitation radar -----------------------
+/**
+ * The smallest rate the precipitation map shows as blue, in mm/h on the NATIVE radar values.
+ * Provenance `measured`: 10.10.2026, 576 DWD-RV analyses 08.–10.10.2026 against 175 DWD 10-min stations with the
+ * precipitation indicator (`RWS_IND_10`), rule R-RG-1 frozen before the first metric (`audit/radar-regenschwelle/
+ * claims-frozen.sha256`): the smallest native step whose precision P(it precipitates | shown blue) has a 90-% lower bound
+ * ≥ Z = 90 % (E-RG-1, Jan 10.10.2026) — 0,060 mm/h: precision 93,1 % (90,7–95,0), hold-out 93,0 %; today (every echo)
+ * 86,2 %. ONE threshold for all distances (E-RG-2), below it nothing is drawn (E-RG-3). Equal to `PRECIP_LOG_MIN`, the
+ * floor of the log plane — so the producer realises it by encoding the plane from the native values (`RADAR_LOG_NATIVE`),
+ * and the client pre-pass (`applyDisplayMin`) only acts for a larger value (`?rmin=`). Re-measure after ≥ 7 days and in
+ * winter (V-RG-1).
+ */
+export const RADAR_DISPLAY_MIN_MMH = 0.06;
+export const RADAR_DISPLAY_MIN_MEASURED = '2026-10-10';
+
+/**
+ * `?rmin=<mm/h>` (or `localStorage.radarrmin`) — the display threshold applied on the client to the log plane (HD layers
+ * DE/AT/CH and the 250-m tiles) for comparison; `0` = no client pre-pass (the plane as the mirror wrote it); default
+ * `RADAR_DISPLAY_MIN_MMH`. A value at or below the codec floor changes nothing (the plane carries no smaller rate).
+ */
+export function radarDisplayMinFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): number {
+  const parse = (v: string | null | undefined): number | null => { if (v == null || v === '') return null; const x = Number(v.replace(',', '.')); return Number.isFinite(x) && x >= 0 ? x : null; };
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('rmin'); } catch { /* broken query = no vote */ }
+  const fromQuery = parse(q);
+  if (fromQuery != null) return fromQuery;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarrmin') : null; } catch { s = null; }
+  }
+  return parse(s) ?? RADAR_DISPLAY_MIN_MMH;
+}
+
+/**
+ * Client pre-pass on a LOG-plane byte array: every byte whose rate (`fromU8`) is below `minMmh` becomes 0 (dry). Returns the
+ * SAME array (no copy) when nothing can change — `minMmh` at or below the codec floor `floorMmh` — so the default path stays
+ * byte-identical and allocation-free; otherwise a new array. No shader involved.
+ */
+export function applyDisplayMin(values: Uint8Array, minMmh: number, floorMmh: number, fromU8: (u: number) => number): Uint8Array {
+  if (!(minMmh > floorMmh)) return values;
+  const out = new Uint8Array(values.length);
+  let uMin = 1;
+  while (uMin < 255 && fromU8(uMin) < minMmh) uMin++;   // first byte at or above the threshold (codec is monotone)
+  for (let i = 0; i < values.length; i++) { const u = values[i]; out[i] = u >= uMin ? u : 0; }
+  return out;
+}

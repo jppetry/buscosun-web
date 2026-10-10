@@ -33,6 +33,7 @@ import {
 } from '../../src/sources/radarImg.ts';
 import { rvHourMeanPlan, rvHourMeanImage, rvHourMeanMeta } from '../../src/sources/radarImgHourMean.ts';
 import { precipToU8Log } from '../../src/scalar/RainLayer.ts';
+import { RADAR_DISPLAY_MIN_MMH } from '../../src/scalar/radarHd.ts';
 import { untar } from '../../src/sources/radolanDecode.ts';
 import { decodeRvHdf5, isHdf5 } from '../../src/sources/rvHdf5.ts';
 import { PX250_SITES, px250FileName, px250Url, decodePx250 } from '../../src/sources/dwdPx250.ts';
@@ -45,7 +46,14 @@ import { readdirSync, existsSync } from 'node:fs';
 // (Grau + Alpha: Kanal 1 = derselbe `precipToU8`-Byte wie `f<lead>.png`, Kanal 2 = `precipToU8Log`) und `meta.dual`.
 // Ohne den Schalter byte-gleich (keine zweite Quantisierung, keine Datei mehr).
 const DUAL = process.env.RADAR_IMG_DUAL === '1';
-const secondary = DUAL ? { secondary: precipToU8Log } : {};
+// Phase RG (audit/radar-regenschwelle.md §6, E-RG-1…3 Jan 10.10.2026): mit `RADAR_LOG_NATIVE=1` wird die Log-Ebene (Kanal 2 der
+// `g`-Frames) aus den NATIVEN RV-Werten gebaut statt aus den angehobenen RADOLAN-Einheiten — erst so greift ihre Untergrenze
+// 0,06 mm/h = die an Stationen gemessene Darstellungsschwelle (`RADAR_DISPLAY_MIN_MMH`); die 250-m-Kacheln werden auf den nativen
+// Werten verankert, Blöcke unter der Schwelle bleiben trocken. Kanal 1, `f`-Frames, `m`-Bilder: byte-gleich. Ohne den Schalter
+// byte-gleich zum Stand vor RG. Gilt nur für die HDF5-Lieferform (das Altformat trägt keine feinen Werte).
+const LOG_NATIVE = process.env.RADAR_LOG_NATIVE === '1';
+const secondary = DUAL ? { secondary: precipToU8Log, ...(LOG_NATIVE ? { secondaryUnits: 'native' } : {}) } : {};
+const dualExtra = DUAL && LOG_NATIVE ? { native: true, displayMin: RADAR_DISPLAY_MIN_MMH } : undefined;
 
 const [source, inPath, outDir, stamp, extra] = process.argv.slice(2);
 if (!source || !inPath || !outDir || !stamp) {
@@ -64,7 +72,8 @@ if (source === 'hd250') {
   const tarBytes = new Uint8Array(tar.buffer, tar.byteOffset, tar.byteLength);
   const e0 = untar(tarBytes).find((e) => /_000-hd5$/.test(e.name));
   if (!e0 || !isHdf5(e0.data)) throw new Error('hd250: RV-Tar ohne HDF5-Analyse (_000-hd5) — nur die HDF5-Lieferform trägt den Anker');
-  const rv = await decodeRvHdf5(e0.data.buffer.slice(e0.data.byteOffset, e0.data.byteOffset + e0.data.byteLength), { name: e0.name });
+  // Phase RG: mit RADAR_LOG_NATIVE die nativen Werte als Anker (Blockmittel = feiner Wert, Schwelle `RADAR_DISPLAY_MIN_MMH`).
+  const rv = await decodeRvHdf5(e0.data.buffer.slice(e0.data.byteOffset, e0.data.byteOffset + e0.data.byteLength), { name: e0.name, ...(LOG_NATIVE ? { units: 'native' } : {}) });
   if (rv.leadMinutes !== 0) throw new Error(`hd250: Analyse trägt Vorlauf ${rv.leadMinutes}`);
   const sitesDir = extra || '';
   const fetchSite = async (site) => {
@@ -97,7 +106,7 @@ if (source === 'hd250') {
   }
   if (!grids.length) throw new Error('hd250: kein Standortbild lesbar');
   const comp = compositePx250(grids);
-  const field = anchorToRv(rv.rainRate, comp);
+  const field = anchorToRv(rv.rainRate, comp, LOG_NATIVE ? { minRate: RADAR_DISPLAY_MIN_MMH } : {});
   const tiles = hd250Tiles(field.rate);
   mkdirSync(outDir, { recursive: true });
   const metaTiles = [];
@@ -110,7 +119,7 @@ if (source === 'hd250') {
     files++; bytes += png.length;
     metaTiles.push({ tx: t.tx, ty: t.ty, file, bytes: png.length });
   }
-  const meta = makeHd250Meta(stamp, rv.validAt.getTime(), grids.map((g) => g.site), missing, field, metaTiles);
+  const meta = makeHd250Meta(stamp, rv.validAt.getTime(), grids.map((g) => g.site), missing, field, metaTiles, LOG_NATIVE ? { displayMin: RADAR_DISPLAY_MIN_MMH } : undefined);
   if (!parseHd250Meta(JSON.parse(JSON.stringify(meta)))) throw new Error('hd250: eigene hd250.json besteht den Client-Prüfer nicht');
   writeFileSync(join(outDir, HD250_META_FILE), JSON.stringify(meta) + '\n');
   files++;
@@ -139,7 +148,7 @@ function pngFrames(frames) {
 }
 
 /** HD-3: die Dual-PNGs (2 Kanäle verschränkt) je Frame — `undefined` ohne Schalter. */
-function dualFrames(frames) {
+function dualFrames(frames, rvNative = false) {
   if (!DUAL) return undefined;
   const out = [];
   for (const f of frames) {
@@ -151,7 +160,7 @@ function dualFrames(frames) {
     put(file, png);
     out.push({ lead: f.lead, file, bytes: png.length });
   }
-  return makeRadarImgDual(out);
+  return makeRadarImgDual(out, rvNative ? dualExtra : undefined);
 }
 
 const raw = readFileSync(inPath);
@@ -161,9 +170,10 @@ if (source === 'rv') {
   // EX-3: beide Lieferformen des DWD, am INHALT erkannt — `composite_rv_*.tar` (ODIM-HDF5, nacktes Tar)
   // und bis 2026-10-20 `DE1200_RV*.tar.bz2` (RADOLAN-Binär).
   const tar = isBz2(raw) ? await decompressBz2(raw) : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
-  const run = rvTarIsHdf5(tar) ? await decodeRvHdf5Tar(tar, secondary) : decodeRvTar(tar, secondary);
+  const hdf5 = rvTarIsHdf5(tar);
+  const run = hdf5 ? await decodeRvHdf5Tar(tar, secondary) : decodeRvTar(tar, secondary);
   const metaFrames = pngFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })));
-  const dual = dualFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })));
+  const dual = dualFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })), hdf5 && LOG_NATIVE);
   // E-AX-16 (audit/fusion-ausbau.md §6m): je volle Stunde nach dem Slot das Summenbild der Frames im Fenster (t − 60 min, t]
   // als `m<lead>.png` (RGB: Summe der Rohbytes + Zahl der gesättigten Frames) — aus DENSELBEN Bytes wie die Frame-PNGs.
   const byLead = new Map(run.frames.map((f) => [f.leadMinutes, f]));

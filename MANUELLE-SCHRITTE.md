@@ -1986,3 +1986,24 @@ Diagnose, Umsetzung, Gates: `audit/radar-randsaum.md`. Alles uncommitted in busc
 2. **Commit/Push der Umschaltung** — Vorschlag `feat(radar): edge rule on by default (E-RS-1, ?hdedge=0 fallback)`.
 3. **Nach dem Deploy ansehen:** Rand eines Regengebiets und Abspielen im Regenradar.
 4. **Real-Device** (V-RS-3): GPU-Zeit des Kantenzweigs beim Abspielen im Regenradar.
+
+## 59. Darstellungsschwelle des Niederschlagsradars (Phase RG), 2026-10-10
+
+Diagnose, Messprotokoll (eingefroren), Ergebnis: `audit/radar-regenschwelle.md` (§0 Kurzfassung, §5 Ergebnis, Bild
+`audit/radar-regenschwelle/kurve-w1.png`, Herborn `herborn-0740-vorher-nachher.png`). Noch kein Produktcode geändert; Rohdaten in
+`C:\dev\buscosun-radar-truth\` (kein Repo).
+
+1. ~~E-RG-1…3~~ — entschieden (Jan 10.10.): Z = 90 % ⇒ **0,060 mm/h**, EINE Schwelle, darunter unsichtbar; umgesetzt (§6 im Audit).
+2. **Kopie der Workflow-Zeile ins Daten-Repo:** `RADAR_LOG_NATIVE: '1'` aus `scripts/radar-mirror/workflow-radar.yml` nach
+   `.github/workflows/radar.yml` (unter `RADAR_HD250`) + Push — wirksam ab dem ersten Spiegel-Job nach dem Push (der laufende
+   behält seine Umgebung, ≤ 5 h 45); die Slots davor zeigen weiter jedes Echo (ihre `g`-Frames sind angehoben; Retention 1 h).
+   Reihenfolge: ERST buscosun-web `main` pushen (der Spiegel liest `rvHdf5.ts`/`radar-derive.mjs` aus dem Web-Klon), DANN die Zeile.
+3. **Commit/Push buscosun-web** — Vorschlag `feat(radar): display threshold 0,06 mm/h measured at stations (RG, RADAR_LOG_NATIVE)`.
+4. **Nach dem Deploy ansehen:** Statuszeile „· ab 0,06 mm/h"; leichter Regen am Rand eines Gebiets (Herborn-Fall); `?rmin=0.12`
+   zum Vergleich; `?hdv2=0` = jedes Echo (v1-Byte). **Nach dem ersten nativen Spiegel-Slot** (meta.dual.native = true):
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/radar-hd-pixelcheck.mjs --base=http://127.0.0.1:5231 --edge=1 --windows=DE`
+   gegen den Live-Slot (der RS-Modus, der funktioniert) — ersetzt das in dieser Sitzung nicht belegbare `--dualDir`-Orakel (V-RG-9).
+5. **Real-Device** (V-RG-8): kein neuer Shader, nur ein CPU-Vorpass bei `?rmin` > 0,06 — ohne Schalter nichts zu messen.
+6. **Vorwärtssammlung (lokal, kein Cron):** mindestens alle 48 h `node audit/radar-regenschwelle/collect-rv.mjs C:\dev\buscosun-radar-truth\rv-analysis`
+   (RV-Analysen, der DWD hält 48 h) und täglich vor 24:00 UTC `node audit/radar-regenschwelle/collect-cdc.mjs C:\dev\buscosun-radar-truth\cdc-store`
+   (Stationen; Lücken mit `--recent --days=…`). Nachmessung nach ≥ 7 Tagen und im Winter (V-RG-1).

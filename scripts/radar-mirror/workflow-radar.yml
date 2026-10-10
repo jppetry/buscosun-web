@@ -81,6 +81,10 @@ jobs:
           # 17 DWD-Standortbildern (`px250`) in den Rückblick-Slot `rv-past/<stamp>/` (`h<ty><tx>.png` + `hd250.json`, ≈ 2 MB je
           # Slot, Retention 2 h). Voreinstellung an, sobald der Web-Klon den Vertrag trägt; Rückweg: RADAR_HD250 auf '0'.
           RADAR_HD250: '1'
+          # Phase RG (buscosun-web/audit/radar-regenschwelle.md, Jan 10.10.2026, E-RG-1…3): Log-Ebene der `g`-Frames und
+          # 250-m-Kacheln aus den NATIVEN RV-Werten — unter 0,06 mm/h (an Stationen gemessene Darstellungsschwelle) nichts.
+          # Rückweg: Zeile entfernen (angehobene RADOLAN-Einheiten wie vor RG, jedes Echo blau).
+          RADAR_LOG_NATIVE: '1'
           GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_FILE: radar.yml
         run: node scripts/radar-mirror.mjs

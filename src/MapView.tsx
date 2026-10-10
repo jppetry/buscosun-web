@@ -13,7 +13,7 @@ import { GLOBE_PARTICLE_RAMP as PARTICLE_RAMP } from './wind/particlePreset';
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
-import { RainLayer, precipRainRamp, precipRainRampLog } from './scalar/RainLayer';
+import { RainLayer, precipRainRamp, precipRainRampLog, PRECIP_LOG_MIN, precipFromU8Log } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { uvBoundsToCorners } from './scalar/quadWarpMesh';
 import { loadFusedForecast, type ModelChoice } from './fusion/loadFusedForecast';
@@ -130,7 +130,7 @@ import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
-import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
+import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
 import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM } from './scalar/radarHd250';
 import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
@@ -966,6 +966,17 @@ export default function MapView({
   const hdMorphRef = useRef(radarMorphFlagFrom());
   /** Phase RS (`audit/radar-randsaum.md`): edge rule of the HD layers and the 250-m tiles — `off` = the picture before RS. */
   const hdEdgeRef = useRef(radarEdgeFlagFrom());
+  // Phase RG (`audit/radar-regenschwelle.md` §6): client pre-pass on the LOG plane for a display threshold ABOVE the codec floor
+  // (`?rmin=`); at the default 0,06 = `PRECIP_LOG_MIN` it does nothing (same array back) — the threshold is realised by the
+  // mirror, which encodes the plane from the native values. Memoised per plane object.
+  const rminRef = useRef(radarDisplayMinFrom());
+  const rminCacheRef = useRef(new WeakMap<Uint8Array, Uint8Array>());
+  const withDisplayMin = (v: Uint8Array): Uint8Array => {
+    if (!(rminRef.current > PRECIP_LOG_MIN)) return v;
+    let o = rminCacheRef.current.get(v);
+    if (!o) { o = applyDisplayMin(v, rminRef.current, PRECIP_LOG_MIN, precipFromU8Log); rminCacheRef.current.set(v, o); }
+    return o;
+  };
   const [hdFlowTick, setHdFlowTick] = useState(0);
   const hdMaskRef = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
   const hdFramesRef = useRef<Map<number, CompositePick>>(new Map());
@@ -1452,7 +1463,8 @@ export default function MapView({
       // Striche, src/wind/particlePreset.ts) wurde am 2026-08-08 auf Jans
       // Auftrag wieder DEAKTIVIERT — Optik gefiel nicht; der Code bleibt
       // default-off hinter particleStyle:'segments' verfügbar (Gate GWP1).
-      speedPxPerMs: 6, speedRefZoom: 5.5,
+      // Jans Wunsch 2026-10-10: generell langsamer (6 -> 4,2 px/s je m/s, -30 %).
+      speedPxPerMs: 4.2, speedRefZoom: 5.5,
       // Jans Befund 2026-08-09: beim Rauszoomen wirkten die Partikel zu schnell.
       // exp 0 hielt das Bildschirmtempo über alle Stufen konstant — geografisch
       // ist das weit draußen ein enormer Zeitraffer. 0,35 dämpft das Tempo unter
@@ -1466,7 +1478,8 @@ export default function MapView({
       // Zahl je Zoomstufe um 2^−0,75; darunter bleibt alles wie bisher. Tempo
       // und GRIB-Treue unberührt. Messreihe: audit/windpartikel-hochzoom.md.
       // Fallback (Rule 2): zoomInThinExp 0 = Altverhalten.
-      zoomInThinExp: 0.75, zoomInThinFrom: 7,
+      // Jans Wunsch 2026-10-10: noch weniger beim Reinzoomen (0,75 -> 1,25, ab z6,5).
+      zoomInThinExp: 1.25, zoomInThinFrom: 6.5,
       // Touch/coarse-pointer (mobile/tablet): skip the particle passes during
       // active pan/zoom so the basemap + heatmap stay smooth; particles resume
       // on moveend. Desktop (fine pointer) keeps full fidelity.
@@ -2244,7 +2257,9 @@ export default function MapView({
       if (incaGridRef.current) parts.push('AT INCA');
       if (meteoRadarRef.current) parts.push('CH rzc');
       // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
-      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}${hd250Ref.current && nowcastRef.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})` : ''}` : '';
+      // Phase RG: the status names the display threshold (measured, `RADAR_DISPLAY_MIN_MMH`); `?rmin=` shows the compared value.
+      const rminText = hdRef.current.on ? ` · ab ${rminRef.current.toFixed(2).replace('.', ',')} mm/h` : '';
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}${hd250Ref.current && nowcastRef.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})` : ''}${rminText}` : '';
       // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
       // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
       // AT-INCA-Grid tut es nicht (`geosphereIncaGrid.ts` parst nur `leadtime`)
@@ -3639,7 +3654,7 @@ export default function MapView({
         layer.setFrame(frame);
         layer.setMorph(morph ?? null);
       };
-      const plane = (f: { values: Uint8Array; values2?: Uint8Array } | null | undefined) => (f?.values2 ?? f?.values ?? null);
+      const plane = (f: { values: Uint8Array; values2?: Uint8Array } | null | undefined) => (f?.values2 ? withDisplayMin(f.values2) : f?.values ?? null);
       const rvSrc = nowcastRef.current, incaSrc = incaGridRef.current;
       const f0 = rvSrc?.frames[0];
       show(L.hdDe, pick?.rv && rvSrc && f0
@@ -3716,8 +3731,8 @@ export default function MapView({
         const layer = layers.get(id);
         if (!layer) continue;
         if (A.kind === 'dry' && (!B || B.kind === 'dry')) continue;   // dry on both sides: nothing to draw (RV is dry there too)
-        const va = A.kind === 'ready' ? A.values : HD250_ZERO;
-        const vb = B ? (B.kind === 'ready' ? B.values : HD250_ZERO) : null;
+        const va = A.kind === 'ready' ? withDisplayMin(A.values) : HD250_ZERO;
+        const vb = B ? (B.kind === 'ready' ? withDisplayMin(B.values) : HD250_ZERO) : null;
         const frame: RainFrameData = {
           values: va, width: HD250_TILE_W, height: HD250_TILE_H, corners: hd250TileCorners(t.tx, t.ty),
           warpLnglat: hd250TileMesh(t.tx, t.ty), warpN: HD250_TILE_WARP_N, mask: tileMask(id, t.tx, t.ty),

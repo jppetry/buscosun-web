@@ -129,6 +129,8 @@ export interface RvHdf5Options {
   name?: string;
   /** `'jsfive'` erzwingt den langsamen Weg (Gegenprobe im Verifier). */
   reader?: 'auto' | 'jsfive';
+  /** Phase RG: zusätzlich die feinen Werte als `rainRateNative` zurückgeben (dieselbe Schleife; ohne Option unverändert). */
+  withNative?: boolean;
 }
 
 export async function decodeRvHdf5(buf: ArrayBuffer, opts: RvHdf5Options = {}): Promise<RadolanGrid> {
@@ -161,16 +163,18 @@ export async function decodeRvHdf5(buf: ArrayBuffer, opts: RvHdf5Options = {}): 
   const unitUm = Math.round(RADOLAN_UNIT_MM * 1e6);
   const mmPerHourPerUnit = RADOLAN_UNIT_MM * perHour;       // wie `parseHeader`: PR-Faktor · (60 / Intervall)
   const native = opts.units === 'native';
+  const rainRateNative = opts.withNative && !native ? new Float32Array(cols * rows) : null;
 
   const rainRate = new Float32Array(cols * rows);
   for (let k = 0; k < rainRate.length; k++) {
     const r = data[k];
-    if (r === nodata) { rainRate[k] = NaN; continue; }
+    if (r === nodata) { rainRate[k] = NaN; if (rainRateNative) rainRateNative[k] = NaN; continue; }
     if (r === undetect) continue;                           // 0 = kein Echo
     const um = Math.max(0, r * gainUm + offsetUm);
     rainRate[k] = native ? (um / 1e6) * perHour : Math.max(1, Math.floor(um / unitUm)) * mmPerHourPerUnit;
+    if (rainRateNative) rainRateNative[k] = (um / 1e6) * perHour;
   }
-  return { cols, rows, rainRate, validAt: new Date(runMs), leadMinutes, product: 'RV' };
+  return { cols, rows, rainRate, validAt: new Date(runMs), leadMinutes, product: 'RV', ...(rainRateNative ? { rainRateNative } : native ? { rainRateNative: rainRate } : {}) };
 }
 
 /** Beginnt der Puffer mit der HDF5-Signatur (`89 48 44 46 0D 0A 1A 0A`)? */
@@ -184,9 +188,14 @@ export function isHdf5(bytes: Uint8Array): boolean {
  * (`precipToU8`-Bytes), nach Vorlauf aufsteigend.
  */
 export async function decodeRvHdf5Tar(
-  tarBytes: Uint8Array, opts: Omit<RvHdf5Options, 'name'> & { secondary?: (mmph: number) => number } = {},
+  tarBytes: Uint8Array, opts: Omit<RvHdf5Options, 'name'> & { secondary?: (mmph: number) => number; secondaryUnits?: RvUnits } = {},
 ): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
-  const { secondary, ...h5opts } = opts;   // Phase HD-3: zweite Quantisierung (`values2`), ohne sie byte-gleich
+  // Phase HD-3: zweite Quantisierung (`values2`), ohne sie byte-gleich. Phase RG (`audit/radar-regenschwelle.md` §6):
+  // `secondaryUnits: 'native'` rechnet `values2` aus den FEINEN Werten (0,012-mm/h-Stufen) statt aus den angehobenen
+  // RADOLAN-Einheiten — erst damit greift die Untergrenze der Log-Ebene (0,06 mm/h = die gemessene Darstellungsschwelle).
+  // `values` (Kanal 1, v1-Byte) bleibt in jedem Fall der RADOLAN-Byte (E-EX-6).
+  const { secondary, secondaryUnits, ...h5opts } = opts;
+  const secondaryNative = secondary !== undefined && secondaryUnits === 'native';
   const entries = untar(tarBytes);
   if (!entries.length) throw new Error('RV-HDF5: leeres tar');
   const frames: DecodedRvFrame[] = [];
@@ -194,7 +203,7 @@ export async function decodeRvHdf5Tar(
   for (const e of entries) {
     if (!isHdf5(e.data)) throw new Error(`RV-HDF5: ${e.name} ist keine HDF5-Datei`);
     // jsfive braucht einen eigenen ArrayBuffer — der Tar-Eintrag ist eine Teilsicht.
-    const grid = await decodeRvHdf5(e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength) as ArrayBuffer, { ...h5opts, name: e.name });
+    const grid = await decodeRvHdf5(e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset + e.data.byteLength) as ArrayBuffer, { ...h5opts, name: e.name, ...(secondaryNative ? { withNative: true } : {}) });
     const named = /_(\d{3})-hd5$/.exec(e.name);
     if (named && Number(named[1]) !== grid.leadMinutes) {
       throw new Error(`RV-HDF5: ${e.name} trägt Vorlauf ${grid.leadMinutes} min`);
@@ -204,8 +213,9 @@ export async function decodeRvHdf5Tar(
     for (let k = 0; k < values.length; k++) values[k] = precipToU8(grid.rainRate[k]);
     let values2: Uint8Array | undefined;
     if (secondary) {
-      values2 = new Uint8Array(grid.rainRate.length);
-      for (let k = 0; k < values2.length; k++) values2[k] = secondary(grid.rainRate[k]);
+      const src = secondaryNative ? grid.rainRateNative! : grid.rainRate;
+      values2 = new Uint8Array(src.length);
+      for (let k = 0; k < values2.length; k++) values2[k] = secondary(src[k]);
     }
     frames.push({ leadMinutes: grid.leadMinutes, validAtMs: grid.validAt.getTime(), values, width: grid.cols, height: grid.rows, ...(values2 ? { values2 } : {}) });
   }

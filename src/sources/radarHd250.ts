@@ -24,7 +24,7 @@
  *   5. log quantisation 0,06 … 200 mm/h (`precipToU8Log`, the HD-3 plane), tiles 1100 × 1200.
  */
 
-import { precipToU8Log, PRECIP_LOG_MIN, PRECIP_LOG_MAX, PRECIP_LOG_STEPS } from '../scalar/RainLayer';
+import { precipToU8Log, PRECIP_LOG_MIN, PRECIP_LOG_MAX, PRECIP_LOG_STEPS, PRECIP_LOG_EPS } from '../scalar/RainLayer';
 import { psFwd } from './radolanGeo';
 import { rvPastDir } from './radolanRuns';
 import type { Px250Grid } from './dwdPx250';
@@ -123,21 +123,28 @@ export interface Hd250Field {
   wetBlocks: number;
   structuredBlocks: number;
   flatBlocks: number;
+  /** Phase RG: blocks wet in RV but under the display threshold (only with `minRate`). */
+  belowMinBlocks?: number;
 }
 
 /**
  * §4 step 4: RV analysis (1100 × 1200 mm/h, NaN outside the radar domain) + composite → 250-m rates whose 4 × 4 block
  * mean equals RV exactly. Pure; the verifier checks mean/dry/flat on synthetic and real inputs.
  */
-export function anchorToRv(rv: Float32Array, comp: Hd250Composite): Hd250Field {
+/**
+ * Phase RG (`audit/radar-regenschwelle.md` §6): `minRate` = display threshold on the 1-km value (native RV rates, mm/h) —
+ * a block below it stays dry in all 16 cells (counted in `belowMin`); without the option (or 0) byte-identical to R250.
+ */
+export function anchorToRv(rv: Float32Array, comp: Hd250Composite, opts: { minRate?: number } = {}): Hd250Field {
   if (rv.length !== 1100 * 1200) throw new Error(`hd250: RV-Feld mit ${rv.length} Zellen`);
   const out = new Float32Array(HD250_COLS * HD250_ROWS);
-  let wet = 0, structured = 0, flat = 0;
-  const F = HD250_FACTOR;
+  let wet = 0, structured = 0, flat = 0, belowMin = 0;
+  const F = HD250_FACTOR, minRate = opts.minRate ?? 0;
   for (let j = 0; j < 1200; j++) {
     for (let i = 0; i < 1100; i++) {
       const v = rv[j * 1100 + i];
       if (!(v > 0)) continue;                               // dry or NaN ⇒ all 16 cells stay 0
+      if (v < minRate - PRECIP_LOG_EPS) { belowMin++; continue; }   // RG: under the display threshold ⇒ dry block (float32 0,06 counts as 0,06)
       wet++;
       // mean of the Z-R rates over the covered cells of the block
       let sum = 0, cnt = 0;
@@ -158,7 +165,7 @@ export function anchorToRv(rv: Float32Array, comp: Hd250Composite): Hd250Field {
       }
     }
   }
-  return { rate: out, wetBlocks: wet, structuredBlocks: structured, flatBlocks: flat };
+  return { rate: out, wetBlocks: wet, structuredBlocks: structured, flatBlocks: flat, ...(minRate > 0 ? { belowMinBlocks: belowMin } : {}) };
 }
 
 // --- encoding + tiles ----------------------------------------------------------------------------------------------
@@ -199,19 +206,23 @@ export interface Hd250Meta {
   /** sites whose image went into the composite / sites of the table that were missing for this slot */
   sites: string[]; missing: string[];
   /** 1-km blocks: wet in RV, with 250-m structure, flat */
-  blocks: { wet: number; structured: number; flat: number };
+  blocks: { wet: number; structured: number; flat: number; belowMin?: number };
   tiles: Hd250MetaTile[];
+  /** Phase RG: the tiles were anchored on the NATIVE RV rates with this display threshold (mm/h); blocks under it are dry
+   *  (`blocks.belowMin`). Absent = anchored on RADOLAN units (slots before RG). */
+  displayMin?: number;
 }
 
-export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[], missing: string[], field: Hd250Field, tiles: Hd250MetaTile[]): Hd250Meta {
+export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[], missing: string[], field: Hd250Field, tiles: Hd250MetaTile[], extra?: { displayMin: number }): Hd250Meta {
   return {
     schema: 1, source: 'hd250', stamp, validAtMs,
     cols: HD250_COLS, rows: HD250_ROWS, cellM: HD250_CELL_M, factor: HD250_FACTOR,
     tile: { nx: HD250_TILES_X, ny: HD250_TILES_Y, w: HD250_TILE_W, h: HD250_TILE_H },
     log: { min: PRECIP_LOG_MIN, max: PRECIP_LOG_MAX, steps: PRECIP_LOG_STEPS },
     zr: { ...HD250_ZR }, anchor: 'rv', sites, missing,
-    blocks: { wet: field.wetBlocks, structured: field.structuredBlocks, flat: field.flatBlocks },
+    blocks: { wet: field.wetBlocks, structured: field.structuredBlocks, flat: field.flatBlocks, ...(field.belowMinBlocks !== undefined ? { belowMin: field.belowMinBlocks } : {}) },
     tiles,
+    ...(extra ? { displayMin: extra.displayMin } : {}),
   };
 }
 
@@ -226,6 +237,8 @@ export function parseHd250Meta(j: unknown): Hd250Meta | null {
   if (!m.zr || m.zr.a !== HD250_ZR.a || m.zr.b !== HD250_ZR.b || m.anchor !== 'rv') return null;
   if (!Array.isArray(m.sites) || !Array.isArray(m.missing) || !m.sites.every((s) => typeof s === 'string')) return null;
   if (!m.blocks || !Number.isInteger(m.blocks.wet) || !Number.isInteger(m.blocks.structured) || !Number.isInteger(m.blocks.flat)) return null;
+  if (m.blocks.belowMin !== undefined && !Number.isInteger(m.blocks.belowMin)) return null;
+  if (m.displayMin !== undefined && !(Number.isFinite(m.displayMin) && m.displayMin >= PRECIP_LOG_MIN)) return null;   // Phase RG
   if (!Array.isArray(m.tiles) || m.tiles.length > HD250_TILES_X * HD250_TILES_Y) return null;
   const seen = new Set<string>();
   for (const t of m.tiles) {
