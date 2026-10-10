@@ -214,3 +214,38 @@ der drei statischen CDN-Pfade, der Block `ctl` im Archiv.
 | V-AF-4 | Kennungen hängen an der Sortierung nach Stationszahl; jede neue Meldung kann sie verschieben (D-AF-9) | geteilte Links bleiben richtig | `--pin` wird der Normalweg jedes Neubaus |
 | V-AF-5 | Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7); Fusion 12 hat kein Spur-P-Urteil | Klarheit, was „Fusion 12" belegt | Abnahme ab ≈ 20.10. (E-OF-6), unabhängig von dieser Phase |
 | V-AF-6 | AT/CH ohne Korridore und Prognosepunkte (E-AW-12) | A 8 endet nicht an der Grenze | eigene Phase (Achsen GIP.at/OSM, Radar INCA/RZC) |
+
+## 8. Protokoll
+
+### 8.1 AF-1 — Fusion 12 auf `main` (10.10.2026; Jan: „es ist commited, schalte es jetzt auch aktiv")
+
+Jans Commit `646142b` trägt diese Spezifikation; sein Satz gilt hier als Ja zur Umsetzung und — bei grünen Gates — zum
+Push von AF-1 (E-AF-2). Merge von `fusion-12` (`e503094`) in einem eigenen Worktree auf dem Hilfszweig
+`af/merge-fusion-12`, Merge-Commit `b9765a0`. Konflikte wie in D-AF-3 vorhergesagt: `ci.yml` (beide Verifier-Listen),
+`MANUELLE-SCHRITTE.md` (beide Abschnitte; der OF-Abschnitt des Branches heißt jetzt §60, die Verweise „§48.9/§48.10" in
+`audit/obs-fusion.md` meinen ihn), `budget.json` (Grenzen von `main`; totalJs 1 699 → **1 712**, gemessen 1 710,0 =
+`main` 1 697,1 + 12,9 KB, alles lazy; die drei Notizen des Branches übernommen).
+
+| Gate (gemergter Stand, PowerShell, ohne `2>&1`) | Ergebnis |
+|---|---|
+| `npm run typecheck` | 0 Fehler |
+| Build | grün, `verify-routing` 255/255 |
+| `npm run budget` | grün: eagerJs 109,3 / 109,4 · totalJs 1 710 / **1 712** · largestChunk 278,4 |
+| `verify:fusion-release` | **30/30**, „neuester Stand buscosun Fusion 12" |
+| `verify:pv-fusion` · `verify:obs-reader` · `verify:calib-fit` · `verify:fusion-fit` | 235/235 · 41/41 · 14/14 · grün |
+| `verify:road-fc` · `road-contract` · `road-archive` | 103/103 · 93/93 · 26/26 |
+| `verify:pv-cube` | 440/441 — rot nur **(21)**; auf `main` (`646142b`) im selben Durchgang 422/424 mit (21) und der Zeitprüfung (11). Im ersten Lauf unter Last zusätzlich (4)/(12)/(14)/(16) (Zeit, V-FR-8) |
+| `verify:point-client` | 177/178 — (10s) zeitabhängig (V-EX-13) |
+| `verify:np0-fields` | 32/33 — B14 (Zustand des lokalen Daten-Klons, V-RC-4, auf `main` gleich) |
+| `verify:punktarchiv` · `point-data` · `precip-sums` · `regenchance` · `rain-window` · `height-time` · `snowcap` | 165/165 · 1016/1016 · 57 (2 ausgelassen) · 44/44 · 63/63 · 58/58 · 56/56 |
+| `verify:sea-derive` | nicht gewertet: lief nach 20 min CPU noch (abgebrochen); `scripts/sea` und `src/sea` sind im Merge unverändert, der Verifier ruft den Motor nicht |
+
+**Probelauf des Producers** (gemergter Code, frischer sparse Klon des Daten-Repos `00519d6`, ohne `--publish`):
+300 Achspunkte 300/300, 0 ohne Ergebnis, 37 s; 41 Stationspunkte 41/41, 24 mit eigener SWIS-Luft verankert;
+`engine`: `{"name":"buscosun Fusion 12","version":12,"stage":"fs",…}`, Tabellen `0714300fe2a5`/`9d22ff35986f`/`85d73cead2cb`
+wie live. Achspunkte bis AF-4 ohne Messung (D-AF-4) — der Lauf sagt „Anker keiner".
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AF-7 | `verify:pv-cube` (21) ist auf `main` rot: `src/nowcast/heightTime/heightTimeModel.ts` (Phase HZS) importiert `profileColumn`, die Prüfung aus AP15 verbietet jeden Import unter `src/` | CI auf `main` wieder grün | Prüfung auf den Motor (`src/pointForecast/`) eingrenzen — der Schnitt rechnet die Nullgradgrenze ausdrücklich außerhalb von buscosun Fusion; Jans Gate (Fusion-Linie) |
+| V-AF-8 | `verify:sea-derive` braucht auf dieser Maschine > 20 min CPU | Gate wieder benutzbar | Laufzeit am Stand `main` messen, langsamen Block suchen (Phase SW) |
