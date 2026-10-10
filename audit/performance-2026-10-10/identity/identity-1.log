@@ -1,0 +1,5 @@
+ready base null cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+DIFF radar rv (25 Frames, values + values2, Zeiten):
+TypeError: Cannot read properties of undefined (reading 'slice')
+    at cmp (file:///C:/dev/buscosun-web-wt/perf/scripts/perf-data-identity.mjs:80:30)
+    at main (file:///C:/dev/buscosun-web-wt/perf/scripts/perf-data-identity.mjs:83:3)

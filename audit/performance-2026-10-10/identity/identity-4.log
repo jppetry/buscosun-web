@@ -1,0 +1,12 @@
+ready base {"rv":25,"inca":true,"rzc":true,"masks":3} cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+OK   radar rv (25 Frames, values + values2, Zeiten): identisch (2907 Zeichen)
+DIFF radar inca:
+  base {"n":11,"corners":"[[8.090898567448969,49.36722050753486],[17.749633984088593,49.4007844902649],[17.436301138588583,45.529428764230374],[8.462551055500136,45.498222963663224]]","frames":[{"lead":0.5,"w":701,"h":431,"v":"4a52753c:302131","v2":null},{"lead":0.75,"w":701,"h":431,"v":"27cda9a4:302131","v2":null},{"lead":1,"w":701,"h":431,"v":"882ab8e1:302131","v2":null},{"lead":1.25,"w":701,"h":431,"v":"1a0ea539:302131","v2":null},{"lead":1.5,"w":701,"h":431,"v":"c77dbb22:302131","v2":null},{"lead":1.75,"w":701,"h":431,"v":"2fab043f:302131","v2":null},{"lead":2,"w":701,"h":431,"v":"65caeab6:302131
+  cur  {"n":12,"corners":"[[8.090898567448969,49.36722050753486],[17.749633984088593,49.400784490264904],[17.436301138588583,45.529428764230374],[8.462551055500136,45.498222963663224]]","frames":[{"lead":0.25,"w":701,"h":431,"v":"f503ff85:302131","v2":"a01e9794:302131"},{"lead":0.5,"w":701,"h":431,"v":"4a52753c:302131","v2":"3e0383bf:302131"},{"lead":0.75,"w":701,"h":431,"v":"27cda9a4:302131","v2":"751954f7:302131"},{"lead":1,"w":701,"h":431,"v":"882ab8e1:302131","v2":"0e7f5adf:302131"},{"lead":1.25,"w":701,"h":431,"v":"1a0ea539:302131","v2":"6851584c:302131"},{"lead":1.5,"w":701,"h":431,"v":"c77dbb2
+OK   radar rzc: identisch (254 Zeichen)
+OK   radar masks: identisch (71 Zeichen)
+Error: SyntaxError: Invalid regular expression: /(d+ s alt/g: Unterminated group
+    at Object.evaluate (file:///C:/dev/buscosun-web-wt/perf/scripts/lib/cdpBrowser.mjs:124:37)
+    at async Promise.all (index 0)
+    at async main (file:///C:/dev/buscosun-web-wt/perf/scripts/perf-data-identity.mjs:93:20)
+IDENTITY-EXIT 2

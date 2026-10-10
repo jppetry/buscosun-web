@@ -22,7 +22,8 @@ import { parseIncaOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertig aufbereitete Frames vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, loadRadarGrayAlphaPng, RadarImg404 } from './radarImg';
+import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll } from './radarImg';
+import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';   // Phase PF (M4)
 import { radarDualFlagFrom } from '../scalar/radarHd';
 
 const GRID_URL =
@@ -134,7 +135,8 @@ async function loadIncaFromImg(priority?: RequestPriority): Promise<IncaGrid | n
       return null;                               // GeoSphere weg ⇒ Direktweg, danach der geratene Bild-Weg
     }
     if (!Number.isFinite(ref)) return null;
-    const grid = await loadIncaSlot(radarImgStamp(ref), dl.signal, priority);
+    dl.touch();
+    const grid = await loadIncaSlot(radarImgStamp(ref), dl.signal, priority, dl.touch);
     if (grid) console.log(`[buscosun] GeoSphere INCA → Lauf ${radarImgStamp(ref)} · ${grid.frames.length} Frames · Quelle Daten-Repo (PNG)`);
     return grid;
   } catch (err) {
@@ -144,27 +146,30 @@ async function loadIncaFromImg(priority?: RequestPriority): Promise<IncaGrid | n
 }
 
 /** EIN Bild-Slot vom CDN — meta.json (Ecken!) + alle darin genannten Frames. */
-async function loadIncaSlot(stamp: string, signal: AbortSignal, priority?: RequestPriority): Promise<IncaGrid | null> {
+async function loadIncaSlot(stamp: string, signal: AbortSignal, priority?: RequestPriority, touch?: () => void): Promise<IncaGrid | null> {
   const dir = incaImgDir(stamp);
   const meta = parseIncaImgMeta(await (await fetchImgRes(`${dir}/meta.json`, signal, priority)).json());
   if (!meta || meta.stamp !== stamp) return null;
   // HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), je Frame das `f`-Bild wie bisher.
   const dualFile = radarDualFlagFrom() && meta.dual ? new Map(meta.dual.frames.map((d) => [d.lead, d.file])) : null;
-  const frames: IncaFrame[] = await Promise.all(meta.frames.map(async (f) => {
+  touch?.();
+  // Phase PF (M8): at most RADAR_IMG_CONCURRENCY frames on the wire (lifted once the CDN hedges), every arrival restarts the CDN deadline (D-PF-13/14)
+  const hedges0 = radarRawHedgeCount();
+  const frames: IncaFrame[] = await pooledAll(meta.frames, () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : RADAR_IMG_CONCURRENCY), async (f) => {
     const g = dualFile?.get(f.lead);
     if (g) {
       try {
-        const d = await loadRadarGrayAlphaPng(await fetchImgRes(`${dir}/${g}`, signal, priority), meta.width, meta.height);
+        const d = await loadRadarGrayAlphaPngOffMain(await fetchImgRes(`${dir}/${g}`, signal, priority), meta.width, meta.height);   // Phase PF (M4): off-main
         return { leadHours: f.lead / 60, values: d.values, values2: d.values2, width: meta.width, height: meta.height };
       } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
     }
     return {
       leadHours: f.lead / 60,
-      values: await loadRadarGrayPng(await fetchImgRes(`${dir}/${f.file}`, signal, priority), meta.width, meta.height),
+      values: await loadRadarGrayPngOffMain(await fetchImgRes(`${dir}/${f.file}`, signal, priority), meta.width, meta.height),   // Phase PF (M4): off-main
       width: meta.width,
       height: meta.height,
     };
-  }));
+  }, touch);
   return { frames, corners: meta.corners as QuadCorners };
 }
 
@@ -180,7 +185,7 @@ async function loadIncaFromImgGuessed(priority?: RequestPriority): Promise<IncaG
   for (const stamp of guessIncaStamps(2)) {
     const dl = radarCdnDeadline(undefined);
     try {
-      const grid = await loadIncaSlot(stamp, dl.signal, priority);
+      const grid = await loadIncaSlot(stamp, dl.signal, priority, dl.touch);
       if (!grid) continue;
       const alterMin = Math.round((Date.now() - radarImgStampToMs(stamp)) / 60_000);
       console.warn(`[buscosun] GeoSphere INCA nicht erreichbar — Daten-Repo (PNG), Lauf ${stamp} (${alterMin} min alt)`);

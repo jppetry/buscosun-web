@@ -28,7 +28,7 @@ import { PRECIP_VMAX, PRECIP_LOG_MIN, PRECIP_LOG_MAX, PRECIP_LOG_STEPS, type Qua
 import { decodeGrayPng, decodeGrayAlphaPng, GrayPngUnsupported } from './grayPng';
 import {
   RADAR_CDN_BASE, RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
-  radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
+  radarImgFrameFile, radarImgDualFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
   RV_PAST_KEEP, RADAR_PAST_WINDOW_MS, rvPastDir, rvPastEligible,
 } from './radolanRuns';
 
@@ -37,7 +37,7 @@ import {
 // Vertragsadresse haben.
 export {
   RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
-  radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
+  radarImgFrameFile, radarImgDualFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
   RV_PAST_KEEP, RADAR_PAST_WINDOW_MS, rvPastDir, rvPastEligible,
 };
 
@@ -119,9 +119,6 @@ export function konradImgUrl(stamp: string): string {
  * liest sie nur mit `?hdv2=1` (`radarDualFlagFrom`) und fällt je Frame auf `f` zurück, wenn das `g` fehlt.
  */
 export const RADAR_IMG_DUAL_LOG = Object.freeze({ min: PRECIP_LOG_MIN, max: PRECIP_LOG_MAX, steps: PRECIP_LOG_STEPS });
-export function radarImgDualFile(leadMin: number): string {
-  return `g${String(leadMin).padStart(3, '0')}.png`;
-}
 export interface RadarImgDualFrame { lead: number; file: string; bytes: number }
 export interface RadarImgDual {
   log: { min: number; max: number; steps: number }; frames: RadarImgDualFrame[];
@@ -322,6 +319,48 @@ export class RadarImg404 extends Error {}
 export const RADAR_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar';
 /** p95 der gemessenen MISS-TTFB (AP0/AP1) — wie `RAW_FALLBACK_HEDGE_MS` des Punkt-Lesers. */
 export const RADAR_RAW_HEDGE_MS = 2_500;
+/**
+ * Phase PF (M8): how often the raw way was started in this session (hedge after `RADAR_RAW_HEDGE_MS`, or at once after a CDN
+ * error). A slot reader compares the counter before and during its pooled frame fetches: a CDN that hangs or refuses makes every
+ * request wait for the hedge, and a pool of six would then multiply that wait (measured in `verify:radar-fallback` B1: 18 s instead
+ * of < 8 s) — so the reader lifts the pool as soon as one hedge fired (the raw origin is a different server anyway).
+ */
+let _rawHedges = 0;
+export function radarRawHedgeCount(): number { return _rawHedges; }
+
+/**
+ * Phase PF (M8, D-PF-14): at most this many frame files of one slot on the wire at once. 25 parallel streams on a throttled
+ * link share the bandwidth so that the first of them completes almost as late as the last (the analysis frame included), the
+ * response headers come late and `fetchImgRes` starts its raw hedge for every file (doubling the requests). With a pool the
+ * files complete one after the other (progress for the deadline, headers early, no false hedge); on a fast link six streams
+ * saturate the connection. set — measured only on the lab profiles (desktop unthrottled, mobile 4G). Lives here (lazy) and not in
+ * `radolanRuns.ts` (eager, router warm-up) — the eager chunk carries only what the warm-up needs.
+ */
+export const RADAR_IMG_CONCURRENCY = 6;
+/**
+ * Runs `fn` over `items` with at most `limit()` in flight (re-read after every completion — a reader may lift the limit when it
+ * sees the CDN hedging), keeps the order of `items`, calls `onEach` after every completion. Rejects with the first error.
+ */
+export function pooledAll<T, R>(items: readonly T[], limit: number | (() => number), fn: (x: T) => Promise<R>, onEach?: () => void): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  const max = typeof limit === 'function' ? limit : () => limit;
+  return new Promise<R[]>((resolve, reject) => {
+    if (!items.length) { resolve(out); return; }
+    let i = 0, inFlight = 0, failed = false;
+    const pump = (): void => {
+      while (!failed && i < items.length && inFlight < Math.max(1, max())) {
+        const k = i++;
+        inFlight++;
+        fn(items[k]).then((r) => {
+          out[k] = r; inFlight--;
+          onEach?.();
+          if (i >= items.length && inFlight === 0) resolve(out); else pump();
+        }, (e) => { if (!failed) { failed = true; reject(e); } });
+      }
+    };
+    pump();
+  });
+}
 
 /** Kill-Switch des Ausweichwegs: `?radarraw=0|1` schlägt `localStorage.radarraw` (D-31). */
 export function radarRawFlagFrom(
@@ -400,6 +439,7 @@ export function fetchImgRes(url: string, signal?: AbortSignal, priority?: Reques
     const startFallback = (): boolean => {
       if (!raw || fbStarted || settled) return false;
       fbStarted = true;
+      _rawHedges++;
       fetch(raw, init(acF.signal)).then(
         (res) => {
           if (settled || won) return;

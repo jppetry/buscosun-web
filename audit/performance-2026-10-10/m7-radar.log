@@ -1,0 +1,33 @@
+mobile4g radar head #1: firstDraw=2207 radarDraw=7818 radarAllMs=11319 radarKb=2378 dataKb=4978 jsKb=1302 gaps max 2417 >100:37 >200:25 play inputDelay=55 feedback=null
+mobile4g radar cur #1: firstDraw=1883 radarDraw=6063 radarAllMs=15804 radarKb=5753 dataKb=7203 jsKb=1303 gaps max 1517 >100:25 >200:20 play inputDelay=62 feedback=null
+mobile4g radar head #2: firstDraw=1962 radarDraw=6950 radarAllMs=12583 radarKb=2917 dataKb=4964 jsKb=1302 gaps max 2083 >100:28 >200:19 play inputDelay=0 feedback=null
+mobile4g radar cur #2: firstDraw=2049 radarDraw=6222 radarAllMs=12049 radarKb=5750 dataKb=7200 jsKb=859 gaps max 1517 >100:17 >200:11 play inputDelay=0 feedback=null
+mobile4g radar head #3: firstDraw=1847 radarDraw=7731 radarAllMs=7816 radarKb=5753 dataKb=11323 jsKb=1302 gaps max 2767 >100:41 >200:29 play inputDelay=3 feedback=null
+mobile4g radar cur #3: firstDraw=2074 radarDraw=14630 radarAllMs=26081 radarKb=2045 dataKb=6360 jsKb=859 gaps max 2250 >100:41 >200:31 play inputDelay=52 feedback=null
+== mobile4g radar cur p50: {"firstDraw":2049,"radarDraw":6222,"radarAllMs":15804,"radarKb":5750,"dataKb":7200,"jsKb":859,"gapsMax":1517,"gapsOver200":20,"gapsOver100":25,"playInputDelay":52,"playFeedback":null}
+== mobile4g radar head p50: {"firstDraw":1962,"radarDraw":7731,"radarAllMs":11319,"radarKb":2917,"dataKb":4978,"jsKb":1302,"gapsMax":2417,"gapsOver200":25,"gapsOver100":37,"playInputDelay":3,"playFeedback":null}
+mobile4g layer head #1: inputDelay=2 feedback=395 paint=445 radarDrawAfterClick=3596 radarAllAfterClick=8389 radarKb=4758 gaps max 2533 >100:40 >200:33 
+mobile4g layer cur #1: inputDelay=7 feedback=488 paint=501 radarDrawAfterClick=2949 radarAllAfterClick=9244 radarKb=4721 gaps max 683 >100:27 >200:22 
+mobile4g layer head #2: inputDelay=9 feedback=318 paint=328 radarDrawAfterClick=4169 radarAllAfterClick=8343 radarKb=2812 gaps max 1500 >100:39 >200:28 
+mobile4g layer cur #2: inputDelay=4 feedback=354 paint=364 radarDrawAfterClick=3095 radarAllAfterClick=8273 radarKb=4721 gaps max 717 >100:32 >200:26 
+mobile4g layer head #3: inputDelay=22 feedback=744 paint=756 radarDrawAfterClick=5752 radarAllAfterClick=9804 radarKb=2623 gaps max 1117 >100:35 >200:26 
+mobile4g layer cur #3: inputDelay=1 feedback=237 paint=246 radarDrawAfterClick=2974 radarAllAfterClick=7330 radarKb=3593 gaps max 717 >100:32 >200:25 
+== mobile4g layer cur p50: {"inputDelay":4,"feedback":354,"paint":364,"radarDrawAfterClick":2974,"radarAllAfterClick":8273,"radarKb":4721,"gapsMax":717,"gapsOver200":25,"gapsOver100":32}
+== mobile4g layer head p50: {"inputDelay":9,"feedback":395,"paint":445,"radarDrawAfterClick":4169,"radarAllAfterClick":8389,"radarKb":2812,"gapsMax":1500,"gapsOver200":28,"gapsOver100":39}
+desktop radar head #1: firstDraw=1097 radarDraw=6775 radarAllMs=5088 radarKb=2014 dataKb=7744 jsKb=1302 gaps max 2167 >100:27 >200:23 play inputDelay=2 feedback=null
+desktop radar cur #1: firstDraw=946 radarDraw=7962 radarAllMs=12783 radarKb=1900 dataKb=12656 jsKb=1303 gaps max 1200 >100:43 >200:33 play inputDelay=1 feedback=null
+desktop radar head #2: firstDraw=1207 radarDraw=6548 radarAllMs=4963 radarKb=6633 dataKb=10114 jsKb=1302 gaps max 1300 >100:33 >200:31 play inputDelay=58 feedback=null
+desktop radar cur #2: firstDraw=1710 radarDraw=5795 radarAllMs=12082 radarKb=6634 dataKb=11105 jsKb=1303 gaps max 1250 >100:39 >200:28 play inputDelay=1 feedback=null
+desktop radar head #3: firstDraw=1038 radarDraw=5616 radarAllMs=6008 radarKb=6633 dataKb=8770 jsKb=1302 gaps max 2150 >100:23 >200:20 play inputDelay=2 feedback=null
+desktop radar cur #3: firstDraw=1140 radarDraw=4748 radarAllMs=11247 radarKb=5502 dataKb=9301 jsKb=1303 gaps max 1233 >100:45 >200:30 play inputDelay=1 feedback=null
+== desktop radar cur p50: {"firstDraw":1140,"radarDraw":5795,"radarAllMs":12082,"radarKb":5502,"dataKb":11105,"jsKb":1303,"gapsMax":1233,"gapsOver200":30,"gapsOver100":43,"playInputDelay":1,"playFeedback":null}
+== desktop radar head p50: {"firstDraw":1097,"radarDraw":6548,"radarAllMs":5088,"radarKb":6633,"dataKb":8770,"jsKb":1302,"gapsMax":2150,"gapsOver200":23,"gapsOver100":27,"playInputDelay":2,"playFeedback":null}
+desktop layer head #1: inputDelay=1 feedback=225 paint=109 radarDrawAfterClick=4661 radarAllAfterClick=3049 radarKb=4656 gaps max 567 >100:25 >200:10 
+desktop layer cur #1: inputDelay=1 feedback=187 paint=78 radarDrawAfterClick=1716 radarAllAfterClick=2809 radarKb=4656 gaps max 367 >100:32 >200:17 
+desktop layer head #2: inputDelay=1 feedback=215 paint=65 radarDrawAfterClick=2878 radarAllAfterClick=4778 radarKb=4656 gaps max 1083 >100:33 >200:17 
+desktop layer cur #2: inputDelay=2 feedback=204 paint=76 radarDrawAfterClick=3655 radarAllAfterClick=8884 radarKb=530 gaps max 1067 >100:29 >200:18 
+desktop layer head #3: inputDelay=1 feedback=235 paint=73 radarDrawAfterClick=5190 radarAllAfterClick=4064 radarKb=1146 gaps max 2350 >100:28 >200:18 
+desktop layer cur #3: inputDelay=1 feedback=212 paint=64 radarDrawAfterClick=2203 radarAllAfterClick=4978 radarKb=4664 gaps max 350 >100:31 >200:19 
+== desktop layer cur p50: {"inputDelay":1,"feedback":204,"paint":76,"radarDrawAfterClick":2203,"radarAllAfterClick":4978,"radarKb":4656,"gapsMax":367,"gapsOver200":18,"gapsOver100":31}
+== desktop layer head p50: {"inputDelay":1,"feedback":225,"paint":73,"radarDrawAfterClick":4661,"radarAllAfterClick":4064,"radarKb":4656,"gapsMax":1083,"gapsOver200":17,"gapsOver100":28}
+fertig

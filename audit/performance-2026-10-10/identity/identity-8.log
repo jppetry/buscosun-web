@@ -1,0 +1,19 @@
+ready base {"rv":25,"inca":true,"rzc":true,"masks":3} cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+OK   radar rv (25 Frames, values + values2, Zeiten): identisch (2907 Zeichen)
+OK   radar inca (values je Lead): identisch (579 Zeichen)
+     inca log plane present: base [true,true,true,true,true,true,true,true,true,true,true] cur [true,true,true,true,true,true,true,true,true,true,true] (identisch)
+OK   radar rzc: identisch (254 Zeichen)
+OK   radar masks: identisch (71 Zeichen)
+fusion base {"hours":"b1954e4d:5655","v2":"66226299:266760","notes":"ea5b01a0:3584","skips":"741638a5:2","n":49,"fromUpdate":true}
+fusion cur  {"hours":"b1954e4d:5655","v2":"2cd49278:266763","notes":"ea5b01a0:3584","skips":"741638a5:2","n":49,"fromUpdate":true}
+OK   fusion Stunden (alle Werte je Stunde): identisch (275 Zeichen)
+DIFF fusion v2 (Verteilungen, Member, Konfidenz):
+  base {"v2":"66226299:266760"}
+  cur  {"v2":"2cd49278:266763"}
+OK   fusion Notizen/Skips (ohne Alterswerte): identisch (110 Zeichen)
+  v2 first difference at 266240 of 266319 / 266322
+  base …terpolation: T als Anomalie an 0 interpolierten Stunden (|Korrektur| Mittel — K, max 0.00 K), Td an 0 Stunden auf T gekappt"],"fetched":{}},"timing":{"readMs":1058,"terrainMs":17,"decodeMs":null,"algoMs":64,"outputMs":11.3,"totalMs":2666}}
+  cur  …terpolation: T als Anomalie an 0 interpolierten Stunden (|Korrektur| Mittel — K, max 0.00 K), Td an 0 Stunden auf T gekappt"],"fetched":{}},"timing":{"readMs":1387,"terrainMs":1191,"decodeMs":null,"algoMs":31.4,"outputMs":5.8,"totalMs":3964}}
+  differing chars (aligned): 65
+FEHLER: 1 Unterschied(e)
+IDENTITY-EXIT 1

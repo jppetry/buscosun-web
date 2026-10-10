@@ -42,7 +42,7 @@ import { lightningTileTemplate, LIGHTNING_ATTRIBUTION, LIGHTNING_LAYER_LOCAL } f
 import { fetchWmsLatestTime } from './sources/wmsTime';
 // RADOLAN-RV 0–2 h Niederschlags-Nowcast (DWD OpenData, binär dekodiert zu
 // mm/h) — speist den dedizierten "Nowcast"-Button über den Forecast-Slider.
-import { fetchRvNowcast, de1200WarpMesh, DE1200_WARP_N, type RvNowcast } from './sources/radolan';
+import { fetchRvNowcast, onRvAnalysisEarly, de1200WarpMesh, DE1200_WARP_N, type RvNowcast, type RvAnalysisEarly } from './sources/radolan';
 // ICON-D2 2,2-km-Niederschlags-Forecast (GRIB2 → mm/h) — Hauptlayer ab +2 h,
 // hinter dem RADOLAN-RV-Nowcast, beide unter dem "Niederschlag"-Button.
 import { fetchIconD2Precip, resolveLatestRun, type IconD2Precip } from './sources/iconD2Precip';
@@ -1013,6 +1013,9 @@ export default function MapView({
   // RADOLAN-RV Nowcast: vorgerenderte 0..120-min-Frames. `nowcastTick` triggert
   // den Slider-Render-Effekt neu, sobald ein frischer Lauf geladen ist.
   const nowcastRef = useRef<RvNowcast | null>(null);
+  // Phase PF (M1, audit/performance-2026-10-10.md): the analysis frame of the RV slot being loaded, drawn at its own time until
+  // the full 25-frame stack is there (`nowcastRef`); never used for any other time. Cleared when the stack arrives.
+  const earlyRvRef = useRef<RvNowcast | null>(null);
   // ICON-D2-Stundenraten (Forecast). Geteilt von DE/AT (>2h) und CH (>0h).
   const iconD2Ref = useRef<IconD2Precip | null>(null);
   // CH-„jetzt": MeteoSwiss-Radar rzc (ein Frame).
@@ -1775,6 +1778,9 @@ export default function MapView({
       // Niederschlagsdaten sollen auf DACH begrenzt bleiben, nicht kontinental
       // durchscheinen (User-Report: Regen sichtbar über Slowenien/Belgien).
       applyVisibility();
+      // Phase PF (M1): a radar source that arrived before the style was loaded (the early analysis frame) is drawn now —
+      // the draw effect runs on the tick, the layers exist from here on.
+      if (nowcastRef.current || earlyRvRef.current || incaGridRef.current || meteoRadarRef.current) setNowcastTick((t) => t + 1);
     };
     const applyVisibility = () => {
       const set: Record<string, boolean> = {
@@ -1861,6 +1867,9 @@ export default function MapView({
       if (map.getLayer(STATIONS_LAYER_ID)) map.moveLayer(STATIONS_LAYER_ID);
     };
     if (map.isStyleLoaded()) addLayers();
+    // Phase PF (M9, audit/performance-2026-10-10.md §6): adding the layers at `style.load` instead of `load` was tried and taken
+    // back — the overlay installers (dim, DACH mask) and the layer order are coupled to `load`; at `style.load` the mask covered
+    // the radar, and with blocked data the dim fill covered the whole map. A later phase may move all installers together.
     else map.once('load', addLayers);
 
     mapRef.current = map;
@@ -1870,6 +1879,7 @@ export default function MapView({
       // renders the same bytes. DEV only, read-only.
       (window as unknown as { __precipSources: () => unknown }).__precipSources = () => ({
         rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current, hd: hdRef.current, masks: hdMaskRef.current,
+        early: earlyRvRef.current,   // Phase PF (M1): the early analysis frame while the stack is loading (DEV, read-only)
       });
     }
 
@@ -2207,9 +2217,25 @@ export default function MapView({
       }
     };
     // DE-Nowcast: DWD RADOLAN-RV (0–2 h).
+    // Phase PF (M1): the analysis frame arrives and is decoded before the 24 forecast frames (`fetchRvFromImg`); the map
+    // draws it right away (composite at „jetzt" and the HD-DE layer), everything else waits for the full stack as before.
+    const onEarlyRv = async (a: RvAnalysisEarly) => {
+      if (abort.signal.aborted || nowcastRef.current) return;
+      const rv: RvNowcast = { runAt: a.runAt, frames: [a.frame], corners: a.corners };
+      earlyRvRef.current = rv;
+      if (compositorRef.current) await compositorRef.current.primeDe(rv);
+      if (abort.signal.aborted || nowcastRef.current || earlyRvRef.current !== rv) return;
+      hdMask('DE', 'radolan', rv.corners, a.frame.width, a.frame.height);
+      // the frame can be here before the style is loaded (`moveLayer` throws then) — the tick must not depend on it
+      try { hoistRain(); } catch { /* style not loaded yet: `addLayers` hoists and ticks when it runs */ }
+      setNowcastTick((t) => t + 1);
+      setCompositeStatus();
+    };
     const loadRv = async () => {
+      const offEarly = onRvAnalysisEarly((a) => { void onEarlyRv(a); });
       try {
         nowcastRef.current = await fetchRvNowcast(abort.signal, prioFor('DE'));
+        earlyRvRef.current = null;
         if (compositorRef.current) await compositorRef.current.primeDe(nowcastRef.current);
         if (nowcastRef.current.frames[0]) hdMask('DE', 'radolan', nowcastRef.current.corners, nowcastRef.current.frames[0].width, nowcastRef.current.frames[0].height);
         hoistRain();
@@ -2217,7 +2243,7 @@ export default function MapView({
         setCompositeStatus();
       } catch {
         if (!incaGridRef.current && !meteoRadarRef.current) updateStatus('nowcast', { err: 'RADOLAN-RV nicht erreichbar' });
-      }
+      } finally { offEarly(); }
     };
     // AT-Nowcast: GeoSphere INCA-Grid (0–3 h, 15-min, 1 km).
     const loadInca = async () => {
@@ -2236,11 +2262,17 @@ export default function MapView({
     // DACH-Komposit zeigt jedes über seinem Land, egal wo der Ort liegt.
     const loadNowSource = async () => {
       if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
-      await Promise.allSettled([
-        nowcastRef.current ? null : loadRv(),
-        incaGridRef.current ? null : loadInca(),
-        meteoRadarRef.current ? null : loadRzc(),
-      ].filter(Boolean) as Promise<void>[]);
+      // Phase PF (M10): the radar of the place FIRST, the two neighbours after it — on mobile 4G the three slots (RV 5,4 MB,
+      // INCA 1,5 MB, rzc) shared one line and the own radar came last; `prioFor` alone (fetch priority) did not order the bytes.
+      // The composite still shows every radar over its country, only the order of arrival changes.
+      const jobs = {
+        DE: () => (nowcastRef.current ? null : loadRv()),
+        AT: () => (incaGridRef.current ? null : loadInca()),
+        CH: () => (meteoRadarRef.current ? null : loadRzc()),
+      } as const;
+      const own: keyof typeof jobs = countryRef.current in jobs ? (countryRef.current as keyof typeof jobs) : 'DE';
+      await Promise.allSettled([jobs[own]()].filter(Boolean) as Promise<void>[]);
+      await Promise.allSettled((Object.keys(jobs) as Array<keyof typeof jobs>).filter((c) => c !== own).map((c) => jobs[c]()).filter(Boolean) as Promise<void>[]);
       setCompositeStatus();
     };
     // Refresh-Intervall: alle bereits geladenen Quellen erneuern.
@@ -2253,7 +2285,7 @@ export default function MapView({
     // Radar/Nowcast (Jan 2026-07-24) — KEINE ICON-D2-Modellverlängerung mehr.
     const setCompositeStatus = () => {
       const parts: string[] = [];
-      if (nowcastRef.current) parts.push('DE RADOLAN');
+      if (nowcastRef.current ?? earlyRvRef.current) parts.push('DE RADOLAN');
       if (incaGridRef.current) parts.push('AT INCA');
       if (meteoRadarRef.current) parts.push('CH rzc');
       // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
@@ -2267,7 +2299,7 @@ export default function MapView({
       // Liefert keine Quelle eine Messzeit, bleibt `ref` leer und die Anzeige
       // beschriftet die Abrufzeit als Abrufzeit.
       const ref = oldestRef([
-        measuredRef(nowcastRef.current?.runAt.getTime()),
+        measuredRef((nowcastRef.current ?? earlyRvRef.current)?.runAt.getTime()),
         measuredRef(meteoRadarRef.current?.validAt.getTime()),
       ]);
       if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now(), ref: ref ?? undefined } });
@@ -3637,6 +3669,9 @@ export default function MapView({
     // Phase RS: with the edge rule, rain on one side only is not faded in through small bytes (= light-rain classes on the log plane).
     const mixHd = hdEdgeRef.current === 'off' ? lerpValues : lerpValuesWet;
     type HdMorphs ={ DE?: RainMorph | null; AT?: RainMorph | null; CH?: RainMorph | null };
+    // Phase PF (M1): the RV source for a composite/HD pick — the full stack, or (only where the time is the analysis time)
+    // the early analysis frame while the stack is still loading.
+    const rvFor = (allowEarly: boolean): RvNowcast | null => nowcastRef.current ?? (allowEarly ? earlyRvRef.current : null);
     const syncHd = (pick: CompositePick | null, morphs: HdMorphs = {}) => {
       if (!hd.on) return;
       const L = layerRefs.current;
@@ -3655,7 +3690,7 @@ export default function MapView({
         layer.setMorph(morph ?? null);
       };
       const plane = (f: { values: Uint8Array; values2?: Uint8Array } | null | undefined) => (f?.values2 ? withDisplayMin(f.values2) : f?.values ?? null);
-      const rvSrc = nowcastRef.current, incaSrc = incaGridRef.current;
+      const rvSrc = nowcastRef.current ?? earlyRvRef.current, incaSrc = incaGridRef.current;
       const f0 = rvSrc?.frames[0];
       show(L.hdDe, pick?.rv && rvSrc && f0
         ? { values: plane(pick.rv)!, width: f0.width, height: f0.height, corners: rvSrc.corners, warpLnglat: de1200WarpMesh(), warpN: DE1200_WARP_N, mask: masks.DE ?? null }
@@ -3758,7 +3793,13 @@ export default function MapView({
     // Phase RR (Profil): Komposit zur ABSOLUTEN Gültigkeitszeit — RV nach Gültigkeitszeit inkl. Rückblick (`rvPast`),
     // INCA nach Vorlauf wie oben, im Rückblick nur Messungen (`radarProfileComposite`). Zwischen zwei Radarzeiten
     // mischt der Morph die beiden Frames in 5-%-Schritten. Ohne Profil läuft der Bestand darunter unverändert.
-    if (profile && timeMs != null) {
+    // Phase PF (M1): before the stack (and its time axis) is there, the profile draws the early analysis frame at its own time.
+    const tMs = timeMs ?? (profile && !nowcastRef.current && earlyRvRef.current ? earlyRvRef.current.runAt.getTime() : null);
+    if (import.meta.env.DEV) {
+      const w = window as unknown as { __pfDraw?: Array<Record<string, unknown>> };
+      (w.__pfDraw ??= []).push({ t: Math.round(performance.now()), profile: !!profile, timeMs: timeMs ?? null, tMs, rv: !!nowcastRef.current, early: !!earlyRvRef.current, tick: nowcastTick, active: [...active].join(',') });
+    }
+    if (profile && tMs != null) {
       const compositor = compositorRef.current;
       const cache = profileFramesRef.current;
       const frameAt = (ms: number): CompositeFrame => {
@@ -3766,7 +3807,7 @@ export default function MapView({
         if (hit) return hit;
         const now = Date.now();
         const input = radarProfileComposite(ms, now, {
-          rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
+          rv: rvFor(true), inca: incaGridRef.current, rzc: meteoRadarRef.current,
           rvPast: radarPast?.rv ?? null, rzcPast: radarPast?.rzc ?? null,
         });
         const f = compositor.build(input.h, input.sources, now);
@@ -3783,7 +3824,7 @@ export default function MapView({
         if (!buf || buf.length !== a.values.length) { buf = new Uint8Array(a.values.length); profileMorphBufRef.current = buf; }
         shown = { ...a, values: lerpValues(a.values, b.values, q, buf) };
       } else {
-        shown = frameAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : timeMs);
+        shown = frameAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : tMs);
       }
       // Ein Mesh für alle Profil-Frames: der RainLayer baut die Geometrie nur bei neuer Mesh-Referenz neu.
       const mesh = (profileMeshRef.current ??= shown.warpLnglat);
@@ -3800,7 +3841,7 @@ export default function MapView({
           if (hit) return hit;
           const now = Date.now();
           const input = radarProfileComposite(ms, now, {
-            rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
+            rv: rvFor(true), inca: incaGridRef.current, rzc: meteoRadarRef.current,
             rvPast: radarPast?.rv ?? null, rzcPast: radarPast?.rzc ?? null,
           });
           const p = pickCompositeFrames(input.h, input.sources, now);
@@ -3810,12 +3851,12 @@ export default function MapView({
         };
         // Phase ZT: report the frames of the nearer radar time (no morph — the relief picture shows measured/nowcast frames).
         if (radarPickCbRef.current) {
-          const nearMs = tb ? (q >= 0.5 ? tb.bMs : tb.aMs) : timeMs;
+          const nearMs = tb ? (q >= 0.5 ? tb.bMs : tb.aMs) : tMs;
           const p = pickAt(nearMs);   // cached per time; a new object after a new nowcast (cache cleared) ⇒ report again
           if (lastRadarPickSrcRef.current !== p) {
             lastRadarPickSrcRef.current = p;
             const log = (f: object) => (f as { values2?: Uint8Array }).values2;
-            const rvSrc = nowcastRef.current, incaSrc = incaGridRef.current, rf0 = rvSrc?.frames[0];
+            const rvSrc = nowcastRef.current ?? earlyRvRef.current, incaSrc = incaGridRef.current, rf0 = rvSrc?.frames[0];
             const pick: ProfileRadarPick = {
               timeMs: nearMs,
               DE: p.rv && rvSrc && rf0 ? { values: p.rv.values, values2: log(p.rv), width: rf0.width, height: rf0.height, corners: rvSrc.corners } : null,
@@ -3843,7 +3884,8 @@ export default function MapView({
               const pb = y.values2 && x.values2 ? y.values2 : y.values;
               return { b: pb, flow, frac: q };
             };
-            const rvW = nowcastRef.current?.frames[0]?.width ?? 0, rvH = nowcastRef.current?.frames[0]?.height ?? 0;
+            const rvEff = nowcastRef.current ?? earlyRvRef.current;
+            const rvW = rvEff?.frames[0]?.width ?? 0, rvH = rvEff?.frames[0]?.height ?? 0;
             const morphs: HdMorphs = {
               DE: morphOf(a.rv, b.rv, 'DE', rvW, rvH),
               AT: morphOf(a.inca, b.inca, 'AT', a.inca?.width ?? 0, a.inca?.height ?? 0),
@@ -3885,7 +3927,7 @@ export default function MapView({
           syncHd({ rv: mixed(a.rv, b.rv, 'DE'), inca: mixed(a.inca, b.inca, 'AT'), rzc: mixed(a.rzc, b.rzc, 'CH'), d2: null });
           syncHd250(a.rv, b.rv, q);
         } else {
-          const pe = pickAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : timeMs);
+          const pe = pickAt(tb ? (q >= 1 ? tb.bMs : tb.aMs) : tMs);
           syncHd(pe);
           syncHd250(pe.rv, pe.rv, 0);
         }
@@ -3899,16 +3941,16 @@ export default function MapView({
     // es interpoliert der RainLayer das Quad linear in Mercator und der Regen
     // lag bis 30 km zu weit nördlich (§14 `audit/karten-layer-verortung.md`).
     const frame = compositorRef.current.build(forecastHour, {
-      rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
+      rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current,
     }, Date.now());
     rain.setFrame({
       values: frame.values, width: frame.width, height: frame.height, corners: frame.corners,
       warpLnglat: frame.warpLnglat, warpN: frame.warpN, warpRows: frame.warpRows,
     });
-    if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
+    if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
     // Phase R250: only the analysis (slider at „jetzt") is an RV analysis ⇒ tiles; every other hour stays 1 km.
     if (hd.on && hd250Ref.current) {
-      const pw = pickCompositeFrames(forecastHour, { rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now());
+      const pw = pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now());
       syncHd250(pw.rv, pw.rv, 0);
     }
     // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.

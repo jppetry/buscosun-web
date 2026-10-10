@@ -34,7 +34,14 @@ export default function HeroMapBackground() {
       attributionControl: { compact: true },
     });
     map.on('load', () => setReady(true));
-    return () => map.remove();
+    return () => {
+      // Phase PF (M5, audit/performance-2026-10-10.md): tear the decorative map down AFTER the next paint. `Map.remove()` ran
+      // synchronously inside the commit of the route change — measured 10.10.2026: 605 ms self time on the main thread
+      // between the tile click and the first picture of the new view (software WebGL; with a GPU smaller, still blocking).
+      const tearDown = () => { try { map.remove(); } catch { /* already gone */ } };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(tearDown, 0));
+      else setTimeout(tearDown, 0);
+    };
   }, []);
 
   return (

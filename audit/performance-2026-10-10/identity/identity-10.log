@@ -1,0 +1,19 @@
+ready base {"rv":25,"inca":true,"rzc":true,"masks":3} cur {"rv":25,"inca":true,"rzc":true,"masks":3}
+OK   radar rv (25 Frames, values + values2, Zeiten): identisch (2557 Zeichen)
+OK   radar inca (values je Lead): identisch (631 Zeichen)
+     inca log plane present: base [true,true,true,true,true,true,true,true,true,true,true,true] cur [true,true,true,true,true,true,true,true,true,true,true,true] (identisch)
+OK   radar rzc: identisch (254 Zeichen)
+OK   radar masks: identisch (71 Zeichen)
+fusion base {"hours":"7f45e01d:5660","v2":"cf725699:305530","notes":"f8c65a36:3492","skips":"741638a5:2","n":49,"fromUpdate":true}
+fusion cur  {"hours":"7f45e01d:5660","v2":"da450652:305522","notes":"f8c65a36:3492","skips":"741638a5:2","n":49,"fromUpdate":true}
+OK   fusion Stunden (alle Werte je Stunde): identisch (278 Zeichen)
+DIFF fusion v2 (Verteilungen, Member, Konfidenz):
+  base {"v2":"cf725699:305530"}
+  cur  {"v2":"da450652:305522"}
+OK   fusion Notizen/Skips (ohne Alterswerte): identisch (120 Zeichen)
+  v2 first difference at 671 of 305078 / 305070
+  base …ct":"anchor","tag":"dwd_obs","ageH":0,"anchor":{"sources":["dwd_obs"],"pairs":0,"fraction":0.9633083269237774,"offsetK":null,"termK":0,"termU":0.34687196636649836,"termV":-2.05344922894612,"termGust":-0.8453786218852857}},{"product":"station","tag":"mosmix","run":"2026101009","ru
+  cur  …ct":"anchor","tag":"dwd_obs","ageH":0,"anchor":{"sources":["dwd_obs"],"pairs":0,"fraction":0.9633083269237774,"offsetK":null,"termK":0,"termU":0.3468719663664984,"termV":-2.05344922894612,"termGust":-0.8453786218852857}},{"product":"station","tag":"mosmix","run":"2026101009","run
+  differing chars (aligned): 290705
+FEHLER: 1 Unterschied(e)
+IDENTITY-EXIT 1

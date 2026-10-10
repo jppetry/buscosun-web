@@ -34,7 +34,7 @@ import { PLACES } from './seo/places.mjs';
 // LE1/H2 — Frühstart der Datenabrufe + Shell-Preloads (audit/layer-erstbild.md §4)
 import { warmPlanFor, GRIB_MANIFEST_PATH } from '../src/router/prefetch.ts';
 import { warmLiveManifest, takeWarmManifest, liveManifestUrl, MANIFEST_TTL_MS, _warmManifestCount, _resetWarmManifests } from '../src/sources/liveManifest.ts';
-import { warmRvTar, takeWarmRvTar, rvTarUrlFor, rvTarCdnUrl, guessRvRuns, RV_WARM_TTL_MS, _warmRvCount, _resetWarmRv, rvImgDir, radarImgFrameFile } from '../src/sources/radolanRuns.ts';
+import { warmRvTar, takeWarmRvTar, rvTarUrlFor, rvTarCdnUrl, guessRvRuns, RV_WARM_TTL_MS, _warmRvCount, _resetWarmRv, rvImgDir, radarImgFrameFile, radarImgDualFile } from '../src/sources/radolanRuns.ts';
 import { guessRvRuns as guessViaRadolan } from '../src/sources/radolan.ts';
 import { existsSync, readdirSync } from 'node:fs';
 import vm from 'node:vm';
@@ -239,10 +239,10 @@ add('[warm] E-DB-20: /wetterkarte/niederschlag/<ort>?ansicht=dashboard startet n
     const ts0 = guessRvRuns(1, T)[0];
     const url = warmRvTar(T);
     // RD3: bei T ist der jüngste Rat 5 min alt — über dem BILD-Gate (4:30) ⇒ der
-    // Frühstart wärmt meta.json + f000.png des Bild-Slots (2 Abrufe) statt des Tars.
-    add('[warm] RV: bei T Bild-berechtigt ⇒ meta.json + f000.png vorgestartet, `priority: high`',
-      url === `${rvImgDir(ts0)}/meta.json` && calls.length === 2
-      && calls[0].url === `${rvImgDir(ts0)}/meta.json` && calls[1].url === `${rvImgDir(ts0)}/${radarImgFrameFile(0)}`
+    // Frühstart wärmt meta.json + g000.png (Phase PF, Dual-Analyse) + f000.png des Bild-Slots (3 Abrufe) statt des Tars.
+    add('[warm] RV: bei T Bild-berechtigt ⇒ meta.json + g000.png + f000.png vorgestartet, `priority: high`',
+      url === `${rvImgDir(ts0)}/meta.json` && calls.length === 3
+      && calls[0].url === `${rvImgDir(ts0)}/meta.json` && calls[1].url === `${rvImgDir(ts0)}/${radarImgDualFile(0)}` && calls[2].url === `${rvImgDir(ts0)}/${radarImgFrameFile(0)}`
       && calls.every((c) => c.init?.priority === 'high'));
     // Vor dem Bild-Gate (Rat 3,5 min alt) bleibt es der Tar mit der Resolver-URL (RD2) —
     // bei T2 unter BEIDEN Gates ⇒ die Netlify-URL, exakt wie bisher.
@@ -254,10 +254,11 @@ add('[warm] E-DB-20: /wetterkarte/niederschlag/<ort>?ansicht=dashboard startet n
     })());
     _resetWarmRv(); calls.length = 0;
     const url2 = warmRvTar(T);
-    add('[warm] RV: zweiter Aufruf im Fenster ist No-op', warmRvTar(T + 1000) === url2 && calls.length === 2);
+    add('[warm] RV: zweiter Aufruf im Fenster ist No-op', warmRvTar(T + 1000) === url2 && calls.length === 3);
     const w = takeWarmRvTar(url2, T + 2000);
     const wf = takeWarmRvTar(`${rvImgDir(ts0)}/${radarImgFrameFile(0)}`, T + 2000);
-    add('[warm] RV: `take` je URL genau einmal, Antwort samt `fromCache=false`', !!w && !!wf && (await w).fromCache === false && (await w).res.ok && takeWarmRvTar(url2, T + 2000) === null && _warmRvCount() === 0);
+    const wg = takeWarmRvTar(`${rvImgDir(ts0)}/${radarImgDualFile(0)}`, T + 2000);
+    add('[warm] RV: `take` je URL genau einmal, Antwort samt `fromCache=false`', !!w && !!wf && !!wg && (await w).fromCache === false && (await w).res.ok && takeWarmRvTar(url2, T + 2000) === null && _warmRvCount() === 0);
     add('[warm] RV: nach 5 min liefert `take` null', (warmRvTar(T), takeWarmRvTar(url2, T + RV_WARM_TTL_MS + 1) === null));
     add('[warm] RV-Tar: Fehlschlag des Frühstarts wird nicht als unbehandelt gemeldet', await (async () => { globalThis.fetch = async () => { throw new Error('offline'); }; _resetWarmRv(); const u = warmRvTar(T); const p = takeWarmRvTar(u, T); return await p.then(() => false, (e) => e.message === 'offline'); })());
   } finally {

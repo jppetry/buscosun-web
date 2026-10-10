@@ -2171,3 +2171,28 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
    neu (`repeatVerdict`); (b) **E-OF-7:** der Prüfstand-Champion bleibt Fusion 9 (nur die Abnahme in Spur P setzt einen Champion; die
    Hypothesen H-OF-5/5b sind gegen Fusion 9 formuliert); (c) 12t/12u heißen bei grün in Spur P **Fusion 13**; (d) `budget.json` totalJs
    1 609 → 1 612 angehoben (OF-7/OF-7b lagen schon 2,4 KB darüber, diese Änderung +0,1 KB). Gates in §12.
+
+## 61. Performance-Phase PF — verzögerte Klicks, buscosun Fusion 12, Niederschlagsradar (`audit/performance-2026-10-10.md`), 2026-10-10
+
+Alles liegt auf dem Branch **`perf/ladezeit-2026-10-10`** (Worktree `C:\dev\buscosun-web-wt\perf`), abgezweigt von `af/merge-fusion-12`
+(= `main` + buscosun Fusion 10/11/12, E-AF-2) — nicht committet, nicht gepusht. Produktion läuft auf `main` (Fusion 9); die Maßnahmen
+gelten für beide Stände. Keine Daten- oder Archiv-Repo-Änderung, kein Purge, kein Cron.
+
+1. **Durchsicht und Merge:** `git diff af/merge-fusion-12..perf/ladezeit-2026-10-10` — Dateien: `src/sources/radolan.ts`,
+   `radolanRuns.ts`, `radarImg.ts`, `geosphereIncaGrid.ts`, `meteoSwissRadar.ts` (Radar-Leser), `src/MapView.tsx` (Frühbild, eigenes Radar
+   zuerst; „Ebenen bei `style.load`" = M9 ist zurückgenommen, V-PF-9), `src/point/client/readPoint.ts` (Fusion: Radarprodukte nach den Bytes der ersten Stufe),
+   `src/App.tsx` (Fortschrittsbalken), `src/HeroMapBackground.tsx` (Abbau nach dem Paint), `src/precipSums/obsSumStore.ts` (ein
+   `obs/v1`-Leser), `src/nowcast/NowcastRadarMap.tsx` (CAPE nach dem Stapel); neu `scripts/perf-measure.mjs`, `perf-early-probe.mjs`,
+   `perf-data-identity.mjs`, `audit/performance-2026-10-10.md` + Rohdaten. Reihenfolge: erst Fusion 12 → `main` (E-AF-2), dann dieser
+   Zweig, oder beides zusammen — der Zweig enthält den Merge-Zweig vollständig.
+2. **E-PF-1 Fortschrittsbalken (V-PF-3):** die einzige sichtbare Ergänzung (3 px oben, Terrakotta auf Sand, nur während
+   `navigation.state === 'loading'`). Behalten, anders gestalten oder entfernen — eine Zeile in `App.tsx` (`<NavProgress />`).
+3. **E-PF-2 Pool und Reihenfolge am Desktop (V-PF-5):** `RADAR_IMG_CONCURRENCY = 6` und „eigenes Radar zuerst" retten das Handy
+   vor dem Tar-Rückfall, kosten am Desktop die Zeit bis zum ganzen DACH-Komposit (7,3 → 14,7 s im Lab, Proxy-Latenz je Anfrage).
+   Optionen: Pool 10–12, Nachbarn parallel ab Desktop-Breite, oder so lassen — braucht Real-Device-Zahlen.
+4. **Real-Device (V-PF-6):** die Lab-Zahlen sind mit SwiftShader (Software-WebGL) gemessen — Texturupload, `render`, `Map.remove()`
+   sind überzeichnet; bitte einmal `/regenradar/muenchen` kalt am Handy mit DevTools-Netzmitschnitt (Zeit bis zum ersten Radarbild,
+   ob `composite_rv_*.tar` noch auftaucht).
+5. **Keine neue Fusion-Nummer:** keine Tabelle, Option oder Kette von buscosun Fusion geändert (nur Reihenfolge der Abrufe im
+   Leser; Endausgabe identisch, Beleg `audit/performance-2026-10-10.md` §5.4). Register unverändert.
+6. **Budget:** `totalJs` — s. §5.6 des Audits (Kontrollbau); Grenze nur anheben, wenn der Bau es verlangt (Jan 30.09.).
