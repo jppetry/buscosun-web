@@ -1,0 +1,4 @@
+225. [GET] https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/obs/v1/stations.json => [200] 
+226. [GET] https://raw.githubusercontent.com/jppetry/buscosun-data/main/obs/v1/latest.json => [200] 
+
+Note: 336 static requests not shown, run with "static" option to see them.

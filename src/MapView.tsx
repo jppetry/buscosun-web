@@ -182,11 +182,17 @@ function renderStationPopup(p: StationFeatureProperties, loading = false, errorM
   const dirArrow = (d: number) => `<span style="display:inline-block;transform:rotate(${d + 180}deg);">▲</span>`;
   const row = (label: string, value: string | null | undefined) =>
     value == null ? '' : `<div class="sp-row"><span class="sp-l">${label}</span><span class="sp-v">${value}</span></div>`;
-  const t = p.temperature != null ? `${Number(p.temperature).toFixed(1)} °C` : null;
+  // V-AF-9: a value from obs/v1 that was measured before the station's newest stamp says its own time (no silent mixing).
+  const clock = (iso: string | undefined | null): string | null => {
+    const ms = iso ? Date.parse(String(iso)) : NaN;
+    return Number.isFinite(ms) ? new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
+  };
+  const own = (iso: string | undefined | null): string => { const c = clock(iso); return c ? ` <span class="sp-at">· ${c} Uhr</span>` : ''; };
+  const t = p.temperature != null ? `${Number(p.temperature).toFixed(1)} °C${own(p.temperatureAt)}` : null;
   const wind = p.windSpeed != null
-    ? `${Number(p.windSpeed).toFixed(1)} m/s ${p.windDirection != null ? dirArrow(Number(p.windDirection)) : ''}`
+    ? `${Number(p.windSpeed).toFixed(1)} m/s ${p.windDirection != null ? dirArrow(Number(p.windDirection)) : ''}${own(p.windAt)}`
     : null;
-  const precip = p.precipitation != null ? `${Number(p.precipitation).toFixed(2)} mm/h` : null;
+  const precip = p.precipitation != null ? `${Number(p.precipitation).toFixed(2)} mm/h${own(p.precipitationAt)}` : null;
   const cloud = p.cloudCover != null ? `${Math.round(Number(p.cloudCover))} %` : null;
   const body = loading
     ? `<div class="sp-loading">lade Live-Werte…</div>`
@@ -195,7 +201,8 @@ function renderStationPopup(p: StationFeatureProperties, loading = false, errorM
       : (t || wind || precip || cloud
           ? `${row('Temperatur', t)}${row('Wind', wind)}${row('Niederschlag', precip)}${row('Bewölkung', cloud)}`
           : `<div class="sp-loading">keine aktuellen Werte verfügbar</div>`);
-  const stamp = loading || errorMsg ? '' : `<div class="sp-stamp">Aktualisiert · live abgerufen</div>`;
+  const measuredAt = clock(p.obsAt ?? null);
+  const stamp = loading || errorMsg ? '' : `<div class="sp-stamp">${measuredAt ? `Messung ${measuredAt} Uhr · ` : ''}Aktualisiert · live abgerufen</div>`;
   return `
     <div class="sp">
       <div class="sp-name">${escapeHtml(p.name || srcLabel)}</div>

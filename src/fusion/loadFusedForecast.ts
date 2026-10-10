@@ -33,11 +33,13 @@ import { fetchArpegeGrid } from '../sources/arpegeSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchObsGrid } from '../sources/obsStore';
-import { pfObsStoreFrom } from '../pointForecast/pfFlags';
+import { pfObsStoreFrom, pfObsVarFrom } from '../pointForecast/pfFlags';
 import { FusionEngine } from './fusionEngine';
 
 /** OF-1: `?obs=direct` = provider adapters only. */
 const OBS_STORE = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
+/** V-AF-9: `?obsvar=0` = only the values at a station's newest stamp (the reader before V-AF-9). */
+const OBS_VAR = pfObsVarFrom(typeof window !== 'undefined' ? window.location.search : '');
 import { loadElevationLookup, type ElevationGrid } from './elevation';
 import type { DwdForecastResult } from '../wind/brightSkySource';
 import { COUNTRY_PROFILES, DACH_VIEW, type CountryProfile } from '../countryProfiles';
@@ -319,7 +321,7 @@ export async function loadFusedForecast(options: FusedLoadOptions): Promise<DwdF
   // (BrightSky needed 80 `current_weather` probes, SMN one file per station); the provider adapter is the named fallback,
   // `?obs=direct` the switch back. The interpolation of the raster fusion is untouched — it sees the same 1×N grid form.
   const obsOr = (country: 'DE' | 'AT' | 'CH', direct: () => Promise<ForecastGrid>): Promise<ForecastGrid> =>
-    (OBS_STORE ? fetchObsGrid(country, { signal: options.signal }).catch(() => direct()) : direct());
+    (OBS_STORE ? fetchObsGrid(country, { signal: options.signal, perVar: OBS_VAR }).catch(() => direct()) : direct());
   const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal, aicon, arpege] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         obsOr('DE', () => fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 }))).catch(() => null) : Promise.resolve(null),

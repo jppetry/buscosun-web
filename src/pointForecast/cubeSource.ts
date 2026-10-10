@@ -98,8 +98,8 @@ import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../po
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
-import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom } from './pfFlags';
-import { OBS_DENSE_MAX } from '../sources/obsStore';
+import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom, pfObsVarFrom, pfAnchorBeforeAxisFrom } from './pfFlags';
+import { OBS_DENSE_MAX, OBS_VAR_MAX_AGE_MS, OBS_PRODUCT_MAX_AGE_MS } from '../sources/obsStore';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
 import { fusionStage, fusionStageIo, fusionStageNote } from './fusion/fusionRelease';
 
@@ -212,8 +212,11 @@ export interface CubeObs {
    * (INCA am Punkt: Abstand 0, aber Analysefehler abseits der Stationen ≈ 1 K). Fehlt: 1 (eine echte Messung).
    */
   weight?: number;
-  /** OF-1: the measurement came from the mirror product `obs/v1` (`obsStore.ts`); the direct adapters and INCA set nothing. */
-  via?: 'obs';
+  /**
+   * OF-1: the measurement came from the mirror product `obs/v1` (`obsStore.ts`); the direct adapters and INCA set nothing.
+   * V-AF-9: `bs-var` = one variable from BrightSky because no station of the product's set carried it.
+   */
+  via?: 'obs' | 'bs-var';
   /** OF-2/OF-3 (only from the dense reader, `CubeIo.obsDense`): precipitation of the last 10 min at the stamp (mm) and the hour sum ending at the stamp. */
   rr10?: number | null;
   rr1h?: { mm: number; complete: boolean } | null;
@@ -696,6 +699,15 @@ export interface FuseCubeOptions {
    * Default off ⇒ byte-identical.
    */
   anchorAtObsTime?: boolean;
+  /**
+   * V-AF-10: the anchor also pairs a measurement stamped BEFORE the first axis step. The axis starts at the full hour, so such a
+   * measurement had no step on its early side: more than 30 min before the first step it was not paired at all (the DWD temperature
+   * in `obs/v1` carries (H − 1):20 from H:00 to H:20), within 30 min it was compared with the value of the first step. With the
+   * option the native cube steps up to `ANCHOR_BRACKET_MAX_H` before the first axis step join the pairing (never the output), and
+   * the model value is interpolated to the minute as between two axis steps. Acts only with `anchorAtObsTime`; a measurement on or
+   * after the first step, and a cube without a step before the window, compute as before. Default off ⇒ byte-identical.
+   */
+  anchorBeforeAxis?: boolean;
   /**
    * V-SW-3: the gust is never weaker than the mean wind. Wind and gust get separate corrections (learned speed law, anchor,
    * station value), so their means can cross at single hours (Fehmarn +42 h: gust 13,1 < wind 13,8 m/s). With the option
@@ -1519,7 +1531,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     learnedSet: { t: boolean; td: boolean; uv: boolean; gust: boolean } | null;
     learnedDist: LearnedDist | null;
   }
-  const preps: Prep[] = axis.map((a) => {
+  const prepOf = (a: AxisStep): Prep => {
     const flags: StepFlag[] = [];
     const leadH = Math.max(0, (a.validAtMs - t0Ms) / H);
     if (seams.includes(a.validAtMs)) flags.push('seam');
@@ -1625,7 +1637,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       for (const av of pr.absent) learnedCount.vars[`absent:${av}`] = (learnedCount.vars[`absent:${av}`] ?? 0) + 1;
     }
     return { a, leadH, flags, grid, cubeSample, vertical, spd, foehnScore: foehn ? foehn.score : null, terrainRes, learnedMu, learnedSigma, learnedSit, learnedSpeed: learnedSpeedE, learnedSet, learnedDist };
-  });
+  };
+  const preps: Prep[] = axis.map(prepOf);
   if (useLearned) {
     notes.push(learnedT
       ? `learned: Form K an ${learnedCount.applied} Schritten (${Object.entries(learnedCount.vars).filter(([k]) => !k.startsWith('absent:')).map(([k, n]) => `${k} ${n}`).join(' · ') || 'keine Größe'}), ohne Stratum ${learnedCount.absent}${Object.keys(learnedCount.vars).some((k) => k.startsWith('absent:')) ? `; ohne Tabelle: ${Object.entries(learnedCount.vars).filter(([k]) => k.startsWith('absent:')).map(([k, n]) => `${k.slice(7)} ${n}`).join(' · ')}` : ''}; Route ${learnedRouteOpt === 'tier' ? `t1 1 · t2/t3 3 an ${Object.entries(routeCount).filter(([k]) => k !== 't1:r1' && k.endsWith(':r3')).reduce((s, [, n]) => s + n, 0)} Schritten${Object.entries(routeCount).some(([k]) => k !== 't1:r1' && k.endsWith(':r1')) ? `, Route 1 an ${Object.entries(routeCount).filter(([k]) => k !== 't1:r1' && k.endsWith(':r1')).reduce((s, [, n]) => s + n, 0)} t2/t3-Schritten ohne Route-3-Stratum` : ''}` : `${learnedRouteOpt} in jeder Stufe`}; Niederschlag im Client nicht gelernt (Stufe 1)`
@@ -1661,17 +1674,27 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     let atObsTime = 0;
     // OF-2 (`obsDense`): per variable only the OBS_DENSE_ANCHOR_K best stations by spatialWeight among those carrying it; without the option every station as before.
     const allow = useObsDense ? anchorDenseAllow(input.obs, hTrue, OBS_DENSE_ANCHOR_K) : null;
+    // V-AF-10 (`anchorBeforeAxis`): the native steps before the first axis step join the PAIRING, never the output. Prepared here,
+    // after the notes of pass 1 are written (its counters are not read again), and only when a measurement lies before the axis.
+    const axisStartMs = preps.length ? preps[0].a.validAtMs : null;
+    const beforeAxis = opts.anchorBeforeAxis === true && opts.anchorAtObsTime === true && axisStartMs != null
+      ? input.obs.filter((o) => o.validAtMs < axisStartMs).length : 0;
+    const pairPreps = beforeAxis > 0 && axisStartMs != null
+      ? [...nativeAxis({ cube: input.cube, window: { ...input.window, fromMs: axisStartMs - ANCHOR_BRACKET_MAX_H * H, toMs: axisStartMs - 1 } }).map(prepOf), ...preps]
+      : preps;
+    let beforeAxisPaired = 0;
     for (const o of input.obs) {
       // V-AW-33: the two steps around the measurement (the axis is sorted) — only strictly between two steps, gap ≤ ANCHOR_BRACKET_MAX_H.
       let p0: Prep | null = null, p1: Prep | null = null;
       if (opts.anchorAtObsTime === true) {
-        const i1 = preps.findIndex((x) => x.a.validAtMs > o.validAtMs);
-        if (i1 > 0 && preps[i1 - 1].a.validAtMs < o.validAtMs && preps[i1].a.validAtMs - preps[i1 - 1].a.validAtMs <= ANCHOR_BRACKET_MAX_H * H) { p0 = preps[i1 - 1]; p1 = preps[i1]; }
+        const i1 = pairPreps.findIndex((x) => x.a.validAtMs > o.validAtMs);
+        if (i1 > 0 && pairPreps[i1 - 1].a.validAtMs < o.validAtMs && pairPreps[i1].a.validAtMs - pairPreps[i1 - 1].a.validAtMs <= ANCHOR_BRACKET_MAX_H * H) { p0 = pairPreps[i1 - 1]; p1 = pairPreps[i1]; }
       }
       const p = p0 && p1
         ? (o.validAtMs - p0.a.validAtMs <= p1.a.validAtMs - o.validAtMs ? p0 : p1)
-        : preps.find((x) => Math.abs(x.a.validAtMs - o.validAtMs) <= SAME_TIME_MS);
+        : pairPreps.find((x) => Math.abs(x.a.validAtMs - o.validAtMs) <= SAME_TIME_MS);
       if (!p) continue;
+      if (pairPreps !== preps && axisStartMs != null && o.validAtMs < axisStartMs && (p0 ? p0.a.validAtMs : p.a.validAtMs) < axisStartMs) beforeAxisPaired += 1;
       const fr = p0 && p1 ? (o.validAtMs - p0.a.validAtMs) / (p1.a.validAtMs - p0.a.validAtMs) : 0;
       /** The model value at the time of the measurement: interpolated where both steps carry it, else the paired step. */
       const modelAt = (sel: (x: Prep) => number | null | undefined): number | null => {
@@ -1707,6 +1730,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       sources.add(o.source); fraction = Math.max(fraction, wsp);
     }
     if (opts.anchorAtObsTime === true) notes.push(`anchorAtObsTime: Modellwert an ${atObsTime} von ${input.obs.length} Messungen auf die Messminute interpoliert (zwischen zwei Achsenschritten, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h); sonst der Schritt im selben Stundenraster (V-AW-33)`);
+    if (beforeAxis > 0) notes.push(`anchorBeforeAxis: ${beforeAxisPaired} von ${beforeAxis} Messung(en) vor dem Achsenbeginn mit den nativen Schritten davor gepaart (bis ${ANCHOR_BRACKET_MAX_H} h vor dem ersten Schritt, nur zum Paaren; Modellwert auf die Messminute interpoliert, V-AF-10)`);
     const t = innovation(pairs.t, ANCHOR_MAX.temperature), u = innovation(pairs.u, ANCHOR_MAX.wind), vv = innovation(pairs.v, ANCHOR_MAX.wind), g = innovation(pairs.gust, ANCHOR_MAX.gust);
     if (t || u || vv || g) anchorInfo = { sources: [...sources], fraction: Math.min(1, fraction), pairs: pairs.t.length, t, u, v: vv, gust: g };
     else notes.push('anchor: Messungen da, aber kein Paar (Messung, Cube) im selben Stundenraster — kein Anker');
@@ -2382,6 +2406,12 @@ export interface CubeIo {
    * Without the field the stage sets the option (`FUSION9_ANCHOR_AT_OBS_TIME`).
    */
   anchorAtObsTime?: boolean;
+  /**
+   * V-AF-10 (part of buscosun Fusion 12): `false` is the named fallback (`?ancpre=0`) — it takes `anchorBeforeAxis` from the stage fs,
+   * a measurement before the first axis step then pairs only within 30 min of that step. Without the field the stage sets the
+   * option (`FUSION12_ANCHOR_BEFORE_AXIS`).
+   */
+  anchorBeforeAxis?: boolean;
   decodeRgbPng?: RgbPngDecoder;
   terrain: TerrainOptions | false;
   clima: () => Promise<ClimaField | null>;
@@ -2517,6 +2547,13 @@ export interface CubeIo {
    */
   obsDense?: boolean;
   /**
+   * V-AF-9 (`audit/autobahn-fusion12-lueckenlos.md` §8.3, part of buscosun Fusion 12): the measurement fetch reads the newest
+   * value PER VARIABLE of a station, each with its own stamp — a station whose temperature is 30 min behind its rain stamp
+   * yields two measurements. `false` (`?obsvar=0`) = only the values at the station's newest stamp, the reader before V-AF-9.
+   * Not a switch of the engine: `fuseCubePoint` sees `CubeObs` either way and pairs each at its own minute.
+   */
+  obsPerVar?: boolean;
+  /**
    * AW-6.1 (`audit/autobahnwetter.md` §14, E-AW-22): the chunk decoder handed to `readPointBundle` — a producer that
    * computes thousands of points in one process memoises decoded chunks with it. Default: none ⇒ the reader's own
    * decoder (worker pool), byte-identical to before. Not part of the cache key: a decoder must return what
@@ -2545,10 +2582,14 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const hm = io.nowcastHourMean ? 'hm' : null;
   // buscosun Fusion 9 (V-AW-33): the fallback to Fusion 8 is another product — into the key, no suffix without the switch.
   const anc = io.anchorAtObsTime === false ? 'anc0' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm && !anc) return '';
+  // V-AF-9: the reader before V-AF-9 hands the engine other measurements — into the key, no suffix without the switch.
+  const ov = io.obsPerVar === false ? 'obsvar0' : null;
+  // V-AF-10: the anchor without the steps before the axis is another product — into the key, no suffix without the switch.
+  const ap = io.anchorBeforeAxis === false ? 'ancpre0' : null;
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm && !anc && !ov && !ap) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}${anc ? `|${anc}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}${anc ? `|${anc}` : ''}${ov ? `|${ov}` : ''}${ap ? `|${ap}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -2605,6 +2646,8 @@ export interface CubeObsFetchOptions {
   store?: boolean;
   /** OF-2: the dense set (OBS_DENSE_MAX nearest 10-min stations incl. precipitation-only gauges, Td, rr10, rr1h) — only from the product. */
   dense?: boolean;
+  /** V-AF-9: `false` = the reader before V-AF-9 (`?obsvar=0`); otherwise the newest value per variable, each with its own stamp. */
+  perVar?: boolean;
 }
 // ---------------------------------------------------------------------------
 // Phase OF (buscosun Fusion 12 candidate, `audit/obs-fusion.md` §5.2/§5.3): the dense anchor set and the two gauge options.
@@ -2701,7 +2744,7 @@ export function gaugeRadarFactorOf(obs: readonly CubeObs[], nowcast: readonly No
  */
 export const INCA_ANCHOR_WEIGHT = 0.6;
 // The stands of buscosun Fusion (7, 8, 9, …) live in ONE register: `fusion/fusionRelease.ts`. Re-exported for the callers of this module.
-export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION12_OBS_DENSE, FUSION12_ANCHOR_SIGMA, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
+export { FUSION7_ANCHOR_WIND_KM, FUSION8_NOWCAST_HOUR_MEAN, FUSION9_ANCHOR_AT_OBS_TIME, FUSION12_OBS_DENSE, FUSION12_ANCHOR_SIGMA, FUSION12_ANCHOR_BEFORE_AXIS, FUSION_CURRENT, FUSION_NAME, fusionStage, fusionStageIo, fusionVersionOfNotes } from './fusion/fusionRelease';
 export const INCA_ANALYSIS_URL = 'https://dataset.api.hub.geosphere.at/v1/timeseries/historical/inca-v1-1h-1km';
 /** Stunden vor „jetzt", die die INCA-Abfrage abdeckt (die Analyse der Stunde erscheint ≈ 20 min nach der Stunde — V-AX-21, gemessen am Archiv-Slot 01.10. 23:22 UTC; am 30.09. waren 1–1,5 h angenommen). */
 export const INCA_ANALYSIS_WINDOW_H = 4;
@@ -2788,25 +2831,37 @@ export async function fetchCubeObs(lat: number, lon: number, country: Country, s
   const st = hint?.station ? { id: hint.station.id, lat: hint.station.lat, lon: hint.station.lon } : null;
   // AX-10: die INCA-Analyse parallel zu den Stationen — ein Scheitern dort kostet keine Messung (die Notiz benennt es).
   const incaP: Promise<CubeObs[]> = opts?.inca && country === 'AT' ? fetchIncaAnalysisObs(lat, lon, opts.nowMs ?? Date.now(), signal).catch(() => []) : Promise.resolve([]);
-  const list = await fetchNearestStationObs(lat, lon, country, opts?.dense ? OBS_DENSE_MAX : 6, signal, { near: true, station: st, nowMs: opts?.nowMs, ...(opts?.store === undefined ? {} : { store: opts.store }), ...(opts?.dense ? { dense: true } : {}) });
+  const list = await fetchNearestStationObs(lat, lon, country, opts?.dense ? OBS_DENSE_MAX : 6, signal, { near: true, station: st, nowMs: opts?.nowMs, ...(opts?.store === undefined ? {} : { store: opts.store }), ...(opts?.dense ? { dense: true } : {}), perVar: opts?.perVar === false ? false : 'split' });
   return [...cubeObsOf(list, Date.now()), ...(await incaP)];
 }
 
 /** AX-1: die Abbildung Stationsliste → `CubeObs` (rein; der Verifier prüft sie ohne Netz). */
-export function cubeObsOf(list: ReadonlyArray<{ source: string; name?: string; stationId?: string; byStation?: boolean; via?: 'obs'; obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null; lat: number; lng: number; elevation: number; distanceMeters: number; point: unknown }>, nowMs: number): CubeObs[] {
+export function cubeObsOf(list: ReadonlyArray<{ source: string; name?: string; stationId?: string; byStation?: boolean; via?: 'obs' | 'bs-var'; obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null; parts?: ReadonlyArray<{ point: unknown; obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null }>; lat: number; lng: number; elevation: number; distanceMeters: number; point: unknown }>, nowMs: number): CubeObs[] {
   const out: CubeObs[] = [];
+  type P = { timestamp?: Date; temperature?: number | null; relativeHumidity?: number | null; u?: number | null; v?: number | null; gust?: number | null; name?: string; stationName?: string };
+  type X = { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null | undefined;
   for (const s of list) {
-    // Der Live-Pfad nimmt die Messung als „jetzt gültig" (`stationsToHour0Samples`); der Anker paart sie
-    // mit dem Cube-Schritt im selben Stundenraster, also zählt der Messzeitpunkt, wenn er da ist (DE seit AX-1).
-    const p = s.point as { timestamp?: Date; temperature?: number | null; relativeHumidity?: number | null; u?: number | null; v?: number | null; gust?: number | null; name?: string; stationName?: string };
-    const t = p.timestamp instanceof Date && Number.isFinite(p.timestamp.getTime()) ? p.timestamp.getTime() : nowMs;
-    out.push({
-      source: s.source, name: s.name ?? p.name ?? p.stationName, lat: s.lat, lon: s.lng, elevM: Number.isFinite(s.elevation) ? s.elevation : null, distanceM: s.distanceMeters, validAtMs: t,
-      temperature: p.temperature ?? null, relativeHumidity: p.relativeHumidity ?? null, u: p.u ?? null, v: p.v ?? null, gust: p.gust ?? null,
-      ...(s.stationId ? { stationId: s.stationId } : {}), ...(s.byStation ? { byStation: true } : {}), ...(s.via === 'obs' ? { via: 'obs' as const } : {}),
-      // OF-2: the dense reader's extras — measured dew point (the station value reads `dewPoint`), the gauge values of OF-3
-      ...(s.obs ? { ...(s.obs.td != null ? { dewPoint: s.obs.td } : {}), rr10: s.obs.rr10, rr1h: s.obs.rr1h } : {}),
-    });
+    const emit = (point: unknown, obs: X): void => {
+      // Der Live-Pfad nimmt die Messung als „jetzt gültig" (`stationsToHour0Samples`); der Anker paart sie
+      // mit dem Cube-Schritt im selben Stundenraster, also zählt der Messzeitpunkt, wenn er da ist (DE seit AX-1).
+      const p = point as P;
+      const t = p.timestamp instanceof Date && Number.isFinite(p.timestamp.getTime()) ? p.timestamp.getTime() : nowMs;
+      out.push({
+        source: s.source, name: s.name ?? p.name ?? p.stationName, lat: s.lat, lon: s.lng, elevM: Number.isFinite(s.elevation) ? s.elevation : null, distanceM: s.distanceMeters, validAtMs: t,
+        temperature: p.temperature ?? null, relativeHumidity: p.relativeHumidity ?? null, u: p.u ?? null, v: p.v ?? null, gust: p.gust ?? null,
+        ...(s.stationId ? { stationId: s.stationId } : {}), ...(s.byStation ? { byStation: true } : {}), ...(s.via ? { via: s.via } : {}),
+        // OF-2: the dense reader's extras — measured dew point (the station value reads `dewPoint`), the gauge values of OF-3
+        ...(obs ? { ...(obs.td != null ? { dewPoint: obs.td } : {}), rr10: obs.rr10, rr1h: obs.rr1h } : {}),
+      });
+    };
+    // V-AF-9: a station whose variables stand at different stamps yields one measurement PER STAMP (the station stamp first,
+    // then the older parts), each with only the variables of its own stamp. A station stamp that carries nothing readable
+    // (everything in the parts) yields no empty measurement. Without `parts` exactly the mapping before V-AF-9.
+    const p0 = s.point as P;
+    const empty = p0.temperature == null && p0.relativeHumidity == null && p0.u == null && p0.v == null && p0.gust == null
+      && !(s.obs && (s.obs.td != null || s.obs.rr10 != null || s.obs.rr1h != null));
+    if (!(s.parts?.length && empty)) emit(s.point, s.obs);
+    for (const part of s.parts ?? []) emit(part.point, part.obs);
   }
   return out;
 }
@@ -2852,6 +2907,10 @@ export function defaultCubeIo(): CubeIo {
     ...(anchorAtObsFlag ? {} : { anchorAtObsTime: false }),
     // Phase OF (buscosun Fusion 12): `?dense=0` takes the dense measurement set back (the stage sets `obsDense` through fusionStageIo).
     ...(obsDenseFlag ? {} : { obsDense: false }),
+    // V-AF-9: `?obsvar=0` = the reader before V-AF-9 (only the values at the station's newest stamp); no entry otherwise.
+    ...(obsVarFlag ? {} : { obsPerVar: false }),
+    // V-AF-10: `?ancpre=0` = the anchor without the cube steps before the axis start; no entry otherwise.
+    ...(anchorBeforeAxisFlag ? {} : { anchorBeforeAxis: false }),
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2863,6 +2922,8 @@ const hourMeanFlag = pfHourMeanFrom(typeof window !== 'undefined' ? window.locat
 const anchorAtObsFlag = pfAnchorAtObsFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsStoreFlag = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsDenseFlag = pfObsDenseFrom(typeof window !== 'undefined' ? window.location.search : '');
+const obsVarFlag = pfObsVarFrom(typeof window !== 'undefined' ? window.location.search : '');
+const anchorBeforeAxisFlag = pfAnchorBeforeAxisFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 interface CubeCacheEntry { hours: number; forecast: PointForecast; ts: number; update?: Promise<PointForecast | null> }
 const CUBE_CACHE = new Map<string, CubeCacheEntry>();
@@ -2904,6 +2965,8 @@ function forecastFromBundle(
       // back with `false` there (`?hm=0`, `?anc=0`) — the named fallback; the note names the stand actually computed.
       const st = fusionStage((r) => !!r.io && io[r.io.key] === false);
       Object.assign(stageFuse, st.options);
+      // V-AF-10: `?ancpre=0` takes the companion option back on its own (the stand and its note stay).
+      if (io.anchorBeforeAxis === false) delete stageFuse.anchorBeforeAxis;
       if (t.stack?.table) stageFuse.stationValue = true;
       input.notes.push(fusionStageNote(st, t.stack?.table ? ', Stationswert' : '; ohne Stationswert (keine Tabelle)'));
     } else input.notes.push('stage:fs — keine gelernten Tabellen ⇒ Rechnung wie ohne die Stufe (keine ihrer Optionen ist ohne Lernstufe gemessen)');
@@ -2987,7 +3050,26 @@ function obsNoteOf(io: CubeIo, obs: CubeObs[] | null, obsMs: number, deadlineMs:
   // OF-1: where the station measurements came from — the mirror product, or the providers (by switch or as the fallback).
   const fromStore = obs.filter((o) => o.via === 'obs').length;
   const stations = obs.filter((o) => o.source !== 'inca').length;
-  return [fromStore ? `obs: ${fromStore} Stationsmessung(en) aus buscosun-data obs/v1` : io.obsStore === false ? `obs: ${stations} Stationsmessung(en) per Direktabruf (?obs=direct)` : `obs: ${stations} Stationsmessung(en) per Direktabruf — Rückfall, obs/v1 nicht lesbar oder ohne aktuelle Station`];
+  const base = fromStore ? `obs: ${fromStore} Stationsmessung(en) aus buscosun-data obs/v1` : io.obsStore === false ? `obs: ${stations} Stationsmessung(en) per Direktabruf (?obs=direct)` : `obs: ${stations} Stationsmessung(en) per Direktabruf — Rückfall, obs/v1 nicht lesbar oder ohne aktuelle Station`;
+  // V-AF-9: the reader before V-AF-9 (by switch, or the provider adapters by switch) says exactly what it said.
+  if (io.obsPerVar === false || io.obsStore === false) return [base];
+  if (!fromStore) return [`${base} oder älter als ${OBS_PRODUCT_MAX_AGE_MS / 60_000} min (V-AF-9)`];
+  // one station, several stamps: the stations of the product that deliver more than one measurement
+  const perStation = new Map<string, number>();
+  for (const o of obs) if (o.via === 'obs') { const k = `${o.source}|${o.stationId ?? `${o.lat},${o.lon}`}`; perStation.set(k, (perStation.get(k) ?? 0) + 1); }
+  const split = [...perStation.values()].filter((n) => n > 1).length;
+  const bsT = obs.filter((o) => o.via === 'bs-var' && o.temperature != null).length;
+  // what the set does NOT carry: named per variable (step 2 of V-AF-9 — no anchor for that variable)
+  const tried = country === 'DE' ? 'auch nicht aus „older" oder gezielt von BrightSky' : 'auch nicht aus „older"; kein Rückfall je Größe für dieses Land';
+  return [
+    base,
+    // only with evidence in the measurements themselves (a caller's own `io.obs` may have read differently)
+    ...(split ? [`obsPerVar:set — je Größe der jüngste Wert der Station mit eigenem Stempel (aus „older" höchstens ${OBS_VAR_MAX_AGE_MS / 60_000} min alt, V-AF-9): ${perStation.size} Station(en), davon ${split} mit Messungen an mehr als einem Stempel`] : []),
+    ...(bsT ? [`obs: keine Station des Satzes aus obs/v1 trägt eine Temperatur — Temperatur gezielt von BrightSky (${bsT} Messung(en), nur diese Größe)`] : []),
+    ...(!obs.some((o) => o.temperature != null) ? [`obs: keine Temperaturmessung im Satz (${tried}) — kein Temperatur-Anker`] : []),
+    ...(!obs.some((o) => o.u != null && o.v != null) ? ['obs: keine Windmessung im Satz — kein Wind-Anker'] : []),
+    ...(!obs.some((o) => o.gust != null) ? ['obs: keine Böenmessung im Satz — kein Böen-Anker'] : []),
+  ];
 }
 
 function cacheForecast(key: string, hours: number, forecast: PointForecast, opts: PointForecastOptions, update?: Promise<PointForecast | null>): void {
@@ -3024,7 +3106,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
   // AP12: im progressiven Modus startet sie erst mit dem Kern (unten).
   const obsT0 = now();
   const obsP: Promise<CubeObs[] | null> = io.obs && !progressive
-    ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS), undefined, { inca: !!io.incaAnchor, nowMs, ...(io.obsStore === false ? { store: false } : {}), ...(io.obsDense && io.obsStore !== false ? { dense: true } : {}) }).catch(() => null)
+    ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_DEADLINE_MS), undefined, { inca: !!io.incaAnchor, nowMs, ...(io.obsStore === false ? { store: false } : {}), ...(io.obsDense && io.obsStore !== false ? { dense: true } : {}), ...(io.obsPerVar === false ? { perVar: false } : {}) }).catch(() => null)
     : Promise.resolve(null);
   const climaP = io.clima().catch(() => null);
   // AP13: `calib.json` parallel zum Index — nie blockierend. Entschieden wird EINMAL, bei der ersten Ausgabe;
@@ -3179,7 +3261,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     const obs2T0 = now();
     // AX-1: der Abruf kennt jetzt die Station des Punkts (das Bündel ist da) und holt deren eigene Messung mit.
     const obs2P: Promise<CubeObs[] | null> = io.obs
-      ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_PROGRESSIVE_DEADLINE_MS), obsHintOf(bundle), { inca: !!io.incaAnchor, nowMs, ...(io.obsStore === false ? { store: false } : {}), ...(io.obsDense && io.obsStore !== false ? { dense: true } : {}) }).catch(() => null)
+      ? io.obs(lat, lon, country, AbortSignal.timeout(OBS_PROGRESSIVE_DEADLINE_MS), obsHintOf(bundle), { inca: !!io.incaAnchor, nowMs, ...(io.obsStore === false ? { store: false } : {}), ...(io.obsDense && io.obsStore !== false ? { dense: true } : {}), ...(io.obsPerVar === false ? { perVar: false } : {}) }).catch(() => null)
       : Promise.resolve(null);
     // V-FI-17: kein Cache-Treffer ⇒ der Netzabruf startet jetzt, mit dem Kern (die Leitung ist frei), und wirkt in der Nachlieferung.
     const z0NetP: Promise<Z0AtPoint | null> | null = io.z0 && z0Missing(z0c)

@@ -630,6 +630,44 @@ function cubeSampleOfValues(r, i) {
       && fuseCubePoint({ ...mkInput(), obs: before }, { anchorAtObsTime: true }).notes.some((n) => /^anchorAtObsTime: Modellwert an 0 von 1 Messungen/.test(n))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorAtObsTime: true })) === fusedOf(base));
   }
+  // V-AF-10: the axis starts at the full hour, so a measurement stamped before it (the DWD temperature carries (H − 1):20 from
+  // H:00 to H:20) had no step on its early side — more than 30 min before the first step it was not paired at all, within 30 min
+  // it was compared with the value of the first step. The cube carries the native steps before the window (t1 from the run start):
+  // `anchorBeforeAxis` lets the anchor pair with them, the model value interpolated to the minute as between two axis steps.
+  {
+    const AT = { anchorAtObsTime: true }, PRE = { anchorAtObsTime: true, anchorBeforeAxis: true };
+    // the model value AT THE POINT of the native step before the axis: the same engine with the window opened one hour earlier
+    const early = fuseCubePoint({ ...mkInput(), window: { ...mkInput().window, fromMs: t0Ms - H } }).steps[0];
+    const tPre = early.vertical.t, min = 60_000;
+    const lineAt = (minBefore) => tCube0 + (minBefore / 60) * (tPre - tCube0);   // model line between the step before (t0 − 1 h) and t0
+    const offOf = (r) => r.steps[0].members.find((m) => m.product === 'anchor')?.anchor.offsetK;
+    const obs40 = [{ ...obsAt(0)[0], validAtMs: t0Ms - 40 * min, temperature: lineAt(40) + 1 }];
+    const r40at = fuseCubePoint({ ...mkInput(), obs: obs40 }, AT), r40pre = fuseCubePoint({ ...mkInput(), obs: obs40 }, PRE);
+    add('(12) V-AF-10 Reproduktion: Messung 40 min vor dem Achsenbeginn (Stempel (H − 1):20), 1 K über der Modelllinie ⇒ mit `anchorAtObsTime` allein kein Paar, kein Anker; mit `anchorBeforeAxis` Versatz genau 1 K und Notiz',
+      early.validAtMs === t0Ms - H && Math.abs(tPre - tCube0) > 0.05
+      && r40at.notes.some((n) => /kein Paar/.test(n)) && offOf(r40at) === undefined
+      && near(offOf(r40pre), 1, 1e-9) && r40pre.steps[0].flags.includes('anchored')
+      && r40pre.notes.some((n) => /^anchorBeforeAxis: 1 von 1 Messung\(en\) vor dem Achsenbeginn/.test(n)) && !r40at.notes.some((n) => n.startsWith('anchorBeforeAxis')),
+      `Modellgang davor ${(tCube0 - tPre).toFixed(3)} K/h · Versatz ohne ${offOf(r40at)} · mit ${offOf(r40pre)?.toFixed(6)} K`);
+    const obs20 = obsAt(2, 3000, FIX.hTrue, t0Ms - 20 * min);
+    add('(12) V-AF-10: Messung 20 min vor dem Achsenbeginn ⇒ ohne Option gegen den ersten Schritt gerechnet (Versatz 2 K samt 20 min Modellgang), mit Option gegen die Modelllinie an der Messminute',
+      near(offOf(fuseCubePoint({ ...mkInput(), obs: obs20 }, AT)), 2, 1e-9)
+      && near(offOf(fuseCubePoint({ ...mkInput(), obs: obs20 }, PRE)), tCube0 + 2 - lineAt(20), 1e-9));
+    const onPre = [{ ...obsAt(0)[0], validAtMs: t0Ms - H, temperature: tPre + 1.5 }];
+    add('(12) V-AF-10: Messung genau auf dem Schritt vor dem Achsenbeginn ⇒ mit Option gegen dessen Wert gepaart (Versatz 1,5 K); ohne kein Paar',
+      near(offOf(fuseCubePoint({ ...mkInput(), obs: onPre }, PRE)), 1.5, 1e-9) && offOf(fuseCubePoint({ ...mkInput(), obs: onPre }, AT)) === undefined);
+    const whole = (r) => JSON.stringify({ ...r, timing: undefined });   // everything but the run time: steps, notes, calib, flags
+    const noPre = () => { const i = mkInput(); i.cube = { ...i.cube, t1: { ...i.cube.t1, steps: i.cube.t1.steps.filter((s) => s.validAtMs >= t0Ms) } }; return i; };
+    const far = obsAt(2, 3000, FIX.hTrue, t0Ms - 5 * H);
+    const rPre40 = fuseCubePoint({ ...mkInput(), obs: obs40 }, PRE);
+    add('(12) V-AF-10 Negativkontrollen: Messung auf/nach dem Achsenbeginn (volle Stunde, + 30 min, + 41 min) ⇒ mit Option das GANZE Ergebnis byte-gleich zu `anchorAtObsTime` allein; Option ohne `anchorAtObsTime` wirkt nicht; Cube ohne Schritt vor dem Fenster ⇒ byte-gleich; Messung 5 h davor ⇒ kein Paar; der Schritt davor erscheint nie in der Ausgabe',
+      [obsAt(2), [{ ...obsAt(1)[0], validAtMs: t0Ms + 30 * min }], [{ ...obsAt(1)[0], validAtMs: t0Ms + 41 * min }], []].every((o) => whole(fuseCubePoint({ ...mkInput(), obs: o }, PRE)) === whole(fuseCubePoint({ ...mkInput(), obs: o }, AT)))
+      && whole(fuseCubePoint({ ...mkInput(), obs: obs40 }, { anchorBeforeAxis: true })) === whole(fuseCubePoint({ ...mkInput(), obs: obs40 }))
+      && [obs40, obs20].every((o) => fusedOf(fuseCubePoint({ ...noPre(), obs: o }, PRE)) === fusedOf(fuseCubePoint({ ...noPre(), obs: o }, AT)))
+      && fuseCubePoint({ ...noPre(), obs: obs40 }, PRE).notes.some((n) => /^anchorBeforeAxis: 0 von 1 Messung\(en\)/.test(n))
+      && fuseCubePoint({ ...mkInput(), obs: far }, PRE).notes.some((n) => /kein Paar/.test(n))
+      && rPre40.steps.length === base.steps.length && rPre40.steps[0].validAtMs === t0Ms && rPre40.steps.every((s, i) => s.validAtMs === base.steps[i].validAtMs));
+  }
   // OF-6 (audit/obs-fusion.md §10): the spread shrinks with the share of the error the anchor explains, σ·√max(0,5², 1 − a²·r).
   // This fixture has no learned σ ⇒ r = 1; the T anchor uses the setting e^(−τ/4 h).
   {
@@ -2538,6 +2576,27 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     && f8.cube.notes.some((n) => /^stage:fs — neueste Stufe \(buscosun Fusion 8\): .*Radar-Stundenmittel \(E-AX-17\)(?!.*Anker am Messzeitpunkt).*, Stationswert$/.test(n)) && !f8.cube.notes.some((n) => n.startsWith('anchorAtObsTime'))
     && stepsJson(f8) === stepsJson(full) && pfAnchorAtObsFrom('?anc=0') === false && pfAnchorAtObsFrom('') === true && pfAnchorAtObsFrom('?anc=1') === true,
     f8.cube.notes.find((n) => n.startsWith('stage:fs — neueste'))?.slice(0, 60));
+  // V-AF-10 (E-AF-6, Jan 10.10.2026): the stage of the newest stand sets `anchorBeforeAxis` (companion of Fusion 12 in the register);
+  // `CubeIo.anchorBeforeAxis: false` (?ancpre=0) is the named fallback — the measurement before the axis start is then not paired.
+  // The step before the axis is prepared with the learned stage of the real chain: its counters must not reach the notes.
+  {
+    const { FUSION12_ANCHOR_BEFORE_AXIS } = await import('../src/pointForecast/fusion/fusionRelease.ts');
+    const { pfAnchorBeforeAxisFrom } = await import('../src/pointForecast/pfFlags.ts');
+    const { cubeIoVariantKey } = await import('../src/pointForecast/cubeSource.ts');
+    const early = async () => [{ source: 'dwd_obs', name: 'Test', lat: FIX.lat, lon: FIX.lon, elevM: FIX.hTrue, distanceM: 3000, validAtMs: t0Ms - 40 * 60_000, temperature: 15, relativeHumidity: null, u: null, v: null, gust: null }];
+    const preOn = await run(filesOf(tables, stackFull), { ...STAGE, obs: early });
+    const preOff = await run(filesOf(tables, stackFull), { ...STAGE, obs: early, anchorBeforeAxis: false });
+    const noteOf = (p, re) => p.cube.notes.find((n) => re.test(n)) ?? null;
+    add('(29) V-AF-10: die Stufe paart eine Messung 40 min vor dem Achsenbeginn (Notiz anchorBeforeAxis 1 von 1, Anker mit 1 Paar); CubeIo.anchorBeforeAxis: false ⇒ keine Notiz, „kein Paar“, Stufen-Notiz unverändert, Schritte ≠; die Zähl-Notizen der Lernstufe sind in beiden Läufen gleich (der Schritt davor zählt nicht mit); Schalter ?ancpre=0 aus, sonst an; eigener Cache-Schlüssel',
+      FUSION12_ANCHOR_BEFORE_AXIS === true
+      && !!noteOf(preOn, /^anchorBeforeAxis: 1 von 1 Messung\(en\) vor dem Achsenbeginn/) && !!noteOf(preOn, /^anchor: 1 Paar\(e\)/)
+      && !noteOf(preOff, /^anchorBeforeAxis/) && !!noteOf(preOff, /^anchor: Messungen da, aber kein Paar/)
+      && noteOf(preOn, /^stage:fs — neueste/) === noteOf(preOff, /^stage:fs — neueste/) && stepsJson(preOn) !== stepsJson(preOff)
+      && noteOf(preOn, /^learned: Form K an/) != null && noteOf(preOn, /^learned: Form K an/) === noteOf(preOff, /^learned: Form K an/) && noteOf(preOn, /^learned: Form K an/) === noteOf(full, /^learned: Form K an/)
+      && typeof pfAnchorBeforeAxisFrom === 'function' && pfAnchorBeforeAxisFrom('?ancpre=0') === false && pfAnchorBeforeAxisFrom('') === true && pfAnchorBeforeAxisFrom('?ancpre=1') === true
+      && cubeIoVariantKey({ anchorBeforeAxis: false }).endsWith('|ancpre0') && cubeIoVariantKey({}) === '',
+      `${noteOf(preOn, /^anchorBeforeAxis/)?.slice(0, 60) ?? '—'} · aus: ${noteOf(preOff, /^anchor: /)?.slice(0, 50) ?? '—'}`);
+  }
 }
 
 // ---------------------------------------------------------------------------

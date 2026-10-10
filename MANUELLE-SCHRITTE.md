@@ -2171,3 +2171,70 @@ Pre-Screen-Vergleiche `audit/obs-fusion/prescreen/*.compare.txt`, Läufe `audit/
    neu (`repeatVerdict`); (b) **E-OF-7:** der Prüfstand-Champion bleibt Fusion 9 (nur die Abnahme in Spur P setzt einen Champion; die
    Hypothesen H-OF-5/5b sind gegen Fusion 9 formuliert); (c) 12t/12u heißen bei grün in Spur P **Fusion 13**; (d) `budget.json` totalJs
    1 609 → 1 612 angehoben (OF-7/OF-7b lagen schon 2,4 KB darüber, diese Änderung +0,1 KB). Gates in §12.
+
+## 62. Autobahn lückenlos mit buscosun Fusion 12 (Phase AF) — Stand nach V-AF-9 und V-AF-10, 2026-10-10
+
+(Auf diesem Zweig bis zum Abend des 10.10. als §61 geführt; §61 ist auf `main` seit `9c0fd1c` die Performance-Phase PF.)
+
+Phasendokument `audit/autobahn-fusion12-lueckenlos.md` (§8.3 = V-AF-9, §8.4 = V-AF-10). Alles liegt lokal im Arbeitsbaum
+`C:\dev\buscosun-web\.wt-af` auf dem Zweig `af/merge-fusion-12` — **V-AF-9 und V-AF-10 sind dort UNCOMMITTET**; `af/dense-anchor` (AF-4)
+setzt auf dem Zweig auf. **Nichts ist gepusht, nichts ins Daten-Repo kopiert; die Produktion rechnet weiter buscosun Fusion 9.**
+
+**Achtung, Reihenfolge:** `main` trägt seit dem Merge der Performance-Phase (`3e5297a`, 10.10. 20:14, nicht gepusht) schon buscosun
+Fusion 12 — **ohne** V-AF-9 und V-AF-10. Ein Push von `main` in diesem Zustand brächte Fusion 12 mit dem Lesefehler live (in jedem
+Halbstunden-Fenster kein deutscher Temperatur-Anker). Erst die beiden Korrekturen committen und nach `main` mergen, dann pushen.
+
+### 62.1 Entscheidungen
+
+- **E-AF-5 (entschieden mit dem Auftrag vom 10.10.):** der Leser von `obs/v1` nimmt je Größe den jüngsten Wert mit eigenem Stempel,
+  bevor buscosun Fusion 12 veröffentlicht wird. Umgesetzt, `?obsvar=0` = der Leser davor.
+- **E-AF-6 (entschieden, Jan 10.10. abends: „setze a um“) — V-AF-10, umgesetzt (§8.4):** der Anker paart eine Messung vor dem
+  Achsenbeginn mit den nativen Cube-Schritten davor, Modellwert auf die Messminute interpoliert (`FuseCubeOptions.anchorBeforeAxis`,
+  Begleit-Option des Stands 12, `?ancpre=0` = Motor davor). Gemessen an 20 Achspunkten: Temperatur-Paare zum Stundenanfang an 20 von 20
+  Punkten statt 2 von 20; größter Sprung am Stundenwechsel 1,52 → 1,03 K. Die Option wirkt auch außerhalb der Lücke: der Stempel
+  (H − 1):50 wird jetzt gegen die Modelllinie an seiner Minute gerechnet (Versatz ± ≈ 0,1 K). Am Prüfstand-Kandidaten `fusion-12s`
+  ändert sie an drei Tagen 0 / 855 / 38 von 5,25 Mio. Werten — kein eigenes Prüfstand-Urteil. Der Text der Entscheidung, wie sie stand:
+  auch mit dem neuen Leser hatte buscosun Fusion 12 in Deutschland **in den ersten ≈ 20 Minuten jeder Stunde keinen Temperatur-Anker.** Die jüngste deutsche Temperatur in `obs/v1` trägt dann den Stempel
+  (H − 1):20; der Motor paart eine Messung nur, wenn sie höchstens 30 min vor dem ersten Achsenschritt (H:00) liegt oder zwischen zwei
+  Schritten. Gemessen: 13:02 UTC (gutes Fenster, alle 462 Stationen mit T am Stempel) T-Paare an 2 von 20 Punkten — mit dem alten UND
+  dem neuen Leser; 11:11/11:16 und 13:16 UTC ebenso 2 von 20. Der Stationswert ist nicht betroffen (er rechnet an der Messminute).
+  Das ist ein Eingriff in den Motor und deshalb nicht Teil von V-AF-9. Wege:
+  - (a) **Motor:** der Anker bekommt den nativen Schritt VOR der laufenden Stunde zum Paaren (Modellwert auf die Messminute
+    interpoliert, wie `anchorAtObsTime` es zwischen zwei Schritten schon tut). Sauberste Lösung; neuer Stand oder Teil von 12 = deine
+    Entscheidung. **Empfehlung.**
+  - (b) **Leser:** eine Temperatur, die älter als ≈ 40 min ist, gilt als fehlend ⇒ BrightSky gezielt (2 Anfragen je Punktabfrage
+    in 20 von 60 Minuten). Kein Motor-Eingriff, aber wieder Last beim Anbieter und zwei Quellen.
+  - (c) hinnehmen und nennen. Fusion 12 wäre in Deutschland in einem Drittel der Zeit ohne Temperatur-Anker. Ob Fusion 9 auf `main`
+    (BrightSky) dieselbe Lücke hat, ist nicht durchgemessen — eine Stichprobe 13:37 UTC zeigte dort den Stempel 13:00 (paarbar).
+- Nach der unabhängigen Prüfung dazu (Motor, V-AF-11): der Stationswert liest EINE Messung — trägt eine Station Wind am Stempel und
+  Temperatur 30 min älter, fehlen ihm Wind und Böe der eigenen Station (206 von 462 Stationspunkten im zweiten Teil des Fensters).
+  Besser als vorher (dort gar keine Innovation), aber derselbe Eingriff wie (a) könnte es mit erledigen.
+- **E-AF-7 (offen) — V-AF-12:** Rückfall je Größe auch für Wind/Böe? Heute nur Temperatur (kein Wind im dichten Satz an ≈ 4 % der
+  Achspunkte in jedem Fenster ⇒ dort je Abfrage zwei BrightSky-Anfragen). Empfehlung: nein, bis der Prüfstand es misst.
+- **E-AF-8 (offen) — V-AF-13:** Spiegel hält den letzten Wert einer Größe länger als 60 min (`scripts/obs/obs-mirror.mjs`, Auftrag
+  Schritt 3, optional). Nicht gebaut: die Änderung macht `verify:obs-reader --live` (10) rot, bis die Kopie im Daten-Repo liegt, und
+  der Leser begrenzt ohnehin auf 90 min. Auf dein Wort baue ich sie als eigenen Commit.
+- **E-AF-9 (offen) — Bezeichnung:** die Option aus V-AF-10 ist als Teil des noch nicht veröffentlichten Stands 12 gebaut (wie der
+  Leser aus V-AF-9). Nach der Namensregel wäre eine Änderung an der Kette ein neuer Stand (Fusion 13). Empfehlung: Teil von 12 —
+  Stand 12 war nie live. Als 13 wäre es ein Eintrag im Register.
+
+### 62.2 Was nur du tun kannst
+
+1. **Commit freigeben:** V-AF-9 und V-AF-10 liegen uncommittet im Arbeitsbaum `.wt-af`. Auf dein Wort committe ich (Code + Verifier +
+   Fixtures, dann Doku) und merge den Zweig nach `main` (dort liegt inzwischen die Performance-Phase; `MANUELLE-SCHRITTE.md` und
+   `CLAUDE.md` brauchen dabei Handarbeit, der Code nicht — `main` hat die berührten Motor-Dateien seit dem Merge nicht geändert).
+2. **Push von `buscosun-web/main`** erst danach. Im Chat ausdrücklich „pushe main“ sagen — der Auto-Modus-Filter lehnt den Push
+   sonst ab.
+3. **Nach dem Push prüfen:** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-obs-reader.mjs --live`
+   in einem schlechten Fenster (:12–:20 oder :42–:50) — Block (19) nennt den Anteil der deutschen Temperaturstationen mit Wert
+   (Grenze 95 %). Im Browser `…/wetterkarte/wind/muenchen?ansicht=dashboard&pflog=1`: Vermerk `obsPerVar:set …`, 0 Anfragen an
+   `api.brightsky.dev`; Gegenprobe `&obsvar=0`.
+4. **Real-Device:** das Stations-Popup (Zeit hinter Temperatur/Wind, wenn sie nicht am Stempel gemessen sind) auf einem Telefon ansehen.
+5. Nichts zu kopieren: V-AF-9 ändert nur den Client; das Daten-Repo bleibt unverändert.
+
+### 62.3 Rückwege
+
+- `?ancpre=0` — der Motor vor V-AF-10 (eine Messung vor dem Achsenbeginn paart nur binnen 30 min mit dem ersten Schritt).
+- `?obsvar=0` — der Leser vor V-AF-9 (nur die Werte am Stationsstempel), byte-gleich.
+- `?dense=0` — buscosun Fusion 11 (sechs volle Stationen, liest ebenfalls je Größe).
+- `?obs=direct` — Messungen von den Anbietern (BrightSky, TAWES, SMN) wie vor Phase OF.

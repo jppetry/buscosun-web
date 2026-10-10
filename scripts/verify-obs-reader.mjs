@@ -9,6 +9,7 @@
  *   (3) equality with BrightSky / TAWES / SMN        (8) raster-fusion grid, map features, popup values
  *   (4) nearest stations: today's semantics, dense   (9) the URL switch
  *   (5) one file, two ways: hedge, deadline, abort   (10) --live: both copies of the mirror byte-identical, the product readable
+ *   (12)–(19) V-AF-9: the newest value PER VARIABLE with its own stamp, fallback per variable, stale product (scripts/lib/obsReaderVaf9.mjs)
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-obs-reader.mjs [--live]
  */
@@ -302,6 +303,13 @@ if (LIVE) {
     F.FUSION_RELEASES.some((r) => r.n === 12 && r.option === 'obsDense' && r.io?.key === 'obsDense' && r.io.set === true && r.io.flag === '?dense=0') && E.FUSION12_GAUGE.occurrence === 0 && E.FUSION12_GAUGE.radar === 1 && (E.FUSION12_SV_AT_OBS === 0 || E.FUSION12_SV_AT_OBS === 1)
     && (F.FUSION_CURRENT === 12) === (F.FUSION12_OBS_DENSE === 1) && F.fusionStageIo().obsDense === (F.FUSION12_OBS_DENSE === 1 ? true : undefined));
   add('(11) Schalter: ?dense=0 ⇒ aus, sonst an', (await import('../src/pointForecast/pfFlags.ts')).pfObsDenseFrom('?dense=0') === false && (await import('../src/pointForecast/pfFlags.ts')).pfObsDenseFrom('') === true);
+}
+
+// ── (12)–(19) V-AF-9: the newest value per variable, each with its own stamp (real excerpts of a bad and a good window) ──
+{
+  const V = await import('./lib/obsReaderVaf9.mjs');
+  await V.runVaf9({ add, O, cubeObsOf, fetchNearestStationObs, resp, realFetch, ROOT });
+  if (LIVE) { try { await V.liveVaf9({ add, O }); } catch (e) { add('(19) --live', false, String(e?.message ?? e)); } }
 }
 
 const passed = checks.filter((c) => c.ok).length;

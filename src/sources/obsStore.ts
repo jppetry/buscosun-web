@@ -47,6 +47,18 @@ export const OBS_MAX_AGE_MS = 6 * 3_600_000;
 export const OBS_SAME_SITE_KM = 0.3;
 /** OF-2 (`CubeIo.obsDense`): how many stations the dense set carries (today's readers: 6). */
 export const OBS_DENSE_MAX = 12;
+/**
+ * V-AF-9 (`audit/autobahn-fusion12-lueckenlos.md` §8.3): a variable that is missing at the station's newest stamp is read from
+ * `older` with its OWN stamp when that stamp is not older than this (against the reader's clock). set — the DWD 10-min files
+ * arrive staggered (rain :10/:40, wind :15/:45, temperature :20/:50), the temperature lags the rain stamp by 30 min in every
+ * half hour; 90 min = that lag plus two missed deliveries.
+ */
+export const OBS_VAR_MAX_AGE_MS = 90 * 60_000;
+/**
+ * V-AF-9: `latest.json` older than this (its `builtAt` against the reader's clock) is a failed product — the mirror publishes
+ * at least every ≈ 10 min. set. Only the measurement path with the per-variable reader checks it (`sampleSources.ts`).
+ */
+export const OBS_PRODUCT_MAX_AGE_MS = 30 * 60_000;
 
 export interface ObsStation {
   id: string;
@@ -275,6 +287,98 @@ export function obsPointOf(st: ObsStation, e: ObsLatestEntry | undefined): ObsPo
 /** A „full" station in the sense of today's readers: at least one of T, wind, gust, humidity at the stamp (precipitation-only gauges are not). */
 export const obsFullPoint = (p: ForecastHourPoint): boolean => p.temperature != null || p.u != null || p.gust != null || p.relativeHumidity != null;
 
+// ---------------------------------------------------------------------------
+// Pure, V-AF-9: the newest value PER VARIABLE, each with its own stamp
+// ---------------------------------------------------------------------------
+
+/** The variables of the product the readers hand on (`ps`, `sd`, `gr`, `snow` are not read here). */
+export type ObsVarKey = 't' | 'rh' | 'td' | 'ff' | 'dd' | 'fx' | 'rr';
+export const OBS_VAR_KEYS: readonly ObsVarKey[] = ['t', 'rh', 'td', 'ff', 'dd', 'fx', 'rr'];
+/** One variable of one station: the value, the stamp it was measured at, and whether it came from `older`. */
+export interface ObsVarValue { v: number; ms: number; older: boolean }
+
+/**
+ * Every read variable of one station from its newest available measurement: the value at the station stamp `t` (`v`), else
+ * the value under `older` with ITS stamp — when that stamp is older than `t` and not older than `varMaxAgeMs` against `nowMs`
+ * (a value exactly at the limit is used). `null` without a valid 10-min stamp. Never moves a value onto another stamp.
+ */
+export function obsVarsOf(e: ObsLatestEntry | undefined, nowMs: number, varMaxAgeMs = OBS_VAR_MAX_AGE_MS): { stampMs: number; vars: Partial<Record<ObsVarKey, ObsVarValue>> } | null {
+  if (!e?.t) return null;
+  const stampMs = Date.parse(e.t);
+  if (!Number.isFinite(stampMs)) return null;
+  const vars: Partial<Record<ObsVarKey, ObsVarValue>> = {};
+  for (const k of OBS_VAR_KEYS) {
+    const at = e.v?.[k];
+    if (isNum(at)) { vars[k] = { v: at, ms: stampMs, older: false }; continue; }
+    const o = e.older?.[k];
+    if (!o || !isNum(o.v)) continue;
+    const ms = Date.parse(o.t);
+    if (!Number.isFinite(ms) || ms >= stampMs || nowMs - ms > varMaxAgeMs) continue;
+    vars[k] = { v: o.v, ms, older: true };
+  }
+  return { stampMs, vars };
+}
+
+/** One measurement of a station at ONE stamp: the point (only the variables of that stamp) and, for the dense set, its extras. */
+export interface ObsPart {
+  point: ObsPoint;
+  /** Dense set only: the dew point and the 10-min precipitation measured at this stamp (`rr1h` belongs to the station stamp). */
+  obs?: { td: number | null; rr10: number | null; rr1h: null };
+}
+
+function pointAt(st: ObsStation, ms: number, val: (k: ObsVarKey) => number | null): ObsPoint {
+  const { u, v: vv } = windComponentsOf(val('ff'), val('dd'));
+  const rr = val('rr');
+  return {
+    temperature: val('t'), u, v: vv, gust: val('fx'), relativeHumidity: val('rh'),
+    cloudLow: null, cloudMid: null, cloudHigh: null,
+    precipitation: rr != null ? rr * 6 : null,
+    model: obsModelOf(st.country), lat: st.lat, lng: st.lon, elev: st.elev,
+    stationName: st.name, stationId: obsStationIdOf(st.id), timestamp: new Date(ms),
+  };
+}
+
+/**
+ * The measurements of a station at stamps OLDER than its station stamp — one part per distinct stamp among the variables read
+ * from `older` (`obsVarsOf`), newest first; each part carries only the variables of its own stamp, `timestamp` = that stamp.
+ * Empty when every read variable stands at the station stamp (then `obsPointOf` is the whole station, as before V-AF-9).
+ * Wind needs speed and direction of the SAME stamp. Pure.
+ */
+export function obsOlderPartsOf(st: ObsStation, e: ObsLatestEntry | undefined, nowMs: number, varMaxAgeMs = OBS_VAR_MAX_AGE_MS): ObsPart[] {
+  const r = obsVarsOf(e, nowMs, varMaxAgeMs);
+  if (!r) return [];
+  const byMs = new Map<number, Partial<Record<ObsVarKey, number>>>();
+  for (const k of OBS_VAR_KEYS) {
+    const x = r.vars[k];
+    if (!x || !x.older) continue;
+    const g = byMs.get(x.ms) ?? {};
+    g[k] = x.v;
+    byMs.set(x.ms, g);
+  }
+  return [...byMs].sort((a, b) => b[0] - a[0]).map(([ms, g]) => {
+    const val = (k: ObsVarKey): number | null => g[k] ?? null;
+    return { point: pointAt(st, ms, val), obs: { td: val('td'), rr10: val('rr'), rr1h: null } };
+  }).filter((x) => obsFullPoint(x.point) || x.point.precipitation != null || x.obs.td != null);
+}
+
+/**
+ * The station as ONE point with the newest value of every variable (display, raster fusion, live path — consumers that take a
+ * station as „now" and cannot carry two stamps): `timestamp` stays the station stamp, `at` names the own stamp (ms) of every
+ * group whose value came from `older`, so a page can say it. `null` like `obsPointOf`. Pure.
+ */
+export function obsMergedOf(st: ObsStation, e: ObsLatestEntry | undefined, nowMs: number, varMaxAgeMs = OBS_VAR_MAX_AGE_MS): { point: ObsPoint; td: number | null; rr10: number | null; ff: number | null; dd: number | null; at: { temperature?: number; wind?: number; gust?: number; humidity?: number; precipitation?: number } } | null {
+  const r = obsVarsOf(e, nowMs, varMaxAgeMs);
+  if (!r) return null;
+  // wind = speed and direction of one stamp: the direction of another stamp is not attached to the speed
+  const windOk = r.vars.ff && r.vars.dd && r.vars.ff.ms === r.vars.dd.ms;
+  const val = (k: ObsVarKey): number | null => ((k === 'ff' || k === 'dd') && !windOk ? null : r.vars[k]?.v ?? null);
+  const own = (k: ObsVarKey): number | undefined => (r.vars[k]?.older && val(k) != null ? r.vars[k]!.ms : undefined);
+  const at: { temperature?: number; wind?: number; gust?: number; humidity?: number; precipitation?: number } = {};
+  const put = (name: keyof typeof at, ms: number | undefined) => { if (ms != null) at[name] = ms; };
+  put('temperature', own('t')); put('wind', own('ff')); put('gust', own('fx')); put('humidity', own('rh')); put('precipitation', own('rr'));
+  return { point: pointAt(st, r.stampMs, val), td: val('td'), rr10: val('rr'), ff: val('ff'), dd: val('dd'), at };
+}
+
 const EARTH_R = 6_371_000;
 export function obsDistanceM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
@@ -294,10 +398,19 @@ export interface ObsNearestStation {
   elevation: number;
   distanceMeters: number;
   point: ForecastHourPoint;
-  /** OF-1: where the measurement came from (`obs` = the mirror product; the direct adapters set nothing). */
-  via?: 'obs';
+  /**
+   * OF-1: where the measurement came from (`obs` = the mirror product; the direct adapters set nothing). V-AF-9: `bs-var` =
+   * ONE variable fetched from BrightSky because no station of the set carried it (`sampleSources.ts`).
+   */
+  via?: 'obs' | 'bs-var';
   /** OF-2 (`dense` only): the measured dew point and the gauge values at the stamp — the engine's `CubeObs.dewPoint/rr10/rr1h`. */
   obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null;
+  /**
+   * V-AF-9 (`perVar: 'split'` only): the station's measurements at stamps OLDER than `point.timestamp` — variables that are
+   * missing at the station stamp, each group with its own stamp (`obsOlderPartsOf`). Absent when there are none; the engine's
+   * mapper (`cubeObsOf`) emits one measurement per part.
+   */
+  parts?: ObsPart[];
 }
 
 export interface ObsNearestOptions {
@@ -309,13 +422,22 @@ export interface ObsNearestOptions {
   station?: { id: string; lat: number; lon: number } | null;
   /** OF-2: also the precipitation-only gauges (for the gauge options of the engine). */
   dense?: boolean;
+  /**
+   * V-AF-9: the newest value per variable instead of only the values at the station stamp. `'split'` (the engine): the
+   * station keeps ONE entry, its older-stamp variables ride in `parts`, each with its own stamp. `'merge'` (live path): ONE
+   * point with the newest value of every variable, taken as „now". Absent = the reader before V-AF-9 (`?obsvar=0`).
+   */
+  perVar?: 'split' | 'merge';
+  /** V-AF-9: age limit of a value read from `older` (default `OBS_VAR_MAX_AGE_MS`). */
+  varMaxAgeMs?: number;
 }
 
 /**
  * The `max` stations of a country nearest to the point, ascending by distance — today's semantics of the three adapters
  * combined: a station counts when it has a 10-min stamp not older than `maxAgeMs` and (without `dense`) at least one of
  * T, wind, gust, humidity. One entry per station (the product has one). `byStation` = the station product's station
- * stands at this obs station (≤ `OBS_SAME_SITE_KM`). Pure.
+ * stands at this obs station (≤ `OBS_SAME_SITE_KM`). With `perVar` (V-AF-9) „carries a variable" means at the station stamp OR
+ * in `older` within the age limit; without it the function is the reader before V-AF-9, byte for byte. Pure.
  */
 export function nearestObsStations(store: ObsStore, lat: number, lon: number, country: string, o: ObsNearestOptions): ObsNearestStation[] {
   const nowMs = o.nowMs ?? Date.now();
@@ -324,16 +446,26 @@ export function nearestObsStations(store: ObsStore, lat: number, lon: number, co
   const out: ObsNearestStation[] = [];
   for (const st of store.catalog.stations) {
     if (!countries.includes(st.country)) continue;
-    const p = obsPointOf(st, store.latest.stations[st.id]);
-    if (!p) continue;
-    const age = nowMs - p.timestamp.getTime();
-    if (age > maxAge) continue;
-    if (!o.dense && !obsFullPoint(p)) continue;
-    if (o.dense && !obsFullPoint(p) && p.precipitation == null) continue;
-    const byStation = !!o.station && obsDistanceM(o.station.lat, o.station.lon, st.lat, st.lon) <= OBS_SAME_SITE_KM * 1000;
     const e = store.latest.stations[st.id];
-    const extra = o.dense ? { obs: { td: isNum(e?.v?.td) ? (e!.v!.td as number) : null, rr10: isNum(e?.v?.rr) ? (e!.v!.rr as number) : null, rr1h: e?.rr1h && isNum(e.rr1h.mm) ? { mm: e.rr1h.mm, complete: !!e.rr1h.complete } : null } } : {};
-    out.push({ source: p.model, name: st.name, stationId: p.stationId, ...(byStation ? { byStation: true } : {}), lat: st.lat, lng: st.lon, elevation: st.elev, distanceMeters: obsDistanceM(lat, lon, st.lat, st.lon), point: p, via: 'obs', ...extra });
+    const p0 = obsPointOf(st, e);
+    if (!p0) continue;
+    const age = nowMs - p0.timestamp.getTime();
+    if (age > maxAge) continue;
+    // V-AF-9: the variables missing at the station stamp — as parts with their own stamp (split) or merged into the point
+    const merged = o.perVar === 'merge' ? obsMergedOf(st, e, nowMs, o.varMaxAgeMs) : null;
+    const p = merged ? merged.point : p0;
+    let parts = o.perVar === 'split' ? obsOlderPartsOf(st, e, nowMs, o.varMaxAgeMs) : [];
+    // without the dense set a part that is no full measurement (rain only) has no reader
+    if (!o.dense) parts = parts.filter((x) => obsFullPoint(x.point));
+    const full = obsFullPoint(p) || parts.some((x) => obsFullPoint(x.point));
+    if (!o.dense && !full) continue;
+    if (o.dense && !full && p.precipitation == null && !parts.some((x) => x.point.precipitation != null)) continue;
+    const byStation = !!o.station && obsDistanceM(o.station.lat, o.station.lon, st.lat, st.lon) <= OBS_SAME_SITE_KM * 1000;
+    const rr1h = e?.rr1h && isNum(e.rr1h.mm) ? { mm: e.rr1h.mm, complete: !!e.rr1h.complete } : null;
+    const extra = !o.dense ? {} : merged ? { obs: { td: merged.td, rr10: merged.rr10, rr1h } }
+      : { obs: { td: isNum(e?.v?.td) ? (e!.v!.td as number) : null, rr10: isNum(e?.v?.rr) ? (e!.v!.rr as number) : null, rr1h } };
+    const partsOut = parts.length ? { parts: o.dense ? parts : parts.map((x) => ({ point: x.point })) } : {};
+    out.push({ source: p.model, name: st.name, stationId: p.stationId, ...(byStation ? { byStation: true } : {}), lat: st.lat, lng: st.lon, elevation: st.elev, distanceMeters: obsDistanceM(lat, lon, st.lat, st.lon), point: p, via: 'obs', ...extra, ...partsOut });
   }
   out.sort((a, b) => a.distanceMeters - b.distanceMeters || a.stationId.localeCompare(b.stationId));
   return out.slice(0, Math.max(0, o.max));
@@ -357,23 +489,25 @@ const BOUNDS: Record<string, ForecastBounds> = {
 
 /**
  * The „now" frame of one country as the old grid adapters built it: one `ForecastHourPoint` per full station with its own
- * lat/lng/elev (the raster fusion ignores cols/rows for sources with overrides). Pure.
+ * lat/lng/elev (the raster fusion ignores cols/rows for sources with overrides). `perVar` (V-AF-9, default on): the newest
+ * value per variable within `OBS_VAR_MAX_AGE_MS` (the grid is a „now" frame); `false` = only the values at the station stamp. Pure.
  */
-export function obsGridOf(store: ObsStore, country: string, nowMs = Date.now(), maxAgeMs = OBS_MAX_AGE_MS): ForecastGrid {
+export function obsGridOf(store: ObsStore, country: string, nowMs = Date.now(), maxAgeMs = OBS_MAX_AGE_MS, perVar = true): ForecastGrid {
   const countries = obsCountriesOf(country);
   const points: ForecastHourPoint[] = [];
   for (const st of store.catalog.stations) {
     if (!countries.includes(st.country)) continue;
-    const p = obsPointOf(st, store.latest.stations[st.id]);
+    const e = store.latest.stations[st.id];
+    const p = perVar ? obsMergedOf(st, e, nowMs)?.point ?? null : obsPointOf(st, e);
     if (!p || nowMs - p.timestamp.getTime() > maxAgeMs || !obsFullPoint(p)) continue;
     points.push(p);
   }
   return { cols: points.length || 1, rows: 1, bounds: BOUNDS[country] ?? BOUNDS.DE, times: [new Date(nowMs)], points: [points], fetchedAt: nowMs };
 }
 
-export async function fetchObsGrid(country: string, o: ObsLoadOptions = {}): Promise<ForecastGrid> {
+export async function fetchObsGrid(country: string, o: ObsLoadOptions & { perVar?: boolean } = {}): Promise<ForecastGrid> {
   const store = await loadObsStore(o);
-  return obsGridOf(store, country, o.nowMs ?? Date.now());
+  return obsGridOf(store, country, o.nowMs ?? Date.now(), OBS_MAX_AGE_MS, o.perVar !== false);
 }
 
 export interface ObsStationFeatureProps {
@@ -386,24 +520,56 @@ export interface ObsStationFeatureProps {
   windDirection: number | null;
   precipitation: number | null;
   cloudCover: number | null;
+  /** V-AF-9: the station's 10-min stamp (ISO, UTC); `null` = a later answer without one (it clears an earlier stamp). */
+  obsAt?: string | null;
+  /**
+   * V-AF-9: the own stamp of a value that was NOT measured at `obsAt` (read from `older`) — the popup states it. With the
+   * per-variable reader the three keys are always present (`null` = measured at `obsAt`), so a popup that merges a later
+   * answer over the feature's values never keeps an older time next to a newer value.
+   */
+  temperatureAt?: string | null;
+  windAt?: string | null;
+  precipitationAt?: string | null;
+}
+
+type ObsDisplayValues = Pick<ObsStationFeatureProps, 'temperature' | 'windSpeed' | 'windDirection' | 'precipitation' | 'cloudCover' | 'obsAt' | 'temperatureAt' | 'windAt' | 'precipitationAt'>;
+
+/** V-AF-9: the display values of one station — the newest value per variable, each own stamp named where it differs. */
+function obsDisplayOf(st: ObsStation, e: ObsLatestEntry | undefined, nowMs: number, perVar: boolean): { values: ObsDisplayValues; stampMs: number; stationId: string } | null {
+  if (!perVar) {
+    const p = obsPointOf(st, e);
+    if (!p) return null;
+    const v = e?.v ?? {};
+    return { values: { temperature: p.temperature, windSpeed: isNum(v.ff) ? v.ff : null, windDirection: isNum(v.dd) ? v.dd : null, precipitation: p.precipitation, cloudCover: null }, stampMs: p.timestamp.getTime(), stationId: p.stationId };
+  }
+  const m = obsMergedOf(st, e, nowMs);
+  if (!m) return null;
+  const iso = (ms: number | undefined): string | null => (ms != null ? new Date(ms).toISOString() : null);
+  return {
+    values: {
+      temperature: m.point.temperature, windSpeed: m.ff, windDirection: m.dd, precipitation: m.point.precipitation, cloudCover: null,
+      obsAt: m.point.timestamp.toISOString(), temperatureAt: iso(m.at.temperature), windAt: iso(m.at.wind), precipitationAt: iso(m.at.precipitation),
+    },
+    stampMs: m.point.timestamp.getTime(), stationId: m.point.stationId,
+  };
 }
 
 /**
  * The station features of the map (`dachStations.ts` form) from the product: every station with a 10-min stamp not older
  * than `maxAgeMs`, WITH its values (DE no longer lazy). Cloud cover is not in the product (the DWD 10-min files carry none;
- * BrightSky took it from the synop reports — E-OF-1). Pure.
+ * BrightSky took it from the synop reports — E-OF-1). `perVar` (V-AF-9, default on): the newest value per variable within
+ * `OBS_VAR_MAX_AGE_MS`, with `obsAt` and the own stamp of every value that is older than it. Pure.
  */
-export function obsStationFeatures(store: ObsStore, nowMs = Date.now(), maxAgeMs = OBS_MAX_AGE_MS): Array<{ type: 'Feature'; geometry: { type: 'Point'; coordinates: [number, number] }; properties: ObsStationFeatureProps }> {
+export function obsStationFeatures(store: ObsStore, nowMs = Date.now(), maxAgeMs = OBS_MAX_AGE_MS, perVar = true): Array<{ type: 'Feature'; geometry: { type: 'Point'; coordinates: [number, number] }; properties: ObsStationFeatureProps }> {
   const out: Array<{ type: 'Feature'; geometry: { type: 'Point'; coordinates: [number, number] }; properties: ObsStationFeatureProps }> = [];
   for (const st of store.catalog.stations) {
-    const p = obsPointOf(st, store.latest.stations[st.id]);
-    if (!p || nowMs - p.timestamp.getTime() > maxAgeMs) continue;
-    const v = store.latest.stations[st.id]?.v ?? {};
+    const d = obsDisplayOf(st, store.latest.stations[st.id], nowMs, perVar);
+    if (!d || nowMs - d.stampMs > maxAgeMs) continue;
     out.push({
       type: 'Feature', geometry: { type: 'Point', coordinates: [st.lon, st.lat] },
       properties: {
-        source: obsModelOf(st.country), name: st.name, elevation: Math.round(st.elev), ...(st.country === 'DE' ? { dwdStationId: p.stationId } : {}),
-        temperature: p.temperature, windSpeed: isNum(v.ff) ? v.ff : null, windDirection: isNum(v.dd) ? v.dd : null, precipitation: p.precipitation, cloudCover: null,
+        source: obsModelOf(st.country), name: st.name, elevation: Math.round(st.elev), ...(st.country === 'DE' ? { dwdStationId: d.stationId } : {}),
+        ...d.values,
       },
     });
   }
@@ -411,10 +577,7 @@ export function obsStationFeatures(store: ObsStore, nowMs = Date.now(), maxAgeMs
 }
 
 /** The popup values of one DWD station (`fetchDwdStationLive` form) from the product; `null` when it has no current 10-min values. */
-export function obsStationLive(store: ObsStore, dwdStationId: string): Pick<ObsStationFeatureProps, 'temperature' | 'windSpeed' | 'windDirection' | 'precipitation' | 'cloudCover'> | null {
+export function obsStationLive(store: ObsStore, dwdStationId: string, nowMs = Date.now(), perVar = true): ObsDisplayValues | null {
   const st = store.byId.get(`de:${dwdStationId}`);
-  const p = st ? obsPointOf(st, store.latest.stations[st.id]) : null;
-  if (!st || !p) return null;
-  const v = store.latest.stations[st.id]?.v ?? {};
-  return { temperature: p.temperature, windSpeed: isNum(v.ff) ? v.ff : null, windDirection: isNum(v.dd) ? v.dd : null, precipitation: p.precipitation, cloudCover: null };
+  return (st ? obsDisplayOf(st, store.latest.stations[st.id], nowMs, perVar) : null)?.values ?? null;
 }

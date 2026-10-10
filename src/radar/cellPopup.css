@@ -52,6 +52,8 @@
 }
 .sp-l { color: var(--stone-500); }
 .sp-v { color: var(--ink-900); font-weight: 500; }
+/* V-AF-9: the own measurement time of a station value that is older than the station stamp */
+.sp-at { color: var(--stone-500); font-weight: 400; }
 .sp-loading {
   color: var(--stone-400);
   font-style: italic;

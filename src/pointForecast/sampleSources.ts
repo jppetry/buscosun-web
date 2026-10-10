@@ -9,8 +9,8 @@ import type { Country } from '../types';
 import { fetchBrightSkyCurrentGrid, fetchBrightSkyCurrentAt } from '../sources/brightSkyCurrent';
 import { fetchTawesCurrentGrid, fetchTawesHistory } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid, fetchSmnHistory } from '../sources/meteoSwissSmn';
-import { fetchObsNearest } from '../sources/obsStore';
-import { pfObsStoreFrom } from './pfFlags';
+import { loadObsStore, nearestObsStations, OBS_LATEST_PATH, OBS_PRODUCT_MAX_AGE_MS, type ObsPart } from '../sources/obsStore';
+import { pfObsStoreFrom, pfObsVarFrom } from './pfFlags';
 import type { ForecastBounds, ForecastHourPoint } from '../sources/openMeteoForecast';
 import { geoSphereNwpVersion, geoSphereNwpUrl, readGeoSphereHour, GEOSPHERE_NWP_SOURCE, GEOSPHERE_NWP_DATASET } from '../sources/geosphereNwp';
 import type { PointSourceSample, PointHourSamples } from './types';
@@ -495,14 +495,33 @@ export interface NearestStationObs {
   elevation: number;
   distanceMeters: number;
   point: ForecastHourPoint;
-  /** OF-1: the measurement came from the mirror product `obs/v1` (`obsStore.ts`); the direct adapters set nothing. */
-  via?: 'obs';
+  /**
+   * OF-1: the measurement came from the mirror product `obs/v1` (`obsStore.ts`); the direct adapters set nothing.
+   * V-AF-9: `bs-var` = ONE variable taken from BrightSky because no station of the product's set carried it.
+   */
+  via?: 'obs' | 'bs-var';
   /** OF-2 (dense reader only): measured dew point and the gauge values at the stamp. */
   obs?: { td: number | null; rr10: number | null; rr1h: { mm: number; complete: boolean } | null } | null;
+  /** V-AF-9 (`perVar: 'split'`): the station's measurements at older stamps, each with its own stamp (`obsStore.ts ObsPart`). */
+  parts?: ObsPart[];
 }
 
 /** OF-1: `?obs=direct` = the provider adapters only; otherwise the mirror product `obs/v1` first (`pfObsStoreFrom`). */
 const OBS_STORE_FLAG = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
+/** V-AF-9: `?obsvar=0` = the reader before V-AF-9 (only the values at the station stamp, no stale check, no fallback per variable). */
+const OBS_VAR_FLAG = pfObsVarFrom(typeof window !== 'undefined' ? window.location.search : '');
+/**
+ * V-AF-9: the variables a missing one of which is fetched from BrightSky when NO station of the product's set carries it.
+ * Temperature only: no station of the dense set carries wind at ≈ 4 % of the axis points of the route forecast in EVERY window
+ * (measured 10.10.2026, 275 wind stations among 1 427 German entries) — a wind fallback would be a standing provider load
+ * there and a change of the measured stand (Jan's gate, V-AF-12). Temperature is missing at 0,6–0,7 % of those points.
+ */
+export const OBS_VAR_FALLBACK: readonly ('temperature')[] = ['temperature'];
+/**
+ * V-AF-9: the fallback per variable may take this long at most (set) — the measurement fetch of the cube path has a deadline of
+ * 1,5 s from its start, and a slow BrightSky answer must not cost the stations of the product that are already there.
+ */
+export const OBS_VAR_FALLBACK_TIMEOUT_MS = 800;
 
 const stationIdOf = (p: ForecastHourPoint): string | undefined => {
   const q = p as ForecastHourPoint & { stationId?: string; stationName?: string };
@@ -530,7 +549,16 @@ export interface NearestObsOptions {
   onNote?: (note: string) => void;
   /** OF-2: the dense set (precipitation-only gauges, Td, rr10/rr1h) — only with the store; the adapters know no gauges. */
   dense?: boolean;
+  /**
+   * V-AF-9: the per-variable reader of the store — `'split'` (the engine: older-stamp variables as `parts`), `'merge'` (the
+   * live path: one point, newest value per variable), `false` = the reader before V-AF-9. Default: `'merge'` — `'split'` with
+   * `dense` (the dense set goes to the engine, which must never see a value on a foreign stamp) —, `false` with `?obsvar=0`.
+   */
+  perVar?: 'split' | 'merge' | false;
 }
+
+/** V-AF-9: does a station of the list carry a temperature — at its stamp or in a part of an older stamp? */
+const carriesTemperature = (s: NearestStationObs): boolean => s.point.temperature != null || !!s.parts?.some((x) => x.point.temperature != null);
 
 /** DE, AX-1: the station's own measurement by WMO id (5 digits = the id of the MOSMIX catalogue), and the nearest station to the point. */
 async function brightSkyAtPoint(lat: number, lng: number, station: NearestObsOptions['station'], signal?: AbortSignal): Promise<NearestStationObs[]> {
@@ -558,9 +586,39 @@ export async function fetchNearestStationObs(
 ): Promise<NearestStationObs[]> {
   // OF-1: the mirror product first — the adapters below are the named fallback.
   if (options.store ?? OBS_STORE_FLAG) {
+    const perVar = options.perVar ?? (OBS_VAR_FLAG ? (options.dense ? 'split' : 'merge') : false);
     try {
-      const list = await fetchObsNearest(lat, lng, country, { max: maxStations, station: options.station ?? null, nowMs: options.nowMs, signal, onNote: options.onNote, ...(options.dense ? { dense: true } : {}) });
-      if (list.length) return list;
+      const store = await loadObsStore({ nowMs: options.nowMs, signal, onNote: options.onNote });
+      // V-AF-9: a product the mirror has not rebuilt for OBS_PRODUCT_MAX_AGE_MS is a failed product (only with the per-variable reader)
+      if (perVar) {
+        const ageMs = (options.nowMs ?? Date.now()) - Date.parse(store.latest.builtAt);
+        if (!(ageMs <= OBS_PRODUCT_MAX_AGE_MS)) throw new Error(`${OBS_LATEST_PATH} ist ${Number.isFinite(ageMs) ? Math.round(ageMs / 60_000) : '?'} min alt (Grenze ${OBS_PRODUCT_MAX_AGE_MS / 60_000} min)`);
+      }
+      const list: NearestStationObs[] = nearestObsStations(store, lat, lng, country, { max: maxStations, station: options.station ?? null, nowMs: options.nowMs, ...(options.dense ? { dense: true } : {}), ...(perVar ? { perVar } : {}) });
+      if (list.length) {
+        // V-AF-9: a variable NO station of the set carries (after `older`) — DE: the targeted BrightSky answer, ONLY that variable
+        if (perVar && country === 'DE' && OBS_VAR_FALLBACK.includes('temperature') && !list.some(carriesTemperature)) {
+          // own deadline, tied to the caller's signal; `brightSkyAtPoint` answers [] on abort, timeout or any transport error
+          const ac = new AbortController();
+          const onAbort = () => ac.abort();
+          if (signal?.aborted) ac.abort(); else signal?.addEventListener('abort', onAbort, { once: true });
+          const timer = setTimeout(() => ac.abort(), OBS_VAR_FALLBACK_TIMEOUT_MS);
+          let bs: NearestStationObs[] = [];
+          try { bs = (await brightSkyAtPoint(lat, lng, options.station ?? null, ac.signal)).filter((s) => s.point.temperature != null); }
+          catch { bs = []; }
+          finally { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); }
+          const only = nearestStationList(bs, 2, true).map((s): NearestStationObs => ({
+            ...s, via: 'bs-var',
+            point: { ...s.point, u: null, v: null, gust: null, relativeHumidity: null, cloudLow: null, cloudMid: null, cloudHigh: null, precipitation: null },
+          }));
+          options.onNote?.(only.length
+            ? `obs: keine Station des Satzes trägt eine Temperatur — Temperatur gezielt von BrightSky (${only.length} Station(en))`
+            : `obs: keine Station des Satzes trägt eine Temperatur, BrightSky liefert auch keine (oder nicht binnen ${OBS_VAR_FALLBACK_TIMEOUT_MS} ms) — kein Temperatur-Anker`);
+          // the fallback ADDS up to two entries to the `maxStations` of the product (another network's ids — no entry is replaced)
+          if (only.length) return [...list, ...only].sort((a, b) => a.distanceMeters - b.distanceMeters);
+        }
+        return list;
+      }
       options.onNote?.('obs: keine aktuelle Station des Landes im Produkt — Direktabruf');
     } catch (err) {
       if ((err as { name?: string })?.name === 'AbortError') throw err;

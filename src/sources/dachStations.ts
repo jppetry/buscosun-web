@@ -19,7 +19,7 @@
 import { fetchTawesCurrentGrid } from './geosphereTawes';
 import { fetchSmnCurrentGrid } from './meteoSwissSmn';
 import { loadObsStore, obsStationFeatures, obsStationLive } from './obsStore';
-import { pfObsStoreFrom } from '../pointForecast/pfFlags';
+import { pfObsStoreFrom, pfObsVarFrom } from '../pointForecast/pfFlags';
 
 /**
  * OF-1 (`audit/obs-fusion.md` §5.1): the stations of the map and the popup values come from the mirror product `obs/v1`
@@ -27,6 +27,8 @@ import { pfObsStoreFrom } from '../pointForecast/pfFlags';
  * `?obs=direct` = the provider calls below as before; they also stand in when the product cannot be read.
  */
 const OBS_STORE = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
+/** V-AF-9: `?obsvar=0` = only the values at a station's newest stamp (the reader before V-AF-9). */
+const OBS_VAR = pfObsVarFrom(typeof window !== 'undefined' ? window.location.search : '');
 
 export interface StationFeatureProps {
   source: 'dwd_obs' | 'tawes' | 'smn';
@@ -51,6 +53,11 @@ export interface StationFeatureProps {
   precipitation: number | null;
   /** Total cloud cover %. */
   cloudCover: number | null;
+  /** V-AF-9 (from obs/v1): the 10-min stamp of the station (ISO, UTC) and the own stamp of a value measured before it (`null` = none). */
+  obsAt?: string | null;
+  temperatureAt?: string | null;
+  windAt?: string | null;
+  precipitationAt?: string | null;
 }
 
 export interface StationsFeatureCollection {
@@ -131,10 +138,10 @@ async function fetchDwdSourcesList(signal?: AbortSignal): Promise<BrightSkySourc
  */
 export async function fetchDwdStationLive(
   dwdStationId: string, signal?: AbortSignal,
-): Promise<Pick<StationFeatureProps, 'temperature' | 'windSpeed' | 'windDirection' | 'precipitation' | 'cloudCover'>> {
+): Promise<Pick<StationFeatureProps, 'temperature' | 'windSpeed' | 'windDirection' | 'precipitation' | 'cloudCover' | 'obsAt' | 'temperatureAt' | 'windAt' | 'precipitationAt'>> {
   if (OBS_STORE) {
     try {
-      const live = obsStationLive(await loadObsStore({ signal }), dwdStationId);
+      const live = obsStationLive(await loadObsStore({ signal }), dwdStationId, Date.now(), OBS_VAR);
       if (live) return live;
     } catch (err) {
       if ((err as { name?: string })?.name === 'AbortError') throw err;
@@ -159,6 +166,8 @@ export async function fetchDwdStationLive(
     windDirection: w.wind_direction_10 ?? null,
     precipitation: w.precipitation_10 != null ? w.precipitation_10 * 6 : null,  // 10-min → mm/h
     cloudCover: w.cloud_cover ?? null,
+    // V-AF-9: BrightSky values carry no stamp of the product — clear the times a feature from obs/v1 may still carry
+    obsAt: null, temperatureAt: null, windAt: null, precipitationAt: null,
   };
 }
 
@@ -172,7 +181,7 @@ export async function fetchDachStations(signal?: AbortSignal): Promise<StationsF
   if (OBS_STORE) {
     try {
       const store = await loadObsStore({ signal });
-      const features = obsStationFeatures(store);
+      const features = obsStationFeatures(store, Date.now(), undefined, OBS_VAR);
       if (features.length) return { type: 'FeatureCollection', features, fetchedAt: Date.now() };
     } catch (err) {
       if ((err as { name?: string })?.name === 'AbortError') throw err;

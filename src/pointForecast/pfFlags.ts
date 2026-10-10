@@ -86,6 +86,26 @@ export function pfObsDenseFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('dense') !== '0'; } catch { return true; }
 }
 
+/**
+ * V-AF-9 (`audit/autobahn-fusion12-lueckenlos.md` §8.3, part of buscosun Fusion 12): the reader of `obs/v1` takes the newest
+ * value PER VARIABLE, each with its own stamp (the DWD temperature lags the rain stamp by 30 min in every half hour). Default ON.
+ *   `?obsvar=0` → off: the named fallback — only the values at the station's newest stamp, exactly the reader before V-AF-9.
+ *   anything else → on.
+ */
+export function pfObsVarFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('obsvar') !== '0'; } catch { return true; }
+}
+
+/**
+ * V-AF-10 (`audit/autobahn-fusion12-lueckenlos.md` §8.4, part of buscosun Fusion 12): the anchor also pairs a measurement stamped
+ * before the first axis step, with the native cube steps before it (`FuseCubeOptions.anchorBeforeAxis`). Default ON.
+ *   `?ancpre=0` → off: the named fallback — such a measurement pairs only within 30 min of the first step, as before.
+ *   anything else → on.
+ */
+export function pfAnchorBeforeAxisFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('ancpre') !== '0'; } catch { return true; }
+}
+
 export function pfStationSourceFrom(search: string): PfStationSource {
   try {
     const v = new URLSearchParams(search).get('st');

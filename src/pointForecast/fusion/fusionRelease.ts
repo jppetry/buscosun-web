@@ -67,6 +67,14 @@ export const FUSION11_LONG_RANGE_FIX: 0 | 1 = 1;
  * pre-written rule of OF-4. Measurement source: since OF-1 every measurement (also of Fusion 11 on this branch) comes from
  * `obs/v1` instead of BrightSky/TAWES/SMN (`?obs=direct` = the providers) — not a stand of its own, named in the engine notes.
  * Fusion 12 = Fusion 11 (tables of data-repo commit 1aaec969 unchanged) + this. Value 0 = Fusion 11.
+ * V-AF-9 (10.10.2026, before the stand was published; `audit/autobahn-fusion12-lueckenlos.md` §8.3): the reader hands the engine the
+ * newest value PER VARIABLE of a station, each with its own stamp (`CubeIo.obsPerVar`, `?obsvar=0` = only the values at the
+ * newest stamp) — in Germany the temperature stands 30 min behind the rain stamp in every half hour, and without this the reader
+ * handed on no German temperature there. Part of Fusion 12 (the bench replay of fusion-12s always saw every variable at its stamp).
+ * The stage NOTE does not mention it (a switch can take it back); the reader's own note does, per run (`obsNoteOf`).
+ * V-AF-10 (E-AF-6, Jan 10.10.2026: way (a), before the stand was published; §8.4): the anchor paired a measurement only between two
+ * axis steps or within 30 min of one, and the axis starts at the full hour — a temperature stamped (H − 1):20 was not paired from
+ * H:00 to H:20, with any reader. Closed by the companion option `FUSION12_ANCHOR_BEFORE_AXIS` below.
  */
 // Full test 08.10.2026 (development set, audit/obs-fusion.md §7): index +1,47 % against Fusion 9, +1,00 % against Fusion 11, G2/G4 green,
 // G3 RED (q10–q90 coverage above the champion at t 6–48 h, ws 6–24 h, gust 0–48 h: the anchor tightens the error, the spread stays)
@@ -86,6 +94,18 @@ export const FUSION12_OBS_DENSE: 0 | 1 = 1;
  * `fusion-12`, G3 red in 6 cells) — not a stand of its own.
  */
 export const FUSION12_ANCHOR_SIGMA: 0 | 1 = 1;
+/**
+ * Companion option of Fusion 12 (V-AF-10, E-AF-6, `audit/autobahn-fusion12-lueckenlos.md` §8.4): the anchor also pairs a measurement
+ * stamped before the first axis step — with the native cube steps up to 3 h before it, the model value interpolated to the minute of
+ * the measurement (`FuseCubeOptions.anchorBeforeAxis`; structure, no fit, acts only with `anchorAtObsTime`). Without it Fusion 12 had
+ * no German temperature anchor in the first ≈ 20 min of every hour. A measurement on or after the first step computes as before; one
+ * up to 30 min before it was paired already and is now compared with the model line at its minute instead of the value of the first
+ * step (live, German stamp (H − 1):50: offsets move by ≈ 0,1 K). NOT part of the bench candidate fusion-12s: on its replay (dense
+ * day files, three archive days 05.–07.10.2026, 365 stations) the option changes 0 / 855 / 38 of 5 250 160 values (T ≤ 0,11 K) —
+ * no bench verdict of its own. Named fallback of its own: `CubeIo.anchorBeforeAxis: false` (`?ancpre=0`); `?dense=0` takes it back
+ * with the stand. `false` = Fusion 12 without it.
+ */
+export const FUSION12_ANCHOR_BEFORE_AXIS = true;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
 export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense';
@@ -147,8 +167,8 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
     note: 'Langfrist-Korrekturen: T 241–336 h Identität, Windschritt AT/CH ohne Bandverengung bei 126–240 h (F11)',
   },
   {
-    n: 12, date: '2026-10-08', ref: 'E-OF-4, audit/obs-fusion.md §12 (Kandidat fusion-12s; Prüfstand-Champion bleibt 9 bis E-OF-7)',
-    option: 'obsDense', value: FUSION12_OBS_DENSE, also: { anchorSigma: FUSION12_ANCHOR_SIGMA },
+    n: 12, date: '2026-10-08', ref: 'E-OF-4, audit/obs-fusion.md §12 (Kandidat fusion-12s; Prüfstand-Champion bleibt 9 bis E-OF-7); Leser je Größe mit eigenem Stempel: V-AF-9, audit/autobahn-fusion12-lueckenlos.md §8.3; Anker paart auch vor dem Achsenbeginn: V-AF-10, §8.4',
+    option: 'obsDense', value: FUSION12_OBS_DENSE, also: { anchorSigma: FUSION12_ANCHOR_SIGMA, anchorBeforeAxis: FUSION12_ANCHOR_BEFORE_AXIS },
     note: 'Anker auf dem dichten Messsatz aus obs/v1 (Niederschlagsstationen, gemessener Taupunkt) und σ an den Anker gekoppelt (Phase OF, OF-6)', io: { key: 'obsDense', set: true, flag: '?dense=0' },
     offLabel: 'dichter Messsatz per Schalter aus', needs: 'measurement',
   },
