@@ -33,6 +33,11 @@ function common(hours: readonly SeaChartHour[], selMs: number, extra: Array<(c: 
 }
 
 const THEME = { text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, fill: '#8B7355' }, grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } }, axis: { ticks: { line: { stroke: 'transparent' } } } };
+/** A series without one value is not drawn: d3 returns `null` for its path and React writes `d="null"` (a console error
+ *  per render) — the case of a run without wind at the spot (V-SW-18). Colours by id, so a dropped series shifts none. */
+const drawn = <T extends { data: { y: number | null }[] }>(series: T[]): T[] => series.filter((s) => s.data.some((p) => p.y != null));
+const SERIES_COLOUR: Record<string, string> = { 'Böen': '#8B7355', Wind: '#2C2A26', 'Dünung': '#7A9466', Windsee: '#3E9284', 'Seegang gesamt': '#0F6E7A' };
+const colourOf = (s: { id: string | number }) => SERIES_COLOUR[String(s.id)] ?? '#2C2A26';
 const axisX = (show: boolean) => (show ? { tickSize: 0, tickPadding: 4, tickValues: 'every 12 hours', format: (d: Date) => `${dayShort(+d)} ${hh(+d)}` } : null);
 
 export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readonly SeaChartHour[]; selMs: number; limitKn: number | null; limitLabel: string }) {
@@ -52,8 +57,8 @@ export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readon
   return (
     <div className="sw-chart" style={{ height: 92 }} role="img" aria-label="Verlauf Wind und Böen in Knoten (buscosun Fusion)">
       <ResponsiveLine
-        data={[{ id: 'Böen', data: pts((h) => kn(h.gustMs)) }, { id: 'Wind', data: pts((h) => kn(h.windMs)) }]}
-        colors={['#8B7355', '#2C2A26']} lineWidth={2} margin={{ top: 6, right: 6, bottom: 2, left: 28 }}
+        data={drawn([{ id: 'Böen', data: pts((h) => kn(h.gustMs)) }, { id: 'Wind', data: pts((h) => kn(h.windMs)) }])}
+        colors={colourOf} lineWidth={2} margin={{ top: 6, right: 6, bottom: 2, left: 28 }}
         xScale={{ type: 'time', min: new Date(c.min), max: new Date(c.max), useUTC: false, precision: 'hour' }}
         yScale={{ type: 'linear', min: 0, max: Math.ceil(maxY) }} theme={THEME} animate={false} enablePoints={false} isInteractive={false}
         enableGridX={false} gridYValues={4} axisBottom={null} axisLeft={{ tickSize: 0, tickPadding: 4, tickValues: 4, legend: '', format: (v: number) => String(v) }}
@@ -70,8 +75,8 @@ export function SeaStateChart({ hours, selMs }: { hours: readonly SeaChartHour[]
   return (
     <div className="sw-chart" style={{ height: 96 }} role="img" aria-label="Verlauf Seegang gesamt, Windsee und Dünung in Metern (Modell CWAM)">
       <ResponsiveLine
-        data={[{ id: 'Dünung', data: pts((h) => h.sw) }, { id: 'Windsee', data: pts((h) => h.ws) }, { id: 'Seegang gesamt', data: pts((h) => h.hs) }]}
-        colors={['#7A9466', '#3E9284', '#0F6E7A']} lineWidth={2} margin={{ top: 6, right: 6, bottom: 18, left: 28 }}
+        data={drawn([{ id: 'Dünung', data: pts((h) => h.sw) }, { id: 'Windsee', data: pts((h) => h.ws) }, { id: 'Seegang gesamt', data: pts((h) => h.hs) }])}
+        colors={colourOf} lineWidth={2} margin={{ top: 6, right: 6, bottom: 18, left: 28 }}
         xScale={{ type: 'time', min: new Date(c.min), max: new Date(c.max), useUTC: false, precision: 'hour' }}
         yScale={{ type: 'linear', min: 0, max: Math.ceil(maxY * 2) / 2 }} theme={THEME} animate={false} enablePoints={false} isInteractive={false}
         enableGridX={false} gridYValues={3} axisBottom={axisX(true)} axisLeft={{ tickSize: 0, tickPadding: 4, tickValues: 3, format: (v: number) => String(v) }}

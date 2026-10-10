@@ -57,7 +57,8 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
           cd app
-          git sparse-checkout set --no-cone scripts src package.json
+          # public/climaGrid.json: Klimatologie von buscosun Fusion — ohne sie rechnet der Motor keinen Wind (V-SW-18).
+          git sparse-checkout set --no-cone scripts src package.json public/climaGrid.json
           git checkout --quiet
           for f in scripts/sea/sea-derive.mjs scripts/sea/sea-text.mjs scripts/sea/sea-publish.mjs src/sea/seaContract.ts src/sea/seaText.ts; do
             if [ ! -f "$f" ]; then

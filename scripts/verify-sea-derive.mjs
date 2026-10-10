@@ -234,6 +234,12 @@ add('W1 sea.yml: Leerlauf „producer not on main yet“ mit Exit 0, alle 15 min
   'ok');
 add('W2 sea-archiv.yml: Leerlauf mit Exit 0, schreibt nur sea/, append-only, nie --force', /producer not on main yet/.test(wfa) && /git add -A -- sea/.test(wfa) && !/push[^\n]*--force|push -f/.test(wfa) && /sparse-checkout: sea\b/.test(wfa), 'ok');
 add('W3 Paketliste des Workflows = Laufzeit-Pakete des Producers (bz2, jsfive)', /npm install --no-save --no-audit --no-fund bz2@1 jsfive@0\.4/.test(wf), '');
+// V-SW-18: buscosun Fusion reads the climatology from `public/climaGrid.json` (nodeShims); without it no distribution, no wind.
+{
+  const sparse = /git sparse-checkout set --no-cone ([^\n]+)/.exec(wf)?.[1].trim().split(/\s+/) ?? [];
+  add('W3b Producer-Checkout des Workflows trägt die Klimatologie von buscosun Fusion (public/climaGrid.json) neben scripts, src, package.json',
+    ['scripts', 'src', 'package.json', 'public/climaGrid.json'].every((p) => sparse.includes(p)) && existsSync(join(HERE, '..', 'public', 'climaGrid.json')), sparse.join(' '));
+}
 
 // --- R: archive ---------------------------------------------------------------------------------------------
 const arch = join(tmp, 'archiv', 'sea', 'v1');
@@ -419,6 +425,27 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
     && after.length === 8 && after[0] === `${RUN}-w2026100712.json` && after[7] === `${RUN}-w2026100809.json` && !after.includes('2026100512-w2026100515.json')
     && pr.includes(`spots/${RUN}-w2026100706.json`) && pr.includes(`spots/${RUN}-w2026100709.json`),
     `Archiv ${awKeys.join(' ')} · Speicher ${after.length}: ${after[0]} … ${after[after.length - 1]}`);
+
+  // V-SW-18: from 07.10. to 10.10.2026 every published run carried NO wind at any spot and no error — the workflow's
+  // producer checkout lacked `public/climaGrid.json`, buscosun Fusion then returns steps without distributions (the
+  // shape below is the one measured in that checkout: `vars` with cloud layers and pressure only), and the producer
+  // wrote them as a series of nulls. A spot without one wind value is a FAILED spot; a refresh without one spot throws.
+  const { spotWindSeries } = await import('./sea/sea-derive.mjs');
+  const runMs = T('2026-10-07T00:00:00Z'), HH = 3_600_000;
+  const stepsOk = [9, 10, 11].map((h) => ({ validAtMs: runMs + h * HH, vars: { wind: { mean: 9.85 }, gust: { mean: 13.04 }, windDir: { mean: 254 } } }));
+  const stepsNoDist = [9, 10, 11].map((h) => ({ validAtMs: runMs + h * HH, vars: { clcl: { mean: 67.3 }, clcm: { mean: 83.7 }, clch: { mean: 50 }, ps: { mean: 1003.5 }, snowline: { mean: 1393 } } }));
+  const sOk = spotWindSeries(stepsOk, runMs);
+  add('W9 Reihe je Spot aus den Schritten des Motors: Werte auf der Stundenachse des Laufs (0,1 m/s, Grad), Stunden davor null; Schritte OHNE einen Windwert (Motor ohne Klimatologie) ⇒ keine Reihe (null) statt einer Reihe aus null; Schritte außerhalb der Achse ⇒ keine Reihe',
+    sOk?.wind.length === SEA_SPOT_STEPS.length && sOk.wind[9] === 99 && sOk.gust[9] === 130 && sOk.windDir[9] === 254 && sOk.wind[8] === null && sOk.wind.filter((x) => x != null).length === 3
+    && spotWindSeries(stepsNoDist, runMs) === null && spotWindSeries([], runMs) === null && spotWindSeries(stepsOk, runMs + 500 * HH) === null,
+    JSON.stringify({ ok: sOk?.wind.slice(8, 12), noDist: spotWindSeries(stepsNoDist, runMs) }));
+  const windNone = async ({ spots }) => ({ series: {}, failed: spots.map((s) => ({ id: s.id, error: 'buscosun Fusion ohne Windwert' })), meta: { engine: 'buscosun Fusion 9', version: null, computedAt: new Date(at2).toISOString(), runs: null } });
+  const before = { files: readdirSync(sd).sort().join(), ptr: JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind?.path };
+  let thrown = null;
+  try { await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at2 + 3 * HH, indexT1: '2026100812', windImpl: windNone }); } catch (e) { thrown = e.message; }
+  add('W10 Auffrischung ohne einen einzigen Spot mit Wind ⇒ Fehler mit Grund (Schritt rot), nichts geschrieben, Zeiger unverändert',
+    /ohne Windwert/.test(thrown ?? '') && readdirSync(sd).sort().join() === before.files && JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind?.path === before.ptr, String(thrown));
+  add('W11 Lauf nennt, an wie vielen Spots Wind steht: mit Wind 2, bei Wind-Fehler 0 (die Kommandozeile endet dann mit Fehler, die Welle ist veröffentlicht)', res.windSpots === 2 && res2.windSpots === 0, `${res.windSpots} · ${res2.windSpots}`);
 }
 
 rmSync(tmp, { recursive: true, force: true });

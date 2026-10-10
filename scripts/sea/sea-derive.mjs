@@ -215,6 +215,23 @@ export async function deriveFields({ model = MODEL, run, cacheDir, outRunDir, sp
  * terrain/z0 preloaded from `static/spot-geo.json` (sea surface height 0). Wind, gust, direction for the hours of the
  * wave run that lie at or after the computation hour; earlier hours stay null (the cube starts now).
  */
+/**
+ * Wind, gust and direction of one spot on the run's hour axis from the engine's steps — or `null` when not one hour
+ * carries a wind value. V-SW-18: an engine without distributions (no climatology in the producer checkout) still
+ * returns steps; written as a series of nulls they looked like a computed wind (07.–10.10.2026, every run, no error).
+ */
+export function spotWindSeries(steps, runMs) {
+  const w = new Array(SEA_SPOT_STEPS.length).fill(null), g = w.slice(), d = w.slice();
+  let n = 0;
+  for (const st of steps ?? []) {
+    const i = (st.validAtMs - runMs) / H;
+    if (!Number.isInteger(i) || i < 0 || i >= SEA_SPOT_STEPS.length) continue;
+    w[i] = encodeSpotValue('wind', st.vars?.wind?.mean); g[i] = encodeSpotValue('gust', st.vars?.gust?.mean); d[i] = encodeSpotValue('windDir', st.vars?.windDir?.mean);
+    if (w[i] != null) n++;
+  }
+  return n ? { wind: w, gust: g, windDir: d } : null;
+}
+
 export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () => {} }) {
   const { installNodeShims } = await import('../punktarchiv/lib/nodeShims.mjs');
   installNodeShims();
@@ -226,6 +243,8 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   let store;
   if (dataDir === 'cdn') { const { httpStore, memoStore } = await import('../../src/point/client/store.ts'); store = memoStore(httpStore({})); } else store = dirStore(dataDir);
   const io = makeIo({ store, cache: geoBackend(geoDoc), nowMs });
+  // V-SW-18: without the climatology buscosun Fusion gives no distribution at all (K-3) — say so once instead of 56 empty series.
+  if (!(await io.clima())) throw new Error('Klimatologie von buscosun Fusion fehlt (public/climaGrid.json nicht im Checkout des Producers) — kein Wind an den Spots');
   const t0 = Math.floor(nowMs / H) * H;
   const hours = Math.max(1, Math.round((runMs + 78 * H - t0) / H) + 1);
   const out = {}, failed = [];
@@ -237,13 +256,9 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
       const fc = await getPointForecastFromCube({ lat: p.lat, lng: p.lon, country: 'DE', hours, pointSource: 'cube', includeRadarNowcast: false }, io);
       const steps = fc.cube?.v2?.axis?.steps;
       if (!steps?.length) { failed.push({ id: sp.id, error: 'kein Cube-Ergebnis' }); continue; }
-      const w = new Array(SEA_SPOT_STEPS.length).fill(null), g = w.slice(), d = w.slice();
-      for (const st of steps) {
-        const i = (st.validAtMs - runMs) / H;
-        if (!Number.isInteger(i) || i < 0 || i >= SEA_SPOT_STEPS.length) continue;
-        w[i] = encodeSpotValue('wind', st.vars?.wind?.mean); g[i] = encodeSpotValue('gust', st.vars?.gust?.mean); d[i] = encodeSpotValue('windDir', st.vars?.windDir?.mean);
-      }
-      out[sp.id] = { wind: w, gust: g, windDir: d };
+      const series = spotWindSeries(steps, runMs);
+      if (!series) { failed.push({ id: sp.id, error: 'buscosun Fusion ohne Windwert an jeder Stunde des Laufs' }); continue; }
+      out[sp.id] = series;
       version ??= fusionVersionOfNotes(fc.cube.notes);
       const r = fc.cube.v2.provenance?.runs ?? {};
       runs ??= { t1: r.t1?.run ?? null, t2: r.t2?.run ?? null, t3: r.t3?.run ?? null, stations: r.stations?.run ?? null };
@@ -375,7 +390,7 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   st.field.recent = [recent, ...(st.field.recent ?? [])].slice(0, 14);
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
-  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, spotProblems: problems.length, removed, check };
+  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
 }
 
 // --- wind refresh on a newer t1 cube (V-SW-2) ---------------------------------------------------------------
@@ -411,6 +426,8 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
   const geoDoc = readJson(join(storeDir, SEA_SPOT_GEO_PATH));
   const started = Date.now();
   const wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log });
+  // V-SW-18: a refresh without one spot is a failure of the step (red job), never a quiet "nothing to do".
+  if (!Object.keys(wind.series ?? {}).length) throw new Error(`Wind-Auffrischung ${run}: kein Spot mit Wind — ${wind.failed?.[0]?.error ?? 'Grund unbekannt'}`);
   const t1 = wind.meta?.runs?.t1 ?? null;
   if (!t1 || (due.usedT1 && t1 <= due.usedT1)) return { built: false, run, reason: `Rechnung trug t1 ${t1 ?? '–'}, nicht neuer als ${due.usedT1}` };
   const from = Math.max(0, Math.round((Math.floor(nowMs / H) * H - runMs) / H));
@@ -496,6 +513,8 @@ async function main() {
   });
   log(res.built ? `Lauf ${res.run} gebaut: ${res.mb} MB, ${res.buildS} s, Wind ${res.wind?.engine ?? 'ohne'}` : `Lauf ${res.run ?? '–'} NICHT gebaut: ${res.reason}`);
   console.log(JSON.stringify(res));
+  // V-SW-18: the waves are published either way; a run with a cube checkout and not one spot with wind ends red.
+  if (res.built && args.data && res.windSpots === 0) { log(`FEHLER: Lauf ${res.run} ohne Wind an jedem Spot — ${res.windError ?? 'Grund unbekannt'}`); process.exitCode = 1; }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === SELF) await main();
