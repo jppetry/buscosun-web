@@ -115,6 +115,7 @@
     "verify:glacier-static": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-static.mjs",
     "verify:glacier-ui": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-ui.mjs",
     "verify:glacier-publish": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-publish.mjs",
+    "verify:glacier-sat": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-sat.mjs",
     "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",
     "verify:fire-detail": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-detail.mjs",
     "verify:fire-history": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-history.mjs",

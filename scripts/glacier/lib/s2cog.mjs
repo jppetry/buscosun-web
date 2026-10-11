@@ -34,6 +34,13 @@ async function ranged(url, start, end, tries = 3) {
   throw last;
 }
 
+/** Decoded-tile cache shared by the windows of one scene (neighbouring glaciers sit in the same 10-20 km blocks). */
+export const makeTileCache = (maxTiles = 240) => ({ map: new Map(), pending: new Map(), maxTiles, get(k) { const v = this.map.get(k); if (v) { this.map.delete(k); this.map.set(k, v); } return v; } });
+function tileCachePut(cache, key, v) {
+  cache.map.set(key, v);
+  while (cache.map.size > cache.maxTiles) cache.map.delete(cache.map.keys().next().value);
+}
+
 /** Header IFDs of a COG (one ranged request, one retry with a larger window). */
 export async function cogHeader(url) {
   let n = COG_HEADER_BYTES;
@@ -71,7 +78,7 @@ export function assetGeo(item, key) {
  * returns { data, w, h, bytes, tiles }. Out-of-raster parts are filled with `fill`. Typed array follows the asset
  * (uint8 for SCL and the TCI, uint16 for the band COGs); interleaved when the asset has several samples per pixel.
  */
-export async function readWindow(geo, px0, py0, px1, py1, { fill = 0, ifds, level = 0 } = {}) {
+export async function readWindow(geo, px0, py0, px1, py1, { fill = 0, ifds, level = 0, cache = null } = {}) {
   // `level` 0 = full resolution, 1 = first overview (2x coarser) ...; the window is then in the pixels of THAT level
   const levels = ifds ?? (await cogHeader(geo.href));
   const ifd = [...levels].sort((a, b) => b.width - a.width)[level];
@@ -92,9 +99,18 @@ export async function readWindow(geo, px0, py0, px1, py1, { fill = 0, ifds, leve
     for (;;) {
       const i = next++; if (i >= refs.length) return;
       const t = refs[i];
-      const raw = await ranged(geo.href, t.offset, t.offset + t.byteCount - 1);
-      bytes += raw.length;
-      decoded[i] = u16 ? await decodeTileU16(raw, ifd) : await decodeTile(raw, ifd);
+      const key = cache ? `${geo.href}|${t.offset}` : null;
+      const hit = key ? cache.get(key) : null;
+      if (hit) { decoded[i] = hit; continue; }
+      if (key && cache.pending.has(key)) { decoded[i] = await cache.pending.get(key); continue; }   // another window of this scene is fetching it
+      const load = (async () => {
+        const raw = await ranged(geo.href, t.offset, t.offset + t.byteCount - 1);
+        bytes += raw.length;
+        return u16 ? await decodeTileU16(raw, ifd) : await decodeTile(raw, ifd);
+      })();
+      if (key) cache.pending.set(key, load);
+      try { decoded[i] = await load; } finally { if (key) cache.pending.delete(key); }
+      if (key) tileCachePut(cache, key, decoded[i]);
     }
   }
   await Promise.all([worker(), worker(), worker(), worker()]);
@@ -125,6 +141,21 @@ export function lonLatToPx(geo, lon, lat) {
 export function pxToLonLat(geo, px, py) {
   const e = geo.transform[2] + px * geo.transform[0], n = geo.transform[5] + py * geo.transform[4];
   return utmInv(e, n, geo.epsg);
+}
+
+/** STAC search with the `next` links followed (POST bodies), up to `maxPages` pages. */
+export async function stacSearchAll(body, maxPages = 40) {
+  const out = [];
+  let next = { ...body };
+  for (let page = 0; page < maxPages && next; page++) {
+    const r = await fetch(STAC_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': UA }, body: JSON.stringify(next) });
+    if (!r.ok) throw new Error('STAC HTTP ' + r.status);
+    const j = await r.json();
+    out.push(...(j.features ?? []));
+    const link = (j.links ?? []).find((l) => l.rel === 'next');
+    next = link ? { ...body, ...(link.body ?? {}) } : null;
+  }
+  return out;
 }
 
 /** One STAC search page (POST), returns the features. */

@@ -374,6 +374,30 @@ def build(args):
     rep["steps"]["hypso"] = hyp_stats
     print("hypso done", f"{time.time()-t0:.0f}s")
 
+    # 9b — elevation grids of the satellite line (classes A and B, not DE: the four German glaciers get no satellite numbers)
+    dem_stats = {"glaciers": 0, "cells": 0}
+    if not args.no_dem:
+        import dem_grids
+        by_reg_d = {}
+        for g in gls:
+            if g["country"] == "DE" or g["area_km2"] < 0.1:
+                continue
+            d = dem_grids.grid_for(proj(g["gw"], g["wcrs"], 4326), DEM_DIR)
+            if d is None:
+                rep["warnings"].append("no DEM grid: " + g["id"])
+                continue
+            by_reg_d.setdefault(g["region"], {})[g["id"]] = d
+            dem_stats["glaciers"] += 1
+            dem_stats["cells"] += d["nx"] * d["ny"]
+        for reg, d in by_reg_d.items():
+            p = os.path.join(out_dir, "dem", f"{reg}.json")
+            n = wjson(p, {"schema": 1, "kind": "glacier/dem", "build": build_id, "region": reg, "cell": dem_grids.CELL, "nodata": dem_grids.NODATA,
+                          "demRef": "Copernicus DEM GLO-30 (1 Bogensekunde, Int16, Zeile 0 = Nord); Zelle (i, j) deckt [x0 + i, x0 + i + 1] / 3600 Grad Länge und [y1 - j - 1, y1 - j] / 3600 Grad Breite",
+                          "glaciers": d})
+            files[f"dem/{reg}.json"] = [n, gz_size(p)]
+    rep["steps"]["dem"] = dem_stats
+    print("dem grids done", f"{time.time()-t0:.0f}s")
+
     # 10 — series per region
     ch_len, ch_mass = ser.glamos_length(), ser.glamos_mass()
     series_by_reg = {}

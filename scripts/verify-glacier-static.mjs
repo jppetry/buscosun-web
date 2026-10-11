@@ -12,6 +12,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as C from '../src/glacier/glacierContract.ts';
+import * as S from '../src/glacier/glacierSatContract.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
@@ -105,6 +106,31 @@ if (T.full) {
     }
   }
   add('H1 Höhenbänder (50 m): jeder Gletscher, Bandsumme ±25 % der Inventarfläche (A/B), z0 ein Vielfaches von 50 m', hCount === cat.glaciers.length && hBad.length === 0, `${hCount}; ${hBad.slice(0, 4).join(' | ')}`);
+
+  // elevation grids of the satellite line (classes A and B, not DE)
+  const satIds = new Set(cat.glaciers.filter((g) => S.glacierSatClass(g)).map((g) => g.id));
+  let dN = 0, dBad = [], dProb = [], dCells = 0;
+  for (const region of C.GLACIER_REGION_IDS) {
+    let doc; try { doc = T.J(S.glacierDemFile(region)); } catch { continue; }
+    dProb.push(...S.demProblems(doc, region, satIds).slice(0, 3));
+    const outl = (() => { try { return new Map(T.J(C.glacierOutlineFile(region, 3)).features.map((f) => [f.properties.id, f.geometry])); } catch { return new Map(); } })();
+    for (const [id, grid] of Object.entries(doc.glaciers)) {
+      dN++; dCells += grid.nx * grid.ny;
+      const g = byId.get(id), geom = outl.get(id);
+      if (!g || !geom) { dBad.push(`${id}: Katalog/Umriss fehlt`); continue; }
+      const z = S.demDecode(grid);
+      let lo = Infinity, hi = -Infinity, miss = 0, n = 0;
+      for (const poly of C.polygonsOfGeometry(geom)) for (const [lon, lat] of poly[0]) {
+        n++;
+        const v = S.demSample(grid, z, lon, lat);
+        if (v == null) { miss++; continue; }
+        if (v < lo) lo = v; if (v > hi) hi = v;
+      }
+      if (miss > 0) dBad.push(`${id}: ${miss}/${n} Umrisspunkte außerhalb des Höhengitters oder im Loch`);
+      else if (lo < g.z[0] - 150 || hi > g.z[2] + 400) dBad.push(`${id}: Umrisshöhen ${Math.round(lo)}–${Math.round(hi)} gegen Katalog ${g.z[0]}–${g.z[2]}`);
+    }
+  }
+  add('H2 Höhengitter (Satellitenlinie): jeder Gletscher der Klasse A/B in CH/AT genau ein Gitter (990), keiner der Klasse C oder aus DE, Umriss liegt im Gitter, Umrisshöhen im Katalogbereich −150 m / +400 m (am Kopf des Gletschers mischen die 30-m-Zellen die Randwand ein)', dN === satIds.size && dN === 990 && dProb.length === 0 && dBad.length === 0, `${dN} Gitter, ${(dCells / 1e6).toFixed(1)} Mio. Zellen; ${[...dProb, ...dBad].slice(0, 4).join(' | ')}`);
 
   // series
   const idSet = ids;
