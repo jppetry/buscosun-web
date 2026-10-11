@@ -15,6 +15,7 @@ import {
 import { glacierSeasonPath, seasonProblems, climaProblems, type GlacierSeasonDoc, type GlacierSeasonRow, type GlacierSatCatalogRow } from './glacierSatContract';
 import { glacierMeltRunPath, meltProblems, type GlacierMeltDoc } from './glacierMeltContract';
 import type { GlacierDemGrid } from './glacierSatContract';
+import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, type GlacierFeedEvent } from './glacierFeedContract';
 
 export interface GlacierBases { cdn: string; raw: string }
 
@@ -103,10 +104,11 @@ export interface GlacierIndex {
   sat?: GlacierSatIndex;
   /** Melt line (GL-3): pointer to the newest run. */
   melt?: GlacierMeltPointer;
-  /** Later packages: feed week. */
-  feed?: unknown;
+  /** Feed line (GL-5): pointer to the newest week document. */
+  feed?: GlacierFeedPointer;
 }
 export interface GlacierMeltPointer { run: string; runAt: string; engine: { name: string; version: number | null }; cube: Record<string, string | null>; unit: boolean; build: string }
+export interface GlacierFeedPointer { week: string; builtAt: string; n: number }
 export interface GlacierSatIndex { updatedAt: string; newest: Record<string, string>; seasons: Record<string, Record<string, string>> }
 export interface GlacierStatus { schema: 1; kind: 'glacier/status'; killed?: boolean; killReason?: string; lines?: Record<string, unknown>; checkedAt?: string }
 export type GlacierPointRow = [id: string, lat: number, lon: number, klass: 'A' | 'B' | 'C', km2: number];
@@ -267,3 +269,25 @@ export async function loadDemGrid(build: string, region: string, id: string, sig
   const d = await staticDoc<{ glaciers: Record<string, GlacierDemGrid> }>(build, `dem/${region}.json`, signal, bases);
   return d?.glaciers?.[id] ?? null;
 }
+
+/**
+ * The change feed: the document of the pointer's week and of the week before, through the contract rules (a violating document is dropped whole — never
+ * half a feed), merged newest first. The week document is rewritten under the same path every day, so it is read RAW-first like the pointer (the CDN
+ * node can be 12 hours old). `official` = the curated items the verbatim rule is checked against.
+ */
+export async function loadFeed(pointer: GlacierFeedPointer | undefined, official: readonly import('./glacierContract').GlacierOfficialItem[], glacierIds: ReadonlySet<string>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierFeedEvent[] | null> {
+  if (!pointer?.week) return null;
+  const weeks = [pointer.week, previousWeekKey(Date.parse(`${pointer.week.slice(0, 4)}-01-04T12:00:00Z`) + (Number(pointer.week.slice(6)) - 1) * 7 * 86_400_000)];
+  const docs = await Promise.all(weeks.map(async (w) => {
+    try {
+      const d = await fetchGlacier(glacierFeedPath(w), 'json', signal, bases, 'raw') as GlacierFeedDoc;
+      return feedProblems(d, official, glacierIds).length === 0 ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  }));
+  if (!docs[0]) return null;
+  const seen = new Set<string>();
+  const events = docs.flatMap((d) => d?.events ?? []).filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)));
+  events.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : b.w - a.w || (a.id < b.id ? -1 : 1)));
+  return events;
+}
+

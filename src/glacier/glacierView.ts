@@ -49,7 +49,7 @@ export const GLACIER_METRIC_DEFS: Readonly<Record<GlacierMetric, GlacierMetricDe
   laenge: { id: 'laenge', label: 'Länge zuletzt', sub: 'Längenänderung im letzten Messjahr', origin: 'measured', unit: 'm', ramp: 'loss', bounds: [10, 25, 50, 100], locked: null, legendTitle: 'Längenänderung (m, letztes Messjahr)', noValue: 'keine Längenmessung' },
   flaeche: { id: 'flaeche', label: 'Fläche je Jahrzehnt', sub: 'Änderung zwischen den Inventaren', origin: 'official', unit: '% je 10 Jahre', ramp: 'loss', bounds: [3, 6, 10, 15], locked: null, legendTitle: 'Flächenänderung (% je Jahrzehnt)', noValue: 'nur ein Inventar' },
   bilanz: { id: 'bilanz', label: 'Jüngste Bilanz', sub: 'Massenbilanz des letzten Jahres', origin: 'measured', unit: 'mm w. e.', ramp: 'loss', bounds: [500, 1000, 1500, 2500], locked: null, legendTitle: 'Jahresbilanz (mm Wasseräquivalent)', noValue: 'keine Massenbilanz' },
-  schmelze: { id: 'schmelze', label: 'Schmelze heute', sub: 'Modell, 0–336 h', origin: 'model', unit: 'mm w. e.', ramp: 'snow', bounds: [10, 20, 40, 60], locked: 'folgt mit der Schmelzrechnung (GL-3), sobald die Eichung besteht', lockedUnless: 'melt', legendTitle: 'Schmelze heute', noValue: 'noch nicht verfügbar' },
+  schmelze: { id: 'schmelze', label: 'Schmelzindex heute', sub: 'Modell, 0–100 ohne Einheit', origin: 'model', unit: '', ramp: 'snow', bounds: [10, 30, 55, 80], locked: 'folgt, sobald ein frischer Schmelzlauf vorliegt (Modell, Index ohne Einheit)', lockedUnless: 'melt', rankDesc: true, legendTitle: 'Schmelzindex heute (0–100, ohne Einheit)', noValue: 'keine Zeile im Schmelzlauf' },
   ausaperung: { id: 'ausaperung', label: 'Ausaperung', sub: 'Satellit, Anteil schneefrei', origin: 'satellite', unit: '%', ramp: 'snow', bounds: [20, 40, 60, 80], locked: 'folgt mit den Sentinel-2-Szenen (GL-2)', lockedUnless: 'sat', rankDesc: true, legendTitle: 'Ausaperung (% schneefrei, jüngste klare Szene)', noValue: 'keine klare Szene, Klasse C oder Deutschland' },
 });
 
@@ -62,7 +62,7 @@ export function defsFor(caps: GlacierCaps): Readonly<Record<GlacierMetric, Glaci
 }
 
 /** Satellite context of a value: the newest rows per glacier and the clock. */
-export interface GlacierSatCtx { sat: ReadonlyMap<string, GlacierSatLatest>; nowMs: number }
+export interface GlacierSatCtx { sat: ReadonlyMap<string, GlacierSatLatest>; nowMs: number; /** Melt index of today per glacier [p10, p50, p90] from a FRESH run (`null` = none). */ melt?: ReadonlyMap<string, [number, number, number]> | null }
 export const satAgeDays = (date: string, nowMs: number): number => Math.floor((nowMs - Date.parse(`${date}T12:00:00Z`)) / 86_400_000);
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 
@@ -110,6 +110,11 @@ export function metricValue(metric: GlacierMetric, latest: GlacierLatest | undef
   const none = (reason: string): MetricValue => ({ v: null, bucket: -1, text: null, period: null, reason });
   if (def.locked) return none(def.locked);
   if (metric === 'ausaperung') return ctx ? satValue(g, def, ctx) : none(def.noValue);
+  if (metric === 'schmelze') {
+    const t = ctx?.melt?.get(g.id);
+    if (!t) return none(ctx?.melt ? def.noValue : 'kein frischer Schmelzlauf');
+    return { v: t[1], bucket: bucketOf(def, t[1]), text: `${t[1]} von 100`, period: 'Index, Modell', reason: null };
+  }
   if (metric === 'laenge') {
     if (!latest?.len) return none(def.noValue);
     const [y1, dl, y0] = latest.len;

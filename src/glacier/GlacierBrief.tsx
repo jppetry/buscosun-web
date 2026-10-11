@@ -14,7 +14,7 @@ import GlacierSheetMap, { type SheetSnow } from './GlacierSheetMap';
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
-  areaChange, cumulativeLength, longestLength, massRows, latestMass, meltView, seasonSummary, sourceRows, dateDe, dateDeLong, STATE_TEXT, type SeasonSummary,
+  areaChange, cumulativeLength, longestLength, massRows, latestMass, meltView, seasonSummary, sourceRows, dateDe, dateDeLong, STATE_TEXT, seriesCsv, type SeasonSummary,
 } from './glacierSheetModel';
 import type { GlacierSatIndex } from './glacierClient';
 
@@ -34,9 +34,11 @@ export interface SheetProps {
   onState: (patch: Partial<Pick<GlacierUrlState, 'tab' | 't' | 'v' | 'e' | 'o'>>) => void;
   onBack: () => void;
   allow3d: boolean;
+  followed: boolean;
+  onFollow: () => void;
 }
 
-export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, official, nowMs, isMobile, bases, state, onState, onBack, allow3d }: SheetProps) {
+export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow }: SheetProps) {
   const [data, setData] = useState<SheetData | null>(null);
   const [compare, setCompare] = useState<number | null>(null);
   const [snowShare, setSnowShare] = useState<number | null>(null);
@@ -106,7 +108,8 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
       {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
       {state.tab === 'heute' && <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} />}
       {state.tab === 'saison' && <TabSaison g={g} data={data} year={year} selDate={selScene?.date ?? null} mass={mass} />}
-      {state.tab === 'langzeit' && <TabLangzeit g={g} area={area} length={length} proj={data.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} official={official} status={g.status ?? null} />}
+      {state.tab === 'langzeit' && <TabLangzeit g={g} area={area} length={length} proj={data.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} official={official} status={g.status ?? null} hasSeries={data.series.length > 0}
+        onCsv={() => { const text = seriesCsv(g, data.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />}
       {state.tab === 'tour' && <TabTour g={g} melt={mv} season={season} nowMs={nowMs} bandZ={g.z} />}
       {state.tab === 'quellen' && <TabQuellen rows={rows} sources={data.sources} />}
     </div>
@@ -168,6 +171,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
       <div className="gl-sheet-title"><h1><b>{displayName(g)}</b><span className="gl-chip is-official"><i aria-hidden="true" />{g.country} · Klasse {g.klass}</span></h1><span>{sub}</span></div>
       <div className="gl-grow" />
       {!isMobile && timeSwitch}
+      <button type="button" className={`gl-btn gl-follow${followed ? ' is-on' : ''}`} aria-pressed={followed} onClick={onFollow} aria-label={followed ? `${displayName(g)} nicht mehr folgen` : `${displayName(g)} folgen`}><span aria-hidden="true">{followed ? '★' : '☆'}</span>{isMobile ? null : followed ? ' Gefolgt' : ' Folgen'}</button>
       <ShareButton className="gl-btn" text={isMobile ? undefined : 'Teilen'} compact={isMobile} />
     </header>
   );

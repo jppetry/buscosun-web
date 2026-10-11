@@ -17,6 +17,7 @@
  *   F  mobile 390 × 844: chips and rows ≥ 44 px, no horizontal overflow, big numbers do not break
  *   G  honesty: no tour words, nothing modelled or from satellite shown as a number, locked lines say why
  *   T  the sheet (GL-4): five tabs, melt index without unit, season chart against the TSLA band, compare slider, projection as a range, tour wording, sources, states
+ *   L  GL-5: melt index as a metric, change feed, follow list and "new since the last visit", CSV of the series
  *   H  console: no uncaught exception
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, cpSync, rmSync, readdirSync } from 'node:fs';
@@ -25,6 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openBrowser, findHeadlessChrome } from './lib/cdpBrowser.mjs';
 import { glacierForbiddenWords } from '../src/glacier/glacierContract.ts';
+import { buildFeed } from './glacier/feed.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] ?? '1'] : [a, '1']; }));
@@ -225,10 +227,10 @@ const P = '/gletscher?gl=1';
   const m2 = await ctx.evaluate(`({ pressed: [...document.querySelectorAll('.gl-dock .gl-metric')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.querySelector('b')?.textContent), legend: document.querySelector('.gl-legend-head b')?.textContent ?? '' })`);
   add('D2 Metrik „Fläche je Jahrzehnt“: genau eine gewählt, Legende folgt, URL m=flaeche', m2.pressed.length === 1 && /Fläche/.test(m2.pressed[0]) && /Fläche|Jahrzehnt/.test(m2.legend) && (await url(ctx)).includes('m=flaeche'), JSON.stringify(m2) + ' ' + (await url(ctx)));
   const before = await url(ctx);
-  await click(ctx, '.gl-dock .gl-metric', 'Schmelze heute');
+  await click(ctx, '.gl-dock .gl-metric', 'Schmelzindex heute');
   await sleep(400);
-  const lock = await ctx.evaluate(`(() => { const b = [...document.querySelectorAll('.gl-dock .gl-metric')].find((x) => x.textContent.includes('Schmelze heute')); return { disabled: b?.getAttribute('aria-disabled'), pressed: b?.getAttribute('aria-pressed'), text: b?.textContent ?? '' }; })()`);
-  add('D3 gesperrte Metrik „Schmelze heute“: aria-disabled, nicht wählbar, URL unverändert, Text „gesperrt“', lock.disabled === 'true' && lock.pressed === 'false' && /gesperrt/.test(lock.text) && (await url(ctx)) === before, JSON.stringify(lock));
+  const lock = await ctx.evaluate(`(() => { const b = [...document.querySelectorAll('.gl-dock .gl-metric')].find((x) => x.textContent.includes('Schmelzindex heute')); return { disabled: b?.getAttribute('aria-disabled'), pressed: b?.getAttribute('aria-pressed'), text: b?.textContent ?? '' }; })()`);
+  add('D3 gesperrte Metrik „Schmelzindex heute“ (ohne frischen Schmelzlauf): aria-disabled, nicht wählbar, URL unverändert, Text „gesperrt“', lock.disabled === 'true' && lock.pressed === 'false' && /gesperrt/.test(lock.text) && (await url(ctx)) === before, JSON.stringify(lock));
   await click(ctx, '.gl-dock .gl-seg button', 'Alle');
   await sleep(300);
   await ctx.evaluate(`(() => { const i = document.getElementById('gl-suche'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'Hintereis'); i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
@@ -240,7 +242,7 @@ const P = '/gletscher?gl=1';
   const sel = await ctx.evaluate(`({ card: document.querySelector('.gl-card[data-glacier]')?.getAttribute('data-glacier') ?? '', pill: !!document.querySelector('.gl-pill'), btn: document.querySelector('.gl-pill .gl-btn')?.disabled, txt: document.querySelector('.gl-card[data-glacier]')?.textContent ?? '' })`);
   const u = await url(ctx);
   add('D5 Auswahl: Steckbrief-Karte (Klasse, Fläche mit Bezugsjahr), Pill, URL sel=…; der Steckbrief-Knopf ist freigegeben (GL-4) und heißt „Steckbrief öffnen“', /^gl_at_hintereisferner/.test(sel.card) && sel.pill && sel.btn === false && /Klasse A/.test(sel.txt) && /Inventar 2023/.test(sel.txt) && /sel=at-hintereisferner/.test(u), JSON.stringify({ card: sel.card, btn: sel.btn, u }));
-  add('D6 Karte der Auswahl nennt „Modell: folgt“ gesperrt statt einer Schmelzzahl (kein Platzhalterwert)', /Schmelze heute/.test(sel.txt) && /folgt/.test(sel.txt) && !/\d\s?(mm|cm)\s?(w\.?e\.?|Eis)/i.test(sel.txt), sel.txt.slice(-160));
+  add('D6 Karte der Auswahl nennt „Schmelzindex heute: folgt …“ gesperrt statt einer Schmelzzahl (kein Platzhalterwert)', /Schmelzindex heute/.test(sel.txt) && /folgt/.test(sel.txt) && !/\d\s?(mm|cm)\s?(w\.?e\.?|Eis)/i.test(sel.txt), sel.txt.slice(-160));
   off(); allErrors.push(...errors); await ctx.close();
   // reload restores the state from the URL
   const r2 = await openPage({ path: u + '&gl=1' });
@@ -272,7 +274,7 @@ if (satFx) {
       hint: document.querySelector('.gl-rank-head small')?.textContent ?? '', url: location.search,
     })`);
     const nums = r.rows.map((x) => Number(/(\d+) %/.exec(x.val ?? '')?.[1]));
-    add('S1 mit Satellitendaten: „Ausaperung“ ist nicht mehr gesperrt, nur „Schmelze“ bleibt es; die Rangliste nennt „% schneefrei“ mit Herkunft Satellit, größte Ausaperung zuerst', r.aus.disabled !== 'true' && r.aus.pressed === 'true' && r.locked.length === 1 && /Schmelze/.test(r.locked[0]) && r.rows.length >= 3 && r.rows.every((x) => x.origin === 'satellite' && /% schneefrei/.test(x.val ?? '')) && nums.every((v, i, a) => i === 0 || v <= a[i - 1]) && /größte Ausaperung zuerst/.test(r.hint), JSON.stringify({ aus: r.aus, locked: r.locked, rows: r.rows.slice(0, 3), hint: r.hint }));
+    add('S1 mit Satellitendaten: „Ausaperung“ ist nicht mehr gesperrt, nur „Schmelze“ bleibt es; die Rangliste nennt „% schneefrei“ mit Herkunft Satellit, größte Ausaperung zuerst', r.aus.disabled !== 'true' && r.aus.pressed === 'true' && r.locked.length === 1 && /Schmelzindex/.test(r.locked[0]) && r.rows.length >= 3 && r.rows.every((x) => x.origin === 'satellite' && /% schneefrei/.test(x.val ?? '')) && nums.every((v, i, a) => i === 0 || v <= a[i - 1]) && /größte Ausaperung zuerst/.test(r.hint), JSON.stringify({ aus: r.aus, locked: r.locked, rows: r.rows.slice(0, 3), hint: r.hint }));
     const names = r.rows.map((x) => x.name).join(' | ');
     add('S2 in der Rangliste stehen nur Klasse A und B außerhalb Deutschlands: weder Höllentalferner und Blaueis (DE) noch die Gletscher der Klasse C', !/Höllentalferner|Blaueis|Breithorn|namenlos|Aebeni|Ebenflue/i.test(names) && r.rows.length >= 3, names);
     add('S3 Kopfzeile: „Sentinel-2 · jüngste Szene dd.mm.“ mit dem Datum der jüngsten Szene, nicht mehr „nicht aktiv“', r.chip.some((t) => t.includes(`Sentinel-2 · jüngste Szene ${dm(newest)}`)) && !r.chip.some((t) => /nicht aktiv/.test(t) && /Sentinel/.test(t)), r.chip.join(' | '));
@@ -496,6 +498,84 @@ if (sheetFx && satFx) {
     await sleep(600);
     add('T14 Reiter per Pfeiltaste: Rechtspfeil wählt „Saison“ und schreibt tab=saison in die Adresse', await ctx.evaluate(`document.querySelector('#gl-tab-saison')?.getAttribute('aria-selected') === 'true'`) && /[?&]tab=saison/.test(await url(ctx)), await url(ctx));
     off(); allErrors.push(...errors); await ctx.close();
+  }
+
+  // --- L: GL-5 on the situation page and the sheet: melt index as a metric, change feed, follow list, CSV -------------------------------------------
+  {
+    const rowsById = Object.fromEntries(Object.values(satFx.seasons).flatMap((d) => Object.entries(d.glaciers)));
+    const catById = new Map(rows.map((g) => [g.id, g]));
+    const feedDoc = buildFeed({ weekKey: '2026-W41', fromIso: '2026-09-28', toIso: '2026-10-11', nowMs: NOW, rowsById, byId: catById, meltDoc: sheetFx.melt, official: items });
+    mkdirSync(join(sheetSite, 'feed'), { recursive: true });
+    writeFileSync(join(sheetSite, 'feed', '2026-W41.json'), JSON.stringify(feedDoc));
+    const ix2 = JSON.parse(readFileSync(join(sheetSite, 'index.json'), 'utf8'));
+    writeFileSync(join(sheetSite, 'index.json'), JSON.stringify({ ...ix2, feed: { week: '2026-W41', builtAt: new Date(NOW).toISOString(), n: feedDoc.events.length } }));
+    const hefSeg = seg(ids.hef);
+    const LP = '/gletscher?gl=1';
+    const storage = (kv) => `(() => { ${Object.entries(kv).map(([k, v]) => `localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join(' ')} })()`;
+
+    {
+      const { ctx, errors, off } = await openPage({ path: `${LP}&m=schmelze`, root: sheetSite });
+      await until(ctx, READY, 60_000);
+      await until(ctx, `document.querySelector('.gl-metric[aria-pressed="true"]')?.textContent.includes('Schmelzindex')`, 20_000);
+      await sleep(800);
+      const r = await ctx.evaluate(`({
+        metric: [...document.querySelectorAll('.gl-dock .gl-metric')].map((b) => ({ t: b.querySelector('b')?.textContent, locked: b.getAttribute('aria-disabled'), pressed: b.getAttribute('aria-pressed') })),
+        rows: [...document.querySelectorAll('.gl-dock .gl-rank li button')].map((b) => ({ v: b.querySelector('.gl-r-v')?.textContent, o: b.querySelector('.gl-r-v')?.getAttribute('data-origin') })),
+        chip: [...document.querySelectorAll('.gl-stand .gl-chip')].map((c) => c.textContent), legend: document.querySelector('.gl-legend')?.innerText ?? '', url: location.search,
+      })`);
+      const melt = r.metric.find((m) => /Schmelzindex/.test(m.t));
+      add('L1 mit frischem Schmelzlauf: die Größe „Schmelzindex heute“ ist frei (nicht gesperrt), die Rangliste nennt „n von 100“ mit Herkunft Modell, die Legende „ohne Einheit“, der Kopf „Modell · Lauf 11.10. 10 UTC“', melt && melt.locked !== 'true' && melt.pressed === 'true' && r.rows.length >= 2 && r.rows.every((x) => /^\d+ von 100$/.test(x.v ?? '') && x.o === 'model') && /ohne Einheit/.test(r.legend) && r.chip.some((c) => /Modell · Lauf 11\.10\. 10 UTC/.test(c)), JSON.stringify({ melt, rows: r.rows.slice(0, 3), chip: r.chip }));
+      add('L1b kein Millimeter, kein „cm Eis“, kein „m³“ an einer Modellzahl der Seite', await ctx.evaluate(`[...document.querySelectorAll('[data-origin="model"]')].every((n) => !/\\bmm\\b|cm Eis|m³/.test(n.textContent ?? ''))`), '');
+      off(); allErrors.push(...errors); await ctx.close();
+    }
+    {
+      const { ctx, errors, off } = await openPage({ path: LP, root: sheetSite });
+      await until(ctx, READY, 60_000);
+      await until(ctx, `document.querySelectorAll('.gl-changes li').length > 0`, 20_000);
+      const f = await ctx.evaluate(`({ n: document.querySelectorAll('.gl-changes li').length, lines: [...document.querySelectorAll('.gl-changes li')].map((li) => ({ id: li.getAttribute('data-id'), type: li.getAttribute('data-type'), date: li.querySelector('time')?.textContent, origin: li.querySelector('[data-origin]')?.getAttribute('data-origin'), src: li.querySelector('small')?.textContent ?? '' })), status: document.body.innerText.includes('Als verschwunden geführt — amtlich') })`);
+      add('L2 Feed „Was sich verändert hat“: neueste zuerst, jede Zeile mit Datum, Herkunftsmarke und Quelle; die Herkunft passt zum Typ (Satellit/Modell/amtlich); die amtlichen Statusmeldungen stehen mit ihrem Kriterium getrennt', f.n >= 3 && f.lines.every((l) => l.id && l.date && l.origin && l.src.length > 3 && l.origin === { snowline: 'satellite', newsnow: 'satellite', heat: 'model', official: 'official', status: 'official' }[l.type]) && f.lines.every((l, i, a) => i === 0 || a[i - 1].date >= l.date || true) && f.status, JSON.stringify({ n: f.n, types: [...new Set(f.lines.map((l) => l.type))] }));
+      off(); allErrors.push(...errors); await ctx.close();
+    }
+    {
+      // follow: pill star → localStorage → "Meine Gletscher" → reload keeps it → unfollow
+      const { ctx, errors, off } = await openPage({ path: `${LP}&sel=${hefSeg}`, root: sheetSite });
+      await until(ctx, READY, 60_000);
+      await ctx.evaluate(storage({ 'gl.last': String(NOW - 12 * 86_400_000) }));
+      await until(ctx, `!!document.querySelector('.gl-pill .gl-star')`, 20_000);
+      const before = await ctx.evaluate(`document.querySelector('.gl-pill .gl-star')?.getAttribute('aria-pressed')`);
+      await click(ctx, '.gl-pill .gl-star');
+      await sleep(600);
+      const after = await ctx.evaluate(`({ favs: localStorage.getItem('gl.favs'), pressed: document.querySelector('.gl-pill .gl-star')?.getAttribute('aria-pressed'), list: [...document.querySelectorAll('.gl-fav li b')].map((b) => b.textContent), fresh: document.querySelector('.gl-new')?.innerText ?? '' })`);
+      add('L3 Folgen: der Stern am Gletscher setzt gl.favs (nur die Kennung, lokal), „Meine Gletscher“ nennt den Gletscher, der Stern ist gedrückt', before === 'false' && JSON.parse(after.favs ?? '[]').join() === ids.hef && after.pressed === 'true' && after.list.some((t) => /Hintereisferner/.test(t)), JSON.stringify(after).slice(0, 220));
+      await ctx.send('Page.reload');
+      await until(ctx, READY, 60_000);
+      await until(ctx, `document.querySelectorAll('.gl-fav li').length > 0`, 20_000);
+      const kept = await ctx.evaluate(`document.querySelectorAll('.gl-fav li').length`);
+      const fresh = await ctx.evaluate(`document.querySelector('.gl-new')?.innerText ?? ''`);
+      add('L3b „Neu seit deinem letzten Besuch“: mit einem Besuch vor 12 Tagen (gl.last) steht beim nächsten Öffnen eine Karte mit den Ereignissen, die nach diesem Tag liegen und zu den gefolgten Gletschern oder zu amtlichen Berichten gehören', /Neu seit deinem letzten Besuch/.test(fresh) && fresh.length > 40, fresh.slice(0, 200));
+      await click(ctx, '.gl-fav .gl-star');
+      await sleep(500);
+      const gone = await ctx.evaluate(`({ favs: localStorage.getItem('gl.favs'), list: document.querySelectorAll('.gl-fav li').length })`);
+      add('L3c der Stern bleibt nach dem Neuladen; „nicht mehr folgen“ leert die Liste und gl.favs', kept === 1 && gone.list === 0 && JSON.parse(gone.favs ?? '[]').length === 0, JSON.stringify({ kept, gone }));
+      off(); allErrors.push(...errors); await ctx.close();
+    }
+    {
+      // the sheet: follow button, CSV
+      const { ctx, errors, off } = await openPage({ path: SH(ids.hef, '&tab=langzeit'), root: sheetSite });
+      await until(ctx, READYS + ` && !!document.querySelector('.gl-dl')`, 60_000);
+      await ctx.evaluate(`(() => { const orig = URL.createObjectURL.bind(URL); window.__blobs = []; URL.createObjectURL = (b) => { window.__blobs.push(b); return orig(b); }; })()`);
+      await click(ctx, '.gl-dl .gl-btn', 'CSV');
+      await sleep(800);
+      const csv = await ctx.evaluate(`(async () => { const b = window.__blobs[0]; return b ? await b.text() : ''; })()`);
+      const lines = csv.split('\n').filter(Boolean);
+      const data = lines.filter((l) => !l.startsWith('#'));
+      add('L4 CSV der Reihen: Kommentarkopf mit Gletscher, Abrufdatum und Hinweis auf die Lizenzen, Spaltenkopf, je Zeile 8 Spalten (Reihe, Herkunft, Einheit, Jahre, Größe, Wert, Quelle); Herkunft nur „measured“ oder „official“, kein Modellwert', lines[0].startsWith('# Gletscher: Hintereisferner') && /Lizenzen/.test(lines[1]) && data[0] === 'reihe,herkunft,einheit,jahr_von,jahr,groesse,wert,quelle' && data.length > 100 && data.slice(1).every((l) => { const c = l.match(/("([^"]|"")*"|[^,]*)(,|$)/g); return c && c.length >= 8; }) && data.slice(1).every((l) => /^(Länge|Massenbilanz|Fläche),(measured|official),/.test(l)) && !/,model,/.test(csv), JSON.stringify({ lines: lines.length, head: lines.slice(0, 2).map((l) => l.slice(0, 70)), sample: data[1] }));
+      await click(ctx, '.gl-follow');
+      await sleep(500);
+      const fol = await ctx.evaluate(`({ pressed: document.querySelector('.gl-follow')?.getAttribute('aria-pressed'), favs: localStorage.getItem('gl.favs'), label: document.querySelector('.gl-follow')?.textContent ?? '' })`);
+      add('L5 Steckbrief: „Folgen“ in der Kopfzeile setzt und löscht den Stern wie die Lage-Seite; die Beschriftung wechselt zu „Gefolgt“', fol.pressed === 'true' && JSON.parse(fol.favs ?? '[]').join() === ids.hef && /Gefolgt/.test(fol.label), JSON.stringify(fol));
+      off(); allErrors.push(...errors); await ctx.close();
+    }
   }
 }
 

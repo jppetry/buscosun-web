@@ -13,8 +13,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   longestLength, cumulativeLength, massRows, latestMass, areaChange, seasonSummary, albedoAnomaly, climaBand, againstBand, projectionView, projectionSentence,
-  meltView, indexWord, tourLines, tourProblems, TOUR_DISCLAIMER, sourceRows, isoDoy, sceneOf, STATE_TEXT,
+  meltView, indexWord, tourLines, tourProblems, TOUR_DISCLAIMER, sourceRows, isoDoy, sceneOf, STATE_TEXT, seriesCsv,
 } from '../src/glacier/glacierSheetModel.ts';
+import { readFavs, writeFavs, toggleFav, readLast, writeLast, newSinceLastVisit, GLACIER_FAV_MAX } from '../src/glacier/glacierFollow.ts';
 import { bboxOf, clipAtLng, renderSnowZone, polygonMask, mercY } from '../src/glacier/glacierGeo.ts';
 import { demDecode, demSample, glacierFlagsMask } from '../src/glacier/glacierSatContract.ts';
 import { glacierForbiddenWords } from '../src/glacier/glacierContract.ts';
@@ -155,6 +156,47 @@ const rowsHef = SAT.seasons['2026/at-oetztaler-alpen'].glaciers[hefCat.id];
   const ele = demDecode(grid);
   add('G3 Höhengitter: Zellen im Umriss liegen im Höhenbereich des Katalogs (± Mischzellen), Stichprobe in der Mitte des Gitters gültig', (() => { let lo = Infinity, hi = -Infinity; for (let j = 5; j < grid.ny - 5; j += 3) for (let i = 5; i < grid.nx - 5; i += 3) { const e = demSample(grid, ele, (grid.x0 + i + 0.5) / 3600, (grid.y1 - j - 0.5) / 3600); if (e != null) { lo = Math.min(lo, e); hi = Math.max(hi, e); } } return lo > hefCat.z[0] - 700 && hi < hefCat.z[2] + 400; })(), '');
   add('G4 Mercator: die Zeilen des Schneebildes folgen der Web-Mercator-Projektion (Breite nördlich > südlich, mercY monoton)', mercY(47) > mercY(46) && near(mercY(0), 0, 1e-12), '');
+}
+
+// D — CSV download
+{
+  const series = withId(hef.series, hefCat.id);
+  const csv = seriesCsv(hefCat, series, '2026-10-11');
+  const lines = csv.split('\n').filter(Boolean);
+  const head = lines.filter((l) => l.startsWith('#')), data = lines.filter((l) => !l.startsWith('#'));
+  // a small RFC-4180 reader for the check (quotes, doubled quotes)
+  const parse = (l) => { const out = []; let cur = '', q = false; for (let i = 0; i < l.length; i++) { const c = l[i]; if (q) { if (c === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; } else if (c === '"') q = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
+  const cells = data.slice(1).map(parse);
+  const expectedLen = series.filter((x) => x.kind === 'length').reduce((n, x) => n + x.rows.length, 0);
+  add('D1 CSV: Kommentarkopf (Gletscher, Abrufdatum, Lizenzhinweis), Spaltenkopf, je Zeile genau 8 Spalten; die Zahl der Längenzeilen stimmt mit den Reihen überein; Herkunft nur gemessen/amtlich; Quelle mit Komma bleibt EINE Zelle', head.length >= 3 && /Hintereisferner/.test(head[0]) && /2026-10-11/.test(head[1]) && /Lizenzen/.test(head[1]) && data[0] === 'reihe,herkunft,einheit,jahr_von,jahr,groesse,wert,quelle' && cells.every((c) => c.length === 8) && cells.filter((c) => c[0] === 'Länge').length === expectedLen && cells.every((c) => ['measured', 'official'].includes(c[1])) && cells.some((c) => c[7].includes(',')), `${cells.length} Zeilen, ${expectedLen} Längenzeilen`);
+  const first = series.find((x) => x.kind === 'length').rows[0];
+  const row = cells.find((c) => c[0] === 'Länge' && Number(c[3]) === first[0]);
+  add('D2 CSV: die erste Längenzeile trägt die Jahre und den Wert der Reihe unverändert; Massenbilanz mit Winter, Sommer, Jahr, Gleichgewichtslinie und AAR; kein Wert für eine fehlende Zelle (kein „null“, kein „NaN“)', row && Number(row[4]) === first[1] && Number(row[6]) === first[2] && cells.some((c) => c[5] === 'Gleichgewichtslinie') && cells.some((c) => c[5] === 'AAR') && !/null|NaN|undefined/.test(csv), JSON.stringify(row));
+  const tricky = seriesCsv({ ...hefCat, name: 'Ferner, "Nord"' }, [{ id: hefCat.id, kind: 'area', method: 'inventory', origin: 'official', source: 'Quelle, mit "Zitat"', unit: 'km²', rows: [[2015, 6.1], [2023, 5.6]] }], '2026-10-11');
+  const tcells = tricky.split('\n').filter((l) => l && !l.startsWith('#')).slice(1).map(parse);
+  add('D3 Gegenprobe Maskierung: Komma und Anführungszeichen in der Quelle bleiben eine Zelle und kommen unverändert zurück', tcells.length === 2 && tcells.every((c) => c.length === 8 && c[7] === 'Quelle, mit "Zitat"'), JSON.stringify(tcells[0]));
+}
+
+// R — follow list
+{
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, m }; };
+  const st = mem();
+  const a = 'gl_ch_aaa', b = 'gl_at_bbb';
+  add('R1 Folgen: neu gefolgt steht vorn, doppelt wird entfernt, die Liste hält höchstens 50, ungültige Kennungen und beschädigte Werte lesen sich als leer', (() => {
+    let l = toggleFav([], a); l = toggleFav(l, b);
+    const big = Array.from({ length: 55 }, (_, i) => `gl_ch_g${i}`).reduce((acc, id) => toggleFav(acc, id), []);
+    st.setItem('gl.favs', JSON.stringify([...l, 'kein-id', 42, a]));
+    const read = readFavs(st);
+    st.setItem('gl.favs', '{kaputt');
+    return l.join() === `${b},${a}` && toggleFav(l, a).join() === b && big.length === GLACIER_FAV_MAX && read.join() === `${b},${a}` && readFavs(st).length === 0 && readFavs(null).length === 0;
+  })(), '');
+  const throwing = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+  add('R1b blockierter Speicher: Lesen = keine Gefolgten, Schreiben meldet false — nie ein Fehler in der Seite (Gegenprobe zu R1)', readFavs(throwing).length === 0 && writeFavs([a], throwing) === false && readLast(throwing) === null && (() => { writeLast(5, throwing); return true; })() && writeFavs([a], st) === true && readFavs(st).join() === a, '');
+  const ev = (id, at, glacier) => ({ id, type: glacier ? 'snowline' : 'official', at, glacier, origin: glacier ? 'satellite' : 'official', text: 't', source: 's', w: 1 });
+  const events = [ev('e1', '2026-10-09', a), ev('e2', '2026-10-09', 'gl_x'), ev('e3', '2026-10-10', null), ev('e4', '2026-10-01', a)];
+  const last = Date.parse('2026-10-05T18:00:00Z');
+  add('R2 Neu seit dem letzten Besuch: Ereignisse NACH dem Tag des Besuchs, die zu einem gefolgten Gletscher gehören oder amtlich sind (e1, e3); ein anderer Gletscher (e2), ein älteres (e4) nicht; ohne Besuch nichts', newSinceLastVisit(events, [a], last).map((e) => e.id).join() === 'e1,e3' && newSinceLastVisit(events, [a], null).length === 0 && newSinceLastVisit(events, [], last).map((e) => e.id).join() === 'e3', '');
+  add('R2b derselbe Tag zählt nicht als neu (ein Ereignis vom Besuchstag ist schon gesehen)', newSinceLastVisit([ev('e5', '2026-10-05', a)], [a], last).length === 0, '');
 }
 
 const failed = checks.filter((c) => !c.ok);

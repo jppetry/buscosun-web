@@ -1,0 +1,4 @@
+Protokoll: Median 25.08.–10.10. ohne Neuschnee   n 29 median|Δ| 282 p90 600 bias -268
+Maximum 15.07.–10.10. ohne Neuschnee             n 29 median|Δ| 92 p90 225 bias 14
+75. Perzentil 15.07.–10.10.                      n 29 median|Δ| 110 p90 413 bias -102
+Median 10.08.–10.09.                             n 26 median|Δ| 118 p90 581 bias -214

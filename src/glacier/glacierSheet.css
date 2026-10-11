@@ -101,3 +101,5 @@
 }
 .gl-sheet-title h1:focus, .gl-sheet-title h1:focus-visible { outline: none; }
 .gl-legend-lines .gl-ring { width: 12px; height: 12px; border-radius: 6px; border: 1.5px dashed #4B3D96; background: transparent; }
+.gl-dl { display: flex; gap: 8px; flex-wrap: wrap; }
+.gl-dl .gl-btn { flex: 1 1 140px; justify-content: center; }

@@ -133,6 +133,9 @@ export async function scanScene({ item, jobs, log = () => {} }) {
         if (res.skipped) { out.skipped.push({ id: g.id, reason: res.skipped }); return; }
         const v = res.value;
         if (v.sla != null && !slaInRange(v.sla, g.z)) { out.skipped.push({ id: g.id, reason: `Quarantäne: Schneegrenze ${v.sla} m außerhalb [${g.z[0]} − 300, ${g.z[2]} + 300]` }); return; }
+        // an albedo outside what snow and ice can have (saturated pixels at a cloud edge) quarantines the glacier for this scene — never a value outside the contract
+        const albBad = [v.alb?.snow, v.alb?.ice].find((a) => a != null && !(a >= 0.02 && a <= 0.98));
+        if (albBad != null) { out.skipped.push({ id: g.id, reason: `Quarantäne: Albedo ${albBad} außerhalb 0,02–0,98` }); return; }
         out.items[g.id] = v;
         p01s.push(res.swirP01);
       } catch (e) { out.skipped.push({ id: g.id, reason: `Lesefehler: ${String(e.message ?? e).slice(0, 80)}` }); }

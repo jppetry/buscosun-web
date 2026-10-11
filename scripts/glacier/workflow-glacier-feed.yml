@@ -1,0 +1,97 @@
+# ============================================================================
+# glacier-feed.yml — Gletscher-Monitor DACH, Feed „Was sich verändert hat“ und Wochenkarte (Phase GL, buscosun-web/audit/gletscher.md §GL-5)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-feed.yml` im Daten-Repo `jppetry/buscosun-glacier`. Der Producer
+# `scripts/glacier/feed.mjs` liest den Datenbaum (Szenen, Schmelzlauf, amtliche Meldungen) und schreibt `v1/feed/<Jahr>-W<Woche>.json`
+# (Ereignisse mit stabiler Kennung, Herkunft, Quelle, Zeit; die letzten 12 Wochen bleiben liegen). Montags rendert
+# `scripts/glacier/weekly-card.mjs` die drei wichtigsten Änderungen der VORWOCHE als `v1/card/<Jahr>-W<Woche>.png` (1200 × 630, headless Chrome des Runners).
+# Bis der Producer auf `PRODUCER_REF` steht, endet der Job grün mit „producer not on <ref> yet“.
+# ============================================================================
+
+name: glacier-feed
+
+on:
+  schedule:
+    - cron: '35 5 * * *'   # täglich nach dem Satelliten- und dem Schmelzlauf; montags zusätzlich die Karte der Vorwoche
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCER_REF: ${{ vars.PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, PRODUCER_REF)
+        id: app
+        run: |
+          REF="${PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          # der Feed braucht keine Fusion — nur die Dateien des Datenbaums.
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/glacier/feed.mjs scripts/glacier/weekly-card.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierFeedContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-glacier main)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1'
+        run: |
+          if [ -f data/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — kein Feed."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Feed (+ Wochenkarte der Vorwoche am Montag)
+        id: build
+        if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        env:
+          OG_CHROME: /usr/bin/google-chrome
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/feed.mjs --data=../data/v1 --out=../out --patch=../patch | tee ../feed.log
+          if [ "$(date -u +%u)" = "1" ]; then
+            node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/weekly-card.mjs --feed-dir=../out/feed --card-dir=../out/card --week=previous || echo "Karte der Vorwoche: kein Browser oder Fehler — der Feed bleibt unberührt"
+          fi
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (v1/feed, v1/card, index, status — never --force)
+        if: steps.build.outputs.wrote != '' && steps.build.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=feed --src=out \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
+            --message="glacier(feed): $(date -u +%Y-%m-%dT%H:%MZ)"

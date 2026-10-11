@@ -244,3 +244,32 @@ export const NOT_USED_SOURCES: ReadonlyArray<{ kind: 'linked' | 'unused'; text: 
   { kind: 'linked', text: 'Webcams (Rechte vorbehalten): nur verlinkt' },
   { kind: 'unused', text: 'Gletscherseen Österreich (NC-Lizenz): nicht genutzt' },
 ]);
+
+// --- download: the series of one glacier as CSV (plan §10) ---------------------------------------------------------------------------------
+
+const csvCell = (v: string | number | null): string => { if (v == null) return ''; const t = String(v); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+/**
+ * CSV of the measured and official series of ONE glacier: long format (one value per row) with the origin, the unit and the source of every series, and the
+ * comment block on top naming glacier, retrieval date and where the licences stand. Only series come out (length, mass balance, inventory areas) — no model value.
+ */
+export function seriesCsv(g: GlacierCatalogEntry, series: readonly GlacierSeries[], retrievedIso: string): string {
+  const head = [
+    `# Gletscher: ${g.name ?? g.id} (${g.id}), ${g.country}, Klasse ${g.klass}`,
+    `# Abgerufen: ${retrievedIso} von buscosun.com/gletscher — Herkunft und Quelle je Reihe in den Spalten; Lizenzen: Steckbrief, Reiter Quellen`,
+    '# Längenänderung: Messung der Zunge, ΔL in m je Messjahr. Bilanz: glaziologische Methode in mm Wasseräquivalent. Fläche: Inventare der Länder in km², je mit Bezugsjahr',
+  ];
+  const rows: string[] = ['reihe,herkunft,einheit,jahr_von,jahr,groesse,wert,quelle'];
+  const push = (r: (string | number | null)[]) => rows.push(r.map(csvCell).join(','));
+  for (const s of series) {
+    if (s.kind === 'length') for (const r of s.rows as number[][]) push(['Länge', s.origin, s.unit, r[0], r[1], 'Längenänderung', r[2], s.source]);
+    else if (s.kind === 'mass') for (const r of s.rows as Array<Array<number | null>>) {
+      const [y, bw, bs, ba, ela, aar] = r;
+      if (bw != null) push(['Massenbilanz', s.origin, 'mm w. e.', null, y, 'Winterbilanz', bw, s.source]);
+      if (bs != null) push(['Massenbilanz', s.origin, 'mm w. e.', null, y, 'Sommerbilanz', bs, s.source]);
+      if (ba != null) push(['Massenbilanz', s.origin, 'mm w. e.', null, y, 'Jahresbilanz', ba, s.source]);
+      if (ela != null) push(['Massenbilanz', s.origin, 'm', null, y, 'Gleichgewichtslinie', ela, s.source]);
+      if (aar != null) push(['Massenbilanz', s.origin, '1', null, y, 'AAR', aar, s.source]);
+    } else if (s.kind === 'area') for (const r of s.rows as number[][]) push(['Fläche', s.origin, s.unit, null, r[0], 'Fläche (Bezugsjahr)', r[1], s.source]);
+  }
+  return `${head.join('\n')}\n${rows.join('\n')}\n`;
+}

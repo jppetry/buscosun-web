@@ -13,6 +13,7 @@ import {
 import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars } from './GlacierCharts';
 import type { GlacierCatalogEntry, GlacierOfficialItem, GlacierSeries } from './glacierContract';
 import type { SheetData } from './glacierSheetData';
+import { exportSvgAsPng } from '../imageExport';
 import type { GlacierSeasonRow } from './glacierSatContract';
 
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -125,10 +126,10 @@ export function TabSaison({ g, data, year, selDate, mass }: { g: GlacierCatalogE
 }
 
 // --- Langzeit ----------------------------------------------------------------------------------------------------------------------------
-export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, compareOn, onCompare, official, status }: {
+export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, compareOn, onCompare, official, status, onCsv, hasSeries }: {
   g: GlacierCatalogEntry; area: { from: [number, number]; to: [number, number]; pct: number } | null; length: { points: { year: number; cum: number }[]; total: number; from: number; to: number; gaps: number } | null;
   lengthTotal?: number; proj: ProjectionView | null; compareYear: number | null; compareOn: boolean; onCompare: (on: boolean) => void;
-  official: readonly GlacierOfficialItem[]; status: GlacierCatalogEntry['status'] | null;
+  official: readonly GlacierOfficialItem[]; status: GlacierCatalogEntry['status'] | null; onCsv: () => void; hasSeries: boolean;
 }) {
   void lengthTotal;
   const statusItem = status ? official.find((i) => i.kind === 'status' && i.scope === g.country) ?? null : null;
@@ -155,6 +156,10 @@ export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, c
           {statusItem.criterion && <p className="gl-fine">Kriterium: {statusItem.criterion}</p>}
         </section>
       )}
+      <div className="gl-dl" role="group" aria-label="Herunterladen">
+        <button type="button" className="gl-btn" disabled={!hasSeries} onClick={onCsv} title={hasSeries ? 'Längen-, Bilanz- und Flächenreihen als CSV mit Quelle je Reihe' : 'Für diesen Gletscher gibt es keine Reihe'}>Reihen als CSV</button>
+        <button type="button" className="gl-btn" disabled={!length} onClick={() => { const svg = document.querySelector<SVGSVGElement>('#gl-tabpanel .gl-chart-s svg'); if (svg) void exportSvgAsPng(svg, { filename: `${g.id}-laenge.png`, title: `${g.name ?? g.id}: Längenänderung der Zunge, kumuliert`, source: 'Quelle: Messnetz (gemessen) · buscosun.com/gletscher' }).catch(() => { /* download refused */ }); }}>Grafik als Bild</button>
+      </div>
       <h3 className="gl-h3">Wann ist er weg?</h3>
       {proj ? (
         <>

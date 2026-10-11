@@ -14,7 +14,7 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import {
-  glacierBasesFrom, loadCatalog, loadIndex, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
+  glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
   type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
 import { GLACIER_COUNTRIES, GLACIER_SAT_MAX_AGE_DAYS, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
@@ -29,6 +29,10 @@ import GlacierDock from './GlacierDock';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import GlacierLageChart, { type ChartKind } from './GlacierLageChart';
 import { CountryCards, ReportList, Rhythm, SelectedGlacier, type CountryFacts } from './GlacierReadout';
+import { FeedList, FollowList, StatusList } from './GlacierFeedView';
+import { readFavs, writeFavs, toggleFav, readLast, writeLast, newSinceLastVisit } from './glacierFollow';
+import type { GlacierFeedEvent } from './glacierFeedContract';
+import { glacierMeltFresh } from './glacierContract';
 import { OriginChip, LockNote } from './GlacierParts';
 import './glacierDeck.css';
 
@@ -45,7 +49,7 @@ export const GLACIER_BRIEF_READY = true;
 const REFRESH_MS = 30 * 60_000;
 
 type Loaded = {
-  build: string; cat: LoadedCatalog; points: GlacierPointsDoc; summary: GlacierSummary | null; official: GlacierOfficialItem[]; builtAt: string; satIndex: GlacierSatIndex | null; melt: GlacierIndex['melt'] | null;
+  build: string; cat: LoadedCatalog; points: GlacierPointsDoc; summary: GlacierSummary | null; official: GlacierOfficialItem[]; builtAt: string; satIndex: GlacierSatIndex | null; melt: GlacierIndex['melt'] | null; feed: GlacierIndex['feed'] | null;
 };
 
 export default function GlacierPage({ initial, onUrlState, onGlacier, popState }: GlacierPageProps) {
@@ -62,6 +66,13 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [chartKind, setChartKind] = useState<ChartKind>('ba');
   const [searchOpen, setSearchOpen] = useState(false);
   const [sat, setSat] = useState<ReadonlyMap<string, GlacierSatLatest>>(() => new Map());
+  const [meltToday, setMeltToday] = useState<ReadonlyMap<string, [number, number, number]> | null>(null);
+  const [meltRun, setMeltRun] = useState<{ runAt: string } | null>(null);
+  const [feed, setFeed] = useState<GlacierFeedEvent[] | null>(null);
+  const [favs, setFavs] = useState<string[]>(() => readFavs());
+  const lastVisit = useRef<number | null | undefined>(undefined);
+  if (lastVisit.current === undefined) lastVisit.current = readLast();
+  useEffect(() => { writeLast(Date.now()); }, []);
   const [sheet, setSheet] = useState<Pick<GlacierUrlState, 'tab' | 't' | 'v' | 'e' | 'o'>>({ tab: initial.tab, t: initial.t, v: initial.v, e: initial.e, o: initial.o });
   const briefSeg = initial.glacier;
   const allow3d = useMemo(() => { try { return new URLSearchParams(window.location.search).get('gl3d') !== '0'; } catch { return true; } }, []);
@@ -79,9 +90,20 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           loadCatalog(build, ac.signal, bases), loadPoints(build, ac.signal, bases), loadSummary(build, ac.signal, bases), loadOfficial(build, ac.signal, bases),
         ]);
         if (!cat || !points) { setLoad({ s: 'error', why: 'Katalog oder Punktliste nicht ladbar.' }); return; }
-        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null } });
+        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null, feed: index.feed ?? null } });
         // the satellite line is optional: a failure leaves "Ausaperung" locked and every other number untouched
         if (index.sat) loadSatLatest(index.sat, cat.byId, ac.signal, bases).then((m) => { if (!ac.signal.aborted) setSat(m); }, () => { /* stays locked */ });
+        // the melt line (GL-3): only a FRESH run (≤ 30 h) colours the map; its index is today's value, never a unit
+        if (index.melt && glacierMeltFresh(Date.parse(index.melt.runAt), Date.now())) {
+          void loadMelt(index.melt.run, new Set(cat.byId.keys()), ac.signal, bases).then((doc) => {
+            if (!doc || ac.signal.aborted) return;
+            const day = Math.min(doc.glaciers[0]?.idx.length ? doc.glaciers[0].idx.length - 1 : 0, Math.max(0, Math.floor((Date.now() - Date.parse(doc.runAt)) / 86_400_000)));
+            setMeltToday(new Map(doc.glaciers.map((r) => [r.id, r.idx[day]])));
+            setMeltRun({ runAt: doc.runAt });
+          }, () => { /* the metric stays locked */ });
+        }
+        // the change feed (GL-5)
+        if (index.feed) void loadFeed(index.feed, official ?? [], new Set(cat.byId.keys()), ac.signal, bases).then((ev) => { if (!ac.signal.aborted) setFeed(ev); }, () => { /* no feed list */ });
       } catch (e) { if ((e as Error)?.name !== 'AbortError') setLoad({ s: 'error', why: 'Der Datenspeicher antwortet nicht.' }); }
     };
     void run();
@@ -102,9 +124,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const selId = selSeg ? glacierIdOfSegment(selSeg) : null;
   const sel = selId && d ? d.cat.byId.get(selId) ?? null : null;
 
-  const caps = useMemo(() => ({ sat: sat.size > 0, melt: false }), [sat]);
+  const caps = useMemo(() => ({ sat: sat.size > 0, melt: meltToday != null }), [sat, meltToday]);
   const defs = useMemo(() => defsFor(caps), [caps]);
-  const satCtx = useMemo(() => ({ sat, nowMs, defs }), [sat, nowMs, defs]);
+  const satCtx = useMemo(() => ({ sat, nowMs, defs, melt: meltToday }), [sat, nowMs, defs, meltToday]);
   const values = useMemo(() => {
     const m = new Map<string, ReturnType<typeof metricValue>>();
     if (!d) return m;
@@ -155,6 +177,16 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   useEffect(() => { onUrlState(stateNow()); }, [stateNow, onUrlState]);
 
   const pick = useCallback((id: string) => setSelSeg(glacierSegmentOf(id)), []);
+  const follow = useCallback((id: string) => setFavs((cur) => { const next = toggleFav(cur, id); writeFavs(next); return next; }), []);
+  const fresh = useMemo(() => newSinceLastVisit(feed ?? [], favs, lastVisit.current ?? null), [feed, favs]);
+  const favValue = useCallback((id: string) => { const g = d?.cat.byId.get(id); if (!g) return null; const v = metricValue(metric, d?.summary?.latest[id], g, satCtx); return v.v == null ? null : { text: v.text ?? '', origin: defs[metric].origin, label: defs[metric].label }; }, [d, metric, satCtx, defs]);
+  const lists = d && (
+    <>
+      <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />
+      {feed && <FeedList events={feed} onPick={pick} />}
+      <StatusList items={d.official} />
+    </>
+  );
   const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); };
   const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false);
   const bucketOf = useCallback((id: string) => values.get(id)?.bucket ?? -1, [values]);
@@ -174,10 +206,13 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         {selVal?.v != null ? <><span className="gl-num" data-origin={def.origin}>{selVal.text}</span><OriginChip origin={def.origin} /><small>{def.label} · {selVal.period}</small></>
           : <small>{def.locked ? <LockNote>{def.label}: gesperrt</LockNote> : selVal?.reason ?? ''}</small>}
       </div>
+      <div className="gl-pill-actions">
+      <button type="button" className={`gl-star${favs.includes(sel.id) ? ' is-on' : ''}`} aria-pressed={favs.includes(sel.id)} aria-label={favs.includes(sel.id) ? `${displayName(sel)} nicht mehr folgen` : `${displayName(sel)} folgen`} onClick={() => follow(sel.id)}>{favs.includes(sel.id) ? '★' : '☆'}</button>
       <button type="button" className="gl-btn is-primary" disabled={!GLACIER_BRIEF_READY} onClick={openBrief}
         title={GLACIER_BRIEF_READY ? undefined : 'Der Steckbrief mit Heute, Saison, Langzeit, Tour und Quellen folgt (GL-4)'}>
         Steckbrief{GLACIER_BRIEF_READY ? ' öffnen' : ' folgt (GL-4)'}
       </button>
+      </div>
     </div>
   );
   const legend = (
@@ -232,6 +267,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       <div className="gl-readout-scroll">
         {sel && <SelectedGlacier g={sel} latest={d?.summary?.latest[sel.id]} sat={sat.get(sel.id)} nowMs={nowMs} defs={defs} />}
         {d && <CountryCards items={d.official} facts={facts} />}
+        {lists}
         {d && <ReportList items={d.official} />}
         <Rhythm />
         <div className="gl-foot-note">Flächen tragen das Bezugsjahr ihres Inventars und sind zwischen den Ländern nicht gleichzeitig. Amtliche Sätze stehen wörtlich mit Quelle und Datum; Schmelze und Schneegrenze folgen, sobald ihre Eichung besteht. Kein amtliches Warnprodukt, keine Tourenfreigabe.</div>
@@ -247,7 +283,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     : <span className="gl-chip is-satellite is-idle" title="Sentinel-2-Szenen: noch keine klare Szene im Datenspeicher"><i aria-hidden="true" />Sentinel-2 · nicht aktiv</span>;
   const stand = (
     <div className="gl-stand" aria-label="Stand je Herkunft">
-      <span className="gl-chip is-model is-idle" title="Schmelzrechnung (buscosun Fusion): folgt mit GL-3"><i aria-hidden="true" />Modell · nicht aktiv</span>
+      {meltRun
+        ? <span className="gl-chip is-model" title="Schmelzindex (buscosun Fusion, Temperaturindex-Modell, ohne Einheit): jüngster Lauf"><i aria-hidden="true" />Modell · Lauf {meltRun.runAt.slice(8, 10)}.{meltRun.runAt.slice(5, 7)}. {meltRun.runAt.slice(11, 13)} UTC</span>
+        : <span className="gl-chip is-model is-idle" title="Schmelzrechnung (buscosun Fusion): kein frischer Lauf (älter als 30 Stunden oder nicht erreichbar)"><i aria-hidden="true" />Modell · nicht aktiv</span>}
       {satChip}
       <span className="gl-chip is-measured" title={`Jüngste amtliche Meldung je Messnetz; Längen- und Massenreihen von GLAMOS, ÖAV und WGMS reichen bis ${maxYear ?? '–'}`}><i aria-hidden="true" />Messung · {officialStand ?? `Reihen bis ${maxYear ?? '–'}`}</span>
     </div>
@@ -277,7 +315,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           <div className="gl-main"><div className="gl-empty gl-sheet-state" role="status"><strong>Diesen Gletscher gibt es im Atlas nicht.</strong> <button type="button" className="gl-btn" onClick={closeBrief}>Zur DACH-Lage</button></div></div>
         ) : (
           <Suspense fallback={<div className="gl-main"><div className="gl-empty gl-sheet-state" role="status">Steckbrief wird geladen …</div></div>}><GlacierBrief key={bg.id} g={bg} build={d!.build} byId={d!.cat.byId} satIndex={d!.satIndex} meltPointer={d!.melt} official={d!.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
-            state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={closeBrief} allow3d={allow3d} /></Suspense>
+            state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={closeBrief} allow3d={allow3d} followed={favs.includes(bg.id)} onFollow={() => follow(bg.id)} /></Suspense>
         )}
       </div>
     );
@@ -311,6 +349,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               )}
               {sel && <SelectedGlacier g={sel} latest={d?.summary?.latest[sel.id]} sat={sat.get(sel.id)} nowMs={nowMs} defs={defs} />}
               {chart}
+              {lists}
               {d && <ReportList items={d.official} />}
               <Rhythm />
               <div className="gl-foot-note">Flächen tragen das Bezugsjahr ihres Inventars. Kein amtliches Warnprodukt, keine Tourenfreigabe.</div>

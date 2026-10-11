@@ -156,19 +156,19 @@ add('P2 zweite Linie (sat) im selben Repo: index.json trägt BEIDE Zeiger (stati
 
 // W: the workflow templates (the data repo carries copies; GitHub itself is not available here) ---------------------------------
 {
-  const names = ['static', 'sat', 'melt'];
+  const names = ['static', 'sat', 'melt', 'feed'];
   const yml = Object.fromEntries(names.map((n) => [n, readFileSync(join(HERE, 'glacier', `workflow-glacier-${n}.yml`), 'utf8')]));
   const ok = (f) => names.every((n) => f(yml[n], n));
-  add('W1 alle drei Vorlagen teilen die Concurrency-Gruppe `glacier-publish` ohne Abbruch laufender Läufe', ok((y) => /concurrency:\s*\n\s*group: glacier-publish\s*\n\s*cancel-in-progress: false/.test(y)));
+  add('W1 alle vier Vorlagen teilen die Concurrency-Gruppe `glacier-publish` ohne Abbruch laufender Läufe', ok((y) => /concurrency:\s*\n\s*group: glacier-publish\s*\n\s*cancel-in-progress: false/.test(y)));
   add('W2 PRODUCER_REF-Wächter: Standard `feat/gletscher`, `git ls-remote --exit-code --heads`, „producer not on <ref> yet“ und Ende grün (exit 0), Zweig ohne Rebase geklont', ok((y) => /PRODUCER_REF: \$\{\{ vars\.PRODUCER_REF \|\| 'feat\/gletscher' \}\}/.test(y) && /git ls-remote --exit-code --heads https:\/\/github\.com\/jppetry\/buscosun-web\.git "\$REF"/.test(y) && /producer not on \$REF yet/.test(y) && /ready=0" >> "\$GITHUB_OUTPUT"; exit 0/.test(y) && /--branch "\$REF"/.test(y)));
-  add('W3 keine Zugangsdaten: kein `secrets.` und keine Tokens in den Vorlagen; Schreibrecht nur bei den Linien, die veröffentlichen (sat, melt), static liest nur', ok((y) => !/secrets\./.test(y) && !/token/i.test(y)) && /permissions:\s*\n\s*contents: read/.test(yml.static) && /permissions:\s*\n\s*contents: write/.test(yml.sat) && /permissions:\s*\n\s*contents: write/.test(yml.melt));
-  add('W4 jede Veröffentlichung läuft über glacier-publish.mjs mit --line (nie ein handgeschriebenes git push); der Archivzweig nur über --archive', !/git push/.test(Object.values(yml).join('\n')) && /glacier-publish\.mjs --repo=data --line=sat/.test(yml.sat) && /glacier-publish\.mjs --repo=data --line=melt/.test(yml.melt) && /glacier-publish\.mjs --archive/.test(yml.melt));
+  add('W3 keine Zugangsdaten: kein `secrets.` und keine Tokens in den Vorlagen; Schreibrecht nur bei den Linien, die veröffentlichen (sat, melt, feed), static liest nur', ok((y) => !/secrets\./.test(y) && !/token/i.test(y)) && /permissions:\s*\n\s*contents: read/.test(yml.static) && /permissions:\s*\n\s*contents: write/.test(yml.sat) && /permissions:\s*\n\s*contents: write/.test(yml.melt) && /permissions:\s*\n\s*contents: write/.test(yml.feed));
+  add('W4 jede Veröffentlichung läuft über glacier-publish.mjs mit --line (nie ein handgeschriebenes git push); der Archivzweig nur über --archive', !/git push/.test(Object.values(yml).join('\n')) && /glacier-publish\.mjs --repo=data --line=sat/.test(yml.sat) && /glacier-publish\.mjs --repo=data --line=melt/.test(yml.melt) && /glacier-publish\.mjs --repo=data --line=feed/.test(yml.feed) && /glacier-publish\.mjs --archive/.test(yml.melt));
   const cron = (y) => (/- cron: '([^']+)'/.exec(y) ?? [])[1];
   const crons = names.map((n) => cron(yml[n]));
   const fieldsOk = crons.every((c) => c && c.split(' ').length === 5);
   const minutes = crons.map((c) => c.split(' ')[0]);
-  add('W5 Zeitpläne: je ein gültiger Cron mit fünf Feldern, die Minuten unterscheiden sich (kein gleichzeitiger Start), Timeout ≤ 45 min', fieldsOk && new Set(minutes).size === 3 && ok((y) => Number(/timeout-minutes: (\d+)/.exec(y)?.[1]) <= 45), crons.join(' | '));
-  add('W6 melt: climaGrid im Sparse-Checkout (V-SW-18) und ein Kill-Schalter-Schritt vor dem Rechnen; sat ebenso', /public\/climaGrid\.json/.test(yml.melt) && ok((y, n) => n === 'static' || /Kill switch/.test(y)));
+  add('W5 Zeitpläne: je ein gültiger Cron mit fünf Feldern, die Minuten unterscheiden sich (kein gleichzeitiger Start), Timeout ≤ 45 min', fieldsOk && new Set(minutes).size === 4 && ok((y) => Number(/timeout-minutes: (\d+)/.exec(y)?.[1]) <= 45), crons.join(' | '));
+  add('W6 melt: climaGrid im Sparse-Checkout (V-SW-18) und ein Kill-Schalter-Schritt vor dem Rechnen; sat und feed ebenso; der Feed ruft die Wochenkarte nur mit --week=previous und lässt bei fehlendem Browser den Feed unberührt', /public\/climaGrid\.json/.test(yml.melt) && /--week=previous \|\| echo/.test(yml.feed) && ok((y, n) => n === 'static' || /Kill switch/.test(y)));
   add('W7 Producer-Dateien, die die Vorlagen prüfen, existieren im Repo oder stehen für die Pakete GL-2/GL-3 aus (Leerlauf grün)', ['scripts/verify-glacier-static.mjs', 'scripts/verify-glacier-contract.mjs', 'src/glacier/glacierContract.ts', 'scripts/glacier/glacier-publish.mjs'].every((f) => existsSync(join(HERE, '..', f))), '');
 }
 
