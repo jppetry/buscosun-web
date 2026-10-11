@@ -5,7 +5,7 @@
 > Fusion 12 läuft seit 10.10. 18:43 UTC mit beiden Korrekturen live; **AF-2 Korridore lückenlos §8.6** — Bauer und Prüfung gebaut, Kandidat
 > 210 Korridore auf 120 von 121 Nummern, nichts eingespielt; **AF-5 Seite für Teilstücke ohne Messstelle §8.7** — gebaut am 11.10.,
 > `verify:road-ui` 82/82; am 11.10. abends committet (`347897e`, `2e175b6`) und mit `main` zusammengeführt (`83ad750`); **E-AF-13 Ortsnamen
-> unter dem Band §8.8** — `verify:road-ui` 89/89). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
+> unter dem Band §8.8** — `verify:road-ui` 89/89; **AF-3 Punkte, A 98, Paket §8.9**). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
 > (Fusion 12, Branch `fusion-12`), `audit/fusion-release.md` (Register der Stände).
 
 ## 0. Kurzfassung für Jan
@@ -223,6 +223,7 @@ der drei statischen CDN-Pfade, der Block `ctl` im Archiv.
 | V-AF-4 | Kennungen hängen an der Sortierung nach Stationszahl; jede neue Meldung kann sie verschieben (D-AF-9) | geteilte Links bleiben richtig | `--pin` wird der Normalweg jedes Neubaus |
 | V-AF-5 | Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7); Fusion 12 hat kein Spur-P-Urteil | Klarheit, was „Fusion 12" belegt | Abnahme ab ≈ 20.10. (E-OF-6), unabhängig von dieser Phase |
 | V-AF-6 | AT/CH ohne Korridore und Prognosepunkte (E-AW-12) | A 8 endet nicht an der Grenze | eigene Phase (Achsen GIP.at/OSM, Radar INCA/RZC) |
+| V-AF-36 … V-AF-38 | aus AF-3 (§8.9.5): drei A-60-Punkte könnten jetzt einrasten, Overpass abends und alte Spiegel, `verify:road-fc --data` lief nie mit | | |
 | V-AF-33 … V-AF-35 | aus E-AF-13 (§8.8.4): ausgeblendeter Ortsname nur im Tooltip, Rang der Städte nach km statt Größe, Callout unter den Zoom-Knöpfen | | |
 | V-AF-28 … V-AF-32 | aus AF-5 (§8.7.6): Ortsnamen im Band überlappen (**behoben, §8.8** — gemessen 85 von 210 Abschnitten, nicht 53), Callout hinter der Pille (behoben), nicht gewählte Teilstücke auf der Karte, Zeilennamen der Streckentabelle, Zusammenführen mit `main` | | |
 | V-AF-22 … V-AF-27 | aus AF-2 (§8.6.6): OSM-Auszug ohne `trunk` mit Autobahn-Nummer (A 98), Messstellen gepinnter Abschnitte, Stummel an gepinnten Enden, Auf-/Abfahrten im alten Bauer, Schreibweise A 64a | | |
@@ -1167,3 +1168,73 @@ Abschnitte in einer Minute. Kein Fehler der Seite (ein echter Verlaufseintrag tr
 3. **Touch-Targets:** kein neues Bedienelement.
 4. **Konsole:** I1 — keine ungefangene Ausnahme, auch im Gang durch 210 Abschnitte.
 5. **Long Tasks:** nicht gemessen (headless-shell).
+
+### 8.9 AF-3 — Punkte für die neuen Teilstücke, A 98 am Hochrhein (E-AF-10), Paket (11.10.2026 nachts; Jan: „ja, setze das in dieser Reihenfolge um“)
+
+Jans Entscheidungen vom 11.10. abends, je die Empfehlung: E-AF-10 ja (A 98 mitnehmen), E-AF-11 so lassen, E-AF-12 eigener Schritt
+nach AF-3, E-AF-13 beheben (§8.8), E-AF-14 so lassen, E-AF-7 nein bis zur Messung, E-AF-8 zurückstellen.
+
+#### 8.9.1 Diagnose
+
+| Nr. | Frage | Befund |
+|---|---|---|
+| D-AF-32 | Ist die gesicherte Live-Korridor-Datei noch die Live-Datei? | ja — sha256 gleich `origin/main` des Daten-Repos (`82b9b59`, 11.10. 21:11 UTC); Live-Punktdatei 2 755 Achspunkte + 1 814 Stationen, gebaut 06.10. |
+| D-AF-33 | Frischer OSM-Auszug | Die Abfrage des Bauers (`area` Deutschland) beantwortete Overpass am Abend auf allen drei Hauptservern mit 504, auch die kleine Abfrage nur der `trunk`-Wege. **Zwei Spiegel antworteten mit altem Stand** (31.05. bzw. 01.06. — verworfen). Eine Abfrage je Rechteck braucht die Flächensuche nicht: 20 Kacheln, je Weg einmal, behalten, wenn ein Punkt in Deutschland liegt (Umriss der App ± 0,5 km — die Regel von `way(area)`). Stand **2026-10-11T21:06:54Z**, 71 226 Wege (71 017 `motorway`, 209 `trunk` mit Autobahn-Nummer); gegen den Auszug vom 04.10.: 30 Wege (5,9 km) weg, 396 (77,9 km) neu |
+| D-AF-34 | `trunk` mit Autobahn-Nummer | 39 km: A 60 17,1 · **A 98 15,1** · A 485 1,8 · A 65 1,7 · A 14 1,6 · A 553 1,4 · Rest unter 1 km |
+| D-AF-35 | Was hält die Punkte der Live-Abschnitte fest? | `--axis-from` übernimmt die Achspunkte, baut aber die Stationen neu (M6) — deren Lage wechselt je Meldung. Für AF-3 soll **jeder** Live-Punkt bleiben ⇒ neue Option `--keep-from` |
+| D-AF-36 | Prüfungen der echten Dateien (`verify:road-fc --data`) | G1 und G5 waren an der **Live**-Datei rot, seit M6 (07.10.): sie erwarteten drei bis vier Quellen und jede Station an der Katalogposition; die Datei nennt seit M6 fünf Quellen und führt 1 320 Stationen an der Lage der Meldung. Der Verifier lief seither nie mit `--data` |
+
+#### 8.9.2 Umsetzung
+
+- **V-AF-22 / E-AF-10:** `isCarriagewayWay` (`build-fc-points.mjs`): Fahrbahn einer Autobahn ist `highway=motorway` oder
+  `highway=trunk` mit einer Autobahn-Nummer im `ref`; `OSM_QUERY` holt beides. Der Korridor-Bauer liest dieselbe Funktion.
+- **`--keep-from=<veröffentlichte points.json>`** (`keepPoints`): jeder Punkt der Datei bleibt, wie er ist; nur Abschnitte ohne
+  Achspunkt in der Datei bekommen Achspunkte; eine Station, die ein neuer Abschnitt führt, bekommt Abschnitt und km (Lage bleibt).
+  Reihenfolge der Achspunkte wie bei einem Neubau (Abschnitt für Abschnitt in der Reihenfolge der Korridor-Datei).
+- **V-AW-39 behoben:** der Lauf nennt die Punktdatei, aus der er gerechnet ist (`engine.points`, 12 Stellen sha256); der
+  Wiederholungsschutz vergleicht sie („Punktdatei geändert“ ⇒ der Lauf findet statt). Vertrag: `RoadFcEngine.points?`.
+- `verify:road-fc --data`: G1/G5 an die Form seit M6 angepasst (zwei benannte Erwartungen; an der Live-Datei danach 113/113,
+  Gegenprobe: eine Station mit Katalog-Lage um 0,01° verschoben ⇒ G5 rot).
+
+#### 8.9.3 Ergebnis (Paket `C:\dev\buscosun-road-publish\2026-10-11-af3\`, `SHA256SUMS`)
+
+| | Live | Paket |
+|---|---|---|
+| Korridore | 141 | **212** (141 Zeichen für Zeichen unverändert + 71 neue, davon 70 ohne Messstelle, 629 km) |
+| gegen den AF-2-Kandidaten | — | dieselben 210 Abschnitte Zeichen für Zeichen, dazu `a98-3` Murg → Albbruck 9,4 km und `a98-4` Waldshut-Tiengen → Lauchringen 5,4 km |
+| Autobahn-Nummern mit Korridor | 88 von 121 | 120 von 121 (A 695: nur Auf-/Abfahrten) |
+| gedeckt oder benannt (44 396 Proben) | 95,07 % | **99,96 %** — Linie 42 774 · Prognosepunkt 1 415 · im Bau 156 · ohne OSM-Fahrbahn 35 · offen 16 |
+| Punkte | 2 755 Achse + 1 814 Stationen | **2 958 Achse + 1 814 Stationen** — 4 568 von 4 569 Live-Punkten Zeichen für Zeichen gleich, einer mit neuem Abschnitt (E757 → `a37-2`, Lage gleich), 203 neue Achspunkte |
+| neue Achspunkte | — | 203 von 203 eingerastet (Abstand zur Nennlage p50 25 m, p90 325 m, max 806 m; 22 über 300 m, davon 20 an einem Abschnittsende — Live: 55 von 2 751, max 804 m), 4 entlang der Achse verschoben (Tunnel oder Abschnittsende), 9 auf Brücken |
+| Gelände/Rauhigkeit | 9 096 Einträge | 9 496 (alle 9 096 unverändert), 0 Punkte unvollständig |
+| Dateigrößen | 264 KB · 508 KB · 5,78 MB | 293 KB · 528 KB · 6,03 MB |
+
+Die „offen 16“ (vorher 15): eine Probe der A 485 hieß bisher „ohne OSM-Fahrbahn“ und ist mit der `trunk`-Regel ehrlich offen
+(Stummel an einem gepinnten Ende, E-AF-11).
+
+#### 8.9.4 Gate AF-3
+
+- **`verify:road-fc` 107/107** (vorher 103): B9 `trunk` mit Autobahn-Nummer (auch „B 34;A 98“; nicht „B 34“, nicht ohne Nummer),
+  B10 `keepFrom` mit Gegenprobe, C2b `engine.points`, K6 Wiederholungsschutz (gleicher Hash, anderer, fehlender, am Klon) —
+  alle vier vor der Umsetzung rot gesehen. **Mit `--data` am frischen Klon mit den neuen Dateien 113/113** (G1–G6).
+- **Volllauf des Producers** lokal auf einem frischen Klon (`ffb445c`, 11.10. 21:21 UTC) mit den drei neuen Dateien, ohne zu
+  veröffentlichen: **4 772 von 4 772 Punkten, 0 ohne Ergebnis**, 212 Korridor-Dateien + 16 je Land, 9,15 MB (Live-Läufe 8,63–8,69 MB,
+  +5,5 %), 115–123 s mit vier Prozessen (zwei Läufe); jede der 70 Dateien eines Teilstücks trägt nur Achspunkte mit 49 Stunden,
+  `engine.points` = Hash der Punktdatei.
+- **Stichprobe der Lage** gegen eine frische Overpass-Abfrage je Punkt (eigene Abfrage, unabhängig vom Auszug;
+  `af3-sample-osm.mjs`, Stand 21:37 UTC): 34 Punkte (25 neue, 9 übernommene) — **34 von 34 liegen ≤ 0,6 m auf einer Fahrbahn der
+  eigenen Autobahn**; `a98-4@0` auf dem `trunk`-Weg „A 98“.
+- **Vollständigkeit** an echten Achsen (`verify:road-contract` mit `ROAD_GAPLESS_RAW`, frischer Auszug): 118/118, N1 99,96 %,
+  N3 141/141 unverändert, N6 zweimal gebaut gleich; ohne Rohdaten 111/111.
+- **Seite mit der neuen Datei:** `verify:road-ui --towns=<neue corridors.json>` 90/90 — alle 212 Abschnitte geöffnet, kein
+  Ortsname überlappt.
+- typecheck 0, Build 256/256, Budget unverändert (totalJs 1 717,2 / 1 720), `road-archive` 26/26, `road-derive` 36/36,
+  `fusion-release` 30/30.
+
+#### 8.9.5 Befunde
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AF-36 | Drei Live-Achspunkte der A 60 (`a60@5/10/15`) sind „nicht eingerastet“, weil die A 60 dort `trunk` ist; mit der neuen Regel lägen sie auf der Fahrbahn. `--keep-from` lässt sie, wo sie sind | Punkt auf der Fahrbahn statt auf der Achse | mit dem Schritt E-AF-12 (Messstellen auffrischen) neu einrasten — ändert drei Live-Punkte |
+| V-AF-37 | Die `area`-Abfrage des Bauers scheitert abends (504); Spiegel liefern Monate alte Stände ohne Hinweis | der Bau hängt nicht an der Tageszeit, kein alter Stand rutscht durch | Kachel-Abfrage in den Bauer übernehmen, Antwort mit Stand älter als 3 Tage verwerfen |
+| V-AF-38 | `verify:road-fc --data` läuft in keinem Ablauf mit; G1/G5 waren vier Tage unbemerkt rot | veraltete Erwartungen fallen auf | Lauf mit `--data` in die Schritte nach jedem Einspielen (MANUELLE-SCHRITTE) |

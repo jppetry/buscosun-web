@@ -30,7 +30,9 @@ import {
   roadFcCorridorPath, roadFcStatePath, parseRoadFcPoints, ROAD_FC_ANCHOR_MODE,
 } from '../src/road/roadFc.ts';
 import { ROAD_REPO_DIR, ROAD_STATIONS_PATH, roadSlotOf, roadStamp } from '../src/road/roadContract.ts';
+import * as fcPointsMod from './road/build-fc-points.mjs';
 import { buildOsmIndex, nearestCarriageway, axisPointsOf, stationPointsOf, buildPoints, buildGeo, footOnSegment, refsOf } from './road/build-fc-points.mjs';
+const { isCarriagewayWay, OSM_QUERY } = fcPointsMod;
 import { dirStore, geoBackend, makeIo, buildRun, publishVerdict, publishRun, nextIndex, seriesOf, swisTable, readSwisTable, anchorObsFor, ROAD_FC_ANCHOR, repeatVerdict, repeatVerdictOf } from './road/road-forecast.mjs';
 import { memoryStore } from '../src/point/client/store.ts';
 import { POINT_LEARNED_PATH, POINT_STACK_PATH } from '../src/point/cubeFormat.ts';
@@ -136,6 +138,50 @@ const way = (ref, coords, tags = {}) => ({ type: 'way', tags: { highway: 'motorw
   add('B8 Zählung: Achse/Station/eingerastet/verschoben/Brücke stimmen mit den Punkten; ohne OSM (--no-snap) bleibt jeder Achspunkt auf der Achse',
     all.counts.axis === ax.length && all.counts.station === 1 && all.counts.snapped === ax.filter((p) => p.snap != null).length && all.counts.slid === 1 && all.counts.bridge >= 1
     && axisPointsOf(corridor, null).every((p) => p.snap === null && p.lat === 50), `${JSON.stringify(all.counts)} ${ax.map((p) => `${p.id}:${p.slide ?? 0}`).join(' ')}`);
+  // AF-3 / V-AF-22: a stretch that is signed as a motorway but mapped as `highway=trunk` (A 98 on the Hochrhein) counts as
+  // carriageway of that motorway; a trunk road with a federal-road number only does not.
+  {
+    const trunk = (ref, coords, tags = {}) => ({ type: 'way', tags: { highway: 'trunk', motorroad: 'yes', ...(ref ? { ref } : {}), ...tags }, geometry: coords.map(([lon, lat]) => ({ lon, lat })) });
+    const osm98 = { elements: [
+      trunk('A 98', [[8.0, 47.6], [8.1, 47.6]]),
+      trunk('B 34;A 98', [[8.1, 47.6], [8.2, 47.6]]),
+      trunk('B 34', [[8.3, 47.6], [8.4, 47.6]]),
+      trunk(null, [[8.5, 47.6], [8.6, 47.6]]),
+      way('A 98', [[8.7, 47.6], [8.8, 47.6]]),
+    ] };
+    const ix = buildOsmIndex(osm98);
+    const at = (lon) => nearestCarriageway(ix, [lon, 47.6001], 'A98');
+    add('B9 Fahrbahn einer Autobahn, die in OSM als trunk geführt ist (V-AF-22, A 98 am Hochrhein): trunk mit Autobahn-Nummer zählt (auch „B 34;A 98"), trunk nur mit Bundesstraßen-Nummer oder ohne Nummer nicht; die Overpass-Abfrage holt genau diese Wege',
+      typeof isCarriagewayWay === 'function' && ix.ways === 3 && !!at(8.05) && at(8.05).other === null && !!at(8.15) && at(8.15).other === null && at(8.35) === null && at(8.55) === null && !!at(8.75)
+      && isCarriagewayWay({ highway: 'motorway' }) && isCarriagewayWay({ highway: 'trunk', ref: 'A 98' }) && !isCarriagewayWay({ highway: 'trunk', ref: 'B 34' }) && !isCarriagewayWay({ highway: 'motorway_link', ref: 'A 98' }) && !isCarriagewayWay({ highway: 'trunk', ref: 'AB 3' })
+      && typeof OSM_QUERY === 'string' && /way\[highway=motorway\]\(area\.de\)/.test(OSM_QUERY) && /way\[highway=trunk\]\[ref~"[^"]+"\]\(area\.de\)/.test(OSM_QUERY),
+      `${ix.ways} Wege · ${[8.05, 8.15, 8.35, 8.55, 8.75].map((x) => (at(x) ? 'ja' : 'nein')).join(' ')}`);
+  }
+  // AF-3: `keepFrom` — every point of a published points file stays where it is; only corridors the file does not know
+  // get axis points, a station that a new corridor lists gets that corridor and km.
+  {
+    const fresh = { id: 'a8-new', road: 'A8', lengthKm: roadLineKm([[10.1, 50], [10.2, 50]]), line: [[10.1, 50], [10.2, 50]], stations: [{ id: 'S5', km: 1.4, dir: 'O' }, { id: 'S6', km: 2.5, dir: 'O' }] };
+    const cat = { S1: { n: 'Eins', bl: 'BY', lat: 50.0001, lon: 10.045 }, S5: { n: 'Fünf', bl: 'BY', lat: 50.0002, lon: 10.12 }, S6: { n: 'Sechs', bl: 'BY', lat: 50.0002, lon: 10.135 }, S7: { n: 'Sieben', bl: 'HE', lat: 51, lon: 9 } };
+    const kept = [
+      { id: 'a8-x@0', kind: 'axis', corridor: 'a8-x', km: 0, lat: 49.9, lon: 10.001, snap: 7 },                       // not where the index would snap it
+      { id: 'a8-x@5', kind: 'axis', corridor: 'a8-x', km: 5, lat: 49.9, lon: 10.07, snap: null },
+      { id: 'S1', kind: 'station', corridor: 'a8-x', km: 3.3, lat: 50.2, lon: 10.3, state: 'BY', name: 'Eins', pos: 'report' },
+      { id: 'S5', kind: 'station', corridor: null, km: null, lat: 50.3, lon: 10.4, state: 'BY', name: 'Fünf', pos: 'report' },
+      { id: 'X9', kind: 'station', corridor: null, km: null, lat: 48, lon: 9, state: 'BW', name: 'ohne Katalog', noCatalog: true },
+    ];
+    const r = buildPoints({ corridors: [corridor, fresh], stations: cat, index, keepFrom: kept });
+    const P = Object.fromEntries(r.points.map((p) => [p.id, p]));
+    const plain = buildPoints({ corridors: [corridor, fresh], stations: cat, index });
+    const newAxis = r.points.filter((p) => p.kind === 'axis' && p.corridor === 'a8-new');
+    add('B10 keepFrom (AF-3): Achspunkte eines bekannten Abschnitts bleiben Zeichen für Zeichen (auch wo die Fahrbahn anders einrastete, kein dritter Punkt kommt dazu), ein neuer Abschnitt bekommt eingerastete Achspunkte; Stationen bleiben unverändert, eine Station eines neuen Abschnitts bekommt Abschnitt und km (Lage bleibt), eine dort geführte Station ohne Zeile in der Datei kommt dazu, sonst keine; Zählung = Punkte; Gegenprobe ohne keepFrom baut neu',
+      eq(P['a8-x@0'], kept[0]) && eq(P['a8-x@5'], kept[1]) && r.points.filter((p) => p.kind === 'axis' && p.corridor === 'a8-x').length === 2
+      && newAxis.length === axisPointsOf(fresh, index).length && newAxis.length >= 2 && newAxis.every((p) => p.snap != null) && eq(newAxis, axisPointsOf(fresh, index))
+      && eq(P.S1, kept[2]) && eq(P.X9, kept[4]) && eq(P.S5, { ...kept[3], corridor: 'a8-new', km: 1.4 })
+      && P.S6?.corridor === 'a8-new' && P.S6.km === 2.5 && P.S7 === undefined
+      && r.counts.axis === 2 + newAxis.length && r.counts.station === 4 && r.counts.kept === kept.length && r.counts.added === newAxis.length + 1 && r.counts.reassigned === 1
+      && plain.points.find((p) => p.id === 'a8-x@0').lat !== kept[0].lat && plain.points.some((p) => p.id === 'S7') && plain.counts.kept === undefined,
+      JSON.stringify({ counts: r.counts, S5: P.S5, S6: P.S6 }));
+  }
 }
 
 // --- C: producer end to end on the cube fixture ----------------------------------------------------------
@@ -208,6 +254,8 @@ let built, runFiles;
     [cor, st].every((d) => { const p = parseRoadFcFile(d); return p && p.dropped === 0 && p.points.length === d.points.length; }) && cor.run === roadFcStamp(nowMs) && cor.t0Ms === roadFcT0(nowMs) && cor.steps === ROAD_FC_STEPS
     && cor.engine.name === FUSION_NAME && cor.engine.version === FUSION_CURRENT && cor.engine.stage === 'fs' && cor.engine.anchor === 'none' && cor.engine.hourMean === FUSION8_NOWCAST_HOUR_MEAN && cor.engine.runs.t1 === FIX.runs.t1 && cor.engine.runs.t2 === FIX.runs.t2
     && /^[0-9a-f]{12}$/.test(cor.engine.tables.learned) && /^[0-9a-f]{12}$/.test(cor.engine.tables.stack), JSON.stringify(cor.engine.runs));
+  add('C2b der Lauf nennt die Punktdatei, aus der er gerechnet ist (V-AW-39): engine.points = die ersten 12 Stellen des sha256 von points.json im Klon',
+    cor.engine.points === createHash('sha256').update(readFileSync(join(dataDir, ROAD_FC_REPO_DIR, ROAD_FC_POINTS_PATH))).digest('hex').slice(0, 12), String(cor.engine.points));
   const verdict = publishVerdict(built);
   add('C3 Freigabe: Lauf mit Stufe fs an jedem Punkt ist frei', verdict.ok && built.stats.noStage === 0, verdict.reasons.join(' · '));
 
@@ -476,7 +524,9 @@ if (typeof flags.data === 'string') {
   const ax = doc.points.filter((p) => p.kind === 'axis'), st = doc.points.filter((p) => p.kind === 'station');
   const ids = new Set(doc.points.map((p) => p.id));
   add('G1 echte Punktdatei: lesbar, Kennungen eindeutig, Zählung = Punkte, Quellen nennen OSM (ODbL), BKG und DWD',
-    !!doc && ids.size === doc.points.length && doc.counts.axis === ax.length && doc.counts.station === st.length && doc.sources.some((s) => /ODbL/.test(s.license) && /OpenStreetMap/.test(s.attribution)) && doc.sources.length === (st.some((p) => p.noCatalog) ? 4 : 3),
+    !!doc && ids.size === doc.points.length && doc.counts.axis === ax.length && doc.counts.station === st.length && doc.sources.some((s) => /ODbL/.test(s.license) && /OpenStreetMap/.test(s.attribution))
+    // Since M6 (07.10.2026) a file built with the position table names two more sources (bulletin position, OSM ways with ref).
+    && doc.sources.length === 3 + (st.some((p) => p.noCatalog) || st.some((p) => p.pos) ? 1 : 0) + (st.some((p) => p.pos) ? 1 : 0),
     `${ax.length} Achse + ${st.length} Stationen`);
   // V-AW-22: no axis point inside a corridor's `unbuilt` stretch.
   const want = cor.flatMap((c) => roadFcAxisKms(c.lengthKm).filter((km) => !(c.unbuilt ?? []).some(([a, b]) => km >= a && km <= b)).map((km) => roadFcAxisId(c.id, km)));
@@ -497,9 +547,13 @@ if (typeof flags.data === 'string') {
   const stations = JSON.parse(readFileSync(join(flags.data, ROAD_REPO_DIR, 'static', 'stations.json'), 'utf8')).stations;
   const live = Object.entries(stations).filter(([, s]) => !s.oob && Number.isFinite(s.lat) && Number.isFinite(s.lon));
   const cat = st.filter((p) => !p.noCatalog), noCat = st.filter((p) => p.noCatalog);
-  add('G5 Stationspunkte = jede Katalogstation mit Koordinate, die nicht außer Betrieb ist, an der Katalogposition; dazu meldende Stationen OHNE Katalogzeile (V-AW-7, Lage der Meldung, benannt)',
-    cat.length === live.length && cat.every((p) => { const s = stations[p.id]; return s && Math.abs(s.lat - p.lat) < 1e-5 && Math.abs(s.lon - p.lon) < 1e-5; }) && noCat.every((p) => !stations[p.id] && /^[A-Z]{2}$/.test(p.state)) && (doc.counts.noCatalog ?? 0) === noCat.length,
-    `${cat.length} Katalog + ${noCat.length} ohne Katalogzeile`);
+  // M6: a reporting station sits at the bulletin's position (`pos: 'report'`) — only the others are bound to the catalogue.
+  const atReport = st.filter((p) => p.pos === 'report'), atCatalog = st.filter((p) => p.pos === 'catalog');
+  add('G5 Stationspunkte = jede Katalogstation mit Koordinate, die nicht außer Betrieb ist — an der Katalogposition, seit M6 an der Lage der Meldung, wo der Punkt es sagt (pos: report); dazu meldende Stationen OHNE Katalogzeile (V-AW-7, benannt); die Zählung der Lagen stimmt',
+    cat.length === live.length && new Set(cat.map((p) => p.id)).size === cat.length && cat.every((p) => { const s = stations[p.id]; return s && (p.pos === 'report' || (Math.abs(s.lat - p.lat) < 1e-5 && Math.abs(s.lon - p.lon) < 1e-5)); })
+    && noCat.every((p) => !stations[p.id] && /^[A-Z]{2}$/.test(p.state)) && (doc.counts.noCatalog ?? 0) === noCat.length
+    && (doc.counts.posReport === undefined || (doc.counts.posReport === atReport.length && doc.counts.posCatalog === atCatalog.length)),
+    `${cat.length} Katalog + ${noCat.length} ohne Katalogzeile · Lage der Meldung ${atReport.length}, des Katalogs ${atCatalog.length}`);
   const geo = JSON.parse(readFileSync(join(fcDir, ROAD_FC_GEO_PATH), 'utf8'));
   const terr = geo.entries.filter(([k]) => k.startsWith('terrain/')), z0 = geo.entries.filter(([k]) => k.startsWith('z0:'));
   const tKeys = new Set(terr.map(([k]) => k.split('/').pop()));
@@ -809,6 +863,24 @@ if (typeof flags.data === 'string') {
   rmSync(dir, { recursive: true, force: true });
   add('K4 am Klon: ohne Zeiger kein Überspringen; mit Zeiger und gleichen Tabellen-Hashes Wiederholung; geänderte Tabellendatei ⇒ neuer Lauf; die Messdatei der Stunde zählt nur bei eingeschaltetem Anker',
     first.repeat === false && second.repeat === true && third.repeat === false && /stack/.test(third.reason) && off.repeat === true && on.repeat === false, `${first.reason} | ${second.reason} | ${third.reason}`);
+  // V-AW-39 (AF-3): the points file is an input too — a run that was built from another points file is never a repeat.
+  {
+    const vp = (enginePoints, now) => repeatVerdict({ fcIndex: { killed: false, runs: [entry(enginePoints === undefined ? {} : { points: enginePoints })] }, pointIndex: pointIndex(), nowMs: T + 2 * 60_000, tables, ...(now === undefined ? {} : { points: now }) });
+    const sameP = vp('ppp', 'ppp'), changed = vp('ppp', 'qqq'), unknownP = vp(undefined, 'qqq'), notAsked = vp('ppp'), noFile = vp('ppp', null);
+    const dir2 = mkdtempSync(join(tmpdir(), 'road-fc-k5-'));
+    const put2 = (f, o) => { mkdirSync(dirname(join(dir2, f)), { recursive: true }); writeFileSync(join(dir2, f), typeof o === 'string' ? o : JSON.stringify(o)); };
+    put2(POINT_LEARNED_PATH, 'L'); put2(POINT_STACK_PATH, 'S'); put2('point/index.json', pointIndex());
+    put2(`${ROAD_FC_REPO_DIR}/${ROAD_FC_POINTS_PATH}`, 'P1');
+    const e5 = entry({ points: h('P1') }); e5.engine.tables = { learned: h('L'), stack: h('S'), clima: null };
+    put2(`${ROAD_FC_REPO_DIR}/${ROAD_FC_INDEX_PATH}`, { schema: 1, killed: false, runs: [e5] });
+    const onSame = repeatVerdictOf(dir2, T + 2 * 60_000, 'none');
+    put2(`${ROAD_FC_REPO_DIR}/${ROAD_FC_POINTS_PATH}`, 'P2');
+    const onNew = repeatVerdictOf(dir2, T + 2 * 60_000, 'none');
+    rmSync(dir2, { recursive: true, force: true });
+    add('K6 Punktdatei als Eingabe (V-AW-39): gleicher Hash ⇒ Wiederholung; anderer Hash oder ein letzter Lauf ohne Angabe ⇒ neuer Lauf „Punktdatei geändert"; ohne Angabe beim Aufruf wie bisher; am Klon: geänderte points.json ⇒ neuer Lauf',
+      sameP.repeat === true && changed.repeat === false && /Punktdatei geändert/.test(changed.reason) && unknownP.repeat === false && /Punktdatei/.test(unknownP.reason) && notAsked.repeat === true && noFile.repeat === true
+      && onSame.repeat === true && onNew.repeat === false && /Punktdatei geändert/.test(onNew.reason), `${changed.reason} | ${onSame.reason} | ${onNew.reason}`);
+  }
   const src = readFileSync(join(HERE, 'road', 'road-forecast.mjs'), 'utf8');
   const wf = readFileSync(join(HERE, 'road', 'workflow-road-fc.yml'), 'utf8').split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
   add('K5 Verdrahtung: der Producer fragt nur bei --publish und vor buildRun, --always / ROAD_FC_ALWAYS=1 rechnet immer; der Workflow setzt ROAD_FC_ALWAYS nur beim Start von Hand',

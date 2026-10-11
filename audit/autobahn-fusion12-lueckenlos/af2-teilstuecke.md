@@ -2,6 +2,7 @@
 
 Gebaut mit `build-corridors.mjs --gapless --pin=<Live-Datei>` aus den DLM250-Achsen vom 04.10.2026 und dem OSM-Auszug vom 06.10.2026.
 Die endgültige Datei entsteht in AF-3 mit frischem OSM-Auszug; Kennungen und Längen können sich dabei noch ändern.
+**Nachtrag AF-3 (11.10.2026, Audit §8.9):** mit dem Auszug vom 11.10. sind alle 69 Teilstücke dieser Liste Zeichen für Zeichen gleich geblieben; dazu kommen `a98-3` Murg → Albbruck (9,4 km, 3 Prognosepunkte) und `a98-4` Waldshut-Tiengen → Lauchringen (5,4 km, 2 Prognosepunkte) — die A 98 am Hochrhein ist in OpenStreetMap `trunk` mit Autobahn-Nummer (E-AF-10). Zusammen 71 Teilstücke, 629 km, 203 Prognosepunkte.
 69 Teilstücke, 614 km, 198 Prognosepunkte auf der Achse (Regel alle 5 km).
 
 | Kennung | Autobahn | Titel | Länge km | Prognosepunkte | Messstellen |

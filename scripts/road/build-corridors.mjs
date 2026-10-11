@@ -624,7 +624,7 @@ async function main() {
     sources: [
       { what: 'Autobahnachsen DE', name: 'BKG DLM250 (AX_Strassenachse, Widmung 1301), WFS wfs_dlm250', license: 'dl-de/by-2.0', attribution: `© GeoBasis-DE / BKG (${year})` },
       { what: 'Ortsnamen', name: 'GeoNames', license: 'CC BY 4.0', attribution: 'GeoNames (geonames.org)' },
-      ...(isBuilt ? [{ what: 'Pruefung, ob eine Strecke gebaut ist (V-AW-22)', name: 'OpenStreetMap (highway=motorway)', license: 'ODbL', attribution: '© OpenStreetMap-Mitwirkende' }] : []),
+      ...(isBuilt ? [{ what: 'Pruefung, ob eine Strecke gebaut ist (V-AW-22)', name: 'OpenStreetMap (highway=motorway, highway=trunk mit Autobahn-Nummer)', license: 'ODbL', attribution: '© OpenStreetMap-Mitwirkende' }] : []),
     ],
     note: `Korridor-km ist eine eigene, durchgehende Achse je Abschnitt (Ausrichtung: ungerade Nummern Nord → Süd, gerade West → Ost), nicht der amtliche Streckenkilometer. AT/CH-Fortsetzungen und Prognosepunkte folgen mit AW-6.${isBuilt ? ` Strecken, die das DLM250 als Autobahn führt, für die OpenStreetMap aber auf mindestens ${UNBUILT_MIN_KM} km keine Fahrbahn dieser Nummer kennt und an denen keine Messstelle liegt, sind am Ende abgeschnitten (trimmedKm) oder innen als unbuilt [von, bis km] benannt (V-AW-22).` : ''}${corridors.some((c) => c.spur) ? ' Abschnitte mit spur: true sind Stichäste einer Autobahn mit eigener Messstelle (V-AW-16), nach den übrigen Abschnitten nummeriert.' : ''}${corridors.some((c) => c.gap) ? ` Abschnitte mit gap: true sind Teilstücke ohne Messstelle (ab ${GAPLESS_MIN_KM} km Hauptfahrbahn in Betrieb, die kein anderer Abschnitt deckt): dort gibt es nur die Prognose.` : ''}`,
     corridors,

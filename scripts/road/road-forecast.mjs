@@ -398,6 +398,8 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     ...(anchored ? { anchorMode: anchor, anchorSlot, anchored } : {}),
     hourMean: fusionStage().options.nowcastHourMean === true, runs,
     tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
+    // V-AW-39: the points file is an input — the repeat guard compares it.
+    points: sha12(join(fcDir, ROAD_FC_POINTS_PATH)),
   };
   const noStage = parts.reduce((s, p) => s + p.noStage, 0);
   const geo = parts.reduce((s, p) => ({ terrainMiss: s.terrainMiss + p.geo.terrainMiss, z0Miss: s.z0Miss + p.geo.z0Miss }), { terrainMiss: 0, z0Miss: 0 });
@@ -459,11 +461,13 @@ export function publishVerdict({ entry, stats }) {
  *     named: t1, t2, t3 if used, stations — MOSMIX-S is not an input), from the same tables,
  *   - was built with the stand of buscosun Fusion this code computes (`fusionRelease.ts`; an older stand ⇒ the run
  *     happens — that is how the product follows a new stand by itself, once), and
- *   - no measurement slot has arrived that the anchor would use now and did not use then.
+ *   - no measurement slot has arrived that the anchor would use now and did not use then, and
+ *   - was computed from the points file of the checkout (`engine.points`, V-AW-39: after new points were copied in on
+ *     06.10.2026 the next run was skipped as a repeat).
  * Radar frames newer than that run inside the same hour do not count: the next hourly run takes them.
  * Anything unreadable or unknown ⇒ not a repeat (the run happens). `{ repeat, reason }`.
  */
-export function repeatVerdict({ fcIndex, pointIndex, nowMs, tables = null, anchorSlotReady = false }) {
+export function repeatVerdict({ fcIndex, pointIndex, nowMs, tables = null, anchorSlotReady = false, points = null }) {
   const no = (reason) => ({ repeat: false, reason });
   const prev = fcIndex?.runs?.[0];
   if (!prev || fcIndex.killed) return no('kein veröffentlichter Lauf');
@@ -482,6 +486,8 @@ export function repeatVerdict({ fcIndex, pointIndex, nowMs, tables = null, ancho
     if (offered[k] !== used[k]) return no(`${k} ${used[k]} → ${offered[k]}`);
   }
   if (tables) for (const k of Object.keys(tables)) if (tables[k] !== prev.engine?.tables?.[k]) return no(`Tabelle ${k} geändert`);
+  // V-AW-39: another points file (or a run that does not name its file) ⇒ the run happens.
+  if (points != null && prev.engine?.points !== points) return no('Punktdatei geändert');
   if (anchorSlotReady && prev.engine?.anchor !== 'swis') return no('Messung der vollen Stunde ist jetzt da');
   return { repeat: true, reason: `Lauf ${prev.run} hat dieselbe Stunde und dieselben Eingaben (t1 ${used.t1}, stations ${used.stations ?? '—'})` };
 }
@@ -493,6 +499,7 @@ export function repeatVerdictOf(dataDir, nowMs, anchor = ROAD_FC_ANCHOR_MODE) {
     fcIndex: read(join(ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH)), pointIndex: read('point/index.json'), nowMs,
     tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
     anchorSlotReady: anchor !== 'none' && existsSync(join(dataDir, ROAD_REPO_DIR, 'obs', `${roadStamp(roadFcT0(nowMs))}.json`)),
+    points: sha12(join(dataDir, ROAD_FC_REPO_DIR, ROAD_FC_POINTS_PATH)),
   });
 }
 

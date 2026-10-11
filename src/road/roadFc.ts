@@ -220,6 +220,8 @@ export interface RoadFcEngine {
   runs: Record<string, string | null>;
   /** sha-256 (first 12 hex) of the learned tables read. */
   tables: Record<string, string | null>;
+  /** V-AW-39: sha-256 (first 12 hex) of the points file the run was computed from. Absent = a run before AF-3. */
+  points?: string | null;
 }
 
 export interface RoadFcFile {

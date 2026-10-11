@@ -19,6 +19,8 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/build-fc-points.mjs
  *     --corridors=<corridors.json> --stations=<stations.json> --osm=<cache.json> --out=<road/fc/v1/static>
  *     [--no-geo] [--no-snap] [--roads=A8,A81] [--obs=<obs.json,…>] [--geo-from=<previous geo.json>]
+ *     [--keep-from=<published points.json>]
+ *   `--keep-from` (AF-3): every point of that file stays as it is; only corridors it does not know get axis points.
  *   `--geo-from`: cache entries of the previous geo file are taken over — only new points go to the tile servers.
  *
  * OSM: one Overpass query for all motorways of Germany (≈ 55 MB), cached in `--osm`. Position licence of the snapped
@@ -38,7 +40,8 @@ import { readStationPositions, stationPosition } from './station-positions.mjs';
 
 const OVERPASS = 'https://overpass-api.de/api/interpreter';
 const UA = 'buscosun-road-fc-points (buscosun-web/audit/autobahnwetter.md)';
-const OSM_QUERY = '[out:json][timeout:600][maxsize:1073741824];area["ISO3166-1"="DE"][admin_level=2]->.de;way[highway=motorway](area.de);out tags geom;';
+/** V-AF-22: besides `highway=motorway` every `highway=trunk` way that carries a motorway number (A 98 on the Hochrhein). */
+export const OSM_QUERY = '[out:json][timeout:600][maxsize:1073741824];area["ISO3166-1"="DE"][admin_level=2]->.de;(way[highway=motorway](area.de);way[highway=trunk][ref~"(^|;) ?A ?[0-9]"](area.de););out tags geom;';
 /** A motorway way WITHOUT the corridor's number (no `ref`, or another one: A 831 where DLM250 says A 81, the last metres
  *  before a junction) is accepted only this close (m) — the axis then runs on that carriageway. */
 const OTHER_REF_MAX_M = 150;
@@ -58,12 +61,15 @@ export function footOnSegment(p, a, b) {
 
 export const refsOf = (tags) => String(tags?.ref ?? '').split(/[;,/]+/).map((s) => s.replace(/\s+/g, '').toUpperCase()).filter(Boolean);
 
+/** A way that is carriageway of a motorway: `highway=motorway`, or `highway=trunk` signed with a motorway number (V-AF-22). */
+export const isCarriagewayWay = (tags) => tags?.highway === 'motorway' || (tags?.highway === 'trunk' && refsOf(tags).some((r) => /^A\d/.test(r)));
+
 /** Grid index over the motorway segments of the OSM extract. */
 export function buildOsmIndex(osm) {
   const cells = new Map();
   let ways = 0, segs = 0;
   for (const e of osm.elements ?? []) {
-    if (e.type !== 'way' || !Array.isArray(e.geometry) || e.tags?.highway !== 'motorway') continue;
+    if (e.type !== 'way' || !Array.isArray(e.geometry) || !isCarriagewayWay(e.tags)) continue;
     ways++;
     const w = {
       refs: refsOf(e.tags),
@@ -178,7 +184,43 @@ export function stationPointsOf(stations, corridors, reporting = [], positions =
   return out;
 }
 
-export function buildPoints({ corridors, stations, index, reporting = [], positions = null, axisFrom = null }) {
+/**
+ * AF-3: every point of a published points file stays as it is (`keepFrom`). Only corridors the file has no axis point
+ * for get axis points; a kept station that such a corridor lists gets its corridor and km (position unchanged); a station
+ * listed there without a row in the file is built. Nothing else is added — refreshing the stations is a step of its own.
+ */
+function keepPoints({ corridors, stations, index, reporting, positions, keepFrom }) {
+  const keptAxis = keepFrom.filter((p) => p.kind === 'axis'), keptSt = keepFrom.filter((p) => p.kind === 'station');
+  const known = new Set(keptAxis.map((p) => p.corridor));
+  const fresh = corridors.filter((c) => !known.has(c.id));
+  const newAxis = fresh.flatMap((c) => axisPointsOf(c, index));
+  const where = new Map();
+  for (const c of fresh) for (const s of c.stations ?? []) if (!where.has(s.id)) where.set(s.id, { corridor: c.id, km: s.km });
+  let reassigned = 0;
+  const st = keptSt.map((p) => {
+    const w = where.get(p.id);
+    if (!w || p.corridor != null) return p;
+    reassigned++;
+    return { ...p, corridor: w.corridor, km: w.km };
+  });
+  const have = new Set(keptSt.map((p) => p.id));
+  const missing = new Set([...where.keys()].filter((id) => !have.has(id)));
+  const built = missing.size ? stationPointsOf(stations, corridors, reporting, positions).filter((p) => missing.has(p.id)) : [];
+  // Order as a file built from scratch: corridor by corridor in the order of the corridors file, km ascending.
+  const rank = new Map(corridors.map((c, i) => [c.id, i]));
+  const axis = [...keptAxis, ...newAxis].map((p, i) => [p, i]).sort((a, b) => (rank.get(a[0].corridor) ?? Infinity) - (rank.get(b[0].corridor) ?? Infinity) || a[1] - b[1]).map(([p]) => p);
+  const allSt = [...st, ...built];
+  const counts = {
+    axis: axis.length, station: allSt.length, noCatalog: allSt.filter((p) => p.noCatalog).length,
+    snapped: axis.filter((p) => p.snap != null).length, unsnapped: axis.filter((p) => p.snap == null).length,
+    slid: axis.filter((p) => p.slide).length, bridge: axis.filter((p) => p.bridge).length,
+    kept: keepFrom.length, added: newAxis.length + built.length, reassigned,
+  };
+  return { points: [...axis, ...allSt], counts };
+}
+
+export function buildPoints({ corridors, stations, index, reporting = [], positions = null, axisFrom = null, keepFrom = null }) {
+  if (keepFrom) return keepPoints({ corridors, stations, index, reporting, positions, keepFrom });
   // `axisFrom`: the axis points of an existing points file, taken over unchanged (M6 rebuilds only the stations).
   const axis = axisFrom ? axisFrom.filter((p) => p.kind === 'axis') : corridors.flatMap((c) => axisPointsOf(c, index));
   const st = stationPointsOf(stations, corridors, reporting, positions);
@@ -268,6 +310,10 @@ async function main() {
   // M6: `--axis-from=<points.json>` keeps the axis points of that file (no OSM download, no re-snap); the station table
   // `scripts/road/station-positions.json` is read unless `--no-positions`.
   const axisDoc = typeof flags['axis-from'] === 'string' ? JSON.parse(readFileSync(flags['axis-from'], 'utf8')) : null;
+  // AF-3: `--keep-from=<points.json>` keeps every point of that file; new corridors are snapped onto `--osm`.
+  const keepDoc = typeof flags['keep-from'] === 'string' ? JSON.parse(readFileSync(flags['keep-from'], 'utf8')) : null;
+  if (keepDoc && axisDoc) { console.error('--keep-from und --axis-from schließen sich aus'); process.exit(2); }
+  const keptBase = keepDoc ? (/Stand ([^,(]+)/.exec(keepDoc.sources?.[0]?.name ?? '')?.[1]?.trim() ?? null) : null;
   const positions = flags['no-positions'] ? null : readStationPositions(typeof flags.positions === 'string' ? flags.positions : undefined);
   let index = null, osmBase = axisDoc ? (/Stand ([^,]+)$/.exec(axisDoc.sources?.[0]?.name ?? '')?.[1] ?? null) : null;
   if (!flags['no-snap'] && !axisDoc) {
@@ -285,7 +331,8 @@ async function main() {
   }
 
   const reporting = typeof flags.obs === 'string' ? flags.obs.split(',').flatMap((f) => JSON.parse(readFileSync(f, 'utf8')).points ?? []) : [];
-  const { points, counts } = buildPoints({ corridors, stations: stationsDoc.stations, index, reporting, positions, axisFrom: axisDoc?.points ?? null });
+  const { points, counts } = buildPoints({ corridors, stations: stationsDoc.stations, index, reporting, positions, axisFrom: axisDoc?.points ?? null, keepFrom: keepDoc?.points ?? null });
+  if (keepDoc) log(`--keep-from: ${counts.kept} Punkte übernommen, ${counts.added} neu, ${counts.reassigned} Stationen einem neuen Abschnitt zugeordnet`);
   const posCatalog = points.filter((p) => p.pos === 'catalog').length, posReport = points.filter((p) => p.pos === 'report').length;
   if (positions) Object.assign(counts, { posReport, posCatalog });
   log(`Punkte: ${counts.axis} Achse (${counts.snapped} eingerastet, ${counts.unsnapped} nicht, ${counts.slid} verschoben, ${counts.bridge} Brücke) + ${counts.station} Stationen (${counts.noCatalog} ohne Katalogzeile, Lage aus der Meldung${positions ? `; M6: ${posReport} Meldung, ${posCatalog} Katalog` : ''})`);
@@ -293,7 +340,7 @@ async function main() {
   const doc = {
     schema: 1, product: 'road-fc-points', builtAt, spacingKm: ROAD_FC_SPACING_KM,
     sources: [
-      { what: 'Lage der Achspunkte (auf die Fahrbahn gelegt)', name: `OpenStreetMap, highway=motorway${osmBase ? `, Stand ${osmBase}` : ''}`, license: 'ODbL 1.0', attribution: '© OpenStreetMap-Mitwirkende' },
+      { what: 'Lage der Achspunkte (auf die Fahrbahn gelegt)', name: `OpenStreetMap, highway=motorway und highway=trunk mit Autobahn-Nummer${keepDoc ? `, Stand ${keptBase ?? 'unbekannt'} (übernommene Punkte) und ${osmBase} (neue Abschnitte)` : osmBase ? `, Stand ${osmBase}` : ''}`, license: 'ODbL 1.0', attribution: '© OpenStreetMap-Mitwirkende' },
       { what: 'Korridor-Achse und Korridor-km', name: 'BKG DLM250 (road/v1/static/corridors.json)', license: 'dl-de/by-2.0', attribution: '© GeoBasis-DE / BKG' },
       { what: 'Stationen', name: 'DWD sws_stations_xls.xlsx (road/v1/static/stations.json)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' },
       ...(counts.noCatalog || positions ? [{ what: positions ? 'Lage der meldenden Stationen (M6)' : 'Stationen ohne Katalogzeile (V-AW-7)', name: 'Lage aus der Meldung, DWD Straßenwetter (SWIS)', license: 'GeoNutzV', attribution: 'Deutscher Wetterdienst' }] : []),
