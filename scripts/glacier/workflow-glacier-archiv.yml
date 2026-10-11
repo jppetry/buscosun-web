@@ -96,6 +96,7 @@ jobs:
         id: arch
         if: steps.app.outputs.ready == '1' && steps.data.outputs.ready == '1'
         run: |
+          set -o pipefail   # a crash of the archiver must turn the job red, not be hidden by `tee`
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/glacier-archive.mjs \
             --melt=../data/glacier/v1/melt --catalog=../static-branch/glacier/v1/static/${{ steps.data.outputs.build }}/catalog.json \

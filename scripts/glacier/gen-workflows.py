@@ -223,6 +223,7 @@ jobs:
         id: scan
         if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1' && steps.kill.outputs.go == '1'
         run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/sat-scan.mjs --data=../view/glacier/v1 --out=../out --patch=../patch --hours=72 | tee ../scan.log
           echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
@@ -271,6 +272,10 @@ jobs:
           node-version: '22'
 
 {producer_step(["scripts/glacier/melt.mjs", "scripts/glacier/glacier-publish.mjs", "src/glacier/glacierContract.ts"], extra_sparse=" public/climaGrid.json", comment="# public/climaGrid.json: Klimatologie von buscosun Fusion — ohne sie rechnet der Motor keine Verteilungen (V-SW-18).")}
+      - name: Install the two runtime packages of the cube chain (workspace root — Node finds them from app/)
+        if: steps.app.outputs.ready == '1'
+        run: npm install --no-save --no-audit --no-fund --no-package-lock bz2@1 jsfive@0.4
+
 {DATA_STEP}
 {VIEW_STEP}
       - name: Checkout cube (buscosun-data point/, sparse)
@@ -286,6 +291,7 @@ jobs:
         id: melt
         if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1' && steps.kill.outputs.go == '1'
         run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs --data=../view/glacier/v1 --cube=../cube --out=../out --patch=../patch | tee ../melt.log
           # übersprungen (kein neuer Lauf t2/t3, 4 Läufe heute) ⇒ kein Ausgabebaum ⇒ kein Veröffentlichen
@@ -340,6 +346,7 @@ jobs:
         env:
           OG_CHROME: /usr/bin/google-chrome
         run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/feed.mjs --data=../view/glacier/v1 --out=../out --patch=../patch | tee ../feed.log
           if [ "$(date -u +%u)" = "1" ]; then
@@ -424,6 +431,7 @@ jobs:
         id: arch
         if: steps.app.outputs.ready == '1' && steps.data.outputs.ready == '1'
         run: |
+          set -o pipefail   # a crash of the archiver must turn the job red, not be hidden by `tee`
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/glacier-archive.mjs \\
             --melt=../data/glacier/v1/melt --catalog=../static-branch/glacier/v1/static/${{{{ steps.data.outputs.build }}}}/catalog.json \\

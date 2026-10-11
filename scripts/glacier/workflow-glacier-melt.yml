@@ -68,6 +68,10 @@ jobs:
           done
           echo "ready=1" >> "$GITHUB_OUTPUT"
 
+      - name: Install the two runtime packages of the cube chain (workspace root — Node finds them from app/)
+        if: steps.app.outputs.ready == '1'
+        run: npm install --no-save --no-audit --no-fund --no-package-lock bz2@1 jsfive@0.4
+
       - name: Checkout data (buscosun-data main, glacier/ sparse)
         if: steps.app.outputs.ready == '1'
         uses: actions/checkout@v4
@@ -122,6 +126,7 @@ jobs:
         id: melt
         if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1' && steps.kill.outputs.go == '1'
         run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs --data=../view/glacier/v1 --cube=../cube --out=../out --patch=../patch | tee ../melt.log
           # übersprungen (kein neuer Lauf t2/t3, 4 Läufe heute) ⇒ kein Ausgabebaum ⇒ kein Veröffentlichen
