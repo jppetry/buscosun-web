@@ -12,6 +12,7 @@ import {
   glacierProjFile, catalogProblems, officialProblems,
   type GlacierCatalog, type GlacierCatalogEntry, type GlacierOfficialItem, type GlacierSeries,
 } from './glacierContract';
+import { glacierSeasonPath, seasonProblems, type GlacierSeasonDoc, type GlacierSeasonRow, type GlacierSatCatalogRow } from './glacierSatContract';
 
 export interface GlacierBases { cdn: string; raw: string }
 
@@ -96,9 +97,12 @@ export interface GlacierIndex {
   kind: 'glacier/index';
   builtAt: string;
   static: { build: string };
-  /** Later packages: newest scene per tile, newest melt run, season stand, feed week. */
-  sat?: unknown; melt?: unknown; season?: unknown; feed?: unknown;
+  /** Satellite line (GL-2): newest scene per tile and, per year and region, the stand of the season document. */
+  sat?: GlacierSatIndex;
+  /** Later packages: newest melt run, feed week. */
+  melt?: unknown; feed?: unknown;
 }
+export interface GlacierSatIndex { updatedAt: string; newest: Record<string, string>; seasons: Record<string, Record<string, string>> }
 export interface GlacierStatus { schema: 1; kind: 'glacier/status'; killed?: boolean; killReason?: string; lines?: Record<string, unknown>; checkedAt?: string }
 export type GlacierPointRow = [id: string, lat: number, lon: number, klass: 'A' | 'B' | 'C', km2: number];
 export interface GlacierPointsDoc { schema: 1; kind: 'glacier/points'; build: string; cols: string[]; rows: GlacierPointRow[] }
@@ -119,6 +123,9 @@ export interface GlacierHypsoDoc { region: string; bandM: number; demRef: string
 export interface GlacierSeriesDoc { region: string; glaciers: Record<string, Omit<GlacierSeries, 'id'>[]> }
 export interface GlacierProjEntry { rgi: string[]; v2020km3: number | null; f: Record<string, number[][]>; u10: Record<string, Array<number | null>>; a2100: Record<string, number[]> }
 export interface GlacierProjDoc { region: string; years: number[]; ssp: Record<string, string>; base: string; model: string; glaciers: Record<string, GlacierProjEntry> }
+
+/** The newest satellite row of a glacier with its date (from the season documents of the newest two years). */
+export interface GlacierSatLatest { date: string; row: GlacierSeasonRow; year: number }
 
 const memo = new Map<string, Promise<unknown>>();
 const once = <T>(key: string, make: () => Promise<T>): Promise<T> => {
@@ -183,3 +190,30 @@ export const loadEpoch = (build: string, region: string, year: number | string, 
 export const loadHypso = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierHypsoDoc>(build, glacierHypsoFile(region), signal, bases);
 export const loadSeries = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierSeriesDoc>(build, glacierSeriesFile(region), signal, bases);
 export const loadProj = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierProjDoc>(build, glacierProjFile(region), signal, bases);
+
+/** One season document (immutable name = stand), through the contract rules before it reaches the page. */
+export function loadSeasonDoc(year: number | string, region: string, stand: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierSeasonDoc | null> {
+  return once(`${bases.cdn}|season|${year}|${region}|${stand}`, async () => {
+    try {
+      const d = await fetchGlacier(glacierSeasonPath(year, region, stand), 'json', signal, bases) as GlacierSeasonDoc;
+      return seasonProblems(d, region, byId as ReadonlyMap<string, GlacierSatCatalogRow>).length === 0 ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+/** Newest satellite row per glacier: the season documents of the two newest years named by `index.sat`, all regions in parallel. */
+export async function loadSatLatest(sat: GlacierSatIndex, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<Map<string, GlacierSatLatest>> {
+  const out = new Map<string, GlacierSatLatest>();
+  const years = Object.keys(sat.seasons ?? {}).filter((y) => /^\d{4}$/.test(y)).sort().slice(-2);
+  const jobs: Array<Promise<GlacierSeasonDoc | null>> = [];
+  for (const y of years) for (const [region, stand] of Object.entries(sat.seasons[y])) jobs.push(loadSeasonDoc(y, region, stand, byId, signal, bases));
+  for (const doc of await Promise.all(jobs)) {
+    if (!doc) continue;
+    for (const [id, rows] of Object.entries(doc.glaciers)) {
+      const last = rows[rows.length - 1];
+      if (!last) continue;
+      const cur = out.get(id);
+      if (!cur || last[0] > cur.date) out.set(id, { date: last[0], row: last, year: doc.year });
+    }
+  }
+  return out;
+}

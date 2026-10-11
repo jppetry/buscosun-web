@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validity, snowMap, snowLine, areaAbove, evaluateGlacier, reflect, swirP01, sceneEncodingSuspect, SCL_INVALID } from './glacier/lib/satcore.mjs';
+import { validity, snowMap, snowLine, areaAbove, evaluateGlacier, reflect, swirP01, sceneEncodingSuspect, tileRedP05, tileOffsetOf, S2_SCALE, S2_OFFSET, SCL_INVALID } from './glacier/lib/satcore.mjs';
 import { buildSeasonRows } from './glacier/sat-scan.mjs';
 import {
   glacierSatClass, demDecode, demSample, obsProblems, seasonProblems, GLACIER_SNOW_GREEN_MIN, GLACIER_NDSI_SNOW, glacierFlagsOfMask,
@@ -29,21 +29,23 @@ const { w, h, n } = FX.window;
 const maskIdx = unb(FX.window.maskIdx, Uint32Array), elevI = unb(FX.window.elev, Float32Array);
 const mask = new Uint8Array(w * h), elev = new Float32Array(w * h).fill(NaN);
 maskIdx.forEach((i, k) => { mask[i] = 1; if (Number.isFinite(elevI[k])) elev[i] = elevI[k]; });
-function pack(key, { swirShift = 0 } = {}) {
+function pack(key, { swirShift = 0, offset = null } = {}) {
   const sc = FX.scenes[key];
+  const off = offset ?? S2_OFFSET;
+  const rf = (a) => reflect(a, S2_SCALE, off);
   const full = (arr, T) => { const o = new T(w * h); maskIdx.forEach((i, k) => { o[i] = arr[k]; }); return o; };
   const d = Object.fromEntries(Object.entries(sc.data).map(([k, b]) => [k, unb(b, k === 'scl' ? Uint8Array : Uint16Array)]));
   const raw = { scl: full(d.scl, Uint8Array), green: full(d.green, Uint16Array), swir: full(d.swir, Uint16Array), blue: full(d.blue, Uint16Array), red: full(d.red, Uint16Array), nir: full(d.nir, Uint16Array), swir2: full(d.swir2, Uint16Array) };
-  const swir = reflect(raw.swir);
+  const swir = rf(raw.swir);
   if (swirShift) for (let i = 0; i < swir.length; i++) if (mask[i]) swir[i] += swirShift;
-  return { w, h, mask, elev, scl: raw.scl, green: reflect(raw.green), swir, blue: reflect(raw.blue), red: reflect(raw.red), nir: reflect(raw.nir), swir2: reflect(raw.swir2), _sun: sc.sunElevation };
+  return { w, h, mask, elev, scl: raw.scl, green: rf(raw.green), swir, blue: rf(raw.blue), red: rf(raw.red), nir: rf(raw.nir), swir2: rf(raw.swir2), _sun: sc.sunElevation };
 }
 const meta = (key) => ({ klass: FX.klass, debris: FX.debris, sunElevation: FX.scenes[key].sunElevation });
 const ev = (key, over = {}) => evaluateGlacier(pack(key), { ...meta(key), ...over }, null);
 
 // F — fixture integrity ---------------------------------------------------------------------------------------------------
-const sha = createHash('sha256').update(JSON.stringify({ window: FX.window, scenes: FX.scenes })).digest('hex');
-add('F1 Fixture: Prüfsumme stimmt, sechs Szenen, Maske 14 043 Pixel ⇒ 5,617 km² (AGI 5: 5,616 km²)', sha === FX.sha256 && Object.keys(FX.scenes).length === 6 && n === 14043 && Math.abs((n * 400) / 1e6 - 5.616) < 0.005, `${n} px, ${(n * 400 / 1e6).toFixed(3)} km²`);
+const sha = createHash('sha256').update(JSON.stringify({ window: FX.window, scenes: FX.scenes, tiles: FX.tiles })).digest('hex');
+add('F1 Fixture: Prüfsumme stimmt, sieben Szenen, Maske 14 043 Pixel ⇒ 5,617 km² (AGI 5: 5,616 km²)', sha === FX.sha256 && Object.keys(FX.scenes).length === 7 && n === 14043 && Math.abs((n * 400) / 1e6 - 5.616) < 0.005, `${n} px, ${(n * 400 / 1e6).toFixed(3)} km²`);
 add('F2 Fixture: jede Szene trägt Aufnahme-ID, Verarbeitungsstand und Sonnenhöhe; die Höhen der Maske liegen im Bereich des Katalogs', Object.values(FX.scenes).every((s) => s.item && s.baseline && s.sunElevation > 0) && Math.min(...elev.filter(Number.isFinite)) >= FX.z[0] - 120 && Math.max(...elev.filter(Number.isFinite)) <= FX.z[2] + 120, `${Math.min(...elev.filter(Number.isFinite)).toFixed(0)}–${Math.max(...elev.filter(Number.isFinite)).toFixed(0)} m, Katalog ${FX.z[0]}–${FX.z[2]}`);
 
 // R — rule per scene ---------------------------------------------------------------------------------------------------------
@@ -111,6 +113,21 @@ add('L6 Eis ist kein Schnee: ein Pixel mit NDSI 0,8, aber Grün 0,30 (Gletschere
   const p = pack('clear'), v = validity(p); let over = 0, tot = 0; for (let i = 0; i < w * h; i++) if (v.clear[i]) { tot++; if ((p.green[i] - p.swir[i]) / (p.green[i] + p.swir[i]) > 1) over++; }
   const pOff = pack('clear'); let overOff = 0; for (let i = 0; i < w * h; i++) if (v.clear[i]) { const g = FX.scenes ? p.green[i] - 0.1 : 0, s = p.swir[i] - 0.1; if (g + s > 0.02 && (g - s) / (g + s) > 1) overOff++; }
   add('E2 Beleg „kein Versatz“: ohne Versatz ist der NDSI nie > 1; mit dem im STAC genannten −0,1 würde er über Schnee oft > 1 (unmöglich)', over === 0 && overOff > 1000 && void pOff === undefined, `ohne: ${over}/${tot}, mit −0,1: ${overOff}`);
+}
+
+{
+  // E3 the +1000 offset appears on single tile-days (not tied to the processing baseline): decided per tile-day from the vegetation of the tile
+  const unb16 = (b64) => unb(b64, Uint16Array);
+  const det = (k) => { const v = unb16(FX.tiles[k].vegRed); const r = tileRedP05(new Uint8Array(v.length).fill(4), v); return { ...r, offset: tileOffsetOf(r) }; };
+  const off = det('offsetOff'), on = det('offsetOn');
+  const few = tileRedP05(new Uint8Array(1500).fill(4), new Uint16Array(1500).fill(300));
+  const b513 = FX.scenes.base513;
+  const pB = pack('base513'), p01B = swirP01(pB, validity(pB).clear);
+  add('E3 Versatz der DN je Kachel-Tag aus der Vegetation der ganzen Kachel (grob, 160 m): Rot-p5 der Vegetation 25.08.2025 (32TPS) unter 430 ⇒ kein Versatz, 24.09.2026 (32TPT) über 430 ⇒ −0,1; zu wenig Vegetation ⇒ keine Aussage (null)',
+    off.p5 < 430 && off.offset === 0 && on.p5 >= 430 && on.offset === -0.1 && few.p5 === null && tileOffsetOf(few) === null, `ohne ${off.p5} (n ${FX.tiles.offsetOff.nAll}) · mit ${on.p5} (n ${FX.tiles.offsetOn.nAll}) · wenig ${few.n}`);
+  add('E4 der Verarbeitungsstand allein entscheidet nicht: die Szene vom 26.09.2026 (Stand 05.13, 32TPS) hat ohne Versatz dunkle SWIR-Pixel (p01 < 0,05) wie die Szenen der Stände 04.00 … 05.12', b513.baseline === '05.13' && p01B < 0.05, `p01 ${p01B?.toFixed(3)}`);
+  const r513 = (await ev('base513')).value;
+  add('R7 Szene 26.09.2026: gültig, Klaranteil ≥ 0,9, Schneeanteil unter 0,15 und Albedo des übrigen Eises 0,05–0,25 (ein ganzes Jahr ohne Firn: 2026 liegt die Gleichgewichtslinie über dem Gipfel)', r513 && r513.clear >= 0.9 && r513.snow < 0.15 && r513.alb.ice >= 0.05 && r513.alb.ice <= 0.25, JSON.stringify(r513));
 }
 
 // D — DEM -----------------------------------------------------------------------------------------------------------------------------

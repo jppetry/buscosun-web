@@ -113,6 +113,8 @@ export interface GlacierObsDoc {
   schema: 1; kind: 'glacier/obs'; tile: string; date: string; time: string; scene: string; sunElevation: number | null;
   /** thresholds in force, each marked `set` or `literature` (provenance rule) */
   params: Record<string, { v: number; origin: 'set' | 'literature' | 'measured' }>;
+  /** DN offset decided per tile-day from the vegetation of the tile (see satcore): which scene, red p5 of the vegetation, offset applied */
+  encoding?: Array<{ scene: string; vegPixels: number; redP5: number | null; offset: number }>;
   items: Record<string, GlacierSatValue>;
   /** glaciers of the tile that were looked at and not valued, with the reason */
   skipped: Array<{ id: string; reason: string }>;

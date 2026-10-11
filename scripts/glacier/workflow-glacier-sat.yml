@@ -17,7 +17,7 @@ name: glacier-sat
 
 on:
   schedule:
-    - cron: '41 6,13 * * *'   # 06:41 und 13:41 UTC
+    - cron: '43 16,22 * * *'   # 16:43 und 22:43 UTC (Plan §7; die Szenen des Vormittags sind dann bei Earth Search angekommen)
   workflow_dispatch: {}
 
 concurrency:
@@ -50,7 +50,7 @@ jobs:
           cd app
           git sparse-checkout set --no-cone scripts src package.json
           git checkout --quiet
-          for f in scripts/glacier/sat-scan.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierContract.ts; do
+          for f in scripts/glacier/sat-scan.mjs scripts/glacier/lib/satcore.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierSatContract.ts; do
             if [ ! -f "$f" ]; then
               echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
               echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
@@ -81,7 +81,7 @@ jobs:
         if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
         run: |
           cd app
-          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/sat-scan.mjs --data=../data/v1 --out=../out --cache=../cache | tee ../scan.log
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/sat-scan.mjs --data=../data/v1 --out=../out --patch=../patch --hours=72 | tee ../scan.log
           echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
 
       - name: Publish (v1/obs, v1/season, index, status — never --force)
@@ -92,5 +92,5 @@ jobs:
           git config user.email 'glacier@users.noreply.github.com'
           cd ..
           node app/scripts/glacier/glacier-publish.mjs --repo=data --line=sat --src=out \
-            --index-patch=out/.index-patch.json --status-patch=out/.status-patch.json \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
             --message="glacier(sat): $(date -u +%Y-%m-%dT%H:%MZ)"

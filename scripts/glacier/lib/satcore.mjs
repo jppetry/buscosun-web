@@ -35,10 +35,29 @@ export const LIANG = Object.freeze({ b02: 0.356, b04: 0.13, b08: 0.373, b11: 0.0
  * the COGs of Earth Search carry DN = reflectance × 10 000 — measured on seven scenes of baselines 04.00 … 05.12 (HEF window, Ötztal forest):
  * red DN of the forest pixels (SCL 4) has p50 430–700 and p5 170–310 (with the offset more than half of them would be negative reflectance),
  * the snow B11 p50 is 90–600 DN (with the offset it would be −0.04 … −0.09) and the NDSI of the offset-corrected values exceeds 1 over snow.
- * `scanScene` therefore passes `S2_OFFSET = 0` and checks every scene against the opposite assumption (`dnOffsetSuspect`).
+ * Exception, measured 24.09.2026: single tile-days carry the +1000 after all (forest red p5 801 DN where it is 130–310 elsewhere, snow B11 p50 1 370 DN)
+ * — NOT tied to the processing baseline (05.13 scenes of other tiles are offset-free) and not announced anywhere in the STAC item
+ * (`earthsearch:boa_offset_applied` is true for both). The offset is therefore decided PER TILE-DAY from the data: the 5th percentile of the red DN of
+ * the vegetation pixels (SCL 4) of the whole tile at 160 m (`tileOffsetOf`; offset-free 130–310 on nine tile-days, with offset 559 on the whole tile and 801 in a
+ * forest box, threshold 430 = midpoint of the gap). Tiles with too few
+ * vegetation pixels fall back to 0 and rely on `sceneEncodingSuspect`, the glacier-window check of the chosen offset (a wrong guess ⇒ the tile-day
+ * is an error, never a silently shifted value).
  */
 export const S2_SCALE = 0.0001;
 export const S2_OFFSET = 0;
+export const S2_OFFSET_ON = -0.1;
+export const TILE_OFFSET_RED_P5 = 430;
+export const TILE_OFFSET_MIN_VEG = 2000;
+/** Red DN percentile (5 %) of the vegetation pixels of a tile; `scl` and `red` on the same grid. */
+export function tileRedP05(scl, red) {
+  const v = [];
+  for (let i = 0; i < scl.length; i++) if (scl[i] === 4 && red[i] > 0) v.push(red[i]);
+  if (v.length < TILE_OFFSET_MIN_VEG) return { n: v.length, p5: null };
+  v.sort((a, b) => a - b);
+  return { n: v.length, p5: v[Math.floor(v.length * 0.05)] };
+}
+/** Offset of the tile-day: −0.1 when the vegetation is not darker than 430 DN at the 5th percentile, 0 when it is, null without evidence. */
+export const tileOffsetOf = ({ p5 }) => (p5 == null ? null : p5 >= TILE_OFFSET_RED_P5 ? S2_OFFSET_ON : S2_OFFSET);
 export function reflect(dn, scale = S2_SCALE, offset = S2_OFFSET) {
   const out = new Float32Array(dn.length);
   for (let i = 0; i < dn.length; i++) { if (dn[i] === 0) { out[i] = NaN; continue; } const v = dn[i] * scale + offset; out[i] = v < 0 ? 0 : v; }

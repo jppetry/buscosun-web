@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { stacSearchAll, assetGeo, readWindow } from './lib/s2cog.mjs';
+import { stacSearchAll, assetGeo, readWindow, cogHeader } from './lib/s2cog.mjs';
 import { loadStatic, loadRegion, prepGlacier, compareItems } from './sat-scan.mjs';
 import { demDecode } from '../../src/glacier/glacierSatContract.ts';
 
@@ -20,6 +20,7 @@ const SCENES = [
   { key: 'newsnow', date: '2025-09-29', why: 'Neuschnee nach dem 19.09. (Schneegrenze fällt um ≈ 750 m)' },
   { key: 'falsecloud', date: '2026-06-08', why: 'schneebedeckt, Sen2Cor führt Teile als Wolke (die Regel rettet sie nicht)' },
   { key: 'shadow', date: '2025-10-29', why: 'Oktober, Sonne 29°, Geländeschatten' },
+  { key: 'base513', date: '2026-09-26', why: 'Verarbeitungsstand 05.13, trotzdem ohne Versatz der DN (der Stand allein entscheidet nicht)' },
 ];
 const st = loadStatic(data);
 const g = [...st.byRegion.values()].flat().find((x) => x.id === ID);
@@ -46,8 +47,22 @@ for (const sc of SCENES) {
 const idx = []; for (let i = 0; i < prep.w * prep.h; i++) if (prep.mask[i]) idx.push(i);
 const elev = new Float32Array(idx.length); idx.forEach((i, k) => { elev[k] = prep.elev[i]; });   // exact floats: the live check compares AAR to the pixel
 doc.window = { w: prep.w, h: prep.h, n: idx.length, maskIdx: b64(new Uint32Array(idx)), elev: b64(elev) };
+// the tile-level offset detector: vegetation pixels (SCL 4) of the whole tile at 160 m, red DN, for a tile-day WITH and one WITHOUT the +1000
+doc.tiles = {};
+for (const [key, day, tile, bbox, pick] of [['offsetOff', '2025-08-25', '32TPS', [10.74, 46.79, 10.77, 46.81], 'S2B_32TPS_20250825_0_L2A'], ['offsetOn', '2026-09-24', '32TPT', [11.6, 47.05, 11.78, 47.15], null]]) {
+  const f = (await stacSearchAll({ collections: ['sentinel-2-l2a'], bbox, datetime: `${day}T00:00:00Z/${day}T23:59:59Z`, limit: 10 })).filter((x) => x.properties['grid:code'] === 'MGRS-' + tile).sort(compareItems);
+  const item = pick ? f.find((x) => x.id === pick) : f[0];
+  const sclGeo = assetGeo(item, 'scl'), redGeo = assetGeo(item, 'red');
+  const sIfd = await cogHeader(sclGeo.href), rIfd = await cogHeader(redGeo.href);
+  const sl = [...sIfd].sort((a, b) => b.width - a.width)[3], rl = [...rIfd].sort((a, b) => b.width - a.width)[4];
+  const S = await readWindow(sclGeo, 0, 0, sl.width, sl.height, { ifds: sIfd, level: 3 }), R = await readWindow(redGeo, 0, 0, rl.width, rl.height, { ifds: rIfd, level: 4 });
+  const veg = []; for (let i = 0; i < S.data.length; i++) if (S.data[i] === 4 && R.data[i] > 0) veg.push(R.data[i]);
+  const step = Math.max(1, Math.ceil(veg.length / 40000));   // a 1/step sample of the vegetation pixels is enough for a 5th percentile
+  doc.tiles[key] = { scene: item.id, date: day, tile, baseline: item.properties['s2:processing_baseline'], nAll: veg.length, step, vegRed: b64(Uint16Array.from(veg.filter((_, i) => i % step === 0))) };
+  console.log(key, item.id, veg.length, 'vegetation pixels');
+}
 const body = JSON.stringify(doc);
-doc.sha256 = createHash('sha256').update(JSON.stringify({ window: doc.window, scenes: doc.scenes })).digest('hex');
+doc.sha256 = createHash('sha256').update(JSON.stringify({ window: doc.window, scenes: doc.scenes, tiles: doc.tiles })).digest('hex');
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(doc));
 console.log('fixture', OUT, (JSON.stringify(doc).length / 1024).toFixed(0), 'KB', doc.sha256.slice(0, 16), body.length);

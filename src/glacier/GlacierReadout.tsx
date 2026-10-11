@@ -4,9 +4,10 @@
  * official reports, the usual reporting rhythm. Nothing here is modelled; the model lines (melt, snow line) stay locked.
  */
 import { Valued, OriginChip, LockNote } from './GlacierParts';
-import { fmtKm2, fmt0, fmt1, fmtRefYear, displayName, metricValue, GLACIER_METRIC_DEFS } from './glacierView';
+import { fmtKm2, fmt0, fmt1, fmtRefYear, displayName, metricValue, satLines, type GlacierMetricDef } from './glacierView';
+import type { GlacierMetric } from './glacierState';
 import { GLACIER_COUNTRY_LABEL, GLACIER_REGIONS, type GlacierCatalogEntry, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
-import type { GlacierLatest } from './glacierClient';
+import type { GlacierLatest, GlacierSatLatest } from './glacierClient';
 
 const dateDe = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 const val = (items: readonly GlacierOfficialItem[], id: string, key: string) => items.find((i) => i.id === id)?.values?.find((v) => v.key === key)?.value ?? null;
@@ -105,7 +106,7 @@ export function Rhythm() {
   );
 }
 
-export function SelectedGlacier({ g, latest }: { g: GlacierCatalogEntry; latest: GlacierLatest | undefined }) {
+export function SelectedGlacier({ g, latest, sat, nowMs, defs }: { g: GlacierCatalogEntry; latest: GlacierLatest | undefined; sat: GlacierSatLatest | undefined; nowMs: number; defs: Readonly<Record<GlacierMetric, GlacierMetricDef>> }) {
   const len = metricValue('laenge', latest, g), ba = metricValue('bilanz', latest, g), da = metricValue('flaeche', latest, g);
   const reg = GLACIER_REGIONS[g.region]?.label ?? g.region;
   return (
@@ -117,7 +118,8 @@ export function SelectedGlacier({ g, latest }: { g: GlacierCatalogEntry; latest:
       {ba.v != null && <p>Bilanz {ba.period}: <Valued origin="measured">{ba.text}</Valued></p>}
       {da.v != null && <p>Fläche {da.period}: <Valued origin="official">{da.text} je 10 Jahre</Valued></p>}
       {len.v == null && ba.v == null && da.v == null && <p>Keine Messreihe zugeordnet — nur Inventar.</p>}
-      <p><LockNote>{GLACIER_METRIC_DEFS.schmelze.label}: {GLACIER_METRIC_DEFS.schmelze.locked}</LockNote></p>
+      {satLines(g, sat, nowMs).map((l, i) => <p key={i}>{l.origin ? <><OriginChip origin={l.origin} /> {l.text}</> : l.text}</p>)}
+      {defs.schmelze.locked && <p><LockNote>{defs.schmelze.label}: {defs.schmelze.locked}</LockNote></p>}
       {g.status && <p>Status laut Behörde: {g.status}</p>}
     </article>
   );

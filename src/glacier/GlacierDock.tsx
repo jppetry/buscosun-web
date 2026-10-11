@@ -1,6 +1,6 @@
 /** GL-1 — Dock of the situation page: search, country, "Karte färben nach" (origin at every metric, locked ones stay visible), ranking. */
 import { OriginChip, LockNote } from './GlacierParts';
-import { GLACIER_METRIC_DEFS, displayName, fmtKm2, type RankRow } from './glacierView';
+import { displayName, fmtKm2, type GlacierMetricDef, type RankRow } from './glacierView';
 import { GLACIER_LANDS, GLACIER_METRICS, type GlacierLand, type GlacierMetric } from './glacierState';
 import { GLACIER_COUNTRY_LABEL } from './glacierContract';
 
@@ -14,10 +14,11 @@ interface Props {
   rows: readonly RankRow[]; selectedId: string | null; onPick: (id: string) => void;
   refYears: string;
   hint: string;
+  defs: Readonly<Record<GlacierMetric, GlacierMetricDef>>;
 }
 
-export default function GlacierDock({ query, onQuery, land, onLand, metric, onMetric, rows, selectedId, onPick, refYears, hint }: Props) {
-  const def = GLACIER_METRIC_DEFS[metric];
+export default function GlacierDock({ query, onQuery, land, onLand, metric, onMetric, rows, selectedId, onPick, refYears, hint, defs }: Props) {
+  const def = defs[metric];
   return (
     <aside className="gl-dock" aria-label="Auswahl und Rangliste">
       <div className="gl-field">
@@ -34,7 +35,7 @@ export default function GlacierDock({ query, onQuery, land, onLand, metric, onMe
         <div className="gl-label">Karte färben nach</div>
         <div role="group" aria-label="Größe der Karte">
           {GLACIER_METRICS.map((m) => {
-            const d = GLACIER_METRIC_DEFS[m];
+            const d = defs[m];
             return (
               <button key={m} type="button" className={`gl-metric${d.locked ? ' is-locked' : ''}`} aria-pressed={metric === m} aria-disabled={!!d.locked}
                 title={d.locked ?? undefined} onClick={() => { if (!d.locked) onMetric(m); }}>

@@ -17,7 +17,7 @@ import { join, dirname } from 'node:path';
 import { stacSearchAll, assetGeo, readWindow, cogHeader, makeTileCache, net } from './lib/s2cog.mjs';
 import { pixelBBox, rasterizeMask } from './lib/raster.mjs';
 import { pxToLonLat } from './lib/s2cog.mjs';
-import { reflect, evaluateGlacier, slaInRange, sceneEncodingSuspect, S2_SCALE, S2_OFFSET } from './lib/satcore.mjs';
+import { reflect, evaluateGlacier, slaInRange, sceneEncodingSuspect, tileRedP05, tileOffsetOf, S2_SCALE, S2_OFFSET } from './lib/satcore.mjs';
 import {
   GLACIER_SAT_MIN_CLEAR, GLACIER_NDSI_SNOW, GLACIER_SNOW_GREEN_MIN, GLACIER_SNOW_COVERED_MIN, GLACIER_SNOW_FREE_MAX, GLACIER_SLA_MARGIN_M,
   glacierSatClass, demDecode, demSample, obsProblems, glacierObsPath, glacierSeasonPath, glacierDemFile, glacierFlagsMask, GLACIER_SEASON_COLS,
@@ -103,6 +103,13 @@ export async function scanScene({ item, jobs, log = () => {} }) {
   const out = { items: {}, skipped: [] };
   const p01s = [];
   const sun = item.properties['view:sun_elevation'] ?? null;
+  // DN offset of THIS tile-day, from the vegetation of the whole tile (coarse red against the coarse SCL; see satcore)
+  const redIfd = await hdr('red');
+  const redLv = [...redIfd].sort((a, b) => b.width - a.width)[SAT_COARSE_LEVEL + 1];
+  const redCoarse = redLv && redLv.width === lv.width ? await readWindow(geo.red, 0, 0, redLv.width, redLv.height, { ifds: redIfd, level: SAT_COARSE_LEVEL + 1, cache }) : null;
+  const veg = redCoarse ? tileRedP05(coarse.data, redCoarse.data) : { n: 0, p5: null };
+  const offset = tileOffsetOf(veg) ?? S2_OFFSET;
+  out.encoding = { vegPixels: veg.n, redP5: veg.p5, offset };
   const one = async ({ g, prep }) => {
     try {
       const cv = coarseValid(prep);
@@ -111,11 +118,11 @@ export async function scanScene({ item, jobs, log = () => {} }) {
       const [scl, green, swir] = await Promise.all([win('scl'), win('green', 1), win('swir16')]);
       const pack = {
         w: prep.w, h: prep.h, mask: prep.mask, elev: prep.elev, scl: scl.data,
-        green: reflect(green.data, S2_SCALE, S2_OFFSET), swir: reflect(swir.data, S2_SCALE, S2_OFFSET),
+        green: reflect(green.data, S2_SCALE, offset), swir: reflect(swir.data, S2_SCALE, offset),
       };
       const need = async (p) => {
         const [b, r, n, s2] = await Promise.all([win('blue', 1), win('red', 1), win('nir', 1), win('swir22')]);
-        p.blue = reflect(b.data); p.red = reflect(r.data); p.nir = reflect(n.data); p.swir2 = reflect(s2.data);
+        p.blue = reflect(b.data, S2_SCALE, offset); p.red = reflect(r.data, S2_SCALE, offset); p.nir = reflect(n.data, S2_SCALE, offset); p.swir2 = reflect(s2.data, S2_SCALE, offset);
       };
       // albedo only for class A (the albedo anomaly of class B needs a multi-year baseline we do not have yet; 4 of 7 bands saved)
       const res = await evaluateGlacier(pack, { klass: g.satClass, debris: g.debris, sunElevation: sun }, g.satClass === 'A' ? need : null);
@@ -128,7 +135,7 @@ export async function scanScene({ item, jobs, log = () => {} }) {
   };
   const queue = [...jobs];
   await Promise.all(Array.from({ length: SAT_GLACIER_PARALLEL }, async () => { for (;;) { const j = queue.shift(); if (!j) return; await one(j); } }));
-  if (sceneEncodingSuspect(p01s)) return { error: 'Kodierung unplausibel (B11 ohne dunkle Pixel — Versatz der DN?)' };
+  if (sceneEncodingSuspect(p01s)) return { error: `Kodierung unplausibel (B11 ohne dunkle Pixel bei Versatz ${offset}, Rot-p5 der Vegetation ${veg.p5})` };
   return out;
 }
 
@@ -172,7 +179,7 @@ export async function main(opts) {
   const nowMs = opts.nowMs ?? Date.now();
   const to = opts.to ? Date.parse(opts.to + 'T23:59:59Z') : nowMs;
   const from = opts.from ? Date.parse(opts.from + 'T00:00:00Z') : to - (Number(opts.hours ?? 72) * 3_600_000);
-  const only = opts.only ? new Set(String(opts.only).split(',')) : null;
+  const only = opts.onlyFile ? new Set(readFileSync(opts.onlyFile, 'utf8').split(/[\s,]+/).filter(Boolean)) : opts.only ? new Set(String(opts.only).split(',')) : null;
   const tileFilter = opts.tiles ? new Set(String(opts.tiles).split(',')) : null;
   const body = { collections: ['sentinel-2-l2a'], bbox: SAT_BBOX, datetime: `${new Date(from).toISOString().slice(0, 19)}Z/${new Date(to).toISOString().slice(0, 19)}Z`, limit: 200, sortby: [{ field: 'properties.datetime', direction: 'asc' }], query: { 'eo:cloud_cover': { lt: Number(opts.maxCloud ?? SAT_MAX_SCENE_CLOUD) } } };
   let feats;
@@ -242,7 +249,7 @@ export async function main(opts) {
       const tile = key.split('|')[0];
       try {
         const sc = { items: {}, skipped: [] };
-        const ids = [];
+        const ids = [], encs = [];
         for (const item of items) {
           const jobs = perItem.get(item.id);
           if (!jobs) continue;
@@ -250,7 +257,7 @@ export async function main(opts) {
           if (!mine.length) continue;
           const r = await scanScene({ item, jobs: mine });
           if (r.error) throw new Error(r.error);
-          Object.assign(sc.items, r.items); sc.skipped.push(...r.skipped); ids.push(item.id);
+          Object.assign(sc.items, r.items); sc.skipped.push(...r.skipped); ids.push(item.id); encs.push({ scene: item.id, ...r.encoding });
         }
         if (!ids.length) return;
         const item = items.find((x) => x.id === ids[0]);
@@ -260,7 +267,7 @@ export async function main(opts) {
             minClear: { v: GLACIER_SAT_MIN_CLEAR, origin: 'set' }, ndsiSnow: { v: GLACIER_NDSI_SNOW, origin: 'literature' }, snowGreenMin: { v: GLACIER_SNOW_GREEN_MIN, origin: 'set' },
             snowCovered: { v: GLACIER_SNOW_COVERED_MIN, origin: 'set' }, snowFree: { v: GLACIER_SNOW_FREE_MAX, origin: 'set' }, slaMargin: { v: GLACIER_SLA_MARGIN_M, origin: 'set' },
           },
-          items: Object.fromEntries(Object.entries(sc.items).sort(([a], [b]) => (a < b ? -1 : 1))), skipped: sc.skipped,
+          encoding: encs, items: Object.fromEntries(Object.entries(sc.items).sort(([a], [b]) => (a < b ? -1 : 1))), skipped: sc.skipped,
         };
         const bad = obsProblems(doc, catIds);
         if (bad.length) { for (const m of bad.slice(0, 5)) console.log('  Regel verletzt:', m); throw new Error('obsProblems: ' + bad[0]); }
@@ -316,6 +323,6 @@ export async function main(opts) {
 
 if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('sat-scan.mjs')) {
   if (!args.data || !args.out) { console.error('--data=<v1> und --out=<Ordner> fehlen'); process.exit(2); }
-  main({ data: args.data, out: args.out, patch: args.patch, hours: args.hours, from: args.from, to: args.to, tiles: args.tiles, only: args.only, limitScenes: args['limit-scenes'], force: !!args.force, concurrency: args.concurrency, classes: args.classes, maxCloud: args['max-cloud'] })
+  main({ data: args.data, out: args.out, patch: args.patch, hours: args.hours, from: args.from, to: args.to, tiles: args.tiles, only: args.only, onlyFile: args['only-file'], limitScenes: args['limit-scenes'], force: !!args.force, concurrency: args.concurrency, classes: args.classes, maxCloud: args['max-cloud'] })
     .then((r) => process.exit(r.scenesFailed.length && !r.tileDays ? 1 : 0)).catch((e) => { console.error(e); process.exit(1); });
 }
