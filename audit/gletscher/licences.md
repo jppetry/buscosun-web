@@ -1,0 +1,25 @@
+# Phase GL — Lizenzregister (Plan §5.3), am Originaltext geprüft 11.10.2026
+
+Ampel: **grün** = offen, kommerziell nutzbar, ohne Key, ohne NC; **gelb** = nutzbar mit benanntem Vorbehalt; **rot** = nie geladen,
+höchstens verlinkt/zitiert. Wörtliche Zitate in „…“; URL = Fundstelle.
+
+| Quelle | Lizenzaussage (wörtlich) | Fundstelle | Ampel / Entscheidung |
+| --- | --- | --- | --- |
+| GLAMOS (SGI1850/1931/1973/2010/2016, Massenbilanz, Länge, Volumen) | DOI-Index: „All GLAMOS products are referenced with DOI and licensed under Creative Commons Attribution 4.0 International License (CC BY 4.0).“ DOI-Seiten je Datensatz: „Right / License Creative Commons Attribution 4.0 International License (CC BY 4.0)“. **Widerspruch:** CSV-Kopf und Impressum: „GLAMOS data are freely available and may be used for scientific and non-commercial use under the requirement of correct indication of the source.“ | `https://doi.glamos.ch/`, `…/data/inventory/inventory_sgi2016_r2020.html`, `…/data/massbalance/massbalance_2025_r2025.html`, `https://www.glamos.ch/en/imprint` | **gelb** (D-GL-3): DOI-Lizenz gilt, eigene löschbare Pfade, Jan klärt mit GLAMOS (§9.4). Quellenvermerk Pflicht: „GLAMOS (2025). Swiss Glacier Mass Balance, release 2025, doi:10.18750/massbalance.2025.r2025“ bzw. „GLAMOS (2020). Swiss Glacier Inventory 2016, release 2020, doi:10.18750/inventory.sgi2016.r2020“ |
+| AGI 5 (PANGAEA 991106) | „License: Creative Commons Attribution 4.0 International (CC-BY-4.0)“; „Curation Level: Enhanced curation“ | `https://doi.pangaea.de/10.1594/PANGAEA.991106?format=textfile` | **grün**; Einzeldateien unter `download.pangaea.de/dataset/991106/files/<Datei>` ohne Konto geladen. Zitat: Hartig et al. 2026, PANGAEA, doi:10.1594/PANGAEA.991106 |
+| GI4 2015 (PANGAEA 887415) | „License: Creative Commons Attribution 3.0 Unported (CC-BY-3.0)“ | `https://doi.pangaea.de/10.1594/PANGAEA.887415` | **grün** (CC BY 3.0), Quellenvermerk Buckel & Otto 2018 |
+| Paul et al. 2020 (PANGAEA 909133) | „License: Creative Commons Attribution 4.0 International (CC-BY-4.0)“ | `https://doi.pangaea.de/10.1594/PANGAEA.909133` | **grün** |
+| ÖAV-Länge (PANGAEA 971350 u. a.) | 2016/17–2022/23: „Creative Commons Attribution 4.0 International“; 1969–2016 und frühere: „Creative Commons Attribution 3.0 Unported“ | DataCite-API `api.datacite.org/dois?query=titles.title:"Length changes of Austrian glaciers"` (59 Treffer) | **grün**; 2023/24, 2024/25 dort nicht vorhanden |
+| WGMS FoG 2026-02-10 | „WGMS data are open access under the requirement of correct citation (see database version), which corresponds to a CC BY 4.0 license by Creative Commons.“ „Rights: Open access under the requirement of correct citation“ | `https://wgms.ch/data_policy/`, `https://wgms.ch/data_databaseversions/` | **grün**; Zitat WGMS (2026) doi:10.5904/wgms-fog-2026-02-10 |
+| TSLA 2000–2025 (Zenodo 18223929) | Zenodo-Metadaten: `license: cc-by-4.0` | `https://zenodo.org/api/records/18223929` | **grün** |
+| GloGEM CMIP6 v2 (Zenodo 17632573) | Zenodo-Metadaten: `license: cc-by-4.0` | `https://zenodo.org/api/records/17632573` | **grün**; nur Region 11 behalten |
+| RGI 6.2 (OGGM-Server) | RGI-Konsortium: „© 2026 RGI Consortium CC BY 4.0“ (`rgidata.org`); die Datei selbst trägt am Spiegel keinen Lizenztext | `https://rgidata.org/versions/`, `https://cluster.klima.uni-bremen.de/~oggm/rgi/` | **gelb** (Daten CC BY 4.0, Hosting durch Dritte); nur als Brücke und für die vier deutschen Umrisse; Quelle RGI 6.2, Zitat RGI Consortium |
+| Sentinel-2 L2A (Earth Search) | „Access to Sentinel data is free, full and open for the broad Regional, National, European and International user community.“ | `https://registry.opendata.aws/sentinel-2-l2a-cogs/` | **grün**; Vermerk „Contains modified Copernicus Sentinel data [Jahr]“ |
+| Copernicus DEM GLO-30 | „GLO-30 Public and GLO-90 are available on a free basis for the general public under the terms and conditions of the Licence“ | `https://registry.opendata.aws/copernicus-dem/` | **grün** mit festem Vermerk (Copernicus-DEM-Lizenz), Wortlaut des Vermerks beim Bau prüfen |
+| DWD ICON open data | GeoNutzV / „Datenbasis: Deutscher Wetterdienst“ (Form für abgeleitete Daten, `docs/API.md` §7) | `docs/API.md` §7, `https://opendata.dwd.de/weather/nwp/v1/m/` | **grün** (Bestand des Repos) |
+| MeteoSwiss OGD, GeoSphere, SLF IMIS | bereits im Repo genutzt (CC BY 4.0, `QUELLENMATRIX.md` §5) | `QUELLENMATRIX.md` §5, `src/sources/obsStore.ts` | **grün** (Bestand) |
+| BAdW (deutsche Gletscher) | Pressetexte ohne Datenlizenz | konzept | **rot für Daten** — nur Zitat mit Datum und Link |
+| OGGM-Projektionen | Lizenz nicht gefunden | konzept | **rot**, nicht geladen |
+| Länder-DGMs (Tirol, BEV, Bayern), Hugonnet 2021, GI1–GI3 | Lizenz sekundär/offen | konzept | in Stufe 1 **nicht benötigt**, nicht geladen |
+| Gletscherseen AT (Buckel & Otto 2018, PANGAEA 885931) | CC BY-NC-SA 3.0 | konzept | **rot**, nicht geladen |
+| TanDEM-X EDEM, Webcams | nicht-kommerziell / Rechte vorbehalten | konzept | **rot**, nicht geladen |
