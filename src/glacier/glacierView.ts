@@ -186,7 +186,7 @@ export function satLines(g: GlacierCatalogEntry, s: GlacierSatLatest | undefined
 /** Display name: the inventory name, or the class + inventory id for nameless glaciers ("namenlos · 9027"). */
 export function displayName(g: GlacierCatalogEntry): string {
   if (g.name) return g.name;
-  const id = g.inv.sgi ?? g.inv.agi5 ?? g.inv.rgi6 ?? g.id;
+  const id = g.inv.glims ?? g.inv.sgi ?? g.inv.agi5 ?? g.inv.rgi6 ?? g.id;
   return `namenlos · ${id}`;
 }
 

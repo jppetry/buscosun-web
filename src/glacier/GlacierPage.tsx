@@ -4,7 +4,7 @@
  *
  * Stage 1 shows everything that needs no model: inventories with their reference year, length and mass series of the measuring
  * networks, official numbers verbatim with date and source. Melt and snow-cover metrics are visible but LOCKED (no placeholder
- * numbers). Data: `buscosun-glacier` via `glacierClient.ts` (raw-first pointer, CDN + raw hedge, contract checks).
+ * numbers). Data: `buscosun-data` `glacier/v1` via `glacierClient.ts` (raw-first pointer, CDN + raw hedge, contract checks).
  * `glacierDeck.css` is imported only here (lazy chunk).
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -292,7 +292,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   );
   const topbar = (
     <header className="gl-topbar">
-      <div className="gl-title"><b>Gletscher</b><span>DACH · rund {fmt0(glaciers.length || 2203)} Gletscher im Atlas</span></div>
+      <div className="gl-title"><b>Gletscher</b><span>DACH · rund {fmt0(glaciers.length || 2199)} Gletscher im Atlas</span></div>
       {!isMobile && stand}
       <div className="gl-grow" />
       {!isMobile && <span className="gl-season">{season.label}</span>}

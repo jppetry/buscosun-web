@@ -124,4 +124,12 @@ export function meltStateProblems(s: GlacierMeltState): string[] {
 }
 
 /** Index of a daily melt (mm w. e., glacier-wide): 100 = `GLACIER_MELT_REF_DAILY_MM`, clipped, whole numbers. */
+/**
+ * The lead glaciers' rows of ONE run — what the day archive keeps (Gate E: model against measurement; the runs themselves stay in the
+ * data repo for 72 h only). One definition for `melt.mjs --archive-out` and `glacier-archive.mjs`, so the two cannot drift apart.
+ */
+export function meltLeadDoc(doc: GlacierMeltDoc, leadIds: ReadonlySet<string>) {
+  return { schema: 1 as const, kind: 'glacier/melt-lead' as const, run: doc.run, runAt: doc.runAt, engine: doc.engine, cube: doc.cube, gate: doc.gate, glaciers: doc.glaciers.filter((r) => leadIds.has(r.id)) };
+}
+
 export const meltIndexOf = (mmPerDay: number): number => Math.max(0, Math.min(100, Math.round((100 * mmPerDay) / GLACIER_MELT_REF_DAILY_MM)));

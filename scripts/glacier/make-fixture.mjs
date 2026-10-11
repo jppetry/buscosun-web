@@ -19,7 +19,7 @@ const want = {
   blaueis: byName(/^Blaueis$/, 'DE'),
   pasterze: byName(/^Pasterzen Kees$/, 'AT'),
   rhone: byName(/^Rhonegletscher$/, 'CH'),
-  dupCh: cat.glaciers.find((g) => g.country === 'CH' && /-[a-z]\d+[a-z]?-\d+$/.test(g.id) && g.name),
+  dupCh: cat.glaciers.find((g) => g.country === 'CH' && /-g\d+e\d+n$/.test(g.id) && g.name),
   nnAt: cat.glaciers.find((g) => g.country === 'AT' && g.id.startsWith('gl_at_nn-')),
   cClassCh: cat.glaciers.find((g) => g.country === 'CH' && g.klass === 'C' && g.name),
   bAt: cat.glaciers.find((g) => g.id === 'gl_at_eis-ferner'),      // a real class-B glacier outside Germany (satellite values without a snow line)

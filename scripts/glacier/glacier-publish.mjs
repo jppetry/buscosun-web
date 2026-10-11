@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 /**
- * GL-1 — publisher of the glacier data line into `buscosun-glacier` (plan §6 "Veröffentlichung"):
+ * GL-1 — publisher of the glacier data line into `buscosun-data` (plan §6 "Veröffentlichung"; layout since Jan 11.10.2026:
+ * everything below `glacier/v1/`, the refreshed lines on `main`, the heavy static builds on the orphan branch `glacier`):
  *
- *   node scripts/glacier/glacier-publish.mjs --repo=<clone of buscosun-glacier> --line=static|sat|melt|feed --src=<tree> \
+ *   node scripts/glacier/glacier-publish.mjs --repo=<clone of buscosun-data> --line=static|sat|melt|feed --src=<tree> \
  *        [--index-patch=<json>] [--status-patch=<json>] --message="glacier: …"
- *   node scripts/glacier/glacier-publish.mjs --archive --repo=<clone> --src=<dir of day files> --day=YYYY-MM-DD --message="…"
+ *   node scripts/glacier/glacier-publish.mjs --archive --repo=<clone of buscosun-archiv> --src=<dir of day files> --day=YYYY-MM-DD --message="…"
  *
  * Rules (each one is tested in verify:glacier-publish):
- *  - three workflows (static, sat, melt) share one repo and one concurrency group; every attempt starts from the CURRENT
- *    `origin/main` (fetch, `checkout -B`, no rebase), replaces ONLY the sub-paths of its own line and re-reads, patches and
- *    rewrites `v1/index.json` / `v1/status.json` — so a parallel push of another line is never lost;
+ *  - four workflows (static, sat, melt, feed) share one repo path and one concurrency group; every attempt starts from the CURRENT
+ *    `origin/<branch>` (fetch, `checkout -B`, no rebase), replaces ONLY the sub-paths of its own line and re-reads, patches and
+ *    rewrites `glacier/v1/index.json` / `status.json` — so a parallel push of another line is never lost;
+ *  - the line `static` writes its build to the branch `glacier` (created as an orphan on the first push) FIRST and patches the pointer on `main`
+ *    SECOND, so the pointer never names a build that is not there; the branch never carries index/status, `main` never carries `static/`;
  *  - never `--force`, never rewrites history: a rejected push waits, fetches again and repeats (≤ 6 attempts);
  *  - the commit is built with a path argument and checked: nothing outside the own prefixes + index/status;
- *  - ≤ 20 MB per file and ≤ 150 MB per package; the archive branch only ever ADDS day files.
- * `src` mirrors the repo layout below `v1/` (e.g. `src/static/<build>/catalog.json`). Last stdout line: JSON result.
+ *  - ≤ 20 MB per file and ≤ 150 MB per package; the archive (a clone of `buscosun-archiv`) only ever ADDS day files (and rewrites its own `index.json`).
+ * `src` mirrors the repo layout below `glacier/v1/` (e.g. `src/static/<build>/catalog.json`). Last stdout line: JSON result.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, cpSync } from 'node:fs';
@@ -23,14 +26,17 @@ import { fileURLToPath } from 'node:url';
 const SELF = fileURLToPath(import.meta.url);
 export const GLACIER_MAX_FILE_BYTES = 20 * 1024 * 1024;
 export const GLACIER_MAX_PACKAGE_BYTES = 150 * 1024 * 1024;
-/** Sub-paths (below `v1/`) each line may write; `index.json` and `status.json` are always allowed. */
+/** Repo-relative root of the line — the same on `main`, on the static branch and in the archive repo (`GLACIER_REPO_DIR` of the contract; verify:glacier-contract compares). */
+export const GLACIER_ROOT = 'glacier/v1';
+/** Orphan branch of the heavy static builds (`GLACIER_REF_STATIC` of the contract). */
+export const GLACIER_STATIC_BRANCH = 'glacier';
+/** Sub-paths (below the root) each line may write; `index.json` and `status.json` are always allowed on `main`. */
 export const GLACIER_LINES = Object.freeze({
   static: ['static'],
   sat: ['obs', 'season'],
   melt: ['melt'],
   feed: ['feed', 'card'],
 });
-const ALWAYS = ['v1/index.json', 'v1/status.json'];
 
 /** RFC 7396 merge patch: objects merge, `null` deletes, anything else replaces. */
 export function mergePatch(target, patch) {
@@ -72,7 +78,7 @@ const readJsonFile = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
 /**
  * Pruning policies of a line (own prefixes only): `{ prefix, keepNewest }` keeps the newest N entries (sorted by name) of the
- * directories directly below `v1/<prefix>/`; `{ prefix, olderThanMs, stampOf }` removes entries whose stamp is older.
+ * directories directly below `<root>/<prefix>/`; `{ prefix, olderThanMs, stampOf }` removes entries whose stamp is older.
  */
 export function pruneList(listDir, policies, nowMs) {
   const out = [];
@@ -88,58 +94,95 @@ export const GLACIER_POLICIES = Object.freeze({
   sat: [], melt: [], feed: [],
 });
 
-export function publishGlacier({
-  repoDir, line, srcDir, indexPatch = null, statusPatch = null, message, remote = 'origin', branch = 'main', retries = 6,
-  sleepMs = (a) => 5000 * a, log = () => {}, nowMs = Date.now(), policies = GLACIER_POLICIES[line] ?? [], beforePush = null,
+/**
+ * One push of one branch: every attempt starts from the CURRENT `remote/branch` (an orphan start if `orphanOk` and the branch does
+ * not exist yet), copies `files`, prunes, patches the pointers (`pointers`), stages ONLY `root`, checks the staged paths, commits, pushes.
+ */
+function pushBranch({
+  repoDir, remote, branch, orphanOk = false, root, srcDir, files, prefixes, pointers, indexPatch, statusPatch, policies, nowMs, message,
+  retries, sleepMs, log, beforePush, tag, stage,
 }) {
-  const pkg = checkPackage(line, srcDir);
   const git = gitIn(repoDir);
-  const prefixes = GLACIER_LINES[line];
   const patch = (cur, p) => (typeof p === 'function' ? p(cur) : p ? mergePatch(cur, p) : cur);
+  const always = pointers ? [`${root}/index.json`, `${root}/status.json`] : [];
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      git('fetch', '--quiet', '--depth=1', remote, branch);
-      git('checkout', '--quiet', '-B', branch, 'FETCH_HEAD');
-      git('reset', '--quiet', '--hard', 'FETCH_HEAD');
-      const v1 = join(repoDir, 'v1');
+      let exists = true;
+      try { git('fetch', '--quiet', '--depth=1', remote, branch); } catch (e) { if (orphanOk && /couldn't find remote ref/.test(String(e.stderr))) exists = false; else throw e; }
+      if (exists) { git('checkout', '--quiet', '-B', branch, 'FETCH_HEAD'); git('reset', '--quiet', '--hard', 'FETCH_HEAD'); }
+      else { git('checkout', '--quiet', '--orphan', branch); try { git('rm', '-rf', '--quiet', '.'); } catch { /* empty tree */ } }
+      const rootDir = join(repoDir, root);
       // 1. add/replace the files of this line (a changed file under the same name is replaced; nothing else is touched)
-      for (const f of pkg.files) { const dst = join(v1, f); mkdirSync(dirname(dst), { recursive: true }); cpSync(join(srcDir, f), dst); }
+      for (const f of files) { const dst = join(rootDir, f); mkdirSync(dirname(dst), { recursive: true }); cpSync(join(srcDir, f), dst); }
       // 2. prune within the own prefixes
-      const listDir = (prefix) => (existsSync(join(v1, prefix)) ? readdirSync(join(v1, prefix)) : []);
-      for (const rel of pruneList(listDir, policies, nowMs)) rmSync(join(v1, rel), { recursive: true, force: true });
-      // 3. index and status: read FRESH from the base of this attempt, patch, write
-      const idxFile = join(v1, 'index.json'), stFile = join(v1, 'status.json');
-      const idx0 = existsSync(idxFile) ? readJsonFile(idxFile) : { schema: 1, kind: 'glacier/index' };
-      const st0 = existsSync(stFile) ? readJsonFile(stFile) : { schema: 1, kind: 'glacier/status' };
-      const idx = patch(idx0, indexPatch), st = patch(st0, statusPatch);
-      if (idxFile && indexPatch) writeFileSync(idxFile, JSON.stringify(idx) + '\n');
-      if (statusPatch) writeFileSync(stFile, JSON.stringify(st) + '\n');
-      git('add', '-A', '--', 'v1'); // the fresh base had no other change; the outside check below proves nothing but the own line is staged
+      const listDir = (prefix) => (existsSync(join(rootDir, prefix)) ? readdirSync(join(rootDir, prefix)) : []);
+      for (const rel of pruneList(listDir, policies, nowMs)) rmSync(join(rootDir, rel), { recursive: true, force: true });
+      // 3. index and status: read FRESH from the base of this attempt, patch, write (only where pointers live)
+      if (pointers) {
+        const idxFile = join(rootDir, 'index.json'), stFile = join(rootDir, 'status.json');
+        const idx0 = existsSync(idxFile) ? readJsonFile(idxFile) : { schema: 1, kind: 'glacier/index' };
+        const st0 = existsSync(stFile) ? readJsonFile(stFile) : { schema: 1, kind: 'glacier/status' };
+        if (indexPatch) { mkdirSync(rootDir, { recursive: true }); writeFileSync(idxFile, JSON.stringify(patch(idx0, indexPatch)) + '\n'); }
+        if (statusPatch) { mkdirSync(rootDir, { recursive: true }); writeFileSync(stFile, JSON.stringify(patch(st0, statusPatch)) + '\n'); }
+      }
+      git('add', '-A', '--', root); // the fresh base had no other change; the outside check below proves nothing but the own line is staged
       const staged = git('diff', '--cached', '--name-only').split('\n').filter(Boolean);
-      if (!staged.length) { log('nichts Neues'); return { pushed: false, unchanged: true, attempts: attempt }; }
-      const outside = staged.filter((p) => !ALWAYS.includes(p) && !prefixes.some((x) => p.startsWith(`v1/${x}/`)));
-      if (outside.length) throw Object.assign(new Error(`Commit enthielte Pfade außerhalb der Linie ${line}: ${outside.slice(0, 3).join(' ')}`), { fatal: true });
+      if (!staged.length) { log(`${tag}nichts Neues`); return { pushed: false, unchanged: true, attempts: attempt }; }
+      const outside = staged.filter((p) => !always.includes(p) && !prefixes.some((x) => p.startsWith(`${root}/${x}/`)));
+      if (outside.length) throw Object.assign(new Error(`Commit enthielte Pfade außerhalb der Linie: ${outside.slice(0, 3).join(' ')}`), { fatal: true });
       git('commit', '--quiet', '-m', message);
-      if (beforePush) beforePush(attempt);
+      if (beforePush) beforePush(attempt, stage);
       git('push', '--quiet', remote, `HEAD:${branch}`);
       const sha = git('rev-parse', 'HEAD');
-      log(`gepusht ${sha.slice(0, 8)} (Versuch ${attempt}, ${staged.length} Dateien)`);
+      log(`${tag}gepusht ${sha.slice(0, 8)} (Versuch ${attempt}, ${staged.length} Dateien)`);
       return { pushed: true, sha, attempts: attempt, files: staged.length };
     } catch (e) {
       if (e.fatal) throw e;
       const msg = String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? '?';
-      log(`Versuch ${attempt}: ${msg}`);
+      log(`${tag}Versuch ${attempt}: ${msg}`);
       if (attempt < retries) sleepSync(sleepMs(attempt));
     }
   }
   return { pushed: false, failed: true, attempts: retries };
 }
 
+/** `beforePush(attempt, stage)` — a test hook between the commit and the push; stage = `line` (sat, melt, feed), `static` (the build on the branch) or `pointer` (index/status on `main`). */
+export function publishGlacier({
+  repoDir, line, srcDir, indexPatch = null, statusPatch = null, message, remote = 'origin', branch = 'main', staticBranch = GLACIER_STATIC_BRANCH, root = GLACIER_ROOT,
+  retries = 6, sleepMs = (a) => 5000 * a, log = () => {}, nowMs = Date.now(), policies = GLACIER_POLICIES[line] ?? [], beforePush = null,
+}) {
+  const pkg = checkPackage(line, srcDir);
+  const prefixes = GLACIER_LINES[line];
+  const common = { repoDir, remote, root, retries, sleepMs, log, nowMs, message, beforePush };
+  if (line !== 'static') {
+    return pushBranch({ ...common, branch, srcDir, files: pkg.files, prefixes, pointers: true, indexPatch, statusPatch, policies, tag: '', stage: 'line' });
+  }
+  // static: the build to the branch first (orphan on the first push), the pointer to `main` second
+  const git = gitIn(repoDir);
+  let back = null;
+  try { back = git('rev-parse', '--abbrev-ref', 'HEAD').trim(); if (back === 'HEAD' || back === staticBranch) back = null; } catch { back = null; }
+  const restore = () => { if (back) { try { git('checkout', '--quiet', back); } catch { /* the work tree stays where it is; the result is unaffected */ } } };
+  try {
+    const a = pushBranch({ ...common, branch: staticBranch, orphanOk: true, srcDir, files: pkg.files, prefixes, pointers: false, policies, tag: `[${staticBranch}] `, stage: 'static' });
+    if (a.failed) return { ...a, stage: 'static' };
+    const wantPointer = !!(indexPatch || statusPatch);
+    const b = wantPointer
+      ? pushBranch({ ...common, branch, srcDir, files: [], prefixes: [], pointers: true, indexPatch, statusPatch, policies: [], message: `${message} (pointer)`, tag: `[${branch}] `, stage: 'pointer' })
+      : null;
+    if (b?.failed) return { ...b, stage: 'pointer', static: a };
+    return {
+      pushed: !!(a.pushed || b?.pushed), unchanged: !a.pushed && !b?.pushed,
+      attempts: Math.max(a.attempts, b?.attempts ?? 0), files: a.files, sha: b?.sha ?? a.sha, static: a, pointer: b,
+    };
+  } finally { restore(); }
+}
+
 /**
- * Day files on the orphan branch `archive` — ADD only. A file that exists with other bytes is never replaced (the name carries
- * the run, so a clash is a bug); identical bytes are a no-op. No file is ever deleted.
+ * Day files in the archive repo (`buscosun-archiv`, branch `main`, below `glacier/v1/<day>/`) — ADD only. A file that exists with other
+ * bytes is never replaced (the name carries the run, so a clash is a bug); identical bytes are a no-op. No file is ever deleted; the only
+ * file that is rewritten is the line's own `glacier/v1/index.json` (days, file counts, bytes).
  */
-export function publishArchive({ repoDir, srcDir, day, message, remote = 'origin', branch = 'archive', retries = 6, sleepMs = (a) => 5000 * a, log = () => {}, beforePush = null }) {
+export function publishArchive({ repoDir, srcDir, day, message, remote = 'origin', branch = 'main', root = GLACIER_ROOT, retries = 6, sleepMs = (a) => 5000 * a, log = () => {}, beforePush = null }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error(`Tag ${day}`);
   const files = existsSync(srcDir) ? walk(srcDir) : [];
   if (!files.length) throw new Error(`${srcDir}: leer`);
@@ -147,43 +190,45 @@ export function publishArchive({ repoDir, srcDir, day, message, remote = 'origin
   for (const f of files) { const s = statSync(join(srcDir, f)).size; if (s > GLACIER_MAX_FILE_BYTES) throw new Error(`Datei über 20 MB: ${f}`); total += s; }
   if (total > GLACIER_MAX_PACKAGE_BYTES) throw new Error('Paket über 150 MB');
   const git = gitIn(repoDir);
-  // a developer's clone must not stay on the archive branch (the next line would then find no `v1/` at all): remember where we were and go back
-  let back = null;
-  try { back = git('rev-parse', '--abbrev-ref', 'HEAD').trim(); if (back === 'HEAD' || back === branch) back = null; } catch { back = null; }
-  const restore = () => { if (back) { try { git('checkout', '--quiet', back); } catch { /* the work tree stays where it is; the result below is unaffected */ } } };
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      let exists = true;
-      try { git('fetch', '--quiet', '--depth=1', remote, branch); } catch (e) { if (/couldn't find remote ref/.test(String(e.stderr))) exists = false; else throw e; }
-      if (exists) { git('checkout', '--quiet', '-B', branch, 'FETCH_HEAD'); git('reset', '--quiet', '--hard', 'FETCH_HEAD'); }
-      else { git('checkout', '--quiet', '--orphan', branch); try { git('rm', '-rf', '--quiet', '.'); } catch { /* empty tree */ } }
+      git('fetch', '--quiet', '--depth=1', remote, branch);
+      git('checkout', '--quiet', '-B', branch, 'FETCH_HEAD');
+      git('reset', '--quiet', '--hard', 'FETCH_HEAD');
+      const dayDir = join(repoDir, root, day);
       let added = 0;
       for (const f of files) {
-        const dst = join(repoDir, 'day', day, f);
+        const dst = join(dayDir, f);
         const bytes = readFileSync(join(srcDir, f));
         if (existsSync(dst)) {
           if (Buffer.compare(readFileSync(dst), bytes) === 0) continue;
-          throw Object.assign(new Error(`Archivdatei existiert mit anderem Inhalt: day/${day}/${f}`), { fatal: true });
+          throw Object.assign(new Error(`Archivdatei existiert mit anderem Inhalt: ${root}/${day}/${f}`), { fatal: true });
         }
         mkdirSync(dirname(dst), { recursive: true }); writeFileSync(dst, bytes); added++;
       }
-      if (!added) { restore(); return { pushed: false, unchanged: true, attempts: attempt }; }
-      git('add', '-A', '--', 'day');
+      if (!added) return { pushed: false, unchanged: true, attempts: attempt };
+      // the archive's own index: per day the number of files and bytes (recounted from the tree, so a heal pass stays right)
+      const idxFile = join(repoDir, root, 'index.json');
+      const idx = existsSync(idxFile) ? readJsonFile(idxFile) : { schema: 1, kind: 'glacier/archive-index', days: {} };
+      const dayFiles = walk(dayDir);
+      idx.days[day] = { files: dayFiles.length, bytes: dayFiles.reduce((n, f) => n + statSync(join(dayDir, f)).size, 0) };
+      idx.days = Object.fromEntries(Object.entries(idx.days).sort(([a], [b]) => (a < b ? -1 : 1)));
+      writeFileSync(idxFile, JSON.stringify(idx, null, 1) + '\n');
+      git('add', '-A', '--', root);
       const staged = git('diff', '--cached', '--name-status').split('\n').filter(Boolean);
-      if (staged.some((l) => !l.startsWith('A\t'))) throw Object.assign(new Error('Archiv: nur Hinzufügen erlaubt'), { fatal: true });
+      if (staged.some((l) => !l.startsWith('A\t') && l !== `M\t${root}/index.json`)) throw Object.assign(new Error('Archiv: nur Hinzufügen erlaubt'), { fatal: true });
+      if (staged.some((l) => !new RegExp(`^[AM]\\t${root}/(index\\.json|\\d{4}-\\d{2}-\\d{2}/.+)$`).test(l))) throw Object.assign(new Error('Archiv: Pfad außerhalb von glacier/v1'), { fatal: true });
       git('commit', '--quiet', '-m', message);
       if (beforePush) beforePush(attempt);
       git('push', '--quiet', remote, `HEAD:${branch}`);
       const sha = git('rev-parse', 'HEAD');
-      restore();
       return { pushed: true, sha, attempts: attempt, files: staged.length };
     } catch (e) {
-      if (e.fatal) { restore(); throw e; }
+      if (e.fatal) throw e;
       log(`Versuch ${attempt}: ${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? '?'}`);
       if (attempt < retries) sleepSync(sleepMs(attempt));
     }
   }
-  restore();
   return { pushed: false, failed: true, attempts: retries };
 }
 
@@ -192,7 +237,7 @@ function main() {
   const log = (m) => console.log(`[glacier-publish] ${m}`);
   let res;
   if (args.archive) {
-    res = publishArchive({ repoDir: resolve(String(args.repo ?? '.')), srcDir: resolve(String(args.src)), day: String(args.day), message: String(args.message ?? `archive: ${args.day}`), log });
+    res = publishArchive({ repoDir: resolve(String(args.repo ?? '.')), srcDir: resolve(String(args.src)), day: String(args.day), message: String(args.message ?? `glacier: archiv ${args.day}`), log });
   } else {
     res = publishGlacier({
       repoDir: resolve(String(args.repo ?? '.')), line: String(args.line), srcDir: resolve(String(args.src)),

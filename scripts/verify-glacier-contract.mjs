@@ -23,13 +23,16 @@ const rows = Object.values(FX.catalogRows);
 const catalog = (glaciers = rows) => ({ schema: 1, kind: 'glacier/catalog', build: '20261011-1', builtAt: '2026-10-11T12:00:00Z', glaciers: clone(glaciers) });
 
 // --- P: paths ---------------------------------------------------------------------------------------------------
-add('P1 Pfade versioniert unter v1, Repo jppetry/buscosun-glacier',
-  C.GLACIER_VERSION === 'v1' && C.GLACIER_CDN_BASE === 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-glacier@main/v1' && C.GLACIER_RAW_BASE === 'https://raw.githubusercontent.com/jppetry/buscosun-glacier/main/v1' && C.GLACIER_REPO_DIR === 'v1', C.GLACIER_CDN_BASE);
+add('P1 Pfade versioniert unter glacier/v1 im Daten-Repo jppetry/buscosun-data: die laufend aufgefrischten Linien auf `main`, die schweren statischen Builds auf dem Zweig `glacier`, das Tagesarchiv in jppetry/buscosun-archiv',
+  C.GLACIER_VERSION === 'v1' && C.GLACIER_REPO === 'jppetry/buscosun-data' && C.GLACIER_REPO_DIR === 'glacier/v1' && C.GLACIER_REF_LIVE === 'main' && C.GLACIER_REF_STATIC === 'glacier'
+  && C.GLACIER_CDN_BASE === 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/glacier/v1' && C.GLACIER_RAW_BASE === 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/glacier/v1'
+  && C.GLACIER_STATIC_CDN_BASE === 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@glacier/glacier/v1' && C.GLACIER_STATIC_RAW_BASE === 'https://raw.githubusercontent.com/jppetry/buscosun-data/glacier/glacier/v1'
+  && C.GLACIER_ARCHIVE_REPO === 'jppetry/buscosun-archiv', C.GLACIER_CDN_BASE);
 add('P2 Static-Pfade unveränderlich je Build',
   C.glacierStaticPath('20261011-1', C.GLACIER_CATALOG_FILE) === 'static/20261011-1/catalog.json' && C.glacierOutlineFile('ch-b', 2) === 'outline/ch-b-L2.json' && C.glacierEpochFile('at-oetztaler-alpen', 2015) === 'outline/at-oetztaler-alpen-e2015.json'
   && C.glacierHypsoFile('de') === 'hypso/de.json' && C.glacierSeriesFile('ch-a') === 'series/ch-a.json' && C.glacierProjFile('ch-a') === 'proj/ch-a.json');
 add('P3 Build-Schlüssel nur JJJJMMTT-n', C.GLACIER_BUILD_RE.test('20261011-1') && !C.GLACIER_BUILD_RE.test('2026-10-11') && !C.GLACIER_BUILD_RE.test('20261011') && !C.GLACIER_BUILD_RE.test('latest'));
-add('P4 25 Regionen: 4 CH, 20 AT, 1 DE; jede mit Land', C.GLACIER_REGION_IDS.length === 25 && C.GLACIER_REGION_IDS.filter((r) => C.GLACIER_REGIONS[r].country === 'CH').length === 4
+add('P4 26 Regionen: 5 CH (reine Geografie: West, Mitte-West, Mitte-Ost, Ost, Süd), 20 AT, 1 DE; jede mit Land', C.GLACIER_REGION_IDS.length === 26 && C.GLACIER_REGION_IDS.filter((r) => C.GLACIER_REGIONS[r].country === 'CH').length === 5
   && C.GLACIER_REGION_IDS.filter((r) => C.GLACIER_REGIONS[r].country === 'AT').length === 20 && C.GLACIER_REGIONS.de.country === 'DE', String(C.GLACIER_REGION_IDS.length));
 
 // --- I: ids, slugs, classes ---------------------------------------------------------------------------------------
@@ -57,7 +60,7 @@ const mut = (fn) => { const c = catalog(); fn(c.glaciers[0], c); return C.catalo
 add('K2 Gegenprobe Id ungültig', mut((g) => { g.id = 'gl_ch_Bad Id'; }).some((p) => p.includes('id invalid')));
 add('K3 Gegenprobe Id doppelt', C.catalogProblems((() => { const c = catalog(); c.glaciers[1].id = c.glaciers[0].id; return c; })()).some((p) => p.includes('duplicate')));
 add('K4 Gegenprobe Land ≠ Id', mut((g) => { g.country = g.country === 'CH' ? 'AT' : 'CH'; }).some((p) => p.includes('country')));
-add('K5 Gegenprobe Region eines anderen Landes', mut((g) => { g.region = g.country === 'CH' ? 'de' : 'ch-a'; }).some((p) => p.includes('region')));
+add('K5 Gegenprobe Region eines anderen Landes', mut((g) => { g.region = g.country === 'CH' ? 'de' : 'ch-west'; }).some((p) => p.includes('region')));
 add('K6 Gegenprobe Fläche ohne Bezugsjahr', mut((g) => { delete g.area.refYear; }).some((p) => p.includes('area without')));
 add('K7 Gegenprobe Klasse passt nicht zur Fläche', mut((g) => { g.klass = g.klass === 'A' ? 'C' : 'A'; }).some((p) => p.includes('class')));
 add('K8 Gegenprobe Höhen nicht aufsteigend / unmöglich', mut((g) => { g.z = [3000, 2000, 4000]; }).some((p) => p.includes('elevations')) && mut((g) => { g.z = [2000, 3000, 6000]; }).some((p) => p.includes('elevations')));

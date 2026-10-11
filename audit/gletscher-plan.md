@@ -8,6 +8,13 @@
 > Bei Widerspruch zwischen Konzept und Plan gilt der Plan; die Abweichungen stehen in §1. E-GL-1 bis E-GL-13 sind Vorschläge.
 > Im Auto-Modus entscheidet Claude Code E-GL-1 bis E-GL-12 nach `prompt-gletscher.md` selbst und dokumentiert sie zur Prüfung;
 > E-GL-13 (Merge-Zeitpunkt) bleibt bei Jan.
+>
+> **Nachtrag 11.10.2026 (Jan, nach dem ersten Lauf): A2 und E-GL-3 sind ersetzt.** Es gibt **kein eigenes Repo `buscosun-glacier`**: die Daten liegen in `buscosun-data` unter `glacier/v1/` —
+> die laufend aufgefrischten Linien auf `main`, die schweren statischen Builds auf dem verwaisten Zweig `glacier` —, die Tagesablage in `buscosun-archiv` unter `glacier/v1/<Tag>/`.
+> Jan: „ein Branch“, „die kurzfristigen Daten sollen auch in buscosun-data integriert werden“, „die Budgets sind komplett egal“, Änderungen und Pushs in `buscosun-data` und `buscosun-archiv` sind frei.
+> Die Workflows liegen in diesen Repos (`glacier-static|sat|melt|feed.yml` in `buscosun-data`, `glacier-archiv.yml` in `buscosun-archiv`), der Producer-Ref ist die Repo-Variable `GLACIER_PRODUCER_REF`
+> (statt `PRODUCER_REF`, Standard `feat/gletscher`, nach dem Merge `main`). Jans Weg für die Schweiz: **Längen- und Massenreihen aus dem WGMS, Umrisse aus GLIMS** statt der Dateien von glamos.ch
+> (`audit/gletscher.md` §GL-1b). E-GL-14: Satellit bleibt Szenenwert, Nachtrag 2 eingefroren; E-GL-15: Schmelzindex ohne Einheit bleibt; RGI 7 entfällt.
 
 ## 0 Kurzfassung
 

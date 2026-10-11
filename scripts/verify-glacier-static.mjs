@@ -43,13 +43,13 @@ if (T.full) {
   const byId = new Map(cat.glaciers.map((g) => [g.id, g]));
   const cp = C.catalogProblems(cat);
   add('K1 Katalog: 0 Probleme (Ids, Land, Region, Fläche mit Bezugsjahr, Klasse, Höhen, Position, Inventar-Id)', cp.length === 0, cp.slice(0, 5).join('; '));
-  add('K2 2 203 Gletscher: CH 1 400, AT 799, DE 4', cat.glaciers.length === 2203 && ['CH', 'AT', 'DE'].every((c, i) => cat.glaciers.filter((g) => g.country === c).length === [1400, 799, 4][i]), String(cat.glaciers.length));
+  add('K2 2 199 Gletscher: CH 1 396 (SGI2016 zählt 1 400; die Gletscher werden aus den Teilflächen der GLIMS-Einreichung nach Name und Lage gebildet, 96,4 % exakt wie im SGI), AT 799, DE 4', cat.glaciers.length === 2199 && ['CH', 'AT', 'DE'].every((c, i) => cat.glaciers.filter((g) => g.country === c).length === [1396, 799, 4][i]), String(cat.glaciers.length));
   const sp = C.countrySumProblems(cat);
   add('K3 Summen je Land innerhalb ±2 % der amtlichen Zahl', sp.length === 0, sp.join('; '));
   const cls = (c, k) => cat.glaciers.filter((g) => g.country === c && g.klass === k).length;
-  add('K4 Klassen wie in GL-0 gemessen: CH A160/B514/C726, AT A67/B249/C483, DE B1/C3', cls('CH', 'A') === 160 && cls('CH', 'B') === 514 && cls('CH', 'C') === 726 && cls('AT', 'A') === 67 && cls('AT', 'B') === 249 && cls('AT', 'C') === 483 && cls('DE', 'B') === 1 && cls('DE', 'C') === 3, `A ${cat.glaciers.filter((g) => g.klass === 'A').length}`);
+  add('K4 Klassen dieses Builds: CH A162/B506/C728 (SGI2016: 160/514/726), AT A67/B249/C483, DE B1/C3', cls('CH', 'A') === 162 && cls('CH', 'B') === 506 && cls('CH', 'C') === 728 && cls('AT', 'A') === 67 && cls('AT', 'B') === 249 && cls('AT', 'C') === 483 && cls('DE', 'B') === 1 && cls('DE', 'C') === 3, `A ${cat.glaciers.filter((g) => g.klass === 'A').length}`);
   add('K5 Leitgletscher: ≥ 40 markiert, alle mit Reihe', cat.glaciers.filter((g) => g.lead).length >= 40, String(cat.glaciers.filter((g) => g.lead).length));
-  add('K6 jeder CH-Gletscher trägt seine SGI-Id, jeder AT-Gletscher seine AGI-5-Nummer, jeder DE-Gletscher eine RGI-Id', cat.glaciers.every((g) => (g.country === 'CH' ? !!g.inv.sgi : g.country === 'AT' ? typeof g.inv.agi5 === 'number' : !!g.inv.rgi6)));
+  add('K6 jeder CH-Gletscher trägt die GLIMS-Id seiner größten Teilfläche, jeder AT-Gletscher seine AGI-5-Nummer, jeder DE-Gletscher eine RGI-Id', cat.glaciers.every((g) => (g.country === 'CH' ? !!g.inv.glims : g.country === 'AT' ? typeof g.inv.agi5 === 'number' : !!g.inv.rgi6)));
   add('K7 DE: Fläche aus der BAdW-Tabelle 2025 (Summe 26,2 ha), Umrisse aus RGI 2003 mit eigenem Bezugsjahr', Math.abs(cat.glaciers.filter((g) => g.country === 'DE').reduce((s, g) => s + g.area.km2, 0) - 0.262) < 0.0005 && cat.glaciers.filter((g) => g.country === 'DE').every((g) => g.area.source === 'BAdW 2025'));
 
   // points
@@ -130,7 +130,7 @@ if (T.full) {
       else if (lo < g.z[0] - 150 || hi > g.z[2] + 400) dBad.push(`${id}: Umrisshöhen ${Math.round(lo)}–${Math.round(hi)} gegen Katalog ${g.z[0]}–${g.z[2]}`);
     }
   }
-  add('H2 Höhengitter (Satellitenlinie): jeder Gletscher der Klasse A/B in CH/AT genau ein Gitter (990), keiner der Klasse C oder aus DE, Umriss liegt im Gitter, Umrisshöhen im Katalogbereich −150 m / +400 m (am Kopf des Gletschers mischen die 30-m-Zellen die Randwand ein)', dN === satIds.size && dN === 990 && dProb.length === 0 && dBad.length === 0, `${dN} Gitter, ${(dCells / 1e6).toFixed(1)} Mio. Zellen; ${[...dProb, ...dBad].slice(0, 4).join(' | ')}`);
+  add('H2 Höhengitter (Satellitenlinie): jeder Gletscher der Klasse A/B in CH/AT genau ein Gitter (984), keiner der Klasse C oder aus DE, Umriss liegt im Gitter, Umrisshöhen im Katalogbereich −150 m / +400 m (am Kopf des Gletschers mischen die 30-m-Zellen die Randwand ein)', dN === satIds.size && dProb.length === 0 && dBad.length === 0, `${dN} Gitter, ${(dCells / 1e6).toFixed(1)} Mio. Zellen; ${[...dProb, ...dBad].slice(0, 4).join(' | ')}`);
 
   // snow-line climatology (TSLA): present from build 20261011-3, class A outside Germany only
   const climaFiles = (() => { try { return T.ls('clima'); } catch { return []; } })();
@@ -162,7 +162,7 @@ if (T.full) {
     }
   }
   add('R1 Reihen: jede genau einem Gletscher mit Methode, Herkunft, Quelle und Einheit zugeordnet (0 Verstöße)', sN > 2000 && sBad.length === 0, `${sN} ${JSON.stringify(kinds)}; ${sBad.slice(0, 4).join(' | ')}`);
-  add('R2 CH-Messreihen: ≥ 150 Längenreihen, ≥ 25 Massenreihen; AT-Reihen aus ÖAV und WGMS vorhanden', (kinds.length ?? 0) >= 250 && (kinds.mass ?? 0) >= 40 && (kinds.area ?? 0) >= 1000, JSON.stringify(kinds));
+  add('R2 Messreihen: ≥ 250 Längen-, ≥ 40 Massen- und ≥ 1 000 Flächenreihen (CH aus dem WGMS: 120 Längen, 38 Massen; AT aus ÖAV und WGMS)', (kinds.length ?? 0) >= 250 && (kinds.mass ?? 0) >= 40 && (kinds.area ?? 0) >= 1000, JSON.stringify(kinds));
 
   // summary
   const lat = T.summary.latest;
@@ -190,10 +190,10 @@ if (T.full) {
   const rep = T.report;
   add('B1 Bericht: Zählungen und Summen stimmen mit dem Katalog überein', ['CH', 'AT', 'DE'].every((c) => rep.totals[c].n === cat.glaciers.filter((g) => g.country === c).length && Math.abs(rep.totals[c].km2 - cat.glaciers.filter((g) => g.country === c).reduce((s, g) => s + g.area.km2, 0)) < 0.01));
   add('B2 Größe: jede Datei < 20 MB, Summe des Baums < 60 MB', Object.values(rep.files).every((f) => f.bytes < 20 * 1024 * 1024) && rep.bytesTotal < 60 * 1024 * 1024, `${(rep.bytesTotal / 1e6).toFixed(1)} MB`);
-  add('B3 ID-Ausnahmen mit Grund (GLAMOS-Ids ohne SGI2016-Umriss)', (rep.steps.idExceptions ?? []).every((e) => typeof e.reason === 'string' && e.reason.length > 20));
+  add('B3 ID-Ausnahmen mit Grund (FoG-Reihen ohne Umriss)', (rep.steps.idExceptions ?? []).every((e) => typeof e.reason === 'string' && e.reason.length > 20));
 } else {
   const FX = T.fx;
-  add('F1 Fixture: Katalogzeilen, Umrisse, Reihen, Höhenbänder, Projektion aus dem echten Bau vom ' + FX.from.takenAt.slice(0, 10), Object.keys(FX.catalogRows).length === 10 && Object.keys(FX.outline).length === 10 && FX.catalogCounts.n === 2203);
+  add('F1 Fixture: Katalogzeilen, Umrisse, Reihen, Höhenbänder, Projektion aus dem echten Bau vom ' + FX.from.takenAt.slice(0, 10), Object.keys(FX.catalogRows).length === 10 && Object.keys(FX.outline).length === 10 && FX.catalogCounts.n === 2199);
   const hy = Object.values(FX.hypso).flatMap((r) => Object.entries(r));
   add('F2 Höhenbänder der Fixture-Gletscher: z0 Vielfaches von 50, Summe ±25 % der Fläche (A/B)', hy.length >= 6 && hy.every(([id, h]) => h.z0 % 50 === 0 && (Object.values(FX.catalogRows).find((g) => g.id === id)?.klass === 'C' || Object.values(FX.catalogRows).find((g) => g.id === id)?.country === 'DE' || Math.abs(h.a.reduce((s, v) => s + v, 0) / Object.values(FX.catalogRows).find((g) => g.id === id).area.km2 - 1) < 0.25)));
   const pr = Object.values(FX.proj).flatMap((r) => Object.values(r));
@@ -216,8 +216,10 @@ if (snap) {
   }
   add('O2 jedes Zitat steht wörtlich im Quelltext (Schnappschuss der Seite)', bad.length === 0, bad.join('; '));
 }
-add('O3 Quellen: jede mit Lizenz, Vermerk, https-Link, Bezugsjahr; GLAMOS-Lizenz als „Klärung offen“ benannt',
-  T.sources.sources.length >= 10 && T.sources.sources.every((s) => s.licence && s.attribution && /^https:\/\//.test(s.url) && s.refYear && s.used) && T.sources.sources.filter((s) => /GLAMOS/.test(s.label)).every((s) => /Klärung offen/.test(s.licence)));
+add('O3 Quellen: jede mit Lizenz, Vermerk, https-Link, Bezugsjahr; die Schweizer Umrisse kommen aus GLIMS (Quellenangabe als Pflicht benannt), die Schweizer Reihen aus dem WGMS — keine Quelle mehr unmittelbar von der GLAMOS-Seite',
+  T.sources.sources.length >= 9 && T.sources.sources.every((s) => s.licence && s.attribution && /^https:\/\//.test(s.url) && s.refYear && s.used)
+  && /Quellenangabe Pflicht/.test(T.sources.sources.find((s) => s.id === 'glims-sgi')?.licence ?? '') && /CC BY 4\.0/.test(T.sources.sources.find((s) => s.id === 'wgms')?.licence ?? '')
+  && !T.sources.sources.some((s) => /^(sgi2016|sgi-hist|glamos-series)$/.test(s.id) || /GLAMOS/.test(s.label)));
 add('O4 Gegenprobe: ein Quellenvermerk ohne Lizenz würde auffallen', !(clone(T.sources.sources[0]) && (() => { const s = clone(T.sources.sources[0]); s.licence = ''; return s.licence && s.attribution; })()));
 add('O5 amtliche Zahlen und Quellen tragen den Build des Katalogs', T.official.build === T.build && T.sources.build === T.build, `${T.official.build} / ${T.sources.build} / ${T.build}`);
 

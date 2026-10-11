@@ -132,7 +132,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
         <dd><span className="gl-num" data-origin="official">{fmt0(g.z[0])} – {fmt0(g.z[2])} m</span><small>Median {fmt0(g.z[1])} m · {g.zSource}</small></dd>
         {mass && <><dt>Bilanz {mass.year - 1}/{String(mass.year).slice(2)}</dt><dd><span className="gl-num" data-origin="measured">{mass.ba != null ? `${fmt0(mass.ba)} mm w. e.` : '—'}</span><small>gemessen{mass.ela != null ? ` · Gleichgewichtslinie ${fmt0(mass.ela)} m` : ''}{mass.aar != null ? ` · AAR ${fmt2(mass.aar)}` : ''}</small></dd></>}
         <dt>Inventar-Nummern</dt>
-        <dd className="gl-ids">{[g.inv.sgi && `SGI ${g.inv.sgi}`, g.inv.agi5 != null && `AGI 5 ${g.inv.agi5}`, g.inv.rgi6 && g.inv.rgi6, g.inv.wgms && `WGMS ${g.inv.wgms}`].filter(Boolean).map((x) => <code key={String(x)}>{String(x)}</code>)}</dd>
+        <dd className="gl-ids">{[g.inv.glims && `GLIMS ${g.inv.glims}`, g.inv.sgi && `SGI ${g.inv.sgi}`, g.inv.agi5 != null && `AGI 5 ${g.inv.agi5}`, g.inv.rgi6 && g.inv.rgi6, g.inv.wgms && `WGMS ${g.inv.wgms}`].filter(Boolean).map((x) => <code key={String(x)}>{String(x)}</code>)}</dd>
       </dl>
       <h2 className="gl-label">Ansicht</h2>
       <div className="gl-seg gl-seg-2" role="group" aria-label="Ansicht">

@@ -1,11 +1,16 @@
 # ============================================================================
 # glacier-feed.yml — Gletscher-Monitor DACH, Feed „Was sich verändert hat“ und Wochenkarte (Phase GL, buscosun-web/audit/gletscher.md §GL-5)
 #
-# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-feed.yml` im Daten-Repo `jppetry/buscosun-glacier`. Der Producer
-# `scripts/glacier/feed.mjs` liest den Datenbaum (Szenen, Schmelzlauf, amtliche Meldungen) und schreibt `v1/feed/<Jahr>-W<Woche>.json`
-# (Ereignisse mit stabiler Kennung, Herkunft, Quelle, Zeit; die letzten 12 Wochen bleiben liegen). Montags rendert
-# `scripts/glacier/weekly-card.mjs` die drei wichtigsten Änderungen der VORWOCHE als `v1/card/<Jahr>-W<Woche>.png` (1200 × 630, headless Chrome des Runners).
-# Bis der Producer auf `PRODUCER_REF` steht, endet der Job grün mit „producer not on <ref> yet“.
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-feed.yml` im Daten-Repo `jppetry/buscosun-data` (Jans Vollmacht 11.10.2026: Änderungen
+# und Pushs in buscosun-data und buscosun-archiv). Die Daten dieser Linie liegen unter `glacier/v1/` — die laufend aufgefrischten Linien auf `main`,
+# die schweren statischen Builds auf dem verwaisten Zweig `glacier` (Vertrag `src/glacier/glacierContract.ts`, Kopf). Der Code lebt in
+# `buscosun-web` (`scripts/glacier/*`) und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (Standard `feat/gletscher`; nach dem
+# Merge setzt Jan die Repo-Variable `GLACIER_PRODUCER_REF=main`).
+#
+# Der Producer `scripts/glacier/feed.mjs` liest den Datenbaum (Szenen, Schmelzlauf, amtliche Meldungen) und schreibt
+# `glacier/v1/feed/<Jahr>-W<Woche>.json` (Ereignisse mit stabiler Kennung, Herkunft, Quelle, Zeit; die letzten 12 Wochen bleiben liegen).
+# Montags rendert `scripts/glacier/weekly-card.mjs` die drei wichtigsten Änderungen der VORWOCHE als `glacier/v1/card/<Jahr>-W<Woche>.png`
+# (1200 × 630, headless Chrome des Runners). Leerlauf: wie bei den anderen Linien.
 # ============================================================================
 
 name: glacier-feed
@@ -27,19 +32,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PRODUCER_REF: ${{ vars.PRODUCER_REF || 'feat/gletscher' }}
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'feat/gletscher' }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Checkout producer (buscosun-web, PRODUCER_REF)
+      - name: Checkout producer (buscosun-web, GLACIER_PRODUCER_REF)
         id: app
         run: |
-          REF="${PRODUCER_REF:-feat/gletscher}"
+          REF="${GLACIER_PRODUCER_REF:-feat/gletscher}"
           if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
-            echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
-            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            # after the merge the feature branch is gone: the producer then lives on main (the file check below idles if it is not there either)
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
           fi
           git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
           cd app
@@ -54,19 +64,43 @@ jobs:
           done
           echo "ready=1" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout data (buscosun-glacier main)
+      - name: Checkout data (buscosun-data main, glacier/ sparse)
         if: steps.app.outputs.ready == '1'
         uses: actions/checkout@v4
         with:
           ref: main
           path: data
           fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
+
+      - name: Static build (branch glacier) and the read view
+        id: view
+        if: steps.app.outputs.ready == '1'
+        run: |
+          # The heavy static builds live on the orphan branch `glacier` (contract header, src/glacier/glacierContract.ts); the producers read ONE assembled tree.
+          test -f data/glacier/v1/index.json || { echo "glacier/v1/index.json fehlt auf main — die Linie ist noch nicht eingespielt, Ende ohne Fehler."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('data/glacier/v1/index.json','utf8')).static.build)")
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-data.git glacier >/dev/null 2>&1; then
+            echo "Zweig glacier fehlt, index.json nennt aber $BUILD — das ist ein Fehler."; exit 1
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch glacier https://github.com/jppetry/buscosun-data.git static-branch
+          git -C static-branch sparse-checkout set --no-cone "/glacier/v1/static/$BUILD/"
+          git -C static-branch checkout --quiet
+          test -d "static-branch/glacier/v1/static/$BUILD" || { echo "index.json nennt den Build $BUILD, aber glacier/v1/static/$BUILD fehlt auf dem Zweig glacier"; exit 1; }
+          mkdir -p view/glacier
+          cp -r data/glacier/v1 view/glacier/v1
+          mkdir -p view/glacier/v1/static
+          cp -r static-branch/glacier/v1/static/. view/glacier/v1/static/
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "ready=1" >> "$GITHUB_OUTPUT"
 
       - name: Kill switch
         id: kill
-        if: steps.app.outputs.ready == '1'
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
         run: |
-          if [ -f data/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/v1/status.json','utf8')).killed===true?0:1)"; then
+          if [ -f data/glacier/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/glacier/v1/status.json','utf8')).killed===true?0:1)"; then
             echo "Kill-Schalter AN — kein Feed."; echo "go=0" >> "$GITHUB_OUTPUT"
           else
             echo "go=1" >> "$GITHUB_OUTPUT"
@@ -74,18 +108,18 @@ jobs:
 
       - name: Feed (+ Wochenkarte der Vorwoche am Montag)
         id: build
-        if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1' && steps.kill.outputs.go == '1'
         env:
           OG_CHROME: /usr/bin/google-chrome
         run: |
           cd app
-          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/feed.mjs --data=../data/v1 --out=../out --patch=../patch | tee ../feed.log
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/feed.mjs --data=../view/glacier/v1 --out=../out --patch=../patch | tee ../feed.log
           if [ "$(date -u +%u)" = "1" ]; then
             node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/weekly-card.mjs --feed-dir=../out/feed --card-dir=../out/card --week=previous || echo "Karte der Vorwoche: kein Browser oder Fehler — der Feed bleibt unberührt"
           fi
           echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
 
-      - name: Publish (v1/feed, v1/card, index, status — never --force)
+      - name: Publish (glacier/v1/feed, card, index, status — never --force)
         if: steps.build.outputs.wrote != '' && steps.build.outputs.wrote != '0'
         run: |
           cd data

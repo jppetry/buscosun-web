@@ -3,11 +3,12 @@
  * `raw.githubusercontent.com` as the hedge (pattern `fetchSea`, V-FI-5 / NL-2), every document through the contract's rules
  * before it reaches the page, results memoised per build for the session.
  *
- * Verification against the local data repo: `?glbase=http://127.0.0.1:<port>/v1` replaces both bases — loopback hosts only, so a
- * link can never make the page read "official" numbers from somewhere else.
+ * Verification against the local data repo: `?glbase=http://127.0.0.1:<port>/glacier/v1` replaces every base — loopback hosts only, so a
+ * link can never make the page read "official" numbers from somewhere else. The static builds come from the branch `glacier` of the data
+ * repo, everything else from `main` (contract header): `GlacierBases.staticCdn/staticRaw`.
  */
 import {
-  GLACIER_CDN_BASE, GLACIER_RAW_BASE, GLACIER_INDEX_PATH, GLACIER_STATUS_PATH, GLACIER_BUILD_RE, GLACIER_CATALOG_FILE, GLACIER_POINTS_FILE,
+  GLACIER_CDN_BASE, GLACIER_RAW_BASE, GLACIER_STATIC_CDN_BASE, GLACIER_STATIC_RAW_BASE, GLACIER_INDEX_PATH, GLACIER_STATUS_PATH, GLACIER_BUILD_RE, GLACIER_CATALOG_FILE, GLACIER_POINTS_FILE,
   GLACIER_OFFICIAL_FILE, GLACIER_SOURCES_FILE, glacierStaticPath, glacierOutlineFile, glacierEpochFile, glacierHypsoFile, glacierSeriesFile,
   glacierProjFile, catalogProblems, officialProblems,
   type GlacierCatalog, type GlacierCatalogEntry, type GlacierOfficialItem, type GlacierSeries,
@@ -17,7 +18,11 @@ import { glacierMeltRunPath, meltProblems, type GlacierMeltDoc } from './glacier
 import type { GlacierDemGrid } from './glacierSatContract';
 import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, type GlacierFeedEvent } from './glacierFeedContract';
 
-export interface GlacierBases { cdn: string; raw: string }
+export interface GlacierBases {
+  cdn: string; raw: string;
+  /** Where `static/<build>/…` lives (branch `glacier`); absent ⇒ the same as `cdn`/`raw` (loopback override, tests). */
+  staticCdn?: string; staticRaw?: string;
+}
 
 /** Loopback-only override of the data base (`?glbase=`). */
 export function glacierBasesFrom(search: string = typeof location !== 'undefined' ? location.search : ''): GlacierBases {
@@ -27,11 +32,11 @@ export function glacierBasesFrom(search: string = typeof location !== 'undefined
       const u = new URL(v);
       if ((u.hostname === '127.0.0.1' || u.hostname === 'localhost') && (u.protocol === 'http:' || u.protocol === 'https:')) {
         const base = v.replace(/\/+$/, '');
-        return { cdn: base, raw: base };
+        return { cdn: base, raw: base, staticCdn: base, staticRaw: base };
       }
     }
   } catch { /* broken query = default */ }
-  return { cdn: GLACIER_CDN_BASE, raw: GLACIER_RAW_BASE };
+  return { cdn: GLACIER_CDN_BASE, raw: GLACIER_RAW_BASE, staticCdn: GLACIER_STATIC_CDN_BASE, staticRaw: GLACIER_STATIC_RAW_BASE };
 }
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
@@ -168,8 +173,9 @@ export async function loadStatus(signal?: AbortSignal, bases = glacierBasesFrom(
  * caller — a remount, a second effect run — is already waiting on); callers check their own `signal.aborted` after the await.
  */
 function staticDoc<T>(build: string, file: string, _signal: AbortSignal | undefined, bases: GlacierBases): Promise<T | null> {
-  return once(`${bases.cdn}|${build}|${file}`, async () => {
-    try { return await fetchGlacier(glacierStaticPath(build, file), 'json', undefined, bases) as T; }
+  const sb: GlacierBases = { cdn: bases.staticCdn ?? bases.cdn, raw: bases.staticRaw ?? bases.raw };
+  return once(`${sb.cdn}|${build}|${file}`, async () => {
+    try { return await fetchGlacier(glacierStaticPath(build, file), 'json', undefined, sb) as T; }
     catch (e) { if (isAbort(e)) throw e; return null as T | null; }
   }) as Promise<T | null>;
 }

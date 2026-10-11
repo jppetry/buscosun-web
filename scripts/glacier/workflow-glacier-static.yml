@@ -1,30 +1,28 @@
 # ============================================================================
 # glacier-static.yml — Gletscher-Monitor DACH, statische Linie (Phase GL, buscosun-web/audit/gletscher.md §GL-1)
 #
-# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-static.yml` im Daten-Repo
-# `jppetry/buscosun-glacier`. Der Code lebt in `buscosun-web` (`scripts/glacier/*`, Vertrag
-# `src/glacier/glacierContract.ts`) und wird bei jedem Lauf frisch von `PRODUCER_REF` geklont.
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-static.yml` im Daten-Repo `jppetry/buscosun-data` (Jans Vollmacht 11.10.2026: Änderungen
+# und Pushs in buscosun-data und buscosun-archiv). Die Daten dieser Linie liegen unter `glacier/v1/` — die laufend aufgefrischten Linien auf `main`,
+# die schweren statischen Builds auf dem verwaisten Zweig `glacier` (Vertrag `src/glacier/glacierContract.ts`, Kopf). Der Code lebt in
+# `buscosun-web` (`scripts/glacier/*`) und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (Standard `feat/gletscher`; nach dem
+# Merge setzt Jan die Repo-Variable `GLACIER_PRODUCER_REF=main`).
 #
 # ── Was dieser Workflow IST ───────────────────────────────────────────────
 # Die statische Linie (Inventare, Umrisse, Reihen, amtliche Zahlen) wird NICHT auf dem Runner gebaut: ihre Rohquellen
-# (SGI2016, AGI 5, GLAMOS-CSV, FoG, GloGEM, Copernicus-DEM-Kacheln) werden einmal von Hand geladen und gegen ihre
+# (SGI2016, AGI 5, WGMS FoG, GLIMS, GloGEM, Copernicus-DEM-Kacheln) werden einmal von Hand geladen und gegen ihre
 # Lizenztexte gelesen (audit/gletscher/licences.md). Gebaut wird lokal (`scripts/glacier/py/build_static.py`), geprüft und
-# mit `glacier-publish.mjs` veröffentlicht. Dieser Workflow ist der WÄCHTER der Linie: er prüft bei jedem Push auf
-# `v1/static/**` und wöchentlich den ganzen Baum gegen den Vertrag (Flächenstempel, Länder-Summen ±2 %, Umriss-Stufen ±3 %,
-# amtliche Sätze, Zeiger) und wird rot, wenn etwas nicht stimmt. Kein Schreibzugriff auf die Daten.
+# mit `glacier-publish.mjs --line=static` veröffentlicht (Baum auf den Zweig `glacier`, danach der Zeiger auf `main`).
+# Dieser Workflow ist der WÄCHTER der Linie: er prüft wöchentlich den ganzen Baum gegen den Vertrag (Flächenstempel, Länder-
+# Summen ±2 %, Umriss-Stufen ±3 %, amtliche Sätze, Zeiger) und wird rot, wenn etwas nicht stimmt. Kein Schreibzugriff auf die Daten.
+# (Ein Push auf den verwaisten Zweig löst keinen Workflow aus — die Workflow-Datei muss im gepushten Zweig stehen —, darum der Wochentakt.)
 #
 # ── Leerlauf ───────────────────────────────────────────────────────────────
-# Fehlt der Producer auf `PRODUCER_REF`, meldet der Job „producer not on <ref> yet“ und endet grün. `PRODUCER_REF` ist
-# bis zum Merge der Gletscher-Linie `feat/gletscher`; danach setzt Jan die Repo-Variable `PRODUCER_REF=main`.
+# Fehlt der Producer auf dem Zweig oder `glacier/v1/index.json` auf `main`, meldet der Job den Grund und endet grün.
 # ============================================================================
 
 name: glacier-static
 
 on:
-  push:
-    paths:
-      - 'v1/static/**'
-      - 'v1/index.json'
   schedule:
     - cron: '17 5 * * 1'   # montags 05:17 UTC
   workflow_dispatch: {}
@@ -41,19 +39,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PRODUCER_REF: ${{ vars.PRODUCER_REF || 'feat/gletscher' }}
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'feat/gletscher' }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Checkout producer (buscosun-web, PRODUCER_REF)
+      - name: Checkout producer (buscosun-web, GLACIER_PRODUCER_REF)
         id: app
         run: |
-          REF="${PRODUCER_REF:-feat/gletscher}"
+          REF="${GLACIER_PRODUCER_REF:-feat/gletscher}"
           if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
-            echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
-            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            # after the merge the feature branch is gone: the producer then lives on main (the file check below idles if it is not there either)
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
           fi
           git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
           cd app
@@ -67,26 +70,47 @@ jobs:
           done
           echo "ready=1" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout data (buscosun-glacier main)
+      - name: Checkout data (buscosun-data main, glacier/ sparse)
         if: steps.app.outputs.ready == '1'
         uses: actions/checkout@v4
         with:
           ref: main
           path: data
           fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
 
-      - name: Pointer and kill switch
+      - name: Static build (branch glacier) and the read view
+        id: view
         if: steps.app.outputs.ready == '1'
         run: |
-          test -f data/v1/index.json || { echo "v1/index.json fehlt"; exit 1; }
-          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('data/v1/index.json','utf8')).static.build)")
-          test -d "data/v1/static/$BUILD" || { echo "index.json nennt den Build $BUILD, aber v1/static/$BUILD fehlt"; exit 1; }
-          echo "Build $BUILD"
-          if [ -f data/v1/status.json ]; then node -e "const s=JSON.parse(require('fs').readFileSync('data/v1/status.json','utf8')); console.log('Kill-Schalter:', s.killed===true ? 'AN — '+(s.killReason||'') : 'aus')"; fi
+          # The heavy static builds live on the orphan branch `glacier` (contract header, src/glacier/glacierContract.ts); the producers read ONE assembled tree.
+          test -f data/glacier/v1/index.json || { echo "glacier/v1/index.json fehlt auf main — die Linie ist noch nicht eingespielt, Ende ohne Fehler."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('data/glacier/v1/index.json','utf8')).static.build)")
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-data.git glacier >/dev/null 2>&1; then
+            echo "Zweig glacier fehlt, index.json nennt aber $BUILD — das ist ein Fehler."; exit 1
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch glacier https://github.com/jppetry/buscosun-data.git static-branch
+          git -C static-branch sparse-checkout set --no-cone "/glacier/v1/static/$BUILD/"
+          git -C static-branch checkout --quiet
+          test -d "static-branch/glacier/v1/static/$BUILD" || { echo "index.json nennt den Build $BUILD, aber glacier/v1/static/$BUILD fehlt auf dem Zweig glacier"; exit 1; }
+          mkdir -p view/glacier
+          cp -r data/glacier/v1 view/glacier/v1
+          mkdir -p view/glacier/v1/static
+          cp -r static-branch/glacier/v1/static/. view/glacier/v1/static/
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Pointer and kill switch
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
+        run: |
+          echo "Build ${{ steps.view.outputs.build }}"
+          if [ -f data/glacier/v1/status.json ]; then node -e "const s=JSON.parse(require('fs').readFileSync('data/glacier/v1/status.json','utf8')); console.log('Kill-Schalter:', s.killed===true ? 'AN — '+(s.killReason||'') : 'aus')"; fi
 
       - name: Contract and tree checks
-        if: steps.app.outputs.ready == '1'
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-contract.mjs
-          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-static.mjs --dir=../data/v1
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-static.mjs --dir=../view/glacier/v1

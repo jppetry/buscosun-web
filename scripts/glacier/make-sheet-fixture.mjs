@@ -46,8 +46,9 @@ for (const [key, id] of Object.entries(ids)) {
 }
 const idx = J(join(TREE, 'index.json'));
 const run = J(join(TREE, 'melt', `${idx.melt.run}.json`));
-const rows = run.glaciers.filter((r) => Object.values(ids).includes(r.id));
-out.melt = { ...run, run: '2026101110', runAt: '2026-10-11T10:30:00Z', glaciers: rows, skipped: [], note: `Zeilen des echten Laufs ${run.run} (${run.runAt}); nur der Laufstempel ist auf die Uhr des Prüfers gelegt` };
+// the row of the German glacier is left out ON PURPOSE: `verify:glacier-ui` T9 tests the state "glacier without a melt row" ("Keine Daten" with the reason), every other row is the real one
+const rows = run.glaciers.filter((r) => Object.values(ids).includes(r.id) && r.id !== ids.blaueis);
+out.melt = { ...run, run: '2026101110', runAt: '2026-10-11T10:30:00Z', glaciers: rows, skipped: [], note: `Zeilen des echten Laufs ${run.run} (${run.runAt}) ohne die Zeile des deutschen Gletschers (Zustand „ohne Schmelzzeile“); nur der Laufstempel ist auf die Uhr des Prüfers gelegt` };
 out.sha256 = createHash('sha256').update(JSON.stringify({ g: out.glaciers, m: out.melt })).digest('hex');
 writeFileSync(OUT, JSON.stringify(out));
 console.log(`${OUT}: ${Math.round(JSON.stringify(out).length / 1024)} KB`, Object.fromEntries(Object.entries(out.glaciers).map(([k, v]) => [k, { epochs: v.epochs.length, dem: !!v.dem, clima: !!v.clima, series: v.series.length, proj: !!v.proj }])), 'melt rows', rows.length);

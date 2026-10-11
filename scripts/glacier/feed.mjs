@@ -28,7 +28,7 @@ const dm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 const fmt0 = (v) => Math.round(v).toLocaleString('de-DE').replace(/\./g, ' ');
 const slug = (id) => id.replace(/^gl_/, '').replace('_', '-');
 /** As the page names it: the inventory name, or "namenlos · <inventory id>" for a nameless glacier. */
-const nameOf = (g) => g.name ?? `namenlos · ${g.inv?.sgi ?? g.inv?.agi5 ?? g.inv?.rgi6 ?? g.id}`;
+const nameOf = (g) => g.name ?? `namenlos · ${g.inv?.glims ?? g.inv?.sgi ?? g.inv?.agi5 ?? g.inv?.rgi6 ?? g.id}`;
 
 /** Snow-line events of one season: consecutive scenes of class A with a line, not flagged as new snow, ≥ 100 m apart; the event belongs to the newer scene. */
 export function snowlineEvents(rowsById, byId, fromIso, toIso) {

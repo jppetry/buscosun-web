@@ -117,17 +117,21 @@ def oeav_length():
     return out
 
 
-# --- WGMS FoG (AT / DE mass balance, ids) ------------------------------------------------------------------------
+# --- WGMS FoG (mass balance AT / DE / CH, length CH, ids) -------------------------------------------------------------------
+
+FOG_COUNTRIES = ("AT", "DE", "CH")
+
+
+def _fog_rd(z, name):
+    return csv.DictReader(io.TextIOWrapper(z.open("data/" + name), encoding="utf-8", errors="replace"))
+
 
 def wgms_tables():
+    """({fog id: glacier row}, {fog id: [[year, Bw, Bs, Ba (mm w.e.), ELA m, AAR 0..1], ...]}) for AT, DE and CH."""
     z = zipfile.ZipFile(RAW + "wgms/FoG-2026-02-10.zip")
-
-    def rd(name):
-        return csv.DictReader(io.TextIOWrapper(z.open("data/" + name), encoding="utf-8", errors="replace"))
-
-    gl = {g["id"]: g for g in rd("glacier.csv") if g["country"] in ("AT", "DE")}
+    gl = {g["id"]: g for g in _fog_rd(z, "glacier.csv") if g["country"] in FOG_COUNTRIES}
     mass = {}
-    for m in rd("mass_balance.csv"):
+    for m in _fog_rd(z, "mass_balance.csv"):
         g = gl.get(m["glacier_id"])
         if not g:
             continue
@@ -143,6 +147,25 @@ def wgms_tables():
     for v in mass.values():
         v.sort(key=lambda x: x[0])
     return gl, mass
+
+
+def wgms_length(country="CH"):
+    """{fog id: [[yearStart, yearEnd, dL m], ...]} from `front_variation.csv`. One glacier can carry several series (different observers); the series 0 is
+    the canonical one of the database, any other series is used only when 0 is absent (the one with the most rows)."""
+    z = zipfile.ZipFile(RAW + "wgms/FoG-2026-02-10.zip")
+    gl = {g["id"] for g in _fog_rd(z, "glacier.csv") if g["country"] == country}
+    by = {}
+    for r in _fog_rd(z, "front_variation.csv"):
+        if r["glacier_id"] not in gl:
+            continue
+        a, b, d = _yr(r["begin_date"]), _yr(r["end_date"]), num(r["length_change"])
+        if a and b and d is not None:
+            by.setdefault(r["glacier_id"], {}).setdefault(r["series_id"], []).append([a, b, round(d, 2)])
+    out = {}
+    for gid, sers in by.items():
+        key = "0" if "0" in sers else max(sers, key=lambda k: len(sers[k]))
+        out[gid] = sorted(sers[key], key=lambda x: (x[1], x[0]))
+    return out
 
 
 # --- Linking ------------------------------------------------------------------------------------------------------
@@ -174,7 +197,7 @@ class Linker:
             score = (d - 400.0 * sim, -self.geoms[i].area)
             if best is None or score < best[0]:
                 best = (score, i, d, sim)
-        return None if best is None else {"index": best[1], "id": self.ids[best[1]], "dist_m": round(best[2], 1), "sim": round(best[3], 2)}
+        return None if best is None else {"index": int(best[1]), "id": self.ids[best[1]], "dist_m": round(best[2], 1), "sim": round(best[3], 2)}
 
 
 # --- GloGEM (projection) ---------------------------------------------------------------------------------------

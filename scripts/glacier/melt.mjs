@@ -28,7 +28,7 @@ import { glacierSatClass } from '../../src/glacier/glacierSatContract.ts';
 import { glacierStaticPath, glacierHypsoFile, GLACIER_MELT_KEEP_MS } from '../../src/glacier/glacierContract.ts';
 import {
   GLACIER_MELT_DAYS, GLACIER_MELT_HOURS, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_PER_DAY_MAX,
-  glacierMeltRunPath, GLACIER_MELT_STATE_PATH, meltIndexOf, meltProblems,
+  glacierMeltRunPath, GLACIER_MELT_STATE_PATH, meltIndexOf, meltProblems, meltLeadDoc,
 } from '../../src/glacier/glacierMeltContract.ts';
 import { MELT, bandsOf, emptyState, simulate, cosZenith, clearSky, cloudFactor, scenarioPaths, quantile } from './lib/meltcore.mjs';
 
@@ -381,7 +381,7 @@ export async function main(opts) {
     const ao = resolve(opts['archive-out'] ?? opts.archiveOut);
     mkdirSync(ao, { recursive: true });
     const leads = new Set(catAll.filter((g) => g.lead).map((g) => g.id));
-    writeFileSync(join(ao, `melt-${run}.json`), JSON.stringify({ schema: 1, kind: 'glacier/melt-lead', run, runAt: doc.runAt, engine, cube: cubeRuns, gate: doc.gate, glaciers: rows.filter((r) => leads.has(r.id)) }));
+    writeFileSync(join(ao, `melt-${run}.json`), JSON.stringify(meltLeadDoc(doc, leads)));
   }
   log(`${rows.length} Gletscher, ${skipped.length} übersprungen, Einheit ${unit ? 'freigegeben' : 'gesperrt (nur Index)'}, ${Math.round((Date.now() - tStart) / 1000)} s`);
   return { run, glaciers: rows.length, skipped: skipped.length, unit, outDir, patchDir, engine, cube: cubeRuns };

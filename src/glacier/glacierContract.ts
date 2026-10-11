@@ -1,37 +1,52 @@
 /**
- * GL-1 — Contract of the glacier data line (`buscosun-glacier/v1/`): ONE file for producer
+ * GL-1 — Contract of the glacier data line (`buscosun-data` `glacier/v1/`): ONE file for producer
  * (`scripts/glacier/*`), client (`src/glacier/*`) and verifiers (`verify:glacier-*`) — paths, origins, size classes,
  * identity, area stamps, catalogue/series/official rules, geometry rules, client freshness rules and units.
  * Pattern: `src/sea/seaContract.ts`, `src/road/roadContract.ts`. Numbers are measured in `audit/gletscher.md` §2 (GL-0)
  * or decided at Gate A (§5). Dependency-free on purpose (start page, route and verifiers import it).
  *
- * Layout (versioned path — a format change bumps `v1` → `v2`):
- *   v1/index.json                                 pointer: current static build, newest scene per tile, newest melt run, season stand, feed week
- *   v1/status.json                                lines, rule balance, kill switch
- *   v1/static/<build>/catalog.json                one entry per glacier (id, names, country, region, class, area + reference year, heights, inventory ids)
- *   v1/static/<build>/points.json                 points for zoom ≤ 8 (id, lat, lon, class, area)
- *   v1/static/<build>/outline/<region>-L<1..3>.json   current outlines in three simplification levels (GeoJSON, WGS84)
- *   v1/static/<build>/outline/<region>-e<year>.json   earlier outlines (SGI1850/1931/1973/2010, GI4 2015, RGI 2003), each with its reference year
- *   v1/static/<build>/hypso/<region>.json         area per 50 m band
- *   v1/static/<build>/series/<region>.json        length, mass and area series, one method and source each
- *   v1/static/<build>/proj/<region>.json          GloGEM CMIP6 v2 projection as a range per scenario
- *   v1/static/<build>/official.json               official numbers with date, verbatim key sentence and link
- *   v1/static/<build>/sources.json                source, licence, attribution, reference per data set
- *   (later packages add) obs/<year>/<tile>/<date>.json, season/…, melt/<run>.json, melt/state/<date>.json, feed/<year>-W<week>.json, card/<year>-W<week>.png
+ * Where it lives (Jan 11.10.2026: "ein Branch, die kurzfristigen Daten in buscosun-data"): the repo `buscosun-data`, always below
+ * `glacier/v1/`, on TWO refs with the identical repo-relative path —
+ *   `main`     the frequently refreshed lines: index.json, status.json, obs/, season/, melt/, feed/, card/ (small JSON/PNG, like obs/v1, road/v1, sea/v1)
+ *   `glacier`  an orphan branch with the heavy, immutable static builds: static/<build>/… (24–38 MB each, the newest two are kept)
+ * The pointer `index.json` (on `main`) names the static build; a new build is pushed to the branch FIRST, the pointer second.
+ * The day archive of the measuring lines lives in `buscosun-archiv` `glacier/v1/<day>/` (like `sea/v1`, `road/v1`).
  *
- * Every file except `index.json` and `status.json` carries an immutable name (build, scene, stand, run, week), so `@main` is
- * safe at the CDN once `index.json` names it; the client reads `index.json` with a raw ↔ CDN hedge (pattern obs/v1).
+ * Layout (versioned path — a format change bumps `v1` → `v2`):
+ *   glacier/v1/index.json                          pointer: current static build, newest scene per tile, newest melt run, season stand, feed week
+ *   glacier/v1/status.json                         lines, rule balance, kill switch
+ *   glacier/v1/static/<build>/catalog.json         one entry per glacier (id, names, country, region, class, area + reference year, heights, inventory ids)
+ *   glacier/v1/static/<build>/points.json          points for zoom ≤ 8 (id, lat, lon, class, area)
+ *   glacier/v1/static/<build>/outline/<region>-L<1..3>.json   current outlines in three simplification levels (GeoJSON, WGS84)
+ *   glacier/v1/static/<build>/outline/<region>-e<year>.json   earlier outlines (SGI1850/1931/1973/2010, GI4 2015, RGI 2003), each with its reference year
+ *   glacier/v1/static/<build>/hypso/<region>.json  area per 50 m band
+ *   glacier/v1/static/<build>/series/<region>.json length, mass and area series, one method and source each
+ *   glacier/v1/static/<build>/proj/<region>.json   GloGEM CMIP6 v2 projection as a range per scenario
+ *   glacier/v1/static/<build>/official.json        official numbers with date, verbatim key sentence and link
+ *   glacier/v1/static/<build>/sources.json         source, licence, attribution, reference per data set
+ *   (the other lines add) obs/<year>/<tile>/<date>.json, season/…, melt/<run>.json, melt/state.json, feed/<year>-W<week>.json, card/<year>-W<week>.png
+ *
+ * Every file except `index.json` and `status.json` carries an immutable name (build, scene, stand, run, week), so the CDN is
+ * safe once `index.json` names it; the client reads `index.json` with a raw ↔ CDN hedge (pattern obs/v1).
  */
 
 // --- Paths -------------------------------------------------------------------------------------
 
 export const GLACIER_VERSION = 'v1';
-export const GLACIER_REPO = 'jppetry/buscosun-glacier';
-export const GLACIER_CDN_BASE = `https://cdn.jsdelivr.net/gh/${GLACIER_REPO}@main/${GLACIER_VERSION}`;
+export const GLACIER_REPO = 'jppetry/buscosun-data';
+/** Repo-relative directory of the line (producer side) — identical on `main` and on the static branch, and in `buscosun-archiv`. */
+export const GLACIER_REPO_DIR = `glacier/${GLACIER_VERSION}`;
+/** `main` carries the refreshed lines, this orphan branch the heavy static builds (see the header). */
+export const GLACIER_REF_LIVE = 'main';
+export const GLACIER_REF_STATIC = 'glacier';
+export const GLACIER_CDN_BASE = `https://cdn.jsdelivr.net/gh/${GLACIER_REPO}@${GLACIER_REF_LIVE}/${GLACIER_REPO_DIR}`;
 /** Same files on raw.githubusercontent (CORS *): hedge when jsDelivr hangs or answers 403 (pattern V-FI-5). */
-export const GLACIER_RAW_BASE = `https://raw.githubusercontent.com/${GLACIER_REPO}/main/${GLACIER_VERSION}`;
-/** Repo-relative directory of the line (producer side). */
-export const GLACIER_REPO_DIR = GLACIER_VERSION;
+export const GLACIER_RAW_BASE = `https://raw.githubusercontent.com/${GLACIER_REPO}/${GLACIER_REF_LIVE}/${GLACIER_REPO_DIR}`;
+/** The static builds (`static/<build>/…`) are read from the branch; every other path from `main`. */
+export const GLACIER_STATIC_CDN_BASE = `https://cdn.jsdelivr.net/gh/${GLACIER_REPO}@${GLACIER_REF_STATIC}/${GLACIER_REPO_DIR}`;
+export const GLACIER_STATIC_RAW_BASE = `https://raw.githubusercontent.com/${GLACIER_REPO}/${GLACIER_REF_STATIC}/${GLACIER_REPO_DIR}`;
+/** Day archive (measuring lines), in the archive repo — not read by the page. */
+export const GLACIER_ARCHIVE_REPO = 'jppetry/buscosun-archiv';
 
 export const GLACIER_INDEX_PATH = 'index.json';
 export const GLACIER_STATUS_PATH = 'status.json';
@@ -57,10 +72,13 @@ export const GLACIER_COUNTRY_LABEL: Readonly<Record<GlacierCountry, string>> = {
 
 /** Outline/hypsometry/series files are split by region (< 20 MB each, lazy per view). */
 export const GLACIER_REGIONS: Readonly<Record<string, { country: GlacierCountry; label: string }>> = Object.freeze({
-  'ch-a': { country: 'CH', label: 'Rhein' },
-  'ch-b': { country: 'CH', label: 'Rhone' },
-  'ch-c': { country: 'CH', label: 'Po' },
-  'ch-e': { country: 'CH', label: 'Inn' },
+  // Switzerland: plain geography (the SGI's river basins are an attribute of the GLAMOS files, which the GLIMS copy does not carry). Rule on the
+  // centroid of the glacier (WGS84): south of 46.45 °N and from 8.35 °E = Süd; otherwise by longitude: < 7.55 West, < 8.2 Mitte-West, < 8.75 Mitte-Ost, else Ost.
+  'ch-west': { country: 'CH', label: 'Schweiz West' },
+  'ch-mitte-west': { country: 'CH', label: 'Schweiz Mitte-West' },
+  'ch-mitte-ost': { country: 'CH', label: 'Schweiz Mitte-Ost' },
+  'ch-ost': { country: 'CH', label: 'Schweiz Ost' },
+  'ch-sued': { country: 'CH', label: 'Schweiz Süd' },
   'at-allgaeuer-alpen': { country: 'AT', label: 'Allgäuer Alpen' },
   'at-ankogel-hochalmspitzgruppe': { country: 'AT', label: 'Ankogel-/Hochalmspitzgruppe' },
   'at-dachstein': { country: 'AT', label: 'Dachstein' },
@@ -150,7 +168,9 @@ export const hasAreaStamp = (a: unknown): a is GlacierAreaStamp => {
 // --- Catalogue -----------------------------------------------------------------------------------
 
 export interface GlacierInventoryIds {
-  /** SGI id (`B36-26`), also the GLAMOS glacier id. */
+  /** GLIMS glacier id of the largest polygon part of the Swiss inventory SGI2016 (`G007740E46133N`) — also the id the WGMS FoG names. */
+  glims?: string;
+  /** SGI id (`B36-26`) of builds made from the GLAMOS files (before the GLIMS detour, 11.10.2026); no longer written. */
   sgi?: string;
   /** AGI 5 glacier number. */
   agi5?: number;
@@ -179,7 +199,7 @@ export interface GlacierCatalogEntry {
   lead?: true;
   /** Authority status: `vanished`/`vanishing` — only from the authority's own criterion, never from a satellite image. */
   status?: 'vanished' | 'vanishing' | 'lost-status';
-  /** Debris cover class of the inventory (AGI 5 `debris` 0–3; SGI2016 share) or `null`. */
+  /** Debris cover class of the inventory (AGI 5 `debris` 0–3; SGI2016 debris-cover share from the GLIMS debris lines) or `null`. */
   debris: number | null;
 }
 export interface GlacierCatalog {

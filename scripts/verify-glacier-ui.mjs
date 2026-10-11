@@ -7,7 +7,7 @@
  * Headless Chromium over CDP (scripts/lib/cdpBrowser.mjs, SwiftShader for MapLibre). The data tree is assembled from the REAL
  * extract `scripts/lib/fixtures/glacier/static-extract.json` (eight real glaciers with their outlines, series, summary, the nine
  * official items) — or read from a full local build with `--tree=` — and served by request interception for
- * `…/buscosun-glacier@main/v1/*` and raw.githubusercontent. Basemap tiles come from the network (no checked content).
+ * `…/buscosun-data@main/glacier/v1/*`, `…@glacier/glacier/v1/*` (the static builds) and raw.githubusercontent. Basemap tiles come from the network (no checked content).
  *
  *   A  flag gate: GLACIER_LIVE is false ⇒ page, tile 13 and rail item exist only with `?gl=1`; noindex on the page
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · map 728
@@ -113,7 +113,7 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, root
     if (msg.method === 'Fetch.requestPaused') {
       const url = msg.params.request.url;
       requested.push(url);
-      const m = /buscosun-glacier(?:@main|\/main)\/v1\/(.+?)(?:\?.*)?$/.exec(url);
+      const m = /buscosun-data(?:@[^/]+|\/[^/]+)\/glacier\/v1\/(.+?)(?:\?.*)?$/.exec(url);
       if (m) {
         const file = join(root, ...m[1].split('/'));
         const ok = existsSync(file);
@@ -123,7 +123,7 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, root
       await ctx.send('Fetch.continueRequest', { requestId: msg.params.requestId }).catch(() => {});
     }
   });
-  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*buscosun-glacier*' }] });
+  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*buscosun-data*glacier/v1*' }] });
   await ctx.send('Network.setBypassServiceWorker', { bypass: true });
   await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: clockScript(clockMs) });
   await ctx.send('Page.navigate', { url: `${BASE}${path}` });

@@ -2,7 +2,7 @@
  * glacier-ui-diff.mjs — Phase GL (audit/gletscher.md §GL-1): the glacier situation page against its design references.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/glacier-ui-diff.mjs \
- *     --base=http://127.0.0.1:5191 --tree=<v1 dir of a built tree> [--out=<dir>] [--sheet=1] [--sheetGlacier=at-hintereisferner-mit-toteis]
+ *     --base=http://127.0.0.1:5191 --tree=<glacier/v1 dir of an assembled tree: static builds + the refreshed lines> [--out=<dir>] [--sheet=1] [--sheetGlacier=at-hintereisferner-mit-toteis]
  *   `--sheet=1` also compares the glacier sheet (Steckbrief, GL-4) with `gletscher-desktop-steckbrief.dc.html` / `gletscher-mobile-steckbrief.dc.html`.
  *
  * 1. Renders `reference/gletscher-desktop-lage.dc.html` (1440 × 900) and `gletscher-mobile-lage.dc.html` (390 × 844) through
@@ -33,7 +33,7 @@ mkdirSync(OUT, { recursive: true });
 
 // loopback data server (`?glbase=` only accepts loopback hosts)
 const server = createServer((req, res) => {
-  const p = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname).replace(/^\/v1\//, '');
+  const p = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname).replace(/^\/glacier\/v1\//, '');
   const file = resolve(TREE, p);
   const head = { 'access-control-allow-origin': '*', 'cache-control': 'no-store' };
   if (!file.startsWith(TREE) || !existsSync(file)) { res.writeHead(404, head).end(); return; }
@@ -41,7 +41,7 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const PORT = server.address().port;
-const APP = `${BASE}/gletscher?gl=1&glbase=${encodeURIComponent(`http://127.0.0.1:${PORT}/v1`)}`;
+const APP = `${BASE}/gletscher?gl=1&glbase=${encodeURIComponent(`http://127.0.0.1:${PORT}/glacier/v1`)}`;
 
 const browser = await openBrowser(findHeadlessChrome(), { timeoutMs: 90_000, extraArgs: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -122,7 +122,7 @@ const report = {};
   report.mobile = { pct: Number(r.pct.toFixed(1)), modules: r.per };
 }
 if (args.sheet) {
-  const SHEET = `${BASE}/gletscher/${args.sheetGlacier ?? 'at-hintereisferner-mit-toteis'}?gl=1&glbase=${encodeURIComponent(`http://127.0.0.1:${PORT}/v1`)}`;
+  const SHEET = `${BASE}/gletscher/${args.sheetGlacier ?? 'at-hintereisferner-mit-toteis'}?gl=1&glbase=${encodeURIComponent(`http://127.0.0.1:${PORT}/glacier/v1`)}`;
   const ready = "!!document.querySelector('#gl-tabpanel') && !document.querySelector('#gl-tabpanel .gl-empty[role=status]')";
   {
     const refBuf = await renderRef('gletscher-desktop-steckbrief.dc.html', 1440, 900);

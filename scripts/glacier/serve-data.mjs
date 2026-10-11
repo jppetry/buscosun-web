@@ -1,11 +1,12 @@
 // Local static server for the glacier data repo (verification only): `node scripts/glacier/serve-data.mjs <dir> [port]`.
-// Serves <dir> (the repo root that contains `v1/`) at http://127.0.0.1:<port>/ with CORS * and no caching — the page reads it through
-// `?glbase=http://127.0.0.1:<port>/v1` (loopback only, src/glacier/glacierClient.ts).
+// Serves <dir> (a root that contains `glacier/v1/` — static builds and the refreshed lines in ONE tree, like the assembled view of the workflows)
+// at http://127.0.0.1:<port>/ with CORS * and no caching — the page reads it through `?glbase=http://127.0.0.1:<port>/glacier/v1`
+// (loopback only, src/glacier/glacierClient.ts).
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, normalize, extname } from 'node:path';
 
-const root = normalize(process.argv[2] ?? 'C:/dev/buscosun-glacier');
+const root = normalize(process.argv[2] ?? 'C:/dev/buscosun-glacier-cache/view');
 const port = Number(process.argv[3] ?? 5192);
 const TYPES = { '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.txt': 'text/plain; charset=utf-8' };
 createServer(async (req, res) => {
