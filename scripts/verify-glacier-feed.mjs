@@ -75,7 +75,7 @@ add('W2 vorige Woche: am Montag 12.10.2026 ist es 2026-W41, am 01.01.2026 die Wo
   const many = clone(hot);
   const ids = cat.map((x) => x.id);
   many.glaciers = Array.from({ length: 30 }, (_, i) => ({ ...clone(row), id: ids[i % ids.length] }));
-  add('H2 höchstens 12 Hitzeereignisse je Lauf, die stärksten (Index absteigend)', heatEvents(many, byId, '2026-10-05', '2026-10-11').length <= 12, '');
+  add('H2 höchstens 5 Hitzeereignisse je Lauf, die stärksten (Index absteigend)', (() => { const e = heatEvents(many, byId, '2026-10-05', '2026-10-11'); return e.length <= 5 && e.every((x, i, a) => i === 0 || a[i - 1].w >= x.w); })(), '');
 }
 
 // O — official
@@ -133,7 +133,7 @@ const doc = buildFeed({ weekKey: '2026-W41', fromIso: WIDE.from, toIso: WIDE.to,
   const outDoc = JSON.parse(readFileSync(join(root, 'out', 'feed', '2026-W41.json'), 'utf8'));
   const files = readdirSync(join(root, 'out', 'feed')).sort();
   const patch = JSON.parse(readFileSync(join(root, 'patch', 'index-patch.json'), 'utf8'));
-  add('M1 Lauf Ende zu Ende: Feed der Woche 2026-W41 besteht den Vertrag, meldet auch die amtlichen Meldungen der letzten 30 Tage (CH 01.10.) neben denen der Woche, schreibt den Zeiger `feed` für den Index', r.week === '2026-W41' && feedProblems(outDoc, official, new Set(byId.keys())).length === 0 && outDoc.events.some((e) => e.type === 'official' && e.at === '2026-10-01') && patch.feed.week === '2026-W41' && patch.feed.n === outDoc.events.length, JSON.stringify({ n: outDoc.events.length, patch: patch.feed }));
+  add('M1 Lauf Ende zu Ende: Feed der Woche 2026-W41 besteht den Vertrag, meldet auch die amtlichen Meldungen der letzten 30 Tage (CH 01.10.) neben denen der Woche, schreibt den Zeiger `feed` (Woche, Stand, Zahl, jüngste Wochenkarte) für den Index', r.week === '2026-W41' && feedProblems(outDoc, official, new Set(byId.keys())).length === 0 && outDoc.events.some((e) => e.type === 'official' && e.at === '2026-10-01') && patch.feed.week === '2026-W41' && patch.feed.n === outDoc.events.length && patch.feed.card === '2026-W14' && patch.feed.weeks[0] === '2026-W41' && patch.feed.weeks.length === 12 && patch.feed.weeks.every((w, i, a) => i === 0 || a[i - 1] > w), JSON.stringify({ n: outDoc.events.length, patch: patch.feed }));
   add('M2 Aufbewahrung: von 14 alten Wochen bleiben die letzten 12 (mit der neuen Woche), Karten im selben Zug; ältere fallen heraus (Gegenprobe: W01, W02 fehlen)', files.length === GLACIER_FEED_KEEP_WEEKS && !files.includes('2026-W01.json') && !files.includes('2026-W02.json') && files.includes('2026-W41.json') && files.includes('2026-W14.json'), files.join(' '));
   rmSync(root, { recursive: true, force: true });
 }

@@ -183,7 +183,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const lists = d && (
     <>
       <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />
-      {feed && <FeedList events={feed} onPick={pick} />}
+      {feed && <FeedList events={feed} onPick={pick} cardWeek={d.feed?.card ?? null} cardUrl={d.feed?.card ? `${bases.cdn}/card/${d.feed.card}.png` : null} />}
       <StatusList items={d.official} />
     </>
   );
@@ -242,7 +242,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const dock = (
     <GlacierDock query={query} onQuery={setQuery} land={land} onLand={setLand} metric={metric} onMetric={setMetric} rows={rows} selectedId={selId} onPick={pick}
       refYears={`CH ${fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025`} defs={defs}
-      hint={def.locked ? 'gesperrt' : metric === 'laenge' ? 'größter Rückzug zuerst' : metric === 'ausaperung' ? 'größte Ausaperung zuerst' : 'größter Verlust zuerst'} />
+      hint={def.locked ? 'gesperrt' : metric === 'laenge' ? 'größter Rückzug zuerst' : metric === 'ausaperung' ? 'größte Ausaperung zuerst' : metric === 'schmelze' ? 'stärkste Schmelze zuerst · ab 0,1 km²' : 'größter Verlust zuerst'} />
   );
   const chart = d?.summary && (
     <section className="gl-chart-sec" aria-label="Messreihen je Land">

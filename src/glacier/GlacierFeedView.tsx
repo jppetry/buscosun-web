@@ -10,11 +10,12 @@ import type { GlacierFeedEvent } from './glacierFeedContract';
 
 const dm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 
-export function FeedList({ events, limit = 8, onPick }: { events: readonly GlacierFeedEvent[]; limit?: number; onPick?: (glacierId: string) => void }) {
+export function FeedList({ events, limit = 8, onPick, cardUrl, cardWeek }: { events: readonly GlacierFeedEvent[]; limit?: number; onPick?: (glacierId: string) => void; cardUrl?: string | null; cardWeek?: string | null }) {
   if (!events.length) return null;
   return (
     <>
       <h3 className="gl-h3">Was sich verändert hat</h3>
+      {cardUrl && cardWeek && <p className="gl-fine gl-card-link"><a href={cardUrl} target="_blank" rel="noopener noreferrer">Wochenkarte {cardWeek.replace(/^(\d{4})-W(\d{2})$/, 'KW $2 / $1')} (Bild, teilbar)</a></p>}
       <ol className="gl-feed gl-changes" aria-label="Änderungen, neueste zuerst" data-count={events.length}>
         {events.slice(0, limit).map((e) => (
           <li key={e.id} data-id={e.id} data-type={e.type}>

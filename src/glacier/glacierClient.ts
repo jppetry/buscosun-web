@@ -108,7 +108,7 @@ export interface GlacierIndex {
   feed?: GlacierFeedPointer;
 }
 export interface GlacierMeltPointer { run: string; runAt: string; engine: { name: string; version: number | null }; cube: Record<string, string | null>; unit: boolean; build: string }
-export interface GlacierFeedPointer { week: string; builtAt: string; n: number }
+export interface GlacierFeedPointer { week: string; builtAt: string; n: number; /** Week key of the newest weekly card (`card/<week>.png`), `null` = none yet. */ card?: string | null; /** Weeks that have a feed document, newest first. */ weeks?: string[] }
 export interface GlacierSatIndex { updatedAt: string; newest: Record<string, string>; seasons: Record<string, Record<string, string>> }
 export interface GlacierStatus { schema: 1; kind: 'glacier/status'; killed?: boolean; killReason?: string; lines?: Record<string, unknown>; checkedAt?: string }
 export type GlacierPointRow = [id: string, lat: number, lon: number, klass: 'A' | 'B' | 'C', km2: number];
@@ -277,7 +277,9 @@ export async function loadDemGrid(build: string, region: string, id: string, sig
  */
 export async function loadFeed(pointer: GlacierFeedPointer | undefined, official: readonly import('./glacierContract').GlacierOfficialItem[], glacierIds: ReadonlySet<string>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierFeedEvent[] | null> {
   if (!pointer?.week) return null;
-  const weeks = [pointer.week, previousWeekKey(Date.parse(`${pointer.week.slice(0, 4)}-01-04T12:00:00Z`) + (Number(pointer.week.slice(6)) - 1) * 7 * 86_400_000)];
+  // the pointer's week and the one before it — but only a week the pointer lists (a request for a missing file is a red line in every visitor's console)
+  const prev = previousWeekKey(Date.parse(`${pointer.week.slice(0, 4)}-01-04T12:00:00Z`) + (Number(pointer.week.slice(6)) - 1) * 7 * 86_400_000);
+  const weeks = pointer.weeks ? [pointer.week, ...(pointer.weeks.includes(prev) ? [prev] : [])] : [pointer.week];
   const docs = await Promise.all(weeks.map(async (w) => {
     try {
       const d = await fetchGlacier(glacierFeedPath(w), 'json', signal, bases, 'raw') as GlacierFeedDoc;

@@ -23,7 +23,7 @@ export const GLACIER_FEED_ORIGIN: Readonly<Record<GlacierFeedType, GlacierOrigin
 export const GLACIER_FEED_SNOWLINE_STEP_M = 100;
 /** A hot day: freezing level above the glacier's median elevation AND melt index p50 at least this (`set`). */
 export const GLACIER_FEED_HEAT_INDEX = 60;
-export const GLACIER_FEED_MAX_HEAT = 12;
+export const GLACIER_FEED_MAX_HEAT = 5;
 
 export interface GlacierFeedEvent {
   id: string;

@@ -27,7 +27,8 @@ const DAY = 86_400_000;
 const dm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 const fmt0 = (v) => Math.round(v).toLocaleString('de-DE').replace(/\./g, ' ');
 const slug = (id) => id.replace(/^gl_/, '').replace('_', '-');
-const nameOf = (g) => g.name ?? g.id;
+/** As the page names it: the inventory name, or "namenlos · <inventory id>" for a nameless glacier. */
+const nameOf = (g) => g.name ?? `namenlos · ${g.inv?.sgi ?? g.inv?.agi5 ?? g.inv?.rgi6 ?? g.id}`;
 
 /** Snow-line events of one season: consecutive scenes of class A with a line, not flagged as new snow, ≥ 100 m apart; the event belongs to the newer scene. */
 export function snowlineEvents(rowsById, byId, fromIso, toIso) {
@@ -162,7 +163,11 @@ export async function main(opts) {
   }
   writeFileSync(join(outDir, glacierFeedPath(weekKey)), JSON.stringify(doc));
   mkdirSync(patchDir, { recursive: true });
-  writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({ feed: { week: weekKey, builtAt: doc.builtAt, n: doc.events.length } }));
+  // the newest weekly card that exists (the Monday step renders the card of the week that just ended; the pointer follows with the next run)
+  const cards = readdirSync(join(outDir, 'card')).filter((f) => /^\d{4}-W\d{2}\.png$/.test(f)).map((f) => f.slice(0, -4)).sort();
+  // the weeks that have a feed document, newest first (the page reads the first two — it never asks for a week that does not exist)
+  const weeks = readdirSync(join(outDir, 'feed')).filter((f) => /^\d{4}-W\d{2}\.json$/.test(f)).map((f) => f.slice(0, -5)).sort().reverse();
+  writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({ feed: { week: weekKey, builtAt: doc.builtAt, n: doc.events.length, card: cards.length ? cards[cards.length - 1] : null, weeks } }));
   writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: { feed: { at: doc.builtAt, week: weekKey, events: doc.events.length } } }));
   log(`${weekKey}: ${doc.events.length} Ereignisse, Spitze ${doc.top.length}`);
   return { week: weekKey, events: doc.events.length, top: doc.top, outDir, patchDir };

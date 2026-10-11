@@ -153,6 +153,8 @@ export function rankGlaciers(glaciers: readonly GlacierCatalogEntry[], summary: 
   const rows: RankRow[] = [];
   for (const g of glaciers) {
     if (!inLand(g, land) || !matchesQuery(g, q)) continue;
+    // the melt ranking is for glaciers of 0,1 km² and more: the smallest ones sit at the cap of the index with ties the ranking cannot order (the map still colours them)
+    if (metric === 'schmelze' && g.klass === 'C') continue;
     const value = metricValue(metric, summary?.latest[g.id], g, ctx);
     if (value.v != null) rows.push({ g, value });
   }

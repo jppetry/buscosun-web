@@ -2,7 +2,8 @@
  * glacier-ui-diff.mjs — Phase GL (audit/gletscher.md §GL-1): the glacier situation page against its design references.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/glacier-ui-diff.mjs \
- *     --base=http://127.0.0.1:5191 --tree=<v1 dir of a built tree> [--out=<dir>]
+ *     --base=http://127.0.0.1:5191 --tree=<v1 dir of a built tree> [--out=<dir>] [--sheet=1] [--sheetGlacier=at-hintereisferner-mit-toteis]
+ *   `--sheet=1` also compares the glacier sheet (Steckbrief, GL-4) with `gletscher-desktop-steckbrief.dc.html` / `gletscher-mobile-steckbrief.dc.html`.
  *
  * 1. Renders `reference/gletscher-desktop-lage.dc.html` (1440 × 900) and `gletscher-mobile-lage.dc.html` (390 × 844) through
  *    `reference/support.js` in headless Chromium (file://, DPR 1) — the same runtime as the other *.dc.html references.
@@ -52,9 +53,9 @@ async function renderRef(file, width, height) {
   await ctx.close();
   return Buffer.from(shot.data, 'base64');
 }
-async function renderApp(width, height, mobile, ready) {
+async function renderApp(width, height, mobile, ready, url = APP) {
   const ctx = await browser.newContext({ width, height, mobile });
-  await ctx.send('Page.navigate', { url: APP });
+  await ctx.send('Page.navigate', { url });
   const t0 = Date.now();
   while (Date.now() - t0 < 60_000) { if (await ctx.evaluate(ready).catch(() => false)) break; await sleep(250); }
   await sleep(6000); // basemap tiles + point layer
@@ -119,6 +120,32 @@ const report = {};
   const r = compare(rgba(refBuf), got, boxes);
   writeFileSync(join(OUT, 'diff-mobile-390.png'), encodePng(r.w, r.h, r.img, 4));
   report.mobile = { pct: Number(r.pct.toFixed(1)), modules: r.per };
+}
+if (args.sheet) {
+  const SHEET = `${BASE}/gletscher/${args.sheetGlacier ?? 'at-hintereisferner-mit-toteis'}?gl=1&glbase=${encodeURIComponent(`http://127.0.0.1:${PORT}/v1`)}`;
+  const ready = "!!document.querySelector('#gl-tabpanel') && !document.querySelector('#gl-tabpanel .gl-empty[role=status]')";
+  {
+    const refBuf = await renderRef('gletscher-desktop-steckbrief.dc.html', 1440, 900);
+    writeFileSync(join(OUT, 'ref-sheet-desktop-1440.png'), refBuf);
+    const gotBuf = await renderApp(1440, 900, false, ready, SHEET);
+    writeFileSync(join(OUT, 'app-sheet-desktop-1440.png'), gotBuf);
+    const boxes = { rail: [0, 0, 62, 900], topbar: [62, 0, 1378, 60], steckbrief: [62, 60, 250, 840], map: [312, 60, 708, 840], readout: [1020, 60, 420, 840] };
+    const r = compare(rgba(refBuf), rgba(gotBuf), boxes);
+    writeFileSync(join(OUT, 'diff-sheet-desktop-1440.png'), encodePng(r.w, r.h, r.img, 4));
+    report.sheetDesktop = { pct: Number(r.pct.toFixed(1)), modules: r.per };
+  }
+  {
+    const refBuf = await renderRef('gletscher-mobile-steckbrief.dc.html', 390, 844);
+    writeFileSync(join(OUT, 'ref-sheet-mobile-390.png'), refBuf);
+    const gotRaw = await renderApp(390, 844, true, ready, SHEET);
+    writeFileSync(join(OUT, 'app-sheet-mobile-390-dpr3.png'), gotRaw);
+    const raw = rgba(gotRaw);
+    const got = raw.width >= 390 * 3 ? downscale(raw, 3) : raw;
+    const boxes = { topbar: [0, 0, 390, 56], map: [0, 56, 390, 340], below: [0, 396, 390, 448] };
+    const r = compare(rgba(refBuf), got, boxes);
+    writeFileSync(join(OUT, 'diff-sheet-mobile-390.png'), encodePng(r.w, r.h, r.img, 4));
+    report.sheetMobile = { pct: Number(r.pct.toFixed(1)), modules: r.per };
+  }
 }
 await browser.close();
 server.close();

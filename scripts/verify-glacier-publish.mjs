@@ -122,6 +122,8 @@ add('P2 zweite Linie (sat) im selben Repo: index.json trägt BEIDE Zeiger (stati
   try { publishArchive({ repoDir: E, srcDir: src('arch4', { 'melt-2026101118.json': { run: 99 } }), day: '2026-10-11', message: 'clash', ...fast }); } catch (e) { clash = e.message; }
   const files = remoteList('day', 'archive');
   const mainHasArchive = remoteList('day').length;
+  const headAfter = sh(E, 'rev-parse', '--abbrev-ref', 'HEAD').trim();
+  add('P9b Nach dem Archiv-Lauf steht der Klon wieder auf `main` (auch nach dem Abbruch beim Namenskonflikt) — ein Entwickler-Klon bleibt nicht auf dem verwaisten Zweig, auf dem v1/ fehlt', headAfter === 'main', headAfter);
   add('P9 Archiv-Zweig (verwaist): Tagesdateien werden nur HINZUGEFÜGT; identische Wiederholung = nichts Neues; gleicher Name mit anderem Inhalt bricht ab; main bleibt ohne day/', a1.pushed && a2.pushed && a3.unchanged && /anderem Inhalt/.test(clash ?? '') && files.length === 2 && mainHasArchive === 0 && sh(seed, 'log', 'origin/archive', '--diff-filter=D', '--name-only', '--format=').trim() === '', JSON.stringify({ files, clash }));
 }
 

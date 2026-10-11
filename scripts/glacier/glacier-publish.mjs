@@ -147,6 +147,10 @@ export function publishArchive({ repoDir, srcDir, day, message, remote = 'origin
   for (const f of files) { const s = statSync(join(srcDir, f)).size; if (s > GLACIER_MAX_FILE_BYTES) throw new Error(`Datei über 20 MB: ${f}`); total += s; }
   if (total > GLACIER_MAX_PACKAGE_BYTES) throw new Error('Paket über 150 MB');
   const git = gitIn(repoDir);
+  // a developer's clone must not stay on the archive branch (the next line would then find no `v1/` at all): remember where we were and go back
+  let back = null;
+  try { back = git('rev-parse', '--abbrev-ref', 'HEAD').trim(); if (back === 'HEAD' || back === branch) back = null; } catch { back = null; }
+  const restore = () => { if (back) { try { git('checkout', '--quiet', back); } catch { /* the work tree stays where it is; the result below is unaffected */ } } };
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       let exists = true;
@@ -163,20 +167,23 @@ export function publishArchive({ repoDir, srcDir, day, message, remote = 'origin
         }
         mkdirSync(dirname(dst), { recursive: true }); writeFileSync(dst, bytes); added++;
       }
-      if (!added) return { pushed: false, unchanged: true, attempts: attempt };
+      if (!added) { restore(); return { pushed: false, unchanged: true, attempts: attempt }; }
       git('add', '-A', '--', 'day');
       const staged = git('diff', '--cached', '--name-status').split('\n').filter(Boolean);
       if (staged.some((l) => !l.startsWith('A\t'))) throw Object.assign(new Error('Archiv: nur Hinzufügen erlaubt'), { fatal: true });
       git('commit', '--quiet', '-m', message);
       if (beforePush) beforePush(attempt);
       git('push', '--quiet', remote, `HEAD:${branch}`);
-      return { pushed: true, sha: git('rev-parse', 'HEAD'), attempts: attempt, files: staged.length };
+      const sha = git('rev-parse', 'HEAD');
+      restore();
+      return { pushed: true, sha, attempts: attempt, files: staged.length };
     } catch (e) {
-      if (e.fatal) throw e;
+      if (e.fatal) { restore(); throw e; }
       log(`Versuch ${attempt}: ${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? '?'}`);
       if (attempt < retries) sleepSync(sleepMs(attempt));
     }
   }
+  restore();
   return { pushed: false, failed: true, attempts: retries };
 }
 

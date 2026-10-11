@@ -1,23 +1,41 @@
 {
  "threshold": 12,
  "desktop": {
-  "pct": 42.1,
+  "pct": 43.5,
   "modules": {
    "rail": 9.5,
-   "topbar": 10.7,
-   "dock": 24.6,
+   "topbar": 11.5,
+   "dock": 32.5,
    "map": 76.4,
    "chart": 16.5,
    "readout": 43.1
   }
  },
  "mobile": {
-  "pct": 83.8,
+  "pct": 83.7,
   "modules": {
    "topbar": 23.1,
-   "map": 89,
+   "map": 88.9,
    "chips": 40.5,
    "below": 95.1
+  }
+ },
+ "sheetDesktop": {
+  "pct": 49,
+  "modules": {
+   "rail": 9.4,
+   "topbar": 20.1,
+   "steckbrief": 22.5,
+   "map": 73.3,
+   "readout": 36.8
+  }
+ },
+ "sheetMobile": {
+  "pct": 70.2,
+  "modules": {
+   "topbar": 29.2,
+   "map": 92.9,
+   "below": 58.1
   }
  }
 }
