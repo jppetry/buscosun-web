@@ -28,7 +28,9 @@ TAU_H = 6 * 24
 SWE_MIN = 5.0            # mm: below, the surface is ice/firn
 FROM_MS = 1664582400000  # 2022-10-01T00:00Z (index i = hour ending at FROM + (i+1) h)
 YEARS = (2023, 2024, 2025)
-TF_B, SRF_B, PF_B, DDF_B = (0.002, 0.06), (0.0, 0.04), (0.5, 4.0), (0.0005, 0.02)
+# Nachtrag 1 (gate-c-method-frozen-amendment-1.md): TF upper bound 0.06 → 0.12 (literature range 0.01–0.11 h⁻¹ K⁻¹, Gabbi et al. 2012); DDF bounds in the right unit
+# (mm h⁻¹ K⁻¹: Hock 2003 gives 2.5–11.6 mm d⁻¹ K⁻¹ = 0.10–0.48) — the first bound (0.0005, 0.02) was set in the wrong unit and ended on its edge
+TF_B, SRF_B, PF_B, DDF_B = (0.002, 0.12), (0.0, 0.04), (0.5, 4.0), (0.02, 0.5)
 
 
 def hour_index(y, m, d):
@@ -225,6 +227,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--dump-case", default=None, help="glacier-id:year of a real case to dump for the JS port")
     ap.add_argument("--dump-case-out", default=None)
+    ap.add_argument("--export-targets", default=None, help="write the glacier-years (targets, bands, stations) as JSON for the Node calibration and stop")
+    ap.add_argument("--fixed", default=None, help="pf,TF,SRF,DDF: skip all fits, only evaluate the given parameters (cross-check of the Node port, with --dump-case)")
     ap.add_argument("--quick", action="store_true", help="only the full fit and the folds with a coarse optimiser budget (development)")
     args = ap.parse_args()
     cat, gys, forcing = build(args)
@@ -260,21 +264,28 @@ def main():
         bal = summer(sl["s"], zb, ela, pf, swe, aS, idx, model, par)
         return wmean(bal, idx)
 
-    def fit_melt(idx, pf, model):
+    def fit_melt(idx, pf, model, warm=None):
+        """Nelder–Mead on the summer balance; `warm` = parameters of the full fit (the folds start there with one simplex, the full fit uses three starts)."""
         sel = np.array([i for i in idx if usable[i] and not np.isnan(bs[i])])
         if model == "eti":
             f = lambda p: float(np.mean((bs_model(sel, pf, "eti", p) - bs[sel]) ** 2))
+            starts = [list(warm)] if warm is not None else [[0.05, 0.01], [0.03, 0.02], [0.08, 0.005]]
             best = None
-            for x0 in ([0.02, 0.01], [0.03, 0.02], [0.01, 0.005]):
-                p, v = nelder_mead(f, x0, [TF_B, SRF_B], [0.01, 0.01], iters=25 if args.quick else 60)
+            for x0 in starts:
+                p, v = nelder_mead(f, x0, [TF_B, SRF_B], [0.01, 0.004] if warm is not None else [0.02, 0.01], iters=30 if warm is not None else (25 if args.quick else 60))
                 if best is None or v < best[1]:
                     best = (p, v)
             return best[0]
         f = lambda p: float(np.mean((bs_model(sel, pf, "ddf", p) - bs[sel]) ** 2))
-        p, v = nelder_mead(f, [0.005], [DDF_B], [0.003], iters=20 if args.quick else 40)
+        p, v = nelder_mead(f, list(warm) if warm is not None else [0.15], [DDF_B], [0.03], iters=20 if args.quick else 40)
         return p
 
     allidx = [i for i in range(N) if usable[i]]
+    if args.export_targets:
+        json.dump([{"id": o.id, "name": o.name, "year": o.year, "sgi": o.sgi, "bw": o.bw, "bs": o.bs, "ela": o.ela_ref, "zb": [float(v) for v in o.zb], "w": [float(v) for v in o.w], "tg": o.tg, "pp": o.pp, "usable": bool(usable[i]),
+                    "gapT": float(gap[i]), "gapG": float(gapg[i])} for i, o in enumerate(gys)], open(args.export_targets, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+        print("targets ->", args.export_targets, N)
+        return
     years = np.array([o.year for o in gys])
     ids = [o.id for o in gys]
     report = {"n": N, "usable": int(usable.sum()), "glacierYears": [{"id": o.id, "name": o.name, "year": o.year, "bw": o.bw, "bs": o.bs, "usable": bool(usable[i])} for i, o in enumerate(gys)]}
@@ -282,12 +293,39 @@ def main():
     # full fit (information) -----------------------------------------------------------------------------
     import time
     t_0 = time.time()
-    pf_all = fit_pf(allidx)
-    print("pf fit", round(pf_all, 3), round(time.time() - t_0, 1), "s", flush=True)
-    eti_all = fit_melt(allidx, pf_all, "eti")
-    ddf_all = fit_melt(allidx, pf_all, "ddf")
+    if args.fixed:
+        v = [float(x) for x in args.fixed.split(",")]
+        pf_all, eti_all, ddf_all = v[0], np.array([v[1], v[2]]), np.array([v[3]])
+    else:
+        pf_all = fit_pf(allidx)
+        print("pf fit", round(pf_all, 3), round(time.time() - t_0, 1), "s", flush=True)
+        eti_all = fit_melt(allidx, pf_all, "eti")
+        ddf_all = fit_melt(allidx, pf_all, "ddf", warm=None)
     report["full"] = {"pf": pf_all, "TF": float(eti_all[0]), "SRF": float(eti_all[1]), "DDF": float(ddf_all[0])}
     print("full fit:", report["full"], flush=True)
+
+    def wmean_idx(arr, idx):
+        return (arr * w[idx]).sum(axis=1)
+
+    # a real glacier-year as the fixture of the JS port (verify:glacier-melt compares the two implementations)
+    if args.dump_case:
+        gid, yr = args.dump_case.split(":")
+        k = next(i for i, o in enumerate(gys) if o.id == gid and o.year == int(yr))
+        idx = np.array([k])
+        swe_w, aS_w = winter(sl["w"], zb, pf_all, idx)
+        bal_eti = summer(sl["s"], zb, ela, pf_all, swe_w, aS_w, idx, "eti", eti_all)
+        bal_ddf = summer(sl["s"], zb, ela, pf_all, swe_w, aS_w, idx, "ddf", ddf_all)
+        o = gys[k]
+        nn = lambda a, L: [None if np.isnan(v) else round(float(v), 3) for v in a[:L]]
+        case = {"schema": 1, "kind": "glacier/melt-case", "glacier": o.id, "year": o.year, "stations": {"tg": o.tg, "p": o.pp}, "zb": [float(v) for v in o.zb], "w": [float(v) for v in o.w], "ela": o.ela_ref,
+                "zT": float(sl["w"]["zt"][k]), "zP": float(sl["w"]["zp"][k]), "pf": pf_all, "TF": float(eti_all[0]), "SRF": float(eti_all[1]), "ddf": float(ddf_all[0]),
+                "winter": {"t": nn(sl["w"]["t"][k], sl["w"]["len"][k]), "p": nn(sl["w"]["p"][k], sl["w"]["len"][k])},
+                "summer": {"t": nn(sl["s"]["t"][k], sl["s"]["len"][k]), "g": nn(sl["s"]["g"][k], sl["s"]["len"][k]), "p": nn(sl["s"]["p"][k], sl["s"]["len"][k])},
+                "expected": {"bw": float(wmean_idx(swe_w, idx)[0]), "bsEti": float(wmean_idx(bal_eti, idx)[0]), "bsDdf": float(wmean_idx(bal_ddf, idx)[0]), "bwObs": o.bw, "bsObs": o.bs}}
+        json.dump(case, open(args.dump_case_out, "w", encoding="utf-8"), separators=(",", ":"))
+        print("case ->", args.dump_case_out)
+    if args.fixed:
+        return
 
     def fold(name, tests):
         pe_eti, pe_ddf, pe_pw, rec = [], [], [], []
@@ -323,23 +361,6 @@ def main():
     lgo = fold("lgo", [[i for i in allidx if ids[i] == gid] for gid in glaciers])
     report["lgo"] = {"records": lgo, **stats(lgo)}
     print("LGO", {k: (round(v, 3) if isinstance(v, float) else v) for k, v in report["lgo"].items() if k != "records"})
-    # a real glacier-year as the fixture of the JS port (verify:glacier-melt compares the two implementations)
-    if args.dump_case:
-        gid, yr = args.dump_case.split(":")
-        k = next(i for i, o in enumerate(gys) if o.id == gid and o.year == int(yr))
-        idx = np.array([k])
-        swe_w, aS_w = winter(sl["w"], zb, pf_all, idx)
-        bal_eti = summer(sl["s"], zb, ela, pf_all, swe_w, aS_w, idx, "eti", eti_all)
-        bal_ddf = summer(sl["s"], zb, ela, pf_all, swe_w, aS_w, idx, "ddf", ddf_all)
-        o = gys[k]
-        nn = lambda a, L: [None if np.isnan(v) else round(float(v), 3) for v in a[:L]]
-        case = {"schema": 1, "kind": "glacier/melt-case", "glacier": o.id, "year": o.year, "stations": {"tg": o.tg, "p": o.pp}, "zb": [float(v) for v in o.zb], "w": [float(v) for v in o.w], "ela": o.ela_ref,
-                "zT": float(sl["w"]["zt"][k]), "zP": float(sl["w"]["zp"][k]), "pf": pf_all, "TF": float(eti_all[0]), "SRF": float(eti_all[1]), "ddf": float(ddf_all[0]),
-                "winter": {"t": nn(sl["w"]["t"][k], sl["w"]["len"][k]), "p": nn(sl["w"]["p"][k], sl["w"]["len"][k])},
-                "summer": {"t": nn(sl["s"]["t"][k], sl["s"]["len"][k]), "g": nn(sl["s"]["g"][k], sl["s"]["len"][k]), "p": nn(sl["s"]["p"][k], sl["s"]["len"][k])},
-                "expected": {"bw": float(wmean(swe_w, idx)[0]), "bsEti": float(wmean(bal_eti, idx)[0]), "bsDdf": float(wmean(bal_ddf, idx)[0]), "bwObs": o.bw, "bsObs": o.bs}}
-        json.dump(case, open(args.dump_case_out, "w", encoding="utf-8"), separators=(",", ":"))
-        print("case ->", args.dump_case_out)
     # per fold-year summaries of the leave-year-out (each year alone)
     report["lyoByYear"] = {str(y): stats([r for r in lyo if r["year"] == y]) for y in YEARS}
     json.dump(report, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=1, default=lambda o: float(o) if isinstance(o, np.floating) else str(o))
