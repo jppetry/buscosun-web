@@ -9,12 +9,18 @@ Auftrag Jan 11.10.2026: Stufe 1 (GL-0 … GL-5) im Auto-Modus auf `feat/gletsche
 
 | Paket | Stand | Beleg |
 | --- | --- | --- |
-| Branch/Worktree | `feat/gletscher` von `origin/main` (`1798fc5`), Worktree `C:\dev\buscosun-web\.wt-gl`, gepusht; Planungsunterlagen als erster Commit `2d92087`, aus dem Haupt-Arbeitsbaum entfernt (waren dort untracked, identisch) | §7 |
-| **Blocker: Daten-Repo** | `gh` ist auf dieser Maschine **nicht installiert** (weder im PATH noch an den üblichen Orten, kein `GH_TOKEN`); `jppetry/buscosun-glacier` existiert nicht (API 404). Das Token des Git-Credential-Managers wird **nicht** für die REST-API entnommen (es ist für `git` gegeben, nicht für andere Zugriffe). Fallback laut Auftrag: lokales Repo `C:\dev\buscosun-glacier` (git, `main`, README, `.gitattributes`), Producer laufen lokal, Workflows als Vorlage im Branch. **Jans Schritt:** Repo anlegen (§9.1) | §9.1 |
-| GL-0 Spike | Messungen bis auf die Läufer-Messung des COG-Durchsatzes (braucht das Repo) und die ID-Zuordnung (GL-1) abgeschlossen; Kriterien eingefroren (sha256 in §3) | §2–§4 |
+| Branch/Worktree | `feat/gletscher` von `origin/main` (`1798fc5`), Worktree `C:\dev\buscosun-web\.wt-gl`, **gepusht bis `af2b45e`** (15 Commits, dazu der Audit-Commit, §7); `origin/main` hat seither keinen neuen Commit (kein Merge nötig); `git diff --stat origin/main...HEAD -- src/pointForecast src/point scripts/point scripts/punktarchiv` ist **leer** | §7, §8.1 |
+| **Daten-Repo** | `gh` ist auf dieser Maschine **nicht installiert**, `jppetry/buscosun-glacier` existiert auf GitHub nicht (API 404); das Token des Git-Credential-Managers wird **nicht** für die REST-API entnommen. Fallback laut Auftrag: lokales Repo `C:\dev\buscosun-glacier` mit lokalem Bare-Remote `C:\dev\buscosun-glacier-cache\glacier-remote.git` (`origin`); **alle Linien wurden über `glacier-publish.mjs` veröffentlicht** (Rennen, Nie-Force, Teilpfade, Index-Patch): Build `20261011-3` (2 203 Gletscher, mit TSLA-Klimatologie), Satellit 2023–2026 (1 349 Kachel-Tage), Schmelzlauf `2026101115` (2 203 Gletscher, nur Index), Feed + Wochenkarte 2026-W41, Zweig `archive` mit der Leitgletscher-Ablage; vier Workflow-Vorlagen unter `.github/workflows/`. **Jans Schritt:** GitHub-Repo anlegen und `main` + `archive` pushen (§9.1) | §6, §9.1 |
+| GL-0 Spike | Messungen abgeschlossen (§2); Kriterien eingefroren (sha256 in §3, Nachträge je Linie) | §2–§4 |
 | Gate A | Entscheidungen E-GL-1 … 12 im Auto-Modus gefällt (§5) | §5 |
-| **GL-1** Vertrag, Atlas, DACH-Lage | **fertig, Gate grün (ohne Real-Device):** Baum `static/20261011-1` (2 203 Gletscher, 25,8 MB, 184 Dateien, 0 Warnungen), Vertragsprüfer 64/64, Baumprüfer 23/23, UI-Prüfer 30/30, Publisher-Prüfer 21/21, Build 260/260, Budget mit Notiz angehoben; Seite `/gletscher?gl=1` auf `feat/gletscher` (`7d1f818`, `18985cc`) | §6.1 |
-| GL-2 … GL-5 | folgen — jeweils mit Verifier-Ausgabe in §6 | §6 |
+| **GL-1** Vertrag, Atlas, DACH-Lage | **fertig, Gate grün** (ohne Real-Device) | §6.1 |
+| **GL-2** Satellit | **fertig; Gate B1 ROT** nach dem eingefrorenen Protokoll: B1-1 (Median \|Δ\| gegen die GLAMOS-Gleichgewichtslinie **282 m** statt ≤ 150 m, P90 600 m) und B1-2 (schlechter als die Klimatologie, 261 gegen 164 m) rot; B1-3 (Konsistenz TSLA 2025 Median 111 m), B1-4 (98,2 % / 96,5 % Vollständigkeit), B1-5 (0 Verstöße), B1-6 (Maskenregel an Bildern) grün. Nachträglich und **nur als Hypothese** gerechnet: die höchste Schneegrenze der Saison trifft die Gleichgewichtslinie (Median \|Δ\| 92 m, Bias +14 m an denselben 29 Fällen; 105 m an 31 weiteren) — neuer Anspruch braucht ein Amendment 2 und neue Daten (§6.2). Folge: die Seite zeigt „Schneegrenze je klarer Szene“ und „höchste Schneegrenze“ als Szenenwerte, **nie als Gleichgewichtslinie** | §6.2 |
+| **GL-3** Schmelze | **fertig; Gate C ROT**: C-1 (Sommerbilanz-MAE 0,63 / 0,62 m w. e. statt ≤ 0,30), C-2 (0,908 × Basislinie statt ≤ 0,90) und C-5 (Winterbilanz-MAE 0,36 statt ≤ 0,35) rot; C-3 (Bias +0,06 / +0,08 m) und C-4 (Hintereisferner 2024/25: −0,13 m) grün. **Die Einheit bleibt gesperrt:** das Produkt trägt nur den Schmelzindex 0–100 ohne Einheit (kein mm-Feld in der Datei). Betrieb gebaut: `melt.mjs` (2 203 Gletscher in 62–93 s), Zustand, Satellit-Nudge, Szenariosummen, Wiederholungsschutz | §6.3 |
+| **GL-4** Steckbrief | **fertig, Gate grün** (ohne Real-Device): fünf Reiter, Karte mit Schneezone, Vergleichsregler, 3D mit MapLibre-Gelände, Diagramme, Tour-Wortprüfung, Quellenliste | §6.4 |
+| **GL-5** Updates | **fertig, Gate grün**: Feed mit stabilen Kennungen, Rangliste „Schmelzindex“ (nur Modell, ohne Einheit), Folgen + „Neu seit deinem letzten Besuch“, Wochenkarte (PNG), CSV und Bild-Export | §6.5 |
+| Gate D Vorbereitung | Verifier, Pixelvergleich, Antworten auf die zehn Prüffragen: §8.1; **offen für Jan:** Real-Device, Edge-Bündel, Merge, `GLACIER_LIVE` | §8, §9 |
+| Gate B2 / E | **nach der Session:** B2 = 14 Tage `glacier-sat.yml` im echten Daten-Repo (nach §9.1); E = Sommer 2027 | §8 |
+| Fortsetzung | Alles Gebaute ist grün und gepusht. Eine nächste Session beginnt mit §9 (Jans Entscheidungen E-GL-14/15) und §10 (offene V-GL); GL-6 (Stufe 2) ist nicht begonnen | §9, §10 |
 
 ## 1 Anker (am Code und an den Daten gelesen, 11.10.2026)
 
@@ -227,11 +233,16 @@ Jede mit Beleg; „Plan“ = Empfehlung des Plans übernommen, es sei denn, eine
 | E-GL-11 | Klarhimmel aus Sonnenstand und DEM × Bewölkungsfaktor von buscosun Fusion; ICON-Strahlung nur Vergleich — **Plan**; die Messung (ICON gegen Eigenrechnung gegen SMN-`gr`) folgt in GL-3 und kann ICON 0–120 h freigeben | §2.7 |
 | E-GL-12 | `@nivo/line` + SVG, keine neue Abhängigkeit — **Plan** (A11) | |
 | E-GL-13 | Merge-Zeitpunkt — **bleibt Jan** | |
+| E-GL-14 | **offen für Jan** (nach Gate B1 rot, §6.2): Satellitenwerte bleiben Szenenwerte ohne Anspruch auf die Gleichgewichtslinie — oder Amendment 2 „höchste Schneegrenze der Saison“, vorab eingefroren und an neuen Daten (GLAMOS/UIBK 2026) geprüft | §6.2, §9.2 |
+| E-GL-15 | **offen für Jan** (nach Gate C rot, §6.3): Schmelzindex ohne Einheit bleibt — oder bessere Eichung (Antrieb, Strahlung, Höhenband-Wahrheit) mit neu eingefrorenem Protokoll | §6.3, §9.3 |
 
 Zusätzliche Entscheidungen (D-GL): **D-GL-1** Leitgletscher = 42 (§2.4). **D-GL-2** DE-Gletscher aus RGI 6.2 (Umrisse 2003, Bezugsjahr sichtbar) + BAdW-Zitat;
 Zugspitz-Ferner optional aus Paul 2020. **D-GL-3** GLAMOS gelb, CC BY 4.0 der DOI-Seiten gilt, separate Pfade. **D-GL-4** Maskenregel ohne SWIR-Rettung.
 **D-GL-5** Verarbeitung auf dem 20-m-Raster, B03 aus der Übersicht. **D-GL-6** Zensur von `hzerocl`. **D-GL-7** GloGEM nur Region 11 per Range-Abruf (CRC32).
 **D-GL-8** RGI 6.2 vom OGGM-Server (Daten RGI Consortium, CC BY 4.0) als Brücke, nur Region 11 behalten.
+Während der Umsetzung dazugekommen (im Auto-Modus, je mit Beleg im Paket): **D-GL-9** Gate B1 rot ⇒ GL-3 läuft parallel weiter, die Satellitenzahlen heißen Szenenwerte (§6.2). **D-GL-10** DN-Versatz je Kachel-Tag
+erkannt statt fester Regel (§6.2). **D-GL-11** Albedo außerhalb 0,02–0,98 ⇒ Quarantäne der Szene (§6.2). **D-GL-12** Gate C rot ⇒ Einheit gesperrt, nur der Schmelzindex 0–100 ohne Einheit, kein `mm`-Feld im Dokument (§6.3).
+**D-GL-13** Klasse C rechnet mit dem Antrieb des nächsten Gletschers der Klasse A/B derselben Region ≤ 60 km, sonst mit einem eigenen Punkt (§6.3). **D-GL-14** Schneezone des Steckbriefs in 8-ms-Zeitscheiben (§6.4).
 
 ## 6 Protokoll je Paket
 
@@ -285,31 +296,264 @@ Zeichensprache) stimmt mit der Vorlage überein.
 fertig im lokalen Repo `C:\dev\buscosun-glacier` (`90981f5`, `92b5176`). (3) `verify:routing` zählt 244 statt 256, weil dieser Zweig auf `1798fc5` steht (der Stand von `main` mit
 den späteren Seewetter-Tests wird beim Merge nachgezogen).
 
+### 6.2 GL-2 — Satellit und Gate B1 (11.10.2026)
+
+**Gebaut.**
+
+- `src/glacier/glacierSatContract.ts`: Klassenregel (Satellitenzahl nur für Klasse A und B **außerhalb Deutschlands**; Klasse C und die vier deutschen Gletscher
+  tragen keine), Höhengitter je Region, Regeln für `obs/`, `season/` und `clima/` (Schneegrenze nur Klasse A, im Katalogbereich ± 300 m, AAR 0…1, Albedo 0,02…0,98,
+  Klaranteil ≥ 0,7; Klasse B ohne Schneegrenze und AAR), Marken `neuschnee`/`schatten`/`schutt` als Bitmaske.
+- `scripts/glacier/lib/satcore.mjs` (rein, ohne Netz): Maskenregel (SCL 0, 1, 2, 3, 8, 9, 10 ungültig, ≥ 70 % klar, **keine** SWIR-Rettung, D-GL-4), Schneeentscheidung
+  NDSI > 0,4 **und** Grün ≥ 0,45 (trennt Schnee/Firn vom Gletschereis, gemessen am Profil des Hintereisferners vom 25.08.2025), Schneegrenze = Höhe mit der geringsten
+  Fehlzuordnung mit Spanne, AAR, Albedo (Liang), Zustände `snowline` / `snow-covered` / `snow-free`, Kodierungsprüfung.
+- `scripts/glacier/sat-scan.mjs`: Earth-Search-STAC → COG-Fensterlesen auf dem **20-m-Raster** (Übersichtsebene, D-GL-5; ≈ 0,4 statt 1,5 MB je Gletscher und Szene), Kachel-Zuordnung
+  nach Rand und `compareItems` (zwei Granule am Tag, S2A/S2B), Quarantäne mit benanntem Grund (Schneegrenze außerhalb, **Albedo außerhalb 0,02–0,98** — neu, siehe unten),
+  Saisonreihen je Region und Jahr (`buildSeasonRows`, daraus die Marke `neuschnee`), Patch für `index.json`/`status.json`; `sat-reindex.mjs` baut den Zeiger aus einem
+  Baum neu. Vorlage `workflow-glacier-sat.yml`.
+- Oberfläche: Kopfzeile „Sentinel-2 · jüngste Szene dd.mm.“ (oder „keine klare Szene seit N Tagen“ ab 20 Tagen), Metrik „Ausaperung“ (Rangliste „% schneefrei“,
+  Herkunft Satellit), Kartenzeile je Klasse; ab GL-4 im Steckbrief (Reiter Heute und Saison).
+
+**Befund im Lauf — der DN-Versatz.** Earth Search meldet für Sen2Cor ≥ 04.00 einen Versatz −0,1 (`raster:offset`); die Daten tragen ihn **meist nicht**, einzelne Kachel-Tage aber doch
+(+1 000 DN). Eine feste Regel schnitt Eis ab (negative Reflektanz ⇒ NDSI 1 über Eis) oder erfand Schnee. Gelöst je Kachel-Tag: Erkennung am 5. Perzentil des Rots über
+Vegetation (SCL 4) auf einer groben Ebene (Schwelle 430), Rückfall mit einem Fenster der SWIR-Dunkelwerte (0,095 / 0,12); jede Entscheidung steht als `encoding` im Dokument.
+Eine erste Rückrechnung wurde nach der Methodenänderung **ungeprüft verworfen** (Nachtrag 1, `audit/gletscher/sat-method-frozen-amendment-1.md`, sha256 in `…amendment-1.sha256`).
+
+**Rückrechnung (Gate B1).** Sieben Fenster nacheinander in EINEN Ausgabebaum: Juni–Oktober 2025 und 2026 für alle Klasse-A- und -B-Gletscher, Spätsommer 2023 und 2024 für die
+GLAMOS-Gletscher; **1 349 Kachel-Tage, 8 539 Gletscherwerte** (Zustände: Schneegrenze 6 586, schneebedeckt 158, schneefrei 1 795), ≈ 15 GB Bereichsabrufe in rund 1 h 10 min Rechenzeit;
+übersprungen: 8 161 „bewölkt (grobe Maske)“, 4 581 „Klaranteil < 70 %“, 2 Quarantänen (Albedo 0,984 am Balfrin, 27.09.2025 — die Ursache ist nicht geklärt, der Fall ist der Anlass der Albedo-Regel); keine fehlgeschlagene Kachel
+am Ende. Auswertung `scripts/glacier/b1-evaluate.mjs` gegen `claims-frozen.md` (sha256 `4c309b23…`), Bericht `audit/gletscher/b1/report.json`.
+
+| Kriterium | Ergebnis | Urteil |
+| --- | --- | --- |
+| B1-1 Endsaison-Schneegrenze gegen die gemessene Gleichgewichtslinie (GLAMOS, 29 Gletscherjahre 2023–2025) | Median \|Δ\| **282 m** (Schwelle ≤ 150), P90 **600 m** (≤ 400), Bias −281 m | **ROT** |
+| B1-2 besser als die Klimatologie (TSLA-Mittel 2000–2022), 18 gemeinsame Fälle | eigene Schätzung 261 m, Klimatologie 164 m | **ROT** |
+| B1-3 Konsistenz mit TSLA 2025 (169 Gletscher) | Median 111 m (≤ 150), P90 321 m, Bias −80 m | grün |
+| B1-4 Vollständigkeit Klasse A, Fenster 20.08.–10.10. | 2025: 223 von 227 (98,2 %), 2026: 219 von 227 (96,5 %), jede Lücke mit Grund (Klaranteil < 70 %) | grün |
+| B1-5 keine Unmöglichkeiten | 0 Verstöße in 8 539 Werten | grün |
+| B1-6 Maskenregel an Bildern (Hintereisferner, sieben gespeicherte Szenen) | `verify:glacier-sat` 28/28 (Fixture mit Prüfsumme, Gegenproben, Produktionspfad gegen Fixture) | grün |
+
+**Deutung und nachträgliche Auswertung (Information, ändert das Urteil nicht).** Die Schneegrenze der Satellitenszene ist der Zustand am Aufnahmetag; die eingefrorene Endsaison-Statistik
+(Median der Szenen 25.08.–10.10. ohne Neuschnee-Marke) wird von Neuschnee-Ereignissen im September nach unten gezogen (Bias −281 m). Dieselben 29 Fälle mit der **höchsten** Schneegrenze der
+Saison (15.07.–10.10.): Median \|Δ\| **92 m**, P90 225 m, Bias +14 m (`audit/gletscher/b1/sensitivity.txt`). Außer Stichprobe (`heldout.txt`: 4 österreichische Gletscherjahre aus WGMS/UIBK und
+27 weitere Schweizer Gletscherjahre): Median 105 m, Bias −156 m — das Muster trägt, aber das Maß wurde **an diesen Daten gefunden** und ist darum kein bestandenes Gate. Es braucht ein
+Amendment 2 mit vorab eingefrorener Regel und neue Daten (GLAMOS/UIBK-Bilanz 2026, ab Frühjahr 2027) — E-GL-14 (§9). Die Empfindlichkeitsrechnung der Grünschwelle (0,40 / 0,50) und
+der Neuschnee-Variante ist **nicht** gerechnet: das Gate ist nach dem eingefrorenen Protokoll bereits rot, die Schwelle 0,45 bleibt gesetzt (`literature`-nah, gemessen am Profil).
+
+**Folgen für das Produkt.** Gate B1 blockierte laut Plan GL-3; es wurde **parallel** weitergebaut (Auto-Modus, die Sommerdaten laufen davon), die Folge ist enger gefasst: die Satellitenzahlen sind
+Szenenwerte (Schneeanteil, Schneegrenze, AAR, Albedo einer klaren Szene) und stehen so da; die Seite sagt nirgends „Gleichgewichtslinie aus Satellit“; die gemessene Gleichgewichtslinie
+(GLAMOS/UIBK) steht neben der Szene, nicht anstelle. Der Zustand des Schmelzmodells nimmt die Szene nur als „Bänder über der Schneegrenze tragen Schnee“ (Nudge, nicht als Bilanzgröße).
+
+### 6.3 GL-3 — Schmelze und Gate C (11.10.2026)
+
+**Methode (eingefroren vor dem ersten Fit).** `audit/gletscher/gate-c-method-frozen.md` (sha256 `fd03be08…`) und Nachtrag 1 (`…amendment-1.md`, sha256 `767aeb6f…`, vor dem ersten gewerteten Lauf):
+Enhanced Temperature Index je 50-m-Band (Pellicciotti et al. 2005), Niederschlagsfaktor aus der Winterbilanz (Normalgleichung, die Winterrechnung akkumuliert nur), TF und SRF aus der
+Sommerbilanz (Nelder–Mead), Basislinie BL-C = Gradtag mit Standard-Lapse (Eis = 1,6 × Schnee) auf denselben Daten; Antrieb **stündlich gemessen** (SwissMetNet-OGD, GeoSphere für das Ötztal;
+Temperatur-/Strahlungsstation und Niederschlagsstation nach Rollenregel), Wahrheit GLAMOS Bs/Bw (Stichtag) 2023–2025, 75 Gletscherjahre; Hold-out leave-year-out (LYO), leave-glacier-out (LGO),
+Hintereisferner 2024/25. Nachtrag 1: Grenzen der Basislinie in der richtigen Einheit (mm h⁻¹ K⁻¹), **TF-Obergrenze 0,06 → 0,12** (Literatur 0,01–0,11 h⁻¹ K⁻¹).
+Die Rechnung läuft in Node mit **demselben `simulate()`**, das der Lauf benutzt (`lib/meltcore.mjs`); sie stimmt mit der Python-Rechnung auf 1e-12 überein (`verify:glacier-melt` A1:
+1e-6 mm an einem echten Gletscherjahr).
+
+| Kriterium | LYO | LGO | Urteil |
+| --- | --- | --- | --- |
+| C-1 Sommerbilanz-MAE ≤ 0,30 m w. e. | 0,627 | 0,625 | **ROT** |
+| C-2 ETI ≤ 0,90 × Basislinie | 0,908 | 0,908 | **ROT** (knapp) |
+| C-3 \|Bias\| ≤ 0,15 m w. e. | +0,061 | +0,078 | grün |
+| C-4 Hintereisferner 2024/25 \|Fehler\| ≤ 0,40 m w. e. | −0,133 (Basislinie −0,499) | | grün |
+| C-5 Winterbilanz-MAE ≤ 0,35 und besser als ohne Faktor | 0,364 (ohne Faktor 0,450) | | **ROT** |
+
+Voll-Fit: pf 1,289, **TF 0,12 (an der Obergrenze)**, SRF 0,00545, DDF 0,165 (`scripts/glacier/melt-calibration.json`, Bericht `audit/gletscher/gate-c-report.json`, 501 Auswertungen / 51 s,
+alle Folds 396 s). **Gate C ist rot (C-1, C-2, C-5).** Deutung: TF an der Grenze heißt „mit diesen Daten nicht bestimmt“ — Stunden-Antrieb von Stationen 5–15 km und bis 1 000 m vom Gletscher,
+Strahlung als Modell, ein 50-m-Band je Gletscher ohne Bandwerte als Wahrheit; der mittlere Fehler 0,63 m w. e. ist rund 30 % einer Jahres-Sommerbilanz. Gut ist die Richtung (kein Bias,
+Hintereisferner −0,13 m statt −0,50 m der Basislinie).
+
+**Folge (Plan §8 „Eich-Gate“).** Die Anzeige mit Einheit bleibt **gesperrt**: das Dokument `melt/<lauf>.json` trägt `gate.unit = false` und **kein Millimeter-Feld** (`mm`, `s7`, `s14` fehlen; der Vertrag
+`glacierMeltContract.ts` lehnt sie ohne freigegebene Einheit ab — Gegenprobe im Prüfer). Gezeigt wird der **Schmelzindex 0–100** (100 = 30 mm w. e. Gletschermittel je Tag, *gesetzt*, ein sehr heißer
+Sommertag), mit Herkunft „Modell“, Spanne p10–p90 aus 40 Szenarien und dem Satz „keine Einheit, weil die Eichung nicht besteht“. Der Prognose-Hindcast (C-6/C-7: durch die Kette des Gletscher-Jobs, je
+Vorlauf-Bin) ist **nicht gerechnet** — er entschiede nur über die Anzeige mit Einheit, die schon am Gate C scheitert.
+
+**Betrieb gebaut.** `scripts/glacier/melt.mjs`: buscosun Fusion (Stufe `fs`, Stand 12) in Node an einem **flachen Punkt in der Medianhöhe** des Gletschers (`terrainOverride`), Antrieb = `t2m` (Mittel, σ), Niederschlag,
+Gesamtbewölkung; Strahlung = Klarhimmel (Sonnenstand) × Bewölkungsfaktor auf der horizontalen Fläche, **ohne Gelände-Abschattung** (gesetzt, die Eichung hat sie am Messwert nachgezogen); Nullgradgrenze aus den
+Druckflächen des Cube **oder, wo es keine gibt (Gletscher über der 700-hPa-Fläche, ≈ 3 000 m), aus der Temperatur am Gletscher mit dem Standardgradienten** (Feld `zs` sagt es); Bandtemperatur mit dem Gradienten
+bis zur Nullgradgrenze verankert (`lapseOf`, 0,0045…0,009 K/m). Klasse C nimmt den Antrieb des nächsten Gletschers der Klasse A/B derselben Region ≤ 60 km (eigene Bänder), sonst einen **eigenen** Punkt (23 Gletscher;
+kein Gletscher fällt aus). Summen über 7/14 Tage = **Quantil der Summen von 40 Szenarien** (AR(1)-Rauschen ρ 0,9, gesetzt), nie eine Summe von Quantilen. Zustand `melt/state.json` (Schneewasser und Albedo je Band, nach
+6 h Lauf gespeichert, ≤ 30 h alt, sonst Kaltstart — benannt), **Satelliten-Nudge** (Szene ≤ 20 Tage: Bänder über der Schneegrenze 250 mm Schnee, darunter leer; Klasse B über die gleichwertige Linie des Schneeanteils;
+579 von 2 203 Gletschern am 11.10.). Wiederholungsschutz (nur bei neuem Lauf t2/t3, höchstens 4 am Tag, `repeatVerdict`-Muster), Läufe der letzten 72 h bleiben, Zeilen der 42 Leitgletscher gehen als eigene Datei
+auf `archive`. Ein Lauf ohne `public/climaGrid.json` bricht **rot** ab (V-SW-18). Messung am echten Cube (`C:\dev\buscosun-data`, Lauf t1 10.10. 03 UTC): **2 203 Gletscher in 62–93 s**, 1 014 eigene Fusion-Punkte,
+Dokument 726 KB, Zustand 193 KB. Vorlage `workflow-glacier-melt.yml` (Patch-Ordner, Archivschritt).
+
+**Prüfer.** `verify:glacier-melt` **41/41** (in CI): ETI gegen die unabhängige Rechnung auf 1e-6 mm (Winterbilanz, Sommerbilanz, Basislinie am Rhonegletscher 2024), Handrechnung einer Stunde, Schwelle, Schnee/Regen,
+Gradient und Säulenverankerung, Antrieb aus der Fusion-Antwort (Lücken), Zustand und Nudge, Szenariosummen **neu nachgerechnet** und die „Summe der Tagesquantile < Quantil der Summe“-Gegenprobe, Einheit gesperrt/freigegeben
+mit Negativkontrolle, Wiederholungsschutz, `main` Ende zu Ende mit Fusion-Attrappe (Zustand übernommen, Aufbewahrung 72 h, Klimatologie fehlt ⇒ Fehler), Diff der geschützten Pfade leer.
+
+### 6.4 GL-4 — Steckbrief (11.10.2026)
+
+**Gebaut** (lazy Chunk `GlacierBrief`, Seite `/gletscher/<slug>` mit `?tab=`, `t`, `v`, `e`, `o`): `glacierSheetModel.ts` (reine Logik: Reihen, Albedo-Anomalie, TSLA-Band gegen die Schneegrenze, Projektion als Spanne,
+Schmelzansicht mit Frische, Tour-Zeilen, Quellenliste, CSV), `glacierSheetData.ts` (parallele, voneinander unabhängige Ladevorgänge; fehlende Pflichtteile werden benannt), `glacierGeo.ts` (Schnitt am Längengrad,
+Schneezone aus dem Höhengitter — **in 8-ms-Zeitscheiben** (`renderSnowZoneAsync`, Ergebnis Byte für Byte gleich dem am Stück; Aletsch brauchte 208 ms in einem Block, Gornergletscher 119, Fiescher 89, Hintereisferner 15 — auf dem Handy eine Long Task), `GlacierSheetMap.tsx` (MapLibre: Umriss, früherer Umriss gestrichelt, Schneezone als Bild — Schnee weiß über der Schneegrenze, Eis blau darunter —, Vergleichsregler, 3D mit Terrarium-Gelände
+`setTerrain` ×1,3, Blick 62°/−20°, kein Shader), `GlacierCharts.tsx` (`@nivo/line` mit eigenen Ebenen für Bänder, Balken als SVG — kein `@nivo/bar`), `GlacierSheetTabs.tsx` (fünf Reiter), `GlacierBrief.tsx` (Layout
+Steckbrief 250 · Karte · Reiter 420, mobil Karte, Chips, Reiter, Spalte). Die Klasse C bekommt keine Satellitenzahl (Text), die vier deutschen auch nicht („es gelten die Zahlen der BAdW“).
+
+- **Heute:** Schmelzindex (Zahl 0–100, Spanne, Satz „keine Einheit“), Nullgradgrenze, Fläche ohne Schneedecke, Nächte über 0 °C an der Zunge, 14-Tage-Balken, Satellitenkarte; ohne frischen Lauf „Keine Daten“ mit dem Grund.
+- **Saison:** Schneegrenze je klarer Szene gegen das Band 2000–2025 (TSLA, p10–p90, Median), höchste Schneegrenze, AAR, **Albedo-Anomalie nur mit ≥ 3 Szenen und ≥ 2 früheren Jahren** (sonst „zu wenige frühere Szenen“), Bilanz (gemessen),
+  Neuschnee-Szenen mit eigenem Zeichen; Zeitpunkt = heute oder eine der letzten klaren Szenen (Karte, Schneezone).
+- **Langzeit:** Vergleichsregler früherer Umriss ↔ heute (Pfeiltasten, role=slider), Längenreihe kumuliert, Flächenänderung mit beiden Jahren, amtlicher Status mit dem **Kriterium der Behörde**, Projektion je Szenario als Spanne
+  („Unter 10 % des Volumens von 2020: 2051–2075, je nach Szenario und Klimamodell — nie ein einzelnes Jahr“), CSV und Bild.
+- **Tour:** Vorbehalt „Kein Urteil über Begehbarkeit …“, Nullgradgrenze 14 Tage gegen die Höhe des Gletschers, Nächte ohne Frost, Eisanteil des Modells, Zustand per Satellit, Links; ein Prüfer sucht „begehbar“, „sicher“, „frei“.
+- **Quellen:** Tabelle „Jede Zahl mit Herkunft und Stand“ (nur Zahlen, die wirklich gezeigt werden), Lizenzen, „nur verlinkt“ / „nicht genutzt“.
+
+**Pixelvergleich gegen die Vorlage** (`glacier-ui-diff.mjs --sheet=1`, `reference/gletscher-*-steckbrief.dc.html`, Schwelle \|ΔRGB\| > 12, Bilder `audit/gletscher/ui/*sheet*`): Desktop gesamt 49,0 % (Rail 9,4 · Topbar 20,1 ·
+Steckbrief 22,5 · Karte 73,3 · Reiter 36,8), Mobil gesamt 70,2 % (Topbar 29,2 · Karte 92,9 · darunter 58,1). Die Karten der Vorlagen sind gemalte SVG-Bilder, hier rendert MapLibre mit echter Basiskarte und dem Umriss; die
+Zahlen der Vorlagen sind Beispielwerte. **Abweichungen, jede gewollt:** (1) die **Höhenband-Tabelle** (Firn/GWL/Mitte/Zunge mit T 14 Uhr) fehlt — der Lauf trägt nur Gletschermittel, Bandwerte sind Stufe 2; (2) „nächste Messstation mit
+Messwert“, „Neuschnee seit … cm“, „Gletscherschwundtag“ und die Saisonbilanz-Schätzung des Modells fehlen — nicht berechnet, die Seite sagt es statt einer Zahl; (3) der Schalter „Beispiel Hitzewelle“ der Vorlage ist durch die
+Zeitpunkte „heute | Szene dd.mm.“ ersetzt; (4) „Vorher – nachher“ mit Sentinel-2-Bildern ist nicht gebaut — der Regler vergleicht Umrisse; (5) die Schneegrenze ist als **Fläche auf dem Höhengitter** gezeichnet (kein Linienzug);
+(6) das Nullgrad-Diagramm zeigt das Tagesmaximum der nächsten 14 Tage, nicht 48 Stunden stündlich (das Dokument trägt Tagesmaxima).
+
+**Prüfer.** `verify:glacier-sheet` **45/45** (in CI; echte Reihen, Szenen und Schmelzzeilen von vier Gletschern, Schneezone gegen die Höhenbandfläche auf 5 Punkte, Albedo-Anomalie mit vier Gegenproben, CSV mit Maskierung,
+Folgen-Liste mit blockiertem Speicher); `verify:glacier-ui` **62/62** (Browser, nicht in CI; Reiter-ARIA, Layout, Zustände, 3D-Schalter und `?gl3d=0`, Mobil ≥ 44 px, Quellentabelle, Tour-Wörter).
+
+### 6.5 GL-5 — Updates (11.10.2026)
+
+**Gebaut.**
+
+- **Feed** `scripts/glacier/feed.mjs` + `glacierFeedContract.ts`: Ereignisse mit **stabiler Kennung** (`ev_<Typ>_<Gletscher>_<Datum>`), Herkunft je Typ gesperrt (Schneegrenze und Neuschnee = Satellit, Hitzetag = Modell, Meldung und Status = amtlich),
+  ein Dokument je ISO-Woche (`feed/<Jahr>-W<Woche>.json`, letzte 12 Wochen), Zeiger `index.feed` mit der Liste der Wochen. Typen: Schneegrenzen-Sprung ≥ 100 m gegen die vorige Szene (Klasse A, ohne Neuschnee-Marke), Neuschnee-Szene, **Hitzetag nach Modell**
+  (Nullgradgrenze über der Medianhöhe und Index p50 ≥ 60, höchstens 5 je Lauf, Text mit Index „ohne Einheit“), kuratierte amtliche Meldung **wörtlich** (Satz gleich dem in `official.json`) mit Link, Statusverlust **nur mit dem Kriterium
+  der Behörde**. Der Vertrag lehnt ab: veränderten Satz, falsche Herkunft, doppelte Kennung, Tourwort, Schmelze mit Einheit, Zitat an einem Satellitenereignis, vier Spitzenereignisse. Vorlage `workflow-glacier-feed.yml`.
+- **Wochenkarte** `weekly-card.mjs`: 1200 × 630 PNG der drei wichtigsten Ereignisse (eine Art je Zeile zuerst, nie zwei zum selben Gletscher) über das headless Chrome, das das Repo ohnehin für seine Karten nutzt (`OG_CHROME`), keine neue Abhängigkeit;
+  der Montags-Schritt der Vorlage rendert die Karte der Vorwoche aus dem Feed-Stand des Sonntags; Zeiger `index.feed.card`; die Seite verlinkt „Wochenkarte KW 41 / 2026 (Bild, teilbar)“. Die Schrift fällt auf dem Runner auf die Systemschrift zurück.
+- **Rangliste:** „Schmelzindex heute“ ist eine Karten-Metrik der Lage, sobald ein **frischer** Lauf (≤ 30 h) vorliegt (Herkunft Modell, „n von 100“, Legende „ohne Einheit“; Rangliste ab 0,1 km², weil die kleinsten Gletscher an der Kappe 100 gleichziehen);
+  jede Rangliste hat genau eine Herkunft. „Verschwunden“ steht nur in der Liste der amtlichen Statusmeldungen mit Kriterium.
+- **Folgen:** Stern in Pille und Steckbrief, `gl.favs` lokal (nur Kennungen, ≤ 50, Speicher in `try/catch`), Liste „Meine Gletscher“, **„Neu seit deinem letzten Besuch“** (Ereignisse nach dem Tag des letzten Besuchs, die zu gefolgten Gletschern gehören oder amtlich sind; ohne
+  Besuch nichts).
+- **Download:** CSV der Reihen eines Gletschers (Längenänderung, Bilanz mit Winter/Sommer/Jahr/Gleichgewichtslinie/AAR, Flächen mit Bezugsjahr; je Zeile Herkunft, Einheit, Quelle; Kommentarkopf mit Abrufdatum) und das Längendiagramm als Bild (`imageExport.ts`).
+
+**Nicht gebaut (und warum).** „Größter Saisonverlust (Modell)“ als Rangliste — es gibt keine Saisonbilanz des Modells (Gate C rot). „Neuschnee auf Eis“ als Ereignis nur als Neuschnee-Szene (die Szene kennt keine Eisdecke darunter).
+
+**Prüfer.** `verify:glacier-feed` **22/22** (in CI; echte amtliche Einträge, Szenenzeilen, Schmelzzeilen; ISO-Wochen, Ereignisse mit unabhängig nachgerechneter Erwartung, Gegenproben des Vertrags, Aufbewahrung, Karten-HTML maskiert, gerendertes PNG 1200 × 630),
+`verify:glacier-sheet` (CSV, Folgen), `verify:glacier-ui` Block L (Rangliste, Feed, Folgen, „Neu seit …“ nach dem Neuladen, CSV-Inhalt aus dem Blob, Kopfzeilen-Stern).
+
+**Beobachtungen und Fallen dieser Session.**
+
+- Ein Teil der Karten-Läufe zeigt in der Headless-Umgebung zeitweise eine **leere Basiskarte** (Stil nicht geladen); Umriss und Zahlen hängen daran nicht, die Seite bleibt benutzbar; Prüfer mit eigenem Browser sind davon nicht betroffen.
+- MapLibre meldet auf der Seite **3 Warnungen** „Expected value to be of type number, but found null“ — sie kommen auch mit einer Karte ohne jede Ebene dieser Linie (Basiskarten-Stil bei Zoom ≥ 13, bisektiert), nicht aus dem Gletscher-Code.
+- Die Playwright-MCP legt relative Dateipfade im **Haupt-Arbeitsbaum** ab (nicht im Worktree) — absolute Pfade unter `.wt-gl` benutzen.
+- Bash-Heredocs verlieren Rückschrägstriche in Regex und Vorlagen — Skripte mit Regex per Write-Werkzeug schreiben; zwei Fehler dieser Art (`/^\d{4}$/`) sind im Lauf aufgefallen und behoben.
+- Geteilte, im Speicher gehaltene Ladevorgänge dürfen nicht am Abbruch-Signal des ersten Aufrufers hängen (der zweite Aufrufer eines Effekts bekam sonst nie eine Antwort) — behoben in `glacierClient.ts`.
+- Der Archiv-Lauf des Publishers ließ den Klon auf dem verwaisten Zweig `archive` stehen (dort fehlt `v1/`) — behoben, Prüfung P9b.
+
 ## 7 Commits
 
 | Repo | Commit | Inhalt |
 | --- | --- | --- |
 | `buscosun-web` `feat/gletscher` | `2d92087` | Planungsunterlagen |
-| `buscosun-web` `feat/gletscher` | `1a7e41c` | GL-0 Spike |
-| `buscosun-web` `feat/gletscher` | `7d1f818` | GL-1 Vertrag, statischer Baum-Builder, Prüfer, echter Auszug |
-| `buscosun-web` `feat/gletscher` | `18985cc` | GL-1 Seite hinter `?gl=1`, Eintritt, Budget-Notiz, UI-Prüfer, Pixelvergleich |
-| `buscosun-glacier` (lokal) | `90981f5`, `92b5176` | Baum `20261011-1`, drei Workflows, README „Betrieb“; verwaister Zweig `archive` |
+| | `1a7e41c` | GL-0 Spike, Kriterien eingefroren |
+| | `7d1f818` · `18985cc` · `9700adc` | GL-1: Vertrag, statischer Baum, Prüfer · Seite hinter `?gl=1` · Publisher, Vorlagen, CI |
+| | `2b70ea5` · `6c78a75` · `75e049e` | GL-2: Sentinel-2-Scan · DN-Versatz je Kachel-Tag, Metrik „Ausaperung“, B1-Werkzeuge · Rückfall-Fenster, TSLA-Klimatologie |
+| | `6b2288e` · `40aff29` | GL-3: Methode Gate C eingefroren · Nachtrag 1, Eichung in Node |
+| | `48a398b` | GL-3: Gate C (rot), Schmelzlauf, Schmelzvertrag, Prüfer |
+| | `0fa4da9` | GL-4: Steckbrief (fünf Reiter, Schneezone, Vergleichsregler, 3D) |
+| | `efb33f7` · `d05932c` | GL-5: Feed, Schmelzindex-Metrik, Folgen, Wochenkarte, CSV · Folgearbeiten (echter Datenrepo-Lauf, Zeiger mit Wochen, Archiv-Publisher kehrt auf `main` zurück) |
+| | `af2b45e` | Schneezone des Steckbriefs in Zeitscheiben (Long-Task-Schutz), `verify:glacier-sheet` G2c |
+| | (dieser Commit) | Audit dieser Phase |
+| `buscosun-glacier` (lokal, Bare-Remote `glacier-remote.git`) `main` | `de1bd38` · `90981f5` | init, Build `20261011-1` |
+| | `1a67a47` · `06ffbc5` | Build `20261011-3` (mit TSLA-Klimatologie), Zeiger |
+| | `bbe4a28` | Satellit 2023–2026: 1 349 Kachel-Tage, Saisonreihen |
+| | `c449cea` | Schmelzlauf `2026101115` (2 203 Gletscher, Index) |
+| | `3be86ac` · `031858a` | Feed 2026-W41 mit Wochenkarte · Feed mit Zeiger-Wochen |
+| | `ee31af7` | vier Workflow-Vorlagen, README-Tabelle |
+| `buscosun-glacier` `archive` | `92b5176` · `7dec54d` | init · Leitgletscher-Zeilen des Laufs 2026101115 |
+
+Die vollständige Historie (11 Commits) liegt im lokalen Bare-Remote `C:\dev\buscosun-glacier-cache\glacier-remote.git`; der Arbeitsklon `C:\dev\buscosun-glacier` ist **flach** (der Publisher holt mit `--depth 1`) und zeigt nur `ee31af7`/`031858a` und `92b5176`/`7dec54d`.
 
 ## 8 Gates
 
 | Gate | Stand |
 | --- | --- |
-| A | entschieden (§5), Kriterien eingefroren (§3) |
+| A | entschieden (§5), Kriterien eingefroren (§3 und je Linie) |
 | GL-1 (Vertrag, Atlas, DACH-Lage) | grün: §6.1 (ohne Real-Device) |
-| B1, B2, C, D | offen |
+| **B1 Satellit plausibel** | **ROT nach dem eingefrorenen Protokoll** (B1-1, B1-2; B1-3 bis B1-6 grün): §6.2. Die Satellitenzahlen sind Szenenwerte; keine Aussage „Gleichgewichtslinie aus Satellit“. Hypothese (höchste Schneegrenze der Saison) = E-GL-14 |
+| B2 Winterbetrieb | offen — braucht 14 Tage `glacier-sat.yml` im echten Daten-Repo (nach Jans Schritt 9.1), belegt nach der Session; blockiert nichts |
+| **C Eichung** | **ROT** (C-1, C-2, C-5; C-3, C-4 grün): §6.3. Einheit gesperrt, nur der Schmelzindex ohne Einheit |
+| GL-4 (Steckbrief) | grün: §6.4 (ohne Real-Device) |
+| GL-5 (Updates) | grün: §6.5 (ohne Real-Device) |
+| D Merge und live | **Vorbereitung abgeschlossen (§8.1), Entscheidung Jans:** Real-Device, Edge-Bündel, Merge-Pfad, `GLACIER_LIVE` |
+| E Sommer 2027 | Jan |
+
+### 8.1 Gate D — Vorbereitung
+
+**Prüfer** (Stand dieses Zweigs, Arbeitsbaum sauber):
+
+| Prüfer | Ergebnis | in CI |
+| --- | --- | --- |
+| `verify:glacier-contract` | 64/64 | ja |
+| `verify:glacier-static` | 7/7 Fixture; **25/25 am vollen Baum** `20261011-3` (mit `--dir=`) | ja (Fixture) |
+| `verify:glacier-publish` | 22/22 (Rennen, Nie-Force, Archiv nur Hinzufügen, **Rückkehr auf `main`**, vier Vorlagen) | ja |
+| `verify:glacier-sat` | 28/28 | ja |
+| `verify:glacier-melt` | 41/41 | ja |
+| `verify:glacier-sheet` | 45/45 | ja |
+| `verify:glacier-feed` | 22/22 (mit gerenderter Karte, wo ein Browser da ist) | ja |
+| `verify:glacier-ui` | 62/62 (Browser) | nein (braucht Chrome) |
+| `verify:routing` | 260/260 | |
+| `verify:seo` | 803 Prüfungen, 0 Fehler | |
+| `verify:share` | **527/528** — `[SH6]` das Edge-Bündel passt nicht mehr zur Quelle: die neue Route `/gletscher` ist in `routes.ts`; **Jan führt `npm run edge:share` beim Merge aus** (E-GL-13, kein Eingriff in Edge Functions durch diese Session) | |
+| Typecheck / Build / Budget | 0 Fehler / 260/260 / grün — eagerJs 109,9 (Grenze 110), largestChunk 278,4, **totalJs 1 759 → Grenze 1 735 → 1 770** (zwei Anhebungen mit Notiz in `budget.json`: Steckbrief +20, Updates +10, alles lazy) | |
+
+Geschützte Pfade: `git diff --stat origin/main...HEAD -- src/pointForecast src/point scripts/point scripts/punktarchiv` ist **leer**; kein Eingriff in `buscosun-data`, `buscosun-archiv`, Edge Functions, Shader, Custom Layer,
+Brandradar-Dateien, `CLAUDE.md`, `MANUELLE-SCHRITTE.md`; keine neue Abhängigkeit (`@nivo/line` und MapLibre im Bundle); `GLACIER_LIVE` bleibt `false` (Seite hinter `?gl=1`, `noindex`, nicht in der Sitemap).
+
+**Pixelvergleich** (`glacier-ui-diff.mjs`, Bilder `audit/gletscher/ui/`): Lage Desktop 43,5 % (Rail 9,5 · Topbar 11,5 · Dock 32,5 · Karte 76,4 · Diagramm 16,5 · Readout 43,1), Lage Mobil 83,7 %, Steckbrief Desktop 49,0 %, Steckbrief Mobil 70,2 % —
+die Unterschiede sind die Kartenfläche (gemaltes SVG gegen echte Karte), Beispielzahlen der Vorlagen und die in §6.4 benannten Abweichungen. **Gate D verlangt „Pixelvergleich bestanden“:** das Maß ist ein Befund, kein Schwellenwert — Jan entscheidet
+(§9.5), ob die benannten Abweichungen genügen.
+
+**Die fünf Fragen aus CLAUDE.md.**
+
+1. *Funktionserhalt einzeln:* nichts entfernt oder versteckt; die gemeinsamen Dateien (`App.tsx`, `featureRail.tsx`, `SearchPage.tsx/.css`, `router/routes.ts`, `router/router.tsx`, `netlify.toml`, `generate-seo.mjs`, `package.json`, `budget.json`, `.gitignore`, `ci.yml`) sind nur ergänzt;
+   Beleg: Routing 260/260, SEO 803 ohne Fehler, Build 260/260, kein Brandradar-File berührt (`git diff --name-only`).
+2. *Desktop pixelgleich:* die neue Seite steht hinter dem Flag; ohne `?gl=1` gibt es weder Kachel noch Rail-Eintrag (A1–A3: Zähler „12 Werkzeuge“, Pfad antwortet wie ein unbekannter). Ein Pixelvergleich der **bestehenden** Seiten wurde **nicht** gefahren —
+   kein gemeinsamer Render-Code ist berührt; Jan sieht beim Real-Device-Gang die Startseite mit und ohne Flag.
+3. *Touch-Ziele ≥ 44 px:* mobil gemessen (F1/F2, T13: Reiter 48, Chips 44, Zeitpunkt 44, Zurück 44, Links 44).
+4. *Konsole sauber:* keine unbehandelte Ausnahme (H1 in allen Läufen); die Seite fragt keine nicht vorhandene Datei mehr an (Zeiger nennt die Wochen); **3 MapLibre-Warnungen** „Expected value to be of type number, but found null“ stammen vom Basiskarten-Stil (bisektiert, §6.5).
+5. *Keine Long Tasks > 200 ms:* in headless-shell nicht messbar (bekannt) — **Real-Device**. Gebaut dagegen: Schneezone in 8-ms-Scheiben (Aletsch 208 ms am Stück gemessen), Vergleichsregler per `requestAnimationFrame`,
+   Karten-Daten außerhalb des Hauptpfads geladen; offen bleibt der Parse der Höhengitter (`dem/<region>.json` 0,1–6,4 MB) — auf dem Handy zu messen.
+
+**Die fünf Gletscher-Prüffragen.**
+
+1. *Herkunftszeichen an jeder Zahl, Bezugsjahr an jeder Fläche:* ja — `data-origin` an jeder Zahl (T3, C4: 0 Zahlen ohne Marke), Bezugsjahr an jeder Fläche im Steckbrief, in der Karte und im Dock (D5, G5).
+2. *Modellzahl als Messung oder amtlich lesbar?* nein — Rangliste „Schmelzindex“ trägt die Marke Modell und „von 100“, Feld `origin` je Ereignis gesperrt (B4), Hitzetag-Text sagt „nach Modell“ und „ohne Einheit“; jede Rangliste hat genau eine Herkunft.
+3. *Ohne bestandene Eichung:* Index ohne Einheit mit Hinweis und Spanne; kein mm-Feld im Dokument (E1/E2, T2, L1b).
+4. *Tour-Reiter „begehbar“, „sicher“, „frei“?* nein; Vorbehalt und Links stehen da; der Prüfer sucht über Reiter, Feed, Karte (T6, G1, B3).
+5. *Blaueisgletscher im Reiter Saison:* keine Satellitenzahl, „es gelten die Zahlen der BAdW“ mit Datum und Quelle (G-Block; T9, T8 für Klasse C; die vier deutschen Gletscher haben nur Index und Inventar).
 
 ## 9 Jans Schritte
 
-1. **`jppetry/buscosun-glacier` anlegen** (öffentlich, leer, ohne README/Lizenz): `gh` ist hier nicht installiert. Entweder auf github.com „New repository“
-   oder lokal `gh auth login` und `gh repo create jppetry/buscosun-glacier --public`. Danach pusht die nächste Session `main` und den verwaisten Zweig `archive`
-   und setzt die Repo-Variable `PRODUCER_REF=feat/gletscher`.
-2. RGI 7.0 (NSIDC-Login) laden, wenn die Brücke RGI 7 gewollt ist (aktuell RGI 6.2 für GloGEM).
-3. Edge-Bündel (`npm run edge:share`) und PR erst im Merge-Pfad (Plan §2).
-   Der lokale Stand ist fertig: `cd C:\dev\buscosun-glacier; git remote add origin https://github.com/jppetry/buscosun-glacier.git; git push -u origin main; git push origin archive`.
-   Die drei Workflows liegen schon unter `.github/workflows/` (sie enden grün, solange der Producer fehlt, und beginnen von selbst mit GL-2/GL-3).
-4. GLAMOS (office@glamos.ch) um eine Bestätigung bitten: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum.
+1. **`jppetry/buscosun-glacier` anlegen** (öffentlich, leer, ohne README/Lizenz) — `gh` fehlt hier. Dann aus `C:\dev\buscosun-glacier`:
+   **aus dem Bare-Remote** (der Arbeitsklon ist flach, siehe §7): `git -C C:\dev\buscosun-glacier-cache\glacier-remote.git push https://github.com/jppetry/buscosun-glacier.git main archive`, danach im Arbeitsklon `git remote set-url origin https://github.com/jppetry/buscosun-glacier.git`, danach die Repo-Variable `PRODUCER_REF=feat/gletscher` setzen und Actions aktivieren.
+   Die vier Workflows (`glacier-static|sat|melt|feed.yml`) liegen unter `.github/workflows/` und enden grün, solange der Producer auf `PRODUCER_REF` fehlt.
+2. **Entscheidung E-GL-14 (Gate B1 rot):** (a) so lassen — Satellit als Szenenwerte, kein Anspruch auf die Gleichgewichtslinie; oder (b) Amendment 2 „höchste Schneegrenze der Saison“ vorab einfrieren und an GLAMOS/UIBK 2026 prüfen, sobald die Bilanzen erscheinen.
+3. **Entscheidung E-GL-15 (Gate C rot):** Index ohne Einheit so lassen, oder die Eichung verbessern (Antriebsstationen näher am Gletscher, gemessene Strahlung, Höhenband-Wahrheit aus GLAMOS) und Gate C nach neuem, vorab eingefrorenem Protokoll wiederholen.
+4. **Edge-Bündel:** `npm run edge:share` beim Merge (E-GL-13); bis dahin ist `[SH6]` in `verify:share` das benannte rote Ergebnis.
+5. **Gate D:** Real-Device (Steckbrief, 3D, Vergleichsregler, Karte mit Schneezone), Entscheidung zum Pixelvergleich (§8.1), Merge-Pfad (Plan §2), dann `GLACIER_LIVE`. B2 (14 Tage Satellit-Workflow) läuft nach Schritt 1 an.
+6. GLAMOS (office@glamos.ch) um eine Bestätigung bitten: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum (Lizenzregister `audit/gletscher/licences.md`).
+7. Optional: RGI 7.0 (NSIDC-Login) laden, wenn die Brücke RGI 7 gewollt ist (aktuell RGI 6.2 für GloGEM).
+8. Betrieb: im Daten-Repo wachsen die statischen Builds (heute `20261011-1` 24,6 MB und `20261011-3` 38,3 MB; `v1/static/` hält Alt-Builds) — nach dem Umschalten des Zeigers den Vorgänger löschen (V-GL-13).
+
+## 10 Befunde und Verbesserungen (V-GL)
+
+| Nr. | Befund / Mehrwert | Skizze |
+| --- | --- | --- |
+| V-GL-1 | Die Wochenkarte fällt auf dem Runner auf die Systemschrift zurück (League Spartan ist dort nicht installiert). | Schrift als Datei neben `weekly-card.mjs` ablegen und per `@font-face` einbinden — oder Systemschrift als gewollt benennen. |
+| V-GL-2 | Der Archiv-Lauf des Publishers ließ den Klon auf dem verwaisten Zweig `archive` stehen — **behoben**, Prüfung P9b. | — |
+| V-GL-3 | Albedo 0,984 am Balfrin (27.09.2025) — die Ursache ist nicht geklärt; die Regel „Albedo außerhalb 0,02–0,98 ⇒ Quarantäne“ fängt den Fall. | An der Szene nachsehen (Schatten/Wolkenrand/Maskenfehler?), dann Regel begründen oder verschärfen. |
+| V-GL-4 | Gate B1 rot; die Hypothese „höchste Schneegrenze der Saison trifft die Gleichgewichtslinie“ wurde an denselben Daten gefunden (§6.2). | E-GL-14: Amendment 2 vorab einfrieren, GLAMOS/UIBK 2026 abwarten. |
+| V-GL-5 | Gate C rot; TF an der Obergrenze 0,12, Antrieb 5–15 km und bis 1 000 m vom Gletscher, Strahlung nur Modell, ein 50-m-Band je Gletscher ohne Bandwerte als Wahrheit (§6.3). | E-GL-15: Antrieb näher am Gletscher, gemessene Strahlung, Bandwerte aus GLAMOS, dann neu eingefrorenes Protokoll. |
+| V-GL-6 | Der Prognose-Hindcast (C-6/C-7) ist nicht gerechnet — er entschiede nur über die Anzeige mit Einheit. | Erst nach bestandenem C-1 … C-5. |
+| V-GL-7 | Steckbrief ohne Höhenband-Tabelle, nächste Messstation, Neuschnee in cm, Gletscherschwundtag und Saisonbilanz-Schätzung des Modells; „Vorher – nachher“ mit Sentinel-2-Bildern nicht gebaut; Nullgrad-Diagramm als Tagesmaximum statt stündlich (§6.4). | Stufe 2 (GL-6); Bandwerte braucht der Lauf. |
+| V-GL-8 | Long Tasks > 200 ms sind in headless-shell nicht messbar; gebaut: Schneezone in 8-ms-Scheiben. Offen: der Parse der Höhengitter (`dem/<region>.json` 0,1–6,4 MB) auf dem Handy. | Real-Device (§9.5); bei Bedarf Parse in einen Worker. |
+| V-GL-9 | MapLibre meldet auf der Seite 3 Warnungen („Expected value to be of type number, but found null“) — sie kommen auch ohne jede Ebene dieser Linie (Basiskarten-Stil, bisektiert); zeitweise bleibt die Basiskarte in Headless leer. | Basiskarten-Stil prüfen (nicht diese Phase). |
+| V-GL-10 | GLAMOS: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum (`audit/gletscher/licences.md`). | Bestätigung bei office@glamos.ch (§9.6). |
+| V-GL-11 | Der Pixelvergleich gegen die Vorlagen (Lage Desktop 43,5 %, Mobil 83,7 %, Steckbrief 49,0 % / 70,2 %) ist ein Befund, kein Schwellenwert: die Karten der Vorlagen sind gemalt, die Zahlen Beispielwerte (§8.1). | Jans Entscheidung (§9.5). |
+| V-GL-12 | `verify:share` zählt 527/528: das Edge-Bündel kennt die neue Route nicht (`[SH6]`). | `npm run edge:share` beim Merge (E-GL-13). |
+| V-GL-13 | `v1/static/` wächst mit jedem Build (24,6 und 38,3 MB). | Nach dem Umschalten des Zeigers den Vorgänger löschen; Aufbewahrungsregel im Static-Workflow ergänzen. |
+| V-GL-14 | Der Arbeitsklon `C:\dev\buscosun-glacier` ist flach (der Publisher holt `--depth 1`); ein Push von dort auf ein leeres GitHub-Repo kann scheitern. | Push aus dem Bare-Remote (§9.1). |
+| V-GL-15 | Die Playwright-MCP legt relative Dateipfade im Haupt-Arbeitsbaum ab, nicht im Worktree. | Absolute Pfade unter `.wt-gl` benutzen (Falle, nicht Code). |
+| V-GL-16 | Der Pixelvergleich der bestehenden Startseite mit und ohne `?gl=1` wurde nicht gefahren (kein gemeinsamer Render-Code berührt). | Beim Real-Device-Gang mitnehmen (§8.1 Frage 2). |
