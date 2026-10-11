@@ -2317,6 +2317,34 @@ Was nur du tun kannst:
    `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-ui.mjs --base=http://127.0.0.1:4318`
    (82/82, ≈ 4 min).
 
+### 62.2c AF-3 — Punkte für die neuen Teilstücke (11.10. nachts, gebaut und committet; Push und Einspielen warten auf dein Wort)
+
+Audit §8.8 (Ortsnamen) und §8.9 (AF-3). Auf dem Zweig `af/merge-fusion-12` liegen fünf Commits vor `main`: AF-2 (`347897e`), AF-5
+(`2e175b6`), Zusammenführung mit `main` (`83ad750`), Ortsnamen unter dem Band (`de46e44`), AF-3 (`fd885e2`). Das Paket für das
+Daten-Repo liegt mit Prüfsummen unter `C:\dev\buscosun-road-publish\2026-10-11-af3\` (212 Korridore, 2 958 Achspunkte + 1 814
+Stationen, Gelände). **Nichts davon ist gepusht oder eingespielt.**
+
+Was nur du tun kannst — in dieser Reihenfolge:
+
+1. **Ansehen:** `audit/autobahn-fusion12-lueckenlos/af13/` (Ortsnamen vorher/nachher: A 1, A 995, A 36).
+2. **„pushe main“ im Chat** (oder selbst: im Arbeitsbaum `.wt-af` `git push origin HEAD:main`, danach im Hauptbaum
+   `git merge --ff-only af/merge-fusion-12`). Der Push bringt die Seite für Teilstücke ohne Messstelle, die Ortsnamen und den
+   Producer mit `engine.points` nach Produktion; sichtbar ändert sich nur die Ortszeile unter dem Band (und der Callout am oberen
+   Kartenrand). Mein Versuch wurde vom Auto-Modus abgelehnt — er braucht dein ausdrückliches Wort.
+3. **Erst wenn der Deploy da ist: Einspielen** (E-AF-4, von dir am 10.10. freigegeben): die drei Dateien des Pakets als ein
+   Commit auf frischem `origin/main` des Daten-Repos (temporärer Index, nie force), Purge genau dieser drei `@main`-Pfade,
+   sha256 am CDN gegen `SHA256SUMS`. Auf dein Wort mache ich es; Reihenfolge nie umdrehen — ohne die neue Seite zeigte ein
+   Teilstück ein leeres Band.
+4. **Danach prüfen:** der nächste `road-fc`-Lauf (stündlich :12, oder nach dem nächsten `point`-Lauf) nennt 4 772 Punkte und
+   212 Korridore im Zeiger; bis dahin steht an einem Teilstück „kein Lauf für diese Strecke“ (so gebaut).
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-fc.mjs --data=<frischer Klon>` (113/113).
+5. **Real-Device** nach dem Einspielen: `/autobahnwetter/a98-3` und `/autobahnwetter/a36` auf einem Telefon.
+
+Offen aus dieser Runde (Audit §8.8.4, §8.9.5): V-AF-33 (ausgeblendeter Ortsname nur im Tooltip), V-AF-34 (Rang der Städte nach km
+statt Größe), V-AF-35 (Callout unter den Zoom-Knöpfen), V-AF-36 (drei A-60-Punkte könnten jetzt einrasten), V-AF-37 (Overpass
+abends, alte Spiegel), V-AF-38 (`verify:road-fc --data` lief nie mit), V-AF-39 (Grenzmarke an Abschnitten, die an der Grenze
+entlang laufen: A 98 am Hochrhein, A 94 bei Bad Füssing). Weiter offen: E-AF-12 (vier Messstellen), AF-4 (rebasen), AF-6.
+
 ### 62.3 Rückwege
 
 - `?ancpre=0` — der Motor vor V-AF-10 (eine Messung vor dem Achsenbeginn paart nur binnen 30 min mit dem ersten Schritt).

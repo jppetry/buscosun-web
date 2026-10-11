@@ -5,7 +5,8 @@
 > Fusion 12 läuft seit 10.10. 18:43 UTC mit beiden Korrekturen live; **AF-2 Korridore lückenlos §8.6** — Bauer und Prüfung gebaut, Kandidat
 > 210 Korridore auf 120 von 121 Nummern, nichts eingespielt; **AF-5 Seite für Teilstücke ohne Messstelle §8.7** — gebaut am 11.10.,
 > `verify:road-ui` 82/82; am 11.10. abends committet (`347897e`, `2e175b6`) und mit `main` zusammengeführt (`83ad750`); **E-AF-13 Ortsnamen
-> unter dem Band §8.8** — `verify:road-ui` 89/89; **AF-3 Punkte, A 98, Paket §8.9**). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
+> unter dem Band §8.8** — `verify:road-ui` 89/89; **AF-3 Punkte, A 98, Paket §8.9** — gebaut und committet, **nicht gepusht, nicht
+> eingespielt**, §8.9.6). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
 > (Fusion 12, Branch `fusion-12`), `audit/fusion-release.md` (Register der Stände).
 
 ## 0. Kurzfassung für Jan
@@ -223,7 +224,7 @@ der drei statischen CDN-Pfade, der Block `ctl` im Archiv.
 | V-AF-4 | Kennungen hängen an der Sortierung nach Stationszahl; jede neue Meldung kann sie verschieben (D-AF-9) | geteilte Links bleiben richtig | `--pin` wird der Normalweg jedes Neubaus |
 | V-AF-5 | Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7); Fusion 12 hat kein Spur-P-Urteil | Klarheit, was „Fusion 12" belegt | Abnahme ab ≈ 20.10. (E-OF-6), unabhängig von dieser Phase |
 | V-AF-6 | AT/CH ohne Korridore und Prognosepunkte (E-AW-12) | A 8 endet nicht an der Grenze | eigene Phase (Achsen GIP.at/OSM, Radar INCA/RZC) |
-| V-AF-36 … V-AF-38 | aus AF-3 (§8.9.5): drei A-60-Punkte könnten jetzt einrasten, Overpass abends und alte Spiegel, `verify:road-fc --data` lief nie mit | | |
+| V-AF-36 … V-AF-39 | aus AF-3 (§8.9.5): drei A-60-Punkte könnten jetzt einrasten, Overpass abends und alte Spiegel, `verify:road-fc --data` lief nie mit, Grenzmarke an Abschnitten entlang der Grenze | | |
 | V-AF-33 … V-AF-35 | aus E-AF-13 (§8.8.4): ausgeblendeter Ortsname nur im Tooltip, Rang der Städte nach km statt Größe, Callout unter den Zoom-Knöpfen | | |
 | V-AF-28 … V-AF-32 | aus AF-5 (§8.7.6): Ortsnamen im Band überlappen (**behoben, §8.8** — gemessen 85 von 210 Abschnitten, nicht 53), Callout hinter der Pille (behoben), nicht gewählte Teilstücke auf der Karte, Zeilennamen der Streckentabelle, Zusammenführen mit `main` | | |
 | V-AF-22 … V-AF-27 | aus AF-2 (§8.6.6): OSM-Auszug ohne `trunk` mit Autobahn-Nummer (A 98), Messstellen gepinnter Abschnitte, Stummel an gepinnten Enden, Auf-/Abfahrten im alten Bauer, Schreibweise A 64a | | |
@@ -1238,3 +1239,15 @@ Die „offen 16“ (vorher 15): eine Probe der A 485 hieß bisher „ohne OSM-Fa
 | V-AF-36 | Drei Live-Achspunkte der A 60 (`a60@5/10/15`) sind „nicht eingerastet“, weil die A 60 dort `trunk` ist; mit der neuen Regel lägen sie auf der Fahrbahn. `--keep-from` lässt sie, wo sie sind | Punkt auf der Fahrbahn statt auf der Achse | mit dem Schritt E-AF-12 (Messstellen auffrischen) neu einrasten — ändert drei Live-Punkte |
 | V-AF-37 | Die `area`-Abfrage des Bauers scheitert abends (504); Spiegel liefern Monate alte Stände ohne Hinweis | der Bau hängt nicht an der Tageszeit, kein alter Stand rutscht durch | Kachel-Abfrage in den Bauer übernehmen, Antwort mit Stand älter als 3 Tage verwerfen |
 | V-AF-38 | `verify:road-fc --data` läuft in keinem Ablauf mit; G1/G5 waren vier Tage unbemerkt rot | veraltete Erwartungen fallen auf | Lauf mit `--data` in die Schritte nach jedem Einspielen (MANUELLE-SCHRITTE) |
+| V-AF-39 | Der Bauer setzt eine Grenzmarke, wenn ein Abschnittsende näher als 3 km an der Grenze liegt (`borderAt`). Drei neue Teilstücke laufen an der Grenze entlang, ohne sie zu queren: `a98-3` (beide Enden „CH“), `a98-4` und `a94-2` (Anfang) — das Band zeigt dort „CH \| DE“ | keine Grenze, wo die Strecke in Deutschland weitergeht | Marke nur, wenn die Achse an der Grenze endet (kein weiteres deutsches Achsstück der Nummer oder der Folgestraße); ändert die Korridor-Datei, mit E-AF-12 |
+
+#### 8.9.6 Stand: nicht gepusht, nicht eingespielt
+
+Echtprobe vor dem Einspielen: die gebaute Seite mit der **echten** neuen Korridor-Datei und den Laufdateien des lokalen Volllaufs
+(per Abfang-Regel untergeschoben, Messungen live): `a98-3`, `a36`, `a37-2`, `a8` am Desktop und `a98-4` mobil — Kopf, Band,
+Prognosepunkt und Dock wie geprüft, keine ungefangene Ausnahme. Dabei gesehen: V-AF-39.
+
+Der Push von `main` (`git push origin HEAD:main` aus `.wt-af`, fünf Commits vor `main`, nichts dahinter) wurde am 11.10. gegen 22:15 UTC
+vom Auto-Modus abgelehnt — er braucht Jans ausdrückliches Wort im Chat. Das Einspielen (E-AF-4) folgt erst, wenn die neue Seite
+in Produktion ist; sonst zeigte ein Teilstück ohne Messstelle ein leeres Band. Schritte: `MANUELLE-SCHRITTE.md` §62.2c.
+
