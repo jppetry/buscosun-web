@@ -258,7 +258,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       </div>
       <div className="gl-legend-lines" aria-hidden="true"><span><i style={{ background: '#1E87A8' }} />CH</span><span><i style={{ background: '#B5602C' }} />AT</span><span><i style={{ background: '#6B5BB8' }} />DE</span></div>
       <GlacierLageChart summary={d.summary} kind={chartKind} />
-      <div className="gl-chart-note">Gemessen (GLAMOS für CH, WGMS/ÖAV für AT). Deutschland hat in diesen Netzen keine laufende Reihe. Der Saisonverlauf der Schmelze folgt mit der Schmelzrechnung (GL-3).</div>
+      <div className="gl-chart-note">Gemessen (WGMS-Datenbank, für die Schweiz die Reihen des Gletschermessnetzes GLAMOS; für Österreich WGMS und ÖAV). Deutschland hat in diesen Netzen keine laufende Reihe. Der Saisonverlauf der Schmelze folgt mit der Schmelzrechnung (GL-3).</div>
     </section>
   );
   const readout = (
@@ -287,7 +287,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         ? <span className="gl-chip is-model" title="Schmelzindex (buscosun Fusion, Temperaturindex-Modell, ohne Einheit): jüngster Lauf"><i aria-hidden="true" />Modell · Lauf {meltRun.runAt.slice(8, 10)}.{meltRun.runAt.slice(5, 7)}. {meltRun.runAt.slice(11, 13)} UTC</span>
         : <span className="gl-chip is-model is-idle" title="Schmelzrechnung (buscosun Fusion): kein frischer Lauf (älter als 30 Stunden oder nicht erreichbar)"><i aria-hidden="true" />Modell · nicht aktiv</span>}
       {satChip}
-      <span className="gl-chip is-measured" title={`Jüngste amtliche Meldung je Messnetz; Längen- und Massenreihen von GLAMOS, ÖAV und WGMS reichen bis ${maxYear ?? '–'}`}><i aria-hidden="true" />Messung · {officialStand ?? `Reihen bis ${maxYear ?? '–'}`}</span>
+      <span className="gl-chip is-measured" title={`Jüngste amtliche Meldung je Messnetz; Längen- und Massenreihen aus dem WGMS (Schweiz: Meldungen des Messnetzes GLAMOS) und vom ÖAV reichen bis ${maxYear ?? '–'}`}><i aria-hidden="true" />Messung · {officialStand ?? `Reihen bis ${maxYear ?? '–'}`}</span>
     </div>
   );
   const topbar = (
