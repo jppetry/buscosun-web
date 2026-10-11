@@ -13,7 +13,8 @@ Auftrag Jan 11.10.2026: Stufe 1 (GL-0 … GL-5) im Auto-Modus auf `feat/gletsche
 | **Blocker: Daten-Repo** | `gh` ist auf dieser Maschine **nicht installiert** (weder im PATH noch an den üblichen Orten, kein `GH_TOKEN`); `jppetry/buscosun-glacier` existiert nicht (API 404). Das Token des Git-Credential-Managers wird **nicht** für die REST-API entnommen (es ist für `git` gegeben, nicht für andere Zugriffe). Fallback laut Auftrag: lokales Repo `C:\dev\buscosun-glacier` (git, `main`, README, `.gitattributes`), Producer laufen lokal, Workflows als Vorlage im Branch. **Jans Schritt:** Repo anlegen (§9.1) | §9.1 |
 | GL-0 Spike | Messungen bis auf die Läufer-Messung des COG-Durchsatzes (braucht das Repo) und die ID-Zuordnung (GL-1) abgeschlossen; Kriterien eingefroren (sha256 in §3) | §2–§4 |
 | Gate A | Entscheidungen E-GL-1 … 12 im Auto-Modus gefällt (§5) | §5 |
-| GL-1 … GL-5 | folgen — jeweils mit Verifier-Ausgabe in §6 | §6 |
+| **GL-1** Vertrag, Atlas, DACH-Lage | **fertig, Gate grün (ohne Real-Device):** Baum `static/20261011-1` (2 203 Gletscher, 25,8 MB, 184 Dateien, 0 Warnungen), Vertragsprüfer 64/64, Baumprüfer 23/23, UI-Prüfer 30/30, Publisher-Prüfer 21/21, Build 260/260, Budget mit Notiz angehoben; Seite `/gletscher?gl=1` auf `feat/gletscher` (`7d1f818`, `18985cc`) | §6.1 |
+| GL-2 … GL-5 | folgen — jeweils mit Verifier-Ausgabe in §6 | §6 |
 
 ## 1 Anker (am Code und an den Daten gelesen, 11.10.2026)
 
@@ -234,19 +235,72 @@ Zugspitz-Ferner optional aus Paul 2020. **D-GL-3** GLAMOS gelb, CC BY 4.0 der DO
 
 ## 6 Protokoll je Paket
 
-(wird mit jedem Paket ergänzt)
+### 6.1 GL-1 — Vertrag, statischer Baum, DACH-Lage (11.10.2026)
+
+**Gebaut.**
+
+- `src/glacier/glacierContract.ts`: Pfade (`v1/index.json`, `status.json`, `static/<build>/…`), 25 Regionen, Größenklassen A ≥ 1 km² / B 0,1–1 / C < 0,1, Flächenstempel
+  mit Bezugsjahr und Quelle (ohne beide ist ein Katalogeintrag ungültig), Umriss-Stufen L1/L2/L3 mit Flächenregel ±3 %, Reihen, amtliche Einträge mit
+  wörtlichem Satz + Quelle + Datum (+ Kriterium bei „verschwunden“), Frische (Satellit 20 Tage, Schmelzlauf 30 h), Einheiten (`mm w. e.`, „cm Eis“ nur mit Dichte),
+  Wortsperre (`begehbar`, `sicher`, `frei`).
+- Statischer Baum aus `scripts/glacier/py/build_static.py` (78 s): Katalog, Punkte, Umrisse je Region und Stufe + Epochen (SGI1850/1931/1973/2010, GI4 2015),
+  Höhenbänder (50 m, Copernicus DEM), Reihen (GLAMOS Länge/Masse, ÖAV Länge, FoG Masse AT/DE, Flächen je Epoche), Projektion (GloGEM, Spanne je Szenario,
+  nur GCMs mit positivem 2020-Volumen), `official.json` (9 Einträge, wörtlich), `sources.json`, `report.json`, `index.json`/`status.json`.
+  **Bilanz:** CH 1 400 Gletscher / 961,27 km² (amtlich 961), AT 799 / 285,49 km² (285), DE 4 / 0,262 km² (BAdW 0,262); A 227 · B 763 · C 1 213 + 4;
+  Leitgletscher 42; Umrisse je Stufe nur 4–5 verworfen (max. Abweichung 1,99 % < 3 %).
+- Seite `src/glacier/*` hinter `?gl=1`: Rail, Topbar mit Stand-Chips je Herkunft (Modell · nicht aktiv, Sentinel-2 · nicht aktiv, **Messung · GLAMOS 01.10. · ÖAV 13.03. ·
+  BAdW 19.03.** aus den Daten), Dock (Suche, Land, „Karte färben nach“ mit Herkunftsmarke, Rangliste), MapLibre-Karte (Kreise nach Fläche, gestrichelt = kein
+  Wert, Umrisse je Zoom), Verlaufsdiagramm (`@nivo/line`), Readout mit drei Länderkarten (Satz der Behörde wörtlich, Datum, Quelle verlinkt), Berichtsliste,
+  Berichtsrhythmus; mobil Karte mit Saison- und Satelliten-Chip, Größen-Chips, wischbare Länderkarten. Schmelze und Ausaperung sind sichtbar **gesperrt**
+  (kein Platzhalterwert). Der Steckbrief-Knopf bleibt gesperrt bis GL-4. Eintritt wie SW: `FeatureId`, Route (`noindex`), Rail-Eintrag mit Flag-Filter, Kachel 13,
+  Palettenpunkt 14, Netlify-Aliase, `generate-seo` mit Flag-Wächter.
+- `scripts/glacier/glacier-publish.mjs` (Publisher, nur Teilpfade der eigenen Linie, `index.json`/`status.json` frisch gelesen und gepatcht, nie Force, ≤ 20 MB je Datei /
+  ≤ 150 MB je Paket, Archivzweig nur Hinzufügen) und drei Workflow-Vorlagen `workflow-glacier-{static,sat,melt}.yml` mit `PRODUCER_REF`-Wächter und
+  gemeinsamer Concurrency-Gruppe `glacier-publish`.
+
+**Verifier (alle ohne Netz bis auf die Basiskarten-Kacheln im UI-Prüfer).**
+
+| Prüfer | Ergebnis | Besonderheit |
+| --- | --- | --- |
+| `verify:glacier-contract` | **64/64** | an einem echten Auszug des Baums (acht echte Gletscher, drei Stufen), Gegenproben je Regel |
+| `verify:glacier-static` | **23/23** (voller Baum), 7/7 (Fixture, CI); mit `--snapshots` 24/24 | Flächen je Land ±2 % gegen amtlich, Geometrie neu gerechnet, Quellenvermerke, Größen |
+| `verify:glacier-ui` | **30/30** | Flag-Tor (A1–A4), Layout 62/60/250/400/728 (B1), amtliche Sätze wörtlich + Gegenprobe (C1/C1b), Herkunft an jeder Zahl (C4), Zustand/URL/Neuladen (D1–D7), Kill-Schalter und 404 (E1/E2), Mobil ≥ 44 px (F1–F4), Ehrlichkeit (G1–G5), Konsole (H1) |
+| `verify:glacier-publish` | **21/21** | echtes lokales Bare-Remote: Rennen zweier Linien (P3 heilt, P3b Gegenprobe), nie Force (P8: drei überholte Versuche ⇒ rot, nichts überschrieben), Archiv nur Hinzufügen (P9), Kill-Schalter bleibt (P12), Vorlagen-Wächter W1–W7 |
+| `verify:routing` | 244/244 (`[GL]`-Selbsttests inbegriffen) | Zählung dieses Zweigs |
+| Typecheck / Build / Budget | 0 Fehler / 260/260 / grün nach Anhebung | eagerJs 109,7 → **110,0** (IST 109,9: Eintritt), totalJs 1715 → **1735** (IST 1732,9: GlacierPage 14,1 + Route 2,0 + Flag 0,3 KB gzip, alles lazy); Notiz in `budget.json` |
+
+**Beobachtungen und Korrekturen im Lauf.** Mobil schrumpften die Größen-Chips auf 0 px Höhe (Flex-Kind mit `overflow-x: auto` im Spaltenlayout; behoben mit `flex: 0 0 auto`),
+„über 5 %“ brach auf 390 px in zwei Zeilen (jetzt `nowrap`, Beschriftung umbricht darunter), die Diagramm-Umschalter waren mobil 28 px hoch (jetzt 44). Die Vorlage nennt im
+Kopf je Quelle das Datum der letzten amtlichen Zahl und mobil Saison- und Satelliten-Chip über der Karte — beides übernommen (ohne Modellwerte).
+
+**Pixelvergleich gegen die Vorlage** (`scripts/glacier/glacier-ui-diff.mjs`, voller Baum, Schwelle |ΔRGB| > 12, Bericht `audit/gletscher/ui/diff-report.json`, Bilder dort):
+Desktop gesamt 42,1 % (Rail 9,5 · Topbar 10,7 · Dock 24,6 · Karte 76,4 · Diagramm 16,5 · Readout 43,1), Mobil gesamt 83,8 % (Topbar 23,1 · Karte 89 · Chips 40,5 · darunter 95,1).
+Jede Abweichung ist gewollt: die Karte der Vorlage ist ein gemaltes SVG, hier rendert MapLibre mit echter Basiskarte und 2 203 Punkten; die Zahlen der Vorlage sind
+größtenteils Beispielwerte (Standardgröße „Verlust Saison“ = Modell, hier „Länge zuletzt“ = gemessen, weil die Schmelze erst mit GL-3 besteht); der Readout zeigt die
+amtlichen Sätze statt der Beispielzeilen; mobil liegt der Rest der Seite um die Höhe des Kopfs und der Länderkarten versetzt. Die Aufteilung (Maße, Reihenfolge, Chips,
+Zeichensprache) stimmt mit der Vorlage überein.
+
+**Abweichungen vom Plan.** (1) Die statische Linie wird lokal gebaut und im Workflow nur **geprüft** (Wächter): ihre Rohquellen sind von Hand geladen und gegen den Lizenztext gelesen
+(D-GL-3), die DEM-Kacheln sind mehrere GB. (2) Der Daten-Repo-Blocker (§0) verhindert den ersten Lauf der Workflows; der Baum, die drei Workflows und der Zweig `archive` liegen
+fertig im lokalen Repo `C:\dev\buscosun-glacier` (`90981f5`, `92b5176`). (3) `verify:routing` zählt 244 statt 256, weil dieser Zweig auf `1798fc5` steht (der Stand von `main` mit
+den späteren Seewetter-Tests wird beim Merge nachgezogen).
 
 ## 7 Commits
 
 | Repo | Commit | Inhalt |
 | --- | --- | --- |
 | `buscosun-web` `feat/gletscher` | `2d92087` | Planungsunterlagen |
+| `buscosun-web` `feat/gletscher` | `1a7e41c` | GL-0 Spike |
+| `buscosun-web` `feat/gletscher` | `7d1f818` | GL-1 Vertrag, statischer Baum-Builder, Prüfer, echter Auszug |
+| `buscosun-web` `feat/gletscher` | `18985cc` | GL-1 Seite hinter `?gl=1`, Eintritt, Budget-Notiz, UI-Prüfer, Pixelvergleich |
+| `buscosun-glacier` (lokal) | `90981f5`, `92b5176` | Baum `20261011-1`, drei Workflows, README „Betrieb“; verwaister Zweig `archive` |
 
 ## 8 Gates
 
 | Gate | Stand |
 | --- | --- |
 | A | entschieden (§5), Kriterien eingefroren (§3) |
+| GL-1 (Vertrag, Atlas, DACH-Lage) | grün: §6.1 (ohne Real-Device) |
 | B1, B2, C, D | offen |
 
 ## 9 Jans Schritte
@@ -256,4 +310,6 @@ Zugspitz-Ferner optional aus Paul 2020. **D-GL-3** GLAMOS gelb, CC BY 4.0 der DO
    und setzt die Repo-Variable `PRODUCER_REF=feat/gletscher`.
 2. RGI 7.0 (NSIDC-Login) laden, wenn die Brücke RGI 7 gewollt ist (aktuell RGI 6.2 für GloGEM).
 3. Edge-Bündel (`npm run edge:share`) und PR erst im Merge-Pfad (Plan §2).
+   Der lokale Stand ist fertig: `cd C:\dev\buscosun-glacier; git remote add origin https://github.com/jppetry/buscosun-glacier.git; git push -u origin main; git push origin archive`.
+   Die drei Workflows liegen schon unter `.github/workflows/` (sie enden grün, solange der Producer fehlt, und beginnen von selbst mit GL-2/GL-3).
 4. GLAMOS (office@glamos.ch) um eine Bestätigung bitten: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum.

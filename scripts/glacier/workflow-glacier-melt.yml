@@ -1,0 +1,112 @@
+# ============================================================================
+# glacier-melt.yml — Gletscher-Monitor DACH, Schmelzlinie (Phase GL, buscosun-web/audit/gletscher.md §GL-3)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-melt.yml` im Daten-Repo
+# `jppetry/buscosun-glacier`. Der Producer `scripts/glacier/melt.mjs` (Eis-/Schneeschmelze je 50-m-Band mit buscosun Fusion
+# an den Gletschern, Kalibrierung nur nach bestandenem Gate C) kommt mit GL-3; bis er auf `PRODUCER_REF` steht, endet der Job
+# grün mit „producer not on <ref> yet“.
+#
+# ── Ablauf (ab GL-3) ──────────────────────────────────────────────────────
+# Alle 3 h kurz nach den Cube-Läufen: `point/index.json` raw lesen; nur bei einem neuen Lauf der Stufen t2/t3 rechnen, höchstens
+# 4 × täglich (`repeatVerdict`). buscosun Fusion läuft in Node auf dem Cube (`public/climaGrid.json` MUSS im Sparse-Checkout
+# stehen; ohne sie bricht der Job ROT ab statt Nullwerte zu schreiben, Lehre V-SW-18). Veröffentlicht werden
+# `v1/melt/<lauf>.json` (Läufe der letzten 72 h) und `v1/melt/state/<datum>.json`; je Lauf geht eine kleine Reihe der
+# Leitgletscher auf den Zweig `archive` (nur Hinzufügen).
+# ============================================================================
+
+name: glacier-melt
+
+on:
+  schedule:
+    - cron: '20 2,5,8,11,14,17,20,23 * * *'   # 3-stündlich, nach den Cube-Läufen (t1 :40, t2 :30, t3 :55 der Vorstunde)
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  melt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PRODUCER_REF: ${{ vars.PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, PRODUCER_REF)
+        id: app
+        run: |
+          REF="${PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          # public/climaGrid.json: Klimatologie von buscosun Fusion — ohne sie rechnet der Motor keine Verteilungen (V-SW-18).
+          git sparse-checkout set --no-cone scripts src package.json public/climaGrid.json
+          git checkout --quiet
+          for f in scripts/glacier/melt.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-glacier main)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+
+      - name: Checkout cube (buscosun-data point/, sparse)
+        if: steps.app.outputs.ready == '1'
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
+          cd cube
+          git sparse-checkout set point
+          git checkout --quiet
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1'
+        run: |
+          if [ -f data/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — kein Schmelzlauf."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Melt run
+        id: melt
+        if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs --data=../data/v1 --cube=../cube --out=../out --archive-out=../archive-out | tee ../melt.log
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (v1/melt, index, status — never --force)
+        if: steps.melt.outputs.wrote != '' && steps.melt.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=melt --src=out \
+            --index-patch=out/.index-patch.json --status-patch=out/.status-patch.json \
+            --message="glacier(melt): $(date -u +%Y-%m-%dT%H:%MZ)"
+
+      - name: Archive (branch archive, add only)
+        if: steps.melt.outputs.wrote != '' && steps.melt.outputs.wrote != '0' && hashFiles('archive-out/**') != ''
+        run: |
+          node app/scripts/glacier/glacier-publish.mjs --archive --repo=data --src=archive-out --day="$(date -u +%Y-%m-%d)" \
+            --message="archive: $(date -u +%Y-%m-%dT%H:%MZ)"

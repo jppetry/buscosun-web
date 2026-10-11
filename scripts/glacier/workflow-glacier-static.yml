@@ -1,0 +1,92 @@
+# ============================================================================
+# glacier-static.yml — Gletscher-Monitor DACH, statische Linie (Phase GL, buscosun-web/audit/gletscher.md §GL-1)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-static.yml` im Daten-Repo
+# `jppetry/buscosun-glacier`. Der Code lebt in `buscosun-web` (`scripts/glacier/*`, Vertrag
+# `src/glacier/glacierContract.ts`) und wird bei jedem Lauf frisch von `PRODUCER_REF` geklont.
+#
+# ── Was dieser Workflow IST ───────────────────────────────────────────────
+# Die statische Linie (Inventare, Umrisse, Reihen, amtliche Zahlen) wird NICHT auf dem Runner gebaut: ihre Rohquellen
+# (SGI2016, AGI 5, GLAMOS-CSV, FoG, GloGEM, Copernicus-DEM-Kacheln) werden einmal von Hand geladen und gegen ihre
+# Lizenztexte gelesen (audit/gletscher/licences.md). Gebaut wird lokal (`scripts/glacier/py/build_static.py`), geprüft und
+# mit `glacier-publish.mjs` veröffentlicht. Dieser Workflow ist der WÄCHTER der Linie: er prüft bei jedem Push auf
+# `v1/static/**` und wöchentlich den ganzen Baum gegen den Vertrag (Flächenstempel, Länder-Summen ±2 %, Umriss-Stufen ±3 %,
+# amtliche Sätze, Zeiger) und wird rot, wenn etwas nicht stimmt. Kein Schreibzugriff auf die Daten.
+#
+# ── Leerlauf ───────────────────────────────────────────────────────────────
+# Fehlt der Producer auf `PRODUCER_REF`, meldet der Job „producer not on <ref> yet“ und endet grün. `PRODUCER_REF` ist
+# bis zum Merge der Gletscher-Linie `feat/gletscher`; danach setzt Jan die Repo-Variable `PRODUCER_REF=main`.
+# ============================================================================
+
+name: glacier-static
+
+on:
+  push:
+    paths:
+      - 'v1/static/**'
+      - 'v1/index.json'
+  schedule:
+    - cron: '17 5 * * 1'   # montags 05:17 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCER_REF: ${{ vars.PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, PRODUCER_REF)
+        id: app
+        run: |
+          REF="${PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/verify-glacier-static.mjs scripts/verify-glacier-contract.mjs src/glacier/glacierContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-glacier main)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+
+      - name: Pointer and kill switch
+        if: steps.app.outputs.ready == '1'
+        run: |
+          test -f data/v1/index.json || { echo "v1/index.json fehlt"; exit 1; }
+          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('data/v1/index.json','utf8')).static.build)")
+          test -d "data/v1/static/$BUILD" || { echo "index.json nennt den Build $BUILD, aber v1/static/$BUILD fehlt"; exit 1; }
+          echo "Build $BUILD"
+          if [ -f data/v1/status.json ]; then node -e "const s=JSON.parse(require('fs').readFileSync('data/v1/status.json','utf8')); console.log('Kill-Schalter:', s.killed===true ? 'AN — '+(s.killReason||'') : 'aus')"; fi
+
+      - name: Contract and tree checks
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-contract.mjs
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-static.mjs --dir=../data/v1

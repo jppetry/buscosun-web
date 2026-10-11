@@ -1,0 +1,23 @@
+{
+ "threshold": 12,
+ "desktop": {
+  "pct": 42.1,
+  "modules": {
+   "rail": 9.5,
+   "topbar": 10.7,
+   "dock": 24.6,
+   "map": 76.4,
+   "chart": 16.5,
+   "readout": 43.1
+  }
+ },
+ "mobile": {
+  "pct": 83.8,
+  "modules": {
+   "topbar": 23.1,
+   "map": 89,
+   "chips": 40.5,
+   "below": 95.1
+  }
+ }
+}

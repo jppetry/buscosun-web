@@ -1,0 +1,96 @@
+# ============================================================================
+# glacier-sat.yml — Gletscher-Monitor DACH, Satellitenlinie (Phase GL, buscosun-web/audit/gletscher.md §GL-2)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-sat.yml` im Daten-Repo
+# `jppetry/buscosun-glacier`. Der Producer `scripts/glacier/sat-scan.mjs` (Sentinel-2 L2A über Earth Search STAC, COG-
+# Bereichslesen mit `src/fire/detail/cogTiff.ts`, SCL-Maske zuerst) kommt mit GL-2; bis er auf `PRODUCER_REF` steht, endet
+# der Job grün mit „producer not on <ref> yet“, ohne etwas zu schreiben.
+#
+# ── Ablauf (ab GL-2) ──────────────────────────────────────────────────────
+# Zweimal täglich: neue Szenen der letzten 72 h je Kachel suchen, je Gletscher der Klasse A/B rechnen (Schneegrenze nur
+# Klasse A, AAR, Albedo), `v1/obs/<jahr>/<kachel>/<datum>.json` und `v1/season/<jahr>/<region>/<stand>.json` schreiben,
+# `index.json` (jüngste Szene je Kachel) frisch lesen und patchen — alles über `glacier-publish.mjs --line=sat`.
+# Ohne einzige klare Szene schreibt der Lauf nichts (kein Stand „heute“ ohne Szene).
+# ============================================================================
+
+name: glacier-sat
+
+on:
+  schedule:
+    - cron: '41 6,13 * * *'   # 06:41 und 13:41 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PRODUCER_REF: ${{ vars.PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, PRODUCER_REF)
+        id: app
+        run: |
+          REF="${PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/glacier/sat-scan.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-glacier main)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1'
+        run: |
+          if [ -f data/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — keine neuen Szenen."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scan scenes
+        id: scan
+        if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/sat-scan.mjs --data=../data/v1 --out=../out --cache=../cache | tee ../scan.log
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (v1/obs, v1/season, index, status — never --force)
+        if: steps.scan.outputs.wrote != '' && steps.scan.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=sat --src=out \
+            --index-patch=out/.index-patch.json --status-patch=out/.status-patch.json \
+            --message="glacier(sat): $(date -u +%Y-%m-%dT%H:%MZ)"
