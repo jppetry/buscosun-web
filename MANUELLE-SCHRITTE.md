@@ -2330,14 +2330,25 @@ Publish ersetzt in beiden Fassungen nichts im Daten-Repo.
 - V-BW-62: `verify:repack` schickt lokal echte Purges an jsDelivr, solange `REPACK_NO_PURGE=1` nicht gesetzt ist.
 - V-BW-63: Wächter für das Alter des jüngsten ICON-D2-Laufs (15z, 18z und 00z vom 10./11.10. fehlen im Daten-Repo).
 
-## 65. Seewetter — V-SW-20 („0,0 m“ an Watt-Spots) umgesetzt, V-SW-21 (Katalog ins Daten-Repo) vorbereitet, 2026-10-11
+## 65. Seewetter — V-SW-20 („0,0 m“ an Watt-Spots) umgesetzt, V-SW-21 (Katalog ins Daten-Repo) eingespielt, 2026-10-11
 
 Belege: `audit/seewetter.md` §15. Der Code von V-SW-20 liegt seit 11.10. 08:43 UTC auf `origin/main` (`1798fc5`, zusammen mit
-der Bandbreiten-Sitzung committet); lokal offen sind nur noch diese Doku und die Datei `scripts/lib/fixtures/sea/static/spot-geo.json`.
+der Bandbreiten-Sitzung committet); lokal offen sind nur noch Doku-Commits, die Datei `scripts/lib/fixtures/sea/static/spot-geo.json`
+und die angehobene Budget-Grenze (`budget.json`: totalJs 1 715 → 1 720, auf dein Wort vom 11.10.).
 
-### 65.1 Dein Schritt: zwei Dateien ins Daten-Repo (V-SW-21)
+### 65.1 Katalog im Daten-Repo (V-SW-21) — erledigt 11.10. 10:00 UTC, offen nur der Purge
 
-Der Push nach `buscosun-data` wurde in der Sitzung von der Berechtigungsprüfung abgelehnt — er bleibt bei dir. **Beide** Dateien
+**Erledigt** auf dein Wort („pushe ins Daten-Repo“): beide Dateien als EIN Commit in `buscosun-data` (`32db40c`), ohne Force,
+Prüfsummen am Commit gegengelesen. Die Schritte darunter bleiben als Beleg stehen, wie die Kopie gebaut ist.
+
+**Dein Schritt (freiwillig, beschleunigt nur):** Purge der zwei Pfade am CDN — sonst kommt der neue Katalog je Knoten binnen
+12 h an, in einem Browser mit altem Cache-Eintrag erst nach bis zu 7 Tagen (V-SW-28, gemessen):
+
+- `https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/sea/v1/static/spots.json`
+- `https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/sea/v1/static/spot-geo.json` (liest nur der Producer aus dem Klon —
+  der Purge ist hier ohne Wirkung auf die Seite, der Vollständigkeit halber)
+
+Ursprünglicher Text: Der erste Push-Versuch wurde in der Sitzung von der Berechtigungsprüfung abgelehnt. **Beide** Dateien
 in EINEM Commit (der Katalog verschiebt an 8 Spots die Wasserzelle, `spot-geo.json` trägt das Gelände dieser Zellen):
 
 1. `buscosun-web/scripts/lib/fixtures/sea/static/spots.json` → `buscosun-data/sea/v1/static/spots.json`
@@ -2347,9 +2358,6 @@ in EINEM Commit (der Katalog verschiebt an 8 Spots die Wasserzelle, `spot-geo.js
 3. Commit, Push ohne Force. `areas.json` und `mask-cwam.hash` bleiben. Die Prüfsummen gelten für den Inhalt mit LF-Zeilenende
    (`git show HEAD:<pfad> | sha256sum`); ein angehängtes CR aus einem Windows-Checkout stört das JSON nicht. Im Klon vorher `git config core.autocrlf false`, sonst
    hängt Git beim Auschecken ein CR an die einzeiligen JSON-Dateien.
-
-Oder ein Wort an Claude („pushe den Katalog“) samt Freigabe im Berechtigungsdialog — der fertige Klon mit beiden Dateien liegt
-für diese Sitzung bereit.
 
 **Wirkung:** die Seite zeigt ab dem nächsten Aufruf die 12 gezogenen Lagen und Ufernormalen; die Wind-Auffrischung rechnet ab
 dem nächsten neuen t1-Würfel an den neuen Zellen; die Wellenreihen folgen mit dem nächsten CWAM-Lauf (gegen 04:25 / 16:25 UTC) —
@@ -2369,4 +2377,5 @@ eine Zelle, die bei Hochwasser nass ist (25–46 % statt 86–92 % der Stunden o
   fehlt“ und trägt kein Fenster. Am Lauf vom 07.10. waren vorher 1 142 solche Stunden×Profile „passt“ oder „knapp“. Rückfall je
   Aufruf: `?seadry=0`. Wenn dir „keine Daten“ dafür zu schwach oder zu stark ist (Alternative: „außerhalb“), sag es — eine Zeile.
 - Offen: V-SW-22 (echte 1–4 cm stehen weiter als „0,0 m“), V-SW-23 (Kartenfeld malt trockene Zellen wie 0 m), V-SW-25 (Ostsee:
-  Ursache des Zustands nicht belegt), V-SW-27 (totalJs genau an der Grenze 1 715).
+  Ursache des Zustands nicht belegt), V-SW-28 (Katalog unter festem `@main`-Pfad: Browser-Cache 7 Tage — Katalog am Commit
+  lesen). V-SW-27 erledigt (totalJs-Grenze 1 720).

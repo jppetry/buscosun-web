@@ -730,7 +730,7 @@ Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewe
 | V-SW-18 | ~~**Kein Wind an den Spots** bis zur Workflow-Kopie; damit auch keine Fenster und tagsüber „keine Daten“~~ **behoben in Produktion seit 10.10. 23:19 UTC (56/56 Spots, §14.5 Nachtrag)** | §14.1 | erledigt |
 | V-SW-19 | Gate D (Wind am Spot gegen die Küstenmessung) hat noch keinen einzigen Tag | Archiv 07.–10.10. ohne Wind | 14 Tage ab dem 10.10. 23:19 UTC ⇒ frühestens 24.10. |
 | V-SW-20 | **umgesetzt 11.10. (§15), live mit `1798fc5`.** ~~Watt-Spots zeigen „0,0 m“ ohne Erklärung:~~ im Lauf 2026101012 trägt die Welle an 17 von 56 Spots Stunden mit Hs = 0; Schillig 74 von 79 h, Cuxhaven-Duhnen 72, Dangast 67, Langeoog 36, Spiekeroog 33, Norddeich 33, **St. Peter-Ording (Voreinstellung) 32**, Pellworm 32, Amrum 31. Den Hinweis „Watt: … bei Niedrigwasser …“ tragen nur 7 Spots (`tidal`); Schillig, Langeoog, Spiekeroog, St. Peter-Ording, Amrum, Borkum nicht | `spots/2026101012.json`, Katalog | `tidal` aus den Daten ableiten (Anteil trockener Stunden) statt von Hand; Anzeige „trockengefallen (Modell)“ statt „0,0 m“; drei Spots mit > 80 % trockener Stunden auf eine nasse Zelle ziehen |
-| V-SW-21 | Der Katalog im Daten-Repo ist noch der alte: 12 Lagen aus E-SW-31 (b) und die drei nassen Zellen aus V-SW-20 liegen nicht live. **Vorbereitet 11.10. (§15.4/§15.5): zwei Dateien, nicht eine — `spots.json` UND `spot-geo.json`** | `sea/v1/static/spots.json` live gegen den Katalog im Repo: 12 Lagen und 8 Zellen verschieden | MANUELLE-SCHRITTE §65 (Jans Schritt; Push in dieser Sitzung abgelehnt) |
+| V-SW-21 | Der Katalog im Daten-Repo ist noch der alte: 12 Lagen aus E-SW-31 (b) und die drei nassen Zellen aus V-SW-20 liegen nicht live. **Vorbereitet 11.10. (§15.4/§15.5): zwei Dateien, nicht eine — `spots.json` UND `spot-geo.json`** | `sea/v1/static/spots.json` live gegen den Katalog im Repo: 12 Lagen und 8 Zellen verschieden | **eingespielt 11.10. 10:00 UTC (Daten-Repo `32db40c`, §15.5)** auf Jans Wort „pushe ins Daten-Repo“ |
 | V-SW-7 | Vorhersage endet nach 78 h (CWAM); kein Ausblick fürs Wochenende | — | GWAM bis 174 h (SW-8) |
 | V-SW-6 | Wind nur als Zahl am Spot, kein Flächenbild | — | ICON-Partikel, gekennzeichnet |
 | — | Kein Wasserstand / keine Gezeit (BSH-Vorhersage gesperrt), Wassertemperatur nur als amtlicher Mittelfrist-Satz je Meer | Reiter Quellen | Quelle offen |
@@ -843,12 +843,23 @@ Neu gebaut mit `build-spots.mjs --out --geo`: 112 Einträge, 0 unvollständig; a
 Live-Stand (Unterschied nur der Feldname `elevationRead` → `elevationReadM` und die Kachel-Buchhaltung). Probe durch die
 Wind-Kette des Producers (Cube über das CDN, 11.10. 08:43 UTC): 56 von 56 Spots mit Wind, 3 976 Werte, 0 ohne Geländeeintrag.
 
-### 15.5 Stand V-SW-21: vorbereitet, nicht eingespielt
+### 15.5 Stand V-SW-21: eingespielt 11.10. 10:00 UTC (Daten-Repo `32db40c`)
 
 Beide Dateien liegen im Repo: `scripts/lib/fixtures/sea/static/spots.json` (sha256 `32446b5d153c…`) und
-`scripts/lib/fixtures/sea/static/spot-geo.json` (sha256 `471b44d4969f…`). Der Push nach `buscosun-data` wurde in dieser Sitzung
-von der Berechtigungsprüfung abgelehnt und bleibt Jans Schritt (MANUELLE-SCHRITTE §65). Bis dahin: neue Seite mit altem Katalog —
-die 12 Lagen und die drei nassen Zellen fehlen live, alles andere aus §15.2 wirkt.
+`scripts/lib/fixtures/sea/static/spot-geo.json` (sha256 `471b44d4969f…`). Der erste Push-Versuch wurde von der
+Berechtigungsprüfung der Sitzung abgelehnt; auf Jans Wort („pushe ins Daten-Repo“, 11.10.) ging die Kopie als EIN Commit nach
+`buscosun-data` (`32db40c`, frischer Sparse-Klon mit `core.autocrlf false`, auf `origin/main` aufgesetzt, ohne Force; zwischen
+Klon und Push hatte niemand `sea/v1/static/` berührt). Beleg: beide Dateien am Commit über `raw.githubusercontent.com` gelesen,
+Prüfsummen gleich den Fixtures. Rückweg: `git revert 32db40c` im Daten-Repo.
+
+**Ankunft beim Client (gemessen 11.10. 10:04 UTC, V-SW-28):** der Client liest den Katalog über
+`cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/sea/v1/static/spots.json` ohne Versionsangabe. Die Antwort trägt
+`Cache-Control: public, max-age=604800, s-maxage=43200`. Ein Abruf per `curl` traf einen Knoten ohne Eintrag (`X-Cache: MISS`)
+und bekam den neuen Katalog; der Browser auf `buscosun.com/seewetter/schillig` bekam zur selben Minute noch den alten
+(Schillig 133/328, `from` ohne `dry`). Der neue Katalog erreicht die Knoten also binnen 12 h von selbst, einen Browser, der
+den alten schon im Cache hat, erst nach bis zu 7 Tagen — oder sofort nach einem Purge (Jans Gate, MANUELLE-SCHRITTE §65.1).
+Die Seite bleibt in der Zwischenzeit in sich stimmig: Reihen hängen an der Spot-Kennung, nicht an der Zelle; falsch sind bis
+dahin nur Lage, Ufernormale und die Kilometerangabe der 8 Spots mit neuer Zelle.
 
 ### 15.6 Offene Punkte
 
@@ -859,4 +870,5 @@ die 12 Lagen und die drei nassen Zellen fehlen live, alles andere aus §15.2 wir
 | V-SW-24 | Der Satz der Einordnung nennt den Uferwinkel doppelt („Wind schräg ablandig · Wind schräg ablandig“, Bestand) | Anhang nur, wenn kein Grund ihn schon nennt |
 | V-SW-25 | Ostsee: Ursache des Zustands nicht belegt (Wasserstand vermutet) | CWAM-Dokumentation/DWD fragen; BSH-Wasserstand bleibt gesperrt |
 | V-SW-26 | Die Trockenkarte ist EIN Lauf bei Springtide; bei Nipptide fallen die 35-%-Zellen seltener trocken | zweiter Lauf um den 18.10. (Halbmond), Karte als Mittel |
-| V-SW-27 | totalJs steht nach diesem Abschnitt genau an der Grenze (1 715 / 1 715) | nächste Änderung hebt die Grenze mit Notiz |
+| V-SW-28 | **Katalog und Seegebiete sind veränderliche Dateien unter festem `@main`-Pfad:** jsDelivr hält sie am Knoten 12 h, der Browser 7 Tage (`max-age=604800`, gemessen 11.10.). Eine Katalogänderung kommt deshalb gestaffelt an; wer die Seite kennt, sieht sie ohne Purge bis zu einer Woche nicht (dieselbe Klasse wie V-FI-6) | Katalog am Commit lesen: `status.json` (wird ohnehin über raw ohne Cache gelesen) nennt den Commit oder eine Katalog-Version, der Client hängt sie an (`@<commit>` bzw. `?v=`); bis dahin Purge nach jeder Katalogänderung |
+| V-SW-27 | **erledigt 11.10.:** totalJs stand nach diesem Abschnitt genau an der Grenze (1 715 / 1 715) — Grenze auf Jans Wort auf **1 720** angehoben (`budget.json`, Notiz vom 11.10.; IST 1 715,0 am Bau von `0b8021b`) | — |
