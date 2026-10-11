@@ -25,6 +25,23 @@
  * Räumzeitpunkt; die Räumverzögerung ist nur Effizienz. Die Daten sind
  * vollständig aus DWD-Rohdaten reproduzierbar, es geht nichts verloren.
  *
+ * ── Warum der Push eine Bedingung trägt (V-BW-58, 2026-10-11) ──────────────
+ * `main` gehört nicht dem Repack allein: Radar, obs, road, sea, point und precipsum
+ * legen im selben Repo ab (2026-10-10: 200 Commits in 172 min, Median 43 s). Der
+ * frühere Publish baute den Baum in einem NEU angelegten Repo und pushte einmal mit
+ * `--force`. Das hatte zwei Folgen, beide nachgestellt in `verify:repack-publish`:
+ *   1. git kannte kein einziges Objekt des Remotes und lud den GANZEN Bestand hoch
+ *      (gemessen am echten Baum: 595 MiB statt 14). Bewegte sich `main` in dieser
+ *      Zeit, wies GitHub den Push ab — seit dem obs-Dauerlauf (07.10.) in zwei von
+ *      drei Läufen; ganze ICON-D2-Läufe fehlten der Karte.
+ *   2. Gelang der Push, war alles weg, was andere zwischen Klon und Push abgelegt
+ *      hatten.
+ * Jetzt entstehen die zwei Commits IM Klon (`commit-tree`, Wurzel ohne Eltern — die
+ * Historie wird weiter ersetzt), der Push überträgt nur das Neue und gilt nur, wenn
+ * `main` noch der Stand ist, auf dem der Baum steht (`--force-with-lease`). Sonst:
+ * neuen Stand holen, Baum darauf neu bauen, wieder versuchen (`REPACK_PUSH_ATTEMPTS`,
+ * Default 8). Der abgelegte Baum ist Byte für Byte derselbe wie zuvor.
+ *
  * ── Warum zwei Commits ─────────────────────────────────────────────────────
  * `index.json` muss den SHA nennen, unter dem die Bilder liegen — den es vor dem
  * Commit nicht gibt. Also: Commit 1 = Bilder (sein SHA wandert ins Manifest),
@@ -42,6 +59,7 @@
  *   REPACK_REPO   Ziel-Remote. Default https://github.com/jppetry/buscosun-data.git
  *   REPACK_WORK   Arbeitsverzeichnis. Default `.cache/repack-repo`.
  *   REPACK_KEEP   Wie viele Läufe im Repo bleiben. Default 4 (= 12 h).
+ *   REPACK_PUSH_ATTEMPTS  Wie oft neu aufgesetzt wird, wenn `main` sich bewegt hat. Default 8.
  *
  *   node scripts/publish-repack.mjs          # Probelauf: baut den Baum, pusht NICHT
  *   node scripts/publish-repack.mjs --push   # legt ab
@@ -63,9 +81,18 @@ const KEEP = Number(process.env.REPACK_KEEP ?? 4);
 const TEMPLATE = resolve('scripts/repack-repo');
 const PUSH = process.argv.includes('--push');
 
+// V-BW-58: wie oft der Publish neu aufsetzt, wenn `main` sich unter ihm bewegt hat.
+const ATTEMPTS = Math.max(1, Number(process.env.REPACK_PUSH_ATTEMPTS ?? 8) || 1);
+
 const log = (...a) => console.log('[publish]', ...a);
 const git = (args, opts = {}) =>
   execFileSync('git', args, { cwd: WORK, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts }).trim();
+/** Die eine Zeile, die sagt, warum git abgelehnt hat — ohne Zugangsdaten aus der Remote-URL. */
+const gitReason = (e) => {
+  const lines = String(e.stderr || e.message).split('\n').map((l) => l.trim()).filter(Boolean);
+  const hit = lines.find((l) => /rejected|^fatal:|^error:/.test(l)) ?? lines[0] ?? 'unbekannt';
+  return hit.replace(/\/\/[^@/\s]+@/g, '//***@');
+};
 
 /** Vorhandene Lauf-Verzeichnisse eines Baums (neueste zuerst). */
 export function runsIn(root) {
@@ -141,8 +168,12 @@ async function main() {
   rmSync(WORK, { recursive: true, force: true });
   mkdirSync(WORK, { recursive: true });
 
+  // `base` = der Stand von `main`, auf dem der Baum eines Versuchs steht (null = erster Publish).
+  let base = null;
   if (!heads) {
     log('Remote führt keine Zweige → erster Publish.');
+    git(['init', '--quiet', '--initial-branch=main']);
+    git(['remote', 'add', 'origin', REPO]);
   } else {
     let cloned = false, lastErr = '';
     for (let i = 1; i <= 2 && !cloned; i++) {
@@ -162,108 +193,147 @@ async function main() {
         + 'löschen. Der nächste Lauf heilt.');
       return 1;
     }
+    base = git(['rev-parse', 'HEAD']);
     log(`Bestand geklont (${(dirBytes(WORK) / 1048576).toFixed(1)} MiB, Läufe [${runsIn(WORK).join(', ')}])`);
   }
-
-  // ── 2. Frische Läufe drüberlegen + lauf-unabhängige Dateien.
-  mkdirSync(join(WORK, RUNS_DIR), { recursive: true });
-  for (const run of fresh) {
-    cpSync(join(OUT_DIR, RUNS_DIR, run), join(WORK, RUNS_DIR, run), { recursive: true });
-  }
-  const hsurfSrc = join(OUT_DIR, HSURF_FILE);
-  if (existsSync(hsurfSrc)) cpSync(hsurfSrc, join(WORK, HSURF_FILE));
-
-  // ── 3. Retention.
-  const { kept, dropped } = prune(WORK, KEEP);
-  if (dropped.length) log(`Retention: [${dropped.join(', ')}] entfernt, [${kept.join(', ')}] bleiben.`);
-
-  // ── 4. Begleitdateien (Lizenz/Attribution ist Pflicht, nicht Kür) + der
-  //       Producer-Workflow des Daten-Repos. Beide werden in `buscosun-web`
-  //       gepflegt (`scripts/repack-repo/`) und hier nur ausgelegt — damit sie
-  //       reviewbar bleiben, ohne in `buscosun-web/.github/workflows/` zu
-  //       landen (STOPP-&-FRAGEN-Zone).
-  if (existsSync(TEMPLATE)) {
-    cpSync(join(TEMPLATE, 'README.md'), join(WORK, 'README.md'));
-    const wfPath = join(WORK, '.github', 'workflows', 'build.yml');
-    // ⚠️ Der `GITHUB_TOKEN` einer Action darf Workflow-Dateien NICHT anlegen
-    // oder ändern („refusing to allow a GitHub App to create or update workflow
-    // file … without `workflows` permission"). Ein Publish aus der Action, der
-    // `build.yml` verändert, wird also ABGEWIESEN — und zwar der ganze Push,
-    // samt aller Bilder. Deshalb: in der Action wird die Datei nie verändert,
-    // sondern die aus dem Klon behalten; die Abweichung wird laut gemeldet,
-    // damit der Mensch sie selbst pusht (ein Nutzer-Token darf es).
-    const seeded = existsSync(wfPath) ? readFileSync(wfPath) : null;
-    mkdirSync(join(WORK, '.github', 'workflows'), { recursive: true });
-    cpSync(join(TEMPLATE, 'workflow-build.yml'), wfPath);
-    if (process.env.GITHUB_ACTIONS === 'true' && seeded && !seeded.equals(readFileSync(wfPath))) {
-      writeFileSync(wfPath, seeded);
-      log('⚠ workflow-build.yml weicht vom abgelegten Stand ab. In der Action kann sie nicht '
-        + 'gepusht werden (Token darf keine Workflow-Dateien ändern) → alter Stand behalten. '
-        + 'Bitte von Hand nach buscosun-data pushen.');
-    }
-    if (process.env.GITHUB_ACTIONS === 'true' && !seeded) {
-      // Erstlauf aus der Action: die Datei anzulegen würde den Push abweisen.
-      rmSync(join(WORK, '.github'), { recursive: true, force: true });
-      log('⚠ Kein Workflow im Bestand — in der Action wird keiner angelegt (Token-Grenze). '
-        + 'Erstablage bitte lokal mit `npm run repack:publish -- --push`.');
-    }
-  }
-
-  // ── 5. Commit 1: die Bilder. Sein SHA ist der, den das Manifest nennt.
-  // Frische Historie: der Bestand wird als NEUER Wurzel-Commit abgelegt, nicht
-  // an den geklonten angehängt. Sonst wüchse die Historie um 5,35 MiB je Lauf,
-  // für immer — genau das, was die Tag-Retention des Plans NICHT verhindert.
-  rmSync(join(WORK, '.git'), { recursive: true, force: true });
-  git(['init', '--quiet', '--initial-branch=main']);
   git(['config', 'user.name', 'buscosun-repack[bot]']);
   git(['config', 'user.email', 'repack@users.noreply.github.com']);
-  git(['add', '-A']);
-  git(['commit', '--quiet', '-m', `data: ICON-D2 repack ${kept[0]} (${kept.length} Läufe)`]);
-  const dataSha = git(['rev-parse', 'HEAD']);
 
-  // ── 6. Commit 2: der Index, der auf Commit 1 zeigt.
-  const index = {
-    schema: SCHEMA,
-    commit: dataSha,
-    base: CDN_BASE,
-    hsurf: existsSync(join(WORK, HSURF_FILE)) ? HSURF_FILE : null,
-    publishedAt: new Date().toISOString(),
-    source: 'Deutscher Wetterdienst, ICON-D2 (opendata.dwd.de), CC BY 4.0',
-    producer: 'buscosun-web/scripts/repack-icon-d2.mjs',
-    keep: KEEP,
-    runs: kept.map((run) => indexEntry(JSON.parse(readFileSync(join(WORK, RUNS_DIR, run, 'repack.json'), 'utf8')))),
-  };
-  writeFileSync(join(WORK, 'index.json'), JSON.stringify(index, null, 2) + '\n');
-  // BW-9: je Lauf ein ZEIGER `runs/<run>/index.json` = Commit + der Index-Eintrag
-  // dieses Laufs. Für einen neuen Lauf ist das ein Pfad, den jsDelivr nie gesehen
-  // hat — und den holt es frisch (§28.4), während `@main/index.json` am Origin
-  // Minuten alt sein kann (§28.9). Der Client kennt den Lauf aus dem Manifest
-  // und damit den Pfad. Für ältere Läufe ändert sich der Zeiger mit jedem
-  // Force-Push (neuer Daten-SHA) — ein gecachter alter Zeiger nennt dann einen
-  // älteren Commit, dessen Objekte bis zur Räumung liegen (BW-2-Regel: 404 ⇒ GRIB).
-  for (const entry of index.runs) {
-    writeFileSync(join(WORK, RUNS_DIR, entry.run, RUN_POINTER_FILE),
-      JSON.stringify({ schema: SCHEMA, commit: dataSha, base: CDN_BASE, publishedAt: index.publishedAt, runs: [entry] }, null, 2) + '\n');
+  // ── 2.–6. je Versuch: auf den AKTUELLEN Stand von `main` setzen, den Baum bauen, ablegen.
+  //
+  // V-BW-58: `main` bewegt sich ständig (Radar, obs, road, sea, point — am 2026-10-10 im Median
+  // alle 43 s ein Push). Der Push gelingt deshalb nur, wenn `main` noch genau der Stand ist, auf
+  // dem der Baum steht (`--force-with-lease` auf `base`); sonst wird neu aufgesetzt. So geht kein
+  // fremder Commit verloren, und ein dazwischengekommener Push kostet einen Versuch statt den Lauf.
+  let dataSha = '', headSha = '', index = null, kept = [], pushed = false;
+  for (let attempt = 1; attempt <= ATTEMPTS && !pushed; attempt++) {
+    if (base !== null) {
+      let tip;
+      try {
+        git(['fetch', '--quiet', '--depth=1', 'origin', 'main']);
+        tip = git(['rev-parse', 'FETCH_HEAD']);
+      } catch (e) {
+        log(`Versuch ${attempt}/${ATTEMPTS}: Stand von main nicht lesbar (${gitReason(e)})`);
+        continue;
+      }
+      if (tip !== base || attempt > 1) {
+        // Arbeitsbaum = exakt der neue Stand, wie nach einem frischen Klon (auch die eigenen
+        // Auflagen des letzten Versuchs fliegen raus und werden unten neu aufgelegt).
+        git(['reset', '--quiet', '--hard', tip]);
+        git(['clean', '-fdxq']);
+        if (tip !== base) log(`main hat sich bewegt (${base.slice(0, 7)} → ${tip.slice(0, 7)}) — Baum auf den neuen Stand gesetzt`);
+        base = tip;
+      }
+    }
+
+    // ── 2. Frische Läufe drüberlegen + lauf-unabhängige Dateien.
+    mkdirSync(join(WORK, RUNS_DIR), { recursive: true });
+    for (const run of fresh) {
+      cpSync(join(OUT_DIR, RUNS_DIR, run), join(WORK, RUNS_DIR, run), { recursive: true });
+    }
+    const hsurfSrc = join(OUT_DIR, HSURF_FILE);
+    if (existsSync(hsurfSrc)) cpSync(hsurfSrc, join(WORK, HSURF_FILE));
+
+    // ── 3. Retention.
+    const pruned = prune(WORK, KEEP);
+    kept = pruned.kept;
+    if (pruned.dropped.length) log(`Retention: [${pruned.dropped.join(', ')}] entfernt, [${kept.join(', ')}] bleiben.`);
+
+    // ── 4. Begleitdateien (Lizenz/Attribution ist Pflicht, nicht Kür) + der
+    //       Producer-Workflow des Daten-Repos. Beide werden in `buscosun-web`
+    //       gepflegt (`scripts/repack-repo/`) und hier nur ausgelegt — damit sie
+    //       reviewbar bleiben, ohne in `buscosun-web/.github/workflows/` zu
+    //       landen (STOPP-&-FRAGEN-Zone).
+    if (existsSync(TEMPLATE)) {
+      cpSync(join(TEMPLATE, 'README.md'), join(WORK, 'README.md'));
+      const wfPath = join(WORK, '.github', 'workflows', 'build.yml');
+      // ⚠️ Der `GITHUB_TOKEN` einer Action darf Workflow-Dateien NICHT anlegen
+      // oder ändern („refusing to allow a GitHub App to create or update workflow
+      // file … without `workflows` permission"). Ein Publish aus der Action, der
+      // `build.yml` verändert, wird also ABGEWIESEN — und zwar der ganze Push,
+      // samt aller Bilder. Deshalb: in der Action wird die Datei nie verändert,
+      // sondern die aus dem Klon behalten; die Abweichung wird laut gemeldet,
+      // damit der Mensch sie selbst pusht (ein Nutzer-Token darf es).
+      const seeded = existsSync(wfPath) ? readFileSync(wfPath) : null;
+      mkdirSync(join(WORK, '.github', 'workflows'), { recursive: true });
+      cpSync(join(TEMPLATE, 'workflow-build.yml'), wfPath);
+      if (process.env.GITHUB_ACTIONS === 'true' && seeded && !seeded.equals(readFileSync(wfPath))) {
+        writeFileSync(wfPath, seeded);
+        log('⚠ workflow-build.yml weicht vom abgelegten Stand ab. In der Action kann sie nicht '
+          + 'gepusht werden (Token darf keine Workflow-Dateien ändern) → alter Stand behalten. '
+          + 'Bitte von Hand nach buscosun-data pushen.');
+      }
+      if (process.env.GITHUB_ACTIONS === 'true' && !seeded) {
+        // Erstlauf aus der Action: die Datei anzulegen würde den Push abweisen.
+        rmSync(join(WORK, '.github'), { recursive: true, force: true });
+        log('⚠ Kein Workflow im Bestand — in der Action wird keiner angelegt (Token-Grenze). '
+          + 'Erstablage bitte lokal mit `npm run repack:publish -- --push`.');
+      }
+    }
+
+    // ── 5. Commit 1: die Bilder. Sein SHA ist der, den das Manifest nennt.
+    // Frische Historie: der Bestand wird als NEUER Wurzel-Commit abgelegt, nicht
+    // an den geklonten angehängt. Sonst wüchse die Historie um 5,35 MiB je Lauf,
+    // für immer — genau das, was die Tag-Retention des Plans NICHT verhindert.
+    // Der Wurzel-Commit entsteht IM Klon (`commit-tree` ohne Eltern) statt in einem
+    // neu angelegten Repo: so kennt git die Objekte, die das Remote schon hat, und
+    // der Push überträgt nur den neuen Lauf statt des ganzen Baums (V-BW-58).
+    git(['add', '-A']);
+    dataSha = git(['commit-tree', git(['write-tree']), '-m', `data: ICON-D2 repack ${kept[0]} (${kept.length} Läufe)`]);
+
+    // ── 6. Commit 2: der Index, der auf Commit 1 zeigt.
+    index = {
+      schema: SCHEMA,
+      commit: dataSha,
+      base: CDN_BASE,
+      hsurf: existsSync(join(WORK, HSURF_FILE)) ? HSURF_FILE : null,
+      publishedAt: new Date().toISOString(),
+      source: 'Deutscher Wetterdienst, ICON-D2 (opendata.dwd.de), CC BY 4.0',
+      producer: 'buscosun-web/scripts/repack-icon-d2.mjs',
+      keep: KEEP,
+      runs: kept.map((run) => indexEntry(JSON.parse(readFileSync(join(WORK, RUNS_DIR, run, 'repack.json'), 'utf8')))),
+    };
+    writeFileSync(join(WORK, 'index.json'), JSON.stringify(index, null, 2) + '\n');
+    // BW-9: je Lauf ein ZEIGER `runs/<run>/index.json` = Commit + der Index-Eintrag
+    // dieses Laufs. Für einen neuen Lauf ist das ein Pfad, den jsDelivr nie gesehen
+    // hat — und den holt es frisch (§28.4), während `@main/index.json` am Origin
+    // Minuten alt sein kann (§28.9). Der Client kennt den Lauf aus dem Manifest
+    // und damit den Pfad. Für ältere Läufe ändert sich der Zeiger mit jedem
+    // Force-Push (neuer Daten-SHA) — ein gecachter alter Zeiger nennt dann einen
+    // älteren Commit, dessen Objekte bis zur Räumung liegen (BW-2-Regel: 404 ⇒ GRIB).
+    for (const entry of index.runs) {
+      writeFileSync(join(WORK, RUNS_DIR, entry.run, RUN_POINTER_FILE),
+        JSON.stringify({ schema: SCHEMA, commit: dataSha, base: CDN_BASE, publishedAt: index.publishedAt, runs: [entry] }, null, 2) + '\n');
+    }
+    git(['add', '-A']);
+    headSha = git(['commit-tree', git(['write-tree']), '-p', dataSha, '-m', `index: ${kept[0]} → ${dataSha.slice(0, 7)}`]);
+
+    const bytes = dirBytes(WORK);
+    log(`Baum fertig: ${kept.length} Läufe, ${(bytes / 1048576).toFixed(2)} MiB`);
+    log(`  Daten-Commit ${dataSha}  ← dieser SHA steht im Manifest`);
+    log(`  Index-Commit ${headSha}`);
+
+    if (!PUSH) {
+      log('PROBELAUF — nicht gepusht. Mit `--push` ablegen.');
+      log(`Prüfen: ${CDN_BASE}@${dataSha}/${RUNS_DIR}/${kept[0]}/wind-000.png`);
+      return 0;
+    }
+
+    // Die Historie wird bei jedem Publish ersetzt (s. Kopfkommentar) — aber nur, wenn `main`
+    // noch der Stand ist, auf dem dieser Baum steht. Leerer Erwartungswert = „gibt es noch nicht".
+    try {
+      git(['push', '--quiet', `--force-with-lease=refs/heads/main:${base ?? ''}`, 'origin', `${headSha}:refs/heads/main`]);
+      pushed = true;
+      log(`Abgelegt → ${REPO} (main = ${headSha.slice(0, 7)}, Versuch ${attempt}/${ATTEMPTS})`);
+    } catch (e) {
+      log(`Versuch ${attempt}/${ATTEMPTS} abgelehnt (${gitReason(e)})${base !== null && attempt < ATTEMPTS ? ' — neu aufsetzen auf den aktuellen Stand' : ''}`);
+      if (base === null) break;   // erster Publish: kein Bestand, auf den neu aufgesetzt werden könnte
+    }
   }
-  git(['add', '-A']);
-  git(['commit', '--quiet', '-m', `index: ${kept[0]} → ${dataSha.slice(0, 7)}`]);
-  const headSha = git(['rev-parse', 'HEAD']);
-
-  const bytes = dirBytes(WORK);
-  log(`Baum fertig: ${kept.length} Läufe, ${(bytes / 1048576).toFixed(2)} MiB`);
-  log(`  Daten-Commit ${dataSha}  ← dieser SHA steht im Manifest`);
-  log(`  Index-Commit ${headSha}`);
-
-  if (!PUSH) {
-    log('PROBELAUF — nicht gepusht. Mit `--push` ablegen.');
-    log(`Prüfen: ${CDN_BASE}@${dataSha}/${RUNS_DIR}/${kept[0]}/wind-000.png`);
-    return 0;
+  if (!pushed) {
+    console.error(`[publish] Nicht abgelegt nach ${ATTEMPTS} Versuch(en) — im Remote ist nichts ersetzt. Der nächste Lauf heilt.`);
+    return 1;
   }
-
-  git(['remote', 'add', 'origin', REPO]);
-  // Force: die Historie wird bei jedem Publish ersetzt (s. Kopfkommentar).
-  git(['push', '--quiet', '--force', 'origin', 'HEAD:main']);
-  log(`Abgelegt → ${REPO} (main = ${headSha.slice(0, 7)})`);
 
   // ── 7. BW-9: den CDN-Index frisch machen, damit der Browser den Lauf JETZT
   //    sieht — nicht erst nach Warm-Cron-Slot und Netlify-Build (§28.4/§28.5 S1).

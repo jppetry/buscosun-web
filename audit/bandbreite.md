@@ -4746,3 +4746,104 @@ Neue bzw. umgestellte Zusicherungen in `verify:repack`:
   Namen suchen: der Kommentar, der das Entfernen erklärt, enthält ihn
   zwangsläufig. Erst Kommentare entfernen, dann Bezeichner und Importe prüfen —
   und den Entferner selbst mit einer Negativ-Kontrolle absichern.
+
+
+# 33 BW-14 — Der Publish verliert das Rennen um `main` (V-BW-58 behoben, 2026-10-11)
+
+> **Auslöser (Jan, 10.10. abends):** fortlaufend Mails „build: All jobs have failed“ aus
+> `buscosun-data`. **Auftrag (11.10.):** reparieren, ohne dass sich an den Daten etwas ändert.
+
+## 33.1 Diagnose
+
+Der Job `build` scheitert immer im Schritt „Publish“ (Schritte 1–7 grün). Gemessen an der
+öffentlichen Actions-API (771 Läufe seit 23.08.):
+
+| Zeitraum | Fehlschläge je Tag |
+|---|---|
+| 25.08.–07.10. | 0–5 von 16 (meist 0–2) |
+| 08.10. | 12 von 16 |
+| 09.10. | 11 von 16 |
+| 10.10. | 6 von 14 (bis 20:35 UTC) |
+
+**Was sich am 08.10. geändert hat:** der Dauerlauf `obs.yml` startete am 07.10. um 22:13 UTC; der
+erste Fehlschlag der Serie ist der erste Publish danach (08.10. 01:10 UTC). Am 10.10. lagen in
+172 min 200 Commits auf `main` (radar 116, obs 55, road 11, point 7, road-fc 5, sea 3,
+precipsum 3) — Abstand zwischen zwei Pushes p10 8 s, Median 43 s, p90 115 s.
+
+**Mechanik.** `publish-repack.mjs` klonte flach, warf `.git` weg, legte in einem NEUEN Repo zwei
+Commits an und pushte einmal mit `--force`. Ein neu angelegtes Repo kennt kein Objekt des Remotes,
+also lud git den ganzen Bestand hoch — am echten Baum gemessen **595,4 MiB**. Bewegt sich `main`
+zwischen dem Lesen der Refs und dem Ende des Uploads, weist der Server die Ref-Änderung ab.
+Nachgestellt am lokalen Remote (ein zweiter Pusher, per `pre-push`-Hook genau in dieses Fenster
+gesetzt): `! [remote rejected] HEAD -> main (failed to update ref)`, exit 1. Am letzten
+Fehlschlag (Lauf 38084362758): „Publish“ 20:37:23–20:39:09 UTC, Radar-Commit `19ea69f2` um
+20:38:46 UTC.
+
+**Zweiter Fehler, bis dahin unbemerkt:** gelang der Push, verwarf er still jeden Commit, den ein
+anderer Workflow zwischen Klon und Push abgelegt hatte (nachgestellt per `post-checkout`-Hook).
+Die Spiegel heilen das im nächsten Slot, aber es war ein Datenverlust auf Zeit.
+
+**Folge für die Karte:** am 11.10. 08:13 UTC führte das Daten-Repo die Läufe 2026101012, …21,
+2026101103, …06 — 15z, 18z und 00z sind nie abgelegt worden.
+
+Nicht belegt: der Wortlaut im Log des Produktionslaufs (Job-Logs brauchen eine Anmeldung).
+
+## 33.2 Umsetzung (nur `scripts/publish-repack.mjs`)
+
+* Die zwei Commits entstehen **im Klon** (`git add -A` → `write-tree` → `commit-tree`; der
+  Daten-Commit bleibt eine Wurzel ohne Eltern, die Historie wird also weiter ersetzt). git kennt
+  damit die Objekte des Remotes und überträgt nur das Neue.
+* Der Push gilt nur, wenn `main` noch der Stand ist, auf dem der Baum steht:
+  `--force-with-lease=refs/heads/main:<base>`. Sonst: `fetch --depth=1`, Arbeitsbaum exakt auf den
+  neuen Stand (`reset --hard` + `clean -fdx`), Läufe/Retention/Begleitdateien neu auflegen, Index
+  und Zeiger neu schreiben, wieder pushen — höchstens `REPACK_PUSH_ATTEMPTS` mal (Default 8).
+* Vor JEDEM Versuch wird der Stand geholt, auch vor dem ersten: was zwischen Klon und Push kam,
+  steht im Baum.
+* Scheitern alle Versuche: exit 1, im Remote ist nichts ersetzt (wie bisher).
+
+Unverändert: Workflow-Datei (keine Kopie ins Daten-Repo nötig), Producer, Index- und
+Zeigerformat, Commit-Texte, Retention, Purge und Warm-up, die Regel für `build.yml` in der Action.
+Die anderen Publisher (radar, obs, road, sea, point, precipsum) setzen wie bisher je Versuch auf
+`origin/main` neu auf; für sie ändert sich nichts.
+
+## 33.3 Gate — `verify:repack-publish` (neu, lokales Remote, kein Netz)
+
+Fixture = echte Producer-Ausgabe (Läufe 2026101000…09 aus einem Klon des Daten-Repos); der
+Publisher davor ist als Git-Blob `e72baaa9` fest eingebunden und dient als Orakel. Vor der
+Umsetzung 16/24 (rot: B2–B5, C2, D1, A11, E3), danach **24/24**, mit dem echten Baum **30/30**:
+
+| Prüfung | Ergebnis |
+|---|---|
+| A8 Daten-Commit: Git-Baum-Hash wie beim Publisher davor | gleich (`7bd27162de49`) |
+| A9 fertiger Baum bis auf `commit`/`publishedAt` | keine Unterschiede |
+| A10 Gegenprobe: ein gekipptes Bit in einem Bild | genau dieser Pfad ungleich |
+| A3 jede Datei, die der Index nennt, unter seinem Commit, Bytes = Producer-Datei | 615 Dateien, 0 daneben |
+| B1/C1 beide Fehler am Publisher davor nachgestellt | exit 1 bzw. fremde Datei verloren |
+| B2–B5 zwei fremde Pushes während des Pushs | gelingt im 3. Versuch, beide Commits im Baum, Rest gleich, 2 Commits |
+| C2/C3 fremder Push zwischen Klon und Push | erhalten, Rest gleich |
+| D1/D2 fremder Push bei jedem Versuch | exit 1 nach 3 Versuchen, Remote unberührt |
+| **F2 echter Baum** (7 294 Dateien, Stand `ea8884e44`) + echter Lauf 2026101012 | Baum-Hash gleich (`6c0cc8804cfa`) |
+| **F4** Dateien der anderen Produkte | 6 464 geprüft, 0 verändert, 0 dazu, 0 weg |
+| **F6** Upload, im Remote gemessen | 13,7 MiB statt 595,4 MiB |
+
+Der Publisher läuft in allen Prüfungen aus einem flachen Klon (`file://`), wie in der Action.
+`verify:repack` 346/347 — rot ist M3 (Text-Vertrag an `src/MapView.tsx`), an HEAD genauso.
+
+**Nicht geprüft:** der Push gegen GitHub selbst. Abnahme ist der erste `build`-Lauf nach Jans
+Push (`MANUELLE-SCHRITTE.md` §64). Rückweg: den Commit zurücknehmen — der Zustand davor ist dann
+wieder der von heute.
+
+## 33.4 V-Einträge
+
+* **V-BW-62** — `verify:repack` ruft den Publisher ohne `REPACK_NO_PURGE` auf: wer den Verifier
+  lokal startet, schickt Purges für Zeiger und Index unter `@main` an jsDelivr (Regel „kein Purge
+  von der lokalen Maschine“). Mehrwert: der Verifier ist wieder ohne Nebenwirkung startbar. Skizze: in
+  `runPublish` `REPACK_NO_PURGE: '1'` und `REPACK_NO_WARM: '1'` setzen.
+* **V-BW-63** — ein ausgefallener ICON-D2-Lauf fällt nur über die Mail auf. Mehrwert: Jan sieht,
+  wie alt der Lauf der Karte ist, ohne Mails zu zählen. Skizze: Wächter wie `radar-watchdog`,
+  rot, wenn `index.json.runs[0]` älter als 6 h ist.
+* **V-BW-64** — Kommentare in `scripts/point/publish-point.mjs` und `verify-point-data.mjs`
+  beschreiben noch den Publisher davor („wirft `.git` weg“, „pusht genau einmal“). Das Verhalten,
+  auf das sie sich stützen (frische Historie), gilt weiter.
+* **V-BW-65** — M3 in `verify:repack` ist an HEAD rot (die gesuchte Zeile steht nicht mehr in
+  `src/MapView.tsx`).

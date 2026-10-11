@@ -240,7 +240,7 @@ const allErrors = [];
   const { ctx, errors, off } = await openPage({ path: '/' });
   const tile = await until(ctx, `[...document.querySelectorAll('.deck-bento > .deck-tile')].some((t) => /Autobahnwetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null)`, 20_000);
   const count = await ctx.evaluate(`document.querySelector('.deck-chips-count')?.textContent ?? ''`);
-  add('A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar, Zähler „11 Werkzeuge"', tile && /11/.test(count), count);
+  add('A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar, Zähler „12 Werkzeuge" (seit 10.10. mit Seewetter)', tile && /12/.test(count), count);
   off(); allErrors.push(...errors); await ctx.close();
 }
 

@@ -187,7 +187,8 @@
 .sw-band-foot-note { margin-left: auto; }
 
 /* --- Readout --------------------------------------------------------------------------------------- */
-.sw-readout { width: 400px; flex: 0 0 auto; background: var(--sand-100, #EDE6D3); overflow-y: auto; padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
+/* Unten 58 px frei: dort schwebt seit der Indexierung (10.10., E-SW-32) der Chip „Über diese Ansicht“ (`.rsb`, fixed unten rechts). */
+.sw-readout { width: 400px; flex: 0 0 auto; background: var(--sand-100, #EDE6D3); overflow-y: auto; padding: 14px 14px 58px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
 .sw-tabs { border-radius: 10px; }
 .sw-tabs button { font-size: 12.5px; height: 34px; padding: 0; border-radius: 7px; }
 .sw-card { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 14px 16px; }
@@ -264,6 +265,9 @@
 
 /* --- Mobile (≤ 767 px): full-screen map, spot pill + share, chips, bottom sheet ------------------------ */
 @media (max-width: 767px) {
+  /* „Über diese Ansicht“ (seit 10.10. indexierbar): rechts oben läge der Chip auf den Zeitchips +24 h/+48 h —
+     hier links unter der Chipzeile, gegenüber der Legende. */
+  .rsb[data-route="seewetter"] { top: calc(130px + env(safe-area-inset-top, 0px)); right: auto; left: 12px; text-align: left; }
   .sw-root.is-mobile { display: block; position: relative; background: var(--sw-map-bg, #0B0E12); }
   .sw-map.is-mobile { position: absolute; inset: 0; }
   .sw-map.is-mobile .maplibregl-ctrl-bottom-right, .sw-map.is-mobile .maplibregl-ctrl-bottom-left { bottom: 480px; }
@@ -321,3 +325,7 @@
   .sw-m-dock .sw-spot, .sw-m-dock .sw-toggle, .sw-m-dock .sw-seg button, .sw-m-dock .sw-layers button, .sw-m-dock .sw-profiles button, .sw-m-dock .sw-link { min-height: 44px; }
   .sw-map-note { top: 34%; max-width: calc(100% - 48px); }
 }
+
+/* V-SW-20: an hour without sea state at the model cell (never "0,0 m") */
+.sw-band-dry { color: var(--stone-500, #8B7355); font-weight: 400; }
+.sw-hero-mid.is-dry { font-size: 20px; letter-spacing: -0.3px; }

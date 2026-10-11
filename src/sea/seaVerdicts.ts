@@ -10,11 +10,12 @@
 // `verdictRow` is the uncached reference; the verifier checks that both are deep-equal.
 
 import { classify, windows, type SeaHour, type SeaLimits, type SeaVerdict, type SeaWindow } from './seaProfiles';
+import { seaNoSeaAt } from './seaContract';
 
 const H = 3_600_000;
 
 /** The fields `classify` reads, per spot; the page's `SeaSeries` fits. */
-export type SeaVerdictSeries = Record<'wind' | 'gust' | 'windDir' | 'hs' | 'ws' | 'wsPer', (number | null)[]>;
+export type SeaVerdictSeries = Record<'wind' | 'gust' | 'windDir' | 'hs' | 'ws' | 'wsPer' | 'tm', (number | null)[]>;
 export interface SeaVerdictSpot { id: string; normal: number; lat: number; lon: number }
 export interface SeaVerdictInputs {
   /** `null` = no usable data: every hour is classified without values (as the page does then). */
@@ -26,6 +27,8 @@ export interface SeaVerdictInputs {
   nowHour: number;
   /** Hours on the axis (0 without usable data). */
   nHours: number;
+  /** V-SW-20: `false` = hours without water at the model cell are classified as before (`?seadry=0`); default on. */
+  dryRule?: boolean;
 }
 
 /** The hour as the page builds it: values from the series if the spot has one, else an empty hour at its time. */
@@ -34,7 +37,7 @@ export function seaHourOf(inp: SeaVerdictInputs, id: string, kk: number): SeaHou
   const s = inp.series?.[id];
   if (!s) return { t, windMs: null, gustMs: null, windDir: null, hs: null, ws: null, wsPer: null };
   const i = inp.firstIdx + kk;
-  return { t, windMs: s.wind[i], gustMs: s.gust[i], windDir: s.windDir[i], hs: s.hs[i], ws: s.ws[i], wsPer: s.wsPer[i] };
+  return { t, windMs: s.wind[i], gustMs: s.gust[i], windDir: s.windDir[i], hs: s.hs[i], ws: s.ws[i], wsPer: s.wsPer[i], ...(inp.dryRule !== false && seaNoSeaAt(s, i) ? { dry: true } : {}) };
 }
 
 /** Uncached reference: the verdict of one spot at one hour. */

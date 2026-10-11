@@ -663,3 +663,218 @@ Nicht geprüft: Real-Device (V-SW-10), ein echter `sea.yml`-Lauf mit der neuen A
 - **Wirksam** erst, wenn der neue `spots.json` im Daten-Repo unter `sea/static/` liegt (Jans Gate, MANUELLE-SCHRITTE §48 Punkt 4).
 - **Offen.** E-SW-31 (a) (Normale direkt aus der DLM-Küste für Spots ≤ 0,2 km — nach (b) sind das 34 von 56) und (c) (Hand-Normalen
   holnis/schleimuende/heiligenhafen/ueckermuende, Binz/Pelzerhaken prüfen) bleiben Jans Entscheidung.
+
+## 14. Einschalten für alle (Jan 10.10.: „in main freischalten“, Kachel auf der Startseite) — und V-SW-18: kein Wind seit dem 07.10.
+
+Auftrag: Seewetter auf `main` freischalten, eine Feature-Karte auf der Startseite, inhaltliche Lücken nennen. Stand vorher:
+`SEA_LIVE = false`, Schattenbetrieb seit 07.10. (8 von 8 CWAM-Läufen veröffentlicht, 12,9–13,7 MB, Texte mit 2–7 min Verzug).
+Uncommitted bis zum Commit dieses Abschnitts; nichts gepusht, nichts im Daten-Repo geändert.
+
+### 14.1 V-SW-18 — an keinem Spot Wind, seit dem ersten Lauf des Workflows (gefunden beim Ansehen der Live-Seite)
+
+- **Befund.** Die Seite zeigte am 10.10. 19:40 UTC an jedem Spot „kein Wind für diese Stunde berechnet“, die Windzeile des
+  Stundenbands war leer, jede Tagesstunde „keine Daten“. Im Archiv (`buscosun-archiv/sea/v1`, 27 Spot-Dateien): nur der lokal
+  gebaute erste Lauf 2026100700 trägt Wind (56 Spots, 3 752 Werte); **jeder Lauf und jede Auffrischung aus dem Workflow seit
+  07.10. 16:24 UTC trägt 0 Windwerte an 0 von 56 Spots** — mit `failed: []`, `rejected: 0`, Job grün.
+- **Ursache (nachgestellt, nicht vermutet).** `sea.yml` holt den Producer mit `git sparse-checkout set --no-cone scripts src
+  package.json`. buscosun Fusion liest die Klimatologie aus `public/climaGrid.json` (`nodeShims.mjs`); fehlt sie, gibt
+  `getClimaField()` `null` zurück, der Motor vermerkt „keine Klimatologie — keine Verteilungen (K-3)“ und liefert Schritte ohne
+  einen Wert für T, Wind, Böe — der Producer schrieb sie als Reihe aus `null`. `road-fc.yml` und `point.yml` führen die Datei in
+  ihrer Sparse-Liste, `sea.yml` nicht. Nachbau: Export von `scripts src package.json` + die Pakete des Workflows ⇒ 0 Windwerte;
+  dieselbe Ablage mit `public/climaGrid.json` ⇒ 69 Windstunden je Spot, Zahl für Zahl gleich dem vollen Arbeitsbaum.
+- **Behoben in `buscosun-web`:** (1) Vorlage `scripts/sea/workflow-sea.yml` mit `public/climaGrid.json` in der Sparse-Liste;
+  (2) `spotWind` bricht ohne Klimatologie mit benanntem Grund ab; (3) `spotWindSeries`: ein Spot ohne einen einzigen Windwert ist
+  ein `failed`-Eintrag, keine Reihe aus `null`; (4) `windRefresh` wirft, wenn kein Spot Wind trägt (Schritt rot, nichts
+  geschrieben); (5) ein Feldlauf mit Cube-Checkout und 0 Spots mit Wind endet mit Exit 1 — die Welle ist dann veröffentlicht, der
+  Job rot. `verify:sea-derive` **61/61** (+4: W3b Sparse-Liste, W9 Reihe/keine Reihe an der gemessenen Form, W10 Auffrischung
+  ohne Spot, W11 Zähler; vor der Umsetzung rot).
+- **Wirksam erst mit der Kopie der Vorlage nach `buscosun-data/.github/workflows/sea.yml` (Jans Gate, MANUELLE-SCHRITTE §63).**
+  Mit dem Push von `buscosun-web` allein wird der Job ab dem nächsten fälligen Lauf ROT statt still leer — der Wind fehlt weiter.
+- **Folge für Gate D:** die 14 Tage Wind am Spot gegen die Küstenmessung beginnen erst mit dem ersten Lauf nach der Kopie; die
+  Tage 07.–10.10. tragen im Archiv keinen Wind.
+
+### 14.2 Einschalten
+
+- `SEA_LIVE = true` (`src/sea/seaFlag.ts`): Kachel 12, Palette 13, Fußlink, Rail-Symbol und `/seewetter` ohne Parameter;
+  `?sea=0` / `localStorage.sea = '0'` blendet je Besucher aus. Wie bei Autobahnwetter (03.10.) **vor** den Gates B und D.
+- **Indexierbar (E-SW-32, Jan 10.10.: „setze beides um“):** `noindex` der Route entfernt, `/seewetter` steht in `sitemap-pages.xml`.
+  Die App schreibt `/seewetter` auf den Standard-Spot um — nach der alten Regel „unbekannter Sub-Slug ⇒ noindex“ hätte die
+  gerenderte Seite dort wieder `noindex` getragen. Neu in `metaForPath`: die Regel gilt nur für Routen MIT Sub-Liste; bei
+  Seewetter (und Autobahnwetter) entscheidet die Seite über das Segment, alle Spot-Pfade tragen Canonical `/seewetter`
+  (keine eigenen Unterseiten je Spot — eigener SEO-Schritt). Mit der Indexierung erscheint der Chip „Über diese Ansicht“
+  (`RouteSeoBlock`, trägt die einzige H1): Desktop unten rechts über der Readout-Spalte (58 px Fußraum im Readout),
+  mobil links unter der Chipzeile statt auf den Zeitchips +24 h/+48 h (`seaDeck.css`). `llms.txt` nennt Seewetter noch nicht.
+- **Kachel:** bisher Text über die volle Breite; jetzt Text links (Symbol, Titel, Beschreibung mit Einschränkung, fünf
+  Stichworte) und rechts eine schematische Seekarte (Wellenfeld, Küste, Spots in den Klassenfarben, Pfeile) — eine Zeichnung,
+  kein Datenbild, lädt nichts. Regeln `.tile-sea*` in `SearchPage.css` (E-SW-8 „CSS unverändert“ damit aufgehoben), mobil
+  gestapelt (≤ 767 px). Stellung im Raster unverändert inline (`order: 12`, volle Breite).
+- **Verlaufsdiagramme:** eine Reihe ohne einen Wert wird nicht gezeichnet (`SeaCharts.tsx` `drawn`) — vorher sechs
+  Konsolenfehler `<path> attribute d: … "null"` je Aufruf, sobald der Wind fehlte; Farben je Reihe nach Name.
+
+### 14.3 Gates
+
+`verify:sea-contract` **30/30** (F1 Rangfolge mit beiden Voreinstellungen, F1b `SEA_LIVE` an), `verify:sea-derive` **61/61**,
+`verify:sea-ui` **41/41** gegen `vite preview` des Baus (A1/A2 `?sea=0` blendet aus, A3 Kachel ohne Parameter mit Vorschau 550 × 184
+und Zähler 12, A4 Deck ohne Parameter, A5 mobil 390 px ohne Überlauf, A6 kein noindex am Spot-Pfad + Canonical + eine H1,
+A7 Chip mobil auf keiner Schaltfläche), `verify:road-ui` **64/64** (A4 Zähler 12),
+`sea-text` 35/35, `sea-decode` 13/13, `verify:routing` 256/256 (drei [SW]-Prüfungen neu gefasst, mit Gegenprobe), `verify:seo` 803, `verify:health` 44/44,
+`verify:fusion-release` 30/30, typecheck 0, Build 255/255, Budget grün (eagerJs 109,6 / 109,7, totalJs 1 714,2 / 1 715);
+`verify:share` **528/528** seit dem Neubau des Edge-Bündels (10.10. abends, vorher 527/528 an SH6).
+Browser (Dev-Server, Live-Daten): Startseite Desktop 1440 und mobil 390, `/seewetter` ohne Parameter, Konsole 0 Fehler
+(eine MapLibre-Warnung „circle-11“ der Basiskarte).
+
+### 14.4 Inhaltliche Lücken (Stand 10.10., nach Gewicht)
+
+| Nr. | Lücke | Beleg | Weg |
+|---|---|---|---|
+| V-SW-18 | ~~**Kein Wind an den Spots** bis zur Workflow-Kopie; damit auch keine Fenster und tagsüber „keine Daten“~~ **behoben in Produktion seit 10.10. 23:19 UTC (56/56 Spots, §14.5 Nachtrag)** | §14.1 | erledigt |
+| V-SW-19 | Gate D (Wind am Spot gegen die Küstenmessung) hat noch keinen einzigen Tag | Archiv 07.–10.10. ohne Wind | 14 Tage ab dem 10.10. 23:19 UTC ⇒ frühestens 24.10. |
+| V-SW-20 | **umgesetzt 11.10. (§15), live mit `1798fc5`.** ~~Watt-Spots zeigen „0,0 m“ ohne Erklärung:~~ im Lauf 2026101012 trägt die Welle an 17 von 56 Spots Stunden mit Hs = 0; Schillig 74 von 79 h, Cuxhaven-Duhnen 72, Dangast 67, Langeoog 36, Spiekeroog 33, Norddeich 33, **St. Peter-Ording (Voreinstellung) 32**, Pellworm 32, Amrum 31. Den Hinweis „Watt: … bei Niedrigwasser …“ tragen nur 7 Spots (`tidal`); Schillig, Langeoog, Spiekeroog, St. Peter-Ording, Amrum, Borkum nicht | `spots/2026101012.json`, Katalog | `tidal` aus den Daten ableiten (Anteil trockener Stunden) statt von Hand; Anzeige „trockengefallen (Modell)“ statt „0,0 m“; drei Spots mit > 80 % trockener Stunden auf eine nasse Zelle ziehen |
+| V-SW-21 | Der Katalog im Daten-Repo ist noch der alte: 12 Lagen aus E-SW-31 (b) und die drei nassen Zellen aus V-SW-20 liegen nicht live. **Vorbereitet 11.10. (§15.4/§15.5): zwei Dateien, nicht eine — `spots.json` UND `spot-geo.json`** | `sea/v1/static/spots.json` live gegen den Katalog im Repo: 12 Lagen und 8 Zellen verschieden | **eingespielt 11.10. 10:00 UTC (Daten-Repo `32db40c`, §15.5)** auf Jans Wort „pushe ins Daten-Repo“ |
+| V-SW-7 | Vorhersage endet nach 78 h (CWAM); kein Ausblick fürs Wochenende | — | GWAM bis 174 h (SW-8) |
+| V-SW-6 | Wind nur als Zahl am Spot, kein Flächenbild | — | ICON-Partikel, gekennzeichnet |
+| — | Kein Wasserstand / keine Gezeit (BSH-Vorhersage gesperrt), Wassertemperatur nur als amtlicher Mittelfrist-Satz je Meer | Reiter Quellen | Quelle offen |
+| — | Nur Nord- und Ostsee: kein Binnensee (Bodensee, Chiemsee, Neusiedler See), also nichts für AT und CH — steht auf der Kachel | Stufe 2 nicht begonnen | Gate E |
+| V-SW-1 | Warnungen nur als Text je Küste/Seegebiet, nicht als Fläche | — | CAP-Zellen |
+| V-SW-5 | ~~Edge-Bündel ohne die Route `seewetter`~~ **neu gebaut 10.10. (Jan: „setze das noch um“): +17 Zeilen = der Routeneintrag, `verify:share` 528/528.** Berichtigung: das ändert die Vorschau NICHT — `og-meta` läuft nur auf neun Pfaden, `/seewetter` ist keiner davon. Ein geteilter Seewetter-Link trägt schon heute Titel und Beschreibung der Route aus der Shell, aber das allgemeine Bild `og/home.png` und nicht den Spot | Produktion: `og:title` „Seewetter Nord- und Ostsee — Wind und Welle“, `og:image` home.png | eigene Karte `og/seewetter.png`; Vorschau je Spot = Seewetter im Teilen-Parser + Pfad in `og-meta` (Edge-Funktion, Jans Gate) |
+| V-SW-16 | Ein von der Seite verworfener Spot lässt sie beim Anwählen abstürzen (nicht ausgelöst) | §10 | leere Stunde statt `null` |
+| V-SW-3/14 | Böe < Wind an Einzelstunden (Option aus), Senkentiefe über Wasser | §12.2, §13.5 | nächster Stand von buscosun Fusion |
+| — | Real-Device nicht geprüft; keine eigenen Unterseiten je Spot (alle zeigen per Canonical auf `/seewetter`), `llms.txt` ohne Seewetter | — | Gate C, SEO-Linie |
+
+### 14.5 Daten-Repo (Jan 10.10.: „ja setze beides um“)
+
+- **Gepusht 10.10. 20:28 UTC: `buscosun-data` `cd9e29f`** — `.github/workflows/sea.yml` = Vorlage (Diff gegen den Live-Stand: genau
+  die Sparse-Zeile + ein Kommentar), ohne Force, über einen frischen Sparse-Klon.
+- Die Auffrischung mit t1 2026101018 lief 9 min vorher (20:20 UTC) noch mit dem alten Workflow ⇒ wieder ohne Wind; die erste
+  mit Wind ist die mit t1 2026101021 (gegen 23:10 UTC) — Beleg im Nachtrag unten.
+- **`buscosun-web/main` von Jan gepusht:** `998334c` (SEA_LIVE, Kachel, Producer) 20:19 UTC, `4a6d2b9` (Indexierung) 20:42 UTC.
+  Produktion 20:44 UTC geprüft: Shell `/seewetter` ohne `robots`, Canonical `/seewetter`, H1 da; `sitemap-pages.xml` führt
+  `/seewetter`; Startseite (390 px) mit Kachel 12 samt Vorschau, „12 Werkzeuge“, Fußlink; `/seewetter` rendert das Deck am
+  Standard-Spot ohne `noindex`, eine H1, Chip da, Konsole 0 Fehler. Wind zu diesem Zeitpunkt noch leer (s. o.).
+- **Nachtrag 10.10. 23:19 UTC — V-SW-18 in Produktion behoben.** Der Lauf des Workflows von 23:18 UTC (grün, der erste mit
+  dem neuen t1-Würfel 2026101021) schrieb `spots/2026101012-w2026101021.json`: **56 von 56 Spots mit Wind**, je Spot 68 Stunden
+  (Stunde 11…78 des CWAM-Laufs, davor `null` = vor der Rechenstunde), zusammen 3 808 Wind-, 3 808 Böen- und 3 614
+  Richtungswerte (eine fehlende Richtung bleibt fehlend, E-FR-5), 0 Stunden mit Böe unter Wind, `rejected` leer, `failed`
+  leer; `status.json` → `wind.engine` „buscosun Fusion 12“, `version` 12, `stageCurrent` true, Läufe t1 2026101021 /
+  t2 2026101018 / Stationen 2026101021, Bau 3 s, 51,8 KB. Die zehn Läufe dazwischen (20:42 … 22:52 UTC) waren grün und ohne
+  Auffrischung (kein neuer t1). Produktion 23:25 UTC im Browser: `/seewetter` → St. Peter-Ording lädt die neue Datei über
+  jsDelivr, Stundenband mit Wind 17 kn aus W (268°) und Böen 25 kn, 68 Spalten, Fußzeile „Wind buscosun Fusion 12“,
+  „keine Daten“ steht nur noch in der Legende, Konsole 0 Fehler. **Gate D zählt ab diesem Lauf** (14 Tage ⇒ frühestens 24.10.).
+
+## 15. V-SW-20 „0,0 m“ an Watt-Spots und V-SW-21 Katalog im Daten-Repo (Jan 11.10.: „gehe V-SW-20 und V-SW-21 an“)
+
+Stand des Codes: als `1798fc5` am 11.10. 08:43 UTC auf `origin/main` (gemeinsam mit der Bandbreiten-Sitzung committet und
+gepusht, nicht von dieser Sitzung). Offen aus diesem Abschnitt: die Kopie zweier Dateien ins Daten-Repo (§15.5, Jans Gate).
+
+### 15.1 Diagnose — was „0,0 m“ ist (gemessen, `scripts/sea/build-dry-map.mjs`)
+
+- **Ein eigener Zustand, keine kleine Welle.** CWAM-Lauf 2026101100, alle 79 Schritte, 124 011 Seepunkte: an Zellen ohne
+  Seegang schreibt das Modell Hs ≤ 4·10⁻⁶ m, Richtung exakt 180° und die Periode exakt 1,0 s (der Platzhalter aus SW-0). **Jede**
+  Höhe unter 1 cm trägt diesen Platzhalter; die kleinste Höhe außerhalb des Zustands ist 0,0100 m. In den veröffentlichten
+  Reihen (cm) liest er sich darum eindeutig als Höhe 0 ohne Periode — eine echte Welle von 0 cm kommt nicht vor (Lauf 07.10.:
+  619 Stunden an 19 Spots im Zustand, alle mit Richtung 180° und Windsee = Dünung = 0; 0 Stunden „Höhe 0 mit Periode“).
+- **Nordsee: Gezeit.** Westlich 9,6° O schwankt die Zahl der Zellen im Zustand zwischen ≈ 800 (Hochwasser) und ≈ 4 400–4 700
+  (Niedrigwasser) mit ≈ 12,4 h Periode (Schritte 0…78: 799 → 3 815 → 805 → 4 203 → 1 175 → 4 391 → 1 070 → 4 424 → 1 219 → 4 668
+  → 1 234 → 3 738 → 798). Die Zelle fällt im Modell trocken.
+- **Ostsee: keine Gezeit, aber derselbe Zustand.** Östlich 9,6° O 1 088 Zellen dauerhaft, bis 2 356 mit dem auffrischenden
+  Südwest am Laufende; 97 % liegen höchstens zwei Zellen vom Land. Eine Windsee bei ablandigem Wind wäre an der ersten Zelle
+  8–12 cm hoch (Faustformel für begrenzten Fetch, 0,9 km, 5–8 m/s; Schätzung), nicht unter 1 cm — das Modell rechnet die Zelle also als zu flach/trocken. Die Ursache
+  (Wasserstand) ist **nicht belegt**; die Seite sagt dort „ohne Seegang (flaches Ufer)“, nicht „trockengefallen“.
+- **Stufen.** Stunden im Zustand je Zelle über den Lauf: 0 h 116 301 Zellen · 1–39 h 5 343 · **40–59 h 68** · 60–78 h 519 ·
+  alle 79 h 1 780. Die Häufungen liegen bei ≈ 18 h, ≈ 33 h und ≈ 73 h — Höhenstufen der Modell-Bathymetrie.
+- **Betroffen (Live-Lauf 2026101100, alter Katalog):** 19 von 56 Spots; Schillig 73 von 79 h, Cuxhaven-Duhnen 72, Dangast 68,
+  Langeoog 36, Spiekeroog 35, Norddeich 34, **St. Peter-Ording (Voreinstellung) 33**, Amrum 33, Pellworm 32, Föhr 31,
+  Schönberger Strand 21, Husum 18, Scharbeutz 18, Büsum 17, Grömitz 16, Borkum 13, Warnemünde 13, Lubmin 10, Zinnowitz 10.
+  Die Handmarke `tidal` trugen 7 davon.
+- **Folge für die Einordnung.** Die Höhe 0 galt als ruhige See: am Lauf 07.10. waren über 7 Profile × 56 Spots von 3 815
+  Stunden×Profilen im Zustand **1 142 „passt“ oder „knapp“** (`verify:sea-derive` T4) — Fenster auf trockenem Watt.
+- **Ursache der drei Spots mit > 80 %.** Die Katalogregel („nächste Seezelle, keine tote Ecke“) prüfte das Mittel aus vier
+  Schritten (+10/24/34/58 h — alle in ähnlicher Tidephase); Zellen der 73-h-Stufe waren in einem davon nass und kamen durch.
+
+### 15.2 Umsetzung V-SW-20
+
+- **Vertrag** (`seaContract.ts`): `seaNoSeaAt(v, i)` (Reihe: Höhe 0 ohne Periode; kodiert wie dekodiert), `seaNoSeaRaw(hs, tm10)`
+  (Rohwerte), `SEA_HS_FLOOR_M` 0,01 (`measured`), `SEA_SPOT_MAX_DRY_SHARE` 0,5 (`set`, in der Lücke der Stufen), `cell.dry` im
+  Katalog. Kein Formatwechsel der Reihen — die Seite liest den Zustand aus den Dateien, die schon liegen.
+- **Anzeige:** statt „0,0 m“ steht „kein Seegang“ (Readout, Marke auf der Karte, Satz im mobilen Briefing), darunter an der
+  Nordsee „Modellzelle in dieser Stunde trockengefallen (Gezeit)“, an der Ostsee „… ohne Seegang (flaches Ufer)“; Windsee und
+  Dünung „–“. Im Stundenband ∅ (mit Text für Vorleser), die Fußzeile erklärt das Zeichen; im Verlauf pausieren die drei
+  Linien, ein Sandstreifen an der Zeitachse markiert die Stunden.
+- **Hinweis aus den Daten statt von Hand:** sobald die gezeigte Achse eine solche Stunde trägt, steht unter den Werten „Watt: die
+  Wasserzelle dieses Spots fällt im Wellenmodell mit der Gezeit trocken — in n der nächsten m Stunden …“ (Ostsee: „Flaches
+  Ufer: …“), mit dem Abstand der Modellzelle und dem Satz zum nicht gezeigten Wasserstand. Die Handmarke `tidal` bleibt nur
+  für das Wort „Watt“ in der Kopfzeile und den alten Satz an Läufen ohne eine solche Stunde.
+- **Einordnung (neu, an; `?seadry=0` = Klassen wie zuvor):** eine Stunde im Zustand wird nach keinem Profil eingeordnet —
+  Klasse „keine Daten“, Grund „Wasser an der Modellzelle fehlt“ (`classify`: `SeaHour.dry`, `seaDryRuleFrom`). Ein
+  Ausschlussgrund (Dunkelheit, Wind ablandig, Grenze überschritten) geht weiter vor. „Keine Daten“ statt „außerhalb“, weil
+  die Modellzelle 0,2–2 km vom Spot liegt und die Bathymetrie grob ist — die Seite behauptet nicht, dass es am Spot nicht geht.
+  Am Lauf 07.10.: 1 142 → 0 Stunden×Profile, Fenster über alle Profile und Spots 692 → 636.
+- **Katalog:** `build-spots.mjs` nimmt die nächste Zelle mit höchstens 50 % Stunden ohne Seegang (`pickSpotCell`, Trockenkarte
+  `scripts/lib/fixtures/sea/cwam-dry-2026101100.json`, 7 710 Zellen, 75 KB; Springtide, Neumond 10.10.). Genau drei Spots
+  wechseln die Zelle: **Schillig 133/328 (92 %) → 134/329 (25 %, 0,66 km)**, **Dangast 140/359 (86 %) → 139/359 (46 %,
+  1,15 km)**, **Cuxhaven-Duhnen 177/307 (91 %) → 178/306 (44 %, 1,35 km)**; Seegebiet, Küstenabschnitt, Normale, Station
+  unverändert, `areas.json` byte-gleich. Mit `--dry=0` baut der Builder den Katalog von `1610601` Feld für Feld nach.
+
+### 15.3 Gates
+
+`verify:sea-derive` **69/69** (+8: T1 Zustand an Rohfeldern getrennt, T2 an echten Reihen + Gegenprobe, T3 SUP-Stunde, T4 kein
+Fenster auf einer Stunde ohne Wasser mit Gegenprobe „davor 1 142“, T5 Schalter, T6 Katalogzelle = Regel mit Gegenprobe „ohne
+Karte drei Spots > 80 %“, T7 Stufen der Karte + fremdes Gitter abgelehnt), `verify:sea-ui` **49/49** gegen `vite preview` des
+Baus (+8: K0–K7 — Anzeige, Band, Hinweis an einem Spot OHNE Handmarke, Einordnung, Rückfall `?seadry=0`, Gegenprobe an einem
+Spot ohne solche Stunde, mobil), `verify:sea-contract` 30/30, typecheck 0, Build 256/256, Budget grün (eagerJs 109,6 / 109,7,
+totalJs 1 715 / 1 715 — an der Grenze). Browser mit Live-Daten (Lauf 2026101100, alter Katalog): St. Peter-Ording 29 der
+nächsten 71 Stunden ∅ im Tidetakt, keine Zelle „0,0“, Hinweis „Watt: …“, Konsole 0 Fehler
+(`audit/seewetter/ui/vsw20-live-st-peter-ording.png`); Scharbeutz 15 von 71 Stunden ∅ mit „Flaches Ufer: …“.
+**Produktion 11.10. 08:47 UTC** (`buscosun.com/seewetter/st-peter-ording`, nach dem Deploy von `1798fc5`): dasselbe Bild —
+29 von 71 Stunden ∅, keine Zelle „0,0“, Hinweis und Fußzeile da, Konsole 0 Fehler.
+
+Die fünf Fragen: (1) Funktionserhalt — jede Zahl außerhalb des Zustands unverändert, `?seadry=0` gibt die alten Klassen;
+(2) Desktop — nur die genannten Texte/Zeichen, Maße des Decks unverändert (B1/B2 grün); (3) Touch — keine neue Schaltfläche;
+(4) Konsole 0 Fehler; (5) kein neuer Rechenweg je Frame (ein Vergleich je Stunde in der vorhandenen Schleife).
+
+### 15.4 V-SW-21 — was die Kopie wirklich umfasst
+
+Der Producer liest den Katalog aus dem Daten-Repo (`buildRun`/`windRefresh`: `static/spots.json`) und das Gelände der
+Wasserzellen aus `static/spot-geo.json`. Gegenüber dem Live-Stand wechseln **8 Spots die Zelle** (5 aus E-SW-31 b: Norderney,
+Pellworm, Flensburg, Schönberger Strand, Fehmarn Grüner Brink; 3 aus V-SW-20) — für sie fehlen im Live-`spot-geo.json` die
+Einträge (gemessen: 8 fehlen). Ohne sie liest der Job Terrarium im Lauf nach (Höhe über Wasser = 0 seit V-SW-4, also kein
+falscher Wert, aber 16 Netzabrufe je Wind-Rechnung). §48.7 nannte nur `spots.json` — **beide Dateien gehören zusammen**.
+Neu gebaut mit `build-spots.mjs --out --geo`: 112 Einträge, 0 unvollständig; an den 48 unveränderten Zellen wertgleich zum
+Live-Stand (Unterschied nur der Feldname `elevationRead` → `elevationReadM` und die Kachel-Buchhaltung). Probe durch die
+Wind-Kette des Producers (Cube über das CDN, 11.10. 08:43 UTC): 56 von 56 Spots mit Wind, 3 976 Werte, 0 ohne Geländeeintrag.
+
+### 15.5 Stand V-SW-21: eingespielt 11.10. 10:00 UTC (Daten-Repo `32db40c`)
+
+Beide Dateien liegen im Repo: `scripts/lib/fixtures/sea/static/spots.json` (sha256 `32446b5d153c…`) und
+`scripts/lib/fixtures/sea/static/spot-geo.json` (sha256 `471b44d4969f…`). Der erste Push-Versuch wurde von der
+Berechtigungsprüfung der Sitzung abgelehnt; auf Jans Wort („pushe ins Daten-Repo“, 11.10.) ging die Kopie als EIN Commit nach
+`buscosun-data` (`32db40c`, frischer Sparse-Klon mit `core.autocrlf false`, auf `origin/main` aufgesetzt, ohne Force; zwischen
+Klon und Push hatte niemand `sea/v1/static/` berührt). Beleg: beide Dateien am Commit über `raw.githubusercontent.com` gelesen,
+Prüfsummen gleich den Fixtures. Rückweg: `git revert 32db40c` im Daten-Repo.
+
+**Ankunft beim Client (gemessen 11.10. 10:04 UTC, V-SW-28):** der Client liest den Katalog über
+`cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/sea/v1/static/spots.json` ohne Versionsangabe. Die Antwort trägt
+`Cache-Control: public, max-age=604800, s-maxage=43200`. Ein Abruf per `curl` traf einen Knoten ohne Eintrag (`X-Cache: MISS`)
+und bekam den neuen Katalog; der Browser auf `buscosun.com/seewetter/schillig` bekam zur selben Minute noch den alten
+(Schillig 133/328, `from` ohne `dry`). Der neue Katalog erreicht die Knoten also binnen 12 h von selbst, einen Browser, der
+den alten schon im Cache hat, erst nach bis zu 7 Tagen — oder sofort nach einem Purge (Jans Gate, MANUELLE-SCHRITTE §65.1).
+Die Seite bleibt in der Zwischenzeit in sich stimmig: Reihen hängen an der Spot-Kennung, nicht an der Zelle; falsch sind bis
+dahin nur Lage, Ufernormale und die Kilometerangabe der 8 Spots mit neuer Zelle.
+
+**Erste Wind-Auffrischung mit dem neuen Katalog (11.10. 11:18 UTC, in Produktion gelesen):** `status.json` über raw →
+`wind.t1 = 2026101109`, `spots: 56`, `rejected: 0`, „buscosun Fusion 12“, `computedAt 11:18:34Z`, Job `38135024265`, kein
+`blocked`; Datei `spots/2026101100-w2026101109.json` (51 655 Bytes) trägt 56 Spots. Die Datei nennt die Zelle nicht — dass der
+Producer den neuen Katalog las, folgt aus dem Zeitpunkt (Klon des Jobs nach `32db40c`), nicht aus dem Inhalt. Die
+Wellenreihen der 8 Spots mit neuer Zelle kommen erst mit dem CWAM-Lauf 2026101112 (≈ 16:25 UTC); bis dahin nicht geprüft.
+
+### 15.6 Offene Punkte
+
+| Nr. | Punkt | Weg |
+|---|---|---|
+| V-SW-22 | Echte Höhen von 1–4 cm stehen weiter als „0,0 m“ (eine Nachkommastelle; Scharbeutz 11.10.: 45 Stunden) — mit Richtung und Periode, also als ruhige See erkennbar | „< 0,1 m“ oder zwei Stellen unter 0,1 m |
+| V-SW-23 | Das Kartenfeld malt Zellen im Zustand wie 0 m (dunkelste Stufe); im `f`-Bild sind sie erkennbar (R = 0, B = 255) | eigene Farbe „trocken“ in `colourField` + Legende — das Watt würde im Tidetakt sichtbar |
+| V-SW-24 | Der Satz der Einordnung nennt den Uferwinkel doppelt („Wind schräg ablandig · Wind schräg ablandig“, Bestand) | Anhang nur, wenn kein Grund ihn schon nennt |
+| V-SW-25 | Ostsee: Ursache des Zustands nicht belegt (Wasserstand vermutet) | CWAM-Dokumentation/DWD fragen; BSH-Wasserstand bleibt gesperrt |
+| V-SW-26 | Die Trockenkarte ist EIN Lauf bei Springtide; bei Nipptide fallen die 35-%-Zellen seltener trocken | zweiter Lauf um den 18.10. (Halbmond), Karte als Mittel |
+| V-SW-28 | **Katalog und Seegebiete sind veränderliche Dateien unter festem `@main`-Pfad:** jsDelivr hält sie am Knoten 12 h, der Browser 7 Tage (`max-age=604800`, gemessen 11.10.). Eine Katalogänderung kommt deshalb gestaffelt an; wer die Seite kennt, sieht sie ohne Purge bis zu einer Woche nicht (dieselbe Klasse wie V-FI-6) | Katalog am Commit lesen: `status.json` (wird ohnehin über raw ohne Cache gelesen) nennt den Commit oder eine Katalog-Version, der Client hängt sie an (`@<commit>` bzw. `?v=`); bis dahin Purge nach jeder Katalogänderung |
+| V-SW-27 | **erledigt 11.10.:** totalJs stand nach diesem Abschnitt genau an der Grenze (1 715 / 1 715) — Grenze auf Jans Wort auf **1 720** angehoben (`budget.json`, Notiz vom 11.10.; IST 1 715,0 am Bau von `0b8021b`) | — |

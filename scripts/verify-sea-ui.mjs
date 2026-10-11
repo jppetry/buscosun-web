@@ -10,7 +10,7 @@
  * served by request interception for `…/buscosun-data@main/sea/v1/*` and raw.githubusercontent, the page clock is shifted.
  * The coastal measurement (POI) is a frozen file of Arkona. Basemap tiles come from the network (no checked content).
  *
- *   A  flag gate: off by default (SEA_LIVE false) — route 404, no tile; `?sea=1` page + tile 12 + palette 13
+ *   A  flag gate: on for everyone since 10.10. (SEA_LIVE) — page and start-page tile 12 without parameter, `?sea=0` hides
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · map 728 · band over the map foot
  *   C  data: default spot St. Peter-Ording, one band column per hour to the end of the run, origin at the numbers
  *   D  state: hour, spot, profile, unit, layer, tab ⇒ URL; Bft changes the numbers; limits editable
@@ -176,25 +176,56 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
 
 // --- A: flag gate --------------------------------------------------------------------------------------
 {
-  const { ctx, errors, off } = await openPage({ path: '/seewetter' });
+  // Jan 10.10.: the flag is on for everyone (SEA_LIVE); `?sea=0` stays the per-visitor switch-off.
+  const { ctx, errors, off } = await openPage({ path: '/seewetter?sea=0' });
   const notFound = await until(ctx, `!!document.querySelector('h1') && /nicht gefunden|404/i.test(document.body.innerText) && !document.querySelector('.sw-root')`, 20_000);
-  add('A1 ohne ?sea=1: /seewetter antwortet wie ein unbekannter Pfad (SEA_LIVE aus)', notFound);
+  add('A1 mit ?sea=0: /seewetter antwortet wie ein unbekannter Pfad (Ausschalter je Besucher bleibt)', notFound);
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/?sea=0' });
+  await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
+  await sleep(800);
+  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '', rail: [...document.querySelectorAll('a[title]')].some((a) => a.getAttribute('title') === 'Seewetter') })`);
+  add('A2 Startseite mit ?sea=0: keine Seewetter-Kachel, Zähler „11 Werkzeuge“', !r.tile && /11/.test(r.count) && !r.rail, JSON.stringify(r));
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
   const { ctx, errors, off } = await openPage({ path: '/' });
   await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
   await sleep(800);
-  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '', rail: [...document.querySelectorAll('a[title]')].some((a) => a.getAttribute('title') === 'Seewetter') })`);
-  add('A2 Startseite ohne Flag: keine Seewetter-Kachel, Zähler unverändert „11 Werkzeuge“', !r.tile && /11/.test(r.count) && !r.rail, JSON.stringify(r));
+  const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Seewetter/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); const pv = t?.querySelector('.tile-sea-preview')?.getBoundingClientRect(); return { tile: !!t, eyebrow: t?.querySelector('.tile-eyebrow')?.textContent ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '', preview: pv ? [Math.round(pv.width), Math.round(pv.height)] : null, inside: !!(b && pv && pv.left >= b.left && pv.right <= b.right && pv.top >= b.top && pv.bottom <= b.bottom), tags: [...(t?.querySelectorAll('.tile-tag') ?? [])].map((e) => e.textContent), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+  add('A3 Startseite ohne Parameter (Flag an für alle, SEA_LIVE): Kachel „12 · SEEWETTER“ sichtbar mit Vorschau und Stichworten, Zähler 12',
+    r.tile && r.eyebrow === '12 · SEEWETTER' && /12/.test(r.count) && r.preview && r.preview[0] >= 300 && r.preview[1] >= 120 && r.inside && r.tags.length >= 4 && !r.overflow, JSON.stringify(r));
+  await shot(ctx, 'home-tile-desktop');
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
-  const { ctx, errors, off } = await openPage({ path: '/?sea=1' });
-  await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
+  const { ctx, errors, off } = await openPage({ path: '/seewetter' });
+  const deck = await until(ctx, READY, 60_000);
+  add('A4 /seewetter ohne Parameter: das Deck rendert (Flag an für alle)', deck);
+  // E-SW-32 (Jan 10.10.): indexable. The app moves /seewetter to the default spot — that URL must not turn noindex at runtime.
+  await sleep(1500);
+  const seo = await ctx.evaluate(`({ path: location.pathname, robots: document.querySelector('meta[name=robots]')?.content ?? null, canonical: document.querySelector('link[rel=canonical]')?.href ?? null, h1: document.querySelectorAll('h1').length, chip: !!document.querySelector('.rsb[data-route="seewetter"] summary') })`);
+  add('A6 indexierbar: auf /seewetter/st-peter-ording kein robots-noindex, Canonical /seewetter, genau eine H1, Chip „Über diese Ansicht“ da',
+    seo.path === '/seewetter/st-peter-ording' && !/noindex/.test(seo.robots ?? '') && /\/seewetter$/.test(seo.canonical ?? '') && seo.h1 === 1 && seo.chip, JSON.stringify(seo));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/seewetter/st-peter-ording', width: 390, height: 844, mobile: true });
+  await until(ctx, `!!document.querySelector('.rsb summary') && !!document.querySelector('.sw-m-top')`, 60_000);
+  await sleep(1500);
+  const r = await ctx.evaluate(`(() => { const c = document.querySelector('.rsb summary').getBoundingClientRect(); const hit = [...document.querySelectorAll('.sw-root button, .sw-root a')].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left < c.right && b.right > c.left && b.top < c.bottom && b.bottom > c.top; }).map((e) => (e.getAttribute('aria-label') ?? e.textContent ?? '').trim().slice(0, 24)); return { chip: [Math.round(c.x), Math.round(c.y), Math.round(c.width), Math.round(c.height)], hit }; })()`);
+  add('A7 mobil: der Chip „Über diese Ansicht“ liegt auf keiner Schaltfläche des Decks (Zeitchips, Pille, Teilen) und ist ≥ 44 px hoch', r.hit.length === 0 && r.chip[3] >= 44 && r.chip[0] >= 0, JSON.stringify(r));
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/', width: 390, height: 844, mobile: true });
+  await until(ctx, `!!document.querySelector('.deck-bento')`, 20_000);
   await sleep(800);
-  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null), eyebrow: [...document.querySelectorAll('.tile-eyebrow')].map((e) => e.textContent).find((t) => /SEEWETTER/.test(t)) ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '' })`);
-  add('A3 Startseite mit ?sea=1: Kachel „12 · SEEWETTER“ sichtbar, Zähler 12', r.tile && r.eyebrow === '12 · SEEWETTER' && /12/.test(r.count), JSON.stringify(r));
+  const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Seewetter/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); const pv = t?.querySelector('.tile-sea-preview')?.getBoundingClientRect(); return { tile: !!t, w: b ? Math.round(b.width) : 0, inside: !!(b && pv && pv.width > 0 && pv.left >= b.left && pv.right <= b.right), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+  add('A5 Startseite mobil 390 px: Seewetter-Kachel über die volle Breite, Vorschau innerhalb der Kachel, kein seitlicher Überlauf', r.tile && r.w >= 320 && r.inside && !r.overflow, JSON.stringify(r));
+  await shot(ctx, 'home-tile-mobile');
   off(); allErrors.push(...errors); await ctx.close();
 }
 
@@ -301,6 +332,67 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   add('G4 Mobil: Stundenzellen des Bandes ≥ 44 × 44 px (V-SW-8)', bandM.n > 10 && bandM.minW >= 44 && bandM.minH >= 44, JSON.stringify(bandM));
   await shot(ctx, 'mobile-default');
   off(); allErrors.push(...errors); await ctx.close();
+}
+
+// --- K: V-SW-20 — an hour without sea state at the model cell is never shown as "0,0 m" ---------------------------
+{
+  const { seaNoSeaAt } = await import('../src/sea/seaContract.ts');
+  const doc = JSON.parse(readFileSync(join(site, 'spots', `${RUN}.json`), 'utf8'));
+  const FIRST = 12, N = 79 - FIRST;                         // page clock 12:40 UTC ⇒ axis = run hours 12 … 78
+  const dryOn = (id) => Array.from({ length: N }, (_, kk) => seaNoSeaAt(doc.spots[id].v, FIRST + kk));
+  const cat = JSON.parse(readFileSync(join(site, 'static', 'spots.json'), 'utf8')).spots;
+  // A spot WITHOUT the hand flag `tidal` whose cell is dry at the chosen hour, and one without a single dry hour.
+  const dryId = cat.find((s) => !s.tidal && s.region === 'nordsee' && dryOn(s.id)[0] && dryOn(s.id).filter(Boolean).length >= 10)?.id ?? null;
+  const wetId = cat.find((s) => s.region === 'ostsee' && dryOn(s.id).every((d) => !d) && doc.spots[s.id].v.hs.slice(FIRST).every((x) => x !== 0))?.id ?? null;
+  const nDry = dryId ? dryOn(dryId).filter(Boolean).length : 0;
+  add('K0 Fixture: ein Nordsee-Spot ohne Handmarke „Watt“ mit trockener Zelle zur gewählten Stunde, ein Ostsee-Spot ohne eine solche Stunde', !!dryId && !!wetId, `${dryId} (${nDry} von ${N} h) · ${wetId}`);
+  const READ = `(() => {
+    const q = (s) => document.querySelector(s)?.textContent ?? '';
+    const waveRow = [...document.querySelectorAll('.sw-band-table tbody tr')].find((r) => r.querySelector('th')?.textContent === 'Welle m');
+    const cells = waveRow ? [...waveRow.querySelectorAll('td')] : [];
+    const bars = [...document.querySelectorAll('.sw-band-bar')];
+    const dryIdx = cells.map((c, i) => (c.querySelector('.sw-band-dry') ? i : -1)).filter((i) => i >= 0);
+    return { hero: q('.sw-hero-mid'), sub: document.querySelectorAll('.sw-hero-sub')[1]?.textContent ?? '', verdict: q('.sw-verdict'), note: q('.sw-note.is-dry'), meta: q('.sw-spot-meta'),
+      dryCells: dryIdx.length, zeroCells: cells.filter((c) => c.textContent.trim() === '0,0').length, sr: cells[dryIdx[0]]?.querySelector('.sw-sr')?.textContent ?? '',
+      dryHatched: dryIdx.filter((i) => bars[i]?.classList.contains('is-hatched')).length, dryOk: dryIdx.filter((i) => ['rgb(141,176,122)', 'rgb(227,154,59)'].includes((bars[i]?.style.background || '').split(' ').join(''))).length, foot: q('.sw-band-foot'), legend: q('.sw-chart-legend'), callout: q('.sw-callout') || q('.maplibregl-marker.sw-callout') || '',
+      vals: [...document.querySelectorAll('.sw-vals strong')].map((e) => e.textContent) };
+  })()`;
+  if (dryId && wetId) {
+    // Profile Angeln (wind ≤ 16 kn, gusts ≤ 22 kn, wave ≤ 1,2 m; no shore-angle and no daylight rule): at 8 kn the hour was "passt".
+    const { ctx, errors, off } = await openPage({ path: `/seewetter/${dryId}?p=angeln` });
+    const ready = await until(ctx, `${READY} && !!document.querySelector('.sw-hero-mid')`, 60_000);
+    await sleep(1500);
+    const r = await ctx.evaluate(READ);
+    add('K1 trockene Stunde: Anzeige „kein Seegang“ statt „0,0 m“, darunter „trockengefallen (Gezeit)“, Windsee und Dünung „–“, auch die Marke auf der Karte', ready && r.hero === 'kein Seegang' && /trockengefallen \(Gezeit\)/.test(r.sub) && r.vals[0] === '–' && r.vals[1] === '–' && !/0,0 m/.test(r.hero + r.vals.join(' ') + r.callout) && /kein Seegang/.test(r.callout), JSON.stringify({ hero: r.hero, sub: r.sub, vals: r.vals.slice(0, 2), callout: r.callout }));
+    add(`K2 Stundenband: genau die ${nDry} Stunden des Zustands tragen ∅ (mit Text für Vorleser), keine Zelle „0,0“, die Fußzeile erklärt das Zeichen`, r.dryCells === nDry && r.zeroCells === 0 && r.sr === 'kein Seegang' && /∅ = Modellzelle ohne Wasser/.test(r.foot), JSON.stringify({ dry: r.dryCells, zero: r.zeroCells, foot: r.foot.slice(-60) }));
+    add(`K3 Hinweis aus den Daten (Spot ohne Handmarke „Watt“): „Watt: … in ${nDry} der nächsten ${N} Stunden … keinen Seegang“, Wasserstand nicht gezeigt, Abstand der Modellzelle; Verlauf nennt „Modellzelle ohne Wasser“`,
+      new RegExp(`^Watt: .*in ${nDry} der nächsten ${N} Stunden gibt es dort keinen Seegang`).test(r.note) && /Wasserstand selbst wird hier nicht gezeigt/.test(r.note) && /km vom Spot/.test(r.note) && !/Watt/.test(r.meta) && /Modellzelle ohne Wasser/.test(r.legend), r.note.slice(0, 140));
+    add('K4 Einordnung (Profil Angeln, Grenze Welle ≤ 1,2 m): die trockene Stunde ist „keine Daten · Wasser an der Modellzelle fehlt“; im Band ist keine der Stunden des Zustands grün oder orange (schraffiert, oder rot wegen einer überschrittenen Grenze)', /keine Daten/.test(r.verdict) && /Wasser an der Modellzelle fehlt/.test(r.verdict) && r.dryOk === 0 && r.dryHatched > 0, `${r.verdict} · schraffiert ${r.dryHatched}/${nDry}, grün/orange ${r.dryOk}`);
+    await shot(ctx, 'desktop-dry');
+    off(); allErrors.push(...errors); await ctx.close();
+    // Named fallback: the classes as before, the display still honest.
+    const b = await openPage({ path: `/seewetter/${dryId}?p=angeln&seadry=0` });
+    await until(b.ctx, `${READY} && !!document.querySelector('.sw-hero-mid')`, 60_000);
+    await sleep(1200);
+    const rb = await b.ctx.evaluate(READ);
+    add('K5 Rückfall ?seadry=0: Klassen wie zuvor — dieselbe Stunde „passt“, im Band grüne Stunden im Zustand; die Anzeige bleibt „kein Seegang“ und der Hinweis verspricht keine fehlende Einordnung', /passt zu deinen Grenzen/.test(rb.verdict) && rb.dryOk > 0 && rb.hero === 'kein Seegang' && rb.dryCells === nDry && !/nicht nach deinem Profil eingeordnet/.test(rb.note) && /nicht nach deinem Profil eingeordnet/.test(r.note), `${rb.verdict} · grün/orange ${rb.dryOk}`);
+    b.off(); allErrors.push(...b.errors); await b.ctx.close();
+    // Negative control: a spot without one such hour shows numbers and none of the new marks.
+    const w = await openPage({ path: `/seewetter/${wetId}?p=angeln` });
+    await until(w.ctx, `${READY} && !!document.querySelector('.sw-hero-mid')`, 60_000);
+    await sleep(1200);
+    const rw = await w.ctx.evaluate(READ);
+    add('K6 Gegenprobe (Spot ohne eine solche Stunde): Wellenhöhe als Zahl in m, kein ∅, kein Hinweis, keine Fußzeile dazu, kein Legendeneintrag', / m$/.test(rw.hero) && rw.dryCells === 0 && rw.note === '' && !/∅/.test(rw.foot) && !/Modellzelle ohne Wasser/.test(rw.legend), JSON.stringify({ hero: rw.hero, dry: rw.dryCells }));
+    w.off(); allErrors.push(...w.errors); await w.ctx.close();
+    // Mobile: the sheet's lead sentence.
+    const m = await openPage({ path: `/seewetter/${dryId}?p=angeln`, width: 390, height: 844, mobile: true });
+    await until(m.ctx, `!!document.querySelector('.sw-sheet-lead') && document.querySelectorAll('.sw-band-table thead th button').length > 10`, 60_000);
+    await sleep(1200);
+    const lead = await m.ctx.evaluate(`document.querySelector('.sw-sheet-lead')?.textContent ?? ''`);
+    add('K7 mobil: der Satz im Spot-Briefing sagt „Kein Seegang: Modellzelle ohne Wasser“, nicht „Welle 0,0 m“', /Kein Seegang: Modellzelle ohne Wasser/.test(lead) && !/Welle 0,0/.test(lead), lead.slice(0, 120));
+    await shot(m.ctx, 'mobile-dry');
+    m.off(); allErrors.push(...m.errors); await m.ctx.close();
+  }
 }
 
 add('I1 Konsole: keine unbehandelte Ausnahme', allErrors.length === 0, allErrors.slice(0, 3).join(' | '));

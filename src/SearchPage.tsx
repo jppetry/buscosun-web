@@ -49,7 +49,7 @@ import './SearchPage.css';
 import { useMediaQuery } from './mobile/useIsMobile';
 // Phase AW: Autobahnwetter-Kachel, Palette und Fußlink nur mit `?road=1` bis Gate C (`ROAD_LIVE`).
 import { roadFlagFrom, rememberRoadFlag } from './road/roadFlag';
-// Phase SW: Seewetter-Kachel, Palette und Fußlink nur mit `?sea=1` bis Gate C (`SEA_LIVE`).
+// Phase SW: Seewetter-Kachel, Palette und Fußlink — seit 10.10.2026 für alle (`SEA_LIVE`), `?sea=0` blendet aus.
 import { seaFlagFrom, rememberSeaFlag } from './sea/seaFlag';
 
 interface Props {
@@ -99,12 +99,12 @@ const FEATURE: Record<string, FeatureInfo> = {
  * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
  */
 const TOOL_TILE_COUNT = 12;
-/** Bis Gate C zählen die Autobahnwetter- und die Seewetter-Kachel nur mit `?road=1` bzw. `?sea=1` (Flag-Module). */
+/** Autobahnwetter- und Seewetter-Kachel zählen, solange ihr Flag an ist (`ROAD_LIVE`/`SEA_LIVE`; `?road=0`, `?sea=0` blenden aus). */
 const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1);
 /** Autobahnwetter-Kachel: hinter allen Tablet-Rängen (`order` 1–10 in SearchPage.css) und über die volle Breite —
  *  inline, weil SearchPage.css für diese Phase unverändert bleibt (E-AW-5). */
 const AW_TILE_STYLE: CSSProperties = { order: 11, gridColumn: '1 / -1' };
-/** Seewetter-Kachel (Phase SW, E-SW-8): Nr. 12, volle Breite hinter Autobahnwetter — inline wie AW (SearchPage.css bleibt unverändert). */
+/** Seewetter-Kachel (Phase SW, E-SW-8): Nr. 12, volle Breite hinter Autobahnwetter — Stellung inline wie AW, Aufbau in `.tile-sea*` (SearchPage.css). */
 const SW_TILE_STYLE: CSSProperties = { order: 12, gridColumn: '1 / -1' };
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
@@ -765,20 +765,25 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </p>
           </div>
         </>, AW_TILE_STYLE)}
-      {/* 12 · SEEWETTER (Phase SW, E-SW-8) — volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`), Farben
-          inline: keine Regel in SearchPage.css. Lädt keine Daten. Bis Gate C nur mit `?sea=1`. */}
-      {seaFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.sea, 'Seewetter öffnen',
+      {/* 12 · SEEWETTER (Phase SW, E-SW-8) — volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`). Seit
+          10.10.2026 für alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts
+          (`.tile-sea*` in SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten. */}
+      {seaFlagFrom() && tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
         <>
-          <div className="tile-feedback-icon" aria-hidden="true">
-            <svg width="34" height="34" viewBox="0 0 24 24">
-              <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" fill="none" stroke="#7FC4CC" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#2A9AA6" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#C9BFA8" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div className="tile-feedback-body">
-            <div className="tile-eyebrow">12 · SEEWETTER</div>
-            <div className="tile-title tile-title-lg">Wie wird es auf dem Wasser?</div>
+          <div className="tile-sea-text">
+            <div className="tile-sea-head">
+              <div className="tile-feedback-icon" aria-hidden="true">
+                <svg width="34" height="34" viewBox="0 0 24 24">
+                  <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" fill="none" stroke="#7FC4CC" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#2A9AA6" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#C9BFA8" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div>
+                <div className="tile-eyebrow">12 · SEEWETTER</div>
+                <div className="tile-title tile-title-lg">Wie wird es auf dem Wasser?</div>
+              </div>
+            </div>
             <p className="tile-desc">
               Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots,
               Seewetterbericht und Warnstatus im Wortlaut — mit deinen eigenen Grenzen je Profil.
@@ -787,8 +792,44 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
                 Kein amtliches Warnprodukt, keine Sicherheitsbewertung. Binnenseen ohne Welle (nicht im DWD-Bestand).
               </span>
             </p>
+            <div className="tile-tags">
+              {['Seegang', 'Windsee & Dünung', 'Wind & Böen', 'Seewetterbericht', 'Kite · Segeln · SUP'].map((t) => (
+                <span key={t} className="tile-tag">{t}</span>
+              ))}
+            </div>
           </div>
-          <span className="tile-badge badge-mono-ghost">DWD · NORD- UND OSTSEE</span>
+          <div className="tile-sea-preview" aria-hidden="true">
+            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="tile-sea-field" x1="0" y1="0" x2="1" y2="0.35">
+                  <stop offset="0" stopColor="#E0A23C" />
+                  <stop offset="0.3" stopColor="#5FB7A6" />
+                  <stop offset="0.62" stopColor="#2A9AA6" />
+                  <stop offset="1" stopColor="#1C5F6B" />
+                </linearGradient>
+              </defs>
+              <rect width="520" height="200" fill="url(#tile-sea-field)" />
+              {/* Land (schematisch): Küste unten und eine Insel */}
+              <path d="M0 200 L0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124 L520 200 Z" fill="var(--ink-900)" />
+              <path d="M300 62 C322 50 356 54 368 68 C356 82 318 84 300 62 Z" fill="var(--ink-900)" />
+              <path d="M0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124" fill="none" stroke="#E8C98A" strokeWidth="1.4" strokeDasharray="5 4" strokeOpacity=".8" />
+              {/* Wellen laufen in Pfeilrichtung */}
+              <g stroke="var(--sand-50)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity=".7">
+                {[[60, 44], [150, 34], [240, 46], [110, 96], [200, 82], [430, 56], [470, 92], [400, 100]].map(([x, y]) => (
+                  <path key={`${x}-${y}`} d={`M${x} ${y} l20 7 m-6 -6 l6 6 l-8 3`} />
+                ))}
+              </g>
+              {/* Spots: passt · knapp · außerhalb */}
+              <g stroke="var(--sand-50)" strokeWidth="2">
+                <circle cx="150" cy="146" r="6.5" fill="var(--sage-600)" />
+                <circle cx="262" cy="108" r="6.5" fill="var(--amber-500)" />
+                <circle cx="366" cy="150" r="6.5" fill="var(--sage-600)" />
+                <circle cx="334" cy="60" r="6.5" fill="var(--terracotta-500)" />
+                <circle cx="470" cy="122" r="6.5" fill="var(--amber-500)" />
+              </g>
+            </svg>
+            <span className="tile-map-tag">DWD CWAM · BUSCOSUN FUSION · NORD- UND OSTSEE</span>
+          </div>
         </>, SW_TILE_STYLE)}
     </section>
   );

@@ -234,6 +234,12 @@ add('W1 sea.yml: Leerlauf „producer not on main yet“ mit Exit 0, alle 15 min
   'ok');
 add('W2 sea-archiv.yml: Leerlauf mit Exit 0, schreibt nur sea/, append-only, nie --force', /producer not on main yet/.test(wfa) && /git add -A -- sea/.test(wfa) && !/push[^\n]*--force|push -f/.test(wfa) && /sparse-checkout: sea\b/.test(wfa), 'ok');
 add('W3 Paketliste des Workflows = Laufzeit-Pakete des Producers (bz2, jsfive)', /npm install --no-save --no-audit --no-fund bz2@1 jsfive@0\.4/.test(wf), '');
+// V-SW-18: buscosun Fusion reads the climatology from `public/climaGrid.json` (nodeShims); without it no distribution, no wind.
+{
+  const sparse = /git sparse-checkout set --no-cone ([^\n]+)/.exec(wf)?.[1].trim().split(/\s+/) ?? [];
+  add('W3b Producer-Checkout des Workflows trägt die Klimatologie von buscosun Fusion (public/climaGrid.json) neben scripts, src, package.json',
+    ['scripts', 'src', 'package.json', 'public/climaGrid.json'].every((p) => sparse.includes(p)) && existsSync(join(HERE, '..', 'public', 'climaGrid.json')), sparse.join(' '));
+}
 
 // --- R: archive ---------------------------------------------------------------------------------------------
 const arch = join(tmp, 'archiv', 'sea', 'v1');
@@ -419,6 +425,120 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
     && after.length === 8 && after[0] === `${RUN}-w2026100712.json` && after[7] === `${RUN}-w2026100809.json` && !after.includes('2026100512-w2026100515.json')
     && pr.includes(`spots/${RUN}-w2026100706.json`) && pr.includes(`spots/${RUN}-w2026100709.json`),
     `Archiv ${awKeys.join(' ')} · Speicher ${after.length}: ${after[0]} … ${after[after.length - 1]}`);
+
+  // V-SW-18: from 07.10. to 10.10.2026 every published run carried NO wind at any spot and no error — the workflow's
+  // producer checkout lacked `public/climaGrid.json`, buscosun Fusion then returns steps without distributions (the
+  // shape below is the one measured in that checkout: `vars` with cloud layers and pressure only), and the producer
+  // wrote them as a series of nulls. A spot without one wind value is a FAILED spot; a refresh without one spot throws.
+  const { spotWindSeries } = await import('./sea/sea-derive.mjs');
+  const runMs = T('2026-10-07T00:00:00Z'), HH = 3_600_000;
+  const stepsOk = [9, 10, 11].map((h) => ({ validAtMs: runMs + h * HH, vars: { wind: { mean: 9.85 }, gust: { mean: 13.04 }, windDir: { mean: 254 } } }));
+  const stepsNoDist = [9, 10, 11].map((h) => ({ validAtMs: runMs + h * HH, vars: { clcl: { mean: 67.3 }, clcm: { mean: 83.7 }, clch: { mean: 50 }, ps: { mean: 1003.5 }, snowline: { mean: 1393 } } }));
+  const sOk = spotWindSeries(stepsOk, runMs);
+  add('W9 Reihe je Spot aus den Schritten des Motors: Werte auf der Stundenachse des Laufs (0,1 m/s, Grad), Stunden davor null; Schritte OHNE einen Windwert (Motor ohne Klimatologie) ⇒ keine Reihe (null) statt einer Reihe aus null; Schritte außerhalb der Achse ⇒ keine Reihe',
+    sOk?.wind.length === SEA_SPOT_STEPS.length && sOk.wind[9] === 99 && sOk.gust[9] === 130 && sOk.windDir[9] === 254 && sOk.wind[8] === null && sOk.wind.filter((x) => x != null).length === 3
+    && spotWindSeries(stepsNoDist, runMs) === null && spotWindSeries([], runMs) === null && spotWindSeries(stepsOk, runMs + 500 * HH) === null,
+    JSON.stringify({ ok: sOk?.wind.slice(8, 12), noDist: spotWindSeries(stepsNoDist, runMs) }));
+  const windNone = async ({ spots }) => ({ series: {}, failed: spots.map((s) => ({ id: s.id, error: 'buscosun Fusion ohne Windwert' })), meta: { engine: 'buscosun Fusion 9', version: null, computedAt: new Date(at2).toISOString(), runs: null } });
+  const before = { files: readdirSync(sd).sort().join(), ptr: JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind?.path };
+  let thrown = null;
+  try { await windRefresh({ storeDir: store, dataDir: 'cdn', nowMs: at2 + 3 * HH, indexT1: '2026100812', windImpl: windNone }); } catch (e) { thrown = e.message; }
+  add('W10 Auffrischung ohne einen einzigen Spot mit Wind ⇒ Fehler mit Grund (Schritt rot), nichts geschrieben, Zeiger unverändert',
+    /ohne Windwert/.test(thrown ?? '') && readdirSync(sd).sort().join() === before.files && JSON.parse(readFileSync(join(store, SEA_STATUS_PATH), 'utf8')).wind?.path === before.ptr, String(thrown));
+  add('W11 Lauf nennt, an wie vielen Spots Wind steht: mit Wind 2, bei Wind-Fehler 0 (die Kommandozeile endet dann mit Fehler, die Welle ist veröffentlicht)', res.windSpots === 2 && res2.windSpots === 0, `${res.windSpots} · ${res2.windSpots}`);
+}
+
+// --- T: V-SW-20 — the model's "no sea state" (dry cell) is not a wave height of 0.0 m ----------------------------------
+{
+  const { isDeepStrictEqual } = await import('node:util');
+  const { seaNoSeaAt, seaNoSeaRaw, SEA_HS_FLOOR_M, SEA_SPOT_MAX_DRY_SHARE, SEA_PLACEHOLDER } = await import('../src/sea/seaContract.ts');
+  const { SEA_PROFILES, SEA_DRY_MISSING } = await import('../src/sea/seaProfiles.ts');
+  const { SeaVerdictCache, verdictRow, seaHourOf } = await import('../src/sea/seaVerdicts.ts');
+  const { seaDryRuleFrom } = await import('../src/sea/seaFlag.ts');
+  const { pickSpotCell, DRY_MAP_FIXTURE } = await import('./sea/build-spots.mjs');
+  const { readDryMap } = await import('./sea/build-dry-map.mjs');
+  // T1: on the raw fields (steps 24 and 34 carry both swh and tm10) the state is one separate value, not the low end of the heights.
+  let inState = 0, placeholder = 0, between = 0, sea = 0, maxIn = 0;
+  for (const s of [24, 34]) {
+    const hs = await field('swh', s), tm = await field('tm10', s);
+    for (let k2 = 0; k2 < hs.length; k2++) {
+      if (Number.isNaN(hs[k2])) continue;
+      sea++;
+      if (seaNoSeaRaw(hs[k2], tm[k2])) { inState++; maxIn = Math.max(maxIn, hs[k2]); }
+      if (Math.abs(tm[k2] - SEA_PLACEHOLDER.perS) < SEA_PLACEHOLDER.eps) placeholder++;
+      if (hs[k2] > 1e-5 && hs[k2] < SEA_HS_FLOOR_M) between++;
+    }
+  }
+  add('T1 Rohfelder (Lauf 07.10., +24 h und +34 h): der Zustand „kein Seegang“ ist EIN getrennter Wert — jede Zelle mit dem Perioden-Platzhalter 1,0 s hat Hs ≤ 10⁻⁵ m, keine einzige Höhe liegt zwischen 10⁻⁵ m und der Untergrenze 1 cm',
+    inState > 1000 && inState === placeholder && between === 0 && maxIn <= 1e-5, `${inState} von ${sea} Seepunkten im Zustand, ${placeholder} Platzhalter, ${between} dazwischen, größter Hs darin ${maxIn.toExponential(1)} m`);
+  // T2: in the published series of the real run the state reads hs 0 without a period — always with direction 180 and both components 0.
+  let dryH = 0, dir180 = 0, comp0 = 0, zeroWithPeriod = 0;
+  const drySpots = new Set();
+  for (const [id, s] of Object.entries(real.spots)) s.v.hs.forEach((x, i) => {
+    if (seaNoSeaAt(s.v, i)) { dryH++; drySpots.add(id); if (s.v.dir[i] === 180) dir180++; if (s.v.ws[i] === 0 && s.v.sw[i] === 0) comp0++; }
+    else if (x === 0) zeroWithPeriod++;
+  });
+  add('T2 echte Reihen (Lauf 07.10., 56 Spots): jede Stunde im Zustand trägt Richtung exakt 180° und Windsee = Dünung = 0; KEINE Stunde mit Höhe 0 und gültiger Periode (0,0 m kommt als echte Welle nicht vor)',
+    dryH > 500 && dir180 === dryH && comp0 === dryH && zeroWithPeriod === 0 && drySpots.size >= 15, `${dryH} Stunden an ${drySpots.size} Spots, davon Richtung 180°: ${dir180}, Komponenten 0: ${comp0}; Höhe 0 mit Periode: ${zeroWithPeriod}`);
+  add('T2 Gegenprobe: Höhe 0 MIT Periode, fehlende Höhe und eine echte Welle sind nicht der Zustand; kodiert und dekodiert gleich',
+    !seaNoSeaAt({ hs: [0], tm: [12] }, 0) && !seaNoSeaAt({ hs: [null], tm: [null] }, 0) && !seaNoSeaAt({ hs: [35], tm: [31] }, 0) && seaNoSeaAt({ hs: [0], tm: [null] }, 0) && !seaNoSeaRaw(0.012, 1.0) && !seaNoSeaRaw(0, 2.4) && seaNoSeaRaw(4e-6, 1.0), '');
+  // T3: one hour — calm wind, day, wave 0: SUP read it as "passt" (0 m ≤ 0.5 m); with the state it is unclassified.
+  const calm = { t: T('2026-10-08T10:00:00Z'), windMs: 6 / 1.943844, gustMs: 9 / 1.943844, windDir: 270, hs: 0, ws: 0, wsPer: null };
+  const sup = SEA_PROFILE_BY_ID.sup.limits;
+  const d0 = classify(calm, sup, 270, 54.3, 8.6), d1 = classify({ ...calm, dry: true }, sup, 270, 54.3, 8.6), d2 = classify({ ...calm, dry: true, t: T('2026-10-08T22:00:00Z') }, sup, 270, 54.3, 8.6);
+  add('T3 SUP, 6 kn auflandig, Tag, Höhe 0: ohne den Zustand „passt“ (das war die Fehllesung), mit ihm „keine Daten · Wasser an der Modellzelle fehlt“; ein Ausschlussgrund (Dunkelheit) geht weiter vor',
+    d0.cls === 'passt' && d1.cls === 'keine' && d1.reasons[0] === `${SEA_DRY_MISSING} fehlt` && d2.cls === 'ausserhalb' && d2.reasons.includes('Dunkelheit'), `${d0.cls} → ${d1.cls}: ${d1.reasons.join()} · nachts ${d2.cls}`);
+  // T4: over the real run, all profiles and spots — no window on an hour without water; `dryRule: false` is the page before.
+  const cat = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')).spots;
+  const series = Object.fromEntries(Object.entries(real.spots).map(([id, s]) => [id, Object.fromEntries(Object.entries(s.v).map(([k2, q]) => [k2, q.map((x) => decodeSpotValue(k2, x))]))]));
+  const firstIdx = 9, nHours = 79 - firstIdx, nowHour = real.runMs + firstIdx * 3_600_000;
+  let okOnDry = 0, okOnDryBefore = 0, dryCells = 0, sameOff = 0, rowsN = 0, winBefore = 0, winAfter = 0;
+  for (const p of SEA_PROFILES) {
+    const inp = { series, limits: p.limits, firstIdx, nowHour, nHours };
+    const on = new SeaVerdictCache(inp), offC = new SeaVerdictCache({ ...inp, dryRule: false });
+    for (const sp of cat) {
+      const s = series[sp.id];
+      const a = on.row(sp), b = offC.row(sp);
+      // the page before V-SW-20: the same hours without the field `dry`
+      const before = Array.from({ length: nHours }, (_, kk) => { const h = seaHourOf({ ...inp, dryRule: false }, sp.id, kk); return classify(h, p.limits, sp.normal, sp.lat, sp.lon); });
+      rowsN++;
+      if (isDeepStrictEqual(b, before) && b.every((v, kk) => !('dry' in seaHourOf({ ...inp, dryRule: false }, sp.id, kk)))) sameOff++;
+      for (let kk = 0; kk < nHours; kk++) {
+        if (!seaNoSeaAt(s, firstIdx + kk)) continue;
+        dryCells++;
+        if (a[kk].cls === 'passt' || a[kk].cls === 'knapp') okOnDry++;
+        if (b[kk].cls === 'passt' || b[kk].cls === 'knapp') okOnDryBefore++;
+      }
+      winAfter += on.windows(sp).length; winBefore += offC.windows(sp).length;
+    }
+  }
+  add(`T4 echter Lauf, ${SEA_PROFILES.length} Profile × ${cat.length} Spots: KEINE Stunde ohne Wasser an der Modellzelle ist „passt“ oder „knapp“; Gegenprobe ohne die Regel (dryRule aus = die Seite davor, Zeile für Zeile gleich): dort waren es welche`,
+    okOnDry === 0 && okOnDryBefore > 0 && sameOff === rowsN && dryCells > 3000, `${dryCells} Stunden×Profile im Zustand: mit Regel ${okOnDry}, davor ${okOnDryBefore} als passt/knapp; Fenster ${winBefore} → ${winAfter}; ${sameOff}/${rowsN} Zeilen ohne Regel = davor`);
+  add('T5 Schalter: ohne Parameter an, ?seadry=0 aus, kaputte Abfrage ⇒ an', seaDryRuleFrom('') === true && seaDryRuleFrom('?seadry=0') === false && seaDryRuleFrom('?seadry=1&x=%') === true, '');
+  // T6: catalogue cell = nearest cell under the dry limit (dry map of run 2026101100, 79 steps); before the rule three spots sat on cells dry > 80 %.
+  const dry = readDryMap(join(HERE, '..', DRY_MAP_FIXTURE));
+  const swhFields = [];
+  for (const s of [10, 24, 34, 58]) swhFields.push(await field('swh', s));
+  let sameCell = 0, shareOk = 0;
+  const movedBefore = [];
+  for (const sp of cat) {
+    const { best } = pickSpotCell(swhFields, sp.lat, sp.lon, dry);
+    if (best.i === sp.cell.i && best.j === sp.cell.j && +best.km.toFixed(2) === sp.cell.km) sameCell++;
+    if ((sp.cell.dry ?? 0) === +dry.share(sp.cell.i, sp.cell.j).toFixed(2) && dry.share(sp.cell.i, sp.cell.j) <= SEA_SPOT_MAX_DRY_SHARE) shareOk++;
+    const old = pickSpotCell(swhFields, sp.lat, sp.lon, null).best;
+    if (old.i !== sp.cell.i || old.j !== sp.cell.j) movedBefore.push(`${sp.id} ${Math.round(dry.share(old.i, old.j) * 100)} % → ${Math.round(dry.share(sp.cell.i, sp.cell.j) * 100)} %`);
+  }
+  add(`T6 Katalog: jede der 56 Wasserzellen ist die nächste Zelle mit höchstens ${SEA_SPOT_MAX_DRY_SHARE * 100} % Stunden ohne Seegang (Trockenkarte Lauf ${dry.run}, ${dry.steps} Schritte), cell.dry = Anteil der Karte; Gegenprobe ohne die Karte: genau drei Spots säßen auf Zellen mit > 80 %`,
+    sameCell === cat.length && shareOk === cat.length && movedBefore.length === 3 && movedBefore.every((m) => Number(/ (\d+) % →/.exec(m)[1]) > 80) && ['schillig', 'dangast', 'cuxhaven-duhnen'].every((id) => movedBefore.some((m) => m.startsWith(id))),
+    `${sameCell}/${cat.length} Zellen, ${shareOk}/${cat.length} Anteile; ohne Karte: ${movedBefore.join(' · ')}`);
+  let mapThrown = null;
+  const badMap = join(tmp, 'dry-bad.json');
+  writeFileSync(badMap, JSON.stringify({ product: 'sea-dry-map', model: 'cwam', run: 'x', steps: 79, ni: 10, nj: 10, cells: [] }));
+  try { readDryMap(badMap); } catch (e) { mapThrown = e.message; }
+  const hist = [0, 0, 0];
+  for (const h of dry.hours) if (h) hist[h < 40 ? 0 : h < 60 ? 1 : 2]++;
+  add('T7 Trockenkarte: die Stunden je Zelle fallen in Stufen — die Grenze 50 % liegt in der Lücke (40–59 h fast leer); eine Karte mit fremdem Gitter wird abgelehnt',
+    hist[0] > 4000 && hist[2] > 2000 && hist[1] < 100 && /Gitter/.test(mapThrown ?? ''), `1–39 h ${hist[0]} · 40–59 h ${hist[1]} · 60–79 h ${hist[2]} Zellen · ${mapThrown}`);
 }
 
 rmSync(tmp, { recursive: true, force: true });

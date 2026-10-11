@@ -2,13 +2,13 @@
  * Phase SW — visibility of Seewetter (`audit/seewetter.md`). Dependency-free on purpose: the start page, the shared
  * deck rail and the route import it; the contract re-exports `seaFlagFrom` for producer and verifiers.
  *
- * `SEA_LIVE` stays `false` until Jan switches the page on after Gates B–D (`prompt-seewetter.md`). Until then tile,
- * palette entry, rail icon and page appear only with `?sea=1` (remembered in `localStorage.sea`); `?sea=0` hides them
- * again (D-31 pattern: the query beats localStorage, localStorage beats the default).
+ * `SEA_LIVE` is Jan's flag-on decision: switched on 10.10.2026 ("in main freischalten") ahead of Gates B and D — tile,
+ * palette entry, footer link, rail icon and page are visible to everyone; `?sea=0` / `localStorage.sea = '0'` hides
+ * them per visitor (D-31 pattern: the query beats localStorage, localStorage beats the default). Back: `false` and a push.
  */
 
-/** Off until Gate C (Jan). Switching on = `true` and a push. */
-export const SEA_LIVE = false;
+/** On since 10.10.2026 (Jan), before Gates B/D — audit/seewetter.md §14 names what is still open. */
+export const SEA_LIVE = true;
 
 /** `?sea=0|1` beats `localStorage.sea`, which beats `SEA_LIVE`. */
 export function seaFlagFrom(
@@ -27,6 +27,15 @@ export function seaFlagFrom(
   if (s === '0') return false;
   if (s === '1') return true;
   return live;
+}
+
+/**
+ * V-SW-20: hours in which the wave model has no water at the spot's cell are not classified ("keine Daten", reason
+ * "Wasser an der Modellzelle fehlt") — on by default; `?seadry=0` = the classes as before (the display still says
+ * "kein Seegang" instead of "0,0 m").
+ */
+export function seaDryRuleFrom(search: string = typeof location !== 'undefined' ? location.search : ''): boolean {
+  try { return new URLSearchParams(search).get('seadry') !== '0'; } catch { return true; }
 }
 
 /** Remembers an explicit `?sea=0|1` for the session's later navigations (the query is gone after the first click). */

@@ -106,8 +106,10 @@ add('S3 Katalog: doppelte Kennung, kein Slug, außerhalb CWAM, Zelle > 3 km, Ufe
   cp.join(' | '));
 
 // --- F: flag ----------------------------------------------------------------------------------------------
-add('F1 Phasen-Flag: SEA_LIVE aus; ?sea=1 an; ?sea=0 schlägt localStorage „1“; localStorage „1“ ohne Query an',
-  SEA_LIVE === false && seaFlagFrom('', null) === false && seaFlagFrom('?sea=1', null) === true && seaFlagFrom('?sea=0', '1') === false && seaFlagFrom('', '1') === true, '');
+add('F1 Flag ?sea: Voreinstellung = SEA_LIVE, ?sea=1 an, ?sea=0 schlägt localStorage und SEA_LIVE; localStorage „1“ ohne Query an',
+  seaFlagFrom('', null, false) === false && seaFlagFrom('', null, true) === true && seaFlagFrom('?sea=1', null, false) === true
+  && seaFlagFrom('?sea=0', '1', true) === false && seaFlagFrom('', '0', true) === false && seaFlagFrom('', '1', false) === true, '');
+add('F1b SEA_LIVE an (Jan 10.10.: „in main freischalten“) — ohne Parameter sichtbar', SEA_LIVE === true && seaFlagFrom('', null) === true, '');
 
 const passed = checks.filter((x) => x.ok).length;
 const failed = checks.length - passed;

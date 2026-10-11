@@ -143,7 +143,7 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'fire', label: 'Waldbrand DACH', icon: <IconRailFire /> },
   // Phase AW: sichtbar nach `ROAD_LIVE` (seit 03.10. an), `?road=0` blendet aus (`src/road/roadFlag.ts`); auf der eigenen Seite immer.
   { id: 'road', label: 'Autobahnwetter', icon: <IconRailRoad /> },
-  // Phase SW: nur mit `?sea=1` bis Gate C (`SEA_LIVE`, `src/sea/seaFlag.ts`); auf der eigenen Seite immer.
+  // Phase SW: sichtbar nach `SEA_LIVE` (seit 10.10. an), `?sea=0` blendet aus (`src/sea/seaFlag.ts`); auf der eigenen Seite immer.
   { id: 'sea', label: 'Seewetter', icon: <IconRailSea /> },
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];

@@ -10,14 +10,16 @@ import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
 import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
 import { fmtWind, unitLabel, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
-import { WindChart, SeaStateChart, type SeaChartHour } from './SeaCharts';
-import { BFT_ROWS, CLASS_COLOR, CLASS_LABEL, compass16, dateTime, dayDate, f1, hm, hh, utcHm, dayShort } from './seaView';
+import { WindChart, SeaStateChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
+import { BFT_ROWS, CLASS_COLOR, CLASS_LABEL, DRY_VALUE, compass16, dateTime, dayDate, dryHourText, dryNote, f1, hm, hh, utcHm, dayShort } from './seaView';
 import type { SeaTab } from './seaState';
 
 export interface SeaReadoutHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
   hs: number | null; dir: number | null; tm: number | null; ws: number | null; wsDir: number | null; wsPer: number | null; wsPeak: number | null;
   sw: number | null; swDir: number | null; swPer: number | null; swPeak: number | null;
+  /** V-SW-20: no sea state at the model cell this hour. */
+  dry: boolean;
 }
 export interface SeaTexts { fq50: SeaTextDoc | null; fq51: SeaTextDoc | null; wodl: SeaTextDoc | null; fx40: SeaTextDoc | null; stale: Record<string, boolean>; loading: boolean }
 
@@ -37,6 +39,8 @@ interface Props {
   nowMs: number;
   noData: string | null;
   warning: { coast: WodlCoast | null; area: WodlSeaArea | null; status: 'none' | 'unknown'; why: string };
+  /** V-SW-20: hours of the shown axis without sea state at the spot's cell, and whether such hours stay unclassified. */
+  dry: { hours: number; of: number; classed: boolean };
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
@@ -105,8 +109,8 @@ export default function SeaReadout(p: Props) {
                 <div className="sw-hero-big">{h.windMs == null ? '–' : `${fmtWind(h.windMs, p.unit)} ${unitLabel(p.unit)}`}</div>
                 <div className="sw-hero-sub">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` (${Math.round(h.windDir)}°)` : ''} · Böen ${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</div>
                 <div className="sw-eyebrow sw-gap">Seegang · Modell CWAM</div>
-                <div className="sw-hero-mid">{h.hs == null ? '–' : `${f1(h.hs)} m`}</div>
-                <div className="sw-hero-sub">{h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</div>
+                <div className={`sw-hero-mid${h.dry ? ' is-dry' : ''}`}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : `${f1(h.hs)} m`}</div>
+                <div className="sw-hero-sub">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</div>
               </div>
               <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
                 label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
@@ -118,12 +122,14 @@ export default function SeaReadout(p: Props) {
               </div>
             )}
             <div className="sw-vals">
-              <div><span>Windsee · Modell</span><strong>{h.ws == null ? '–' : `${f1(h.ws)} m · ${h.wsPer == null ? '–' : `${f1(h.wsPer)} s`}`}</strong></div>
-              <div><span>Dünung · Modell</span><strong>{h.sw == null ? '–' : `${f1(h.sw)} m · ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} aus ${compass16(h.swDir)}`}</strong></div>
+              <div><span>Windsee · Modell</span><strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m · ${h.wsPer == null ? '–' : `${f1(h.wsPer)} s`}`}</strong></div>
+              <div><span>Dünung · Modell</span><strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m · ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} aus ${compass16(h.swDir)}`}</strong></div>
               <div><span>Wellenrichtung · Modell</span><strong>{h.hs == null || h.hs < 0.05 ? '–' : `aus ${compass16(h.dir)} (${Math.round(h.dir ?? 0)}°)`}</strong></div>
               <div><span>Wasser · Mittelfrist (amtlich)</span><strong>{waterText(p.texts, s)}</strong></div>
             </div>
-            {s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe, der Wasserstand selbst wird hier nicht gezeigt (BSH-Vorhersage gesperrt). Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
+            {p.dry.hours > 0
+              ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
+              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe, der Wasserstand selbst wird hier nicht gezeigt (BSH-Vorhersage gesperrt). Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
           </>
         )}
       </Card>
@@ -146,6 +152,7 @@ export default function SeaReadout(p: Props) {
           <div className="sw-chart-legend">
             <span><i style={{ background: '#2C2A26' }} />Wind (kn)</span><span><i style={{ background: 'rgba(139,115,85,0.4)', height: 6 }} />Böen-Band</span>
             <span><i style={{ background: '#0F6E7A' }} />Seegang gesamt</span><span><i style={{ background: '#3E9284' }} />Windsee</span><span><i style={{ background: '#7A9466' }} />Dünung (m)</span>
+            {p.dry.hours > 0 && <span><i style={{ background: DRY_COLOUR, height: 5 }} />Modellzelle ohne Wasser</span>}
           </div>
         </Card>
       )}

@@ -10,11 +10,13 @@
  */
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { fmtWind, unitLabel, type SeaClass, type SeaUnit } from './seaProfiles';
-import { CLASS_COLOR, CLASS_SHORT, berlinHour, dayShort, f1, hh, tzLabel } from './seaView';
+import { CLASS_COLOR, CLASS_SHORT, DRY_GLYPH, DRY_VALUE, berlinHour, dayShort, f1, hh, tzLabel } from './seaView';
 
 export interface SeaBandHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
   hs: number | null; dir: number | null; tm: number | null; cls: SeaClass; reason: string; daylight: boolean;
+  /** V-SW-20: no sea state at the model cell this hour (shown as ∅, never as 0,0). */
+  dry?: boolean;
 }
 
 interface Props {
@@ -90,7 +92,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
             </tr>
             <tr className="is-mid">
               <th scope="row" className="sw-band-lab">Welle m</th>
-              {hours.map((h, i) => <td key={h.t} className={cls(h, i)}>{h.hs == null ? '–' : f1(h.hs)}</td>)}
+              {hours.map((h, i) => <td key={h.t} className={cls(h, i)}>{h.dry ? <span className="sw-band-dry" title={`${DRY_VALUE}: Modellzelle ohne Wasser`}><span aria-hidden="true">{DRY_GLYPH}</span><span className="sw-sr">{DRY_VALUE}</span></span> : h.hs == null ? '–' : f1(h.hs)}</td>)}
             </tr>
             <tr className="is-soft">
               <th scope="row" className="sw-band-lab">Periode s</th>
@@ -116,6 +118,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
       <div className="sw-band-foot">
         <span>Pfeile zeigen, wohin Wind und Wellen laufen</span>
         <span>dunkler Grund = Nacht</span>
+        {hours.some((h) => h.dry) && <span className="sw-band-foot-dry">{DRY_GLYPH} = Modellzelle ohne Wasser, {DRY_VALUE}</span>}
         <span className="sw-band-foot-note">{footnote}</span>
       </div>
     </section>

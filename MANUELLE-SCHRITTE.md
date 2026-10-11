@@ -1819,7 +1819,8 @@ V-SW-15 `04bf787`, V-SW-14 `d5ccd06`), nicht gepusht. Daten- und Archiv-Repo unb
    DLM-Küste p50 19 → 13°, p90 79 → 41°, > 45° 8 → 4 (verbleibend genau die (c)-Liste). Damit gilt Punkt 1 „kein neuer Katalog“
    NICHT mehr: **Kopie von `scripts/lib/fixtures/sea/static/spots.json` nach `buscosun-data/sea/v1/static/spots.json`**
    (`areas.json` unverändert), danach Push des Daten-Repos — wirksam ab dem nächsten Seitenaufruf, die Wind-Auffrischung rechnet ab
-   dem nächsten `sea.yml`-Lauf an den neuen Lagen. Offen bleiben (a) DLM-Normale für die 34 Spots ≤ 0,2 km an der Küste und (c).
+   dem nächsten `sea.yml`-Lauf an den neuen Lagen. **Überholt durch §65 (11.10.): `spot-geo.json` gehört dazu, und der Katalog
+   trägt inzwischen auch die drei Zellen aus V-SW-20.** Offen bleiben (a) DLM-Normale für die 34 Spots ≤ 0,2 km an der Küste und (c).
 
 ## 49. Niederschlagssummen im Regenradar (Phase NS), Diagnose, 2026-10-08
 
@@ -2319,3 +2320,119 @@ Was nur du tun kannst:
 - `?obsvar=0` — der Leser vor V-AF-9 (nur die Werte am Stationsstempel), byte-gleich.
 - `?dense=0` — buscosun Fusion 11 (sechs volle Stationen, liest ebenfalls je Größe).
 - `?obs=direct` — Messungen von den Anbietern (BrightSky, TAWES, SMN) wie vor Phase OF.
+
+## 63. Seewetter für alle eingeschaltet (`SEA_LIVE`), Kachel 12 — und V-SW-18: kein Wind seit dem 07.10., 2026-10-10
+
+Belege: `audit/seewetter.md` §14 (Befund, Ursache, Umsetzung, Gates, Lücken). **Jan 10.10. abends: „ja setze beides um“** —
+Schritt 1 erledigt (`buscosun-data` `cd9e29f`, 20:28 UTC), Indexierung umgesetzt (E-SW-32), **Schritt 3 erledigt: `main` von Jan
+gepusht (`4a6d2b9`, 20:42 UTC), Produktion geprüft**; **Schritt 2 erledigt 10.10. 23:19 UTC: die erste Auffrischung mit dem
+neuen Workflow trägt Wind an 56 von 56 Spots (je 68 Stunden, „buscosun Fusion 12“), die Live-Seite zeigt ihn (§14.5 Nachtrag
+im Audit).** Offen aus diesem Abschnitt nur noch §63.2. Das Edge-Bündel (`6511575`) liegt auf `origin/main`; lokal liegt nur noch der
+Doku-Commit mit diesem Nachtrag — geht mit deinem nächsten Push mit, keine Eile.
+
+### 63.1 Reihenfolge (der Wind zuerst)
+
+1. **Workflow kopieren:** `buscosun-web/scripts/sea/workflow-sea.yml` → `buscosun-data/.github/workflows/sea.yml` (eine Zeile
+   anders: `public/climaGrid.json` in der Sparse-Liste des Producers, dazu ein Kommentar) und pushen. Ohne diese Kopie rechnet
+   buscosun Fusion im Job keinen Wind — seit dem 07.10. 16:24 UTC stand an keinem der 56 Spots ein Wert.
+2. **Prüfen** nach dem nächsten Wind-Durchlauf (alle 3 h mit dem neuen t1-Würfel, sonst mit dem CWAM-Lauf gegen 04:25 / 16:25
+   UTC): `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` → `wind.path`; in dieser Datei
+   tragen die Reihen `wind` ab der Rechenstunde Zahlen statt `null`, `wind.engine` nennt „buscosun Fusion 12“.
+3. **Dann `buscosun-web/main` pushen** (schaltet die Seite für alle ein). Wird zuerst gepusht, ist die Seite ohne Wind live und
+   der Job `sea` im Daten-Repo ab dem nächsten Lauf rot („Klimatologie von buscosun Fusion fehlt …“) — gewollt statt still leer.
+
+### 63.2 Danach
+
+- ~~`npm run edge:share`~~ **erledigt 10.10.** (Jan: „setze das noch um“; Bündel +17 Zeilen = der Routeneintrag, `verify:share`
+  528/528; wirksam mit dem nächsten Push). Berichtigt: an der Link-Vorschau ändert das nichts — `og-meta` läuft auf
+  `/seewetter` nicht; geteilte Links zeigen Titel/Beschreibung der Route mit dem allgemeinen Bild `og/home.png`. Eigene
+  Karte oder Vorschau je Spot = eigener Schritt (V-SW-5).
+- Katalog mit den 12 gezogenen Lagen ins Daten-Repo — live liegt noch der alte. **Jetzt §65** (zwei Dateien, nicht eine).
+- **Gate D zählt neu:** 14 Tage ab dem ersten Lauf mit Wind (10.10. 23:19 UTC ⇒ frühestens 24.10.), dann `sea-gate-d.mjs` (§44 Punkt 6).
+- **E-SW-32 Indexieren: erledigt** (Jan 10.10.) — `/seewetter` in der Sitemap, Spot-Pfade mit Canonical auf die Route. Nach dem
+  Deploy in der Search Console die Sitemap neu einreichen, wenn es schnell gehen soll; `llms.txt` um Seewetter ergänzen (SEO-Linie).
+- ~~Ansehen: V-SW-20~~ **umgesetzt 11.10. (§65)**; Real-Device bleibt.
+
+### 63.3 Rückwege
+
+- `SEA_LIVE = false` + Push — wieder nur mit `?sea=1`.
+- `?sea=0` je Besucher; `SEA_KILL=1` als Repo-Variable im Daten-Repo (Seite zeigt „Keine Daten“).
+
+## 64. `build`-Job im Daten-Repo scheitert im Publish (V-BW-58, `audit/bandbreite.md` §33), 2026-10-11
+
+Gebaut und lokal geprüft, **uncommitted**: `scripts/publish-repack.mjs`, `scripts/verify-repack-publish.mjs` (neu),
+`scripts/verify-repack.mjs` (eine Text-Prüfung), `package.json` (Alias `verify:repack-publish`). Die Mails hören erst auf, wenn
+der Stand auf `main` liegt — der Workflow klont den Producer bei jedem Lauf aus `buscosun-web/main`.
+
+### 64.1 Deine Schritte
+
+1. Commit + Push von `buscosun-web/main` (nur diese vier Dateien plus Doku; im Arbeitsbaum liegen daneben die offenen Änderungen
+   der Seewetter-Sitzung). **Keine** Kopie ins Daten-Repo: die Workflow-Datei `build.yml` ist unverändert.
+2. Abnahme am nächsten `build`-Lauf (Slots `20 0,3,…,21` und `30 2,5,…,23` UTC, GitHub startet 7–31 min später): im Schritt
+   „Publish“ steht `Abgelegt → … (main = …, Versuch n/8)`. Steht dort `Versuch 2/8` oder höher, ist ein fremder Push
+   dazwischengekommen und abgefangen worden — das ist der Normalfall, kein Fehler.
+3. Danach `https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/index.json`: `runs[0].run` ist der jüngste ICON-D2-Lauf.
+
+### 64.2 Rückweg
+
+Den Commit zurücknehmen (`git revert`) und pushen — dann gilt wieder der Publisher von heute (einmal `--force`). Ein gescheiterter
+Publish ersetzt in beiden Fassungen nichts im Daten-Repo.
+
+### 64.3 Ansehen
+
+- V-BW-62: `verify:repack` schickt lokal echte Purges an jsDelivr, solange `REPACK_NO_PURGE=1` nicht gesetzt ist.
+- V-BW-63: Wächter für das Alter des jüngsten ICON-D2-Laufs (15z, 18z und 00z vom 10./11.10. fehlen im Daten-Repo).
+
+## 65. Seewetter — V-SW-20 („0,0 m“ an Watt-Spots) umgesetzt, V-SW-21 (Katalog ins Daten-Repo) eingespielt, 2026-10-11
+
+Belege: `audit/seewetter.md` §15. Der Code von V-SW-20 liegt seit 11.10. 08:43 UTC auf `origin/main` (`1798fc5`, zusammen mit
+der Bandbreiten-Sitzung committet); lokal offen sind nur noch Doku-Commits, die Datei `scripts/lib/fixtures/sea/static/spot-geo.json`
+und die angehobene Budget-Grenze (`budget.json`: totalJs 1 715 → 1 720, auf dein Wort vom 11.10.).
+
+### 65.1 Katalog im Daten-Repo (V-SW-21) — erledigt 11.10. 10:00 UTC, offen nur der Purge
+
+**Erledigt** auf dein Wort („pushe ins Daten-Repo“): beide Dateien als EIN Commit in `buscosun-data` (`32db40c`), ohne Force,
+Prüfsummen am Commit gegengelesen. Die erste Wind-Auffrischung danach ist grün (11:18 UTC: `wind.t1 = 2026101109`, 56 Spots,
+0 verworfen). Die Schritte darunter bleiben als Beleg stehen, wie die Kopie gebaut ist.
+
+**Ansehen nach ≈ 16:30 UTC (freiwillig):** `status.json` → `field.lastPublishedRun = 2026101112` — erster Wellenlauf an den 8
+neuen Zellen; Schillig, Dangast und Cuxhaven-Duhnen sollten dann deutlich weniger Stunden „kein Seegang“ zeigen.
+
+**Dein Schritt (freiwillig, beschleunigt nur):** Purge der zwei Pfade am CDN — sonst kommt der neue Katalog je Knoten binnen
+12 h an, in einem Browser mit altem Cache-Eintrag erst nach bis zu 7 Tagen (V-SW-28, gemessen):
+
+- `https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/sea/v1/static/spots.json`
+- `https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/sea/v1/static/spot-geo.json` (liest nur der Producer aus dem Klon —
+  der Purge ist hier ohne Wirkung auf die Seite, der Vollständigkeit halber)
+
+Ursprünglicher Text: Der erste Push-Versuch wurde in der Sitzung von der Berechtigungsprüfung abgelehnt. **Beide** Dateien
+in EINEM Commit (der Katalog verschiebt an 8 Spots die Wasserzelle, `spot-geo.json` trägt das Gelände dieser Zellen):
+
+1. `buscosun-web/scripts/lib/fixtures/sea/static/spots.json` → `buscosun-data/sea/v1/static/spots.json`
+   (sha256 `32446b5d153c6ed9ba4b13823a70dc8f591bff85383248544e2a3aa0fcca5d90`)
+2. `buscosun-web/scripts/lib/fixtures/sea/static/spot-geo.json` → `buscosun-data/sea/v1/static/spot-geo.json`
+   (sha256 `471b44d4969fab14233b47acfec739a838f46d6ed3fe1666b0a75cf107116165`)
+3. Commit, Push ohne Force. `areas.json` und `mask-cwam.hash` bleiben. Die Prüfsummen gelten für den Inhalt mit LF-Zeilenende
+   (`git show HEAD:<pfad> | sha256sum`); ein angehängtes CR aus einem Windows-Checkout stört das JSON nicht. Im Klon vorher `git config core.autocrlf false`, sonst
+   hängt Git beim Auschecken ein CR an die einzeiligen JSON-Dateien.
+
+**Wirkung:** die Seite zeigt ab dem nächsten Aufruf die 12 gezogenen Lagen und Ufernormalen; die Wind-Auffrischung rechnet ab
+dem nächsten neuen t1-Würfel an den neuen Zellen; die Wellenreihen folgen mit dem nächsten CWAM-Lauf (gegen 04:25 / 16:25 UTC) —
+bis dahin stehen an 8 Spots noch die Reihen der alten Zelle (0,5–2 km daneben). Schillig, Dangast und Cuxhaven-Duhnen lesen dann
+eine Zelle, die bei Hochwasser nass ist (25–46 % statt 86–92 % der Stunden ohne Seegang).
+
+**Prüfen danach:** `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/static/spots.json` → `from.dry` nennt
+`cwam-dry-2026101100.json`; im Job `sea` bleibt der Schritt mit der Wind-Auffrischung grün und `status.json` → `wind.spots` 56.
+
+**Rückweg:** den Commit im Daten-Repo zurücknehmen (`git revert`), Push.
+
+### 65.2 Ansehen (V-SW-20, schon live)
+
+- `/seewetter` → St. Peter-Ording: im Stundenband ∅ statt „0,0“ im Tidetakt, „kein Seegang“ im Readout, darunter der Hinweis
+  „Watt: … in n der nächsten m Stunden …“. Am Telefon: Satz im Spot-Briefing.
+- **Neue Regel der Einordnung (an):** eine Stunde ohne Wasser an der Modellzelle ist „keine Daten · Wasser an der Modellzelle
+  fehlt“ und trägt kein Fenster. Am Lauf vom 07.10. waren vorher 1 142 solche Stunden×Profile „passt“ oder „knapp“. Rückfall je
+  Aufruf: `?seadry=0`. Wenn dir „keine Daten“ dafür zu schwach oder zu stark ist (Alternative: „außerhalb“), sag es — eine Zeile.
+- Offen: V-SW-22 (echte 1–4 cm stehen weiter als „0,0 m“), V-SW-23 (Kartenfeld malt trockene Zellen wie 0 m), V-SW-25 (Ostsee:
+  Ursache des Zustands nicht belegt), V-SW-28 (Katalog unter festem `@main`-Pfad: Browser-Cache 7 Tage — Katalog am Commit
+  lesen). V-SW-27 erledigt (totalJs-Grenze 1 720).

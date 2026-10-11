@@ -1009,7 +1009,9 @@ if (hsurfGreys.length >= 2) {
     }
     // Der Publisher purgt NACH dem Push und prüft die Frische nach (kein Purge = 12 h alter Index).
     const pub = rf('scripts/publish-repack.mjs', 'utf8');
-    const iPush = pub.indexOf("'--force', 'origin', 'HEAD:main'");
+    // V-BW-58: der Push ist seit 2026-10-11 ein `--force-with-lease` auf den gelesenen Stand von main
+    // (verify:repack-publish prüft das Verhalten; hier nur die Reihenfolge Push → Purge).
+    const iPush = pub.indexOf("`--force-with-lease=refs/heads/main:${base ?? ''}`, 'origin'");
     const iPurge = pub.indexOf('purgeIndexUntilFresh(');
     add('Publisher purgt den CDN-Index NACH dem Force-Push und prüft nach',
       iPush > 0 && iPurge > iPush, `push@${iPush} < purge@${iPurge}`);
