@@ -15,7 +15,11 @@
  * Betriebskilometer, which restarts per state). Stations of that motorway within 2 km are projected onto it.
  *
  *   node scripts/road/build-corridors.mjs --stations=<static/stations.json> --obs=<obs/<slot>.json> --out=<corridors.json>
- *     [--cache=<dir>] [--roads=A8,A93]
+ *     [--cache=<dir>] [--roads=A8,A93] [--osm=<Overpass cache>] [--gapless [--pin=<published corridors.json>]]
+ *
+ * Phase AF-2 (`audit/autobahn-fusion12-lueckenlos.md`), `--gapless`: every stretch of main carriageway in service gets a
+ * corridor, with or without a station — see `gapSections`. `--pin` takes the published corridors over unchanged and
+ * numbers the new sections behind them. Without `--gapless` the build is the one before, byte for byte.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -34,6 +38,22 @@ export const SPUR_MIN_KM = 2;
 /** V-AW-22 (`set`): no OSM carriageway of the motorway's number within `UNBUILT_MAX_M` for this long and no station on it
  *  ⇒ not built (yet); sampled every `UNBUILT_STEP_KM`. */
 export const UNBUILT_MIN_KM = 5, UNBUILT_STEP_KM = 0.5, UNBUILT_MAX_M = 300;
+/**
+ * AF-2 (`set`). A stretch of main carriageway farther than `GAPLESS_COVER_KM` from every corridor of its number becomes a
+ * section of its own from `GAPLESS_MIN_KM` (below it come fragments at junctions); a motorway that would have no
+ * corridor at all gets its longest stretch from `GAPLESS_ONLY_MIN_KM` (A 831: 1,9 km). Stretches are joined across
+ * breaks of the axis up to `GAPLESS_JOIN_KM` — far less than `GAP_KM`, so a stub beside the road never becomes a
+ * corner of it. A new section starts up to `GAPLESS_ATTACH_KM` inside the covered ground (no hole in the drawn line).
+ * With the OSM test, a section with no carriageway of its number on `GAPLESS_UNBUILT_SHARE` of its length or more is
+ * not built.
+ */
+export const GAPLESS_MIN_KM = 2, GAPLESS_ONLY_MIN_KM = 0.5, GAPLESS_COVER_KM = 0.3, GAPLESS_JOIN_KM = 0.5, GAPLESS_ATTACH_KM = 0.3, GAPLESS_UNBUILT_SHARE = 0.5;
+/** Vertex spacing of the axis while it is clipped and cleaned (`set`): the loop removal needs vertices closer than `LOOP_NEAR_KM`. */
+const GAPLESS_STEP_KM = 0.05;
+/** DLM250 `zus` (Zustand): 2100 = außer Betrieb/stillgelegt, 4000 = im Bau. */
+export const AXIS_NOT_IN_SERVICE = Object.freeze([2100, 4000]);
+/** DLM250 `bemerkung` of a ramp (7 952 of 22 161 motorway features, 04.10.2026). */
+export const AXIS_RAMP_NOTE = 'Auffahrt/Abfahrt';
 
 const kmBetween = (a, b) => {
   const kx = 111.2 * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180);
@@ -59,6 +79,13 @@ export async function fetchMotorwayAxes(cacheFile) {
 
 /** Road numbers a feature carries (`bez` "A8" or "A8;A93"). */
 export const roadsOf = (f) => String(f.properties?.bez ?? '').split(/[#;,/ ]+/).map((s) => s.trim().toUpperCase()).filter((s) => /^A\d{1,3}$/.test(s));
+
+/** Road numbers with the letter suffix the DLM250 carries (`A64a` → `A64A`) — the gapless build and its gate. */
+export const axisRoadsOf = (f) => String(f.properties?.bez ?? '').split(/[#;,/ ]+/).map((s) => s.trim().toUpperCase()).filter((s) => /^A\d{1,3}[A-Z]?$/.test(s));
+export const axisIsRamp = (f) => f.properties?.bemerkung === AXIS_RAMP_NOTE;
+export const axisInService = (f) => !AXIS_NOT_IN_SERVICE.includes(Number(f.properties?.zus));
+/** „A 8“, „A 64a“. */
+const shieldOf = (road) => road.replace(/^A(\d+)([A-Z]?)$/, (_, n, l) => `A ${n}${l.toLowerCase()}`);
 
 function lines(f) {
   const g = f.geometry;
@@ -99,7 +126,7 @@ export function chain(segments) {
 const lengthKm = (c) => { let s = 0; for (let i = 1; i < c.length; i++) s += kmBetween(c[i - 1], c[i]); return s; };
 
 /** Chains → sections: the longest chain grows by chains whose end lies within GAP_KM of its ends. */
-export function sections(chains) {
+export function sections(chains, minKm = 5, gapKm = GAP_KM) {
   const left = chains.slice().sort((a, b) => lengthKm(b) - lengthKm(a));
   const out = [];
   while (left.length) {
@@ -116,14 +143,14 @@ export function sections(chains) {
           [kmBetween(c[0], s.at(-1)), () => s.concat(c)],
           [kmBetween(c[0], s[0]), () => s.slice().reverse().concat(c)],
         ];
-        for (const [d, f] of opts) if (d <= GAP_KM && (!best || d < best.d)) best = { d, f, i };
+        for (const [d, f] of opts) if (d <= gapKm && (!best || d < best.d)) best = { d, f, i };
       }
       if (best) { c = best.f(); left.splice(best.i, 1); grew = true; }
     }
     out.push(c);
   }
   // Short leftovers (ramps, junction stubs) are not corridors.
-  return out.filter((c) => lengthKm(c) >= 5);
+  return out.filter((c) => lengthKm(c) >= minKm);
 }
 
 /**
@@ -265,24 +292,47 @@ function borderAt(end, deRings, places) {
 /**
  * `spurs` (V-AW-16) and `isBuilt(p, road)` (V-AW-22, OSM carriageway test) are off when not given: the result is then
  * byte-equal to the build before (verify:road-contract K6).
+ *
+ * `gapless` (AF-2): after the corridors of a motorway, the stretches of its main carriageway that none of them covers
+ * become sections of their own (`gapSections`), numbered behind the existing ones; `gap: true` marks a section without
+ * a station. `pin` (only with `gapless`): the corridors of a published file — they ARE the corridors of their
+ * motorways, taken over unchanged (identifier, line, km and stations are in shared links, in `where.json`, in the points
+ * file and in the archive); nothing of them is rebuilt. `report` (optional object) receives what did not become a
+ * section: `rest` (too short), `skipped` (no carriageway), `rampOnly` (numbers that exist only as ramps) and
+ * `unassigned` (stations on a pinned corridor that does not list them).
  */
-export function buildCorridors({ axes, stations, obsPoints, places, deRings, roads, spurs = false, isBuilt = null }) {
+export function buildCorridors({ axes, stations, obsPoints, places, deRings, roads, spurs = false, isBuilt = null, gapless = false, pin = null, report = null }) {
   const byRoad = new Map();
   for (const f of axes.features) for (const r of roadsOf(f)) {
     if (roads && !roads.includes(r)) continue;
     if (!byRoad.has(r)) byRoad.set(r, []);
     byRoad.get(r).push(...lines(f));
   }
+  // AF-2: the material of the new sections — main carriageway in service, never a ramp.
+  const mainByRoad = new Map(), rampRoads = new Set();
+  if (gapless) for (const f of axes.features) for (const r of axisRoadsOf(f)) {
+    if (roads && !roads.includes(r)) continue;
+    if (axisIsRamp(f)) { rampRoads.add(r); continue; }
+    if (!axisInService(f)) continue;
+    if (!mainByRoad.has(r)) mainByRoad.set(r, []);
+    mainByRoad.get(r).push(...lines(f));
+  }
+  const pinned = gapless && pin ? pin : null;
+  if (report) Object.assign(report, { rest: [], skipped: [], rampOnly: [], unassigned: [] });
   // Station positions: bulletin positions from a recent slot win over the 2020 catalogue (AW-0: p99 10 km apart).
   const pos = new Map();
   for (const [id, s] of Object.entries(stations ?? {})) if (s.lat != null && s.lon != null && s.kind === 'A') pos.set(id, { lon: s.lon, lat: s.lat, road: s.road, dir: s.dir, n: s.n });
   for (const p of obsPoints ?? []) if (p.kind === 'A' && p.road) pos.set(p.id, { lon: p.lon, lat: p.lat, road: p.road, dir: p.dir ?? pos.get(p.id)?.dir ?? null, n: p.n });
 
   const corridors = [];
-  const num = (r) => Number(r.slice(1));
-  for (const road of [...byRoad.keys()].sort((a, b) => num(a) - num(b))) {
+  const num = (r) => parseInt(r.slice(1), 10);
+  const roadList = new Set(byRoad.keys());
+  if (gapless) { for (const r of mainByRoad.keys()) roadList.add(r); for (const c of pinned ?? []) if (!roads || roads.includes(c.road)) roadList.add(c.road); }
+  for (const road of [...roadList].sort((a, b) => num(a) - num(b) || (a < b ? -1 : a > b ? 1 : 0))) {
     const cuts = [];
-    const secs = sections(chain(byRoad.get(road))).map((c) => simplify(removeLoops(c, LOOP_NEAR_KM, LOOP_MIN_KM, spurs ? cuts : null)));
+    // The corridors of this motorway before the gap sections: the pinned ones, else the build as before.
+    const own = pinned ? pinned.filter((c) => c.road === road) : [];
+    const secs = pinned ? [] : sections(chain(byRoad.get(road) ?? [])).map((c) => simplify(removeLoops(c, LOOP_NEAR_KM, LOOP_MIN_KM, spurs ? cuts : null)));
     const built = [];
     const stationsOn = (line, cum, ok) => {
       const st = [];
@@ -335,9 +385,9 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
       const seen = new Set();
       const townsOut = towns.sort((x, y) => x[0] - y[0]).filter((t) => (seen.has(t[1]) ? false : (seen.add(t[1]), true)));
       return {
-        id: '', road, shields: [road.replace(/^A/, 'A ')],
+        id: '', road, shields: [shieldOf(road)],
         // Loop or short section with both ends at the same town: „A 1 bei Buchholz" instead of „Buchholz → Buchholz".
-        title: a && b ? (a[2] === b[2] ? `${road.replace(/^A/, 'A ')} bei ${a[2]}` : `${a[2]} → ${b[2]}`) : road,
+        title: a && b ? (a[2] === b[2] ? `${shieldOf(road)} bei ${a[2]}` : `${a[2]} → ${b[2]}`) : road,
         from: a?.[2] ?? null, to: b?.[2] ?? null,
         lengthKm: Math.round(len * 10) / 10,
         countries: ['DE'],
@@ -358,10 +408,10 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
     // Only sections with at least one station are corridors; ids by station count (`a8` = the busiest section,
     // then `a8-2`, …) so `/autobahnwetter/a8` opens the section with the most measurements.
     const regular = built.filter((c) => c.stations.length > 0).sort((x, y) => y.stations.length - x.stations.length || y.lengthKm - x.lengthKm);
-    regular.forEach((c, i) => { c.id = `${road.toLowerCase()}${i ? `-${i + 1}` : ''}`; corridors.push(c); });
+    regular.forEach((c, i) => { c.id = `${road.toLowerCase()}${i ? `-${i + 1}` : ''}`; own.push(c); });
     // V-AW-16: spurs the loop removal cut away (≥ SPUR_MIN_KM) become sections of their own when a station of this
     // motorway that no regular section took lies on one. Numbered AFTER the regular sections: their ids stay stable.
-    if (spurs) {
+    if (spurs && !pinned) {
       const taken = new Set(regular.flatMap((c) => c.stations.map((s) => s.id)));
       const byPiece = new Map();
       for (const [sid, s] of pos) {
@@ -380,11 +430,139 @@ export function buildCorridors({ axes, stations, obsPoints, places, deRings, roa
       [...byPiece.values()].map(({ line, ids }) => make(line, (sid) => ids.has(sid), { spur: true }))
         .filter((c) => c.stations.length > 0)
         .sort((x, y) => y.stations.length - x.stations.length || y.lengthKm - x.lengthKm)
-        .forEach((c, i) => { c.id = `${road.toLowerCase()}-${regular.length + i + 1}`; corridors.push(c); });
+        .forEach((c, i) => { c.id = `${road.toLowerCase()}-${regular.length + i + 1}`; own.push(c); });
     }
+    corridors.push(...own);
+    if (gapless) corridors.push(...gapSections({ road, own, segments: mainByRoad.get(road) ?? [], pos, make, isBuilt, report }));
   }
+  if (report) report.rampOnly = [...rampRoads].filter((r) => !mainByRoad.has(r) && !corridors.some((c) => c.road === r)).sort((a, b) => num(a) - num(b));
   return corridors;
 }
+
+/** Points every `GAPLESS_STEP_KM` along a chain (its vertices stay). */
+function densify(c) {
+  const out = [c[0]];
+  for (let i = 1; i < c.length; i++) {
+    const n = Math.max(1, Math.ceil(kmBetween(c[i - 1], c[i]) / GAPLESS_STEP_KM));
+    for (let k = 1; k <= n; k++) out.push(k === n ? c[i] : [c[i - 1][0] + (c[i][0] - c[i - 1][0]) * k / n, c[i - 1][1] + (c[i][1] - c[i - 1][1]) * k / n]);
+  }
+  return out;
+}
+
+/** Segments of lines in cells of 0,01° — `dist(p)` is exact up to ≈ 0,65 km (three cells), `Infinity` beyond. */
+function lineGrid() {
+  const CELL = 0.01, cells = new Map();
+  return {
+    add(line) {
+      for (let i = 1; i < line.length; i++) {
+        const a = line[i - 1], b = line[i], seg = [a, b];
+        const x0 = Math.floor(Math.min(a[0], b[0]) / CELL), x1 = Math.floor(Math.max(a[0], b[0]) / CELL);
+        const y0 = Math.floor(Math.min(a[1], b[1]) / CELL), y1 = Math.floor(Math.max(a[1], b[1]) / CELL);
+        for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+          const k = `${x}:${y}`;
+          if (!cells.has(k)) cells.set(k, []);
+          cells.get(k).push(seg);
+        }
+      }
+    },
+    dist(p) {
+      const cx = Math.floor(p[0] / CELL), cy = Math.floor(p[1] / CELL);
+      let best = Infinity;
+      for (let x = cx - 1; x <= cx + 1; x++) for (let y = cy - 1; y <= cy + 1; y++) for (const [a, b] of cells.get(`${x}:${y}`) ?? []) {
+        const d = distToSegKm(p, a, b).d;
+        if (d < best) best = d;
+      }
+      return best;
+    },
+  };
+}
+
+/** The parts of chain `c` farther than `GAPLESS_COVER_KM` from the lines in `grid`, each with up to `GAPLESS_ATTACH_KM` of covered lead-in and run-out
+ *  (never the open ground of the neighbouring part: two parts must not contain each other, or clipping them again never ends). */
+function openRuns(c, grid) {
+  const open = c.map((p) => grid.dist(p) > GAPLESS_COVER_KM);
+  const runs = [];
+  for (let i = 0; i < c.length; i++) {
+    if (!open[i]) continue;
+    let j = i;
+    while (j + 1 < c.length && open[j + 1]) j++;
+    let a = i, b = j;
+    for (let d = 0; a > 0 && !open[a - 1] && (d += kmBetween(c[a - 1], c[a])) <= GAPLESS_ATTACH_KM + 1e-9;) a--;
+    for (let d = 0; b + 1 < c.length && !open[b + 1] && (d += kmBetween(c[b], c[b + 1])) <= GAPLESS_ATTACH_KM + 1e-9;) b++;
+    if (b > a) runs.push(c.slice(a, b + 1));
+    i = j;
+  }
+  return runs;
+}
+
+/**
+ * AF-2: the sections of motorway `road` that none of its corridors `own` covers. The longest open stretch first; each
+ * accepted section counts as covered ground for the next ones (a parallel line or a stretch cut out of a loop never
+ * doubles one). A station no corridor lists goes to the new section it lies nearest to — unless a corridor of `own` is
+ * nearer still: then it stays unassigned and is named. Ids continue behind the highest index of `own`: by station
+ * count, then length.
+ */
+function gapSections({ road, own, segments, pos, make, isBuilt, report }) {
+  const grid = lineGrid();
+  for (const c of own) grid.add(c.line);
+  const taken = new Set(own.flatMap((c) => c.stations.map((s) => s.id)));
+  // The queue is sorted after every change — the length of a run is measured once.
+  const lengths = new WeakMap();
+  const lenOf = (c) => { let l = lengths.get(c); if (l == null) { l = lengthKm(c); lengths.set(c, l); } return l; };
+  const byLength = (a, b) => lenOf(b) - lenOf(a);
+  const queue = sections(chain(segments).map(densify).flatMap((c) => openRuns(c, grid)), 0, GAPLESS_JOIN_KM).sort(byLength);
+  const accepted = [], rest = [];
+  /** true = dealt with (a line for a section, or named as skipped); false = too short. */
+  const tryPiece = (line, minKm) => {
+    const len = lengthKm(line);
+    if (len < minKm) return false;
+    if (isBuilt) {
+      const gone = unbuiltRuns(line, len, (p) => isBuilt(p, road)).reduce((s, [a, b]) => s + (b - a), 0);
+      if (gone >= len * GAPLESS_UNBUILT_SHARE) { report?.skipped.push({ road, km: Math.round(len * 10) / 10, why: 'noCarriageway', at: line[0].map((x) => Math.round(x * 1e4) / 1e4) }); return true; }
+    }
+    accepted.push(line);
+    grid.add(line);
+    return true;
+  };
+  for (let guard = 0; queue.length; guard++) {
+    if (guard > 10_000) throw new Error(`gapSections ${road}: the queue does not empty (${queue.length} stretches left)`);
+    const c = queue.shift();
+    // Ground an earlier section took in the meantime is clipped away; what is left queues again.
+    const parts = openRuns(c, grid);
+    if (!(parts.length === 1 && parts[0].length === c.length)) { queue.push(...parts); queue.sort(byLength); continue; }
+    const cuts = [];
+    const line = simplify(removeLoops(c, LOOP_NEAR_KM, LOOP_MIN_KM, cuts));
+    if (cuts.length) { queue.push(...cuts.filter((k) => k.length >= 2)); queue.sort(byLength); }
+    if (!tryPiece(line, GAPLESS_MIN_KM)) rest.push(line);
+  }
+  // A motorway without any corridor gets its longest stretch even below the minimum.
+  if (!own.length && !accepted.length) {
+    rest.sort(byLength);
+    const i = rest.findIndex((l) => tryPiece(l, GAPLESS_ONLY_MIN_KM));
+    if (i >= 0) rest.splice(i, 1);
+  }
+  for (const l of rest) report?.rest.push({ road, km: Math.round(lengthKm(l) * 100) / 100, at: l[0].map((x) => Math.round(x * 1e4) / 1e4) });
+  // Stations: each one no corridor lists goes to the nearest line — a new one takes it, an existing one leaves it named.
+  const all = [...own.map((c) => ({ line: c.line, cum: cumKm(c.line), ids: null })), ...accepted.map((line) => ({ line, cum: cumKm(line), ids: new Set() }))];
+  for (const [sid, s] of pos) {
+    if (s.road !== road || taken.has(sid)) continue;
+    let best = null;
+    for (const l of all) { const off = project(l.line, l.cum, [s.lon, s.lat]).offKm; if (off <= SNAP_KM && (!best || off < best.off)) best = { off, l }; }
+    if (!best) continue;
+    if (best.l.ids) best.l.ids.add(sid); else report?.unassigned.push(sid);
+  }
+  const pieces = all.filter((l) => l.ids).map(({ line, ids }) => {
+    const c = make(line, (sid) => ids.has(sid));
+    if (!c.stations.length) c.gap = true;
+    return c;
+  });
+  const low = road.toLowerCase();
+  let next = Math.max(0, ...own.map((c) => (c.id === low ? 1 : Number(c.id.slice(low.length + 1)) || 0))) + 1;
+  pieces.sort((x, y) => y.stations.length - x.stations.length || y.lengthKm - x.lengthKm || x.line[0][0] - y.line[0][0] || x.line[0][1] - y.line[0][1]);
+  for (const c of pieces) { c.id = next === 1 ? low : `${low}-${next}`; next++; }
+  return pieces;
+}
+
 
 /** V-AW-22: km runs along `line` (sampled every UNBUILT_STEP_KM) where `built(p)` is false. */
 export function unbuiltRuns(line, len, built) {
@@ -432,7 +610,14 @@ async function main() {
     const index = F.buildOsmIndex(JSON.parse(readFileSync(arg('osm'), 'utf8')));
     isBuilt = (p, road) => { const hit = F.nearestCarriageway(index, p, road); return !!hit && !hit.other && hit.d <= UNBUILT_MAX_M; };
   }
-  const corridors = buildCorridors({ axes, stations, obsPoints, places, deRings: loadDeRings(), roads: arg('roads')?.split(','), spurs: !process.argv.includes('--no-spurs'), isBuilt });
+  // AF-2: --gapless adds a section for every stretch no corridor covers; --pin=<published corridors.json> keeps the
+  // published corridors as they are.
+  const gapless = process.argv.includes('--gapless');
+  const pin = arg('pin') ? JSON.parse(readFileSync(arg('pin'), 'utf8')).corridors : null;
+  if (pin && !gapless) { console.error('--pin gilt nur mit --gapless'); process.exit(2); }
+  if (gapless && !pin) console.error('Hinweis: ohne --pin=<veröffentlichte corridors.json> werden die bestehenden Abschnitte neu gebaut — ihre Kennungen hängen dann an den Stationszahlen der heutigen Meldung (V-AF-4).');
+  const report = {};
+  const corridors = buildCorridors({ axes, stations, obsPoints, places, deRings: loadDeRings(), roads: arg('roads')?.split(','), spurs: !process.argv.includes('--no-spurs'), isBuilt, gapless, pin, report });
   const year = (axes.fetchedAt ?? new Date().toISOString()).slice(0, 4);
   const file = {
     schema: 1, product: 'road-corridors', builtAt: new Date().toISOString(),
@@ -441,14 +626,17 @@ async function main() {
       { what: 'Ortsnamen', name: 'GeoNames', license: 'CC BY 4.0', attribution: 'GeoNames (geonames.org)' },
       ...(isBuilt ? [{ what: 'Pruefung, ob eine Strecke gebaut ist (V-AW-22)', name: 'OpenStreetMap (highway=motorway)', license: 'ODbL', attribution: '© OpenStreetMap-Mitwirkende' }] : []),
     ],
-    note: `Korridor-km ist eine eigene, durchgehende Achse je Abschnitt (Ausrichtung: ungerade Nummern Nord → Süd, gerade West → Ost), nicht der amtliche Streckenkilometer. AT/CH-Fortsetzungen und Prognosepunkte folgen mit AW-6.${isBuilt ? ` Strecken, die das DLM250 als Autobahn führt, für die OpenStreetMap aber auf mindestens ${UNBUILT_MIN_KM} km keine Fahrbahn dieser Nummer kennt und an denen keine Messstelle liegt, sind am Ende abgeschnitten (trimmedKm) oder innen als unbuilt [von, bis km] benannt (V-AW-22).` : ''}${corridors.some((c) => c.spur) ? ' Abschnitte mit spur: true sind Stichäste einer Autobahn mit eigener Messstelle (V-AW-16), nach den übrigen Abschnitten nummeriert.' : ''}`,
+    note: `Korridor-km ist eine eigene, durchgehende Achse je Abschnitt (Ausrichtung: ungerade Nummern Nord → Süd, gerade West → Ost), nicht der amtliche Streckenkilometer. AT/CH-Fortsetzungen und Prognosepunkte folgen mit AW-6.${isBuilt ? ` Strecken, die das DLM250 als Autobahn führt, für die OpenStreetMap aber auf mindestens ${UNBUILT_MIN_KM} km keine Fahrbahn dieser Nummer kennt und an denen keine Messstelle liegt, sind am Ende abgeschnitten (trimmedKm) oder innen als unbuilt [von, bis km] benannt (V-AW-22).` : ''}${corridors.some((c) => c.spur) ? ' Abschnitte mit spur: true sind Stichäste einer Autobahn mit eigener Messstelle (V-AW-16), nach den übrigen Abschnitten nummeriert.' : ''}${corridors.some((c) => c.gap) ? ` Abschnitte mit gap: true sind Teilstücke ohne Messstelle (ab ${GAPLESS_MIN_KM} km Hauptfahrbahn in Betrieb, die kein anderer Abschnitt deckt): dort gibt es nur die Prognose.` : ''}`,
     corridors,
   };
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(`${out}.tmp`, JSON.stringify(file) + '\n');
   renameSync(`${out}.tmp`, out);
   const nSt = corridors.reduce((a, c) => a + c.stations.length, 0);
-  console.log(JSON.stringify({ ok: true, corridors: corridors.length, stations: nSt, bytes: JSON.stringify(file).length }));
+  console.log(JSON.stringify({
+    ok: true, corridors: corridors.length, stations: nSt, bytes: JSON.stringify(file).length,
+    ...(gapless ? { roads: new Set(corridors.map((c) => c.road)).size, gap: corridors.filter((c) => c.gap).length, pinned: pin?.length ?? 0, restKm: Math.round(report.rest.reduce((s, r) => s + r.km, 0)), skipped: report.skipped, rampOnly: report.rampOnly, unassigned: report.unassigned } : {}),
+  }));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

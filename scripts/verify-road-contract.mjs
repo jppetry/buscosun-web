@@ -361,6 +361,164 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
     JSON.stringify({ axis: pts.map((p) => p.km), st: sts.map((p) => [p.id, p.state, p.corridor]) }));
 }
 
+// --- L: corridors without gaps (phase AF-2, audit/autobahn-fusion12-lueckenlos.md §3) -------------------------------
+{
+  const B = await import('./road/build-corridors.mjs');
+  const C = await import('./road/corridor-coverage.mjs');
+  const { buildCorridors } = B;
+  const LAT = 48, kx = 111.2 * Math.cos(LAT * Math.PI / 180);
+  const E = (km) => 11 + km / kx, N = (km) => LAT + km / 111.2;
+  /** A straight line from (x0, y0) to (x1, y1) in km east/north of the origin, one vertex every 50 m. */
+  const seg = (x0, y0, x1, y1) => { const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 0.05)); return Array.from({ length: n + 1 }, (_, i) => [E(x0 + (x1 - x0) * i / n), N(y0 + (y1 - y0) * i / n)]); };
+  const feat = (bez, coordinates, props = {}) => ({ type: 'Feature', properties: { bez, bemerkung: null, zus: null, ...props }, geometry: { type: 'LineString', coordinates } });
+  const RAMP = { bemerkung: C.AXIS_RAMP_NOTE };
+  const axes = { features: [
+    feat('A99', seg(0, 0, 20, 0)),                       // main axis with a station ⇒ the corridor of today
+    feat('A99', seg(30, 0, 38, 0)),                      // 8 km, 10 km further east, no station ⇒ dropped today
+    feat('A99', seg(35, 0.5, 35, 1.5)),                  // 1 km stub next to it ⇒ too short, but a forecast point is near
+    feat('A99', seg(5, 5, 8, 5), RAMP),                  // a ramp is never a section
+    feat('A99', seg(50, 0, 60, 0), { zus: 4000 }),       // under construction
+    feat('A99', seg(70, 0, 71, 0)),                      // 1 km, alone
+    feat('A96', seg(12, 20, 0, 20)),                     // given east → west, no station
+    feat('A95', seg(0, 30, 1.2, 30)),                    // the whole motorway is 1,2 km
+    feat('A93', seg(0, 35, 0.3, 35)),                    // 300 m: below every limit
+    feat('A94', seg(0, 37, 2, 37), RAMP),                // a number that exists only as ramps (A 695)
+    feat('E44#A64a', seg(0, 40, 4, 40)),                 // letter suffix
+    feat('A92', seg(0, 50, 6, 50)),                      // out …
+    feat('A92', seg(6, 50.03, 0, 50.03)),                // … and back on the other carriageway, 30 m north
+  ] };
+  const places = [[LAT, E(0), 'Westdorf', null, 'DE', 9000], [LAT, E(20), 'Oststadt', null, 'DE', 9000]];
+  const stations = { S1: { kind: 'A', road: 'A99', lat: LAT, lon: E(15), n: 'Haupt' } };
+  const base = { axes, stations, obsPoints: [], places, deRings: [] };
+  const plain = buildCorridors(base);
+  const report = {};
+  const gl = buildCorridors({ ...base, gapless: true, report });
+  const ids = (cs) => cs.map((c) => c.id).join(' ');
+  const by = (cs, id) => cs.find((c) => c.id === id);
+  const near = (a, b, tol) => Math.abs(a - b) <= tol;
+  add('L1 ohne gapless wie bisher: ein Korridor (der mit Messstelle), auch wenn die Achsen Auf-/Abfahrten und Baustellen kennzeichnen',
+    ids(plain) === 'a99' && !('gap' in plain[0]), ids(plain));
+  add('L2 gapless: der bestehende Korridor bleibt Zeichen für Zeichen, neue Teilstücke kommen dahinter — a99-2 (8 km ohne Messstelle, gap), a96, a95, a64a, a92',
+    JSON.stringify(by(gl, 'a99')) === JSON.stringify(plain[0]) && ids(gl) === 'a64a a92 a95 a96 a99 a99-2'
+    && by(gl, 'a99-2')?.gap === true && by(gl, 'a99-2').stations.length === 0 && near(by(gl, 'a99-2').lengthKm, 8, 0.1), `${ids(gl)} · a99-2 ${by(gl, 'a99-2')?.lengthKm} km`);
+  const a96 = by(gl, 'a96');
+  add('L3 Ausrichtung der neuen Teilstücke nach der Regel (gerade Nummer West → Ost), Länge aus der Achse',
+    !!a96 && a96.line[0][0] < a96.line.at(-1)[0] && near(a96.lengthKm, 12, 0.1) && a96.gap === true, `${a96?.lengthKm} km`);
+  add(`L4 Mindestlänge ${B.GAPLESS_MIN_KM} km: das 1-km-Stück an der A 99 wird kein Teilstück; eine Autobahn, die sonst keinen Korridor hätte, bekommt ihr längstes Stück ab ${B.GAPLESS_ONLY_MIN_KM} km (A 95: 1,2 km), darunter nicht (A 93: 0,3 km)`,
+    !gl.some((c) => c.road === 'A99' && c.line.some((p) => p[0] > E(60))) && near(by(gl, 'a95')?.lengthKm, 1.2, 0.1) && !gl.some((c) => c.road === 'A93')
+    && !!report.rest?.some((r) => r.road === 'A93') && report.rest.some((r) => r.road === 'A99'), JSON.stringify(report.rest));
+  add('L5 Auf-/Abfahrten und Strecken im Bau werden nie ein Teilstück; eine Nummer, die nur aus Auf-/Abfahrten besteht, ist benannt',
+    !gl.some((c) => c.road === 'A94') && report.rampOnly?.join() === 'A94' && !gl.some((c) => c.road === 'A99' && c.line.some((p) => p[0] > E(45) && p[0] < E(65)))
+    && !gl.some((c) => c.road === 'A99' && c.line.some((p) => p[1] > N(4))), JSON.stringify(report.rampOnly));
+  const a64 = by(gl, 'a64a');
+  add('L6 Nummer mit Buchstabe (A 64a): Kennung a64a, Schild „A 64a“', !!a64 && a64.road === 'A64A' && a64.shields.join() === 'A 64a' && near(a64.lengthKm, 4, 0.1), JSON.stringify(a64?.shields));
+  add('L7 Hin- und Rückfahrbahn (30 m daneben) ergeben EIN Teilstück von ≈ 6 km, nicht zwei und nicht 12 km',
+    gl.filter((c) => c.road === 'A92').length === 1 && near(by(gl, 'a92')?.lengthKm, 6, 0.2), gl.filter((c) => c.road === 'A92').map((c) => c.lengthKm).join());
+  add('L8 zweimal gebaut ⇒ gleiches Ergebnis', JSON.stringify(buildCorridors({ ...base, gapless: true })) === JSON.stringify(gl));
+
+  // Pinned identifiers: the published records are taken over unchanged, new sections are numbered behind them.
+  const pinA = { ...plain[0], title: 'Gepinnt' };
+  const pinB = { ...plain[0], stations: [], title: 'A 99 bei Oststadt', id: 'a99-3', line: seg(30, 0, 34, 0).map((p) => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5]), lengthKm: 4 };
+  const st2 = { ...stations, S2: { kind: 'A', road: 'A99', lat: LAT, lon: E(36), n: 'neu am Teilstück' }, S3: { kind: 'A', road: 'A99', lat: LAT, lon: E(33), n: 'neu am gepinnten Abschnitt' } };
+  const rep2 = {};
+  const pinned = buildCorridors({ ...base, stations: st2, gapless: true, pin: [pinA, pinB], report: rep2 });
+  const p4 = by(pinned, 'a99-4');
+  add('L9 pin: gepinnte Abschnitte Zeichen für Zeichen (auch mit einer Lücke in der Zählung), der Rest der Strecke wird a99-4 und schließt an (Beginn ≤ 300 m vom gepinnten Ende, ≈ 4 km)',
+    JSON.stringify(by(pinned, 'a99')) === JSON.stringify(pinA) && JSON.stringify(by(pinned, 'a99-3')) === JSON.stringify(pinB)
+    && !!p4 && near(p4.lengthKm, 4, 0.35) && Math.abs(p4.line[0][0] - E(34)) * kx <= 0.3 && !pinned.some((c) => c.id === 'a99-2'),
+    `${ids(pinned)} · a99-4 ${p4?.lengthKm} km ab ${p4 ? ((p4.line[0][0] - 11) * kx).toFixed(2) : '—'} km`);
+  add('L10 pin: eine Messstelle auf dem neuen Teilstück gehört ihm (dann kein gap); eine, die näher an einem gepinnten Abschnitt liegt, bleibt unverteilt und ist benannt',
+    p4?.stations.map((s) => s.id).join() === 'S2' && !('gap' in (p4 ?? {})) && rep2.unassigned?.join() === 'S3' && C.pinCheck([pinA, pinB], pinned).changed.length === 0,
+    JSON.stringify({ st: p4?.stations, unassigned: rep2.unassigned }));
+  const pc = C.pinCheck([pinA, pinB, { ...pinB, id: 'a99-9' }], [...pinned, { ...pinned[0] }].map((c) => (c.id === 'a99' && c !== pinned[0] ? c : c.id === 'a99-3' ? { ...c, lengthKm: 4.2 } : c)));
+  add('L11 pinCheck: fehlende, geänderte und doppelte Kennungen werden genannt (Gegenprobe zu L10)',
+    pc.missing.join() === 'a99-9' && pc.changed.join() === 'a99-3' && pc.duplicate.length === 1, JSON.stringify(pc));
+
+  // A corridor that only brushes the open stretch (0,28 km beside it) leaves a covered patch shorter than the lead-in:
+  // the two open parts must not contain each other (found on the A 369: the queue never emptied).
+  {
+    const axB = { features: [feat('A89', seg(0, 60, 10, 60))] };
+    const pinC = { ...plain[0], id: 'a89', road: 'A89', stations: [], lengthKm: 5.7, line: seg(5, 60.28, 5, 66).map((p) => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5]) };
+    let brush = null, err = null;
+    try { brush = buildCorridors({ axes: axB, stations: {}, obsPoints: [], places, deRings: [], gapless: true, pin: [pinC] }); } catch (e) { err = e.message; }
+    const fresh = (brush ?? []).filter((c) => c.id !== 'a89');
+    add('L18 ein Korridor, der die offene Strecke nur streift (gedeckter Fleck kürzer als der Anschluss): der Bau endet, die Strecke wird ganz gedeckt (≈ 10 km in höchstens zwei Teilstücken)',
+      !err && fresh.length >= 1 && fresh.length <= 2 && near(fresh.reduce((n, c) => n + c.lengthKm, 0), 10, 0.7), err ?? fresh.map((c) => `${c.id}:${c.lengthKm}`).join(' '));
+  }
+
+  // V-AW-22 for the new sections: no carriageway on most of it ⇒ no section; at one end ⇒ cut off as before.
+  const ax3 = { features: [feat('A91', seg(0, 0, 10, 0)), feat('A90', seg(20, 0, 32, 0))] };
+  const rep3 = {};
+  const kmE = (p) => (p[0] - 11) * kx;
+  const osm = buildCorridors({ axes: ax3, stations: {}, obsPoints: [], places, deRings: [], gapless: true, report: rep3, isBuilt: (p, road) => (road === 'A91' ? false : kmE(p) > 26.01) });
+  add('L12 ohne OSM-Fahrbahn (V-AW-22): ein Teilstück ganz ohne Fahrbahn entsteht nicht und ist benannt; fehlt sie ≥ 5 km am Anfang, wird wie bisher abgeschnitten',
+    ids(osm) === 'a90' && osm[0]?.trimmedKm === 6 && near(osm[0].lengthKm, 6, 0.1) && rep3.skipped?.length === 1 && rep3.skipped[0].road === 'A91' && rep3.skipped[0].why === 'noCarriageway',
+    JSON.stringify({ ids: ids(osm), skipped: rep3.skipped }));
+
+  // The gate itself: samples of the axes against corridors.
+  const samples = C.axisSamples(axes);
+  const covPlain = C.coverageOf({ samples, corridors: plain }), cov = C.coverageOf({ samples, corridors: gl });
+  const row = (c, r) => c.byRoad.get(r);
+  const count = (road, test) => samples.filter((x) => x.roads[0] === road && test(x)).length;
+  const ramp99 = count('A99', (x) => x.ramp), ramp94 = count('A94', (x) => x.ramp), all96 = count('A96', () => true);
+  add('L13 Proben: alle 0,5 km je Achslinie (20 km ⇒ 41), Nummer mit Buchstabe gezählt, Auf-/Abfahrt und „im Bau“ gekennzeichnet',
+    samples.filter((s) => s.roads[0] === 'A99' && !s.ramp && s.inService && s.p[0] <= E(20.01) && s.p[1] === N(0)).length === 41
+    && samples.some((s) => s.roads[0] === 'A64A') && ramp99 >= 6 && ramp94 >= 4 && samples.filter((s) => s.ramp).length === ramp99 + ramp94 && samples.filter((s) => !s.inService).length === 21 && all96 >= 24,
+    `${samples.length} Proben · Auf-/Abfahrt ${ramp99} + ${ramp94} · A 96 ${all96}`);
+  add('L14 Vollständigkeit mit gapless: A 96, A 95, A 64a und A 92 ohne offene Probe; an der A 99 zählt das 1-km-Stück neben einem Prognosepunkt als gedeckt (3 Proben „point“), die Baustelle als benannt (21), offen bleiben das einzelne 1-km-Stück (3) und jede Probe der Auf-/Abfahrt',
+    ['A96', 'A95', 'A64A', 'A92'].every((r) => row(cov, r)?.open === 0) && row(cov, 'A99').point === 3 && row(cov, 'A99').construction === 21
+    && row(cov, 'A99').open === 3 + ramp99 && row(cov, 'A99').openRamp === ramp99 && cov.roadsWithout.sort().join() === 'A93,A94',
+    JSON.stringify({ a99: row(cov, 'A99'), without: cov.roadsWithout }));
+  add('L15 Gegenprobe: mit dem Stationsfilter (ohne gapless) ist die A 96 ganz offen (jede ihrer Proben) und die Vollständigkeit unter dem Ziel',
+    row(covPlain, 'A96').open === all96 && covPlain.share < C.COVER_TARGET && covPlain.roadsWithout.includes('A96') && cov.share > covPlain.share,
+    `${(covPlain.share * 100).toFixed(1)} % gegen ${(cov.share * 100).toFixed(1)} %`);
+  const covOsm = C.coverageOf({ samples, corridors: gl, isBuilt: () => false });
+  add('L16 Ausnahme „ohne OSM-Fahrbahn“ greift erst nach Linie, Prognosepunkt und „im Bau“: die offenen Proben wandern dorthin, die anderen Klassen bleiben',
+    covOsm.count.open === 0 && covOsm.count.noCarriageway === cov.count.open && covOsm.count.line === cov.count.line && covOsm.count.construction === cov.count.construction, JSON.stringify(covOsm.count));
+  const off = C.offAxis({ axes, corridors: [...gl, { id: 'x', road: 'A96', lengthKm: 3, line: [[E(0), N(22)], [E(3), N(22)]] }] });
+  add('L17 offAxis: eine Korridor-Linie 2 km neben der Achse ihrer Nummer wird genannt, die gebauten nicht', off.rows.length === 1 && off.rows[0].id === 'x' && off.rows[0].off === 7, JSON.stringify(off.rows));
+}
+
+// --- N: the real axes (only with ROAD_GAPLESS_RAW=<dir>: dlm250-motorways.json, corridors-live.json, stations.json,
+//        obs.json, optional osm-motorways-de.json) — the gate of AF-2 on the data ----------------------------------
+if (process.env.ROAD_GAPLESS_RAW) {
+  const dir = process.env.ROAD_GAPLESS_RAW;
+  const B = await import('./road/build-corridors.mjs');
+  const C = await import('./road/corridor-coverage.mjs');
+  const { loadDeRings } = await import('./road/deMask.mjs');
+  const { existsSync } = await import('node:fs');
+  const read = (f) => JSON.parse(readFileSync(join(dir, f), 'utf8'));
+  const axes = read('dlm250-motorways.json'), live = read('corridors-live.json').corridors;
+  const places = JSON.parse(readFileSync(join(HERE, '..', 'public', 'fire', 'places-dach.json'), 'utf8')).places;
+  let isBuilt = null;
+  if (existsSync(join(dir, 'osm-motorways-de.json'))) {
+    const F = await import('./road/build-fc-points.mjs');
+    const index = F.buildOsmIndex(read('osm-motorways-de.json'));
+    isBuilt = (p, road) => { const hit = F.nearestCarriageway(index, p, road); return !!hit && !hit.other && hit.d <= B.UNBUILT_MAX_M; };
+  }
+  const input = { axes, stations: read('stations.json').stations, obsPoints: read('obs.json').points, places, deRings: loadDeRings(), spurs: true, isBuilt };
+  const report = {};
+  const built = B.buildCorridors({ ...input, gapless: true, pin: live, report });
+  const samples = C.axisSamples(axes);
+  const cov = C.coverageOf({ samples, corridors: built, isBuilt }), covLive = C.coverageOf({ samples, corridors: live, isBuilt });
+  const pin = C.pinCheck(live, built);
+  const mainRoads = new Set(samples.filter((s) => !s.ramp && s.inService).flatMap((s) => s.roads));
+  const withCorridor = new Set(built.map((c) => c.road));
+  const missing = [...mainRoads].filter((r) => !withCorridor.has(r));
+  const off = C.offAxis({ axes, corridors: built.filter((c) => !live.some((l) => l.id === c.id)) });
+  add(`N1 Vollständigkeit ≥ ${(C.COVER_TARGET * 100).toFixed(1)} % der ${samples.length} Proben (gedeckt oder benannt)`, cov.share >= C.COVER_TARGET,
+    `${(cov.share * 100).toFixed(2)} % · Linie ${cov.count.line} · Prognosepunkt ${cov.count.point} · im Bau ${cov.count.construction} · ohne OSM-Fahrbahn ${cov.count.noCarriageway} · offen ${cov.count.open} (Hauptfahrbahn ${cov.main.open}, Auf-/Abfahrt ${cov.ramp.open})`);
+  add('N2 jede Autobahn-Nummer mit Hauptfahrbahn in Betrieb hat mindestens einen Korridor', missing.length === 0, `${withCorridor.size} von ${mainRoads.size} · fehlen ${missing.join(' ') || '—'} · nur Auf-/Abfahrten ${report.rampOnly.join(' ') || '—'}`);
+  add(`N3 ${live.length} von ${live.length} Live-Korridoren Zeichen für Zeichen unverändert, keine Kennung doppelt`, pin.missing.length === 0 && pin.changed.length === 0 && pin.duplicate.length === 0, JSON.stringify(pin));
+  add('N4 Gegenprobe: die Live-Datei (Stationsfilter) besteht dieselbe Prüfung NICHT', covLive.share < C.COVER_TARGET && covLive.roadsWithout.length > 0, `${(covLive.share * 100).toFixed(2)} % · ${covLive.roadsWithout.length} Nummern ohne Korridor`);
+  add('N5 neue Teilstücke liegen auf der Achse ihrer Nummer (≤ 1 % ihrer Proben weiter als 300 m daneben)', off.off <= off.n * 0.01, `${off.off} von ${off.n} · ${off.rows.map((r) => `${r.id}:${r.off}`).join(' ')}`);
+  add('N6 zweimal gebaut ⇒ gleiches Ergebnis', JSON.stringify(B.buildCorridors({ ...input, gapless: true, pin: live })) === JSON.stringify(built));
+  const fresh = built.filter((c) => !live.some((l) => l.id === c.id));
+  add('N7 neue Teilstücke: Kennung hinter den bestehenden der Nummer, Länge > 0, Linie mit ≥ 2 Punkten, gap genau dann, wenn keine Messstelle',
+    fresh.every((c) => /^a\d{1,3}[a-z]?(-\d+)?$/.test(c.id) && c.lengthKm > 0 && c.line.length >= 2 && (c.gap === true) === (c.stations.length === 0)),
+    `${fresh.length} neue, davon ${fresh.filter((c) => c.gap).length} ohne Messstelle, ${fresh.reduce((s, c) => s + c.lengthKm, 0).toFixed(0)} km`);
+}
+
 const passed = checks.filter((c) => c.ok).length;
 const failed = checks.length - passed;
 for (const c of checks) console.log(`  ${c.ok ? '✓' : '✗'} ${c.name}${c.detail ? `  [${c.detail}]` : ''}`);
