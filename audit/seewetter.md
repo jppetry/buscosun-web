@@ -861,6 +861,12 @@ den alten schon im Cache hat, erst nach bis zu 7 Tagen — oder sofort nach eine
 Die Seite bleibt in der Zwischenzeit in sich stimmig: Reihen hängen an der Spot-Kennung, nicht an der Zelle; falsch sind bis
 dahin nur Lage, Ufernormale und die Kilometerangabe der 8 Spots mit neuer Zelle.
 
+**Erste Wind-Auffrischung mit dem neuen Katalog (11.10. 11:18 UTC, in Produktion gelesen):** `status.json` über raw →
+`wind.t1 = 2026101109`, `spots: 56`, `rejected: 0`, „buscosun Fusion 12“, `computedAt 11:18:34Z`, Job `38135024265`, kein
+`blocked`; Datei `spots/2026101100-w2026101109.json` (51 655 Bytes) trägt 56 Spots. Die Datei nennt die Zelle nicht — dass der
+Producer den neuen Katalog las, folgt aus dem Zeitpunkt (Klon des Jobs nach `32db40c`), nicht aus dem Inhalt. Die
+Wellenreihen der 8 Spots mit neuer Zelle kommen erst mit dem CWAM-Lauf 2026101112 (≈ 16:25 UTC); bis dahin nicht geprüft.
+
 ### 15.6 Offene Punkte
 
 | Nr. | Punkt | Weg |

@@ -2339,7 +2339,11 @@ und die angehobene Budget-Grenze (`budget.json`: totalJs 1 715 → 1 720, auf de
 ### 65.1 Katalog im Daten-Repo (V-SW-21) — erledigt 11.10. 10:00 UTC, offen nur der Purge
 
 **Erledigt** auf dein Wort („pushe ins Daten-Repo“): beide Dateien als EIN Commit in `buscosun-data` (`32db40c`), ohne Force,
-Prüfsummen am Commit gegengelesen. Die Schritte darunter bleiben als Beleg stehen, wie die Kopie gebaut ist.
+Prüfsummen am Commit gegengelesen. Die erste Wind-Auffrischung danach ist grün (11:18 UTC: `wind.t1 = 2026101109`, 56 Spots,
+0 verworfen). Die Schritte darunter bleiben als Beleg stehen, wie die Kopie gebaut ist.
+
+**Ansehen nach ≈ 16:30 UTC (freiwillig):** `status.json` → `field.lastPublishedRun = 2026101112` — erster Wellenlauf an den 8
+neuen Zellen; Schillig, Dangast und Cuxhaven-Duhnen sollten dann deutlich weniger Stunden „kein Seegang“ zeigen.
 
 **Dein Schritt (freiwillig, beschleunigt nur):** Purge der zwei Pfade am CDN — sonst kommt der neue Katalog je Knoten binnen
 12 h an, in einem Browser mit altem Cache-Eintrag erst nach bis zu 7 Tagen (V-SW-28, gemessen):
