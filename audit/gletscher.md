@@ -454,7 +454,7 @@ Folgen-Liste mit blockiertem Speicher); `verify:glacier-ui` **62/62** (Browser, 
 | | `0fa4da9` | GL-4: Steckbrief (fünf Reiter, Schneezone, Vergleichsregler, 3D) |
 | | `efb33f7` · `d05932c` | GL-5: Feed, Schmelzindex-Metrik, Folgen, Wochenkarte, CSV · Folgearbeiten (echter Datenrepo-Lauf, Zeiger mit Wochen, Archiv-Publisher kehrt auf `main` zurück) |
 | | `af2b45e` | Schneezone des Steckbriefs in Zeitscheiben (Long-Task-Schutz), `verify:glacier-sheet` G2c |
-| | (dieser Commit) | Audit dieser Phase |
+| | `0ec8b1c` | Audit dieser Phase (dieser Text; ein Nachtragscommit trägt nur diese Hashzeile) |
 | `buscosun-glacier` (lokal, Bare-Remote `glacier-remote.git`) `main` | `de1bd38` · `90981f5` | init, Build `20261011-1` |
 | | `1a67a47` · `06ffbc5` | Build `20261011-3` (mit TSLA-Klimatologie), Zeiger |
 | | `bbe4a28` | Satellit 2023–2026: 1 349 Kachel-Tage, Saisonreihen |
