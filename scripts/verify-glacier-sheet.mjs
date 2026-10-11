@@ -16,7 +16,7 @@ import {
   meltView, indexWord, tourLines, tourProblems, TOUR_DISCLAIMER, sourceRows, isoDoy, sceneOf, STATE_TEXT, seriesCsv,
 } from '../src/glacier/glacierSheetModel.ts';
 import { readFavs, writeFavs, toggleFav, readLast, writeLast, newSinceLastVisit, GLACIER_FAV_MAX } from '../src/glacier/glacierFollow.ts';
-import { bboxOf, clipAtLng, renderSnowZone, polygonMask, mercY } from '../src/glacier/glacierGeo.ts';
+import { bboxOf, clipAtLng, renderSnowZone, renderSnowZoneAsync, polygonMask, mercY } from '../src/glacier/glacierGeo.ts';
 import { demDecode, demSample, glacierFlagsMask } from '../src/glacier/glacierSatContract.ts';
 import { glacierForbiddenWords } from '../src/glacier/glacierContract.ts';
 
@@ -153,6 +153,14 @@ const rowsHef = SAT.seasons['2026/at-oetztaler-alpen'].glaciers[hefCat.id];
   add('G2 Schneezone aus dem Höhengitter: der Anteil der Fläche ab der Schneegrenze (Medianhöhe) stimmt mit der Höhenband-Fläche überein (±5 Punkte); Bild liegt auf dem Umrisskasten, Zeile 0 = Norden', zone && near(zone.snowShare, above / total, 0.05) && zone.coordinates[0][1] > zone.coordinates[3][1] && zone.data.length === zone.width * zone.height * 4, `${zone?.snowShare.toFixed(3)} gegen ${(above / total).toFixed(3)}`);
   const z0 = renderSnowZone({ geometry: geo, grid, sla: -1e9, mask: polygonMask }), z1 = renderSnowZone({ geometry: geo, grid, sla: 1e9, mask: polygonMask });
   add('G2b Grenzfälle: „schneebedeckt“ (Grenze −∞) = 100 % Schnee, „schneefrei“ (+∞) = 0 % (Gegenproben)', z0.snowShare === 1 && z1.snowShare === 0, `${z0.snowShare} ${z1.snowShare}`);
+  // the sliced variant: same image byte for byte, yields to the event loop between slices, stops when it is no longer wanted
+  let yields = 0;
+  const tick = setInterval(() => { yields++; }, 0);
+  const asyncZone = await renderSnowZoneAsync({ geometry: geo, grid, sla, mask: polygonMask }, () => true, 0.2);
+  clearInterval(tick);
+  let calls = 0;
+  const stopped = await renderSnowZoneAsync({ geometry: geo, grid, sla, mask: polygonMask }, () => ++calls < 3, 0.2);
+  add('G2c Schneezone in Zeitscheiben: dasselbe Bild Byte für Byte wie am Stück, der Ereignisablauf kommt zwischen den Scheiben dran (ein 200-ms-Block würde auf dem Handy zur Long Task), und ein Abbruch („neue Szene“) liefert null statt eines veralteten Bildes', asyncZone && Buffer.compare(Buffer.from(asyncZone.data), Buffer.from(zone.data)) === 0 && asyncZone.snowShare === zone.snowShare && yields >= 2 && stopped === null, `${yields} Wechsel in den Ereignisablauf, Abbruch → ${stopped}`);
   const ele = demDecode(grid);
   add('G3 Höhengitter: Zellen im Umriss liegen im Höhenbereich des Katalogs (± Mischzellen), Stichprobe in der Mitte des Gitters gültig', (() => { let lo = Infinity, hi = -Infinity; for (let j = 5; j < grid.ny - 5; j += 3) for (let i = 5; i < grid.nx - 5; i += 3) { const e = demSample(grid, ele, (grid.x0 + i + 0.5) / 3600, (grid.y1 - j - 0.5) / 3600); if (e != null) { lo = Math.min(lo, e); hi = Math.max(hi, e); } } return lo > hefCat.z[0] - 700 && hi < hefCat.z[2] + 400; })(), '');
   add('G4 Mercator: die Zeilen des Schneebildes folgen der Web-Mercator-Projektion (Breite nördlich > südlich, mercY monoton)', mercY(47) > mercY(46) && near(mercY(0), 0, 1e-12), '');

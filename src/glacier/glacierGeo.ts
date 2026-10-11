@@ -62,9 +62,11 @@ export const SNOW_ZONE_RGBA = { snow: [255, 255, 255, 214], band: [226, 238, 244
  * test is the polygon itself (even-odd, rasterised on a canvas), the elevation comes from the 3 arc-second-class grid of the static tree
  * (bilinear). Rows follow Web-Mercator so the image sits on the basemap pixel for pixel.
  */
-export function renderSnowZone(args: {
+export interface SnowZoneArgs {
   geometry: GeoJSON.Geometry; grid: GlacierDemGrid; sla: number; lo?: number | null; hi?: number | null; maxPx?: number; mask?: (g: GeoJSON.Geometry, w: number, h: number, project: (lon: number, lat: number) => [number, number]) => Uint8Array;
-}): SnowZone | null {
+}
+/** The raster in steps: `rows(r0, r1)` fills the rows [r0, r1); `done()` returns the image (or `null` for an empty glacier). */
+function prepareSnowZone(args: SnowZoneArgs): { H: number; rows: (r0: number, r1: number) => void; done: () => SnowZone | null } | null {
   const bb = bboxOf(args.geometry);
   if (!bb) return null;
   const pad = 0.0004;
@@ -81,23 +83,53 @@ export function renderSnowZone(args: {
   const data = new Uint8ClampedArray(W * H * 4);
   const lo = args.lo ?? args.sla, hi = args.hi ?? args.sla;
   let nIn = 0, nSnow = 0;
-  for (let r = 0; r < H; r++) {
-    const lat = latOfMercY(yN - ((r + 0.5) / H) * (yN - yS));
-    for (let c = 0; c < W; c++) {
-      if (!mask[r * W + c]) continue;
-      const lon = w0 + ((c + 0.5) / W) * (e0 - w0);
-      const e = demSample(args.grid, z, lon, lat);
-      if (e == null) continue;
-      nIn++;
-      const k = e >= args.sla ? 'snow' : 'ice';
-      if (k === 'snow') nSnow++;
-      const col = e >= lo && e <= hi && hi > lo ? SNOW_ZONE_RGBA.band : SNOW_ZONE_RGBA[k];
-      const i = (r * W + c) * 4;
-      data[i] = col[0]; data[i + 1] = col[1]; data[i + 2] = col[2]; data[i + 3] = col[3];
+  const rows = (r0: number, r1: number) => {
+    for (let r = r0; r < r1; r++) {
+      const lat = latOfMercY(yN - ((r + 0.5) / H) * (yN - yS));
+      for (let c = 0; c < W; c++) {
+        if (!mask[r * W + c]) continue;
+        const lon = w0 + ((c + 0.5) / W) * (e0 - w0);
+        const e = demSample(args.grid, z, lon, lat);
+        if (e == null) continue;
+        nIn++;
+        const k = e >= args.sla ? 'snow' : 'ice';
+        if (k === 'snow') nSnow++;
+        const col = e >= lo && e <= hi && hi > lo ? SNOW_ZONE_RGBA.band : SNOW_ZONE_RGBA[k];
+        const i = (r * W + c) * 4;
+        data[i] = col[0]; data[i + 1] = col[1]; data[i + 2] = col[2]; data[i + 3] = col[3];
+      }
     }
+  };
+  const done = (): SnowZone | null => (nIn ? { coordinates: [[w0, n0], [e0, n0], [e0, s0], [w0, s0]], width: W, height: H, data, snowShare: nSnow / nIn } : null);
+  return { H, rows, done };
+}
+
+export function renderSnowZone(args: SnowZoneArgs): SnowZone | null {
+  const p = prepareSnowZone(args);
+  if (!p) return null;
+  p.rows(0, p.H);
+  return p.done();
+}
+
+/**
+ * The same image in time slices (`sliceMs`, default 8 ms) with a yield to the event loop between them — a 78 km² glacier takes 200 ms in one piece, which on a phone is a long task.
+ * `alive()` is asked between the slices: `false` stops the work (a newer scene or another glacier has taken over) and the result is `null`.
+ */
+export async function renderSnowZoneAsync(args: SnowZoneArgs, alive: () => boolean = () => true, sliceMs = 8): Promise<SnowZone | null> {
+  const p = prepareSnowZone(args);
+  if (!p) return null;
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  let r = 0, step = 16;
+  while (r < p.H) {
+    const t0 = now();
+    const r1 = Math.min(p.H, r + step);
+    p.rows(r, r1);
+    r = r1;
+    const dt = now() - t0;
+    step = Math.max(4, Math.min(128, Math.round(step * (dt > 0 ? sliceMs / dt : 2))));   // aim at one slice per `sliceMs`
+    if (r < p.H) { await new Promise<void>((res) => setTimeout(res, 0)); if (!alive()) return null; }
   }
-  if (!nIn) return null;
-  return { coordinates: [[w0, n0], [e0, n0], [e0, s0], [w0, s0]], width: W, height: H, data, snowShare: nSnow / nIn };
+  return p.done();
 }
 
 /** Polygon → mask by canvas fill (even-odd); DOM only. */

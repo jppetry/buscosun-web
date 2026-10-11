@@ -9,7 +9,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { GlacierCatalogEntry } from './glacierContract';
 import type { GlacierDemGrid } from './glacierSatContract';
-import { bboxOf, clipAtLng, renderSnowZone } from './glacierGeo';
+import { bboxOf, clipAtLng, renderSnowZoneAsync } from './glacierGeo';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
@@ -45,16 +45,19 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
   const raf = useRef(0);
 
   /** Snow-zone image from the grid; re-made when the scene, the grid or the geometry change. */
-  const applySnow = () => {
+  const snowGen = useRef(0);
+  const applySnow = async () => {
     const map = mapRef.current;
     if (!map || !ready.current) return;
+    const gen = ++snowGen.current;
     const { geometry: geo, snow: sn, showSnow: on, dem: grid } = latest.current;
     const src = map.getSource('gls-snow') as maplibregl.ImageSource | undefined;
     const lay = map.getLayer('gls-snow-img');
     if (!src || !lay) return;
     if (!on || !sn || !grid || !geo) { map.setLayoutProperty('gls-snow-img', 'visibility', 'none'); onSnowShare?.(null); return; }
     const sla = sn.state === 0 ? -1e9 : sn.state === 2 ? 1e9 : sn.sla;
-    const zone = renderSnowZone({ geometry: geo, grid, sla, lo: sn.state === 1 ? sn.lo : null, hi: sn.state === 1 ? sn.hi : null });
+    const zone = await renderSnowZoneAsync({ geometry: geo, grid, sla, lo: sn.state === 1 ? sn.lo : null, hi: sn.state === 1 ? sn.hi : null }, () => snowGen.current === gen && mapRef.current === map);
+    if (snowGen.current !== gen || mapRef.current !== map) return;   // a newer scene or another glacier took over
     if (!zone) { map.setLayoutProperty('gls-snow-img', 'visibility', 'none'); onSnowShare?.(null); return; }
     const c = document.createElement('canvas');
     c.width = zone.width; c.height = zone.height;
@@ -129,7 +132,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
       map.addLayer({ id: 'gls-earlier-line-l', type: 'line', source: 'gls-earlier-line', paint: { 'line-color': '#145A70', 'line-width': 1.6, 'line-dasharray': [2, 2], 'line-opacity': 0.9 } });
       map.addLayer({ id: 'gls-now-line-l', type: 'line', source: 'gls-now', paint: { 'line-color': '#145A70', 'line-width': 2.4 } });
       ready.current = true;
-      applyOutlines(); applySnow();
+      applyOutlines(); void applySnow();
       if (latest.current.view === '3d') apply3d(true);
     });
     const onMove = () => { if (latest.current.compare != null) { cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(applyOutlines); } };
@@ -140,7 +143,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
 
   useEffect(() => { applyOutlines(); if (geometry) fit(false); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geometry, earlier, showEarlier]);
-  useEffect(() => { applySnow(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void applySnow(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snow, showSnow, dem, geometry]);
   useEffect(() => { apply3d(view === '3d'); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
