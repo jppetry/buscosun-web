@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Gletscher – Steckbrief Hintereisferner, Mobil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;overflow:hidden}
+a{color:#145A70}a:hover{color:#1E87A8}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden; background: #FAF6EA; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<header style="height: 56px; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 0 12px; box-sizing: border-box; border-bottom: 1px solid #E0D6BE">
+<a href="gletscher-mobile-lage.dc.html" aria-label="Zurück zur DACH-Lage" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; box-sizing: border-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></a>
+<div style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 18px; font-weight: 700">Hintereisferner</span><span style="font-size: 12px; color: #5C5447">Ötztaler Alpen · AT · 5,17 km² (2022)</span></div>
+<button type="button" aria-label="Folgen" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"></path></svg></button>
+<button type="button" aria-label="Teilen" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"></path></svg></button>
+</header>
+
+<section aria-label="Karte" style="position: relative; height: 300px; flex: 0 0 auto; overflow: hidden; background: #DDD5C0">
+<sc-if value="{{show2d}}" hint-placeholder-val="{{ true }}">
+<img src="{{img2d}}" alt="Reliefkarte Hintereisferner" style="position: absolute; left: 0; top: -70px; width: 390px; height: 430px">
+<img src="./gletscher/hef_map_390x430_outl.svg" alt="" aria-hidden="true" style="position: absolute; left: 0; top: -70px; width: 390px; height: 430px">
+<img src="{{imgSnow}}" alt="" aria-hidden="true" style="position: absolute; left: 0; top: -70px; width: 390px; height: 430px">
+<div style="position: absolute; left: 166px; top: 150px; font-size: 13px; font-weight: 700; color: #145A70; text-shadow: 0 0 4px #FFFFFF, 0 0 4px #FFFFFF">Hintereisferner</div>
+</sc-if>
+<sc-if value="{{show3d}}" hint-placeholder-val="{{ false }}">
+<img src="{{img3d}}" alt="3D-Ansicht des Hintereisferners von Nordosten" style="position: absolute; left: 0; top: 0; width: 390px; height: 300px">
+</sc-if>
+<div role="group" aria-label="Ansicht" style="position: absolute; right: 10px; top: 10px; display: flex; gap: 3px; padding: 3px; border-radius: 11px; background: rgba(250, 246, 234, 0.95); border: 1px solid #D9D0B8">
+<sc-for list="{{views}}" as="v" hint-placeholder-count="2">
+<button type="button" onClick="{{v.pick}}" aria-pressed="{{v.on}}" style="{{v.style}}">{{v.label}}</button>
+</sc-for>
+</div>
+<div style="position: absolute; left: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px; background: rgba(255, 255, 255, 0.94); border: 1px solid #A9D4E2; font-size: 12px; font-weight: 600; color: #145A70"><span style="width: 14px; height: 3px; border-radius: 2px; background: #1E87A8"></span>{{snowLabel}}</div>
+</section>
+
+<div role="group" aria-label="Zeitpunkt" style="flex: 0 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; margin: 10px 12px 0; padding: 3px; border-radius: 11px; background: #EDE6D3">
+<sc-for list="{{dates}}" as="d" hint-placeholder-count="2">
+<button type="button" onClick="{{d.pick}}" aria-pressed="{{d.on}}" style="{{d.style}}">{{d.label}}</button>
+</sc-for>
+</div>
+
+<div role="tablist" aria-label="Reiter" style="flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px 12px 0; border-bottom: 1px solid #E0D6BE">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
+
+<sc-if value="{{tabHeute}}" hint-placeholder-val="{{ true }}">
+<section style="border-radius: 14px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 12px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 12.5px; font-weight: 700; color: #5C5447">SCHMELZE HEUTE</span><span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #FBF3E7; color: #7A5418; border: 1px solid #E7D3B4">Modell</span></div>
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; color: #145A70">{{h.melt}}</span><span style="font-size: 13.5px">{{h.meltWhere}}</span></div>
+<div style="font-size: 12.5px; color: #5C5447">{{h.meltSub}}</div>
+</section>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Nullgradgrenze</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">{{h.zero}}</span><span style="font-size: 11px; color: #7A5418">Modell, 14 Uhr</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Obergurgl 1 941 m</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">{{h.obs}}</span><span style="font-size: 11px; color: #4F6A3D">gemessen</span></div>
+</div>
+<div style="font-size: 14px; font-weight: 700">Nächste 7 Tage</div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{h.days}}" as="d" hint-placeholder-count="7">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; border-radius: 10px; background: #FFFFFF; border: 1px solid #E0D6BE">
+<span style="font-size: 11.5px; color: #5C5447">{{d.day}}</span>
+<div style="height: 54px; width: 12px; border-radius: 4px; background: #EDE6D3; display: flex; align-items: flex-end; overflow: hidden"><div style="{{d.bar}}"></div></div>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; font-weight: 600">{{d.v}}</span>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 11.5px; color: #5C5447">{{h.unitNote}} · Modell aus buscosun Fusion, Mockup-Werte</div>
+</sc-if>
+
+<sc-if value="{{tabSaison}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Höchste Schneegrenze</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">3 480 m</span><span style="font-size: 11px; color: #4B3D96">Satellit · 27.08.</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">AAR Saisonende</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">0,12</span><span style="font-size: 11px; color: #4B3D96">Satellit · 2024/25: 0,24</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Gletscherschwundtag</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">04.07.</span><span style="font-size: 11px; color: #7A5418">Modell</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Bilanz 2025/26</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">−2,5 m w. e.</span><span style="font-size: 11px; color: #7A5418">Modell · −2,1 bis −2,9</span></div>
+</div>
+<div style="padding: 8px 10px; border-radius: 10px; background: #EFF3E8; border: 1px solid #C3D2AF; font-size: 12.5px; color: #3D5530; line-height: 1.4"><span style="font-weight: 700">Gemessen 2024/25:</span> −1 793 mm w. e., Gleichgewichtslinie 3 302 m (Universität Innsbruck).</div>
+</sc-if>
+
+<sc-if value="{{tabTour}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 9px 11px; border-radius: 10px; background: #F2EEE3; border: 1px solid #D9D0B8; font-size: 12.5px; line-height: 1.45"><span style="font-weight: 700">Kein Urteil über Begehbarkeit.</span> Verhältnisse bei Hütte und Bergführern erfragen.</div>
+<div style="{{t.nightStyle}}"><span style="font-size: 14px; font-weight: 700">{{t.night}}</span><span style="font-size: 12.5px">{{t.nightSub}}</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 14px; font-weight: 700">{{t.surface}}</span><span style="font-size: 12.5px; color: #5C5447">{{t.surfaceSub}}</span></div>
+<a href="https://www.alpenvereinaktiv.com/" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">alpenvereinaktiv.com · Sperrungen<span aria-hidden="true">↗</span></a>
+<a href="https://www.foto-webcam.eu/" style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Webcams in der Umgebung (Link)<span aria-hidden="true">↗</span></a>
+</sc-if>
+
+<sc-if value="{{tabLang}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Fläche 2003 → 2022</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #8F4A22">−36 %</span><span style="font-size: 11px; color: #4F6A3D">gemessen</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #5C5447">Länge 1847 → 2003</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #8F4A22">−2 918 m</span><span style="font-size: 11px; color: #4F6A3D">gemessen</span></div>
+</div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 14px; font-weight: 700">Wann ist er weg?</span><span style="font-size: 12.5px; line-height: 1.4">Unter 10 % des Volumens von 2020: <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600">2048–2058</span>, je nach Szenario.</span><span style="font-size: 11px; color: #7A5418">Modell GloGEM · Beispielwerte</span></div>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'heute', date: 'aug', view: '2d' };
+  }
+  renderVals() {
+    const s = this.state;
+    const seg = on => 'height: 36px; padding: 0 10px; border-radius: 8px; border: 0; cursor: pointer; font-size: 13.5px; font-weight: 600; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #2C2A26; box-shadow: 0 1px 3px rgba(44, 42, 38, 0.18);' : 'background: transparent; color: #5C5447;');
+    const dates = [
+      { label: 'Heute 11.10.', on: s.date === 'oct', pick: () => this.setState({ date: 'oct' }) },
+      { label: 'Beispiel 12.08.', on: s.date === 'aug', pick: () => this.setState({ date: 'aug' }) }
+    ].map(d => ({ ...d, style: seg(d.on) }));
+    const views = [
+      { label: 'Karte', on: s.view === '2d', pick: () => this.setState({ view: '2d' }) },
+      { label: '3D', on: s.view === '3d', pick: () => this.setState({ view: '3d' }) }
+    ].map(v => ({ ...v, style: 'height: 32px; padding: 0 10px; border-radius: 8px; border: 0; cursor: pointer; font-size: 13px; font-weight: 600; ' + (v.on ? 'background: #1E87A8; color: #FFFFFF;' : 'background: transparent; color: #2C2A26;') }));
+    const tabs = [['heute', 'Heute'], ['saison', 'Saison'], ['tour', 'Tour'], ['lang', 'Langzeit']].map(([k, label]) => ({
+      label, on: s.tab === k, pick: () => this.setState({ tab: k }),
+      style: 'height: 44px; border: 0; background: transparent; cursor: pointer; font-size: 14.5px; font-weight: 600; ' + (s.tab === k ? 'color: #145A70; box-shadow: inset 0 -3px 0 #1E87A8;' : 'color: #5C5447;')
+    }));
+    const oct = s.date === 'oct';
+    const dv = oct ? [0.3, 0.1, 0.0, 0.4, 0.6, 0.5, 0.1] : [4.2, 4.6, 4.9, 4.4, 2.1, 1.2, 1.8];
+    const dn = oct ? ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'] : ['Mi', 'Do', 'Fr', 'Sa', 'So', 'Mo', 'Di'];
+    const max = oct ? 1.5 : 6;
+    const days = dv.map((v, i) => ({ day: dn[i], v: v.toFixed(1).replace('.', ','), bar: 'width: 12px; border-radius: 4px; background: ' + (i === 0 ? '#1E87A8' : '#7FC0D6') + '; height: ' + Math.round(54 * v / max) + 'px' }));
+    const h = oct
+      ? { melt: '0,3 cm', meltWhere: 'Eis an der Zunge', meltSub: 'darüber keine · ≈ 1 400 m³ Wasser', zero: '2 750 m', obs: '4,8 °C', days, unitNote: 'cm Eis an der Zunge' }
+      : { melt: '4,2 cm', meltWhere: 'Eis im Mittel', meltSub: 'Zunge 7,1 cm · ≈ 195 000 m³ Wasser · über dem 95. Perzentil', zero: '4 650 m', obs: '21,3 °C', days, unitNote: 'cm Eis im Gletschermittel' };
+    const t = oct
+      ? { night: 'Nacht auf Montag: Frost bis 2 300 m', nightSub: 'Oberfläche gefroren · Modell', nightStyle: 'border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px', surface: '18 cm Neuschnee auf Blankeis', surfaceSub: 'Spalten können verdeckt sein · Modell und Satellit' }
+      : { night: 'Nacht auf Donnerstag: kein Frost unter 4 300 m', nightSub: 'Gletscher friert nicht durch · Modell', nightStyle: 'border-radius: 12px; background: #FBEFE2; border: 1px solid #E7C6A6; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; color: #6E3A1C', surface: 'Blankeis-Anteil 88 %', surfaceSub: 'Spalten offen sichtbar · Satellit 08.08.' };
+    return {
+      dates, views, tabs, h, t,
+      tabHeute: s.tab === 'heute', tabSaison: s.tab === 'saison', tabTour: s.tab === 'tour', tabLang: s.tab === 'lang',
+      show2d: s.view === '2d', show3d: s.view === '3d',
+      img2d: oct ? './gletscher/hef_map_390x430_oct.jpg' : './gletscher/hef_map_390x430_aug.jpg',
+      img3d: oct ? './gletscher/hef_3d_390x300_oct.jpg' : './gletscher/hef_3d_390x300_aug.jpg',
+      imgSnow: oct ? './gletscher/hef_map_390x430_sl_oct.svg' : './gletscher/hef_map_390x430_sl_aug.svg',
+      snowLabel: oct ? 'Neuschnee bis ≈ 2 900 m' : 'Schneegrenze 3 360 m'
+    };
+  }
+}
+</script>
+</body>
+</html>

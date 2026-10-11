@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Gletscher – Steckbrief Hintereisferner, Desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;overflow:hidden}
+a{color:#145A70}a:hover{color:#1E87A8}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; overflow: hidden; background: #EDE6D3; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<nav aria-label="Bereiche" style="width: 62px; flex: 0 0 auto; background: #2C2A26; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; box-sizing: border-box">
+<a href="gletscher-desktop-lage.dc.html" aria-label="buscosun Startseite" style="width: 42px; height: 42px; border-radius: 11px; color: #E0A567; display: flex; align-items: center; justify-content: center; margin-bottom: 8px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg></a>
+<button type="button" aria-label="Wetterkarte" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></button>
+<button type="button" aria-label="Regenradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle><path d="M12 12l5.5-5.5"></path></svg></button>
+<button type="button" aria-label="Vorhersage" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"></path><path d="M4 15l4-5 4 3 4-6 4 4"></path></svg></button>
+<button type="button" aria-label="Tourenplanung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="6" r="2.2"></circle><path d="M8 17c6 0 2-9 8-10"></path></svg></button>
+<button type="button" aria-label="Brandradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-4 0-6.5-2.7-6.5-6.2 0-3.8 3.6-5.6 4.2-10.3 2.9 1.9 4.4 4.3 4.6 6.6.9-.6 1.5-1.7 1.7-2.9 1.6 1.5 2.5 3.6 2.5 6 0 4-2.6 6.8-6.5 6.8z"></path></svg></button>
+<button type="button" aria-label="Seewetter" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 15c2 0 2-1.6 4.5-1.6S10 15 12 15s2-1.6 4.5-1.6S19 15 21 15"></path><path d="M3 19c2 0 2-1.6 4.5-1.6S10 19 12 19s2-1.6 4.5-1.6S19 19 21 19"></path><path d="M7 11c1.5-4 6-6 10-4"></path></svg></button>
+<a href="gletscher-desktop-lage.dc.html" aria-label="Gletscher (aktiv)" style="width: 42px; height: 42px; border-radius: 11px; background: #3A3833; color: #8FD0E3; display: flex; align-items: center; justify-content: center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z"></path><path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4"></path></svg></a>
+</nav>
+
+<div style="flex: 1; display: flex; flex-direction: column; min-width: 0">
+
+<header style="height: 60px; flex: 0 0 auto; display: flex; align-items: center; gap: 14px; padding: 0 20px 0 14px; box-sizing: border-box; background: #FAF6EA; border-bottom: 1px solid #E0D6BE">
+<a href="gletscher-desktop-lage.dc.html" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 13.5px; font-weight: 600; color: #2C2A26; text-decoration: none; white-space: nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>DACH-Lage</a>
+<div style="display: flex; flex-direction: column; gap: 1px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 21px; font-weight: 700">Hintereisferner</span><span style="font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #EDE6D3; color: #5C5447">AT · Klasse A</span></div>
+<div style="font-size: 12.5px; color: #5C5447">Ötztaler Alpen · Tirol · WGMS-Referenzgletscher, Massenbilanz seit 1953</div>
+</div>
+<div style="flex: 1"></div>
+<div role="group" aria-label="Zeitpunkt" style="display: flex; gap: 3px; padding: 3px; border-radius: 11px; background: #EDE6D3">
+<sc-for list="{{dates}}" as="d" hint-placeholder-count="2">
+<button type="button" onClick="{{d.pick}}" aria-pressed="{{d.on}}" style="{{d.style}}">{{d.label}}</button>
+</sc-for>
+</div>
+<button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"></path></svg>Folgen</button>
+<button type="button" style="height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"></path></svg>Teilen</button>
+</header>
+
+<div style="flex: 1; display: flex; min-height: 0">
+
+<aside aria-label="Steckbrief und Ebenen" style="width: 250px; flex: 0 0 auto; background: #FAF6EA; border-right: 1px solid #E0D6BE; display: flex; flex-direction: column; padding: 14px; box-sizing: border-box; gap: 14px; overflow-y: auto">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">STECKBRIEF</div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5C5447">Fläche</span><span style="display: flex; align-items: baseline; gap: 6px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600">5,17 km²</span><span style="font-size: 12px; color: #5C5447">2022 · UIBK</span></span><span style="font-size: 12px; color: #5C5447">2003: 8,04 km² (RGI 7) · <span style="color: #8F4A22; font-weight: 600">−36 %</span></span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5C5447">Höhe (Umriss 2003)</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600">2 430 – 3 674 m</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5C5447">Bilanz 2024/25 (gemessen)</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600">−1 793 mm w. e.</span><span style="font-size: 12px; color: #5C5447">Gleichgewichtslinie 3 302 m · AAR 0,24</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5C5447">Nächste Messstation</span><span style="font-size: 13.5px; font-weight: 600">Obergurgl, 1 941 m (TAWES)</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5C5447">IDs</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #2C2A26; line-height: 1.4">RGI2000-v7.0-G-11-03116<br>GLIMS G010752E46802N</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">ANSICHT</div>
+<div role="group" aria-label="Ansicht" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; border-radius: 10px; background: #EDE6D3">
+<sc-for list="{{views}}" as="v" hint-placeholder-count="2">
+<button type="button" onClick="{{v.pick}}" aria-pressed="{{v.on}}" style="{{v.style}}">{{v.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">EBENEN</div>
+<sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+<button type="button" onClick="{{l.pick}}" aria-pressed="{{l.on}}" style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 8px; border-radius: 9px; border: 1px solid #E0D6BE; background: #FFFFFF; cursor: pointer; text-align: left; color: #2C2A26">
+<span style="{{l.box}}"></span>
+<span style="display: flex; flex-direction: column"><span style="font-size: 13.5px; font-weight: 600">{{l.label}}</span><span style="font-size: 11.5px; color: #5C5447">{{l.sub}}</span></span>
+</button>
+</sc-for>
+</div>
+<div style="border-top: 1px solid #E0D6BE; padding-top: 8px; font-size: 11.5px; color: #5C5447; line-height: 1.4">Fläche 2026 im Mockup aus dem Umriss 2003 geschätzt. Im Produkt: AGI 5 plus Sentinel-2.</div>
+</aside>
+
+<main aria-label="Karte des Gletschers" style="width: 708px; flex: 0 0 auto; position: relative; overflow: hidden; background: #DDD5C0">
+<sc-if value="{{show2d}}" hint-placeholder-val="{{ true }}">
+<img src="{{img2d}}" alt="Reliefkarte Hintereisferner mit Eisfläche" style="position: absolute; left: 0; top: 0; width: 708px; height: 780px">
+<sc-if value="{{compare}}" hint-placeholder-val="{{ false }}">
+<div style="{{compareClip}}"><img src="./gletscher/hef_map_708x780_2003.jpg" alt="Eisfläche nach dem Umriss 2003" style="position: absolute; left: 0; top: 0; width: 708px; height: 780px"></div>
+<div style="{{compareLine}}"></div>
+<div style="position: absolute; left: 14px; top: 14px; padding: 4px 9px; border-radius: 8px; background: rgba(44, 42, 38, 0.82); color: #F5F1E8; font-size: 12.5px; font-weight: 600">2003 · Umriss RGI 7</div>
+<div style="position: absolute; right: 14px; top: 14px; padding: 4px 9px; border-radius: 8px; background: rgba(44, 42, 38, 0.82); color: #F5F1E8; font-size: 12.5px; font-weight: 600">{{compareRight}}</div>
+</sc-if>
+<sc-if value="{{showOutline}}" hint-placeholder-val="{{ true }}">
+<img src="./gletscher/hef_map_708x780_outl.svg" alt="" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 708px; height: 780px">
+</sc-if>
+<sc-if value="{{showSnow}}" hint-placeholder-val="{{ true }}">
+<img src="{{imgSnow}}" alt="" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 708px; height: 780px">
+</sc-if>
+<div style="position: absolute; left: 368px; top: 392px; font-size: 15px; font-weight: 700; color: #145A70; text-shadow: 0 0 4px #FFFFFF, 0 0 4px #FFFFFF">Hintereisferner</div>
+<div style="position: absolute; left: 250px; top: 168px; font-size: 13px; font-weight: 600; color: #3A3833; text-shadow: 0 0 4px #FFFFFF, 0 0 4px #FFFFFF">Gepatschferner</div>
+<div style="position: absolute; left: 205px; top: 444px; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #2C2A26; text-shadow: 0 0 3px #FFFFFF, 0 0 3px #FFFFFF"><svg width="10" height="9" viewBox="0 0 10 9" aria-hidden="true"><path d="M5 0l5 9H0z" fill="#2C2A26"></path></svg>Weißkugel 3 739 m</div>
+<div style="position: absolute; left: 604px; top: 293px; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #2C2A26; text-shadow: 0 0 3px #FFFFFF, 0 0 3px #FFFFFF"><span style="width: 10px; height: 10px; border-radius: 2px; background: #B5602C; border: 1.5px solid #FFFFFF"></span>Hochjoch-Hospiz</div>
+<sc-if value="{{showSnow}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 14px; top: 14px; display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 8px; background: rgba(255, 255, 255, 0.94); border: 1px solid #A9D4E2; font-size: 12px; font-weight: 600; color: #145A70"><span style="width: 16px; height: 3px; border-radius: 2px; background: #1E87A8"></span>{{snowLabel}}</div>
+</sc-if>
+<div style="position: absolute; left: 14px; bottom: 74px; width: 250px; background: rgba(250, 246, 234, 0.97); border: 1px solid #D9D0B8; border-radius: 12px; padding: 10px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #2C2A26">
+<div style="font-size: 12.5px; font-weight: 700">Legende</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 12px; border-radius: 3px; background: #CFE6EE; border: 1px solid #9CC6D4"></span>Eis 2026 (geschätzt)</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 12px; border-radius: 3px; background: #FAFBFC; border: 1px solid #D9D0B8"></span>Schnee und Firn</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 12px; border-radius: 3px; background: #D6D2C6; border: 1px solid #BDB6A4"></span>Gletschervorfeld seit 2003</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 0; border-top: 2px dashed #1C5E73"></span>Umriss 2003 (RGI 7)</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 3px; border-radius: 2px; background: #1E87A8"></span>Schneegrenze (Satellit)</div>
+</div>
+<div style="position: absolute; right: 14px; bottom: 80px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px"><div style="width: 53px; height: 5px; border: 1.5px solid #2C2A26; border-top: 0; box-sizing: border-box"></div><span style="font-size: 11px; color: #2C2A26">1 km</span></div>
+</sc-if>
+<sc-if value="{{show3d}}" hint-placeholder-val="{{ false }}">
+<img src="{{img3d}}" alt="3D-Ansicht des Hintereisferners von Nordosten" style="position: absolute; left: 0; top: 0; width: 708px; height: 780px">
+<div style="position: absolute; left: 424px; top: 470px; font-size: 15px; font-weight: 700; color: #145A70; text-shadow: 0 0 4px #FFFFFF, 0 0 4px #FFFFFF">Hintereisferner</div>
+<div style="position: absolute; left: 268px; top: 706px; padding: 3px 8px; border-radius: 7px; background: rgba(255, 255, 255, 0.88); font-size: 12px; font-weight: 600; color: #3A3833">Gletschervorfeld seit 2003</div>
+<div style="position: absolute; left: 14px; top: 14px; padding: 6px 10px; border-radius: 9px; background: rgba(250, 246, 234, 0.95); border: 1px solid #D9D0B8; font-size: 12px; color: #2C2A26">Blick von Nordosten · ziehen zum Drehen</div>
+</sc-if>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: #FAF6EA; border-top: 1px solid #D9D0B8; display: flex; align-items: center; gap: 12px; padding: 0 14px; box-sizing: border-box">
+<sc-if value="{{compare}}" hint-placeholder-val="{{ false }}">
+<label for="gl-split" style="font-size: 13px; font-weight: 600; white-space: nowrap">Vorher – nachher</label>
+<input id="gl-split" type="range" min="5" max="95" value="{{split}}" onInput="{{onSplit}}" style="flex: 1; accent-color: #1E87A8">
+<span style="font-size: 12px; color: #5C5447; white-space: nowrap">Produkt: Sentinel-2 2017 ↔ heute</span>
+</sc-if>
+<sc-if value="{{noCompare}}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 13px; font-weight: 600">{{mapCaption}}</span>
+<span style="flex: 1"></span>
+<span style="font-size: 11.5px; color: #5C5447">Gelände SRTM · Umrisse RGI 7 · Mockup</span>
+</sc-if>
+</div>
+</main>
+
+<aside aria-label="Kennzahlen" style="width: 420px; flex: 0 0 auto; background: #FAF6EA; border-left: 1px solid #E0D6BE; display: flex; flex-direction: column; min-height: 0">
+<div role="tablist" aria-label="Reiter" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; padding: 10px 12px 0; border-bottom: 1px solid #E0D6BE">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+<div style="flex: 1; overflow-y: auto; padding: 14px 16px 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+
+<sc-if value="{{tabHeute}}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{isOct}}" hint-placeholder-val="{{ true }}">
+<section style="border-radius: 14px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px; font-weight: 700; color: #5C5447">SCHMELZE HEUTE · So 11.10.</span><span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #FBF3E7; color: #7A5418; border: 1px solid #E7D3B4">Modell</span></div>
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600; color: #145A70">0,3 cm</span><span style="font-size: 13.5px">Eis an der Zunge, darüber keine</span></div>
+<div style="font-size: 12.5px; color: #5C5447">Spanne 0,1–0,5 cm · ≈ 1 400 m³ Schmelzwasser · Gletschermittel 0,0 cm</div>
+</section>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Nullgradgrenze 14 Uhr</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600">2 750 m</span><span style="font-size: 11px; color: #7A5418">Modell</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Neuschnee seit 08.10.</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600">18 cm</span><span style="font-size: 11px; color: #7A5418">Modell, über 2 900 m</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Obergurgl 1 941 m</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600">4,8 °C</span><span style="font-size: 11px; color: #4F6A3D">gemessen 11:50</span></div>
+</div>
+<table style="border-collapse: collapse; width: 100%; font-size: 12.5px">
+<thead><tr style="color: #5C5447; text-align: left"><th style="font-weight: 600; padding: 4px 0">Höhenband</th><th style="font-weight: 600; padding: 4px 0">T 14 Uhr</th><th style="font-weight: 600; padding: 4px 0">Oberfläche</th><th style="font-weight: 600; padding: 4px 0; text-align: right">Schmelze</th></tr></thead>
+<tbody style="font-family: 'IBM Plex Mono', monospace">
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">Firn 3 500 m</td><td>−8,5 °C</td><td style="font-family: 'League Spartan', sans-serif">Neuschnee</td><td style="text-align: right">0,0</td></tr>
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">GWL 3 300 m</td><td>−6,9 °C</td><td style="font-family: 'League Spartan', sans-serif">Neuschnee</td><td style="text-align: right">0,0</td></tr>
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">Mitte 3 000 m</td><td>−4,2 °C</td><td style="font-family: 'League Spartan', sans-serif">Neuschnee</td><td style="text-align: right">0,0</td></tr>
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">Zunge 2 700 m</td><td>+0,9 °C</td><td style="font-family: 'League Spartan', sans-serif">Blankeis</td><td style="text-align: right; font-weight: 600">0,3</td></tr>
+</tbody>
+</table>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Schmelze an der Zunge, 14 Tage</span><span style="font-size: 11.5px; color: #5C5447">cm Eis je Tag · Linie = p10–p90</span></div>
+<svg width="388" height="156" viewBox="0 0 388 156" role="img" aria-label="Schmelze an der Zunge in den nächsten 14 Tagen, höchstens etwa 0,6 Zentimeter am Donnerstag" style="display: block">
+<g stroke="#EDE6D3" stroke-width="1"><line x1="40" y1="14" x2="372" y2="14"></line><line x1="40" y1="52.7" x2="372" y2="52.7"></line><line x1="40" y1="91.3" x2="372" y2="91.3"></line></g>
+<line x1="40" y1="130" x2="372" y2="130" stroke="#9D8F6E" stroke-width="1"></line>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5C5447" text-anchor="end"><text x="34" y="17.5">1,5</text><text x="34" y="56">1,0</text><text x="34" y="94.6">0,5</text><text x="34" y="133.5">0</text></g>
+<rect x="46.0" y="106.8" width="14" height="23.2" rx="2" fill="#1E87A8"></rect><line x1="53.0" y1="91.3" x2="53.0" y2="122.3" stroke="#2C2A26" stroke-width="1.2"></line><rect x="69.5" y="122.3" width="14" height="7.7" rx="2" fill="#7FC0D6"></rect><line x1="76.5" y1="106.8" x2="76.5" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><line x1="100.0" y1="122.3" x2="100.0" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><rect x="116.5" y="99.1" width="14" height="30.9" rx="2" fill="#7FC0D6"></rect><line x1="123.5" y1="68.1" x2="123.5" y2="122.3" stroke="#2C2A26" stroke-width="1.2"></line><rect x="140.0" y="83.6" width="14" height="46.4" rx="2" fill="#7FC0D6"></rect><line x1="147.0" y1="44.9" x2="147.0" y2="114.5" stroke="#2C2A26" stroke-width="1.2"></line><rect x="163.5" y="91.3" width="14" height="38.7" rx="2" fill="#7FC0D6"></rect><line x1="170.5" y1="52.7" x2="170.5" y2="122.3" stroke="#2C2A26" stroke-width="1.2"></line><rect x="187.0" y="122.3" width="14" height="7.7" rx="2" fill="#7FC0D6"></rect><line x1="194.0" y1="99.1" x2="194.0" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><line x1="217.5" y1="114.5" x2="217.5" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><line x1="241.0" y1="114.5" x2="241.0" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><line x1="264.5" y1="106.8" x2="264.5" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><rect x="281.0" y="114.5" width="14" height="15.5" rx="2" fill="#7FC0D6"></rect><line x1="288.0" y1="83.6" x2="288.0" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><rect x="304.5" y="122.3" width="14" height="7.7" rx="2" fill="#7FC0D6"></rect><line x1="311.5" y1="91.3" x2="311.5" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><line x1="335.0" y1="99.1" x2="335.0" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line><line x1="358.5" y1="99.1" x2="358.5" y2="130.0" stroke="#2C2A26" stroke-width="1.2"></line>
+<g font-family="League Spartan, sans-serif" font-size="10" fill="#5C5447" text-anchor="middle"><text x="53" y="146">So</text><text x="76.5" y="146">Mo</text><text x="100" y="146">Di</text><text x="123.5" y="146">Mi</text><text x="147" y="146">Do</text><text x="170.5" y="146">Fr</text><text x="194" y="146">Sa</text><text x="217.5" y="146">So</text><text x="241" y="146">Mo</text><text x="264.5" y="146">Di</text><text x="288" y="146">Mi</text><text x="311.5" y="146">Do</text><text x="335" y="146">Fr</text><text x="358.5" y="146">Sa</text></g>
+<line x1="206" y1="14" x2="206" y2="130" stroke="#C4B896" stroke-width="1" stroke-dasharray="2 3"></line>
+<text x="210" y="24" font-size="10" fill="#5C5447" font-family="League Spartan, sans-serif">ab hier 6-stündlich</text>
+</svg>
+</section>
+<div style="font-size: 11.5px; color: #5C5447; line-height: 1.45">Temperaturindex-Modell aus buscosun Fusion, an GLAMOS-Bilanzen 2023–2026 geeicht. Kein Messwert. Im Mockup illustrativ.</div>
+</sc-if>
+<sc-if value="{{isAug}}" hint-placeholder-val="{{ false }}">
+<section style="border-radius: 14px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13px; font-weight: 700; color: #5C5447">SCHMELZE HEUTE · Mi 12.08.</span><span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #FBF3E7; color: #7A5418; border: 1px solid #E7D3B4">Modell</span></div>
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600; color: #145A70">4,2 cm</span><span style="font-size: 13.5px">Eis im Gletschermittel</span></div>
+<div style="font-size: 12.5px; color: #5C5447">Spanne 3,8–4,6 cm · ≈ 195 000 m³ Schmelzwasser · Zunge 7,1 cm</div>
+<div style="margin-top: 2px; padding: 7px 9px; border-radius: 9px; background: #FBEFE2; color: #8A4A22; font-size: 12.5px; font-weight: 600">Über dem 95. Perzentil der Jahre 2000–2025 für Mitte August</div>
+</section>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Nullgradgrenze 14 Uhr</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600">4 650 m</span><span style="font-size: 11px; color: #7A5418">Modell · ICON-D2</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Schneegrenze 08.08.</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600">3 360 m</span><span style="font-size: 11px; color: #4B3D96">Satellit</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Obergurgl 1 941 m</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600">21,3 °C</span><span style="font-size: 11px; color: #4F6A3D">gemessen 13:50</span></div>
+</div>
+<table style="border-collapse: collapse; width: 100%; font-size: 12.5px">
+<thead><tr style="color: #5C5447; text-align: left"><th style="font-weight: 600; padding: 4px 0">Höhenband</th><th style="font-weight: 600; padding: 4px 0">T 14 Uhr</th><th style="font-weight: 600; padding: 4px 0">Oberfläche</th><th style="font-weight: 600; padding: 4px 0; text-align: right">Schmelze</th></tr></thead>
+<tbody style="font-family: 'IBM Plex Mono', monospace">
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">Firn 3 500 m</td><td>+5,8 °C</td><td style="font-family: 'League Spartan', sans-serif">Firn</td><td style="text-align: right">1,9</td></tr>
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">GWL 3 300 m</td><td>+7,2 °C</td><td style="font-family: 'League Spartan', sans-serif">Blankeis</td><td style="text-align: right">4,6</td></tr>
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">Mitte 3 000 m</td><td>+9,4 °C</td><td style="font-family: 'League Spartan', sans-serif">Blankeis</td><td style="text-align: right">5,8</td></tr>
+<tr style="border-top: 1px solid #EDE6D3"><td style="padding: 6px 0">Zunge 2 700 m</td><td>+11,6 °C</td><td style="font-family: 'League Spartan', sans-serif">Blankeis</td><td style="text-align: right; font-weight: 600">7,1</td></tr>
+</tbody>
+</table>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Schmelze im Gletschermittel, 14 Tage</span><span style="font-size: 11.5px; color: #5C5447">cm Eis je Tag · Linie = p10–p90</span></div>
+<svg width="388" height="156" viewBox="0 0 388 156" role="img" aria-label="Schmelze in den nächsten 14 Tagen, bis 4,9 Zentimeter am Freitag, Einbruch am Sonntag nach einer Kaltfront" style="display: block">
+<g stroke="#EDE6D3" stroke-width="1"><line x1="40" y1="14" x2="372" y2="14"></line><line x1="40" y1="52.7" x2="372" y2="52.7"></line><line x1="40" y1="91.3" x2="372" y2="91.3"></line></g>
+<line x1="40" y1="130" x2="372" y2="130" stroke="#9D8F6E" stroke-width="1"></line>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5C5447" text-anchor="end"><text x="34" y="17.5">6</text><text x="34" y="56">4</text><text x="34" y="94.6">2</text><text x="34" y="133.5">0</text></g>
+<rect x="46.0" y="48.8" width="14" height="81.2" rx="2" fill="#1E87A8"></rect><line x1="53.0" y1="41.1" x2="53.0" y2="56.5" stroke="#2C2A26" stroke-width="1.2"></line><rect x="69.5" y="41.1" width="14" height="88.9" rx="2" fill="#7FC0D6"></rect><line x1="76.5" y1="29.5" x2="76.5" y2="52.7" stroke="#2C2A26" stroke-width="1.2"></line><rect x="93.0" y="35.3" width="14" height="94.7" rx="2" fill="#7FC0D6"></rect><line x1="100.0" y1="21.7" x2="100.0" y2="50.7" stroke="#2C2A26" stroke-width="1.2"></line><rect x="116.5" y="44.9" width="14" height="85.1" rx="2" fill="#7FC0D6"></rect><line x1="123.5" y1="27.5" x2="123.5" y2="62.3" stroke="#2C2A26" stroke-width="1.2"></line><rect x="140.0" y="89.4" width="14" height="40.6" rx="2" fill="#7FC0D6"></rect><line x1="147.0" y1="72.0" x2="147.0" y2="106.8" stroke="#2C2A26" stroke-width="1.2"></line><rect x="163.5" y="106.8" width="14" height="23.2" rx="2" fill="#7FC0D6"></rect><line x1="170.5" y1="91.3" x2="170.5" y2="118.4" stroke="#2C2A26" stroke-width="1.2"></line><rect x="187.0" y="95.2" width="14" height="34.8" rx="2" fill="#7FC0D6"></rect><line x1="194.0" y1="75.9" x2="194.0" y2="112.6" stroke="#2C2A26" stroke-width="1.2"></line><rect x="210.5" y="73.9" width="14" height="56.1" rx="2" fill="#7FC0D6"></rect><line x1="217.5" y1="54.6" x2="217.5" y2="95.2" stroke="#2C2A26" stroke-width="1.2"></line><rect x="234.0" y="60.4" width="14" height="69.6" rx="2" fill="#7FC0D6"></rect><line x1="241.0" y1="39.1" x2="241.0" y2="83.6" stroke="#2C2A26" stroke-width="1.2"></line><rect x="257.5" y="54.6" width="14" height="75.4" rx="2" fill="#7FC0D6"></rect><line x1="264.5" y1="31.4" x2="264.5" y2="81.7" stroke="#2C2A26" stroke-width="1.2"></line><rect x="281.0" y="66.2" width="14" height="63.8" rx="2" fill="#7FC0D6"></rect><line x1="288.0" y1="37.2" x2="288.0" y2="95.2" stroke="#2C2A26" stroke-width="1.2"></line><rect x="304.5" y="79.7" width="14" height="50.3" rx="2" fill="#7FC0D6"></rect><line x1="311.5" y1="52.7" x2="311.5" y2="104.9" stroke="#2C2A26" stroke-width="1.2"></line><rect x="328.0" y="75.9" width="14" height="54.1" rx="2" fill="#7FC0D6"></rect><line x1="335.0" y1="48.8" x2="335.0" y2="102.9" stroke="#2C2A26" stroke-width="1.2"></line><rect x="351.5" y="70.1" width="14" height="59.9" rx="2" fill="#7FC0D6"></rect><line x1="358.5" y1="41.1" x2="358.5" y2="101.0" stroke="#2C2A26" stroke-width="1.2"></line>
+<g font-family="League Spartan, sans-serif" font-size="10" fill="#5C5447" text-anchor="middle"><text x="53" y="146">Mi</text><text x="76.5" y="146">Do</text><text x="100" y="146">Fr</text><text x="123.5" y="146">Sa</text><text x="147" y="146">So</text><text x="170.5" y="146">Mo</text><text x="194" y="146">Di</text><text x="217.5" y="146">Mi</text><text x="241" y="146">Do</text><text x="264.5" y="146">Fr</text><text x="288" y="146">Sa</text><text x="311.5" y="146">So</text><text x="335" y="146">Mo</text><text x="358.5" y="146">Di</text></g>
+<text x="147" y="66" text-anchor="middle" font-size="10" fill="#5C5447" font-family="League Spartan, sans-serif">Kaltfront</text>
+<line x1="206" y1="14" x2="206" y2="130" stroke="#C4B896" stroke-width="1" stroke-dasharray="2 3"></line>
+</svg>
+</section>
+<div style="font-size: 11.5px; color: #5C5447; line-height: 1.45">Beispieltag in der Hitzewelle. Temperaturindex-Modell aus buscosun Fusion, kein Messwert. Im Mockup illustrativ.</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{tabSaison}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 12.5px; color: #5C5447">Hydrologisches Jahr 2025/26, Stand 11.10.2026</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Höchste Schneegrenze</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">3 480 m</span><span style="font-size: 11px; color: #4B3D96">Satellit · 27.08.</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Schneeanteil Saisonende (AAR)</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">0,12</span><span style="font-size: 11px; color: #4B3D96">Satellit · 2024/25: 0,24</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Gletscherschwundtag</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">04.07.</span><span style="font-size: 11px; color: #7A5418">Modell · Wintereis aufgebraucht</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Bilanz-Schätzung 2025/26</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600">−2,5 m w. e.</span><span style="font-size: 11px; color: #7A5418">Modell · −2,1 bis −2,9</span></div>
+</div>
+<div style="padding: 8px 10px; border-radius: 10px; background: #EFF3E8; border: 1px solid #C3D2AF; font-size: 12.5px; color: #3D5530; line-height: 1.4"><span style="font-weight: 700">Gemessen 2024/25:</span> −1 793 mm w. e., Gleichgewichtslinie 3 302 m (Universität Innsbruck). Die Messung 2025/26 erscheint 2027.</div>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Schneegrenze je klarer Szene</span><span style="font-size: 11.5px; color: #5C5447">m ü. M.</span></div>
+<svg width="388" height="196" viewBox="0 0 388 196" role="img" aria-label="Schneegrenze 2026 je Sentinel-2-Szene: Anstieg von unter 2 450 Meter im Mai auf 3 480 Meter Ende August, über dem Band der Jahre 2000 bis 2025" style="display: block">
+<rect x="40" y="28" width="330" height="116.3" fill="#EEF6F8"></rect>
+<text x="44" y="38" font-size="10" fill="#5E8C9B" font-family="League Spartan, sans-serif">Gletscher heute 2 630 – 3 674 m</text>
+<path d="M40.0,142.1C50.2,138.4 81.2,128.6 101.3,119.9C121.3,111.1 140.4,99.1 160.5,89.8C180.6,80.5 201.7,68.0 221.8,64.1C241.9,60.2 261.3,62.7 281.1,66.4C300.8,70.1 325.5,81.2 340.4,86.4C355.2,91.6 365.1,95.7 370.0,97.6L370.0,147.7C365.1,145.9 355.2,144.0 340.4,136.6C325.5,129.1 300.8,109.6 281.1,103.1C261.3,96.6 241.9,94.8 221.8,97.6C201.7,100.4 180.6,111.5 160.5,119.9C140.4,128.2 121.3,140.3 101.3,147.7C81.2,155.1 50.2,161.6 40.0,164.4Z" fill="#DCD6EF"></path>
+<path d="M40.0,153.3C50.2,150.1 81.2,142.3 101.3,134.3C121.3,126.4 140.4,114.3 160.5,105.4C180.6,96.5 201.7,84.4 221.8,80.9C241.9,77.3 261.3,78.6 281.1,84.2C300.8,89.8 325.5,107.4 340.4,114.3C355.2,121.2 365.1,123.6 370.0,125.4" fill="none" stroke="#9A8FCB" stroke-width="1.5"></path>
+<line x1="40" y1="69.5" x2="370" y2="69.5" stroke="#2C2A26" stroke-width="1" stroke-dasharray="4 3"></line>
+<text x="44" y="64" font-size="10" fill="#2C2A26" font-family="League Spartan, sans-serif">GWL 2024/25 · 3 302 m</text>
+<g stroke="#E0D6BE" stroke-width="1"><line x1="40" y1="170" x2="370" y2="170"></line></g>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5C5447" text-anchor="end"><text x="34" y="173.5">2 400</text><text x="34" y="128.9">2 800</text><text x="34" y="84.4">3 200</text><text x="34" y="39.8">3 600</text></g>
+<g font-family="League Spartan, sans-serif" font-size="10.5" fill="#5C5447"><text x="40" y="186">Mai</text><text x="101.3" y="186">Jun</text><text x="160.5" y="186">Jul</text><text x="221.8" y="186">Aug</text><text x="283.1" y="186">Sep</text><text x="342.3" y="186">Okt</text></g>
+<path d="M61.7,160 l-4,-6 h8 z" fill="#6B5BB8"></path>
+<text x="68" y="161" font-size="10" fill="#4B3D96" font-family="League Spartan, sans-serif">unter der Zunge</text>
+<circle cx="103.2" cy="145.5" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="126.9" cy="127.7" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="156.6" cy="105.4" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="176.3" cy="89.8" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="196.1" cy="77.5" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="215.9" cy="69.7" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="235.6" cy="63.0" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="255.4" cy="56.3" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="273.2" cy="49.7" r="5" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="292.9" cy="51.9" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="306.8" cy="89.8" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="322.6" cy="69.7" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="342.3" cy="65.3" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle><circle cx="358.1" cy="116.5" r="4" fill="#6B5BB8" stroke="#FFFFFF" stroke-width="1.5"></circle>
+<text x="273" y="42" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2C2A26" font-family="IBM Plex Mono, monospace">3 480</text>
+<text x="352" y="134" text-anchor="end" font-size="10" fill="#4B3D96" font-family="League Spartan, sans-serif">Neuschnee 09.10.</text>
+</svg>
+<div style="display: flex; gap: 12px; font-size: 11.5px; color: #5C5447; flex-wrap: wrap"><span style="display: flex; align-items: center; gap: 5px"><span style="width: 9px; height: 9px; border-radius: 5px; background: #6B5BB8"></span>2026, je Szene</span><span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 9px; border-radius: 2px; background: #DCD6EF"></span>2000–2025, p10–p90 (TSLA)</span><span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 2px; background: #9A8FCB"></span>Median</span></div>
+</section>
+<div style="padding: 8px 10px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E0D6BE; font-size: 12.5px; line-height: 1.4"><span style="font-weight: 700">Albedo:</span> Blankeis 0,04 dunkler als im Mittel 2017–2025. Ursache nicht belegt (Staub, Ruß oder älteres Eis).</div>
+</sc-if>
+
+<sc-if value="{{tabLang}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 8px 10px; border-radius: 10px; background: #E3F1F5; border: 1px solid #A9D4E2; font-size: 12.5px; color: #145A70; line-height: 1.4">Die Karte zeigt jetzt den Vergleich 2003 gegen 2026. Regler unter der Karte ziehen.</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Fläche 2003 → 2022</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #8F4A22">−36 %</span><span style="font-size: 11px; color: #4F6A3D">gemessen · RGI 7, UIBK</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11.5px; color: #5C5447">Länge 1847 → 2003</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #8F4A22">−2 918 m</span><span style="font-size: 11px; color: #4F6A3D">gemessen · Längenreihe</span></div>
+</div>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Längenänderung seit 1847</span><span style="font-size: 11.5px; color: #5C5447">m, kumuliert</span></div>
+<svg width="388" height="156" viewBox="0 0 388 156" role="img" aria-label="Kumulierte Längenänderung des Hintereisferners von 1847 bis 2003: Rückzug um 2 918 Meter" style="display: block">
+<g stroke="#EDE6D3" stroke-width="1"><line x1="40" y1="47.3" x2="370" y2="47.3"></line><line x1="40" y1="80.7" x2="370" y2="80.7"></line><line x1="40" y1="114" x2="370" y2="114"></line></g>
+<line x1="40" y1="14" x2="370" y2="14" stroke="#9D8F6E" stroke-width="1"></line>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5C5447" text-anchor="end"><text x="34" y="17.5">0</text><text x="34" y="50.8">−1 000</text><text x="34" y="84.2">−2 000</text><text x="34" y="117.5">−3 000</text></g>
+<polyline points="52.2,20.7 53.9,20.7 66.1,16.0 93.8,20.7 114.7,25.7 123.4,31.3 125.1,32.3 128.6,36.2 130.3,38.5 133.8,40.5 142.5,43.4 144.2,43.5 145.9,43.6 147.7,43.6 149.4,44.5 151.2,45.1 152.9,46.5 170.3,52.5 172.0,52.8 173.7,52.8 175.5,52.5 177.2,51.7 178.9,50.8 180.7,50.5 182.4,50.5 194.6,53.5 199.8,52.9 201.5,53.6 203.3,55.0 205.0,56.0 206.7,57.2 208.5,57.8 211.9,59.6 213.7,61.8 215.4,62.6 217.2,64.4 218.9,65.5 220.6,63.6 222.4,64.4 224.1,66.4 225.8,70.1 227.6,70.7 229.3,72.4 231.1,74.4 232.8,75.3 234.5,77.4 236.3,78.6 238.0,80.0 239.7,80.5 241.5,81.5 243.2,81.9 244.9,82.7 246.7,86.0 248.4,86.5 250.2,87.0 251.9,88.1 253.6,89.3 255.4,91.0 257.1,91.3 258.8,91.9 260.6,92.9 262.3,93.4 264.1,94.3 265.8,95.1 267.5,96.0 269.3,97.0 271.0,97.6 272.7,98.0 274.5,98.3 276.2,98.8 277.9,99.0 279.7,99.2 281.4,99.6 283.2,99.8 284.9,99.9 286.6,100.3 288.4,100.9 290.1,101.2 291.8,101.4 293.6,101.5 295.3,101.8 297.1,102.0 298.8,102.3 300.5,102.7 302.3,103.2 304.0,104.0 305.7,104.8 307.5,105.5 309.2,105.9 310.9,106.5 312.7,106.9 314.4,107.8 316.2,108.3 317.9,109.0 319.6,109.6 321.4,110.2 323.1,111.3" fill="none" stroke="#B5602C" stroke-width="2" stroke-linejoin="round"></polyline>
+<circle cx="323.1" cy="111.3" r="4" fill="#B5602C" stroke="#FFFFFF" stroke-width="1.5"></circle>
+<rect x="324" y="18" width="46" height="116" fill="#F2EEE3"></rect>
+<text x="347" y="70" text-anchor="middle" font-size="10" fill="#5C5447" font-family="League Spartan, sans-serif">2004–25</text>
+<text x="347" y="82" text-anchor="middle" font-size="10" fill="#5C5447" font-family="League Spartan, sans-serif">ÖAV-Reihe</text>
+<g font-family="League Spartan, sans-serif" font-size="10.5" fill="#5C5447" text-anchor="middle"><text x="57.4" y="148">1850</text><text x="144.2" y="148">1900</text><text x="231.1" y="148">1950</text><text x="317.9" y="148">2000</text></g>
+</svg>
+</section>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Wann ist er weg?</span><span style="font-size: 11.5px; color: #5C5447">Volumen in % von 2020</span></div>
+<svg width="388" height="130" viewBox="0 0 388 130" role="img" aria-label="Projektion des Eisvolumens: unter 10 Prozent etwa 2048 bei starkem und etwa 2058 bei schwachem Klimawandel, Beispielwerte" style="display: block">
+<line x1="40" y1="110" x2="370" y2="110" stroke="#9D8F6E" stroke-width="1"></line>
+<line x1="40" y1="100.4" x2="370" y2="100.4" stroke="#C4B896" stroke-width="1" stroke-dasharray="3 3"></line>
+<text x="368" y="96" text-anchor="end" font-size="10" fill="#5C5447" font-family="League Spartan, sans-serif">10 %</text>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5C5447" text-anchor="end"><text x="34" y="17.5">100</text><text x="34" y="65.5">50</text><text x="34" y="113.5">0</text></g>
+<path d="M40.0,14.0C46.9,17.5 67.5,27.4 81.2,35.1C95.0,42.8 108.8,52.1 122.5,60.1C136.2,68.1 150.0,76.2 163.8,83.1C177.5,90.0 191.2,97.4 205.0,101.4C218.8,105.4 232.5,105.8 246.2,107.1C260.0,108.4 266.9,108.6 287.5,109.0C308.1,109.5 356.2,109.8 370.0,110.0" fill="none" stroke="#1E87A8" stroke-width="2"></path>
+<path d="M40.0,14.0C46.9,18.5 67.5,31.3 81.2,40.9C95.0,50.5 108.8,62.0 122.5,71.6C136.2,81.2 150.0,92.2 163.8,98.5C177.5,104.7 191.2,107.1 205.0,109.0C218.8,111.0 218.8,109.8 246.2,110.0C273.8,110.2 349.4,110.0 370.0,110.0" fill="none" stroke="#B5602C" stroke-width="2"></path>
+<text x="132" y="52" font-size="10.5" fill="#145A70" font-family="League Spartan, sans-serif">SSP1-2.6</text>
+<text x="96" y="74" font-size="10.5" fill="#8A4A22" font-family="League Spartan, sans-serif">SSP5-8.5</text>
+<g font-family="League Spartan, sans-serif" font-size="10.5" fill="#5C5447" text-anchor="middle"><text x="40" y="125">2020</text><text x="122.5" y="125">2040</text><text x="205" y="125">2060</text><text x="287.5" y="125">2080</text><text x="362" y="125">2100</text></g>
+</svg>
+<div style="font-size: 12.5px; line-height: 1.4">Unter 10 % des Volumens von 2020: <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600">2048–2058</span>, je nach Szenario.</div>
+<div style="font-size: 11.5px; color: #5C5447">Modell GloGEM CMIP6 · Beispielwerte im Mockup, nie als einzelnes Jahr.</div>
+</section>
+</sc-if>
+
+<sc-if value="{{tabTour}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 9px 11px; border-radius: 10px; background: #F2EEE3; border: 1px solid #D9D0B8; font-size: 12.5px; line-height: 1.45"><span style="font-weight: 700">Kein Urteil über Begehbarkeit.</span> Wetter und Zustand am Gletscher als Planungshilfe; Verhältnisse bei Hütte und Bergführern erfragen.</div>
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 700">Nullgradgrenze, nächste 48 Stunden</span><span style="font-size: 11.5px; color: #5C5447">m ü. M.</span></div>
+<svg width="388" height="166" viewBox="0 0 388 166" role="img" aria-label="Nullgradgrenze der nächsten 48 Stunden im Vergleich zur Höhe des Gletschers" style="display: block">
+<rect x="40" y="70.4" width="330" height="44.3" fill="#E3F1F5"></rect>
+<text x="44" y="80" font-size="10" fill="#145A70" font-family="League Spartan, sans-serif">Gletscher 2 630 – 3 674 m</text>
+<line x1="40" y1="123.9" x2="370" y2="123.9" stroke="#B5602C" stroke-width="1" stroke-dasharray="2 3"></line>
+<text x="368" y="133" text-anchor="end" font-size="10" fill="#8A4A22" font-family="League Spartan, sans-serif">Hochjoch-Hospiz 2 413 m</text>
+<g stroke="#EDE6D3" stroke-width="1"><line x1="40" y1="14" x2="370" y2="14"></line><line x1="40" y1="56.5" x2="370" y2="56.5"></line><line x1="40" y1="99" x2="370" y2="99"></line></g>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#5C5447" text-anchor="end"><text x="34" y="17.5">5 000</text><text x="34" y="60">4 000</text><text x="34" y="102.5">3 000</text><text x="34" y="145">2 000</text></g>
+<sc-if value="{{isOct}}" hint-placeholder-val="{{ true }}">
+<path d="M40.0,109.6C43.4,110.0 53.8,110.0 60.6,111.8C67.5,113.5 74.4,117.8 81.2,120.2C88.1,122.7 95.0,125.2 101.9,126.6C108.8,128.0 115.6,128.8 122.5,128.8C129.4,128.8 136.2,128.0 143.1,126.6C150.0,125.2 156.9,122.7 163.8,120.2C170.6,117.8 177.5,114.2 184.4,111.8C191.2,109.3 198.1,106.1 205.0,105.4C211.9,104.7 218.8,105.7 225.6,107.5C232.5,109.3 239.4,113.5 246.2,116.0C253.1,118.5 260.0,121.0 266.9,122.4C273.8,123.8 280.6,124.5 287.5,124.5C294.4,124.5 301.2,124.1 308.1,122.4C315.0,120.6 321.9,117.1 328.8,113.9C335.6,110.7 342.5,105.7 349.4,103.2C356.2,100.8 366.6,99.7 370.0,99.0" fill="none" stroke="#B5602C" stroke-width="2.2"></path>
+</sc-if>
+<sc-if value="{{isAug}}" hint-placeholder-val="{{ false }}">
+<path d="M40.0,28.9C43.4,28.5 53.8,26.4 60.6,26.8C67.5,27.1 74.4,28.9 81.2,31.0C88.1,33.1 95.0,37.4 101.9,39.5C108.8,41.6 115.6,42.7 122.5,43.8C129.4,44.8 136.2,45.9 143.1,45.9C150.0,45.9 156.9,45.2 163.8,43.8C170.6,42.3 177.5,39.5 184.4,37.4C191.2,35.2 198.1,32.4 205.0,31.0C211.9,29.6 218.8,28.5 225.6,28.9C232.5,29.2 239.4,29.2 246.2,33.1C253.1,37.0 260.0,46.2 266.9,52.2C273.8,58.3 280.6,65.0 287.5,69.2C294.4,73.5 301.2,75.6 308.1,77.8C315.0,79.9 321.9,82.0 328.8,82.0C335.6,82.0 342.5,79.9 349.4,77.8C356.2,75.6 366.6,70.7 370.0,69.2" fill="none" stroke="#B5602C" stroke-width="2.2"></path>
+</sc-if>
+<g font-family="League Spartan, sans-serif" font-size="10.5" fill="#5C5447" text-anchor="middle"><text x="40" y="160">jetzt</text><text x="122.5" y="160">+12 h</text><text x="205" y="160">+24 h</text><text x="287.5" y="160">+36 h</text><text x="362" y="160">+48 h</text></g>
+</svg>
+</section>
+<sc-if value="{{isOct}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13.5px; font-weight: 700">Nacht auf Montag: Frost bis 2 300 m</span><span style="font-size: 12.5px; color: #5C5447">Oberfläche am ganzen Gletscher gefroren · Modell</span></div>
+<div style="border-radius: 12px; background: #FBEFE2; border: 1px solid #E7C6A6; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13.5px; font-weight: 700; color: #8A4A22">18 cm Neuschnee auf Blankeis</span><span style="font-size: 12.5px; color: #6E3A1C">Spalten können verdeckt sein · Modell und Satellit 09.10.</span></div>
+</div>
+</sc-if>
+<sc-if value="{{isAug}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="border-radius: 12px; background: #FBEFE2; border: 1px solid #E7C6A6; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13.5px; font-weight: 700; color: #8A4A22">Nacht auf Donnerstag: kein Frost unter 4 300 m</span><span style="font-size: 12.5px; color: #6E3A1C">Oberfläche friert am ganzen Gletscher nicht durch · Modell</span></div>
+<div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D6BE; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13.5px; font-weight: 700">Blankeis-Anteil 88 %</span><span style="font-size: 12.5px; color: #5C5447">Spalten offen sichtbar, Firn nur oberhalb 3 360 m · Satellit 08.08.</span></div>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 13px; font-weight: 700">Verhältnisse aus erster Hand</div>
+<a href="https://www.alpenvereinaktiv.com/" style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 13.5px; font-weight: 600; text-decoration: none">alpenvereinaktiv.com · Sperrungen<span aria-hidden="true">↗</span></a>
+<a href="https://www.lawinen.report/" style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 13.5px; font-weight: 600; text-decoration: none">Lawinenreport Euregio (Winter)<span aria-hidden="true">↗</span></a>
+<a href="https://www.foto-webcam.eu/" style="display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 13.5px; font-weight: 600; text-decoration: none">Webcams in der Umgebung (nur Link)<span aria-hidden="true">↗</span></a>
+</div>
+</sc-if>
+
+<sc-if value="{{tabQuellen}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 12.5px; color: #5C5447">Jede Zahl in diesem Steckbrief, mit Herkunft und Stand</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{sources}}" as="s" hint-placeholder-count="8">
+<li style="display: flex; flex-direction: column; gap: 3px; padding: 9px 0; border-bottom: 1px solid #EDE6D3">
+<span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13.5px; font-weight: 600">{{s.what}}</span><span style="{{s.badgeStyle}}">{{s.badge}}</span></span>
+<span style="font-size: 12px; color: #5C5447">{{s.src}}</span>
+</li>
+</sc-for>
+</ul>
+<div style="padding: 8px 10px; border-radius: 10px; background: #F2EEE3; font-size: 12px; color: #5C5447; line-height: 1.4"><span style="font-weight: 700; color: #2C2A26">Nur verlinkt:</span> Webcams (Rechte vorbehalten). <span style="font-weight: 700; color: #2C2A26">Nicht genutzt:</span> Gletscherseen Österreich (NC-Lizenz).</div>
+</sc-if>
+
+</div>
+</aside>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'heute', date: 'oct', view: '2d', outline: true, snow: true, split: 50 };
+  }
+  renderVals() {
+    const s = this.state;
+    const seg = on => 'height: 30px; padding: 0 12px; border-radius: 8px; border: 0; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; ' + (on ? 'background: #FFFFFF; color: #2C2A26; box-shadow: 0 1px 3px rgba(44, 42, 38, 0.18);' : 'background: transparent; color: #5C5447;');
+    const dates = [
+      { label: 'So 11.10. · heute', on: s.date === 'oct', pick: () => this.setState({ date: 'oct' }) },
+      { label: 'Mi 12.08. · Beispiel Hitzewelle', on: s.date === 'aug', pick: () => this.setState({ date: 'aug' }) }
+    ].map(d => ({ ...d, style: seg(d.on) }));
+    const views = [
+      { label: 'Karte', on: s.view === '2d', pick: () => this.setState({ view: '2d' }) },
+      { label: '3D', on: s.view === '3d', pick: () => this.setState({ view: '3d' }) }
+    ].map(v => ({ ...v, style: seg(v.on) }));
+    const box = on => 'width: 18px; height: 18px; border-radius: 5px; flex: 0 0 auto; box-sizing: border-box; ' + (on ? 'background: #1E87A8; border: 2px solid #1E87A8; box-shadow: inset 0 0 0 2px #FFFFFF;' : 'background: #FFFFFF; border: 2px solid #9D8F6E;');
+    const layers = [
+      { label: 'Umriss 2003', sub: 'RGI 7, alle Gletscher', on: s.outline, pick: () => this.setState({ outline: !s.outline }) },
+      { label: 'Schneegrenze', sub: s.date === 'oct' ? 'Sentinel-2, 09.10.' : 'Sentinel-2, 08.08.', on: s.snow, pick: () => this.setState({ snow: !s.snow }) }
+    ].map(l => ({ ...l, box: box(l.on) }));
+    const tabDefs = [['heute', 'Heute'], ['saison', 'Saison'], ['lang', 'Langzeit'], ['tour', 'Tour'], ['quellen', 'Quellen']];
+    const tabs = tabDefs.map(([k, label]) => ({
+      label, on: s.tab === k, pick: () => this.setState({ tab: k }),
+      style: 'height: 40px; border: 0; background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; ' + (s.tab === k ? 'color: #145A70; box-shadow: inset 0 -3px 0 #1E87A8;' : 'color: #5C5447;')
+    }));
+    const badgeStyle = b => {
+      const c = b === 'gemessen' ? ['#EFF3E8','#4F6A3D','#C3D2AF'] : b === 'Satellit' ? ['#EEEBF8','#4B3D96','#CFC6EE'] : b === 'amtlich' ? ['#2C2A26','#F5F1E8','#2C2A26'] : ['#FBF3E7','#7A5418','#E7D3B4'];
+      return 'font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1] + '; border: 1px solid ' + c[2];
+    };
+    const sources = [
+      { what: 'Fläche 2022, Bilanz 2024/25, Gleichgewichtslinie, AAR', badge: 'gemessen', src: 'Universität Innsbruck, Bericht HEF/KWF 2025 · CC BY 4.0 über WGMS' },
+      { what: 'Umriss 2003', badge: 'gemessen', src: 'RGI 7.0 (RGI Consortium) · CC BY 4.0' },
+      { what: 'Längenreihe 1847–2003', badge: 'gemessen', src: 'WGMS / Leclercq · ab 2004 ÖAV-Messdienst (PANGAEA, CC BY 4.0)' },
+      { what: 'Schneegrenze, AAR, Albedo', badge: 'Satellit', src: 'Copernicus Sentinel-2 L2A über Earth Search · Klimatologie TSLA 2000–2025 (Zenodo, CC BY 4.0)' },
+      { what: 'Schmelze, Nullgradgrenze, Neuschnee', badge: 'Modell', src: 'buscosun Fusion + DWD ICON-D2/-EU hzerocl (CC BY 4.0) · Eichung GLAMOS' },
+      { what: 'Temperatur Obergurgl', badge: 'gemessen', src: 'GeoSphere Austria TAWES · CC BY 4.0' },
+      { what: 'Projektion', badge: 'Modell', src: 'GloGEM CMIP6 v2 (Zenodo 17632573) · CC BY 4.0' },
+      { what: 'Gelände', badge: 'gemessen', src: 'SRTM im Mockup · im Produkt Tirol ALS bzw. Copernicus DEM' }
+    ].map(x => ({ ...x, badgeStyle: badgeStyle(x.badge) }));
+    const compare = s.tab === 'lang' && s.view === '2d';
+    const img2d = s.date === 'oct' ? './gletscher/hef_map_708x780_oct.jpg' : './gletscher/hef_map_708x780_aug.jpg';
+    const img3d = s.date === 'oct' ? './gletscher/hef_3d_708x780_oct.jpg' : './gletscher/hef_3d_708x780_aug.jpg';
+    const imgSnow = s.date === 'oct' ? './gletscher/hef_map_708x780_sl_oct.svg' : './gletscher/hef_map_708x780_sl_aug.svg';
+    const px = Math.round(708 * s.split / 100);
+    return {
+      dates, views, layers, tabs, sources,
+      tabHeute: s.tab === 'heute', tabSaison: s.tab === 'saison', tabLang: s.tab === 'lang', tabTour: s.tab === 'tour', tabQuellen: s.tab === 'quellen',
+      isOct: s.date === 'oct', isAug: s.date === 'aug',
+      show2d: s.view === '2d', show3d: s.view === '3d',
+      showOutline: s.outline && !compare, showSnow: s.snow && !compare,
+      img2d, img3d, imgSnow,
+      snowLabel: s.date === 'oct' ? 'Neuschneegrenze ≈ 2 900 m · 09.10.' : 'Schneegrenze 3 360 m · 08.08.',
+      compare, noCompare: !compare,
+      compareClip: 'position: absolute; left: 0; top: 0; height: 780px; overflow: hidden; width: ' + px + 'px',
+      compareLine: 'position: absolute; top: 0; height: 780px; width: 3px; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(44, 42, 38, 0.4); left: ' + (px - 1) + 'px',
+      compareRight: s.date === 'oct' ? '2026 · geschätzt, mit Neuschnee' : '2026 · geschätzt',
+      split: s.split,
+      onSplit: e => this.setState({ split: Number(e.target.value) }),
+      mapCaption: s.view === '3d' ? '3D-Ansicht auf Gelände · gleiche Ebenen wie die Karte' : (s.date === 'oct' ? 'Stand 11.10.2026 · Neuschnee bis ≈ 2 900 m' : 'Beispiel 12.08.2026 · Blankeis bis 3 360 m')
+    };
+  }
+}
+</script>
+</body>
+</html>

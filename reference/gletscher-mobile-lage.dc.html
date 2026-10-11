@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Gletscher – DACH-Lage, Mobil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;overflow:hidden}
+a{color:#145A70}a:hover{color:#1E87A8}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden; background: #EDE6D3; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased; position: relative">
+
+<header style="height: 56px; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 0 12px; box-sizing: border-box; background: #FAF6EA; border-bottom: 1px solid #E0D6BE">
+<a href="gletscher-mobile-lage.dc.html" aria-label="buscosun Startseite" style="width: 44px; height: 44px; border-radius: 12px; background: #2C2A26; color: #E0A567; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg></a>
+<div style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 19px; font-weight: 700">Gletscher</span><span style="font-size: 12px; color: #5C5447">DACH · rund 2 200 im Atlas</span></div>
+<button type="button" aria-label="Suchen" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg></button>
+<button type="button" aria-label="Teilen" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"></path></svg></button>
+</header>
+
+<section aria-label="Karte" style="position: relative; height: 330px; flex: 0 0 auto; overflow: hidden; background: #E9E2CF">
+<img src="./gletscher/dach_390x330.svg" alt="Karte des Alpenraums mit vergletscherten Gebieten" style="position: absolute; left: 0; top: 0; width: 390px; height: 330px">
+<sc-for list="{{markers}}" as="g" hint-placeholder-count="24">
+<button type="button" onClick="{{g.pick}}" aria-label="{{g.aria}}" style="{{g.style}}"></button>
+</sc-for>
+<div style="position: absolute; left: 10px; top: 10px; display: flex; gap: 6px">
+<span style="height: 26px; display: flex; align-items: center; padding: 0 9px; border-radius: 13px; background: #2C2A26; color: #F5F1E8; font-size: 12px; font-weight: 600">Saison 2025/26 beendet</span>
+<span style="height: 26px; display: flex; align-items: center; gap: 5px; padding: 0 9px; border-radius: 13px; background: rgba(250, 246, 234, 0.95); border: 1px solid #D9D0B8; font-size: 12px"><span style="width: 7px; height: 7px; border-radius: 4px; background: #6B5BB8"></span>Sentinel-2 09.10.</span>
+</div>
+<div style="position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(250, 246, 234, 0.97); border: 1px solid #D9D0B8; border-radius: 12px; padding: 8px 10px; box-sizing: border-box">
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sel.name}}</span><span style="font-size: 12px; color: #5C5447">{{sel.cc}} · {{sel.value}}</span></span>
+<sc-if value="{{sel.isHef}}" hint-placeholder-val="{{ true }}">
+<a href="gletscher-mobile-steckbrief.dc.html" style="flex: 0 0 auto; display: flex; align-items: center; gap: 5px; height: 40px; padding: 0 12px; border-radius: 10px; background: #1E87A8; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Steckbrief <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+</sc-if>
+</div>
+</section>
+
+<div role="group" aria-label="Karte färben nach" style="flex: 0 0 auto; display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; scrollbar-width: none; background: #FAF6EA; border-bottom: 1px solid #E0D6BE">
+<sc-for list="{{metrics}}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{m.pick}}" aria-pressed="{{m.on}}" style="{{m.style}}">{{m.label}}</button>
+</sc-for>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; background: #FAF6EA; padding: 12px 12px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 12.5px; color: #5C5447">{{legendLine}}</span><span style="{{badgeStyle}}">{{badge}}</span></div>
+<div style="flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px">
+<article style="flex: 0 0 240px; border: 1px solid #E0D6BE; border-radius: 14px; background: #FFFFFF; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13px; font-weight: 700">Schweiz · 2025/26</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: #8F4A22">−5,5 %</span><span style="font-size: 12px; color: #5C5447">Eisvolumen · −2,86 m w. e. · GLAMOS 01.10.</span></article>
+<article style="flex: 0 0 240px; border: 1px solid #E0D6BE; border-radius: 14px; background: #FFFFFF; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13px; font-weight: 700">Österreich · 2024/25</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: #8F4A22">−20,3 m</span><span style="font-size: 12px; color: #5C5447">mittlere Länge · ÖAV 13.03.2026</span></article>
+<article style="flex: 0 0 240px; border: 1px solid #E0D6BE; border-radius: 14px; background: #FFFFFF; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13px; font-weight: 700">Deutschland · 2025</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: #8F4A22">26,2 ha</span><span style="font-size: 12px; color: #5C5447">4 Gletscher · BAdW 19.03.2026</span></article>
+</div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 15px; font-weight: 700">Rangliste</span><span style="font-size: 12px; color: #5C5447">{{rankHint}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<button type="button" onClick="{{r.pick}}" style="{{r.style}}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #5C5447; width: 16px; text-align: right">{{r.rank}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left"><span style="font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span><span style="font-size: 11.5px; color: #5C5447">{{r.cc}} · Klasse {{r.cls}}</span></span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; font-weight: 600">{{r.value}}</span>
+</button>
+</sc-for>
+</div>
+<div style="font-size: 15px; font-weight: 700; margin-top: 4px">Was sich verändert hat</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<li style="display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #EDE6D3"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5447">09.10.</span><span style="font-size: 13.5px; line-height: 1.35">Neuschnee bis ≈ 2 900 m, an 212 Gletschern Schneegrenze gemessen. <span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 7px; background: #EEEBF8; color: #4B3D96; border: 1px solid #CFC6EE">Satellit</span></span></li>
+<li style="display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #EDE6D3"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5447">01.10.</span><span style="font-size: 13.5px; line-height: 1.35">GLAMOS: −5,5 % Volumen; Bella Tola und Griessfiren verschwunden. <span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 7px; background: #EFF3E8; color: #4F6A3D; border: 1px solid #C3D2AF">gemessen</span></span></li>
+<li style="display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #EDE6D3"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5447">18.09.</span><span style="font-size: 13.5px; line-height: 1.35">Pasterze: Oberfläche auf 2 500 m um 10 m gesunken. <span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 7px; background: #EFF3E8; color: #4F6A3D; border: 1px solid #C3D2AF">gemessen</span></span></li>
+</ol>
+<div style="font-size: 11px; color: #6F6553">Karte: Natural Earth · Werte teils Mockup</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { metric: 'loss', sel: 'Hintereisferner' };
+  }
+  renderVals() {
+    const G = [
+      ['Großer Aletschgletscher','CH',78.5,135.8,78.5,'A',-2.5,0.4,18,null],
+      ['Gornergletscher','CH',67.1,172.0,41.2,'A',-2.2,0.3,24,null],
+      ['Fieschergletscher','CH',84.9,134.4,29.8,'A',-2.6,0.4,16,null],
+      ['Unteraargletscher','CH',87.4,128.6,22.7,'A',-2.4,0.2,14,null],
+      ['Rhonegletscher','CH',96.3,126.4,14.6,'A',-3.4,0.5,9,null],
+      ['Morteratschgletscher','CH',172.3,140.9,14.9,'A',-2.9,0.3,12,null],
+      ['Griesgletscher','CH',93.3,138.0,4.8,'A',-3.8,0.1,0,null],
+      ['Claridenfirn','CH',120.0,109.1,4.4,'A',-3.1,0.0,0,null],
+      ['Silvrettagletscher','CH',179.2,108.4,2.6,'A',-3.3,0.0,4,null],
+      ['Glacier de la Plaine Morte','CH',51.8,142.3,7.1,'A',-3.6,0.0,0,null],
+      ['Pasterze','AT',308.5,91.0,14.6,'A',-3.0,0.3,11,-54.0],
+      ['Gepatschferner','AT',212.3,107.7,13.0,'A',-2.4,0.2,20,null],
+      ['Hintereisferner','AT',212.8,112.0,5.2,'A',-2.5,0.3,12,null],
+      ['Vernagtferner','AT',215.7,106.2,6.6,'A',-2.7,0.1,8,null],
+      ['Schlatenkees','AT',293.2,88.9,8.0,'A',-2.6,0.2,15,null],
+      ['Krimmler Kees','AT',285.3,90.3,4.0,'A',-2.8,0.2,13,-90.3],
+      ['Stubacher Sonnblickkees','AT',303.6,88.1,1.0,'A',-3.2,0.1,6,-103.9],
+      ['Alpeiner Ferner','AT',230.5,93.2,2.8,'A',-3.0,0.1,7,-114.3],
+      ['Goldbergkees','AT',321.4,93.9,0.96,'B',-2.9,0.0,3,null],
+      ['Hallstätter Gletscher','AT',354.0,62.9,2.0,'A',-3.1,0.0,2,null],
+      ['Nördlicher Schneeferner','DE',223.9,67.3,0.094,'C',-3.4,0.0,null,null],
+      ['Höllentalferner','DE',224.8,66.5,0.128,'B',-2.1,0.0,null,null],
+      ['Blaueis','DE',316.3,56.6,0.015,'C',-3.5,0.0,null,null],
+      ['Watzmanngletscher','DE',320.2,57.9,0.025,'C',-3.3,0.0,null,null]
+    ];
+    const RAMP_T = ['#F4DCC6','#E9B48C','#D68A55','#B5602C','#7E3C17'];
+    const RAMP_C = ['#E3F1F5','#A9D4E2','#5FAFC9','#1E87A8','#145A70'];
+    const M = {
+      loss: { label: 'Verlust 2025/26', badge: 'Modell', idx: 6, ramp: RAMP_T, unit: ' m w. e.', t: v => (-v - 1.5) / 2.5, sortDir: 1, hint: 'größter Verlust zuerst', dec: 1, line: 'Verlust Saison 2025/26, m w. e.' },
+      melt: { label: 'Schmelze heute', badge: 'Modell', idx: 7, ramp: RAMP_C, unit: ' cm', t: v => v, sortDir: -1, hint: 'stärkste zuerst', dec: 1, line: 'Schmelze heute, cm Eis' },
+      aar: { label: 'Ausaperung', badge: 'Satellit', idx: 8, ramp: RAMP_C, unit: ' %', t: v => v / 40, sortDir: 1, hint: 'wenigster Schnee zuerst', dec: 0, line: 'Schneeanteil am Saisonende' },
+      len: { label: 'Längenänderung', badge: 'gemessen', idx: 9, ramp: RAMP_T, unit: ' m', t: v => -v / 120, sortDir: 1, hint: 'größter Rückzug zuerst', dec: 1, line: 'Längenänderung, letzte Messung' }
+    };
+    const badgeStyle = b => {
+      const c = b === 'gemessen' ? ['#EFF3E8','#4F6A3D','#C3D2AF'] : b === 'Satellit' ? ['#EEEBF8','#4B3D96','#CFC6EE'] : ['#FBF3E7','#7A5418','#E7D3B4'];
+      return 'font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1] + '; border: 1px solid ' + c[2];
+    };
+    const fmt = (v, dec) => v === null ? '–' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(dec).replace('.', ',');
+    const m = M[this.state.metric];
+    const col = v => v === null ? null : m.ramp[Math.floor(Math.max(0, Math.min(0.999, m.t(v))) * 5)];
+    const markers = G.map(g => {
+      const v = g[m.idx]; const r = 2.4 + 0.8 * Math.sqrt(g[4]); const c = col(v);
+      const isSel = g[0] === this.state.sel;
+      const fill = c ? 'background: ' + c + '; border: 1px solid rgba(44, 42, 38, 0.35);' : 'background: #F3EEE1; border: 1.5px dashed #8B7E62;';
+      return {
+        aria: g[0], pick: () => this.setState({ sel: g[0] }),
+        style: 'position: absolute; box-sizing: border-box; padding: 0; cursor: pointer; border-radius: 50%; left: ' + (g[2] - r).toFixed(1) + 'px; top: ' + (g[3] - r).toFixed(1) + 'px; width: ' + (2 * r).toFixed(1) + 'px; height: ' + (2 * r).toFixed(1) + 'px; ' + fill + ' box-shadow: ' + (isSel ? '0 0 0 2px #FAF6EA, 0 0 0 4px #2C2A26' : '0 0 0 1px #FAF6EA') + ';'
+      };
+    });
+    const sorted = G.slice().sort((a, b) => {
+      const va = a[m.idx], vb = b[m.idx];
+      if (va === null && vb === null) return 0; if (va === null) return 1; if (vb === null) return -1;
+      return m.sortDir === 1 ? va - vb : vb - va;
+    }).slice(0, 6);
+    const rows = sorted.map((g, i) => ({
+      rank: String(i + 1), name: g[0], cc: g[1], cls: g[5],
+      value: fmt(g[m.idx], m.dec) + (g[m.idx] === null ? '' : m.unit.replace(' m w. e.', '')),
+      style: 'display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 4px 8px; border-radius: 10px; cursor: pointer; color: #2C2A26; ' + (g[0] === this.state.sel ? 'background: #E3F1F5; border: 1px solid #A9D4E2;' : 'background: transparent; border: 1px solid transparent;'),
+      pick: () => this.setState({ sel: g[0] })
+    }));
+    const sg = G.find(g => g[0] === this.state.sel) || G[12];
+    const sel = { name: sg[0], cc: sg[1], value: sg[m.idx] === null ? 'kein Wert' : fmt(sg[m.idx], m.dec) + m.unit + ' · ' + m.label, isHef: sg[0] === 'Hintereisferner' };
+    const metrics = Object.keys(M).map(k => ({
+      label: M[k].label, on: this.state.metric === k, pick: () => this.setState({ metric: k }),
+      style: 'flex: 0 0 auto; height: 38px; padding: 0 14px; border-radius: 19px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; ' + (this.state.metric === k ? 'background: #1E87A8; color: #FFFFFF; border: 1px solid #1E87A8;' : 'background: #FFFFFF; color: #2C2A26; border: 1px solid #D9D0B8;')
+    }));
+    return { markers, rows, sel, metrics, rankHint: m.hint, legendLine: m.line, badge: m.badge, badgeStyle: badgeStyle(m.badge) };
+  }
+}
+</script>
+</body>
+</html>
