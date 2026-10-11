@@ -23,6 +23,8 @@
  *   S  phase AF-5: sections without a measuring station (`gap`) — head, band with the forecast row only, default = first
  *      forecast point, map line in the forecast colour, dock rows and fold rows, route table, run with/without
  *      `engine.dense`, no run file yet, measurement outage, mobile; a motorway of such sections only
+ *   T  town labels under the band (V-AF-28): none overlaps or leaves the band, end towns first, a dropped name sits in a
+ *      tooltip; `--towns=<corridors.json>` walks every corridor of a real file
  *   I  console: no uncaught exception
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, cpSync, rmSync } from 'node:fs';
@@ -948,6 +950,128 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     add('S17 Teilstück mobil (390 × 844): Pille „nur Prognose", Sheet „Keine Messstelle an diesem Abschnitt" mit dem Namen aus der Laufdatei, Zeilen = Prognosepunkte mit Ankunftszeit (≥ 44 px, Antippen wählt den Punkt), Mini-Band nur als Prognose-Zeile, Knopf „Alle n Prognosepunkte", nirgends „0 Messpunkte"',
       ready && /nur Prognose/.test(m.sub) && !/Messpunkte/.test(m.sub) && m.title === 'Keine Messstelle an diesem Abschnitt' && /buscosun Fusion 12/.test(m.lead) && /keine Fahrbahnmessung/.test(m.lead) && m.rows.length === nAxis && m.rows.every((x) => /Prognose Luft/.test(x) && /\d{2}:\d{2}/.test(x))
       && m.mini === 0 && m.miniFc === nAxis && m.primary === `Alle ${nAxis} Prognosepunkte` && m.small.length === 0 && !ZERO.test(m.text) && picked, JSON.stringify({ sub: m.sub, title: m.title, lead: m.lead.slice(0, 120), rows: m.rows.length, mini: m.mini, miniFc: m.miniFc, primary: m.primary, small: m.small.slice(0, 3), picked }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+}
+
+// --- T: town labels under the band never overlap (V-AF-28, audit/autobahn-fusion12-lueckenlos.md §8.8) --------------------
+// The builder writes the towns of a corridor as [km, name]: the two end towns (`from`, `to`) and every city from 50 000
+// inhabitants within 8 km. Two of them often share a km (A 995: „München" and „Unterhaching" at km 0). The band picks the
+// labels that fit: end towns first, then the cities in km order; a name that does not fit moves into the tooltip of the
+// label it collided with. Measured on the REAL band in the browser; `--towns=<corridors.json>` walks every corridor of
+// that file (the live file, the AF-2 candidate) and prints the count.
+{
+  const view = await import('../src/road/roadView.ts');
+  const gapDoc = JSON.parse(readFileSync(join(FIX, 'corridors-gap.json'), 'utf8'));
+  {
+    const P = typeof view.pickBandLabels === 'function' ? view.pickBandLabels : null;
+    const r1 = P?.([[0, 50], [0, 80], [300, 380]], [false, true, true]);              // same place: the end town wins
+    const r2 = P?.([[0, 50], [100, 150], [300, 380]], [true, false, true]);           // nothing collides: all stay
+    const r3 = P?.([[0, 50], [53, 100], [200, 260]], [true, false, true]);            // 3 px apart is too close (gap 6)
+    const r4 = P?.([[0, 50], [57, 100], [200, 260]], [true, false, true]);            // 7 px apart fits
+    const r5 = P?.([[0, 60], [40, 90], [80, 130], [300, 350]], [true, false, false, true]); // the second falls, the third then fits
+    const r6 = P?.([[0, 60], [20, 90]], [true, true]);                                // both ends collide: the first stays
+    add('T1 Auswahl der Ortsnamen (reine Funktion): Endorte zuerst, dann in km-Reihenfolge; ein Name, der näher als 6 px an einem gesetzten liegt, fällt und wird dem nächsten gesetzten zugeordnet; ohne Kollision bleibt jeder',
+      !!P && r1.keep.join() === 'false,true,true' && r1.also[1].join() === '0' && r2.keep.every(Boolean) && r2.also.every((a) => a.length === 0)
+      && r3.keep.join() === 'true,false,true' && r3.also[0].join() === '1' && r4.keep.every(Boolean)
+      && r5.keep.join() === 'true,false,true,true' && r5.also[0].join() === '1' && r6.keep.join() === 'true,false' && r6.also[0].join() === '1',
+      P ? JSON.stringify({ r1, r3, r5, r6 }) : 'pickBandLabels fehlt');
+  }
+
+  const townsSite = (name, file) => { const d = join(tmp, name); cpSync(site, d, { recursive: true }); cpSync(file, join(d, 'static', 'corridors.json')); return d; };
+  const measure = `(() => { const el = document.querySelector('.aw-band-towns'); if (!el) return null; const band = el.getBoundingClientRect();
+    const sp = [...el.children].map((s) => { const r = s.getBoundingClientRect(); return { n: s.textContent, l: r.left - band.left, r: r.right - band.left, vis: getComputedStyle(s).visibility !== 'hidden', title: s.getAttribute('title') ?? '' }; });
+    return { w: Math.round(band.width), sp: sp.map((x) => [x.n, x.vis ? 1 : 0, Math.round(x.l), Math.round(x.r), x.title]) }; })()`;
+  // What must hold for one band: visible labels ≥ 4 px apart and inside the band, the end towns visible, every hidden
+  // name really collides with a visible one (nothing dropped without need) and is named in a tooltip.
+  const judge = (c, m) => {
+    if (!m) return { ok: false, why: 'kein Band' };
+    const vis = m.sp.filter((x) => x[1]), hid = m.sp.filter((x) => !x[1]);
+    const hits = [];
+    for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) if (vis[i][2] < vis[j][3] + 4 && vis[j][2] < vis[i][3] + 4) hits.push(`${vis[i][0]}×${vis[j][0]}`);
+    const out = vis.filter((x) => x[2] < -1 || x[3] > m.w + 1).map((x) => x[0]);
+    const ends = [...new Set([c.from, c.to])].filter((n) => n && c.towns.some((t) => t[1] === n));
+    const endsShown = ends.filter((n) => vis.some((x) => x[0] === n));
+    const needless = hid.filter((h) => !vis.some((v) => h[2] < v[3] + 6 && v[2] < h[3] + 6)).map((x) => x[0]);
+    const unnamed = hid.filter((h) => !vis.some((v) => v[4].includes(h[0]))).map((x) => x[0]);
+    // Both end towns can only be missing together when they collide with each other (a very short section).
+    const ok = hits.length === 0 && out.length === 0 && endsShown.length >= Math.min(1, ends.length) && (endsShown.length === ends.length || hid.some((h) => ends.includes(h[0]))) && needless.length === 0 && unnamed.length === 0;
+    return { ok, hits, out, hidden: hid.map((x) => x[0]), needless, unnamed, w: m.w };
+  };
+  const walk = async (ctx, list) => {
+    const res = [];
+    for (const c of list) {
+      const want = JSON.stringify(c.towns.slice().sort((a, b) => a[0] - b[0]).map((t) => t[1]).sort());
+      // A history entry as the router writes it (own key): the page follows a POP only when the key changes.
+      await ctx.evaluate(`(() => { const st = { usr: null, key: 't' + Math.random().toString(36).slice(2, 10), idx: (history.state?.idx ?? 0) + 1 }; history.pushState(st, '', '/autobahnwetter/${c.id}?road=1'); dispatchEvent(new PopStateEvent('popstate', { state: st })); })()`);
+      const there = await until(ctx, `JSON.stringify([...(document.querySelector('.aw-band-towns')?.children ?? [])].map((s) => s.textContent).sort()) === ${JSON.stringify(want)} && (document.querySelector('.aw-band-title')?.textContent ?? '').includes(${JSON.stringify(view.shieldText(c.road))})`, 8000);
+      await sleep(120);
+      res.push({ id: c.id, there, ...judge(c, there ? await ctx.evaluate(measure) : null) });
+    }
+    return res;
+  };
+  const fmt = (res) => res.filter((x) => !x.ok).slice(0, 6).map((x) => `${x.id}: ${x.there ? [x.hits?.join(','), x.out?.length ? `außen ${x.out.join(',')}` : '', x.needless?.length ? `grundlos ${x.needless.join(',')}` : '', x.unnamed?.length ? `ohne Tooltip ${x.unnamed.join(',')}` : ''].filter(Boolean).join(' · ') : 'Band nicht erreicht'}`).join(' | ');
+  {
+    const d = townsSite('site-towns', join(FIX, 'corridors-gap.json'));
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a8?road=1', root: d });
+    await until(ctx, `document.querySelectorAll('.aw-band-towns span').length > 0`, 30_000);
+    await ctx.evaluate(`document.fonts.ready.then(() => true)`);
+    await sleep(600);
+    const wide = await walk(ctx, gapDoc.corridors);
+    const by = (id) => wide.find((x) => x.id === id);
+    const a995 = await (async () => { await walk(ctx, [gapDoc.corridors.find((c) => c.id === 'a995')]); return ctx.evaluate(measure); })();
+    await shot(ctx, 't3-ortsnamen-a995');
+    const vis995 = a995.sp.filter((x) => x[1]).map((x) => x[0]).join(), tip995 = a995.sp.find((x) => x[0] === 'Unterhaching')?.[4] ?? '';
+    add('T2 Band am Desktop (1440): an allen 14 Abschnitten der Fixture überlappt kein sichtbarer Ortsname, keiner ragt aus dem Band, die Endorte stehen, kein Name fällt ohne Kollision; die Fixture enthält die Fälle (≥ 3 Abschnitte mit zwei Orten am selben km)',
+      wide.every((x) => x.ok) && wide.filter((x) => x.hidden.length > 0).length >= 3, `Band ${wide[0]?.w} px · ausgeblendet an ${wide.filter((x) => x.hidden?.length).map((x) => `${x.id} (${x.hidden.join(',')})`).join(' ')}${fmt(wide) ? ` · FEHLER ${fmt(wide)}` : ''}`);
+    add('T3 A 995 (zwei Orte bei km 0): „Unterhaching" und „Taufkirchen" (die Endorte des Titels) stehen, „München" steht im Tooltip von „Unterhaching" statt darüber',
+      vis995 === 'Unterhaching,Taufkirchen' && /München/.test(tip995), JSON.stringify({ vis995, tip995 }));
+    add('T4 Gegenprobe: ein Abschnitt ohne Kollision behält jeden Namen an seinem Platz (A 8: München links bei 0, Rosenheim mittig bei km 61, Salzburg rechts am Ende; kein Tooltip)',
+      by('a8')?.ok && by('a8').hidden.length === 0 && (() => { const m = wide.find((x) => x.id === 'a8'); return !!m; })(), JSON.stringify(by('a8')));
+    {
+      await walk(ctx, [gapDoc.corridors.find((c) => c.id === 'a8')]);
+      const m = await ctx.evaluate(measure);
+      const [mu, ro, sa] = ['München', 'Rosenheim', 'Salzburg'].map((n) => m.sp.find((x) => x[0] === n));
+      const mid = (61 / 128.7) * m.w;
+      add('T4b A 8, Lage: München beginnt bei 0, Rosenheim mittig auf seinem km, Salzburg endet am Bandende', !!mu && !!ro && !!sa && Math.abs(mu[2]) <= 1 && Math.abs((ro[2] + ro[3]) / 2 - mid) <= 1.5 && Math.abs(sa[3] - m.w) <= 1 && m.sp.every((x) => x[1] && !x[4]), JSON.stringify(m));
+    }
+    // The band gets narrower without a reload: the choice is measured again.
+    await ctx.send('Emulation.setDeviceMetricsOverride', { width: 1024, height: 768, deviceScaleFactor: 1, mobile: false });
+    await sleep(700);
+    const narrow = await walk(ctx, gapDoc.corridors);
+    add('T5 schmaleres Fenster (1024) ohne Neuladen: dieselben Regeln, gemessen am schmaleren Band — es fallen mehr Namen, keiner überlappt',
+      narrow.every((x) => x.ok) && (narrow[0]?.w ?? 0) < (wide[0]?.w ?? 0) && narrow.reduce((n, x) => n + x.hidden.length, 0) >= wide.reduce((n, x) => n + x.hidden.length, 0),
+      `Band ${narrow[0]?.w} px · ausgeblendet ${narrow.reduce((n, x) => n + (x.hidden?.length ?? 0), 0)} (1440: ${wide.reduce((n, x) => n + (x.hidden?.length ?? 0), 0)})${fmt(narrow) ? ` · FEHLER ${fmt(narrow)}` : ''}`);
+    await ctx.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await sleep(500);
+    // Driving the other way: the band is mirrored, the end towns swap sides.
+    await walk(ctx, [gapDoc.corridors.find((c) => c.id === 'a36')]);
+    await ctx.evaluate(`document.querySelector('button[aria-label="Fahrtrichtung wechseln"]')?.click()`);
+    await until(ctx, `/[?&]dir=1/.test(location.search)`, 5000);
+    await sleep(300);
+    const c36 = gapDoc.corridors.find((c) => c.id === 'a36'), rev = judge(c36, await ctx.evaluate(measure));
+    const m36 = await ctx.evaluate(measure);
+    add('T6 Gegenrichtung (A 36, dir=1): das Band ist gespiegelt, „Blankenburg" steht links am Anfang, „Heidberg" rechts am Ende, nichts überlappt',
+      rev.ok && (m36.sp.find((x) => x[0] === 'Blankenburg')?.[2] ?? 99) < 0.02 * m36.w && Math.abs((m36.sp.find((x) => x[0] === 'Heidberg')?.[3] ?? 0) - m36.w) <= 1, JSON.stringify({ rev, sp: m36.sp }));
+    await shot(ctx, 't6-ortsnamen-a36-gegenrichtung');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  if (args.towns) {
+    // Every corridor of a real file (not part of the gate count unless given): the number that the audit quotes.
+    const doc = JSON.parse(readFileSync(args.towns, 'utf8'));
+    const d = townsSite('site-towns-all', args.towns);
+    const { ctx, errors, off } = await openPage({ path: `/autobahnwetter/${doc.corridors[0].id}?road=1`, root: d });
+    await until(ctx, `document.querySelectorAll('.aw-band-towns span').length > 0`, 30_000);
+    await ctx.evaluate(`document.fonts.ready.then(() => true)`);
+    await sleep(600);
+    const all = await walk(ctx, doc.corridors);
+    const bad = all.filter((x) => !x.ok), reached = all.filter((x) => x.there).length;
+    const long = doc.corridors.find((c) => c.id === 'a1');
+    if (long) { await walk(ctx, [long]); await shot(ctx, 't7-ortsnamen-a1'); }
+    const collide = all.filter((x) => (x.hits?.length ?? 0) > 0), gapIds = new Set(doc.corridors.filter((c) => c.stations.length === 0).map((c) => c.id));
+    add(`T7 jede Strecke der Datei ${args.towns.split(/[\\/]/).slice(-4).join('/')} (${doc.corridors.length} Abschnitte, Band ${all[0]?.w} px): kein sichtbarer Ortsname überlappt oder ragt aus dem Band`,
+      reached === all.length && bad.length === 0,
+      `erreicht ${reached}/${all.length} · mit Überlappung ${collide.length} (davon Teilstücke ohne Messstelle ${collide.filter((x) => gapIds.has(x.id)).length}) · außerhalb des Bands ${all.filter((x) => x.out?.length).length} · mit ausgeblendetem Namen ${all.filter((x) => x.hidden?.length).length} (${all.reduce((n, x) => n + (x.hidden?.length ?? 0), 0)} Namen)${fmt(all) ? ` · FEHLER ${fmt(all)}` : ''}`);
     off(); allErrors.push(...errors); await ctx.close();
   }
 }

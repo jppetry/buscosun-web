@@ -2305,10 +2305,13 @@ Was nur du tun kannst:
 4. **Real-Device** nach dem Push (WebGL-Karte, mobil): sichtbar wird der neue Zustand erst mit der neuen Korridor-Datei; vorher lässt
    er sich nur lokal mit der Fixture zeigen.
 5. **Entscheiden:**
-   - **E-AF-13 (offen) — V-AF-28:** Ortsnamen im Band überlappen an 32 von 141 Live-Korridoren (zwei Orte am selben km), ebenso an
+   - **E-AF-13 (entschieden und umgesetzt, Jan 11.10. abends; Audit §8.8):** die Ortsnamen unter dem Band überlappen nicht mehr —
+     Endorte zuerst, dann die Städte in km-Reihenfolge, ein Name ohne Platz steht im Tooltip des Nachbarn. Gemessen am Band waren es
+     85 von 210 Abschnitten, nicht nur die mit zwei Orten am selben km. Bilder: `audit/autobahn-fusion12-lueckenlos/af13/`.
+     Ursprünglicher Wortlaut: Ortsnamen im Band überlappen an 32 von 141 Live-Korridoren (zwei Orte am selben km), ebenso an
      21 von 68 neuen Teilstücken. Bestand, nicht aus AF-5. Empfehlung: eigener kleiner Schritt vor dem Einspielen (ändert
      Bestandsbilder, deshalb nicht stillschweigend in AF-5).
-   - **E-AF-14 (offen) — Voreinstellung:** ein Teilstück öffnet nach deinem Entwurf auf dem ersten Prognosepunkt (km 0), ein
+   - **E-AF-14 (entschieden, Jan 11.10. abends: so lassen) — Voreinstellung:** ein Teilstück öffnet nach deinem Entwurf auf dem ersten Prognosepunkt (km 0), ein
      Abschnitt mit Messstellen ohne Messung weiter auf der kältesten Prognose. So gebaut; sag es, wenn beide gleich sein sollen.
 6. Nachprüfen: `npm run build`, dann `npx vite preview --host 127.0.0.1 --port 4318 --strictPort` und
    `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-ui.mjs --base=http://127.0.0.1:4318`

@@ -4,7 +4,8 @@
 > Größe §8.3, V-AF-10 Anker vor dem Achsenbeginn §8.4 (E-AF-6 = Weg a, Jan 10.10.), Merge mit `main`, Push `7213962` und Live-Test §8.5 — buscosun
 > Fusion 12 läuft seit 10.10. 18:43 UTC mit beiden Korrekturen live; **AF-2 Korridore lückenlos §8.6** — Bauer und Prüfung gebaut, Kandidat
 > 210 Korridore auf 120 von 121 Nummern, nichts eingespielt; **AF-5 Seite für Teilstücke ohne Messstelle §8.7** — gebaut am 11.10.,
-> `verify:road-ui` 82/82, uncommitted). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
+> `verify:road-ui` 82/82; am 11.10. abends committet (`347897e`, `2e175b6`) und mit `main` zusammengeführt (`83ad750`); **E-AF-13 Ortsnamen
+> unter dem Band §8.8** — `verify:road-ui` 89/89). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
 > (Fusion 12, Branch `fusion-12`), `audit/fusion-release.md` (Register der Stände).
 
 ## 0. Kurzfassung für Jan
@@ -222,7 +223,8 @@ der drei statischen CDN-Pfade, der Block `ctl` im Archiv.
 | V-AF-4 | Kennungen hängen an der Sortierung nach Stationszahl; jede neue Meldung kann sie verschieben (D-AF-9) | geteilte Links bleiben richtig | `--pin` wird der Normalweg jedes Neubaus |
 | V-AF-5 | Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7); Fusion 12 hat kein Spur-P-Urteil | Klarheit, was „Fusion 12" belegt | Abnahme ab ≈ 20.10. (E-OF-6), unabhängig von dieser Phase |
 | V-AF-6 | AT/CH ohne Korridore und Prognosepunkte (E-AW-12) | A 8 endet nicht an der Grenze | eigene Phase (Achsen GIP.at/OSM, Radar INCA/RZC) |
-| V-AF-28 … V-AF-32 | aus AF-5 (§8.7.6): Ortsnamen im Band überlappen (Bestand, 32 von 141 Live-Korridoren), Callout hinter der Pille (behoben), nicht gewählte Teilstücke auf der Karte, Zeilennamen der Streckentabelle, Zusammenführen mit `main` | | |
+| V-AF-33 … V-AF-35 | aus E-AF-13 (§8.8.4): ausgeblendeter Ortsname nur im Tooltip, Rang der Städte nach km statt Größe, Callout unter den Zoom-Knöpfen | | |
+| V-AF-28 … V-AF-32 | aus AF-5 (§8.7.6): Ortsnamen im Band überlappen (**behoben, §8.8** — gemessen 85 von 210 Abschnitten, nicht 53), Callout hinter der Pille (behoben), nicht gewählte Teilstücke auf der Karte, Zeilennamen der Streckentabelle, Zusammenführen mit `main` | | |
 | V-AF-22 … V-AF-27 | aus AF-2 (§8.6.6): OSM-Auszug ohne `trunk` mit Autobahn-Nummer (A 98), Messstellen gepinnter Abschnitte, Stummel an gepinnten Enden, Auf-/Abfahrten im alten Bauer, Schreibweise A 64a | | |
 | V-AF-7 … V-AF-17 | aus der Umsetzung: V-AF-7/8 in §8.1, V-AF-9 (Leser las nur den jüngsten Stationsstempel — behoben, §8.3), V-AF-10 (Motor paarte die deutsche Temperatur zum Stundenanfang nicht — behoben mit E-AF-6 Weg a, §8.4), V-AF-11 … 17 in §8.3.9, V-AF-18 … 20 in §8.4.6 | | |
 
@@ -1082,3 +1084,86 @@ Bilder der neuen Zustände: `audit/autobahn-fusion12-lueckenlos/af5/` (`vorher-*
 3. **Touch-Targets ≥ 44 px:** S17 (0 Bedienelemente darunter im Sheet und in der oberen Leiste eines Teilstücks), H2/H3 unverändert.
 4. **Konsole:** I1 — keine ungefangene Ausnahme in allen Abläufen einschließlich der zwölf neuen; Warnungen nicht gelesen (§8.7.5).
 5. **Long Tasks > 200 ms:** nicht messbar in headless-shell, nicht gemessen; keine neue Rechnung außer Schleifen über Achspunkte.
+
+### 8.8 E-AF-13 — Ortsnamen unter dem Band überlappen nicht mehr (11.10.2026 abends; Jan: „ja, setze das in dieser Reihenfolge um“)
+
+Vorab an diesem Abend: AF-2 (`347897e`) und AF-5 (`2e175b6`) committet, `main` (Seewetter live, V-SW-20/21, BW-14) ohne Konflikt
+zusammengeführt (`83ad750`). Auf dem zusammengeführten Stand: typecheck 0, Build 256/256, Budget totalJs 1 716,2 / 1 720 (keine
+Anhebung nötig), `verify:road-ui` 82/82, `road-fc` 103/103, `road-contract` 111/111, `sea-ui` 49/49, `routing` 256/256, `share`
+528/528 (das Edge-Bündel unterschied sich im Arbeitsbaum nur in den Zeilenenden), `fusion-release` 30/30.
+
+#### 8.8.1 Diagnose (gemessen am echten Band, vor dem Code)
+
+Der Korridor-Bauer schreibt je Abschnitt die zwei Endorte (`from`, `to`) und jede Stadt ab 50 000 Einwohnern in 8 km Abstand als
+`[km, Name]`. Das Band setzte jeden Namen ohne Prüfung an seinen km. Gezählt hatte ich bisher nur „zwei Orte am selben km“ (53 von
+210 Abschnitten des Kandidaten, davon 21 Teilstücke ohne Messstelle). **Gemessen am gerenderten Band (1440 × 900, Band 662 px,
+jeder der 210 Abschnitte des AF-2-Kandidaten einmal geöffnet) ist es mehr:**
+
+| | vorher | nachher |
+|---|---|---|
+| Abschnitte mit überlappenden Ortsnamen | **85 von 210** (63 von 142 mit Messstelle, 22 von 68 Teilstücken) | 0 |
+| Abschnitte mit einem Namen, der aus dem Band ragt | 42 | 0 |
+| ausgeblendete Namen | 0 | 204 von 755 (an 85 Abschnitten) |
+
+Zwei Ursachen: (1) keine Kollisionsprüfung — an langen Abschnitten liegen die Städte dichter als ihre Namen breit sind (A 1: 27
+Namen auf 619 km und 662 px); (2) nur der erste Name wurde am Bandanfang linksbündig gesetzt (`i === 0`), ein zweiter Ort bei km 0
+mittig — er ragte zur Hälfte links aus dem Band (A 995: „Unterhaching“ unter „München“).
+
+#### 8.8.2 Umsetzung
+
+- `pickBandLabels(boxes, first, gapPx)` in `roadView.ts` (rein): die Endorte zuerst (sie stehen im Titel des Abschnitts), dann die
+  Städte in km-Reihenfolge; ein Name, der näher als 6 px (`ROAD_BAND_LABEL_GAP_PX`, `set`) an einem gesetzten liegt, fällt und wird
+  dem nächsten gesetzten zugeordnet.
+- `RoadBand.tsx`: nach dem Layout werden die Breiten der Namen gemessen (`useLayoutEffect`, erneut bei Größenänderung des Bands
+  über `ResizeObserver` und nach dem Laden der Schrift). Die Lage wird aus Breite und km gerechnet, nicht aus der gezeichneten
+  Lage — eine Verschiebung wirkt nie auf die nächste Messung zurück. Ein Name, der aus dem Band ragte, wird an den Rand geschoben.
+- Ein ausgeblendeter Name bleibt im DOM (`visibility: hidden`, `aria-hidden`) und steht im Tooltip des Nachbarn
+  („Unterhaching · auch: München“). Kein Name geht verloren; die Suche im Dock durchsucht weiter alle Orte.
+- Die Regel „linksbündig nahe am Bandanfang“ gilt jetzt für jeden Namen unter 4 % der Länge, nicht nur für den ersten.
+- Eine neue CSS-Zeile (`.aw-band-towns span.is-off`). Das mobile Mini-Band (drei Namen, verteilt) ist unverändert.
+
+#### 8.8.3 Prüfungen (zuerst rot gesehen)
+
+`verify:road-ui` **89/89** (vorher 82); mit `--towns=<corridors.json>` 90/90. Neuer Block T:
+
+- T1 reine Funktion (Endorte zuerst, Abstand 6 px, Zuordnung, beide Endorte kollidieren) — vor der Umsetzung rot („fehlt“).
+- T2 alle 14 Abschnitte der Fixture am Desktop: kein sichtbarer Name überlappt (≥ 4 px), keiner ragt hinaus, die Endorte stehen,
+  **kein Name fällt ohne Kollision**, jeder ausgeblendete steht in einem Tooltip; die Fixture enthält die Fälle (7 Abschnitte).
+- T3 A 995: „Unterhaching“ und „Taufkirchen“ stehen, „München“ im Tooltip.
+- T4/T4b Gegenprobe A 8: alle drei Namen, Lage auf den Pixel wie vorher, kein Tooltip — am alten Bau ebenfalls grün.
+- T5 Fenster auf 1024 verkleinert ohne Neuladen (Band 326 px): neu gemessen, 10 statt 8 Namen ausgeblendet, keiner überlappt.
+- T6 Gegenrichtung (A 36, `dir=1`): gespiegelt, Endorte an den Seiten.
+- T7 (nur mit `--towns`) jede Strecke einer echten Datei — die Zahlen der Tabelle oben.
+- **Am alten Bau: 85/90** — rot T2, T3, T5, T6, T7 (T1 liest die Funktion aus dem Quelltext und war nur vor der Umsetzung rot).
+
+Bilder vorher/nachher: `audit/autobahn-fusion12-lueckenlos/af13/` (A 1, A 995, A 36 in Gegenrichtung).
+
+**Bestandsbilder:** 14 Bilder des Abschnitts A 8 vorher/nachher 0 Pixel außerhalb des bekannten Messrauschens (Live-Punkt 6 px,
+Callout-Lage ≈ 1 080 px, §8.7.4). Geändert sind nur die Ortszeilen der Bilder mit A 995 (282 px) — die benannte Abweichung.
+
+Weitere Läufe: typecheck 0, Build 256/256, Budget totalJs 1 717,2 / 1 720 (+1,0 KB im nachgeladenen `RoadPage`), eagerJs 109,6.
+
+**Aus einem eigenen Fehler:** der erste Lauf der neuen Prüfung brauchte 8 s je Abschnitt und erreichte keinen außer dem ersten — die
+Prüfung wechselte den Abschnitt mit `pushState` ohne den Schlüssel, den der Router in jeden Verlaufseintrag schreibt; die Seite
+folgt einem Zurück/Vor nur, wenn sich der Schlüssel ändert. Mit einem Eintrag in der Form des Routers läuft der Gang durch 210
+Abschnitte in einer Minute. Kein Fehler der Seite (ein echter Verlaufseintrag trägt immer einen Schlüssel).
+
+#### 8.8.4 Was nicht geprüft ist, Befunde
+
+- Kein Real-Device. Der Tooltip erscheint nur beim Überfahren mit der Maus: auf einem Tablet (Band sichtbar ab 768 px) ist ein
+  ausgeblendeter Name nicht erreichbar (V-AF-33).
+- Long Tasks nicht messbar; die Messung liest je Band höchstens 27 Breiten in einem Durchgang.
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AF-33 | Ein ausgeblendeter Ortsname steht nur im Tooltip (Maus) | auch per Touch und Tastatur erreichbar | Namen als Liste in den Reiter „Strecke“ oder antippbarer Nachbar |
+| V-AF-34 | Unter den Städten gewinnt die erste in km-Reihenfolge, nicht die größte (A 1: „Wuppertal“ steht, „Köln“ fällt) | die bekannteren Orte bleiben | Einwohnerzahl in `towns` (Bauer), Rang danach — ändert die Korridor-Datei |
+| V-AF-35 | Der Callout einer Messstelle nahe dem rechten Kartenrand liegt unter den Zoom-Knöpfen (A 1, „Lensahn A1“; Bestand) | lesbarer Callout | wie V-AF-29: Seite nach dem freien Platz wählen, rechter Rand einbeziehen |
+
+#### 8.8.5 Die fünf Selbstverifikations-Fragen
+
+1. **Funktionserhalt:** alle 82 bestehenden Prüfungen grün; jeder Ortsname bleibt im DOM und in der Dock-Suche, ausgeblendete im Tooltip.
+2. **Desktop pixelgleich:** 14 Bestandsbilder 0 Pixel außerhalb des Rauschens; geändert nur die Ortszeile dort, wo Namen überlappten.
+3. **Touch-Targets:** kein neues Bedienelement.
+4. **Konsole:** I1 — keine ungefangene Ausnahme, auch im Gang durch 210 Abschnitte.
+5. **Long Tasks:** nicht gemessen (headless-shell).

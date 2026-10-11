@@ -11,10 +11,15 @@
  * AF-5: on a section without a measuring station (`isGapCorridor`) there is no measured bar and no tick — the forecast
  * row stands in the bar's place, the legend says that the road is not measured here; without a usable run a line
  * names the reason instead of an empty band.
+ *
+ * V-AF-28: the town labels under the band are measured after layout and thinned so that none overlaps another or leaves
+ * the band (`pickBandLabels`: end towns first); a dropped name moves into the tooltip of its neighbour, a label at
+ * the edge is pushed inward.
  */
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { RoadPoint } from './roadContract';
 import type { RoadCorridor } from './roadClient';
-import { ROAD_CLASS_COLOR, ROAD_GAP_TEXT, ROAD_GAP_TITLE, bandSegments, dec, isGapCorridor, isHatched, kmIn, kmTicks, shieldText, corridorRouteText } from './roadView';
+import { ROAD_CLASS_COLOR, ROAD_GAP_TEXT, ROAD_GAP_TITLE, bandSegments, dec, isGapCorridor, isHatched, kmIn, kmTicks, pickBandLabels, shieldText, corridorRouteText } from './roadView';
 import { ROAD_CLASS_LABEL } from './roadClasses';
 import { ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_PP, roadFcLine, type RoadFcCell } from './roadFcView';
 
@@ -42,6 +47,44 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
   const pct = (km: number) => `${Math.max(0, Math.min(100, (km / len) * 100))}%`;
   const segs = bandSegments(c, byId, dir);
   const towns = c.towns.map(([km, name]) => [kmIn(c, km, dir), name] as const).sort((a, b) => a[0] - b[0]);
+  // V-AF-28: which town labels fit — measured on the laid-out labels, again when the band or the font changes.
+  const townsRef = useRef<HTMLDivElement>(null);
+  const townsKey = `${c.id}|${dir}|${towns.map((t) => t[1]).join('|')}`;
+  const [fit, setFit] = useState<{ key: string; sig: string; off: ReadonlySet<number>; also: ReadonlyMap<number, string>; edge: ReadonlyMap<number, 'l' | 'r'> }>({ key: '', sig: '', off: new Set(), also: new Map(), edge: new Map() });
+  useLayoutEffect(() => {
+    const el = townsRef.current;
+    if (!el) return;
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      const band = el.getBoundingClientRect();
+      const spans = Array.from(el.children) as HTMLElement[];
+      // Where each label lands: at its km (start-aligned near the band start, end-aligned near its end, else centred),
+      // pushed inward when it would leave the band. Computed from the label WIDTHS, so a shift never feeds back.
+      const W = band.width;
+      const place = spans.map((s, i) => {
+        const w = s.getBoundingClientRect().width, km = towns[i]?.[0] ?? 0, x = W * Math.max(0, Math.min(1, km / len));
+        const at = km < len * 0.04 ? x : km > len * 0.96 ? x - w : x - w / 2;
+        const l = Math.max(0, Math.min(W - w, at));
+        return { l, r: l + w, edge: l > at + 0.5 ? 'l' as const : l < at - 0.5 ? 'r' as const : null };
+      });
+      // Not laid out (hidden parent): nothing to decide, every label stays.
+      const boxes = W > 0 ? place.map((p) => [p.l, p.r] as const) : [];
+      const edge = new Map(W > 0 ? place.flatMap((p, i) => (p.edge ? [[i, p.edge] as const] : [])) : []);
+      const pick = pickBandLabels(boxes, spans.map((s) => s.textContent === c.from || s.textContent === c.to));
+      const off = new Set(pick.keep.flatMap((k, i) => (k ? [] : [i])));
+      const also = new Map(pick.also.flatMap((a, i) => (a.length ? [[i, a.map((j) => spans[j].textContent ?? '').join(', ')] as const] : [])));
+      const sig = `${[...off].join()}#${[...also].map(([i, t]) => `${i}:${t}`).join(';')}#${[...edge].map(([i, e]) => `${i}${e}`).join()}`;
+      setFit((p) => (p.key === townsKey && p.sig === sig ? p : { key: townsKey, sig, off, also, edge }));
+    };
+    measure();
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    // The web font arrives after the first layout and changes every label width.
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => { live = false; ro?.disconnect(); };
+  }, [townsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const townFit = fit.key === townsKey ? fit : null;
   const ticks = kmTicks(len);
   const borders = c.borders.map((b) => ({ km: kmIn(c, b.km, dir), country: COUNTRY[b.country] ?? b.country }));
   return (
@@ -118,10 +161,20 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
           );
         })}
       </div>
-      <div className="aw-band-towns">
-        {towns.map(([km, name], i) => (
-          <span key={`${name}${i}`} style={{ left: pct(km), transform: i === 0 && km < len * 0.04 ? 'none' : km > len * 0.96 ? 'translateX(-100%)' : 'translateX(-50%)' }}>{name}</span>
-        ))}
+      <div className="aw-band-towns" ref={townsRef}>
+        {towns.map(([km, name], i) => {
+          const off = townFit?.off.has(i) ?? false, also = townFit?.also.get(i), edge = townFit?.edge.get(i);
+          return (
+            <span
+              key={`${name}${i}`}
+              className={off ? 'is-off' : undefined}
+              aria-hidden={off || undefined}
+              title={also ? `${name} · auch: ${also}` : undefined}
+              style={edge === 'l' ? { left: 0, transform: 'none' } : edge === 'r' ? { left: '100%', transform: 'translateX(-100%)' }
+                : { left: pct(km), transform: km < len * 0.04 ? 'none' : km > len * 0.96 ? 'translateX(-100%)' : 'translateX(-50%)' }}
+            >{name}</span>
+          );
+        })}
       </div>
       <div className="aw-band-km">
         {ticks.map((k, i) => (

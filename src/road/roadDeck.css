@@ -169,6 +169,8 @@
 .aw-band-tick.is-sel { width: 16px; height: 16px; top: 1px; box-shadow: 0 0 0 2px var(--ink-900, #2C2A26); }
 .aw-band-towns { position: relative; height: 15px; margin-top: 4px; font-size: 10.5px; font-weight: 600; }
 .aw-band-towns span, .aw-band-km span { position: absolute; white-space: nowrap; }
+/* V-AF-28: a town label that would overlap its neighbour — kept in the layout (it is measured), not shown. */
+.aw-band-towns span.is-off { visibility: hidden; }
 .aw-band-km { position: relative; height: 13px; margin-top: 2px; font-family: 'IBM Plex Mono', var(--font-mono, monospace); font-size: 9px; color: var(--stone-400, #A89A7A); }
 .aw-band-legend { display: flex; gap: 14px; margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--sand-200, #E0D6BE); font-size: 10px; color: var(--stone-500, #8B7355); }
 .aw-band-legend span { display: flex; align-items: center; gap: 5px; }

@@ -198,6 +198,31 @@ export function dockFoldLabel(road: string, hidden: ReadonlyArray<Pick<RoadCorri
   return `${shieldText(road)}: ${parts.join(' · ')}`;
 }
 
+// --- town labels under the band (V-AF-28) -------------------------------------------------------------------------
+
+/** Smallest free space between two town labels under the band, in px (`set`). */
+export const ROAD_BAND_LABEL_GAP_PX = 6;
+
+/**
+ * V-AF-28: which town labels under the band are shown. The builder writes the two end towns and every city from 50 000
+ * inhabitants within 8 km — two of them often share a km and were drawn on top of each other. `boxes` are the measured
+ * [left, right] of every label in px, `first` marks the end towns (they name the section in the title and go first);
+ * the rest follows in the given order. A label closer than `gapPx` to a placed one is dropped and attributed to the
+ * nearest placed label (`also`), whose tooltip then names it.
+ */
+export function pickBandLabels(boxes: ReadonlyArray<readonly [number, number]>, first: ReadonlyArray<boolean>, gapPx: number = ROAD_BAND_LABEL_GAP_PX): { keep: boolean[]; also: number[][] } {
+  const keep = boxes.map(() => false), also: number[][] = boxes.map(() => []);
+  const order = boxes.map((_, i) => i).sort((a, b) => Number(!!first[b]) - Number(!!first[a]) || a - b);
+  const mid = (i: number) => (boxes[i][0] + boxes[i][1]) / 2;
+  const placed: number[] = [];
+  for (const i of order) {
+    const hit = placed.filter((k) => boxes[i][0] < boxes[k][1] + gapPx && boxes[k][0] < boxes[i][1] + gapPx);
+    if (hit.length === 0) { keep[i] = true; placed.push(i); continue; }
+    also[hit.reduce((a, k) => (Math.abs(mid(k) - mid(i)) < Math.abs(mid(a) - mid(i)) ? k : a))].push(i);
+  }
+  return { keep, also };
+}
+
 export interface DockEntry { kind: 'corridor'; corridor: RoadCorridor }
 export interface DockFoldEntry { kind: 'fold'; road: string; hidden: RoadCorridor[]; open: boolean }
 
