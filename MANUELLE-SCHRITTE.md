@@ -1819,7 +1819,8 @@ V-SW-15 `04bf787`, V-SW-14 `d5ccd06`), nicht gepusht. Daten- und Archiv-Repo unb
    DLM-Küste p50 19 → 13°, p90 79 → 41°, > 45° 8 → 4 (verbleibend genau die (c)-Liste). Damit gilt Punkt 1 „kein neuer Katalog“
    NICHT mehr: **Kopie von `scripts/lib/fixtures/sea/static/spots.json` nach `buscosun-data/sea/v1/static/spots.json`**
    (`areas.json` unverändert), danach Push des Daten-Repos — wirksam ab dem nächsten Seitenaufruf, die Wind-Auffrischung rechnet ab
-   dem nächsten `sea.yml`-Lauf an den neuen Lagen. Offen bleiben (a) DLM-Normale für die 34 Spots ≤ 0,2 km an der Küste und (c).
+   dem nächsten `sea.yml`-Lauf an den neuen Lagen. **Überholt durch §65 (11.10.): `spot-geo.json` gehört dazu, und der Katalog
+   trägt inzwischen auch die drei Zellen aus V-SW-20.** Offen bleiben (a) DLM-Normale für die 34 Spots ≤ 0,2 km an der Küste und (c).
 
 ## 49. Niederschlagssummen im Regenradar (Phase NS), Diagnose, 2026-10-08
 
@@ -2293,11 +2294,11 @@ Doku-Commit mit diesem Nachtrag — geht mit deinem nächsten Push mit, keine Ei
   528/528; wirksam mit dem nächsten Push). Berichtigt: an der Link-Vorschau ändert das nichts — `og-meta` läuft auf
   `/seewetter` nicht; geteilte Links zeigen Titel/Beschreibung der Route mit dem allgemeinen Bild `og/home.png`. Eigene
   Karte oder Vorschau je Spot = eigener Schritt (V-SW-5).
-- Katalog mit den 12 gezogenen Lagen ins Daten-Repo (§48.7) — live liegt noch der alte.
+- Katalog mit den 12 gezogenen Lagen ins Daten-Repo — live liegt noch der alte. **Jetzt §65** (zwei Dateien, nicht eine).
 - **Gate D zählt neu:** 14 Tage ab dem ersten Lauf mit Wind (10.10. 23:19 UTC ⇒ frühestens 24.10.), dann `sea-gate-d.mjs` (§44 Punkt 6).
 - **E-SW-32 Indexieren: erledigt** (Jan 10.10.) — `/seewetter` in der Sitemap, Spot-Pfade mit Canonical auf die Route. Nach dem
   Deploy in der Search Console die Sitemap neu einreichen, wenn es schnell gehen soll; `llms.txt` um Seewetter ergänzen (SEO-Linie).
-- Ansehen: V-SW-20 (Watt-Spots zeigen „0,0 m“ ohne Erklärung — auch die Voreinstellung St. Peter-Ording), Real-Device.
+- ~~Ansehen: V-SW-20~~ **umgesetzt 11.10. (§65)**; Real-Device bleibt.
 
 ### 63.3 Rückwege
 
@@ -2328,3 +2329,44 @@ Publish ersetzt in beiden Fassungen nichts im Daten-Repo.
 
 - V-BW-62: `verify:repack` schickt lokal echte Purges an jsDelivr, solange `REPACK_NO_PURGE=1` nicht gesetzt ist.
 - V-BW-63: Wächter für das Alter des jüngsten ICON-D2-Laufs (15z, 18z und 00z vom 10./11.10. fehlen im Daten-Repo).
+
+## 65. Seewetter — V-SW-20 („0,0 m“ an Watt-Spots) umgesetzt, V-SW-21 (Katalog ins Daten-Repo) vorbereitet, 2026-10-11
+
+Belege: `audit/seewetter.md` §15. Der Code von V-SW-20 liegt seit 11.10. 08:43 UTC auf `origin/main` (`1798fc5`, zusammen mit
+der Bandbreiten-Sitzung committet); lokal offen sind nur noch diese Doku und die Datei `scripts/lib/fixtures/sea/static/spot-geo.json`.
+
+### 65.1 Dein Schritt: zwei Dateien ins Daten-Repo (V-SW-21)
+
+Der Push nach `buscosun-data` wurde in der Sitzung von der Berechtigungsprüfung abgelehnt — er bleibt bei dir. **Beide** Dateien
+in EINEM Commit (der Katalog verschiebt an 8 Spots die Wasserzelle, `spot-geo.json` trägt das Gelände dieser Zellen):
+
+1. `buscosun-web/scripts/lib/fixtures/sea/static/spots.json` → `buscosun-data/sea/v1/static/spots.json`
+   (sha256 `32446b5d153c6ed9ba4b13823a70dc8f591bff85383248544e2a3aa0fcca5d90`)
+2. `buscosun-web/scripts/lib/fixtures/sea/static/spot-geo.json` → `buscosun-data/sea/v1/static/spot-geo.json`
+   (sha256 `471b44d4969fab14233b47acfec739a838f46d6ed3fe1666b0a75cf107116165`)
+3. Commit, Push ohne Force. `areas.json` und `mask-cwam.hash` bleiben. Die Prüfsummen gelten für den Inhalt mit LF-Zeilenende
+   (`git show HEAD:<pfad> | sha256sum`); ein angehängtes CR aus einem Windows-Checkout stört das JSON nicht. Im Klon vorher `git config core.autocrlf false`, sonst
+   hängt Git beim Auschecken ein CR an die einzeiligen JSON-Dateien.
+
+Oder ein Wort an Claude („pushe den Katalog“) samt Freigabe im Berechtigungsdialog — der fertige Klon mit beiden Dateien liegt
+für diese Sitzung bereit.
+
+**Wirkung:** die Seite zeigt ab dem nächsten Aufruf die 12 gezogenen Lagen und Ufernormalen; die Wind-Auffrischung rechnet ab
+dem nächsten neuen t1-Würfel an den neuen Zellen; die Wellenreihen folgen mit dem nächsten CWAM-Lauf (gegen 04:25 / 16:25 UTC) —
+bis dahin stehen an 8 Spots noch die Reihen der alten Zelle (0,5–2 km daneben). Schillig, Dangast und Cuxhaven-Duhnen lesen dann
+eine Zelle, die bei Hochwasser nass ist (25–46 % statt 86–92 % der Stunden ohne Seegang).
+
+**Prüfen danach:** `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/static/spots.json` → `from.dry` nennt
+`cwam-dry-2026101100.json`; im Job `sea` bleibt der Schritt mit der Wind-Auffrischung grün und `status.json` → `wind.spots` 56.
+
+**Rückweg:** den Commit im Daten-Repo zurücknehmen (`git revert`), Push.
+
+### 65.2 Ansehen (V-SW-20, schon live)
+
+- `/seewetter` → St. Peter-Ording: im Stundenband ∅ statt „0,0“ im Tidetakt, „kein Seegang“ im Readout, darunter der Hinweis
+  „Watt: … in n der nächsten m Stunden …“. Am Telefon: Satz im Spot-Briefing.
+- **Neue Regel der Einordnung (an):** eine Stunde ohne Wasser an der Modellzelle ist „keine Daten · Wasser an der Modellzelle
+  fehlt“ und trägt kein Fenster. Am Lauf vom 07.10. waren vorher 1 142 solche Stunden×Profile „passt“ oder „knapp“. Rückfall je
+  Aufruf: `?seadry=0`. Wenn dir „keine Daten“ dafür zu schwach oder zu stark ist (Alternative: „außerhalb“), sag es — eine Zeile.
+- Offen: V-SW-22 (echte 1–4 cm stehen weiter als „0,0 m“), V-SW-23 (Kartenfeld malt trockene Zellen wie 0 m), V-SW-25 (Ostsee:
+  Ursache des Zustands nicht belegt), V-SW-27 (totalJs genau an der Grenze 1 715).
