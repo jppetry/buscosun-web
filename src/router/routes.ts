@@ -23,7 +23,7 @@ export const SITE_NAME = 'buscosun';
 
 export type RouteId =
   | 'home' | 'wetterkarte' | 'warnungen' | 'regenradar' | 'vorhersage' | 'tourenplanung' | 'eventplanung'
-  | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'autobahnwetter' | 'seewetter' | 'feedback' | 'validierung' | 'mobiletest';
+  | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'autobahnwetter' | 'seewetter' | 'gletscher' | 'feedback' | 'validierung' | 'mobiletest';
 
 export interface RouteMeta {
   /** `<title>` (ohne Marken-Suffix — der wird zentral angehängt). */
@@ -62,7 +62,7 @@ export interface RouteDef {
   /** Sub-Routen (`/<path>/<slug>`), null = keine. */
   subs: readonly SubRoute[] | null;
   /** Welcher Pfadparameter die Sub-Route trägt (für `router.tsx`). */
-  subParam?: 'layer' | 'lens' | 'view' | 'road' | 'spot';
+  subParam?: 'layer' | 'lens' | 'view' | 'road' | 'spot' | 'glacier';
   /**
    * SH1 („Teilen"): Diese Route darf als LETZTES Pfadsegment einen Ort-Slug
    * tragen — `/wetterkarte/wind/muenchen`, `/regenradar/muenchen`.
@@ -304,6 +304,19 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
+    // Phase GL (audit/gletscher.md): Pfadsegment = Gletscher (`/gletscher/ch-grosser-aletschgletscher`), entscheidet die Seite. Bis Jan
+    // `GLACIER_LIVE` schaltet (nach Gate D, `src/glacier/glacierFlag.ts`) noindex und in keiner Sitemap; die Seite gibt es nur mit `?gl=1`.
+    id: 'gletscher', path: '/gletscher', aliases: ['/gletscherradar', '/gletschermonitor'], featureId: 'glacier', subParam: 'glacier',
+    subs: null,
+    meta: {
+      title: 'Gletscher DACH — Lage, Schmelze und Messreihen',
+      description: 'Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen, Längen- und Massenreihen, Herkunft an jedem Wert.',
+      h1: 'Gletscher: Wie geht es dem Eis?',
+      lead: 'Alle rund 2 200 Gletscher in DE, AT und CH an einem Ort: Inventare mit Bezugsjahr, Längen- und Massenreihen der Messnetze, amtliche Berichte im Wortlaut. Jeder Wert nennt seine Herkunft (gemessen, Satellit, Modell, amtlich). Kein amtliches Warnprodukt, keine Tourenfreigabe.',
+      noindex: true, // bis Gate D (GLACIER_LIVE)
+    },
+  },
+  {
     id: 'feedback', path: '/feedback', aliases: [], featureId: 'feedback', subs: null,
     meta: {
       title: 'Feedback — Ideen & Vorschläge',
@@ -349,6 +362,7 @@ export const FEATURE_PATH: Readonly<Record<FeatureId, string>> = {
   fire: '/waldbrand',
   road: '/autobahnwetter',
   sea: '/seewetter',
+  glacier: '/gletscher',
   feedback: '/feedback',
   validation: '/validierung',
   mobiletest: '/mobiletest',
@@ -575,6 +589,11 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet): indexierbar, Canonical = /seewetter', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter');
   add('[SW] seit 10.10. indexierbar (E-SW-32): /seewetter genau einmal in der Sitemap, kein Spot-Pfad', !ROUTE_BY_ID.seewetter.meta.noindex && !metaForPath('/seewetter').noindex && sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path).join() === '/seewetter');
   add('[SW] Gegenprobe: ein unbekannter Sub-Slug einer Route MIT Sub-Liste bleibt noindex', metaForPath('/wetterkarte/xyz').noindex && metaForPath('/waldbrand/xyz').noindex);
+  // Phase GL: Route, Aliase, Gletscher als Pfadsegment; bis Gate D noindex und ohne Sitemap.
+  add('[GL] /gletscher ist eine Route, /gletscherradar und /gletschermonitor sind Aliase', routeForPath('/gletscher')?.def.id === 'gletscher' && aliasTarget('/gletscherradar') === '/gletscher' && aliasTarget('/gletschermonitor') === '/gletscher');
+  add('[GL] /gletscher/ch-grosser-aletschgletscher trägt den Gletscher als Segment (die Seite entscheidet), noindex', routeForPath('/gletscher/ch-grosser-aletschgletscher')?.subSlug === 'ch-grosser-aletschgletscher' && metaForPath('/gletscher/ch-grosser-aletschgletscher').noindex);
+  add('[GL] bis Gate D noindex und in keiner Sitemap', !!ROUTE_BY_ID.gletscher.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/gletscher')));
+  add('[GL] zwei Segmente (/gletscher/a/b) sind keine Route', routeForPath('/gletscher/ch-a/b') === null);
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

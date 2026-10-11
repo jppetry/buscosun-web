@@ -11,10 +11,11 @@ import { Link } from 'react-router';
 import { pathForFeature } from '../router/routes';
 import { roadFlagFrom } from '../road/roadFlag';
 import { seaFlagFrom } from '../sea/seaFlag';
+import { glacierFlagFrom } from '../glacier/glacierFlag';
 
 export type RailFeature =
   | 'map2d' | 'nowcast' | 'route' | 'event' | 'forecast' | 'history' | 'atmosphere' | 'globe'
-  | 'fire' | 'road' | 'sea' | 'feedback';
+  | 'fire' | 'road' | 'sea' | 'glacier' | 'feedback';
 
 export function IconRailMap({ size = 21 }: { size?: number }) {
   return (
@@ -122,6 +123,15 @@ export function IconRailSea({ size = 21 }: { size?: number }) {
     </svg>
   );
 }
+/** Phase GL: mountain with a glacier tongue (design `reference/gletscher-desktop-lage.dc.html`). */
+export function IconRailGlacier({ size = 21 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 export function IconRailHome({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -145,6 +155,8 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'road', label: 'Autobahnwetter', icon: <IconRailRoad /> },
   // Phase SW: sichtbar nach `SEA_LIVE` (seit 10.10. an), `?sea=0` blendet aus (`src/sea/seaFlag.ts`); auf der eigenen Seite immer.
   { id: 'sea', label: 'Seewetter', icon: <IconRailSea /> },
+  // Phase GL: nur mit `?gl=1` bis Gate D (`GLACIER_LIVE`, `src/glacier/glacierFlag.ts`); auf der eigenen Seite immer.
+  { id: 'glacier', label: 'Gletscher', icon: <IconRailGlacier /> },
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];
 
@@ -183,7 +195,7 @@ export function FeatureRail({
           Deck-Handler übernimmt (preventDefault), nur ohne Handler navigiert der
           Link selbst. Optik über dieselben Klassen; die Decks setzen display/
           color/border auf der Klasse, nicht auf dem Tag. */}
-      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom())).map((it) => {
+      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom()) && (it.id !== 'glacier' || active === 'glacier' || glacierFlagFrom())).map((it) => {
         const isActive = it.id === active;
         const to = pathForFeature(it.id);
         const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
