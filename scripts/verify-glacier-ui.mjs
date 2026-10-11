@@ -16,6 +16,7 @@
  *   E  states: killed / unreachable ⇒ "Keine Daten." and no number
  *   F  mobile 390 × 844: chips and rows ≥ 44 px, no horizontal overflow, big numbers do not break
  *   G  honesty: no tour words, nothing modelled or from satellite shown as a number, locked lines say why
+ *   T  the sheet (GL-4): five tabs, melt index without unit, season chart against the TSLA band, compare slider, projection as a range, tour wording, sources, states
  *   H  console: no uncaught exception
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, cpSync, rmSync, readdirSync } from 'node:fs';
@@ -238,7 +239,7 @@ const P = '/gletscher?gl=1';
   await sleep(700);
   const sel = await ctx.evaluate(`({ card: document.querySelector('.gl-card[data-glacier]')?.getAttribute('data-glacier') ?? '', pill: !!document.querySelector('.gl-pill'), btn: document.querySelector('.gl-pill .gl-btn')?.disabled, txt: document.querySelector('.gl-card[data-glacier]')?.textContent ?? '' })`);
   const u = await url(ctx);
-  add('D5 Auswahl: Steckbrief-Karte (Klasse, Fläche mit Bezugsjahr), Pill, URL sel=…; der Steckbrief-Knopf ist gesperrt, solange GL-4 fehlt', /^gl_at_hintereisferner/.test(sel.card) && sel.pill && sel.btn === true && /Klasse A/.test(sel.txt) && /Inventar 2023/.test(sel.txt) && /sel=at-hintereisferner/.test(u), JSON.stringify({ card: sel.card, btn: sel.btn, u }));
+  add('D5 Auswahl: Steckbrief-Karte (Klasse, Fläche mit Bezugsjahr), Pill, URL sel=…; der Steckbrief-Knopf ist freigegeben (GL-4) und heißt „Steckbrief öffnen“', /^gl_at_hintereisferner/.test(sel.card) && sel.pill && sel.btn === false && /Klasse A/.test(sel.txt) && /Inventar 2023/.test(sel.txt) && /sel=at-hintereisferner/.test(u), JSON.stringify({ card: sel.card, btn: sel.btn, u }));
   add('D6 Karte der Auswahl nennt „Modell: folgt“ gesperrt statt einer Schmelzzahl (kein Platzhalterwert)', /Schmelze heute/.test(sel.txt) && /folgt/.test(sel.txt) && !/\d\s?(mm|cm)\s?(w\.?e\.?|Eis)/i.test(sel.txt), sel.txt.slice(-160));
   off(); allErrors.push(...errors); await ctx.close();
   // reload restores the state from the URL
@@ -303,10 +304,205 @@ if (satFx) {
   }
 }
 
+// --- T: the sheet (GL-4) ---------------------------------------------------------------------------------------------------
+const sheetFx = existsSync(join(HERE, 'lib', 'fixtures', 'glacier', 'sheet-extract.json')) ? JSON.parse(readFileSync(join(HERE, 'lib', 'fixtures', 'glacier', 'sheet-extract.json'), 'utf8')) : null;
+if (sheetFx && satFx) {
+  const sheetSite = join(tmp, 'v1-sheet');
+  cpSync(satSite, sheetSite, { recursive: true });
+  const bdir = join(sheetSite, 'static', readdirSync(join(sheetSite, 'static'))[0]);
+  const w = (p, o) => { mkdirSync(join(p, '..'), { recursive: true }); writeFileSync(p, JSON.stringify(o)); };
+  const byRegion = {};
+  for (const [key, g] of Object.entries(sheetFx.glaciers)) { const id = sheetFx.ids[key]; (byRegion[g.region] ??= []).push([id, g]); }
+  const reportFiles = {};
+  for (const [region, list] of Object.entries(byRegion)) {
+    const l3p = join(bdir, 'outline', `${region}-L3.json`);
+    w(l3p, { type: 'FeatureCollection', schema: 1, kind: 'glacier/outline', build: sheetFx.build, region, level: 3, features: list.map(([id, g]) => ({ type: 'Feature', properties: { id }, geometry: g.geometry })) });
+    const years = new Set(list.flatMap(([, g]) => g.epochs.map((e) => e.year)));
+    for (const y of years) {
+      w(join(bdir, 'outline', `${region}-e${y}.json`), { type: 'FeatureCollection', schema: 1, kind: 'glacier/outline-epoch', build: sheetFx.build, region, year: y, source: list.flatMap(([, g]) => g.epochs).find((e) => e.year === y)?.source ?? '', features: list.filter(([, g]) => g.epochs.some((e) => e.year === y)).map(([id, g]) => ({ type: 'Feature', properties: { ids: [id], e: y }, geometry: g.epochs.find((e) => e.year === y).geometry })) });
+      reportFiles[`outline/${region}-e${y}.json`] = [1, 1];
+    }
+    w(join(bdir, 'hypso', `${region}.json`), { region, bandM: 50, demRef: 'fixture', glaciers: Object.fromEntries(list.filter(([, g]) => g.hypso).map(([id, g]) => [id, g.hypso])) });
+    w(join(bdir, 'series', `${region}.json`), { region, glaciers: Object.fromEntries(list.map(([id, g]) => [id, g.series])) });
+    const pl = list.filter(([, g]) => g.proj);
+    if (pl.length) w(join(bdir, 'proj', `${region}.json`), { region, years: pl[0][1].proj.years, ssp: pl[0][1].proj.ssp, base: 'Volumen 2020 = 1', model: 'GloGEM', glaciers: Object.fromEntries(pl.map(([id, g]) => [id, g.proj.entry])) });
+    const cl = list.filter(([, g]) => g.clima);
+    if (cl.length) w(join(bdir, 'clima', `${region}.json`), { schema: 1, kind: 'glacier/clima', build: sheetFx.build, region, doy0: cl[0][1].clima.doy0, bin: cl[0][1].clima.bin, cols: ['p10', 'p50', 'p90', 'n'], source: 'TSLA', glaciers: Object.fromEntries(cl.map(([id, g]) => [id, g.clima.entry])) });
+    const dl = list.filter(([, g]) => g.dem);
+    if (dl.length) w(join(bdir, 'dem', `${region}.json`), { schema: 1, kind: 'glacier/dem', build: sheetFx.build, region, cell: 3600, nodata: -32768, demRef: 'fixture', glaciers: Object.fromEntries(dl.map(([id, g]) => [id, g.dem])) });
+  }
+  w(join(bdir, 'report.json'), { build: sheetFx.build, files: reportFiles });
+  w(join(sheetSite, 'melt', `${sheetFx.melt.run}.json`), sheetFx.melt);
+  const ix = JSON.parse(readFileSync(join(sheetSite, 'index.json'), 'utf8'));
+  writeFileSync(join(sheetSite, 'index.json'), JSON.stringify({ ...ix, melt: { run: sheetFx.melt.run, runAt: sheetFx.melt.runAt, engine: { name: sheetFx.melt.engine.name, version: sheetFx.melt.engine.version }, cube: sheetFx.melt.cube, unit: false, build: sheetFx.build } }));
+  const seg = (id) => id.slice(3).replace('_', '-');
+  const ids = sheetFx.ids;
+  const SH = (g, q = '') => `/gletscher/${seg(g)}?gl=1${q}`;
+  const READYS = `!!document.querySelector('#gl-tabpanel') && !document.querySelector('#gl-tabpanel .gl-empty[role=status]')`;
+  const text = (ctx, sel) => ctx.evaluate(`document.querySelector(${JSON.stringify(sel)})?.innerText ?? ''`);
+
+  // T1 / T2 — the sheet of a class-A glacier, tab Heute
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef), root: sheetSite });
+    const ok = await until(ctx, READYS + ` && !!document.querySelector('[data-melt-index]')`, 60_000);
+    await sleep(1500);
+    const r = await ctx.evaluate(`(() => {
+      const q = (s) => [...document.querySelectorAll(s)];
+      const g = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; };
+      const hero = document.querySelector('.gl-hero');
+      const tabs = q('.gl-tabs [role=tab]').map((t) => ({ label: t.textContent, sel: t.getAttribute('aria-selected') }));
+      return {
+        h1: document.querySelector('.gl-sheet-title h1 b')?.textContent ?? '', chip: document.querySelector('.gl-sheet-title .gl-chip')?.textContent ?? '', back: q('.gl-btn').some((b) => /DACH-Lage/.test(b.textContent)),
+        tabs, panelLabelled: document.querySelector('#gl-tabpanel')?.getAttribute('aria-labelledby'), idx: document.querySelector('[data-melt-index]')?.getAttribute('data-melt-index'), hero: hero?.innerText ?? '',
+        left: g('.gl-sheet-left'), readout: g('.gl-sheet-readout'), topbar: g('.gl-topbar'), overflow: document.documentElement.scrollWidth > innerWidth,
+        modelUnits: q('[data-origin="model"]').map((n) => n.textContent).filter((t) => /\\bmm\\b|cm Eis|\\bm³/.test(t)),
+        numsBad: q('.gl-num').filter((n) => !['measured', 'official', 'model', 'satellite'].includes(n.getAttribute('data-origin') ?? '')).length,
+        origins: [...new Set(q('.gl-num').map((n) => n.getAttribute('data-origin')))],
+        bars: !!document.querySelector('svg.gl-bars rect'), sat: document.querySelector('[aria-label="Satellit"]')?.innerText ?? '', url: location.pathname + location.search,
+      };
+    })()`);
+    add('T1 Steckbrief Hintereisferner: Name, Klasse-Chip, Zurück-Knopf, fünf Reiter mit ARIA (Heute gewählt, Panel beschriftet), Layout 250 · Karte · 420, kein Überlauf', ok && /Hintereisferner/.test(r.h1) && /Klasse A/.test(r.chip) && r.back && r.tabs.length === 5 && r.tabs[0].sel === 'true' && r.tabs.slice(1).every((t) => t.sel === 'false') && r.panelLabelled === 'gl-tab-heute' && r.left?.[0] === 250 && r.readout?.[0] === 420 && !r.overflow, JSON.stringify({ h1: r.h1, chip: r.chip, tabs: r.tabs.map((t) => t.label).join('/'), left: r.left, readout: r.readout }));
+    add('T2 Heute: der Schmelzindex steht als Zahl 0–100 OHNE Einheit, trägt die Marke „Modell“ und sagt, warum keine Einheit da ist (Eichung nicht bestanden); keine Modellzahl mit mm, cm Eis oder m³', ok && Number(r.idx) >= 0 && Number(r.idx) <= 100 && /von 100/.test(r.hero) && /Modell/.test(r.hero) && /keine Einheit/.test(r.hero) && /nicht bestanden|besteht noch nicht/.test(r.hero) && r.modelUnits.length === 0 && r.bars, JSON.stringify({ idx: r.idx, modelUnits: r.modelUnits, hero: r.hero.slice(0, 160) }));
+    add('T3 an jeder Zahl des Steckbriefs steht ihre Herkunft (data-origin ∈ gemessen/amtlich/Modell/Satellit); die Satellitenkarte nennt Datum und Klaranteil', ok && r.numsBad === 0 && r.origins.length >= 3 && /Szene|schneefrei/.test(r.sat) && /\d{2}\.\d{2}\.\d{4}/.test(r.sat), JSON.stringify({ origins: r.origins, sat: r.sat.slice(0, 120) }));
+    await shot(ctx, 'sheet-heute-desktop');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+
+  // T4 — Saison: snow line per scene against the TSLA band; tab in the URL; time point
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef, '&tab=saison'), root: sheetSite });
+    const ok = await until(ctx, READYS + ` && !!document.querySelector('.gl-chart-s[data-scenes]')`, 60_000);
+    await sleep(1200);
+    const r = await ctx.evaluate(`({
+      sel: document.querySelector('.gl-tabs [aria-selected=true]')?.textContent, scenes: document.querySelector('.gl-chart-s[data-scenes]')?.getAttribute('data-scenes'), svg: !!document.querySelector('.gl-chart-s svg'), aria: document.querySelector('.gl-chart-s')?.getAttribute('aria-label') ?? '',
+      polygons: document.querySelectorAll('.gl-chart-s svg polygon').length, stats: [...document.querySelectorAll('.gl-stat')].map((s) => ({ l: s.querySelector('.gl-stat-l')?.textContent, v: s.querySelector('.gl-num')?.textContent, o: s.getAttribute('data-origin') })),
+      legend: document.querySelector('.gl-legend-lines')?.textContent ?? '', body: document.querySelector('#gl-tabpanel')?.innerText ?? '', times: [...document.querySelectorAll('.gl-timesw button')].map((b) => b.textContent),
+    })`);
+    add('T4 Saison: Reiter in der Adresse, Diagramm mit Szenen und TSLA-Band (Polygon), Text-Alternative nennt Szenen und Band, Kennzahlen mit Marke „Satellit“', ok && r.sel === 'Saison' && Number(r.scenes) >= 3 && r.svg && r.polygons >= 1 && /Band 2000 bis 2025/.test(r.aria) && r.stats.length === 3 && r.stats.every((s) => s.o === 'satellite') && /2000–2025/.test(r.legend), JSON.stringify({ scenes: r.scenes, polygons: r.polygons, stats: r.stats.map((s) => `${s.l}=${s.v}`) }));
+    add('T4b Zeitpunkt: neben „heute“ stehen die Daten der jüngsten klaren Szenen, Klick setzt t=<Datum> in die Adresse', r.times[0] === 'heute' && r.times.length >= 3 && /^Szene \d\d\.\d\d\.$/.test(r.times[1]), r.times.join('|'));
+    await click(ctx, '.gl-timesw button', 'Szene');
+    await sleep(900);
+    add('T4c Klick auf eine Szene schreibt t=<ISO-Datum> in die Adresse und markiert den Knopf', /[?&]t=\d{4}-\d{2}-\d{2}/.test(await url(ctx)) && await ctx.evaluate(`[...document.querySelectorAll('.gl-timesw button')].filter((b) => b.getAttribute('aria-pressed') === 'true').length === 1`), await url(ctx));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+
+  // T5 — Langzeit: compare slider, projection as a range, official status never a single year
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef, '&tab=langzeit'), root: sheetSite });
+    const ok = await until(ctx, READYS + ` && !!document.querySelector('.gl-chart-s')`, 60_000);
+    await sleep(1200);
+    const before = await ctx.evaluate(`({ btn: [...document.querySelectorAll('#gl-tabpanel button')].map((b) => b.textContent), body: document.querySelector('#gl-tabpanel')?.innerText ?? '', slider: !!document.querySelector('.gl-divider-handle'), charts: document.querySelectorAll('.gl-chart-s').length })`);
+    await click(ctx, '#gl-tabpanel button', 'Vergleichsregler');
+    await until(ctx, `!!document.querySelector('.gl-divider-handle')`, 10_000);
+    const at = await ctx.evaluate(`Number(document.querySelector('.gl-divider-handle')?.getAttribute('aria-valuenow'))`);
+    await ctx.evaluate(`document.querySelector('.gl-divider-handle').focus()`);
+    await ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+    await ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+    await sleep(500);
+    const after = await ctx.evaluate(`Number(document.querySelector('.gl-divider-handle')?.getAttribute('aria-valuenow'))`);
+    const sentence = /Unter 10 % des Volumens von 2020: (\d{4})–(\d{4}|nach 2100), je nach Szenario und Klimamodell \(nie ein einzelnes Jahr\)/.exec(before.body);
+    add('T5 Langzeit: Projektion als Spanne (von–bis über Szenarien und 12 Klimamodelle, nie ein einzelnes Jahr), mit Marke „Modell“; Längenreihe und Projektion als Diagramme mit Text-Alternative', ok && !!sentence && Number(sentence[1]) >= 2030 && before.charts >= 2 && /Eine Projektion ist eine Spanne/.test(before.body), JSON.stringify({ sentence: sentence?.[0], charts: before.charts }));
+    add('T5b Vergleichsregler: Knopf blendet ihn ein (role=slider, aria-valuenow 50), die Pfeiltaste bewegt ihn um 3 (ohne Maus bedienbar)', !before.slider && at === 50 && after === 53, `${before.slider} ${at} → ${after}`);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+
+  // T6 — Tour: forbidden words, the disclaimer, origin at every line; Quellen
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef, '&tab=tour'), root: sheetSite });
+    const ok = await until(ctx, READYS + ` && !!document.querySelector('.gl-tour li')`, 60_000);
+    await sleep(800);
+    const t = await ctx.evaluate(`({ text: document.querySelector('#gl-tabpanel')?.innerText ?? '', lines: [...document.querySelectorAll('.gl-tour li')].map((l) => ({ o: l.getAttribute('data-origin'), t: l.innerText })), problem: !!document.querySelector('.gl-problem'), links: [...document.querySelectorAll('.gl-links a')].map((a) => a.getAttribute('href')), tall: [...document.querySelectorAll('.gl-links a')].every((a) => a.getBoundingClientRect().height >= 44) })`);
+    add('T6 Tour: kein „begehbar“, „sicher“, „frei“ im Text; der Vorbehalt „Kein Urteil über Begehbarkeit“ steht da; jede Zeile trägt ihre Herkunft; Links nur nach außen (https), Ziele ≥ 44 px', ok && glacierForbiddenWords(t.text).length === 0 && /Kein Urteil über Begehbarkeit/.test(t.text) && t.lines.length >= 3 && t.lines.every((l) => ['model', 'satellite', 'official', 'measured'].includes(l.o ?? '')) && !t.problem && t.links.every((h) => /^https:/.test(h)) && t.tall, JSON.stringify({ forbidden: glacierForbiddenWords(t.text), lines: t.lines.length }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef, '&tab=quellen'), root: sheetSite });
+    const ok = await until(ctx, READYS + ` && !!document.querySelector('.gl-srctab tbody tr')`, 60_000);
+    const q = await ctx.evaluate(`({ rows: [...document.querySelectorAll('.gl-srctab tbody tr')].map((r) => ({ what: r.cells[0].textContent, origin: r.cells[1].querySelector('[data-origin]')?.getAttribute('data-origin'), stand: r.cells[2].textContent })), lic: document.querySelectorAll('.gl-lic li').length, unused: document.querySelector('.gl-unused')?.textContent ?? '' })`);
+    add('T7 Quellen: jede Zeile der Tabelle nennt Zahl, Herkunft (Marke) und Stand; Lizenzen aus der Quellenliste; „nur verlinkt“ (Webcams) und „nicht genutzt“ (Gletscherseen, NC) stehen da', ok && q.rows.length >= 6 && q.rows.every((r) => !!r.origin && r.stand.length > 0) && q.lic >= 5 && /Webcams/.test(q.unused) && /Gletscherseen/.test(q.unused), JSON.stringify({ rows: q.rows.length, lic: q.lic }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+
+  // T8 — class B, class C, DE: what is not there is said, no placeholder numbers
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.cClassCh, '&tab=saison'), root: sheetSite });
+    const ok = await until(ctx, READYS, 60_000);
+    await sleep(800);
+    const c = await text(ctx, '#gl-tabpanel');
+    await click(ctx, '.gl-tabs [role=tab]', 'Heute');
+    await sleep(700);
+    const h = await text(ctx, '#gl-tabpanel');
+    add('T8 Klasse C (unter 0,1 km²): Saison sagt „keine Satellitenzahl“, Heute nennt Satellit „Klasse C“ ohne Zahl; der Schmelzindex ist da, der Antrieb vom Nachbarn ist benannt', ok && /Keine Satellitenzahl für Gletscher unter 0,1 km² \(Klasse C\)/.test(c) && /Keine Zahl für Gletscher unter 0,1 km² \(Klasse C\)/.test(h) && /von 100/.test(h) && /Antrieb (vom Nachbarn|am eigenen Punkt)/.test(h), `${c.slice(0, 80)} | ${h.slice(0, 80)}`);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.blaueis), root: sheetSite });
+    const ok = await until(ctx, READYS, 60_000);
+    await sleep(800);
+    const h = await text(ctx, '#gl-tabpanel');
+    add('T9 Deutscher Gletscher ohne Schmelzzeile: „Keine Daten“ mit Grund, keine Zahl; Satellit „es gelten die Zahlen der BAdW“', ok && /Keine Daten\./.test(h) && !/von 100/.test(h) && /BAdW/.test(h), h.slice(0, 160));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // T10 — stale melt run: 40 h later "Keine Daten", no number
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef), root: sheetSite, clockMs: NOW + 40 * 3_600_000 });
+    const ok = await until(ctx, READYS, 60_000);
+    await sleep(800);
+    const h = await ctx.evaluate(`({ idx: !!document.querySelector('[data-melt-index]'), hero: document.querySelector('.gl-hero')?.innerText ?? '' })`);
+    add('T10 Schmelzlauf älter als 30 Stunden: „Keine Daten“ mit der Zahl der Stunden, keine Zahl, keine Balken', ok && !h.idx && /Keine Daten/.test(h.hero) && /Stunden alt \(Grenze 30 Stunden\)/.test(h.hero), h.hero.slice(0, 160));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // T11 — back to the situation page, 3D switch in the URL, `?gl3d=0`
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef), root: sheetSite });
+    await until(ctx, READYS, 60_000);
+    await click(ctx, '.gl-seg-2 button', '3D');
+    await sleep(700);
+    const u3 = await url(ctx);
+    await click(ctx, '.gl-btn', 'DACH-Lage');
+    await until(ctx, READY, 60_000);
+    const back = await ctx.evaluate(`({ url: location.pathname + location.search, sel: !!document.querySelector('.gl-pill') })`);
+    add('T11 3D-Schalter schreibt v=3d in die Adresse; „DACH-Lage“ führt zur Lage zurück mit dem Gletscher gewählt (sel=…, Pille da)', /[?&]v=3d/.test(u3) && /^\/gletscher\?/.test(back.url) && /sel=at-hintereisferner-mit-toteis/.test(back.url) && back.sel, `${u3} → ${back.url}`);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef, '&gl3d=0&v=3d'), root: sheetSite });
+    await until(ctx, READYS, 60_000);
+    const d = await ctx.evaluate(`({ dis: [...document.querySelectorAll('.gl-seg-2 button')].find((b) => b.textContent === '3D')?.disabled, pressed: [...document.querySelectorAll('.gl-seg-2 button')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent })`);
+    add('T12 ?gl3d=0: der 3D-Knopf ist gesperrt, auch bei v=3d in der Adresse bleibt die Karte 2D', d.dis === true && d.pressed === 'Karte', JSON.stringify(d));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // T13 — mobile
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef), root: sheetSite, width: 390, height: 844, mobile: true });
+    const ok = await until(ctx, READYS, 60_000);
+    await sleep(1200);
+    const m = await ctx.evaluate(`(() => {
+      const q = (s) => [...document.querySelectorAll(s)];
+      const min = (els) => Math.min(...els.map((e) => Math.round(e.getBoundingClientRect().height)));
+      return { overflow: document.documentElement.scrollWidth > innerWidth, tabs: min(q('.gl-tabs [role=tab]')), chips: min(q('.gl-m-chips button')), time: min(q('.gl-m-time button')), btn: min(q('.gl-sheet-top .gl-btn')), tabN: q('.gl-tabs [role=tab]').length, hero: !!document.querySelector('[data-melt-index]'), map: Math.round(document.querySelector('.gl-sheet-map')?.getBoundingClientRect().height ?? 0) };
+    })()`);
+    add('T13 Mobil 390 × 844: kein Überlauf, Reiter, Chips, Zeitpunkt und Zurück-Knopf ≥ 44 px, Karte ≥ 300 px, der Schmelzindex steht im ersten Bildschirm darunter', ok && !m.overflow && m.tabN === 5 && m.tabs >= 44 && m.chips >= 44 && m.time >= 44 && m.btn >= 44 && m.map >= 300 && m.hero, JSON.stringify(m));
+    await shot(ctx, 'sheet-heute-mobil');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // T14 — keyboard: arrow keys move between the tabs (WAI-ARIA tabs)
+  {
+    const { ctx, errors, off } = await openPage({ path: SH(ids.hef), root: sheetSite });
+    await until(ctx, READYS, 60_000);
+    await ctx.evaluate(`document.querySelector('#gl-tab-heute').focus()`);
+    await ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+    await ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+    await sleep(600);
+    add('T14 Reiter per Pfeiltaste: Rechtspfeil wählt „Saison“ und schreibt tab=saison in die Adresse', await ctx.evaluate(`document.querySelector('#gl-tab-saison')?.getAttribute('aria-selected') === 'true'`) && /[?&]tab=saison/.test(await url(ctx)), await url(ctx));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+}
+
 // --- E: states -------------------------------------------------------------------------------------------------
 {
   const k = await openPage({ path: P, root: killedSite });
-  const okK = await until(k.ctx, `!!document.querySelector('.gl-map-note')`, 30_000);
+  const okK = await until(k.ctx, `/Keine Daten/.test(document.querySelector('.gl-map-note')?.textContent ?? '')`, 30_000);
   const kt = await k.ctx.evaluate(`({ note: document.querySelector('.gl-map-note')?.textContent ?? '', nums: document.querySelectorAll('.gl-num').length, cards: document.querySelectorAll('.gl-card[data-country]').length })`);
   add('E1 Kill-Schalter im Status: „Keine Daten.“ mit Grund, keine Zahl, keine Länderkarte', okK && /Keine Daten\./.test(kt.note) && /abgeschaltet/.test(kt.note) && kt.nums === 0 && kt.cards === 0, JSON.stringify(kt));
   await shot(k.ctx, 'killed-desktop');

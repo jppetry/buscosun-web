@@ -132,6 +132,20 @@ if (T.full) {
   }
   add('H2 Höhengitter (Satellitenlinie): jeder Gletscher der Klasse A/B in CH/AT genau ein Gitter (990), keiner der Klasse C oder aus DE, Umriss liegt im Gitter, Umrisshöhen im Katalogbereich −150 m / +400 m (am Kopf des Gletschers mischen die 30-m-Zellen die Randwand ein)', dN === satIds.size && dN === 990 && dProb.length === 0 && dBad.length === 0, `${dN} Gitter, ${(dCells / 1e6).toFixed(1)} Mio. Zellen; ${[...dProb, ...dBad].slice(0, 4).join(' | ')}`);
 
+  // snow-line climatology (TSLA): present from build 20261011-3, class A outside Germany only
+  const climaFiles = (() => { try { return T.ls('clima'); } catch { return []; } })();
+  let cN = 0, cBad = [];
+  for (const f of climaFiles) {
+    const region = f.replace(/\.json$/, '');
+    const doc = T.J(`clima/${f}`);
+    cBad.push(...S.climaProblems(doc, region, byId));
+    cN += Object.keys(doc.glaciers).length;
+    for (const id of Object.keys(doc.glaciers)) if (byId.get(id)?.region !== region) cBad.push(`${id}: Region`);
+  }
+  const negClima = (() => { const d = clone(T.J(`clima/${climaFiles[0]}`)); const id = Object.keys(d.glaciers)[0]; const w = d.glaciers[id].weeks.findIndex((x) => x); d.glaciers[id].weeks[w] = [3000, 2900, 3100, 20]; return S.climaProblems(d, climaFiles[0].replace(/\.json$/, ''), byId).length > 0; })();
+  add('S1 Schneegrenzen-Klimatologie (TSLA): nur Klasse A außerhalb Deutschlands, Quantile geordnet, ≥ 15 Beobachtungen je Woche, Höhen im Bereich des Katalogs; mindestens 150 Gletscher in mindestens 8 Regionen; Gegenprobe (vertauschte Quantile) fällt auf',
+    climaFiles.length >= 8 && cN >= 150 && cBad.length === 0 && negClima, `${climaFiles.length} Regionen, ${cN} Gletscher; ${cBad.slice(0, 3).join(' | ')}`);
+
   // series
   const idSet = ids;
   let sN = 0, sBad = [];

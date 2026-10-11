@@ -192,3 +192,26 @@ export function seasonProblems(doc: GlacierSeasonDoc, region: string, cat: Reado
   }
   return p;
 }
+
+// --- snow-line climatology (TSLA, class A only) -------------------------------------------------------------------------
+
+export const GLACIER_CLIMA_MIN_N = 15;
+export interface GlacierClimaCheckDoc { kind: string; schema: number; region: string; doy0: number; bin: number; glaciers: Record<string, { rgi7: string; n: number; weeks: Array<[number, number, number, number] | null> }> }
+/** Rules of `clima/<region>.json`: only class-A glaciers outside Germany, ordered quantiles, ≥ 15 observations per week, elevations in the catalogue's range ± 600 m. */
+export function climaProblems(doc: GlacierClimaCheckDoc, region: string, cat: ReadonlyMap<string, GlacierSatCatalogRow>): string[] {
+  const p: string[] = [];
+  if (doc?.kind !== 'glacier/clima' || doc.schema !== 1) return ['kind/schema'];
+  if (doc.region !== region) p.push(`Region ${doc.region} ≠ ${region}`);
+  if (!(doc.bin >= 1 && doc.doy0 >= 1)) p.push('Wochenraster');
+  for (const [id, e] of Object.entries(doc.glaciers ?? {})) {
+    const g = cat.get(id);
+    if (!g || glacierSatClass(g) !== 'A') { p.push(`${id}: keine Klasse A außerhalb Deutschlands`); continue; }
+    for (const w of e.weeks) {
+      if (!w) continue;
+      if (!(w[0] <= w[1] && w[1] <= w[2])) p.push(`${id}: Quantile nicht geordnet`);
+      if (!(w[3] >= GLACIER_CLIMA_MIN_N)) p.push(`${id}: Woche mit ${w[3]} Beobachtungen`);
+      if (w[0] < g.z[0] - 600 || w[2] > g.z[2] + 600) p.push(`${id}: Höhe ${w[0]}–${w[2]} außerhalb ${g.z[0]}–${g.z[2]} ± 600 m`);
+    }
+  }
+  return p;
+}

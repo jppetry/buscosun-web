@@ -22,7 +22,7 @@ export const GLACIER_MELT_PER_DAY_MAX = 4;
 export const GLACIER_MELT_RUN_RE = /^\d{10}$/;
 export const glacierMeltRunPath = (run: string) => `melt/${run}.json`;
 export const GLACIER_MELT_STATE_PATH = 'melt/state.json';
-export const GLACIER_MELT_REASONS = Object.freeze(['no-forcing', 'few-hours', 'no-hypsometry', 'no-neighbour', 'error'] as const);
+export const GLACIER_MELT_REASONS = Object.freeze(['no-forcing', 'few-hours', 'no-hypsometry', 'error'] as const);
 
 /** [p10, p50, p90]. */
 export type Triple = [number, number, number];
@@ -42,6 +42,8 @@ export interface GlacierMeltRow {
   ice: number;
   /** Daily maximum of the freezing level (m), `null` where the chain had none. */
   zf: (number | null)[];
+  /** Where the freezing level came from: the cube's pressure levels (`cells`), the standard lapse from the temperature at the glacier (`lapse`, glaciers above ≈ 3 000 m), or both. */
+  zs?: 'cells' | 'lapse' | 'mixed';
   /** Nights (of 14) in which the temperature at the tongue stays above 0 °C. */
   nf: number;
   /** Forcing: own Fusion point at the median elevation (`own`) or the neighbour's (`from` = its id). */
@@ -97,6 +99,7 @@ export function meltProblems(doc: GlacierMeltDoc, catalogIds?: ReadonlySet<strin
     if (!isTriple(r.ix7) || !isTriple(r.ix14)) p.push(`${r.id}: Mittelindex`);
     if (!(r.ice >= 0 && r.ice <= 100)) p.push(`${r.id}: Eisanteil ${r.ice}`);
     if (!Array.isArray(r.zf) || r.zf.length !== GLACIER_MELT_DAYS) p.push(`${r.id}: Nullgradgrenze`);
+    if (r.zs != null && !['cells', 'lapse', 'mixed'].includes(r.zs)) p.push(`${r.id}: Herkunft der Nullgradgrenze ${r.zs}`);
     if (!(Number.isInteger(r.nf) && r.nf >= 0 && r.nf <= GLACIER_MELT_DAYS)) p.push(`${r.id}: frostfreie Nächte ${r.nf}`);
     const hasMm = r.mm != null || r.s7 != null || r.s14 != null;
     if (hasMm && !unit) p.push(`${r.id}: Millimeter ohne freigegebene Einheit`);

@@ -7,7 +7,7 @@
  * numbers). Data: `buscosun-glacier` via `glacierClient.ts` (raw-first pointer, CDN + raw hedge, contract checks).
  * `glacierDeck.css` is imported only here (lazy chunk).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
@@ -15,7 +15,7 @@ import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import {
   glacierBasesFrom, loadCatalog, loadIndex, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
-  type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
+  type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
 import { GLACIER_COUNTRIES, GLACIER_SAT_MAX_AGE_DAYS, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
 import {
@@ -26,6 +26,7 @@ import {
 } from './glacierState';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierDock from './GlacierDock';
+const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import GlacierLageChart, { type ChartKind } from './GlacierLageChart';
 import { CountryCards, ReportList, Rhythm, SelectedGlacier, type CountryFacts } from './GlacierReadout';
 import { OriginChip, LockNote } from './GlacierParts';
@@ -39,12 +40,12 @@ export interface GlacierPageProps {
   popState?: (GlacierUrlState & { key: string }) | null;
 }
 
-/** The sheet (five tabs) is package GL-4; until then a selected glacier is shown on the situation page and the button says so. */
-export const GLACIER_BRIEF_READY = false;
+/** The sheet (five tabs, GL-4): `/gletscher/<slug>`; the situation page's button opens it. */
+export const GLACIER_BRIEF_READY = true;
 const REFRESH_MS = 30 * 60_000;
 
 type Loaded = {
-  build: string; cat: LoadedCatalog; points: GlacierPointsDoc; summary: GlacierSummary | null; official: GlacierOfficialItem[]; builtAt: string; satIndex: GlacierSatIndex | null;
+  build: string; cat: LoadedCatalog; points: GlacierPointsDoc; summary: GlacierSummary | null; official: GlacierOfficialItem[]; builtAt: string; satIndex: GlacierSatIndex | null; melt: GlacierIndex['melt'] | null;
 };
 
 export default function GlacierPage({ initial, onUrlState, onGlacier, popState }: GlacierPageProps) {
@@ -61,6 +62,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [chartKind, setChartKind] = useState<ChartKind>('ba');
   const [searchOpen, setSearchOpen] = useState(false);
   const [sat, setSat] = useState<ReadonlyMap<string, GlacierSatLatest>>(() => new Map());
+  const [sheet, setSheet] = useState<Pick<GlacierUrlState, 'tab' | 't' | 'v' | 'e' | 'o'>>({ tab: initial.tab, t: initial.t, v: initial.v, e: initial.e, o: initial.o });
+  const briefSeg = initial.glacier;
+  const allow3d = useMemo(() => { try { return new URLSearchParams(window.location.search).get('gl3d') !== '0'; } catch { return true; } }, []);
 
   // --- Data -----------------------------------------------------------------------------------------------------
   useEffect(() => {
@@ -75,7 +79,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           loadCatalog(build, ac.signal, bases), loadPoints(build, ac.signal, bases), loadSummary(build, ac.signal, bases), loadOfficial(build, ac.signal, bases),
         ]);
         if (!cat || !points) { setLoad({ s: 'error', why: 'Katalog oder Punktliste nicht ladbar.' }); return; }
-        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null } });
+        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null } });
         // the satellite line is optional: a failure leaves "Ausaperung" locked and every other number untouched
         if (index.sat) loadSatLatest(index.sat, cat.byId, ac.signal, bases).then((m) => { if (!ac.signal.aborted) setSat(m); }, () => { /* stays locked */ });
       } catch (e) { if ((e as Error)?.name !== 'AbortError') setLoad({ s: 'error', why: 'Der Datenspeicher antwortet nicht.' }); }
@@ -89,6 +93,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   useEffect(() => {
     if (!popState) return;
     setLand(popState.land); setMetric(popState.m); setQuery(popState.q); setSelSeg(popState.glacier ?? popState.sel);
+    setSheet({ tab: popState.tab, t: popState.t, v: popState.v, e: popState.e, o: popState.o });
   }, [popState]);
 
   // --- Derived ---------------------------------------------------------------------------------------------------
@@ -145,12 +150,13 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   // --- URL state -------------------------------------------------------------------------------------------------
   const stateNow = useCallback((patch: Partial<GlacierUrlState> = {}): GlacierUrlState => ({
-    ...initial, glacier: null, tab: 'heute', land, m: metric, q: query, sel: selSeg, ...patch,
-  }), [initial, land, metric, query, selSeg]);
+    ...initial, glacier: briefSeg, ...sheet, land, m: metric, q: query, sel: briefSeg ? null : selSeg, ...patch,
+  }), [initial, briefSeg, sheet, land, metric, query, selSeg]);
   useEffect(() => { onUrlState(stateNow()); }, [stateNow, onUrlState]);
 
   const pick = useCallback((id: string) => setSelSeg(glacierSegmentOf(id)), []);
-  const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null }), false); };
+  const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); };
+  const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false);
   const bucketOf = useCallback((id: string) => values.get(id)?.bucket ?? -1, [values]);
   const loadOutlineFn = useCallback((region: string, level: 1 | 2 | 3) => (d ? loadOutline(d.build, region, level, undefined, bases) : Promise.resolve(null)), [d, bases]);
 
@@ -260,6 +266,22 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       navClass="gl-rail gl-rail-desktop" btnClass="gl-rail-btn" activeClass="is-active" spacerClass="gl-rail-spacer" />
   );
 
+  if (briefSeg) {
+    const bg = d ? d.cat.byId.get(glacierIdOfSegment(briefSeg)) ?? null : null;
+    return (
+      <div className={`gl-root${isMobile ? ' is-mobile' : ''}`}>
+        {!isMobile && rail}
+        {load.s !== 'ready' ? (
+          <div className="gl-main"><div className="gl-empty gl-sheet-state" role="status">{load.s === 'loading' ? 'Steckbrief wird geladen …' : <><strong>Keine Daten.</strong> {load.why}</>}</div></div>
+        ) : !bg ? (
+          <div className="gl-main"><div className="gl-empty gl-sheet-state" role="status"><strong>Diesen Gletscher gibt es im Atlas nicht.</strong> <button type="button" className="gl-btn" onClick={closeBrief}>Zur DACH-Lage</button></div></div>
+        ) : (
+          <Suspense fallback={<div className="gl-main"><div className="gl-empty gl-sheet-state" role="status">Steckbrief wird geladen …</div></div>}><GlacierBrief key={bg.id} g={bg} build={d!.build} byId={d!.cat.byId} satIndex={d!.satIndex} meltPointer={d!.melt} official={d!.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
+            state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={closeBrief} allow3d={allow3d} /></Suspense>
+        )}
+      </div>
+    );
+  }
   if (isMobile) {
     return (
       <div className="gl-root is-mobile">

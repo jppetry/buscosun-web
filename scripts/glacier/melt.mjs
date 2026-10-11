@@ -10,7 +10,8 @@
  * Rules (each one tested in verify:glacier-melt):
  *  - needs `public/climaGrid.json` (the climatology of buscosun Fusion): without it the engine runs WITHOUT distributions and would write nothing true — the job is RED (V-SW-18);
  *  - runs only for a new tier-2/3 run of the cube (`repeatVerdict` style: same inputs ⇒ skipped), at most 4 × a day;
- *  - class C glaciers take the forcing of the nearest class A/B glacier of their region (own bands, neighbour's forcing) instead of an own Fusion call;
+ *  - class C glaciers take the forcing of the nearest class A/B glacier of their region within 60 km (own bands, neighbour's forcing) instead of an own Fusion call;
+ *    one without such a neighbour gets its own Fusion point (23 of 2 203 glaciers) — a glacier is never skipped for lack of a neighbour;
  *  - a spread of a sum is the quantile of the sums of K scenarios, never a sum of hourly quantiles; the hourly p10/p90 are single-hour spreads only;
  *  - the unit "mm w. e." is written ONLY when the calibration says `gate.unit === true` (Gate C passed); otherwise the file carries the unitless index and no
  *    millimetre field at all.
@@ -92,10 +93,12 @@ export function forcingFromForecast(fc, { lat, lon, zRef, t0Ms, hours = GLACIER_
     let last = NaN, since = 99;
     for (let i = 0; i < hours; i++) { if (Number.isFinite(fz[i])) { last = fz[i]; since = 0; } else if (Number.isFinite(last) && ++since <= 6) fz[i] = last; }
   } catch { /* standard lapse */ }
+  // where the cube's pressure levels give no freezing level (a glacier above the 700 hPa level, ≈ 3 000 m): the level the standard lapse puts it at, from the temperature at the reference elevation (`zs` says which)
+  const fzEst = Float64Array.from(tf, (v) => (Number.isFinite(v) ? Math.min(7000, Math.max(0, zRef + v / -MELT.gamma)) : NaN));
   const sigmaFallback = (i) => Math.min(3, 1 + 0.02 * i);
   const sgf = Float64Array.from(sg, (v, i) => (Number.isFinite(v) ? v : sigmaFallback(i)));
   const hoursWithT = tf.reduce((s, v) => s + (Number.isFinite(v) ? 1 : 0), 0);
-  return { t: tf, sg: sgf, p: pf, n: nf, g, fz, zRef, hoursWithT, sigmaMissing: sg.reduce((s, v) => s + (Number.isFinite(v) ? 0 : 1), 0) };
+  return { t: tf, sg: sgf, p: pf, n: nf, g, fz, fzEst, zRef, hoursWithT, sigmaMissing: sg.reduce((s, v) => s + (Number.isFinite(v) ? 0 : 1), 0) };
 }
 
 /** Temperature at elevation `z` for every hour with the lapse anchored on the freezing level where usable (`t` at `zRef`). */
@@ -179,7 +182,15 @@ export function runGlacier({ g, hyp, forcing, params, state, ela, run, unit, k =
   const bare = bands.zb.map((z, b) => st0.swe[b] <= MELT.sweMin && z < ela);
   const ice = Math.round(100 * bands.w.reduce((s, w, b) => s + (bare[b] ? w : 0), 0));
   // freezing level (daily maximum) and nights above 0 °C at the tongue
-  const zf = Array.from({ length: GLACIER_MELT_DAYS }, (_, d) => { let m = -Infinity; for (let h = 24 * d; h < Math.min(hours, 24 * d + 24); h++) if (Number.isFinite(forcing.fz[h])) m = Math.max(m, forcing.fz[h]); return Number.isFinite(m) ? Math.round(m) : null; });
+  let fromCells = 0, fromLapse = 0;
+  const zf = Array.from({ length: GLACIER_MELT_DAYS }, (_, d) => {
+    let m = -Infinity;
+    for (let h = 24 * d; h < Math.min(hours, 24 * d + 24); h++) {
+      const v = Number.isFinite(forcing.fz[h]) ? forcing.fz[h] : forcing.fzEst?.[h];
+      if (Number.isFinite(v)) { m = Math.max(m, v); if (Number.isFinite(forcing.fz[h])) fromCells++; else fromLapse++; }
+    }
+    return Number.isFinite(m) ? Math.round(m) : null;
+  });
   const tTongue = tempAt(forcing, bands.zb[0]);
   let nf = 0;
   for (let d = 0; d < GLACIER_MELT_DAYS; d++) {
@@ -193,7 +204,7 @@ export function runGlacier({ g, hyp, forcing, params, state, ela, run, unit, k =
   const row = {
     id: g.id,
     idx: idxDay.map((t) => t.map((v) => Math.round(v))), ix7: meanIdx(7), ix14: meanIdx(14),
-    ice, zf, nf, f: forcing.from ?? 'own',
+    ice, zf, zs: fromCells && fromLapse ? 'mixed' : fromLapse ? 'lapse' : 'cells', nf, f: forcing.from ?? 'own',
   };
   if (unit) {
     row.mm = Array.from({ length: GLACIER_MELT_DAYS }, (_, d) => q3(col(d)).map(r1));
@@ -330,8 +341,8 @@ export async function main(opts) {
       if (g.klass !== 'C') f = await forcingOf(g);
       else {
         const near = ab.filter((x) => x.region === g.region).map((x) => ({ x, d: km(g.lat, g.lon, x.lat, x.lon) })).sort((a, b) => a.d - b.d)[0];
-        if (!near || near.d > 60) { skipped.push({ id: g.id, reason: 'no-neighbour' }); continue; }
-        f = { ...(await forcingOf(near.x)), from: near.x.id };
+        if (near && near.d <= 60) f = { ...(await forcingOf(near.x)), from: near.x.id };
+        else f = await forcingOf(g);
       }
       if (f.hoursWithT < MELT_MIN_HOURS_SHARE * GLACIER_MELT_HOURS) { skipped.push({ id: g.id, reason: 'few-hours' }); continue; }
       const { st, ela } = mk(g, hyp, f);

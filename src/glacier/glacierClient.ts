@@ -12,7 +12,9 @@ import {
   glacierProjFile, catalogProblems, officialProblems,
   type GlacierCatalog, type GlacierCatalogEntry, type GlacierOfficialItem, type GlacierSeries,
 } from './glacierContract';
-import { glacierSeasonPath, seasonProblems, type GlacierSeasonDoc, type GlacierSeasonRow, type GlacierSatCatalogRow } from './glacierSatContract';
+import { glacierSeasonPath, seasonProblems, climaProblems, type GlacierSeasonDoc, type GlacierSeasonRow, type GlacierSatCatalogRow } from './glacierSatContract';
+import { glacierMeltRunPath, meltProblems, type GlacierMeltDoc } from './glacierMeltContract';
+import type { GlacierDemGrid } from './glacierSatContract';
 
 export interface GlacierBases { cdn: string; raw: string }
 
@@ -99,9 +101,12 @@ export interface GlacierIndex {
   static: { build: string };
   /** Satellite line (GL-2): newest scene per tile and, per year and region, the stand of the season document. */
   sat?: GlacierSatIndex;
-  /** Later packages: newest melt run, feed week. */
-  melt?: unknown; feed?: unknown;
+  /** Melt line (GL-3): pointer to the newest run. */
+  melt?: GlacierMeltPointer;
+  /** Later packages: feed week. */
+  feed?: unknown;
 }
+export interface GlacierMeltPointer { run: string; runAt: string; engine: { name: string; version: number | null }; cube: Record<string, string | null>; unit: boolean; build: string }
 export interface GlacierSatIndex { updatedAt: string; newest: Record<string, string>; seasons: Record<string, Record<string, string>> }
 export interface GlacierStatus { schema: 1; kind: 'glacier/status'; killed?: boolean; killReason?: string; lines?: Record<string, unknown>; checkedAt?: string }
 export type GlacierPointRow = [id: string, lat: number, lon: number, klass: 'A' | 'B' | 'C', km2: number];
@@ -156,9 +161,13 @@ export async function loadStatus(signal?: AbortSignal, bases = glacierBasesFrom(
   } catch (e) { if (isAbort(e) && signal?.aborted) throw e; return null; }
 }
 
-function staticDoc<T>(build: string, file: string, signal: AbortSignal | undefined, bases: GlacierBases): Promise<T | null> {
+/**
+ * Memoised documents are shared by every caller, so the fetch is NOT tied to one caller's `signal` (a caller that unmounts must not reject the promise the next
+ * caller — a remount, a second effect run — is already waiting on); callers check their own `signal.aborted` after the await.
+ */
+function staticDoc<T>(build: string, file: string, _signal: AbortSignal | undefined, bases: GlacierBases): Promise<T | null> {
   return once(`${bases.cdn}|${build}|${file}`, async () => {
-    try { return await fetchGlacier(glacierStaticPath(build, file), 'json', signal, bases) as T; }
+    try { return await fetchGlacier(glacierStaticPath(build, file), 'json', undefined, bases) as T; }
     catch (e) { if (isAbort(e)) throw e; return null as T | null; }
   }) as Promise<T | null>;
 }
@@ -192,10 +201,10 @@ export const loadSeries = (build: string, region: string, signal?: AbortSignal, 
 export const loadProj = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierProjDoc>(build, glacierProjFile(region), signal, bases);
 
 /** One season document (immutable name = stand), through the contract rules before it reaches the page. */
-export function loadSeasonDoc(year: number | string, region: string, stand: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierSeasonDoc | null> {
+export function loadSeasonDoc(year: number | string, region: string, stand: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, _signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierSeasonDoc | null> {
   return once(`${bases.cdn}|season|${year}|${region}|${stand}`, async () => {
     try {
-      const d = await fetchGlacier(glacierSeasonPath(year, region, stand), 'json', signal, bases) as GlacierSeasonDoc;
+      const d = await fetchGlacier(glacierSeasonPath(year, region, stand), 'json', undefined, bases) as GlacierSeasonDoc;
       return seasonProblems(d, region, byId as ReadonlyMap<string, GlacierSatCatalogRow>).length === 0 ? d : null;
     } catch (e) { if (isAbort(e)) throw e; return null; }
   });
@@ -216,4 +225,45 @@ export async function loadSatLatest(sat: GlacierSatIndex, byId: ReadonlyMap<stri
     }
   }
   return out;
+}
+
+/** TSLA snow-line climatology per class-A glacier (weekly p10/p50/p90 from day of year `doy0`), `clima/<region>.json` of the static build. */
+export interface GlacierClimaDoc { schema: 1; kind: 'glacier/clima'; build: string; region: string; doy0: number; bin: number; cols: string[]; source: string; glaciers: Record<string, { rgi7: string; n: number; weeks: Array<[number, number, number, number] | null> }> }
+export async function loadClima(build: string, region: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierClimaDoc | null> {
+  const d = await staticDoc<GlacierClimaDoc>(build, `clima/${region}.json`, signal, bases);
+  return d && climaProblems(d, region, byId as ReadonlyMap<string, GlacierSatCatalogRow>).length === 0 ? d : null;
+}
+
+/** One melt run (immutable name = run hour), through the contract rules; an unreadable or violating document is `null` ("Keine Daten", never a number). */
+export function loadMelt(run: string, catalogIds: ReadonlySet<string> | undefined, _signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierMeltDoc | null> {
+  return once(`${bases.cdn}|melt|${run}`, async () => {
+    try {
+      const d = await fetchGlacier(glacierMeltRunPath(run), 'json', undefined, bases) as GlacierMeltDoc;
+      return meltProblems(d, catalogIds).length === 0 ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+
+/** All season rows of ONE glacier, per year, from the season documents the index names (every year, its region only). */
+export async function loadSeasonRowsOf(g: GlacierCatalogEntry, sat: GlacierSatIndex, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<Map<number, GlacierSeasonRow[]>> {
+  const out = new Map<number, GlacierSeasonRow[]>();
+  const years = Object.keys(sat.seasons ?? {}).filter((y) => /^\d{4}$/.test(y)).sort();
+  const docs = await Promise.all(years.map((y) => (sat.seasons[y]?.[g.region] ? loadSeasonDoc(y, g.region, sat.seasons[y][g.region], byId, signal, bases) : Promise.resolve(null))));
+  docs.forEach((d, i) => { const rows = d?.glaciers[g.id]; if (rows?.length) out.set(Number(years[i]), rows); });
+  return out;
+}
+
+/** Build report (file list): which earlier outlines a region has — the sheet asks for exactly those. */
+export interface GlacierReportDoc { build: string; files: Record<string, unknown> }
+export const loadReport = (build: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierReportDoc>(build, 'report.json', signal, bases);
+/** Years of the earlier outlines of a region (`outline/<region>-e<year>.json`), newest first. */
+export const epochYearsOf = (report: GlacierReportDoc | null, region: string): number[] => {
+  if (!report?.files) return [];
+  const re = new RegExp(`^outline/${region}-e(\\d{4})\\.json$`);
+  return Object.keys(report.files).map((f) => re.exec(f)?.[1]).filter((y): y is string => !!y).map(Number).sort((a, b) => b - a);
+};
+/** DEM grids of the static tree: `dem/<region>.json` (class A/B outside Germany; 0.3–6 MB per region, loaded only for the sheet's snow zone). */
+export async function loadDemGrid(build: string, region: string, id: string, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierDemGrid | null> {
+  const d = await staticDoc<{ glaciers: Record<string, GlacierDemGrid> }>(build, `dem/${region}.json`, signal, bases);
+  return d?.glaciers?.[id] ?? null;
 }

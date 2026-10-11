@@ -149,6 +149,17 @@ add('E9 Vertrag: Herkunft immer „model“ (nie „measured“), Summen „scen
   meltProblems({ ...docOf([off.row], false), origin: 'measured' }).length > 0 && meltProblems({ ...docOf([off.row], false), scenarios: { k: 40, rho: 0.9, origin: 'set', sums: 'quantiles' } }).length > 0 && meltProblems({ ...docOf([off.row], false), scenarios: { k: 5, rho: 0.9, origin: 'set', sums: 'scenarios' } }).length > 0, '');
 add('E10 Zustandsdatei: negatives Schneewasser und Bandzahlen ungleich werden abgelehnt', meltStateProblems({ schema: 1, kind: 'glacier/melt-state', atMs: 1, g: { a: [[1, -2], [500, 500]] } }).length > 0 && meltStateProblems({ schema: 1, kind: 'glacier/melt-state', atMs: 1, g: { a: [[1, 2], [500]] } }).length > 0 && meltStateProblems({ schema: 1, kind: 'glacier/melt-state', atMs: 1, g: { a: [[1, 2], [500, 500]] } }).length === 0, '');
 
+{
+  // freezing level: from the cube's levels where it has them, else from the temperature at the glacier with the standard lapse (named in `zs`)
+  const withCells = { ...forcingFx, fz: Float64Array.from(forcingFx.fz, () => 3900) };
+  const c = rowOf(false, '2026070106', withCells);
+  const day0 = Math.max(...Array.from({ length: 24 }, (_, h) => forcingFx.t[h]));
+  const expect = Math.round(Math.min(7000, Math.max(0, 2850 + day0 / 0.0065)));
+  add('E11 Nullgradgrenze: ohne Druckflächenwerte aus Temperatur und Standardgradient (zs = lapse, Tagesmaximum = Bezugshöhe + T/0,0065), mit Druckflächenwerten diese (zs = cells, 3 900 m) — die Herkunft steht in der Zeile',
+    off.row.zs === 'lapse' && Math.abs(off.row.zf[0] - expect) <= 1 && c.row.zs === 'cells' && c.row.zf[0] === 3900 && meltProblems(docOf([c.row], false)).length === 0 && meltProblems(docOf([{ ...c.row, zs: 'x' }], false)).length > 0,
+    `${off.row.zs} ${off.row.zf[0]} (erwartet ${expect}); ${c.row.zs} ${c.row.zf[0]}`);
+}
+
 // --- F: repeat guard -----------------------------------------------------------------------------------------------------------------------------
 {
   const prev = { run: '2026101004', runAt: '2026-10-10T04:30:00Z', engine: { version: FUSION_CURRENT }, cube: { t1: 'a', t2: 'b', t3: 'c' } };
@@ -211,8 +222,8 @@ add('G1 Lauf Ende zu Ende (Fusion als Attrappe): Dokument besteht den Vertrag, H
   meltProblems(doc1).length === 0 && doc1.origin === 'model' && doc1.engine.name === `buscosun Fusion ${FUSION_CURRENT}` && doc1.gate.unit === false && doc1.glaciers.every((r) => r.mm === undefined)
   && existsSync(join(root1, 'out', 'melt', 'state.json')) && existsSync(join(root1, 'patch', 'index-patch.json')) && existsSync(join(root1, 'patch', 'status-patch.json')),
   JSON.stringify({ run: r1.run, problems: meltProblems(doc1).slice(0, 3), engine: doc1.engine }));
-add('G2 Klasse C nimmt den Antrieb des nächsten Gletschers der Klasse A/B derselben Region (eigene Bänder, fremder Antrieb), nur A und B rufen die Fusion (3 Aufrufe: alpha, beta, delta fällt vorher aus), „far“ ohne Nachbarn im Umkreis übersprungen',
-  byId.gl_ch_gamma?.f === 'gl_ch_alpha' && byId.gl_ch_alpha?.f === 'own' && doc1.skipped.some((s) => s.id === 'gl_ch_far' && s.reason === 'no-neighbour'), JSON.stringify({ f: doc1.glaciers.map((r) => [r.id, r.f]), skipped: doc1.skipped, calls: calls.length }));
+add('G2 Klasse C nimmt den Antrieb des nächsten Gletschers der Klasse A/B derselben Region (eigene Bänder, fremder Antrieb), nur A und B rufen die Fusion (3 Aufrufe: alpha, beta, delta fällt vorher aus), „far“ ohne Nachbarn im Umkreis von 60 km bekommt einen eigenen Fusion-Punkt (nie übersprungen)',
+  byId.gl_ch_gamma?.f === 'gl_ch_alpha' && byId.gl_ch_alpha?.f === 'own' && byId.gl_ch_far?.f === 'own' && !doc1.skipped.some((s) => s.id === 'gl_ch_far'), JSON.stringify({ f: doc1.glaciers.map((r) => [r.id, r.f]), skipped: doc1.skipped, calls: calls.length }));
 add('G3 Gletscher ohne Hypsometrie wird mit Grund übersprungen (kein Ersatzwert, keine Zeile)', doc1.skipped.some((s) => s.id === 'gl_ch_delta' && s.reason === 'no-hypsometry') && !byId.gl_ch_delta, JSON.stringify(doc1.skipped));
 add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivverzeichnis (nur alpha ist Leitgletscher)', (() => { const f = join(root1, 'archive-out', `melt-${r1.run}.json`); if (!existsSync(f)) return false; const a = JSON.parse(readFileSync(f, 'utf8')); return a.glaciers.length === 1 && a.glaciers[0].id === 'gl_ch_alpha'; })(), '');
 // second run with the same cube inputs: repeat ⇒ skipped; needs the pointer in the index
