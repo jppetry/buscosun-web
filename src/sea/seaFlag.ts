@@ -29,6 +29,15 @@ export function seaFlagFrom(
   return live;
 }
 
+/**
+ * V-SW-20: hours in which the wave model has no water at the spot's cell are not classified ("keine Daten", reason
+ * "Wasser an der Modellzelle fehlt") — on by default; `?seadry=0` = the classes as before (the display still says
+ * "kein Seegang" instead of "0,0 m").
+ */
+export function seaDryRuleFrom(search: string = typeof location !== 'undefined' ? location.search : ''): boolean {
+  try { return new URLSearchParams(search).get('seadry') !== '0'; } catch { return true; }
+}
+
 /** Remembers an explicit `?sea=0|1` for the session's later navigations (the query is gone after the first click). */
 export function rememberSeaFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
   let q: string | null = null;

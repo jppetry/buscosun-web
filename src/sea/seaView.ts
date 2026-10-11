@@ -142,6 +142,23 @@ export const f1 = (x: number | null | undefined, unit = '') => (x == null || !Nu
 export const f0 = (x: number | null | undefined, unit = '') => (x == null || !Number.isFinite(x) ? '–' : `${Math.round(x)}${unit}`);
 export const LAYER_LABEL: Readonly<Record<SeaLayer, string>> = Object.freeze({ hs: 'Seegang gesamt', ws: 'Windsee', sw: 'Dünung', per: 'Periode' });
 
+// --- V-SW-20: an hour without sea state at the model cell (never shown as "0,0 m") -----------------------
+
+export const DRY_VALUE = 'kein Seegang';
+/** Mark in the hourly band (27 px columns); explained in the band's foot and in the spot note. */
+export const DRY_GLYPH = '∅';
+/** North Sea: the count follows the tide (measured). Baltic: the model names no cause — said as it is. */
+export const dryHourText = (region: 'nordsee' | 'ostsee') => (region === 'nordsee'
+  ? 'Modellzelle in dieser Stunde trockengefallen (Gezeit)'
+  : 'Modellzelle in dieser Stunde ohne Seegang (flaches Ufer)');
+export function dryNote(region: 'nordsee' | 'ostsee', dryHours: number, hours: number, cellKm: number, classed = true): string {
+  const share = `in ${dryHours} der nächsten ${hours} Stunden`;
+  const tail = ` Im Stundenband steht dann ${DRY_GLYPH} statt einer Wellenhöhe${classed ? ', und die Stunde wird nicht nach deinem Profil eingeordnet' : ''}. Der Wasserstand selbst wird hier nicht gezeigt (BSH-Vorhersage gesperrt); die Modellzelle liegt ${f1(cellKm)} km vom Spot.`;
+  return region === 'nordsee'
+    ? `Watt: die Wasserzelle dieses Spots fällt im Wellenmodell mit der Gezeit trocken — ${share} gibt es dort keinen Seegang.${tail}`
+    : `Flaches Ufer: an der Wasserzelle dieses Spots gibt das Wellenmodell ${share} keinen Seegang aus — es rechnet die Zelle dann als zu flach oder trocken.${tail}`;
+}
+
 /** Beaufort reading aid (Seewetterdienst wording). */
 export const BFT_ROWS: ReadonlyArray<[number, string, string]> = [
   [3, '7–10 kn', 'schwach'], [4, '11–16 kn', 'mäßig'], [5, '17–21 kn', 'frisch'], [6, '22–27 kn', 'stark · Starkwind'], [7, '28–33 kn', 'steif · Starkwind'],

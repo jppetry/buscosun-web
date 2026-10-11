@@ -2303,3 +2303,28 @@ Doku-Commit mit diesem Nachtrag — geht mit deinem nächsten Push mit, keine Ei
 
 - `SEA_LIVE = false` + Push — wieder nur mit `?sea=1`.
 - `?sea=0` je Besucher; `SEA_KILL=1` als Repo-Variable im Daten-Repo (Seite zeigt „Keine Daten“).
+
+## 64. `build`-Job im Daten-Repo scheitert im Publish (V-BW-58, `audit/bandbreite.md` §33), 2026-10-11
+
+Gebaut und lokal geprüft, **uncommitted**: `scripts/publish-repack.mjs`, `scripts/verify-repack-publish.mjs` (neu),
+`scripts/verify-repack.mjs` (eine Text-Prüfung), `package.json` (Alias `verify:repack-publish`). Die Mails hören erst auf, wenn
+der Stand auf `main` liegt — der Workflow klont den Producer bei jedem Lauf aus `buscosun-web/main`.
+
+### 64.1 Deine Schritte
+
+1. Commit + Push von `buscosun-web/main` (nur diese vier Dateien plus Doku; im Arbeitsbaum liegen daneben die offenen Änderungen
+   der Seewetter-Sitzung). **Keine** Kopie ins Daten-Repo: die Workflow-Datei `build.yml` ist unverändert.
+2. Abnahme am nächsten `build`-Lauf (Slots `20 0,3,…,21` und `30 2,5,…,23` UTC, GitHub startet 7–31 min später): im Schritt
+   „Publish“ steht `Abgelegt → … (main = …, Versuch n/8)`. Steht dort `Versuch 2/8` oder höher, ist ein fremder Push
+   dazwischengekommen und abgefangen worden — das ist der Normalfall, kein Fehler.
+3. Danach `https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/index.json`: `runs[0].run` ist der jüngste ICON-D2-Lauf.
+
+### 64.2 Rückweg
+
+Den Commit zurücknehmen (`git revert`) und pushen — dann gilt wieder der Publisher von heute (einmal `--force`). Ein gescheiterter
+Publish ersetzt in beiden Fassungen nichts im Daten-Repo.
+
+### 64.3 Ansehen
+
+- V-BW-62: `verify:repack` schickt lokal echte Purges an jsDelivr, solange `REPACK_NO_PURGE=1` nicht gesetzt ist.
+- V-BW-63: Wächter für das Alter des jüngsten ICON-D2-Laufs (15z, 18z und 00z vom 10./11.10. fehlen im Daten-Repo).

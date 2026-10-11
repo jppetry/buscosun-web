@@ -325,3 +325,7 @@
   .sw-m-dock .sw-spot, .sw-m-dock .sw-toggle, .sw-m-dock .sw-seg button, .sw-m-dock .sw-layers button, .sw-m-dock .sw-profiles button, .sw-m-dock .sw-link { min-height: 44px; }
   .sw-map-note { top: 34%; max-width: calc(100% - 48px); }
 }
+
+/* V-SW-20: an hour without sea state at the model cell (never "0,0 m") */
+.sw-band-dry { color: var(--stone-500, #8B7355); font-weight: 400; }
+.sw-hero-mid.is-dry { font-size: 20px; letter-spacing: -0.3px; }

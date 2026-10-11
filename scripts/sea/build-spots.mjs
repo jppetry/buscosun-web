@@ -6,7 +6,8 @@
  *
  * Computed per spot (reproducible, no OSM):
  *   cell     nearest CWAM sea cell that is not a dead corner: mean Hs of the four fixture steps ≥ 2 cm and ≥ 3 of its
- *            8 neighbours water (SW-0: Wangerooge's nearest cell stayed 0 all run long)
+ *            8 neighbours water (SW-0: Wangerooge's nearest cell stayed 0 all run long), and — V-SW-20 — without sea
+ *            state in at most half of the hours of the dry map's run (`build-dry-map.mjs`; `--dry=0` = the rule before)
  *   normal   shore normal (bearing pointing SEAWARD, `shoreNormal.mjs`): vector mean of the directions to every cell within 2.5 km,
  *            water +1, land −1 — the mask of the very model the waves come from
  *   seaArea / coast   point in polygon of the cell centre in the DWD shapes (nearest polygon edge as fallback)
@@ -14,6 +15,7 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/build-spots.mjs
  *     [--grib=scripts/lib/fixtures/sea/cwam-2026100700] [--shapes=<cache dir>] [--poi=audit/seewetter/spike/poi-probe.json]
+ *     [--dry=<dry map, default the fixture | 0>]
  *     [--out=<dir>]   (default: print a summary only)  [--geo]  also writes static/spot-geo.json (network: Terrarium + WorldCover)
  *
  *   static/spot-geo.json   producer-only cache entries of the client readers `loadTerrainAtPoint`/`loadZ0AtPoint` at every
@@ -26,9 +28,10 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeGrib2 } from '../../src/sources/gribDecode.ts';
 import { decompressBz2 } from '../lib/bz2.mjs';
-import { SEA_MODELS, seaCellCentre, seaCellOf, spotCatalogProblems, SEA_SPOT_MAX_CELL_KM } from '../../src/sea/seaContract.ts';
+import { SEA_MODELS, seaCellCentre, seaCellOf, spotCatalogProblems, SEA_SPOT_MAX_CELL_KM, SEA_SPOT_MAX_DRY_SHARE } from '../../src/sea/seaContract.ts';
 import { SEA_AREA_IDS, SEA_COAST_IDS } from '../../src/sea/seaText.ts';
 import { maskVectorNormal } from './shoreNormal.mjs';
+import { readDryMap } from './build-dry-map.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../..');
@@ -161,27 +164,46 @@ export async function buildSpotGeo(spots, opts = {}) {
   return { schema: 1, product: 'sea-spot-geo', note: 'Cache-Einträge der Client-Leser (Terrarium z11 + z8, ESA WorldCover 2021, CC BY 4.0) an der Wasserzelle jedes Spots; Höhe über Wasser = 0 (Meeresoberfläche, E-SW-11), gelesene Tiefe in elevationRead. Nur für den Producer.', failed, entries: fixed };
 }
 
-export async function buildSpots({ gribDir, shapesCache = null, poiFile, src }) {
+/**
+ * The spot's water cell: the nearest CWAM sea cell within ± 8 cells that is not a dead corner (mean Hs of `fields`
+ * ≥ 2 cm, ≥ 3 of its 8 neighbours water) and — V-SW-20, with a dry map — without sea state in at most
+ * `SEA_SPOT_MAX_DRY_SHARE` of the reference run's hours. `nearest` is the cell the rule before V-SW-20 took; only if
+ * the window holds no cell under the limit does it stay. Pure: `fields` = decoded swh fields (NaN = land).
+ */
+export function pickSpotCell(fields, lat, lon, dry = null) {
+  const g = SEA_MODELS.cwam.grid;
+  const water = (i, j) => i >= 0 && j >= 0 && i < g.ni && j < g.nj && !Number.isNaN(fields[0][j * g.ni + i]);
+  const meanHs = (i, j) => fields.reduce((a, f) => a + f[j * g.ni + i], 0) / fields.length;
+  const c = seaCellOf('cwam', lat, lon);
+  let best = null, nearest = null;
+  for (let j = Math.floor(c.j) - 8; j <= Math.ceil(c.j) + 8; j++) for (let i = Math.floor(c.i) - 8; i <= Math.ceil(c.i) + 8; i++) {
+    if (!water(i, j)) continue;
+    let nb = 0;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) if ((di || dj) && water(i + di, j + dj)) nb++;
+    if (nb < 3 || meanHs(i, j) < 0.02) continue;
+    const p = seaCellCentre('cwam', i, j);
+    const d = km(lat, lon, p.lat, p.lon);
+    const share = dry ? dry.share(i, j) : null;
+    if (!nearest || d < nearest.km) nearest = { i, j, km: d, dry: share };
+    if (share != null && share > SEA_SPOT_MAX_DRY_SHARE) continue;
+    if (!best || d < best.km) best = { i, j, km: d, dry: share };
+  }
+  return { best: best ?? nearest, nearest };
+}
+
+/** The reference run of the dry map (V-SW-20): one whole CWAM run at spring tide (new moon 10.10.2026). */
+export const DRY_MAP_FIXTURE = 'scripts/lib/fixtures/sea/cwam-dry-2026101100.json';
+
+export async function buildSpots({ gribDir, shapesCache = null, poiFile, src, dry = null }) {
   const g = SEA_MODELS.cwam.grid;
   const fields = [];
   for (const s of [10, 24, 34, 58]) fields.push(decodeGrib2(new Uint8Array(await decompressBz2(readFileSync(join(gribDir, `CWAM_SWH_2026100700_${String(s).padStart(3, '0')}.grib2.bz2`))))).values);
   const water = (i, j) => i >= 0 && j >= 0 && i < g.ni && j < g.nj && !Number.isNaN(fields[0][j * g.ni + i]);
-  const meanHs = (i, j) => fields.reduce((a, f) => a + f[j * g.ni + i], 0) / fields.length;
   const shapes = await loadShapes(shapesCache);
   const poi = JSON.parse(readFileSync(poiFile, 'utf8')).stations.filter((s) => s.fill.ff >= 0.8 && s.fill.dd >= 0.8 && s.fill.fx >= 0.8);
   const spots = [];
   for (const s of src.spots) {
-    const c = seaCellOf('cwam', s.lat, s.lon);
-    let best = null;
-    for (let j = Math.floor(c.j) - 8; j <= Math.ceil(c.j) + 8; j++) for (let i = Math.floor(c.i) - 8; i <= Math.ceil(c.i) + 8; i++) {
-      if (!water(i, j)) continue;
-      let nb = 0;
-      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) if ((di || dj) && water(i + di, j + dj)) nb++;
-      if (nb < 3 || meanHs(i, j) < 0.02) continue;
-      const p = seaCellCentre('cwam', i, j);
-      const d = km(s.lat, s.lon, p.lat, p.lon);
-      if (!best || d < best.km) best = { i, j, km: d };
-    }
+    const { best, nearest } = pickSpotCell(fields, s.lat, s.lon, dry);
     // Shore normal from the mask within 2.5 km of the spot (V-SW-9: the coastline rule `maskCoastNormal` was measured
     // against the BKG DLM250 coastline and is NOT better at these positions — audit/seewetter.md §13.3).
     const normal = maskVectorNormal(water, g, s.lat, s.lon);
@@ -198,13 +220,13 @@ export async function buildSpots({ gribDir, shapesCache = null, poiFile, src }) 
     spots.push({
       id: s.id, name: s.name, region: s.region, kinds: s.kinds, lat: s.lat, lon: s.lon,
       ...(Number.isFinite(s.normal) ? { normal: s.normal, normalFrom: 'set', normalMask: normal, normalWhy: s.normalWhy } : { normal, normalFrom: 'mask' }),
-      cell: best ? { model: 'cwam', i: best.i, j: best.j, km: +best.km.toFixed(2) } : { model: 'cwam', i: -1, j: -1, km: 99 },
+      cell: best ? { model: 'cwam', i: best.i, j: best.j, km: +best.km.toFixed(2), ...(best.dry != null ? { dry: +best.dry.toFixed(2) } : {}) } : { model: 'cwam', i: -1, j: -1, km: 99 },
       seaArea: sea ? { id: sea.id, name: sea.name } : null,
       coast: coast ? { id: coast.id, name: coast.name } : null,
       wodlCoast: s.region === 'nordsee' ? 'Nordseekueste' : 'Ostseekueste',
       station: st ? { id: st.p.id, name: st.p.name, km: +st.d.toFixed(1), lat: st.p.lat, lon: st.p.lon } : null,
       ...(s.tidal ? { tidal: true } : {}),
-      _how: { sea: sea?.how ?? null, coast: coast?.how ?? null },
+      _how: { sea: sea?.how ?? null, coast: coast?.how ?? null, nearest: nearest && best && (nearest.i !== best.i || nearest.j !== best.j) ? nearest : null },
     });
   }
   const areas = {
@@ -224,13 +246,14 @@ async function main() {
     gribDir: resolve(ROOT, String(args.grib ?? 'scripts/lib/fixtures/sea/cwam-2026100700')),
     shapesCache: typeof args.shapes === 'string' ? resolve(args.shapes) : null,
     poiFile: resolve(ROOT, String(args.poi ?? 'audit/seewetter/spike/poi-probe.json')), src,
+    dry: args.dry === '0' ? null : readDryMap(resolve(ROOT, String(args.dry ?? DRY_MAP_FIXTURE))),
   });
-  for (const s of spots) console.log(`${s.id.padEnd(22)} cell ${String(s.cell.i).padStart(3)}/${String(s.cell.j).padStart(3)} ${s.cell.km.toFixed(2)} km · Ufer ${String(s.normal).padStart(3)}° · ${s.seaArea?.name ?? '–'} (${s._how.sea}) · ${s.coast?.name ?? '–'} (${s._how.coast}) · ${s.station?.name ?? '–'} ${s.station?.km ?? ''} km`);
+  for (const s of spots) console.log(`${s.id.padEnd(22)} cell ${String(s.cell.i).padStart(3)}/${String(s.cell.j).padStart(3)} ${s.cell.km.toFixed(2)} km${s.cell.dry ? ` trocken ${Math.round(s.cell.dry * 100)} %` : ''}${s._how.nearest ? ` (statt ${s._how.nearest.i}/${s._how.nearest.j} ${s._how.nearest.km.toFixed(2)} km, trocken ${Math.round(s._how.nearest.dry * 100)} %)` : ''} · Ufer ${String(s.normal).padStart(3)}° · ${s.seaArea?.name ?? '–'} (${s._how.sea}) · ${s.coast?.name ?? '–'} (${s._how.coast}) · ${s.station?.name ?? '–'} ${s.station?.km ?? ''} km`);
   const problems = spotCatalogProblems(spots);
   console.log(`\n${spots.length} Spots, ${problems.length} Befunde${problems.length ? `: ${problems.join(' | ')}` : ''} (Zelle ≤ ${SEA_SPOT_MAX_CELL_KM} km)`);
   if (typeof args.out === 'string') {
     mkdirSync(args.out, { recursive: true });
-    const doc = { schema: 1, product: 'sea-spots', built: new Date().toISOString(), about: src.about, from: { grib: 'CWAM 2026100700 swh +10/24/34/58 h', poi: 'audit/seewetter/spike/poi-probe.json', shapes: SHAPE_URLS }, spots: spots.map(({ _how, ...s }) => s) };
+    const doc = { schema: 1, product: 'sea-spots', built: new Date().toISOString(), about: src.about, from: { grib: 'CWAM 2026100700 swh +10/24/34/58 h', ...(args.dry === '0' ? {} : { dry: String(args.dry ?? DRY_MAP_FIXTURE).split('/').pop() }), poi: 'audit/seewetter/spike/poi-probe.json', shapes: SHAPE_URLS }, spots: spots.map(({ _how, ...s }) => s) };
     writeFileSync(join(args.out, 'spots.json'), JSON.stringify(doc) + '\n');
     writeFileSync(join(args.out, 'areas.json'), JSON.stringify(areas) + '\n');
     if (args.geo) {

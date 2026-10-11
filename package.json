@@ -36,6 +36,7 @@
     "verify:event-zone": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-event-zone.mjs",
     "verify:route-3d": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-route-3d.mjs",
     "verify:repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-repack.mjs",
+    "verify:repack-publish": "node scripts/verify-repack-publish.mjs",
     "repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/repack-icon-d2.mjs",
     "repack:publish": "node scripts/publish-repack.mjs",
     "seo:logs": "node scripts/seo/parse-crawler-logs.mjs",

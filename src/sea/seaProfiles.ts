@@ -94,11 +94,19 @@ export interface SeaHour {
   t: number;
   windMs: number | null; gustMs: number | null; windDir: number | null;
   hs: number | null; ws: number | null; wsPer: number | null;
+  /**
+   * V-SW-20: the wave model writes no sea state at the spot's cell this hour (`seaNoSeaAt`: the cell has fallen dry
+   * in the model). No profile is classified on such an hour — the height 0 there is not a calm sea.
+   */
+  dry?: boolean;
 }
 export interface SeaVerdict { cls: SeaClass; reasons: string[]; shore: ShoreAngle | null; daylight: boolean }
 
 const kn = (ms: number | null) => (ms == null ? null : ms * MS_TO_KN);
 const f1 = (x: number) => x.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+
+/** V-SW-20: what is missing in an hour without water at the model cell (reason reads "… fehlt"). */
+export const SEA_DRY_MISSING = 'Wasser an der Modellzelle';
 
 /** One hour against one profile. `normal` = the spot's shore normal. Order of reasons: worst first. */
 export function classify(h: SeaHour, limits: SeaLimits, normal: number, lat: number, lon: number): SeaVerdict {
@@ -113,6 +121,7 @@ export function classify(h: SeaHour, limits: SeaLimits, normal: number, lat: num
     if (val > lim) out.push(`${what} über ${fmt(lim)} ${unit}`);
     else if (val > lim * (1 - SEA_TIGHT_SHARE)) tight.push(`${what} ${fmt(val)} ${unit} nahe ${fmt(lim)} ${unit}`);
   };
+  if (h.dry) missing.push(SEA_DRY_MISSING);
   if (needWind && w == null) missing.push('Wind');
   if (w != null && limits.windMin != null) {
     if (w < limits.windMin) out.push(`Wind unter ${limits.windMin} kn`);

@@ -413,6 +413,23 @@ export function sanitizeGust(series: { wind: (number | null)[]; gust: (number | 
   return n;
 }
 
+/**
+ * V-SW-20 — the model's "no sea state" at a cell and hour. CWAM does not write "0 m of waves" there but one fixed
+ * state: Hs ≤ 4·10⁻⁶ m, direction exactly 180°, mean period exactly the placeholder 1.0 s. Measured on run 2026101100,
+ * all 79 steps: every Hs below 1 cm carries that period, the smallest Hs outside the state is 0.0100 m
+ * (`SEA_HS_FLOOR_M`). West of Jutland the number of such cells follows the tide (≈ 800 at high, ≈ 4 400 at low water,
+ * every ≈ 12.4 h) — the cell has fallen dry in the model; in the Baltic 96 % lie within two cells of land.
+ * In a spot series the state is therefore unambiguous: height 0 with the period dropped by the placeholder rule —
+ * shown as "no water at the model cell", never as a wave height of 0.0 m. Works on encoded and on decoded columns.
+ */
+export const SEA_HS_FLOOR_M = 0.01;
+export function seaNoSeaAt(v: { hs: (number | null)[]; tm: (number | null)[] }, i: number): boolean {
+  return v.hs[i] === 0 && v.tm[i] == null;
+}
+/** The same state on raw model values (producer, catalogue builder): the period placeholder at a height below the floor. */
+export const seaNoSeaRaw = (hsM: number, tm10S: number): boolean =>
+  hsM < SEA_HS_FLOOR_M && Math.abs(tm10S - SEA_PLACEHOLDER.perS) < SEA_PLACEHOLDER.eps;
+
 /** The three columns a wind refresh (V-SW-2) replaces. */
 export const SEA_WIND_VARS = Object.freeze(['wind', 'gust', 'windDir'] as const);
 export type SeaWindVar = typeof SEA_WIND_VARS[number];
@@ -463,8 +480,12 @@ export interface SeaSpot {
   /** With `normalFrom: 'set'`: the value computed from the mask, and why the hand value wins. */
   normalMask?: number;
   normalWhy?: string;
-  /** CWAM water cell the series is read from (row from north, column from west) and its distance to the spot. */
-  cell: { model: SeaModel; i: number; j: number; km: number };
+  /**
+   * CWAM water cell the series is read from (row from north, column from west) and its distance to the spot.
+   * `dry` (V-SW-20, catalogues built from 11.10.2026 on): share of the reference run's hours the cell is without
+   * sea state (`static dry map`, 0–1); the builder takes the nearest cell at or below `SEA_SPOT_MAX_DRY_SHARE`.
+   */
+  cell: { model: SeaModel; i: number; j: number; km: number; dry?: number };
   /** FQDL50 sea area (DWD WARNCELLID 4…), FQDL51 coast section (5…), WODL45 coast block. */
   seaArea: { id: string; name: string } | null;
   coast: { id: string; name: string } | null;
@@ -492,6 +513,12 @@ export function spotCatalogProblems(spots: SeaSpot[]): string[] {
 }
 /** A spot farther than this from its water cell is not a spot of this line (catalogue rule). */
 export const SEA_SPOT_MAX_CELL_KM = 3;
+/**
+ * V-SW-20 (`set`): a cell without sea state in more than half of the reference run's hours is more land than sea for a
+ * spot. The dry hours of the run's cells fall into steps (0 · ≈ 18 · ≈ 35 · ≈ 68–76 · all 79 of 79): the limit lies in
+ * the gap between "dry around low water" and "wet only at the highest tides" (audit/seewetter.md §15).
+ */
+export const SEA_SPOT_MAX_DRY_SHARE = 0.5;
 
 /** Centre of CWAM cell (i, j). */
 export function seaCellCentre(model: SeaModel, i: number, j: number): { lat: number; lon: number } {

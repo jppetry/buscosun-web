@@ -9,7 +9,9 @@ import { ResponsiveLine } from '@nivo/line';
 import { MS_TO_KN } from './seaProfiles';
 import { dayShort, hh } from './seaView';
 
-export interface SeaChartHour { t: number; windMs: number | null; gustMs: number | null; hs: number | null; ws: number | null; sw: number | null; daylight: boolean }
+export interface SeaChartHour { t: number; windMs: number | null; gustMs: number | null; hs: number | null; ws: number | null; sw: number | null; daylight: boolean; dry?: boolean }
+/** V-SW-20: hours without sea state at the model cell — a sand strip on the time axis, the lines pause there. */
+export const DRY_COLOUR = '#C9A871';
 interface Ctx { xScale: (v: Date) => number; yScale: (v: number) => number; innerWidth: number; innerHeight: number }
 
 const kn = (ms: number | null) => (ms == null ? null : Math.round(ms * MS_TO_KN * 10) / 10);
@@ -69,9 +71,16 @@ export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readon
 }
 
 export function SeaStateChart({ hours, selMs }: { hours: readonly SeaChartHour[]; selMs: number }) {
-  const pts = (f: (h: SeaChartHour) => number | null) => hours.map((h) => ({ x: new Date(h.t), y: f(h) }));
+  // An hour without sea state is a gap in all three lines (the model's height there is not a wave of 0 m).
+  const pts = (f: (h: SeaChartHour) => number | null) => hours.map((h) => ({ x: new Date(h.t), y: h.dry ? null : f(h) }));
   const maxY = Math.max(1, ...hours.map((h) => h.hs ?? 0)) * 1.15;
-  const c = common(hours, selMs);
+  const Dry = ({ xScale, innerHeight }: Ctx) => (
+    <g>{hours.filter((h) => h.dry).map((h) => {
+      const x0 = Math.max(0, xScale(new Date(h.t - 1_800_000))), x1 = xScale(new Date(h.t + 1_800_000));
+      return <rect key={h.t} x={x0} y={innerHeight - 5} width={Math.max(0, x1 - x0)} height={5} fill={DRY_COLOUR} />;
+    })}</g>
+  );
+  const c = common(hours, selMs, [Dry]);
   return (
     <div className="sw-chart" style={{ height: 96 }} role="img" aria-label="Verlauf Seegang gesamt, Windsee und Dünung in Metern (Modell CWAM)">
       <ResponsiveLine

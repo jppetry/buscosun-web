@@ -14,7 +14,8 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
-import { seaFieldStepAt, seaCompStepAt, type SeaSpot } from './seaContract';
+import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
+import { seaDryRuleFrom } from './seaFlag';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import {
   loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadPoi, loadSpots, loadText, windPointerOf, withWindRefresh,
@@ -27,7 +28,7 @@ import {
 import { SeaVerdictCache } from './seaVerdicts';
 import { SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
-  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
+  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
 import { colourFieldAsync } from './seaFieldClient';
 import SeaMap, { type SeaMapArea, type SeaMapSpot } from './SeaMap';
@@ -159,13 +160,16 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     return {
       t: nowHour + kk * H, windMs: s.wind[i], gustMs: s.gust[i], windDir: s.windDir[i], hs: s.hs[i], dir: s.dir[i], tm: s.tm[i],
       ws: s.ws[i], wsDir: s.wsDir[i], wsPer: s.wsPer[i], wsPeak: s.wsPeak[i], sw: s.sw[i], swDir: s.swDir[i], swPer: s.swPer[i], swPeak: s.swPeak[i],
+      dry: seaNoSeaAt(s, i),
     };
   }, [spotsDoc, firstIdx, nowHour]);
   // V-SW-10: verdicts per spot are computed once per (spots document, limits by content, axis); hour, layer, revier,
   // query, unit and tab reuse the rows (`seaVerdicts.ts`, deep-equal to the uncached reference — verify:sea-derive V).
   const limitsKey = JSON.stringify(limits);
-  const verdicts = useMemo(() => new SeaVerdictCache({ series: usable ? spotsDoc!.series : null, limits, firstIdx, nowHour, nHours }),
-    [usable, spotsDoc, limitsKey, firstIdx, nowHour, nHours]); // eslint-disable-line react-hooks/exhaustive-deps
+  // V-SW-20: hours without water at the model cell are not classified (`?seadry=0` = classes as before).
+  const dryRule = useMemo(() => seaDryRuleFrom(), []);
+  const verdicts = useMemo(() => new SeaVerdictCache({ series: usable ? spotsDoc!.series : null, limits, firstIdx, nowHour, nHours, dryRule }),
+    [usable, spotsDoc, limitsKey, firstIdx, nowHour, nHours, dryRule]); // eslint-disable-line react-hooks/exhaustive-deps
   const verdictAt = useCallback((sp: SeaSpot, kk: number): SeaVerdict => verdicts.at(sp, kk), [verdicts]);
 
   const spotHours = useMemo(() => (spot && usable ? Array.from({ length: nHours }, (_, kk) => hourOf(spot.id, kk)!) : []), [spot, usable, nHours, hourOf]);
@@ -268,14 +272,16 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   }), [spots, revier, usable, hourOf, k, verdictAt]);
   const stations = useMemo(() => (toggles.stations ? [...new Map(spots.filter((s) => s.station).map((s) => [s.station!.id, { id: s.station!.id, name: s.station!.name, lon: s.station!.lon, lat: s.station!.lat }])).values()] : null), [spots, toggles.stations]);
 
-  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight }));
-  const chartHours = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, daylight: spotVerdicts[i].daylight }));
+  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight }));
+  const chartHours = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, dry: h.dry, daylight: spotVerdicts[i].daylight }));
+  const dryHours = spotHours.reduce((a, h) => a + (h.dry ? 1 : 0), 0);
+  const waveShort = (h: SeaReadoutHour) => (h.dry ? DRY_VALUE : `Welle ${f1(h.hs, ' m')}`);
   const lim = limits.gustMax ?? limits.windMax;
   const profLabel = SEA_PROFILE_BY_ID[profile].label;
   const windEngine = spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const runTxt = run ? `CWAM ${run.run.slice(8, 10)} UTC` : '–';
   const liveTone = !runLoad ? 'loading' : noData ? 'none' : freshness === 'stale' ? 'stale' : 'live';
-  const callout = spot && !noData ? { lon: spot.lon, lat: spot.lat, name: spot.name, line: hour ? `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} · Welle ${f1(hour.hs, ' m')} · ${CLASS_SHORT[verdict?.cls ?? 'keine']}` : CLASS_SHORT[verdict?.cls ?? 'keine'], color: verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null } : null;
+  const callout = spot && !noData ? { lon: spot.lon, lat: spot.lat, name: spot.name, line: hour ? `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} · ${waveShort(hour)} · ${CLASS_SHORT[verdict?.cls ?? 'keine']}` : CLASS_SHORT[verdict?.cls ?? 'keine'], color: verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null } : null;
   const padding = isMobile ? { top: 130, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 250, left: 40, right: 230 };
   const fieldNote = fStep != null && fStep !== lead ? ` · Karte zeigt +${fStep} h (${fKind === 'c' ? 'Komponenten' : 'ab 48 h'} dreistündlich)` : '';
 
@@ -322,7 +328,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const readout = (
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
-      run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning} />
+      run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
+      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} />
   );
   const dock = (
     <SeaDock query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
@@ -338,7 +345,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   // --- mobile ----------------------------------------------------------------------------------------------
   if (isMobile) {
     const head = !runLoad ? 'Daten laden …' : noData ? 'Keine Daten' : warning.status === 'unknown' ? 'Erst die amtliche Meldung lesen' : verdict ? CLASS_LABEL[verdict.cls].replace(/^./, (c) => c.toUpperCase()) : '';
-    const lead2 = !hour || noData ? (noData ?? '') : `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} aus ${compass16(hour.windDir)}, Böen ${fmtWind(hour.gustMs, unit)}. Welle ${f1(hour.hs, ' m')}${hour.tm != null ? `, ${f1(hour.tm)} s` : ''}.${verdict?.shore ? ` Wind ${verdict.shore.replace('-', ' ').replace('schraeg', 'schräg')}.` : ''} ${verdict && verdict.cls !== 'passt' ? verdict.reasons[0] : ''}`;
+    const lead2 = !hour || noData ? (noData ?? '') : `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} aus ${compass16(hour.windDir)}, Böen ${fmtWind(hour.gustMs, unit)}. ${hour.dry ? 'Kein Seegang: Modellzelle ohne Wasser' : `Welle ${f1(hour.hs, ' m')}${hour.tm != null ? `, ${f1(hour.tm)} s` : ''}`}.${verdict?.shore ? ` Wind ${verdict.shore.replace('-', ' ').replace('schraeg', 'schräg')}.` : ''} ${verdict && verdict.cls !== 'passt' ? verdict.reasons[0] : ''}`;
     return (
       <div className="sw-root is-mobile">
         <main className="sw-map is-mobile" aria-label="Karte">
