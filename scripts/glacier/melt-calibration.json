@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "kind": "glacier/melt-calibration",
+ "fit": {
+  "pf": 1.2889729508661527,
+  "TF": 0.12,
+  "SRF": 0.005454999707651658,
+  "DDF": 0.16499647859483962,
+  "origin": "measured",
+  "method": "Eichung nach audit/gletscher/gate-c-method-frozen.md + Nachtrag 1: pf aus der Winterbilanz (Normalgleichung), TF/SRF aus der Sommerbilanz (Nelder-Mead), GLAMOS-Bilanzen 2023-2025, Antrieb SwissMetNet/GeoSphere stuendlich",
+  "n": 75,
+  "TFatBound": true
+ },
+ "gate": {
+  "unit": false,
+  "reason": "Gate C nicht bestanden (C-1 Sommerbilanz-MAE 0.63 m w. e. gegen 0,30, C-2 Verhaeltnis zur Basislinie 0.91 gegen 0,90, C-5 Winterbilanz-MAE 0.36 gegen 0,35): nur der Schmelzindex ohne Einheit"
+ },
+ "verdict": {
+  "C-1 Sommerbilanz MAE ≤ 0,30 m w. e. (LYO, LGO)": {
+   "lyo": 0.6266073631021533,
+   "lgo": 0.624969837815307,
+   "pass": false
+  },
+  "C-2 ETI ≤ 0,90 × BL-C (LYO, LGO)": {
+   "lyo": 0.908320980913925,
+   "lgo": 0.9081761251978981,
+   "pass": false
+  },
+  "C-3 |Bias| ≤ 0,15 m w. e. (LYO, LGO)": {
+   "lyo": 0.060506494167512616,
+   "lgo": 0.0775201609757592,
+   "pass": true
+  },
+  "C-4 Hintereisferner 2024/25 |Fehler| ≤ 0,40 m w. e.": {
+   "err": -0.13308751274760652,
+   "pass": true
+  },
+  "C-5 Winterbilanz MAE ≤ 0,35 und besser als ohne Faktor (LYO)": {
+   "mae": 0.36447033100060494,
+   "raw": 0.4496202024589876,
+   "pass": false
+  }
+ },
+ "gateC": "ROT",
+ "report": "audit/gletscher/gate-c-report.json"
+}

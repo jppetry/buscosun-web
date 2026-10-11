@@ -10,7 +10,7 @@
 # Alle 3 h kurz nach den Cube-Läufen: `point/index.json` raw lesen; nur bei einem neuen Lauf der Stufen t2/t3 rechnen, höchstens
 # 4 × täglich (`repeatVerdict`). buscosun Fusion läuft in Node auf dem Cube (`public/climaGrid.json` MUSS im Sparse-Checkout
 # stehen; ohne sie bricht der Job ROT ab statt Nullwerte zu schreiben, Lehre V-SW-18). Veröffentlicht werden
-# `v1/melt/<lauf>.json` (Läufe der letzten 72 h) und `v1/melt/state/<datum>.json`; je Lauf geht eine kleine Reihe der
+# `v1/melt/<lauf>.json` (Läufe der letzten 72 h) und `v1/melt/state.json` (Schneezustand für den nächsten Lauf); je Lauf geht eine kleine Reihe der
 # Leitgletscher auf den Zweig `archive` (nur Hinzufügen).
 # ============================================================================
 
@@ -91,7 +91,8 @@ jobs:
         if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
         run: |
           cd app
-          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs --data=../data/v1 --cube=../cube --out=../out --archive-out=../archive-out | tee ../melt.log
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs --data=../data/v1 --cube=../cube --out=../out --patch=../patch --archive-out=../archive-out | tee ../melt.log
+          # übersprungen (kein neuer Lauf t2/t3, 4 Läufe heute) ⇒ kein Ausgabebaum ⇒ kein Veröffentlichen
           echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
 
       - name: Publish (v1/melt, index, status — never --force)
@@ -102,7 +103,7 @@ jobs:
           git config user.email 'glacier@users.noreply.github.com'
           cd ..
           node app/scripts/glacier/glacier-publish.mjs --repo=data --line=melt --src=out \
-            --index-patch=out/.index-patch.json --status-patch=out/.status-patch.json \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
             --message="glacier(melt): $(date -u +%Y-%m-%dT%H:%MZ)"
 
       - name: Archive (branch archive, add only)

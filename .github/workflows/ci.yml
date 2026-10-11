@@ -155,6 +155,7 @@ jobs:
           npm run verify:glacier-static
           npm run verify:glacier-publish
           npm run verify:glacier-sat
+          npm run verify:glacier-melt
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)
