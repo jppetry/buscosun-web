@@ -2260,6 +2260,59 @@ Temperatur-Anker zum Stundenanfang an 8 von 8 Städten, ohne die Option an 1 von
 4. **Real-Device:** das Stations-Popup (Zeit hinter Temperatur/Wind, wenn sie nicht am Stempel gemessen sind) auf einem Telefon ansehen.
 5. Nichts zu kopieren: V-AF-9 ändert nur den Client; das Daten-Repo bleibt unverändert.
 
+### 62.2a AF-2 — Korridore lückenlos (10.10. spät, gebaut, uncommitted)
+
+Audit §8.6. Der Korridor-Bauer kann jetzt jede Strecke Hauptfahrbahn decken (`--gapless`), die bestehenden 141 Abschnitte bleiben
+dabei unverändert (`--pin`). Ein Kandidat der neuen Datei liegt mit Prüfsumme unter `C:\dev\buscosun-road-publish\2026-10-10-af2\`:
+210 Korridore (69 neue, 614 km), 120 von 121 Autobahn-Nummern, 99,97 % der Achsproben gedeckt oder benannt. **Eingespielt ist nichts**
+— die Seite zeigte an einem Teilstück ohne Messstelle sonst ein leeres Band (AF-5 zuerst).
+
+Was nur du tun kannst:
+
+1. **Commit** dieser Etappe auf dein Wort (`scripts/road/build-corridors.mjs`, `scripts/road/corridor-coverage.mjs`,
+   `scripts/verify-road-contract.mjs`, Audit mit `af2-teilstuecke.md`, diese Datei, `CLAUDE.md`). Kein Push nötig: nichts davon läuft
+   im Browser oder in einem Cron.
+2. **Ansehen und entscheiden:**
+   - **E-AF-10 (offen) — V-AF-22:** die A 98 am Hochrhein (Murg → Albbruck 9,4 km, Tiengen → Lauchringen 5,4 km) ist in OpenStreetMap
+     keine `motorway`, sondern `trunk` mit der Nummer A 98; nach der Regel V-AW-22 entsteht dort kein Teilstück. Empfehlung: in AF-3
+     den OSM-Auszug um solche Strecken erweitern, dann bekommen beide eine Prognose.
+   - **E-AF-11 (offen) — V-AF-24:** 15 Achsproben (7,5 km) bleiben offen — Stummel bis 1,9 km jenseits eines bestehenden Korridor-Endes
+     (A 98 bei Rheinfelden und Stockach, A 485, A 352, A 5, A 13). Schließen hieße, einen Live-Korridor am Ende zu verlängern.
+     Empfehlung: so lassen und nennen (unter der Grenze von 0,5 %).
+   - **E-AF-12 (offen) — V-AF-23:** vier Messstellen liegen an einem bestehenden Abschnitt, der sie nicht führt. Empfehlung: eigener
+     kleiner Schritt nach AF-3.
+3. Nachprüfen kannst du es mit
+   `$env:ROAD_GAPLESS_RAW='C:/dev/buscosun-road-publish/cache'; node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-contract.mjs`
+   (Block N: Vollständigkeit, 141/141 unverändert, Gegenprobe).
+
+### 62.2b AF-5 — Seite für Teilstücke ohne Messstelle (11.10., gebaut, uncommitted)
+
+Audit §8.7. Die Autobahnwetter-Seite zeigt ein Teilstück ohne Messstelle jetzt als das, was es ist: Kopf „keine Messstelle an diesem
+Abschnitt · Prognose ‹Name aus der Laufdatei›“, Band nur mit der Prognose-Zeile, erster Prognosepunkt gewählt, Linie auf der Karte in
+der Prognose-Farbe, Dock-Zeile „nur Prognose“. **Für Besucher ändert sich nichts**, solange die neue Korridor-Datei nicht eingespielt
+ist — die Live-Datei führt kein solches Teilstück. Bilder: `audit/autobahn-fusion12-lueckenlos/af5/`.
+
+Was nur du tun kannst:
+
+1. **Ansehen** (lokal, ohne Daten-Repo): die sieben Bilder im Ordner oben, je `vorher-*` und `nachher-*`.
+2. **Commit** auf dein Wort — AF-2 und AF-5 als zwei Commits (AF-2: `scripts/road/build-corridors.mjs`, `corridor-coverage.mjs`,
+   `verify-road-contract.mjs`, `af2-teilstuecke.md`; AF-5: `src/road/*`, `verify-road-ui.mjs`, `verify-road-fc.mjs`, Fixture
+   `corridors-gap.json`, Bilder; die Doku nach deiner Wahl in einem davon).
+3. **Nach `main`:** der Zweig `af/merge-fusion-12` liegt hinter `main` (Seewetter-Commits). Beim Zusammenführen: in
+   `verify-road-ui.mjs` A4 die Zeile von `main` („12 Werkzeuge“), Budget neu messen (auf diesem Zweig 1 714,8 / 1 715 KB, 0,2 KB Luft
+   — auf `main` wird die Grenze voraussichtlich mit Notiz anzuheben sein). Push = dein Wort (§6 Nr. 2).
+4. **Real-Device** nach dem Push (WebGL-Karte, mobil): sichtbar wird der neue Zustand erst mit der neuen Korridor-Datei; vorher lässt
+   er sich nur lokal mit der Fixture zeigen.
+5. **Entscheiden:**
+   - **E-AF-13 (offen) — V-AF-28:** Ortsnamen im Band überlappen an 32 von 141 Live-Korridoren (zwei Orte am selben km), ebenso an
+     21 von 68 neuen Teilstücken. Bestand, nicht aus AF-5. Empfehlung: eigener kleiner Schritt vor dem Einspielen (ändert
+     Bestandsbilder, deshalb nicht stillschweigend in AF-5).
+   - **E-AF-14 (offen) — Voreinstellung:** ein Teilstück öffnet nach deinem Entwurf auf dem ersten Prognosepunkt (km 0), ein
+     Abschnitt mit Messstellen ohne Messung weiter auf der kältesten Prognose. So gebaut; sag es, wenn beide gleich sein sollen.
+6. Nachprüfen: `npm run build`, dann `npx vite preview --host 127.0.0.1 --port 4318 --strictPort` und
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-ui.mjs --base=http://127.0.0.1:4318`
+   (82/82, ≈ 4 min).
+
 ### 62.3 Rückwege
 
 - `?ancpre=0` — der Motor vor V-AF-10 (eine Messung vor dem Achsenbeginn paart nur binnen 30 min mit dem ersten Schritt).

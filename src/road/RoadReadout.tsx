@@ -18,8 +18,8 @@ import {
   roadFcCompact, roadFcPrecipKind, roadFcPrecipText, roadFcSeries, roadFcTiles, roadFcTrip, roadFcTripText, roadFcValue, roadFcWindText, type RoadFcValue,
 } from './roadFcView';
 import {
-  ROAD_CLASS_COLOR, ROAD_CLASS_INK, ROAD_CLASS_TINT, ageMinText, classBadge, conditionText, corridorRouteText, dec, driverHint,
-  etaRows, f1, hm, isCritical, isHatched, kmIn, shieldText, visText, DEFAULT_SPEED_KMH, DWD_WARNINGS_URL,
+  ROAD_CLASS_COLOR, ROAD_CLASS_INK, ROAD_CLASS_TINT, ROAD_GAP_TEXT, ROAD_GAP_TITLE, ageMinText, classBadge, conditionText, corridorRouteText, dec, driverHint,
+  etaRows, f1, hm, isCritical, isGapCorridor, isHatched, kmIn, shieldText, visText, DEFAULT_SPEED_KMH, DWD_WARNINGS_URL,
 } from './roadView';
 
 const DIR_TEXT: Record<string, string> = { N: 'Fahrtrichtung Nord', S: 'Fahrtrichtung Süd', O: 'Fahrtrichtung Ost', W: 'Fahrtrichtung West', X: 'beide Richtungen' };
@@ -292,7 +292,7 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
       <div className="aw-card aw-station aw-axis">
         <div className="aw-eyebrow is-accent">Prognosepunkt · {roadFcEngineName(file)}</div>
         <h2 className="aw-station-name">{c ? roadFcAxisName(c, a, p.dir) : a.id}</h2>
-        <div className="aw-station-sub">{[a.h != null ? `${Math.round(a.h)} m ü. NN` : null, a.bridge ? 'Brücke' : null, 'keine Messstelle an diesem Punkt'].filter(Boolean).join(' · ')}</div>
+        <div className="aw-station-sub">{[a.h != null ? `${Math.round(a.h)} m ü. NN` : null, a.bridge ? 'Brücke' : null, c && isGapCorridor(c) ? ROAD_GAP_TEXT : 'keine Messstelle an diesem Punkt'].filter(Boolean).join(' · ')}</div>
         <div className="aw-chip is-fc"><i />{p.fcLabel}{v ? ` · gültig ${hm(v.validMs)}` : ''}</div>
         <div className="aw-hero">
           <div>
@@ -339,8 +339,19 @@ export default function RoadReadout(p: Props) {
   );
 }
 
+/** AF-5: a section without a measuring station and without a usable forecast — what is missing, and why. */
+function GapEmpty({ p }: { p: Props }) {
+  return (
+    <div className="aw-empty">
+      <strong>{ROAD_GAP_TITLE}.</strong> Fahrbahntemperatur und -zustand werden hier nicht gemessen.{' '}
+      {p.fcFile ? 'Einen Prognosepunkt im Streckenband oder auf der Karte wählen.' : `Die Wetterprognose von ${roadFcEngineName(null)} ist für diesen Abschnitt derzeit nicht verfügbar (${p.fcLabel}).`}
+    </div>
+  );
+}
+
 function StationTab(p: Props) {
   if (p.axis) return <AxisTab {...p} axis={p.axis} />;
+  if (p.corridor && isGapCorridor(p.corridor) && !p.point) return <GapEmpty p={p} />;
   if (p.noData) return <div className="aw-empty"><strong>Derzeit keine Messdaten.</strong> {p.noData}</div>;
   const s = p.point;
   if (!s) return <div className="aw-empty">Eine Messstelle auf der Karte oder im Streckenband wählen.</div>;
@@ -431,6 +442,9 @@ function StationTab(p: Props) {
 function StreckeTab(p: Props) {
   const c = p.corridor;
   const file = p.fcFile;
+  // AF-5: a section without a measuring station — the table carries forecast points only.
+  const gap = !!c && isGapCorridor(c);
+  if (gap && !file) return <GapEmpty p={p} />;
   if (p.noData && !file) return <div className="aw-empty"><strong>Derzeit keine Messdaten.</strong> {p.noData}</div>;
   if (!c || (p.slotMs == null && !file)) return <div className="aw-empty">Eine Autobahn im Dock wählen.</div>;
   const slot15 = Math.ceil(p.nowMs / 900_000) * 900_000;
@@ -466,8 +480,8 @@ function StreckeTab(p: Props) {
           <span className="aw-count">Ø {DEFAULT_SPEED_KMH} km/h</span>
         </div>
         <div className="aw-brief">
-          {coldest ? `Kälteste Messung: ${coldest.name} ${f1(coldest.point!.rs as number)} °C (${hm(coldest.point!.t)}). ` : 'Keine gültige Fahrbahnmessung auf diesem Abschnitt. '}
-          {p.noData ? '' : `${crit} von ${nStations} Messpunkten mit Glätte oder Frostgefahr gemessen.`}
+          {gap ? `${ROAD_GAP_TITLE}: Fahrbahntemperatur und -zustand werden hier nicht gemessen.` : coldest ? `Kälteste Messung: ${coldest.name} ${f1(coldest.point!.rs as number)} °C (${hm(coldest.point!.t)}). ` : 'Keine gültige Fahrbahnmessung auf diesem Abschnitt. '}
+          {gap || p.noData ? '' : `${crit} von ${nStations} Messpunkten mit Glätte oder Frostgefahr gemessen.`}
           {border ? ` Ab km ${dec(kmIn(c, border.km, p.dir), 0)} (Grenze ${border.country}) keine offene Fahrbahnmessung.` : ''}
           {(c.unbuilt ?? []).map(([a, b]) => ` km ${dec(Math.min(kmIn(c, a, p.dir), kmIn(c, b, p.dir)), 0)}–${dec(Math.max(kmIn(c, a, p.dir), kmIn(c, b, p.dir)), 0)}: keine Fahrbahn in OpenStreetMap (im Bau oder anders geführt).`).join('')}
           {trip.coldest && <span className="aw-brief-fc"> {roadFcTripText(trip)}</span>}
@@ -475,7 +489,7 @@ function StreckeTab(p: Props) {
       </div>
       {/* V-AW-29: from 1 440 px the arrival forecast has its own column (`.aw-table-fc`), below it stays a line under the name. */}
       <div className="aw-card aw-table has-fc-col">
-        <div className="aw-table-head"><span>km</span><span>Messpunkt</span><span className="aw-table-fc">Luft zur Ankunft</span><span>an</span><span>Zustand</span></div>
+        <div className="aw-table-head"><span>km</span><span>{gap ? 'Prognosepunkt' : 'Messpunkt'}</span><span className="aw-table-fc">Luft zur Ankunft</span><span>an</span><span>{gap ? 'Art' : 'Zustand'}</span></div>
         {rows.map((r) => {
           const cls = r.point?.cls ?? 'nodata';
           const hatched = isHatched(cls);
@@ -485,7 +499,7 @@ function StreckeTab(p: Props) {
               <span className="aw-table-name"><strong>{r.name}</strong><em className="is-fc">{r.fc ? roadFcLine(r.fc) : 'keine Prognose für die Ankunftsstunde'}</em></span>
               <FcCell v={r.fc} />
               <span>{hm(r.etaMs)}</span>
-              <span className="aw-table-chip is-fc" title={`Keine Messstelle im 10-km-Umkreis — Wetterprognose von ${roadFcEngineName(file)}, keine Fahrbahnprognose`}>Prognose</span>
+              <span className="aw-table-chip is-fc" title={`${gap ? ROAD_GAP_TITLE : 'Keine Messstelle im 10-km-Umkreis'} — Wetterprognose von ${roadFcEngineName(file)}, keine Fahrbahnprognose`}>Prognose</span>
             </button>
           );
           return (
@@ -506,7 +520,9 @@ function StreckeTab(p: Props) {
           );
         })}
       </div>
-      <p className="aw-note">Zustand zur Ankunftszeit: bis +30 min die Messung; später zeigt die Tabelle weiter die Messung (umrandet) und dazu das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag{file ? ` · ${p.fcLabel}` : ' — derzeit nicht verfügbar'}). Eine Prognose der Fahrbahn folgt erst nach dem Backtest. Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>
+      {gap ? (
+        <p className="aw-note">An diesem Abschnitt steht keine Messstelle: die Tabelle zeigt das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag · {p.fcLabel}) an jedem Prognosepunkt. Eine Prognose der Fahrbahn folgt erst nach dem Backtest.</p>
+      ) : <p className="aw-note">Zustand zur Ankunftszeit: bis +30 min die Messung; später zeigt die Tabelle weiter die Messung (umrandet) und dazu das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag{file ? ` · ${p.fcLabel}` : ' — derzeit nicht verfügbar'}). Eine Prognose der Fahrbahn folgt erst nach dem Backtest. Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>}
     </>
   );
 }

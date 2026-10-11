@@ -7,7 +7,7 @@ import { useState } from 'react';
 import type { RoadPoint } from './roadContract';
 import type { RoadCorridor } from './roadClient';
 import type { RoadMapLayers } from './RoadMap';
-import { ROAD_CLASS_COLOR, ROAD_DOCK_FOLD_BELOW, corridorStatus, corridorTitle, dockEntries, isHatched, shieldText, type RoadSlotSummary } from './roadView';
+import { ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorStatus, corridorTitle, dockEntries, dockFoldLabel, isGapCorridor, isHatched, type RoadSlotSummary } from './roadView';
 
 export type RoadCountry = 'alle' | 'DE' | 'AT' | 'CH';
 
@@ -72,18 +72,19 @@ export default function RoadDock(p: Props) {
       <div className="aw-dock-list">
         {entries.map((e) => {
           if (e.kind === 'fold') {
-            const n = e.hidden.length;
             return (
               <button key={`fold-${e.road}`} type="button" className={`aw-road-more${e.open ? ' is-open' : ''}`} aria-expanded={e.open}
                 onClick={() => setOpen((s) => { const x = new Set(s); if (x.has(e.road)) x.delete(e.road); else x.add(e.road); return x; })}
                 title={e.hidden.map((c) => corridorTitle(c)).join(' · ')}>
-                {e.open ? `${shieldText(e.road)}: kurze Abschnitte einklappen` : `${shieldText(e.road)}: ${n} ${n === 1 ? 'kurzer Abschnitt' : 'kurze Abschnitte'} mit weniger als ${ROAD_DOCK_FOLD_BELOW} Messpunkten`}
+                {dockFoldLabel(e.road, e.hidden, e.open)}
               </button>
             );
           }
           const c = e.corridor;
           const st = corridorStatus(c, p.byId);
           const on = c.id === p.selectedId;
+          // AF-5: a section without a measuring station — no count of measurements, no class dot (D-04).
+          const gap = isGapCorridor(c);
           const parts = [`${st.measured} gemessen`];
           if (st.critical) parts.push(`${st.critical} kritisch`);
           if (st.unknown) parts.push(`${st.unknown} ohne Zustand`);
@@ -93,9 +94,11 @@ export default function RoadDock(p: Props) {
               <span className="aw-road-shields">{c.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
               <span className="aw-road-body">
                 <span className="aw-road-title">{corridorTitle(c)}</span>
-                <span className="aw-road-sub">{p.hasData ? parts.join(' · ') : p.loading?.obs ? 'Messung lädt …' : 'keine Messdaten'}</span>
+                <span className="aw-road-sub">{gap ? `${ROAD_GAP_SHORT} · keine Messstelle` : p.hasData ? parts.join(' · ') : p.loading?.obs ? 'Messung lädt …' : 'keine Messdaten'}</span>
               </span>
-              <span className={`aw-road-dot${isHatched(st.worst) || !p.hasData ? ' is-hatched' : ''}`} style={!isHatched(st.worst) && p.hasData ? { background: ROAD_CLASS_COLOR[st.worst] } : undefined} aria-hidden="true" />
+              {gap
+                ? <span className="aw-road-dot is-fc" aria-hidden="true" />
+                : <span className={`aw-road-dot${isHatched(st.worst) || !p.hasData ? ' is-hatched' : ''}`} style={!isHatched(st.worst) && p.hasData ? { background: ROAD_CLASS_COLOR[st.worst] } : undefined} aria-hidden="true" />}
             </button>
           );
         })}

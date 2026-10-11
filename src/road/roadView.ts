@@ -43,8 +43,8 @@ export function ageMinText(ms: number): string {
   const h = Math.floor(m / 60);
   return `vor ${h} h ${m % 60} min`;
 }
-/** `A8` → `A 8` (shield text). */
-export const shieldText = (road: string) => road.replace(/^([A-Z])(\d)/, '$1 $2');
+/** `A8` → `A 8` (shield text); the one motorway with a letter is written „A 64a" (V-AF-26), other roads keep theirs („B 2R"). */
+export const shieldText = (road: string) => road.replace(/^([A-Z])(\d)/, '$1 $2').replace(/^(A \d+)([A-Z])$/, (_, a: string, l: string) => a + l.toLowerCase());
 
 // --- slot / freshness ----------------------------------------------------------------------------
 
@@ -169,6 +169,34 @@ export function corridorHeading(c: RoadCorridor, dir: 0 | 1): string {
  */
 export const ROAD_DOCK_FOLD_BELOW = 3;
 export const isFoldedSection = (c: Pick<RoadCorridor, 'id' | 'stations'>) => /-\d+$/.test(c.id) && c.stations.length < ROAD_DOCK_FOLD_BELOW;
+
+// --- sections without a measuring station (phase AF-5) ---------------------------------------------
+
+/**
+ * AF-5 (`audit/autobahn-fusion12-lueckenlos.md` §8.7): a section no road weather station stands on. Phase AF-2 builds
+ * them so that every motorway is covered and marks them `gap: true` in the corridors file — which says the same as an
+ * empty station list. Such a section has no measurement of its own, only the weather forecast at its axis points;
+ * nothing on the page may read like a measured state there (D-04: no data is not "dry").
+ */
+export const isGapCorridor = (c: Pick<RoadCorridor, 'stations'>) => c.stations.length === 0;
+export const ROAD_GAP_TEXT = 'keine Messstelle an diesem Abschnitt';
+export const ROAD_GAP_TITLE = 'Keine Messstelle an diesem Abschnitt';
+export const ROAD_GAP_SHORT = 'nur Prognose';
+/** Head of such a section: the engine's name as the RUN FILE states it; without a usable run the reason instead of a name. */
+export const roadGapHead = (engineName: string | null, fcLabel: string) => `${ROAD_GAP_TEXT} · ${engineName ? `Prognose ${engineName}` : `Prognose: ${fcLabel}`}`;
+
+/**
+ * Text of the dock's fold row of a motorway (V-AW-9): short measured sections and sections without a station are
+ * counted apart — a section without a station is not a "short section with fewer than 3 measuring points".
+ */
+export function dockFoldLabel(road: string, hidden: ReadonlyArray<Pick<RoadCorridor, 'stations'>>, open: boolean): string {
+  const gap = hidden.filter(isGapCorridor).length, short = hidden.length - gap;
+  if (open) return `${shieldText(road)}: ${short && gap ? 'kurze Abschnitte und Teilstücke' : gap ? 'Teilstücke ohne Messstelle' : 'kurze Abschnitte'} einklappen`;
+  const parts: string[] = [];
+  if (short) parts.push(`${short} ${short === 1 ? 'kurzer Abschnitt' : 'kurze Abschnitte'} mit weniger als ${ROAD_DOCK_FOLD_BELOW} Messpunkten`);
+  if (gap) parts.push(`${gap} ${gap === 1 ? 'Teilstück' : 'Teilstücke'} ohne Messstelle (${ROAD_GAP_SHORT})`);
+  return `${shieldText(road)}: ${parts.join(' · ')}`;
+}
 
 export interface DockEntry { kind: 'corridor'; corridor: RoadCorridor }
 export interface DockFoldEntry { kind: 'fold'; road: string; hidden: RoadCorridor[]; open: boolean }

@@ -746,10 +746,10 @@ if (typeof flags.data === 'string') {
   const thin = thinRun([parsed]);
   const roadWords = new RegExp(Object.values(ROAD_CLASS_LABEL).flatMap((l) => [l.label, l.short]).filter((w) => w && w.length > 3).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + '|Glätte|Glatteis|überfrier', 'i');
   const texts = [V.roadFcAnchorText(parsed.points.find((p) => p.id === 'S900'), parsed), V.roadFcAnchorText(allPts['a99@0'], { engine: all.entry.engine }), V.roadFcAnchorText(parsed.points.find((p) => p.id === 'a99@0'), parsed), V.roadFcAnchorText(stPts.S900, { engine: { ...eng, anchor: 'none' } }), V.roadFcAnchorText(null, null)];
-  add('J10 Leser, Archiv und Text: die Client-Prüfung behält anc, das Archiv legt es zur Station ab, der Text nennt eigene Messung mit Uhrzeit und Versatz / Messstellen im Umkreis mit Gewicht / „ohne Messungs-Anker" — kein Wort der Fahrbahnklassen',
+  add('J10 Leser, Archiv und Text: die Client-Prüfung behält anc, das Archiv legt es zur Station ab, der Text nennt eigene Messung mit Uhrzeit und Versatz / Messstellen im Umkreis mit Gewicht / „ohne Messungs-Anker" nur, wo die Laufdatei es so sagt (ohne Datei kein Anker-Zustand, AF-5) — kein Wort der Fahrbahnklassen',
     parsed.dropped === 0 && eq(parsed.points.find((p) => p.id === 'S900').anc, stPts.S900.anc) && eq(thin.stations.S900.anc, stPts.S900.anc) && thin.engine.anchor === 'swis'
     && /eigenen|dieser Messstelle/.test(texts[0]) && texts[0].includes(`Messung − Modell +${(stPts.S900.anc[0] / 10).toFixed(1).replace('.', ',')} K`) && /\d{2}:\d{2}/.test(texts[0]) && /im Umkreis/.test(texts[1]) && /Gewicht \d+ %/.test(texts[1])
-    && texts[2] === 'ohne Messungs-Anker' && texts[3] === 'ohne Messungs-Anker' && texts[4] === 'ohne Messungs-Anker' && texts.every((t) => !roadWords.test(t)), texts[0]);
+    && texts[2] === 'ohne Messungs-Anker' && texts[3] === 'ohne Messungs-Anker' && texts[4] === 'Messungs-Anker je nach Lauf' && texts.every((t) => !roadWords.test(t)), texts[0]);
   add('J11 Schalter des Vertrags ist einer der drei Modi und der Producer kennt ihn als Voreinstellung', ['none', 'stations', 'all'].includes(ROAD_FC_ANCHOR_MODE), ROAD_FC_ANCHOR_MODE);
 
   // E-AW-30 (Jan, 06.10.2026): the station points are anchored by default.

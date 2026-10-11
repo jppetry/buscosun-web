@@ -161,6 +161,8 @@ export interface RoadCorridor {
   unbuilt?: Array<[number, number]>;
   /** V-AW-16: a spur of the motorway carrying a station of its own, numbered after the regular sections. */
   spur?: boolean;
+  /** AF-2: a section without a measuring station (`stations` is empty) — forecast points only (`isGapCorridor`, AF-5). */
+  gap?: boolean;
 }
 
 export interface RoadCorridorsFile {

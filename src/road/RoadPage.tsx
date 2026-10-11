@@ -9,6 +9,9 @@
  * read per corridor through `loadRoadFc`): forecast row of the band, dots on the map, tiles, chart and arrival rows of
  * the readout. Map markers, band bar and road classes stay the MEASUREMENT of the slot at every chip; the road surface
  * has no forecast before Gate D (AW-6.2).
+ * AF-5: a section without a measuring station (`isGapCorridor`, built by phase AF-2 so that every motorway is covered)
+ * shows the forecast only — head „keine Messstelle an diesem Abschnitt · Prognose ‹name of the run file›", the band's
+ * forecast row in the bar's place, the first forecast point as the default, its line on the map in the forecast colour.
  * `roadDeck.css` is imported only here (lazy chunk), tokens `--aw-*` live in `designTokens.css`.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -23,7 +26,7 @@ import { ROAD_CLASS_LABEL } from './roadClasses';
 import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadFcStationLoad, type RoadSlotLoad } from './roadClient';
 import type { RoadFcPoint } from './roadFc';
 import {
-  ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, defaultRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
+  ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_LINE_COLOR, defaultRoadFcAxis, firstRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
   roadFcEngineName, roadFcRunView, roadFcValue,
 } from './roadFcView';
 import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from './RoadMap';
@@ -32,7 +35,7 @@ import RoadBand from './RoadBand';
 import RoadReadout from './RoadReadout';
 import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import {
-  ROAD_CLASS_COLOR, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isHatched, isRoadWarning, kmIn, roadNumber,
+  ROAD_CLASS_COLOR, ROAD_GAP_SHORT, ROAD_GAP_TITLE, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, kmIn, roadGapHead, roadNumber,
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS, DEFAULT_SPEED_KMH,
 } from './roadView';
 import './roadDeck.css';
@@ -133,6 +136,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
 
   const corridor = useMemo(() => corridors?.find((c) => c.id === corridorId) ?? corridors?.find((c) => c.id === DEFAULT_CORRIDOR) ?? corridors?.[0] ?? null, [corridors, corridorId]);
   const inCorridor = useMemo(() => new Set(corridor?.stations.map((s) => s.id) ?? []), [corridor]);
+  // AF-5: a section without a measuring station — the page shows its forecast only.
+  const gap = corridor ? isGapCorridor(corridor) : false;
   const mapPoints = useMemo(() => shownPoints.filter((p) => p.kind === 'A' || layers.bl || inCorridor.has(p.id)), [shownPoints, layers.bl, inCorridor]);
 
   // Route forecast of the corridor (AW-6.1b): pointer + one immutable file; a failed refresh keeps the shown run.
@@ -171,9 +176,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
     if (!fcFile) return null;
     if (isRoadFcAxisId(stId)) return fcById.get(stId) ?? null;
     if (stId && shownById.get(stId)) return null;
-    return defaultPoint ? null : defaultRoadFcAxis(fcFile, fcMs);
+    // AF-5: a section without a station opens on its first forecast point (a fixed place, not a value).
+    return defaultPoint ? null : gap ? firstRoadFcAxis(fcFile) : defaultRoadFcAxis(fcFile, fcMs);
     // The default must not jump with the clock: only file and selection decide.
-  }, [fcFile, fcById, stId, shownById, defaultPoint]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fcFile, fcById, stId, shownById, defaultPoint, gap]); // eslint-disable-line react-hooks/exhaustive-deps
   const point: RoadPoint | null = axis ? null : stId && shownById.get(stId) ? shownById.get(stId)! : defaultPoint;
 
   // V-AW-26: a selected station outside the open corridor's file (federal/state road, or another corridor) gets its
@@ -258,7 +264,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   }, [corridors, corridorId]);
 
   const filtered = useMemo(() => searchCorridors(corridors ?? [], shownById, query), [corridors, shownById, query]);
-  const standLabel = obs && !noData ? `Messung ${hm(obs.slotMs)}${freshness === 'stale' ? ' · veraltet' : ''}` : 'keine Messdaten';
+  const standLabel = gap ? roadGapHead(fcFile ? roadFcEngineName(fcFile) : null, fcLabel)
+    : obs && !noData ? `Messung ${hm(obs.slotMs)}${freshness === 'stale' ? ' · veraltet' : ''}` : 'keine Messdaten';
   const liveTone = noData || !obs ? 'none' : freshness === 'live' ? 'live' : 'stale';
   // M5 (D-9): before the first answer the page is loading, not without data.
   const loadingObs = !load;
@@ -273,7 +280,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
       <span className="aw-pill-shields">{corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
       <span className="aw-pill-body">
         <span className="aw-pill-title">{corridorRouteText(corridor, dir)}</span>
-        <span className="aw-pill-sub">{corridorHeading(corridor, dir)} · {corridor.countries.join(' · ')}{isMobile ? ` · ${corridor.stations.length} Messpunkte` : ''}</span>
+        <span className="aw-pill-sub">{corridorHeading(corridor, dir)} · {corridor.countries.join(' · ')}{gap ? ` · ${ROAD_GAP_SHORT}` : isMobile ? ` · ${corridor.stations.length} Messpunkte` : ''}</span>
       </span>
       <button type="button" className="aw-icon-btn" aria-label="Fahrtrichtung wechseln" onClick={() => setDir((d) => (d ? 0 : 1))}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4" /></svg>
@@ -286,8 +293,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
         const enabled = h === 0 || (ROAD_FORECAST_ENABLED && !!fcFile);
         return (
           <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTime(h)}
-            title={enabled ? (h === 0 ? undefined : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel}) — Karte und Band zeigen weiter die Messung`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
-            {h === 0 ? `Jetzt${obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
+            title={enabled ? (h === 0 ? undefined : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel})${gap ? '' : ' — Karte und Band zeigen weiter die Messung'}`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
+            {h === 0 ? `Jetzt${!gap && obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
           </button>
         );
       })}
@@ -299,6 +306,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
       {(['ice', 'frost', 'wet', 'dry'] as const).map((c) => <span key={c}><i style={{ background: ROAD_CLASS_COLOR[c] }} />{ROAD_CLASS_LABEL[c].label}</span>)}
       {/* Hatched = `unknown` (temperature, no condition) AND `nodata` — never "dry" (D-04). */}
       <span><i className="is-hatched" />Zustand unbekannt / keine Messung</span>
+      {gap && <span><i className="is-fc-line" style={{ background: ROAD_FC_LINE_COLOR }} />Abschnitt ohne Messstelle · {ROAD_GAP_SHORT}</span>}
       {layers.rain && (
         <>
           <span className="aw-eyebrow aw-legend-fc">Niederschlag jetzt</span>
@@ -355,12 +363,15 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
     const nCrit = rows.filter((r) => isCritical(r.p.cls)).length;
     const slot15 = Math.ceil(nowMs / 900_000) * 900_000;
     const list = (critical.length ? critical : rows.slice(0, 3));
+    // AF-5: on a section without a measuring station the sheet lists forecast points (the three with the coldest air, by km).
+    const axisAll = gap && fcFile && corridor ? roadFcAxisPoints(fcFile).map((a) => ({ a, km: kmIn(corridor, a.km as number, dir), v: roadFcValue(a, fcFile, fcMs) })) : [];
+    const axisList = axisAll.slice().sort((x, y) => (x.v?.t ?? 99) - (y.v?.t ?? 99)).slice(0, 3).sort((x, y) => x.km - y.km);
     const mPill = corridor && ends && (
       <button type="button" className="aw-pill is-button" aria-haspopup="dialog" aria-expanded={picker} onClick={() => setPicker(true)}>
         <span className="aw-pill-shields">{corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
         <span className="aw-pill-body">
           <span className="aw-pill-title">{corridorRouteText(corridor, dir)}</span>
-          <span className="aw-pill-sub">{corridorHeading(corridor, dir)} · {corridor.stations.length} Messpunkte</span>
+          <span className="aw-pill-sub">{corridorHeading(corridor, dir)} · {gap ? ROAD_GAP_SHORT : `${corridor.stations.length} Messpunkte`}</span>
         </span>
         <svg className="aw-pill-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
@@ -380,10 +391,30 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
             <span className="aw-eyebrow is-accent">Strecken-Briefing</span>
             <span className={`aw-eyebrow is-${liveTone}`}>{liveTone === 'live' ? `Live · ${hm(obs!.slotMs)}` : liveTone === 'stale' ? `veraltet · ${hm(obs!.slotMs)}` : loadingObs ? 'Messung lädt …' : 'keine Messdaten'}</span>
           </div>
-          <h2 className="aw-sheet-title">{loadingObs ? 'Messung lädt …' : noData ? 'Derzeit keine Messdaten' : coldest ? `Kälteste Stelle: ${coldest.p.n} ${f1(coldest.p.rs as number)} °C` : 'Keine gültige Fahrbahnmessung'}</h2>
-          <p className="aw-sheet-lead">{loadingObs ? 'Die jüngste Messung der DWD-Glättemeldeanlagen wird geladen.' : noData ?? `${nCrit} von ${rows.length} DWD-Anlagen mit Glätte oder Frostgefahr gemessen${corridor?.borders.length ? '; ab der Grenze keine offene Fahrbahnmessung' : ''}.`}</p>
-          {corridor && <MiniBand corridor={corridor} byId={shownById} dir={dir} fc={fcCells} fcLabel={fcBandLabel} />}
-          {corridor && !noData && (
+          <h2 className="aw-sheet-title">{gap ? ROAD_GAP_TITLE : loadingObs ? 'Messung lädt …' : noData ? 'Derzeit keine Messdaten' : coldest ? `Kälteste Stelle: ${coldest.p.n} ${f1(coldest.p.rs as number)} °C` : 'Keine gültige Fahrbahnmessung'}</h2>
+          <p className="aw-sheet-lead">{gap
+            ? (fcFile ? `Wetterprognose von ${roadFcEngineName(fcFile)} an ${axisAll.length} ${axisAll.length === 1 ? 'Punkt' : 'Punkten'} (${fcRun.label}): Luft, Niederschlag, Wind — keine Fahrbahnmessung, keine Prognose der Fahrbahn.` : `Die Fahrbahn wird hier nicht gemessen; die Wetterprognose ist derzeit nicht verfügbar (${fcLabel}).`)
+            : loadingObs ? 'Die jüngste Messung der DWD-Glättemeldeanlagen wird geladen.' : noData ?? `${nCrit} von ${rows.length} DWD-Anlagen mit Glätte oder Frostgefahr gemessen${corridor?.borders.length ? '; ab der Grenze keine offene Fahrbahnmessung' : ''}.`}</p>
+          {corridor && <MiniBand corridor={corridor} byId={shownById} dir={dir} fc={fcCells} fcLabel={fcBandLabel} gap={gap} />}
+          {corridor && gap && fcFile && (
+            <>
+              <div className="aw-sheet-list">
+                {axisList.map(({ a, km, v }) => (
+                  <button key={a.id} type="button" className="aw-sheet-row" onClick={() => { pickStation(a.id); setTab('station'); }}>
+                    <i className={v ? '' : 'is-hatched'} style={v ? { background: ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] } : undefined} />
+                    <span><strong>{roadFcAxisName(corridor, a, dir)}</strong><em>{v ? `Prognose ${roadFcLine(v)}` : 'keine Prognose für diese Stunde'}</em></span>
+                    <span className="aw-sheet-eta" title={`Ankunft bei Abfahrt jetzt am Anfang der Strecke, Ø ${DEFAULT_SPEED_KMH} km/h`}><em>an · Ø {DEFAULT_SPEED_KMH}</em><strong>{hm(slot15 + (km / DEFAULT_SPEED_KMH) * 3_600_000)}</strong></span>
+                  </button>
+                ))}
+              </div>
+              <div className="aw-sheet-actions">
+                <button type="button" className="aw-btn is-primary" onClick={() => { setTab('strecke'); setSheet('open'); }}>Alle {axisAll.length} Prognosepunkte</button>
+                <button type="button" className="aw-btn is-auto" onClick={() => { setTab('strecke'); setSheet('open'); }}>Abfahrt {hm(slot15 + departMin * 60_000)} · Ø {DEFAULT_SPEED_KMH} km/h</button>
+              </div>
+            </>
+          )}
+          {corridor && gap && sheet === 'open' && <div className="aw-sheet-readout">{readout}</div>}
+          {corridor && !gap && !noData && (
             <>
               <div className="aw-sheet-list">
                 {list.map(({ s, p }) => (
@@ -453,7 +484,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
               </div>
             </div>
             {emptyMap}{corrFail}
-            {corridor && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} />}
+            {corridor && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
           </main>
           {readout}
         </div>
@@ -465,22 +496,23 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
 const EMPTY_BY_ID: ReadonlyMap<string, RoadPoint> = new Map();
 
 /** Mobile mini band (design: 10 px, towns underneath). */
-function MiniBand({ corridor, byId, dir, fc, fcLabel }: { corridor: RoadCorridor; byId: ReadonlyMap<string, RoadPoint>; dir: 0 | 1; fc: ReturnType<typeof roadFcBand> | null; fcLabel: string }) {
+function MiniBand({ corridor, byId, dir, fc, fcLabel, gap = false }: { corridor: RoadCorridor; byId: ReadonlyMap<string, RoadPoint>; dir: 0 | 1; fc: ReturnType<typeof roadFcBand> | null; fcLabel: string; gap?: boolean }) {
   const segs = bandSegments(corridor, byId, dir);
   const len = corridor.lengthKm;
   const towns = corridor.towns.map(([km, n]) => [kmIn(corridor, km, dir), n] as const).sort((a, b) => a[0] - b[0]);
   const pick = [towns[0], towns[Math.floor(towns.length / 2)], towns[towns.length - 1]].filter((t, i, a) => !!t && a.indexOf(t) === i);
   return (
     <>
-      <div className="aw-miniband" aria-hidden="true">
+      {/* AF-5: no measured bar on a section without a measuring station — the forecast row is the band. */}
+      {!gap && <div className="aw-miniband" aria-hidden="true">
         {segs.map((g, i) => (
           <div key={i} className={`aw-band-seg${g.cls === 'gap' || isHatched(g.cls) ? ' is-gap' : ''}`}
             style={{ left: `${(g.fromKm / len) * 100}%`, width: `${((g.toKm - g.fromKm) / len) * 100}%`, ...(g.cls !== 'gap' && !isHatched(g.cls) ? { background: ROAD_CLASS_COLOR[g.cls] } : {}) }} />
         ))}
         {corridor.borders.map((b) => <div key={b.km} className="aw-miniband-border" style={{ left: `${(kmIn(corridor, b.km, dir) / len) * 100}%` }} />)}
-      </div>
+      </div>}
       {fc && (
-        <div className="aw-miniband is-fc" role="img" aria-label={fcLabel} title={fcLabel}>
+        <div className={`aw-miniband is-fc${gap ? ' is-only' : ''}`} role="img" aria-label={fcLabel} title={fcLabel}>
           {fc.filter((g) => g.cls !== 'gap').map((g) => (
             <div key={g.id} className="aw-band-seg" style={{ left: `${(g.fromKm / len) * 100}%`, width: `${((g.toKm - g.fromKm) / len) * 100}%`, background: ROAD_FC_AIR_COLOR[g.cls as 'frost' | 'near' | 'above'] }} />
           ))}

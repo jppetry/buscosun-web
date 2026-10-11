@@ -5,7 +5,9 @@
  * Marker language (design `reference/autobahnwetter-desktop.dc.html`): filled dot = DWD road measurement, hatched =
  * no valid measurement / unknown state (never like "dry", D-04), selected = larger with a light ring. Ring markers for
  * AT/CH forecast points come with AW-6. Small plain dots on the selected corridor = forecast points of the weather
- * forecast (AW-6.1b, air temperature class — other colours than the measured road classes). No WebGL of our own:
+ * forecast (AW-6.1b, air temperature class — other colours than the measured road classes). AF-5: a selected section
+ * without a measuring station is drawn in the forecast colour instead of the corridor sand — never in a road class
+ * (D-04). No WebGL of our own:
  * plain GeoJSON layers and canvas-drawn icons. V-AW-14: the layer „Niederschlag jetzt" is the Wetterkarte's own
  * `RainLayer` (projection-exact DE1200 warp mesh) with the newest RV analysis of the radar mirror — loaded only when the
  * dock switch is on (off by default), refreshed every 5 min, drawn under the basemap's place names and our layers.
@@ -16,7 +18,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { RoadPoint } from './roadContract';
 import type { RoadClass } from './roadClasses';
 import type { RoadCorridor } from './roadClient';
-import { ROAD_CLASS_COLOR, f1 } from './roadView';
+import { ROAD_CLASS_COLOR, f1, isGapCorridor } from './roadView';
+import { ROAD_FC_LINE_COLOR } from './roadFcView';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 46.8, 15.5, 55.2];
@@ -29,6 +32,8 @@ export interface RoadRainState { state: 'loading' | 'ok' | 'none' | 'error'; val
 /** Refresh of the radar layer (`set`: the RV analysis comes every 5 min). */
 export const ROAD_RAIN_REFRESH_MS = 5 * 60_000;
 const RAIN_LAYER_ID = 'aw-rain';
+/** AF-5: a selected point less than this far below the map's top padding gets its callout underneath (`set`: a two-line callout of 79 px + 14 px offset). */
+const CALLOUT_BELOW_PX = 94;
 /** Under the basemap's place names (first symbol layer of the style) and so under every layer of ours. */
 const rainBeforeId = (map: maplibregl.Map): string | undefined =>
   map.getStyle()?.layers?.find((l) => l.type === 'symbol' && !l.id.startsWith('aw-'))?.id ?? (map.getLayer('aw-warn-fill') ? 'aw-warn-fill' : undefined);
@@ -104,7 +109,8 @@ function corridorFc(corridors: readonly RoadCorridor[], sel: string | null): Geo
   return {
     type: 'FeatureCollection',
     features: corridors.map((c) => ({
-      type: 'Feature', properties: { id: c.id, sel: c.id === sel ? 1 : 0 },
+      // AF-5: `gap` = a section without a measuring station — its selected line takes the forecast colour.
+      type: 'Feature', properties: { id: c.id, sel: c.id === sel ? 1 : 0, gap: isGapCorridor(c) ? 1 : 0 },
       geometry: { type: 'LineString', coordinates: c.line },
     })),
   };
@@ -184,7 +190,7 @@ export default function RoadMap(props: Props) {
       map.addLayer({ id: 'aw-warn-line', type: 'line', source: 'aw-warn', paint: { 'line-color': '#E39A3B', 'line-width': 1.2, 'line-dasharray': [4, 3] } });
       map.addLayer({ id: 'aw-corr-base', type: 'line', source: 'aw-corridors', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#39414D', 'line-width': 2.4 } });
       map.addLayer({ id: 'aw-corr-glow', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FAF6EA', 'line-width': 11, 'line-opacity': 0.16 } });
-      map.addLayer({ id: 'aw-corr-sel', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#F3EDDF', 'line-width': 3.6 } });
+      map.addLayer({ id: 'aw-corr-sel', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'gap'], 1], ROAD_FC_LINE_COLOR, '#F3EDDF'], 'line-width': 3.6 } });
       map.addLayer({
         id: 'aw-fc', type: 'circle', source: 'aw-fc',
         paint: {
@@ -331,15 +337,19 @@ export default function RoadMap(props: Props) {
     if (co.color) dot.style.background = co.color; else dot.className = 'is-hatched';
     line.append(dot, document.createTextNode(co.line));
     el.append(b, line);
-    // Design: near the right edge the callout sits LEFT of the station (else it is clipped).
+    // Design: near the right edge the callout sits LEFT of the station (else it is clipped). AF-5: right under the top
+    // overlays (pill, time chips) it hangs BELOW the point — the first forecast point of a north–south section lies
+    // there, and a callout above it disappeared behind the pill.
     const place = () => {
-      const x = map.project([co.lon, co.lat]).x;
-      const left = x > map.getContainer().clientWidth - 210;
+      const pt = map.project([co.lon, co.lat]);
+      const left = pt.x > map.getContainer().clientWidth - 210;
+      const below = pt.y < propsRef.current.padding.top + CALLOUT_BELOW_PX;
+      const side = `${left ? 'l' : 'r'}${below ? 'b' : 't'}`;
       const cur = calloutRef.current;
-      if (cur && (cur as unknown as { _awLeft?: boolean })._awLeft === left) { cur.setLngLat([co.lon, co.lat]); return; }
+      if (cur && (cur as unknown as { _awSide?: string })._awSide === side) { cur.setLngLat([co.lon, co.lat]); return; }
       cur?.remove();
-      const m = new maplibregl.Marker({ element: el, anchor: left ? 'bottom-right' : 'bottom-left', offset: left ? [-14, -14] : [14, -14] }).setLngLat([co.lon, co.lat]).addTo(map);
-      (m as unknown as { _awLeft?: boolean })._awLeft = left;
+      const m = new maplibregl.Marker({ element: el, anchor: `${below ? 'top' : 'bottom'}-${left ? 'right' : 'left'}`, offset: [left ? -14 : 14, below ? 14 : -14] }).setLngLat([co.lon, co.lat]).addTo(map);
+      (m as unknown as { _awSide?: string })._awSide = side;
       calloutRef.current = m;
     };
     place();

@@ -7,10 +7,14 @@
  * AW-6.1b: a second, thinner row under the measured bar — the WEATHER forecast of buscosun Fusion per axis point
  * (every 5 km) for the chosen hour: forecast air temperature in three bands (own colours, not the road classes) and a
  * mark where precipitation is likely. It also covers stretches without any station.
+ *
+ * AF-5: on a section without a measuring station (`isGapCorridor`) there is no measured bar and no tick — the forecast
+ * row stands in the bar's place, the legend says that the road is not measured here; without a usable run a line
+ * names the reason instead of an empty band.
  */
 import type { RoadPoint } from './roadContract';
 import type { RoadCorridor } from './roadClient';
-import { ROAD_CLASS_COLOR, bandSegments, dec, isHatched, kmIn, kmTicks, shieldText, corridorRouteText } from './roadView';
+import { ROAD_CLASS_COLOR, ROAD_GAP_TEXT, ROAD_GAP_TITLE, bandSegments, dec, isGapCorridor, isHatched, kmIn, kmTicks, shieldText, corridorRouteText } from './roadView';
 import { ROAD_CLASS_LABEL } from './roadClasses';
 import { ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_PRECIP_PP, roadFcLine, type RoadFcCell } from './roadFcView';
 
@@ -25,12 +29,16 @@ interface Props {
   /** Forecast row (null = no usable forecast) and its label, e.g. `Prognose Luft +3 h · 15:00 · Lauf 11:05`. */
   fc?: RoadFcCell[] | null;
   fcLabel?: string;
+  /** AF-5: why a section without a station shows no forecast row either (`kein Lauf für diese Strecke`, …). */
+  fcWhy?: string;
 }
 
 const COUNTRY: Record<string, string> = { AT: 'AT', CH: 'CH', CZ: 'CZ', PL: 'PL', FR: 'FR', NL: 'NL', BE: 'BE', DK: 'DK', LU: 'LU' };
 
-export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabel, zust, onPick, fc, fcLabel }: Props) {
+export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabel, zust, onPick, fc, fcLabel, fcWhy }: Props) {
   const len = c.lengthKm;
+  // AF-5: a section without a measuring station has no measured bar — the forecast row takes its place.
+  const gap = isGapCorridor(c);
   const pct = (km: number) => `${Math.max(0, Math.min(100, (km / len) * 100))}%`;
   const segs = bandSegments(c, byId, dir);
   const towns = c.towns.map(([km, name]) => [kmIn(c, km, dir), name] as const).sort((a, b) => a[0] - b[0]);
@@ -43,16 +51,19 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
         <span className="aw-band-title">{c.shields.join(' · ')} · {corridorRouteText(c, dir)} · {dec(len, 0)} km</span>
         <span className="aw-band-stand">{standLabel}</span>
       </div>
-      <div className={`aw-band-track${fc ? ' has-fc' : ''}`}>
-        <div className="aw-band-bar">
-          {segs.map((g, i) => (
-            <div
-              key={i}
-              className={`aw-band-seg${g.cls === 'gap' || isHatched(g.cls) ? ' is-gap' : ''}`}
-              style={{ left: pct(g.fromKm), width: pct(g.toKm - g.fromKm), ...(g.cls !== 'gap' && !isHatched(g.cls) ? { background: zust ? ROAD_CLASS_COLOR[g.cls] : '#8B95A3' } : {}) }}
-            />
-          ))}
-        </div>
+      <div className={`aw-band-track${fc ? ' has-fc' : ''}${gap ? ' is-gap' : ''}`}>
+        {!gap && (
+          <div className="aw-band-bar">
+            {segs.map((g, i) => (
+              <div
+                key={i}
+                className={`aw-band-seg${g.cls === 'gap' || isHatched(g.cls) ? ' is-gap' : ''}`}
+                style={{ left: pct(g.fromKm), width: pct(g.toKm - g.fromKm), ...(g.cls !== 'gap' && !isHatched(g.cls) ? { background: zust ? ROAD_CLASS_COLOR[g.cls] : '#8B95A3' } : {}) }}
+              />
+            ))}
+          </div>
+        )}
+        {gap && !fc && <div className="aw-band-none" role="status">{ROAD_GAP_TITLE} — die Fahrbahn wird hier nicht gemessen. Prognose: {fcWhy ?? 'derzeit nicht verfügbar'}.</div>}
         {fc && (
           <div className="aw-band-fc" role="group" aria-label={fcLabel ?? 'Prognose Luft'}>
             {fc.map((g) => (
@@ -117,12 +128,20 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
           <span key={k} style={{ left: pct(k), transform: i === 0 ? 'none' : k + (ticks[1] ?? 0) > len ? 'translateX(-100%)' : 'translateX(-50%)' }}>km {k}</span>
         ))}
       </div>
-      <div className="aw-band-legend">
-        <span><i className="aw-sw" style={{ background: '#5E97D1' }} />Messung DWD</span>
-        <span><i className="aw-sw is-gap" />keine Messung im 10-km-Umkreis</span>
-        {(c.unbuilt?.length ?? 0) > 0 && <span><i className="aw-sw is-unbuilt" />ohne Fahrbahn (OSM)</span>}
-        <span className="aw-band-legend-note">{shieldText(c.road)}: Messpunkt, nicht Strecke</span>
-      </div>
+      {gap ? (
+        <div className="aw-band-legend">
+          <span><i className="aw-sw is-fc-line" />{ROAD_GAP_TEXT} — Fahrbahn nicht gemessen</span>
+          {(c.unbuilt?.length ?? 0) > 0 && <span><i className="aw-sw is-unbuilt" />ohne Fahrbahn (OSM)</span>}
+          <span className="aw-band-legend-note">{shieldText(c.road)}: Wetterprognose, keine Fahrbahnprognose</span>
+        </div>
+      ) : (
+        <div className="aw-band-legend">
+          <span><i className="aw-sw" style={{ background: '#5E97D1' }} />Messung DWD</span>
+          <span><i className="aw-sw is-gap" />keine Messung im 10-km-Umkreis</span>
+          {(c.unbuilt?.length ?? 0) > 0 && <span><i className="aw-sw is-unbuilt" />ohne Fahrbahn (OSM)</span>}
+          <span className="aw-band-legend-note">{shieldText(c.road)}: Messpunkt, nicht Strecke</span>
+        </div>
+      )}
       {fc && (
         <div className="aw-band-legend is-fc">
           <span className="aw-band-fc-label">{fcLabel}</span>

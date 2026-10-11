@@ -20,6 +20,9 @@
  *   F  "no data" never looks like "dry": hatched ticks/badge for stations without a valid measurement
  *   G  states without data: all slots 404 ⇒ "Derzeit keine Messdaten"; kill switch; slot > 45 min ⇒ "Veraltet"; > 3 h ⇒ no data
  *   H  mobile 390 × 844: pill, share 44 px, time chips 36 px, sheet with grip; every visible button ≥ 44 px; motorway picker
+ *   S  phase AF-5: sections without a measuring station (`gap`) — head, band with the forecast row only, default = first
+ *      forecast point, map line in the forecast colour, dock rows and fold rows, route table, run with/without
+ *      `engine.dense`, no run file yet, measurement outage, mobile; a motorway of such sections only
  *   I  console: no uncaught exception
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, cpSync, rmSync } from 'node:fs';
@@ -714,6 +717,239 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     /km 100–110: keine Fahrbahn in OpenStreetMap/.test(r.title) && /ohne Fahrbahn \(OSM\)/.test(r.legend) && /km 100–110: keine Fahrbahn in OpenStreetMap \(im Bau oder anders geführt\)/.test(r.brief) && r.top === 0 && r.h === 14 && Math.abs(r.w - 10 / cf.corridors.find((c) => c.id === 'a8').lengthKm) < 0.01,
     JSON.stringify(r).slice(0, 300));
   off(); allErrors.push(...errors); await ctx.close();
+}
+
+// --- S: phase AF-5 — sections without a measuring station (audit/autobahn-fusion12-lueckenlos.md §8.7) ----------------
+// Fixture: the Munich corridors plus five REAL sections without a station from the AF-2 candidate (`corridors-gap.json`:
+// a8-8 and a94-2 on motorways that have measured sections, a995 as a motorway of one such section, a36 + a36-2 as a
+// motorway of two). No run exists for them yet (AF-3), so their run files are built here in the producer's form: axis
+// points by the contract's rule (`roadFcAxisKms`, `roadPointAtKm`), series taken from the real a8 run.
+{
+  const view = await import('../src/road/roadView.ts');
+  const fcv = await import('../src/road/roadFcView.ts');
+  const { roadFcAxisKms, roadFcAxisId, roadPointAtKm } = await import('../src/road/roadFc.ts');
+  const gapDoc = JSON.parse(readFileSync(join(FIX, 'corridors-gap.json'), 'utf8'));
+  const G = (id) => gapDoc.corridors.find((c) => c.id === id);
+  // Engine block of the live run 2610110926 (11.10.2026, read from the pointer) — the form a current run carries.
+  const ENGINE_F12 = { name: 'buscosun Fusion 12', version: 12, stage: 'fs', anchor: 'swis', anchorMode: 'stations', anchorSlot: '2610030700', anchored: 1157, hourMean: true, runs: fcReal.engine.runs, tables: fcReal.engine.tables };
+  const DENSE_AT = new Date(SLOT_MS - 14 * 60_000).toISOString();
+  const ENGINE_DENSE = { ...ENGINE_F12, dense: { mode: 'all', builtAt: DENSE_AT, anchored: 4321 } };
+  const donors = fcAxis;
+  const axisOf = (c, anc = false) => roadFcAxisKms(c.lengthKm).map((km, i) => {
+    const [lon, lat] = roadPointAtKm(c.line, km), d = donors[i % donors.length];
+    return { ...d, id: roadFcAxisId(c.id, km), km, lon: +lon.toFixed(5), lat: +lat.toFixed(5), ...(anc ? { anc: [-4 - i, 62, 0] } : {}) };
+  });
+  const gapIds = ['a995', 'a36', 'a36-2', 'a8-8'];
+  const gapExtra = (engine, anc) => (run, file) => Object.fromEntries(gapIds.map((id) => [`c/${id}.json`, { ...file, id, engine, points: axisOf(G(id), anc) }]));
+
+  // S1–S6: view model without a browser.
+  const gaps = gapDoc.corridors.filter((c) => c.gap === true);
+  add('S1 Fixture und Kennzeichen: fünf echte Teilstücke ohne Messstelle (gap: true ⇔ keine Station); isGapCorridor trennt sie von den gemessenen Abschnitten',
+    gaps.length === 5 && gaps.every((c) => c.stations.length === 0) && gapDoc.corridors.every((c) => !!c.gap === (c.stations.length === 0))
+    && typeof view.isGapCorridor === 'function' && gapDoc.corridors.every((c) => view.isGapCorridor(c) === (c.stations.length === 0)), gaps.map((c) => c.id).join(' '));
+  {
+    const sorted = gapDoc.corridors.slice().sort((a, b) => view.roadNumber(a.road) - view.roadNumber(b.road) || b.stations.length - a.stations.length);
+    const kinds = (e) => e.map((x) => (x.kind === 'fold' ? `+${x.road}:${x.hidden.map((c) => c.id).join(',')}` : x.corridor.id)).join(' ');
+    const closed = kinds(view.dockEntries(sorted, { query: '', selectedId: null, open: new Set() }));
+    const L = (road, hidden, open = false) => (typeof view.dockFoldLabel === 'function' ? view.dockFoldLabel(road, hidden, open) : 'dockFoldLabel fehlt');
+    const short = G('a93-2');
+    const labels = [L('A36', [G('a36-2')]), L('A93', [short]), L('A8', [short, G('a8-8'), G('a94-2')]), L('A36', [G('a36-2')], true), L('A93', [short], true), L('A8', [short, G('a8-8')], true)];
+    add('S2 Dock: eine Autobahn nur aus Teilstücken hat ihre eigene Zeile (a36, a995), weitere Teilstücke stehen unter der Falt-Zeile je Autobahn; die Falt-Zeile nennt Teilstücke ohne Messstelle getrennt von kurzen Abschnitten, der alte Wortlaut bleibt',
+      closed === 'a8 a8-2 +A8:a8-8 a9 a36 +A36:a36-2 a93 +A93:a93-2 a94 +A94:a94-2 a95 a96 a99 a995'
+      && labels[0] === 'A 36: 1 Teilstück ohne Messstelle (nur Prognose)' && labels[1] === 'A 93: 1 kurzer Abschnitt mit weniger als 3 Messpunkten'
+      && labels[2] === 'A 8: 1 kurzer Abschnitt mit weniger als 3 Messpunkten · 2 Teilstücke ohne Messstelle (nur Prognose)'
+      && labels[3] === 'A 36: Teilstücke ohne Messstelle einklappen' && labels[4] === 'A 93: kurze Abschnitte einklappen' && labels[5] === 'A 8: kurze Abschnitte und Teilstücke einklappen',
+      `${closed} | ${labels.join(' | ')}`);
+  }
+  {
+    const h = typeof view.roadGapHead === 'function' ? [view.roadGapHead('buscosun Fusion 12', 'Lauf 09:55'), view.roadGapHead(null, 'kein Lauf für diese Strecke')] : ['roadGapHead fehlt'];
+    add('S3 Kopf eines Teilstücks: „keine Messstelle an diesem Abschnitt · Prognose ‹Name aus der Laufdatei›"; ohne Lauf der Grund statt eines Namens',
+      h[0] === 'keine Messstelle an diesem Abschnitt · Prognose buscosun Fusion 12' && h[1] === 'keine Messstelle an diesem Abschnitt · Prognose: kein Lauf für diese Strecke', h.join(' | '));
+  }
+  {
+    const c = G('a995'), pts = axisOf(c);
+    const file = { ...fcLive.file, id: c.id, points: [pts[2], pts[0], pts[1]] };
+    const first = typeof fcv.firstRoadFcAxis === 'function' ? fcv.firstRoadFcAxis(file)?.id : 'firstRoadFcAxis fehlt';
+    const none = typeof fcv.firstRoadFcAxis === 'function' ? fcv.firstRoadFcAxis({ ...file, points: [] }) : 'x';
+    const rows = fcv.roadFcGapPoints(c, file).map((p) => p.km).sort((a, b) => a - b).join();
+    // Negative control: the rule for a corridor WITH stations stays the old one (full 10 km, farther than the band reach).
+    const a8 = { ...G('a8'), stations: G('a8').stations.slice(0, 2) };
+    const oldRule = fcAxis.filter((p) => Math.round(p.km) % 10 === 0 && a8.stations.every((s) => Math.abs(s.km - p.km) > view.BAND_REACH_KM)).map((p) => p.id).join();
+    add('S4 Voreinstellung und Streckentabelle eines Teilstücks: erster Achspunkt (kleinster km, unabhängig von der Reihenfolge der Datei), jede Zeile ein Achspunkt (alle 5 km); ein Abschnitt mit Messstellen behält die bisherige Regel',
+      pts.length === 3 && first === 'a995@0' && none === null && rows === '0,5,10' && oldRule.split(',').length >= 5 && fcv.roadFcGapPoints(a8, fcLive.file).map((p) => p.id).join() === oldRule, JSON.stringify({ first, none, rows, a8: oldRule }));
+  }
+  {
+    const T = fcv.roadFcAnchorText, U = fcv.roadFcAnchorSummary;
+    const fNone = { engine: fcReal.engine }, fSwis = { engine: ENGINE_F12 }, fDense = { engine: ENGINE_DENSE }, fOff = { engine: { ...ENGINE_F12, dense: { mode: 'none', reason: 'obs/v1/latest.json ist 75 min alt (Grenze 60 min)' } } };
+    const own = { anc: [12, 100, 1] }, near = { anc: [-4, 62, 0] }, bare = {};
+    const stamp = hm(Date.parse(DENSE_AT)), slot = hm(Date.UTC(2026, 9, 3, 7, 0));
+    const t = { noFile: T(near, null), none: T(near, fNone), swisBare: T(bare, fSwis), swisOwn: T(own, fSwis), swisNear: T(near, fSwis), denseNear: T(near, fDense), denseOwn: T(own, fDense), denseBare: T(bare, fDense), offBare: T(bare, fOff) };
+    const u = { noFile: U(null), none: U(fNone), swis: U(fSwis), dense: U(fDense), off: U(fOff) };
+    add('S5 Anker-Texte sagen nur, was die Laufdatei sagt: „ohne Messungs-Anker" nie ohne Datei; ohne engine.dense der bisherige Wortlaut; mit engine.dense der Messsatz obs/v1 mit seinem Stempel (Achspunkt, Messstelle, Punkt ohne Anker), abgeschaltet mit Grund',
+      !/ohne Messungs-Anker/.test(t.noFile) && t.none === 'ohne Messungs-Anker' && t.swisBare === 'ohne Messungs-Anker'
+      && t.swisOwn === `verankert an der Luftmessung dieser Messstelle von ${slot} (Messung − Modell +1,2 K)` && t.swisNear === `verankert an Messstellen im Umkreis von ${slot} (Gewicht 62 %)`
+      && t.denseNear === `verankert an den nächsten Wetterstationen (Messprodukt obs/v1, Stand ${stamp}; Messung − Modell −0,4 K, Gewicht 62 %)`
+      && t.denseOwn === `verankert an der Luftmessung dieser Messstelle von ${slot} und an den nächsten Wetterstationen (Messprodukt obs/v1, Stand ${stamp}; Messung − Modell +1,2 K)`
+      && t.denseBare === 'an diesem Punkt ohne Messungs-Anker' && t.offBare === 'ohne Messungs-Anker'
+      && u.noFile === 'Messungs-Anker je nach Lauf' && u.none === 'dieser Lauf ohne Messungs-Anker' && u.swis === `Messstellen an ihrer eigenen Luftmessung von ${slot} verankert, Prognosepunkte der Achse ohne Anker`
+      && u.dense === `jeder Punkt an den nächsten Wetterstationen verankert (Messprodukt obs/v1, Stand ${stamp}, 4321 Punkte), Messstellen zusätzlich an ihrer eigenen Luftmessung von ${slot}`
+      && u.off === `Messstellen an ihrer eigenen Luftmessung von ${slot} verankert, Prognosepunkte der Achse ohne Anker — der Messsatz obs/v1 blieb in diesem Lauf aus (obs/v1/latest.json ist 75 min alt (Grenze 60 min))`,
+      JSON.stringify({ t, u }));
+  }
+  add('S6 Schreibweise (V-AF-26): „A 64a" statt „A 64A"; „A 8" und eine Bundesstraße mit Großbuchstaben („B 2R") bleiben',
+    view.shieldText('A64A') === 'A 64a' && view.shieldText('A8') === 'A 8' && view.shieldText('A995') === 'A 995' && view.shieldText('B2R') === 'B 2R', [view.shieldText('A64A'), view.shieldText('B2R')].join(' '));
+
+  // --- browser ---
+  const gapSite = join(tmp, 'site-gap');
+  cpSync(site, gapSite, { recursive: true });
+  cpSync(join(FIX, 'corridors-gap.json'), join(gapSite, 'static', 'corridors.json'));
+  const fcGap = mkFcSite('fc-gap', SLOT_MS - 5 * 60_000, { base: { ...fcReal, engine: ENGINE_F12 }, extra: gapExtra(ENGINE_F12, false) });
+  const fcGapDense = mkFcSite('fc-gap-dense', SLOT_MS - 5 * 60_000, { base: { ...fcReal, engine: ENGINE_DENSE }, extra: gapExtra(ENGINE_DENSE, true) });
+  const a995 = G('a995'), nAxis = roadFcAxisKms(a995.lengthKm).length;
+  const fcLinePx = async (ctx) => {
+    // Pixels in the forecast line colour (tolerance ± 8 per channel) — the selected section's line on the map.
+    const hex = fcv.ROAD_FC_LINE_COLOR ?? '#000000', want = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    // Only the map above the band counts: the readout's chart draws its forecast line in the same colour.
+    const box = await ctx.evaluate(`(() => { const m = document.querySelector('.aw-map').getBoundingClientRect(), b = document.querySelector('.aw-band')?.getBoundingClientRect(); return [Math.round(m.left), Math.round(m.top), Math.round(m.right), Math.round(b ? b.top : m.bottom)]; })()`);
+    const img = await shotPng(ctx), A = pngLib.toRgba(img);
+    let n = 0;
+    for (let y = box[1]; y < box[3]; y++) for (let x = box[0]; x < box[2]; x++) {
+      const i = (y * img.width + x) * 4;
+      if (Math.abs(A[i] - want[0]) <= 8 && Math.abs(A[i + 1] - want[1]) <= 8 && Math.abs(A[i + 2] - want[2]) <= 8) n++;
+    }
+    return n;
+  };
+  const pageText = `(document.querySelector('.aw-root')?.innerText ?? '')`;
+  // A count of zero anywhere on the page ("30 gemessen" of a measured corridor is none).
+  const ZERO = /(?<!\d)0 (?:Messpunkte|von 0|gemessen)/;
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a995?road=1', root: gapSite, fcRoot: fcGap.dir });
+    const ready = await until(ctx, `document.querySelectorAll('.aw-band-fc-cell').length > 0 && !!document.querySelector('.aw-axis')`, 30_000);
+    await sleep(1200);
+    const r = await ctx.evaluate(`({ sub: document.querySelector('.aw-pill-sub')?.textContent ?? '', stand: document.querySelector('.aw-band-stand')?.textContent ?? '', ticks: document.querySelectorAll('.aw-band-tick').length, bar: document.querySelectorAll('.aw-band-bar').length,
+      cells: document.querySelectorAll('.aw-band-fc-cell').length, legend: [...document.querySelectorAll('.aw-band-legend')].map((e) => e.textContent).join(' | '), name: document.querySelector('.aw-axis .aw-station-name')?.textContent ?? '',
+      axisSub: document.querySelector('.aw-axis .aw-station-sub')?.textContent ?? '', url: location.pathname + location.search, text: ${pageText}, mapLegend: document.querySelector('.aw-legend')?.textContent ?? '', chip0: document.querySelector('.aw-times button')?.textContent ?? '',
+      box: (() => { const b = document.querySelector('.aw-band')?.getBoundingClientRect(), m = document.querySelector('.aw-map')?.getBoundingClientRect(); return b && m ? [Math.round(b.left - m.left), Math.round(m.bottom - b.bottom)] : null; })() })`);
+    add('S7 Teilstück ohne Messstelle (A 995, Desktop): Kopf „keine Messstelle an diesem Abschnitt · Prognose ‹Name aus der Laufdatei›", Pille „nur Prognose", Band nur mit der Prognose-Zeile (eine Zelle je Achspunkt, kein Messbalken, kein Messpunkt), nirgends „0 Messpunkte"',
+      ready && r.stand === 'keine Messstelle an diesem Abschnitt · Prognose buscosun Fusion 12' && /nur Prognose/.test(r.sub) && r.ticks === 0 && r.bar === 0 && r.cells === nAxis
+      && !/Messung DWD|10-km-Umkreis|Messpunkt, nicht Strecke/.test(r.legend) && /keine Messstelle an diesem Abschnitt/.test(r.legend) && /Prognose Luft jetzt/.test(r.legend) && !ZERO.test(r.text) && r.box?.[0] === 16 && r.box?.[1] === 16,
+      JSON.stringify({ sub: r.sub, stand: r.stand, ticks: r.ticks, bar: r.bar, cells: r.cells, nAxis, legend: r.legend.slice(0, 160), box: r.box, zero: ZERO.exec(r.text)?.[0] ?? null }));
+    add('S8 Voreinstellung = erster Achspunkt: Detailspalte „Prognosepunkt · ‹Name›" auf „A 995 · km 0" mit „keine Messstelle an diesem Abschnitt", die URL bleibt ohne st=; der Chip „Jetzt" trägt keine Messzeit',
+      /^A 995 · km 0$/.test(r.name) && /keine Messstelle an diesem Abschnitt/.test(r.axisSub) && r.url.startsWith('/autobahnwetter/a995') && !/[?&]st=/.test(r.url) && r.chip0 === 'Jetzt', JSON.stringify({ name: r.name, axisSub: r.axisSub, url: r.url, chip0: r.chip0 }));
+    await until(ctx, `!!document.querySelector('.aw-map-canvas')?.dataset.idle`, 45_000);
+    await sleep(2500);
+    const co = await ctx.evaluate(`(() => { const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+      const hit = (a, b) => !!a && !!b && a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+      const c = r('.aw-callout'), pill = r('.aw-ov-left .aw-pill'), times = r('.aw-ov-left .aw-times');
+      return { c, pill, times, covered: hit(c, pill) || hit(c, times), text: document.querySelector('.aw-callout')?.textContent ?? '' }; })()`);
+    add('S8b Callout des ersten Achspunkts (Nordende, direkt unter Pille und Zeitchips) steht frei — unter dem Punkt statt hinter der Pille', !!co.c && !co.covered && /A 995 · km 0/.test(co.text) && /Prognose Luft/.test(co.text), JSON.stringify(co));
+    const px = await fcLinePx(ctx);
+    add('S9 Karte: die Linie des gewählten Teilstücks in der Prognose-Farbe (Legende „Abschnitt ohne Messstelle · nur Prognose"), die Fahrbahn-Legende bleibt', px > 300 && /Abschnitt ohne Messstelle · nur Prognose/.test(r.mapLegend) && /Fahrbahn/.test(r.mapLegend), JSON.stringify({ px, legend: r.mapLegend.slice(0, 200) }));
+    await shot(ctx, 's7-teilstueck-desktop');
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][1].click()`);
+    await sleep(600);
+    const s = await ctx.evaluate(`({ fcRows: document.querySelectorAll('.aw-table-row.is-fc-row').length, rows: document.querySelectorAll('.aw-table-row').length, brief: document.querySelector('.aw-brief')?.textContent ?? '', note: document.querySelector('.aw-readout .aw-note')?.textContent ?? '', text: ${pageText} })`);
+    add('S10 Reiter Strecke: jede Zeile ein Prognosepunkt (alle Achspunkte), Briefing „Keine Messstelle an diesem Abschnitt" mit „Prognose zur Ankunft", Hinweis ohne Messpunkt-Sätze, nirgends „0 von 0"',
+      s.rows === nAxis && s.fcRows === nAxis && /Keine Messstelle an diesem Abschnitt/.test(s.brief) && /Prognose zur Ankunft/.test(s.brief) && !/Zwischen zwei Messpunkten|bis \+30 min die Messung/.test(s.note) && /keine Prognose der Fahrbahn|Prognose der Fahrbahn folgt/.test(s.note) && !ZERO.test(s.text),
+      JSON.stringify({ rows: s.rows, fcRows: s.fcRows, brief: s.brief.slice(0, 140), note: s.note.slice(0, 120) }));
+    await shot(ctx, 's10-teilstueck-strecke');
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][2].click()`);
+    await sleep(400);
+    const q = await ctx.evaluate(`[...document.querySelectorAll('.aw-source')].map((e) => e.textContent).find((x) => /buscosun Fusion 12/.test(x)) ?? ''`);
+    // Dock: rows of the sections and the fold rows.
+    const d = await ctx.evaluate(`({ rows: [...document.querySelectorAll('.aw-dock .aw-road:not(.is-static)')].map((e) => [e.querySelector('.aw-shield')?.textContent, e.querySelector('.aw-road-sub')?.textContent, e.querySelector('.aw-road-dot')?.className]),
+      folds: [...document.querySelectorAll('.aw-dock .aw-road-more')].map((e) => e.textContent) })`);
+    const gapRows = d.rows.filter((x) => /nur Prognose/.test(x[1] ?? ''));
+    add('S11 Dock: Teilstücke heißen „nur Prognose · keine Messstelle" mit Prognose-Punkt statt Klassenfarbe (a36 und a995 als eigene Zeilen), die Falt-Zeilen nennen sie je Autobahn; gemessene Abschnitte unverändert',
+      gapRows.length === 2 && gapRows.every((x) => x[1] === 'nur Prognose · keine Messstelle' && /is-fc/.test(x[2] ?? '')) && gapRows.map((x) => x[0]).join() === 'A 36,A 995'
+      && d.folds.join(' | ') === 'A 8: 1 Teilstück ohne Messstelle (nur Prognose) | A 36: 1 Teilstück ohne Messstelle (nur Prognose) | A 93: 1 kurzer Abschnitt mit weniger als 3 Messpunkten | A 94: 1 Teilstück ohne Messstelle (nur Prognose)'
+      && d.rows.filter((x) => /gemessen/.test(x[1] ?? '')).length === 8, JSON.stringify({ gapRows, folds: d.folds, n: d.rows.length }));
+    off(); allErrors.push(...errors); await ctx.close();
+    // Quellen with and without the dense set (the same page on a run that carries `engine.dense`).
+    const dense = await openPage({ path: '/autobahnwetter/a995?tab=quellen&road=1', root: gapSite, fcRoot: fcGapDense.dir });
+    await until(dense.ctx, `[...document.querySelectorAll('.aw-source')].some((e) => /buscosun Fusion 12/.test(e.textContent)) && document.querySelectorAll('.aw-band-fc-cell').length > 0`, 30_000);
+    const qd = await dense.ctx.evaluate(`[...document.querySelectorAll('.aw-source')].map((e) => e.textContent).find((x) => /buscosun Fusion 12/.test(x)) ?? ''`);
+    await dense.ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][0].click()`);
+    await sleep(500);
+    const nd = await dense.ctx.evaluate(`({ note: document.querySelector('.aw-axis .aw-fc-note')?.textContent ?? '', src: document.querySelector('.aw-sources')?.textContent ?? '' })`);
+    await shot(dense.ctx, 's12-teilstueck-dichter-messsatz');
+    dense.off(); allErrors.push(...dense.errors); await dense.ctx.close();
+    const stamp = hm(Date.parse(DENSE_AT));
+    add('S12 Quellen und Prognosepunkt je nach Laufdatei: ohne engine.dense „Prognosepunkte der Achse ohne Anker"; mit engine.dense nennt der Quellen-Reiter den Messsatz obs/v1 mit seinem Stempel, der Prognosepunkt „verankert an den nächsten Wetterstationen" — und nicht „ohne Messungs-Anker"',
+      /Prognosepunkte der Achse ohne Anker/.test(q) && !/obs\/v1/.test(q) && qd.includes(`Messprodukt obs/v1, Stand ${stamp}`) && /jeder Punkt an den nächsten Wetterstationen verankert/.test(qd)
+      && nd.note.includes(`verankert an den nächsten Wetterstationen (Messprodukt obs/v1, Stand ${stamp}`) && !/ohne Messungs-Anker/.test(nd.note + nd.src), JSON.stringify({ q: q.slice(-110), qd: qd.slice(-150), note: nd.note.slice(-150) }));
+  }
+  {
+    // Negative control of S9: a measured corridor keeps its line colour (no pixel run of the forecast colour, no legend row).
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a8?road=1', root: gapSite, fcRoot: fcGap.dir });
+    await until(ctx, `document.querySelectorAll('.aw-band-tick').length > 5`, 30_000);
+    await until(ctx, `!!document.querySelector('.aw-map-canvas')?.dataset.idle`, 45_000);
+    await sleep(2500);
+    const px = await fcLinePx(ctx);
+    const r = await ctx.evaluate(`({ legend: document.querySelector('.aw-legend')?.textContent ?? '', sub: document.querySelector('.aw-pill-sub')?.textContent ?? '', stand: document.querySelector('.aw-band-stand')?.textContent ?? '', bar: document.querySelectorAll('.aw-band-bar').length })`);
+    add('S13 Gegenprobe: ein Abschnitt mit Messstellen (A 8) behält Linie, Kopf und Messbalken — keine Linie in der Prognose-Farbe, kein „nur Prognose"',
+      px < 60 && !/ohne Messstelle/.test(r.legend) && !/nur Prognose/.test(r.sub) && /^Messung 10:00/.test(r.stand) && r.bar === 1, JSON.stringify({ px, sub: r.sub, stand: r.stand }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    // A motorway that consists of such sections only (A 36): the fold row opens the second one, picking it opens it.
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a36?road=1', root: gapSite, fcRoot: fcGap.dir });
+    await until(ctx, `document.querySelectorAll('.aw-band-fc-cell').length > 0 && /a36/.test(location.pathname)`, 30_000);
+    const before = await ctx.evaluate(`({ title: document.querySelector('.aw-pill-title')?.textContent ?? '', cells: document.querySelectorAll('.aw-band-fc-cell').length, active: document.querySelector('.aw-dock .aw-road.is-active .aw-road-sub')?.textContent ?? '' })`);
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-dock .aw-road-more')].find((e) => /^A 36:/.test(e.textContent))?.click()`);
+    await sleep(300);
+    const open = await ctx.evaluate(`({ label: [...document.querySelectorAll('.aw-dock .aw-road-more')].find((e) => /^A 36:/.test(e.textContent))?.textContent ?? '', rows: [...document.querySelectorAll('.aw-dock .aw-road:not(.is-static)')].filter((e) => e.querySelector('.aw-shield')?.textContent === 'A 36').length })`);
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-dock .aw-road:not(.is-static)')].filter((e) => e.querySelector('.aw-shield')?.textContent === 'A 36')[1]?.click()`);
+    const moved = await until(ctx, `location.pathname === '/autobahnwetter/a36-2' && document.querySelectorAll('.aw-band-fc-cell').length === ${roadFcAxisKms(G('a36-2').lengthKm).length}`, 15_000);
+    const after = await ctx.evaluate(`({ title: document.querySelector('.aw-pill-title')?.textContent ?? '', ticks: document.querySelectorAll('.aw-band-tick').length, name: document.querySelector('.aw-axis .aw-station-name')?.textContent ?? '' })`);
+    add('S14 Autobahn nur aus Teilstücken (A 36): eigene Zeile „nur Prognose", die Falt-Zeile klappt das zweite Teilstück auf, die Wahl öffnet es (Pfad /autobahnwetter/a36-2, Band = seine Achspunkte, erster Achspunkt gewählt)',
+      before.title === 'Heidberg → Blankenburg' && before.cells === roadFcAxisKms(G('a36').lengthKm).length && before.active === 'nur Prognose · keine Messstelle' && open.label === 'A 36: Teilstücke ohne Messstelle einklappen' && open.rows === 2
+      && moved && after.title === 'Blankenburg → Bernburg' && after.ticks === 0 && after.name === 'A 36 · km 0', JSON.stringify({ before, open, after }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    // The hour between playing in the corridors and the first run that covers them: a section without a run file.
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a94-2?road=1', root: gapSite, fcRoot: fcGap.dir });
+    const ok = await until(ctx, `/kein Lauf für diese Strecke/.test(document.querySelector('.aw-readout')?.textContent ?? '') && /a94-2/.test(location.pathname)`, 30_000);
+    const r = await ctx.evaluate(`({ stand: document.querySelector('.aw-band-stand')?.textContent ?? '', none: document.querySelector('.aw-band-none')?.textContent ?? '', empty: document.querySelector('.aw-readout .aw-empty')?.textContent ?? '', ticks: document.querySelectorAll('.aw-band-tick').length, bar: document.querySelectorAll('.aw-band-bar').length,
+      chips: [...document.querySelectorAll('.aw-times button')].slice(1).every((b) => b.disabled), text: ${pageText} })`);
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')][1].click()`);
+    await sleep(400);
+    const st = await ctx.evaluate(`document.querySelector('.aw-readout .aw-empty')?.textContent ?? ''`);
+    await shot(ctx, 's15-teilstueck-ohne-lauf');
+    add('S15 Teilstück, für das der Lauf (noch) keine Datei führt: Kopf, Band und Detailspalte nennen „keine Messstelle an diesem Abschnitt" und den Grund („kein Lauf für diese Strecke") — kein leeres Band, kein „Messstelle wählen", Zeitchips gesperrt; Reiter Strecke ebenso',
+      ok && r.stand === 'keine Messstelle an diesem Abschnitt · Prognose: kein Lauf für diese Strecke' && /Keine Messstelle an diesem Abschnitt/.test(r.none) && /kein Lauf für diese Strecke/.test(r.none) && r.ticks === 0 && r.bar === 0
+      && /Keine Messstelle an diesem Abschnitt/.test(r.empty) && /kein Lauf für diese Strecke/.test(r.empty) && !/Messstelle auf der Karte/.test(r.empty) && r.chips && !ZERO.test(r.text) && /Keine Messstelle an diesem Abschnitt/.test(st) && !/Autobahn im Dock wählen/.test(st),
+      JSON.stringify({ stand: r.stand, none: r.none.slice(0, 110), empty: r.empty.slice(0, 130), st: st.slice(0, 90) }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    // Measurement outage (every slot 404) on such a section: the forecast is all the section has — it stays.
+    const empty = mkdtempSync(join(tmpdir(), 'road-ui-gap-empty-'));
+    cpSync(join(gapSite, 'static'), join(empty, 'static'), { recursive: true });
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a995?road=1', root: empty, fcRoot: fcGap.dir });
+    const ok = await until(ctx, `!!document.querySelector('.aw-axis') && document.querySelectorAll('.aw-band-fc-cell').length === ${nAxis} && /Keine Daten/.test(document.querySelector('.aw-live')?.textContent ?? '')`, 30_000);
+    const r = await ctx.evaluate(`({ stand: document.querySelector('.aw-band-stand')?.textContent ?? '', name: document.querySelector('.aw-axis .aw-station-name')?.textContent ?? '' })`);
+    add('S16 Messung ausgefallen (alle Slots 404), Teilstück gewählt: Prognosepunkt und Prognose-Zeile stehen, der Kopf bleibt beim Teilstück; die Topbar sagt „Keine Daten" für die Messung', ok && /^keine Messstelle an diesem Abschnitt · Prognose buscosun Fusion 12$/.test(r.stand) && r.name === 'A 995 · km 0', JSON.stringify(r));
+    off(); allErrors.push(...errors); await ctx.close();
+    rmSync(empty, { recursive: true, force: true });
+  }
+  {
+    // Mobile 390 × 844.
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter/a995?road=1', width: 390, height: 844, mobile: true, root: gapSite, fcRoot: fcGap.dir });
+    const ready = await until(ctx, `!!document.querySelector('.aw-sheet') && document.querySelectorAll('.aw-sheet-row').length > 0`, 30_000);
+    await sleep(1200);
+    const m = await ctx.evaluate(`({ sub: document.querySelector('.aw-m-top .aw-pill-sub')?.textContent ?? '', title: document.querySelector('.aw-sheet-title')?.textContent ?? '', lead: document.querySelector('.aw-sheet-lead')?.textContent ?? '', rows: [...document.querySelectorAll('.aw-sheet-row')].map((e) => e.textContent),
+      mini: document.querySelectorAll('.aw-miniband:not(.is-fc)').length, miniFc: document.querySelectorAll('.aw-miniband.is-fc .aw-band-seg').length, primary: document.querySelector('.aw-sheet-actions .aw-btn.is-primary')?.textContent ?? '', text: ${pageText},
+      small: [...document.querySelectorAll('.aw-sheet button, .aw-m-top button')].filter((b) => b.offsetParent && !b.closest('.aw-seg')).map((b) => { const r = b.getBoundingClientRect(); return [b.className, Math.round(r.width), Math.round(r.height)]; }).filter(([, w, h]) => Math.min(w, h) < 44) })`);
+    await shot(ctx, 's17-teilstueck-mobil');
+    await ctx.evaluate(`document.querySelector('.aw-sheet-row')?.click()`);
+    const picked = await until(ctx, `/[?&]st=a995(%40|@)/.test(location.search)`, 8000);
+    add('S17 Teilstück mobil (390 × 844): Pille „nur Prognose", Sheet „Keine Messstelle an diesem Abschnitt" mit dem Namen aus der Laufdatei, Zeilen = Prognosepunkte mit Ankunftszeit (≥ 44 px, Antippen wählt den Punkt), Mini-Band nur als Prognose-Zeile, Knopf „Alle n Prognosepunkte", nirgends „0 Messpunkte"',
+      ready && /nur Prognose/.test(m.sub) && !/Messpunkte/.test(m.sub) && m.title === 'Keine Messstelle an diesem Abschnitt' && /buscosun Fusion 12/.test(m.lead) && /keine Fahrbahnmessung/.test(m.lead) && m.rows.length === nAxis && m.rows.every((x) => /Prognose Luft/.test(x) && /\d{2}:\d{2}/.test(x))
+      && m.mini === 0 && m.miniFc === nAxis && m.primary === `Alle ${nAxis} Prognosepunkte` && m.small.length === 0 && !ZERO.test(m.text) && picked, JSON.stringify({ sub: m.sub, title: m.title, lead: m.lead.slice(0, 120), rows: m.rows.length, mini: m.mini, miniFc: m.miniFc, primary: m.primary, small: m.small.slice(0, 3), picked }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
 }
 
 add('I1 keine ungefangene Ausnahme in allen Abläufen', allErrors.length === 0, allErrors.slice(0, 3).join(' | '));

@@ -2,7 +2,9 @@
 
 > Stand 2026-10-10. Diagnose und Entwurf (Spezifikation) in §0–§7; **Umsetzungsprotokoll in §8** (AF-1 Merge §8.1, V-AF-9 Leser je
 > Größe §8.3, V-AF-10 Anker vor dem Achsenbeginn §8.4 (E-AF-6 = Weg a, Jan 10.10.), Merge mit `main`, Push `7213962` und Live-Test §8.5 — buscosun
-> Fusion 12 läuft seit 10.10. 18:43 UTC mit beiden Korrekturen live). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
+> Fusion 12 läuft seit 10.10. 18:43 UTC mit beiden Korrekturen live; **AF-2 Korridore lückenlos §8.6** — Bauer und Prüfung gebaut, Kandidat
+> 210 Korridore auf 120 von 121 Nummern, nichts eingespielt; **AF-5 Seite für Teilstücke ohne Messstelle §8.7** — gebaut am 11.10.,
+> `verify:road-ui` 82/82, uncommitted). Vorgänger: `audit/autobahnwetter.md` §14–§18 (AW-6.1), `audit/obs-fusion.md`
 > (Fusion 12, Branch `fusion-12`), `audit/fusion-release.md` (Register der Stände).
 
 ## 0. Kurzfassung für Jan
@@ -85,6 +87,9 @@ kennen nur Korridore und Punkte und folgen ohne neue Schnittstelle.
 
 ### AF-2 Korridore lückenlos (`scripts/road/build-corridors.mjs`, E-AF-1)
 
+- **Umgesetzt am 10.10. (§8.6), mit drei benannten Abweichungen:** Stoff ist die Hauptfahrbahn (das DLM250 kennzeichnet Auf-/Abfahrten),
+  offen ist, was kein Korridor der eigenen Nummer in 300 m deckt (statt der abgeschnittenen Äste), und `--pin` übernimmt die
+  veröffentlichten Abschnitte unverändert (statt neu gebaute zuzuordnen).
 - Neue Option `--gapless` (ohne sie baut der Bauer byte-gleich wie heute, `verify:road-contract` K6):
   1. Abschnitte ohne Station bleiben erhalten.
   2. Abgeschnittene Äste (`cuts`) ab der Mindestlänge werden eigene Teilstücke, auch ohne Station (heute nur mit).
@@ -152,6 +157,8 @@ kennen nur Korridore und Punkte und folgen ohne neue Schnittstelle.
 - Der Zusatz „ohne Messungs-Anker" erscheint nur, wenn die Laufdatei es so sagt; mit `engine.dense` nennt der
   Quellen-Reiter den Messsatz und seinen Stempel.
 - Command-Deck, Breakpoints 767/1439, keine neue Farbe außerhalb der Prognose-Token.
+- **Umgesetzt am 11.10. (§8.7).** Dazu, nicht im Entwurf: der Zustand „Teilstück ohne Laufdatei“ (die Stunde zwischen Einspielen
+  und erstem Lauf), der Callout unter einem Punkt am oberen Kartenrand, die Falt-Zeile mit getrennter Zählung.
 - **Gate AF-5:** `verify:road-ui` neu (Teilstück ohne Messstelle Desktop + mobil, Lauf mit/ohne `engine.dense`,
   Autobahn nur aus Teilstücken), bestehende Prüfungen unverändert grün; Pixel-Diff der Seite auf einem
   Live-Korridor gegen `main` (nur benannte Abweichungen); die fünf Selbstverifikations-Fragen mit Beleg; Budget.
@@ -215,6 +222,8 @@ der drei statischen CDN-Pfade, der Block `ctl` im Archiv.
 | V-AF-4 | Kennungen hängen an der Sortierung nach Stationszahl; jede neue Meldung kann sie verschieben (D-AF-9) | geteilte Links bleiben richtig | `--pin` wird der Normalweg jedes Neubaus |
 | V-AF-5 | Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7); Fusion 12 hat kein Spur-P-Urteil | Klarheit, was „Fusion 12" belegt | Abnahme ab ≈ 20.10. (E-OF-6), unabhängig von dieser Phase |
 | V-AF-6 | AT/CH ohne Korridore und Prognosepunkte (E-AW-12) | A 8 endet nicht an der Grenze | eigene Phase (Achsen GIP.at/OSM, Radar INCA/RZC) |
+| V-AF-28 … V-AF-32 | aus AF-5 (§8.7.6): Ortsnamen im Band überlappen (Bestand, 32 von 141 Live-Korridoren), Callout hinter der Pille (behoben), nicht gewählte Teilstücke auf der Karte, Zeilennamen der Streckentabelle, Zusammenführen mit `main` | | |
+| V-AF-22 … V-AF-27 | aus AF-2 (§8.6.6): OSM-Auszug ohne `trunk` mit Autobahn-Nummer (A 98), Messstellen gepinnter Abschnitte, Stummel an gepinnten Enden, Auf-/Abfahrten im alten Bauer, Schreibweise A 64a | | |
 | V-AF-7 … V-AF-17 | aus der Umsetzung: V-AF-7/8 in §8.1, V-AF-9 (Leser las nur den jüngsten Stationsstempel — behoben, §8.3), V-AF-10 (Motor paarte die deutsche Temperatur zum Stundenanfang nicht — behoben mit E-AF-6 Weg a, §8.4), V-AF-11 … 17 in §8.3.9, V-AF-18 … 20 in §8.4.6 | | |
 
 ## 8. Protokoll
@@ -814,3 +823,262 @@ Hamburg 6 · Frankfurt 6 · Köln 4. München mit Gegenproben:
 | Nr. | Befund | Mehrwert | Skizze |
 |---|---|---|---|
 | V-AF-21 | `verify:fusion-release --live` ≈ 18:45 UTC: die Kartenfelder t1 (Lauf 15 UTC), t2 (12 UTC), t3 (00 UTC) tragen keinen Stand im Manifest | die Legende „buscosun Fusion ‹n› · Modell · Cube“ nennt den Stand, mit dem das Feld gebaut ist | prüfen, ob der Feldschritt des Punkt-Crons läuft (V-RC-2, Workflow-Kopie) und ob `chain.options.fusion` geschrieben wird |
+
+### 8.6 AF-2 — Korridore lückenlos (10.10.2026 spät; Jan: „dann setze das jetzt um“)
+
+Umfang: der Korridor-Bauer bekommt die Option `--gapless` mit `--pin`, dazu die Vollständigkeits-Prüfung. Gebaut und gemessen ist ein
+**Kandidat** der neuen Korridor-Datei; eingespielt ist nichts. Die Datei für das Daten-Repo entsteht in AF-3 (frischer OSM-Auszug,
+Punkte, Gelände) und wird erst eingespielt, wenn AF-5 auf `main` liegt (§3 AF-3: sonst zeigt die Seite leere Bänder).
+
+#### 8.6.1 Diagnose (vor dem Code, an den gesicherten Eingaben)
+
+Eingaben liegen jetzt dauerhaft unter `C:\dev\buscosun-road-publish\cache\` (vorher nur in Sitzungs-Scratch): DLM250-Achsen vom
+04.10. (22 161 Achsstücke), OSM-Auszug vom 06.10. (56,5 MB), Stationskatalog und Meldung vom 06.10. und 10.10., Live-Datei.
+
+| Nr. | Frage | Befund | Beleg |
+|---|---|---|---|
+| D-AF-16 | Lässt sich die Live-Datei nachbauen? | Aus den Eingaben vom 06.10. entstehen 141 Korridore; **138 sind Zeichen für Zeichen die Live-Datei**, drei unterscheiden sich in je einer Messstelle (a48, a48-2: K275 fehlt; a61: km von K263/K266 um 0,1 verschoben). Ursache: die Live-Datei wurde mit einer anderen Meldung gebaut, und die Meldungs-Lage einer Station wechselt von Slot zu Slot | Nachbau gegen `corridors-live.json`, Skript `cmp.mjs`/`st.mjs` (Scratch) |
+| D-AF-17 | Was heißt das für `--pin`? | Eine Zuordnung „neu gebauter Abschnitt bekommt die Live-Kennung“ (Entwurf §3) hält die Messstellen NICHT gleich — das Gate verlangt aber „Stationen gleich“, und Stations-km stecken in der Punktdatei und in `where.json`. ⇒ gepinnte Abschnitte werden **unverändert aus der veröffentlichten Datei übernommen**, nichts an ihnen wird neu gebaut | D-AF-16 |
+| D-AF-18 | Woraus besteht die Achse? | Das DLM250 kennzeichnet Auf-/Abfahrten selbst: `bemerkung = "Auffahrt/Abfahrt"` an 7 952 von 22 161 Achsstücken (3 357 von 16 820 km). Die Hauptfahrbahn ist **eine** Linie je Autobahn (13 463 km ≈ Netzlänge), nicht zwei Richtungsfahrbahnen. `zus` 4000 = im Bau (124 Stücke), 2100 = außer Betrieb (7) | Sonde `probe1.mjs` (Scratch): Wertelisten aller Attribute |
+| D-AF-19 | Wo liegen die Lücken wirklich? | Offene Proben der Live-Datei nach dem Maß von D-AF-7 (irgendein Korridor in 300 m): Hauptfahrbahn 1 960 (davon 1 221 auf Nummern ohne Korridor, 739 auf Nummern mit Korridor), Auf-/Abfahrten 1 461. Die befürchteten „250–500 Bruchstücke“ (D-AF-7) kamen aus den Auf-/Abfahrten, die der Bauer mit der Hauptfahrbahn verkettet | Sonde `probe2.mjs` |
+| D-AF-20 | Wie viele Nummern gibt es? | **121**, nicht 120: `A64a` (Trier-Ehrang, 4,4 km Hauptfahrbahn) fiel durch das Nummernmuster des Bauers. Von den 32 Nummern ohne Korridor aus D-AF-6 gibt es **A 695 nur als Auf-/Abfahrten** (2,6 km bei Viernheim, keine Hauptfahrbahn); A 831 hat 1,9 km Hauptfahrbahn | Sonde `probe3.mjs` |
+| D-AF-21 | Wie steht die Live-Datei unter der Prüfung von §3? | Je Probe gegen die Korridore **der eigenen Nummer** (strenger als D-AF-7, dort zählte jede Nummer): 95,19 % gedeckt oder benannt — Linie 40 308, Prognosepunkt 1 466, im Bau 208, ohne OSM-Fahrbahn 278, **offen 2 136** (Hauptfahrbahn 1 513, Auf-/Abfahrt 623); 33 Nummern ohne Korridor | `corridor-coverage.mjs` auf der Live-Datei |
+
+#### 8.6.2 Entwurf, wie er gebaut ist (Abweichungen von §3 benannt)
+
+- **Stoff der neuen Teilstücke:** nur Hauptfahrbahn in Betrieb (keine Auf-/Abfahrt, nicht `zus` 4000/2100). §3 sah vor, die von der
+  Schleifen-Bereinigung abgeschnittenen Äste zu Teilstücken zu machen; mit D-AF-18 ist der direkte Weg genauer: **offen ist, was
+  weiter als 300 m von jedem Korridor der eigenen Nummer liegt** (`GAPLESS_COVER_KM`), gleich warum es fehlt (Stationsfilter,
+  Mindestlänge, abgeschnittener Ast).
+- **Ablauf je Autobahn** (`gapSections`): Achse auf 50 m verdichten, offene Stücke bilden, über Brüche der Achse bis 0,5 km
+  verbinden (`GAPLESS_JOIN_KM`; die 3 km des alten Bauers machten aus einem Stummel neben der Strecke eine Ecke), das längste
+  zuerst: Schleifen entfernen, vereinfachen, annehmen. Jedes angenommene Stück gilt für die folgenden als gedeckt; was eine
+  Schleifen-Bereinigung abschneidet, kommt zurück in die Warteschlange. Ein neues Stück beginnt bis 300 m im gedeckten Boden
+  (`GAPLESS_ATTACH_KM`), damit die gezeichnete Linie kein Loch hat.
+- **Mindestlänge** 2 km (`GAPLESS_MIN_KM`, `set`); eine Autobahn ganz ohne Korridor bekommt ihr längstes Stück ab 0,5 km
+  (`GAPLESS_ONLY_MIN_KM`: A 831 mit 1,9 km).
+- **V-AW-22 gilt weiter:** fehlt die OSM-Fahrbahn der eigenen Nummer auf der Hälfte der Länge oder mehr, entsteht kein Teilstück
+  (benannt in `report.skipped`); sonst schneidet/benennt `make()` wie bisher ab 5 km.
+- **`--pin=<veröffentlichte corridors.json>`:** die Korridore der Datei sind die Korridore ihrer Autobahnen, unverändert (D-AF-17).
+  Neue Teilstücke zählen hinter der höchsten Nummer weiter (`a8-6`, …), geordnet nach Stationszahl, dann Länge; `gap: true` genau
+  dann, wenn das Teilstück keine Messstelle hat. Eine Messstelle, die kein Korridor führt, geht an das nächste neue Teilstück — außer
+  ein gepinnter Abschnitt liegt näher: dann bleibt sie unverteilt und wird genannt (`report.unassigned`).
+- **Nummer mit Buchstabe:** `A64a` ⇒ `road: "A64A"`, Kennung `a64a`, Schild „A 64a“.
+- **Ohne `--gapless` baut der Bauer wie zuvor** — belegt am Nachbau der Live-Eingaben (byte-gleich bis auf `builtAt`) und an K1–K9.
+- Die Prüfung ist ein eigenes Werkzeug `scripts/road/corridor-coverage.mjs` (liest nur): Proben alle 0,5 km je Achslinie; Klassen
+  `line` (≤ 300 m an einem Korridor der eigenen Nummer) · `point` (≤ 2,5 km an einem Prognosepunkt der eigenen Nummer, Regel
+  `roadFcAxisKms`) · `construction` (DLM250 im Bau/außer Betrieb) · `noCarriageway` (keine OSM-Fahrbahn der Nummer in 300 m) ·
+  `open`. Auf-/Abfahrten werden mitgezählt und getrennt ausgewiesen, nie entschuldigt. Dazu `offAxis` (läuft eine Korridor-Linie, wo
+  keine Achse ist?) und `pinCheck`.
+
+#### 8.6.3 Ergebnis am Kandidaten (Achsen 04.10., OSM 06.10., Meldung 10.10. 09:30 UTC, `--pin` = Live-Datei)
+
+| | Live-Datei | Kandidat |
+|---|---|---|
+| Korridore | 141 | **210** (141 unverändert + 69 neue, davon 68 ohne Messstelle) |
+| Autobahn-Nummern mit Korridor | 88 von 121 | **120 von 121** (A 695: nur Auf-/Abfahrten) |
+| gedeckt oder benannt (44 396 Proben) | 95,19 % | **99,97 %** (Ziel 99,5 %) |
+| davon Linie · Prognosepunkt · im Bau · ohne OSM-Fahrbahn | 40 308 · 1 466 · 208 · 278 | 42 726 · 1 413 · 156 · 86 |
+| offen | 2 136 (Hauptfahrbahn 1 513) | **15** (Hauptfahrbahn 7, Auf-/Abfahrt 8) |
+| Prognosepunkte auf der Achse (5-km-Regel, ohne Abzug in `unbuilt`-Lücken; die Live-Punktdatei führt 2 755) | 2 760 | 2 958 (+198, +7 %) |
+
+- Die 69 neuen Teilstücke: 614 km; 37 auf den 32 Nummern, die keinen Korridor hatten (437 km: A 36 in zwei Stücken 70 + 49 km,
+  A 115, A 26, A 100, A 111, A 555, A 113, A 448 …), 32 auf 25 Nummern mit Korridor (178 km: A 39 Seevetal → Bardowick 30 km,
+  A 66 Bad Vilbel → Erlensee 19 km, A 94 bei Bad Füssing 11 km …); 36 sind kürzer als 5 km. Liste:
+  `audit/autobahn-fusion12-lueckenlos/af2-teilstuecke.md`. Eine Messstelle fand ein neues Teilstück (E757 auf `a37-2`).
+- **141 von 141 Live-Korridoren Zeichen für Zeichen unverändert**, keine Kennung doppelt.
+- Keine Linie eines neuen Teilstücks liegt abseits der Achse ihrer Nummer (0 von 1 269 Proben; die 24 Proben abseits gehören zu 13
+  Live-Korridoren und sind Bestand — Verbindungen über Lücken bis 3 km).
+- Bauzeit 3,9 s (ohne Option 5,4 s für den vollen Neubau; mit `--pin` entfällt der Bau der bestehenden Abschnitte).
+- **Offen bleiben 15 Proben (7,5 km):** Stummel von 0,3–1,9 km jenseits eines gepinnten Korridor-Endes — A 98 bei Rheinfelden (7
+  Proben) und bei Stockach (2), A 485 (2), A 352 (2), A 5 (1), A 13 (1). Sie sind kürzer als die Mindestlänge und liegen 2,5–3,8 km
+  vom nächsten Prognosepunkt; ein gepinnter Abschnitt wird nicht verlängert (V-AF-24).
+- **Nicht gebaut, benannt:** A 98 Murg → Albbruck (9,4 km) und Waldshut-Tiengen → Lauchringen (5,4 km), A 57 bei Neuss (2,5 km) —
+  der OSM-Auszug kennt dort keine Fahrbahn dieser Nummer. Nachgefragt bei Overpass (10.10. abends): die A 98 ist dort
+  `highway=trunk` mit `motorroad=yes` und `ref=A 98`; der Auszug des Bauers fragt nur `highway=motorway` (V-AF-22). Die A 57 bei
+  Neuss trägt in OSM `B 1`.
+- Reste unter der Mindestlänge: 85 km in kurzen Stücken; bis auf die 7 offenen Hauptfahrbahn-Proben sind sie gedeckt oder benannt.
+- Vier Messstellen (M417, P301, P101, P142) liegen an einem gepinnten Abschnitt, der sie nicht führt (V-AF-23).
+
+Kandidat mit Prüfsumme: `C:\dev\buscosun-road-publish\2026-10-10-af2\` (`LIESMICH.txt`: nicht eingespielt).
+
+#### 8.6.4 Prüfungen (zuerst rot gesehen, dann grün)
+
+`verify:road-contract` **111/111** (vorher 93), mit `ROAD_GAPLESS_RAW=<Ordner der Eingaben>` **118/118**:
+
+- **Block L (CI, nachgebaute Achsen mit den echten Merkmalen `bemerkung`/`zus`):** L1 ohne Option wie bisher · L2 bestehender
+  Korridor Zeichen für Zeichen, neue dahinter · L3 Ausrichtung · L4 Mindestlänge und einzige Strecke einer Autobahn · L5
+  Auf-/Abfahrt, Baustelle, Nummer nur aus Auf-/Abfahrten · L6 `A64a` · L7 Hin- und Rückfahrbahn ⇒ ein Teilstück · L8 zweimal gleich
+  · L9/L10 `pin` (unverändert auch mit Lücke in der Zählung, Anschluss ≤ 300 m, Messstellen) · L11 `pinCheck` mit Gegenprobe · L12
+  V-AW-22 · L13–L16 Proben und Klassen, **L15 Gegenprobe: mit Stationsfilter unter dem Ziel** · L17 `offAxis` · L18 siehe unten.
+  13 der 17 ersten Prüfungen waren vor der Umsetzung rot (L1, L8, L16, L17 prüfen Bestand bzw. das Messwerkzeug).
+- **Block N (echte Achsen):** N1 Vollständigkeit ≥ 99,5 % · N2 jede Nummer mit Hauptfahrbahn in Betrieb hat einen Korridor · N3
+  141/141 unverändert · **N4 Gegenprobe: die Live-Datei besteht dieselbe Prüfung nicht** (95,19 %, 33 Nummern ohne) · N5 neue
+  Linien auf der Achse · N6 zweimal gebaut gleich · N7 Form der neuen Teilstücke.
+- **L18, aus einem eigenen Fehler:** bei der A 369 leerte sich die Warteschlange nicht — zwei offene Stücke mit einem gedeckten
+  Fleck kürzer als der Anschluss enthielten sich gegenseitig und wurden bei jedem Nachschneiden wieder eingereiht. Der erste Entwurf
+  brach nach 10 000 Runden **still** ab; erst als die Absicherung zum Fehler wurde, fiel es auf. Behoben (der Anschluss reicht nie in
+  offenen Boden des Nachbarstücks), Prüfung L18 ohne die Korrektur rot gesehen. Das Ergebnis am echten Bestand änderte sich nicht
+  (210 Korridore, gleiche Kennungen und Längen), der Rest stieg von 83 auf 85 km.
+- Weitere Läufe: `verify:road-fc` 103/103, `verify:road-derive` 36/36, `verify:road-archive` 26/26, `verify:road-decode` 15/15,
+  typecheck 0. **Nicht gelaufen:** `verify:road-ui` (braucht einen laufenden Vorschau-Server; diese Etappe ändert nichts unter
+  `src/`), Build und Budget (ebenso unberührt).
+
+#### 8.6.5 Was diese Etappe nicht sagt
+
+- Der Kandidat ist nicht die Datei für das Daten-Repo: AF-3 baut sie mit frischem OSM-Auszug neu; Kennungen und Längen der neuen
+  Teilstücke können sich dabei noch ändern (die 141 gepinnten nicht).
+- Keine Prüfung der Seite mit einem Teilstück ohne Messstelle (AF-5) und kein Lauf des Producers auf den neuen Punkten (AF-3).
+- Die Lage der neuen Linien ist gegen die Achse geprüft, nicht gegen die Fahrbahn (das Einrasten auf OSM macht AF-3).
+
+#### 8.6.6 Befunde und Verbesserungen
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AF-22 | Der OSM-Auszug fragt nur `highway=motorway`; die A 98 am Hochrhein (14,8 km, in Betrieb) ist `trunk` + `motorroad` mit `ref=A 98` ⇒ nach V-AW-22 kein Teilstück | auch diese zwei Abschnitte bekommen eine Prognose | AF-3: Abfrage um `highway=trunk` mit Autobahn-`ref` erweitern (`OSM_QUERY`, `buildOsmIndex`), Korridore mit demselben `--pin` neu bauen |
+| V-AF-23 | Gepinnte Abschnitte führen genau die Messstellen der veröffentlichten Datei; vier neue (M417, P301, P101, P142) bleiben unverteilt, K275 wechselt je Meldung | neue Messstellen erscheinen im Band | eigener Schritt „Messstellen der gepinnten Abschnitte auffrischen“ (Kennung, Linie, km bleiben), mit einer über mehrere Meldungen gemittelten Lage |
+| V-AF-24 | 15 Proben offen: Stummel bis 1,9 km jenseits eines gepinnten Endes (A 98 Rheinfelden, A 485, A 352, A 5, A 13) | kein Stück Hauptfahrbahn ohne Punkt | gepinnten Abschnitt am ENDE verlängern (km-Nullpunkt bleibt, Länge wächst) — ändert einen Live-Korridor, deshalb Jans Entscheidung |
+| V-AF-25 | Der Bauer der bestehenden Abschnitte verkettet Auf-/Abfahrten mit der Hauptfahrbahn; das DLM250 kennzeichnet sie (D-AF-18) | sauberere Achsen ohne Schleifen-Bereinigung | Neubau nur aus der Hauptfahrbahn — ändert jede Live-Linie, nur mit einer eigenen Phase |
+| V-AF-26 | `A 64a` erscheint als „A 64A“, wo die Seite `shieldText(road)` statt `shields` liest | richtige Schreibweise | in AF-5 mitnehmen |
+| V-AF-27 | D-AF-7 zählte eine Probe als gedeckt, wenn irgendein Korridor in 300 m lag; die Prüfung jetzt verlangt die eigene Nummer | Kreuzungen täuschen keine Deckung vor | erledigt (`corridor-coverage.mjs`) |
+
+#### 8.6.7 Die fünf Selbstverifikations-Fragen
+
+1. **Funktionserhalt:** ohne `--gapless` byte-gleich zum Bauer davor (Nachbau der Live-Eingaben, K1–K9); kein Verbraucher geändert.
+2. **Desktop pixelgleich:** nichts unter `src/` geändert, nichts eingespielt.
+3. **Touch-Targets:** keine UI in dieser Etappe.
+4. **Konsole:** keine UI in dieser Etappe.
+5. **Long Tasks:** keine UI; Bauzeit des Kandidaten 3,9 s (lokal, ein Lauf).
+
+### 8.7 AF-5 — Seite für Teilstücke ohne Messstelle (11.10.2026; Jan: „setze AF-5 um“)
+
+Uncommitted im Arbeitsbaum `.wt-af` (Zweig `af/merge-fusion-12`), auf dem Stand von AF-2 (§8.6, ebenfalls uncommitted). Nichts
+eingespielt, nichts gepusht. Für Besucher ändert die Etappe nichts, solange die Korridor-Datei aus AF-2/AF-3 nicht eingespielt ist
+(§4): die Live-Datei führt kein Teilstück ohne Messstelle.
+
+#### 8.7.1 Diagnose (vor dem Code: der unveränderte Bau mit einer Fixture aus echten Teilstücken)
+
+Fixture `scripts/lib/fixtures/road/corridors-gap.json` = die München-Fixture plus fünf **echte** Teilstücke aus dem AF-2-Kandidaten,
+unverändert: `a8-8` (4,3 km) und `a94-2` (10,7 km) an Autobahnen mit gemessenen Abschnitten, `a995` (10,2 km) als Autobahn aus einem
+Teilstück, `a36` (70,4 km) + `a36-2` (49,1 km) als Autobahn aus zwei. Eine Laufdatei gibt es für sie noch nicht (AF-3); die
+Lauf-Fixtures entstehen im Verifier in der Form des Producers (Achspunkte nach `roadFcAxisKms`/`roadPointAtKm`, Reihen aus dem
+echten a8-Lauf). Was der Bau vor AF-5 damit zeigte (Lauf `red-run`, 17 neue Prüfungen rot, 64 alte grün):
+
+| Nr. | Stelle | Befund vor AF-5 |
+|---|---|---|
+| D-AF-22 | Band | Messbalken über die ganze Länge schraffiert, Kopf „Messung 10:00“, Legende „Messung DWD · keine Messung im 10-km-Umkreis“ — das Band behauptet eine Messung, die es nicht gibt |
+| D-AF-23 | Pille, Dock, Sheet | „0 Messpunkte“ (mobil), „0 gemessen“ mit schraffiertem Klassenpunkt (Dock), „Keine gültige Fahrbahnmessung · 0 von 0 DWD-Anlagen …“ (Sheet), Knopf „Alle 0 Messpunkte“ |
+| D-AF-24 | Falt-Zeile | „A 36: 1 kurzer Abschnitt mit weniger als 3 Messpunkten“ für ein 49-km-Teilstück ohne Messstelle |
+| D-AF-25 | Voreinstellung | der kälteste Prognosepunkt (km 5) statt des ersten — ein Wert, kein Ort |
+| D-AF-26 | Reiter Strecke | „Keine gültige Fahrbahnmessung … 0 von 0 Messpunkten mit Glätte oder Frostgefahr gemessen“, 2 von 3 Achspunkten als Zeilen (Regel „volle 10 km“) |
+| D-AF-27 | Teilstück ohne Laufdatei | leeres schraffiertes Band, Detailspalte „Eine Messstelle auf der Karte oder im Streckenband wählen“, Reiter Strecke „Eine Autobahn im Dock wählen“. Diesen Zustand gibt es nach dem Einspielen bis zum ersten Lauf (bis zu einer Stunde) |
+| D-AF-28 | Karte | Linie des gewählten Teilstücks im Korridor-Sand wie jeder gemessene Abschnitt |
+| D-AF-29 | Callout | der Callout des ersten Achspunkts eines Nord-Süd-Teilstücks liegt hinter Pille und Zeitchips (Punkt genau am oberen Kartenrand der Einpassung) |
+| D-AF-30 | Anker-Text | `roadFcAnchorText` sagt „ohne Messungs-Anker“ auch ohne Laufdatei; `engine.dense` (AF-4) kennt die Seite nicht — ein Achspunkt mit `anc` hieße „verankert an Messstellen im Umkreis von ‹SWIS-Slot›“ |
+| D-AF-31 | Schreibweise | `shieldText('A64A')` = „A 64A“ (V-AF-26) |
+
+#### 8.7.2 Umsetzung (nur `src/road/`, kein Eingriff in Daten, Producer, buscosun Fusion)
+
+Kennzeichen: `isGapCorridor(c)` = keine Station (`roadView.ts`). Die Datei sagt dasselbe mit `gap: true`; die Seite liest die
+Stationsliste, weil sie das ist, was gezeigt würde (Prüfung S1 bindet beide aneinander).
+
+| Stelle | Jetzt |
+|---|---|
+| Kopf (Band rechts) | „keine Messstelle an diesem Abschnitt · Prognose ‹Name aus der Laufdatei›“ (`roadGapHead`); ohne brauchbaren Lauf der Grund statt eines Namens („· Prognose: kein Lauf für diese Strecke“) |
+| Pille | „Richtung … · DE · nur Prognose“, mobil „Richtung … · nur Prognose“ |
+| Band | kein Messbalken, kein Messpunkt; die Zeile „Prognose Luft“ steht an der Stelle des Balkens (14 px, eine Zelle je Achspunkt); Legende „keine Messstelle an diesem Abschnitt — Fahrbahn nicht gemessen“ und „‹A n›: Wetterprognose, keine Fahrbahnprognose“; ohne Lauf eine Zeile mit dem Grund statt eines leeren Bandes |
+| Voreinstellung | erster Achspunkt (kleinster km, `firstRoadFcAxis`), die URL bleibt ohne `st=`; der Chip „Jetzt“ trägt keine Messzeit |
+| Karte | Linie des gewählten Teilstücks in der Prognose-Farbe `#3A6FA8` (`ROAD_FC_LINE_COLOR` = Prognose-Linie des Verlaufs und der Prognose-Chips), Legendenzeile „Abschnitt ohne Messstelle · nur Prognose“; nie eine Fahrbahn-Klasse (D-04) |
+| Callout | liegt ein gewählter Punkt weniger als 94 px unter dem oberen Kartenrand der Einpassung, hängt der Callout unter dem Punkt (gilt für jeden Punkt, auch Messstellen — benannte Abweichung, §8.7.4) |
+| Dock | Zeile „nur Prognose · keine Messstelle“ mit Ring in der Prognose-Farbe; Falt-Zeile zählt getrennt (`dockFoldLabel`): „A 36: 1 Teilstück ohne Messstelle (nur Prognose)“, gemischt „A 8: 1 kurzer Abschnitt mit weniger als 3 Messpunkten · 2 Teilstücke ohne Messstelle (nur Prognose)“; der alte Wortlaut bleibt, wo nur gemessene Abschnitte gefaltet sind. Eine Autobahn nur aus Teilstücken hat von selbst ihre eigene Zeile: AF-2 gibt dem ersten die Kennung ohne Endung (`a36`), die Falt-Regel greift nur bei `-n` |
+| Detailspalte | Prognosepunkt-Karte mit „keine Messstelle an diesem Abschnitt“; ohne Lauf „Keine Messstelle an diesem Abschnitt. Fahrbahntemperatur und -zustand werden hier nicht gemessen. Die Wetterprognose … derzeit nicht verfügbar (‹Grund›)“ |
+| Reiter Strecke | jede Zeile ein Achspunkt (alle 5 km, `roadFcGapPoints`), Briefing „Keine Messstelle an diesem Abschnitt: …“ + „Prognose zur Ankunft“, Spalten „Prognosepunkt · Art“, eigener Hinweis ohne die Messpunkt-Sätze |
+| Mobil | Sheet „Keine Messstelle an diesem Abschnitt“, Einleitung mit Name aus der Laufdatei und Lauf, bis zu drei Prognosepunkte (kälteste Luft, nach km) mit Ankunftszeit, Knopf „Alle n Prognosepunkte“, Mini-Band nur als Prognose-Zeile |
+| Anker-Texte | ohne Datei „Messungs-Anker je nach Lauf“; ohne `engine.dense` der bisherige Wortlaut; mit `engine.dense.mode: 'all'` „verankert an den nächsten Wetterstationen (Messprodukt obs/v1, Stand HH:MM; Messung − Modell x K, Gewicht y %)“, an einer Messstelle zusätzlich die eigene Luftmessung, ein Punkt ohne `anc` „an diesem Punkt ohne Messungs-Anker“; Quellen-Reiter „jeder Punkt an den nächsten Wetterstationen verankert (Messprodukt obs/v1, Stand HH:MM, n Punkte)“, bei `mode: 'none'` der Grund aus der Datei |
+| Vertrag | `RoadFcEngine.dense?` (wortgleich zum Entwurf von AF-4 auf `af/dense-anchor`, damit beide Zweige ohne Konflikt zusammengehen), `RoadCorridor.gap?` — beide nur Typen |
+| Schreibweise | „A 64a“ (V-AF-26); andere Straßen behalten ihre Buchstaben („B 2R“) |
+
+Keine neue Farbe: `#3A6FA8` ist die bestehende Prognose-Farbe. Neue Regeln nur in `roadDeck.css` (10 Zeilen), keine neuen Breakpoints.
+
+#### 8.7.3 Prüfungen (zuerst rot gesehen, dann grün)
+
+`verify:road-ui` **82/82** (vorher 64/64): neuer Block **S** mit 18 Prüfungen, davon 6 ohne Browser (S1–S6) und 12 im Browser
+(S7–S17, S8b). Rot gesehen: 17/17 am Bau vor AF-5; S8b (Callout) am Bau vor seiner Korrektur.
+
+| Prüfung | Inhalt |
+|---|---|
+| S1 | Fixture: fünf echte Teilstücke, `gap: true` ⇔ keine Station; `isGapCorridor` |
+| S2 | Dock-Reihenfolge und Falt-Zeilen (eigene Zeile für a36/a995, sechs Wortlaute, alter Wortlaut unverändert) |
+| S3 | Kopf mit Name aus der Datei / mit Grund |
+| S4 | erster Achspunkt unabhängig von der Dateireihenfolge; jede Zeile ein Achspunkt; Gegenprobe: ein Abschnitt mit Stationen behält die alte Regel (≥ 5 Zeilen) |
+| S5 | Anker-Texte in neun Punkt- und fünf Lauf-Fällen (ohne Datei, ohne Anker, SWIS, dichter Satz an/aus) |
+| S6 | Schreibweise „A 64a“, „B 2R“ bleibt |
+| S7, S8 | A 995 am Desktop: Kopf, Pille, Band ohne Balken und Messpunkte, eine Zelle je Achspunkt, Legenden, nirgends eine Null-Zählung; Voreinstellung „A 995 · km 0“, URL ohne `st=` |
+| S8b | Callout frei von Pille und Zeitchips |
+| S9 / S13 | Karte: 1 611 Pixel in der Prognose-Farbe im Kartenfeld über dem Band; **Gegenprobe A 8: 0 Pixel**, Kopf „Messung 10:00“, Messbalken da |
+| S10 | Reiter Strecke |
+| S11 | Dock-Zeilen und vier Falt-Zeilen im Browser; acht gemessene Zeilen unverändert |
+| S12 | Lauf ohne / mit `engine.dense`: Quellen-Reiter und Prognosepunkt |
+| S14 | Autobahn nur aus Teilstücken (A 36): Falt-Zeile öffnet das zweite, Wahl ⇒ `/autobahnwetter/a36-2` |
+| S15 | Teilstück ohne Laufdatei: Grund in Kopf, Band, Detailspalte, Reiter Strecke; Zeitchips gesperrt |
+| S16 | Messung ausgefallen (alle Slots 404): die Prognose des Teilstücks bleibt |
+| S17 | Mobil 390 × 844: Pille, Sheet, Zeilen ≥ 44 px, Antippen wählt den Punkt, Mini-Band nur Prognose |
+
+**Gegenprobe des fertigen Verifiers am Bau vor AF-5:** 71/82 — rot S7, S8, S8b, S9, S10, S11, S12, S14, S15, S16, S17; grün bleiben
+S13 (die Gegenprobe selbst) und S1–S6 (sie prüfen die Module des Arbeitsbaums, nicht den ausgelieferten Bau).
+
+Eine bestehende Erwartung geändert: `verify:road-fc` J10 erwartete für `roadFcAnchorText(null, null)` „ohne Messungs-Anker“; nach §3
+AF-5 nennt der Text ohne Datei keinen Anker-Zustand („Messungs-Anker je nach Lauf“). Die vier anderen Texte der Prüfung unverändert.
+
+Weitere Gates: `verify:road-fc` 103/103 · `verify:road-contract` 111/111 · `verify:road-archive` 26/26 (Vertrag weiter importfrei) ·
+`verify:road-derive` 36/36 · `verify:road-decode` 15/15 · `verify:fusion-release` 30/30 · typecheck 0 · Build grün (SEO 255/255) ·
+Budget grün: totalJs 1 714,8 / 1 715 KB, eagerJs 109,6 / 109,7 (unverändert). Diese Etappe: **+1,35 KB gzip**, allein im lazy Chunk
+`RoadPage` (Vergleich beider Bauten Datei für Datei, kein anderer Chunk über 30 Byte verändert). Es bleiben 0,2 KB bis zur Grenze.
+
+#### 8.7.4 Vorher-Nachher auf den Bestandsbildern (Live-Korridore der Fixture)
+
+14 Bilder von `verify:road-ui --shots` (Desktop 1440 × 900 in neun Zuständen, mobil, Zustände ohne Daten), Bau vor AF-5 gegen Bau
+nach AF-5, Schwelle |ΔRGB| > 12. `src/road` des Ausgangsbaus ist wortgleich zu `main`.
+
+| Vergleich | Ergebnis |
+|---|---|
+| vorher gegen vorher (zwei Läufe, A/A) | 9 Bilder 0 Pixel; 5 Bilder 6 Pixel (Live-Punkt der Topbar pulsiert) und/oder ≈ 1 075 Pixel im Callout-Feld (392…569 × 294…354: der Callout sitzt von Lauf zu Lauf um einen Bruchteil eines Pixels anders) |
+| vorher gegen nachher | dieselben zwei Quellen und nur sie: 10 bzw. 7 Bilder 0 Pixel, der Rest 6 und/oder 1 061…1 081 Pixel im selben Feld |
+
+Außerhalb des Messrauschens also **0 Pixel** auf jedem Bestandsbild. Benannte Abweichungen, die an einem Live-Korridor auftreten
+können, in der Fixture aber nicht vorkommen: (a) der Callout hängt unter einem gewählten Punkt, der weniger als 94 px unter dem
+oberen Rand der Einpassung liegt (vorher: hinter Pille/Zeitchips); (b) „A 64a“ — die Autobahn gibt es in der Live-Datei nicht.
+
+Bilder der neuen Zustände: `audit/autobahn-fusion12-lueckenlos/af5/` (`vorher-*` = derselbe Zustand am Bau vor AF-5).
+
+#### 8.7.5 Was diese Etappe nicht sagt
+
+- **Kein echter Lauf** für ein Teilstück ohne Messstelle: die Lauf-Fixtures sind aus einem echten a8-Lauf in die Form des Producers
+  gebracht. Ob der Producer diese Punkte rechnet, ist AF-3.
+- **`engine.dense` schreibt noch kein Lauf** (AF-4 ist ein Entwurf auf `af/dense-anchor`): die Texte sind an gebauten Engine-Blöcken
+  geprüft (Form des Live-Laufs `2610110926` plus das Feld des Entwurfs). Ändert AF-4 das Feld, folgen Typ und Texte.
+- **Kein Real-Device.** Die Linienfarbe ist in headless Chromium mit SwiftShader geprüft, nicht auf einer echten GPU.
+- **Konsole:** geprüft sind ungefangene Ausnahmen in allen Abläufen (I1: keine); Warnungen der Konsole liest der Verifier nicht.
+- **Long Tasks** sind in headless-shell nicht messbar; neu sind nur Schleifen über die Achspunkte eines Korridors (≤ 15 in der Fixture).
+- `verify:road-ui` läuft nicht in CI (Browser nötig) — wie bisher.
+- Nicht geprüft: ein Teilstück, während eine Messstelle abseits der Autobahn gewählt ist (der bestehende Weg, unverändert).
+
+#### 8.7.6 Befunde und Verbesserungen
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AF-26 | „A 64A“ — **behoben** (S6) | richtige Schreibweise | `shieldText` |
+| V-AF-28 | Ortsnamen im Band überlappen, wenn zwei Orte am selben km liegen: **32 von 141 Live-Korridoren** und 21 von 68 Teilstücken (A 995: „München“ über „Unterhaching“ bei km 0). Bestand, nicht aus AF-5 | lesbares Band | Beschriftung auslassen, die näher als ≈ 6 % der Bandlänge an der vorigen liegt; Anfangs- und Endort des Abschnitts haben Vorrang. Ändert Bestandsbilder ⇒ eigener kleiner Schritt (E-AF-13) |
+| V-AF-29 | Callout hinter Pille und Zeitchips — **behoben** für Punkte am oberen Rand (S8b) | der gewählte Punkt ist lesbar | `CALLOUT_BELOW_PX` in `RoadMap.tsx` |
+| V-AF-30 | Nicht gewählte Teilstücke sehen auf der Karte aus wie gemessene Abschnitte (graue Grundlinie) | man sieht vor dem Klick, wo nur Prognose ist | gestrichelte Grundlinie für `gap` (eigene Ebene mit Filter) |
+| V-AF-31 | Die Streckentabelle eines langen Teilstücks nennt jede Zeile „Prognosepunkt“ (A 36: 15 Zeilen) | Orientierung | nächster Ort aus `towns` als Name |
+| V-AF-32 | `main` zählt in `verify:road-ui` A4 „12 Werkzeuge“ (Seewetter), dieser Zweig „11“ | grüner Verifier nach dem Zusammenführen | beim Merge mit `main` die Zeile von `main` nehmen; dabei Budget neu messen (0,2 KB Luft) |
+
+#### 8.7.7 Die fünf Selbstverifikations-Fragen
+
+1. **Funktionserhalt einzeln:** alle 64 bestehenden Prüfungen von `verify:road-ui` unverändert grün (Flag, Maße, Daten, Auswahl,
+   Zeitchips, Prognose, Zustände ohne Daten, mobil, R1–R9); `verify:road-fc` 103/103 mit einer benannten Erwartung (§8.7.3).
+2. **Desktop pixelgleich:** §8.7.4 — 0 Pixel außerhalb des Messrauschens auf 14 Bestandsbildern; A/A-Lauf als Maß des Rauschens.
+3. **Touch-Targets ≥ 44 px:** S17 (0 Bedienelemente darunter im Sheet und in der oberen Leiste eines Teilstücks), H2/H3 unverändert.
+4. **Konsole:** I1 — keine ungefangene Ausnahme in allen Abläufen einschließlich der zwölf neuen; Warnungen nicht gelesen (§8.7.5).
+5. **Long Tasks > 200 ms:** nicht messbar in headless-shell, nicht gemessen; keine neue Rechnung außer Schleifen über Achspunkte.

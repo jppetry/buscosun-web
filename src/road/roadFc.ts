@@ -209,6 +209,12 @@ export interface RoadFcEngine {
   anchorMode?: RoadFcAnchorMode;
   anchorSlot?: string | null;
   anchored?: number;
+  /**
+   * AF-4: the dense measurement set of `obs/v1` — again what the run DID: `mode: 'all'` with `builtAt` (stamp of the
+   * `latest.json` read) and `anchored` (points whose engine note names an anchor from it); `mode: 'none'` with the
+   * `reason` (switched off, product missing, too old). Absent = a run before AF-4.
+   */
+  dense?: { mode: 'all'; builtAt: string; anchored: number } | { mode: 'none'; reason: string };
   hourMean: boolean;
   /** Cube runs the run read, per tier, and the station product. */
   runs: Record<string, string | null>;

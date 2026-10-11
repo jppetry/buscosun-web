@@ -12,7 +12,7 @@ import {
 } from './roadFc';
 import type { RoadCorridor } from './roadClient';
 import { roadStampToMs } from './roadContract';
-import { BAND_REACH_KM, dec, f1, hm, kmIn, shieldText } from './roadView';
+import { BAND_REACH_KM, dec, f1, hm, isGapCorridor, kmIn, shieldText } from './roadView';
 import { FUSION_BRAND, fusionName, fusionVersionOfEngine } from '../pointForecast/fusion/fusionRelease';
 
 const H = 3_600_000;
@@ -148,6 +148,12 @@ export interface RoadFcCell {
 export const roadFcAxisPoints = (file: Pick<RoadFcFile, 'points'>) => file.points.filter((p) => p.kind === 'axis' && p.km != null);
 
 /**
+ * AF-5: colour of a section without a measuring station on the map — the forecast colour of the chart line and the
+ * forecast chips (`.aw-chip.is-fc`), never one of the road classes and none of the three air bands.
+ */
+export const ROAD_FC_LINE_COLOR = '#3A6FA8';
+
+/**
  * Forecast row of the band: one cell per axis point (every 5 km), reaching to the midpoint towards its neighbours but
  * never farther than `reachKm` — a lost point leaves a hole instead of stretching its neighbours over it.
  */
@@ -167,6 +173,13 @@ export function roadFcAxisName(c: Pick<RoadCorridor, 'road' | 'lengthKm'>, p: Pi
   return `${shieldText(c.road)} · km ${dec(kmIn(c as RoadCorridor, p.km ?? 0, dir), 0)}`;
 }
 export const isRoadFcAxisId = (id: string | null | undefined): id is string => !!id && id.includes('@');
+
+/** AF-5: default forecast point of a section without a measuring station — its first axis point (smallest km), whatever the order of the file. */
+export function firstRoadFcAxis(file: Pick<RoadFcFile, 'points'>): RoadFcPoint | null {
+  let best: RoadFcPoint | null = null;
+  for (const p of roadFcAxisPoints(file)) if (!best || (p.km as number) < (best.km as number)) best = p;
+  return best;
+}
 
 /** Default forecast point of a corridor without a selectable station: the coldest forecast air at `ms`. */
 export function defaultRoadFcAxis(file: Pick<RoadFcFile, 'points' | 't0Ms' | 'steps'>, ms: number): RoadFcPoint | null {
@@ -198,8 +211,10 @@ export function roadFcSeries(p: RoadFcPoint, run: RunShape, refMs: number, fromH
 }
 
 /** Axis points that stand in for a missing measurement in the route table: farther than the band reach from every
- *  station, on a full 10 km (`set`: a 100-km gap gives ten rows, not twenty). */
+ *  station, on a full 10 km (`set`: a 100-km gap gives ten rows, not twenty). AF-5: on a section without any station
+ *  the forecast points are all the table has — every one of them is a row. */
 export function roadFcGapPoints(c: Pick<RoadCorridor, 'stations'>, file: Pick<RoadFcFile, 'points'>): RoadFcPoint[] {
+  if (isGapCorridor(c)) return roadFcAxisPoints(file);
   return roadFcAxisPoints(file).filter((p) => {
     const km = p.km as number;
     return Math.round(km) % 10 === 0 && c.stations.every((s) => Math.abs(s.km - km) > BAND_REACH_KM);
@@ -240,10 +255,20 @@ export function roadFcTripText(trip: RoadFcTrip): string {
  * point (`anc`), not what the producer was asked for. The measured air is the station's own sensor at the road.
  */
 export function roadFcAnchorText(p: Pick<RoadFcPoint, 'anc'> | null, file: Pick<RoadFcFile, 'engine'> | null): string {
+  // AF-5: „ohne Messungs-Anker" only when the run file says so — without a file the text names no anchor state.
+  if (!file) return 'Messungs-Anker je nach Lauf';
   const a = p?.anc;
-  if (!a || !file || file.engine.anchor !== 'swis') return 'ohne Messungs-Anker';
   const slotMs = file.engine.anchorSlot ? roadStampToMs(file.engine.anchorSlot) : NaN;
   const at = Number.isFinite(slotMs) ? ` von ${hm(slotMs)}` : '';
+  const dense = denseSetText(file);
+  if (dense) {
+    // AF-4: the run handed every point the nearest stations of obs/v1; a point without `anc` got no temperature anchor from it.
+    if (!a) return 'an diesem Punkt ohne Messungs-Anker';
+    return a[2] === 1
+      ? `verankert an der Luftmessung dieser Messstelle${at} und an den nächsten Wetterstationen (${dense}; Messung − Modell ${f1(a[0] / 10)} K)`
+      : `verankert an den nächsten Wetterstationen (${dense}; Messung − Modell ${f1(a[0] / 10)} K, Gewicht ${a[1]} %)`;
+  }
+  if (!a || file.engine.anchor !== 'swis') return 'ohne Messungs-Anker';
   return a[2] === 1
     ? `verankert an der Luftmessung dieser Messstelle${at} (Messung − Modell ${f1(a[0] / 10)} K)`
     : `verankert an Messstellen im Umkreis${at} (Gewicht ${a[1]} %)`;
@@ -255,9 +280,21 @@ export function roadFcAnchorText(p: Pick<RoadFcPoint, 'anc'> | null, file: Pick<
  */
 export function roadFcAnchorSummary(file: Pick<RoadFcFile, 'engine'> | null): string {
   if (!file) return 'Messungs-Anker je nach Lauf';
-  if (file.engine.anchor !== 'swis') return 'dieser Lauf ohne Messungs-Anker';
-  const slotMs = file.engine.anchorSlot ? roadStampToMs(file.engine.anchorSlot) : NaN;
-  return `Messstellen an ihrer eigenen Luftmessung${Number.isFinite(slotMs) ? ` von ${hm(slotMs)}` : ''} verankert, Prognosepunkte der Achse ohne Anker`;
+  const e = file.engine;
+  const slotMs = e.anchor === 'swis' && e.anchorSlot ? roadStampToMs(e.anchorSlot) : NaN;
+  const own = `Messstellen${e.dense?.mode === 'all' ? ' zusätzlich' : ''} an ihrer eigenen Luftmessung${Number.isFinite(slotMs) ? ` von ${hm(slotMs)}` : ''}`;
+  const dense = denseSetText(file);
+  if (dense && e.dense?.mode === 'all') return `jeder Punkt an den nächsten Wetterstationen verankert (${dense}, ${e.dense.anchored} Punkte)${e.anchor === 'swis' ? `, ${own}` : ''}`;
+  const base = e.anchor === 'swis' ? `${own} verankert, Prognosepunkte der Achse ohne Anker` : 'dieser Lauf ohne Messungs-Anker';
+  return e.dense?.mode === 'none' ? `${base} — der Messsatz obs/v1 blieb in diesem Lauf aus (${e.dense.reason})` : base;
+}
+
+/** AF-4/AF-5: the dense measurement set a run used, with the stamp of the file it read — `null` when the run did not use it. */
+function denseSetText(file: Pick<RoadFcFile, 'engine'>): string | null {
+  const d = file.engine.dense;
+  if (!d || d.mode !== 'all') return null;
+  const ms = Date.parse(d.builtAt);
+  return `Messprodukt obs/v1${Number.isFinite(ms) ? `, Stand ${hm(ms)}` : ''}`;
 }
 
 /**
