@@ -234,6 +234,36 @@ add('P2 zweite Linie (sat) auf `main`: index.json trägt BEIDE Zeiger (static un
     a.runs === 2 && a.held === 1 && JSON.stringify(a.written) === '["2026101203"]' && d?.kind === 'glacier/melt-lead' && JSON.stringify(d.glaciers.map((g) => g.id)) === '["gl_ch_alpha"]' && !existsSync(join(outDir, '2026-10-11')) && runDay('2026101203') === '2026-10-12' && /ohne Leitgletscher/.test(empty ?? ''), JSON.stringify({ a, empty }));
 }
 
+// P15: the FIRST push of the branch from a sparse runner clone (orphan creation by plumbing): the branch holds ONLY the build, nothing of `main`
+{
+  const rem2 = join(tmp, 'remote2.git');
+  sh(tmp, 'init', '--bare', '-b', 'main', rem2);
+  const sd2 = join(tmp, 'seed2');
+  sh(tmp, 'clone', '-q', rem2, sd2); cfg(sd2);
+  writeFileSync(join(sd2, 'README.md'), '# data\n');
+  mkdirSync(join(sd2, 'obs', 'v1'), { recursive: true }); writeFileSync(join(sd2, 'obs', 'v1', 'latest.json'), '{"obs":1}\n');
+  mkdirSync(join(sd2, 'glacier', 'v1'), { recursive: true }); writeFileSync(join(sd2, 'glacier', 'v1', 'keep.json'), '{"x":1}\n');
+  sh(sd2, 'add', '-A'); sh(sd2, 'commit', '-q', '-m', 'init'); sh(sd2, 'push', '-q', 'origin', 'HEAD:main');
+  const S2 = join(tmp, 'runner-sparse2');
+  sh(tmp, 'clone', '-q', '--depth=1', '--no-checkout', `file://${rem2}`, S2); cfg(S2);
+  sh(S2, 'sparse-checkout', 'set', 'glacier'); sh(S2, 'checkout', '-q', 'main');
+  writeFileSync(join(S2, 'local-untracked.txt'), 'dev file\n');                    // an untracked file of a developer clone must survive
+  const body = '{"build":"20261011-1"}\r\n{"crlf":1}\n';                            // CRLF inside: the bytes must come out as they went in
+  const mk = () => src('orphan1', { 'static/20261011-1/catalog.json': body, 'static/20261011-1/outline/ch-west-L1.json': { a: 1 } });
+  const r = publishGlacier({ repoDir: S2, line: 'static', srcDir: mk(), message: 'glacier(static): first', indexPatch: { static: { build: '20261011-1' } }, ...fast });
+  sh(seed, 'fetch', '-q', rem2, '+refs/heads/*:refs/remotes/r2/*');
+  const names = sh(seed, 'ls-tree', '-r', '--name-only', 'r2/glacier').split('\n');
+  const exact = sh(seed, 'cat-file', '-p', `r2/glacier:${R}/static/20261011-1/catalog.json`) === body.trim();
+  const mainFiles = sh(seed, 'ls-tree', '-r', '--name-only', 'r2/main').split('\n');
+  add('P15 erster Push des Zweigs aus einem sparse Klon: der Zweig hat NUR die Dateien des Builds (README, obs/ und glacier/v1/keep.json von `main` sind nicht dabei), die Bytes sind unverändert (kein Zeilenenden-Filter), der Klon bleibt auf `main`, README und eine untracked Datei bleiben, `main` trägt nur den Zeiger',
+    r.pushed && r.static.created === true && JSON.stringify(names) === JSON.stringify([`${R}/static/20261011-1/catalog.json`, `${R}/static/20261011-1/outline/ch-west-L1.json`]) && exact
+    && sh(S2, 'rev-parse', '--abbrev-ref', 'HEAD') === 'main' && existsSync(join(S2, 'local-untracked.txt')) && existsSync(join(S2, 'README.md')) && !mainFiles.some((p) => p.includes('/static/')) && mainFiles.includes(`${R}/index.json`) && mainFiles.includes(`${R}/keep.json`) && mainFiles.includes('README.md'),
+    JSON.stringify({ names, exact, mainFiles }));
+  // a second run finds the branch and takes the normal path (nothing new)
+  const again = publishGlacier({ repoDir: S2, line: 'static', srcDir: mk(), message: 'glacier(static): again', indexPatch: { static: { build: '20261011-1' } }, ...fast });
+  add('P15b zweiter Lauf: der Zweig ist da, nichts Neues auf dem Zweig und am Zeiger', again.unchanged === true && again.static.unchanged === true, JSON.stringify({ u: again.unchanged }));
+}
+
 // W: the workflow templates (the data repos carry copies; GitHub itself is not available here) ---------------------------------------------------------------------------
 {
   const names = ['static', 'sat', 'melt', 'feed'];

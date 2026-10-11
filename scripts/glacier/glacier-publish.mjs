@@ -72,7 +72,7 @@ export function checkPackage(line, srcDir) {
   return { files, bytes: total };
 }
 
-const gitIn = (repoDir) => (...a) => execFileSync('git', ['-C', repoDir, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 }).trim();
+const gitIn = (repoDir, env = null) => (...a) => execFileSync('git', ['-C', repoDir, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024, ...(env ? { env: { ...process.env, ...env } } : {}) }).trim();
 const sleepSync = (ms) => execFileSync(process.execPath, ['-e', `setTimeout(()=>{}, ${ms})`]);
 const readJsonFile = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
@@ -95,6 +95,31 @@ export const GLACIER_POLICIES = Object.freeze({
 });
 
 /**
+ * First commit of an orphan branch WITHOUT touching the work tree, the index or HEAD of the clone: a temporary index, the blobs of `files` (bytes as they are —
+ * no line-ending filter), `write-tree`, `commit-tree`, push. (`git checkout --orphan` + `git rm` does not work in a sparse clone: `rm` leaves the entries of
+ * the other directories in the index, and they ended up in the first commit.)
+ */
+function createOrphan({ repoDir, remote, branch, root, srcDir, files, message, tag, log, beforePush, attempt, stage }) {
+  const gitDir = gitIn(repoDir)('rev-parse', '--absolute-git-dir');
+  const tmpIndex = join(gitDir, `glacier-orphan-index-${process.pid}`);
+  rmSync(tmpIndex, { force: true });
+  const git = gitIn(repoDir, { GIT_INDEX_FILE: tmpIndex });
+  try {
+    git('read-tree', '--empty');
+    for (const f of files) {
+      const blob = gitIn(repoDir)('hash-object', '-w', '--no-filters', '--', join(srcDir, f));
+      git('update-index', '--add', '--cacheinfo', `100644,${blob},${root}/${f}`);
+    }
+    const tree = git('write-tree');
+    const commit = git('commit-tree', tree, '-m', message);
+    if (beforePush) beforePush(attempt, stage);
+    gitIn(repoDir)('push', '--quiet', remote, `${commit}:refs/heads/${branch}`);
+    log(`${tag}Zweig ${branch} angelegt ${commit.slice(0, 8)} (${files.length} Dateien)`);
+    return { pushed: true, sha: commit, files: files.length, created: true };
+  } finally { rmSync(tmpIndex, { force: true }); }
+}
+
+/**
  * One push of one branch: every attempt starts from the CURRENT `remote/branch` (an orphan start if `orphanOk` and the branch does
  * not exist yet), copies `files`, prunes, patches the pointers (`pointers`), stages ONLY `root`, checks the staged paths, commits, pushes.
  */
@@ -109,8 +134,12 @@ function pushBranch({
     try {
       let exists = true;
       try { git('fetch', '--quiet', '--depth=1', remote, branch); } catch (e) { if (orphanOk && /couldn't find remote ref/.test(String(e.stderr))) exists = false; else throw e; }
-      if (exists) { git('checkout', '--quiet', '-B', branch, 'FETCH_HEAD'); git('reset', '--quiet', '--hard', 'FETCH_HEAD'); }
-      else { git('checkout', '--quiet', '--orphan', branch); try { git('rm', '-rf', '--quiet', '.'); } catch { /* empty tree */ } }
+      if (!exists) {   // the branch does not exist yet: its first commit is made with plumbing (see createOrphan); an orphan run has no pointers and nothing to prune
+        if (!files.length) throw Object.assign(new Error(`Zweig ${branch} fehlt und es gibt nichts anzulegen`), { fatal: true });
+        const r = createOrphan({ repoDir, remote, branch, root, srcDir, files, message, tag, log, beforePush, attempt, stage });
+        return { ...r, attempts: attempt };
+      }
+      git('checkout', '--quiet', '-B', branch, 'FETCH_HEAD'); git('reset', '--quiet', '--hard', 'FETCH_HEAD');
       const rootDir = join(repoDir, root);
       // 1. add/replace the files of this line (a changed file under the same name is replaced; nothing else is touched)
       for (const f of files) { const dst = join(rootDir, f); mkdirSync(dirname(dst), { recursive: true }); cpSync(join(srcDir, f), dst); }
