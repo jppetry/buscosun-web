@@ -398,6 +398,8 @@ def build(args):
     rep["steps"]["dem"] = dem_stats
     print("dem grids done", f"{time.time()-t0:.0f}s")
 
+    # 9c — snow-line climatology per class-A glacier from TSLA (needs the catalogue file, so it runs after the catalogue is written; see below)
+
     # 10 — series per region
     ch_len, ch_mass = ser.glamos_length(), ser.glamos_mass()
     series_by_reg = {}
@@ -571,6 +573,16 @@ def build(args):
     rows = [[e["id"], e["lat"], e["lon"], e["klass"], round(e["area"]["km2"], 4)] for e in cat]
     p = os.path.join(out_dir, "points.json")
     files["points.json"] = [wjson(p, {"schema": 1, "kind": "glacier/points", "build": build_id, "cols": ["id", "lat", "lon", "k", "km2"], "rows": rows}), 0]
+    # snow-line climatology (TSLA) — written next to the catalogue it is matched against
+    try:
+        import tsla_clima
+        if os.path.exists(tsla_clima.RAW + "tsla/TABLES.zip"):
+            tsla_clima.main(os.path.join(out_dir, "catalog.json"), out_dir)
+            for f in sorted(os.listdir(os.path.join(out_dir, "clima"))):
+                pth = os.path.join(out_dir, "clima", f)
+                files[f"clima/{f}"] = [os.path.getsize(pth), gz_size(pth)]
+    except Exception as e:  # the climatology is optional: a failure is a warning, never a missing catalogue
+        rep["warnings"].append(f"TSLA climatology not built: {e}")
     files["points.json"][1] = gz_size(p)
 
     # 13 — report

@@ -138,9 +138,13 @@ export function swirP01(p, clear) {
   v.sort((a, b) => a - b);
   return v[Math.floor(v.length * 0.01)];
 }
-export function sceneEncodingSuspect(p01s) {
+export function sceneEncodingSuspect(p01s, limit = 0.08) {
+  const m = medianP01(p01s);
+  return m != null && m >= limit;
+}
+export function medianP01(p01s) {
   const v = p01s.filter((x) => x != null).sort((a, b) => a - b);
-  return v.length >= 5 && v[Math.floor(v.length / 2)] >= 0.08;
+  return v.length >= 5 ? v[Math.floor(v.length / 2)] : null;
 }
 
 /** Share of the mask pixels (all, cloud or not) at/above an elevation. */

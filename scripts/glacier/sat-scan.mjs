@@ -17,7 +17,7 @@ import { join, dirname } from 'node:path';
 import { stacSearchAll, assetGeo, readWindow, cogHeader, makeTileCache, net } from './lib/s2cog.mjs';
 import { pixelBBox, rasterizeMask } from './lib/raster.mjs';
 import { pxToLonLat } from './lib/s2cog.mjs';
-import { reflect, evaluateGlacier, slaInRange, sceneEncodingSuspect, tileRedP05, tileOffsetOf, S2_SCALE, S2_OFFSET } from './lib/satcore.mjs';
+import { reflect, evaluateGlacier, slaInRange, sceneEncodingSuspect, medianP01, tileRedP05, tileOffsetOf, S2_SCALE, S2_OFFSET, S2_OFFSET_ON } from './lib/satcore.mjs';
 import {
   GLACIER_SAT_MIN_CLEAR, GLACIER_NDSI_SNOW, GLACIER_SNOW_GREEN_MIN, GLACIER_SNOW_COVERED_MIN, GLACIER_SNOW_FREE_MAX, GLACIER_SLA_MARGIN_M,
   glacierSatClass, demDecode, demSample, obsProblems, glacierObsPath, glacierSeasonPath, glacierDemFile, glacierFlagsMask, GLACIER_SEASON_COLS,
@@ -29,6 +29,8 @@ export const SAT_MAX_SCENE_CLOUD = 98;       // set: scenes with more cloud cove
 export const SAT_GLACIER_PARALLEL = 6;        // glaciers of one scene read in parallel (the tile cache de-duplicates shared blocks)
 export const SAT_COARSE_LEVEL = 3;            // 160 m SCL for the pre-filter
 export const SAT_COARSE_MIN_VALID = 0.4;      // set: share of coarse pixels around the glacier that must not be cloud/shadow
+export const SAT_FALLBACK_P01 = 0.095;         // window guard when the tile has no vegetation evidence: median B11 p01 at offset 0 from here ⇒ try −0.1
+export const SAT_CHECK_P01 = 0.12;             // window guard as a CHECK of the tile decision (bare ice reaches 0.08–0.10 without any offset)
 export const SAT_NEW_SNOW = { dSla: -150, dSnow: 0.3, withinDays: 10, months: [6, 10] };   // set: derived flag of the season series
 const ASSETS = ['scl', 'green', 'swir16', 'blue', 'red', 'nir', 'swir22'];
 const dayMs = 86_400_000;
@@ -100,43 +102,59 @@ export async function scanScene({ item, jobs, log = () => {} }) {
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const c = coarse.data[y * coarse.w + x]; n++; if (c !== 0 && c !== 1 && c !== 3 && c !== 8 && c !== 9 && c !== 10) ok++; }
     return n ? ok / n : 0;
   };
-  const out = { items: {}, skipped: [] };
-  const p01s = [];
   const sun = item.properties['view:sun_elevation'] ?? null;
   // DN offset of THIS tile-day, from the vegetation of the whole tile (coarse red against the coarse SCL; see satcore)
   const redIfd = await hdr('red');
   const redLv = [...redIfd].sort((a, b) => b.width - a.width)[SAT_COARSE_LEVEL + 1];
   const redCoarse = redLv && redLv.width === lv.width ? await readWindow(geo.red, 0, 0, redLv.width, redLv.height, { ifds: redIfd, level: SAT_COARSE_LEVEL + 1, cache }) : null;
   const veg = redCoarse ? tileRedP05(coarse.data, redCoarse.data) : { n: 0, p5: null };
-  const offset = tileOffsetOf(veg) ?? S2_OFFSET;
-  out.encoding = { vegPixels: veg.n, redP5: veg.p5, offset };
-  const one = async ({ g, prep }) => {
-    try {
-      const cv = coarseValid(prep);
-      if (cv < SAT_COARSE_MIN_VALID) { out.skipped.push({ id: g.id, reason: `bewölkt (grobe Maske, ${(cv * 100).toFixed(0)} % gültig)` }); return; }
-      const win = (k, level = 0) => hdr(k).then((i) => readWindow(geo[k], prep.px0, prep.py0, prep.px0 + prep.w, prep.py0 + prep.h, { ifds: i, level, cache }));
-      const [scl, green, swir] = await Promise.all([win('scl'), win('green', 1), win('swir16')]);
-      const pack = {
-        w: prep.w, h: prep.h, mask: prep.mask, elev: prep.elev, scl: scl.data,
-        green: reflect(green.data, S2_SCALE, offset), swir: reflect(swir.data, S2_SCALE, offset),
-      };
-      const need = async (p) => {
-        const [b, r, n, s2] = await Promise.all([win('blue', 1), win('red', 1), win('nir', 1), win('swir22')]);
-        p.blue = reflect(b.data, S2_SCALE, offset); p.red = reflect(r.data, S2_SCALE, offset); p.nir = reflect(n.data, S2_SCALE, offset); p.swir2 = reflect(s2.data, S2_SCALE, offset);
-      };
-      // albedo only for class A (the albedo anomaly of class B needs a multi-year baseline we do not have yet; 4 of 7 bands saved)
-      const res = await evaluateGlacier(pack, { klass: g.satClass, debris: g.debris, sunElevation: sun }, g.satClass === 'A' ? need : null);
-      if (res.skipped) { out.skipped.push({ id: g.id, reason: res.skipped }); return; }
-      const v = res.value;
-      if (v.sla != null && !slaInRange(v.sla, g.z)) { out.skipped.push({ id: g.id, reason: `Quarantäne: Schneegrenze ${v.sla} m außerhalb [${g.z[0]} − 300, ${g.z[2]} + 300]` }); return; }
-      out.items[g.id] = v;
-      p01s.push(res.swirP01);
-    } catch (e) { out.skipped.push({ id: g.id, reason: `Lesefehler: ${String(e.message ?? e).slice(0, 80)}` }); }
+  const tileOffset = tileOffsetOf(veg);
+
+  /** All glaciers of the scene at one DN offset. */
+  const runAll = async (offset) => {
+    const out = { items: {}, skipped: [] };
+    const p01s = [];
+    const one = async ({ g, prep }) => {
+      try {
+        const cv = coarseValid(prep);
+        if (cv < SAT_COARSE_MIN_VALID) { out.skipped.push({ id: g.id, reason: `bewölkt (grobe Maske, ${(cv * 100).toFixed(0)} % gültig)` }); return; }
+        const win = (k, level = 0) => hdr(k).then((i) => readWindow(geo[k], prep.px0, prep.py0, prep.px0 + prep.w, prep.py0 + prep.h, { ifds: i, level, cache }));
+        const [scl, green, swir] = await Promise.all([win('scl'), win('green', 1), win('swir16')]);
+        const pack = {
+          w: prep.w, h: prep.h, mask: prep.mask, elev: prep.elev, scl: scl.data,
+          green: reflect(green.data, S2_SCALE, offset), swir: reflect(swir.data, S2_SCALE, offset),
+        };
+        const need = async (p) => {
+          const [b, r, n, s2] = await Promise.all([win('blue', 1), win('red', 1), win('nir', 1), win('swir22')]);
+          p.blue = reflect(b.data, S2_SCALE, offset); p.red = reflect(r.data, S2_SCALE, offset); p.nir = reflect(n.data, S2_SCALE, offset); p.swir2 = reflect(s2.data, S2_SCALE, offset);
+        };
+        // albedo only for class A (the albedo anomaly of class B needs a multi-year baseline we do not have yet; 4 of 7 bands saved)
+        const res = await evaluateGlacier(pack, { klass: g.satClass, debris: g.debris, sunElevation: sun }, g.satClass === 'A' ? need : null);
+        if (res.skipped) { out.skipped.push({ id: g.id, reason: res.skipped }); return; }
+        const v = res.value;
+        if (v.sla != null && !slaInRange(v.sla, g.z)) { out.skipped.push({ id: g.id, reason: `Quarantäne: Schneegrenze ${v.sla} m außerhalb [${g.z[0]} − 300, ${g.z[2]} + 300]` }); return; }
+        out.items[g.id] = v;
+        p01s.push(res.swirP01);
+      } catch (e) { out.skipped.push({ id: g.id, reason: `Lesefehler: ${String(e.message ?? e).slice(0, 80)}` }); }
+    };
+    const queue = [...jobs];
+    await Promise.all(Array.from({ length: SAT_GLACIER_PARALLEL }, async () => { for (;;) { const j = queue.shift(); if (!j) return; await one(j); } }));
+    return { out, p01s, offset, p01: medianP01(p01s) };
   };
-  const queue = [...jobs];
-  await Promise.all(Array.from({ length: SAT_GLACIER_PARALLEL }, async () => { for (;;) { const j = queue.shift(); if (!j) return; await one(j); } }));
-  if (sceneEncodingSuspect(p01s)) return { error: `Kodierung unplausibel (B11 ohne dunkle Pixel bei Versatz ${offset}, Rot-p5 der Vegetation ${veg.p5})` };
-  return out;
+
+  // The tile evidence decides; the glacier-window guard is the CHECK of that decision (limit 0.12: bare ice alone reaches 0.08–0.10) or, when the tile has no
+  // evidence (too little vegetation in the swath), the fallback: try offset 0, and when the windows look shifted (median p01 ≥ 0.095) once more with −0.1.
+  let r = await runAll(tileOffset ?? S2_OFFSET);
+  let how = tileOffset == null ? 'fenster' : 'kachel';
+  if (tileOffset == null && r.p01 != null && r.p01 >= SAT_FALLBACK_P01) {
+    const r2 = await runAll(S2_OFFSET_ON);
+    if (r2.p01 != null && r2.p01 < SAT_FALLBACK_P01) { r = r2; how = 'fenster'; }
+  }
+  if (r.p01 != null && r.p01 >= (tileOffset == null ? SAT_FALLBACK_P01 : SAT_CHECK_P01)) {
+    return { error: `Kodierung unplausibel (B11-p01 ${r.p01.toFixed(3)} bei Versatz ${r.offset}, Rot-p5 der Vegetation ${veg.p5}, Entscheid ${how})` };
+  }
+  r.out.encoding = { vegPixels: veg.n, redP5: veg.p5, offset: r.offset, by: how, p01: r.p01 == null ? null : Math.round(r.p01 * 1000) / 1000 };
+  return r.out;
 }
 
 // --- season series -------------------------------------------------------------------------------------------------

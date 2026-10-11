@@ -179,7 +179,7 @@ if (T.full) {
   add('B3 ID-Ausnahmen mit Grund (GLAMOS-Ids ohne SGI2016-Umriss)', (rep.steps.idExceptions ?? []).every((e) => typeof e.reason === 'string' && e.reason.length > 20));
 } else {
   const FX = T.fx;
-  add('F1 Fixture: Katalogzeilen, Umrisse, Reihen, Höhenbänder, Projektion aus dem echten Bau vom ' + FX.from.takenAt.slice(0, 10), Object.keys(FX.catalogRows).length === 9 && Object.keys(FX.outline).length === 9 && FX.catalogCounts.n === 2203);
+  add('F1 Fixture: Katalogzeilen, Umrisse, Reihen, Höhenbänder, Projektion aus dem echten Bau vom ' + FX.from.takenAt.slice(0, 10), Object.keys(FX.catalogRows).length === 10 && Object.keys(FX.outline).length === 10 && FX.catalogCounts.n === 2203);
   const hy = Object.values(FX.hypso).flatMap((r) => Object.entries(r));
   add('F2 Höhenbänder der Fixture-Gletscher: z0 Vielfaches von 50, Summe ±25 % der Fläche (A/B)', hy.length >= 6 && hy.every(([id, h]) => h.z0 % 50 === 0 && (Object.values(FX.catalogRows).find((g) => g.id === id)?.klass === 'C' || Object.values(FX.catalogRows).find((g) => g.id === id)?.country === 'DE' || Math.abs(h.a.reduce((s, v) => s + v, 0) / Object.values(FX.catalogRows).find((g) => g.id === id).area.km2 - 1) < 0.25)));
   const pr = Object.values(FX.proj).flatMap((r) => Object.values(r));

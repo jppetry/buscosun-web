@@ -69,6 +69,19 @@ if (args.tree) {
 const killedSite = join(tmp, 'v1-killed');
 cpSync(site, killedSite, { recursive: true });
 writeFileSync(join(killedSite, 'status.json'), JSON.stringify({ ...JSON.parse(readFileSync(join(site, 'status.json'), 'utf8')), killed: true, killReason: 'Die Gletscher-Daten sind abgeschaltet (Prüfung).' }));
+// the satellite line: the same tree plus index.sat and the season documents (a real slice of the first scan window, scripts/lib/fixtures/glacier/sat-extract.json)
+const satFx = existsSync(join(HERE, 'lib', 'fixtures', 'glacier', 'sat-extract.json')) ? JSON.parse(readFileSync(join(HERE, 'lib', 'fixtures', 'glacier', 'sat-extract.json'), 'utf8')) : null;
+const satSite = join(tmp, 'v1-sat');
+cpSync(site, satSite, { recursive: true });
+if (satFx) {
+  const ix = JSON.parse(readFileSync(join(site, 'index.json'), 'utf8'));
+  writeFileSync(join(satSite, 'index.json'), JSON.stringify({ ...ix, sat: satFx.index }));
+  for (const [key, doc] of Object.entries(satFx.seasons)) {
+    const [year, region] = key.split('/');
+    mkdirSync(join(satSite, 'season', year, region), { recursive: true });
+    writeFileSync(join(satSite, 'season', year, region, `${doc.stand}.json`), JSON.stringify(doc));
+  }
+}
 const emptySite = join(tmp, 'v1-empty');
 mkdirSync(emptySite, { recursive: true });
 const item = (id) => items.find((i) => i.id === id);
@@ -88,7 +101,7 @@ if (!chrome) { console.error('kein chrome-headless-shell gefunden'); process.exi
 const browser = await openBrowser(chrome, { timeoutMs: 120_000, extraArgs: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const requested = [];
 
-async function openPage({ path, width = 1440, height = 900, mobile = false, root = site }) {
+async function openPage({ path, width = 1440, height = 900, mobile = false, root = site, clockMs = NOW }) {
   const ctx = await browser.newContext({ width, height, mobile });
   const errors = [];
   const off = browser.on(async (msg) => {
@@ -109,7 +122,7 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, root
   });
   await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*buscosun-glacier*' }] });
   await ctx.send('Network.setBypassServiceWorker', { bypass: true });
-  await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: clockScript(NOW) });
+  await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: clockScript(clockMs) });
   await ctx.send('Page.navigate', { url: `${BASE}${path}` });
   return { ctx, errors, off };
 }
@@ -234,6 +247,60 @@ const P = '/gletscher?gl=1';
   const back = await r2.ctx.evaluate(`({ q: document.getElementById('gl-suche')?.value, m: [...document.querySelectorAll('.gl-dock .gl-metric')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.querySelector('b')?.textContent), card: document.querySelector('.gl-card[data-glacier]')?.getAttribute('data-glacier') ?? '' })`);
   add('D7 Neuladen der URL stellt Suche, Metrik und Auswahl wieder her', back.q === 'Hintereis' && /Fläche/.test(back.m[0] ?? '') && /^gl_at_hintereisferner/.test(back.card), JSON.stringify(back));
   r2.off(); allErrors.push(...r2.errors); await r2.ctx.close();
+}
+
+
+// --- S: the satellite line ---------------------------------------------------------------------------------------------------
+if (satFx) {
+  const ids = Object.fromEntries(Object.entries(JSON.parse(readFileSync(join(HERE, 'lib', 'fixtures', 'glacier', 'static-extract.json'), 'utf8')).catalogRows).map(([k, g]) => [k, g]));
+  // the chip names the newest scene that carries a value for a glacier of the page (not every tile-day has one)
+  const newest = Object.values(satFx.seasons).flatMap((d) => Object.values(d.glaciers).map((rows) => rows[rows.length - 1][0])).sort().pop();
+  const dm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+  const seg = (g) => g.id.slice(3).replace('_', '-');
+  const SAT = (pathq) => ({ path: pathq, root: satSite });
+  {
+    const { ctx, errors, off } = await openPage({ ...SAT(P + '&m=ausaperung') });
+    await until(ctx, READY, 60_000);
+    await until(ctx, `document.querySelector('.gl-metric[aria-pressed="true"]')?.textContent.includes('Ausaperung')`, 20_000);
+    await sleep(800);
+    const r = await ctx.evaluate(`({
+      locked: document.querySelector('.gl-dock .gl-metric.is-locked') ? [...document.querySelectorAll('.gl-dock .gl-metric.is-locked b')].map((b) => b.textContent) : [],
+      aus: (() => { const b = [...document.querySelectorAll('.gl-dock .gl-metric')].find((x) => x.textContent.includes('Ausaperung')); return { disabled: b?.getAttribute('aria-disabled'), pressed: b?.getAttribute('aria-pressed') }; })(),
+      rows: [...document.querySelectorAll('.gl-dock .gl-rank li button')].map((b) => ({ name: b.querySelector('b')?.textContent, val: b.querySelector('.gl-r-v')?.textContent, origin: b.querySelector('.gl-r-v')?.getAttribute('data-origin') })),
+      chip: [...document.querySelectorAll('.gl-stand .gl-chip')].map((c) => c.textContent),
+      hint: document.querySelector('.gl-rank-head small')?.textContent ?? '', url: location.search,
+    })`);
+    const nums = r.rows.map((x) => Number(/(\d+) %/.exec(x.val ?? '')?.[1]));
+    add('S1 mit Satellitendaten: „Ausaperung“ ist nicht mehr gesperrt, nur „Schmelze“ bleibt es; die Rangliste nennt „% schneefrei“ mit Herkunft Satellit, größte Ausaperung zuerst', r.aus.disabled !== 'true' && r.aus.pressed === 'true' && r.locked.length === 1 && /Schmelze/.test(r.locked[0]) && r.rows.length >= 3 && r.rows.every((x) => x.origin === 'satellite' && /% schneefrei/.test(x.val ?? '')) && nums.every((v, i, a) => i === 0 || v <= a[i - 1]) && /größte Ausaperung zuerst/.test(r.hint), JSON.stringify({ aus: r.aus, locked: r.locked, rows: r.rows.slice(0, 3), hint: r.hint }));
+    const names = r.rows.map((x) => x.name).join(' | ');
+    add('S2 in der Rangliste stehen nur Klasse A und B außerhalb Deutschlands: weder Höllentalferner und Blaueis (DE) noch die Gletscher der Klasse C', !/Höllentalferner|Blaueis|Breithorn|namenlos|Aebeni|Ebenflue/i.test(names) && r.rows.length >= 3, names);
+    add('S3 Kopfzeile: „Sentinel-2 · jüngste Szene dd.mm.“ mit dem Datum der jüngsten Szene, nicht mehr „nicht aktiv“', r.chip.some((t) => t.includes(`Sentinel-2 · jüngste Szene ${dm(newest)}`)) && !r.chip.some((t) => /nicht aktiv/.test(t) && /Sentinel/.test(t)), r.chip.join(' | '));
+    await shot(ctx, 'ausaperung-desktop');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // the selected-glacier card per class
+  const cardOf = async (g) => {
+    const { ctx, errors, off } = await openPage({ ...SAT(`${P}&m=ausaperung&sel=${seg(g)}`) });
+    await until(ctx, `!!document.querySelector('.gl-card[data-glacier]')`, 60_000);
+    await sleep(500);
+    const c = await ctx.evaluate(`({ text: document.querySelector('.gl-card[data-glacier]')?.textContent ?? '', sat: document.querySelectorAll('.gl-card[data-glacier] .gl-chip.is-satellite').length })`);
+    off(); allErrors.push(...errors); await ctx.close();
+    return c;
+  };
+  const cA = await cardOf(ids.hef), cB = await cardOf(ids.bAt), cDe = await cardOf(ids.blaueis), cC = await cardOf(ids.dupCh);
+  add('S4 Karte eines Gletschers der Klasse A (Hintereisferner): Szene mit Datum, Schneeanteil, Schneegrenze in m und AAR, Albedo, Klaranteil — mit Herkunftsmarke Satellit', /Szene \d\d\.\d\d\.\d{4}: \d+ % schneefrei · Schneegrenze [\d.]+ m · AAR \d+ %/.test(cA.text) && /Albedo: Schnee/.test(cA.text) && /klar \d+ % der Fläche/.test(cA.text) && cA.sat >= 1, cA.text.slice(-330));
+  add('S5 Klasse B (Eis Ferner): Schneeanteil ja, Schneegrenze nein — keine Zahl für Schneegrenze, AAR oder Albedo, der Satz sagt es', /% schneefrei/.test(cB.text) && !/Schneegrenze \d/.test(cB.text) && !/AAR \d/.test(cB.text) && !/Albedo: Schnee/.test(cB.text) && /Schneegrenze nein/.test(cB.text), cB.text.slice(-300));
+  add('S6 Klasse C und Deutschland: keine Satellitenzahl, mit Grund (unter 0,1 km² / zu klein, es gelten die Zahlen der BAdW)', /keine Zahl für Gletscher unter 0,1 km² \(Klasse C\)/.test(cC.text) && /BAdW/.test(cDe.text) && !/schneefrei/.test(cC.text + cDe.text), `${cC.text.slice(-120)} || ${cDe.text.slice(-140)}`);
+  // 40 days later every scene is stale: no number, no colour — only the sentence
+  {
+    const late = Date.parse(`${newest}T12:00:00Z`) + 40 * 86_400_000;
+    const { ctx, errors, off } = await openPage({ path: `${P}&m=ausaperung&sel=${seg(ids.hef)}`, root: satSite, clockMs: late });
+    await until(ctx, `!!document.querySelector('.gl-card[data-glacier]')`, 60_000);
+    await sleep(800);
+    const r = await ctx.evaluate(`({ chip: [...document.querySelectorAll('.gl-stand .gl-chip')].map((c) => c.textContent), card: document.querySelector('.gl-card[data-glacier]')?.textContent ?? '', rows: document.querySelectorAll('.gl-dock .gl-rank li').length, empty: document.querySelector('.gl-dock .gl-empty')?.textContent ?? '' })`);
+    add('S7 40 Tage nach der jüngsten Szene: „keine klare Szene seit N Tagen“ im Kopf und in der Karte, keine Zahl (kein Prozent, keine Schneegrenze), die Rangliste ist leer', r.chip.some((t) => /Sentinel-2 · keine klare Szene seit 4\d Tagen/.test(t)) && /Satellit: keine klare Szene seit 4\d Tagen/.test(r.card) && !/% schneefrei/.test(r.card) && !/Schneegrenze \d/.test(r.card) && r.rows === 0 && /Keine Gletscher mit Wert/.test(r.empty), JSON.stringify(r).slice(0, 400));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
 }
 
 // --- E: states -------------------------------------------------------------------------------------------------
