@@ -4829,9 +4829,20 @@ Umsetzung 16/24 (rot: B2–B5, C2, D1, A11, E3), danach **24/24**, mit dem echte
 Der Publisher läuft in allen Prüfungen aus einem flachen Klon (`file://`), wie in der Action.
 `verify:repack` 346/347 — rot ist M3 (Text-Vertrag an `src/MapView.tsx`), an HEAD genauso.
 
-**Nicht geprüft:** der Push gegen GitHub selbst. Abnahme ist der erste `build`-Lauf nach Jans
-Push (`MANUELLE-SCHRITTE.md` §64). Rückweg: den Commit zurücknehmen — der Zustand davor ist dann
-wieder der von heute.
+**Abnahme gegen GitHub (11.10., nach Jans Push `1798fc5`, 08:43 UTC).** Von außen gelesen
+(Actions-API, Stände von `main` alle 5 s in einen Blob-losen Klon mitgeschrieben):
+
+| Lauf | Publish | Daten-Commit | Befund |
+|---|---|---|---|
+| 38128724365 (09z) | 10:06:54 → 10:08:43 UTC, grün | `383fdfbb` | Wurzel ohne Eltern, Index-Commit direkt darauf; 820 Indexdateien unter dem Commit; Zeiger stimmig; Läufe 21z/03z/06z/09z; gegenüber dem Stand davor (`38029fc2`) 6 552 fremde Dateien identisch, eigene Änderung −207 (`runs/2026101012`) +206 (`runs/2026101109`) |
+| 38136028185 (11:30-Slot) | 0 s, grün | — | Bestand vollständig, kein Publish (wie vorgesehen) |
+| 38140283272 (12z) | 13:07:24 → 13:09:13 UTC, grün | `1daea620` | wie oben; Läufe 03z/06z/09z/12z; Stand davor `30925972` (Radar-Commit von 13:07:33, **9 s nach Beginn des Schritts**) mit 6 434 fremden Dateien identisch im abgelegten Baum |
+
+Nach beiden Ablagen legten Radar, obs, road und road-fc innerhalb von Minuten weiter ab; jsDelivr
+`@main/index.json` nannte den neuen Commit. **Nicht gelesen:** die Logzeile
+`Abgelegt → … Versuch n/8` (Job-Logs brauchen eine Anmeldung) — ob der Radar-Commit im 12z-Lauf über
+den Klon oder über das Neuaufsetzen in den Baum kam, ist von außen nicht zu unterscheiden. Rückweg:
+den Commit zurücknehmen.
 
 ## 33.4 V-Einträge
 

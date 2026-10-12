@@ -2307,9 +2307,12 @@ Doku-Commit mit diesem Nachtrag — geht mit deinem nächsten Push mit, keine Ei
 
 ## 64. `build`-Job im Daten-Repo scheitert im Publish (V-BW-58, `audit/bandbreite.md` §33), 2026-10-11
 
-Gebaut und lokal geprüft, **uncommitted**: `scripts/publish-repack.mjs`, `scripts/verify-repack-publish.mjs` (neu),
-`scripts/verify-repack.mjs` (eine Text-Prüfung), `package.json` (Alias `verify:repack-publish`). Die Mails hören erst auf, wenn
-der Stand auf `main` liegt — der Workflow klont den Producer bei jedem Lauf aus `buscosun-web/main`.
+**Erledigt (11.10.):** von Jan gepusht (`1798fc5`, 08:43 UTC), abgenommen am 09z- und 12z-Lauf (beide grün, Ablage sauber,
+nichts Fremdes verändert; Belege `audit/bandbreite.md` §33.3). Offen nur noch §64.3.
+
+Gebaut und lokal geprüft: `scripts/publish-repack.mjs`, `scripts/verify-repack-publish.mjs` (neu),
+`scripts/verify-repack.mjs` (eine Text-Prüfung), `package.json` (Alias `verify:repack-publish`). Der Workflow klont den Producer
+bei jedem Lauf aus `buscosun-web/main`.
 
 ### 64.1 Deine Schritte
 
