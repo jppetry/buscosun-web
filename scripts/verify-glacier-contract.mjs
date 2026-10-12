@@ -145,7 +145,7 @@ add('F6 Tour-Wörter: begehbar, sicher, frei werden erkannt; „eisfrei“, „k
 add('F7 Herkunftszeichen: vier Werte mit deutscher Bezeichnung', C.GLACIER_ORIGINS.length === 4 && C.GLACIER_ORIGIN_LABEL.measured === 'gemessen' && C.GLACIER_ORIGIN_LABEL.satellite === 'Satellit' && C.GLACIER_ORIGIN_LABEL.model === 'Modell' && C.GLACIER_ORIGIN_LABEL.official === 'amtlich' && C.isGlacierOrigin('official') && !C.isGlacierOrigin('guess'));
 
 // --- L: flag -------------------------------------------------------------------------------------------------------------------------
-add('L1 GLACIER_LIVE steht auf false (Jans Gate nach Gate D)', GLACIER_LIVE === false);
+add('L1 GLACIER_LIVE an (Jan 13.10.: „schalte sie aktiv“) — ohne Parameter sichtbar, noindex bleibt bis Gate D (routes.ts)', GLACIER_LIVE === true && glacierFlagFrom('', null) === true);
 add('L2 Flag: Query vor localStorage vor Voreinstellung; ohne alles aus', glacierFlagFrom('', null, false) === false && glacierFlagFrom('?gl=1', null, false) === true && glacierFlagFrom('?gl=0', '1', true) === false && glacierFlagFrom('', '1', false) === true && glacierFlagFrom('', '0', true) === false && glacierFlagFrom('?gl=x', null, false) === false && glacierFlagFrom('', null, true) === true);
 add('L3 3D-Rückfall `?gl3d=0`', glacier3dFrom('?gl3d=0') === false && glacier3dFrom('') === true && glacier3dFrom('?gl3d=1') === true);
 

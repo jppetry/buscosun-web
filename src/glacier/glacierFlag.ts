@@ -2,13 +2,14 @@
  * Phase GL — visibility of the glacier page (`audit/gletscher.md`). Dependency-free on purpose: the start page, the shared
  * deck rail and the route import it; the contract does not (it carries only data rules).
  *
- * `GLACIER_LIVE` stays `false` until Jan switches it on after Gate D (plan §2 merge path, step 5): tile, palette entry, rail
- * icon and page exist only for a visitor with `?gl=1` (remembered in `localStorage.gl`); `?gl=0` hides them again
+ * `GLACIER_LIVE` was `false` until Jan switched it on (2026-10-13, before Gate D — tile/page visibility only,
+ * see audit/gletscher.md §0/§9 for Gate B1/C status): tile, palette entry, rail icon and page are now visible to
+ * every visitor; `?gl=0` (remembered in `localStorage.gl`) still lets a visitor opt back out
  * (D-31 pattern: the query beats localStorage, localStorage beats the default).
  */
 
-/** Off until Gate D — never switched on by the stage-1 session. */
-export const GLACIER_LIVE = false;
+/** On since 2026-10-13 (Jan: "schalte sie aktiv"). Page stays `noindex` until Gate D (routes.ts). */
+export const GLACIER_LIVE = true;
 
 /** `?gl=0|1` beats `localStorage.gl`, which beats `GLACIER_LIVE`. */
 export function glacierFlagFrom(

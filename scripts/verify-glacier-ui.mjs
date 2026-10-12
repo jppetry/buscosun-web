@@ -9,7 +9,7 @@
  * official items) — or read from a full local build with `--tree=` — and served by request interception for
  * `…/buscosun-data@main/glacier/v1/*`, `…@glacier/glacier/v1/*` (the static builds) and raw.githubusercontent. Basemap tiles come from the network (no checked content).
  *
- *   A  flag gate: GLACIER_LIVE is false ⇒ page, tile 13 and rail item exist only with `?gl=1`; noindex on the page
+ *   A  flag gate: on for everyone since 13.10. (GLACIER_LIVE) — page and start-page tile 13 without parameter, `?gl=0` hides; noindex on the page stays until Gate D
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · map 728
  *   C  data: official sentences VERBATIM with date and source link; origin chip at every number; reference year at every area
  *   D  state: land, metric, search, selection ⇒ URL and back; locked metrics cannot be chosen
@@ -149,25 +149,26 @@ const P = '/gletscher?gl=1';
 
 // --- A: flag gate ------------------------------------------------------------------------------------------
 {
-  const { ctx, errors, off } = await openPage({ path: '/gletscher' });
+  // Jan 13.10.: the flag is on for everyone (GLACIER_LIVE); `?gl=0` stays the per-visitor switch-off.
+  const { ctx, errors, off } = await openPage({ path: '/gletscher?gl=0' });
   const notFound = await until(ctx, `!!document.querySelector('h1') && /nicht gefunden|404/i.test(document.body.innerText) && !document.querySelector('.gl-root')`, 20_000);
-  add('A1 ohne ?gl=1: /gletscher antwortet wie ein unbekannter Pfad (GLACIER_LIVE = false)', notFound);
+  add('A1 mit ?gl=0: /gletscher antwortet wie ein unbekannter Pfad (Ausschalter je Besucher bleibt)', notFound);
+  off(); allErrors.push(...errors); await ctx.close();
+}
+{
+  const { ctx, errors, off } = await openPage({ path: '/?gl=0' });
+  await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
+  await sleep(800);
+  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Gletscher/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '' })`);
+  add('A2 Startseite mit ?gl=0: keine Gletscher-Kachel, Zähler „12 Werkzeuge“', !r.tile && /12/.test(r.count) && !/13/.test(r.count), JSON.stringify(r));
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
   const { ctx, errors, off } = await openPage({ path: '/' });
   await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
   await sleep(800);
-  const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Gletscher/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '' })`);
-  add('A2 Startseite ohne Schalter: keine Gletscher-Kachel, Zähler „12 Werkzeuge“', !r.tile && /12/.test(r.count) && !/13/.test(r.count), JSON.stringify(r));
-  off(); allErrors.push(...errors); await ctx.close();
-}
-{
-  const { ctx, errors, off } = await openPage({ path: '/?gl=1' });
-  await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
-  await sleep(800);
   const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Gletscher/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); return { tile: !!t, eyebrow: t?.querySelector('.tile-eyebrow')?.textContent ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '', w: b ? Math.round(b.width) : 0, overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
-  add('A3 Startseite mit ?gl=1: Kachel „13 · GLETSCHER“ sichtbar, Zähler 13, kein Überlauf', r.tile && /13/.test(r.eyebrow ?? '') && /13/.test(r.count) && r.w > 200 && !r.overflow, JSON.stringify(r));
+  add('A3 Startseite ohne Parameter (Flag an für alle, GLACIER_LIVE): Kachel „13 · GLETSCHER“ sichtbar, Zähler 13, kein Überlauf', r.tile && /13/.test(r.eyebrow ?? '') && /13/.test(r.count) && r.w > 200 && !r.overflow, JSON.stringify(r));
   await shot(ctx, 'home-tile-desktop');
   off(); allErrors.push(...errors); await ctx.close();
 }
