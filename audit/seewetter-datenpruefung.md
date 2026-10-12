@@ -125,7 +125,7 @@ Alle sind WMO-Bulletins: Steuerzeichen SOH (`0x01`) am Anfang, ETX (`0x03`) am E
 | buscosun Fusion 8 / ICON-D2, ICON-EU | Wind, Böen, Sicht, Gewitter je Punkt | vorhanden | Windquelle; Abdeckung des Würfels über See in SW-0 prüfen |
 | DWD POI `weather/weather_reports/poi/` | Arkona 10091 liefert stündlich (u. a. Böen, Sicht); Feuerschiffe UFS Deutsche Bucht 10007 und UFS TW Ems 10004 lieferten am 07.10. nur `---` | GeoNutzV | „gemessen jetzt“ an der Küste |
 | PEGELONLINE (WSV) | gemessener Wasserstand an Küstenpegeln | DL-DE Zero 2.0 | Ausbau SW-8 |
-| BSH Wasserstandsvorhersage, Gezeiten | Vorhersage | Lizenz nicht geprüft | blockiert, nur Deep-Link |
+| BSH Wasserstandsvorhersage, Gezeiten | Vorhersage | **CC BY 4.0** (EU High-Value-Dataset, ohne Registrierung, kommerziell) — am 12.10.2026 geklärt | **eingebaut**, Phase WL (`audit/wasserstand-bsh.md`): Pegel auf der Karte, Kurve und Hoch-/Niedrigwasser je Pegel |
 | MeteoSchweiz SwissMetNet, GeoSphere TAWES | Wind und Böen an Seestationen | CC BY 4.0 | Seen-Ausbau |
 | Sturmwarnleuchten Bodensee, bayerische Seen | Status der Leuchten | nicht offen | blockiert |
 | DWD CAP-Warnungen | ob Küsten- und Binnenseewarnungen enthalten sind, offen | GeoNutzV | SW-0 |

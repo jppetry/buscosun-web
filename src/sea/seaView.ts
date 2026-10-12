@@ -153,7 +153,7 @@ export const dryHourText = (region: 'nordsee' | 'ostsee') => (region === 'nordse
   : 'Modellzelle in dieser Stunde ohne Seegang (flaches Ufer)');
 export function dryNote(region: 'nordsee' | 'ostsee', dryHours: number, hours: number, cellKm: number, classed = true): string {
   const share = `in ${dryHours} der nächsten ${hours} Stunden`;
-  const tail = ` Im Stundenband steht dann ${DRY_GLYPH} statt einer Wellenhöhe${classed ? ', und die Stunde wird nicht nach deinem Profil eingeordnet' : ''}. Der Wasserstand selbst wird hier nicht gezeigt (BSH-Vorhersage gesperrt); die Modellzelle liegt ${f1(cellKm)} km vom Spot.`;
+  const tail = ` Im Stundenband steht dann ${DRY_GLYPH} statt einer Wellenhöhe${classed ? ', und die Stunde wird nicht nach deinem Profil eingeordnet' : ''}. Den Wasserstand selbst zeigt die Karte „Wasserstand“ am nächsten BSH-Pegel; die Modellzelle liegt ${f1(cellKm)} km vom Spot.`;
   return region === 'nordsee'
     ? `Watt: die Wasserzelle dieses Spots fällt im Wellenmodell mit der Gezeit trocken — ${share} gibt es dort keinen Seegang.${tail}`
     : `Flaches Ufer: an der Wasserzelle dieses Spots gibt das Wellenmodell ${share} keinen Seegang aus — es rechnet die Zelle dann als zu flach oder trocken.${tail}`;

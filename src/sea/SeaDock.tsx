@@ -1,7 +1,8 @@
 /**
  * SW-5/SW-6 — Dock of Seewetter (design `reference/seewetter-desktop.dc.html`, left column 250 px): search, Revier
  * chips, profile chips with the limits (visible and editable, stored locally — plan SW-6), spot list with the class at
- * the chosen hour, layers, switches, the blocked water-level source and the data situation per region.
+ * the chosen hour, layers, switches (WL-4: the water level of the BSH among them, on by default — E-WL-1)
+ * and the data situation per region.
  */
 import { useId, useState } from 'react';
 import { SEA_PROFILES, SEA_PROFILE_BY_ID, limitsChanged, limitsSummary, type SeaClass, type SeaLimits, type SeaProfileId } from './seaProfiles';
@@ -9,7 +10,7 @@ import { CLASS_COLOR, CLASS_SHORT, LAYER_LABEL } from './seaView';
 import { SEA_LAYERS, SEA_REVIERE, type SeaLayer, type SeaRevier } from './seaState';
 
 export interface SeaDockSpot { id: string; name: string; sub: string; cls: SeaClass; reason: string }
-export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean }
+export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean }
 
 interface Props {
   query: string; onQuery: (q: string) => void;
@@ -37,6 +38,7 @@ export default function SeaDock(p: Props) {
     ['wind', 'Wind an den Spots', 'buscosun Fusion · Pfeile'],
     ['warn', 'Warnstatus Küste', 'DWD Seewetterdienst · Gebiete'],
     ['stations', 'Messstationen', 'DWD · Wind und Böen gemessen'],
+    ['water', 'Wasserstand-Vorhersage', 'BSH · Pegel, CC BY 4.0'],
   ];
   return (
     <aside className="sw-dock" aria-label="Spots, Profil und Ebenen">
@@ -103,16 +105,12 @@ export default function SeaDock(p: Props) {
             <span className="sw-switch" aria-hidden="true"><span /></span>
           </button>
         ))}
-        <div className="sw-toggle is-blocked" aria-disabled="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-          <span className="sw-toggle-body"><span className="sw-toggle-label">Wasserstand-Vorhersage</span><span className="sw-toggle-sub">blockiert · BSH-Lizenz ungeklärt</span></span>
-        </div>
       </div>
 
       <div className="sw-dock-data">
         <div className="sw-eyebrow">Datenlage je Revier</div>
         <div className="sw-data-grid">
-          <strong>Küste DE</strong><span><b className="is-full">voll</b> · CWAM 900 m, Seewetterbericht, Warnstatus, Messung</span>
+          <strong>Küste DE</strong><span><b className="is-full">voll</b> · CWAM 900 m, Seewetterbericht, Warnstatus, Messung, Wasserstand</span>
           <strong>Europa</strong><span><b className="is-later">Stufe 2</b> · EWAM 5 km, ohne Warnung des Ziellands</span>
           <strong>DACH-Seen</strong><span><b className="is-later">keine Welle</b> · nicht im DWD-Bestand</span>
         </div>

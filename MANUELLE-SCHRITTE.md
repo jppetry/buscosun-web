@@ -2470,3 +2470,75 @@ eine Zelle, die bei Hochwasser nass ist (25–46 % statt 86–92 % der Stunden o
 - Offen: V-SW-22 (echte 1–4 cm stehen weiter als „0,0 m“), V-SW-23 (Kartenfeld malt trockene Zellen wie 0 m), V-SW-25 (Ostsee:
   Ursache des Zustands nicht belegt), V-SW-28 (Katalog unter festem `@main`-Pfad: Browser-Cache 7 Tage — Katalog am Commit
   lesen). V-SW-27 erledigt (totalJs-Grenze 1 720).
+
+---
+
+## 66. Wasserstandsvorhersage des BSH auf `/seewetter` (Phase WL) — Lizenz geklärt, Daten eingebaut, 2026-10-12
+
+Belege: `audit/wasserstand-bsh.md` (§3 die API gemessen, §5 Entscheidungen E-WL-1…9a, §8 Umsetzung mit Gates,
+§9 Befunde V-WL-1…11). Dein Auftrag vom 12.10.: Status „blockiert / Lizenz ungeklärt" aufheben, Daten
+einbauen. **Lizenz CC BY 4.0**, EU High-Value-Dataset, ohne Registrierung, kommerziell nutzbar — in jeder
+Antwort des Dienstes belegt (`licence` und `copyright` je Datensatz), nicht nur auf der Portalseite.
+
+Deine zwei Entscheidungen in der Sitzung: die Anzeige ist **voreingestellt an** (`?wl=0` schaltet aus) —
+bewusste Ausnahme zur Regel „neue Rechenpfade default-off", im Audit als E-WL-1 festgehalten; und die **Lage**
+der 136 Pegel kommt als kompakter Spiegel aus dem Daten-Repo, die **Kurven** live aus der offiziellen API
+(E-WL-2).
+
+Alles liegt **uncommitted** im Arbeitsbaum. Gates: `verify:sea-waterlevel` 55/55 netzfrei und 60/60 mit
+`--live`, `verify:sea-ui` 62/62, sea-contract 30/30, sea-text 35/35, sea-derive 69/69, sea-decode 13/13,
+typecheck 0, Build 256/256, Budget grün (totalJs-Ratsche von Hand 1 720 → 1 726, Notiz in `budget.json`).
+
+### 66.1 Kopie ins Daten-Repo `jppetry/buscosun-data`
+
+Paket: **`C:\dev\buscosun-sea-publish\2026-10-12-wl\`** (mit eigener `README.md`). Die Reihenfolge ist frei —
+der neue Workflow-Schritt überspringt sich selbst, solange der Producer nicht auf `buscosun-web/main` liegt.
+
+1. `sea/v1/static/gauges.json` → `buscosun-data/sea/v1/static/gauges.json` (neu, 57,7 KB / 10,3 KB gz,
+   sha256 `f6ddb4630a81c3d349138499624ad69e032544092cca89ea5cd82a4671cf342c`, gebaut 12.10. 15:4x UTC aus der
+   offiziellen API: 136 Pegel, 82 Nordsee / 54 Ostsee, 0 verworfen).
+   Die Prüfsumme gilt für den Inhalt mit LF (`git show HEAD:<pfad> | sha256sum`); im Klon vorher
+   `git config core.autocrlf false`.
+2. `workflow-sea.yml` → `buscosun-data/.github/workflows/sea.yml` (ersetzt die bestehende Datei, +19 Zeilen:
+   ein Schritt „Gauges" vor dem Publish, `continue-on-error`, und der Schritt zählt in die Fehlerzeile am
+   Ende). sha256 der Vorlage `dc87624f4ea7de1ccbddfc75aea833bf0e1d5b17cd56a01818485121457987b3`.
+3. Commit, Push **ohne Force**. Ab dem nächsten Lauf (alle 15 min) hält der Workflow den Katalog selbst
+   aktuell und schreibt nur bei Änderung — der Katalog ist Stammdaten, er ändert sich fast nie.
+
+### 66.2 Push von `buscosun-web/main`
+
+Erst danach rechnet der Browser den Pegel-Layer und die Karte „Wasserstand" bei allen Besuchern. **Bis dahin
+ist die Sperre im UI zwar weg, aber die Pegel-Ebene bleibt leer** und die Karte sagt den Grund („Der
+Pegelkatalog liegt noch nicht im Daten-Repo — bis dahin zeigt die Karte keine Pegel. Die Quelle selbst ist
+freigeschaltet."). Nichts rechnet falsch, nichts behauptet etwas.
+
+### 66.3 Abnahme nach dem Push
+
+- `npm run verify:sea-waterlevel -- --live` (fragt den echten Dienst: CORS, Form, Lizenz an allen 136
+  Datensätzen, Katalog von heute gegen alle Regeln).
+- `/seewetter` ansehen: Pegel-Rauten auf der Karte, Karte „Wasserstand · amtlich (BSH)" im Spot-Reiter mit
+  Verlauf, Hoch-/Niedrigwasserzeiten, beiden Zeitstempeln und der Attribution. Gegenprobe `?wl=0` — Karte und
+  Rauten weg, Schalter bleibt im Dock.
+- Reiter „Quellen": die Zeile sagt jetzt „erlaubt · CC BY 4.0 (EU High-Value-Dataset, ohne Registrierung,
+  kommerziell nutzbar) · ausschließlich über die offizielle OGC API" statt „blockiert".
+
+### 66.4 Was du ansehen solltest (keine Blocker)
+
+- **V-WL-9 Real-Device.** Das Diagramm (gemessen / Vorhersage / Gezeit mit MThw-MTnw-Linien) und die
+  Ereignisliste sind nur in headless Chromium gesehen.
+- **V-WL-3 der Warnfall war nie live.** Am 12.10. stand an allen 136 Pegeln die Normalkategorie
+  „Wasserstandsvorhersage". Der Sturmflut-Pfad ist mit formtreuen, aber erfundenen Fällen geprüft; wie er in
+  echt aussieht, siehst du erst bei einer Sturmflut. Entscheidung E-WL-6 dazu: die Kategorie wird **nur
+  zitiert**, mit dem Zusatz der BSH-Doku, dass sie für die Nordsee bzw. Ostsee gilt und nicht pegelgenau, und
+  der Link auf `sturmflutwarndienst.de` steht **immer** in der Karte. buscosun warnt nicht.
+- **V-WL-10 der Schalterblock des Docks liegt unterhalb der Faltung** (Dock `scrollHeight` 3 541 bei 840
+  sichtbar) — das gilt für alle vier Schalter und ist Bestand. Weil die Anzeige voreingestellt an ist,
+  braucht niemand den Schalter; ein Umbau des Docks wäre eine eigene Phase.
+- **V-WL-8, der Befund, der die Anzeige geformt hat:** die **amtliche** Höhe eines Hoch-/Niedrigwassers reicht
+  nur etwa einen Tag voraus. Danach trägt an 39 von 82 Nordsee-Pegeln nur die automatische Modellvorhersage
+  (MOS) eine Zahl, an den anderen 43 gar keine. Die Karte zeigt beides getrennt — „amtlich" mit ±,
+  „automatisch (MOS r0)" ohne, oder „nur Zeit, kein Wert". Wenn dir das zu viel Detail ist, sag es, dann
+  kürze ich die Liste auf die amtlichen Zeiten.
+- **PEGELONLINE** (gemessener Wasserstand, DL-DE Zero 2.0) bleibt offen — E-SW-7 nennt es als Ausbau. Der
+  BSH-Datensatz trägt an 83 von 136 Pegeln einen Deep-Link auf die PEGELONLINE-Stammdaten; die Messreihe
+  selbst käme aus der Kurve des BSH (`measurement`), die wir schon zeichnen.

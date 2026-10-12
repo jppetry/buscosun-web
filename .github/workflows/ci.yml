@@ -146,6 +146,11 @@ jobs:
       # echten Auszug des Produkts (audit/obs-fusion.md).
       - name: Verifier — Stationsmessungen aus obs/v1 (Leser)
         run: npm run verify:obs-reader
+      # WL: Wasserstandsvorhersage des BSH (CC BY 4.0) — Endpunkt-Disziplin, Parser gegen die gemessenen
+      # Typfallen, Katalogregeln, Zitierregeln fuer Kategorie und Text, Attribution, Schalter. Netzfrei
+      # gegen echte Antworten dreier Pegel (audit/wasserstand-bsh.md); --live fragt den Dienst, nicht in CI.
+      - name: Verifier — Wasserstand BSH
+        run: npm run verify:sea-waterlevel
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

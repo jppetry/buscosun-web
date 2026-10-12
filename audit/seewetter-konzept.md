@@ -165,7 +165,7 @@ Wind, Messung und Gewitter kommen aus Quellen, die buscosun schon nutzt; offen i
 | DWD Radar und Blitze | Gewitter an der Küste | vorhanden | nutzbar |
 | DWD CAP-Warnungen | amtliche Warnungen; ob Küsten- und Binnenseewarnungen darin stehen, ist offen | GeoNutzV | im Spike prüfen; CAP-Profil auf dwd.de ist für meine Werkzeuge gesperrt |
 | [PEGELONLINE](https://www.pegelonline.wsv.de/webservice/ueberblick) (WSV) | gemessener Wasserstand an Küstenpegeln | DL-DE Zero 2.0 | nutzbar, Ausbau „Wasserstand“ |
-| BSH Wasserstandsvorhersage, Gezeiten | Vorhersage | Lizenz nicht geprüft | blockiert bis zur Klärung, nur Deep-Link |
+| BSH Wasserstandsvorhersage, Gezeiten | Vorhersage | **CC BY 4.0**, geklärt 12.10.2026 | **eingebaut**, Phase WL (`audit/wasserstand-bsh.md`) |
 | MeteoSchweiz SwissMetNet, GeoSphere TAWES | Wind und Böen an Seestationen (Bodensee, Zürichsee, Neusiedler See) | CC BY 4.0 | nutzbar für den Seen-Ausbau |
 | Sturmwarnleuchten Bodensee und bayerische Seen | Status der Leuchten | nicht offen | blockiert; Logik erklären, auf DWD und Kantone verlinken |
 
@@ -348,7 +348,7 @@ Das größte Risiko ist das Vertrauen: Wer „passt“ liest, fährt raus. Darum
 | E-SW-4 | Ingest der Felder | Produkt im Radar-Spiegel, wenn der Spike Laufzeit und Speicher als unkritisch misst; sonst eigener Workflow `sea.yml` (Stand Plan) |
 | E-SW-5 | Spot-Katalog | eigene kuratierte Liste im Repo; OSM nur bei Freigabe von ODbL |
 | E-SW-6 | DACH-Seen | eigene Stufe nach Gate C, ohne Welle |
-| E-SW-7 | Wasserstand | PEGELONLINE als Ausbau, BSH-Vorhersage erst nach Lizenzklärung |
+| E-SW-7 | Wasserstand | PEGELONLINE als Ausbau, BSH-Vorhersage erst nach Lizenzklärung — **erledigt 12.10.2026**: Lizenz CC BY 4.0, Phase WL hat die BSH-Vorhersage eingebaut (`audit/wasserstand-bsh.md`); PEGELONLINE bleibt offen |
 | E-SW-8 | Kachel-Platz | Kachel 12, volle Breite am Ende |
 | E-SW-9 | Einheit | Knoten als Voreinstellung, Bft und km/h umschaltbar |
 

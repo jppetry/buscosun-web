@@ -1044,3 +1044,58 @@ Archiv: 2024-01-01 und 2025-09-05 vorhanden, 2020-01-01 nicht. Reforecast: `noaa
 serverseitiges **räumliches** Subsetting — ein Feld ist global und atomar. Für ECMWF-ENS ergibt
 das rund **197 GB je Lauf** (7 Variablen × 51 Member × 85 Schritte × 0,65 MB). Der Ensembleteil
 gehört deshalb in einen Actions-Batch mit statischem Quantil-Artefakt, nicht in den Browser.
+
+---
+
+### 8.10 BSH Wasserstandsvorhersage (OGC API Features) — *✅ IN BENUTZUNG (Phase WL 2026-10-12, `src/sea/waterLevel.ts`)*
+
+**Status: erlaubt.** Lizenz **CC BY 4.0**, EU **High-Value-Dataset**, kostenlos, **ohne Registrierung**,
+kommerzielle Nutzung ausdrücklich gedeckt. Beleg in der Quelle selbst: `collections?f=json` → `description`
+(„can be obtained free of charge and without registration and reused under the 'CC BY 4.0' licence"), dazu
+`licence` und `copyright` an **jedem** Datensatz — der Producer bricht ab, wenn das nicht mehr so ist.
+Diagnose, Messwerte und Entscheidungen: `audit/wasserstand-bsh.md`.
+
+| | |
+|---|---|
+| Dienst | `https://gdi.bsh.de/ldproxy/rest/services/WaterLevelForecast` (ldproxy, OGC API Features) |
+| Collection | `waterlevelforecastdata` — die einzige des Dienstes, `itemCount` 136 |
+| Alle Pegel | `…/collections/waterlevelforecastdata/items?f=json&lang=de` → 500 KB gz / 5,66 MB JSON in 1,8 s |
+| Ein Pegel | `…/items/{id}?f=json&lang=de` → 1,5–10,2 KB gz in 0,2 s (`id` z. B. `cuxhaven_steubenhoeft`) |
+| Parameterdoku | `https://www2.bsh.de/aktdat/wvd/api/parameter_documentation.pdf` (Stand 27.05.2026) |
+| CORS | **offen**: `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST`, `ETag` exponiert — auf Collection **und** Einzel-Items geprüft. Kein Edge-Proxy |
+| Projektion | CRS84 (WGS84 lon/lat), Punktgeometrien; BBox des Dienstes 6,747778 / 53,073056 … 14,7317 / 55,016667 |
+| Formate | GeoJSON (`f=json`) und FlatGeoBuf (`f=fgb`). Wir lesen JSON |
+| Abdeckung | **nur DE** (Nord- und Ostseeküste), 82 Nordsee / 54 Ostsee |
+| Takt | zwei Stempel je Pegel: `forecast_timestamp` (amtlich, ≈ 4×/Tag) und `automated_curveforecast_timestamp` (Modellkurve, stündlich oder häufiger — gemessen 13 min alt, während die amtliche 4 h alt war) |
+| Retention | **keine Historie.** Die Antwort trägt ein Fenster um „jetzt": Messreihe 8–34 h zurück, Vorhersage bis median +54,6 h (max +134 h). `datetime` filtert Features, nicht die Reihen ⇒ kein Rückblick, keine Animation |
+| Rate-Limit | keines erkennbar (8 Einzelabrufe in Folge je 200, 0,198–0,222 s). Wir fragen trotzdem nur einen Pegel je Auswahl, mit 10-min-TTL |
+
+**Fallen, am Dienst gemessen:**
+
+- Ohne `lang=` antwortet `…/collections?f=json` mit **301** auf `lang=en`, und der Redirect-Hop trägt
+  **keine** CORS-Header. Jede URL nennt daher `lang=de` (V-WL-1).
+- **Gemischte Typen im selben Objekt:** `tidal_prediction`, `measurement`, `tidal_prediction_value` sind
+  **Strings** (`"685"`), `forecast_value`, `forecast_uncertainty`, `automated_curve_forecast` **Zahlen**;
+  `forecast_deviation` ist ein deutsch formatierter String (`"+0,2 m"`), `state` kann `"nan"` sein (V-WL-2).
+- **`properties=` wird mit 400 abgelehnt** (Antwort nennt die gültigen Parameter) — keine schlanke
+  Feldauswahl am Server. Deshalb spiegelt der Producer die 136 Lagen in `buscosun-data`
+  `sea/v1/static/gauges.json` (≈ 10 KB gz) und der Browser holt nur die **Kurve** des gewählten Pegels live
+  (V-WL-4, E-WL-2).
+- **Blöcke fehlen je Pegel:** `curve` an 43 von 136 gar nicht, `high_water_low_water` an 54 nicht; 7 ohne
+  mittleres Hochwasser. Ein Paar MThw/MTnw von `0/0` ist ein Platzhalter, Gleichstand bei echter Höhe ist in
+  der tidenlosen Ostsee legitim (V-WL-7).
+- **Die amtliche Höhe endet nach ≈ +21 h.** Darüber trägt nur `mos_forecast_r0_value` … `r5_value` eine Zahl
+  (39 von 82 Pegeln, bis +134 h; 732 von 1 863 Ereignissen nur MOS). `forecast_uncertainty` gibt es nur zum
+  amtlichen Wert. Beides wird getrennt angezeigt, jede Zahl mit Herkunft (V-WL-8).
+
+**Pflichten im UI (umgesetzt, `verify:sea-waterlevel` G5/E5):** Attribution „Wasserstandsvorhersage:
+Bundesamt für Seeschifffahrt und Hydrographie (BSH), CC BY 4.0, eigene Darstellung" mit Link auf die Lizenz
+**und** die Quelle; der Gewährleistungsausschluss des BSH im Wortlaut; der Hinweis, dass die amtliche
+Veröffentlichung des BSH verbindlich ist, nicht unsere Darstellung. Die amtliche Warnkategorie
+(`official_warning_level_region`, Tab. 5) wird **nur zitiert**, nie aus einer Schwelle gerechnet, und trägt
+den Zusatz der Parameterdoku, dass sie für die Nordsee bzw. Ostsee gilt, **nicht pegelgenau**. Warnungen
+verweisen auf `https://www.sturmflutwarndienst.de` — buscosun warnt nicht.
+
+**Nur die OGC API.** `wasserstand.bsh.de` wird ausschließlich als Deep-Link je Pegel verlinkt, nie abgerufen;
+interne Endpoints unter `www2.bsh.de/aktdat/…` werden nicht benutzt (die Parameterdoku ist ein Link).
+`verify:sea-waterlevel` C1–C3 prüft das am Quelltext, mit Gegenprobe.

@@ -3,7 +3,8 @@
  * field coloured on the CPU (`seaView.colourField`, mercator rows) and handed to MapLibre as an IMAGE source — no
  * shader of our own (plan SW-5). On top: wave arrows (where the waves go), DWD sea areas/coast sections with the
  * warning status, the spots as dots in the class colour of the chosen profile (hatched = no data, never like "passt"),
- * DWD POI stations as rings, and — switch — buscosun Fusion wind arrows at the spots (the WAM model wind is never shown).
+ * DWD POI stations as rings, the BSH water level gauges as diamonds (WL-4, switch, on by default), and —
+ * switch — buscosun Fusion wind arrows at the spots (the WAM model wind is never shown).
  * Without a usable run (dead/killed) there is no surface at all.
  */
 import { useEffect, useRef } from 'react';
@@ -23,6 +24,8 @@ const CLASSES: SeaClass[] = ['passt', 'knapp', 'ausserhalb', 'keine'];
 
 export interface SeaMapSpot { id: string; name: string; lon: number; lat: number; cls: SeaClass; windTo: number | null; windKn: number | null }
 export interface SeaMapStation { id: string; name: string; lon: number; lat: number }
+/** WL-4: a BSH gauge of `sea/v1/static/gauges.json`; `sel` marks the one the readout shows. */
+export interface SeaMapGauge { id: string; name: string; lon: number; lat: number }
 export interface SeaMapArea { feature: SeaAreaFeature; status: 'none' | 'unknown' | 'nostatus' }
 
 interface Props {
@@ -32,6 +35,9 @@ interface Props {
   spots: readonly SeaMapSpot[];
   selectedId: string | null;
   stations: readonly SeaMapStation[] | null;
+  gauges: readonly SeaMapGauge[] | null;
+  selectedGaugeId: string | null;
+  onGauge?: (id: string) => void;
   areas: readonly SeaMapArea[] | null;
   showWind: boolean;
   padding: { top: number; bottom: number; left: number; right: number };
@@ -54,6 +60,20 @@ function dotImage(cls: SeaClass, big: boolean): ImageData {
   } else { g.fillStyle = CLASS_COLOR[cls]; g.fill(); }
   g.beginPath(); g.arc(px / 2, px / 2, r, 0, Math.PI * 2); g.lineWidth = 3; g.strokeStyle = '#0B0E12'; g.stroke();
   if (big) { g.beginPath(); g.arc(px / 2, px / 2, r + 3, 0, Math.PI * 2); g.lineWidth = 2.5; g.strokeStyle = '#FAF6EA'; g.stroke(); }
+  return g.getImageData(0, 0, px, px);
+}
+/**
+ * WL-4: a gauge is a diamond, so it is never mistaken for a spot (dot) or a DWD station (ring) — the three
+ * live on the same map. Teal like every BSH value on this page.
+ */
+function gaugeImage(sel: boolean): ImageData {
+  const px = sel ? 26 : 20, c = document.createElement('canvas');
+  c.width = px; c.height = px;
+  const g = c.getContext('2d')!;
+  const r = sel ? 8.5 : 6.5, m = px / 2;
+  g.beginPath(); g.moveTo(m, m - r); g.lineTo(m + r, m); g.lineTo(m, m + r); g.lineTo(m - r, m); g.closePath();
+  g.fillStyle = '#0F6E7A'; g.fill();
+  g.lineWidth = sel ? 2.5 : 1.8; g.strokeStyle = sel ? '#FAF6EA' : '#0B0E12'; g.stroke();
   return g.getImageData(0, 0, px, px);
 }
 function ringImage(): ImageData {
@@ -85,7 +105,7 @@ async function fieldUrl(field: Uint8ClampedArray): Promise<string> {
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const TRANSPARENT_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABNtCI3QAAAABJRU5ErkJggg==';
 
-export default function SeaMap({ field, arrows, spots, selectedId, stations, areas, showWind, padding, onSelect, onMap, callout }: Props) {
+export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, showWind, padding, onSelect, onMap, callout }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
@@ -93,8 +113,10 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, are
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
-  const latest = useRef({ field, arrows, spots, selectedId, stations, areas, showWind });
-  latest.current = { field, arrows, spots, selectedId, stations, areas, showWind };
+  const onGaugeRef = useRef(onGauge);
+  onGaugeRef.current = onGauge;
+  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind });
+  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind };
 
   useEffect(() => {
     if (!box.current) return;
@@ -108,6 +130,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, are
       if (mapRef.current !== map) return;
       for (const k of CLASSES) { map.addImage(`sw-dot-${k}`, dotImage(k, false), { pixelRatio: 2 }); map.addImage(`sw-dot-${k}-sel`, dotImage(k, true), { pixelRatio: 2 }); }
       map.addImage('sw-ring', ringImage(), { pixelRatio: 2 });
+      map.addImage('sw-gauge', gaugeImage(false), { pixelRatio: 2 });
+      map.addImage('sw-gauge-sel', gaugeImage(true), { pixelRatio: 2 });
       map.addImage('sw-wave', arrowImage('#F3EDDF', 2), { pixelRatio: 2 });
       map.addImage('sw-wind', arrowImage('#FAF6EA', 2.8), { pixelRatio: 2 });
       const labels = map.getStyle()?.layers?.find((l) => l.type === 'symbol')?.id;
@@ -120,6 +144,14 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, are
       map.addLayer({ id: 'sw-arrows', type: 'symbol', source: 'sw-arrows', layout: { 'icon-image': 'sw-wave', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-size': ['*', 0.85, ['get', 's']], 'icon-allow-overlap': true, 'icon-ignore-placement': true }, paint: { 'icon-opacity': 0.7 } });
       map.addSource('sw-stations', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'sw-stations', type: 'symbol', source: 'sw-stations', layout: { 'icon-image': 'sw-ring', 'icon-allow-overlap': true } });
+      map.addSource('sw-gauges', { type: 'geojson', data: EMPTY });
+      map.addLayer({
+        id: 'sw-gauges', type: 'symbol', source: 'sw-gauges',
+        layout: { 'icon-image': ['case', ['==', ['get', 'sel'], 1], 'sw-gauge-sel', 'sw-gauge'], 'icon-allow-overlap': true, 'symbol-sort-key': ['get', 'sel'] },
+      });
+      map.on('click', 'sw-gauges', (e) => { const id = e.features?.[0]?.properties?.id; if (id) onGaugeRef.current?.(String(id)); });
+      map.on('mouseenter', 'sw-gauges', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'sw-gauges', () => { map.getCanvas().style.cursor = ''; });
       map.addSource('sw-wind', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'sw-wind', type: 'symbol', source: 'sw-wind', layout: { 'icon-image': 'sw-wind', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-size': 1.15, 'icon-offset': [0, -16], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
       map.addSource('sw-spots', { type: 'geojson', data: EMPTY });
@@ -155,6 +187,9 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, are
       type: 'FeatureCollection',
       features: s.spots.filter((p) => p.windTo != null).map((p) => ({ type: 'Feature', properties: { rot: p.windTo }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
     });
+    (map.getSource('sw-gauges') as maplibregl.GeoJSONSource | undefined)?.setData(!s.gauges ? EMPTY : {
+      type: 'FeatureCollection', features: s.gauges.map((p) => ({ type: 'Feature', properties: { id: p.id, sel: p.id === s.selectedGaugeId ? 1 : 0 }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
+    });
     (map.getSource('sw-stations') as maplibregl.GeoJSONSource | undefined)?.setData(!s.stations ? EMPTY : {
       type: 'FeatureCollection', features: s.stations.map((p) => ({ type: 'Feature', properties: { id: p.id }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
     });
@@ -163,7 +198,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, are
     });
   }
 
-  useEffect(sync, [arrows, spots, selectedId, stations, areas, showWind, field]);
+  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, field]);
 
   // Field image: redrawn only when the coloured field changes.
   useEffect(() => {

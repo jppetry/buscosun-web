@@ -1,0 +1,125 @@
+{
+ "at": "2026-10-12T16:45:07.316Z",
+ "head": "http://127.0.0.1:5213",
+ "cur": "http://127.0.0.1:5212",
+ "clock": "2026-10-12T15:30:00Z",
+ "threshold": 12,
+ "spot": "cuxhaven-duhnen",
+ "scenarios": [
+  {
+   "name": "spot",
+   "head": "/seewetter/cuxhaven-duhnen?tab=spot",
+   "cur": "/seewetter/cuxhaven-duhnen?tab=spot&wl=0",
+   "size": "1440×900",
+   "boxes": {
+    "ganze": {
+     "px": 1490,
+     "of": 1296000,
+     "pct": 0.11
+    },
+    "rail": {
+     "px": 0,
+     "of": 55800,
+     "pct": 0
+    },
+    "topbar": {
+     "px": 0,
+     "of": 82680,
+     "pct": 0
+    },
+    "dock": {
+     "px": 0,
+     "of": 210000,
+     "pct": 0
+    },
+    "karte": {
+     "px": 0,
+     "of": 611520,
+     "pct": 0
+    },
+    "readout": {
+     "px": 1490,
+     "of": 336000,
+     "pct": 0.44
+    }
+   }
+  },
+  {
+   "name": "quellen",
+   "head": "/seewetter/cuxhaven-duhnen?tab=quellen",
+   "cur": "/seewetter/cuxhaven-duhnen?tab=quellen&wl=0",
+   "size": "1440×900",
+   "boxes": {
+    "ganze": {
+     "px": 60423,
+     "of": 1296000,
+     "pct": 4.66
+    },
+    "rail": {
+     "px": 0,
+     "of": 55800,
+     "pct": 0
+    },
+    "topbar": {
+     "px": 0,
+     "of": 82680,
+     "pct": 0
+    },
+    "dock": {
+     "px": 0,
+     "of": 210000,
+     "pct": 0
+    },
+    "karte": {
+     "px": 0,
+     "of": 611520,
+     "pct": 0
+    },
+    "readout": {
+     "px": 60423,
+     "of": 336000,
+     "pct": 17.98
+    }
+   }
+  },
+  {
+   "name": "dock-schalter",
+   "head": "/seewetter/cuxhaven-duhnen?tab=spot",
+   "cur": "/seewetter/cuxhaven-duhnen?tab=spot&wl=0",
+   "scrollDock": true,
+   "size": "1440×900",
+   "boxes": {
+    "ganze": {
+     "px": 9255,
+     "of": 1296000,
+     "pct": 0.71
+    },
+    "rail": {
+     "px": 0,
+     "of": 55800,
+     "pct": 0
+    },
+    "topbar": {
+     "px": 0,
+     "of": 82680,
+     "pct": 0
+    },
+    "dock": {
+     "px": 7765,
+     "of": 210000,
+     "pct": 3.7
+    },
+    "karte": {
+     "px": 0,
+     "of": 611520,
+     "pct": 0
+    },
+    "readout": {
+     "px": 1490,
+     "of": 336000,
+     "pct": 0.44
+    }
+   }
+  }
+ ]
+}

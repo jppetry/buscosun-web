@@ -10,7 +10,12 @@ import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
 import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
 import { fmtWind, unitLabel, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
-import { WindChart, SeaStateChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
+import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
+import {
+  WL_ATTRIBUTION_PRE, WL_ATTRIBUTION_POST, WL_CURVE_STALE_MS, WL_FORECAST_STALE_MS, WL_LICENCE, WL_LICENCE_URL,
+  WL_MOS_WHY, WL_REGION_LABEL, WL_SERVICE_PAGE, WL_WARN_SERVICE, wlAt, wlCurveEnd, wlHasCategory, wlNextEvents,
+  type WlForecast, type WlGauge,
+} from './waterLevel';
 import { BFT_ROWS, CLASS_COLOR, CLASS_LABEL, DRY_VALUE, compass16, dateTime, dayDate, dryHourText, dryNote, f1, hm, hh, utcHm, dayShort } from './seaView';
 import type { SeaTab } from './seaState';
 
@@ -41,6 +46,8 @@ interface Props {
   warning: { coast: WodlCoast | null; area: WodlSeaArea | null; status: 'none' | 'unknown'; why: string };
   /** V-SW-20: hours of the shown axis without sea state at the spot's cell, and whether such hours stay unclassified. */
   dry: { hours: number; of: number; classed: boolean };
+  /** WL-4: water level at the nearest BSH gauge; `null` = switched off (`?wl=0`). */
+  waterLevel: SeaWaterLevel | null;
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
@@ -129,7 +136,7 @@ export default function SeaReadout(p: Props) {
             </div>
             {p.dry.hours > 0
               ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
-              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe, der Wasserstand selbst wird hier nicht gezeigt (BSH-Vorhersage gesperrt). Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
+              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt die Karte „Wasserstand“ weiter unten, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
           </>
         )}
       </Card>
@@ -156,6 +163,7 @@ export default function SeaReadout(p: Props) {
           </div>
         </Card>
       )}
+      {p.waterLevel && <WaterLevelCard wl={p.waterLevel} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} />}
       <OfficialCard spot={s} texts={p.texts} warning={p.warning} onArea={() => p.onTab('gebiet')} nowMs={p.nowMs} />
       <Card cls="is-cream">
         <div className="sw-eyebrow is-measured">Gemessen an der Küste</div>
@@ -180,8 +188,190 @@ export default function SeaReadout(p: Props) {
       </div>
       {p.tab === 'spot' && (s ? spotTab : <div className="sw-empty">Spot wählen — in der Liste, auf der Karte oder über die Suche.</div>)}
       {p.tab === 'gebiet' && <AreaTab spot={s} texts={p.texts} nowMs={p.nowMs} />}
-      {p.tab === 'quellen' && <SourcesTab spot={s} run={p.run} spotsDoc={p.spotsDoc} texts={p.texts} freshness={p.freshness} />}
+      {p.tab === 'quellen' && <SourcesTab spot={s} run={p.run} spotsDoc={p.spotsDoc} texts={p.texts} freshness={p.freshness} wl={p.waterLevel} />}
     </aside>
+  );
+}
+
+/**
+ * WL-4 — Water level at the nearest BSH gauge (`audit/wasserstand-bsh.md` §6). Three rules shape this card:
+ *
+ *  - **E-WL-6** the official category is only ever QUOTED, never derived from a threshold of ours, and it is
+ *    labelled with what the BSH's own parameter documentation says about it: it holds for the North Sea resp.
+ *    the Baltic, not for this gauge. The official warning service is linked, always — buscosun never warns.
+ *  - **E-WL-8** the forecast text is the published wording, markup removed, with its issue time and its
+ *    scope (the coastal area, not the single gauge — 6 texts cover all 136 gauges).
+ *  - **E-WL-9** numbers stay in cm above gauge zero, as delivered; the reference heights of the SAME gauge
+ *    stand next to them instead of a conversion of ours.
+ */
+export interface SeaWaterLevel {
+  state: 'loading' | 'missing' | 'error' | 'ok';
+  gauge: WlGauge | null;
+  km: number | null;
+  doc: WlForecast | null;
+  /** Why there is nothing to show — named, never silent. */
+  why: string | null;
+}
+
+/** The service sends centimetres, sometimes with a half (12.5) — German decimal comma, no invented digits. */
+const cmText = (cm: number) => cm.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+
+const WL_STALE = (doc: WlForecast, nowMs: number) => ({
+  curve: doc.curveAt != null && nowMs - doc.curveAt > WL_CURVE_STALE_MS,
+  forecast: doc.forecastAt != null && nowMs - doc.forecastAt > WL_FORECAST_STALE_MS,
+});
+
+function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number; nowMs: number }) {
+  const doc = wl.doc, g = wl.gauge;
+  const head = (
+    <div className="sw-card-head">
+      <span className="sw-eyebrow is-accent-dark">Wasserstand · amtlich (BSH)</span>
+      <span className="sw-unit">cm über Pegelnull</span>
+    </div>
+  );
+  if (wl.state !== 'ok' || !doc) {
+    return (
+      <Card cls="is-cream">
+        {head}
+        <div className="sw-note">
+          {wl.state === 'loading' ? 'Wasserstand lädt …'
+            : wl.state === 'missing' ? (wl.why ?? 'Der Pegelkatalog liegt noch nicht im Daten-Repo — bis dahin zeigt die Karte keine Pegel.')
+              : (wl.why ?? 'Die Wasserstandsvorhersage des BSH ist derzeit nicht lesbar. Das heißt nicht, dass der Wasserstand unauffällig ist.')}
+        </div>
+        <WaterLevelFooter doc={null} />
+      </Card>
+    );
+  }
+
+  const category = wlHasCategory(doc);
+  const stale = WL_STALE(doc, nowMs);
+  const at = wlAt(doc.curve, selMs);
+  const shown = at?.forecast ?? at?.measured ?? null;
+  const curveEnd = wlCurveEnd(doc.curve);
+  // The page's hour axis reaches +78 h, the BSH curve about +54 h — beyond it there is no value, and that is
+  // what the card says instead of repeating the last one.
+  const beyond = shown == null && curveEnd != null && selMs > curveEnd;
+  const events = wlNextEvents(doc.events, nowMs, 4);
+  const window = doc.curve.filter((pt) => pt.t >= nowMs - 6 * 3_600_000 && pt.t <= nowMs + 48 * 3_600_000);
+  const refs = [
+    g?.zeroNhnCm != null && g.zeroNhnCm !== 0 ? `Pegelnull ${Math.abs(g.zeroNhnCm)} cm ${g.zeroNhnCm < 0 ? 'unter' : 'über'} NHN` : null,
+    doc.mhwCm != null ? `MThw ${doc.mhwCm} cm` : null,
+    doc.mlwCm != null ? `MTnw ${doc.mlwCm} cm` : null,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <Card cls="is-cream">
+      {head}
+      <div className="sw-official-meta">
+        Pegel {doc.name}{wl.km != null ? ` · ${f1(wl.km)} km vom Spot` : ''}{doc.area ? ` · ${doc.area}` : ''} · {WL_REGION_LABEL[doc.region]}
+      </div>
+
+      {category && (
+        <div className="sw-wl-cat">
+          <strong>{category}</strong>
+          <span>
+            Kategorie des BSH, wörtlich. Sie gilt laut BSH für die {WL_REGION_LABEL[doc.region]}, nicht für diesen
+            Pegel. Warnungen gibt der <a href={WL_WARN_SERVICE} target="_blank" rel="noreferrer">Sturmflutwarndienst</a> —
+            buscosun warnt nicht.
+          </span>
+        </div>
+      )}
+
+      <div className="sw-vals">
+        <div>
+          <span>{at && at.forecast == null && at.measured != null ? 'Gemessen · zur gewählten Stunde' : 'Vorhersage · zur gewählten Stunde'}</span>
+          <strong>{shown == null ? '–' : `${cmText(shown)} cm`}</strong>
+        </div>
+        <div><span>Bezug dieses Pegels</span><strong>{refs || '– (keine Bezugshöhen)'}</strong></div>
+      </div>
+      {beyond && (
+        <p className="sw-note">Der Verlauf des BSH reicht bis {dayShort(curveEnd!)} {hm(curveEnd!)} Uhr — für die gewählte Stunde gibt es dort keinen Wert. Die Hoch- und Niedrigwasserzeiten unten reichen weiter.</p>
+      )}
+
+      {events.length > 0 && (
+        <>
+          <ul className="sw-wl-events">
+            {events.map((e) => {
+              // V-WL-8: the official height reaches about a day ahead. Beyond it only the automatic MOS
+              // forecast carries a number — shown, but never as the official one (provenance rule).
+              const official = e.forecast != null;
+              const cm = official ? e.forecast : e.mosCm;
+              const dev = official ? e.deviation : e.mosDeviation;
+              return (
+                <li key={e.t}>
+                  <span className="sw-wl-ev">{e.kind === 'HW' ? 'Hochwasser' : 'Niedrigwasser'} {dayShort(e.t)} {hm(e.t)} Uhr</span>
+                  <span className="sw-wl-cm">{cm == null ? '–' : `${cmText(cm)} cm`}{official && e.uncertaintyCm != null ? ` ± ${cmText(e.uncertaintyCm)} cm` : ''}</span>
+                  {dev && <em>{dev} gegen {e.kind === 'HW' ? 'MThw' : 'MTnw'}</em>}
+                  <em>{cm == null ? 'nur Zeit, kein Wert' : official ? 'amtlich' : `automatisch (MOS ${e.mosSystem})`}</em>
+                </li>
+              );
+            })}
+          </ul>
+          {events.some((e) => e.forecast == null && e.mosCm != null) && (
+            <p className="sw-note">
+              Die amtliche Höhe gibt das BSH etwa einen Tag voraus. Danach steht hier die automatische
+              Modellvorhersage (MOS) — dieselbe Quelle, aber ohne amtliche Prüfung und ohne Unsicherheitsangabe
+              {events.some((e) => e.forecast == null && e.mosCm != null && e.mosSystem !== 'r0')
+                ? `; ${WL_MOS_WHY[events.find((e) => e.forecast == null && e.mosCm != null && e.mosSystem !== 'r0')!.mosSystem!]}.`
+                : '.'}
+            </p>
+          )}
+          {events.some((e) => e.forecast == null && e.mosCm == null) && (
+            <p className="sw-note">Für die späteren Zeiten nennt das BSH an diesem Pegel nur den Zeitpunkt, keine Höhe.</p>
+          )}
+        </>
+      )}
+      {doc.events.length === 0 && doc.curve.length > 0 && (
+        <p className="sw-note">Dieser Pegel führt keine Hoch-/Niedrigwasserzeiten — in der {WL_REGION_LABEL[doc.region]} gibt das BSH dort nur den Verlauf aus.</p>
+      )}
+      {doc.curve.length === 0 && (
+        <p className="sw-note">Für diesen Pegel liefert das BSH keinen Verlauf, nur die Hoch- und Niedrigwasserzeiten oben.</p>
+      )}
+
+      {window.length > 1 && (
+        <>
+          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} />
+          <div className="sw-chart-legend">
+            <span><i style={{ background: '#2C2A26' }} />gemessen</span>
+            <span><i style={{ background: '#0F6E7A' }} />Vorhersage</span>
+            {window.some((pt) => pt.tide != null) && <span><i style={{ background: '#7A9466' }} />Gezeit</span>}
+          </div>
+        </>
+      )}
+
+      <div className="sw-official-meta sw-gap">
+        Modellkurve {doc.curveAt == null ? 'ohne Stempel' : `${dateTime(doc.curveAt)}`}{stale.curve ? ' · älter als 3 h' : ''}
+        {' · '}amtliche Vorhersage {doc.forecastAt == null ? 'ohne Stempel' : `${dateTime(doc.forecastAt)}`}{stale.forecast ? ' · älter als 12 h' : ''}
+      </div>
+
+      {doc.text && (
+        <>
+          <div className="sw-official-meta sw-gap">Amtlicher Text{doc.area ? ` · ${doc.area}` : ''}{doc.forecastAt != null ? ` · ${dateTime(doc.forecastAt)}` : ''} · wörtlich</div>
+          <p className="sw-official">{doc.text}</p>
+        </>
+      )}
+      {doc.textAdditional && <p className="sw-official">{doc.textAdditional}</p>}
+      {doc.info && <p className="sw-note">Hinweis des BSH zum Betrieb: {doc.info}</p>}
+
+      <WaterLevelFooter doc={doc} />
+    </Card>
+  );
+}
+
+function WaterLevelFooter({ doc }: { doc: WlForecast | null }) {
+  return (
+    <p className="sw-disclaimer">
+      {WL_ATTRIBUTION_PRE}
+      <a href={WL_LICENCE_URL} target="_blank" rel="noreferrer">{WL_LICENCE}</a>
+      {WL_ATTRIBUTION_POST}
+      {' · '}
+      <a href={WL_SERVICE_PAGE} target="_blank" rel="noreferrer">Quelle (OGC API)</a>
+      {doc?.url ? <> · <a href={doc.url} target="_blank" rel="noreferrer">Pegel beim BSH</a></> : null}
+      {' · '}<a href={WL_WARN_SERVICE} target="_blank" rel="noreferrer">Sturmflutwarndienst</a>
+      {'. '}
+      {doc?.copyright ?? 'Das BSH übernimmt für die angegebenen Informationen keine Gewähr.'}
+      {' Verbindlich ist die amtliche Veröffentlichung des BSH, nicht diese Darstellung.'}
+    </p>
   );
 }
 
@@ -262,7 +452,7 @@ function AreaTab({ spot, texts, nowMs }: { spot: SeaSpot | null; texts: SeaTexts
   );
 }
 
-function SourcesTab({ spot, run, spotsDoc, texts, freshness }: { spot: SeaSpot | null; run: SeaRunDoc | null; spotsDoc: SeaSpotsDoc | null; texts: SeaTexts; freshness: string }) {
+function SourcesTab({ spot, run, spotsDoc, texts, freshness, wl }: { spot: SeaSpot | null; run: SeaRunDoc | null; spotsDoc: SeaSpotsDoc | null; texts: SeaTexts; freshness: string; wl: SeaWaterLevel | null }) {
   const w = spotsDoc?.wind;
   const b = run?.balance;
   const rows: Array<[string, string, string, string]> = [
@@ -273,7 +463,12 @@ function SourcesTab({ spot, run, spotsDoc, texts, freshness }: { spot: SeaSpot |
     [texts.wodl ? 'amtlich' : 'fehlt', 'Warnstatus Küste (WODL45)', texts.wodl ? `wörtlich, ${issued(texts.wodl)}; „keine Warnung“ nur aus dem exakten Satz` : 'nicht lesbar ⇒ Status unbekannt', texts.wodl ? 'ok' : 'off'],
     [texts.fx40 ? 'amtlich' : 'fehlt', 'Mittelfrist und Wassertemperatur (FXDL40)', texts.fx40 ? `wörtlich, ${issued(texts.fx40)}` : 'nicht lesbar', texts.fx40 ? 'ok' : 'off'],
     [spot?.station ? 'gemessen' : '–', `Messung · DWD-Station ${spot?.station?.name ?? '–'}`, spot?.station ? `${spot.station.km} km vom Spot, stündlich (POI)` : '', spot?.station ? 'ok' : 'off'],
-    ['blockiert', 'Wasserstand-Vorhersage (BSH)', 'Lizenz ungeklärt — nur Hinweis, keine Daten', 'block'],
+    [wl ? (wl.state === 'ok' ? 'amtlich' : wl.state === 'loading' ? 'lädt' : 'fehlt') : 'aus', 'Wasserstand-Vorhersage (BSH)',
+      `erlaubt · ${WL_LICENCE} (EU High-Value-Dataset, ohne Registrierung, kommerziell nutzbar) · ausschließlich über die offizielle OGC API`
+      + (!wl ? ' · mit ?wl=0 ausgeschaltet' : wl.state === 'ok' && wl.doc
+        ? ` · Pegel ${wl.doc.name}${wl.km != null ? ` (${f1(wl.km)} km)` : ''}, Modellkurve ${wl.doc.curveAt == null ? 'ohne Stempel' : dateTime(wl.doc.curveAt)}`
+        : wl.why ? ` · ${wl.why}` : ''),
+      wl ? (wl.state === 'ok' ? 'ok' : 'off') : 'off'],
     ['Stufe 2', 'Urlaubsreviere (EWAM 5 km, Mittelmeer)', 'nach Gate C und D', 'later'],
     ['später', 'Binnenseen DACH', 'keine Welle im DWD-Bestand; Wind und Warnungen in einer eigenen Stufe', 'later'],
   ];

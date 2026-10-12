@@ -70,6 +70,59 @@ export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readon
   );
 }
 
+/**
+ * WL-4 — Water level of one BSH gauge (`audit/wasserstand-bsh.md`): the measured series, the automatic model
+ * curve and — where the service carries it — the tidal prediction, in cm above gauge zero, on the gauge's own
+ * fine axis (10 min North Sea, 15 min Baltic). Mean high and low water of the SAME gauge are the dashed
+ * reference lines; nothing is converted to NHN here (E-WL-9). The exact peak heights are not read off this
+ * curve — they stand as numbers next to it, from the service's own high/low water events.
+ */
+export interface WlChartPoint { t: number; forecast: number | null; measured: number | null; tide: number | null }
+const WL_COLOUR: Record<string, string> = { Vorhersage: '#0F6E7A', Gemessen: '#2C2A26', Gezeit: '#7A9466' };
+
+export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm }: {
+  points: readonly WlChartPoint[]; selMs: number; nowMs: number; mhwCm: number | null; mlwCm: number | null;
+}) {
+  if (points.length < 2) return null;
+  const pts = (f: (p: WlChartPoint) => number | null) => points.map((p) => ({ x: new Date(p.t), y: f(p) }));
+  const vals = points.flatMap((p) => [p.forecast, p.measured, p.tide]).filter((v): v is number => v != null);
+  const lo = Math.min(...vals, mlwCm ?? Infinity), hi = Math.max(...vals, mhwCm ?? -Infinity);
+  const pad = Math.max(20, (hi - lo) * 0.12);
+  const min = points[0].t, max = points[points.length - 1].t;
+  const Ref = ({ yScale, innerWidth }: Ctx) => (
+    <g>{([[mhwCm, 'MThw'], [mlwCm, 'MTnw']] as Array<[number | null, string]>).filter(([v]) => v != null).map(([v, label]) => (
+      <g key={label}>
+        <line x1={0} x2={innerWidth} y1={yScale(v!)} y2={yScale(v!)} stroke="#B9AC90" strokeDasharray="3 3" />
+        <text x={innerWidth} y={yScale(v!) - 3} textAnchor="end" fontSize={8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{label}</text>
+      </g>
+    ))}</g>
+  );
+  /** Where the measured series ends and the forecast carries on — the honest seam of this card. */
+  const Now = ({ xScale, innerHeight }: Ctx) => (nowMs < min || nowMs > max ? null : (
+    <line x1={xScale(new Date(nowMs))} x2={xScale(new Date(nowMs))} y1={0} y2={innerHeight} stroke="#8B7355" strokeDasharray="2 3" />
+  ));
+  const Sel = ({ xScale, innerHeight }: Ctx) => (selMs < min || selMs > max ? null : (
+    <line x1={xScale(new Date(selMs))} x2={xScale(new Date(selMs))} y1={0} y2={innerHeight} stroke="#0F6E7A" strokeWidth={1.5} />
+  ));
+  return (
+    <div className="sw-chart" style={{ height: 104 }} role="img" aria-label="Verlauf des Wasserstands in Zentimetern über Pegelnull: gemessen, Vorhersage des BSH-Modells und Gezeitenvorausberechnung">
+      <ResponsiveLine
+        data={drawn([
+          { id: 'Gezeit', data: pts((p) => p.tide) },
+          { id: 'Gemessen', data: pts((p) => p.measured) },
+          { id: 'Vorhersage', data: pts((p) => p.forecast) },
+        ])}
+        colors={(s) => WL_COLOUR[String(s.id)] ?? '#2C2A26'} lineWidth={2} margin={{ top: 6, right: 6, bottom: 18, left: 34 }}
+        xScale={{ type: 'time', min: new Date(min), max: new Date(max), useUTC: false }}
+        yScale={{ type: 'linear', min: Math.floor((lo - pad) / 10) * 10, max: Math.ceil((hi + pad) / 10) * 10 }}
+        theme={THEME} animate={false} enablePoints={false} isInteractive={false}
+        enableGridX={false} gridYValues={4} axisBottom={axisX(true)} axisLeft={{ tickSize: 0, tickPadding: 4, tickValues: 4, format: (v: number) => String(v) }}
+        layers={[Ref, 'grid', 'lines', 'axes', Now, Sel] as never}
+      />
+    </div>
+  );
+}
+
 export function SeaStateChart({ hours, selMs }: { hours: readonly SeaChartHour[]; selMs: number }) {
   // An hour without sea state is a gap in all three lines (the model's height there is not a wave of 0 m).
   const pts = (f: (h: SeaChartHour) => number | null) => hours.map((h) => ({ x: new Date(h.t), y: h.dry ? null : f(h) }));

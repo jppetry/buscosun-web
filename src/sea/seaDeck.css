@@ -238,6 +238,24 @@
 .sw-details summary { cursor: pointer; color: var(--sw-accent-dark, #0B5560); font-weight: 600; min-height: 28px; display: flex; align-items: center; }
 .sw-pre { white-space: pre-wrap; font-family: 'IBM Plex Mono', var(--font-mono, monospace); font-size: 10.5px; line-height: 1.5; margin: 6px 0 0; color: var(--ink-900, #2C2A26); }
 .sw-meas { font-size: 12.5px; font-weight: 600; margin-top: 4px; }
+/* WL-4 Wasserstand (BSH). Die Kategorie wird ZITIERT, nicht bewertet — deshalb die Sprache der amtlichen
+   Karten (Sand, Akzentbalken) und bewusst keine eigene Warnfarbe (E-WL-6, audit/wasserstand-bsh.md). */
+.sw-wl-cat { margin-top: 9px; padding: 8px 10px 8px 12px; border-radius: 9px; background: #F4F0E4; border: 1px solid var(--sand-200, #E0D6BE); border-left: 3px solid var(--sw-accent-dark, #0B5560); }
+.sw-wl-cat strong { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.sw-wl-cat span { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.5; color: var(--stone-600, #5C5447); }
+.sw-wl-events { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sw-wl-events li { display: flex; align-items: baseline; gap: 8px; background: #fff; border: 1px solid var(--sand-100, #EDE6D3); border-radius: 8px; padding: 5px 9px; font-size: 11.5px; }
+.sw-wl-ev { flex: 1 1 auto; min-width: 0; }
+.sw-wl-cm { font-family: 'IBM Plex Mono', var(--font-mono, monospace); font-weight: 600; white-space: nowrap; }
+.sw-wl-events em { font-style: normal; font-size: 10px; color: var(--stone-500, #8B7355); white-space: nowrap; }
+/* Die Links im Kleingedruckten (Lizenz, Quelle, Warndienst) sind Fließtext — 44 px würden den Satz
+   auseinanderreißen. Senkrechtes Padding vergrößert bei einem Inline-Element die Trefferfläche (13 → 25 px),
+   ohne den Zeilenfall zu ändern; das bleibt unter 44 px und ist in audit/wasserstand-bsh.md §9 benannt. */
+.sw-disclaimer a { color: var(--sw-accent-dark, #0B5560); text-decoration: underline; padding: 6px 1px; }
+@media (max-width: 767px) {
+  .sw-wl-events li { flex-wrap: wrap; gap: 2px 8px; }
+  .sw-wl-ev { flex-basis: 100%; }
+}
 .sw-empty { padding: 12px 14px; border-radius: 12px; background: #fff; border: 1px dashed var(--sand-200, #E0D6BE); font-size: 12px; line-height: 1.55; color: var(--stone-600, #5C5447); margin-top: 10px; }
 .sw-empty strong { color: var(--ink-900, #2C2A26); }
 .sw-disclaimer { margin: 0; font-size: 10px; line-height: 1.5; color: var(--stone-500, #8B7355); }

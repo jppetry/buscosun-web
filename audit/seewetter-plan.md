@@ -19,7 +19,7 @@ Phase **SW** baut die Kachel und Seite „Seewetter“ (`/seewetter`) auf Basis 
 - Profile mit offenen Grenzen, Fenster, Stundenband, Spot-Kompass, Verlauf (nivo).
 - Stufe 2 (eigenes Gate): Urlaubsreviere mit EWAM und Seewetterbericht Mittelmeer.
 
-**Nicht im Umfang:** Routing, Navigation, Seekarten, eigene Warnungen oder Entwarnungen, Push, Konten, 3D-Seegang, Wasserstand-Vorhersage (BSH, Lizenz offen). DACH-Seen und PEGELONLINE-Wasserstand sind Ausbau (SW-8) mit eigener Entscheidung.
+**Nicht im Umfang:** Routing, Navigation, Seekarten, eigene Warnungen oder Entwarnungen, Push, Konten, 3D-Seegang, Wasserstand-Vorhersage (BSH) — **nachgeholt in Phase WL, 12.10.2026, Lizenz CC BY 4.0 geklärt** (`audit/wasserstand-bsh.md`). DACH-Seen und PEGELONLINE-Wasserstand sind Ausbau (SW-8) mit eigener Entscheidung.
 
 **Arbeitsweise wie im Repo:** Diagnose in `audit/seewetter.md` → Plan → Umsetzung per Claude Code → Verifier → Gate. Neue Pfade hinter `?sea=1`, voreingestellt aus. Kein Secret, kein Backend. STOPP & FRAGEN vor Daten-Repo, Crons, Edge Functions, Shadern und Abhängigkeiten, wie im Startprompt beschrieben.
 
@@ -195,7 +195,7 @@ Lauf- und Ausgabedateien sind inhaltlich unveränderlich und vertragen `@main` a
 ### SW-8 Ausbau (nach Bedarf)
 
 - **DACH-Seen:** Wind und Böen aus Fusion, ohne Wellen (kein Wellenmodell für Bodensee, Chiemsee, Genfersee und andere). Sturmwarnleuchten sind keine offene Quelle.
-- **Gemessener Wasserstand:** PEGELONLINE (DL-DE Zero 2.0) als Karte „Gemessen“ an der Küste. Wasserstandsvorhersage des BSH erst nach geprüfter Lizenz.
+- **Gemessener Wasserstand:** PEGELONLINE (DL-DE Zero 2.0) als Karte „Gemessen“ an der Küste. Wasserstandsvorhersage des BSH: Lizenz am 12.10.2026 als CC BY 4.0 geprüft und in Phase WL eingebaut (`audit/wasserstand-bsh.md`).
 - **Punkt überall:** Reihe an jedem Klickpunkt direkt aus den PNG-Feldern im Client.
 - **Ausblick:** GWAM bis +174 h als Tageswhisker (Spanne je Tag), deutlich als Ausblick markiert.
 

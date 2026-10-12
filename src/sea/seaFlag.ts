@@ -38,6 +38,16 @@ export function seaDryRuleFrom(search: string = typeof location !== 'undefined' 
   try { return new URLSearchParams(search).get('seadry') !== '0'; } catch { return true; }
 }
 
+/**
+ * WL — the BSH water level forecast is ON by default (E-WL-1, Jan 12.10.2026: "den reinen Hinweis durch echte
+ * Daten ersetzen"), a deliberate exception to the default-off rule, with the switch as the named fallback:
+ * `?wl=0` starts the page without the gauge layer and without the water level card. The dock switch then
+ * toggles it per session. Everything behind it is additive — with `?wl=0` the page is the one before WL.
+ */
+export function seaWaterLevelFrom(search: string = typeof location !== 'undefined' ? location.search : ''): boolean {
+  try { return new URLSearchParams(search).get('wl') !== '0'; } catch { return true; }
+}
+
 /** Remembers an explicit `?sea=0|1` for the session's later navigations (the query is gone after the first click). */
 export function rememberSeaFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
   let q: string | null = null;

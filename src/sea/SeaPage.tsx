@@ -15,7 +15,9 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
-import { seaDryRuleFrom } from './seaFlag';
+import { seaDryRuleFrom, seaWaterLevelFrom } from './seaFlag';
+import { wlDistKm, wlNearest, type WlForecast, type WlGauge } from './waterLevel';
+import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLevelClient';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import {
   loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadPoi, loadSpots, loadText, windPointerOf, withWindRefresh,
@@ -31,10 +33,10 @@ import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
 import { colourFieldAsync } from './seaFieldClient';
-import SeaMap, { type SeaMapArea, type SeaMapSpot } from './SeaMap';
+import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapSpot } from './SeaMap';
 import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
-import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts } from './SeaReadout';
+import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import './seaDeck.css';
 
 export interface SeaPageProps {
@@ -48,7 +50,8 @@ export interface SeaPageProps {
 const DEFAULT_SPOT = 'st-peter-ording';
 const REFRESH_MS = 10 * 60_000;
 const TEXTS: SeaTextProduct[] = ['FQDL50', 'FQDL51', 'WODL45', 'FXDL40'];
-const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false };
+/** WL: `water` on by default (E-WL-1), `?wl=0` starts without it — the switch stays the named fallback. */
+const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true };
 const KIND_LABEL: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
 export const kindsLabel = (kinds: readonly string[]) => kinds.map((x) => KIND_LABEL[x] ?? x).join(', ');
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
@@ -74,11 +77,16 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [tab, setTab] = useState<SeaTab>(initial.tab);
   const [revier, setRevier] = useState<SeaRevier>(initial.rv);
   const [query, setQuery] = useState('');
-  const [toggles, setToggles] = useState<SeaToggles>(DEFAULT_TOGGLES);
+  const [toggles, setToggles] = useState<SeaToggles>(() => ({ ...DEFAULT_TOGGLES, water: seaWaterLevelFrom() }));
   const [limits, setLimitsState] = useState<SeaLimits>(() => loadLimits(initial.p));
   const [field, setField] = useState<{ key: string; rgba: Uint8ClampedArray; width: number } | null>(null);
   const [fieldState, setFieldState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [poi, setPoi] = useState<SeaPoiObs | null | 'loading'>(null);
+  // WL-4: gauge catalogue (mirror) and the live forecast of the chosen gauge, both only while the switch is on.
+  const [wlCat, setWlCat] = useState<{ gauges: WlGauge[]; why: string | null; state: 'loading' | 'ok' | 'missing' | 'error' }>({ gauges: [], why: null, state: 'loading' });
+  const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
+  const [gaugePick, setGaugePick] = useState<string | null>(null);
+  const wlAsked = useRef(false);
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   const [picker, setPicker] = useState(false);
   const firstSpot = useRef(true);
@@ -135,6 +143,29 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       .then(setSpotsDoc, () => { if (!ac.signal.aborted) setSpotsDoc(null); });
     return () => ac.abort();
   }, [runKey, windPtr]);
+
+  // WL-4: the mirrored gauge positions — asked once, the first time the switch is on (module-cached).
+  const water = toggles.water;
+  useEffect(() => {
+    if (!water || wlAsked.current) return;
+    wlAsked.current = true;
+    const ac = new AbortController();
+    loadGaugeCatalog(ac.signal).then(
+      (r) => {
+        if (ac.signal.aborted) return;
+        setWlCat(r ? { gauges: r.gauges, why: null, state: 'ok' } : { gauges: [], why: 'Der Pegelkatalog ist nicht lesbar (unerwartete Form).', state: 'error' });
+      },
+      (e) => {
+        if (ac.signal.aborted || (e as Error)?.name === 'AbortError') return;
+        setWlCat(e instanceof WlCatalogMissing
+          ? { gauges: [], why: 'Der Pegelkatalog liegt noch nicht im Daten-Repo — bis dahin zeigt die Karte keine Pegel. Die Quelle selbst ist freigeschaltet.', state: 'missing' }
+          : { gauges: [], why: 'Der Pegelkatalog ist gerade nicht erreichbar.', state: 'error' });
+      },
+    );
+    return () => ac.abort();
+  }, [water]);
+  // A hand-picked gauge belongs to the spot it was picked at.
+  useEffect(() => { setGaugePick(null); }, [spotId]);
 
   const noData: string | null = !runLoad ? null
     : killed ? 'Die Veröffentlichung ist angehalten (Kill-Schalter des Datenspeichers).'
@@ -270,6 +301,39 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     const h = usable ? hourOf(s.id, k) : null;
     return { id: s.id, name: s.name, lon: s.lon, lat: s.lat, cls: verdictAt(s, k).cls, windTo: h?.windDir == null ? null : (h.windDir + 180) % 360, windKn: h?.windMs == null ? null : h.windMs * MS_TO_KN };
   }), [spots, revier, usable, hourOf, k, verdictAt]);
+  // --- WL-4: gauge of this spot, its live forecast, and what the card is allowed to claim ----------------
+  const nearestGauge = useMemo(() => (water && spot && wlCat.gauges.length ? wlNearest(wlCat.gauges, spot.lat, spot.lon) : null), [water, spot, wlCat.gauges]);
+  const gauge = useMemo(() => (gaugePick ? wlCat.gauges.find((g) => g.id === gaugePick) ?? null : null) ?? nearestGauge?.gauge ?? null, [gaugePick, wlCat.gauges, nearestGauge]);
+  const gaugeKm = useMemo(() => (gauge && spot ? wlDistKm(spot.lat, spot.lon, gauge.lat, gauge.lon) : null), [gauge, spot]);
+  const gaugeId = gauge?.id ?? null;
+  // The reader's TTL is 10 min, the page refreshes on the same beat — so one tick asks once.
+  const wlTick = Math.floor(nowMs / REFRESH_MS);
+  useEffect(() => {
+    if (!water || !gaugeId) { setWlDoc(null); return; }
+    const ac = new AbortController();
+    setWlDoc((prev) => (prev && prev !== 'error' && prev !== 'loading' && prev.id === gaugeId ? prev : 'loading'));
+    loadGaugeForecast(gaugeId, ac.signal).then(
+      (d) => { if (!ac.signal.aborted) setWlDoc(d ?? 'error'); },
+      (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setWlDoc('error'); },
+    );
+    return () => ac.abort();
+  }, [water, gaugeId, wlTick]);
+
+  const waterLevel: SeaWaterLevel | null = useMemo(() => {
+    if (!water) return null;
+    if (wlCat.state === 'missing' || wlCat.state === 'error') return { state: wlCat.state, gauge: null, km: null, doc: null, why: wlCat.why };
+    if (wlCat.state === 'loading' || wlDoc === 'loading') return { state: 'loading', gauge, km: gaugeKm, doc: null, why: null };
+    if (!gauge) return { state: 'missing', gauge: null, km: null, doc: null, why: 'Im Pegelkatalog des BSH steht kein Pegel.' };
+    if (wlDoc === 'error' || !wlDoc) return { state: 'error', gauge, km: gaugeKm, doc: null, why: `Die Wasserstandsvorhersage für ${gauge.name} ist gerade nicht lesbar. Das heißt nicht, dass der Wasserstand unauffällig ist.` };
+    return { state: 'ok', gauge, km: gaugeKm, doc: wlDoc, why: null };
+  }, [water, wlCat, wlDoc, gauge, gaugeKm]);
+
+  const mapGauges: SeaMapGauge[] | null = useMemo(() => (water && wlCat.gauges.length
+    ? wlCat.gauges
+      .filter((g) => revier === 'alle' || (revier === 'nordsee' ? g.region === 'north_sea' : g.region === 'baltic_sea'))
+      .map((g) => ({ id: g.id, name: g.name, lon: g.lon, lat: g.lat }))
+    : null), [water, wlCat.gauges, revier]);
+
   const stations = useMemo(() => (toggles.stations ? [...new Map(spots.filter((s) => s.station).map((s) => [s.station!.id, { id: s.station!.id, name: s.station!.name, lon: s.station!.lon, lat: s.station!.lat }])).values()] : null), [spots, toggles.stations]);
 
   const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight }));
@@ -318,7 +382,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const catFail = catalog === null && <div className="sw-map-note" role="status"><strong>Spotkatalog nicht ladbar.</strong> Der Datenspeicher antwortet nicht.</div>;
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
-      stations={stations} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpot} onMap={(m) => { mapRef.current = m; }} callout={callout} />
+      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpot} onMap={(m) => { mapRef.current = m; }} callout={callout} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
@@ -329,7 +393,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
-      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} />
+      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} />
   );
   const dock = (
     <SeaDock query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}

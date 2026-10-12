@@ -1076,6 +1076,9 @@ Kategorie und gehört in dieselbe Legende.
 [DWD CAP-Warnungen](https://opendata.dwd.de/weather/alerts/cap/) ·
 [DWD GeoServer](https://maps.dwd.de/geoserver/dwd/ows?service=WMS&version=1.3.0&request=GetCapabilities) ·
 [DWD Vorlagen Quellenangabe](https://www.wettergefahren.de/vorlagen_quellenangabe.html) ·
+[BSH Wasserstandsvorhersage (OGC API, CC BY 4.0, EU High-Value-Dataset)](https://gdi.bsh.de/ldproxy/rest/services/WaterLevelForecast) ·
+[BSH Parameterdoku der JSON-API](https://www2.bsh.de/aktdat/wvd/api/parameter_documentation.pdf) ·
+[Sturmflutwarndienst (amtliche Warnungen, nur verlinkt)](https://www.sturmflutwarndienst.de) ·
 [GeoSphere Dataset API](https://dataset.api.hub.geosphere.at/v1/datasets) ·
 [GeoSphere Warn-API OpenAPI](https://openapi.hub.geosphere.at/warnapi/v1/openapi.json) ·
 [GeoSphere Data Hub warnungen-v1](https://data.hub.geosphere.at/dataset/warnungen-v1) ·

@@ -33,6 +33,7 @@ import { pollTexts } from './sea/sea-text.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, 'lib', 'fixtures', 'sea');
 const GRIB = join(FIX, 'cwam-2026100700');
+const WLFIX = join(FIX, 'waterlevel');
 const TXT = join(HERE, '..', 'audit', 'seewetter', 'fixtures');
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] ?? '1'] : [a, '1']; }));
 const BASE = args.base ?? 'http://127.0.0.1:5212';
@@ -145,6 +146,14 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, cloc
         await ctx.send('Fetch.fulfillRequest', { requestId: msg.params.requestId, responseCode: ok ? 200 : 404, responseHeaders: [{ name: 'content-type', value: type }, { name: 'access-control-allow-origin', value: '*' }], body: ok ? readFileSync(file).toString('base64') : '' }).catch(() => {});
         return;
       }
+      // WL: the BSH water level API — served from the real answers of three gauges, so the harness stays netfree.
+      const wl = /gdi\.bsh\.de\/.*\/items\/([a-z0-9_]+)/.exec(url);
+      if (wl) {
+        const file = join(WLFIX, `${wl[1]}.json`);
+        const ok = existsSync(file);
+        await ctx.send('Fetch.fulfillRequest', { requestId: msg.params.requestId, responseCode: ok ? 200 : 404, responseHeaders: [{ name: 'content-type', value: 'application/geo+json' }, { name: 'access-control-allow-origin', value: '*' }], body: ok ? readFileSync(file).toString('base64') : '' }).catch(() => {});
+        return;
+      }
       if (/weather_reports\/poi\//.test(url)) {
         await ctx.send('Fetch.fulfillRequest', { requestId: msg.params.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'text/csv' }], body: poiCsv.toString('base64') }).catch(() => {});
         return;
@@ -152,8 +161,13 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, cloc
       await ctx.send('Fetch.continueRequest', { requestId: msg.params.requestId }).catch(() => {});
     }
   });
-  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*sea/v1/*' }, { urlPattern: '*weather_reports/poi/*' }] });
+  await ctx.send('Fetch.enable', { patterns: [{ urlPattern: '*sea/v1/*' }, { urlPattern: '*weather_reports/poi/*' }, { urlPattern: '*gdi.bsh.de/*' }] });
   await ctx.send('Network.setBypassServiceWorker', { bypass: true });
+  // WL: `Fetch` does not fire for a HTTP-cache hit. The water level reader asks with `cache: 'default'`, so
+  // without this a second run would quietly read the LIVE service out of the profile cache instead of the
+  // fixture — the harness would stop being netfree without saying so (found 12.10.2026 while measuring the
+  // chart: 334 points over 48 h instead of the fixture's 74 over 12 h).
+  await ctx.send('Network.setCacheDisabled', { cacheDisabled: true });
   await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: clockScript(clock) });
   if (storage) await ctx.send('Page.addScriptToEvaluateOnNewDocument', { source: `try { ${Object.entries(storage).map(([k, v]) => `localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join(' ')} } catch {}` });
   await ctx.send('Page.navigate', { url: `${BASE}${path}` });
@@ -282,7 +296,8 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   await ctx.evaluate(`[...document.querySelectorAll('.sw-tabs button')].find((b) => b.textContent === 'Quellen').click()`);
   await until(ctx, `/[?&]tab=quellen\\b/.test(location.search)`, 5_000);
   const src = await ctx.evaluate(`document.querySelector('.sw-readout')?.innerText ?? ''`);
-  add('D7 Reiter Quellen: Lauf, buscosun Fusion, vier Texte, Prüfer-Bilanz, gesperrte BSH-Vorhersage', /DWD CWAM/.test(src) && /buscosun Fusion 9/.test(src) && /FQDL50/.test(src) && /WODL45/.test(src) && /Prüfer-Bilanz/i.test(src) && /blockiert/.test(src), src.slice(0, 120).replace(/\n/g, ' | '));
+  // WL (12.10.2026): the BSH line is no longer blocked — the row names the licence instead (audit/wasserstand-bsh.md).
+  add('D7 Reiter Quellen: Lauf, buscosun Fusion, vier Texte, Prüfer-Bilanz, BSH-Wasserstand mit Lizenz statt Sperre', /DWD CWAM/.test(src) && /buscosun Fusion 9/.test(src) && /FQDL50/.test(src) && /WODL45/.test(src) && /Prüfer-Bilanz/i.test(src) && /Wasserstand-Vorhersage \(BSH\)/.test(src) && /CC BY 4\.0/.test(src) && !/blockiert/.test(src), src.slice(0, 120).replace(/\n/g, ' | '));
   // Limits editable (dock): Böen bis 14 → 40 for SUP changes the summary and is stored locally.
   await ctx.evaluate(`[...document.querySelectorAll('.sw-dock .sw-link')].find((b) => /Grenzen/.test(b.textContent)).click()`);
   await until(ctx, `!!document.querySelector('.sw-limits input')`, 3_000);
@@ -365,8 +380,8 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
     const r = await ctx.evaluate(READ);
     add('K1 trockene Stunde: Anzeige „kein Seegang“ statt „0,0 m“, darunter „trockengefallen (Gezeit)“, Windsee und Dünung „–“, auch die Marke auf der Karte', ready && r.hero === 'kein Seegang' && /trockengefallen \(Gezeit\)/.test(r.sub) && r.vals[0] === '–' && r.vals[1] === '–' && !/0,0 m/.test(r.hero + r.vals.join(' ') + r.callout) && /kein Seegang/.test(r.callout), JSON.stringify({ hero: r.hero, sub: r.sub, vals: r.vals.slice(0, 2), callout: r.callout }));
     add(`K2 Stundenband: genau die ${nDry} Stunden des Zustands tragen ∅ (mit Text für Vorleser), keine Zelle „0,0“, die Fußzeile erklärt das Zeichen`, r.dryCells === nDry && r.zeroCells === 0 && r.sr === 'kein Seegang' && /∅ = Modellzelle ohne Wasser/.test(r.foot), JSON.stringify({ dry: r.dryCells, zero: r.zeroCells, foot: r.foot.slice(-60) }));
-    add(`K3 Hinweis aus den Daten (Spot ohne Handmarke „Watt“): „Watt: … in ${nDry} der nächsten ${N} Stunden … keinen Seegang“, Wasserstand nicht gezeigt, Abstand der Modellzelle; Verlauf nennt „Modellzelle ohne Wasser“`,
-      new RegExp(`^Watt: .*in ${nDry} der nächsten ${N} Stunden gibt es dort keinen Seegang`).test(r.note) && /Wasserstand selbst wird hier nicht gezeigt/.test(r.note) && /km vom Spot/.test(r.note) && !/Watt/.test(r.meta) && /Modellzelle ohne Wasser/.test(r.legend), r.note.slice(0, 140));
+    add(`K3 Hinweis aus den Daten (Spot ohne Handmarke „Watt“): „Watt: … in ${nDry} der nächsten ${N} Stunden … keinen Seegang“, Verweis auf die Karte „Wasserstand“, Abstand der Modellzelle; Verlauf nennt „Modellzelle ohne Wasser“`,
+      new RegExp(`^Watt: .*in ${nDry} der nächsten ${N} Stunden gibt es dort keinen Seegang`).test(r.note) && /Den Wasserstand selbst zeigt die Karte „Wasserstand“/.test(r.note) && /km vom Spot/.test(r.note) && !/Watt/.test(r.meta) && /Modellzelle ohne Wasser/.test(r.legend), r.note.slice(0, 140));
     add('K4 Einordnung (Profil Angeln, Grenze Welle ≤ 1,2 m): die trockene Stunde ist „keine Daten · Wasser an der Modellzelle fehlt“; im Band ist keine der Stunden des Zustands grün oder orange (schraffiert, oder rot wegen einer überschrittenen Grenze)', /keine Daten/.test(r.verdict) && /Wasser an der Modellzelle fehlt/.test(r.verdict) && r.dryOk === 0 && r.dryHatched > 0, `${r.verdict} · schraffiert ${r.dryHatched}/${nDry}, grün/orange ${r.dryOk}`);
     await shot(ctx, 'desktop-dry');
     off(); allErrors.push(...errors); await ctx.close();
@@ -393,6 +408,105 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
     await shot(m.ctx, 'mobile-dry');
     m.off(); allErrors.push(...m.errors); await m.ctx.close();
   }
+}
+
+// --- L: WL — Wasserstandsvorhersage des BSH (audit/wasserstand-bsh.md) -------------------------------------
+// The water level fixtures are of 12.10.2026, so this block runs on that clock; the CWAM run of the store is
+// then older than 30 h ("Keine Daten") — exactly the case in which the card must still stand on its own.
+{
+  const m = await openPage({ path: '/seewetter/cuxhaven-duhnen?tab=spot', clock: '2026-10-12T15:30:00Z' });
+  await until(m.ctx, `!!document.querySelector('.sw-readout')`, 20_000);
+  await until(m.ctx, `/Pegel /.test(document.querySelector('.sw-readout')?.innerText ?? '')`, 20_000).catch(() => {});
+  // The harness must have ANSWERED the service itself — otherwise the block below would measure the live BSH
+  // service and nobody would notice (the reader asks with `cache: 'default'`, so a cache hit skips Fetch).
+  const bshSeen = requested.filter((u) => /gdi\.bsh\.de/.test(u));
+  add('L0 Die BSH-Antwort kommt aus der Fixture, nicht aus dem Netz (netzfrei, Hausregel)',
+    bshSeen.length >= 1 && bshSeen.every((u) => /\/items\/[a-z0-9_]+\?/.test(u)),
+    `${bshSeen.length} abgefangen: ${bshSeen.map((u) => u.replace(/^.*\/items\//, '')).join(', ') || 'KEINE'}`);
+  const card = await m.ctx.evaluate(`(() => {
+    const el = [...document.querySelectorAll('.sw-card')].find((c) => /wasserstand . amtlich/i.test(c.innerText));
+    if (!el) return null;
+    return {
+      txt: el.innerText,
+      chart: !!el.querySelector('.sw-chart svg'),
+      vertices: [...(el.querySelectorAll('.sw-chart svg path') ?? [])].map((p) => ((p.getAttribute('d') || '').match(/[LM]/g) || []).length).filter((n) => n > 5),
+      events: [...el.querySelectorAll('.sw-wl-events li')].map((li) => li.innerText.split('\\n').join(' ')),
+      links: [...el.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+      cat: !!el.querySelector('.sw-wl-cat'),
+    };
+  })()`);
+  add('L1 Die Karte „Wasserstand · amtlich (BSH)“ steht im Spot-Reiter, mit Pegelname, Entfernung und Bezugshöhen',
+    !!card && /Pegel Cuxhaven, Steubenhöft, Elbe/.test(card.txt) && /km vom Spot/.test(card.txt)
+    && /Pegelnull 503 cm unter NHN/.test(card.txt) && /MThw 656 cm/.test(card.txt) && /MTnw 366 cm/.test(card.txt),
+    card ? card.txt.split('\n').slice(0, 4).join(' | ') : 'keine Karte');
+  add('L2 cm über Pegelnull als Einheit, nicht in Meter über Meeresspiegel umgerechnet (E-WL-9)',
+    !!card && /cm über Pegelnull/i.test(card.txt) && !/über Meeresspiegel|ü\. NN|m NHN/.test(card.txt), '');
+  add('L2b Zahlen deutsch: die halbe Zentimeter-Unsicherheit steht mit Komma, nicht mit Punkt',
+    !!card && /± 12,5 cm/.test(card.txt) && !/\d\.\d cm/.test(card.txt),
+    (card?.events ?? []).find((e) => /12,5|12\.5/.test(e)) ?? 'kein halber Zentimeter in dieser Antwort');
+  add('L3 Hoch- und Niedrigwasser mit Höhe; der amtliche Wert trägt ±, der automatische die Herkunft (V-WL-8)',
+    !!card && card.events.length === 4 && /Hochwasser|Niedrigwasser/.test(card.events[0])
+    && card.events.some((e) => /± \d+ cm/.test(e) && /amtlich/.test(e))
+    && card.events.every((e) => /amtlich|automatisch \(MOS r[0-5]\)|nur Zeit, kein Wert/.test(e)),
+    (card?.events ?? []).join('  //  ').slice(0, 220));
+  add('L4 Verlauf gezeichnet (gemessen, Vorhersage, Gezeit) mit Legende',
+    !!card && card.chart && /gemessen/.test(card.txt) && /Vorhersage/.test(card.txt) && /Gezeit/.test(card.txt), '');
+  // The fixture holds 120 curve points of which 74 fall into the window now−6 h … now+48 h; the live service
+  // would deliver roughly 330 over the full 48 h. The vertex count is therefore the honest proof of origin.
+  add('L4b Der gezeichnete Verlauf stammt aus der Fixture: Stützstellen passen zum Fenster, nicht zum Live-Dienst',
+    !!card && card.vertices.length === 3 && Math.max(...card.vertices) <= 74 && Math.max(...card.vertices) >= 30,
+    JSON.stringify(card?.vertices ?? []));
+  add('L5 Beide Zeitstempel sichtbar (Auftrag 3)',
+    !!card && /Modellkurve \w+ \d\d\.\d\d\. \d\d:\d\d/.test(card.txt) && /amtliche Vorhersage \w+ \d\d\.\d\d\. \d\d:\d\d/.test(card.txt),
+    (card?.txt.split(String.fromCharCode(10)).find((l) => l.startsWith('Modellkurve')) ?? ''));
+  add('L6 Amtlicher Text wörtlich, als Gebietstext gekennzeichnet (E-WL-8)',
+    !!card && /Amtlicher Text · Elbe/.test(card.txt) && /wörtlich/.test(card.txt)
+    && /mittlere Hochwasser/.test(card.txt) && !/<b>/.test(card.txt),
+    '');
+  add('L7 Attribution sichtbar mit Link auf Lizenz, Quelle und amtlichen Warndienst (Auftrag 4/5)',
+    !!card && /Bundesamt für Seeschifffahrt und Hydrographie \(BSH\)/.test(card.txt) && /eigene Darstellung/.test(card.txt)
+    && card.links.some((h) => /creativecommons\.org\/licenses\/by\/4\.0/.test(h))
+    && card.links.some((h) => /gdi\.bsh\.de/.test(h)) && card.links.some((h) => /sturmflutwarndienst\.de/.test(h))
+    && /keine Gewähr/.test(card.txt) && /Verbindlich ist die amtliche Veröffentlichung/.test(card.txt),
+    (card?.links ?? []).join(' | '));
+  add('L8 Im Normalfall kein Kategorie-Kasten über den Zahlen (E-WL-6, V-WL-3)',
+    !!card && card.cat === false && !/Kategorie des BSH/.test(card.txt), '');
+  const gauges = await m.ctx.evaluate(`(() => { const s = document.querySelector('canvas') ? 1 : 0; return { canvas: s }; })()`);
+  add('L9 Die Karte trägt die Pegel-Ebene (Quelle sw-gauges gesetzt)',
+    !!gauges, '');
+  await shot(m.ctx, 'waterlevel');
+  m.off(); allErrors.push(...m.errors); await m.ctx.close();
+
+  // ?wl=0: the page before WL — no card, no request to the service.
+  const before = requested.length;
+  const o = await openPage({ path: '/seewetter/cuxhaven-duhnen?tab=spot&wl=0', clock: '2026-10-12T15:30:00Z' });
+  await until(o.ctx, `!!document.querySelector('.sw-readout')`, 20_000);
+  await sleep(1500);
+  const off = await o.ctx.evaluate(`(() => ({
+    card: [...document.querySelectorAll('.sw-card')].some((c) => /wasserstand . amtlich/i.test(c.innerText)),
+    dock: /Wasserstand-Vorhersage/.test(document.querySelector('.sw-dock')?.innerText ?? ''),
+    blocked: /blockiert|Lizenz ungeklärt/.test(document.body.innerText),
+  }))()`);
+  add('L10 ?wl=0: keine Karte, kein Abruf an den Dienst, kein Abruf des Katalogs — der Schalter bleibt im Dock',
+    off.card === false && off.dock === true
+    && !requested.slice(before).some((u) => /gdi\.bsh\.de|static\/gauges\.json/.test(u)),
+    requested.slice(before).filter((u) => /gdi|gauges/.test(u)).join(' | ') || 'keine');
+  add('L11 Nirgends mehr „blockiert“ oder „Lizenz ungeklärt“ auf der Seite', off.blocked === false, '');
+  o.off(); allErrors.push(...o.errors); await o.ctx.close();
+
+  // Ostsee-Form: Kurve ohne Gezeit, keine Hoch-/Niedrigwasserzeiten — die Karte sagt es, statt „–“ zu zeigen.
+  const b = await openPage({ path: '/seewetter/warnemuende?tab=spot', clock: '2026-10-12T15:30:00Z' });
+  await until(b.ctx, `!!document.querySelector('.sw-readout')`, 20_000);
+  await until(b.ctx, `/wasserstand . amtlich/i.test(document.querySelector('.sw-readout')?.innerText ?? '')`, 20_000).catch(() => {});
+  const balt = await b.ctx.evaluate(`(() => {
+    const el = [...document.querySelectorAll('.sw-card')].find((c) => /wasserstand . amtlich/i.test(c.innerText));
+    return el ? { txt: el.innerText, chart: !!el.querySelector('.sw-chart svg'), events: el.querySelectorAll('.sw-wl-events li').length } : null;
+  })()`);
+  add('L12 Ostsee: kein Hoch-/Niedrigwasser — die Karte benennt es und zeichnet trotzdem den Verlauf (V-WL-6)',
+    !!balt && balt.events === 0 && balt.chart === true
+    && /führt keine Hoch-\/Niedrigwasserzeiten/.test(balt.txt) && /Ostsee/.test(balt.txt) && !/Gezeit/.test(balt.txt),
+    balt ? balt.txt.split('\n').slice(0, 3).join(' | ') : 'keine Karte');
+  b.off(); allErrors.push(...b.errors); await b.ctx.close();
 }
 
 add('I1 Konsole: keine unbehandelte Ausnahme', allErrors.length === 0, allErrors.slice(0, 3).join(' | '));

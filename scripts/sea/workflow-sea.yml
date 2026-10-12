@@ -7,7 +7,7 @@
 # und wird bei jedem Lauf frisch von `main` geklont.
 #
 # ── Eine Linie, ein Workflow (E-SW-4) ─────────────────────────────────────
-# Alle 15 min: die Texte (FQDL50/51, WODL45, FXDL40) jedes Mal; die Felder und
+# Alle 15 min: die Texte (FQDL50/51, WODL45, FXDL40) und der BSH-Pegelkatalog (WL-2) jedes Mal; die Felder und
 # Spot-Reihen nur, wenn das Inventar einen vollständigen neuen CWAM-Lauf zeigt
 # (13 × 79 Dateien, gemessen ab Lauf + 4:07 h) — sonst endet der Schritt in Sekunden.
 # Dazwischen (V-SW-2): nennt point/index.json einen neueren t1-Lauf als der Wind des
@@ -149,6 +149,23 @@ jobs:
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs \
             --store=../store --data=../cube --wind
 
+      # WL-2: Pegelkatalog der BSH-Wasserstandsvorhersage (CC BY 4.0, audit/wasserstand-bsh.md). Ein Abruf
+      # der offiziellen OGC API (≈ 500 KB gz), daraus die kompakte Lage-Liste `static/gauges.json` (≈ 10 KB gz).
+      # Die VORHERSAGEKURVEN stehen nicht im Spiegel — die holt der Browser je Pegel live aus derselben API.
+      # Der Schritt schreibt nur bei Änderung und fehlt der Producer noch auf `main`, überspringt er sich.
+      - name: Gauges (BSH water level catalogue)
+        id: gauges
+        if: steps.app.outputs.ready == '1'
+        continue-on-error: true
+        run: |
+          cd app
+          if [ ! -f scripts/sea/sea-gauges.mjs ]; then
+            echo "sea-gauges.mjs noch nicht auf main — Pegelkatalog wartet auf den Push, Schritt übersprungen."
+            exit 0
+          fi
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-gauges.mjs --store=../store | tee ../gauges.log
+          echo "summary=$(tail -1 ../gauges.log)" >> "$GITHUB_OUTPUT"
+
       - name: Publish (sea/ only, never --force)
         if: steps.app.outputs.ready == '1'
         run: |
@@ -158,7 +175,7 @@ jobs:
           node app/scripts/sea/sea-publish.mjs --repo=data --store=store --message="$MSG"
 
       - name: Field run failed
-        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure'
+        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure' || steps.gauges.outcome == 'failure'
         run: |
           echo "Text- oder Feldschritt rot (siehe oben); veröffentlicht wurde, was gültig war."
           exit 1
