@@ -4,13 +4,16 @@ Diagnose, Protokoll und Gates der Phase. Plan: `audit/gletscher-plan.md` (binden
 Repo-Modell), Konzept: `audit/gletscher-konzept.md`, UI-Vorgabe: `reference/gletscher-*.dc.html`, Startprompt `prompt-gletscher.md`.
 Auftrag Jan 11.10.2026: Stufe 1 (GL-0 … GL-5) im Auto-Modus auf `feat/gletscher`; `GLACIER_LIVE` bleibt `false`; `main`,
 `CLAUDE.md`, `MANUELLE-SCHRITTE.md` bleiben Jans (Plan A9) — Status und Jans Schritte stehen deshalb hier (§0, §9).
+**Nachtrag am selben Abend (Jan):** die Daten liegen nicht in einem eigenen Repo, sondern in `buscosun-data` (Zweig `glacier` + `main`) und `buscosun-archiv`; die Schweizer Daten kommen über das WGMS und GLIMS statt
+von glamos.ch (§6.1b); E-GL-14/15 sind entschieden (§5). Pushs in `buscosun-data` und `buscosun-archiv` hat Jan freigegeben.
 
 ## 0 Status (nur der aktuelle Stand)
 
 | Paket | Stand | Beleg |
 | --- | --- | --- |
-| Branch/Worktree | `feat/gletscher` von `origin/main` (`1798fc5`), Worktree `C:\dev\buscosun-web\.wt-gl`, **gepusht bis `af2b45e`** (15 Commits, dazu der Audit-Commit, §7); `origin/main` hat seither keinen neuen Commit (kein Merge nötig); `git diff --stat origin/main...HEAD -- src/pointForecast src/point scripts/point scripts/punktarchiv` ist **leer** | §7, §8.1 |
-| **Daten-Repo** | `gh` ist auf dieser Maschine **nicht installiert**, `jppetry/buscosun-glacier` existiert auf GitHub nicht (API 404); das Token des Git-Credential-Managers wird **nicht** für die REST-API entnommen. Fallback laut Auftrag: lokales Repo `C:\dev\buscosun-glacier` mit lokalem Bare-Remote `C:\dev\buscosun-glacier-cache\glacier-remote.git` (`origin`); **alle Linien wurden über `glacier-publish.mjs` veröffentlicht** (Rennen, Nie-Force, Teilpfade, Index-Patch): Build `20261011-3` (2 203 Gletscher, mit TSLA-Klimatologie), Satellit 2023–2026 (1 349 Kachel-Tage), Schmelzlauf `2026101115` (2 203 Gletscher, nur Index), Feed + Wochenkarte 2026-W41, Zweig `archive` mit der Leitgletscher-Ablage; vier Workflow-Vorlagen unter `.github/workflows/`. **Jans Schritt:** GitHub-Repo anlegen und `main` + `archive` pushen (§9.1) | §6, §9.1 |
+| Branch/Worktree | `feat/gletscher` von `origin/main` (`1798fc5`), Worktree `C:\dev\buscosun-web\.wt-gl`, gepusht (Commit-Tabelle §7); `origin/main` ohne neuen Commit; `git diff --stat origin/main...HEAD -- src/pointForecast src/point scripts/point scripts/punktarchiv` ist **leer** | §7, §8.1 |
+| **Daten** | **`buscosun-data` unter `glacier/v1/`** (Jans Entscheidung 11.10.: „ein Branch“, „die kurzfristigen Daten auch in buscosun-data“): `main` trägt die laufend aufgefrischten Linien (Zeiger, Status, `obs/`, `season/`, `melt/`, `feed/`, `card/`), der **verwaiste Zweig `glacier`** die schweren statischen Builds (die zwei neuesten bleiben); ein neuer Build geht zuerst auf den Zweig, der Zeiger danach. **Tagesablage** (Leitgletscher-Zeilen jedes Schmelzlaufs) in `buscosun-archiv` unter `glacier/v1/<Tag>/`. Vier Workflows in `buscosun-data` (`glacier-static|sat|melt|feed.yml`), einer in `buscosun-archiv` (`glacier-archiv.yml`); Producer-Ref = Repo-Variable `GLACIER_PRODUCER_REF`, Standard `feat/gletscher`, fällt auf `main` zurück, sobald der Zweig weg ist. Eingespielt am 11.10.2026 abends: Zweig `glacier` (Build `20261012-1`, 229 Dateien, `660788f`), `main` (Zeiger `3c2ca56`, Satellit `c75f0ec` mit 1 302 Kachel-Tagen und 8 476 Werten, Feed `c330553`, README + vier Workflows `4da589b`), `buscosun-archiv` (Workflow + README `2d42302`); die Seite liest die echten Adressen ohne Konsolenfehler (Prüfung mit dem Produktionscode des Clients). | §6.1b, §7 |
+| **GL-1b Schweiz über WGMS und GLIMS** | **fertig, Gate grün** (`verify:glacier-static` 25/25 am vollen Baum `20261012-1`): Umrisse und frühere Umrisse der Schweiz aus der GLIMS Glacier Database (dieselben Inventare, Überdeckung 96–99 %, Beleg `audit/gletscher/glims-identity.md`), Längen- und Massenreihen aus dem WGMS FoG; keine Datei von glamos.ch mehr im Baum (CH 1 396 Gletscher statt 1 400, 961,42 km²; Längenreihen 155 → 120, Massenreihen 41 → 38) | §6.1b |
 | GL-0 Spike | Messungen abgeschlossen (§2); Kriterien eingefroren (sha256 in §3, Nachträge je Linie) | §2–§4 |
 | Gate A | Entscheidungen E-GL-1 … 12 im Auto-Modus gefällt (§5) | §5 |
 | **GL-1** Vertrag, Atlas, DACH-Lage | **fertig, Gate grün** (ohne Real-Device) | §6.1 |
@@ -19,8 +22,9 @@ Auftrag Jan 11.10.2026: Stufe 1 (GL-0 … GL-5) im Auto-Modus auf `feat/gletsche
 | **GL-4** Steckbrief | **fertig, Gate grün** (ohne Real-Device): fünf Reiter, Karte mit Schneezone, Vergleichsregler, 3D mit MapLibre-Gelände, Diagramme, Tour-Wortprüfung, Quellenliste | §6.4 |
 | **GL-5** Updates | **fertig, Gate grün**: Feed mit stabilen Kennungen, Rangliste „Schmelzindex“ (nur Modell, ohne Einheit), Folgen + „Neu seit deinem letzten Besuch“, Wochenkarte (PNG), CSV und Bild-Export | §6.5 |
 | Gate D Vorbereitung | Verifier, Pixelvergleich, Antworten auf die zehn Prüffragen: §8.1; **offen für Jan:** Real-Device, Edge-Bündel, Merge, `GLACIER_LIVE` | §8, §9 |
-| Gate B2 / E | **nach der Session:** B2 = 14 Tage `glacier-sat.yml` im echten Daten-Repo (nach §9.1); E = Sommer 2027 | §8 |
-| Fortsetzung | Alles Gebaute ist grün und gepusht. Eine nächste Session beginnt mit §9 (Jans Entscheidungen E-GL-14/15) und §10 (offene V-GL); GL-6 (Stufe 2) ist nicht begonnen | §9, §10 |
+| Gate B2 / E | B2 = 14 Tage `glacier-sat.yml` im echten Daten-Repo: **läuft seit dem 11.10.2026** (Workflows eingespielt 22:10 UTC; erster planmäßiger `glacier-sat.yml`-Lauf 22:48 UTC grün, Einzelheiten V-GL-22; melt 3-stündlich, feed 05:35, archiv alle 6 h um :47); die Auswertung nach 14 Tagen ist Jans Beobachtung (§9); E = Sommer 2027 (neu eingefrorenes Protokoll, E-GL-15) | §8 |
+| E-GL-14 / E-GL-15 | **entschieden (Jan 11.10.):** Satellit bleibt Szenenwert; die Regel „höchste Schneegrenze der Saison“ ist als **Nachtrag 2 vorab eingefroren** (`claims-frozen-amendment-2-b1.md`, sha256 in §3) und wird an der Saison 2026 geprüft, sobald GLAMOS/UIBK sie veröffentlichen; der Schmelzindex bleibt ohne Einheit, eine Eichung mit Einheit erst nach dem Sommer 2027 mit neuem Protokoll | §3, §5 |
+| Fortsetzung | Alles Gebaute ist grün. Offen für Jan: Real-Device, Merge (+ `npm run edge:share`), `GLACIER_LIVE` (§9). Die nächste Session beginnt mit der Beobachtung der Workflows (Gate B2) und der Auswertung von Nachtrag 2 nach den 2026er Bilanzen (§3); GL-6 (Stufe 2) ist nicht begonnen | §9, §10 |
 
 ## 1 Anker (am Code und an den Daten gelesen, 11.10.2026)
 
@@ -206,6 +210,11 @@ Vollständigkeit ≥ 90 %, keine Unmöglichkeiten, Fixtures); C-1 … C-7 (Somme
 Hintereisferner ≤ 0,40, Winterbilanz ≤ 0,35 und besser als roher Fusion-Niederschlag, Prognose-Hindcast je Vorlauf-Bin ≤ 35 % / ≤ 20 % für die Anzeige
 mit Einheit) — jeweils in **LYO** (leave-year-out über 2023/24/25) **und LGO** (leave-glacier-out).
 
+**Nachtrag 2 zu B1 (E-GL-14, eingefroren 11.10.2026):** `audit/gletscher/claims-frozen-amendment-2-b1.md`, **sha256 `bda6654720e391e5de5c45b9752a5d4fc09aec9cc4d08d039001672f543b10eb`** (Kopie `…-b1.sha256`). Die Regel „höchste Schneegrenze der Saison“
+(Maximum der Szenen-Schneegrenzen 15.07.–10.10., ohne Neuschnee-Marke, ≥ 2 Szenen) wurde an denselben 29 Gletscherjahren gefunden und zählt dort **nicht**; geprüft wird an der Saison 2026 mit den Schwellen B1b-1 … B1b-5
+(Median ≤ 150 m, P90 ≤ 400 m, |Bias| ≤ 100 m, besser als die Klimatologie, ≥ 12 Gletscher davon ≥ 5 außerhalb der Schweiz). Die Satellitendaten der Saison 2026 sind mit der sortierten Szenenliste (437 Kachel-Tage,
+sha256 `e6428a02…f45a`, `scenes-2026-frozen.txt`) festgehalten. Bis zum Urteil heißen Satellitenwerte „Szenenwerte“.
+
 ## 4 Verifizierte Bausteine des Spikes
 
 | Baustein | Beleg |
@@ -222,7 +231,7 @@ Jede mit Beleg; „Plan“ = Empfehlung des Plans übernommen, es sei denn, eine
 | --- | --- | --- |
 | E-GL-1 | Name „Gletscher“, `/gletscher`, Aliase `/gletscherradar`, `/gletschermonitor`, Steckbrief `/gletscher/<slug>`, Kachel 13, Palette 14, Flag `?gl=1` — **Plan** | SW-Muster `4bdade3` |
 | E-GL-2 | alle Gletscher als Atlas mit Messreihen; Satellitenwerte nur A (Schneegrenze, AAR, Albedo) und B (Ausaperung, Albedo-Anomalie); Schmelze für alle, C als Gletschermittel — **Plan**; Klassenzahl gemessen (§2.1): A 227, B 763, C 1 213 + 4 DE | §2.1 |
-| E-GL-3 | alles in `buscosun-glacier` (A2) — **Plan**; **Blocker:** Repo kann hier nicht angelegt werden, lokale Arbeitskopie `C:\dev\buscosun-glacier`, Anlegen = Jans Schritt | §0, §9.1 |
+| E-GL-3 | ~~alles in `buscosun-glacier` (A2)~~ **ersetzt durch Jan (11.10.):** `buscosun-data` unter `glacier/v1/` — `main` für die laufenden Linien, verwaister Zweig `glacier` für die schweren statischen Builds —, Tagesablage in `buscosun-archiv`; die Budgets sind egal und werden bei Bedarf angehoben | §0, §6.1b |
 | E-GL-4 | `hzerocl` aus ICON-D2/-EU im neuen Schema; **Zensurregel** `hzerocl ≤ Zellboden + 10 m` ⇒ nicht verwendet (D-GL-6); T600/T500 im Cube bleibt Empfehlung an Jan | §2.7 |
 | E-GL-5 | Eichung Sommer/Winter getrennt, gemessener Antrieb der Bergstationen — **Plan**, aber 2025/26-Hold-out ersetzt durch LYO über 2023–2025 (nicht veröffentlicht), Strahlung als Modell (Hindcast ohne Globalstrahlung) | §2.3, §2.8, §3 |
 | E-GL-6 | eigenes Tagesarchiv auf `archive`, kein Eingriff ins Punktarchiv — **Plan** | A4 |
@@ -233,8 +242,12 @@ Jede mit Beleg; „Plan“ = Empfehlung des Plans übernommen, es sei denn, eine
 | E-GL-11 | Klarhimmel aus Sonnenstand und DEM × Bewölkungsfaktor von buscosun Fusion; ICON-Strahlung nur Vergleich — **Plan**; die Messung (ICON gegen Eigenrechnung gegen SMN-`gr`) folgt in GL-3 und kann ICON 0–120 h freigeben | §2.7 |
 | E-GL-12 | `@nivo/line` + SVG, keine neue Abhängigkeit — **Plan** (A11) | |
 | E-GL-13 | Merge-Zeitpunkt — **bleibt Jan** | |
-| E-GL-14 | **offen für Jan** (nach Gate B1 rot, §6.2): Satellitenwerte bleiben Szenenwerte ohne Anspruch auf die Gleichgewichtslinie — oder Amendment 2 „höchste Schneegrenze der Saison“, vorab eingefroren und an neuen Daten (GLAMOS/UIBK 2026) geprüft | §6.2, §9.2 |
-| E-GL-15 | **offen für Jan** (nach Gate C rot, §6.3): Schmelzindex ohne Einheit bleibt — oder bessere Eichung (Antrieb, Strahlung, Höhenband-Wahrheit) mit neu eingefrorenem Protokoll | §6.3, §9.3 |
+| E-GL-14 | **entschieden (Jan 11.10.):** Satellitenwerte bleiben Szenenwerte ohne Anspruch auf die Gleichgewichtslinie; die Regel „höchste Schneegrenze der Saison“ wird als **Nachtrag 2 vorab eingefroren** und an der Saison 2026 geprüft (GLAMOS/UIBK, frühestens Spätherbst 2026) | §3, §6.2 |
+| E-GL-15 | **entschieden (Jan 11.10.):** der Schmelzindex bleibt **ohne Einheit** (Ranking und Trend), die Seite sagt, was er ist; eine Eichung mit Einheit lohnt erst mit gemessener Strahlung, näheren Antriebsstationen und Höhenband-Wahrheit — **nach dem Sommer 2027 (Gate E) mit neu eingefrorenem Protokoll** | §6.3 |
+| E-GL-16 | Datenablage: `buscosun-data` (`glacier/v1/`, Zweige `main` + `glacier`) und `buscosun-archiv` (`glacier/v1/<Tag>/`) statt eines eigenen Repos — Jan | §0 |
+| E-GL-17 | **Schweiz über WGMS und GLIMS** (Jan: „zu GLAMOS würde ich den Umweg hierüber machen“): Längen- und Massenreihen aus dem WGMS FoG (Bezug von wgms.ch, nicht die Copernicus-Fassung), Umrisse und frühere Umrisse aus der GLIMS Glacier Database; die Dateien von glamos.ch gehen nicht mehr in den Datenbaum, sie dienen intern als Wahrheit (B1/C, Nachtrag 2) und als Orakel der Entitätsregel | §6.1b |
+| E-GL-18 | RGI 7: entfällt (RGI 6.2 reicht für die Brücke und die vier deutschen Umrisse, kein Konto nötig) — Jan (Empfehlung übernommen) | §9 |
+| E-GL-19 | Betrieb: im Daten-Repo bleiben nur die jeweils zwei neuesten statischen Builds (Regel im Publisher, `GLACIER_POLICIES.static`, auf dem Zweig `glacier`); der Build `20261011-1` wurde nie veröffentlicht — Jan (Empfehlung übernommen) | §6.1b |
 
 Zusätzliche Entscheidungen (D-GL): **D-GL-1** Leitgletscher = 42 (§2.4). **D-GL-2** DE-Gletscher aus RGI 6.2 (Umrisse 2003, Bezugsjahr sichtbar) + BAdW-Zitat;
 Zugspitz-Ferner optional aus Paul 2020. **D-GL-3** GLAMOS gelb, CC BY 4.0 der DOI-Seiten gilt, separate Pfade. **D-GL-4** Maskenregel ohne SWIR-Rettung.
@@ -243,10 +256,13 @@ Zugspitz-Ferner optional aus Paul 2020. **D-GL-3** GLAMOS gelb, CC BY 4.0 der DO
 Während der Umsetzung dazugekommen (im Auto-Modus, je mit Beleg im Paket): **D-GL-9** Gate B1 rot ⇒ GL-3 läuft parallel weiter, die Satellitenzahlen heißen Szenenwerte (§6.2). **D-GL-10** DN-Versatz je Kachel-Tag
 erkannt statt fester Regel (§6.2). **D-GL-11** Albedo außerhalb 0,02–0,98 ⇒ Quarantäne der Szene (§6.2). **D-GL-12** Gate C rot ⇒ Einheit gesperrt, nur der Schmelzindex 0–100 ohne Einheit, kein `mm`-Feld im Dokument (§6.3).
 **D-GL-13** Klasse C rechnet mit dem Antrieb des nächsten Gletschers der Klasse A/B derselben Region ≤ 60 km, sonst mit einem eigenen Punkt (§6.3). **D-GL-14** Schneezone des Steckbriefs in 8-ms-Zeitscheiben (§6.4).
+Zum GLIMS-/WGMS-Weg (§6.1b): **D-GL-15** ein Schweizer Gletscher wird aus den GLIMS-Teilflächen gebildet — gleicher Name im Abstand ≤ 500 m, namenlos ≤ 20 m (96,4 % der SGI-Gletscher exakt getroffen, am SGI als Orakel gemessen). **D-GL-16** Die Gletscher-Id der Schweiz trägt bei Namensdubletten die GLIMS-Id der größten Teilfläche (`gl_ch_<name>-g006823e46133n`) statt der SGI-Nummer. **D-GL-17** Die fünf Schweizer Teilgebiete sind reine Geografie (Schwerpunkt, Regel in `GLACIER_REGIONS`), weil das Einzugsgebiet (Rhein/Rhone/Po/Inn) ein Attribut der GLAMOS-Dateien ist. **D-GL-18** Heute 0,1-m-Gitter: vereinigte und vereinfachte Umrisse werden auf ein 0,1-m-Gitter gelegt (`shapely.set_precision`), sonst waren 88 der 296 mehrteiligen Gletscher nach der Umrechnung nach lon/lat selbstüberschneidend. **D-GL-19** Der Producer-Ref der Workflows ist `GLACIER_PRODUCER_REF` (Standard `feat/gletscher`) und fällt auf `main` zurück, wenn der Zweig nach dem Merge gelöscht ist.
 
 ## 6 Protokoll je Paket
 
 ### 6.1 GL-1 — Vertrag, statischer Baum, DACH-Lage (11.10.2026)
+
+> Die Zahlen dieses Abschnitts beschreiben den **ersten** Build `20261011-3` (Schweizer Daten aus den Dateien von glamos.ch, eigenes Daten-Repo). Der veröffentlichte Stand ist der Build `20261012-1` nach Jans Umweg über WGMS und GLIMS — §6.1b.
 
 **Gebaut.**
 
@@ -292,9 +308,38 @@ amtlichen Sätze statt der Beispielzeilen; mobil liegt der Rest der Seite um die
 Zeichensprache) stimmt mit der Vorlage überein.
 
 **Abweichungen vom Plan.** (1) Die statische Linie wird lokal gebaut und im Workflow nur **geprüft** (Wächter): ihre Rohquellen sind von Hand geladen und gegen den Lizenztext gelesen
-(D-GL-3), die DEM-Kacheln sind mehrere GB. (2) Der Daten-Repo-Blocker (§0) verhindert den ersten Lauf der Workflows; der Baum, die drei Workflows und der Zweig `archive` liegen
-fertig im lokalen Repo `C:\dev\buscosun-glacier` (`90981f5`, `92b5176`). (3) `verify:routing` zählt 244 statt 256, weil dieser Zweig auf `1798fc5` steht (der Stand von `main` mit
+(D-GL-3), die DEM-Kacheln sind mehrere GB. (2) ~~Der Daten-Repo-Blocker verhindert den ersten Lauf der Workflows~~ — überholt: es gibt kein eigenes Repo mehr (E-GL-16), die Workflows laufen in `buscosun-data` und `buscosun-archiv` (§0). (3) `verify:routing` zählt 244 statt 256, weil dieser Zweig auf `1798fc5` steht (der Stand von `main` mit
 den späteren Seewetter-Tests wird beim Merge nachgezogen).
+
+### 6.1b GL-1b — Die Schweiz über WGMS und GLIMS (11.10.2026, Jans Weg)
+
+**Auftrag.** Jan: GLAMOS widerspricht sich bei der Lizenz (DOI-Seiten CC BY 4.0, Impressum „scientific and non-commercial“); die Schweizer Messreihen liegen auch im WGMS (FoG, „offen mit Zitierpflicht, gleichwertig CC BY 4.0“), die Umrisse in der
+GLIMS Glacier Database — „dort ist auch kommerzielle Nutzung möglich“ — also den Umweg gehen. Damit entfällt die Antwort von GLAMOS als Voraussetzung.
+
+**Befund 1 — GLIMS führt dieselben Umrisse** (`audit/gletscher/glims-identity.md`, Werkzeug `glims-identity.py`). Die Einreichungen tragen nur Namen wie „University of Zurich“; sie wurden **an der Geometrie** den Inventaren zugeordnet:
+SGI2016 = Einreichung 869 (961,4 km², Überdeckung 98,7 %), SGI1931 = 868 (99,0 %), SGI2010 = 596 und 579 (zwei identische Einreichungen, 98,9 %), SGI1973 = 599 (97,0 %, GLIMS führt 25 km² weniger), SGI1850 = 594 + 595 (96,2 %).
+Die Restabweichung ist die Datumstransformation ohne Gitter (≈ 1 m) und die Digitalisiergenauigkeit.
+
+**Befund 2 — GLIMS führt Teilflächen, keine Gletscher.** SGI2016 liegt dort als 1 834 Teilflächen der 1 400 SGI-Gletscher; SGI-Nummer, Höhen, Exposition und Einzugsgebiet gehören zu den GLAMOS-Dateien und fehlen. Der Build bildet deshalb
+**eigene Gletscher** (`glims_inv.py`, Regel D-GL-15: gleicher Name ≤ 500 m, namenlos ≤ 20 m). Am SGI als Orakel gemessen (`glims-entities.py`, Schwellen-Sweep 5 × 5): 1 396 Gletscher statt 1 400, **96,4 % exakt wie im SGI**, 18 fälschlich zusammengelegt,
+14 fälschlich geteilt, Flächensumme bis 0,02 % gleich. Höhen: Copernicus DEM (Minimum, Median aus den 50-m-Bändern, Maximum); die Exposition entfällt (die Seite benutzt sie nirgends). Die Einzugsgebiete (Rhein/Rhone/Po/Inn) ersetzen fünf geografische Teilgebiete
+(D-GL-17): West (< 7,55 °E) 195 · Mitte-West (< 8,2 °E) 523 · Mitte-Ost (< 8,75 °E) 283 · Ost 307 · Süd (< 46,45 °N ab 8,35 °E) 88 Gletscher. Gletscher-Ids: Namen wie bisher, Dubletten mit der GLIMS-Id der größten Teilfläche (167 Ids).
+
+**Befund 3 — das WGMS trägt die Schweizer Reihen.** FoG 2026-02-10: 123 Schweizer Gletscher mit Längenänderung (bis 2024), 39 mit Massenbilanz inklusive Gleichgewichtslinie und AAR (bis 2025), 36 mit Höhenband-Bilanzen; die Reihen führen ihren Ursprung
+(„GLAMOS 2025 (doi:10.18750/massbalance.2025.r2025)“) im Feld `references`. Verbunden werden sie über die GLIMS-Id, die das FoG nennt (1 147 von 1 984 Schweizer Gletschern), sonst über Lage und Name (≤ 900 m). Gegen die GLAMOS-Fassung: Längenreihen
+155 → **120**, Massenreihen 41 → **38**, Flächenreihen 1 320 → 1 311 (die Reihen von Gletschern, die das WGMS nicht führt, fehlen jetzt; drei FoG-Längenreihen — Lischana, Martinets, Paneyrosse — haben keinen Umriss im Inventar 2016 und stehen in `idExceptions`);
+Leitgletscher CH unverändert 27 (Massenbilanz 2025), insgesamt 44 mit AT und DE. Die zwei jüngsten Längenjahre (2024/25) fehlen im FoG und damit auf der Seite.
+
+**Gebaut.** `scripts/glacier/py/fetch_glims.py` (öffentlicher WFS, ein Abruf je Satz, nur in den Cache), `glims_inv.py` (Entitäten, Regionen, frühere Umrisse, Schutt), `series.py` (`wgms_tables` für AT/DE/CH, `wgms_length`), `build_static.py`
+(GLIMS statt `inv.ch_current`, Höhen aus dem DEM, Verknüpfung über GLIMS-Id, Leitgletscher aus dem FoG, 0,1-m-Gitter für Vereinigung und Vereinfachung), Vertrag (`GLACIER_REGIONS` mit fünf Schweizer Teilgebieten, `inv.glims`), Quellen
+(`glims-sgi` und `wgms` ersetzen `sgi2016`, `sgi-hist`, `glamos-series`; die Lizenzzeile nennt „Quellenangabe Pflicht“ statt „Klärung offen“), `audit/gletscher/licences.md`, Prüfer (K2/K4/K6/O3/R2/B3 an den neuen Bau angepasst, ohne eine Schwelle zu lockern).
+**Lizenzbefund (offen genannt):** auf der NSIDC-Seite der GLIMS-Datenbank steht „As a condition of using these data, you must cite the use of this data set“ — eine Zitierpflicht, **kein** NC-Hinweis; das wörtliche „CC BY 4.0“ aus Jans Quelle habe ich dort **nicht gefunden**
+(die Fundstelle ist ungeprüft). Der Vermerk steht an jeder Quelle in `sources.json`.
+
+**Bilanz Build `20261012-1`.** Bauzeit 3,5–4,5 min, 39,2 MB (größte Dateien `dem/ch-mitte-west.json` 6,2 MB und `outline/ch-mitte-west-L3.json` 4,2 MB, alle < 20 MB). `verify:glacier-static` **25/25** am vollen Baum (Gletscher 2 199: CH 1 396 / 961,42 km² (SGI2016: 1 400 / 961,27), AT 799 / 285,49, DE 4 / 0,262; Klassen CH A 162 · B 506 · C 728), `verify:glacier-contract` 64/64, Typecheck 0.
+Dieselben Namen tragen dieselben Ids (1 202 von 1 400 Ids unverändert, der Rest sind die Namensdubletten); die Fläche je Gletscher weicht im Median um 0,33 % ab (P90 1,8 %, 14 Gletscher > 5 %, fast alle < 0,05 km²).
+
+**Neu gerechnet (alle Ids und Regionen sind neu).** Satellit: sieben Fenster (wie im ersten Lauf, jetzt gegen die neuen Ids) — 1 302 Kachel-Tage, 8 476 Werte, **0 fehlgeschlagen**, rund 1 h 10 min, ≈ 15 GB Bereichsabrufe; veröffentlicht je Region und Jahr nur der **neueste** Stand der Saisonreihe (45 Dateien statt 98), `obs/` 1 302 Dokumente, zusammen 3,3 MB. Schmelze: lokal geprüft (2 199 Gletscher in 96 s, 0 übersprungen, Archivdatei = `melt.mjs --archive-out`), **nicht veröffentlicht** — der erste echte Lauf kommt vom Workflow mit dem aktuellen Cube (der lokale Klon ist einen Tag alt). Feed: Woche 2026-W41 mit 385 Ereignissen und der Wochenkarte (24 KB). Der Satelliten-Zeiger nennt 13 statt 14 Kacheln (31TGM trägt kein Gletscher der Klasse A/B mehr).
 
 ### 6.2 GL-2 — Satellit und Gate B1 (11.10.2026)
 
@@ -318,7 +363,7 @@ den späteren Seewetter-Tests wird beim Merge nachgezogen).
 Vegetation (SCL 4) auf einer groben Ebene (Schwelle 430), Rückfall mit einem Fenster der SWIR-Dunkelwerte (0,095 / 0,12); jede Entscheidung steht als `encoding` im Dokument.
 Eine erste Rückrechnung wurde nach der Methodenänderung **ungeprüft verworfen** (Nachtrag 1, `audit/gletscher/sat-method-frozen-amendment-1.md`, sha256 in `…amendment-1.sha256`).
 
-**Rückrechnung (Gate B1).** Sieben Fenster nacheinander in EINEN Ausgabebaum: Juni–Oktober 2025 und 2026 für alle Klasse-A- und -B-Gletscher, Spätsommer 2023 und 2024 für die
+**Rückrechnung (Gate B1).** *(Gemessen am ersten Build mit den GLAMOS-Dateien; die Satellitenwerte wurden danach gegen den neuen Baum neu gerechnet, §6.1b — das Urteil ändert sich dadurch nicht, die Wahrheit ist GLAMOS-intern und der Gate-Lauf der ursprüngliche.)* Sieben Fenster nacheinander in EINEN Ausgabebaum: Juni–Oktober 2025 und 2026 für alle Klasse-A- und -B-Gletscher, Spätsommer 2023 und 2024 für die
 GLAMOS-Gletscher; **1 349 Kachel-Tage, 8 539 Gletscherwerte** (Zustände: Schneegrenze 6 586, schneebedeckt 158, schneefrei 1 795), ≈ 15 GB Bereichsabrufe in rund 1 h 10 min Rechenzeit;
 übersprungen: 8 161 „bewölkt (grobe Maske)“, 4 581 „Klaranteil < 70 %“, 2 Quarantänen (Albedo 0,984 am Balfrin, 27.09.2025 — die Ursache ist nicht geklärt, der Fall ist der Anlass der Albedo-Regel); keine fehlgeschlagene Kachel
 am Ende. Auswertung `scripts/glacier/b1-evaluate.mjs` gegen `claims-frozen.md` (sha256 `4c309b23…`), Bericht `audit/gletscher/b1/report.json`.
@@ -452,18 +497,26 @@ Folgen-Liste mit blockiertem Speicher); `verify:glacier-ui` **62/62** (Browser, 
 | | `6b2288e` · `40aff29` | GL-3: Methode Gate C eingefroren · Nachtrag 1, Eichung in Node |
 | | `48a398b` | GL-3: Gate C (rot), Schmelzlauf, Schmelzvertrag, Prüfer |
 | | `0fa4da9` | GL-4: Steckbrief (fünf Reiter, Schneezone, Vergleichsregler, 3D) |
-| | `efb33f7` · `d05932c` | GL-5: Feed, Schmelzindex-Metrik, Folgen, Wochenkarte, CSV · Folgearbeiten (echter Datenrepo-Lauf, Zeiger mit Wochen, Archiv-Publisher kehrt auf `main` zurück) |
-| | `af2b45e` | Schneezone des Steckbriefs in Zeitscheiben (Long-Task-Schutz), `verify:glacier-sheet` G2c |
-| | `0ec8b1c` | Audit dieser Phase (dieser Text; ein Nachtragscommit trägt nur diese Hashzeile) |
-| `buscosun-glacier` (lokal, Bare-Remote `glacier-remote.git`) `main` | `de1bd38` · `90981f5` | init, Build `20261011-1` |
-| | `1a67a47` · `06ffbc5` | Build `20261011-3` (mit TSLA-Klimatologie), Zeiger |
-| | `bbe4a28` | Satellit 2023–2026: 1 349 Kachel-Tage, Saisonreihen |
-| | `c449cea` | Schmelzlauf `2026101115` (2 203 Gletscher, Index) |
-| | `3be86ac` · `031858a` | Feed 2026-W41 mit Wochenkarte · Feed mit Zeiger-Wochen |
-| | `ee31af7` | vier Workflow-Vorlagen, README-Tabelle |
-| `buscosun-glacier` `archive` | `92b5176` · `7dec54d` | init · Leitgletscher-Zeilen des Laufs 2026101115 |
+| | `efb33f7` · `d05932c` | GL-5: Feed, Schmelzindex-Metrik, Folgen, Wochenkarte, CSV · Folgearbeiten |
+| | `af2b45e` · `0ec8b1c` · `6c0d063` | Schneezone in Zeitscheiben · Audit der Phase · Hashzeile |
+| | `27a84f5` | **Daten in `buscosun-data` (Zweig `glacier` + `main`) und `buscosun-archiv`; Schweiz aus GLIMS und WGMS FoG** (Vertrag, Client, Publisher, fünf Workflow-Vorlagen + Generator, `glacier-archive.mjs`, `glims_inv.py`, `fetch_glims.py`, Prüfer, Fixtures, README der Daten-Repos) |
+| | `a1a9d6c` | Nachtrag 2 zu Gate B1 eingefroren (E-GL-14) |
+| | `25d8f2b` | Beleg GLIMS = SGI (`glims-identity.md`), Entitätsregel, Lizenzregister |
+| | `ec00228` | Publisher: Waisenzweig per Plumbing (`checkout --orphan` ließ im sparse Klon fremde Verzeichnisse im ersten Commit) |
+| | `dd626ff` | Die Seite nennt das WGMS als Quelle der gemessenen Reihen (Schweiz: Meldungen des Messnetzes) |
+| | `c3e37d1` | Schmelz-Workflow installiert `bz2` und `jsfive`, jede `tee`-Pipe unter `pipefail` (V-GL-24); `verify:glacier-publish` 34/34 |
+| | (Audit) | Audit dieser Änderung (dieser Text; ein Nachtragscommit trägt nur diese Hashzeile) |
+| `buscosun-data` Zweig `glacier` (verwaist) | `660788f` | Build `20261012-1`: 229 Dateien unter `glacier/v1/static/` |
+| `buscosun-data` `main` | `3c2ca56` | Zeiger (`glacier/v1/index.json`, `status.json`) auf den Build |
+| | `c75f0ec` | Satellit: 1 302 Kachel-Tage 2023–2026 (`obs/`), neueste Saisonreihe je Region und Jahr (`season/`), Zeiger |
+| | `c330553` | Feed 2026-W41 (385 Ereignisse) mit Wochenkarte, Zeiger |
+| | `4da589b` | README (sieben Produktlinien, Abschnitt Gletscher, Quellen) und vier Workflows `glacier-static|sat|melt|feed.yml` |
+| | `affc548` | **erster planmäßiger Lauf auf GitHub** (`glacier-sat.yml` #1, 22:48 UTC): fünf neue Kachel-Tage, Saisonstände, Zeiger |
+| | `2a43783` | Workflows mit `bz2`/`jsfive` und `pipefail` (V-GL-24) |
+| | `2c0b640` · `c266b79` | temporäre Testplätze für Schmelze und Feed — von GitHub nicht ausgeführt — und ihre Entfernung |
+| `buscosun-archiv` `main` | `2d42302` · `74e0e02` | Workflow `glacier-archiv.yml` und `glacier/v1/README.md` · Workflow unter `pipefail` |
 
-Die vollständige Historie (11 Commits) liegt im lokalen Bare-Remote `C:\dev\buscosun-glacier-cache\glacier-remote.git`; der Arbeitsklon `C:\dev\buscosun-glacier` ist **flach** (der Publisher holt mit `--depth 1`) und zeigt nur `ee31af7`/`031858a` und `92b5176`/`7dec54d`.
+Der erste Anlauf (eigenes Repo, lokaler Bare-Remote `C:\dev\buscosun-glacier-cache\glacier-remote.git`, Build `20261011-3`, 11 Commits) wurde **nie veröffentlicht**; seine Dateien liegen nur lokal (`C:\dev\buscosun-glacier`) und sind überholt.
 
 ## 8 Gates
 
@@ -472,7 +525,7 @@ Die vollständige Historie (11 Commits) liegt im lokalen Bare-Remote `C:\dev\bus
 | A | entschieden (§5), Kriterien eingefroren (§3 und je Linie) |
 | GL-1 (Vertrag, Atlas, DACH-Lage) | grün: §6.1 (ohne Real-Device) |
 | **B1 Satellit plausibel** | **ROT nach dem eingefrorenen Protokoll** (B1-1, B1-2; B1-3 bis B1-6 grün): §6.2. Die Satellitenzahlen sind Szenenwerte; keine Aussage „Gleichgewichtslinie aus Satellit“. Hypothese (höchste Schneegrenze der Saison) = E-GL-14 |
-| B2 Winterbetrieb | offen — braucht 14 Tage `glacier-sat.yml` im echten Daten-Repo (nach Jans Schritt 9.1), belegt nach der Session; blockiert nichts |
+| B2 Winterbetrieb | **läuft** seit dem 11.10.2026: `glacier-sat.yml` zweimal täglich in `buscosun-data` — 14 Tage ohne roten Lauf, Beobachtung nach der Session (§9.3); blockiert nichts |
 | **C Eichung** | **ROT** (C-1, C-2, C-5; C-3, C-4 grün): §6.3. Einheit gesperrt, nur der Schmelzindex ohne Einheit |
 | GL-4 (Steckbrief) | grün: §6.4 (ohne Real-Device) |
 | GL-5 (Updates) | grün: §6.5 (ohne Real-Device) |
@@ -486,8 +539,8 @@ Die vollständige Historie (11 Commits) liegt im lokalen Bare-Remote `C:\dev\bus
 | Prüfer | Ergebnis | in CI |
 | --- | --- | --- |
 | `verify:glacier-contract` | 64/64 | ja |
-| `verify:glacier-static` | 7/7 Fixture; **25/25 am vollen Baum** `20261011-3` (mit `--dir=`) | ja (Fixture) |
-| `verify:glacier-publish` | 22/22 (Rennen, Nie-Force, Archiv nur Hinzufügen, **Rückkehr auf `main`**, vier Vorlagen) | ja |
+| `verify:glacier-static` | 7/7 Fixture; **25/25 am vollen Baum** `20261012-1` (mit `--dir=`) | ja (Fixture) |
+| `verify:glacier-publish` | **32/32** (Rennen, Nie-Force, **Zeiger nach dem Build** P14, Archiv-Repo mit eigenem Index P9, sparse Klon wie auf dem Runner P13/**P15 Waisenzweig**, fünf Vorlagen W1–W9, Archiv-Skript A1) | ja |
 | `verify:glacier-sat` | 28/28 | ja |
 | `verify:glacier-melt` | 41/41 | ja |
 | `verify:glacier-sheet` | 45/45 | ja |
@@ -496,12 +549,13 @@ Die vollständige Historie (11 Commits) liegt im lokalen Bare-Remote `C:\dev\bus
 | `verify:routing` | 260/260 | |
 | `verify:seo` | 803 Prüfungen, 0 Fehler | |
 | `verify:share` | **527/528** — `[SH6]` das Edge-Bündel passt nicht mehr zur Quelle: die neue Route `/gletscher` ist in `routes.ts`; **Jan führt `npm run edge:share` beim Merge aus** (E-GL-13, kein Eingriff in Edge Functions durch diese Session) | |
-| Typecheck / Build / Budget | 0 Fehler / 260/260 / grün — eagerJs 109,9 (Grenze 110), largestChunk 278,4, **totalJs 1 759 → Grenze 1 735 → 1 770** (zwei Anhebungen mit Notiz in `budget.json`: Steckbrief +20, Updates +10, alles lazy) | |
+| Typecheck / Build / Budget | 0 Fehler / 260/260 / grün — eagerJs 109,9 (Grenze 110), largestChunk 278,4, **totalJs 1 759,6 (Grenze 1 770)** (die Anhebungen mit Notiz in `budget.json` stammen aus dem ersten Lauf; diese Änderung bringt +0,6 KB lazy) | |
+| `verify:point-data` (liest das README des Daten-Repos) | 1016/1016 | ja |
 
-Geschützte Pfade: `git diff --stat origin/main...HEAD -- src/pointForecast src/point scripts/point scripts/punktarchiv` ist **leer**; kein Eingriff in `buscosun-data`, `buscosun-archiv`, Edge Functions, Shader, Custom Layer,
+Geschützte Pfade: `git diff --stat origin/main...HEAD -- src/pointForecast src/point scripts/point scripts/punktarchiv` ist **leer**; **`buscosun-data` und `buscosun-archiv` wurden auf Jans Freigabe vom 11.10. beschrieben — nur unter `glacier/` und mit je einer Workflow-Datei und dem README** (kein Eingriff in `point/`, `radar/`, `obs/`, `road/`, `sea/`, `precipsum/` und deren Workflows); keine Edge Functions, Shader, Custom Layer,
 Brandradar-Dateien, `CLAUDE.md`, `MANUELLE-SCHRITTE.md`; keine neue Abhängigkeit (`@nivo/line` und MapLibre im Bundle); `GLACIER_LIVE` bleibt `false` (Seite hinter `?gl=1`, `noindex`, nicht in der Sitemap).
 
-**Pixelvergleich** (`glacier-ui-diff.mjs`, Bilder `audit/gletscher/ui/`): Lage Desktop 43,5 % (Rail 9,5 · Topbar 11,5 · Dock 32,5 · Karte 76,4 · Diagramm 16,5 · Readout 43,1), Lage Mobil 83,7 %, Steckbrief Desktop 49,0 %, Steckbrief Mobil 70,2 % —
+**Pixelvergleich** (`glacier-ui-diff.mjs`, Bilder `audit/gletscher/ui/`; **nicht neu gemessen** — Layout und Vorlagen sind unverändert, nur Region und Quellenzeilen sind neu): Lage Desktop 43,5 % (Rail 9,5 · Topbar 11,5 · Dock 32,5 · Karte 76,4 · Diagramm 16,5 · Readout 43,1), Lage Mobil 83,7 %, Steckbrief Desktop 49,0 %, Steckbrief Mobil 70,2 % —
 die Unterschiede sind die Kartenfläche (gemaltes SVG gegen echte Karte), Beispielzahlen der Vorlagen und die in §6.4 benannten Abweichungen. **Gate D verlangt „Pixelvergleich bestanden“:** das Maß ist ein Befund, kein Schwellenwert — Jan entscheidet
 (§9.5), ob die benannten Abweichungen genügen.
 
@@ -526,16 +580,17 @@ die Unterschiede sind die Kartenfläche (gemaltes SVG gegen echte Karte), Beispi
 
 ## 9 Jans Schritte
 
-1. **`jppetry/buscosun-glacier` anlegen** (öffentlich, leer, ohne README/Lizenz) — `gh` fehlt hier. Dann aus `C:\dev\buscosun-glacier`:
-   **aus dem Bare-Remote** (der Arbeitsklon ist flach, siehe §7): `git -C C:\dev\buscosun-glacier-cache\glacier-remote.git push https://github.com/jppetry/buscosun-glacier.git main archive`, danach im Arbeitsklon `git remote set-url origin https://github.com/jppetry/buscosun-glacier.git`, danach die Repo-Variable `PRODUCER_REF=feat/gletscher` setzen und Actions aktivieren.
-   Die vier Workflows (`glacier-static|sat|melt|feed.yml`) liegen unter `.github/workflows/` und enden grün, solange der Producer auf `PRODUCER_REF` fehlt.
-2. **Entscheidung E-GL-14 (Gate B1 rot):** (a) so lassen — Satellit als Szenenwerte, kein Anspruch auf die Gleichgewichtslinie; oder (b) Amendment 2 „höchste Schneegrenze der Saison“ vorab einfrieren und an GLAMOS/UIBK 2026 prüfen, sobald die Bilanzen erscheinen.
-3. **Entscheidung E-GL-15 (Gate C rot):** Index ohne Einheit so lassen, oder die Eichung verbessern (Antriebsstationen näher am Gletscher, gemessene Strahlung, Höhenband-Wahrheit aus GLAMOS) und Gate C nach neuem, vorab eingefrorenem Protokoll wiederholen.
-4. **Edge-Bündel:** `npm run edge:share` beim Merge (E-GL-13); bis dahin ist `[SH6]` in `verify:share` das benannte rote Ergebnis.
-5. **Gate D:** Real-Device (Steckbrief, 3D, Vergleichsregler, Karte mit Schneezone), Entscheidung zum Pixelvergleich (§8.1), Merge-Pfad (Plan §2), dann `GLACIER_LIVE`. B2 (14 Tage Satellit-Workflow) läuft nach Schritt 1 an.
-6. GLAMOS (office@glamos.ch) um eine Bestätigung bitten: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum (Lizenzregister `audit/gletscher/licences.md`).
-7. Optional: RGI 7.0 (NSIDC-Login) laden, wenn die Brücke RGI 7 gewollt ist (aktuell RGI 6.2 für GloGEM).
-8. Betrieb: im Daten-Repo wachsen die statischen Builds (heute `20261011-1` 24,6 MB und `20261011-3` 38,3 MB; `v1/static/` hält Alt-Builds) — nach dem Umschalten des Zeigers den Vorgänger löschen (V-GL-13).
+Entschieden am 11.10.2026 (Jan, „setze den Rest auch so um“): Repo-Frage (§5 E-GL-3/16), Schweiz über WGMS und GLIMS (E-GL-17), E-GL-14 (Nachtrag 2 eingefroren), E-GL-15 (Index ohne Einheit bleibt, Eichung nach dem Sommer 2027),
+RGI 7 entfällt, Aufbewahrung zwei Builds. Das Anlegen eines GitHub-Repos entfällt; die Daten und Workflows liegen in `buscosun-data` und `buscosun-archiv` (eingespielt, §0). **Was bleibt bei Jan:**
+
+1. **Gate D — Real-Device** auf dem Handy mit dem Aletschgletscher (Scrollen, 3D, Vergleichsregler, Karte mit Schneezone) und danach die Startseite **mit und ohne `?gl=1`**. Die Pixelabweichungen gegen die Vorlagen (§8.1) sind
+   die gemalten Karten der Vorlagen gegen echte Karten — Empfehlung: akzeptieren.
+2. **Merge** von `feat/gletscher` nach `main` zuerst mit `GLACIER_LIVE=false`, danach `npm run edge:share` (E-GL-13; bis dahin ist `[SH6]` in `verify:share` das benannte rote Ergebnis), danach **das Umschalten als eigener Commit** nach dem Real-Device-Test (wie bei Seewetter).
+   Die Workflows brauchen dafür nichts: der Producer-Ref fällt auf `main` zurück, sobald der Zweig `feat/gletscher` gelöscht ist; wer ihn behält, setzt unter Settings → Variables `GLACIER_PRODUCER_REF=main`.
+3. **Beobachten (Gate B2):** `glacier-sat.yml` zweimal täglich (16:43/22:43 UTC), `glacier-melt.yml` 3-stündlich, `glacier-feed.yml` täglich, `glacier-archiv.yml` (in `buscosun-archiv`) alle 6 h, `glacier-static.yml` montags — 14 Tage ohne roten Lauf (die Actions-Seite genügt; einen eigenen Wächter-Eintrag gibt es für diese Linie nicht).
+   Rot heißt: den Lauf öffnen, der Grund steht im Schritt (der Producer endet nie still).
+4. **GLIMS-Lizenzwortlaut:** die NSIDC-Seite nennt nur die Zitierpflicht; wer das „CC BY 4.0“ aus der ECMWF-Quelle belegen will, sucht die Fundstelle (V-GL-20). Die Mail an GLAMOS (früher Schritt 6) entfällt.
+5. **Nachtrag 2 auswerten**, sobald GLAMOS und die Universität Innsbruck die Gleichgewichtslinien 2026 veröffentlichen (frühestens Spätherbst 2026): eine Session, die Wahrheit erst nach der Auswertung der Satellitenseite öffnet (§3).
 
 ## 10 Befunde und Verbesserungen (V-GL)
 
@@ -550,10 +605,18 @@ die Unterschiede sind die Kartenfläche (gemaltes SVG gegen echte Karte), Beispi
 | V-GL-7 | Steckbrief ohne Höhenband-Tabelle, nächste Messstation, Neuschnee in cm, Gletscherschwundtag und Saisonbilanz-Schätzung des Modells; „Vorher – nachher“ mit Sentinel-2-Bildern nicht gebaut; Nullgrad-Diagramm als Tagesmaximum statt stündlich (§6.4). | Stufe 2 (GL-6); Bandwerte braucht der Lauf. |
 | V-GL-8 | Long Tasks > 200 ms sind in headless-shell nicht messbar; gebaut: Schneezone in 8-ms-Scheiben. Offen: der Parse der Höhengitter (`dem/<region>.json` 0,1–6,4 MB) auf dem Handy. | Real-Device (§9.5); bei Bedarf Parse in einen Worker. |
 | V-GL-9 | MapLibre meldet auf der Seite 3 Warnungen („Expected value to be of type number, but found null“) — sie kommen auch ohne jede Ebene dieser Linie (Basiskarten-Stil, bisektiert); zeitweise bleibt die Basiskarte in Headless leer. | Basiskarten-Stil prüfen (nicht diese Phase). |
-| V-GL-10 | GLAMOS: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum (`audit/gletscher/licences.md`). | Bestätigung bei office@glamos.ch (§9.6). |
+| V-GL-10 | GLAMOS: CC BY 4.0 der DOI-Seiten gegen „scientific and non-commercial use“ im Impressum (`audit/gletscher/licences.md`). | **Umgangen (E-GL-17):** Reihen aus dem WGMS, Umrisse aus GLIMS; die GLAMOS-Dateien sind nicht mehr im Datenbaum. Rest: V-GL-20. |
 | V-GL-11 | Der Pixelvergleich gegen die Vorlagen (Lage Desktop 43,5 %, Mobil 83,7 %, Steckbrief 49,0 % / 70,2 %) ist ein Befund, kein Schwellenwert: die Karten der Vorlagen sind gemalt, die Zahlen Beispielwerte (§8.1). | Jans Entscheidung (§9.5). |
 | V-GL-12 | `verify:share` zählt 527/528: das Edge-Bündel kennt die neue Route nicht (`[SH6]`). | `npm run edge:share` beim Merge (E-GL-13). |
-| V-GL-13 | `v1/static/` wächst mit jedem Build (24,6 und 38,3 MB). | Nach dem Umschalten des Zeigers den Vorgänger löschen; Aufbewahrungsregel im Static-Workflow ergänzen. |
-| V-GL-14 | Der Arbeitsklon `C:\dev\buscosun-glacier` ist flach (der Publisher holt `--depth 1`); ein Push von dort auf ein leeres GitHub-Repo kann scheitern. | Push aus dem Bare-Remote (§9.1). |
+| V-GL-13 | `v1/static/` wächst mit jedem Build (24,6 und 38,3 MB). | **Erledigt (E-GL-19):** der Publisher hält auf dem Zweig `glacier` nur die zwei neuesten Builds (`GLACIER_POLICIES.static`, Prüfer P4); der erste Build wurde nie veröffentlicht. |
+| V-GL-14 | Der Arbeitsklon `C:\devuscosun-glacier` war flach (der Publisher holt `--depth 1`); ein Push von dort auf ein leeres GitHub-Repo kann scheitern. | **Entfallen:** es gibt kein eigenes Repo mehr; die Arbeitsklone von `buscosun-data` und `buscosun-archiv` sind flach und sparse (`glacier`), der Publisher arbeitet darin (Prüfer P13). |
 | V-GL-15 | Die Playwright-MCP legt relative Dateipfade im Haupt-Arbeitsbaum ab, nicht im Worktree. | Absolute Pfade unter `.wt-gl` benutzen (Falle, nicht Code). |
 | V-GL-16 | Der Pixelvergleich der bestehenden Startseite mit und ohne `?gl=1` wurde nicht gefahren (kein gemeinsamer Render-Code berührt). | Beim Real-Device-Gang mitnehmen (§8.1 Frage 2). |
+| V-GL-17 | Die Schweizer Reihen sind kürzer als bei GLAMOS: Längenreihen 155 → 120, Massenreihen 41 → 38, und das FoG endet bei der Länge 2024. | Wenn GLAMOS die Weitergabe bestätigt (V-GL-10 ist umgangen, nicht beantwortet), kann ein Ergänzungsstrang die fehlenden Reihen unter eigener Quelle führen; bis dahin steht es so da. |
+| V-GL-18 | Die Entitätsregel trifft 96,4 % der SGI-Gletscher exakt (18 fälschlich zusammengelegt, 14 geteilt); 1 396 statt 1 400 Gletscher. | Namensliste der 32 Abweichungen prüfen; die Regel bleibt, solange kein unabhängiger Gletscherschlüssel (SGI-Nummer) im Daten-Repo darf. |
+| V-GL-19 | Die Schweizer Teilgebiete sind Länge/Breite, nicht Einzugsgebiete; die Seite nennt sie „Schweiz West … Süd“. | Wenn eine freie Einzugsgebietsgrenze (BAFU, OGD) geladen wird, kann die Region wieder das Gewässer sein; ein Formatwechsel `v2` wäre nicht nötig (nur neue Schlüssel). |
+| V-GL-20 | GLIMS/NSIDC nennen eine Zitierpflicht, kein „CC BY 4.0“ (Jans Quelle sagt CC BY 4.0). | Fundstelle suchen oder den Wortlaut der Zitierpflicht in die Quellenliste setzen (steht dort schon). |
+| V-GL-21 | Die Workflows laufen auf dem Kopf von `feat/gletscher`: jeder Push dorthin wirkt auf die nächsten Läufe in `buscosun-data`. | Vor dem Merge nur geprüfte Stände pushen (alle Prüfer grün); nach dem Merge setzt der Rückfall auf `main`. |
+| V-GL-22 | GitHub-Actions-Läufe dieser Linie haben vor dem 11.10. nie auf einem Runner gelaufen; die Vorlagen sind lokal gegen echte Bare-Remotes geprüft (Prüfer P1–P14, die Sichtschritte als Skript), nicht auf GitHub. | Erster planmäßiger Lauf auf GitHub: `glacier-sat.yml` #1 (11.10. 22:48 UTC, `schedule`) **grün und veröffentlicht** (`affc548`: fünf neue Kachel-Tage, neue Saisonstände, Zeiger) — Producer-Klon von `feat/gletscher`, Sicht aus `main` + Zweig `glacier`, Scan und Publisher laufen auf dem Runner. `glacier-melt.yml` #1 (23:29 UTC) endete grün **ohne Ergebnis** (V-GL-24: fehlendes `bz2`, Exit-Code von `tee` verdeckt) — behoben (`c3e37d1`, Daten-Repo `2a43783`) und lokal mit dem echten Cube und den echten Daten-Repos nachvollzogen (2 199 Gletscher in 86 s); **der erste Lauf mit der Korrektur steht aus** (02:20 UTC). `glacier-feed.yml` (05:35 UTC, an diesem Montag mit Wochenkarte), `glacier-archiv.yml` (00:47 und 06:47 UTC; archiviert erst, wenn ein Schmelzlauf da ist) und `glacier-static.yml` (montags 05:17) sind noch nicht gelaufen; ihre Schritte liefen lokal gegen die echten Repos (Feed 385 Ereignisse, Wächter 25/25, Daten-Schritt des Archivs). Zusätzliche Testplätze (00:09 und 00:32 UTC) hat GitHub nicht ausgeführt; sie sind wieder entfernt. |
+| V-GL-23 | Jeder Satellitenlauf legt je berührter Region einen neuen Stand der Saisonreihe ab (`season/<Jahr>/<Region>/<Stand>.json`, ≈ 20 KB, bis zu 45 Dateien); gelesen wird nur der neueste. Der Verlauf wächst um schätzungsweise 0,8 MB am Tag. | Die Budgets sind laut Jan egal; wer den Verlauf klein halten will, legt nur alle paar Läufe einen neuen Stand ab (Zeiger bleibt) oder fasst die Stände je Woche zusammen. |
+| V-GL-24 | Der erste planmäßige Schmelzlauf auf GitHub (11.10. 23:29 UTC) endete „grün“ **ohne Ergebnis**: `melt.mjs` stürzte am fehlenden Paket `bz2` ab, und die Pipe in `tee` verdeckte den Exit-Code (GitHubs Standard-Shell hat kein `pipefail`). Dasselbe Muster steckt in `sea.yml` des Daten-Repos (`| tee`). | **Behoben** für diese Linie: `npm install bz2@1 jsfive@0.4` im Arbeitsverzeichnis, `set -o pipefail` in jedem Schritt mit `tee`, Prüfer W10/W11. Hinweis an Jan: dieselbe Falle in den Workflows anderer Linien prüfen (`sea.yml`: `Texts`-Schritt mit `| tee ../text.log`). |
