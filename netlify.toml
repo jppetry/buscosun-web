@@ -318,6 +318,14 @@
   from   = "/wellen"
   to     = "/seewetter"
   status = 301
+[[redirects]]
+  from   = "/gletscherradar"
+  to     = "/gletscher"
+  status = 301
+[[redirects]]
+  from   = "/gletschermonitor"
+  to     = "/gletscher"
+  status = 301
 
 # 200-Rewrites je App-Route auf ihre Shell (Sub-Routen teilen die Eltern-Shell).
 [[redirects]]
@@ -582,6 +590,15 @@
 [[redirects]]
   from   = "/seewetter/*"
   to     = "/seewetter.html"
+  status = 200
+# Phase GL: Gletscher — das Gletscher-Segment teilt die Shell der Route; noindex bis Gate D (GLACIER_LIVE).
+[[redirects]]
+  from   = "/gletscher"
+  to     = "/gletscher.html"
+  status = 200
+[[redirects]]
+  from   = "/gletscher/*"
+  to     = "/gletscher.html"
   status = 200
 [[redirects]]
   from   = "/feedback"

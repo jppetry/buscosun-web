@@ -1,0 +1,33 @@
+at_hintereisferner-mit-toteis      2025 ELA 3302 Median 2904 Max 3252 WGMS (2026), Fluctua
+at_kesselwand-ferner               2025 ELA 3275 Median 3202 Max 3242 WGMS (2026), Fluctua
+at_vernagt-ferner                  2025 ELA 3447 Median 3214 Max 3406 WGMS (2026), Fluctua
+at_obersulzbach-kees               2025 ELA 3109 Median 3058 Max 3076 WGMS (2026), Fluctua
+ch_silvrettagletscher              2023 ELA 3203 Median 2882 Max 3099 GLAMOS (2025), Swiss
+ch_silvrettagletscher              2024 ELA 3114 Median 2787 Max 3099 GLAMOS (2025), Swiss
+ch_silvrettagletscher              2025 ELA 3142 Median 2476 Max 3013 GLAMOS (2025), Swiss
+ch_claridenfirn                    2025 ELA 3105 Median 2911 Max 3083 GLAMOS (2025), Swiss
+ch_oberaargletscher                2023 ELA 3345 Median 3400 Max 3400 GLAMOS (2025), Swiss
+ch_glacier-de-la-plaine-morte      2023 ELA 3031 Median 2583 Max 2939 GLAMOS (2025), Swiss
+ch_glacier-de-la-plaine-morte      2024 ELA 2805 Median 2627 Max 2772 GLAMOS (2025), Swiss
+ch_glacier-de-la-plaine-morte      2025 ELA 3051 Median 2541 Max 2939 GLAMOS (2025), Swiss
+ch_glatscher-da-medel-e            2023 ELA 3122 Median 2789 Max 2837 GLAMOS (2025), Swiss
+ch_glatscher-da-medel-e            2024 ELA 3022 Median 2646 Max 2960 GLAMOS (2025), Swiss
+ch_glacier-de-tsanfleuron          2023 ELA 3161 Median 2796 Max 2958 GLAMOS (2025), Swiss
+ch_glacier-de-tsanfleuron          2024 ELA 2945 Median 2920 Max 2923 GLAMOS (2025), Swiss
+ch_glacier-de-tsanfleuron          2025 ELA 3084 Median 2692 Max 2958 GLAMOS (2025), Swiss
+ch_griesgletscher                  2023 ELA 3556 Median 3246 Max 3306 GLAMOS (2025), Swiss
+ch_griesgletscher                  2024 ELA 3433 Median 2533 Max 2681 GLAMOS (2025), Swiss
+ch_griesgletscher                  2025 ELA 3429 Median 2533 Max 3306 GLAMOS (2025), Swiss
+ch_schwarzberggletscher-zentral    2023 ELA 3569 Median 2896 Max 3207 GLAMOS (2025), Swiss
+ch_allalingletscher                2023 ELA 4255 Median 3290 Max 3424 GLAMOS (2025), Swiss
+ch_glacier-du-gietro-b82-14        2023 ELA 3485 Median 3189 Max 3464 GLAMOS (2025), Swiss
+ch_glacier-du-gietro-b82-14        2024 ELA 3475 Median 3380 Max 3420 GLAMOS (2025), Swiss
+ch_glacier-d-otemma-zentral        2024 ELA 3716 Median 2922 Max 3483 GLAMOS (2025), Swiss
+ch_glacier-d-orny                  2023 ELA 3302 Median 3065 Max 3121 GLAMOS (2025), Swiss
+ch_glacier-d-orny                  2025 ELA 3260 Median 2948 Max 3121 GLAMOS (2025), Swiss
+ch_adlergletscher                  2023 ELA 4100 Median 3669 Max 3995 GLAMOS (2025), Swiss
+ch_ghiacciaio-del-basodino         2023 ELA 3442 Median 3155 Max 3157 GLAMOS (2025), Swiss
+ch_ghiacciaio-del-basodino         2024 ELA 3193 Median 2747 Max 3074 GLAMOS (2025), Swiss
+ch_ghiacciaio-del-basodino         2025 ELA 3228 Median 2898 Max 3157 GLAMOS (2025), Swiss
+Protokoll-Median: n 31 median|Δ| 331 bias -381
+Maximum        : n 31 median|Δ| 105 bias -156

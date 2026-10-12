@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Gletscher – DACH-Lage, Desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;overflow:hidden}
+a{color:#145A70}a:hover{color:#1E87A8}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; overflow: hidden; background: #EDE6D3; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<nav aria-label="Bereiche" style="width: 62px; flex: 0 0 auto; background: #2C2A26; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; box-sizing: border-box">
+<a href="gletscher-desktop-lage.dc.html" aria-label="buscosun Startseite" style="width: 42px; height: 42px; border-radius: 11px; color: #E0A567; display: flex; align-items: center; justify-content: center; margin-bottom: 8px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+</a>
+<button type="button" aria-label="Wetterkarte" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></button>
+<button type="button" aria-label="Regenradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle><path d="M12 12l5.5-5.5"></path></svg></button>
+<button type="button" aria-label="Vorhersage" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"></path><path d="M4 15l4-5 4 3 4-6 4 4"></path></svg></button>
+<button type="button" aria-label="Tourenplanung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="6" r="2.2"></circle><path d="M8 17c6 0 2-9 8-10"></path></svg></button>
+<button type="button" aria-label="Brandradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-4 0-6.5-2.7-6.5-6.2 0-3.8 3.6-5.6 4.2-10.3 2.9 1.9 4.4 4.3 4.6 6.6.9-.6 1.5-1.7 1.7-2.9 1.6 1.5 2.5 3.6 2.5 6 0 4-2.6 6.8-6.5 6.8z"></path></svg></button>
+<button type="button" aria-label="Seewetter" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 15c2 0 2-1.6 4.5-1.6S10 15 12 15s2-1.6 4.5-1.6S19 15 21 15"></path><path d="M3 19c2 0 2-1.6 4.5-1.6S10 19 12 19s2-1.6 4.5-1.6S19 19 21 19"></path><path d="M7 11c1.5-4 6-6 10-4"></path></svg></button>
+<a href="gletscher-desktop-lage.dc.html" aria-label="Gletscher (aktiv)" aria-current="page" style="width: 42px; height: 42px; border-radius: 11px; background: #3A3833; color: #8FD0E3; display: flex; align-items: center; justify-content: center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z"></path><path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4"></path></svg></a>
+<div style="flex: 1"></div>
+<button type="button" aria-label="Einstellungen" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"></path></svg></button>
+</nav>
+
+<div style="flex: 1; display: flex; flex-direction: column; min-width: 0">
+
+<header style="height: 60px; flex: 0 0 auto; display: flex; align-items: center; gap: 16px; padding: 0 20px; box-sizing: border-box; background: #FAF6EA; border-bottom: 1px solid #E0D6BE">
+<div style="display: flex; flex-direction: column; gap: 1px; width: 200px; flex: 0 0 auto">
+<div style="font-size: 21px; font-weight: 700; letter-spacing: -0.2px">Gletscher</div>
+<div style="font-size: 12.5px; color: #5C5447">DACH · rund 2 200 Gletscher im Atlas</div>
+</div>
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; white-space: nowrap">
+<div style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; background: #FBF3E7; border: 1px solid #E7D3B4; font-size: 12.5px; color: #7A5418"><span style="width: 7px; height: 7px; border-radius: 4px; background: #B8862F"></span>Modell · Fusion 11.10. 06 UTC</div>
+<div style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; background: #EEEBF8; border: 1px solid #CFC6EE; font-size: 12.5px; color: #4B3D96"><span style="width: 7px; height: 7px; border-radius: 4px; background: #6B5BB8"></span>Sentinel-2 · 09.10.</div>
+<div style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; background: #EFF3E8; border: 1px solid #C3D2AF; font-size: 12.5px; color: #4F6A3D"><span style="width: 7px; height: 7px; border-radius: 4px; background: #5F7A4C"></span>Messung · GLAMOS 01.10. · ÖAV 13.03. · BAdW 19.03.</div>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 16px; background: #2C2A26; color: #F5F1E8; font-size: 13px; font-weight: 600; white-space: nowrap">Saison 2025/26 beendet</div>
+<button type="button" style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"></path></svg>Teilen</button>
+</header>
+
+<div style="flex: 1; display: flex; min-height: 0">
+
+<aside aria-label="Auswahl und Rangliste" style="width: 250px; flex: 0 0 auto; background: #FAF6EA; border-right: 1px solid #E0D6BE; display: flex; flex-direction: column; padding: 14px 14px 10px; box-sizing: border-box; gap: 14px; min-height: 0">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="gl-suche" style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">GLETSCHER SUCHEN</label>
+<input id="gl-suche" type="search" placeholder="Name, Gebirge, Hütte …" style="height: 38px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; padding: 0 12px; font-family: inherit; font-size: 14px; color: #2C2A26; box-sizing: border-box">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">LAND</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 3px; border-radius: 10px; background: #EDE6D3">
+<sc-for list="{{countries}}" as="c" hint-placeholder-count="4">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.on}}" style="{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">KARTE FÄRBEN NACH</div>
+<sc-for list="{{metrics}}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{m.pick}}" aria-pressed="{{m.on}}" style="{{m.style}}">
+<span style="display: flex; flex-direction: column; gap: 1px; text-align: left"><span style="font-size: 14px; font-weight: 600">{{m.label}}</span><span style="font-size: 11.5px; color: #5C5447">{{m.sub}}</span></span>
+<span style="{{m.badgeStyle}}">{{m.badge}}</span>
+</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; min-height: 0; flex: 1">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 12px; font-weight: 600; color: #5C5447; letter-spacing: 0.3px">RANGLISTE</span><span style="font-size: 11.5px; color: #5C5447">{{rankHint}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0; margin-right: -6px; padding-right: 6px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<button type="button" onClick="{{r.pick}}" style="{{r.style}}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5447; width: 16px; text-align: right">{{r.rank}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left"><span style="font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span><span style="font-size: 11px; color: #5C5447">{{r.cc}} · Klasse {{r.cls}}</span></span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; font-weight: 600; color: #2C2A26">{{r.value}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+<div style="border-top: 1px solid #E0D6BE; padding-top: 6px; font-size: 11px; color: #5C5447; line-height: 1.35">Bezugsjahre: CH 2016 · AT 2022/23 · DE 2025</div>
+</aside>
+
+<main style="width: 728px; flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0">
+<section aria-label="Karte aller Gletscher" style="position: relative; height: 430px; overflow: hidden; background: #E9E2CF; border-bottom: 1px solid #D9D0B8">
+<img src="./gletscher/dach_728x470.svg" alt="Karte des Alpenraums mit Deutschland, Österreich und der Schweiz, vergletscherte Gebiete hellblau" style="position: absolute; left: 0; top: 0; width: 728px; height: 470px">
+<div style="position: absolute; left: 186px; top: 116px; font-size: 11px; color: #8B7E62">Zürich</div>
+<div style="position: absolute; left: 86px; top: 180px; font-size: 11px; color: #8B7E62">Bern</div>
+<div style="position: absolute; left: 76px; top: 284px; font-size: 11px; color: #8B7E62">Sion</div>
+<div style="position: absolute; left: 448px; top: 140px; font-size: 11px; color: #8B7E62">Innsbruck</div>
+<div style="position: absolute; left: 462px; top: 26px; font-size: 11px; color: #8B7E62">München</div>
+<div style="position: absolute; left: 600px; top: 58px; font-size: 11px; color: #8B7E62">Salzburg</div>
+<div style="position: absolute; left: 444px; top: 246px; font-size: 11px; color: #8B7E62">Bozen</div>
+<sc-for list="{{markers}}" as="g" hint-placeholder-count="24">
+<button type="button" onClick="{{g.pick}}" aria-label="{{g.aria}}" style="{{g.style}}"></button>
+</sc-for>
+<div style="position: absolute; left: 30px; top: 236px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Gr. Aletsch</div>
+<div style="position: absolute; left: 138px; top: 318px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Gorner</div>
+<div style="position: absolute; left: 190px; top: 214px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Rhone</div>
+<div style="position: absolute; left: 332px; top: 258px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Morteratsch</div>
+<div style="position: absolute; left: 584px; top: 176px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Pasterze</div>
+<div style="position: absolute; left: 352px; top: 212px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Hintereisferner</div>
+<div style="position: absolute; left: 380px; top: 92px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Zugspitze · 2</div>
+<div style="position: absolute; left: 606px; top: 86px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Berchtesgaden · 2</div>
+<div style="position: absolute; left: 664px; top: 118px; font-size: 12px; font-weight: 600; color: #2C2A26; text-shadow: 0 0 3px #F3EEE1, 0 0 3px #F3EEE1">Dachstein</div>
+
+<div style="position: absolute; right: 14px; bottom: 26px; width: 270px; background: rgba(250, 246, 234, 0.97); border: 1px solid #D9D0B8; border-radius: 14px; padding: 12px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 6px 18px rgba(44, 42, 38, 0.12)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 16px; font-weight: 700">{{sel.name}}</span><span style="font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #EDE6D3; color: #5C5447">{{sel.cc}}</span></div>
+<div style="font-size: 12.5px; color: #5C5447">{{sel.area}} · Klasse {{sel.cls}}</div>
+<div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600; white-space: nowrap">{{sel.value}}</span><span style="font-size: 12.5px; color: #5C5447">{{sel.metricLabel}}</span></div>
+<sc-if value="{{sel.isHef}}" hint-placeholder-val="{{ true }}">
+<a href="gletscher-desktop-steckbrief.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 36px; border-radius: 10px; background: #1E87A8; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Steckbrief öffnen <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+</sc-if>
+<sc-if value="{{sel.notHef}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 12px; color: #5C5447; line-height: 1.35">Im Mockup ist nur der Steckbrief Hintereisferner ausgearbeitet.</div>
+</sc-if>
+</div>
+
+<div style="position: absolute; right: 14px; top: 14px; display: flex; flex-direction: column; gap: 4px">
+<button type="button" aria-label="Hineinzoomen" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 18px; color: #2C2A26; cursor: pointer">+</button>
+<button type="button" aria-label="Herauszoomen" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 18px; color: #2C2A26; cursor: pointer">−</button>
+<button type="button" aria-label="3D-Ansicht" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid #D9D0B8; background: #FFFFFF; font-size: 12px; font-weight: 700; color: #2C2A26; cursor: pointer">3D</button>
+</div>
+
+<div style="position: absolute; left: 14px; bottom: 14px; width: 300px; background: rgba(250, 246, 234, 0.97); border: 1px solid #D9D0B8; border-radius: 12px; padding: 10px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 12.5px; font-weight: 700">{{legend.title}}</span><span style="{{legend.badgeStyle}}">{{legend.badge}}</span></div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px">
+<sc-for list="{{legend.ramp}}" as="s" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; gap: 3px"><div style="{{s.style}}"></div><div style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #5C5447">{{s.label}}</div></div>
+</sc-for>
+</div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #5C5447"><span style="width: 10px; height: 10px; border-radius: 6px; border: 1.5px dashed #8B7E62; background: #F3EEE1"></span>{{legend.none}}</div>
+<div style="font-size: 11px; color: #5C5447">Kreisgröße = Fläche laut Inventar</div>
+</div>
+<div style="position: absolute; right: 10px; bottom: 6px; font-size: 10.5px; color: #6F6553">Karte: Natural Earth · Mockup-Werte</div>
+</section>
+
+<section aria-label="Saisonverlauf" style="flex: 1; min-height: 0; background: #FAF6EA; padding: 14px 16px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 16px; font-weight: 700">Saison 2025/26: CH endet bei −2,86 m Wasser­äquivalent</div>
+<div style="font-size: 12.5px; color: #5C5447">Massenbilanz kumuliert seit 1. Oktober, Mittel über alle Gletscher je Land, in m w. e.</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: center; font-size: 12.5px; color: #2C2A26; white-space: nowrap">
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 16px; height: 2.5px; background: #1E87A8; border-radius: 2px"></span>CH</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 16px; height: 2.5px; background: #B5602C; border-radius: 2px"></span>AT</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 16px; height: 2.5px; background: #6B5BB8; border-radius: 2px"></span>DE</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 16px; height: 10px; background: #E6DFCC; border-radius: 2px"></span>CH 2010–2020</span>
+</div>
+</div>
+<svg width="696" height="236" viewBox="0 0 696 236" role="img" aria-label="Kumulierte Massenbilanz Oktober 2025 bis September 2026: Aufbau bis Mai, Abbau ab Juni; Schweiz endet bei minus 2,86, Österreich bei minus 2,55, Deutschland bei minus 3,1 Meter Wasseräquivalent" style="display: block">
+<rect x="579.8" y="10" width="17.6" height="206" fill="#F6E7D8"></rect>
+<text x="588.6" y="8" text-anchor="middle" font-size="10" fill="#8A4A22" font-family="League Spartan, sans-serif">Hitzewelle</text>
+<path d="M40.0,63.6C49.1,63.0 76.6,62.2 94.5,59.8C112.4,57.4 129.4,52.3 147.3,49.3C165.1,46.4 183.6,44.6 201.8,42.2C219.9,39.8 239.0,37.2 256.3,35.0C273.6,32.9 288.2,31.3 305.5,29.3C322.8,27.3 342.1,25.0 360.0,23.1C377.9,21.3 394.9,18.9 412.7,18.4C430.6,17.8 449.4,16.6 467.3,19.8C485.1,23.0 502.1,28.1 520.0,37.4C537.9,46.7 556.3,65.2 574.5,75.5C592.7,85.8 611.4,93.8 629.0,99.3C646.6,104.9 671.5,107.3 680.0,108.9L680.0,139.8C671.5,137.4 646.6,133.9 629.0,125.5C611.4,117.2 592.7,101.3 574.5,89.8C556.3,78.3 537.9,65.6 520.0,56.5C502.1,47.3 485.1,39.4 467.3,35.0C449.4,30.7 430.6,30.4 412.7,30.3C394.9,30.1 377.9,32.7 360.0,34.1C342.1,35.5 322.8,37.3 305.5,38.9C288.2,40.4 273.6,41.9 256.3,43.6C239.0,45.4 219.9,47.4 201.8,49.3C183.6,51.2 165.1,52.8 147.3,55.0C129.4,57.3 112.4,61.2 94.5,62.7C76.6,64.1 49.1,63.5 40.0,63.6Z" fill="#E6DFCC"></path>
+<g stroke="#E0D6BE" stroke-width="1">
+<line x1="40" y1="16" x2="680" y2="16"></line>
+<line x1="40" y1="111.2" x2="680" y2="111.2"></line>
+<line x1="40" y1="158.9" x2="680" y2="158.9"></line>
+<line x1="40" y1="206.5" x2="680" y2="206.5"></line>
+</g>
+<line x1="40" y1="63.6" x2="680" y2="63.6" stroke="#9D8F6E" stroke-width="1"></line>
+<g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5C5447" text-anchor="end">
+<text x="34" y="19.5">+1</text><text x="34" y="67">0</text><text x="34" y="114.7">−1</text><text x="34" y="162.4">−2</text><text x="34" y="210">−3</text>
+</g>
+<g font-family="League Spartan, sans-serif" font-size="11" fill="#5C5447">
+<text x="40" y="230">Okt</text><text x="94.5" y="230">Nov</text><text x="147.3" y="230">Dez</text><text x="201.8" y="230">Jan</text><text x="256.3" y="230">Feb</text><text x="305.5" y="230">Mär</text><text x="360" y="230">Apr</text><text x="412.7" y="230">Mai</text><text x="467.3" y="230">Jun</text><text x="520" y="230">Jul</text><text x="574.5" y="230">Aug</text><text x="629" y="230">Sep</text>
+</g>
+<line x1="521.8" y1="22" x2="521.8" y2="216" stroke="#2C2A26" stroke-width="1" stroke-dasharray="3 3"></line>
+<text x="514" y="110" text-anchor="end" font-size="10.5" fill="#2C2A26" font-family="League Spartan, sans-serif">Gletscherschwundtag CH</text>
+<text x="514" y="122" text-anchor="end" font-size="10.5" fill="#5C5447" font-family="League Spartan, sans-serif">Wintereis aufgebraucht, Anfang Juli</text>
+<path d="M40.0,63.6C49.1,62.8 76.6,61.6 94.5,58.9C112.4,56.1 129.4,50.1 147.3,47.0C165.1,43.8 183.6,42.2 201.8,39.8C219.9,37.4 239.0,35.0 256.3,32.7C273.6,30.3 288.2,27.9 305.5,25.5C322.8,23.1 342.1,20.0 360.0,18.4C377.9,16.8 394.9,15.2 412.7,16.0C430.6,16.8 449.4,15.6 467.3,23.1C485.1,30.7 502.1,44.2 520.0,61.2C537.9,78.3 556.3,103.7 574.5,125.5C592.7,147.3 611.4,177.9 629.0,192.2C646.6,206.5 671.5,208.1 680.0,211.2" fill="none" stroke="#6B5BB8" stroke-width="2" stroke-linecap="round"></path>
+<path d="M40.0,63.6C49.1,63.1 76.6,63.1 94.5,60.8C112.4,58.4 129.4,52.4 147.3,49.3C165.1,46.2 183.6,44.6 201.8,42.2C219.9,39.8 239.0,37.2 256.3,35.0C273.6,32.9 288.2,31.3 305.5,29.3C322.8,27.3 342.1,25.0 360.0,23.1C377.9,21.3 394.9,18.1 412.7,18.4C430.6,18.6 449.4,18.0 467.3,24.6C485.1,31.2 502.1,43.1 520.0,57.9C537.9,72.7 556.3,95.2 574.5,113.6C592.7,132.0 611.4,156.5 629.0,168.4C646.6,180.3 671.5,182.3 680.0,185.0" fill="none" stroke="#B5602C" stroke-width="2" stroke-linecap="round"></path>
+<path d="M40.0,63.6C49.1,63.2 76.6,63.2 94.5,61.2C112.4,59.3 129.4,54.5 147.3,51.7C165.1,48.9 183.6,47.0 201.8,44.6C219.9,42.2 239.0,39.7 256.3,37.4C273.6,35.2 288.2,33.2 305.5,31.2C322.8,29.3 342.1,27.3 360.0,25.5C377.9,23.8 394.9,20.4 412.7,20.8C430.6,21.2 449.4,20.8 467.3,27.9C485.1,35.0 502.1,47.7 520.0,63.6C537.9,79.5 556.3,103.7 574.5,123.1C592.7,142.6 611.4,167.5 629.0,180.3C646.6,193.1 671.5,196.6 680.0,199.8" fill="none" stroke="#1E87A8" stroke-width="2.5" stroke-linecap="round"></path>
+<circle cx="680" cy="199.8" r="4.5" fill="#1E87A8" stroke="#FAF6EA" stroke-width="2"></circle>
+<circle cx="680" cy="185" r="4" fill="#B5602C" stroke="#FAF6EA" stroke-width="2"></circle>
+<circle cx="680" cy="211.2" r="4" fill="#6B5BB8" stroke="#FAF6EA" stroke-width="2"></circle>
+<text x="676" y="196" text-anchor="end" font-size="11" font-weight="600" fill="#2C2A26" font-family="IBM Plex Mono, monospace">−2,86</text>
+</svg>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="font-weight: 600">Tage mit Nullgradgrenze über 4 000 m (CH)</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600">76 · Rekord</span></div>
+<div style="position: relative; height: 14px; margin-left: 40px; width: 640px; background: #F2EEE3; border-radius: 3px; overflow: hidden">
+<sc-for list="{{hotDays}}" as="d" hint-placeholder-count="76">
+<div style="{{d.style}}"></div>
+</sc-for>
+</div>
+<div style="font-size: 11px; color: #5C5447">CH-Endwert und Tageszahl gemessen (GLAMOS, 01.10.2026); Verläufe und AT/DE modelliert (Mockup).</div>
+</div>
+</section>
+</main>
+
+<aside aria-label="DACH-Lage und Änderungen" style="width: 400px; flex: 0 0 auto; background: #FAF6EA; border-left: 1px solid #E0D6BE; display: flex; flex-direction: column; min-height: 0">
+<div style="padding: 14px 16px 10px; border-bottom: 1px solid #E0D6BE; display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 18px; font-weight: 700">DACH-Lage</div>
+<div style="font-size: 12.5px; color: #5C5447">Amtliche Zahlen, jeweils mit Stand und Quelle</div>
+</div>
+<div style="flex: 1; overflow-y: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box">
+
+<article style="border: 1px solid #E0D6BE; border-radius: 14px; background: #FFFFFF; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 14px; font-weight: 700">Schweiz · 2025/26</span><span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; background: #EFF3E8; color: #4F6A3D; border: 1px solid #C3D2AF">gemessen</span></div>
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #8F4A22">−5,5 %</span><span style="font-size: 13px; color: #2C2A26">Eisvolumen, ≈ 2,5 km³</span></div>
+<div style="font-size: 12.5px; color: #5C5447; line-height: 1.4">−2,86 m w. e. · zweitstärkster Verlust nach 2022 · ≈ 714 km², rund 1 300 Gletscher</div>
+<div style="font-size: 11.5px; color: #6F6553">GLAMOS, 01.10.2026</div>
+</article>
+
+<article style="border: 1px solid #E0D6BE; border-radius: 14px; background: #FFFFFF; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 14px; font-weight: 700">Österreich · 2024/25</span><span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; background: #EFF3E8; color: #4F6A3D; border: 1px solid #C3D2AF">gemessen</span></div>
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #8F4A22">−20,3 m</span><span style="font-size: 13px; color: #2C2A26">mittlere Längenänderung</span></div>
+<div style="font-size: 12.5px; color: #5C5447; line-height: 1.4">Rang 8 in 135 Jahren · 285 km², rund 800 Gletscher (AGI 5, v. a. 2022/23) · Bilanz 2025/26 im März 2027</div>
+<div style="font-size: 11.5px; color: #6F6553">ÖAV-Gletscherbericht, 13.03.2026</div>
+</article>
+
+<article style="border: 1px solid #E0D6BE; border-radius: 14px; background: #FFFFFF; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 14px; font-weight: 700">Deutschland · 2025</span><span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; background: #EFF3E8; color: #4F6A3D; border: 1px solid #C3D2AF">gemessen</span></div>
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #8F4A22">26,2 ha</span><span style="font-size: 13px; color: #2C2A26">4 Gletscher, −27,2 % seit 2023</span></div>
+<div style="font-size: 12.5px; color: #5C5447; line-height: 1.4">Eis wird 1,6 m pro Jahr dünner (2023–25), doppelt so schnell wie zuvor</div>
+<div style="font-size: 11.5px; color: #6F6553">BAdW, 19.03.2026</div>
+</article>
+
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px"><span style="font-size: 15px; font-weight: 700">Was sich verändert hat</span><span style="font-size: 12px; color: #5C5447">neueste zuerst</span></div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{feed}}" as="f" hint-placeholder-count="7">
+<li style="display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #EDE6D3">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5447; padding-top: 2px">{{f.date}}</span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13.5px; line-height: 1.35; color: #2C2A26">{{f.text}}</span><span style="display: flex; gap: 6px; align-items: center"><span style="{{f.badgeStyle}}">{{f.badge}}</span><span style="font-size: 11.5px; color: #6F6553">{{f.src}}</span></span></span>
+</li>
+</sc-for>
+</ol>
+<div style="border: 1px dashed #C4B896; border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: #5C5447; line-height: 1.45"><span style="font-weight: 700; color: #2C2A26">Nächste Berichte:</span> GLAMOS-Bulletin Feb. 2027 · ÖAV-Gletscherbericht März 2027 · Weltgletschertag 21.03.</div>
+</div>
+</aside>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { metric: 'loss', country: 'all', sel: 'Hintereisferner' };
+  }
+  renderVals() {
+    const G = [
+      ['Großer Aletschgletscher','CH',146.5,246.8,78.5,'A',-2.5,0.4,18,null],
+      ['Gornergletscher','CH',125.3,314.2,41.2,'A',-2.2,0.3,24,null],
+      ['Fieschergletscher','CH',158.5,244.1,29.8,'A',-2.6,0.4,16,null],
+      ['Unteraargletscher','CH',163.1,233.3,22.7,'A',-2.4,0.2,14,null],
+      ['Rhonegletscher','CH',179.7,229.3,14.6,'A',-3.4,0.5,9,null],
+      ['Morteratschgletscher','CH',321.6,256.2,14.9,'A',-2.9,0.3,12,null],
+      ['Griesgletscher','CH',174.2,250.9,4.8,'A',-3.8,0.1,0,null],
+      ['Claridenfirn','CH',223.9,196.9,4.4,'A',-3.1,0.0,0,null],
+      ['Silvrettagletscher','CH',334.5,195.6,2.6,'A',-3.3,0.0,4,null],
+      ['Glacier de la Plaine Morte','CH',96.8,258.9,7.1,'A',-3.6,0.0,0,null],
+      ['Pasterze','AT',575.9,163.2,14.6,'A',-3.0,0.3,11,-54.0],
+      ['Gepatschferner','AT',396.3,194.2,13.0,'A',-2.4,0.2,20,null],
+      ['Hintereisferner','AT',397.2,202.3,5.2,'A',-2.5,0.3,12,null],
+      ['Vernagtferner','AT',402.7,191.5,6.6,'A',-2.7,0.1,8,null],
+      ['Schlatenkees','AT',547.4,159.1,8.0,'A',-2.6,0.2,15,null],
+      ['Krimmler Kees','AT',532.6,161.8,4.0,'A',-2.8,0.2,13,-90.3],
+      ['Stubacher Sonnblickkees','AT',566.7,157.8,1.0,'A',-3.2,0.1,6,-103.9],
+      ['Alpeiner Ferner','AT',430.3,167.2,2.8,'A',-3.0,0.1,7,-114.3],
+      ['Goldbergkees','AT',599.9,168.6,0.96,'B',-2.9,0.0,3,null],
+      ['Hallstätter Gletscher','AT',660.7,110.6,2.0,'A',-3.1,0.0,2,null],
+      ['Nördlicher Schneeferner','DE',417.9,119.0,0.094,'C',-3.4,0.0,null,null],
+      ['Höllentalferner','DE',419.6,117.5,0.128,'B',-2.1,0.0,null,null],
+      ['Blaueis','DE',590.4,98.9,0.015,'C',-3.5,0.0,null,null],
+      ['Watzmanngletscher','DE',597.7,101.4,0.025,'C',-3.3,0.0,null,null]
+    ];
+    const RAMP_T = ['#F4DCC6','#E9B48C','#D68A55','#B5602C','#7E3C17'];
+    const RAMP_C = ['#E3F1F5','#A9D4E2','#5FAFC9','#1E87A8','#145A70'];
+    const M = {
+      loss: { label: 'Verlust Saison 2025/26', sub: 'm w. e., Modell', badge: 'Modell', idx: 6, ramp: RAMP_T, unit: ' m w. e.', t: v => (-v - 1.5) / 2.5, ticks: ['−1,5','−2,1','−2,8','−3,4','−4,0'], sortDir: 1, none: 'kein Wert', hint: 'größter Verlust zuerst', dec: 1 },
+      melt: { label: 'Schmelze heute', sub: 'cm Eis, 11.10., Modell', badge: 'Modell', idx: 7, ramp: RAMP_C, unit: ' cm', t: v => v / 1.0, ticks: ['0','0,25','0,5','0,75','≥ 1'], sortDir: -1, none: 'kein Wert', hint: 'stärkste Schmelze zuerst', dec: 1 },
+      aar: { label: 'Ausaperung', sub: 'Schneeanteil Saisonende, Satellit', badge: 'Satellit', idx: 8, ramp: RAMP_C, unit: ' %', t: v => v / 40, ticks: ['0 %','10 %','20 %','30 %','≥ 40 %'], sortDir: 1, none: 'Klasse C: zu klein für Sentinel-2', hint: 'wenigster Schnee zuerst', dec: 0 },
+      len: { label: 'Längenänderung', sub: 'm, letzte Messung', badge: 'gemessen', idx: 9, ramp: RAMP_T, unit: ' m', t: v => -v / 120, ticks: ['0','−30','−60','−90','−120'], sortDir: 1, none: 'keine Messung zugeordnet', hint: 'größter Rückzug zuerst', dec: 1 }
+    };
+    const badgeStyle = b => {
+      const c = b === 'gemessen' ? ['#EFF3E8','#4F6A3D','#C3D2AF'] : b === 'Satellit' ? ['#EEEBF8','#4B3D96','#CFC6EE'] : b === 'amtlich' ? ['#2C2A26','#F5F1E8','#2C2A26'] : ['#FBF3E7','#7A5418','#E7D3B4'];
+      return 'font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; white-space: nowrap; background: ' + c[0] + '; color: ' + c[1] + '; border: 1px solid ' + c[2];
+    };
+    const fmt = (v, dec) => {
+      if (v === null || v === undefined) return '–';
+      const s = Math.abs(v).toFixed(dec).replace('.', ',');
+      return (v < 0 ? '−' : '') + s;
+    };
+    const m = M[this.state.metric];
+    const col = v => {
+      if (v === null) return null;
+      const t = Math.max(0, Math.min(0.999, m.t(v)));
+      return m.ramp[Math.floor(t * 5)];
+    };
+    const visible = g => this.state.country === 'all' || g[1] === this.state.country;
+    const markers = G.filter(visible).map(g => {
+      const v = g[m.idx];
+      const r = 2.6 + 1.15 * Math.sqrt(g[4]);
+      const c = col(v);
+      const isSel = g[0] === this.state.sel;
+      const ring = isSel ? '0 0 0 2px #FAF6EA, 0 0 0 4.5px #2C2A26' : '0 0 0 1.5px #FAF6EA';
+      const fill = c ? 'background: ' + c + '; border: 1px solid rgba(44, 42, 38, 0.35);' : 'background: #F3EEE1; border: 1.5px dashed #8B7E62;';
+      return {
+        aria: g[0] + ', ' + (v === null ? m.none : fmt(v, m.dec) + m.unit),
+        style: 'position: absolute; box-sizing: border-box; padding: 0; cursor: pointer; border-radius: 50%; left: ' + (g[2] - r).toFixed(1) + 'px; top: ' + (g[3] - r).toFixed(1) + 'px; width: ' + (2 * r).toFixed(1) + 'px; height: ' + (2 * r).toFixed(1) + 'px; ' + fill + ' box-shadow: ' + ring + ';',
+        pick: () => this.setState({ sel: g[0] })
+      };
+    });
+    const sorted = G.filter(visible).slice().sort((a, b) => {
+      const va = a[m.idx], vb = b[m.idx];
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return m.sortDir === 1 ? va - vb : vb - va;
+    });
+    const rows = sorted.map((g, i) => ({
+      rank: String(i + 1),
+      name: g[0], cc: g[1], cls: g[5],
+      value: g[m.idx] === null ? '–' : fmt(g[m.idx], m.dec) + m.unit.replace(' m w. e.', ''),
+      style: 'display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: 9px; cursor: pointer; text-align: left; color: #2C2A26; ' + (g[0] === this.state.sel ? 'background: #E3F1F5; border: 1px solid #A9D4E2;' : 'background: transparent; border: 1px solid transparent;'),
+      pick: () => this.setState({ sel: g[0] })
+    }));
+    const selG = G.find(g => g[0] === this.state.sel) || G[12];
+    const areaTxt = g => (g[4] < 1 ? (g[4] * 100).toFixed(1).replace('.', ',') + ' ha' : g[4].toFixed(1).replace('.', ',') + ' km²') + (g[1] === 'CH' ? ' (SGI2016)' : g[1] === 'AT' ? ' (AGI 5)' : ' (BAdW 2025)');
+    const sv = selG[m.idx];
+    const sel = {
+      name: selG[0], cc: selG[1], cls: selG[5], area: areaTxt(selG),
+      value: sv === null ? '–' : fmt(sv, m.dec) + m.unit,
+      metricLabel: sv === null ? m.none : m.label,
+      isHef: selG[0] === 'Hintereisferner', notHef: selG[0] !== 'Hintereisferner'
+    };
+    const countries = ['all','CH','AT','DE'].map(k => ({
+      label: k === 'all' ? 'Alle' : k, on: this.state.country === k,
+      style: 'height: 32px; border-radius: 8px; border: 0; cursor: pointer; font-size: 13.5px; font-weight: 600; ' + (this.state.country === k ? 'background: #FFFFFF; color: #2C2A26; box-shadow: 0 1px 3px rgba(44, 42, 38, 0.18);' : 'background: transparent; color: #5C5447;'),
+      pick: () => this.setState({ country: k })
+    }));
+    const metrics = Object.keys(M).map(k => ({
+      label: M[k].label, sub: M[k].sub, badge: M[k].badge, badgeStyle: badgeStyle(M[k].badge), on: this.state.metric === k,
+      style: 'display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 44px; padding: 5px 10px; border-radius: 10px; cursor: pointer; color: #2C2A26; ' + (this.state.metric === k ? 'background: #FFFFFF; border: 1.5px solid #1E87A8;' : 'background: transparent; border: 1px solid #E0D6BE;'),
+      pick: () => this.setState({ metric: k })
+    }));
+    const legend = {
+      title: m.label + ' · ' + m.sub.split(',')[0],
+      badge: m.badge, badgeStyle: badgeStyle(m.badge), none: m.none,
+      ramp: m.ramp.map((c, i) => ({ label: m.ticks[i], style: 'height: 10px; border-radius: 3px; background: ' + c }))
+    };
+    const hd = [247,248,249,251,256,257,258,259,260,261,262,263,264,265,267,268,269,270,271,273,274,275,276,277,278,279,280,282,283,286,289,291,292,294,297,298,299,300,301,302,303,306,307,308,309,310,311,312,314,315,316,317,318,321,322,324,325,326,327,328,330,331,332,336,337,338,340,341,346,349,351,353,354,356,358,359];
+    const hotDays = hd.map(d => ({ style: 'position: absolute; top: 0; width: 1.8px; height: 14px; background: #B5602C; left: ' + (d / 364 * 640).toFixed(1) + 'px' }));
+    const feed = [
+      { date: '09.10.', text: 'Erste klare Szene nach dem Wintereinbruch: Neuschnee bis ≈ 2 900 m, an 212 Gletschern Schneegrenze gemessen.', badge: 'Satellit', src: 'Sentinel-2 · Mockup' },
+      { date: '02.10.', text: 'Österreich: neues Gletscherinventar AGI 5 – 285 km², 31 % weniger Fläche als im Inventar 2004–2012.', badge: 'gemessen', src: 'Hartl et al. 2026' },
+      { date: '01.10.', text: 'GLAMOS: Schweizer Gletscher verlieren 5,5 % ihres Volumens; Nullgradgrenze an 76 Tagen über 4 000 m.', badge: 'gemessen', src: 'GLAMOS' },
+      { date: '01.10.', text: 'Verschwunden laut Fotodokumentation: Bella Tola (VS) und Griessfiren/Plattalvafirn (GL). Kriterium: unter 1 ha Eis.', badge: 'gemessen', src: 'GLAMOS' },
+      { date: '18.09.', text: 'Pasterze: Oberfläche am Profil auf 2 500 m um 10 m gesunken, bisheriges Maximum 8 m.', badge: 'gemessen', src: 'ÖAV' },
+      { date: '21.08.', text: 'Griesgletscher: 6 m Eis seit Saisonbeginn, neuer Einsturztrichter von 50 m.', badge: 'gemessen', src: 'GLAMOS über Blick' },
+      { date: '08.08.', text: 'Hitzewelle: Schmelze an 9 von 10 Leitgletschern über dem 95. Perzentil der Jahre 2000–2025.', badge: 'Modell', src: 'buscosun Fusion · Mockup' }
+    ].map(f => ({ ...f, badgeStyle: badgeStyle(f.badge) }));
+    return { markers, rows, sel, countries, metrics, legend, hotDays, feed, rankHint: m.hint };
+  }
+}
+</script>
+</body>
+</html>

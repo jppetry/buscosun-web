@@ -469,6 +469,18 @@
    auf, ein weicher Schein atmet. Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus. */
 .tile-fire { justify-content: space-between; min-height: 210px; padding: 22px; }
 
+/* Gletscher (Kachel 13, Phase GL; nur mit ?gl=1 bis Gate D): Text links, rechts eine schematische Gletscherkarte
+   (Zeichnung, kein Datenbild); Stellung und Breite im Raster bleiben inline (`GL_TILE_STYLE`). */
+.tile-gl { flex-direction: row; align-items: stretch; gap: 26px; padding: 22px; }
+.tile-gl-text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.tile-gl-head { display: flex; align-items: center; gap: 14px; }
+.tile-gl-head .tile-title { margin-top: 5px; }
+.tile-gl-preview {
+  flex: 0 0 44%; min-height: 184px; position: relative; overflow: hidden; border-radius: 14px;
+  background: var(--ink-900); border: 1px solid var(--border-default);
+}
+.tile-gl-preview svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
 /* Seewetter (Kachel 12, Phase SW; seit 2026-10-10 für alle): Text links, rechts eine schematische
    Seekarte — Wellenfeld, Küste, Spots in den Klassenfarben. Zeichnung, kein Datenbild; Stellung
    und Breite im Raster bleiben inline (`SW_TILE_STYLE`). */

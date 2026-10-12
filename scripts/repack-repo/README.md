@@ -3,7 +3,7 @@
 Vorprozessierte Wetterdaten für [buscosun.com](https://buscosun.com).
 
 **Dieses Repo enthält keinen Anwendungscode.** Es ist ein reiner Datenspeicher,
-ausgeliefert über [jsDelivr](https://www.jsdelivr.com/). Sechs Produktlinien mit verschiedenen
+ausgeliefert über [jsDelivr](https://www.jsdelivr.com/). Sieben Produktlinien mit verschiedenen
 Takten und verschiedenen Zwecken:
 
 | Linie | Verzeichnis | Achse | Takt | Wer schreibt |
@@ -14,6 +14,7 @@ Takten und verschiedenen Zwecken:
 | **Straßenwetter** | `road/` | Messpunkte der Glättemeldeanlagen | alle 15 min | `.github/workflows/radar.yml` (Produkt im Radar-Spiegel) |
 | **Streckenprognose** | `road/fc/` | Zeitreihe je Punkt der Autobahn | stündlich | `.github/workflows/road-fc.yml` |
 | **Seewetter** | `sea/` | Seegangsfelder, Spot-Reihen, amtliche Texte | Texte alle 15 min, Felder 2 × täglich | `.github/workflows/sea.yml` |
+| **Gletscher** | `glacier/v1/` (`main` + Zweig `glacier`) | Inventare, Messreihen, Satellitenkennzahlen, Schmelzindex je Gletscher | Satellit 2 × täglich, Schmelze 3-stündlich, Feed täglich | `.github/workflows/glacier-{sat,melt,feed,static}.yml` |
 
 ---
 
@@ -222,6 +223,43 @@ Aufbewahrung: aktueller + voriger Lauf, Texte 48 h. Jeder Push kopiert den ganze
 Force-Pushes der Karten- und Punktlinie). Aus: Repo-Variable `SEA_KILL=1`.
 
 ⚠️ Modell und amtlicher Text — kein amtliches Warnprodukt von buscosun, keine Sicherheitsbewertung.
+
+---
+
+## Gletscher — `glacier/v1/`
+
+Gletscher-Monitor DACH (2 200 Gletscher in der Schweiz, Österreich und Deutschland): Inventare mit Umrissen und Flächen **mit Bezugsjahr**,
+gemessene Längen- und Massenreihen, Satellitenkennzahlen aus Sentinel-2 (Schneegrenze, Schneeanteil, Albedo je klarer Szene) und der
+**Schmelzindex** aus buscosun Fusion (ein Index 0–100 **ohne Einheit**, solange die Eichung nicht bestanden ist). Producer: `scripts/glacier/*`
+im Anwendungs-Repo, Vertrag `src/glacier/glacierContract.ts`, Workflows `.github/workflows/glacier-sat.yml` (2 × täglich),
+`glacier-melt.yml` (3-stündlich, nur bei neuem Lauf der Stufen 2/3), `glacier-feed.yml` (täglich), `glacier-static.yml` (wöchentlicher Wächter).
+
+**Zwei Zweige, derselbe Pfad.** `main` trägt die laufend aufgefrischten Linien (kleine JSON-Dateien), der **verwaiste Zweig `glacier`** die
+schweren, unveränderlichen statischen Builds (24–38 MB; die zwei neuesten bleiben). Der Zeiger `glacier/v1/index.json` auf `main` nennt den Build;
+ein neuer Build geht **zuerst** auf den Zweig, der Zeiger danach — er nennt nie einen Build, den es nicht gibt. Gelesen wird der Zeiger über
+`raw.githubusercontent.com` (frisch), alles andere über jsDelivr (`@main` bzw. `@glacier`) mit dem Rohweg als Rückfall. Die Tagesablage der
+Leitgletscher-Zeilen jedes Schmelzlaufs liegt in `buscosun-archiv` unter `glacier/v1/<Tag>/` (Workflow `glacier-archiv.yml` dort).
+
+```
+glacier/v1/index.json                          Zeiger (main): aktueller statischer Build, jüngste Szene je Kachel, jüngster Schmelzlauf, Saisonstand, Feed-Woche
+glacier/v1/status.json                         Linien, Prüfer-Bilanz, Kill-Switch
+glacier/v1/obs/<jahr>/<kachel>/<datum>.json    Satellitenkennzahlen je klarer Szene und Gletscher (Klasse A: Schneegrenze, AAR, Albedo; Klasse B: Ausaperung, Albedo)
+glacier/v1/season/<jahr>/<region>/<stand>.json Saisonreihen je Region
+glacier/v1/melt/<lauf>.json, melt/state.json   Schmelzindex je Gletscher und Lauf (Läufe der letzten 72 h) und der Schneezustand für den nächsten Lauf
+glacier/v1/feed/<jahr>-W<woche>.json           Feed „Was sich verändert hat“ (letzte 12 Wochen), card/<jahr>-W<woche>.png Wochenkarte
+glacier/v1/static/<build>/…                    (Zweig glacier) catalog, points, outline/, hypso/, dem/, series/, proj/, clima/, official, sources, summary, report
+```
+
+**Quellen der Schweiz (seit 11.10.2026).** Umrisse und frühere Umrisse (SGI1850/1931/1973/2010/2016) kommen aus der **GLIMS Glacier Database**
+(die Inventare liegen dort als Teilflächen; ein Gletscher wird aus Teilflächen gleichen Namens im Abstand ≤ 500 m gebildet, 96,4 % der 1 400
+SGI-Gletscher werden so exakt getroffen), die Längen- und Massenreihen aus der **WGMS Fluctuations of Glaciers Database** (die Schweizer Reihen
+des Gletschermessnetzes GLAMOS werden dort geführt). Höhen aus dem Copernicus DEM, die fünf Schweizer Teilgebiete sind reine Geografie (Länge/Breite).
+
+**Sperren.** Eine Satellitenzahl gibt es nur für Klasse A (≥ 1 km²) und B (0,1–1 km²) außerhalb Deutschlands; Klasse C und die vier deutschen
+Gletscher tragen keine. Eine Szene mit Albedo außerhalb 0,02–0,98 geht in Quarantäne. Das Schmelzdokument trägt **kein** `mm`-Feld, solange Gate C
+rot ist. Aus: `glacier/v1/status.json` `killed: true` (jeder Workflow liest ihn).
+
+⚠️ Szenenwerte und ein Modellindex — keine Gleichgewichtslinie, keine Warnung, keine Sicherheitsbewertung einer Tour.
 
 ---
 
@@ -646,6 +684,10 @@ sonst läuft der alte Stand weiter. Dasselbe gilt für dieses README und für
 | `point/` (C-LAEF), `radar/img/v1/inca` | GeoSphere Austria | CC BY 4.0 |
 | `point/` (ICON-CH1/CH2), `radar/img/v1/rzc` | MeteoSchweiz | CC BY 4.0 |
 | `point/` (IFS/AIFS) | ECMWF Open Data | CC BY 4.0, ECMWF Terms of Use |
+| `glacier/` Umrisse CH (SGI1850–2016) | GLIMS Glacier Database (NSIDC, doi:10.7265/N5V98602), eingereicht von GLAMOS und den Universitäten Zürich/Fribourg | frei zugänglich, Zitierpflicht (GLIMS/NSIDC); die Ursprungs-DOI des SGI2016 nennt CC BY 4.0 |
+| `glacier/` Reihen CH, AT, DE | WGMS Fluctuations of Glaciers Database 2026-02-10, doi:10.5904/wgms-fog-2026-02-10 | offen mit Zitierpflicht (laut WGMS gleichwertig CC BY 4.0) |
+| `glacier/` Umrisse AT, DE, GloGEM, TSLA, ÖAV | AGI 5 (PANGAEA 991106), GI4 (887415), RGI 6.2, GloGEM CMIP6 v2 (Zenodo), TSLA (Zenodo), ÖAV (PANGAEA) | CC BY 4.0 bzw. 3.0 |
+| `glacier/` Satellit, Höhen | Sentinel-2 L2A (Earth Search), Copernicus DEM GLO-30 | „Contains modified Copernicus Sentinel data“; Copernicus-DEM-Lizenz mit Vermerk |
 
 Die Daten wurden **verändert**: räumlich abgetastet, quantisiert und umkodiert.
 Sie sind **nicht** für amtliche Zwecke geeignet.
@@ -658,4 +700,5 @@ Die Producer liegen im Anwendungs-Repo:
 - [`scripts/road/road-forecast.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/road-forecast.mjs), [`build-fc-points.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/road/build-fc-points.mjs) — Streckenprognose
 - [`scripts/point/build-point-cube.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/build-point-cube.mjs) — Punkt-Cube
 - [`scripts/point/build-stations.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/build-stations.mjs) — Stationsprodukt
+- [`scripts/glacier/glacier-publish.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/glacier/glacier-publish.mjs), [`sat-scan.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/glacier/sat-scan.mjs), [`melt.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/glacier/melt.mjs), [`feed.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/glacier/feed.mjs) — Gletscher
 - [`scripts/point/publish-point.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/point/publish-point.mjs) — Veröffentlichung und Aufbewahrung der Punktlinie

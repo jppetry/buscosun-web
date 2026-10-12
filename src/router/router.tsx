@@ -121,6 +121,7 @@ export function createAppRouter() {
         { path: sub('waldbrand'), ...page(() => import('./pages/FireRoute')) },
         { path: sub('autobahnwetter'), ...page(() => import('./pages/RoadRoute')) },
         { path: sub('seewetter'), ...page(() => import('./pages/SeaRoute')) },
+        { path: sub('gletscher'), ...page(() => import('./pages/GlacierRoute')) },
         { path: sub('feedback'), ...page(() => import('./pages/FeedbackRoute')) },
         { path: sub('validierung'), ...page(() => import('./pages/ValidationRoute')) },
         { path: sub('mobiletest'), ...page(() => import('./pages/MobileTestRoute')) },

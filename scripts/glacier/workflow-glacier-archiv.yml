@@ -1,0 +1,116 @@
+# ============================================================================
+# glacier-archiv.yml — Ablage der Gletscher-Linie für Gate E (Phase GL, buscosun-web/audit/gletscher.md §GL-3, Archiv)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-archiv.yml` im Archiv-Repo `jppetry/buscosun-archiv` (Jans Vollmacht 11.10.2026).
+# Der Code lebt in `buscosun-web` (`scripts/glacier/glacier-archive.mjs`), die Daten kommen aus `buscosun-data` `glacier/v1/` (Läufe und Katalog).
+# Geschrieben wird nur unter `glacier/v1/<Tag>/`; Punktarchiv, Straßen- und Seewetter daneben bleiben unberührt.
+#
+# Alle 6 h: die Leitgletscher-Zeilen jedes Schmelzlaufs (`melt-<lauf>.json.gz`) — die Läufe selbst bleiben im Daten-Repo nur 72 h (Gate E: Modell
+# gegen Messung im Sommer 2027 braucht die Reihe). Nur Hinzufügen, nie --force, eine Datei mit anderem Inhalt unter demselben Namen bricht ab.
+#
+# Leerlauf: fehlt das Skript auf dem Zweig oder die Linie im Daten-Repo, endet der Job grün mit dem Grund.
+# ============================================================================
+
+name: glacier-archiv
+
+on:
+  schedule:
+    - cron: '47 */6 * * *'   # alle 6 h, :47 — abseits von road-archiv (:25), sea-archiv (:41) und Punktarchiv (23:10)
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-archiv
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout archiver (buscosun-web, GLACIER_PRODUCER_REF)
+        id: app
+        run: |
+          REF="${GLACIER_PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            # after the merge the feature branch is gone: the producer then lives on main (the file check below idles if it is not there either)
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/glacier/glacier-archive.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierMeltContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.app.outputs.ready == '1'
+        with:
+          ref: main
+          path: archiv
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
+
+      - name: Checkout glacier store (buscosun-data main glacier/v1 + the catalogue of the static build)
+        id: data
+        if: steps.app.outputs.ready == '1'
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git data
+          cd data
+          git sparse-checkout set --no-cone /glacier/v1/index.json /glacier/v1/melt/
+          git checkout --quiet
+          if [ ! -f glacier/v1/index.json ]; then
+            echo "glacier/v1/index.json fehlt im Daten-Repo — die Linie ist noch nicht eingespielt, Ende ohne Fehler."
+            echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('glacier/v1/index.json','utf8')).static.build)")
+          cd ..
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch glacier https://github.com/jppetry/buscosun-data.git static-branch
+          git -C static-branch sparse-checkout set --no-cone "/glacier/v1/static/$BUILD/catalog.json"
+          git -C static-branch checkout --quiet
+          test -f "static-branch/glacier/v1/static/$BUILD/catalog.json" || { echo "Katalog des Builds $BUILD fehlt auf dem Zweig glacier"; exit 1; }
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Archive (lead rows of every melt run)
+        id: arch
+        if: steps.app.outputs.ready == '1' && steps.data.outputs.ready == '1'
+        run: |
+          set -o pipefail   # a crash of the archiver must turn the job red, not be hidden by `tee`
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/glacier-archive.mjs \
+            --melt=../data/glacier/v1/melt --catalog=../static-branch/glacier/v1/static/${{ steps.data.outputs.build }}/catalog.json \
+            --archive=../archiv/glacier/v1 --out=../archive-out | tee ../archive.log
+          echo "days=$(test -d ../archive-out && ls ../archive-out | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push (append-only, with retry)
+        if: steps.arch.outputs.days != '' && steps.arch.outputs.days != '0'
+        run: |
+          cd archiv
+          git config user.name  'buscosun-glacier-archiv[bot]'
+          git config user.email 'glacier-archiv@users.noreply.github.com'
+          cd ..
+          for DAY in $(ls archive-out); do
+            node app/scripts/glacier/glacier-publish.mjs --archive --repo=archiv --src="archive-out/$DAY" --day="$DAY" \
+              --message="glacier: archiv $DAY $(date -u +%H:%MZ)"
+          done

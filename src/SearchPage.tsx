@@ -51,6 +51,8 @@ import { useMediaQuery } from './mobile/useIsMobile';
 import { roadFlagFrom, rememberRoadFlag } from './road/roadFlag';
 // Phase SW: Seewetter-Kachel, Palette und Fußlink — seit 10.10.2026 für alle (`SEA_LIVE`), `?sea=0` blendet aus.
 import { seaFlagFrom, rememberSeaFlag } from './sea/seaFlag';
+// Phase GL: Gletscher-Kachel und Palette — nur mit `?gl=1`, bis Jan `GLACIER_LIVE` schaltet (nach Gate D).
+import { glacierFlagFrom, rememberGlacierFlag } from './glacier/glacierFlag';
 
 interface Props {
   onSelect: (location: Location) => void;
@@ -86,6 +88,7 @@ const FEATURE: Record<string, FeatureInfo> = {
   fire:       { id: 'fire',       eyebrow: 'Waldbrand',     title: 'Wie trocken ist der Wald?' },
   road:       { id: 'road',       eyebrow: 'Autobahnwetter', title: 'Ist die Strecke glatt?' },
   sea:        { id: 'sea',        eyebrow: 'Seewetter',     title: 'Wie wird es auf dem Wasser?' },
+  glacier:    { id: 'glacier',    eyebrow: 'Gletscher',     title: 'Wie geht es dem Eis?' },
   feedback:   { id: 'feedback',   eyebrow: 'Feedback',      title: 'Ideen & Vorschläge' },
   validation: { id: 'validation', eyebrow: 'Validierung',   title: 'Wie gut ist der KI-Nowcast wirklich?' },
 };
@@ -98,14 +101,16 @@ const FEATURE: Record<string, FeatureInfo> = {
  * die kleinste Fassung, die nicht wieder auseinanderläuft — die Kacheln selbst
  * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
  */
-const TOOL_TILE_COUNT = 12;
+const TOOL_TILE_COUNT = 13;
 /** Autobahnwetter- und Seewetter-Kachel zählen, solange ihr Flag an ist (`ROAD_LIVE`/`SEA_LIVE`; `?road=0`, `?sea=0` blenden aus). */
-const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1);
+const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1) - (glacierFlagFrom() ? 0 : 1);
 /** Autobahnwetter-Kachel: hinter allen Tablet-Rängen (`order` 1–10 in SearchPage.css) und über die volle Breite —
  *  inline, weil SearchPage.css für diese Phase unverändert bleibt (E-AW-5). */
 const AW_TILE_STYLE: CSSProperties = { order: 11, gridColumn: '1 / -1' };
 /** Seewetter-Kachel (Phase SW, E-SW-8): Nr. 12, volle Breite hinter Autobahnwetter — Stellung inline wie AW, Aufbau in `.tile-sea*` (SearchPage.css). */
 const SW_TILE_STYLE: CSSProperties = { order: 12, gridColumn: '1 / -1' };
+/** Gletscher-Kachel (Phase GL): Nr. 13, volle Breite hinter Seewetter — Stellung inline, Aufbau in `.tile-gl*` (SearchPage.css). */
+const GL_TILE_STYLE: CSSProperties = { order: 13, gridColumn: '1 / -1' };
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
 const PALETTE: PaletteEntry[] = [
@@ -122,6 +127,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
   { num: '12', label: 'Autobahnwetter',         hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
   { num: '13', label: 'Seewetter',              hint: 'Küste · Segeln · Kiten · Wellen', feature: FEATURE.sea },
+  { num: '14', label: 'Gletscher',              hint: 'Schmelze · Schneegrenze · Messreihen', feature: FEATURE.glacier },
 ];
 
 // ============================================================================
@@ -130,7 +136,7 @@ const PALETTE: PaletteEntry[] = [
 export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   const tour = useIntroTour();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  useEffect(() => { rememberRoadFlag(); rememberSeaFlag(); }, []);
+  useEffect(() => { rememberRoadFlag(); rememberSeaFlag(); rememberGlacierFlag(); }, []);
   const [activeCat, setActiveCat] = useState<'alle' | Category>('alle');
   const narrow = useMediaQuery(NARROW_QUERY);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -831,6 +837,65 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             <span className="tile-map-tag">DWD CWAM · BUSCOSUN FUSION · NORD- UND OSTSEE</span>
           </div>
         </>, SW_TILE_STYLE)}
+      {/* 13 · GLETSCHER (Phase GL) — volle Breite hinter Seewetter, Stellung inline (`order: 13`). Nur mit `?gl=1`, bis
+          Jan `GLACIER_LIVE` schaltet: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die
+          Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten. */}
+      {glacierFlagFrom() && tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
+        <>
+          <div className="tile-gl-text">
+            <div className="tile-gl-head">
+              <div className="tile-feedback-icon" aria-hidden="true">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FD0E3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z" />
+                  <path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4" />
+                </svg>
+              </div>
+              <div>
+                <div className="tile-eyebrow">13 · GLETSCHER</div>
+                <div className="tile-title tile-title-lg">Wie geht es dem Eis?</div>
+              </div>
+            </div>
+            <p className="tile-desc">
+              Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen mit Datum, Längen- und Massenreihen der
+              Messnetze, Umrisse mit Bezugsjahr — an jedem Wert steht, ob er gemessen, vom Satelliten, aus dem Modell oder amtlich ist.
+              {' '}
+              <span className="tile-caveat">
+                Kein amtliches Warnprodukt, keine Tourenfreigabe. Schmelze und Schneegrenze folgen, sobald die Eichung besteht.
+              </span>
+            </p>
+            <div className="tile-tags">
+              {['Lage der Gletscher', 'Messreihen', 'Umrisse seit 1850', 'Herkunft je Wert'].map((t) => (
+                <span key={t} className="tile-tag">{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="tile-gl-preview" aria-hidden="true">
+            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="tile-gl-ice" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#E3F1F5" />
+                  <stop offset="0.5" stopColor="#A9D4E2" />
+                  <stop offset="1" stopColor="#5FAFC9" />
+                </linearGradient>
+              </defs>
+              <rect width="520" height="200" fill="var(--ink-900)" />
+              {/* Gebirgsrelief (schematisch) und zwei Gletscherzungen */}
+              <path d="M0 200 L0 120 L70 74 L118 108 L186 40 L262 112 L318 66 L392 130 L452 88 L520 124 L520 200 Z" fill="#3A3833" />
+              <path d="M150 70 C168 74 190 92 200 118 C212 148 232 160 224 186 C208 196 176 190 160 170 C140 146 134 96 150 70 Z" fill="url(#tile-gl-ice)" />
+              <path d="M368 100 C384 104 398 120 404 138 C410 158 424 166 418 186 C404 194 380 188 370 172 C358 152 356 116 368 100 Z" fill="url(#tile-gl-ice)" opacity=".85" />
+              {/* Umriss eines früheren Jahres (gestrichelt) */}
+              <path d="M146 62 C170 64 198 86 212 120 C226 154 250 172 232 196" fill="none" stroke="#E0A567" strokeWidth="1.4" strokeDasharray="5 4" />
+              {/* Gletscher als Kreise nach Fläche */}
+              <g stroke="var(--sand-50)" strokeWidth="2">
+                <circle cx="188" cy="124" r="8" fill="#5FAFC9" />
+                <circle cx="396" cy="146" r="6" fill="#A9D4E2" />
+                <circle cx="268" cy="112" r="4.5" fill="#E3F1F5" />
+                <circle cx="468" cy="112" r="5" fill="#A9D4E2" />
+              </g>
+            </svg>
+            <span className="tile-map-tag">GLAMOS · ÖAV · AGI 5 · WGMS · BAdW</span>
+          </div>
+        </>, GL_TILE_STYLE)}
     </section>
   );
 }
@@ -902,6 +967,7 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
               <button type="button" onClick={() => onOpenFeature(FEATURE.globe)}>3D-Globus</button>
               {roadFlagFrom() && (<><br /><button type="button" onClick={() => onOpenFeature(FEATURE.road)}>Autobahnwetter</button></>)}
               {seaFlagFrom() && (<><br /><button type="button" onClick={() => onOpenFeature(FEATURE.sea)}>Seewetter</button></>)}
+              {glacierFlagFrom() && (<><br /><button type="button" onClick={() => onOpenFeature(FEATURE.glacier)}>Gletscher</button></>)}
             </div>
           </div>
           {/* Rechtsseiten werden vom SEO-Generator als echte Pfade erzeugt →
@@ -957,7 +1023,7 @@ function CommandPalette({ open, onClose, onOpenFeature }: {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const entries = PALETTE.filter((p) => (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()));
+    const entries = PALETTE.filter((p) => (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()) && (p.feature.id !== 'glacier' || glacierFlagFrom()));
     if (!q) return entries;
     return entries.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
   }, [query]);

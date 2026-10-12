@@ -151,6 +151,18 @@ jobs:
       # gegen echte Antworten dreier Pegel (audit/wasserstand-bsh.md); --live fragt den Dienst, nicht in CI.
       - name: Verifier — Wasserstand BSH
         run: npm run verify:sea-waterlevel
+      # GL: Gletscher-Monitor DACH — Datenvertrag (Pfade, Klassen, Flächenstempel mit Bezugsjahr, Umriss-Stufen ±3 %, amtliche Sätze wörtlich)
+      # an einem echten Auszug des Baums, der Baum-Prüfer im Fixture-Modus, und der Publisher gegen ein echtes lokales Remote
+      # (Linien teilen ein Repo, abgelehnter Push heilt, nie Force, Archiv nur Hinzufügen; audit/gletscher.md) — netzfrei.
+      - name: Verifier — Gletscher (Vertrag, Baum, Publisher)
+        run: |
+          npm run verify:glacier-contract
+          npm run verify:glacier-static
+          npm run verify:glacier-publish
+          npm run verify:glacier-sat
+          npm run verify:glacier-melt
+          npm run verify:glacier-sheet
+          npm run verify:glacier-feed
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)

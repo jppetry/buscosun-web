@@ -1,0 +1,326 @@
+{
+ "generated": "2026-10-11T15:08:22.914Z",
+ "docs": 1349,
+ "years": [
+  "2023",
+  "2024",
+  "2025",
+  "2026"
+ ],
+ "b11": {
+  "glacierYearsInTruth": 29,
+  "counted": 29,
+  "medianAbs": 282,
+  "p90Abs": 600,
+  "bias": -281,
+  "meanAbs": 272,
+  "cases": [
+   {
+    "id": "glacier-d-otemma-zentral",
+    "y": 2023,
+    "ela": 3495,
+    "ours": 3148,
+    "d": -347,
+    "n": 10
+   },
+   {
+    "id": "glacier-de-corbassiere",
+    "y": 2023,
+    "ela": 3645,
+    "ours": 3187,
+    "d": -458,
+    "n": 6
+   },
+   {
+    "id": "adlergletscher",
+    "y": 2024,
+    "ela": 3685,
+    "ours": 3085,
+    "d": -600,
+    "n": 9
+   },
+   {
+    "id": "allalingletscher",
+    "y": 2024,
+    "ela": 4055,
+    "ours": 3216,
+    "d": -839,
+    "n": 4
+   },
+   {
+    "id": "allalingletscher",
+    "y": 2025,
+    "ela": 3495,
+    "ours": 3287,
+    "d": -208,
+    "n": 9
+   },
+   {
+    "id": "claridenfirn",
+    "y": 2023,
+    "ela": 3105,
+    "ours": 2651,
+    "d": -454,
+    "n": 10
+   },
+   {
+    "id": "findelgletscher-b56-03",
+    "y": 2023,
+    "ela": 3485,
+    "ours": 3272,
+    "d": -213,
+    "n": 11
+   },
+   {
+    "id": "findelgletscher-b56-03",
+    "y": 2024,
+    "ela": 3335,
+    "ours": 3020,
+    "d": -315,
+    "n": 6
+   },
+   {
+    "id": "glacier-d-orny",
+    "y": 2024,
+    "ela": 3085,
+    "ours": 2957,
+    "d": -128,
+    "n": 5
+   },
+   {
+    "id": "findelgletscher-b56-03",
+    "y": 2025,
+    "ela": 3325,
+    "ours": 3219,
+    "d": -106,
+    "n": 11
+   },
+   {
+    "id": "glacier-du-gietro-b82-14",
+    "y": 2025,
+    "ela": 3265,
+    "ours": 3138,
+    "d": -127,
+    "n": 6
+   },
+   {
+    "id": "grosser-aletschgletscher",
+    "y": 2023,
+    "ela": 3235,
+    "ours": 3263,
+    "d": 28,
+    "n": 11
+   },
+   {
+    "id": "hohlaubgletscher",
+    "y": 2023,
+    "ela": 3545,
+    "ours": 3231,
+    "d": -314,
+    "n": 12
+   },
+   {
+    "id": "rhonegletscher",
+    "y": 2023,
+    "ela": 3225,
+    "ours": 3118,
+    "d": -107,
+    "n": 10
+   },
+   {
+    "id": "claridenfirn",
+    "y": 2024,
+    "ela": 2995,
+    "ours": 3017,
+    "d": 22,
+    "n": 3
+   },
+   {
+    "id": "glacier-de-corbassiere",
+    "y": 2024,
+    "ela": 3425,
+    "ours": 2984,
+    "d": -441,
+    "n": 4
+   },
+   {
+    "id": "glacier-d-otemma-zentral",
+    "y": 2025,
+    "ela": 3385,
+    "ours": 3104,
+    "d": -281,
+    "n": 8
+   },
+   {
+    "id": "glacier-de-corbassiere",
+    "y": 2025,
+    "ela": 3375,
+    "ours": 3277,
+    "d": -98,
+    "n": 5
+   },
+   {
+    "id": "grosser-aletschgletscher",
+    "y": 2024,
+    "ela": 3245,
+    "ours": 2887,
+    "d": -358,
+    "n": 4
+   },
+   {
+    "id": "hohlaubgletscher",
+    "y": 2024,
+    "ela": 3415,
+    "ours": 3090,
+    "d": -325,
+    "n": 6
+   },
+   {
+    "id": "oberaargletscher",
+    "y": 2024,
+    "ela": 2925,
+    "ours": 2635,
+    "d": -290,
+    "n": 4
+   },
+   {
+    "id": "rhonegletscher",
+    "y": 2024,
+    "ela": 2885,
+    "ours": 2520,
+    "d": -365,
+    "n": 4
+   },
+   {
+    "id": "schwarzberggletscher-zentral",
+    "y": 2024,
+    "ela": 3335,
+    "ours": 2722,
+    "d": -613,
+    "n": 5
+   },
+   {
+    "id": "glatscher-da-medel-e",
+    "y": 2025,
+    "ela": 3077,
+    "ours": 2846,
+    "d": -231,
+    "n": 8
+   },
+   {
+    "id": "grosser-aletschgletscher",
+    "y": 2025,
+    "ela": 3185,
+    "ours": 3109,
+    "d": -76,
+    "n": 8
+   },
+   {
+    "id": "hohlaubgletscher",
+    "y": 2025,
+    "ela": 3325,
+    "ours": 3235,
+    "d": -90,
+    "n": 9
+   },
+   {
+    "id": "oberaargletscher",
+    "y": 2025,
+    "ela": 3175,
+    "ours": 2878,
+    "d": -297,
+    "n": 7
+   },
+   {
+    "id": "rhonegletscher",
+    "y": 2025,
+    "ela": 2995,
+    "ours": 2948,
+    "d": -47,
+    "n": 9
+   },
+   {
+    "id": "schwarzberggletscher-zentral",
+    "y": 2025,
+    "ela": 3215,
+    "ours": 3114,
+    "d": -101,
+    "n": 9
+   }
+  ],
+  "notCounted": [],
+  "pass": false
+ },
+ "b12": {
+  "nBoth": 18,
+  "ours": 261,
+  "baseline": 164,
+  "baselineBias": -164,
+  "pass": false
+ },
+ "b13": {
+  "n": 169,
+  "medianAbs": 111,
+  "p90Abs": 321,
+  "bias": -80,
+  "tslaGlaciersA2025": 171,
+  "pass": true
+ },
+ "b14": {
+  "2025": {
+   "classA": 227,
+   "withScene": 223,
+   "share": 98.2,
+   "missing": [
+    "gl_at_krimmler-kees",
+    "gl_ch_griessgletscher-unterschaechen",
+    "gl_ch_im-griess",
+    "gl_ch_vadret-da-grialetsch-w"
+   ],
+   "why": {
+    "Klaranteil N % < N % | bewölkt (grobe Maske, N % gültig)": 4
+   }
+  },
+  "2026": {
+   "classA": 227,
+   "withScene": 219,
+   "share": 96.5,
+   "missing": [
+    "gl_at_krimmler-kees",
+    "gl_at_oedenwinkel-kees",
+    "gl_ch_bifertengletscher",
+    "gl_ch_gamchigletscher",
+    "gl_ch_glacier-de-l-en-darrey",
+    "gl_ch_im-griess",
+    "gl_ch_limmerngletscher",
+    "gl_ch_matterhorngletscher"
+   ],
+   "why": {
+    "Klaranteil N % < N % | bewölkt (grobe Maske, N % gültig)": 8
+   }
+  },
+  "pass": true
+ },
+ "b15": {
+  "values": 8539,
+  "rulesViolated": 0,
+  "sample": [],
+  "quarantine": {
+   "Quarantäne: Albedo N.N außerhalb N,N–N,N": 2
+  },
+  "skipTotals": {
+   "bewölkt (grobe Maske, N % gültig)": 8161,
+   "Klaranteil N % < N %": 4581,
+   "Quarantäne: Albedo N.N außerhalb N,N–N,N": 2
+  },
+  "pass": true
+ },
+ "info": {
+  "aarOutOfRange": 0,
+  "states": {
+   "snowline": 6586,
+   "snow-covered": 158,
+   "snow-free": 1795
+  }
+ }
+}

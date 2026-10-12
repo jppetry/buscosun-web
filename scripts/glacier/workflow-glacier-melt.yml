@@ -1,0 +1,144 @@
+# ============================================================================
+# glacier-melt.yml — Gletscher-Monitor DACH, Schmelzlinie (Phase GL, buscosun-web/audit/gletscher.md §GL-3)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-melt.yml` im Daten-Repo `jppetry/buscosun-data` (Jans Vollmacht 11.10.2026: Änderungen
+# und Pushs in buscosun-data und buscosun-archiv). Die Daten dieser Linie liegen unter `glacier/v1/` — die laufend aufgefrischten Linien auf `main`,
+# die schweren statischen Builds auf dem verwaisten Zweig `glacier` (Vertrag `src/glacier/glacierContract.ts`, Kopf). Der Code lebt in
+# `buscosun-web` (`scripts/glacier/*`) und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (Standard `feat/gletscher`; nach dem
+# Merge setzt Jan die Repo-Variable `GLACIER_PRODUCER_REF=main`).
+#
+# ── Ablauf ────────────────────────────────────────────────────────────────
+# Alle 3 h kurz nach den Cube-Läufen: `point/index.json` raw lesen; nur bei einem neuen Lauf der Stufen t2/t3 rechnen, höchstens
+# 4 × täglich (`repeatVerdict`). buscosun Fusion läuft in Node auf dem Cube (`public/climaGrid.json` MUSS im Sparse-Checkout
+# stehen; ohne sie bricht der Job ROT ab statt Nullwerte zu schreiben, Lehre V-SW-18). Veröffentlicht werden
+# `glacier/v1/melt/<lauf>.json` (Läufe der letzten 72 h) und `glacier/v1/melt/state.json` (Schneezustand für den nächsten Lauf).
+# Die Leitgletscher-Zeilen jedes Laufs legt der Workflow `glacier-archiv.yml` im Archiv-Repo ab (ein Workflow dieses Repos darf dort nicht schreiben).
+#
+# Leerlauf: fehlt der Producer auf dem Zweig oder die Linie auf `main`, endet der Job grün mit dem Grund.
+# ============================================================================
+
+name: glacier-melt
+
+on:
+  schedule:
+    - cron: '20 2,5,8,11,14,17,20,23 * * *'   # 3-stündlich, nach den Cube-Läufen (t1 :40, t2 :30, t3 :55 der Vorstunde)
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  melt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, GLACIER_PRODUCER_REF)
+        id: app
+        run: |
+          REF="${GLACIER_PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            # after the merge the feature branch is gone: the producer then lives on main (the file check below idles if it is not there either)
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          # public/climaGrid.json: Klimatologie von buscosun Fusion — ohne sie rechnet der Motor keine Verteilungen (V-SW-18).
+          git sparse-checkout set --no-cone scripts src package.json public/climaGrid.json
+          git checkout --quiet
+          for f in scripts/glacier/melt.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Install the two runtime packages of the cube chain (workspace root — Node finds them from app/)
+        if: steps.app.outputs.ready == '1'
+        run: npm install --no-save --no-audit --no-fund --no-package-lock bz2@1 jsfive@0.4
+
+      - name: Checkout data (buscosun-data main, glacier/ sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
+
+      - name: Static build (branch glacier) and the read view
+        id: view
+        if: steps.app.outputs.ready == '1'
+        run: |
+          # The heavy static builds live on the orphan branch `glacier` (contract header, src/glacier/glacierContract.ts); the producers read ONE assembled tree.
+          test -f data/glacier/v1/index.json || { echo "glacier/v1/index.json fehlt auf main — die Linie ist noch nicht eingespielt, Ende ohne Fehler."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('data/glacier/v1/index.json','utf8')).static.build)")
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-data.git glacier >/dev/null 2>&1; then
+            echo "Zweig glacier fehlt, index.json nennt aber $BUILD — das ist ein Fehler."; exit 1
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch glacier https://github.com/jppetry/buscosun-data.git static-branch
+          git -C static-branch sparse-checkout set --no-cone "/glacier/v1/static/$BUILD/"
+          git -C static-branch checkout --quiet
+          test -d "static-branch/glacier/v1/static/$BUILD" || { echo "index.json nennt den Build $BUILD, aber glacier/v1/static/$BUILD fehlt auf dem Zweig glacier"; exit 1; }
+          mkdir -p view/glacier
+          cp -r data/glacier/v1 view/glacier/v1
+          mkdir -p view/glacier/v1/static
+          cp -r static-branch/glacier/v1/static/. view/glacier/v1/static/
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout cube (buscosun-data point/, sparse)
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
+          cd cube
+          git sparse-checkout set point
+          git checkout --quiet
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
+        run: |
+          if [ -f data/glacier/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/glacier/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — kein Schmelzlauf."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Melt run
+        id: melt
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs --data=../view/glacier/v1 --cube=../cube --out=../out --patch=../patch | tee ../melt.log
+          # übersprungen (kein neuer Lauf t2/t3, 4 Läufe heute) ⇒ kein Ausgabebaum ⇒ kein Veröffentlichen
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (glacier/v1/melt, index, status — never --force)
+        if: steps.melt.outputs.wrote != '' && steps.melt.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=melt --src=out \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
+            --message="glacier(melt): $(date -u +%Y-%m-%dT%H:%MZ)"

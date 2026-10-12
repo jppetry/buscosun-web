@@ -1,0 +1,130 @@
+# ============================================================================
+# glacier-sat.yml — Gletscher-Monitor DACH, Satellitenlinie (Phase GL, buscosun-web/audit/gletscher.md §GL-2)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-sat.yml` im Daten-Repo `jppetry/buscosun-data` (Jans Vollmacht 11.10.2026: Änderungen
+# und Pushs in buscosun-data und buscosun-archiv). Die Daten dieser Linie liegen unter `glacier/v1/` — die laufend aufgefrischten Linien auf `main`,
+# die schweren statischen Builds auf dem verwaisten Zweig `glacier` (Vertrag `src/glacier/glacierContract.ts`, Kopf). Der Code lebt in
+# `buscosun-web` (`scripts/glacier/*`) und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (Standard `feat/gletscher`; nach dem
+# Merge setzt Jan die Repo-Variable `GLACIER_PRODUCER_REF=main`).
+#
+# ── Ablauf ────────────────────────────────────────────────────────────────
+# Zweimal täglich: neue Szenen der letzten 72 h je Kachel suchen (Sentinel-2 L2A über Earth Search STAC, COG-Bereichslesen mit
+# `src/fire/detail/cogTiff.ts`, SCL-Maske zuerst), je Gletscher der Klasse A/B rechnen (Schneegrenze nur Klasse A, AAR, Albedo),
+# `glacier/v1/obs/<jahr>/<kachel>/<datum>.json` und `glacier/v1/season/<jahr>/<region>/<stand>.json` schreiben, `index.json` (jüngste
+# Szene je Kachel) frisch lesen und patchen — alles über `glacier-publish.mjs --line=sat`. Ohne einzige klare Szene schreibt der Lauf
+# nichts (kein Stand „heute“ ohne Szene). Gate B2: 14 Tage dieses Workflows im echten Daten-Repo.
+#
+# Leerlauf: fehlt der Producer auf dem Zweig oder die Linie auf `main`, endet der Job grün mit dem Grund.
+# ============================================================================
+
+name: glacier-sat
+
+on:
+  schedule:
+    - cron: '43 16,22 * * *'   # 16:43 und 22:43 UTC (Plan §7; die Szenen des Vormittags sind dann bei Earth Search angekommen)
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'feat/gletscher' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, GLACIER_PRODUCER_REF)
+        id: app
+        run: |
+          REF="${GLACIER_PRODUCER_REF:-feat/gletscher}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            # after the merge the feature branch is gone: the producer then lives on main (the file check below idles if it is not there either)
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/glacier/sat-scan.mjs scripts/glacier/lib/satcore.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierSatContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-data main, glacier/ sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
+
+      - name: Static build (branch glacier) and the read view
+        id: view
+        if: steps.app.outputs.ready == '1'
+        run: |
+          # The heavy static builds live on the orphan branch `glacier` (contract header, src/glacier/glacierContract.ts); the producers read ONE assembled tree.
+          test -f data/glacier/v1/index.json || { echo "glacier/v1/index.json fehlt auf main — die Linie ist noch nicht eingespielt, Ende ohne Fehler."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          BUILD=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('data/glacier/v1/index.json','utf8')).static.build)")
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-data.git glacier >/dev/null 2>&1; then
+            echo "Zweig glacier fehlt, index.json nennt aber $BUILD — das ist ein Fehler."; exit 1
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch glacier https://github.com/jppetry/buscosun-data.git static-branch
+          git -C static-branch sparse-checkout set --no-cone "/glacier/v1/static/$BUILD/"
+          git -C static-branch checkout --quiet
+          test -d "static-branch/glacier/v1/static/$BUILD" || { echo "index.json nennt den Build $BUILD, aber glacier/v1/static/$BUILD fehlt auf dem Zweig glacier"; exit 1; }
+          mkdir -p view/glacier
+          cp -r data/glacier/v1 view/glacier/v1
+          mkdir -p view/glacier/v1/static
+          cp -r static-branch/glacier/v1/static/. view/glacier/v1/static/
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
+        run: |
+          if [ -f data/glacier/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/glacier/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — keine neuen Szenen."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scan scenes
+        id: scan
+        if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/sat-scan.mjs --data=../view/glacier/v1 --out=../out --patch=../patch --hours=72 | tee ../scan.log
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (glacier/v1/obs, season, index, status — never --force)
+        if: steps.scan.outputs.wrote != '' && steps.scan.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=sat --src=out \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
+            --message="glacier(sat): $(date -u +%Y-%m-%dT%H:%MZ)"

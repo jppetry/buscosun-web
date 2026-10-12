@@ -1,0 +1,54 @@
+{
+ "CH": {
+  "L1": {
+   "tolM": 60.0,
+   "bytes": 723921,
+   "gzip": 186259,
+   "areaVsOriginal": -0.00424,
+   "invalidAfterSimplify": 0,
+   "approxVertices": 30958
+  },
+  "L2": {
+   "tolM": 15.0,
+   "bytes": 1823705,
+   "gzip": 490394,
+   "areaVsOriginal": 0.00098,
+   "invalidAfterSimplify": 0,
+   "approxVertices": 89458
+  },
+  "L3": {
+   "tolM": 4.0,
+   "bytes": 5051360,
+   "gzip": 1279678,
+   "areaVsOriginal": 0.00029,
+   "invalidAfterSimplify": 0,
+   "approxVertices": 261215
+  }
+ },
+ "AT": {
+  "L1": {
+   "tolM": 60.0,
+   "bytes": 427960,
+   "gzip": 99853,
+   "areaVsOriginal": -0.01358,
+   "invalidAfterSimplify": 0,
+   "approxVertices": 17472
+  },
+  "L2": {
+   "tolM": 15.0,
+   "bytes": 924433,
+   "gzip": 229041,
+   "areaVsOriginal": -0.00027,
+   "invalidAfterSimplify": 0,
+   "approxVertices": 42580
+  },
+  "L3": {
+   "tolM": 4.0,
+   "bytes": 2405239,
+   "gzip": 575989,
+   "areaVsOriginal": 0.00019,
+   "invalidAfterSimplify": 0,
+   "approxVertices": 117462
+  }
+ }
+}

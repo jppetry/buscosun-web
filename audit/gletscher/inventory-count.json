@@ -1,0 +1,147 @@
+{
+ "CH_SGI2016": {
+  "label": "SGI2016 (swisstopo/GLAMOS)",
+  "refYear": "2013-2018 (year_acq {2013: 104, 2014: 63, 2015: 295, 2016: 540, 2017: 218, 2018: 180})",
+  "glaciers": 1400,
+  "area_km2": 961.268,
+  "classes": {
+   "A": {
+    "n": 160,
+    "area_km2": 766.514
+   },
+   "B": {
+    "n": 514,
+    "area_km2": 165.174
+   },
+   "C": {
+    "n": 726,
+    "area_km2": 29.579
+   }
+  }
+ },
+ "AT_GI4_2015": {
+  "label": "GI4 2015 (Buckel & Otto 2018)",
+  "refYear": "2015",
+  "glaciers": 783,
+  "area_km2": 329.052,
+  "classes": {
+   "A": {
+    "n": 74,
+    "area_km2": 227.066
+   },
+   "B": {
+    "n": 269,
+    "area_km2": 86.749
+   },
+   "C": {
+    "n": 440,
+    "area_km2": 15.237
+   }
+  }
+ },
+ "AT_AGI5": {
+  "label": "AGI 5 (Hartig et al. 2026)",
+  "refYear": "2021-2023 (parts per year {2021: 8, 2022: 311, 2023: 480})",
+  "glaciers": 799,
+  "area_km2": 285.486,
+  "classes": {
+   "A": {
+    "n": 67,
+    "area_km2": 194.447
+   },
+   "B": {
+    "n": 249,
+    "area_km2": 75.857
+   },
+   "C": {
+    "n": 483,
+    "area_km2": 15.181
+   }
+  }
+ },
+ "AT_AGI5_vanishing": {
+  "vanished": 38,
+  "vanishing": 57
+ },
+ "Paul2020_AT": {
+  "label": "Paul et al. 2020, Country=AT",
+  "refYear": "2015/16 (Sentinel-2)",
+  "glaciers": 1189,
+  "area_km2": 361.478,
+  "classes": {
+   "A": {
+    "n": 82,
+    "area_km2": 229.361
+   },
+   "B": {
+    "n": 340,
+    "area_km2": 103.618
+   },
+   "C": {
+    "n": 767,
+    "area_km2": 28.499
+   }
+  }
+ },
+ "Paul2020_CH": {
+  "label": "Paul et al. 2020, Country=CH",
+  "refYear": "2015/16 (Sentinel-2)",
+  "glaciers": 1807,
+  "area_km2": 892.089,
+  "classes": {
+   "A": {
+    "n": 147,
+    "area_km2": 694.066
+   },
+   "B": {
+    "n": 503,
+    "area_km2": 159.323
+   },
+   "C": {
+    "n": 1157,
+    "area_km2": 38.7
+   }
+  }
+ },
+ "Paul2020_FR": {
+  "label": "Paul et al. 2020, Country=FR",
+  "refYear": "2015/16 (Sentinel-2)",
+  "glaciers": 520,
+  "area_km2": 227.064,
+  "classes": {
+   "A": {
+    "n": 50,
+    "area_km2": 157.474
+   },
+   "B": {
+    "n": 186,
+    "area_km2": 58.428
+   },
+   "C": {
+    "n": 284,
+    "area_km2": 11.161
+   }
+  }
+ },
+ "Paul2020_IT": {
+  "label": "Paul et al. 2020, Country=IT",
+  "refYear": "2015/16 (Sentinel-2)",
+  "glaciers": 879,
+  "area_km2": 325.253,
+  "classes": {
+   "A": {
+    "n": 70,
+    "area_km2": 217.653
+   },
+   "B": {
+    "n": 268,
+    "area_km2": 86.261
+   },
+   "C": {
+    "n": 541,
+    "area_km2": 21.339
+   }
+  }
+ },
+ "Paul2020_DE_list": []
+}
