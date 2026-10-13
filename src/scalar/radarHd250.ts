@@ -15,8 +15,14 @@ import { warpMeshFromProjection } from './quadWarpMesh';
 import { HD250_TILES_X, HD250_TILES_Y, HD250_TILE_W, HD250_TILE_H, hd250TileFile } from '../sources/radarHd250';
 import type { QuadCorners } from './RainLayer';
 
-/** E-R250-1: the 250-m tiles are the normal case; `?hd250=0` is the way back to the 1-km layers of Phase HD. */
-export const RADAR_HD250_DEFAULT_ON = true;
+/**
+ * Phase RA-250 (`audit/radar-aufloesung.md` §6, Jan 13.10.2026): the 250-m tiles are OFF unless asked for — `?hd250=1`,
+ * the switch „250 m" in the layer panel (`setRadarHd250Pref`, kept in `localStorage.radarhd250` and in the share link as
+ * `hd250=1`) or the store. Before (E-R250-1, 09.10.) they were the default from zoom 9. `?hd250=0` stays the hard off.
+ */
+export const RADAR_HD250_DEFAULT_ON = false;
+export const RADAR_HD250_STORE_KEY = 'radarhd250';
+export const RADAR_HD250_QUERY_KEY = 'hd250';
 /**
  * Below this zoom a 250-m cell is narrower than one screen pixel (z9 ≈ 196 m/px at 50° N) — the 1-km layer carries
  * the picture alone and no tile is requested. `set`: Mercator metres per pixel at z = 156 543 · cos φ / 2^z.
@@ -45,6 +51,78 @@ export function radarHd250FlagFrom(
   if (s === '0') return false;
   if (s === '1') return true;
   return RADAR_HD250_DEFAULT_ON;
+}
+
+/**
+ * Phase RA-250: the search string with the switch state written in — `hd250=1` when on, nothing when off (off is the
+ * default and a shared link carries the state, not the default). Other keys stay byte for byte (no re-encoding: the
+ * app's own query keeps commas and colons, `URLSearchParams.toString` would turn them into `%2C`/`%3A`).
+ */
+export function hd250SearchWith(search: string, on: boolean): string {
+  const q = search.startsWith('?') ? search.slice(1) : search;
+  const kept = q.split('&').filter((p) => p !== '' && !/^hd250(=|$)/.test(p));
+  if (on) kept.push(`${RADAR_HD250_QUERY_KEY}=1`);
+  return kept.length ? `?${kept.join('&')}` : '';
+}
+
+const HD250_PREF_EVENT = 'buscosun:radarhd250';
+/**
+ * Phase RA-250: the switch. Writes the store (`radarhd250` = '1' | '0'), the query of the current page (replaceState,
+ * never a history entry) and tells every listener (`onRadarHd250Pref`) — the maps on the page follow without a reload.
+ * No DOM (verifier) = no-op.
+ */
+export function setRadarHd250Pref(on: boolean): void {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(RADAR_HD250_STORE_KEY, on ? '1' : '0'); } catch { /* private mode: the page state still changes */ }
+  if (typeof window === 'undefined') return;
+  try {
+    const { pathname, search, hash } = window.location;
+    const next = hd250SearchWith(search, on);
+    if (next !== search) window.history.replaceState(window.history.state, '', `${pathname}${next}${hash}`);
+  } catch { /* a blocked history API must not stop the switch */ }
+  try { window.dispatchEvent(new CustomEvent<boolean>(HD250_PREF_EVENT, { detail: on })); } catch { /* no CustomEvent = no listeners */ }
+}
+export function onRadarHd250Pref(cb: (on: boolean) => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const h = (e: Event) => cb(!!(e as CustomEvent<boolean>).detail);
+  window.addEventListener(HD250_PREF_EVENT, h);
+  return () => window.removeEventListener(HD250_PREF_EVENT, h);
+}
+
+/**
+ * Phase RA-250: what the 250-m layer does for the frame the map draws right now — the map publishes it, the switch in
+ * the layer panel and the status line read it. `tiles` = the 250-m tiles are on screen; `loading` = asked for, not all
+ * there yet (the 1-km layer carries the picture); `forecast` = the drawn frame is the extrapolation (+5 … +120 min),
+ * which has no 250-m product — 1 km by design; `none` = the shown analysis slot carries no 250-m product (slot before
+ * the mirror built tiles, or its derive failed); `avail` = switch OFF, but the shown analysis has 250-m tiles in view
+ * (known from `hd250.json` alone — no tile is fetched while the switch is off); `null` = nothing to say (zoom < 9, no
+ * DE frame, switch off without a product in view).
+ */
+export type RadarHd250Note = 'tiles' | 'loading' | 'forecast' | 'none' | 'avail' | null;
+const HD250_NOTE_EVENT = 'buscosun:radarhd250note';
+let lastHd250Note: RadarHd250Note = null;
+export function publishRadarHd250Note(note: RadarHd250Note): void {
+  if (note === lastHd250Note) return;
+  lastHd250Note = note;
+  if (typeof window === 'undefined') return;
+  try { window.dispatchEvent(new CustomEvent<RadarHd250Note>(HD250_NOTE_EVENT, { detail: note })); } catch { /* no listeners */ }
+}
+export function currentRadarHd250Note(): RadarHd250Note { return lastHd250Note; }
+export function onRadarHd250Note(cb: (note: RadarHd250Note) => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const h = (e: Event) => cb((e as CustomEvent<RadarHd250Note>).detail ?? null);
+  window.addEventListener(HD250_NOTE_EVENT, h);
+  return () => window.removeEventListener(HD250_NOTE_EVENT, h);
+}
+/** The words of the note (status line and switch). `set`: wording, not a measurement. */
+export function radarHd250NoteText(note: RadarHd250Note, on: boolean): string {
+  switch (note) {
+    case 'tiles': return '250-m-Gitter · 250 m radial · 1° Azimut';
+    case 'loading': return '250 m lädt … (1 km)';
+    case 'forecast': return 'Vorhersage: 1 km';
+    case 'none': return 'für diesen Slot keine 250 m (1 km)';
+    case 'avail': return '250 m verfügbar';
+    default: return on ? 'ab Zoom 9' : '';
+  }
 }
 
 /** Layer id of tile (tx, ty) — drawn right above the DE 1-km layer of Phase HD. */

@@ -38,6 +38,8 @@ import {
   rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
   // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
   rvImgEligible, rvImgDir, rvStampToMs, RV_STEP_MIN,
+  // NP-0a / Phase SE (V-SE-3): the look-back slot (`rv-past/<ts>/`, 24 slots) as the second image way of the analyses
+  rvPastEligible, rvPastDir,
 } from './radolanRuns';
 import { parseRvImgMeta, RadarImg404, fetchImgRes, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll } from './radarImg';
 import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
@@ -92,6 +94,10 @@ export interface RvNowcast {
   frames: RvFrame[];
   /** Geo-Ecken (DE1200) für RainLayer. */
   corners: QuadCorners;
+  /** Phase SE (E-SE-3): the mirror's echo filter took `cells` 1-km cells of `wet` out of the log plane of this slot
+   *  (`meta.dual.clutter`) — only set when the slot was read as dual frames (the plane the HD layers draw). Absent =
+   *  no filter ran (or v1 frames) — nothing to say. */
+  clutter?: { cells: number; wet: number };
 }
 
 let _runCache: { ts: string; at: number } | null = null;
@@ -411,7 +417,9 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
     const decodedRest = await decodeGrayPngsOffMain(bytes, meta.width, meta.height);
     const decoded = early ? meta.frames.map((f) => (f === f0 ? early! : decodedRest[rest.indexOf(f)])) : decodedRest;
     const frames: RvFrame[] = decoded.map(toFrame);
-    return { runAt: new Date(meta.runAtMs), frames, corners: DE1200_CORNERS };
+    // Phase SE (E-SE-3): the filter's footprint rides along when the dual frames were read (channel 2 = the filtered plane).
+    const cl = dualFile ? meta.dual?.clutter : undefined;
+    return { runAt: new Date(meta.runAtMs), frames, corners: DE1200_CORNERS, ...(cl ? { clutter: { cells: cl.cells, wet: cl.wet } } : {}) };
   } catch (err) {
     if (signal?.aborted) throw err;             // Abbruch des Aufrufers bleibt ein Abbruch
     if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
@@ -419,12 +427,37 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
   } finally { dl.done(); }
 }
 
-/** Rückblick/Hindcast: NUR der Analyse-Frame (f000.png ≈ 30 KB statt Voll-Tar ≈ 1,4 MB). */
+/**
+ * Rückblick/Hindcast: NUR der Analyse-Frame (f000.png ≈ 30 KB statt Voll-Tar ≈ 1,4 MB).
+ * Phase SE (V-SE-3): with the dual switch (`?hdv2`, default on) the DUAL analysis `g000.png` first — its channel 2 is the
+ * log plane the HD layers draw for „jetzt" (native 0,06 mm/h, with `RADAR_CLUTTER` the filtered one), so the look-back
+ * under zoom 9 shows the same picture; a slot without it (404) falls back to `f000.png` as before. Directories in order:
+ * the full RV slot (`rv/<ts>/`, 12 slots — its `g000` is usually still in the browser cache from when the run was „now"),
+ * then the look-back slot (`rv-past/<ts>/`, 24 slots, carries `g000` since the mirror of 13.10.); the caller keeps the
+ * tar as the last way. A hard CDN error (not a 404) ends the attempt like before.
+ */
 async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise<RvAnalysisFrame | null> {
+  const dirs = [...(rvImgEligible(ts) ? [rvImgDir(ts)] : []), ...(rvPastEligible(ts) ? [rvPastDir(ts)] : [])];
+  if (!dirs.length) return null;
+  const dual = radarDualFlagFrom();
+  const validAt = new Date(rvStampToMs(ts));
   const dl = radarCdnDeadline(signal);
   try {
-    const values = await loadRadarGrayPngOffMain(await imgRes(`${rvImgDir(ts)}/f000.png`, dl.signal), 1100, 1200);   // Phase PF (M4): off-main
-    return { validAt: new Date(rvStampToMs(ts)), values, width: 1100, height: 1200 };
+    for (const dir of dirs) {
+      if (dual) {
+        try {
+          const g = await loadRadarGrayAlphaPngOffMain(await imgRes(`${dir}/g000.png`, dl.signal), 1100, 1200);
+          return { validAt, values: g.values, values2: g.values2, width: 1100, height: 1200 };
+        } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
+        dl.touch();
+      }
+      try {
+        const values = await loadRadarGrayPngOffMain(await imgRes(`${dir}/f000.png`, dl.signal), 1100, 1200);   // Phase PF (M4): off-main
+        return { validAt, values, width: 1100, height: 1200 };
+      } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
+      dl.touch();
+    }
+    return null;
   } catch (err) {
     if (signal?.aborted) throw err;
     if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
@@ -644,8 +677,10 @@ async function loadRvNowcast(priority?: RequestPriority): Promise<RvNowcast> {
   throw lastErr ?? new Error('RADOLAN-RV: Lauf konnte nicht geladen werden');
 }
 
-/** Eine beobachtete RADOLAN-Analyse (der _000-Frame eines RV-Laufs). */
-export interface RvAnalysisFrame { validAt: Date; values: Uint8Array; width: number; height: number }
+/** Eine beobachtete RADOLAN-Analyse (der _000-Frame eines RV-Laufs). `values2` (Phase SE, V-SE-3): the log plane of the
+ *  mirror's dual analysis when the slot carries one — the look-back draws it like „jetzt" (HD-3 ramp, native threshold,
+ *  echo filter); absent on the tar way and for slots without `g000.png`. */
+export interface RvAnalysisFrame { validAt: Date; values: Uint8Array; values2?: Uint8Array; width: number; height: number }
 
 /**
  * Lädt die letzten `count` BEOBACHTETEN Analysen (je der _000-Frame der jüngsten
@@ -661,7 +696,8 @@ export async function fetchRvAnalysisSequence(count: number, signal?: AbortSigna
       if (frames.length >= count) return;
       // RD3: für den Rückblick reicht der Analyse-Frame — 8–9 × f000.png (~30 KB)
       // statt 8 Voll-Tars (2,28 MiB gemessen); je Stempel Tar-Fallback.
-      if (rvImgEligible(ts)) {
+      // V-SE-3: auch aus dem Rückblick-Slot (`rv-past`, 115 min) — vorher griff ab 55 min der Tar.
+      if (rvImgEligible(ts) || rvPastEligible(ts)) {
         const viaImg = await fetchRvAnalysisFromImg(ts, signal);
         if (viaImg) { frames.push(viaImg); continue; }
       }

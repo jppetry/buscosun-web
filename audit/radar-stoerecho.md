@@ -406,27 +406,37 @@ Produkte byte-gleich (G3), `?hdv2=0` zeigt jedes Echo. (2) Desktop: keine Client
 
 ## §8 Befunde und Entscheidungen
 
-- **E-SE-1 (Jans Gate): einschalten.** `RADAR_CLUTTER: '1'` im Workflow des Daten-Repos; die Bedingung R-SE-8 ist seit
-  13.10. 04:10 UTC erfüllt (§7), der Push von `main` muss vorher liegen (der Spiegel braucht `clutter-step.mjs` in seinem
-  Web-Klon). Wirkung ab dem nächsten Spiegel-Job; Rückweg `'0'` (die `g`-Frames der nächsten Slots tragen wieder jedes Echo).
-  Kennzeichen im Slot: `meta.dual.clutter`.
+**Stand 13.10.2026 abends (Jans Auftrag „Phase SE abschließen"):** committet als **`24ac8d2`** auf `main` (nur die SE-Dateien,
+getrennt von RA/LM/WL derselben Nacht; `CLAUDE.md`/`MANUELLE-SCHRITTE.md` je nur der SE-Eintrag), gepusht; Daten-Repo
+**`a019b6954`** = `RADAR_CLUTTER: '1'` (E-SE-1, ohne Nachbarschaftsstimme), **`9b35c098d`** = `g000.png` im Rückblick-Slot
+(V-SE-3). Vorher `node --check` + Modul-Import des Spiegel-Skripts (V-R250-7). Wirksam ab dem ersten Spiegel-Job nach
+17:56 UTC (der laufende Job `38395293383` behielt seine Umgebung). Der Betriebsnachweis (`meta.dual.clutter` im Live-Slot,
+`status.json` ohne Fehler) steht in `audit/radar-aufloesung.md` §7.3. E-SE-3 und V-SE-3 sind gebaut (s. u.).
+
+- **E-SE-1 (Jans Gate): einschalten — ERLEDIGT 13.10. (`a019b6954`).** `RADAR_CLUTTER: '1'` im Workflow des Daten-Repos; die
+  Bedingung R-SE-8 ist seit 13.10. 04:10 UTC erfüllt (§7), der Push von `main` (`24ac8d2`) lag vorher. Wirkung ab dem
+  nächsten Spiegel-Job; Rückweg `'0'` (die `g`-Frames der nächsten Slots tragen wieder jedes Echo). Kennzeichen im Slot:
+  `meta.dual.clutter`. Die Vorlage `scripts/radar-mirror/workflow-radar.yml` trägt `'1'`.
 - **E-SE-2: Nachbarschaftsstimme (N) dazunehmen?** Sie schließt den radialen Reststreifen weitgehend (Kasten Gießen 22:35:
   1 121 statt 1 092 von 1 179; Zugnacht an den Mengen-Stationen 82,3 statt 80,7 %), kostet 0,13 Punkte mehr echten Regen
   (0,82 statt 0,69 %) und ist nach R-SE-1 zulässig, nach R-SE-6 (Gleichstandsregel) aber nicht gewählt. An den frischen Slots
   (§7) unterscheiden sich beide kaum: N + R85 räumt 91 statt 88 von 609 ab, der Verlust ist gleich (1 von 142) — die Nacht
   enthielt nach Mitternacht kaum Störecho und entscheidet die Frage nicht. Empfehlung: mit der gewählten Regel (ohne N)
   einschalten und N an der nächsten Zugnacht am Feld ansehen; ein Wert in `CLUTTER_RULE`.
-- **E-SE-3: Anzeige nennt den Filter?** Heute sagt die Statuszeile „ab 0,06 mm/h". Ehrlich wäre der Zusatz „Echos ohne
-  Niederschlag ausgeblendet" (aus `meta.dual.clutter.cells > 0`). Nicht gebaut — `MapView.tsx` und `LayerInfoPanel.tsx`
-  waren in dieser Nacht von einer anderen Sitzung in Arbeit (V-SE-7).
+- **E-SE-3: Anzeige nennt den Filter — GEBAUT 13.10. abends (Phase RA, `audit/radar-aufloesung.md` §5).** Die Statuszeile
+  der Wetterkarte hängt „· Echos ohne Niederschlag ausgeblendet" hinter „ab 0,06 mm/h", die Niederschlag-Karte des
+  Layer-Panels trägt eine Zeile dazu (`LayerInfoPanel` `note`), sobald der gelesene Slot `meta.dual.clutter.cells > 0` trägt
+  (`RvNowcast.clutter`, nur beim Lesen der Dual-Frames). Ein Slot ohne das Feld, `?hdv2=0` und `?hd=0` zeigen nichts.
 - **V-SE-1** Der radiale Reststreifen (§5.1/§5c): das Komposit schließt Sektoren, in denen der Standort kein eigenes Echo
   trägt; ohne N bleibt dort ein ≈ 25 km langer, 2–3 km breiter Strich. Mehrwert: der Fleck verschwindet ganz. Skizze: E-SE-2.
 - **V-SE-2** Die rechnenden Pfade sehen das Störecho weiter: buscosun Fusion (Radar-Member 0–2 h), Regenbeginn, Summen 0–2 h
   lesen die `f`-Bytes. In der Zugnacht nennt der Regenbeginn dort Regen, wo keiner fällt. Mehrwert: Text und Karte stimmen
   überein. Skizze: die Maske (`clutter.png`) im Leser der Punktpfade anwenden — ein Eingriff in buscosun Fusion (neuer Stand,
   Prüfstand) und damit eine eigene Phase.
-- **V-SE-3** Rückblick unter Zoom 9: `rv-past/<stamp>/f000.png` trägt nur das v1-Byte (jedes Echo, wie schon bei RG). Mehrwert:
-  der Rückblick zeigt dasselbe wie „jetzt". Skizze: `g000.png` in den Rückblick kopieren und im Client lesen.
+- **V-SE-3 (behoben 13.10. abends, Phase RA §4)** Rückblick unter Zoom 9: `rv-past/<stamp>/f000.png` trug nur das v1-Byte
+  (jedes Echo, wie schon bei RG). Jetzt kopiert der Spiegel die Dual-Analyse `g000.png` daneben (Daten-Repo `9b35c098d`,
+  `verify:np0-radar` C3b) und der Client liest sie für den Rückblick (`fetchRvAnalysisFromImg`: `rv/`, dann `rv-past/`,
+  bei 404 `f000.png`); `values2` wandert durch Stack und Profil — der Rückblick zeichnet aus derselben Ebene wie „jetzt".
 - **V-SE-4** AT/CH: für INCA und rzc gibt es offen keine Polarimetrie je Standort; rzc trägt eigene Filter. Nichts zu tun,
   solange dort kein Fall auffällt.
 - **V-SE-5** `verify:radar-repack` B2c: der „schnelle Weg" von `rvHdf5.ts` (ebenfalls `DecompressionStream`) lief auf dieser

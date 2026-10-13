@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import {
-  radarHd250FlagFrom, RADAR_HD250_DEFAULT_ON, RADAR_HD250_MIN_ZOOM, HD250_TILE_LIST, hd250LayerId, hd250TileNode, hd250TileMesh, hd250TileCorners,
+  radarHd250FlagFrom, RADAR_HD250_DEFAULT_ON, RADAR_HD250_MIN_ZOOM, HD250_TILE_LIST, hd250SearchWith, setRadarHd250Pref, onRadarHd250Pref, publishRadarHd250Note, currentRadarHd250Note, radarHd250NoteText, hd250LayerId, hd250TileNode, hd250TileMesh, hd250TileCorners,
   hd250TileBbox, hd250VisibleTiles, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N,
 } from '../src/scalar/radarHd250.ts';
 import {
@@ -43,10 +43,20 @@ const skip = (name, why) => { skipped++; console.log(`⊘ ${name} — ${why}`); 
 const kmBetween = (a, b) => Math.hypot((a[0] - b[0]) * 111.195 * Math.cos(a[1] * Math.PI / 180), (a[1] - b[1]) * 111.195);
 
 // ── A: switches / constants ─────────────────────────────────────────────────
-add('A1 default on (E-R250-1); `?hd250=0` beats the store; store counts without a query vote',
-  RADAR_HD250_DEFAULT_ON === true && radarHd250FlagFrom('', null) === true && radarHd250FlagFrom('?hd250=0', '1') === false
+add('A1 default OFF (Phase RA-250, 13.10.: 250 m only on request — before E-R250-1 default on); `?hd250=0` beats the store; `?hd250=1` and the store switch it on',
+  RADAR_HD250_DEFAULT_ON === false && radarHd250FlagFrom('', null) === false && radarHd250FlagFrom('?hd250=0', '1') === false
   && radarHd250FlagFrom('?hd250=1', '0') === true && radarHd250FlagFrom('', '0') === false && radarHd250FlagFrom('?hd250=foo', '0') === false
-  && radarHd250FlagFrom('%E0%A4%A', null) === RADAR_HD250_DEFAULT_ON);
+  && radarHd250FlagFrom('%E0%A4%A', null) === RADAR_HD250_DEFAULT_ON && radarHd250FlagFrom('', '1') === true);
+// Phase RA-250: the share link carries the state, not the default — `hd250=1` only when on; other keys byte for byte (no re-encoding)
+add('A1b hd250SearchWith: on adds hd250=1, off removes any hd250 pair, other keys untouched (commas, colons, empty query)',
+  hd250SearchWith('', true) === '?hd250=1' && hd250SearchWith('', false) === ''
+  && hd250SearchWith('?lat=48.1,11.5&layers=nowcast:precip', true) === '?lat=48.1,11.5&layers=nowcast:precip&hd250=1'
+  && hd250SearchWith('?hd250=1&lat=48.1,11.5', false) === '?lat=48.1,11.5' && hd250SearchWith('?lat=1&hd250=0&z=9', true) === '?lat=1&z=9&hd250=1'
+  && hd250SearchWith('?hd250', false) === '' && hd250SearchWith('?hd250=1', true) === '?hd250=1');
+add('A1c headless: setRadarHd250Pref / onRadarHd250Pref / publishRadarHd250Note are no-ops without a DOM; the note words are fixed',
+  (() => { try { setRadarHd250Pref(true); const off = onRadarHd250Pref(() => {}); off(); publishRadarHd250Note('tiles'); return currentRadarHd250Note() === 'tiles'; } catch { return false; } })()
+  && radarHd250NoteText('tiles', true) === '250-m-Gitter · 250 m radial · 1° Azimut' && radarHd250NoteText('forecast', true) === 'Vorhersage: 1 km'
+  && radarHd250NoteText(null, true) === 'ab Zoom 9' && radarHd250NoteText(null, false) === '' && radarHd250NoteText('avail', false) === '250 m verfügbar');
 add('A2 16 tiles, unique ids and files, size × count = the 250-m target grid = DE1200 × 4',
   HD250_TILE_LIST.length === 16 && new Set(HD250_TILE_LIST.map((t) => t.id)).size === 16 && new Set(HD250_TILE_LIST.map((t) => t.file)).size === 16
   && HD250_TILES_X * HD250_TILE_W === HD250_COLS && HD250_TILES_Y * HD250_TILE_H === HD250_ROWS && HD250_COLS === 1100 * HD250_FACTOR && HD250_ROWS === 1200 * HD250_FACTOR

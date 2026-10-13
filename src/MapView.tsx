@@ -132,7 +132,8 @@ import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, 
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
 import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
-import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM } from './scalar/radarHd250';
+import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM, onRadarHd250Pref, publishRadarHd250Note, radarHd250NoteText, type RadarHd250Note } from './scalar/radarHd250';
+import { Hd250Switch } from './components/Hd250Switch';
 import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
 import { HD250_TILE_W, HD250_TILE_H, HD250_FACTOR } from './sources/radarHd250';
 /** Phase R250: a dry tile on one side of a mix (the slot has no file for it = every cell 0). */
@@ -993,7 +994,18 @@ export default function MapView({
   const hdEncodingRef = useRef<Record<string, 'linear' | 'log'>>({});
   // Phase R250: 250-m tiles of the RV analyses (DE) — switch, the 16 tile layers, tick on tile arrival / view change,
   // tile masks derived from the DE 1-km mask, mix buffers and the per-tile motion fields (all unused with the switch off).
-  const hd250Ref = useRef(hdRef.current.on && radarHd250FlagFrom());
+  // Phase RA-250 (`audit/radar-aufloesung.md` §6): the tiles are a SWITCH (off by default) — React state so the layer panel
+  // can flip it at run time; the ref mirrors it for the draw code. `hd250Note` = what the tile layer does for the drawn frame
+  // (status line, switch); `rvClutterCells` (Phase SE, E-SE-3) = cells the mirror's echo filter took out of the shown RV slot.
+  const [hd250On, setHd250On] = useState(() => hdRef.current.on && radarHd250FlagFrom());
+  const hd250Ref = useRef(hd250On);
+  hd250Ref.current = hd250On;
+  useEffect(() => onRadarHd250Pref((on) => setHd250On(hdRef.current.on && on)), []);
+  const hd250NoteRef = useRef<RadarHd250Note>(null);
+  const [hd250Note, setHd250Note] = useState<RadarHd250Note>(null);
+  const [rvClutterCells, setRvClutterCells] = useState(0);
+  const compositeStatusRef = useRef<(() => void) | null>(null);
+  useEffect(() => { compositeStatusRef.current?.(); }, [hd250On, hd250Note]);
   const hd250LayersRef = useRef<Map<string, RainLayer>>(new Map());
   const [hd250Tick, setHd250Tick] = useState(0);
   const hd250MaskRef = useRef<{ src: Uint8Array | null; tiles: Map<string, Uint8Array> }>({ src: null, tiles: new Map() });
@@ -1283,7 +1295,7 @@ export default function MapView({
       const c = map.getCenter();
       routeCbRef.current.onViewChange?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() });
       // Phase R250: the set of visible 250-m tiles depends on the view — redraw the tile layers after every move.
-      if (hd250Ref.current) setHd250Tick((t) => t + 1);
+      if (hdRef.current.on) setHd250Tick((t) => t + 1);   // RA-250: also the availability probe with the switch off
     });
 
     // Startansicht: DACH exakt einpassen statt fester Zoomstufe (Jans Auftrag
@@ -1645,7 +1657,9 @@ export default function MapView({
     layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer,
       ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2] } : {}) };
     // Phase R250: one RainLayer per 250-m tile (log ramp — the tiles carry the HD-3 log byte), invisible until a tile is set.
-    const hd250Layers = hd250Ref.current
+    // Phase RA-250: created with HD whatever the switch says (a RainLayer without a frame draws nothing), so the switch can be
+    // flipped at run time; with the switch off no frame is ever set and no tile requested.
+    const hd250Layers = hd.on
       ? HD250_TILE_LIST.map((t) => new RainLayer({ id: t.id, colorRamp: precipRainRampLog, opacity: 0, filter: hd.filter, edge: hdEdgeRef.current }))
       : [];
     hd250LayersRef.current = new Map(hd250Layers.map((l) => [l.id, l]));
@@ -2293,12 +2307,26 @@ export default function MapView({
     const setCompositeStatus = () => {
       const parts: string[] = [];
       if (nowcastRef.current ?? earlyRvRef.current) parts.push('DE RADOLAN');
-      if (incaGridRef.current) parts.push('AT INCA');
-      if (meteoRadarRef.current) parts.push('CH rzc');
+      // Phase RA (`audit/radar-aufloesung.md` §2): what each radar can do on the time axis — INCA starts at +15 min and has
+      // no analysis (so no look-back), rzc is a measurement without a nowcast (nothing beyond „jetzt").
+      if (incaGridRef.current) parts.push('AT INCA (ab +15 min, kein Rückblick)');
+      if (meteoRadarRef.current) parts.push('CH rzc (nur Messung)');
       // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
       // Phase RG: the status names the display threshold (measured, `RADAR_DISPLAY_MIN_MMH`); `?rmin=` shows the compared value.
       const rminText = hdRef.current.on ? ` · ab ${rminRef.current.toFixed(2).replace('.', ',')} mm/h` : '';
-      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}${hd250Ref.current && nowcastRef.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})` : ''}${rminText}` : '';
+      // Phase SE (E-SE-3): the slot says whether the mirror's echo filter took echoes without precipitation out of the drawn plane
+      // (channel 2 of the dual frames = what the HD layers draw; the composite `?hd=0` and `?hdv2=0` show every echo).
+      const clutterCells = hdRef.current.on ? (nowcastRef.current?.clutter?.cells ?? 0) : 0;
+      const clutterText = clutterCells > 0 ? ' · Echos ohne Niederschlag ausgeblendet' : '';
+      // Phase RA-250 (`audit/radar-aufloesung.md`): the grid is named — `?hd=0` is the lat/lon composite (600 × 512, 2,2 × 1,3–1,5 km),
+      // not a 1-km grid; the 250-m tiles only on request, with what they do for the drawn frame (tiles / forecast = 1 km / none / available).
+      const gridText = hdRef.current.on ? ' · 1-km-Gitter (HD)' : ' · Komposit 600 × 512 (≈ 2 km, kein 1-km-Gitter)';
+      const noteWords = radarHd250NoteText(hd250NoteRef.current, hd250Ref.current);
+      const hd250Text = !nowcastRef.current || !hdRef.current.on ? ''
+        : hd250Ref.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})${hd250NoteRef.current && noteWords ? ` · ${noteWords}` : ''}`
+        : hd250NoteRef.current === 'avail' ? ` · ${noteWords} (DE)` : '';
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${gridText}${hd250Text}${rminText}${clutterText}` : '';
+      setRvClutterCells(clutterCells);
       // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
       // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
       // AT-INCA-Grid tut es nicht (`geosphereIncaGrid.ts` parst nur `leadtime`)
@@ -2311,6 +2339,7 @@ export default function MapView({
       ]);
       if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now(), ref: ref ?? undefined } });
     };
+    compositeStatusRef.current = setCompositeStatus;   // RA-250 / SE: re-worded when the switch or the tile note changes
     // ICON-D2 (Forecast) im Hintergrund nachladen — GRIB2 dekodieren ist
     // langsamer (~mehrere Sekunden), läuft progressiv. Re-Render-Coalescing
     // (wie installWind/installClouds): jeder Progress-Frame würde sonst
@@ -3725,13 +3754,14 @@ export default function MapView({
     };
     const syncHd250 = (ra: RvPick, rb: RvPick, q: number) => {
       const layers = hd250LayersRef.current;
-      if (!hd250Ref.current || !layers.size) return;
       hd250SyncRef.current = { run: syncHd250, args: [ra, rb, q] };
       const map = mapRef.current;
       const L = layerRefs.current;
       let changed = false;
       const hideAll = () => { for (const l of layers.values()) if (l.opacity !== 0) { l.opacity = 0; changed = true; } };
-      if (!map) { hideAll(); return; }
+      // Phase RA-250: the note for the status line and the switch — set only on change (a state write per draw would re-render).
+      const note = (n: RadarHd250Note) => { if (hd250NoteRef.current !== n) { hd250NoteRef.current = n; setHd250Note(n); publishRadarHd250Note(n); } };
+      if (!map || !layers.size) { hideAll(); note(null); return; }
       const zoom = map.getZoom();
       const bb = map.getBounds();
       const vis = hd250VisibleTiles([bb.getWest(), bb.getSouth(), bb.getEast(), bb.getNorth()], zoom);
@@ -3740,15 +3770,33 @@ export default function MapView({
       const sa = analysisStampOf(first);
       const sb = second ? analysisStampOf(second) : null;
       const notify = () => setHd250Tick((t) => t + 1);
+      if (!hd250Ref.current) {
+        // Switch OFF (the default): no tile layer, no tile request. In the tile zooms only the meta of the shown analysis
+        // (`hd250.json`, a few KB) is probed, so the map can say „250 m verfügbar" where tiles exist in view (E-RA-2).
+        hideAll();
+        let n: RadarHd250Note = null;
+        if (sa && vis.length) {
+          const m = hd250Store.probe(sa, notify);
+          if (m && m !== 'pending' && vis.some((t) => m.tiles.some((x) => x.tx === t.tx && x.ty === t.ty))) n = 'avail';
+        }
+        note(n);
+        if (changed) map.triggerRepaint();
+        return;
+      }
       const resolved = (s: Hd250TileState) => s.kind === 'ready' || s.kind === 'dry';
       const states = sa && (!second || sb)
         ? vis.map((t) => ({ t, A: hd250Store.get(sa, t.tx, t.ty, notify), B: sb ? hd250Store.get(sb, t.tx, t.ty, notify) : null }))
         : [];
       if (!vis.length || !states.length || states.some((s) => !resolved(s.A) || (s.B && !resolved(s.B)))) {
         hideAll();
+        // what the 1-km layer stands in for: the extrapolation (no 250-m product by design — V-R250-3), a slot without
+        // tiles, or tiles still on their way
+        const forecast = (!!first && !sa) || (!!second && !sb);
+        note(!vis.length || !first ? null : forecast ? 'forecast' : states.some((s) => s.A.kind === 'none' || s.B?.kind === 'none') ? 'none' : 'loading');
         if (changed) map.triggerRepaint();
         return;
       }
+      note('tiles');
       const mask1km = hdMaskRef.current.DE ?? null;
       const mk = hd250MaskRef.current;
       if (mk.src !== mask1km) { mk.src = mask1km; mk.tiles.clear(); }
@@ -3956,20 +4004,20 @@ export default function MapView({
     });
     if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
     // Phase R250: only the analysis (slider at „jetzt") is an RV analysis ⇒ tiles; every other hour stays 1 km.
-    if (hd.on && hd250Ref.current) {
+    if (hd.on) {
       const pw = pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now());
       syncHd250(pw.rv, pw.rv, 0);
     }
     // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.
     // Phase HD-4: `hdFlowTick` tickt nur, wenn ein Bewegungsfeld fertig ist (nur mit `?hdmorph=1`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast, hdFlowTick]);
+  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast, hdFlowTick, hd250On]);
 
   // Phase R250: a tile arrival or a map move (`hd250Tick`) re-runs only the tile sync of the last draw run — the 1-km
   // frames and the composite are untouched (no texture upload for them). Nothing happens without the switch.
   useEffect(() => {
     const s = hd250SyncRef.current;
-    if (!s || !hd250Ref.current || !active.has('nowcast')) return;
+    if (!s || !hdRef.current.on || !active.has('nowcast')) return;
     s.run(...s.args);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hd250Tick]);
@@ -5053,6 +5101,12 @@ export default function MapView({
     </div>
   );
 
+  // Phase RA-250: resolution switch of the DE radar picture (1 km ↔ 250 m from the DWD site radars) under the nowcast row —
+  // Germany only (AT/CH have no open 250-m product, V-R250 §2); the words next to it come from the map (tiles / forecast …).
+  const hd250Seg = location.country === 'DE' && hdRef.current.on ? (
+    <Hd250Switch segClass="mdk-subseg" btnClass="" eyebrowClass="" accent="steel" />
+  ) : null;
+
   // Hagel-Produktumschalter (Phase HA1) — betrifft NUR die Schweiz; der
   // DE-Anteil (KONRAD3D-Zellen) bleibt in beiden Stellungen sichtbar.
   const hailSeg = (
@@ -5201,6 +5255,11 @@ export default function MapView({
   /** Dynamischer Titel-Zusatz je Layer (Schnee-Modus, Sicherheits-Bezug,
    *  Experten-Hinweis) für die Readout-Karte. Die mobile Stage-Legende trägt
    *  ihre Zusätze weiterhin im eigenen Markup — dort bleibt alles unverändert. */
+  // Phase SE (E-SE-3): the nowcast card names the mirror's echo filter when the shown RV slot was filtered — and says what it
+  // does NOT touch (V-SE-2: the computing paths read the official composite unchanged).
+  const layerNote = (key: LayerKey): React.ReactNode => (key === 'nowcast' && rvClutterCells > 0
+    ? 'Echos ohne Niederschlag ausgeblendet: der Radar-Spiegel nimmt Echos, deren ρHV in den DWD-Polarscans keinen Niederschlag zeigt (Vogelzug, Insekten), aus der Anzeige — Regenbeginn und buscosun Fusion rechnen weiter mit dem amtlichen Komposit.'
+    : null);
   const layerTitleSuffix = (key: LayerKey): React.ReactNode => {
     if (key === 'snow') return `· ${snowMode === 'depth' ? 'Schneedecke' : 'Neuschnee'}`;
     if (key === 'confidence') return `· ${active.has('nowcast') ? 'Regen' : 'Temperatur'}`;
@@ -5626,7 +5685,7 @@ export default function MapView({
               data-accent={LAYER_ACCENT.get(k) ?? 'steel'}
             >
               {!on && <span className="mdk-ro-lchip">Vorschau</span>}
-              <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} />
+              <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} note={layerNote(k)} />
               {ext && (
                 <div className="mdk-ro-lext">
                   <span className="mdk-ro-lext-head">Im Detail</span>
@@ -5756,7 +5815,9 @@ export default function MapView({
               <div key={g.title} className="mdk-group" data-accent={g.accent}>
                 <div className="mdk-group-head">{g.title}</div>
                 <div className="mdk-layers">
-                  {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false))}
+                  {g.layers.map(l => (l.key === 'nowcast' && active.has('nowcast') && hd250Seg
+                    ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)}{hd250Seg}</Fragment>   // RA-250: right under its row
+                    : layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)))}
                   {g.layers.some(l => l.key === 'sat') && active.has('sat') && satSeg}
                   {g.layers.some(l => l.key === 'snow') && active.has('snow') && snowSeg}
                   {g.layers.some(l => l.key === 'hail') && active.has('hail') && hailSeg}
@@ -5989,7 +6050,9 @@ export default function MapView({
                   <div key={g.title} data-accent={g.accent}>
                     <div className="mdk-m-group-head">{g.title}</div>
                     <div className="mdk-m-layers">
-                      {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true))}
+                      {g.layers.map(l => (l.key === 'nowcast' && layerMode === 'detail' && active.has('nowcast') && hd250Seg
+                        ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)}<div className="mdk-m-sub" data-accent="steel">{hd250Seg}</div></Fragment>   // RA-250
+                        : layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)))}
                       {layerMode === 'detail' && g.layers.some(l => l.key === 'wind') && active.has('wind') && (
                         <div className="mdk-m-sub" data-accent="sage" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
                       )}

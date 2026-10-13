@@ -89,8 +89,9 @@ jobs:
           # erkannt am ρHV der Polarscans desselben Niederschlagsscans, Regel an Stationen gemessen) aus der Log-Ebene der `g`-Frames
           # und aus den 250-m-Kacheln; `clutter.png` + `meta.dual.clutter` im Slot. +8 MB Download je Slot vom DWD (17 Polarscans),
           # ≈ +5 s Derive. Nur mit RADAR_IMG_DUAL + RADAR_LOG_NATIVE. Steht auf '0': Einschalten ('1') ist Jans Gate NACH der
-          # Bestätigung an frischen Slots (R-SE-8, MANUELLE-SCHRITTE). Rückweg: '0' — sofort wie vorher, jedes Echo des DWD.
-          RADAR_CLUTTER: '0'
+          # Bestätigung an frischen Slots (R-SE-8, MANUELLE-SCHRITTE) — von Jan am 13.10.2026 gegeben (E-SE-1, Daten-Repo
+          # a019b6954; braucht buscosun-web main ≥ 24ac8d2). Rückweg: '0' — sofort wie vorher, jedes Echo des DWD.
+          RADAR_CLUTTER: '1'
           GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_FILE: radar.yml
         run: node scripts/radar-mirror.mjs

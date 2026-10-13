@@ -19,13 +19,16 @@ import type { QuadCorners } from '../scalar/RainLayer';
 import { fetchRvNowcast, fetchRvAnalysisSequence, de1200WarpMesh, DE1200_WARP_N } from '../sources/radolan';
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { incaWarpMesh, INCA_WARP_N } from '../sources/geosphereIncaGeo';
-import { fetchRzcLatest } from '../sources/meteoSwissRadar';
+import { fetchRzcLatest, fetchRzcAnalysisSequence } from '../sources/meteoSwissRadar';
 import { rzcWarpMesh, RZC_WARP_N } from '../sources/meteoSwissGeo';
 
 export type RadarSourceId = 'radolan_rv' | 'inca_grid' | 'meteoswiss_rzc';
 
 export interface RadarFrame {
   values: Uint8Array;
+  /** Phase SE (V-SE-3): the mirror's log plane (HD-3) when the slot carries one — the profile map draws measured frames
+   *  from it like „jetzt"; the legacy radar map and every other reader keep `values`. */
+  values2?: Uint8Array;
   width: number;
   height: number;
   /** absolute Validitätszeit (UTC-ms). */
@@ -79,7 +82,7 @@ const SRC_ATTR: Record<RadarSourceId, string> = {
 const MAX_PAST = 24;            // bis zu 2 h (DE 5-min) bzw. mehr bei gröberem Raster
 const PAST_WINDOW_MIN = 120;    // nur die letzten 2 h vorhalten
 
-interface PastEntry { timeMs: number; values: Uint8Array; width: number; height: number }
+interface PastEntry { timeMs: number; values: Uint8Array; values2?: Uint8Array; width: number; height: number }
 const pastCache = new Map<RadarSourceId, PastEntry[]>();
 
 /** Legt die gemessene Analyse in den Session-Cache (dedupe nach Minute). */
@@ -103,7 +106,7 @@ export function pastFrames(source: RadarSourceId, runAtMs: number): RadarFrame[]
   return arr
     .filter((p) => p.timeMs < runAtMs)
     .map((p) => ({
-      values: p.values, width: p.width, height: p.height, timeMs: p.timeMs,
+      values: p.values, ...(p.values2 ? { values2: p.values2 } : {}), width: p.width, height: p.height, timeMs: p.timeMs,
       leadMinutes: Math.round((p.timeMs - runAtMs) / 60_000), measured: true,
     }));
 }
@@ -128,11 +131,31 @@ export async function seedDePastArchive(count: number, signal?: AbortSignal): Pr
   try {
     const seq = await fetchRvAnalysisSequence(count, signal);
     for (const a of seq.frames) {
-      rememberMeasured('radolan_rv', { timeMs: a.validAt.getTime(), values: a.values, width: a.width, height: a.height });
+      rememberMeasured('radolan_rv', { timeMs: a.validAt.getTime(), values: a.values, ...(a.values2 ? { values2: a.values2 } : {}), width: a.width, height: a.height });
     }
     return seq.frames.length > 0;
   } catch {
     return false; // Archiv nicht erreichbar / zu wenige Läufe → Session-Cache genügt
+  }
+}
+
+/** Phase RA (V-RA-3): measured rzc analyses the CH look-back seeds from the mirror (24 slots = 2 h there) — as many as DE. */
+export const CH_PAST_SEED_FRAMES = DE_PAST_SEED_FRAMES;
+
+/**
+ * Phase RA (V-RA-3): like `seedDePastArchive` for a Swiss place — the last `count` rzc analyses from the mirror into the
+ * session cache (with their log plane, V-SE-3), so the look-back is there right after opening instead of growing over the
+ * session. Cheap (≈ 15 KB per slot). true = frames added.
+ */
+export async function seedChPastArchive(count: number, signal?: AbortSignal): Promise<boolean> {
+  try {
+    const frames = await fetchRzcAnalysisSequence(count, signal);
+    for (const f of frames) {
+      rememberMeasured('meteoswiss_rzc', { timeMs: f.validAt.getTime(), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height });
+    }
+    return frames.length > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -152,12 +175,13 @@ async function loadDe(signal?: AbortSignal): Promise<RadarStack> {
   const rv = await fetchRvNowcast(signal);
   const runAtMs = rv.runAt.getTime();
   const nowcast: RadarFrame[] = rv.frames.map((f) => ({
-    values: f.values, width: f.width, height: f.height,
+    values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height,
     timeMs: runAtMs + f.leadMinutes * 60_000,
     leadMinutes: f.leadMinutes, measured: f.leadMinutes === 0,
   }));
   const analysis = nowcast.find((f) => f.leadMinutes === 0);
-  if (analysis) rememberMeasured('radolan_rv', { timeMs: analysis.timeMs, values: analysis.values, width: analysis.width, height: analysis.height });
+  // V-SE-3: the analysis keeps its log plane in the session cache — when the next run arrives it is the newest look-back frame.
+  if (analysis) rememberMeasured('radolan_rv', { timeMs: analysis.timeMs, values: analysis.values, ...(analysis.values2 ? { values2: analysis.values2 } : {}), width: analysis.width, height: analysis.height });
   const past = pastFrames('radolan_rv', runAtMs);
   // DE1200 ist polar-stereografisch → projektionskorrektes Warp-Mesh mitgeben.
   return { ...assemble('DE', 'radolan_rv', rv.corners, [...past, ...nowcast], runAtMs, 5, 120), warpLnglat: de1200WarpMesh(), warpN: DE1200_WARP_N };
@@ -182,8 +206,8 @@ async function loadAt(signal?: AbortSignal): Promise<RadarStack> {
 async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
   const fr = await fetchRzcLatest(signal);
   const t = fr.validAt.getTime();
-  rememberMeasured('meteoswiss_rzc', { timeMs: t, values: fr.values, width: fr.width, height: fr.height });
-  const analysis: RadarFrame = { values: fr.values, width: fr.width, height: fr.height, timeMs: t, leadMinutes: 0, measured: true };
+  rememberMeasured('meteoswiss_rzc', { timeMs: t, values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height });
+  const analysis: RadarFrame = { values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height, timeMs: t, leadMinutes: 0, measured: true };
   const past = pastFrames('meteoswiss_rzc', t);
   // LV95/somerc-Gitter → projektionskorrektes Warp-Mesh (RP2, s. loadAt).
   return {

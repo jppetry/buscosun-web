@@ -13,6 +13,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSPropertie
 import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
+import { Hd250Switch } from '../components/Hd250Switch';   // Phase RA-250: 1 km | 250 m (DE only)
 import { phaseLabelStep, intensityBand, intensityColor, NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN, type EventTone } from './nowcastModel';
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
@@ -392,7 +393,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
                 layers={layers} toggleLayer={toggleLayer} activeLayerCount={activeLayerCount}
                 view={view} setView={setView} mode={mode} setMode={setMode} withHeight={hzsOn}
                 nowcast={nowcast} onReload={onReload} snowMode={snowMode} setSnowMode={setSnowMode}
-                sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} chance={chance}
+                sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} chance={chance} country={location.country}
               />
             );
             // Phase ZT (E-ZT-7): in "Karte + 3D" the dock shrinks to 64 px icons; "Alle Einstellungen" opens it in full.
@@ -461,8 +462,10 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance }: {
+function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance, country }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
+  /** Phase RA-250: the place's country — the 250-m switch exists for Germany only (AT/CH have no open 250-m product). */
+  country: Location['country'];
   view: DeckView; setView: (v: DeckView) => void;
   /** Phase HZS (`?hzs=1`): dritte Ansicht „Karte + Höhe". */
   withHeight?: boolean;
@@ -494,6 +497,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
         })}
       </div>
       {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
+      {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
 
       {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="dock" {...(chance ? { chance: chance.slot } : {})} />}
 
@@ -886,7 +890,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
         {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
-        {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
+        {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
         {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} />}
         {tab === 'height' && heightPanel && <div className="rm-hzs">{heightPanel}</div>}
         {tab === '3d' && towersPanel}
@@ -989,10 +993,12 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
 }
 
 // --- Panel: Layer -----------------------------------------------------------
-function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, snowMode, setSnowMode, sumSel, setSumSel, chance }: {
+function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, country, snowMode, setSnowMode, sumSel, setSumSel, chance }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; place: string;
+  /** Phase RA-250: the 250-m switch exists for Germany only. */
+  country: Location['country'];
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
   sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void;
   chance: ChanceCtx | null;
@@ -1022,6 +1028,7 @@ function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, snowMo
         })}
       </div>
       {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
+      {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
       {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="mobile" {...(chance ? { chance: chance.slot } : {})} />}
       <div className="rm-seclabel">Modus</div>
       <div className="rm-seg rm-seg--modus" role="tablist" aria-label="Modus">

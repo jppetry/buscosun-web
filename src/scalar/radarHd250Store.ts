@@ -44,18 +44,29 @@ class Hd250Store {
     return this.metas.has(stamp) ? (this.metas.get(stamp) as Hd250Meta | null | 'pending') : 'pending';
   }
 
+  /**
+   * Phase RA-250: the slot's meta alone (`hd250.json`, a few KB) — never a tile. The map asks it with the switch OFF to
+   * say whether 250 m is available for the shown analysis; `'pending'` = on its way (`notify` once it is there).
+   */
+  probe(stamp: string, notify: () => void): Hd250Meta | null | 'pending' {
+    this.ensureMeta(stamp, notify);
+    return this.meta(stamp);
+  }
+
+  private ensureMeta(stamp: string, notify: () => void): void {
+    if (this.metas.has(stamp)) return;
+    this.metas.set(stamp, 'pending');
+    void fetchHd250Meta(stamp).then(
+      (meta) => { this.metas.set(stamp, meta); this.schedule(notify); },
+      () => { this.metas.delete(stamp); this.schedule(notify); },
+    );
+  }
+
   /** Current state of a tile; starts the meta/tile fetch when needed. */
   get(stamp: string, tx: number, ty: number, notify: () => void): Hd250TileState {
+    this.ensureMeta(stamp, notify);
     const m = this.metas.get(stamp);
-    if (m === undefined) {
-      this.metas.set(stamp, 'pending');
-      void fetchHd250Meta(stamp).then(
-        (meta) => { this.metas.set(stamp, meta); this.schedule(notify); },
-        () => { this.metas.delete(stamp); this.schedule(notify); },
-      );
-      return { kind: 'loading' };
-    }
-    if (m === 'pending') return { kind: 'loading' };
+    if (m === undefined || m === 'pending') return { kind: 'loading' };
     if (m === null) return { kind: 'none' };
     const file = hd250TileFile(tx, ty);
     if (!m.tiles.some((t) => t.file === file)) return { kind: 'dry' };

@@ -180,11 +180,14 @@ const LAYER_INFO: Record<LayerKey, Info> = {
   },
 };
 
-export function LayerInfoPanel({ layer, style, suffix }: {
+export function LayerInfoPanel({ layer, style, suffix, note }: {
   layer: LayerKey;
   style?: CSSProperties;
   /** Dynamischer Titel-Zusatz (z. B. Schnee-Modus, „Sicherheit · Regen"). */
   suffix?: ReactNode;
+  /** Phase SE (E-SE-3): a line under the description that names what the data of THIS moment carry — e.g. that the
+   *  mirror's echo filter took echoes without precipitation out of the shown radar slot. Static text stays in `desc`. */
+  note?: ReactNode;
 }) {
   const info = LAYER_INFO[layer];
   if (!info) return null;
@@ -193,6 +196,7 @@ export function LayerInfoPanel({ layer, style, suffix }: {
       <span className="layer-info-eyebrow">{info.eyebrow}</span>
       <h3 className="layer-info-title">{info.title}{suffix && <span className="layer-info-suffix"> {suffix}</span>}</h3>
       <p className="layer-info-desc">{info.desc}</p>
+      {note && <p className="layer-info-note">{note}</p>}
       <div className="layer-info-legend">{info.legend}</div>
       {info.source && <span className="layer-info-src">{info.source}</span>}
       {info.trust && <span className="layer-info-trust">✓ {info.trust}</span>}
