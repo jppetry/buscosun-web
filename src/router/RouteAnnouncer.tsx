@@ -26,7 +26,13 @@ export default function RouteAnnouncer() {
     // Fokus nicht im Body verbleibt. Lazy-Chunks brauchen ggf. ~1 s, daher bis 90 Frames.
     let tries = 0;
     let raf = 0;
+    // Whoever had the focus when the route changed: a persistent nav link, or nothing (body). If the focus has moved
+    // elsewhere in the meantime (the visitor pressed Enter on a row, a detail view focused its heading), the announcer
+    // leaves it there instead of pulling it back to <main> up to ~1 s later (V-AW-60).
+    const was = document.activeElement;
     const focus = () => {
+      const now = document.activeElement;
+      if (now && now !== was && now !== document.body) return;
       const h1 = document.querySelector<HTMLElement>('main h1, h1');
       const target = h1 ?? (tries >= 60 ? (document.querySelector<HTMLElement>('main') ?? document.getElementById('root')) : null);
       if (target) {

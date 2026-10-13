@@ -1565,3 +1565,19 @@ nach dem ersten Paint.
 | V-AW-57 | `RoadMap.apply` bricht bei `!isStyleLoaded()` ab — das wartet auch auf jede Kachel; ein Datenwechsel während des Kachelladens (Korridor, Abschnittslinien) wird erst mit der nächsten Darstellung nachgeholt (gelesen, nicht gemessen — der leere `data-segs`-Haken im Verifier war Timing: die Leiste steht vor dem `load` der Karte, U2c wartet jetzt) | Linien und Punkte erscheinen, sobald die Daten da sind, nicht erst beim nächsten Render | Bestand seit AW-5, unverändert gelassen (Funktionserhalt): Merker „ausstehend“ + Nachziehen bei `idle`; Testhaken `data-applied` |
 | V-AW-58 | Desktop-Pixelgleichheit ohne Schalter nur über den Verifier belegt (Blöcke A–T grün, dieselben Shots), kein byte-genauer Diff gegen die Basis-Shots | Gate-Frage 2 mit Zahl | Diff-Lauf wie `regenradar-wk-pixeldiff.mjs` gegen `.wt-ctl` (Jan oder nächste Sitzung) |
 | V-AW-59 | RoadPage-Chunk +11,5 KB gz auch ohne Schalter (Vertrag `roadHazards.ts`, Leser, Sicht, `AW_SEV`) | Besucher ohne Schalter zahlen nichts | die Gefahren-Logik in einen eigenen Lazy-Chunk hinter dem Schalter ziehen (Hook `useRoadHazards`) |
+| V-AW-60 | `RouteAnnouncer` holte den Fokus bis ≈ 1 s nach einem Routenwechsel auf `<main>` zurück, auch wenn er inzwischen weitergewandert war (U4 nach dem Merge von `main` 14.10.: Enter öffnet das Detail, die Überschrift bekommt den Fokus, 100 ms später liegt er auf `main.aw-map` mit `tabindex=-1`; reproduzierbar 3/3, vor dem Merge grün — ein Zeitfenster, das der größere Bau verschob) | Tastatur- und Screenreader-Nutzer verlieren nicht die Stelle, die sie gerade geöffnet haben | behoben: der Ansager merkt sich `document.activeElement` beim Routenwechsel und lässt einen Fokus in Ruhe, der seitdem woanders liegt (`src/router/RouteAnnouncer.tsx`); Verifier U4 bleibt streng (kein längeres Warten) |
+
+### 19.8 Merge nach `main` (14.10.2026)
+
+Jan hat den Hauptbaum committet (`7fbb00b`: Phasen RA, SE, LM, WL-5, neue `CLAUDE.md`), damit war der Blocker aus §19.5 weg.
+Die Sitzung hat `main` in den Zweig gemergt (`45ae67e`); einziger Konflikt `MANUELLE-SCHRITTE.md`, weil beide Seiten einen
+§70 anfügten — §70 bleibt Phase RA, der Autobahn-Abschnitt heißt §71 (`48c21a4`, Verweise in `health-manifests.mjs` mitgezogen).
+`package.json` ging automatisch zusammen (Jans `verify:dach-mask`/`verify:radar-clutter` + die drei nivo-Pakete). `main` steht lokal
+per Fast-Forward auf dem Zweig; **Push = Jans Gate** (§71.1).
+
+Gates nach dem Merge, Bau aus dem Worktree: `verify:road-ui` 102/102 (nach V-AW-60; davor 101/102, U4 rot in 3 von 3 Läufen),
+`verify:road-hazards` 91/91, `verify:road-contract` 111/111, `verify:road-derive` 36/36, `verify:fusion-release` 30/30,
+`verify:routing` 260/260, `verify:seo` grün im Bau, typecheck 0; Budget eagerJs 110,0/110 (gerundet, RouteAnnouncer +6 Zeilen),
+largestChunk 278,4/302, totalJs 1 824,7/1 825 (Jans Phasen +3,1 KB gegen §19.5). `health-manifests --url` gegen Produktion:
+12/14, rot nur H2/H3 (`latest-grib.json` Lauf 2026090406, 952 h alt — Wind-Manifest der Edge-Function, nicht Teil dieser Phase,
+an Jan gemeldet).
