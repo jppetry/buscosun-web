@@ -2684,12 +2684,11 @@ Auftrag: Startprompt `audit/autobahnwetter-gefahren-startprompt.md`, Spezifikati
 Zweig `feat/autobahnwetter-gefahren` (Worktree `C:\dev\buscosun-web\.wt-hz`), **Schalter `ROAD_HZ_LIVE = false`** — ohne
 `?roadhz=1` ist die Seite unverändert. Alles ist committet, **nichts gepusht**; die Daten liegen als Paket bereit.
 
-1. **Merge und Push von `main`** (`feat/autobahnwetter-gefahren`, acht Commits ab `8e8646a`): erst damit rechnet der Radar-Job
-   beim nächsten Jobstart (≈ alle 5 h 45 min) die Gefahren (`road/v1/hz/`) und der `road-fc`-Job die Zusatzgrößen `sl`/`t85`/`vs`.
-   Vorher die beiden Verzeichnisse abgleichen: im Hauptbaum liegen uncommittete Änderungen anderer Sitzungen an `package.json`
-   (`verify:dach-mask`), `MANUELLE-SCHRITTE.md` (§67–§69), `CLAUDE.md`, `scripts/radar-mirror/*` — der Zweig ändert dieselben
-   Dateien (`package.json` Abhängigkeiten + `verify:road-hazards`, `MANUELLE-SCHRITTE.md` §70, `scripts/road/road-mirror.mjs`);
-   bei einem Konflikt beide Seiten behalten.
+1. **Push von `main`** (`feat/autobahnwetter-gefahren`, acht AP-Commits ab `8e8646a` + Umnummerierung + Merge): am 14.10. hat die
+   Sitzung `main` (`7fbb00b`, dein Commit mit RA/SE/LM/WL-5) in den Zweig gemergt — einziger Konflikt war diese Datei (§70 bleibt RA,
+   der Autobahn-Abschnitt heißt §71) — und `main` lokal per Fast-Forward auf den Zweig gesetzt; Gates danach neu gelaufen (§19.5).
+   **Push = dein Gate.** Erst damit rechnet der Radar-Job beim nächsten Jobstart (≈ alle 5 h 45 min) die Gefahren (`road/v1/hz/`)
+   und der `road-fc`-Job die Zusatzgrößen `sl`/`t85`/`vs`.
 2. **Paket ins Daten-Repo** (`C:\dev\buscosun-road-publish\2026-10-13-hz\`, `SHA256SUMS`): `road/v1/static/segments.json`
    (1 629 Abschnitte, 191 KB gz, ODbL) und der README-Abschnitt (`README.md` = Kopie der Vorlage `scripts/repack-repo/README.md`).
    Ohne `segments.json` im Repo schreibt der Spiegel `status.hz.blocked = "static/segments.json fehlt"` und keine `hz/`-Slots —
