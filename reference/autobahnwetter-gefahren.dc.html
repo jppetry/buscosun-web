@@ -1,0 +1,1508 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Autobahnwetter – Gefahren</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A85E2E}a:hover{color:#C97B47}
+button{font-family:inherit}
+@keyframes awPulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; overflow: hidden; background: #EDE6D3; color: #2C2A26; font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased">
+
+<nav aria-label="Bereiche" style="width: 62px; flex: 0 0 auto; background: #2C2A26; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; box-sizing: border-box">
+<button type="button" aria-label="buscosun Startseite" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #E0A567; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; cursor: pointer">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+</button>
+<button type="button" aria-label="Wetterkarte" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>
+</button>
+<button type="button" aria-label="Regenradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="4.5"></circle><path d="M12 12l5.5-5.5"></path></svg>
+</button>
+<button type="button" aria-label="Vorhersage" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"></path><path d="M4 15l4-5 4 3 4-6 4 4"></path></svg>
+</button>
+<button type="button" aria-label="Tourenplanung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="6" cy="18" r="2.2"></circle><circle cx="18" cy="6" r="2.2"></circle><path d="M8 17c5-1 2-7 8-10"></path></svg>
+</button>
+<button type="button" aria-label="Event-Planung" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+</button>
+<button type="button" aria-label="Historie" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3 2"></path></svg>
+</button>
+<button type="button" aria-label="Brandradar" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: transparent; color: #8B7355; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 21c-4 0-6.5-2.6-6.5-6 0-4 3.5-6 4-10 2.5 2 3 4 3 6 1-1 1.5-2 1.5-3.5 2 1.8 4.5 4.5 4.5 7.5 0 3.4-2.5 6-6.5 6z"></path></svg>
+</button>
+<div style="position: relative; display: flex">
+<div style="position: absolute; left: -10px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: #5E97D1"></div>
+<button type="button" aria-label="Autobahnwetter" aria-current="page" style="width: 42px; height: 42px; border: 0; border-radius: 11px; background: #3A3833; color: #8FB4E3; display: flex; align-items: center; justify-content: center; cursor: default">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 3L4 21M15.5 3L20 21"></path><path d="M12 4v3M12 10.5v3M12 17v4"></path></svg>
+</button>
+</div>
+</nav>
+
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0">
+
+<header style="height: 60px; flex: 0 0 auto; display: flex; align-items: center; gap: 18px; padding: 0 20px; background: #FAF6EA; border-bottom: 1px solid #E0D6BE; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg>
+<span style="font-size: 19px; font-weight: 700; letter-spacing: -0.4px">buscosun</span>
+</div>
+<div style="width: 1px; height: 26px; background: #E0D6BE"></div>
+<span style="font-size: 13px; font-weight: 500; color: #8B7355">Autobahnwetter DACH</span>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 16px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1.5px; font-weight: 600; text-transform: uppercase; color: #5F7A4C">
+<span style="position: relative; width: 8px; height: 8px; display: inline-block"><span style="position: absolute; inset: 0; border-radius: 50%; background: #5F7A4C"></span><span style="position: absolute; inset: 0; border-radius: 50%; background: #5F7A4C; animation: awPulse 2.4s ease-out infinite"></span></span>
+Live
+</span>
+<span style="font-size: 11px; color: #8B7355">Messung <strong style="color: #2C2A26; font-weight: 600">06:15</strong> · 22 von 30 DWD-Ordnern · Beispieldaten</span>
+<button type="button" style="display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border: 1px solid #E0D6BE; border-radius: 9px; background: #FFFFFF; color: #2C2A26; font-size: 12px; font-weight: 600; cursor: pointer">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>
+Teilen
+</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; min-height: 0">
+
+<aside aria-label="Autobahnen und Ebenen" style="width: 250px; flex: 0 0 auto; background: #FAF6EA; border-right: 1px solid #E0D6BE; overflow-y: auto; padding: 16px 12px; box-sizing: border-box">
+<label for="aw-search" style="display: block; font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-bottom: 6px">Autobahn oder Ort</label>
+<div style="display: flex; align-items: center; gap: 8px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 0 10px; height: 36px">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+<input id="aw-search" type="text" placeholder="A 8, Irschenberg, Brenner …" style="border: 0; outline: none; background: transparent; font-family: inherit; font-size: 12.5px; color: #2C2A26; width: 100%">
+</div>
+
+<div role="group" aria-label="Land" style="display: flex; gap: 3px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 8px; padding: 3px; margin-top: 10px">
+<sc-for list="{{countries}}" as="cy" hint-placeholder-count="4">
+<button type="button" onClick="{{cy.pick}}" aria-pressed="{{cy.on}}" style="flex: 1; border: 0; border-radius: 5px; padding: 6px 0; font-size: 11px; cursor: pointer; {{cy.style}}">{{cy.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 8px">
+<span style="font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Autobahnen</span>
+<span style="font-size: 10px; color: #5C5447; font-weight: 500; background: #EDE6D3; border-radius: 6px; padding: 2px 7px">{{roadCount}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px">
+<sc-for list="{{roadItems}}" as="ri" hint-placeholder-count="6">
+<button type="button" onClick="{{ri.pick}}" aria-pressed="{{ri.on}}" style="display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; border: 1px solid #E0D6BE; border-radius: 9px; padding: 8px 10px; cursor: pointer; color: #2C2A26; {{ri.style}}">
+<span style="display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto">
+<sc-for list="{{ri.shields}}" as="sh" hint-placeholder-count="1">
+<span style="display: inline-block; min-width: 30px; text-align: center; font-size: 10.5px; font-weight: 700; color: #FFFFFF; background: #1F4E9E; border: 1.5px solid #FFFFFF; box-shadow: 0 0 0 1px #1F4E9E; border-radius: 4px; padding: 1px 4px">{{sh.t}}</span>
+</sc-for>
+</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12.5px; font-weight: 600; line-height: 1.2">{{ri.title}}</span>
+<span style="font-size: 9.5px; color: #8B7355">{{ri.sub}}</span>
+</span>
+<span style="width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; {{ri.dot}}"></span>
+</button>
+</sc-for>
+<sc-for list="{{staticRows}}" as="sr" hint-placeholder-count="0">
+<div style="display: flex; align-items: center; gap: 9px; border: 1px solid #E0D6BE; border-radius: 9px; padding: 8px 10px; background: #FFFFFF">
+<span style="display: inline-block; min-width: 30px; text-align: center; font-size: 10.5px; font-weight: 700; color: #FFFFFF; border: 1.5px solid #FFFFFF; border-radius: 4px; padding: 1px 4px; {{sr.shield}}">{{sr.t}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12.5px; font-weight: 600; line-height: 1.2">{{sr.title}}</span>
+<span style="font-size: 9.5px; color: #8B7355">{{sr.sub}}</span>
+</span>
+<span style="width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: #FFFFFF; border: 2px solid #E39A3B; box-sizing: border-box"></span>
+</div>
+</sc-for>
+</div>
+
+<div style="font-size: 11px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin: 18px 0 8px">Ebenen</div>
+<div style="display: flex; flex-direction: column; gap: 5px">
+<sc-for list="{{layers}}" as="ly" hint-placeholder-count="5">
+<button type="button" onClick="{{ly.toggle}}" aria-pressed="{{ly.on}}" style="display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 8px 10px; cursor: pointer; {{ly.row}}">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 12.5px; {{ly.lab}}">{{ly.label}}</span>
+<span style="font-size: 9.5px; color: #8B7355">{{ly.sub}}</span>
+</span>
+<span style="width: 30px; height: 17px; border-radius: 9px; position: relative; flex: 0 0 auto; {{ly.sw}}"><span style="position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #FFFFFF; {{ly.knob}}"></span></span>
+</button>
+</sc-for>
+<div style="display: flex; align-items: center; gap: 9px; background: #F4F0E4; border: 1px dashed #D9D0B8; border-radius: 9px; padding: 8px 10px; opacity: 0.8">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A89A7A" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 12.5px; font-weight: 500; color: #A89A7A">Verkehrsmeldungen</span>
+<span style="font-size: 9.5px; color: #A89A7A">blockiert · Lizenz der Autobahn-API ungeklärt</span>
+</span>
+</div>
+</div>
+
+<div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #E0D6BE">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-bottom: 8px">Datenlage je Land</div>
+<div style="display: grid; grid-template-columns: 26px 1fr; gap: 7px 8px; font-size: 10.5px; line-height: 1.4; color: #5C5447">
+<span style="font-weight: 700; color: #2C2A26">DE</span><span><strong style="color: #5F7A4C">gemessen</strong> · Glättemeldeanlagen, 15 min</span>
+<span style="font-weight: 700; color: #2C2A26">AT</span><span><strong style="color: #9A5A2A">Prognose</strong> · keine offene Fahrbahnmessung, Anker TAWES</span>
+<span style="font-weight: 700; color: #2C2A26">CH</span><span><strong style="color: #9A5A2A">Prognose</strong> · keine offene Fahrbahnmessung, Anker SwissMetNet</span>
+</div>
+<div style="margin-top: 10px; padding: 9px 10px; border-radius: 9px; background: #FBF3E7; border: 1px solid #E3C39A; font-size: 10.5px; line-height: 1.5; color: #5C5447"><strong style="color: #9A5A2A">Lücke:</strong> Der DWD-Ordner mit BW-Kennung liefert derzeit nicht – Baden-Württemberg ohne Fahrbahnmessung.</div>
+</div>
+</aside>
+
+<main aria-label="Karte" style="width: 728px; flex: 0 0 auto; position: relative; overflow: hidden; background: #0B0E12">
+<svg viewBox="0 0 728 840" width="728" height="840" role="img" aria-label="Karte Oberbayern, Salzburg und Tirol mit Autobahnen und Messpunkten" style="position: absolute; left: 0; top: 0; font-family: 'League Spartan', system-ui, sans-serif">
+<rect x="0" y="0" width="728" height="840" fill="#0D1116"></rect>
+<path d="M0,440 L60,428 L104,407 L160,410 L230,392 L280,372 L309,362 L350,350 L390,340 L430,352 L468,349 L500,372 L520,405 L540,380 L525,330 L512,296 L507,260 L507,233 L495,195 L481,155 L500,130 L520,116 L570,85 L624,39 L660,15 L702,0 L0,0 Z" fill="#121820"></path>
+<g fill="none" stroke="#18202A" stroke-width="1.2">
+<path d="M0,478 C80,462 140,478 210,450 S330,428 400,404 S520,438 600,408 S700,426 728,418"></path>
+<path d="M0,528 C100,508 170,538 260,508 S420,478 500,508 S640,478 728,488"></path>
+<path d="M0,588 C120,568 220,598 330,568 S520,548 620,578 S700,566 728,562"></path>
+<path d="M0,648 C110,630 230,660 340,630 S540,612 640,640 S700,628 728,624"></path>
+<path d="M300,410 C340,398 380,420 430,402"></path>
+<path d="M560,450 C600,436 640,452 700,440"></path>
+</g>
+<g fill="#172738">
+<ellipse cx="377" cy="261" rx="27" ry="20"></ellipse>
+<ellipse cx="84" cy="244" rx="8" ry="30"></ellipse>
+<ellipse cx="36" cy="215" rx="8" ry="22"></ellipse>
+<ellipse cx="196" cy="327" rx="5" ry="11"></ellipse>
+<ellipse cx="627" cy="290" rx="4" ry="13"></ellipse>
+<ellipse cx="664" cy="266" rx="6" ry="26"></ellipse>
+<ellipse cx="630" cy="314" rx="11" ry="4"></ellipse>
+</g>
+<path d="M0,440 L60,428 L104,407 L160,410 L230,392 L280,372 L309,362 L350,350 L390,340 L430,352 L468,349 L500,372 L520,405 L540,380 L525,330 L512,296 L507,260 L507,233 L495,195 L481,155 L500,130 L520,116 L570,85 L624,39 L660,15 L702,0" fill="none" stroke="#4A5260" stroke-width="1.2" stroke-dasharray="5 4"></path>
+<circle cx="149" cy="160" r="13" fill="#1A2029"></circle>
+<g opacity="{{warnOp}}">
+<path d="M170,245 L240,250 L270,275 L265,330 L240,385 L190,380 L160,330 Z" fill="#E39A3B" fill-opacity="0.12" stroke="#E39A3B" stroke-width="1.2" stroke-dasharray="4 3"></path>
+<text x="168" y="372" font-size="10" fill="#E3B57A">Warnung · Lkr. Miesbach</text>
+</g>
+<g opacity="{{radarOp}}" fill="#5E97D1">
+<ellipse cx="285" cy="300" rx="42" ry="26" fill-opacity="0.22"></ellipse>
+<ellipse cx="290" cy="302" rx="20" ry="12" fill-opacity="0.3"></ellipse>
+<ellipse cx="330" cy="330" rx="30" ry="18" fill-opacity="0.18"></ellipse>
+<ellipse cx="596" cy="282" rx="36" ry="20" fill-opacity="0.2"></ellipse>
+</g>
+<g fill="none" stroke="#39414D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M104,143 L50,105 L0,66"></path>
+<path d="M104,165 L0,178"></path>
+<path d="M528,290 L540,330 L559,388 L572,466 L580,540"></path>
+<path d="M161,173 L187,221 L179,252 L208,268 L239,279 L263,279 L278,283 L304,291 L333,291 L356,287 L385,287 L400,283 L426,283 L455,299 L494,306 L512,295 L520,291 L528,279 L546,276 L585,279 L614,272 L645,241 L671,233 L702,210 L741,182"></path>
+<path d="M278,283 L286,314 L309,361 L304,376 L278,411 L248,428 L203,450 L185,466 L130,493 L104,500 L60,505 L0,508"></path>
+<path d="M130,175 L96,217 L52,355 L30,405"></path>
+<path d="M161,140 L169,112 L154,58 L143,0"></path>
+<path d="M183,152 L255,137 L338,116 L420,100"></path>
+<path d="M104,143 C110,105 150,100 172,112 C195,125 200,145 190,158 C182,170 178,180 172,186"></path>
+</g>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M161,173 L187,221 L179,252 L208,268 L239,279 L263,279 L278,283 L304,291 L333,291 L356,287 L385,287 L400,283 L426,283 L455,299 L494,306 L512,295 L520,291 L528,279 L546,276 L585,279 L614,272 L645,241 L671,233 L702,210 L741,182" stroke="#FAF6EA" stroke-width="11" opacity="{{hl.a8g}}"></path>
+<path d="M161,173 L187,221 L179,252 L208,268 L239,279 L263,279 L278,283 L304,291 L333,291 L356,287 L385,287 L400,283 L426,283 L455,299 L494,306 L512,295 L520,291 L528,279 L546,276 L585,279 L614,272 L645,241 L671,233 L702,210 L741,182" stroke="#F3EDDF" stroke-width="3.6" opacity="{{hl.a8}}"></path>
+<path d="M278,283 L286,314 L309,361 L304,376 L278,411 L248,428 L203,450 L185,466 L130,493 L104,500 L60,505 L0,508" stroke="#FAF6EA" stroke-width="11" opacity="{{hl.a93g}}"></path>
+<path d="M278,283 L286,314 L309,361 L304,376 L278,411 L248,428 L203,450 L185,466 L130,493 L104,500 L60,505 L0,508" stroke="#F3EDDF" stroke-width="3.6" opacity="{{hl.a93}}"></path>
+<path d="M130,175 L96,217 L52,355 L30,405" stroke="#FAF6EA" stroke-width="11" opacity="{{hl.a95g}}"></path>
+<path d="M130,175 L96,217 L52,355 L30,405" stroke="#F3EDDF" stroke-width="3.6" opacity="{{hl.a95}}"></path>
+<path d="M161,140 L169,112 L154,58 L143,0" stroke="#FAF6EA" stroke-width="11" opacity="{{hl.a9g}}"></path>
+<path d="M161,140 L169,112 L154,58 L143,0" stroke="#F3EDDF" stroke-width="3.6" opacity="{{hl.a9}}"></path>
+<path d="M183,152 L255,137 L338,116 L420,100" stroke="#FAF6EA" stroke-width="11" opacity="{{hl.a94g}}"></path>
+<path d="M183,152 L255,137 L338,116 L420,100" stroke="#F3EDDF" stroke-width="3.6" opacity="{{hl.a94}}"></path>
+<path d="M104,143 C110,105 150,100 172,112 C195,125 200,145 190,158 C182,170 178,180 172,186" stroke="#FAF6EA" stroke-width="11" opacity="{{hl.a99g}}"></path>
+<path d="M104,143 C110,105 150,100 172,112 C195,125 200,145 190,158 C182,170 178,180 172,186" stroke="#F3EDDF" stroke-width="3.6" opacity="{{hl.a99}}"></path>
+</g>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" aria-label="Gefahren je Abschnitt">
+<path d="M181,209 L187,221 L179,252 L192,259" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s1.g}}" stroke-opacity="0.35"></path>
+<path d="M181,209 L187,221 L179,252 L192,259" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s1.o}}"></path>
+<path d="M181,209 L187,221 L179,252 L192,259" stroke="{{mz.s1.c}}" stroke-width="6" stroke-dasharray="{{mz.s1.da}}" opacity="{{mz.s1.o}}"></path>
+<path d="M210,269 L239,279 L252,279" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s2.g}}" stroke-opacity="0.35"></path>
+<path d="M210,269 L239,279 L252,279" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s2.o}}"></path>
+<path d="M210,269 L239,279 L252,279" stroke="{{mz.s2.c}}" stroke-width="6" stroke-dasharray="{{mz.s2.da}}" opacity="{{mz.s2.o}}"></path>
+<path d="M252,279 L263,279 L278,283 L294,288" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s3.g}}" stroke-opacity="0.35"></path>
+<path d="M252,279 L263,279 L278,283 L294,288" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s3.o}}"></path>
+<path d="M252,279 L263,279 L278,283 L294,288" stroke="{{mz.s3.c}}" stroke-width="6" stroke-dasharray="{{mz.s3.da}}" opacity="{{mz.s3.o}}"></path>
+<path d="M344,289 L356,287 L372,287" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s4.g}}" stroke-opacity="0.35"></path>
+<path d="M344,289 L356,287 L372,287" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s4.o}}"></path>
+<path d="M344,289 L356,287 L372,287" stroke="{{mz.s4.c}}" stroke-width="6" stroke-dasharray="{{mz.s4.da}}" opacity="{{mz.s4.o}}"></path>
+<path d="M470,303 L494,306 L506,299" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s5.g}}" stroke-opacity="0.35"></path>
+<path d="M470,303 L494,306 L506,299" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s5.o}}"></path>
+<path d="M470,303 L494,306 L506,299" stroke="{{mz.s5.c}}" stroke-width="6" stroke-dasharray="{{mz.s5.da}}" opacity="{{mz.s5.o}}"></path>
+<path d="M528,279 L546,276 L585,279 L592,277" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s6.g}}" stroke-opacity="0.35"></path>
+<path d="M528,279 L546,276 L585,279 L592,277" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s6.o}}"></path>
+<path d="M528,279 L546,276 L585,279 L592,277" stroke="{{mz.s6.c}}" stroke-width="6" stroke-dasharray="{{mz.s6.da}}" opacity="{{mz.s6.o}}"></path>
+<path d="M286,314 L309,361 L306,372" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s7.g}}" stroke-opacity="0.35"></path>
+<path d="M286,314 L309,361 L306,372" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s7.o}}"></path>
+<path d="M286,314 L309,361 L306,372" stroke="{{mz.s7.c}}" stroke-width="6" stroke-dasharray="{{mz.s7.da}}" opacity="{{mz.s7.o}}"></path>
+<path d="M304,376 L278,411 L262,420" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s8.g}}" stroke-opacity="0.35"></path>
+<path d="M304,376 L278,411 L262,420" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s8.o}}"></path>
+<path d="M304,376 L278,411 L262,420" stroke="{{mz.s8.c}}" stroke-width="6" stroke-dasharray="{{mz.s8.da}}" opacity="{{mz.s8.o}}"></path>
+<path d="M64,318 L52,355 L44,375" stroke="#FAF6EA" stroke-width="16" opacity="{{mz.s9.g}}" stroke-opacity="0.35"></path>
+<path d="M64,318 L52,355 L44,375" stroke="#0B0E12" stroke-width="9" opacity="{{mz.s9.o}}"></path>
+<path d="M64,318 L52,355 L44,375" stroke="{{mz.s9.c}}" stroke-width="6" stroke-dasharray="{{mz.s9.da}}" opacity="{{mz.s9.o}}"></path>
+</g>
+<g opacity="{{fogOp}}" stroke="#C9D2DC" stroke-width="1.6" stroke-linecap="round">
+<path d="M340,262 L364,262"></path>
+<path d="M346,268 L372,268"></path>
+<path d="M338,274 L360,274"></path>
+</g>
+<g fill="#8B95A3" font-size="12">
+<text x="134" y="146" text-anchor="end">München</text>
+<text x="300" y="256" font-size="11">Rosenheim</text>
+<text x="548" y="304">Salzburg</text>
+<text x="318" y="385" font-size="11">Kufstein</text>
+<text x="104" y="522" text-anchor="middle">Innsbruck</text>
+<text x="38" y="426" font-size="11">Garmisch-P.</text>
+<text x="722" y="198" text-anchor="end" font-size="11">Linz →</text>
+<text x="377" y="264" text-anchor="middle" font-size="9.5" font-style="italic" fill="#4F6A86">Chiemsee</text>
+</g>
+<text x="300" y="196" font-size="12" letter-spacing="3" fill="#3A4350">DEUTSCHLAND</text>
+<text x="420" y="474" font-size="12" letter-spacing="3" fill="#3A4350">ÖSTERREICH</text>
+</svg>
+
+<sc-for list="{{markers}}" as="m" hint-placeholder-count="20">
+<button type="button" onClick="{{m.pick}}" aria-label="{{m.label}}" style="position: absolute; padding: 0; cursor: pointer; border-radius: 50%; box-sizing: border-box; {{m.style}}"></button>
+</sc-for>
+<sc-for list="{{tempLabels}}" as="tl" hint-placeholder-count="0">
+<span style="position: absolute; pointer-events: none; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; color: #E9E4D6; background: rgba(11,14,18,0.82); border: 1px solid #2A313B; border-radius: 5px; padding: 1px 4px; white-space: nowrap; {{tl.style}}">{{tl.t}}</span>
+</sc-for>
+<div style="position: absolute; pointer-events: none; width: 178px; background: rgba(250,246,234,0.96); border: 1px solid #E0D6BE; border-radius: 10px; padding: 7px 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); {{callout.style}}">
+<div style="font-size: 12.5px; font-weight: 700">{{callout.name}}</div>
+<div style="display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11px; color: #5C5447"><span style="width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; {{callout.dot}}"></span>{{callout.line}}</div>
+</div>
+
+<div style="position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; max-width: 470px">
+<div style="display: flex; align-items: center; gap: 10px; background: rgba(250,246,234,0.95); border: 1px solid #E0D6BE; border-radius: 10px; padding: 7px 8px 7px 10px">
+<span style="display: flex; gap: 4px">
+<sc-for list="{{corrShields}}" as="cs" hint-placeholder-count="2">
+<span style="display: inline-block; min-width: 30px; text-align: center; font-size: 11px; font-weight: 700; color: #FFFFFF; background: #1F4E9E; border: 1.5px solid #FFFFFF; box-shadow: 0 0 0 1px #1F4E9E; border-radius: 4px; padding: 1px 4px">{{cs.t}}</span>
+</sc-for>
+</span>
+<span style="display: flex; flex-direction: column">
+<span style="font-size: 12.5px; font-weight: 600">{{corrTitle}}</span>
+<span style="font-size: 10.5px; color: #8B7355">{{dirLabel}} · {{corrCountries}}</span>
+</span>
+<button type="button" onClick="{{flipDir}}" aria-label="Fahrtrichtung wechseln" style="width: 30px; height: 30px; margin-left: 4px; border: 1px solid #E0D6BE; border-radius: 8px; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-4-4M20 16H6l4 4"></path></svg>
+</button>
+</div>
+<div role="group" aria-label="Zeitpunkt" style="display: flex; gap: 3px; background: rgba(250,246,234,0.95); border: 1px solid #E0D6BE; border-radius: 10px; padding: 3px">
+<sc-for list="{{times}}" as="tm" hint-placeholder-count="4">
+<button type="button" onClick="{{tm.pick}}" aria-pressed="{{tm.on}}" style="border: 0; border-radius: 7px; padding: 6px 11px; font-size: 11.5px; cursor: pointer; white-space: nowrap; {{tm.style}}">{{tm.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{isFc}}" hint-placeholder-val="{{ false }}">
+<div style="max-width: 420px; padding: 8px 11px; font-size: 10.5px; line-height: 1.45; color: #5C5447; background: rgba(250,246,234,0.95); border: 1px solid #E0D6BE; border-radius: 10px"><strong style="color: #2C2A26">Prognose für {{timeLabel}}</strong> · abgeleitet aus buscosun Fusion und der letzten Messung. Keine Fahrbahnprognose des DWD.</div>
+</sc-if>
+</div>
+
+<div style="position: absolute; right: 16px; top: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end">
+<div style="background: rgba(250,246,234,0.95); border: 1px solid #E0D6BE; border-radius: 10px; padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; color: #5C5447">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Fahrbahn</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #B5321F"></span>Glätte gemessen</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #E39A3B"></span>Frostgefahr</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #5E97D1"></span>Nass</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #8DB07A"></span>Trocken</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: repeating-linear-gradient(135deg,#8B8474 0 2px,#3A3833 2px 4px)"></span>keine gültige Messung</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #FFFFFF; border: 2.5px solid #8B7355; box-sizing: border-box"></span>Prognosepunkt AT/CH</span>
+</div>
+<div style="background: rgba(250,246,234,0.95); border: 1px solid #E0D6BE; border-radius: 10px; padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; color: #5C5447; min-width: 128px; box-sizing: border-box">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">{{mapHz}}</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 5px; border-radius: 3px; background: #E6C46F"></span>Stufe 1</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 5px; border-radius: 3px; background: #E0822F"></span>Stufe 2</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 5px; border-radius: 3px; background: #B5321F"></span>Stufe 3</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 16px; height: 0; border-top: 5px dotted #8B8474"></span>unbekannt</span>
+</div>
+<div style="display: flex; flex-direction: column; background: rgba(250,246,234,0.95); border: 1px solid #E0D6BE; border-radius: 10px; overflow: hidden">
+<button type="button" aria-label="Hineinzoomen" style="width: 38px; height: 38px; border: 0; background: transparent; font-size: 18px; color: #2C2A26; cursor: pointer">+</button>
+<button type="button" aria-label="Herauszoomen" style="width: 38px; height: 38px; border: 0; border-top: 1px solid #E0D6BE; background: transparent; font-size: 18px; color: #2C2A26; cursor: pointer">−</button>
+</div>
+</div>
+
+<section aria-label="Streckenband" style="position: absolute; left: 16px; right: 16px; bottom: 16px; background: rgba(250,246,234,0.97); border: 1px solid #E0D6BE; border-radius: 12px; padding: 12px 16px 10px; box-sizing: border-box">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #1F5FAE">Streckenband</span>
+<span style="font-size: 13px; font-weight: 700">{{bandTitle}}</span>
+<span style="margin-left: auto; font-size: 10.5px; color: #8B7355">{{bandStand}}</span>
+</div>
+<div style="position: relative; height: 40px; margin-top: 10px">
+<div style="position: absolute; left: 0; right: 0; top: 22px; height: 14px; border-radius: 7px; overflow: hidden; background: #EDE6D3">
+<sc-for list="{{segs}}" as="sg" hint-placeholder-count="8">
+<div style="position: absolute; top: 0; bottom: 0; {{sg.style}}"></div>
+</sc-for>
+</div>
+<sc-if value="{{hasBorder}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed #2C2A26; {{borderStyle}}"></div>
+<span style="position: absolute; top: -2px; font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #5C5447; transform: translateX(-100%); padding-right: 5px; {{borderStyle}}">DE</span>
+<span style="position: absolute; top: -2px; font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #5C5447; padding-left: 5px; {{borderStyle}}">AT · Prognose</span>
+</sc-if>
+<sc-for list="{{ticks}}" as="tk" hint-placeholder-count="9">
+<button type="button" onClick="{{tk.pick}}" aria-label="{{tk.label}}" style="position: absolute; padding: 0; cursor: pointer; border-radius: 50%; box-sizing: border-box; {{tk.style}}"></button>
+</sc-for>
+</div>
+<div style="position: relative; height: 15px; margin-top: 4px; font-size: 10.5px; color: #2C2A26; font-weight: 600">
+<sc-for list="{{towns}}" as="tw" hint-placeholder-count="6">
+<span style="position: absolute; white-space: nowrap; {{tw.style}}">{{tw.label}}</span>
+</sc-for>
+</div>
+<div style="position: relative; height: 13px; margin-top: 2px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #A89A7A">
+<sc-for list="{{kmAxis}}" as="ka" hint-placeholder-count="7">
+<span style="position: absolute; white-space: nowrap; {{ka.style}}">{{ka.label}}</span>
+</sc-for>
+</div>
+<div style="display: flex; gap: 14px; margin-top: 7px; padding-top: 7px; border-top: 1px solid #E0D6BE; font-size: 10px; color: #8B7355">
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 8px; border-radius: 2px; background: #5E97D1"></span>Messung DWD</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 8px; border-radius: 2px; background: repeating-linear-gradient(135deg,#5E97D1 0 3px,#5E97D166 3px 5px)"></span>Prognose (AT/CH)</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 8px; border-radius: 2px; background: repeating-linear-gradient(135deg,#C9BE9E 0 2px,#F5F1E8 2px 4px)"></span>keine Messung im 10-km-Umkreis</span>
+<span style="margin-left: auto">Messpunkt, nicht Strecke</span>
+</div>
+</section>
+</main>
+
+<aside aria-label="Gefahren und Details" style="width: 400px; flex: 0 0 auto; background: #FAF6EA; border-left: 1px solid #E0D6BE; display: flex; flex-direction: column; min-height: 0; box-sizing: border-box">
+<div style="padding: 16px 16px 0; flex: 0 0 auto">
+<div role="tablist" aria-label="Ansicht" style="display: flex; gap: 3px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 9px; padding: 3px">
+<sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{tb.on}}" onClick="{{tb.pick}}" style="flex: 1; text-align: center; border: 0; border-radius: 6px; padding: 7px 0; font-size: 12.5px; cursor: pointer; {{tb.style}}">{{tb.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 16px 16px">
+
+<sc-if value="{{isLage}}" hint-placeholder-val="{{ true }}">
+<div style="margin-top: 14px">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #1F5FAE">Gefahrenlage DACH</div>
+<h2 style="margin: 5px 0 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px">{{lage.title}}</h2>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px">
+<div style="min-width: 0; font-size: 10.5px; line-height: 1.4; color: #8B7355">{{lage.sub}}</div>
+<div role="group" aria-label="Zeitraum" style="display: flex; gap: 3px; background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 8px; padding: 3px; flex: 0 0 auto">
+<sc-for list="{{modes}}" as="md" hint-placeholder-count="2">
+<button type="button" onClick="{{md.pick}}" aria-pressed="{{md.on}}" style="border: 0; border-radius: 5px; padding: 6px 9px; font-size: 11px; cursor: pointer; white-space: nowrap; {{md.style}}">{{md.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<section aria-label="Lage-Matrix" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px 12px 10px; margin-top: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Abschnitte je Gefahr und Stunde</span>
+<span style="font-size: 9.5px; color: #A89A7A">Farbe = höchste Stufe</span>
+</div>
+<div style="display: grid; grid-template-columns: 112px repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 8px; align-items: center">
+<span></span>
+<sc-for list="{{hourHead}}" as="hh" hint-placeholder-count="7">
+<button type="button" onClick="{{hh.pick}}" style="border: 0; background: transparent; padding: 0 0 2px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-align: center; cursor: pointer; {{hh.style}}">{{hh.t}}</button>
+</sc-for>
+<sc-for list="{{matrix}}" as="mr" hint-placeholder-count="7">
+<button type="button" onClick="{{mr.pick}}" style="display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0; font-size: 11px; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; {{mr.rowStyle}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto"><path d="{{mr.icon}}"></path></svg><span style="overflow: hidden; text-overflow: ellipsis">{{mr.name}}</span></button>
+<sc-for list="{{mr.cells}}" as="mc" hint-placeholder-count="7">
+<button type="button" onClick="{{mc.pick}}" aria-label="{{mc.label}}" title="{{mc.label}}" style="height: 24px; border: 0; border-radius: 5px; padding: 0; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; {{mc.style}}">{{mc.t}}</button>
+</sc-for>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 9px; padding-top: 8px; border-top: 1px solid #F0EADB; font-size: 9.5px; color: #5C5447">
+<span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #E6C46F"></span>Stufe 1</span>
+<span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #E0822F"></span>2</span>
+<span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #B5321F"></span>3</span>
+<span style="display: flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)"></span>unbekannt</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 4px; color: #8B7355"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5C5447"></span>gemessen <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid #5C5447; background: linear-gradient(90deg,#5C5447 50%,transparent 50%); margin-left: 4px"></span>abgeleitet <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid #5C5447; margin-left: 4px"></span>Prognose</span>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px">
+<sc-for list="{{chips}}" as="cp" hint-placeholder-count="8">
+<button type="button" onClick="{{cp.pick}}" aria-pressed="{{cp.on}}" style="border: 1px solid #E0D6BE; border-radius: 999px; padding: 4px 9px; font-size: 10.5px; cursor: pointer; white-space: nowrap; {{cp.style}}">{{cp.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{lage.hasFilter}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 9px; border-radius: 8px; background: #F2F6FB; border: 1px solid #C9D8EA; font-size: 10.5px; color: #1F3F6E">
+<span style="flex: 1">{{lage.filterNote}}</span>
+<button type="button" onClick="{{lage.clear}}" style="border: 0; background: transparent; color: #1F5FAE; font-size: 10.5px; font-weight: 600; cursor: pointer; padding: 0">zurücksetzen</button>
+</div>
+</sc-if>
+
+<sc-for list="{{groups}}" as="gr" hint-placeholder-count="7">
+<section style="margin-top: 14px">
+<div style="display: flex; align-items: center; gap: 7px; padding-bottom: 6px; border-bottom: 1px solid #E0D6BE">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2C2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{gr.icon}}"></path></svg>
+<span style="font-size: 11px; letter-spacing: 1.6px; font-weight: 700; text-transform: uppercase; color: #2C2A26">{{gr.name}}</span>
+<span style="margin-left: auto; font-size: 10px; color: #5C5447; font-weight: 600; background: #EDE6D3; border-radius: 6px; padding: 2px 7px">{{gr.n}}</span>
+</div>
+<sc-if value="{{gr.empty}}" hint-placeholder-val="{{ false }}">
+<div style="margin-top: 6px; font-size: 10.5px; color: #8B7355; line-height: 1.45">{{gr.emptyTxt}} Das ist keine Entwarnung.</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 5px; margin-top: 6px">
+<sc-for list="{{gr.rows}}" as="rw" hint-placeholder-count="3">
+<button type="button" onClick="{{rw.pick}}" style="display: flex; align-items: stretch; gap: 0; width: 100%; text-align: left; border: 1px solid #E0D6BE; border-radius: 10px; padding: 0; overflow: hidden; cursor: pointer; color: #2C2A26; {{rw.rowStyle}}">
+<span style="width: 5px; flex: 0 0 auto; {{rw.bar}}"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 8px 10px 8px 9px">
+<span style="display: flex; align-items: center; gap: 6px; min-width: 0">
+<sc-for list="{{rw.shields}}" as="sh" hint-placeholder-count="1">
+<span style="flex: 0 0 auto; display: inline-block; min-width: 28px; text-align: center; font-size: 10px; font-weight: 700; color: #FFFFFF; border: 1.5px solid #FFFFFF; border-radius: 4px; padding: 0 4px; {{sh.style}}">{{sh.t}}</span>
+</sc-for>
+<span style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{rw.name}}</span>
+</span>
+<span style="font-size: 10px; color: #5C5447; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{rw.sub}}</span>
+<span style="display: flex; align-items: center; gap: 7px">
+<span style="display: grid; grid-template-columns: repeat(7, 12px); gap: 2px" aria-hidden="true">
+<sc-for list="{{rw.strip}}" as="sp" hint-placeholder-count="7">
+<span style="height: 8px; border-radius: 2px; {{sp.style}}"></span>
+</sc-for>
+</span>
+<span style="font-size: 9.5px; color: #8B7355; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{rw.when}}</span>
+</span>
+<sc-if value="{{rw.hasAlso}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 9.5px; color: #8B7355; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{rw.also}}</span>
+</sc-if>
+</span>
+<span style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px; padding: 8px 10px 8px 0">
+<span style="font-size: 10px; font-weight: 700; border-radius: 6px; padding: 3px 7px; white-space: nowrap; {{rw.chipStyle}}">{{rw.chip}}</span>
+<span style="display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: #5C5447; white-space: nowrap"><span style="{{rw.evG}}"></span>{{rw.ev}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+</section>
+</sc-for>
+
+<p style="margin: 16px 2px 0; font-size: 10px; line-height: 1.55; color: #8B7355">Prognose-Stufen in Erprobung: höchstens Stufe 2, bis ein Abgleich mit späteren Messungen sie bestätigt. Stufen sind Regeln über Messwerten und Prognosen, keine amtlichen Warnungen. Gischt, umgestürzte Bäume, Spurrinnen und Reifenschäden misst niemand – angezeigt werden nur Wetterbedingungen, die sie begünstigen.</p>
+</sc-if>
+
+<sc-if value="{{isDetail}}" hint-placeholder-val="{{ false }}">
+<div style="position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 12px 0 8px; background: #FAF6EA">
+<button type="button" onClick="{{nav.back}}" style="display: flex; align-items: center; gap: 5px; height: 30px; border: 1px solid #E0D6BE; border-radius: 8px; background: #FFFFFF; color: #2C2A26; font-size: 11.5px; font-weight: 600; cursor: pointer; padding: 0 10px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>Alle Gefahren</button>
+<span style="margin-left: auto; font-size: 10.5px; color: #8B7355; font-variant-numeric: tabular-nums">{{nav.pos}}</span>
+<button type="button" onClick="{{nav.prev}}" aria-label="Vorheriger Abschnitt" style="width: 30px; height: 30px; border: 1px solid #E0D6BE; border-radius: 8px; background: #FFFFFF; color: #2C2A26; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"></path></svg></button>
+<button type="button" onClick="{{nav.next}}" aria-label="Nächster Abschnitt" style="width: 30px; height: 30px; border: 1px solid #E0D6BE; border-radius: 8px; background: #FFFFFF; color: #2C2A26; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+
+<article aria-label="Detailansicht Abschnitt" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; {{dt.eyeStyle}}">{{dt.eyebrow}}</div>
+<div style="display: flex; align-items: center; gap: 7px; margin-top: 8px">
+<sc-for list="{{dt.shields}}" as="ds" hint-placeholder-count="1">
+<span style="display: inline-block; min-width: 32px; text-align: center; font-size: 11.5px; font-weight: 700; color: #FFFFFF; border: 1.5px solid #FFFFFF; border-radius: 4px; padding: 1px 5px; {{ds.style}}">{{ds.t}}</span>
+</sc-for>
+<h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.15">{{dt.name}}</h2>
+</div>
+<div style="margin-top: 4px; font-size: 11px; color: #5C5447">{{dt.sub}}</div>
+<div role="group" aria-label="Fahrtrichtung" style="display: flex; gap: 3px; background: #F5F1E8; border-radius: 8px; padding: 3px; margin-top: 10px">
+<sc-for list="{{dirs}}" as="dr" hint-placeholder-count="2">
+<button type="button" onClick="{{dr.pick}}" aria-pressed="{{dr.on}}" style="flex: 1; border: 0; border-radius: 5px; padding: 5px 0; font-size: 11px; cursor: pointer; {{dr.style}}">{{dr.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px">
+<sc-for list="{{dt.nowChips}}" as="nc" hint-placeholder-count="2">
+<span style="display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; border-radius: 6px; padding: 3px 8px; {{nc.style}}"><span style="{{nc.gs}}"></span>{{nc.t}}</span>
+</sc-for>
+</div>
+
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin-top: 14px">Was auf der Fahrbahn liegt</div>
+<svg viewBox="0 0 338 118" width="338" height="118" role="img" aria-label="Querschnitt der Fahrbahn: {{xs.surfLabel}}, {{xs.road}}" style="display: block; margin-top: 6px; font-family: 'League Spartan', system-ui, sans-serif">
+<defs>
+<linearGradient id="awSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF3F8"></stop><stop offset="1" stop-color="#F7F4EC"></stop></linearGradient>
+<pattern id="awHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#EDE6D3"></rect><rect width="2.5" height="6" fill="#8B8474"></rect></pattern>
+</defs>
+<rect x="0" y="0" width="338" height="64" rx="8" fill="url(#awSky)"></rect>
+<text x="10" y="17" font-size="11" font-weight="600" fill="#2C2A26">{{xs.air}}</text>
+<text x="10" y="31" font-size="10.5" fill="#5C5447">{{xs.dew}} · {{xs.rh}}</text>
+<text x="328" y="17" font-size="9.5" fill="#8B7355" text-anchor="end">{{xs.src}}</text>
+<rect x="0" y="64" width="338" height="34" fill="{{xs.asph}}"></rect>
+<g fill="#6E6A60" opacity="0.6"><circle cx="30" cy="74" r="1.2"></circle><circle cx="64" cy="86" r="1.4"></circle><circle cx="102" cy="78" r="1.1"></circle><circle cx="141" cy="90" r="1.3"></circle><circle cx="180" cy="73" r="1.2"></circle><circle cx="221" cy="85" r="1.4"></circle><circle cx="262" cy="77" r="1.1"></circle><circle cx="300" cy="89" r="1.3"></circle></g>
+<rect x="0" y="98" width="338" height="20" rx="0" fill="#7A6C55"></rect>
+<g opacity="{{xs.nass}}"><rect x="0" y="{{xs.filmY}}" width="338" height="{{xs.filmH}}" fill="#5E97D1" opacity="0.85"></rect><path d="M20 61c8-2 14-2 22 0M120 60c8-2 14-2 22 0M230 61c8-2 14-2 22 0" stroke="#EAF1F7" stroke-width="1.2" fill="none"></path></g>
+<g opacity="{{xs.feucht}}"><rect x="0" y="62" width="338" height="2" fill="#5E97D1" opacity="0.7"></rect></g>
+<g opacity="{{xs.reif}}"><rect x="0" y="60" width="338" height="4" fill="#E4EEF7"></rect><path d="M8 60l3-5 3 5M26 60l2-4 2 4M44 60l3-6 3 6M63 60l2-4 2 4M80 60l3-5 3 5M99 60l2-4 2 4M117 60l3-6 3 6M136 60l2-4 2 4M154 60l3-5 3 5M173 60l2-4 2 4M191 60l3-6 3 6M210 60l2-4 2 4M228 60l3-5 3 5M247 60l2-4 2 4M265 60l3-6 3 6M284 60l2-4 2 4M302 60l3-5 3 5M321 60l2-4 2 4" stroke="#9FBEDC" stroke-width="1.2" fill="none" stroke-linejoin="round"></path></g>
+<g opacity="{{xs.eis}}"><rect x="0" y="58" width="338" height="6" fill="#CFE2F3"></rect><path d="M14 60l40 0M90 61l60 0M200 60l50 0" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round"></path></g>
+<g opacity="{{xs.schnee}}"><path d="M0 64V55c12-4 24 2 36-1s24-4 36 0 24 3 36-1 24-3 36 1 24 2 36-1 24-3 36 0 24 3 36 0 24-2 36 0 24 2 34 0V64z" fill="#FFFFFF" stroke="#D9E3EE" stroke-width="1"></path></g>
+<g opacity="{{xs.unb}}"><rect x="0" y="58" width="338" height="6" fill="url(#awHatch)"></rect><text x="169" y="52" font-size="10.5" font-weight="700" fill="#5C5447" text-anchor="middle">?</text></g>
+<g opacity="{{xs.mod}}"><rect x="0.6" y="58.6" width="336.8" height="5" fill="none" stroke="#9A5A2A" stroke-width="1.2" stroke-dasharray="4 3"></rect></g>
+<rect x="282" y="76" width="16" height="6" rx="1.5" fill="#E9E4D6" opacity="{{xs.trocken}}"></rect>
+<text x="10" y="54" font-size="10.5" font-weight="700" fill="#1F3F6E">{{xs.surfLabel}}</text>
+<text x="10" y="86" font-size="13" font-weight="700" fill="#FAF6EA">{{xs.road}}</text>
+<text x="328" y="112" font-size="9" fill="#EDE6D3" text-anchor="end">Querschnitt schematisch, Schichtdicke überhöht</text>
+</svg>
+<p style="margin: 10px 0 0; font-size: 12px; line-height: 1.55; color: #2C2A26">{{dt.txt}}</p>
+<sc-if value="{{dt.hasOut}}" hint-placeholder-val="{{ true }}">
+<p style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.55; color: #5C5447">{{dt.out}}</p>
+</sc-if>
+</article>
+
+<section aria-label="Gefahren-Fahrplan" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px; margin-top: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Gefahren-Fahrplan</span>
+<span style="font-size: 9.5px; color: #A89A7A">−2 h bis +6 h · stündlich</span>
+</div>
+<div style="display: grid; grid-template-columns: 132px repeat(9, minmax(0, 1fr)); gap: 3px; margin-top: 8px; align-items: center">
+<span></span>
+<sc-for list="{{planHead}}" as="ph" hint-placeholder-count="9">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; text-align: center; {{ph.style}}">{{ph.t}}</span>
+</sc-for>
+<sc-for list="{{plan}}" as="pl" hint-placeholder-count="2">
+<span style="display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C5447" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto"><path d="{{pl.icon}}"></path></svg><span style="overflow: hidden; text-overflow: ellipsis">{{pl.name}}</span></span>
+<sc-for list="{{pl.cells}}" as="pc" hint-placeholder-count="9">
+<span title="{{pc.label}}" style="height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; {{pc.style}}"><span style="{{pc.gs}}"></span>{{pc.gt}}</span>
+</sc-for>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 8px; font-size: 9.5px; color: #8B7355"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5C5447"></span>gemessen <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid #5C5447; background: linear-gradient(90deg,#5C5447 50%,transparent 50%); margin-left: 6px"></span>aus Messwerten abgeleitet <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid #5C5447; margin-left: 6px"></span>Prognose <span style="margin-left: 6px">· blauer Rahmen = jetzt</span></div>
+</section>
+
+<section aria-label="Temperaturen" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px; margin-top: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Fahrbahn, Luft und Taupunkt</span>
+<span style="font-size: 9.5px; color: #A89A7A">−12 h bis +6 h · °C</span>
+</div>
+<svg viewBox="0 0 368 122" width="338" height="112" role="img" aria-label="{{tc.aria}}" style="display: block; margin-top: 6px; font-family: 'IBM Plex Mono', monospace">
+<rect x="{{tc.nowX}}" y="12" width="{{tc.fcW}}" height="92" fill="#EEF1F4"></rect>
+<line x1="34" y1="{{tc.y4}}" x2="356" y2="{{tc.y4}}" stroke="#EDE6D3"></line>
+<line x1="34" y1="{{tc.ym4}}" x2="356" y2="{{tc.ym4}}" stroke="#EDE6D3"></line>
+<path d="{{tc.reifD}}" fill="#B5321F" opacity="0.18"></path>
+<line x1="34" y1="{{tc.zeroY}}" x2="356" y2="{{tc.zeroY}}" stroke="#B5321F" stroke-dasharray="3 3" opacity="0.6"></line>
+<line x1="{{tc.nowX}}" y1="12" x2="{{tc.nowX}}" y2="104" stroke="#1F5FAE" stroke-width="1.2"></line>
+<polyline points="{{tc.dewH}}" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-dasharray="2 2"></polyline>
+<polyline points="{{tc.dewF}}" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.7"></polyline>
+<polyline points="{{tc.airH}}" fill="none" stroke="#3A6FA8" stroke-width="1.8"></polyline>
+<polyline points="{{tc.airF}}" fill="none" stroke="#3A6FA8" stroke-width="1.8" stroke-dasharray="4 3"></polyline>
+<polyline points="{{tc.roadH}}" fill="none" stroke="#2C2A26" stroke-width="2.6" opacity="{{tc.roadOp}}"></polyline>
+<polyline points="{{tc.roadF}}" fill="none" stroke="#2C2A26" stroke-width="2.6" stroke-dasharray="5 3" opacity="{{tc.roadOp}}"></polyline>
+<text x="2" y="{{tc.zeroT}}" font-size="9" fill="#B5321F">0°</text>
+<text x="2" y="{{tc.y4T}}" font-size="9" fill="#A89A7A">+4°</text>
+<text x="34" y="118" font-size="9" fill="#A89A7A">−12 h</text>
+<text x="{{tc.nowX}}" y="118" font-size="9" fill="#1F5FAE" text-anchor="middle">06:15</text>
+<text x="356" y="118" font-size="9" fill="#A89A7A" text-anchor="end">+6 h</text>
+<text x="{{tc.fcLabX}}" y="23" font-size="8.5" fill="#6B7A8F" text-anchor="middle">Prognose</text>
+</svg>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: 10px; color: #5C5447">
+<span style="display: flex; align-items: center; gap: 5px; {{tc.legendRoad}}"><span style="width: 14px; height: 2.6px; background: #2C2A26"></span>Fahrbahn</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 2px; background: #3A6FA8"></span>Luft (Anlage)</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 14px; height: 0; border-top: 1.5px dashed #A89A7A"></span>Taupunkt</span>
+<span style="display: flex; align-items: center; gap: 5px"><span style="width: 12px; height: 9px; background: #B5321F; opacity: 0.25"></span>Fahrbahn ≤ 0 °C unter Taupunkt (Reif)</span>
+</div>
+</section>
+
+<section aria-label="Messgrößen gegen Schwellen" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px; margin-top: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Messgrößen gegen Schwellen</span>
+<span style="font-size: 9.5px; color: #A89A7A">Balken jetzt · Strich Prognose</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px">
+<sc-for list="{{bullets}}" as="bl" hint-placeholder-count="4">
+<div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; font-size: 10.5px">
+<span style="font-weight: 600; color: #2C2A26">{{bl.label}}</span>
+<span style="font-variant-numeric: tabular-nums; color: #2C2A26; font-weight: 700">{{bl.valTxt}} <span style="font-weight: 500; color: #8B7355">· {{bl.fcTxt}}</span></span>
+</div>
+<div style="position: relative; height: 14px; margin-top: 4px; border-radius: 4px; background: #F5F1E8; overflow: hidden">
+<sc-for list="{{bl.bands}}" as="bb" hint-placeholder-count="3">
+<span style="position: absolute; top: 0; bottom: 0; {{bb.style}}"></span>
+</sc-for>
+<sc-if value="{{bl.hasVal}}" hint-placeholder-val="{{ true }}">
+<span style="position: absolute; left: 0; top: 4px; height: 6px; border-radius: 0 3px 3px 0; background: #2C2A26; {{bl.valStyle}}"></span>
+</sc-if>
+<sc-if value="{{bl.hasFc}}" hint-placeholder-val="{{ true }}">
+<span style="position: absolute; top: 1px; bottom: 1px; width: 2px; background: #1F5FAE; {{bl.fcStyle}}"></span>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 8px; font-size: 9.5px; line-height: 1.45; color: #8B7355">Bänder = Stufe 1 / 2 / 3 (Startwerte, werden kalibriert). Je weiter rechts, desto ungünstiger.</div>
+</section>
+
+<section aria-label="Wind zur Fahrbahnachse" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px; margin-top: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Wind zur Fahrbahnachse</span>
+<div style="display: flex; gap: 12px; align-items: center; margin-top: 6px">
+<svg viewBox="0 0 140 140" width="132" height="132" role="img" aria-label="Böen nach Richtung mit Fahrbahnachse" style="flex: 0 0 auto; font-family: 'League Spartan', system-ui, sans-serif">
+<circle cx="70" cy="70" r="64" fill="#F8F5EE" stroke="#EDE6D3"></circle>
+<circle cx="70" cy="70" r="39" fill="none" stroke="#EDE6D3"></circle>
+<path d="{{wind.s0}}" fill="#D9D0B8"></path>
+<path d="{{wind.s1}}" fill="#E6C46F"></path>
+<path d="{{wind.s2}}" fill="#E0822F"></path>
+<path d="{{wind.s3}}" fill="#B5321F"></path>
+<line x1="{{wind.axX1}}" y1="{{wind.axY1}}" x2="{{wind.axX2}}" y2="{{wind.axY2}}" stroke="#2C2A26" stroke-width="5" stroke-linecap="round" opacity="0.85"></line>
+<line x1="{{wind.axX1}}" y1="{{wind.axY1}}" x2="{{wind.axX2}}" y2="{{wind.axY2}}" stroke="#FAF6EA" stroke-width="1" stroke-dasharray="3 3"></line>
+<circle cx="{{wind.arX}}" cy="{{wind.arY}}" r="4.5" fill="#1F5FAE" stroke="#FFFFFF" stroke-width="1.5"></circle>
+<text x="70" y="10" font-size="9" fill="#8B7355" text-anchor="middle">N</text>
+<text x="133" y="73" font-size="9" fill="#8B7355" text-anchor="middle">O</text>
+<text x="70" y="137" font-size="9" fill="#8B7355" text-anchor="middle">S</text>
+<text x="7" y="73" font-size="9" fill="#8B7355" text-anchor="middle">W</text>
+</svg>
+<div style="display: flex; flex-direction: column; gap: 5px; font-size: 11px; line-height: 1.4; color: #2C2A26">
+<span style="font-weight: 700">{{wind.l1}}</span>
+<span style="color: #5C5447">{{wind.l2}}</span>
+<span style="color: #5C5447">{{wind.l3}}</span>
+<span style="font-size: 9.5px; color: #8B7355">Balken = Böen nach Herkunft, Farbe = Stufe der Querkomponente · Linie = Fahrbahn · Punkt = Wind jetzt. {{wind.note}}</span>
+</div>
+</div>
+</section>
+
+<section aria-label="Ortsmerkmale" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px; margin-top: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Ortsmerkmale im Abschnitt</span>
+<div style="display: flex; flex-direction: column; gap: 7px; margin-top: 8px">
+<sc-for list="{{feats}}" as="ft" hint-placeholder-count="3">
+<div style="display: flex; gap: 9px; align-items: flex-start">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F5FAE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; margin-top: 1px"><path d="{{ft.icon}}"></path></svg>
+<span style="display: flex; flex-direction: column"><span style="font-size: 11.5px; font-weight: 600">{{ft.t}}</span><span style="font-size: 10px; color: #8B7355">{{ft.d}}</span></span>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 8px; font-size: 9.5px; line-height: 1.45; color: #8B7355">Ortsmerkmale lösen allein keine Stufe aus; sie senken Schwellen oder ergänzen den Text.</div>
+</section>
+
+<section aria-label="Messpunkte" style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 12px; margin-top: 10px">
+<span style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A">Messpunkte und Anker</span>
+<div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px">
+<sc-for list="{{stRows}}" as="sr" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 9px">
+<span style="width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; box-sizing: border-box; {{sr.dot}}"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 11.5px; font-weight: 600">{{sr.name}} <span style="font-weight: 500; color: #A89A7A; font-family: 'IBM Plex Mono', monospace; font-size: 9.5px">{{sr.km}}</span></span><span style="font-size: 10px; color: #5C5447">{{sr.v}}</span></span>
+<span style="font-size: 9.5px; color: #8B7355">{{sr.k}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<sc-if value="{{dt.hasWarn}}" hint-placeholder-val="{{ true }}">
+<div style="background: #FBF3E7; border: 1px solid #E3C39A; border-radius: 13px; padding: 12px 14px; margin-top: 10px">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #9A5A2A">Amtliche Warnung · DWD · {{dt.warn}}</div>
+<p style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.5; color: #5C5447">„[Warntext wörtlich aus dem DWD-CAP-Feed, unverändert zitiert]“</p>
+<div style="margin-top: 6px; font-size: 10px; color: #8B7355">gültig [von] bis [bis] · Quelle: Deutscher Wetterdienst</div>
+</div>
+</sc-if>
+
+<div style="margin-top: 10px; padding: 10px 11px; border-radius: 9px; background: #F4F0E4; border: 1px solid #D9D0B8; font-size: 10.5px; line-height: 1.5; color: #5C5447"><strong style="color: #2C2A26">Nicht messbar:</strong> {{dt.notObs}}</div>
+<div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #E0D6BE; font-size: 10px; line-height: 1.7; color: #A89A7A">{{dt.srcLine}}<br>Kein amtliches Warnprodukt · Beispieldaten im Mockup</div>
+</sc-if>
+
+<sc-if value="{{isStrecke}}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; padding: 14px; margin-top: 14px">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #1F5FAE">Strecken-Briefing</div>
+<h2 style="margin: 8px 0 0; font-size: 18px; font-weight: 700">{{corrTitle}}</h2>
+<div style="margin-top: 3px; font-size: 11.5px; color: #5C5447">{{dirLabel}} · {{corrLen}} km · {{corrCountries}}</div>
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 12px">
+<span style="font-size: 11px; color: #8B7355">Abfahrt</span>
+<button type="button" onClick="{{depEarlier}}" aria-label="30 Minuten früher" style="width: 30px; height: 30px; border: 1px solid #E0D6BE; border-radius: 8px; background: #FFFFFF; cursor: pointer; font-size: 15px; color: #2C2A26">−</button>
+<span style="font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 46px; text-align: center">{{depLabel}}</span>
+<button type="button" onClick="{{depLater}}" aria-label="30 Minuten später" style="width: 30px; height: 30px; border: 1px solid #E0D6BE; border-radius: 8px; background: #FFFFFF; cursor: pointer; font-size: 15px; color: #2C2A26">+</button>
+<span style="margin-left: auto; font-size: 10.5px; color: #5C5447; background: #EDE6D3; border-radius: 6px; padding: 3px 8px">Ø 100 km/h</span>
+</div>
+<div style="margin-top: 12px; padding: 10px 11px; border-radius: 9px; background: #F5F1E8; font-size: 11.5px; line-height: 1.55; color: #2C2A26">{{brief.coldest}} {{brief.crit}} {{brief.border}}</div>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #E0D6BE; border-radius: 13px; margin-top: 10px; overflow: hidden">
+<div style="display: grid; grid-template-columns: 44px 1fr 48px 92px; gap: 8px; padding: 8px 12px; font-size: 9px; letter-spacing: 1.2px; font-weight: 700; text-transform: uppercase; color: #A89A7A; border-bottom: 1px solid #EDE6D3">
+<span>km</span><span>Messpunkt</span><span>an</span><span>Zustand</span>
+</div>
+<sc-for list="{{brief.rows}}" as="br" hint-placeholder-count="9">
+<button type="button" onClick="{{br.pick}}" style="display: grid; grid-template-columns: 44px 1fr 48px 92px; gap: 8px; align-items: center; width: 100%; padding: 8px 12px; border: 0; border-bottom: 1px solid #F5F1E8; background: #FFFFFF; cursor: pointer; text-align: left; color: #2C2A26">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #8B7355">{{br.km}}</span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{br.name}}</span><span style="font-size: 9.5px; color: #8B7355">{{br.val}}</span></span>
+<span style="font-size: 11.5px; font-variant-numeric: tabular-nums">{{br.eta}}</span>
+<span style="font-size: 10px; font-weight: 700; border-radius: 6px; padding: 3px 6px; text-align: center; box-sizing: border-box; {{br.chip}}">{{br.cl}}</span>
+</button>
+</sc-for>
+</div>
+<p style="margin: 10px 2px 0; font-size: 10.5px; line-height: 1.5; color: #8B7355">Zustand zur Ankunftszeit: bis +30 min Messung, danach Ableitung aus buscosun Fusion. Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>
+</sc-if>
+
+<sc-if value="{{isQuellen}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 9px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: #A89A7A; margin: 16px 0 8px">Quellen dieser Ansicht</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{sources}}" as="so" hint-placeholder-count="9">
+<div style="display: flex; gap: 10px; align-items: flex-start; border-radius: 10px; padding: 9px 11px; {{so.box}}">
+<span style="font-size: 9.5px; font-weight: 700; color: #5C5447; background: #EDE6D3; border-radius: 5px; padding: 2px 6px; flex: 0 0 auto; margin-top: 1px">{{so.cc}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; font-weight: 600; {{so.nameStyle}}">{{so.name}}</span>
+<span style="font-size: 10px; line-height: 1.4; color: #8B7355">{{so.what}}</span>
+</span>
+<span style="font-size: 9px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; border-radius: 5px; padding: 3px 6px; flex: 0 0 auto; {{so.chip}}">{{so.status}}</span>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 12px; padding: 10px 11px; border-radius: 9px; background: #FBF3E7; border: 1px solid #E3C39A; font-size: 10.5px; line-height: 1.55; color: #5C5447"><strong style="color: #9A5A2A">Verkehrslage nur als Link:</strong> <a href="https://www.autobahn.de/">Autobahn GmbH</a> · <a href="https://www.asfinag.at/">ASFINAG</a> · <a href="https://www.astra.admin.ch/">ASTRA</a>. Blockierte Quellen bleiben sichtbar, werden aber nicht umgangen.</div>
+</sc-if>
+</div>
+</aside>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const CLS = {
+  ice: { label: 'Glätte gemessen', short: 'Glätte', color: '#B5321F', ink: '#FFFFFF' },
+  frost: { label: 'Frostgefahr', short: 'Frostgefahr', color: '#E39A3B', ink: '#2C2A26' },
+  wet: { label: 'Nass', short: 'Nass', color: '#5E97D1', ink: '#0B0E12' },
+  dry: { label: 'Trocken', short: 'Trocken', color: '#8DB07A', ink: '#1E2A17' },
+  nodata: { label: 'Keine gültige Messung', short: 'k. Messung', color: '#8B8474', ink: '#FFFFFF' },
+  gap: { label: 'Keine Messung', short: '–', color: '#C9BE9E', ink: '#2C2A26' }
+};
+const RANK = { ice: 4, frost: 3, wet: 2, dry: 1, nodata: 0, gap: 0 };
+const TINT = {
+  ice: 'background:#FBE9E4; border:1px solid #E8C9BD; color:#8A1C1C',
+  frost: 'background:#FBF3E7; border:1px solid #E3C39A; color:#7A4520',
+  wet: 'background:#EAF1F7; border:1px solid #C7D6E4; color:#28507A',
+  dry: 'background:#EFF3E8; border:1px solid #C3D2AF; color:#4D6A3B',
+  nodata: 'background:#F4F0E4; border:1px solid #D9D0B8; color:#5C5447',
+  gap: 'background:#F4F0E4; border:1px solid #D9D0B8; color:#5C5447'
+};
+const TS = [0, 1, 3, 6];
+const BASE = 6 * 60 + 15;
+function hm(min) { min = ((Math.round(min) % 1440) + 1440) % 1440; const h = Math.floor(min / 60), m = min % 60; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+function f1(v) { if (Math.abs(v) < 0.05) return '±0,0'; return (v < 0 ? '−' : '+') + Math.abs(v).toFixed(1).replace('.', ','); }
+function dec(v) { return String(v).replace('.', ','); }
+function diur(h) { return Math.cos((h - 14) / 24 * 2 * Math.PI); }
+function roadAt(s, dh) { return s.road0 + 3.5 * (diur(6.25 + dh) - diur(6.25)); }
+function airAt(s, dh) { return s.air0 + 3.2 * (diur(6.25 + dh) - diur(6.25)); }
+function dewAt(s, dh) { return dh >= 0 ? s.dew0 + 0.3 * dh : s.dew0 + 0.5 * Math.sin(dh / 4); }
+
+const S = [
+  { id: 'hof', name: 'Hofoldinger Forst', road: 'A 8', corr: 'a8', km: 18.4, elev: 652, x: 187, y: 221, kind: 'gma', code: 'Nass', road0: 1.9, air0: 2.6, dew0: 1.4, rh: 92, vis: 3800, wind: 7, gust: 15, pr: 'kein', film: 0.2, sens: 1, wet: [1, 1, 1, 0] },
+  { id: 'hol', name: 'Holzkirchen', road: 'A 8', corr: 'a8', km: 26.9, elev: 682, x: 179, y: 252, kind: 'gma', code: 'Feucht', road0: 0.7, air0: 1.6, dew0: 0.9, rh: 95, vis: 2200, wind: 6, gust: 12, pr: 'kein', film: 0.1, sens: 2, spread: '+0,7 … +1,0 °C', wet: [1, 1, 1, 0], warn: 'Lkr. Miesbach' },
+  { id: 'irs', name: 'Irschenberg', road: 'A 8', corr: 'a8', km: 41.2, elev: 731, x: 239, y: 279, kind: 'gma', code: 'Reif', road0: -1.4, air0: 0.8, dew0: -0.6, rh: 90, vis: 2400, wind: 9, gust: 22, pr: 'kein', film: 0.0, sens: 2, spread: '−1,4 … −0,9 °C', wet: [0, 1, 1, 0], warn: 'Lkr. Miesbach' },
+  { id: 'inn', name: 'Inntaldreieck', road: 'A 8', corr: 'a8', km: 52.6, elev: 470, x: 278, y: 283, kind: 'gma', code: 'Nass', road0: 0.6, air0: 1.9, dew0: 1.2, rh: 96, vis: 900, wind: 4, gust: 9, pr: 'Sprühregen', film: 0.3, sens: 1, wet: [1, 1, 1, 1] },
+  { id: 'fra', name: 'Frasdorf', road: 'A 8', corr: 'a8', km: 64.0, elev: 545, x: 333, y: 291, kind: 'gma', code: 'Nass', road0: 1.8, air0: 2.4, dew0: 1.5, rh: 94, vis: 1800, wind: 5, gust: 11, pr: 'kein', film: 0.1, sens: 1, wet: [1, 1, 0, 0] },
+  { id: 'ber', name: 'Bernau a. Chiemsee', road: 'A 8', corr: 'a8', km: 71.8, elev: 527, x: 356, y: 287, kind: 'gma', code: 'Feucht', road0: 0.9, air0: 1.2, dew0: 1.0, rh: 99, vis: 120, wind: 2, gust: 5, pr: 'kein', film: 0.0, sens: 2, spread: '+0,9 … +1,3 °C', wet: [1, 1, 1, 0], fog: true },
+  { id: 'sie', name: 'Siegsdorf', road: 'A 8', corr: 'a8', km: 95.3, elev: 615, x: 426, y: 283, kind: 'gma', code: 'Trocken', road0: 2.6, air0: 2.2, dew0: 0.1, rh: 86, vis: 9000, wind: 8, gust: 18, pr: 'kein', film: 0.0, sens: 1, wet: [0, 0, 0, 0] },
+  { id: 'pid', name: 'Piding', road: 'A 8', corr: 'a8', km: 111.7, elev: 457, x: 494, y: 306, kind: 'nodata', code: '—', road0: 0, air0: 3.0, dew0: 1.1, rh: 88, vis: 7000, wind: 6, gust: 14, pr: 'kein', film: 0, sens: 1, wet: [0, 1, 0, 0], cls: ['nodata', 'wet', 'dry', 'dry'] },
+  { id: 'wal', name: 'Walserberg', road: 'A 8', corr: 'a8', km: 115.0, elev: 445, x: 512, y: 295, kind: 'gma', code: 'Nass', road0: 1.4, air0: 2.9, dew0: 1.6, rh: 91, vis: 6000, wind: 10, gust: 24, pr: 'kein', film: 0.2, sens: 1, wet: [1, 1, 0, 0] },
+  { id: 'szn', name: 'Salzburg-Nord', road: 'A 1', corr: 'a8', km: 121, elev: 430, x: 528, y: 279, kind: 'model', air0: 2.4, dew0: 1.5, rh: 94, wind: 8, gust: 19, pr: 'kein', cls: ['wet', 'wet', 'dry', 'dry'], tawes: 'Salzburg-Flughafen · 4 km', t5: '−0,4 °C' },
+  { id: 'tha', name: 'Thalgau', road: 'A 1', corr: 'a8', km: 136, elev: 545, x: 585, y: 279, kind: 'model', air0: 0.6, dew0: 0.2, rh: 97, wind: 5, gust: 12, pr: 'Sprühregen', cls: ['frost', 'frost', 'wet', 'dry'], tawes: 'Salzburg-Flughafen · 18 km', t5: '−0,4 °C' },
+  { id: 'mon', name: 'Mondsee', road: 'A 1', corr: 'a8', km: 146, elev: 490, x: 614, y: 272, kind: 'model', air0: 1.4, dew0: 0.9, rh: 96, wind: 6, gust: 13, pr: 'kein', cls: ['wet', 'wet', 'wet', 'dry'], tawes: 'Salzburg-Flughafen · 27 km, zu weit', t5: '—' },
+  { id: 'see', name: 'Seewalchen', road: 'A 1', corr: 'a8', km: 166, elev: 500, x: 671, y: 233, kind: 'model', air0: 2.0, dew0: -0.4, rh: 84, wind: 9, gust: 20, pr: 'kein', cls: ['dry', 'dry', 'dry', 'dry'], tawes: 'kein Anker im 15-km-Radius', t5: '—' },
+  { id: 'bra', name: 'Brannenburg', road: 'A 93', corr: 'a93', km: 9.4, elev: 470, x: 286, y: 314, kind: 'gma', code: 'Nass', road0: 0.3, air0: 1.1, dew0: 0.6, rh: 96, vis: 1500, wind: 3, gust: 7, pr: 'Sprühregen', film: 0.2, sens: 1, wet: [1, 1, 1, 0] },
+  { id: 'kie', name: 'Kiefersfelden', road: 'A 93', corr: 'a93', km: 22.1, elev: 490, x: 309, y: 356, kind: 'gma', code: 'Eis', road0: -0.6, air0: 0.4, dew0: -0.2, rh: 93, vis: 3000, wind: 4, gust: 9, pr: 'kein', film: 0.0, sens: 2, spread: '−0,6 … −0,2 °C', wet: [1, 1, 0, 0] },
+  { id: 'wor', name: 'Wörgl', road: 'A 12', corr: 'a93', km: 47, elev: 510, x: 278, y: 411, kind: 'model', air0: 0.9, dew0: 0.5, rh: 96, wind: 4, gust: 10, pr: 'kein', cls: ['frost', 'frost', 'wet', 'dry'], tawes: 'Kufstein · 12 km', t5: '−0,9 °C' },
+  { id: 'sch', name: 'Schwaz', road: 'A 12', corr: 'a93', km: 77, elev: 545, x: 185, y: 466, kind: 'model', air0: 1.8, dew0: 1.0, rh: 94, wind: 5, gust: 11, pr: 'kein', cls: ['wet', 'wet', 'dry', 'dry'], tawes: 'Jenbach · 6 km', t5: '+0,2 °C' },
+  { id: 'ibk', name: 'Innsbruck-Ost', road: 'A 12', corr: 'a93', km: 98, elev: 580, x: 130, y: 493, kind: 'model', air0: 2.7, dew0: 0.4, rh: 82, wind: 7, gust: 16, pr: 'kein', cls: ['dry', 'dry', 'dry', 'dry'], tawes: 'Innsbruck-Flughafen · 7 km', t5: '+1,1 °C' },
+  { id: 'sta', name: 'Starnberg', road: 'A 95', corr: 'a95', km: 22, elev: 590, x: 96, y: 217, kind: 'gma', code: 'Nass', road0: 1.2, air0: 1.9, dew0: 1.1, rh: 95, vis: 2600, wind: 5, gust: 10, pr: 'kein', film: 0.1, sens: 1, wet: [1, 1, 0, 0] },
+  { id: 'esc', name: 'Eschenlohe', road: 'A 95', corr: 'a95', km: 62, elev: 640, x: 52, y: 355, kind: 'gma', code: 'Nass', road0: 0.4, air0: 0.9, dew0: 0.5, rh: 97, vis: 1400, wind: 3, gust: 6, pr: 'kein', film: 0.2, sens: 1, wet: [1, 1, 1, 0] },
+  { id: 'gar', name: 'Garching-Nord', road: 'A 9', corr: 'a9', km: 12, elev: 480, x: 169, y: 112, kind: 'gma', code: 'Trocken', road0: 2.8, air0: 3.1, dew0: 0.6, rh: 84, vis: 8000, wind: 9, gust: 19, pr: 'kein', film: 0.0, sens: 1, wet: [0, 0, 0, 0] },
+  { id: 'all', name: 'Allershausen', road: 'A 9', corr: 'a9', km: 32, elev: 450, x: 154, y: 58, kind: 'gma', code: 'Nass', road0: 2.1, air0: 2.7, dew0: 1.8, rh: 94, vis: 4000, wind: 7, gust: 15, pr: 'kein', film: 0.1, sens: 1, wet: [1, 1, 0, 0] },
+  { id: 'for', name: 'Forstinning', road: 'A 94', corr: 'a94', km: 22, elev: 520, x: 255, y: 137, kind: 'gma', code: 'Nass', road0: 1.6, air0: 2.2, dew0: 1.4, rh: 95, vis: 3500, wind: 6, gust: 13, pr: 'kein', film: 0.1, sens: 1, wet: [1, 1, 0, 0] },
+  { id: 'asc', name: 'Aschheim', road: 'A 99', corr: 'a99', km: 18, elev: 515, x: 190, y: 158, kind: 'gma', code: 'Trocken', road0: 2.2, air0: 2.8, dew0: 0.9, rh: 87, vis: 7000, wind: 8, gust: 17, pr: 'kein', film: 0.0, sens: 1, wet: [0, 0, 0, 0] }
+];
+const SBY = {};
+S.forEach(function (s) { SBY[s.id] = s; });
+
+const C = {
+  a8: { sh: ['A 8', 'A 1'], title: 'München → Salzburg → Linz', len: 180, border: 117, borderName: 'Walserberg', cc: ['DE', 'AT'], ids: ['hof', 'hol', 'irs', 'inn', 'fra', 'ber', 'sie', 'pid', 'wal', 'szn', 'tha', 'mon', 'see'], def: 'irs', dirs: ['Richtung Salzburg', 'Richtung München'], towns: [[0, 'München'], [41, 'Irschenberg'], [55, 'Rosenheim'], [76, 'Chiemsee'], [117, 'Salzburg'], [146, 'Mondsee'], [180, 'Regau']], step: 30 },
+  a93: { sh: ['A 93', 'A 12'], title: 'Rosenheim → Kufstein → Innsbruck', len: 100, border: 24, borderName: 'Kiefersfelden', cc: ['DE', 'AT'], ids: ['bra', 'kie', 'wor', 'sch', 'ibk'], def: 'kie', dirs: ['Richtung Innsbruck', 'Richtung Rosenheim'], towns: [[0, 'Inntaldreieck'], [24, 'Kufstein'], [47, 'Wörgl'], [77, 'Schwaz'], [100, 'Innsbruck']], step: 20 },
+  a95: { sh: ['A 95'], title: 'München → Garmisch-Partenkirchen', len: 75, border: 0, cc: ['DE'], ids: ['sta', 'esc'], def: 'esc', dirs: ['Richtung Garmisch', 'Richtung München'], towns: [[0, 'München'], [22, 'Starnberg'], [62, 'Eschenlohe'], [75, 'Garmisch']], step: 15 },
+  a9: { sh: ['A 9'], title: 'München → Nürnberg', len: 60, border: 0, cc: ['DE'], ids: ['gar', 'all'], def: 'all', dirs: ['Richtung Nürnberg', 'Richtung München'], towns: [[0, 'München'], [12, 'Garching'], [32, 'Allershausen'], [60, 'Holledau']], step: 15 },
+  a94: { sh: ['A 94'], title: 'München → Passau', len: 60, border: 0, cc: ['DE'], ids: ['for'], def: 'for', dirs: ['Richtung Passau', 'Richtung München'], towns: [[0, 'München'], [22, 'Forstinning'], [60, 'Haag']], step: 15 },
+  a99: { sh: ['A 99'], title: 'Autobahnring München', len: 52, border: 0, cc: ['DE'], ids: ['asc'], def: 'asc', dirs: ['im Uhrzeigersinn', 'gegen den Uhrzeigersinn'], towns: [[0, 'Allach'], [18, 'Aschheim'], [52, 'Hohenbrunn']], step: 13 }
+};
+const ORDER = ['a8', 'a93', 'a95', 'a9', 'a94', 'a99'];
+const STATIC = [
+  { cc: 'AT', t: 'A 10', title: 'Salzburg → Villach', sub: 'Prognose + TAWES · keine Fahrbahnmessung', shield: 'background:#1F4E9E; box-shadow:0 0 0 1px #1F4E9E' },
+  { cc: 'CH', t: 'A 2', title: 'Basel → Gotthard → Chiasso', sub: 'Prognose + SwissMetNet · keine Fahrbahnmessung', shield: 'background:#C1272D; box-shadow:0 0 0 1px #C1272D' },
+  { cc: 'CH', t: 'A 13', title: 'St. Margrethen → San Bernardino', sub: 'Prognose + SwissMetNet · keine Fahrbahnmessung', shield: 'background:#C1272D; box-shadow:0 0 0 1px #C1272D' },
+  { cc: 'CH', t: 'A 1', title: 'Genf → Zürich → St. Margrethen', sub: 'Prognose + SwissMetNet · keine Fahrbahnmessung', shield: 'background:#C1272D; box-shadow:0 0 0 1px #C1272D' }
+];
+const SOURCES = [
+  { cc: 'DE', name: 'DWD Straßenwetter (Glättemeldeanlagen)', what: 'Fahrbahntemperatur, -zustand, Wasserfilm, Sicht · 15 min · GeoNutzV', status: 'aktiv', st: 'ok' },
+  { cc: 'DACH', name: 'buscosun Fusion', what: 'Prognose je Messpunkt bis +6 h, Grundlage der Ableitung', status: 'aktiv', st: 'ok' },
+  { cc: 'DE', name: 'DWD Warnungen (CAP)', what: 'Glätte, Glatteis, Nebel, Sturm · wörtlich zitiert', status: 'aktiv', st: 'ok' },
+  { cc: 'AT', name: 'GeoSphere TAWES + Warnungen', what: 'Luft, 5-cm- und Bodentemperatur · CC BY 4.0 · gebündelt abgerufen', status: 'aktiv', st: 'ok' },
+  { cc: 'CH', name: 'MeteoSchweiz SwissMetNet', what: 'Luft, 5-cm- und Bodentemperatur, Schnee · CC BY 4.0', status: 'aktiv', st: 'ok' },
+  { cc: 'DE', name: 'Autobahn GmbH API', what: 'Sperrungen, Baustellen, Webcams · keine Lizenz angegeben', status: 'blockiert', st: 'bl' },
+  { cc: 'AT', name: 'ASFINAG Content Portal', what: 'Verkehrsmeldungen · Registrierung nötig, Zusatzpflichten', status: 'blockiert', st: 'bl' },
+  { cc: 'CH', name: 'ASTRA Strassenwetter / Traffic Situations', what: 'nicht offen · API-Key, Weitergabeverbot', status: 'blockiert', st: 'bl' }
+];
+
+function clsAt(s, ti) {
+  if (s.kind === 'model' || s.kind === 'nodata') return s.cls[ti];
+  if (ti === 0 && (s.code === 'Reif' || s.code === 'Eis' || s.code === 'Schnee')) return 'ice';
+  const dh = TS[ti], r = roadAt(s, dh), d = dewAt(s, dh), w = s.wet[ti];
+  if (r <= 1 && (w || r <= d + 0.5)) return 'frost';
+  return w ? 'wet' : 'dry';
+}
+function isDerived(s, ti) { return s.kind === 'model' || ti > 0; }
+function visTxt(v) { return v < 1000 ? v + ' m' : dec((v / 1000).toFixed(1)) + ' km'; }
+
+// ===== Gefahren-Leiste und Detailansicht (Phase AW-7/AW-8) — nur Mockup-Logik, Beispieldaten =====
+const INIT = {"tab": "gefahren", "view": "lage"};
+const HOURS = [0, 1, 2, 3, 4, 5, 6];
+const SEV = {
+  0: { bg: '#EFE9DA', ink: '#A89A7A', tint: 'background:#F5F1E8; border:1px solid #E0D6BE; color:#8B7355' },
+  1: { bg: '#E6C46F', ink: '#4A3A12', tint: 'background:#FBF5E2; border:1px solid #E9D9A8; color:#6B5212' },
+  2: { bg: '#E0822F', ink: '#2C1A0A', tint: 'background:#FBEFE3; border:1px solid #EBC39C; color:#7A4520' },
+  3: { bg: '#B5321F', ink: '#FFFFFF', tint: 'background:#FBE9E4; border:1px solid #E8C9BD; color:#8A1C1C' }
+};
+const HATCH = 'repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)';
+const UNK_TINT = 'background:repeating-linear-gradient(135deg,#EDE6D3 0 3px,#F5F1E8 3px 6px); border:1px solid #D9D0B8; color:#5C5447';
+const EVN = { m: { g: '●', t: 'gemessen' }, d: { g: '◐', t: 'abgeleitet' }, p: { g: '○', t: 'Prognose' }, u: { g: '?', t: 'keine gültige Messung' } };
+const EVR = { m: 3, d: 2, p: 1, u: 0 };
+const GL = 'display:inline-block; width:8px; height:8px; border-radius:50%; box-sizing:border-box; flex:0 0 auto; vertical-align:-0.5px; ';
+const EVS = { m: GL + 'background:currentColor', d: GL + 'border:1.5px solid currentColor; background:linear-gradient(90deg,currentColor 50%,transparent 50%)', p: GL + 'border:1.5px solid currentColor', u: 'display:none' };
+const ICON = {
+  gl: 'M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5',
+  aq: 'M12 3.5c-2.8 3.4-4.5 5.8-4.5 8a4.5 4.5 0 0 0 9 0c0-2.2-1.7-4.6-4.5-8zM3 20.5c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0',
+  si: 'M3 7h13M6 11h15M3 15h12M8 19h10',
+  wi: 'M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7',
+  gw: 'M13 2L5 13h6l-1 9 8-11h-6z',
+  hi: 'M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0zM12 9.5v7',
+  ww: 'M6 4v13M2.5 13.5L6 17l3.5-3.5M13 5h8M13 10h6M13 15h4M13 20h2'
+};
+const HG = [
+  { id: 'gl', name: 'Glätte' }, { id: 'aq', name: 'Aquaplaning' }, { id: 'si', name: 'Sicht' }, { id: 'wi', name: 'Wind' },
+  { id: 'gw', name: 'Gewitter, Hagel' }, { id: 'hi', name: 'Hitze' }, { id: 'ww', name: 'Wetterwechsel' }
+];
+const HT = {
+  glatteis: { g: 'gl', name: 'Gefrierender Regen', pr: 16 }, nass: { g: 'gl', name: 'Überfrierende Nässe', pr: 15 }, reif: { g: 'gl', name: 'Reifglätte', pr: 14 }, schnee: { g: 'gl', name: 'Schneeglätte', pr: 13 },
+  aqua: { g: 'aq', name: 'Aquaplaning', pr: 10 },
+  nebel: { g: 'si', name: 'Nebel', pr: 12 }, gischt: { g: 'si', name: 'Gischt', pr: 7 }, sonne: { g: 'si', name: 'Tiefstehende Sonne', short: 'Tiefe Sonne', pr: 8 },
+  quer: { g: 'wi', name: 'Seitenwind, Sturmböen', short: 'Seitenwind, Böen', pr: 11 }, baum: { g: 'wi', name: 'Bäume, umherfliegende Teile', short: 'Bäume, Teile', pr: 9 }, staub: { g: 'wi', name: 'Staub, Sand', pr: 6 },
+  gewitter: { g: 'gw', name: 'Gewitter', pr: 12 }, hagel: { g: 'gw', name: 'Hagel', pr: 12 },
+  blowup: { g: 'hi', name: 'Aufwölbung Betonplatten', short: 'Blow-up Beton', pr: 5 },
+  frost1: { g: 'ww', name: 'Erster Frost', pr: 4 }, sturz: { g: 'ww', name: 'Temperatursturz', pr: 4 }
+};
+const FEAT = {
+  br: 'M3 17h18M5 17v-4a7 7 0 0 1 14 0v4M9 17v-3M15 17v-3',
+  up: 'M3 19L21 7M14 7h7v7',
+  wa: 'M8 3l-4.5 9h3L3 18h10l-3.5-6h3zM15.5 21v-3M8 21v-3M17 5l-3.5 7h2.5l-3 6h8l-3-6h2.5z',
+  ax: 'M12 2.5l3 7h-6zM12 9.5V21.5M7 17h10',
+  nd: 'M2 16c3-2 5-2 8 0s5 2 8 0 3-1 4-1M2 20c3-2 5-2 8 0s5 2 8 0',
+  be: 'M3 6h18v12H3zM3 12h18M9 6v6M15 12v6',
+  in: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 11v6M12 7.5v.5'
+};
+
+// Ext-Stationen für Abschnitte außerhalb der gezeichneten Karte (Beispieldaten)
+const EXT = {
+  lgb: { id: 'lgb', name: 'Langenbruck', road: 'A 9', kind: 'gma', code: 'Trocken', road0: -0.3, air0: 0.4, dew0: -1.6, rh: 86, vis: 9000, wind: 5, gust: 12, pr: 'kein', film: 0.0, elev: 470 },
+  hed: { id: 'hed', name: 'Hedemünden', road: 'A 7', kind: 'gma', code: 'Trocken', road0: 4.1, air0: 5.0, dew0: 1.2, rh: 77, vis: 12000, wind: 14, gust: 35, pr: 'kein', film: 0.0, elev: 260 },
+  fla: { id: 'fla', name: 'Flachau', road: 'A 10', kind: 'model', air0: -1.8, dew0: -2.3, rh: 96, wind: 9, gust: 26, pr: 'Schnee', elev: 920 },
+  gos: { id: 'gos', name: 'Göschenen', road: 'A 2', kind: 'model', air0: 7.8, dew0: 4.0, rh: 77, wind: 12, gust: 34, pr: 'kein', elev: 1100 }
+};
+
+const SEGS = [
+  { id: 's2', sh: ['A 8'], cc: 'DE', name: 'Weyarn – Irschenberg', km: 'km 34–45', len: 11, corr: 'a8', dirs: ['Richtung Salzburg', 'Richtung München'], st: ['irs'], main: 'irs', elev: '690–731 m', axis: 108, gdir: 250, surf: 'reif',
+    hz: { reif: { lv: [3, 2, 2, 1, 0, 0, 0], ev: 'mpppppp', past: [2, 3], pev: 'dm' }, sonne: { lv: [0, 0, 2, 1, 0, 0, 0], ev: 'ppppppp', past: [0, 0], pev: 'pp', dir: 0 } },
+    feat: [['br', 'Mangfallbrücke', 'km 37 · 330 m · kühlt schneller aus als die Strecke'], ['up', 'Steigung Irschenberg', 'bis 5 % · km 40–44 (Höhenmodell)'], ['ax', 'Achse 108° · Ost-Südost', 'Richtung Salzburg gegen die Morgensonne'], ['be', 'Belag Asphalt', 'laut DWD-Stationsliste']],
+    txt: 'Auf der Fahrbahn liegt Reif. Die Glättemeldeanlage Irschenberg meldet um 06:15 den Zustand „Reif“ bei −1,4 °C Fahrbahntemperatur; der Taupunkt liegt mit −0,6 °C darüber, die Luftfeuchte schlägt sich als Eis nieder. Beide Sensoren stimmen überein (−1,4 … −0,9 °C).',
+    out: 'Auf der Mangfallbrücke (km 37) steht keine Messung. Laut Prognose hebt die Sonne die Fahrbahn gegen 09:30 über 0 °C. Richtung Salzburg steht die Sonne zwischen 08:00 und 09:30 tief vor der Windschutzscheibe, auf feuchter Fahrbahn mit Spiegelung.',
+    warn: 'Lkr. Miesbach' },
+  { id: 's1', sh: ['A 8'], cc: 'DE', name: 'Hofoldinger Forst – Holzkirchen', km: 'km 14–28', len: 14, corr: 'a8', dirs: ['Richtung Salzburg', 'Richtung München'], st: ['hof', 'hol'], main: 'hol', elev: '650–690 m', axis: 160, gdir: 240, surf: 'feucht',
+    hz: { nass: { lv: [2, 2, 2, 1, 0, 0, 0], ev: 'dpppppp', past: [1, 2], pev: 'dd' }, reif: { lv: [1, 1, 1, 0, 0, 0, 0], ev: 'dpppppp', past: [0, 1], pev: 'dd' } },
+    feat: [['wa', 'Hofoldinger Forst', 'km 14–22 · Schattenlage bis zum Vormittag'], ['ax', 'Achse 160° · Süd-Südost', '']],
+    txt: 'Die Fahrbahn ist feucht (Wasserfilm 0,1 mm) und +0,7 °C kalt; der Taupunkt liegt mit +0,9 °C knapp darüber (GMA Holzkirchen, 06:15). Kühlt sie weiter ab, gefriert die Nässe.',
+    out: 'Im Hofoldinger Forst liegt die Fahrbahn bis zum Vormittag im Schatten – dort steht keine eigene Messung.', warn: 'Lkr. Miesbach' },
+  { id: 's3', sh: ['A 8'], cc: 'DE', name: 'Irschenberg – Inntaldreieck', km: 'km 45–58', len: 13, corr: 'a8', dirs: ['Richtung Salzburg', 'Richtung München'], st: ['inn'], main: 'inn', elev: '470–700 m', axis: 95, gdir: 230, surf: 'nass',
+    hz: { nass: { lv: [2, 2, 2, 1, 1, 0, 0], ev: 'dpppppp', past: [2, 2], pev: 'dd' }, gischt: { lv: [1, 1, 1, 1, 0, 0, 0], ev: 'dpppppp', past: [1, 1], pev: 'dd' } },
+    feat: [['up', 'Gefälle Irschenberg-Ostrampe', 'bis 5 % · km 45–49'], ['nd', 'Inntal', 'km 52–58 · Niederung']],
+    txt: 'Die Fahrbahn ist nass (Wasserfilm 0,3 mm) bei +0,6 °C, es fällt Sprühregen (GMA Inntaldreieck, 06:15). Bei weiterer Abkühlung kann der Film gefrieren.',
+    out: 'Hinter Lkw ist mit Gischt zu rechnen – wie dicht der Verkehr ist, weiß buscosun nicht.' },
+  { id: 's4', sh: ['A 8'], cc: 'DE', name: 'Bernau – Felden', km: 'km 68–76', len: 8, corr: 'a8', dirs: ['Richtung Salzburg', 'Richtung München'], st: ['ber'], main: 'ber', elev: '520–540 m', axis: 90, gdir: 200, surf: 'feucht',
+    hz: { nebel: { lv: [2, 2, 1, 0, 0, 0, 0], ev: 'mpppppp', past: [1, 2], pev: 'mm' }, reif: { lv: [1, 1, 0, 0, 0, 0, 0], ev: 'dpppppp', past: [1, 1], pev: 'dd' } },
+    feat: [['nd', 'Chiemsee-Becken', 'Niederung · Nebelneigung'], ['ax', 'Achse 90° · Ost', '']],
+    txt: 'Die Glättemeldeanlage Bernau misst um 06:15 eine Sichtweite von 120 m bei 99 % Luftfeuchte und kaum Wind – Nebel. Die Fahrbahn ist feucht und +0,9 °C kalt, der Taupunkt liegt knapp darüber.',
+    out: 'Sinkt die Sicht unter 50 m, gilt höchstens 50 km/h (§ 3 StVO). Laut Prognose löst sich der Nebel bis etwa 08:30 auf.' },
+  { id: 's5', sh: ['A 8'], cc: 'DE', name: 'Neukirchen – Piding', km: 'km 104–112', len: 8, corr: 'a8', dirs: ['Richtung Salzburg', 'Richtung München'], st: ['pid'], main: 'pid', elev: '450–470 m', axis: 75, gdir: 230, surf: 'unbekannt',
+    hz: { nass: { lv: [null, 1, 1, 0, 0, 0, 0], ev: 'upppppp', past: [null, null], pev: 'uu' } },
+    feat: [['in', 'Nächste gültige Fahrbahnmessung', 'Walserberg · 3 km östlich · +1,4 °C, nass']],
+    txt: 'Über den Fahrbahnzustand ist hier nichts bekannt: Der Sensor der Glättemeldeanlage Piding meldet den Gerätewert −75,00 °C, buscosun verwirft ihn. Gemessen sind nur Luft +3,0 °C und Taupunkt +1,1 °C.',
+    out: 'Das ist keine Entwarnung. Ab 07:15 liegt eine Prognose vor (Überfrieren möglich).' },
+  { id: 's6', sh: ['A 1'], cc: 'AT', name: 'Salzburg-Nord – Thalgau', km: 'km 121–137', len: 16, corr: 'a8', dirs: ['Richtung Linz', 'Richtung Salzburg'], st: ['szn', 'tha'], main: 'tha', elev: '430–550 m', axis: 80, gdir: 250, surf: 'modell',
+    hz: { nass: { lv: [1, 1, 1, 1, 0, 0, 0], ev: 'ppppppp', past: [1, 1], pev: 'pp' }, glatteis: { lv: [0, 0, 0, 1, 1, 1, 0], ev: 'ppppppp', past: [0, 0], pev: 'pp' } },
+    feat: [['in', 'Keine offene Fahrbahnmessung', 'Anker: TAWES Salzburg-Flughafen · 18 km']],
+    txt: 'In Österreich gibt es keine offene Fahrbahnmessung; alles hier ist Prognose. Luft +0,6 °C, Taupunkt +0,2 °C, Sprühregen – Überfrieren möglich.',
+    out: 'Zwischen 09 und 12 Uhr fällt Regen aus milderer Höhenluft (850 hPa um +2 °C) bei Bodentemperaturen um 0 °C – gefrierender Regen möglich.' },
+  { id: 's7', sh: ['A 93'], cc: 'DE', name: 'Brannenburg – Kiefersfelden', km: 'km 9–24', len: 15, corr: 'a93', dirs: ['Richtung Innsbruck', 'Richtung Rosenheim'], st: ['bra', 'kie'], main: 'kie', elev: '470–490 m', axis: 160, gdir: 200, surf: 'eis',
+    hz: { nass: { lv: [3, 2, 2, 1, 0, 0, 0], ev: 'mpppppp', past: [3, 3], pev: 'mm' }, gischt: { lv: [1, 1, 0, 0, 0, 0, 0], ev: 'dpppppp', past: [1, 1], pev: 'dd' } },
+    feat: [['nd', 'Inntal', 'durchgehend Talsohle'], ['in', '13 km ohne Messung', 'zwischen Brannenburg und Kiefersfelden']],
+    txt: 'Die Glättemeldeanlage Kiefersfelden meldet um 06:15 Eis bei −0,6 °C Fahrbahntemperatur: Die nasse Fahrbahn ist überfroren. Weiter nördlich in Brannenburg ist sie nass bei +0,3 °C, es fällt Sprühregen.',
+    out: 'Zwischen beiden Anlagen liegen 13 km ohne Messung.' },
+  { id: 's8', sh: ['A 12'], cc: 'AT', name: 'Kufstein – Wörgl', km: 'km 30–47', len: 17, corr: 'a93', dirs: ['Richtung Innsbruck', 'Richtung Kufstein'], st: ['wor'], main: 'wor', elev: '490–510 m', axis: 230, gdir: 250, surf: 'modell',
+    hz: { nass: { lv: [2, 2, 1, 1, 0, 0, 0], ev: 'ppppppp', past: [2, 2], pev: 'pp' }, aqua: { lv: [0, 0, 0, 0, 1, 1, 1], ev: 'ppppppp', past: [0, 0], pev: 'pp' } },
+    feat: [['in', 'Keine offene Fahrbahnmessung', 'Anker: TAWES Kufstein · 12 km'], ['nd', 'Inntal', 'Talsohle']],
+    txt: 'Prognose, keine Fahrbahnmessung: Luft +0,9 °C, Taupunkt +0,5 °C, Fahrbahn vermutlich feucht – Überfrieren bis zum Vormittag möglich.',
+    out: 'Ab etwa 10 Uhr kräftiger Regen, bis 6 mm/h laut Prognose. Wo Spurrinnen sind, kann Wasser stehen bleiben – Spurrinnen kennt buscosun nicht.' },
+  { id: 's9', sh: ['A 95'], cc: 'DE', name: 'Murnau/Kochel – Eschenlohe', km: 'km 52–66', len: 14, corr: 'a95', dirs: ['Richtung Garmisch', 'Richtung München'], st: ['esc'], main: 'esc', elev: '630–650 m', axis: 200, gdir: 290, surf: 'nass',
+    hz: { nass: { lv: [2, 2, 1, 1, 1, 1, 1], ev: 'dpppppp', past: [1, 2], pev: 'dd' }, schnee: { lv: [0, 0, 0, 0, 1, 2, 2], ev: 'ppppppp', past: [0, 0], pev: 'pp' } },
+    feat: [['nd', 'Loisachtal', '630–650 m'], ['ax', 'Achse 200° · Süd-Südwest', '']],
+    txt: 'Die Fahrbahn ist nass (Wasserfilm 0,2 mm) und +0,4 °C kalt (GMA Eschenlohe, 06:15) – Überfrieren möglich.',
+    out: 'Ab etwa 10 Uhr sinkt die Schneefallgrenze laut Prognose von 900 auf 600 m; der Abschnitt liegt auf 630–650 m. Bis Mittag 2–4 cm Neuschnee möglich.' },
+  { id: 's10', sh: ['A 9'], cc: 'DE', name: 'Langenbruck – Pfaffenhofen', km: 'km 49–61', len: 12, corr: null, dirs: ['Richtung Nürnberg', 'Richtung München'], st: [], ext: 'lgb', main: 'lgb', elev: '450–480 m', axis: 350, gdir: 260, surf: 'trocken',
+    hz: { frost1: { lv: [2, 1, 0, 0, 0, 0, 0], ev: 'mpppppp', past: [1, 2], pev: 'mm' } },
+    feat: [['in', 'Saisonbeginn 1. August', 'seitdem erstmals Fahrbahn unter 0 °C']],
+    txt: 'Erstmals in dieser Saison misst die Glättemeldeanlage Langenbruck eine Fahrbahntemperatur unter 0 °C (−0,3 °C, 06:15). Die Fahrbahn ist trocken; Glätte entsteht erst, wenn Feuchte hinzukommt.',
+    out: 'Erster Frost trifft Fahrzeuge, die noch Sommerreifen fahren. Brücken und Schattenlagen kühlen zuerst aus.' },
+  { id: 's11', sh: ['A 7'], cc: 'DE', name: 'Lutterberg – Hedemünden', km: 'km 300–310', len: 10, corr: null, dirs: ['Richtung Kassel', 'Richtung Hannover'], st: [], ext: 'hed', main: 'hed', elev: '150–330 m', axis: 20, gdir: 250, gustFc: 85, surf: 'trocken',
+    hz: { quer: { lv: [0, 0, 0, 1, 1, 2, 2], ev: 'ppppppp', past: [0, 0], pev: 'mm' }, baum: { lv: [0, 0, 0, 0, 1, 1, 1], ev: 'ppppppp', past: [0, 0], pev: 'pp' } },
+    feat: [['br', 'Werratalbrücke Hedemünden', '417 m · hoch über dem Tal, ungeschützt'], ['wa', 'Kaufunger Wald', 'Waldanteil 55 %'], ['ax', 'Achse 20° · Nord-Nordost', 'Wind aus WSW trifft fast quer']],
+    txt: 'Jetzt ruhig: Böen um 35 km/h, Fahrbahn trocken (GMA Hedemünden, 06:15).',
+    out: 'Ab etwa 09 Uhr frischt der Wind aus Westsüdwest auf, bis Mittag Böen bis 85 km/h laut Prognose. Die Achse verläuft nach Nord-Nordost, der Wind trifft fast quer: Querkomponente bis 65 km/h, auf der Werratalbrücke ungeschützt. Im Wald können Äste und Bäume auf die Fahrbahn fallen – solche Ereignisse erfasst buscosun nicht.' },
+  { id: 's12', sh: ['A 10'], cc: 'AT', name: 'Flachau – Tauerntunnel', km: 'km 63–79', len: 16, corr: null, dirs: ['Richtung Villach', 'Richtung Salzburg'], st: [], ext: 'fla', main: 'fla', elev: '920–1.340 m', axis: 180, gdir: 330, surf: 'modell',
+    hz: { schnee: { lv: [2, 2, 2, 2, 2, 2, 2], ev: 'ppppppp', past: [2, 2], pev: 'pp' } },
+    feat: [['in', 'Keine offene Fahrbahnmessung', 'Anker: TAWES Radstadt · 14 km'], ['up', 'Rampe zum Tauerntunnel', 'Steigung bis 6 %']],
+    txt: 'Prognose, keine Fahrbahnmessung: Schneefall auf 920–1.340 m bei −1,8 °C Lufttemperatur.',
+    out: 'Bis Mittag 8–12 cm Neuschnee laut Prognose. An der Rampe zum Tauerntunnel bleiben Lkw bei Schnee erfahrungsgemäß zuerst liegen.' },
+  { id: 's13', sh: ['A 2'], cc: 'CH', name: 'Amsteg – Göschenen', km: 'km 112–126', len: 14, corr: null, dirs: ['Richtung Gotthard', 'Richtung Basel'], st: [], ext: 'gos', main: 'gos', elev: '520–1.100 m', axis: 170, gdir: 340, surf: 'modell',
+    hz: { sturz: { lv: [0, 0, 0, 1, 1, 1, 0], ev: 'ppppppp', past: [0, 0], pev: 'pp' }, schnee: { lv: [0, 0, 0, 0, 1, 1, 2], ev: 'ppppppp', past: [0, 0], pev: 'pp' } },
+    feat: [['in', 'Keine offene Fahrbahnmessung', 'Anker: SwissMetNet Altdorf · 22 km'], ['up', 'Gotthard-Nordrampe', 'Steigung bis 5 %']],
+    txt: 'Prognose, keine Fahrbahnmessung in der Schweiz: Hinter einer Kaltfront fällt die Temperatur bis Mittag um 9 K auf −1 °C.',
+    out: 'Die Schneefallgrenze sinkt bis 800 m; Göschenen liegt auf 1.100 m.' }
+];
+const SEG = {};
+SEGS.forEach((g) => { SEG[g.id] = g; });
+const SEG_OF_ST = { hof: 's1', hol: 's1', irs: 's2', inn: 's3', ber: 's4', pid: 's5', szn: 's6', tha: 's6', bra: 's7', kie: 's7', wor: 's8', esc: 's9' };
+const MAPSEG = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'];
+
+function stOf(g) { return g.ext ? EXT[g.ext] : SBY[g.main]; }
+function lvAt(e, h) { return h < 0 ? e.past[h + 2] : e.lv[h]; }
+function evAt(e, h) { return h < 0 ? e.pev[h + 2] : e.ev[h]; }
+function hzList(g, ddir) { return Object.keys(g.hz).filter((k) => g.hz[k].dir === undefined || g.hz[k].dir === ddir); }
+function hhmm(h) { return hm(BASE + h * 60); }
+function f0(v) { return (v < 0 ? '−' : '+') + Math.abs(v).toFixed(1).replace('.', ','); }
+function wedge(cx, cy, r0, r1, a0, a1) {
+  const rad = (a) => (a - 90) * Math.PI / 180, P = (r, a) => (cx + r * Math.cos(rad(a))).toFixed(1) + ',' + (cy + r * Math.sin(rad(a))).toFixed(1);
+  return 'M' + P(r0, a0) + 'L' + P(r1, a0) + 'A' + r1 + ',' + r1 + ' 0 0 1 ' + P(r1, a1) + 'L' + P(r0, a1) + 'A' + r0 + ',' + r0 + ' 0 0 0 ' + P(r0, a0) + 'Z';
+}
+
+function buildHazard(s, set, self) {
+  const tab = s.tab || INIT.tab || 'gefahren';
+  const view = s.view || INIT.view || 'lage';
+  const mode = s.mode !== undefined ? s.mode : 'now';
+  const hf = s.hf || null;
+  const ddir = s.ddir || 0;
+  const win = mode === 'now' ? [0, 0] : (mode === 'p6' ? [0, 6] : [mode, mode]);
+  const segId = (s.seg && SEG[s.seg]) ? s.seg : (INIT.seg || 's2');
+  const sel = SEG[segId];
+
+  // ---------- Lage: Matrix ----------
+  const segMaxGroup = (g, gid, h) => {
+    let best = 0, unk = false;
+    hzList(g, 0).concat(hzList(g, 1)).forEach((k) => { if (HT[k].g !== gid) return; const v = g.hz[k].lv[h]; if (v === null) unk = true; else if (v > best) best = v; });
+    return { lv: best, unk: unk };
+  };
+  const matrix = HG.map((G) => {
+    const cells = HOURS.map((h) => {
+      let n = 0, mx = 0, u = 0;
+      SEGS.forEach((g) => { const r = segMaxGroup(g, G.id, h); if (r.lv > 0) { n++; if (r.lv > mx) mx = r.lv; } if (r.unk) u++; });
+      const active = hf === G.id && win[0] === h && win[1] === h;
+      const inWin = h >= win[0] && h <= win[1] && (!hf || hf === G.id);
+      return {
+        t: n ? String(n) : (u ? '?' : '·'),
+        label: G.name + ', ' + (h === 0 ? 'jetzt' : '+' + h + ' h') + ': ' + n + ' Abschnitte' + (u ? ', ' + u + ' ohne gültige Messung' : ''),
+        style: 'background:' + (n ? SEV[mx].bg : (u ? HATCH : '#F5F1E8')) + '; color:' + (n ? SEV[mx].ink : '#A89A7A') + ';' + (active ? ' box-shadow:inset 0 0 0 2px #1F5FAE;' : '') + (inWin ? '' : ' opacity:0.45;'),
+        pick: () => set({ hf: G.id, mode: h === 0 ? 'now' : h, view: 'lage', tab: 'gefahren' })
+      };
+    });
+    return { name: G.name, icon: ICON[G.id], cells: cells, rowStyle: hf === G.id ? 'color:#1F5FAE; font-weight:700' : 'color:#2C2A26; font-weight:600', pick: () => set({ hf: hf === G.id ? null : G.id, view: 'lage' }) };
+  });
+  const hourHead = HOURS.map((h) => ({ t: h === 0 ? 'jetzt' : '+' + h, style: (h >= win[0] && h <= win[1]) ? 'color:#1F5FAE; font-weight:700' : 'color:#A89A7A; font-weight:600', pick: () => set({ mode: h === 0 ? 'now' : h, view: 'lage' }) }));
+
+  // ---------- Lage: Liste ----------
+  const rowsAll = [];
+  const groups = HG.map((G) => {
+    const rows = [];
+    SEGS.forEach((g) => {
+      const keys = Object.keys(g.hz).filter((k) => HT[k].g === G.id);
+      if (!keys.length) return;
+      // stärkster Eintrag der Gruppe im Fenster
+      let best = null;
+      keys.forEach((k) => {
+        const e = g.hz[k];
+        for (let h = win[0]; h <= win[1]; h++) {
+          const v = e.lv[h];
+          const score = v === null ? 0.5 : v;
+          if (score <= 0) continue;
+          const sc = score * 10 + EVR[e.ev[h]] + HT[k].pr / 100;
+          if (!best || sc > best.sc) best = { k: k, e: e, h: h, v: v, sc: sc };
+        }
+      });
+      if (!best) return;
+      const e = best.e;
+      const on = HOURS.filter((h) => e.lv[h] !== null && e.lv[h] > 0);
+      let when;
+      if (best.v === null) when = 'jetzt keine gültige Messung';
+      else if (on.length && on[0] === 0) when = (lvAt(e, -2) > 0 ? 'seit über 2 h' : (lvAt(e, -1) > 0 ? 'seit etwa 05:15' : 'ab jetzt')) + (on[on.length - 1] < 6 ? ' · bis ' + hhmm(on[on.length - 1] + 1) : ' · über 12:15 hinaus');
+      else if (on.length) when = 'ab ' + hhmm(on[0]) + (on[on.length - 1] < 6 ? ' · bis ' + hhmm(on[on.length - 1] + 1) : '');
+      else when = '';
+      const others = Object.keys(g.hz).filter((k) => k !== best.k && g.hz[k].lv.some((v) => v === null || v > 0)).map((k) => HT[k].name);
+      const strip = HOURS.map((h) => {
+        const v = e.lv[h];
+        const inW = h >= win[0] && h <= win[1];
+        return { style: 'background:' + (v === null ? HATCH : (v > 0 ? SEV[v].bg : '#EFE9DA')) + ';' + (h === 0 && e.ev[0] === 'm' ? ' box-shadow:inset 0 0 0 1.5px #2C2A26;' : '') + (inW ? '' : ' opacity:0.55;') };
+      });
+      const evc = best.v === null ? 'u' : e.ev[best.h];
+      const chipStyle = best.v === null ? UNK_TINT : SEV[best.v].tint;
+      const dirTxt = e.dir !== undefined ? g.dirs[e.dir] : 'beide Richtungen';
+      const row = {
+        id: g.id, sc: best.sc,
+        shields: g.sh.map((t) => ({ t: t, style: g.cc === 'CH' ? 'background:#C1272D; box-shadow:0 0 0 1px #C1272D' : 'background:#1F4E9E; box-shadow:0 0 0 1px #1F4E9E' })),
+        name: g.name,
+        sub: HT[best.k].name + ' · ' + g.km + ' · ' + dirTxt,
+        also: others.length ? 'außerdem: ' + others.join(', ') : '',
+        hasAlso: others.length > 0,
+        chip: best.v === null ? 'unbekannt' : 'Stufe ' + best.v,
+        chipStyle: chipStyle,
+        evG: EVS[evc], ev: EVN[evc].t + (g.cc !== 'DE' ? ' · ' + g.cc : ''),
+        when: when,
+        strip: strip,
+        bar: 'background:' + (best.v === null ? HATCH : SEV[best.v].bg),
+        rowStyle: (view === 'detail' && g.id === segId) ? 'border-color:#1F5FAE; background:#F2F6FB' : 'border-color:#E0D6BE; background:#FFFFFF',
+        pick: () => set({ view: 'detail', seg: g.id, ddir: 0, tab: 'gefahren', road: g.corr || (self.state && self.state.road) || 'a8', st: g.ext ? undefined : g.main })
+      };
+      rows.push(row);
+    });
+    rows.sort((a, b) => b.sc - a.sc);
+    const visible = !hf || hf === G.id;
+    if (visible) rows.forEach((r) => { if (rowsAll.indexOf(r.id) < 0) rowsAll.push(r.id); });
+    const nUnk = rows.filter((r) => r.chip === 'unbekannt').length;
+    return { show: visible, name: G.name, icon: ICON[G.id], n: String(rows.length - nUnk) + (nUnk ? ' + ' + nUnk + ' ?' : ''), rows: rows, empty: rows.length === 0, emptyTxt: G.id === 'gw' || G.id === 'hi' ? 'Keine Abschnitte erkannt. Eingänge vollständig (Radar, Blitzpotenzial, Prognose).' : 'Keine Abschnitte erkannt.' };
+  }).filter((x) => x.show);
+  const nSeg = rowsAll.length;
+  const winLabel = mode === 'now' ? 'jetzt · 06:15' : (mode === 'p6' ? 'jetzt bis +6 h · 06:15–12:15' : 'um ' + hhmm(mode) + ' (+' + mode + ' h)');
+  const modes = [['now', 'Jetzt'], ['p6', 'Bis +6 h']].map((m) => {
+    const a = mode === m[0];
+    return { label: m[1], on: a, style: a ? 'background:#2C2A26; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ mode: m[0], view: 'lage' }) };
+  });
+  const chips = [{ id: null, name: 'Alle' }].concat(HG.map((G) => ({ id: G.id, name: G.name }))).map((c) => {
+    const a = (hf || null) === c.id;
+    let n = 0;
+    if (c.id) SEGS.forEach((g) => { for (let h = win[0]; h <= win[1]; h++) { const r = segMaxGroup(g, c.id, h); if (r.lv > 0 || r.unk) { n++; break; } } });
+    return { label: c.name + (c.id ? ' ' + n : ''), on: a, style: a ? 'background:#1F5FAE; color:#FAF6EA; border-color:#1F5FAE; font-weight:600' : 'background:#FFFFFF; color:' + (c.id && !n ? '#A89A7A' : '#2C2A26') + '; border-color:#E0D6BE; font-weight:500', pick: () => set({ hf: c.id, view: 'lage' }) };
+  });
+  const lage = {
+    title: nSeg + (nSeg === 1 ? ' Abschnitt' : ' Abschnitte') + ' mit Hinweisen',
+    sub: winLabel + ' · DE gemessen, AT/CH Prognose · Beispieldaten',
+    filterNote: hf || typeof mode === 'number' ? 'Filter: ' + (hf ? HG.filter((G) => G.id === hf)[0].name : 'alle Gefahren') + ' · ' + winLabel : '',
+    hasFilter: !!(hf || typeof mode === 'number'),
+    clear: () => set({ hf: null, mode: 'now' })
+  };
+
+  // ---------- Detail ----------
+  const st = stOf(sel);
+  const idx = Math.max(0, rowsAll.indexOf(sel.id));
+  const order = rowsAll.length ? rowsAll : [sel.id];
+  const nav = {
+    pos: (rowsAll.indexOf(sel.id) + 1 || 1) + ' / ' + order.length,
+    prev: () => set({ seg: order[(idx - 1 + order.length) % order.length], view: 'detail' }),
+    next: () => set({ seg: order[(idx + 1) % order.length], view: 'detail' }),
+    back: () => set({ view: 'lage' })
+  };
+  const keys = hzList(sel, ddir);
+  const dirs = sel.dirs.map((d, i) => ({ label: d, on: i === ddir, style: i === ddir ? 'background:#1F5FAE; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ ddir: i }) }));
+  const nowChips = keys.map((k) => {
+    const e = sel.hz[k], v0 = e.lv[0];
+    let mx = 0, at = -1; e.lv.forEach((v, h) => { if (v !== null && v > mx) { mx = v; at = h; } });
+    if (v0 === null) return { t: '? ' + HT[k].name + ' · unbekannt', style: UNK_TINT, gs: EVS.u };
+    if (v0 > 0) return { t: HT[k].name + ' · Stufe ' + v0, style: SEV[v0].tint, gs: EVS[e.ev[0]] };
+    if (mx > 0) return { t: HT[k].name + ' · ab ' + hhmm(e.lv.findIndex((v) => v > 0)), style: SEV[mx].tint, gs: EVS.p };
+    return null;
+  }).filter(Boolean);
+  const isModel = st.kind === 'model';
+  const evTop = sel.surf === 'unbekannt' ? 'Fahrbahnsensor verworfen' : (isModel ? 'Prognose, ohne Fahrbahnmessung' : 'Messung 06:15 · vor 7 min');
+  const eyeStyle = sel.surf === 'unbekannt' ? 'color:#8B8474' : (isModel ? 'color:#9A5A2A' : 'color:#1F5FAE');
+
+  // Querschnitt
+  const film = st.film || 0;
+  const xs = {
+    reif: sel.surf === 'reif' ? 1 : 0, eis: sel.surf === 'eis' ? 1 : 0, nass: sel.surf === 'nass' ? 1 : 0, feucht: sel.surf === 'feucht' ? 1 : 0,
+    schnee: sel.surf === 'schnee' ? 1 : 0, unb: sel.surf === 'unbekannt' ? 1 : 0, mod: sel.surf === 'modell' ? 1 : 0, trocken: sel.surf === 'trocken' ? 1 : 0,
+    filmH: Math.max(2, Math.min(9, film * 22)).toFixed(1), filmY: (64 - Math.max(2, Math.min(9, film * 22))).toFixed(1),
+    surfLabel: { reif: 'Reif (Sensor)', eis: 'Eis (Sensor)', nass: 'Wasserfilm ' + dec(film.toFixed(1)) + ' mm', feucht: 'feucht · Film ' + dec(film.toFixed(1)) + ' mm', schnee: 'Schnee', unbekannt: 'Zustand unbekannt', modell: 'Zustand nicht gemessen', trocken: 'trocken (Sensor)' }[sel.surf],
+    road: (st.kind === 'gma' && sel.surf !== 'unbekannt') ? 'Fahrbahn ' + f0(st.road0) + ' °C' : (sel.surf === 'unbekannt' ? 'Fahrbahn: Sensor verworfen' : 'Fahrbahn: keine Messung'),
+    air: 'Luft ' + f0(st.air0) + ' °C', dew: 'Taupunkt ' + f0(st.dew0) + ' °C', rh: (st.rh || '—') + ' % rel. Feuchte',
+    asph: (st.kind === 'gma' && sel.surf !== 'unbekannt') ? (st.road0 <= 0 ? '#3B4A5C' : '#3A3833') : '#4A4740',
+    src: isModel ? 'Prognose · buscosun Fusion' : (sel.surf === 'unbekannt' ? 'GMA ' + st.name + ' · Sensor verworfen' : 'GMA ' + st.name + ' · 06:15')
+  };
+
+  // Gefahren-Fahrplan (−2 h … +6 h)
+  const PH = [-2, -1, 0, 1, 2, 3, 4, 5, 6];
+  const planHead = PH.map((h) => ({ t: h === 0 ? 'jetzt' : (h > 0 ? '+' + h : String(h).replace('-', '−')), style: h === 0 ? 'color:#1F5FAE; font-weight:700' : 'color:#A89A7A; font-weight:600' }));
+  const plan = keys.map((k) => {
+    const e = sel.hz[k];
+    return {
+      name: HT[k].short || HT[k].name, icon: ICON[HT[k].g],
+      cells: PH.map((h) => {
+        const v = lvAt(e, h), evc = evAt(e, h);
+        const bg = v === null ? HATCH : (v > 0 ? SEV[v].bg : '#F5F1E8');
+        const ink = v === null ? '#5C5447' : (v > 0 ? SEV[v].ink : '#C9BE9E');
+        return { gt: v === null ? '?' : (v > 0 ? '' : '·'), gs: v !== null && v > 0 ? EVS[evc] : EVS.u, style: 'background:' + bg + '; color:' + ink + ';' + (h === 0 ? ' box-shadow:inset 0 0 0 2px #1F5FAE;' : '') + (h < 0 ? ' opacity:0.7;' : ''), label: HT[k].name + ' ' + (h === 0 ? 'jetzt' : h + ' h') + ': ' + (v === null ? 'unbekannt' : 'Stufe ' + v + ', ' + EVN[evc].t) };
+      })
+    };
+  });
+
+  // Temperaturen −12 h … +6 h
+  const X = (dh) => 34 + (dh + 12) / 18 * 322;
+  const Y = (v) => 100 - (Math.max(-4, Math.min(8, v)) + 4) / 12 * 84;
+  const hasRoad = st.kind === 'gma' && sel.surf !== 'unbekannt';
+  const rF = (dh) => roadAt(st, dh), aF = (dh) => airAt(st, dh), dF = (dh) => dewAt(st, dh);
+  const pts = (fn, a, b) => { const o = []; for (let dh = a; dh <= b + 1e-9; dh += 0.5) o.push(X(dh).toFixed(1) + ',' + Y(fn(dh)).toFixed(1)); return o.join(' '); };
+  let reifD = '';
+  if (hasRoad) {
+    for (let dh = -12; dh < 6; dh += 0.5) {
+      const r0 = rF(dh), r1 = rF(dh + 0.5), d0 = dF(dh), d1 = dF(dh + 0.5);
+      if (r0 <= 0 && r1 <= 0 && r0 < d0 && r1 < d1) reifD += 'M' + X(dh).toFixed(1) + ',' + Y(d0).toFixed(1) + 'L' + X(dh + 0.5).toFixed(1) + ',' + Y(d1).toFixed(1) + 'L' + X(dh + 0.5).toFixed(1) + ',' + Y(r1).toFixed(1) + 'L' + X(dh).toFixed(1) + ',' + Y(r0).toFixed(1) + 'Z';
+    }
+  }
+  const tc = {
+    roadH: hasRoad ? pts(rF, -12, 0) : '', roadF: hasRoad ? pts(rF, 0, 6) : '', roadOp: hasRoad ? 1 : 0,
+    airH: pts(aF, -12, 0), airF: pts(aF, 0, 6), dewH: pts(dF, -12, 0), dewF: pts(dF, 0, 6),
+    reifD: reifD, nowX: X(0).toFixed(1), fcW: (X(6) - X(0)).toFixed(1), fcLabX: ((X(0) + X(6)) / 2).toFixed(1),
+    zeroY: Y(0).toFixed(1), zeroT: (Y(0) + 3).toFixed(1), y4: Y(4).toFixed(1), y4T: (Y(4) + 3).toFixed(1), ym4: Y(-4).toFixed(1),
+    legendRoad: hasRoad ? '' : 'opacity:0.35; text-decoration:line-through',
+    hasReif: reifD.length > 0,
+    aria: 'Temperaturen am Abschnitt ' + sel.name + ' von −12 bis +6 Stunden' + (hasRoad ? ', mit Fahrbahn' : ', ohne Fahrbahnmessung')
+  };
+
+  // Messgrößen gegen Schwellen (Bullet)
+  const bullet = (label, unit, lo, hi, cuts, val, fc, valTxt, fcTxt) => {
+    const P = (v) => Math.max(0, Math.min(1, (v - lo) / (hi - lo))) * 100;
+    const bands = cuts.map((c, i) => {
+      const a = P(c), b = P(i + 1 < cuts.length ? cuts[i + 1] : hi);
+      return { style: 'left:' + Math.min(a, b) + '%; width:' + Math.abs(b - a) + '%; background:' + SEV[i + 1].bg + '; opacity:0.55' };
+    });
+    const vp = val === null ? null : P(val);
+    return {
+      label: label, unit: unit, bands: bands,
+      hasVal: vp !== null, valStyle: vp === null ? '' : 'width:' + vp + '%',
+      hasFc: fc !== null, fcStyle: fc === null ? '' : 'left:calc(' + P(fc) + '% - 1px)',
+      valTxt: valTxt, fcTxt: fcTxt
+    };
+  };
+  let minR = null; if (hasRoad) { minR = 99; for (let dh = 0; dh <= 6; dh++) minR = Math.min(minR, rF(dh)); }
+  const axisRad = (a) => a * Math.PI / 180;
+  const gNow = st.gust || 0, gFc = sel.gustFc || Math.round(gNow * 1.15);
+  const cross = (g) => Math.round(g * Math.abs(Math.sin(axisRad(sel.gdir - sel.axis))));
+  const visFc = st.vis ? (sel.id === 's4' ? 800 : st.vis) : null;
+  const bullets = [
+    bullet('Fahrbahntemperatur', '°C', 6, -6, [2, 1, 0], hasRoad ? st.road0 : null, minR, hasRoad ? f0(st.road0) + ' °C' : '—', hasRoad ? 'Prognose min. ' + f0(minR) + ' °C' : 'keine Messung'),
+    bullet('Wasserfilm', 'mm', 0, 3, [0.5, 1.0, 2.0], hasRoad ? film : null, null, hasRoad ? dec(film.toFixed(1)) + ' mm' : '—', 'keine Prognose'),
+    bullet('Sichtweite', 'm', 600, 0, [300, 150, 50], st.vis ? Math.min(600, st.vis) : null, visFc ? Math.min(600, visFc) : null, st.vis ? visTxt(st.vis) : '—', visFc ? 'Prognose ' + visTxt(visFc) : 'keine Messung'),
+    bullet('Böe quer zur Fahrbahn', 'km/h', 0, 100, [45, 60, 75], cross(gNow), cross(gFc), cross(gNow) + ' km/h', 'Prognose max. ' + cross(gFc) + ' km/h')
+  ];
+
+  // Wind zur Fahrbahnachse (Polar)
+  const sect = [0, 45, 90, 135, 180, 225, 270, 315];
+  const pol = { s0: '', s1: '', s2: '', s3: '' };
+  const gMax = Math.max(gNow, gFc);
+  sect.forEach((a) => {
+    const d = Math.cos(axisRad(a - sel.gdir));
+    const v = Math.max(gMax * 0.18, gMax * (0.25 + 0.75 * Math.max(0, d)));
+    const r = 14 + v / 100 * 50;
+    const c = Math.round(v * Math.abs(Math.sin(axisRad(a - sel.axis))));
+    const lv = c >= 75 ? 's3' : (c >= 60 ? 's2' : (c >= 45 ? 's1' : 's0'));
+    pol[lv] += wedge(70, 70, 12, r, a - 19, a + 19);
+  });
+  const ax0 = axisRad(sel.axis - 90);
+  const wind = {
+    s0: pol.s0, s1: pol.s1, s2: pol.s2, s3: pol.s3,
+    axX1: (70 - 66 * Math.cos(ax0)).toFixed(1), axY1: (70 - 66 * Math.sin(ax0)).toFixed(1), axX2: (70 + 66 * Math.cos(ax0)).toFixed(1), axY2: (70 + 66 * Math.sin(ax0)).toFixed(1),
+    arX: (70 + 58 * Math.cos(axisRad(sel.gdir - 90))).toFixed(1), arY: (70 + 58 * Math.sin(axisRad(sel.gdir - 90))).toFixed(1),
+    l1: 'Böe jetzt ' + gNow + ' km/h · Prognose bis ' + gFc + ' km/h',
+    l2: 'aus ' + sel.gdir + '°, Fahrbahnachse ' + sel.axis + '°',
+    l3: 'quer zur Fahrbahn: ' + cross(gNow) + ' km/h jetzt, bis ' + cross(gFc) + ' km/h',
+    note: sel.feat.some((f) => f[0] === 'br') ? 'Auf Brücken gilt eine um 10 km/h niedrigere Schwelle (exponiert).' : 'Schwellen 45 / 60 / 75 km/h Querkomponente (Startwerte).'
+  };
+
+  const feats = sel.feat.map((f) => ({ icon: FEAT[f[0]], t: f[1], d: f[2] }));
+  const stRows = (sel.st.length ? sel.st.map((id) => SBY[id]) : [st]).map((x) => {
+    let v, k;
+    if (x.kind === 'model') { v = 'Luft ' + f0(x.air0) + ' °C · Prognose'; k = 'Prognosepunkt'; }
+    else if (x.kind === 'nodata') { v = 'Fahrbahnsensor verworfen'; k = 'Störung'; }
+    else { v = 'Fahrbahn ' + f0(x.road0) + ' °C · ' + x.code + (x.film ? ' · ' + dec(x.film.toFixed(1)) + ' mm' : ''); k = '06:15'; }
+    return { name: x.name, km: x.km ? 'km ' + dec(x.km) : '', v: v, k: k, dot: x.kind === 'model' ? 'background:#FFFFFF; border:2px solid #8B7355' : (x.kind === 'nodata' ? 'background:' + HATCH : 'background:#2C2A26') };
+  });
+  const dt = {
+    eyebrow: 'Abschnitt · ' + sel.cc + ' · ' + evTop, eyeStyle: eyeStyle,
+    shields: sel.sh.map((t) => ({ t: t, style: sel.cc === 'CH' ? 'background:#C1272D; box-shadow:0 0 0 1px #C1272D' : 'background:#1F4E9E; box-shadow:0 0 0 1px #1F4E9E' })),
+    name: sel.name, sub: sel.km + ' · ' + sel.len + ' km · ' + sel.elev,
+    nowChips: nowChips, txt: sel.txt, out: sel.out, hasOut: !!sel.out,
+    hasWarn: !!sel.warn, warn: sel.warn || '',
+    srcLine: isModel ? 'Herkunft: buscosun Fusion (Prognose), Anker-Station Luft · keine Fahrbahnmessung' : (sel.surf === 'unbekannt' ? 'Herkunft: DWD-Glättemeldeanlage, Fahrbahnsensor von buscosun verworfen (Wert unter −60 °C)' : 'Herkunft: DWD-Glättemeldeanlagen (Messung) · buscosun Fusion, MOSMIX, Radar (Prognose)'),
+    notObs: sel.id === 's11' ? 'Umgestürzte Bäume und herumfliegende Teile werden nicht erfasst – angezeigt wird nur, dass Böen und Waldanteil sie begünstigen.' : 'Verkehrsdichte (Gischt), Spurrinnen und Reifenzustand kennt buscosun nicht; Hinweise dazu beruhen nur auf Wetterbedingungen.'
+  };
+
+  // Karte: Gefahren-Overlay je Abschnitt
+  const mz = {};
+  MAPSEG.forEach((id) => {
+    const g = SEG[id];
+    let mx = 0, unk = false;
+    Object.keys(g.hz).forEach((k) => { for (let h = win[0]; h <= win[1]; h++) { const v = g.hz[k].lv[h]; if (v === null) unk = true; else if (v > mx && (!hf || HT[k].g === hf)) mx = v; } });
+    const isSel = view === 'detail' && id === segId;
+    mz[id] = { c: mx ? SEV[mx].bg : '#8B8474', o: mx ? 0.95 : (unk ? 0.9 : 0), da: mx ? 'none' : '3 3', g: isSel ? 0.9 : 0 };
+  });
+
+  const tabs = [['gefahren', 'Gefahren'], ['strecke', 'Strecke'], ['quellen', 'Quellen']].map((t) => ({ label: t[1], on: t[0] === tab, style: t[0] === tab ? 'background:#1F5FAE; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ tab: t[0] }) }));
+
+  return {
+    tabs: tabs, isLage: tab === 'gefahren' && view === 'lage', isDetail: tab === 'gefahren' && view === 'detail',
+    isStrecke: tab === 'strecke', isQuellen: tab === 'quellen',
+    matrix: matrix, hourHead: hourHead, groups: groups, modes: modes, chips: chips, lage: lage,
+    nav: nav, dirs: dirs, dt: dt, xs: xs, planHead: planHead, plan: plan, tc: tc, bullets: bullets, wind: wind, feats: feats, stRows: stRows,
+    mz: mz, mapHz: mode === 'now' ? 'Gefahren jetzt' : (mode === 'p6' ? 'Gefahren bis +6 h (Maximum)' : 'Gefahren um ' + hhmm(mode))
+  };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const road = s.road || 'a8';
+    const ti = s.t || 0;
+    const tab = s.tab || INIT.tab || 'gefahren';
+    const country = s.country || 'alle';
+    const dir = s.dir || 0;
+    const dep = s.dep !== undefined ? s.dep : 15;
+    const on = (k) => (s[k] !== undefined ? s[k] : k !== 'lRadar');
+    const corr = C[road];
+    const stId = (s.st && SBY[s.st]) ? s.st : corr.def;
+    const st = SBY[stId];
+    const set = (o) => this.setState(o);
+    const lZust = on('lZust'), lTemp = on('lTemp');
+
+    const countries = [['alle', 'Alle'], ['DE', 'DE'], ['AT', 'AT'], ['CH', 'CH']].map(function (c) {
+      const a = c[0] === country;
+      return { label: c[1], on: a, style: a ? 'background:#2C2A26; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ country: c[0] }) };
+    });
+
+    const roadItems = ORDER.filter((id) => country === 'alle' || C[id].cc.indexOf(country) >= 0).map((id) => {
+      const c = C[id];
+      const ks = c.ids.map((x) => clsAt(SBY[x], ti));
+      const worst = ks.reduce((a, b) => (RANK[b] > RANK[a] ? b : a), 'dry');
+      const crit = ks.filter((k) => k === 'ice' || k === 'frost').length;
+      const nM = c.ids.filter((x) => SBY[x].kind === 'model').length;
+      const parts = [(c.ids.length - nM) + ' gemessen'];
+      if (nM) parts.push(nM + ' Prognose');
+      if (crit) parts.push(crit + ' kritisch');
+      const a = id === road;
+      return { shields: c.sh.map((t) => ({ t: t })), title: c.title, sub: parts.join(' · '), on: a, dot: 'background:' + CLS[worst].color, style: a ? 'border-color:#1F5FAE; background:#F2F6FB' : 'background:#FFFFFF', pick: () => set({ road: id, st: c.def }) };
+    });
+    const staticRows = STATIC.filter((r) => country === 'alle' || r.cc === country);
+
+    const LY = [
+      { key: 'lZust', label: 'Fahrbahnzustand', sub: 'Farbe je Messpunkt' },
+      { key: 'lTemp', label: 'Temperaturwerte', sub: 'Fahrbahn (DE) · Luft (AT/CH)' },
+      { key: 'lSicht', label: 'Sicht und Nebel', sub: 'GMA-Sichtweite unter 150 m' },
+      { key: 'lWarn', label: 'Amtliche Warnungen', sub: 'DWD · GeoSphere · MeteoSchweiz' },
+      { key: 'lRadar', label: 'Regenradar', sub: 'RADOLAN · INCA' }
+    ];
+    const layers = LY.map((l) => {
+      const o = on(l.key);
+      return { label: l.label, sub: l.sub, on: o, row: o ? 'border-color:#1F5FAE' : 'border-color:#E0D6BE', lab: o ? 'color:#2C2A26; font-weight:600' : 'color:#8B7355; font-weight:500', sw: o ? 'background:#1F5FAE' : 'background:#E0D6BE', knob: o ? 'transform:translateX(13px)' : 'transform:none', toggle: () => { const p = {}; p[l.key] = !o; set(p); } };
+    });
+
+    const hl = {};
+    ORDER.forEach((id) => { hl[id] = id === road ? 1 : 0; hl[id + 'g'] = id === road ? 0.16 : 0; });
+
+    const markers = S.map((x) => {
+      const inC = x.corr === road, k = clsAt(x, ti), sel = x.id === stId;
+      const col = lZust ? CLS[k].color : '#8B95A3';
+      const size = sel ? 22 : (inC ? 15 : 10);
+      let bg, border;
+      if (x.kind === 'model') { bg = '#0B0E12'; border = '3px solid ' + col; }
+      else if (k === 'nodata') { bg = 'repeating-linear-gradient(135deg,#8B8474 0 3px,#3A3833 3px 6px)'; border = '2px solid #0B0E12'; }
+      else { bg = col; border = '2px solid #0B0E12'; }
+      const ring = sel ? ' box-shadow:0 0 0 3px #FAF6EA, 0 0 0 7px rgba(250,246,234,0.22);' : '';
+      return { label: x.name + ', ' + CLS[k].label + (isDerived(x, ti) ? ' (Prognose)' : ''), pick: () => set({ road: x.corr, st: x.id, tab: 'gefahren', seg: SEG_OF_ST[x.id] || s.seg, view: SEG_OF_ST[x.id] ? 'detail' : (s.view || 'lage'), ddir: 0 }), style: 'left:' + (x.x - size / 2) + 'px; top:' + (x.y - size / 2) + 'px; width:' + size + 'px; height:' + size + 'px; background:' + bg + '; border:' + border + '; opacity:' + (inC ? 1 : 0.5) + ';' + ring };
+    });
+
+    const tempLabels = !lTemp ? [] : S.filter((x) => x.corr === road && x.id !== stId).map((x) => {
+      const dh = TS[ti];
+      let t;
+      if (x.kind === 'model') t = 'L ' + f1(airAt(x, dh)) + '°';
+      else if (x.kind === 'nodata' && ti === 0) t = '—';
+      else if (x.kind === 'nodata') t = 'L ' + f1(airAt(x, dh)) + '°';
+      else t = f1(roadAt(x, dh)) + '°';
+      const below = x.corr === 'a8' && (x.id === 'hol' || x.id === 'fra' || x.id === 'sie' || x.id === 'wal' || x.id === 'mon');
+      return { t: t, style: 'left:' + (x.x + 9) + 'px; top:' + (below ? x.y + 8 : x.y - 22) + 'px' };
+    });
+
+    const kSel = clsAt(st, ti);
+    const dhSel = TS[ti];
+    let calLine;
+    if (st.kind === 'model') calLine = 'Luft ' + f1(airAt(st, dhSel)) + ' °C · ' + CLS[kSel].label + ' (Prognose)';
+    else if (kSel === 'nodata') calLine = 'Fahrbahnsensor gestört';
+    else calLine = 'Fahrbahn ' + f1(roadAt(st, dhSel)) + ' °C · ' + CLS[kSel].label + (ti > 0 ? ' (abgel.)' : '');
+    const leftSide = st.x > 520;
+    const callout = { name: st.name, line: calLine, dot: 'background:' + CLS[kSel].color, style: 'left:' + (leftSide ? st.x - 16 - 178 : st.x + 18) + 'px; top:' + (st.y - 46) + 'px' };
+
+    const times = TS.map((h, i) => ({ label: i === 0 ? 'Jetzt · 06:15' : '+' + h + ' h', on: i === ti, style: i === ti ? 'background:#1F5FAE; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ t: i }) }));
+    const timeLabel = hm(BASE + TS[ti] * 60);
+
+    const cs = corr.ids.map((id) => SBY[id]);
+    const segs = [];
+    let cur = null;
+    for (let km = 0; km < corr.len; km++) {
+      const mid = km + 0.5;
+      let best = null, bd = 1e9;
+      cs.forEach((x) => { const d = Math.abs(x.km - mid); if (d < bd) { bd = d; best = x; } });
+      let key, kind;
+      if (best && bd <= 10) {
+        key = clsAt(best, ti);
+        kind = best.kind === 'model' ? 'model' : (key === 'nodata' ? 'nodata' : 'gma');
+      } else { key = 'gap'; kind = 'gap'; }
+      const sig = key + '|' + kind;
+      if (cur && cur.sig === sig) cur.to = km + 1;
+      else { cur = { sig: sig, key: key, kind: kind, from: km, to: km + 1 }; segs.push(cur); }
+    }
+    const segOut = segs.map((g) => {
+      const col = lZust ? CLS[g.key].color : '#8B95A3';
+      let bg;
+      if (g.kind === 'gap' || g.kind === 'nodata') bg = 'repeating-linear-gradient(135deg,#C9BE9E 0 3px,#F5F1E8 3px 6px)';
+      else if (g.kind === 'model') bg = 'repeating-linear-gradient(135deg,' + col + ' 0 5px,' + col + '66 5px 9px)';
+      else bg = col;
+      return { style: 'left:' + (g.from / corr.len * 100) + '%; width:' + ((g.to - g.from) / corr.len * 100) + '%; background:' + bg + ';' + (ti > 0 && g.kind === 'gma' ? ' opacity:0.85;' : '') };
+    });
+    const ticks = cs.map((x) => {
+      const k = clsAt(x, ti), sel = x.id === stId, sz = sel ? 16 : 12;
+      const col = lZust ? CLS[k].color : '#8B95A3';
+      let bg = col, bd = '2px solid #FAF6EA';
+      if (x.kind === 'model') { bg = '#FFFFFF'; bd = '3px solid ' + col; }
+      if (k === 'nodata') { bg = 'repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)'; bd = '2px solid #8B8474'; }
+      const ring = sel ? ' box-shadow:0 0 0 2px #2C2A26;' : '';
+      return { label: x.name + ', km ' + dec(x.km), pick: () => set({ st: x.id, tab: 'gefahren', seg: SEG_OF_ST[x.id] || s.seg, view: SEG_OF_ST[x.id] ? 'detail' : (s.view || 'lage'), ddir: 0 }), style: 'left:calc(' + (x.km / corr.len * 100) + '% - ' + sz / 2 + 'px); top:' + (sel ? 1 : 3) + 'px; width:' + sz + 'px; height:' + sz + 'px; background:' + bg + '; border:' + bd + ';' + ring };
+    });
+    const towns = corr.towns.map((t, i) => {
+      const tr = i === 0 ? 'none' : (i === corr.towns.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)');
+      return { label: t[1], style: 'left:' + (t[0] / corr.len * 100) + '%; transform:' + tr };
+    });
+    const kmAxis = [];
+    for (let k = 0; k <= corr.len; k += corr.step) {
+      const tr = k === 0 ? 'none' : (k + corr.step > corr.len ? 'translateX(-100%)' : 'translateX(-50%)');
+      kmAxis.push({ label: 'km ' + k, style: 'left:' + (k / corr.len * 100) + '%; transform:' + tr });
+    }
+    const borderStyle = 'left:' + (corr.border / corr.len * 100) + '%';
+
+    const tabs = [['station', 'Station'], ['strecke', 'Strecke'], ['quellen', 'Quellen']].map((t) => ({ label: t[1], on: t[0] === tab, style: t[0] === tab ? 'background:#1F5FAE; color:#FAF6EA; font-weight:600' : 'background:transparent; color:#8B7355; font-weight:500', pick: () => set({ tab: t[0] }) }));
+
+    const derived = isDerived(st, ti);
+    const r0 = st.kind === 'gma' ? roadAt(st, dhSel) : null;
+    let eyebrow, eyeStyle;
+    if (st.kind === 'model') { eyebrow = 'Prognosepunkt · Österreich'; eyeStyle = 'color:#9A5A2A'; }
+    else if (st.kind === 'nodata') { eyebrow = 'Glättemeldeanlage · Störung'; eyeStyle = 'color:#8B8474'; }
+    else { eyebrow = 'Glättemeldeanlage · DWD'; eyeStyle = 'color:#1F5FAE'; }
+    const kmTxt = st.kind === 'model' ? 'Prognosepunkt' : 'km ' + dec(st.km);
+    let chip, chipStyle, chipDot;
+    if (ti === 0 && st.kind !== 'model') { chip = 'gemessen 06:15 · vor 7 min'; chipStyle = 'background:#EFF3E8; color:#4D6A3B'; chipDot = 'background:#5F7A4C'; }
+    else { chip = 'abgeleitet für ' + timeLabel + ' · keine Messung'; chipStyle = 'background:#FBF3E7; color:#7A4520'; chipDot = 'background:#E39A3B'; }
+    let heroLabel, heroVal, heroSub;
+    if (st.kind === 'model') { heroLabel = 'Luft'; heroVal = f1(airAt(st, dhSel)) + ' °C'; heroSub = 'keine Fahrbahnmessung verfügbar'; }
+    else if (kSel === 'nodata') { heroLabel = 'Fahrbahn'; heroVal = '—'; heroSub = 'Gerätewert −75,00 °C verworfen'; }
+    else if (st.kind === 'nodata') { heroLabel = 'Luft'; heroVal = f1(airAt(st, dhSel)) + ' °C'; heroSub = 'Fahrbahnsensor gestört, nur Luftwerte'; }
+    else { heroLabel = ti === 0 ? 'Fahrbahn' : 'Fahrbahn (abgeleitet)'; heroVal = f1(r0) + ' °C'; heroSub = ti === 0 ? (st.sens > 1 ? 'kältester von ' + st.sens + ' Sensoren · ' + st.spread : '1 Sensor') : 'aus letzter Messung + buscosun Fusion'; }
+    let badge;
+    if (kSel === 'ice') badge = 'Glätte gemessen · ' + st.code;
+    else if (kSel === 'nodata') badge = 'Keine gültige Messung';
+    else badge = CLS[kSel].label + (derived ? ' (abgeleitet)' : '');
+    const badgeStyle = kSel === 'nodata' ? 'background:repeating-linear-gradient(135deg,#EDE6D3 0 4px,#F5F1E8 4px 8px); color:#5C5447; border:1px solid #D9D0B8' : 'background:' + CLS[kSel].color + '; color:' + CLS[kSel].ink;
+
+    let vals;
+    if (st.kind === 'model') {
+      vals = [
+        { k: 'Luft', v: f1(airAt(st, dhSel)) + ' °C' }, { k: 'Taupunkt', v: f1(dewAt(st, dhSel)) + ' °C' },
+        { k: 'Rel. Feuchte', v: st.rh + ' %' }, { k: 'Wind / Böen', v: st.wind + ' / ' + st.gust + ' km/h' },
+        { k: 'Niederschlag', v: st.pr }, { k: '5 cm über Boden (TAWES)', v: st.t5 },
+        { k: 'Fahrbahn', v: 'keine offene Messung' }, { k: 'Anker-Station', v: st.tawes }
+      ];
+    } else {
+      vals = [
+        { k: 'Luft', v: f1(airAt(st, dhSel)) + ' °C' }, { k: 'Taupunkt', v: f1(dewAt(st, dhSel)) + ' °C' },
+        { k: 'Rel. Feuchte', v: st.rh + ' %' }, { k: 'Sichtweite', v: visTxt(st.vis) },
+        { k: 'Wind / Böen', v: st.wind + ' / ' + st.gust + ' km/h' }, { k: 'Niederschlag', v: st.pr }
+      ];
+      if (st.kind === 'nodata') vals = vals.concat([{ k: 'Fahrbahnsensor', v: 'verworfen' }, { k: 'Grund', v: 'Wert unter −60 °C' }]);
+      else vals = vals.concat([{ k: 'Wasserfilm', v: ti > 0 ? '—' : dec(st.film.toFixed(1)) + ' mm' }, { k: 'Zustandscode', v: ti > 0 ? '—' : st.code }]);
+    }
+    const gridTitle = (st.kind === 'model' || ti > 0) ? 'Prognose für ' + timeLabel : 'Messwerte 06:15';
+
+    let hint;
+    const a = f1(airAt(st, dhSel)), dw = f1(dewAt(st, dhSel));
+    if (st.kind === 'model') {
+      if (kSel === 'frost') hint = 'Keine Fahrbahnmessung in Österreich. Prognose ' + timeLabel + ': Luft ' + a + ' °C, Taupunkt ' + dw + ' °C, Fahrbahn wahrscheinlich feucht – Überfrieren möglich.';
+      else if (kSel === 'wet') hint = 'Keine Fahrbahnmessung in Österreich. Prognose ' + timeLabel + ': Luft ' + a + ' °C, nasse Fahrbahn wahrscheinlich.';
+      else hint = 'Keine Fahrbahnmessung in Österreich. Prognose ' + timeLabel + ': Luft ' + a + ' °C, kein Niederschlag erwartet.';
+    } else if (kSel === 'nodata') {
+      hint = 'Der Fahrbahnsensor meldet den Gerätewert −75,00 °C; buscosun verwirft ihn. Über den Fahrbahnzustand an dieser Stelle ist nichts bekannt.';
+    } else if (ti > 0) {
+      const rr = f1(roadAt(st, dhSel));
+      if (kSel === 'frost') hint = 'Abgeleitet für ' + timeLabel + ': Fahrbahn um ' + rr + ' °C, Taupunkt ' + dw + ' °C, Fahrbahn feucht – Überfrieren möglich.';
+      else if (kSel === 'wet') hint = 'Abgeleitet für ' + timeLabel + ': Fahrbahn um ' + rr + ' °C, weiterhin nass.';
+      else hint = 'Abgeleitet für ' + timeLabel + ': Fahrbahn um ' + rr + ' °C, abtrocknend.';
+    } else {
+      const rr = f1(r0), src = ' (GMA ' + st.name + ', 06:15)';
+      if (kSel === 'ice') hint = 'Fahrbahn ' + rr + ' °C gemessen, Zustand „' + st.code + '“, Taupunkt ' + dw + ' °C' + src + '. Glätte an dieser Messstelle.';
+      else if (kSel === 'frost') hint = 'Fahrbahn ' + rr + ' °C gemessen bei Taupunkt ' + dw + ' °C, Fahrbahn ' + st.code.toLowerCase() + src + '. Überfrieren möglich.' + (st.fog ? ' Sicht ' + st.vis + ' m (Nebel).' : '');
+      else if (kSel === 'wet') hint = 'Fahrbahn nass bei ' + rr + ' °C, Wasserfilm ' + dec(st.film.toFixed(1)) + ' mm' + src + '.';
+      else hint = 'Messstelle trocken bei ' + rr + ' °C' + src + '. Das gilt für diesen Punkt, nicht für die ganze Strecke.';
+    }
+
+    const X = (dh) => 30 + (dh + 24) / 30 * 326;
+    const Y = (v) => 104 - (Math.max(-4, Math.min(10, v)) + 4) / 14 * 88;
+    const pts = (fn, from, to) => { const o = []; for (let dh = from; dh <= to; dh++) o.push(X(dh).toFixed(1) + ',' + Y(fn(dh)).toFixed(1)); return o.join(' '); };
+    const hasRoad = st.kind === 'gma';
+    const roadFn = (dh) => (hasRoad ? roadAt(st, dh) : 0);
+    const ch = {
+      roadH: pts(roadFn, -24, 0), roadF: pts(roadFn, 0, 6),
+      airH: pts((dh) => airAt(st, dh), -24, 0), airF: pts((dh) => airAt(st, dh), 0, 6),
+      dewH: pts((dh) => dewAt(st, dh), -24, 0), dewF: pts((dh) => dewAt(st, dh), 0, 6),
+      roadOp: hasRoad ? 1 : 0, roadLegend: hasRoad ? '' : 'opacity:0.35; text-decoration:line-through',
+      nowX: X(0), fcW: X(6) - X(0), fcLabX: (X(0) + X(6)) / 2, selX: X(TS[ti]),
+      zeroY: Y(0), zeroT: Y(0) + 3, y8: Y(8), y8T: Y(8) + 3,
+      aria: 'Verlauf ' + st.name + ': ' + (hasRoad ? 'Fahrbahn, ' : '') + 'Luft und Taupunkt der letzten 24 Stunden und abgeleitet 6 Stunden'
+    };
+
+    const prog = TS.map((h, i) => {
+      const k = clsAt(st, i), dh = TS[i];
+      let v;
+      if (st.kind === 'model' || (st.kind === 'nodata' && i > 0)) v = 'L ' + f1(airAt(st, dh)) + '°';
+      else if (k === 'nodata') v = '—';
+      else v = f1(roadAt(st, dh)) + '°';
+      return { lbl: i === 0 ? 'Jetzt' : '+' + h + ' h · ' + hm(BASE + h * 60), val: v, cl: CLS[k].short, on: i === ti, sw: k === 'nodata' ? 'background:repeating-linear-gradient(135deg,#8B8474 0 2px,#EDE6D3 2px 4px)' : 'background:' + CLS[k].color, style: i === ti ? 'border:1.5px solid #1F5FAE' : 'border:1px solid #E0D6BE', pick: () => set({ t: i }) };
+    });
+
+    let quality, source;
+    if (st.kind === 'model') { quality = 'Herkunft: buscosun Fusion (Prognose) · GeoSphere TAWES (Messung Luft und Boden)'; source = 'Daten: GeoSphere Austria, CC BY 4.0 · Beispieldaten im Mockup'; }
+    else if (st.kind === 'nodata') { quality = 'Plausibilität buscosun: Fahrbahnsensor verworfen (Wert unter −60 °C)'; source = 'Daten: Deutscher Wetterdienst, Glättemeldeanlagen der Länder · Beispieldaten im Mockup'; }
+    else { quality = 'Stationsprüfung: nicht durchgeführt (DWD-Flag) · Plausibilität buscosun: bestanden'; source = 'Daten: Deutscher Wetterdienst, Glättemeldeanlagen der Länder · Beispieldaten im Mockup'; }
+
+    const rd = { eyebrow: eyebrow, eyeStyle: eyeStyle, name: st.name, sub: st.road + ' · ' + kmTxt + ' · ' + corr.dirs[dir] + ' · ' + st.elev + ' m ü. NN', chip: chip, chipStyle: chipStyle, chipDot: chipDot, heroLabel: heroLabel, heroVal: heroVal, heroSub: heroSub, badge: badge, badgeStyle: badgeStyle, gridTitle: gridTitle, vals: vals, hint: hint, hintStyle: TINT[kSel], prog: prog, hasWarn: !!st.warn && on('lWarn'), warn: st.warn || '', quality: quality, source: source };
+
+    const depAbs = BASE + dep;
+    const rows = cs.map((x) => {
+      const off = (dep + x.km * 0.6) / 60;
+      const idx = off < 0.5 ? 0 : (off < 2 ? 1 : (off < 4.5 ? 2 : 3));
+      const k = clsAt(x, idx), der = isDerived(x, idx);
+      let v;
+      if (x.kind === 'model' || (x.kind === 'nodata' && idx > 0)) v = 'Luft ' + f1(airAt(x, TS[idx])) + ' °C · Prognose';
+      else if (k === 'nodata') v = 'Sensor gestört';
+      else v = 'Fahrbahn ' + f1(roadAt(x, TS[idx])) + ' °C' + (der ? ' · abgeleitet' : ' · gemessen');
+      const chipS = k === 'nodata' ? 'background:repeating-linear-gradient(135deg,#EDE6D3 0 3px,#F5F1E8 3px 6px); color:#5C5447' : (der ? 'background:#FFFFFF; color:#2C2A26; border:2px solid ' + CLS[k].color : 'background:' + CLS[k].color + '; color:' + CLS[k].ink);
+      return { km: dec(Math.round(x.km)), name: x.name, val: v, eta: hm(depAbs + x.km * 0.6), cl: CLS[k].short, chip: chipS, k: k, pick: () => set({ st: x.id, tab: 'station' }) };
+    });
+    const gm = cs.filter((x) => x.kind === 'gma');
+    let coldest = '';
+    if (gm.length) {
+      const c0 = gm.reduce((p, q) => (q.road0 < p.road0 ? q : p));
+      coldest = 'Kälteste Messung: ' + c0.name + ' ' + f1(c0.road0) + ' °C (' + c0.code + ', 06:15).';
+    }
+    const nCrit = rows.filter((r) => r.k === 'ice' || r.k === 'frost').length;
+    const brief = {
+      coldest: coldest,
+      crit: 'Zur Ankunftszeit ' + nCrit + ' von ' + rows.length + ' Messpunkten mit Glätte oder Frostgefahr.',
+      border: corr.border ? 'Ab km ' + corr.border + ' (' + corr.borderName + ') nur Prognose, keine Fahrbahnmessung.' : 'Alle Punkte mit DWD-Fahrbahnmessung.',
+      rows: rows
+    };
+
+    const sources = SOURCES.map((x) => ({ cc: x.cc, name: x.name, what: x.what, status: x.status, box: x.st === 'bl' ? 'background:#F4F0E4; border:1px dashed #D9D0B8' : 'background:#FFFFFF; border:1px solid #E0D6BE', nameStyle: x.st === 'bl' ? 'color:#A89A7A' : 'color:#2C2A26', chip: x.st === 'bl' ? 'background:#EDE6D3; color:#8B7355' : 'background:#EFF3E8; color:#4D6A3B' }));
+
+    const __base = {
+      countries: countries, roadItems: roadItems, roadCount: String(roadItems.length + staticRows.length), staticRows: staticRows, layers: layers,
+      hl: hl, warnOp: on('lWarn') ? 1 : 0, radarOp: on('lRadar') ? 1 : 0, fogOp: on('lSicht') && road === 'a8' ? 1 : 0,
+      markers: markers, tempLabels: tempLabels, callout: callout,
+      corrShields: corr.sh.map((t) => ({ t: t })), corrTitle: corr.title, corrCountries: corr.cc.join(' · '), corrLen: String(corr.len), dirLabel: corr.dirs[dir],
+      flipDir: () => set({ dir: dir ? 0 : 1 }),
+      times: times, isFc: ti > 0, timeLabel: timeLabel,
+      bandTitle: corr.sh.join(' → ') + ' · ' + corr.len + ' km', bandStand: ti === 0 ? 'Messung 06:15' : 'Prognose ' + timeLabel + ' · abgeleitet',
+      segs: segOut, ticks: ticks, towns: towns, kmAxis: kmAxis, hasBorder: corr.border > 0, borderStyle: borderStyle,
+      tabs: tabs, isStation: tab === 'station', isStrecke: tab === 'strecke', isQuellen: tab === 'quellen',
+      rd: rd, ch: ch,
+      depLabel: hm(depAbs), depEarlier: () => set({ dep: Math.max(0, dep - 30) }), depLater: () => set({ dep: Math.min(345, dep + 30) }),
+      brief: brief, sources: sources
+    };
+    return Object.assign(__base, buildHazard(s, set, this));
+  }
+}
+</script>
+</body>
+</html>

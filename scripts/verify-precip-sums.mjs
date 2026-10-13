@@ -375,8 +375,9 @@ console.log('\n== G Verdrahtung ==');
   const map = readFileSync(join(ROOT, 'src/nowcast/NowcastRadarMap.tsx'), 'utf8');
   add('G1 Deck: Dock „Darstellung" (Desktop) und Reiter Layer (mobil), Karte am Ort im Readout und im Schnellblick',
     (deck.match(/<SumControls /g) ?? []).length === 2 && (deck.match(/<PointSumCard /g) ?? []).length === 2 && /variant="dock"/.test(deck) && /variant="mobile"/.test(deck));
-  add('G2 `?sum=0`: Deck reicht weder Auswahl noch Summen weiter, die alte Band-Zeile bleibt für diesen Weg',
-    /sumsOn \? sumSel : null/.test(deck) && /sumsOn \? sumSel : undefined/.test(deck) && (deck.match(/Band \$\{comma\(s\.sumMinMm\)\}/g) ?? []).length === 2 && /honestSum \? SUM6_HONEST_SUB/.test(deck));
+  // Jan 13.10. (audit/regenradar-altanzeigen.md): "Kennzahlen · 6 h" (with the tile "Summe 6 h" and its band line) is removed.
+  add('G2 `?sum=0`: Deck reicht weder Auswahl noch Summen weiter; die Kachel „Summe 6 h" samt Band-Zeile ist entfernt',
+    /sumsOn \? sumSel : null/.test(deck) && /sumsOn \? sumSel : undefined/.test(deck) && !/sumMinMm/.test(deck) && !/Summe 6 h/.test(deck));
   add('G3 Karte: in „Summe" (und seit Phase RC in „Chance") ruht nur die Intensitäts-Ebene (precip), Legende und Hover der Summe; ohne `sum` unverändert',
     /sumMode(?: \|\| chanceMode)? \? layers\.filter\(\(l\) => l !== 'precip'\) : layers/.test(map) && /\{sumMode && sum && <SumLegend/.test(map) && /useSumMap\(mapInst, sum \?\? /.test(map));
   const css = readFileSync(join(ROOT, 'src/precipSums/precipSums.css'), 'utf8');

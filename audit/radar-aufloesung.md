@@ -138,7 +138,8 @@ Zugnacht, 11.10. 10:05 Regen; `derive-slots.mjs`: je `rv/` + `rv-past/` mit `RAD
 `shots/`, je Bild eine Zeile in `report.jsonl` (Zoom, Slider-Index, Status, Kachel-Ebenen, DE-1-km-Ebene, 250-m-Abrufe,
 Konsole); 29 Szenen mussten nach einem Ausfall des Basemap-Stils (`tiles.openfreemap.org/styles/dark` „Failed to fetch" —
 ohne Stil keine Ebenen) und zwei Läufer-Fehlern (Zählen statt „Jetzt"-Knopf; Timeline-Seed) wiederholt werden; die jüngste
-Zeile je Bild zählt.
+Zeile je Bild zählt. Im Repo liegen 33 ausgewählte Bilder (`shots/`, 12 MB mit den Diff-Bildern); der volle Satz (152 Bilder,
+52 MB) und die `head`/`cur`-Bilder des Pixel-Diffs liegen außerhalb unter `C:\dev\buscosun-radar-truth\ra-shots\`.
 
 | Prüfpunkt | Beleg | Ergebnis |
 |---|---|---|

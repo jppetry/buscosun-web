@@ -2491,8 +2491,36 @@ typecheck 0, Build 256/256, Budget grün (totalJs-Ratsche von Hand 1 720 → 1 7
 
 ### 66.1 Kopie ins Daten-Repo `jppetry/buscosun-data`
 
-Paket: **`C:\dev\buscosun-sea-publish\2026-10-12-wl\`** (mit eigener `README.md`). Die Reihenfolge ist frei —
+**ERLEDIGT 13.10. 16:33 UTC (mit deiner Freigabe im Chat):** Commit `a762bede5` auf `origin/main`
+(`sea: WL-2 Pegelkatalog … + Schritt Gauges`, Katalog sha256 `a59a314390a2…` byteidentisch am CDN:
+raw, jsDelivr `@a762bede5` und `@main` je 200 / 57 698 B). Produktion zeigt seitdem den nächsten Pegel je
+Spot (St. Peter-Ording ⇒ Süderoogsand, Bezug, Hoch-/Niedrigwasser; Bild
+`audit/wasserstand-bsh/prod-2026-10-13-gauges-live.png`). Der 15-min-Workflow hält den Katalog ab Lauf
+≥ 401 selbst aktuell. Lokales `main` des Klons steht auf `a762bede5`; der frühere lokale Stand (RG-Commit
+`ea8884e44`, Inhalt liegt auf `origin/main`) ist als Zweig `keep/rg-radar-log-native` gesichert.
+
+Ablauf-Lehre (V-WL-20): das Daten-Repo wird vom Publisher force-gepusht; ein `git rebase origin/main` spielt
+dann die alte Historie neu ab (97 Commits, Konflikte in jeder Datei). Richtig: `git checkout --detach
+origin/main` → `git cherry-pick <commit>` → sofort `git push origin HEAD:main`, in einer Schleife, weil die
+Crons im Minutentakt dazwischen pushen (zwei Abweisungen vor dem Erfolg).
+
+Paket vom 13.10. weiterhin unter **`C:\dev\buscosun-sea-publish\2026-10-13-wl\`** (nur noch Beleg).
+
+Paket vom 12.10.: **`C:\dev\buscosun-sea-publish\2026-10-12-wl\`** (mit eigener `README.md`). Die Reihenfolge ist frei —
 der neue Workflow-Schritt überspringt sich selbst, solange der Producer nicht auf `buscosun-web/main` liegt.
+
+### 66.0 Füllstand (WL-5, 13.10.) — Commit und Push von `buscosun-web`
+
+Uncommitted im Arbeitsbaum (neben SE/RA): `src/sea/waterLevel.ts` (`wlFill`), `src/sea/SeaReadout.tsx`
+(`WaterLevelFill`, Bezugswörter je Revier), `src/sea/SeaCharts.tsx` (Beschriftung MHW/MNW an der Ostsee),
+`src/sea/seaDeck.css`, `scripts/verify-sea-waterlevel.mjs` (F11…F11h), `scripts/verify-sea-ui.mjs`
+(L1b/L1c/L12a/L12b, Fail-fast ohne Server, Zähler 12/13 nach der Gletscher-Kachel), `audit/wasserstand-bsh.md`
+§8.4b + V-WL-14…18. Gates: `verify:sea-waterlevel` 63/63, `verify:sea-ui` 68/68 (gegen `npm run build` +
+`npx vite preview --host 127.0.0.1 --port 5212 --strictPort`), typecheck 0, Build grün, Budget grün (totalJs
+1 768,2 / 1 772). Dein Schritt: Commit (`feat(sea): water level fill gauge (WL-5)`) und Push — der Katalog
+aus 66.1 liegt seit 13.10. 16:33 UTC im Daten-Repo, mit dem Push von `buscosun-web` erscheint das Glas bei
+allen Besuchern. Beachte V-WL-19: am nächsten Pegel ohne Kurve (z. B. Süderoogsand vor St. Peter-Ording)
+gibt es kein Glas, nur die Hoch-/Niedrigwasserzeiten; der Pegel ist in der Karte wählbar.
 
 1. `sea/v1/static/gauges.json` → `buscosun-data/sea/v1/static/gauges.json` (neu, 57,7 KB / 10,3 KB gz,
    sha256 `f6ddb4630a81c3d349138499624ad69e032544092cca89ea5cd82a4671cf342c`, gebaut 12.10. 15:4x UTC aus der
@@ -2543,6 +2571,21 @@ freigeschaltet."). Nichts rechnet falsch, nichts behauptet etwas.
   BSH-Datensatz trägt an 83 von 136 Pegeln einen Deep-Link auf die PEGELONLINE-Stammdaten; die Messreihe
   selbst käme aus der Kurve des BSH (`measurement`), die wir schon zeichnen.
 
+## 67. Regenradar — alte Anzeigen entfernt (Phase RA, `audit/regenradar-altanzeigen.md`), 2026-10-13
+
+Auf dein Wort gelöscht: der alte Satz „Schnellblick" (mit Badges/Chips), „Kennzahlen · 6 h" und die 6-h-Balkenkarte
+„Niederschlagssumme" — Desktop-Readout und mobil (Reiter „Schnellblick" und „Detail"). Die Karte „Gefallen | Erwartet"
+und der mobile Reiter „Schnellblick" bleiben. Uncommitted.
+
+1. **Ansehen** (`/regenradar/muenchen`, Desktop und Handy), dann **Commit/Push** von `src/nowcast/NowcastDeck.tsx`,
+   `nowcastDeck.css`, `nowcastMobile.css`, `scripts/verify-rain-window.mjs`, `scripts/verify-precip-sums.mjs`,
+   `audit/regenradar-altanzeigen.md`, `CLAUDE.md`, dieser Datei. Im Arbeitsbaum liegen daneben Änderungen anderer
+   Sitzungen (Radar-Störecho, `MapView.tsx`, `SeaPage.tsx`) — nicht mit committen.
+2. **Entscheiden:** V-RA-1 (`?rb=0` zeigt oben keinen Satz mehr — Schalter streichen?), V-RA-2 (toten Code
+   `heroState` und ungelesene Felder von `nowcast.summary` entfernen), V-RA-3 (Reiter „Schnellblick" umbenennen?).
+3. Gewitter-/Hagelrisiko in %, Phase, Charakter und „Starkregen Ja/Nein" haben seither keine Anzeige mehr — sag
+   Bescheid, falls eines davon an anderer Stelle wieder erscheinen soll.
+
 ## 68. Niederschlagsradar — Echos ohne Niederschlag ausblenden (Phase SE, `audit/radar-stoerecho.md`), 2026-10-13
 
 Dein Befund „Fleck neben Gießen": kein Regen, sondern ein Echo ohne Niederschlag (sehr wahrscheinlich Vogelzug) im
@@ -2585,6 +2628,28 @@ hinter `RADAR_CLUTTER` — **aus**. Uncommitted. Im Client ändert sich nichts.
 5. **Nachmessen (V-SE-8):** die Regel ruht auf zwei Herbsttagen und einer Nacht. Bei Schnee, in einer Gewitterlage und im
    Sommer je zwei Tage sammeln (Befehle wie in 1 mit eigenem Zeitraum, vorher `extract.mjs`) und `score.mjs`/`score2.mjs`
    wiederholen.
+
+## 69. Ländermaske ohne Lücken — Liechtenstein, Bodensee, Grenznähte (Phase LM, `audit/laendermaske.md`), 2026-10-13
+
+Dein Auftrag „keine leeren Felder an den Grenzregionen, Liechtenstein anzeigen" (E-LM-1). Befund: die Sandmaske der Karte
+war aus drei einzeln vereinfachten Landesumrissen gebaut; Liechtenstein, der Bodensee und jede Naht/Überlappung zweier
+Umrisse lagen als Sand über den Daten — im Regenradar bei Vaduz war die ganze Karte sand. Umgebaut: EIN aufgelöster
+Umriss DE ∪ AT ∪ CH ∪ LI mit gefüllten Innenlöchern (`public/countries/DACH.geojson`), Rückfall `?mask=legacy`.
+Gates grün (typecheck, build, budget, `verify:dach-mask` 11/11, `verify:fusion-release` 30/30), Bildbelege
+`audit/laendermaske/vorher-*.png` / `nachher-*.png`. Uncommitted.
+
+1. **Ansehen:** `/wetterkarte?lat=47.15&lon=9.55&z=9.5` (Liechtenstein), `?lat=47.6&lon=9.4&z=9` (Bodensee),
+   `?lat=47.70&lon=8.87&z=10` (Schaffhausen), `/regenradar` mit Ort Vaduz; dasselbe mit `&mask=legacy` = das alte Bild.
+2. **Commit/Push von `main`** (getrennt von RA §67 und SE §68, die im selben Arbeitsbaum liegen): `src/countryMask.ts`,
+   `public/countries/LI.geojson` + `DACH.geojson` (neu), `scripts/gen-dach-mask.mjs` + `scripts/verify-dach-mask.mjs` (neu),
+   `package.json` (`verify:dach-mask`), `audit/laendermaske.md` + `audit/laendermaske/`, `CLAUDE.md`, diese Datei.
+3. **Entscheiden:** V-LM-1 — die Flächensummen (`precipsum`) maskieren weiter nur DE/AT/CH-Zellen, Liechtenstein bleibt dort
+   ein Loch (Daten-Repo-Workflow, Sparse-Liste `public/countries` + Maskenliste um `LI` ergänzen — Jans Gate). V-LM-2 —
+   Campione d'Italia (IT-Enklave in CH, 2,6 km²) wird jetzt wie DACH gezeigt statt als Even-Odd-Artefakt (V-HD-4); so lassen?
+   V-LM-4 — an den Dreiländerecken Basel (FR), Nauders (IT) und Passau (CZ) bleiben kleine Kerben, weil die Lücke dort nicht
+   umschlossen ist; Skizze im Audit.
+4. **Real-Device:** die Maske ist eine MapLibre-`fill`-Ebene wie bisher (gleiche Ebene, nur andere Ringe; 1 162 statt
+   1 716 Stützpunkte) — kein GPU-Risiko erkennbar, Bildbelege sind Headless-Desktop; ein Blick auf dem Handy genügt.
 
 ## 70. Radar — Phase SE abgeschlossen, Auflösung auf der ganzen DACH-Karte, 250 m nur auf Wunsch (Phase RA, `audit/radar-aufloesung.md`), 2026-10-13
 

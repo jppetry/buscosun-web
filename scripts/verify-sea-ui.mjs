@@ -126,6 +126,16 @@ const clockScript = (iso) => `(() => {
 
 const chrome = findHeadlessChrome();
 if (!chrome) { console.error('kein chrome-headless-shell gefunden'); process.exit(2); }
+// V-WL-16: without a server on BASE every page is `chrome-error://` and the checks measure nothing — four runs
+// on 13.10.2026 crashed at an optional element before anyone noticed. Fail fast, with the command to start it.
+{
+  const alive = await fetch(`${BASE}/seewetter`, { signal: AbortSignal.timeout(5_000) }).then((r) => r.ok).catch(() => false);
+  if (!alive) {
+    console.error(`kein App-Server unter ${BASE} — vorher bauen und starten: npm run build && npx vite preview --host 127.0.0.1 --port 5212 --strictPort`);
+    rmSync(tmp, { recursive: true, force: true });
+    process.exit(2);
+  }
+}
 const browser = await openBrowser(chrome, { timeoutMs: 120_000, extraArgs: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const requested = [];
 
@@ -134,7 +144,12 @@ async function openPage({ path, width = 1440, height = 900, mobile = false, cloc
   const errors = [];
   const off = browser.on(async (msg) => {
     if (msg.sessionId !== ctx.sessionId) return;
-    if (msg.method === 'Runtime.exceptionThrown') errors.push(msg.params.exceptionDetails?.exception?.description?.split('\n')[0] ?? msg.params.exceptionDetails?.text);
+    if (msg.method === 'Runtime.exceptionThrown') {
+      const line = msg.params.exceptionDetails?.exception?.description?.split('\n')[0] ?? msg.params.exceptionDetails?.text;
+      errors.push(line);
+      // Printed at once, so a page error is visible even when a later check crashes the run (V-WL-16).
+      console.error(`[page ${path}] ${line}`);
+    }
     if (msg.method === 'Fetch.requestPaused') {
       const url = msg.params.request.url;
       requested.push(url);
@@ -201,7 +216,8 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
   await sleep(800);
   const r = await ctx.evaluate(`({ tile: [...document.querySelectorAll('.deck-tile')].some((t) => /Seewetter/.test(t.getAttribute('aria-label') ?? '')), count: document.querySelector('.deck-chips-count')?.textContent ?? '', rail: [...document.querySelectorAll('a[title]')].some((a) => a.getAttribute('title') === 'Seewetter') })`);
-  add('A2 Startseite mit ?sea=0: keine Seewetter-Kachel, Zähler „11 Werkzeuge“', !r.tile && /11/.test(r.count) && !r.rail, JSON.stringify(r));
+  // Counter: since the Gletscher-Monitor tile (Phase GL, `8e8646a`) the home deck lists 13 tools, 12 without Seewetter.
+  add('A2 Startseite mit ?sea=0: keine Seewetter-Kachel, Zähler „12 Werkzeuge“ (13 − Seewetter)', !r.tile && /\b12\b/.test(r.count) && !r.rail, JSON.stringify(r));
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
@@ -209,8 +225,8 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
   await sleep(800);
   const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Seewetter/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); const pv = t?.querySelector('.tile-sea-preview')?.getBoundingClientRect(); return { tile: !!t, eyebrow: t?.querySelector('.tile-eyebrow')?.textContent ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '', preview: pv ? [Math.round(pv.width), Math.round(pv.height)] : null, inside: !!(b && pv && pv.left >= b.left && pv.right <= b.right && pv.top >= b.top && pv.bottom <= b.bottom), tags: [...(t?.querySelectorAll('.tile-tag') ?? [])].map((e) => e.textContent), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
-  add('A3 Startseite ohne Parameter (Flag an für alle, SEA_LIVE): Kachel „12 · SEEWETTER“ sichtbar mit Vorschau und Stichworten, Zähler 12',
-    r.tile && r.eyebrow === '12 · SEEWETTER' && /12/.test(r.count) && r.preview && r.preview[0] >= 300 && r.preview[1] >= 120 && r.inside && r.tags.length >= 4 && !r.overflow, JSON.stringify(r));
+  add('A3 Startseite ohne Parameter (Flag an für alle, SEA_LIVE): Kachel „12 · SEEWETTER“ sichtbar mit Vorschau und Stichworten, Zähler 13 (mit Gletscher-Kachel)',
+    r.tile && r.eyebrow === '12 · SEEWETTER' && /\b13\b/.test(r.count) && r.preview && r.preview[0] >= 300 && r.preview[1] >= 120 && r.inside && r.tags.length >= 4 && !r.overflow, JSON.stringify(r));
   await shot(ctx, 'home-tile-desktop');
   off(); allErrors.push(...errors); await ctx.close();
 }
@@ -229,8 +245,10 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   const { ctx, errors, off } = await openPage({ path: '/seewetter/st-peter-ording', width: 390, height: 844, mobile: true });
   await until(ctx, `!!document.querySelector('.rsb summary') && !!document.querySelector('.sw-m-top')`, 60_000);
   await sleep(1500);
-  const r = await ctx.evaluate(`(() => { const c = document.querySelector('.rsb summary').getBoundingClientRect(); const hit = [...document.querySelectorAll('.sw-root button, .sw-root a')].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left < c.right && b.right > c.left && b.top < c.bottom && b.bottom > c.top; }).map((e) => (e.getAttribute('aria-label') ?? e.textContent ?? '').trim().slice(0, 24)); return { chip: [Math.round(c.x), Math.round(c.y), Math.round(c.width), Math.round(c.height)], hit }; })()`);
-  add('A7 mobil: der Chip „Über diese Ansicht“ liegt auf keiner Schaltfläche des Decks (Zeitchips, Pille, Teilen) und ist ≥ 44 px hoch', r.hit.length === 0 && r.chip[3] >= 44 && r.chip[0] >= 0, JSON.stringify(r));
+  // If the chip is not there (page not served, block unmounted) the check must FAIL with a word, not crash
+  // the whole run — a crash here hid the real cause (no server on BASE) for four runs on 13.10.2026 (V-WL-16).
+  const r = await ctx.evaluate(`(() => { const el = document.querySelector('.rsb summary'); if (!el) return { chip: null, hit: [], rsb: !!document.querySelector('.rsb'), robots: document.querySelector('meta[name=robots]')?.content ?? null, h1: document.querySelectorAll('h1').length }; const c = el.getBoundingClientRect(); const hit = [...document.querySelectorAll('.sw-root button, .sw-root a')].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left < c.right && b.right > c.left && b.top < c.bottom && b.bottom > c.top; }).map((e) => (e.getAttribute('aria-label') ?? e.textContent ?? '').trim().slice(0, 24)); return { chip: [Math.round(c.x), Math.round(c.y), Math.round(c.width), Math.round(c.height)], hit }; })()`);
+  add('A7 mobil: der Chip „Über diese Ansicht“ liegt auf keiner Schaltfläche des Decks (Zeitchips, Pille, Teilen) und ist ≥ 44 px hoch', !!r.chip && r.hit.length === 0 && r.chip[3] >= 44 && r.chip[0] >= 0, r.chip ? JSON.stringify(r) : `Chip nach dem Laden verschwunden: ${JSON.stringify(r)}`);
   off(); allErrors.push(...errors); await ctx.close();
 }
 {
@@ -248,6 +266,12 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   const { ctx, errors, off } = await openPage({ path: '/seewetter?sea=1' });
   const ready = await until(ctx, READY, 60_000);
   add('B0 mit ?sea=1: Deck mit Daten aus dem Fixture-Speicher', ready);
+  if (!ready) {
+    // Say what the page shows instead of the deck, then stop: every later check of this block reads the deck.
+    const state = await ctx.evaluate(`({ url: location.href, title: document.title, text: document.body.innerText.replace(/\\s+/g, ' ').slice(0, 400), errors: ${JSON.stringify(errors)} })`).catch((e) => String(e));
+    console.error('[B0] Deck nicht bereit:', JSON.stringify(state));
+    console.error('[B0] Seitenfehler:', JSON.stringify(errors));
+  }
   await sleep(1500);
   const box = await ctx.evaluate(`(() => { const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; }; return { rail: r('.sw-rail'), top: r('.sw-topbar'), dock: r('.sw-dock'), map: r('.sw-map'), readout: r('.sw-readout'), band: r('.sw-band') }; })()`);
   add('B1 Maße bei 1440 × 900: Rail 62 · Topbar 60 · Dock 250 · Readout 400 · Karte 728', box.rail?.[2] === 62 && box.top?.[3] === 60 && box.dock?.[2] === 250 && box.readout?.[2] === 400 && box.map?.[2] === 728, JSON.stringify(box));
@@ -433,8 +457,40 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
       events: [...el.querySelectorAll('.sw-wl-events li')].map((li) => li.innerText.split('\\n').join(' ')),
       links: [...el.querySelectorAll('a')].map((a) => a.getAttribute('href')),
       cat: !!el.querySelector('.sw-wl-cat'),
+      // WL-5: the fill glass — its text, the marks drawn, the water rect and the value line of the SVG.
+      fill: (() => {
+        const f = el.querySelector('.sw-wl-fill');
+        if (!f) return null;
+        const svg = f.querySelector('svg');
+        const water = f.querySelector('.sw-wl-fill-water');
+        const r = water ? water.getBoundingClientRect() : null;
+        return {
+          txt: f.innerText, kind: f.getAttribute('data-kind'), band: f.getAttribute('data-band'),
+          marks: [...f.querySelectorAll('svg text')].map((t) => t.textContent),
+          waterH: r ? Math.round(r.height) : -1, glassH: svg ? Math.round(svg.getBoundingClientRect().height) : -1,
+          label: svg?.getAttribute('aria-label') ?? '',
+          big: f.querySelector('strong')?.innerText ?? '',
+        };
+      })(),
     };
   })()`);
+  add('L1b Füllstand (WL-5): Glas mit Wasserstand, Marken MThw/MTnw/NHN, Wert in cm über Pegelnull, Herkunft und Uhrzeit',
+    !!card?.fill && card.fill.waterH > 0 && card.fill.waterH < card.fill.glassH
+    && card.fill.marks.some((t) => /^MThw 656$/.test(t)) && card.fill.marks.some((t) => /^MTnw 366$/.test(t)) && card.fill.marks.some((t) => /^NHN 503$/.test(t))
+    && /^\d+(,\d)? cm über Pegelnull$/i.test(card.fill.big.replace(/\s+/g, ' ')) && /Füllstand · (Vorhersage|gemessen) \d\d:\d\d Uhr/i.test(card.fill.txt)
+    && (card.fill.kind === 'forecast' || card.fill.kind === 'measured') && /Füllstand des Pegels: \d+/.test(card.fill.label),
+    card?.fill ? `${card.fill.big.replace(/\n/g, ' ')} · Wasser ${card.fill.waterH}/${card.fill.glassH} px · ${card.fill.marks.join(', ')}` : 'kein Glas');
+  add('L1c Füllstand: Differenzen gegen MTnw/MThw und NHN als Subtraktion, Lage im Tidehub benannt — kein Wert erfunden',
+    !!card?.fill && /cm gegen MTnw · [+−±]\d+(,\d)? cm gegen MThw/.test(card.fill.txt) && /cm (über|unter|auf) NHN/.test(card.fill.txt)
+    && (card.fill.band === 'within' ? /Tidehub zu -?\d+ % gefüllt/.test(card.fill.txt) : /(über|unter) dem Tidehub/.test(card.fill.txt))
+    && (() => {
+      const big = Number(card.fill.big.replace(/\s.*$/s, '').replace(',', '.'));
+      const m = card.fill.txt.match(/([+−±])(\d+(?:,\d)?) cm gegen MTnw · ([+−±])(\d+(?:,\d)?) cm gegen MThw/);
+      if (!m) return false;
+      const low = (m[1] === '−' ? -1 : 1) * Number(m[2].replace(',', '.')), highV = (m[3] === '−' ? -1 : 1) * Number(m[4].replace(',', '.'));
+      return Math.abs(low - (big - 366)) < 0.11 && Math.abs(highV - (big - 656)) < 0.11;
+    })(),
+    card?.fill ? card.fill.txt.replace(/\n/g, ' | ') : '');
   add('L1 Die Karte „Wasserstand · amtlich (BSH)“ steht im Spot-Reiter, mit Pegelname, Entfernung und Bezugshöhen',
     !!card && /Pegel Cuxhaven, Steubenhöft, Elbe/.test(card.txt) && /km vom Spot/.test(card.txt)
     && /Pegelnull 503 cm unter NHN/.test(card.txt) && /MThw 656 cm/.test(card.txt) && /MTnw 366 cm/.test(card.txt),
@@ -495,13 +551,27 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   o.off(); allErrors.push(...o.errors); await o.ctx.close();
 
   // Ostsee-Form: Kurve ohne Gezeit, keine Hoch-/Niedrigwasserzeiten — die Karte sagt es, statt „–“ zu zeigen.
+  const bBefore = requested.length;
   const b = await openPage({ path: '/seewetter/warnemuende?tab=spot', clock: '2026-10-12T15:30:00Z' });
   await until(b.ctx, `!!document.querySelector('.sw-readout')`, 20_000);
-  await until(b.ctx, `/wasserstand . amtlich/i.test(document.querySelector('.sw-readout')?.innerText ?? '')`, 20_000).catch(() => {});
+  // Wait until the card has settled (neither absent nor "lädt"), then say which gauge requests the harness saw.
+  await until(b.ctx, `(() => { const t = document.querySelector('.sw-readout')?.innerText ?? ''; return /wasserstand . amtlich/i.test(t) && !/Wasserstand lädt/.test(t); })()`, 20_000).catch(() => {});
+  const bReq = requested.slice(bBefore).filter((u) => /gdi\.bsh\.de|gauges\.json/.test(u)).map((u) => u.replace(/^.*\/(items\/|static\/)/, '').replace(/\?.*$/, ''));
+  add('L12a Ostsee-Seite: Katalog und der Pegel Warnemünde wurden abgefragt und aus der Fixture beantwortet',
+    bReq.some((u) => /^gauges\.json/.test(u)) && bReq.some((u) => /^warnemuende$/.test(u)), bReq.join(', ') || 'keine Abrufe');
   const balt = await b.ctx.evaluate(`(() => {
     const el = [...document.querySelectorAll('.sw-card')].find((c) => /wasserstand . amtlich/i.test(c.innerText));
-    return el ? { txt: el.innerText, chart: !!el.querySelector('.sw-chart svg'), events: el.querySelectorAll('.sw-wl-events li').length } : null;
+    return el ? {
+      txt: el.innerText, chart: !!el.querySelector('.sw-chart svg'), events: el.querySelectorAll('.sw-wl-events li').length,
+      fill: el.querySelector('.sw-wl-fill')?.innerText ?? null,
+      marks: [...el.querySelectorAll('.sw-wl-fill svg text')].map((t) => t.textContent),
+    } : null;
   })()`);
+  add('L12b Ostsee-Füllstand: Marken MHW/MNW/NHN statt MThw/MTnw, „Spanne MNW–MHW“ statt Tidehub (keine Gezeit)',
+    !!balt?.fill && balt.marks.some((t) => /^MHW \d+$/.test(t)) && balt.marks.some((t) => /^MNW \d+$/.test(t)) && balt.marks.some((t) => /^NHN \d+$/.test(t))
+    && !balt.marks.some((t) => /MT[hn]w/.test(t)) && !/Tidehub/.test(balt.fill) && /gegen MNW .* gegen MHW|Spanne MNW–MHW/.test(balt.fill)
+    && /MHW \d+ cm · MNW \d+ cm/.test(balt.txt) && !/MThw/.test(balt.txt),
+    balt?.fill ? `${balt.fill.replace(/\n/g, ' | ')} · ${balt.marks.join(', ')}` : 'kein Glas');
   add('L12 Ostsee: kein Hoch-/Niedrigwasser — die Karte benennt es und zeichnet trotzdem den Verlauf (V-WL-6)',
     !!balt && balt.events === 0 && balt.chart === true
     && /führt keine Hoch-\/Niedrigwasserzeiten/.test(balt.txt) && /Ostsee/.test(balt.txt) && !/Gezeit/.test(balt.txt),

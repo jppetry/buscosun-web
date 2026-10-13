@@ -473,3 +473,83 @@ export function wlHasCategory(f: WlForecast): string | null {
 /** Freshness of the model curve: it was 13 min old when measured, the official forecast 4 h (audit §3). */
 export const WL_CURVE_STALE_MS = 3 * 3_600_000;
 export const WL_FORECAST_STALE_MS = 12 * 3_600_000;
+
+// --- Fill level of the gauge (WL-5, Jan 13.10.2026: "Füllstand anzeigen") -------------------------
+
+/** Mark on the fill scale, cm above gauge zero; the label is the official abbreviation of that reference. */
+export interface WlFillMark { cm: number; label: 'MThw' | 'MTnw' | 'MHW' | 'MNW' | 'MW' | 'NHN' }
+
+export interface WlFill {
+  /** The value shown, cm above gauge zero — the curve's forecast, or the measurement where no forecast is. */
+  cm: number;
+  kind: 'forecast' | 'measured';
+  /** Time of that curve point. */
+  t: number;
+  /** Scale of the gauge glass, cm above gauge zero, multiples of 10 (same rounding as the chart). */
+  lo: number; hi: number;
+  /** Position of the value on the scale, 0 … 1. */
+  frac: number;
+  marks: WlFillMark[];
+  /** Plain differences in the SAME reference (cm above gauge zero) — no conversion, no model of ours. */
+  vsHigh: number | null;
+  vsLow: number | null;
+  /** The value against NHN, cm — only when the gauge zero is known against NHN. */
+  nhnCm: number | null;
+  /** Where the value stands against the gauge's mean low … mean high water; null without both or when equal. */
+  band: 'below' | 'within' | 'above' | null;
+  /** How much of the span mean low → mean high water is "filled" (0 … 1, may leave that range); null like `band`. */
+  spanFrac: number | null;
+  /** Words of this region: the North Sea has a tide (MThw/MTnw, "Tidehub"), the Baltic has MHW/MNW. */
+  highLabel: 'MThw' | 'MHW'; lowLabel: 'MTnw' | 'MNW'; spanLabel: string;
+}
+
+export interface WlFillRefs {
+  region: WlRegion;
+  mhwCm: number | null; mlwCm: number | null; zeroNhnCm: number | null;
+}
+
+/** Scale rounding shared with the chart (`WaterLevelChart`): pad ≥ 20 cm or 12 %, outer bounds to tens. */
+export function wlFillScale(values: readonly number[]): [number, number] {
+  const lo = Math.min(...values), hi = Math.max(...values);
+  const pad = Math.max(20, (hi - lo) * 0.12);
+  return [Math.floor((lo - pad) / 10) * 10, Math.ceil((hi + pad) / 10) * 10];
+}
+
+/**
+ * The fill level of the gauge at one curve point: the value as delivered (cm above gauge zero), on a scale that
+ * holds the chart window and the gauge's own reference heights, with those heights as marks. Everything here is
+ * subtraction in one reference system — never a conversion to another gauge, never an invented height.
+ * `null` when there is no point: a gauge without a value shows no glass (V-WL-6, absence ≠ zero).
+ */
+export function wlFill(point: WlCurvePoint | null, window: readonly WlCurvePoint[], refs: WlFillRefs): WlFill | null {
+  if (!point) return null;
+  const cm = point.forecast ?? point.measured;
+  if (cm == null) return null;
+  const kind: WlFill['kind'] = point.forecast != null ? 'forecast' : 'measured';
+  const [mhw, mlw] = wlRefPair(refs.mhwCm, refs.mlwCm);
+  const nhnAt = refs.zeroNhnCm != null ? -refs.zeroNhnCm : null;
+  const values = [cm, ...window.flatMap((p) => [p.forecast, p.measured, p.tide]), mhw, mlw].filter((v): v is number => v != null);
+  const [lo, hi] = wlFillScale(values);
+  const baltic = refs.region === 'baltic_sea';
+  const highLabel = baltic ? 'MHW' : 'MThw', lowLabel = baltic ? 'MNW' : 'MTnw';
+  const marks: WlFillMark[] = [];
+  if (mhw != null && mlw != null && mhw === mlw) marks.push({ cm: mhw, label: 'MW' });
+  else {
+    if (mhw != null) marks.push({ cm: mhw, label: highLabel });
+    if (mlw != null) marks.push({ cm: mlw, label: lowLabel });
+  }
+  if (nhnAt != null && nhnAt >= lo && nhnAt <= hi) marks.push({ cm: nhnAt, label: 'NHN' });
+  const tidal = mhw != null && mlw != null && mhw > mlw;
+  return {
+    cm, kind, t: point.t, lo, hi,
+    frac: hi > lo ? Math.min(1, Math.max(0, (cm - lo) / (hi - lo))) : 0,
+    marks,
+    vsHigh: mhw != null ? cm - mhw : null,
+    vsLow: mlw != null ? cm - mlw : null,
+    nhnCm: nhnAt != null ? cm - nhnAt : null,
+    band: tidal ? (cm < mlw! ? 'below' : cm > mhw! ? 'above' : 'within') : null,
+    spanFrac: tidal ? (cm - mlw!) / (mhw! - mlw!) : null,
+    highLabel, lowLabel,
+    spanLabel: baltic ? `Spanne ${lowLabel}–${highLabel}` : 'Tidehub',
+  };
+}

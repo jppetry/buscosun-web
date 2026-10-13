@@ -86,7 +86,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [wlCat, setWlCat] = useState<{ gauges: WlGauge[]; why: string | null; state: 'loading' | 'ok' | 'missing' | 'error' }>({ gauges: [], why: null, state: 'loading' });
   const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
   const [gaugePick, setGaugePick] = useState<string | null>(null);
-  const wlAsked = useRef(false);
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   const [picker, setPicker] = useState(false);
   const firstSpot = useRef(true);
@@ -144,11 +143,15 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     return () => ac.abort();
   }, [runKey, windPtr]);
 
-  // WL-4: the mirrored gauge positions — asked once, the first time the switch is on (module-cached).
+  // WL-4: the mirrored gauge positions, module-cached (`catalogCache` in waterLevelClient.ts) so a cache hit
+  // costs no request. No one-shot ref here on purpose (V-WL-12): that guard used to mark the catalogue
+  // "asked" before the fetch settled and never reset it, so a request aborted mid-flight — React StrictMode's
+  // mount→cleanup→remount, or any fast unmount/remount — left `wlCat.state` stuck at `loading` forever with
+  // no retry. Reusing the module cache instead keeps "ask once" for a SUCCESSFUL load while still retrying a
+  // failed or aborted one on the next run.
   const water = toggles.water;
   useEffect(() => {
-    if (!water || wlAsked.current) return;
-    wlAsked.current = true;
+    if (!water) return;
     const ac = new AbortController();
     loadGaugeCatalog(ac.signal).then(
       (r) => {

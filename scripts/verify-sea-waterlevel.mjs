@@ -22,6 +22,7 @@ import {
   wlAt, wlCatalogProblems, wlDistKm, wlForecastOf, wlGaugeOf, wlGaugePage, wlHasCategory, wlIsDefaultWarning,
   WL_AT_TOLERANCE_MS, WL_MOS_SYSTEMS, WL_MOS_WHY, wlCurveEnd,
   wlItemUrl, wlItemsUrl, wlNearest, wlNextEvents, wlNum, wlRefPair, wlStr, wlText, wlTime,
+  wlFill, wlFillScale,
 } from '../src/sea/waterLevel.ts';
 import { seaWaterLevelFrom } from '../src/sea/seaFlag.ts';
 import { WL_MIN_GAUGES, buildCatalog } from './sea/sea-gauges.mjs';
@@ -288,6 +289,61 @@ add('F10 Frischegrenzen getrennt (Modellkurve 3 h, amtliche Vorhersage 12 h), we
   && fcCux.curveAt - fcCux.forecastAt > 3 * 3_600_000,
   `Kurve ${Math.round((fcCux.curveAt - fcCux.forecastAt) / 60_000)} min jünger als die amtliche Vorhersage`);
 
+// --- F11: fill level of the gauge (WL-5, Jan 13.10.2026) — every number a delivered value or a subtraction
+// in the same reference (cm above gauge zero); words by region (tide only in the North Sea).
+const fWin = fcCux.curve.filter((p) => p.t >= t0 - 6 * 3_600_000 && p.t <= t0 + 48 * 3_600_000);
+const fPt = wlAt(fcCux.curve, t0);
+const cuxRefs = { region: fcCux.region, mhwCm: fcCux.mhwCm, mlwCm: fcCux.mlwCm, zeroNhnCm: fcCux.zeroNhnCm };
+const fl = wlFill(fPt, fWin, cuxRefs);
+add('F11 Füllstand: der Wert ist der Kurvenpunkt der Stunde, cm über Pegelnull, unverändert; Herkunft benannt',
+  !!fl && fl.cm === (fPt.forecast ?? fPt.measured) && fl.kind === (fPt.forecast != null ? 'forecast' : 'measured') && fl.t === fPt.t,
+  fl ? `${fl.cm} cm (${fl.kind}) um ${new Date(fl.t).toISOString()}` : 'kein Füllstand');
+add('F11b Skala in Zehnern, umfasst Wert, Fenster und Bezugshöhen; Lage 0 … 1; Rundung wie das Diagramm',
+  !!fl && fl.lo % 10 === 0 && fl.hi % 10 === 0 && fl.lo < fl.hi
+  && fl.lo <= Math.min(fl.cm, 366, ...fWin.flatMap((p) => [p.forecast, p.measured, p.tide]).filter((v) => v != null))
+  && fl.hi >= Math.max(fl.cm, 656, ...fWin.flatMap((p) => [p.forecast, p.measured, p.tide]).filter((v) => v != null))
+  && fl.frac >= 0 && fl.frac <= 1 && Math.abs(fl.frac - (fl.cm - fl.lo) / (fl.hi - fl.lo)) < 1e-9
+  && JSON.stringify(wlFillScale([100, 200])) === '[80,220]' && JSON.stringify(wlFillScale([0, 1000])) === '[-120,1120]',
+  fl ? `${fl.lo} … ${fl.hi}, frac ${fl.frac.toFixed(3)}` : '');
+add('F11c Marken Nordsee: MThw 656, MTnw 366 und NHN bei 503 cm (Pegelnull 503 cm unter NHN); Wort „Tidehub“',
+  !!fl && fl.marks.some((m) => m.label === 'MThw' && m.cm === 656) && fl.marks.some((m) => m.label === 'MTnw' && m.cm === 366)
+  && fl.marks.some((m) => m.label === 'NHN' && m.cm === 503) && fl.marks.length === 3
+  && fl.highLabel === 'MThw' && fl.lowLabel === 'MTnw' && fl.spanLabel === 'Tidehub',
+  fl ? fl.marks.map((m) => `${m.label} ${m.cm}`).join(', ') : '');
+add('F11d Differenzen = Subtraktion im selben Bezug (gegen MThw, MTnw, NHN); Lage und Füllgrad des Tidehubs konsistent',
+  !!fl && fl.vsHigh === fl.cm - 656 && fl.vsLow === fl.cm - 366 && fl.nhnCm === fl.cm - 503
+  && fl.band === (fl.cm < 366 ? 'below' : fl.cm > 656 ? 'above' : 'within')
+  && Math.abs(fl.spanFrac - (fl.cm - 366) / 290) < 1e-9,
+  fl ? `${fl.cm - 656} / ${fl.cm - 366} / ${fl.cm - 503} cm, ${fl.band}, Füllgrad ${(fl.spanFrac * 100).toFixed(0)} %` : '');
+const wPt = fcWarn.curve[Math.floor(fcWarn.curve.length / 2)];
+const flW = wlFill(wPt, fcWarn.curve.slice(0, 60), { region: fcWarn.region, mhwCm: fcWarn.mhwCm, mlwCm: fcWarn.mlwCm, zeroNhnCm: fcWarn.zeroNhnCm });
+add('F11e Ostsee: MHW/MNW statt MThw/MTnw, „Spanne MNW–MHW“ statt Tidehub, NHN-Marke bei 498 cm',
+  !!flW && flW.highLabel === 'MHW' && flW.lowLabel === 'MNW' && flW.spanLabel === 'Spanne MNW–MHW'
+  && flW.marks.some((m) => m.label === 'MHW' && m.cm === 617) && flW.marks.some((m) => m.label === 'MNW' && m.cm === 407)
+  && flW.marks.some((m) => m.label === 'NHN' && m.cm === 498) && !flW.marks.some((m) => /MT/.test(m.label)),
+  flW ? flW.marks.map((m) => `${m.label} ${m.cm}`).join(', ') : 'kein Füllstand');
+const tideless = wlFill({ t: 1, tide: null, forecast: 512, measured: null }, [], { region: 'baltic_sea', mhwCm: 500, mlwCm: 500, zeroNhnCm: -498 });
+const noRefs = wlFill({ t: 1, tide: null, forecast: 512, measured: null }, [], { region: 'north_sea', mhwCm: 0, mlwCm: 0, zeroNhnCm: null });
+add('F11f Ohne Punkt oder Wert kein Glas; MHW = MNW (tidenlos) ⇒ eine Marke „MW“, keine Spanne; 0/0 ⇒ keine Marken (V-WL-7)',
+  wlFill(null, [], cuxRefs) === null && wlFill({ t: 1, tide: 5, forecast: null, measured: null }, [], cuxRefs) === null
+  && !!tideless && tideless.marks.length === 2 && tideless.marks.some((m) => m.label === 'MW' && m.cm === 500) && tideless.marks.some((m) => m.label === 'NHN')
+  && tideless.band === null && tideless.spanFrac === null && tideless.vsHigh === 12
+  && !!noRefs && noRefs.marks.length === 0 && noRefs.band === null && noRefs.vsHigh === null && noRefs.nhnCm === null && noRefs.cm === 512,
+  '');
+const high = wlFill({ t: 1, tide: null, forecast: 700, measured: null }, [], cuxRefs);
+const low = wlFill({ t: 1, tide: null, forecast: 300, measured: null }, [], cuxRefs);
+const meas = wlFill({ t: 1, tide: 400, forecast: null, measured: 420.5 }, [], cuxRefs);
+add('F11g Wert über/unter der Spanne: Lage above/below, Füllgrad > 1 bzw. < 0, Lage auf der Skala bleibt 0 … 1; Messung ohne Vorhersage gilt als gemessen',
+  !!high && high.band === 'above' && high.spanFrac > 1 && high.frac <= 1 && high.vsHigh === 44
+  && !!low && low.band === 'below' && low.spanFrac < 0 && low.frac >= 0 && low.vsLow === -66
+  && !!meas && meas.kind === 'measured' && meas.cm === 420.5,
+  `${high?.band} ${high?.spanFrac?.toFixed(2)} / ${low?.band} ${low?.spanFrac?.toFixed(2)}`);
+add('F11h Die Karte zeichnet das Glas aus wlFill und benennt den Rückfall auf den letzten Wert, wenn die Stunde jenseits der Kurve liegt',
+  /<WaterLevelFill fill=\{fill\}/.test(readoutSrc) && /wlFill\(fillPt, window/.test(readoutSrc)
+  && /letzter Wert, nicht die gewählte Stunde/.test(readoutSrc) && /beyond \? wlAt\(doc\.curve, nowMs\)/.test(readoutSrc)
+  && /Füllstand · /.test(readoutSrc) && !/Tidehub/.test(readoutSrc.replace(/spanLabel/g, '')),
+  '');
+
 // --- G: the page (E-WL-1, E-WL-5, Auftrag 1/3) ------------------------------------------------------
 const dock = src('SeaDock.tsx');
 add('G1 Der gesperrte Eintrag ist weg: kein „blockiert“, kein Schloss, kein „Lizenz ungeklärt“ in der Linie',
@@ -327,7 +383,7 @@ add('G7 Pegel auf der Karte als eigene Form (Raute), wählbar, Auswahl hervorgeh
   && /selectedGaugeId/.test(src('SeaPage.tsx')),
   '');
 add('G8 Ohne Schalter kein Abruf und keine Ebene: der Katalog wird erst beim Einschalten geholt',
-  /if \(!water \|\| wlAsked\.current\) return;/.test(src('SeaPage.tsx'))
+  /useEffect\(\(\) => \{\s*if \(!water\) return;/.test(src('SeaPage.tsx'))
   && /if \(!water \|\| !gaugeId\) \{ setWlDoc\(null\); return; \}/.test(src('SeaPage.tsx'))
   && /water && wlCat\.gauges\.length/.test(src('SeaPage.tsx')),
   '');

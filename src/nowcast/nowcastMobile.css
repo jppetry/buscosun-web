@@ -204,26 +204,8 @@
 .rm-panelhead-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; }
 .rm-panelhead-title { font-size: 25px; font-weight: 700; letter-spacing: -0.5px; color: var(--ink-900, #2C2A26); }
 
-.rm-glance .rm-peek-line { margin-top: 2px; }
 .rm-glance-hint { margin-top: 20px; font-size: 13.5px; color: var(--stone-500, #8B7355); line-height: 1.5; }
 .rm-glance-hint b { color: var(--ink-900, #2C2A26); font-weight: 600; }
-
-/* Peek-Inhalt (Schnellblick) */
-.rm-peek { padding-top: 4px; }
-.rm-peek-top { display: flex; align-items: flex-start; gap: 12px; }
-.rm-peek-copy { flex: 1; min-width: 0; }
-.rm-peek-tag { font-size: 12px; letter-spacing: 2px; font-weight: 700; color: var(--steel-600, #3A6FA8); text-transform: uppercase; }
-.rm-peek-line { font-size: 30px; line-height: 1.08; font-weight: 700; letter-spacing: -0.6px;
-  color: var(--ink-900, #2C2A26); margin: 8px 0 0; }
-.rm-peek-sub { font-size: 15px; color: var(--stone-600, #5C5447); margin: 7px 0 0; }
-.rm-peek-expand { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  color: var(--stone-500, #8B7355); background: transparent; border: 0; cursor: pointer; }
-.rm-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.rm-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
-  color: #9A5A2A; background: var(--terracotta-50, #FAEEDA); border: 1px solid #E3C39A; border-radius: 11px; padding: 10px 14px; }
-.rm-chip svg { flex: 0 0 auto; }
-.rm-peek-hint { text-align: center; font-size: 13px; color: var(--stone-400, #A89A7A); margin: 16px 0 0; }
-.rm-peek-hint svg { color: var(--stone-400, #A89A7A); }
 
 /* ============================================================================
    RM6 — Detail (voller Sheet)
@@ -236,17 +218,9 @@
   text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rm-detail-title { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink-900, #2C2A26); margin-top: 1px; }
 
-/* Kennzahlen-Grid */
-.rm-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.rm-metrics .rr-metric { background: var(--rm-card-bg); border-radius: 14px; padding: 15px; box-shadow: var(--shadow-card); }
-.rm-metrics .rr-metric-label { font-size: 11px; letter-spacing: 1.2px; }
-.rm-metrics .rr-metric-value { font-size: 24px; margin-top: 4px; }
-.rm-metrics .rr-metric-sub { font-size: 12px; margin-top: 3px; }
-
 /* Karten der Detail-Sektionen (bestehende Bausteine einpassen) */
-.rm-detail .rr-vsum-card, .rm-detail .rr-ev-card,
+.rm-detail .rr-ev-card,
 .rm-detail .nc-alp-card, .rm-detail .nc-alp-full { background: var(--rm-card-bg); border-radius: 14px; box-shadow: var(--shadow-card); }
-.rm-detail .rr-vsum-bars { height: 66px; }
 .rm-detail .rr-ev-list { gap: 14px; }
 .rm-detail .rr-ev-time, .rm-detail .rr-ev-text { font-size: 14px; }
 .rm-detail .nc-block-head { margin-bottom: 8px; }

@@ -195,14 +195,8 @@
   color: var(--ink-900, #2C2A26); font-size: 20px; cursor: pointer; border: 0; background: transparent; }
 .rr-zoom button:first-child { border-bottom: 1px solid var(--sand-200, #E0D6BE); }
 
-/* Verlauf & Ereignisse (Referenz): Niederschlagssumme (Balken) + Ereignis-Liste */
-.rr-vsum-card, .rr-ev-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 14px 15px; }
-.rr-ev-card { margin-top: 10px; }
-.rr-vsum-title { font-size: 13.5px; font-weight: 700; color: var(--ink-900, #2C2A26); }
-.rr-vsum-bars { display: flex; align-items: flex-end; gap: 5px; height: 58px; margin-top: 13px; }
-.rr-vsum-bar { flex: 1 1 0; min-height: 3px; border-radius: 4px 4px 2px 2px; }
-.rr-vsum-cap { font-size: 11px; color: var(--stone-500, #8B7355); margin-top: 11px; }
-.rr-vsum-cap b { color: var(--ink-900, #2C2A26); font-weight: 700; }
+/* Ereignis-Liste */
+.rr-ev-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 14px 15px; }
 .rr-ev-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
 .rr-ev-row { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: baseline; }
 .rr-ev-time { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -219,31 +213,9 @@
 .rr-readout-fresh { font-size: 10px; color: #5F7A4C; font-weight: 600; white-space: nowrap; }
 .rr-readout-fresh.is-stale { color: var(--terracotta-500, #C97B47); }
 
-/* Schnellblick-Hero */
-.rr-hero { margin-top: 12px; background: #fff; border: 1px solid var(--steel-600, #3A6FA8); border-radius: 14px; padding: 16px; }
-.rr-hero-tag { display: inline-block; font-size: 9px; letter-spacing: 1.5px; color: var(--steel-600, #3A6FA8); font-weight: 700;
-  border: 1px solid #B7CBE0; border-radius: 5px; padding: 3px 8px; text-transform: uppercase; }
-.rr-hero-line { font-size: 30px; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.8px;
-  margin: 12px 0 0; line-height: 1.05; }
-.rr-hero-line .rr-accent { color: var(--steel-600, #3A6FA8); }
-.rr-hero-sub { font-size: 12.5px; color: #5C5447; margin: 8px 0 0; line-height: 1.5; }
-.rr-hero-badges { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.rr-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600;
-  color: #9A5A2A; background: var(--terracotta-50, #FAEEDA); border: 1px solid #E3C39A; border-radius: 8px; padding: 6px 10px; }
-.rr-badge svg { flex: 0 0 auto; }
-
-/* Kennzahlen */
+/* Abschnitts-Label */
 .rr-section-label { font-size: 11px; letter-spacing: 2px; color: var(--stone-400, #A89A7A); font-weight: 700;
   text-transform: uppercase; margin: 20px 0 10px; }
-.rr-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.rr-metric { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px; padding: 12px; }
-.rr-metric.is-alert { border-color: #E3C39A; }
-.rr-metric-label { font-size: 10px; letter-spacing: 1px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
-.rr-metric.is-alert .rr-metric-label { color: #9A5A2A; }
-.rr-metric-value { font-size: 18px; font-weight: 700; color: var(--ink-900, #2C2A26); margin-top: 3px; font-variant-numeric: tabular-nums; }
-.rr-metric.is-alert .rr-metric-value { color: var(--terracotta-500, #C97B47); }
-.rr-metric-sub { font-size: 10.5px; color: var(--stone-500, #8B7355); margin-top: 2px; }
-.rr-metric--wide { grid-column: span 2; }
 
 /* Verlauf/Ereignisse/Alpin: bestehende Karten in die Readout-Spalte einpassen */
 .rr-readout .nc-block-head { margin: 0 0 10px; }
@@ -271,8 +243,6 @@
 @media (max-width: 1024px) {
   .rr-dock { width: 186px; padding: 14px 11px; }
   .rr-readout { width: 300px; }
-  .rr-hero-line { font-size: 24px; }
-  .rr-metrics { gap: 8px; }
 }
 
 /* ============================================================================
@@ -299,7 +269,6 @@
 
 /* Bottom-Sheet-Inhalt (rr-sheet-*) nutzt dieselben Readout-Bausteine, kompakter. */
 .rr-sheet { display: flex; flex-direction: column; gap: 12px; padding-bottom: 8px; }
-.rr-sheet .rr-hero { margin-top: 0; }
 .rr-sheet-toggle { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 3px; display: flex; }
 .rr-sheet-toggle button { flex: 1; text-align: center; font-size: 12px; font-weight: 500; color: var(--stone-500, #8B7355);
   border: 0; background: transparent; border-radius: 7px; padding: 8px 0; cursor: pointer; font-family: inherit; }

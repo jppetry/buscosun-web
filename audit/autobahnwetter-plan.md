@@ -1,8 +1,9 @@
 # Autobahnwetter – Implementierungsplan (Phase AW)
 
-> Stand 03.10.2026, Export des Plan-Dokuments (claude.ai Doc „Autobahnwetter – Implementierungsplan“).
+> Stand 13.10.2026 (Erweiterung AW-7/AW-8 ergänzt; Grundfassung 03.10.2026), Export des Plan-Dokuments (claude.ai Doc „Autobahnwetter – Implementierungsplan“).
 > Eingangsdokument für Claude Code. Die Phasen-Diagnose und das Protokoll entstehen in `audit/autobahnwetter.md`.
-> Konzept und Datenlage: `audit/autobahnwetter-konzept.md`. UI-Vorgabe: `reference/autobahnwetter-desktop.dc.html`, `reference/autobahnwetter-mobile.dc.html`, `reference/README-autobahnwetter.md`.
+> Konzept und Datenlage: `audit/autobahnwetter-konzept.md`. UI-Vorgabe: `reference/autobahnwetter-desktop.dc.html`, `reference/autobahnwetter-mobile.dc.html`, `reference/autobahnwetter-gefahren.dc.html`, `reference/autobahnwetter-gefahren-detail.dc.html`, `reference/README-autobahnwetter.md`.
+> Gefahren-Leiste und Detailansicht (AW-7, AW-8): `audit/autobahnwetter-gefahren.md` – dort Katalog, Regeln, Datenvertrag, nivo-Zuordnung, Gates E/F, E-AW-32 bis E-AW-37.
 
 ## Ziel und Umfang
 
@@ -237,3 +238,21 @@ Der aktuelle Status der Entscheidungen steht im Startprompt bzw. in `audit/autob
 | jsDelivr liefert kurz 403 oder alten Stand | leere Karte | Zeit-Gate, Schritt zurück, Ausweich auf GitHub raw |
 | Prüfer zu scharf | echte Glätte verworfen, etwa auf dem Tauplateau | Beobachtungsmodus, Schwellen messen, Stichprobe in Gate B, Bilanz je Regel |
 | Nutzer verlässt sich auf „trocken“ | Sicherheits- und Haftungsfrage | Vorbehalt auf Kachel und Seite, keine Entwarnungssprache, „Messpunkt, nicht Strecke“ |
+
+## Erweiterung AW-7/AW-8: Gefahren-Leiste und Detailansicht
+
+Jan hat am 13.10.2026 ergänzt: Rechts am Rand listet eine Leiste alle Autobahnabschnitte nach wetterbedingten Gefahren, jetzt und bis +6 h; eine Detailansicht beschreibt genau, was auf der Fahrbahn liegt; Diagramme mit nivo. Die vollständige Spezifikation steht in `audit/autobahnwetter-gefahren.md`, hier nur die Einordnung. Sie baut auf dem Stand aus `audit/autobahnwetter.md` auf (AW-0…AW-6.1 live, `ROAD_LIVE = true`): eigener Schalter `ROAD_HZ_LIVE` bzw. `?roadhz=1`, Prognose-Eingänge aus `road/fc/v1`, v1 nur DE (E-AW-12), Voraussetzung D-1…D-4 aus `audit/autobahnwetter-datenpruefung.md` erledigt.
+
+- **Gefahren (16):** Glätte (Reifglätte, überfrierende Nässe, gefrierender Regen, Schneeglätte), Aquaplaning, Sicht (Nebel, Gischt, tiefstehende Sonne), Wind (Seitenwind/Sturmböen, Bäume/umherfliegende Teile, Staub/Sand nur Beobachtung), Gewitter und Hagel, Hitze (Aufwölbung Betonplatten), Wetterwechsel (erster Frost, Temperatursturz).
+- **Stufe und Nachweis getrennt:** Stufe 1–3 bzw. unbekannt; Nachweis gemessen / aus Messwerten abgeleitet / Prognose. Nicht beobachtbar sind Verkehr (Gischt), umgestürzte Bäume, Spurrinnen, Reifen – dafür nur Bedingungen.
+- **Daten:** Derive im Radar-Spiegel schreibt `road/v1/hz/<slot>.json` (dünn besetzt) und `static/segments.json`, Saisonzustand in `state.json`; Eingänge GMA, `road/fc/v1` (um fehlende Größen erweitert), RV, KONRAD3D. Eigener Vertrag `src/road/roadHazards.ts` mit denselben vier Sperren.
+- **Oberfläche:** rechte Spalte startet mit der Gefahren-Leiste (Lage-Matrix, Filter, Liste je Gefahr); die Detailansicht ersetzt den Reiter „Station“.
+- **Abhängigkeiten:** `@nivo/heatmap`, `@nivo/bullet`, `@nivo/polar-bar` in der Version des vorhandenen `@nivo/line` (E-AW-35), Detail-Diagramme nachgeladen.
+
+```
+AW-0…6.1 ─▶ AW-7.0 Spike ─▶ AW-7.1 Abschnitte ─▶ AW-7.2 Regeln ─▶ AW-7.3 Derive ─▶ (E) 7 Tage Schatten
+AW-5 ──────────────────────────▶ AW-8.1 Leiste ─▶ AW-8.2 Detail ─▶ AW-8.3 Karte/Zeit/Mobil ─▶ (C+) Leiste live
+                                                                       später ─▶ (F) Backtest Prognose-Stufen
+```
+
+Bis Gate F – für fahrbahnabhängige Glätte bis Gate D (AW-6.2) – sind alle Stufen mit Nachweis Prognose auf Stufe 2 gedeckelt und als „in Erprobung“ markiert (E-AW-34); bis dahin trägt die Glätte-Prognose die jetzige Stufe fort, solange die Cube-Lufttemperatur am Abschnitt ≤ +1 °C bleibt.

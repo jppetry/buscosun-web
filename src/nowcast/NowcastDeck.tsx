@@ -2,8 +2,10 @@
  * Regenradar — „Command-Deck" (hell). Vollflächige App-Shell im Stil der
  * Wetterkarte, die den REALEN Nowcast in das Referenz-Layout einordnet
  * (references/{desktop,tablet,mobile}.png). Keine Funktion neu erfunden — alle
- * Bausteine (Radar, Timeline, Bar-Chart, Detail-Karten, Hero/Kennzahlen aus
- * heroState/summary) werden nur neu angeordnet und gestylt.
+ * Bausteine (Radar, Timeline, Bar-Chart, Detail-Karten) werden nur neu angeordnet
+ * und gestylt. Der alte „Schnellblick"-Satz, „Kennzahlen · 6 h" und die
+ * 6-h-Balkenkarte „Niederschlagssumme" sind seit 13.10. entfernt
+ * (audit/regenradar-altanzeigen.md).
  *
  * Regionen (Desktop): Top-Statusleiste · Ink-Icon-Rail · linkes Dock
  * (Layer/Ansicht/Modus/Datenlage) · dunkles Radarfeld (Center) · rechter Readout.
@@ -14,11 +16,11 @@ import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
 import { Hd250Switch } from '../components/Hd250Switch';   // Phase RA-250: 1 km | 250 m (DE only)
-import { phaseLabelStep, intensityBand, intensityColor, NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN, type EventTone } from './nowcastModel';
+import { NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN, type EventTone } from './nowcastModel';
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
-import { heroState, leadLabel, fmtDuration, fmtClock, fmtMmH, sourceLabel, nwpLabel, freshness, type Nowcast } from './nowcastView';
+import { fmtClock, sourceLabel, nwpLabel, freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastRadarMap from './NowcastRadarMap';
 import NowcastBarChart from './NowcastBarChart';
@@ -102,7 +104,6 @@ const DECK_LAYERS: Array<{ id: RadarLayerId; label: string; sub: string; color: 
 ];
 
 function shortPlace(name: string): string { return name.split(',')[0]; }
-const comma = (n: number) => n.toString().replace('.', ',');
 
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
 type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail' | 'height' | '3d';
@@ -532,7 +533,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 }
 
 // ============================================================================
-// Readout-Inhalt (Hero · Kennzahlen · Timeline · Verlauf · Ereignisse · Alpin · Quellen)
+// Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
 function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: {
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null;
@@ -550,7 +551,6 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
   return (
     <>
       {rainWindow && <RainWindowCard w={rainWindow} variant="desktop" />}
-      <Hero nowcast={nowcast} />
       {cellCard}
       {snowCard && (<><div className="rr-section-label">Schneefallgrenze am Ort</div>{snowCard}</>)}
 
@@ -568,14 +568,8 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
         </>
       )}
 
-      {/* Verlauf & Ereignisse (Referenz) — dort, wo vorher das Intensitäts-Diagramm war:
-          Niederschlagssumme (Balken) + Ereignis-Liste aus der Engine. */}
-      <div className="rr-section-label">Verlauf &amp; Ereignisse</div>
-      <PrecipSumCard nowcast={nowcast} />
+      <div className="rr-section-label">Ereignisse</div>
       <EventsTimeline nowcast={nowcast} />
-
-      <div className="rr-section-label">Kennzahlen · 6 h</div>
-      <Metrics nowcast={nowcast} mode={mode} honestSum={pointSums.on} />
 
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
@@ -588,96 +582,6 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
 function FreshTag({ nowcast }: { nowcast: Nowcast }) {
   const fresh = freshness(nowcast);
   return <span className={`rr-readout-fresh${fresh.stale ? ' is-stale' : ''}`}>● {fresh.stale ? `veraltet · ${fresh.label}` : fresh.label}</span>;
-}
-
-function Hero({ nowcast }: { nowcast: Nowcast }) {
-  const h = heroState(nowcast);
-  return (
-    <div className="rr-hero">
-      <span className="rr-hero-tag">Schnellblick</span>
-      {h.kind === 'coming' && (
-        <>
-          <p className="rr-hero-line">
-            {h.beyondSkill ? <>Später <span className="rr-accent">evtl. Regen</span>.</> : <>In <span className="rr-accent">{leadLabel(h.inMin)}</span> Regen.</>}
-          </p>
-          <p className="rr-hero-sub">
-            {h.beyondSkill
-              ? <>Erst in {leadLabel(h.inMin)} ({h.intensity}) — jenseits des Skill-Horizonts.</>
-              : <>Beginnt ~{h.onsetClock}{h.endClock && <> · endet ~{h.endClock}</>} · {h.intensity} · {h.character}</>}
-          </p>
-        </>
-      )}
-      {h.kind === 'raining' && (
-        <>
-          <p className="rr-hero-line"><span className="rr-accent">Es regnet</span> gerade.</p>
-          <p className="rr-hero-sub">
-            {h.dry
-              ? <>✓ Danach {fmtDuration(h.dry.durationMin)} trocken · {fmtClock(nowcast.nowMs + h.dry.fromMin * 60_000)}–{fmtClock(nowcast.nowMs + h.dry.toMin * 60_000)}{h.returnClock && <> · neuer Schauer ab ca. {h.returnClock}</>}</>
-              : <>Der Regen hält über die nächste Zeit an — kein längeres Trockenfenster in Sicht.</>}
-          </p>
-        </>
-      )}
-      {h.kind === 'dry' && (
-        <>
-          <p className="rr-hero-line"><span className="rr-accent">Trocken.</span></p>
-          <p className="rr-hero-sub">Kein Regen in den nächsten 6 Stunden erwartet.</p>
-        </>
-      )}
-      <HeroBadges nowcast={nowcast} />
-    </div>
-  );
-}
-
-function HeroBadges({ nowcast }: { nowcast: Nowcast }) {
-  const s = nowcast.summary;
-  const badges: ReactNode[] = [];
-  if (s.dominantPhase === 'freezing') badges.push(<span key="fz" className="rr-badge"><BoltIcon />Glättegefahr · gefrierender Regen</span>);
-  if (s.thunderRiskPct >= 30) badges.push(<span key="th" className="rr-badge"><BoltIcon />Gewitterrisiko {s.thunderRiskPct} %{s.hailRiskPct >= 20 ? ' · Hagel' : ''}</span>);
-  if (s.heavyRain) badges.push(<span key="hr" className="rr-badge"><DropIcon />Starkregen möglich · Spitze {comma(s.peakMmH)} mm/h</span>);
-  if (!badges.length) return null;
-  return <div className="rr-hero-badges">{badges}</div>;
-}
-
-function Metrics({ nowcast, mode, honestSum }: { nowcast: Nowcast; mode: 'standard' | 'detail'; honestSum: boolean }) {
-  const s = nowcast.summary;
-  const trans = s.phaseTransitions[0];
-  const phaseSub = trans
-    ? `ab ~${fmtClock(trans.timestamp?.getTime() ?? nowcast.nowMs)} ${phaseLabelStep(trans.from)} → ${phaseLabelStep(trans.to)}`
-    : s.character;
-  let sh = 0, st = 0;
-  for (const step of nowcast.steps) { if (step.character === 'showery') sh++; else if (step.character === 'steady') st++; }
-  const charHead = sh === 0 && st === 0 ? '—' : (sh >= st ? 'Schauer' : 'Dauerregen');
-  return (
-    <div className="rr-metrics">
-      <Metric label="Phase" value={s.phase === 'dry' ? 'Trocken' : phaseLabelStep(s.dominantPhase)} sub={phaseSub} alert={s.dominantPhase === 'freezing'} />
-      <Metric label="Summe 6 h" value={`${comma(s.sumMm)} mm`} sub={honestSum ? SUM6_HONEST_SUB : `Band ${comma(s.sumMinMm)} – ${comma(s.sumMaxMm)}`} />
-      <Metric label="Gewitter" value={`${s.thunderRiskPct} %`} sub={s.thunderLabel} alert={s.thunderRiskPct >= 30} />
-      <Metric label="Schneegrenze" value={s.snowLineM != null ? `${s.snowLineM} m` : '—'} sub={s.snowLineNote} />
-      {mode === 'detail' && (
-        <>
-          <Metric label="Starkregen" value={s.heavyRain ? 'Ja' : 'Nein'} sub={`Spitze ${comma(s.peakMmH)} mm/h${s.heavyRain ? ' · DWD' : ''}`} alert={s.heavyRain} />
-          <Metric label="Hagel" value={`${s.hailRiskPct} %`} sub={s.hailRiskPct >= 20 ? 'erhöhtes Risiko' : s.hailRiskPct > 0 ? 'geringes Risiko' : 'kein Signal'} alert={s.hailRiskPct >= 20} />
-          <Metric label="Charakter" value={charHead} sub={s.character} wide />
-        </>
-      )}
-    </div>
-  );
-}
-
-/**
- * E-NS-12 (V-NS-7): das frühere „Band a – b" der 6-h-Summe addierte GESETZTE Schrittbänder (komonoton, ungemessen). Mit
- * Phase NS steht dort, was die Zahl ist; die Spanne einer Summe folgt erst mit gemessener Abhängigkeit (E-NS-8).
- */
-const SUM6_HONEST_SUB = 'Radar + Modell · Erwartung, ohne Spanne';
-
-function Metric({ label, value, sub, alert, wide }: { label: string; value: string; sub: string; alert?: boolean; wide?: boolean }) {
-  return (
-    <div className={`rr-metric${alert ? ' is-alert' : ''}${wide ? ' rr-metric--wide' : ''}`}>
-      <div className="rr-metric-label">{label}</div>
-      <div className="rr-metric-value">{value}</div>
-      {sub && <div className="rr-metric-sub">{sub}</div>}
-    </div>
-  );
 }
 
 function Sources({ nowcast }: { nowcast: Nowcast }) {
@@ -711,10 +615,8 @@ function Sources({ nowcast }: { nowcast: Nowcast }) {
 
 
 // ============================================================================
-// Verlauf & Ereignisse (Referenz desktop.png) — „Niederschlagssumme" als
-// Balken-Histogramm (Summe je 40-min-Fenster, Farbe = Intensitätsband, Spitze
-// violett) + „Ereignisse"-Liste (Zeit links, Beschreibung rechts). Speist sich
-// aus nowcast.steps bzw. nowcast.events — keine erfundenen Werte.
+// „Ereignisse"-Liste (Zeit links, Beschreibung rechts). Speist sich aus
+// nowcast.events — keine erfundenen Werte.
 // ============================================================================
 const d1 = (n: number): string => (Math.round(n * 10) / 10).toString().replace('.', ',');
 
@@ -728,46 +630,10 @@ function eventToneColor(t: EventTone): string {
   }
 }
 
-const VSUM_BUCKET_MIN = 40; // 9 Balken über 6 h
-
-function PrecipSumCard({ nowcast, hideTitle = false }: { nowcast: Nowcast; hideTitle?: boolean }) {
-  const stepH = NOWCAST_STEP_MIN / 60;
-  const nb = Math.ceil(NOWCAST_HORIZON_MIN / VSUM_BUCKET_MIN);
-  const buckets = Array.from({ length: nb }, () => ({ mm: 0, peak: 0 }));
-  let peakStep = nowcast.steps[0];
-  for (const s of nowcast.steps) {
-    const bi = Math.min(nb - 1, Math.max(0, Math.floor(s.minutes / VSUM_BUCKET_MIN)));
-    buckets[bi].mm += Math.max(0, s.mmH) * stepH;
-    if (s.mmH > buckets[bi].peak) buckets[bi].peak = s.mmH;
-    if (!peakStep || s.mmH > peakStep.mmH) peakStep = s;
-  }
-  const maxMm = Math.max(0.001, ...buckets.map((b) => b.mm));
-  const sum = nowcast.summary.sumMm;
-  const hasRain = sum >= 0.1 && peakStep != null && peakStep.mmH >= 0.1;
-  return (
-    <div className="rt-card rr-vsum-card">
-      {!hideTitle && <div className="rr-vsum-title">Niederschlagssumme</div>}
-      <div className="rr-vsum-bars" role="img"
-        aria-label={`Niederschlagssumme je ${VSUM_BUCKET_MIN} Minuten, gesamt ${d1(sum)} mm über 6 Stunden`}>
-        {buckets.map((b, i) => {
-          const hpct = b.mm > 0 ? Math.max(8, Math.round((b.mm / maxMm) * 100)) : 4;
-          return <span key={i} className="rr-vsum-bar" style={{ height: `${hpct}%`, background: intensityColor(intensityBand(b.peak)) }} />;
-        })}
-      </div>
-      <div className="rr-vsum-cap">
-        {hasRain
-          ? <>kumuliert <b>{d1(sum)} mm</b> über 6 h · Spitze gegen {fmtClock(peakStep.timestamp.getTime())}</>
-          : <>kein nennenswerter Niederschlag in den nächsten 6 h</>}
-      </div>
-    </div>
-  );
-}
-
-function EventsTimeline({ nowcast, hideTitle = false }: { nowcast: Nowcast; hideTitle?: boolean }) {
+function EventsTimeline({ nowcast }: { nowcast: Nowcast }) {
   const events = nowcast.events;
   return (
     <div className="rt-card rr-ev-card">
-      {!hideTitle && <div className="rr-vsum-title">Ereignisse</div>}
       {events.length ? (
         <ul className="rr-ev-list">
           {events.map((e, i) => (
@@ -789,12 +655,6 @@ function EventsTimeline({ nowcast, hideTitle = false }: { nowcast: Nowcast; hide
 }
 
 // --- kleine Inline-Icons -----------------------------------------------------
-function BoltIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2.5 L5.5 13 H11 L10 21.5 L18.5 10.5 H12 Z" fill="#C97B47" fillOpacity=".18" stroke="#C97B47" strokeWidth="1.6" strokeLinejoin="round"/></svg>;
-}
-function DropIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 3 C12 3 5 11 5 15.5 A7 7 0 0 0 19 15.5 C19 11 12 3 12 3 Z" fill="#3A6FA8" fillOpacity=".16" stroke="#3A6FA8" strokeWidth="1.6" strokeLinejoin="round"/></svg>;
-}
 function FlagIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M6 3 V21" stroke="#C97B47" strokeWidth="1.7" strokeLinecap="round"/><path d="M6 4 H17 L14.5 7.5 L17 11 H6 Z" fill="#C97B47" fillOpacity=".18" stroke="#C97B47" strokeWidth="1.5" strokeLinejoin="round"/></svg>;
 }
@@ -919,30 +779,11 @@ function PanelState({ state }: { state: DeckState }) {
 // --- Panel: Schnellblick ----------------------------------------------------
 function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
-  const h = heroState(nowcast);
-  let line: ReactNode, sub: ReactNode;
-  if (h.kind === 'coming') {
-    line = h.beyondSkill ? <>Später <span className="rm-accent">evtl. Regen</span>.</> : <>In <span className="rm-accent">{leadLabel(h.inMin)}</span> Regen.</>;
-    sub = h.beyondSkill
-      ? <>Erst in {leadLabel(h.inMin)} · {h.intensity} — jenseits des Skill-Horizonts.</>
-      : <>~{h.onsetClock}{h.endClock && <>–{h.endClock}</>} · {h.intensity} · {h.character}</>;
-  } else if (h.kind === 'raining') {
-    line = <><span className="rm-accent">Es regnet</span> gerade.</>;
-    sub = h.dry
-      ? <>Danach {fmtDuration(h.dry.durationMin)} trocken · {fmtClock(nowcast.nowMs + h.dry.fromMin * 60_000)}–{fmtClock(nowcast.nowMs + h.dry.toMin * 60_000)}</>
-      : <>Regen hält an — kein längeres Trockenfenster in Sicht.</>;
-  } else {
-    line = <span className="rm-accent">Trocken.</span>;
-    sub = <>Kein Regen in den nächsten 6 Stunden erwartet.</>;
-  }
   return (
     <>
       <PanelHead place={place} title="Schnellblick" />
       <div className="rm-glance">
         {rainWindow && <RainWindowCard w={rainWindow} variant="mobile" />}
-        <p className="rm-peek-line">{line}</p>
-        <p className="rm-peek-sub">{sub}</p>
-        <MobileAlertChips nowcast={nowcast} />
         {cellCard}
         {snowCard}
         {chance?.card}
@@ -951,15 +792,6 @@ function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cel
       </div>
     </>
   );
-}
-
-function MobileAlertChips({ nowcast }: { nowcast: Nowcast }) {
-  const s = nowcast.summary;
-  const chips: ReactNode[] = [];
-  if (s.thunderRiskPct >= 12) chips.push(<span key="th" className="rm-chip"><BoltIcon />Gewitter {s.thunderRiskPct} %</span>);
-  if (s.heavyRain || s.peakMmH >= 5) chips.push(<span key="hr" className="rm-chip"><DropIcon />Starkregen {fmtMmH(s.peakMmH)}</span>);
-  if (!chips.length) return null;
-  return <div className="rm-chips">{chips}</div>;
 }
 
 // --- Panel: Zeitachse (Regenslider) -----------------------------------------
@@ -1048,43 +880,13 @@ function DetailPanel({ nowcast, state, mode, place }: {
       <PanelHead place={place} title="6-h-Prognose" />
       {nowcast ? (
         <>
-          <div className="rm-seclabel">Kennzahlen · 6 h</div>
-          <MobileMetrics nowcast={nowcast} honestSum={sumsOnGlobal()} />
-          <div className="rm-seclabel">Niederschlagssumme</div>
-          <PrecipSumCard nowcast={nowcast} hideTitle />
           <div className="rm-seclabel">Ereignisse</div>
-          <EventsTimeline nowcast={nowcast} hideTitle />
+          <EventsTimeline nowcast={nowcast} />
           {mode === 'detail' && <div style={{ marginTop: 12 }}><AlpineCard nowcast={nowcast} /></div>}
           <Sources nowcast={nowcast} />
         </>
       ) : <PanelState state={state} />}
     </>
-  );
-}
-
-/** `?sum=0` gilt auch im Detail-Reiter (dieselbe Regel wie das Deck). */
-function sumsOnGlobal(): boolean { return sumsEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''); }
-
-function characterSub(nowcast: Nowcast): string {
-  let sh = 0, st = 0;
-  for (const s of nowcast.steps) { if (s.character === 'showery') sh++; else if (s.character === 'steady') st++; }
-  if (sh > 0 && st > 0) return 'Schauer → Dauerregen';
-  if (sh > 0) return 'Schauer';
-  if (st > 0) return 'Dauerregen';
-  return nowcast.summary.character || '—';
-}
-
-function MobileMetrics({ nowcast, honestSum }: { nowcast: Nowcast; honestSum: boolean }) {
-  const s = nowcast.summary;
-  return (
-    <div className="rm-metrics">
-      <Metric label="Phase" value={s.phase === 'dry' ? 'Trocken' : phaseLabelStep(s.dominantPhase)} sub={characterSub(nowcast)} alert={s.dominantPhase === 'freezing'} />
-      <Metric label="Summe 6 h" value={`${comma(s.sumMm)} mm`} sub={honestSum ? SUM6_HONEST_SUB : `Band ${comma(s.sumMinMm)} – ${comma(s.sumMaxMm)}`} />
-      <Metric label="Gewitter" value={`${s.thunderRiskPct} %`} sub={s.thunderLabel} alert={s.thunderRiskPct >= 30} />
-      <Metric label="Starkregen" value={s.heavyRain ? 'Ja' : 'Nein'} sub={`Spitze ${comma(s.peakMmH)} mm/h`} alert={s.heavyRain} />
-      <Metric label="Schneegrenze" value={s.snowLineM != null ? `${s.snowLineM} m` : '—'} sub={s.snowLineNote} />
-      <Metric label="Hagel" value={`${s.hailRiskPct} %`} sub={s.hailRiskPct >= 20 ? 'erhöhtes Risiko' : s.hailRiskPct > 0 ? 'geringes Risiko' : 'kein Signal'} alert={s.hailRiskPct >= 20} />
-    </div>
   );
 }
 
