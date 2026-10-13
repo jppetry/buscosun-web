@@ -36,3 +36,36 @@ export function rememberRoadFlag(search: string = typeof location !== 'undefined
   if (q !== '0' && q !== '1') return;
   try { localStorage.setItem('road', q); } catch { /* private mode: the query still works per page */ }
 }
+
+// --- AW-8 (audit/autobahnwetter.md §19): the hazard rail and detail view, behind their own switch -----------------
+
+/**
+ * `ROAD_HZ_LIVE` = Jan's flag-on decision for the hazard rail (Gate C+). Off: the right column is exactly the page of
+ * AW-5/AW-6.1b. `?roadhz=0|1` beats `localStorage.roadhz`, which beats the constant — the same order as `?road`.
+ */
+export const ROAD_HZ_LIVE = false;
+
+export function roadHzFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+  live: boolean = ROAD_HZ_LIVE,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('roadhz'); } catch { /* broken query = no vote */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('roadhz') : null; } catch { s = null; }
+  }
+  if (s === '0') return false;
+  if (s === '1') return true;
+  return live;
+}
+
+export function rememberRoadHzFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('roadhz'); } catch { return; }
+  if (q !== '0' && q !== '1') return;
+  try { localStorage.setItem('roadhz', q); } catch { /* private mode */ }
+}

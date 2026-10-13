@@ -8,11 +8,15 @@
  * Gate D). `st` is a station id or, since AW-6.1b, a forecast point of the corridor axis (`a8@70`).
  */
 
-export type RoadTab = 'station' | 'strecke' | 'quellen';
-export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen'];
+export type RoadTab = 'station' | 'strecke' | 'quellen' | 'gefahren';
+export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen', 'gefahren'];
 /** Time chips of the design (now, +1, +3, +6 h). */
 export const ROAD_TIMES = [0, 1, 3, 6] as const;
-export type RoadTime = (typeof ROAD_TIMES)[number];
+/** AW-8: behind the hazard switch the time is hourly, 0 … 6 (one state for map, band, matrix and detail). */
+export const ROAD_HZ_TIMES = [0, 1, 2, 3, 4, 5, 6] as const;
+export type RoadTime = (typeof ROAD_HZ_TIMES)[number];
+/** AW-8: window of the rail — `now`, the whole window, or one hour (a matrix cell). */
+export type RoadHzMode = 'now' | 'p6' | RoadTime;
 /** AW-6.1b (04.10.2026): the weather forecast is selectable. `false` = chips disabled, `t` invalid in the URL again. */
 export const ROAD_FORECAST_ENABLED = true;
 
@@ -22,31 +26,45 @@ export interface RoadUrlState {
   t: RoadTime;
   dir: 0 | 1;
   tab: RoadTab;
+  /** AW-8: the open segment of the detail view (`seg=A8-034`) and the group filter of the rail (`hf=glaette`). */
+  seg?: string | null;
+  hf?: string | null;
 }
 
 export const ROAD_DEFAULT_STATE: RoadUrlState = { corridor: null, st: null, t: 0, dir: 0, tab: 'station' };
+/** AW-8: behind the switch the right column starts with the rail (E-AW-37) — `tab=station` stays readable and opens the detail. */
+export const ROAD_HZ_DEFAULT_TAB: RoadTab = 'gefahren';
+const SEG_RE = /^[AB]\d{1,3}[A-Z]?(?:\.\d{1,2})?-\d{3,4}$/;
+const HF_RE = /^[a-z]{3,10}$/;
 
 const SLUG_RE = /^[a-z][a-z0-9]{0,4}(?:-\d{1,2})?$/;
 /** DWD station id, or an axis point of the route forecast (`<corridor>@<km>`, `roadFcAxisId`). */
 const STATION_RE = /^(?:[A-Z0-9]{3,6}|[a-z][a-z0-9]{0,4}(?:-\d{1,2})?@\d{1,4}(?:\.\d)?)$/;
 
-export function parseRoadUrl(slug: string | null | undefined, search: string): { state: RoadUrlState; invalid: string[] } {
+export function parseRoadUrl(slug: string | null | undefined, search: string, hz = false): { state: RoadUrlState; invalid: string[] } {
   const invalid: string[] = [];
   const q = new URLSearchParams(search);
-  const state: RoadUrlState = { ...ROAD_DEFAULT_STATE };
+  const state: RoadUrlState = { ...ROAD_DEFAULT_STATE, ...(hz ? { tab: ROAD_HZ_DEFAULT_TAB, seg: null, hf: null } : {}) };
+  if (hz) {
+    const seg = q.get('seg');
+    if (seg != null) { if (SEG_RE.test(seg)) state.seg = seg; else invalid.push('seg'); }
+    const hf = q.get('hf');
+    if (hf != null) { if (HF_RE.test(hf)) state.hf = hf; else invalid.push('hf'); }
+  }
   if (slug) { if (SLUG_RE.test(slug)) state.corridor = slug; else invalid.push('corridor'); }
   const st = q.get('st');
   if (st != null) { if (STATION_RE.test(st)) state.st = st; else invalid.push('st'); }
   const t = q.get('t');
   if (t != null) {
     const n = Number(t);
-    if ((ROAD_TIMES as readonly number[]).includes(n) && (n === 0 || ROAD_FORECAST_ENABLED)) state.t = n as RoadTime;
+    const allowed: readonly number[] = hz ? ROAD_HZ_TIMES : ROAD_TIMES;
+    if (allowed.includes(n) && (n === 0 || ROAD_FORECAST_ENABLED)) state.t = n as RoadTime;
     else invalid.push('t');
   }
   const dir = q.get('dir');
   if (dir != null) { if (dir === '0' || dir === '1') state.dir = dir === '1' ? 1 : 0; else invalid.push('dir'); }
   const tab = q.get('tab');
-  if (tab != null) { if ((ROAD_TABS as readonly string[]).includes(tab)) state.tab = tab as RoadTab; else invalid.push('tab'); }
+  if (tab != null) { if ((ROAD_TABS as readonly string[]).includes(tab) && (hz || tab !== 'gefahren')) state.tab = tab as RoadTab; else invalid.push('tab'); }
   return { state, invalid };
 }
 
@@ -56,7 +74,11 @@ export function buildRoadUrl(s: RoadUrlState, extra: ReadonlyArray<[string, stri
   if (s.st) q.push(['st', s.st]);
   if (s.t !== 0) q.push(['t', String(s.t)]);
   if (s.dir === 1) q.push(['dir', '1']);
-  if (s.tab !== 'station') q.push(['tab', s.tab]);
+  // AW-8: behind the switch `gefahren` is the default tab; without the switch `station` is (a URL of one world stays readable in the other).
+  const defaultTab: RoadTab = s.seg !== undefined ? ROAD_HZ_DEFAULT_TAB : 'station';
+  if (s.tab !== defaultTab) q.push(['tab', s.tab]);
+  if (s.seg) q.push(['seg', s.seg]);
+  if (s.hf) q.push(['hf', s.hf]);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
   return `/autobahnwetter${s.corridor ? `/${s.corridor}` : ''}${qs}`;

@@ -322,22 +322,29 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
   );
 }
 
-export default function RoadReadout(p: Props) {
+/** AW-8 (E-AW-37): behind the hazard switch the column starts with Gefahren · Strecke · Quellen; the station readout lives on inside the detail. */
+export default function RoadReadout(p: Props & { hz?: React.ReactNode }) {
+  const tabs = p.hz !== undefined ? (['gefahren', 'strecke', 'quellen'] as const) : (['station', 'strecke', 'quellen'] as const);
+  const cur: RoadTab = p.hz !== undefined && p.tab === 'station' ? 'gefahren' : p.tab;
   return (
     <aside className="aw-readout" aria-label="Details">
       <div role="tablist" aria-label="Ansicht" className="aw-seg aw-tabs">
-        {(['station', 'strecke', 'quellen'] as const).map((t) => (
-          <button key={t} type="button" role="tab" aria-selected={p.tab === t} className={p.tab === t ? 'is-active' : ''} onClick={() => p.onTab(t)}>
-            {t === 'station' ? 'Station' : t === 'strecke' ? 'Strecke' : 'Quellen'}
+        {tabs.map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={cur === t} className={cur === t ? 'is-active' : ''} onClick={() => p.onTab(t)}>
+            {t === 'station' ? 'Station' : t === 'strecke' ? 'Strecke' : t === 'quellen' ? 'Quellen' : 'Gefahren'}
           </button>
         ))}
       </div>
-      {p.tab === 'station' && <StationTab {...p} />}
-      {p.tab === 'strecke' && <StreckeTab {...p} />}
-      {p.tab === 'quellen' && <QuellenTab file={p.fcFile} />}
+      {cur === 'gefahren' && p.hz}
+      {cur === 'station' && <StationTab {...p} />}
+      {cur === 'strecke' && <StreckeTab {...p} />}
+      {cur === 'quellen' && <QuellenTab file={p.fcFile} hz={p.hz !== undefined} />}
     </aside>
   );
 }
+
+/** The station card of AW-5, for the detail view's „Messpunkte und Anker“ (AW-8). */
+export function RoadStationCard(p: Props) { return <StationTab {...p} />; }
 
 /** AF-5: a section without a measuring station and without a usable forecast — what is missing, and why. */
 function GapEmpty({ p }: { p: Props }) {
@@ -552,12 +559,19 @@ const SOURCES: ReadonlyArray<{ cc: string; name: string; what: string; status: '
   { cc: 'CH', name: 'ASTRA Strassenwetter / Traffic Situations', what: 'nicht offen · API-Key, Weitergabeverbot', status: 'blockiert' },
 ];
 
-function QuellenTab({ file }: { file: RoadFcFile | null }) {
+/** AW-8: the sources of the hazard rail (shown behind the switch only). */
+const HZ_SOURCES: typeof SOURCES = [
+  { cc: 'DE', name: 'Gefahren je Abschnitt (buscosun)', what: 'Regeln über Messwerten (GMA), DWD RADOLAN-RV, KONRAD3D, ICON-D2 und der Streckenprognose · Prognose-Stufen in Erprobung, höchstens Stufe 2', status: 'aktiv' },
+  { cc: 'DACH', name: 'OpenStreetMap', what: 'Abschnitte (Anschlussstellen), Brücken, Tunnel, Einschnitte, Dämme, Betonbelag · © OpenStreetMap-Mitwirkende, ODbL', status: 'aktiv' },
+  { cc: 'DACH', name: 'ESA WorldCover 2021, Terrarium-Höhenmodell', what: 'Wald- und Ackeranteil neben der Fahrbahn, Höhe und Steigung der Achse · CC BY 4.0 / Mapzen', status: 'aktiv' },
+];
+
+function QuellenTab({ file, hz = false }: { file: RoadFcFile | null; hz?: boolean }) {
   return (
     <>
       <div className="aw-eyebrow aw-sources-title">Quellen dieser Ansicht</div>
       <div className="aw-source-list">
-        {SOURCES.map((s) => (
+        {[...SOURCES, ...(hz ? HZ_SOURCES : [])].map((s) => (
           <div key={s.name} className={`aw-source is-${s.status}`}>
             <span className="aw-source-cc">{s.cc}</span>
             <span className="aw-source-body"><strong>{s.name === FC_ENGINE_ROW ? roadFcEngineName(file) : s.name}</strong><span>{s.name === FC_ENGINE_ROW ? `${s.what} · ${roadFcAnchorSummary(file)}` : s.what}</span></span>
