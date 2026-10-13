@@ -2542,3 +2542,46 @@ freigeschaltet."). Nichts rechnet falsch, nichts behauptet etwas.
 - **PEGELONLINE** (gemessener Wasserstand, DL-DE Zero 2.0) bleibt offen — E-SW-7 nennt es als Ausbau. Der
   BSH-Datensatz trägt an 83 von 136 Pegeln einen Deep-Link auf die PEGELONLINE-Stammdaten; die Messreihe
   selbst käme aus der Kurve des BSH (`measurement`), die wir schon zeichnen.
+
+## 68. Niederschlagsradar — Echos ohne Niederschlag ausblenden (Phase SE, `audit/radar-stoerecho.md`), 2026-10-13
+
+Dein Befund „Fleck neben Gießen": kein Regen, sondern ein Echo ohne Niederschlag (sehr wahrscheinlich Vogelzug) im
+amtlichen DWD-Komposit. Der Filter ist im Derive-Schritt des Radar-Spiegels gebaut, an Stationen gemessen und steht
+hinter `RADAR_CLUTTER` — **aus**. Uncommitted. Im Client ändert sich nichts.
+
+1. **Bestätigung an frischen Slots (R-SE-8) — ERLEDIGT, gerechnet 13.10. 04:10 UTC: bestanden** (28 Slots 12.10. 23:15 …
+   13.10. 03:45 UTC): Verlust an echtem Regen 1 von 142 Intervallen (0,70 %, Obergrenze 1,37 %), nachts abgeräumt 88 gegen
+   81 (Basis) von 609. Die Basis ist schmal (4,5 Stunden einer Front), und die niedrige Abräumquote misst hier nicht das
+   Störecho: 463 der 609 trockenen blauen Intervalle tragen eine Regen-Signatur — Niederschlag in der Höhe vor der Front, den
+   der Filter mit Absicht stehen lässt (V-SE-11, Audit §7). Nichts zu tun; zum Nachrechnen oder Verlängern (Sammler und
+   Wahrheitsabruf liefen als Hintergrundprozesse meiner Sitzung, `C:\dev\buscosun-radar-truth\se\`, `cdc-store\`; der DWD
+   hält die Dateien 48 h):
+   ```
+   node audit/radar-stoerecho/collect.mjs C:/dev/buscosun-radar-truth/se --from=202610122305 --to=<JJJJMMTThhmm jetzt, Minute auf 5> --step=10
+   node audit/radar-regenschwelle/collect-cdc.mjs C:/dev/buscosun-radar-truth/cdc-store --recent --days=20261012,20261013
+   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs audit/radar-stoerecho/stations.mjs C:/dev/buscosun-radar-truth/se C:/dev/buscosun-radar-truth/se-extract --out=C:/dev/buscosun-radar-truth/se-stations
+   node audit/radar-stoerecho/score2.mjs C:/dev/buscosun-radar-truth/se-stations C:/dev/buscosun-radar-truth/se-extract C:/dev/buscosun-radar-truth/cdc-store
+   ```
+   Die letzte Zeile der Ausgabe nennt **R-SE-8: bestätigt / NICHT bestätigt / OFFEN**. Bestätigt heißt: Verlust an echtem
+   Regen ≤ 2 % bei mindestens 100 Fällen, und nachts nicht weniger abgeräumt als die Basis.
+2. **Ansehen, dann Commit/Push von `main`**: `src/sources/dwdSweep.ts`, `radarClutter.ts` (beide neu), `dwdPx250.ts`,
+   `radarImg.ts`, `radarHd250.ts`, `scripts/radar-mirror/clutter-step.mjs` (neu), `radar-derive.mjs`, `workflow-radar.yml`,
+   `scripts/verify-radar-clutter.mjs` (neu), `scripts/verify-radar-threshold.mjs`, `scripts/lib/fixtures/radar-clutter-cases.json`,
+   `package.json`, `.github/workflows/ci.yml`, `audit/radar-stoerecho.md` + `audit/radar-stoerecho/`, `audit/radar-regenschwelle.md`
+   (V-RG-10), `CLAUDE.md`, diese Datei. Die Dateien der Phase RA (§67) liegen im selben Arbeitsbaum — getrennt committen.
+   Ohne Schalter schreibt der Spiegel dieselben Bytes wie vorher (an zwei echten Slots gegen HEAD belegt).
+3. **Einschalten (E-SE-1)** — erst nach 1 und 2, denn der Spiegel braucht den Web-Klon mit dem Filter: im Daten-Repo in
+   `.github/workflows/radar.yml` die Zeile `RADAR_CLUTTER: '1'` unter `RADAR_LOG_NATIVE` ergänzen (Vorlage
+   `scripts/radar-mirror/workflow-radar.yml`, dort steht `'0'`). Wirkung ab dem nächsten Spiegel-Job. Kennzeichen:
+   `radar/img/v1/rv/<stamp>/meta.json` trägt `dual.clutter`, und in einer Zugnacht liegt `clutter.png` im Slot. Im Job-Log
+   steht je Slot `clutter: N von M Zellen … in X ms` — **X ansehen**: auf meiner Maschine 7–9 s, auf dem Runner ungemessen;
+   dazu 8 MB Abruf je Slot vom DWD. Rückweg: `'0'`.
+4. **Entscheiden:** E-SE-2 Nachbarschaftsstimme (schließt den dünnen Reststreifen im Fleck, kostet 0,13 Punkte mehr echten
+   Regen — die frischen Slots von Schritt 1 entscheiden es nicht: 91 statt 88 von 609, Verlust gleich; Empfehlung: ohne sie
+   einschalten und an der nächsten Zugnacht ansehen), V-SE-11 (Blau über trockenem Boden vor einer Front — eigene Messung
+   in der RG-Linie, kein Störecho), E-SE-3 Hinweis „Echos ohne Niederschlag ausgeblendet" in der
+   Statuszeile der Karte (nicht gebaut, `MapView.tsx` war in Arbeit), V-SE-2 (Regenbeginn und buscosun Fusion lesen das
+   Störecho weiter — eigene Phase), V-SE-5 (derselbe zlib-Weg würde den RV-Derive des Spiegels deutlich beschleunigen).
+5. **Nachmessen (V-SE-8):** die Regel ruht auf zwei Herbsttagen und einer Nacht. Bei Schnee, in einer Gewitterlage und im
+   Sommer je zwei Tage sammeln (Befehle wie in 1 mit eigenem Zeitraum, vorher `extract.mjs`) und `score.mjs`/`score2.mjs`
+   wiederholen.

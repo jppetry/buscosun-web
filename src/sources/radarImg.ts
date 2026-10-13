@@ -126,9 +126,35 @@ export interface RadarImgDual {
    *  Untergrenze `log.min` ist dann die Darstellungsschwelle; `displayMin` nennt sie (mm/h). Fehlt das Feld, ist die Ebene
    *  aus den RADOLAN-Einheiten gebaut (jedes Echo ≥ 0,12 mm/h) — Slots vor RG; alte Clients ignorieren beides. */
   native?: true; displayMin?: number;
+  /** Phase SE (`audit/radar-stoerecho.md` §6): echoes without precipitation were taken out of Kanal 2 of ALL frames
+   *  (only with `RADAR_CLUTTER=1`, RV only). Absent = the plane carries every echo of the DWD composite. */
+  clutter?: RadarImgClutter;
 }
-export function makeRadarImgDual(frames: RadarImgDualFrame[], extra?: { native: true; displayMin: number }): RadarImgDual {
-  return { log: { ...RADAR_IMG_DUAL_LOG }, frames, ...(extra ? { native: true, displayMin: extra.displayMin } : {}) };
+/**
+ * Phase SE: what the producer's echo filter did to the slot. `cells` = 1-km cells of the analysis taken out of the log
+ * plane (0 = nothing found; then there is no mask file), `wet` = cells the plane would have drawn, `sites` = radar sites
+ * with a readable ρHV sweep of the slot, `missing` = sites without (their echoes count as precipitation), `rule` = the
+ * parameters. `file` = the mask of the ANALYSIS (`clutter.png`, 1 channel, 255 = taken out) — the 250-m step reads it.
+ */
+export const RADAR_IMG_CLUTTER_FILE = 'clutter.png';
+export interface RadarImgClutter {
+  cells: number; wet: number; sites: number; missing: string[];
+  rule: { rhoMax: number; zCapDbz: number; kernel: number; fill: boolean; rhoMaxRich?: number };
+  file?: string; bytes?: number;
+}
+function clutterOk(v: unknown): v is RadarImgClutter {
+  const c = v as RadarImgClutter | null;
+  if (!c || typeof c !== 'object' || !Number.isInteger(c.cells) || c.cells < 0 || !Number.isInteger(c.wet) || c.wet < c.cells) return false;
+  if (!Number.isInteger(c.sites) || c.sites < 0 || !Array.isArray(c.missing) || !c.missing.every((m) => typeof m === 'string')) return false;
+  const r = c.rule;
+  if (!r || !(r.rhoMax > 0 && r.rhoMax <= 1) || !Number.isFinite(r.zCapDbz) || (r.kernel !== 1 && r.kernel !== 3) || typeof r.fill !== 'boolean') return false;
+  if (r.rhoMaxRich !== undefined && !(r.rhoMaxRich >= r.rhoMax && r.rhoMaxRich <= 1)) return false;
+  // the mask file exists exactly when something was taken out
+  if (c.cells > 0) return c.file === RADAR_IMG_CLUTTER_FILE && Number.isFinite(c.bytes) && (c.bytes as number) > 0;
+  return c.file === undefined && c.bytes === undefined;
+}
+export function makeRadarImgDual(frames: RadarImgDualFrame[], extra?: { native: true; displayMin: number; clutter?: RadarImgClutter }): RadarImgDual {
+  return { log: { ...RADAR_IMG_DUAL_LOG }, frames, ...(extra ? { native: true, displayMin: extra.displayMin } : {}), ...(extra?.clutter ? { clutter: extra.clutter } : {}) };
 }
 /** Form des Zusatzfelds: Log-Konstanten = die des Clients, genau ein `g`-Frame je `f`-Frame, gleiche Leads. */
 function dualOk(v: unknown, leads: readonly number[]): v is RadarImgDual {
@@ -140,6 +166,8 @@ function dualOk(v: unknown, leads: readonly number[]): v is RadarImgDual {
   if (d.native !== undefined && d.native !== true) return false;
   if (d.displayMin !== undefined && !(Number.isFinite(d.displayMin) && d.displayMin >= d.log.min)) return false;
   if ((d.native === undefined) !== (d.displayMin === undefined)) return false;
+  // Phase SE: optional; present only on a native plane, and then well-formed.
+  if (d.clutter !== undefined && (d.native !== true || !clutterOk(d.clutter))) return false;
   return d.frames.every((f, i) => f && typeof f === 'object' && f.lead === leads[i] && f.file === radarImgDualFile(f.lead)
     && Number.isFinite(f.bytes) && f.bytes > 0);
 }

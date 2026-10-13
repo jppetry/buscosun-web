@@ -206,21 +206,23 @@ export interface Hd250Meta {
   /** sites whose image went into the composite / sites of the table that were missing for this slot */
   sites: string[]; missing: string[];
   /** 1-km blocks: wet in RV, with 250-m structure, flat */
-  blocks: { wet: number; structured: number; flat: number; belowMin?: number };
+  blocks: { wet: number; structured: number; flat: number; belowMin?: number; clutter?: number };
   tiles: Hd250MetaTile[];
   /** Phase RG: the tiles were anchored on the NATIVE RV rates with this display threshold (mm/h); blocks under it are dry
    *  (`blocks.belowMin`). Absent = anchored on RADOLAN units (slots before RG). */
   displayMin?: number;
 }
+/* Phase SE (`audit/radar-stoerecho.md` §6): `blocks.clutter` = 1-km blocks the producer's echo filter took out before the
+ * anchoring (they are dry in all 16 cells and not counted in `wet`). Absent = no filter ran for the slot. */
 
-export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[], missing: string[], field: Hd250Field, tiles: Hd250MetaTile[], extra?: { displayMin: number }): Hd250Meta {
+export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[], missing: string[], field: Hd250Field, tiles: Hd250MetaTile[], extra?: { displayMin: number; clutterBlocks?: number }): Hd250Meta {
   return {
     schema: 1, source: 'hd250', stamp, validAtMs,
     cols: HD250_COLS, rows: HD250_ROWS, cellM: HD250_CELL_M, factor: HD250_FACTOR,
     tile: { nx: HD250_TILES_X, ny: HD250_TILES_Y, w: HD250_TILE_W, h: HD250_TILE_H },
     log: { min: PRECIP_LOG_MIN, max: PRECIP_LOG_MAX, steps: PRECIP_LOG_STEPS },
     zr: { ...HD250_ZR }, anchor: 'rv', sites, missing,
-    blocks: { wet: field.wetBlocks, structured: field.structuredBlocks, flat: field.flatBlocks, ...(field.belowMinBlocks !== undefined ? { belowMin: field.belowMinBlocks } : {}) },
+    blocks: { wet: field.wetBlocks, structured: field.structuredBlocks, flat: field.flatBlocks, ...(field.belowMinBlocks !== undefined ? { belowMin: field.belowMinBlocks } : {}), ...(extra?.clutterBlocks !== undefined ? { clutter: extra.clutterBlocks } : {}) },
     tiles,
     ...(extra ? { displayMin: extra.displayMin } : {}),
   };
@@ -238,6 +240,7 @@ export function parseHd250Meta(j: unknown): Hd250Meta | null {
   if (!Array.isArray(m.sites) || !Array.isArray(m.missing) || !m.sites.every((s) => typeof s === 'string')) return null;
   if (!m.blocks || !Number.isInteger(m.blocks.wet) || !Number.isInteger(m.blocks.structured) || !Number.isInteger(m.blocks.flat)) return null;
   if (m.blocks.belowMin !== undefined && !Number.isInteger(m.blocks.belowMin)) return null;
+  if (m.blocks.clutter !== undefined && !(Number.isInteger(m.blocks.clutter) && m.blocks.clutter >= 0)) return null;   // Phase SE
   if (m.displayMin !== undefined && !(Number.isFinite(m.displayMin) && m.displayMin >= PRECIP_LOG_MIN)) return null;   // Phase RG
   if (!Array.isArray(m.tiles) || m.tiles.length > HD250_TILES_X * HD250_TILES_Y) return null;
   const seen = new Set<string>();

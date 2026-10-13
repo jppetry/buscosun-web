@@ -68,7 +68,7 @@ interface H5DataObjects {
   _chunk_address?: number | bigint;
   _get_chunk_params?: () => void;
 }
-interface H5Node { attrs: Record<string, unknown>; value?: ArrayLike<number>; shape?: number[]; dtype?: unknown; _dataobjects?: H5DataObjects }
+export interface H5Node { attrs: Record<string, unknown>; value?: ArrayLike<number>; shape?: number[]; dtype?: unknown; _dataobjects?: H5DataObjects }
 
 async function inflateZlib(bytes: Uint8Array): Promise<Uint8Array | null> {
   if (typeof DecompressionStream === 'undefined' || typeof Response === 'undefined' || typeof Blob === 'undefined') return null;
@@ -77,8 +77,16 @@ async function inflateZlib(bytes: Uint8Array): Promise<Uint8Array | null> {
 }
 const LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
 
-/** Fast path for exactly the measured layout: uint16 LE, one chunk = the field, single deflate filter, mask 0. */
-async function fastRawU16(buf: ArrayBuffer, ds: H5Node, cells: number): Promise<Uint16Array | null> {
+/**
+ * Inflates one zlib stream. Callers in Node pass `(b) => zlib.inflateSync(b)` — measured on 2026-10-13: 51 ms for a
+ * site image against ≈ 1 000 ms through `DecompressionStream` (Blob + web streams in Node 22), same bytes
+ * (`audit/radar-stoerecho.md` §6.5). Without it the reader inflates as before.
+ */
+export type InflateFn = (bytes: Uint8Array) => Uint8Array | null | Promise<Uint8Array | null>;
+
+/** Fast path for exactly the measured layout: uint16 LE, one chunk = the field, single deflate filter, mask 0.
+ *  Shared with `dwdSweep.ts` (the polar sweeps carry the same layout, 360 × 600). `null` = layout differs, use jsfive. */
+export async function h5SingleChunkU16(buf: ArrayBuffer, ds: H5Node, cells: number, inflate: InflateFn = inflateZlib): Promise<Uint16Array | null> {
   try {
     const o = ds._dataobjects;
     if (!o || ds.dtype !== '<u2' || !Array.isArray(ds.shape) || ds.shape.length !== 2) return null;
@@ -97,7 +105,7 @@ async function fastRawU16(buf: ArrayBuffer, ds: H5Node, cells: number): Promise<
     for (let i = 0; i < 3; i++) if (v.getUint32(key + 8 + i * 8, true) !== 0 || v.getUint32(key + 12 + i * 8, true) !== 0) return null;
     const addrLo = v.getUint32(key + 32, true), addrHi = v.getUint32(key + 36, true);
     if (addrHi !== 0 || addrLo + size > buf.byteLength) return null;
-    const out = await inflateZlib(new Uint8Array(buf, addrLo, size));
+    const out = await inflate(new Uint8Array(buf, addrLo, size));
     if (!out || out.byteLength !== cells * 2) return null;
     if (out.byteOffset % 2 === 0 && LITTLE_ENDIAN) return new Uint16Array(out.buffer, out.byteOffset, cells);
     const dv = new DataView(out.buffer, out.byteOffset, out.byteLength), raw = new Uint16Array(cells);
@@ -125,7 +133,7 @@ export function px250ProjectionOk(projdef: string): boolean {
     && Math.abs(projParam(projdef, 'b') - 6356752.3142451802) < 1e-3;
 }
 
-export interface Px250Options { reader?: 'auto' | 'jsfive'; name?: string }
+export interface Px250Options { reader?: 'auto' | 'jsfive'; name?: string; inflate?: InflateFn }
 
 export async function decodePx250(buf: ArrayBuffer, opts: Px250Options = {}): Promise<Px250Grid> {
   const f = new H5File(buf, opts.name ?? 'px250.h5') as unknown as { get(path: string): H5Node | undefined };
@@ -140,7 +148,7 @@ export async function decodePx250(buf: ArrayBuffer, opts: Px250Options = {}): Pr
   if (!px250ProjectionOk(projdef)) throw new Error(`px250: fremde Projektion ${projdef}`);
   if (str(dWhat.quantity) !== 'DBZH') throw new Error(`px250: Größe ${str(dWhat.quantity) || '?'} statt DBZH`);
   const cells = size * size;
-  const data: ArrayLike<number> | undefined = (opts.reader === 'jsfive' ? null : await fastRawU16(buf, ds, cells)) ?? ds.value;
+  const data: ArrayLike<number> | undefined = (opts.reader === 'jsfive' ? null : await h5SingleChunkU16(buf, ds, cells, opts.inflate)) ?? ds.value;
   if (!data || data.length !== cells) throw new Error(`px250: ${data?.length ?? 0} Werte für ${size}×${size}`);
   const gain = num(dWhat.gain, 'gain'), offset = num(dWhat.offset, 'offset');
   const nodata = num(dWhat.nodata, 'nodata'), undetect = num(dWhat.undetect, 'undetect');

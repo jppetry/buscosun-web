@@ -41,6 +41,10 @@ import {
   compositePx250, anchorToRv, hd250Tiles, makeHd250Meta, parseHd250Meta, hd250TileFile, HD250_META_FILE, HD250_TILE_W, HD250_TILE_H,
 } from '../../src/sources/radarHd250.ts';
 import { readdirSync, existsSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
+import { decodePng } from '../lib/png.mjs';
+import { RADAR_IMG_CLUTTER_FILE } from '../../src/sources/radarImg.ts';
+import { clutterStep, clutterSitesCache } from './clutter-step.mjs';
 
 // Phase HD-3 (audit/radar-hochaufloesung.md §5, E-HD-3): mit `RADAR_IMG_DUAL=1` je Frame zusätzlich `g<lead>.png`
 // (Grau + Alpha: Kanal 1 = derselbe `precipToU8`-Byte wie `f<lead>.png`, Kanal 2 = `precipToU8Log`) und `meta.dual`.
@@ -54,6 +58,12 @@ const DUAL = process.env.RADAR_IMG_DUAL === '1';
 const LOG_NATIVE = process.env.RADAR_LOG_NATIVE === '1';
 const secondary = DUAL ? { secondary: precipToU8Log, ...(LOG_NATIVE ? { secondaryUnits: 'native' } : {}) } : {};
 const dualExtra = DUAL && LOG_NATIVE ? { native: true, displayMin: RADAR_DISPLAY_MIN_MMH } : undefined;
+// Phase SE (audit/radar-stoerecho.md §6): mit `RADAR_CLUTTER=1` nimmt der RV-Schritt Echos ohne Niederschlag (Vogelzug,
+// Insekten, Restclutter — erkannt am ρHV der Polarscans desselben Niederschlagsscans) aus der Log-Ebene ALLER Frames und legt
+// die Maske der Analyse als `clutter.png` in den Slot; der `hd250`-Schritt lässt dieselben Blöcke trocken. Nur zusammen mit
+// der nativen Log-Ebene (RADAR_IMG_DUAL + RADAR_LOG_NATIVE, HDF5-Lieferform). Kanal 1, `f`-Frames, `m`-Bilder: byte-gleich.
+// Ohne den Schalter byte-gleich zum Stand vor SE; ein Fehler im Filter lässt den Slot ungefiltert (nie ohne Bild).
+const CLUTTER = process.env.RADAR_CLUTTER === '1' && DUAL && LOG_NATIVE;
 
 const [source, inPath, outDir, stamp, extra] = process.argv.slice(2);
 if (!source || !inPath || !outDir || !stamp) {
@@ -76,12 +86,19 @@ if (source === 'hd250') {
   const rv = await decodeRvHdf5(e0.data.buffer.slice(e0.data.byteOffset, e0.data.byteOffset + e0.data.byteLength), { name: e0.name, ...(LOG_NATIVE ? { units: 'native' } : {}) });
   if (rv.leadMinutes !== 0) throw new Error(`hd250: Analyse trägt Vorlauf ${rv.leadMinutes}`);
   const sitesDir = extra || '';
+  // Phase SE: der RV-Schritt desselben Slots hat die Standortbilder schon geholt (`clutterSitesCache`) — von dort lesen,
+  // was da ist, den Rest wie bisher vom DWD.
+  const siteCache = !sitesDir && CLUTTER && existsSync(clutterSitesCache(stamp)) ? clutterSitesCache(stamp) : '';
   const fetchSite = async (site) => {
     if (sitesDir) {
       const cands = [join(sitesDir, `${site.id}.h5`), join(sitesDir, px250FileName(site, stamp))];
       const hit = cands.find((p) => existsSync(p)) ?? readdirSync(sitesDir).map((f) => join(sitesDir, f)).find((p) => p.endsWith(`-de${site.id}-hd5`));
       if (!hit) return null;
       const b = readFileSync(hit);
+      return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+    }
+    if (siteCache && existsSync(join(siteCache, `${site.id}.h5`))) {
+      const b = readFileSync(join(siteCache, `${site.id}.h5`));
       return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
     }
     const ac = new AbortController();
@@ -98,13 +115,30 @@ if (source === 'hd250') {
     const site = PX250_SITES[i];
     if (!bufs[i]) { missing.push(site.id); continue; }
     try {
-      const g = await decodePx250(bufs[i], { name: `${site.id}.h5` });
+      // Phase SE §6.5: zlib von Node statt `DecompressionStream` (51 ms statt ≈ 1 s je Standortbild, dieselben Bytes).
+      const g = await decodePx250(bufs[i], { name: `${site.id}.h5`, inflate: (b) => inflateSync(b) });
       if (g.site !== site.id) throw new Error(`Datei nennt Standort ${g.site || '?'}`);
       if (g.timeMs !== rv.validAt.getTime()) throw new Error(`Scanzeit ${new Date(g.timeMs).toISOString()} ≠ Slot`);
       grids.push(g);
     } catch (e) { console.error(`hd250: ${site.id} verworfen (${e.message})`); missing.push(site.id); }
   }
+  if (siteCache) rmSync(siteCache, { recursive: true, force: true });
   if (!grids.length) throw new Error('hd250: kein Standortbild lesbar');
+  // Phase SE: die Maske der Analyse aus dem RV-Slot desselben Stempels (`rv/<stamp>/clutter.png`, Geschwister von
+  // `rv-past/<stamp>`): maskierte 1-km-Blöcke bleiben trocken. Keine Datei (nichts gefunden, Filter aus oder gescheitert)
+  // ⇒ wie bisher; eine unlesbare Datei ⇒ wie bisher, benannt.
+  let clutterBlocks;
+  if (CLUTTER) {
+    const maskPath = join(outDir, '..', '..', 'rv', stamp, RADAR_IMG_CLUTTER_FILE);
+    clutterBlocks = 0;
+    if (existsSync(maskPath)) {
+      try {
+        const m = decodePng(readFileSync(maskPath));
+        if (m.width !== 1100 || m.height !== 1200 || m.channels !== 1) throw new Error(`Maske ${m.width}×${m.height}×${m.channels}`);
+        for (let k = 0; k < m.data.length; k++) if (m.data[k] && rv.rainRate[k] >= RADAR_DISPLAY_MIN_MMH - 1e-6) { rv.rainRate[k] = 0; clutterBlocks++; }
+      } catch (e) { console.error(`hd250: Störecho-Maske unlesbar (${e.message}) — Kacheln ungefiltert`); clutterBlocks = undefined; }
+    }
+  }
   const comp = compositePx250(grids);
   const field = anchorToRv(rv.rainRate, comp, LOG_NATIVE ? { minRate: RADAR_DISPLAY_MIN_MMH } : {});
   const tiles = hd250Tiles(field.rate);
@@ -119,7 +153,7 @@ if (source === 'hd250') {
     files++; bytes += png.length;
     metaTiles.push({ tx: t.tx, ty: t.ty, file, bytes: png.length });
   }
-  const meta = makeHd250Meta(stamp, rv.validAt.getTime(), grids.map((g) => g.site), missing, field, metaTiles, LOG_NATIVE ? { displayMin: RADAR_DISPLAY_MIN_MMH } : undefined);
+  const meta = makeHd250Meta(stamp, rv.validAt.getTime(), grids.map((g) => g.site), missing, field, metaTiles, LOG_NATIVE ? { displayMin: RADAR_DISPLAY_MIN_MMH, ...(clutterBlocks !== undefined ? { clutterBlocks } : {}) } : undefined);
   if (!parseHd250Meta(JSON.parse(JSON.stringify(meta)))) throw new Error('hd250: eigene hd250.json besteht den Client-Prüfer nicht');
   writeFileSync(join(outDir, HD250_META_FILE), JSON.stringify(meta) + '\n');
   files++;
@@ -148,7 +182,7 @@ function pngFrames(frames) {
 }
 
 /** HD-3: die Dual-PNGs (2 Kanäle verschränkt) je Frame — `undefined` ohne Schalter. */
-function dualFrames(frames, rvNative = false) {
+function dualFrames(frames, rvNative = false, clutter = undefined) {
   if (!DUAL) return undefined;
   const out = [];
   for (const f of frames) {
@@ -160,7 +194,7 @@ function dualFrames(frames, rvNative = false) {
     put(file, png);
     out.push({ lead: f.lead, file, bytes: png.length });
   }
-  return makeRadarImgDual(out, rvNative ? dualExtra : undefined);
+  return makeRadarImgDual(out, rvNative ? { ...dualExtra, ...(clutter ? { clutter } : {}) } : undefined);
 }
 
 const raw = readFileSync(inPath);
@@ -173,7 +207,20 @@ if (source === 'rv') {
   const hdf5 = rvTarIsHdf5(tar);
   const run = hdf5 ? await decodeRvHdf5Tar(tar, secondary) : decodeRvTar(tar, secondary);
   const metaFrames = pngFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })));
-  const dual = dualFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })), hdf5 && LOG_NATIVE);
+  // Phase SE: der Filter arbeitet auf KOPIEN der Log-Ebenen und ersetzt sie erst nach Erfolg — ein Fehler mitten im Schritt
+  // hinterlässt keinen halb gefilterten Slot.
+  let clutterMeta;
+  if (CLUTTER && hdf5) {
+    try {
+      const planes = run.frames.map((f) => f.values2.slice());
+      const res = await clutterStep({ stamp, slotMs: run.runAtMs, planes, leads: run.frames.map((f) => f.leadMinutes) });
+      run.frames.forEach((f, i) => { f.values2 = planes[i]; });
+      if (res.png) put(RADAR_IMG_CLUTTER_FILE, res.png);
+      clutterMeta = res.clutter;
+      console.error(`clutter: ${res.clutter.cells} von ${res.clutter.wet} Zellen aus der Log-Ebene (${res.clutter.sites} Standorte mit Scan${res.clutter.missing.length ? `, ohne: ${res.clutter.missing.join(',')}` : ''}) in ${res.ms} ms`);
+    } catch (e) { console.error(`clutter: Slot ungefiltert (${e.message})`); }
+  }
+  const dual = dualFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })), hdf5 && LOG_NATIVE, clutterMeta);
   // E-AX-16 (audit/fusion-ausbau.md §6m): je volle Stunde nach dem Slot das Summenbild der Frames im Fenster (t − 60 min, t]
   // als `m<lead>.png` (RGB: Summe der Rohbytes + Zahl der gesättigten Frames) — aus DENSELBEN Bytes wie die Frame-PNGs.
   const byLead = new Map(run.frames.map((f) => [f.leadMinutes, f]));

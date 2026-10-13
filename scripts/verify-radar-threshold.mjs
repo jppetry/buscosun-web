@@ -115,9 +115,11 @@ add('A2 ?rmin= grammar: default, 0, 0.12, 0,2 (comma), junk, negative, store',
   const copy = readFileSync(join(ROOT, dir, 'claims-frozen.txt'));
   const sha = createHash('sha256').update(copy).digest('hex');
   add('E1 claims-frozen.sha256 is the sha256 of claims-frozen.txt (frozen 2026-10-10T08:41:56Z)', sha === hashFile && /^2092e572/.test(sha), sha.slice(0, 12));
-  const audit = read('audit/radar-regenschwelle.md');
+  // Line endings are not part of the rule: a checkout with autocrlf writes this file with CRLF (61 lines = the 61
+  // characters by which this check failed on 2026-10-13, V-SE-6); the frozen copy is LF.
+  const audit = read('audit/radar-regenschwelle.md').replace(/\r\n/g, '\n');
   const s4 = audit.slice(audit.indexOf('## §4 Messprotokoll'), audit.indexOf('Der Hash in `claims-frozen.sha256`')).trimEnd();
-  const frozen = copy.toString('utf8').replace(/\*\(§5 Ergebnis.*\)\*\s*$/, '').trimEnd();
+  const frozen = copy.toString('utf8').replace(/\r\n/g, '\n').replace(/\*\(§5 Ergebnis.*\)\*\s*$/, '').trimEnd();
   add('E2 §4 of the audit still equals the frozen copy (rule unchanged after the measurement)', s4 === frozen, `${s4.length} / ${frozen.length} chars`);
   add('E3 the rule names Z = 90 % as recommendation and the four options, and W1 as the primary truth', /80 \/ 85 \/ 90 \/ 95 %/.test(frozen) && /Empfehlung 90 %/.test(frozen) && /W1 \(primär/.test(frozen));
 }
