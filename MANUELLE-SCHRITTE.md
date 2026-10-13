@@ -2585,3 +2585,30 @@ hinter `RADAR_CLUTTER` — **aus**. Uncommitted. Im Client ändert sich nichts.
 5. **Nachmessen (V-SE-8):** die Regel ruht auf zwei Herbsttagen und einer Nacht. Bei Schnee, in einer Gewitterlage und im
    Sommer je zwei Tage sammeln (Befehle wie in 1 mit eigenem Zeitraum, vorher `extract.mjs`) und `score.mjs`/`score2.mjs`
    wiederholen.
+
+## 70. Radar — Phase SE abgeschlossen, Auflösung auf der ganzen DACH-Karte, 250 m nur auf Wunsch (Phase RA, `audit/radar-aufloesung.md`), 2026-10-13
+
+Dein Auftrag vom Abend: SE committen und einschalten, 1 km ehrlich überall, 250 m nur auf Wunsch, Bildmatrix. Stand:
+
+- **SE committet und live:** `24ac8d2` (nur die SE-Dateien; RA/LM/WL anderer Sitzungen liegen weiter uncommitted), Daten-Repo
+  `a019b6954` (`RADAR_CLUTTER: '1'`) — der erste Job danach (`38442817587`, 17:58 UTC) filtert: Slot 19:30 UTC trägt
+  `meta.dual.clutter` (733 von 90 038 Zellen, 17 Standorte), `clutter.png`, die 250-m-Kacheln lassen dieselben 733 Blöcke trocken,
+  `status.json` ohne Fehler (§7.3 im Audit). Rückweg: `RADAR_CLUTTER: '0'` in `.github/workflows/radar.yml` des Daten-Repos.
+- **Phase RA committet:** `dc72a3f` auf `main` (gepusht). Daten-Repo `9b35c098d`: der Rückblick-Slot trägt `g000.png`.
+- **Was du ansehen solltest:** `/regenradar/giessen` — Schalter „1 km | 250 m" unter der Niederschlag-Zeile (nur DE-Orte), mit
+  Schalter aus „250 m verfügbar", an „250-m-Gitter · 250 m radial · 1° Azimut", beim Abspielen in die Vorhersage „Vorhersage:
+  1 km"; `/wetterkarte/niederschlag/giessen` — Statuszeile „… · ab 0,06 mm/h · Echos ohne Niederschlag ausgeblendet",
+  mit `?hd=0` „Komposit 600 × 512 (≈ 2 km, kein 1-km-Gitter)"; `/regenradar/salzburg` und `/regenradar/basel` — Statuszeile
+  „AT INCA (ab +15 min, kein Rückblick)" / „CH rzc (nur Messung)"; `/regenradar/zuerich` rückwärts — der CH-Rückblick ist
+  sofort da. Bilder: `audit/radar-aufloesung/shots/` (152 + Nachläufe), `report.jsonl`.
+
+1. **Entscheiden E-RA-2:** mit Schalter AUS holt der Client keine Kachel, aber je Analyse-Slot in den Kachel-Zooms die
+   `hd250.json` (1–3 KB), damit „250 m verfügbar" ehrlich ist. Soll auch das wegfallen (dann nur der Schalter, kein Hinweis)?
+   Rückweg: `probe` in `syncHd250` (`MapView.tsx`) entfernen.
+2. **Entscheiden E-SE-2** (Nachbarschaftsstimme) an der nächsten Zugnacht am Live-Bild (`?hdv2=0` zeigt jedes Echo zum Vergleich).
+3. **Job-Log ansehen:** im Lauf `38442817587` die Zeile `clutter: N von M Zellen … in X ms` — X ist die Rechenzeit auf dem
+   Runner (lokal 3–4 s), dazu 8 MB Abruf je Slot; Derive-Summe im Status 4,6 s je RV-Slot.
+4. **Real-Device (V-RA-6, V-R250):** Schalter umlegen bei Zoom 10–12 auf dem Telefon — Long Tasks sind headless nicht messbar.
+5. **Hinweis V-SE-12:** `src/components/LayerInfoPanel.tsx` trägt uncommitted (Phase RA/LB-1 einer anderen Sitzung) in 20
+   Einträgen `desc` und `source` auf EINER Zeile (ein verlorener Zeilenumbruch beim Bearbeiten, `\n`-Falle) — gültig, aber
+   unleserlich; vor dem Commit jener Phase geradeziehen. Meine Zeilen in dieser Datei (`note`) sind davon getrennt committet.
