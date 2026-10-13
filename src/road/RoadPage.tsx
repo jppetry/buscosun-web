@@ -14,7 +14,7 @@
  * forecast row in the bar's place, the first forecast point as the default, its line on the map in the forecast colour.
  * `roadDeck.css` is imported only here (lazy chunk), tokens `--aw-*` live in `designTokens.css`.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
@@ -32,8 +32,19 @@ import {
 import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
-import RoadReadout from './RoadReadout';
-import { ROAD_FORECAST_ENABLED, ROAD_TIMES, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
+import RoadReadout, { RoadStationCard } from './RoadReadout';
+import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
+import type { RoadSegLine } from './RoadMap';
+import type { RoadSegment } from './roadSegments';
+import { stretchLine } from './roadSegments';
+import { roadHzFreshness, type RoadHazardGroup, type RoadHzFile } from './roadHazards';
+import { loadRoadHz, loadRoadHzHistory, loadRoadSegments } from './roadHzClient';
+import { AW_SEV } from './roadNivoTheme';
+import { hzGroupRows, rowOrder, segMapState, segmentMainStation, segmentOfStation } from './roadHzView';
+// AW-8: rail and detail (with the nivo heatmap) are their own lazy chunk — a visitor without the switch loads none of it.
+const RoadHazardPanel = lazy(() => import('./RoadHazardPanel'));
+const RoadHazardDetail = lazy(() => import('./RoadHazardDetail'));
+type RoadHzPanelState = React.ComponentProps<typeof import('./RoadHazardPanel').default>['state'];
 import {
   ROAD_CLASS_COLOR, ROAD_GAP_SHORT, ROAD_GAP_TITLE, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, kmIn, roadGapHead, roadNumber,
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS, DEFAULT_SPEED_KMH,
@@ -47,6 +58,8 @@ export interface RoadPageProps {
   onCorridor: (s: RoadUrlState, initial: boolean) => void;
   /** Set on a back/forward navigation: the page takes corridor, station, direction and tab from the URL again. */
   popState?: (RoadUrlState & { key: string }) | null;
+  /** AW-8: the hazard rail is on (`ROAD_HZ_LIVE` / `?roadhz=1`); off ⇒ the page of AW-5/AW-6.1b, unchanged. */
+  hz?: boolean;
 }
 
 const DEFAULT_CORRIDOR = 'a8';
@@ -57,7 +70,7 @@ const FC_REFRESH_MS = 10 * 60_000;
 const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: true, rain: false };
 const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
-export default function RoadPage({ initial, onUrlState, onCorridor, popState }: RoadPageProps) {
+export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz = false }: RoadPageProps) {
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -82,6 +95,15 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   const [picker, setPicker] = useState(false);
   const firstCorridor = useRef(true);
+  // AW-8: rail state — window, group filter, open segment, hovered row; the hazard file and the segments.
+  const [hzMode, setHzMode] = useState<RoadHzMode>('now');
+  const [hzFilter, setHzFilter] = useState<RoadHazardGroup | null>((initial.hf as RoadHazardGroup | null) ?? null);
+  const [segId, setSegId] = useState<string | null>(initial.seg ?? null);
+  const [hoverSeg, setHoverSeg] = useState<string | null>(null);
+  const [segments, setSegments] = useState<RoadSegment[] | null | 'error'>(null);
+  const [hzLoad, setHzLoad] = useState<{ slot: string; file: RoadHzFile | null; reason: string } | null>(null);
+  const [hzPrev, setHzPrev] = useState<{ slot: string; files: Array<RoadHzFile | null> } | null>(null);
+  const [hzDir, setHzDir] = useState<0 | 1>(0);
 
   // Back/forward: the URL is the truth again (the corridor effect below then finds the URL equal and navigates nowhere).
   const popKey = popState?.key ?? null;
@@ -92,6 +114,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
     setDir(popState.dir);
     setTab(popState.tab);
     setTime(popState.t);
+    if (hz) { setSegId(popState.seg ?? null); setHzFilter((popState.hf as RoadHazardGroup | null) ?? null); }
   }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- data ------------------------------------------------------------------------------------
@@ -124,6 +147,36 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
 
   const obs = load?.obs ?? null;
   const byId = useMemo(() => new Map((obs?.points ?? []).map((p) => [p.id, p] as const)), [obs]);
+
+  // AW-8: segments once, the hazard file per measured slot, the two earlier slots while a detail is open.
+  useEffect(() => {
+    if (!hz) return;
+    const ac = new AbortController();
+    loadRoadSegments(ac.signal).then((f) => setSegments(f ? f.segments : 'error'), () => setSegments('error'));
+    return () => ac.abort();
+  }, [hz]);
+  const hzSlot = hz ? obs?.slot ?? null : null;
+  useEffect(() => {
+    if (!hzSlot) return;
+    const ac = new AbortController();
+    loadRoadHz(hzSlot, ac.signal).then((l) => setHzLoad({ slot: hzSlot, file: l.file, reason: l.reason }), () => {});
+    return () => ac.abort();
+  }, [hzSlot]);
+  useEffect(() => {
+    if (!hzSlot || !segId) return;
+    const ac = new AbortController();
+    loadRoadHzHistory(hzSlot, ac.signal).then((files) => setHzPrev({ slot: hzSlot, files }), () => {});
+    return () => ac.abort();
+  }, [hzSlot, segId]);
+  const hzFile = hzLoad && hzLoad.slot === hzSlot ? hzLoad.file : null;
+  const hzFresh = hzFile ? roadHzFreshness(hzFile.slotMs, nowMs, hzFile.killed) : 'dead';
+  const segMap = useMemo(() => new Map((segments && segments !== 'error' ? segments : []).map((s) => [s.id, s] as const)), [segments]);
+  const hzState: RoadHzPanelState = !hz ? 'loading' : segments === 'error' ? 'no-segments' : !segments || !hzSlot ? 'loading'
+    : !hzLoad || hzLoad.slot !== hzSlot ? 'loading' : !hzLoad.file ? (hzLoad.reason as 'not-there' | 'error' | 'invalid') : hzFresh === 'dead' ? 'dead' : hzFresh === 'stale' ? 'stale' : 'ok';
+  const hzShown = hzState === 'ok' || hzState === 'stale' ? hzFile : null;
+  const hzGroups = useMemo(() => (hzShown ? hzGroupRows(hzShown, segMap, hzMode, hzFilter) : []), [hzShown, segMap, hzMode, hzFilter]);
+  const hzOrder = useMemo(() => rowOrder(hzGroups), [hzGroups]);
+  const openSeg = segId ? segMap.get(segId) ?? null : null;
   const freshness = obs ? roadFreshness(obs.slotMs, nowMs, obs.killed) : 'dead';
   const summary = useMemo(() => slotSummary(obs, nowMs), [obs, nowMs]);
   const noData: string | null = !load ? null
@@ -135,6 +188,15 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const shownById = noData ? EMPTY_BY_ID : byId;
 
   const corridor = useMemo(() => corridors?.find((c) => c.id === corridorId) ?? corridors?.find((c) => c.id === DEFAULT_CORRIDOR) ?? corridors?.[0] ?? null, [corridors, corridorId]);
+  // AW-8.3: the segment lines of the open corridor in the window of the shared time (hour `t`, or the whole window).
+  const segLines = useMemo<RoadSegLine[]>(() => {
+    if (!hz || !corridor || !segments || segments === 'error') return [];
+    const win: RoadHzMode = hzMode === 'p6' ? 'p6' : time;
+    return segments.filter((s) => s.corridor === corridor.id).map((s) => {
+      const st = segMapState(hzShown?.seg[s.id], win, hzFilter);
+      return { id: s.id, line: stretchLine(corridor.line, s.kmFrom, s.kmTo, 0.5), color: st.lv ? AW_SEV[st.lv].bg : null, unknown: st.unknown, sel: s.id === segId, hover: s.id === hoverSeg };
+    });
+  }, [hz, corridor, segments, hzShown, hzMode, time, hzFilter, segId, hoverSeg]);
   const inCorridor = useMemo(() => new Set(corridor?.stations.map((s) => s.id) ?? []), [corridor]);
   // AF-5: a section without a measuring station — the page shows its forecast only.
   const gap = corridor ? isGapCorridor(corridor) : false;
@@ -244,7 +306,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   }, [warn.state, liveAlerts, point]);
 
   // --- URL ------------------------------------------------------------------------------------------
-  const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: time, dir, tab };
+  const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: time, dir, tab, ...(hz ? { seg: segId, hf: hzFilter } : {}) };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstCorridor.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -253,15 +315,32 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
     firstCorridor.current = false;
   }, [corridor?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setSheet('peek'); setPicker(false); }, []);
+  const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setSheet('peek'); setPicker(false); if (hz) setSegId(null); }, [hz]);
   const pickStation = useCallback((id: string) => {
     setStId(id);
-    setTab((t) => (t === 'quellen' ? 'station' : t));
+    setTab((t) => (t === 'quellen' ? (hz ? 'gefahren' : 'station') : t));
+    // AW-8: a click on a measuring point opens the detail of its segment (E-AW-37).
+    if (hz && !isRoadFcAxisId(id) && segments && segments !== 'error') { const s = segmentOfStation(segments, id, corridorId); if (s) { setSegId(s.id); setTab('gefahren'); } }
     if (isRoadFcAxisId(id)) return;
     const owner = corridors?.find((c) => c.id === corridorId && c.stations.some((s) => s.id === id))
       ?? corridors?.find((c) => c.stations.some((s) => s.id === id));
     if (owner && owner.id !== corridorId) setCorridorId(owner.id);
-  }, [corridors, corridorId]);
+  }, [corridors, corridorId, hz, segments]);
+  // AW-8: open a segment — corridor, main station (coldest valid road) and the detail.
+  const pickSegment = useCallback((id: string) => {
+    const s = segMap.get(id);
+    if (!s) return;
+    setSegId(id); setTab('gefahren'); setSheet('open');
+    if (s.corridor !== corridorId) setCorridorId(s.corridor);
+    const main = segmentMainStation(s, shownById);
+    setStId(main);
+  }, [segMap, corridorId, shownById]);
+  const hzBack = useCallback(() => { setSegId(null); }, []);
+  const hzStep = useCallback((d: 1 | -1) => {
+    if (!segId || !hzOrder.length) return;
+    const i = hzOrder.indexOf(segId);
+    pickSegment(hzOrder[(i + d + hzOrder.length) % hzOrder.length]);
+  }, [segId, hzOrder, pickSegment]);
 
   const filtered = useMemo(() => searchCorridors(corridors ?? [], shownById, query), [corridors, shownById, query]);
   const standLabel = gap ? roadGapHead(fcFile ? roadFcEngineName(fcFile) : null, fcLabel)
@@ -287,12 +366,14 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
       </button>
     </div>
   );
+  // AW-8: hourly chips 0 … 6 behind the switch — the one time state of map, band, matrix and detail.
+  const setTimeShared = (h: RoadTime) => { setTime(h); if (hz) setHzMode(h === 0 ? 'now' : h); };
   const times = (
-    <div role="group" aria-label="Zeitpunkt" className="aw-seg aw-times">
-      {ROAD_TIMES.map((h) => {
+    <div role="group" aria-label="Zeitpunkt" className={`aw-seg aw-times${hz ? ' is-hourly' : ''}`}>
+      {(hz ? ROAD_HZ_TIMES : ROAD_TIMES).map((h) => {
         const enabled = h === 0 || (ROAD_FORECAST_ENABLED && !!fcFile);
         return (
-          <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTime(h)}
+          <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTimeShared(h)}
             title={enabled ? (h === 0 ? undefined : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel})${gap ? '' : ' — Karte und Band zeigen weiter die Messung'}`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
             {h === 0 ? `Jetzt${!gap && obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
           </button>
@@ -317,6 +398,13 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
         <>
           <span className="aw-eyebrow aw-legend-fc">Prognose Luft · {t === 0 ? 'jetzt' : `+${t} h`}</span>
           {(['frost', 'near', 'above'] as const).map((k) => <span key={k}><i className="is-dot" style={{ background: ROAD_FC_AIR_COLOR[k] }} />{ROAD_FC_AIR_LABEL[k]}</span>)}
+        </>
+      )}
+      {hz && hzShown && (
+        <>
+          <span className="aw-eyebrow aw-legend-fc">Gefahren · {hzMode === 'p6' ? 'bis +6 h' : t === 0 ? 'jetzt' : `+${t} h`}</span>
+          {([1, 2, 3] as const).map((l) => <span key={l}><i className="is-bar" style={{ background: AW_SEV[l].bg }} />Stufe {l}</span>)}
+          <span><i className="is-bar is-dotted" />unbekannt</span>
         </>
       )}
     </div>
@@ -345,15 +433,28 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState }: 
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} onRain={setRain} />
+      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} onRain={setRain}
+      segLines={hz ? segLines : undefined} onSelectSegment={hz ? pickSegment : undefined} />
   );
-  const readout = (
-    <RoadReadout tab={tab} onTab={setTab} point={point} corridor={corridor} byId={shownById} dir={dir} slotMs={obs?.slotMs ?? null} nowMs={nowMs}
-      stale={freshness === 'stale'} ring={ring} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} departOffsetMin={departMin}
-      onDepart={(d) => setDepartMin((m) => Math.max(0, Math.min(345, m + d)))} onPick={pickStation} noData={noData}
-      fcFile={fcFile} fcById={fcById} fcLabel={fcLabel} axis={axis} time={t} onTime={setTime}
-      fcStation={fcStationNow ? (fcStationNow.load ?? 'loading') : null} />
-  );
+  const readoutProps = {
+    tab, onTab: setTab, point, corridor, byId: shownById, dir, slotMs: obs?.slotMs ?? null, nowMs,
+    stale: freshness === 'stale', ring, warnings: pointWarnings, warnState: warn.state, warnAt: warn.at, departOffsetMin: departMin,
+    onDepart: (d: number) => setDepartMin((m) => Math.max(0, Math.min(345, m + d))), onPick: pickStation, noData,
+    fcFile, fcById, fcLabel, axis, time: t, onTime: setTimeShared,
+    fcStation: fcStationNow ? (fcStationNow.load ?? ('loading' as const)) : null,
+  };
+  // AW-8: the rail (Lage) or the detail of the open segment, inside the readout's Gefahren tab.
+  const hzNode = !hz ? undefined : (<Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>{openSeg && hzShown ? (
+    <RoadHazardDetail seg={openSeg} entry={hzShown.seg[openSeg.id] ?? null} file={hzShown} prev={hzPrev && hzPrev.slot === hzSlot ? hzPrev.files : [undefined, undefined]}
+      corridor={corridor} byId={shownById} fcFile={fcFile} ring={ring} nowMs={nowMs} dir={hzDir} onDir={setHzDir}
+      pos={{ i: Math.max(1, hzOrder.indexOf(openSeg.id) + 1), n: Math.max(1, hzOrder.length) }} onBack={hzBack} onPrev={() => hzStep(-1)} onNext={() => hzStep(1)}
+      selectedStation={point?.id ?? null} onPickStation={(id) => setStId(id)} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} stale={freshness === 'stale'}
+      stationCard={point && (openSeg.stations.includes(point.id) || openSeg.near.includes(point.id)) ? <RoadStationCard {...readoutProps} axis={null} /> : null} />
+  ) : (
+    <RoadHazardPanel file={hzShown} state={hzState} segments={segMap} mode={hzMode} filter={hzFilter} selectedId={segId} nowMs={nowMs}
+      onMode={(m) => { setHzMode(m); if (m === 'now') setTime(0); else if (typeof m === 'number') setTime(m); }} onFilter={setHzFilter} onHour={(h) => setTime(h)} onPick={pickSegment} onHover={setHoverSeg} />
+  )}</Suspense>);
+  const readout = <RoadReadout {...readoutProps} hz={hzNode} />;
 
   // --- mobile ---------------------------------------------------------------------------------------------
   if (isMobile) {

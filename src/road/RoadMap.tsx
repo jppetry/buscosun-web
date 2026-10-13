@@ -40,6 +40,8 @@ const rainBeforeId = (map: maplibregl.Map): string | undefined =>
 
 /** Forecast point of the corridor axis (AW-6.1b): a small dot in the colour of the forecast AIR class. */
 export interface RoadFcDot { id: string; lon: number; lat: number; color: string | null }
+/** AW-8.3: a segment line over the corridor — level colour, unknown dotted grey, selected with a light halo, hovered from the rail. */
+export interface RoadSegLine { id: string; line: Array<[number, number]>; color: string | null; unknown: boolean; sel: boolean; hover: boolean }
 
 interface Props {
   corridors: readonly RoadCorridor[];
@@ -60,6 +62,9 @@ interface Props {
   fcDots?: readonly RoadFcDot[];
   /** V-AW-14: the radar layer reports its state (legend). */
   onRain?: (s: RoadRainState | null) => void;
+  /** AW-8.3: hazard segments of the open corridor (behind the switch); a click opens the detail. */
+  segLines?: readonly RoadSegLine[];
+  onSelectSegment?: (id: string) => void;
 }
 
 /** The custom layer and the last frame — kept across style reloads. */
@@ -75,6 +80,16 @@ function dotFc(dots: readonly RoadFcDot[], sel: string | null): GeoJSON.FeatureC
   };
 }
 const NO_DOTS: readonly RoadFcDot[] = [];
+const NO_SEGS: readonly RoadSegLine[] = [];
+function segFc(segs: readonly RoadSegLine[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: segs.filter((s) => s.color || s.unknown || s.sel || s.hover).map((s) => ({
+      type: 'Feature', properties: { id: s.id, color: s.color ?? '#8B8474', unknown: s.unknown && !s.color ? 1 : 0, sel: s.sel ? 1 : 0, hover: s.hover ? 1 : 0, on: s.color || s.unknown ? 1 : 0 },
+      geometry: { type: 'LineString', coordinates: s.line },
+    })),
+  };
+}
 
 /** One marker icon per class (+ grey "stale" variant): canvas, device pixel ratio 2. */
 function markerImage(cls: RoadClass, stale: boolean): ImageData {
@@ -161,12 +176,14 @@ export default function RoadMap(props: Props) {
    *  false exactly when a corridor change needs the fit (review finding #5). */
   const readyRef = useRef(false);
   /** Inputs of the last setData per source — only changed references are written (CLAUDE.md: setData loops). */
-  const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown; fc?: unknown[] }>({});
+  const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown; fc?: unknown[]; segs?: unknown }>({});
   const rainRef = useRef<RainHold>({ layer: null, frame: null, validAtMs: null });
 
   function apply(map: maplibregl.Map) {
     if (!map.isStyleLoaded()) return;
     const p = propsRef.current;
+    // Test hook (verify:road-ui U2c): how often the sources were synced.
+    if (hostRef.current) hostRef.current.dataset.applied = String((Number(hostRef.current.dataset.applied) || 0) + 1);
     installImages(map);
     const last = lastRef.current;
     const set = (id: string, make: () => GeoJSON.FeatureCollection, changed: boolean) => {
@@ -184,13 +201,22 @@ export default function RoadMap(props: Props) {
     const dots = p.layers.fc ? (p.fcDots ?? NO_DOTS) : NO_DOTS;
     const fcKey = [dots, p.selectedId];
     set('aw-fc', () => dotFc(dots, p.selectedId), !same(last.fc, fcKey));
-    lastRef.current = { corr: corrKey, pts: ptsKey, warn: warnKey, fc: fcKey };
+    const segs = p.segLines ?? NO_SEGS;
+    set('aw-segs', () => segFc(segs), last.segs !== segs);
+    // Test hook (verify:road-ui U): how many segment lines are drawn, and the selected one.
+    if (hostRef.current) { hostRef.current.dataset.segs = String(segs.filter((s) => s.color || s.unknown).length); hostRef.current.dataset.segSel = segs.find((s) => s.sel)?.id ?? ''; }
+    lastRef.current = { corr: corrKey, pts: ptsKey, warn: warnKey, fc: fcKey, segs };
     if (!map.getLayer('aw-warn-fill')) {
       map.addLayer({ id: 'aw-warn-fill', type: 'fill', source: 'aw-warn', paint: { 'fill-color': '#E39A3B', 'fill-opacity': 0.12 } });
       map.addLayer({ id: 'aw-warn-line', type: 'line', source: 'aw-warn', paint: { 'line-color': '#E39A3B', 'line-width': 1.2, 'line-dasharray': [4, 3] } });
       map.addLayer({ id: 'aw-corr-base', type: 'line', source: 'aw-corridors', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#39414D', 'line-width': 2.4 } });
       map.addLayer({ id: 'aw-corr-glow', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FAF6EA', 'line-width': 11, 'line-opacity': 0.16 } });
       map.addLayer({ id: 'aw-corr-sel', type: 'line', source: 'aw-corridors', filter: ['==', ['get', 'sel'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'gap'], 1], ROAD_FC_LINE_COLOR, '#F3EDDF'], 'line-width': 3.6 } });
+      // AW-8.3 (design): 6-px line in the level colour with a dark 9-px contour over the corridor, unknown dotted grey,
+      // the selected segment with a light 16-px halo (35 %), the hovered one with a thinner halo.
+      map.addLayer({ id: 'aw-seg-halo', type: 'line', source: 'aw-segs', filter: ['any', ['==', ['get', 'sel'], 1], ['==', ['get', 'hover'], 1]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FAF6EA', 'line-width': ['case', ['==', ['get', 'sel'], 1], 16, 12], 'line-opacity': ['case', ['==', ['get', 'sel'], 1], 0.35, 0.22] } });
+      map.addLayer({ id: 'aw-seg-outline', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'on'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0B0E12', 'line-width': 9 } });
+      map.addLayer({ id: 'aw-seg', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'on'], 1], layout: { 'line-cap': ['case', ['==', ['get', 'unknown'], 1], 'butt', 'round'], 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 6, 'line-dasharray': ['case', ['==', ['get', 'unknown'], 1], ['literal', [0.5, 1.2]], ['literal', [1, 0]]] } });
       map.addLayer({
         id: 'aw-fc', type: 'circle', source: 'aw-fc',
         paint: {
@@ -260,10 +286,14 @@ export default function RoadMap(props: Props) {
       const hits = map.getLayer('aw-points') ? map.queryRenderedFeatures(ev.point, { layers: ['aw-points'] }) : [];
       const dots = !hits.length && map.getLayer('aw-fc') ? map.queryRenderedFeatures(ev.point, { layers: ['aw-fc'] }) : [];
       const id = (hits[0] ?? dots[0])?.properties?.id;
-      if (typeof id === 'string') propsRef.current.onSelect(id);
+      if (typeof id === 'string') { propsRef.current.onSelect(id); return; }
+      // AW-8.3: a click on a segment line opens its detail.
+      const segs = !hits.length && !dots.length && map.getLayer('aw-seg') ? map.queryRenderedFeatures(ev.point, { layers: ['aw-seg', 'aw-seg-outline'] }) : [];
+      const sid = segs[0]?.properties?.id;
+      if (typeof sid === 'string') propsRef.current.onSelectSegment?.(sid);
     });
     map.on('mousemove', (ev) => {
-      const hit = map.getLayer('aw-points') && map.queryRenderedFeatures(ev.point, { layers: map.getLayer('aw-fc') ? ['aw-points', 'aw-fc'] : ['aw-points'] }).length > 0;
+      const hit = map.getLayer('aw-points') && map.queryRenderedFeatures(ev.point, { layers: [...(map.getLayer('aw-fc') ? ['aw-points', 'aw-fc'] : ['aw-points']), ...(map.getLayer('aw-seg') ? ['aw-seg'] : [])] }).length > 0;
       map.getCanvas().style.cursor = hit ? 'pointer' : '';
     });
     props.onMap?.(map);
