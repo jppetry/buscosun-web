@@ -2542,3 +2542,35 @@ freigeschaltet."). Nichts rechnet falsch, nichts behauptet etwas.
 - **PEGELONLINE** (gemessener Wasserstand, DL-DE Zero 2.0) bleibt offen — E-SW-7 nennt es als Ausbau. Der
   BSH-Datensatz trägt an 83 von 136 Pegeln einen Deep-Link auf die PEGELONLINE-Stammdaten; die Messreihe
   selbst käme aus der Kurve des BSH (`measurement`), die wir schon zeichnen.
+
+## 70. Autobahnwetter — Gefahren-Leiste und Detailansicht (Phase AW-7/AW-8, `audit/autobahnwetter.md` §19), 2026-10-13
+
+Auftrag: Startprompt `audit/autobahnwetter-gefahren-startprompt.md`, Spezifikation `audit/autobahnwetter-gefahren.md`. Gebaut im
+Zweig `feat/autobahnwetter-gefahren` (Worktree `C:\dev\buscosun-web\.wt-hz`), **Schalter `ROAD_HZ_LIVE = false`** — ohne
+`?roadhz=1` ist die Seite unverändert. Alles ist committet, **nichts gepusht**; die Daten liegen als Paket bereit.
+
+1. **Merge und Push von `main`** (`feat/autobahnwetter-gefahren`, acht Commits ab `8e8646a`): erst damit rechnet der Radar-Job
+   beim nächsten Jobstart (≈ alle 5 h 45 min) die Gefahren (`road/v1/hz/`) und der `road-fc`-Job die Zusatzgrößen `sl`/`t85`/`vs`.
+   Vorher die beiden Verzeichnisse abgleichen: im Hauptbaum liegen uncommittete Änderungen anderer Sitzungen an `package.json`
+   (`verify:dach-mask`), `MANUELLE-SCHRITTE.md` (§67–§69), `CLAUDE.md`, `scripts/radar-mirror/*` — der Zweig ändert dieselben
+   Dateien (`package.json` Abhängigkeiten + `verify:road-hazards`, `MANUELLE-SCHRITTE.md` §70, `scripts/road/road-mirror.mjs`);
+   bei einem Konflikt beide Seiten behalten.
+2. **Paket ins Daten-Repo** (`C:\dev\buscosun-road-publish\2026-10-13-hz\`, `SHA256SUMS`): `road/v1/static/segments.json`
+   (1 629 Abschnitte, 191 KB gz, ODbL) und der README-Abschnitt (`README.md` = Kopie der Vorlage `scripts/repack-repo/README.md`).
+   Ohne `segments.json` im Repo schreibt der Spiegel `status.hz.blocked = "static/segments.json fehlt"` und keine `hz/`-Slots —
+   der Messbetrieb läuft unverändert. Nach dem Einspielen die beiden Pfade `@main` purgen. **Push = dein Gate** (der Auto-Modus
+   lehnt den Push ins Daten-Repo ab).
+3. **Nach dem Einspielen:** das AF-3-Paket (`2026-10-11-af3`, 212 Korridore) ist noch nicht im Daten-Repo (§62.2c). Spielst du es
+   ein, muss `segments.json` neu gebaut werden (Bauweg in `audit/autobahnwetter.md` §19.2; Caches liegen unter
+   `C:\dev\buscosun-road-publish\cache\`), sonst fehlen die 71 neuen Teilstücke in der Leiste.
+4. **Erster Live-Slot prüfen** (nach dem nächsten Radar-Jobstart): `node scripts/health-manifests.mjs --url https://buscosun.com`
+   — R6 (hz-Slot ≤ 45 min) und R7 (keine fehlenden Eingänge) grün; `status.json` Block `hz` mit `withLevel`, `unknown`, `ms`.
+   Lokal gemessen: 25 s je Slot (V-AW-52) — am Jobprotokoll gegenprüfen.
+5. **Gate E (Gefahren-Schatten, frühestens 7 Tage nach dem ersten `hz/`-Slot):** Folgeprompt am Ende des Startprompts; die
+   Reihe steht in `status.json` `recent[].hz` und im Archiv (`road-archiv.yml` trägt `status.json` mit). Vorab aus §19.6 anzusehen:
+   E-AW-38 (Terrarium statt DGM200), E-AW-39 (Nebel-Proxy — 292 von 1 629 Abschnitten am 13.10. 17 UTC), E-AW-40 (Fortschreibung
+   der Glätte), V-AW-47…54.
+6. **Gate C+ (Leiste live):** `ROAD_HZ_LIVE = true` erst nach deinem OK im Chat; bis dahin `?roadhz=1`.
+7. **V-AW-48 (Messlinie, dein Gate, ändert die Seite):** der Füllwert-Test greift nur bei exakt 0,00/−1,00 °C — Q290 Wolfskopf
+   meldete Fahrbahn = Luft = −0,01 °C (273,14 K). Vorschlag: `fillValue` auf |rs| ≤ 0,011 und |rs + 1| ≤ 0,011 ausdehnen, am Archiv
+   messen.

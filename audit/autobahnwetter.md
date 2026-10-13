@@ -1,6 +1,6 @@
 # Autobahnwetter — Phase AW: Diagnose, Protokoll, Gates
 
-> Stand: 2026-10-06 (§18: E-AW-30 und die offenen V-AW umgesetzt, nicht gepusht). Plan: `audit/autobahnwetter-plan.md` (bindend), Konzept/Datenlage: `audit/autobahnwetter-konzept.md`,
+> Stand: 2026-10-13 (§19: AW-7/AW-8 Gefahren-Leiste und Detailansicht im Schatten, Zweig `feat/autobahnwetter-gefahren`; davor §18 vom 06.10.). Plan: `audit/autobahnwetter-plan.md` (bindend), Konzept/Datenlage: `audit/autobahnwetter-konzept.md`,
 > UI-Vorgabe: `reference/autobahnwetter-*.dc.html` + `reference/README-autobahnwetter.md`.
 > Arbeitszweig `feat/autobahnwetter` im Worktree `C:\dev\buscosun-web-aw` (eine parallele Sitzung arbeitet im
 > Haupt-Arbeitsbaum auf `main`, §1.3).
@@ -1244,3 +1244,324 @@ Push von `main` (sieben Commits; vor 23:10 UTC, damit V-AW-35 mit dem nächsten 
 (§18.4) mit Purge der drei Pfade, optional die Workflow-Kopien (`workflow-road-fc.yml` ohne Pflichtprüfung der Punktdatei,
 `workflow-road-archiv.yml` mit erweiterter Meldung — der Code wirkt auch ohne), die DWD-Anfrage (§18.5), V-AW-36
 (Motor, Jans Gate), Real-Device der Radar-Ebene (WebGL) auf dem Handy.
+
+## 19. AW-7/AW-8 — Gefahren-Leiste und Detailansicht (13.10.2026, Auto-Modus; Startprompt `audit/autobahnwetter-gefahren-startprompt.md`, Spezifikation `audit/autobahnwetter-gefahren.md`)
+
+> Arbeitszweig `feat/autobahnwetter-gefahren` im verschachtelten Worktree `C:\dev\buscosun-web\.wt-hz` (in `.git/info/exclude`;
+> `node_modules` per Aufwärtssuche, keine Junction). Der Haupt-Arbeitsbaum trägt uncommittete Dateien anderer Sitzungen (SE, LM,
+> WL, RA) und wurde nicht angefasst; die vier Spezifikationsdateien dieser Phase (Gefahren-Dokument, Startprompt, die zwei
+> Gefahren-Vorlagen) und die Nachträge in Plan und Vorlagen-README liegen als Kopie im Zweig. Schalter `ROAD_HZ_LIVE = false`
+> (`src/road/roadFlag.ts`), `?roadhz=1` > `localStorage.roadhz` > Konstante; `ROAD_LIVE` unberührt.
+
+### 19.0 Vorprüfung (Startprompt §1) und Stand je Arbeitspaket
+
+| Prüfung | Befund |
+|---|---|
+| Gefahren-Dokument trägt „Stand im Repo und Voraussetzungen“, E-AW-32…37 | ja (Datei vom 13.10., 240 Zeilen) |
+| §18 (sieben Commits, Paket §18.4) auf `origin/main` und im Daten-Repo | ja: `main` = `origin/main` = `8e8646a`; die Punktdatei im Daten-Repo ist vom 06.10. 21:32 UTC (4 569 Punkte), die Korridor-Datei vom 06.10. 00:58 UTC (141 Korridore) — das AF-3-Paket (212 Korridore, `C:\dev\buscosun-road-publish\2026-10-11-af3\`) ist **nicht eingespielt** (`road/fc/v1/index.json`: `corridors: 141`); die Abschnitte dieser Phase sind auf den 141 Live-Korridoren gebaut und müssen nach dem Einspielen von AF-3 neu gebaut werden (§19.9) |
+| `git status` des Haupt-Arbeitsbaums | 31 geänderte und 20 neue Dateien anderer Sitzungen — unberührt, Zweig nicht gewechselt |
+| `gh` CLI | nicht installiert (wie in §1.3 der Vorgänger); Actions-Stand nur lesend über die REST-API, kein Dispatch, Push-Protokoll ohne `gh run list` |
+
+| AP | Stand | Ergebnis |
+|---|---|---|
+| AW-7.0 Spike | fertig (§19.1) | Befunde D-1…D-9, fehlende Größen, Hagelkennung, Abschnitte, Größen, nivo |
+| AW-7.1 Abschnitte und Eingänge | fertig (§19.2, `1adb627`) | `src/road/roadSegments.ts`, `scripts/road/build-segments.mjs`, `segments.json` (Paket `C:\dev\buscosun-road-publish\2026-10-13-hz\`), Zusatzgrößen in `road/fc` |
+| AW-7.2 Regeln | fertig (§19.3, `1342eb6`) | `src/road/roadHazards.ts`, `roadSun.ts`, `roadNarrative.ts`, `verify:road-hazards` |
+| AW-7.3 Derive | fertig (§19.4, `da8ab94`) | `scripts/road/road-hazards.mjs` im Spiegel, `hz/`, `state.json`, `status.json`, Wächter |
+| AW-8.0 Messbasis | fertig (§19.5) | Kontrollbau `8e8646a`: eagerJs 109,9, totalJs 1 767,5, RoadPage 33,7 KB gz |
+| AW-8.1 Leiste | fertig (§19.5) | `RoadHazardPanel.tsx`, `RoadHazardMatrix.tsx`, `roadHzView.ts`, `roadNivoTheme.ts`, Schalter `ROAD_HZ_LIVE`/`?roadhz=1` |
+| AW-8.2 Detail | fertig (§19.5) | `RoadHazardDetail.tsx`, `RoadCrossSection.tsx`, `RoadHazardCharts.tsx` (lazy) |
+| AW-8.3 Karte, Zeit, Mobil | fertig (§19.5) | Abschnittslinien `aw-segs`, stündliche Zeitchips, Reiter Gefahren, Blatt mobil; `verify:road-ui` Block U |
+
+### 19.1 AW-7.0 — Diagnose (13.10.2026, 16:40–17:10 UTC, nur gelesen und gemessen)
+
+**D-1…D-9 der Datenprüfung (06.10.) im Code und im Live-Slot.** Die Regeln M1–M5 aus `audit/autobahnwetter-datenpruefung.md`
+§5.1 liegen auf `main` (`roadContract.ts`: `fillValue`, `dewSpread`, `gustNoWind`, `precipFill` hart, `roadAir` hart mit
+Nachbar-Schiedsrichter, Plateau-Deckel 48 Slots, `o`-Kennzeichen, `qf`; Anker-Filter M4 in `swisTable`, `road-forecast.mjs`
+Z. 179–214); M6 (Stationslage) ist in `18ab8ca`. Live-Slot `2610131615` (16:15 UTC): 1 190 Punkte, Klassen nass 295 ·
+trocken 517 · keine Messung 292 · unbekannt 86, **0 Frostgefahr, 0 Glätte**; Quarantäne 378 Einträge: `precipFill` 116,
+`catalog` 92 (Beobachtung), `stateNoTemp` 84, `stuck` 30, `limit` 29, `roadAir` 7, `dewSpread` 6, `neighbours` 6,
+`placeholder` 3, `dewAboveAir` 2, `jump` 1, `cube` 1, `outsideDE` 1, `fillValue` 0. Der Lauf `road/fc` `2610131630` nennt
+`anchor: swis`, `anchored: 893` (von ≈ 1 200 meldenden Stationen; die ausgefilterten sind die mit Beobachtungs-Treffern, M4).
+**Befund: D-1…D-4 sind durch harte Regeln abgedeckt; die Voraussetzung von Gate E ist erfüllt.** D-5/D-6/D-7/D-9 sind
+umgesetzt (M5/M6), D-8 (Sägezahn, Motor) bleibt Jans Gate und trifft die Gefahren-Stufen über `t2m` der Prognose-Stunden
+(Hinweis in §19.6).
+
+**Was `road/fc/v1` trägt und was fehlt** (`roadFc.ts` `ROAD_FC_VARS`, Lauf `2610131630`): `t`, `ts`, `td`, `pp`, `rr`, `sn`,
+`ff`, `fx` (Böe), `dd` (Richtung), `n` (Bewölkung), `cf`, `q`. Böe, Richtung und Bewölkung sind also **schon da** (das
+Gefahren-Dokument zählt sie als fehlend). Es fehlen: Schneefallgrenze (im Cube: `vars.snowline` aus `snowlmt`), T850 (Cube-
+Zellen `t850`, nur native Schritte), Neuschnee (`runs/` `snowFresh`, 1–24 h), Gewitterpotenzial und Blitzpotenzial (`runs/`
+`thunder` 0–12 h stündlich und `lightningfc` 1–12 h, beides ICON-D2, Gitter 608 × 373 mit `ss = 2`), CAPE (`runs/` `cape`,
+volle Auflösung, 0–27 h), MOSMIX-Sicht (Stationsebene `vis` des Stationsprodukts; der Producer kennt je Punkt die Station
+`mos` mit Abstand). Entscheidung §19.2: Schneefallgrenze, T850 und Sicht kommen als **optionale** Größen in die Laufdatei
+(`sl`, `t85`, `vs`; alte Dateien ohne sie bleiben gültig, alte Clients ignorieren sie); Gewitter/Blitz/CAPE/Neuschnee liest
+der Gefahren-Derive **direkt aus `runs/`** des Spiegel-Klons (der Radar-Job checkt das Daten-Repo vollständig aus, Zeile 43
+der Vorlage; der `road-fc`-Job hat `runs/` nicht im Sparse-Checkout — eine Workflow-Änderung wäre nötig gewesen, V-AW-50).
+
+**Hagelkennung.** Das KONRAD3D-XML führt im Block `intensity` ein `hail_flag` (0/1, in `audit/zellbahnen.md` an 38 Zellen
+gezählt: 30 × 0, 8 × 1) und im Block `hymec` `area_hail`/`area_large_hail`; der Parser (`src/radar/konrad3d.ts`) liest beides
+(`hailFlag`, `hailAreaKm2`, `largeHailAreaKm2`). ⇒ `hagel` Stufe 2 ist aus dem Spiegel-Produkt `img/konrad3d/<Stempel>/cells.json`
+möglich. Zellen gibt es nur in ≈ 150 km um die deutschen Radare (Phase ZO) — für die DE-Korridore vollständig.
+
+**Abschnitte.** Overpass liefert für Deutschland **13 463** Knoten `highway=motorway_junction` (Stand 2026-10-13T16:49Z,
+3,8 MB, `lz4.overpass-api.de` in 48 s; `overpass-api.de` antwortete 504), davon 11 299 mit Namen, 7 813 mit Nummer; Cache
+`C:\dev\buscosun-road-publish\cache\osm-junctions-de-2026-10-13.json`. Der Motorway-Auszug vom 11.10. (71 226 Wege) trägt
+`bridge` an 14 797, `surface=concrete` an 8 122, `embankment` an 1 050, `cutting` an 178, `tunnel` an 357 Wegen. Probe an
+A 8 und A 93 (§19.2): 87 Knoten → 45 Abschnitte, 5,1–11,9 km, Median 7,8 km.
+
+**MOSMIX-Sicht.** Der Producer ordnet jedem Punkt die nächste MOSMIX-Station zu (`mos: [id, km]`); die Sichtebene `vis` steht
+seit AX-11 in `point/stations` (MOSMIX-L) und `stations-s`. Abdeckung ≤ 20 km wird beim ersten Producer-Lauf gezählt (§19.2).
+
+**PNG-Lesen von `runs/` in Node.** `scripts/lib/png.mjs` (`decodePng`, `toRgba`, `node:zlib`) liest die Repack-Bilder ohne neue
+Abhängigkeit; Kanal R = Wert · 255 über `vMin…vMax` der Familie, Alpha 0 = außerhalb der Domäne (`scalarFrameBuild.ts`).
+
+**Höhenmodell.** DE: statt BKG DGM200 die Terrarium-Kacheln z11 (Mapzen/AWS), mit denen die Streckenprognose ihr Gelände
+rechnet (`geo.json`, `terrain.ts`) — eine Quelle für Punkt-Höhe, TPI und Achsen-Steigung, keine zweite Lizenz (E-AW-38, §19.7).
+AT/CH entfallen in v1 (E-AW-12).
+
+**DWD-Streckenlage/-belag.** Der Katalog `sws_stations_xls.xlsx` (v=11) enthält nur `sheet1` mit den Codes `lage` 0–8 und
+`belag` 0–7; das im Konzept genannte Register „Typen“ fehlt in der Datei, die Codetabelle ist nirgends belegt ⇒ Damm- und
+Betonlage kommen in v1 **nur aus OSM** (`embankment`, `surface=concrete`), die DWD-Codes bleiben ungenutzt (V-AW-48).
+
+**Größenbudget `hz/`.** Gemessen am ersten Derive-Lauf (§19.4); Erwartung aus der Datenform: je Abschnitt mit Stufe ≥ 1 ≈ 250–400
+Bytes, ein Winterslot mit 600 Abschnitten ≈ 200 KB, ein ruhiger Herbstslot ≈ 10–30 KB — weit unter 20 MB je Datei.
+
+**nivo.** Installiert `@nivo/core`, `@nivo/line`, `@nivo/radar` **0.99.0**; `@nivo/heatmap`, `@nivo/bullet`, `@nivo/polar-bar`
+sind in 0.99.0 auf npm, Peer `react ^16.14 || ^17 || ^18 || ^19`, Abhängigkeiten `@nivo/*` 0.99.0 und `@react-spring/*`
+(wie `@nivo/line`) ⇒ kein Upgrade, kein Peer-Konflikt (E-AW-35 ausführbar). Der Verifier `verify:fire-clusters` prüft die
+Liste der Laufzeit-Abhängigkeiten Zeichen für Zeichen — er wird mit den drei Paketen und dem Verweis auf E-AW-35 fortgeschrieben.
+
+**Rendering der Vorlagen.** Alle vier Boards über `scripts/lib/cdpBrowser.mjs` (file://, DPR 1) gerendert und angesehen
+(`audit/autobahnwetter/hz/boards/*.png`): Leiste = Reiter Gefahren · Strecke · Quellen, Kopf „Gefahrenlage DACH · 11 Abschnitte
+mit Hinweisen“, Zeitraum Jetzt / Bis +6 h, Matrix 7 × 7, Legende, Filter-Chips, Gruppen mit Zeilen (Stufenbalken, Schild,
+Name, Gefahr · km · Richtung, 7-Stunden-Streifen, „seit/ab/bis“, Stufen-Chip, Nachweis); Detail = Kopf mit Zurück und „2 / 11“,
+Abschnittskarte, Richtungs-Schalter, Chips der Gefahren, Querschnitt, Detailtext, Fahrplan −2…+6 h, Temperaturen −12…+6 h, …
+
+### 19.2 AW-7.1 — Abschnitte und Eingänge (13.10.2026)
+
+**Vertrag `src/road/roadSegments.ts`** (importfrei bis auf die Achsgeometrie aus `roadFc.ts`): Abschnitt = Stück eines
+Korridors zwischen zwei OSM-Knoten `highway=motorway_junction`, 5–25 km (`ROAD_SEG_MIN_KM`/`MAX_KM`; kürzere mit dem kürzeren
+Nachbarn vereint, längere in gleiche Teile geteilt), Name „von – bis“ aus den Knotennamen, Kennung `<Straße>-<km-Beginn 3-stellig>`
+(`A8-034`), bei Korridoren mit Zusatz `A8.2-000` (**V-AW-47**, s. u.). Stützpunkte = die Achspunkte der Streckenprognose im
+Abschnitt (mindestens der nächste), Stationen im Abschnitt und bis 5 km davor/dahinter (`stations`/`near`), Peilung je
+1-km-Stück (`bearings`, Eingang von `sonne` und `quer`), Ortsmerkmale je Feld mit Quelle im Kopf: Brücken-, Tunnel-,
+Einschnitt-, Damm- und Betonanteil der Achse plus die Brücken ≥ 100 m (OSM-Wege, Abtastung alle 100 m), Wald im 50-m-Band und
+Acker im 1-km-Band (ESA WorldCover, 37-m-Ebene des Spiegels), Höhe und steilstes 1-km-Stück (Terrarium z11), Niederung (TPI 2 km
+≤ −30 m an einem Stützpunkt aus `geo.json`), freie Lage. Parser `parseRoadSegments` (Kennungen eindeutig, Peilungen 0…359,
+Anteile 0…1). Die Datei ist eine abgeleitete Datenbank aus OSM ⇒ `license: ODbL 1.0`, Quellenvermerk im Kopf.
+
+**Bauer `scripts/road/build-segments.mjs`** (von Hand/monatlich; Eingaben: Korridore, Punkte, `geo.json`, Motorway-Auszug und
+Knoten-Cache unter `C:\dev\buscosun-road-publish\cache\`, Kachel-Caches für Terrarium und WorldCover ebendort): Knoten ≤ 120 m
+neben der Achse, beide Fahrbahnen mit gleichem Namen innerhalb 1,5 km = ein Knoten (km-Mittel). Ergebnis auf den 141
+Live-Korridoren (13 101 km): **1 629 Abschnitte, 3 446 Knoten, Länge min 2,3 (Korridore kürzer als 5 km, 16 Stück) · p50 7,5 ·
+max 24,3 km; 574 Knoten-zu-Knoten, 1 017 vereint, 38 Korridorenden, 0 geteilt; 1 235 mit einer GMA in Reichweite, 394 ohne
+(dort gilt jetzt der Nachweis Prognose); Brücken 1 296, Beton ≥ 20 % 339, Wald ≥ 30 % 868, Acker ≥ 50 % 285, Steigung ≥ 4 % 490,
+Niederung 110, freie Lage 92; 1 036 Terrarium-Kacheln, 14 WorldCover-Dateien, 63 s mit warmen Caches** (erster Lauf ≈ 20 min
+Netz). Datei 941 KB roh / **191 KB gz** — weit unter 20 MB; Paket `C:\dev\buscosun-road-publish\2026-10-13-hz\road\v1\static\segments.json`.
+Probe A 8: 28 Knoten → 15 Abschnitte (München – Unterhaching-Ost 6,2 km … Anger – Salzburg 8,5 km), Weyarn – Irschenberg
+km 34,2–44,4 mit Steigung 7,0 % bei km 42,7–43,7, Wald 39 %, 1 Brücke; Irschenberg – Bad Aibling Gefälle 8,7 %.
+
+**Zusatzgrößen in `road/fc/v1`** (`roadFc.ts`, optional — Läufe vor dem 13.10. bleiben gültig, alte Clients ignorieren sie):
+`sl` Schneefallgrenze (`vars.snowline` des Cube-Pfads), `t85` T850 (Cube-Zelle an den nativen Schritten, dazwischen linear,
+`t850At`), `vs` MOSMIX-Sicht der Stationsmitglieds-Station, nur ≤ 20 km (`stationVisSeries`: Stationsmanifest + `readStationPoint`,
+Ebene `vis`, je Lauf und Station einmal gelesen). Gewitter-/Blitzpotenzial, CAPE und Neuschnee liest der Gefahren-Derive aus
+`runs/` des Spiegel-Klons (§19.1). Gates: `verify:road-fc` 107/107, `verify:road-contract` 111/111, `verify:road-derive` 36/36
+unverändert grün (die Zusatzgrößen ändern keine bestehende Prüfung). Wirksam wird der Producer-Teil mit dem Push von `main`
+(der `road-fc`-Job klont `main`).
+
+### 19.3 AW-7.2 — Regeln, Sonnenstand, Detailtext, Verifier (13.10.2026)
+
+**Vertrag `src/road/roadHazards.ts`**: Katalog der 16 Gefahren in 7 Gruppen (feste Reihenfolge = Rang; `max` 2 für Gischt, Sonne,
+Bäume; Staub `observeOnly`; Sonne `perDirection`), **jede Schwelle eine benannte Konstante** in `ROAD_HZ_T` je Gefahr mit Herkunft
+im Kommentar (alle `set`, Startwerte des Gefahren-Dokuments), Eingangsalter `ROAD_HZ_INPUT_AGE_MS` (obs 45 min, RV/KONRAD 15 min,
+fc 3 h, `runs/` 6 h `set`), Deckelung `ROAD_HZ_CAP_P = 2`. `evaluateSegment(input)` ist eine reine Funktion über `HzSegmentInput`
+(Stationen mit Trend, Luft-Verlauf 3 h, Tagesmaximum und `suspect`; Stützpunkte mit 7 Stundenwerten; Radar; Zellen; Zustand;
+fehlende Eingänge): je Gefahr und Stunde der beste Kandidat (höchste Stufe, bei Gleichstand gemessen vor abgeleitet vor Prognose),
+Nachweis `m` nur bei Stunde 0, `p` gedeckelt; fahrbahnabhängige Glätte in +1…+6 h als **Fortschreibung** der jetzigen Stufe, solange
+Cube-T2m ≤ +1 °C, sonst Proxy (bis Gate D, E-AW-34); **Messlücke** (GMA des Abschnitts verworfen, keine gültige in Reichweite) ⇒
+Reif/Nässe/Gefrierender Regen/Schnee/Aquaplaning/Gischt jetzt `null` mit `why: gap:<id>`, nie aus dem Modell aufgefüllt; Messung
+fehlt (obs zu alt) ⇒ unbekannt überall, wo ein Abschnitt sonst Messpunkte hat; Brücke/Schattenlage heben die Tf-Schwelle der Stufe 1
+um 1 K (Lesart des Satzes „senken die Tf-Schwelle um 1 K“, **V-AW-49**); Brücken, Dämme, Waldschneisen senken die Seitenwind-Schwellen
+um 10 km/h; Sonne je Fahrtrichtung über die Stück-Peilungen (`roadSun.ts`, NOAA-Algorithmus, Verifier F1–F3 gegen drei
+astronomische Referenzen ≤ 0,5°: Äquinoktium-Zenit, wahrer Mittag München zur Sommersonnenwende 65,31° gegen 65,30°, Hamburg zur
+Wintersonnenwende gegen die sphärische Formel). Sperren: `roadHzEntryProblems` (Form, `m` in der Zukunft, Stufe 3 bei max 2, Prognose
+über der Deckelung, Stufe ohne `why`, Glätte gemessen ohne GMA im Abschnitt), `roadHzConsistencyProblems` (Hitze bei T2m < 25 °C,
+Schnee 3 bei T2m > 6 °C ohne Messcode, Nebel 3 ohne Sicht < 50 m), Beobachtungs-Statistik (Anteil > 60 %, Sprung > 3×) nur in der
+Bilanz. Dazu `parseRoadHz`, `roadHzFreshness` (45 min / 3 h), `roadHzSummary` (Matrix Gruppe × Stunde, je Gefahr, gesamt).
+
+**Sensorfehler, am echten Slot gefunden (13.10. 17:00 UTC) und abgefangen:** M080 Heringen trug im Ring −15,9 °C Luft nach −30 K in
+75 min (jetzt verworfen, `x.ta`), Q290 Wolfskopf meldete Fahrbahn = Luft = −0,01 °C mit `o: jump/cube` (273,14 K — der Füllwert-Test
+greift nur bei exakt 0,00/−1,00, **V-AW-48**), E217 Filsum Luft 29,25 °C mit `o: cube`. Ohne Schutz wurden daraus „erster Frost“,
+„Temperatursturz Stufe 2“ und ein Sturz −16,5 K aus dem verankerten Prognosewert. Jetzt: Stationen mit Beobachtungs-Treffer oder
+verworfener Luft sind `suspect` und tragen weder zu erstem Frost, Temperatursturz noch Hitze bei; gemessene Abkühlungen über 10 K/h
+gelten als Gerätefehler; Sturz-Paare nur innerhalb EINER Anlage bzw. EINES Punkts. Verifier D8c/D8d/I7.
+
+**Detailtext `src/road/roadNarrative.ts`**: Satzbausteine in der Reihenfolge des Dokuments (Fahrbahn jetzt mit Wert, Quelle, Uhrzeit;
+warum; Ortsmerkmale ohne Messung; Ausblick „Laut Prognose von buscosun Fusion ‹n›: … Prognose-Stufen sind in Erprobung und auf Stufe 2
+begrenzt“; nicht messbar; unbekannte Stunden mit Grund und „keine Entwarnung“). Verbotene Wörter als Regex-Liste
+(`ROAD_NARRATIVE_BANNED`), Uhrzeiten Europe/Berlin aus den `why`-Zeitstempeln (ms, nicht UTC-Text). Zwölf goldene Texte in
+`scripts/lib/fixtures/road/hz/golden/` (Reifnacht, Warmfront, Nebelmorgen, Sturm auf der Talbrücke, Sommergewitter, Hitze auf
+Beton, erster Frost, tiefe Sonne, Messlücke, Aquaplaning, Schnee, Temperatursturz).
+
+**`verify:road-hazards` — 91/91** (`scripts/verify-road-hazards.mjs`; Fixtures `scripts/lib/fixtures/road/hz/`: vier echte
+Abschnitte, die zwölf Stationen des Slots 2610131700, der Lauf 2610131712, 82 KB): A Katalog · B Glätte (14 Fälle inkl.
+Fortschreibung, Proxy, Brücke) · C Aquaplaning/Sicht/Wind (Sonne am 15.11. auf der A 8 genau in den Stunden mit Sonne 0–15° und
+≤ 25° neben einer Richtung) · D Gewitter/Hagel/Hitze/Wetterwechsel · E D-04 (Prognose fehlt, Messung fehlt, Messlücke mit
+Gegenprobe, Radar zu alt, Deckelung) · F Sonnenstand · G Sperren, Parser, Zusammenfassung · H Abschnittsvertrag und Bauer (Vereinen/
+Teilen, Knoten-Cluster, km auf der Linie) · I Derive-Leser (RV-Pixel München 669/936, KONRAD-Zellen über/Zugbahn, Stationseingang)
+und Derive Ende zu Ende auf dem Fixture-Bestand (veröffentlicht, fehlende Eingänge benannt, Zustand gemischt, deterministisch,
+Spiegel-`copyInto` erhält `segments.json`) · J goldene Texte, verbotene Wörter, jede Zahl mit Quelle im Satz.
+
+### 19.4 AW-7.3 — Derive im Spiegel (13.10.2026)
+
+`scripts/road/road-hazards.mjs` (Kindprozess wie `road-derive.mjs`; Aufruf `<store> <img> <root> <out> <stamp>`): liest `obs/<stamp>`
+und die jüngsten Ringe je Reihe (Trend, Luft 3 h, Tagesmaximum), `static/segments.json`, den jüngsten `road/fc/v1`-Lauf ≤ 3 h
+(Korridor-Dateien je Abschnitt, Stunde = nächster voller Schritt), den jüngsten RV-Slot ≤ 15 min aus `img/rv/<stempel>/` (Analyse
+`f000`/`g000` log-Kanal, Nowcast-Frames 5…60 und 65…120 min als Maximum je Stützpunkt-Pixel, polar-stereografisch über `psFwd`),
+den jüngsten KONRAD3D-Lauf ≤ 15 min (`cells.json`: Abstand, Hülle über Stützpunkt, erste Zugbahn-Minute ≤ max(5 km, kleine
+Halbachse), Hagelkennung), den jüngsten Repack-Lauf ≤ 6 h aus `index.json` + `runs/<lauf>/*.png` (thunder, lpi, cape, snowfresh;
+nächstes Pixel, Alpha 0 = außerhalb). Fehlt oder altert ein Eingang, steht er in `missing` und die betroffenen Gefahren sind `null`.
+Schreibt atomar `hz/<stamp>.json`, `state.json` mit dem Block `hz` (Zustand je Abschnitt: Stufe-2-Slots, erster Frost, heiße Tage,
+Trockenstunden; die Messlinie bleibt unberührt — der nächste `road-derive`-Lauf schreibt `state.json` neu, deshalb liest der
+Gefahren-Derive den Block vom Vorlauf) und `summary.json`.
+
+**Spiegel-Haken `road-mirror.mjs`:** nach jedem GRÜNEN `obs`-Slot `deriveHazards(stamp)` (Fehler sperrt nie die Messung; `hz/` bleibt
+beim letzten Slot), Aufbewahrung `hz/` wie `obs/` (3 h, ≥ 2), `status.json` Block `hz` (letzter/freigegebener Slot, Sperre, fehlende
+Eingänge, Bilanz je Gefahr, Beobachtung, Laufzeit), `recent[].hz` je Slot (Gate-E-Reihe), `copyInto` übernimmt `static/segments.json`
+aus dem Repo wie `corridors.json`; `ROAD_HZ=0` schaltet den Schritt ab, `ROAD_HZ_KILL=1` schreibt leere Slots. Keine Änderung am
+Spiegel-Kern des Daten-Repos, keine Workflow-Änderung (der Radar-Job checkt das Daten-Repo vollständig aus und klont `src` + `scripts`
+von `main`).
+
+**Lokaler Lauf am Slot 2610131700** (Store = frischer Sparse-Klon, Bilder vom 17:05 UTC, Lauf 2610131712 „buscosun Fusion 12“,
+Repack 2026101315 mit allen Schritten): 1 629 Abschnitte, **391 mit Stufe, 5 unbekannt (Messlücken: H267, P309 …), 0 verworfen,
+`missing: []`; Datei 77 KB; 25 s** (davon ≈ 20 s PNG-Dekodierung der 25 RV-Frames und 50 Repack-Schritte, V-AW-52). Bilanz: Nebel 292
+(Proxy T2m − Td2m ≤ 1 K bei schwachem Wind am Abend — Gate E muss den Proxy kalibrieren, V-AW-53), Gischt 73, Seitenwind 37 (Böen
+35–39 km/h quer auf Abschnitten mit Brücken ⇒ Stufe 1 ab 35 km/h), Aquaplaning 22 (Wasserfilm ≥ 0,5 mm, z. B. A866 1,6 mm),
+Glätte/Gewitter/Hagel/Hitze/erster Frost/Sturz 0. Wächter: `health-manifests.mjs` R6 (hz-Slot ≤ 45 min) und R7 (keine fehlenden
+Eingänge), `verify:health` 44/44.
+
+### 19.5 AW-8 — Gefahren-Leiste, Detailansicht, Karte, Zeit, Mobil (13.10.2026, hinter `ROAD_HZ_LIVE = false` / `?roadhz=1`)
+
+**Schalter.** `src/road/roadFlag.ts`: `ROAD_HZ_LIVE = false`, `roadHzFlagFrom(search)` (`?roadhz=0|1` schlägt `localStorage.roadhz`,
+das schlägt die Konstante — Muster D-31 wie `?road=`), `rememberRoadHzFlag`. `RoadRoute` liest den Schalter, übergibt ihn
+an `RoadPage` (`hz`) und an `parseRoadUrl(slug, search, hz)`: ohne Schalter ist die URL-Grammatik die von AW-6.1b (Reiter
+`station|strecke|quellen`, `t` ∈ {0, 1, 3, 6}); mit Schalter kommen `seg=<Abschnitt>` und `hf=<Gruppe>` dazu, `t` wird
+stündlich (0 … 6, `ROAD_HZ_TIMES`), Voreinstellung des Reiters `gefahren` (`ROAD_HZ_DEFAULT_TAB`). Ohne Schalter ist die
+Seite die von vorher: `verify:road-ui` Blöcke A–T unverändert grün (der einzige Eingriff dort: A4 zählt seit dem Gletscher-
+Merge `8e8646a` 13 Werkzeuge statt 12 — Bestand, nicht AW-8).
+
+**AW-8.0 Messbasis (Kontrollbau).** Merge-Basis `8e8646a` in einem eigenen Worktree gebaut (`.wt-ctl`, gleiche
+`node_modules`): eagerJs **109,9 KB** (Ratsche 110), totalJs **1 767,5 KB**, größter Chunk 278,4 (maplibre); RoadPage-Chunk
+33,7 KB gz, dazu der geteilte nivo-Chunk (`nivo-line`, 106,4 KB gz — die Seite lud ihn schon vor AW-8 für den Verlauf).
+
+**AW-8.1 Leiste (Lage).** `src/road/RoadHazardPanel.tsx` + `RoadHazardMatrix.tsx` (`@nivo/heatmap`, eigene Zelle als
+`<g role="button" tabIndex=0>` mit versteckter Tabelle, Farbe = höchste Stufe im Fenster, Nachweis als Punkt/Halbkreis/Ring),
+Kopf „n Abschnitte mit Hinweisen" + Untertitel (Slot, Land, fehlende Eingänge), Modus „Jetzt | Bis +6 h", Filter-Chips je
+Gruppe mit Zahl, sieben Gruppen (Glätte, Aquaplaning, Sicht, Wind, Gewitter/Hagel, Hitze, Wetterwechsel) mit Zeilen als
+`<button>` (Name, Spanne in km, „beide Richtungen"/Richtung bei Sonne, Stufe, Nachweis, 7-Stunden-Streifen, „außerdem: …");
+Reihenfolge Stufe ↓ → Nachweis (m vor d vor p) → Beginn; „unbekannt" schraffiert zuletzt. ↑/↓ wechseln die Zeile, Enter
+öffnet, Zelle der Matrix setzt Filter + Stunde (gemeinsamer Zeitzustand mit den Zeitchips der Karte). Sicht: `roadHzView.ts`
+(`hzGroupRows`, `hzMatrix`, `rowOrder`, `bestInWindow`, `windowOf`), Theme `roadNivoTheme.ts` (`AW_SEV`, Token
+`--aw-sev-0…3`, `roadNivoTheme`, `useReducedMotion`). Zustände: `loading`, `not-there` („Gefahrenlage derzeit nicht
+verfügbar … keine Entwarnung", Messung und Band bleiben), `stale` (Hinweis, Leiste bleibt), `dead`, `no-segments`,
+`invalid`.
+
+**AW-8.2 Detail.** `RoadHazardDetail.tsx` (Kopf „Abschnitt · DE · Messung", Schilder, Name als `h2` mit Fokus beim Öffnen,
+Position „i / n", Vor/Zurück, Esc = zurück; Richtungs-Schalter nur bei Sonne; Chips der aktiven Gefahren; Querschnitt
+`RoadCrossSection.tsx` (SVG, Fahrbahn mit Sensorlage, Brücke, Wald, Damm, Zustand am Sensor als Text), Detailtext aus
+`roadNarrative` (Jetzt / Ausblick „laut Prognose" / „Nicht messbar" / „unbekannt"), Fahrplan 7 Stunden × 2 Zeilen
+(`planRows`, Stufe + Nachweis je Zelle), Diagramme als eigener Lazy-Chunk `RoadHazardCharts.tsx` (`@nivo/line` Temperaturen
+−12 … +6 h mit Fahrbahn/Luft/Taupunkt, `@nivo/bullet` vier Schwellen-Zeilen Tf/Td-Spanne/Böe/Sicht, `@nivo/polar-bar`
+Windrose Böe jetzt + Querwind) — jedes mit `role="img"`, `aria-label`-Kurzbeschreibung und versteckter Tabelle; Ortsmerkmale
+(`featureRows`), Messpunkte des Abschnitts (im Abschnitt und in Reichweite, Klick = Stationskarte darunter), amtliche
+Warnungen (Zitat), Herkunft (Quellen je Nachweis, OSM ODbL, WorldCover, Terrarium). Lade-Zustand der Diagramme ohne
+Layout-Sprung (feste Höhen).
+
+**AW-8.3 Karte, Zeit, Mobil.** `RoadMap.tsx`: Quelle `aw-segs` mit Ebenen `aw-seg-halo`/`aw-seg-outline`/`aw-seg`
+(Linie = Stück der Korridorachse `stretchLine(kmFrom, kmTo)`, Farbe = höchste Stufe im Fenster, „unbekannt" gestrichelt,
+Auswahl mit Halo, Hover aus der Leiste, Klick = Detail; Testhaken `data-segs`/`data-segSel`). Zeitchips der Karte werden mit
+dem Schalter stündlich (Jetzt · +1 … +6) und teilen den Zustand mit Leiste und Detail (`setTimeShared`); die Legende bekommt
+den Block „Gefahren · jetzt/+n h". Reiter mit Schalter: Gefahren · Strecke · Quellen (Quellen nennt die Gefahren-Ableitung
+und OSM/ODbL, `HZ_SOURCES`). Mobil (≤ 767 px): Leiste im Blatt als Reiter Gefahren, Matrix waagerecht scrollbar, Zeilen und
+Buttons ≥ 44 px, Detail im geöffneten Blatt (Block U10). Reduced Motion: nivo-Animationen aus (`useReducedMotion`).
+
+**Lazy-Schnitt (nach der ersten Messung nachgezogen).** Die erste Fassung importierte Leiste und Detail statisch — ein
+Besucher ohne Schalter hätte den RoadPage-Chunk von 33,7 auf 67,7 KB gz wachsen sehen (Heatmap + Leiste). Jetzt sind
+`RoadHazardPanel`/`RoadHazardDetail` `React.lazy` in `RoadPage` (Suspense-Fallback „Gefahren werden geladen …"); ohne
+Schalter lädt kein Byte davon.
+
+**Messung nach dem Schnitt (Bau dieses Arbeitsbaums, gzip -9).**
+
+| Chunk | vorher (`8e8646a`) | nachher | Bemerkung |
+|---|---|---|---|
+| eagerJs | 109,9 | **109,9** | unverändert (Ratsche 110) |
+| RoadPage | 33,7 | 45,1 | ohne Schalter geladen: Schalter-Logik, URL-Grammatik, Zeitchips, `segLines` |
+| Leiste + Detail (`RoadHazardPanel`) | — | 14,9 (+ `nivo-legends` 93,0 = 106,2 KB erst mit Schalter) | nur mit Schalter |
+| Diagramme (`RoadHazardCharts`) | — | 12,8 (+ `nivo-line` 18,4) | erst beim ersten Detail |
+| nivo geteilt | 106,4 (`nivo-line`) | 93,0 (`nivo-legends`: core, heatmap, bullet, polar-bar) + 18,4 (`nivo-line`) | Rollup gruppiert @nivo/core+heatmap+bullet+polar-bar und @nivo/line neu |
+| Pfad-Last ohne Schalter (statischer Importschluss ab RoadPage, 18 Chunks) | 437,4 | 448,9 | +11,5 = RoadPage; V-AW-59: der Gefahren-Vertrag und die Leser könnten mit dem Schalter nachgeladen werden |
+| totalJs | 1 767,5 | **1 821,6** | Ratsche 1 772 → 1 825 mit Notiz in `budget.json` (Jan 30.09.) |
+
+**Verifier.** `verify:road-ui` **102/102 (sechs Läufe bis dahin: 90 → 96 → Syntax → 100 → 101 → 102; die letzte Hürde U7 war das entprellte URL-Schreiben der Route, der Verifier wartet jetzt darauf)** (Block U: U0 echter Derive auf dem Fixture-Bestand + Szenario-Einträge, U1 Schalter
+aus = Seite von vorher, U2 Leiste, U2b Reihenfolge, U2c Karte, U3 Zeitraum/Matrix/gemeinsame Zeit, U4 Tastatur, U5 Detail,
+U6 Diagramme (nachgeladen, a11y, keine Google-Fonts-Anfrage), U7 Vor/Zurück/Esc, U8 Messpunkt → Detail + Quellen, U9 kein
+Slot, U10 mobil); Bilder `audit/autobahnwetter/hz/ui/u2-gefahren-lage.png`, `u5-gefahren-detail.png`, `u10-mobil-gefahren.png`.
+Drei Verifier-Fehler aus der ersten Fassung des Blocks: Enter über CDP ohne `text: '\r'` löst keinen Klick aus; die
+Band-Markierung nennt den Stationsnamen, nicht die Kennung (Auswahl jetzt über die km-Lage); A4 zählte 12 statt 13 Werkzeuge.
+Vier, nicht drei: U2c las den Karten-Haken, bevor die Karte ihr `load` hatte (die Leiste steht früher) — wartet jetzt;
+U5 erwartete am Querschnitt die Szenario-Stufe („Reif“), der Querschnitt zeigt aber die MESSUNG des Slots (Weyarn 10:00:
+trocken, +18,4 °C) — so gewollt (Messung am Sensor, Stufe im Text), Erwartung korrigiert. Dabei gelesen: **V-AW-57**
+(`apply` wartet auf `isStyleLoaded()`, also auf jede Kachel — Bestand, unverändert gelassen).
+Weitere Gates: `verify:road-hazards` 91/91, `verify:road-fc` 107/107, `verify:road-contract` 111/111, `verify:road-derive`
+36/36 (I1 nach der R6-Regel „wartet auf `static/segments.json`" wieder grün), `verify:health` 44/44, `verify:fusion-release`
+30/30, `verify:fire-clusters` 108/117 (Basis 107/117 — die neun sind die bekannten BP/BD-Textprüfungen; die Abhängigkeitsliste
+mit `@nivo/heatmap`/`bullet`/`polar-bar` ist grün), `verify:seo` 803, `verify:routing` 260/260, typecheck 0.
+
+**Vergleich mit den Vorlagen (`reference/autobahnwetter-gefahren*.dc.html`, Bilder `audit/autobahnwetter/hz/boards/`).**
+Struktur übernommen: rechte Spalte 400 px mit Reitern, Kopfzeile, Matrix Gefahr × Stunde mit Farbe = höchste Stufe,
+Chips, Gruppen mit Zeilen (Name, km-Spanne, Stufe, Nachweis, Streifen), Detail mit Kopf, Chips, Querschnitt, Text, Fahrplan,
+Diagrammen, Merkmalen, Messpunkten, Herkunft. Abweichungen, jede benannt: (a) die Vorlage trägt je Fahrbahn eine Zeile
+(`A8-034-R1`), hier eine je Strecke mit Richtung nur bei Sonne (V-AW-47); (b) Matrix 7 × 7 statt 7 × 6 (Stunde „jetzt" dazu);
+(c) Zeitchips stündlich statt +1/+3/+6 (E-AW-41); (d) Windrose zeigt Böe jetzt + Querwind-Anteil, keine Vorhersage je
+Sektor (die Laufdatei trägt u/v je Stunde nur am Achspunkt, kein Sektorprofil); (e) die Stationskarte unter dem Detail nur
+für Stationen des Abschnitts (V-AW-56); (f) Schrift League Spartan + Inter aus `src/fonts.css`, keine Google-Fonts-Anfrage
+(U6 prüft es). Pixelvergleich: Vorlage und Seite tragen verschiedene Daten (Vorlage Reifnacht mit erfundenen Werten, Seite
+Fixture 03.10. 08:00 + Szenario) — ein Pixel-Diff wäre eine Zahl ohne Aussage (wie §6 der Vorgängerphase, 33,2 %); die
+Struktur ist am Bild geprüft.
+
+**Fünf Fragen (Gate).** 1 Funktionserhalt: ohne Schalter Blöcke A–T grün (U1: Reiter Station · Strecke · Quellen, keine
+Leiste im DOM, vier Zeitchips); 2 Desktop ohne Schalter pixelgleich — kein Diff-Lauf (die Shots `desktop-1440*.png` des
+Verifiers entstehen neu und zeigen dieselbe Seite; ein byte-genauer Vergleich gegen die Basis-Shots steht aus, V-AW-58);
+3 Touch-Targets: U10 misst jeden sichtbaren Button der Leiste ≥ 44 px; 4 Konsole: I1 keine ungefangene Ausnahme in allen
+Abläufen; 5 Long Tasks: in headless-shell nicht messbar (Real-Device = Jan, wie bisher); das Detail lädt die Diagramme
+nach dem ersten Paint.
+
+### 19.6 Entscheidungen dieser Sitzung (Auto-Modus — Jan bestätigt oder ändert)
+
+| Nr. | Frage | Entscheidung | Preis, wenn falsch |
+|---|---|---|---|
+| E-AW-38 | Höhenmodell für Höhe und Steigung der Achse | **Terrarium z11** (Mapzen/AWS), dieselbe Quelle wie Gelände und `geo.json` der Streckenprognose — eine Quelle, keine zweite Lizenz; BKG DGM200 nicht angebunden | Steigung ≈ 30–50 m Rasterauflösung; beim Wechsel auf DGM200 `build-segments.mjs` um einen Leser erweitern, Datei neu bauen |
+| E-AW-39 | Nebel-Proxy der Prognose (T2m − Td2m ≤ 1 K bei Wind < 3 m/s) | wie im Dokument, Stufe 1 mit Nachweis p; am 13.10. 17 UTC 292 von 1 629 Abschnitten — zu viele für einen Abend ohne gemeldeten Nebel | Leiste voller Stufe-1-Nebel; Gate E: Proxy an den gemessenen Sichtweiten kalibrieren (z. B. Spanne ≤ 0,5 K, rF ≥ 97 %) |
+| E-AW-40 | Fortschreibung fahrbahnabhängiger Glätte bis Gate D | jetzige Stufe gilt in +1 … +6 h, solange die kälteste Cube-T2m des Abschnitts ≤ +1 °C bleibt (Nachweis p, gedeckelt auf 2), sonst Proxy | eine Reif-Stufe bleibt stehen, obwohl Sonne die Fahrbahn erwärmt — bis AW-6.2 ehrlich als „fortgeschrieben“ benannt |
+| E-AW-41 | Zeitraster der Gefahren | `hours[i] = Slot + i h` (Slot 17:15 ⇒ 18:15 …), Prognosewerte vom nächsten vollen Stundenschritt | eine Viertelstunde Versatz zwischen Sonnenstand (exakt) und Prognose (volle Stunde) |
+| E-AW-42 | Radar-Nowcast der Stunden +1/+2 | Maximum der 5-min-Frames 5…60 bzw. 65…120 min an den Stützpunkt-Pixeln (nicht das Stundenmittel) | Aquaplaning-Stufe aus einer Spitze; das Stundenmittel `m060.png` wäre milder — Gate E entscheidet |
+| E-AW-43 | Messung fehlt (obs zu alt) | fahrbahnabhängige Gefahren jetzt unbekannt, wo der Abschnitt sonst Messpunkte hat; Abschnitte ohne jede GMA rechnen wie immer aus dem Modell (p) | bei DWD-Ausfall zeigt die Leiste viele „?“ statt Modellwerte — gewollt (D-04) |
+| E-AW-44 | Hitze (`blowup`) ohne bekannten Belag | kein Eintrag (nicht „unbekannt“): die Gefahr gilt dort als nicht anwendbar, das Detail sagt es nicht aktiv | — |
+
+### 19.7 Befunde und Verbesserungen (V-AW ab 47, D-28)
+
+| Nr. | Befund | Mehrwert | Skizze / Stand |
+|---|---|---|---|
+| V-AW-47 | Abschnitts-Kennung ohne Richtungszusatz (`A8-034` statt `A8-034-R1`): beide Fahrbahnen sind EIN Abschnitt, die Richtung steht nur bei `sonne` (`dir`); bei Korridoren mit Zusatz `A8.2-000` | eine Zeile je Strecke wie in der Vorlage („beide Richtungen“), halb so große Dateien | umgesetzt (Vertrag, Startprompt §0 erlaubt die Abweichung) |
+| V-AW-48 | `fillValue` greift nur bei exakt 0,00/−1,00 °C; Q290 Wolfskopf meldet −0,01 °C (273,14 K) als Fahrbahn = Luft | kein Füllwert als Frost | Messlinie = Jans Gate: Toleranz 0,011 K, am Archiv messen |
+| V-AW-49 | „Brücke/Schatten senken die Tf-Schwelle der Stufe 1 um 1 K“ als **Anheben** gelesen (Stufe 1 ab +2 °C statt +1 °C): die Brücke ist kälter als die Anlage neben ihr | die Lesart entscheidet, ob Brücken früher oder später auffallen | umgesetzt (`ROAD_HZ_FEATURE_TF_K`), Jan bestätigt die Lesart |
+| V-AW-50 | Der `road-fc`-Job hat `runs/` nicht im Sparse-Checkout — Gewitter/Blitz/CAPE/Neuschnee lesen deshalb im Gefahren-Derive (voller Klon des Radar-Jobs), nicht in der Laufdatei | keine Workflow-Änderung nötig | so gebaut; falls die Laufdatei sie tragen soll: Sparse-Liste in `workflow-road-fc.yml` um `runs` erweitern (Jan) |
+| V-AW-51 | DWD-Codes `lage`/`belag` des Stationskatalogs sind nirgends erklärt (kein Register „Typen“ in der Datei) | Dammlage und Betonbelag aus der amtlichen Liste | DWD-Anfrage (wie §18.5) oder OSM allein (jetzt) |
+| V-AW-52 | Derive 25 s je Slot — davon ≈ 20 s PNG-Dekodierung (25 RV-Frames à 1100 × 1200 mit Log-Kanal, 50 Repack-Schritte) | Radar-Schleife steht kürzer | nur die Zielpixel dekodieren ist bei PNG nicht möglich; Alternativen: Stundenmittel `m060`/`m120` (2 Bilder statt 24), Repack nur die 7 Stunden des Fensters je Familie (je 7 statt 13 Schritte), Worker-Threads |
+| V-AW-53 | Nebel-Proxy zu großzügig (292 Abschnitte am Abend des 13.10.) | ehrliche Leiste | E-AW-39, Gate E |
+| V-AW-54 | Die Hagel-Stufe 3 („fester Niederschlag bei Luft ≥ +5 °C“) kann Graupel sein — der Text sagt „Hagel oder Graupel“, die Stufe nicht | — | Gate E: Fälle zählen; ggf. Stufe 2 |
+| V-AW-55 | Das Gefahren-Fenster endet bei +6 h, die Streckenprognose reicht 48 h; die Vorlage zeigt +6 h | Abfahrt in 8 h | später: Fenster als Parameter des Derive, Datei bleibt dünn |
+| V-AW-56 | Stationskarte im Detail nur für Stationen des Abschnitts (im Abschnitt oder in Reichweite); ein Klick auf eine ferne Station im Band öffnet deren Abschnitt | — | so gewollt (E-AW-37) |
+| V-AW-57 | `RoadMap.apply` bricht bei `!isStyleLoaded()` ab — das wartet auch auf jede Kachel; ein Datenwechsel während des Kachelladens (Korridor, Abschnittslinien) wird erst mit der nächsten Darstellung nachgeholt (gelesen, nicht gemessen — der leere `data-segs`-Haken im Verifier war Timing: die Leiste steht vor dem `load` der Karte, U2c wartet jetzt) | Linien und Punkte erscheinen, sobald die Daten da sind, nicht erst beim nächsten Render | Bestand seit AW-5, unverändert gelassen (Funktionserhalt): Merker „ausstehend“ + Nachziehen bei `idle`; Testhaken `data-applied` |
+| V-AW-58 | Desktop-Pixelgleichheit ohne Schalter nur über den Verifier belegt (Blöcke A–T grün, dieselben Shots), kein byte-genauer Diff gegen die Basis-Shots | Gate-Frage 2 mit Zahl | Diff-Lauf wie `regenradar-wk-pixeldiff.mjs` gegen `.wt-ctl` (Jan oder nächste Sitzung) |
+| V-AW-59 | RoadPage-Chunk +11,5 KB gz auch ohne Schalter (Vertrag `roadHazards.ts`, Leser, Sicht, `AW_SEV`) | Besucher ohne Schalter zahlen nichts | die Gefahren-Logik in einen eigenen Lazy-Chunk hinter dem Schalter ziehen (Hook `useRoadHazards`) |
