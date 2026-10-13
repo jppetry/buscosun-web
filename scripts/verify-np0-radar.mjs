@@ -220,6 +220,7 @@ function buildSeed(dir) {
     w(join(dir, 'radar', 'rv', `composite_rv_20${s.slice(0, 6)}_${s.slice(6)}.tar`), `raw-rv-${s}`);
     w(join(img, 'rv', s, 'f000.png'), `f000-${s}`);
     w(join(img, 'rv', s, 'f005.png'), `f005-${s}`);
+    if (i % 2 === 0) w(join(img, 'rv', s, 'g000.png'), `g000-${s}`);   // V-SE-3: dual analysis on every second slot
     w(join(img, 'rv', s, 'meta.json'), `{"s":"${s}"}`);
     w(join(img, 'inca', lightningStamp(ms), 'f015.png'), `inca-${s}`);
   }
@@ -274,11 +275,18 @@ try {
     ['rzc', 'konrad3d', 'lightning-de', 'lightning-mtg'].every((s) => countDirs(ta, `${img}${s}/`) === 24),
     ['rzc', 'konrad3d', 'lightning-de', 'lightning-mtg'].map((s) => `${s} ${countDirs(ta, `${img}${s}/`)}`).join(', '));
   const pastPaths = [...ta.keys()].filter((p) => p.startsWith(`${img}rv-past/`));
-  const pastSame = pastPaths.length === 14 && pastPaths.every((p) => {
+  const pastF = pastPaths.filter((p) => p.endsWith('/f000.png')), pastG = pastPaths.filter((p) => p.endsWith('/g000.png'));
+  const pastSame = pastF.length === 14 && pastF.length + pastG.length === pastPaths.length && pastF.every((p) => {
     const s = p.split('/')[4];
-    return p.endsWith('/f000.png') && ta.get(p) === before.get(`${img}rv/${s}/f000.png`);
+    return ta.get(p) === before.get(`${img}rv/${s}/f000.png`);
   });
   add('C3 rv-past: f000 aller 14 vorhandenen RV-Slots, Blob-gleich zur f000 des RV-Slots (auch die 2, deren voller Slot herausfällt)', pastSame, `${pastPaths.length} Dateien`);
+  // Phase SE (V-SE-3): the dual analysis g000.png rides along exactly where the RV slot carries one — 7 of 14 here — blob-equal;
+  // a slot without it stays f000-only (RADAR_IMG_DUAL off = the mirror before SE).
+  const gSrc = [...before.keys()].filter((p) => p.startsWith(`${img}rv/`) && p.endsWith('/g000.png') && p.split('/').length === 6);
+  const pastDual = pastG.length === 7 && gSrc.length === 7 && pastG.every((p) => ta.get(p) === before.get(`${img}rv/${p.split('/')[4]}/g000.png`))
+    && gSrc.every((p) => pastG.includes(`${img}rv-past/${p.split('/')[4]}/g000.png`));
+  add('C3b rv-past: g000 genau der 7 RV-Slots mit Dual-Analyse, Blob-gleich; die 7 ohne bleiben f000-only (V-SE-3)', pastDual, `${pastG.length} g000`);
   const keptSame = [...ta.keys()].filter((p) => p.startsWith(img) && !p.includes('/rv-past/')).every((p) => ta.get(p) === before.get(p));
   add('C4 jede übernommene Datei Blob-gleich zum Seed (Bestand nur kopiert, nie neu geschrieben)', keptSame);
   const foreign = ['README.md', 'point/index.json', 'road/v1/obs/2610031500.json'].every((p) => ta.get(p) === before.get(p));

@@ -78,10 +78,12 @@ export interface CompositeSources {
   rvPast?: ReadonlyArray<RvPastFrame> | null;
 }
 
-/** One measured RV analysis of the look-back (Phase RR). */
+/** One measured RV analysis of the look-back (Phase RR). `values2` (Phase SE, V-SE-3): its log plane when the slot
+ *  carries one — the HD DE layer then draws the look-back from the same plane as „jetzt". */
 export interface RvPastFrame {
   validAt: Date;
   values: Uint8Array;
+  values2?: Uint8Array;
   width: number;
   height: number;
 }

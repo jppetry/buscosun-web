@@ -69,6 +69,56 @@ export function guessRzcStamps(count: number, nowMs: number = Date.now(), lagMs:
   return out;
 }
 
+/**
+ * One mirrored rzc slot → frame. HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), `frame.png`
+ * wie bisher. Phase PF (M4): decoded off-main. Shared by the live reader and the look-back sequence (V-RA-3).
+ */
+async function readRzcSlotFrame(dir: string, stamp: string, meta: NonNullable<ReturnType<typeof parseRzcImgMeta>>, signal: AbortSignal, priority?: RequestPriority): Promise<RadarFrame> {
+  let values: Uint8Array | null = null, values2: Uint8Array | undefined;
+  const g = radarDualFlagFrom() && meta.dual ? meta.dual.frames[0]?.file : null;
+  if (g) {
+    try {
+      const d = await loadRadarGrayAlphaPngOffMain(await fetchImgRes(`${dir}/${g}`, signal, priority), meta.width, meta.height);
+      values = d.values; values2 = d.values2;
+    } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
+  }
+  if (!values) values = await loadRadarGrayPngOffMain(await fetchImgRes(`${dir}/frame.png`, signal, priority), meta.width, meta.height);
+  return {
+    values, ...(values2 ? { values2 } : {}), width: meta.width, height: meta.height, corners: meta.corners as QuadCorners,
+    validAt: meta.validAtMs != null ? new Date(meta.validAtMs) : new Date(radarImgStampToMs(stamp)),
+  };
+}
+
+/**
+ * Phase RA (V-RA-3, `audit/radar-aufloesung.md`): the last `count` MEASURED rzc analyses from the mirror (`rzc/<stamp>/`,
+ * 24 slots = 2 h), ascending in time — the look-back of the Regenradar for a Swiss place, which until now only grew
+ * over the session (no archive seed like DE). A slot the mirror does not carry (404) is skipped; a hard CDN error ends
+ * the series (what is there is returned). Only the image way — there is no cheap raw way for an old rzc slot.
+ */
+export async function fetchRzcAnalysisSequence(count: number, signal?: AbortSignal): Promise<RadarFrame[]> {
+  const out: RadarFrame[] = [];
+  if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return out;
+  const stamps = guessRzcStamps(Math.min(24, count + 1), Date.now());
+  for (const stamp of stamps) {
+    if (out.length >= count || signal?.aborted) break;
+    const dl = radarCdnDeadline(signal);
+    try {
+      const dir = rzcImgDir(stamp);
+      const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal)).json());
+      if (!meta || meta.stamp !== stamp) continue;
+      dl.touch();
+      out.push(await readRzcSlotFrame(dir, stamp, meta, dl.signal));
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      if (err instanceof RadarImg404) continue;
+      noteRadarCdnFailure();
+      break;
+    } finally { dl.done(); }
+  }
+  out.sort((a, b) => a.validAt.getTime() - b.validAt.getTime());
+  return out;
+}
+
 /** CDN-Versuch; `null` heißt: STAC + Direkt-Download wie bisher. */
 async function loadRzcFromImg(priority?: RequestPriority, quelleWeg = false): Promise<RadarFrame | null> {
   if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return null;
@@ -83,22 +133,10 @@ async function loadRzcFromImg(priority?: RequestPriority, quelleWeg = false): Pr
       const dir = rzcImgDir(stamp);
       const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
       if (!meta || meta.stamp !== stamp) continue;
-      // HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), `frame.png` wie bisher.
-      let values: Uint8Array | null = null, values2: Uint8Array | undefined;
-      const g = radarDualFlagFrom() && meta.dual ? meta.dual.frames[0]?.file : null;
-      if (g) {
-        try {
-          const d = await loadRadarGrayAlphaPngOffMain(await fetchImgRes(`${dir}/${g}`, dl.signal, priority), meta.width, meta.height);   // Phase PF (M4): off-main
-          values = d.values; values2 = d.values2;
-        } catch (err) { if (!(err instanceof RadarImg404)) throw err; }
-      }
-      if (!values) values = await loadRadarGrayPngOffMain(await fetchImgRes(`${dir}/frame.png`, dl.signal, priority), meta.width, meta.height);   // Phase PF (M4): off-main
+      const frame = await readRzcSlotFrame(dir, stamp, meta, dl.signal, priority);
       if (quelleWeg) console.warn(`[buscosun] MeteoSwiss rzc nicht erreichbar — Daten-Repo (PNG), Slot ${stamp} (${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt)`);
       else console.log(`[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG)`);
-      return {
-        values, ...(values2 ? { values2 } : {}), width: meta.width, height: meta.height, corners: meta.corners as QuadCorners,
-        validAt: meta.validAtMs != null ? new Date(meta.validAtMs) : new Date(radarImgStampToMs(stamp)),
-      };
+      return frame;
     } catch (err) {
       if (err instanceof RadarImg404) continue;   // Slot (noch) nicht gespiegelt ⇒ älterer Kandidat, dann STAC
       noteRadarCdnFailure();

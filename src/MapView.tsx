@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayerKey } from './map/layerTypes';
 import { LAYER_CATALOG, LAYER_OPTION_ORDER } from './map/layerCatalog';
 // V-19/V-20: Datenalter statt Abrufzeit + Sichtbarkeit des Warm-Manifests.
@@ -132,7 +132,8 @@ import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, 
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
 import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
-import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM } from './scalar/radarHd250';
+import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM, onRadarHd250Pref, publishRadarHd250Note, radarHd250NoteText, type RadarHd250Note } from './scalar/radarHd250';
+import { Hd250Switch } from './components/Hd250Switch';
 import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
 import { HD250_TILE_W, HD250_TILE_H, HD250_FACTOR } from './sources/radarHd250';
 /** Phase R250: a dry tile on one side of a mix (the slot has no file for it = every cell 0). */
@@ -159,7 +160,10 @@ import ViewToggle from './dashboard/ViewToggle';
 import './MapView.css';
 // Command-Deck der Kartenseite (references/*-karte.png): Topbar · Ink-Rail ·
 // Layer-Dock · dunkle Bühne · rechtes Panel · Modellseite · Mobile-Bottom-Bar.
-import ModelLibraryOverlay from './map/ModelLibraryOverlay';
+// Modellseite + alle Einstiege ausgeblendet (Jan 13.10.: "nicht benötigt, nicht
+// laden") — MODEL_SWITCHER_VISIBLE unten. Lazy-Chunk bleibt erreichbar, lädt
+// aber nie, solange der Schalter aus ist (kein Eintrittspunkt rendert ihn).
+const ModelLibraryOverlay = lazy(() => import('./map/ModelLibraryOverlay'));
 import SevenDayForecast from './map/SevenDayForecast';
 import { nativeComposition } from './map/ModelSwitcher';
 import {
@@ -324,8 +328,30 @@ const START_NOW_ONLY = (() => {
   } catch { /* SSR → Default */ }
   return true;
 })();
-const WORLD_SOURCE_ID = 'world-fill';
-const DIM_LAYER_ID = 'basemap-dim';
+// Modell-Switcher (Phase 3, docs/model-switcher-gate0.md): auf Jans Wort
+// (13.10.) in allen Ansichten unsichtbar — Rail-Button, Quellen-Pille, Land-
+// Tabs/Menü, Mobile-Modellpille, "Modelle"-Link/Chip/Tab bleiben im Code
+// (Funktionserhalt), rendern aber nicht mehr. Der Overlay-Chunk lädt dadurch
+// beim Start nie mit (ModelLibraryOverlay oben ist ein Lazy-Import).
+const MODEL_SWITCHER_VISIBLE = false;
+// Same dark OpenFreeMap basemap as Autobahnwetter (`RoadMap.tsx`) — overview/forecast map AND the radar
+// profile (Regenradar) now share it (Jans Auftrag 12./13.10.).
+const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
+/** The lowest boundary line layer of the loaded style ('boundary_state' in dark, was 'boundary_3' in the
+ *  former positron style). Weather layers insert themselves right below it, so country/state outlines and
+ *  every label stay on top of the heatmaps. */
+function firstBoundaryLayerId(map: maplibregl.Map): string | undefined {
+  return map.getStyle()?.layers?.find((l) => l.id.startsWith('boundary'))?.id;
+}
+/** The dark style's place/water/road labels prefer `name_en` (so DACH country names would read "Germany" /
+ *  "Austria" / "Switzerland"); same fix as `RoadMap.tsx`'s `germanLabels` — force the local name. */
+function germanBasemapLabels(map: maplibregl.Map) {
+  for (const l of map.getStyle()?.layers ?? []) {
+    if (l.type !== 'symbol') continue;
+    const tf = map.getLayoutProperty(l.id, 'text-field');
+    if (tf && JSON.stringify(tf).includes('name_en')) map.setLayoutProperty(l.id, 'text-field', ['coalesce', ['get', 'name:de'], ['get', 'name'], ['get', 'name_en']]);
+  }
+}
 const COUNTRY_MASK_SOURCE_ID = 'country-mask';
 const COUNTRY_MASK_LAYER_ID = 'country-mask-fill';
 const SAT_SOURCE_ID = 'satellite';
@@ -767,6 +793,10 @@ export default function MapView({
   // die Readout-Spalte seine Beschreibung an ihrer Ordnungsposition als Vorschau
   // ein; ist er aktiv, wird die bereits stehende Karte hervorgehoben.
   const [layerHover, setLayerHover] = useState<LayerKey | null>(null);
+  // Phase LB-1 (13.10.): „Im Detail"-Ehrlichkeitstext je Layer-Karte in der
+  // Readout-Spalte „Aktive Layer" ist standardmäßig zugeklappt (Platz sparen),
+  // per Klick aufklappbar. Reine UI-Ansicht, kein Permalink-Zustand.
+  const [expandedLayerExt, setExpandedLayerExt] = useState<Set<LayerKey>>(new Set());
   // Status je Layer. `fetchedAt` = Abrufzeitpunkt (Fallback), `ref` = ECHTE
   // Referenzzeit der Daten (Modelllauf bzw. Messzeit, V-19). Fehlt `ref`, weist
   // die Quelle keine aus → die Anzeige beschriftet die Abrufzeit als solche,
@@ -993,7 +1023,18 @@ export default function MapView({
   const hdEncodingRef = useRef<Record<string, 'linear' | 'log'>>({});
   // Phase R250: 250-m tiles of the RV analyses (DE) — switch, the 16 tile layers, tick on tile arrival / view change,
   // tile masks derived from the DE 1-km mask, mix buffers and the per-tile motion fields (all unused with the switch off).
-  const hd250Ref = useRef(hdRef.current.on && radarHd250FlagFrom());
+  // Phase RA-250 (`audit/radar-aufloesung.md` §6): the tiles are a SWITCH (off by default) — React state so the layer panel
+  // can flip it at run time; the ref mirrors it for the draw code. `hd250Note` = what the tile layer does for the drawn frame
+  // (status line, switch); `rvClutterCells` (Phase SE, E-SE-3) = cells the mirror's echo filter took out of the shown RV slot.
+  const [hd250On, setHd250On] = useState(() => hdRef.current.on && radarHd250FlagFrom());
+  const hd250Ref = useRef(hd250On);
+  hd250Ref.current = hd250On;
+  useEffect(() => onRadarHd250Pref((on) => setHd250On(hdRef.current.on && on)), []);
+  const hd250NoteRef = useRef<RadarHd250Note>(null);
+  const [hd250Note, setHd250Note] = useState<RadarHd250Note>(null);
+  const [rvClutterCells, setRvClutterCells] = useState(0);
+  const compositeStatusRef = useRef<(() => void) | null>(null);
+  useEffect(() => { compositeStatusRef.current?.(); }, [hd250On, hd250Note]);
   const hd250LayersRef = useRef<Map<string, RainLayer>>(new Map());
   const [hd250Tick, setHd250Tick] = useState(0);
   const hd250MaskRef = useRef<{ src: Uint8Array | null; tiles: Map<string, Uint8Array> }>({ src: null, tiles: new Map() });
@@ -1250,13 +1291,9 @@ export default function MapView({
     const dpr = window.devicePixelRatio || 1;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      // Positron statt Liberty: gleiche OSM-Vektorkacheln (kein Bandbreiten-
-      // Unterschied), aber halb so viele Style-Layer (55 statt 111, keine
-      // 3D-Gebäude-Extrusion) → spürbar weniger Paint-Aufwand. Lohnt sich hier
-      // besonders, weil die Karte ohnehin unter dem 70%-Dim-Overlay liegt (s.
-      // addDimOverlay) — Liberty-Detail (Gebäude, POI-Icons) geht darunter
-      // optisch sowieso unter, kostet aber trotzdem Rechenzeit.
-      style: 'https://tiles.openfreemap.org/styles/positron',
+      // Dunkler OpenFreeMap-Stil wie bei Autobahnwetter (`RoadMap.tsx`) — Jans Auftrag 12./13.10., für
+      // Wetterkarte UND Regenradar-Profil gleichermaßen. DACH/LI-Zuschnitt bleibt unverändert.
+      style: BASEMAP_STYLE,
       // Router (RT1): eine Kamera aus der URL (`lat`/`lon`/`z`) gewinnt gegen Default und DACH-Fit.
       // Phase RR: das Niederschlags-Profil startet wie die alte Radarkarte am Ort (Zoom 8), sofern die URL keine Kamera trägt.
       center: initialView ? [initialView.lon, initialView.lat] : (embedded || profile) ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
@@ -1276,6 +1313,10 @@ export default function MapView({
 
     if (!profile || RADAR_PROFILE.controls.scale) map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
+    // Dark style: country/place labels default to the English name — force German/local (`germanLabels` in
+    // `RoadMap.tsx`).
+    map.on('style.load', () => germanBasemapLabels(map));
+
     // Router (RT1): Kamera nach jeder Bewegung melden — der Wrapper schreibt sie
     // debounced (≥ 300 ms) per replaceState in die Query, nie als History-Eintrag.
     // `map.remove()` im Cleanup löst den Listener mit auf.
@@ -1283,7 +1324,7 @@ export default function MapView({
       const c = map.getCenter();
       routeCbRef.current.onViewChange?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() });
       // Phase R250: the set of visible 250-m tiles depends on the view — redraw the tile layers after every move.
-      if (hd250Ref.current) setHd250Tick((t) => t + 1);
+      if (hdRef.current.on) setHd250Tick((t) => t + 1);   // RA-250: also the availability probe with the switch off
     });
 
     // Startansicht: DACH exakt einpassen statt fester Zoomstufe (Jans Auftrag
@@ -1327,45 +1368,6 @@ export default function MapView({
       window.setTimeout(() => { ro?.disconnect(); }, 4000);
     }
 
-    // Dim overlay — a semi-transparent dark fill that sits over the basemap
-    // but underneath the boundary/label/weather layers. Toggled visible when
-    // any weather layer is active, so the heatmaps "pop" on a dark canvas.
-    const addDimOverlay = () => {
-      if (!map.getSource(WORLD_SOURCE_ID)) {
-        map.addSource(WORLD_SOURCE_ID, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]],
-            },
-            properties: {},
-          },
-        });
-      }
-      if (!map.getLayer(DIM_LAYER_ID)) {
-        const beforeId = map.getLayer('boundary_3') ? 'boundary_3' : undefined;
-        map.addLayer(
-          {
-            id: DIM_LAYER_ID,
-            type: 'fill',
-            source: WORLD_SOURCE_ID,
-            // ink-900 (#2C2A26) dark wash. Sits over the basemap but below
-            // boundary/label layers, so it darkens the DACH interior (outside
-            // DACH is covered by the opaque country mask) without dimming the
-            // city labels. Always on — wind particles and the precip radar
-            // "pop" on a dark canvas instead of washing out against the light
-            // basemap, regardless of which weather layer is active.
-            // Command-Deck (Vollansicht): tieferes Ink-Feld wie in der Vorlage
-            // (references/desktop-karte.png); eingebettet bleibt der Alt-Wert.
-            paint: { 'fill-color': '#2C2A26', 'fill-opacity': embedded ? 0.7 : 0.8 },
-            layout: { visibility: 'visible' },
-          },
-          beforeId,
-        );
-      }
-    };
     // Country mask: an inverted polygon (world − country) cuts the active
     // country out of a 100%-opaque dark fill that sits ABOVE every OSM
     // layer. Weather custom layers added later float on top of the mask, so
@@ -1393,9 +1395,8 @@ export default function MapView({
       }
     };
     const initOverlays = async () => {
-      addDimOverlay();
       // DACH mask: DE + AT + CH cut out of a world-sized polygon so the
-      // dim layer covers everything OUTSIDE the three countries. Country
+      // mask covers everything OUTSIDE the three countries. Country
       // mask is no longer per-search-country — see DACH_VIEW notes.
       const mask = await loadDachMask().catch(() => null);
       const data: GeoJSON.Feature | GeoJSON.FeatureCollection = mask ?? { type: 'FeatureCollection', features: [] };
@@ -1645,7 +1646,9 @@ export default function MapView({
     layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer,
       ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2] } : {}) };
     // Phase R250: one RainLayer per 250-m tile (log ramp — the tiles carry the HD-3 log byte), invisible until a tile is set.
-    const hd250Layers = hd250Ref.current
+    // Phase RA-250: created with HD whatever the switch says (a RainLayer without a frame draws nothing), so the switch can be
+    // flipped at run time; with the switch off no frame is ever set and no tile requested.
+    const hd250Layers = hd.on
       ? HD250_TILE_LIST.map((t) => new RainLayer({ id: t.id, colorRamp: precipRainRampLog, opacity: 0, filter: hd.filter, edge: hdEdgeRef.current }))
       : [];
     hd250LayersRef.current = new Map(hd250Layers.map((l) => [l.id, l]));
@@ -1654,11 +1657,10 @@ export default function MapView({
 
     // Insert temp + clouds *under* the boundary/label layers of the OSM basemap so
     // country outlines, state borders and city labels stay readable on top of the
-    // saturated heatmap (Windy-style). 'boundary_3' is the lowest boundary layer
-    // in the OpenFreeMap Liberty style.
-    const TOPMOST_INSERT_BEFORE = 'boundary_3';
+    // saturated heatmap (Windy-style). The lowest boundary layer differs per style
+    // ('boundary_3' in positron, 'boundary_state' in dark) — `firstBoundaryLayerId` finds it either way.
     const addLayers = () => {
-      const beforeId = map.getLayer(TOPMOST_INSERT_BEFORE) ? TOPMOST_INSERT_BEFORE : undefined;
+      const beforeId = firstBoundaryLayerId(map);
       if (!map.getLayer(tempLayer.id)) map.addLayer(tempLayer, beforeId);
       if (!map.getLayer(gustLayer.id)) map.addLayer(gustLayer, beforeId);
       // Gewitterpotenzial UNTER der Länder-Maske (wie temp/gust/precip) — der
@@ -1841,7 +1843,6 @@ export default function MapView({
         ...Object.fromEntries(WARN_LAYER_IDS.map((id) => [id, active.has('warnings')])),
         [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast') && modelSourceRef.current.radar,
         [POP_LAYER_ID]: active.has('poprob') && modelSourceRef.current.radar,
-        [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
       };
       for (const id of Object.keys(set)) {
         if (map.getLayer(id)) {
@@ -2293,12 +2294,26 @@ export default function MapView({
     const setCompositeStatus = () => {
       const parts: string[] = [];
       if (nowcastRef.current ?? earlyRvRef.current) parts.push('DE RADOLAN');
-      if (incaGridRef.current) parts.push('AT INCA');
-      if (meteoRadarRef.current) parts.push('CH rzc');
+      // Phase RA (`audit/radar-aufloesung.md` §2): what each radar can do on the time axis — INCA starts at +15 min and has
+      // no analysis (so no look-back), rzc is a measurement without a nowcast (nothing beyond „jetzt").
+      if (incaGridRef.current) parts.push('AT INCA (ab +15 min, kein Rückblick)');
+      if (meteoRadarRef.current) parts.push('CH rzc (nur Messung)');
       // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
       // Phase RG: the status names the display threshold (measured, `RADAR_DISPLAY_MIN_MMH`); `?rmin=` shows the compared value.
       const rminText = hdRef.current.on ? ` · ab ${rminRef.current.toFixed(2).replace('.', ',')} mm/h` : '';
-      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${hdRef.current.on ? ' · 1-km-Gitter (HD)' : ''}${hd250Ref.current && nowcastRef.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})` : ''}${rminText}` : '';
+      // Phase SE (E-SE-3): the slot says whether the mirror's echo filter took echoes without precipitation out of the drawn plane
+      // (channel 2 of the dual frames = what the HD layers draw; the composite `?hd=0` and `?hdv2=0` show every echo).
+      const clutterCells = hdRef.current.on ? (nowcastRef.current?.clutter?.cells ?? 0) : 0;
+      const clutterText = clutterCells > 0 ? ' · Echos ohne Niederschlag ausgeblendet' : '';
+      // Phase RA-250 (`audit/radar-aufloesung.md`): the grid is named — `?hd=0` is the lat/lon composite (600 × 512, 2,2 × 1,3–1,5 km),
+      // not a 1-km grid; the 250-m tiles only on request, with what they do for the drawn frame (tiles / forecast = 1 km / none / available).
+      const gridText = hdRef.current.on ? ' · 1-km-Gitter (HD)' : ' · Komposit 600 × 512 (≈ 2 km, kein 1-km-Gitter)';
+      const noteWords = radarHd250NoteText(hd250NoteRef.current, hd250Ref.current);
+      const hd250Text = !nowcastRef.current || !hdRef.current.on ? ''
+        : hd250Ref.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})${hd250NoteRef.current && noteWords ? ` · ${noteWords}` : ''}`
+        : hd250NoteRef.current === 'avail' ? ` · ${noteWords} (DE)` : '';
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${gridText}${hd250Text}${rminText}${clutterText}` : '';
+      setRvClutterCells(clutterCells);
       // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
       // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
       // AT-INCA-Grid tut es nicht (`geosphereIncaGrid.ts` parst nur `leadtime`)
@@ -2311,6 +2326,7 @@ export default function MapView({
       ]);
       if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now(), ref: ref ?? undefined } });
     };
+    compositeStatusRef.current = setCompositeStatus;   // RA-250 / SE: re-worded when the switch or the tile note changes
     // ICON-D2 (Forecast) im Hintergrund nachladen — GRIB2 dekodieren ist
     // langsamer (~mehrere Sekunden), läuft progressiv. Re-Render-Coalescing
     // (wie installWind/installClouds): jeder Progress-Frame würde sonst
@@ -3725,13 +3741,14 @@ export default function MapView({
     };
     const syncHd250 = (ra: RvPick, rb: RvPick, q: number) => {
       const layers = hd250LayersRef.current;
-      if (!hd250Ref.current || !layers.size) return;
       hd250SyncRef.current = { run: syncHd250, args: [ra, rb, q] };
       const map = mapRef.current;
       const L = layerRefs.current;
       let changed = false;
       const hideAll = () => { for (const l of layers.values()) if (l.opacity !== 0) { l.opacity = 0; changed = true; } };
-      if (!map) { hideAll(); return; }
+      // Phase RA-250: the note for the status line and the switch — set only on change (a state write per draw would re-render).
+      const note = (n: RadarHd250Note) => { if (hd250NoteRef.current !== n) { hd250NoteRef.current = n; setHd250Note(n); publishRadarHd250Note(n); } };
+      if (!map || !layers.size) { hideAll(); note(null); return; }
       const zoom = map.getZoom();
       const bb = map.getBounds();
       const vis = hd250VisibleTiles([bb.getWest(), bb.getSouth(), bb.getEast(), bb.getNorth()], zoom);
@@ -3740,15 +3757,33 @@ export default function MapView({
       const sa = analysisStampOf(first);
       const sb = second ? analysisStampOf(second) : null;
       const notify = () => setHd250Tick((t) => t + 1);
+      if (!hd250Ref.current) {
+        // Switch OFF (the default): no tile layer, no tile request. In the tile zooms only the meta of the shown analysis
+        // (`hd250.json`, a few KB) is probed, so the map can say „250 m verfügbar" where tiles exist in view (E-RA-2).
+        hideAll();
+        let n: RadarHd250Note = null;
+        if (sa && vis.length) {
+          const m = hd250Store.probe(sa, notify);
+          if (m && m !== 'pending' && vis.some((t) => m.tiles.some((x) => x.tx === t.tx && x.ty === t.ty))) n = 'avail';
+        }
+        note(n);
+        if (changed) map.triggerRepaint();
+        return;
+      }
       const resolved = (s: Hd250TileState) => s.kind === 'ready' || s.kind === 'dry';
       const states = sa && (!second || sb)
         ? vis.map((t) => ({ t, A: hd250Store.get(sa, t.tx, t.ty, notify), B: sb ? hd250Store.get(sb, t.tx, t.ty, notify) : null }))
         : [];
       if (!vis.length || !states.length || states.some((s) => !resolved(s.A) || (s.B && !resolved(s.B)))) {
         hideAll();
+        // what the 1-km layer stands in for: the extrapolation (no 250-m product by design — V-R250-3), a slot without
+        // tiles, or tiles still on their way
+        const forecast = (!!first && !sa) || (!!second && !sb);
+        note(!vis.length || !first ? null : forecast ? 'forecast' : states.some((s) => s.A.kind === 'none' || s.B?.kind === 'none') ? 'none' : 'loading');
         if (changed) map.triggerRepaint();
         return;
       }
+      note('tiles');
       const mask1km = hdMaskRef.current.DE ?? null;
       const mk = hd250MaskRef.current;
       if (mk.src !== mask1km) { mk.src = mask1km; mk.tiles.clear(); }
@@ -3956,20 +3991,20 @@ export default function MapView({
     });
     if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
     // Phase R250: only the analysis (slider at „jetzt") is an RV analysis ⇒ tiles; every other hour stays 1 km.
-    if (hd.on && hd250Ref.current) {
+    if (hd.on) {
       const pw = pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now());
       syncHd250(pw.rv, pw.rv, 0);
     }
     // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.
     // Phase HD-4: `hdFlowTick` tickt nur, wenn ein Bewegungsfeld fertig ist (nur mit `?hdmorph=1`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast, hdFlowTick]);
+  }, [forecastHour, nowcastTick, active, modelSource, forecast, timeMs, profileMorphKey, radarPast, hdFlowTick, hd250On]);
 
   // Phase R250: a tile arrival or a map move (`hd250Tick`) re-runs only the tile sync of the last draw run — the 1-km
   // frames and the composite are untouched (no texture upload for them). Nothing happens without the switch.
   useEffect(() => {
     const s = hd250SyncRef.current;
-    if (!s || !hd250Ref.current || !active.has('nowcast')) return;
+    if (!s || !hdRef.current.on || !active.has('nowcast')) return;
     s.run(...s.args);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hd250Tick]);
@@ -4525,7 +4560,6 @@ export default function MapView({
         ...Object.fromEntries(WARN_LAYER_IDS.map((id) => [id, active.has('warnings')])),
         [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast') && modelSourceRef.current.radar,
         [POP_LAYER_ID]: active.has('poprob') && modelSourceRef.current.radar,
-        [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
       };
       for (const id of Object.keys(set)) {
         if (map.getLayer(id)) {
@@ -5053,6 +5087,12 @@ export default function MapView({
     </div>
   );
 
+  // Phase RA-250: resolution switch of the DE radar picture (1 km ↔ 250 m from the DWD site radars) under the nowcast row —
+  // Germany only (AT/CH have no open 250-m product, V-R250 §2); the words next to it come from the map (tiles / forecast …).
+  const hd250Seg = location.country === 'DE' && hdRef.current.on ? (
+    <Hd250Switch segClass="mdk-subseg" btnClass="" eyebrowClass="" accent="steel" />
+  ) : null;
+
   // Hagel-Produktumschalter (Phase HA1) — betrifft NUR die Schweiz; der
   // DE-Anteil (KONRAD3D-Zellen) bleibt in beiden Stellungen sichtbar.
   const hailSeg = (
@@ -5201,6 +5241,11 @@ export default function MapView({
   /** Dynamischer Titel-Zusatz je Layer (Schnee-Modus, Sicherheits-Bezug,
    *  Experten-Hinweis) für die Readout-Karte. Die mobile Stage-Legende trägt
    *  ihre Zusätze weiterhin im eigenen Markup — dort bleibt alles unverändert. */
+  // Phase SE (E-SE-3): the nowcast card names the mirror's echo filter when the shown RV slot was filtered — and says what it
+  // does NOT touch (V-SE-2: the computing paths read the official composite unchanged).
+  const layerNote = (key: LayerKey): React.ReactNode => (key === 'nowcast' && rvClutterCells > 0
+    ? 'Echos ohne Niederschlag ausgeblendet: der Radar-Spiegel nimmt Echos, deren ρHV in den DWD-Polarscans keinen Niederschlag zeigt (Vogelzug, Insekten), aus der Anzeige — Regenbeginn und buscosun Fusion rechnen weiter mit dem amtlichen Komposit.'
+    : null);
   const layerTitleSuffix = (key: LayerKey): React.ReactNode => {
     if (key === 'snow') return `· ${snowMode === 'depth' ? 'Schneedecke' : 'Neuschnee'}`;
     if (key === 'confidence') return `· ${active.has('nowcast') ? 'Regen' : 'Temperatur'}`;
@@ -5606,6 +5651,11 @@ export default function MapView({
   // Hover/Fokus angesteuerter INAKTIVER Layer erscheint zusätzlich als Vorschau
   // an seiner Ordnungsposition (ersetzt das frühere Overlay über der Karte).
   const readoutLayers = READOUT_ORDER.filter(k => active.has(k) || layerHover === k);
+  const toggleLayerExt = (k: LayerKey) => setExpandedLayerExt(prev => {
+    const next = new Set(prev);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
   const layerReadout = readoutLayers.length > 0 ? (
     <section
       className={`mdk-ro-layerinfo${overview || START_NOW_ONLY ? ' is-solo' : ''}`}
@@ -5619,6 +5669,7 @@ export default function MapView({
         {readoutLayers.map(k => {
           const on = active.has(k);
           const ext = layerExtNote(k);
+          const extOpen = expandedLayerExt.has(k);
           return (
             <article
               key={k}
@@ -5626,11 +5677,19 @@ export default function MapView({
               data-accent={LAYER_ACCENT.get(k) ?? 'steel'}
             >
               {!on && <span className="mdk-ro-lchip">Vorschau</span>}
-              <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} />
+              <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} note={layerNote(k)} />
               {ext && (
                 <div className="mdk-ro-lext">
-                  <span className="mdk-ro-lext-head">Im Detail</span>
-                  {ext}
+                  <button
+                    type="button" className="mdk-ro-lext-toggle" aria-expanded={extOpen}
+                    onClick={() => toggleLayerExt(k)}
+                  >
+                    <span className="mdk-ro-lext-head">Im Detail</span>
+                    <svg className={`mdk-ro-lchevron${extOpen ? ' is-open' : ''}`} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                      <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  {extOpen && <div className="mdk-ro-lext-body">{ext}</div>}
                 </div>
               )}
             </article>
@@ -5668,13 +5727,15 @@ export default function MapView({
   );
 
   const modelLibrary = (
-    <ModelLibraryOverlay
-      state={modelSource}
-      onClose={() => { setModelsOpen(false); if (isMobileMap) setMobileTab('karte'); }}
-      onSelectModel={onSelectModel}
-      onClearCountryModel={onClearCountryModel}
-      onToggleRadar={onToggleRadar}
-    />
+    <Suspense fallback={null}>
+      <ModelLibraryOverlay
+        state={modelSource}
+        onClose={() => { setModelsOpen(false); if (isMobileMap) setMobileTab('karte'); }}
+        onSelectModel={onSelectModel}
+        onClearCountryModel={onClearCountryModel}
+        onToggleRadar={onToggleRadar}
+      />
+    </Suspense>
   );
 
   return (
@@ -5694,20 +5755,22 @@ export default function MapView({
           {onOpenDashboard && <ViewToggle active="karte" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />}
           <span className="mdk-topdiv" aria-hidden="true" />
           <DeckSearch placeholder={overview ? 'Deutschland · Österreich · Schweiz' : location.name} onSelect={onSelectLocation} />
-          <div className="mdk-countries" role="tablist" aria-label="Land (Modellwahl)">
-            {(['DE', 'AT', 'CH'] as Country[]).map(c => (
-              <button
-                key={c}
-                type="button"
-                role="tab"
-                aria-selected={modelSource.country === c}
-                className={modelSource.country === c ? 'is-active' : ''}
-                onClick={() => onSelectCountry(c)}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          {MODEL_SWITCHER_VISIBLE && (
+            <div className="mdk-countries" role="tablist" aria-label="Land (Modellwahl)">
+              {(['DE', 'AT', 'CH'] as Country[]).map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  role="tab"
+                  aria-selected={modelSource.country === c}
+                  className={modelSource.country === c ? 'is-active' : ''}
+                  onClick={() => onSelectCountry(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="mdk-topright">
             <span className="mdk-live">
               <span className="mdk-live-dot" aria-hidden="true"><span /><span /></span>
@@ -5737,11 +5800,11 @@ export default function MapView({
             btnClass="mdk-rail-btn"
             activeClass="is-active"
             homeBtnClass="mdk-rail-btn mdk-rail-bottom"
-            extra={(
+            extra={MODEL_SWITCHER_VISIBLE ? (
               <button type="button" className="mdk-rail-btn" onClick={openModels} title="Modellseite — Wettermodelle & Wirkungsbereiche" aria-label="Modellseite — Wettermodelle & Wirkungsbereiche">
                 <IcoGlobe />
               </button>
-            )}
+            ) : undefined}
           />
         )}
 
@@ -5756,7 +5819,9 @@ export default function MapView({
               <div key={g.title} className="mdk-group" data-accent={g.accent}>
                 <div className="mdk-group-head">{g.title}</div>
                 <div className="mdk-layers">
-                  {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false))}
+                  {g.layers.map(l => (l.key === 'nowcast' && active.has('nowcast') && hd250Seg
+                    ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)}{hd250Seg}</Fragment>   // RA-250: right under its row
+                    : layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)))}
                   {g.layers.some(l => l.key === 'sat') && active.has('sat') && satSeg}
                   {g.layers.some(l => l.key === 'snow') && active.has('snow') && snowSeg}
                   {g.layers.some(l => l.key === 'hail') && active.has('hail') && hailSeg}
@@ -5772,20 +5837,23 @@ export default function MapView({
 
           {!isMobileMap && (
             <>
-              <button type="button" className="mdk-source-pill mdk-glass" onClick={openModels} title={isNativeActive ? nativeComposition(modelSource.country) : `${activeModelName} — Modellseite öffnen`}>
-                <span className="mdk-src-dot" aria-hidden="true" />
-                <span className="mdk-src-label">Modell · {activeModelName}</span>
-                <span className="mdk-src-meta">{modelMetaLine}</span>
-                {fusionError && activeEntry?.engineGridded && (
-                  <span className="mdk-src-warn">⚠ Quelle offline — rendert nativ</span>
-                )}
-                <span className="mdk-src-cta">wählen →</span>
-              </button>
+              {MODEL_SWITCHER_VISIBLE && (
+                <button type="button" className="mdk-source-pill mdk-glass" onClick={openModels} title={isNativeActive ? nativeComposition(modelSource.country) : `${activeModelName} — Modellseite öffnen`}>
+                  <span className="mdk-src-dot" aria-hidden="true" />
+                  <span className="mdk-src-label">Modell · {activeModelName}</span>
+                  <span className="mdk-src-meta">{modelMetaLine}</span>
+                  {fusionError && activeEntry?.engineGridded && (
+                    <span className="mdk-src-warn">⚠ Quelle offline — rendert nativ</span>
+                  )}
+                  <span className="mdk-src-cta">wählen →</span>
+                </button>
+              )}
               <div className="mdk-zoom mdk-glass">
                 <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Hineinzoomen"><IcoPlus /></button>
                 <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Herauszoomen"><IcoMinus /></button>
               </div>
-              {statusChip}
+              {/* Datenlage-Chip stört, sobald ein Layer läuft (Jan 13.10.) — bleibt im Code, rendert nur ohne aktiven Layer. */}
+              {active.size === 0 && statusChip}
               {active.has('wind') && (
                 <div className="mdk-winddeck mdk-glass" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
               )}
@@ -5802,40 +5870,42 @@ export default function MapView({
             <>
               <div className="mdk-m-topfloat">
                 <DeckSearch placeholder={overview ? 'Ort suchen …' : location.name} onSelect={onSelectLocation} compact />
-                <div style={{ position: 'relative', flex: '0 0 auto' }}>
-                  <button
-                    type="button"
-                    className="mdk-m-country"
-                    aria-haspopup="menu"
-                    aria-expanded={countryMenuOpen}
-                    aria-label="Land für die Modellwahl"
-                    onClick={() => setCountryMenuOpen(o => !o)}
-                  >
-                    {modelSource.country}
-                  </button>
-                  {countryMenuOpen && (
-                    <div className="mdk-m-country-menu" role="menu">
-                      {(['DE', 'AT', 'CH'] as Country[]).map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={modelSource.country === c}
-                          className={modelSource.country === c ? 'is-active' : ''}
-                          onClick={() => { onSelectCountry(c); setCountryMenuOpen(false); }}
-                        >
-                          {COUNTRY_PROFILES[c].name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {MODEL_SWITCHER_VISIBLE && (
+                  <div style={{ position: 'relative', flex: '0 0 auto' }}>
+                    <button
+                      type="button"
+                      className="mdk-m-country"
+                      aria-haspopup="menu"
+                      aria-expanded={countryMenuOpen}
+                      aria-label="Land für die Modellwahl"
+                      onClick={() => setCountryMenuOpen(o => !o)}
+                    >
+                      {modelSource.country}
+                    </button>
+                    {countryMenuOpen && (
+                      <div className="mdk-m-country-menu" role="menu">
+                        {(['DE', 'AT', 'CH'] as Country[]).map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={modelSource.country === c}
+                            className={modelSource.country === c ? 'is-active' : ''}
+                            onClick={() => { onSelectCountry(c); setCountryMenuOpen(false); }}
+                          >
+                            {COUNTRY_PROFILES[c].name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <ShareButton className="mdk-m-share" compact />
                 {onOpenDashboard && (
                   <ViewToggle active="karte" variant="mobile" className="mdk-m-viewtoggle" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />
                 )}
               </div>
-              {mobileTab === 'karte' && (
+              {MODEL_SWITCHER_VISIBLE && mobileTab === 'karte' && (
                 <button type="button" className="mdk-m-modelpill mdk-glass" onClick={() => setMobileTab('modelle')}>
                   <span className="mdk-src-dot" aria-hidden="true" />
                   <span className="mdk-src-label">Modell · {activeModelName}</span>
@@ -5873,9 +5943,11 @@ export default function MapView({
 
                 <div className="mdk-ro-section-head">
                   <span className="mdk-eyebrow">7-Tage-Forecast</span>
-                  <button type="button" className="mdk-ro-modelle-link" onClick={openModels}>
-                    Modelle <IcoArrowRight size={12} />
-                  </button>
+                  {MODEL_SWITCHER_VISIBLE && (
+                    <button type="button" className="mdk-ro-modelle-link" onClick={openModels}>
+                      Modelle <IcoArrowRight size={12} />
+                    </button>
+                  )}
                 </div>
                 <SevenDayForecast lat={location.lat} lon={location.lon} variant="panel" />
                 <div className="sdf-legend mdk-ro-sdf-legend">
@@ -5989,7 +6061,9 @@ export default function MapView({
                   <div key={g.title} data-accent={g.accent}>
                     <div className="mdk-m-group-head">{g.title}</div>
                     <div className="mdk-m-layers">
-                      {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true))}
+                      {g.layers.map(l => (l.key === 'nowcast' && layerMode === 'detail' && active.has('nowcast') && hd250Seg
+                        ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)}<div className="mdk-m-sub" data-accent="steel">{hd250Seg}</div></Fragment>   // RA-250
+                        : layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)))}
                       {layerMode === 'detail' && g.layers.some(l => l.key === 'wind') && active.has('wind') && (
                         <div className="mdk-m-sub" data-accent="sage" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
                       )}
@@ -6021,9 +6095,11 @@ export default function MapView({
                   <span className="mdk-eyebrow">{overview ? '7 Tage · DACH' : location.name}</span>
                   <h1>7-Tage-Forecast</h1>
                 </div>
-                <button type="button" className="mdk-screen-chip mdk-screen-chip-btn" onClick={() => setMobileTab('modelle')}>
-                  Modelle →
-                </button>
+                {MODEL_SWITCHER_VISIBLE && (
+                  <button type="button" className="mdk-screen-chip mdk-screen-chip-btn" onClick={() => setMobileTab('modelle')}>
+                    Modelle →
+                  </button>
+                )}
               </div>
               <div className="mdk-screen-body">
                 {overview || START_NOW_ONLY ? (
@@ -6039,7 +6115,7 @@ export default function MapView({
             </div>
           )}
 
-          {mobileTab === 'modelle' && modelLibrary}
+          {MODEL_SWITCHER_VISIBLE && mobileTab === 'modelle' && modelLibrary}
 
           <nav className="mdk-bar" aria-label="Kartenseite">
             {([
@@ -6048,7 +6124,7 @@ export default function MapView({
               { key: 'layer', label: 'Layer', ico: <IcoRows /> },
               { key: 'forecast', label: 'Forecast', ico: <IcoTrend size={22} /> },
               { key: 'modelle', label: 'Modelle', ico: <IcoGlobe size={22} /> },
-            ] as const).map(t => (
+            ] as const).filter(t => MODEL_SWITCHER_VISIBLE || t.key !== 'modelle').map(t => (
               <button
                 key={t.key}
                 type="button"
@@ -6065,7 +6141,7 @@ export default function MapView({
       )}
 
       {/* Modellseite als Desktop-/Tablet-Overlay */}
-      {modelsOpen && !isMobileMap && modelLibrary}
+      {MODEL_SWITCHER_VISIBLE && modelsOpen && !isMobileMap && modelLibrary}
 
     </div>
   );

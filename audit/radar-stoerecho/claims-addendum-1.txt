@@ -1,0 +1,23 @@
+## §5a Nachtrag A1 zum Protokoll (eingefroren VOR der ersten Stationsmetrik der neuen Varianten)
+
+Anlass ist allein der Feldbefund §5.1 (keine Stationszahl). Zwei Erweiterungen der Regel, Basis bleibt θ\* (0,80 · 15 dBZ · 3 × 3):
+
+- **N — Nachbarschaftsstimme:** ein Standort stimmt für eine Zelle auch dann, wenn sein EIGENER Block dort kein Echo trägt,
+  die 3 × 3-Nachbarschaft aber die Aussage (≥ 12 Zellen). Ein Standort ohne lesbaren Scan stimmt weiter nur mit eigenem Echo.
+- **R — Schnitt bei voller Aussage:** trägt die Nachbarschaft mindestens die Hälfte ihrer 144 Zellen als Aussage (≥ 72),
+  gilt statt 0,80 der Schnitt `rhoMaxRich` ∈ {0,85 · 0,90} (der Median vieler Zellen streut weniger; der Regen-Median liegt bei
+  0,97).
+
+Kandidaten (6): Basis · N · R85 · R90 · N + R85 · N + R90.
+
+> **R-SE-6 (Wahl).** Auf der Wahl-Hälfte (gerade Blöcke, wie R-SE-3) gilt R-SE-1 unverändert (Verlust ≤ 1,0 %, Obergrenze
+> ≤ 2,0 %); unter den zulässigen Kandidaten gilt der mit der größten Abräumquote in der **Menge A ∪ A₂** der Wahl-Hälfte
+> (A₂ = blau und trocken nach W2 an den Mengen-Stationen — die Indikator-Stationen allein tragen in der Zugnacht 5 Fälle);
+> bei Gleichstand (< 1 Prozentpunkt) der frühere in der Reihenfolge Basis, N, R85, R90, N + R85, N + R90.
+> **R-SE-7 (Abnahme).** Auf der Abnahme-Hälfte gelten die Grenzen von R-SE-3 (Verlust ≤ 2,0 %, Obergrenze ≤ 3,0 %, Treffer
+> nachher ≥ vorher) für W1 UND der Verlust nach W2 (Menge B₂ = blau und `RWS_10 ≥ 0,01`) ≤ 2,0 %. Besteht der gewählte
+> Kandidat nicht, gilt die Basis θ\*.
+> **R-SE-8 (Bestätigung an frischen Slots, vor dem Einschalten).** Slots NACH der ersten Stichprobe (ab 12.10. 23:15 UTC,
+> beim Einfrieren nicht ausgewertet): Verlust nach W1 ≤ 2,0 % (bei ≥ 100 Fällen in B; sonst W2 mit ≥ 100 Fällen in B₂), und
+> die Abräumquote nach W2 in den Nachtstunden nicht kleiner als die der Basis auf denselben Slots. Solange das nicht gerechnet
+> ist, bleibt der Producer-Schalter Jans Gate mit dieser Bedingung.

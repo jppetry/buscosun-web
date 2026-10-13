@@ -397,3 +397,20 @@ kein Shader, kein Hauptthread-Vorpass ohne `?rmin` — headless ohnehin nicht me
   frische Lieferung; der Sammler legt sie nach Tag ab, die Messung liest nur das Radarfenster.
 - **V-RG-6** `verify:radar-repack` B1h vergleicht HDF5 ↔ RADOLAN live; nach dem 20.10. (Altformat weg) entfällt es — die
   RADOLAN-Nachbildung im Leser bleibt dann ohne Live-Gegenprobe (nur die 46 175-Zellen-Messung vom 29.09.).
+- **V-RG-10 (Jans Befund 13.10.2026, „Fleck neben Gießen“; Diagnose — Skizze (a) ist seither als Phase SE gebaut,
+  `audit/radar-stoerecho.md`, Schalter `RADAR_CLUTTER` aus)** In der Nacht 12./13.10. stand ab
+  ≈ 18:35 UTC (Sonnenuntergang ≈ 16:40 UTC) ein ortsfester Fleck von ≈ 25 × 80 km im RV-Komposit, 15–35 km westlich von Gießen
+  (Taunus bis Lahn-Dill, 1 108–1 381 nasse km² in der Box 50,2–50,95 N / 8,05–9,35 E an den Slots 20:35/21:35/22:05/22:35 UTC,
+  nativ 0,06–0,22 mm/h, also über der Schwelle), bei 1–2 % nasser Radarfläche insgesamt. **Kein Niederschlag:** alle 8
+  DWD-Stationen unter dem Fleck 19:00–22:20 UTC Σ 0,00 mm, der Indikator am Kleinen Feldberg 0 von 21 Intervallen. Nur das Radar
+  Offenthal sieht ihn (px250 22:35: `oft` 2 422 km² mit Echo, 2–12 dBZ; `fld` 65, `nhb`/`ess` 0). Im Polarscan von Offenthal
+  (22:30 UTC, 0,8°) liegt im Sektor 285–360° / 25–90 km ρHV im Median bei **0,60, 0 % ≥ 0,95** (Regen ≳ 0,95), nur 5 % der Bins
+  mit |v| < 1 m/s (kein Bodenecho). Das Rohecho (`filter_simple`) ist eine volle Scheibe um das Radar (70–90 % der Bins in JEDEM
+  Quadranten, 5–90 km) — das Bild von nächtlichem Vogelzug (Insekten kann das Radar nicht ausschließen); der polarimetrische
+  Filter des DWD entfernt davon 95–97 %, im Nordwest-Quadranten aber nur die Hälfte (86,5 → 47,0 % der Bins), der Rest steht im
+  amtlichen Komposit. Kleinere Reste derselben Art um Hannover und Memmingen. Mehrwert: „blau = es regnet“ hält auch in
+  Zugnächten (die RG-Messung 08.–10.10. enthielt keine solche Nacht ⇒ V-RG-1 mit Nachtstunden getrennt auswerten). Skizze:
+  (a) im Producer je Standort `sweep_pcp_rhohv/<site>/unfiltered` lesen (≈ 470 KB je Standort und Slot, ≈ 8 MB je Slot) und
+  Zellen mit ρHV < 0,8 unter ≈ 15 dBZ aus Log-Ebene und 250-m-Kacheln nehmen (nur Darstellung, wie RG-2), vorher an den
+  Indikator-Stationen messen; (b) billiger und ehrlich: im Status „Radarecho ohne Niederschlag an den Stationen“, wenn im
+  Umkreis keine Station etwas misst. Beides Producer-/Anzeige-Eingriff ⇒ Jans Gate.

@@ -232,14 +232,22 @@ function imgCopyFilter(src) {
   return true;
 }
 
-/** NP-0a: Analyse des RV-Slots in den Rückblick (`img/rv-past/<stempel>/f000.png`), byte-gleich kopiert. */
+/**
+ * NP-0a: Analyse des RV-Slots in den Rückblick (`img/rv-past/<stempel>/f000.png`), byte-gleich kopiert.
+ * Phase SE (V-SE-3, buscosun-web/audit/radar-stoerecho.md): daneben die Dual-Analyse `g000.png` (Kanal 1 = f000-Byte,
+ * Kanal 2 = Log-Ebene — mit RADAR_CLUTTER die gefilterte), ebenfalls byte-gleich; der Client zeichnet den Rückblick unter
+ * Zoom 9 damit aus derselben Ebene wie „jetzt". Fehlt die `g000.png` (RADAR_IMG_DUAL aus), bleibt der Slot wie bisher.
+ */
 function rvPastCopy(stamp) {
   if (!PAST_ON) return false;
-  const src = join(imgSrcDir('rv'), stamp, 'f000.png');
+  const srcDir = join(imgSrcDir('rv'), stamp);
+  const src = join(srcDir, 'f000.png');
   const dst = join(imgSrcDir('rv-past'), stamp);
   if (!existsSync(src) || existsSync(join(dst, 'f000.png'))) return false;
   mkdirSync(dst, { recursive: true });
   copyFileSync(src, join(dst, 'f000.png'));
+  const dual = join(srcDir, 'g000.png');
+  if (existsSync(dual)) copyFileSync(dual, join(dst, 'g000.png'));
   return true;
 }
 

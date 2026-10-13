@@ -237,6 +237,25 @@
   line-height: 1.5;
   color: var(--stone-600);
 }
+/* Phase SE (E-SE-3): a line that names what the data of THIS moment carry (echo filter of the mirror) — quieter than `desc`. */
+.layer-info-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--stone-600);
+}
+/* Phase RA-250: the 1 km | 250 m switch — on the phone each button is a 44-px target (the dock's segments are 41 px). */
+@media (max-width: 767px) {
+  .hd250-seg button { min-height: 44px; }
+}
+/* Phase RA-250: the words next to the 1 km | 250 m switch (what the tile layer does for the drawn frame). */
+.hd250-note {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--stone-600);
+}
 .layer-info-legend { margin-top: 0.85rem; }
 .layer-info .li-bar {
   height: 13px;

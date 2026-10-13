@@ -1,0 +1,49 @@
+## §4 Messprotokoll SE-1 (Regel eingefroren VOR der ersten Stationsmetrik)
+
+### §4.1 Zuordnung und Wahrheit
+
+Wie RG §4.2/§4.3: Station → DE1200-Pixel (`psFwd`, `DE1200_CORNERS`), nur Stationen innerhalb 150 km um einen DWD-Standort,
+Intervalle mit `RWS_10 = −999` ausgeschlossen. **Wahrheit W1** (Indikator-Stationen): nass ⇔ `RWS_IND_10 ∈ {1, 3}` ∨
+`RWS_DAU_10 > 0` ∨ `RWS_10 ≥ 0,01`. Je Stations-Intervall (t − 10, t] die EINE gesammelte Analyse t − 5 (Abweichung von RG, das
+beide Analysen des Intervalls las — hier liegt jeder zweite Slot vor). **„Blau"** ⇔ nativer RV-Wert am Pixel ≥ 0,06 mm/h
+(`RADAR_DISPLAY_MIN_MMH`, die Anzeige seit RG).
+
+- **Menge A** = blau und trocken (W1), **Menge B** = blau und nass (W1).
+- **W2** (alle ≈ 1 370 Stationen, nur Bericht): trocken ⇔ `RWS_10 = 0` im Intervall UND in den zwei Nachbarintervallen.
+
+### §4.2 Die Regel-Familie
+
+Je Standort und 1-km-Zelle (Nachbarschaft `kernel` × `kernel` Zellen): die `px250`-Echo-Zellen mit ρHV und effektivem SNR ≥ 3 dB
+tragen ρc (§2.5); der Standort **stimmt „kein Niederschlag"**, wenn mindestens 4 solche Zellen je Zelle der Nachbarschaft
+vorliegen (`CLUTTER_MIN_CELLS`, set), der **Median von ρc < `rhoMax`** und das **stärkste Echo < `zCap`** ist; mit Aussage,
+aber ohne diese Bedingung stimmt er „Niederschlag"; ohne Aussage (kein Echo, zu schwaches Signal) stimmt er nicht. Ein Standort
+mit Echo, aber ohne lesbaren Scan des Slots stimmt „Niederschlag" (fail-open). **Eine blaue Zelle wird ausgeblendet, wenn
+mindestens ein Standort „kein Niederschlag" und keiner „Niederschlag" stimmt.**
+
+Raster der Kandidaten θ (30): `rhoMax` ∈ {0,70 · 0,75 · 0,80 · 0,85 · 0,90} × `zCap` ∈ {10 · 15 · 20 dBZ} × `kernel` ∈ {1 · 3}.
+Fest (nicht im Raster): δ = 2,5 dB, SNR-Minimum 3 dB, 4 Zellen.
+
+### §4.3 Maße je Kandidat
+
+- **Abräumquote** a(θ) = Anteil von A, der ausgeblendet wird (falsches Blau, das verschwindet).
+- **Verlust** v(θ) = Anteil von B, der ausgeblendet wird (echter Niederschlag, der sein Blau verliert).
+- Trefferquote der Farbe P(nass | blau) vorher/nachher; Erfassung P(blau | nass) vorher/nachher.
+- Intervalle: Block-Bootstrap, 1 000 Züge, Seed 12345, **Blöcke = 3-h-Fenster (UTC)** (weniger als 7 Tage ⇒ Vorabergebnis,
+  so benannt), Intervall 5–95 %.
+- Strata (Bericht): Abstand zum nächsten Standort < 50 / 50–100 / 100–150 km; Tag (06–18 UTC) / Nacht; die Zugnacht
+  12.10. 17:00 UTC bis zum Ende der Stichprobe getrennt.
+
+### §4.4 Entscheidungsregel (eingefroren, Hash in `radar-stoerecho/claims-frozen.sha256`)
+
+> **R-SE-1 (Schutz des echten Regens).** Zulässig ist ein Kandidat θ nur, wenn auf der Wahl-Hälfte der Verlust v(θ) ≤ 1,0 %
+> ist UND die Obergrenze seines 90-%-Intervalls ≤ 2,0 %.
+> **R-SE-2 (Wahl).** Unter den zulässigen Kandidaten gilt der mit der größten Abräumquote a(θ); bei Gleichstand (Differenz
+> < 1 Prozentpunkt) der mit dem kleineren `rhoMax`, dann dem kleineren `zCap`, dann `kernel` 1 (der kleinere Eingriff).
+> **R-SE-3 (Hold-out).** 3-h-Blöcke mit geradem Index (Zählung ab dem ersten Block der Stichprobe = 0) sind die Wahl-Hälfte,
+> ungerade die Abnahme-Hälfte. Abnahme: v(θ*) ≤ 2,0 % (Obergrenze ≤ 3,0 %) und Trefferquote nachher ≥ vorher.
+> **R-SE-4 (Urteil).** „Einschalten empfohlen" nur, wenn R-SE-3 besteht UND θ* in der Zugnacht (12.10. ab 17:00 UTC) mindestens
+> die Hälfte von A abräumt (W1; liegen dort weniger als 30 Fälle, zählt W2 an den Mengen-Stationen mit derselben Schwelle 50 %).
+> Sonst: Filter gebaut, Schalter aus, Befund benannt.
+> **R-SE-5 (Zusätze ohne Wahlrecht).** Der Randschluss (`fill`) und die Mitnahme in die Vorhersage-Frames werden mit θ* am
+> vollen Feld gerechnet und müssen R-SE-1 mit denselben Grenzen ebenfalls einhalten (Randschluss) bzw. dürfen in einem
+> Regen-Slot ohne ausgeblendete Zelle kein Pixel ändern (Vorhersage); sonst bleiben sie aus.

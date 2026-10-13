@@ -1,0 +1,33 @@
+{
+ "at": "2026-10-13T19:55:12.618Z",
+ "head": "http://127.0.0.1:5214",
+ "cur": "http://127.0.0.1:5214",
+ "curQuery": "hd250=0",
+ "threshold": 12,
+ "scenarios": [
+  {
+   "id": "wk-niederschlag-live-desktop",
+   "path": "/wetterkarte/niederschlag/muenchen?l=zellbahnen,blitze,schnee,schneegrenze",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 1.6428,
+   "differPx": 21291,
+   "exactPct": 95.0096
+  },
+  {
+   "id": "rr-ort-desktop",
+   "path": "/regenradar/muenchen",
+   "mobile": false,
+   "block": false,
+   "waitS": 40,
+   "size": "1440×900",
+   "sizeMatch": true,
+   "differPct": 0.0031,
+   "differPx": 40,
+   "exactPct": 99.9886
+  }
+ ]
+}

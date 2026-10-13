@@ -347,3 +347,13 @@
 /* V-SW-20: an hour without sea state at the model cell (never "0,0 m") */
 .sw-band-dry { color: var(--stone-500, #8B7355); font-weight: 400; }
 .sw-hero-mid.is-dry { font-size: 20px; letter-spacing: -0.3px; }
+/* WL-5 Füllstand des Pegels (audit/wasserstand-bsh.md §8.6): Glas mit Marken der eigenen Bezugshöhen; Farbe
+   = Herkunft wie im Verlauf (Vorhersage Petrol, Messung Tinte). Keine eigene Warnfarbe (E-WL-6). */
+.sw-wl-fill { display: flex; gap: 10px; align-items: center; margin-top: 6px; padding: 6px 10px 6px 6px; background: #fff; border: 1px solid var(--sand-100, #EDE6D3); border-radius: 8px; }
+.sw-wl-fill svg { flex: none; display: block; }
+.sw-wl-fill-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 11px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.sw-wl-fill-k { font-size: 9.5px; color: var(--stone-500, #8B7355); }
+.sw-wl-fill-txt strong { font-size: 16px; font-weight: 600; color: var(--ink-900, #2C2A26); font-family: 'IBM Plex Mono', var(--font-mono, monospace); }
+.sw-wl-fill-txt strong small { font-size: 10px; font-weight: 500; font-family: inherit; color: var(--stone-500, #8B7355); }
+.sw-wl-fill-span { font-weight: 600; color: var(--sw-accent-dark, #0B5560); }
+.sw-wl-fill[data-kind="measured"] .sw-wl-fill-span { color: var(--ink-900, #2C2A26); }

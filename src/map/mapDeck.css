@@ -480,16 +480,26 @@
 .mdk-ro-lcard .layer-info-src { margin-top: 0.6rem; padding-top: 0.45rem; }
 .mdk-ro-lcard .layer-info-trust { font-size: 0.7rem; }
 
+/* Phase LB-1 (13.10.): der Ehrlichkeits-Hinweis „Im Detail" ist standardmäßig
+   zugeklappt (Kopfzeile + Pfeil), Platz sparen; Klick zeigt den Text. */
 .mdk-ro-lext {
   margin: 0 13px 12px 15px; padding-top: 9px;
   border-top: 1px solid var(--sand-100, #EDE6D3);
   font-size: 11px; line-height: 1.5; color: var(--stone-600, #5C5447);
 }
+.mdk-ro-lext-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; border: 0; background: transparent; cursor: pointer; font: inherit;
+  text-align: left; padding: 0;
+}
 .mdk-ro-lext-head {
-  display: block; margin-bottom: 4px;
+  display: block;
   font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700;
   color: var(--stone-400, #A89A7A);
 }
+.mdk-ro-lchevron { flex: 0 0 auto; color: var(--stone-400, #A89A7A); transition: transform 0.15s; }
+.mdk-ro-lchevron.is-open { transform: rotate(180deg); }
+.mdk-ro-lext-body { margin-top: 6px; }
 .mdk-ro-lext b { font-weight: 700; color: var(--ink-900, #2C2A26); }
 
 /* Vorschau: Hover/Fokus auf einer INAKTIVEN Dock-Zeile zeigt die Beschreibung

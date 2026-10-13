@@ -142,6 +142,11 @@ jobs:
       # (audit/radar-regenschwelle.md) — netzfrei (die Rundläufe an echten Dateien nur mit RADAR_RG_RAW).
       - name: Verifier — Darstellungsschwelle Niederschlagsradar
         run: npm run verify:radar-threshold
+      # SE: Radarechos ohne Niederschlag (Störecho-Filter des Radar-Spiegels) — Geometrie Standortbild ↔ Polarscan, Regel
+      # (rauschkorrigiertes ρHV), Maske, Mitnahme in die Vorhersage-Frames, Verträge, eingefrorene Messregel + Reproduktion an
+      # echten Stationszeilen (audit/radar-stoerecho.md) — netzfrei (die Rundläufe an echten Dateien nur mit RADAR_SE_RAW).
+      - name: Verifier — Störecho-Filter Niederschlagsradar
+        run: npm run verify:radar-clutter
       # OF: der Leser von buscosun-data obs/v1 (Stationsmessungen) und sein Schalter in den Messpfad — netzfrei auf einem
       # echten Auszug des Produkts (audit/obs-fusion.md).
       - name: Verifier — Stationsmessungen aus obs/v1 (Leser)

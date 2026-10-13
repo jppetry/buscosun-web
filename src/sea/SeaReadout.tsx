@@ -13,8 +13,8 @@ import { fmtWind, unitLabel, SHORE_LABEL, type SeaUnit, type SeaVerdict, type Se
 import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
 import {
   WL_ATTRIBUTION_PRE, WL_ATTRIBUTION_POST, WL_CURVE_STALE_MS, WL_FORECAST_STALE_MS, WL_LICENCE, WL_LICENCE_URL,
-  WL_MOS_WHY, WL_REGION_LABEL, WL_SERVICE_PAGE, WL_WARN_SERVICE, wlAt, wlCurveEnd, wlHasCategory, wlNextEvents,
-  type WlForecast, type WlGauge,
+  WL_MOS_WHY, WL_REGION_LABEL, WL_SERVICE_PAGE, WL_WARN_SERVICE, wlAt, wlCurveEnd, wlFill, wlHasCategory, wlNextEvents,
+  type WlFill, type WlForecast, type WlGauge,
 } from './waterLevel';
 import { BFT_ROWS, CLASS_COLOR, CLASS_LABEL, DRY_VALUE, compass16, dateTime, dayDate, dryHourText, dryNote, f1, hm, hh, utcHm, dayShort } from './seaView';
 import type { SeaTab } from './seaState';
@@ -253,10 +253,17 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
   const beyond = shown == null && curveEnd != null && selMs > curveEnd;
   const events = wlNextEvents(doc.events, nowMs, 4);
   const window = doc.curve.filter((pt) => pt.t >= nowMs - 6 * 3_600_000 && pt.t <= nowMs + 48 * 3_600_000);
+  // WL-5: the fill level — the chosen hour's value; beyond the curve the latest value at "now" (named as such).
+  const fillPt = at ?? (beyond ? wlAt(doc.curve, nowMs) : null);
+  const fill = wlFill(fillPt, window, { region: doc.region, mhwCm: doc.mhwCm, mlwCm: doc.mlwCm, zeroNhnCm: g?.zeroNhnCm ?? doc.zeroNhnCm });
+  const fillNow = fill != null && at == null;
+  // The Baltic has no tide: the BSH's mean_high/low_water are MHW/MNW there, MThw/MTnw only in the North Sea.
+  const highLabel = fill?.highLabel ?? (doc.region === 'baltic_sea' ? 'MHW' : 'MThw');
+  const lowLabel = fill?.lowLabel ?? (doc.region === 'baltic_sea' ? 'MNW' : 'MTnw');
   const refs = [
     g?.zeroNhnCm != null && g.zeroNhnCm !== 0 ? `Pegelnull ${Math.abs(g.zeroNhnCm)} cm ${g.zeroNhnCm < 0 ? 'unter' : 'über'} NHN` : null,
-    doc.mhwCm != null ? `MThw ${doc.mhwCm} cm` : null,
-    doc.mlwCm != null ? `MTnw ${doc.mlwCm} cm` : null,
+    doc.mhwCm != null ? `${highLabel} ${doc.mhwCm} cm` : null,
+    doc.mlwCm != null ? `${lowLabel} ${doc.mlwCm} cm` : null,
   ].filter(Boolean).join(' · ');
 
   return (
@@ -284,6 +291,7 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
         </div>
         <div><span>Bezug dieses Pegels</span><strong>{refs || '– (keine Bezugshöhen)'}</strong></div>
       </div>
+      {fill && <WaterLevelFill fill={fill} isNow={fillNow} />}
       {beyond && (
         <p className="sw-note">Der Verlauf des BSH reicht bis {dayShort(curveEnd!)} {hm(curveEnd!)} Uhr — für die gewählte Stunde gibt es dort keinen Wert. Die Hoch- und Niedrigwasserzeiten unten reichen weiter.</p>
       )}
@@ -330,7 +338,7 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
 
       {window.length > 1 && (
         <>
-          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} />
+          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} highLabel={highLabel} lowLabel={lowLabel} />
           <div className="sw-chart-legend">
             <span><i style={{ background: '#2C2A26' }} />gemessen</span>
             <span><i style={{ background: '#0F6E7A' }} />Vorhersage</span>
@@ -355,6 +363,54 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
 
       <WaterLevelFooter doc={doc} />
     </Card>
+  );
+}
+
+/** Signed centimetres for the sentences: "+12" / "−8", German comma. */
+const cmSigned = (cm: number) => `${cm > 0 ? '+' : cm < 0 ? '−' : '±'}${cmText(Math.abs(cm))}`;
+
+/**
+ * WL-5 — the fill level of the gauge as a glass: the value of the chosen hour on a scale that holds the chart
+ * window and the gauge's own reference heights (mean high/low water, NHN) as marks. Every number is the BSH's
+ * value in cm above gauge zero or a subtraction in that same reference; the colour names the origin
+ * (forecast teal, measurement ink — the chart's colours).
+ */
+function WaterLevelFill({ fill, isNow }: { fill: WlFill; isNow: boolean }) {
+  const W = 104, H = 124, x0 = 6, x1 = 40, top = 8, bottom = H - 8;
+  const y = (cm: number) => bottom - ((cm - fill.lo) / (fill.hi - fill.lo)) * (bottom - top);
+  const colour = fill.kind === 'forecast' ? '#0F6E7A' : '#2C2A26';
+  const yv = y(fill.cm);
+  const spanPct = fill.spanFrac != null ? Math.round(fill.spanFrac * 100) : null;
+  const spanText = fill.band === 'within' ? `${fill.spanLabel} zu ${spanPct} % gefüllt`
+    : fill.band === 'above' ? `über dem ${fill.spanLabel} (${cmSigned(fill.vsHigh!)} cm gegen ${fill.highLabel})`
+      : fill.band === 'below' ? `unter dem ${fill.spanLabel} (${cmSigned(fill.vsLow!)} cm gegen ${fill.lowLabel})`
+        : null;
+  const label = `Füllstand des Pegels: ${cmText(fill.cm)} cm über Pegelnull, ${fill.kind === 'forecast' ? 'Vorhersage' : 'gemessen'} ${hm(fill.t)} Uhr`
+    + (fill.marks.length ? `; Marken ${fill.marks.map((m) => `${m.label} ${m.cm} cm`).join(', ')}` : '');
+  return (
+    <div className="sw-wl-fill" data-kind={fill.kind} data-band={fill.band ?? 'none'}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
+        <rect x={x0} y={top} width={x1 - x0} height={bottom - top} rx={5} fill="#F4F0E4" stroke="#E0D6BE" />
+        <rect className="sw-wl-fill-water" x={x0 + 1} y={yv} width={x1 - x0 - 2} height={Math.max(0, bottom - 1 - yv)} rx={4} fill={colour} fillOpacity={0.78} />
+        <line x1={x0} x2={x1} y1={yv} y2={yv} stroke={colour} strokeWidth={2} />
+        {fill.marks.map((m) => (
+          <g key={m.label}>
+            <line x1={x0 - 2} x2={x1 + 4} y1={y(m.cm)} y2={y(m.cm)} stroke="#8B7355" strokeDasharray="3 2" />
+            <text x={x1 + 7} y={y(m.cm) + 3} fontSize={8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{m.label} {m.cm}</text>
+          </g>
+        ))}
+      </svg>
+      <div className="sw-wl-fill-txt">
+        <span className="sw-wl-fill-k">Füllstand · {fill.kind === 'forecast' ? 'Vorhersage' : 'gemessen'} {hm(fill.t)} Uhr{isNow ? ' (letzter Wert, nicht die gewählte Stunde)' : ''}</span>
+        <strong>{cmText(fill.cm)} cm <small>über Pegelnull</small></strong>
+        {fill.nhnCm != null && <span>{cmText(Math.abs(fill.nhnCm))} cm {fill.nhnCm < 0 ? 'unter' : fill.nhnCm > 0 ? 'über' : 'auf'} NHN</span>}
+        {fill.vsHigh != null && fill.vsLow != null && fill.vsHigh !== fill.vsLow && (
+          <span>{cmSigned(fill.vsLow)} cm gegen {fill.lowLabel} · {cmSigned(fill.vsHigh)} cm gegen {fill.highLabel}</span>
+        )}
+        {fill.marks.some((m) => m.label === 'MW') && fill.vsHigh != null && <span>{cmSigned(fill.vsHigh)} cm gegen Mittelwasser</span>}
+        {spanText && <span className="sw-wl-fill-span">{spanText}</span>}
+      </div>
+    </div>
   );
 }
 

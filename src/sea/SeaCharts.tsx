@@ -80,8 +80,10 @@ export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readon
 export interface WlChartPoint { t: number; forecast: number | null; measured: number | null; tide: number | null }
 const WL_COLOUR: Record<string, string> = { Vorhersage: '#0F6E7A', Gemessen: '#2C2A26', Gezeit: '#7A9466' };
 
-export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm }: {
+export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel = 'MThw', lowLabel = 'MTnw' }: {
   points: readonly WlChartPoint[]; selMs: number; nowMs: number; mhwCm: number | null; mlwCm: number | null;
+  /** V-WL-14: the reference words of the region — MThw/MTnw in the North Sea, MHW/MNW in the tideless Baltic. */
+  highLabel?: string; lowLabel?: string;
 }) {
   if (points.length < 2) return null;
   const pts = (f: (p: WlChartPoint) => number | null) => points.map((p) => ({ x: new Date(p.t), y: f(p) }));
@@ -90,7 +92,7 @@ export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm }: {
   const pad = Math.max(20, (hi - lo) * 0.12);
   const min = points[0].t, max = points[points.length - 1].t;
   const Ref = ({ yScale, innerWidth }: Ctx) => (
-    <g>{([[mhwCm, 'MThw'], [mlwCm, 'MTnw']] as Array<[number | null, string]>).filter(([v]) => v != null).map(([v, label]) => (
+    <g>{([[mhwCm, highLabel], [mlwCm, lowLabel]] as Array<[number | null, string]>).filter(([v]) => v != null).map(([v, label]) => (
       <g key={label}>
         <line x1={0} x2={innerWidth} y1={yScale(v!)} y2={yScale(v!)} stroke="#B9AC90" strokeDasharray="3 3" />
         <text x={innerWidth} y={yScale(v!) - 3} textAnchor="end" fontSize={8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{label}</text>

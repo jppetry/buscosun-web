@@ -14,7 +14,7 @@
  * E `radarTimesAt` an einem synthetischen DE1200-Stack (echte Ecken/Projektion): ziehender Regen erreicht Frankfurt
  *   nach 75 min, Fenster um diese Minute; Laufalter; ohne Regen trocken; über dem Ort ⇒ Ende; außerhalb ⇒ null; Kosten.
  * F Band-Geometrie und Marker-Label.
- * G Verdrahtung: Deck (Desktop über dem Hero, mobil Schnellblick), Karte (Label nur im Profil), `buildNowcast`
+ * G Verdrahtung: Deck (Desktop als Erstes im Readout, mobil Schnellblick), Karte (Label nur im Profil), `buildNowcast`
  *   ohne Schalter unverändert (8 h, keine Wahrscheinlichkeit), kein Flow-Ensemble im Weg.
  */
 import { readFileSync } from 'node:fs';
@@ -223,10 +223,12 @@ console.log('\nG Verdrahtung');
   const mv = readFileSync(join(ROOT, 'src/MapView.tsx'), 'utf8');
   const eng = readFileSync(join(ROOT, 'src/nowcast/nowcastEngine.ts'), 'utf8');
   const rr = readFileSync(join(ROOT, 'src/nowcast/rainWindowRadar.ts'), 'utf8');
-  add('G1 Desktop: Karte direkt über dem Hero', /\{rainWindow && <RainWindowCard w=\{rainWindow\} variant="desktop" \/>\}\s*<Hero nowcast=\{nowcast\} \/>/.test(deck));
+  add('G1 Desktop: Karte als Erstes im Readout', /<>\s*\{rainWindow && <RainWindowCard w=\{rainWindow\} variant="desktop" \/>\}\s*\{cellCard\}/.test(deck));
   add('G2 Mobil: Karte oben im Schnellblick', /<div className="rm-glance">\s*\{rainWindow && <RainWindowCard w=\{rainWindow\} variant="mobile" \/>\}/.test(deck));
   add('G3 Deck rechnet nur mit Schalter', /if \(!rbOn \|\| !nowcast \|\| rbStack === undefined\) return null;/.test(deck) && /const onRadarStack = rbOn \? setRbStack : undefined;/.test(deck));
-  add('G4 Hero bleibt erhalten (Funktionserhalt)', /<Hero nowcast=\{nowcast\} \/>/.test(deck) && /function Hero\(/.test(deck));
+  // Jan 13.10. (audit/regenradar-altanzeigen.md): the old "Schnellblick" sentence is removed on purpose — the card is the only sentence.
+  add('G4 Alter Schnellblick-Satz entfernt (Desktop-Hero und mobiler Satz)', !/function Hero\(/.test(deck) && !/heroState\(/.test(deck) && !/rm-peek-line/.test(deck));
+  add('G4b Gegenprobe: Muster G4 erkennt den alten Hero', /function Hero\(/.test(`${deck}\nfunction Hero({ nowcast }) {}`));
   add('G5 Karte: Label nur mit Schalter, Prop nur gesetzt wenn vorhanden', /if \(!rbOn \|\| !stack \|\| !pointNowcast\) return null;/.test(map) && /\.\.\.\(markerLabel \? \{ profileMarkerLabel: markerLabel \} : \{\}\)/.test(map));
   add('G6 MapView: Label nur im Profil, ohne Label entfernt', /if \(!profile\) return;[\s\S]{0,200}if \(!profileMarkerLabel\) \{ lab\?\.remove\(\); return; \}/.test(mv));
   add('G7 buildNowcast ohne Schalter: 8 h, Reihe ungefiltert, keine Wahrscheinlichkeit', /const cubeHours = rb \? RB_HORIZON_H \+ 1 : 8;/.test(eng) && /nwp: rb \? nwpAll\.filter\([^)]*\)[^:]*: nwpAll,/.test(eng) && /if \(rb && nwpSource === 'cube' && exceed\)/.test(eng));

@@ -29,7 +29,7 @@ import type { Nowcast } from './nowcastModel';
 import RadarMap from '../radar/RadarMap';
 import RadarTimeline from '../radar/RadarTimeline';
 import PointStrip, { stripSamples, frameIntensities } from '../radar/PointStrip';
-import { getRadarStack, seedDePastArchive, DE_PAST_SEED_FRAMES, type RadarStack } from '../radar/radarFrames';
+import { getRadarStack, seedDePastArchive, DE_PAST_SEED_FRAMES, seedChPastArchive, CH_PAST_SEED_FRAMES, type RadarStack } from '../radar/radarFrames';
 import { pointPoPSeries } from '../radar/pointPoP';
 import { computeRainWindow, rainWindowEnabledFrom } from './rainWindow';
 import { radarTimesAt } from './rainWindowRadar';
@@ -371,7 +371,10 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         // Anfang. Bewusste Verhaltensänderung (Jans Entscheidung): der Rückblick
         // hat beim ersten Mal eine kurze Ladezeit. Unabhängig davon wächst der
         // Session-Past-Cache mit jedem 5-Minuten-Refresh weiter.
-        if (location.country !== 'DE') return;
+        // Phase RA (V-RA-3): CH seeds its look-back from the mirror's rzc slots the same way; AT has no analysis (INCA).
+        if (location.country !== 'DE' && location.country !== 'CH') return;
+        const country = location.country;
+        const seed = () => (country === 'CH' ? seedChPastArchive(CH_PAST_SEED_FRAMES, ac.signal) : seedDePastArchive(DE_PAST_SEED_FRAMES, ac.signal));
         // `started` lebt je Effektlauf; StrictMode-Mount 2 überschreibt die
         // Closure und bringt sein eigenes mit. `seededLocRef` wird weiterhin erst
         // NACH Erfolg gesetzt (s. Ref-Kommentar), ein Fehlschlag bleibt wiederholbar.
@@ -379,11 +382,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         requestPastSeedRef.current = () => {
           if (started || seededLocRef.current === locKey || ac.signal.aborted) return;
           started = true;
-          void seedDePastArchive(DE_PAST_SEED_FRAMES, ac.signal).then((added) => {
+          void seed().then((added) => {
             if (!added || ac.signal.aborted) { started = false; return; }
             seededLocRef.current = locKey;   // erst NACH Erfolg markieren
             const shownMs = st.frames[idxOf(st)]?.timeMs;
-            getRadarStack('DE', ac.signal).then((st2) => {
+            getRadarStack(country, ac.signal).then((st2) => {
               if (ac.signal.aborted) return;
               setStack(st2);
               if (shownMs == null) return;
@@ -628,10 +631,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     if (!stack) return null;
     const measured = stack.frames.filter((f) => f.measured);
     if (stack.source === 'radolan_rv') {
-      return { rv: measured.map((f): RvPastFrame => ({ validAt: new Date(f.timeMs), values: f.values, width: f.width, height: f.height })), rzc: null };
+      // V-SE-3: the log plane of a measured frame rides along (the HD layer draws the look-back from it like „jetzt").
+      return { rv: measured.map((f): RvPastFrame => ({ validAt: new Date(f.timeMs), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height })), rzc: null };
     }
     if (stack.source === 'meteoswiss_rzc') {
-      return { rv: null, rzc: measured.map((f): RzcFrame => ({ validAt: new Date(f.timeMs), values: f.values, width: f.width, height: f.height, corners: stack.corners })) };
+      return { rv: null, rzc: measured.map((f): RzcFrame => ({ validAt: new Date(f.timeMs), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height, corners: stack.corners })) };
     }
     return null;
   }, [stack]);

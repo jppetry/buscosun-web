@@ -270,12 +270,71 @@ Mobil trägt das Spot-Briefing die Karte vollständig (374 px breit, 686 px hoch
 dort auf zwei Zeilen um (eigene Media Query ≤ 767 px). Trefferflächen: die Links im Kleingedruckten liegen
 bei 21–25 px statt 44 px — benannt als V-WL-12.
 
+### 8.4b Füllstand des Pegels (WL-5, Jans Auftrag 13.10.: „Füllstand anzeigen, Daten richtig ziehen")
+
+**Befund zur Datenlage (13.10. 05:30 UTC):** `buscosun-web/main` trägt die Linie seit `ec68705`, aber im
+Daten-Repo fehlten `sea/v1/static/gauges.json` (CDN und raw: 404) und der Workflow-Schritt „Gauges" — die
+Karte sagte in Produktion deshalb „Der Pegelkatalog liegt noch nicht im Daten-Repo". Der Katalog wurde
+neu aus der offiziellen API gebaut (136 Pegel, 82 Nordsee / 54 Ostsee, 0 verworfen, Lizenz CC BY 4.0 an
+jedem Datensatz, Dienst-Stempel 05:31:43Z) und zusammen mit der Workflow-Vorlage in den Klon
+`C:\dev\buscosun-data` gelegt (Arbeitsbaum auf `origin/main`, beide Dateien gestaged, Diff zur Vorlage =
+genau die drei Hunks des Schritts „Gauges"). **Commit und Push hat der Auto-Modus abgelehnt** („Production
+Deploy" / „Modify Shared Resources") — beides bleibt Jans Schritt, Paket zusätzlich unter
+`C:\dev\buscosun-sea-publish\2026-10-13-wl\` (§66.1). Bis zum Push bleibt die Pegel-Ebene leer, nichts
+rechnet falsch.
+
+**Füllstand** — neu in der Karte „Wasserstand · amtlich (BSH)" unter den beiden Wertefeldern: ein Glas
+(SVG, 104 × 124 px, ohne Bibliothek) mit dem Wasserstand der gewählten Stunde als Füllung, auf einer Skala,
+die das Diagrammfenster und die Bezugshöhen des Pegels umfasst (gleiche Rundung wie das Diagramm,
+`wlFillScale`), mit den Bezugshöhen als gestrichelten Marken (`MThw`/`MTnw`, `NHN` aus
+`gaugezero_relative_to_nhn`). Daneben: der Wert in cm über Pegelnull, der Wert gegen NHN, die Differenzen
+gegen MTnw und MThw als Vorzeichen-Zahlen und die Lage im Tidehub („Tidehub zu 44 % gefüllt", „über dem
+Tidehub (+44 cm gegen MThw)"). Jede Zahl ist der gelieferte Wert oder eine Subtraktion im SELBEN Bezug
+(E-WL-9); die Farbe nennt die Herkunft wie im Verlauf (Vorhersage Petrol, Messung Tinte), `data-kind`
+und `data-band` am Element. Liegt die gewählte Stunde jenseits der Kurve, zeigt das Glas den letzten Wert
+und sagt es („letzter Wert, nicht die gewählte Stunde"); ohne Punkt gibt es kein Glas (V-WL-6). Reine
+Rechnung `wlFill` in `waterLevel.ts` (abhängigkeitsfrei), Komponente `WaterLevelFill` in `SeaReadout.tsx`,
+CSS `.sw-wl-fill*`.
+
+**Ostsee:** die Felder `mean_high_water`/`mean_low_water` sind dort kein Tidehoch-/-niedrigwasser; die Marken
+und die Bezugszeile heißen deshalb **MHW/MNW** und die Spanne „Spanne MNW–MHW" statt „Tidehub" (V-WL-14,
+vorher stand auch an Ostsee-Pegeln „MThw"). MHW = MNW (tidenlos, `prerow` 500/500) ⇒ eine Marke „MW" und
+„gegen Mittelwasser", keine Spanne; 0/0 ⇒ keine Marken (V-WL-7). Auch das Diagramm beschriftet seine
+Bezugslinien jetzt je Revier (`WaterLevelChart` `highLabel`/`lowLabel`) — das hat die Prüfung L12b gefunden,
+weil der Kartentext an der Ostsee noch „MThw" aus dem SVG trug.
+
+**Gates (13.10.):** `verify:sea-waterlevel` **63/63** netzfrei (neu F11…F11h: Rechnung, Skala, Marken je
+Revier, Differenzen, Randfälle tidenlos/0-0/über-unter, Quelltext), `verify:sea-ui` **68/68** gegen den
+Produktions-Build auf `127.0.0.1:5212` (neu L1b/L1c: Glas gerendert, Wasserhöhe 62 von 124 px, Marken
+MThw 656 / MTnw 366 / NHN 503, Vorzeichen-Differenzen gegen die große Zahl nachgerechnet; L12a Abrufe der
+Ostsee-Seite aus der Fixture; L12b Ostsee-Wörter), typecheck 0, Build grün, Budget grün (totalJs 1 768,2 /
+1 772 — +1,7 KB im SeaPage-Chunk, eagerJs 109,9 / 110 unverändert). Bild: Cuxhaven-Duhnen Desktop mit Glas
+(`verify:sea-ui --shots`), Konsole ohne Ausnahme (I1). Drei Nebenbefunde beim Prüfen: V-WL-16 (der
+Verifier lief ohne App-Server vier Mal gegen `chrome-error://`), V-WL-17 (Zähler „Werkzeuge" seit der
+Gletscher-Kachel 13 statt 12), V-WL-18 (ein Lauf las Warnemünde als „nicht lesbar"). Real-Device (V-WL-9)
+weiter offen; mobil liegt das Glas als erste Zeile unter den Wertefeldern im Spot-Briefing (Flex-Zeile,
+Text bricht um).
+
+**Katalog im Daten-Repo (13.10. 16:33 UTC, Jans Freigabe im Chat):** Commit `a762bede5` auf `origin/main`,
+Diff genau die zwei Dateien. Gegenprobe: raw und jsDelivr (`@a762bede5`, `@main`) antworten 200 / 57 698 B,
+sha256 des Blobs, der CDN-Datei und des Pakets gleich `a59a314390a2…` (die Arbeitskopie im Klon hat durch
+`autocrlf` ein Byte mehr, unerheblich). Produktion danach ohne den Satz „Pegelkatalog liegt noch nicht im
+Daten-Repo"; die Karte zeigt für St. Peter-Ording den Pegel Süderoogsand (14,9 km, Pegelnull 500 cm unter
+NHN, MThw 636 / MTnw 351, vier Hoch-/Niedrigwasser mit ± und „amtlich"), Bild
+`wasserstand-bsh/prod-2026-10-13-gauges-live.png`. Der Wert „zur gewählten Stunde" steht dort auf „–", weil
+Süderoogsand live keinen `curve`-Block trägt (V-WL-6, nachgemessen 16:39 UTC: Antwort ohne `curve`) — die
+Karte sagt das („Für diesen Pegel liefert das BSH keinen Verlauf …"), und ohne Kurve gibt es auch kein Glas
+(V-WL-19). Der Weg dorthin: V-WL-20 (Rebase gegen force-gepushte Historie). Der Workflow lief als Nr. 400
+(16:23 UTC) noch VOR dem Push; **Lauf 401** (≈ 16:45 UTC, `2d82e5f38`) trug den Schritt „Gauges (BSH water
+level catalogue)" zum ersten Mal — `success`, Publish `success` (GitHub-API `actions/runs/38433382415/jobs`).
+
 ### 8.5 Was offen ist
 
-- **Jans Gate** (`MANUELLE-SCHRITTE.md` §66): Kopie von `sea/v1/static/gauges.json` und der Workflow-Vorlage
-  ins Daten-Repo, Push von `buscosun-web/main`. Bis dahin ist die Quelle freigeschaltet und die Karte
-  rechnet, aber die Pegel-Ebene bleibt leer und die Karte nennt den Grund („Der Pegelkatalog liegt noch nicht
-  im Daten-Repo"). Paket: `C:\dev\buscosun-sea-publish\2026-10-12-wl\`.
+- **Jans Gate** (`MANUELLE-SCHRITTE.md` §66.0): Commit + Push von `buscosun-web/main` mit dem Füllstand (WL-5).
+  Der Katalog liegt seit 13.10. 16:33 UTC im Daten-Repo (§8.4b); bis zum Web-Push zeigt Produktion die
+  Pegel-Ebene ohne Glas und an Ostsee-Pegeln noch „MThw/MTnw" (V-WL-14).
+- **V-WL-19:** am nächsten Pegel ohne Kurve gibt es kein Glas — Entscheidung E-WL-10 (nächster Pegel MIT
+  Kurve fürs Glas, benannt) liegt bei Jan.
 - **Real-Device** (V-WL-9): Diagramm, Ereignisliste und Pegel-Rauten sind nur in headless Chromium gesehen.
 - Der Warnfall ist nie live beobachtet (V-WL-3) — nur mit formtreuen Fällen geprüft.
 
@@ -296,3 +355,10 @@ bei 21–25 px statt 44 px — benannt als V-WL-12.
 | **V-WL-12** | Die Links im Kleingedruckten der Karte (Lizenz, Quelle, Pegel beim BSH, Warndienst) sind Fließtext mit **25 px** Trefferfläche, nicht 44 px | Senkrechtes Padding hebt die Fläche von 13 auf 25 px, ohne den Zeilenfall zu ändern; 44 px würden den Satz auseinanderreißen. Die Seite hält es bei sekundären Textaktionen schon so (`.sw-details summary` 28 px). Benannt statt stillschweigend |
 | **V-WL-13** | Die UI-Harness hätte am **Live**-Dienst messen können: `Fetch` feuert nicht bei einem HTTP-Cache-Treffer, und der Leser fragt mit `cache: 'default'` — ein zweiter Lauf las die echte API aus dem Profil-Cache (334 Stützstellen über 48 h statt 74 über 12 h) | `Network.setCacheDisabled` in `openPage`, dazu zwei Prüfungen, die die Herkunft belegen: **L0** zählt die abgefangenen Abrufe (13), **L4b** prüft die Stützstellen gegen das Fixture-Fenster. Gefunden beim Nachmessen des Diagramms, nicht von einer Prüfung |
 | **V-WL-11** | Der Katalog nennt je Pegel, ob er beim Bau eine Kurve bzw. Ereignisse trug (`has`) — ändert der Dienst das zwischen zwei Workflow-Läufen, ist die Angabe bis zu 15 min alt | Nur ein Hinweis für die Anzeige, nie eine Zusage: die Live-Antwort entscheidet (F5/F6). Ein Pegel, der beides verliert, fällt beim nächsten Lauf aus dem Katalog (Regel in `wlCatalogProblems`) |
+| **V-WL-14** | Die Bezugszeile nannte an **Ostsee**-Pegeln „MThw/MTnw" — dort gibt es keine Tide, die Felder sind MHW/MNW (mittleres Hoch-/Niedrigwasser gegen NHN, Parameterdoku) | Behoben mit dem Füllstand (§8.4b): Wörter je Revier aus `wlFill` (`highLabel`/`lowLabel`/`spanLabel`), Bezugszeile und Marken gleich; `verify:sea-ui` L12b |
+| **V-WL-16** | `verify:sea-ui` setzt einen App-Server auf `127.0.0.1:5212` voraus, prüfte das aber nicht: ohne Server landet jede Seite auf `chrome-error://`, die Prüfungen mit `?.` liefen still ins Leere, und A7 stürzte an einem fehlenden Element ab — vier Läufe am 13.10., bis die Ursache sichtbar war | Fail-fast am Start (`fetch(BASE)`, Exit 2 mit dem Startbefehl), A7 ohne Absturz, Seitenfehler werden sofort gedruckt, B0 nennt den Seitenzustand. Lehre: ein Harness, der etwas von außen braucht, prüft das zuerst |
+| **V-WL-17** | A2/A3 zählten „11/12 Werkzeuge" — seit der Gletscher-Kachel (Phase GL, `8e8646a`) sind es 12/13; der Verifier war seit Jans Merge rot, ohne dass es jemand gesehen hat | Erwartung auf 12/13 gesetzt (Phase GL hat keine eigene Zeile dafür) |
+| **V-WL-18** | Ein Lauf von `verify:sea-ui` (von drei) las die Karte an Warnemünde als „gerade nicht lesbar" — die Fixture-Antwort kam in diesem Lauf nicht an; die beiden anderen Läufe und die Wiederholung waren grün | L12a zählt seither die abgefangenen Abrufe der Ostsee-Seite (Katalog + Pegel) und die Wartebedingung lässt den Zustand „lädt" ausklingen; tritt es wieder auf, steht die Abruffolge im Detail. Nicht erklärt, nur eingezäunt |
+| **V-WL-15** | Der Katalog lag bis zum 13.10. nicht im Daten-Repo (404 am CDN und bei raw), obwohl `main` die Linie seit `ec68705` trägt — in Produktion blieb die Pegel-Ebene leer und die Karte nannte den Grund. Der Auto-Modus lehnt Commit und Push im Daten-Repo ab | Katalog frisch gebaut und mit dem Workflow-Schritt im Klon gestaged (§8.4b); **gepusht 13.10. 16:33 UTC als `a762bede5` nach Jans Freigabe im Chat** (der Klassifizierer ließ den Push danach durch). Lehre: ein Daten-Gate, das nur eine Kopie braucht, gehört in die erste Zeile von `MANUELLE-SCHRITTE`, nicht hinter die Beschreibung |
+| **V-WL-19** | Die Seite nimmt den **nächsten** Pegel je Spot (`wlNearest`), ohne auf `has.curve` zu achten. Vor St. Peter-Ording ist das Süderoogsand (13,3 km, Katalog `curve: false`, live ohne `curve`-Block): Wert „zur gewählten Stunde" = „–", kein Diagramm, kein Glas — das Glas, das Jan bestellt hat, ist am Standard-Spot der Nordsee nicht zu sehen. 43 von 82 Nordsee-Pegeln tragen keine Kurve (V-WL-6); die nächsten MIT Kurve wären Eider-Sperrwerk Außenpegel (16,5 km), Büsum Schleuse (26,8 km) | Mehrwert: Füllstand an jedem Nordsee-Spot. Skizze (**E-WL-10**, Jans Entscheidung): die Hoch-/Niedrigwasserzeiten bleiben vom nächsten Pegel; für Glas und Diagramm zusätzlich der nächste Pegel mit `has.curve` (zweiter Live-Abruf, 10-min-TTL), in der Karte als eigener Pegel benannt („Füllstand vom Pegel Eider-Sperrwerk, 16,5 km"), nie stillschweigend. Bis dahin ist der Pegel wählbar (`gaugePick`) und die Karte sagt, dass es keinen Verlauf gibt |
+| **V-WL-20** | Das Daten-Repo wird vom Publisher force-gepusht; `git rebase origin/main` auf einem Klon mit alter Historie spielt **alle** alten Commits neu ab (97, Konflikte in jeder Datei) — und zwischen Fetch (Minuten, weil die alte Basis fehlt) und Push kommt ein Cron-Push dazwischen (`fetch first`, zweimal) | `git rebase --abort`; dann `git checkout --detach origin/main` → `git cherry-pick <commit>` → `git push origin HEAD:main` in einer Schleife (Erfolg im ersten Durchlauf, weil der inkrementelle Fetch nun Sekunden dauert). Lokales `main` auf `origin/main` gesetzt, der verlorene Zeiger (RG-Commit `ea8884e44`, Inhalt schon auf `origin/main`) als Zweig `keep/rg-radar-log-native` gesichert. Gehört in die Hauslehren „Daten-Repo und CDN" |

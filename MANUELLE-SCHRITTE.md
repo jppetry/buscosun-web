@@ -2491,8 +2491,36 @@ typecheck 0, Build 256/256, Budget grün (totalJs-Ratsche von Hand 1 720 → 1 7
 
 ### 66.1 Kopie ins Daten-Repo `jppetry/buscosun-data`
 
-Paket: **`C:\dev\buscosun-sea-publish\2026-10-12-wl\`** (mit eigener `README.md`). Die Reihenfolge ist frei —
+**ERLEDIGT 13.10. 16:33 UTC (mit deiner Freigabe im Chat):** Commit `a762bede5` auf `origin/main`
+(`sea: WL-2 Pegelkatalog … + Schritt Gauges`, Katalog sha256 `a59a314390a2…` byteidentisch am CDN:
+raw, jsDelivr `@a762bede5` und `@main` je 200 / 57 698 B). Produktion zeigt seitdem den nächsten Pegel je
+Spot (St. Peter-Ording ⇒ Süderoogsand, Bezug, Hoch-/Niedrigwasser; Bild
+`audit/wasserstand-bsh/prod-2026-10-13-gauges-live.png`). Der 15-min-Workflow hält den Katalog ab Lauf
+≥ 401 selbst aktuell. Lokales `main` des Klons steht auf `a762bede5`; der frühere lokale Stand (RG-Commit
+`ea8884e44`, Inhalt liegt auf `origin/main`) ist als Zweig `keep/rg-radar-log-native` gesichert.
+
+Ablauf-Lehre (V-WL-20): das Daten-Repo wird vom Publisher force-gepusht; ein `git rebase origin/main` spielt
+dann die alte Historie neu ab (97 Commits, Konflikte in jeder Datei). Richtig: `git checkout --detach
+origin/main` → `git cherry-pick <commit>` → sofort `git push origin HEAD:main`, in einer Schleife, weil die
+Crons im Minutentakt dazwischen pushen (zwei Abweisungen vor dem Erfolg).
+
+Paket vom 13.10. weiterhin unter **`C:\dev\buscosun-sea-publish\2026-10-13-wl\`** (nur noch Beleg).
+
+Paket vom 12.10.: **`C:\dev\buscosun-sea-publish\2026-10-12-wl\`** (mit eigener `README.md`). Die Reihenfolge ist frei —
 der neue Workflow-Schritt überspringt sich selbst, solange der Producer nicht auf `buscosun-web/main` liegt.
+
+### 66.0 Füllstand (WL-5, 13.10.) — Commit und Push von `buscosun-web`
+
+Uncommitted im Arbeitsbaum (neben SE/RA): `src/sea/waterLevel.ts` (`wlFill`), `src/sea/SeaReadout.tsx`
+(`WaterLevelFill`, Bezugswörter je Revier), `src/sea/SeaCharts.tsx` (Beschriftung MHW/MNW an der Ostsee),
+`src/sea/seaDeck.css`, `scripts/verify-sea-waterlevel.mjs` (F11…F11h), `scripts/verify-sea-ui.mjs`
+(L1b/L1c/L12a/L12b, Fail-fast ohne Server, Zähler 12/13 nach der Gletscher-Kachel), `audit/wasserstand-bsh.md`
+§8.4b + V-WL-14…18. Gates: `verify:sea-waterlevel` 63/63, `verify:sea-ui` 68/68 (gegen `npm run build` +
+`npx vite preview --host 127.0.0.1 --port 5212 --strictPort`), typecheck 0, Build grün, Budget grün (totalJs
+1 768,2 / 1 772). Dein Schritt: Commit (`feat(sea): water level fill gauge (WL-5)`) und Push — der Katalog
+aus 66.1 liegt seit 13.10. 16:33 UTC im Daten-Repo, mit dem Push von `buscosun-web` erscheint das Glas bei
+allen Besuchern. Beachte V-WL-19: am nächsten Pegel ohne Kurve (z. B. Süderoogsand vor St. Peter-Ording)
+gibt es kein Glas, nur die Hoch-/Niedrigwasserzeiten; der Pegel ist in der Karte wählbar.
 
 1. `sea/v1/static/gauges.json` → `buscosun-data/sea/v1/static/gauges.json` (neu, 57,7 KB / 10,3 KB gz,
    sha256 `f6ddb4630a81c3d349138499624ad69e032544092cca89ea5cd82a4671cf342c`, gebaut 12.10. 15:4x UTC aus der
@@ -2542,6 +2570,113 @@ freigeschaltet."). Nichts rechnet falsch, nichts behauptet etwas.
 - **PEGELONLINE** (gemessener Wasserstand, DL-DE Zero 2.0) bleibt offen — E-SW-7 nennt es als Ausbau. Der
   BSH-Datensatz trägt an 83 von 136 Pegeln einen Deep-Link auf die PEGELONLINE-Stammdaten; die Messreihe
   selbst käme aus der Kurve des BSH (`measurement`), die wir schon zeichnen.
+
+## 67. Regenradar — alte Anzeigen entfernt (Phase RA, `audit/regenradar-altanzeigen.md`), 2026-10-13
+
+Auf dein Wort gelöscht: der alte Satz „Schnellblick" (mit Badges/Chips), „Kennzahlen · 6 h" und die 6-h-Balkenkarte
+„Niederschlagssumme" — Desktop-Readout und mobil (Reiter „Schnellblick" und „Detail"). Die Karte „Gefallen | Erwartet"
+und der mobile Reiter „Schnellblick" bleiben. Uncommitted.
+
+1. **Ansehen** (`/regenradar/muenchen`, Desktop und Handy), dann **Commit/Push** von `src/nowcast/NowcastDeck.tsx`,
+   `nowcastDeck.css`, `nowcastMobile.css`, `scripts/verify-rain-window.mjs`, `scripts/verify-precip-sums.mjs`,
+   `audit/regenradar-altanzeigen.md`, `CLAUDE.md`, dieser Datei. Im Arbeitsbaum liegen daneben Änderungen anderer
+   Sitzungen (Radar-Störecho, `MapView.tsx`, `SeaPage.tsx`) — nicht mit committen.
+2. **Entscheiden:** V-RA-1 (`?rb=0` zeigt oben keinen Satz mehr — Schalter streichen?), V-RA-2 (toten Code
+   `heroState` und ungelesene Felder von `nowcast.summary` entfernen), V-RA-3 (Reiter „Schnellblick" umbenennen?).
+3. Gewitter-/Hagelrisiko in %, Phase, Charakter und „Starkregen Ja/Nein" haben seither keine Anzeige mehr — sag
+   Bescheid, falls eines davon an anderer Stelle wieder erscheinen soll.
+
+## 68. Niederschlagsradar — Echos ohne Niederschlag ausblenden (Phase SE, `audit/radar-stoerecho.md`), 2026-10-13
+
+Dein Befund „Fleck neben Gießen": kein Regen, sondern ein Echo ohne Niederschlag (sehr wahrscheinlich Vogelzug) im
+amtlichen DWD-Komposit. Der Filter ist im Derive-Schritt des Radar-Spiegels gebaut, an Stationen gemessen und steht
+hinter `RADAR_CLUTTER` — **aus**. Uncommitted. Im Client ändert sich nichts.
+
+1. **Bestätigung an frischen Slots (R-SE-8) — ERLEDIGT, gerechnet 13.10. 04:10 UTC: bestanden** (28 Slots 12.10. 23:15 …
+   13.10. 03:45 UTC): Verlust an echtem Regen 1 von 142 Intervallen (0,70 %, Obergrenze 1,37 %), nachts abgeräumt 88 gegen
+   81 (Basis) von 609. Die Basis ist schmal (4,5 Stunden einer Front), und die niedrige Abräumquote misst hier nicht das
+   Störecho: 463 der 609 trockenen blauen Intervalle tragen eine Regen-Signatur — Niederschlag in der Höhe vor der Front, den
+   der Filter mit Absicht stehen lässt (V-SE-11, Audit §7). Nichts zu tun; zum Nachrechnen oder Verlängern (Sammler und
+   Wahrheitsabruf liefen als Hintergrundprozesse meiner Sitzung, `C:\dev\buscosun-radar-truth\se\`, `cdc-store\`; der DWD
+   hält die Dateien 48 h):
+   ```
+   node audit/radar-stoerecho/collect.mjs C:/dev/buscosun-radar-truth/se --from=202610122305 --to=<JJJJMMTThhmm jetzt, Minute auf 5> --step=10
+   node audit/radar-regenschwelle/collect-cdc.mjs C:/dev/buscosun-radar-truth/cdc-store --recent --days=20261012,20261013
+   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs audit/radar-stoerecho/stations.mjs C:/dev/buscosun-radar-truth/se C:/dev/buscosun-radar-truth/se-extract --out=C:/dev/buscosun-radar-truth/se-stations
+   node audit/radar-stoerecho/score2.mjs C:/dev/buscosun-radar-truth/se-stations C:/dev/buscosun-radar-truth/se-extract C:/dev/buscosun-radar-truth/cdc-store
+   ```
+   Die letzte Zeile der Ausgabe nennt **R-SE-8: bestätigt / NICHT bestätigt / OFFEN**. Bestätigt heißt: Verlust an echtem
+   Regen ≤ 2 % bei mindestens 100 Fällen, und nachts nicht weniger abgeräumt als die Basis.
+2. **Ansehen, dann Commit/Push von `main`**: `src/sources/dwdSweep.ts`, `radarClutter.ts` (beide neu), `dwdPx250.ts`,
+   `radarImg.ts`, `radarHd250.ts`, `scripts/radar-mirror/clutter-step.mjs` (neu), `radar-derive.mjs`, `workflow-radar.yml`,
+   `scripts/verify-radar-clutter.mjs` (neu), `scripts/verify-radar-threshold.mjs`, `scripts/lib/fixtures/radar-clutter-cases.json`,
+   `package.json`, `.github/workflows/ci.yml`, `audit/radar-stoerecho.md` + `audit/radar-stoerecho/`, `audit/radar-regenschwelle.md`
+   (V-RG-10), `CLAUDE.md`, diese Datei. Die Dateien der Phase RA (§67) liegen im selben Arbeitsbaum — getrennt committen.
+   Ohne Schalter schreibt der Spiegel dieselben Bytes wie vorher (an zwei echten Slots gegen HEAD belegt).
+3. **Einschalten (E-SE-1)** — erst nach 1 und 2, denn der Spiegel braucht den Web-Klon mit dem Filter: im Daten-Repo in
+   `.github/workflows/radar.yml` die Zeile `RADAR_CLUTTER: '1'` unter `RADAR_LOG_NATIVE` ergänzen (Vorlage
+   `scripts/radar-mirror/workflow-radar.yml`, dort steht `'0'`). Wirkung ab dem nächsten Spiegel-Job. Kennzeichen:
+   `radar/img/v1/rv/<stamp>/meta.json` trägt `dual.clutter`, und in einer Zugnacht liegt `clutter.png` im Slot. Im Job-Log
+   steht je Slot `clutter: N von M Zellen … in X ms` — **X ansehen**: auf meiner Maschine 7–9 s, auf dem Runner ungemessen;
+   dazu 8 MB Abruf je Slot vom DWD. Rückweg: `'0'`.
+4. **Entscheiden:** E-SE-2 Nachbarschaftsstimme (schließt den dünnen Reststreifen im Fleck, kostet 0,13 Punkte mehr echten
+   Regen — die frischen Slots von Schritt 1 entscheiden es nicht: 91 statt 88 von 609, Verlust gleich; Empfehlung: ohne sie
+   einschalten und an der nächsten Zugnacht ansehen), V-SE-11 (Blau über trockenem Boden vor einer Front — eigene Messung
+   in der RG-Linie, kein Störecho), E-SE-3 Hinweis „Echos ohne Niederschlag ausgeblendet" in der
+   Statuszeile der Karte (nicht gebaut, `MapView.tsx` war in Arbeit), V-SE-2 (Regenbeginn und buscosun Fusion lesen das
+   Störecho weiter — eigene Phase), V-SE-5 (derselbe zlib-Weg würde den RV-Derive des Spiegels deutlich beschleunigen).
+5. **Nachmessen (V-SE-8):** die Regel ruht auf zwei Herbsttagen und einer Nacht. Bei Schnee, in einer Gewitterlage und im
+   Sommer je zwei Tage sammeln (Befehle wie in 1 mit eigenem Zeitraum, vorher `extract.mjs`) und `score.mjs`/`score2.mjs`
+   wiederholen.
+
+## 69. Ländermaske ohne Lücken — Liechtenstein, Bodensee, Grenznähte (Phase LM, `audit/laendermaske.md`), 2026-10-13
+
+Dein Auftrag „keine leeren Felder an den Grenzregionen, Liechtenstein anzeigen" (E-LM-1). Befund: die Sandmaske der Karte
+war aus drei einzeln vereinfachten Landesumrissen gebaut; Liechtenstein, der Bodensee und jede Naht/Überlappung zweier
+Umrisse lagen als Sand über den Daten — im Regenradar bei Vaduz war die ganze Karte sand. Umgebaut: EIN aufgelöster
+Umriss DE ∪ AT ∪ CH ∪ LI mit gefüllten Innenlöchern (`public/countries/DACH.geojson`), Rückfall `?mask=legacy`.
+Gates grün (typecheck, build, budget, `verify:dach-mask` 11/11, `verify:fusion-release` 30/30), Bildbelege
+`audit/laendermaske/vorher-*.png` / `nachher-*.png`. Uncommitted.
+
+1. **Ansehen:** `/wetterkarte?lat=47.15&lon=9.55&z=9.5` (Liechtenstein), `?lat=47.6&lon=9.4&z=9` (Bodensee),
+   `?lat=47.70&lon=8.87&z=10` (Schaffhausen), `/regenradar` mit Ort Vaduz; dasselbe mit `&mask=legacy` = das alte Bild.
+2. **Commit/Push von `main`** (getrennt von RA §67 und SE §68, die im selben Arbeitsbaum liegen): `src/countryMask.ts`,
+   `public/countries/LI.geojson` + `DACH.geojson` (neu), `scripts/gen-dach-mask.mjs` + `scripts/verify-dach-mask.mjs` (neu),
+   `package.json` (`verify:dach-mask`), `audit/laendermaske.md` + `audit/laendermaske/`, `CLAUDE.md`, diese Datei.
+3. **Entscheiden:** V-LM-1 — die Flächensummen (`precipsum`) maskieren weiter nur DE/AT/CH-Zellen, Liechtenstein bleibt dort
+   ein Loch (Daten-Repo-Workflow, Sparse-Liste `public/countries` + Maskenliste um `LI` ergänzen — Jans Gate). V-LM-2 —
+   Campione d'Italia (IT-Enklave in CH, 2,6 km²) wird jetzt wie DACH gezeigt statt als Even-Odd-Artefakt (V-HD-4); so lassen?
+   V-LM-4 — an den Dreiländerecken Basel (FR), Nauders (IT) und Passau (CZ) bleiben kleine Kerben, weil die Lücke dort nicht
+   umschlossen ist; Skizze im Audit.
+4. **Real-Device:** die Maske ist eine MapLibre-`fill`-Ebene wie bisher (gleiche Ebene, nur andere Ringe; 1 162 statt
+   1 716 Stützpunkte) — kein GPU-Risiko erkennbar, Bildbelege sind Headless-Desktop; ein Blick auf dem Handy genügt.
+
+## 70. Radar — Phase SE abgeschlossen, Auflösung auf der ganzen DACH-Karte, 250 m nur auf Wunsch (Phase RA, `audit/radar-aufloesung.md`), 2026-10-13
+
+Dein Auftrag vom Abend: SE committen und einschalten, 1 km ehrlich überall, 250 m nur auf Wunsch, Bildmatrix. Stand:
+
+- **SE committet und live:** `24ac8d2` (nur die SE-Dateien; RA/LM/WL anderer Sitzungen liegen weiter uncommitted), Daten-Repo
+  `a019b6954` (`RADAR_CLUTTER: '1'`) — der erste Job danach (`38442817587`, 17:58 UTC) filtert: Slot 19:30 UTC trägt
+  `meta.dual.clutter` (733 von 90 038 Zellen, 17 Standorte), `clutter.png`, die 250-m-Kacheln lassen dieselben 733 Blöcke trocken,
+  `status.json` ohne Fehler (§7.3 im Audit). Rückweg: `RADAR_CLUTTER: '0'` in `.github/workflows/radar.yml` des Daten-Repos.
+- **Phase RA committet:** `dc72a3f` auf `main` (gepusht). Daten-Repo `9b35c098d`: der Rückblick-Slot trägt `g000.png`.
+- **Was du ansehen solltest:** `/regenradar/giessen` — Schalter „1 km | 250 m" unter der Niederschlag-Zeile (nur DE-Orte), mit
+  Schalter aus „250 m verfügbar", an „250-m-Gitter · 250 m radial · 1° Azimut", beim Abspielen in die Vorhersage „Vorhersage:
+  1 km"; `/wetterkarte/niederschlag/giessen` — Statuszeile „… · ab 0,06 mm/h · Echos ohne Niederschlag ausgeblendet",
+  mit `?hd=0` „Komposit 600 × 512 (≈ 2 km, kein 1-km-Gitter)"; `/regenradar/salzburg` und `/regenradar/basel` — Statuszeile
+  „AT INCA (ab +15 min, kein Rückblick)" / „CH rzc (nur Messung)"; `/regenradar/zuerich` rückwärts — der CH-Rückblick ist
+  sofort da. Bilder: `audit/radar-aufloesung/shots/` (152 + Nachläufe), `report.jsonl`.
+
+1. **Entscheiden E-RA-2:** mit Schalter AUS holt der Client keine Kachel, aber je Analyse-Slot in den Kachel-Zooms die
+   `hd250.json` (1–3 KB), damit „250 m verfügbar" ehrlich ist. Soll auch das wegfallen (dann nur der Schalter, kein Hinweis)?
+   Rückweg: `probe` in `syncHd250` (`MapView.tsx`) entfernen.
+2. **Entscheiden E-SE-2** (Nachbarschaftsstimme) an der nächsten Zugnacht am Live-Bild (`?hdv2=0` zeigt jedes Echo zum Vergleich).
+3. **Job-Log ansehen:** im Lauf `38442817587` die Zeile `clutter: N von M Zellen … in X ms` — X ist die Rechenzeit auf dem
+   Runner (lokal 3–4 s), dazu 8 MB Abruf je Slot; Derive-Summe im Status 4,6 s je RV-Slot.
+4. **Real-Device (V-RA-6, V-R250):** Schalter umlegen bei Zoom 10–12 auf dem Telefon — Long Tasks sind headless nicht messbar.
+5. **Hinweis V-SE-12:** `src/components/LayerInfoPanel.tsx` trägt uncommitted (Phase RA/LB-1 einer anderen Sitzung) in 20
+   Einträgen `desc` und `source` auf EINER Zeile (ein verlorener Zeilenumbruch beim Bearbeiten, `\n`-Falle) — gültig, aber
+   unleserlich; vor dem Commit jener Phase geradeziehen. Meine Zeilen in dieser Datei (`note`) sind davon getrennt committet.
 
 ## 71. Autobahnwetter — Gefahren-Leiste und Detailansicht (Phase AW-7/AW-8, `audit/autobahnwetter.md` §19), 2026-10-13
 
