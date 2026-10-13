@@ -134,9 +134,17 @@ export const ROAD_FC_VARS = Object.freeze({
   n: { scale: 1, unit: '%', what: 'Gesamtbewölkung' },
   cf: { scale: 100, unit: '1', what: 'Konfidenz-Score der Lufttemperatur (0…1)' },
   q: { scale: 1, unit: 'code', what: 'Herkunft des Schritts' },
+  // AW-7.1 (audit/autobahnwetter.md §19.2): OPTIONAL quantities for the hazards — runs before 13.10.2026 lack them and
+  // stay valid (`roadFcSeriesProblems` checks them only when present); clients before AW-7 ignore them.
+  sl: { scale: 1, unit: 'm', what: 'Schneefallgrenze (buscosun Fusion, nur native Schritte)', optional: true },
+  t85: { scale: 10, unit: '°C', what: 'Temperatur 850 hPa (Cube-Zelle, native Schritte, dazwischen linear)', optional: true },
+  vs: { scale: 1, unit: 'm', what: 'Sichtweite MOSMIX an der Station des Punkts (nur ≤ 20 km)', optional: true },
 } as const);
 export type RoadFcVar = keyof typeof ROAD_FC_VARS;
 export const ROAD_FC_VAR_IDS = Object.freeze(Object.keys(ROAD_FC_VARS) as RoadFcVar[]);
+/** The variables every run must carry (the optional ones of AW-7.1 are checked only when present). */
+export const ROAD_FC_REQUIRED_VAR_IDS = Object.freeze(ROAD_FC_VAR_IDS.filter((id) => !(ROAD_FC_VARS[id] as { optional?: boolean }).optional));
+export const roadFcVarOptional = (id: RoadFcVar) => (ROAD_FC_VARS[id] as { optional?: boolean }).optional === true;
 
 /** Origin code of a step: tier or filler of buscosun Fusion; `+ROAD_FC_INTERPOLATED` when the step is interpolated. */
 export const ROAD_FC_ORIGIN = Object.freeze({ t1: 0, t2: 1, t3: 2, station: 3, clima: 4 } as const);
@@ -149,6 +157,7 @@ export function roadFcOriginCode(tier: string, interpolated: boolean): number | 
 /** Plausible range per variable in PHYSICAL units — the producer's value lock and the client's check. */
 export const ROAD_FC_RANGE: Readonly<Record<RoadFcVar, readonly [number, number]>> = Object.freeze({
   t: [-45, 50], ts: [0, 15], td: [-60, 35], pp: [0, 100], rr: [0, 150], sn: [0, 100], ff: [0, 60], fx: [0, 90], dd: [0, 360], n: [0, 100], cf: [0, 1], q: [0, 12],
+  sl: [-500, 6000], t85: [-60, 40], vs: [0, 100_000],
 });
 
 export const roadFcEncode = (v: RoadFcVar, x: number | null | undefined): number | null =>
@@ -289,6 +298,7 @@ export function roadFcSeriesProblems(v: unknown, steps = ROAD_FC_STEPS): string[
   if (!isObj(v)) return ['v fehlt'];
   for (const id of ROAD_FC_VAR_IDS) {
     const a = v[id];
+    if (a === undefined && roadFcVarOptional(id)) continue;
     if (!Array.isArray(a) || a.length !== steps) { out.push(`${id}: Länge ${Array.isArray(a) ? a.length : '—'} ≠ ${steps}`); continue; }
     const [lo, hi] = ROAD_FC_RANGE[id];
     for (let i = 0; i < a.length; i++) {

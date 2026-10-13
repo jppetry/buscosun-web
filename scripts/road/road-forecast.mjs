@@ -37,7 +37,8 @@ import {
   roadFcPrune, parseRoadFcIndex, parseRoadFcPoints,
 } from '../../src/road/roadFc.ts';
 import { newStoreStats } from '../../src/point/client/store.ts';
-import { decodeCubeChunk, POINT_LEARNED_PATH, POINT_STACK_PATH, POINT_CLIMA_PATH } from '../../src/point/cubeFormat.ts';
+import { decodeCubeChunk, POINT_LEARNED_PATH, POINT_STACK_PATH, POINT_CLIMA_PATH, stationManifestPath } from '../../src/point/cubeFormat.ts';
+import { loadStationCatalog, readStationPoint } from '../../src/point/client/stationPoint.ts';
 import { getPointForecastFromCube, clearCubeForecastCache, exceedance } from '../../src/pointForecast/cubeSource.ts';
 import { FUSION_CURRENT, FUSION_NAME, fusionName, fusionStage, fusionStageIo, fusionVersionOfNotes, fusionVersionOfEngine } from '../../src/pointForecast/fusion/fusionRelease.ts';
 import { getClimaField } from '../../src/pointForecast/fusion/attach.ts';
@@ -244,15 +245,56 @@ export function anchorObsFor(p, table, opts = {}) {
   return out;
 }
 
+// --- AW-7.1: MOSMIX visibility at the station member ---------------------------------------------
+
+/** A MOSMIX station farther than this (km) from the point does not lend it its visibility (gefahren `nebel`: "an Station ≤ 20 km"). */
+export const ROAD_FC_VIS_MAX_KM = 20;
+const visMemo = new Map();
+/** `Map<validAtMs, m>` of the station's `vis` plane for the run the engine used (`provenance.runs.stations`); `null` without the plane. */
+export async function stationVisSeries(io, st) {
+  const source = st.source ?? 'mosmix_l';
+  const key = `${source}/${st.run}/${st.id}`;
+  if (visMemo.has(key)) return visMemo.get(key);
+  let out = null;
+  const manifest = await io.store.json(stationManifestPath(st.run, source));
+  const catalog = await loadStationCatalog(io.store);
+  const entry = catalog?.stations.find((s) => s.id === st.id);
+  if (manifest && entry && manifest.planes.some((p) => p.id === 'vis')) {
+    const series = await readStationPoint(io.store, manifest, { ...entry, distanceKm: st.distKm, dElevM: null }, { decodeChunk: io.decodeChunk });
+    if (series) { out = new Map(); for (const step of series.steps) if (step.values.vis != null) out.set(step.validAtMs, step.values.vis); }
+  }
+  visMemo.set(key, out);
+  return out;
+}
+
 // --- One point ---------------------------------------------------------------------------------
 
-/** `PointForecast` (cube path) → the coded series of the contract. */
-export function seriesOf(fc, t0Ms) {
+/**
+ * AW-7.1: T850 of the cube cell at the native steps (`fc.cube.cells`), linearly between them (gap ≤ 6 h) — the input of
+ * `glatteis` (warm layer over a cold ground layer). `null` where no native step lies within reach.
+ */
+export function t850At(cells, ms) {
+  const rows = (cells ?? []).filter((r) => r.v?.t850 != null).sort((a, b) => a.validAtMs - b.validAtMs);
+  if (!rows.length) return null;
+  const exact = rows.find((r) => r.validAtMs === ms);
+  if (exact) return exact.v.t850;
+  const before = [...rows].reverse().find((r) => r.validAtMs < ms), after = rows.find((r) => r.validAtMs > ms);
+  if (!before || !after || after.validAtMs - before.validAtMs > 6 * H) return null;
+  const t = (ms - before.validAtMs) / (after.validAtMs - before.validAtMs);
+  return before.v.t850 + t * (after.v.t850 - before.v.t850);
+}
+
+/** `PointForecast` (cube path) → the coded series of the contract. `extra.vis` = MOSMIX visibility (m) per valid ms (AW-7.1). */
+export function seriesOf(fc, t0Ms, extra = {}) {
   const v = Object.fromEntries(ROAD_FC_VAR_IDS.map((id) => [id, new Array(ROAD_FC_STEPS).fill(null)]));
   for (const s of fc.cube.v2.axis.steps) {
     const i = (s.validAtMs - t0Ms) / H;
     if (!Number.isInteger(i) || i < 0 || i >= ROAD_FC_STEPS) continue;
     const x = s.vars;
+    // AW-7.1: optional quantities for the hazards (`audit/autobahnwetter.md` §19.2).
+    v.sl[i] = roadFcEncode('sl', x.snowline?.mean);
+    v.t85[i] = roadFcEncode('t85', t850At(fc.cube.cells, s.validAtMs));
+    v.vs[i] = roadFcEncode('vs', extra.vis?.get(s.validAtMs) ?? null);
     const dist = x.precip?.dist ?? null;
     const pWet = dist ? exceedance(dist, 0) : NaN;
     v.t[i] = roadFcEncode('t', x.t2m?.mean);
@@ -286,11 +328,14 @@ export async function computePoint(p, io, nowMs, obs = null) {
     const fc = await getPointForecastFromCube({ lat: p.lat, lng: p.lon, country: 'DE', hours: ROAD_FC_HOURS, pointSource: 'cube', includeRadarNowcast: true }, pio);
     if (!fc.cube?.v2) return { error: 'kein Cube-Ergebnis' };
     const t0Ms = roadFcT0(nowMs);
-    const v = seriesOf(fc, t0Ms);
-    const problems = roadFcSeriesProblems(v);
-    if (problems.length) return { error: `Werte: ${problems.slice(0, 3).join('; ')}` };
     const st = fc.cube.v2.provenance?.runs?.stations ?? null;
     const used = fc.sourcesAvailable.includes('mosmix') && st?.id != null;
+    // AW-7.1: MOSMIX visibility of the station member, only within `ROAD_FC_VIS_MAX_KM` of the point (gefahren `nebel`).
+    let vis = null;
+    if (used && st.distKm <= ROAD_FC_VIS_MAX_KM) { try { vis = await stationVisSeries(io, st); } catch { vis = null; } }
+    const v = seriesOf(fc, t0Ms, { vis });
+    const problems = roadFcSeriesProblems(v);
+    if (problems.length) return { error: `Werte: ${problems.slice(0, 3).join('; ')}` };
     const point = {
       id: p.id, kind: p.kind, km: p.km ?? null, lat: p.lat, lon: p.lon,
       h: fc.cube.v2.point?.hTrue == null ? null : Math.round(fc.cube.v2.point.hTrue),
