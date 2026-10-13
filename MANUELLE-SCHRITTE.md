@@ -2543,7 +2543,7 @@ freigeschaltet."). Nichts rechnet falsch, nichts behauptet etwas.
   BSH-Datensatz trägt an 83 von 136 Pegeln einen Deep-Link auf die PEGELONLINE-Stammdaten; die Messreihe
   selbst käme aus der Kurve des BSH (`measurement`), die wir schon zeichnen.
 
-## 70. Autobahnwetter — Gefahren-Leiste und Detailansicht (Phase AW-7/AW-8, `audit/autobahnwetter.md` §19), 2026-10-13
+## 71. Autobahnwetter — Gefahren-Leiste und Detailansicht (Phase AW-7/AW-8, `audit/autobahnwetter.md` §19), 2026-10-13
 
 Auftrag: Startprompt `audit/autobahnwetter-gefahren-startprompt.md`, Spezifikation `audit/autobahnwetter-gefahren.md`. Gebaut im
 Zweig `feat/autobahnwetter-gefahren` (Worktree `C:\dev\buscosun-web\.wt-hz`), **Schalter `ROAD_HZ_LIVE = false`** — ohne

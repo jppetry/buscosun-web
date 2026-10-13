@@ -175,12 +175,12 @@ export function checkRoadStatus(s, { nowMs }) {
     const hzMin = (nowMs - roadStampMs(hz.lastPublishedSlot)) / 60_000;
     const blocked = hz.blocked?.slot ? ` · zuletzt gesperrt ${hz.blocked.slot} (${(hz.blocked.reasons ?? []).slice(0, 2).join('; ')})` : '';
     const b = hz.balance ? ` · ${hz.balance.withLevel} von ${hz.balance.segments} Abschnitten mit Stufe, ${hz.balance.unknown} unbekannt, ${(hz.balance.ms / 1000).toFixed(0)} s` : '';
-    // Before Jan installs `static/segments.json` (MANUELLE-SCHRITTE §70.2) the step has nothing to derive: that is the
+    // Before Jan installs `static/segments.json` (MANUELLE-SCHRITTE §71.2) the step has nothing to derive: that is the
     // expected state, not a failure — the rule turns red only once a slot was published or the lock has another reason.
     const waitsForSegments = !hz.lastPublishedSlot && (hz.blocked?.reasons ?? []).some((r) => /segments\.json fehlt/.test(String(r)));
     ok('R6 Gefahren-Slot', s.killSwitch || waitsForSegments || (Number.isFinite(hzMin) && hzMin <= ROAD_HEALTH.staleMin),
       Number.isFinite(hzMin) ? `hz-Slot ${hz.lastPublishedSlot} ist ${hzMin.toFixed(0)} min alt (Grenze ${ROAD_HEALTH.staleMin} min)${b}${blocked}`
-        : waitsForSegments ? `Gefahren-Schritt wartet auf static/segments.json im Daten-Repo (§70.2)${blocked}` : `kein freigegebener hz-Slot${blocked}`);
+        : waitsForSegments ? `Gefahren-Schritt wartet auf static/segments.json im Daten-Repo (§71.2)${blocked}` : `kein freigegebener hz-Slot${blocked}`);
     const missing = Array.isArray(hz.missing) ? hz.missing : [];
     ok('R7 Gefahren-Eingänge', missing.length === 0, missing.length ? `fehlen oder zu alt: ${missing.join(', ')}` : 'obs, fc, RV, KONRAD3D, runs vorhanden');
   } else {
