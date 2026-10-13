@@ -168,6 +168,20 @@ export function checkRoadStatus(s, { nowMs }) {
   }
   const cat = s.catalog?.state ?? 'missing';
   ok('R4 Katalog', cat !== 'missing', `Stationskatalog ${cat}`);
+  // AW-7.3 (audit/autobahnwetter.md §19): the hazard product `hz/` — present once the mirror runs with the step; its slot
+  // must be as fresh as the measurements, no input may be missing for long, the locks must not fire (Gate E reads this).
+  const hz = s.hz;
+  if (hz && typeof hz === 'object') {
+    const hzMin = (nowMs - roadStampMs(hz.lastPublishedSlot)) / 60_000;
+    const blocked = hz.blocked?.slot ? ` · zuletzt gesperrt ${hz.blocked.slot} (${(hz.blocked.reasons ?? []).slice(0, 2).join('; ')})` : '';
+    const b = hz.balance ? ` · ${hz.balance.withLevel} von ${hz.balance.segments} Abschnitten mit Stufe, ${hz.balance.unknown} unbekannt, ${(hz.balance.ms / 1000).toFixed(0)} s` : '';
+    ok('R6 Gefahren-Slot', s.killSwitch || (Number.isFinite(hzMin) && hzMin <= ROAD_HEALTH.staleMin),
+      Number.isFinite(hzMin) ? `hz-Slot ${hz.lastPublishedSlot} ist ${hzMin.toFixed(0)} min alt (Grenze ${ROAD_HEALTH.staleMin} min)${b}${blocked}` : `kein freigegebener hz-Slot${blocked}`);
+    const missing = Array.isArray(hz.missing) ? hz.missing : [];
+    ok('R7 Gefahren-Eingänge', missing.length === 0, missing.length ? `fehlen oder zu alt: ${missing.join(', ')}` : 'obs, fc, RV, KONRAD3D, runs vorhanden');
+  } else {
+    ok('R6 Gefahren-Slot', true, 'kein hz-Block im Status — Gefahren-Schritt (AW-7.3) läuft noch nicht');
+  }
   return out;
 }
 

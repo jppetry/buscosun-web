@@ -37,6 +37,11 @@ export function createRoadMirror({
 } = {}) {
   const deriveScript = appDir ? join(appDir, 'scripts', 'road', 'road-derive.mjs') : '';
   const catalogScript = appDir ? join(appDir, 'scripts', 'road', 'road-catalog.mjs') : '';
+  // AW-7.3 (E-AW-33): the hazards per segment, derived right after a green obs slot from the same clone; `ROAD_HZ=0` switches
+  // the step off (the measurements line is untouched), `ROAD_HZ_KILL=1` publishes slots without entries.
+  const hazardsScript = appDir ? join(appDir, 'scripts', 'road', 'road-hazards.mjs') : '';
+  const hazardsOn = process.env.ROAD_HZ !== '0' && !!appDir && existsSync(hazardsScript);
+  const imgDir = join(mirrorDir, 'img');
   const registerTs = appDir ? pathToFileURL(join(appDir, 'scripts', 'lib', 'register-ts.mjs')).href : '';
   const enabled = process.env.ROAD !== '0' && !!appDir && existsSync(deriveScript);
   const store = join(mirrorDir, 'road');            // = road/v1 of the repo
@@ -55,6 +60,8 @@ export function createRoadMirror({
     schema: 1, product: 'road-status', job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: new Date(now()).toISOString(),
     updatedAt: null, killSwitch: killed, lastSlot: null, lastPublishedSlot: null, blocked: null,
     catalog: null, groups: {}, balance: null, recent: [],
+    // AW-7.3: the hazard product (`hz/`) — last derived/published slot, lock reason, missing inputs, balance per hazard.
+    hz: hazardsOn ? { lastSlot: null, lastPublishedSlot: null, blocked: null, missing: [], balance: null, inputs: null, observe: null } : null,
   };
 
   function loadPlan() {
@@ -77,6 +84,7 @@ export function createRoadMirror({
     const r = plan.retention;
     keepByAge(join(store, 'obs'), r.obsMaxAgeMs, r.obsMinKeep);
     keepByAge(join(store, 'fc'), r.obsMaxAgeMs, r.obsMinKeep);
+    keepByAge(join(store, 'hz'), r.obsMaxAgeMs, r.obsMinKeep);   // AW-7.3: like obs/ (gefahren §Datenvertrag)
     keepByAge(join(store, 'quarantine'), r.quarantineMaxAgeMs, r.quarantineMinKeep);
     const h24 = join(store, 'h24');
     if (existsSync(h24)) for (const g of readdirSync(h24)) keepByAge(join(h24, g), r.h24MaxAgeMs, r.h24MinKeep);
@@ -117,6 +125,7 @@ export function createRoadMirror({
     const prev = readJson(join(store, plan.statusPath));
     if (prev?.product === 'road-status') {
       for (const k of ['lastSlot', 'lastPublishedSlot', 'blocked', 'groups', 'balance', 'catalog']) if (prev[k] !== undefined) status[k] = prev[k];
+      if (hazardsOn && prev.hz && typeof prev.hz === 'object') status.hz = { ...status.hz, ...prev.hz };
       if (prev.recent) status.recent = prev.recent.slice(0, ROAD_RECENT_SLOTS);
     }
     if (prev?.catalog) catalog = { etag: prev.catalog.etag ?? null, state: prev.catalog.state ?? 'ok', checkedAt: Date.parse(prev.catalog.checkedAt ?? '') || 0 };
@@ -172,6 +181,36 @@ export function createRoadMirror({
     }
   }
 
+  /**
+   * AW-7.3: `road-hazards.mjs` as a child process on the store (obs, rings, segments, state), the mirror's image store
+   * (RV, KONRAD3D) and the clone (`road/fc/v1`, `runs/`); its `hz/<stamp>.json` and the hazard part of `state.json` go into
+   * the store. Without `static/segments.json` in the store the step says so and does nothing.
+   */
+  function deriveHazards(stamp) {
+    if (!hazardsOn) return null;
+    if (!existsSync(join(store, 'static', 'segments.json'))) { status.hz.blocked = { slot: stamp, reasons: ['static/segments.json fehlt'] }; return { ok: false, publish: false, reasons: ['segments fehlen'] }; }
+    const outDir = join(work, 'hz', stamp);
+    const t0 = now();
+    let s;
+    try {
+      s = JSON.parse(node(hazardsScript, [store, imgDir, rootRef ?? store, outDir, stamp], 180_000).trim().split('\n').pop());
+    } catch (e) {
+      const reason = String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? '?';
+      log(`road hz ${stamp}: derive FEHLGESCHLAGEN (${reason}) — hz bleibt beim letzten Slot`);
+      status.hz.lastSlot = stamp; status.hz.blocked = { slot: stamp, reasons: [reason.slice(0, 200)] };
+      rmSync(outDir, { recursive: true, force: true });
+      return { ok: false, publish: false, reasons: [reason.slice(0, 200)] };
+    }
+    cpSync(outDir, store, { recursive: true, filter: (src) => !src.endsWith('summary.json') });
+    rmSync(outDir, { recursive: true, force: true });
+    status.hz.lastSlot = stamp;
+    if (s.publish) { status.hz.lastPublishedSlot = stamp; status.hz.blocked = null; } else status.hz.blocked = { slot: stamp, reasons: s.reasons };
+    status.hz.missing = s.missing; status.hz.inputs = s.inputs; status.hz.observe = s.observe;
+    status.hz.balance = { segments: s.segments, withLevel: s.withLevel, unknown: s.unknown, byHazard: s.byHazard, dropped: s.dropped, bytes: s.bytes, ms: s.ms, derivedAt: new Date(now()).toISOString() };
+    log(`road hz ${stamp} · ${s.withLevel} von ${s.segments} Abschnitten mit Stufe · unbekannt ${s.unknown} · fehlt ${s.missing.join(',') || '—'} · ${(s.bytes / 1024).toFixed(0)} KB · ${now() - t0} ms · ${s.publish ? 'frei' : `GESPERRT (${s.reasons.slice(0, 2).join('; ')})`}`);
+    return { ok: true, publish: s.publish, reasons: s.reasons, withLevel: s.withLevel, unknown: s.unknown, missing: s.missing, bytes: s.bytes, ms: now() - t0 };
+  }
+
   /** Derive the pending slot from what arrived, fold the result into the store. Returns the summary. */
   function deriveSlot(slotMs, have, final) {
     const stamp = stampOf(slotMs);
@@ -203,6 +242,8 @@ export function createRoadMirror({
     status.lastSlot = stamp;
     if (summary.publish) { status.lastPublishedSlot = stamp; status.blocked = null; }
     else status.blocked = { slot: stamp, reasons: summary.reasons };
+    // AW-7.3: hazards of the published slot — a failure here never blocks the measurements (the slot before stays in hz/).
+    summary.hz = summary.publish ? deriveHazards(stamp) : null;
     status.groups = summary.groups;
     status.balance = summary.balance;
     status.catalog = { etag: catalog.etag, state: catalog.state, checkedAt: new Date(catalog.checkedAt || now()).toISOString() };
@@ -213,6 +254,8 @@ export function createRoadMirror({
       dwdLastAt: dwdLast, derivedAt: new Date(now()).toISOString(), deriveMs: now() - t0,
       // The archive (road-archive.mjs) keeps this log beyond 6 h — a blocked slot carries its reasons for Gate B.
       ...(summary.publish ? {} : { reasons: summary.reasons }),
+      // AW-7.3: the hazard step of the slot (Gate E reads this series).
+      ...(summary.hz ? { hz: summary.hz } : {}),
     }, ...status.recent].slice(0, ROAD_RECENT_SLOTS);
     prune();
     return summary;
@@ -267,6 +310,9 @@ export function createRoadMirror({
     // Corridors are built offline (`build-corridors.mjs`) and pushed by hand: the repo's copy wins over the store.
     const corridors = join(dst, 'static', 'corridors.json');
     if (existsSync(corridors)) { mkdirSync(join(store, 'static'), { recursive: true }); cpSync(corridors, join(store, 'static', 'corridors.json')); }
+    // AW-7.1: the segments are built offline too (`build-segments.mjs`), pushed by hand — the repo's copy wins as well.
+    const segments = join(dst, 'static', 'segments.json');
+    if (existsSync(segments)) { mkdirSync(join(store, 'static'), { recursive: true }); cpSync(segments, join(store, 'static', 'segments.json')); }
     rmSync(dst, { recursive: true, force: true });
     mkdirSync(dst, { recursive: true });
     cpSync(store, dst, { recursive: true });
