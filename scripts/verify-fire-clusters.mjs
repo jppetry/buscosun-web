@@ -221,11 +221,14 @@ const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 //  • `@mui/material` + `@emotion/*` + `@mui/icons-material` seit dem Brand-Dossier-Umbau
 //    (Jans Entscheidung 2026-09-06, `docs/konzept-brand-detail.md` §0),
 //  • `@nivo/core` + `@nivo/line` seit dem Chart-Umbau des Brandradars (Jans Entscheidung
-//    2026-09-09): sie ERSETZEN `@mui/x-charts`, sie kommen nicht dazu.
+//    2026-09-09): sie ERSETZEN `@mui/x-charts`, sie kommen nicht dazu,
+//  • `@nivo/radar` seit dem Brandprofil (BDE-E, 2026-09-10),
+//  • `@nivo/heatmap` + `@nivo/bullet` + `@nivo/polar-bar` seit der Gefahren-Leiste des Autobahnwetters (E-AW-35, Jan
+//    13.10.2026; exakt die Version von `@nivo/line`, `audit/autobahnwetter.md` §19).
 // Alles davon liegt im LAZY-Chunk; der Erstbild-Pfad wächst nicht mit (`npm run budget`).
 add('package.json führt weiterhin genau die bekannten Runtime-Dependencies',
   Object.keys(pkg.dependencies ?? {}).sort().join(',')
-    === '@emotion/react,@emotion/styled,@mui/icons-material,@mui/material,@nivo/core,@nivo/line,bz2,bzip2-wasm,jsfive,maplibre-gl,react,react-dom,react-router',
+    === '@emotion/react,@emotion/styled,@mui/icons-material,@mui/material,@nivo/bullet,@nivo/core,@nivo/heatmap,@nivo/line,@nivo/polar-bar,@nivo/radar,bz2,bzip2-wasm,jsfive,maplibre-gl,react,react-dom,react-router',
   Object.keys(pkg.dependencies ?? {}).join(','));
 add('der Verifier ist als npm-Skript hinterlegt', !!pkg.scripts['verify:fire-clusters']);
 

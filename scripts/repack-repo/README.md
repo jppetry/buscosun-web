@@ -126,6 +126,10 @@ road/v1/h24/<Reihe>/<YYMMDDHHMM>.json  24-h-Verlauf einer Reihe bis zu diesem Sl
 road/v1/quarantine/<YYMMDDHHMM>.json   verworfene Werte mit Regel und Rohwert, nur für die Diagnose
 road/v1/static/stations.json           Stationskatalog aus sws_stations_xls.xlsx (zeitlos, ETag täglich geprüft)
 road/v1/static/corridors.json          Autobahn-Korridore (BKG DLM250), km-Achse, Grenzmarken (zeitlos, von Hand)
+road/v1/static/segments.json           Autobahn-Abschnitte von Anschlussstelle zu Anschlussstelle (OpenStreetMap, ODbL), 5–25 km,
+                                       Stützpunkte, Peilungen, Ortsmerkmale je Feld mit Quelle (zeitlos, von Hand: build-segments.mjs)
+road/v1/hz/<YYMMDDHHMM>.json           Gefahren je Abschnitt für jetzt und +1 … +6 h: Stufe 1–3 oder unbekannt, Nachweis
+                                       (gemessen / abgeleitet / Prognose), Eingänge mit Wert (`why`); nur Abschnitte mit Stufe oder unbekannt
 ```
 
 **Unplausibles erreicht `obs/` nie.** Jeder Wert durchläuft die Prüfer des Vertrags (physikalische
@@ -141,6 +145,20 @@ vom Spiegel gebaut (`scripts/road/build-corridors.mjs`); der Spiegel übernimmt 
 
 ⚠️ Kein amtliches Warnprodukt und keine Fahrbahnprognose des DWD: Messwerte an Punkten, nicht für
 die ganze Strecke.
+
+**Gefahren je Abschnitt (`hz/`, Phase AW-7).** Nach jedem freigegebenen `obs`-Slot rechnet der Spiegel
+(`scripts/road/road-hazards.mjs`, Regeln in `src/road/roadHazards.ts`) für jeden Abschnitt aus
+`static/segments.json` sechzehn wetterbedingte Gefahren — Reifglätte, überfrierende Nässe, gefrierender
+Regen, Schneeglätte, Aquaplaning, Nebel, Gischt, tiefstehende Sonne, Seitenwind, Bäume, Gewitter, Hagel,
+Aufwölbung von Betonplatten, erster Frost, Temperatursturz (Staub/Sand nur beobachtend) — aus den
+Messpunkten des Slots, der Streckenprognose `road/fc/v1`, dem Radar (RV, KONRAD3D) und den
+ICON-D2-Kartenprodukten (`runs/`). Jede Stufe ist eine Regel über benannten Eingängen; Stufe und
+Nachweis sind getrennt; fehlt ein Pflichteingang, steht `null` (unbekannt), nie 0; Prognose-Stufen sind
+bis zur Abnahme auf Stufe 2 gedeckelt (`capP`). `status.json` trägt den Block `hz` (letzter Slot,
+Sperre, fehlende Eingänge, Bilanz je Gefahr). `segments.json` ist eine abgeleitete Datenbank aus
+OpenStreetMap-Daten (Anschlussstellen, Brücken, Tunnel, Einschnitte, Dämme, Betonbelag) und steht unter
+ODbL 1.0 — © OpenStreetMap-Mitwirkende; Wald- und Ackeranteil aus ESA WorldCover 2021 (CC BY 4.0), Höhe
+und Steigung aus den Terrarium-Höhenkacheln.
 
 ---
 
@@ -600,6 +618,7 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `road/v1/quarantine/` | Alter ≤ 24 h, mindestens 2 Slots | 96 Slots |
 | `road/v1/h24/<Reihe>/` | Alter ≤ 1 h, mindestens 2 Dateien je Reihe (jede Datei trägt den ganzen 24-h-Verlauf) | ≈ 4 je Reihe |
 | `road/fc/v1/<lauf>/` | Alter ≤ **3 h**, mindestens 2 Läufe | 3 Läufe |
+| `road/v1/hz/` | Alter ≤ **3 h**, mindestens 2 Slots (wie `obs/`) | 12 Slots |
 
 **Je Stufe**, weil die Stufen verschieden oft kommen: Stufe 1 achtmal täglich à ≈ 75 MiB
 würde bei 24 h acht Läufe halten und den Arbeitsbaum sprengen; die Fernstufe kommt
@@ -678,6 +697,8 @@ sonst läuft der alte Stand weiter. Dasselbe gilt für dieses README und für
 | `road/v1/static/corridors.json` | © GeoBasis-DE / BKG (DLM250), GeoNames | dl-de/by-2.0, CC BY 4.0 |
 | `road/fc/` (Prognose) | buscosun Fusion 8 aus den Linien dieses Repos | wie die Quellen der Linien |
 | `road/fc/v1/static/points.json` (Lage der Achspunkte) | © OpenStreetMap-Mitwirkende | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) |
+| `road/v1/static/segments.json` (Abschnitte, Ortsmerkmale) | © OpenStreetMap-Mitwirkende; Wald/Acker ESA WorldCover 2021; Höhe Terrarium (Mapzen/AWS) | ODbL 1.0 (Datenbank), CC BY 4.0 |
+| `road/v1/hz/` (Gefahren) | Regeln von buscosun über den Linien dieses Repos | wie die Quellen der Linien, ODbL für die Abschnitte |
 | `obs/` (DE) | Deutscher Wetterdienst, Climate Data Center (opendata.dwd.de) | CC BY 4.0 / GeoNutzV |
 | `obs/` (AT) | GeoSphere Austria (TAWES, Klimastationen) | CC BY 4.0 |
 | `obs/` (CH, LI) | MeteoSchweiz (SwissMetNet, Niederschlagsstationen, `messwerte-aktuell`) | CC BY 4.0 |

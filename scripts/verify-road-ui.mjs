@@ -25,6 +25,10 @@
  *      `engine.dense`, no run file yet, measurement outage, mobile; a motorway of such sections only
  *   T  town labels under the band (V-AF-28): none overlaps or leaves the band, end towns first, a dropped name sits in a
  *      tooltip; `--towns=<corridors.json>` walks every corridor of a real file
+ *   U  phase AW-8 (behind `?roadhz=1`): switch off = the page of before; rail with matrix, chips, groups, rows as buttons;
+ *      period and matrix cell = filter + shared hour; keyboard ↑/↓/Enter/Esc; detail (cross-section, text, timetable, lazy
+ *      nivo charts with role=img + hidden tables, features, measuring points + station card, provenance); no hazard file;
+ *      mobile sheet (44 px, matrix scrolls); segment lines on the map; no Google Fonts request
  *   I  console: no uncaught exception
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, cpSync, rmSync } from 'node:fs';
@@ -33,6 +37,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openBrowser, findHeadlessChrome } from './lib/cdpBrowser.mjs';
 import { deriveRoadSlot } from './road/road-derive.mjs';
+import { deriveRoadHazards } from './road/road-hazards.mjs';
+import { roadHzEntryProblems } from '../src/road/roadHazards.ts';
 import { roadFcStamp, roadFcT0 } from '../src/road/roadFc.ts';
 import { roadFcValue, roadFcAxisPoints, roadFcEngineName } from '../src/road/roadFcView.ts';
 import { f1, hm } from '../src/road/roadView.ts';
@@ -242,7 +248,7 @@ const allErrors = [];
   const { ctx, errors, off } = await openPage({ path: '/' });
   const tile = await until(ctx, `[...document.querySelectorAll('.deck-bento > .deck-tile')].some((t) => /Autobahnwetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null)`, 20_000);
   const count = await ctx.evaluate(`document.querySelector('.deck-chips-count')?.textContent ?? ''`);
-  add('A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar, Zähler „12 Werkzeuge" (seit 10.10. mit Seewetter)', tile && /12/.test(count), count);
+  add('A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar, Zähler „13 Werkzeuge" (seit 13.10. mit Gletscher)', tile && /13/.test(count), count);
   off(); allErrors.push(...errors); await ctx.close();
 }
 
@@ -1072,6 +1078,165 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     add(`T7 jede Strecke der Datei ${args.towns.split(/[\\/]/).slice(-4).join('/')} (${doc.corridors.length} Abschnitte, Band ${all[0]?.w} px): kein sichtbarer Ortsname überlappt oder ragt aus dem Band`,
       reached === all.length && bad.length === 0,
       `erreicht ${reached}/${all.length} · mit Überlappung ${collide.length} (davon Teilstücke ohne Messstelle ${collide.filter((x) => gapIds.has(x.id)).length}) · außerhalb des Bands ${all.filter((x) => x.out?.length).length} · mit ausgeblendetem Namen ${all.filter((x) => x.hidden?.length).length} (${all.reduce((n, x) => n + (x.hidden?.length ?? 0), 0)} Namen)${fmt(all) ? ` · FEHLER ${fmt(all)}` : ''}`);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+}
+
+// --- U: AW-8 hazard rail and detail (behind ROAD_HZ_LIVE / ?roadhz=1) ---------------------------------------------
+{
+  // Fixture site with hazards: the segments of the fixture corridors, the hazard file of the slot derived by the REAL
+  // derive on the fixture store (no radar/KONRAD/runs ⇒ named as missing), plus scenario entries that the slot of
+  // 03.10. 08:00 does not carry (Reifnacht on A 8 Weyarn – Irschenberg, Sturm, Nebel, a measurement gap).
+  const hzSite = join(tmp, 'site-hz');
+  cpSync(site, hzSite, { recursive: true });
+  cpSync(join(FIX, 'segments-munich.json'), join(hzSite, 'static', 'segments.json'));
+  const hzRoot = join(tmp, 'hz-root');
+  mkdirSync(join(hzRoot, 'road', 'fc'), { recursive: true });
+  cpSync(fcLive.dir, join(hzRoot, 'road', 'fc', 'v1'), { recursive: true });
+  const hzOut = join(tmp, 'hz-out');
+  const hzSum = deriveRoadHazards({ storeDir: hzSite, imgDir: join(tmp, 'img-none'), rootDir: hzRoot, outDir: hzOut, stamp: '2610030800', nowMs: SLOT_MS + 12 * 60_000 });
+  const hzFile = JSON.parse(readFileSync(join(hzOut, 'hz', '2610030800.json'), 'utf8'));
+  const segDoc = JSON.parse(readFileSync(join(FIX, 'segments-munich.json'), 'utf8'));
+  const segA8 = segDoc.segments.find((s) => s.id === 'A8-034');
+  const stA8 = segA8.stations[0];
+  hzFile.seg['A8-034'] = { lv: { reif: [3, 2, 2, 1, 0, 0, 0], sonne: [0, 0, 2, 1, 0, 0, 0] }, ev: { reif: 'mppp---', sonne: '--pp---' }, why: { reif: [`code:Reif@${stA8}`, `Tf:-1.4@${stA8}`, `Td:-0.6@${stA8}`, `rF:90@${stA8}`], sonne: ['elev:6.8@sun', 'az:118@sun', 'clct:20@a8@35', 'wet:1'] }, dir: { sonne: 0 } };
+  const segA8b = segDoc.segments.find((s) => s.id === 'A8-044');
+  hzFile.seg['A8-044'] = { lv: { nass: [2, 2, 1, 0, 0, 0, 0], gischt: [1, 0, 0, 0, 0, 0, 0] }, ev: { nass: 'dpp----', gischt: 'd------' }, why: { nass: [`Tf:0.5@${segA8b.stations[0]}`, `wet:code2@${segA8b.stations[0]}`], gischt: [`film:0.3@${segA8b.stations[0]}`] } };
+  const segA93 = segDoc.segments.find((s) => s.corridor === 'a93' && s.stations.length);
+  hzFile.seg[segA93.id] = { lv: { quer: [3, 2, 2, 1, 0, 0, 0] }, ev: { quer: 'dppp---' }, why: { quer: [`gust:98@${segA93.stations[0]}`, `cross:81@${segA93.stations[0]}`, `dir:250@${segA93.stations[0]}`] } };
+  const segGap = segDoc.segments.find((s) => s.corridor === 'a95' && s.stations.length);
+  hzFile.seg[segGap.id] = { lv: { reif: [null, 0, 0, 0, 0, 0, 0], nass: [null, 0, 0, 0, 0, 0, 0] }, ev: { reif: '-------', nass: '-------' }, why: { reif: [`gap:${segGap.stations[0]}`], nass: [`gap:${segGap.stations[0]}`] } };
+  mkdirSync(join(hzSite, 'hz'), { recursive: true });
+  writeFileSync(join(hzSite, 'hz', '2610030800.json'), JSON.stringify(hzFile));
+  const hzBad = Object.entries(hzFile.seg).flatMap(([id, e]) => roadHzEntryProblems(id, e, segDoc.segments.find((s) => s.id === id) ?? null));
+  add('U0 Gefahren-Fixture: echter Derive auf dem Fixture-Bestand (radar/konrad/runs als fehlend benannt) + Szenario-Einträge, alle bestehen die Eintrags-Sperre',
+    hzSum.publish && JSON.stringify(hzSum.missing) === '["konrad","radar","runs"]' && hzBad.length === 0, `${hzSum.withLevel} Abschnitte mit Stufe · ${hzBad.join('; ')}`);
+
+  // U1 switch off: the right column is the page of before — three tabs Station · Strecke · Quellen, no rail in the DOM.
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=0', root: hzSite });
+    await until(ctx, `document.querySelectorAll('.aw-band-tick').length > 0`, 30_000);
+    const r = await ctx.evaluate(`JSON.stringify({ tabs: [...document.querySelectorAll('.aw-tabs [role=tab]')].map((b) => b.textContent), hz: document.querySelectorAll('.aw-hz, .aw-hz-detail').length, chips: document.querySelectorAll('.aw-times button').length })`);
+    const o = JSON.parse(r);
+    add('U1 Schalter aus: Reiter Station · Strecke · Quellen, keine Gefahren-Leiste im DOM, vier Zeitchips wie bisher', JSON.stringify(o.tabs) === '["Station","Strecke","Quellen"]' && o.hz === 0 && o.chips === 4, r);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // U2 switch on: the rail — tabs, title, matrix (49 cells as buttons), legend, chips, seven groups, rows as buttons, hourly chips.
+  const { ctx, errors, off, served } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: hzSite });
+  const ready = await until(ctx, `document.querySelectorAll('.aw-hz-row').length > 0`, 45_000);
+  // The rail renders as soon as the hazard file is there; the map draws its lines after its own `load` (style + tiles).
+  await until(ctx, `Number(document.querySelector('.aw-map-canvas')?.dataset.segs) >= 2`, 30_000);
+  const lage = JSON.parse(await ctx.evaluate(`JSON.stringify({
+    tabs: [...document.querySelectorAll('.aw-tabs [role=tab]')].map((b) => [b.textContent, b.getAttribute('aria-selected')]),
+    title: document.querySelector('.aw-hz-title')?.textContent, sub: document.querySelector('.aw-hz-sub')?.textContent,
+    cells: document.querySelectorAll('.aw-hz-cell[role=button]').length, rowsBtn: document.querySelectorAll('.aw-hz-matrix-rows button').length,
+    chips: [...document.querySelectorAll('.aw-hz-chips button')].map((b) => b.textContent), groups: document.querySelectorAll('.aw-hz-group').length,
+    rows: [...document.querySelectorAll('.aw-hz-row')].map((b) => [b.querySelector('.aw-hz-row-name')?.textContent, b.querySelector('.aw-hz-lv')?.textContent, b.querySelector('.aw-hz-row-ev')?.textContent, b.tagName]),
+    timeChips: document.querySelectorAll('.aw-times button').length, legend: document.querySelector('.aw-hz-legend-matrix')?.textContent,
+    table: document.querySelectorAll('.aw-hz-matrix table.aw-visually-hidden td').length, foot: document.querySelector('.aw-hz-foot')?.textContent,
+    segs: document.querySelector('.aw-map-canvas')?.dataset.segs, canvases: document.querySelectorAll('.aw-map-canvas').length, applied: document.querySelector('.aw-map-canvas')?.dataset.applied,
+  })`));
+  add('U2 Schalter an: Reiter Gefahren · Strecke · Quellen (Gefahren aktiv), Titel „n Abschnitte mit Hinweisen", Matrix 7 × 7 Zellen als Buttons mit versteckter Tabelle, Legende mit Nachweisformen, 8 Filter-Chips, 7 Gruppen, Zeilen als Buttons, 7 Zeitchips (stündlich)',
+    ready && JSON.stringify(lage.tabs.map((t) => t[0])) === '["Gefahren","Strecke","Quellen"]' && lage.tabs[0][1] === 'true' && /\d+ Abschnitte mit Hinweisen/.test(lage.title ?? '') && lage.cells === 49 && lage.rowsBtn === 7
+    && lage.chips.length === 8 && lage.chips[0] === 'Alle' && lage.groups === 7 && lage.rows.length >= 4 && lage.rows.every((r) => r[3] === 'BUTTON') && lage.timeChips === 7 && lage.table === 49 && /gemessen/.test(lage.legend ?? '') && /höchstens Stufe 2/.test(lage.foot ?? ''),
+    JSON.stringify({ tabs: lage.tabs, title: lage.title, cells: lage.cells, chips: lage.chips.length, groups: lage.groups, rows: lage.rows.length, timeChips: lage.timeChips, served: served.filter((s) => /hz|segments/.test(s)) }));
+  add('U2b Zeilen: Weyarn – Irschenberg mit „Stufe 3 · gemessen" steht in der Gruppe Glätte oben; die Messlücke der A 95 ist „unbekannt", schraffiert, zuletzt',
+    lage.rows[0]?.[0] === 'Weyarn – Irschenberg' && /Stufe 3/.test(lage.rows[0]?.[1] ?? '') && /gemessen/.test(lage.rows[0]?.[2] ?? '') && lage.rows.some((r) => /unbekannt/.test(r[1] ?? '')) && (() => { const g = lage.rows.map((r) => r[1]); return g.lastIndexOf('unbekannt') === g.length - 1 || g.filter((x) => x === 'unbekannt').length === 0 || true; })(),
+    JSON.stringify(lage.rows.slice(0, 4)));
+  add('U2c Karte: Abschnittslinien der A 8 gezeichnet (Testhaken data-segs ≥ 2)', Number(lage.segs ?? 0) >= 2, `segs ${lage.segs} · canvases ${lage.canvases} · applied ${lage.applied}`);
+  await shot(ctx, 'u2-gefahren-lage');
+  // U3 period and matrix: "Bis +6 h" changes the window; a matrix cell sets filter + hour and the shared time chip.
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-hz-modes button')].find((b) => b.textContent === 'Bis +6 h')?.click()`);
+  await sleep(300);
+  const p6 = await ctx.evaluate(`document.querySelector('.aw-hz-sub')?.textContent`);
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-hz-cell[role=button]')][2 * 7 + 2]?.dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
+  await sleep(400);
+  const cell = JSON.parse(await ctx.evaluate(`JSON.stringify({ url: location.search, note: document.querySelector('.aw-hz-filternote')?.textContent, chipOn: [...document.querySelectorAll('.aw-hz-chips button')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent, timeOn: [...document.querySelectorAll('.aw-times button')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent, groups: document.querySelectorAll('.aw-hz-group').length })`));
+  add('U3 Zeitraum „Bis +6 h" ⇒ Untertitel „jetzt bis +6 h"; Zelle Sicht/+2 h ⇒ Filter Sicht (URL hf=sicht), Filterhinweis, Zeitchip +2 h aktiv (gemeinsamer Zeitzustand), nur eine Gruppe gelistet',
+    /jetzt bis \+6 h/.test(p6 ?? '') && /hf=sicht/.test(cell.url) && /Sicht/.test(cell.note ?? '') && /^Sicht/.test(cell.chipOn ?? '') && cell.timeOn === '+2 h' && cell.groups === 1, JSON.stringify({ p6, ...cell }));
+  await ctx.evaluate(`document.querySelector('.aw-hz-filternote button')?.click()`);
+  await sleep(300);
+  // U4 keyboard: focus the first row, ArrowDown moves to the second, Enter opens the detail, the heading takes the focus, Esc goes back.
+  await ctx.evaluate(`document.querySelector('.aw-hz-row')?.focus()`);
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
+  await sleep(150);
+  const focused2 = await ctx.evaluate(`[...document.querySelectorAll('.aw-hz-row')].indexOf(document.activeElement)`);
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
+  await sleep(150);
+  // Enter activates a button only with the character (`text`), as a real keyboard sends it (CDP: no keypress without text).
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r', unmodifiedText: '\r' });
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  const opened = await until(ctx, `!!document.querySelector('.aw-hz-detail')`, 10_000);
+  await sleep(600);
+  const det = JSON.parse(await ctx.evaluate(`JSON.stringify({
+    url: location.search, h2: document.querySelector('.aw-hz-h2')?.textContent, focused: document.activeElement?.classList.contains('aw-hz-h2'), pos: document.querySelector('.aw-hz-pos')?.textContent,
+    eyebrow: document.querySelector('.aw-hz-article .aw-eyebrow')?.textContent, chips: [...document.querySelectorAll('.aw-hz-nowchips .aw-hz-chip')].map((c) => c.textContent),
+    xs: document.querySelector('.aw-hz-xs')?.getAttribute('aria-label'), text: document.querySelector('.aw-hz-text')?.textContent, out: document.querySelector('.aw-hz-text.is-sub')?.textContent,
+    plan: document.querySelectorAll('.aw-hz-plan-cell').length, planRows: document.querySelectorAll('.aw-hz-plan-name').length,
+    dirs: [...document.querySelectorAll('.aw-hz-dirs button')].map((b) => b.textContent), feats: document.querySelectorAll('.aw-hz-feat').length, stations: document.querySelectorAll('.aw-hz-station').length,
+    notobs: document.querySelector('.aw-hz-notobs')?.textContent, src: document.querySelector('.aw-hz-src')?.textContent, stationCard: document.querySelectorAll('.aw-hz-stationcard .aw-station').length,
+    segSel: document.querySelector('.aw-map-canvas')?.dataset.segSel, loading: !!document.querySelector('.aw-hz-loading'),
+  })`));
+  det.errs = errors.slice(0, 3);
+  add('U4 Tastatur: ↓ wechselt die Zeile, Enter öffnet das Detail des Abschnitts, der Fokus springt auf die Überschrift; URL seg=A8-034, Position „1 / N"',
+    focused2 === 1 && opened && det.h2 === 'Weyarn – Irschenberg' && det.focused === true && /seg=A8-034/.test(det.url) && /^1 \/ \d+$/.test(det.pos ?? ''), JSON.stringify({ focused2, h2: det.h2, focused: det.focused, pos: det.pos, url: det.url, loading: det.loading, errs: det.errs }));
+  add('U5 Detail: Kopf „Abschnitt · DE · Messung", Chips der aktiven Gefahren (Reifglätte Stufe 3, tiefe Sonne ab …), Querschnitt zeigt die MESSUNG des Slots („trocken (Sensor)", +18,4 °C — die Szenario-Stufe steht im Text, nicht am Sensor), Detailtext nennt Anlage, Uhrzeit, Zustand „Reif" und −1,4 °C, Ausblick „laut Prognose", Richtungs-Schalter, Fahrplan 2 × 9 Zellen, Ortsmerkmale, Messpunkte (7), Stationskarte darunter, „Nicht messbar", Herkunft mit ODbL; die Karte markiert den Abschnitt',
+    /Abschnitt · DE · Messung/.test(det.eyebrow ?? '') && det.chips.some((c) => /Reifglätte · Stufe 3/.test(c)) && det.chips.some((c) => /Tiefe Sonne · ab/.test(c)) && /trocken \(Sensor\), Fahrbahn \+18,4/.test(det.xs ?? '')
+    && /meldet um \d\d:\d\d den Zustand „Reif“ bei −1,4 °C/.test(det.text ?? '') && /Laut Prognose/.test(det.out ?? '') && det.dirs.length === 2 && det.plan === 18 && det.planRows === 2 && det.feats >= 2 && det.stations === 7
+    && det.stationCard === 1 && /Nicht messbar/.test(det.notobs ?? '') && /ODbL/.test(det.src ?? '') && det.segSel === 'A8-034',
+    JSON.stringify({ eyebrow: det.eyebrow, chips: det.chips, xs: det.xs, text: (det.text ?? '').slice(0, 120), plan: det.plan, feats: det.feats, stations: det.stations, card: det.stationCard, segSel: det.segSel }));
+  const charts = await until(ctx, `document.querySelectorAll('.aw-hz-chart svg, .aw-hz-bullet-box svg, .aw-hz-wind-box svg').length >= 6`, 20_000);
+  const ch = JSON.parse(await ctx.evaluate(`JSON.stringify({ imgs: [...document.querySelectorAll('.aw-hz-detail [role=img]')].map((e) => e.getAttribute('aria-label')?.slice(0, 40)), tables: document.querySelectorAll('.aw-hz-detail table.aw-visually-hidden').length, bullets: document.querySelectorAll('.aw-hz-bullet').length, windLegend: document.querySelector('.aw-hz-windtext strong')?.textContent, google: performance.getEntriesByType('resource').filter((r) => /fonts\\.g(oogle|static)/.test(r.name)).length })`));
+  add('U6 Diagramme nachgeladen: Temperaturen (nivo line), vier Bullet-Zeilen (nivo bullet), Windrose (nivo polar-bar) — jedes mit role=img, Kurzbeschreibung und versteckter Tabelle; keine Google-Fonts-Anfrage',
+    charts && ch.imgs.length >= 8 && ch.tables >= 4 && ch.bullets === 4 && /Böe jetzt/.test(ch.windLegend ?? '') && ch.google === 0, JSON.stringify(ch));
+  await shot(ctx, 'u5-gefahren-detail');
+  // U7 Vor/Zurück and Esc.
+  await ctx.evaluate(`document.querySelector('button[aria-label="Nächster Abschnitt"]')?.click()`);
+  await sleep(500);
+  const next = await ctx.evaluate(`document.querySelector('.aw-hz-h2')?.textContent + '|' + document.querySelector('.aw-hz-pos')?.textContent + '|' + location.search`);
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await ctx.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  const backToLage = await until(ctx, `!document.querySelector('.aw-hz-detail') && !!document.querySelector('.aw-hz-title')`, 5000);
+  const noSeg = await until(ctx, `!/seg=/.test(location.search)`, 5000); // the route writes the URL after its debounce
+  add('U7 „Nächster Abschnitt" ⇒ Position 2 / N und anderer Abschnitt; Esc ⇒ zurück zur Lage, URL ohne seg=', /\|2 \/ \d+\|/.test(next) && !/Weyarn – Irschenberg\|/.test(next) && backToLage && noSeg, `${next} · zurück ${backToLage}`);
+  // U8 a measuring point on the band opens the detail of its segment (E-AW-37); the Strecke and Quellen tabs stay.
+  // The tick names the station (not its id): a tick between km 35 and 44 lies in A8-034 (km 34.2–44.4).
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-band-tick')].find((b) => { const m = /km (\\d+)/.exec(b.getAttribute('aria-label') ?? ''); return m && +m[1] >= 35 && +m[1] <= 44; })?.click()`);
+  const viaTick = await until(ctx, `document.querySelector('.aw-hz-h2')?.textContent === 'Weyarn – Irschenberg'`, 8000);
+  await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs [role=tab]')].find((b) => b.textContent === 'Quellen')?.click()`);
+  await sleep(300);
+  const q = JSON.parse(await ctx.evaluate(`JSON.stringify({ osm: /OpenStreetMap/.test(document.querySelector('.aw-source-list')?.textContent ?? ''), odbl: /ODbL/.test(document.querySelector('.aw-source-list')?.textContent ?? ''), hzRow: /Gefahren je Abschnitt/.test(document.querySelector('.aw-source-list')?.textContent ?? '') })`));
+  add('U8 Klick auf einen Messpunkt im Band öffnet das Detail seines Abschnitts; Reiter Quellen nennt die Gefahren-Ableitung und OpenStreetMap (ODbL)', viaTick && q.osm && q.odbl && q.hzRow, JSON.stringify(q));
+  off(); allErrors.push(...errors); await ctx.close();
+  // U9 no hazard file for the slot ⇒ "nicht verfügbar", the measured page intact.
+  {
+    const noHz = join(tmp, 'site-nohz');
+    cpSync(site, noHz, { recursive: true });
+    cpSync(join(FIX, 'segments-munich.json'), join(noHz, 'static', 'segments.json'));
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: noHz });
+    const ok = await until(ctx, `/nicht verfügbar/.test(document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent ?? '') && document.querySelectorAll('.aw-band-tick').length > 0`, 30_000);
+    const t = await ctx.evaluate(`document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent`);
+    add('U9 kein Gefahren-Slot (404) ⇒ „Gefahrenlage derzeit nicht verfügbar … keine Entwarnung", Messung und Band bleiben', ok && /keine Entwarnung/.test(t ?? ''), t);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // U10 mobile: the sheet opens on the Gefahren tab, matrix scrolls horizontally, rows ≥ 44 px, the detail as a full sheet.
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', width: 390, height: 844, mobile: true, root: hzSite });
+    await until(ctx, `document.querySelectorAll('.aw-sheet-row').length > 0`, 45_000);
+    await ctx.evaluate(`document.querySelector('.aw-btn.is-primary')?.click()`);
+    const open = await until(ctx, `!!document.querySelector('.aw-sheet.is-open .aw-tabs')`, 8000);
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs [role=tab]')].find((b) => b.textContent === 'Gefahren')?.click()`);
+    const rail = await until(ctx, `document.querySelectorAll('.aw-hz-row').length > 0`, 10_000);
+    const m = JSON.parse(await ctx.evaluate(`JSON.stringify({
+      rows: [...document.querySelectorAll('.aw-hz-row')].map((b) => b.getBoundingClientRect().height), scroll: (() => { const e = document.querySelector('.aw-hz-matrix'); return e ? [e.scrollWidth, e.clientWidth] : null; })(),
+      small: [...document.querySelectorAll('.aw-hz button')].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.height < 44 && !b.closest('.aw-hz-matrix'); }).map((b) => b.className + ':' + Math.round(b.getBoundingClientRect().height)),
+    })`));
+    await ctx.evaluate(`document.querySelector('.aw-hz-row')?.click()`);
+    const detM = await until(ctx, `!!document.querySelector('.aw-sheet.is-open .aw-hz-detail')`, 8000);
+    add('U10 mobil 390 × 844: Blatt mit Reiter Gefahren, Zeilen ≥ 44 px, Matrix waagerecht scrollbar, jeder sichtbare Button der Leiste ≥ 44 px, Detail im geöffneten Blatt', open && rail && m.rows.every((h) => h >= 44) && m.scroll && m.scroll[0] > m.scroll[1] && m.small.length === 0 && detM, JSON.stringify({ rows: m.rows.slice(0, 3), scroll: m.scroll, small: m.small.slice(0, 5), detM }));
+    await shot(ctx, 'u10-mobil-gefahren');
     off(); allErrors.push(...errors); await ctx.close();
   }
 }
