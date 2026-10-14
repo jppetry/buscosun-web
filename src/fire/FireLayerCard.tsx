@@ -318,7 +318,7 @@ export function FireLayerCard(
       {tiles}
       {lead}
       {compact ? (
-        <p className="br-card-ref">{meta.reference}{stand ? ` · ${stand}` : ''}</p>
+        stand && <p className="br-card-ref">Stand: {stand}</p>
       ) : (
         <dl className="br-card-rows">
           <dt>Einheit</dt><dd>{meta.unit}</dd>
@@ -339,7 +339,6 @@ export function FireLayerCard(
         <summary>Ausführlich</summary>
         <p className="fire-info-desc">{info.note}</p>
         {compact && info.legend && <div className="fire-info-legend">{info.legend}</div>}
-        <span className="fire-info-src">{info.short}</span>
       </details>
     </article>
   );
