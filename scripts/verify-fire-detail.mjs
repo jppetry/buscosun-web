@@ -79,7 +79,7 @@ const mini = readFileSync(join(ROOT, 'src', 'fire', 'FireMiniMap.tsx'), 'utf8');
 const page = readFileSync(join(ROOT, 'src', 'fire', 'FirePage.tsx'), 'utf8');
 const chart = readFileSync(join(ROOT, 'src', 'fire', 'FirePassChart.tsx'), 'utf8');
 const fstate = readFileSync(join(ROOT, 'src', 'fire', 'fireState.ts'), 'utf8');
-const BLOCKS = ['DetailSubline', 'DetailKennzahlenRows', 'DetailConfidenceRows', 'DetailFrpRows', 'DetailVerlauf', 'WeatherBlock', 'DetailEinordnungRows', 'CauseText', 'FeaturesRow', 'RecordStats'];
+const BLOCKS = ['DetailSubline', 'DetailKennzahlenRows', 'DetailConfidenceRows', 'DetailFrpRows', 'DetailVerlauf', 'DetailEinordnungRows', 'CauseText', 'FeaturesRow', 'RecordStats'];
 // BD3 (2026-09-03): die Abschnitte stehen im DOSSIER — die Inline-Karte im Readout ist gestrichen.
 add('[detail] Abschnitte Kennzahlen · Verlauf · Wetterlage · Einordnung · Merkmale (jetzt im Dossier)',
   ['Verlauf', 'Wetterlage am Brandort', 'Einordnung', 'Merkmale'].every((x) => dossier.includes(x)) && /<DetailKennzahlenRows/.test(dossier));
@@ -93,9 +93,9 @@ add('[bd3] die Inline-Detailkarte im Readout ist gestrichen (das Dossier ist der
   !/function FootprintDetail/.test(panel) && !/<FootprintDetail/.test(panel) && !/detail: FireRecord/.test(panel));
 add('[bd3] kein Baustein ist mit ihr verschwunden — das Dossier setzt ALLE zusammen',
   BLOCKS.every((b) => dossier.includes(`<${b}`)));
-add('[bd2] das Dossier setzt dieselben Bausteine in D6-Ordnung zusammen (Kopf → Kennzahlen → Verlauf → Wetterlage → Einordnung → Merkmale)', (() => {
+add('[bd2] das Dossier setzt dieselben Bausteine in D6-Ordnung zusammen (Kopf → Kennzahlen → Verlauf → Einordnung → Merkmale)', (() => {
   if (BLOCKS.some((b) => dossier.indexOf(`<${b}`) < 0)) return false;
-  const order = ['RecordStats', 'DetailKennzahlenRows', 'DetailVerlauf', 'WeatherBlock', 'DetailEinordnungRows', 'CauseText', 'FeaturesRow'].map((b) => dossier.indexOf(`<${b}`));
+  const order = ['RecordStats', 'DetailKennzahlenRows', 'DetailVerlauf', 'DetailEinordnungRows', 'CauseText', 'FeaturesRow'].map((b) => dossier.indexOf(`<${b}`));
   return order.every((v, i) => i === 0 || v > order[i - 1]);
 })());
 add('[bd2] Dossier hat keine eigenen Fachtexte zur Ursache (nur der geteilte CauseText)', !/keine Quelle/.test(dossier));
@@ -1087,10 +1087,9 @@ const codeOnly = (src) => src
     && /satEnabled\(\) &&/.test(dos));
 
   // Mobil: Accordion — zugeklappt heißt nicht gestrichen.
-  add('[mui] mobil sind die Karten ein Accordion-Stapel; Verlauf und Wetterlage starten OFFEN',
-    /<Accordion/.test(prim) && (dos.match(/defaultExpanded/g) ?? []).length === 2
-    && /title="Verlauf"[\s\S]{0,200}defaultExpanded/.test(dos)
-    && /title="Wetterlage am Brandort"[\s\S]{0,120}defaultExpanded/.test(dos));
+  add('[mui] mobil sind die Karten ein Accordion-Stapel; Verlauf startet OFFEN (Wetterlage-Karte entfällt, Jan 14.10.)',
+    /<Accordion/.test(prim) && (dos.match(/defaultExpanded/g) ?? []).length === 1
+    && /title="Verlauf"[\s\S]{0,200}defaultExpanded/.test(dos));
   add('[mui] mobil zeigt D4 zwei Zeilen UND einen Weg zu allen fünf (nicht drei gestrichene)',
     /Alle fünf Größen zeigen/.test(d4) && /mobileKeys/.test(d4) && /setAllRows\(true\)/.test(d4));
 
