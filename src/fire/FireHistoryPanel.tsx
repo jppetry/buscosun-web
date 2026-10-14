@@ -13,6 +13,7 @@ import { groupPasses, sortPasses } from './activity/overpasses';
 import type { FirmsRow } from './sources/firmsHotspots';
 import { FirePassChart } from './FirePassChart';
 import { SatImageryBlock } from './FireSatImagery';
+import { bboxPolygon, historyAreaBbox } from './FireMiniMap';
 import { satEnabled } from './detail/fireSatImagery';
 import type { HistoryIndexEntry, HistoryIndexFile, HistoryWindowKind } from './history/historyArtifacts';
 import { historyStandLabel, loadSeasonSeries, type HistoryLoad, type SeriesLoad } from './history/historyLoad';
@@ -413,7 +414,8 @@ export function HistoryDossierBody({ entry, aside, head }: { entry: HistoryIndex
             <span className="br-ds-eyebrow">Satellitenbild</span>
             <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
           </div>
-          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: ev?.bbox ?? null, firstMs: entry.firstMs, lastMs: entry.lastMs }} nowMs={Date.now()} />
+          {/* Rahmen = der Umgebungskasten von „Karte · markiert" (Jan 2026-10-14); die Ereignis-BBox bestimmt weiter nur den Bildausschnitt. */}
+          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: ev?.bbox ?? null, firstMs: entry.firstMs, lastMs: entry.lastMs, shape: [bboxPolygon(historyAreaBbox(entry.lat, entry.lon))] }} nowMs={Date.now()} />
         </section>
       )}
         </div>

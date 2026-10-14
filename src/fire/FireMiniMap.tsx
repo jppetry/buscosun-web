@@ -39,7 +39,12 @@ const SRC = 'mini-fp';
 const MARK = '#FFB03D'; // --br-mark
 const DET = '#FF6B3D'; // --br-det
 
-function bboxPolygon(b: readonly [number, number, number, number]): GeoJSON.Feature {
+/** Umgebungskasten eines Historie-Ereignisses (±0,08°) — „Karte · markiert" und das Satellitenbild zeichnen denselben. */
+export function historyAreaBbox(lat: number, lon: number): [number, number, number, number] {
+  return [lon - 0.08, lat - 0.08, lon + 0.08, lat + 0.08];
+}
+
+export function bboxPolygon(b: readonly [number, number, number, number]): GeoJSON.Feature {
   const [w, s, e, n] = b;
   return { type: 'Feature', properties: { kind: 'bbox' }, geometry: { type: 'Polygon', coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } };
 }

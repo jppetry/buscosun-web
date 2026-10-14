@@ -73,7 +73,7 @@ import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
 import { ThemeProvider } from '@mui/material/styles';
 import { buscosunTheme } from '../theme/buscosunTheme';
 import { FireDossier, DossierMapNote } from './FireDossier';
-import { FireMiniMap, miniFeatures } from './FireMiniMap';
+import { FireMiniMap, historyAreaBbox, miniFeatures } from './FireMiniMap';
 import { applyFireView, fireViewFromState, type FireRouteView } from './fireRouteView';
 import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
 import { featuresOf } from './activity/features';
@@ -1936,7 +1936,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     <button type="button" className="br-link br-ds-back" onClick={() => setStage('map')}>↗ Bühne zurück</button>
                   </div>
                   <FireMiniMap
-                    record={{ id: historyEntry.id, lat: historyEntry.lat, lon: historyEntry.lon, bbox: [historyEntry.lon - 0.08, historyEntry.lat - 0.08, historyEntry.lon + 0.08, historyEntry.lat + 0.08] }}
+                    record={{ id: historyEntry.id, lat: historyEntry.lat, lon: historyEntry.lon, bbox: historyAreaBbox(historyEntry.lat, historyEntry.lon) }}
                     footprintFc={null} basemap={basemap} height={250}
                     ariaLabel={`Karte: ${historyEntryName(historyEntry)} — zur Kartenbühne wechseln`}
                     onClick={() => setStage('map')}
