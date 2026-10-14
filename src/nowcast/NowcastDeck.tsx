@@ -23,7 +23,6 @@ import { loadLastView } from '../radar/radarState';
 import { fmtClock, nwpLabel, freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastRadarMap from './NowcastRadarMap';
-import NowcastBarChart from './NowcastBarChart';
 import NowcastRainSlider from './NowcastRainSlider';
 import { AlpineCard } from './NowcastDetail';
 import { useIsMobile } from '../mobile/useIsMobile';
@@ -106,7 +105,7 @@ function shortPlace(name: string): string { return name.split(',')[0]; }
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
 type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail' | 'height' | '3d';
 /** Ansicht der Bühne; `height` = „Karte + Höhe" (Phase HZS, nur `?hzs=1`). */
-type DeckView = 'map' | 'chart' | 'height';
+type DeckView = 'map' | 'height';
 
 /** Phase NS: die Auswahl der Summen-Ansicht je Browser merken (Komfort; ohne Speicher gilt die Voreinstellung). */
 const SUM_SEL_KEY = 'buscosun.regenradar.sum.v1';
@@ -285,8 +284,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   // --- gemeinsame Bausteine (Readout / Sheet) --------------------------------
   const center = (
     <div className={`rr-center${view === 'height' ? ' is-split' : ''}`}>
-      {view === 'map' || view === 'height' ? (
-        <>
+      <>
           <div className="rr-stage">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
@@ -294,21 +292,13 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; } } : {})} {...ztMapProps} {...skMapProps} />
           </div>
           {view === 'height' && <div className="rr-hzs-pane">{hzsPanel('desktop')}</div>}
-        </>
-      ) : (
-        <div className="rr-chart">
-          {nowcast
-            ? <div className="rt-card nc-tl-card"><NowcastBarChart nowcast={nowcast} /></div>
-            : <div className="rr-center-state">Diagramm folgt, sobald der Nowcast geladen ist …</div>}
-        </div>
-      )}
+      </>
 
-      {!isMobile && (
+      {!isMobile && hzsOn && (
         <div className="rr-topright-map">
-          <div className="rr-viewtoggle rr-glass" role="tablist" aria-label={hzsOn ? 'Karte, Diagramm oder Karte mit Höhen-Zeit-Schnitt' : 'Karte oder Diagramm'}>
+          <div className="rr-viewtoggle rr-glass" role="tablist" aria-label="Karte oder Karte mit Höhen-Zeit-Schnitt">
             <button type="button" role="tab" aria-selected={view === 'map'} className={view === 'map' ? 'is-active' : ''} onClick={() => setView('map')}>Karte</button>
-            <button type="button" role="tab" aria-selected={view === 'chart'} className={view === 'chart' ? 'is-active' : ''} onClick={() => setView('chart')}>Diagramm</button>
-            {hzsOn && <button type="button" role="tab" aria-selected={view === 'height'} className={view === 'height' ? 'is-active' : ''} onClick={() => setView('height')}>Karte + Höhe</button>}
+            <button type="button" role="tab" aria-selected={view === 'height'} className={view === 'height' ? 'is-active' : ''} onClick={() => setView('height')}>Karte + Höhe</button>
           </div>
         </div>
       )}
@@ -486,12 +476,13 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 
       {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="dock" {...(chance ? { chance: chance.slot } : {})} />}
 
-      <span className="rr-eyebrow">Ansicht</span>
-      <div className="rr-seg">
-        <button type="button" className={`rr-seg-btn${view === 'map' ? ' is-active' : ''}`} onClick={() => setView('map')}>Karte</button>
-        <button type="button" className={`rr-seg-btn${view === 'chart' ? ' is-active' : ''}`} onClick={() => setView('chart')}>Diagramm</button>
-        {withHeight && <button type="button" className={`rr-seg-btn${view === 'height' ? ' is-active' : ''}`} onClick={() => setView('height')} title="Karte mit Höhen-Zeit-Schnitt am gewählten Ort">Karte + Höhe</button>}
-      </div>
+      {withHeight && <>
+        <span className="rr-eyebrow">Ansicht</span>
+        <div className="rr-seg">
+          <button type="button" className={`rr-seg-btn${view === 'map' ? ' is-active' : ''}`} onClick={() => setView('map')}>Karte</button>
+          <button type="button" className={`rr-seg-btn${view === 'height' ? ' is-active' : ''}`} onClick={() => setView('height')} title="Karte mit Höhen-Zeit-Schnitt am gewählten Ort">Karte + Höhe</button>
+        </div>
+      </>}
 
       <span className="rr-eyebrow">Modus</span>
       <div className="rr-seg rr-seg--modus">
@@ -795,8 +786,6 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
       <PanelHead place={place} title="Diagramm" />
       {nowcast ? (
         <>
-          <div className="rm-seclabel rm-seclabel--wide">Niederschlagsrate · mm/h · 0–6 h</div>
-          <div className="rm-card rm-chartcard"><NowcastBarChart nowcast={nowcast} /></div>
           <div className="rm-seclabel rm-seclabel--wide">Kumulierte Summe</div>
           <div className="rm-card rm-chartcard"><MobileCumChart nowcast={nowcast} /></div>
           <div className="rm-chartpage-foot">
