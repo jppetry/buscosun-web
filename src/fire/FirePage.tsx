@@ -27,7 +27,7 @@ import {
   FIRE_ALWAYS_ON, withFireAlwaysOn,
   FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS,
   FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_ANOMALY_LAYERS,
-  fireSource, type FireLayerId,
+  type FireLayerId,
 } from './fireModel';
 import {
   defaultFireTimeState, reconcileFireTime, sharedMaxDay,
@@ -72,7 +72,7 @@ import {
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
 import { ThemeProvider } from '@mui/material/styles';
 import { buscosunTheme } from '../theme/buscosunTheme';
-import { FireDossier, DossierLegend, DossierMapNote } from './FireDossier';
+import { FireDossier, DossierMapNote } from './FireDossier';
 import { FireMiniMap, miniFeatures } from './FireMiniMap';
 import { applyFireView, fireViewFromState, type FireRouteView } from './fireRouteView';
 import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
@@ -117,7 +117,7 @@ import {
 import {
   FireLayerCard, FIRE_LAYER_INFO, HOTSPOTS_DEGRADED_INFO, dangerInfoFor, soilDrynessInfoFor,
 } from './FireLayerCard';
-import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, FWI_STEPS, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
+import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './FireFootprintPanel';
 import { ageText } from '../dataAge';
 import './fireDeck.css';
@@ -1667,8 +1667,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     .toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const standText = hourly ? `${hourLabel(time.hour)} · ${hourClock(time.hour)}` : dayLabel(time.day, nowMs);
 
-  const viewMeta = DANGER_VIEWS[dangerView];
-
   const firesMode = !isMobile;
   /**
    * Rückblick-Fenster der Karte (24 h / 7 d / Monat / Saison) — seit 2026-09-05 (Jans
@@ -1690,32 +1688,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           </span>
         )}
       </div>
-    </div>
-  );
-
-  /** Mobil (B4): Legende als Karte — Farbbalken, Endpunkte, Punkte. */
-  const legendCardMobile = (
-    <div className="br-mcard">
-      <div className="br-mcard-head">
-        <span className="br-eyebrow">Legende · {DANGER_VIEW_CODE[dangerView]}</span>
-        <span className="br-legend-derived">Farben abgeleitet</span>
-      </div>
-      {active.has('fireDanger') ? (
-        <>
-          <div className="br-mbar">{FWI_STEPS.map((c) => <span key={c} style={{ background: c }} />)}</div>
-          <div className="br-mbar-labels">
-            <span>{viewMeta.classes[0].name} {viewMeta.classes[0].range}</span>
-            <span>{viewMeta.classes[2].name}</span>
-            <span>{viewMeta.classes[5].name} {viewMeta.classes[5].range}</span>
-          </div>
-        </>
-      ) : <p className="br-legend-none">EU-Gefahrenindex aus — keine Klassenlegende</p>}
-      <div className="br-mlegend-dots">
-        <span className="br-legend-dot"><i style={{ background: 'var(--br-det)' }} />Detektion</span>
-        <span className="br-legend-dot"><i style={{ background: 'var(--br-grey-dot)' }} />ortsfest</span>
-        <span className="br-legend-dot"><i className="is-line" />Ausbreitung</span>
-      </div>
-      <p className="br-note">Farben abgeleitet — nicht amtlich.</p>
     </div>
   );
 
@@ -1756,51 +1728,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         </button>
       ) : undefined}
     />
-  );
-
-  /** Nationale Skalen — quellenrein, NIE umgerechnet; AT-Lücke ausgewiesen. */
-  const scalesCard = (compact: boolean) => (
-    <div className="br-card br-scales">
-      <div className="br-card-eyebrow">Nationale Skalen{compact ? '' : ' · nie umgerechnet'}</div>
-      {!compact && (
-        <div className="br-scales-cols">
-          {(['DE', 'CH'] as const).map((k) => {
-            const s = fireSource(k);
-            return (
-              <div key={k} className="br-scale">
-                <div className="br-scale-head">{k} · {k === 'DE' ? 'DWD' : 'BAFU'}</div>
-                <div className="br-scale-cov">{s.scale.length} Stufen · {s.coverage.split(' · ')[1] ?? s.coverage}</div>
-                <ol>
-                  {s.scale.map((st) => (
-                    <li key={st.level}><i style={{ background: st.color }} aria-hidden="true" />{st.level} {st.label}</li>
-                  ))}
-                </ol>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <p className="br-scales-note">
-        {compact ? (
-          <>DE · DWD (5 Stufen) und CH · BAFU (5 Stufen) werden <strong>nie umgerechnet</strong> — „geringe Gefahr" ist DE Stufe 2, CH Stufe 1. <strong>AT hat keine offene amtliche Stufe.</strong></>
-        ) : (
-          <>„Geringe Gefahr" ist in DE Stufe 2 und in CH Stufe 1 — die Skalen werden nicht ineinander umgerechnet. <strong>AT hat keine offene amtliche Stufe</strong>; die Lücke wird ausgewiesen, nicht mit dem EU-Modellwert kaschiert.</>
-        )}
-      </p>
-      <p className="br-scales-note">
-        Amtliche Stufen zeigt diese Karte nicht — der EU-Wert ist ein Modellwert. Maßgeblich:{' '}
-        {(['DE', 'CH', 'AT'] as const).map((c, i) => {
-          const src = fireSourceFor(c);
-          return (
-            <span key={c}>
-              {i > 0 ? ' · ' : ''}
-              <a href={src.url} target="_blank" rel="noopener">{src.name}</a> ({c})
-            </span>
-          );
-        })}. Im Winterhalbjahr ist die Waldbrandgefahr strukturell niedrig; einzelne Landesstellen
-        schreiben ihre Stufen dann nicht täglich fort.
-      </p>
-    </div>
   );
 
   const sourcesLine = (compact: boolean) => (
@@ -1963,8 +1890,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           ? <>{miniMap(mapHeight)}<DossierMapNote r={dossierRecord} fromRegistry={miniFrom} /></>
           : <p className="br-ds-mapnote">Kein Brand markiert — die Karte zeigt den DACH-Überblick.</p>}
       </div>
-      <DossierLegend />
-      {scalesCard(true)}
     </>
   );
 
@@ -2012,7 +1937,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   />
                   <p className="br-ds-mapnote">Ein Historie-Ereignis ist ein Punkt aus der statischen Auswertung — der Kasten zeigt die Umgebung, keine Brandfläche.</p>
                 </div>
-                {scalesCard(true)}
               </div>
             )}
           />
@@ -2097,7 +2021,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const sheetContent = mobileTab === 'time' ? (
     <>
       {timeCardMobile}
-      {legendCardMobile}
       {lagging.length > 0 && (
         <p className="br-box is-lag">
           {lagging.length === 1 ? 'Ein Layer folgt' : `${lagging.length} Layer folgen`} dem Regler nicht.
@@ -2110,11 +2033,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   ) : (
     <>
       {timeCardMobile}
-      {legendCardMobile}
       {detTiles(true)}
 
       {readoutLayers.map((id) => layerCard(id, true))}
-      {scalesCard(true)}
       {sourcesLine(true)}
     </>
   );
@@ -2323,7 +2244,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                           <span className="br-ds-mapstrip-lbl">Kartenstreifen · tippen für Vollbild</span>
                         </div>
                       )}
-                      aside={<><DossierMapNote r={dossierRecord} fromRegistry={miniFrom} /><DossierLegend /></>}
+                      aside={<DossierMapNote r={dossierRecord} fromRegistry={miniFrom} />}
                       extra={readoutTab === 'anomalies' ? siteCards : null}
                       detections={hotspotRows}
                     />
