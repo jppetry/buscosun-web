@@ -59,6 +59,8 @@ const BAND_M_PER_PX = 20;
 const MIN_M_PER_CSS_PX = FULL_M_PER_PX / 2;
 const MAX_M_PER_CSS_PX = 250;
 /** Startfenster um den Brand (halbe Kantenlänge) — dieselbe Größenordnung wie `snapshotBbox`. */
+/** Start-Maßstab (m je CSS-Pixel): 12 statt vorher 30 — die Ansicht öffnet schon nah am Brandort (Jans Auftrag 2026-10-14). */
+const START_MPP = 12;
 const START_HALF_M = 9_000;
 /** SAT3: Detektionen bis so weit außerhalb der Szene werden projiziert (zwei Startfenster). */
 const DET_MARGIN_PX = (2 * START_HALF_M) / FULL_M_PER_PX;
@@ -443,7 +445,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   /** Der Fill läuft in einem EIGENEN Task nach dem Draw (Muster V-SAT-17) — hier der ausstehende Aufruf. */
   const scarJobRef = useRef<{ key: string; id: number } | null>(null);
   // Sichtzustand: Zentrum in Vollauflösungs-Pixeln + Meter je CSS-Pixel.
-  const viewRef = useRef({ cx: 0, cy: 0, mpp: 30 });
+  const viewRef = useRef({ cx: 0, cy: 0, mpp: START_MPP });
   const bytesRef = useRef({ tiles: 0, bytes: 0 });
   const rafRef = useRef(0);
   const modeRef = useRef<CogMode>('tci');
@@ -483,7 +485,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
             : [],
         };
         scarRef.current = null;
-        viewRef.current = { cx: fire.px, cy: fire.py, mpp: 30 };
+        viewRef.current = { cx: fire.px, cy: fire.py, mpp: START_MPP };
         setStatus((s) => ({ ...s, edge: ref.marginPx * FULL_M_PER_PX < START_HALF_M }));
         setPhase({ kind: 'ready' });
       } catch (e) {
@@ -1014,7 +1016,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   const resetView = () => {
     const d = dataRef.current;
     if (!d) return;
-    viewRef.current = { cx: d.fire.px, cy: d.fire.py, mpp: 30 };
+    viewRef.current = { cx: d.fire.px, cy: d.fire.py, mpp: START_MPP };
     schedule();
   };
 
