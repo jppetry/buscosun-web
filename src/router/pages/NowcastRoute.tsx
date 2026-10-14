@@ -16,8 +16,11 @@ import { useAppNav } from '../useAppNav';
 import { buildRadarUrl, parseMapSearch, type MapCamera } from '../urlState';
 // SH1: Ortstabelle nur im LAZY Chunk — `urlState.ts` (eager) bleibt tabellenfrei.
 import { resolveRoutePlace, slugForPlace } from '../../share/placeTable';
+import { pfSourceFrom } from '../../pointForecast/pfFlags';
 
 const CAM_DEBOUNCE_MS = 300;
+/** buscosun Fusion's cube chunk, started once per session with the first render that carries a place. */
+let cubeChunkStarted = false;
 
 export default function NowcastRoute() {
   const loc = useLocation();
@@ -26,6 +29,12 @@ export default function NowcastRoute() {
   const nav = useAppNav();
   const parsed = useMemo(() => parseMapSearch(loc.search, 0), [loc.search]);
   const routePlace = useMemo(() => resolveRoutePlace(params.ort, parsed.place), [params.ort, parsed.place]);
+  // The strip imports the cube chunk only once the deck has rendered and committed (`buildNowcast` in an effect) — start
+  // it with this render instead (idempotent: the module loads once; `?pf=live` does not need it).
+  if (!cubeChunkStarted && routePlace.place && pfSourceFrom(loc.search) !== 'live') {
+    cubeChunkStarted = true;
+    void import('../../pointForecast/cubeSource').catch(() => { cubeChunkStarted = false; });
+  }
   const st = useRef({ place: routePlace.place, cam: parsed.cam, extra: parsed.extra });
   const initial = useRef({ place: routePlace.place, cam: parsed.cam });
 

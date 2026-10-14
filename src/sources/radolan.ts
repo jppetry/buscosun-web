@@ -628,11 +628,39 @@ async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPr
 }
 
 /**
+ * The last loaded run, handed to every later caller while `loadRvNowcast` would pick the same slot first: within
+ * RUN_CACHE_TTL (its `known` run) or while that slot is still the newest guessed one. Before, a caller after the shared
+ * load — the map after its style `load`, a place change, a tap on the map (Regenradar) — loaded and decoded the same 25
+ * frames again. A run read on the tar way is reused only while its slot is still not image-eligible (the image way carries
+ * the log plane), and only under the same dual switch. Dropped after one slot step, so the frames (≈ 66 MB) do not
+ * outlive the page.
+ */
+let _rvLast: { ts: string; at: number; via: 'img' | 'cdn' | 'dwd'; dual: boolean; nc: RvNowcast } | null = null;
+const RV_LAST_KEEP_MS = RV_STEP_MIN * 60_000;
+function rvLastReusable(nowMs: number = Date.now()): RvNowcast | null {
+  const l = _rvLast;
+  if (!l || nowMs - l.at >= RV_LAST_KEEP_MS) return null;
+  if (l.dual !== radarDualFlagFrom() || (l.via !== 'img' && rvImgEligible(l.ts, nowMs))) return null;
+  return nowMs - l.at < RUN_CACHE_TTL || guessRvRuns(1, nowMs)[0] === l.ts ? l.nc : null;
+}
+function rememberRvLast(ts: string, nc: RvNowcast): void {
+  const entry = { ts, at: Date.now(), via: _lastRvVia, dual: radarDualFlagFrom(), nc };
+  _rvLast = entry;
+  const t = setTimeout(() => { if (_rvLast === entry) _rvLast = null; }, RV_LAST_KEEP_MS);
+  (t as unknown as { unref?: () => void }).unref?.();   // Node (verifiers): the timer must not hold the process
+}
+
+/**
  * Lädt den jüngsten kompletten RV-Lauf und rendert alle 25 Frames vor.
  * Robust gegen einen noch hochladenden jüngsten Lauf: bei Fehler wird der
  * vorherige Zeitstempel versucht.
  */
 export async function fetchRvNowcast(signal?: AbortSignal, opts?: RvFetchOptions): Promise<RvNowcast> {
+  const last = rvLastReusable();
+  if (last) {
+    if (signal?.aborted) throw Object.assign(new Error('Abgebrochen'), { name: 'AbortError' });
+    return last;
+  }
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig (§24.3).
   return shareInFlight('radolan-rv-nowcast', () => loadRvNowcast(opts?.priority), signal);
 }
@@ -653,6 +681,7 @@ async function loadRvNowcast(priority?: RequestPriority): Promise<RvNowcast> {
       try {
         const result = await fetchRvTar(ts, undefined, priority);
         _runCache = { ts, at: Date.now() };
+        rememberRvLast(ts, result);
         // Welche RADOLAN-RV-Datei wird gerade auf die Karte gerendert?
         console.log(
           `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: ${_lastRvVia === 'img' ? `Slot ${ts}` : rvFileNameOf(ts, _lastRvFormat)}` +
