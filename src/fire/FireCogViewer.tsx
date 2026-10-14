@@ -49,6 +49,8 @@ export interface CogViewerProps {
    * der Aufrufer hat keine (Historie-Ereignis). Die Narbe sät dann am Brandort.
    */
   detections?: readonly FirmsRow[] | null;
+  /** Brand-BBox [W, S, O, N] (wie `FireRecord.bbox`) — als leere Umrandung über dem Bild (wie „Karte · markiert"). */
+  fireBbox?: readonly [number, number, number, number] | null;
   onClose: () => void;
 }
 
@@ -78,6 +80,8 @@ const DET_FILL_AFTER = 'rgba(255, 176, 138, 0.14)';
 const DET_HALO = 'rgba(44, 42, 38, 0.85)';
 /** Narben-Umriss: Creme wie Fadenkreuz und Maßstab — eine Farbe, die KEINE dNBR-Klasse trägt. */
 const SCAR_COLOR = '#FDFBF4';
+/** Umrandung der Brand-BBox: dasselbe Orange wie auf „Karte · markiert", aber OHNE Füllung. */
+const BBOX_COLOR = '#F2A33A';
 /** SAT3d Kill-Switch `?scar=0` (Rule 2, Muster `?sat10=0`): dNBR-Overlay wie vor SAT3, ohne Fill — auch der Kontrolllauf der Long-Task-Messung. */
 function scarEnabled(): boolean {
   try { return new URLSearchParams(window.location.search).get('scar') !== '0'; } catch { return true; }
@@ -404,7 +408,20 @@ interface ScarNote {
   none: boolean;
 }
 
-export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, onClose }: CogViewerProps) {
+/** Die vier Ecken der Brand-BBox als Pixel des Granulats (W-S, O-S, O-N, W-N) — `null` ohne BBox/Projektion. */
+function bboxCornersPx(bb: readonly [number, number, number, number] | null, epsg: number, transform: readonly number[]): number[] | null {
+  if (!bb) return null;
+  const [w, so, e, n] = bb;
+  const pts: number[] = [];
+  for (const [lon, lat] of [[w, so], [e, so], [e, n], [w, n]] as const) {
+    const q = pixelOf(lat, lon, epsg, transform);
+    if (!q) return null;
+    pts.push(q.px, q.py);
+  }
+  return pts;
+}
+
+export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, onClose }: CogViewerProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading', word: 'Szene wird gesucht …' });
   const [full, setFull] = useState(false);
   const [mode, setMode] = useState<CogMode>('tci');
@@ -423,6 +440,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   const [scar, setScar] = useState<ScarNote | null>(null);
   const detectionsRef = useRef(detections);
   detectionsRef.current = detections;
+  const fireBboxRef = useRef(fireBbox);
+  fireBboxRef.current = fireBbox;
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -437,6 +456,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     wc?: WcSampler | null;
     /** SAT3: Detektions-Rechtecke in Vollauflösungs-Pixeln des Granulats (leer ohne Zeilen). */
     det: DetPoly[];
+    /** Ecken der Brand-BBox in Vollauflösungs-Pixeln (W-S, O-S, O-N, W-N) oder `null`. */
+    bbox: number[] | null;
   } | null>(null);
   /** SAT3d: der letzte Narben-Fill — Schlüssel = Ebene + Kachelmenge + Ladestand + Saat. */
   const scarRef = useRef<{
@@ -483,6 +504,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           det: detectionsRef.current
             ? detectionPolysPx(detectionsRef.current, ref.epsg, ref.transform, ref.shape, DET_MARGIN_PX, dayIso, pixelOf)
             : [],
+          bbox: bboxCornersPx(fireBboxRef.current, ref.epsg, ref.transform),
         };
         scarRef.current = null;
         viewRef.current = { cx: fire.px, cy: fire.py, mpp: START_MPP };
@@ -812,6 +834,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     };
     /** SAT3: die Detektions-Rechtecke — nur die in Sicht; gestrichelt, wenn die Aufnahme nach dem Bild lag. */
     const drawDet = () => {
+      drawBbox();
       if (!showDetRef.current || d.det.length === 0) return;
       const X = (px: number) => ((px - px0) / fullPxPerCss) * dpr;
       const Y = (py: number) => ((py - py0) / fullPxPerCss) * dpr;
@@ -863,6 +886,22 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       ctx.stroke();
     };
     /** Reihenfolge: Narbe (Fläche) → Detektionen → Fadenkreuz — das Kleinste liegt obenauf. */
+    /** Brand-BBox: nur Strich (Halo + Orange), KEINE Füllung — „Karte · markiert" im Bild. */
+    const drawBbox = () => {
+      const b = d.bbox;
+      if (!b) return;
+      const X = (px: number) => ((px - px0) / fullPxPerCss) * dpr;
+      const Y = (py: number) => ((py - py0) / fullPxPerCss) * dpr;
+      ctx.setLineDash([]);
+      for (const [color, width] of [[DET_HALO, 4], [BBOX_COLOR, 2]] as const) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width * dpr;
+        ctx.beginPath();
+        ctx.moveTo(X(b[0]), Y(b[1])); ctx.lineTo(X(b[2]), Y(b[3])); ctx.lineTo(X(b[4]), Y(b[5])); ctx.lineTo(X(b[6]), Y(b[7]));
+        ctx.closePath();
+        ctx.stroke();
+      }
+    };
     const drawOverlays = () => { drawScar(); drawDet(); drawCross(); };
     drawOverlays();
     setScar((prev) => (prev === scarNote || (prev && scarNote && prev.ha === scarNote.ha && prev.stepM === scarNote.stepM
