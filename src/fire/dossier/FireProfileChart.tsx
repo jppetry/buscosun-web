@@ -68,8 +68,8 @@ export const REFERENCE_PCT = 50;
  */
 export const NARROW_PX = 330;
 /** Höhe des Netzes; die Breite misst nivo an der Karte. */
-const H = 268;
-const H_NARROW = 244;
+const H = 292;
+const H_NARROW = 262;
 
 export interface FireProfileChartProps {
   profile: FireProfile;
@@ -182,7 +182,8 @@ export function FireProfileChart({ profile, compact = false }: FireProfileChartP
           keys={['rang']}
           indexBy="axis"
           maxValue={100}
-          margin={{ top: 32, right: pad, bottom: 32, left: pad }}
+          // Unten bekommt die Achse zwei Zeilen (Name + Wert), die unter dem Kreis hängen — 32 px schnitten „Böen“ ab.
+          margin={{ top: 32, right: pad, bottom: narrow ? 52 : 56, left: pad }}
           gridShape="circular"
           gridLevels={4}
           gridLabelOffset={narrow ? 14 : 20}
