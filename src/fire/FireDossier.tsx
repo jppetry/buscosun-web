@@ -41,7 +41,7 @@ import type { AtWarnContext } from './sources/geosphereWarnContext';
 import type { FirmsRow } from './sources/firmsHotspots';
 import {
   Badge, CauseText, DetailConfidenceRows, DetailEinordnungRows, DetailFrpRows, DetailKennzahlenRows,
-  DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, recordName, recordTitle,
+  DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, DetailFactTiles, recordName, recordTitle,
   fireWindowAnchor, EFFIS_ANCHOR_NOTE,
 } from './FireFootprintPanel';
 import { SatImageryBlock } from './FireSatImagery';
@@ -153,10 +153,15 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
 
             <RecordStats r={r} nowMs={nowMs} wide />
 
+            <DetailFactTiles r={r} nowMs={nowMs} />
+
+            <Box component="details" sx={{ mt: 1.5 }}>
+              <Typography component="summary" variant="caption" sx={{ cursor: 'pointer', color: 'text.disabled', letterSpacing: '.08em' }}>Alle Angaben im Wortlaut</Typography>
             <FactList>
               <DetailKennzahlenRows r={r} nowMs={nowMs} />
               <DetailFrpRows r={r} />
             </FactList>
+            </Box>
           </CardContent>
         </Card>
 

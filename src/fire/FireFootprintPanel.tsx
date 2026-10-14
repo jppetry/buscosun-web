@@ -1074,6 +1074,115 @@ export function DetailFrpRows({ r }: { r: FireRecord }) {
   );
 }
 
+/* ---------------------------------------------------------------------------------------------
+ * Kennzahl-Kacheln (Jans Auftrag 2026-10-14): die langen Faktenzeilen des Dossiers als Kacheln mit
+ * Icon, kurzem Wert und einer Zeile Zusatz. Der volle Wortlaut steht im Tooltip der Kachel UND
+ * unverändert in den Faktenzeilen darunter („Alle Angaben im Wortlaut") — nichts geht verloren.
+ * ------------------------------------------------------------------------------------------- */
+type FactIcon = 'status' | 'area' | 'map' | 'est' | 'first' | 'last' | 'hot' | 'frp' | 'pass';
+
+function FactTileIcon({ k }: { k: FactIcon }) {
+  const p = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const;
+  switch (k) {
+    case 'status': return <svg {...p}><circle cx="12" cy="12" r="3" fill="currentColor" /><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8" /></svg>;
+    case 'area': return <svg {...p}><path d="M4 16 8 7l5 5 4-6 3 10Z" /></svg>;
+    case 'map': return <svg {...p}><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20Z" /><path d="M9 4v13.5M15 6.5V20" /></svg>;
+    case 'est': return <svg {...p}><path d="M4 18 9 11l4 4 7-9" /><path d="M16 6h4v4" /></svg>;
+    case 'first': return <svg {...p}><circle cx="12" cy="12" r="8" /><path d="M12 7.5V12l3 2" /></svg>;
+    case 'last': return <svg {...p}><path d="M4 12h12M12 7l5 5-5 5" /><path d="M20 6v12" /></svg>;
+    case 'hot': return <svg {...p}><circle cx="12" cy="12" r="2.4" fill="currentColor" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="9.5" strokeOpacity=".45" /></svg>;
+    case 'frp': return <svg {...p}><path d="M13 3 5.5 13.5H11L10 21l8.5-11H12.5Z" /></svg>;
+    case 'pass': return <svg {...p}><path d="M3 15c4-9 14-9 18 0" /><circle cx="12" cy="9" r="1.6" fill="currentColor" /></svg>;
+  }
+}
+
+interface FactTile { key: string; icon: FactIcon; label: string; value: ReactNode; caption?: ReactNode; title?: string; tone?: 'ok' }
+
+/** Kurzfassung der Kennzahlen als Kacheln — dieselben Quellen wie `DetailKennzahlenRows`/`DetailFrpRows`. */
+export function DetailFactTiles({ r, nowMs }: { r: FireRecord; nowMs: number }) {
+  const prov = provisionalArea(r);
+  const act = r.activity;
+  const e = r.sources.effis;
+  const gap = mappingGapText(r, nowMs);
+  const mw = (n: number) => `${n.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW`;
+  const tiles: FactTile[] = [];
+
+  const st = statusLabel(r, nowMs).split(' · ');
+  tiles.push({ key: 'status', icon: 'status', label: 'Status', value: st[0], caption: st.slice(1).join(' · ') || undefined, title: statusLabel(r, nowMs) });
+
+  const areaFull = prov
+    ? `${prov.head}: ${prov.value} — ${prov.note} ${prov.source}`
+    : `${areaLabel(r)}${r.areaHa.kind === 'upper-bound' ? ' — vom Satelliten abgedeckt (ein Pixel deckt 14–60 ha), Obergrenze, keine Brandfläche' : r.areaHa.kind === 'mapped' ? ' — von EFFIS gemessen' : ''}`;
+  tiles.push({
+    key: 'area', icon: 'area', label: 'Fläche',
+    value: prov ? prov.value : areaLabel(r),
+    caption: prov ? prov.head : r.areaHa.kind === 'upper-bound' ? 'Obergrenze · keine Brandfläche' : r.areaHa.kind === 'mapped' ? 'von EFFIS gemessen' : undefined,
+    title: areaFull,
+  });
+
+  if (e) {
+    tiles.push({
+      key: 'map', icon: 'map', label: 'Kartierung', tone: 'ok',
+      value: e.areaHa != null ? `${e.areaHa.toLocaleString('de-DE', { maximumFractionDigits: 0 })} ha` : '—',
+      caption: `EFFIS${e.lastUpdateMs != null ? ` · Stand ${fmtDate(e.lastUpdateMs)}` : ''}`,
+    });
+  } else if (gap) {
+    tiles.push({ key: 'map', icon: 'map', label: 'Kartierung', value: 'noch keine', caption: 'läuft der Beobachtung 1–3 Tage nach', title: gap });
+  }
+
+  if (!prov && act && (act.areaEst || act.areaEstReason)) {
+    const est = act.areaEst ? estimateLabel(act.areaEst).split(' — ') : null;
+    tiles.push({
+      key: 'est', icon: 'est', label: 'Schätzung',
+      value: est ? est[0] : '—',
+      caption: est ? 'Modellschätzung' : 'nicht schätzbar',
+      title: est ? est.join(' — ') : act.areaEstReason ?? undefined,
+    });
+  }
+
+  tiles.push({ key: 'first', icon: 'first', label: 'Erstdetektion', value: r.firstMs != null ? fmtStamp(r.firstMs) : '—' });
+  tiles.push({ key: 'last', icon: 'last', label: 'Letzte Detektion', value: r.lastMs != null ? fmtStamp(r.lastMs) : '—', caption: r.lastMs != null ? ageText(Math.max(0, nowMs - r.lastMs)) : undefined });
+  tiles.push({
+    key: 'hot', icon: 'hot', label: 'Hotspots', value: r.hotspots ?? '—',
+    caption: r.hotspots != null ? `${r.overpasses ?? 0} Überflüge · ${r.satellites?.join(', ') || '—'}` : 'kein Satellitensignal im Fenster',
+  });
+  if (r.frpSumMw != null) {
+    tiles.push({ key: 'frp', icon: 'frp', label: 'ΣFRP', value: mw(r.frpSumMw), caption: 'Leistung, keine Fläche', title: 'Leistung, summiert über Pixel und Überflüge, keine Fläche' });
+  }
+  if (act && act.frpLastPassMw != null) {
+    tiles.push({
+      key: 'pass', icon: 'pass', label: 'FRP je Überflug', value: mw(act.frpLastPassMw),
+      caption: act.frpMaxPassMw != null && act.frpMaxPassMw > act.frpLastPassMw ? `zuletzt · max ${mw(act.frpMaxPassMw)}` : 'zuletzt',
+      title: 'ΣFRP des jüngsten bzw. stärksten Überflugs (nicht die Fenstersumme)',
+    });
+  }
+
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '10px', mt: 2 }}>
+      {tiles.map((t) => (
+        <Tooltip key={t.key} title={t.title ?? ''} disableHoverListener={!t.title}>
+          <Box sx={{
+            display: 'flex', gap: 1.25, alignItems: 'flex-start', p: 1.5, borderRadius: '12px', minWidth: 0,
+            border: '1px solid', borderColor: 'divider', bgcolor: '#FDFBF4',
+          }}>
+            <Box sx={{
+              flex: '0 0 auto', width: 34, height: 34, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: t.tone === 'ok' ? 'success.main' : 'text.secondary', bgcolor: 'rgba(139, 115, 85, 0.1)',
+            }}>
+              <FactTileIcon k={t.icon} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography component="div" sx={{ fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
+              <Typography component="div" sx={{ fontSize: 18, lineHeight: 1.25, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
+              {t.caption && <Typography component="div" sx={{ fontSize: 12.5, lineHeight: 1.4, color: 'text.secondary' }}>{t.caption}</Typography>}
+            </Box>
+          </Box>
+        </Tooltip>
+      ))}
+    </Box>
+  );
+}
+
 /** Verlauf: Chart + Tendenz · Beobachtung · Ausbreitung · FRE · Überflüge · Je Überflug. */
 export function DetailVerlauf({ r, nowMs, compact = false, wide = false, wideWidth }: { r: FireRecord; nowMs: number; compact?: boolean; wide?: boolean; wideWidth?: number }) {
   const act = r.activity;
