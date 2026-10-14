@@ -1423,7 +1423,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const label = !inSheet && isTablet && meta.shortLabel ? meta.shortLabel : meta.label;
     const sub = [meta.sub, stamp].filter(Boolean).join(' · ');
     // Tablet (B3): Zeilen ohne Sub-Zeile — nur blockierte nennen ihren Grund.
-    const showSub = !!sub && (inSheet || !isTablet || !gebaut);
+    // Quellen-/Auflösungszeilen („GWIS · ~8 km") stehen nicht mehr unter dem Label —
+    // nur blockierte Layer nennen weiter ihren Grund.
+    const showSub = !!sub && !gebaut;
     // BD3: der EU-Index bringt seine Ansicht-Chips mit ins Dock (vorher über der Karte).
     const hasSeg = (id === 'fireSoilDryness' || id === 'fireBurnt' || id === 'fireDanger') && on;
     return (
