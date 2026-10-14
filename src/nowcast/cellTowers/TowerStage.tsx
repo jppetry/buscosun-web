@@ -1,19 +1,22 @@
 /**
  * 3D stage of the Regenradar — lazy chunk; on, `?z3d=0` off. Since the cell towers were dropped it serves snow only: terrain +
- * the radar picture of the slider time (snow colours with the `snow` layer) + the snow-line surface of Phase SK, which
+ * the ICON-D2 snow area (`snow` layer, `snowDrape.ts`) + the radar picture of the slider time + the snow-line surface of Phase SK, which
  * `NowcastRadarMap` adds to this map via `onStageReady` (`snowline` layer).
  *
  * Its own MapLibre instance (the main map must stay flat: `WindLayer` assumes pitch/bearing 0). Pattern of
  * `src/event/EventTerrainMap.tsx` (Terrarium `raster-dem`, `setTerrain` ×1,3, sand hillshade, "⤢"), copied with this
  * origin note as ET did; basemap positron like the Regenradar (E-ZT-10). Built-in 3D only — no custom layer, no shader:
- *  - radar of the slider time: CPU picture (`radarDrape.ts`) in a `canvas` source, draped by the terrain
- * Camera: centre/zoom linked both ways with the main map, rotation/pitch 3D only.
+ *  - radar of the slider time and the snow area: CPU pictures (`radarDrape.ts`, `snowDrape.ts`) in `canvas` sources, draped by the terrain
+ * Time: the slider time of the deck. Camera: centre/zoom linked both ways with the main map, rotation/pitch 3D only.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { TOWER_EXAGGERATION } from './towerModel';
+import { fetchIconD2Snow, type IconD2Snow, type SnowMode } from '../../sources/iconD2Snow';
+import { frameAtValidTime } from '../../sources/frameAtValidTime';
+import { snowImageSliced } from './snowDrape';
 import { drapeCorners, drapeImageSliced, type DrapeBox, type TowerRadarPick } from './radarDrape';
 import './cellTowers.css';
 
@@ -24,6 +27,7 @@ const HILLSHADE_ID = 'zt-hillshade';
 const STAGE_PITCH = 60;
 const ILLUMINATION_DEG = 335;
 const SRC_RADAR = 'zt-radar';
+const SRC_SNOW = 'zt-snow';
 /** Radar picture: max side in px (E-ZT-6; mobile half the work). */
 const DRAPE_PX = { desktop: 768, mobile: 512 } as const;
 /** Radar picture box: at most this span around the centre (the far horizon of a 60° view would cost pixels for nothing). */
@@ -32,6 +36,10 @@ const DRAPE_MAX_SPAN = { lon: 7, lat: 4.2 };
 const DRAPE_LIMIT: DrapeBox = { west: 1.5, south: 43.5, east: 19.5, north: 56.5 };
 
 export interface TowerStageProps {
+  /** Slider time of the deck (absolute validity time); null = not known yet ⇒ now. */
+  timeMs: number | null;
+  /** ICON-D2 snow mode of the `snow` layer; null = layer off (no snow area on the stage). */
+  snow: SnowMode | null;
   /** Main map (flat) for the camera link; null = none (mobile tab without map instance yet). */
   mainMap: maplibregl.Map | null;
   /** Radar frames of the slider time from `MapView` (HD); null = none reported (e.g. `?hd=0`). */
@@ -60,7 +68,7 @@ function drapeBoxOf(map: maplibregl.Map): DrapeBox | null {
   return box.east > box.west && box.north > box.south ? box : null;
 }
 
-export default function TowerStage({ mainMap, radar, onStageReady, variant, fallbackCenter }: TowerStageProps) {
+export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady, variant, fallbackCenter }: TowerStageProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
@@ -114,6 +122,12 @@ export default function TowerStage({ mainMap, radar, onStageReady, variant, fall
           'sky-horizon-blend': 0.6, 'horizon-fog-blend': 0.5, 'fog-ground-blend': 0.4,
         });
       } catch { /* setSky depends on the version */ }
+
+      // Snow area (canvas source, filled by the snow effect) — below the radar picture.
+      const snowCanvas = document.createElement('canvas');
+      snowCanvas.width = 2; snowCanvas.height = 2;
+      map.addSource(SRC_SNOW, { type: 'canvas', canvas: snowCanvas, animate: false, coordinates: drapeCorners(DRAPE_LIMIT) });
+      map.addLayer({ id: 'zt-snow', type: 'raster', source: SRC_SNOW, layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.9, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, firstSymbol);
 
       // Radar picture (canvas source, filled by the drape effect).
       const canvas = document.createElement('canvas');
@@ -196,6 +210,51 @@ export default function TowerStage({ mainMap, radar, onStageReady, variant, fall
     });
   }, [ready, radar, boxTick, variant]);
 
+  // --- snow area (ICON-D2, own load like the legacy radar map; frames are cached at the CDN) ---------------------
+  const [snowData, setSnowData] = useState<IconD2Snow | null>(null);
+  useEffect(() => {
+    setSnowData(null);
+    if (!snow) return;
+    const ac = new AbortController();
+    fetchIconD2Snow(snow, ac.signal, (partial) => { if (!ac.signal.aborted) setSnowData(partial); })
+      .then((sd) => { if (!ac.signal.aborted) setSnowData(sd); })
+      .catch(() => { /* no snow area — the stage stays usable */ });
+    return () => ac.abort();
+  }, [snow]);
+  const snowJob = useRef(0);
+  const lastSnowKey = useRef('');
+  const tNowMs = timeMs ?? Date.now();
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const src = map.getSource(SRC_SNOW) as maplibregl.CanvasSource | undefined;
+    if (!src) return;
+    const box = snowData && snowData.frames.length > 0 ? drapeBoxOf(map) : null;
+    if (!snowData || !box) { snowJob.current++; lastSnowKey.current = ''; map.setLayoutProperty('zt-snow', 'visibility', 'none'); return; }
+    const frame = frameAtValidTime(snowData.frames, tNowMs, snowData.mode === 'fresh' ? 1 : 0);
+    const key = `${snowData.mode}|${snowData.runAt.getTime()}|${frame.stepHours}|${boxTick}|${variant}`;
+    if (key === lastSnowKey.current) return;
+    const job = ++snowJob.current;
+    const maxPx = DRAPE_PX[variant];
+    const lonSpan = box.east - box.west;
+    const latSpanMerc = Math.log(Math.tan(Math.PI / 4 + (box.north * Math.PI) / 360)) - Math.log(Math.tan(Math.PI / 4 + (box.south * Math.PI) / 360));
+    const ratio = (latSpanMerc * 180 / Math.PI) / lonSpan;
+    const w = ratio <= 1 ? maxPx : Math.max(32, Math.round(maxPx / ratio));
+    const h = ratio <= 1 ? Math.max(32, Math.round(maxPx * ratio)) : maxPx;
+    void snowImageSliced(frame, snowData.uvBounds, snowData.mode, box, w, h, () => snowJob.current !== job).then((rgba) => {
+      if (!rgba || snowJob.current !== job || mapRef.current !== map) return;
+      const canvas = src.getCanvas();
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+      canvas.getContext('2d')?.putImageData(new ImageData(rgba, w, h), 0, 0);
+      src.setCoordinates(drapeCorners(box));
+      src.play(); src.pause();
+      map.setLayoutProperty('zt-snow', 'visibility', 'visible');
+      map.triggerRepaint();
+      lastSnowKey.current = key;
+    });
+  }, [ready, snowData, tNowMs, boxTick, variant]);
+
   const resetView = () => {
     const map = mapRef.current;
     if (!map) return;
@@ -211,15 +270,15 @@ export default function TowerStage({ mainMap, radar, onStageReady, variant, fall
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M4 4v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <span>Ansicht zurücksetzen</span>
       </button>
-      <StageLegend variant={variant} drape={drapeState} />
+      <StageLegend variant={variant} drape={drapeState} snow={snow} />
     </div>
   );
 }
 
-function StageLegend({ variant, drape }: { variant: 'desktop' | 'mobile'; drape: 'none' | 'ok' | 'off' }) {
+function StageLegend({ variant, drape, snow }: { variant: 'desktop' | 'mobile'; drape: 'none' | 'ok' | 'off'; snow: SnowMode | null }) {
   const body = (
     <div className="zt-leg-foot">
-      Schnee und Schneegrenze auf dem Relief · Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht{drape === 'off' ? ' · Radar auf dem Relief nur mit HD-Radar' : ''}
+      {snow ? `${snow === 'fresh' ? 'Neuschnee' : 'Schneedecke'} (ICON-D2) und Schneegrenze` : 'Schneegrenze'} auf dem Relief · Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht{drape === 'off' ? ' · Radar auf dem Relief nur mit HD-Radar' : ''}
     </div>
   );
   if (variant === 'mobile') return <details className="zt-legend zt-legend--mobile"><summary>Legende</summary>{body}</details>;

@@ -253,7 +253,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const ztActive = ztDesktop || ztMobile;
   const towerStage = (variant: 'desktop' | 'mobile') => (
     <Suspense fallback={<div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> 3D-Bühne lädt …</div>}>
-      <TowerStage mainMap={ztMainMap} radar={ztRadar}
+      <TowerStage timeMs={sliderMs} snow={layers.includes('snow') ? snowMode : null} mainMap={ztMainMap} radar={ztRadar}
         variant={variant} fallbackCenter={{ lat: location.lat, lon: location.lon }} onStageReady={skOn ? setSkStageMap : undefined} />
     </Suspense>
   );
