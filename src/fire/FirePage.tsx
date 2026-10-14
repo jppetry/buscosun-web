@@ -1555,7 +1555,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
   /** Welcher Layer die Quellen-Pille trägt: der Index zuerst, sonst die oberste Fläche. */
   const primary: FireLayerId | null = active.has('fireDanger') ? 'fireDanger'
-    : (['fireWeather', 'fireSoilDryness', 'fireFootprints', 'fireHotspots', 'fireBurnt', 'fireFuel', 'fireContext'] as FireLayerId[])
+    // Immer aktive Layer (Brandflächen je Brand, Detektionen, …) tragen keine Pille mehr
+    // (Jans Auftrag 2026-10-14) — nur ein bewusst geschalteter Layer nennt hier seine Quelle.
+    : (['fireWeather', 'fireSoilDryness', 'fireFuel', 'fireContext'] as FireLayerId[])
       .find((l) => active.has(l)) ?? null;
   const pillTitle = primary === 'fireDanger'
     ? (isTablet && !isMobile ? `${DANGER_VIEW_CODE[dangerView]} · GWIS ~8 km` : DANGER_VIEWS[dangerView].title)
