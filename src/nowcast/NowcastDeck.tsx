@@ -20,7 +20,7 @@ import { NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN, type EventTone } from './nowcast
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
-import { fmtClock, sourceLabel, nwpLabel, freshness, type Nowcast } from './nowcastView';
+import { fmtClock, nwpLabel, freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastRadarMap from './NowcastRadarMap';
 import NowcastBarChart from './NowcastBarChart';
@@ -298,12 +298,6 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
         </div>
       )}
 
-      <div className="rr-source-pill rr-glass">
-        <span className="rr-src-dot" />
-        <span className="rr-src-name">Niederschlagsraster · Radar</span>
-        <span className="rr-src-meta">{nowcast ? sourceLabel(nowcast) : 'RADOLAN-RV · 1 km'}</span>
-      </div>
-
       {!isMobile && (
         <div className="rr-topright-map">
           <div className="rr-viewtoggle rr-glass" role="tablist" aria-label={hzsOn ? 'Karte, Diagramm oder Karte mit Höhen-Zeit-Schnitt' : 'Karte oder Diagramm'}>
@@ -337,7 +331,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rr-topright">
             {z3dOn && (
               <div className="zt-viewseg" role="group" aria-label="Ansicht">
-                {(['map', 'split', '3d'] as const).map((v) => (
+                {(['map', '3d'] as const).map((v) => (
                   <button key={v} type="button" className={view3d === v && view === 'map' ? 'is-active' : ''} aria-pressed={view3d === v && view === 'map'}
                     onClick={() => setView3d(v)}>{VIEW3D_LABEL[v]}</button>
                 ))}

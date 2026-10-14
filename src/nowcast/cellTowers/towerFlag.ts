@@ -11,7 +11,7 @@
 export type View3d = 'map' | 'split' | '3d';
 
 export const VIEW3D_PARAM = 'ansicht3d';
-const VIEWS: readonly View3d[] = ['map', 'split', '3d'];
+const VIEWS: readonly View3d[] = ['map', '3d']; // 'split' ("Karte + 3D") is no longer offered; `?ansicht3d=split` ⇒ map
 
 /** On unless `?z3d=0` (also `false`/`off`). */
 export function towers3dEnabledFrom(search: string): boolean {

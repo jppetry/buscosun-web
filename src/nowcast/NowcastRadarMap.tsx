@@ -49,7 +49,7 @@ import { fetchRvNowcast } from '../sources/radolan';
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { fetchRzcLatest } from '../sources/meteoSwissRadar';
 import { accumulate, ACCUM_WINDOWS } from '../radar/accumulation';
-import { buildEdgeFalloffMask, coverageNote, sourceAgeBadge } from '../radar/coverageMask';
+import { buildEdgeFalloffMask, coverageNote } from '../radar/coverageMask';
 import {
   RADAR_BANDS, PALETTES, PALETTE_ORDER,
   type PaletteId, type RadarLayerId,
@@ -803,7 +803,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         )}
 
         {/* Quelle/Alter */}
-        {stack && <div className="nc-radar-source"><IconRadarSignal size={13} /> {sourceAgeBadge(neighbors || useProfile ? `${stack.sourceLabel} + Komposit DACH` : stack.sourceLabel, stack.runAtMs)}</div>}
 
         {/* Standortbezug der Zellbahnen (Wortlaut S-Z2-3b, wie die Wetterkarte) — Phase ZO: neuer Satz, `?zo=0` = dieser */}
         {zoOn && cellsOn && zoLeiste && (
@@ -817,9 +816,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
             {(relCell?.lightningRate ?? 0) > 0 ? <IconBolt size={15} /> : <IconStormCloud size={15} />}
             <span>{cellRelevanceText(cellRel)} <em>DWD KONRAD3D</em></span>
           </div>
-        )}
-        {cellsOn && cellsRun && cellsRun.cells.length === 0 && (
-          <div className={`nc-radar-eta nc-radar-eta--quiet${zoOn ? ' nc-radar-eta--hint' : ''}`}><IconStormCloud size={15} /><span>KONRAD3D: aktuell keine konvektiven Zellen erkannt (DE).</span></div>
         )}
 
         {/* Hover-Readout */}
