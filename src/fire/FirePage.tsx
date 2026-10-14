@@ -1604,7 +1604,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
   const basemapSeg = (
     <div className="br-basemap" role="group" aria-label="Basiskarte">
-      {(['streets', 'terrain', 'satellite'] as FireBasemap[]).map((b) => (
+      {(['streets', 'satellite'] as FireBasemap[]).map((b) => (
         <button
           key={b} type="button"
           className={basemap === b ? 'is-active' : ''}
@@ -1965,10 +1965,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         </p>
       )}
       {legendRow(true)}
-      <div className="br-dockfoot-basemap">
-        <span className="br-eyebrow">Basiskarte</span>
-        {basemapSeg}
-      </div>
       {scalesCard(compact)}
       {sourcesLine(compact)}
     </>
@@ -2271,6 +2267,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {isMobile && mapNotes}
             </div>
 
+            {/* Unten links: Straßen | Satellit (Jans Auftrag 2026-10-14) — ersetzt die Basiskarten-Zeile im Dock. */}
+            <div className="br-map-bl">{basemapSeg}</div>
+
             {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler
                 ist entfallen (Jans Auftrag 2026-09-05), das hier ist der einzige verbliebene
                 Zeit-Zugriff der Karte. Der Zoom von MapLibre sitzt per CSS darunter. */}
@@ -2320,10 +2319,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   <div className="br-m-scroll">
                     {dockGroups(true)}
                     <p className="br-note">Blockierte Layer bleiben sichtbar: die Größe existiert, nur die Quelle ist nicht erreichbar.</p>
-                    <div className="br-m-basemap">
-                      <span className="br-eyebrow">Basiskarte</span>
-                      {basemapSeg}
-                    </div>
                   </div>
                 </section>
               )}
