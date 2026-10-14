@@ -1928,20 +1928,25 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           </header>
             )}
             entry={historyEntry} chartWidth={isTablet ? 420 : 360}
-            aside={(
+            aside={(area) => (
               <div className="br-ds-aside">
                 <div className="br-ds-card br-ds-mapcard">
                   <div className="br-ds-cardhead">
                     <span className="br-ds-eyebrow is-stone">Karte · markiert</span>
                     <button type="button" className="br-link br-ds-back" onClick={() => setStage('map')}>↗ Bühne zurück</button>
                   </div>
+                  {/* Mit Shard: die FIRMS-Pixelgrundflächen der Detektionen; ohne (lädt, nur kartiert): der Umgebungskasten. */}
                   <FireMiniMap
-                    record={{ id: historyEntry.id, lat: historyEntry.lat, lon: historyEntry.lon, bbox: historyAreaBbox(historyEntry.lat, historyEntry.lon) }}
-                    footprintFc={null} basemap={basemap} height={250}
+                    record={{ id: historyEntry.id, lat: historyEntry.lat, lon: historyEntry.lon, bbox: area ? area.bbox : historyAreaBbox(historyEntry.lat, historyEntry.lon) }}
+                    footprintFc={area ? { type: 'FeatureCollection', features: area.features } : null} basemap={basemap} height={250}
                     ariaLabel={`Karte: ${historyEntryName(historyEntry)} — zur Kartenbühne wechseln`}
                     onClick={() => setStage('map')}
                   />
-                  <p className="br-ds-mapnote">Ein Historie-Ereignis ist ein Punkt aus der statischen Auswertung — der Kasten zeigt die Umgebung, keine Brandfläche.</p>
+                  <p className="br-ds-mapnote">
+                    {area
+                      ? `Die Fläche ist die Pixelgrundfläche der FIRMS-Detektionen (scan × track${area.nominal ? ', ohne Angabe im Nennmaß 375 m' : ''}) — das Feuer liegt irgendwo darin; keine kartierte Brandfläche.`
+                      : 'Ein Historie-Ereignis ist ein Punkt aus der statischen Auswertung — der Kasten zeigt die Umgebung, keine Brandfläche.'}
+                  </p>
                 </div>
               </div>
             )}

@@ -559,6 +559,16 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detections, phase.kind]);
 
+  // Kommt die Fläche später (Historie: Shard lädt nach), zieht der Rahmen nach — die Szene bleibt.
+  useEffect(() => {
+    const d = dataRef.current;
+    if (!d || phase.kind !== 'ready') return;
+    d.shape = shapeRingsPx(fireShape, d.ref.epsg, d.ref.transform);
+    d.bbox = bboxCornersPx(fireBbox, d.ref.epsg, d.ref.transform);
+    schedule();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fireShape, fireBbox, phase.kind]);
+
   // --- SAT2b: Band-Header (SWIR) und Vorher-Szene (dNBR) on-demand mit dem Moduswechsel --------
   useEffect(() => {
     const d = dataRef.current;

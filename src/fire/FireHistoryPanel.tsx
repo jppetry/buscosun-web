@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CLUSTER_PAGE, clusterColor, STATIC_GREY } from './fireClusters';
 import { groupPasses, sortPasses } from './activity/overpasses';
-import type { FirmsRow } from './sources/firmsHotspots';
+import { footprintRing, VIIRS_NOMINAL_KM, type FirmsRow } from './sources/firmsHotspots';
 import { FirePassChart } from './FirePassChart';
 import { SatImageryBlock } from './FireSatImagery';
 import { bboxPolygon, historyAreaBbox } from './FireMiniMap';
@@ -224,6 +224,31 @@ function shardRows(ev: HistoryEvent): FirmsRow[] {
   }));
 }
 
+/**
+ * Die mögliche Fläche laut FIRMS: je Detektion die Pixelgrundfläche (scan × track, ohne Angabe
+ * das Nennmaß wie im Satellitenbild) — „Karte · markiert" und das Satellitenbild zeichnen sie.
+ */
+export interface HistoryPixelArea {
+  features: GeoJSON.Feature[];
+  bbox: [number, number, number, number];
+  /** Mindestens ein Rechteck steht im Nennmaß (VIIRS 375 m) — muss gesagt werden. */
+  nominal: boolean;
+}
+
+function pixelAreaOf(ev: HistoryEvent, id: string): HistoryPixelArea | null {
+  const features: GeoJSON.Feature[] = [];
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+  let nominal = false;
+  for (const r of shardRows(ev)) {
+    const ring = footprintRing(r, VIIRS_NOMINAL_KM);
+    if (!ring) continue;
+    if (r.scanKm == null || r.trackKm == null) nominal = true;
+    features.push({ type: 'Feature', properties: { id }, geometry: { type: 'Polygon', coordinates: [ring] } });
+    for (const [x, y] of ring) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
+  }
+  return features.length > 0 ? { features, bbox: [w, s, e, n], nominal } : null;
+}
+
 /** Die vier Kennzahl-Kacheln des Ereignis-Dossiers — nur Index-Felder, nichts erfunden. */
 export function historyStatTiles(e: HistoryIndexEntry): { lbl: string; val: string; sub: string }[] {
   const area = e.areaHa != null && e.areaKind === 'mapped'
@@ -275,8 +300,19 @@ function HistoryDriversCard({ entry, spreadBearingDeg, width }: { entry: History
 }
 
 /** Ein Ereignis-Dossier-Raster: Verlauf · Wetterlage · Wetterführung · (aside) · Einordnung & Evidenz · Merkmale. */
-export function HistoryDossierBody({ entry, aside, head }: { entry: HistoryIndexEntry; /** Kopfkarte des Ereignisses (Teil von „Brand“). */ head?: ReactNode; /** Ohne Wirkung seit 2026-10-14: die Diagramme füllen die Karte, die Breite misst nivo. */ chartWidth?: number; aside?: ReactNode }) {
+export function HistoryDossierBody({ entry, aside, head }: {
+  entry: HistoryIndexEntry; /** Kopfkarte des Ereignisses (Teil von „Brand“). */ head?: ReactNode; /** Ohne Wirkung seit 2026-10-14: die Diagramme füllen die Karte, die Breite misst nivo. */ chartWidth?: number;
+  /** Minikarte — bekommt die FIRMS-Pixelfläche (`null`, solange der Shard lädt oder ohne Detektionen). */
+  aside?: ReactNode | ((area: HistoryPixelArea | null) => ReactNode);
+}) {
   const { shard, weather, ev } = useHistoryEventData(entry);
+  const pixelArea = useMemo(() => (ev ? pixelAreaOf(ev, entry.id) : null), [ev, entry.id]);
+  // Rahmen im Satellitenbild = dieselbe Fläche wie „Karte · markiert"; ohne Detektionen der Umgebungskasten wie dort.
+  const frameShape = useMemo(
+    () => pixelArea?.features ?? [bboxPolygon(historyAreaBbox(entry.lat, entry.lon))],
+    [pixelArea, entry.lat, entry.lon],
+  );
+  const asideNode = typeof aside === 'function' ? aside(pixelArea) : aside;
   const [copied, setCopied] = useState(false);
   useEffect(() => setCopied(false), [entry]);
   const [chapter, setChapter] = useState<DossierChapter>(1);
@@ -298,7 +334,7 @@ export function HistoryDossierBody({ entry, aside, head }: { entry: HistoryIndex
         <>
           {head}
           <div className="br-ds-grid">
-      {aside}
+      {asideNode}
 
 
       <section className="br-ds-card br-ds-verlauf" aria-label="Verlauf">
@@ -414,8 +450,8 @@ export function HistoryDossierBody({ entry, aside, head }: { entry: HistoryIndex
             <span className="br-ds-eyebrow">Satellitenbild</span>
             <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
           </div>
-          {/* Rahmen = der Umgebungskasten von „Karte · markiert" (Jan 2026-10-14); die Ereignis-BBox bestimmt weiter nur den Bildausschnitt. */}
-          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: ev?.bbox ?? null, firstMs: entry.firstMs, lastMs: entry.lastMs, shape: [bboxPolygon(historyAreaBbox(entry.lat, entry.lon))] }} nowMs={Date.now()} />
+          {/* Rahmen = die Fläche von „Karte · markiert" (FIRMS-Pixel); die Ereignis-BBox bestimmt weiter nur den Bildausschnitt. */}
+          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: ev?.bbox ?? null, firstMs: entry.firstMs, lastMs: entry.lastMs, shape: frameShape }} nowMs={Date.now()} />
         </section>
       )}
         </div>

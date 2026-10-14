@@ -139,7 +139,10 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
     return { x: x - (mw - w) / 2, y: y - (mh - h) / 2, w: mw, h: mh };
   }, [data, outline]);
   // Die Registry-Fläche (wie „Karte · markiert") als SVG-Pfad im Bildmaß — vorrangig vor dem BBox-Rechteck.
-  const rings = useMemo(() => polygonRings(t.shape), [t.shape]);
+  // Schlüssel nach Inhalt: Aufrufer bauen die Features je Render neu — der 10-m-Viewer soll nur bei echter Änderung neu zeichnen.
+  const shapeKey = JSON.stringify(polygonRings(t.shape));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rings = useMemo(() => polygonRings(t.shape), [shapeKey]);
   const shapePath = useMemo(() => {
     if (!data || rings.length === 0) return null;
     const [s0, w0, n0, e0] = data.bbox;
