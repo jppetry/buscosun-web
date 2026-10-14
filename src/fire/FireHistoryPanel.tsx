@@ -21,7 +21,8 @@ import { loadHistoryShard, eventFromShard, fireDayWeather, rainLabel, type Shard
 import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
 import { dynamicsOf } from './activity/dynamics';
-import { DriversView } from './FireFootprintPanel';
+import { DriversView, Stat } from './FireFootprintPanel';
+import { FireIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
 import { LANDCOVER_LABEL, LANDCOVER_KEYS } from './fireCorroboration';
@@ -49,15 +50,6 @@ const fmtDay = (ms: number) => new Date(ms).toLocaleDateString('de-DE', { day: '
 function spanLabel(e: HistoryIndexEntry): string {
   const a = fmtDay(e.firstMs); const b = fmtDay(e.lastMs);
   return a === b ? a : `${a} – ${b}`;
-}
-
-/** Flächenzeile — Kartierung geht vor, Schätzung nie ohne Intervall, Standort ohne Fläche. */
-function areaLabel(e: HistoryIndexEntry): string {
-  if (e.areaHa != null && e.areaKind === 'mapped') return `${de(e.areaHa, 1)} ha kartiert (EFFIS)`;
-  if (e.anomalyKind === 'site') return 'Anlagen-Signatur, keine Brandfläche';
-  if (e.estHa != null && e.estLowHa != null && e.estHighHa != null) return `≈ ${de(e.estHa, 1)} ha geschätzt (${de(e.estLowHa, 1)}–${de(e.estHighHa, 1)})`;
-  if (e.areaHa != null) return `≤ ${de(e.areaHa, 1)} ha Detektionsraster`;
-  return 'keine Flächenangabe';
 }
 
 export function historyEntryName(e: HistoryIndexEntry): string {
@@ -129,13 +121,18 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
                 <li key={e.id} className={`br-fire${p.selectedId === e.id ? ' is-selected' : ''}${e.anomalyKind === 'site' ? ' is-static' : ''}`}>
                   <button type="button" className="br-fire-btn" onClick={() => p.onSelect(e)} aria-pressed={p.selectedId === e.id}>
                     <span className="br-fire-top">
-                      <span className="fire-fp-dot" style={{ background: color }} aria-hidden="true" />
+                      <span className="br-fire-ic" style={{ color }}>
+                        <FireIcon layer="fireHotspots" size={20} />
+                      </span>
                       <span className="br-fire-name">{historyEntryName(e)}</span>
                       <span className="br-fire-region">{COUNTRY_LABEL[e.country] ?? e.country}</span>
                     </span>
-                    <span className="br-fire-line">{spanLabel(e)} · {de(e.hotspots)} Det. · {de(e.overpasses)} Überfl. · {e.frpSumMw != null ? `${de(e.frpSumMw)} MW` : '—'}</span>
+                    <span className="br-fire-stats">
+                      {historyStatTiles(e).map((t) => (
+                        <Stat key={t.lbl} lbl={t.lbl} val={t.val} sub={t.sub} />
+                      ))}
+                    </span>
                     <span className="br-fire-meta">
-                      {areaLabel(e)}
                       {e.effisId && <span className="br-chip is-ghost is-active">EFFIS</span>}
                       {e.anomalyKind === 'site-deviating' && <span className="br-chip is-ghost is-active">ABWEICHUNG</span>}
                       {e.anomalyKind === 'site' && <span className="br-chip is-ghost">ANLAGE</span>}
