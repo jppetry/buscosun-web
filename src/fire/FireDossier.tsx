@@ -166,7 +166,7 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
             subtitle="ΣFRP je Überflug · log-Achse · Lücken > 6 h schraffiert"
             className="br-ds-verlauf"
           >
-            <DetailVerlauf r={r} nowMs={nowMs} wide wideWidth={width} />
+            <DetailVerlauf r={r} nowMs={nowMs} wide wideWidth={bp === 'mobile' ? width : 2000} />
           </DossierCard>
 
           {/* BDE-C: die Wetterführung im Brandzeitfenster — Einstufung, Windrose, Zeitreihe.
