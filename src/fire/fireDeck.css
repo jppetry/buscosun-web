@@ -1151,3 +1151,11 @@
 
 /* Verlauf-Karte des Brand-Dossiers: durchgehend League Spartan (Jans Auftrag 2026-10-14). */
 .br-ds-verlauf, .br-ds-verlauf * { font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); }
+
+/* Fundort-Ringe über dem 30-m-Bild (Jans Auftrag 2026-10-14): markieren die Detektion deutlich, das FIRMS-Rechteck bleibt darin. */
+.br-sat-rings { position: absolute; inset: 0; pointer-events: none; }
+.br-sat-ring {
+  position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%;
+  border: 2.5px solid rgb(255 176 138); box-shadow: 0 0 0 2px rgba(44, 42, 38, .85), inset 0 0 0 2px rgba(44, 42, 38, .85);
+}
+.br-sat-ring.is-after { border-style: dashed; opacity: .8; }

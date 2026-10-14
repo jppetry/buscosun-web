@@ -102,6 +102,17 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
     () => (data && scene && t.detections ? detectionRects30m(t.detections, data.bbox, SNAP_W, SNAP_H, scene.dayIso) : []),
     [data, scene, t.detections],
   );
+  const ringMarks = useMemo(() => {
+    const seen = new Map<string, { cx: number; cy: number; after: boolean }>();
+    for (const r of detRects) {
+      const cx = r.x + r.w / 2; const cy = r.y + r.h / 2;
+      const k = `${Math.round(cx / 12)}:${Math.round(cy / 12)}`;
+      const prev = seen.get(k);
+      if (!prev) seen.set(k, { cx, cy, after: r.after });
+      else if (prev.after && !r.after) prev.after = false;
+    }
+    return [...seen.values()].slice(0, 40);
+  }, [detRects]);
   /** Wie viele Rahmen aus dem Nennmaß stammen — muss im Satz stehen, sobald es einer ist. */
   const nominalCount = detRects.filter((r) => r.nominal).length;
 
@@ -175,6 +186,19 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
             ))}
           </svg>
         )}
+        {/* Fundort-Ringe: das FIRMS-Rechteck ist bei 18+ km Bildausschnitt nur ~10 px groß und geht im Gelände unter —
+            der Ring (HTML, nicht verzerrt) sagt dem Betrachter, WO er suchen muss. Ein Ring je ~12-px-Zelle. */}
+        {!cog10 && snap?.kind === 'img' && showDet && ringMarks.length > 0 && (
+          <div className="br-sat-rings" aria-hidden="true">
+            {ringMarks.map((m, i) => (
+              <span
+                key={i}
+                className={`br-sat-ring${m.after ? ' is-after' : ''}`}
+                style={{ left: `${(m.cx / SNAP_W) * 100}%`, top: `${(m.cy / SNAP_H) * 100}%` }}
+              />
+            ))}
+          </div>
+        )}
         {!cog10 && snap?.kind === 'img' && t.detections && (
           <button
             type="button" className="br-sat-dettoggle" aria-pressed={showDet}
@@ -226,7 +250,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
       {!cog10 && (t.detections
         ? (showDet && detRects.length > 0 && snap?.kind === 'img' && (
           <p className="br-sat-detnote br-muted">
-            Rechtecke: FIRMS-Pixelgrundfläche — das Feuer liegt irgendwo darin, nicht in der Mitte. Jede Detektion
+            Ringe zeigen, wo die Detektionen liegen; das Rechteck darin ist die FIRMS-Pixelgrundfläche — das Feuer liegt irgendwo darin, nicht in der Mitte. Jede Detektion
             bekommt ihren Rahmen, auch auf dem Vorher-Bild; gestrichelt und blasser heißt: diese Aufnahme entstand
             VOR der Detektion, dort ist an diesem Tag noch nichts zu sehen.
             {nominalCount > 0 && ` ${nominalCount === detRects.length ? 'Alle' : `${nominalCount} der`} Rahmen stehen im Nennmaß (VIIRS 375 m), weil die Zeile keine gemessene Pixelbreite trägt.`}
