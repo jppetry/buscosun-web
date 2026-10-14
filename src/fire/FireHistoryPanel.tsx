@@ -413,7 +413,7 @@ export function HistoryDossierBody({ entry, aside, head }: { entry: HistoryIndex
             <span className="br-ds-eyebrow">Satellitenbild</span>
             <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
           </div>
-          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: null, firstMs: entry.firstMs, lastMs: entry.lastMs }} nowMs={Date.now()} />
+          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: ev?.bbox ?? null, firstMs: entry.firstMs, lastMs: entry.lastMs }} nowMs={Date.now()} />
         </section>
       )}
         </div>

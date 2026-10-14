@@ -102,16 +102,26 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
     () => (data && scene && t.detections ? detectionRects30m(t.detections, data.bbox, SNAP_W, SNAP_H, scene.dayIso) : []),
     [data, scene, t.detections],
   );
+  // Umrandung wie „Karte · markiert": die Brand-BBox, ohne BBox ein kleiner Kasten um den Brandort (~0,6 km) — es gibt sie bei JEDEM Brand.
+  const outline = useMemo<readonly [number, number, number, number]>(() => {
+    if (t.bbox) return t.bbox;
+    const dLat = 0.0027; const dLon = dLat / Math.max(0.2, Math.cos((t.lat * Math.PI) / 180));
+    return [t.lon - dLon, t.lat - dLat, t.lon + dLon, t.lat + dLat];
+  }, [t.bbox, t.lat, t.lon]);
   // Brand-BBox [W, S, O, N] → Bildpixel des Snapshots ([S, W, N, O], Plate-Carrée, linear in Grad).
   const bboxRect = useMemo(() => {
-    if (!data || !t.bbox) return null;
+    if (!data || !outline) return null;
     const [s0, w0, n0, e0] = data.bbox;
-    const [bw, bs, be, bn] = t.bbox;
+    const [bw, bs, be, bn] = outline;
     if (!(e0 > w0) || !(n0 > s0)) return null;
     const x = ((bw - w0) / (e0 - w0)) * SNAP_W;
     const y = ((n0 - bn) / (n0 - s0)) * SNAP_H;
-    return { x, y, w: ((be - bw) / (e0 - w0)) * SNAP_W, h: ((bn - bs) / (n0 - s0)) * SNAP_H };
-  }, [data, t.bbox]);
+    const w = ((be - bw) / (e0 - w0)) * SNAP_W;
+    const h = ((bn - bs) / (n0 - s0)) * SNAP_H;
+    // Mindestgröße: bei ~18 km Bildausschnitt wäre ein einzelnes Pixel-Rechteck sonst kaum zu sehen.
+    const mw = Math.max(w, 16); const mh = Math.max(h, 16);
+    return { x: x - (mw - w) / 2, y: y - (mh - h) / 2, w: mw, h: mh };
+  }, [data, outline]);
   const ringMarks = useMemo(() => {
     const seen = new Map<string, { cx: number; cy: number; after: boolean }>();
     for (const r of detRects) {
@@ -188,7 +198,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
               fireStartIso={t.firstMs != null ? new Date(t.firstMs).toISOString().slice(0, 10) : null}
               fallbackUrl={copernicusBrowserUrl(t.lat, t.lon, scene.dayIso)}
               detections={t.detections ?? null}
-              fireBbox={t.bbox}
+              fireBbox={outline}
               onClose={() => setCog10(false)}
             />
           </Suspense>
@@ -221,7 +231,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
         {/* Brand-BBox als leere Umrandung (wie „Karte · markiert"), ohne Füllung — im Bildmaß wie die Detektionsrechtecke. */}
         {!cog10 && snap?.kind === 'img' && bboxRect && (
           <svg className="br-sat-det" viewBox={`0 0 ${SNAP_W} ${SNAP_H}`} preserveAspectRatio="none" aria-hidden="true">
-            <rect x={bboxRect.x} y={bboxRect.y} width={bboxRect.w} height={bboxRect.h} fill="none" stroke="#F2A33A" strokeWidth={2} vectorEffect="non-scaling-stroke" style={{ filter: 'drop-shadow(0 0 2px rgba(44, 42, 38, .95))' }} />
+            <rect x={bboxRect.x} y={bboxRect.y} width={bboxRect.w} height={bboxRect.h} vectorEffect="non-scaling-stroke" style={{ fill: 'none', stroke: '#F2A33A', strokeWidth: 2, filter: 'drop-shadow(0 0 2px rgba(44, 42, 38, .95))' }} />
           </svg>
         )}
         {!cog10 && snap?.kind === 'img' && t.detections && (

@@ -892,14 +892,19 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       if (!b) return;
       const X = (px: number) => ((px - px0) / fullPxPerCss) * dpr;
       const Y = (py: number) => ((py - py0) / fullPxPerCss) * dpr;
+      const xs = [X(b[0]), X(b[2]), X(b[4]), X(b[6])];
+      const ys = [Y(b[1]), Y(b[3]), Y(b[5]), Y(b[7])];
+      let x0 = Math.min(...xs); let x1 = Math.max(...xs);
+      let y0 = Math.min(...ys); let y1 = Math.max(...ys);
+      // Mindestgröße (16 CSS-px): ein kleiner Kasten bleibt auch herausgezoomt zu finden.
+      const MIN = 16 * dpr;
+      if (x1 - x0 < MIN) { const m = (x0 + x1) / 2; x0 = m - MIN / 2; x1 = m + MIN / 2; }
+      if (y1 - y0 < MIN) { const m = (y0 + y1) / 2; y0 = m - MIN / 2; y1 = m + MIN / 2; }
       ctx.setLineDash([]);
       for (const [color, width] of [[DET_HALO, 4], [BBOX_COLOR, 2]] as const) {
         ctx.strokeStyle = color;
         ctx.lineWidth = width * dpr;
-        ctx.beginPath();
-        ctx.moveTo(X(b[0]), Y(b[1])); ctx.lineTo(X(b[2]), Y(b[3])); ctx.lineTo(X(b[4]), Y(b[5])); ctx.lineTo(X(b[6]), Y(b[7]));
-        ctx.closePath();
-        ctx.stroke();
+        ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
       }
     };
     const drawOverlays = () => { drawScar(); drawDet(); drawCross(); };
