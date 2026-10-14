@@ -46,6 +46,7 @@ import {
   FIRE_WEATHER_ARCHIVE_LABEL, FIRE_WEATHER_ARCHIVE_ATTRIBUTION, type FireWeatherAtPoint,
 } from './detail/fireWeatherAtPoint';
 import { FlameIcon, IndustryIcon } from './fireIcons';
+import { InfoTileGrid, iconForReason } from './dossier/InfoTiles';
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
   STATUS_LABEL, STATUS_COLOR, METHOD_LABEL, statusLabel, areaLabel, confidenceLabel,
@@ -885,14 +886,19 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
         <MissingBlock>Keine Einstufung — für den Zeitraum der Detektionen liegt keine Modellstunde vor.</MissingBlock>
       )}
       {rating && (
-        <Box component="ul" className="br-drv-reasons" sx={{ listStyle: 'none', m: 0, p: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          {rating.reasons.map((x) => (
-            <li key={x.text} data-sign={x.points > 0 ? 'up' : x.points < 0 ? 'down' : 'zero'}>
-              <span className="br-drv-pt">{x.points > 0 ? `+${x.points}` : x.points === 0 ? '±0' : x.points}</span>
-              <span>{x.text}</span>
-            </li>
-          ))}
-        </Box>
+        <InfoTileGrid
+          className="br-drv-reasons"
+          minWidth={210}
+          tiles={rating.reasons.map((x) => ({
+            key: x.text,
+            icon: iconForReason(x.text),
+            valueClass: 'br-drv-pt',
+            value: x.points > 0 ? `+${x.points}` : x.points === 0 ? '±0' : `${x.points}`,
+            caption: x.text,
+            title: x.text,
+            tone: x.points > 0 ? 'up' as const : x.points < 0 ? 'down' as const : undefined,
+          }))}
+        />
       )}
       {anchorNote && <p className="br-note">{anchorNote}</p>}
       <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{DRIVER_RULE_TEXT}</Typography>
@@ -900,31 +906,35 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
       <Box className="br-drv-wind" sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <WindRoseChart rose={rose} spreadBearingDeg={spreadBearingDeg} dominantFromDeg={dom.fromDeg} />
         <Box className="br-drv-dl" sx={{ flex: '1 1 260px', minWidth: 0 }}>
-          <FactList dense>
-            <FactRow
-              term="Vorherrschender Wind"
-              reason={`geschwindigkeitsgewichtetes Vektormittel über ${dom.hours} Stunden; „Beständigkeit" 1 = konstant, 0 = dreht ständig`}
-            >
-              {dom.fromDeg != null
-                ? <>aus <b>{compassLabel(dom.fromDeg)}</b> ({dom.fromDeg}°) · im Mittel {dom.meanKmh} km/h{dom.maxGustKmh != null && <> · Böen bis {Math.round(dom.maxGustKmh)} km/h</>}</>
-                : <>keine vorherrschende Richtung — der Wind drehte zu stark (Beständigkeit {dom.steadiness ?? '—'} unter {STEADY_MIN}){dom.meanKmh != null && <>, im Mittel {dom.meanKmh} km/h</>}</>}
-            </FactRow>
-            <FactRow term="Ausbreitung gegen Wind">
-              {vs
-                ? <><b>{vs.diffDeg}°</b> — {spreadVsWindLabel(vs)} <Muted>(Wind weht nach {compassLabel(vs.downwindDeg)}, Schwerpunkt wandert nach {compassLabel(vs.spreadDeg)})</Muted></>
-                : <Muted>
-                    nicht bestimmbar — {spreadBearingDeg == null ? 'es gibt keine belastbare Ausbreitungsrichtung' : 'es gibt keine vorherrschende Windrichtung'}. Nichts wird interpoliert.
-                  </Muted>}
-            </FactRow>
-            {series && (
-              <FactRow term="FFMC / ISI">
-                {atFirst
-                  ? <>bei Erstdetektion FFMC <b>{atFirst.ffmc.toFixed(1)}</b> · ISI <b>{atFirst.isi.toFixed(1)}</b>{atFirst.spinup && <Muted> (noch im Vorlauf der Kette — nur als Größenordnung)</Muted>}</>
-                  : <Muted>keine Stunde der Erstdetektion in der gerechneten Kette</Muted>}
-                {series.skipped > 0 && <Muted> · {series.skipped} Stunde{series.skipped === 1 ? '' : 'n'} ohne Werte übersprungen</Muted>}
-              </FactRow>
-            )}
-          </FactList>
+          <InfoTileGrid
+            minWidth={190}
+            tiles={[
+              {
+                key: 'dom', icon: 'compass', label: 'Vorherrschender Wind',
+                value: dom.fromDeg != null ? `aus ${compassLabel(dom.fromDeg)} (${dom.fromDeg}°)` : 'keine Richtung',
+                caption: dom.fromDeg != null
+                  ? `Ø ${dom.meanKmh} km/h${dom.maxGustKmh != null ? ` · Böen bis ${Math.round(dom.maxGustKmh)}` : ''}`
+                  : `Beständigkeit ${dom.steadiness ?? '—'} unter ${STEADY_MIN}${dom.meanKmh != null ? ` · Ø ${dom.meanKmh} km/h` : ''}`,
+                title: `geschwindigkeitsgewichtetes Vektormittel über ${dom.hours} Stunden; „Beständigkeit" 1 = konstant, 0 = dreht ständig`,
+              },
+              {
+                key: 'vs', icon: 'spread', label: 'Ausbreitung gegen Wind',
+                value: vs ? `${vs.diffDeg}°` : '—',
+                caption: vs ? spreadVsWindLabel(vs) : 'nicht bestimmbar',
+                title: vs
+                  ? `Wind weht nach ${compassLabel(vs.downwindDeg)}, Schwerpunkt wandert nach ${compassLabel(vs.spreadDeg)}`
+                  : `nicht bestimmbar — ${spreadBearingDeg == null ? 'es gibt keine belastbare Ausbreitungsrichtung' : 'es gibt keine vorherrschende Windrichtung'}. Nichts wird interpoliert.`,
+              },
+              ...(series ? [{
+                key: 'idx', icon: 'index' as const, label: 'FFMC / ISI',
+                value: atFirst ? `${atFirst.ffmc.toFixed(1)} / ${atFirst.isi.toFixed(1)}` : '—',
+                caption: atFirst
+                  ? `bei Erstdetektion${atFirst.spinup ? ' · noch im Vorlauf der Kette — nur als Größenordnung' : ''}`
+                  : 'keine Stunde der Erstdetektion in der Kette',
+                title: series.skipped > 0 ? `${series.skipped} Stunde${series.skipped === 1 ? '' : 'n'} ohne Werte übersprungen` : undefined,
+              }] : []),
+            ]}
+          />
         </Box>
       </Box>
 
