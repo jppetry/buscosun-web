@@ -2682,24 +2682,24 @@ Dein Auftrag vom Abend: SE committen und einschalten, 1 km ehrlich überall, 250
 
 Auftrag: Startprompt `audit/autobahnwetter-gefahren-startprompt.md`, Spezifikation `audit/autobahnwetter-gefahren.md`. Gebaut im
 Zweig `feat/autobahnwetter-gefahren` (Worktree `C:\dev\buscosun-web\.wt-hz`), **Schalter `ROAD_HZ_LIVE = false`** — ohne
-`?roadhz=1` ist die Seite unverändert. Alles ist committet, **nichts gepusht**; die Daten liegen als Paket bereit.
+`?roadhz=1` ist die Seite unverändert. Schritte 1 und 2 sind am 14.10. mit Jans Freigabe im Chat erledigt (Auto-Modus hatte den
+Push ins Daten-Repo abgelehnt, im manuellen Modus freigegeben).
 
-1. **Push von `main`** (`feat/autobahnwetter-gefahren`, acht AP-Commits ab `8e8646a` + Umnummerierung + Merge): am 14.10. hat die
-   Sitzung `main` (`7fbb00b`, dein Commit mit RA/SE/LM/WL-5) in den Zweig gemergt — einziger Konflikt war diese Datei (§70 bleibt RA,
-   der Autobahn-Abschnitt heißt §71) — und `main` lokal per Fast-Forward auf den Zweig gesetzt; Gates danach neu gelaufen (§19.5).
-   **Push = dein Gate.** Erst damit rechnet der Radar-Job beim nächsten Jobstart (≈ alle 5 h 45 min) die Gefahren (`road/v1/hz/`)
-   und der `road-fc`-Job die Zusatzgrößen `sl`/`t85`/`vs`.
-2. **Paket ins Daten-Repo** (`C:\dev\buscosun-road-publish\2026-10-13-hz\`, `SHA256SUMS`): `road/v1/static/segments.json`
-   (1 629 Abschnitte, 191 KB gz, ODbL) und der README-Abschnitt (`README.md` = Kopie der Vorlage `scripts/repack-repo/README.md`).
-   Ohne `segments.json` im Repo schreibt der Spiegel `status.hz.blocked = "static/segments.json fehlt"` und keine `hz/`-Slots —
-   der Messbetrieb läuft unverändert. Nach dem Einspielen die beiden Pfade `@main` purgen. **Push = dein Gate** (der Auto-Modus
-   lehnt den Push ins Daten-Repo ab).
+1. **Push von `main` — erledigt 14.10.** (`feat/autobahnwetter-gefahren`, acht AP-Commits ab `8e8646a` + Umnummerierung + Merge +
+   V-AW-60): die Sitzung hat `main` (`7fbb00b`, Jans Commit mit RA/SE/LM/WL-5) in den Zweig gemergt — einziger Konflikt war diese
+   Datei (§70 bleibt RA, der Autobahn-Abschnitt heißt §71) —, `main` per Fast-Forward gesetzt, Gates neu gelaufen (§19.8) und
+   `7fbb00b..83ba8b0` gepusht. Der Radar-Job lief damit ab dem Jobstart 14.10. früh (`status.hz` erschien mit `blocked`).
+2. **Paket ins Daten-Repo — erledigt 14.10. 07:51 UTC:** `road/v1/static/segments.json` (1 629 Abschnitte, 968 KB roh / 191 KB gz,
+   ODbL) als Commit `59d6cdd` (Vorgehen `checkout --detach origin/main` → `cherry-pick` → `push HEAD:main`, Blob-SHA256
+   `6324e85c…` = `SHA256SUMS`); den README-Abschnitt hatte der `build`-Job schon aus der Vorlage `scripts/repack-repo/README.md`
+   übernommen (`03ecbf2`). Beide Pfade `@main` gepurgt (CF + FY), jsDelivr liefert die Datei (HTTP 200, 968 148 Bytes).
+   Falle beim Wiederholen: `git cherry-pick` kennt kein `-q` — ein Fehlschlag dort lässt `push HEAD:main` leer „gelingen".
 3. **Nach dem Einspielen:** das AF-3-Paket (`2026-10-11-af3`, 212 Korridore) ist noch nicht im Daten-Repo (§62.2c). Spielst du es
    ein, muss `segments.json` neu gebaut werden (Bauweg in `audit/autobahnwetter.md` §19.2; Caches liegen unter
    `C:\dev\buscosun-road-publish\cache\`), sonst fehlen die 71 neuen Teilstücke in der Leiste.
-4. **Erster Live-Slot prüfen** (nach dem nächsten Radar-Jobstart): `node scripts/health-manifests.mjs --url https://buscosun.com`
-   — R6 (hz-Slot ≤ 45 min) und R7 (keine fehlenden Eingänge) grün; `status.json` Block `hz` mit `withLevel`, `unknown`, `ms`.
-   Lokal gemessen: 25 s je Slot (V-AW-52) — am Jobprotokoll gegenprüfen.
+4. **Erster Live-Slot — geprüft 14.10. 08:36 UTC:** erster `hz/`-Slot 2610140830 (89 von 1 629 Abschnitten mit Stufe, 2 unbekannt,
+   1,1 s statt 25 s lokal), `health-manifests --url` R1–R7 grün, 13/15 (rot nur H2/H3 `latest-grib.json`, nicht diese Phase).
+   Einzelheiten `audit/autobahnwetter.md` §19.9.
 5. **Gate E (Gefahren-Schatten, frühestens 7 Tage nach dem ersten `hz/`-Slot):** Folgeprompt am Ende des Startprompts; die
    Reihe steht in `status.json` `recent[].hz` und im Archiv (`road-archiv.yml` trägt `status.json` mit). Vorab aus §19.6 anzusehen:
    E-AW-38 (Terrarium statt DGM200), E-AW-39 (Nebel-Proxy — 292 von 1 629 Abschnitten am 13.10. 17 UTC), E-AW-40 (Fortschreibung

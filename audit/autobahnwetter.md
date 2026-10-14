@@ -1572,8 +1572,8 @@ nach dem ersten Paint.
 Jan hat den Hauptbaum committet (`7fbb00b`: Phasen RA, SE, LM, WL-5, neue `CLAUDE.md`), damit war der Blocker aus §19.5 weg.
 Die Sitzung hat `main` in den Zweig gemergt (`45ae67e`); einziger Konflikt `MANUELLE-SCHRITTE.md`, weil beide Seiten einen
 §70 anfügten — §70 bleibt Phase RA, der Autobahn-Abschnitt heißt §71 (`48c21a4`, Verweise in `health-manifests.mjs` mitgezogen).
-`package.json` ging automatisch zusammen (Jans `verify:dach-mask`/`verify:radar-clutter` + die drei nivo-Pakete). `main` steht lokal
-per Fast-Forward auf dem Zweig; **Push = Jans Gate** (§71.1).
+`package.json` ging automatisch zusammen (Jans `verify:dach-mask`/`verify:radar-clutter` + die drei nivo-Pakete). `main` per
+Fast-Forward auf den Zweig gesetzt und mit Jans Freigabe gepusht (`7fbb00b..83ba8b0`, zwölf Commits).
 
 Gates nach dem Merge, Bau aus dem Worktree: `verify:road-ui` 102/102 (nach V-AW-60; davor 101/102, U4 rot in 3 von 3 Läufen),
 `verify:road-hazards` 91/91, `verify:road-contract` 111/111, `verify:road-derive` 36/36, `verify:fusion-release` 30/30,
@@ -1581,3 +1581,19 @@ Gates nach dem Merge, Bau aus dem Worktree: `verify:road-ui` 102/102 (nach V-AW-
 largestChunk 278,4/302, totalJs 1 824,7/1 825 (Jans Phasen +3,1 KB gegen §19.5). `health-manifests --url` gegen Produktion:
 12/14, rot nur H2/H3 (`latest-grib.json` Lauf 2026090406, 952 h alt — Wind-Manifest der Edge-Function, nicht Teil dieser Phase,
 an Jan gemeldet).
+
+### 19.9 Einspielen und erster Live-Slot (14.10.2026, Jans Freigabe im Chat)
+
+- **Daten-Repo:** `road/v1/static/segments.json` als `59d6cdd` auf `origin/main` (Blob-SHA256 `6324e85c…` = Paket), 07:51 UTC;
+  Vorgehen `checkout --detach origin/main` → `cherry-pick` → `push HEAD:main`, Push im ersten Versuch. Der README-Abschnitt lag
+  schon dort — der `build`-Job kopiert die Vorlage `scripts/repack-repo/README.md` aus `main` (`03ecbf2`). Beide Pfade `@main`
+  gepurgt (CF + FY), jsDelivr liefert 968 148 Bytes, 1 629 Abschnitte.
+- **Spiegel:** der laufende Radar-Job (Start 05:29 UTC, Code von `83ba8b0`) hatte bis dahin je Slot `hz: segments fehlen`
+  geschrieben (`status.hz.blocked`, §71.2 wie vorhergesagt). `copyInto()` übernimmt `static/segments.json` aus dem Klon in den
+  Store, beim nächsten Slot rechnete die Ableitung: **erster `hz/`-Slot 2610140830**, `derivedAt` 08:33:13 UTC — 1 629 Abschnitte,
+  89 mit Stufe, 2 unbekannt, 20 235 Bytes, **1,1 s** (lokal 25 s, V-AW-52: der Spiegel hält die Eingänge schon im Speicher).
+  Verteilung: quer 66, gischt 19, aqua 14, sonne 7, nebel 4, alle Winterklassen 0 (Oktobermorgen, +8 bis +12 °C).
+  Eingänge: obs 2610140830, fc-Lauf 2610140804 (buscosun Fusion 12), RV 0825, KONRAD3D 0825, runs vorhanden.
+- **`health-manifests --url https://buscosun.com`:** R1–R7 grün (R6 hz-Slot 6 min alt, R7 alle Eingänge), 13/15; rot bleiben
+  nur H2/H3 (`latest-grib.json`, s. o.).
+- Damit beginnt der Schattenbetrieb der Gefahren (Gate E frühestens 21.10., §71.5). `ROAD_HZ_LIVE` bleibt aus.
