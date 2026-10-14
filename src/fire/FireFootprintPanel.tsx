@@ -41,12 +41,12 @@ import {
   useDossierBreakpoint,
 } from './dossier/DossierPrimitives';
 import {
-  fetchFireWeatherAtPoint, fetchFireWeatherArchive, hourLine, rainLabelLive, weatherSummary,
+  fetchFireWeatherAtPoint, fetchFireWeatherArchive, rainLabelLive, weatherSummary,
   FIRE_WEATHER_SOURCE_LABEL, FIRE_WEATHER_ATTRIBUTION,
   FIRE_WEATHER_ARCHIVE_LABEL, FIRE_WEATHER_ARCHIVE_ATTRIBUTION, type FireWeatherAtPoint,
 } from './detail/fireWeatherAtPoint';
 import { FlameIcon, IndustryIcon } from './fireIcons';
-import { InfoTileGrid, iconForReason } from './dossier/InfoTiles';
+import { InfoTileGrid, InfoTileIcon, iconForReason, type InfoIcon } from './dossier/InfoTiles';
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
   STATUS_LABEL, STATUS_COLOR, METHOD_LABEL, statusLabel, areaLabel, confidenceLabel,
@@ -695,71 +695,89 @@ export function WeatherBlock({ r, nowMs }: { r: FireRecord; nowMs: number }) {
   const summary = weatherSummary(w);
   const stampH = (ms: number) => new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   const de = (n: number, frac = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
+  const dir = (h: { windFromDeg: number | null }) => (h.windFromDeg != null ? ` aus ${compassLabel(h.windFromDeg)}` : '');
+  const hourChips = (h: NonNullable<FireWeatherAtPoint['atFirst']>): WxChip[] => [
+    { icon: 'thermo', value: h.tempC != null ? `${de(h.tempC, 1)} °C` : '—', label: 'Temperatur' },
+    { icon: 'drop', value: h.rhPct != null ? `${de(h.rhPct)} %` : '—', label: 'rel. Feuchte' },
+    { icon: 'wind', value: h.windKmh != null ? `${de(h.windKmh)} km/h` : '—', label: `Wind${dir(h)}` },
+    { icon: 'bolt', value: h.gustKmh != null ? `${de(h.gustKmh)} km/h` : '—', label: 'Böen' },
+    { icon: 'rain', value: h.precipMm != null ? `${de(h.precipMm, 1)} mm` : '—', label: 'Niederschlag' },
+  ];
+  const dayLabel = w.fireDay
+    ? `Brandtag ${new Date(`${w.fireDay.dateISO}T12:00:00Z`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}${w.fireDay.partial ? ' · bis jetzt' : ''}`
+    : '';
   return (
-    <WeatherGrid>
+    <Stack spacing={1.5}>
       {summary && (
-        <Typography variant="body1" sx={{ gridColumn: '1 / -1', fontSize: 17, fontWeight: 500, lineHeight: 1.4, color: 'text.primary', mb: 0.5 }}>
+        <Typography variant="body1" sx={{ fontSize: 17, fontWeight: 500, lineHeight: 1.4, color: 'text.primary' }}>
           {summary}
         </Typography>
       )}
-      {w.atFirst && <WeatherTile label={`Bei Erstdetektion · ${stampH(w.atFirst.atMs)}`} accent>{hourLine(w.atFirst)}</WeatherTile>}
-      {w.atLast && <WeatherTile label={`Bei letzter Detektion · ${stampH(w.atLast.atMs)}`}>{hourLine(w.atLast)}</WeatherTile>}
-      {w.fireDay && (
-        <WeatherTile label={`Brandtag ${new Date(`${w.fireDay.dateISO}T12:00:00Z`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}${w.fireDay.partial ? ' · bis jetzt' : ''}`}>
-          {w.fireDay.tMaxC != null ? `Tmax ${de(w.fireDay.tMaxC, 1)} °C` : 'Tmax —'}
-          {' · '}{w.fireDay.rhMinPct != null ? `RHmin ${de(w.fireDay.rhMinPct)} %` : 'RHmin —'}
-          {' · '}{w.fireDay.gustMaxKmh != null ? `Böen max ${de(w.fireDay.gustMaxKmh)} km/h` : 'Böen —'}
-          {' · '}{w.fireDay.precipMm != null ? `${de(w.fireDay.precipMm, 1)} mm` : '— mm'}
-        </WeatherTile>
-      )}
-      <WeatherTile label="Vortage">
-        {w.precip24hBeforeMm != null ? `${de(w.precip24hBeforeMm, 1)} mm in den 24 h vor der Erstdetektion` : 'Niederschlag der 24 h davor nicht bestimmbar'}
-        {' · '}{rainLabelLive(w)}
-      </WeatherTile>
-      {w.now && <WeatherTile label={`Jetzt · ${stampH(w.now.atMs)}`}>{hourLine(w.now)}</WeatherTile>}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
+        {w.atFirst && <WxMoment title="Bei Erstdetektion" when={stampH(w.atFirst.atMs)} chips={hourChips(w.atFirst)} accent />}
+        {w.atLast && <WxMoment title="Bei letzter Detektion" when={stampH(w.atLast.atMs)} chips={hourChips(w.atLast)} />}
+        {w.fireDay && (
+          <WxMoment
+            title={dayLabel}
+            chips={[
+              { icon: 'thermo', value: w.fireDay.tMaxC != null ? `${de(w.fireDay.tMaxC, 1)} °C` : '—', label: 'Tmax' },
+              { icon: 'drop', value: w.fireDay.rhMinPct != null ? `${de(w.fireDay.rhMinPct)} %` : '—', label: 'RHmin' },
+              { icon: 'bolt', value: w.fireDay.gustMaxKmh != null ? `${de(w.fireDay.gustMaxKmh)} km/h` : '—', label: 'Böen max' },
+              { icon: 'rain', value: w.fireDay.precipMm != null ? `${de(w.fireDay.precipMm, 1)} mm` : '—', label: 'Niederschlag' },
+            ]}
+          />
+        )}
+        <WxMoment
+          title="Vortage"
+          chips={[
+            { icon: 'rain', value: w.precip24hBeforeMm != null ? `${de(w.precip24hBeforeMm, 1)} mm` : '—', label: '24 h vor Erstdetektion' },
+          ]}
+          note={rainLabelLive(w)}
+        />
+        {w.now && <WxMoment title="Jetzt" when={stampH(w.now.atMs)} chips={hourChips(w.now)} />}
+      </Box>
       {w.notes.length > 0 && (
-        <Box component="ul" className="fire-fp-reasons" sx={{ gridColumn: '1 / -1', m: 0, pl: 2.5, color: 'text.disabled', fontSize: 12.5, lineHeight: 1.5 }}>
+        <Box component="ul" className="fire-fp-reasons" sx={{ m: 0, pl: 2.5, color: 'text.disabled', fontSize: 12.5, lineHeight: 1.5 }}>
           {w.notes.map((n) => <li key={n}>{n}</li>)}
         </Box>
       )}
-      <Typography variant="caption" component="p" className="br-note" sx={{ gridColumn: '1 / -1', m: 0 }}>
+      <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
         {w.source === 'era5' ? FIRE_WEATHER_ARCHIVE_LABEL : FIRE_WEATHER_SOURCE_LABEL} · Werte für den Brandort ({r.lat.toFixed(2)}° N, {r.lon.toFixed(2)}° E) aus dem
         {w.source === 'era5' ? ' Reanalysegitter' : ' Modellgitter'} — es kennt den Brand nicht; die Werte beschreiben die Umgebung, nicht die Flamme.
         {w.source === 'era5' && ' Der Brand liegt zu weit zurück für die ICON-Reihe (7 Tage) — die Vorhersagemodelle haben kein Archiv.'}
         {' '}{w.source === 'era5' ? FIRE_WEATHER_ARCHIVE_ATTRIBUTION : FIRE_WEATHER_ATTRIBUTION}.
       </Typography>
-    </WeatherGrid>
+    </Stack>
   );
 }
 
-/** Das Kachelraster der Wetterlage: zwei Spalten, mobil eine. */
-function WeatherGrid({ children }: { children: ReactNode }) {
-  const bp = useDossierBreakpoint();
-  return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: bp === 'mobile' ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-      {children}
-    </Box>
-  );
-}
+interface WxChip { icon: InfoIcon; value: string; label: string }
 
-/**
- * Eine Kachel der Wetterlage. `accent` färbt die erste (Erstdetektion) in Steel —
- * sie ist der Anker des Brandzeitfensters, nicht nur ein Zeitpunkt unter mehreren.
- */
-function WeatherTile({ label, accent = false, children }: { label: string; accent?: boolean; children: ReactNode }) {
+/** Ein Zeitpunkt (oder Zeitraum) als Karte: Kopf + Wertechips mit Icon — alles auf einen Blick. */
+function WxMoment({ title, when, chips, note, accent = false }: { title: string; when?: string; chips: WxChip[]; note?: string; accent?: boolean }) {
   return (
-    <Box
-      sx={{
-        bgcolor: accent ? 'fire.steelTint' : 'fire.tile',
-        border: '1px solid', borderColor: accent ? 'fire.steelBorder' : 'divider',
-        borderRadius: '10px', p: '11px 13px', fontSize: 13.5, lineHeight: 1.5,
-        color: 'text.primary', fontVariantNumeric: 'tabular-nums', minWidth: 0, overflowWrap: 'anywhere',
-      }}
-    >
-      <Typography variant="overline" component="span" sx={{ display: 'block', fontSize: 12, letterSpacing: '.14em', mb: '4px', color: accent ? 'fire.steel' : 'text.disabled' }}>
-        {label}
-      </Typography>
-      {children}
+    <Box sx={{
+      p: 1.25, borderRadius: '12px', minWidth: 0, bgcolor: '#FDFBF4',
+      border: '1px solid', borderColor: accent ? 'fire.steelBorder' : 'divider',
+    }}>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+        <Typography component="div" sx={{ fontSize: 12, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: accent ? 'fire.steel' : 'text.secondary' }}>{title}</Typography>
+        {when && <Typography component="div" sx={{ fontSize: 12, color: 'text.disabled', fontVariantNumeric: 'tabular-nums' }}>{when}</Typography>}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(84px, 1fr))', gap: '8px' }}>
+        {chips.map((c) => (
+          <Box key={c.label} sx={{ display: 'flex', gap: 0.75, alignItems: 'center', minWidth: 0 }}>
+            <Box sx={{ flex: '0 0 auto', width: 26, height: 26, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.secondary', bgcolor: 'rgba(139, 115, 85, 0.1)' }}>
+              <InfoTileIcon k={c.icon} size={16} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography component="div" sx={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.2, color: 'text.primary', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{c.value}</Typography>
+              <Typography component="div" sx={{ fontSize: 11, lineHeight: 1.25, color: 'text.disabled', overflowWrap: 'anywhere' }}>{c.label}</Typography>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+      {note && <Typography component="div" sx={{ mt: 0.75, fontSize: 12, color: 'text.secondary' }}>{note}</Typography>}
     </Box>
   );
 }
