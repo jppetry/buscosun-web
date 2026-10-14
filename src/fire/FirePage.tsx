@@ -1871,6 +1871,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   );
   const miniFrom = dossierRecord ? miniFeatures(dossierRecord, history ? null : footprintFc).fromRegistry : false;
+  /** Dieselbe Fläche wie die Minikarte für den Rahmen im Satellitenbild — ohne Registry-Fläche zeichnet es die BBox. */
+  const dossierShape = dossierRecord && !history && miniFrom
+    ? miniFeatures(dossierRecord, footprintFc).fc.features.filter((f) => f.geometry.type !== 'Point')
+    : null;
   const miniMap = (height: number) => dossierRecord && (
     <FireMiniMap
       record={dossierRecord} footprintFc={history ? null : footprintFc} basemap={basemap} height={height}
@@ -2176,7 +2180,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     r={dossierRecord} nowMs={nowMs} atContext={dossierRecord ? atContextFor(dossierRecord) : null}
                     breakpoint={isTablet ? 'tablet' : 'desktop'} aside={dossierSide(250)}
                     extra={readoutTab === 'anomalies' ? siteCards : null}
-                    detections={hotspotRows}
+                    detections={hotspotRows} shape={dossierShape}
                   />
                 )}
               </div>
@@ -2247,7 +2251,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                       )}
                       aside={<DossierMapNote r={dossierRecord} fromRegistry={miniFrom} />}
                       extra={readoutTab === 'anomalies' ? siteCards : null}
-                      detections={hotspotRows}
+                      detections={hotspotRows} shape={dossierShape}
                     />
                   </div>
                 </section>

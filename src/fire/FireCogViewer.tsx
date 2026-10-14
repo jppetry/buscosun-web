@@ -51,6 +51,8 @@ export interface CogViewerProps {
   detections?: readonly FirmsRow[] | null;
   /** Brand-BBox [W, S, O, N] (wie `FireRecord.bbox`) — als leere Umrandung über dem Bild (wie „Karte · markiert"). */
   fireBbox?: readonly [number, number, number, number] | null;
+  /** Ringe der Registry-Fläche in [lon, lat] (wie „Karte · markiert") — vorrangig vor `fireBbox`. */
+  fireShape?: readonly (readonly number[])[][] | null;
   onClose: () => void;
 }
 
@@ -80,8 +82,8 @@ const DET_FILL_AFTER = 'rgba(255, 176, 138, 0.14)';
 const DET_HALO = 'rgba(44, 42, 38, 0.85)';
 /** Narben-Umriss: Creme wie Fadenkreuz und Maßstab — eine Farbe, die KEINE dNBR-Klasse trägt. */
 const SCAR_COLOR = '#FDFBF4';
-/** Umrandung der Brand-BBox: dasselbe Orange wie auf „Karte · markiert", aber OHNE Füllung. */
-const BBOX_COLOR = '#F2A33A';
+/** Umrandung des Brands: dasselbe Orange (`--br-mark`) und dieselbe 2-px-Linie wie „Karte · markiert", aber OHNE Füllung. */
+const BBOX_COLOR = '#FFB03D';
 /** SAT3d Kill-Switch `?scar=0` (Rule 2, Muster `?sat10=0`): dNBR-Overlay wie vor SAT3, ohne Fill — auch der Kontrolllauf der Long-Task-Messung. */
 function scarEnabled(): boolean {
   try { return new URLSearchParams(window.location.search).get('scar') !== '0'; } catch { return true; }
@@ -421,7 +423,23 @@ function bboxCornersPx(bb: readonly [number, number, number, number] | null, eps
   return pts;
 }
 
-export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, onClose }: CogViewerProps) {
+/** Die Ringe der Registry-Fläche als Pixel des Granulats (je Ring x0, y0, x1, y1, …) — `null` ohne Fläche/Projektion. */
+function shapeRingsPx(rings: readonly (readonly number[])[][] | null, epsg: number, transform: readonly number[]): number[][] | null {
+  if (!rings || rings.length === 0) return null;
+  const out: number[][] = [];
+  for (const ring of rings) {
+    const pts: number[] = [];
+    for (const [lon, lat] of ring) {
+      const q = pixelOf(lat, lon, epsg, transform);
+      if (!q) return null;
+      pts.push(q.px, q.py);
+    }
+    out.push(pts);
+  }
+  return out;
+}
+
+export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, fireShape = null, onClose }: CogViewerProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading', word: 'Szene wird gesucht …' });
   const [full, setFull] = useState(false);
   const [mode, setMode] = useState<CogMode>('tci');
@@ -442,6 +460,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   detectionsRef.current = detections;
   const fireBboxRef = useRef(fireBbox);
   fireBboxRef.current = fireBbox;
+  const fireShapeRef = useRef(fireShape);
+  fireShapeRef.current = fireShape;
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -458,6 +478,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     det: DetPoly[];
     /** Ecken der Brand-BBox in Vollauflösungs-Pixeln (W-S, O-S, O-N, W-N) oder `null`. */
     bbox: number[] | null;
+    /** Ringe der Registry-Fläche in Vollauflösungs-Pixeln — vorrangig vor `bbox`; `null` ohne Fläche. */
+    shape: number[][] | null;
   } | null>(null);
   /** SAT3d: der letzte Narben-Fill — Schlüssel = Ebene + Kachelmenge + Ladestand + Saat. */
   const scarRef = useRef<{
@@ -505,6 +527,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
             ? detectionPolysPx(detectionsRef.current, ref.epsg, ref.transform, ref.shape, DET_MARGIN_PX, dayIso, pixelOf)
             : [],
           bbox: bboxCornersPx(fireBboxRef.current, ref.epsg, ref.transform),
+          shape: shapeRingsPx(fireShapeRef.current, ref.epsg, ref.transform),
         };
         scarRef.current = null;
         viewRef.current = { cx: fire.px, cy: fire.py, mpp: START_MPP };
@@ -886,12 +909,26 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       ctx.stroke();
     };
     /** Reihenfolge: Narbe (Fläche) → Detektionen → Fadenkreuz — das Kleinste liegt obenauf. */
-    /** Brand-BBox: nur Strich (Halo + Orange), KEINE Füllung — „Karte · markiert" im Bild. */
+    /** Brand-Umrandung: nur Strich (Orange, 2 px), KEINE Füllung — „Karte · markiert" im Bild. */
     const drawBbox = () => {
-      const b = d.bbox;
-      if (!b) return;
       const X = (px: number) => ((px - px0) / fullPxPerCss) * dpr;
       const Y = (py: number) => ((py - py0) / fullPxPerCss) * dpr;
+      ctx.setLineDash([]);
+      ctx.strokeStyle = BBOX_COLOR;
+      ctx.lineWidth = 2 * dpr;
+      // Registry-Fläche wie auf der Minikarte: jeden Ring als Linie, ohne Mindestgröße.
+      if (d.shape) {
+        ctx.beginPath();
+        for (const p of d.shape) {
+          ctx.moveTo(X(p[0]), Y(p[1]));
+          for (let i = 2; i < p.length; i += 2) ctx.lineTo(X(p[i]), Y(p[i + 1]));
+          ctx.closePath();
+        }
+        ctx.stroke();
+        return;
+      }
+      const b = d.bbox;
+      if (!b) return;
       const xs = [X(b[0]), X(b[2]), X(b[4]), X(b[6])];
       const ys = [Y(b[1]), Y(b[3]), Y(b[5]), Y(b[7])];
       let x0 = Math.min(...xs); let x1 = Math.max(...xs);
@@ -900,12 +937,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       const MIN = 16 * dpr;
       if (x1 - x0 < MIN) { const m = (x0 + x1) / 2; x0 = m - MIN / 2; x1 = m + MIN / 2; }
       if (y1 - y0 < MIN) { const m = (y0 + y1) / 2; y0 = m - MIN / 2; y1 = m + MIN / 2; }
-      ctx.setLineDash([]);
-      for (const [color, width] of [[DET_HALO, 4], [BBOX_COLOR, 2]] as const) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width * dpr;
-        ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-      }
+      ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
     };
     const drawOverlays = () => { drawScar(); drawDet(); drawCross(); };
     drawOverlays();

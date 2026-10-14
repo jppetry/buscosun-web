@@ -33,6 +33,22 @@ export interface SatTarget {
    * (§13.2 (1)). `null`/fehlend = der Aufrufer hat keine (Historie-Ereignis); die Fußnote sagt es.
    */
   detections?: readonly FirmsRow[] | null;
+  /** Die Fläche des Brands aus „Karte · markiert" (Registry-Features); fehlt/leer ⇒ BBox-Rechteck. */
+  shape?: readonly GeoJSON.Feature[] | null;
+}
+
+/** Rahmenfarbe wie „Karte · markiert" (`--br-mark`, `FireMiniMap`) — dort mit Füllung, hier ohne. */
+const MARK = '#FFB03D';
+
+/** Alle Ringe (außen und Löcher) der Flächen in [lon, lat] — dieselben Linien, die die Minikarte zieht. */
+function polygonRings(fs: readonly GeoJSON.Feature[] | null | undefined): number[][][] {
+  const out: number[][][] = [];
+  for (const f of fs ?? []) {
+    const g = f.geometry;
+    if (g?.type === 'Polygon') out.push(...g.coordinates);
+    else if (g?.type === 'MultiPolygon') for (const p of g.coordinates) out.push(...p);
+  }
+  return out;
 }
 
 // Sitzungs-Cache der geladenen Bilder: kein Doppelabruf beim Hin- und Herschalten (V-SAT-1:
@@ -122,6 +138,15 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
     const mw = Math.max(w, 16); const mh = Math.max(h, 16);
     return { x: x - (mw - w) / 2, y: y - (mh - h) / 2, w: mw, h: mh };
   }, [data, outline]);
+  // Die Registry-Fläche (wie „Karte · markiert") als SVG-Pfad im Bildmaß — vorrangig vor dem BBox-Rechteck.
+  const rings = useMemo(() => polygonRings(t.shape), [t.shape]);
+  const shapePath = useMemo(() => {
+    if (!data || rings.length === 0) return null;
+    const [s0, w0, n0, e0] = data.bbox;
+    if (!(e0 > w0) || !(n0 > s0)) return null;
+    return rings.map((ring) => ring.map(([lon, lat], i) =>
+      `${i ? 'L' : 'M'}${(((lon - w0) / (e0 - w0)) * SNAP_W).toFixed(1)},${(((n0 - lat) / (n0 - s0)) * SNAP_H).toFixed(1)}`).join('') + 'Z').join('');
+  }, [data, rings]);
   const ringMarks = useMemo(() => {
     const seen = new Map<string, { cx: number; cy: number; after: boolean }>();
     for (const r of detRects) {
@@ -199,6 +224,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
               fallbackUrl={copernicusBrowserUrl(t.lat, t.lon, scene.dayIso)}
               detections={t.detections ?? null}
               fireBbox={outline}
+              fireShape={rings}
               onClose={() => setCog10(false)}
             />
           </Suspense>
@@ -228,10 +254,12 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
             ))}
           </div>
         )}
-        {/* Brand-BBox als leere Umrandung (wie „Karte · markiert"), ohne Füllung — im Bildmaß wie die Detektionsrechtecke. */}
-        {!cog10 && snap?.kind === 'img' && bboxRect && (
+        {/* Rahmen wie „Karte · markiert" (Registry-Fläche, sonst BBox; Orange, 2 px), aber ohne Füllung — im Bildmaß wie die Detektionsrechtecke. */}
+        {!cog10 && snap?.kind === 'img' && (shapePath || bboxRect) && (
           <svg className="br-sat-det" viewBox={`0 0 ${SNAP_W} ${SNAP_H}`} preserveAspectRatio="none" aria-hidden="true">
-            <rect x={bboxRect.x} y={bboxRect.y} width={bboxRect.w} height={bboxRect.h} vectorEffect="non-scaling-stroke" style={{ fill: 'none', stroke: '#F2A33A', strokeWidth: 2, filter: 'drop-shadow(0 0 2px rgba(44, 42, 38, .95))' }} />
+            {shapePath
+              ? <path d={shapePath} vectorEffect="non-scaling-stroke" style={{ fill: 'none', stroke: MARK, strokeWidth: 2 }} />
+              : bboxRect && <rect x={bboxRect.x} y={bboxRect.y} width={bboxRect.w} height={bboxRect.h} vectorEffect="non-scaling-stroke" style={{ fill: 'none', stroke: MARK, strokeWidth: 2, filter: 'none' }} />}
           </svg>
         )}
         {!cog10 && snap?.kind === 'img' && t.detections && (

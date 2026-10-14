@@ -74,6 +74,8 @@ export interface FireDossierProps {
   extra?: ReactNode;
   /** SAT3: die FIRMS-Zeilen des Laufs für das Satellitenbild (nur Live-Dossier; Historie hat keine). */
   detections?: readonly FirmsRow[] | null;
+  /** Die Fläche aus „Karte · markiert" (Registry-Features) — das Satellitenbild umrandet sie; fehlt ⇒ BBox. */
+  shape?: readonly GeoJSON.Feature[] | null;
 }
 
 /**
@@ -84,7 +86,7 @@ export interface FireDossierProps {
  */
 const CHART_MAX_WIDTH: Record<DossierBreakpoint, number> = { desktop: 720, tablet: 620, mobile: 420 };
 
-export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop', aside, lead, extra, detections = null }: FireDossierProps) {
+export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop', aside, lead, extra, detections = null, shape = null }: FireDossierProps) {
   const bp = breakpoint;
   const mobile = bp === 'mobile';
   const width = CHART_MAX_WIDTH[bp];
@@ -213,7 +215,7 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
               subtitle="Vorher · während · nachher — wenn die Wolken es zulassen"
               className="br-ds-satbild"
             >
-              <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections }} nowMs={nowMs} />
+              <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections, shape }} nowMs={nowMs} />
             </DossierCard>
           )}
         </DossierGrid>
