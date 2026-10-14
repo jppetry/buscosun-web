@@ -33,7 +33,7 @@ import StaleLinkNotice from '../../share/StaleLinkNotice';
 import NotFoundRoute from './NotFoundRoute';
 
 const STATE_DEBOUNCE_MS = 300;
-const DEFAULT_VIEW: FireRouteView = 'gefahrenindex';
+const DEFAULT_VIEW: FireRouteView = 'aktive-braende';
 
 export default function FireRoute() {
   const { view } = useParams<{ view?: string }>();

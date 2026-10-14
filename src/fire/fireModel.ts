@@ -217,7 +217,7 @@ export interface FirePreset {
  * dabei — damit ist auch der Umfang „ganze Saison" der Brände-Liste sofort
  * wählbar, der sonst gesperrt bleibt, bis der Layer eingeschaltet wird.
  */
-export const FIRE_DEFAULT_LAYERS: readonly FireLayerId[] = ['fireDanger', 'fireHotspots', 'fireBurnt'] as const;
+export const FIRE_DEFAULT_LAYERS: readonly FireLayerId[] = ['fireHotspots', 'fireBurnt'] as const;
 
 /**
  * Immer aktive Layer (Jans Auftrag 2026-09-05).
@@ -609,7 +609,7 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   add('Default-Set = Preset „Überblick" (inkl. frühere Brandflächen)',
     activeFirePresetId([...FIRE_DEFAULT_LAYERS]) === 'standard' && FIRE_DEFAULT_LAYERS.includes('fireBurnt'));
   add('activeFirePresetId erkennt das Standard-Set unabhängig von der Reihenfolge',
-    activeFirePresetId(['fireBurnt', 'fireHotspots', 'fireDanger']) === 'standard');
+    activeFirePresetId(['fireBurnt', 'fireHotspots']) === 'standard');
   add('activeFirePresetId meldet null bei fremder Kombination',
     activeFirePresetId(['fireDanger', 'fireFuel']) === null);
   // Seit die Grundlage-Layer immer an sind, ist „Gefahrenindex + Feuerwetter"

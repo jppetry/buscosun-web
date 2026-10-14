@@ -337,9 +337,9 @@ export function verifyFireUrl(): { checks: FireUrlCheck[]; passed: number; faile
   const now = Date.UTC(2026, 8, 12, 12, 0);
 
   add('Standardzustand auf der Standard-Sicht schreibt nichts',
-    buildFireSearch(baseState(), 'gefahrenindex') === '', buildFireSearch(baseState(), 'gefahrenindex'));
+    buildFireSearch(baseState(), 'aktive-braende') === '', buildFireSearch(baseState(), 'aktive-braende'));
   add('immer aktive Layer stehen NIE in der URL',
-    !buildFireSearch(baseState(), 'gefahrenindex').includes('detektionen'));
+    !buildFireSearch(baseState(), 'aktive-braende').includes('detektionen'));
 
   const s1 = baseState({ windowH: 168, readoutTab: 'fires', layers: ['fireHotspots', 'fireFootprints', 'fireAnomalies', 'fireBurnt'] });
   add('aktive Brände mit 7-Tage-Fenster', buildFireSearch(s1, 'aktive-braende') === '?fenster=7t', buildFireSearch(s1, 'aktive-braende'));
