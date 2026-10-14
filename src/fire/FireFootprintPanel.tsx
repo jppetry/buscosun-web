@@ -45,6 +45,7 @@ import {
   FIRE_WEATHER_SOURCE_LABEL, FIRE_WEATHER_ATTRIBUTION,
   FIRE_WEATHER_ARCHIVE_LABEL, FIRE_WEATHER_ARCHIVE_ATTRIBUTION, type FireWeatherAtPoint,
 } from './detail/fireWeatherAtPoint';
+import { FireIcon } from './fireIcons';
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
   STATUS_LABEL, STATUS_COLOR, METHOD_LABEL, statusLabel, areaLabel, confidenceLabel,
@@ -513,6 +514,9 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                     onClick={() => (sel ? p.onClearSelect() : p.onSelect(r.id))}
                   >
                     <span className="br-fire-top">
+                      <span className="br-fire-ic" style={{ color: r.suspectedStatic ? STATIC_GREY : STATUS_COLOR[r.status.kind] }}>
+                        <FireIcon layer="fireHotspots" size={20} />
+                      </span>
                       <span className="br-fire-name">{recordName(r)}</span>
                       <Badge r={r} />
                       <span className="br-fire-region" title={missingReason(r, 'country') ?? undefined}>{regionLabel(r)}</span>

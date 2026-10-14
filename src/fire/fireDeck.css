@@ -474,23 +474,24 @@
 .br-fire-name { font-size: 13.5px; font-weight: 700; color: var(--ink-900, #2C2A26); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .br-fire.is-sel .br-fire-name { font-size: 14px; }
 .br-fire.is-static .br-fire-name { color: var(--stone-600, #5C5447); }
-.br-fire-region { margin-left: auto; font-size: 10.5px; color: var(--stone-500, #8B7355); white-space: nowrap; flex: 0 0 auto; }
-.br-badge { font-size: 9px; font-weight: 700; border-radius: 5px; padding: 2px 6px; white-space: nowrap; flex: 0 0 auto; letter-spacing: .2px; }
+.br-fire-ic { display: flex; flex: 0 0 auto; }
+.br-fire-region { margin-left: auto; font-size: 12px; color: var(--stone-500, #8B7355); white-space: nowrap; flex: 0 0 auto; }
+.br-badge { font-size: 11px; font-weight: 700; border-radius: 5px; padding: 2px 6px; white-space: nowrap; flex: 0 0 auto; letter-spacing: .2px; }
 .br-badge.is-active { color: var(--cream-50, #FAF6EA); background: var(--br-red); padding: 2px 7px; }
 .br-badge.is-no-signal { color: var(--br-warn-ink); background: var(--br-warn-tint); border: 1px solid var(--br-warn-border); }
 .br-badge.is-static { color: var(--stone-600, #5C5447); background: var(--sand-100, #EDE6D3); border: 1px solid var(--border-medium, #D9D0B8); }
 .br-badge.is-out { color: var(--br-sage-text); background: var(--br-sage-tint); border: 1px solid var(--br-sage-border); }
 /* BD1: vier Kennzahlen je Kachel, immer sichtbar (Desktop 4 Spalten, Tablet/Sheet 2). */
-.br-fire-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 10px; }
+.br-fire-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
 .br-stat { display: flex; flex-direction: column; min-width: 0; }
-.br-stat-lbl { font-size: 9px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
+.br-stat-lbl { font-size: 11px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
 .br-stat-val { font-size: 15px; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
 .br-fire.is-sel .br-stat-val { font-size: 16px; }
 .br-stat-val.is-growing { color: #B93C1E; }
 .br-stat-val.is-declining { color: var(--br-slate); }
 .br-stat-val.is-stable { color: #7A6E5A; }
 .br-stat-val.is-no-signal { color: var(--br-warn-ink); }
-.br-stat-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-stat-sub { overflow-wrap: anywhere; }
 /* BD1: Detailkarte — Kopf, Abschnitte, Verlauf, Wetterlage */
 .br-detail-title { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--ink-900, #2C2A26); overflow: hidden; }
 .br-detail-sub { margin: 0; font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.5; overflow-wrap: anywhere; }
@@ -506,21 +507,21 @@
 .br-wx-loading { font-size: 11px; margin: 0; }
 .br-wx .fire-fp-reasons { font-size: 10.5px; }
 .br-stat-val.is-spread { color: #D4632E; }
-.br-stat-sub { font-size: 9px; color: var(--stone-500, #8B7355); }
+.br-stat-sub { font-size: 11px; color: var(--stone-500, #8B7355); }
 .br-stat-sub.is-mapped { color: var(--br-sage-text); }
 .br-fire-line { font-size: 11.5px; color: var(--ink-900, #2C2A26); }
 .br-fire-line em { font-style: normal; color: var(--stone-500, #8B7355); }
 .br-fire-line em.is-mapped { color: var(--br-sage-text); }
 .br-fire.is-static .br-fire-line { color: var(--stone-600, #5C5447); }
 .br-fire-vec { color: #D4632E; font-weight: 600; }
-.br-fire-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 10px; color: var(--stone-500, #8B7355); line-height: 1.4; }
-.br-fire-ctx { font-size: 10.5px; color: var(--stone-600, #5C5447); line-height: 1.5; }
+.br-fire-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 12px; color: var(--stone-500, #8B7355); line-height: 1.4; }
+.br-fire-ctx { font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.5; }
 .br-fire.is-static .br-fire-ctx { color: var(--stone-500, #8B7355); }
 .br-fire-chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
 .fire-crow-dot { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; display: inline-block; }
 .fire-fp-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; display: inline-block; }
 .fire-fp-src, .fire-fp-assess {
-  font-size: 9px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; border-radius: 5px; padding: 1px 5px; white-space: nowrap;
+  font-size: 11px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; border-radius: 5px; padding: 1px 6px; white-space: nowrap;
   border: 1px solid var(--sand-200, #E0D6BE); color: var(--stone-500, #8B7355); background: #fff;
 }
 .fire-fp-src.is-effis-rda { border-color: rgba(44, 42, 38, 0.5); color: var(--ink-900, #2C2A26); }
