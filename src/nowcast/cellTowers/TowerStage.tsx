@@ -51,6 +51,21 @@ export interface TowerStageProps {
   fallbackCenter: { lat: number; lon: number };
 }
 
+const STAGE_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+/** Warm-up before the first 3D view: connections to the tile hosts and the style JSON (the browser keeps it for the map). */
+let warmed = false;
+export function warmStage(): void {
+  if (warmed || typeof document === 'undefined') return;
+  warmed = true;
+  for (const href of ['https://tiles.openfreemap.org', 'https://elevation-tiles-prod.s3.amazonaws.com']) {
+    const l = document.createElement('link');
+    l.rel = 'preconnect'; l.href = href; l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+  void fetch(STAGE_STYLE_URL).catch(() => { /* only a warm-up */ });
+}
+
 function supportsWebGL(): boolean {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
 }
@@ -87,7 +102,7 @@ export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady,
     const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: 'https://tiles.openfreemap.org/styles/positron',
+      style: STAGE_STYLE_URL,
       center: main ? main.getCenter() : [fallbackCenter.lon, fallbackCenter.lat],
       zoom: main ? main.getZoom() : 8,
       pitch: STAGE_PITCH,

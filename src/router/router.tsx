@@ -58,6 +58,19 @@ const mapFirst = (dashboardView: boolean) => ({
   shouldRevalidate: () => false,
 });
 
+/**
+ * Regenradar: the `MapView` chunk starts in parallel with the route chunk (it used to start only after the page had
+ * rendered, a second round trip), but the route does not wait for it — the deck renders and starts the nowcast fetch at
+ * once and shows its own "Karte wird geladen" meanwhile. `?rr=legacy` (own radar map) does not need it.
+ */
+const mapPrefetch = {
+  loader: ({ request }: LoaderFunctionArgs) => {
+    if (new URL(request.url).searchParams.get('rr') !== 'legacy') void loadMapView().catch(() => {});
+    return null;
+  },
+  shouldRevalidate: () => false,
+};
+
 function AliasRedirect({ to }: { to: string }) {
   const { search, hash } = useLocation();
   return <Navigate to={{ pathname: to, search, hash }} replace />;
@@ -111,7 +124,7 @@ export function createAppRouter() {
         { index: true, ...page(() => import('./pages/HomeRoute')) },
         { path: sub('wetterkarte'), ...page(() => import('./pages/WetterkarteRoute'), 'wetterkarte'), ...mapFirst(true) },
         { path: sub('warnungen'), ...page(() => import('./pages/WarnungenRoute'), 'warnungen'), ...mapFirst(false) },
-        { path: sub('regenradar'), ...page(() => import('./pages/NowcastRoute'), 'regenradar') },
+        { path: sub('regenradar'), ...page(() => import('./pages/NowcastRoute'), 'regenradar'), ...mapPrefetch },
         { path: sub('vorhersage'), ...page(() => import('./pages/ForecastRoute')) },
         { path: sub('tourenplanung'), ...page(() => import('./pages/TourRoute')) },
         { path: sub('eventplanung'), ...page(() => import('./pages/EventRoute')) },

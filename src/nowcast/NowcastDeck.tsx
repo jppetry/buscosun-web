@@ -11,7 +11,7 @@
  * (Layer/Ansicht/Modus/Datenlage) · dunkles Radarfeld (Center) · rechter Readout.
  * Mobile: Radar oben + ziehbares Bottom-Sheet.
  */
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
@@ -246,6 +246,17 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     setView3dState('map');
     setMTab((t) => (t === '3d' ? 'glance' : t));
   }, [snow3dLayers]);
+  // Load the 3D chunk (+ connections to its tile hosts) before it is asked for: idle once the nowcast is there, and on
+  // hover/focus of the 3D switch — the stage then opens without the chunk and style round trips.
+  const prefetch3d = useCallback(() => { void import('./cellTowers/TowerStage').then((m) => m.warmStage()).catch(() => {}); }, []);
+  const nowcastReady = state.kind === 'ready';
+  useEffect(() => {
+    if (!z3dOn || !nowcastReady) return;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (h: number) => void };
+    if (w.requestIdleCallback) { const h = w.requestIdleCallback(prefetch3d, { timeout: 4000 }); return () => w.cancelIdleCallback?.(h); }
+    const t = window.setTimeout(prefetch3d, 2500);
+    return () => window.clearTimeout(t);
+  }, [z3dOn, nowcastReady, prefetch3d]);
   const [ztMainMap, setZtMainMap] = useState<maplibregl.Map | null>(null);
   const [ztRadar, setZtRadar] = useState<ProfileRadarPick | null>(null);
   const ztDesktop = z3dOn && !isMobile && view === 'map' && view3d !== 'map' && snow3dLayers;
@@ -328,7 +339,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <div className="zt-viewseg" role="group" aria-label="Ansicht">
                 {(['map', '3d'] as const).map((v) => (
                   <button key={v} type="button" className={view3d === v && view === 'map' ? 'is-active' : ''} aria-pressed={view3d === v && view === 'map'}
-                    onClick={() => setView3d(v)}>{VIEW3D_LABEL[v]}</button>
+                    onPointerEnter={prefetch3d} onFocus={prefetch3d} onClick={() => setView3d(v)}>{VIEW3D_LABEL[v]}</button>
                 ))}
               </div>
             )}
