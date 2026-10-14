@@ -248,7 +248,7 @@ export function historyStatTiles(e: HistoryIndexEntry): { lbl: string; val: stri
  * einer Station braucht und diese hier eine lückenlose Stundenreihe — zwei Fragen,
  * zwei Reihen; zusammengeführt wird trotzdem in DERSELBEN `parseFireWeather`.
  */
-function HistoryDriversCard({ entry, spreadBearingDeg, width }: { entry: HistoryIndexEntry; spreadBearingDeg: number | null; width: number }) {
+function HistoryDriversCard({ entry, spreadBearingDeg, width }: { entry: HistoryIndexEntry; spreadBearingDeg: number | null; width?: number }) {
   const [wx, setWx] = useState<FireWeatherAtPoint | 'loading' | null>('loading');
   useEffect(() => {
     let alive = true;
@@ -296,7 +296,7 @@ export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: 
         </div>
         {shard.kind === 'loading' && <p className="br-note">Detail wird geladen … (eine Zelle, eine Datei)</p>}
         {shard.kind === 'error' && <p className="br-note">Detail nicht erreichbar ({shard.message}) — die Kennzahlen oben stammen aus dem Index.</p>}
-        {passes.length > 0 && <FirePassChart passes={passes} nowMs={entry.lastMs} wide wideWidth={chartWidth} />}
+        {passes.length > 0 && <FirePassChart passes={passes} nowMs={entry.lastMs} wide wideWidth={chartWidth > 420 ? 4000 : chartWidth} />}
         {passes.length === 1 && <p className="br-note">Ein einziger Überflug — es gibt keinen zeitlichen Verlauf, nur diesen Messpunkt.</p>}
         {/* BD3: übernommen aus der gestrichenen Inline-Karte — die Einzeldetektion ist die schwächste
             Aussage der Historie und muss auch im Dossier stehen. */}
@@ -345,7 +345,7 @@ export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: 
       </section>
 
       {/* BDE-D: dieselbe Wetterführung wie im Live-Dossier — EINE Darstellung, zwei Quellen. */}
-      <HistoryDriversCard entry={entry} spreadBearingDeg={spreadBearingDeg} width={chartWidth} />
+      <HistoryDriversCard entry={entry} spreadBearingDeg={spreadBearingDeg} width={chartWidth > 420 ? undefined : chartWidth} />
 
       {/* BDE-E: dasselbe Brandprofil wie im Live-Dossier. Der Anker ist hier immer eine
           Detektion — Historie-Ereignisse ohne Detektion tragen den Beginn der Kartierung
