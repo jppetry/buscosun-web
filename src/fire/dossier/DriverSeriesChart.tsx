@@ -111,7 +111,7 @@ function LinesLayer({ series, lineGenerator, dashedId }: LayerCtx & { dashedId?:
 }
 
 const PAD_L = 46;
-const PAD_R = 40;
+const PAD_R = 30;
 const ROW_H = 84;
 const AXIS_H = 56;
 
@@ -332,7 +332,7 @@ export function DriverSeriesChart({ hours, detectionRange, index, width }: Drive
                           tickSize: 4, tickPadding: 8, tickValues: xTicks,
                           format: (v) => {
                             const d = v as Date;
-                            return `${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} ${d.toLocaleTimeString('de-DE', { hour: '2-digit' })} Uhr`;
+                            return `${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} ${d.toLocaleTimeString('de-DE', { hour: '2-digit' })}`;
                           },
                           legend: 'Zeit (Ortszeit, stündliche Modellwerte)',
                           legendPosition: 'middle',
