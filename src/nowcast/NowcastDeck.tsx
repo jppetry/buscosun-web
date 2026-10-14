@@ -55,13 +55,11 @@ import CellPlacesCard from './CellPlacesCard';
 // Phase HZS (audit/hoehen-zeit-schnitt.md): Höhen-Zeit-Schnitt am gewählten Ort — nur `?hzs=1`, Lazy-Chunk.
 import { heightTimeEnabledFrom } from './heightTime/heightTimeFlag';
 const HeightTimePanel = lazy(() => import('./heightTime/HeightTimePanel'));
-// Phase ZT (audit/zelltuerme-3d.md): 3D stage "Zelltürme auf Gelände" — on by default (Jan 09.10.), `?z3d=0` = before; lazy chunk (stage + Steckbrief block).
+// Phase ZT (audit/zelltuerme-3d.md): 3D stage — on by default (Jan 09.10.), `?z3d=0` = before; lazy chunk. Snow + snow line only (cell towers dropped).
 import { towers3dEnabledFrom, view3dFrom, VIEW3D_LABEL, type View3d } from './cellTowers/towerFlag';
-import type { TowerSnapshot } from './cellTowers/TowerStage';
 import type { ProfileRadarPick } from '../MapView';
 import './cellTowers/cellTowersShell.css';
 const TowerStage = lazy(() => import('./cellTowers/TowerStage'));
-const TowerFacts = lazy(() => import('./cellTowers/TowerStage').then((m) => ({ default: m.TowerFacts })));
 // Phase SK (on, `?sk=0` off, audit/schneefallgrenze-flaeche.md): snowfall line as a surface — flag here, place card lazy.
 import { snowCapEnabledFrom } from '../snowCap/snowCapModel';
 const SnowArrivalPanel = lazy(() => import('../snowCap/SnowArrivalPanel'));
@@ -153,7 +151,11 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const [sumSel, setSumSel] = useState<SumSelection>(() => loadSumSel(rcOn));
   useEffect(() => { try { localStorage.setItem(SUM_SEL_KEY, JSON.stringify(sumSel)); } catch { /* ohne Speicher */ } }, [sumSel]);
   // Tabwechsel: Schnellblick als Peek, alle inhaltsreichen Bereiche als Voll.
-  const selectMTab = (t: MobileTab) => { setMTab(t); setMSnap(t === 'glance' ? 'peek' : 'full'); };
+  const selectMTab = (t: MobileTab) => {
+    setMTab(t); setMSnap(t === 'glance' ? 'peek' : 'full');
+    // The 3D tab shows snow only: without a snow layer it switches the `snowline` layer on.
+    if (t === '3d' && !layers.includes('snow') && !layers.includes('snowline')) setLayers((ls) => [...ls, 'snowline']);
+  };
 
   const nowcast = state.kind === 'ready' ? state.nowcast : null;
   const activeLayerCount = layers.length;
@@ -228,36 +230,39 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const skOn = useMemo(() => snowCapEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const [skStageMap, setSkStageMap] = useState<maplibregl.Map | null>(null);
 
-  // Phase ZT (on, `?z3d=0` off): view Karte | Karte + 3D | 3D (topbar), mobile tab "3D". The stage gets the slider time, the HD
-  // frames of `MapView` and the main map; a tapped tower selects the cell and shows its Steckbrief block.
+  // Phase ZT (on, `?z3d=0` off): view Karte | 3D (topbar), mobile tab "3D" — snow and snow line only. The stage gets the HD
+  // frames of `MapView` and the main map.
   const z3dOn = useMemo(() => towers3dEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const [view3d, setView3dState] = useState<View3d>(() => (z3dOn ? view3dFrom(typeof window !== 'undefined' ? window.location.search : '') : 'map'));
-  const setView3d = (v: View3d) => { setView3dState(v); if (v !== 'map') setView('map'); };
+  // The 3D view shows snow and the snow line only: choosing it switches the `snowline` layer on when no snow layer is on;
+  // switching both snow layers off again leaves it (desktop view and mobile tab).
+  const snow3dLayers = layers.includes('snow') || layers.includes('snowline');
+  const setView3d = (v: View3d) => {
+    setView3dState(v);
+    if (v !== 'map') { setView('map'); if (!snow3dLayers) setLayers((ls) => [...ls, 'snowline']); }
+  };
   useEffect(() => { if (view !== 'map') setView3dState('map'); }, [view]);
+  useEffect(() => {
+    if (snow3dLayers) return;
+    setView3dState('map');
+    setMTab((t) => (t === '3d' ? 'glance' : t));
+  }, [snow3dLayers]);
   const [ztMainMap, setZtMainMap] = useState<maplibregl.Map | null>(null);
   const [ztRadar, setZtRadar] = useState<ProfileRadarPick | null>(null);
-  const [towerSnap, setTowerSnap] = useState<TowerSnapshot | null>(null);
-  const [towerSel, setTowerSel] = useState<number | null>(null);
-  const [dockOpen, setDockOpen] = useState(false);
-  const ztDesktop = z3dOn && !isMobile && view === 'map' && view3d !== 'map';
-  const ztMobile = z3dOn && isMobile && mTab === '3d';
+  const ztDesktop = z3dOn && !isMobile && view === 'map' && view3d !== 'map' && snow3dLayers;
+  const ztMobile = z3dOn && isMobile && mTab === '3d' && snow3dLayers;
   const ztActive = ztDesktop || ztMobile;
-  const pickTower = (id: number) => { setTowerSel(id); if (zoOn) zo.select(id); };
-  const towerInfo = towerSel != null ? towerSnap?.infos.find((i) => i.id === towerSel) ?? null : null;
   const towerStage = (variant: 'desktop' | 'mobile') => (
     <Suspense fallback={<div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> 3D-Bühne lädt …</div>}>
-      <TowerStage timeMs={sliderMs} mainMap={ztMainMap} radar={ztRadar} selectedId={towerSel} onTowerPick={pickTower}
-        onTowers={setTowerSnap} variant={variant} fallbackCenter={{ lat: location.lat, lon: location.lon }} onStageReady={skOn ? setSkStageMap : undefined} />
+      <TowerStage mainMap={ztMainMap} radar={ztRadar}
+        variant={variant} fallbackCenter={{ lat: location.lat, lon: location.lon }} onStageReady={skOn ? setSkStageMap : undefined} />
     </Suspense>
   );
-  const towerFacts = (variant: 'desktop' | 'mobile') => (ztActive && towerInfo
-    ? <Suspense fallback={null}><TowerFacts info={towerInfo} variant={variant} /></Suspense>
-    : null);
   // Main map always reported with the switch (camera link starts with the right view); mapRef as the other phases use it.
   const ztMapProps = z3dOn ? {
     onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; setZtMainMap(m); },
     ...(ztActive ? { onProfileRadarPick: setZtRadar, onTimeChange: setSliderMs } : {}),
-    ...(ztDesktop ? { stageAside: towerStage('desktop'), stage3d: view3d === '3d' ? '3d' as const : 'split' as const } : {}),
+    ...(ztDesktop ? { stageAside: towerStage('desktop'), stage3d: '3d' as const } : {}),
   } : {};
 
   // Phase SK (on, `?sk=0` off): cap on the map + on ZT's stage (its map arrives via `onStageReady`), place card with 48-h bar.
@@ -270,7 +275,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     </Suspense>
   ) : null);
   const skMapProps = skOn ? {
-    snowCap: { pickMs: skPickMs, stageMap: skStageMap, mapHidden: ztDesktop && view3d === '3d' },
+    snowCap: { pickMs: skPickMs, stageMap: skStageMap, mapHidden: ztDesktop },
     ...(skActive ? { onTimeChange: setSliderMs, onUserTime: () => { setSkPickMs(null); if (chanceActive) setPickMs(null); } } : {}),
   } : {};
 
@@ -376,7 +381,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             snowMode={snowMode} setSnowMode={setSnowMode}
             sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} rainWindow={rainWindow} chance={chance}
             cellCard={cellCardMobile} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
-            {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}{towerFacts('mobile')}</div> : null } : {})} />
+            {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}</div> : null } : {})} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} withHeight={hzsOn} with3d={z3dOn} />
         </div>
       ) : (
@@ -391,22 +396,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
                 sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} chance={chance} country={location.country}
               />
             );
-            // Phase ZT (E-ZT-7): in "Karte + 3D" the dock shrinks to 64 px icons; "Alle Einstellungen" opens it in full.
-            if (!z3dOn) return dock;
-            const slim = ztDesktop && view3d === 'split';
-            return (
-              <div className={`zt-dockwrap${slim ? ' is-slim' : ''}${slim && dockOpen ? ' is-open' : ''}`}>
-                {dock}
-                {slim && (
-                  <button type="button" className="zt-dockmore" onClick={() => setDockOpen((o) => !o)} aria-expanded={dockOpen}
-                    aria-label={dockOpen ? 'Einstellungen schließen' : 'Alle Einstellungen'} title={dockOpen ? 'Einstellungen schließen' : 'Alle Einstellungen'}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">{dockOpen
-                      ? <path d="M15 6 9 12l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                      : <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}</svg>
-                  </button>
-                )}
-              </div>
-            );
+            return dock;
           })()}
           {center}
           <div className="rr-readout">
@@ -414,7 +404,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-readout-eyebrow">Regenradar · {flagForCountry(location.country)} {shortPlace(location.name)}</span>
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={ztDesktop && towerInfo ? <>{towerFacts('desktop')}{cellCardDesktop}</> : cellCardDesktop} snowCard={skCard('desktop')} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} snowCard={skCard('desktop')} />
           </div>
         </div>
       )}
