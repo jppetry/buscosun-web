@@ -199,7 +199,7 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
           {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
           {satEnabled() && (
             <DossierCard
-              title="Satellitenbild" tone="stone" label="Satellitenbild vorher, während und nachher"
+              title="Satellitenbild" tone="stone" label="Satellitenbild vorher, während und nachher" defaultExpanded
               subtitle="Vorher · während · nachher — wenn die Wolken es zulassen"
               className="br-ds-satbild"
             >

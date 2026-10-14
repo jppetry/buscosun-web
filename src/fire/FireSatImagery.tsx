@@ -126,8 +126,10 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   }, [data, scene]);
 
   // Die 10-m-Ansicht gibt es nur für Sentinel-2-Szenen (Landsat: kein anonymer COG-Pfad, 30 m).
+  // Jans Auftrag 2026-10-14: an Sentinel-2-Tagen öffnet die 10-m-Ansicht von selbst; Landsat-Tage bleiben bei 30 m.
   useEffect(() => {
-    if (scene?.sat !== 's2') setCog10(false);
+    if (scene?.sat !== 's2') { setCog10(false); return; }
+    setCog10(sat10Enabled());
   }, [scene]);
 
   if (im.kind === 'loading') {

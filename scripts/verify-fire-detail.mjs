@@ -240,7 +240,7 @@ const cogv = readFileSync(join(ROOT, 'src', 'fire', 'FireCogViewer.tsx'), 'utf8'
 add('[cog] Viewer ist ein eigener Lazy-Chunk und lädt erst mit dem Klick (NerdPanel-Muster)',
   /lazy\(\(\) => import\('\.\/FireCogViewer'\)\)/.test(satc) && /\{cog10 && \(/.test(satc) && /<Suspense/.test(satc));
 add('[cog] Kill-Switch ?sat10=0 im Modul, der Einstiegsknopf hängt daran (Rule 2)',
-  /get\('sat10'\)/.test(satm) && (satc.match(/sat10Enabled\(\)/g) ?? []).length === 2);
+  /get\('sat10'\)/.test(satm) && (satc.match(/sat10Enabled\(\)/g) ?? []).length === 3);
 add('[cog] Kostenzahl steht am Knopf, BEVOR etwas lädt',
   /lädt je nach Zoom ~1–10 MB/.test(satc));
 add('[cog] Landsat ist ausgeschlossen UND der Grund steht als Satz im Fußtext',
@@ -1087,8 +1087,8 @@ const codeOnly = (src) => src
     && /satEnabled\(\) &&/.test(dos));
 
   // Mobil: Accordion — zugeklappt heißt nicht gestrichen.
-  add('[mui] mobil sind die Karten ein Accordion-Stapel; Verlauf startet OFFEN (Wetterlage-Karte entfällt, Jan 14.10.)',
-    /<Accordion/.test(prim) && (dos.match(/defaultExpanded/g) ?? []).length === 1
+  add('[mui] mobil sind die Karten ein Accordion-Stapel; Verlauf und Satellitenbild starten OFFEN (Wetterlage-Karte entfällt, Jan 14.10.)',
+    /<Accordion/.test(prim) && (dos.match(/defaultExpanded/g) ?? []).length === 2
     && /title="Verlauf"[\s\S]{0,200}defaultExpanded/.test(dos));
   add('[mui] mobil zeigt D4 zwei Zeilen UND einen Weg zu allen fünf (nicht drei gestrichene)',
     /Alle fünf Größen zeigen/.test(d4) && /mobileKeys/.test(d4) && /setAllRows\(true\)/.test(d4));
