@@ -28,6 +28,7 @@ import { modelEntry, isWhitelisted, RADAR_SOURCE, type ModelId } from './fusion/
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
+import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels } from './map/weatherBasemap';
 import { PointForecastPanel, type PointForecastView } from './pointForecast/PointForecastPanel';
 import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, tempLabelColor, type TemperatureSamplerOptions, type City } from './temperatureLabels';
 import { LayerIcon } from './components/LayerIcon';
@@ -335,23 +336,8 @@ const START_NOW_ONLY = (() => {
 // beim Start nie mit (ModelLibraryOverlay oben ist ein Lazy-Import).
 const MODEL_SWITCHER_VISIBLE = false;
 // Same dark OpenFreeMap basemap as Autobahnwetter (`RoadMap.tsx`) — overview/forecast map AND the radar
-// profile (Regenradar) now share it (Jans Auftrag 12./13.10.).
-const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
-/** The lowest boundary line layer of the loaded style ('boundary_state' in dark, was 'boundary_3' in the
- *  former positron style). Weather layers insert themselves right below it, so country/state outlines and
- *  every label stay on top of the heatmaps. */
-function firstBoundaryLayerId(map: maplibregl.Map): string | undefined {
-  return map.getStyle()?.layers?.find((l) => l.id.startsWith('boundary'))?.id;
-}
-/** The dark style's place/water/road labels prefer `name_en` (so DACH country names would read "Germany" /
- *  "Austria" / "Switzerland"); same fix as `RoadMap.tsx`'s `germanLabels` — force the local name. */
-function germanBasemapLabels(map: maplibregl.Map) {
-  for (const l of map.getStyle()?.layers ?? []) {
-    if (l.type !== 'symbol') continue;
-    const tf = map.getLayoutProperty(l.id, 'text-field');
-    if (tf && JSON.stringify(tf).includes('name_en')) map.setLayoutProperty(l.id, 'text-field', ['coalesce', ['get', 'name:de'], ['get', 'name'], ['get', 'name_en']]);
-  }
-}
+// profile (Regenradar) now share it (Jans Auftrag 12./13.10.); since Phase BK also the Brandkarte (`map/weatherBasemap.ts`).
+const BASEMAP_STYLE = WEATHER_BASEMAP_STYLE;
 const COUNTRY_MASK_SOURCE_ID = 'country-mask';
 const COUNTRY_MASK_LAYER_ID = 'country-mask-fill';
 const SAT_SOURCE_ID = 'satellite';

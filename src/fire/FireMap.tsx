@@ -23,6 +23,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { patchLibertyRefLength } from '../map/libertyStyle';
+import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels } from '../map/weatherBasemap';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { loadDachMask } from '../countryMask';
 import {
@@ -68,10 +69,10 @@ import {
   corroborationLabel, NO_MAPPING_NOTE, type BurntPolygon,
 } from './fireCorroboration';
 
-/** Vektor-Basiskarte wie in der Wetterkarte (`MapView.tsx:1222`): der helle
- *  Positron-Stil, nicht der bunte Liberty-Stil. Zusammen mit dem Ink-Schleier
- *  und der sandfarbenen DACH-Maske ergibt das dieselbe Kartenoptik wie dort. */
-const STREETS = 'https://tiles.openfreemap.org/styles/positron';
+/** Vektor-Basiskarte: DERSELBE dunkle Stil wie in der Wetterkarte (Phase BK,
+ *  `map/weatherBasemap.ts`) — ohne Schleier, mit deutschen Ortsnamen und der
+ *  sandfarbenen DACH-Maske ergibt das dieselbe Kartenoptik wie dort. */
+const STREETS = WEATHER_BASEMAP_STYLE;
 
 /** DACH-Überblick: der Ausschnitt, in dem die Ansicht startet. */
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 45.5, 17.5, 55.5];
@@ -666,6 +667,8 @@ export default function FireMap({
     // Brandradar lud bis hier nie Zoom-12-Kacheln (DACH-Überblick); seit der Fokus-Zoom auf einen
     // Brand sie holt, warnte der Worker je Kachel. Auf 'style.load', nicht 'load' (R3D-5 §22.3).
     map.on('style.load', () => patchLibertyRefLength(map));
+    // Phase BK: der dunkle Stil nennt Länder/Orte englisch (`name_en`) — wie in der Wetterkarte auf den lokalen Namen zwingen.
+    map.on('style.load', () => germanBasemapLabels(map));
     // BD2e (2026-08-31): MapLibre öffnet die kompakte Attribution beim Start AUSGEKLAPPT
     // (details[open], gemessen 612 × 62 px über der unteren Kartenhälfte) — sie schluckte
     // dort jeden Brand-Klick (elementFromPoint zeigte das details-Element, der Karten-
@@ -1276,9 +1279,8 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     }
   }
 
-  // Ink-Schleier über der Basiskarte, ABER unter den Fachlayern und (im
-  // Vektorstil) unter den Grenz-/Beschriftungslayern — 1:1 die Wetterkarte
-  // (`MapView.tsx:1282`, ink-900 #2C2A26 bei 0,8). Er verdunkelt die Karte,
+  // Ink-Schleier (nur Luft-/Geländebild, s. u.) über der Basiskarte, ABER unter den Fachlayern und
+  // unter den Grenz-/Beschriftungslayern (ink-900 #2C2A26). Er verdunkelt die Karte,
   // damit Hotspots, Hüllen und die Treiber-Raster auf dunklem Grund stehen
   // statt auf der hellen Basiskarte auszubleichen. Er wird als ERSTES
   // eingehängt, damit jeder später ergänzte Fachlayer über ihm liegt.
@@ -1295,19 +1297,18 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
       },
     });
   }
-  if (!map.getLayer('fire-dim-fill')) {
+  // Phase BK: die Vektorkarte ist der dunkle Wetterkarten-Stil und trägt KEINEN
+  // Schleier mehr (wie dort). Nur Luft-/Geländebild behalten ihn, schwächer
+  // (0,3) — sonst wäre genau das Bild weg, wegen dem man umschaltet.
+  if (basemap !== 'streets' && !map.getLayer('fire-dim-fill')) {
     map.addLayer(
       {
         id: 'fire-dim-fill',
         type: 'fill',
         source: 'fire-world',
-        // Vektorkarte: eine Spur heller als die Wetterkarte (0,7 statt 0,8 —
-        // Jans Wunsch 2026-08-19), Ortsnamen und Straßen treten damit wieder
-        // etwas hervor. Luft-/Geländebild: schwächer, sonst wäre genau das
-        // Bild weg, wegen dem man umschaltet.
-        paint: { 'fill-color': '#2C2A26', 'fill-opacity': basemap === 'streets' ? 0.7 : 0.3 },
+        paint: { 'fill-color': '#2C2A26', 'fill-opacity': 0.3 },
       },
-      map.getLayer('boundary_3') ? 'boundary_3' : undefined,
+      firstBoundaryLayerId(map),
     );
   }
 
