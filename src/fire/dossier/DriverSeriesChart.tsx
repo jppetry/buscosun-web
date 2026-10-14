@@ -99,7 +99,7 @@ function LinesLayer({ series, lineGenerator, dashedId }: LayerCtx & { dashedId?:
         return (
           <path
             key={s.id} d={d} fill="none" stroke={s.color}
-            strokeWidth={dashed ? 1 : 1.6}
+            strokeWidth={dashed ? 1.2 : 2}
             strokeDasharray={dashed ? '4 3' : undefined}
             opacity={dashed ? 0.55 : 1}
             strokeLinejoin="round"
@@ -112,8 +112,8 @@ function LinesLayer({ series, lineGenerator, dashedId }: LayerCtx & { dashedId?:
 
 const PAD_L = 46;
 const PAD_R = 40;
-const ROW_H = 66;
-const AXIS_H = 26;
+const ROW_H = 84;
+const AXIS_H = 56;
 
 const de = (n: number, frac = 1) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
 
@@ -157,7 +157,9 @@ export function DriverSeriesChart({ hours, detectionRange, index, width = 380 }:
   const shown = bp === 'mobile' && !allRows ? rows.filter((r) => mobileKeys.has(r.key)) : rows;
   const hidden = rows.length - shown.length;
 
-  const rowH = bp === 'mobile' ? 60 : ROW_H;
+  const rowH = bp === 'mobile' ? 72 : ROW_H;
+  // Dieselbe Tickzahl für Zeitachse UND vertikale Hilfslinien — so stehen beide auf denselben Stunden.
+  const xTicks = bp === 'mobile' ? 3 : 6;
 
   /** Die Stunde unter dem Zeiger — aus der Pixelposition, nicht aus einem Chart-Ereignis. */
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -256,7 +258,7 @@ export function DriverSeriesChart({ hours, detectionRange, index, width = 380 }:
       </Typography>
 
       <Box ref={boxRef} onPointerMove={onMove} onPointerLeave={() => setHoverMs(null)}>
-        <Stack spacing={0}>
+        <Stack spacing={2}>
           {shown.map((r, i) => {
             const last = i === shown.length - 1;
             const vals = r.values.filter((v): v is number => v != null);
@@ -283,15 +285,16 @@ export function DriverSeriesChart({ hours, detectionRange, index, width = 380 }:
                 ];
 
             return (
-              <Box key={r.key}>
+              <Box key={r.key} sx={i > 0 ? { pt: 1.75, borderTop: '1px solid', borderColor: 'divider' } : undefined}>
                 {/* Die Zeilenbeschriftung steht ÜBER der Zeile, nicht in ihrer Ecke: dort lag sie
                     auf der obersten Achsenmarke („TEMPERATUR" über „30 °C") und beide wurden
                     unlesbar. Sie kostet 14 px je Zeile — der Preis für zwei lesbare Angaben. */}
                 <Typography
                   variant="overline" component="span"
-                  sx={{ display: 'block', fontSize: 10, letterSpacing: '.08em', color: 'text.secondary', lineHeight: '14px' }}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', color: 'text.primary', lineHeight: '18px', mb: 0.5 }}
                 >
-                  {r.label}
+                  <Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: r.color, flex: '0 0 auto' }} />
+                  {r.label}{r.unit ? <Box component="span" sx={{ fontWeight: 500, color: 'text.disabled', letterSpacing: 0, textTransform: 'none' }}> · {r.unit}</Box> : null}
                 </Typography>
                 <Box
                   sx={{
@@ -310,23 +313,30 @@ export function DriverSeriesChart({ hours, detectionRange, index, width = 380 }:
                     // Messpunkte, keine Kurve: keine Einblendung, keine Punkte, keine Legende.
                     animate={false}
                     enablePoints={false}
-                    enableGridX={false}
-                    gridYValues={2}
+                    enableGridX
+                    gridXValues={xTicks}
+                    gridYValues={3}
                     isInteractive={false}
                     enableSlices={false}
                     enableArea={!r.bars}
                     areaOpacity={1}
-                    lineWidth={1.6}
+                    lineWidth={2}
                     axisTop={null}
                     axisRight={null}
                     axisLeft={{
-                      tickSize: 0, tickPadding: 6, tickValues: 2,
+                      tickSize: 0, tickPadding: 8, tickValues: 3,
                       format: (v) => `${de(Number(v), hi - lo < 5 ? 1 : 0)}${r.unit ? ` ${r.unit}` : ''}`,
                     }}
                     axisBottom={last
                       ? {
-                          tickSize: 0, tickPadding: 8, tickValues: bp === 'mobile' ? 2 : 4,
-                          format: (v) => (v as Date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+                          tickSize: 4, tickPadding: 8, tickValues: xTicks,
+                          format: (v) => {
+                            const d = v as Date;
+                            return `${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} ${d.toLocaleTimeString('de-DE', { hour: '2-digit' })} Uhr`;
+                          },
+                          legend: 'Zeit (Ortszeit, stündliche Modellwerte)',
+                          legendPosition: 'middle',
+                          legendOffset: 42,
                         }
                       : null}
                     /*
