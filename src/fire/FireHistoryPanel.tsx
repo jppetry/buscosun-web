@@ -23,7 +23,7 @@ import { featuresSummary, featuresJson } from './activity/features';
 import { dynamicsOf } from './activity/dynamics';
 import { DriversView } from './FireFootprintPanel';
 import { Stat } from './FireFootprintPanel';
-import { FireIcon } from './fireIcons';
+import { FlameIcon, IndustryIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
 import { LANDCOVER_LABEL, LANDCOVER_KEYS } from './fireCorroboration';
@@ -123,7 +123,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
                   <button type="button" className="br-fire-btn" onClick={() => p.onSelect(e)} aria-pressed={p.selectedId === e.id}>
                     <span className="br-fire-top">
                       <span className="br-fire-ic" style={{ color }}>
-                        <FireIcon layer="fireHotspots" size={20} />
+                        {e.anomalyKind === 'site' ? <IndustryIcon size={20} /> : <FlameIcon size={20} />}
                       </span>
                       <span className="br-fire-name">{historyEntryName(e)}</span>
                       <span className="br-fire-region">{COUNTRY_LABEL[e.country] ?? e.country}</span>

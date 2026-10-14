@@ -11,6 +11,7 @@
  * Eigene Komponente mit denselben Klassen wie `FireFootprintPanel` (`.br-firelist`, `.br-fire`,
  * `.br-chip`, `.br-more`, `.br-detail`) — keine Änderung dort. Deckel wie V-246: `CLUSTER_PAGE`.
  */
+import { IndustryIcon } from './fireIcons';
 import { useMemo, useState } from 'react';
 import type { FireRecord } from './footprint/fireRegistry';
 import { CLUSTER_PAGE } from './fireClusters';
@@ -172,6 +173,9 @@ export function FireAnomalyPanel(p: AnomalyPanelProps) {
                   onClick={() => (sel ? p.onClearSelect() : p.onSelectSite(site.id, rec?.id ?? null))}
                 >
                   <span className="br-fire-top">
+                    <span className="br-fire-ic" style={{ color: 'var(--stone-500, #8B7355)' }}>
+                      <IndustryIcon size={20} />
+                    </span>
                     <span className="br-fire-name">{siteName(site)}</span>
                     {badge && <span className={`br-badge is-${badge}`}>{BR_BADGE_LABEL[badge]}</span>}
                     <span className={`br-badge is-cls is-cls-${site.cls}`} title={SITE_CLASS_LABEL[site.cls]}>{site.cls}</span>

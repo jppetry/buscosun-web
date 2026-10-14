@@ -154,3 +154,35 @@ export function IcoBarTime({ size = 20 }: IcoProps) {
     </svg>
   );
 }
+
+/**
+ * Flamme für die Brand-Kacheln im Readout (Jans Auftrag 2026-10-14): Kontur mit leiser
+ * Füllung und einem vollen Kern — `currentColor`, die Kachel setzt die Statusfarbe.
+ */
+export function FlameIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: '0 0 auto' }}>
+      <path
+        d="M12 2.6c.5 3 2.3 4.7 3.9 6.5 1.6 1.8 2.6 3.5 2.6 5.7a6.5 6.5 0 0 1-13 0c0-2.1.9-3.8 2.2-5.1.3 1.2 1 2 2 2.4C9.1 8.8 10.5 5.5 12 2.6Z"
+        fill="currentColor" fillOpacity=".14" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"
+      />
+      <path
+        d="M12 21a3 3 0 0 0 3-3c0-1.6-1.2-2.5-2.1-3.7-.5 1-1 1.4-1.7 1.8-.9.5-2.2 1-2.2 2.4A3 3 0 0 0 12 21Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+/** Industrieanlage (Sheddach + Schornstein) für Thermalanomalien — Standorte, keine Brände. */
+export function IndustryIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: '0 0 auto' }}>
+      <path
+        d="M3 20.5V11.8l5.5 3.2v-3.2l5.5 3.2V4.5h4.5v16H3Z"
+        fill="currentColor" fillOpacity=".14" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"
+      />
+      <path d="M7 18h.01M11 18h.01M15.2 18h.01M16.2 8h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
