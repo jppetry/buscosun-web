@@ -1665,45 +1665,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     .toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const standText = hourly ? `${hourLabel(time.hour)} · ${hourClock(time.hour)}` : dayLabel(time.day, nowMs);
 
-  /** Die Legende des Zeit-Decks: alle 6 Klassen der gewählten Sub-Ansicht + Detektion/ortsfest. */
   const viewMeta = DANGER_VIEWS[dangerView];
-  const legendRow = (compact: boolean) => (
-    <div className="br-legend">
-      <span className="br-eyebrow">{compact ? DANGER_VIEW_CODE[dangerView] : `Legende · ${DANGER_VIEW_CODE[dangerView]}`}</span>
-      {active.has('fireDanger') && (compact ? (
-        <span className="br-legend-compact">
-          {FWI_STEPS.map((c, i) => <i key={c} style={{ background: c }} title={`${viewMeta.classes[i].name} ${viewMeta.classes[i].range}`} />)}
-          <span>{viewMeta.classes[0].name} → {viewMeta.classes[5].name}</span>
-        </span>
-      ) : (
-        <span className="br-legend-classes">
-          {viewMeta.classes.map((c, i) => (
-            <span key={c.name} className="br-legend-cls" title={`${c.name} ${c.range} · ${viewMeta.unit}`}>
-              <i style={{ background: FWI_STEPS[i] }} />
-              <span>{i === 0 || i === 5 ? `${c.name} ${c.range}` : c.name}</span>
-            </span>
-          ))}
-        </span>
-      ))}
-      {!active.has('fireDanger') && <span className="br-legend-none">EU-Gefahrenindex aus — keine Klassenlegende</span>}
-      {(active.has('fireHotspots') || active.has('fireFootprints')) && (
-        <>
-          <span className="br-legend-dot"><i style={{ background: 'var(--br-det)' }} />Detektion</span>
-          <span className="br-legend-dot"><i style={{ background: 'var(--br-grey-dot)' }} />ortsfest{compact ? '' : ' (grau)'}</span>
-        </>
-      )}
-
-      {/* Der Stand steht auf der Tagesachse schon im roten Tick (HEUTE / +n d);
-          hier nur die Uhrzeit der Stundenachse und das Pending-„lädt …". */}
-      {(hourly || committedDay !== dayForLayers) && (
-        <span className="br-legend-stand">
-          {standText}
-          {committedDay !== dayForLayers && <span className="br-td-pending"> · lädt …</span>}
-        </span>
-      )}
-      <span className="br-legend-derived">{compact ? 'Farben abgeleitet' : 'Farben abgeleitet — nicht amtlich'}</span>
-    </div>
-  );
 
   const firesMode = !isMobile;
   /**
@@ -1956,7 +1918,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * die dem Regler nicht folgen, die nationalen Skalen, die Basiskarte und die Quellenzeile.
    * Es ist derselbe Baustein wie vorher — nur an einem anderen Ort (Funktionserhalt).
    */
-  const dockFoot = (compact: boolean) => (
+  // Jans Auftrag 2026-10-14: Legende · Detektion, „Nationale Skalen" und die Quellenzeile
+  // stehen nicht mehr im Dock-Fuß (die Skalen bleiben im Dossier / mobilen Sheet).
+  const dockFoot = () => (
     <>
       {lagging.length > 0 && (
         <p className="br-box is-lag">
@@ -1964,9 +1928,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           Regler nicht und {lagging.length === 1 ? 'zeigt' : 'zeigen'} weiter den {hourly ? 'jetzigen' : 'heutigen'} Stand.
         </p>
       )}
-      {legendRow(true)}
-      {scalesCard(compact)}
-      {sourcesLine(compact)}
     </>
   );
 
@@ -2212,7 +2173,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                 {!isTablet && <span className="br-count">{switchableCount} aktiv</span>}
               </div>
               {dockGroups(false)}
-              <div className="br-dockfoot">{dockFoot(true)}</div>
+              <div className="br-dockfoot">{dockFoot()}</div>
             </aside>
           )}
 
