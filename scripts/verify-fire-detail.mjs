@@ -69,7 +69,7 @@ add('[detail] Chart ist eingebunden und die Textliste bleibt (Tabelle desktop, L
   && /<Table size="small" stickyHeader className="fire-fp-passes"/.test(panel)
   && /<List dense disablePadding className="fire-fp-passes"/.test(panel)
   && ['Zeit', 'Satellit', 'Px', 'MW'].every((c) => panel.includes(`>${c}</TableCell>`)));
-add('[css] Kennzahl-Raster vierspaltig, im Sheet/Tablet zweispaltig', /\.br-fire-stats \{[^}]*grid-template-columns: repeat\(4/.test(css) && /\.br-fire-stats \{[^}]*repeat\(2/.test(css));
+add('[css] Kennzahl-Raster vierspaltig, im Sheet/Tablet zweispaltig', /\.br-fire-stats \{[^}]*grid-template-columns: repeat\(2/.test(css) && /\.br-ds \.br-fire-stats\.is-wide \{[^}]*repeat\(4/.test(css));
 add('[doku] API.md nennt past_days + icon_seamless', /past_days/.test(api) && /icon_seamless/.test(api));
 add('[doku] Lizenz-Ref zeigt auf das neue Modul', /fireWeatherAtPoint/.test(lic));
 

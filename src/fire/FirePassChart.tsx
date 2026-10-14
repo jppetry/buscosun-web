@@ -34,7 +34,7 @@
  *
  * Die Rechnung bleibt unangetastet in `detail/passTimeline.ts` (eigener Verifier).
  */
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -94,9 +94,44 @@ function decades(min: number, max: number): number[] {
   return out;
 }
 
+/** Balken mit gerundeter Oberkante, gerader Grundlinie — wirkt ruhiger als ein voll gerundetes Rechteck. */
+function roundedTopBar(x: number, y: number, w: number, h: number, r: number): string {
+  const rr = Math.max(0, Math.min(r, w / 2, h));
+  return `M${x},${y + h} V${y + rr} Q${x},${y} ${x + rr},${y} H${x + w - rr} Q${x + w},${y} ${x + w},${y + rr} V${y + h} Z`;
+}
+
+/** Kleine Kennzahl der Leiste über dem Diagramm. */
+function ChartStat({ label, value, caption }: { label: string; value: string; caption?: string }) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Typography component="div" sx={{ fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{label}</Typography>
+      <Typography component="div" sx={{ fontSize: 22, lineHeight: 1.15, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{value}</Typography>
+      {caption && <Typography component="div" sx={{ fontSize: 12, color: 'text.secondary' }}>{caption}</Typography>}
+    </Box>
+  );
+}
+
+/** Legenden-Chip (Farbmarke + Wort). */
+function LegendChip({ swatch, children }: { swatch: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Box component="span" sx={{
+      display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: 99,
+      border: '1px solid', borderColor: 'divider', fontSize: 12, color: 'text.secondary', bgcolor: 'background.paper',
+    }}>
+      {swatch}{children}
+    </Box>
+  );
+}
+
+interface HoverBar { key: string; x: number; y: number; lines: string[] }
+
 export function FirePassChart({ passes, nowMs, compact = false, wide = false, wideWidth = 380 }: FirePassChartProps) {
   const tl = useMemo(() => passTimeline(passes, nowMs), [passes, nowMs]);
-  const patternId = `fp-hatch-${useId().replace(/:/g, '')}`;
+  const rawId = useId().replace(/:/g, '');
+  const patternId = `fp-hatch-${rawId}`;
+  const gradDay = `fp-day-${rawId}`;
+  const gradNight = `fp-night-${rawId}`;
+  const [hover, setHover] = useState<HoverBar | null>(null);
   const t = useTheme();
   const theme = useMemo(() => nivoTheme(t), [t]);
   // Ohne Provider (Historie) gilt 'desktop' — dort ist der Chart ohnehin im breiten Maß.
@@ -108,7 +143,7 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
   // Auf 390 px stünde ein 220 px hoher Chart über einem Drittel des Bildes; 180 reicht für
   // drei Dekaden der log-Achse (§4).
   const height = wide ? (bp === 'mobile' ? 180 : 220) : 130;
-  const fontSize = wide ? 12 : 9;
+  const fontSize = wide ? 13 : 10;
   // Platz unten für Tag/Nacht-Zeichen + Zeitstempel + Achse; links für „100 MW".
   const margin = { left: wide ? 64 : 40, right: wide ? 30 : 12, top: 18, bottom: wide ? STAMP_DY + 10 : 30 };
   const nowInside = nowMs >= tl.fromMs && nowMs <= tl.toMs;
@@ -121,6 +156,14 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
       <pattern id={patternId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <line x1="0" y1="0" x2="0" y2="6" stroke={t.palette.fire.hatch} strokeWidth="1.4" />
       </pattern>
+      <linearGradient id={gradDay} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={t.palette.fire.day} stopOpacity="1" />
+        <stop offset="100%" stopColor={t.palette.fire.day} stopOpacity="0.55" />
+      </linearGradient>
+      <linearGradient id={gradNight} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={t.palette.fire.night} stopOpacity="1" />
+        <stop offset="100%" stopColor={t.palette.fire.night} stopOpacity="0.55" />
+      </linearGradient>
     </defs>
   );
 
@@ -206,14 +249,22 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
             );
           }
           const yTop = yScale(Math.max(Y_FLOOR, b.frpMw));
+          const lines = [`${de(b.frpMw)} MW`, `${stamp(b.atMs)} · ${b.satellite}`, `${b.day === false ? '☾ Nacht' : '☀ Tag'} · ${b.pixels} Px`];
+          const dim = hover != null && hover.key !== b.key;
           return (
-            <g key={b.key}>
-              <rect
-                x={x - bw / 2} y={yTop} width={bw} height={Math.max(1, y0 - yTop)}
-                fill={b.day === false ? t.palette.fire.night : t.palette.fire.day} rx={wide ? 2 : 1}
+            <g
+              key={b.key}
+              onMouseEnter={wide ? () => setHover({ key: b.key, x: x + margin.left, y: yTop + margin.top, lines }) : undefined}
+              onMouseLeave={wide ? () => setHover(null) : undefined}
+              opacity={dim ? 0.45 : 1}
+              style={{ transition: 'opacity .12s' }}
+            >
+              <path
+                d={roundedTopBar(x - bw / 2, yTop, bw, Math.max(1, y0 - yTop), wide ? 5 : 2)}
+                fill={`url(#${b.day === false ? gradNight : gradDay})`}
               >
                 <title>{`${stamp(b.atMs)} · ${b.satellite} ${b.day === false ? '☾ Nacht' : '☀ Tag'} · ${de(b.frpMw)} MW · ${b.pixels} Px`}</title>
-              </rect>
+              </path>
               {wide && mwAt.has(b.key) && (
                 <text x={x} y={yTop - 5} textAnchor="middle" fontFamily={SVG_FONT} fontSize={fontSize} fill={t.palette.text.secondary}>{de(b.frpMw)} MW</text>
               )}
@@ -259,7 +310,19 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
       sx={{ m: 0, maxWidth: wide ? wideWidth : undefined }}
       className={`br-pass-chart${wide ? ' is-wide' : ''}`}
     >
-      <Box sx={{ width, height, '& svg': { display: 'block', overflow: 'visible' } }}>
+      {wide && (() => {
+        const withFrp = tl.bars.filter((b) => b.hasFrp);
+        const peak = withFrp.length ? withFrp.reduce((m, b) => (b.frpMw > m.frpMw ? b : m)) : null;
+        const last = tl.bars[tl.bars.length - 1];
+        return (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 2, mb: 1.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <ChartStat label="Spitze" value={peak ? `${de(peak.frpMw)} MW` : '—'} caption={peak ? stamp(peak.atMs) : 'keine FRP-Angabe'} />
+            <ChartStat label="Letzter Überflug" value={last ? stamp(last.atMs).split(', ').pop()! : '—'} caption={last ? stamp(last.atMs).split(', ')[0] : undefined} />
+            <ChartStat label="Längste Lücke" value={`${de(tl.maxGapH, 0)} h`} caption={`ohne Überflug · ab ${GAP_HOURS} h schraffiert`} />
+          </Box>
+        );
+      })()}
+      <Box sx={{ position: 'relative', width, height, '& svg': { display: 'block', overflow: 'visible' } }}>
         <ResponsiveLine
           theme={theme}
           // Wird nie gezeichnet ('lines' fehlt in `layers`) — spannt nur die beiden Skalen auf.
@@ -289,12 +352,31 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
           }}
           layers={[HatchDefs as never, GapLayer as never, 'grid', 'axes', BarLayer as never, NowLayer as never]}
         />
+        {wide && hover && (
+          <Box
+            role="tooltip"
+            sx={{
+              position: 'absolute', left: Math.max(70, hover.x), top: hover.y, transform: 'translate(-50%, calc(-100% - 10px))',
+              pointerEvents: 'none', zIndex: 2, whiteSpace: 'nowrap', px: 1.5, py: 1, borderRadius: 2,
+              bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', boxShadow: 3,
+              fontSize: 12, lineHeight: 1.45, color: 'text.secondary',
+            }}
+          >
+            <Box component="div" sx={{ fontSize: 16, fontWeight: 700, color: 'text.primary' }}>{hover.lines[0]}</Box>
+            {hover.lines.slice(1).map((l) => <div key={l}>{l}</div>)}
+          </Box>
+        )}
+      </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.5 }}>
+        <LegendChip swatch={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: 'fire.day' }} />}>Tag</LegendChip>
+        <LegendChip swatch={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: 'fire.night' }} />}>Nacht</LegendChip>
+        <LegendChip swatch={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid', borderColor: 'text.disabled' }} />}>ohne FRP-Angabe</LegendChip>
+        <LegendChip swatch={<Box component="span" sx={{ width: 14, height: 10, borderRadius: '3px', border: '1px solid', borderColor: 'divider', background: 'repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 4px)', color: 'text.disabled' }} />}>mehr als {GAP_HOURS} h ohne Überflug</LegendChip>
+        <LegendChip swatch={<Box component="span" sx={{ width: 14, borderTop: '2px dashed', borderColor: 'fire.extreme' }} />}>jetzt</LegendChip>
       </Box>
       <Typography component="figcaption" variant="caption" sx={{ display: 'block', mt: 1, lineHeight: 1.55 }} className="br-note">
-        ΣFRP je Überflug (log-Achse, MW) · <Box component="span" sx={{ color: 'fire.day' }}>■</Box> Tag ·{' '}
-        <Box component="span" sx={{ color: 'fire.night' }}>■</Box> Nacht · ○ Überflug ohne FRP-Angabe ·
-        {' '}schraffiert: mehr als {GAP_HOURS} h ohne Überflug (längste Lücke {de(tl.maxGapH, 0)} h) · gestrichelt: jetzt.
-        {' '}Zwischen zwei Überflügen ist nichts beobachtet — die Balken sind Messpunkte, keine Kurve.
+        ΣFRP je Überflug (log-Achse, MW). Zwischen zwei Überflügen ist nichts beobachtet — die Balken sind Messpunkte, keine Kurve.
+        {' '}(längste Lücke {de(tl.maxGapH, 0)} h)
       </Typography>
     </Box>
   );

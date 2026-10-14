@@ -21,7 +21,8 @@ import { loadHistoryShard, eventFromShard, fireDayWeather, rainLabel, type Shard
 import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
 import { dynamicsOf } from './activity/dynamics';
-import { DriversView, Stat } from './FireFootprintPanel';
+import { DriversView } from './FireFootprintPanel';
+import { Stat } from './FireFootprintPanel';
 import { FireIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
