@@ -1141,23 +1141,23 @@ export function DetailFactTiles({ r, nowMs }: { r: FireRecord; nowMs: number }) 
   }
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '10px', mt: 2 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', mt: 1.5 }}>
       {tiles.map((t) => (
         <Tooltip key={t.key} title={t.title ?? ''} disableHoverListener={!t.title}>
           <Box sx={{
-            display: 'flex', gap: 1.25, alignItems: 'flex-start', p: 1.5, borderRadius: '12px', minWidth: 0,
+            display: 'flex', gap: 1, alignItems: 'center', p: 1, borderRadius: '10px', minWidth: 0,
             border: '1px solid', borderColor: 'divider', bgcolor: '#FDFBF4',
           }}>
             <Box sx={{
-              flex: '0 0 auto', width: 34, height: 34, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flex: '0 0 auto', width: 28, height: 28, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: t.tone === 'ok' ? 'success.main' : 'text.secondary', bgcolor: 'rgba(139, 115, 85, 0.1)',
             }}>
               <FactTileIcon k={t.icon} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography component="div" sx={{ fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
-              <Typography component="div" sx={{ fontSize: 18, lineHeight: 1.25, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
-              {t.caption && <Typography component="div" sx={{ fontSize: 12.5, lineHeight: 1.4, color: 'text.secondary' }}>{t.caption}</Typography>}
+              <Typography component="div" sx={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
+              <Typography component="div" sx={{ fontSize: 15, lineHeight: 1.25, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
+              {t.caption && <Typography component="div" sx={{ fontSize: 11.5, lineHeight: 1.35, color: 'text.secondary' }}>{t.caption}</Typography>}
             </Box>
           </Box>
         </Tooltip>
