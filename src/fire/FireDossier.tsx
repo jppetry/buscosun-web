@@ -41,7 +41,7 @@ import type { AtWarnContext } from './sources/geosphereWarnContext';
 import type { FirmsRow } from './sources/firmsHotspots';
 import {
   Badge, CauseText, DetailConfidenceRows, DetailEinordnungRows, DetailFrpRows, DetailKennzahlenRows,
-  DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, DetailFactTiles, WeatherBlock, recordName, recordTitle,
+  DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, DetailFactTiles, recordName, recordTitle,
   fireWindowAnchor, EFFIS_ANCHOR_NOTE,
 } from './FireFootprintPanel';
 import { SatImageryBlock } from './FireSatImagery';
@@ -172,12 +172,6 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
             className="br-ds-verlauf"
           >
             <DetailVerlauf r={r} nowMs={nowMs} wide wideWidth={bp === 'mobile' ? width : 4000} />
-          </DossierCard>
-
-          {/* Wetterlage am Brandort (Jans Auftrag 2026-10-14: wieder da, über den anderen Wetterdaten) —
-              Erstdetektion · letzte Detektion · Brandtag · Vortage · Jetzt als Kacheln mit Icons. */}
-          <DossierCard title="Wetterlage am Brandort" tone="steel" label="Wetterlage am Brandort" defaultExpanded className="br-ds-wetter">
-            <WeatherBlock r={r} nowMs={nowMs} />
           </DossierCard>
 
           {/* BDE-C: die Wetterführung im Brandzeitfenster — Einstufung, Windrose, Zeitreihe.
