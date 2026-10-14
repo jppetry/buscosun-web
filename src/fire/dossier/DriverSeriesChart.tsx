@@ -51,7 +51,7 @@ export interface DriverSeriesChartProps {
   /** `[von, bis]` der Detektionen — wird in JEDER Zeile hinterlegt. */
   detectionRange: [number, number] | null;
   index: FireIndexSeries | null;
-  /** Obergrenze der Breite; die Breite selbst misst nivos `ResponsiveLine` an der Karte. */
+  /** Optionale Obergrenze der Breite; ohne sie füllt der Chart die ganze Karte (nivos `ResponsiveLine` misst sie). */
   width?: number;
 }
 
@@ -117,7 +117,7 @@ const AXIS_H = 56;
 
 const de = (n: number, frac = 1) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
 
-export function DriverSeriesChart({ hours, detectionRange, index, width = 380 }: DriverSeriesChartProps) {
+export function DriverSeriesChart({ hours, detectionRange, index, width }: DriverSeriesChartProps) {
   const t = useTheme();
   const bp = useDossierBreakpoint();
   const uid = useId().replace(/[:]/g, '');
