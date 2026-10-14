@@ -23,6 +23,7 @@ import {
   lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState,
   type CSSProperties, type FormEvent, type ReactNode,
 } from 'react';
+import { EVENT_PLANNER_VISIBLE } from './nav/eventVisibility';
 import type { Location, NominatimResult } from './types';
 import type { FeatureInfo } from './App';
 import { parseCountry } from './countryProfiles';
@@ -681,7 +682,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
         </>)}
 
       {/* 03 · EVENT-PLANUNG — weiß, span 2 */}
-      {tile(['planen'], 'tile-event t-w2', FEATURE.event, 'Event-Planung öffnen',
+      {EVENT_PLANNER_VISIBLE && tile(['planen'], 'tile-event t-w2', FEATURE.event, 'Event-Planung öffnen',
         <>
           <div>
             <div className="tile-eyebrow">03 · EVENT-PLANUNG</div>
@@ -953,8 +954,8 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
             <div className="deck-footer-links">
               <button type="button" onClick={() => onOpenFeature(FEATURE.map2d)}>Wetterkarte</button> ·{' '}
               <button type="button" onClick={() => onOpenFeature(FEATURE.nowcast)}>Nowcast</button><br />
-              <button type="button" onClick={() => onOpenFeature(FEATURE.route)}>Touren</button> ·{' '}
-              <button type="button" onClick={() => onOpenFeature(FEATURE.event)}>Event</button><br />
+              <button type="button" onClick={() => onOpenFeature(FEATURE.route)}>Touren</button>
+              {EVENT_PLANNER_VISIBLE && <>{' · '}<button type="button" onClick={() => onOpenFeature(FEATURE.event)}>Event</button></>}<br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.history)}>Historie</button> ·{' '}
               <button type="button" onClick={() => onOpenFeature(FEATURE.atmosphere)}>Atmosphäre</button>
             </div>
@@ -1023,7 +1024,7 @@ function CommandPalette({ open, onClose, onOpenFeature }: {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const entries = PALETTE.filter((p) => (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()) && (p.feature.id !== 'glacier' || glacierFlagFrom()));
+    const entries = PALETTE.filter((p) => (p.feature.id !== 'event' || EVENT_PLANNER_VISIBLE) && (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()) && (p.feature.id !== 'glacier' || glacierFlagFrom()));
     if (!q) return entries;
     return entries.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
   }, [query]);

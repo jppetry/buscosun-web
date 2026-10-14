@@ -6,6 +6,7 @@
  * eigenen CSS-Klassen mit, damit ihr jeweiliges Design unangetastet bleibt.
  */
 
+import { EVENT_PLANNER_VISIBLE } from './eventVisibility';
 import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { pathForFeature } from '../router/routes';
@@ -195,7 +196,7 @@ export function FeatureRail({
           Deck-Handler übernimmt (preventDefault), nur ohne Handler navigiert der
           Link selbst. Optik über dieselben Klassen; die Decks setzen display/
           color/border auf der Klasse, nicht auf dem Tag. */}
-      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom()) && (it.id !== 'glacier' || active === 'glacier' || glacierFlagFrom())).map((it) => {
+      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'event' || EVENT_PLANNER_VISIBLE || active === 'event') && (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom()) && (it.id !== 'glacier' || active === 'glacier' || glacierFlagFrom())).map((it) => {
         const isActive = it.id === active;
         const to = pathForFeature(it.id);
         const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
