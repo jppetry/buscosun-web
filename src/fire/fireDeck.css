@@ -170,14 +170,14 @@
 .br-layerwrap.has-seg > .br-layer { border: 0; padding-left: 0; padding-right: 0; }
 .br-layer {
   display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 8px 10px;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 7px 10px;
   cursor: pointer; font: inherit; color: inherit;
 }
 .br-layer:hover { border-color: var(--border-medium, #D9D0B8); }
 .br-layer.is-on { border-color: var(--br-acc); }
 .br-layer-ic { display: flex; color: var(--br-acc); flex: 0 0 auto; }
 .br-layer-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.br-layer-label { font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.br-layer-label { font-size: 13px; font-weight: 600; color: var(--ink-900, #2C2A26); }
 .br-layer-sub { font-size: 9.5px; color: var(--stone-500, #8B7355); }
 .br-layer.is-off .br-layer-label { font-weight: 500; color: var(--stone-500, #8B7355); }
 .br-layer.is-off .br-layer-sub { color: var(--stone-400, #A89A7A); }

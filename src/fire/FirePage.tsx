@@ -1437,7 +1437,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           title={gebaut ? info.label : 'Quelle derzeit nicht abrufbar'}
           onClick={() => gebaut && toggle(id)}
         >
-          <span className="br-layer-ic"><FireIcon layer={id} size={inSheet ? 19 : isTablet ? 14 : 15} /></span>
+          <span className="br-layer-ic"><FireIcon layer={id} size={inSheet ? 19 : isTablet ? 14 : 20} /></span>
           <span className="br-layer-tx">
             <span className="br-layer-label">{label}</span>
             {showSub && <span className="br-layer-sub">{sub}</span>}
