@@ -34,6 +34,14 @@ const LAYER: Record<SatKind, string> = {
 export const SAT_TTL_MS = 30 * 60_000;
 /** Bis hierhin gilt eine Szene als „wolkenarm" — darüber wird sie gewählt, aber gesagt. */
 export const CLOUD_OK_PCT = 40;
+/** Bis hierhin gilt eine Szene als „vollständig" (Anteil Pixel ohne Daten im Granulat, `s2:nodata_pixel_percentage`). */
+export const NODATA_OK_PCT = 10;
+/**
+ * Qualitäts-Wahl (Jans Auftrag 2026-10-14): Wolken und fehlende Daten kosten Punkte, jeder Tag Abstand zum
+ * Brand kostet einen kleinen Betrag — so gewinnt kein Bild von weit weg, nur weil es 2 % Wolken weniger hat.
+ */
+export const NODATA_WEIGHT = 2;
+export const DAY_WEIGHT = 0.5;
 /** Suchfenster um den Brandzeitraum: so weit zurück/voraus, dass eine wolkenarme Szene Platz hat. */
 export const SEARCH_PAD_DAYS = 30;
 export const SNAP_W = 600;
@@ -58,6 +66,8 @@ export interface SatScene {
   sat: SatKind;
   /** `eo:cloud_cover` der Szene in Prozent — gilt je 110-km-Granulat, NICHT am Brandort (V-SAT-2). */
   cloudPct: number | null;
+  /** Anteil Pixel ohne Daten (0 = vollständig); `null`, wenn die Quelle ihn nicht nennt (Landsat). */
+  nodataPct: number | null;
   /** Lage zum Brandzeitraum; `null`, wenn der Zeitraum unbekannt ist (reine EFFIS-Einträge). */
   phase: SatPhase | null;
 }
@@ -124,7 +134,7 @@ export function stacSearchBody(lat: number, lon: number, fromMs: number, toMs: n
     datetime: `${new Date(fromMs).toISOString()}/${new Date(toMs).toISOString()}`,
     limit: 100,
     fields: {
-      include: ['collection', 'properties.datetime', 'properties.eo:cloud_cover'],
+      include: ['collection', 'properties.datetime', 'properties.eo:cloud_cover', 'properties.s2:nodata_pixel_percentage'],
       exclude: ['geometry', 'links', 'assets'],
     },
   };
@@ -179,7 +189,7 @@ export function copernicusBrowserUrl(lat: number, lon: number, dayIso: string): 
 
 // --- Reiner Kern ------------------------------------------------------------------------------
 
-export interface RawScene { ms: number; sat: SatKind; cloudPct: number | null }
+export interface RawScene { ms: number; sat: SatKind; cloudPct: number | null; nodataPct?: number | null }
 
 /**
  * Aus rohen Szenen die Tagesliste + Auto-Wahl. Regeln (SAT0 §2/§4):
@@ -190,6 +200,11 @@ export interface RawScene { ms: number; sat: SatKind; cloudPct: number | null }
  *     gibt es nur wolkige, gewinnt die beste UND ein Satz sagt es;
  *   - jede leere Phase bekommt ihren Grund (Latenz ≠ Wolken ≠ kein Überflug).
  */
+/** Kosten einer Szene ohne Zeitabstand: Wolken + gewichtete fehlende Daten (kleiner ist besser). */
+function cost(s: { cloudPct: number | null; nodataPct?: number | null }): number {
+  return (s.cloudPct ?? 101) + NODATA_WEIGHT * (s.nodataPct ?? 0);
+}
+
 export function classifyScenes(
   raw: readonly RawScene[], firstMs: number | null, lastMs: number | null, nowMs: number,
 ): Pick<SatImagery, 'scenes' | 'pick' | 'notes'> {
@@ -201,7 +216,7 @@ export function classifyScenes(
     const prev = byDay.get(day);
     if (!prev) { byDay.set(day, s); continue; }
     if (prev.sat !== s.sat) { if (s.sat === 's2') byDay.set(day, s); continue; }
-    if ((s.cloudPct ?? 101) < (prev.cloudPct ?? 101)) byDay.set(day, s);
+    if (cost(s) < cost(prev)) byDay.set(day, s);
   }
 
   const firstDay = firstMs != null ? isoDayUtc(firstMs) : null;
@@ -214,16 +229,25 @@ export function classifyScenes(
   };
 
   const scenes: SatScene[] = [...byDay.entries()]
-    .map(([dayIso, s]) => ({ dayIso, ms: s.ms, sat: s.sat, cloudPct: s.cloudPct, phase: phaseOf(dayIso) }))
+    .map(([dayIso, s]) => ({ dayIso, ms: s.ms, sat: s.sat, cloudPct: s.cloudPct, nodataPct: s.nodataPct ?? null, phase: phaseOf(dayIso) }))
     .sort((a, b) => a.ms - b.ms);
 
   const inPhase = (p: SatPhase) => scenes.filter((s) => s.phase === p);
   const clear = (list: SatScene[]) => list.filter((s) => s.cloudPct != null && s.cloudPct <= CLOUD_OK_PCT);
-  const best = (list: SatScene[]) =>
-    list.length === 0 ? null : list.reduce((a, b) => ((b.cloudPct ?? 101) < (a.cloudPct ?? 101) ? b : a));
+  const complete = (list: SatScene[]) => list.filter((s) => s.nodataPct == null || s.nodataPct <= NODATA_OK_PCT);
+  /** Tage Abstand zum Brandtag `ref` (ein Tag, der Brandzeitraum bleibt ein Punkt: Phase-Rand). */
+  const gap = (s: SatScene, ref: string | null) => (ref == null ? 0 : Math.abs(Date.parse(s.dayIso) - Date.parse(ref)) / DAY_MS);
+  /** Die Auto-Wahl: wenig Wolken, vollständig, nah am Brand — in dieser Rangfolge der Fallbacks. */
+  const choose = (list: SatScene[], ref: string | null): SatScene | null => {
+    const lowest = (l: SatScene[]) => (l.length === 0 ? null
+      : l.reduce((a, b) => ((cost(b) + DAY_WEIGHT * gap(b, ref)) < (cost(a) + DAY_WEIGHT * gap(a, ref)) ? b : a)));
+    return lowest(complete(clear(list))) ?? lowest(clear(list)) ?? lowest(list);
+  };
   const cloudy = (s: SatScene, word: string) => {
     if (s.cloudPct != null && s.cloudPct > CLOUD_OK_PCT) {
       notes.push(`${word} zu ~${Math.round(s.cloudPct)} % bewölkt — eine bessere Szene gibt es im Fenster nicht.`);
+    } else if (s.nodataPct != null && s.nodataPct > NODATA_OK_PCT) {
+      notes.push(`${word} unvollständig (~${Math.round(s.nodataPct)} % ohne Daten) — eine vollständige Szene gibt es im Fenster nicht.`);
     }
     return s;
   };
@@ -236,15 +260,18 @@ export function classifyScenes(
     notes.push('Brandzeitraum unbekannt (Eintrag ohne Detektionszeiten) — die Aufnahmetage stehen ohne Einordnung.');
   } else {
     const b = inPhase('before');
-    before = clear(b).at(-1) ?? (best(b) ? cloudy(best(b) as SatScene, 'Das Vorher-Bild ist') : null);
+    const bPick = choose(b, firstDay);
+    before = bPick ? cloudy(bPick, 'Das Vorher-Bild ist') : null;
     if (!before) notes.push(`Keine Szene im ${SEARCH_PAD_DAYS}-Tage-Fenster vor dem Brand.`);
 
     const d = inPhase('during');
-    during = best(clear(d)) ?? (best(d) ? cloudy(best(d) as SatScene, 'Das Bild während des Brandes ist') : null);
+    const dPick = choose(d, null);
+    during = dPick ? cloudy(dPick, 'Das Bild während des Brandes ist') : null;
     if (!during) notes.push('Kein Überflug während des Brandes — die Satelliten fotografieren nicht auf Zuruf.');
 
     const a = inPhase('after');
-    after = clear(a)[0] ?? (best(a) ? cloudy(best(a) as SatScene, 'Das Nachher-Bild ist') : null);
+    const aPick = choose(a, lastDay);
+    after = aPick ? cloudy(aPick, 'Das Nachher-Bild ist') : null;
     if (!after) {
       const recent = lastMs != null && nowMs - lastMs < 6 * DAY_MS;
       notes.push(recent
@@ -259,7 +286,7 @@ export function classifyScenes(
 
 // --- Abruf mit Sitzungs-Cache -----------------------------------------------------------------
 
-interface StacFeature { collection?: string; properties?: { datetime?: string; 'eo:cloud_cover'?: number } }
+interface StacFeature { collection?: string; properties?: { datetime?: string; 'eo:cloud_cover'?: number; 's2:nodata_pixel_percentage'?: number } }
 
 export function parseStacScenes(json: unknown): RawScene[] {
   const feats = (json as { features?: StacFeature[] } | null)?.features;
@@ -269,10 +296,12 @@ export function parseStacScenes(json: unknown): RawScene[] {
     const ms = Date.parse(f?.properties?.datetime ?? '');
     if (!Number.isFinite(ms)) continue;
     const cc = f?.properties?.['eo:cloud_cover'];
+    const nd = f?.properties?.['s2:nodata_pixel_percentage'];
     out.push({
       ms,
       sat: String(f?.collection ?? '').startsWith('landsat') ? 'landsat' : 's2',
       cloudPct: typeof cc === 'number' && Number.isFinite(cc) ? cc : null,
+      nodataPct: typeof nd === 'number' && Number.isFinite(nd) ? nd : null,
     });
   }
   return out;
