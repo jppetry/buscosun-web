@@ -177,7 +177,7 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
             subtitle="Im Brandzeitfenster · abgeleitet, keine Messung"
             className="br-ds-drv"
           >
-            <DriversBlock r={r} nowMs={nowMs} width={width} />
+            <DriversBlock r={r} nowMs={nowMs} width={bp === 'mobile' ? width : 1100} />
           </DossierCard>
 
           {/* BDE-E: das Brandprofil — wie ungewöhnlich waren die Treiber FÜR DIESEN ORT?
