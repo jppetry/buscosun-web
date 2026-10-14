@@ -1899,6 +1899,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     <section className={`br-ds${isTablet ? ' is-compact' : ''}`} aria-label="Ereignis-Dossier">
       {historyEntry ? (
         <>
+          <HistoryDossierBody
+            head={(
           <header className="br-ds-card br-ds-head">
             <div className="br-ds-headrow">
               <div className="br-ds-headtx">
@@ -1920,7 +1922,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {historyStatTiles(historyEntry).map((t) => <Stat key={t.lbl} lbl={t.lbl} val={t.val} sub={t.sub} />)}
             </span>
           </header>
-          <HistoryDossierBody
+            )}
             entry={historyEntry} chartWidth={isTablet ? 420 : 360}
             aside={(
               <div className="br-ds-aside">

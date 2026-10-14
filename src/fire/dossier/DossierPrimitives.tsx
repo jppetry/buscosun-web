@@ -334,6 +334,39 @@ export function Missing({ reason }: { reason?: string | null }) {
  * „Merkmale") stünden in einer Masonry-Spalte gar nicht. `align-items: start` im vorhandenen
  * Grid löst das eigentliche Problem — ungleich hohe Karten — ohne diese Kosten.
  */
+export type DossierChapter = 1 | 2 | 3;
+
+const CHAPTERS: ReadonlyArray<{ id: DossierChapter; title: string; hint: string }> = [
+  { id: 1, title: 'Brand', hint: 'Kennzahlen · Verlauf' },
+  { id: 2, title: 'Satellitenbilder', hint: 'vorher · während · nachher' },
+  { id: 3, title: 'Wetter', hint: 'Wetterführung · Brandprofil' },
+];
+
+/**
+ * Die drei Teilbereiche des Dossiers als Reiter (Jans Auftrag 2026-10-14) — gut sichtbar, oben angeheftet.
+ * Arbeitstitel: die endgültigen Namen legt Jan fest. Es wird nur der gewählte Bereich gerendert; die
+ * anderen bleiben ungeladen (Satellitenbilder und Wetter holen erst dann ihre Daten).
+ */
+export function DossierChapterTabs({ value, onChange }: { value: DossierChapter; onChange: (c: DossierChapter) => void }) {
+  return (
+    <div className="br-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers">
+      {CHAPTERS.map((c) => (
+        <button
+          key={c.id} type="button" role="tab" aria-selected={value === c.id}
+          className={`br-ds-tab${value === c.id ? ' is-active' : ''}`}
+          onClick={() => onChange(c.id)}
+        >
+          <span className="br-ds-tab-n" aria-hidden="true">{c.id}</span>
+          <span className="br-ds-tab-tx">
+            <span className="br-ds-tab-t">{c.title}</span>
+            <span className="br-ds-tab-h">{c.hint}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function DossierGrid({ children }: { children: ReactNode }) {
   return <Box className="br-ds-grid">{children}</Box>;
 }

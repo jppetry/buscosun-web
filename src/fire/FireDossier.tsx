@@ -24,7 +24,7 @@
  *    Verlauf und Wetterlage offen, der Rest zu. Zugeklappt heißt NICHT gestrichen:
  *    offen wären es ≈ 4 500 px Scrolltiefe, und die Wetterführung allein ≈ 900 px.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -47,7 +47,7 @@ import {
 import { SatImageryBlock } from './FireSatImagery';
 import { satEnabled } from './detail/fireSatImagery';
 import {
-  DossierBreakpointProvider, DossierCard, DossierGrid, FactList, Overline,
+  DossierBreakpointProvider, DossierCard, DossierGrid, DossierChapterTabs, type DossierChapter, FactList, Overline,
   type DossierBreakpoint,
 } from './dossier/DossierPrimitives';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
@@ -88,6 +88,9 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
   const bp = breakpoint;
   const mobile = bp === 'mobile';
   const width = CHART_MAX_WIDTH[bp];
+  // Teilbereich (Reiter); ein anderer Brand beginnt wieder bei „Brand“.
+  const [chapter, setChapter] = useState<DossierChapter>(1);
+  useEffect(() => setChapter(1), [r?.id]);
 
   if (!r) {
     return (
@@ -119,6 +122,10 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
       >
         {lead}
 
+        <DossierChapterTabs value={chapter} onChange={setChapter} />
+
+        {chapter === 1 && (
+          <>
         <Card component="header" className="br-ds-head">
           <CardContent>
             {/* Mobil trägt die App-Leiste Titel, Abzeichen und Region — hier wären sie doppelt. */}
@@ -166,6 +173,8 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
         </Card>
 
         <DossierGrid>
+          {aside && <Box className="br-ds-aside" sx={{ display: 'flex', flexDirection: 'column', gap: mobile ? '10px' : '12px' }}>{aside}</Box>}
+
           <DossierCard
             title="Verlauf" tone="red" label="Verlauf" defaultExpanded
             subtitle="ΣFRP je Überflug · log-Achse · Lücken > 6 h schraffiert"
@@ -174,6 +183,44 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
             <DetailVerlauf r={r} nowMs={nowMs} wide wideWidth={bp === 'mobile' ? width : 4000} />
           </DossierCard>
 
+          {extra}
+
+          <DossierCard title="Einordnung & Bestätigung" tone="stone" label="Einordnung und Bestätigung" className="br-ds-einordnung">
+            <FactList dense>
+              <DetailConfidenceRows r={r} />
+              <DetailEinordnungRows r={r} atContext={atContext} />
+            </FactList>
+            {/* Die wichtigste Ehrlichkeitszeile der Seite bekommt einen Rahmen. */}
+            <Alert severity="warning" variant="outlined" icon={false} className="br-ds-cause" sx={{ mt: 1.75 }}>
+              <AlertTitle>Ursache</AlertTitle>
+              <CauseText r={r} />
+            </Alert>
+          </DossierCard>
+
+          <DossierCard title="Merkmale" tone="stone" label="Merkmale" className="br-ds-merkmale">
+            <FeaturesRow r={r} nowMs={nowMs} />
+          </DossierCard>
+        </DossierGrid>
+          </>
+        )}
+
+        {chapter === 2 && (
+        <DossierGrid>
+          {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
+          {satEnabled() && (
+            <DossierCard
+              title="Satellitenbild" tone="stone" label="Satellitenbild vorher, während und nachher" defaultExpanded
+              subtitle="Vorher · während · nachher — wenn die Wolken es zulassen"
+              className="br-ds-satbild"
+            >
+              <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections }} nowMs={nowMs} />
+            </DossierCard>
+          )}
+        </DossierGrid>
+        )}
+
+        {chapter === 3 && (
+        <DossierGrid>
           {/* BDE-C: die Wetterführung im Brandzeitfenster — Einstufung, Windrose, Zeitreihe.
               Eigene Karte, weil sie etwas anderes sagt als die Wetterlage darüber: dort einzelne
               Zeitpunkte, hier der Verlauf und was er für das Feuer bedeutet (abgeleitet). */}
@@ -200,38 +247,8 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
               anchorNote={fireWindowAnchor(r)?.kind === 'effis' ? EFFIS_ANCHOR_NOTE : undefined}
             />
           </DossierCard>
-
-          {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
-          {satEnabled() && (
-            <DossierCard
-              title="Satellitenbild" tone="stone" label="Satellitenbild vorher, während und nachher" defaultExpanded
-              subtitle="Vorher · während · nachher — wenn die Wolken es zulassen"
-              className="br-ds-satbild"
-            >
-              <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections }} nowMs={nowMs} />
-            </DossierCard>
-          )}
-
-          {extra}
-
-          {aside && <Box className="br-ds-aside" sx={{ display: 'flex', flexDirection: 'column', gap: mobile ? '10px' : '12px' }}>{aside}</Box>}
-
-          <DossierCard title="Einordnung & Bestätigung" tone="stone" label="Einordnung und Bestätigung" className="br-ds-einordnung">
-            <FactList dense>
-              <DetailConfidenceRows r={r} />
-              <DetailEinordnungRows r={r} atContext={atContext} />
-            </FactList>
-            {/* Die wichtigste Ehrlichkeitszeile der Seite bekommt einen Rahmen. */}
-            <Alert severity="warning" variant="outlined" icon={false} className="br-ds-cause" sx={{ mt: 1.75 }}>
-              <AlertTitle>Ursache</AlertTitle>
-              <CauseText r={r} />
-            </Alert>
-          </DossierCard>
-
-          <DossierCard title="Merkmale" tone="stone" label="Merkmale" className="br-ds-merkmale">
-            <FeaturesRow r={r} nowMs={nowMs} />
-          </DossierCard>
         </DossierGrid>
+        )}
       </Box>
     </DossierBreakpointProvider>
   );

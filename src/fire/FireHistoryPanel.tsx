@@ -22,6 +22,7 @@ import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
 import { dynamicsOf } from './activity/dynamics';
 import { DriversView } from './FireFootprintPanel';
+import { DossierChapterTabs, type DossierChapter } from './dossier/DossierPrimitives';
 import { Stat } from './FireFootprintPanel';
 import { FlameIcon, IndustryIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
@@ -273,10 +274,12 @@ function HistoryDriversCard({ entry, spreadBearingDeg, width }: { entry: History
 }
 
 /** Ein Ereignis-Dossier-Raster: Verlauf · Wetterlage · Wetterführung · (aside) · Einordnung & Evidenz · Merkmale. */
-export function HistoryDossierBody({ entry, aside }: { entry: HistoryIndexEntry; /** Ohne Wirkung seit 2026-10-14: die Diagramme füllen die Karte, die Breite misst nivo. */ chartWidth?: number; aside?: ReactNode }) {
+export function HistoryDossierBody({ entry, aside, head }: { entry: HistoryIndexEntry; /** Kopfkarte des Ereignisses (Teil von „Brand“). */ head?: ReactNode; /** Ohne Wirkung seit 2026-10-14: die Diagramme füllen die Karte, die Breite misst nivo. */ chartWidth?: number; aside?: ReactNode }) {
   const { shard, weather, ev } = useHistoryEventData(entry);
   const [copied, setCopied] = useState(false);
   useEffect(() => setCopied(false), [entry]);
+  const [chapter, setChapter] = useState<DossierChapter>(1);
+  useEffect(() => setChapter(1), [entry.id]);
   const passes = useMemo(() => (ev ? sortPasses(groupPasses(shardRows(ev))) : []), [ev]);
   const w = weather !== 'loading' ? weather : null;
   const lc = ev?.effis?.landcover ?? null;
@@ -288,7 +291,15 @@ export function HistoryDossierBody({ entry, aside }: { entry: HistoryIndexEntry;
   const dayN = passes.filter((p) => p.day === true).length;
   const nightN = passes.filter((p) => p.day === false).length;
   return (
-    <div className="br-ds-grid">
+    <>
+      <DossierChapterTabs value={chapter} onChange={setChapter} />
+      {chapter === 1 && (
+        <>
+          {head}
+          <div className="br-ds-grid">
+      {aside}
+
+
       <section className="br-ds-card br-ds-verlauf" aria-label="Verlauf">
         <div className="br-ds-cardhead">
           <span className="br-ds-eyebrow is-red">Verlauf</span>
@@ -310,66 +321,6 @@ export function HistoryDossierBody({ entry, aside }: { entry: HistoryIndexEntry;
         )}
       </section>
 
-      <section className="br-ds-card is-steel br-ds-wetter" aria-label="Wetterlage am Brandtag">
-        <div className="br-ds-cardhead">
-          <span className="br-ds-eyebrow is-steel">Wetterlage am Brandtag</span>
-        </div>
-        <div className="br-wx">
-          {weather === 'loading' && <p className="br-wx-loading br-muted">Tages- und Stundenwerte werden geholt …</p>}
-          {w?.day && (
-            <div className="br-wx-tile">
-              <span className="br-wx-lbl">Tag · {w.dateISO.split('-').reverse().join('.')}</span>
-              max {num(w.day.tMaxC, ' °C', 1)}{w.day.modelFilled.includes('tMaxC') && '*'} · Feuchte {num(w.day.humidityPct, ' %')}{w.day.modelFilled.includes('humidityPct') && '*'} · Wind max {num(w.day.windMaxKmh, ' km/h')}{w.day.modelFilled.includes('windMaxKmh') && '*'} · Regen {num(w.day.precipMm, ' mm', 1)}{w.day.modelFilled.includes('precipMm') && '*'}
-            </div>
-          )}
-          {w?.hour && (
-            <div className="br-wx-tile">
-              <span className="br-wx-lbl">Stunde {fmtClock(w.hour.atMs)}</span>
-              {num(w.hour.tempC, ' °C', 1)} · Wind {num(w.hour.windKmh, ' km/h')} · Regen {num(w.hour.precipMm, ' mm', 1)}
-            </div>
-          )}
-          {w && (
-            <div className="br-wx-tile">
-              <span className="br-wx-lbl">Trockenphase</span>
-              {rainLabel(w)}{w.day ? '' : ' (Tagesreihe fehlt)'}
-            </div>
-          )}
-          {weather === null && <p className="br-note">Wetterlage nicht verfügbar — Ausfall der Historie-Quellen, kein Wert erfunden.</p>}
-          {w?.notes.map((n, i) => <p key={i} className="br-note">{n}</p>)}
-          <p className="br-note">
-            {w?.day ? <>Tag: {w.day.kind === 'measured' ? 'gemessen' : 'Reanalyse'}{w.day.station ? `, Station ${w.day.station.name} (${w.day.station.distanceKm.toFixed(0)} km)` : ''} · {w.day.source}{w.day.modelFilled.length > 0 ? ' · * vom Anbieter mit Modellwert gefüllt, nicht gemessen' : ''}. </> : null}
-            {w?.hour ? <>Stunde: Reanalyse, {w.hour.source}. </> : null}
-            Kein ICON-/Fusionswert: die Vorhersagemodelle haben kein Archiv — beide Quellen beschreiben die Umgebung, nicht den Brandort selbst.
-          </p>
-        </div>
-      </section>
-
-      {/* BDE-D: dieselbe Wetterführung wie im Live-Dossier — EINE Darstellung, zwei Quellen. */}
-      <HistoryDriversCard entry={entry} spreadBearingDeg={spreadBearingDeg} />
-
-      {/* BDE-E: dasselbe Brandprofil wie im Live-Dossier. Der Anker ist hier immer eine
-          Detektion — Historie-Ereignisse ohne Detektion tragen den Beginn der Kartierung
-          in `firstMs`, also gilt derselbe Zeitpunkt wie in der Liste. */}
-      <section className="br-ds-card br-ds-profile" aria-label="Brandprofil im Ortsvergleich">
-        <div className="br-ds-cardhead">
-          <span className="br-ds-eyebrow is-warn">Brandprofil</span>
-          <span className="br-ds-cardsub">Rang gegen die letzten 30 Tage am selben Punkt · abgeleitet</span>
-        </div>
-        <FireProfileBlock lat={entry.lat} lon={entry.lon} anchorMs={entry.firstMs} />
-      </section>
-
-      {/* SAT1: dieselbe Satellitenbild-Karte wie im Live-Dossier — EINE Komponente, zwei Aufrufer. */}
-      {satEnabled() && (
-        <section className="br-ds-card br-ds-satbild" aria-label="Satellitenbild vorher, während und nachher">
-          <div className="br-ds-cardhead">
-            <span className="br-ds-eyebrow">Satellitenbild</span>
-            <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
-          </div>
-          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: null, firstMs: entry.firstMs, lastMs: entry.lastMs }} nowMs={Date.now()} />
-        </section>
-      )}
-
-      {aside}
 
       <section className="br-ds-card br-ds-einordnung" aria-label="Einordnung und Evidenz">
         <div className="br-ds-cardhead">
@@ -450,6 +401,74 @@ export function HistoryDossierBody({ entry, aside }: { entry: HistoryIndexEntry;
           <p className="br-note">{shard.kind === 'loading' ? 'Detail wird geladen …' : 'Kein Merkmalsatz im Shard-Detail für dieses Ereignis.'}</p>
         )}
       </section>
-    </div>
+          </div>
+        </>
+      )}
+      {chapter === 2 && (
+        <div className="br-ds-grid">
+      {/* SAT1: dieselbe Satellitenbild-Karte wie im Live-Dossier — EINE Komponente, zwei Aufrufer. */}
+      {satEnabled() && (
+        <section className="br-ds-card br-ds-satbild" aria-label="Satellitenbild vorher, während und nachher">
+          <div className="br-ds-cardhead">
+            <span className="br-ds-eyebrow">Satellitenbild</span>
+            <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
+          </div>
+          <SatImageryBlock t={{ lat: entry.lat, lon: entry.lon, bbox: null, firstMs: entry.firstMs, lastMs: entry.lastMs }} nowMs={Date.now()} />
+        </section>
+      )}
+        </div>
+      )}
+      {chapter === 3 && (
+        <div className="br-ds-grid">
+      <section className="br-ds-card is-steel br-ds-wetter" aria-label="Wetterlage am Brandtag">
+        <div className="br-ds-cardhead">
+          <span className="br-ds-eyebrow is-steel">Wetterlage am Brandtag</span>
+        </div>
+        <div className="br-wx">
+          {weather === 'loading' && <p className="br-wx-loading br-muted">Tages- und Stundenwerte werden geholt …</p>}
+          {w?.day && (
+            <div className="br-wx-tile">
+              <span className="br-wx-lbl">Tag · {w.dateISO.split('-').reverse().join('.')}</span>
+              max {num(w.day.tMaxC, ' °C', 1)}{w.day.modelFilled.includes('tMaxC') && '*'} · Feuchte {num(w.day.humidityPct, ' %')}{w.day.modelFilled.includes('humidityPct') && '*'} · Wind max {num(w.day.windMaxKmh, ' km/h')}{w.day.modelFilled.includes('windMaxKmh') && '*'} · Regen {num(w.day.precipMm, ' mm', 1)}{w.day.modelFilled.includes('precipMm') && '*'}
+            </div>
+          )}
+          {w?.hour && (
+            <div className="br-wx-tile">
+              <span className="br-wx-lbl">Stunde {fmtClock(w.hour.atMs)}</span>
+              {num(w.hour.tempC, ' °C', 1)} · Wind {num(w.hour.windKmh, ' km/h')} · Regen {num(w.hour.precipMm, ' mm', 1)}
+            </div>
+          )}
+          {w && (
+            <div className="br-wx-tile">
+              <span className="br-wx-lbl">Trockenphase</span>
+              {rainLabel(w)}{w.day ? '' : ' (Tagesreihe fehlt)'}
+            </div>
+          )}
+          {weather === null && <p className="br-note">Wetterlage nicht verfügbar — Ausfall der Historie-Quellen, kein Wert erfunden.</p>}
+          {w?.notes.map((n, i) => <p key={i} className="br-note">{n}</p>)}
+          <p className="br-note">
+            {w?.day ? <>Tag: {w.day.kind === 'measured' ? 'gemessen' : 'Reanalyse'}{w.day.station ? `, Station ${w.day.station.name} (${w.day.station.distanceKm.toFixed(0)} km)` : ''} · {w.day.source}{w.day.modelFilled.length > 0 ? ' · * vom Anbieter mit Modellwert gefüllt, nicht gemessen' : ''}. </> : null}
+            {w?.hour ? <>Stunde: Reanalyse, {w.hour.source}. </> : null}
+            Kein ICON-/Fusionswert: die Vorhersagemodelle haben kein Archiv — beide Quellen beschreiben die Umgebung, nicht den Brandort selbst.
+          </p>
+        </div>
+      </section>
+
+      {/* BDE-D: dieselbe Wetterführung wie im Live-Dossier — EINE Darstellung, zwei Quellen. */}
+      <HistoryDriversCard entry={entry} spreadBearingDeg={spreadBearingDeg} />
+
+      {/* BDE-E: dasselbe Brandprofil wie im Live-Dossier. Der Anker ist hier immer eine
+          Detektion — Historie-Ereignisse ohne Detektion tragen den Beginn der Kartierung
+          in `firstMs`, also gilt derselbe Zeitpunkt wie in der Liste. */}
+      <section className="br-ds-card br-ds-profile" aria-label="Brandprofil im Ortsvergleich">
+        <div className="br-ds-cardhead">
+          <span className="br-ds-eyebrow is-warn">Brandprofil</span>
+          <span className="br-ds-cardsub">Rang gegen die letzten 30 Tage am selben Punkt · abgeleitet</span>
+        </div>
+        <FireProfileBlock lat={entry.lat} lon={entry.lon} anchorMs={entry.firstMs} />
+      </section>
+        </div>
+      )}
+    </>
   );
 }

@@ -163,6 +163,12 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
         </div>
       )}
 
+      <p className="br-sat-label">
+        <strong>{scene.phase ? PHASE_LABEL[scene.phase] : 'Aufnahme'}</strong>
+        <span>{fmtDay(scene.dayIso)}</span>
+        <span>{cog10 ? 'Sentinel-2, 10 m' : satLabel(scene.sat)}</span>
+        <span>{cloudLabel(scene.cloudPct)}</span>
+      </p>
       <div className="br-sat-frame">
         {cog10 && (
           <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>

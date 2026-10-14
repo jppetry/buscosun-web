@@ -220,10 +220,9 @@ add('[sat] Deep-Link (10 m, Copernicus Browser) mit gewähltem Tag und rel="noop
   /copernicusBrowserUrl\(t\.lat, t\.lon, scene\.dayIso\)/.test(satc) && /rel="noopener"/.test(satc));
 add('[sat] leere Phase ist deaktiviert, nie stummer Leerraum (Grund als Satz in notes)',
   /disabled=\{!pick\}/.test(satc) && /Kein Überflug während des Brandes/.test(satm));
-add('[sat] CSS: Satellitenbild volle Breite Reihe 5, Einordnung/Merkmale rücken auf 6/7 (Verlauf, Wetterführung, Karte, Profil voll breit)',
-  /\.br-ds-satbild \{ grid-column: 1 \/ -1; grid-row: 5; \}/.test(css)
-  && /\.br-ds-einordnung \{ grid-column: 1 \/ -1; grid-row: 6; \}/.test(css)
-  && /\.br-ds-merkmale \{ grid-column: 1 \/ -1; grid-row: 7; \}/.test(css));
+add('[sat] CSS: alle Dossier-Karten volle Breite in DOM-Reihenfolge, drei Teilbereiche als Reiter (Jan 14.10.)',
+  /\.br-ds-grid > \* \{ grid-column: 1 \/ -1; grid-row: auto; \}/.test(css)
+  && /\.br-ds-tab \{/.test(css) && /<DossierChapterTabs/.test(dossier) && /chapter === 3/.test(dossier));
 add('[sat] mobil: Phasen- und Tagesknöpfe ≥ 44 px', (() => {
   const block = css.slice(css.indexOf('BD2 — Brand-Dossier'));
   const mob = block.slice(block.indexOf('@media (max-width: 767px)'));
