@@ -133,11 +133,8 @@ add('[bd2] Hauptkarte bleibt im Dossier montiert (nur außer Bild, kein Remount)
   /fire-center\$\{inDossier && !isMobile \? ' is-offstage'/.test(page) && /\.fire-center\.is-offstage \{[^}]*visibility: hidden/.test(css));
 add('[bd2] Permalink: ds nur wenn offen, Decoder nimmt nur die 1',
   /payload\.ds = 1/.test(fstate) && /dossier: o\.ds === 1/.test(fstate) && /dossier: stage === 'dossier'/.test(page));
-add('[bd2] Zeit-Deck im Dossier als Leiste über die ganze Breite (derselbe Knoten)',
-  // Seit der Rücknahme des Zeit-Reglers (2026-09-05) trägt die Leiste nur noch das
-  // Rückblick-Fenster; sie bleibt EIN Knoten über die ganze Breite unter dem Scrollbereich.
-  /className="br-ds-foot">\{windowBar\}/.test(page)
-  && /\.br-ds-foot \{[^}]*flex: 0 0 auto/.test(css) && /\.br-ds-foot \{[^}]*border-top/.test(css));
+add('[bd2] Zeit-Leiste (24 h · 7 d · Monat · Saison) steht NICHT mehr im Dossier (Jan 14.10.); die Karte behält sie oben rechts',
+  !/className="br-ds-foot"/.test(page) && /<div className="br-map-tr">\{windowBar\}<\/div>/.test(page));
 // BD2d (2026-08-31, Jans Auftrag): die Sidebars bleiben in jeder Bühne — Dock links und Readout
 // rechts rendern unabhängig von der Bühne, das Dossier ersetzt nur die Karten-Mitte.
 add('[bd2d] Sidebars bleiben: kein Registry-/Rail-Ersatz mehr, Dossier als Scrollbereich + Zeit-Deck im Zentrum',

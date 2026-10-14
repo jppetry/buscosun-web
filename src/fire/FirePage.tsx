@@ -2180,7 +2180,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   />
                 )}
               </div>
-              <div className="br-ds-foot">{windowBar}</div>
             </main>
           )}
 
