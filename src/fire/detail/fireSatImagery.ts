@@ -42,6 +42,8 @@ export const NODATA_OK_PCT = 10;
  */
 export const NODATA_WEIGHT = 2;
 export const DAY_WEIGHT = 0.5;
+/** Landsat hat keine 10-m-Ansicht (nur das 30-m-Bild) — bei ähnlicher Güte gewinnt Sentinel-2, sonst sind Vorher/Während/Nachher verschieden scharf. */
+export const LANDSAT_PENALTY = 15;
 /** Suchfenster um den Brandzeitraum: so weit zurück/voraus, dass eine wolkenarme Szene Platz hat. */
 export const SEARCH_PAD_DAYS = 30;
 export const SNAP_W = 600;
@@ -53,7 +55,7 @@ export const SNAP_H = 480;
  */
 export const SNAP_SCALE = 2;
 /** Mindest-Ausdehnung des Bildausschnitts in Breitengrad (~18 km) — SAT0 maß damit 47–59 KB. */
-const MIN_LAT_SPAN = 0.16;
+const MIN_LAT_SPAN = 0.1;
 
 export type SatKind = 's2' | 'landsat';
 export type SatPhase = 'before' | 'during' | 'after';
@@ -201,8 +203,8 @@ export interface RawScene { ms: number; sat: SatKind; cloudPct: number | null; n
  *   - jede leere Phase bekommt ihren Grund (Latenz ≠ Wolken ≠ kein Überflug).
  */
 /** Kosten einer Szene ohne Zeitabstand: Wolken + gewichtete fehlende Daten (kleiner ist besser). */
-function cost(s: { cloudPct: number | null; nodataPct?: number | null }): number {
-  return (s.cloudPct ?? 101) + NODATA_WEIGHT * (s.nodataPct ?? 0);
+function cost(s: { cloudPct: number | null; nodataPct?: number | null; sat?: SatKind }): number {
+  return (s.cloudPct ?? 101) + NODATA_WEIGHT * (s.nodataPct ?? 0) + (s.sat === 'landsat' ? LANDSAT_PENALTY : 0);
 }
 
 export function classifyScenes(
