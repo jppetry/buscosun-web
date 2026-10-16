@@ -16,8 +16,7 @@ import { SatImageryBlock } from './FireSatImagery';
 import { bboxPolygon, historyAreaBbox } from './FireMiniMap';
 import { satEnabled } from './detail/fireSatImagery';
 import type { HistoryIndexEntry, HistoryIndexFile, HistoryWindowKind } from './history/historyArtifacts';
-import { historyStandLabel, loadSeasonSeries, type HistoryLoad, type SeriesLoad } from './history/historyLoad';
-import { FireHistoryChart } from './FireHistoryChart';
+import { historyStandLabel, type HistoryLoad } from './history/historyLoad';
 import { loadHistoryShard, eventFromShard, fireDayWeather, rainLabel, type ShardLoad, type FireDayWeather } from './history/historyDetail';
 import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
@@ -78,17 +77,8 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
     return sorted;
   }, [p.load, cls, sort]);
 
-  const label = file?.window.label ?? (p.kind === 'month' ? 'Monat' : 'Saison');
-
   return (
     <div className={`br-fires br-history${p.inSheet ? ' in-sheet' : ''}${p.compact ? ' is-compact' : ''}`}>
-      {!p.inSheet && (
-        <div className="br-fires-head">
-          <span className="br-eyebrow">Historie · {label}{file ? ` · Stand ${historyStandLabel(file.evaluatedAt)}` : ''}</span>
-          <span className="br-fires-count">{file ? `${de(file.counts.total)} Ereignisse` : ''}</span>
-          {p.onClose && <button type="button" className="br-close" aria-label="Zu den Layern" onClick={p.onClose}>×</button>}
-        </div>
-      )}
       {p.load.kind === 'loading' && <p className="br-empty">Historie wird geladen … (statische Datei, einmal je Sitzung)</p>}
       {p.load.kind === 'error' && (
         <p className="br-empty">Kein Stand verfügbar — die Historie-Datei ist nicht erreichbar ({p.load.message}). Das ist ein Ausfall, kein leerer Monat.
@@ -97,13 +87,6 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
       )}
       {file && (
         <>
-          <p className="br-note">
-            {COUNTRY_LABEL.DE} {de(file.counts.byCountry.DE)} · {COUNTRY_LABEL.AT} {de(file.counts.byCountry.AT)} · {COUNTRY_LABEL.CH} {de(file.counts.byCountry.CH)}
-            {' '}— davon {de(file.counts.sites)} auf bekannten Anlagenstandorten, {de(file.counts.effisOnly)} nur von EFFIS kartiert
-            {file.counts.withNrt > 0 && <>, {de(file.counts.withNrt)} mit vorläufigen (NRT-)Detektionen</>}.
-            {file.counts.outsideDropped > 0 && <> {de(file.counts.outsideDropped)} Ereignisse jenseits der Grenzen sind gezählt, nicht gezeigt.</>}
-          </p>
-          {p.kind === 'season' && <SeasonChartBlock compact={p.compact} />}
           <div className="br-chiprow" role="group" aria-label="Sortierung">
             {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
             {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
@@ -175,18 +158,6 @@ const num = (n: number | null | undefined, unit = '', frac = 0) => (n == null ? 
  * EINE Quelle für die Inline-Detailkarte im Readout UND das Dossier in der Mitte —
  * dasselbe Muster wie die BD2-Bausteine der Live-Detailkarte.
  */
-// ---------------------------------------------------------------------------
-// BH5 — Saisonverlauf im Saison-Readout (Datei einmal je Sitzung; Ausfall wird gesagt)
-// ---------------------------------------------------------------------------
-
-function SeasonChartBlock({ compact }: { compact?: boolean }) {
-  const [series, setSeries] = useState<SeriesLoad>({ kind: 'loading' });
-  useEffect(() => { let alive = true; void loadSeasonSeries().then((r) => { if (alive) setSeries(r); }); return () => { alive = false; }; }, []);
-  if (series.kind === 'loading') return <p className="br-note">Saisonverlauf wird geladen …</p>;
-  if (series.kind === 'error') return <p className="br-note">Saisonverlauf nicht verfügbar ({series.message}) — Ausfall der Datei, kein leerer Verlauf.</p>;
-  return <FireHistoryChart file={series.file} compact={compact} />;
-}
-
 // ---------------------------------------------------------------------------
 // BD2g — das Ereignis-Dossier der Mitte (Historie-Modus), in der BD2-Kartenform.
 // Dieselben Daten wie die Inline-Detailkarte (ein Hook), aber voll ausgespielt:
