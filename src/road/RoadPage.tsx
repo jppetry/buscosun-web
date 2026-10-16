@@ -151,9 +151,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   // AW-8: segments once, the hazard file per measured slot, the two earlier slots while a detail is open.
   useEffect(() => {
     if (!hz) return;
-    const ac = new AbortController();
-    loadRoadSegments(ac.signal).then((f) => setSegments(f ? f.segments : 'error'), () => setSegments('error'));
-    return () => ac.abort();
+    let alive = true;
+    loadRoadSegments().then((f) => { if (alive) setSegments(f ? f.segments : 'error'); }, () => { if (alive) setSegments('error'); });
+    return () => { alive = false; };
   }, [hz]);
   const hzSlot = hz ? obs?.slot ?? null : null;
   useEffect(() => {

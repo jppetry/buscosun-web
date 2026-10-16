@@ -54,9 +54,10 @@ export async function loadRoadHzHistory(stamp: string, signal?: AbortSignal): Pr
 }
 
 let segmentsPromise: Promise<RoadSegmentsFile | null> | null = null;
-export function loadRoadSegments(signal?: AbortSignal): Promise<RoadSegmentsFile | null> {
+// No caller signal: the promise is shared, and an effect cleanup (StrictMode's double mount) would abort it for the next caller too.
+export function loadRoadSegments(): Promise<RoadSegmentsFile | null> {
   if (!segmentsPromise) {
-    segmentsPromise = fetchRoadJson(ROAD_SEGMENTS_PATH, signal).then((j) => parseRoadSegments(j), () => { segmentsPromise = null; return null; });
+    segmentsPromise = fetchRoadJson(ROAD_SEGMENTS_PATH).then((j) => parseRoadSegments(j), () => { segmentsPromise = null; return null; });
   }
   return segmentsPromise;
 }
