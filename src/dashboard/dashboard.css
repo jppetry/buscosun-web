@@ -227,7 +227,9 @@
 .dbd-zone .dbd-eyebrow, .dbd-zone .dbd-phase-l, .dbd-zone .dbd-dv-l, .dbd-zone .dbd-day-conf > span:first-child, .dbd-zone .dbd-ticks { color: var(--dbd-muted); }
 
 /* Detail-Kacheln */
-.dbd-row3 { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+.dbd-row2 { margin-top: 12px; }
+.dbd-row2 > .dbd-nowcast { display: block; }
+.dbd-row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .dbd-nowcast { background: #1F2937; border: 1px solid #2F3B4A; border-radius: 13px; padding: 15px; }
 .dbd-nowcast-head { display: flex; align-items: baseline; justify-content: space-between; }
 .dbd-nowcast-head span:first-child { font-size: 10px; letter-spacing: 2px; color: #7FB2E5; font-weight: 700; }
@@ -335,7 +337,6 @@
   .dbd-row1 { grid-template-columns: 1fr 1fr; }
   .dbd-row1 > .dbd-now { grid-column: 1 / -1; }
   .dbd-row3 { grid-template-columns: 1fr 1fr; }
-  .dbd-row3 > .dbd-nowcast { grid-column: 1 / -1; }
   .dbd-terrain-grid { grid-template-columns: minmax(0, 1fr); }
   .dbd-terrain-side { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; align-items: start; }
   .dbd-row5 { grid-template-columns: 1fr 1fr; }

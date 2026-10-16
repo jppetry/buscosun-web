@@ -283,17 +283,20 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
               <WarningCard vm={vm.warning} />
               <ConfidenceCard vm={vm.conf} />
             </div>
+            {/* Jan 17.10.: der Radar-Nowcast steht auf der ersten Seite, direkt unter der ersten Reihe. */}
+            <div className="dbd-row2">
+              <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
+            </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
             {showTabs && (
               <button type="button" className="dbd-more" onClick={() => onPart!('details')}>
                 <span className="dbd-more-title">Mehr zur Lage am Ort</span>
-                <span className="dbd-more-list">Radar, Bewölkung, Wind, Niederschlag 48 h, Böen, Luftdruck, Gelände, UV, Pollen, ICON-D2</span>
+                <span className="dbd-more-list">Bewölkung, Wind, Niederschlag 48 h, Böen, Luftdruck, Gelände, UV, Pollen, ICON-D2</span>
               </button>
             )}
             </div>
             <div className="dbd-panel" role={showTabs ? 'tabpanel' : undefined} id="dbd-panel-details" aria-labelledby={showTabs ? 'dbd-tab-details' : undefined} hidden={showTabs && part !== 'details'}>
             <div className="dbd-row3">
-              <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
               <CloudsTile vm={vm.clouds} />
               <WindTile vm={vm.wind} />
             </div>
