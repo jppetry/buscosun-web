@@ -16,7 +16,7 @@ import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
 import { Hd250Switch } from '../components/Hd250Switch';   // Phase RA-250: 1 km | 250 m (DE only)
-import { NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN, type EventTone } from './nowcastModel';
+import { NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN } from './nowcastModel';
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
@@ -39,6 +39,8 @@ import { computeRainWindow, rainWindowEnabledFrom, type RainWindow } from './rai
 import { radarTimesAt } from './rainWindowRadar';
 import type { RadarStack } from '../radar/radarFrames';
 import RainWindowCard from './RainWindowCard';
+// Ereignisse (Jan 16.10.): Command-Deck tile over 48 h with the detail overlay — replaces the plain list.
+import EventsTile from './EventsTile';
 // Minutenverlauf (on, `?mv=0` off): radar minutes + buscosun Fusion hours over 48 h — card in the readout, overlay over the page.
 import { minuteSeriesEnabledFrom } from './minuteSeries';
 import MinuteSeriesCard from './MinuteSeriesCard';
@@ -410,7 +412,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             </div>
             {minuteCard('desktop')}
             {skCard('desktop')}
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} chance={chance} cellCard={cellCardDesktop} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} chance={chance} cellCard={cellCardDesktop} rainWindow={rainWindow} place={shortPlace(location.name)} />
           </div>
         </div>
       )}
@@ -526,8 +528,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, chance, cellCard = null }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; chance: ChanceCtx | null;
+function ReadoutBody({ nowcast, state, mode, chance, cellCard = null, rainWindow, place }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; chance: ChanceCtx | null; rainWindow: RainWindow | null; place: string;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
 }) {
@@ -549,8 +551,7 @@ function ReadoutBody({ nowcast, state, mode, chance, cellCard = null }: {
         </>
       )}
 
-      <div className="rr-section-label">Ereignisse</div>
-      <EventsTimeline nowcast={nowcast} />
+      <EventsTile nowcast={nowcast} rainWindow={rainWindow} place={place} variant="desktop" />
 
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
@@ -565,46 +566,7 @@ function FreshTag({ nowcast }: { nowcast: Nowcast }) {
 }
 
 
-// ============================================================================
-// „Ereignisse"-Liste (Zeit links, Beschreibung rechts). Speist sich aus
-// nowcast.events — keine erfundenen Werte.
-// ============================================================================
 const d1 = (n: number): string => (Math.round(n * 10) / 10).toString().replace('.', ',');
-
-function eventToneColor(t: EventTone): string {
-  switch (t) {
-    case 'good': return 'var(--sage-600, #7A9466)';
-    case 'alert': return '#C0392B';
-    case 'warn': return 'var(--terracotta-500, #C97B47)';
-    case 'muted': return 'var(--stone-400, #A89A7A)';
-    default: return 'var(--steel-600, #3A6FA8)';
-  }
-}
-
-function EventsTimeline({ nowcast }: { nowcast: Nowcast }) {
-  const events = nowcast.events;
-  return (
-    <div className="rt-card rr-ev-card">
-      {events.length ? (
-        <ul className="rr-ev-list">
-          {events.map((e, i) => (
-            <li key={`${e.kind}-${e.atMinutes}-${i}`} className="rr-ev-row">
-              <span className="rr-ev-time" style={{ color: eventToneColor(e.tone) }}>
-                {e.timestamp && e.kind !== 'beyond-skill' ? fmtClock(e.timestamp.getTime()) : 'später'}
-              </span>
-              <span className="rr-ev-text">
-                <b>{e.title}</b>{e.detail ? <span className="rr-ev-detail"> — {e.detail}</span> : null}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="rr-ev-empty">Keine markanten Ereignisse in den nächsten 6 h.</div>
-      )}
-    </div>
-  );
-}
-
 
 // ============================================================================
 // MOBILE (RM1–RM6) — nur < 768 px. Alle Bausteine bleiben erhalten, nur mobile
@@ -699,7 +661,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
-        {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} />}
+        {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} rainWindow={rainWindow} />}
         {tab === 'height' && heightPanel && <div className="rm-hzs">{heightPanel}</div>}
         {tab === '3d' && towersPanel}
       </div>
@@ -818,16 +780,15 @@ function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, countr
 }
 
 // --- Panel: Detail ----------------------------------------------------------
-function DetailPanel({ nowcast, state, mode, place }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; place: string;
+function DetailPanel({ nowcast, state, mode, place, rainWindow }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; place: string; rainWindow: RainWindow | null;
 }) {
   return (
     <>
       <PanelHead place={place} title="6-h-Prognose" />
       {nowcast ? (
         <>
-          <div className="rm-seclabel">Ereignisse</div>
-          <EventsTimeline nowcast={nowcast} />
+          <EventsTile nowcast={nowcast} rainWindow={rainWindow} place={place} variant="mobile" />
           {mode === 'detail' && <div style={{ marginTop: 12 }}><AlpineCard nowcast={nowcast} /></div>}
         </>
       ) : <PanelState state={state} />}

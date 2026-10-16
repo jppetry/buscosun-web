@@ -423,7 +423,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
     }
     if (mv) {
       nc.radarFrames = radarFramesAt(s, lat, lon);
-      nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf }));
+      nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf, tempC: h.tempC, snowLineM: h.snowLineM }));
     }
     return nc;
   };

@@ -1,0 +1,59 @@
+/* Ereignisse — Command-Deck tile (shares the `mv-*` tile/overlay classes from minuteSeries.css) + detail overlay. */
+.ed-tile.mv-card::before { background: var(--ink-900, #2C2A26); }
+.ed-live span { background: var(--ink-900, #2C2A26); }
+
+.ed-list { list-style: none; margin: 10px 0 0; padding: 0; position: relative; }
+.ed-list::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 1px; background: var(--sand-200, #E0D6BE); }
+.ed-row { position: relative; display: grid; grid-template-columns: 58px 1fr; gap: 0 10px; padding: 6px 0 6px 20px; align-items: start; }
+.ed-list--tile .ed-row { grid-template-columns: 50px 1fr; padding: 5px 0 5px 18px; }
+.ed-dot { position: absolute; left: 1px; top: 11px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.ed-row--seam .ed-dot { width: 7px; height: 7px; left: 2px; top: 12px; background: transparent !important; border: 1.5px dashed var(--stone-400, #A89A7A); box-shadow: none; }
+.ed-when { display: flex; flex-direction: column; line-height: 1.2; }
+.ed-when b { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ed-when em { font-style: normal; font-size: 10px; color: var(--stone-400, #A89A7A); white-space: nowrap; }
+.ed-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ed-title { font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); line-height: 1.3; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ed-row--seam .ed-title { color: var(--stone-500, #8B7355); font-weight: 500; }
+.ed-min { font-style: normal; font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--steel-600, #3A6FA8);
+  border: 1px solid #B7CBE0; background: #F3F7FB; border-radius: 999px; padding: 1px 5px; }
+.ed-detail { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.35; }
+.ed-src { align-self: flex-start; margin-top: 2px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.3px; border-radius: 999px; padding: 2px 7px;
+  color: var(--stone-600, #5C5447); background: #fff; border: 1px solid var(--sand-200, #E0D6BE); }
+.ed-src--radar { color: var(--steel-600, #3A6FA8); border-color: #B7CBE0; background: #F3F7FB; }
+.ed-src--blend { color: #5B6C86; border-color: #C9D3E0; background: #F5F7FA; }
+.ed-empty { margin-top: 10px; font-size: 12px; color: var(--stone-500, #8B7355); }
+.ed-more { margin-top: 6px; background: none; border: 0; padding: 6px 0; min-height: 32px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--steel-600, #3A6FA8); cursor: pointer; text-align: left; }
+.ed-more:hover { text-decoration: underline; }
+
+/* overlay */
+.ed-panel { width: min(1180px, 100%); }
+.ed-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.ed-kpis .mv-kpi-v { font-size: 20px; }
+.ed-kpi--alert { border-color: #E3B4AE; background: #FDF4F2; }
+.ed-kpi--warn { border-color: #E9CDB7; background: #FCF6F0; }
+.ed-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+.ed-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ed-section { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 16px; padding: 12px 14px 10px; }
+.ed-section .rr-section-label { margin: 0 0 4px; }
+.ed-days { display: flex; flex-direction: column; gap: 6px; }
+.ed-dayhead { margin-top: 8px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: var(--stone-400, #A89A7A); }
+.ed-facts { display: flex; flex-direction: column; margin-top: 6px; }
+.ed-fact { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 7px 0; border-top: 1px solid var(--sand-100, #EFE8D6); font-size: 12px; line-height: 1.35; }
+.ed-fact:first-child { border-top: 0; }
+.ed-fact span { color: var(--stone-500, #8B7355); }
+.ed-fact b { font-weight: 600; color: var(--ink-900, #2C2A26); overflow-wrap: anywhere; }
+.ed-alpine:empty { display: none; }
+.ed-alpine .nc-block-head { margin: 0 0 8px; }
+
+@media (max-width: 1439px) { .ed-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+  .ed-tile { margin: 0 0 14px; }
+  .ed-row { grid-template-columns: 64px 1fr; }
+  .ed-when b { font-size: 13.5px; }
+  .ed-title { font-size: 13.5px; }
+  .ed-detail { font-size: 12.5px; }
+  .ed-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ed-kpis .mv-kpi-v { font-size: 18px; }
+  .ed-grid { grid-template-columns: 1fr; }
+  .ed-fact { grid-template-columns: 96px 1fr; }
+}
