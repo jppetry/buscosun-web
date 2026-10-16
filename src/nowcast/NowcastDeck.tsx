@@ -32,8 +32,7 @@ import './nowcastMobile.css';
 import ShareButton from '../share/ShareButton';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 // Phase NS (audit/niederschlagssummen.md §9): Niederschlagssummen — Dock „Darstellung", Karte am Ort; `?sum=0` = vorher.
-import { SumControls, PointSumCard } from '../precipSums/PrecipSumsUi';
-import { usePointSums, type PastSide, type FutureSide } from '../precipSums/usePointSums';
+import { SumControls } from '../precipSums/PrecipSumsUi';
 import { SUM_DEFAULT, sumsEnabledFrom, isSumWindow, type SumSelection } from '../precipSums/sumModel';
 // Phase RB (audit/regenbeginn-spanne.md): Regenbeginn als Spanne — voreingestellt an, `?rb=0` = Rückfall.
 import { computeRainWindow, rainWindowEnabledFrom, type RainWindow } from './rainWindow';
@@ -131,7 +130,6 @@ function loadChanceThr(): ChanceThreshold {
 interface ChanceCtx { slot: SumChanceSlot; card: ReactNode | null }
 
 /** Phase NS: was Readout und Schnellblick für die Karte am Ort brauchen. */
-interface PointSums { on: boolean; windowH: number; past: PastSide; future: FutureSide }
 
 export default function NowcastDeck({ location, state, onChangeLocation, reloadNonce, onReload, onBack, onOpenFeature, initialView, onViewChange }: Props) {
   const isMobile = useIsMobile();
@@ -162,8 +160,6 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const nowcast = state.kind === 'ready' ? state.nowcast : null;
   const activeLayerCount = layers.length;
   // Erst nach dem Nowcast laden — die Karte am Ort soll den Kaltstart des Radars nicht ausbremsen.
-  const ps = usePointSums({ lat: location.lat, lon: location.lon, country: location.country }, sumSel.windowH, nowcast, sumsOn && nowcast != null);
-  const pointSums: PointSums = { on: sumsOn, windowH: sumSel.windowH, past: ps.past, future: ps.future };
   const sumProp = sumsOn ? sumSel : undefined;
   // Phase RC: Schwelle, Zeit des Sliders, Wahl aus der 48-h-Leiste und die Chance am Ort der Seite.
   const [chanceThr, setChanceThr] = useState<ChanceThreshold>(loadChanceThr);
@@ -387,7 +383,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
-            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} rainWindow={rainWindow} chance={chance}
+            sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} rainWindow={rainWindow} chance={chance}
             cellCard={cellCardMobile} minuteCard={minuteCard('mobile')} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
             {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}</div> : null } : {})} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} withHeight={hzsOn} with3d={z3dOn} />
@@ -414,7 +410,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             </div>
             {minuteCard('desktop')}
             {skCard('desktop')}
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} chance={chance} cellCard={cellCardDesktop} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} chance={chance} cellCard={cellCardDesktop} />
           </div>
         </div>
       )}
@@ -530,8 +526,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, pointSums, chance, cellCard = null }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; chance: ChanceCtx | null;
+function ReadoutBody({ nowcast, state, mode, chance, cellCard = null }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
 }) {
@@ -553,19 +549,11 @@ function ReadoutBody({ nowcast, state, mode, pointSums, chance, cellCard = null 
         </>
       )}
 
-      {pointSums.on && (
-        <>
-          <div className="rr-section-label">Niederschlagssumme</div>
-          <PointSumCard past={pointSums.past} future={pointSums.future} windowH={pointSums.windowH} />
-        </>
-      )}
-
       <div className="rr-section-label">Ereignisse</div>
       <EventsTimeline nowcast={nowcast} />
 
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
-      <Sources nowcast={nowcast} />
       <div className="rr-readout-foot">● DWD RADOLAN-RV (Radar-Nowcast) · {nowcast.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : 'ICON-D2 (2,2 km)'} · keine Tracker</div>
     </>
   );
@@ -574,35 +562,6 @@ function ReadoutBody({ nowcast, state, mode, pointSums, chance, cellCard = null 
 function FreshTag({ nowcast }: { nowcast: Nowcast }) {
   const fresh = freshness(nowcast);
   return <span className={`rr-readout-fresh${fresh.stale ? ' is-stale' : ''}`}>● {fresh.stale ? `veraltet · ${fresh.label}` : fresh.label}</span>;
-}
-
-function Sources({ nowcast }: { nowcast: Nowcast }) {
-  return (
-    <div className="rr-sources">
-      <details>
-        <summary>Datenquellen &amp; Modelllauf</summary>
-        <div>
-          <strong>0–2 h:</strong> {nowcast.hasRadar ? `DWD RADOLAN-RV (Radar-Nowcast, 1 km)${nowcast.runAtMs ? ` · Lauf ${fmtClock(nowcast.runAtMs)}` : ''}` : 'kein Radar verfügbar — Modell ab jetzt'}<br />
-          <strong>2–6 h:</strong> {nowcast.nwpSource === 'cube'
-            ? 'buscosun Fusion auf dem Punkt-Cube — dieselbe Vorhersage wie Punkt-Panel und Dashboard, Messungen der nächsten Stationen als Anker'
-            : `ICON-D2 (2,2 km, DWD) — punktgenau höhenkorrigiert${nowcast.nwpSource === 'live' ? ' (Live-Pfad, Rückfall)' : ''}`}<br />
-          <strong>Blend:</strong> Radar wird zw. ~1,5–2,5 h gleitend aufs Modell übergeblendet.
-        </div>
-      </details>
-      <details>
-        <summary>Wann das Radar trügt</summary>
-        <div>
-          <strong>Aloft:</strong> Regen verdunstet vor dem Boden.<br />
-          <strong>Bodenclutter:</strong> Berge/Gebäude erzeugen Fehlechos.<br />
-          <strong>Niesel:</strong> feine Tropfen werden unterschätzt.<br />
-          <strong>Schmelzschicht:</strong> heller Bereich überzeichnet Intensität.
-        </div>
-      </details>
-      <div className="rr-honesty">
-        <b><FlagIcon /> Ehrlichkeits-Grenze:</b> Jenseits des Skill-Horizonts (~{Math.round(nowcast.skillHorizonMin / 60)} h) keine minutengenauen Start-/Stoppzeiten. Eine kurze Regenphase markiert nicht den ganzen Zeitraum als „Regen".
-      </div>
-    </div>
-  );
 }
 
 
@@ -646,10 +605,6 @@ function EventsTimeline({ nowcast }: { nowcast: Nowcast }) {
   );
 }
 
-// --- kleine Inline-Icons -----------------------------------------------------
-function FlagIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M6 3 V21" stroke="#C97B47" strokeWidth="1.7" strokeLinecap="round"/><path d="M6 4 H17 L14.5 7.5 L17 11 H6 Z" fill="#C97B47" fillOpacity=".18" stroke="#C97B47" strokeWidth="1.5" strokeLinejoin="round"/></svg>;
-}
 
 // ============================================================================
 // MOBILE (RM1–RM6) — nur < 768 px. Alle Bausteine bleiben erhalten, nur mobile
@@ -700,12 +655,12 @@ function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { t
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
-  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void; pointSums: PointSums; rainWindow: RainWindow | null;
+  sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void; rainWindow: RainWindow | null;
   chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen im Schnellblick (`null` = aus). */
   cellCard?: ReactNode;
@@ -740,7 +695,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       role="region" aria-label={`Bereich ${tab}`}>
       <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
       <div className="rm-sheet-body rm-tabsheet-body">
-        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} />}
+        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
@@ -770,7 +725,7 @@ function PanelState({ state }: { state: DeckState }) {
 }
 
 // --- Panel: Schnellblick ----------------------------------------------------
-function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cellCard = null, snowCard = null, minuteCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode; minuteCard?: ReactNode }) {
+function GlancePanel({ nowcast, state, place, rainWindow, chance, cellCard = null, snowCard = null, minuteCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode; minuteCard?: ReactNode }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
   return (
     <>
@@ -781,7 +736,6 @@ function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cel
         {minuteCard}
         {snowCard}
         {chance?.card}
-        {pointSums.on && <PointSumCard past={pointSums.past} future={pointSums.future} windowH={pointSums.windowH} />}
         <p className="rm-glance-hint">Unten wechseln: <b>Zeitachse</b>, <b>Diagramm</b>, <b>Layer</b> &amp; <b>Detail</b>.</p>
       </div>
     </>
@@ -875,7 +829,6 @@ function DetailPanel({ nowcast, state, mode, place }: {
           <div className="rm-seclabel">Ereignisse</div>
           <EventsTimeline nowcast={nowcast} />
           {mode === 'detail' && <div style={{ marginTop: 12 }}><AlpineCard nowcast={nowcast} /></div>}
-          <Sources nowcast={nowcast} />
         </>
       ) : <PanelState state={state} />}
     </>
