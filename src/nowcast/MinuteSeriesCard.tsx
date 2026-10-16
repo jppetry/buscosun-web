@@ -45,7 +45,7 @@ function hero(s: MinuteSeries): { value: string; line: string; tone: 'wet' | 'so
     return { value: `in ${leadLabel(lead)}`, line: `Regen ab ${fmtClock(s.firstWet.tMs)} · Radar, minutengenau`, tone: 'soon' };
   }
   if (lead <= 1) return { value: 'Diese Stunde', line: `Niederschlag · ${s.fusionLabel}, stündlich`, tone: 'wet' };
-  return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line: `Niederschlag erwartet · ${s.fusionLabel}, stündlich`, tone: 'soon' };
+  return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line: '', tone: 'soon' };
 }
 
 function fmtMm(mm: number): string { return `${mm.toFixed(1).replace('.', ',')} mm`; }
@@ -93,7 +93,7 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
         </div>
         <div className="mv-hero">
           <span className="mv-hero-value">{h.value}</span>
-          <span className="mv-hero-line">{h.line}</span>
+          {h.line && <span className="mv-hero-line">{h.line}</span>}
         </div>
         <MinuteChart series={series} rangeH={MINI_RANGE_H} variant="mini" />
         <div className="mv-chips">
@@ -124,7 +124,7 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
                 <div key={x.k} className="mv-kpi">
                   <span className="mv-kpi-k">{x.k}</span>
                   <span className="mv-kpi-v">{x.v}</span>
-                  <span className="mv-kpi-s">{x.s}</span>
+                  {x.s && <span className="mv-kpi-s">{x.s}</span>}
                 </div>
               ))}
             </div>
