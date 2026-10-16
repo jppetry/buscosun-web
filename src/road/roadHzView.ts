@@ -36,6 +36,8 @@ export const HZ_FEATURE_ICON = Object.freeze({
   info: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 11v6M12 7.5v.5',
 });
 export const EV_LABEL: Readonly<Record<RoadEvidence | 'u', string>> = Object.freeze({ m: 'gemessen', d: 'abgeleitet', p: 'Prognose', u: 'keine gültige Messung' });
+/** Row subtitle of an unknown-only entry: the gap is named, not the first hazard the gap happens to fall on (reif by rank). */
+export const HZ_UNKNOWN_SUB = 'Fahrbahnmessung fehlt';
 const EV_RANK: Record<string, number> = { m: 3, d: 2, p: 1, '-': 0 };
 
 /** Hour indices of a window. */
@@ -111,7 +113,7 @@ export function hzGroupRows(file: RoadHzFile, segs: ReadonlyMap<string, RoadSegm
       const dir = best.id === 'sonne' ? (e.dir?.sonne ?? null) : null;
       rows.push({
         segId: id, seg, best, also, strip: Array.from({ length: ROAD_HZ_HOURS }, (_, i) => lv[i] ?? null),
-        when: whenText(lv, file.hours), sub: `${HZ_SHORT[best.id]} · km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)} · ${dirText(seg, dir)}`, dir, group: g.id,
+        when: whenText(lv, file.hours), sub: `${best.lv === null ? HZ_UNKNOWN_SUB : HZ_SHORT[best.id]} · km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)} · ${dirText(seg, dir)}`, dir, group: g.id,
         sortKey: best.lv === null ? -1 : best.lv * 100 + EV_RANK[best.ev ?? '-'] * 10 + (16 - ROAD_HAZARD_RANK[best.id]),
       });
     }
