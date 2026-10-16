@@ -198,7 +198,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       unit: initial.hourly ? 'hours' : 'days',
     };
   });
-  const [basemap, setBasemap] = useState<FireBasemap>('streets');
+  const [basemap, setBasemap] = useState<FireBasemap>('satellite');
   const [openInfo, setOpenInfo] = useState<FireLayerId | null>(null);
   // E3: Sub-Ansicht des EU-Index; E2: eingeblendete Zeitkörbe der Brandflächen.
   const [dangerView, setDangerView] = useState<DangerView>(initial?.dangerView ?? DEFAULT_DANGER_VIEW);
