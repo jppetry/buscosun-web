@@ -287,9 +287,6 @@
 .dbd-readout strong { color: #F5F1E8; }
 .dbd-readout-note { font-size: 10px; color: #8B8474; margin-top: 9px; padding-top: 8px; border-top: 1px solid #332F2A; line-height: 1.5; }
 .dbd-readout-note strong { color: #B7AE9C; }
-.dbd-site .dbd-level { align-items: baseline; }
-.dbd-site .dbd-level-h { width: 84px; font-size: 10px; letter-spacing: .8px; font-weight: 700; }
-.dbd-site .dbd-level-t { width: auto; flex: 1; font-size: 12px; }
 
 /* Stufe 2 */
 .dbd-row5 { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px; margin-top: 12px; }
