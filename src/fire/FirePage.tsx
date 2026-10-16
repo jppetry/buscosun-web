@@ -268,7 +268,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   // E7: das Preset der Sub-Route `/waldbrand/historie` setzt das Saison-Fenster, sofern die
   // Historie nicht per `?bh=0` abgeschaltet ist; ein Hash im Link gewinnt wie bisher.
-  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && initial?.historyWindow) || null);
+  // Standard: Saison (Jan 16.10.). Ein Link mit Reiter Anomalien (Thermalanomalien) bleibt im Live-Fenster.
+  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && (initial?.historyWindow ?? (initial?.readoutTab === 'anomalies' ? null : 'season'))) || null);
   const [historyLoad, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
   const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
   useEffect(() => {
