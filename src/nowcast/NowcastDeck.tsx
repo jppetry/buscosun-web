@@ -40,6 +40,9 @@ import { computeRainWindow, rainWindowEnabledFrom, type RainWindow } from './rai
 import { radarTimesAt } from './rainWindowRadar';
 import type { RadarStack } from '../radar/radarFrames';
 import RainWindowCard from './RainWindowCard';
+// Minutenverlauf (on, `?mv=0` off): radar minutes + buscosun Fusion hours over 48 h — card in the readout, overlay over the page.
+import { minuteSeriesEnabledFrom } from './minuteSeries';
+import MinuteSeriesCard from './MinuteSeriesCard';
 // Phase RC (audit/regenchance.md): Regenchance — Dock „Darstellung" Intensität | Chance | Summe, Karte am Ort; nur `?rc=1`.
 import type { SumChanceSlot } from '../precipSums/PrecipSumsUi';
 import { ChanceThresholdSeg, PointChanceCard } from '../precipChance/PrecipChanceUi';
@@ -289,6 +292,10 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     ...(skActive ? { onTimeChange: setSliderMs, onUserTime: () => { setSkPickMs(null); if (chanceActive) setPickMs(null); } } : {}),
   } : {};
 
+  // Minutenverlauf (on, `?mv=0` off): card in the readout / Schnellblick, overlay over the page from its icon.
+  const mvOn = useMemo(() => minuteSeriesEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  const minuteCard = (variant: 'desktop' | 'mobile') => (mvOn && nowcast ? <MinuteSeriesCard nowcast={nowcast} place={shortPlace(location.name)} variant={variant} /> : null);
+
   const toggleLayer = (id: RadarLayerId) =>
     setLayers((ls) => (ls.includes(id) ? ls.filter((l) => l !== id) : [...ls, id]));
 
@@ -381,7 +388,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
             sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} pointSums={pointSums} rainWindow={rainWindow} chance={chance}
-            cellCard={cellCardMobile} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
+            cellCard={cellCardMobile} minuteCard={minuteCard('mobile')} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
             {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}</div> : null } : {})} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} withHeight={hzsOn} with3d={z3dOn} />
         </div>
@@ -405,7 +412,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-readout-eyebrow">Regenradar · {flagForCountry(location.country)} {shortPlace(location.name)}</span>
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} snowCard={skCard('desktop')} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} snowCard={skCard('desktop')} minuteCard={minuteCard('desktop')} />
           </div>
         </div>
       )}
@@ -521,12 +528,14 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: {
+function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null, snowCard = null, minuteCard = null }: {
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
   /** Phase SK (on, `?sk=0` off): Schneefallgrenze am Ort (`null` = aus). */
   snowCard?: ReactNode;
+  /** Minutenverlauf (`null` = aus). */
+  minuteCard?: ReactNode;
 }) {
   if (state.kind === 'loading' || !nowcast) {
     return <div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> Radar &amp; Modell werden ausgewertet …</div>;
@@ -538,6 +547,7 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
     <>
       {rainWindow && <RainWindowCard w={rainWindow} variant="desktop" />}
       {cellCard}
+      {minuteCard}
       {snowCard && (<><div className="rr-section-label">Schneefallgrenze am Ort</div>{snowCard}</>)}
 
       {chance?.card && (
@@ -694,7 +704,7 @@ function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { t
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, pointSums, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
@@ -709,6 +719,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
   towersPanel?: ReactNode;
   /** Phase SK (on, `?sk=0` off): Schneefallgrenze am Ort im Schnellblick. */
   snowCard?: ReactNode;
+  minuteCard?: ReactNode;
 }) {
   const PEEK = 34, FULL = 92; // vh
   const [dragVh, setDragVh] = useState(0);
@@ -733,7 +744,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       role="region" aria-label={`Bereich ${tab}`}>
       <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
       <div className="rm-sheet-body rm-tabsheet-body">
-        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} />}
+        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
@@ -763,7 +774,7 @@ function PanelState({ state }: { state: DeckState }) {
 }
 
 // --- Panel: Schnellblick ----------------------------------------------------
-function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode }) {
+function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cellCard = null, snowCard = null, minuteCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode; minuteCard?: ReactNode }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
   return (
     <>
@@ -771,6 +782,7 @@ function GlancePanel({ nowcast, state, place, pointSums, rainWindow, chance, cel
       <div className="rm-glance">
         {rainWindow && <RainWindowCard w={rainWindow} variant="mobile" />}
         {cellCard}
+        {minuteCard}
         {snowCard}
         {chance?.card}
         {pointSums.on && <PointSumCard past={pointSums.past} future={pointSums.future} windowH={pointSums.windowH} />}

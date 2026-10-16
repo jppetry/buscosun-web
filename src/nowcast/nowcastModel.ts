@@ -211,6 +211,13 @@ export interface Nowcast {
   fusionPWet?: Array<{ tMs: number; p: number }>;
   /** V-RC-1: die Schwelle, an der `fusionPWet` gelesen ist (mm/h) — 0 = 1 − pDry, 0,1 = Rückfall `?rbwet=0.1`. */
   fusionPWetMmH?: number;
+  /**
+   * Minutenverlauf (an, `?mv=0` aus): die Radar-Bilder am Ort, ein Wert je Bild (RV 5 min, INCA 15 min, rzc eins),
+   * `null` = außerhalb des Gitters. Grundlage der minutengenauen Kurve (`minuteSeries.ts`). Fehlt ohne Schalter.
+   */
+  radarFrames?: Array<{ tMs: number; mmH: number | null }>;
+  /** Minutenverlauf: ALLE Stundenwerte von buscosun Fusion (bis +48 h), `tMs` = Ende der Stunde. Fehlt ohne Schalter. */
+  fusionHours?: Array<{ tMs: number; mmH: number; conf: number }>;
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */

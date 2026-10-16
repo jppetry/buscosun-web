@@ -14,6 +14,7 @@ import { pfSourceFrom } from '../pointForecast/pfFlags';
 import type { PointForecastV2 } from '../pointForecast/fusion/output';
 import type { Dist } from '../pointForecast/fusion/dist';
 import { rainWindowEnabledFrom, rbWetThresholdFrom, RB_HORIZON_H, RB_WET_X_MMH } from './rainWindow';
+import { minuteSeriesEnabledFrom, MV_HORIZON_H } from './minuteSeries';
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import type { Country } from '../types';
 import {
@@ -327,6 +328,23 @@ export interface BuildNowcastOptions {
   onUpdate?: (nc: Nowcast) => void;
 }
 
+/**
+ * Minutenverlauf: one sample per radar frame at the place. The sampler's frames are evenly spaced between
+ * `validFromMs` and `validUntilMs` (RV 5 min, INCA 15 min); rzc has one frame. `[]` without a sampler.
+ */
+function radarFramesAt(s: Awaited<ReturnType<typeof createRadarNowcastSampler>>, lat: number, lon: number): Array<{ tMs: number; mmH: number | null }> {
+  if (!s || s.meta.frameCount <= 0) return [];
+  const { validFromMs, validUntilMs, frameCount } = s.meta;
+  const step = frameCount > 1 ? (validUntilMs - validFromMs) / (frameCount - 1) : 0;
+  const out: Array<{ tMs: number; mmH: number | null }> = [];
+  for (let i = 0; i < frameCount; i++) {
+    const tMs = validFromMs + i * step;
+    const v = s.sample(lat, lon, tMs);
+    out.push({ tMs, mmH: v != null && Number.isFinite(v) ? Math.max(0, v) : null });
+  }
+  return out;
+}
+
 /** Punktvorhersage → NWP-Stunden der Engine (Zuordnung unverändert seit vor RR, nur herausgezogen). */
 function nwpOf(forecast: PointForecast): NwpHour[] {
   return forecast.hours.map((h) => ({
@@ -379,9 +397,14 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   const rb = rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
   const wetX = rbWetThresholdFrom(typeof window !== 'undefined' ? window.location.search : '');
   const cubeHours = rb ? RB_HORIZON_H + 1 : 8;
+  // Minutenverlauf (on, `?mv=0` off): the card wants buscosun Fusion up to +48 h — cube path only (the live path keeps 8 h).
+  const mv = minuteSeriesEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  const cubeHoursMv = mv ? Math.max(cubeHours, MV_HORIZON_H + 1) : cubeHours;
   let exceed: ((d: Dist, x: number) => number) | null = null;
   const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
-    const nwpAll = nwpOf(forecast);
+    const nwpFull = nwpOf(forecast);
+    // Minutenverlauf without the rain window: the 48-h request must not widen the engine's series (8 h as before).
+    const nwpAll = mv && !rb ? nwpFull.filter((h) => h.tMs < Math.floor(nowMs / 3_600_000) * 3_600_000 + 8 * 3_600_000) : nwpFull;
     const nc = assembleNowcast({
       nowMs,
       radarSampleAt: (etaMs) => (s ? s.sample(lat, lon, etaMs) : null),
@@ -398,6 +421,10 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       const pw = fusionPWetOf(forecast, exceed, wetX);
       if (pw) { nc.fusionPWet = pw; nc.fusionPWetMmH = wetX; }
     }
+    if (mv) {
+      nc.radarFrames = radarFramesAt(s, lat, lon);
+      nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf }));
+    }
     return nc;
   };
 
@@ -405,7 +432,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   const live = () => getPointForecast({ lat, lng: lon, country, hours: 8, signal })
     .then((forecast) => ({ forecast, source: 'live' as const }));
   const cube = () => import('../pointForecast/cubeSource').then((mod) => { exceed = mod.exceedance; return getPointForecast({
-    lat, lng: lon, country, hours: cubeHours, signal, includeRadarNowcast: true, pointSource: 'cube',
+    lat, lng: lon, country, hours: cubeHoursMv, signal, includeRadarNowcast: true, pointSource: 'cube',
     onUpdate: (fc) => {
       latestCube = fc;
       if (sampler !== undefined && !signal?.aborted) opts.onUpdate?.(assemble(sampler, fc, 'cube'));
