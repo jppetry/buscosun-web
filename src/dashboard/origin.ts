@@ -116,6 +116,8 @@ export const ORIGIN = {
   P91: { label: 'Leitsatz', kind: 'fusion-derived', source: FUSION, path: `${RULES} leadSentence (aus dayText, Tmax, Regensumme)` },
   P92: { label: 'Nächte', kind: 'ui', source: 'Sonnenstand (NOAA-Näherung), keine Wetterquelle', path: 'src/pointForecast/terrainPhysics.ts solarPosition · data/forecastStore.ts' },
   P93: { label: 'Bandbreiten-Marken', kind: 'fusion-derived', source: FUSION, path: `vars.t2m.p10/p90 · ${RULES} bandMarks` },
+  // Gelände am Ort (point.terrain des Fusion-Ergebnisses) — Einordnung im Terrain-Feld, keine Temperaturkorrektur.
+  P94: { label: 'Gelände am Ort', kind: 'fusion', source: FUSION, path: 'v2.point.terrain (tpi500/tpi2000, svf, slope, aspect, sinkDepth, z0, imperv; Terrarium z11+z8)' },
 } as const satisfies Record<string, OriginEntry>;
 
 export type ParamId = keyof typeof ORIGIN;

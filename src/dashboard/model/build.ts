@@ -689,6 +689,36 @@ function niceAxis(minH: number, maxH: number): { bottom: number; top: number; st
   return { bottom: Math.floor(minH / step) * step, top: Math.ceil(maxH / step) * step, step };
 }
 
+// Schwellen der Einordnung sind gesetzt (nicht gemessen) und stehen in der Fußzeile der Box.
+const SITE_LAGE_M = 50, SITE_SINK_M = 50, SITE_SLOPE_DEG = 3, SITE_IMPERV_PCT = 30;
+const SITE_FOOT = `Einordnung des Ortes aus dem Höhenmodell (Schwellen gesetzt: Lage ±${SITE_LAGE_M}${NBSP}m, Senke ab ${SITE_SINK_M}${NBSP}m, Hang ab ${SITE_SLOPE_DEG}°, Bebauung ab ${SITE_IMPERV_PCT}${NBSP}%). Wie stark das Gelände die Prognose verschiebt, zeigt diese Box nicht.`;
+
+function buildSite(c: Ctx): TerrainVM['site'] {
+  const t = c.f?.v2.point.terrain ?? null;
+  const empty = (v: Shown): TerrainVM['site'] => ({ rows: [{ l: 'GELÄNDE', v }], hints: [], foot: SITE_FOOT });
+  if (!c.f) return empty(loading('P94'));
+  if (!t) return empty(na('P94', 'Geländekennzahlen für diesen Ort nicht verfügbar'));
+  const hints: string[] = [];
+  const tpi = t.tpi2000 ?? t.tpi500;
+  const sink = t.sinkDepth ?? 0;
+  const sloped = t.slope != null && t.slope >= SITE_SLOPE_DEG;
+  const lage = tpi == null ? null : tpi >= SITE_LAGE_M ? 'Kamm / Kuppe' : tpi <= -SITE_LAGE_M ? 'Tal / Mulde' : 'weder Mulde noch Kuppe';
+  const rows: TerrainVM['site']['rows'] = [
+    { l: 'LAGE', v: orNa('P94', lage == null ? null : `${lage} · ${withUnit(tpi, 0, 'm')} zur Umgebung`, 'kein Höhenvergleich') },
+    { l: 'NEIGUNG', v: orNa('P94', t.slope == null ? null : sloped ? `${num(t.slope, 0)}°${t.aspect != null ? ` · nach ${compass8(t.aspect)}` : ''}` : `nahezu eben · ${num(t.slope, 1)}°`, 'keine Neigung') },
+    { l: 'SENKE', v: orNa('P94', t.sinkDepth == null ? null : sink >= SITE_SINK_M ? `${withUnit(sink, 0, 'm')} unter dem Umfeld (2 km)` : 'keine ausgeprägte Senke', 'keine Senkentiefe') },
+    { l: 'HIMMEL', v: orNa('P94', t.svf == null ? null : `${Math.round(t.svf * 100)}${NBSP}% frei`, 'kein Horizont') },
+    { l: 'BEBAUUNG', v: orNa('P94', t.imperv == null ? null : `${Math.round(t.imperv)}${NBSP}% versiegelt`, 'keine Landbedeckung') },
+    { l: 'RAUIGKEIT', v: orNa('P94', t.z0 == null ? null : `z₀ ${num(t.z0, t.z0 < 0.1 ? 3 : 2)}${NBSP}m`, 'keine Landbedeckung') },
+  ];
+  if (sink >= SITE_SINK_M) hints.push('Senkenlage: In klaren, windschwachen Nächten kann sich hier Kaltluft sammeln, es wird dann kälter als im Umland.');
+  else if (tpi != null && tpi <= -SITE_LAGE_M) hints.push('Tal- oder Muldenlage: Nachts und bei Hochnebel weicht die Temperatur oft vom Umland ab.');
+  if (tpi != null && tpi >= SITE_LAGE_M) hints.push('Kamm- oder Kuppenlage: exponiert, der Wind ist hier meist stärker als in der Umgebung.');
+  if (sloped && t.aspect != null) hints.push(`Hang nach ${compass8(t.aspect)} ausgerichtet: Die Sonneneinstrahlung fällt je nach Tageszeit stärker oder schwächer aus als auf ebenem Gelände.`);
+  if (t.imperv != null && t.imperv >= SITE_IMPERV_PCT) hints.push('Bebautes Umfeld: Nachts ist eine Wärmeinsel gegenüber dem Umland möglich.');
+  return { rows, hints, foot: SITE_FOOT };
+}
+
 function buildTerrain(c: Ctx): TerrainVM {
   const tin = c.inp.terrain;
   const s0 = c.s0;
@@ -698,7 +728,7 @@ function buildTerrain(c: Ctx): TerrainVM {
     fromLabel: compass8(tin.axisDeg), toLabel: compass8(tin.axisDeg + 180),
     profile: [], axis: { bottom: 500, top: 3000, step: 500 }, hOrt: c.hOrt, isotherms: [], snowline: null, snowlineLabel: null, stations: [],
     ort: { title: c.inp.place?.name ?? '', sub: '' }, table: [], readout: { main: [], note: [] },
-    legendIso: 'gestrichelte Linien: Isothermen', note: tin.note,
+    legendIso: 'gestrichelte Linien: Isothermen', note: tin.note, site: buildSite(c),
   };
   if (!c.f || !s0 || tin.state !== 'ok' || !tin.profile.length) {
     return { ...base, state: tin.state === 'ok' ? 'loading' : tin.state, chip: tin.state === 'loading' || !c.f ? loading('P70') : na('P70', tin.note ?? 'Gelände nicht verfügbar') };

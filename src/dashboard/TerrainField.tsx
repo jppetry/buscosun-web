@@ -6,6 +6,7 @@
  */
 import { useId, type RefObject } from 'react';
 import { Rich, Val } from './tiles';
+import { originTitle } from './origin';
 import type { TerrainVM } from './model/types';
 
 const X0 = 58, X1 = 900, Y_TOP = 10, Y_BOT = 282;
@@ -150,6 +151,19 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
             <span className="dbd-dbox-l">ABLESUNG</span>
             <p data-origin="P78"><Rich parts={vm.readout.main.length ? vm.readout.main : [vm.state === 'loading' ? 'lädt …' : 'nicht verfügbar']} /></p>
             {vm.readout.note.length > 0 && <div className="dbd-readout-note"><Rich parts={vm.readout.note} /></div>}
+          </div>
+          <div className="dbd-dbox dbd-readout dbd-site" data-origin="P94" title={originTitle('P94')}>
+            <span className="dbd-dbox-l">GELÄNDE AM ORT</span>
+            <div className="dbd-levels">
+              {vm.site.rows.map((r) => (
+                <div key={r.l} className="dbd-level">
+                  <span className="dbd-level-h">{r.l}</span>
+                  <span className="dbd-level-t"><Val v={r.v} long /></span>
+                </div>
+              ))}
+            </div>
+            {vm.site.hints.map((h) => <p key={h}>{h}</p>)}
+            <div className="dbd-readout-note">{vm.site.foot}</div>
           </div>
         </div>
       </div>

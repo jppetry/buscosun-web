@@ -57,8 +57,8 @@ const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
 // ---------------------------------------------------------------------------
 {
   const ids = Object.keys(ORIGIN);
-  const want = Array.from({ length: 93 }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
-  add('(2) origin.ts trägt genau P01–P93 (P89–P93 = E-DB-23)', ids.length === 93 && want.every((id) => ids.includes(id)), `${ids.length} Einträge`);
+  const want = Array.from({ length: 94 }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
+  add('(2) origin.ts trägt genau P01–P94 (P89–P93 = E-DB-23, P94 = Gelände am Ort, nicht in der Doku-Matrix)', ids.length === 94 && want.every((id) => ids.includes(id)), `${ids.length} Einträge`);
   const kinds = new Set(['fusion', 'fusion-derived', 'data', 'web', 'unavailable', 'ui']);
   add('(2) jede Herkunft hat eine gültige Art, Quelle und Pfad', ids.every((id) => kinds.has(ORIGIN[id].kind) && ORIGIN[id].source && ORIGIN[id].path));
   // Verboten: der Live-Pfad (getPointForecast ohne Cube) und die Rasterfusion. `src/fusion/elevation.ts` ist der

@@ -158,6 +158,15 @@ export function templateVM(): DashboardVM {
         note: ['Gelände, Stationen und Schneegrenze sitzen auf ihrer ', { b: 'tatsächlichen Höhe' }, ' der Achse; Zwischenwerte folgen dem einen Gradienten, nichts wird aus zwei Modellen gemischt.', ' Oberstdorf und Hohenpeißenberg liegen außerhalb des ±20-km-Schnitts.'],
       },
       legendIso: `gestrichelte Linien: Isothermen 6 / 10 / 14${NB}°C — Höhe aus γ 7,1 K/km gerechnet`,
+      site: {
+        rows: [
+          { l: 'LAGE', v: s('P94', `Tal / Mulde · −180${NB}m zur Umgebung`) }, { l: 'NEIGUNG', v: s('P94', 'nahezu eben · 1,2°') },
+          { l: 'SENKE', v: s('P94', `120${NB}m unter dem Umfeld (2 km)`) }, { l: 'HIMMEL', v: s('P94', `78${NB}% frei`) },
+          { l: 'BEBAUUNG', v: s('P94', `12${NB}% versiegelt`) }, { l: 'RAUIGKEIT', v: s('P94', `z₀ 0,45${NB}m`) },
+        ],
+        hints: ['Senkenlage: In klaren, windschwachen Nächten kann sich hier Kaltluft sammeln, es wird dann kälter als im Umland.'],
+        foot: 'Einordnung des Ortes aus dem Höhenmodell (Schwellen gesetzt). Wie stark das Gelände die Prognose verschiebt, zeigt diese Box nicht.',
+      },
       note: null,
     },
     uv: { state: 'ok', days: [{ label: 'heute', value: 5 }, { label: 'morgen', value: 6 }, { label: 'übermorgen', value: 4 }], caption: s('P81', 'Tagesmaximum · 38 Vorhersageorte'), na: null },

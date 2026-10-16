@@ -244,6 +244,8 @@ export interface TerrainVM {
   readout: { main: Array<string | { b: string }>; note: Array<string | { b: string }> };
   legendIso: string;
   note: string | null;
+  /** Gelände am Ort aus `point.terrain` (P94): Kennzahlen mit Herkunft und Einordnungs-Sätze. */
+  site: { rows: Array<{ l: string; v: Shown }>; hints: string[]; foot: string };
 }
 
 export interface UvVM { state: LoadState; days: Array<{ label: string; value: number | null }>; caption: Shown; na: string | null }
