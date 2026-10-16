@@ -413,7 +413,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
             {minuteCard('desktop')}
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} snowCard={skCard('desktop')} />
+            {skCard('desktop')}
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} />
           </div>
         </div>
       )}
@@ -529,12 +530,10 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null, snowCard = null }: {
+function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null }: {
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
-  /** Phase SK (on, `?sk=0` off): Schneefallgrenze am Ort (`null` = aus). */
-  snowCard?: ReactNode;
 }) {
   if (state.kind === 'loading' || !nowcast) {
     return <div className="rr-center-state" style={{ position: 'static', color: 'var(--stone-500,#8B7355)', minHeight: 120 }}><span className="ev-spinner" /> Radar &amp; Modell werden ausgewertet …</div>;
@@ -546,7 +545,6 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
     <>
       {rainWindow && <RainWindowCard w={rainWindow} variant="desktop" />}
       {cellCard}
-      {snowCard && (<><div className="rr-section-label">Schneefallgrenze am Ort</div>{snowCard}</>)}
 
       {chance?.card && (
         <>

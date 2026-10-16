@@ -17,6 +17,10 @@ export interface SnowArrival {
   meta: string[];
   hTrue: number | null;
   cells: SnowCell[];
+  /** The native steps of the line (p10/p50/p90 in m) — the curve of the enlarged view. */
+  points: SnowPoint[];
+  /** P(wet) per step of buscosun Fusion for the strip under the curve (`null` = gap). */
+  wet: Array<{ fromMs: number; toMs: number; pWet: number | null }>;
 }
 
 /** 5-%-steps like the chance card, never "0 %"/"100 %". */
@@ -49,7 +53,8 @@ export function snowArrival(points: readonly SnowPoint[], hTrue: number | null, 
     if (p && p.p50 != null && hOk) kind = p.p50 <= hTrue ? 'snow' : p.p10 != null && p.p10 <= hTrue ? 'band' : 'rain';
     cells.push({ fromMs: a, toMs: b, kind });
   }
-  return { sentence, display, meta, hTrue, cells };
+  const wet = columns.filter((c) => c.tier !== 'clima').map((c) => ({ fromMs: c.stepFromMs, toMs: c.stepToMs, pWet: c.pWet }));
+  return { sentence, display, meta, hTrue, cells, points: points.filter((q) => q.tMs >= fromMs && q.tMs <= fromMs + hours * H), wet };
 }
 
 const RANK: Record<SnowCellKind, number> = { snow: 3, band: 2, rain: 1, gap: 0 };
