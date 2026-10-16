@@ -51,6 +51,10 @@ export interface MinuteSeries {
   hours: HourBar[];
   maxMmH: number;
   firstWet: { tMs: number; source: 'radar' | 'fusion' } | null;
+  /** Highest rate in the 48 h and when (radar minute or Fusion hour start). */
+  peak: { tMs: number; mmH: number; source: 'radar' | 'fusion' } | null;
+  /** Expected total over the 48 h (mm): radar minutes + Fusion hour means. */
+  sumMm: number;
   fusionLabel: string;
 }
 
@@ -121,8 +125,18 @@ export function buildMinuteSeries(input: MinuteSeriesInput): MinuteSeries {
   }
 
   let maxMmH = 0;
-  for (const p of radar?.points ?? []) maxMmH = Math.max(maxMmH, p.mmH);
-  for (const b of hours) maxMmH = Math.max(maxMmH, b.mmH);
+  let peak: MinuteSeries['peak'] = null;
+  let sumMm = 0;
+  for (const p of radar?.points ?? []) {
+    maxMmH = Math.max(maxMmH, p.mmH);
+    sumMm += p.mmH / 60;
+    if (p.mmH >= WET_MMH && (!peak || p.mmH > peak.mmH)) peak = { tMs: p.tMs, mmH: p.mmH, source: 'radar' };
+  }
+  for (const b of hours) {
+    maxMmH = Math.max(maxMmH, b.mmH);
+    sumMm += b.mmH * ((b.toMs - b.fromMs) / H);
+    if (b.mmH >= WET_MMH && (!peak || b.mmH > peak.mmH)) peak = { tMs: b.fromMs, mmH: b.mmH, source: 'fusion' };
+  }
 
   let firstWet: MinuteSeries['firstWet'] = null;
   const wetMinute = radar?.points.find((p) => p.mmH >= WET_MMH);
@@ -132,7 +146,7 @@ export function buildMinuteSeries(input: MinuteSeriesInput): MinuteSeries {
     if (wetHour) firstWet = { tMs: wetHour.fromMs, source: 'fusion' };
   }
 
-  return { nowMs, endMs, radar, hours, maxMmH, firstWet, fusionLabel: input.fusionLabel };
+  return { nowMs, endMs, radar, hours, maxMmH, firstWet, peak, sumMm: Math.round(sumMm * 10) / 10, fusionLabel: input.fusionLabel };
 }
 
 /** Value at a time: the radar minute or the hour bar (`null` = no source covers the time). */

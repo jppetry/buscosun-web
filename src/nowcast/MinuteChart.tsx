@@ -86,6 +86,7 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
     setHoverMs(Math.max(nowMs, Math.min(endMs, t)));
   };
   const hover = hoverMs != null ? valueAt(series, hoverMs) : null;
+  const nowVal = valueAt(series, nowMs)?.mmH ?? null;
   const hoverX = hoverMs != null ? X(hoverMs) : 0;
   const tipLeft = hoverMs != null ? Math.max(0, Math.min(width - 230, hoverX - 115)) : 0;
 
@@ -172,9 +173,15 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
             <text x={pad.l + 2} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{series.fusionLabel} · Stundenmittel{full ? ' (kein Radar-Nowcast am Ort)' : ''}</text>
           )}
 
-          {/* now */}
+          {/* now: line + pulsing point at the current value */}
           <line x1={pad.l} x2={pad.l} y1={pad.t - 2} y2={yBase} className="mv-now" />
           <text x={pad.l + 4} y={yBase - 4} className="mv-nowlabel">jetzt</text>
+          {nowVal != null && (
+            <g className="mv-nowpt">
+              <circle cx={pad.l} cy={Y(nowVal)} r={5} className="mv-nowpt-halo" />
+              <circle cx={pad.l} cy={Y(nowVal)} r={4} className="mv-nowpt-dot" />
+            </g>
+          )}
 
           {/* hover */}
           {hoverMs != null && hover && (
