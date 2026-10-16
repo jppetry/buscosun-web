@@ -103,16 +103,16 @@ export function HourlyChart({ vm, patternId }: { vm: HourlyVM; patternId: string
         <g data-origin="P93">
           {vm.marks.map((m) => {
             const mx = x(m.t);
-            const right = mx > w - 96;
+            const right = mx > w - 112;
             return (
               <g key={m.k}>
                 <line x1={mx} x2={mx} y1={fy(22)} y2={base} stroke="#A89A7A" strokeWidth="1" strokeDasharray="2 3" />
-                <text x={right ? mx - 5 : mx + 5} y={fy(30)} textAnchor={right ? 'end' : 'start'} fontFamily="League Spartan" fontSize="10.5" fill="#8B7355">{m.label}</text>
+                <text x={right ? mx - 5 : mx + 5} y={fy(30)} textAnchor={right ? 'end' : 'start'} fontFamily="League Spartan" fontSize="12" fill="#8B7355">{m.label}</text>
               </g>
             );
           })}
         </g>
-        <g fontFamily="League Spartan" fontSize="10.5" fill="#8B7355">
+        <g fontFamily="League Spartan" fontSize="12" fill="#8B7355">
           <text x="6" y="14">°C</text>
           {vm.dayLines.map((d) => <text key={d.t} x={x(d.t) + 7} y="14">{d.label}</text>)}
         </g>
