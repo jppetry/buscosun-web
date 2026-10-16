@@ -62,7 +62,7 @@ function KV({ l, v }: { l: string; v: Shown }) {
 
 function WarnTriangle() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2C2A26" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3 L22 20 H2 Z" /><line x1="12" y1="10" x2="12" y2="14" />
     </svg>
   );
@@ -102,7 +102,7 @@ function BandFunnel({ vm }: { vm: ConfVM }) {
   const label = `Bandbreite ${vm.band.t ?? 'n. v.'} jetzt, ±${last.half.toFixed(1).replace('.', ',')} °C in ${Math.round(hMax / 24)} Tagen${vm.funnelMarks.length ? `; ${vm.funnelMarks.map((m) => m.label).join(', ')}` : ''}`;
   return (
     <svg width={W} height="58" viewBox={`0 0 ${W} 58`} className="dbd-funnel" role="img" aria-label={label} data-origin="P90">
-      <path d={d} fill="#C99A4E" opacity=".55" />
+      <path d={d} fill="#C4B896" opacity=".7" />
       <line x1="0" y1={mid} x2={W} y2={mid} stroke="#F5F1E8" strokeWidth="1.2" opacity=".7" />
       <g data-origin="P93" stroke="#8B8474" strokeWidth="1" strokeDasharray="2 2">
         {vm.funnelMarks.map((m) => <line key={m.k} x1={x(m.h)} x2={x(m.h)} y1={top} y2={bottom} />)}

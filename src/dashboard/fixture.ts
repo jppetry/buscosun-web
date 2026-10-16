@@ -79,7 +79,7 @@ export function templateVM(): DashboardVM {
     },
     conf: {
       pct: 82, value: s('P22', `82${NB}%`), word: s('P23', 'solide'), typical: s('P22', `typisch ±0,8${NB}°C`),
-      weights: [{ label: 'ICON-D2 +3', pct: 42, color: '#C97B47' }, { label: 'MOSMIX', pct: 27, color: '#3A6FA8' }, { label: 'Radar', pct: 18, color: '#7A9466' }, { label: 'Klimatologie', pct: 13, color: '#6E675A' }],
+      weights: [{ label: 'ICON-D2 +3', pct: 42, color: '#C4B896' }, { label: 'MOSMIX', pct: 27, color: '#3A6FA8' }, { label: 'Radar', pct: 18, color: '#7A9466' }, { label: 'Klimatologie', pct: 13, color: '#6E675A' }],
       weightsText: s('P24', `ICON-D2 +3 42${NB}% · MOSMIX 27${NB}% · Radar 18${NB}% · Klimatologie 13${NB}%`),
       // E-DB-23 — die Vorlage kennt Bandbreite und Trichter nicht; plausible Werte zur Kontrolle der Darstellung.
       band: s('P89', `±1,2${NB}°C`), bandRange: s('P89', `jetzt: 80${NB}% zwischen 16,9 und 19,3${NB}°C`),
@@ -143,6 +143,9 @@ export function templateVM(): DashboardVM {
       sectors: [{ deg: 0, share: 0.06 }, { deg: 45, share: 0 }, { deg: 90, share: 0 }, { deg: 135, share: 0 }, { deg: 180, share: 0.08 }, { deg: 225, share: 0.34 }, { deg: 270, share: 0.3 }, { deg: 315, share: 0.22 }],
       nowDeg: 228, title: s('P64', 'SW · 228°'), reach: s('P65', `46${NB}h`), reachHours: 46, reachPct: 14,
     },
+    precip: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, hours: [], sum: s('P94', `0,0${NB}mm`), peak: na('P94', 'Vorlage ohne Stundenwerte'), wetHours: s('P94', '0 von 0 h'), caption: s('P94', 'Vorlage') },
+    windBand: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, points: [], gustMax: na('P95', 'Vorlage ohne Stundenwerte'), windMax: na('P95', 'Vorlage ohne Stundenwerte'), caption: s('P95', 'Vorlage') },
+    pressure: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, points: [], now: na('P96', 'Vorlage ohne Stundenwerte'), tendency: na('P96', 'Vorlage ohne Stundenwerte'), tendencyDir: null, range: na('P96', 'Vorlage ohne Stundenwerte'), caption: s('P96', 'Vorlage') },
     terrain: {
       state: 'ok', halfKm: 20,
       header: s('P80', 'Schnitt SW → NO durch die Fahrtrichtung des Windes · Punkt-Cube t1 (0,05°), γ aus dem Modellprofil'),

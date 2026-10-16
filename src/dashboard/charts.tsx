@@ -89,8 +89,8 @@ export function HourlyChart({ vm, patternId }: { vm: HourlyVM; patternId: string
         <g stroke="#E0D6BE" strokeWidth="1.2" data-origin="P51">
           {vm.dayLines.map((d) => <line key={d.t} x1={x(d.t)} y1="0" x2={x(d.t)} y2={h} />)}
         </g>
-        {bandD && <path d={bandD} fill="rgba(201,123,71,.1)" data-origin="P48" />}
-        <path d={path((p) => p.t50)} fill="none" stroke="#C97B47" strokeWidth="2.2" data-origin="P47" />
+        {bandD && <path d={bandD} fill="rgba(44,42,38,.08)" data-origin="P48" />}
+        <path d={path((p) => p.t50)} fill="none" stroke="#2C2A26" strokeWidth="2.2" data-origin="P47" />
         <path d={path((p) => p.td)} fill="none" stroke="#3A6FA8" strokeWidth="1.5" strokeDasharray="4 3" data-origin="P49" />
         <g fill="#3A6FA8" opacity=".55" data-origin="P50">
           {pts.filter((p) => (p.pr ?? 0) >= DRY_MMH).map((p) => {
@@ -163,7 +163,7 @@ export function NowcastChart({ vm }: { vm: NowcastVM }) {
             );
           })}
         </g>
-        {nx >= 0 && nx <= w && <line x1={nx} y1={fy(4)} x2={nx} y2={base} stroke="#E0A567" strokeWidth="1.3" strokeDasharray="3 3" />}
+        {nx >= 0 && nx <= w && <line x1={nx} y1={fy(4)} x2={nx} y2={base} stroke="#FAF6EA" strokeWidth="1.3" strokeDasharray="3 3" />}
         <line x1="0" y1={base} x2={w} y2={base} stroke="#3E4B5C" strokeWidth="1" />
       </g>
     );

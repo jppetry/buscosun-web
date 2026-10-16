@@ -278,6 +278,14 @@ dazwischen markierte Interpolation, ab ≈ 318 h Klimatologie-Schwanz (`cubeSour
 | P92 | Nächte im Stundenverlauf | — | Sonnenstand `solarPosition` (Rechnung, keine Wetterquelle) | Zeitraum | UI |
 | P93 | Marken „±2/3/4 °C ab …" | ja: `t2m.p10/p90` je Stunde | — | Zeitraum | F·abg (`bandMarks`, set) |
 
+### 4.8 Erweiterung 16.10.: drei Fusion-Kacheln im Reiter Details
+
+| P | Wert | Fusion | Alternative | Reichweite | Status |
+|---|---|---|---|---|---|
+| P94 | Niederschlag 48 h: Stundenmittel, Spanne p90, Regenchance 1 − pDry, Schneeanteil pSnow | ja: `precip.mean/p90`, `precip.dist`, `pSnow.p50` je Stunde | — | 0–48 h | F |
+| P95 | Wind und Böen 48 h: Mittelwind p50 mit Band p10–p90, Böen p50 | ja: `wind.p10/p50/p90`, `gust.p50` je Stunde | — | 0–48 h | F |
+| P96 | Luftdruck 48 h mit Tendenz (Δ 3 h) | ja: `ps.p50` je Stunde (Stationsdruck an h_true) | — | 0–48 h | F |
+
 ## 5. Architekturvorschlag
 
 ### 5.1 Routing und URL-Zustand

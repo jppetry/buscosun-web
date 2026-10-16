@@ -114,6 +114,10 @@ export const ORIGIN = {
   P89: { label: 'Bandbreite jetzt (80 %-Band)', kind: 'fusion', source: FUSION, path: 'steps[0].vars.t2m.p10/p90' },
   P90: { label: 'Bandbreite über 14 Tage', kind: 'fusion', source: FUSION, path: 'vars.t2m.p10/p90 je Stunde' },
   P91: { label: 'Leitsatz', kind: 'fusion-derived', source: FUSION, path: `${RULES} leadSentence (aus dayText, Tmax, Regensumme)` },
+  // Jan 16.10.: drei Fusion-Kacheln im Reiter Details.
+  P94: { label: 'Niederschlag 48 h mit Spanne, Regenchance und Phase', kind: 'fusion', source: FUSION, path: `${V2} · vars.precip.mean/p90 je Stunde · precip.dist (1 − pDry) · vars.pSnow.p50` },
+  P95: { label: 'Wind und Böen 48 h mit Spanne', kind: 'fusion', source: FUSION, path: `${V2} · vars.wind.p10/p50/p90 · vars.gust.p50 je Stunde` },
+  P96: { label: 'Luftdruck 48 h mit Tendenz', kind: 'fusion', source: FUSION, path: `${V2} · vars.ps.p50 je Stunde (Stationsdruck an h_true); Tendenz = Δ über 3 h` },
   P92: { label: 'Nächte', kind: 'ui', source: 'Sonnenstand (NOAA-Näherung), keine Wetterquelle', path: 'src/pointForecast/terrainPhysics.ts solarPosition · data/forecastStore.ts' },
   P93: { label: 'Bandbreiten-Marken', kind: 'fusion-derived', source: FUSION, path: `vars.t2m.p10/p90 · ${RULES} bandMarks` },
 } as const satisfies Record<string, OriginEntry>;

@@ -104,11 +104,11 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
               </g>
               {ortY != null && (
                 <g data-origin="P75">
-                  <line x1={ortX} y1={ortY} x2={ortX} y2={boxBelow ? ortY + 29 : ortY - 29} stroke="#E0A567" strokeWidth="1.4" strokeDasharray="3 3" />
-                  <circle cx={ortX} cy={ortY} r="6.5" fill="#E0A567" stroke="#2C2A26" strokeWidth="2" />
-                  <rect x={ortX - 70} y={boxBelow ? ortY + 29 : ortY - 63} width="140" height="34" rx="6" fill="#2C2A26" stroke="#E0A567" strokeWidth="1.2" />
+                  <line x1={ortX} y1={ortY} x2={ortX} y2={boxBelow ? ortY + 29 : ortY - 29} stroke="#FAF6EA" strokeWidth="1.4" strokeDasharray="3 3" />
+                  <circle cx={ortX} cy={ortY} r="6.5" fill="#FAF6EA" stroke="#2C2A26" strokeWidth="2" />
+                  <rect x={ortX - 70} y={boxBelow ? ortY + 29 : ortY - 63} width="140" height="34" rx="6" fill="#2C2A26" stroke="#FAF6EA" strokeWidth="1.2" />
                   <text x={ortX} y={boxBelow ? ortY + 42 : ortY - 50} fontSize="10.5" fill="#F5F1E8" textAnchor="middle" fontWeight="600">{vm.ort.title}</text>
-                  <text x={ortX} y={boxBelow ? ortY + 56 : ortY - 36} fontSize="10" fill="#E0A567" textAnchor="middle">{vm.ort.sub}</text>
+                  <text x={ortX} y={boxBelow ? ortY + 56 : ortY - 36} fontSize="10" fill="#FAF6EA" textAnchor="middle">{vm.ort.sub}</text>
                 </g>
               )}
               <g fill="#8B8474" fontSize="10" textAnchor="middle">

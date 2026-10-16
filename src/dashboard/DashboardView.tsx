@@ -20,6 +20,8 @@ import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, 
 import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningCard, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
+// Jan 16.10.: drei Fusion-Kacheln (Niederschlag, Wind/Böen, Luftdruck über 48 h) im Reiter Details.
+import { PrecipTile, WindBandTile, PressureTile } from './fusionTiles';
 import { pfLogFrom } from '../pointForecast/pfFlags';
 
 interface Props {
@@ -285,7 +287,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
             {showTabs && (
               <button type="button" className="dbd-more" onClick={() => onPart!('details')}>
                 <span className="dbd-more-title">Mehr zur Lage am Ort</span>
-                <span className="dbd-more-list">Radar, Bewölkung, Wind, Gelände, UV, Pollen, ICON-D2</span>
+                <span className="dbd-more-list">Radar, Bewölkung, Wind, Niederschlag 48 h, Böen, Luftdruck, Gelände, UV, Pollen, ICON-D2</span>
               </button>
             )}
             </div>
@@ -294,6 +296,11 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
               <CloudsTile vm={vm.clouds} />
               <WindTile vm={vm.wind} />
+            </div>
+            <div className="dbd-row4">
+              <PrecipTile vm={vm.precip} />
+              <WindBandTile vm={vm.windBand} />
+              <PressureTile vm={vm.pressure} />
             </div>
             <TerrainField vm={vm.terrain} onHalfKm={onHalfKm} rootRef={refs?.terrain} />
             <div className="dbd-row5">

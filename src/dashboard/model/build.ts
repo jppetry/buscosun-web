@@ -14,7 +14,7 @@ import {
 } from './rules';
 import type {
   CloudsVM, ConfVM, DashboardVM, DashInputs, DayVM, HourlyVM, IconD2VM, NowcastVM, NowVM, PhaseVM, PollenVM, Shown,
-  TerrainVM, TopVM, UvVM, WarningVM, WindVM, ZoneVM, FusionIn,
+  TerrainVM, TopVM, UvVM, WarningVM, WindVM, ZoneVM, FusionIn, PrecipVM, WindBandVM, PressureVM,
 } from './types';
 
 const H = 3_600_000;
@@ -113,6 +113,9 @@ export function buildDashboardVM(inp: DashInputs): DashboardVM {
     nowcast: buildNowcast(inp),
     clouds: buildClouds(ctx),
     wind: buildWind(ctx),
+    precip: buildPrecip(ctx),
+    windBand: buildWindBand(ctx),
+    pressure: buildPressure(ctx),
     terrain: buildTerrain(ctx),
     uv: buildUv(inp),
     pollen: buildPollen(inp),
@@ -252,8 +255,8 @@ const MODEL_NAMES: Record<string, string> = {
 };
 export const modelName = (id: string) => MODEL_NAMES[id] ?? id;
 
-/** Farben der Gewichtsleiste nach Produkt (Vorlage: Terracotta, Stahl, Salbei, Stein). */
-const PRODUCT_COLOR: Record<string, string> = { 'cube-t1': '#C97B47', 'cube-t2': '#C97B47', 'cube-t3': '#C97B47', station: '#3A6FA8', nowcast: '#7A9466', climatology: '#6E675A' };
+/** Farben der Gewichtsleiste nach Produkt (Jan 16.10.: Sand statt Terracotta für die Modelle; Stahl, Salbei, Stein). */
+const PRODUCT_COLOR: Record<string, string> = { 'cube-t1': '#C4B896', 'cube-t2': '#C4B896', 'cube-t3': '#C4B896', station: '#3A6FA8', nowcast: '#7A9466', climatology: '#6E675A' };
 
 /** E-DB-23: halbe Breite des 80 %-Bands (p10–p90) der Temperatur. */
 const halfBand = (s: StepV2 | undefined): number | null => {
@@ -826,5 +829,80 @@ function buildIconD2(inp: DashInputs): IconD2VM {
       { label: 'Böen max', value: orNa('P87', withUnit(d.gustMax, 0, 'm/s'), 'kein Wert'), tone: 'warn' },
       fire,
     ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Jan 16.10.: Fusion-Kacheln im Reiter Details — Niederschlag 48 h (P94), Wind/Böen 48 h (P95), Luftdruck 48 h (P96)
+// ---------------------------------------------------------------------------
+
+const FUSION_48_H = 48;
+function window48(c: Ctx): { fromMs: number; toMs: number; steps: StepV2[] } {
+  const fromMs = c.s0 ? c.s0.validAtMs : Math.floor(c.inp.nowMs / H) * H;
+  const toMs = fromMs + FUSION_48_H * H;
+  return { fromMs, toMs, steps: c.steps.filter((s) => s.validAtMs >= fromMs && s.validAtMs < toMs) };
+}
+const pSnowOf = (s: StepV2): number | null => {
+  const x = s.vars.pSnow?.p50;
+  return typeof x === 'number' && Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : null;
+};
+
+function buildPrecip(c: Ctx): PrecipVM {
+  const w = window48(c);
+  const state: PrecipVM['state'] = c.f ? 'ok' : FUSION_FAILED ? 'error' : 'loading';
+  const hours = w.steps.map((s) => ({ t: s.validAtMs, mean: v(s, 'precip', 'mean'), p90: v(s, 'precip', 'p90'), pWet: pWet(s), pSnow: pSnowOf(s) }));
+  const means = hours.map((h) => h.mean);
+  const sum = means.some((x) => x != null) ? means.reduce<number>((a, x) => a + (x ?? 0), 0) : null;
+  const peak = maxOf(means);
+  const peakHour = peak != null ? hours.find((h) => h.mean === peak) ?? null : null;
+  const wet = hours.filter((h) => (h.mean ?? 0) >= DRY_MMH).length;
+  const pMax = maxOf(hours.map((h) => h.pWet));
+  const snowy = hours.filter((h) => (h.mean ?? 0) >= DRY_MMH && (h.pSnow ?? 0) >= 0.5).length;
+  const why = state === 'loading' ? '' : NA_FUSION;
+  return {
+    state, fromMs: w.fromMs, toMs: w.toMs, hours,
+    sum: c.f ? orNa('P94', sum == null ? null : `${num(sum, 1)}${NBSP}mm`, why) : loading('P94'),
+    peak: c.f ? orNa('P94', peak == null || peakHour == null ? null : `${num(peak, 1)}${NBSP}mm/h · ${dayLabel(peakHour.t)} ${hhmm(peakHour.t)}`, why) : loading('P94'),
+    wetHours: c.f ? orNa('P94', hours.length ? `${wet} von ${hours.length} h${snowy ? ` · davon ${snowy} h als Schnee` : ''}${pMax != null ? ` · Chance bis ${pct(pMax)}` : ''}` : null, why) : loading('P94'),
+    caption: c.f ? sh('P94', `Stundenmittel (Balken), Spanne bis p90 (Strich), Regenchance 1 − pDry (Streifen), Schneeanteil aus pSnow (violett) · ${FUSION_48_H} h`) : loading('P94'),
+  };
+}
+
+function buildWindBand(c: Ctx): WindBandVM {
+  const w = window48(c);
+  const state: WindBandVM['state'] = c.f ? 'ok' : FUSION_FAILED ? 'error' : 'loading';
+  const points = w.steps.map((s) => ({ t: s.validAtMs, w10: v(s, 'wind', 'p10'), w50: v(s, 'wind'), w90: v(s, 'wind', 'p90'), g50: v(s, 'gust') }));
+  const gMax = maxOf(points.map((p) => p.g50));
+  const gAt = gMax != null ? points.find((p) => p.g50 === gMax) ?? null : null;
+  const wMax = maxOf(points.map((p) => p.w50));
+  const wAt = wMax != null ? points.find((p) => p.w50 === wMax) ?? null : null;
+  const dirAt = (t: number | undefined) => { const s = t == null ? undefined : w.steps.find((x) => x.validAtMs === t); const d = v(s, 'windDir'); return d == null ? '' : ` ${compass8(d)}`; };
+  const why = state === 'loading' ? '' : NA_FUSION;
+  return {
+    state, fromMs: w.fromMs, toMs: w.toMs, points,
+    gustMax: c.f ? orNa('P95', gMax == null || gAt == null ? null : `${num(gMax, 0)}${NBSP}m/s${dirAt(gAt.t)} · ${dayLabel(gAt.t)} ${hhmm(gAt.t)}`, why) : loading('P95'),
+    windMax: c.f ? orNa('P95', wMax == null || wAt == null ? null : `${num(wMax, 0)}${NBSP}m/s · ${dayLabel(wAt.t)} ${hhmm(wAt.t)}`, why) : loading('P95'),
+    caption: c.f ? sh('P95', `Mittelwind p50 (Linie) mit 80 %-Band p10–p90, Böen p50 (gestrichelt) · ${FUSION_48_H} h · 10 m über Grund`) : loading('P95'),
+  };
+}
+
+function buildPressure(c: Ctx): PressureVM {
+  const w = window48(c);
+  const state: PressureVM['state'] = c.f ? 'ok' : FUSION_FAILED ? 'error' : 'loading';
+  const points = w.steps.map((s) => ({ t: s.validAtMs, p: v(s, 'ps') }));
+  const p0 = points[0]?.p ?? null;
+  const p3 = points.find((p) => p.t >= w.fromMs + 3 * H)?.p ?? null;
+  const d3 = p0 != null && p3 != null ? p3 - p0 : null;
+  const dir: PressureVM['tendencyDir'] = d3 == null ? null : d3 >= 1 ? 'up' : d3 <= -1 ? 'down' : 'flat';
+  const lo = minOf(points.map((p) => p.p)), hi = maxOf(points.map((p) => p.p));
+  const why = state === 'loading' ? '' : (c.f?.v2.axis.steps.length ? 'der Cube führt am Ort keinen Druck' : NA_FUSION);
+  const sign = d3 == null ? '' : d3 > 0 ? '+' : '';
+  return {
+    state, fromMs: w.fromMs, toMs: w.toMs, points,
+    now: c.f ? orNa('P96', p0 == null ? null : `${num(p0, 0)}${NBSP}hPa`, why) : loading('P96'),
+    tendency: c.f ? orNa('P96', d3 == null ? null : `${sign}${num(d3, 1)}${NBSP}hPa in 3 h · ${dir === 'up' ? 'steigend' : dir === 'down' ? 'fallend' : 'gleichbleibend'}`, why) : loading('P96'),
+    tendencyDir: dir,
+    range: c.f ? orNa('P96', lo == null || hi == null ? null : `${num(lo, 0)}–${num(hi, 0)}${NBSP}hPa in ${FUSION_48_H} h`, why) : loading('P96'),
+    caption: c.f ? sh('P96', 'Stationsdruck an der Ortshöhe (nicht auf Meeresniveau reduziert) · Tendenz aus den ersten 3 h') : loading('P96'),
   };
 }

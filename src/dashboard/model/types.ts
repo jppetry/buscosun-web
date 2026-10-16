@@ -246,6 +246,28 @@ export interface TerrainVM {
   note: string | null;
 }
 
+/** Jan 16.10.: Niederschlag über 48 h aus buscosun Fusion — Stundenmittel, p90 als Spanne, Regenchance (1 − pDry) und Schneeanteil (pSnow) je Stunde (P94). */
+export interface PrecipVM {
+  state: LoadState;
+  fromMs: number; toMs: number;
+  hours: Array<{ t: number; mean: number | null; p90: number | null; pWet: number | null; pSnow: number | null }>;
+  sum: Shown; peak: Shown; wetHours: Shown; caption: Shown;
+}
+/** Jan 16.10.: Wind und Böen über 48 h — Mittelwind p50 mit Band p10–p90, Böen p50 (P95). */
+export interface WindBandVM {
+  state: LoadState;
+  fromMs: number; toMs: number;
+  points: Array<{ t: number; w10: number | null; w50: number | null; w90: number | null; g50: number | null }>;
+  gustMax: Shown; windMax: Shown; caption: Shown;
+}
+/** Jan 16.10.: Luftdruck am Ort über 48 h mit Tendenz (P96). */
+export interface PressureVM {
+  state: LoadState;
+  fromMs: number; toMs: number;
+  points: Array<{ t: number; p: number | null }>;
+  now: Shown; tendency: Shown; tendencyDir: 'up' | 'down' | 'flat' | null; range: Shown; caption: Shown;
+}
+
 export interface UvVM { state: LoadState; days: Array<{ label: string; value: number | null }>; caption: Shown; na: string | null }
 export interface PollenVM { state: LoadState; species: Array<{ name: string; levels: Array<number | null> }>; caption: Shown; cams: string; na: string | null }
 export interface IconD2VM { state: LoadState; title: string; rows: Array<{ label: string; value: Shown; tone: 'good' | 'muted' | 'strong' | 'warn' }>; foot: string }
@@ -264,6 +286,10 @@ export interface DashboardVM {
   nowcast: NowcastVM;
   clouds: CloudsVM;
   wind: WindVM;
+  /** Jan 16.10.: drei Fusion-Kacheln im Reiter Details (P94–P96). */
+  precip: PrecipVM;
+  windBand: WindBandVM;
+  pressure: PressureVM;
   terrain: TerrainVM;
   uv: UvVM;
   pollen: PollenVM;

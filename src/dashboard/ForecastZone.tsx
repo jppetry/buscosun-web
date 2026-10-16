@@ -43,7 +43,7 @@ export function ForecastZone({ vm, range, onRange }: { vm: ZoneVM; range: DashRa
         {vm.hourly && <HourlyTicks vm={vm.hourly} />}
         {vm.hourly && <HourlyTicks vm={vm.hourly} mobile />}
         <div className="dbd-legend">
-          <span><i style={{ width: 14, height: 2.5, background: '#C97B47' }} /> Temperatur + Bandbreite p10–p90</span>
+          <span><i style={{ width: 14, height: 2.5, background: '#2C2A26' }} /> Temperatur + Bandbreite p10–p90</span>
           <span><i style={{ width: 14, height: 2, background: '#3A6FA8' }} /> Taupunkt</span>
           <span><i style={{ width: 10, height: 8, background: '#3A6FA8', opacity: .55, borderRadius: 2 }} /> Menge mm/h</span>
           <span><i style={{ width: 12, height: 9, background: '#E0D6BE', borderRadius: 2 }} /> Nacht</span>
