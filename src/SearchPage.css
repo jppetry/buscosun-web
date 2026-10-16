@@ -162,7 +162,8 @@
 /* Hero zweispaltig: Text + Suche links, Werkzeug-Quadrat (04–07) rechts. */
 .deck-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(500px, 640px);
+  /* Seit 2026-10-17 vier Kacheln im Quad ⇒ Spalte breiter (vorher minmax(500px, 640px)). */
+  grid-template-columns: minmax(0, 1fr) minmax(560px, 760px);
   /* Zeile "eye" entfiel mit dem Eyebrow (2026-08-09). */
   grid-template-areas:
     "title quad"
@@ -198,8 +199,10 @@
      Wortmarke klebt (Jan, 2026-08-09). */
   margin-top: 34px;
   display: grid;
-  /* Seit 2026-10-03 drei Kacheln: Waldbrand | Nowcast | Vorhersage (Jan). */
-  grid-template-columns: repeat(3, 1fr);
+  /* Seit 2026-10-03 drei Kacheln: Waldbrand | Nowcast | Vorhersage (Jan); seit 2026-10-17 dazu Autobahnwetter.
+     Spalten je Kachel statt fester Zahl, damit `?road=0` keine Lücke lässt. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   grid-template-rows: 1fr;
   gap: 12px;
   min-height: 236px;
@@ -468,6 +471,9 @@
    Flamme (src/FireIcon.tsx): drei Flammenschichten flackern phasenversetzt, Glut steigt
    auf, ein weicher Schein atmet. Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus. */
 .tile-fire { justify-content: space-between; min-height: 210px; padding: 22px; }
+/* 11 · Autobahnwetter im Hero-Quad (2026-10-17): Aufbau wie Waldbrand, Glyphe in der 64-px-Zeile. */
+.tile-road { justify-content: space-between; min-height: 210px; padding: 22px; }
+.tile-road-icon { height: 64px; display: flex; align-items: center; justify-content: center; }
 
 /* Gletscher (Kachel 13, Phase GL; nur mit ?gl=1 bis Gate D): Text links, rechts eine schematische Gletscherkarte
    (Zeichnung, kein Datenbild); Stellung und Breite im Raster bleiben inline (`GL_TILE_STYLE`). */

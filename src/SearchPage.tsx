@@ -299,10 +299,11 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: He
 function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
   const tile = makeTile(activeCat, onOpenFeature);
   return (
-    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage">
+    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage, Autobahnwetter">
       {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
       {tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
+      {roadFlagFrom() && tile(['planen'], 'tile-road q-tile', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}
     </div>
   );
 }
@@ -357,6 +358,27 @@ const TILE_FIRE = (
       <p className="tile-desc sm">
         EU-Gefahrenindex bis +9 Tage, aktive Brände, Faktoren dahinter.{' '}
         <span className="tile-caveat">Kein amtliches Warnprodukt; für Österreich keine offene amtliche Stufe.</span>
+      </p>
+    </div>
+  </>
+);
+
+// 11 · Autobahnwetter — kompakte Kachel wie 04/05/10 (Hero, rechts neben der Vorhersage; Jan 17.10.2026). Auf
+// ≤1024 px bleibt die Vollbreiten-Kachel am Ende des Bento-Rasters (AW_TILE_STYLE).
+const TILE_ROAD = (
+  <>
+    <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
+    <div className="tile-road-icon" aria-hidden="true">
+      <svg width="52" height="52" viewBox="0 0 56 56">
+        <path d="M21 10 L11 46 M35 10 L45 46" fill="none" stroke="#8FB4E3" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M28 12 V18 M28 25 V31 M28 38 V44" fill="none" stroke="#C9BFA8" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Ist die Strecke glatt?</div>
+      <p className="tile-desc sm">
+        Fahrbahn von rund 1.200 DWD-Glättemeldeanlagen, alle 15 Minuten, je Autobahn als Streckenband.{' '}
+        <span className="tile-caveat">Kein amtliches Warnprodukt; AT und CH ohne offene Fahrbahnmessung.</span>
       </p>
     </div>
   </>
@@ -748,10 +770,10 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
 
       {/* 10 · WALDBRAND steht seit 2026-10-03 (Jan) links neben dem Regenradar: auf Desktop im
           Hero (HeroQuad), auf ≤1024 px im narrow-Block oben (TILE_FIRE). */}
-      {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — volle Breite am Ende des Bento-Rasters; Stellung und Breite
-          inline (`order: 11` hinter den Tablet-Rängen 1–10, `grid-column: 1 / -1`), Farben inline: keine Regel in
-          SearchPage.css. Lädt keine Daten. Bis Gate C nur mit `?road=1`. */}
-      {roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahnwetter öffnen',
+      {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — auf Desktop seit 17.10.2026 im Hero (HeroQuad, TILE_ROAD); auf
+          ≤1024 px volle Breite am Ende des Bento-Rasters, Stellung und Breite inline (`order: 11` hinter den
+          Tablet-Rängen 1–10, `grid-column: 1 / -1`), Farben inline. Lädt keine Daten. `?road=0` blendet aus. */}
+      {narrow && roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahnwetter öffnen',
         <>
           <div className="tile-feedback-icon" aria-hidden="true">
             <svg width="34" height="34" viewBox="0 0 56 56">
