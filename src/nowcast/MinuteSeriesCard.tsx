@@ -36,16 +36,16 @@ function dayWord(nowMs: number, tMs: number): string {
   return `${b.toLocaleDateString('de-DE', { weekday: 'short' })} `;
 }
 
-/** Hero: the one value the tile leads with, plus the line under it. */
-function hero(s: MinuteSeries): { value: string; line: string; tone: 'wet' | 'soon' | 'dry' } {
-  if (!s.firstWet) return { value: 'Trocken', line: `kein Niederschlag in den nächsten ${MV_HORIZON_H} h`, tone: 'dry' };
+/** Hero: the one value the tile leads with, plus the line under it. `tile: false` = only in the overlay's KPI row (Fusion hours carry no minute). */
+function hero(s: MinuteSeries): { value: string; line: string; tone: 'wet' | 'soon' | 'dry'; tile: boolean } {
+  if (!s.firstWet) return { value: 'Trocken', line: `kein Niederschlag in den nächsten ${MV_HORIZON_H} h`, tone: 'dry', tile: true };
   const lead = Math.round((s.firstWet.tMs - s.nowMs) / 60_000);
   if (s.firstWet.source === 'radar') {
-    if (lead <= 1) return { value: 'Jetzt', line: 'Regen am Ort · Radar', tone: 'wet' };
-    return { value: `in ${leadLabel(lead)}`, line: `Regen ab ${fmtClock(s.firstWet.tMs)} · Radar, minutengenau`, tone: 'soon' };
+    if (lead <= 1) return { value: 'Jetzt', line: 'Regen am Ort · Radar', tone: 'wet', tile: true };
+    return { value: `in ${leadLabel(lead)}`, line: `Regen ab ${fmtClock(s.firstWet.tMs)} · Radar, minutengenau`, tone: 'soon', tile: true };
   }
-  if (lead <= 1) return { value: 'Diese Stunde', line: `Niederschlag · ${s.fusionLabel}, stündlich`, tone: 'wet' };
-  return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line: '', tone: 'soon' };
+  if (lead <= 1) return { value: 'Diese Stunde', line: `${s.fusionLabel}, stündlich`, tone: 'wet', tile: false };
+  return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line: `${s.fusionLabel}, stündlich`, tone: 'soon', tile: false };
 }
 
 function fmtMm(mm: number): string { return `${mm.toFixed(1).replace('.', ',')} mm`; }
@@ -73,8 +73,6 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
 
   if (!series.radar && !series.hours.length) return null;
   const h = hero(series);
-  const radarChip = series.radar ? `Radar · ${series.radar.frameStepMin}-min-Bilder bis ${fmtClock(series.radar.toMs)}` : 'kein Radar-Nowcast am Ort';
-  const fusionChip = `${series.fusionLabel} · stündlich bis +${MV_HORIZON_H} h`;
   const sourceLine = `${series.radar ? `${series.radar.product} (Bild alle ${series.radar.frameStepMin} min, Minute interpoliert, bis ${fmtClock(series.radar.toMs)})` : 'kein Radar-Nowcast am Ort'} · ${series.fusionLabel} als Stundenmittel bis +${MV_HORIZON_H} h`;
   const kpis = [
     { k: 'Nächster Regen', v: h.value, s: h.line },
@@ -91,15 +89,13 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
             <IconExpand />
           </button>
         </div>
-        <div className="mv-hero">
-          <span className="mv-hero-value">{h.value}</span>
-          {h.line && <span className="mv-hero-line">{h.line}</span>}
-        </div>
-        <MinuteChart series={series} rangeH={MINI_RANGE_H} variant="mini" />
-        <div className="mv-chips">
-          <span className="mv-chip mv-chip--radar">{radarChip}</span>
-          <span className="mv-chip">{fusionChip}</span>
-        </div>
+        {h.tile && (
+          <div className="mv-hero">
+            <span className="mv-hero-value">{h.value}</span>
+            {h.line && <span className="mv-hero-line">{h.line}</span>}
+          </div>
+        )}
+        <MinuteChart series={series} rangeH={MINI_RANGE_H} variant="mini" height={150} />
       </section>
 
       {open && createPortal(
