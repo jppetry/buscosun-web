@@ -240,3 +240,48 @@ export function leadSentence(days: readonly LeadDay[]): string | null {
   else if (d1 && (d1.text || d1.tmax)) out.push(part(d1, d1.tmax ? `bis ${d1.tmax}` : null));
   return out.join(' ');
 }
+
+// ---------------------------------------------------------------------------
+// Jan 17.10.: Gelände am Punkt (Terrain-Feld, P97) — Wörter zu den Kennwerten von `v2.point.terrain` (set)
+// ---------------------------------------------------------------------------
+
+/** Geländelage aus dem Topographic Position Index (m über dem Mittel der Umgebung; 500 m und 2 km Radius). */
+export function tpiWord(tpi500: number | null, tpi2000: number | null): string | null {
+  const a = tpi500, b = tpi2000;
+  if (a == null && b == null) return null;
+  const x = a ?? b!, y = b ?? a!;
+  if (x >= 40 && y >= 60) return 'Kuppe / Gipfel';
+  if (x >= 25 || y >= 40) return 'Rücken / Oberhang';
+  if (x <= -40 && y <= -60) return 'Talgrund';
+  if (x <= -25 || y <= -40) return 'Mulde / Unterhang';
+  return 'Ebene / Mittelhang';
+}
+
+/** Himmelssicht (Sky-View-Factor 0…1) in Worten. */
+export function svfWord(svf: number | null): string | null {
+  if (svf == null) return null;
+  if (svf >= 0.97) return 'freier Horizont';
+  if (svf >= 0.9) return 'weitgehend frei';
+  if (svf >= 0.75) return 'teils verdeckt';
+  return 'stark eingeengt';
+}
+
+/** Oberfläche aus Rauigkeitslänge z0 (m) und Versiegelung (%). */
+export function surfaceWord(z0: number | null, imperv: number | null): string | null {
+  if (imperv != null && imperv >= 50) return 'dicht bebaut';
+  if (imperv != null && imperv >= 20) return 'Siedlung';
+  if (z0 == null) return imperv != null ? 'offen' : null;
+  if (z0 >= 0.5) return 'Wald / hohe Bebauung';
+  if (z0 >= 0.1) return 'Gehölz / locker bebaut';
+  if (z0 >= 0.03) return 'Acker / Wiese';
+  return 'glatt (Wasser, Schnee, Flachland)';
+}
+
+/** Kaltluftmulde: Tiefe der Senke (m) in Worten — ab 5 m sammelt sich nachts Kaltluft. */
+export function sinkWord(depthM: number | null): string | null {
+  if (depthM == null) return null;
+  if (depthM >= 30) return 'tiefe Mulde — nachts Kaltluftsee, Frost und Nebel begünstigt';
+  if (depthM >= 10) return 'Mulde — nachts Kaltluft sammelt sich';
+  if (depthM >= 5) return 'leichte Senke — nachts etwas kühler';
+  return 'keine Senke — Kaltluft fließt ab';
+}

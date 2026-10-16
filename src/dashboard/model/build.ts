@@ -11,6 +11,7 @@ import { ORIGIN, type ParamId } from '../origin';
 import {
   bandMarks, confidenceClass, confidenceTypical, confidenceWord, dayText, DRY_MMH, spreadText, gammaWord, GUST_WARN_MS, isothermColor, isotherms,
   leadSentence, PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
+  tpiWord, svfWord, surfaceWord, sinkWord,
 } from './rules';
 import type {
   CloudsVM, ConfVM, DashboardVM, DashInputs, DayVM, HourlyVM, IconD2VM, NowcastVM, NowVM, PhaseVM, PollenVM, Shown,
@@ -702,6 +703,7 @@ function buildTerrain(c: Ctx): TerrainVM {
     profile: [], axis: { bottom: 500, top: 3000, step: 500 }, hOrt: c.hOrt, isotherms: [], snowline: null, snowlineLabel: null, stations: [],
     ort: { title: c.inp.place?.name ?? '', sub: '' }, table: [], readout: { main: [], note: [] },
     legendIso: 'gestrichelte Linien: Isothermen', note: tin.note,
+    site: buildSite(c), levels: buildLevels(c), inversion: null, snowBand: null,
   };
   if (!c.f || !s0 || tin.state !== 'ok' || !tin.profile.length) {
     return { ...base, state: tin.state === 'ok' ? 'loading' : tin.state, chip: tin.state === 'loading' || !c.f ? loading('P70') : na('P70', tin.note ?? 'Gelände nicht verfügbar') };
@@ -769,8 +771,55 @@ function buildTerrain(c: Ctx): TerrainVM {
     },
     table: tableRows,
     readout: { main, note },
+    inversion: inversion ? { base: zBase as number, top: zInv as number, label: `Inversion ${withUnit(zBase, 0, 'm')}–${withUnit(zInv, 0, 'm')} · +${num(dTInv, 1)}${NBSP}K` } : null,
+    snowBand: v(s0, 'snowline', 'p10') != null && v(s0, 'snowline', 'p90') != null ? { lo: v(s0, 'snowline', 'p10') as number, hi: v(s0, 'snowline', 'p90') as number } : null,
     legendIso: iso.length ? `gestrichelte Linien: Isothermen ${iso.map((x) => num(x.t, 0)).reverse().join(' / ')}${NBSP}°C — Höhe aus γ ${num(gamma, 1)} K/km gerechnet` : 'Isothermen: kein Gradient',
   };
+}
+
+/** Jan 17.10. (P97): Gelände am Punkt — Lage, Neigung/Exposition, Himmelssicht, Kaltluftmulde, Oberfläche, Gewässernähe. */
+function buildSite(c: Ctx): TerrainVM['site'] {
+  const t = c.f?.v2.point.terrain ?? null;
+  const dw = c.f?.v2.point.dWater ?? null;
+  if (!c.f) {
+    const l = loading('P97');
+    return { state: FUSION_FAILED ? 'error' : 'loading', position: l, slope: l, slopeDeg: null, aspectDeg: null, sky: l, svf: null, sink: l, sinkDepth: null, surface: l, water: l };
+  }
+  const NA_T = 'kein Geländeprofil am Punkt (Terrarium nicht gelesen)';
+  const pos = t ? tpiWord(t.tpi500, t.tpi2000) : null;
+  const posTxt = pos == null ? null : `${pos}${t?.tpi500 != null ? ` · ${t.tpi500 >= 0 ? '+' : '−'}${num(Math.abs(t.tpi500), 0)}${NBSP}m zur Umgebung (500${NBSP}m)` : ''}`;
+  const slopeTxt = t?.slope == null ? null : t.slope < 1 ? 'eben' : `${num(t.slope, 0)}° ${t.aspect != null ? `nach ${compass8(t.aspect)}` : ''}`.trim();
+  const svfTxt = t?.svf == null ? null : `${Math.round(t.svf * 100)}${NBSP}% Himmelssicht · ${svfWord(t.svf)}`;
+  const sinkTxt = t?.sinkDepth == null ? null : `${sinkWord(t.sinkDepth)}${t.sinkDepth >= 5 ? ` (${num(t.sinkDepth, 0)}${NBSP}m)` : ''}`;
+  const surf = t ? surfaceWord(t.z0, t.imperv) : null;
+  const surfTxt = surf == null ? null : `${surf}${t?.z0 != null ? ` · z0 ${num(t.z0, 2)}${NBSP}m` : ''}${t?.imperv != null ? ` · ${num(t.imperv, 0)}${NBSP}% versiegelt` : ''}`;
+  let waterTxt: string | null = null, waterNa = 'Landbedeckung nicht gelesen';
+  if (dw) {
+    if (dw.m != null) waterTxt = dw.m >= 1000 ? `nächstes Gewässer ${num(dw.m / 1000, 1)}${NBSP}km` : `nächstes Gewässer ${num(dw.m, 0)}${NBSP}m`;
+    else if (dw.aboveM != null) waterTxt = `kein größeres Gewässer bis ${num(dw.aboveM / 1000, 0)}${NBSP}km`;
+    else waterNa = dw.reason === 'coverage' ? 'Landbedeckung am Punkt unvollständig' : 'kein Gewässer im Fenster';
+  }
+  return {
+    state: 'ok',
+    position: orNa('P97', posTxt, NA_T),
+    slope: orNa('P97', slopeTxt, NA_T), slopeDeg: t?.slope ?? null, aspectDeg: t?.aspect ?? null,
+    sky: orNa('P97', svfTxt, NA_T), svf: t?.svf ?? null,
+    sink: orNa('P97', sinkTxt, NA_T), sinkDepth: t?.sinkDepth ?? null,
+    surface: orNa('P97', surfTxt, 'keine Landbedeckung am Punkt'),
+    water: orNa('P97', waterTxt, waterNa),
+  };
+}
+
+/** Jan 17.10. (P16/P98): Temperatur und Feuchte je Druckfläche aus der nächsten t1-Zelle. */
+function buildLevels(c: Ctx): TerrainVM['levels'] {
+  if (!c.f || !c.s0) return [];
+  const s0 = c.s0;
+  const row = c.f.cells.filter((r) => r.tier === 't1').sort((a, b) => Math.abs(a.validAtMs - s0.validAtMs) - Math.abs(b.validAtMs - s0.validAtMs))[0] ?? null;
+  const NA = 'keine Druckflächen in der nächsten t1-Zelle';
+  return ([[700, 't700', 'rh700'], [850, 't850', 'rh850'], [925, 't925', 'rh925']] as const).map(([hPa, tk, rk]) => {
+    const t = row?.v[tk] ?? null, rh = row?.v[rk] ?? null;
+    return { hPa, tVal: t, rhVal: rh, t: orNa('P16', t == null ? null : `${num(t, 1)}°`, NA), rh: orNa('P98', rh == null ? null : `${num(rh, 0)}${NBSP}%`, NA) };
+  });
 }
 
 /** „Garmisch-Partenkirchen" ⇒ „Garmisch-P." (Vorlage: Ortsmarke im Schnitt). */

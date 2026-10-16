@@ -118,6 +118,9 @@ export const ORIGIN = {
   P94: { label: 'Niederschlag 48 h mit Spanne, Regenchance und Phase', kind: 'fusion', source: FUSION, path: `${V2} · vars.precip.mean/p90 je Stunde · precip.dist (1 − pDry) · vars.pSnow.p50` },
   P95: { label: 'Wind und Böen 48 h mit Spanne', kind: 'fusion', source: FUSION, path: `${V2} · vars.wind.p10/p50/p90 · vars.gust.p50 je Stunde` },
   P96: { label: 'Luftdruck 48 h mit Tendenz', kind: 'fusion', source: FUSION, path: `${V2} · vars.ps.p50 je Stunde (Stationsdruck an h_true); Tendenz = Δ über 3 h` },
+  // Jan 17.10.: Terrain-Feld — Gelände am Punkt und Feuchte je Druckfläche.
+  P97: { label: 'Gelände am Punkt', kind: 'fusion', source: FUSION, path: 'v2.point.terrain (tpi500/tpi2000, slope, aspect, svf, sinkDepth aus Terrarium z11; z0/imperv aus WorldCover) · v2.point.dWater' },
+  P98: { label: 'Feuchte 925/850/700 hPa', kind: 'data', source: 'buscosun-data point/ (Cube-Ebenen rh925/rh850/rh700)', path: 'cube.cells (CubePathSummary, E-DB-8)' },
   P92: { label: 'Nächte', kind: 'ui', source: 'Sonnenstand (NOAA-Näherung), keine Wetterquelle', path: 'src/pointForecast/terrainPhysics.ts solarPosition · data/forecastStore.ts' },
   P93: { label: 'Bandbreiten-Marken', kind: 'fusion-derived', source: FUSION, path: `vars.t2m.p10/p90 · ${RULES} bandMarks` },
 } as const satisfies Record<string, OriginEntry>;

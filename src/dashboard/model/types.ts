@@ -244,6 +244,24 @@ export interface TerrainVM {
   readout: { main: Array<string | { b: string }>; note: Array<string | { b: string }> };
   legendIso: string;
   note: string | null;
+  /** Jan 17.10. (P97): Gelände am Punkt aus `v2.point.terrain` / `dWater` — unabhängig vom Schnitt. */
+  site: SiteVM;
+  /** Jan 17.10. (P16/P98): Temperatur und Feuchte je Druckfläche aus den Cube-Ebenen (t1, nächster Schritt). */
+  levels: Array<{ hPa: number; t: Shown; rh: Shown; tVal: number | null; rhVal: number | null }>;
+  /** Inversionsschicht im Schnitt (P70): Basis und Oberkante in m, Beschriftung. */
+  inversion: { base: number; top: number; label: string } | null;
+  /** Spanne der Schneefallgrenze p10–p90 im Schnitt (P72). */
+  snowBand: { lo: number; hi: number } | null;
+}
+
+export interface SiteVM {
+  state: LoadState;
+  position: Shown;
+  slope: Shown; slopeDeg: number | null; aspectDeg: number | null;
+  sky: Shown; svf: number | null;
+  sink: Shown; sinkDepth: number | null;
+  surface: Shown;
+  water: Shown;
 }
 
 /** Jan 16.10.: Niederschlag über 48 h aus buscosun Fusion — Stundenmittel, p90 als Spanne, Regenchance (1 − pDry) und Schneeanteil (pSnow) je Stunde (P94). */

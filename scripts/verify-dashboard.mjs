@@ -57,8 +57,8 @@ const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
 // ---------------------------------------------------------------------------
 {
   const ids = Object.keys(ORIGIN);
-  const want = Array.from({ length: 96 }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
-  add('(2) origin.ts trägt genau P01–P96 (P89–P93 = E-DB-23, P94–P96 = Fusion-Kacheln 16.10.)', ids.length === 96 && want.every((id) => ids.includes(id)), `${ids.length} Einträge`);
+  const want = Array.from({ length: 98 }, (_, i) => `P${String(i + 1).padStart(2, '0')}`);
+  add('(2) origin.ts trägt genau P01–P98 (P89–P93 = E-DB-23, P94–P96 = Fusion-Kacheln 16.10., P97/P98 = Terrain 17.10.)', ids.length === 98 && want.every((id) => ids.includes(id)), `${ids.length} Einträge`);
   const kinds = new Set(['fusion', 'fusion-derived', 'data', 'web', 'unavailable', 'ui']);
   add('(2) jede Herkunft hat eine gültige Art, Quelle und Pfad', ids.every((id) => kinds.has(ORIGIN[id].kind) && ORIGIN[id].source && ORIGIN[id].path));
   // Verboten: der Live-Pfad (getPointForecast ohne Cube) und die Rasterfusion. `src/fusion/elevation.ts` ist der
@@ -71,8 +71,8 @@ const near = (a, b, tol) => a != null && b != null && Math.abs(a - b) <= tol;
   const rows = [...sec.matchAll(/^\| (P\d\d) \|.*\| ([^|]+) \|\s*$/gm)].map((m) => [m[1], m[2].replace(/\*\*/g, '').trim()]);
   const docKind = (s) => (/^n\. v\./.test(s) ? 'unavailable' : /^F·abg/.test(s) ? 'fusion-derived' : /^F\b/.test(s) ? 'fusion' : /^A-data/.test(s) ? 'data' : /^A-web/.test(s) ? 'web' : /^UI/.test(s) ? 'ui' : '?');
   const mism = rows.filter(([id, st]) => !ORIGIN[id] || docKind(st) !== ORIGIN[id].kind).map(([id, st]) => `${id}: Doku ${docKind(st)} ≠ Code ${ORIGIN[id]?.kind}`);
-  add('(2) die Abdeckungsmatrix (audit/dashboard.md §4 mit §4.7/§4.8) nennt P01–P96 je einmal, mit derselben Herkunftsart wie origin.ts',
-    rows.length === 96 && new Set(rows.map((r) => r[0])).size === 96 && mism.length === 0, mism.slice(0, 6).join(' · ') || `${rows.length} Zeilen`);
+  add('(2) die Abdeckungsmatrix (audit/dashboard.md §4 mit §4.7/§4.8) nennt P01–P98 je einmal, mit derselben Herkunftsart wie origin.ts',
+    rows.length === 98 && new Set(rows.map((r) => r[0])).size === 98 && mism.length === 0, mism.slice(0, 6).join(' · ') || `${rows.length} Zeilen`);
 }
 
 // ---------------------------------------------------------------------------

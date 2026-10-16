@@ -285,6 +285,8 @@ dazwischen markierte Interpolation, ab ≈ 318 h Klimatologie-Schwanz (`cubeSour
 | P94 | Niederschlag 48 h: Stundenmittel, Spanne p90, Regenchance 1 − pDry, Schneeanteil pSnow | ja: `precip.mean/p90`, `precip.dist`, `pSnow.p50` je Stunde | — | 0–48 h | F |
 | P95 | Wind und Böen 48 h: Mittelwind p50 mit Band p10–p90, Böen p50 | ja: `wind.p10/p50/p90`, `gust.p50` je Stunde | — | 0–48 h | F |
 | P96 | Luftdruck 48 h mit Tendenz (Δ 3 h) | ja: `ps.p50` je Stunde (Stationsdruck an h_true) | — | 0–48 h | F |
+| P97 | Gelände am Punkt: Lage (TPI), Neigung/Exposition, Himmelssicht, Kaltluftmulde, Oberfläche (z0, Versiegelung), Gewässernähe | ja: `v2.point.terrain`, `v2.point.dWater` | — | Punkt | F |
+| P98 | rel. Feuchte 925/850/700 hPa | — | buscosun-data `point/` Cube-Ebenen rh925/rh850/rh700 (`cube.cells`, t1) | Stunde 0 | A-data |
 
 ## 5. Architekturvorschlag
 

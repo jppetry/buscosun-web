@@ -162,6 +162,9 @@ export function templateVM(): DashboardVM {
       },
       legendIso: `gestrichelte Linien: Isothermen 6 / 10 / 14${NB}°C — Höhe aus γ 7,1 K/km gerechnet`,
       note: null,
+      site: { state: 'ok', position: s('P97', `Talgrund · −180${NB}m zur Umgebung (500${NB}m)`), slope: s('P97', '3° nach SW'), slopeDeg: 3, aspectDeg: 225, sky: s('P97', `62${NB}% Himmelssicht · stark eingeengt`), svf: 0.62, sink: s('P97', `Mulde — nachts Kaltluft sammelt sich (14${NB}m)`), sinkDepth: 14, surface: s('P97', `Siedlung · z0 0,30${NB}m · 28${NB}% versiegelt`), water: s('P97', `nächstes Gewässer 1,2${NB}km`) },
+      levels: [[700, 2.1, 48], [850, 9.2, 61], [925, 13.8, 70]].map(([hPa, t, rh]) => ({ hPa, tVal: t, rhVal: rh, t: s('P16', `${String(t).replace('.', ',')}°`), rh: s('P98', `${rh}${NB}%`) })),
+      inversion: null, snowBand: { lo: 1900, hi: 2300 },
     },
     uv: { state: 'ok', days: [{ label: 'heute', value: 5 }, { label: 'morgen', value: 6 }, { label: 'übermorgen', value: 4 }], caption: s('P81', 'Tagesmaximum · 38 Vorhersageorte'), na: null },
     pollen: {

@@ -3,10 +3,15 @@
  * (γ aus dem Modellprofil des Cube, E-DB-11), Isothermen, Schneefallgrenze, Stationen des Katalogs im Schnitt,
  * Tabelle je Höhenstufe, Ablesung. Koordinatensystem der Vorlage: viewBox 900×340, Höhenachse x = 58, Raster
  * y 10 … 282. Wind je Höhenniveau ist nicht verfügbar (kein Höhenwind im Punkt-Cube) — es werden KEINE Pfeile gezeichnet.
+ *
+ * Jan 17.10.: dazu die Inversionsschicht und die Spanne der Schneefallgrenze im Schnitt, der Kasten „Gelände am Punkt"
+ * (P97: Lage, Neigung und Exposition, Himmelssicht, Kaltluftmulde, Oberfläche, Gewässernähe) und „Schichtung"
+ * (P16/P98: Temperatur und Feuchte je Druckfläche).
  */
 import { useId, type RefObject } from 'react';
 import { Rich, Val } from './tiles';
-import type { TerrainVM } from './model/types';
+import { originTitle } from './origin';
+import type { SiteVM, TerrainVM } from './model/types';
 
 const X0 = 58, X1 = 900, Y_TOP = 10, Y_BOT = 282;
 
@@ -17,6 +22,7 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
   const x = (s: number) => X0 + ((s + R) / (2 * R)) * (X1 - X0);
   const { top, bottom, step } = vm.axis;
   const y = (h: number) => Y_TOP + ((top - h) / Math.max(1, top - bottom)) * (Y_BOT - Y_TOP);
+  const yc = (h: number) => Math.max(Y_TOP, Math.min(Y_BOT, y(h)));
   const ticks: number[] = [];
   for (let h = top; h >= bottom; h -= step) ticks.push(h);
   const terrainD = ok ? `M${X0} 340 ${vm.profile.map((p) => `L${x(p.s).toFixed(1)} ${Math.min(340, y(p.h)).toFixed(1)}`).join(' ')} L${X1} 340 Z` : '';
@@ -34,6 +40,8 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
   const snowY = vm.snowline != null ? y(vm.snowline) : null;
   const ortX = x(0), ortY = vm.hOrt != null ? y(vm.hOrt) : null;
   const boxBelow = ortY != null && ortY + 29 + 34 <= 338;
+  const inv = vm.inversion && vm.inversion.top > bottom && vm.inversion.base < top ? vm.inversion : null;
+  const band = vm.snowBand && vm.snowBand.hi > bottom && vm.snowBand.lo < top ? vm.snowBand : null;
   return (
     <section ref={rootRef} className="dbd-terrain dbd-dark" aria-label="Terrain um den Ort">
       <div className="dbd-terrain-head">
@@ -62,6 +70,9 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
                 <linearGradient id={`trRock${uid}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#4A463E" /><stop offset="100%" stopColor="#312E29" />
                 </linearGradient>
+                <pattern id={`trInv${uid}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="6" stroke="#FAF6EA" strokeWidth="1" strokeOpacity=".35" />
+                </pattern>
                 {snowY != null && <clipPath id={`trCap${uid}`}><path d={`M${X0} ${snowY} H${X1} V${Y_TOP} H${X0} Z`} /></clipPath>}
               </defs>
               <rect x={X0} y={Y_TOP} width={X1 - X0} height={Y_BOT - Y_TOP} fill={`url(#trTemp${uid})`} data-origin="P69" />
@@ -71,13 +82,23 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
               <g fill="#8B8474" fontSize="10.5" textAnchor="end">
                 {ticks.map((h, i) => <text key={h} x="52" y={y(h) + 4}>{i === 0 ? `${h} m` : h}</text>)}
               </g>
+              {/* Jan 17.10.: Spanne der Schneefallgrenze p10–p90 (P72) und Inversionsschicht (P70) als Bänder */}
+              {band && <rect x={X0} y={yc(band.hi)} width={X1 - X0} height={Math.max(1, yc(band.lo) - yc(band.hi))} fill="#B5C4D4" fillOpacity=".12" data-origin="P72" />}
+              {inv && (
+                <g data-origin="P70">
+                  <rect x={X0} y={yc(inv.top)} width={X1 - X0} height={Math.max(2, yc(inv.base) - yc(inv.top))} fill={`url(#trInv${uid})`} />
+                  <line x1={X0} x2={X1} y1={yc(inv.top)} y2={yc(inv.top)} stroke="#FAF6EA" strokeWidth="1" strokeOpacity=".5" strokeDasharray="3 3" />
+                  <line x1={X0} x2={X1} y1={yc(inv.base)} y2={yc(inv.base)} stroke="#FAF6EA" strokeWidth="1" strokeOpacity=".5" strokeDasharray="3 3" />
+                  <text x="64" y={yc(inv.top) - 4} fontSize="9.5" fill="#F5F1E8" fillOpacity=".85">{inv.label}</text>
+                </g>
+              )}
               {vm.isotherms.map((it) => (
                 <path key={it.t} d={`M${X0} ${y(it.h).toFixed(1)} L${X1} ${y(it.h).toFixed(1)}`} fill="none" stroke={it.color} strokeWidth="1.2" strokeDasharray="5 4" opacity=".75" data-origin="P71" />
               ))}
               {snowY != null && (
                 <>
                   <line x1={X0} y1={snowY} x2={X1} y2={snowY} stroke="#B5C4D4" strokeWidth="1.6" data-origin="P72" />
-                  <text x="892" y={snowY - 4} fontSize="10" fill="#B5C4D4" textAnchor="end">{vm.snowlineLabel}</text>
+                  <text x="892" y={snowY - 4} fontSize="10" fill="#B5C4D4" textAnchor="end">{vm.snowlineLabel}{band ? ` · Spanne ${Math.round(band.lo / 10) * 10}–${Math.round(band.hi / 10) * 10} m` : ''}</text>
                 </>
               )}
               {ok && <path d={terrainD} fill={`url(#trRock${uid})`} stroke="#5A554B" strokeWidth="1.4" />}
@@ -129,7 +150,8 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
           <div className="dbd-section-legend">
             <span><i style={{ width: 16, height: 8, borderRadius: 2, background: 'linear-gradient(0deg,#C97B47,#7A9466,#3A6FA8)' }} /> Temperatur nach Höhe (warm unten → kalt oben)</span>
             <span data-origin="P73" title="nicht verfügbar — kein Höhenwind im Punkt-Cube (E-DB-11)"><i style={{ width: 14, height: 2, background: '#7A9466' }} /> Windvektor je Niveau — <span className="dbd-na">nicht verfügbar</span></span>
-            <span><i style={{ width: 14, height: 2, background: '#B5C4D4' }} /> Schneefallgrenze</span>
+            <span><i style={{ width: 14, height: 2, background: '#B5C4D4' }} /> Schneefallgrenze{band ? ' + Spanne p10–p90' : ''}</span>
+            {inv && <span><i style={{ width: 14, height: 8, borderRadius: 2, background: 'repeating-linear-gradient(45deg,#FAF6EA 0 1px,transparent 1px 4px)', border: '1px dashed #8B8474' }} /> Inversionsschicht</span>}
             <span className="is-muted">{vm.legendIso}</span>
           </div>
         </div>
@@ -153,7 +175,122 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
           </div>
         </div>
       </div>
+      {/* Jan 17.10.: Gelände am Punkt (P97) und Schichtung je Druckfläche (P16/P98) */}
+      <div className="dbd-terrain-row">
+        <SiteBox site={vm.site} />
+        <LevelsBox vm={vm} />
+      </div>
     </section>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Gelände am Punkt (P97)
+// ---------------------------------------------------------------------------
+
+/** Kompass mit Expositionspfeil und Neigungskeil (meteorologisch: 0° = Nord oben). */
+function AspectDial({ slopeDeg, aspectDeg }: { slopeDeg: number | null; aspectDeg: number | null }) {
+  const r = 26, c = 32;
+  const a = aspectDeg == null ? null : ((aspectDeg - 90) * Math.PI) / 180;
+  const tip = a == null ? null : [c + (r - 4) * Math.cos(a), c + (r - 4) * Math.sin(a)];
+  const flat = slopeDeg == null || slopeDeg < 1;
+  return (
+    <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true" className="dbd-site-dial">
+      <circle cx={c} cy={c} r={r} fill="#2C2A26" stroke="#3A3833" />
+      <circle cx={c} cy={c} r={r / 2} fill="none" stroke="#3A3833" />
+      <g fill="#8B8474" fontSize="7.5" textAnchor="middle" fontFamily="League Spartan">
+        <text x={c} y={9}>N</text><text x={c + r + 4} y={c + 2.5}>O</text><text x={c} y={c + r + 7}>S</text><text x={c - r - 4} y={c + 2.5}>W</text>
+      </g>
+      {tip && !flat ? (
+        <g>
+          <line x1={c} y1={c} x2={tip[0]} y2={tip[1]} stroke="#FAF6EA" strokeWidth="2" strokeLinecap="round" />
+          <circle cx={tip[0]} cy={tip[1]} r="3" fill="#FAF6EA" />
+        </g>
+      ) : <circle cx={c} cy={c} r="3" fill="#FAF6EA" />}
+    </svg>
+  );
+}
+
+/** Himmelssicht als Bogen (Sky-View-Factor). */
+function SkyArc({ svf }: { svf: number | null }) {
+  const r = 22, c = 30;
+  const f = svf == null ? 0 : Math.max(0, Math.min(1, svf));
+  const end = Math.PI - Math.PI * f;
+  const arc = (from: number, to: number) => {
+    const p = (t: number) => `${(c + r * Math.cos(t)).toFixed(1)} ${(c - r * Math.sin(t)).toFixed(1)}`;
+    return `M${p(from)} A${r} ${r} 0 ${from - to > Math.PI ? 1 : 0} 1 ${p(to)}`;
+  };
+  return (
+    <svg width="60" height="34" viewBox="0 0 60 34" aria-hidden="true" className="dbd-site-arc">
+      <path d={arc(Math.PI, 0)} fill="none" stroke="#3A3833" strokeWidth="6" strokeLinecap="round" />
+      {svf != null && <path d={arc(Math.PI, end)} fill="none" stroke="#FAF6EA" strokeWidth="6" strokeLinecap="round" />}
+      <text x={c} y={31} fontSize="9" fill="#F5F1E8" textAnchor="middle" fontFamily="League Spartan" fontWeight="600">{svf != null ? `${Math.round(f * 100)} %` : '—'}</text>
+    </svg>
+  );
+}
+
+function SiteBox({ site }: { site: SiteVM }) {
+  const row = (l: string, v: SiteVM['position']) => (
+    <div className="dbd-site-row"><span className="dbd-site-l">{l}</span><span className="dbd-site-v"><Val v={v} long /></span></div>
+  );
+  return (
+    <div className="dbd-dbox dbd-site" data-origin="P97" title={originTitle('P97')}>
+      <span className="dbd-dbox-l">GELÄNDE AM PUNKT · TERRARIUM · WORLDCOVER</span>
+      {site.state === 'loading' ? <div className="dbd-empty dbd-loading" aria-busy="true">lädt …</div>
+        : site.state === 'error' ? <div className="dbd-empty">nicht verfügbar — buscosun Fusion nicht erreichbar</div> : (
+          <div className="dbd-site-grid">
+            <div className="dbd-site-vis">
+              <AspectDial slopeDeg={site.slopeDeg} aspectDeg={site.aspectDeg} />
+              <span className="dbd-site-cap">Exposition · Neigung</span>
+              <SkyArc svf={site.svf} />
+              <span className="dbd-site-cap">Himmelssicht</span>
+            </div>
+            <div className="dbd-site-rows">
+              {row('Lage', site.position)}
+              {row('Neigung', site.slope)}
+              {row('Horizont', site.sky)}
+              {row('Kaltluft', site.sink)}
+              {row('Oberfläche', site.surface)}
+              {row('Wasser', site.water)}
+            </div>
+          </div>
+        )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Schichtung je Druckfläche (P16 Temperatur, P98 Feuchte)
+// ---------------------------------------------------------------------------
+
+function LevelsBox({ vm }: { vm: TerrainVM }) {
+  const ts = vm.levels.map((l) => l.tVal).filter((x): x is number => x != null);
+  const tMin = ts.length ? Math.min(...ts) : 0, tMax = ts.length ? Math.max(...ts) : 1;
+  const pos = (t: number) => (tMax === tMin ? 50 : ((t - tMin) / (tMax - tMin)) * 100);
+  const warmerAbove = vm.levels.length === 3 && vm.levels[0].tVal != null && vm.levels[2].tVal != null && (vm.levels[0].tVal as number) > (vm.levels[2].tVal as number);
+  return (
+    <div className="dbd-dbox dbd-strata">
+      <span className="dbd-dbox-l">SCHICHTUNG · 700 / 850 / 925 HPA · PUNKT-CUBE</span>
+      {vm.levels.length === 0 ? <div className="dbd-empty dbd-loading" aria-busy="true">lädt …</div> : (
+        <div className="dbd-strata-rows">
+          {vm.levels.map((l) => (
+            <div key={l.hPa} className="dbd-strata-row">
+              <span className="dbd-strata-h">{l.hPa} hPa</span>
+              <span className="dbd-strata-track" aria-hidden="true">
+                {l.tVal != null && <i className="dbd-strata-dot" style={{ left: `${pos(l.tVal)}%` }} />}
+                {l.rhVal != null && <i className="dbd-strata-rh" style={{ width: `${Math.max(0, Math.min(100, l.rhVal))}%` }} />}
+              </span>
+              <span className="dbd-strata-t"><Val v={l.t} /></span>
+              <span className="dbd-strata-rhv"><Val v={l.rh} /></span>
+            </div>
+          ))}
+          <div className="dbd-strata-foot">
+            <span><i className="dbd-strata-dot is-leg" /> Temperatur (kalt links → warm rechts)</span>
+            <span><i className="dbd-strata-rh is-leg" /> rel. Feuchte</span>
+            {warmerAbove && <span className="dbd-strata-warn">700 hPa wärmer als 925 hPa — Inversion in der Höhe</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
