@@ -109,7 +109,6 @@ function SnowArrivalCard({ st, mapMs, pickMs, onPick, variant }: { st: SnowArriv
     { k: 'Ortshöhe', v: a.hTrue != null ? `${fmtM(a.hTrue)} m` : '—', s: 'Höhe des Orts, auf die sich die Grenze bezieht' },
     { k: 'Schnee bei dir', v: snowHours ? `${snowHours} h` : 'keine', s: bandHours ? `dazu ${bandHours} h knapp darüber (in der Spanne)` : 'keine Stunde knapp darüber' },
   ];
-  const meta = [...a.meta, st.fusionName].join(' · ');
 
   return (
     <>
@@ -117,10 +116,6 @@ function SnowArrivalCard({ st, mapMs, pickMs, onPick, variant }: { st: SnowArriv
         <div className="mv-head">
           <Eyebrow text="Schneefallgrenze" />
           <button type="button" className="mv-expand" onClick={() => setOpen(true)} aria-label="Schneefallgrenze über 48 Stunden groß öffnen" title="Groß öffnen · 48 h"><IconExpand /></button>
-        </div>
-        <div className="mv-hero">
-          <span className="mv-hero-value sk-hero">{a.display}</span>
-          <span className="mv-hero-line">{meta}</span>
         </div>
         <SnowBar a={a} mapMs={mapMs} pickMs={pickMs} onPick={onPick} variant={variant} />
       </section>
