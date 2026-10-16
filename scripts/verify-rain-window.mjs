@@ -223,7 +223,8 @@ console.log('\nG Verdrahtung');
   const mv = readFileSync(join(ROOT, 'src/MapView.tsx'), 'utf8');
   const eng = readFileSync(join(ROOT, 'src/nowcast/nowcastEngine.ts'), 'utf8');
   const rr = readFileSync(join(ROOT, 'src/nowcast/rainWindowRadar.ts'), 'utf8');
-  add('G1 Desktop: Karte als Erstes im Readout', /<>\s*\{rainWindow && <RainWindowCard w=\{rainWindow\} variant="desktop" \/>\}\s*\{cellCard\}/.test(deck));
+  // Jan 16.10.2026: die Karte ist aus dem Desktop-Readout raus (Minutenverlauf übernimmt); das Fenster bleibt für Marker-Label und Mobil.
+  add('G1 Desktop: keine Regenbeginn-Karte mehr im Readout', !/<RainWindowCard w=\{rainWindow\} variant="desktop" \/>/.test(deck));
   add('G2 Mobil: Karte oben im Schnellblick', /<div className="rm-glance">\s*\{rainWindow && <RainWindowCard w=\{rainWindow\} variant="mobile" \/>\}/.test(deck));
   add('G3 Deck rechnet nur mit Schalter', /if \(!rbOn \|\| !nowcast \|\| rbStack === undefined\) return null;/.test(deck) && /const onRadarStack = rbOn \? setRbStack : undefined;/.test(deck));
   // Jan 13.10. (audit/regenradar-altanzeigen.md): the old "Schnellblick" sentence is removed on purpose — the card is the only sentence.

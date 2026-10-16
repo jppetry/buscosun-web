@@ -414,7 +414,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             </div>
             {minuteCard('desktop')}
             {skCard('desktop')}
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} rainWindow={rainWindow} chance={chance} cellCard={cellCardDesktop} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} pointSums={pointSums} chance={chance} cellCard={cellCardDesktop} />
           </div>
         </div>
       )}
@@ -530,8 +530,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
 // ============================================================================
 // Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cellCard = null }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; rainWindow: RainWindow | null; chance: ChanceCtx | null;
+function ReadoutBody({ nowcast, state, mode, pointSums, chance, cellCard = null }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; pointSums: PointSums; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
 }) {
@@ -543,7 +543,7 @@ function ReadoutBody({ nowcast, state, mode, pointSums, rainWindow, chance, cell
   }
   return (
     <>
-      {rainWindow && <RainWindowCard w={rainWindow} variant="desktop" />}
+      {/* Regenbeginn-Karte im Desktop-Readout entfernt (Jan 16.10.) — Fenster bleibt für das Marker-Label und mobil. */}
       {cellCard}
 
       {chance?.card && (
