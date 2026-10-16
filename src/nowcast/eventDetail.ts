@@ -11,7 +11,7 @@
  */
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import { buildMinuteSeries, type MinuteSeries } from './minuteSeries';
-import { intensityBand, intensityLabel, WET_MMH, STARKREGEN_MMH, SKILL_HORIZON_MIN, NOWCAST_HORIZON_MIN, type Nowcast, type EventTone, type StepPhase } from './nowcastModel';
+import { intensityBand, intensityLabel, WET_MMH, STARKREGEN_MMH, NOWCAST_HORIZON_MIN, type Nowcast, type EventTone, type StepPhase } from './nowcastModel';
 
 const H = 3_600_000;
 const MIN = 60_000;
@@ -72,22 +72,20 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
   let sharpened = false;
   for (const e of nc.events) {
     const step = nc.steps.find((s) => s.minutes === e.atMinutes) ?? nc.steps[0];
-    const src: EventSource = e.kind === 'beyond-skill' ? 'none' : step.source === 'nwp' ? 'fusion' : step.source;
+    const src: EventSource = step.source === 'nwp' ? 'fusion' : step.source;
     let tMs = nc.nowMs + e.atMinutes * MIN;
     let precision: EventItem['precision'] = 'step';
     let detail = e.detail;
-    if (e.kind === 'beyond-skill') {
-      // The seam, not an event: the list says where the minutes end.
-      tMs = series.radar ? series.radar.toMs : nc.nowMs + SKILL_HORIZON_MIN * MIN;
-      detail = series.radar ? `bis hier Radar-Minuten (${series.radar.product}), danach ${fusionLabel} als Stundenmittel` : `${fusionLabel} als Stundenmittel`;
-    } else if (e.kind === 'rain-start' && !sharpened && src === 'radar' && series.firstWet?.source === 'radar') {
+    // The seam (`beyond-skill`) is not weather: the list carries only precipitation events (Jan 16.10.).
+    if (e.kind === 'beyond-skill') continue;
+    if (e.kind === 'rain-start' && !sharpened && src === 'radar' && series.firstWet?.source === 'radar') {
       tMs = series.firstWet.tMs; precision = 'min'; sharpened = true;
       detail = `${detail} · minutengenau aus dem Radar`;
     } else if (src === 'fusion' && e.kind !== 'rain-start') {
       precision = 'step';
     }
     items.push({
-      id: `e-${e.kind}-${e.atMinutes}`, tMs, title: e.kind === 'beyond-skill' ? 'Ende der Radar-Minuten' : e.title, detail,
+      id: `e-${e.kind}-${e.atMinutes}`, tMs, title: e.title, detail,
       tone: e.tone, source: src, sourceLabel: sourceLabelOf(src, fusionLabel), precision, kind: e.kind,
     });
   }

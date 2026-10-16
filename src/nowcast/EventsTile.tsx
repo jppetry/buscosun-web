@@ -61,7 +61,7 @@ function relLabel(tMs: number, nowMs: number): string {
 function EventRow({ e, nowMs, compact }: { e: EventItem; nowMs: number; compact: boolean }) {
   const color = eventToneColor(e.tone);
   return (
-    <li className={`ed-row ed-row--${e.tone}${e.kind === 'beyond-skill' ? ' ed-row--seam' : ''}`} data-origin={e.source}>
+    <li className={`ed-row ed-row--${e.tone}`} data-origin={e.source}>
       <span className="ed-dot" style={{ background: color }} aria-hidden="true" />
       <span className="ed-when">
         <b style={{ color }}>{whenLabel(e.tMs, nowMs)}</b>
@@ -95,8 +95,8 @@ export default function EventsTile({ nowcast, rainWindow, place, variant }: { no
   }, [open]);
 
   const s = nowcast.summary;
-  const tileItems = ed.items.filter((e) => e.kind !== 'beyond-skill').slice(0, TILE_MAX);
-  const more = ed.items.filter((e) => e.kind !== 'beyond-skill').length - tileItems.length;
+  const tileItems = ed.items.slice(0, TILE_MAX);
+  const more = ed.items.length - tileItems.length;
   const listed = ed.items.filter((e) => range === 48 || e.tMs <= nowMs + 6 * 60 * MIN);
 
   // group by day word

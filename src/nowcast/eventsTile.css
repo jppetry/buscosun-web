@@ -7,13 +7,11 @@
 .ed-row { position: relative; display: grid; grid-template-columns: 58px 1fr; gap: 0 10px; padding: 6px 0 6px 20px; align-items: start; }
 .ed-list--tile .ed-row { grid-template-columns: 50px 1fr; padding: 5px 0 5px 18px; }
 .ed-dot { position: absolute; left: 1px; top: 11px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
-.ed-row--seam .ed-dot { width: 7px; height: 7px; left: 2px; top: 12px; background: transparent !important; border: 1.5px dashed var(--stone-400, #A89A7A); box-shadow: none; }
 .ed-when { display: flex; flex-direction: column; line-height: 1.2; }
 .ed-when b { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ed-when em { font-style: normal; font-size: 10px; color: var(--stone-400, #A89A7A); white-space: nowrap; }
 .ed-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ed-title { font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); line-height: 1.3; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.ed-row--seam .ed-title { color: var(--stone-500, #8B7355); font-weight: 500; }
 .ed-min { font-style: normal; font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--steel-600, #3A6FA8);
   border: 1px solid #B7CBE0; background: #F3F7FB; border-radius: 999px; padding: 1px 5px; }
 .ed-detail { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.35; }
