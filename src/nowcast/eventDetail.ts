@@ -11,6 +11,7 @@
  */
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import { buildMinuteSeries, type MinuteSeries } from './minuteSeries';
+import { RB_P_EDGE, RB_P_CORE } from './rainWindow';
 import { intensityBand, intensityLabel, WET_MMH, STARKREGEN_MMH, NOWCAST_HORIZON_MIN, type Nowcast, type EventTone, type StepPhase } from './nowcastModel';
 
 const H = 3_600_000;
@@ -57,7 +58,7 @@ function phaseOfHour(h: { mmH: number; tempC?: number | null; snowLineM?: number
   return t;
 }
 
-const pct = (p: number) => `${Math.round(p * 100)} %`;
+const pct = (p: number) => `${Math.round(p * 100)}\u00A0%`;
 const d1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
 
 export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): EventDetail {
@@ -69,8 +70,19 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
   const items: EventItem[] = [];
 
   // --- 0–6 h: the engine's events, tagged with the step's source ---
+  if (nc.currentlyRaining) {
+    const s0 = nc.steps[0];
+    const src0: EventSource = s0.source === 'nwp' ? 'fusion' : s0.source;
+    items.push({
+      id: 'e-now', tMs: nc.nowMs, title: `${PHASE_WORD[s0.phase === 'dry' ? 'rain' : s0.phase]} jetzt`,
+      detail: `${intensityLabel(intensityBand(s0.mmH))} · ~${d1(s0.mmH)} mm/h${s0.character ? ` · ${s0.character === 'showery' ? 'Schauer' : 'Dauerregen'}` : ''}`,
+      tone: s0.phase === 'freezing' ? 'alert' : 'info', source: src0, sourceLabel: sourceLabelOf(src0, fusionLabel), precision: 'step', kind: 'now',
+    });
+  }
   let sharpened = false;
   for (const e of nc.events) {
+    // Rain that runs through the whole engine window has no end in it (the engine's dry window would be negative).
+    if (e.kind === 'rain-end' && e.atMinutes >= NOWCAST_HORIZON_MIN) continue;
     const step = nc.steps.find((s) => s.minutes === e.atMinutes) ?? nc.steps[0];
     const src: EventSource = step.source === 'nwp' ? 'fusion' : step.source;
     let tMs = nc.nowMs + e.atMinutes * MIN;
@@ -97,6 +109,11 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
   for (const p of nc.fusionPWet ?? []) pBy.set(p.tMs, p.p);
   const hours = [...(nc.fusionHours ?? [])].filter((h) => h.tMs - H >= beyondFrom && h.tMs - H < endMs).sort((a, b) => a.tMs - b.tMs);
   let wetHoursBeyond = 0;
+  // Rain at the engine's last step continues into the first Fusion hour: no second "start" at the seam.
+  let continuing = (nc.steps[nc.steps.length - 1]?.mmH ?? 0) >= WET_MMH;
+  // Start of that run inside the engine window (for "endet nach n h" of a continued run).
+  let runStartMs = beyondFrom;
+  for (let i = nc.steps.length - 1; i >= 0 && nc.steps[i].mmH >= WET_MMH; i--) runStartMs = nc.nowMs + nc.steps[i].minutes * MIN;
   let run: { fromMs: number; toMs: number; peak: number; peakMs: number; phase: StepPhase; pMax: number } | null = null;
   const closeRun = () => {
     if (!run) return;
@@ -113,10 +130,13 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
     const from = h.tMs - H;
     const phase = phaseOfHour(h, nc.elevationM);
     const p = pBy.get(from) ?? null;
-    const wet = phase !== 'dry';
+    // Wet = rate ≥ 0,1 mm/h AND P(wet) at least the edge threshold of the rain window (30 %, E-RB-4) — below that the hour is noise.
+    const wet = phase !== 'dry' && (p == null || p >= RB_P_EDGE);
     if (wet) wetHoursBeyond++;
-    if (wet && !run) {
-      const likely = p == null ? true : p >= 0.5;
+    if (wet && !run && continuing) {
+      run = { fromMs: runStartMs, toMs: h.tMs, peak: h.mmH, peakMs: from, phase, pMax: p ?? 0 };
+    } else if (wet && !run) {
+      const likely = p == null ? true : p >= RB_P_CORE;
       run = { fromMs: from, toMs: h.tMs, peak: h.mmH, peakMs: from, phase, pMax: p ?? 0 };
       items.push({
         id: `f-start-${from}`, tMs: from, title: `${PHASE_WORD[phase]} ${likely ? 'wahrscheinlich' : 'möglich'}`,
@@ -137,6 +157,7 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
     } else if (!wet && run) {
       closeRun();
     }
+    continuing = false;
     if (h.mmH >= STARKREGEN_MMH) {
       items.push({
         id: `f-heavy-${from}`, tMs: from, title: 'Starkregen-Stunde', detail: `~${d1(h.mmH)} mm/h im Stundenmittel${p != null ? ` · Regenchance ${pct(p)}` : ''}`,

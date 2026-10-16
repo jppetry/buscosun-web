@@ -90,7 +90,19 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
   const hoverX = hoverMs != null ? X(hoverMs) : 0;
   const tipLeft = hoverMs != null ? Math.max(0, Math.min(width - 230, hoverX - 115)) : 0;
 
-  const yGrid = full ? [0.25, 0.5, 0.75, 1].map((f) => f * geom.yMax) : [0.5, 1].map((f) => f * geom.yMax);
+  const yGrid = useMemo(() => {
+    // Ticks on round values: a step from the list that gives 3–5 lines up to yMax.
+    const steps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20];
+    const step = steps.find((st) => geom.yMax / st <= 5) ?? geom.yMax / 4;
+    const out: number[] = [];
+    for (let v = step; v <= geom.yMax + 1e-9; v += step) out.push(Math.round(v * 100) / 100);
+    return full ? out : out.filter((_, i) => i % 2 === 1 || out.length <= 2);
+  }, [geom.yMax, full]);
+  const fmtY = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed((v * 10) % 1 === 0 ? 1 : 2).replace('.', ','));
+  // Seam labels: both beside the seam when there is room on the left, otherwise one combined label to the right.
+  const seamX = seamMs != null ? X(seamMs) : 0;
+  const seamRoomLeft = seamX - pad.l >= (full ? 190 : 40);
+  const seamRoomRight = pad.l + plotW - seamX >= (full ? 180 : 70);
   const thresholds = full ? [{ v: 1, l: 'leicht' }, { v: 2.5, l: 'mäßig' }, { v: 10, l: 'stark' }].filter((t) => t.v < geom.yMax * 0.98) : [];
   const gradId = `mv-grad-${variant}`;
 
@@ -109,7 +121,7 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
           {yGrid.map((v) => (
             <g key={`g${v}`}>
               <line x1={pad.l} x2={pad.l + plotW} y1={Y(v)} y2={Y(v)} className="mv-grid" />
-              {full && <text x={pad.l - 6} y={Y(v) + 3.5} className="mv-ylabel" textAnchor="end">{v % 1 === 0 ? v : v.toFixed(1).replace('.', ',')}</text>}
+              {full && <text x={pad.l - 6} y={Y(v) + 3.5} className="mv-ylabel" textAnchor="end">{fmtY(v)}</text>}
             </g>
           ))}
           {full && <text x={pad.l - 6} y={pad.t - 10} className="mv-ylabel" textAnchor="end">mm/h</text>}
@@ -165,8 +177,16 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
           {seamVisible && seamMs != null && (
             <g>
               <line x1={X(seamMs)} x2={X(seamMs)} y1={pad.t - 2} y2={yBase} className="mv-seam" />
-              <text x={X(seamMs) - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? `Radar · minutengenau bis ${fmtClock(seamMs)}` : 'Radar'}</text>
-              <text x={X(seamMs) + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{full ? `${series.fusionLabel} · Stundenmittel` : series.fusionLabel}</text>
+              {seamRoomLeft && !seamRoomRight ? (
+                <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? `Radar · minutengenau bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸` : `Radar · ${series.fusionLabel} ▸`}</text>
+              ) : seamRoomLeft ? (
+                <>
+                  <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? `Radar · minutengenau bis ${fmtClock(seamMs)}` : 'Radar'}</text>
+                  <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{full ? `${series.fusionLabel} · Stundenmittel` : series.fusionLabel}</text>
+                </>
+              ) : (
+                <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${series.fusionLabel} als Stundenmittel` : `◂ Radar · ${series.fusionLabel}`}</text>
+              )}
             </g>
           )}
           {!series.radar && (
@@ -201,7 +221,7 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
             {hover.source === 'radar' && series.radar
               ? `${series.radar.product} · Bild alle ${series.radar.frameStepMin} min, Minute interpoliert`
               : hover.bar
-                ? `${series.fusionLabel} · Stundenmittel ${fmtClock(hover.bar.fromMs)}–${fmtClock(hover.bar.toMs)}${hover.bar.pWet != null ? ` · Regenchance ${Math.round(hover.bar.pWet * 100)} %` : ''}`
+                ? `${series.fusionLabel} · Stundenmittel ${fmtClock(hover.bar.fromMs)}–${fmtClock(hover.bar.toMs)}${hover.bar.pWet != null ? ` · Regenchance ${Math.round(hover.bar.pWet * 100)}\u00A0%` : ''}`
                 : ''}
           </div>
         </div>

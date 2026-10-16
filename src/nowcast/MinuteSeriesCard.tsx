@@ -47,6 +47,15 @@ function hero(s: MinuteSeries): { value: string; line: string; tone: 'wet' | 'so
   if (lead <= 1) return { value: 'Diese Stunde', line: `${s.fusionLabel}, stündlich`, tone: 'wet', tile: false };
   return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line: `${s.fusionLabel}, stündlich`, tone: 'soon', tile: false };
 }
+/** Tile hero when the first precipitation lies beyond the small chart: the window itself is dry. */
+function dryWindowHero(s: MinuteSeries, rangeH: number): { value: string; line: string; tone: 'dry'; tile: true } {
+  const to = s.nowMs + rangeH * 3_600_000;
+  const radarTo = s.radar ? Math.min(s.radar.toMs, to) : null;
+  const line = radarTo != null && radarTo > s.nowMs
+    ? `kein Regen bis ${fmtClock(to)} · Radar bis ${fmtClock(radarTo)}, dann ${s.fusionLabel}`
+    : `kein Niederschlag bis ${fmtClock(to)} · ${s.fusionLabel}`;
+  return { value: 'Trocken', line, tone: 'dry', tile: true };
+}
 
 function fmtMm(mm: number): string { return `${mm.toFixed(1).replace('.', ',')} mm`; }
 
@@ -72,10 +81,11 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
   }, [open]);
 
   if (!series.radar && !series.hours.length) return null;
-  const h = hero(series);
+  const h0 = hero(series);
+  const h = h0.tile || !series.firstWet || series.firstWet.tMs <= series.nowMs + MINI_RANGE_H * 3_600_000 ? h0 : dryWindowHero(series, MINI_RANGE_H);
   const sourceLine = `${series.radar ? `${series.radar.product} (Bild alle ${series.radar.frameStepMin} min, Minute interpoliert, bis ${fmtClock(series.radar.toMs)})` : 'kein Radar-Nowcast am Ort'} · ${series.fusionLabel} als Stundenmittel bis +${MV_HORIZON_H} h`;
   const kpis = [
-    { k: 'Nächster Regen', v: h.value, s: h.line },
+    { k: 'Nächster Regen', v: h0.value, s: h0.line },
     { k: 'Spitze · 48 h', v: series.peak ? fmtMmH(series.peak.mmH) : '—', s: series.peak ? `${dayWord(series.nowMs, series.peak.tMs)}${fmtClock(series.peak.tMs)} · ${series.peak.source === 'radar' ? 'Radar' : series.fusionLabel}` : 'kein Niederschlag' },
     { k: 'Summe · 48 h', v: fmtMm(series.sumMm), s: 'Radar-Minuten + Stundenmittel' },
   ];

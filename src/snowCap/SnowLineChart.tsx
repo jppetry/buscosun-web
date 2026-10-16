@@ -124,7 +124,6 @@ export default function SnowLineChart({ arrival, fromMs, rangeH, height = 320 }:
           {/* band p10–p90 + line p50 */}
           {runs.map((run, i) => <path key={`b${i}`} d={bandPath(run)} className="skc-band" />)}
           {runs.map((run, i) => <path key={`l${i}`} d={linePath(run)} className="skc-line" />)}
-          {pts.filter((p) => p.p50 != null).map((p) => <circle key={p.tMs} cx={X(p.tMs)} cy={Y(p.p50 as number)} r={2.4} className="skc-pt" />)}
 
           {/* place height */}
           {hTrue != null && (

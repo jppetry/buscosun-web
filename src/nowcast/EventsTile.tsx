@@ -50,6 +50,12 @@ function whenLabel(tMs: number, nowMs: number): string {
   const c = fmtClock(tMs);
   return dw === 'heute' ? c : `${dw.slice(0, dw === 'morgen' ? 6 : 2)} ${c}`;
 }
+/** Day part for the second line of the time column: '' today, 'morgen', 'Sa'. */
+function dayPart(tMs: number, nowMs: number): string {
+  const dw = dayWord(tMs, nowMs);
+  return dw === 'heute' ? '' : dw === 'morgen' ? 'morgen' : dw.slice(0, 2);
+}
+const NB = '\u00A0';
 function relLabel(tMs: number, nowMs: number): string {
   const m = Math.round((tMs - nowMs) / MIN);
   if (m <= 0) return 'jetzt';
@@ -60,12 +66,15 @@ function relLabel(tMs: number, nowMs: number): string {
 
 function EventRow({ e, nowMs, compact }: { e: EventItem; nowMs: number; compact: boolean }) {
   const color = eventToneColor(e.tone);
+  const isNow = e.tMs <= nowMs + MIN;
+  const day = dayPart(e.tMs, nowMs);
+  const sub = isNow ? (compact ? '' : fmtClock(e.tMs)) : compact ? day : [day, relLabel(e.tMs, nowMs)].filter(Boolean).join(' · ');
   return (
     <li className={`ed-row ed-row--${e.tone}`} data-origin={e.source}>
       <span className="ed-dot" style={{ background: color }} aria-hidden="true" />
       <span className="ed-when">
-        <b style={{ color }}>{whenLabel(e.tMs, nowMs)}</b>
-        {!compact && <em>{relLabel(e.tMs, nowMs)}</em>}
+        <b style={{ color }}>{isNow ? 'jetzt' : fmtClock(e.tMs)}</b>
+        {sub && <em>{sub}</em>}
       </span>
       <span className="ed-body">
         <span className="ed-title">{e.title}{e.precision === 'min' && <i className="ed-min" title="minutengenau aus dem Radar">min</i>}</span>
@@ -109,15 +118,19 @@ export default function EventsTile({ nowcast, rainWindow, place, variant }: { no
 
   const fresh = freshness(nowcast);
   const nextRain: { v: string; s: string } = rainWindow
-    ? { v: rainWindow.kind === 'none' ? '—' : rainWindow.label, s: `${rainWindow.sentence}${rainWindow.prob != null ? ` · ${Math.round(rainWindow.prob * 100)} %` : ''} · ${rainWindow.sourceLabel}` }
+    ? {
+        v: rainWindow.kind === 'none' ? '—' : rainWindow.kind === 'dry' ? 'Trocken' : rainWindow.kind === 'wet' ? 'Jetzt'
+          : rainWindow.precision === 'min' ? `${fmtClock(rainWindow.fromMs)}–${fmtClock(rainWindow.toMs)}` : whenLabel(rainWindow.fromMs, nowMs),
+        s: `${rainWindow.sentence}${rainWindow.prob != null ? ` · ${Math.round(rainWindow.prob * 100)}${NB}%` : ''} · ${rainWindow.sourceLabel}`,
+      }
     : ed.series.firstWet
       ? { v: whenLabel(ed.series.firstWet.tMs, nowMs), s: ed.series.firstWet.source === 'radar' ? 'Radar, minutengenau' : `${ed.fusionLabel}, stündlich` }
       : { v: 'Trocken', s: `kein Niederschlag in ${ED_HORIZON_H} h` };
   const kpis: Array<{ k: string; v: string; s: string; tone?: EventTone }> = [
-    { k: 'Nächster Regen', v: nextRain.v, s: nextRain.s },
+    { k: rainWindow?.kind === 'end' ? 'Regenende' : rainWindow?.kind === 'wet' ? 'Regen hält an' : 'Nächster Regen', v: nextRain.v, s: nextRain.s },
     { k: 'Spitze · 6 h', v: s.peakMmH >= 0.1 ? fmtMmH(s.peakMmH) : '—', s: s.heavyRain ? 'Starkregen-Signal (≥ 5 mm/h oder ≥ 15 mm / 6 h)' : 'kein Starkregen-Signal', tone: s.heavyRain ? 'alert' : undefined },
     { k: 'Summe · 6 h', v: `${d1(s.sumMm)} mm`, s: `Band ${d1(s.sumMinMm)}–${d1(s.sumMaxMm)} mm` },
-    { k: 'Gewitter · Hagel', v: `${s.thunderRiskPct} %`, s: `${s.thunderLabel}${s.hailRiskPct > 0 ? ` · Hagel ${s.hailRiskPct} %` : ' · kein Hagelsignal'} (Heuristik ohne CAPE)`, tone: s.thunderRiskPct >= 30 ? 'warn' : undefined },
+    { k: 'Gewitter · Hagel', v: `${s.thunderRiskPct}${NB}%`, s: `${s.thunderLabel}${s.hailRiskPct > 0 ? ` · Hagel ${s.hailRiskPct}${NB}%` : ' · kein Hagelsignal'} (Heuristik ohne CAPE)`, tone: s.thunderRiskPct >= 30 ? 'warn' : undefined },
     { k: 'Phase · Charakter', v: s.phaseLabel, s: `${s.character}${s.dominantPhase !== 'dry' && s.dominantPhase !== 'rain' ? ` · ${phaseLabelStep(s.dominantPhase)}` : ''}` },
     { k: 'Schneefallgrenze', v: s.snowLineM != null ? `${Math.round(s.snowLineM).toLocaleString('de-DE')} m` : '—', s: s.snowLineNote },
   ];
@@ -196,7 +209,7 @@ export default function EventsTile({ nowcast, rainWindow, place, variant }: { no
                     <div className="ed-fact"><span>Dominante Phase</span><b>{phaseLabelStep(s.dominantPhase)}</b></div>
                     <div className="ed-fact"><span>Phasenwechsel</span><b>{s.phaseTransitions.length ? s.phaseTransitions.map((t) => `${t.timestamp ? fmtClock(t.timestamp.getTime()) : `+${t.atMinutes} min`} ${phaseLabelStep(t.from)} → ${phaseLabelStep(t.to)}`).join(' · ') : 'keine'}</b></div>
                     <div className="ed-fact"><span>Starkregen</span><b style={s.heavyRain ? { color: '#C0392B' } : undefined}>{s.heavyRain ? 'Signal aktiv' : 'kein Signal'}</b></div>
-                    <div className="ed-fact"><span>Regen jetzt</span><b>{nowcast.currentlyRaining ? 'ja' : 'nein'}{nowcast.dryWindow ? ` · Trockenfenster ab ${fmtClock(nowcast.nowMs + nowcast.dryWindow.fromMin * MIN)} (${nowcast.dryWindow.durationMin} min)` : ''}</b></div>
+                    <div className="ed-fact"><span>Regen jetzt</span><b>{nowcast.currentlyRaining ? 'ja' : 'nein'}{nowcast.dryWindow && nowcast.dryWindow.durationMin > 0 ? ` · Trockenfenster ab ${fmtClock(nowcast.nowMs + nowcast.dryWindow.fromMin * MIN)} (${nowcast.dryWindow.durationMin} min)` : ''}</b></div>
                     <div className="ed-fact"><span>Radar-Horizont</span><b>{nowcast.hasRadar ? `${nowcast.radarValidMin} min (${ed.series.radar?.product ?? nowcast.radarSource})` : 'kein Radar-Nowcast am Ort'}</b></div>
                     <div className="ed-fact"><span>Jenseits 6 h</span><b>{ed.wetHoursBeyond ? `${ed.wetHoursBeyond} Stunden mit Niederschlag bis +${ED_HORIZON_H} h` : `trocken bis +${ED_HORIZON_H} h`} · {ed.fusionLabel}</b></div>
                   </div>
