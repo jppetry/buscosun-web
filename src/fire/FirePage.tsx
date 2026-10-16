@@ -124,9 +124,6 @@ import './fireDeck.css';
 
 /** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
 type MobileTab = 'map' | 'layers' | 'fires' | 'time';
-/** BH3: stabile leere Referenzen für die Karte im Historie-Modus (setData vergleicht Referenzen, V-220). */
-const EMPTY_ZONES: FireZone[] = [];
-const EMPTY_CLUSTER_LIST: FireCluster[] = [];
 
 /** Ladezustand je Layer — „Fehler" schaltet den Layer AB und verlinkt die
  *  amtliche Quelle, statt eine leere Fläche zu zeigen (Gate-Punkt WB-T2-6). */
@@ -1515,21 +1512,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   };
 
   /**
-   * Der Zeitkorb-Filter der früheren Brandflächen, losgelöst von seiner Zeile.
-   *
-   * Die Layer-Zeile ist mit BR2 entfallen — dies hier ist aber kein Steckbrief,
-   * sondern ein FILTER: er bestimmt, WELCHE kartierten Flächen die Karte zeigt
-   * (7 Tage / Saison / Archiv, dazu der Tagesregler). Er bleibt, sonst wäre auch
-   * der Umfang „ganze Saison" der Brände-Liste nicht mehr erreichbar.
-   */
-  const burntBlock = (
-    <div className="br-layerwrap has-seg is-standalone" data-br={BR_LAYER.fireBurnt.color}>
-      <div className="br-standalone-head">Frühere Brandflächen · Zeitraum</div>
-      {burntSeg}
-    </div>
-  );
-
-  /**
    * Die Layer-Gruppen — Dock (Desktop/Tablet) und Layer-Tab (mobil) teilen den Bau.
    *
    * BR2 (Jans Auftrag 2026-09-05): die immer aktiven Layer (`FIRE_ALWAYS_ON`) haben
@@ -1539,7 +1521,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   const dockGroups = (inSheet: boolean) => FIRE_DECK_GROUPS.map((g) => {
     const rows = g.layers.filter((l) => !FIRE_ALWAYS_ON.includes(l.id));
-    const extra = g.layers.some((l) => l.id === 'fireBurnt') ? burntBlock : null;
+    const extra = null;
     if (!rows.length && !extra) return null;
     return (
       <div key={g.title} className="br-group" data-br={BR_GROUP_COLOR[g.title] ?? 'stone'}>
@@ -2115,12 +2097,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           <main className={`fire-center${inDossier && !isMobile ? ' is-offstage' : ''}`} aria-hidden={inDossier && !isMobile ? true : undefined}>
             <FireMap
               active={active} basemap={basemap} day={committedDay} isoDate={committedIso}
-              hotspots={history ? null : hotspots}
-              hotspotFootprints={history ? null : hotspotFootprints} hotspotProvider={hotspotProvider}
-              fireZones={history ? EMPTY_ZONES : mapZones} zoneEstimates={zoneEstimates}
-              clusters={history ? EMPTY_CLUSTER_LIST : clusterList} selectedClusterId={selectedCluster}
+              hotspots={hotspots}
+              hotspotFootprints={hotspotFootprints} hotspotProvider={hotspotProvider}
+              fireZones={mapZones} zoneEstimates={zoneEstimates}
+              clusters={clusterList} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
-              footprintFc={history ? null : footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
+              footprintFc={footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
               anomalyFc={anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
               historyFc={historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistory}
               focusBbox={focusBbox} onSelectFootprint={selectFootprintFromMap}
