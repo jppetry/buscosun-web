@@ -40,7 +40,7 @@ export function NowCard({ vm }: { vm: NowVM }) {
       </div>
       <div className="dbd-now-main">
         <div className="dbd-now-temp"><b><Val v={vm.temp} /></b><span className="dbd-unit">{vm.unit}</span></div>
-        <WeatherIcon icon={vm.icon} size={44} variant="now" stroke={2.2} />
+        <WeatherIcon icon={vm.icon} size={52} variant="now" stroke={2.2} />
         <div className="dbd-now-grid">
           <KV l="TAUPUNKT" v={vm.td} />
           <KV l="REL. FEUCHTE" v={vm.rh} />
