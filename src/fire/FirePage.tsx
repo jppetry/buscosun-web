@@ -304,8 +304,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   /** Panel links offen? (Permalink-Feld `fp`; unabhängig vom Layer-Schalter.) */
   const [fpSort, setFpSort] = useState<PanelSort>('area');
   const [fpFilter, setFpFilter] = useState<RecordFilter>(DEFAULT_FILTER);
-  /** Umfang der EFFIS-Einträge: Historie (7 d) oder die ganze Saison (nur wenn geladen). */
-  const [fpEffisScope, setFpEffisScope] = useState<EffisScope>('week');
+  /** Umfang der EFFIS-Einträge: Standard die ganze Saison; ohne geladenen Saison-Korb (Layer aus) zeigt das Panel die 7 Tage. */
+  const [fpEffisScope, setFpEffisScope] = useState<EffisScope>('season');
   const [hoverFootprint, setHoverFootprint] = useState<string | null>(null);
   const [selectedFootprint, setSelectedFootprint] = useState<string | null>(null);
   /** Ziel des nächsten Fokus-Zooms — die Registry gibt ihre Bbox mit (eine Kamera-Logik in FireMap). */
@@ -1798,7 +1798,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       windowH={time.windowH}
       sort={fpSort} onSort={setFpSort}
       filter={fpFilter} onFilter={setFpFilter}
-      effisScope={fpEffisScope} onEffisScope={setFpEffisScope}
+      effisScope={burntSeason ? fpEffisScope : 'week'} onEffisScope={setFpEffisScope}
       shown={shownFootprints} onShowMore={() => setShownFootprints((n) => n + CLUSTER_PAGE)}
       hoverId={hoverFootprint} onHover={setHoverFootprint}
       selectedId={selectedFootprint} onSelect={openDossier} onClearSelect={clearFootprint}
