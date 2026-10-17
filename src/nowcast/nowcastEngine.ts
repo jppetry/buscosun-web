@@ -35,6 +35,10 @@ export interface NwpHour {
   conf: number;          // 0..1 (pointForecast.confidence.precipitation)
   snowLineM: number | null;
   tempC: number | null;  // 2-m-Temperatur am Standort — Basis der Phase
+  /** Wind der Stunde (Richtung aus °, Mittel und Böe m/s) — nur für die Ereignistexte, rechnet in der Engine nicht mit. */
+  windDir?: number | null;
+  windMs?: number | null;
+  gustMs?: number | null;
 }
 
 export interface AssembleInput {
@@ -353,6 +357,9 @@ function nwpOf(forecast: PointForecast): NwpHour[] {
     conf: h.confidence?.precipitation ?? 0,
     snowLineM: h.snowLineM ?? null,
     tempC: h.temperature ?? null,
+    windDir: h.windDirection ?? null,
+    windMs: h.windSpeed ?? null,
+    gustMs: h.gustSpeed ?? null,
   }));
 }
 
@@ -423,7 +430,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
     }
     if (mv) {
       nc.radarFrames = radarFramesAt(s, lat, lon);
-      nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf, tempC: h.tempC, snowLineM: h.snowLineM }));
+      nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf, tempC: h.tempC, snowLineM: h.snowLineM, windDir: h.windDir ?? null, windMs: h.windMs ?? null, gustMs: h.gustMs ?? null }));
     }
     return nc;
   };

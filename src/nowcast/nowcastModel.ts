@@ -217,7 +217,7 @@ export interface Nowcast {
    */
   radarFrames?: Array<{ tMs: number; mmH: number | null }>;
   /** Minutenverlauf: ALLE Stundenwerte von buscosun Fusion (bis +48 h), `tMs` = Ende der Stunde. Fehlt ohne Schalter. */
-  fusionHours?: Array<{ tMs: number; mmH: number; conf: number; tempC: number | null; snowLineM: number | null }>;
+  fusionHours?: Array<{ tMs: number; mmH: number; conf: number; tempC: number | null; snowLineM: number | null; windDir: number | null; windMs: number | null; gustMs: number | null }>;
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */
