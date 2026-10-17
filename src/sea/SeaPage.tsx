@@ -88,6 +88,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [gaugePick, setGaugePick] = useState<string | null>(null);
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   const [picker, setPicker] = useState(false);
+  /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
+  const [stage, setStage] = useState<'map' | 'dossier'>('map');
   const firstSpot = useRef(true);
 
   const popKey = popState?.key ?? null;
@@ -349,7 +351,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const runTxt = run ? `CWAM ${run.run.slice(8, 10)} UTC` : '–';
   const liveTone = !runLoad ? 'loading' : noData ? 'none' : freshness === 'stale' ? 'stale' : 'live';
   const callout = spot && !noData ? { lon: spot.lon, lat: spot.lat, name: spot.name, line: hour ? `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} · ${waveShort(hour)} · ${CLASS_SHORT[verdict?.cls ?? 'keine']}` : CLASS_SHORT[verdict?.cls ?? 'keine'], color: verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null } : null;
-  const padding = isMobile ? { top: 130, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 250, left: 40, right: 230 };
+  // Desktop: the hourly band lives in the dossier now, so the map foot is free (was 250 px for the band).
+  const padding = isMobile ? { top: 130, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 40, left: 40, right: 230 };
   const fieldNote = fStep != null && fStep !== lead ? ` · Karte zeigt +${fStep} h (${fKind === 'c' ? 'Komponenten' : 'ab 48 h'} dreistündlich)` : '';
 
   // --- pieces -----------------------------------------------------------------------------------------------
@@ -402,7 +405,15 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
-      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} head={isMobile ? undefined : dockOf('picker')} />
+      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel}
+      layout={isMobile ? 'aside' : 'dossier'} band={isMobile ? undefined : band} chips={isMobile ? undefined : (usable && chips)} onMap={isMobile ? undefined : () => setStage('map')} />
+  );
+  const inDossier = stage === 'dossier';
+  const stageSeg = (
+    <div className="sw-seg sw-stage-seg" role="group" aria-label="Bühne der Mitte">
+      <button type="button" className={!inDossier ? 'is-active' : ''} aria-pressed={!inDossier} onClick={() => setStage('map')}>Karte</button>
+      <button type="button" className={inDossier ? 'is-active' : ''} aria-pressed={inDossier} onClick={() => setStage('dossier')}>Dossier</button>
+    </div>
   );
   const units = (
     <div role="group" aria-label="Einheit Wind" className="sw-seg sw-units">
@@ -476,7 +487,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
             <img src="/buscosun-mark.svg" width={22} height={22} alt="" /><span>buscosun</span>
           </a>
           <span className="sw-topdiv" aria-hidden="true" />
-          <span className="sw-topbar-sub">Seewetter Nord- und Ostsee</span>
+          <span className="sw-topbar-sub">Seewetter Nord- und Ostsee{inDossier && spot ? ` · ${spot.name}` : ''}</span>
+          {stageSeg}
           <div className="sw-topbar-right">
             <span className={`sw-live is-${liveTone}`} role="status"><span className="sw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Aktuell' : liveTone === 'stale' ? 'Veraltet' : liveTone === 'loading' ? 'Lädt' : 'Keine Daten'}</span>
             <span className="sw-topbar-stand">
@@ -489,14 +501,21 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
         </header>
         <div className="sw-body">
           {dockOf('layers')}
-          <main className="sw-map" aria-label="Karte">
+          <main className={`sw-map${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
             {map}
-            <div className="sw-ov-left">{pill}{usable && chips}</div>
+            <div className="sw-ov-left">
+              {pill}{usable && chips}
+              {spot && <button type="button" className="sw-ds-open" onClick={() => setStage('dossier')}>Spot-Dossier öffnen <span aria-hidden="true">→</span></button>}
+            </div>
             <div className="sw-ov-right">{legend}</div>
             {emptyMap}{catFail}
-            {band}
           </main>
-          {readout}
+          {inDossier && (
+            <main className="sw-ds-main" aria-label="Spot-Dossier">
+              <div className="sw-ds-scroll">{readout}</div>
+            </main>
+          )}
+          <aside className="sw-readout is-picker" aria-label="Spots und Profil">{dockOf('picker')}</aside>
         </div>
       </div>
     </div>
