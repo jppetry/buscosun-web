@@ -126,6 +126,9 @@
 .sw-toggle.is-blocked { background: #F4F0E4; border: 1px dashed var(--border-medium, #D9D0B8); cursor: default; }
 .sw-toggle.is-blocked .sw-toggle-label { color: var(--stone-600, #5C5447); font-weight: 500; }
 .sw-dock-data { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--sand-200, #E0D6BE); }
+/* Desktop: the picker (search, Revier, profile, spots) sits at the top of the readout; the spot list scrolls on its own. */
+.sw-dock-picker { padding-bottom: 12px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.sw-dock-picker .sw-dock-list { max-height: 280px; overflow-y: auto; padding-right: 2px; }
 .sw-data-grid { display: grid; grid-template-columns: 54px 1fr; gap: 7px 8px; margin-top: 8px; font-size: 10.5px; line-height: 1.4; color: var(--stone-600, #5C5447); }
 .sw-data-grid strong { color: var(--ink-900, #2C2A26); }
 .sw-data-grid b.is-full { color: #5F7A4C; }

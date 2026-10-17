@@ -48,6 +48,8 @@ interface Props {
   dry: { hours: number; of: number; classed: boolean };
   /** WL-4: water level at the nearest BSH gauge; `null` = switched off (`?wl=0`). */
   waterLevel: SeaWaterLevel | null;
+  /** Desktop: the spot picker (search, Revier, profile, spot list) rendered above the tabs. */
+  head?: ReactNode;
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
@@ -183,6 +185,7 @@ export default function SeaReadout(p: Props) {
 
   return (
     <aside className="sw-readout" aria-label="Details">
+      {p.head}
       <div role="tablist" aria-label="Ansicht" className="sw-seg sw-tabs">
         {TABS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={p.tab === k} className={p.tab === k ? 'is-active' : ''} onClick={() => p.onTab(k)}>{l}</button>)}
       </div>

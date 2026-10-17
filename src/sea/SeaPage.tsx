@@ -392,16 +392,17 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
       footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${windEngine}`} />
   );
+  const dockOf = (show: 'all' | 'layers' | 'picker') => (
+    <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
+      spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpot} total={spots.length} layer={layer} onLayer={setLayer}
+      toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} />
+  );
+  const dock = dockOf('all');
   const readout = (
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
-      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} />
-  );
-  const dock = (
-    <SeaDock query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
-      spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpot} total={spots.length} layer={layer} onLayer={setLayer}
-      toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} />
+      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} head={isMobile ? undefined : dockOf('picker')} />
   );
   const units = (
     <div role="group" aria-label="Einheit Wind" className="sw-seg sw-units">
@@ -487,7 +488,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           </div>
         </header>
         <div className="sw-body">
-          {dock}
+          {dockOf('layers')}
           <main className="sw-map" aria-label="Karte">
             {map}
             <div className="sw-ov-left">{pill}{usable && chips}</div>

@@ -21,6 +21,8 @@ interface Props {
   layer: SeaLayer; onLayer: (l: SeaLayer) => void;
   toggles: SeaToggles; onToggle: (k: keyof SeaToggles) => void;
   loading: boolean;
+  /** Desktop splits the dock: `layers` stays in the left column, `picker` (search, Revier, profile, spots) moves into the readout. */
+  show?: 'all' | 'layers' | 'picker';
 }
 
 const REVIER_LABEL: Record<SeaRevier, string> = { alle: 'Alle', nordsee: 'Nordsee', ostsee: 'Ostsee' };
@@ -40,8 +42,9 @@ export default function SeaDock(p: Props) {
     ['stations', 'Messstationen', 'DWD · Wind und Böen gemessen'],
     ['water', 'Wasserstand-Vorhersage', 'BSH · Pegel, CC BY 4.0'],
   ];
-  return (
-    <aside className="sw-dock" aria-label="Spots, Profil und Ebenen">
+  const show = p.show ?? 'all';
+  const picker = show !== 'layers' && (
+    <>
       <label htmlFor={`${sid}-q`} className="sw-eyebrow sw-dock-label">Spot, Hafen oder Ort</label>
       <div className="sw-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
@@ -93,8 +96,11 @@ export default function SeaDock(p: Props) {
           </button>
         ))}
       </div>
-
-      <div className="sw-dock-h sw-dock-h-layers">Ebenen</div>
+    </>
+  );
+  const layers = show !== 'picker' && (
+    <>
+      <div className={`sw-dock-h${show === 'all' ? ' sw-dock-h-layers' : ''}`}>Ebenen</div>
       <div role="group" aria-label="Seegang-Ebene" className="sw-layers">
         {SEA_LAYERS.map((l) => <button key={l} type="button" aria-pressed={p.layer === l} className={p.layer === l ? 'is-active' : ''} onClick={() => p.onLayer(l)}>{LAYER_LABEL[l]}</button>)}
       </div>
@@ -115,6 +121,13 @@ export default function SeaDock(p: Props) {
           <strong>DACH-Seen</strong><span><b className="is-later">keine Welle</b> · nicht im DWD-Bestand</span>
         </div>
       </div>
+    </>
+  );
+  if (show === 'picker') return <div className="sw-dock-picker">{picker}</div>;
+  return (
+    <aside className="sw-dock" aria-label={show === 'layers' ? 'Ebenen' : 'Spots, Profil und Ebenen'}>
+      {picker}
+      {layers}
     </aside>
   );
 }
