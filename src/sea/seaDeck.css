@@ -322,6 +322,14 @@
    event rows wrap like on mobile instead of overflowing their card. */
 .sw-ds-main { container-type: inline-size; }
 @container (max-width: 820px) { .sw-ds-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Satellite excerpt of the spot (Esri World Imagery, like the Brandradar's satellite basemap). */
+.sw-minimap { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--sand-200, #E0D6BE); background: var(--sw-map-bg, #0B0E12); cursor: pointer; margin-top: 8px; }
+.sw-minimap-canvas { position: absolute; inset: 0; }
+.sw-minimap:focus-visible { outline: 2px solid var(--sw-accent, #0F6E7A); outline-offset: 2px; }
+.sw-minimap .maplibregl-ctrl-bottom-right, .sw-minimap .maplibregl-ctrl-bottom-left { bottom: 0; }
+.sw-ds-maplegend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 10.5px; color: var(--stone-600, #5C5447); }
+.sw-ds-maplegend span { display: flex; align-items: center; gap: 5px; }
+.sw-ds-maplegend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .sw-ds .sw-wl-events li { flex-wrap: wrap; gap: 2px 8px; }
 .sw-ds .sw-wl-ev { flex-basis: 100%; }
 .sw-ds-grid.is-flow > .sw-disclaimer { grid-column: 1 / -1; }

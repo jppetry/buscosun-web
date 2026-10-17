@@ -11,6 +11,7 @@ import { WODL_AREA_IDS } from './seaText';
 import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
 import { fmtWind, unitLabel, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
 import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
+import SeaMiniMap from './SeaMiniMap';
 import {
   WL_ATTRIBUTION_PRE, WL_ATTRIBUTION_POST, WL_CURVE_STALE_MS, WL_FORECAST_STALE_MS, WL_LICENCE, WL_LICENCE_URL,
   WL_MOS_WHY, WL_REGION_LABEL, WL_SERVICE_PAGE, WL_WARN_SERVICE, wlAt, wlCurveEnd, wlFill, wlHasCategory, wlNextEvents,
@@ -270,6 +271,18 @@ export default function SeaReadout(p: Props) {
         )}
       </section>
     );
+    const gauge = p.waterLevel?.gauge ?? null;
+    const satCard = s && (
+      <Card cls="is-cream">
+        <div className="sw-card-head"><span className="sw-eyebrow">Satellit · Lage des Spots</span><span className="sw-unit">Esri World Imagery · Klick öffnet die Karte</span></div>
+        <SeaMiniMap spot={s} gauge={gauge} height={260} onClick={p.onMap} ariaLabel={`Satellitenbild: ${s.name}${p.onMap ? ' — zur Kartenbühne wechseln' : ''}`} />
+        <div className="sw-ds-maplegend">
+          <span><i style={{ background: '#0F6E7A' }} />{s.name} · Ufer zeigt nach {compass16(s.normal)} (gestrichelt)</span>
+          {s.station && <span><i style={{ background: '#5F7A4C' }} />DWD-Station {s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase()} · {s.station.km} km</span>}
+          {gauge && <span><i style={{ background: '#2C2A26' }} />Pegel {gauge.name}{p.waterLevel?.km != null ? ` · ${f1(p.waterLevel.km)} km` : ''}</span>}
+        </div>
+      </Card>
+    );
     return (
       <div className="sw-ds" aria-label="Spot-Dossier">
         <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers">
@@ -287,7 +300,7 @@ export default function SeaReadout(p: Props) {
             {p.band}
             <div className="sw-ds-grid">
               <div className="sw-ds-col">{windowCard}{chartCard}{officialCard}{measuredCard}</div>
-              <div className="sw-ds-col">{waterCard}</div>
+              <div className="sw-ds-col">{satCard}{waterCard}</div>
             </div>
             {disclaimer}
           </>
