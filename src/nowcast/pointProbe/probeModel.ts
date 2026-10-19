@@ -1,22 +1,15 @@
 /**
- * Regenradar — 3D-Punktansicht am Mauszeiger (Phase P3D, `audit/regenradar-punkt3d.md`): pure logic.
+ * Regenradar — Punktansicht am Mauszeiger (Phase P3D, `audit/regenradar-punkt3d.md`): pure logic.
  *
- * The numbers are the statement; the little 3D column only illustrates them. Everything here is a named constant or a
- * pure function — no DOM, no maplibre — so the stage and the card read ONE model and a verifier could import it headless.
- *
- * Physics (start values, `set`/`literature` as marked):
- *  - wind direction is meteorological („woher"); particles drift towards `dir + 180°`;
- *  - tilt α = atan(v_wind / v_fall), gusts as a slow fluctuation on top; never capped — particles leaving the column
- *    re-enter on the other side;
- *  - rain: D0 ≈ 0,89 · R^0,21 mm (Marshall–Palmer), v = 9,65 − 10,3 · e^(−0,6·D) m/s (Atlas 1973)
- *    ⇒ ≈ 3,6 / 5,3 / 6,6 m/s at 1 / 10 / 50 mm/h; snow ≈ 1 m/s, hail > 10 m/s;
- *  - intensity: particle count logarithmic in R, classes and colours like the radar legend (`precipRainRamp`).
+ * Everything here is a named constant or a pure function — no DOM, no maplibre — so the readout at the pointer and the
+ * dock card read ONE model and a verifier could import it headless. (The 3D column and its particle physics were
+ * dropped on Jan's request, 19.10.)
  */
 import { classifyPrecipitation, type PrecipitationType } from '../../pointForecast/precipType';
 import { phaseLabel } from '../../pointForecast/fusion/meteo';
 import { hasHail } from '../../radar/hailField';
 import type { Konrad3dCell, Konrad3dRun } from '../../radar/konrad3d';
-import { PRECIP_VMAX, precipFromU8Log, precipRainRamp } from '../../scalar/RainLayer';
+import { PRECIP_VMAX, precipFromU8Log } from '../../scalar/RainLayer';
 import { sampleRadarIndex, type RadarGridSource } from '../../pointForecast/radarSample';
 import type { QuadCorners } from '../../scalar/RainLayer';
 
@@ -24,17 +17,6 @@ import type { QuadCorners } from '../../scalar/RainLayer';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Marshall–Palmer median drop diameter D0 = a · R^b (mm, R in mm/h) — `literature`. */
-export const MP_D0_A = 0.89;
-export const MP_D0_B = 0.21;
-/** Atlas et al. 1973 terminal velocity v = A − B · e^(−C·D) (m/s, D in mm) — `literature`. */
-export const ATLAS_A = 9.65;
-export const ATLAS_B = 10.3;
-export const ATLAS_C = 0.6;
-/** Fall speeds of the other phases (m/s) — `set` start values. */
-export const SNOW_FALL_MS = 1.0;
-export const SLEET_FALL_MS = 2.0;
-export const HAIL_FALL_MS = 12.0;
 /** Jennings et al. 2018 (bivariate logistic regression, T in °C, RH in %): p(snow) = 1 / (1 + e^(a + b·T + c·RH)). */
 export const JENNINGS_A = -10.04;
 export const JENNINGS_B = 1.41;
@@ -54,32 +36,6 @@ export const PROBE_MEASURED_TOL_MS = 60_000;
 
 export type ProbePhase = 'rain' | 'sleet' | 'snow' | 'hail';
 export type ProbeZone = 'measured' | 'nowcast' | 'model';
-
-// ---------------------------------------------------------------------------
-// Physics
-// ---------------------------------------------------------------------------
-
-/** Terminal fall speed of rain at rate R (mm/h) — Marshall–Palmer D0 into Atlas 1973. */
-export function rainFallSpeedMs(rateMmH: number): number {
-  const r = Math.max(0.01, rateMmH);
-  const d0 = MP_D0_A * Math.pow(r, MP_D0_B);
-  return Math.max(0.5, ATLAS_A - ATLAS_B * Math.exp(-ATLAS_C * d0));
-}
-
-/** Fall speed by phase (m/s). */
-export function fallSpeedMs(phase: ProbePhase, rateMmH: number): number {
-  switch (phase) {
-    case 'snow': return SNOW_FALL_MS;
-    case 'sleet': return SLEET_FALL_MS;
-    case 'hail': return HAIL_FALL_MS;
-    default: return rainFallSpeedMs(rateMmH);
-  }
-}
-
-/** Tilt of the fall path from the vertical (rad): α = atan(v_wind / v_fall). */
-export function tiltRad(windMs: number, fallMs: number): number {
-  return Math.atan2(Math.max(0, windMs), Math.max(0.01, fallMs));
-}
 
 /** Jennings et al. 2018: probability of snow from air temperature (°C) and relative humidity (%). */
 export function jenningsSnowP(tempC: number, rhPct: number): number {
@@ -142,21 +98,8 @@ export const PHASE_BASIS_LABEL: Record<PhaseResult['basis'], string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Intensity — classes and colours of the radar legend
+// Intensity — classes of the radar legend
 // ---------------------------------------------------------------------------
-
-/** Legend stops (mm/h → colour) from `precipRainRamp` (normalised against PRECIP_VMAX). */
-const RAMP_STOPS: Array<{ mmH: number; color: string }> = Object.entries(precipRainRamp)
-  .map(([k, v]) => ({ mmH: Number(k) * PRECIP_VMAX, color: v }))
-  .filter((s) => s.mmH > 0)
-  .sort((a, b) => a.mmH - b.mmH);
-
-/** Legend colour of a rate (the highest stop ≤ rate; the rain layer's own ramp). */
-export function rateColor(rateMmH: number): string {
-  let c = RAMP_STOPS[0].color;
-  for (const s of RAMP_STOPS) { if (rateMmH >= s.mmH) c = s.color; else break; }
-  return c;
-}
 
 /** Legend class word (DWD-near bands as the Regenradar uses them). */
 export function rateClass(rateMmH: number): string {
@@ -168,13 +111,6 @@ export function rateClass(rateMmH: number): string {
   return 'sehr stark';
 }
 
-/** Particle count — logarithmic in R (`set`): ≈ 18 at 0,1 · 45 at 1 · 87 at 10 · 118 at 50 mm/h. */
-export const PARTICLES_MIN = 8;
-export const PARTICLES_MAX = 220;
-export function particleCount(rateMmH: number): number {
-  if (!(rateMmH >= PROBE_DRY_MMH)) return 0;
-  return Math.round(Math.max(PARTICLES_MIN, Math.min(PARTICLES_MAX, 10 + 45 * Math.log10(1 + rateMmH / 0.2))));
-}
 
 // ---------------------------------------------------------------------------
 // Radar frame at the pointer

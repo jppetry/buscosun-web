@@ -16,13 +16,12 @@
 | Phasenlogik | vorhanden und wiederverwendet, Reihenfolge: buscosun Fusion `fusion.pSnow` → `phaseLabel` (Feuchtkugel); sonst `classifyPrecipitation` mit Schneefallgrenze + Ortshöhe (Regel der Nowcast-Engine); sonst Jennings et al. 2018 aus T + rF (neu, Konstanten `JENNINGS_*`, Mischzone 0,3–0,7 = Schneeregen); zuletzt T-Schwellen. Hagel nur mit `hasHail(cell)` der Zelle, in deren Umriss der Zeiger liegt. | `probeModel.ts` `derivePhase` |
 | KONRAD3D-Zelle am Zeiger | `Konrad3dRun` liegt im Deck (`cellsRun`, Phase ZO); Zelle = Umriss enthält den Punkt, sonst nächster Schwerpunkt ≤ 10 km. Zugrichtung `bearing` (Peilung Schwerpunkt → erster Prognosepunkt, „wohin"), Tempo `speedKmh`, Echo-Top `echoTopM`. AT/CH: „KONRAD3D nur im DE-Verbund". | `probeModel.ts` `cellAtPoint` |
 
-## 2. Physik (benannte Konstanten in `probeModel.ts`)
+## 2. Darstellung (Stand 19.10. abends)
 
-Marshall–Palmer `D0 = 0,89·R^0,21`, Atlas 1973 `v = 9,65 − 10,3·e^(−0,6·D)` (3,6 / 5,3 / 6,6 m/s bei 1 / 10 / 50 mm/h);
-Schnee 1 m/s, Schneeregen 2 m/s (`set`), Hagel 12 m/s. Neigung `α = atan(v_wind / v_fall)`, Böe als langsame Schwankung
-zwischen Mittelwind und Böe, Drift nach `dir + 180°`; Teilchen, die seitlich austreten, kommen gegenüber wieder herein.
-Teilchenzahl `10 + 45·log10(1 + R/0,2)` (8 … 220), Farbe = Legendenstufe `precipRainRamp`. Die Bühne zeichnet die Höhe
-1 : 1 zur Ost-West-Achse (`VIEW_V = 1`), damit die Neigung auf dem Bildschirm α ist; Weltmaßstab 4 m je Einheit (`set`).
+Die 3D-Säule (Canvas 2D, Teilchenphysik Marshall–Palmer/Atlas, Neigung α = atan(v_wind / v_fall)) war gebaut, hell
+abgestimmt und ist auf Jans Wunsch wieder entfernt (Commit nach `652c181`). Geblieben sind zwei Anzeigen derselben
+Werte: die Glas-Pille am Zeiger über der Karte (`ProbeTooltip.tsx`) und die Karte im Dock unter den Layern
+(`PointProbeCard.tsx`, Langform mit Herkunft je Wert; mobil im Schnellblick nach Tippen).
 
 ## 3. Schalter, Bedienung, Prüfung
 

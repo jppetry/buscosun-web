@@ -1,9 +1,8 @@
 /**
- * Regenradar — 3D-Punktansicht (Phase P3D): the dock card. The numbers are the statement, the column illustrates
- * them; every value carries its source and time, a missing value says „unbekannt" (never 0).
+ * Regenradar — Punktansicht am Zeiger (Phase P3D): the dock card. The same values as the readout at the pointer
+ * (`ProbeTooltip`), in the long form with sources; every value carries its source and time, a missing value says
+ * „unbekannt" (never 0). The 3D column was dropped on Jan's request (19.10.).
  */
-import { useMemo } from 'react';
-import ProbeStage, { type StageInput } from './ProbeStage';
 import type { ProbeState } from './usePointProbe';
 import {
   compass16, dewPointC, fmt0, fmt1, fmtClock, msToKmh, rateClass,
@@ -12,19 +11,11 @@ import {
 import './pointProbe.css';
 
 const UNKNOWN = 'unbekannt';
+const fmt2 = (n: number): string => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function PointProbeCard({ state, variant = 'desktop', onUnpin }: { state: ProbeState; variant?: 'desktop' | 'mobile'; onUnpin?: () => void }) {
   const v = state.point.values;
   const cell = state.cell;
-  const stageInput = useMemo<StageInput>(() => ({
-    rateMmH: state.rateMmH,
-    phase: state.phase.phase,
-    windMs: v?.windMs ?? null,
-    windDirDeg: v?.windDirDeg ?? null,
-    gustMs: v?.gustMs ?? null,
-    cellBearingDeg: cell?.cell.bearing ?? null,
-    cellSpeedKmh: cell?.cell.speedKmh ?? null,
-  }), [state.rateMmH, state.phase.phase, v?.windMs, v?.windDirDeg, v?.gustMs, cell?.cell.bearing, cell?.cell.speedKmh]);
 
   const idle = state.mode === 'idle';
   const wet = state.rateMmH != null && state.rateMmH >= PROBE_DRY_MMH;
@@ -32,7 +23,7 @@ export default function PointProbeCard({ state, variant = 'desktop', onUnpin }: 
   const tdDerived = v?.dewPointC == null && td != null;
 
   return (
-    <section className={`pp-card pp-card--${variant}${idle ? ' is-idle' : ''}`} aria-label="3D-Punktansicht am Zeiger">
+    <section className={`pp-card pp-card--${variant}${idle ? ' is-idle' : ''}`} aria-label="Punktansicht am Zeiger">
       <div className="pp-head">
         <span className="pp-eyebrow">{state.mode === 'pinned' ? 'Fixiert' : 'Am Zeiger'}</span>
         {state.timeMs != null && !idle && (
@@ -40,7 +31,7 @@ export default function PointProbeCard({ state, variant = 'desktop', onUnpin }: 
         )}
         {state.mode === 'pinned' && onUnpin && <button type="button" className="pp-unpin" onClick={onUnpin} title="Fixierung lösen (Esc)">lösen</button>}
       </div>
-      <ProbeStage input={stageInput} className="pp-stage" />
+      {state.at && !idle && <div className="pp-pos">{state.at.lat.toFixed(3)}, {state.at.lon.toFixed(3)}{state.country ? ` · ${state.country}` : ''}</div>}
       {idle ? (
         <div className="pp-idle">{variant === 'mobile' ? 'Tippe auf die Karte: Niederschlag und Wetter an dieser Stelle.' : 'Zeiger über die Karte bewegen: Niederschlag und Wetter an dieser Stelle. Klick fixiert.'}</div>
       ) : (
@@ -49,7 +40,7 @@ export default function PointProbeCard({ state, variant = 'desktop', onUnpin }: 
             {state.rateMmH == null ? (
               <><span className="pp-rate">{UNKNOWN}</span><span className="pp-rate-sub">kein Radar an dieser Stelle und Zeit</span></>
             ) : wet ? (
-              <><span className="pp-rate">{fmt1(state.rateMmH)} <small>mm/h</small></span><span className="pp-rate-sub">{rateClass(state.rateMmH)}{state.zone === 'model' ? ' · Modell' : ''}</span></>
+              <><span className="pp-rate">{fmt2(state.rateMmH)} <small>mm/h</small></span><span className="pp-rate-sub">{rateClass(state.rateMmH)}{state.zone === 'model' ? ' · Modell' : ''}</span></>
             ) : (
               <><span className="pp-rate pp-rate--dry">Hier fällt nichts</span><span className="pp-rate-sub">{state.zone === 'model' ? 'Modell' : 'Radar'} · unter {String(PROBE_DRY_MMH).replace('.', ',')} mm/h</span></>
             )}
@@ -76,7 +67,6 @@ export default function PointProbeCard({ state, variant = 'desktop', onUnpin }: 
                 : state.point.status === 'loading' ? `${state.point.fusionName} lädt …`
                 : state.point.status === 'gap' ? (state.point.reason ?? 'keine Punktwerte') : ''}
             </span>
-            <span className="pp-legend"><span><i className="pp-sw pp-sw--wind" /> Wind</span><span><i className="pp-sw pp-sw--cell" /> Zug der Zelle</span><span>Neigung = Wind ÷ Fallgeschwindigkeit</span></span>
           </div>
         </>
       )}

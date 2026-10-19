@@ -8,12 +8,10 @@
 .pp-zone--measured { color: #5F7A4C; }
 .pp-zone--nowcast { color: var(--steel-600, #3A6FA8); }
 .pp-zone--model { color: var(--np-model, #7A9466); }
+.pp-pos { font-size: 10px; color: var(--stone-400, #A89A7A); font-variant-numeric: tabular-nums; margin-top: -4px; }
 .pp-unpin { font: inherit; font-size: 10.5px; font-weight: 600; color: var(--steel-600, #3A6FA8); background: none; border: 0; cursor: pointer; padding: 0 2px; }
 .pp-unpin:hover { color: var(--nc-blue-dark, #28507A); }
 
-.pp-stage { display: block; width: 100%; height: 168px; border-radius: 9px; border: 1px solid var(--sand-200, #E0D6BE);
-  background: linear-gradient(180deg, #FDFBF4 0%, var(--cream-50, #FAF6EA) 55%, var(--sand-100, #EDE6D3) 100%); }
-.pp-card.is-idle .pp-stage { opacity: .7; }
 .pp-idle { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.45; }
 
 .pp-hero { display: flex; flex-direction: column; gap: 1px; }
@@ -33,14 +31,9 @@
 
 .pp-foot { margin-top: 2px; padding-top: 7px; border-top: 1px solid var(--sand-200, #E0D6BE); display: flex; flex-direction: column; gap: 2px;
   font-size: 10px; color: var(--stone-400, #A89A7A); line-height: 1.4; }
-.pp-legend { display: flex; align-items: center; gap: 2px 8px; flex-wrap: wrap; }
-.pp-legend > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.pp-sw { display: inline-block; width: 10px; height: 2px; border-radius: 1px; vertical-align: middle; }
-.pp-sw--wind { background: #5B9BD5; }
-.pp-sw--cell { background: #C97B47; }
 
-@media (max-width: 1024px) { .pp-row { grid-template-columns: 64px 1fr; } .pp-stage { height: 150px; } }
-@media (max-width: 767px) { .pp-card { margin: 0 0 12px; } .pp-stage { height: 180px; } .pp-row { grid-template-columns: 86px 1fr; } }
+@media (max-width: 1024px) { .pp-row { grid-template-columns: 64px 1fr; } }
+@media (max-width: 767px) { .pp-card { margin: 0 0 12px; } .pp-row { grid-template-columns: 86px 1fr; } }
 
 /* Readout at the pointer (desktop): glass pill following the mouse over the map, never catching the mouse itself. */
 .pp-tip { position: absolute; z-index: 6; width: 230px; pointer-events: none; padding: 8px 10px 7px; border-radius: 10px;
