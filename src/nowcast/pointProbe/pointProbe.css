@@ -41,3 +41,18 @@
 
 @media (max-width: 1024px) { .pp-row { grid-template-columns: 64px 1fr; } .pp-stage { height: 150px; } }
 @media (max-width: 767px) { .pp-card { margin: 0 0 12px; } .pp-stage { height: 180px; } .pp-row { grid-template-columns: 86px 1fr; } }
+
+/* Readout at the pointer (desktop): glass pill following the mouse over the map, never catching the mouse itself. */
+.pp-tip { position: absolute; z-index: 6; width: 230px; pointer-events: none; padding: 8px 10px 7px; border-radius: 10px;
+  background: rgba(250,246,234,.95); backdrop-filter: blur(8px); border: 1px solid var(--sand-200, #E0D6BE);
+  box-shadow: 0 6px 18px rgba(44,42,38,.14); font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); color: var(--ink-900, #2C2A26); }
+.pp-tip-head { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; }
+.pp-tip-head .pp-zone { margin-left: 0; }
+.pp-tip-pos { color: var(--stone-400, #A89A7A); font-variant-numeric: tabular-nums; }
+.pp-tip-rate { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.15; margin: 3px 0 4px; font-variant-numeric: tabular-nums; }
+.pp-tip-rate small { font-size: 11px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.pp-tip-rate em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--steel-600, #3A6FA8); }
+.pp-tip-rows { display: flex; flex-direction: column; gap: 1px; font-size: 11px; font-weight: 500; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.pp-tip-rows .is-hail { color: var(--np-hail, #C0307A); font-weight: 600; }
+.pp-tip-dim { color: var(--stone-500, #8B7355); font-weight: 400; }
+.pp-tip-foot { margin-top: 5px; padding-top: 4px; border-top: 1px solid var(--sand-200, #E0D6BE); font-size: 9.5px; color: var(--stone-400, #A89A7A); line-height: 1.35; }

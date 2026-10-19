@@ -69,6 +69,7 @@ const SnowArrivalPanel = lazy(() => import('../snowCap/SnowArrivalPanel'));
 // Phase P3D (on, `?p3d=0` off, audit/regenradar-punkt3d.md): 3D point view at the pointer in the dock (mobile: tap, sheet).
 import { usePointProbe, pointProbeEnabledFrom } from './pointProbe/usePointProbe';
 import PointProbeCard from './pointProbe/PointProbeCard';
+import ProbeTooltip from './pointProbe/ProbeTooltip';
 
 type DeckState =
   | { kind: 'loading' }
@@ -306,6 +307,23 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     onProfileRadarPick: (p: ProfileRadarPick) => { setP3dPick(p); if (ztActive) setZtRadar(p); },
   } : {};
   const probeCard = (variant: 'desktop' | 'mobile') => (p3dOn ? <PointProbeCard state={probe.state} variant={variant} onUnpin={probe.unpin} /> : null);
+  // Readout at the pointer (desktop): pixel position of the mouse over the stage, one update per animation frame.
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || !p3dOn || isMobile) return;
+    let raf: number | null = null, last: { x: number; y: number } | null = null;
+    const onMove = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      last = { x: e.clientX - r.left, y: e.clientY - r.top };
+      if (raf != null) return;
+      raf = requestAnimationFrame(() => { raf = null; if (last) setTip({ ...last, w: r.width, h: r.height }); });
+    };
+    const onLeave = () => { last = null; setTip(null); };
+    el.addEventListener('pointermove', onMove); el.addEventListener('pointerleave', onLeave);
+    return () => { el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerleave', onLeave); if (raf != null) cancelAnimationFrame(raf); };
+  }, [p3dOn, isMobile]);
 
   // Minutenverlauf (on, `?mv=0` off): card in the readout / Schnellblick, overlay over the page from its icon.
   const mvOn = useMemo(() => minuteSeriesEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -318,7 +336,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const center = (
     <div className={`rr-center${view === 'height' ? ' is-split' : ''}`}>
       <>
-          <div className="rr-stage">
+          <div className="rr-stage" ref={stageRef}>
+            {p3dOn && !isMobile && tip && <ProbeTooltip state={probe.state} x={tip.x} y={tip.y} w={tip.w} h={tip.h} />}
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
               initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
