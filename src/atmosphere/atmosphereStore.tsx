@@ -24,6 +24,7 @@ import {
 import { hourFromValidAt, validAtFromHour, type AtmosphereUrlState } from './atmosphereUrl';
 import type { DerivedProfile } from './profile-derivations';
 import type { SoundingProfile } from '../sources/iconEuSounding';
+import type { SoundingSource } from '../sources/sounding';
 import type { SoundingDerived } from '../threed/soundingMath';
 import type { GeoPoint } from '../threed/sectionGeometry';
 import type { ThreeDLayers } from '../threed/threedState';
@@ -31,8 +32,15 @@ import type { ThreeDLayers } from '../threed/threedState';
 export type SectionMode = '2d' | '3d' | 'terrain';
 const DEFAULT_SECTION_LAYERS: ThreeDLayers = { mean: true, gust: false, shear: false, inversion: false, cloudBase: false, cloudLayers: false, streamlines: false, foehn: false, temp: false };
 
-/** Rohes Sounding + Thermodynamik für den Nerd-Mode (Tiefe 3). */
-export interface SoundingBundle { profile: SoundingProfile; derived: SoundingDerived }
+/** Rohes Sounding + Thermodynamik für den Nerd-Mode (Tiefe 3) — mit Herkunft
+ *  (Phase SG: ICON-EU oder GFS-Rückfall), damit Föhn/Thermik/Nerd ehrlich beschriften. */
+export interface SoundingBundle {
+  profile: SoundingProfile;
+  derived: SoundingDerived;
+  source: SoundingSource;
+  /** Hinweis, wenn das Profil nicht aus der ersten Wahl kommt. */
+  note?: string;
+}
 
 const LENS_KEY = 'buscosun.atm.lens.v1';
 

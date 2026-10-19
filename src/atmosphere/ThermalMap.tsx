@@ -17,6 +17,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useAtmosphere } from './atmosphereStore';
 import { loadElevationLookup } from '../fusion/elevation';
 import { buildThermalImage, type EnvLevel } from './thermalField';
+import { soundingSourceName } from '../sources/sounding';
 
 const DEM_SRC = 'atm-dem';
 const OV_SRC = 'atm-thermal';
@@ -36,7 +37,7 @@ function rgbaToDataUrl(rgba: Uint8ClampedArray, w: number, h: number): string {
 }
 
 export default function ThermalMap() {
-  const { marker, profile, setMarker } = useAtmosphere();
+  const { marker, profile, setMarker, sounding } = useAtmosphere();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerObjRef = useRef<maplibregl.Marker | null>(null);
@@ -161,7 +162,7 @@ export default function ThermalMap() {
         <span>schwach</span><span>stark</span>
       </div>
       <p className="atm-thermal-cap">
-        Thermik-Schätzung aus ICON-EU-Profil + Gelände · tippen verschiebt den Marker · Richtwert
+        Thermik-Schätzung aus {soundingSourceName(sounding?.source)}-Profil + Gelände · tippen verschiebt den Marker · Richtwert
       </p>
     </section>
   );

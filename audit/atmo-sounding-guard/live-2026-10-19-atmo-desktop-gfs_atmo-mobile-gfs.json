@@ -1,0 +1,30 @@
+[
+  {
+    "id": "atmo-desktop-gfs",
+    "ms": 21290,
+    "text": "GFS (~25 km, Druckflächen) · Lauf 19.10. 12Z · gültig 19.10. 21Z · Richtwert; Thermik-Stärke geschätzt, dünne Strukturen ggf. unteraufgelöst. · Testschalter ?snd=gfs — Profil aus GFS",
+    "nerd": "GFS (~25 km) · Lauf 19.10. 12Z (vor 8 h) · gültig 19.10. 21Z · Richtwert; grobe Standard-Druckflächen, kein Radiosonden-Ersatz. · Testschalter ?snd=gfs — Profil aus GFS",
+    "foehn": "Cross-Barrier-Druckdifferenz (Luv–Lee) nicht verfügbar — keine Stationsdruck-Pipeline im Projekt. Index aus GFS-Höhenwind + Bodentrockenheit. Testschalter ?snd=gfs — Profil aus GFS.",
+    "err": "",
+    "console": [
+      "log: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "oldTree": 0,
+    "oldTreeHead": 0,
+    "gfs": 42
+  },
+  {
+    "id": "atmo-mobile-gfs",
+    "ms": 19723,
+    "text": "GFS (~25 km, Druckflächen) · Lauf 19.10. 12Z · gültig 19.10. 21Z · Richtwert; Thermik-Stärke geschätzt, dünne Strukturen ggf. unteraufgelöst. · Testschalter ?snd=gfs — Profil aus GFS",
+    "nerd": null,
+    "foehn": "Cross-Barrier-Druckdifferenz (Luv–Lee) nicht verfügbar — keine Stationsdruck-Pipeline im Projekt. Index aus GFS-Höhenwind + Bodentrockenheit. Testschalter ?snd=gfs — Profil aus GFS.",
+    "err": "",
+    "console": [
+      "log: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "oldTree": 0,
+    "oldTreeHead": 0,
+    "gfs": 42
+  }
+]

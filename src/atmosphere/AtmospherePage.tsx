@@ -91,8 +91,9 @@ const ATM_INTRO_CAPS = [
   'Höhenwind-Geländeschnitt mit Vektoren, Isotachen, Shear & Wolkenbasis',
   'Inversion / Kaltluftsee — Temperatur-Umkehr, Nebelobergrenze, Aufstiegs-Delta',
   'Go/No-Go Betriebs-Check (B2B): Böen auf Arbeitshöhe, Grenzwerte, Zeitfenster',
-  // V-FR-10: der Schnitt rechnet den Bodenwind von buscosun Fusion hoch; das Höhenprofil (Emagramm, Föhn) kommt aus ICON-EU.
-  'Bodenwind aus buscosun Fusion, Höhenprofil aus ICON-EU-Druckflächen, Gelände (DEM) — werbefrei, keine Tracker',
+  // V-FR-10: der Schnitt rechnet den Bodenwind von buscosun Fusion hoch; das Höhenprofil (Emagramm, Föhn) kommt aus
+  // ICON-EU — bei Ausfall des alten DWD-Baums (30.11.2026) aus GFS (Phase SG, sources/sounding.ts).
+  'Bodenwind aus buscosun Fusion, Höhenprofil aus Modell-Druckflächen (ICON-EU, bei Ausfall GFS), Gelände (DEM) — werbefrei, keine Tracker',
 ];
 
 function AtmosphereIntro() {
@@ -125,7 +126,7 @@ function AtmosphereIntro() {
       </p>
 
       <div className="rt-trust" style={{ marginTop: '1rem' }}>
-        <span className="dot">●</span> buscosun Fusion + ICON-EU + Gelände · werbefrei · keine Tracker
+        <span className="dot">●</span> buscosun Fusion + ICON-EU/GFS + Gelände · werbefrei · keine Tracker
       </div>
     </section>
   );

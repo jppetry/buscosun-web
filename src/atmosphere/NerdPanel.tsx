@@ -9,6 +9,7 @@
 
 import { useAtmosphere } from './atmosphereStore';
 import SkewTChart from '../threed/SkewTChart';
+import { SOUNDING_SOURCE_LABEL } from '../sources/sounding';
 
 const de0 = (n: number) => Math.round(n).toString();
 const de1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
@@ -81,8 +82,8 @@ export default function NerdPanel() {
       </table>
 
       <p className="atm-nerd-src">
-        ICON-EU (~7 km) · Lauf {fmtUTC(snd.runAt)}{ageH != null ? ` (vor ${ageH} h)` : ''} · gültig {fmtUTC(snd.validAt)} ·
-        Richtwert; grobe Standard-Druckflächen, kein Radiosonden-Ersatz.
+        {SOUNDING_SOURCE_LABEL[sounding.source].name} ({SOUNDING_SOURCE_LABEL[sounding.source].grid}) · Lauf {fmtUTC(snd.runAt)}{ageH != null ? ` (vor ${ageH} h)` : ''} · gültig {fmtUTC(snd.validAt)} ·
+        Richtwert; grobe Standard-Druckflächen, kein Radiosonden-Ersatz.{sounding.note ? ` · ${sounding.note}` : ''}
       </p>
     </div>
   );

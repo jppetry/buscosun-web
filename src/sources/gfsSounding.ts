@@ -59,9 +59,14 @@ export function pressureFromAltitude(altM: number): number {
   return 1013.25 * Math.pow(1 - 2.25577e-5 * altM, 5.25588);
 }
 
-/** GFS-Vorlauf (fhour) zur gewünschten Lead-Stunde (1°-Lauf: stündlich bis 120). */
+/**
+ * GFS-Vorlauf (fhour) zur gewünschten Lead-Stunde. Das 1°-Produkt (`pgrb2.1p00`)
+ * liegt **3-stündlich** (f000, f003, … f384 — am Bucket gemessen 19.10.2026;
+ * stündlich ist nur `0p25`, mit ~13× größeren Feldern). Eine Zwischenstunde
+ * antwortet 404 ⇒ auf das 3-h-Raster runden; `validAt` nennt die echte Stunde.
+ */
 function pickFhour(leadHours: number): number {
-  return Math.max(0, Math.min(120, Math.round(leadHours)));
+  return Math.max(0, Math.min(120, Math.round(leadHours / 3) * 3));
 }
 
 interface RawLevel { p: number; tC: number; dewC: number; u: number; v: number }
@@ -70,12 +75,17 @@ interface RawLevel { p: number; tC: number; dewC: number; u: number; v: number }
  * Lädt das Vertikal-Sounding am Punkt für die Lead-Stunde `leadHours` (default 0).
  * `surfaceM` = Terrain-Höhe am Punkt (Höhenanker + Aussortieren unterirdischer
  * Druckflächen); 0, wenn unbekannt.
+ *
+ * `validAtMs` (Phase SG): absolute Zielzeit — der Vorlauf wird aus Zielzeit −
+ * Laufbeginn gerechnet (GFS-Läufe sind beim Abruf typisch 4–9 h alt; ohne das
+ * Feld läge „+h" um dieses Alter neben der gewünschten Stunde).
  */
 export async function fetchSoundingAtPoint(
-  lat: number, lon: number, surfaceM = 0, leadHours = 0, signal?: AbortSignal,
+  lat: number, lon: number, surfaceM = 0, leadHours = 0, signal?: AbortSignal, validAtMs?: number,
 ): Promise<SoundingProfile> {
   const run = await resolveLatestGfsRun(signal);
-  const fhour = pickFhour(leadHours);
+  const runMs = Date.UTC(+run.date.slice(0, 4), +run.date.slice(4, 6) - 1, +run.date.slice(6, 8), +run.hour);
+  const fhour = pickFhour(validAtMs != null ? (validAtMs - runMs) / 3600_000 : leadHours);
 
   // Echte Bodenwerte (besser als barometrische Annahme für den Boden-Parcel).
   let surfacePressureHpa = pressureFromAltitude(surfaceM);

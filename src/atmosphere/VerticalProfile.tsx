@@ -12,6 +12,7 @@
 
 import { useRef, useState } from 'react';
 import type { DerivedProfile } from './profile-derivations';
+import { SOUNDING_SOURCE_LABEL, type SoundingSource } from '../sources/sounding';
 
 const de0 = (n: number) => Math.round(n).toString();
 const de1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
@@ -24,6 +25,10 @@ interface Props {
   onToggleCap: () => void;
   validAt: Date;
   runAt: Date;
+  /** Herkunft des Profils (Phase SG) — die Quellenzeile nennt das echte Modell. */
+  source: SoundingSource;
+  /** Rückfall-Hinweis, sichtbar neben der Quellenzeile. */
+  note?: string;
 }
 
 const W = 360, H = 470;
@@ -40,7 +45,7 @@ function thermalColor(ms: number): string {
   return '#3A6FA8';              // steel-600 (stark)
 }
 
-export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt }: Props) {
+export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt, source, note }: Props) {
   const yOf = (z: number) => BOTTOM_Y - (Math.max(0, Math.min(capM, z)) / capM) * (BOTTOM_Y - TOP);
 
   // Punkt-Abfrage: Zeiger-Höhe → interpolierte Werte (Höhe/T/Td/Wind).
@@ -227,8 +232,9 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         <span className="atm-prof-hint">· über die Kurve fahren für Werte</span>
       </div>
       <p className="atm-prof-source">
-        ICON-EU (~7 km, Druckflächen) · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
+        {SOUNDING_SOURCE_LABEL[source].short} · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
         <strong> Richtwert</strong>; Thermik-Stärke geschätzt, dünne Strukturen ggf. unteraufgelöst.
+        {note && <> · <span className="atm-prof-note">{note}</span></>}
       </p>
     </div>
   );

@@ -2,8 +2,9 @@
  * Atmosphäre · Vertikalprofil-Loader (Datenanbindung).
  *
  * Holt für die aktive Marker-Position und die aktive Stunde (Time-Scrubber) das
- * ICON-EU-Sounding (bestehende Pipeline) plus die Terrainhöhe (Terrarium-DEM),
- * leitet die Profilmerkmale ab (profile-derivations) und rendert das SVG-Profil.
+ * Modell-Sounding (ICON-EU, bei Ausfall GFS — `sources/sounding.ts`, Phase SG)
+ * plus die Terrainhöhe (Terrarium-DEM), leitet die Profilmerkmale ab
+ * (profile-derivations) und rendert das SVG-Profil.
  *
  * Das ICON-EU-Sounding lädt je Abruf viele Druckflächen-Dateien (Profi-Feature,
  * on-demand) — daher wird auf Marker-/Stunden-Wechsel DEBOUNCED und die letzte
@@ -13,7 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
-import { fetchSoundingAtPoint } from '../sources/iconEuSounding';
+import { fetchSoundingWithFallback, type SoundingSource } from '../sources/sounding';
 import { computeSounding } from '../threed/soundingMath';
 import { loadElevationLookup } from '../fusion/elevation';
 import { deriveProfile, type DerivedProfile } from './profile-derivations';
@@ -21,7 +22,7 @@ import VerticalProfile from './VerticalProfile';
 
 const DEBOUNCE_MS = 500;
 
-interface Ready { data: DerivedProfile; runAt: Date; validAt: Date }
+interface Ready { data: DerivedProfile; runAt: Date; validAt: Date; source: SoundingSource; note?: string }
 
 export default function AtmosphereProfile() {
   const { marker, hour, setModelRunAt, setProfile, setSounding } = useAtmosphere();
@@ -54,14 +55,14 @@ export default function AtmosphereProfile() {
           } catch { /* DEM optional → 0 (Meeresniveau-Anker) */ }
           if (ac.signal.aborted) return;
 
-          const profile = await fetchSoundingAtPoint(lat, lon, surfaceM, hour, ac.signal);
+          const { profile, source, note } = await fetchSoundingWithFallback(lat, lon, surfaceM, hour, ac.signal);
           if (ac.signal.aborted) return;
           const derived = computeSounding(profile);
           const data = deriveProfile(profile, derived);
-          setReady({ data, runAt: profile.runAt, validAt: profile.validAt });
+          setReady({ data, runAt: profile.runAt, validAt: profile.validAt, source, note });
           setModelRunAt(profile.runAt);
           setProfile(data);
-          setSounding({ profile, derived });
+          setSounding({ profile, derived, source, note });
           setLoading(false);
         } catch (err) {
           if (ac.signal.aborted) return;
@@ -83,7 +84,7 @@ export default function AtmosphereProfile() {
         <>
           <span className="rt-eyebrow">Vertikalprofil</span>
           <div className="atm-ph" style={{ marginTop: '0.6rem' }}>
-            Such oben einen Ort — dann zeigen wir das Emagramm (Meter · km/h · °C) aus dem ICON-EU-Sounding.
+            Such oben einen Ort — dann zeigen wir das Emagramm (Meter · km/h · °C) aus dem Modell-Sounding (ICON-EU, bei Ausfall GFS).
           </div>
         </>
       )}
@@ -100,7 +101,7 @@ export default function AtmosphereProfile() {
           <VerticalProfile
             data={ready.data} capM={capM} expanded={expanded}
             onToggleCap={() => setExpanded((v) => !v)}
-            runAt={ready.runAt} validAt={ready.validAt}
+            runAt={ready.runAt} validAt={ready.validAt} source={ready.source} note={ready.note}
           />
           {loading && <div className="atm-prof-overlay"><span className="ev-spinner" /> aktualisiere …</div>}
         </div>
@@ -111,7 +112,7 @@ export default function AtmosphereProfile() {
           <span className="rt-eyebrow">Vertikalprofil</span>
           <div className="atm-prof-loading">
             <span className="ev-spinner" />
-            <p>Sounding wird geladen … <em>der erste Abruf lädt die ICON-EU-Druckflächen (kann ~20 s dauern), danach aus dem Cache.</em></p>
+            <p>Sounding wird geladen … <em>der erste Abruf lädt Modell-Druckflächen (kann ~20 s dauern), danach aus dem Cache.</em></p>
           </div>
         </>
       )}

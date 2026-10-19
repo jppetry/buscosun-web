@@ -90,19 +90,77 @@ function singleUrl(run: string, step: number, param: string): string {
 const RUN_TTL_MS = 3 * 60 * 1000;
 let runCache: { run: string; runAt: Date; at: number } | null = null;
 
-async function headOk(url: string, signal?: AbortSignal): Promise<boolean> {
-  try { return (await fetch(url, { method: 'HEAD', signal })).ok; } catch { return false; }
+/**
+ * „Nicht da" — typisiert, damit der Rückfall (`sources/sounding.ts`) ihn von
+ * einem Abbruch und von echten Fehlern unterscheiden kann (Phase SG).
+ *  - `no-run`: kein publizierter Lauf gefunden (8 HEAD-Proben, alle nicht ok)
+ *  - `too-few-levels`: Lauf da, aber am Schritt fehlen die Dateien
+ */
+export class SoundingUnavailableError extends Error {
+  readonly reason: 'no-run' | 'too-few-levels';
+  constructor(message: string, reason: 'no-run' | 'too-few-levels') {
+    super(message);
+    this.name = 'SoundingUnavailableError';
+    this.reason = reason;
+  }
 }
 
-async function resolveRun(signal?: AbortSignal): Promise<{ run: string; runAt: Date }> {
+function abortError(signal?: AbortSignal): Error {
+  const r = signal?.reason;
+  return r instanceof Error ? r : new DOMException('Aborted', 'AbortError');
+}
+
+/** HEAD-Probe: 404/5xx/Netzfehler ⇒ false. Ein Abbruch ist KEIN „nicht da" —
+ *  er wird weitergeworfen (CLAUDE.md: `AbortError` ≠ absent; V-SG-1). */
+async function headOk(url: string, signal?: AbortSignal): Promise<boolean> {
+  try {
+    return (await fetch(url, { method: 'HEAD', signal })).ok;
+  } catch (err) {
+    if (signal?.aborted || (err instanceof Error && err.name === 'AbortError')) throw err;
+    return false;
+  }
+}
+
+/**
+ * Schrittraster des DWD je Lauf (am Verzeichnis gemessen, 19.10.2026):
+ * Hauptläufe 00/06/12/18 stündlich bis +78, dann 3-stündlich bis +120;
+ * Zwischenläufe 03/09/15/21 stündlich bis +30, dann 3-stündlich bis +48.
+ */
+function stepGrid(runHourUtc: number): { hourlyMax: number; max: number } {
+  return runHourUtc % 6 === 0 ? { hourlyMax: 78, max: 120 } : { hourlyMax: 30, max: 48 };
+}
+
+/** Vorlauf-Schritt (h) auf dem Raster des Laufs: stündlich, darüber auf 3 h gerundet, geklemmt. */
+function pickStep(leadHours: number, runHourUtc: number): number {
+  const g = stepGrid(runHourUtc);
+  const s = Math.max(0, Math.round(leadHours));
+  if (s <= g.hourlyMax) return s;
+  return Math.min(g.max, Math.round(s / 3) * 3);
+}
+
+/** Erreicht dieser Lauf die Zielzeit innerhalb seines Rasters (ohne Klemmen)? */
+function runReaches(runAt: Date, targetValidMs: number): boolean {
+  const lead = (targetValidMs - runAt.getTime()) / 3600_000;
+  return lead <= stepGrid(runAt.getUTCHours()).max + 1.5;
+}
+
+/**
+ * Jüngster publizierter Lauf. Mit `targetValidMs` wird ein Lauf übersprungen,
+ * dessen Raster die Zielzeit nicht erreicht (Zwischenlauf, Ziel > +48 h) —
+ * dann greift der nächstältere Hauptlauf.
+ */
+async function resolveRun(signal?: AbortSignal, targetValidMs?: number): Promise<{ run: string; runAt: Date }> {
   const t = Date.now();
-  if (runCache && t - runCache.at < RUN_TTL_MS) return runCache;
+  if (runCache && t - runCache.at < RUN_TTL_MS && (targetValidMs == null || runReaches(runCache.runAt, targetValidMs))) {
+    return runCache;
+  }
   const now = new Date();
   now.setUTCMinutes(0, 0, 0);
   now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 3));
   for (let back = 0; back < 8; back++) {
-    if (signal?.aborted) throw new Error('aborted');
+    if (signal?.aborted) throw abortError(signal);
     const cand = new Date(now.getTime() - back * 3 * 3600_000);
+    if (targetValidMs != null && !runReaches(cand, targetValidMs)) continue;
     const run =
       `${cand.getUTCFullYear()}${pad2(cand.getUTCMonth() + 1)}${pad2(cand.getUTCDate())}${pad2(cand.getUTCHours())}`;
     if (await headOk(pressureUrl(run, 0, 500, 'T'), signal)) {
@@ -110,7 +168,7 @@ async function resolveRun(signal?: AbortSignal): Promise<{ run: string; runAt: D
       return runCache;
     }
   }
-  throw new Error('ICON-EU Sounding: kein publizierter Druckflächen-Lauf gefunden');
+  throw new SoundingUnavailableError('ICON-EU Sounding: kein publizierter Druckflächen-Lauf gefunden', 'no-run');
 }
 
 /** Bilineares Sampling eines regulären lat-lon-Felds am Punkt. NaN, wenn außerhalb
@@ -137,21 +195,22 @@ function sampleField(f: GribField, lat: number, lon: number): number {
 
 interface RawLevel { p: number; tC: number; dewC: number; u: number; v: number }
 
-/** Vorlauf-Schritt (h) der ICON-EU-Felder; default „jetzt" = 0. */
-function pickStep(leadHours: number): number {
-  return Math.max(0, Math.min(48, Math.round(leadHours)));
-}
-
 /**
  * Lädt das Vertikal-Sounding am Punkt für die Lead-Stunde `leadHours` (default 0).
  * `surfaceM` = Terrain-Höhe am Punkt (Höhenanker + Aussortieren unterirdischer
  * Druckflächen); 0, wenn unbekannt. Signatur identisch zur GFS-Quelle.
+ *
+ * `validAtMs` (Phase SG): absolute Zielzeit. Dann ist `leadHours` nur noch
+ * Rückfall, und der Schritt wird aus Zielzeit − Laufbeginn gerechnet — ohne
+ * das Feld meinte „+h" den Schritt ab Laufbeginn und lag um das Laufalter
+ * (gemessen 3 h) neben der Scrubber-Stunde.
  */
 export async function fetchSoundingAtPoint(
-  lat: number, lon: number, surfaceM = 0, leadHours = 0, signal?: AbortSignal,
+  lat: number, lon: number, surfaceM = 0, leadHours = 0, signal?: AbortSignal, validAtMs?: number,
 ): Promise<SoundingProfile> {
-  const { run, runAt } = await resolveRun(signal);
-  const step = pickStep(leadHours);
+  const { run, runAt } = await resolveRun(signal, validAtMs);
+  const lead = validAtMs != null ? (validAtMs - runAt.getTime()) / 3600_000 : leadHours;
+  const step = pickStep(lead, runAt.getUTCHours());
 
   // Echte Bodenwerte (besser als barometrische Annahme für den Boden-Parcel).
   // ICON-EU liefert Td direkt (TD_2M) → kein Magnus am Boden nötig.
@@ -200,8 +259,9 @@ export async function fetchSoundingAtPoint(
     while (ptr < levels.length) { if (signal?.aborted) return; await loadLevel(levels[ptr++]); }
   }));
 
+  if (signal?.aborted) throw abortError(signal);
   const all = (surf ? [surf, ...raws] : raws).sort((a, b) => b.p - a.p);
-  if (all.length < 3) throw new Error('ICON-EU Sounding: zu wenige Niveaus');
+  if (all.length < 3) throw new SoundingUnavailableError('ICON-EU Sounding: zu wenige Niveaus', 'too-few-levels');
 
   // Geometrische Höhe hypsometrisch ab surfaceM (Rd·Tv̄/g · ln(p1/p2)).
   const Rd = 287.05, g = 9.80665;

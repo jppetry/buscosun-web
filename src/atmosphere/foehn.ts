@@ -32,8 +32,12 @@ export interface FoehnIndex {
   text: string;
 }
 
-export const PRESSURE_GATE_NOTE =
-  'Cross-Barrier-Druckdifferenz (Luv–Lee) nicht verfügbar — keine Stationsdruck-Pipeline im Projekt. Index aus ICON-EU-Höhenwind + Bodentrockenheit.';
+/** Drucklücken-Notiz; `modelName` = Herkunft des geladenen Profils (Phase SG: ICON-EU oder GFS). */
+export function pressureGateNote(modelName: string): string {
+  return `Cross-Barrier-Druckdifferenz (Luv–Lee) nicht verfügbar — keine Stationsdruck-Pipeline im Projekt. Index aus ${modelName}-Höhenwind + Bodentrockenheit.`;
+}
+/** Neutrale Fassung (kein Profil geladen). */
+export const PRESSURE_GATE_NOTE = pressureGateNote('Modell');
 
 const CREST_AGL_MIN = 1200, CREST_AGL_MAX = 3500;
 const ACTIVE_KMH = 45, TENDENCY_KMH = 30;
