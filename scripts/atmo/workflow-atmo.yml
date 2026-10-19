@@ -1,0 +1,105 @@
+# ============================================================================
+# atmo.yml — height cube atmo/v1 (ICON-D2 model levels over DACH, 0–48 h)
+#
+# TEMPLATE. Lives as `.github/workflows/atmo.yml` in `jppetry/buscosun-data`. The code lives in `buscosun-web`
+# (`scripts/atmo/*`, contract `src/atmosphere/atmoContract.ts`) and is cloned fresh from ATMO_PRODUCER_REF (default
+# `main`) on every run. Producer missing there ⇒ the job says so and ends green without writing anything.
+#
+# Every 30 min: `--check` compares the newest COMPLETE ICON-D2 run (HEAD on the last step) with atmo/v1/index.json;
+# only a new run builds (≈ 8 600 GRIB2 files, ≈ 6.4 GB streamed from opendata.dwd.de, nothing stored) and publishes.
+# `atmo-publish.mjs` starts every attempt from the CURRENT origin/main (no rebase), replaces atmo/v1 with the whole
+# store (heals a lost publish), commits only `atmo/`, pushes without force.
+#
+# Kill switch: repo variable ATMO_KILL=1.
+# ============================================================================
+
+name: atmo
+
+on:
+  schedule:
+    - cron: '20,50 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: atmo-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  atmo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ vars.ATMO_KILL != '1' }}
+    env:
+      ATMO_PRODUCER_REF: ${{ vars.ATMO_PRODUCER_REF || 'main' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, sparse)
+        id: app
+        run: |
+          REF="${ATMO_PRODUCER_REF:-main}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            echo "producer ref $REF not found — end without error."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          # Every file the producer reads (V-SW-18): the contract imports countryProfiles (type imports only besides).
+          git sparse-checkout set --no-cone scripts/atmo scripts/lib src/atmosphere/atmoContract.ts src/countryProfiles.ts src/sources/gribDecode.ts package.json
+          git checkout --quiet
+          for f in scripts/atmo/atmo-build.mjs scripts/atmo/atmoWorker.mjs scripts/atmo/atmo-publish.mjs src/atmosphere/atmoContract.ts src/sources/gribDecode.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f missing) — end without error."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout atmo store (buscosun-data, sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: atmo
+          sparse-checkout-cone-mode: true
+
+      - name: Prepare store
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd data
+          git config user.name  'buscosun-atmo[bot]'
+          git config user.email 'atmo@users.noreply.github.com'
+          mkdir -p ../store
+          if [ -d atmo/v1 ]; then cp -r atmo/v1/. ../store/; fi
+
+      - name: Run due?
+        id: due
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          OUT=$(node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/atmo/atmo-build.mjs --store=../store --check | tail -1)
+          echo "$OUT"
+          RUN=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.due||'')" "$OUT")
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        id: build
+        if: steps.due.outputs.run != ''
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/atmo/atmo-build.mjs \
+            --store=../store --run=${{ steps.due.outputs.run }} --jobs=4 | tee ../build.log
+          echo "summary=$(tail -1 ../build.log)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        if: steps.due.outputs.run != '' && steps.build.outcome == 'success'
+        run: |
+          cd app
+          node scripts/atmo/atmo-publish.mjs --repo=../data --store=../store \
+            --message="atmo: ICON-D2 ${{ steps.due.outputs.run }} (height cube v1)"
