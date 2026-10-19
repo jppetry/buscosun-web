@@ -147,6 +147,10 @@ interface Props {
    *  `stageMap` = ZT's 3D map (second instance); `mapHidden` = the 2D map rests behind the "3D"-only view (no cap build).
    *  Missing = exactly as before. */
   snowCap?: { pickMs: number | null; stageMap: maplibregl.Map | null; mapHidden?: boolean };
+  /** Phase P3D (on, `?p3d=0` off; audit/regenradar-punkt3d.md): pointer position on the profile map (`null` = left the map)
+   *  and the raw click point — the deck's 3D point view. Missing = exactly as before. */
+  onPointHover?: (p: { lat: number; lon: number } | null) => void;
+  onPointClick?: (lat: number, lon: number) => void;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -181,7 +185,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick, onPointChange, snowCap, stageAside, stage3d, onProfileRadarPick }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick, onPointChange, snowCap, stageAside, stage3d, onProfileRadarPick, onPointHover, onPointClick }: Props) {
   const last = useMemo(() => loadLastView(), []);
   // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
   const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -607,8 +611,15 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const snowLineM = pointNowcast?.summary?.snowLineM ?? null;
   const snowLineFeatures = useMemo(() => (terrain ? snowLineGeoJSON(terrain, snowLineM) : []), [terrain, snowLineM]);
 
+  // Phase P3D: pointer and click to the deck (refs — the map's callbacks stay stable).
+  const onPointHoverRef = useRef(onPointHover);
+  onPointHoverRef.current = onPointHover;
+  const onPointClickRef = useRef(onPointClick);
+  onPointClickRef.current = onPointClick;
+
   // Aktionen.
   const onPick = useCallback((lat: number, lon: number) => {
+    onPointClickRef.current?.(lat, lon);
     setPoint({ lat, lon, name: 'wird ermittelt …', country: point.country });
     reverseGeocode(lat, lon).then((loc) => setPoint(loc
       ? { lat, lon, name: loc.name, country: loc.country }
@@ -700,6 +711,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   sumHoverRef.current = sumMode ? sumMap.hoverAt : chanceMode ? chanceMap.hoverAt : null;
   const [sumHover, setSumHover] = useState<string | null>(null);
   const onProfileHover = useCallback((p: { lat: number; lon: number } | null) => {
+    onPointHoverRef.current?.(p);
     // Phase SK: snowfall line under the pointer next to the radar value (null with `?sk=0`).
     setSkHover(p && skHoverRef.current ? skHoverRef.current(p.lat, p.lon) : null);
     if (sumHoverRef.current) { setHover(null); setSumHover(p ? sumHoverRef.current(p.lat, p.lon) : null); return; }

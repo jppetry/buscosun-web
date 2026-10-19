@@ -66,6 +66,9 @@ const TowerStage = lazy(() => import('./cellTowers/TowerStage'));
 // Phase SK (on, `?sk=0` off, audit/schneefallgrenze-flaeche.md): snowfall line as a surface — flag here, place card lazy.
 import { snowCapEnabledFrom } from '../snowCap/snowCapModel';
 const SnowArrivalPanel = lazy(() => import('../snowCap/SnowArrivalPanel'));
+// Phase P3D (on, `?p3d=0` off, audit/regenradar-punkt3d.md): 3D point view at the pointer in the dock (mobile: tap, sheet).
+import { usePointProbe, pointProbeEnabledFrom } from './pointProbe/usePointProbe';
+import PointProbeCard from './pointProbe/PointProbeCard';
 
 type DeckState =
   | { kind: 'loading' }
@@ -196,6 +199,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   );
   // Phase RB: Radar-Stack der Karte (undefined = noch keiner, null = Radar nicht erreichbar) + Fenster am Ort der Seite.
   const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
+  // Phase P3D: flag early — the point view reads the radar stack too.
+  const p3dOn = useMemo(() => pointProbeEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const [rbStack, setRbStack] = useState<RadarStack | null | undefined>(undefined);
   useEffect(() => { setRbStack(undefined); }, [location.lat, location.lon, location.country]);
   const rainWindow: RainWindow | null = useMemo(() => {
@@ -208,7 +213,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
       fusionWetMmH: nowcast.fusionPWetMmH,
     });
   }, [rbOn, nowcast, rbStack, location.lat, location.lon]);
-  const onRadarStack = rbOn ? setRbStack : undefined;
+  const onRadarStack = rbOn || p3dOn ? setRbStack : undefined;
 
   // Phase ZO: KONRAD3D-Lauf von der Karte, Orte und Satz am Ort der Seite, buscosun Fusion in der Ankunftsstunde.
   const zoOn = useMemo(() => cellPlacesEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -290,6 +295,18 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
     ...(skActive ? { onTimeChange: setSliderMs, onUserTime: () => { setSkPickMs(null); if (chanceActive) setPickMs(null); } } : {}),
   } : {};
 
+  // Phase P3D: pointer → radar value of the shown frames (pick) + buscosun Fusion at the point; click pins, Esc releases.
+  const [p3dPick, setP3dPick] = useState<ProfileRadarPick | null>(null);
+  const probe = usePointProbe({
+    enabled: p3dOn, pick: p3dPick, stack: rbStack, cellsRun, sliderMs,
+    rvRunAtMs: nowcast?.radarSource === 'radolan_rv' && nowcast.runAtMs ? nowcast.runAtMs : null,
+  });
+  const p3dMapProps = p3dOn ? {
+    onPointHover: probe.onHover, onPointClick: probe.onClick, onTimeChange: setSliderMs,
+    onProfileRadarPick: (p: ProfileRadarPick) => { setP3dPick(p); if (ztActive) setZtRadar(p); },
+  } : {};
+  const probeCard = (variant: 'desktop' | 'mobile') => (p3dOn ? <PointProbeCard state={probe.state} variant={variant} onUnpin={probe.unpin} /> : null);
+
   // Minutenverlauf (on, `?mv=0` off): card in the readout / Schnellblick, overlay over the page from its icon.
   const mvOn = useMemo(() => minuteSeriesEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const minuteCard = (variant: 'desktop' | 'mobile') => (mvOn && nowcast ? <MinuteSeriesCard nowcast={nowcast} place={shortPlace(location.name)} variant={variant} /> : null);
@@ -305,7 +322,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
               initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
-              {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; } } : {})} {...ztMapProps} {...skMapProps} />
+              {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; } } : {})} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
           </div>
           {view === 'height' && <div className="rr-hzs-pane">{hzsPanel('desktop')}</div>}
       </>
@@ -365,7 +382,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
               initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
-              {...zoMapProps} {...hzsMapProps} onMapReady={(m) => { mapRef.current = m; }} {...ztMapProps} {...skMapProps} />
+              {...zoMapProps} {...hzsMapProps} onMapReady={(m) => { mapRef.current = m; }} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
           </div>
           <div className="rm-topfloat">
             <div className="rm-search"><NowcastLocationField value={location} onChange={onChangeLocation} showCountryCode /></div>
@@ -386,7 +403,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
             sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} rainWindow={rainWindow} chance={chance}
-            cellCard={cellCardMobile} minuteCard={minuteCard('mobile')} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
+            cellCard={cellCardMobile} minuteCard={minuteCard('mobile')} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(p3dOn ? { probeCard: probeCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
             {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}</div> : null } : {})} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} withHeight={hzsOn} with3d={z3dOn} />
         </div>
@@ -400,6 +417,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
                 view={view} setView={setView} mode={mode} setMode={setMode} withHeight={hzsOn}
                 nowcast={nowcast} onReload={onReload} snowMode={snowMode} setSnowMode={setSnowMode}
                 sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} chance={chance} country={location.country}
+                probeCard={probeCard('desktop')}
               />
             );
             return dock;
@@ -455,7 +473,7 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance, country }: {
+function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance, country, probeCard = null }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
   /** Phase RA-250: the place's country — the 250-m switch exists for Germany only (AT/CH have no open 250-m product). */
   country: Location['country'];
@@ -467,6 +485,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
   sumSel: SumSelection | null; setSumSel: (s: SumSelection) => void;
   chance: ChanceCtx | null;
+  /** Phase P3D: 3D point view under the layers (`null` = off). */
+  probeCard?: ReactNode;
 }) {
   const fresh = nowcast ? freshness(nowcast) : null;
   return (
@@ -491,6 +511,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
       </div>
       {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
       {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
+      {probeCard}
 
       {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="dock" {...(chance ? { chance: chance.slot } : {})} />}
 
@@ -617,7 +638,7 @@ function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { t
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null, probeCard = null }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
@@ -633,6 +654,8 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
   /** Phase SK (on, `?sk=0` off): Schneefallgrenze am Ort im Schnellblick. */
   snowCard?: ReactNode;
   minuteCard?: ReactNode;
+  /** Phase P3D: 3D point view of the tapped point in the Schnellblick. */
+  probeCard?: ReactNode;
 }) {
   const PEEK = 34, FULL = 92; // vh
   const [dragVh, setDragVh] = useState(0);
@@ -657,7 +680,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       role="region" aria-label={`Bereich ${tab}`}>
       <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
       <div className="rm-sheet-body rm-tabsheet-body">
-        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} />}
+        {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} probeCard={probeCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
@@ -687,12 +710,13 @@ function PanelState({ state }: { state: DeckState }) {
 }
 
 // --- Panel: Schnellblick ----------------------------------------------------
-function GlancePanel({ nowcast, state, place, rainWindow, chance, cellCard = null, snowCard = null, minuteCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode; minuteCard?: ReactNode }) {
+function GlancePanel({ nowcast, state, place, rainWindow, chance, cellCard = null, snowCard = null, minuteCard = null, probeCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; rainWindow: RainWindow | null; chance: ChanceCtx | null; cellCard?: ReactNode; snowCard?: ReactNode; minuteCard?: ReactNode; probeCard?: ReactNode }) {
   if (!nowcast) return <><PanelHead place={place} title="Schnellblick" /><PanelState state={state} /></>;
   return (
     <>
       <PanelHead place={place} title="Schnellblick" />
       <div className="rm-glance">
+        {probeCard}
         {rainWindow && <RainWindowCard w={rainWindow} variant="mobile" />}
         {cellCard}
         {minuteCard}
