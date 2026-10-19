@@ -1,7 +1,7 @@
 /**
- * Regenradar — Punktansicht am Zeiger (Phase P3D): the dock card. The same values as the readout at the pointer
- * (`ProbeTooltip`), in the long form with sources; every value carries its source and time, a missing value says
- * „unbekannt" (never 0). The 3D column was dropped on Jan's request (19.10.).
+ * Regenradar — Punktansicht am Zeiger (Phase P3D): the dock card — THE readout of the point under the pointer (hover)
+ * or pinned by a click. Every value carries its source and time, a missing value says „unbekannt" (never 0).
+ * The 3D column and the pill at the pointer were dropped on Jan's request (19.10.).
  */
 import type { ProbeState } from './usePointProbe';
 import {

@@ -19,9 +19,9 @@
 ## 2. Darstellung (Stand 19.10. abends)
 
 Die 3D-Säule (Canvas 2D, Teilchenphysik Marshall–Palmer/Atlas, Neigung α = atan(v_wind / v_fall)) war gebaut, hell
-abgestimmt und ist auf Jans Wunsch wieder entfernt (Commit nach `652c181`). Geblieben sind zwei Anzeigen derselben
-Werte: die Glas-Pille am Zeiger über der Karte (`ProbeTooltip.tsx`) und die Karte im Dock unter den Layern
-(`PointProbeCard.tsx`, Langform mit Herkunft je Wert; mobil im Schnellblick nach Tippen).
+abgestimmt und ist auf Jans Wunsch wieder entfernt (Commit nach `652c181`). Die Glas-Pille am Zeiger über der Karte
+(`ProbeTooltip.tsx`, Commit `652c181`) ist ebenfalls wieder entfernt („unnötig", Jan). Geblieben ist die Karte im Dock
+unter den Layern (`PointProbeCard.tsx`, Langform mit Herkunft je Wert; mobil im Schnellblick nach Tippen).
 
 ## 3. Schalter, Bedienung, Prüfung
 
