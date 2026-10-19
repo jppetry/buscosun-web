@@ -11,9 +11,9 @@
 .pp-unpin { font: inherit; font-size: 10.5px; font-weight: 600; color: var(--steel-600, #3A6FA8); background: none; border: 0; cursor: pointer; padding: 0 2px; }
 .pp-unpin:hover { color: var(--nc-blue-dark, #28507A); }
 
-.pp-stage { display: block; width: 100%; height: 168px; border-radius: 9px;
-  background: radial-gradient(120% 90% at 50% 35%, #14202A 0%, #0F1620 55%, #0B0E12 100%); }
-.pp-card.is-idle .pp-stage { opacity: .75; }
+.pp-stage { display: block; width: 100%; height: 168px; border-radius: 9px; border: 1px solid var(--sand-200, #E0D6BE);
+  background: linear-gradient(180deg, #FDFBF4 0%, var(--cream-50, #FAF6EA) 55%, var(--sand-100, #EDE6D3) 100%); }
+.pp-card.is-idle .pp-stage { opacity: .7; }
 .pp-idle { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.45; }
 
 .pp-hero { display: flex; flex-direction: column; gap: 1px; }

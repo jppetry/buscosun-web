@@ -31,13 +31,17 @@ export interface StageInput {
   cellSpeedKmh: number | null;
 }
 
-const COLOR_SNOW = '#E8EEFC';
-const COLOR_SLEET = '#C9B6E6';
-const COLOR_HAIL = '#FFF4D6';
-const COLOR_LINE = 'rgba(196,224,250,0.42)';
-const COLOR_LINE_SOFT = 'rgba(196,224,250,0.18)';
-const COLOR_WIND = '#5B9BD5';
-const COLOR_CELL = '#C97B47';
+// Command-Deck (hell, Sand/Ink): particle tones from the `--np-*` tokens and the radar legend, lines in Ink/Stone.
+const COLOR_SNOW = '#7F90DC';        // between --np-snow-2 and --np-snowline — flakes readable on cream
+const COLOR_SLEET = '#A47DC9';       // --np-mix
+const COLOR_HAIL = '#C0307A';        // --np-hail
+const COLOR_RAIN_LIGHT = 'rgb(95,165,235)'; // legend stop 0,2 mm/h — the 0,06 stop is too pale on cream
+const COLOR_LINE = 'rgba(44,42,38,0.34)';
+const COLOR_LINE_SOFT = 'rgba(44,42,38,0.14)';
+const COLOR_LINE_FADE = 'rgba(44,42,38,0)';
+const COLOR_TEXT = '#8B7355';        // stone-500
+const COLOR_WIND = '#3A6FA8';        // steel-600
+const COLOR_CELL = '#C97B47';        // terracotta-500
 
 interface Particle { x: number; y: number; z: number; ph: number; r: number }
 
@@ -130,7 +134,12 @@ class ColumnRenderer {
     // Column: ground plate (lit from the front), back edges, particles, front edges — a depth cue without a z-buffer.
     const [gx0, gy0] = P(0, 1, 0), [, gy1] = P(0, -1, 0);
     const plate = ctx.createLinearGradient(gx0, gy0, gx0, gy1);
-    plate.addColorStop(0, 'rgba(196,224,250,0.05)'); plate.addColorStop(1, 'rgba(196,224,250,0.16)');
+    plate.addColorStop(0, 'rgba(224,214,190,0.35)'); plate.addColorStop(1, 'rgba(224,214,190,0.85)');
+    // Soft shadow under the front edge — the plate sits on the card.
+    const sh = ctx.createLinearGradient(gx0, gy1, gx0, gy1 + S * 0.18);
+    sh.addColorStop(0, 'rgba(44,42,38,0.10)'); sh.addColorStop(1, 'rgba(44,42,38,0)');
+    ctx.fillStyle = sh;
+    poly(ctx, [P(-1, -1, 0), P(1, -1, 0), [P(1, -1, 0)[0], P(1, -1, 0)[1] + S * 0.18], [P(-1, -1, 0)[0], P(-1, -1, 0)[1] + S * 0.18]], true, false);
     ctx.lineWidth = 1;
     ctx.strokeStyle = COLOR_LINE; ctx.fillStyle = plate;
     poly(ctx, [P(-1, -1, 0), P(1, -1, 0), P(1, 1, 0), P(-1, 1, 0)], true);
@@ -148,15 +157,15 @@ class ColumnRenderer {
   /** A vertical edge fading out towards the open top of the column. */
   private edge(ctx: CanvasRenderingContext2D, a: [number, number], b: [number, number], color: string): void {
     const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
-    g.addColorStop(0, color); g.addColorStop(1, 'rgba(196,224,250,0)');
+    g.addColorStop(0, color); g.addColorStop(1, COLOR_LINE_FADE);
     ctx.strokeStyle = g; line(ctx, a, b);
   }
 
   private drawGround(ctx: CanvasRenderingContext2D, P: (x: number, y: number, z: number) => [number, number]): void {
     // North: a small arrow at the back edge of the plate.
-    ctx.strokeStyle = COLOR_LINE; ctx.fillStyle = 'rgba(196,224,250,0.75)';
+    ctx.strokeStyle = COLOR_TEXT; ctx.fillStyle = COLOR_TEXT;
     arrow(ctx, P(0.82, 0.55, 0), P(0.82, 0.95, 0), 4);
-    ctx.font = '600 9px "League Spartan", system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.font = '700 9px "League Spartan", system-ui, sans-serif'; ctx.textAlign = 'center';
     const n = P(0.82, 1.12, 0); ctx.fillText('N', n[0], n[1] + 2);
     const i = this.input;
     // Wind: towards, length by speed (steel).
@@ -181,7 +190,8 @@ class ColumnRenderer {
     if (!this.ps.length || !i.phase) return;
     const { vx, vy, vz } = this.velocity();
     const phase = i.phase;
-    const color = phase === 'snow' ? COLOR_SNOW : phase === 'sleet' ? COLOR_SLEET : phase === 'hail' ? COLOR_HAIL : solid(rateColor(i.rateMmH ?? 0));
+    const rate = i.rateMmH ?? 0;
+    const color = phase === 'snow' ? COLOR_SNOW : phase === 'sleet' ? COLOR_SLEET : phase === 'hail' ? COLOR_HAIL : rate < 0.2 ? COLOR_RAIN_LIGHT : solid(rateColor(rate));
     ctx.strokeStyle = color; ctx.fillStyle = color;
     ctx.lineCap = 'round';
     const heavy = (i.rateMmH ?? 0) >= 5;
@@ -190,7 +200,7 @@ class ColumnRenderer {
     for (const p of this.ps) {
       const a = P(p.x, p.y, p.z);
       // Depth cue: particles at the back of the plate a little fainter.
-      ctx.globalAlpha = 0.55 + 0.45 * ((1 - p.y) / 2);
+      ctx.globalAlpha = 0.6 + 0.4 * ((1 - p.y) / 2);
       if (phase === 'rain' || (phase === 'sleet' && (k++ & 1))) {
         const b = P(p.x - vx * STREAK_S * p.r, p.y - vy * STREAK_S * p.r, p.z - vz * STREAK_S * p.r);
         line(ctx, a, b);
@@ -208,9 +218,9 @@ class ColumnRenderer {
 
 function rnd(a: number, b: number): number { return a + Math.random() * (b - a); }
 function line(ctx: CanvasRenderingContext2D, a: [number, number], b: [number, number]): void { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
-function poly(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, fill: boolean): void {
+function poly(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, fill: boolean, stroke = true): void {
   ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath();
-  if (fill) ctx.fill(); ctx.stroke();
+  if (fill) ctx.fill(); if (stroke) ctx.stroke();
 }
 function arrow(ctx: CanvasRenderingContext2D, a: [number, number], b: [number, number], head: number): void {
   line(ctx, a, b);
