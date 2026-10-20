@@ -10,7 +10,8 @@
  *
  * Steps: CLAT/CLON/HSURF → nearest ICON cell per grid point (never averaged) → HHL half levels → per step PS + T/QV/U/V
  * on ATMO_LEVELS → pressure by hypsometric integration from PS, RH over water from QV → quantise → tiles + run.json →
- * index.json with retention (newest RETAIN runs). An incomplete run or an implausible column aborts the build — nothing
+ * index.json with retention (newest RETAIN runs). Alongside, per step HTOP_DC + HBAS_SC on the 0.02° grid → `sfc/` tiles.
+ * An incomplete run or an implausible column aborts the build — nothing
  * is written into the store before the whole run is green.
  */
 import { Worker } from 'node:worker_threads';
@@ -23,6 +24,7 @@ import {
   ATMO_SCHEMA, ATMO_DIR, ATMO_MODEL, ATMO_ATTRIBUTION, ATMO_LEVELS, ATMO_STEPS, ATMO_GRID, ATMO_RUN_EVERY_H, VARS, MISSING,
   GRID_NY, GRID_NX, TILE_CELLS, TILES_Y, TILES_X, gridLat, gridLon, tileExtent, runName, runMs, payloadLength,
   encodePayload, shuffle, packTile, checkColumnStep,
+  SFC_STEP, SFC_NY, SFC_NX, SFC_TILE_CELLS, SFC_TILES_Y, SFC_TILES_X, SFC_VARS, sfcLat, sfcLon, sfcTileExtent, sfcPayloadLength, encodeSfcPayload,
 } from '../../src/atmosphere/atmoContract.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -48,7 +50,7 @@ async function newestRun(now = Date.now()) {
   const last = ATMO_STEPS[ATMO_STEPS.length - 1];
   for (let i = 0; i < 8; i++, t -= slot) {
     const run = runName(t);
-    const probes = [urlOf('V', run, last, ATMO_LEVELS[ATMO_LEVELS.length - 1]), urlOf('QV', run, last, ATMO_LEVELS[0]), urlOf('PS', run, last)];
+    const probes = [urlOf('V', run, last, ATMO_LEVELS[ATMO_LEVELS.length - 1]), urlOf('QV', run, last, ATMO_LEVELS[0]), urlOf('PS', run, last), urlOf('HTOP_DC', run, last)];
     let ok = true;
     for (const u of probes) { const r = await fetch(u, { method: 'HEAD', headers: { 'user-agent': UA } }); if (r.status !== 200) { ok = false; break; } }
     if (ok) return run;
@@ -93,20 +95,23 @@ for (let i = 0; i < NCELL; i++) {
   const k = `${Math.floor(la / BIN)},${Math.floor(lo / BIN)}`;
   let a = bins.get(k); if (!a) bins.set(k, (a = [])); a.push(i);
 }
-const NCOL = GRID_NY * GRID_NX;
-const idx = new Int32Array(NCOL);
-for (let iy = 0; iy < GRID_NY; iy++) for (let ix = 0; ix < GRID_NX; ix++) {
-  const la = gridLat(iy), lo = gridLon(ix), cl = Math.cos((la * Math.PI) / 180);
-  const by = Math.floor(la / BIN), bx = Math.floor(lo / BIN);
+function nearestCell(la, lo) {
+  const cl = Math.cos((la * Math.PI) / 180), by = Math.floor(la / BIN), bx = Math.floor(lo / BIN);
   let best = Infinity, bi = -1;
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const i of bins.get(`${by + dy},${bx + dx}`) ?? []) {
     const ey = clat[i] * deg - la, ex = (clon[i] * deg - lo) * cl, d = ey * ey + ex * ex;
     if (d < best) { best = d; bi = i; }
   }
   if (bi < 0) throw new Error(`keine ICON-Zelle bei ${la},${lo}`);
-  idx[iy * GRID_NX + ix] = bi;
+  return bi;
 }
-log(`Raster ${GRID_NY}×${GRID_NX} = ${NCOL} Säulen, ${NCELL} ICON-Zellen`);
+const NCOL = GRID_NY * GRID_NX;
+const idx = new Int32Array(NCOL);
+for (let iy = 0; iy < GRID_NY; iy++) for (let ix = 0; ix < GRID_NX; ix++) idx[iy * GRID_NX + ix] = nearestCell(gridLat(iy), gridLon(ix));
+const NSFC = SFC_NY * SFC_NX;
+const sfcIdx = new Int32Array(NSFC);
+for (let iy = 0; iy < SFC_NY; iy++) for (let ix = 0; ix < SFC_NX; ix++) sfcIdx[iy * SFC_NX + ix] = nearestCell(sfcLat(iy), sfcLon(ix));
+log(`Raster ${GRID_NY}×${GRID_NX} = ${NCOL} Säulen, Bodenfelder ${SFC_NY}×${SFC_NX} = ${NSFC} Zellen, ${NCELL} ICON-Zellen`);
 
 // ── 2. worker pool ───────────────────────────────────────────────────────────
 const JOBS = Math.max(1, +(args.jobs ?? Math.min(cpus().length, 8)));
@@ -115,7 +120,7 @@ const pending = new Map();
 let nextId = 0;
 const stats = { files: 0, bytes: 0, decodeMs: 0 };
 for (let w = 0; w < JOBS; w++) {
-  const wk = new Worker(join(HERE, 'atmoWorker.mjs'), { workerData: { idx: Array.from(idx), cache, ua: UA } });
+  const wk = new Worker(join(HERE, 'atmoWorker.mjs'), { workerData: { idx: Array.from(idx), sfcIdx: Array.from(sfcIdx), cache, ua: UA } });
   wk.inflight = 0;
   wk.on('message', (m) => {
     const p = pending.get(m.id); pending.delete(m.id); wk.inflight--;
@@ -135,11 +140,11 @@ function pump() {
   for (const wk of workers) {
     while (wk.inflight < 2 && queue.length) {
       const job = queue.shift(); const id = nextId++;
-      pending.set(id, job); wk.inflight++; wk.postMessage({ id, url: job.url });
+      pending.set(id, job); wk.inflight++; wk.postMessage({ id, url: job.url, set: job.set });
     }
   }
 }
-const get = (url) => new Promise((res, rej) => { queue.push({ url, resolve: res, reject: rej }); pump(); });
+const get = (url, set = 'col') => new Promise((res, rej) => { queue.push({ url, set, resolve: res, reject: rej }); pump(); });
 
 // ── 3. heights ───────────────────────────────────────────────────────────────
 // --maxStep: shorter run for the spike only; the published product always carries ATMO_STEPS.
@@ -157,6 +162,9 @@ log(`Höhen: ${halfNeeded.length} HHL-Flächen`);
 // ── 4. steps ─────────────────────────────────────────────────────────────────
 // q[var][(c * NLEV + k) * NSTEP + s]
 const Q = Object.fromEntries(VARS.map((v) => [v.id, new Int16Array(NCOL * NLEV * NSTEP)]));
+// QS[var][cell * NSTEP + s] — surface fields on the 0.02° grid
+const QS = Object.fromEntries(SFC_VARS.map((v) => [v.id, new Int16Array(NSFC * NSTEP)]));
+let badSfc = 0;
 const Rd = 287.05, g = 9.80665;
 let badCols = 0; const badSamples = [];
 for (let s = 0; s < NSTEP; s++) {
@@ -164,8 +172,18 @@ for (let s = 0; s < NSTEP; s++) {
   const ps = get(urlOf('PS', run, h));
   const fields = {};
   for (const p of ['T', 'QV', 'U', 'V']) fields[p] = ATMO_LEVELS.map((l) => get(urlOf(p, run, h, l)));
+  const sfcFields = SFC_VARS.map((v) => get(urlOf(v.param, run, h), 'sfc'));
   const PS = await ps;
   const F = {}; for (const p of Object.keys(fields)) F[p] = await Promise.all(fields[p]);
+  (await Promise.all(sfcFields)).forEach((vals, vi) => {
+    const v = SFC_VARS[vi], q = QS[v.id];
+    for (let c = 0; c < NSFC; c++) {
+      const x = vals[c];
+      if (!Number.isFinite(x)) { q[c * NSTEP + s] = MISSING; continue; }
+      if (x < v.min || x > v.max) badSfc++;
+      q[c * NSTEP + s] = Math.round(x * v.scale);
+    }
+  });
   const pcol = new Float64Array(NLEV), tcol = new Float64Array(NLEV), rcol = new Float64Array(NLEV);
   for (let c = 0; c < NCOL; c++) {
     let pPrev = PS[c] / 100, zPrev = hsurf[c], tvPrev = null;
@@ -192,6 +210,7 @@ for (let s = 0; s < NSTEP; s++) {
 }
 for (const wk of workers) wk.terminate();
 if (badCols) { console.error('unplausible Säulen:', badCols, JSON.stringify(badSamples)); process.exit(1); }
+if (badSfc) { console.error('unplausible Bodenfeldwerte:', badSfc); process.exit(1); }
 
 // ── 5. tiles ─────────────────────────────────────────────────────────────────
 const outRoot = storeDir ?? resolve(String(args.out ?? 'atmo-out'));
@@ -236,11 +255,29 @@ for (let ty = 0; ty < TILES_Y; ty++) for (let tx = 0; tx < TILES_X; tx++) {
   writeFileSync(join(buildDir, 't', `${pad(ty, 2)}_${pad(tx, 2)}.bin`), bytes);
   tiles++; tileBytes += bytes.length; maxTile = Math.max(maxTile, bytes.length);
 }
+mkdirSync(join(buildDir, 'sfc'), { recursive: true });
+let sfcTiles = 0, sfcBytes = 0, maxSfc = 0;
+for (let ty = 0; ty < SFC_TILES_Y; ty++) for (let tx = 0; tx < SFC_TILES_X; tx++) {
+  const e = sfcTileExtent(ty, tx), nCells = e.ny * e.nx;
+  const pl = new Int16Array(sfcPayloadLength(nCells, NSTEP));
+  const cells = [];
+  for (let yy = 0; yy < e.ny; yy++) for (let xx = 0; xx < e.nx; xx++) cells.push((e.y0 + yy) * SFC_NX + e.x0 + xx);
+  cells.forEach((c, j) => { pl[j] = Math.round(hsurfAll[sfcIdx[c]]); });
+  SFC_VARS.forEach((v, vi) => cells.forEach((c, j) => pl.set(QS[v.id].subarray(c * NSTEP, (c + 1) * NSTEP), nCells + (vi * nCells + j) * NSTEP)));
+  encodeSfcPayload(pl, nCells, NSTEP);
+  const header = {
+    schema: ATMO_SCHEMA, kind: 'sfc', run, model: ATMO_MODEL, tile: [ty, tx], y0: e.y0, x0: e.x0, ny: e.ny, nx: e.nx,
+    gridStep: SFC_STEP, steps: [...STEPS], vars: SFC_VARS.map(({ id, unit, scale }) => ({ id, unit, scale })),
+  };
+  const bytes = packTile(header, deflateRawSync(shuffle(pl), { level: 9 }));
+  writeFileSync(join(buildDir, 'sfc', `${pad(ty, 2)}_${pad(tx, 2)}.bin`), bytes);
+  sfcTiles++; sfcBytes += bytes.length; maxSfc = Math.max(maxSfc, bytes.length);
+}
 const builtAt = new Date().toISOString();
-const runEntry = { run, runAt: new Date(runMs(run)).toISOString(), tiles, bytes: tileBytes, builtAt };
+const runEntry = { run, runAt: new Date(runMs(run)).toISOString(), tiles, bytes: tileBytes, builtAt, sfcTiles, sfcBytes };
 writeFileSync(join(buildDir, 'run.json'), JSON.stringify({
   schema: ATMO_SCHEMA, ...runEntry, model: ATMO_MODEL, attribution: ATMO_ATTRIBUTION, sourceFiles: stats.files, sourceBytes: stats.bytes,
-  buildSeconds: Math.round((Date.now() - T0) / 1000), maxTileBytes: maxTile,
+  buildSeconds: Math.round((Date.now() - T0) / 1000), maxTileBytes: maxTile, maxSfcTileBytes: maxSfc,
 }, null, 1));
 const finalDir = join(outRoot, run);
 rmSync(finalDir, { recursive: true, force: true });
@@ -255,11 +292,13 @@ for (const d of readdirSync(outRoot)) {
 const index = {
   schema: ATMO_SCHEMA, model: ATMO_MODEL, attribution: ATMO_ATTRIBUTION, updatedAt: builtAt,
   grid: { ...ATMO_GRID, ny: GRID_NY, nx: GRID_NX, tileCells: TILE_CELLS, tilesY: TILES_Y, tilesX: TILES_X },
-  levels: [...ATMO_LEVELS], steps: [...ATMO_STEPS], vars: VARS.map(({ id, unit, scale }) => ({ id, unit, scale })), runs,
+  levels: [...ATMO_LEVELS], steps: [...ATMO_STEPS], vars: VARS.map(({ id, unit, scale }) => ({ id, unit, scale })),
+  sfc: { step: SFC_STEP, ny: SFC_NY, nx: SFC_NX, tileCells: SFC_TILE_CELLS, tilesY: SFC_TILES_Y, tilesX: SFC_TILES_X, vars: SFC_VARS.map(({ id, unit, scale }) => ({ id, unit, scale })) },
+  runs,
 };
 writeFileSync(join(outRoot, 'index.json'), JSON.stringify(index, null, 1));
 const summary = {
-  run, tiles, bytes: tileBytes, maxTileBytes: maxTile, sourceFiles: stats.files, sourceGB: +(stats.bytes / 1e9).toFixed(2),
+  run, tiles, bytes: tileBytes, maxTileBytes: maxTile, sfcTiles, sfcBytes, maxSfcTileBytes: maxSfc, sourceFiles: stats.files, sourceGB: +(stats.bytes / 1e9).toFixed(2),
   decodeMsPerField: Math.round(stats.decodeMs / stats.files), seconds: Math.round((Date.now() - T0) / 1000), dir: `${ATMO_DIR}/${run}`,
 };
 if (measure) summary.measure = measure;

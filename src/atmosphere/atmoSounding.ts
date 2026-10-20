@@ -48,7 +48,7 @@ export async function loadAtmoIndex(signal?: AbortSignal): Promise<AtmoIndex> {
 }
 
 /** One tile: jsDelivr first, raw.githubusercontent after 2.5 s or when the CDN does not answer ok. */
-async function fetchTileBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
+export async function fetchTileBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
   const acC = new AbortController(), acR = new AbortController();
   const onAbort = () => { acC.abort(); acR.abort(); };
   signal?.addEventListener('abort', onAbort, { once: true });

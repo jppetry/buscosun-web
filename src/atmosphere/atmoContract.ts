@@ -16,6 +16,12 @@
  *   per column: hsurf, z[level]                                           (static for the run, metres above MSL)
  *   per var (VARS order), per column, per level: series over STEPS, coded by `encodePayload` (wrapping int16)
  * and finally the whole payload byte-shuffled (all low bytes, then all high bytes) before deflate.
+ *
+ * Surface fields `atmo/v1/<run>/sfc/<ty>_<tx>.bin` (same container, header `kind: 'sfc'`): the DWD thermal fields on a
+ * finer 0.02° grid (≈ ICON-D2 spacing; nearest cell, never averaged), same 0.5° tile blocks as the cube:
+ *   HTOP_DC — top of dry convection (m above MSL; ≤ HSURF = no dry convection),
+ *   HBAS_SC — base of shallow convection cloud = cumulus base (m above MSL; 0 = no cumulus).
+ * Payload: per cell hsurf, then per var, per cell the series over STEPS (time delta, zigzag), shuffled, deflate-raw.
  */
 
 import { DACH_VIEW } from '../countryProfiles';
@@ -173,7 +179,7 @@ export function unshuffle(b: Uint8Array): Int16Array {
 }
 
 /** Container around an already deflate-raw-compressed payload. */
-export function packTile(header: AtmoTileHeader, deflated: Uint8Array): Uint8Array {
+export function packTile(header: AtmoTileHeader | AtmoSfcHeader, deflated: Uint8Array): Uint8Array {
   const h = new TextEncoder().encode(JSON.stringify(header));
   const out = new Uint8Array(12 + h.length + deflated.length);
   const dv = new DataView(out.buffer);
@@ -181,13 +187,13 @@ export function packTile(header: AtmoTileHeader, deflated: Uint8Array): Uint8Arr
   out.set(h, 12); out.set(deflated, 12 + h.length);
   return out;
 }
-export function unpackTile(bytes: Uint8Array): { header: AtmoTileHeader; deflated: Uint8Array } {
+export function unpackTile<H = AtmoTileHeader>(bytes: Uint8Array): { header: H; deflated: Uint8Array } {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (dv.getUint32(0, true) !== ATMO_MAGIC) throw new Error('atmo: kein BSAT-Container');
   const schema = dv.getUint16(4, true);
   if (schema !== ATMO_SCHEMA) throw new Error(`atmo: Schema ${schema}, Leser kennt ${ATMO_SCHEMA}`);
   const hl = dv.getUint32(8, true);
-  const header = JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + hl))) as AtmoTileHeader;
+  const header = JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + hl))) as H;
   return { header, deflated: bytes.subarray(12 + hl) };
 }
 
@@ -254,6 +260,88 @@ export interface AtmoIndex {
   levels: number[];
   steps: number[];
   vars: Array<{ id: string; unit: string; scale: number }>;
-  /** Newest first. */
-  runs: Array<{ run: string; runAt: string; tiles: number; bytes: number; builtAt: string }>;
+  /** Surface-field grid (thermal); absent in indexes written before it existed. */
+  sfc?: { step: number; ny: number; nx: number; tileCells: number; tilesY: number; tilesX: number; vars: Array<{ id: string; unit: string; scale: number }> };
+  /** Newest first. `sfcTiles` > 0 ⇔ the run carries the surface fields. */
+  runs: Array<{ run: string; runAt: string; tiles: number; bytes: number; builtAt: string; sfcTiles?: number; sfcBytes?: number }>;
+}
+
+// ── Surface fields (DWD thermal fields) ──────────────────────────────────────────────────────────────────────────────
+export const SFC_STEP = 0.02;
+export const SFC_NY = Math.round((ATMO_GRID.latMax - ATMO_GRID.latMin) / SFC_STEP) + 1;
+export const SFC_NX = Math.round((ATMO_GRID.lonMax - ATMO_GRID.lonMin) / SFC_STEP) + 1;
+/** 25 × 0.02° = 0.5°: the same tile blocks as the cube. */
+export const SFC_TILE_CELLS = 25;
+export const SFC_TILES_Y = Math.ceil(SFC_NY / SFC_TILE_CELLS);
+export const SFC_TILES_X = Math.ceil(SFC_NX / SFC_TILE_CELLS);
+
+export interface SfcVar { id: 'htop_dc' | 'hbas_sc'; param: string; unit: string; scale: number; min: number; max: number }
+export const SFC_VARS: readonly SfcVar[] = Object.freeze([
+  { id: 'htop_dc', param: 'HTOP_DC', unit: 'm', scale: 1, min: -1000, max: 15000 },
+  { id: 'hbas_sc', param: 'HBAS_SC', unit: 'm', scale: 1, min: 0, max: 15000 },
+]);
+
+export const sfcLat = (iy: number) => +(ATMO_GRID.latMin + iy * SFC_STEP).toFixed(4);
+export const sfcLon = (ix: number) => +(ATMO_GRID.lonMin + ix * SFC_STEP).toFixed(4);
+export function sfcTileExtent(ty: number, tx: number): { y0: number; x0: number; ny: number; nx: number } {
+  const y0 = ty * SFC_TILE_CELLS, x0 = tx * SFC_TILE_CELLS;
+  return { y0, x0, ny: Math.min(SFC_TILE_CELLS, SFC_NY - y0), nx: Math.min(SFC_TILE_CELLS, SFC_NX - x0) };
+}
+export const sfcTilePath = (run: string, ty: number, tx: number) => `${ATMO_DIR}/${run}/sfc/${pad2(ty)}_${pad2(tx)}.bin`;
+
+export interface AtmoSfcHeader {
+  schema: number;
+  kind: 'sfc';
+  run: string;
+  model: string;
+  tile: [number, number];
+  y0: number; x0: number; ny: number; nx: number;
+  gridStep: number;
+  steps: number[];
+  vars: Array<{ id: string; unit: string; scale: number }>;
+}
+
+export interface AtmoSfcTile {
+  header: AtmoSfcHeader;
+  /** Model orography per cell (m above MSL), cell order iy-major. */
+  hsurf: Float32Array;
+  /** `values[var][cell * nSteps + step]`, metres above MSL, NaN = missing. */
+  values: Record<SfcVar['id'], Float32Array>;
+}
+
+export const sfcPayloadLength = (nCells: number, nSteps = ATMO_STEPS.length) => nCells + SFC_VARS.length * nCells * nSteps;
+
+export function encodeSfcPayload(p: Int16Array, nCells: number, nSteps: number): void {
+  for (let s = 0, ns = SFC_VARS.length * nCells; s < ns; s++) {
+    const o = nCells + s * nSteps;
+    for (let t = nSteps - 1; t > 0; t--) p[o + t] = wrap16(p[o + t] - p[o + t - 1]);
+  }
+  for (let i = nCells; i < p.length; i++) p[i] = ((p[i] << 1) ^ (p[i] >> 15)) << 16 >> 16;
+}
+export function decodeSfcPayload(p: Int16Array, nCells: number, nSteps: number): void {
+  for (let i = nCells; i < p.length; i++) { const u = p[i] & 0xffff; p[i] = (u >>> 1) ^ -(u & 1); }
+  for (let s = 0, ns = SFC_VARS.length * nCells; s < ns; s++) {
+    const o = nCells + s * nSteps;
+    for (let t = 1; t < nSteps; t++) p[o + t] = wrap16(p[o + t] + p[o + t - 1]);
+  }
+}
+
+export async function decodeAtmoSfcTile(bytes: Uint8Array): Promise<AtmoSfcTile> {
+  const { header, deflated } = unpackTile<AtmoSfcHeader>(bytes);
+  if (header.kind !== 'sfc') throw new Error('atmo: keine Bodenfeld-Kachel');
+  const stream = new Blob([deflated as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const p = unshuffle(new Uint8Array(await new Response(stream).arrayBuffer()));
+  const nCells = header.ny * header.nx, nSteps = header.steps.length;
+  if (p.length !== sfcPayloadLength(nCells, nSteps)) throw new Error(`atmo: Bodenfeld-Nutzlast ${p.length} ≠ ${sfcPayloadLength(nCells, nSteps)}`);
+  decodeSfcPayload(p, nCells, nSteps);
+  const f = (q: number, scale: number) => (q === MISSING ? NaN : q / scale);
+  const hsurf = new Float32Array(nCells);
+  for (let c = 0; c < nCells; c++) hsurf[c] = f(p[c], 1);
+  const values = {} as AtmoSfcTile['values'];
+  SFC_VARS.forEach((v, vi) => {
+    const a = new Float32Array(nCells * nSteps), o = nCells + vi * nCells * nSteps;
+    for (let i = 0; i < a.length; i++) a[i] = f(p[o + i], v.scale);
+    values[v.id] = a;
+  });
+  return { header, hsurf, values };
 }

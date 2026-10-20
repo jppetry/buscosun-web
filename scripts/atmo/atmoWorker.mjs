@@ -7,8 +7,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from '
 import { dirname, join } from 'node:path';
 import { decodeGrib2 } from '../../src/sources/gribDecode.ts';
 
-const { idx, cache, ua } = workerData;
-const cells = new Int32Array(idx);
+const { idx, sfcIdx, cache, ua } = workerData;
+// `set: 'sfc'` = the cells of the 0.02° surface-field grid, else the cube columns.
+const sets = { col: new Int32Array(idx), sfc: new Int32Array(sfcIdx) };
 
 async function getBytes(url) {
   const cf = cache ? join(cache, url.replace(/^https?:\/\//, '').replace(/[%:?]/g, '_')) : null;
@@ -30,13 +31,14 @@ async function getBytes(url) {
   throw last;
 }
 
-parentPort.on('message', async ({ id, url }) => {
+parentPort.on('message', async ({ id, url, set = 'col' }) => {
   try {
     const b = await getBytes(url);
     if (!b) { parentPort.postMessage({ id, missing: true, bytes: 0 }); return; }
     const t0 = performance.now();
     const f = decodeGrib2(b);
     const ms = performance.now() - t0;
+    const cells = sets[set];
     const out = new Float32Array(cells.length);
     for (let i = 0; i < cells.length; i++) out[i] = f.values[cells[i]];
     parentPort.postMessage({ id, values: out, bytes: b.length, ms, n: f.values.length }, [out.buffer]);

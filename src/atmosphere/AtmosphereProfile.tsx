@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
 import { fetchProfileAtPoint } from './atmoSounding';
+import { fetchThermalAtPoint } from './atmoThermal';
 import { computeSounding } from '../threed/soundingMath';
 import { loadElevationLookup } from '../fusion/elevation';
 import { deriveProfile, type DerivedProfile } from './profile-derivations';
@@ -53,10 +54,14 @@ export default function AtmosphereProfile() {
           } catch { /* DEM optional → 0 (Meeresniveau-Anker) */ }
           if (ac.signal.aborted) return;
 
-          const profile = await fetchProfileAtPoint(lat, lon, surfaceM, hour, ac.signal);
+          const validMs = Math.floor(Date.now() / 3_600_000) * 3_600_000 + hour * 3_600_000;
+          const [profile, thermal] = await Promise.all([
+            fetchProfileAtPoint(lat, lon, surfaceM, hour, ac.signal),
+            fetchThermalAtPoint(lat, lon, validMs, ac.signal),
+          ]);
           if (ac.signal.aborted) return;
           const derived = computeSounding(profile);
-          const data = deriveProfile(profile, derived);
+          const data = deriveProfile(profile, derived, thermal);
           setReady({ data, runAt: profile.runAt, validAt: profile.validAt, source: profile.source?.detail });
           setModelRunAt(profile.runAt);
           setProfile(data);

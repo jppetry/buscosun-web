@@ -10,6 +10,9 @@
  *
  * Ehrlich: SCHÄTZUNG (ein Profil über die Fläche gehalten, feste Überhitzung,
  * ICON-EU ~7 km) — kein gemessener Steigwert, keine Hangwind-/Einstrahlungsphysik.
+ *
+ * Seit dem DWD-Thermikfeld (`atmoThermal`, HTOP_DC) ist diese Schätzung nur noch der
+ * Rückfall; `buildDepthImage` färbt die Thermiktiefe aus dem Feld mit derselben Rampe.
  */
 
 const DRY_LAPSE_PER_M = 9.8 / 1000;      // K/m
@@ -66,6 +69,33 @@ export function strengthColor(strength: number): [number, number, number, number
   else { const u = (t - 0.5) / 0.5; r = lerp(212, 201, u); g = lerp(163, 123, u); b = lerp(115, 71, u); }
   const a = Math.round(70 + t * 120); // 0,27 .. 0,74
   return [Math.round(r), Math.round(g), Math.round(b), a];
+}
+
+/** Thermiktiefe über Grund (m) → Farbe: dieselbe Rampe, unter 250 m transparent, voll ab 2 500 m. */
+export function depthColor(depthM: number): [number, number, number, number] {
+  return strengthColor(Math.max(0, Math.min(5, (depthM / STRENGTH_FULL_DEPTH_M) * 5)));
+}
+
+/**
+ * RGBA des Overlays aus einem Feld (Thermiktiefe über Grund je Ort, null = keine Angabe → transparent).
+ * Zeile 0 = latMax (oben) für die MapLibre-ImageSource; Pixelmitten.
+ */
+export function buildDepthImage(
+  depthAt: (lat: number, lon: number) => number | null,
+  box: { latMin: number; latMax: number; lngMin: number; lngMax: number }, cols: number, rows: number,
+): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(cols * rows * 4);
+  for (let r = 0; r < rows; r++) {
+    const lat = box.latMax - ((r + 0.5) / rows) * (box.latMax - box.latMin);
+    for (let i = 0; i < cols; i++) {
+      const d = depthAt(lat, box.lngMin + ((i + 0.5) / cols) * (box.lngMax - box.lngMin));
+      if (d == null) continue;
+      const [cr, cg, cb, ca] = depthColor(d);
+      const o = (r * cols + i) * 4;
+      out[o] = cr; out[o + 1] = cg; out[o + 2] = cb; out[o + 3] = ca;
+    }
+  }
+  return out;
 }
 
 /**

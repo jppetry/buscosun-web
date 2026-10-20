@@ -150,11 +150,18 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
           <g>
             <rect x={BAR_X} y={yOf(data.boundaryLayerTopM)} width={BAR_W} height={yOf(data.surfaceM) - yOf(data.boundaryLayerTopM)}
               fill={thermalColor(data.thermalStrengthMs)} opacity={0.9} rx={2}>
-              <title>Thermik bis {data.boundaryLayerTopM} m · ~{data.thermalStrengthMs} m/s (Schätzung)</title>
+              <title>Thermik bis {data.boundaryLayerTopM} m · {data.thermalSource?.note ?? 'Schätzung aus dem Profil'}</title>
             </rect>
             <text x={BAR_X + BAR_W + 3} y={yOf(data.boundaryLayerTopM) + 9} className="atm-prof-tag">
-              Thermik {data.boundaryLayerTopM} m
+              Thermik {data.boundaryLayerTopM} m {data.thermalSource?.kind === 'dwd' ? '(Modellhöhe)' : '(Schätzung)'}
             </text>
+          </g>
+        )}
+        {/* Cu-Basis (DWD HBAS_SC, Modellhöhe) */}
+        {data.cuBaseM != null && data.cuBaseM <= capM && (
+          <g>
+            <line x1={PLOT_X0} y1={yOf(data.cuBaseM)} x2={PLOT_X1} y2={yOf(data.cuBaseM)} stroke="var(--steel-600, #3A6FA8)" strokeWidth={1.2} strokeDasharray="6 3" />
+            <text x={PLOT_X1 - 2} y={yOf(data.cuBaseM) - 3} className="atm-prof-tag" textAnchor="end">Cu-Basis {data.cuBaseM} m (Modellhöhe)</text>
           </g>
         )}
 
@@ -230,7 +237,7 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
       </div>
       <p className="atm-prof-source">
         {source ?? 'ICON-EU (~7 km, Druckflächen)'} · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
-        <strong> Richtwert</strong>; Thermik-Stärke geschätzt, dünne Strukturen ggf. unteraufgelöst.
+        <strong> Richtwert</strong>; Thermik: {data.thermalSource?.note ?? 'Schätzung aus dem Profil'}, kein Steigwert.
       </p>
     </div>
   );

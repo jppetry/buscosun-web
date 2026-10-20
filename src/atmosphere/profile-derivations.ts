@@ -16,6 +16,7 @@
 import type { SoundingLevel, SoundingProfile } from '../sources/iconEuSounding';
 import { computeSounding, type SoundingDerived } from '../threed/soundingMath';
 import { SHEAR_THRESHOLD_KMH_PER_300M } from '../threed/crossSection';
+import type { ThermalAt } from './atmoThermal';
 
 const DRY_LAPSE_PER_M = 9.8 / 1000; // trockenadiabatisch, K/m
 /** Taupunktspreizung (°C), unter der ein Niveau als wolkig gilt (RH-Proxy). */
@@ -41,11 +42,15 @@ export interface DerivedProfile {
   levels: RenderLevel[];
   /** Hebungs-Parcel-Kurve in Höhenkoordinaten (für die Skew-T-/Profil-Darstellung). */
   parcel: Array<{ heightM: number; tempC: number }>;
-  /** Konvektive Grenzschicht-/Thermik-Obergrenze (m ü. NN). */
+  /** Konvektive Grenzschicht-/Thermik-Obergrenze (m ü. NN) — mit DWD-Feld: HTOP_DC (Modellhöhe). */
   boundaryLayerTopM: number;
-  /** Thermik-Stärke-Schätzung 0..~5 m/s aus der Grenzschichttiefe. */
+  /** Interne Rangzahl 0..5 aus der Thermiktiefe (nur für das Urteil; wird NICHT als Steigwert angezeigt). */
   thermalStrengthMs: number;
   cloudBaseM: number | null;
+  /** Cu-Basis (m ü. NN) aus DWD HBAS_SC; null = keine Cumulus; fehlt = kein DWD-Feld. */
+  cuBaseM?: number | null;
+  /** Woher die Thermikhöhe kommt (für die Beschriftung). */
+  thermalSource?: { kind: 'dwd' | 'estimate'; note: string };
   cloudLayers: CloudLayer[];
   inversions: Inversion[];
   /** Zonen starker Windscherung (≥ Schwelle km/h je 300 m). */
@@ -144,7 +149,10 @@ function pressureToHeight(ls: SoundingLevel[], p: number): number {
 }
 
 /** Leitet aus einem SoundingProfile die anzeige-relevanten Profilmerkmale ab. */
-export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerived): DerivedProfile {
+/** DWD-Thermikfeld am Ort (`atmoThermal`); `thermal: null` ⇒ Schätzung aus dem Profil, `reason` sagt warum. */
+export interface ThermalInput { thermal: ThermalAt | null; runAtMs: number | null; reason: string | null }
+
+export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerived, field?: ThermalInput): DerivedProfile {
   const d = derived ?? computeSounding(profile);
   const ls = profile.levels;
   const surfaceM = profile.surfaceM;
@@ -155,11 +163,22 @@ export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerive
     windKmh: windKmh(l.windU, l.windV), windDirDeg: windDir(l.windU, l.windV),
   }));
 
-  const boundaryLayerTopM = dryParcelTopM(ls, surfaceM);
-  const blDepth = Math.max(0, boundaryLayerTopM - surfaceM);
-  const sfcDepression = ls[0].tempC - ls[0].dewC;
-  // Gesättigter Boden (Nebel/Regen) → keine Thermik; sonst tiefen-skaliert.
-  const thermalStrengthMs = sfcDepression < 1 ? 0 : Math.max(0, Math.min(5, (blDepth / 2500) * 5));
+  const dwd = field?.thermal ?? null;
+  let boundaryLayerTopM: number, thermalStrengthMs: number;
+  if (dwd) {
+    // DWD HTOP_DC als Modellhöhe; ≤ Modellgelände = keine Trockenkonvektion.
+    boundaryLayerTopM = dwd.depthM > 0 ? dwd.topM : surfaceM;
+    thermalStrengthMs = Math.max(0, Math.min(5, (dwd.depthM / 2500) * 5));
+  } else {
+    boundaryLayerTopM = dryParcelTopM(ls, surfaceM);
+    const blDepth = Math.max(0, boundaryLayerTopM - surfaceM);
+    const sfcDepression = ls[0].tempC - ls[0].dewC;
+    // Gesättigter Boden (Nebel/Regen) → keine Thermik; sonst tiefen-skaliert.
+    thermalStrengthMs = sfcDepression < 1 ? 0 : Math.max(0, Math.min(5, (blDepth / 2500) * 5));
+  }
+  const thermalSource: DerivedProfile['thermalSource'] = dwd
+    ? { kind: 'dwd', note: 'Modellhöhe DWD ICON-D2 (Obergrenze Trockenkonvektion, Cu-Basis)' }
+    : { kind: 'estimate', note: `Schätzung aus dem Profil${field?.reason ? ` — DWD-Feld nicht verfügbar: ${field.reason}` : ''}` };
 
   const inversions = findInversions(ls);
   const cloudLayers = findCloudLayers(ls);
@@ -176,6 +195,8 @@ export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerive
     cloudBaseM: cloudBaseM == null ? null : Math.round(cloudBaseM),
     cloudLayers, inversions, shearZones: findShearZones(levels),
     freezingLevelM: d.freezingM, lclM: d.lclM, capeJkg: d.capeJkg, cinJkg: d.cinJkg,
+    ...(dwd ? { cuBaseM: dwd.cuBaseM == null ? null : Math.round(dwd.cuBaseM) } : {}),
+    thermalSource,
   };
 }
 

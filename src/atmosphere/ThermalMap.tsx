@@ -2,10 +2,11 @@
  * Atmosphäre · Thermik-Gelände-Karte (Fliegen-Linse, P4).
  *
  * Erweitert das bestehende MapLibre-Terrain (Terrarium raster-dem + setTerrain,
- * wie threed/TerrainMap) um ein Thermik-Stärke-Overlay als Raster-ImageSource.
- * Das Feld wird aus EINEM ICON-EU-Umgebungsprofil (am Marker) + dem Flächen-DEM
- * gerechnet (thermalField, rein/getestet). Tippen auf das Gelände verschiebt den
- * Profil-Marker → Profil + Verdict (Store) rechnen neu.
+ * wie threed/TerrainMap) um ein Thermik-Overlay als Raster-ImageSource: die
+ * Thermiktiefe über Grund aus dem DWD-Feld HTOP_DC (ICON-D2, 0,02°, Modellhöhe,
+ * `atmoThermal`). Fehlt das Feld, rechnet der Rückfall aus EINEM Umgebungsprofil
+ * (am Marker) + Flächen-DEM + 3 K Überhitzung (thermalField) — beschriftet.
+ * Tippen auf das Gelände verschiebt den Profil-Marker → Profil + Verdict (Store) rechnen neu.
  *
  * Nur auf der Fliegen-Linse gemountet; sauberes Unmount (map.remove) beim
  * Linsenwechsel. Mittelklasse-tauglich: grobes Feld-Gitter, CPU-Bild, ein Draw.
@@ -16,7 +17,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useAtmosphere } from './atmosphereStore';
 import { loadElevationLookup } from '../fusion/elevation';
-import { buildThermalImage, type EnvLevel } from './thermalField';
+import { buildDepthImage, buildThermalImage, type EnvLevel } from './thermalField';
+import { loadThermalField } from './atmoThermal';
 
 const DEM_SRC = 'atm-dem';
 const OV_SRC = 'atm-thermal';
@@ -36,7 +38,10 @@ function rgbaToDataUrl(rgba: Uint8ClampedArray, w: number, h: number): string {
 }
 
 export default function ThermalMap() {
-  const { marker, profile, setMarker } = useAtmosphere();
+  const { marker, profile, hour, setMarker } = useAtmosphere();
+  /** null = DWD-Feld; sonst der Grund des Rückfalls (Beschriftung). */
+  const [fallback, setFallback] = useState<string | null>(null);
+  const overlaySeq = useRef(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerObjRef = useRef<maplibregl.Marker | null>(null);
@@ -98,11 +103,11 @@ export default function ThermalMap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markerKey]);
 
-  // Profil-Wechsel (neue Stunde) → Overlay aus vorhandenem DEM neu rechnen.
+  // Profil-/Stunden-Wechsel → Overlay aus vorhandenem DEM neu rechnen.
   useEffect(() => {
-    if (readyRef.current && demRef.current) updateOverlay();
+    if (readyRef.current && demRef.current) void updateOverlay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
+  }, [profile, hour]);
 
   async function reloadDem() {
     const bounds = { lngMin: lon - LON_HALF, lngMax: lon + LON_HALF, latMin: lat - LAT_HALF, latMax: lat + LAT_HALF };
@@ -110,15 +115,28 @@ export default function ThermalMap() {
       const elev = await loadElevationLookup(bounds, 9);
       const grid = elev.buildGrid(bounds, GRID_COLS, GRID_ROWS);
       demRef.current = { grid, ...bounds };
-      updateOverlay();
+      void updateOverlay();
     } catch { /* DEM optional → kein Overlay */ }
   }
 
-  function updateOverlay() {
+  async function updateOverlay() {
     const map = mapRef.current, dem = demRef.current;
-    if (!map || !readyRef.current || !dem || !profile || profile.levels.length < 2) return;
-    const levels: EnvLevel[] = profile.levels.map((l) => ({ heightM: l.heightM, tempC: l.tempC }));
-    const rgba = buildThermalImage(levels, dem.grid, GRID_COLS, GRID_ROWS);
+    if (!map || !readyRef.current || !dem) return;
+    const seq = ++overlaySeq.current;
+    const validMs = Math.floor(Date.now() / 3_600_000) * 3_600_000 + hour * 3_600_000;
+    const { field, reason } = await loadThermalField({ latMin: dem.latMin, latMax: dem.latMax, lonMin: dem.lngMin, lonMax: dem.lngMax }, validMs)
+      .catch(() => ({ field: null, reason: 'nicht ladbar' }));
+    if (seq !== overlaySeq.current || mapRef.current !== map) return;
+    let rgba: Uint8ClampedArray;
+    if (field) {
+      rgba = buildDepthImage((la, lo) => field.at(la, lo)?.depthM ?? null, dem, GRID_COLS, GRID_ROWS);
+      setFallback(null);
+    } else {
+      if (!profile || profile.levels.length < 2) return;
+      const levels: EnvLevel[] = profile.levels.map((l) => ({ heightM: l.heightM, tempC: l.tempC }));
+      rgba = buildThermalImage(levels, dem.grid, GRID_COLS, GRID_ROWS);
+      setFallback(reason ?? 'nicht verfügbar');
+    }
     const url = rgbaToDataUrl(rgba, GRID_COLS, GRID_ROWS);
     const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [
       [dem.lngMin, dem.latMax], [dem.lngMax, dem.latMax], [dem.lngMax, dem.latMin], [dem.lngMin, dem.latMin],
@@ -158,10 +176,12 @@ export default function ThermalMap() {
       <div ref={containerRef} className="atm-thermal-map" />
       <div className="atm-thermal-legend" aria-hidden="true">
         <span className="atm-thermal-legend-bar" />
-        <span>schwach</span><span>stark</span>
+        {fallback == null ? <><span>250 m</span><span>≥ 2 500 m über Grund</span></> : <><span>schwach</span><span>stark</span></>}
       </div>
       <p className="atm-thermal-cap">
-        Thermik-Schätzung aus ICON-EU-Profil + Gelände · tippen verschiebt den Marker · Richtwert
+        {fallback == null
+          ? 'Thermikhöhe über Grund · Modellhöhe DWD ICON-D2 (Obergrenze Trockenkonvektion), kein Steigwert · tippen verschiebt den Marker'
+          : `Thermik-Schätzung aus Profil + Gelände + 3 K Überhitzung — DWD-Feld nicht verfügbar: ${fallback} · tippen verschiebt den Marker · Richtwert`}
       </p>
     </section>
   );

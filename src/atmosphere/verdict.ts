@@ -51,9 +51,14 @@ const lowCloud = (p: DerivedProfile) =>
 function flyVerdict(p: DerivedProfile): Verdict {
   const wind = maxLowWindKmh(p);
   const thermalTopAgl = p.boundaryLayerTopM - p.surfaceM;
-  const base = cloudBaseAgl(p);
-  const baseTxt = base == null ? 'keine tiefe Wolke' : `Wolkenbasis ${de0(base)} m über Grund`;
-  const detail = `Thermik ~${p.thermalStrengthMs.toString().replace('.', ',')} m/s bis ${de0(p.boundaryLayerTopM)} m · ${baseTxt} · Wind unten ${de0(wind)} km/h`;
+  // Cu-Basis aus dem DWD-Feld, wenn vorhanden (Modellhöhe); sonst die Wolkenbasis des Profils.
+  const cu = p.cuBaseM;
+  const base = cu !== undefined ? (cu == null ? null : Math.max(0, cu - p.surfaceM)) : cloudBaseAgl(p);
+  const baseTxt = cu !== undefined
+    ? (cu == null ? 'keine Cumulus' : `Cu-Basis ${de0(cu)} m`)
+    : base == null ? 'keine tiefe Wolke' : `Wolkenbasis ${de0(base)} m über Grund`;
+  const how = p.thermalSource?.kind === 'dwd' ? 'Modellhöhe' : 'Schätzung';
+  const detail = `Thermik bis ${de0(p.boundaryLayerTopM)} m (${how}) · ${baseTxt} · Wind unten ${de0(wind)} km/h`;
 
   if (wind >= FLY_WIND_HARD_KMH)
     return { tone: 'bad', headline: `Zu windig — ${de0(wind)} km/h unten`, detail, drivers: ['wind'] };
