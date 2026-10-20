@@ -114,7 +114,7 @@
 .dbd-flexcol { display: flex; flex-direction: column; }
 
 /* Jetzt-Zeile */
-.dbd-row1 { display: grid; grid-template-columns: 2.1fr 1fr; gap: 12px; }
+.dbd-row1 { display: grid; grid-template-columns: 2.1fr 1.3fr 1fr; gap: 12px; }
 .dbd-now-head { display: flex; align-items: baseline; justify-content: space-between; }
 .dbd-now-src { font-size: 12.5px; color: var(--dbd-muted); }
 .dbd-now-main { display: flex; align-items: center; gap: 22px; margin-top: 12px; }
@@ -229,8 +229,6 @@
 .dbd-zone .dbd-eyebrow, .dbd-zone .dbd-phase-l, .dbd-zone .dbd-dv-l, .dbd-zone .dbd-day-conf > span:first-child, .dbd-zone .dbd-ticks { color: var(--dbd-muted); }
 
 /* Detail-Kacheln */
-.dbd-row2 { margin-top: 12px; }
-.dbd-row2 > .dbd-nowcast { display: block; }
 .dbd-row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .dbd-nowcast { background: #1F2937; border: 1px solid #2F3B4A; border-radius: 13px; padding: 15px; }
 .dbd-nowcast-head { display: flex; align-items: baseline; justify-content: space-between; }
@@ -336,7 +334,8 @@
    ============================================================================ */
 @media (max-width: 1279px) {
   .dbd-run { display: none; }
-  .dbd-row1 { grid-template-columns: 1fr; }
+  .dbd-row1 { grid-template-columns: 1fr 1fr; }
+  .dbd-row1 > .dbd-now { grid-column: 1 / -1; }
   .dbd-row3 { grid-template-columns: 1fr 1fr; }
   .dbd-terrain-grid { grid-template-columns: minmax(0, 1fr); }
   .dbd-terrain-side { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; align-items: start; }

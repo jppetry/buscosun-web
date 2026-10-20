@@ -281,11 +281,9 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
                   <WarningStrip vm={vm.warning} />
                 </section>
               ) : <NowCard vm={vm.now} warning={vm.warning} />}
-              <ConfidenceCard vm={vm.conf} />
-            </div>
-            {/* Jan 17.10.: der Radar-Nowcast steht auf der ersten Seite, direkt unter der ersten Reihe. */}
-            <div className="dbd-row2">
+              {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
+              <ConfidenceCard vm={vm.conf} />
             </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
             {showTabs && (
