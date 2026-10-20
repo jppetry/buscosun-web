@@ -20,6 +20,8 @@ import { SHEAR_THRESHOLD_KMH_PER_300M } from '../threed/crossSection';
 const DRY_LAPSE_PER_M = 9.8 / 1000; // trockenadiabatisch, K/m
 /** Taupunktspreizung (°C), unter der ein Niveau als wolkig gilt (RH-Proxy). */
 const CLOUD_DEPRESSION_C = 3;
+/** Mindestabstand der Flächen für die Scherprüfung (m). */
+const SHEAR_MIN_DZ_M = 200;
 
 export interface RenderLevel {
   heightM: number;
@@ -76,18 +78,20 @@ function dryParcelTopM(ls: SoundingLevel[], surfaceM: number): number {
   return ls[ls.length - 1].heightM;
 }
 
-/** Inversionsbänder: zusammenhängende Abschnitte mit dT/dz > 0. */
+/** Inversionsbänder: zusammenhängende Abschnitte mit dT/dz > 0, insgesamt > 0,1 °C (dichte Modellflächen teilen eine
+ *  Inversion in viele kleine Schritte — die Schwelle gilt für das Band, nicht für den Einzelschritt). */
 function findInversions(ls: SoundingLevel[]): Inversion[] {
   const out: Inversion[] = [];
   let cur: Inversion | null = null;
+  const close = () => { if (cur && cur.deltaC > 0.1) out.push(roundInv(cur)); cur = null; };
   for (let i = 1; i < ls.length; i++) {
     const a = ls[i - 1], b = ls[i];
-    if (b.tempC > a.tempC + 0.1) {
+    if (b.tempC > a.tempC) {
       if (!cur) cur = { baseM: a.heightM, topM: b.heightM, deltaC: b.tempC - a.tempC };
       else { cur.topM = b.heightM; cur.deltaC += b.tempC - a.tempC; }
-    } else if (cur) { out.push(roundInv(cur)); cur = null; }
+    } else close();
   }
-  if (cur) out.push(roundInv(cur));
+  close();
   return out;
 }
 const roundInv = (i: Inversion): Inversion => ({ baseM: Math.round(i.baseM), topM: Math.round(i.topM), deltaC: Math.round(i.deltaC * 10) / 10 });
@@ -108,7 +112,10 @@ function findCloudLayers(ls: SoundingLevel[]): CloudLayer[] {
 const roundCloud = (c: CloudLayer): CloudLayer => ({ baseM: Math.round(c.baseM), topM: Math.round(c.topM) });
 
 /** Zonen starker Windscherung: |Δwind| je 300 m ≥ Schwelle, zwischen Nachbar-Niveaus. */
-function findShearZones(levels: RenderLevel[]): ShearZone[] {
+function findShearZones(all: RenderLevel[]): ShearZone[] {
+  // Dichte Modellflächen (≈ 20 m am Boden) erst auf ≥ SHEAR_MIN_DZ_M ausdünnen, sonst wird die Bodenreibung zur „Scherzone".
+  const levels: RenderLevel[] = [];
+  for (const l of all) if (!levels.length || l.heightM - levels[levels.length - 1].heightM >= SHEAR_MIN_DZ_M) levels.push(l);
   const out: ShearZone[] = [];
   for (let i = 1; i < levels.length; i++) {
     const a = levels[i - 1], b = levels[i];

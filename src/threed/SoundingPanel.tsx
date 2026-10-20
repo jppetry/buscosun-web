@@ -1,15 +1,17 @@
 /**
  * Sounding-Panel (Modal) — Hybrid aus 3D-Atmosphärensäule + echtem Skew-T.
  *
- * Holt das GFS-Druckflächenprofil am Punkt (lazy, mit ehrlichem Lade-Hinweis:
- * der erste Aufruf lädt einen GFS-Lauf-Index + ~45 Range-Felder), berechnet
+ * Holt das Profil am Punkt aus dem Höhen-Cube `atmo/v1` (ICON-D2-Modellflächen;
+ * Rückfall ICON-EU, `?snd=eu`), berechnet
  * Parcel-Größen (soundingMath) und zeigt links eine perspektivische
  * Atmosphärensäule (T-Farbe + Wind mit Höhe + Marker) und rechts das klassische
  * Skew-T mit CAPE/CIN-Flächen — plus Indizes + Klartext-Einschätzung.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { fetchSoundingAtPoint, type SoundingProfile, ICON_EU_SOUNDING_ATTRIBUTION } from '../sources/iconEuSounding';
+import { ICON_EU_SOUNDING_ATTRIBUTION, type SoundingProfile } from '../sources/iconEuSounding';
+import { fetchProfileAtPoint } from '../atmosphere/atmoSounding';
+import { ATMO_ATTRIBUTION } from '../atmosphere/atmoContract';
 import { computeSounding, type SoundingDerived } from './soundingMath';
 import { tempColorC } from '../globe/gfs';
 import SkewTChart from './SkewTChart';
@@ -36,7 +38,7 @@ export default function SoundingPanel({ lat, lon, surfaceM = 0, name, onClose }:
     setState({ kind: 'loading' });
     (async () => {
       try {
-        const profile = await fetchSoundingAtPoint(lat, lon, surfaceM, 0, ac.signal);
+        const profile = await fetchProfileAtPoint(lat, lon, surfaceM, 0, ac.signal);
         if (ac.signal.aborted) return;
         setState({ kind: 'ready', profile, derived: computeSounding(profile) });
       } catch (err) {
@@ -71,7 +73,7 @@ export default function SoundingPanel({ lat, lon, surfaceM = 0, name, onClose }:
         {state.kind === 'loading' && (
           <div className="td-snd-state">
             <span className="ev-spinner" />
-            <p>Vertikalprofil wird geladen … <em>der erste Abruf lädt die ICON-EU-Druckflächen (kann ~20 s dauern), danach aus dem Cache sofort.</em></p>
+            <p>Vertikalprofil wird geladen …</p>
           </div>
         )}
         {state.kind === 'error' && <div className="td-snd-state"><p>⚠ {state.message}</p></div>}
@@ -84,8 +86,8 @@ export default function SoundingPanel({ lat, lon, surfaceM = 0, name, onClose }:
               <Indices profile={state.profile} derived={state.derived} />
             </div>
             <p className="td-snd-source">
-              {ICON_EU_SOUNDING_ATTRIBUTION.replace(/<[^>]+>/g, '')} · Lauf {fmtUTC(state.profile.runAt)} · gültig {fmtUTC(state.profile.validAt)} ·
-              <strong> Richtwert</strong> (ICON-EU ~7 km, Standard-Druckflächen) — keine Radiosonde.
+              {state.profile.source?.label === 'ICON-EU' || !state.profile.source ? ICON_EU_SOUNDING_ATTRIBUTION.replace(/<[^>]+>/g, '') : ATMO_ATTRIBUTION} · Lauf {fmtUTC(state.profile.runAt)} · gültig {fmtUTC(state.profile.validAt)} ·
+              <strong> Richtwert</strong> ({state.profile.source?.detail ?? 'ICON-EU ~7 km, Standard-Druckflächen'}) — keine Radiosonde.
             </p>
           </>
         )}
@@ -104,6 +106,8 @@ function AtmosphereColumn({ profile, derived }: { profile: SoundingProfile; deri
   // Schräge Vorderkante (Pseudo-3D) — Säule als Parallelogramm mit Tiefe.
   const colX = 54, colW = 46, depth = 22;
   const ls = profile.levels;
+  // Wind streamers at least 10 px apart (the height cube has up to 43 levels).
+  let lastY = Infinity;
 
   // Vertikaler Farbverlauf über feine Höhenstützen.
   const tAt = (z: number) => {
@@ -134,7 +138,7 @@ function AtmosphereColumn({ profile, derived }: { profile: SoundingProfile; deri
       ))}
       <rect x={colX} y={padT} width={colW} height={plotH} className="td-snd-col-frame" />
       {/* Wind-Streamer (Pfeile) je Niveau */}
-      {ls.map((l, i) => {
+      {ls.filter((l) => { const y = yOf(l.heightM); if (Math.abs(lastY - y) < 10) return false; lastY = y; return true; }).map((l, i) => {
         const spd = Math.hypot(l.windU, l.windV);
         const len = Math.min(28, 6 + spd * 1.3);
         const dir = Math.atan2(l.windU, l.windV); // Strömungsrichtung (hin)

@@ -24,6 +24,8 @@ interface Props {
   onToggleCap: () => void;
   validAt: Date;
   runAt: Date;
+  /** Quellzeile aus dem Profil; fehlt sie, gilt ICON-EU. */
+  source?: string;
 }
 
 const W = 360, H = 470;
@@ -40,7 +42,7 @@ function thermalColor(ms: number): string {
   return '#3A6FA8';              // steel-600 (stark)
 }
 
-export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt }: Props) {
+export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt, source }: Props) {
   const yOf = (z: number) => BOTTOM_Y - (Math.max(0, Math.min(capM, z)) / capM) * (BOTTOM_Y - TOP);
 
   // Punkt-Abfrage: Zeiger-Höhe → interpolierte Werte (Höhe/T/Td/Wind).
@@ -172,7 +174,7 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         <path d={tPath} fill="none" stroke="var(--terracotta-500, #C97B47)" strokeWidth={2.2} strokeLinejoin="round" />
 
         {/* Höhenwind-Pfeile (rechte Spalte) */}
-        {vis.map((l, i) => {
+        {thinByY(vis, (l) => yOf(l.heightM), 14).map((l, i) => {
           const len = Math.min(22, 6 + l.windKmh * 0.35);
           const flow = ((l.windDirDeg + 180) % 360) * Math.PI / 180; // Richtung, wohin der Wind weht
           const cx = WIND_X, cy = yOf(l.heightM);
@@ -227,11 +229,19 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         <span className="atm-prof-hint">· über die Kurve fahren für Werte</span>
       </div>
       <p className="atm-prof-source">
-        ICON-EU (~7 km, Druckflächen) · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
+        {source ?? 'ICON-EU (~7 km, Druckflächen)'} · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
         <strong> Richtwert</strong>; Thermik-Stärke geschätzt, dünne Strukturen ggf. unteraufgelöst.
       </p>
     </div>
   );
+}
+
+/** Keeps the levels at least `minPx` apart on screen (the height cube has up to 43 levels; arrows would overlap). */
+function thinByY<T>(ls: T[], y: (l: T) => number, minPx: number): T[] {
+  const out: T[] = [];
+  let last = Infinity;
+  for (const l of ls) { const yy = y(l); if (Math.abs(last - yy) >= minPx) { out.push(l); last = yy; } }
+  return out;
 }
 
 function fmtUTC(d: Date): string {

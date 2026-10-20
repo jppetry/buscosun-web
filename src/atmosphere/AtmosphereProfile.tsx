@@ -2,18 +2,17 @@
  * Atmosphäre · Vertikalprofil-Loader (Datenanbindung).
  *
  * Holt für die aktive Marker-Position und die aktive Stunde (Time-Scrubber) das
- * ICON-EU-Sounding (bestehende Pipeline) plus die Terrainhöhe (Terrarium-DEM),
- * leitet die Profilmerkmale ab (profile-derivations) und rendert das SVG-Profil.
+ * Profil aus dem Höhen-Cube `atmo/v1` (ICON-D2-Modellflächen, eine Kachel; Rückfall
+ * ICON-EU, `?snd=eu`) plus die Terrainhöhe (Terrarium-DEM), leitet die
+ * Profilmerkmale ab (profile-derivations) und rendert das SVG-Profil.
  *
- * Das ICON-EU-Sounding lädt je Abruf viele Druckflächen-Dateien (Profi-Feature,
- * on-demand) — daher wird auf Marker-/Stunden-Wechsel DEBOUNCED und die letzte
- * gültige Darstellung bleibt während des Nachladens sichtbar. Erstabruf kann
- * ~20 s dauern, danach greift der Decompressed-Cache.
+ * Auf Marker-/Stunden-Wechsel wird DEBOUNCED und die letzte gültige Darstellung
+ * bleibt während des Nachladens sichtbar.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
-import { fetchSoundingAtPoint } from '../sources/iconEuSounding';
+import { fetchProfileAtPoint } from './atmoSounding';
 import { computeSounding } from '../threed/soundingMath';
 import { loadElevationLookup } from '../fusion/elevation';
 import { deriveProfile, type DerivedProfile } from './profile-derivations';
@@ -21,7 +20,7 @@ import VerticalProfile from './VerticalProfile';
 
 const DEBOUNCE_MS = 500;
 
-interface Ready { data: DerivedProfile; runAt: Date; validAt: Date }
+interface Ready { data: DerivedProfile; runAt: Date; validAt: Date; source?: string }
 
 export default function AtmosphereProfile() {
   const { marker, hour, setModelRunAt, setProfile, setSounding } = useAtmosphere();
@@ -54,11 +53,11 @@ export default function AtmosphereProfile() {
           } catch { /* DEM optional → 0 (Meeresniveau-Anker) */ }
           if (ac.signal.aborted) return;
 
-          const profile = await fetchSoundingAtPoint(lat, lon, surfaceM, hour, ac.signal);
+          const profile = await fetchProfileAtPoint(lat, lon, surfaceM, hour, ac.signal);
           if (ac.signal.aborted) return;
           const derived = computeSounding(profile);
           const data = deriveProfile(profile, derived);
-          setReady({ data, runAt: profile.runAt, validAt: profile.validAt });
+          setReady({ data, runAt: profile.runAt, validAt: profile.validAt, source: profile.source?.detail });
           setModelRunAt(profile.runAt);
           setProfile(data);
           setSounding({ profile, derived });
@@ -83,7 +82,7 @@ export default function AtmosphereProfile() {
         <>
           <span className="rt-eyebrow">Vertikalprofil</span>
           <div className="atm-ph" style={{ marginTop: '0.6rem' }}>
-            Such oben einen Ort — dann zeigen wir das Emagramm (Meter · km/h · °C) aus dem ICON-EU-Sounding.
+            Such oben einen Ort — dann zeigen wir das Emagramm (Meter · km/h · °C) aus dem Höhen-Cube (ICON-D2).
           </div>
         </>
       )}
@@ -100,7 +99,7 @@ export default function AtmosphereProfile() {
           <VerticalProfile
             data={ready.data} capM={capM} expanded={expanded}
             onToggleCap={() => setExpanded((v) => !v)}
-            runAt={ready.runAt} validAt={ready.validAt}
+            runAt={ready.runAt} validAt={ready.validAt} source={ready.source}
           />
           {loading && <div className="atm-prof-overlay"><span className="ev-spinner" /> aktualisiere …</div>}
         </div>
@@ -111,7 +110,7 @@ export default function AtmosphereProfile() {
           <span className="rt-eyebrow">Vertikalprofil</span>
           <div className="atm-prof-loading">
             <span className="ev-spinner" />
-            <p>Sounding wird geladen … <em>der erste Abruf lädt die ICON-EU-Druckflächen (kann ~20 s dauern), danach aus dem Cache.</em></p>
+            <p>Profil wird geladen …</p>
           </div>
         </>
       )}

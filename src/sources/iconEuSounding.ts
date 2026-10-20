@@ -52,6 +52,8 @@ export interface SoundingProfile {
   surfacePressureHpa: number;
   /** Niveaus Boden→oben (Druck absteigend). */
   levels: SoundingLevel[];
+  /** Herkunft für die Quellzeile (Höhen-Cube oder ICON-EU-Rückfall), gesetzt von `atmosphere/atmoSounding`. */
+  source?: { label: string; detail: string };
 }
 
 /** Taupunkt (°C) aus T (°C) und RH (%), Magnus. */

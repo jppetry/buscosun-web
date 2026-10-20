@@ -36,6 +36,8 @@ export default function SkewTChart({ profile, derived, width = 460, height = 520
   const xOf = (tC: number, p: number) => x0 + ((tC - T_MIN) / (T_MAX - T_MIN)) * W + SKEW * (yBot - yOf(p));
 
   const ls = profile.levels;
+  // Barbs at least 12 px apart (the height cube has up to 43 levels).
+  let lastBarbY = Infinity;
   const isotherms: number[] = [];
   for (let t = -80; t <= 50; t += 10) isotherms.push(t);
   const pLines = [1000, 850, 700, 600, 500, 400, 300, 250, 200].filter((p) => p <= pBot + 1);
@@ -102,7 +104,7 @@ export default function SkewTChart({ profile, derived, width = 460, height = 520
         </g>
       ))}
       <g transform={`translate(${x0 + W + 14}, 0)`}>
-        {ls.map((l, i) => <WindBarb key={i} y={yOf(l.pressureHpa)} u={l.windU} v={l.windV} />)}
+        {ls.filter((l) => { const y = yOf(l.pressureHpa); if (Math.abs(lastBarbY - y) < 12) return false; lastBarbY = y; return true; }).map((l, i) => <WindBarb key={i} y={yOf(l.pressureHpa)} u={l.windU} v={l.windV} />)}
       </g>
       {[-40, -20, 0, 20, 40].map((t) => (
         <text key={t} x={xOf(t, pBot)} y={yBot + 16} className={`td-skewt-tlabel${t === 0 ? ' is-zero' : ''}`} textAnchor="middle">{t}°</text>
