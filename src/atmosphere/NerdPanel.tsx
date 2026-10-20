@@ -57,8 +57,8 @@ export default function NerdPanel() {
           </dl>
           <p className="atm-nerd-cap">
             {capping
-              ? <>Deckelinversion: {de0(capping.baseM)}–{de0(capping.topM)} m, +{de1(capping.deltaC)} °C{capping.topM - capping.baseM < 200 ? ' (dünn — ggf. unteraufgelöst)' : ''}.</>
-              : 'Keine ausgeprägte Deckelinversion.'}
+              ? <>Deckelinversion: {de0(capping.baseM)}–{de0(capping.topM)} m, +{de1(capping.deltaC)} °C{capping.thin ? ' (evtl. nicht aufgelöst — dünner als 200 m)' : ''}.</>
+              : profile.inversionNote ?? 'Keine ausgeprägte Deckelinversion.'}
           </p>
         </div>
       </div>

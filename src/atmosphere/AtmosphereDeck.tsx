@@ -455,7 +455,7 @@ function InversionDesktop(ctx: DeckCtx) {
       <div className="vsd-inv-head">
         <div>
           <div className="vsd-eyebrow">Inversion · Kaltluftsee</div>
-          <div className="vsd-inv-title">{location?.name ?? 'Inntal'}{present ? ` · Nebelobergrenze ${fmtM(heightM)} m` : ''}</div>
+          <div className="vsd-inv-title">{location?.name ?? 'Inntal'}{present ? ` · Nebelobergrenze ${fmtM(heightM)} m${inv?.thin ? ' · evtl. nicht aufgelöst' : ''}` : ''}</div>
         </div>
         <LensPills deckLens={deckLens} setDeckLens={setDeckLens} />
       </div>
@@ -470,7 +470,7 @@ function InversionDesktop(ctx: DeckCtx) {
             <div className="vsd-inv-cards">
               <div className="vsd-card">
                 <div className="vsd-card-lab">Temperatur-Differenz</div>
-                <div className="vsd-tdiff-row"><span>oberhalb ({fmtM(section.summit.terrainM)} m)</span><span className="vsd-tdiff-hi">{fmtSigned(aboveC)} °C</span></div>
+                <div className="vsd-tdiff-row"><span>oberhalb ({fmtM(inv?.basis === 'cube' ? heightM : section.summit.terrainM)} m)</span><span className="vsd-tdiff-hi">{fmtSigned(aboveC)} °C</span></div>
                 <div className="vsd-tdiff-row"><span>im Tal ({fmtM(section.valley.terrainM)} m)</span><span className="vsd-tdiff-lo">{fmtSigned(valleyC)} °C</span></div>
                 <div className="vsd-card-rule" />
                 <div className="vsd-tdiff-sum"><b>{diffK > 0 ? 'Aufstieg lohnt sich' : 'Kaum Unterschied'}</b><span className="k">{fmtSigned(Math.round(diffK))} K</span></div>
@@ -497,7 +497,9 @@ function InversionDesktop(ctx: DeckCtx) {
           <InversionOverDay ctx={ctx} />
         </>
       ) : section ? (
-        <div className="vsd-plot"><div className="vsd-plot-empty"><strong>Keine Inversion erkannt</strong><p>Zur gewählten Zeit ist die Grenzschicht durchmischt — kein Kaltluftsee. Scrubbe im Höhenwind-Zeitverlauf zu einer Morgen-/Nachtstunde, um eine Inversion zu sehen.</p></div></div>
+        inv?.unchecked
+          ? <div className="vsd-plot"><div className="vsd-plot-empty"><strong>Inversion nicht geprüft</strong><p>{inv.note}</p></div></div>
+          : <div className="vsd-plot"><div className="vsd-plot-empty"><strong>Keine Inversion erkannt</strong><p>Zur gewählten Zeit zeigt das T-Profil des Höhen-Cubes über dem Tal keine Inversion — kein Kaltluftsee. Scrubbe im Höhenwind-Zeitverlauf zu einer Morgen-/Nachtstunde, um eine Inversion zu sehen.</p></div></div>
       ) : (
         <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => ctx.setDeckLens('hoehenwind')} /></div>
       )}
@@ -826,7 +828,7 @@ function InversionMobile(ctx: DeckCtx) {
   const { section, data } = ctx;
   const inv = section?.inversion;
   const present = !!(section && inv && inv.present && inv.heightM != null);
-  if (section && !present) return <div className="vsd-plot"><div className="vsd-plot-empty"><strong>Keine Inversion erkannt</strong><p>Zur gewählten Zeit ist die Grenzschicht durchmischt — kein Kaltluftsee.</p></div></div>;
+  if (section && !present) return <div className="vsd-plot"><div className="vsd-plot-empty"><strong>{inv?.unchecked ? 'Inversion nicht geprüft' : 'Keine Inversion erkannt'}</strong><p>{inv?.unchecked ? inv.note : 'Zur gewählten Zeit zeigt das T-Profil des Höhen-Cubes über dem Tal keine Inversion — kein Kaltluftsee.'}</p></div></div>;
   if (!section || !present) return <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => ctx.setDeckLens('hoehenwind')} /></div>;
   const heightM = inv!.heightM ?? 0, aboveC = inv!.aboveTempC ?? 0, valleyC = inv!.valleyTempC ?? 0, diffK = inv!.diffK ?? 0;
   return (

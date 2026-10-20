@@ -94,11 +94,20 @@ export interface InversionInfo {
   aboveTempC: number | null;
   /** Differenz oberhalb − Tal (K); positiv = lohnender Aufstieg. */
   diffK: number | null;
-  basis: 'observed' | 'heuristic' | 'none';
+  basis: 'observed' | 'heuristic' | 'cube' | 'none';
   /** Stabilität (für Luftqualitäts-/Frosthinweis, US-B5). */
   stable: boolean;
   note: string;
+  /** true = nicht beurteilt (Anker zu verschiedenen Zeiten, oder kein Höhen-Cube) — `present: false` heißt dann NICHT „keine“. */
+  unchecked?: boolean;
+  /** Inversionsschicht dünner als INVERSION_THIN_M — evtl. nicht aufgelöst. */
+  thin?: boolean;
+  /** Untergrenze der Inversion (m ü. NN), nur aus dem Cube. */
+  baseM?: number | null;
 }
+
+/** Inversionen dünner als das (m) gelten als „evtl. nicht aufgelöst“ (wie im Profil). */
+const INVERSION_THIN_M = 200;
 
 export interface PeakMark {
   distanceM: number;
@@ -156,7 +165,7 @@ export interface CrossSectionInput {
    * Inversion das Temperaturfeld auf einen isothermen Kaltluftsee umstellt
    * (`audit/route-3d.md` §21.2, E3).
    */
-  inversion?: 'estimate' | 'none';
+  inversion?: 'estimate' | 'none' | 'cube';
   /**
    * Decke des Schnitts (m ü. NN). Ohne Angabe wie bisher „höchster Berg +
    * 1 500 m, mindestens 3 000" — die Atmosphären-Ansicht bleibt unverändert.
@@ -392,8 +401,54 @@ export function uncheckedInversion(anchors: AnchorSurface[]): InversionInfo {
     diffK: null,
     basis: 'none',
     stable: false,
+    unchecked: true,
     note: 'Nicht geprüft: die Anker dieses Schnitts gelten zu verschiedenen Zeiten — '
       + 'ein Vergleich Tal/Höhe wäre ein Zeitunterschied, keine Schichtung.',
+  };
+}
+
+/**
+ * Inversion aus dem T-Profil des Höhen-Cubes über der Talspalte (`inversion: 'cube'`): die unterste Schicht mit
+ * steigender Temperatur (gesamt > 0,1 °C), deren Untergrenze unter dem höchsten Gelände liegt. Ohne Cube-Profil an der
+ * Talspalte: nicht geprüft — keine Schätzung aus den Ankern.
+ */
+export function cubeInversion(prof: AloftProfile | null, summitM: number, reason: string | null): InversionInfo {
+  if (!prof) {
+    return {
+      present: false, heightM: null, valleyTempC: null, aboveTempC: null, diffK: null, basis: 'none', stable: false, unchecked: true,
+      note: `Inversion nicht geprüft — nur aus dem Höhen-Cube${reason ? `, der hier fehlt: ${reason}` : ', der hier fehlt'}.`,
+    };
+  }
+  const { z, t } = prof;
+  const tAt = (zM: number) => { const [k, f] = aloftIndex(z, zM); return t[k] + (t[k + 1] - t[k]) * f; };
+  const valleyTempC = t[0];
+  let found: { baseM: number; topM: number; deltaC: number } | null = null;
+  let cur: { baseM: number; topM: number; deltaC: number } | null = null;
+  for (let k = 1; k < z.length && !found; k++) {
+    if (t[k] > t[k - 1]) {
+      if (!cur) cur = { baseM: z[k - 1], topM: z[k], deltaC: t[k] - t[k - 1] };
+      else { cur.topM = z[k]; cur.deltaC += t[k] - t[k - 1]; }
+    } else if (cur) {
+      if (cur.deltaC > 0.1 && cur.baseM <= summitM) found = cur;
+      cur = null;
+      if (z[k] > summitM) break;
+    }
+  }
+  if (!found && cur && cur.deltaC > 0.1 && cur.baseM <= summitM) found = cur;
+  if (!found) {
+    return {
+      present: false, heightM: null, valleyTempC, aboveTempC: tAt(summitM), diffK: null, basis: 'cube', stable: false,
+      note: 'Keine Inversion im T-Profil des Höhen-Cubes (ICON-D2) über dem Tal.',
+    };
+  }
+  const thin = found.topM - found.baseM < INVERSION_THIN_M;
+  const d1 = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');
+  return {
+    // „oberhalb“ = Obergrenze der Inversion (wärmster Punkt), „Tal“ = unterste Fläche über dem Modellgelände.
+    present: true, heightM: found.topM, baseM: found.baseM, valleyTempC, aboveTempC: tAt(found.topM), diffK: tAt(found.topM) - valleyTempC,
+    basis: 'cube', stable: found.deltaC >= 2, thin,
+    note: `Aus dem T-Profil des Höhen-Cubes (ICON-D2) über dem Tal: +${d1(found.deltaC)} °C zwischen ${Math.round(found.baseM)} und ${Math.round(found.topM)} m`
+      + `${thin ? ' — evtl. nicht aufgelöst (dünner als 200 m)' : ''}.`,
   };
 }
 
@@ -407,9 +462,13 @@ export function assembleCrossSection(input: CrossSectionInput): CrossSection {
   const topM = input.topM ?? Math.max(3000, Math.ceil((terrainMax + 1500) / 500) * 500);
   const heightLevels = input.heightLevels ?? defaultLevels(topM);
 
-  const inversion = (input.inversion ?? 'estimate') === 'none'
+  const invMode = input.inversion ?? 'estimate';
+  const valleyIdx = columns.reduce((bi, c, i) => (c.terrainM < columns[bi].terrainM ? i : bi), 0);
+  const inversion = invMode === 'none'
     ? uncheckedInversion(anchors)
-    : estimateInversion(anchors);
+    : invMode === 'cube'
+      ? cubeInversion(input.aloft?.[valleyIdx] ?? null, terrainMax, input.aloftReason ?? null)
+      : estimateInversion(anchors);
 
   let maxWindKmh = 0, maxGustKmh = 0;
   const cols: ColumnProfile[] = columns.map((col, ci) => {

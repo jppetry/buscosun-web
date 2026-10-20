@@ -217,7 +217,7 @@ export default function SectionView({ prepared, section, timeMs, onTime, layers,
               )}
             </>
           ) : (
-            <p className="td-inv-none-text">Keine Inversion prognostiziert — durchmischte, bewölkte oder windige Luft. Tal und Höhe folgen dem normalen Temperaturgradienten.</p>
+            <p className="td-inv-none-text">{inv.unchecked || inv.basis === 'cube' ? inv.note : 'Keine Inversion prognostiziert — durchmischte, bewölkte oder windige Luft. Tal und Höhe folgen dem normalen Temperaturgradienten.'}</p>
           )}
         </div>
       )}
@@ -262,7 +262,7 @@ export default function SectionView({ prepared, section, timeMs, onTime, layers,
           <Stat label="Gelände" value={`${comma(Math.round(section.terrainMinM))}–${comma(Math.round(section.terrainMaxM))} m`} />
           <Stat label="Max. Wind" value={`${Math.round(section.maxWindKmh)} km/h`} accent />
           <Stat label="Max. Böe" value={`${Math.round(section.maxGustKmh)} km/h`} />
-          <Stat label="Inversion" value={section.inversion.present ? `${comma(Math.round(section.inversion.heightM ?? 0))} m` : 'keine'} />
+          <Stat label="Inversion" value={section.inversion.present ? `${comma(Math.round(section.inversion.heightM ?? 0))} m${section.inversion.thin ? ' (evtl. nicht aufgelöst)' : ''}` : section.inversion.unchecked ? 'nicht geprüft' : 'keine'} />
         </div>
       </div>
 

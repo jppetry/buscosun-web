@@ -147,7 +147,8 @@ export function sectionAtTime(prepared: PreparedSection, tMs: number, alpha?: nu
   const a = prepared.aloft;
   const aloft = a ? prepared.columns.map((_, i) => aloftAt(a, i, tMs)) : undefined;
   const reason = prepared.aloftReason ?? (a && aloft!.some((x) => !x) ? `Lauf ${fmtRun(a.runAtMs)} deckt diese Zeit nicht (bis +48 h)` : null);
-  return assembleCrossSection({ columns: prepared.columns, anchors, alpha, aloft, aloftRunAtMs: a?.runAtMs ?? null, aloftReason: reason });
+  // Inversion nur aus dem Cube (T-Profil über dem Tal), keine Anker-Schätzung.
+  return assembleCrossSection({ columns: prepared.columns, anchors, alpha, aloft, aloftRunAtMs: a?.runAtMs ?? null, aloftReason: reason, inversion: 'cube' });
 }
 
 /** Holt Gelände + Anker-Forecasts für die Schnittlinie (einmalig, teuer). */

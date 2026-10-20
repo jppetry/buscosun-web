@@ -17,6 +17,7 @@ import type { SoundingLevel, SoundingProfile } from '../sources/iconEuSounding';
 import { computeSounding, type SoundingDerived } from '../threed/soundingMath';
 import { SHEAR_THRESHOLD_KMH_PER_300M } from '../threed/crossSection';
 import type { ThermalAt } from './atmoThermal';
+import { ICON_EU_SOUNDING_SOURCE } from './atmoSounding';
 
 const DRY_LAPSE_PER_M = 9.8 / 1000; // trockenadiabatisch, K/m
 /** Taupunktspreizung (°C), unter der ein Niveau als wolkig gilt (RH-Proxy). */
@@ -33,7 +34,13 @@ export interface RenderLevel {
   windDirDeg: number;
 }
 export interface CloudLayer { baseM: number; topM: number }
-export interface Inversion { baseM: number; topM: number; deltaC: number }
+export interface Inversion {
+  baseM: number; topM: number; deltaC: number;
+  /** Dünner als INVERSION_THIN_M — zwischen zwei Flächen evtl. nicht aufgelöst. */
+  thin?: boolean;
+}
+/** Inversionen dünner als das (m) gelten als „evtl. nicht aufgelöst“. */
+export const INVERSION_THIN_M = 200;
 export interface ShearZone { baseM: number; topM: number; kmhPer300m: number }
 
 export interface DerivedProfile {
@@ -55,6 +62,8 @@ export interface DerivedProfile {
   inversions: Inversion[];
   /** Zonen starker Windscherung (≥ Schwelle km/h je 300 m). */
   shearZones: ShearZone[];
+  /** Gesetzt, wenn Inversionen NICHT geprüft wurden (nur aus dem Höhen-Cube; Profil kam aus dem Rückfall). */
+  inversionNote?: string;
   freezingLevelM: number | null;
   lclM: number;
   capeJkg: number;
@@ -99,7 +108,10 @@ function findInversions(ls: SoundingLevel[]): Inversion[] {
   close();
   return out;
 }
-const roundInv = (i: Inversion): Inversion => ({ baseM: Math.round(i.baseM), topM: Math.round(i.topM), deltaC: Math.round(i.deltaC * 10) / 10 });
+const roundInv = (i: Inversion): Inversion => ({
+  baseM: Math.round(i.baseM), topM: Math.round(i.topM), deltaC: Math.round(i.deltaC * 10) / 10,
+  ...(i.topM - i.baseM < INVERSION_THIN_M ? { thin: true } : {}),
+});
 
 /** Wolkenschichten aus der Taupunktspreizung (grober RH-Proxy auf 10 Levels). */
 function findCloudLayers(ls: SoundingLevel[]): CloudLayer[] {
@@ -180,7 +192,10 @@ export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerive
     ? { kind: 'dwd', note: 'Modellhöhe DWD ICON-D2 (Obergrenze Trockenkonvektion, Cu-Basis)' }
     : { kind: 'estimate', note: `Schätzung aus dem Profil${field?.reason ? ` — DWD-Feld nicht verfügbar: ${field.reason}` : ''}` };
 
-  const inversions = findInversions(ls);
+  // Inversionen nur aus dem T-Profil des Höhen-Cubes (feine Modellflächen); im ICON-EU-Rückfall nicht geprüft.
+  const fromFallback = profile.source?.label === ICON_EU_SOUNDING_SOURCE.label;
+  const inversions = fromFallback ? [] : findInversions(ls);
+  const inversionNote = fromFallback ? 'Inversionen nicht geprüft — nur aus dem Höhen-Cube, das Profil kommt aus dem ICON-EU-Rückfall' : undefined;
   const cloudLayers = findCloudLayers(ls);
   const cloudBaseM = cloudLayers.length ? cloudLayers[0].baseM : (Number.isFinite(d.lclM) ? d.lclM : null);
 
@@ -194,6 +209,7 @@ export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerive
     thermalStrengthMs: Math.round(thermalStrengthMs * 10) / 10,
     cloudBaseM: cloudBaseM == null ? null : Math.round(cloudBaseM),
     cloudLayers, inversions, shearZones: findShearZones(levels),
+    ...(inversionNote ? { inversionNote } : {}),
     freezingLevelM: d.freezingM, lclM: d.lclM, capeJkg: d.capeJkg, cinJkg: d.cinJkg,
     ...(dwd ? { cuBaseM: dwd.cuBaseM == null ? null : Math.round(dwd.cuBaseM) } : {}),
     thermalSource,

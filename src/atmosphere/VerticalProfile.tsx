@@ -124,8 +124,11 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         {data.inversions.filter((iv) => iv.baseM <= capM).map((iv, i) => (
           <rect key={`inv${i}`} x={PLOT_X0} y={yOf(iv.topM)} width={PLOT_X1 - PLOT_X0} height={Math.max(1, yOf(iv.baseM) - yOf(iv.topM))}
             fill="var(--amber-500, #D4A373)" opacity={0.22}>
-            <title>Inversion {iv.baseM}–{iv.topM} m (+{iv.deltaC} °C)</title>
+            <title>Inversion {iv.baseM}–{iv.topM} m (+{iv.deltaC} °C){iv.thin ? ' · evtl. nicht aufgelöst (dünner als 200 m)' : ''}</title>
           </rect>
+        ))}
+        {data.inversions.filter((iv) => iv.thin && iv.baseM <= capM).map((iv, i) => (
+          <text key={`invt${i}`} x={PLOT_X0 + 4} y={yOf(iv.topM) - 2} className="atm-prof-tag">Inversion evtl. nicht aufgelöst</text>
         ))}
 
         {/* Wolkenschichten (grau) */}
@@ -237,7 +240,7 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
       </div>
       <p className="atm-prof-source">
         {source ?? 'ICON-EU (~7 km, Druckflächen)'} · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
-        <strong> Richtwert</strong>; Thermik: {data.thermalSource?.note ?? 'Schätzung aus dem Profil'}, kein Steigwert.
+        <strong> Richtwert</strong>; Thermik: {data.thermalSource?.note ?? 'Schätzung aus dem Profil'}, kein Steigwert.{data.inversionNote ? ` ${data.inversionNote}.` : ''}
       </p>
     </div>
   );
