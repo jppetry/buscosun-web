@@ -230,13 +230,15 @@
 
 /* Detail-Kacheln */
 .dbd-row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-.dbd-nowcast { background: #1F2937; border: 1px solid #2F3B4A; border-radius: 13px; padding: 15px; }
+.dbd-nowcast { display: flex; flex-direction: column; background: #1F2937; border: 1px solid #2F3B4A; border-radius: 13px; padding: 15px; }
 .dbd-nowcast-head { display: flex; align-items: baseline; justify-content: space-between; }
 .dbd-nowcast-head span:first-child { font-size: 10px; letter-spacing: 2px; color: #7FB2E5; font-weight: 700; }
 .dbd-nowcast-head span:last-child { font-size: 10px; color: #8A97A6; }
 .dbd-nowcast-line { font-size: 16px; font-weight: 700; color: #EDF1F5; margin-top: 8px; }
 .dbd-nowcast .dbd-na, .dbd-nowcast .dbd-loading { color: #8A97A6; }
-.dbd-nowcast-chart { height: 132px; margin-top: 8px; }
+/* füllt die Resthöhe der Kachel (Reihenhöhe geben die Nachbarn vor); das Diagramm liegt absolut, damit es die Kachel nie vergrößert */
+.dbd-nowcast-chart { position: relative; flex: 1 1 auto; min-height: 150px; margin-top: 8px; }
+.dbd-nowcast-chart > * { position: absolute; inset: 0; }
 .dbd-nowcast-chart svg { display: block; overflow: visible; }
 .dbd-nchips { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
 .dbd-nchip { font-size: 9.5px; color: #C3CDD8; background: #26313E; border: 1px solid #3A4757; border-radius: 6px; padding: 3px 7px; }
