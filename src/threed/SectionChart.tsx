@@ -9,9 +9,10 @@
 
 import { useMemo, useRef } from 'react';
 import {
-  shearCellFlags,
+  shearCellFlags, windBandIndex,
   type CrossSection, type SectionCell, type ColumnProfile,
 } from './crossSection';
+import type { SectionMeasured } from '../atmosphere/radiosonde';
 import { buildWindImage, buildCloudImage } from './sectionImage';
 import type { LayerState } from './ThreeDPage';
 
@@ -197,6 +198,12 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
       <path d={terrainLine} fill="none" stroke="#EFE8D6" strokeWidth={2.4} opacity={0.5} />
       <path d={terrainLine} fill="none" stroke="#463E30" strokeWidth={1.3} />
 
+      {/* Gemessener Aufstieg (Radiosonde) — eigene Säule neben dem Modell */}
+      {section.measured && (
+        <MeasuredColumn m={section.measured} x={x} y={y} topM={topM} terrainM={nearestCol(cols, section.measured.distanceM).terrainM}
+          rightHalf={x(section.measured.distanceM) > PAD_L + PLOT_W / 2} />
+      )}
+
       {/* Achsen */}
       <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={PAD_T + PLOT_H} stroke="#8B7355" />
       <line x1={PAD_L} y1={PAD_T + PLOT_H} x2={W - PAD_R} y2={PAD_T + PLOT_H} stroke="#8B7355" />
@@ -222,6 +229,50 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
         </g>
       )}
     </svg>
+  );
+}
+
+/** Measured wind as a column in the same colour bands as the model cells, outlined, with its own label (never blended). */
+function MeasuredColumn({ m, x, y, topM, terrainM, rightHalf }: {
+  m: SectionMeasured; x: (d: number) => number; y: (m: number) => number; topM: number; terrainM: number; rightHalf: boolean;
+}) {
+  const cx = x(m.distanceM), w = 10;
+  const ls = m.levels.filter((l) => l.windKmh != null && l.zM >= terrainM - 25 && l.zM <= topM + 200);
+  if (ls.length < 2) return null;
+  // Runs of the same band → one rect each.
+  const runs: Array<{ z0: number; z1: number; band: number }> = [];
+  for (let i = 0; i < ls.length - 1; i++) {
+    const band = windBandIndex((ls[i].windKmh! + ls[i + 1].windKmh!) / 2);
+    const z0 = Math.max(terrainM, ls[i].zM), z1 = Math.min(topM, ls[i + 1].zM);
+    if (z1 <= z0) continue;
+    const last = runs[runs.length - 1];
+    if (last && last.band === band && Math.abs(last.z1 - z0) < 1) last.z1 = z1; else runs.push({ z0, z1, band });
+  }
+  if (!runs.length) return null;
+  const zTop = runs[runs.length - 1].z1, zBot = runs[0].z0;
+  const arrows: typeof ls = [];
+  for (let z = Math.ceil(zBot / 1000) * 1000; z <= zTop; z += 1000) {
+    const l = ls.reduce((b, c) => (Math.abs(c.zM - z) < Math.abs(b.zM - z) ? c : b));
+    if (Math.abs(l.zM - z) < 150 && l.windDirDeg != null) arrows.push(l);
+  }
+  const ageH = Math.max(0, Math.round((Date.now() - m.launchMs) / 3_600_000));
+  const tx = rightHalf ? cx - w / 2 - 6 : cx + w / 2 + 6;
+  const anchor = rightHalf ? 'end' : 'start';
+  const labelY = y(zTop) + 11;
+  return (
+    <g>
+      {runs.map((r, i) => (
+        <rect key={i} x={cx - w / 2} y={y(r.z1)} width={w} height={Math.max(0.5, y(r.z0) - y(r.z1))} fill={BAND_COLORS[r.band]} />
+      ))}
+      <rect x={cx - w / 2} y={y(zTop)} width={w} height={y(zBot) - y(zTop)} fill="none" stroke="#2C2A26" strokeWidth={1.2} />
+      {arrows.map((l, i) => (
+        <Arrow key={i} cx={rightHalf ? cx - w / 2 - 14 : cx + w / 2 + 14} cy={y(l.zM)} dirFromDeg={l.windDirDeg!} kmh={l.windKmh!} color="#3A6FA8" />
+      ))}
+      <text x={tx} y={labelY} className="td-axislabel" textAnchor={anchor} style={{ fontWeight: 700 }}>gemessen</text>
+      <text x={tx} y={labelY + 12} className="td-axislabel" textAnchor={anchor}>
+        Radiosonde {m.name} · {Math.round(m.distanceKm)} km neben der Linie · vor {ageH} h{m.wind === 'gps' ? ' · Wind aus GPS-Bahn' : ''}
+      </text>
+    </g>
   );
 }
 

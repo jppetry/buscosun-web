@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
 import { fetchProfileAtPoint } from './atmoSounding';
 import { fetchThermalAtPoint } from './atmoThermal';
+import { fetchMeasuredAtPoint, type MeasuredSounding } from './radiosonde';
 import { computeSounding } from '../threed/soundingMath';
 import { loadElevationLookup } from '../fusion/elevation';
 import { deriveProfile, type DerivedProfile } from './profile-derivations';
@@ -21,7 +22,7 @@ import VerticalProfile from './VerticalProfile';
 
 const DEBOUNCE_MS = 500;
 
-interface Ready { data: DerivedProfile; runAt: Date; validAt: Date; source?: string }
+interface Ready { data: DerivedProfile; runAt: Date; validAt: Date; source?: string; measured: MeasuredSounding | null; measuredNote: string | null }
 
 export default function AtmosphereProfile() {
   const { marker, hour, setModelRunAt, setProfile, setSounding } = useAtmosphere();
@@ -55,14 +56,15 @@ export default function AtmosphereProfile() {
           if (ac.signal.aborted) return;
 
           const validMs = Math.floor(Date.now() / 3_600_000) * 3_600_000 + hour * 3_600_000;
-          const [profile, thermal] = await Promise.all([
+          const [profile, thermal, rs] = await Promise.all([
             fetchProfileAtPoint(lat, lon, surfaceM, hour, ac.signal),
             fetchThermalAtPoint(lat, lon, validMs, ac.signal),
+            fetchMeasuredAtPoint(lat, lon, ac.signal),
           ]);
           if (ac.signal.aborted) return;
           const derived = computeSounding(profile);
           const data = deriveProfile(profile, derived, thermal);
-          setReady({ data, runAt: profile.runAt, validAt: profile.validAt, source: profile.source?.detail });
+          setReady({ data, runAt: profile.runAt, validAt: profile.validAt, source: profile.source?.detail, measured: rs.sounding, measuredNote: rs.reason });
           setModelRunAt(profile.runAt);
           setProfile(data);
           setSounding({ profile, derived });
@@ -105,6 +107,7 @@ export default function AtmosphereProfile() {
             data={ready.data} capM={capM} expanded={expanded}
             onToggleCap={() => setExpanded((v) => !v)}
             runAt={ready.runAt} validAt={ready.validAt} source={ready.source}
+            measured={ready.measured} measuredNote={ready.measuredNote}
           />
           {loading && <div className="atm-prof-overlay"><span className="ev-spinner" /> aktualisiere …</div>}
         </div>

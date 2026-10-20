@@ -12,6 +12,7 @@
 
 import { useRef, useState } from 'react';
 import type { DerivedProfile } from './profile-derivations';
+import { measuredCaption, type MeasuredSounding } from './radiosonde';
 
 const de0 = (n: number) => Math.round(n).toString();
 const de1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
@@ -26,6 +27,10 @@ interface Props {
   runAt: Date;
   /** Quellzeile aus dem Profil; fehlt sie, gilt ICON-EU. */
   source?: string;
+  /** Gemessener Aufstieg (Radiosonde) als eigene Linie — nie mit dem Modell verrechnet. */
+  measured?: MeasuredSounding | null;
+  /** Warum keine Messung gezeigt wird. */
+  measuredNote?: string | null;
 }
 
 const W = 360, H = 470;
@@ -42,7 +47,7 @@ function thermalColor(ms: number): string {
   return '#3A6FA8';              // steel-600 (stark)
 }
 
-export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt, source }: Props) {
+export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt, source, measured, measuredNote }: Props) {
   const yOf = (z: number) => BOTTOM_Y - (Math.max(0, Math.min(capM, z)) / capM) * (BOTTOM_Y - TOP);
 
   // Punkt-Abfrage: Zeiger-Höhe → interpolierte Werte (Höhe/T/Td/Wind).
@@ -67,6 +72,8 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
     return { heightM: z, tempC: last.tempC, dewC: last.dewC, windKmh: last.windKmh, windDirDeg: last.windDirDeg };
   }
   const pick = pickZ != null ? sampleAt(pickZ) : null;
+  const mLevels = measured?.hasTemp ? measured.levels.filter((l) => l.zM >= data.surfaceM - 50) : [];
+  const mPick = pickZ != null && mLevels.length ? measuredAt(mLevels, pickZ) : null;
 
   // Sichtbare Niveaus (innerhalb Cap, plus erstes darüber für stetige Kurven).
   const vis = data.levels.filter((l) => l.heightM <= capM + 1);
@@ -76,6 +83,7 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
   const temps: number[] = [];
   for (const l of vis) { temps.push(l.tempC, l.dewC); }
   for (const p of data.parcel) { if (p.heightM <= capM) temps.push(p.tempC); }
+  for (const l of mLevels) { if (l.zM <= capM) { if (l.tC != null) temps.push(l.tC); if (l.tdC != null) temps.push(l.tdC); } }
   let tMin = Math.min(...temps), tMax = Math.max(...temps);
   if (!Number.isFinite(tMin) || !Number.isFinite(tMax) || tMin === tMax) { tMin = -20; tMax = 30; }
   tMin = Math.floor((tMin - 2) / 5) * 5; tMax = Math.ceil((tMax + 2) / 5) * 5;
@@ -85,6 +93,20 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
   const tPath = line(curveLevels.map((l) => ({ x: xOf(l.tempC), y: yOf(l.heightM) })));
   const tdPath = line(curveLevels.map((l) => ({ x: xOf(l.dewC), y: yOf(l.heightM) })));
   const parcelPath = line(data.parcel.filter((p) => p.heightM <= capM + 1).map((p) => ({ x: xOf(p.tempC), y: yOf(p.heightM) })));
+  // Gemessen: Lücken (nicht gemessen) unterbrechen die Linie.
+  const gapLine = (val: (l: typeof mLevels[number]) => number | null) => {
+    let d = '', pen = false;
+    for (const l of mLevels) {
+      if (l.zM > capM + 200) break;
+      const v = val(l);
+      if (v == null) { pen = false; continue; }
+      d += `${pen ? 'L' : 'M'}${xOf(v).toFixed(1)} ${yOf(l.zM).toFixed(1)}`;
+      pen = true;
+    }
+    return d;
+  };
+  const mtPath = gapLine((l) => l.tC);
+  const mtdPath = gapLine((l) => l.tdC);
 
   const hStep = capM <= 4000 ? 1000 : capM <= 8000 ? 2000 : 3000;
   const hTicks: number[] = [];
@@ -182,6 +204,9 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         {/* Taupunkt (steel) + Temperatur (terracotta) */}
         <path d={tdPath} fill="none" stroke="var(--steel-600, #3A6FA8)" strokeWidth={2} strokeLinejoin="round" />
         <path d={tPath} fill="none" stroke="var(--terracotta-500, #C97B47)" strokeWidth={2.2} strokeLinejoin="round" />
+        {/* Gemessen (Radiosonde) — punktiert, eigene Linie */}
+        {mtdPath && <path d={mtdPath} fill="none" stroke="var(--steel-600, #3A6FA8)" strokeWidth={1.8} strokeDasharray="0.5 3" strokeLinecap="round" />}
+        {mtPath && <path d={mtPath} fill="none" stroke="var(--ink-900, #2C2A26)" strokeWidth={1.8} strokeDasharray="0.5 3" strokeLinecap="round" />}
 
         {/* Höhenwind-Pfeile (rechte Spalte) */}
         {thinByY(vis, (l) => yOf(l.heightM), 14).map((l, i) => {
@@ -212,7 +237,7 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
           <g pointerEvents="none">
             <line x1={PLOT_X0} y1={yOf(pick.heightM)} x2={WIND_X} y2={yOf(pick.heightM)}
               stroke="var(--ink-900, #2C2A26)" strokeDasharray="2 2" opacity={0.45} />
-            <rect x={PLOT_X0 + 2} y={Math.max(TOP, yOf(pick.heightM) - 30)} width={158} height={27} rx={4}
+            <rect x={PLOT_X0 + 2} y={Math.max(TOP, yOf(pick.heightM) - 30)} width={158} height={mPick ? 38 : 27} rx={4}
               fill="#fff" stroke="var(--sand-200, #E0D6BE)" opacity={0.96} />
             <text x={PLOT_X0 + 8} y={Math.max(TOP, yOf(pick.heightM) - 30) + 11} className="atm-prof-tag">
               {de0(pick.heightM)} m · {de1(pick.tempC)}° / Td {de1(pick.dewC)}°
@@ -220,6 +245,11 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
             <text x={PLOT_X0 + 8} y={Math.max(TOP, yOf(pick.heightM) - 30) + 22} className="atm-prof-tag">
               Wind {de0(pick.windKmh)} km/h {compass(pick.windDirDeg)}
             </text>
+            {mPick && (
+              <text x={PLOT_X0 + 8} y={Math.max(TOP, yOf(pick.heightM) - 30) + 33} className="atm-prof-tag">
+                gemessen {mPick.tC == null ? '–' : `${de1(mPick.tC)}°`} / Td {mPick.tdC == null ? '–' : `${de1(mPick.tdC)}°`}
+              </text>
+            )}
           </g>
         )}
 
@@ -235,6 +265,7 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         <span><i style={{ background: 'var(--steel-600, #3A6FA8)' }} />Taupunkt</span>
         <span><i className="dash" />Parcel</span>
         <span><i style={{ background: 'var(--amber-500, #D4A373)' }} />Inversion</span>
+        {(mtPath || mtdPath) && <span><i style={{ background: 'none', borderTop: '2px dotted var(--ink-900, #2C2A26)' }} />gemessen</span>}
         {data.shearZones.length > 0 && <span><i style={{ background: 'var(--terracotta-500, #C97B47)' }} />Scherung</span>}
         <span className="atm-prof-hint">· über die Kurve fahren für Werte</span>
       </div>
@@ -242,8 +273,22 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         {source ?? 'ICON-EU (~7 km, Druckflächen)'} · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·
         <strong> Richtwert</strong>; Thermik: {data.thermalSource?.note ?? 'Schätzung aus dem Profil'}, kein Steigwert.{data.inversionNote ? ` ${data.inversionNote}.` : ''}
       </p>
+      <p className="atm-prof-source">
+        {measured?.hasTemp
+          ? <><strong>Gemessen</strong> (punktiert): {measuredCaption(measured)} — eigene Linie, nicht mit dem Modell verrechnet.</>
+          : <>Gemessen: {measuredNote ?? 'kein Radiosonden-Aufstieg in der Nähe'}.</>}
+      </p>
     </div>
   );
+}
+
+/** Measured T/Td at height z: linear between the neighbouring levels, null where one side is not measured or z lies outside. */
+function measuredAt(ls: MeasuredSounding['levels'], z: number): { tC: number | null; tdC: number | null } | null {
+  if (z < ls[0].zM || z > ls[ls.length - 1].zM) return null;
+  let i = 1; while (i < ls.length - 1 && ls[i].zM < z) i++;
+  const a = ls[i - 1], b = ls[i], t = b.zM === a.zM ? 0 : (z - a.zM) / (b.zM - a.zM);
+  const lerp = (x: number | null, y: number | null) => (x == null || y == null ? null : x + (y - x) * t);
+  return { tC: lerp(a.tC, b.tC), tdC: lerp(a.tdC, b.tdC) };
 }
 
 /** Keeps the levels at least `minPx` apart on screen (the height cube has up to 43 levels; arrows would overlap). */

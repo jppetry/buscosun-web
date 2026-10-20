@@ -1,0 +1,93 @@
+# ============================================================================
+# radiosonde.yml — radiosonde mirror radiosonde/v1 (DWD TEMP bulletins + GPS tracks, DACH and neighbours)
+#
+# TEMPLATE. Lives as `.github/workflows/radiosonde.yml` in `jppetry/buscosun-data`. The code lives in `buscosun-web`
+# (`scripts/radiosonde/*`, contract `src/atmosphere/rsContract.ts`, decoder `src/atmosphere/tempBufr.ts`) and is cloned
+# fresh from RS_PRODUCER_REF (default `main`) on every run. Producer missing there ⇒ the job says so and ends green.
+#
+# Every 20 min: list opendata.dwd.de/weather/weather_reports/radiosonde/{bufr,trajectories}/ (≈ 48 h window, no CORS),
+# fetch only files not in radiosonde/v1/state.json, keep the best bulletin per ascent, 96 h retention.
+# `rs-publish.mjs` starts every attempt from the CURRENT origin/main (no rebase), commits only `radiosonde/`.
+#
+# Kill switch: repo variable RS_KILL=1.
+# ============================================================================
+
+name: radiosonde
+
+on:
+  schedule:
+    - cron: '4,24,44 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: radiosonde-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  radiosonde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ vars.RS_KILL != '1' }}
+    env:
+      RS_PRODUCER_REF: ${{ vars.RS_PRODUCER_REF || 'main' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, sparse)
+        id: app
+        run: |
+          REF="${RS_PRODUCER_REF:-main}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            echo "producer ref $REF not found — end without error."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          # Every file the producer reads (V-SW-18).
+          git sparse-checkout set --no-cone scripts/radiosonde scripts/lib src/atmosphere/rsContract.ts src/atmosphere/tempBufr.ts package.json
+          git checkout --quiet
+          for f in scripts/radiosonde/rs-mirror.mjs scripts/radiosonde/rs-publish.mjs src/atmosphere/rsContract.ts src/atmosphere/tempBufr.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f missing) — end without error."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout radiosonde store (buscosun-data, sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: radiosonde
+          sparse-checkout-cone-mode: true
+
+      - name: Prepare store
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd data
+          git config user.name  'buscosun-radiosonde[bot]'
+          git config user.email 'radiosonde@users.noreply.github.com'
+          mkdir -p ../store
+          if [ -d radiosonde/v1 ]; then cp -r radiosonde/v1/. ../store/; fi
+
+      - name: Mirror
+        id: mirror
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/radiosonde/rs-mirror.mjs --store=../store | tee ../mirror.log
+          echo "summary=$(tail -1 ../mirror.log)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        if: steps.app.outputs.ready == '1' && steps.mirror.outcome == 'success'
+        run: |
+          cd app
+          node scripts/radiosonde/rs-publish.mjs --repo=../data --store=../store \
+            --message="radiosonde: mirror $(date -u +%Y-%m-%dT%H:%MZ)"

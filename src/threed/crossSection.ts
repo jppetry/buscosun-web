@@ -22,6 +22,7 @@
  */
 
 import type { SectionColumn } from './sectionGeometry';
+import type { SectionMeasured } from '../atmosphere/radiosonde';
 
 /** Standard-Lapse-Rate (°C/m). */
 const LAPSE = 0.0065;
@@ -145,6 +146,8 @@ export interface CrossSection {
   inversion: InversionInfo;
   valley: PeakMark;
   summit: PeakMark;
+  /** Gemessener Aufstieg neben der Linie (Radiosonden-Spiegel) — eigene Säule, nie in die Zellen gerechnet. */
+  measured?: SectionMeasured | null;
 }
 
 export interface CrossSectionInput {

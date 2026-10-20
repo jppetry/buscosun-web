@@ -24,6 +24,7 @@ import {
   assembleCrossSection, DEFAULT_ALPHA, type AnchorSurface, type CrossSection, type SectionColumnTerrain,
 } from './crossSection';
 import { aloftAt, loadSectionAloft, type SectionAloft } from '../atmosphere/atmoSection';
+import { fetchMeasuredForLine, type SectionMeasured } from '../atmosphere/radiosonde';
 
 const COLUMNS = 64;
 const ANCHORS = 5;            // wenige Ankerpunkte → rate-limitierte Quellen (GeoSphere) schonen
@@ -88,6 +89,9 @@ export interface PreparedSection {
   /** Höhen-Cube je Spalte (`columns`-Reihenfolge) — null = Potenzgesetz-Rückfall, Grund in `aloftReason`. */
   aloft?: SectionAloft | null;
   aloftReason?: string | null;
+  /** Radiosonden-Aufstieg neben der Linie (null = keiner, Grund in `measuredReason`). */
+  measured?: SectionMeasured | null;
+  measuredReason?: string | null;
 }
 
 /** Herkunft des Schnitt-Wetters (V-FR-10): der Stand von buscosun Fusion, der gerechnet hat, oder der Live-Rückfall. */
@@ -148,7 +152,8 @@ export function sectionAtTime(prepared: PreparedSection, tMs: number, alpha?: nu
   const aloft = a ? prepared.columns.map((_, i) => aloftAt(a, i, tMs)) : undefined;
   const reason = prepared.aloftReason ?? (a && aloft!.some((x) => !x) ? `Lauf ${fmtRun(a.runAtMs)} deckt diese Zeit nicht (bis +48 h)` : null);
   // Inversion nur aus dem Cube (T-Profil über dem Tal), keine Anker-Schätzung.
-  return assembleCrossSection({ columns: prepared.columns, anchors, alpha, aloft, aloftRunAtMs: a?.runAtMs ?? null, aloftReason: reason, inversion: 'cube' });
+  const section = assembleCrossSection({ columns: prepared.columns, anchors, alpha, aloft, aloftRunAtMs: a?.runAtMs ?? null, aloftReason: reason, inversion: 'cube' });
+  return { ...section, measured: prepared.measured ?? null };
 }
 
 /** Holt Gelände + Anker-Forecasts für die Schnittlinie (einmalig, teuer). */
@@ -184,6 +189,8 @@ export async function prepareCrossSection(
   const anchorCols = pickAnchorColumns(columns, ANCHORS);
   const aloftLoad = loadSectionAloft(columns, signal).finally(() => { done++; onProgress?.({ phase: 'Höhen-Cube geladen', done, total }); });
   aloftLoad.catch(() => {}); // abort only; awaited below
+  const measuredLoad = fetchMeasuredForLine(columns, signal);
+  measuredLoad.catch(() => {});
   let anchorsDone = 0;
   const forecasts = await mapLimit(anchorCols, ANCHOR_CONCURRENCY, (col) =>
     getFusionForecast({ lat: col.lat, lng: col.lon, country: pickCountry(col.lat, col.lon), hours: FORECAST_HOURS, signal }, 'section')
@@ -217,8 +224,9 @@ export async function prepareCrossSection(
   }
   if (!anchors.length) throw new Error('Keine Wetterdaten für die Schnittlinie verfügbar.');
   const { aloft, reason: aloftReason } = await aloftLoad;
+  const { measured, reason: measuredReason } = await measuredLoad;
 
-  return { columns, anchors, startMs, endMs, runAtMs: runAtMs || Date.now(), source: fusionSourceOf(forecasts.map((f) => f?.fc)), points, aloft, aloftReason };
+  return { columns, anchors, startMs, endMs, runAtMs: runAtMs || Date.now(), source: fusionSourceOf(forecasts.map((f) => f?.fc)), points, aloft, aloftReason, measured, measuredReason };
 }
 
 /** map mit begrenzter Parallelität (Reihenfolge des Ergebnisses bleibt erhalten). */
