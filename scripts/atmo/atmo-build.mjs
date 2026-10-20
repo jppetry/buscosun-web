@@ -25,7 +25,7 @@ import {
   ATMO_SCHEMA, ATMO_DIR, ATMO_MODEL, ATMO_ATTRIBUTION, ATMO_LEVELS, ATMO_STEPS, ATMO_GRID, ATMO_RUN_EVERY_H, VARS, MISSING,
   GRID_NY, GRID_NX, TILE_CELLS, TILES_Y, TILES_X, gridLat, gridLon, tileExtent, runName, runMs, payloadLength,
   encodePayload, shuffle, packTile, checkColumnStep,
-  FOEHN_STATIONS,
+  FOEHN_STATIONS, CAPPED, SNOWLMT_CAP_HZEROCL_M,
   SFC_STEP, SFC_NY, SFC_NX, SFC_TILE_CELLS, SFC_TILES_Y, SFC_TILES_X, SFC_VARS, sfcLat, sfcLon, sfcTileExtent, sfcPayloadLength, encodeSfcPayload,
 } from '../../src/atmosphere/atmoContract.ts';
 
@@ -187,13 +187,21 @@ for (let s = 0; s < NSTEP; s++) {
     if (!Number.isFinite(hpa) || hpa < 900 || hpa > 1085) { badPmsl++; return; }
     PMSL[j][s] = Math.round(hpa * 10) / 10;
   });
-  (await Promise.all(sfcFields)).forEach((vals, vi) => {
+  const sfcVals = await Promise.all(sfcFields);
+  const hz = sfcVals[SFC_VARS.findIndex((v) => v.id === 'hzerocl')];
+  sfcVals.forEach((vals, vi) => {
     const v = SFC_VARS[vi], q = QS[v.id];
     for (let c = 0; c < NSFC; c++) {
-      const x = vals[c];
-      if (!Number.isFinite(x)) { q[c * NSTEP + s] = MISSING; continue; }
+      let x = vals[c];
+      const hs = hsurfAll[sfcIdx[c]];
+      if (v.id === 'cin_ml' && x <= -999) x = NaN; // DWD fill: no free convection
+      if (!Number.isFinite(x)) {
+        // Snow limit undefined while the freezing level is just above the ground ⇒ below the model ground.
+        q[c * NSTEP + s] = v.id === 'snowlmt' && Number.isFinite(hz[c]) && hz[c] - hs < SNOWLMT_CAP_HZEROCL_M ? CAPPED : MISSING;
+        continue;
+      }
       if (x < v.min || x > v.max) badSfc++;
-      q[c * NSTEP + s] = Math.round(x * v.scale);
+      q[c * NSTEP + s] = v.groundCapM != null && x <= hs + v.groundCapM ? CAPPED : Math.round(x * v.scale);
     }
   });
   const pcol = new Float64Array(NLEV), tcol = new Float64Array(NLEV), rcol = new Float64Array(NLEV);

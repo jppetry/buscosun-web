@@ -20,8 +20,14 @@
  * Surface fields `atmo/v1/<run>/sfc/<ty>_<tx>.bin` (same container, header `kind: 'sfc'`): the DWD thermal fields on a
  * finer 0.02° grid (≈ ICON-D2 spacing; nearest cell, never averaged), same 0.5° tile blocks as the cube:
  *   HTOP_DC — top of dry convection (m above MSL; ≤ HSURF = no dry convection),
- *   HBAS_SC — base of shallow convection cloud = cumulus base (m above MSL; 0 = no cumulus).
- * Payload: per cell hsurf, then per var, per cell the series over STEPS (time delta, zigzag), shuffled, deflate-raw.
+ *   HBAS_SC — base of shallow convection cloud = cumulus base (m above MSL; 0 = no cumulus),
+ *   HTOP_SC — top of shallow convection cloud (m above MSL; 0 = no cumulus),
+ *   CEILING — ceiling (m above MSL), HZEROCL — freezing level (m above MSL), SNOWLMT — snow limit (m above MSL),
+ *   CAPE_ML / CIN_ML — mixed-layer CAPE / CIN (J/kg; DWD fill −999.9 for CIN = no free convection ⇒ MISSING).
+ * Values cut off at the model ground carry `CAPPED` (= at or below the model terrain; measured 20.10.2026: HZEROCL is
+ * set to HSURF, SNOWLMT becomes NaN close above or ≥ HSURF + 10, CEILING sits on the lowest model level in fog).
+ * The var list of a tile is its header's `vars` (older runs carry fewer). Payload: per cell hsurf, then per var, per
+ * cell the series over STEPS (time delta, zigzag), shuffled, deflate-raw.
  *
  * Foehn pressure `atmo/v1/<run>/foehn.json`: ICON-D2 PMSL (hPa) over STEPS at the nearest cell of the FOEHN_STATIONS
  * (cross-Alpine pairs Lugano–Zürich and Bozen–Innsbruck).
@@ -34,6 +40,8 @@ export const ATMO_MAGIC = 0x54415342; // 'BSAT' read as u32 LE
 export const ATMO_DIR = 'atmo/v1';
 export const ATMO_INDEX_PATH = `${ATMO_DIR}/index.json`;
 export const MISSING = -32768;
+/** Surface fields only: value cut off at the model ground (see the sfc section). */
+export const CAPPED = -32767;
 
 export const ATMO_MODEL = 'icon-d2';
 export const ATMO_SOURCE_LABEL = 'ICON-D2 (DWD, 2,2 km, Modellflächen)';
@@ -304,11 +312,25 @@ export const SFC_TILE_CELLS = 25;
 export const SFC_TILES_Y = Math.ceil(SFC_NY / SFC_TILE_CELLS);
 export const SFC_TILES_X = Math.ceil(SFC_NX / SFC_TILE_CELLS);
 
-export interface SfcVar { id: 'htop_dc' | 'hbas_sc'; param: string; unit: string; scale: number; min: number; max: number }
+export type SfcVarId = 'htop_dc' | 'hbas_sc' | 'htop_sc' | 'ceiling' | 'hzerocl' | 'snowlmt' | 'cape_ml' | 'cin_ml';
+export interface SfcVar {
+  id: SfcVarId; param: string; unit: string; scale: number; min: number; max: number;
+  /** Height field cut off at the model ground: value ≤ HSURF + groundCapM ⇒ CAPPED. */
+  groundCapM?: number;
+}
+/** Append only — the order is the payload order of new runs. */
 export const SFC_VARS: readonly SfcVar[] = Object.freeze([
   { id: 'htop_dc', param: 'HTOP_DC', unit: 'm', scale: 1, min: -1000, max: 15000 },
   { id: 'hbas_sc', param: 'HBAS_SC', unit: 'm', scale: 1, min: 0, max: 15000 },
+  { id: 'htop_sc', param: 'HTOP_SC', unit: 'm', scale: 1, min: 0, max: 20000 },
+  { id: 'ceiling', param: 'CEILING', unit: 'm', scale: 1, min: -500, max: 25000, groundCapM: 20 },
+  { id: 'hzerocl', param: 'HZEROCL', unit: 'm', scale: 1, min: -500, max: 8000, groundCapM: 1 },
+  { id: 'snowlmt', param: 'SNOWLMT', unit: 'm', scale: 1, min: -500, max: 8000, groundCapM: 10 },
+  { id: 'cape_ml', param: 'CAPE_ML', unit: 'J/kg', scale: 1, min: 0, max: 15000 },
+  { id: 'cin_ml', param: 'CIN_ML', unit: 'J/kg', scale: 1, min: -1500, max: 1500 },
 ]);
+/** SNOWLMT NaN while the freezing level is less than this above the model ground ⇒ snow limit below ground (CAPPED). */
+export const SNOWLMT_CAP_HZEROCL_M = 500;
 
 export const sfcLat = (iy: number) => +(ATMO_GRID.latMin + iy * SFC_STEP).toFixed(4);
 export const sfcLon = (ix: number) => +(ATMO_GRID.lonMin + ix * SFC_STEP).toFixed(4);
@@ -334,22 +356,26 @@ export interface AtmoSfcTile {
   header: AtmoSfcHeader;
   /** Model orography per cell (m above MSL), cell order iy-major. */
   hsurf: Float32Array;
-  /** `values[var][cell * nSteps + step]`, metres above MSL, NaN = missing. */
-  values: Record<SfcVar['id'], Float32Array>;
+  /** `values[var][cell * nSteps + step]` in the var's unit, NaN = missing; a CAPPED value reads as the cell's HSURF. */
+  values: Partial<Record<SfcVarId, Float32Array>>;
+  /** 1 = cut off at the model ground (same index as `values`). */
+  capped: Partial<Record<SfcVarId, Uint8Array>>;
 }
 
-export const sfcPayloadLength = (nCells: number, nSteps = ATMO_STEPS.length) => nCells + SFC_VARS.length * nCells * nSteps;
+export const sfcPayloadLength = (nCells: number, nSteps = ATMO_STEPS.length, nVars = SFC_VARS.length) => nCells + nVars * nCells * nSteps;
 
 export function encodeSfcPayload(p: Int16Array, nCells: number, nSteps: number): void {
-  for (let s = 0, ns = SFC_VARS.length * nCells; s < ns; s++) {
+  const nVars = (p.length - nCells) / (nCells * nSteps);
+  for (let s = 0, ns = nVars * nCells; s < ns; s++) {
     const o = nCells + s * nSteps;
     for (let t = nSteps - 1; t > 0; t--) p[o + t] = wrap16(p[o + t] - p[o + t - 1]);
   }
   for (let i = nCells; i < p.length; i++) p[i] = ((p[i] << 1) ^ (p[i] >> 15)) << 16 >> 16;
 }
 export function decodeSfcPayload(p: Int16Array, nCells: number, nSteps: number): void {
+  const nVars = (p.length - nCells) / (nCells * nSteps);
   for (let i = nCells; i < p.length; i++) { const u = p[i] & 0xffff; p[i] = (u >>> 1) ^ -(u & 1); }
-  for (let s = 0, ns = SFC_VARS.length * nCells; s < ns; s++) {
+  for (let s = 0, ns = nVars * nCells; s < ns; s++) {
     const o = nCells + s * nSteps;
     for (let t = 1; t < nSteps; t++) p[o + t] = wrap16(p[o + t] + p[o + t - 1]);
   }
@@ -360,17 +386,19 @@ export async function decodeAtmoSfcTile(bytes: Uint8Array): Promise<AtmoSfcTile>
   if (header.kind !== 'sfc') throw new Error('atmo: keine Bodenfeld-Kachel');
   const stream = new Blob([deflated as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
   const p = unshuffle(new Uint8Array(await new Response(stream).arrayBuffer()));
-  const nCells = header.ny * header.nx, nSteps = header.steps.length;
-  if (p.length !== sfcPayloadLength(nCells, nSteps)) throw new Error(`atmo: Bodenfeld-Nutzlast ${p.length} ≠ ${sfcPayloadLength(nCells, nSteps)}`);
+  const nCells = header.ny * header.nx, nSteps = header.steps.length, nVars = header.vars.length;
+  if (p.length !== sfcPayloadLength(nCells, nSteps, nVars)) throw new Error(`atmo: Bodenfeld-Nutzlast ${p.length} ≠ ${sfcPayloadLength(nCells, nSteps, nVars)}`);
   decodeSfcPayload(p, nCells, nSteps);
-  const f = (q: number, scale: number) => (q === MISSING ? NaN : q / scale);
   const hsurf = new Float32Array(nCells);
-  for (let c = 0; c < nCells; c++) hsurf[c] = f(p[c], 1);
-  const values = {} as AtmoSfcTile['values'];
-  SFC_VARS.forEach((v, vi) => {
-    const a = new Float32Array(nCells * nSteps), o = nCells + vi * nCells * nSteps;
-    for (let i = 0; i < a.length; i++) a[i] = f(p[o + i], v.scale);
-    values[v.id] = a;
+  for (let c = 0; c < nCells; c++) hsurf[c] = p[c] === MISSING ? NaN : p[c];
+  const values: AtmoSfcTile['values'] = {}, capped: AtmoSfcTile['capped'] = {};
+  header.vars.forEach((v, vi) => {
+    const a = new Float32Array(nCells * nSteps), m = new Uint8Array(nCells * nSteps), o = nCells + vi * nCells * nSteps;
+    for (let i = 0; i < a.length; i++) {
+      const q = p[o + i];
+      if (q === CAPPED) { a[i] = hsurf[Math.floor(i / nSteps)]; m[i] = 1; } else a[i] = q === MISSING ? NaN : q / v.scale;
+    }
+    values[v.id as SfcVarId] = a; capped[v.id as SfcVarId] = m;
   });
-  return { header, hsurf, values };
+  return { header, hsurf, values, capped };
 }

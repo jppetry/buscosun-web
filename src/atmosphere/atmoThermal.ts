@@ -2,11 +2,12 @@
  * DWD thermal fields from the height cube's surface tiles (`atmo/v1/<run>/sfc/`, ICON-D2 on 0.02°):
  *   thermal top = HTOP_DC (top of dry convection, model height above MSL; ≤ model terrain = no dry convection),
  *   cumulus base = HBAS_SC (base of shallow convection cloud, above MSL; 0 = no cumulus).
+ * `fields()` hands every other 2D field of the tile to the lenses, with the ground-capping flag.
  * Nearest cell, never averaged. Model heights, no climb rate. `null` = the field cannot serve this point/hour (older run
  * without surface tiles, outside the grid, beyond +48 h) — the caller falls back to the profile estimate and says so.
  */
 import {
-  ATMO_GRID, SFC_NX, SFC_NY, SFC_STEP, SFC_TILE_CELLS, decodeAtmoSfcTile, runMs, sfcTilePath, type AtmoSfcTile,
+  ATMO_GRID, SFC_NX, SFC_NY, SFC_STEP, SFC_TILE_CELLS, decodeAtmoSfcTile, runMs, sfcTilePath, type AtmoSfcTile, type SfcVarId,
 } from './atmoContract';
 import { fetchTileBytes, loadAtmoIndex } from './atmoSounding';
 
@@ -21,11 +22,17 @@ export interface ThermalAt {
   hsurfM: number;
 }
 
+/** One 2D field value at a cell: `value` null = missing; `capped` = cut off at the model ground (value = model terrain). */
+export interface SfcValue { value: number | null; capped: boolean }
+
 export interface ThermalField {
   runAtMs: number;
   validMs: number;
   /** Nearest cell at a location; null outside the loaded tiles or missing. */
   at(lat: number, lon: number): ThermalAt | null;
+  /** Every 2D field of the run at the nearest cell (HTOP_SC, CEILING, HZEROCL, SNOWLMT, CAPE_ML, CIN_ML, …); a field the
+   *  run does not carry is absent. null outside the loaded tiles. */
+  fields(lat: number, lon: number): (Partial<Record<SfcVarId, SfcValue>> & { hsurfM: number }) | null;
 }
 
 /** `?snd=eu` (the named fallback of the profile) also switches the thermal back to the estimate. */
@@ -74,17 +81,30 @@ export async function loadThermalField(
       }
     }
     await Promise.all(jobs);
+    const cellOf = (lat: number, lon: number) => {
+      const gy = iy(lat), gx = ix(lon);
+      const t = tiles.get(`${Math.floor(gy / SFC_TILE_CELLS)}_${Math.floor(gx / SFC_TILE_CELLS)}`);
+      if (!t) return null;
+      const s = t.header.steps.indexOf(step);
+      if (s < 0) return null;
+      return { t, i: ((gy - t.header.y0) * t.header.nx + (gx - t.header.x0)) * t.header.steps.length + s, c: (gy - t.header.y0) * t.header.nx + (gx - t.header.x0) };
+    };
     const field: ThermalField = {
       runAtMs: runMs(run.run), validMs: hourMs,
+      fields(lat, lon) {
+        const k = cellOf(lat, lon);
+        if (!k) return null;
+        const out: Partial<Record<SfcVarId, SfcValue>> & { hsurfM: number } = { hsurfM: k.t.hsurf[k.c] };
+        for (const id of Object.keys(k.t.values) as SfcVarId[]) {
+          const x = k.t.values[id]![k.i];
+          out[id] = { value: Number.isFinite(x) ? x : null, capped: k.t.capped[id]![k.i] === 1 };
+        }
+        return out;
+      },
       at(lat, lon) {
-        const gy = iy(lat), gx = ix(lon);
-        const t = tiles.get(`${Math.floor(gy / SFC_TILE_CELLS)}_${Math.floor(gx / SFC_TILE_CELLS)}`);
-        if (!t) return null;
-        const s = t.header.steps.indexOf(step);
-        if (s < 0) return null;
-        const c = (gy - t.header.y0) * t.header.nx + (gx - t.header.x0);
-        const n = t.header.steps.length;
-        const top = t.values.htop_dc[c * n + s], cu = t.values.hbas_sc[c * n + s], hs = t.hsurf[c];
+        const k = cellOf(lat, lon);
+        if (!k || !k.t.values.htop_dc || !k.t.values.hbas_sc) return null;
+        const top = k.t.values.htop_dc[k.i], cu = k.t.values.hbas_sc[k.i], hs = k.t.hsurf[k.c];
         if (!Number.isFinite(top) || !Number.isFinite(hs)) return null;
         return { topM: top, depthM: Math.max(0, top - hs), cuBaseM: Number.isFinite(cu) && cu > 0 ? cu : null, hsurfM: hs };
       },
