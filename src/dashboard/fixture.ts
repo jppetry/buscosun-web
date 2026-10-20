@@ -143,6 +143,12 @@ export function templateVM(): DashboardVM {
       sectors: [{ deg: 0, share: 0.06 }, { deg: 45, share: 0 }, { deg: 90, share: 0 }, { deg: 135, share: 0 }, { deg: 180, share: 0.08 }, { deg: 225, share: 0.34 }, { deg: 270, share: 0.3 }, { deg: 315, share: 0.22 }],
       nowDeg: 228, title: s('P64', 'SW · 228°'), reach: s('P65', `46${NB}h`), reachHours: 46, reachPct: 14,
     },
+    windRose: {
+      state: 'ok', hours: 48,
+      sectors: Array.from({ length: 16 }, (_, i) => ({ deg: i * 22.5, share: 0, classes: [0, 0, 0, 0] })),
+      classLabels: ['< 3', '3–6', '6–10', '≥ 10'], classShare: [0, 0, 0, 0], unresolvedShare: 0, nowDeg: 228, nowWind: null,
+      headline: na('P63', 'Vorlage ohne Stundenwerte'), detail: na('P63', 'Vorlage ohne Stundenwerte'),
+    },
     precip: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, hours: [], sum: s('P94', `0,0${NB}mm`), peak: na('P94', 'Vorlage ohne Stundenwerte'), wetHours: s('P94', '0 von 0 h'), caption: s('P94', 'Vorlage') },
     windBand: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, points: [], gustMax: na('P95', 'Vorlage ohne Stundenwerte'), windMax: na('P95', 'Vorlage ohne Stundenwerte'), caption: s('P95', 'Vorlage') },
     pressure: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, points: [], now: na('P96', 'Vorlage ohne Stundenwerte'), tendency: na('P96', 'Vorlage ohne Stundenwerte'), tendencyDir: null, range: na('P96', 'Vorlage ohne Stundenwerte'), caption: s('P96', 'Vorlage') },

@@ -251,6 +251,37 @@
 .dbd-wind-text { font-size: 10px; color: var(--dbd-muted); margin-top: 2px; line-height: 1.5; }
 .dbd-wind-text strong { color: var(--dbd-ink); }
 .dbd-wind-bar { height: 5px; background: var(--dbd-line); border-radius: 3px; margin-top: 8px; position: relative; }
+/* Windrose · Verteilung */
+.dbd-rose { margin-top: 12px; }
+.dbd-rose-head { display: flex; align-items: baseline; justify-content: space-between; }
+.dbd-rose-range { font-size: 10.5px; color: var(--dbd-muted); }
+.dbd-rose-main { display: flex; align-items: center; gap: 28px; margin-top: 6px; }
+.dbd-rose-svg { flex: 0 0 auto; width: 280px; height: 280px; max-width: 100%; overflow: visible; }
+.dbd-rose-ring { font-family: 'League Spartan', sans-serif; font-size: 8.5px; font-weight: 600; fill: #8B7355; paint-order: stroke; stroke: #FAF6EA; stroke-width: 2.6px; stroke-linejoin: round; }
+.dbd-rose-petal path { transition: filter .15s; }
+.dbd-rose-petal:hover path { filter: brightness(.93) saturate(1.15); }
+.dbd-rose-body { flex: 1; min-width: 0; max-width: 420px; }
+.dbd-rose-headline { font-size: 26px; font-weight: 700; color: var(--dbd-ink); letter-spacing: -.4px; line-height: 1.1; }
+.dbd-rose-detail { font-size: 13px; color: var(--dbd-muted); margin-top: 4px; }
+.dbd-rose-legend { margin-top: 16px; display: grid; gap: 7px; }
+.dbd-rose-row { display: grid; grid-template-columns: 12px 78px 1fr 44px; align-items: center; gap: 9px; font-size: 12px; color: #5C5447; }
+.dbd-rose-row i { width: 12px; height: 12px; border-radius: 4px; border: 1px solid rgba(44, 42, 38, .12); }
+.dbd-rose-row i.is-hatched { background: repeating-linear-gradient(45deg, #D9CFB4 0 2px, #FAF6EA 2px 4px); }
+.dbd-rose-bar { height: 6px; border-radius: 3px; background: var(--dbd-line); overflow: hidden; }
+.dbd-rose-bar b { display: block; height: 100%; border-radius: 3px; }
+.dbd-rose-pct { text-align: right; font-weight: 700; color: var(--dbd-ink); font-variant-numeric: tabular-nums; }
+.dbd-rose-now { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--dbd-line); font-size: 12.5px; color: var(--dbd-ink); }
+.dbd-rose-now i { width: 9px; height: 9px; border-radius: 50%; background: var(--dbd-ink); box-shadow: 0 0 0 2px #FAF6EA, 0 0 0 3px var(--dbd-ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .dbd-rose-petal { transform-origin: 150px 150px; animation: dbd-rose-in .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 18ms); }
+  @keyframes dbd-rose-in { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
+}
+@media (max-width: 767px) {
+  .dbd-rose-main { flex-direction: column; align-items: stretch; gap: 14px; }
+  .dbd-rose-svg { align-self: center; width: min(280px, 100%); height: auto; aspect-ratio: 1; }
+  .dbd-rose-body { max-width: none; }
+  .dbd-rose-headline { font-size: 22px; }
+}
 .dbd-wind-bar > div { position: absolute; left: 0; top: 0; bottom: 0; background: var(--dbd-sage); border-radius: 3px; }
 
 /* Terrain-Feld */

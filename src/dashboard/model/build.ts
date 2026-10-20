@@ -15,7 +15,7 @@ import {
 } from './rules';
 import type {
   CloudsVM, ConfVM, DashboardVM, DashInputs, DayVM, HourlyVM, IconD2VM, NowcastVM, NowVM, PhaseVM, PollenVM, Shown,
-  TerrainVM, TopVM, UvVM, WarningVM, WindVM, ZoneVM, FusionIn, PrecipVM, WindBandVM, PressureVM,
+  TerrainVM, TopVM, UvVM, WarningVM, WindVM, WindRoseVM, ZoneVM, FusionIn, PrecipVM, WindBandVM, PressureVM,
 } from './types';
 
 const H = 3_600_000;
@@ -114,6 +114,7 @@ export function buildDashboardVM(inp: DashInputs): DashboardVM {
     nowcast: buildNowcast(inp),
     clouds: buildClouds(ctx),
     wind: buildWind(ctx),
+    windRose: buildWindRose(ctx),
     precip: buildPrecip(ctx),
     windBand: buildWindBand(ctx),
     pressure: buildPressure(ctx),
@@ -677,6 +678,70 @@ function buildWind(c: Ctx): WindVM {
     reachHours: reachH,
     reachPct: reachH == null ? null : Math.round((reachH / 336) * 100),
   };
+}
+
+/** Windklassen der Rose in m/s (Obergrenzen; die letzte ist offen). */
+const ROSE_BOUNDS = [3, 6, 10];
+const ROSE_LABELS = ['< 3', '3–6', '6–10', '≥ 10'];
+
+/**
+ * Windrose · Verteilung (P63): wie buscosun Fusion die Herkunftsrichtung (p50) über den gewählten Zeitraum verteilt,
+ * je Stunde nach Windklasse (p50) eingeordnet und mit der Dauer des Zeitschritts gewichtet (die Schritte sind nicht
+ * gleich lang). Stunden ohne freigegebene Richtung gehen in `unresolvedShare`, nie in einen Sektor.
+ */
+function buildWindRose(c: Ctx): WindRoseVM {
+  const s0 = c.s0;
+  const hours = DASH_RANGE_HOURS[c.inp.range];
+  const empty = (headline: Shown, detail: Shown, state: WindRoseVM['state']): WindRoseVM => ({
+    state, hours, sectors: Array.from({ length: 16 }, (_, i) => ({ deg: i * 22.5, share: 0, classes: ROSE_LABELS.map(() => 0) })),
+    classLabels: ROSE_LABELS, classShare: ROSE_LABELS.map(() => 0), unresolvedShare: 0, nowDeg: null, nowWind: null, headline, detail,
+  });
+  if (!c.f || !s0) return empty(loading('P63'), loading('P63'), 'loading');
+  const inRange = c.steps.filter((s) => s.validAtMs <= s0.validAtMs + hours * H);
+  const acc = Array.from({ length: 16 }, () => ROSE_LABELS.map(() => 0));
+  let total = 0, unresolved = 0;
+  for (const s of inRange) {
+    const gi = c.steps.indexOf(s);
+    const next = c.steps[gi + 1], prev = c.steps[gi - 1];
+    const dt = Math.min(6 * H, Math.max(H, next ? next.validAtMs - s.validAtMs : prev ? s.validAtMs - prev.validAtMs : H));
+    total += dt;
+    const d = v(s, 'windDir');
+    if (d == null) { unresolved += dt; continue; }
+    const w = v(s, 'wind');
+    const cls = w == null ? 0 : ROSE_BOUNDS.filter((b) => w >= b).length;
+    acc[Math.round((((d % 360) + 360) % 360) / 22.5) % 16][cls] += dt;
+  }
+  const sectors = acc.map((cl, i) => {
+    const classes = cl.map((x) => (total ? x / total : 0));
+    return { deg: i * 22.5, share: classes.reduce((a, b) => a + b, 0), classes };
+  });
+  const classShare = ROSE_LABELS.map((_, k) => sectors.reduce((a, s) => a + s.classes[k], 0));
+  const unresolvedShare = total ? unresolved / total : 0;
+  const resolved = 1 - unresolvedShare;
+  // Kopfzeile: 45°-Fächer (Mitte ± halbe Nachbarn), größter Fächer allein oder mit dem stärkeren Nachbarn („SW–W").
+  const bins = Array.from({ length: 8 }, (_, k) => sectors[2 * k].share + 0.5 * (sectors[(2 * k + 15) % 16].share + sectors[(2 * k + 1) % 16].share));
+  const top = bins.indexOf(Math.max(...bins));
+  const nb = bins[(top + 1) % 8] >= bins[(top + 7) % 8] ? (top + 1) % 8 : (top + 7) % 8;
+  const pair = bins[nb] >= 0.6 * bins[top];
+  const names = (k: number) => compass8(k * 45);
+  const first = pair && nb === (top + 7) % 8 ? nb : top;
+  const second = pair ? (first === top ? nb : top) : null;
+  const shareTop = bins[top] + (pair ? bins[nb] : 0);
+  const pct = (x: number) => `${Math.round(x * 100)}${NBSP}%`;
+  const wind0 = v(s0, 'wind');
+  let headline: Shown;
+  let detail: Shown;
+  if (!inRange.length || resolved < 0.05) {
+    headline = na('P63', 'Richtung im Zeitraum nicht freigegeben (schwacher, drehender Wind)');
+    detail = na('P63', 'keine Richtungsverteilung ohne freigegebene Richtung');
+  } else if (shareTop / resolved < 0.3) {
+    headline = { t: 'Richtung wechselnd', o: 'P63' };
+    detail = { t: `größter Anteil ${names(top)} mit ${pct(bins[top])} der Zeit`, o: 'P63' };
+  } else {
+    headline = { t: `meist aus ${second == null ? names(first) : `${names(first)}–${names(second)}`}`, o: 'P63' };
+    detail = { t: `${pct(shareTop)} der Zeit${unresolvedShare >= 0.05 ? ` · ${pct(unresolvedShare)} ohne Richtung` : ''}`, o: 'P63' };
+  }
+  return { state: 'ok', hours, sectors, classLabels: ROSE_LABELS, classShare, unresolvedShare, nowDeg: v(s0, 'windDir'), nowWind: wind0, headline, detail };
 }
 
 // ---------------------------------------------------------------------------

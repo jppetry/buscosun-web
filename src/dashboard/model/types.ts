@@ -227,6 +227,23 @@ export interface WindVM {
   reachPct: number | null;
 }
 
+/** Windrose · Verteilung (P63): Herkunftsrichtung im gewählten Zeitraum, nach Windklasse gestapelt, nach Zeitdauer gewichtet. */
+export interface WindRoseVM {
+  state: LoadState;
+  hours: number;
+  /** 16 Sektoren à 22,5° um die Herkunftsrichtung; `classes[i]` = Zeitanteil in Windklasse i, Summe = `share`. */
+  sectors: Array<{ deg: number; share: number; classes: number[] }>;
+  /** Windklassen in m/s, leicht → stark; `classShare` = Zeitanteil je Klasse über alle Richtungen. */
+  classLabels: string[];
+  classShare: number[];
+  /** Zeitanteil ohne freigegebene Richtung (schwacher, drehender Wind) — gehört in keinen Sektor. */
+  unresolvedShare: number;
+  nowDeg: number | null;
+  nowWind: number | null;
+  headline: Shown;
+  detail: Shown;
+}
+
 export interface TerrainVM {
   state: LoadState;
   halfKm: 20 | 50;
@@ -304,6 +321,7 @@ export interface DashboardVM {
   nowcast: NowcastVM;
   clouds: CloudsVM;
   wind: WindVM;
+  windRose: WindRoseVM;
   /** Jan 16.10.: drei Fusion-Kacheln im Reiter Details (P94–P96). */
   precip: PrecipVM;
   windBand: WindBandVM;

@@ -17,6 +17,7 @@ import { buildDashboardVM, shortName } from './model/build';
 import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, PlaceIn, PollenIn, TerrainIn, UvIn, WarningsIn } from './model/types';
 import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
+import { WindRoseTile } from './windRose';
 import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningStrip, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
@@ -298,6 +299,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
               <CloudsTile vm={vm.clouds} />
               <WindTile vm={vm.wind} />
             </div>
+            <WindRoseTile vm={vm.windRose} />
             <div className="dbd-row4">
               <PrecipTile vm={vm.precip} />
               <WindBandTile vm={vm.windBand} />
