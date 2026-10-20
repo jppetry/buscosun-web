@@ -7,9 +7,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from '
 import { dirname, join } from 'node:path';
 import { decodeGrib2 } from '../../src/sources/gribDecode.ts';
 
-const { idx, sfcIdx, cache, ua } = workerData;
-// `set: 'sfc'` = the cells of the 0.02° surface-field grid, else the cube columns.
-const sets = { col: new Int32Array(idx), sfc: new Int32Array(sfcIdx) };
+const { idx, sfcIdx, stnIdx, cache, ua } = workerData;
+// `set: 'sfc'` = the cells of the 0.02° surface-field grid, `stn` = the foehn stations, else the cube columns.
+const sets = { col: new Int32Array(idx), sfc: new Int32Array(sfcIdx), stn: new Int32Array(stnIdx) };
 
 async function getBytes(url) {
   const cf = cache ? join(cache, url.replace(/^https?:\/\//, '').replace(/[%:?]/g, '_')) : null;

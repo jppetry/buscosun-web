@@ -22,6 +22,9 @@
  *   HTOP_DC — top of dry convection (m above MSL; ≤ HSURF = no dry convection),
  *   HBAS_SC — base of shallow convection cloud = cumulus base (m above MSL; 0 = no cumulus).
  * Payload: per cell hsurf, then per var, per cell the series over STEPS (time delta, zigzag), shuffled, deflate-raw.
+ *
+ * Foehn pressure `atmo/v1/<run>/foehn.json`: ICON-D2 PMSL (hPa) over STEPS at the nearest cell of the FOEHN_STATIONS
+ * (cross-Alpine pairs Lugano–Zürich and Bozen–Innsbruck).
  */
 
 import { DACH_VIEW } from '../countryProfiles';
@@ -263,7 +266,33 @@ export interface AtmoIndex {
   /** Surface-field grid (thermal); absent in indexes written before it existed. */
   sfc?: { step: number; ny: number; nx: number; tileCells: number; tilesY: number; tilesX: number; vars: Array<{ id: string; unit: string; scale: number }> };
   /** Newest first. `sfcTiles` > 0 ⇔ the run carries the surface fields. */
-  runs: Array<{ run: string; runAt: string; tiles: number; bytes: number; builtAt: string; sfcTiles?: number; sfcBytes?: number }>;
+  runs: Array<{ run: string; runAt: string; tiles: number; bytes: number; builtAt: string; sfcTiles?: number; sfcBytes?: number; foehn?: boolean }>;
+}
+
+// ── Foehn pressure (PMSL at the cross-Alpine station pairs) ─────────────────────────────────────────────────────────
+export interface FoehnStation { id: 'lugano' | 'zuerich' | 'bozen' | 'innsbruck'; name: string; lat: number; lon: number }
+export const FOEHN_STATIONS: readonly FoehnStation[] = Object.freeze([
+  { id: 'lugano', name: 'Lugano', lat: 46.004, lon: 8.960 },
+  { id: 'zuerich', name: 'Zürich-Kloten', lat: 47.480, lon: 8.536 },
+  { id: 'bozen', name: 'Bozen', lat: 46.498, lon: 11.354 },
+  { id: 'innsbruck', name: 'Innsbruck', lat: 47.260, lon: 11.357 },
+]);
+/** Luv–Lee pairs for south foehn: Δp = south − north (positive = south foehn pressure gradient). */
+export const FOEHN_PAIRS = Object.freeze([
+  { id: 'ch', south: 'lugano', north: 'zuerich', label: 'Lugano–Zürich' },
+  { id: 'brenner', south: 'bozen', north: 'innsbruck', label: 'Bozen–Innsbruck' },
+] as const);
+export const foehnPath = (run: string) => `${ATMO_DIR}/${run}/foehn.json`;
+export interface AtmoFoehnFile {
+  schema: number;
+  run: string;
+  model: string;
+  param: 'PMSL';
+  unit: 'hPa';
+  steps: number[];
+  stations: Array<FoehnStation & { cellLat: number; cellLon: number; hsurf: number }>;
+  /** `pmsl[station id][step index]`, hPa, one decimal; null = missing. */
+  pmsl: Record<string, Array<number | null>>;
 }
 
 // ── Surface fields (DWD thermal fields) ──────────────────────────────────────────────────────────────────────────────

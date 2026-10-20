@@ -1,20 +1,16 @@
 /**
  * Atmosphäre · Föhn-Index (6a, pure, headless testbar).
  *
- * Drei-stufiger Index (kein / tendenziell / aktiv) aus dem geladenen ICON-EU-
- * Vertikalprofil: kräftiger, kammnaher Süd-Wind (klassischer Alpen-Südföhn) +
- * trockene/abgetrocknete Bodenschicht. Ergänzt den oberflächenbasierten
- * `pointForecast/foehnDetector` (FoehnAssessment), arbeitet hier aber direkt auf
- * dem Höhenprofil.
+ * Drei-stufiger Index (kein / tendenziell / aktiv) aus dem geladenen
+ * Vertikalprofil (Höhenwind aus dem Höhen-Cube, ICON-D2-Modellflächen):
+ * kräftiger, kammnaher Süd-Wind (klassischer Alpen-Südföhn) + trockene
+ * Bodenschicht, dazu die Druckdifferenz über die Alpen (ICON-D2 PMSL an den
+ * Paaren Lugano–Zürich und Bozen–Innsbruck, `atmoFoehn`). Ergänzt den
+ * oberflächenbasierten `pointForecast/foehnDetector` (FoehnAssessment).
  *
- * ENTSCHEIDUNGS-GATE (P0/D4): Eine echte Cross-Barrier-Druckdifferenz (z. B.
- * Lugano–Zürich, Innsbruck–Bozen) ist über keine bestehende Pipeline verfügbar
- * (kein Stationsdruck-Ingest). Statt eine neue Quelle anzubinden, beschränkt sich
- * der Index auf die aus ICON-EU ableitbaren Indikatoren; die Drucklücke wird in
- * der UI ehrlich benannt (PRESSURE_GATE_NOTE).
- *
- * Ehrlich: ICON-EU (~7 km, grobe Druckflächen), Südföhn-Fokus (Alpen). Richtwert,
- * keine amtliche Föhn-Warnung.
+ * Schwellen der Druckdifferenz: Faustwerte der Föhnliteratur (FOEHN_DP_SOURCE),
+ * angezeigt als Modellwert und Richtwert. Fehlt der Druck, benennt die UI die
+ * Lücke (PRESSURE_GATE_NOTE). Südföhn-Fokus; keine amtliche Föhn-Warnung.
  */
 
 import type { DerivedProfile } from './profile-derivations';
@@ -30,10 +26,27 @@ export interface FoehnIndex {
   southerly: boolean;
   drivers: string[];
   text: string;
+  /** Δp des passenden Paars (hPa, Modellwert), null = kein Druck. */
+  dpHpa: number | null;
+  /** Zeile für die Anzeige: Druckdifferenz als Modellwert + Richtwert, oder die Lücke. */
+  pressureText: string;
 }
 
 export const PRESSURE_GATE_NOTE =
-  'Cross-Barrier-Druckdifferenz (Luv–Lee) nicht verfügbar — keine Stationsdruck-Pipeline im Projekt. Index aus ICON-EU-Höhenwind + Bodentrockenheit.';
+  'Cross-Barrier-Druckdifferenz (Luv–Lee) nicht verfügbar — Index nur aus Höhenwind + Bodentrockenheit.';
+
+/** Δp (Süd − Nord, Bodendruck auf Meereshöhe) ab dem ein Föhn-Gradient besteht / kräftig ist (hPa, Richtwert). */
+export const FOEHN_DP_SIGNAL_HPA = 4;
+export const FOEHN_DP_STRONG_HPA = 8;
+export const FOEHN_DP_SOURCE = 'Faustwerte der Föhnliteratur, u. a. Richner & Hächler 2013';
+
+/** Druckdifferenz über die Alpen (Modellwert ICON-D2 PMSL), Süd − Nord je Paar. */
+export interface FoehnPressure {
+  runAtMs: number;
+  pairs: Array<{ id: 'ch' | 'brenner'; label: string; dpHpa: number | null }>;
+  /** Paar, das zum Ort passt (West: Lugano–Zürich, Ost: Bozen–Innsbruck). */
+  relevant: 'ch' | 'brenner';
+}
 
 const CREST_AGL_MIN = 1200, CREST_AGL_MAX = 3500;
 const ACTIVE_KMH = 45, TENDENCY_KMH = 30;
@@ -43,7 +56,10 @@ const DRY_DEPRESSION_C = 6;               // Bodentrockenheit (T − Td)
 const de0 = (n: number) => Math.round(n).toString();
 const compass = (deg: number) => ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
 
-export function foehnIndex(p: DerivedProfile): FoehnIndex {
+const de1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');
+const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${de1(Math.abs(n))}`;
+
+export function foehnIndex(p: DerivedProfile, pressure?: FoehnPressure | null, pressureReason?: string | null): FoehnIndex {
   const lo = p.surfaceM + CREST_AGL_MIN, hi = p.surfaceM + CREST_AGL_MAX;
   const band = p.levels.filter((l) => l.heightM >= lo && l.heightM <= hi);
   const pool = band.length ? band : p.levels.slice(1);
@@ -55,26 +71,46 @@ export function foehnIndex(p: DerivedProfile): FoehnIndex {
   const sfc = p.levels[0];
   const dry = sfc ? (sfc.tempC - sfc.dewC) >= DRY_DEPRESSION_C : false;
 
+  const pair = pressure?.pairs.find((x) => x.id === pressure.relevant) ?? null;
+  const dp = pair?.dpHpa ?? null;
+  const pSouth = dp != null && dp >= FOEHN_DP_SIGNAL_HPA;
+  const pStrong = dp != null && dp >= FOEHN_DP_STRONG_HPA;
+  const pNorth = dp != null && dp <= -FOEHN_DP_SIGNAL_HPA;
+
   const drivers: string[] = [];
   if (southerly) drivers.push('südlicher Höhenwind');
   if (crestWindKmh >= TENDENCY_KMH) drivers.push(`Kammwind ${de0(crestWindKmh)} km/h`);
   if (dry) drivers.push('trockene Bodenschicht');
+  if (pSouth) drivers.push(`Süd-Druckgradient ${pair!.label} ${signed(dp!)} hPa`);
+  if (pNorth) drivers.push(`Nord-Druckgradient ${pair!.label} ${signed(dp!)} hPa`);
 
   let level: FoehnLevel = 'none';
-  if (southerly && crestWindKmh >= ACTIVE_KMH) level = 'active';
-  else if (southerly && crestWindKmh >= TENDENCY_KMH) level = 'tendency';
+  if (southerly && (crestWindKmh >= ACTIVE_KMH || pStrong || (pSouth && crestWindKmh >= TENDENCY_KMH))) level = 'active';
+  else if ((southerly && crestWindKmh >= TENDENCY_KMH) || pSouth) level = 'tendency';
+  // Druckgradient nach Norden (≤ −Schwelle): kein Südföhn, auch bei südlichem Kammwind.
+  if (pNorth) level = 'none';
 
   let text: string;
   if (level === 'active')
-    text = `Aktiver Föhn wahrscheinlich: kräftiger Süd-Kammwind ${de0(crestWindKmh)} km/h aus ${de0(crestDirDeg)}° (${compass(crestDirDeg)})${dry ? ', Bodenschicht trocken' : ''}. Im Lee warm, trocken, böig — kein Niederschlag im Föhngebiet.`;
+    text = `Aktiver Föhn wahrscheinlich: ${crestWindKmh >= ACTIVE_KMH ? 'kräftiger ' : ''}Süd-Kammwind ${de0(crestWindKmh)} km/h aus ${de0(crestDirDeg)}° (${compass(crestDirDeg)})${pSouth ? `, Druckgradient ${pair!.label} ${signed(dp!)} hPa` : ''}${dry ? ', Bodenschicht trocken' : ''}. Im Lee warm, trocken, böig — kein Niederschlag im Föhngebiet.`;
   else if (level === 'tendency')
     text = `Föhn-Tendenz: mäßiger Süd-Kammwind ${de0(crestWindKmh)} km/h aus ${de0(crestDirDeg)}° (${compass(crestDirDeg)}). Ob sich der Föhn bodennah durchsetzt, ist offen.`;
+  else if (pNorth)
+    text = `Kein Südföhn${southerly && crestWindKmh >= TENDENCY_KMH ? ` trotz Süd-Kammwind ${de0(crestWindKmh)} km/h` : ''} — Druckgradient nach Norden (${pair!.label} ${signed(dp!)} hPa): Nordföhn-Lage möglich, der Index bewertet nur Südföhn.`;
   else if (crestWindKmh >= TENDENCY_KMH)
     text = `Kein Südföhn: kräftiger Kammwind ${de0(crestWindKmh)} km/h, aber aus ${de0(crestDirDeg)}° (${compass(crestDirDeg)}) — nicht aus dem Südsektor.`;
   else
     text = `Kein Föhn-Signal: schwacher Kammwind ${de0(crestWindKmh)} km/h.`;
 
-  return { level, crestWindKmh: Math.round(crestWindKmh), crestDirDeg: Math.round(crestDirDeg), southerly, drivers, text };
+  if (level === 'tendency' && pSouth && !(southerly && crestWindKmh >= TENDENCY_KMH))
+    text = `Föhn-Tendenz aus dem Druck: ${pair!.label} ${signed(dp!)} hPa, der Kammwind (${de0(crestWindKmh)} km/h aus ${compass(crestDirDeg)}) trägt sie noch nicht.`;
+
+  const pressureText = pressure
+    ? `Druckdifferenz Süd−Nord (Modellwert ICON-D2, Bodendruck auf Meereshöhe): ${pressure.pairs.map((x) => `${x.label} ${x.dpHpa == null ? '–' : `${signed(x.dpHpa)} hPa`}`).join(' · ')}`
+      + ` · Richtwert: ab ${FOEHN_DP_SIGNAL_HPA} hPa Föhn-Gradient, ab ${FOEHN_DP_STRONG_HPA} hPa kräftig (${FOEHN_DP_SOURCE}).`
+    : `${PRESSURE_GATE_NOTE}${pressureReason ? ` (${pressureReason})` : ''}`;
+
+  return { level, crestWindKmh: Math.round(crestWindKmh), crestDirDeg: Math.round(crestDirDeg), southerly, drivers, text, dpHpa: dp, pressureText };
 }
 
 // --- Verification (pure, DEV) ------------------------------------------------

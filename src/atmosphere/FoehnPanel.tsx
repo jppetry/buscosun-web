@@ -1,14 +1,17 @@
 /**
  * Atmosphäre · Föhn-Panel (6a) — Berg-&-Weg-Linse.
  *
- * Zeigt den Föhn-Index (kein / tendenziell / aktiv) aus dem geladenen ICON-EU-
- * Profil plus die ehrliche Drucklücken-Notiz (kein Cross-Barrier-Stationsdruck).
+ * Zeigt den Föhn-Index (kein / tendenziell / aktiv) aus dem geladenen Profil
+ * (Höhenwind aus dem Höhen-Cube) plus die Druckdifferenz über die Alpen (ICON-D2
+ * PMSL Lugano–Zürich, Bozen–Innsbruck; Modellwert, Richtwert) — oder die Lücke.
  * Belegt den Globe-Slot der Berg-&-Weg-Linse. Der 3D-Isentropen-Querschnitt (6b)
  * folgt als eigener Schritt.
  */
 
+import { useEffect, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
-import { foehnIndex, PRESSURE_GATE_NOTE, type FoehnLevel } from './foehn';
+import { foehnIndex, type FoehnLevel, type FoehnPressure } from './foehn';
+import { loadFoehnPressure } from './atmoFoehn';
 import FoehnCrossSection from './FoehnCrossSection';
 import TalwindPanel from './TalwindPanel';
 
@@ -16,7 +19,17 @@ const DOT: Record<FoehnLevel, string> = { active: 'is-bad', tendency: 'is-watch'
 const LABEL: Record<FoehnLevel, string> = { active: 'Föhn aktiv', tendency: 'Föhn-Tendenz', none: 'Kein Föhn' };
 
 export default function FoehnPanel() {
-  const { profile, location } = useAtmosphere();
+  const { profile, location, marker, hour } = useAtmosphere();
+  const lon = marker?.lon ?? location?.lon ?? null;
+  const [press, setPress] = useState<{ pressure: FoehnPressure | null; reason: string | null } | null>(null);
+
+  useEffect(() => {
+    if (lon == null) return;
+    const ac = new AbortController();
+    const validMs = Math.floor(Date.now() / 3_600_000) * 3_600_000 + hour * 3_600_000;
+    loadFoehnPressure(validMs, lon, ac.signal).then(setPress, () => { /* abort */ });
+    return () => ac.abort();
+  }, [lon, hour]);
 
   if (!profile) {
     return (
@@ -28,7 +41,7 @@ export default function FoehnPanel() {
     );
   }
 
-  const f = foehnIndex(profile);
+  const f = foehnIndex(profile, press?.pressure ?? null, press ? press.reason : 'wird geladen');
   return (
     <section className="atm-foehn" aria-label="Föhn">
       <div className="rt-card atm-foehn-card">
@@ -38,7 +51,7 @@ export default function FoehnPanel() {
         </p>
         <p className="atm-foehn-text">{f.text}</p>
         {f.drivers.length > 0 && <p className="atm-foehn-drivers">{f.drivers.join(' · ')}</p>}
-        <p className="atm-foehn-note">{PRESSURE_GATE_NOTE}</p>
+        <p className="atm-foehn-note">{f.pressureText}</p>
       </div>
       <TalwindPanel />
       <FoehnCrossSection />
