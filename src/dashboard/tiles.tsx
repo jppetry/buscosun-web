@@ -147,7 +147,6 @@ export function NowcastTile({ vm, rootRef }: { vm: NowcastVM; rootRef?: RefObjec
   return (
     <section ref={rootRef} className="dbd-nowcast" aria-label="Nowcast Radar">
       <div className="dbd-nowcast-head"><span>NOWCAST · RADAR</span><span data-origin="P56">{vm.horizon}</span></div>
-      <div className="dbd-nowcast-line"><Val v={vm.headline} long /></div>
       <div className="dbd-nowcast-chart"><NowcastChart vm={vm} /></div>
     </section>
   );
