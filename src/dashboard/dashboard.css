@@ -262,7 +262,7 @@
 .dbd-rose-open::after { content: ''; position: absolute; inset: -8px; } /* Trefferfläche ≥ 44 px */
 .dbd-rose-open:hover { background: var(--dbd-sand); }
 .dbd-rose-open:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
-.dbd-rose-svg { display: block; width: min(250px, 100%); height: auto; aspect-ratio: 1; margin: 4px auto 0; overflow: visible; }
+.dbd-rose-svg { display: block; width: min(196px, 100%); height: auto; aspect-ratio: 1; margin: 0 auto; overflow: visible; }
 .dbd-rose-ring { font-family: 'League Spartan', sans-serif; font-size: 8.5px; font-weight: 600; fill: #8B7355; paint-order: stroke; stroke: #FAF6EA; stroke-width: 2.6px; stroke-linejoin: round; }
 .dbd-rose-petal path { transition: filter .15s; }
 .dbd-rose-petal:hover path { filter: brightness(.93) saturate(1.15); }
