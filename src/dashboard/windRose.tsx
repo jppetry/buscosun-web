@@ -43,7 +43,7 @@ function RoseSvg({ vm }: { vm: WindRoseVM }) {
   const rOf = (share: number) => R0 + (R - R0) * Math.sqrt(Math.min(1, share / scaleMax));
   const now = vm.nowDeg;
   return (
-    <svg viewBox="0 0 300 300" role="img" aria-label={roseLabel(vm)} className="dbd-rose-svg">
+    <svg viewBox="20 20 260 260" role="img" aria-label={roseLabel(vm)} className="dbd-rose-svg">
       <defs>
         <radialGradient id={glow} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#F5F1E8" stopOpacity="0" />

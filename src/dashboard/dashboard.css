@@ -252,8 +252,11 @@
 .dbd-wind-text strong { color: var(--dbd-ink); }
 .dbd-wind-bar { height: 5px; background: var(--dbd-line); border-radius: 3px; margin-top: 8px; position: relative; }
 /* Windrose · Verteilung: Kachel = nur die Rose + Symbol „groß anzeigen"; Zahlen stehen im Detailfenster */
-.dbd-rose { display: flex; flex-direction: column; }
-.dbd-rose-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dbd-rose { position: relative; display: flex; flex-direction: column; }
+/* Titel und Symbol liegen in den leeren Ecken der Rose — die Kachel braucht dafür keine eigene Zeile */
+.dbd-rose-head { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none; }
+.dbd-rose-head .dbd-eyebrow { max-width: 84px; line-height: 1.35; }
+.dbd-rose-head .dbd-rose-open { pointer-events: auto; }
 .dbd-rose-range { font-size: 10.5px; color: var(--dbd-muted); margin-left: 10px; }
 .dbd-rose-open {
   position: relative; display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 8px;
@@ -262,7 +265,7 @@
 .dbd-rose-open::after { content: ''; position: absolute; inset: -8px; } /* Trefferfläche ≥ 44 px */
 .dbd-rose-open:hover { background: var(--dbd-sand); }
 .dbd-rose-open:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
-.dbd-rose-svg { display: block; width: min(196px, 100%); height: auto; aspect-ratio: 1; margin: 0 auto; overflow: visible; }
+.dbd-rose-svg { display: block; width: min(224px, 100%); height: auto; aspect-ratio: 1; margin: 0 auto; overflow: visible; }
 .dbd-rose-ring { font-family: 'League Spartan', sans-serif; font-size: 8.5px; font-weight: 600; fill: #8B7355; paint-order: stroke; stroke: #FAF6EA; stroke-width: 2.6px; stroke-linejoin: round; }
 .dbd-rose-petal path { transition: filter .15s; }
 .dbd-rose-petal:hover path { filter: brightness(.93) saturate(1.15); }
