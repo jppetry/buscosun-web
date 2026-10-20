@@ -251,47 +251,72 @@
 .dbd-wind-text { font-size: 10px; color: var(--dbd-muted); margin-top: 2px; line-height: 1.5; }
 .dbd-wind-text strong { color: var(--dbd-ink); }
 .dbd-wind-bar { height: 5px; background: var(--dbd-line); border-radius: 3px; margin-top: 8px; position: relative; }
-/* Windrose · Verteilung */
-.dbd-rose { margin-top: 12px; }
-.dbd-rose-head { display: flex; align-items: baseline; justify-content: space-between; }
-.dbd-rose-range { font-size: 10.5px; color: var(--dbd-muted); }
-.dbd-rose-main { display: flex; align-items: center; gap: 28px; margin-top: 6px; }
-.dbd-rose-svg { flex: 0 0 auto; width: 280px; height: 280px; max-width: 100%; overflow: visible; }
+/* Windrose · Verteilung: Kachel = nur die Rose + Symbol „groß anzeigen"; Zahlen stehen im Detailfenster */
+.dbd-rose { display: flex; flex-direction: column; }
+.dbd-rose-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dbd-rose-range { font-size: 10.5px; color: var(--dbd-muted); margin-left: 10px; }
+.dbd-rose-open {
+  position: relative; display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 8px;
+  border: 1px solid var(--dbd-line); background: #FFFFFF; color: var(--dbd-ink); cursor: pointer;
+}
+.dbd-rose-open::after { content: ''; position: absolute; inset: -8px; } /* Trefferfläche ≥ 44 px */
+.dbd-rose-open:hover { background: var(--dbd-sand); }
+.dbd-rose-open:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
+.dbd-rose-svg { display: block; width: min(250px, 100%); height: auto; aspect-ratio: 1; margin: 4px auto 0; overflow: visible; }
 .dbd-rose-ring { font-family: 'League Spartan', sans-serif; font-size: 8.5px; font-weight: 600; fill: #8B7355; paint-order: stroke; stroke: #FAF6EA; stroke-width: 2.6px; stroke-linejoin: round; }
 .dbd-rose-petal path { transition: filter .15s; }
 .dbd-rose-petal:hover path { filter: brightness(.93) saturate(1.15); }
-.dbd-rose-body { flex: 1; min-width: 0; max-width: 420px; }
-.dbd-rose-headline { font-size: 26px; font-weight: 700; color: var(--dbd-ink); letter-spacing: -.4px; line-height: 1.1; }
 .dbd-rose-detail { font-size: 13px; color: var(--dbd-muted); margin-top: 4px; }
-.dbd-rose-legend { margin-top: 16px; display: grid; gap: 7px; }
-.dbd-rose-row { display: grid; grid-template-columns: 12px 78px 1fr 44px; align-items: center; gap: 9px; font-size: 12px; color: #5C5447; }
-.dbd-rose-row i { width: 12px; height: 12px; border-radius: 4px; border: 1px solid rgba(44, 42, 38, .12); }
-.dbd-rose-row i.is-hatched { background: repeating-linear-gradient(45deg, #D9CFB4 0 2px, #FAF6EA 2px 4px); }
-.dbd-rose-bar { height: 6px; border-radius: 3px; background: var(--dbd-line); overflow: hidden; }
-.dbd-rose-bar b { display: block; height: 100%; border-radius: 3px; }
-.dbd-rose-pct { text-align: right; font-weight: 700; color: var(--dbd-ink); font-variant-numeric: tabular-nums; }
-.dbd-rose-now { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--dbd-line); font-size: 12.5px; color: var(--dbd-ink); }
-.dbd-rose-now i { width: 9px; height: 9px; border-radius: 50%; background: var(--dbd-ink); box-shadow: 0 0 0 2px #FAF6EA, 0 0 0 3px var(--dbd-ink); }
 @media (prefers-reduced-motion: no-preference) {
   .dbd-rose-petal { transform-origin: 150px 150px; animation: dbd-rose-in .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 18ms); }
   @keyframes dbd-rose-in { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
 }
-/* schmale Spalte (erste Reihe) und Konfidenz im Reiter Details */
-.dbd-rose.is-compact { margin-top: 0; display: flex; flex-direction: column; }
-.dbd-rose.is-compact .dbd-rose-main { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 2px; }
-.dbd-rose.is-compact .dbd-rose-svg { align-self: center; width: min(220px, 100%); height: auto; aspect-ratio: 1; }
-.dbd-rose.is-compact .dbd-rose-body { max-width: none; }
-.dbd-rose.is-compact .dbd-rose-headline { font-size: 20px; }
-.dbd-rose.is-compact .dbd-rose-detail { font-size: 12px; }
-.dbd-rose.is-compact .dbd-rose-legend { grid-template-columns: 1fr 1fr; gap: 5px 12px; margin-top: 10px; }
-.dbd-rose.is-compact .dbd-rose-row { grid-template-columns: 12px 1fr auto; gap: 6px; font-size: 11.5px; }
-.dbd-rose.is-compact .dbd-rose-bar, .dbd-rose.is-compact .dbd-rose-now, .dbd-rose.is-compact .dbd-caption { display: none; }
+
+/* Detailfenster über dem Dashboard */
+.dbd-rose-overlay {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+  background: rgba(44, 42, 38, .52); backdrop-filter: blur(3px);
+}
+.dbd-rose-dialog {
+  width: min(960px, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--dbd-cream); border: 1px solid var(--dbd-border); border-radius: 16px; padding: 20px 22px 22px;
+  box-shadow: 0 24px 60px rgba(44, 42, 38, .35);
+}
+.dbd-rose-dlg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dbd-rose-dlg-main { display: flex; align-items: center; gap: 32px; margin-top: 8px; }
+.dbd-rose-dlg-main .dbd-rose-svg { flex: 0 0 auto; width: min(400px, 46%); margin: 0; }
+.dbd-rose-body { flex: 1; min-width: 0; }
+.dbd-rose-headline { font-size: 28px; font-weight: 700; color: var(--dbd-ink); letter-spacing: -.4px; line-height: 1.1; }
+.dbd-rose-h { margin: 20px 0 8px; font-size: 10.5px; letter-spacing: 2px; font-weight: 700; color: var(--dbd-muted); text-transform: uppercase; }
+.dbd-rose-body .dbd-rose-h:first-of-type { margin-top: 18px; }
+.dbd-rose-legend { display: grid; gap: 8px; }
+.dbd-rose-row { display: grid; grid-template-columns: 12px 88px 1fr 48px; align-items: center; gap: 10px; font-size: 13px; color: #5C5447; }
+.dbd-rose-row i { width: 12px; height: 12px; border-radius: 4px; border: 1px solid rgba(44, 42, 38, .12); }
+.dbd-rose-row i.is-hatched { background: repeating-linear-gradient(45deg, #D9CFB4 0 2px, #FAF6EA 2px 4px); }
+.dbd-rose-bar { height: 7px; border-radius: 4px; background: var(--dbd-line); overflow: hidden; }
+.dbd-rose-bar b { display: block; height: 100%; border-radius: 4px; }
+.dbd-rose-pct { text-align: right; font-weight: 700; color: var(--dbd-ink); font-variant-numeric: tabular-nums; }
+.dbd-rose-now { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--dbd-line); font-size: 13px; color: var(--dbd-ink); }
+.dbd-rose-now i { width: 9px; height: 9px; border-radius: 50%; background: var(--dbd-ink); box-shadow: 0 0 0 2px #FAF6EA, 0 0 0 3px var(--dbd-ink); margin-right: 2px; }
+.dbd-rose-nowmark { font-size: 11px; color: var(--dbd-muted); }
+.dbd-rose-dirs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; }
+.dbd-rose-dir { display: grid; grid-template-columns: 62px 1fr 48px; align-items: center; gap: 10px; font-size: 13px; }
+.dbd-rose-dirname { font-weight: 700; color: var(--dbd-ink); }
+.dbd-rose-dirname small { margin-left: 5px; font-size: 10.5px; font-weight: 500; color: var(--dbd-muted); }
+.dbd-rose-sbar { height: 9px; border-radius: 5px; background: var(--dbd-line); overflow: hidden; }
+.dbd-rose-sbar > span { display: flex; height: 100%; border-radius: 5px; overflow: hidden; }
+.dbd-rose-sbar b { display: block; height: 100%; flex-basis: 0; }
+.dbd-rose-notes { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: #5C5447; }
+.dbd-rose-notes strong { color: var(--dbd-ink); }
 .dbd-panel > .dbd-conf { margin-top: 12px; }
 @media (max-width: 767px) {
-  .dbd-rose-main { flex-direction: column; align-items: stretch; gap: 14px; }
-  .dbd-rose-svg { align-self: center; width: min(280px, 100%); height: auto; aspect-ratio: 1; }
-  .dbd-rose-body { max-width: none; }
+  .dbd-rose-dialog { padding: 16px 14px 18px; border-radius: 14px; }
+  .dbd-rose-dlg-main { flex-direction: column; align-items: stretch; gap: 14px; }
+  .dbd-rose-dlg-main .dbd-rose-svg { align-self: center; width: min(320px, 100%); }
   .dbd-rose-headline { font-size: 22px; }
+  .dbd-rose-dirs { grid-template-columns: 1fr; }
+  .dbd-rose-open { width: 32px; height: 32px; }
 }
 .dbd-wind-bar > div { position: absolute; left: 0; top: 0; bottom: 0; background: var(--dbd-sage); border-radius: 3px; }
 
