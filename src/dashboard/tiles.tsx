@@ -48,14 +48,10 @@ export function NowCard({ vm, warning }: { vm: NowVM; warning?: WarningVM }) {
           <KV l={vm.psLabel} v={vm.ps} />
         </div>
       </div>
-      <div className="dbd-chips">
-        {vm.chips.map((c, i) => <Val key={i} v={c} className="dbd-chip" long prefix={c.t == null && c.na ? `${CHIP_LABEL[c.o] ?? ''}` : undefined} />)}
-      </div>
       {warning && <WarningStrip vm={warning} />}
     </section>
   );
 }
-const CHIP_LABEL: Partial<Record<Shown['o'], string>> = { P13: 'Wind: ', P14: 'Bewölkung: ', P15: 'Schneegrenze: ', P16: '925 / 850 / 700 hPa: ' };
 
 function KV({ l, v }: { l: string; v: Shown }) {
   return <div><div className="dbd-kv-l">{l}</div><div className="dbd-kv-v"><Val v={v} /></div></div>;
