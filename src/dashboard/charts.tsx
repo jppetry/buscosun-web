@@ -8,16 +8,19 @@
 import type { ReactElement } from 'react';
 import { ResponsiveLine } from '@nivo/line';
 import { HEAVY_MMH, DRY_MMH } from './model/rules';
+import { hhmm } from './format';
 import type { HourlyVM, NowcastVM } from './model/types';
 
 interface LayerCtx { xScale: (v: Date) => number; innerWidth: number; innerHeight: number }
 const H = 3_600_000;
 
-function Frame({ fromMs, toMs, layers }: { fromMs: number; toMs: number; layers: Array<(ctx: LayerCtx) => ReactElement | null> }) {
+const NO_MARGIN = { top: 0, right: 0, bottom: 0, left: 0 };
+
+function Frame({ fromMs, toMs, layers, margin = NO_MARGIN }: { fromMs: number; toMs: number; layers: Array<(ctx: LayerCtx) => ReactElement | null>; margin?: typeof NO_MARGIN }) {
   return (
     <ResponsiveLine
       data={[{ id: 'span', data: [{ x: new Date(fromMs), y: 0 }, { x: new Date(toMs), y: 1 }] }]}
-      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      margin={margin}
       xScale={{ type: 'time', min: new Date(fromMs), max: new Date(toMs), useUTC: false, precision: 'minute' }}
       yScale={{ type: 'linear', min: 0, max: 1 }}
       animate={false}
@@ -143,30 +146,59 @@ export function HourlyTicks({ vm, mobile }: { vm: HourlyVM; mobile?: boolean }) 
 
 export function NowcastChart({ vm }: { vm: NowcastVM }) {
   const from = vm.fromMs, to = Math.max(vm.toMs, vm.fromMs + H);
-  const mx = Math.max(2, ...vm.frames.map((f) => f.mmh));
+  // Obergrenze der y-Achse: kleinste runde Stufe ≥ größtem Wert (mindestens 2 mm/h wie bisher)
+  const dataMax = Math.max(2, ...vm.frames.map((f) => f.mmh));
+  const yMax = [2, 5, 10, 20, 50, 100].find((s) => s >= dataMax) ?? Math.ceil(dataMax);
+  const yTxt = (v: number) => String(v).replace('.', ',');
   const Layer = ({ xScale, innerWidth: w, innerHeight: h }: LayerCtx) => {
-    const fy = (u: number) => (u / 84) * h;
     const x = (t: number) => xScale(new Date(t));
     const slot = vm.frames.length > 1 ? (w / (vm.frames.length)) : w / 12;
     const bw = Math.min((11 / 300) * w, slot * 0.7);
-    const base = fy(78);
+    const base = h;
+    const yAt = (v: number) => base - (v / yMax) * h;
     const nx = x(vm.nowMs);
+    // x-Achse: kleinster Takt (15/30/60/120 min), bei dem die Beschriftungen ≥ 44 px Abstand haben
+    const pxPerMin = w / Math.max(1, (to - from) / 60_000);
+    const stepMin = [15, 30, 60, 120].find((m) => m * pxPerMin >= 44) ?? 120;
+    const stepMs = stepMin * 60_000;
+    const ticks: number[] = [];
+    for (let t = Math.ceil(from / stepMs) * stepMs; t <= to; t += stepMs) ticks.push(t);
+    const nowShown = nx >= 0 && nx <= w;
+    const txt = { fontFamily: 'League Spartan', fontSize: 10.5, fill: '#B4BFCB' } as const;
     return (
       <g>
-        <g stroke="#2F3B4A" strokeWidth="1"><line x1="0" y1={fy(26)} x2={w} y2={fy(26)} /><line x1="0" y1={fy(52)} x2={w} y2={fy(52)} /></g>
+        {[0, yMax / 2, yMax].map((v) => (
+          <g key={v}>
+            {v > 0 && <line x1="0" y1={yAt(v)} x2={w} y2={yAt(v)} stroke="#2F3B4A" strokeWidth="1" />}
+            <text x={-6} y={yAt(v) + 3.5} textAnchor="end" {...txt}>{yTxt(v)}</text>
+          </g>
+        ))}
+        <text transform={`translate(-34 ${h / 2}) rotate(-90)`} textAnchor="middle" {...txt} fontWeight={700}>Regen in mm/h</text>
         <g fill="#5B9BD5">
           {vm.frames.filter((f) => f.mmh >= DRY_MMH).map((f) => {
-            const bh = Math.max(1, (f.mmh / mx) * fy(40));
+            const bh = Math.max(1, (Math.min(f.mmh, yMax) / yMax) * h);
             return (
               <rect key={f.t} x={x(f.t) - bw / 2} y={base - bh} width={bw} height={bh} rx="2"
                 fill={f.mmh >= HEAVY_MMH ? '#9B8CE0' : undefined} opacity={f.mmh < 0.5 ? .55 : undefined} />
             );
           })}
         </g>
-        {nx >= 0 && nx <= w && <line x1={nx} y1={fy(4)} x2={nx} y2={base} stroke="#FAF6EA" strokeWidth="1.3" strokeDasharray="3 3" />}
+        {nowShown && <line x1={nx} y1={0} x2={nx} y2={base} stroke="#FAF6EA" strokeWidth="1.3" strokeDasharray="3 3" />}
         <line x1="0" y1={base} x2={w} y2={base} stroke="#3E4B5C" strokeWidth="1" />
+        {ticks.map((t) => {
+          const tx = x(t);
+          const nearNow = nowShown && Math.abs(tx - nx) < 24;
+          return (
+            <g key={t}>
+              <line x1={tx} y1={base} x2={tx} y2={base + 4} stroke="#3E4B5C" strokeWidth="1" />
+              {!nearNow && <text x={tx} y={base + 16} textAnchor="middle" {...txt}>{hhmm(t)}</text>}
+            </g>
+          );
+        })}
+        {nowShown && <text x={nx} y={base + 16} textAnchor="middle" {...txt} fill="#FAF6EA" fontWeight={700}>jetzt</text>}
+        <text x={w / 2} y={base + 31} textAnchor="middle" {...txt} fontWeight={700}>Uhrzeit</text>
       </g>
     );
   };
-  return <Frame fromMs={from} toMs={to} layers={[Layer]} />;
+  return <Frame fromMs={from} toMs={to} layers={[Layer]} margin={{ top: 6, right: 6, bottom: 34, left: 42 }} />;
 }

@@ -236,7 +236,7 @@
 .dbd-nowcast-head span:last-child { font-size: 10px; color: #8A97A6; }
 .dbd-nowcast-line { font-size: 16px; font-weight: 700; color: #EDF1F5; margin-top: 8px; }
 .dbd-nowcast .dbd-na, .dbd-nowcast .dbd-loading { color: #8A97A6; }
-.dbd-nowcast-chart { height: 84px; margin-top: 8px; }
+.dbd-nowcast-chart { height: 132px; margin-top: 8px; }
 .dbd-nowcast-chart svg { display: block; overflow: visible; }
 .dbd-nchips { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
 .dbd-nchip { font-size: 9.5px; color: #C3CDD8; background: #26313E; border: 1px solid #3A4757; border-radius: 6px; padding: 3px 7px; }
