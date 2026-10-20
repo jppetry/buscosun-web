@@ -149,9 +149,6 @@ export function NowcastTile({ vm, rootRef }: { vm: NowcastVM; rootRef?: RefObjec
       <div className="dbd-nowcast-head"><span>NOWCAST · RADAR</span><span data-origin="P56">{vm.horizon}</span></div>
       <div className="dbd-nowcast-line"><Val v={vm.headline} long /></div>
       <div className="dbd-nowcast-chart"><NowcastChart vm={vm} /></div>
-      <div className="dbd-nchips">
-        {vm.chips.map((c, i) => <Val key={i} v={c} className="dbd-nchip" long prefix={c.t == null && c.na ? 'Blitze 1 h: ' : undefined} />)}
-      </div>
     </section>
   );
 }
