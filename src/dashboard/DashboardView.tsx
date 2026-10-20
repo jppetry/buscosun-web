@@ -284,7 +284,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
               ) : <NowCard vm={vm.now} warning={vm.warning} />}
               {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
-              <ConfidenceCard vm={vm.conf} />
+              <WindRoseTile vm={vm.windRose} compact />
             </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
             {showTabs && (
@@ -299,7 +299,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
               <CloudsTile vm={vm.clouds} />
               <WindTile vm={vm.wind} />
             </div>
-            <WindRoseTile vm={vm.windRose} />
+            <ConfidenceCard vm={vm.conf} />
             <div className="dbd-row4">
               <PrecipTile vm={vm.precip} />
               <WindBandTile vm={vm.windBand} />

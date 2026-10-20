@@ -276,6 +276,17 @@
   .dbd-rose-petal { transform-origin: 150px 150px; animation: dbd-rose-in .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 18ms); }
   @keyframes dbd-rose-in { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
 }
+/* schmale Spalte (erste Reihe) und Konfidenz im Reiter Details */
+.dbd-rose.is-compact { margin-top: 0; display: flex; flex-direction: column; }
+.dbd-rose.is-compact .dbd-rose-main { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 2px; }
+.dbd-rose.is-compact .dbd-rose-svg { align-self: center; width: min(220px, 100%); height: auto; aspect-ratio: 1; }
+.dbd-rose.is-compact .dbd-rose-body { max-width: none; }
+.dbd-rose.is-compact .dbd-rose-headline { font-size: 20px; }
+.dbd-rose.is-compact .dbd-rose-detail { font-size: 12px; }
+.dbd-rose.is-compact .dbd-rose-legend { grid-template-columns: 1fr 1fr; gap: 5px 12px; margin-top: 10px; }
+.dbd-rose.is-compact .dbd-rose-row { grid-template-columns: 12px 1fr auto; gap: 6px; font-size: 11.5px; }
+.dbd-rose.is-compact .dbd-rose-bar, .dbd-rose.is-compact .dbd-rose-now, .dbd-rose.is-compact .dbd-caption { display: none; }
+.dbd-panel > .dbd-conf { margin-top: 12px; }
 @media (max-width: 767px) {
   .dbd-rose-main { flex-direction: column; align-items: stretch; gap: 14px; }
   .dbd-rose-svg { align-self: center; width: min(280px, 100%); height: auto; aspect-ratio: 1; }

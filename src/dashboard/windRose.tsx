@@ -27,7 +27,8 @@ function segment(deg: number, ri: number, ro: number): string {
 const pct = (x: number) => `${Math.round(x * 100)}${NB}%`;
 const CARDINAL: Array<[number, string, boolean]> = [[0, 'N', true], [45, 'NO', false], [90, 'O', true], [135, 'SO', false], [180, 'S', true], [225, 'SW', false], [270, 'W', true], [315, 'NW', false]];
 
-export function WindRoseTile({ vm }: { vm: WindRoseVM }) {
+/** `compact` = schmale Spalte (erste Reihe): Rose über der Legende, Legende ohne Balken, ohne Fußzeile. */
+export function WindRoseTile({ vm, compact }: { vm: WindRoseVM; compact?: boolean }) {
   const maxShare = Math.max(0.0001, ...vm.sectors.map((s) => s.share));
   // Ringabstand: kleinster runder Wert, bei dem höchstens vier Ringe nötig sind
   const step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1].find((st) => Math.ceil(maxShare / st) <= 4) ?? 1;
@@ -39,7 +40,7 @@ export function WindRoseTile({ vm }: { vm: WindRoseVM }) {
   const nowTxt = now == null ? null : `${compass16(now)} · ${Math.round(now)}°${vm.nowWind == null ? '' : ` · ${num(vm.nowWind, 1)}${NB}m/s`}`;
   const label = vm.headline.t ? `Windrose: ${vm.headline.t}, ${vm.detail.t ?? ''}` : 'Windrose: keine Richtungsverteilung verfügbar';
   return (
-    <section className="dbd-tile dbd-rose" aria-label="Windrose Verteilung" data-origin="P63" title={originTitle('P63')}>
+    <section className={`dbd-tile dbd-rose${compact ? ' is-compact' : ''}`} aria-label="Windrose Verteilung" data-origin="P63" title={originTitle('P63')}>
       <div className="dbd-rose-head">
         <span className="dbd-eyebrow">WINDROSE · VERTEILUNG</span>
         <span className="dbd-rose-range">nächste {vm.hours}{NB}h</span>
