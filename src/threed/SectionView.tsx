@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { sectionOrigin, type PreparedSection } from './buildCrossSection';
+import { sectionMethod, sectionOrigin, type PreparedSection } from './buildCrossSection';
 import { SHEAR_THRESHOLD_KMH_PER_300M, type CrossSection } from './crossSection';
 import type { LayerState } from './ThreeDPage';
 import SectionChart, { BAND_COLORS, BAND_LABELS, type PickedPoint, type SectionGeo } from './SectionChart';
@@ -171,7 +171,7 @@ export default function SectionView({ prepared, section, timeMs, onTime, layers,
       </div>
 
       {/* Datenstand (US-N6) */}
-      <p className="td-runstamp">Datenstand: {sectionOrigin(prepared)} + Gelände (DEM) · abgerufen {new Date(prepared.runAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</p>
+      <p className="td-runstamp">Datenstand: {sectionOrigin(prepared)} · {sectionMethod(section)} · abgerufen {new Date(prepared.runAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</p>
 
       {/* Go/No-Go (US-E) */}
       {showGng && <GoNoGoPanel prepared={prepared} locationName={locationName} timeMs={timeMs} />}

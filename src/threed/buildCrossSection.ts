@@ -7,6 +7,10 @@
  *  • Oberflächen-Wetter an wenigen Ankerpunkten über die Zeit
  *    (`getFusionForecast(…, 'section')` — buscosun Fusion, Rückfall Live-Pfad; die Herkunft steht in `source`).
  *
+ *  • Höhen-Cube `atmo/v1` (ICON-D2) je Schnittspalte: Wind und Temperatur je Höhe
+ *    (`loadSectionAloft`); fehlt er, rechnet der Schnitt wie früher mit dem Potenzgesetz
+ *    und beschriftet das (`sectionMethod`).
+ *
  * `sectionAtTime` rechnet daraus synchron den Vertikalschnitt für einen
  * Zeitpunkt — so bleibt der Zeit-Slider (US-A5) flüssig, ohne neu zu laden.
  */
@@ -17,15 +21,31 @@ import { fusionSourceOf, fusionSourceText, type FusionSource } from '../pointFor
 import { pickCountry } from '../pointForecast/clustering';
 import { resampleLine, lineBounds, type GeoPoint, type SectionColumn } from './sectionGeometry';
 import {
-  assembleCrossSection, type AnchorSurface, type CrossSection, type SectionColumnTerrain,
+  assembleCrossSection, DEFAULT_ALPHA, type AnchorSurface, type CrossSection, type SectionColumnTerrain,
 } from './crossSection';
+import { aloftAt, loadSectionAloft, type SectionAloft } from '../atmosphere/atmoSection';
 
 const COLUMNS = 64;
 const ANCHORS = 5;            // wenige Ankerpunkte → rate-limitierte Quellen (GeoSphere) schonen
 /** Wetterpunkte entlang der Schnittlinie — die horizontale Auflösung des Wetters im Schnitt (V-FR-10: nicht „Gitterzellen ≈ 2 km“). */
 export const SECTION_ANCHORS = ANCHORS;
-/** Wie der Schnitt rechnet — ein Satz für Bildunterschriften (V-FR-10; Druckflächen liest er nicht). */
-export const SECTION_METHOD = `Bodenwind an ${ANCHORS} Punkten der Linie, Höhe über Grund nach Potenzgesetz + Gelände (DEM)`;
+/** Wie der Schnitt im Rückfall rechnet — ein Satz für Bildunterschriften (V-FR-10). */
+export const SECTION_METHOD = `Höhenwind geschätzt: Bodenwind an ${ANCHORS} Punkten der Linie nach Potenzgesetz (α = ${String(DEFAULT_ALPHA).replace('.', ',')}) + Gelände (DEM)`;
+
+const fmtRun = (ms: number) => {
+  const d = new Date(ms);
+  return `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}. ${String(d.getUTCHours()).padStart(2, '0')} UTC`;
+};
+
+/** Wie DIESER Schnitt gerechnet hat — Höhen-Cube oder sichtbar beschrifteter Potenzgesetz-Rückfall. */
+export function sectionMethod(section: Pick<CrossSection, 'windSource'> | null | undefined): string {
+  const w = section?.windSource;
+  if (!w) return SECTION_METHOD;
+  const cube = `Wind und Temperatur je Höhe aus dem Höhen-Cube (ICON-D2, Lauf ${w.runAtMs ? fmtRun(w.runAtMs) : '–'}), am Boden an ${ANCHORS} Punkten verankert + Gelände (DEM)`;
+  if (w.kind === 'cube') return cube;
+  if (w.kind === 'mixed') return `${cube} · ${w.cols - w.cubeCols} von ${w.cols} Spalten geschätzt (Potenzgesetz α = ${String(DEFAULT_ALPHA).replace('.', ',')}${w.reason ? `: ${w.reason}` : ''})`;
+  return `${SECTION_METHOD}${w.reason ? ` — Höhen-Cube nicht verfügbar: ${w.reason}` : ''}`;
+}
 const ANCHOR_CONCURRENCY = 3; // nicht alle gleichzeitig (vermeidet 429-Bursts)
 const DEM_ZOOM = 11; // ~76 m/px — fein genug für ein Talschnittprofil
 const FORECAST_HOURS = 36;
@@ -65,6 +85,9 @@ export interface PreparedSection {
   /** Welcher Weg die Ankerpunkte geliefert hat (buscosun Fusion / Live-Rückfall) — für jede Herkunftsangabe (V-FR-10). */
   source: FusionSource | null;
   points: GeoPoint[];
+  /** Höhen-Cube je Spalte (`columns`-Reihenfolge) — null = Potenzgesetz-Rückfall, Grund in `aloftReason`. */
+  aloft?: SectionAloft | null;
+  aloftReason?: string | null;
 }
 
 /** Herkunft des Schnitt-Wetters (V-FR-10): der Stand von buscosun Fusion, der gerechnet hat, oder der Live-Rückfall. */
@@ -121,7 +144,10 @@ function surf(base: { distanceM: number; elevM: number }, s: TimeSample): Anchor
 /** Baut den Schnitt für einen Zeitpunkt (synchron, aus vorbereiteten Daten). */
 export function sectionAtTime(prepared: PreparedSection, tMs: number, alpha?: number): CrossSection {
   const anchors: AnchorSurface[] = prepared.anchors.map((a) => sampleAnchorAt(a, tMs)).sort((x, y) => x.distanceM - y.distanceM);
-  return assembleCrossSection({ columns: prepared.columns, anchors, alpha });
+  const a = prepared.aloft;
+  const aloft = a ? prepared.columns.map((_, i) => aloftAt(a, i, tMs)) : undefined;
+  const reason = prepared.aloftReason ?? (a && aloft!.some((x) => !x) ? `Lauf ${fmtRun(a.runAtMs)} deckt diese Zeit nicht (bis +48 h)` : null);
+  return assembleCrossSection({ columns: prepared.columns, anchors, alpha, aloft, aloftRunAtMs: a?.runAtMs ?? null, aloftReason: reason });
 }
 
 /** Holt Gelände + Anker-Forecasts für die Schnittlinie (einmalig, teuer). */
@@ -136,7 +162,7 @@ export async function prepareCrossSection(
   const columns0 = resampleLine(points, COLUMNS);
   const bounds = lineBounds(points, 0.05);
 
-  const total = 1 + ANCHORS; // DEM + Ankerpunkte
+  const total = 2 + ANCHORS; // DEM + Höhen-Cube + Ankerpunkte
   let done = 0;
   onProgress?.({ phase: 'Geländeprofil wird geladen …', done, total });
 
@@ -155,11 +181,14 @@ export async function prepareCrossSection(
   // Ankerpunkte gleichmäßig über die Spalten wählen; mit begrenzter Parallelität
   // laden, um rate-limitierte Quellen (GeoSphere AT) nicht zu überlasten.
   const anchorCols = pickAnchorColumns(columns, ANCHORS);
+  const aloftLoad = loadSectionAloft(columns, signal).finally(() => { done++; onProgress?.({ phase: 'Höhen-Cube geladen', done, total }); });
+  aloftLoad.catch(() => {}); // abort only; awaited below
+  let anchorsDone = 0;
   const forecasts = await mapLimit(anchorCols, ANCHOR_CONCURRENCY, (col) =>
     getFusionForecast({ lat: col.lat, lng: col.lon, country: pickCountry(col.lat, col.lon), hours: FORECAST_HOURS, signal }, 'section')
       .then((fc) => ({ col, fc }))
       .catch(() => null)
-      .finally(() => { done++; onProgress?.({ phase: `Wetterdaten ${Math.min(done - 1, ANCHORS)}/${ANCHORS} …`, done, total }); }),
+      .finally(() => { done++; onProgress?.({ phase: `Wetterdaten ${Math.min(++anchorsDone, ANCHORS)}/${ANCHORS} …`, done, total }); }),
   );
 
   const anchors: PreparedAnchor[] = [];
@@ -186,8 +215,9 @@ export async function prepareCrossSection(
     runAtMs = Math.max(runAtMs, fc.fetchedAt);
   }
   if (!anchors.length) throw new Error('Keine Wetterdaten für die Schnittlinie verfügbar.');
+  const { aloft, reason: aloftReason } = await aloftLoad;
 
-  return { columns, anchors, startMs, endMs, runAtMs: runAtMs || Date.now(), source: fusionSourceOf(forecasts.map((f) => f?.fc)), points };
+  return { columns, anchors, startMs, endMs, runAtMs: runAtMs || Date.now(), source: fusionSourceOf(forecasts.map((f) => f?.fc)), points, aloft, aloftReason };
 }
 
 /** map mit begrenzter Parallelität (Reihenfolge des Ergebnisses bleibt erhalten). */

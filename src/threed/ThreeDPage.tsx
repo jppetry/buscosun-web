@@ -14,7 +14,7 @@ import ThreeDMap from './ThreeDMap';
 import SectionView from './SectionView';
 import TerrainView from './TerrainView';
 import SoundingPanel from './SoundingPanel';
-import { prepareCrossSection, sectionAtTime, sectionOrigin, SECTION_METHOD, type PreparedSection, type PrepareProgress } from './buildCrossSection';
+import { prepareCrossSection, sectionAtTime, sectionOrigin, sectionMethod, type PreparedSection, type PrepareProgress } from './buildCrossSection';
 import { decodeState, encodeState, type ThreeDLayers } from './threedState';
 import { tourFileToCutLine } from './tourImport';
 import { pickCountry } from '../pointForecast/clustering';
@@ -232,7 +232,7 @@ export default function ThreeDPage({ onBack }: Props) {
         )}
 
         <div className="rt-trust" style={{ marginTop: '1.6rem' }}>
-          <span className="dot td-dot">●</span> {sectionOrigin(data.kind === 'ready' ? data.prepared : null)} · {SECTION_METHOD} · werbefrei
+          <span className="dot td-dot">●</span> {sectionOrigin(data.kind === 'ready' ? data.prepared : null)} · {sectionMethod(section)} · werbefrei
         </div>
       </main>
 

@@ -14,6 +14,11 @@
  * BEWUSST EHRLICH (US-N7): die Vertikalstruktur ist aus 10-m-Werten + Standard-
  * profilen abgeleitet, nicht aus echten Druckflächen — die Genauigkeit ist durch
  * Modellauflösung und Profilannahme begrenzt. Das kennzeichnet die UI.
+ *
+ * Mit `aloft` (Höhen-Cube `atmo/v1`, ICON-D2-Modellflächen) kommen Wind (U/V) und
+ * Temperatur je Höhe aus dem Modell; der Bodenwert von buscosun Fusion bleibt der
+ * Anker und klingt bis `ALOFT_BLEND_M` über Grund aus. Das Potenzprofil ist dann nur
+ * noch Rückfall je Spalte, `windSource` sagt, welcher Weg gerechnet hat.
  */
 
 import type { SectionColumn } from './sectionGeometry';
@@ -27,6 +32,10 @@ const REF_AGL = 10;
 const BOUNDARY_LAYER_M = 1500;
 /** Potenzprofil-Exponent (Alpen/raues Gelände zwischen offen 0,14 und Stadt 0,28). */
 export const DEFAULT_ALPHA = 0.2;
+/** Bis zu dieser Höhe über Grund (m) klingt die Abweichung Fusion-Boden − Cube-Boden aus. */
+export const ALOFT_BLEND_M = 300;
+/** Bis zu dieser Höhe über Grund (m) klingt der Böenüberschuss des Bodens aus (der Cube trägt keine Böen). */
+const GUST_FADE_M = 1500;
 /** km/h je Windband-Grenze (US-N5: benannte Bänder, nicht reine Farbe). */
 export const WIND_BANDS_KMH = [15, 30, 45, 60] as const;
 /** Schwelle für Wind-Shear-Hervorhebung (US-A6): km/h Änderung je 300 m Höhe. */
@@ -99,7 +108,24 @@ export interface PeakMark {
   label: string;
 }
 
+/** Modellprofil einer Schnittspalte aus dem Höhen-Cube: Höhe m ü. NN (aufsteigend), U/V m/s, T °C. */
+export interface AloftProfile { z: number[]; u: number[]; v: number[]; t: number[]; hsurf: number }
+
+/** Welcher Weg Wind und Temperatur in der Höhe gerechnet hat (sichtbare Beschriftung). */
+export interface WindSource {
+  kind: 'cube' | 'mixed' | 'alpha';
+  /** Spalten mit Cube-Profil / alle Spalten. */
+  cubeCols: number;
+  cols: number;
+  /** Lauf des Cubes (ms), wenn er gerechnet hat. */
+  runAtMs: number | null;
+  /** Warum der Cube fehlt (nur bei `alpha`/`mixed`). */
+  reason: string | null;
+}
+
 export interface CrossSection {
+  /** Fehlt nur bei handgebauten Schnitten (Prüffälle); dann gilt das Potenzprofil. */
+  windSource?: WindSource;
   columns: ColumnProfile[];
   heightLevels: number[];
   terrainMinM: number;
@@ -141,6 +167,11 @@ export interface CrossSectionInput {
    * zusätzliche Aussage, verdeckt aber das Gelände, um das es geht.
    */
   topM?: number;
+  /** Höhen-Cube je Spalte (gleiche Reihenfolge wie `columns`); null/fehlend = Potenzprofil. */
+  aloft?: Array<AloftProfile | null>;
+  aloftRunAtMs?: number | null;
+  /** Grund, warum `aloft` fehlt oder Lücken hat. */
+  aloftReason?: string | null;
 }
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
@@ -267,6 +298,40 @@ export function windAtAGL(surfaceKmh: number, agl: number, alpha: number): numbe
   return surfaceKmh * Math.pow(z / REF_AGL, alpha);
 }
 
+/** Index k mit z[k] ≤ zM < z[k+1] und Anteil — geklemmt an Boden und Decke des Profils. */
+function aloftIndex(z: number[], zM: number): [number, number] {
+  if (zM <= z[0]) return [0, 0];
+  const n = z.length;
+  if (zM >= z[n - 1]) return [n - 2, 1];
+  let k = 0;
+  while (k < n - 2 && z[k + 1] <= zM) k++;
+  return [k, (zM - z[k]) / (z[k + 1] - z[k])];
+}
+
+/** Eine Zelle aus dem Cube-Profil, am Boden auf den Fusion-Wert gezogen (Abweichung klingt bis ALOFT_BLEND_M aus). */
+function aloftCell(p: AloftProfile, surface: AnchorSurface, levelM: number, agl: number): Omit<SectionCell, 'levelM' | 'agl'> {
+  const [k, f] = aloftIndex(p.z, levelM);
+  const lin = (a: number[]) => a[k] + (a[k + 1] - a[k]) * f;
+  let u = lin(p.u) * 3.6, v = lin(p.v) * 3.6, tempC = lin(p.t);
+  const w = clamp(1 - agl / ALOFT_BLEND_M, 0, 1);
+  const u0 = p.u[0] * 3.6, v0 = p.v[0] * 3.6;
+  let windKmh: number, windDirDeg: number | null;
+  if (surface.windDirDeg != null) {
+    const su = -surface.windKmh * Math.sin((surface.windDirDeg * Math.PI) / 180), sv = -surface.windKmh * Math.cos((surface.windDirDeg * Math.PI) / 180);
+    u += w * (su - u0); v += w * (sv - v0);
+    windKmh = Math.hypot(u, v);
+    windDirDeg = ((Math.atan2(-u, -v) * 180) / Math.PI + 360) % 360;
+  } else {
+    // E-FR-5: Fusion meldet am Boden keine Richtung — Betrag ausblenden, in Bodennähe keine erfundene Richtung.
+    windKmh = Math.max(0, Math.hypot(u, v) + w * (surface.windKmh - Math.hypot(u0, v0)));
+    windDirDeg = w > 0.5 ? null : ((Math.atan2(-u, -v) * 180) / Math.PI + 360) % 360;
+  }
+  tempC += w * (surface.tempC - p.t[0]);
+  // Böen: der Böenüberschuss des Bodens (additiv — ein Faktor aus schwachem Bodenwind bliese starken Höhenwind auf).
+  const gustKmh = windKmh + Math.max(0, surface.gustKmh - surface.windKmh) * clamp(1 - agl / GUST_FADE_M, 0, 1);
+  return { windKmh, gustKmh, tempC, windDirDeg };
+}
+
 /** Hebungskondensationsniveau (LCL) über Grund (m) — Espy-Näherung aus T und RH. */
 export function lclAgl(tempC: number, humidityPct: number): number {
   const rh = clamp(humidityPct, 1, 100);
@@ -347,12 +412,20 @@ export function assembleCrossSection(input: CrossSectionInput): CrossSection {
     : estimateInversion(anchors);
 
   let maxWindKmh = 0, maxGustKmh = 0;
-  const cols: ColumnProfile[] = columns.map((col) => {
+  const cols: ColumnProfile[] = columns.map((col, ci) => {
     const surface = interpAnchor(anchors, col.distanceM);
     const cells: SectionCell[] = [];
+    const prof = input.aloft?.[ci] ?? null;
     for (const levelM of heightLevels) {
       const agl = levelM - col.terrainM;
       if (agl < 0) continue; // unter Grund
+      if (prof) {
+        const c = aloftCell(prof, surface, levelM, agl);
+        if (c.windKmh > maxWindKmh) maxWindKmh = c.windKmh;
+        if (c.gustKmh > maxGustKmh) maxGustKmh = c.gustKmh;
+        cells.push({ levelM, agl, ...c });
+        continue;
+      }
       const windKmh = windAtAGL(surface.windKmh, agl, alpha);
       const gustKmh = windAtAGL(surface.gustKmh, agl, alpha);
       // Temperatur: inversionsbewusst.
@@ -380,7 +453,15 @@ export function assembleCrossSection(input: CrossSectionInput): CrossSection {
   const valley: PeakMark = { distanceM: valleyCol.distanceM, terrainM: valleyCol.terrainM, relation: rel(valleyCol.terrainM), label: 'Tal' };
   const summit: PeakMark = { distanceM: summitCol.distanceM, terrainM: summitCol.terrainM, relation: rel(summitCol.terrainM), label: 'Gipfel' };
 
-  return { columns: cols, heightLevels, terrainMinM: terrainMin, terrainMaxM: terrainMax, topM, maxWindKmh, maxGustKmh, inversion, valley, summit };
+  const cubeCols = input.aloft ? input.aloft.filter(Boolean).length : 0;
+  const windSource: WindSource = {
+    kind: cubeCols === 0 ? 'alpha' : cubeCols === columns.length ? 'cube' : 'mixed',
+    cubeCols, cols: columns.length,
+    runAtMs: cubeCols ? input.aloftRunAtMs ?? null : null,
+    reason: cubeCols === columns.length ? null : input.aloftReason ?? (input.aloft ? 'Cube deckt die Zeit nicht' : null),
+  };
+
+  return { windSource, columns: cols, heightLevels, terrainMinM: terrainMin, terrainMaxM: terrainMax, topM, maxWindKmh, maxGustKmh, inversion, valley, summit };
 }
 
 /**

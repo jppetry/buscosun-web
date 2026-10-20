@@ -36,7 +36,8 @@ function forceIconEu(): boolean {
 
 let indexCache: { at: number; index: AtmoIndex } | null = null;
 
-async function loadIndex(signal?: AbortSignal): Promise<AtmoIndex> {
+/** The cube pointer (5-min module cache). */
+export async function loadAtmoIndex(signal?: AbortSignal): Promise<AtmoIndex> {
   if (indexCache && Date.now() - indexCache.at < INDEX_TTL_MS) return indexCache.index;
   const res = await fetch(`${DATA_RAW}/${ATMO_INDEX_PATH}`, { signal, cache: 'no-cache' });
   if (!res.ok) throw new Error(`Höhen-Cube: Index ${res.status}`);
@@ -74,10 +75,11 @@ async function fetchTileBytes(path: string, signal?: AbortSignal): Promise<Uint8
   }
 }
 
-type Tile = { header: AtmoTileHeader; columns: AtmoColumn[] };
-const tileCache = new Map<string, Promise<Tile>>();
+export type AtmoTile = { header: AtmoTileHeader; columns: AtmoColumn[] };
+const tileCache = new Map<string, Promise<AtmoTile>>();
 
-function loadTile(run: string, ty: number, tx: number, signal?: AbortSignal): Promise<Tile> {
+/** One decoded tile of a run (module cache of the last 16). */
+export function loadAtmoTile(run: string, ty: number, tx: number, signal?: AbortSignal): Promise<AtmoTile> {
   const path = tilePath(run, ty, tx);
   let p = tileCache.get(path);
   if (!p) {
@@ -103,7 +105,7 @@ export async function fetchAtmoSoundingAtPoint(
   const fy = (lat - ATMO_GRID.latMin) / ATMO_GRID.step, fx = (lon - ATMO_GRID.lonMin) / ATMO_GRID.step;
   if (fy < 0 || fx < 0 || fy > GRID_NY - 1 || fx > GRID_NX - 1) throw new Error('Höhen-Cube: Ort außerhalb des Gitters');
 
-  const index = await loadIndex(signal);
+  const index = await loadAtmoIndex(signal);
   const hourMs = Math.floor(Date.now() / 3_600_000) * 3_600_000;
   const validMs = hourMs + Math.round(leadHours) * 3_600_000;
   const runs = [...index.runs].sort((a, b) => runMs(b.run) - runMs(a.run));
@@ -119,7 +121,7 @@ export async function fetchAtmoSoundingAtPoint(
     cands.push({ iy, ix, d: Math.hypot(gridLat(iy) - lat, (gridLon(ix) - lon) * Math.cos((lat * Math.PI) / 180)) });
   }
   cands.sort((a, b) => a.d - b.d);
-  const tiles = await Promise.all(cands.map((c) => loadTile(pick.run, Math.floor(c.iy / TILE_CELLS), Math.floor(c.ix / TILE_CELLS), signal)));
+  const tiles = await Promise.all(cands.map((c) => loadAtmoTile(pick.run, Math.floor(c.iy / TILE_CELLS), Math.floor(c.ix / TILE_CELLS), signal)));
 
   const s = index.steps.indexOf(pick.step);
   const usable = cands.map((c, i) => {

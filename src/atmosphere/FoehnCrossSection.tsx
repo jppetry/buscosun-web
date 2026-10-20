@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAtmosphere } from './atmosphereStore';
-import { prepareCrossSection, sectionAtTime, type PreparedSection } from '../threed/buildCrossSection';
+import { prepareCrossSection, sectionAtTime, sectionMethod, type PreparedSection } from '../threed/buildCrossSection';
 import { buildIsentropes } from './isentropes';
 import type { CrossSection } from '../threed/crossSection';
 
@@ -103,8 +103,8 @@ export default function FoehnCrossSection() {
         <text x={W - PAD_R + 2} y={PAD_T + 8} className="atm-xsec-ax">θ/K</text>
       </svg>
       <p className="atm-xsec-cap">
-        θ-Isentropen aus dem abgeleiteten Schnitt (Oberfläche + DEM) · sinkende Linien im Lee = Föhn-Absinken ·
-        folgt dem Scrubber · Richtwert, kein echtes Druckflächen-Feld.
+        θ-Isentropen aus dem Schnitt ({sectionMethod(section)}) · sinkende Linien im Lee = Föhn-Absinken ·
+        folgt dem Scrubber · Richtwert.
       </p>
     </div>
   );

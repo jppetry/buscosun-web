@@ -21,7 +21,7 @@ import { HOUR_MIN, HOUR_MAX } from './atmosphereState';
 import ThreeDMap from '../threed/ThreeDMap';
 import SectionChart, { BAND_COLORS, BAND_LABELS, type PickedPoint } from '../threed/SectionChart';
 import {
-  prepareCrossSection, sectionAtTime, sectionOrigin, SECTION_ANCHORS, SECTION_METHOD, type PreparedSection, type PrepareProgress,
+  prepareCrossSection, sectionAtTime, sectionOrigin, SECTION_ANCHORS, sectionMethod, type PreparedSection, type PrepareProgress,
 } from '../threed/buildCrossSection';
 import { SECTION_LEVEL_STEP_M } from '../threed/crossSection';
 import type { CrossSection } from '../threed/crossSection';
@@ -334,7 +334,7 @@ function HoehenwindDesktop(ctx: DeckCtx) {
             </div>
 
             <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />
-            <p className="vsd-caption">{dataOrigin(data)} · {SECTION_METHOD} · ≥30 FPS · werbefrei</p>
+            <p className="vsd-caption">{dataOrigin(data)} · {sectionMethod(section)} · ≥30 FPS · werbefrei</p>
           </>
         )}
       </div>
@@ -817,7 +817,7 @@ function HoehenwindMobile(ctx: DeckCtx) {
         ) : <div className="vsd-pquery-empty">Tippe in den Schnitt für Werte an einem Punkt.</div>}
       </div>
       {section && <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />}
-      <p className="vsd-m-caption">{dataOrigin(data)} · {SECTION_METHOD} · werbefrei.</p>
+      <p className="vsd-m-caption">{dataOrigin(data)} · {sectionMethod(section)} · werbefrei.</p>
     </>
   );
 }
