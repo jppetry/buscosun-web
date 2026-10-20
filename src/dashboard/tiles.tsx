@@ -31,7 +31,7 @@ export function Rich({ parts }: { parts: Array<string | { b: string }> }) {
 // Jetzt · Warnung · Konfidenz
 // ---------------------------------------------------------------------------
 
-export function NowCard({ vm }: { vm: NowVM }) {
+export function NowCard({ vm, warning }: { vm: NowVM; warning?: WarningVM }) {
   return (
     <section className="dbd-card dbd-sand-card dbd-now" aria-label="Jetzt">
       <div className="dbd-now-head">
@@ -51,6 +51,7 @@ export function NowCard({ vm }: { vm: NowVM }) {
       <div className="dbd-chips">
         {vm.chips.map((c, i) => <Val key={i} v={c} className="dbd-chip" long prefix={c.t == null && c.na ? `${CHIP_LABEL[c.o] ?? ''}` : undefined} />)}
       </div>
+      {warning && <WarningStrip vm={warning} />}
     </section>
   );
 }
@@ -68,19 +69,23 @@ function WarnTriangle() {
   );
 }
 
-export function WarningCard({ vm }: { vm: WarningVM }) {
-  const quiet = vm.state !== 'active';
-  const text = vm.state === 'active' ? `„${vm.quote ?? ''}"`
-    : vm.state === 'none' ? 'Keine amtliche Warnung für diesen Ort.'
+/** Amtliche Warnung als Statuszeile in der Jetzt-Kachel; bei aktiver Warnung wächst sie um das wörtliche Zitat. */
+export function WarningStrip({ vm }: { vm: WarningVM }) {
+  const active = vm.state === 'active';
+  const text = active ? `„${vm.quote ?? ''}"`
+    : vm.state === 'none' ? 'Keine amtliche Warnung für diesen Ort'
       : vm.state === 'loading' ? 'Warnlage wird geladen …'
-        : vm.state === 'na' ? 'Für dieses Land liest die Plattform keine Warnungen.'
-          : 'Die Warnungen sind gerade nicht abrufbar — es wird kein Ersatztext gezeigt.';
+        : vm.state === 'na' ? 'Für dieses Land liest die Plattform keine Warnungen'
+          : 'Die Warnungen sind gerade nicht abrufbar — es wird kein Ersatztext gezeigt';
   return (
-    <section className={`dbd-card dbd-warn${quiet ? ' is-quiet' : ''}`} aria-label="Amtliche Warnung" data-origin="P18" title={originTitle('P18')}>
-      <div className="dbd-warn-head"><WarnTriangle /><span>AMTLICHE WARNUNG · {vm.channel.toUpperCase()}</span></div>
-      <p lang="de">{text}</p>
-      <div className="dbd-warn-foot" data-origin="P19">{vm.footer}</div>
-    </section>
+    <div className={`dbd-warn${active ? ' is-active' : ''}`} role="group" aria-label="Amtliche Warnung" data-origin="P18" title={originTitle('P18')}>
+      <WarnTriangle />
+      <div className="dbd-warn-body">
+        {active && <span className="dbd-warn-head">AMTLICHE WARNUNG · {vm.channel.toUpperCase()}</span>}
+        <p lang="de">{text}</p>
+      </div>
+      <span className="dbd-warn-foot" data-origin="P19">{vm.footer}</span>
+    </div>
   );
 }
 

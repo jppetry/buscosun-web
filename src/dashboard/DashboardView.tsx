@@ -17,7 +17,7 @@ import { buildDashboardVM, shortName } from './model/build';
 import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, PlaceIn, PollenIn, TerrainIn, UvIn, WarningsIn } from './model/types';
 import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
-import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningCard, WindTile } from './tiles';
+import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningStrip, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
 // Jan 16.10.: drei Fusion-Kacheln (Niederschlag, Wind/Böen, Luftdruck über 48 h) im Reiter Details.
@@ -278,9 +278,9 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
                   <span className="dbd-eyebrow">JETZT · BUSCOSUN FUSION NICHT ERREICHBAR</span>
                   <p className="dbd-empty">Der Punkt-Cube konnte nicht gelesen werden{vm.error ? ` (${vm.error})` : ''}. Es gibt bewusst keinen Rückfall auf andere Rechenwege.</p>
                   <button type="button" className="dbd-retry" onClick={onRetry}>Erneut versuchen</button>
+                  <WarningStrip vm={vm.warning} />
                 </section>
-              ) : <NowCard vm={vm.now} />}
-              <WarningCard vm={vm.warning} />
+              ) : <NowCard vm={vm.now} warning={vm.warning} />}
               <ConfidenceCard vm={vm.conf} />
             </div>
             {/* Jan 17.10.: der Radar-Nowcast steht auf der ersten Seite, direkt unter der ersten Reihe. */}
