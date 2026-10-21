@@ -3,6 +3,8 @@
  * pixel image (white above the satellite snow line, ice blue below), a compare slider (earlier outline on one side of the divider, the current one on the
  * other) and the 3D view: the SAME map with Terrarium terrain (`setTerrain`) and a tilted camera — built-in MapLibre means, no shader, no custom layer.
  * `view = '3d'` falls back to 2D when WebGL terrain cannot be set up (`?gl3d=0` forces 2D in the page).
+ * `basemap = 'satellit'` shows the mountain itself: the Esri World Imagery tiles of the Brandradar under the outlines (the style's own layers hidden,
+ * the current outline with a white casing so it stays readable on rock and ice).
  */
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
@@ -13,6 +15,10 @@ import { bboxOf, clipAtLng, renderSnowZoneAsync } from './glacierGeo';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
+/** Same imagery as the Brandradar's "Satellit" basemap (`src/fire/FireMap.tsx`). */
+const SAT_TILES = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+export type SheetBasemap = 'karte' | 'satellit';
+const LINE_INK = '#145A70', LINE_ON_SAT = '#5FD3F3', EARLIER_ON_SAT = '#F3F7F9';
 export const SHEET_EXAGGERATION = 1.3;
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const feat = (g: GeoJSON.Geometry | null): GeoJSON.FeatureCollection => (g ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: g }] } : EMPTY);
@@ -27,6 +33,7 @@ interface Props {
   showSnow: boolean;
   dem: GlacierDemGrid | null;
   view: '2d' | '3d';
+  basemap: SheetBasemap;
   /** Divider position as a share of the map width (0–1); `null` = compare off. */
   compare: number | null;
   onCompare: (v: number) => void;
@@ -35,12 +42,14 @@ interface Props {
   onView3dFailed?: () => void;
 }
 
-export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, compare, onCompare, onSnowShare, onMap, onView3dFailed }: Props) {
+export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, onCompare, onSnowShare, onMap, onView3dFailed }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
-  const latest = useRef({ geometry, earlier, showEarlier, snow, showSnow, dem, view, compare });
-  latest.current = { geometry, earlier, showEarlier, snow, showSnow, dem, view, compare };
+  const latest = useRef({ geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare });
+  latest.current = { geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare };
+  /** Visibility of the style's own layers as loaded — restored when the imagery goes off again. */
+  const styleVis = useRef<Map<string, 'visible' | 'none'>>(new Map());
   const [dividerPx, setDividerPx] = useState<number | null>(null);
   const raf = useRef(0);
 
@@ -93,13 +102,26 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     else map.easeTo({ center: [g.lon, g.lat], zoom: g.klass === 'A' ? 13 : 14, duration: animate ? 600 : 0 });
   };
 
+  /** Imagery under the outlines: the style's layers off, the raster and the casing on (and back). */
+  const applyBasemap = () => {
+    const map = mapRef.current;
+    if (!map || !ready.current) return;
+    const sat = latest.current.basemap === 'satellit';
+    for (const [id, vis] of styleVis.current) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', sat ? 'none' : vis);
+    map.setLayoutProperty('gls-sat-l', 'visibility', sat ? 'visible' : 'none');
+    map.setLayoutProperty('gls-now-casing-l', 'visibility', sat ? 'visible' : 'none');
+    map.setLayoutProperty('gls-hill', 'visibility', latest.current.view === '3d' && !sat ? 'visible' : 'none');
+    map.setPaintProperty('gls-now-line-l', 'line-color', sat ? LINE_ON_SAT : LINE_INK);
+    map.setPaintProperty('gls-earlier-line-l', 'line-color', sat ? EARLIER_ON_SAT : LINE_INK);
+  };
+
   const apply3d = (on: boolean) => {
     const map = mapRef.current;
     if (!map || !ready.current) return;
     try {
       if (on) {
         map.setTerrain({ source: 'gls-dem', exaggeration: SHEET_EXAGGERATION });
-        map.setLayoutProperty('gls-hill', 'visibility', 'visible');
+        map.setLayoutProperty('gls-hill', 'visibility', latest.current.basemap === 'satellit' ? 'none' : 'visible');
         map.easeTo({ pitch: 62, bearing: -20, duration: 700 });
       } else {
         map.setTerrain(null);
@@ -120,6 +142,10 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     onMap?.(map);
     map.on('load', () => {
       if (mapRef.current !== map) return;
+      const styleLayers = map.getStyle().layers ?? [];
+      for (const l of styleLayers) styleVis.current.set(l.id, l.layout?.visibility === 'none' ? 'none' : 'visible');
+      map.addSource('gls-sat', { type: 'raster', tiles: [SAT_TILES], tileSize: 256, maxzoom: 19, attribution: 'Esri World Imagery' });
+      map.addLayer({ id: 'gls-sat-l', type: 'raster', source: 'gls-sat', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } }, styleLayers[0]?.id);
       map.addSource('gls-dem', { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
       map.addLayer({ id: 'gls-hill', type: 'hillshade', source: 'gls-dem', layout: { visibility: 'none' }, paint: { 'hillshade-exaggeration': 0.5, 'hillshade-shadow-color': '#4A4234', 'hillshade-accent-color': '#6B5A45', 'hillshade-illumination-anchor': 'map', 'hillshade-illumination-direction': 315 } });
       for (const id of ['gls-now', 'gls-now-fill', 'gls-earlier-fill', 'gls-earlier-line']) map.addSource(id, { type: 'geojson', data: EMPTY });
@@ -130,9 +156,10 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
       map.addLayer({ id: 'gls-earlier-fill-l', type: 'fill', source: 'gls-earlier-fill', paint: { 'fill-color': '#D9CFB5', 'fill-opacity': 0.62 } });
       map.addLayer({ id: 'gls-now-fill-l', type: 'fill', source: 'gls-now-fill', paint: { 'fill-color': '#7FC1D6', 'fill-opacity': 0.16 } });
       map.addLayer({ id: 'gls-earlier-line-l', type: 'line', source: 'gls-earlier-line', paint: { 'line-color': '#145A70', 'line-width': 1.6, 'line-dasharray': [2, 2], 'line-opacity': 0.9 } });
-      map.addLayer({ id: 'gls-now-line-l', type: 'line', source: 'gls-now', paint: { 'line-color': '#145A70', 'line-width': 2.4 } });
+      map.addLayer({ id: 'gls-now-casing-l', type: 'line', source: 'gls-now', layout: { visibility: 'none' }, paint: { 'line-color': '#FFFFFF', 'line-width': 5, 'line-opacity': 0.75 } });
+      map.addLayer({ id: 'gls-now-line-l', type: 'line', source: 'gls-now', paint: { 'line-color': LINE_INK, 'line-width': 2.4 } });
       ready.current = true;
-      applyOutlines(); void applySnow();
+      applyBasemap(); applyOutlines(); void applySnow();
       if (latest.current.view === '3d') apply3d(true);
     });
     const onMove = () => { if (latest.current.compare != null) { cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(applyOutlines); } };
@@ -147,6 +174,8 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
   }, [snow, showSnow, dem, geometry]);
   useEffect(() => { apply3d(view === '3d'); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
+  useEffect(() => { applyBasemap(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basemap]);
   useEffect(() => { applyOutlines(); const w = box.current?.clientWidth ?? 0; setDividerPx(compare == null ? null : compare * w); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compare]);
 

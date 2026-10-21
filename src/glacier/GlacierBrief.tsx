@@ -2,6 +2,8 @@
  * GL-4 — the glacier sheet (`/gletscher/<slug>`): Steckbrief left, map or 3D in the middle, five tabs on the right (Heute · Saison · Langzeit · Tour · Quellen);
  * mobile: map on top, tabs and content below. Design `reference/gletscher-desktop-steckbrief.dc.html` (+ mobile). State (tab, time point, view, layers,
  * outline year) lives in the URL via the page; everything else is derived here from the documents of `glacierSheetData.ts`.
+ * The dossier (`layout="dossier"`) folds the five sections into three levels (pattern Brandradar): Heute · Satellit · Langzeit — the URL `tab`
+ * names the level. The map carries a "Karte | Satellit" basemap (Esri imagery, as in the Brandradar) and a 10-m deep link to the Copernicus Browser.
  */
 import { useEffect, useMemo, useState } from 'react';
 import './glacierSheet.css';
@@ -10,7 +12,7 @@ import { GLACIER_COUNTRY_LABEL, GLACIER_REGIONS, type GlacierCatalogEntry, type 
 import type { GlacierBases, GlacierIndex } from './glacierClient';
 import { GLACIER_TABS, type GlacierTab, type GlacierUrlState, type GlacierLayer, type GlacierView } from './glacierState';
 import { loadSheetData, type SheetData } from './glacierSheetData';
-import GlacierSheetMap, { type SheetSnow } from './GlacierSheetMap';
+import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierSheetMap';
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
@@ -19,6 +21,21 @@ import {
 import type { GlacierSatIndex } from './glacierClient';
 
 const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen' };
+/** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
+const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
+  { tab: 'heute', title: 'Heute', sub: 'Schmelze · Oberfläche · Tour', tabs: ['heute', 'tour'] },
+  { tab: 'saison', title: 'Satellit', sub: 'Saison · Schneegrenze · Bilanz', tabs: ['saison'] },
+  { tab: 'langzeit', title: 'Langzeit', sub: 'Reihen · Projektion · Quellen', tabs: ['langzeit', 'quellen'] },
+];
+const levelOf = (t: GlacierTab): number => Math.max(0, LEVELS.findIndex((l) => l.tabs.includes(t)));
+/** Sentinel-2 L2A true colour (10 m) of one day in the Copernicus Browser — a deep link, no retrieval of ours (same pattern as the Brandradar). */
+function copernicusUrl(lat: number, lon: number, dayIso: string): string {
+  const u = new URL('https://browser.dataspace.copernicus.eu/');
+  u.searchParams.set('zoom', '14'); u.searchParams.set('lat', lat.toFixed(4)); u.searchParams.set('lng', lon.toFixed(4));
+  u.searchParams.set('themeId', 'DEFAULT-THEME'); u.searchParams.set('datasetId', 'S2_L2A_CDAS');
+  u.searchParams.set('fromTime', `${dayIso}T00:00:00.000Z`); u.searchParams.set('toTime', `${dayIso}T23:59:59.999Z`); u.searchParams.set('dateMode', 'SINGLE');
+  return u.toString();
+}
 
 export interface SheetProps {
   g: GlacierCatalogEntry;
@@ -48,6 +65,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
   const [snowShare, setSnowShare] = useState<number | null>(null);
   const [view3dFailed, setView3dFailed] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [basemap, setBasemap] = useState<SheetBasemap>('satellit');
 
   useEffect(() => {
     const ac = new AbortController();
@@ -130,8 +148,20 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
     </div>
   );
 
-  const left = (
-    <aside className="gl-sheet-left" aria-label="Steckbrief">
+  const basemapSeg = (cls: string) => (
+    <div className={cls} role="group" aria-label="Grundkarte">
+      <button type="button" aria-pressed={basemap === 'karte'} onClick={() => setBasemap('karte')}>Karte</button>
+      <button type="button" aria-pressed={basemap === 'satellit'} onClick={() => setBasemap('satellit')} title="Esri World Imagery, wie im Brandradar">Satellit</button>
+    </div>
+  );
+  const viewSeg = (cls: string) => (
+    <div className={cls} role="group" aria-label="Ansicht">
+      <button type="button" aria-pressed={view === '2d'} onClick={() => onState({ v: '2d' })}>2D</button>
+      <button type="button" aria-pressed={view === '3d'} disabled={!allow3d || view3dFailed} title={allow3d && !view3dFailed ? undefined : '3D ist ausgeschaltet oder wird von diesem Gerät nicht getragen'} onClick={() => onState({ v: '3d' })}>3D</button>
+    </div>
+  );
+  const facts = (
+    <>
       <h2 className="gl-label">Steckbrief</h2>
       <dl className="gl-facts">
         <dt>Fläche</dt>
@@ -142,16 +172,21 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
         <dt>Inventar-Nummern</dt>
         <dd className="gl-ids">{[g.inv.glims && `GLIMS ${g.inv.glims}`, g.inv.sgi && `SGI ${g.inv.sgi}`, g.inv.agi5 != null && `AGI 5 ${g.inv.agi5}`, g.inv.rgi6 && g.inv.rgi6, g.inv.wgms && `WGMS ${g.inv.wgms}`].filter(Boolean).map((x) => <code key={String(x)}>{String(x)}</code>)}</dd>
       </dl>
+    </>
+  );
+  const factsNote = <p className="gl-fine">Flächen tragen das Bezugsjahr ihres Inventars; Länder sind nicht gleichzeitig. Kein amtliches Warnprodukt.</p>;
+  const left = (
+    <aside className="gl-sheet-left" aria-label="Steckbrief">
+      {facts}
+      <h2 className="gl-label">Grundkarte</h2>
+      {basemapSeg('gl-seg gl-seg-2')}
       <h2 className="gl-label">Ansicht</h2>
-      <div className="gl-seg gl-seg-2" role="group" aria-label="Ansicht">
-        <button type="button" aria-pressed={view === '2d'} onClick={() => onState({ v: '2d' })}>Karte</button>
-        <button type="button" aria-pressed={view === '3d'} disabled={!allow3d || view3dFailed} title={allow3d && !view3dFailed ? undefined : '3D ist ausgeschaltet oder wird von diesem Gerät nicht getragen'} onClick={() => onState({ v: '3d' })}>3D</button>
-      </div>
+      {viewSeg('gl-seg gl-seg-2')}
       <h2 className="gl-label">Ebenen</h2>
       <label className="gl-layer"><input type="checkbox" checked={showEarlier} onChange={() => toggleLayer('o')} disabled={!earlier} /><span><b>Umriss {earlier ? earlier.year : '—'}</b><small>{earlier ? earlier.source || 'früheres Inventar' : 'kein früherer Umriss'}</small></span></label>
       {epochs.length > 1 && <select className="gl-input" aria-label="Jahr des früheren Umrisses" value={earlier?.year ?? ''} onChange={(e) => onState({ o: Number(e.target.value) })}>{epochs.map((e) => <option key={e.year} value={e.year}>{e.year} · {e.source}</option>)}</select>}
       <label className="gl-layer"><input type="checkbox" checked={showSnow} onChange={() => toggleLayer('s')} disabled={!snow || !data?.dem} /><span><b>Schneegrenze</b><small>{snow && data?.dem ? `Sentinel-2, ${dateDe(snow.date)}` : g.klass !== 'A' || g.country === 'DE' ? 'nur Klasse A' : 'keine klare Szene'}</small></span></label>
-      <p className="gl-fine">Flächen tragen das Bezugsjahr ihres Inventars; Länder sind nicht gleichzeitig. Kein amtliches Warnprodukt.</p>
+      {factsNote}
     </aside>
   );
 
@@ -161,13 +196,13 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
   const mapEl = (
     <section className="gl-map gl-sheet-map" aria-label="Karte des Gletschers">
       <GlacierSheetMap g={g} geometry={data?.geometry ?? null} earlier={earlier} showEarlier={showEarlier} snow={snow} showSnow={showSnow} dem={data?.dem ?? null}
-        view={view} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} />
+        view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} />
       <div className="gl-legend gl-sheet-legend" aria-label="Legende">
         <div className="gl-legend-head"><b>Legende</b></div>
         <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#fff', border: '1px solid #A9D4E2' }} />Schnee und Firn (Satellit)</div>
         <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#A8D0E0' }} />Eis ohne Schnee (Satellit)</div>
-        <div className="gl-legend-row"><i className="gl-sw gl-sw-dash" />Umriss früher</div>
-        <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#145A70', height: 3 }} />Umriss {fmtRefYear(g.area.refYear)}</div>
+        <div className="gl-legend-row"><i className="gl-sw gl-sw-dash" style={basemap === 'satellit' ? { borderTopColor: '#B9C4CA' } : undefined} />Umriss früher</div>
+        <div className="gl-legend-row"><i className="gl-sw" style={{ background: basemap === 'satellit' ? '#5FD3F3' : '#145A70', height: 3 }} />Umriss {fmtRefYear(g.area.refYear)}</div>
       </div>
       <div className="gl-sheet-status">{stateLine}</div>
     </section>
@@ -185,6 +220,19 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
   );
 
   if (layout === 'dossier') {
+    const level = levelOf(state.tab);
+    const copernicusDay = (sceneForMap?.date ?? new Date(nowMs).toISOString().slice(0, 10));
+    const mapTools = (
+      <div className="gl-ds-maptools">
+        {basemapSeg('gl-seg2')}
+        {viewSeg('gl-seg2')}
+        <div className="gl-ds-layers" role="group" aria-label="Ebenen der Karte">
+          <button type="button" className="gl-ds-lay" aria-pressed={showEarlier} disabled={!earlier} onClick={() => toggleLayer('o')} title={earlier ? earlier.source || 'früheres Inventar' : 'kein früherer Umriss'}>Umriss {earlier ? earlier.year : '—'}</button>
+          {epochs.length > 1 && <select className="gl-input" aria-label="Jahr des früheren Umrisses" value={earlier?.year ?? ''} onChange={(e) => onState({ o: Number(e.target.value) })}>{epochs.map((e) => <option key={e.year} value={e.year}>{e.year} · {e.source}</option>)}</select>}
+          <button type="button" className="gl-ds-lay" aria-pressed={showSnow} disabled={!snow || !data?.dem} onClick={() => toggleLayer('s')} title={snow && data?.dem ? `Sentinel-2, ${dateDe(snow.date)}` : g.klass !== 'A' || g.country === 'DE' ? 'nur Klasse A' : 'keine klare Szene'}>Schneegrenze</button>
+        </div>
+      </div>
+    );
     return (
       <section className="gl-ds" aria-label={`Dossier ${displayName(g)}`} data-glacier={g.id}>
         <header className="gl-ds-card gl-ds-head">
@@ -212,12 +260,20 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
           </div>
           {scenes.length > 0 && <div className="gl-ds-time"><span className="gl-ds-tile-l">Zeitpunkt der Karte</span>{timeSwitch}</div>}
         </header>
+        <nav className="gl-ds-steps" aria-label="Ebenen des Dossiers">
+          {LEVELS.map((l, i) => (
+            <button key={l.tab} type="button" className={`gl-ds-step${level === i ? ' is-on' : ''}`} aria-current={level === i ? 'step' : undefined} onClick={() => onState({ tab: l.tab })}>
+              <span className="gl-ds-step-n" aria-hidden="true">{i + 1}</span>
+              <span className="gl-ds-step-t"><b>{l.title}</b><small>{l.sub}</small></span>
+            </button>
+          ))}
+        </nav>
         <div className="gl-ds-grid">
-          <div className="gl-ds-main">
+          <div className="gl-ds-main" data-level={level + 1}>
             {notReady ?? (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {GLACIER_TABS.map((t) => (
+                {LEVELS[level].tabs.map((t) => (
                   <section key={t} className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
                     <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
                     {tabBody(t, data)}
@@ -227,8 +283,14 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             ))}
           </div>
           <div className="gl-ds-side">
-            <div className="gl-ds-card gl-ds-mapcard">{mapEl}</div>
-            <div className="gl-ds-card">{left}</div>
+            <div className="gl-ds-card gl-ds-mapcard">
+              {mapTools}
+              {mapEl}
+              <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
+                <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
+              </a>
+            </div>
+            <div className="gl-ds-card"><aside className="gl-sheet-left" aria-label="Steckbrief">{facts}{factsNote}</aside></div>
           </div>
         </div>
       </section>
@@ -241,8 +303,8 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
         <div className="gl-body gl-sheet-body">
           <div className="gl-center">{mapEl}</div>
           <div className="gl-m-chips" role="group" aria-label="Ansicht und Ebenen">
-            <button type="button" aria-pressed={view === '2d'} onClick={() => onState({ v: '2d' })}>Karte</button>
-            <button type="button" aria-pressed={view === '3d'} disabled={!allow3d || view3dFailed} onClick={() => onState({ v: '3d' })}>3D</button>
+            <button type="button" aria-pressed={basemap === 'satellit'} onClick={() => setBasemap(basemap === 'satellit' ? 'karte' : 'satellit')}>Satellit</button>
+            <button type="button" aria-pressed={view === '3d'} disabled={!allow3d || view3dFailed} onClick={() => onState({ v: view === '3d' ? '2d' : '3d' })}>3D</button>
             <button type="button" aria-pressed={showEarlier} disabled={!earlier} onClick={() => toggleLayer('o')}>Umriss {earlier?.year ?? '—'}</button>
             <button type="button" aria-pressed={showSnow} disabled={!snow || !data?.dem} onClick={() => toggleLayer('s')}>Schneegrenze</button>
           </div>

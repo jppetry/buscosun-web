@@ -125,11 +125,35 @@
 .gl-ds-main, .gl-ds-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gl-ds-side { position: sticky; top: 0; }
 .gl-ds-mapcard { padding: 0; overflow: hidden; }
-.gl-ds-mapcard .gl-sheet-map { position: relative; flex: none; height: 360px; min-height: 0; border: 0; }
+.gl-ds-mapcard .gl-sheet-map { position: relative; flex: none; height: 400px; min-height: 0; border: 0; }
+/* The three levels of the dossier (pattern Brandradar): a stepper under the head card, one level of sections at a time */
+.gl-ds-steps { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px; background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; box-shadow: 0 4px 14px rgba(44,42,38,.06); }
+.gl-ds-step { display: flex; align-items: center; gap: 11px; min-height: 54px; padding: 8px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--gl-ink); text-align: left; cursor: pointer; font: inherit; transition: background .15s; }
+.gl-ds-step:hover { background: var(--gl-panel); }
+.gl-ds-step.is-on { background: var(--gl-ink); color: #F5F1E8; }
+.gl-ds-step:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+.gl-ds-step-n { width: 26px; height: 26px; border-radius: 13px; border: 1.5px solid var(--gl-line-strong); display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; color: var(--gl-muted); flex: 0 0 auto; }
+.gl-ds-step.is-on .gl-ds-step-n { background: var(--gl-accent); border-color: var(--gl-accent); color: #fff; }
+.gl-ds-step-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gl-ds-step-t b { font-size: 15px; font-weight: 700; line-height: 1.1; }
+.gl-ds-step-t small { font-size: 12px; color: var(--gl-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-ds-step.is-on .gl-ds-step-t small { color: #CFC8B8; }
+/* Map card: basemap, view and layers as a toolbar above the map, the 10-m deep link below it */
+.gl-ds-maptools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--gl-line); background: var(--gl-panel); }
+.gl-ds-layers { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.gl-ds-lay { height: 30px; padding: 0 11px; border-radius: 15px; border: 1px solid var(--gl-line-strong); background: #fff; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--gl-muted); cursor: pointer; white-space: nowrap; }
+.gl-ds-lay[aria-pressed="true"] { background: var(--gl-tint); border-color: var(--gl-accent); color: var(--gl-accent-dark); }
+.gl-ds-lay[disabled] { opacity: .5; cursor: not-allowed; }
+.gl-ds-lay:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+.gl-ds-maptools .gl-input { height: 30px; width: auto; font-size: 12.5px; padding: 0 8px; }
+.gl-ds-maplink { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--gl-muted); border-top: 1px solid var(--gl-line); text-decoration: none; }
+.gl-ds-maplink b { color: var(--gl-accent-dark); font-weight: 600; white-space: nowrap; }
+.gl-ds-maplink:hover b { text-decoration: underline; }
 .gl-ds-mapcard .gl-sheet-legend { width: 200px; left: 10px; bottom: 42px; padding: 8px 10px; }
 .gl-ds-side .gl-sheet-left { width: auto; height: auto; padding: 0; border: 0; background: none; overflow: visible; }
 @media (min-width: 768px) and (max-width: 1279px) {
   .gl-ds-grid { grid-template-columns: minmax(0, 1fr); }
   .gl-ds-side { position: static; }
   .gl-ds-kf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gl-ds-step-t small { display: none; }
 }
