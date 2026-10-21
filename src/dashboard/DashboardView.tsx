@@ -64,7 +64,7 @@ const INIT_POLLEN: PollenIn = { state: 'loading', region: null, species: [], not
 const INIT_NOWCAST: NowcastIn = { state: 'loading', sources: [], horizonLabel: '…', frames: [], slotMs: null, note: null };
 const INIT_CELLS: CellsIn = { state: 'loading', text: null };
 const INIT_HAIL: HailIn = { state: 'loading', text: null };
-const initTerrain = (halfKm: 20 | 50): TerrainIn => ({ state: 'loading', halfKm, axisDeg: 225, profile: [], stations: [], outside: [], note: null });
+const initTerrain = (halfKm: 10 | 20 | 50): TerrainIn => ({ state: 'loading', halfKm, axisDeg: 225, profile: [], stations: [], outside: [], note: null });
 const INIT_ICOND2: IconD2In = { state: 'loading', thunderMax: null, rotationMax: null, snowFresh24: null, gustMax: null, run: null, note: null };
 
 function useInView<T extends Element>(): [RefObject<T | null>, boolean] {
@@ -97,8 +97,8 @@ function LiveDashboard(props: Props) {
   const [nowcast, setNowcast] = useState<NowcastIn>(INIT_NOWCAST);
   const [cells, setCells] = useState<CellsIn>(INIT_CELLS);
   const [hail, setHail] = useState<HailIn>(INIT_HAIL);
-  const [halfKm, setHalfKm] = useState<20 | 50>(20);
-  const [terrain, setTerrain] = useState<TerrainIn>(() => initTerrain(20));
+  const [halfKm, setHalfKm] = useState<10 | 20 | 50>(10);
+  const [terrain, setTerrain] = useState<TerrainIn>(() => initTerrain(10));
   const [iconD2, setIconD2] = useState<IconD2In>(INIT_ICOND2);
   const [axisDeg, setAxisDeg] = useState<number | null>(null);
   const [nowcastRef, nowcastSeen] = useInView<HTMLElement>();
@@ -235,7 +235,7 @@ function useTablet(): boolean {
 }
 
 function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onHalfKm, onRetry, refs, log, part = 'ueberblick', onPart }: Props & {
-  vm: DashboardVM; onHalfKm: (km: 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
+  vm: DashboardVM; onHalfKm: (km: 10 | 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
   // Uhr der Topbar im Format der Kartenebene (Zeit, Wochentag · Tag Monat)

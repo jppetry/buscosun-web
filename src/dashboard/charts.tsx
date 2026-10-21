@@ -43,7 +43,7 @@ function Frame({ fromMs, toMs, layers, margin = NO_MARGIN }: { fromMs: number; t
 // Stundenverlauf (P47–P51)
 // ---------------------------------------------------------------------------
 
-export function HourlyChart({ vm, patternId }: { vm: HourlyVM; patternId: string }) {
+export function HourlyChart({ vm, patternId, hoverT }: { vm: HourlyVM; patternId: string; hoverT?: number | null }) {
   const pts = vm.points;
   const vals: number[] = [];
   for (const p of pts) for (const x of [p.t10, p.t50, p.t90, p.td]) if (x != null) vals.push(x);
@@ -115,6 +115,18 @@ export function HourlyChart({ vm, patternId }: { vm: HourlyVM; patternId: string
             );
           })}
         </g>
+        {/* Fadenkreuz beim Nachfahren mit der Maus: Linie und Punkte auf Temperatur und Taupunkt der nächsten Stunde */}
+        {hoverT != null && (() => {
+          const hp = pts.reduce<HourlyVM['points'][number] | null>((b, p) => (!b || Math.abs(p.t - hoverT) < Math.abs(b.t - hoverT) ? p : b), null);
+          if (!hp) return null;
+          return (
+            <g pointerEvents="none">
+              <line x1={x(hp.t)} x2={x(hp.t)} y1="0" y2={base} stroke="#2C2A26" strokeOpacity=".45" strokeDasharray="3 3" />
+              {hp.td != null && <circle cx={x(hp.t)} cy={yv(hp.td)} r="4" fill="#fff" stroke="#3A6FA8" strokeWidth="2" />}
+              {hp.t50 != null && <circle cx={x(hp.t)} cy={yv(hp.t50)} r="4.5" fill="#fff" stroke="#2C2A26" strokeWidth="2.2" />}
+            </g>
+          );
+        })()}
         <g fontFamily="League Spartan" fontSize="12" fill="#8B7355">
           <text x="6" y="14">°C</text>
           {vm.dayLines.map((d) => <text key={d.t} x={x(d.t) + 7} y="14">{d.label}</text>)}

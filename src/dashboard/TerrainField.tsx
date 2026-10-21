@@ -25,14 +25,14 @@ function useShownOnce<T extends Element>(): [RefObject<T | null>, boolean] {
   return [ref, seen];
 }
 
-export function TerrainField({ vm, onHalfKm, rootRef, nowMs }: { vm: TerrainVM; onHalfKm: (km: 20 | 50) => void; rootRef?: RefObject<HTMLElement | null>; nowMs: number }) {
+export function TerrainField({ vm, onHalfKm, rootRef, nowMs }: { vm: TerrainVM; onHalfKm: (km: 10 | 20 | 50) => void; rootRef?: RefObject<HTMLElement | null>; nowMs: number }) {
   const [stageRef, stageSeen] = useShownOnce<HTMLDivElement>();
   return (
     <section ref={rootRef} className="dbd-terrain dbd-dark" aria-label="Terrain und Wetter um den Ort">
       <div className="dbd-terrain-head">
         <span className="dbd-eyebrow">TERRAIN · TEMPERATUR · WIND</span>
         <div className="dbd-seg-dark" role="group" aria-label="Reichweite">
-          {([20, 50] as const).map((km) => (
+          {([10, 20, 50] as const).map((km) => (
             <button key={km} type="button" className={vm.halfKm === km ? 'is-active' : undefined} aria-pressed={vm.halfKm === km} onClick={() => { if (vm.halfKm !== km) onHalfKm(km); }}>± {km} km</button>
           ))}
         </div>

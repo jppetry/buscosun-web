@@ -3,7 +3,7 @@
  * eigene MapLibre-Karte mit Terrarium-Gelände (gleiche Überhöhung `TOWER_EXAGGERATION`), sandfarbener Schummerung, Himmel,
  * Basiskarte positron und der Schneefallgrenze als Fläche auf dem Relief (`useSnowCap`, Phase SK; `?sk=0` schaltet sie ab).
  * Dazu, was das Dashboard am Ort zeigt: der Ort, die Schnittlinie in Windrichtung (± halbe Länge), die Stationen des Katalogs,
- * die Temperaturverteilung auf dem Relief (EIN Gradient aus dem Modellprofil, wie die Isothermen des Schnitts) und die
+ * geschätzte Temperaturen an Orten und Gipfeln (ein Gradient aus dem Modellprofil oder den Messstationen) und die
  * ein Windfeld aus Pfeilen über dem Gelände (gemessener Wind der Stationen, abstandsgewichtet). Nur eingebaute 3D-Mittel von
  * MapLibre — keine Shader, kein Custom-Layer.
  */
@@ -23,22 +23,12 @@ const DEM_SRC = 'dbd-dem';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const STAGE_PITCH = 62;
-const SRC_TEMP = 'dbd-temp';
 const KM_PER_DEG_LAT = 111.32;
-/** Zoom je halber Schnittlänge, bei dem der Schnitt ungefähr die Bühne füllt. */
-const ZOOM_OF: Record<20 | 50, number> = { 20: 9.3, 50: 8.2 };
-/** Temperaturfläche: Kantenlänge in Pixeln und Stufung in K (Bänder wie Isothermen). */
-const TEMP_PX = 320;
-const TEMP_STEP_K = 2;
-const TRANSPARENT_PX = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+/** Zoom je Reichweite (± km), bei dem die Reichweite ungefähr die Bühne füllt. */
+const ZOOM_OF: Record<10 | 20 | 50, number> = { 10: 10.3, 20: 9.3, 50: 8.2 };
 
 const de = (n: number, d = 0) => n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
 const supportsWebGL = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
-
-function offset(lat: number, lon: number, bearingDeg: number, km: number): [number, number] {
-  const b = (bearingDeg * Math.PI) / 180;
-  return [lon + (km * Math.sin(b)) / (KM_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180)), lat + (km * Math.cos(b)) / KM_PER_DEG_LAT];
-}
 
 function chip(text: string, cls: string): HTMLElement {
   const el = document.createElement('div');
@@ -110,8 +100,6 @@ function rampColor(t: number): [number, number, number] {
 }
 const rampCss = (t: number) => { const c = rampColor(t); return `rgb(${c[0]},${c[1]},${c[2]})`; };
 
-const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
-const latOfMercY = (y: number) => ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI;
 
 interface ObsT { name: string; lat: number; lon: number; elev: number; t: number; ms: number }
 /** Gemessener Wind an einer Station: Herkunftsrichtung in Grad und Mittelwind in m/s. */
@@ -127,7 +115,7 @@ async function loadObs(c: { lat: number; lon: number }, halfKm: number, nowMs: n
   const store = await loadObsStore({ nowMs });
   if (signal.aborted) return { temps: [], winds: [], fit: [] };
   // Offene Stationen mit Temperatur sind dünn gesät (Mittelgebirge: 6 im Umkreis von 40 km, 15 bei 60 km) — der Radius ist deshalb weit.
-  const maxM = Math.max(halfKm * 3, 60) * 1000, gapM = Math.max(halfKm / 6, 3) * 1000;
+  const maxM = Math.max(halfKm * 3, 60) * 1000, gapM = Math.max(halfKm / 3, 6) * 1000;
   const cand: Array<ObsT & { d: number }> = [];
   const winds: Array<ObsW & { d: number }> = [];
   for (const st of store.catalog.stations) {
@@ -141,7 +129,7 @@ async function loadObs(c: { lat: number; lon: number }, halfKm: number, nowMs: n
   cand.sort((a, b) => a.d - b.d);
   const kept: Array<ObsT & { d: number }> = [];
   for (const x of cand) {
-    if (kept.length >= 24) break;
+    if (kept.length >= 10) break;
     if (kept.every((k) => obsDistanceM(k.lat, k.lon, x.lat, x.lon) >= gapM)) kept.push(x);
   }
   winds.sort((a, b) => a.d - b.d);
@@ -174,7 +162,7 @@ function placeCandidates(map: maplibregl.Map, zoom: number, hOrt: number | null)
   const src = Object.entries(map.getStyle()?.sources ?? {}).find(([, s]) => s.type === 'vector')?.[0];
   if (!src) return [];
   const RANK: Record<string, number> = { city: 5, town: 4, village: 3, suburb: 2, hamlet: 2, neighbourhood: 1, isolated_dwelling: 1 };
-  const minRank = zoom >= 11.3 ? 2 : zoom >= 10.2 ? 3 : 4;
+  const minRank = zoom >= 11.6 ? 2 : zoom >= 10.6 ? 3 : 4;
   const b = map.getBounds();
   const seen = new Set<string>();
   const out: Array<{ name: string; lon: number; lat: number; ele: number | null; rank: number; peak: boolean }> = [];
@@ -228,7 +216,7 @@ interface WindCell { lon: number; lat: number; toDeg: number; ms: number; conf: 
  */
 function windField(c: { lat: number; lon: number }, halfKm: number, viewBearing: number, winds: ObsW[], fallback: { dirDeg: number | null; ms: number | null }): { cells: WindCell[]; measured: boolean } {
   // Gitter in der Blickrichtung der Bühne: quer ± 1,5 R, in Blickrichtung von − 0,7 R (vor dem Ort) bis + 2,2 R (Ferne)
-  const across = halfKm * 1.5, back = halfKm * 0.7, ahead = halfKm * 2.2;
+  const Rf = Math.max(halfKm, 20); /* das Feld füllt die Bühne auch bei kleiner Reichweite */ const across = Rf * 1.5, back = Rf * 0.7, ahead = Rf * 2.2;
   const NX = 8, NY = 5;
   const cells: WindCell[] = [];
   const useObs = winds.length >= 3;
@@ -255,43 +243,6 @@ function windField(c: { lat: number; lon: number }, halfKm: number, viewBearing:
   return { cells, measured: useObs };
 }
 
-interface TempImage { url: string; coordinates: [[number, number], [number, number], [number, number], [number, number]]; tMin: number; tMax: number }
-
-/** Temperatur je Bildpunkt aus Geländehöhe und EINEM Gradienten (`tempAt`), in 2-K-Bändern, zum Rand hin ausgeblendet. */
-async function temperatureImage(c: { lat: number; lon: number }, halfKm: number, th: NonNullable<TerrainVM['thermal']>, signal: AbortSignal): Promise<TempImage | null> {
-  const span = Math.max(halfKm * 1.5, 30);
-  const [lonW, latN] = offset(c.lat, c.lon, 315, span * Math.SQRT2);
-  const [lonE, latS] = offset(c.lat, c.lon, 135, span * Math.SQRT2);
-  const { loadElevationLookup } = await import('../fusion/elevation');
-  const grid = await loadElevationLookup({ latMin: latS, latMax: latN, lngMin: lonW, lngMax: lonE }, span <= 40 ? 10 : 9, signal);
-  if (signal.aborted) return null;
-  const canvas = document.createElement('canvas');
-  canvas.width = TEMP_PX; canvas.height = TEMP_PX;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-  const img = ctx.createImageData(TEMP_PX, TEMP_PX);
-  const yN = mercY(latN), yS = mercY(latS);
-  let tMin = Infinity, tMax = -Infinity;
-  for (let j = 0; j < TEMP_PX; j++) {
-    const lat = latOfMercY(yN + ((yS - yN) * (j + 0.5)) / TEMP_PX);
-    for (let i = 0; i < TEMP_PX; i++) {
-      const lon = lonW + ((lonE - lonW) * (i + 0.5)) / TEMP_PX;
-      const h = grid.sample(lon, lat);
-      if (!Number.isFinite(h)) continue;
-      const t = tempAt(th.tOrt, th.hOrt, th.gamma, Math.max(0, h));
-      tMin = Math.min(tMin, t); tMax = Math.max(tMax, t);
-      const col = rampColor(Math.round(t / TEMP_STEP_K) * TEMP_STEP_K);
-      const dx = (i + 0.5) / TEMP_PX * 2 - 1, dy = (j + 0.5) / TEMP_PX * 2 - 1;
-      const r = Math.max(Math.abs(dx), Math.abs(dy));
-      const fade = r < 0.78 ? 1 : Math.max(0, 1 - (r - 0.78) / 0.22);
-      const o = (j * TEMP_PX + i) * 4;
-      img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = Math.round(255 * fade);
-    }
-  }
-  if (!Number.isFinite(tMin)) return null;
-  ctx.putImageData(img, 0, 0);
-  return { url: canvas.toDataURL('image/png'), coordinates: [[lonW, latN], [lonE, latN], [lonE, latS], [lonW, latS]], tMin, tMax };
-}
 
 export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: number }) {
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -304,8 +255,6 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const [showWind, setShowWind] = useState(true);
   const [showSnow, setShowSnow] = useState(true);
   const [info, setInfo] = useState(false);
-  const [tempRange, setTempRange] = useState<{ tMin: number; tMax: number } | null>(null);
-  const [tempState, setTempState] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
   const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[]; winds: ObsW[]; fit: Array<{ elev: number; t: number }> }>({ state: 'idle', list: [], winds: [], fit: [] });
   const obsMarkersRef = useRef<maplibregl.Marker[]>([]);
   const c = vm.center;
@@ -341,9 +290,6 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
       m.addSource(DEM_SRC, { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
       m.setTerrain({ source: DEM_SRC, exaggeration: TOWER_EXAGGERATION });
       const firstSymbol = m.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
-      // Temperaturfläche liegt UNTER der Schummerung, damit das Relief lesbar bleibt.
-      m.addSource(SRC_TEMP, { type: 'image', url: TRANSPARENT_PX, coordinates: [[c.lon - 0.1, c.lat + 0.1], [c.lon + 0.1, c.lat + 0.1], [c.lon + 0.1, c.lat - 0.1], [c.lon - 0.1, c.lat - 0.1]] });
-      m.addLayer({ id: 'dbd-temp-layer', type: 'raster', source: SRC_TEMP, paint: { 'raster-opacity': 0.66, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, firstSymbol);
       m.addLayer({
         id: 'dbd-hillshade', type: 'hillshade', source: DEM_SRC,
         paint: { 'hillshade-exaggeration': 0.45, 'hillshade-shadow-color': '#4A4234', 'hillshade-accent-color': '#6B5A45', 'hillshade-illumination-anchor': 'map', 'hillshade-illumination-direction': 335 },
@@ -387,27 +333,11 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, c?.lat, c?.lon, showWind, fieldKey, vm.halfKm]);
 
-  // --- Temperaturverteilung auf dem Relief ------------------------------------------------------------------------
+  // --- Temperatur nach Höhe (Grundlage der geschätzten Orts- und Gipfeltemperaturen) ------------------------------------
   // Temperatur nach Höhe: Gradient des Modellprofils (buscosun Fusion); fehlt er, die Ausgleichsgerade der Messstationen (Schätzung).
   const fit = lapseFit(obs.fit);
   const th = vm.thermal ?? (fit ? { tOrt: fit.a, hOrt: 0, gamma: -fit.b * 1000 } : null);
   const thSrc: 'model' | 'obs' | null = vm.thermal ? 'model' : fit ? 'obs' : null;
-  useEffect(() => {
-    if (!map || !c) return;
-    const src = map.getSource(SRC_TEMP) as maplibregl.ImageSource | undefined;
-    if (!src) return;
-    if (!showT || !th) { map.setLayoutProperty('dbd-temp-layer', 'visibility', 'none'); setTempState('idle'); return; }
-    const ac = new AbortController();
-    setTempState('loading');
-    temperatureImage(c, vm.halfKm, th, ac.signal).then((r) => {
-      if (ac.signal.aborted || !r) { if (!ac.signal.aborted) setTempState('error'); return; }
-      src.updateImage({ url: r.url, coordinates: r.coordinates });
-      map.setLayoutProperty('dbd-temp-layer', 'visibility', 'visible');
-      setTempRange({ tMin: r.tMin, tMax: r.tMax });
-      setTempState('ok');
-    }).catch((e) => { if ((e as { name?: string })?.name !== 'AbortError') setTempState('error'); });
-    return () => ac.abort();
-  }, [map, c?.lat, c?.lon, vm.halfKm, showT, th?.tOrt, th?.hOrt, th?.gamma]);
 
   // --- Gemessene Temperaturen an Stationen (Schilder mit Wert, gefärbt wie die Fläche) --------------------------------
   useEffect(() => {
@@ -453,10 +383,10 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
       const taken: Array<{ x: number; y: number }> = obs.list.map((o) => { const p = map.project([o.lon, o.lat]); return { x: p.x, y: p.y }; });
       const out: maplibregl.Marker[] = [];
       for (const cd of cands) {
-        if (out.length >= 40) break;
+        if (out.length >= 18) break;
         const p = map.project([cd.lon, cd.lat]);
         if (p.x < 40 || p.x > W - 40 || p.y < 50 || p.y > Hh - 40) continue;
-        if (taken.some((q) => Math.abs(q.x - p.x) < 112 && Math.abs(q.y - p.y) < 34)) continue;
+        if (taken.some((q) => Math.abs(q.x - p.x) < 150 && Math.abs(q.y - p.y) < 48)) continue;
         const elev = cd.ele ?? (() => { const e = map.queryTerrainElevation([cd.lon, cd.lat]); return e == null ? null : e / TOWER_EXAGGERATION; })();
         if (elev == null) continue;
         const t = tempAt(th.tOrt, th.hOrt, th.gamma, elev);
@@ -483,16 +413,16 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const reset = () => mapRef.current?.easeTo({ pitch: STAGE_PITCH, bearing, center: c ? [c.lon, c.lat] : undefined, zoom: ZOOM_OF[vm.halfKm], duration: 600 });
 
   if (!c) return <div className="dbd-empty">Gelände nicht verfügbar — kein Ort gewählt.</div>;
-  const gradCss = tempRange
-    ? `linear-gradient(90deg, ${Array.from({ length: 9 }, (_, i) => rampCss(tempRange.tMin + ((tempRange.tMax - tempRange.tMin) * i) / 8)).join(',')})`
-    : undefined;
+  // Farbskala der Temperaturschilder: Spanne der gemessenen Stationswerte (mindestens 1 K breit)
+  const chipTs = obs.list.map((o) => o.t);
+  const chipRange = chipTs.length ? { min: Math.min(...chipTs) - (Math.max(...chipTs) === Math.min(...chipTs) ? 0.5 : 0), max: Math.max(...chipTs) + (Math.max(...chipTs) === Math.min(...chipTs) ? 0.5 : 0) } : null;
   return (
     <div className="dbd-stage-in">
       <div ref={boxRef} className="dbd-stage-map" />
       {noWebgl && <div className="dbd-stage-note">3D braucht WebGL — dieses Gerät bietet es nicht.</div>}
       <div className="dbd-stage-top">
         <div className="dbd-stage-layers" role="group" aria-label="Ebenen der Bühne">
-          <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} onClick={() => setShowT((v) => !v)} title="Gemessene Temperaturen an Stationen, geschätzte an Orten und Gipfeln, dazu die Temperaturfläche"><i style={{ background: '#D2662D' }} />Temperatur</button>
+          <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} onClick={() => setShowT((v) => !v)} title="Gemessene Temperaturen an Stationen, geschätzte an Orten und Gipfeln"><i style={{ background: '#D2662D' }} />Temperatur</button>
           <button type="button" className={showWind ? 'is-on' : undefined} aria-pressed={showWind} onClick={() => setShowWind((v) => !v)} title="Windfeld aus dem gemessenen Wind der Stationen rund um den Ort"><i style={{ background: '#3A6FA8' }} />Wind</button>
           {skOn && <button type="button" className={showSnow ? 'is-on' : undefined} aria-pressed={showSnow} onClick={() => setShowSnow((v) => !v)} title="Schneefallgrenze als Fläche auf dem Relief"><i style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px rgba(44,42,38,.35)' }} />Schnee</button>}
         </div>
@@ -502,15 +432,14 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
       </div>
       <div className="dbd-stage-leg">
         <div className="dbd-stage-leg-row">
-          {showT && th && tempRange && tempState !== 'error' && (
-            <span className="dbd-stage-leg-i"><span className="dbd-stage-grad" style={{ background: gradCss }} aria-hidden="true" /><b>{de(tempRange.tMin, 0)} … {de(tempRange.tMax, 0)} °C</b></span>
+          {showT && chipRange && (
+            <span className="dbd-stage-leg-i"><span className="dbd-stage-grad" style={{ background: `linear-gradient(90deg, ${Array.from({ length: 9 }, (_, k) => rampCss(chipRange.min + ((chipRange.max - chipRange.min) * k) / 8)).join(',')})` }} aria-hidden="true" /><b>{de(chipRange.min, 0)} … {de(chipRange.max, 0)} °C</b></span>
           )}
           {showWind && field.cells.length > 0 && (
             <span className="dbd-stage-leg-i"><span className="dbd-stage-grad" style={{ background: `linear-gradient(90deg, ${[0, 3, 6, 10, 16].map((v) => windColor(v)).join(',')})` }} aria-hidden="true" /><b>0 … 16 m/s</b></span>
           )}
           {showT && (obs.state === 'loading' && !obs.list.length) && <span className="dbd-stage-leg-i is-quiet">Messwerte laden …</span>}
-          {showT && th && tempState === 'loading' && <span className="dbd-stage-leg-i is-quiet">Temperaturfläche lädt …</span>}
-          {showT && !th && obs.state !== 'loading' && <span className="dbd-stage-leg-i is-quiet">Keine Temperaturfläche (kein Gradient)</span>}
+          {showT && !th && obs.state !== 'loading' && <span className="dbd-stage-leg-i is-quiet">Keine Ortstemperaturen (kein Gradient)</span>}
           {skOn && showSnow && snow.info.status === 'loading' && <span className="dbd-stage-leg-i is-quiet">Schneefallgrenze lädt …</span>}
           <button type="button" className={`dbd-stage-info${info ? ' is-on' : ''}`} aria-expanded={info} onClick={() => setInfo((v) => !v)} title="Herkunft und Hinweise zu den Ebenen">
             <span aria-hidden="true">i</span><span className="dbd-sr">Herkunft und Hinweise</span>
@@ -519,8 +448,8 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
         {info && (
           <ul className="dbd-stage-leg-more">
             <li>Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht.</li>
-            {showT && th && <li>Temperaturfläche in 2-K-Bändern aus Geländehöhe und einem Gradienten (γ {de(th.gamma, 1)} K/km) — {thSrc === 'obs' && fit ? `Ausgleichsgerade aus ${fit.n} Messstationen, R² ${de(fit.r2, 2)}, eine Schätzung` : 'Gradient aus dem Modellprofil von buscosun Fusion'}; kein Wetterfeld, ohne Luv-/Lee- oder Stadteffekte.</li>}
-            {showT && !th && <li>Keine Temperaturfläche: weder das Modellprofil noch die Messstationen tragen einen Gradienten (Inversion, zu wenige oder zu gleich hohe Stationen).</li>}
+            {showT && th && <li>Temperatur an Orten und Gipfeln: geschätzt aus Geländehöhe und einem Gradienten (γ {de(th.gamma, 1)} K/km) — {thSrc === 'obs' && fit ? `Ausgleichsgerade aus ${fit.n} Messstationen, R² ${de(fit.r2, 2)}` : 'Gradient aus dem Modellprofil von buscosun Fusion'}; kein Wetterfeld, ohne Luv-/Lee- oder Stadteffekte.</li>}
+            {showT && !th && <li>Keine geschätzten Ortstemperaturen: weder das Modellprofil noch die Messstationen tragen einen Gradienten (Inversion, zu wenige oder zu gleich hohe Stationen).</li>}
             {showT && <li>{obs.list.length ? `Schilder mit Messwert: ${obs.list.length} Stationen (DWD · GeoSphere · MeteoSchweiz), Stand ${new Date(Math.max(...obs.list.map((o) => o.ms))).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr.` : obs.state === 'error' ? 'Messwerte nicht abrufbar.' : 'Keine aktuellen Messwerte in der Nähe.'}</li>}
             {showT && th && <li>{placeCount > 0 ? `${placeCount} Orte und Gipfel mit geschätzter Temperatur (≈ nach Höhe)` : 'Näher heranzoomen: Orte und Gipfel erscheinen mit geschätzter Temperatur (≈ nach Höhe)'}.</li>}
             {showWind && field.cells.length > 0 && <li>{field.measured ? `Windfeld aus ${obs.winds.length} Messstationen, nach Abstand gewichtet; Pfeil = wohin der Wind weht, blasser = weit von einer Station.` : `Wind am Ort aus ${windDir != null ? `${compass16(windDir)} (${Math.round(windDir)}°)` : '—'}${vm.wind.ms != null ? `, ${de(vm.wind.ms, 1)} m/s` : ''}; zu wenige Messstationen mit Wind — Richtung überall gleich gezeichnet.`} Kein Höhenwind.</li>}

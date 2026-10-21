@@ -3,17 +3,21 @@
  * Nur „3 Tage" ist in der Vorlage gezeichnet; Heute/7/14 Tage nutzen dieselben Karten im selben Raster
  * (Jans Entscheidung 29.09.: aus den Bausteinen abgeleitet, audit/dashboard.md §6).
  */
-import { useId } from 'react';
+import { useId, useState } from 'react';
+import { dayLabel, hhmm, num } from './format';
 import { DASH_RANGES, DASH_RANGE_LABEL, type DashRange } from './dashUrl';
 import { WeatherIcon, type SunVariant } from './icons';
 import { HourlyChart, HourlyTicks } from './charts';
 import { Val } from './tiles';
-import type { DayVM, ZoneVM } from './model/types';
+import type { DayVM, HourlyVM, ZoneVM } from './model/types';
 
 const PHASE_SUN: Record<string, SunVariant> = { MORGEN: 'mittag', MITTAG: 'mittag', ABEND: 'abend', NACHT: 'mittag' };
 
 export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range: DashRange; onRange: (r: DashRange) => void; onDay?: (index: number, opener: HTMLElement) => void }) {
   const patternId = `dbd-ens-${useId().replace(/[^a-z0-9]/gi, '')}`;
+  // Mit der Maus (oder dem Finger) den Stundenverlauf nachfahren: Zeit unter dem Zeiger → nächste Stunde
+  const [hoverT, setHoverT] = useState<number | null>(null);
+  const hoverPt = hoverT != null && vm.hourly ? vm.hourly.points.reduce<HourlyVM['points'][number] | null>((b, p) => (!b || Math.abs(p.t - hoverT) < Math.abs(b.t - hoverT) ? p : b), null) : null;
   return (
     <section className="dbd-zone" aria-label="Prognose">
       <div className="dbd-zone-head">
@@ -39,7 +43,28 @@ export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range:
           <span className="dbd-eyebrow">STUNDENVERLAUF ÜBER DEN GEWÄHLTEN ZEITRAUM</span>
           <Val v={vm.hourly ? vm.hourly.head : vm.hourlyHead} className="dbd-hourly-sub" />
         </div>
-        <div className="dbd-hourly-chart">{vm.hourly && <HourlyChart vm={vm.hourly} patternId={patternId} />}</div>
+        <div
+          className="dbd-hourly-chart"
+          onPointerMove={(e) => {
+            if (!vm.hourly) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+            setHoverT(vm.hourly.startMs + f * (vm.hourly.endMs - vm.hourly.startMs));
+          }}
+          onPointerLeave={() => setHoverT(null)}
+        >
+          {vm.hourly && <HourlyChart vm={vm.hourly} patternId={patternId} hoverT={hoverT} />}
+          {hoverPt && vm.hourly && (
+            <div className="dbd-hourly-tip" style={{ left: `${Math.min(86, Math.max(14, ((hoverPt.t - vm.hourly.startMs) / (vm.hourly.endMs - vm.hourly.startMs)) * 100))}%` }} role="status">
+              <div className="dbd-hourly-tip-t">{dayLabel(hoverPt.t)} · {hhmm(hoverPt.t)} Uhr</div>
+              <div className="dbd-hourly-tip-v">{hoverPt.t50 != null ? `${num(hoverPt.t50, 1)} °C` : 'n. v.'}{hoverPt.t10 != null && hoverPt.t90 != null && <span> · {num(hoverPt.t10, 1)} … {num(hoverPt.t90, 1)}</span>}</div>
+              <div className="dbd-hourly-tip-s">
+                {hoverPt.td != null && <span>Taupunkt {num(hoverPt.td, 1)} °C</span>}
+                {hoverPt.pr != null && hoverPt.pr >= 0.05 && <span>Regen {num(hoverPt.pr, 1)} mm/h</span>}
+              </div>
+            </div>
+          )}
+        </div>
         {vm.hourly && <HourlyTicks vm={vm.hourly} />}
         {vm.hourly && <HourlyTicks vm={vm.hourly} mobile />}
         <div className="dbd-legend">

@@ -73,7 +73,7 @@ export interface HailIn { state: LoadState; text: string | null }
 
 export interface TerrainIn {
   state: LoadState;
-  halfKm: 20 | 50;
+  halfKm: 10 | 20 | 50;
   axisDeg: number;
   /** Profil entlang der Achse: s in km (−halfKm … +halfKm), h in m ü. NN. */
   profile: Array<{ s: number; h: number }>;
@@ -293,7 +293,7 @@ export interface WindRoseVM {
 
 export interface TerrainVM {
   state: LoadState;
-  halfKm: 20 | 50;
+  halfKm: 10 | 20 | 50;
   /** Herkunftsrichtung des Schnitts (Luv-Seite, `s` < 0) und der Ort — die 3D-Bühne legt Schnittlinie und Blickrichtung darauf. */
   axisDeg: number;
   center: { lat: number; lon: number } | null;

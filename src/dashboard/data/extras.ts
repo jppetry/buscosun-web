@@ -207,7 +207,7 @@ function offset(lat: number, lon: number, bearingDeg: number, km: number): [numb
  * Schnitt durch den Ort in Windrichtung: von der Seite, aus der der Wind kommt (`axisDeg`), zur Gegenseite.
  * `s` < 0 liegt auf der Luv-Seite. Zoom 10 (≈ 150 m) für ±20 km, Zoom 9 für ±50 km.
  */
-export async function loadTerrain(p: PlaceIn, axisDeg: number, halfKm: 20 | 50, signal: AbortSignal): Promise<TerrainIn> {
+export async function loadTerrain(p: PlaceIn, axisDeg: number, halfKm: 10 | 20 | 50, signal: AbortSignal): Promise<TerrainIn> {
   const N = 181;
   const pts: Array<{ s: number; lat: number; lon: number }> = [];
   for (let i = 0; i < N; i++) {
@@ -218,7 +218,7 @@ export async function loadTerrain(p: PlaceIn, axisDeg: number, halfKm: 20 | 50, 
   const lats = pts.map((x) => x.lat), lons = pts.map((x) => x.lon);
   try {
     const { loadElevationLookup } = await import('../../fusion/elevation');
-    const grid = await loadElevationLookup({ latMin: Math.min(...lats), latMax: Math.max(...lats), lngMin: Math.min(...lons), lngMax: Math.max(...lons) }, halfKm === 20 ? 10 : 9, signal);
+    const grid = await loadElevationLookup({ latMin: Math.min(...lats), latMax: Math.max(...lats), lngMin: Math.min(...lons), lngMax: Math.max(...lons) }, halfKm <= 20 ? 10 : 9, signal);
     const profile = pts.map((x) => ({ s: x.s, h: grid.sample(x.lon, x.lat) })).filter((x) => Number.isFinite(x.h));
     if (profile.length < N * 0.8) return { state: 'na', halfKm, axisDeg, profile: [], stations: [], outside: [], note: 'Geländekacheln unvollständig' };
     // Stationen des MOSMIX-Katalogs (buscosun-data point/stations/catalog.json — liegt nach der Fusion im Cache).
@@ -235,7 +235,7 @@ export async function loadTerrain(p: PlaceIn, axisDeg: number, halfKm: 20 | 50, 
           const dy = (st.lat - p.lat) * KM_PER_DEG_LAT;
           return { st, along: dx * ex + dy * ey, across: -dx * ey + dy * ex, dist: Math.hypot(dx, dy) };
         }).filter((c) => c.dist <= 70 && c.dist > 1).sort((a, b2) => a.dist - b2.dist);
-        const acrossMax = halfKm === 20 ? 3 : 5;
+        const acrossMax = halfKm <= 20 ? 3 : 5;
         for (const c of cand) {
           if (Math.abs(c.along) <= halfKm && Math.abs(c.across) <= acrossMax) stations.push({ name: c.st.name, s: c.along, h: c.st.elev, t: null });
           else if (outside.length < 2) outside.push(c.st.name);
