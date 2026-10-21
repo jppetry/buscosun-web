@@ -64,26 +64,26 @@ export default function GlacierList({ ranked, rest, def, hint, selectedId, onPic
                     <span className="gl-tile-region" title={GLACIER_COUNTRY_LABEL[g.country]}>{g.country}</span>
                   </span>
                   <span className="gl-tile-stats">
-                    <span className="gl-stat is-metric" title={r.value?.reason ?? undefined}>
-                      <span className="gl-stat-lbl">{def.label}</span>
-                      <span className="gl-stat-val gl-num" data-origin={def.origin}>{r.value?.text ?? '–'}</span>
-                      <span className="gl-stat-sub">{r.value?.text ? r.value.period : def.locked ? 'gesperrt' : def.noValue}</span>
-                      {r.n != null && v != null && <span className="gl-stat-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, (Math.abs(v) / maxAbs) * 100)}%` }} /></span>}
+                    <span className="gl-kf is-metric" title={r.value?.reason ?? undefined}>
+                      <span className="gl-kf-lbl">{def.label}</span>
+                      <span className="gl-kf-val gl-num" data-origin={def.origin}>{r.value?.text ?? '–'}</span>
+                      <span className="gl-kf-sub">{r.value?.text ? r.value.period : def.locked ? 'gesperrt' : def.noValue}</span>
+                      {r.n != null && v != null && <span className="gl-kf-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, (Math.abs(v) / maxAbs) * 100)}%` }} /></span>}
                     </span>
-                    <span className="gl-stat">
-                      <span className="gl-stat-lbl">Fläche</span>
-                      <span className="gl-stat-val gl-num" data-origin="official">{fmtKm2(g.area.km2)}</span>
-                      <span className="gl-stat-sub">Inventar {fmtRefYear(g.area.refYear)}</span>
+                    <span className="gl-kf">
+                      <span className="gl-kf-lbl">Fläche</span>
+                      <span className="gl-kf-val gl-num" data-origin="official">{fmtKm2(g.area.km2)}</span>
+                      <span className="gl-kf-sub">Inventar {fmtRefYear(g.area.refYear)}</span>
                     </span>
-                    <span className="gl-stat">
-                      <span className="gl-stat-lbl">Höhe</span>
-                      <span className="gl-stat-val gl-num" data-origin="official">{fmt0(g.z[1])} m</span>
-                      <span className="gl-stat-sub">{fmt0(g.z[0])}–{fmt0(g.z[2])} m</span>
+                    <span className="gl-kf">
+                      <span className="gl-kf-lbl">Höhe</span>
+                      <span className="gl-kf-val gl-num" data-origin="official">{fmt0(g.z[1])} m</span>
+                      <span className="gl-kf-sub">{fmt0(g.z[0])}–{fmt0(g.z[2])} m</span>
                     </span>
-                    <span className="gl-stat">
-                      <span className="gl-stat-lbl">Region</span>
-                      <span className="gl-stat-val is-text">{region}</span>
-                      <span className="gl-stat-sub">{g.area.source}</span>
+                    <span className="gl-kf">
+                      <span className="gl-kf-lbl">Region</span>
+                      <span className="gl-kf-val is-text">{region}</span>
+                      <span className="gl-kf-sub">{g.area.source}</span>
                     </span>
                   </span>
                   {notes.length > 0 && <span className="gl-tile-notes">{notes.map((t) => <span key={t} className="gl-tile-note">{t}</span>)}</span>}

@@ -66,6 +66,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [selSeg, setSelSeg] = useState<string | null>(initial.glacier ?? initial.sel);
   const [chartKind, setChartKind] = useState<ChartKind>('ba');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [stage, setStage] = useState<'map' | 'dossier'>(initial.dossier ? 'dossier' : 'map');
   const [sat, setSat] = useState<ReadonlyMap<string, GlacierSatLatest>>(() => new Map());
   const [meltToday, setMeltToday] = useState<ReadonlyMap<string, [number, number, number]> | null>(null);
   const [meltRun, setMeltRun] = useState<{ runAt: string } | null>(null);
@@ -115,7 +116,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   // browser back/forward between states
   useEffect(() => {
     if (!popState) return;
-    setLand(popState.land); setMetric(popState.m); setQuery(popState.q); setSelSeg(popState.glacier ?? popState.sel);
+    setLand(popState.land); setMetric(popState.m); setQuery(popState.q); setSelSeg(popState.glacier ?? popState.sel); setStage(popState.dossier ? 'dossier' : 'map');
     setSheet({ tab: popState.tab, t: popState.t, v: popState.v, e: popState.e, o: popState.o });
   }, [popState]);
 
@@ -181,8 +182,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   // --- URL state -------------------------------------------------------------------------------------------------
   const stateNow = useCallback((patch: Partial<GlacierUrlState> = {}): GlacierUrlState => ({
-    ...initial, glacier: briefSeg, ...sheet, land, m: metric, q: query, sel: briefSeg ? null : selSeg, ...patch,
-  }), [initial, briefSeg, sheet, land, metric, query, selSeg]);
+    ...initial, glacier: briefSeg, ...sheet, land, m: metric, q: query, sel: briefSeg ? null : selSeg, dossier: !briefSeg && !isMobile && stage === 'dossier', ...patch,
+  }), [initial, briefSeg, sheet, land, metric, query, selSeg, isMobile, stage]);
   useEffect(() => { onUrlState(stateNow()); }, [stateNow, onUrlState]);
 
   const pick = useCallback((id: string) => setSelSeg(glacierSegmentOf(id)), []);
@@ -217,6 +218,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       </div>
       <div className="gl-pill-actions">
       <button type="button" className={`gl-star${favs.includes(sel.id) ? ' is-on' : ''}`} aria-pressed={favs.includes(sel.id)} aria-label={favs.includes(sel.id) ? `${displayName(sel)} nicht mehr folgen` : `${displayName(sel)} folgen`} onClick={() => follow(sel.id)}>{favs.includes(sel.id) ? '★' : '☆'}</button>
+      {!isMobile && <button type="button" className="gl-btn" onClick={() => setStage('dossier')}>Dossier</button>}
       <button type="button" className="gl-btn is-primary" disabled={!GLACIER_BRIEF_READY} onClick={openBrief}
         title={GLACIER_BRIEF_READY ? undefined : 'Der Steckbrief mit Heute, Saison, Langzeit, Tour und Quellen folgt (GL-4)'}>
         Steckbrief{GLACIER_BRIEF_READY ? ' öffnen' : ' folgt (GL-4)'}
@@ -299,6 +301,12 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const topbar = (
     <header className="gl-topbar">
       <div className="gl-title"><b>Gletscher</b><span>DACH · rund {fmt0(glaciers.length || 2199)} Gletscher im Atlas</span></div>
+      {!isMobile && (
+        <div className="gl-seg2 gl-stage-seg" role="group" aria-label="Bühne der Mitte">
+          <button type="button" aria-pressed={stage === 'map'} onClick={() => setStage('map')}>Karte</button>
+          <button type="button" aria-pressed={stage === 'dossier'} onClick={() => setStage('dossier')}>Dossier</button>
+        </div>
+      )}
       {!isMobile && stand}
       <div className="gl-grow" />
       {!isMobile && <span className="gl-season">{season.label}</span>}
@@ -373,10 +381,27 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         <div className="gl-body">
           {dock}
           <div className="gl-center">
-            <section className="gl-map" aria-label="Karte aller Gletscher">
+            <section className={`gl-map${stage === 'dossier' ? ' is-offstage' : ''}`} aria-label="Karte aller Gletscher" aria-hidden={stage === 'dossier' ? true : undefined}>
               {map}{zoom}{legend}{pill}{note}
               <div className="gl-attrib">Karte: OpenStreetMap-Mitwirkende · Inventare je nach Land</div>
             </section>
+            {stage === 'dossier' && (
+              <div className="gl-ds-stage">
+                {sel && d ? (
+                  <Suspense fallback={<div className="gl-empty" role="status">Dossier wird geladen …</div>}>
+                    <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} official={d.official} nowMs={nowMs} isMobile={false} bases={bases}
+                      state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={() => setStage('map')} allow3d={allow3d} followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
+                      onOpenSheet={GLACIER_BRIEF_READY ? openBrief : undefined} />
+                  </Suspense>
+                ) : (
+                  <div className="gl-ds-emptycard">
+                    <span className="gl-label">Dossier</span>
+                    <p><strong>Kein Gletscher markiert.</strong> Ein Klick auf eine Kachel rechts oder auf einen Gletscher der Karte öffnet hier sein Dossier: Heute, Saison, Langzeit, Tour und Quellen, dazu Karte und Steckbrief.</p>
+                    <button type="button" className="gl-btn" onClick={() => setStage('map')}>Zur Karte</button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {readout}
         </div>

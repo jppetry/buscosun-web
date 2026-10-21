@@ -36,9 +36,13 @@ export interface SheetProps {
   allow3d: boolean;
   followed: boolean;
   onFollow: () => void;
+  /** `dossier`: the same content in the centre of the situation page (all five sections at once, map and Steckbrief at the side). */
+  layout?: 'page' | 'dossier';
+  /** Dossier only: opens the full sheet `/gletscher/<slug>`. */
+  onOpenSheet?: () => void;
 }
 
-export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow }: SheetProps) {
+export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
   const [data, setData] = useState<SheetData | null>(null);
   const [compare, setCompare] = useState<number | null>(null);
   const [snowShare, setSnowShare] = useState<number | null>(null);
@@ -103,17 +107,21 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
       ))}
     </div>
   );
-  const panel = loadError ? <div className="gl-empty" role="status"><strong>Keine Daten.</strong> Der Steckbrief ist nicht ladbar ({loadError}).</div> : !data ? <div className="gl-empty" role="status">Steckbrief wird geladen …</div> : (
+  const tabBody = (t: GlacierTab, d: SheetData) => (
+    t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} />
+    : t === 'saison' ? <TabSaison g={g} data={d} year={year} selDate={selScene?.date ?? null} mass={mass} />
+    : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
+        onCsv={() => { const text = seriesCsv(g, d.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />
+    : t === 'tour' ? <TabTour g={g} melt={mv} season={season} nowMs={nowMs} bandZ={g.z} />
+    : <TabQuellen rows={rows} sources={d.sources} />
+  );
+  const notReady = loadError ? <div className="gl-empty" role="status"><strong>Keine Daten.</strong> Der Steckbrief ist nicht ladbar ({loadError}).</div> : !data ? <div className="gl-empty" role="status">Steckbrief wird geladen …</div> : null;
+  const panel = notReady ?? (data && (
     <div id="gl-tabpanel" role="tabpanel" aria-labelledby={`gl-tab-${state.tab}`} data-tab={state.tab}>
       {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-      {state.tab === 'heute' && <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} />}
-      {state.tab === 'saison' && <TabSaison g={g} data={data} year={year} selDate={selScene?.date ?? null} mass={mass} />}
-      {state.tab === 'langzeit' && <TabLangzeit g={g} area={area} length={length} proj={data.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} official={official} status={g.status ?? null} hasSeries={data.series.length > 0}
-        onCsv={() => { const text = seriesCsv(g, data.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />}
-      {state.tab === 'tour' && <TabTour g={g} melt={mv} season={season} nowMs={nowMs} bandZ={g.z} />}
-      {state.tab === 'quellen' && <TabQuellen rows={rows} sources={data.sources} />}
+      {tabBody(state.tab, data)}
     </div>
-  );
+  ));
 
   const timeSwitch = (
     <div className="gl-timesw" role="group" aria-label="Zeitpunkt">
@@ -176,6 +184,56 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
     </header>
   );
 
+  if (layout === 'dossier') {
+    return (
+      <section className="gl-ds" aria-label={`Dossier ${displayName(g)}`} data-glacier={g.id}>
+        <header className="gl-ds-card gl-ds-head">
+          <div className="gl-ds-headrow">
+            <div className="gl-ds-headtx">
+              <span className="gl-ds-eyebrow">Dossier · Gletscher</span>
+              <h2 className="gl-ds-title">{displayName(g)} <span className="gl-chip is-official"><i aria-hidden="true" />{g.country} · Klasse {g.klass}</span></h2>
+              <p className="gl-ds-sub">{sub}</p>
+            </div>
+            <div className="gl-ds-actions">
+              <button type="button" className={`gl-btn gl-follow${followed ? ' is-on' : ''}`} aria-pressed={followed} onClick={onFollow} aria-label={followed ? `${displayName(g)} nicht mehr folgen` : `${displayName(g)} folgen`}><span aria-hidden="true">{followed ? '★' : '☆'}</span>{followed ? ' Gefolgt' : ' Folgen'}</button>
+              {onOpenSheet && <button type="button" className="gl-btn" onClick={onOpenSheet}>Steckbrief <span aria-hidden="true">↗</span></button>}
+              <button type="button" className="gl-btn" onClick={onBack}>Zur Karte</button>
+            </div>
+          </div>
+          <div className="gl-ds-kf">
+            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Fläche</span><span className="gl-num" data-origin="official">{fmtKm2(g.area.km2)}</span><small>Inventar {fmtRefYear(g.area.refYear)} · {g.area.source}</small></span>
+            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Höhe</span><span className="gl-num" data-origin="official">{fmt0(g.z[0])}–{fmt0(g.z[2])} m</span><small>Median {fmt0(g.z[1])} m</small></span>
+            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Flächenänderung</span>{area
+              ? <><span className={`gl-num${area.pct < 0 ? ' gl-loss-n' : ''}`} data-origin="official">{fmtSigned(area.pct, 0)} %</span><small>seit {area.from[0]} ({fmtKm2(area.from[1])})</small></>
+              : <><span className="gl-num">—</span><small>{data ? 'nur ein Inventar' : 'wird geladen …'}</small></>}</span>
+            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Massenbilanz</span>{mass && mass.ba != null
+              ? <><span className={`gl-num${mass.ba < 0 ? ' gl-loss-n' : ''}`} data-origin="measured">{fmt0(mass.ba)} mm w. e.</span><small>gemessen {mass.year - 1}/{String(mass.year).slice(2)}</small></>
+              : <><span className="gl-num">—</span><small>{data ? 'keine Messreihe' : 'wird geladen …'}</small></>}</span>
+          </div>
+          {scenes.length > 0 && <div className="gl-ds-time"><span className="gl-ds-tile-l">Zeitpunkt der Karte</span>{timeSwitch}</div>}
+        </header>
+        <div className="gl-ds-grid">
+          <div className="gl-ds-main">
+            {notReady ?? (data && (
+              <>
+                {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
+                {GLACIER_TABS.map((t) => (
+                  <section key={t} className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
+                    <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
+                    {tabBody(t, data)}
+                  </section>
+                ))}
+              </>
+            ))}
+          </div>
+          <div className="gl-ds-side">
+            <div className="gl-ds-card gl-ds-mapcard">{mapEl}</div>
+            <div className="gl-ds-card">{left}</div>
+          </div>
+        </div>
+      </section>
+    );
+  }
   if (isMobile) {
     return (
       <div className="gl-main gl-sheet">

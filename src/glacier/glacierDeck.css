@@ -247,15 +247,15 @@
 .gl-tile-badge.is-C { border-style: dashed; background: transparent; }
 .gl-tile-region { margin-left: auto; flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--gl-muted); }
 .gl-tile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.gl-stat { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 8px 9px; background: var(--gl-panel); border: 1px solid var(--gl-line); border-radius: 9px; }
-.gl-stat.is-metric { background: color-mix(in srgb, var(--gl-tile-c) 22%, #fff); border-color: color-mix(in srgb, var(--gl-tile-c) 55%, var(--gl-line)); }
-.gl-stat-lbl { font-size: 10.5px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--gl-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gl-stat-val { font-size: 15px; font-weight: 700; color: var(--gl-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.gl-stat.is-metric .gl-stat-val { color: var(--gl-loss); }
-.gl-stat-val.is-text { font-family: inherit; font-size: 13.5px; font-weight: 600; }
-.gl-stat-sub { font-size: 11px; color: var(--gl-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gl-stat-bar { display: block; height: 4px; border-radius: 2px; background: rgba(44,42,38,.08); overflow: hidden; margin-top: 4px; }
-.gl-stat-bar i { display: block; height: 100%; border-radius: 2px; background: var(--gl-tile-c); }
+.gl-kf { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 8px 9px; background: var(--gl-panel); border: 1px solid var(--gl-line); border-radius: 9px; }
+.gl-kf.is-metric { background: color-mix(in srgb, var(--gl-tile-c) 22%, #fff); border-color: color-mix(in srgb, var(--gl-tile-c) 55%, var(--gl-line)); }
+.gl-kf-lbl { font-size: 10.5px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--gl-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-kf-val { font-size: 15px; font-weight: 700; color: var(--gl-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.gl-kf.is-metric .gl-kf-val { color: var(--gl-loss); }
+.gl-kf-val.is-text { font-family: inherit; font-size: 13.5px; font-weight: 600; }
+.gl-kf-sub { font-size: 11px; color: var(--gl-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-kf-bar { display: block; height: 4px; border-radius: 2px; background: rgba(44,42,38,.08); overflow: hidden; margin-top: 4px; }
+.gl-kf-bar i { display: block; height: 100%; border-radius: 2px; background: var(--gl-tile-c); }
 .gl-tile-notes { display: flex; flex-wrap: wrap; gap: 4px; }
 .gl-tile-note { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 9px; background: var(--gl-tint); color: var(--gl-accent-dark); }
 .gl-all-more { display: flex; gap: 8px; padding-top: 4px; }
@@ -265,3 +265,14 @@
   .gl-readout-scroll > .gl-all { grid-column: 1 / -1; }
   .gl-all-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
+
+/* Stage "Karte | Dossier" (pattern Brandradar): the map stays mounted offstage, the dossier lies over the centre */
+.gl-stage-seg { flex: 0 0 auto; }
+.gl-stage-seg button { height: 30px; padding: 0 14px; font-size: 13px; }
+.gl-center { position: relative; }
+.gl-map.is-offstage { visibility: hidden; }
+.gl-ds-stage { position: absolute; inset: 0; z-index: 4; overflow-y: auto; background: var(--gl-bg); padding: 16px 18px 24px; }
+.gl-ds-emptycard { max-width: 560px; margin: 40px auto 0; background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.gl-ds-emptycard p { margin: 0; font-size: 13.5px; color: var(--gl-muted); line-height: 1.5; }
+.gl-ds-emptycard strong { color: var(--gl-ink); }
+.gl-pill-actions .gl-btn:not(.is-primary) { flex: 0 0 auto; }

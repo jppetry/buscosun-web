@@ -13,6 +13,7 @@
  *   q    search text                                    (situation page)
  *   sel  the glacier selected on the situation map (same segment form; opening the sheet is the path `/gletscher/<segment>`)
  *   o    outline epoch year of the sheet (`o=1850`)
+ *   dossier  1 = the centre of the situation page shows the dossier of `sel` instead of the map (pattern Brandradar)
  */
 
 export type GlacierTab = 'heute' | 'saison' | 'langzeit' | 'tour' | 'quellen';
@@ -39,9 +40,10 @@ export interface GlacierUrlState {
   m: GlacierMetric;
   q: string;
   sel: string | null;
+  dossier: boolean;
 }
 
-export const GLACIER_DEFAULT_STATE: GlacierUrlState = { glacier: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0, land: 'alle', m: 'laenge', q: '', sel: null };
+export const GLACIER_DEFAULT_STATE: GlacierUrlState = { glacier: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0, land: 'alle', m: 'laenge', q: '', sel: null, dossier: false };
 const SEG_RE = /^(ch|at|de)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -74,6 +76,8 @@ export function parseGlacierUrl(segment: string | null | undefined, search: stri
   if (s != null) { if (s.length <= 60) state.q = s; else invalid.push('q'); }
   const sel = q.get('sel');
   if (sel != null) { if (SEG_RE.test(sel) && sel.length <= 78) state.sel = sel; else invalid.push('sel'); }
+  const ds = q.get('dossier');
+  if (ds != null) { if (ds === '1') state.dossier = true; else invalid.push('dossier'); }
   return { state, invalid };
 }
 
@@ -93,6 +97,7 @@ export function buildGlacierUrl(s: GlacierUrlState, extra: ReadonlyArray<[string
     if (s.m !== d.m) q.push(['m', s.m]);
     if (s.q) q.push(['q', s.q]);
     if (s.sel) q.push(['sel', s.sel]);
+    if (s.dossier) q.push(['dossier', '1']);
   }
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
