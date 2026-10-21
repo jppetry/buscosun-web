@@ -30,6 +30,7 @@ import { parseCountry } from './countryProfiles';
 import RadarSweepIcon from './RadarSweepIcon';
 import GlobeIcon from './GlobeIcon';
 import FireIcon from './FireIcon';
+import DachMapBackground from './DachMapBackground';
 // Deko-Hero-Karte lazy: maplibre-gl bleibt aus dem Initial-Bundle (eigener Chunk).
 const HeroMapBackground = lazy(() => import('./HeroMapBackground'));
 // Touch-Geräte: die rein dekorative Hintergrundkarte gar nicht laden (SVG genügt).
@@ -207,6 +208,8 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
           <HeroMapBackground />
         </Suspense>
       )}
+      {/* DACH-Karte als SVG über der Deko-Karte, unter dem Inhalt. */}
+      <DachMapBackground />
 
       <main className="deck-main">
         <Hero onSelect={selectPlace} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} narrow={narrow} />
