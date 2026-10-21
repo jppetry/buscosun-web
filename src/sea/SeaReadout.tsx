@@ -206,11 +206,11 @@ export default function SeaReadout(p: Props) {
           </div>
         </Card>
   );
-  const chartCard = s && !p.noData && p.chartHours.length > 1 && (
-        <Card cls="is-cream">
+  const chartCardOf = (big = false) => s && !p.noData && p.chartHours.length > 1 && (
+        <Card cls={big ? 'is-cream is-wide' : 'is-cream'}>
           <div className="sw-card-head"><span className="sw-eyebrow">Verlauf bis {dayShort(p.chartHours[p.chartHours.length - 1].t)} {hh(p.chartHours[p.chartHours.length - 1].t)} Uhr</span><span className="sw-unit">Welle {runLabel(p.run)} · Wind {windName}</span></div>
-          <WindChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} limitKn={p.limitKn} limitLabel={p.limitLabel} />
-          <SeaStateChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} />
+          <WindChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} limitKn={p.limitKn} limitLabel={p.limitLabel} big={big} />
+          <SeaStateChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} big={big} />
           <div className="sw-chart-legend">
             <span><i style={{ background: '#2C2A26' }} />Wind (kn)</span><span><i style={{ background: 'rgba(139,115,85,0.4)', height: 6 }} />Böen-Band</span>
             <span><i style={{ background: '#0F6E7A' }} />Seegang gesamt</span><span><i style={{ background: '#3E9284' }} />Windsee</span><span><i style={{ background: '#7A9466' }} />Dünung (m)</span>
@@ -218,7 +218,9 @@ export default function SeaReadout(p: Props) {
           </div>
         </Card>
   );
-  const waterCard = s && p.waterLevel && <WaterLevelCard wl={p.waterLevel} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} />;
+  const chartCard = chartCardOf();
+  const waterCardOf = (big = false) => s && p.waterLevel && <WaterLevelCard wl={p.waterLevel} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} big={big} />;
+  const waterCard = waterCardOf();
   const officialCard = s && <OfficialCard spot={s} texts={p.texts} warning={p.warning} onArea={() => p.onTab('gebiet')} nowMs={p.nowMs} />;
   const measuredCard = s && (
       <Card cls="is-cream">
@@ -406,7 +408,7 @@ export default function SeaReadout(p: Props) {
               <DsSection title="Am Spot" hint="Gewählte Stunde · Stundenband · Wasserstand · Verlauf" side={p.chips}>
                 {nowCard}
                 {p.band}
-                <div className="sw-ds-grid is-one">{waterCard}{chartCard}</div>
+                <div className="sw-ds-grid is-one">{waterCardOf(true)}{chartCardOf(true)}</div>
               </DsSection>
             ) : empty}
             <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
@@ -460,8 +462,9 @@ const WL_STALE = (doc: WlForecast, nowMs: number) => ({
   forecast: doc.forecastAt != null && nowMs - doc.forecastAt > WL_FORECAST_STALE_MS,
 });
 
-function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number; nowMs: number }) {
+function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; selMs: number; nowMs: number; big?: boolean }) {
   const doc = wl.doc, g = wl.gauge;
+  const cls = big ? 'is-cream is-wide' : 'is-cream';
   const head = (
     <div className="sw-card-head">
       <span className="sw-eyebrow is-accent-dark">Wasserstand · amtlich (BSH)</span>
@@ -470,7 +473,7 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
   );
   if (wl.state !== 'ok' || !doc) {
     return (
-      <Card cls="is-cream">
+      <Card cls={cls}>
         {head}
         <div className="sw-note">
           {wl.state === 'loading' ? 'Wasserstand lädt …'
@@ -506,7 +509,7 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
   ].filter(Boolean).join(' · ');
 
   return (
-    <Card cls="is-cream">
+    <Card cls={cls}>
       {head}
       <div className="sw-official-meta">
         Pegel {doc.name}{wl.km != null ? ` · ${f1(wl.km)} km vom Spot` : ''}{doc.area ? ` · ${doc.area}` : ''} · {WL_REGION_LABEL[doc.region]}
@@ -530,7 +533,7 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
         </div>
         <div><span>Bezug dieses Pegels</span><strong>{refs || '– (keine Bezugshöhen)'}</strong></div>
       </div>
-      {fill && <WaterLevelFill fill={fill} isNow={fillNow} />}
+      {fill && <WaterLevelFill fill={fill} isNow={fillNow} big={big} />}
       {beyond && (
         <p className="sw-note">Der Verlauf des BSH reicht bis {dayShort(curveEnd!)} {hm(curveEnd!)} Uhr — für die gewählte Stunde gibt es dort keinen Wert. Die Hoch- und Niedrigwasserzeiten unten reichen weiter.</p>
       )}
@@ -577,7 +580,7 @@ function WaterLevelCard({ wl, selMs, nowMs }: { wl: SeaWaterLevel; selMs: number
 
       {window.length > 1 && (
         <>
-          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} highLabel={highLabel} lowLabel={lowLabel} />
+          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} highLabel={highLabel} lowLabel={lowLabel} big={big} />
           <div className="sw-chart-legend">
             <span><i style={{ background: '#2C2A26' }} />gemessen</span>
             <span><i style={{ background: '#0F6E7A' }} />Vorhersage</span>
@@ -614,8 +617,8 @@ const cmSigned = (cm: number) => `${cm > 0 ? '+' : cm < 0 ? '−' : '±'}${cmTex
  * value in cm above gauge zero or a subtraction in that same reference; the colour names the origin
  * (forecast teal, measurement ink — the chart's colours).
  */
-function WaterLevelFill({ fill, isNow }: { fill: WlFill; isNow: boolean }) {
-  const W = 104, H = 124, x0 = 6, x1 = 40, top = 8, bottom = H - 8;
+function WaterLevelFill({ fill, isNow, big = false }: { fill: WlFill; isNow: boolean; big?: boolean }) {
+  const W = big ? 132 : 104, H = big ? 150 : 124, x0 = 6, x1 = big ? 46 : 40, top = 8, bottom = H - 8;
   const y = (cm: number) => bottom - ((cm - fill.lo) / (fill.hi - fill.lo)) * (bottom - top);
   const colour = fill.kind === 'forecast' ? '#0F6E7A' : '#2C2A26';
   const yv = y(fill.cm);
@@ -635,7 +638,7 @@ function WaterLevelFill({ fill, isNow }: { fill: WlFill; isNow: boolean }) {
         {fill.marks.map((m) => (
           <g key={m.label}>
             <line x1={x0 - 2} x2={x1 + 4} y1={y(m.cm)} y2={y(m.cm)} stroke="#8B7355" strokeDasharray="3 2" />
-            <text x={x1 + 7} y={y(m.cm) + 3} fontSize={8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{m.label} {m.cm}</text>
+            <text x={x1 + 7} y={y(m.cm) + (big ? 4 : 3)} fontSize={big ? 11 : 8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{m.label} {m.cm}</text>
           </g>
         ))}
       </svg>

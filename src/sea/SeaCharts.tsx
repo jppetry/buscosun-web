@@ -34,15 +34,16 @@ function common(hours: readonly SeaChartHour[], selMs: number, extra: Array<(c: 
   return { layers: [Night, 'grid', ...extra, 'lines', 'axes', Sel] as never, min: hours[0]?.t ?? 0, max: hours[hours.length - 1]?.t ?? 1 };
 }
 
-const THEME = { text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, fill: '#8B7355' }, grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } }, axis: { ticks: { line: { stroke: 'transparent' } } } };
+/** `big`: the dossier draws the charts across its full width — taller, with larger axis text. */
+const theme = (big?: boolean) => ({ text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: big ? 12 : 9, fill: big ? '#5C5447' : '#8B7355' }, grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } }, axis: { ticks: { line: { stroke: 'transparent' } } } });
 /** A series without one value is not drawn: d3 returns `null` for its path and React writes `d="null"` (a console error
  *  per render) — the case of a run without wind at the spot (V-SW-18). Colours by id, so a dropped series shifts none. */
 const drawn = <T extends { data: { y: number | null }[] }>(series: T[]): T[] => series.filter((s) => s.data.some((p) => p.y != null));
 const SERIES_COLOUR: Record<string, string> = { 'Böen': '#8B7355', Wind: '#2C2A26', 'Dünung': '#7A9466', Windsee: '#3E9284', 'Seegang gesamt': '#0F6E7A' };
 const colourOf = (s: { id: string | number }) => SERIES_COLOUR[String(s.id)] ?? '#2C2A26';
-const axisX = (show: boolean) => (show ? { tickSize: 0, tickPadding: 4, tickValues: 'every 12 hours', format: (d: Date) => `${dayShort(+d)} ${hh(+d)}` } : null);
+const axisX = (show: boolean, big?: boolean) => (show ? { tickSize: 0, tickPadding: big ? 8 : 4, tickValues: 'every 12 hours', format: (d: Date) => `${dayShort(+d)} ${hh(+d)}` } : null);
 
-export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readonly SeaChartHour[]; selMs: number; limitKn: number | null; limitLabel: string }) {
+export function WindChart({ hours, selMs, limitKn, limitLabel, big }: { hours: readonly SeaChartHour[]; selMs: number; limitKn: number | null; limitLabel: string; big?: boolean }) {
   const pts = (f: (h: SeaChartHour) => number | null) => hours.map((h) => ({ x: new Date(h.t), y: f(h) }));
   const maxY = Math.max(10, ...hours.map((h) => kn(h.gustMs) ?? kn(h.windMs) ?? 0), limitKn ?? 0) * 1.1;
   const Band = ({ xScale, yScale }: Ctx) => {
@@ -53,17 +54,17 @@ export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readon
     return <path d={`${top} ${bot} Z`} fill="rgba(139,115,85,0.18)" />;
   };
   const Limit = ({ yScale, innerWidth }: Ctx) => (limitKn == null ? null : (
-    <g><line x1={0} x2={innerWidth} y1={yScale(limitKn)} y2={yScale(limitKn)} stroke="#B5482E" strokeDasharray="3 3" /><text x={innerWidth} y={yScale(limitKn) - 3} textAnchor="end" fontSize={8.5} fill="#9A5A2A" fontFamily="IBM Plex Mono, monospace">{limitLabel}</text></g>
+    <g><line x1={0} x2={innerWidth} y1={yScale(limitKn)} y2={yScale(limitKn)} stroke="#B5482E" strokeDasharray="3 3" /><text x={innerWidth} y={yScale(limitKn) - 3} textAnchor="end" fontSize={big ? 11.5 : 8.5} fill="#9A5A2A" fontFamily="IBM Plex Mono, monospace">{limitLabel}</text></g>
   ));
   const c = common(hours, selMs, [Band, Limit]);
   return (
-    <div className="sw-chart" style={{ height: 92 }} role="img" aria-label="Verlauf Wind und Böen in Knoten (buscosun Fusion)">
+    <div className="sw-chart" style={{ height: big ? 220 : 92 }} role="img" aria-label="Verlauf Wind und Böen in Knoten (buscosun Fusion)">
       <ResponsiveLine
         data={drawn([{ id: 'Böen', data: pts((h) => kn(h.gustMs)) }, { id: 'Wind', data: pts((h) => kn(h.windMs)) }])}
-        colors={colourOf} lineWidth={2} margin={{ top: 6, right: 6, bottom: 2, left: 28 }}
+        colors={colourOf} lineWidth={big ? 2.5 : 2} margin={big ? { top: 12, right: 8, bottom: 4, left: 40 } : { top: 6, right: 6, bottom: 2, left: 28 }}
         xScale={{ type: 'time', min: new Date(c.min), max: new Date(c.max), useUTC: false, precision: 'hour' }}
-        yScale={{ type: 'linear', min: 0, max: Math.ceil(maxY) }} theme={THEME} animate={false} enablePoints={false} isInteractive={false}
-        enableGridX={false} gridYValues={4} axisBottom={null} axisLeft={{ tickSize: 0, tickPadding: 4, tickValues: 4, legend: '', format: (v: number) => String(v) }}
+        yScale={{ type: 'linear', min: 0, max: Math.ceil(maxY) }} theme={theme(big)} animate={false} enablePoints={false} isInteractive={false}
+        enableGridX={false} gridYValues={4} axisBottom={null} axisLeft={{ tickSize: 0, tickPadding: big ? 8 : 4, tickValues: 4, legend: '', format: (v: number) => String(v) }}
         layers={c.layers}
       />
     </div>
@@ -80,10 +81,10 @@ export function WindChart({ hours, selMs, limitKn, limitLabel }: { hours: readon
 export interface WlChartPoint { t: number; forecast: number | null; measured: number | null; tide: number | null }
 const WL_COLOUR: Record<string, string> = { Vorhersage: '#0F6E7A', Gemessen: '#2C2A26', Gezeit: '#7A9466' };
 
-export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel = 'MThw', lowLabel = 'MTnw' }: {
+export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel = 'MThw', lowLabel = 'MTnw', big }: {
   points: readonly WlChartPoint[]; selMs: number; nowMs: number; mhwCm: number | null; mlwCm: number | null;
   /** V-WL-14: the reference words of the region — MThw/MTnw in the North Sea, MHW/MNW in the tideless Baltic. */
-  highLabel?: string; lowLabel?: string;
+  highLabel?: string; lowLabel?: string; big?: boolean;
 }) {
   if (points.length < 2) return null;
   const pts = (f: (p: WlChartPoint) => number | null) => points.map((p) => ({ x: new Date(p.t), y: f(p) }));
@@ -95,7 +96,7 @@ export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel 
     <g>{([[mhwCm, highLabel], [mlwCm, lowLabel]] as Array<[number | null, string]>).filter(([v]) => v != null).map(([v, label]) => (
       <g key={label}>
         <line x1={0} x2={innerWidth} y1={yScale(v!)} y2={yScale(v!)} stroke="#B9AC90" strokeDasharray="3 3" />
-        <text x={innerWidth} y={yScale(v!) - 3} textAnchor="end" fontSize={8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{label}</text>
+        <text x={innerWidth} y={yScale(v!) - 3} textAnchor="end" fontSize={big ? 11.5 : 8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{label}</text>
       </g>
     ))}</g>
   );
@@ -107,25 +108,25 @@ export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel 
     <line x1={xScale(new Date(selMs))} x2={xScale(new Date(selMs))} y1={0} y2={innerHeight} stroke="#0F6E7A" strokeWidth={1.5} />
   ));
   return (
-    <div className="sw-chart" style={{ height: 104 }} role="img" aria-label="Verlauf des Wasserstands in Zentimetern über Pegelnull: gemessen, Vorhersage des BSH-Modells und Gezeitenvorausberechnung">
+    <div className="sw-chart" style={{ height: big ? 260 : 104 }} role="img" aria-label="Verlauf des Wasserstands in Zentimetern über Pegelnull: gemessen, Vorhersage des BSH-Modells und Gezeitenvorausberechnung">
       <ResponsiveLine
         data={drawn([
           { id: 'Gezeit', data: pts((p) => p.tide) },
           { id: 'Gemessen', data: pts((p) => p.measured) },
           { id: 'Vorhersage', data: pts((p) => p.forecast) },
         ])}
-        colors={(s) => WL_COLOUR[String(s.id)] ?? '#2C2A26'} lineWidth={2} margin={{ top: 6, right: 6, bottom: 18, left: 34 }}
+        colors={(s) => WL_COLOUR[String(s.id)] ?? '#2C2A26'} lineWidth={big ? 2.5 : 2} margin={big ? { top: 12, right: 8, bottom: 28, left: 46 } : { top: 6, right: 6, bottom: 18, left: 34 }}
         xScale={{ type: 'time', min: new Date(min), max: new Date(max), useUTC: false }}
         yScale={{ type: 'linear', min: Math.floor((lo - pad) / 10) * 10, max: Math.ceil((hi + pad) / 10) * 10 }}
-        theme={THEME} animate={false} enablePoints={false} isInteractive={false}
-        enableGridX={false} gridYValues={4} axisBottom={axisX(true)} axisLeft={{ tickSize: 0, tickPadding: 4, tickValues: 4, format: (v: number) => String(v) }}
+        theme={theme(big)} animate={false} enablePoints={false} isInteractive={false}
+        enableGridX={false} gridYValues={4} axisBottom={axisX(true, big)} axisLeft={{ tickSize: 0, tickPadding: big ? 8 : 4, tickValues: 4, format: (v: number) => String(v) }}
         layers={[Ref, 'grid', 'lines', 'axes', Now, Sel] as never}
       />
     </div>
   );
 }
 
-export function SeaStateChart({ hours, selMs }: { hours: readonly SeaChartHour[]; selMs: number }) {
+export function SeaStateChart({ hours, selMs, big }: { hours: readonly SeaChartHour[]; selMs: number; big?: boolean }) {
   // An hour without sea state is a gap in all three lines (the model's height there is not a wave of 0 m).
   const pts = (f: (h: SeaChartHour) => number | null) => hours.map((h) => ({ x: new Date(h.t), y: h.dry ? null : f(h) }));
   const maxY = Math.max(1, ...hours.map((h) => h.hs ?? 0)) * 1.15;
@@ -137,13 +138,13 @@ export function SeaStateChart({ hours, selMs }: { hours: readonly SeaChartHour[]
   );
   const c = common(hours, selMs, [Dry]);
   return (
-    <div className="sw-chart" style={{ height: 96 }} role="img" aria-label="Verlauf Seegang gesamt, Windsee und Dünung in Metern (Modell CWAM)">
+    <div className="sw-chart" style={{ height: big ? 200 : 96 }} role="img" aria-label="Verlauf Seegang gesamt, Windsee und Dünung in Metern (Modell CWAM)">
       <ResponsiveLine
         data={drawn([{ id: 'Dünung', data: pts((h) => h.sw) }, { id: 'Windsee', data: pts((h) => h.ws) }, { id: 'Seegang gesamt', data: pts((h) => h.hs) }])}
-        colors={colourOf} lineWidth={2} margin={{ top: 6, right: 6, bottom: 18, left: 28 }}
+        colors={colourOf} lineWidth={big ? 2.5 : 2} margin={big ? { top: 10, right: 8, bottom: 28, left: 40 } : { top: 6, right: 6, bottom: 18, left: 28 }}
         xScale={{ type: 'time', min: new Date(c.min), max: new Date(c.max), useUTC: false, precision: 'hour' }}
-        yScale={{ type: 'linear', min: 0, max: Math.ceil(maxY * 2) / 2 }} theme={THEME} animate={false} enablePoints={false} isInteractive={false}
-        enableGridX={false} gridYValues={3} axisBottom={axisX(true)} axisLeft={{ tickSize: 0, tickPadding: 4, tickValues: 3, format: (v: number) => String(v) }}
+        yScale={{ type: 'linear', min: 0, max: Math.ceil(maxY * 2) / 2 }} theme={theme(big)} animate={false} enablePoints={false} isInteractive={false}
+        enableGridX={false} gridYValues={3} axisBottom={axisX(true, big)} axisLeft={{ tickSize: 0, tickPadding: big ? 8 : 4, tickValues: 3, format: (v: number) => String(v) }}
         layers={c.layers}
       />
     </div>

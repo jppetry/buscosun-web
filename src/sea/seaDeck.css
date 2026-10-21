@@ -382,6 +382,29 @@
 .sw-sec-side .sw-times { background: #fff; }
 .sw-sec-body { display: flex; flex-direction: column; gap: 14px; }
 .sw-ds-grid.is-one { grid-template-columns: minmax(0, 1fr); }
+/* Full-width water level and course cards in the dossier: larger body text to match the larger charts. */
+.sw-card.is-wide { padding: 18px 20px; }
+.sw-card.is-wide .sw-eyebrow { font-size: 11px; }
+.sw-card.is-wide .sw-unit { font-size: 12px; }
+.sw-card.is-wide .sw-note { font-size: 13px; }
+.sw-card.is-wide .sw-official-meta { font-size: 12.5px; }
+.sw-card.is-wide .sw-official { font-size: 14px; line-height: 1.5; }
+.sw-card.is-wide .sw-disclaimer { font-size: 12px; }
+.sw-card.is-wide .sw-chart-legend { font-size: 12.5px; gap: 6px 16px; margin-top: 8px; }
+.sw-card.is-wide .sw-chart-legend i { width: 18px; }
+.sw-card.is-wide .sw-vals { gap: 8px 14px; }
+.sw-card.is-wide .sw-vals > div { padding: 9px 12px; }
+.sw-card.is-wide .sw-vals span { font-size: 11.5px; }
+.sw-card.is-wide .sw-vals strong { font-size: 16px; }
+.sw-card.is-wide .sw-wl-cat strong { font-size: 14px; }
+.sw-card.is-wide .sw-wl-cat span { font-size: 12.5px; }
+.sw-card.is-wide .sw-wl-events li { font-size: 13.5px; padding: 7px 11px; }
+.sw-card.is-wide .sw-wl-events em { font-size: 12px; }
+.sw-card.is-wide .sw-wl-fill-txt { font-size: 13px; }
+.sw-card.is-wide .sw-wl-fill-k { font-size: 11.5px; }
+.sw-card.is-wide .sw-wl-fill-txt strong { font-size: 20px; }
+.sw-card.is-wide .sw-wl-fill-txt strong small { font-size: 12px; }
+.sw-card.is-wide .sw-chart + .sw-chart { margin-top: 8px; }
 .sw-ds .sw-card.sw-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 14px; }
 .sw-fact { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border-radius: 10px; background: #FDFBF4; border: 1px solid var(--sand-200, #E0D6BE); }
 .sw-fact-k { font-size: 9.5px; letter-spacing: 1.3px; font-weight: 700; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
