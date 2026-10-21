@@ -16,7 +16,7 @@ import { decodeSwisFile } from '../src/road/swisBufr.ts';
 import {
   validateRoadSlot, parseRoadObs, parseRoadH24, roadObsRoundTripOk, roadFreshness, roadExpectedSlot, roadFlagFrom,
   roadStamp, roadStampToMs, normaliseRoad, ROAD_GROUPS, ROAD_SLOT_MS, ROAD_STUCK_RUN, ROAD_RULES, ROAD_OBS_GATE_MS,
-  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH, ROAD_LIVE, ROAD_STUCK_PLATEAU, dwdCheckText, roadPointOk,
+  ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH, ROAD_LIVE, ROAD_STUCK_PLATEAU, dwdCheckText, roadPointOk, ROAD_FILL,
 } from '../src/road/roadContract.ts';
 import { ROAD_HEALTH } from './health-manifests.mjs';
 import { classifySensor, mostSevereCondition } from '../src/road/roadClasses.ts';
@@ -172,6 +172,26 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
     ['rs', 'ta', 'td'].every((f) => q(p969, 'fillValue', f).length === 1) && pt(p969).rs === null && pt(p969).ta === null && pt(p969).cls !== 'frost');
   const real0 = run([raw({ airT: 1.8, dewT: 0.4, sensors: [{ roadT: 0, filmMm: 0.2, cond: 1 }] })]);
   add('M1d Gegenprobe: echte 0,00 °C bei Luft +1,8 °C bleibt (Frostgefahr bleibt Frostgefahr)', pt(real0).rs === 0 && pt(real0).cls === 'frost' && !q(real0, 'fillValue').length);
+  // V-AW-48 (Q290 Wolfskopf, measured 14.10.: road = air = −0.01 °C = 273.14 K, no dew point, alternating with real values).
+  const q290 = run([raw({ airT: -0.01, dewT: null, rh: null, sensors: [{ roadT: -0.01, filmMm: 0, cond: 0 }] })]);
+  add('V48a Q290-Muster: Fahrbahn = Luft = −0,01 °C ohne Taupunkt ⇒ beide fillValue (Regel 1b), keine Frostgefahr',
+    q(q290, 'fillValue', 'rs').length === 1 && q(q290, 'fillValue', 'ta').length === 1 && pt(q290).rs === null && pt(q290).ta === null && pt(q290).cls !== 'frost' && pt(q290).x.ta === 'fillValue');
+  const q290z = run([raw({ airT: 0, dewT: null, rh: null, sensors: [{ roadT: 0, filmMm: 0, cond: 0 }] })]);
+  add('V48b dasselbe bei exakt 0,00 °C ohne Taupunkt (blieb vorher gültig) und bei −1,00 ⇒ verworfen',
+    q(q290z, 'fillValue', 'rs').length === 1 && q(q290z, 'fillValue', 'ta').length === 1
+    && q(run([raw({ airT: -1, dewT: null, rh: null, sensors: [{ roadT: -1, filmMm: 0, cond: 0 }] })]), 'fillValue').length === 2);
+  const q290d = run([raw({ airT: -0.01, dewT: -0.01, sensors: [{ roadT: -0.01, filmMm: 0, cond: 0 }] })]);
+  add('V48c Toleranz 0,011: Fahrbahn = Luft = Taupunkt = −0,01 °C ⇒ alle drei fillValue (vorher „Frost")',
+    ['rs', 'ta', 'td'].every((f) => q(q290d, 'fillValue', f).length === 1) && pt(q290d).cls !== 'frost');
+  const k677b = run([raw({ airT: 15.4, dewT: 9.1, sensors: [{ roadT: -0.01, filmMm: 0, cond: 0 }] })]);
+  add('V48d Toleranz in Regel 2: Fahrbahn −0,01 °C bei Luft 15,4 °C (K677, zweiter Fühler) ⇒ fillValue', q(k677b, 'fillValue', 'rs').length === 1 && pt(k677b).rs === null);
+  const near0 = run([raw({ airT: 0.4, dewT: null, rh: null, sensors: [{ roadT: 0, filmMm: 0.2, cond: 1 }] })]);
+  const frz = run([raw({ airT: 0, dewT: -3, sensors: [{ roadT: 0, filmMm: 0.2, cond: 1 }] })]);
+  const rsOff = run([raw({ airT: 0.2, dewT: null, rh: null, sensors: [{ roadT: -0.01, filmMm: 0, cond: 0 }] })]);
+  add('V48e Gegenproben: Fahrbahn 0,00 bei Luft 0,4 °C ohne Taupunkt bleibt · Fahrbahn = Luft = 0,00 MIT echtem Taupunkt −3 °C bleibt · −0,01/0,2 bleibt',
+    !q(near0, 'fillValue').length && pt(near0).rs === 0 && !q(frz, 'fillValue').length && pt(frz).rs === 0 && pt(frz).ta === 0 && !q(rsOff, 'fillValue').length && pt(rsOff).rs === -0.01);
+  add('V48f ROAD_FILL.eps = 0,011: −0,01 liegt jenseits der alten Toleranz 0,005 (so blieb Q290 gültig, vor dem Eingriff am echten Vertrag gemessen), 0,02 liegt noch außerhalb',
+    ROAD_FILL.eps === 0.011 && Math.abs(-0.01) >= 0.005 && Math.abs(-0.01) < ROAD_FILL.eps && Math.abs(-0.02) >= ROAD_FILL.eps);
   const fog = run([raw({ airT: 9.4, dewT: 9.4, sensors: [{ roadT: 9.4, filmMm: 0, cond: 0 }] })]);
   add('M1e Gegenprobe Nebel-Sättigung 9,4/9,4/9,4 bleibt (kein Füllwert)', pt(fog).rs === 9.4 && pt(fog).ta === 9.4 && fog.balance.rejected === 0);
   const h637 = run([raw({ airT: 18.2, sensors: [{ roadT: -25, filmMm: 0, cond: 0 }] }), ...hood(17, 18)]);

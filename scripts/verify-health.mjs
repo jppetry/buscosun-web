@@ -7,7 +7,7 @@
  * Der Wächter ist selbst ein Prüfmittel — er muss also nachweislich rot werden
  * können, sonst wiederholt er den Fehler, den er aufdecken soll (V-91).
  */
-import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH, checkSeaStatus, SEA_HEALTH } from './health-manifests.mjs';
+import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH, checkSeaStatus, SEA_HEALTH, checkRepackIndex, INDEX_HEALTH } from './health-manifests.mjs';
 
 const NOW = Date.parse('2026-08-03T12:00:00.000Z');
 const OPTS = { origin: 'https://buscosun.com', nowMs: NOW, maxRunAgeH: 9, maxUpdateAgeH: 6, proxyPath: '/_dwd_grib' };
@@ -151,6 +151,52 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   add('S3 rot bei Warnstatus älter als 4 h', pass({ ...ok, text: { ...ok.text, WODL45: { issuedAt: '2026-10-07T08:00:00.000Z' } } })[2] === false);
   add('Kill-Schalter: grün, benannt', pass({ ...ok, killSwitch: true, field: {} }).every(Boolean) && /Kill-Schalter/.test(checkSeaStatus({ ...ok, killSwitch: true }, { nowMs: SNOW })[0].detail ?? ''));
   add('Grenzen = Vertrag (18 h, 4 h, 6 h)', SEA_HEALTH.runStaleH === 18 && SEA_HEALTH.wodlStaleH === 4 && SEA_HEALTH.fqStaleH === 6);
+}
+
+// ── V-AW-61: stillgelegtes Manifest + Index des Daten-Repos (audit/autobahnwetter.md §19.10) ─────────────────────
+{
+  // Das echte Manifest vom 14.10.2026: Lauf 2026090406, zuletzt umgelegt 04.09. 07:22 UTC — Cron seit GBW12 aus.
+  const RNOW = Date.parse('2026-10-14T08:47:00.000Z');
+  const frozen = { run: '2026090406', runAt: '2026-09-04T06:00:00.000Z', updatedAt: '2026-09-04T07:22:48.031Z', publishedFor: 'https://buscosun.com', params: { t_2m: [0, 1, 2, 3], tot_prec: [0, 1, 2] } };
+  const ropts = { origin: 'https://buscosun.com', nowMs: RNOW, maxRunAgeH: 9, maxUpdateAgeH: 6, proxyPath: '/_dwd_grib' };
+  const RETIRED = 'warm-grib-Cron seit GBW12 aus';
+  const stale = checkManifest('latest-grib.json', frozen, ropts);
+  add('V-AW-61 Gegenprobe: dasselbe eingefrorene Manifest OHNE retired ⇒ H2 und H3 rot (der Wächter kann weiter rot werden)',
+    idOf(stale, 'H2 Lauf-Alter')?.pass === false && idOf(stale, 'H3 Advance-Alter')?.pass === false);
+  const ret = checkManifest('latest-grib.json', frozen, { ...ropts, retired: RETIRED });
+  add('V-AW-61 mit retired ⇒ H2/H3 grün, tragen aber „stillgelegt", den Grund UND das tatsächliche Alter (kein stilles Grün)',
+    ['H2 Lauf-Alter', 'H3 Advance-Alter'].every((id) => { const r = idOf(ret, id); return r?.pass === true && /stillgelegt/.test(r.detail) && r.detail.includes(RETIRED) && /\d+\.\d h/.test(r.detail); })
+    && /ist 962\.\d h alt/.test(idOf(ret, 'H2 Lauf-Alter').detail), idOf(ret, 'H2 Lauf-Alter')?.detail);
+  add('V-AW-61 retired lässt H1, H4, H5 scharf: andere Herkunft, Lücke in den Schritten, kein Manifest ⇒ weiter rot',
+    idOf(checkManifest('m', { ...frozen, publishedFor: 'http://localhost:5196' }, { ...ropts, retired: RETIRED }), 'H4 Warm-Proxy')?.pass === false
+    && idOf(checkManifest('m', { ...frozen, params: { t_2m: [0, 2] } }, { ...ropts, retired: RETIRED }), 'H5 Step-Vollständigkeit')?.pass === false
+    && idOf(checkManifest('m', null, { ...ropts, retired: RETIRED }), 'H1 valides JSON')?.pass === false);
+  add('V-AW-61 retired lässt ein FRISCHES Manifest unverändert grün', checkManifest('m', { ...frozen, run: '2026101406', runAt: '2026-10-14T06:00:00.000Z', updatedAt: '2026-10-14T07:30:00.000Z' }, { ...ropts, retired: RETIRED }).every((x) => x.pass));
+
+  // index.json in der echten Form (V-BW-51: Schritte sind Objekte, nicht Zahlen; Familien tragen `steps`).
+  const fam = (n = 3) => ({ channels: 1, steps: Array.from({ length: n }, (_, i) => ({ step: i, file: `f-${i}.png`, bytes: 1000 + i })) });
+  const run = (id, at, over = {}) => ({ run: id, runAt: at, path: `runs/${id}`, targetWidth: 700, wind: fam(), temp: fam(), gust: fam(), precip: fam(), cape: fam(), ...over });
+  const idx = {
+    schema: 1, commit: 'abc', publishedAt: '2026-10-14T07:07:41.040Z',
+    runs: [run('2026101406', '2026-10-14T06:00:00.000Z'), run('2026101403', '2026-10-14T03:00:00.000Z'), run('2026101400', '2026-10-14T00:00:00.000Z'), run('2026101321', '2026-10-13T21:00:00.000Z')],
+  };
+  const io = { nowMs: RNOW, maxRunAgeH: 9, maxUpdateAgeH: 6 };
+  const ir = (x, id) => checkRepackIndex(x, io).find((r) => r.id.startsWith(id));
+  const green = checkRepackIndex(idx, io);
+  add('I1–I3 grün beim frischen Index (Lauf 06z 2,8 h alt, veröffentlicht vor 1,7 h)', green.length === 3 && green.every((x) => x.pass), green.map((x) => `${x.id}:${x.pass}`).join(','));
+  add('I1 rot bei nicht lesbarem Index, fremdem Schema und ohne Läufe', ir(null, 'I1')?.pass === false && ir({ ...idx, schema: 2 }, 'I1')?.pass === false && ir({ ...idx, runs: [] }, 'I1')?.pass === false
+    && checkRepackIndex(null, io).length === 1);
+  add('I2 rot, wenn der Publisher seit 7 h nichts veröffentlicht hat (Lauf selbst noch jung)', ir({ ...idx, publishedAt: '2026-10-14T01:40:00.000Z' }, 'I2')?.pass === false);
+  add('I2 rot ohne publishedAt', ir({ ...idx, publishedAt: undefined }, 'I2')?.pass === false);
+  // I3 je Familie: nur ein Lauf mit Niederschlag-Schritten, der alt ist, während der Rest frisch ist.
+  const noPrecip = { ...idx, runs: [run('2026101406', '2026-10-14T06:00:00.000Z', { precip: { channels: 1, steps: [] } }), run('2026101403', '2026-10-14T03:00:00.000Z', { precip: undefined }),
+    run('2026101400', '2026-10-14T00:00:00.000Z', { precip: undefined }), run('2026101321', '2026-10-13T21:00:00.000Z')] };
+  const r3 = ir(noPrecip, 'I3');
+  add('I3 rot, wenn EINE Familie (precip) nur noch in einem 11,8 h alten Lauf Schritte hat, und nennt sie', r3?.pass === false && /precip 2026101321 \(11\.8 h\)/.test(r3.detail ?? '') && /wind 2026101406/.test(r3.detail ?? ''), r3?.detail);
+  add('I3 Gegenprobe: dieselbe Lage mit Niederschlag im 03z-Lauf ⇒ grün', ir({ ...noPrecip, runs: [noPrecip.runs[0], run('2026101403', '2026-10-14T03:00:00.000Z'), noPrecip.runs[2], noPrecip.runs[3]] }, 'I3')?.pass === true);
+  add('I3 rot bei einem Index, dessen jüngster Lauf 12 h alt ist (Publisher steht, publishedAt frisch)', ir({ ...idx, runs: [run('2026101321', '2026-10-13T21:00:00.000Z')] }, 'I3')?.pass === false);
+  add('I3 eine Familie ohne `steps`-Liste zählt nicht (wind ohne Schritte in jedem Lauf ⇒ rot)', ir({ ...idx, runs: idx.runs.map((r) => ({ ...r, wind: { channels: 3 } })) }, 'I3')?.pass === false);
+  add('Index-Familien = die vier, die der Client auflöst', INDEX_HEALTH.families.join() === 'wind,temp,gust,precip' && /raw\.githubusercontent\.com\/jppetry\/buscosun-data\/main\/index\.json$/.test(INDEX_HEALTH.url));
 }
 
 const passed = checks.filter((c) => c.ok).length;

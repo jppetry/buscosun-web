@@ -200,7 +200,7 @@ export const ROAD_RULES: Readonly<Record<RoadRuleId, RoadRule>> = Object.freeze(
   iceWarm: { id: 'iceWarm', level: 'value', mode: 'hard', text: 'Eis-/Glätte-/Reif-/Schnee-Code bei Fahrbahn über +3 °C (E-AW-11)' },
   jump: { id: 'jump', level: 'value', mode: 'observe', text: 'Sprung der Fahrbahntemperatur zum Vorslot über der Schwelle' },
   roadAir: { id: 'roadAir', level: 'value', mode: 'hard', text: 'Fahrbahn mehr als 12 K unter oder 30 K über der eigenen Lufttemperatur — verworfen wird der Fühler, der nicht zu den Nachbarn passt (M1/M2)' },
-  fillValue: { id: 'fillValue', level: 'value', mode: 'hard', text: 'Gerätefüllwert: Fahrbahn genau 0,00/−1,00 °C bei mindestens 5 K wärmerer Luft, oder Fahrbahn = Luft = Taupunkt genau 0,00/−1,00 °C (M1)' },
+  fillValue: { id: 'fillValue', level: 'value', mode: 'hard', text: 'Gerätefüllwert: Fahrbahn 0,00/−1,00 °C (±0,01) bei mindestens 5 K wärmerer Luft, oder Fahrbahn = Luft = Taupunkt dort, oder Fahrbahn = Luft dort ohne Taupunkt (M1, V-AW-48)' },
   dewSpread: { id: 'dewSpread', level: 'value', mode: 'hard', text: 'Taupunkt mehr als 25 K (Mai–Sep. 30 K) unter der Luft — Feuchtefühler defekt (M2)' },
   gustNoWind: { id: 'gustNoWind', level: 'value', mode: 'hard', text: 'Böe über 40 m/s bei Mittelwind unter 10 m/s (M2)' },
   precipFill: { id: 'precipFill', level: 'value', mode: 'hard', text: 'Niederschlagsrate ohne Niederschlag: Intensität (0 20 024) „keine“ und keine Art (0 20 021) gemeldet (M3)' },
@@ -241,8 +241,10 @@ export const ROAD_STUCK_GAP_SLOTS = 4;
 export const ROAD_STUCK_PLATEAU = Object.freeze({ roadMin: -10, roadMax: 0, airAbsMax: 10, maxRun: 48 });
 /** M1 fill values of the road sensors (archive 03.–06.10.: exactly 0.00 or −1.00 °C at 10 stations, −25.00 at H637 is
  *  caught by `roadAir`). A road at a fill value counts as broken when the air is at least `airK` warmer (`set`; real
- *  0.0 °C at air near 0 stays: 27 cases in the archive untouched), or when road, air and dew point carry it alike. */
-export const ROAD_FILL = Object.freeze({ valuesC: [0, -1] as readonly number[], airK: 5, eps: 0.005 });
+ *  0.0 °C at air near 0 stays: 27 cases in the archive untouched), or when road, air and dew point carry it alike, or
+ *  (V-AW-48) when road and air carry it alike and there is no dew point. `eps` is 0.011 K: a device that reports
+ *  273.14 K instead of 273.15 K (Q290 Wolfskopf, −0.01 °C; K677's second sensor) is the same fill value one step off. */
+export const ROAD_FILL = Object.freeze({ valuesC: [0, -1] as readonly number[], airK: 5, eps: 0.011 });
 /** M2 humidity sensor: air − dew point above this ⇒ dew point and humidity rejected (archive p99 15.2 K; 25 K Oct–Apr,
  *  30 K May–Sep for hot dry afternoons, `set`). */
 export const ROAD_DEW_SPREAD_K = Object.freeze({ cold: 25, warm: 30, warmMonths: [5, 6, 7, 8, 9] as readonly number[] });
@@ -758,6 +760,12 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
       for (const z of sensors) if (z.roadT != null && same(z.roadT, fv)) { reject('rs', z.roadT, 'fillValue', 'Fahrbahn = Luft = Taupunkt'); x.rs = 'fillValue'; nRejected++; z.roadT = null; }
       reject('ta', ta, 'fillValue', 'Fahrbahn = Luft = Taupunkt'); x.ta = 'fillValue'; nRejected++; ta = null;
       reject('td', td, 'fillValue', 'Fahrbahn = Luft = Taupunkt'); x.td = 'fillValue'; nRejected++; td = null;
+    } else if (ta != null && td == null && isFill(ta) && sensors.some((z) => z.roadT != null && same(z.roadT, ta as number))) {
+      // V-AW-48: the same device without a dew point (Q290 Wolfskopf: road = air = −0.01 °C, dew point and humidity absent, the
+      // value alternating with real ones — so `stuck` never fires). Road and air at one fill value need no third witness.
+      const fv = ta;
+      for (const z of sensors) if (z.roadT != null && same(z.roadT, fv)) { reject('rs', z.roadT, 'fillValue', 'Fahrbahn = Luft, kein Taupunkt'); x.rs = 'fillValue'; nRejected++; z.roadT = null; }
+      reject('ta', ta, 'fillValue', 'Fahrbahn = Luft, kein Taupunkt'); x.ta = 'fillValue'; nRejected++; ta = null;
     }
     for (const z of sensors) {
       if (ta != null && isFill(z.roadT) && ta - z.roadT >= ROAD_FILL.airK) { reject('rs', z.roadT, 'fillValue', `Luft ${ta}`); x.rs = 'fillValue'; nRejected++; z.roadT = null; }

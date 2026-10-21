@@ -1553,7 +1553,7 @@ nach dem ersten Paint.
 | Nr. | Befund | Mehrwert | Skizze / Stand |
 |---|---|---|---|
 | V-AW-47 | Abschnitts-Kennung ohne Richtungszusatz (`A8-034` statt `A8-034-R1`): beide Fahrbahnen sind EIN Abschnitt, die Richtung steht nur bei `sonne` (`dir`); bei Korridoren mit Zusatz `A8.2-000` | eine Zeile je Strecke wie in der Vorlage („beide Richtungen“), halb so große Dateien | umgesetzt (Vertrag, Startprompt §0 erlaubt die Abweichung) |
-| V-AW-48 | `fillValue` greift nur bei exakt 0,00/−1,00 °C; Q290 Wolfskopf meldet −0,01 °C (273,14 K) als Fahrbahn = Luft | kein Füllwert als Frost | Messlinie = Jans Gate: Toleranz 0,011 K, am Archiv messen |
+| V-AW-48 | `fillValue` greift nur bei exakt 0,00/−1,00 °C **und nur mit Taupunkt**; Q290 Wolfskopf fällt zwischendurch auf Fahrbahn = Luft = −0,01 °C (273,14 K), ohne Taupunkt — bleibt gültig, bei Taupunkt −0,01 sogar „Frost" | kein Füllwert als Frost | gemessen 14.10. (§19.10): Toleranz 0,011 allein reicht nicht, dazu Regel 1b (Fahrbahn = Luft am Füllwert, Taupunkt fehlt ⇒ beide verworfen); Jans Gate, vor Dezember |
 | V-AW-49 | „Brücke/Schatten senken die Tf-Schwelle der Stufe 1 um 1 K“ als **Anheben** gelesen (Stufe 1 ab +2 °C statt +1 °C): die Brücke ist kälter als die Anlage neben ihr | die Lesart entscheidet, ob Brücken früher oder später auffallen | umgesetzt (`ROAD_HZ_FEATURE_TF_K`), Jan bestätigt die Lesart |
 | V-AW-50 | Der `road-fc`-Job hat `runs/` nicht im Sparse-Checkout — Gewitter/Blitz/CAPE/Neuschnee lesen deshalb im Gefahren-Derive (voller Klon des Radar-Jobs), nicht in der Laufdatei | keine Workflow-Änderung nötig | so gebaut; falls die Laufdatei sie tragen soll: Sparse-Liste in `workflow-road-fc.yml` um `runs` erweitern (Jan) |
 | V-AW-51 | DWD-Codes `lage`/`belag` des Stationskatalogs sind nirgends erklärt (kein Register „Typen“ in der Datei) | Dammlage und Betonbelag aus der amtlichen Liste | DWD-Anfrage (wie §18.5) oder OSM allein (jetzt) |
@@ -1566,6 +1566,7 @@ nach dem ersten Paint.
 | V-AW-58 | Desktop-Pixelgleichheit ohne Schalter nur über den Verifier belegt (Blöcke A–T grün, dieselben Shots), kein byte-genauer Diff gegen die Basis-Shots | Gate-Frage 2 mit Zahl | Diff-Lauf wie `regenradar-wk-pixeldiff.mjs` gegen `.wt-ctl` (Jan oder nächste Sitzung) |
 | V-AW-59 | RoadPage-Chunk +11,5 KB gz auch ohne Schalter (Vertrag `roadHazards.ts`, Leser, Sicht, `AW_SEV`) | Besucher ohne Schalter zahlen nichts | die Gefahren-Logik in einen eigenen Lazy-Chunk hinter dem Schalter ziehen (Hook `useRoadHazards`) |
 | V-AW-60 | `RouteAnnouncer` holte den Fokus bis ≈ 1 s nach einem Routenwechsel auf `<main>` zurück, auch wenn er inzwischen weitergewandert war (U4 nach dem Merge von `main` 14.10.: Enter öffnet das Detail, die Überschrift bekommt den Fokus, 100 ms später liegt er auf `main.aw-map` mit `tabindex=-1`; reproduzierbar 3/3, vor dem Merge grün — ein Zeitfenster, das der größere Bau verschob) | Tastatur- und Screenreader-Nutzer verlieren nicht die Stelle, die sie gerade geöffnet haben | behoben: der Ansager merkt sich `document.activeElement` beim Routenwechsel und lässt einen Fokus in Ruhe, der seitdem woanders liegt (`src/router/RouteAnnouncer.tsx`); Verifier U4 bleibt streng (kein längeres Warten) |
+| V-AW-61 | `npm run health` meldet H2/H3 für `latest-grib.json` rot, obwohl der Warm-Cron seit GBW12 (04.09.) abgeschaltet ist und der Client den Index des Daten-Repos liest (§19.10) | ein rotes Signal ohne Bedeutung verdeckt das nächste echte | H2/H3 für die Datei als „stillgelegt" melden, dafür `index.json` (`publishedAt` ≤ 6 h) prüfen, `verify:health` mitziehen — berührt die Manifest-Mechanik, dein Wort |
 
 ### 19.8 Merge nach `main` (14.10.2026)
 
@@ -1597,3 +1598,89 @@ an Jan gemeldet).
 - **`health-manifests --url https://buscosun.com`:** R1–R7 grün (R6 hz-Slot 6 min alt, R7 alle Eingänge), 13/15; rot bleiben
   nur H2/H3 (`latest-grib.json`, s. o.).
 - Damit beginnt der Schattenbetrieb der Gefahren (Gate E frühestens 21.10., §71.5). `ROAD_HZ_LIVE` bleibt aus.
+
+### 19.10 Offene Punkte angesehen (14.10.2026, Auftrag „angucken", ohne Gate E; zunächst nur gelesen, gemessen und vorbereitet — Umsetzung nach Jans „ja mach das" in §19.11)
+
+**AF-3 (§71.3) — Paket vorbereitet (eingespielt: §19.11).**
+- Voraussetzung nach E-AF-4 („erst wenn der Deploy da ist"): `fd885e2` liegt auf `origin/main`; die ausgelieferte Seite (Chunk
+  `RoadPage-ChAjSzU7.js`, buscosun.com, 14.10. 08:49 GMT) trägt „keine Messstelle an diesem Abschnitt"; der Chunk `roadFlag-CWQpjKZh.js` den Schalter `roadhz`.
+- Paket `2026-10-11-af3`: `sha256sum -c SHA256SUMS` 3/3 OK; die Rückweg-Dateien `in/…` sind **bytegleich** mit den Live-Dateien im
+  Daten-Repo (corridors 263 770 · points 508 201 · geo 5 775 265 Bytes, von raw.githubusercontent gelesen) — kein Drift seit dem 11.10.
+  Das Paket bringt 292 881 · 528 076 · 6 030 698 Bytes.
+- `segments.json` gegen die neuen Korridore neu gebaut (`build-segments.mjs` mit Korridoren, Punkten, `geo.json` des Pakets, OSM-Auszug
+  2026-10-11, Knoten 2026-10-13, warme Caches, 92 s): **1 731 Abschnitte auf 212 Korridoren** (vorher 1 629 auf 141), 13 730 km, 3 735
+  Knoten, 775 mit Messstelle im Abschnitt, 1 236 mit einer in Reichweite. Gegen die Live-Datei (`59d6cdd`): **102 neu** (aus den 71
+  neuen Korridoren), **0 entfallen, 0 mit gleicher Kennung und anderem Inhalt** — die Änderung ist rein additiv.
+  `parseRoadSegments` nimmt sie an, jeder Abschnitt hat einen Korridor der neuen Datei. 1 025 688 Bytes, SHA256 `b0c41d59…`,
+  Paket `C:\dev\buscosun-road-publish\2026-10-14-af3-segments\` mit `SHA256SUMS` und Zusammenfassung.
+- Wirkung auf die Gefahren: die Ableitung liest den Prognoselauf je Korridor; solange der laufende Lauf (2 958 Punkte) für einen neuen
+  Korridor keine Datei hat, sind dessen Stunden `null` — unbekannt, nie 0 (D-04). Die 1 629 bestehenden Abschnitte ändern sich nicht.
+  Erst der erste `road-fc`-Lauf mit 4 772 Punkten (stündlich :12) füllt die 102 neuen; ein Einspielen kurz vor :12 hält das Fenster klein.
+- **Einspielen = EIN Commit mit vier Dateien** (`road/v1/static/corridors.json`, `road/fc/v1/static/points.json`,
+  `road/fc/v1/static/geo.json` aus `2026-10-11-af3` und `road/v1/static/segments.json` aus `2026-10-14-af3-segments`), Vorgehen wie §19.9,
+  danach die vier `@main`-Pfade purgen und die SHA256 am CDN gegen beide `SHA256SUMS` prüfen. Daten-Repo = dein Gate, der Auto-Modus lehnt es ab.
+
+**V-AW-48 (§71.7) — gemessen: die vorgeschlagene Toleranz allein reicht nicht.**
+- *Ring* (24 Slots à ≈ 1 400 Stationen, 13.10. 14:30–17:00 und 14.10. 06:00–08:45 UTC, 33 598 Stationswerte, 0,01-°C-Raster): Werte
+  innerhalb 0,011 K um 0 oder −1, aber nicht exakt, gibt es nur an **Q290 Wolfskopf** (A6; Fahrbahn und Luft −0,01 °C in 17 der 24 Slots, in den
+  7 übrigen echte Werte — Fahrbahn 14,3–18,2 °C, Luft 12,1–14,2 °C —, Taupunkt und Feuchte fehlen immer, Kennzeichen `jump`/`neighbours`/`cube`;
+  ein Fühler, der zwischendurch auf den Gerätewert fällt, darum löst auch die Stuck-Regel mit 24 gleichen Slots nie aus) und an drei Taupunkten (Q984, Q986,
+  Q734: Luft 14 °C bei 36–39 % Feuchte, dort ist ein Taupunkt um 0 °C plausibel, Magnus ≈ −0,7 °C — **kein** Füllwert).
+- *Der echte Vertrag* (`validateRoadSlot`, Fixture V164): Fahrbahn = Luft = −0,01 °C **ohne Taupunkt** bleibt gültig (`cls dry`, 0
+  `fillValue`); dasselbe bei **exakt** 0,00 ohne Taupunkt. Mit Taupunkt −0,01 wird sogar `cls frost` daraus. Die Regel „Fahrbahn =
+  Luft = Taupunkt" (`roadContract.ts`) verlangt einen Taupunkt, die zweite (Luft ≥ 5 K wärmer) eine warme Luft. Eine Toleranz von
+  0,011 holt deshalb nur die Variante MIT Taupunkt; **Q290 bliebe**.
+- *Archiv* (03.–08.10., 528 Slots, 598 825 Fahrbahnwerte, 0,1-°C-Raster, nur Werte nach den harten Regeln): Fahrbahn ≈ Luft ≈ 0 °C ohne
+  Taupunkt an drei Anlagen — P134 Schweinfurt Hafen (14 Slots, 2 Tage), O453 Kaditz (5), V554 Löwenstein (1): 20 Werte = 0,003 %;
+  P134 und O453 sind die Füllwert-Anlagen aus M1. Mit Taupunkt 0,0: 16 Fälle (J909 täglich 23:00 UTC, O453 05.10., P134 06.10.) — alle drei Werte 0,0, genau das, was M1 (Commit 07.10.)
+  verwirft. Bis auf V554 (ein Slot) lauter bekannte Füllwert-Anlagen, kein Fall mit erkennbar echtem Verlauf.
+  Grenzen: Oktober ohne Frostlage, und das 0,1-°C-Raster kann −0,01 nicht von 0,0 trennen — die Toleranz selbst ist nur am Ring (3 h) messbar.
+- **Geänderter Vorschlag:** (a) `ROAD_FILL.eps` 0,005 → 0,011 (der Gerätewert 273,14 K statt 273,15 K) **und** (b) eine Regel 1b: Fahrbahn
+  und Luft innerhalb `eps` desselben Füllwerts, Taupunkt fehlt oder ist verworfen ⇒ beide `fillValue`. Neue Verifier-Fälle M1e (Q290-Muster ⇒
+  Fahrbahn und Luft verworfen, `cls` ≠ frost), M1f (Taupunkt −0,01 ⇒ alle drei), M1g (echte 0,00 bei Luft +1,8 °C und 0,00/0,4 ohne Taupunkt
+  bleiben). Risiko: zwei Fühler zugleich innerhalb ±0,011 K bei fehlendem Taupunkt im Winter — die Zahl `fillValue` je Tag in der Bilanz
+  (`byRule`) im Dezember beobachten. **Heute ohne Wirkung auf die Gefahren:** Q290 trägt Beobachtungs-Kennzeichen und ist darüber `suspect`
+  (§19.3); mit Luft nahe 0 °C im Winter schlägt der Cube-Abgleich nicht an, dann zählte die Anlage als gemessen — also vor Dezember.
+  Nicht umgesetzt: es ändert, was die Seite zeigt (dein Gate).
+
+**`latest-grib.json` (H2/H3 rot) — stillgelegt, kein Ausfall (V-AW-61).**
+- `warm-grib.yml`: der `schedule` ist seit dem Gate GBW12 (04.09.) auskommentiert; das Manifest trägt `updatedAt` 2026-09-04T07:22Z, Lauf
+  2026090406. Der Client liest Lauf und Schritte aus `index.json` des Daten-Repos (`publishedAt` 14.10. 07:07 UTC, jüngster Lauf 2026101406,
+  2,8 h alt) und verwirft ein Manifest, dessen Lauf älter als 24 h ist, vorab (`MAX_MANIFEST_RUN_AGE_H`, `gribManifest.ts`); der
+  Verzeichnis-Scan übernimmt. Es gibt also weder eine Datenlücke noch einen Alarm: `health.yml` existiert nicht mehr, nur `npm run health` von Hand.
+- Rot sind H2/H3 nur, weil `health-manifests.mjs` die Datei weiter wie ein lebendes Manifest prüft. Vorschlag: für `latest-grib.json` H2/H3
+  als „stillgelegt" melden (grün, benannt, wie der Kill-Schalter bei R1–R7) und statt dessen den Index prüfen (`publishedAt` ≤ 6 h, jüngster Lauf
+  ≤ 9 h), `verify:health` (20/20) mitziehen. Das berührt die Manifest-Mechanik (STOPP-Zone) — nicht geändert.
+
+**`ROAD_HZ_LIVE` (§71.6) — nicht angefasst.** Voraussetzung ist Gate E (7 Tage `hz/` ohne Konsistenzverletzung, `missing` ≤ 2 %, Stichprobe
+von 50 Einträgen je Stufe ≥ 2); der erste `hz/`-Slot ist 2610140830, die Schwellen sind `set`, und der Startprompt verbietet
+`ROAD_HZ_LIVE = true` ohne dein OK. Der Umschalter selbst ist eine Zeile in `src/road/roadFlag.ts` plus Build, Budget und Push.
+
+### 19.11 Umsetzung nach „ja mach das" (14.10.2026, manueller Modus)
+
+- **AF-3 eingespielt, 09:12 UTC.** Ein Commit mit vier Dateien auf `origin/main` des Daten-Repos: **`8104f73`** (`road/v1/static/corridors.json`,
+  `road/fc/v1/static/points.json`, `road/fc/v1/static/geo.json`, `road/v1/static/segments.json`). Vorgehen wie §19.9 (`checkout --detach origin/main`
+  → `cherry-pick` → `push HEAD:main`, ein Versuch, kein Force). Vorher: die Blobs auf `origin/main` waren bytegleich mit den Rückweg-Dateien des Pakets.
+  Das sparse-Muster des Klons umfasste `road/fc/` nicht (Falle: `git add` verwirft dort still) — erweitert, Blob-SHA256 nach dem Commit gegen beide
+  `SHA256SUMS` gelesen. Vier `@main`-Pfade gepurgt (09:12:50 UTC), jsDelivr liefert alle vier mit der Prüfsumme des Pakets (292 881 · 528 076 ·
+  6 030 698 · 1 025 688 Bytes). Der Push lag vor dem :12-Lauf, den der `point`-Cron anstieß.
+- **Wirkung gemessen.** `road/fc/v1/index.json`: Lauf **2610140928** (09:28 UTC) mit **4 772 Punkten, 212 Korridoren, 0 fehlgeschlagen**, buscosun Fusion 12.
+  Gefahren-Slot **2610140930**: 1 731 Abschnitte gerechnet (Status: 316 mit Stufe, 2 unbekannt, 1 s), `missing []`, Eingänge obs/fc/RV/KONRAD3D/runs;
+  26 der 102 neuen Abschnitte tragen schon eine Stufe, keiner ist ganz `null`. (Der Sprung von 89 auf 316 Abschnitte mit Stufe zwischen 08:30 und
+  09:30 UTC ist `sonne`: das Stundenfenster reicht jetzt bis in die tiefe Nachmittagssonne, 243 von 316.) Die Seite zeigt die neuen Teilstücke ohne
+  Messstelle mit „keine Messstelle an diesem Abschnitt" (AF-5, ausgeliefert).
+- **V-AW-48 umgesetzt (uncommitted).** `src/road/roadContract.ts`: `ROAD_FILL.eps` 0,005 → **0,011**, dazu **Regel 1b** — Fahrbahn und Luft am selben
+  Füllwert und kein Taupunkt ⇒ beide `fillValue` (Detail „Fahrbahn = Luft, kein Taupunkt"); der Regeltext nennt die neue Lage. Neue Fälle in
+  `scripts/verify-road-contract.mjs` **V48a–V48f** (Q290-Muster, exakt 0,00/−1,00 ohne Taupunkt, Taupunkt −0,01, Toleranz in Regel 2 für K677s zweiten
+  Fühler, gegenprobe: 0,00 bei Luft 0,4 ohne Taupunkt bleibt · 0,00/0,00 mit echtem Taupunkt −3 °C bleibt · −0,01/0,2 bleibt, Konstante).
+  Vor dem Eingriff am echten Vertrag gemessen (§19.10), danach: `verify:road-contract` **117/117** (vorher 111), `verify:road-derive` 36/36,
+  `verify:road-hazards` 91/91, `verify:road-archive` 26/26, `verify:road-decode` 15/15, `typecheck` grün, `build` 260/260, Budget unverändert
+  (eagerJs 110,0/110, totalJs 1824,7/1825). **Wirksam wird es mit dem Push von `main`** (der Spiegel klont `main`). Winter-Beobachtung: die Zahl
+  `fillValue` je Tag in `balance.byRule`, ob Regel 1b echte Werte trifft (zwei Fühler zugleich auf ±0,011 K bei fehlendem Taupunkt).
+- **V-AW-61 umgesetzt (uncommitted).** `scripts/health-manifests.mjs`: `latest-grib.json` trägt `retired` (H2/H3 grün, benannt, mit dem tatsächlichen
+  Alter im Text — `GRIB_MANIFEST_RETIRED=0` schaltet sie wieder scharf; `--file` bleibt streng); neu **I1–I3** auf `index.json` des Daten-Repos
+  (lesbar/Schema 1, `publishedAt` < 6 h, je Familie wind/temp/gust/precip der jüngste Lauf mit Schritten < 9 h; `INDEX_HEALTH=0` aus,
+  `REPACK_INDEX_URL` überschreibt). `verify:health` **57/57** (vorher 44; dazu Gegenproben: dasselbe eingefrorene Manifest ohne `retired` bleibt rot, `retired`
+  lässt H1/H4/H5 scharf, I3 wird rot, wenn nur EINE Familie veraltet). Echt gegen buscosun.com: **18 von 18 Prüfungen grün**, I3 „wind/temp/gust/precip
+  2026101406 (3,7 h)".
+- **Nicht angefasst:** `ROAD_HZ_LIVE` (Gate E ab 21.10.), `?roadhz=1` bleibt der einzige Weg zur Leiste.

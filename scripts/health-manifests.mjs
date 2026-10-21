@@ -27,6 +27,15 @@
  *       auf die geprüfte Origin — nicht auf localhost oder eine Alt-Domain,
  *       sonst stammt das ausgelieferte Manifest aus einem fremden Lauf
  *   H5  Step-Vollständigkeit: je Param lückenlos ab 0 bis zum jeweiligen Maximum
+ *   Ein Manifest, dessen Warm-Cron bewusst abgeschaltet ist (`retired` in MANIFESTS), wird nicht auf Frische geprüft:
+ *   H2/H3 sind dann grün und tragen den Grund samt dem tatsächlichen Alter im Text (V-AW-61, 14.10.2026).
+ *
+ * Was der Client wirklich liest, seit der Warm-Cron aus ist (BW-12, Gate GBW12 04.09.): `index.json` im Daten-Repo
+ * (`resolveRunFromRepackIndex`). Dazu (Abruf über raw.githubusercontent; `INDEX_HEALTH=0` schaltet ab, `REPACK_INDEX_URL`
+ * überschreibt die Adresse):
+ *   I1  lesbar, Schema 1, Läufe vorhanden
+ *   I2  `publishedAt` ≤ MAX_UPDATE_AGE_H (Default 6 h) — der Publisher lebt
+ *   I3  je Hauptfamilie (wind, temp, gust, precip) der jüngste Lauf mit Schritten ≤ MAX_RUN_AGE_H (Default 9 h)
  *
  * Dazu das Straßenwetter (Phase AW, audit/autobahnwetter.md §4.4) — `road/v1/status.json` im Daten-Repo, das der
  * Radar-Spiegel bei jedem Push schreibt (Abruf über raw.githubusercontent, nicht über das CDN: fester Pfad,
@@ -57,8 +66,13 @@ const nowMs = Date.parse(process.env.HEALTH_NOW ?? new Date().toISOString());
 
 // BW-13 (§32): `latest-wind.json` ist entfallen — der Windlayer löst Lauf und
 // Bilder aus dem Index des Daten-Repos auf. Zu überwachen bleibt das Grib-Manifest.
+// V-AW-61 (14.10.2026): `warm-grib.yml` hat seit dem Gate GBW12 (04.09.) keinen `schedule` mehr, `latest-grib.json` steht
+// auf dem letzten Stand (Lauf 2026090406). Der Client verwirft ein Manifest über 24 h vorab (`gribManifest.ts`) und liest
+// Lauf und Schritte aus dem Index — dessen Frische prüfen I1–I3. `retired: null` (oder `GRIB_MANIFEST_RETIRED=0`)
+// schaltet H2/H3 wieder scharf, falls der Cron je zurückkommt.
+const GRIB_RETIRED = 'warm-grib-Cron seit GBW12 (04.09.2026) aus, der Client liest den Index des Daten-Repos';
 const MANIFESTS = [
-  { name: 'latest-grib.json', proxy: '/_dwd_grib' },
+  { name: 'latest-grib.json', proxy: '/_dwd_grib', retired: process.env.GRIB_MANIFEST_RETIRED === '0' ? null : GRIB_RETIRED },
 ];
 
 /**
@@ -66,7 +80,7 @@ const MANIFESTS = [
  * `origin` ist die Origin, gegen die geprüft wurde (null ⇒ H4 entfällt, weil
  * eine lokale Datei nichts über die ausgelieferte Domain aussagt).
  */
-export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAgeH, proxyPath }) {
+export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAgeH, proxyPath, retired = null }) {
   const out = [];
   const ok = (id, pass, detail) => out.push({ id, name: `${name} · ${id}`, pass, detail });
 
@@ -78,13 +92,15 @@ export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAge
 
   const runAt = Date.parse(m.runAt ?? '');
   const runAgeH = Number.isFinite(runAt) ? (nowMs - runAt) / 3.6e6 : NaN;
-  ok('H2 Lauf-Alter', Number.isFinite(runAgeH) && runAgeH < maxRunAgeH,
-    Number.isFinite(runAgeH) ? `Lauf ${m.run} ist ${runAgeH.toFixed(1)} h alt (Grenze ${maxRunAgeH} h)` : 'runAt fehlt/ungültig');
+  // Stillgelegtes Manifest: nicht bewertet, aber das Alter bleibt im Text (kein stilles Grün).
+  const retiredNote = retired ? ` — stillgelegt (${retired}), nicht bewertet` : '';
+  ok('H2 Lauf-Alter', !!retired || (Number.isFinite(runAgeH) && runAgeH < maxRunAgeH),
+    (Number.isFinite(runAgeH) ? `Lauf ${m.run} ist ${runAgeH.toFixed(1)} h alt (Grenze ${maxRunAgeH} h)` : 'runAt fehlt/ungültig') + retiredNote);
 
   const upAt = Date.parse(m.updatedAt ?? '');
   const upAgeH = Number.isFinite(upAt) ? (nowMs - upAt) / 3.6e6 : NaN;
-  ok('H3 Advance-Alter', Number.isFinite(upAgeH) && upAgeH < maxUpdateAgeH,
-    Number.isFinite(upAgeH) ? `zuletzt umgelegt vor ${upAgeH.toFixed(1)} h (Grenze ${maxUpdateAgeH} h)` : 'updatedAt fehlt/ungültig');
+  ok('H3 Advance-Alter', !!retired || (Number.isFinite(upAgeH) && upAgeH < maxUpdateAgeH),
+    (Number.isFinite(upAgeH) ? `zuletzt umgelegt vor ${upAgeH.toFixed(1)} h (Grenze ${maxUpdateAgeH} h)` : 'updatedAt fehlt/ungültig') + retiredNote);
 
   if (origin) {
     // Zwei Schreibweisen, gleicher Zweck: das Manifest muss FÜR die geprüfte
@@ -121,6 +137,46 @@ export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAge
     ok('H5 Step-Vollständigkeit', broken.length === 0,
       broken.length ? broken.join(' · ') : `${stepLists.length} Param-Liste(n) lückenlos ab 0`);
   }
+  return out;
+}
+
+/**
+ * Index des Daten-Repos (`index.json`) — die Quelle, aus der der Client Lauf und Schritte liest (`resolveRunFromRepackIndex`).
+ * Reine Prüflogik, von `verify-health.mjs` netzfrei getestet. Schritte stehen im Index als Objekte (V-BW-51).
+ */
+export const INDEX_HEALTH = Object.freeze({
+  url: 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/index.json',
+  families: Object.freeze(['wind', 'temp', 'gust', 'precip']),
+});
+export function checkRepackIndex(idx, { nowMs, maxRunAgeH, maxUpdateAgeH }) {
+  const out = [];
+  const name = 'index.json (Daten-Repo)';
+  const ok = (id, pass, detail) => out.push({ id, name: `${name} · ${id}`, pass, detail });
+  const runs = idx && typeof idx === 'object' && Array.isArray(idx.runs) ? idx.runs.filter((r) => r && typeof r === 'object' && /^\d{10}$/.test(String(r.run))) : [];
+  if (!idx || typeof idx !== 'object' || idx.schema !== 1 || !runs.length) {
+    ok('I1 Index lesbar', false, !idx || typeof idx !== 'object' ? 'nicht lesbar oder kein Objekt' : `Schema ${idx.schema ?? '(fehlt)'}, ${runs.length} Läufe`);
+    return out;
+  }
+  ok('I1 Index lesbar', true, `${runs.length} Läufe, jüngster ${runs.map((r) => r.run).sort().at(-1)}`);
+  const pubAt = Date.parse(idx.publishedAt ?? '');
+  const pubH = Number.isFinite(pubAt) ? (nowMs - pubAt) / 3.6e6 : NaN;
+  ok('I2 Publisher', Number.isFinite(pubH) && pubH < maxUpdateAgeH,
+    Number.isFinite(pubH) ? `zuletzt veröffentlicht vor ${pubH.toFixed(1)} h (Grenze ${maxUpdateAgeH} h)` : 'publishedAt fehlt/ungültig');
+  const parts = [];
+  let bad = false;
+  for (const fam of INDEX_HEALTH.families) {
+    let best = NaN, bestRun = null;
+    for (const r of runs) {
+      const f = r[fam];
+      if (!f || typeof f !== 'object' || !Array.isArray(f.steps) || !f.steps.length) continue;
+      const t = Date.parse(r.runAt ?? '');
+      if (Number.isFinite(t) && (!Number.isFinite(best) || t > best)) { best = t; bestRun = r.run; }
+    }
+    const ageH = Number.isFinite(best) ? (nowMs - best) / 3.6e6 : NaN;
+    if (!(Number.isFinite(ageH) && ageH < maxRunAgeH)) bad = true;
+    parts.push(`${fam} ${bestRun ?? '—'}${Number.isFinite(ageH) ? ` (${ageH.toFixed(1)} h)` : ''}`);
+  }
+  ok('I3 Läufe je Familie', !bad, `${parts.join(' · ')} — Grenze ${maxRunAgeH} h`);
   return out;
 }
 
@@ -269,7 +325,13 @@ async function main() {
       let m = null;
       try { m = await loadRemote(`${baseUrl}/${meta.name}`); }
       catch (e) { results.push({ id: 'H1', name: `${meta.name} · H1 erreichbar`, pass: false, detail: String(e?.message ?? e) }); continue; }
-      results.push(...checkManifest(meta.name, m, { origin: baseUrl, nowMs, maxRunAgeH: MAX_RUN_AGE_H, maxUpdateAgeH: MAX_UPDATE_AGE_H, proxyPath: meta.proxy }));
+      results.push(...checkManifest(meta.name, m, { origin: baseUrl, nowMs, maxRunAgeH: MAX_RUN_AGE_H, maxUpdateAgeH: MAX_UPDATE_AGE_H, proxyPath: meta.proxy, retired: meta.retired }));
+    }
+    if (process.env.INDEX_HEALTH !== '0') {
+      let idx = null;
+      try { idx = await loadRemote(process.env.REPACK_INDEX_URL ?? INDEX_HEALTH.url); }
+      catch (e) { results.push({ id: 'I1', name: 'index.json (Daten-Repo) · I1 erreichbar', pass: false, detail: String(e?.message ?? e) }); }
+      if (idx) results.push(...checkRepackIndex(idx, { nowMs, maxRunAgeH: MAX_RUN_AGE_H, maxUpdateAgeH: MAX_UPDATE_AGE_H }));
     }
     if (process.env.ROAD_HEALTH !== '0') {
       let s = null;

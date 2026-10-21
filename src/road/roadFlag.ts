@@ -43,7 +43,7 @@ export function rememberRoadFlag(search: string = typeof location !== 'undefined
  * `ROAD_HZ_LIVE` = Jan's flag-on decision for the hazard rail (Gate C+). Off: the right column is exactly the page of
  * AW-5/AW-6.1b. `?roadhz=0|1` beats `localStorage.roadhz`, which beats the constant — the same order as `?road`.
  */
-export const ROAD_HZ_LIVE = false;
+export const ROAD_HZ_LIVE = true;
 
 export function roadHzFlagFrom(
   search: string = typeof location !== 'undefined' ? location.search : '',

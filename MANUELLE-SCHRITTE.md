@@ -2694,9 +2694,13 @@ Push ins Daten-Repo abgelehnt, im manuellen Modus freigegeben).
    `6324e85c…` = `SHA256SUMS`); den README-Abschnitt hatte der `build`-Job schon aus der Vorlage `scripts/repack-repo/README.md`
    übernommen (`03ecbf2`). Beide Pfade `@main` gepurgt (CF + FY), jsDelivr liefert die Datei (HTTP 200, 968 148 Bytes).
    Falle beim Wiederholen: `git cherry-pick` kennt kein `-q` — ein Fehlschlag dort lässt `push HEAD:main` leer „gelingen".
-3. **Nach dem Einspielen:** das AF-3-Paket (`2026-10-11-af3`, 212 Korridore) ist noch nicht im Daten-Repo (§62.2c). Spielst du es
-   ein, muss `segments.json` neu gebaut werden (Bauweg in `audit/autobahnwetter.md` §19.2; Caches liegen unter
-   `C:\dev\buscosun-road-publish\cache\`), sonst fehlen die 71 neuen Teilstücke in der Leiste.
+3. **AF-3-Paket — erledigt 14.10. 09:12 UTC (`audit/autobahnwetter.md` §19.10/§19.11):** EIN Commit **`8104f73`** im Daten-Repo mit vier Dateien
+   (`road/v1/static/corridors.json`, `road/fc/v1/static/points.json`, `road/fc/v1/static/geo.json` aus `2026-10-11-af3`, dazu die gegen die 212
+   Korridore neu gebaute `road/v1/static/segments.json`, 1 731 Abschnitte, 102 neu, 0 entfallen, aus `C:\dev\buscosun-road-publish\2026-10-14-af3-segments\`).
+   Vier `@main`-Pfade gepurgt, jsDelivr liefert alle mit der Prüfsumme. Der `road-fc`-Lauf 2610140928 meldet 4 772 Punkte, 212 Korridore, 0 fehlgeschlagen; der
+   Gefahren-Slot 2610140930 rechnet 1 731 Abschnitte. **Noch zu tun von dir:** Real-Device `/autobahnwetter/a98-3` und `/autobahnwetter/a36` (§62.2c Punkt 5);
+   `verify:road-fc --data=<frischer Klon>` (113/113, V-AF-38 ist offen). Falle beim Wiederholen: das sparse-Muster des Daten-Repo-Klons enthält `road/fc/`
+   nicht von Haus aus (`git add` verwirft dort still, Exit 0).
 4. **Erster Live-Slot — geprüft 14.10. 08:36 UTC:** erster `hz/`-Slot 2610140830 (89 von 1 629 Abschnitten mit Stufe, 2 unbekannt,
    1,1 s statt 25 s lokal), `health-manifests --url` R1–R7 grün, 13/15 (rot nur H2/H3 `latest-grib.json`, nicht diese Phase).
    Einzelheiten `audit/autobahnwetter.md` §19.9.
@@ -2705,6 +2709,14 @@ Push ins Daten-Repo abgelehnt, im manuellen Modus freigegeben).
    E-AW-38 (Terrarium statt DGM200), E-AW-39 (Nebel-Proxy — 292 von 1 629 Abschnitten am 13.10. 17 UTC), E-AW-40 (Fortschreibung
    der Glätte), V-AW-47…54.
 6. **Gate C+ (Leiste live):** `ROAD_HZ_LIVE = true` erst nach deinem OK im Chat; bis dahin `?roadhz=1`.
-7. **V-AW-48 (Messlinie, dein Gate, ändert die Seite):** der Füllwert-Test greift nur bei exakt 0,00/−1,00 °C — Q290 Wolfskopf
-   meldete Fahrbahn = Luft = −0,01 °C (273,14 K). Vorschlag: `fillValue` auf |rs| ≤ 0,011 und |rs + 1| ≤ 0,011 ausdehnen, am Archiv
-   messen.
+7. **V-AW-48 (Füllwert) — umgesetzt 14.10., NICHT committet, wirkt erst mit dem Push von `main`:** Q290 Wolfskopf fällt zwischendurch (17 von 24
+   Ring-Slots) auf Fahrbahn = Luft = −0,01 °C **ohne Taupunkt**; die Toleranz allein hätte ihn nicht erfasst. Jetzt `ROAD_FILL.eps` 0,011 **und** Regel 1b
+   (Fahrbahn = Luft am selben Füllwert, Taupunkt fehlt ⇒ beide `fillValue`) in `src/road/roadContract.ts`; Verifier V48a–f, `verify:road-contract` 117/117.
+   Zahlen, Gegenproben und Risiko (Winter): `audit/autobahnwetter.md` §19.10/§19.11. **Von dir:** Commit (Dateien unten) und Push; im Dezember
+   `balance.byRule.fillValue` je Tag ansehen (trifft Regel 1b echte Werte?).
+8. **`latest-grib.json` (V-AW-61) — umgesetzt 14.10., NICHT committet:** `health-manifests.mjs` meldet H2/H3 für die Datei als „stillgelegt" (grün, mit
+   dem tatsächlichen Alter im Text; `GRIB_MANIFEST_RETIRED=0` = wieder scharf) und prüft stattdessen den Index des Daten-Repos (I1–I3: lesbar, `publishedAt`
+   < 6 h, je Familie jüngster Lauf < 9 h). `verify:health` 57/57; echt gegen buscosun.com 18 von 18 grün. Geändert: `scripts/health-manifests.mjs`,
+   `scripts/verify-health.mjs`.
+   *Commit der Umsetzung (7 + 8) auf dein Wort, ohne die fremde Linie in `src/fire/`:* `src/road/roadContract.ts`, `scripts/verify-road-contract.mjs`,
+   `scripts/health-manifests.mjs`, `scripts/verify-health.mjs`, `audit/autobahnwetter.md`, `MANUELLE-SCHRITTE.md`, `CLAUDE.md`.
