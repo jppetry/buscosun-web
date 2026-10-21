@@ -319,12 +319,6 @@ export default function SeaReadout(p: Props) {
               <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
                 label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
             </div>
-            {v && (
-              <div className={`sw-verdict is-${v.cls}`}>
-                <span className={`sw-dot${v.cls === 'keine' ? ' is-hatched' : ''}`} style={v.cls !== 'keine' ? { background: CLASS_COLOR[v.cls] } : undefined} />
-                <span><strong>{CLASS_LABEL[v.cls]}</strong><em>{v.reasons.join(' · ')}{v.shore ? ` · Wind ${SHORE_LABEL[v.shore]}` : ''}</em></span>
-              </div>
-            )}
             <div className="sw-vals is-four">
               <div><span>Windsee · Modell</span><strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m · ${h.wsPer == null ? '–' : `${f1(h.wsPer)} s`}`}</strong></div>
               <div><span>Dünung · Modell</span><strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m · ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} aus ${compass16(h.swDir)}`}</strong></div>
