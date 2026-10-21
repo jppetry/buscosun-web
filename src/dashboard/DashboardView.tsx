@@ -22,11 +22,9 @@ import { NowcastDetail } from './nowcastDetail';
 import { DayDetail } from './dayDetail';
 import { FeatureRail } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
-import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningStrip, WindTile } from './tiles';
+import { NowcastTile, NowCard, Val, WarningStrip } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
-// Jan 16.10.: drei Fusion-Kacheln (Niederschlag, Wind/Böen, Luftdruck über 48 h) im Reiter Details.
-import { PrecipTile, WindBandTile, PressureTile } from './fusionTiles';
 import { pfLogFrom } from '../pointForecast/pfFlags';
 
 interface Props {
@@ -334,27 +332,12 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
             {showTabs && (
               <button type="button" className="dbd-more" onClick={() => onPart!('details')}>
                 <span className="dbd-more-title">Mehr zur Lage am Ort</span>
-                <span className="dbd-more-list">Bewölkung, Wind, Niederschlag 48 h, Böen, Luftdruck, Gelände, UV, Pollen, ICON-D2</span>
+                <span className="dbd-more-list">Gelände</span>
               </button>
             )}
             </div>
             <div className="dbd-panel" role={showTabs ? 'tabpanel' : undefined} id="dbd-panel-details" aria-labelledby={showTabs ? 'dbd-tab-details' : undefined} hidden={showTabs && part !== 'details'}>
-            <div className="dbd-row3">
-              <CloudsTile vm={vm.clouds} />
-              <WindTile vm={vm.wind} />
-            </div>
-            <ConfidenceCard vm={vm.conf} />
-            <div className="dbd-row4">
-              <PrecipTile vm={vm.precip} />
-              <WindBandTile vm={vm.windBand} />
-              <PressureTile vm={vm.pressure} />
-            </div>
             <TerrainField vm={vm.terrain} onHalfKm={onHalfKm} rootRef={refs?.terrain} />
-            <div className="dbd-row5">
-              <UvTile vm={vm.uv} />
-              <PollenTile vm={vm.pollen} />
-              <IconD2Tile vm={vm.icond2} rootRef={refs?.icond2} />
-            </div>
             </div>
           </>
         )}
