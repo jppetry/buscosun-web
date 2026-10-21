@@ -840,22 +840,45 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         {/* Legende — Phase NS: in der Summen-Ansicht die Summen-Legende */}
         {sumMode && sum && <SumLegend info={sumMap.info} sel={sum} />}
         {chanceMode && chance && <ChanceLegend info={chanceMap.info} threshold={chance.threshold} nowMs={Date.now()} />}
-        {!sumMode && !chanceMode && <div className="nc-radar-legend">
-          {RADAR_BANDS.filter((b) => b.band !== 'dry').map((b) => (
-            <span key={b.band} className="nc-radar-leg-item"><i style={{ background: PALETTES[shownPalette].bandColors[b.band] }} /> {b.label}</span>
-          ))}
+        {!sumMode && !chanceMode && <div className="nc-radar-legend rl">
+          <div className="rl-sec">
+            <div className="rl-head">Regenintensität <span>mm/h</span></div>
+            <div className="rl-scale" role="list">
+              {RADAR_BANDS.filter((b) => b.band !== 'dry').map((b) => (
+                <div key={b.band} className="rl-seg" role="listitem">
+                  <i style={{ background: PALETTES[shownPalette].bandColors[b.band] }} />
+                  <b>{b.label}</b>
+                  <small>{b.range}</small>
+                </div>
+              ))}
+            </div>
+          </div>
           {layerSet.has('snow') && (
-            <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#d6e8fa,#78a6e6,#4660be)' }} /> {snowMode === 'fresh' ? 'Neuschnee 0–50 cm' : 'Schneedecke 0–150 cm'} · ICON-D2</span>
+            <div className="rl-sec">
+              <div className="rl-head">{snowMode === 'fresh' ? 'Neuschnee' : 'Schneedecke'} <span>ICON-D2</span></div>
+              <div className="rl-grad"><i style={{ background: 'linear-gradient(90deg,#d6e8fa,#78a6e6,#4660be)' }} /><small>0</small><small>{snowMode === 'fresh' ? '50 cm' : '150 cm'}</small></div>
+            </div>
           )}
           {/* Phase RR: die Phasen-Heuristik gibt es nur auf der alten Karte (E-RR-3) — im Profil keine Legende dafür. */}
           {!useProfile && layerSet.has('graupel') && (
-            <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#dcaaee,#ba6ed2,#9630a0)' }} /> Graupel</span>
+            <div className="rl-sec">
+              <div className="rl-head">Graupel <span>Heuristik</span></div>
+              <div className="rl-grad"><i style={{ background: 'linear-gradient(90deg,#dcaaee,#ba6ed2,#9630a0)' }} /></div>
+            </div>
           )}
           {!useProfile && layerSet.has('hail') && (
-            <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#ff78aa,#f03c6e,#c81450)' }} /> Hagel</span>
+            <div className="rl-sec">
+              <div className="rl-head">Hagel <span>Heuristik</span></div>
+              <div className="rl-grad"><i style={{ background: 'linear-gradient(90deg,#ff78aa,#f03c6e,#c81450)' }} /></div>
+            </div>
           )}
           {/* Phase SK: the cap of buscosun Fusion instead of the ICON-D2 line (desktop legend). */}
-          {useProfile && skActive && <SnowCapLegend info={snowCap2d.info} variant="inline" />}
+          {useProfile && skActive && (
+            <div className="rl-sec rl-sec-sk">
+              <div className="rl-head">Schneefallgrenze <span>buscosun Fusion</span></div>
+              <div className="rl-sk"><SnowCapLegend info={snowCap2d.info} variant="inline" /></div>
+            </div>
+          )}
         </div>}
 
         {/* Phase RR (RR-f): die Schneefallgrenze der Karte ist die der Wetterkarte — Quelle benannt; der Punktwert

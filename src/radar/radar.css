@@ -180,6 +180,28 @@
 .nc-radar-leg-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ink-800, #3A3833); }
 .nc-radar-leg-item i { width: 0.9rem; height: 0.5rem; border-radius: 3px; }
 
+/* Legende als gruppierte Karte: Intensität als Segmentleiste, Schnee/Graupel/Hagel als Verlauf, Schneefallgrenze als Abschnitt. */
+.nc-radar-legend.rl {
+  flex-direction: column; flex-wrap: nowrap; gap: 0.55rem; width: max-content; max-width: min(26rem, calc(100% - 1.3rem));
+  padding: 0.6rem 0.75rem 0.65rem; border-radius: 12px; font-variant-numeric: tabular-nums;
+}
+.rl-sec + .rl-sec { padding-top: 0.5rem; border-top: 1px solid rgba(224,214,190,0.7); }
+.rl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.35rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-900, #2C2A26); }
+.rl-head span { font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--stone-500, #8B7355); }
+.rl-scale { display: grid; grid-template-columns: repeat(5, minmax(3.6rem, 1fr)); gap: 3px; }
+.rl-seg { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rl-seg i { height: 0.5rem; border-radius: 3px; margin-bottom: 0.25rem; }
+.rl-seg:first-child i { border-radius: 5px 3px 3px 5px; }
+.rl-seg:last-child i { border-radius: 3px 5px 5px 3px; }
+.rl-seg b { font-size: 0.7rem; font-weight: 600; line-height: 1.15; color: var(--ink-800, #3A3833); white-space: nowrap; }
+.rl-seg small { font-size: 0.62rem; color: var(--stone-500, #8B7355); }
+.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.2rem; }
+.rl-grad i { grid-column: 1 / -1; height: 0.5rem; border-radius: 5px; }
+.rl-grad small { font-size: 0.62rem; color: var(--stone-500, #8B7355); }
+.rl-sk { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; }
+.rl-sk .sk-leg-status { flex-basis: 100%; margin-top: 0.1rem; font-size: 0.62rem; line-height: 1.35; color: var(--stone-500, #8B7355); }
+.rl-sk .sk-leg-status.sk-warn { color: #8B4A1F; }
+
 /* Niederschlagsart-Hinweis (Schneefallgrenze) */
 .nc-radar-snownote {
   position: absolute; top: 2.85rem; left: 0.65rem; z-index: 3; max-width: 60%;
