@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 // ============================================================================
-// DACH map as the one background of the start page. Full page width, scrolls
-// with the page: Hamburg at the top, Munich, Switzerland and Austria further
-// down, neighbouring cities at the edges. Dot matrix inside the dissolved
+// DACH map as the one background of the start page, zoomed in so that only a
+// part of it shows: about 1.5 viewport widths wide, centred on CENTER_LON and
+// cut at TOP_LAT, it scrolls with the page — Hamburg at the very top beside the
+// logo, Munich, Switzerland and Austria further down, neighbouring cities at
+// the edges. Dot matrix inside the dissolved
 // outline DE ∪ AT ∪ CH ∪ LI, country borders, crosshairs on the 1° graticule.
 // Outlines come from the same files as the map's sand mask
 // (public/countries/*.geojson); nothing renders until they are loaded.
@@ -14,6 +16,9 @@ const K = 100;
 const KX = K * Math.cos((50 * Math.PI) / 180);
 const W = Math.round((LON1 - LON0) * KX);
 const H = Math.round((LAT1 - LAT0) * K);
+
+/** Viewport centre (desktop, mobile) and the latitude at the top edge of the page. */
+const CENTER_LON = 11.4, CENTER_LON_MOBILE = 10.4, TOP_LAT = 53.75;
 
 const px = (lon: number) => (lon - LON0) * KX;
 const py = (lat: number) => (LAT1 - lat) * K;
@@ -60,6 +65,13 @@ const AREAS: [string, number, number, 'country' | 'abroad' | 'sea' | 'range'][] 
   ['Nordsee', 7.0, 54.3, 'sea'], ['Ostsee', 13.8, 54.6, 'sea'], ['Alpen', 12.5, 47.0, 'range'],
 ];
 
+const pct = (v: number) => `${(-v * 100).toFixed(2)}%`;
+const SHIFT = {
+  '--dmb-x': pct(px(CENTER_LON) / W),
+  '--dmb-x-m': pct(px(CENTER_LON_MOBILE) / W),
+  '--dmb-y': pct(py(TOP_LAT) / H),
+} as CSSProperties;
+
 type Ring = number[][];
 type Geo = { geometry?: { type: string; coordinates: unknown } };
 
@@ -81,7 +93,7 @@ function crosshairs(): string {
   for (let lon = Math.ceil(LON0); lon <= LON1; lon++) {
     for (let lat = Math.ceil(LAT0); lat <= LAT1; lat++) {
       const x = px(lon), y = py(lat);
-      d += `M${(x - 3).toFixed(1)} ${y.toFixed(1)}h6M${x.toFixed(1)} ${(y - 3).toFixed(1)}v6`;
+      d += `M${(x - 2).toFixed(1)} ${y.toFixed(1)}h4M${x.toFixed(1)} ${(y - 2).toFixed(1)}v4`;
     }
   }
   return d;
@@ -105,30 +117,30 @@ export default function DachMapBackground() {
   return (
     <div className={`deck-mapbg${paths ? ' is-ready' : ''}`} aria-hidden="true">
       {paths && (
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMin meet">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMin meet" style={SHIFT}>
           <defs>
-            <pattern id="dmb-dots" width="6" height="6" patternUnits="userSpaceOnUse">
-              <circle cx="3" cy="3" r="1" />
+            <pattern id="dmb-dots" width="3.6" height="3.6" patternUnits="userSpaceOnUse">
+              <circle cx="1.8" cy="1.8" r="0.55" />
             </pattern>
           </defs>
           <path className="deck-mapbg-cross" d={crosshairs()} />
-          <path className="deck-mapbg-shadow" d={paths.dach} transform="translate(4 6)" />
+          <path className="deck-mapbg-shadow" d={paths.dach} transform="translate(2 3)" />
           <path className="deck-mapbg-land" d={paths.dach} />
           <path className="deck-mapbg-dots" d={paths.dach} fill="url(#dmb-dots)" />
           <path className="deck-mapbg-borders" d={paths.borders} />
           <path className="deck-mapbg-outline" d={paths.dach} />
           {AREAS.map(([name, lon, lat, kind]) => (
-            <text key={name} className={`deck-mapbg-area is-${kind}`} x={px(lon)} y={py(lat)} textAnchor="middle">{name}</text>
+            <text key={name} className={`deck-mapbg-area is-${kind}`} x={px(lon)} y={py(lat)} textAnchor="middle" dominantBaseline="central">{name}</text>
           ))}
           {CITIES.map(([name, lon, lat, tier, abroad]) => {
             const x = px(lon), y = py(lat);
-            const r = tier === 1 ? 2.6 : tier === 2 ? 2 : 1.5;
+            const r = tier === 1 ? 1.5 : tier === 2 ? 1.15 : 0.85;
             const left = LEFT.has(name);
             return (
               <g key={name} className={`deck-mapbg-city is-t${tier}${abroad ? ' is-abroad' : ''}`}>
-                {tier === 1 && <circle className="deck-mapbg-pulse" cx={x} cy={y} r="3" />}
+                {tier === 1 && <circle className="deck-mapbg-pulse" cx={x} cy={y} r="1.8" />}
                 <circle cx={x} cy={y} r={r} />
-                <text x={left ? x - r - 3.5 : x + r + 3.5} y={y + 2.6} textAnchor={left ? 'end' : 'start'}>{name}</text>
+                <text x={left ? x - r - 1.8 : x + r + 1.8} y={y} dominantBaseline="central" textAnchor={left ? 'end' : 'start'}>{name}</text>
               </g>
             );
           })}
