@@ -99,12 +99,6 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
             <IconExpand />
           </button>
         </div>
-        {h.tile && (
-          <div className="mv-hero">
-            <span className="mv-hero-value">{h.value}</span>
-            {h.line && <span className="mv-hero-line">{h.line}</span>}
-          </div>
-        )}
         <MinuteChart series={series} rangeH={MINI_RANGE_H} variant="mini" height={150} />
       </section>
 
