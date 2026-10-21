@@ -13,7 +13,7 @@ import { NOWCAST_DETAIL_RANGES, type NowcastDetailVM } from './model/types';
 const H = 3_600_000;
 const NB = ' ';
 /** Abstand der x-Marken je Zeitraum in Minuten */
-const TICK_MIN: Record<number, number> = { 3: 30, 6: 60, 12: 120, 24: 180, 48: 360 };
+const TICK_MIN: Record<number, number> = { 1: 10, 2: 15, 3: 30, 6: 60, 12: 120, 24: 180, 48: 360 };
 const STEEL = '#3A6FA8', HEAVY = '#9B8CE0', SNOW = '#9B8CE0', FUSION = '#8A9AA8';
 
 interface Bar { t: number; w: number; mmh: number; src: 'radar' | 'fusion'; p90: number | null; pWet: number | null; pSnow: number | null }
@@ -28,7 +28,7 @@ function CloseIcon() {
 
 export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: () => void }) {
   const closeBtn = useRef<HTMLButtonElement>(null);
-  const [range, setRange] = useState(12);
+  const [range, setRange] = useState(3);
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hoverT, setHoverT] = useState<number | null>(null);
   useEffect(() => {
@@ -144,11 +144,11 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                     {seamX != null && seamX < padL + plotW && (
                       <g>
                         <line x1={seamX} x2={seamX} y1={padT} y2={yBase} className="dbd-nc-seam" />
-                        <text x={seamX + 5} y={padT + 9} className="dbd-nc-t dbd-nc-t--b">Radar-Horizont</text>
+                        <text x={seamX + 5} y={padT + 9} className="dbd-nc-t dbd-nc-t--b">Radar-Horizont {hhmm(vm.radarEndMs! + slotMs)}</text>
                       </g>
                     )}
                     <line x1={nowX} x2={nowX} y1={padT} y2={yBase} className="dbd-nc-now" />
-                    <text x={nowX + 5} y={padT + 9} className="dbd-nc-t dbd-nc-t--b" style={{ display: seamX != null && Math.abs(seamX - nowX) < 80 ? 'none' : undefined }}>jetzt</text>
+                    <text x={nowX + 5} y={padT + 9} className="dbd-nc-t dbd-nc-t--b" style={{ display: seamX != null && Math.abs(seamX - nowX) < 110 ? 'none' : undefined }}>jetzt {hhmm(vm.nowMs)}</text>
                     <text x={padL + plotW / 2} y={h - 2} className="dbd-nc-t dbd-nc-t--b" textAnchor="middle">Uhrzeit</text>
                     {hov && <line x1={cxOf(hov)} x2={cxOf(hov)} y1={padT} y2={yBase} className="dbf-cross" />}
                     <rect x={padL} y={padT} width={plotW} height={plotH + 40} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} style={{ cursor: 'crosshair', touchAction: 'pan-y' }} />
@@ -156,7 +156,7 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                 )}
                 {hov && (
                   <Tip left={Math.max(0, Math.min(width - 210, cxOf(hov) - 105))} top={padT + 18}>
-                    <div className="dbf-tip-t">{dayLabel(hov.t)} {hhmm(hov.t)}</div>
+                    <div className="dbf-tip-t">{dayLabel(hov.t)} {hhmm(hov.t)}{hov.src === 'radar' ? `–${hhmm(hov.t + hov.w)}` : ''} Uhr</div>
                     <div className="dbf-tip-v">{num(hov.mmh, 1)}{NB}mm/h{hov.p90 != null ? <span> · bis {num(hov.p90, 1)}{NB}mm/h (p90)</span> : null}</div>
                     <div className="dbf-tip-s">
                       {hov.src === 'radar' ? (hov.t <= vm.nowMs + 5 * 60_000 ? 'Radar · Messung' : 'Radar · Vorausberechnung') : 'buscosun Fusion'}

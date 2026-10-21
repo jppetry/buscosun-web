@@ -230,7 +230,7 @@ export interface NowcastVM {
 }
 
 /** Zeiträume der Nowcast-Detailansicht in Stunden ab jetzt (Radar trägt 2–3 h, danach buscosun Fusion). */
-export const NOWCAST_DETAIL_RANGES: readonly number[] = [3, 6, 12, 24, 48];
+export const NOWCAST_DETAIL_RANGES: readonly number[] = [1, 2, 3, 6, 12, 24, 48];
 
 /** Nowcast-Detailansicht (P54/P55): Radar-Frames bis zu seinem Horizont, danach die Stundenwerte von buscosun Fusion. */
 export interface NowcastDetailVM {

@@ -121,10 +121,11 @@ export async function loadNowcast(p: PlaceIn, nowMs: number, signal: AbortSignal
   if (!sources.length) return { state: 'na', sources, horizonLabel, frames: [], slotMs: null, note: 'kein Radar-Nowcast deckt diesen Ort' };
   const io = defaultCubeIo();
   if (!io.decodePng) return { state: 'na', sources, horizonLabel, frames: [], slotMs: null, note: 'kein PNG-Dekoder' };
-  // Die Quelle mit dem weitesten Horizont zuerst (INCA 3 h > RV 2 h > RZC 0 h); Frames alle 10 min (INCA alle 15 min).
+  // Die Quelle mit dem weitesten Horizont zuerst (INCA 3 h > RV 2 h > RZC 0 h); Frames in der Auflösung der Quelle
+  // (RV und RZC alle 5 min, INCA alle 15 min) — die Detailansicht ist minutengenau.
   const order = [...sources].sort((a, b) => (b === 'inca' ? 1 : 0) - (a === 'inca' ? 1 : 0) || (a === 'combiprecip' ? 1 : 0) - (b === 'combiprecip' ? 1 : 0));
   for (const src of order) {
-    const stepMin = src === 'inca' ? 15 : 10;
+    const stepMin = src === 'inca' ? 15 : 5;
     const horizonMin = src === 'inca' ? 180 : src === 'combiprecip' ? 0 : 120;
     const atMs: number[] = [];
     for (let m = 0; m <= horizonMin; m += stepMin) atMs.push(nowMs - 10 * 60_000 + m * 60_000);
