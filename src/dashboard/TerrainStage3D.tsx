@@ -148,6 +148,8 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     });
     mapRef.current = m;
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    // Das Stil-Sprite der Basiskarte kennt einige Symbole nicht (z. B. „circle-11"): ein leeres Bild statt einer Konsolenwarnung je Kachel.
+    m.on('styleimagemissing', (e) => { if (!m.hasImage(e.id)) m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }); });
     m.once('load', () => { m.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open')); });
     m.on('load', () => {
       m.addSource(DEM_SRC, { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
