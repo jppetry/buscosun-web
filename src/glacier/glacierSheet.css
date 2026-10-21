@@ -153,8 +153,69 @@
 .gl-ds-maplink:hover b { text-decoration: underline; }
 .gl-ds-mapcard .gl-sheet-legend { width: 200px; left: 10px; bottom: 42px; padding: 8px 10px; }
 .gl-ds-side .gl-sheet-left { width: auto; height: auto; padding: 0; border: 0; background: none; overflow: visible; }
+/* Level "Heute" of the dossier as a dashboard (GlacierHeuteBoard): hero with the key figures, gauge + three tiles, 14-day bars + satellite ring, tour grid */
+.gl-hb { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.gl-hb-card { background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.gl-hb-cardhead, .gl-hb-tile-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gl-hb-l { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gl-faint); }
+.gl-hb-hero { padding: 18px 20px; background: linear-gradient(180deg, #FDFBF4 0%, #fff 70%); }
+.gl-hb-hero .gl-ds-head { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; gap: 14px; }
+.gl-hb-hero .gl-ds-title { font-size: 30px; }
+.gl-hb-hero .gl-ds-tile { position: relative; background: #fff; padding: 14px 14px 12px; overflow: hidden; }
+.gl-hb-hero .gl-ds-tile::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--gl-prov-official-line); }
+.gl-hb-hero .gl-ds-tile:has([data-origin="measured"])::before { background: var(--gl-prov-measured-dot); }
+.gl-hb-hero .gl-ds-tile:has(.gl-loss-n)::before { background: var(--gl-loss); }
+.gl-hb-hero .gl-ds-tile .gl-num { font-size: 26px; letter-spacing: -0.3px; }
+.gl-hb-hero .gl-ds-time { padding-top: 12px; border-top: 1px solid var(--gl-line); }
+.gl-hb-row { display: grid; gap: 14px; align-items: stretch; min-width: 0; }
+.gl-hb-row--melt { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.gl-hb-row--week { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+.gl-hb-gaugecard { gap: 8px; }
+.gl-hb-gaugewrap { position: relative; width: 100%; max-width: 280px; margin: 4px auto 0; }
+.gl-hb-gauge { display: block; width: 100%; height: auto; }
+.gl-hb-gaugeval { position: absolute; left: 0; right: 0; bottom: 2px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.gl-hb-gaugeval .gl-num { font-size: 44px; font-weight: 700; line-height: 1; color: var(--gl-ink); }
+.gl-hb-gaugeval small { font-size: 12.5px; color: var(--gl-muted); }
+.gl-hb-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.gl-hb-chips span { font-size: 12px; color: var(--gl-muted); background: var(--gl-prov-model-bg); border: 1px solid var(--gl-prov-model-line); border-radius: 11px; padding: 3px 10px; }
+.gl-hb-chips b { color: var(--gl-ink); font-variant-numeric: tabular-nums; }
+.gl-hb-tiles { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.gl-hb-tile { flex: 1 1 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; background: #fff; border: 1px solid var(--gl-line); border-left: 3px solid var(--gl-prov-model-dot); border-radius: 12px; padding: 11px 14px; }
+.gl-hb-tile > .gl-num { font-size: 24px; font-weight: 700; line-height: 1.05; }
+.gl-hb-tile small { font-size: 11.5px; color: var(--gl-faint); }
+.gl-hb-band { position: relative; display: block; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #DCEEF4, #A9D4E2); margin: 2px 0 14px; }
+.gl-hb-band-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #B8862F; opacity: .85; }
+.gl-hb-band em { position: absolute; top: 11px; font-style: normal; font-size: 10.5px; color: var(--gl-faint); }
+.gl-hb-band em:first-of-type { left: 0; }
+.gl-hb-band em:last-of-type { right: 0; }
+.gl-hb-bar { display: block; height: 8px; border-radius: 4px; background: #EFE8D6; overflow: hidden; }
+.gl-hb-bar i { display: block; height: 100%; border-radius: 4px; background: #B8862F; }
+.gl-hb-dots { display: flex; gap: 4px; flex-wrap: wrap; }
+.gl-hb-dots i { width: 12px; height: 12px; border-radius: 6px; background: #EFE8D6; border: 1px solid var(--gl-line); }
+.gl-hb-dots i.is-on { background: #B8862F; border-color: #B8862F; }
+.gl-hb-barscard .gl-bars { max-height: 200px; }
+.gl-hb-sat { display: flex; align-items: center; gap: 16px; flex: 1 1 auto; }
+.gl-hb-ringwrap { position: relative; width: 108px; height: 108px; flex: 0 0 auto; }
+.gl-hb-ring { width: 100%; height: 100%; }
+.gl-hb-ringwrap .gl-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: var(--gl-prov-satellite-text); }
+.gl-hb-sattx { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13.5px; font-weight: 600; }
+.gl-hb-sattx small { font-size: 12px; font-weight: 400; color: var(--gl-muted); line-height: 1.4; }
+.gl-hb-tour { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin-top: 6px; }
+.gl-hb-tourhead { display: flex; flex-direction: column; gap: 8px; }
+.gl-hb-disclaimer { margin: 0; font-size: 13px; line-height: 1.45; background: var(--gl-prov-model-bg); border: 1px solid var(--gl-prov-model-line); border-radius: 12px; padding: 10px 14px; }
+.gl-hb-tourgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.gl-hb-tourtile { display: flex; flex-direction: column; gap: 5px; min-width: 0; background: #fff; border: 1px solid var(--gl-line); border-left: 3px solid var(--gl-prov-official-dot); border-radius: 12px; padding: 11px 14px; font-size: 13px; line-height: 1.4; }
+.gl-hb-tourtile[data-origin="model"], .gl-hb-tile[data-origin="model"] { border-left-color: var(--gl-prov-model-dot); }
+.gl-hb-tourtile[data-origin="satellite"], .gl-hb-tile[data-origin="satellite"] { border-left-color: var(--gl-prov-satellite-dot); }
+.gl-hb-tourtile[data-origin="measured"] { border-left-color: var(--gl-prov-measured-dot); }
+.gl-hb-tourtile b { font-size: 13.5px; }
+.gl-hb-tourtile small { font-size: 11px; color: var(--gl-faint); }
+.gl-hb-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.gl-hb-links .gl-btn { text-decoration: none; }
 @media (min-width: 768px) and (max-width: 1279px) {
   .gl-ds-grid { grid-template-columns: minmax(0, 1fr); }
+  .gl-hb-row--melt, .gl-hb-row--week { grid-template-columns: minmax(0, 1fr); }
+  .gl-hb-tourgrid { grid-template-columns: minmax(0, 1fr); }
   .gl-ds-side { position: static; }
   .gl-ds-kf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gl-ds-step-t small { display: none; }

@@ -14,6 +14,7 @@ import { GLACIER_TABS, type GlacierTab, type GlacierUrlState, type GlacierLayer,
 import { loadSheetData, type SheetData } from './glacierSheetData';
 import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierSheetMap';
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
+import GlacierHeuteBoard from './GlacierHeuteBoard';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
   areaChange, cumulativeLength, longestLength, massRows, latestMass, meltView, seasonSummary, sourceRows, dateDe, dateDeLong, STATE_TEXT, seriesCsv, type SeasonSummary,
@@ -279,12 +280,11 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
         </div>
         <div className="gl-ds-grid">
           <div className="gl-ds-main" data-level={level + 1}>
-            {notReady ? <>{level === 0 && <section className="gl-ds-card gl-ds-sec" data-tab="heute" aria-label={TAB_LABEL.heute}>{headBlock}</section>}{notReady}</> : (data && (
+            {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {LEVELS[level].tabs.map((t) => (
+                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} /> : LEVELS[level].tabs.map((t) => (
                   <section key={t} className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
-                    {t === 'heute' && headBlock}
                     <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
                     {tabBody(t, data)}
                   </section>
