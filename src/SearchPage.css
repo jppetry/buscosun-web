@@ -199,6 +199,12 @@
 }
 .deck-hero-sub {
   font-size: 18px; line-height: 1.5; color: var(--stone-600); margin: 18px 0 0; max-width: 660px;
+  /* Dezente Milchglas-Fläche über der Hintergrundkarte; Text bleibt bündig (Ausgleich per negativem Rand). */
+  width: fit-content; box-sizing: border-box;
+  padding: 10px 16px; margin-left: -16px; margin-right: -16px;
+  background: rgba(250, 246, 234, 0.72);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid rgba(224, 214, 190, 0.6); border-radius: 14px;
 }
 
 /* Hero zweispaltig: Text + Suche links, Werkzeug-Quadrat (04–07) rechts. */
