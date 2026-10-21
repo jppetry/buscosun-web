@@ -12,6 +12,7 @@ import { CLUSTER_PAGE, clusterColor, STATIC_GREY } from './fireClusters';
 import { groupPasses, sortPasses } from './activity/overpasses';
 import { footprintRing, VIIRS_NOMINAL_KM, type FirmsRow } from './sources/firmsHotspots';
 import { FirePassChart } from './FirePassChart';
+import { buildFireZones } from './fireZones';
 import { SatImageryBlock } from './FireSatImagery';
 import { bboxPolygon, historyAreaBbox } from './FireMiniMap';
 import { satEnabled } from './detail/fireSatImagery';
@@ -207,16 +208,21 @@ export interface HistoryPixelArea {
 }
 
 function pixelAreaOf(ev: HistoryEvent, id: string): HistoryPixelArea | null {
-  const features: GeoJSON.Feature[] = [];
+  const rows: FirmsRow[] = [];
   let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
   let nominal = false;
   for (const r of shardRows(ev)) {
     const ring = footprintRing(r, VIIRS_NOMINAL_KM);
     if (!ring) continue;
     if (r.scanKm == null || r.trackKm == null) nominal = true;
-    features.push({ type: 'Feature', properties: { id }, geometry: { type: 'Polygon', coordinates: [ring] } });
+    rows.push({ ...r, scanKm: r.scanKm ?? VIIRS_NOMINAL_KM, trackKm: r.trackKm ?? VIIRS_NOMINAL_KM });
     for (const [x, y] of ring) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
   }
+  // Only the outer edge of the burnt area: the pixel rectangles overlap, so they are merged
+  // (same rectangle union as the detection raster) instead of being drawn one by one.
+  const features: GeoJSON.Feature[] = buildFireZones(rows).map((z) => (
+    { type: 'Feature', properties: { id }, geometry: { type: 'MultiPolygon', coordinates: z.polys } }
+  ));
   return features.length > 0 ? { features, bbox: [w, s, e, n], nominal } : null;
 }
 
