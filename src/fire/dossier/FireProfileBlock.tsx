@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
-import { ChartSkeleton, MissingBlock, useDossierBreakpoint } from './DossierPrimitives';
+import { ChartSkeleton, MissingBlock, NoteFold, useDossierBreakpoint } from './DossierPrimitives';
 import { FireProfileChart } from './FireProfileChart';
 import {
   buildFireProfile, PROFILE_NOTE, PROFILE_DEPENDENCE_NOTE, PROFILE_REF_DAYS,
@@ -81,8 +81,10 @@ export function FireProfileBlock({ lat, lon, anchorMs, anchorNote }: FireProfile
       <FireProfileChart profile={p} compact={compact} />
 
       {anchorNote && <Typography variant="caption" color="text.secondary">{anchorNote}</Typography>}
-      <Typography variant="caption" color="text.secondary">{PROFILE_NOTE}</Typography>
-      <Typography variant="caption" color="text.secondary">{PROFILE_DEPENDENCE_NOTE}</Typography>
+      <NoteFold>
+        <Typography variant="caption" component="p" color="text.secondary" sx={{ m: 0 }}>{PROFILE_NOTE}</Typography>
+        <Typography variant="caption" component="p" color="text.secondary" sx={{ m: 0, mt: 1 }}>{PROFILE_DEPENDENCE_NOTE}</Typography>
+      </NoteFold>
       {p.notes.map((n) => (
         <Typography key={n} variant="caption" color="text.secondary">{n}</Typography>
       ))}
