@@ -26,6 +26,7 @@ import {
 } from './glacierState';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierDock from './GlacierDock';
+import GlacierList from './GlacierList';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import GlacierLageChart, { type ChartKind } from './GlacierLageChart';
 import { CountryCards, ReportList, Rhythm, SelectedGlacier, type CountryFacts } from './GlacierReadout';
@@ -156,6 +157,14 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   }, [glaciers]);
 
   const rows = useMemo(() => rankGlaciers(glaciers, d?.summary ?? null, metric, land, query, isMobile ? 6 : 8, satCtx), [glaciers, d, metric, land, query, isMobile, satCtx]);
+  const allRanked = useMemo(() => (isMobile ? [] : rankGlaciers(glaciers, d?.summary ?? null, metric, land, query, Infinity, satCtx)), [isMobile, glaciers, d, metric, land, query, satCtx]);
+  const allRest = useMemo(() => {
+    if (isMobile) return [];
+    const inRank = new Set(allRanked.map((r) => r.g.id));
+    return glaciers.filter((g) => !inRank.has(g.id) && inLand(g, land) && matchesQuery(g, query))
+      .sort((a, b) => b.area.km2 - a.area.km2 || (a.id < b.id ? -1 : 1))
+      .map((g) => ({ g, value: values.get(g.id) }));
+  }, [isMobile, allRanked, glaciers, land, query, values]);
   const facts = useMemo<Record<GlacierCountry, CountryFacts>>(() => {
     const out = {} as Record<GlacierCountry, CountryFacts>;
     for (const c of GLACIER_COUNTRIES) {
@@ -239,10 +248,10 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       <button type="button" aria-label="Herauszoomen" onClick={() => mapRef.current?.zoomOut()}>−</button>
     </div>
   );
+  const rankHint = metric === 'laenge' ? 'größter Rückzug zuerst' : metric === 'ausaperung' ? 'größte Ausaperung zuerst' : metric === 'schmelze' ? 'stärkste Schmelze zuerst · ab 0,1 km²' : 'größter Verlust zuerst';
   const dock = (
-    <GlacierDock query={query} onQuery={setQuery} land={land} onLand={setLand} metric={metric} onMetric={setMetric} rows={rows} selectedId={selId} onPick={pick}
-      refYears={`CH ${fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025`} defs={defs}
-      hint={def.locked ? 'gesperrt' : metric === 'laenge' ? 'größter Rückzug zuerst' : metric === 'ausaperung' ? 'größte Ausaperung zuerst' : metric === 'schmelze' ? 'stärkste Schmelze zuerst · ab 0,1 km²' : 'größter Verlust zuerst'} />
+    <GlacierDock query={query} onQuery={setQuery} land={land} onLand={setLand} metric={metric} onMetric={setMetric}
+      refYears={`CH ${fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025`} defs={defs} />
   );
   const chart = d?.summary && (
     <section className="gl-chart-sec" aria-label="Messreihen je Land">
@@ -266,6 +275,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       <div className="gl-readout-head"><h2>DACH-Lage</h2><p>Amtliche Zahlen, jeweils mit Stand und Quelle</p></div>
       <div className="gl-readout-scroll">
         {sel && <SelectedGlacier g={sel} latest={d?.summary?.latest[sel.id]} sat={sat.get(sel.id)} nowMs={nowMs} defs={defs} />}
+        {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} />}
         {d && <CountryCards items={d.official} facts={facts} />}
         {lists}
         {d && <ReportList items={d.official} />}

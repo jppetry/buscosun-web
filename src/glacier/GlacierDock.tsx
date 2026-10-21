@@ -1,6 +1,6 @@
-/** GL-1 — Dock of the situation page: search, country, "Karte färben nach" (origin at every metric, locked ones stay visible), ranking. */
+/** GL-1 — Dock of the situation page: search, country, "Karte färben nach" (origin at every metric, locked ones stay visible); the list of all glaciers sits in the readout (`GlacierList`). */
 import { OriginChip, LockNote } from './GlacierParts';
-import { displayName, fmtKm2, type GlacierMetricDef, type RankRow } from './glacierView';
+import type { GlacierMetricDef } from './glacierView';
 import { GLACIER_LANDS, GLACIER_METRICS, type GlacierLand, type GlacierMetric } from './glacierState';
 import { GLACIER_COUNTRY_LABEL } from './glacierContract';
 
@@ -11,13 +11,11 @@ interface Props {
   query: string; onQuery: (q: string) => void;
   land: GlacierLand; onLand: (l: GlacierLand) => void;
   metric: GlacierMetric; onMetric: (m: GlacierMetric) => void;
-  rows: readonly RankRow[]; selectedId: string | null; onPick: (id: string) => void;
   refYears: string;
-  hint: string;
   defs: Readonly<Record<GlacierMetric, GlacierMetricDef>>;
 }
 
-export default function GlacierDock({ query, onQuery, land, onLand, metric, onMetric, rows, selectedId, onPick, refYears, hint, defs }: Props) {
+export default function GlacierDock({ query, onQuery, land, onLand, metric, onMetric, refYears, defs }: Props) {
   const def = defs[metric];
   return (
     <aside className="gl-dock" aria-label="Auswahl und Rangliste">
@@ -46,22 +44,6 @@ export default function GlacierDock({ query, onQuery, land, onLand, metric, onMe
           })}
         </div>
         {def.locked && <LockNote>{def.locked}</LockNote>}
-      </div>
-      <div className="gl-rank-wrap">
-        <div className="gl-rank-head"><span className="gl-label">Rangliste</span><small>{hint}</small></div>
-        {rows.length === 0 ? <div className="gl-empty">{def.locked ? 'Gesperrt — keine Zahl ohne Berechnung.' : 'Keine Gletscher mit Wert für diese Auswahl.'}</div> : (
-          <ul className="gl-rank">
-            {rows.map((r, i) => (
-              <li key={r.g.id}>
-                <button type="button" aria-current={selectedId === r.g.id} onClick={() => onPick(r.g.id)}>
-                  <span className="gl-r-n">{i + 1}</span>
-                  <span className="gl-r-body"><b>{displayName(r.g)}</b><span>{r.g.country} · {fmtKm2(r.g.area.km2)} · {r.value.period}</span></span>
-                  <span className="gl-r-v" data-origin={def.origin}>{r.value.text}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
       <div className="gl-dock-foot">Bezugsjahre der Flächen: {refYears}</div>
     </aside>
