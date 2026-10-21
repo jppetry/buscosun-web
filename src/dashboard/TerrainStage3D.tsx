@@ -23,7 +23,6 @@ const DEM_SRC = 'dbd-dem';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const STAGE_PITCH = 62;
-const SRC_AXIS = 'dbd-axis';
 const SRC_TEMP = 'dbd-temp';
 const KM_PER_DEG_LAT = 111.32;
 /** Zoom je halber Schnittlänge, bei dem der Schnitt ungefähr die Bühne füllt. */
@@ -230,7 +229,7 @@ interface WindCell { lon: number; lat: number; toDeg: number; ms: number; conf: 
 function windField(c: { lat: number; lon: number }, halfKm: number, viewBearing: number, winds: ObsW[], fallback: { dirDeg: number | null; ms: number | null }): { cells: WindCell[]; measured: boolean } {
   // Gitter in der Blickrichtung der Bühne: quer ± 1,5 R, in Blickrichtung von − 0,7 R (vor dem Ort) bis + 2,2 R (Ferne)
   const across = halfKm * 1.5, back = halfKm * 0.7, ahead = halfKm * 2.2;
-  const NX = 9, NY = 6;
+  const NX = 8, NY = 5;
   const cells: WindCell[] = [];
   const useObs = winds.length >= 3;
   if (!useObs && fallback.dirDeg == null) return { cells, measured: false };
@@ -304,12 +303,13 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const [showT, setShowT] = useState(true);
   const [showWind, setShowWind] = useState(true);
   const [showSnow, setShowSnow] = useState(true);
+  const [info, setInfo] = useState(false);
   const [tempRange, setTempRange] = useState<{ tMin: number; tMax: number } | null>(null);
   const [tempState, setTempState] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
   const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[]; winds: ObsW[]; fit: Array<{ elev: number; t: number }> }>({ state: 'idle', list: [], winds: [], fit: [] });
   const obsMarkersRef = useRef<maplibregl.Marker[]>([]);
   const c = vm.center;
-  const bearing = (vm.axisDeg + 180) % 360; // Blick in Richtung +s (Lee-Seite), wie der Schnitt von links nach rechts liest
+  const bearing = 0; // Norden oben
   const live = useRef({ vm, bearing });
   live.current = { vm, bearing };
 
@@ -351,9 +351,6 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
       try {
         m.setSky({ 'sky-color': '#DCE3EA', 'horizon-color': '#F3EEE2', 'fog-color': '#F3EEE2', 'sky-horizon-blend': 0.6, 'horizon-fog-blend': 0.5, 'fog-ground-blend': 0.4 });
       } catch { /* setSky hängt von der Version ab */ }
-      m.addSource(SRC_AXIS, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      m.addLayer({ id: 'dbd-axis-halo', type: 'line', source: SRC_AXIS, paint: { 'line-color': '#FAF6EA', 'line-width': 5, 'line-opacity': 0.85 } });
-      m.addLayer({ id: 'dbd-axis-line', type: 'line', source: SRC_AXIS, paint: { 'line-color': '#2C2A26', 'line-width': 2, 'line-dasharray': [2, 1.5] } });
       setMap(m);
     });
     return () => {
@@ -367,28 +364,14 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c?.lat, c?.lon]);
 
-  // --- Schnittlinie, Ort und Stationen (folgen halber Länge und Achse) --------------------------------------------
+  // --- Ortsmarke und Zoom (folgen der gewählten Reichweite) ------------------------------------------------------------
   useEffect(() => {
     if (!map || !c) return;
-    const R = vm.halfKm;
-    const a = offset(c.lat, c.lon, vm.axisDeg, R);                // Luv-Ende (s = −R)
-    const b = offset(c.lat, c.lon, vm.axisDeg + 180, R);          // Lee-Ende (s = +R)
-    (map.getSource(SRC_AXIS) as maplibregl.GeoJSONSource | undefined)?.setData({
-      type: 'FeatureCollection',
-      features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [a, [c.lon, c.lat], b] } }],
-    });
     markersRef.current.forEach((k) => k.remove());
-    const ms: maplibregl.Marker[] = [];
-    const add = (el: HTMLElement, lngLat: [number, number], anchor: 'center' | 'bottom' | 'left' = 'center') => ms.push(new maplibregl.Marker({ element: el, anchor, ...(anchor === 'left' ? { offset: [9, 0] as [number, number] } : {}) }).setLngLat(lngLat).addTo(map));
-    add(chip(`${vm.fromLabel} ${R} km`, 'is-end'), a);
-    add(chip(`${R} km ${vm.toLabel}`, 'is-end'), b);
-    // Stationen rechts neben ihren Punkt, damit sie die Ortsmarke nicht überdecken
-    for (const st of vm.stations) add(chip(`${st.label}`, 'is-station'), offset(c.lat, c.lon, st.s < 0 ? vm.axisDeg : vm.axisDeg + 180, Math.abs(st.s)), 'left');
     const ort = chip(vm.hOrt != null ? `${vm.ort.title} · ${de(vm.hOrt)} m` : vm.ort.title, 'is-ort');
-    add(ort, [c.lon, c.lat], 'bottom');
-    markersRef.current = ms;
-    map.easeTo({ zoom: ZOOM_OF[R], bearing: (vm.axisDeg + 180) % 360, duration: 500 });
-  }, [map, c?.lat, c?.lon, vm.halfKm, vm.axisDeg, vm.stations, vm.ort.title, vm.hOrt, vm.fromLabel, vm.toLabel]);
+    markersRef.current = [new maplibregl.Marker({ element: ort, anchor: 'bottom' }).setLngLat([c.lon, c.lat]).addTo(map)];
+    map.easeTo({ zoom: ZOOM_OF[vm.halfKm], bearing: 0, duration: 500 });
+  }, [map, c?.lat, c?.lon, vm.halfKm, vm.ort.title, vm.hOrt]);
 
   // --- Windfeld über dem Gelände: Pfeile in einem Gitter um den Ort (zeigen, wohin der Wind weht) -----------------------
   const windDir = vm.wind.dirDeg;
@@ -506,48 +489,44 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   return (
     <div className="dbd-stage-in">
       <div ref={boxRef} className="dbd-stage-map" />
-      {noWebgl && <div className="dbd-stage-note">3D braucht WebGL — dieses Gerät bietet es nicht. Der Geländeschnitt zeigt dieselben Werte.</div>}
+      {noWebgl && <div className="dbd-stage-note">3D braucht WebGL — dieses Gerät bietet es nicht.</div>}
       <div className="dbd-stage-top">
-        <button type="button" className="dbd-stage-reset" onClick={reset} aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M4 4v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span>Zurücksetzen</span>
-        </button>
         <div className="dbd-stage-layers" role="group" aria-label="Ebenen der Bühne">
-          <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} onClick={() => setShowT((v) => !v)} title="Gemessene Temperaturen an Stationen; dazu die Fläche aus Höhe und Gradient, wenn das Modellprofil einen Gradienten trägt">Temperatur</button>
-          <button type="button" className={showWind ? 'is-on' : undefined} aria-pressed={showWind} onClick={() => setShowWind((v) => !v)} title="Windfeld aus gemessenem Wind der Stationen rund um den Ort (ohne genug Stationen: Richtung am Ort aus buscosun Fusion)">Wind</button>
-          {skOn && <button type="button" className={showSnow ? 'is-on' : undefined} aria-pressed={showSnow} onClick={() => setShowSnow((v) => !v)}>Schneegrenze</button>}
+          <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} onClick={() => setShowT((v) => !v)} title="Gemessene Temperaturen an Stationen, geschätzte an Orten und Gipfeln, dazu die Temperaturfläche"><i style={{ background: '#D2662D' }} />Temperatur</button>
+          <button type="button" className={showWind ? 'is-on' : undefined} aria-pressed={showWind} onClick={() => setShowWind((v) => !v)} title="Windfeld aus dem gemessenen Wind der Stationen rund um den Ort"><i style={{ background: '#3A6FA8' }} />Wind</button>
+          {skOn && <button type="button" className={showSnow ? 'is-on' : undefined} aria-pressed={showSnow} onClick={() => setShowSnow((v) => !v)} title="Schneefallgrenze als Fläche auf dem Relief"><i style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px rgba(44,42,38,.35)' }} />Schnee</button>}
         </div>
+        <button type="button" className="dbd-stage-icon" onClick={reset} aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M4 4v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </div>
       <div className="dbd-stage-leg">
-        <span className="dbd-stage-leg-i"><i className="dbd-stage-sw-axis" /> Schnitt in Windrichtung ± {vm.halfKm} km</span>
-        {showWind && field.cells.length > 0 && (
-          <span className="dbd-stage-leg-i dbd-stage-leg-w">
-            <svg width="12" height="12" viewBox="0 0 26 26" aria-hidden="true" style={{ transform: `rotate(${windDir != null ? (windDir + 180) % 360 : 0}deg)` }}><path d="M13 1.5 L20.5 22.5 L13 17.5 L5.5 22.5 Z" fill="#3A6FA8" /></svg>
-            {field.measured
-              ? `Windfeld aus ${obs.winds.length} Messstationen (gewichtet nach Abstand) · Pfeil = wohin der Wind weht, Größe und Farbe = Geschwindigkeit, blasser = weit von einer Station`
-              : `Wind am Ort aus ${windDir != null ? `${compass16(windDir)} (${Math.round(windDir)}°)` : '—'}${vm.wind.ms != null ? `, ${de(vm.wind.ms, 1)} m/s` : ''} — zu wenige Messstationen mit Wind, Richtung überall gleich gezeichnet`}
-            <span className="dbd-stage-grad dbd-stage-grad--w" style={{ background: `linear-gradient(90deg, ${[0, 3, 6, 10, 16].map((v) => windColor(v)).join(',')})` }} aria-hidden="true" />0 … 16 m/s
-          </span>
+        <div className="dbd-stage-leg-row">
+          {showT && th && tempRange && tempState !== 'error' && (
+            <span className="dbd-stage-leg-i"><span className="dbd-stage-grad" style={{ background: gradCss }} aria-hidden="true" /><b>{de(tempRange.tMin, 0)} … {de(tempRange.tMax, 0)} °C</b></span>
+          )}
+          {showWind && field.cells.length > 0 && (
+            <span className="dbd-stage-leg-i"><span className="dbd-stage-grad" style={{ background: `linear-gradient(90deg, ${[0, 3, 6, 10, 16].map((v) => windColor(v)).join(',')})` }} aria-hidden="true" /><b>0 … 16 m/s</b></span>
+          )}
+          {showT && (obs.state === 'loading' && !obs.list.length) && <span className="dbd-stage-leg-i is-quiet">Messwerte laden …</span>}
+          {showT && th && tempState === 'loading' && <span className="dbd-stage-leg-i is-quiet">Temperaturfläche lädt …</span>}
+          {showT && !th && obs.state !== 'loading' && <span className="dbd-stage-leg-i is-quiet">Keine Temperaturfläche (kein Gradient)</span>}
+          {skOn && showSnow && snow.info.status === 'loading' && <span className="dbd-stage-leg-i is-quiet">Schneefallgrenze lädt …</span>}
+          <button type="button" className={`dbd-stage-info${info ? ' is-on' : ''}`} aria-expanded={info} onClick={() => setInfo((v) => !v)} title="Herkunft und Hinweise zu den Ebenen">
+            <span aria-hidden="true">i</span><span className="dbd-sr">Herkunft und Hinweise</span>
+          </button>
+        </div>
+        {info && (
+          <ul className="dbd-stage-leg-more">
+            <li>Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht.</li>
+            {showT && th && <li>Temperaturfläche in 2-K-Bändern aus Geländehöhe und einem Gradienten (γ {de(th.gamma, 1)} K/km) — {thSrc === 'obs' && fit ? `Ausgleichsgerade aus ${fit.n} Messstationen, R² ${de(fit.r2, 2)}, eine Schätzung` : 'Gradient aus dem Modellprofil von buscosun Fusion'}; kein Wetterfeld, ohne Luv-/Lee- oder Stadteffekte.</li>}
+            {showT && !th && <li>Keine Temperaturfläche: weder das Modellprofil noch die Messstationen tragen einen Gradienten (Inversion, zu wenige oder zu gleich hohe Stationen).</li>}
+            {showT && <li>{obs.list.length ? `Schilder mit Messwert: ${obs.list.length} Stationen (DWD · GeoSphere · MeteoSchweiz), Stand ${new Date(Math.max(...obs.list.map((o) => o.ms))).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr.` : obs.state === 'error' ? 'Messwerte nicht abrufbar.' : 'Keine aktuellen Messwerte in der Nähe.'}</li>}
+            {showT && th && <li>{placeCount > 0 ? `${placeCount} Orte und Gipfel mit geschätzter Temperatur (≈ nach Höhe)` : 'Näher heranzoomen: Orte und Gipfel erscheinen mit geschätzter Temperatur (≈ nach Höhe)'}.</li>}
+            {showWind && field.cells.length > 0 && <li>{field.measured ? `Windfeld aus ${obs.winds.length} Messstationen, nach Abstand gewichtet; Pfeil = wohin der Wind weht, blasser = weit von einer Station.` : `Wind am Ort aus ${windDir != null ? `${compass16(windDir)} (${Math.round(windDir)}°)` : '—'}${vm.wind.ms != null ? `, ${de(vm.wind.ms, 1)} m/s` : ''}; zu wenige Messstationen mit Wind — Richtung überall gleich gezeichnet.`} Kein Höhenwind.</li>}
+            {skOn && showSnow && <li className="dbd-stage-leg-snow"><SnowCapLegend info={snow.info} variant="inline" /></li>}
+          </ul>
         )}
-        {showT && th && tempRange && tempState !== 'error' && (
-          <span className="dbd-stage-leg-i dbd-stage-leg-t">
-            <span className="dbd-stage-grad" style={{ background: gradCss }} aria-hidden="true" />
-            {de(tempRange.tMin, 0)} … {de(tempRange.tMax, 0)} °C · Temperatur nach Höhe, γ {de(th.gamma, 1)} K/km{thSrc === 'obs' && fit ? ` (Ausgleichsgerade aus ${fit.n} Messstationen, R² ${de(fit.r2, 2)} — Schätzung)` : ' (buscosun Fusion)'}
-          </span>
-        )}
-        {showT && !th && <span className="dbd-stage-leg-i">Keine Temperaturfläche: kein einzelner Gradient trägt (Inversion oder kein Modellprofil)</span>}
-        {showT && (
-          <span className="dbd-stage-leg-i">
-            {obs.state === 'loading' && !obs.list.length ? 'Messwerte laden …'
-              : obs.list.length ? `Schilder: gemessene Temperatur an ${obs.list.length} Stationen (DWD · GeoSphere · MeteoSchweiz), Stand ${new Date(Math.max(...obs.list.map((o) => o.ms))).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
-                : obs.state === 'error' ? 'Messwerte nicht abrufbar' : 'keine aktuellen Messwerte in der Nähe'}
-          </span>
-        )}
-        {showT && th && <span className="dbd-stage-leg-i">{placeCount > 0 ? `${placeCount} Orte und Gipfel mit geschätzter Temperatur (≈ nach Höhe) — je näher gezoomt, desto mehr` : 'Näher heranzoomen: Orte und Gipfel mit geschätzter Temperatur (≈ nach Höhe)'}</span>}
-        {showT && th && tempState === 'loading' && <span className="dbd-stage-leg-i">Temperaturfläche lädt …</span>}
-        {showT && th && tempState === 'error' && <span className="dbd-stage-leg-i">Temperaturfläche nicht verfügbar (Geländekacheln)</span>}
-        {skOn && showSnow && <SnowCapLegend info={snow.info} variant="inline" />}
-        <span className="dbd-stage-leg-foot">Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht{showT && th ? ' · Temperatur in 2-K-Bändern aus Höhe und einem Gradienten (kein Wetterfeld)' : ''}</span>
       </div>
     </div>
   );

@@ -508,28 +508,8 @@
 .dbd-terrain-chip i { width: 7px; height: 7px; border-radius: 50%; background: #7A9466; display: block; }
 .dbd-terrain-chip.is-warn { color: #E0A567; } .dbd-terrain-chip.is-warn i { background: #E0A567; }
 .dbd-terrain-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 13px; }
-.dbd-section { background: #211F1C; border: 1px solid #3A3833; border-radius: 11px; padding: 13px; min-width: 0; }
-.dbd-section-svg { display: block; width: 100%; height: 340px; font-family: 'League Spartan', sans-serif; }
-.dbd-section-scroll { max-width: 100%; }
-.dbd-swipe { display: none; }
-.dbd-section-legend { display: flex; gap: 15px; margin-top: 9px; padding-top: 9px; border-top: 1px solid #3A3833; flex-wrap: wrap; font-size: 10px; color: #B7AE9C; }
-.dbd-section-legend i { display: inline-block; }
-.dbd-section-legend .is-muted { color: #8B8474; }
-.dbd-terrain-side { display: flex; flex-direction: column; gap: 9px; }
 .dbd-dbox { background: #211F1C; border: 1px solid #3A3833; border-radius: 11px; padding: 13px; }
 .dbd-dbox-l { font-size: 9.5px; letter-spacing: 1.7px; color: #8B8474; font-weight: 700; }
-.dbd-levels { display: flex; flex-direction: column; margin-top: 9px; }
-.dbd-level { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-bottom: 1px solid #332F2A; }
-.dbd-level:last-child { border-bottom: 0; }
-.dbd-level-h { width: 50px; flex: 0 0 auto; font-size: 10.5px; color: #8B8474; }
-.dbd-level-t { width: 42px; flex: 0 0 auto; font-size: 12.5px; color: #F5F1E8; font-weight: 600; }
-.dbd-level-w { flex: 1; font-size: 10.5px; color: #9CBF83; }
-.dbd-level.is-ort .dbd-level-h { color: #F5F1E8; font-weight: 600; }
-.dbd-level.is-ort .dbd-level-t { color: #FAF6EA; font-weight: 700; }
-.dbd-readout p { font-size: 11.5px; color: #B7AE9C; margin: 8px 0 0; line-height: 1.55; }
-.dbd-readout strong { color: #F5F1E8; }
-.dbd-readout-note { font-size: 10px; color: #8B8474; margin-top: 9px; padding-top: 8px; border-top: 1px solid #332F2A; line-height: 1.5; }
-.dbd-readout-note strong { color: #B7AE9C; }
 
 /* Stufe 2 */
 .dbd-row5 { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px; margin-top: 12px; }
@@ -577,7 +557,6 @@
   .dbd-row1 > .dbd-now { grid-column: 1 / -1; }
   .dbd-row3 { grid-template-columns: 1fr 1fr; }
   .dbd-terrain-grid { grid-template-columns: minmax(0, 1fr); }
-  .dbd-terrain-side { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; align-items: start; }
   .dbd-row5 { grid-template-columns: 1fr 1fr; }
   .dbd-row5 > .dbd-pollen-card { grid-column: 1 / -1; order: 3; }
 }
@@ -630,10 +609,6 @@
   .dbd-row3 { grid-template-columns: 1fr; }
   .dbd-terrain-chip { margin-left: 0; }
   .dbd-seg-dark button::after { top: -12px; bottom: -12px; }
-  .dbd-section-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: #4A463E transparent; }
-  .dbd-section-svg { width: 760px; height: 287px; }
-  .dbd-swipe { display: flex; align-items: center; gap: 7px; margin-top: 7px; font-size: 10px; color: #8B8474; }
-  .dbd-terrain-side { display: flex; flex-direction: column; align-items: stretch; }
   .dbd-row5 { grid-template-columns: 1fr; }
   .dbd-row5 > .dbd-pollen-card { order: 0; }
   .dbd-pollen-head { flex-direction: column; gap: 3px; }
@@ -709,26 +684,16 @@
 .dbd-strata-rh.is-leg { position: static; width: 14px; height: 8px; display: inline-block; }
 .dbd-strata-warn { color: #F5F1E8; font-weight: 600; }
 
-/* Terrain-Feld im Radar-Deck-Look (hell, Sand/Ink) mit 3D-Bühne; der Geländeschnitt bleibt als dunkle Tafel erhalten. */
+/* Terrain-Feld im Radar-Deck-Look (hell, Sand/Ink) */
 .dbd-terrain { background: var(--dbd-cream); border-color: var(--dbd-line); }
 .dbd-terrain-head .dbd-eyebrow { color: var(--dbd-muted); }
 .dbd-terrain .dbd-seg-dark { background: var(--dbd-sand); border-color: var(--dbd-line); }
 .dbd-terrain .dbd-seg-dark button { color: var(--dbd-muted); }
 .dbd-terrain .dbd-seg-dark button.is-active { color: var(--dbd-ink); background: #FFFFFF; box-shadow: 0 1px 3px rgba(44, 42, 38, .15); }
-.dbd-terrain-info { color: var(--dbd-muted); }
 .dbd-terrain-chip { color: var(--dbd-sage-deep); } .dbd-terrain-chip i { background: var(--dbd-sage); }
 .dbd-terrain-chip.is-warn { color: #B4501F; } .dbd-terrain-chip.is-warn i { background: #C99A4E; }
 .dbd-terrain .dbd-dbox { background: #FFFFFF; border-color: var(--dbd-line); }
 .dbd-terrain .dbd-dbox-l { color: var(--dbd-eyebrow); }
-.dbd-terrain .dbd-level { border-bottom-color: var(--dbd-sand); }
-.dbd-terrain .dbd-level-h { color: var(--dbd-muted); }
-.dbd-terrain .dbd-level-t { color: var(--dbd-ink); }
-.dbd-terrain .dbd-level-w { color: var(--dbd-sage-deep); }
-.dbd-terrain .dbd-level.is-ort .dbd-level-h, .dbd-terrain .dbd-level.is-ort .dbd-level-t { color: var(--dbd-ink); }
-.dbd-terrain .dbd-readout p { color: #5C5447; }
-.dbd-terrain .dbd-readout strong { color: var(--dbd-ink); }
-.dbd-terrain .dbd-readout-note { color: var(--dbd-muted); border-top-color: var(--dbd-sand); }
-.dbd-terrain .dbd-readout-note strong { color: #5C5447; }
 .dbd-terrain .dbd-site-cap, .dbd-terrain .dbd-site-l, .dbd-terrain .dbd-strata-h, .dbd-terrain .dbd-strata-foot { color: var(--dbd-muted); }
 .dbd-terrain .dbd-site-row, .dbd-terrain .dbd-strata-row, .dbd-terrain .dbd-strata-foot { border-color: var(--dbd-sand); }
 .dbd-terrain .dbd-site-v, .dbd-terrain .dbd-strata-t, .dbd-terrain .dbd-strata-warn { color: var(--dbd-ink); }
@@ -739,47 +704,53 @@
 .dbd-terrain .dbd-strata-rhv { color: var(--dbd-steel); }
 .dbd-terrain .dbd-na { color: var(--dbd-eyebrow); }
 .dbd-terrain .dbd-loading { color: #C4B896; }
-/* die dunkle Tafel des Geländeschnitts behält ihre Farben */
-.dbd-terrain .dbd-section .dbd-na { color: #8B8474; }
 
-/* 3D-Bühne */
-.dbd-stage { position: relative; min-width: 0; min-height: 440px; border-radius: 11px; overflow: hidden; border: 1px solid var(--dbd-line); background: #E8E2D0; }
+/* 3D-Bühne: Milchglas-Leisten oben (Ebenen) und unten (Legende), das Relief bleibt frei */
+.dbd-stage { position: relative; min-width: 0; min-height: 540px; border-radius: 16px; overflow: hidden; border: 1px solid var(--dbd-line); background: #E8E2D0; box-shadow: 0 14px 34px -22px rgba(44, 42, 38, .45); }
 .dbd-stage-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--dbd-muted); font-size: 13px; }
 .dbd-stage-in { position: absolute; inset: 0; }
 /* höhere Spezifität als `.maplibregl-map { position: relative }` aus maplibre-gl.css, sonst hat die Karte Höhe 0 */
 .dbd-stage-in > .dbd-stage-map { position: absolute; inset: 0; }
-.dbd-stage-note { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); text-align: center; font-size: 13px; color: #5C5447; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 10px; padding: 10px 14px; }
-.dbd-stage-top { position: absolute; left: 12px; top: 12px; right: 56px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; pointer-events: none; }
+.dbd-stage-note { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); text-align: center; font-size: 13px; color: #5C5447; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 12px; padding: 10px 14px; }
+.dbd-stage-top { position: absolute; left: 14px; top: 14px; right: 62px; z-index: 2; display: flex; align-items: center; gap: 8px; pointer-events: none; }
 .dbd-stage-top > * { pointer-events: auto; }
-.dbd-stage-layers { display: inline-flex; gap: 2px; padding: 2px; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 10px; backdrop-filter: blur(4px); }
-.dbd-stage-layers button { position: relative; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 500; color: var(--dbd-muted); border-radius: 8px; padding: 6px 11px; cursor: pointer; }
+.dbd-stage-layers, .dbd-stage-icon, .dbd-stage-leg { background: rgba(255, 255, 255, .8); backdrop-filter: blur(12px) saturate(1.3); border: 1px solid rgba(44, 42, 38, .08); box-shadow: 0 8px 22px -10px rgba(44, 42, 38, .45); }
+.dbd-stage-layers { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; }
+.dbd-stage-layers button { position: relative; display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--dbd-muted); border-radius: 999px; padding: 6px 13px 6px 10px; cursor: pointer; transition: background .15s, color .15s; }
 .dbd-stage-layers button::after { content: ''; position: absolute; inset: -6px -1px; }
-.dbd-stage-layers button.is-on { color: var(--dbd-ink); font-weight: 700; background: #FFFFFF; box-shadow: 0 1px 3px rgba(44, 42, 38, .15); }
-.dbd-stage-layers button:disabled { opacity: .4; cursor: default; }
-.dbd-stage-layers button:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 1px; }
+.dbd-stage-layers button i { width: 9px; height: 9px; border-radius: 50%; opacity: .4; transition: opacity .15s; }
+.dbd-stage-layers button.is-on { color: var(--dbd-ink); font-weight: 700; background: #FFFFFF; box-shadow: 0 1px 4px rgba(44, 42, 38, .18); }
+.dbd-stage-layers button.is-on i { opacity: 1; }
+.dbd-stage-layers button:focus-visible, .dbd-stage-icon:focus-visible, .dbd-stage-info:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
+.dbd-stage-icon { position: relative; display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; color: var(--dbd-ink); cursor: pointer; }
+.dbd-stage-icon:hover { background: #FFFFFF; }
+.dbd-stage-icon::after { content: ''; position: absolute; inset: -5px; }
 .dbd-stage-arrow { pointer-events: none; filter: drop-shadow(0 1px 2px rgba(44, 42, 38, .35)); }
 .dbd-stage-grad { display: inline-block; width: 74px; height: 8px; border-radius: 4px; border: 1px solid rgba(44, 42, 38, .15); }
-.dbd-stage-leg-t { gap: 8px; }
-.dbd-stage-reset {
-  display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 12px; font-weight: 600;
-  color: var(--dbd-ink); background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 9px; padding: 7px 11px; cursor: pointer; backdrop-filter: blur(4px);
+.dbd-stage-leg { position: absolute; left: 14px; bottom: 14px; z-index: 2; max-width: min(620px, calc(100% - 28px)); padding: 8px 10px 8px 14px; border-radius: 16px; font-size: 11px; color: #5C5447; }
+.dbd-stage-leg-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; }
+.dbd-stage-leg-i { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.dbd-stage-leg-i b { font-size: 11.5px; font-weight: 700; color: var(--dbd-ink); font-variant-numeric: tabular-nums; }
+.dbd-stage-leg-i.is-quiet { color: var(--dbd-muted); font-style: italic; }
+.dbd-stage-info { position: relative; margin-left: auto; width: 24px; height: 24px; padding: 0; display: inline-grid; place-items: center; border-radius: 50%; border: 1px solid rgba(44, 42, 38, .18); background: transparent; color: var(--dbd-muted); font: italic 700 13px/1 Georgia, serif; cursor: pointer; }
+.dbd-stage-info::after { content: ''; position: absolute; inset: -10px; }
+.dbd-stage-info:hover, .dbd-stage-info.is-on { background: var(--dbd-ink); color: #FAF6EA; border-color: var(--dbd-ink); }
+.dbd-stage-leg-more { list-style: none; margin: 8px 0 0; padding: 8px 4px 0 0; border-top: 1px solid rgba(44, 42, 38, .1); display: grid; gap: 4px; max-height: 190px; overflow-y: auto; font-size: 11px; line-height: 1.5; color: #5C5447; }
+.dbd-stage-leg-more li { position: relative; padding-left: 12px; }
+.dbd-stage-leg-more li::before { content: ''; position: absolute; left: 2px; top: .62em; width: 4px; height: 4px; border-radius: 50%; background: var(--dbd-eyebrow); }
+.dbd-stage-leg-snow { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.dbd-stage-leg-more .nc-radar-leg-item { display: inline-flex; align-items: center; gap: 6px; }
+.dbd-stage-leg-more .sk-leg-status { flex-basis: 100%; color: var(--dbd-muted); }
+.dbd-stage-leg-more .sk-leg-status.sk-warn { color: #B4501F; }
+.dbd-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (max-width: 767px) {
+  .dbd-stage { min-height: 420px; }
+  .dbd-stage-layers button { padding: 6px 10px 6px 8px; font-size: 12px; }
+  .dbd-stage-leg-i { white-space: normal; }
 }
-.dbd-stage-reset:hover { background: #FFFFFF; }
-.dbd-stage-reset:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
-.dbd-stage-leg {
-  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 11px;
-  font-size: 11px; color: #5C5447; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 10px; backdrop-filter: blur(4px);
-}
-.dbd-stage-leg .nc-radar-leg-item, .dbd-stage-leg-i { display: inline-flex; align-items: center; gap: 6px; }
-.dbd-stage-leg-foot { flex-basis: 100%; color: var(--dbd-muted); font-size: 10.5px; }
-/* Der lange Statussatz der Schneefallgrenze bekommt eine Zeile (Kürzung am Rand), damit die Legende die Bühne nicht zudeckt */
-.dbd-stage-leg .sk-leg-status { flex-basis: 100%; min-width: 0; font-size: 10.5px; color: var(--dbd-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dbd-stage-leg .sk-leg-status.sk-warn { color: #B4501F; }
-.dbd-stage-sw-axis { display: inline-block; width: 16px; height: 0; border-top: 2px dashed var(--dbd-ink); }
 .dbd-stage-pin { font-family: 'League Spartan', sans-serif; white-space: nowrap; pointer-events: none; }
 .dbd-stage-pin.is-ort { font-size: 12px; font-weight: 700; color: #FAF6EA; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; border-radius: 8px; padding: 4px 9px; margin-bottom: 4px; box-shadow: 0 2px 8px rgba(44, 42, 38, .35); }
 .dbd-stage-pin.is-ort::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; }
-.dbd-stage-pin.is-end { font-size: 11px; font-weight: 700; color: var(--dbd-ink); background: rgba(250, 246, 234, .95); border: 1px solid var(--dbd-border); border-radius: 7px; padding: 3px 7px; }
 /* Temperaturkarte: farbige Pille + Name/Höhe auf Milchglas, Stiel zum Messpunkt */
 .dbd-stage-pin.is-obs {
   display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; /* (position bleibt `absolute` von .maplibregl-marker — der Stiel hängt daran) */ border-radius: 999px;
@@ -801,7 +772,6 @@
 .dbd-stage-pin.is-place em { font-style: normal; font-size: 10px; font-weight: 700; color: var(--dbd-ink); line-height: 1.1; align-self: end; }
 .dbd-stage-pin.is-place small { font-size: 8.5px; font-weight: 600; color: var(--dbd-muted); line-height: 1.1; font-variant-numeric: tabular-nums; align-self: start; }
 .dbd-stage-pin.is-place.is-peak em::before { content: '▲ '; font-size: 7px; vertical-align: 1px; color: var(--dbd-muted); }
-.dbd-stage-pin.is-station { font-size: 10.5px; font-weight: 600; color: #5C5447; background: rgba(255, 255, 255, .92); border: 1px solid var(--dbd-line); border-radius: 6px; padding: 2px 6px; }
 @media (max-width: 767px) { .dbd-stage { min-height: 360px; } }
 @media (max-width: 1279px) { .dbd-terrain-row { grid-template-columns: 1fr; } }
 @media (max-width: 767px) { .dbd-site-grid { grid-template-columns: 1fr; } .dbd-site-vis { flex-direction: row; justify-content: center; gap: 12px; } .dbd-site-row { grid-template-columns: 80px 1fr; font-size: 12px; } }
