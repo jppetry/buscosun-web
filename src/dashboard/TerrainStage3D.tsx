@@ -172,7 +172,7 @@ function lapseFit(pts: Array<{ elev: number; t: number }>): { a: number; b: numb
 
 /** Orte und Gipfel in der Nähe, aus den Vektorkacheln der Basiskarte (nur Namen, Lage und ggf. Höhe) — nach Rang und Nähe zur Mitte. */
 function placeCandidates(map: maplibregl.Map, zoom: number, hOrt: number | null): Array<{ name: string; lon: number; lat: number; ele: number | null; rank: number; peak: boolean }> {
-  const src = Object.entries(map.getStyle().sources).find(([, s]) => s.type === 'vector')?.[0];
+  const src = Object.entries(map.getStyle()?.sources ?? {}).find(([, s]) => s.type === 'vector')?.[0];
   if (!src) return [];
   const RANK: Record<string, number> = { city: 5, town: 4, village: 3, suburb: 2, hamlet: 2, neighbourhood: 1, isolated_dwelling: 1 };
   const minRank = zoom >= 11.3 ? 2 : zoom >= 10.2 ? 3 : 4;
@@ -455,8 +455,9 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   useEffect(() => {
     const clear = () => { placeMarkersRef.current.forEach((k) => k.remove()); placeMarkersRef.current = []; setPlaceCount(0); };
     // Namensschilder der Basiskarte für Orte weichen den Temperaturschildern (sonst steht jeder Name doppelt)
-    const labelLayers = (m: maplibregl.Map) => (m.getStyle().layers ?? []).filter((l) => l.type === 'symbol' && 'source-layer' in l && (l as { 'source-layer'?: string })['source-layer'] === 'place' && /^label_(village|town|city|other)/.test(l.id)).map((l) => l.id);
-    const setLabels = (m: maplibregl.Map, visible: boolean) => { for (const id of labelLayers(m)) m.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none'); };
+    const labelLayers = (m: maplibregl.Map) => (m.getStyle()?.layers ?? []).filter((l) => l.type === 'symbol' && 'source-layer' in l && (l as { 'source-layer'?: string })['source-layer'] === 'place' && /^label_(village|town|city|other)/.test(l.id)).map((l) => l.id);
+    // Beim Abbau der Karte (Wechsel auf „Schnitt") ist der Stil schon weg — dann gibt es nichts zurückzusetzen.
+    const setLabels = (m: maplibregl.Map, visible: boolean) => { try { for (const id of labelLayers(m)) m.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none'); } catch { /* Karte entfernt */ } };
     if (!map || !showT || !th) { if (map) setLabels(map, true); clear(); return; }
     let timer: ReturnType<typeof setTimeout> | null = null;
     const run = () => {
