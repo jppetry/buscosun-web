@@ -47,6 +47,22 @@ function chip(text: string, cls: string): HTMLElement {
   return el;
 }
 
+/** Messstation: Temperatur groß, Name klein; Hintergrund in der Farbe der Temperaturskala (dieselbe wie die Fläche). */
+function obsPin(t: number, name: string, elev: number, stampMs: number): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'dbd-stage-pin is-obs';
+  const col = rampColor(t);
+  el.style.setProperty('--c', `rgb(${col[0]},${col[1]},${col[2]})`);
+  el.style.setProperty('--ink', col[0] * 0.299 + col[1] * 0.587 + col[2] * 0.114 > 150 ? '#2C2A26' : '#FFFFFF');
+  const b = document.createElement('b');
+  b.textContent = `${t.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}°`;
+  const s = document.createElement('span');
+  s.textContent = name.length > 16 ? `${name.slice(0, 15)}…` : name;
+  el.append(b, s);
+  el.title = `${name} · ${Math.round(elev)} m · gemessen ${new Date(stampMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
+  return el;
+}
+
 function arrow(): HTMLElement {
   const el = document.createElement('div');
   el.className = 'dbd-stage-arrow';
@@ -73,6 +89,34 @@ const rampCss = (t: number) => { const c = rampColor(t); return `rgb(${c[0]},${c
 
 const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
 const latOfMercY = (y: number) => ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI;
+
+interface ObsT { name: string; lat: number; lon: number; elev: number; t: number; ms: number }
+
+/**
+ * Gemessene Temperatur an Stationen rund um den Ort (Messdaten-Spiegel `obs/v1`: DWD, GeoSphere, MeteoSchweiz) — die
+ * nächsten Stationen mit Mindestabstand, damit die Schilder sich nicht überdecken. Das ist Messung, kein Modell.
+ */
+async function loadObsTemps(c: { lat: number; lon: number }, halfKm: number, nowMs: number, signal: AbortSignal): Promise<ObsT[]> {
+  const { loadObsStore, obsVarsOf, obsDistanceM } = await import('../sources/obsStore');
+  const store = await loadObsStore({ nowMs });
+  if (signal.aborted) return [];
+  const maxM = Math.max(halfKm * 1.6, 30) * 1000, gapM = Math.max(halfKm / 4, 5) * 1000;
+  const cand: Array<ObsT & { d: number }> = [];
+  for (const st of store.catalog.stations) {
+    const d = obsDistanceM(c.lat, c.lon, st.lat, st.lon);
+    if (d > maxM) continue;
+    const t = obsVarsOf(store.latest.stations[st.id], nowMs)?.vars.t;
+    if (!t) continue;
+    cand.push({ name: st.name, lat: st.lat, lon: st.lon, elev: st.elev, t: t.v, ms: t.ms, d });
+  }
+  cand.sort((a, b) => a.d - b.d);
+  const kept: Array<ObsT & { d: number }> = [];
+  for (const x of cand) {
+    if (kept.length >= 14) break;
+    if (kept.every((k) => obsDistanceM(k.lat, k.lon, x.lat, x.lon) >= gapM)) kept.push(x);
+  }
+  return kept;
+}
 
 interface TempImage { url: string; coordinates: [[number, number], [number, number], [number, number], [number, number]]; tMin: number; tMax: number }
 
@@ -124,6 +168,8 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const [showSnow, setShowSnow] = useState(true);
   const [tempRange, setTempRange] = useState<{ tMin: number; tMax: number } | null>(null);
   const [tempState, setTempState] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[] }>({ state: 'idle', list: [] });
+  const obsMarkersRef = useRef<maplibregl.Marker[]>([]);
   const c = vm.center;
   const bearing = (vm.axisDeg + 180) % 360; // Blick in Richtung +s (Lee-Seite), wie der Schnitt von links nach rechts liest
   const live = useRef({ vm, bearing });
@@ -242,6 +288,28 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     return () => ac.abort();
   }, [map, c?.lat, c?.lon, vm.halfKm, showT, th?.tOrt, th?.hOrt, th?.gamma]);
 
+  // --- Gemessene Temperaturen an Stationen (Schilder mit Wert, gefärbt wie die Fläche) --------------------------------
+  useEffect(() => {
+    if (!map || !c || !showT) { setObs({ state: 'idle', list: [] }); return; }
+    const ac = new AbortController();
+    setObs((o) => ({ state: 'loading', list: o.list }));
+    loadObsTemps(c, vm.halfKm, nowMs, ac.signal)
+      .then((list) => { if (!ac.signal.aborted) setObs({ state: 'ok', list }); })
+      .catch(() => { if (!ac.signal.aborted) setObs({ state: 'error', list: [] }); });
+    return () => ac.abort();
+    // `nowMs` ändert sich minütlich — die Messwerte werden mit dem Spiegel (2-min-Memo) neu gelesen.
+  }, [map, c?.lat, c?.lon, vm.halfKm, showT, Math.floor(nowMs / 300_000)]);
+  useEffect(() => {
+    obsMarkersRef.current.forEach((k) => k.remove());
+    obsMarkersRef.current = [];
+    if (!map || !showT) return;
+    // Eine Station direkt am Ort hängt UNTER ihrem Punkt, damit sie die Ortsmarke (darüber) nicht überdeckt.
+    const nearPlace = (o: ObsT) => !!c && Math.hypot((o.lat - c.lat) * KM_PER_DEG_LAT, (o.lon - c.lon) * KM_PER_DEG_LAT * Math.cos((c.lat * Math.PI) / 180)) < 3;
+    const ms = obs.list.map((o) => new maplibregl.Marker({ element: obsPin(o.t, o.name, o.elev, o.ms), anchor: nearPlace(o) ? 'top' : 'bottom' }).setLngLat([o.lon, o.lat]).addTo(map));
+    obsMarkersRef.current = ms;
+    return () => { ms.forEach((k) => k.remove()); };
+  }, [map, showT, obs.list]);
+
   // --- Schneefallgrenze als Fläche (Phase SK) ----------------------------------------------------------------------
   const skOn = typeof window !== 'undefined' && snowCapEnabledFrom(window.location.search);
   const skMobile = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches;
@@ -263,7 +331,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
           <span>Zurücksetzen</span>
         </button>
         <div className="dbd-stage-layers" role="group" aria-label="Ebenen der Bühne">
-          <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} disabled={!th} onClick={() => setShowT((v) => !v)} title={th ? undefined : 'Temperaturfläche braucht den Gradienten aus dem Modellprofil (bei Inversion nicht möglich)'}>Temperatur</button>
+          <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} onClick={() => setShowT((v) => !v)} title="Gemessene Temperaturen an Stationen; dazu die Fläche aus Höhe und Gradient, wenn das Modellprofil einen Gradienten trägt">Temperatur</button>
           <button type="button" className={showWind ? 'is-on' : undefined} aria-pressed={showWind} disabled={windDir == null} onClick={() => setShowWind((v) => !v)} title={windDir == null ? 'Windrichtung am Ort unbestimmt' : undefined}>Wind</button>
           {skOn && <button type="button" className={showSnow ? 'is-on' : undefined} aria-pressed={showSnow} onClick={() => setShowSnow((v) => !v)}>Schneegrenze</button>}
         </div>
@@ -279,7 +347,14 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
             {de(tempRange.tMin, 0)} … {de(tempRange.tMax, 0)} °C · Temperatur nach Höhe, γ {de(th.gamma, 1)} K/km
           </span>
         )}
-        {showT && !th && <span className="dbd-stage-leg-i">Temperaturfläche entfällt: kein einzelner Gradient trägt (Inversion oder kein Modellprofil)</span>}
+        {showT && !th && <span className="dbd-stage-leg-i">Keine Temperaturfläche: kein einzelner Gradient trägt (Inversion oder kein Modellprofil)</span>}
+        {showT && (
+          <span className="dbd-stage-leg-i">
+            {obs.state === 'loading' && !obs.list.length ? 'Messwerte laden …'
+              : obs.list.length ? `Schilder: gemessene Temperatur an ${obs.list.length} Stationen (DWD · GeoSphere · MeteoSchweiz), Stand ${new Date(Math.max(...obs.list.map((o) => o.ms))).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
+                : obs.state === 'error' ? 'Messwerte nicht abrufbar' : 'keine aktuellen Messwerte in der Nähe'}
+          </span>
+        )}
         {showT && th && tempState === 'loading' && <span className="dbd-stage-leg-i">Temperaturfläche lädt …</span>}
         {showT && th && tempState === 'error' && <span className="dbd-stage-leg-i">Temperaturfläche nicht verfügbar (Geländekacheln)</span>}
         {skOn && showSnow && <SnowCapLegend info={snow.info} variant="inline" />}
