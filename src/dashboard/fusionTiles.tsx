@@ -13,7 +13,7 @@ const H = 3_600_000;
 const NB = ' ';
 
 /** Measured width of the chart box — a callback ref, because the box appears only once the tile has data. */
-function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number] {
+export function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number] {
   const [el, setEl] = useState<T | null>(null);
   const [w, setW] = useState(0);
   useLayoutEffect(() => {
@@ -56,7 +56,7 @@ function Axis({ ticks, X, yBase, right }: { ticks: ReturnType<typeof axis>['tick
   );
 }
 
-function Tip({ left, top, children }: { left: number; top: number; children: ReactNode }) {
+export function Tip({ left, top, children }: { left: number; top: number; children: ReactNode }) {
   return <div className="dbf-tip" style={{ left, top }} role="status">{children}</div>;
 }
 

@@ -13,6 +13,7 @@ import {
   leadSentence, PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
   tpiWord, svfWord, surfaceWord, sinkWord,
 } from './rules';
+import { NOWCAST_DETAIL_RANGES, type NowcastDetailVM } from './types';
 import type {
   CloudsVM, ConfVM, DashboardVM, DashInputs, DayVM, HourlyVM, IconD2VM, NowcastVM, NowVM, PhaseVM, PollenVM, Shown,
   TerrainVM, TopVM, UvVM, WarningVM, WindVM, WindRoseVM, ZoneVM, FusionIn, PrecipVM, WindBandVM, PressureVM,
@@ -112,6 +113,7 @@ export function buildDashboardVM(inp: DashInputs): DashboardVM {
     conf: buildConf(ctx),
     zone: buildZone(ctx),
     nowcast: buildNowcast(inp),
+    nowcastDetail: buildNowcastDetail(ctx),
     clouds: buildClouds(ctx),
     wind: buildWind(ctx),
     windRose: buildWindRose(ctx),
@@ -605,6 +607,41 @@ function buildNowcast(inp: DashInputs): NowcastVM {
     headline = wet ? `Trocken bis ${hhmm(wet.t)}` : `Trocken bis mind. ${hhmm(toMs)}`;
   }
   return { state: 'ok', headline: sh('P54', headline), horizon: n.horizonLabel, nowMs, fromMs, toMs, frames, chips };
+}
+
+/**
+ * Nowcast-Detailansicht: die Radar-Frames bis zu ihrem Horizont (RV 2 h, INCA 3 h) und dahinter die Stundenwerte von
+ * buscosun Fusion — nie gemischt: wo das Radar trägt, gilt das Radar. Summe und Spitze je Zeitraum folgen derselben Regel.
+ */
+function buildNowcastDetail(c: Ctx): NowcastDetailVM {
+  const n = c.inp.nowcast;
+  const nowMs = c.inp.nowMs;
+  const radar = n.state === 'ok' ? [...n.frames].sort((a, b) => a.t - b.t) : [];
+  const slotMin = radar.length > 1 ? Math.max(1, Math.round((radar[1].t - radar[0].t) / 60_000)) : 10;
+  const radarEndMs = radar.length ? radar[radar.length - 1].t : null;
+  const w = window48(c);
+  const hours = c.f ? w.steps.map((s) => ({ t: s.validAtMs, mean: v(s, 'precip', 'mean'), p90: v(s, 'precip', 'p90'), pWet: pWet(s), pSnow: pSnowOf(s) })) : [];
+  const state: NowcastDetailVM['state'] = radar.length || hours.length ? 'ok' : (n.state === 'loading' || (!c.f && !FUSION_FAILED) ? 'loading' : 'none');
+  const ranges = NOWCAST_DETAIL_RANGES.map((h) => {
+    const endMs = nowMs + h * H;
+    const rIn = radar.filter((x) => x.t + slotMin * 60_000 > nowMs && x.t <= endMs);
+    const fIn = hours.filter((x) => (radarEndMs == null || x.t >= radarEndMs + slotMin * 60_000) && x.t <= endMs && x.mean != null);
+    const vals = [...rIn.map((x) => ({ t: x.t, mmh: x.mmh })), ...fIn.map((x) => ({ t: x.t, mmh: x.mean as number }))];
+    if (!vals.length) return { h, sum: na('P55', 'keine Quelle für diesen Zeitraum'), peak: na('P55', 'keine Quelle für diesen Zeitraum') };
+    const sum = rIn.reduce((a, x) => a + (x.mmh * slotMin) / 60, 0) + fIn.reduce((a, x) => a + (x.mean as number), 0);
+    const top = vals.reduce((b, x) => (x.mmh > b.mmh ? x : b), vals[0]);
+    return {
+      h,
+      sum: sh('P55', `${num(sum, 1)}${NBSP}mm`),
+      peak: sh('P55', top.mmh >= DRY_MMH ? `${num(top.mmh, 1)}${NBSP}mm/h · ${hhmm(top.t)}` : 'trocken'),
+    };
+  });
+  return {
+    state, nowMs, radar, slotMin, radarEndMs, horizon: n.horizonLabel, hours,
+    headline: buildNowcast(c.inp).headline,
+    ranges,
+    caption: sh('P55', `Radar (${n.horizonLabel}) bis zu seinem Horizont, danach buscosun Fusion: Stundenmittel mit Spanne bis p90 und Regenchance`),
+  };
 }
 
 // ---------------------------------------------------------------------------

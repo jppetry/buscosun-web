@@ -126,6 +126,10 @@ export function templateVM(): DashboardVM {
       frames: [[9, 1.2], [20, 2.1], [31, 3.0], [43, 1.8], [54, 0.75]].map(([m, mmh]) => ({ t: NOW + m * 60_000, mmh })),
       chips: [s('P57', 'Zellen: keine'), na('P58', 'nur als Kartenkachel, keine Punktabfrage'), s('P59', 'Hagel: — (nur CH)')],
     },
+    nowcastDetail: {
+      state: 'ok', nowMs: NOW, radar: [], slotMin: 10, radarEndMs: null, horizon: '0–2 h DE · 0–3 h AT', hours: [],
+      headline: s('P54', 'Trocken bis 16:40'), ranges: [], caption: s('P55', 'Vorlage'),
+    },
     clouds: {
       state: 'ok', fromMs: START, toMs: START + 336 * H,
       layers: [

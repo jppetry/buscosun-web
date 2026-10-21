@@ -209,6 +209,26 @@ export interface NowcastVM {
   chips: Shown[];
 }
 
+/** Zeiträume der Nowcast-Detailansicht in Stunden ab jetzt (Radar trägt 2–3 h, danach buscosun Fusion). */
+export const NOWCAST_DETAIL_RANGES: readonly number[] = [3, 6, 12, 24, 48];
+
+/** Nowcast-Detailansicht (P54/P55): Radar-Frames bis zu seinem Horizont, danach die Stundenwerte von buscosun Fusion. */
+export interface NowcastDetailVM {
+  state: LoadState;
+  nowMs: number;
+  radar: Array<{ t: number; mmh: number }>;
+  /** Abstand der Radar-Frames in Minuten (RV 10, INCA 15) */
+  slotMin: number;
+  radarEndMs: number | null;
+  horizon: string;
+  /** Fusion-Stunden ab Stunde 0 (48 h); die Anzeige nimmt nur die jenseits des Radar-Horizonts. */
+  hours: PrecipVM['hours'];
+  headline: Shown;
+  /** Summe und Spitze je Zeitraum (Radar bis zu seinem Horizont + Fusion danach) */
+  ranges: Array<{ h: number; sum: Shown; peak: Shown }>;
+  caption: Shown;
+}
+
 export interface CloudsVM {
   state: LoadState;
   fromMs: number; toMs: number;
@@ -319,6 +339,7 @@ export interface DashboardVM {
   conf: ConfVM;
   zone: ZoneVM;
   nowcast: NowcastVM;
+  nowcastDetail: NowcastDetailVM;
   clouds: CloudsVM;
   wind: WindVM;
   windRose: WindRoseVM;

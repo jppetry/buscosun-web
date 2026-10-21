@@ -232,8 +232,8 @@
 .dbd-row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .dbd-nowcast { display: flex; flex-direction: column; background: #1F2937; border: 1px solid #2F3B4A; border-radius: 13px; padding: 15px; }
 .dbd-nowcast-head { display: flex; align-items: baseline; justify-content: space-between; }
-.dbd-nowcast-head span:first-child { font-size: 10px; letter-spacing: 2px; color: #7FB2E5; font-weight: 700; }
-.dbd-nowcast-head span:last-child { font-size: 10px; color: #8A97A6; }
+.dbd-nowcast-head > span:first-child { font-size: 10px; letter-spacing: 2px; color: #7FB2E5; font-weight: 700; }
+.dbd-nowcast-head-r > span { font-size: 10px; color: #8A97A6; }
 .dbd-nowcast-line { font-size: 16px; font-weight: 700; color: #EDF1F5; margin-top: 8px; }
 .dbd-nowcast .dbd-na, .dbd-nowcast .dbd-loading { color: #8A97A6; }
 /* füllt die Resthöhe der Kachel (Reihenhöhe geben die Nachbarn vor); das Diagramm liegt absolut, damit es die Kachel nie vergrößert */
@@ -315,6 +315,35 @@
 .dbd-rose-notes { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: #5C5447; }
 .dbd-rose-notes strong { color: var(--dbd-ink); }
 .dbd-panel > .dbd-conf { margin-top: 12px; }
+
+/* Nowcast-Detailansicht (heller Rahmen wie die Windrose) und Symbol in der dunklen Kachel */
+.dbd-nowcast-head-r { display: inline-flex; align-items: center; gap: 10px; }
+.dbd-nowcast .dbd-rose-open { width: 26px; height: 26px; background: #2A3646; border-color: #3A4859; color: #EDF1F5; }
+.dbd-nowcast .dbd-rose-open:hover { background: #33425A; }
+.dbd-nowcast .dbd-rose-open:focus-visible { outline-color: #7FB2E5; }
+.dbd-nc-dialog { width: min(1000px, 100%); }
+.dbd-nc-headline { margin-top: 8px; font-size: 28px; font-weight: 700; color: var(--dbd-ink); letter-spacing: -.4px; line-height: 1.1; }
+.dbd-nc-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-top: 16px; }
+.dbd-nc-seg { display: inline-flex; background: var(--dbd-sand); border: 1px solid var(--dbd-line); border-radius: 9px; padding: 2px; }
+.dbd-nc-seg button { position: relative; border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--dbd-muted); border-radius: 7px; padding: 6px 13px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.dbd-nc-seg button::after { content: ''; position: absolute; inset: -6px -1px; }
+.dbd-nc-seg button.is-active { font-weight: 700; color: var(--dbd-ink); background: #FFFFFF; box-shadow: 0 1px 3px rgba(44, 42, 38, .15); }
+.dbd-nc-seg button:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 1px; }
+.dbd-nc-kpis { margin-top: 0; gap: 6px 28px; }
+.dbd-nc-kpis b { font-size: 17px; }
+.dbd-nc-chart { margin-top: 14px; }
+.dbd-nc-t { font-family: inherit; font-size: 10.5px; fill: var(--dbd-muted); font-variant-numeric: tabular-nums; }
+.dbd-nc-t--b { font-weight: 700; fill: var(--dbd-ink); }
+.dbd-nc-now { stroke: var(--dbd-ink); stroke-width: 1.3; stroke-dasharray: 3 3; }
+.dbd-nc-seam { stroke: var(--dbd-muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.dbd-nc-legend { margin-top: 10px; gap: 6px 16px; font-size: 11.5px; }
+.dbd-nc-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.dbd-nc-sw--line { width: 12px; height: 12px; background: linear-gradient(var(--dbd-ink), var(--dbd-ink)) center / 1.5px 100% no-repeat; border-radius: 0; }
+.dbd-nc-notes { margin-top: 14px; }
+@media (max-width: 767px) {
+  .dbd-nc-headline { font-size: 22px; }
+  .dbd-nc-seg button { padding: 6px 10px; }
+}
 @media (max-width: 767px) {
   .dbd-rose-dialog { padding: 16px 14px 18px; border-radius: 14px; }
   .dbd-rose-dlg-main { flex-direction: column; align-items: stretch; gap: 14px; }

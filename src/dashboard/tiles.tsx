@@ -143,10 +143,20 @@ export function ConfidenceCard({ vm }: { vm: ConfVM }) {
 // Nowcast · Bewölkung · Windrichtung
 // ---------------------------------------------------------------------------
 
-export function NowcastTile({ vm, rootRef }: { vm: NowcastVM; rootRef?: RefObject<HTMLElement | null> }) {
+export function NowcastTile({ vm, rootRef, onDetail, detailRef }: { vm: NowcastVM; rootRef?: RefObject<HTMLElement | null>; onDetail?: () => void; detailRef?: RefObject<HTMLButtonElement | null> }) {
   return (
     <section ref={rootRef} className="dbd-nowcast" aria-label="Nowcast Radar">
-      <div className="dbd-nowcast-head"><span>NOWCAST · RADAR</span><span data-origin="P56">{vm.horizon}</span></div>
+      <div className="dbd-nowcast-head">
+        <span>NOWCAST · RADAR</span>
+        <span className="dbd-nowcast-head-r">
+          <span data-origin="P56">{vm.horizon}</span>
+          {onDetail && (
+            <button ref={detailRef} type="button" className="dbd-rose-open" onClick={onDetail} aria-haspopup="dialog" aria-label="Nowcast groß anzeigen" title="Groß anzeigen mit mehr Stunden Vorlauf">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+            </button>
+          )}
+        </span>
+      </div>
       <div className="dbd-nowcast-chart"><NowcastChart vm={vm} /></div>
     </section>
   );

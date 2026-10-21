@@ -18,6 +18,7 @@ import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, Pla
 import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
 import { WindRoseTile } from './windRose';
+import { NowcastDetail } from './nowcastDetail';
 import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningStrip, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
@@ -234,6 +235,8 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
   vm: DashboardVM; onHalfKm: (km: 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
+  const [ncOpen, setNcOpen] = useState(false);
+  const ncOpener = useRef<HTMLButtonElement>(null);
   // Mobil sitzt der Chip „Über diese Ansicht" im Dashboard unten (dashboard.css) — Klasse am body, solange es offen ist.
   useEffect(() => { document.body.classList.add('dbd-active'); return () => document.body.classList.remove('dbd-active'); }, []);
   const placeName = vm.top.place.t ? (tablet ? shortName(vm.top.place.t) : vm.top.place.t) : null;
@@ -283,7 +286,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
                 </section>
               ) : <NowCard vm={vm.now} warning={vm.warning} />}
               {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
-              <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
+              <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} onDetail={() => setNcOpen(true)} detailRef={ncOpener} />
               <WindRoseTile vm={vm.windRose} />
             </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
@@ -317,6 +320,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
         <div className="dbd-footer">{vm.footer} · n. v. = nicht verfügbar (Grund im Tooltip)</div>
         {log && <div className="dbd-pflog">{JSON.stringify({ emissions: log.emissions, error: log.error, notes: vm.notes.slice(0, 12) }, null, 1)}</div>}
       </main>
+      {ncOpen && <NowcastDetail vm={vm.nowcastDetail} onClose={() => { setNcOpen(false); ncOpener.current?.focus(); }} />}
     </div>
   );
 }
