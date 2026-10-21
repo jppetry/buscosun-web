@@ -26,7 +26,7 @@ const SRC_AXIS = 'dbd-axis';
 const SRC_TEMP = 'dbd-temp';
 const KM_PER_DEG_LAT = 111.32;
 /** Zoom je halber Schnittlänge, bei dem der Schnitt ungefähr die Bühne füllt. */
-const ZOOM_OF: Record<20 | 50, number> = { 20: 9.8, 50: 8.5 };
+const ZOOM_OF: Record<20 | 50, number> = { 20: 9.3, 50: 8.2 };
 /** Temperaturfläche: Kantenlänge in Pixeln und Stufung in K (Bänder wie Isothermen). */
 const TEMP_PX = 320;
 const TEMP_STEP_K = 2;
@@ -100,7 +100,8 @@ async function loadObsTemps(c: { lat: number; lon: number }, halfKm: number, now
   const { loadObsStore, obsVarsOf, obsDistanceM } = await import('../sources/obsStore');
   const store = await loadObsStore({ nowMs });
   if (signal.aborted) return [];
-  const maxM = Math.max(halfKm * 1.6, 30) * 1000, gapM = Math.max(halfKm / 4, 5) * 1000;
+  // Offene Stationen mit Temperatur sind dünn gesät (Mittelgebirge: 6 im Umkreis von 40 km, 15 bei 60 km) — der Radius ist deshalb weit.
+  const maxM = Math.max(halfKm * 3, 60) * 1000, gapM = Math.max(halfKm / 6, 3) * 1000;
   const cand: Array<ObsT & { d: number }> = [];
   for (const st of store.catalog.stations) {
     const d = obsDistanceM(c.lat, c.lon, st.lat, st.lon);
@@ -112,7 +113,7 @@ async function loadObsTemps(c: { lat: number; lon: number }, halfKm: number, now
   cand.sort((a, b) => a.d - b.d);
   const kept: Array<ObsT & { d: number }> = [];
   for (const x of cand) {
-    if (kept.length >= 14) break;
+    if (kept.length >= 24) break;
     if (kept.every((k) => obsDistanceM(k.lat, k.lon, x.lat, x.lon) >= gapM)) kept.push(x);
   }
   return kept;
