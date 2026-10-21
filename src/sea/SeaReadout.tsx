@@ -70,9 +70,9 @@ const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet']
  */
 type DsChapter = 'allgemein' | 'satellit' | 'wetter';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
-  ['allgemein', 'Allgemein', 'Spot · Datenquellen · Prüfer-Bilanz', 'quellen'],
-  ['satellit', 'Satellit', 'Lage · Küste im Zeitverlauf', 'spot'],
   ['wetter', 'Wetter', 'Stunde · Verlauf · Amtlich · Seegebiet · Pegel', 'spot'],
+  ['satellit', 'Satellit', 'Lage · Küste im Zeitverlauf', 'spot'],
+  ['allgemein', 'Allgemein', 'Spot · Datenquellen · Prüfer-Bilanz', 'quellen'],
 ];
 const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'wetter');
 const SEC_AREA = 'sw-sec-seegebiet';
