@@ -438,21 +438,6 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   );
 }
 
-/** Schnee-Modus (RL1): Decke (h_snow) | Neuschnee (snow_gsp) — Wortlaut wie die Wetterkarte. */
-function SnowModeSeg({ snowMode, setSnowMode, segClass, btnClass, eyebrowClass }: {
-  snowMode: SnowMode; setSnowMode: (m: SnowMode) => void; segClass: string; btnClass: string; eyebrowClass: string;
-}) {
-  return (
-    <>
-      <span className={eyebrowClass}>Schnee · ICON-D2</span>
-      <div className={segClass} role="tablist" aria-label="Schnee-Modus">
-        <button type="button" role="tab" aria-selected={snowMode === 'depth'} className={`${btnClass}${snowMode === 'depth' ? ' is-active' : ''}`} onClick={() => setSnowMode('depth')} title="Schneedecke (h_snow, cm)">Decke</button>
-        <button type="button" role="tab" aria-selected={snowMode === 'fresh'} className={`${btnClass}${snowMode === 'fresh' ? ' is-active' : ''}`} onClick={() => setSnowMode('fresh')} title="Neuschnee (snow_gsp + snow_con, cm)">Neuschnee</button>
-      </div>
-    </>
-  );
-}
-
 // ============================================================================
 // Rail
 // ============================================================================
@@ -473,7 +458,7 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, snowMode, setSnowMode, sumSel, setSumSel, chance, country, probeCard = null }: {
+function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, sumSel, setSumSel, chance, country, probeCard = null }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
   /** Phase RA-250: the place's country — the 250-m switch exists for Germany only (AT/CH have no open 250-m product). */
   country: Location['country'];
@@ -509,7 +494,6 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
           );
         })}
       </div>
-      {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
       {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
       {probeCard}
 
@@ -757,7 +741,7 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
 }
 
 // --- Panel: Layer -----------------------------------------------------------
-function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, country, snowMode, setSnowMode, sumSel, setSumSel, chance }: {
+function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, country, sumSel, setSumSel, chance }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; place: string;
@@ -791,7 +775,6 @@ function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, countr
           );
         })}
       </div>
-      {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
       {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
       {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="mobile" {...(chance ? { chance: chance.slot } : {})} />}
       <div className="rm-seclabel">Modus</div>
