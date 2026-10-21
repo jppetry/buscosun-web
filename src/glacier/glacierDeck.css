@@ -1,6 +1,6 @@
 /* Phase GL — Command-Deck of the glacier page (D-27): rail 62 · topbar 60 · dock 250 · map · readout 400. Namespace `--gl-*`
    (README-gletscher.md, plan E-GL-10); imported ONLY by the lazy page chunk, never by designTokens.css (eagerCss ratchet).
-   Look = reference/gletscher-*.dc.html: sand/ink, League Spartan + IBM Plex Mono (self-hosted via src/fonts.css), accent "Gletscher-Cyan". */
+   Look = reference/gletscher-*.dc.html: sand/ink, League Spartan throughout, figures tabular (self-hosted via src/fonts.css), accent "Gletscher-Cyan". */
 
 .gl-root {
   --gl-accent: #1E87A8; --gl-accent-dark: #145A70; --gl-tint: #E3F1F5; --gl-rail-icon: #8FD0E3;
@@ -10,7 +10,7 @@
   --gl-prov-model-text: #7A5418; --gl-prov-model-bg: #FBF3E7; --gl-prov-model-line: #E7D3B4; --gl-prov-model-dot: #B8862F;
   --gl-prov-official-text: #2C2A26; --gl-prov-official-bg: #EDE6D3; --gl-prov-official-line: #D9D0B8; --gl-prov-official-dot: #2C2A26;
   --gl-ink: #2C2A26; --gl-muted: #5C5447; --gl-faint: #6F6553; --gl-panel: #FAF6EA; --gl-bg: #EDE6D3; --gl-line: #E0D6BE; --gl-line-strong: #D9D0B8;
-  --gl-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --gl-mono: 'League Spartan', system-ui, sans-serif;
   position: fixed; inset: 0; display: flex; background: var(--gl-bg); color: var(--gl-ink);
   font-family: 'League Spartan', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden;
 }
@@ -44,7 +44,7 @@
 .gl-chip.is-official i { background: var(--gl-prov-official-dot); }
 .gl-chip.is-idle { opacity: .72; }
 .gl-valued { display: inline-flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.gl-num { font-family: var(--gl-mono); font-weight: 600; }
+.gl-num { font-family: var(--gl-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
 .gl-valued.is-big .gl-num { font-size: 28px; color: var(--gl-loss); }
 .gl-lock { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--gl-faint); }
 

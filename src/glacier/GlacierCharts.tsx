@@ -10,7 +10,7 @@ import { dateDe, type Scene, type CumPoint, type ProjectionView } from './glacie
 import type { Triple } from './glacierMeltContract';
 
 const THEME = {
-  text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: 10.5, fill: '#5C5447' },
+  text: { fontFamily: "'League Spartan', system-ui, sans-serif", fontSize: 10.5, fill: '#5C5447' },
   grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } },
   axis: { ticks: { line: { stroke: 'transparent' } }, domain: { line: { stroke: '#9D8F6E', strokeWidth: 1 } } },
 };
@@ -133,14 +133,14 @@ export function MeltBars({ idx, labels, today }: { idx: readonly Triple[]; label
   return (
     <svg className="gl-bars" viewBox={`0 0 ${W} ${H}`} role="img" data-origin="model" preserveAspectRatio="xMidYMid meet"
       aria-label={`Schmelzindex je Tag von 0 bis 100 (ohne Einheit), Median und Spanne p10 bis p90: ${idx.map((t, i) => `${labels[i]} ${t[1]} (${t[0]} bis ${t[2]})`).join(', ')}`}>
-      {[0, 50, 100].map((v) => <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#E0D6BE" /><text x={L - 4} y={y(v) + 3} fontSize="9" textAnchor="end" fill="#5C5447" fontFamily="IBM Plex Mono, monospace">{v}</text></g>)}
+      {[0, 50, 100].map((v) => <g key={v}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#E0D6BE" /><text x={L - 4} y={y(v) + 3} fontSize="9" textAnchor="end" fill="#5C5447" fontFamily="'League Spartan', system-ui, sans-serif">{v}</text></g>)}
       {idx.map((t, i) => {
         const x = L + i * bw + bw * 0.18, w = bw * 0.64;
         return (
           <g key={i}>
             <rect x={x} y={y(t[1])} width={w} height={Math.max(0.5, y(0) - y(t[1]))} rx={2} fill={i === today ? '#145A70' : '#7FC1D6'} />
             <line x1={x + w / 2} x2={x + w / 2} y1={y(t[2])} y2={y(t[0])} stroke="#2C2A26" strokeWidth={1} />
-            <text x={x + w / 2} y={H - 8} fontSize="9" textAnchor="middle" fill="#5C5447" fontFamily="IBM Plex Mono, monospace">{labels[i]}</text>
+            <text x={x + w / 2} y={H - 8} fontSize="9" textAnchor="middle" fill="#5C5447" fontFamily="'League Spartan', system-ui, sans-serif">{labels[i]}</text>
           </g>
         );
       })}

@@ -12,7 +12,7 @@ import { fmt1, fmt2 } from './glacierView';
 export type ChartKind = 'ba' | 'len';
 const COLOUR: Record<'CH' | 'AT' | 'DE', string> = { CH: '#1E87A8', AT: '#B5602C', DE: '#6B5BB8' };
 const THEME = {
-  text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: 10.5, fill: '#5C5447' },
+  text: { fontFamily: "'League Spartan', system-ui, sans-serif", fontSize: 10.5, fill: '#5C5447' },
   grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } },
   axis: { ticks: { line: { stroke: 'transparent' } }, domain: { line: { stroke: '#9D8F6E', strokeWidth: 1 } } },
 };
