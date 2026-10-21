@@ -265,10 +265,6 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: He
         <LogoMark size={84} />
         <h1 className="deck-h1">buscosun</h1>
       </div>
-      <p className="deck-hero-sub">
-        Modelle, Live-Stationen und Höhenkorrektur — zu einem Feld verschmolzen.
-        Suche einen Ort oder steig direkt in ein Werkzeug ein.
-      </p>
 
       <HeroSearch onSelect={onSelect} inputRef={inputRef} />
       {!narrow && <HeroQuad activeCat={activeCat} onOpenFeature={onOpenFeature} />}

@@ -15,6 +15,11 @@
   /* Schatten der Kacheln über der Hintergrundkarte. */
   --deck-lift: 0 1px 2px rgba(44, 42, 38, 0.08), 0 14px 32px -18px rgba(44, 42, 38, 0.38);
   --deck-lift-hover: 0 1px 2px rgba(44, 42, 38, 0.08), 0 28px 56px -28px rgba(44, 42, 38, 0.55);
+  /* Milchglas für Text direkt über der Hintergrundkarte (Fundament, Fuß).
+     --deck-glass-in = Innenabstand, um den die Fläche über die Textkante hinausragt. */
+  --deck-glass: rgba(250, 246, 234, 0.72);
+  --deck-glass-line: rgba(224, 214, 190, 0.6);
+  --deck-glass-in: 24px;
   /* Auftrag Jan 2026-08-09: die KOMPLETTE Startseite in League Spartan.
      Damit zieht sie mit den übrigen Command-Deck-Seiten gleich (D-27) —
      Regenradar, Kartenseite, Historie, Vertikalschnitt, Event- und
@@ -197,15 +202,6 @@
      Element im Hero, ein Abstand nach oben hätte nichts mehr abzusetzen. */
   margin: 0; max-width: 880px; color: var(--ink-900);
 }
-.deck-hero-sub {
-  font-size: 18px; line-height: 1.5; color: var(--stone-600); margin: 18px 0 0; max-width: 660px;
-  /* Dezente Milchglas-Fläche über der Hintergrundkarte; Text bleibt bündig (Ausgleich per negativem Rand). */
-  width: fit-content; box-sizing: border-box;
-  padding: 10px 16px; margin-left: -16px; margin-right: -16px;
-  background: rgba(250, 246, 234, 0.72);
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  border: 1px solid rgba(224, 214, 190, 0.6); border-radius: 14px;
-}
 
 /* Hero zweispaltig: Text + Suche links, Werkzeug-Quadrat (04–07) rechts. */
 .deck-hero {
@@ -230,7 +226,6 @@
    Spezifität, weil `.deck-intro` weiter unten display gesetzt bekommt. */
 .deck .deck-intro { display: none; }
 
-.deck-hero-sub { grid-area: sub; }
 .deck-search-wrap { grid-area: search; }
 .deck-favs { grid-area: favs; justify-self: start; }
 .deck-intro { grid-area: intro; justify-self: start; }
@@ -585,7 +580,11 @@
 
 /* ============ FUNDAMENT ============ */
 .deck-fundament { max-width: var(--deck-max); margin: 0 auto; padding: 44px var(--deck-pad-x) 20px; }
-.deck-fundament-inner { border-top: 1px solid var(--border-default); padding-top: 36px; }
+.deck-fundament-inner {
+  padding: 30px var(--deck-glass-in) 26px; margin-inline: calc(-1 * var(--deck-glass-in));
+  background: var(--deck-glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid var(--deck-glass-line); border-radius: 22px;
+}
 .deck-eyebrow-line { font-family: var(--font-mono); font-size: 11px; letter-spacing: 3px; color: var(--stone-400); }
 .deck-h2 { font-family: var(--font-display); font-size: 34px; font-weight: 600; letter-spacing: -1px; margin: 12px 0 0; max-width: 720px; color: var(--ink-900); }
 .deck-lead { font-size: 15px; line-height: 1.55; color: var(--stone-600); margin: 14px 0 0; max-width: 680px; }
@@ -615,7 +614,14 @@
 
 /* ============ FOOTER ============ */
 .deck-footer { max-width: var(--deck-max); margin: 0 auto; width: 100%; padding: 40px var(--deck-pad-x) 56px; }
-.deck-footer-top { border-top: 1px solid var(--border-default); padding-top: 26px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 24px; }
+/* Milchglas hinter dem ganzen Fuß, bündig mit dem Fundament-Kasten. */
+.deck-footer::before {
+  content: ''; position: absolute; z-index: -1;
+  inset: 16px calc(var(--deck-pad-x) - var(--deck-glass-in)) 32px;
+  background: var(--deck-glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid var(--deck-glass-line); border-radius: 22px;
+}
+.deck-footer-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 24px; }
 .deck-footer-logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: 16px; font-weight: 600; }
 .deck-footer-brand p { font-size: 12px; color: var(--stone-500); margin: 12px 0 0; max-width: 360px; line-height: 1.6; }
 .deck-footer-version { display: inline-block; margin-top: 10px; font-family: var(--font-mono); font-size: 10px; color: var(--stone-400); }
@@ -695,7 +701,6 @@
   .deck-quad .q-tile { grid-column: span 1; }
   .tile-globus { grid-column: span 1; }
     .deck-h1 { grid-area: title; }
-  .deck-hero-sub { grid-area: sub; }
   .deck-search-wrap { grid-area: search; margin-top: 0; width: 360px; max-width: 100%; align-self: end; }
   .deck-favs { grid-area: favs; }
   .deck-intro { grid-area: intro; }
@@ -735,7 +740,7 @@
    MOBILE (≤767) — 1–2-Spalten + Bottom-Tab-Bar
    ============================================================================ */
 @media (max-width: 767px) {
-  .deck { --deck-pad-x: 18px; padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  .deck { --deck-pad-x: 18px; --deck-glass-in: 12px; padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
 
   /* Command-Bar: nur Logo + LIVE + DE (⌘K-Trigger versteckt) */
   .deck-kbar { display: none; }
@@ -746,7 +751,6 @@
   /* Hero einspaltig */
   .deck-hero { display: block; padding: 8px var(--deck-pad-x) 4px; }
   .deck-h1 { font-size: 40px; line-height: 1; letter-spacing: -1.5px; margin-top: 0; }
-  .deck-hero-sub { font-size: 14.5px; margin-top: 12px; }
   .deck-search-wrap { width: auto; margin-top: 18px; }
   /* Quadrat bleibt 2×2, aber ohne feste Kantenlänge */
   .deck-quad { aspect-ratio: auto; gap: 12px; margin-top: 16px; }
