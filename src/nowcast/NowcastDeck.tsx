@@ -457,7 +457,7 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, nowcast, onReload, country, probeCard = null }: {
+function Dock({ layers, toggleLayer, activeLayerCount, country, probeCard = null }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
   /** Phase RA-250: the place's country — the 250-m switch exists for Germany only (AT/CH have no open 250-m product). */
   country: Location['country'];
@@ -472,7 +472,6 @@ function Dock({ layers, toggleLayer, activeLayerCount, nowcast, onReload, countr
   /** Phase P3D: 3D point view under the layers (`null` = off). */
   probeCard?: ReactNode;
 }) {
-  const fresh = nowcast ? freshness(nowcast) : null;
   return (
     <div className="rr-dock">
       <div className="rr-dock-head">
@@ -495,20 +494,6 @@ function Dock({ layers, toggleLayer, activeLayerCount, nowcast, onReload, countr
       </div>
       {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
       {probeCard}
-
-      <div className="rr-datalage">
-        <div className="rr-datalage-eyebrow">Datenlage</div>
-        <div className="rr-datalage-row">0–2 h · DWD RADOLAN-RV</div>
-        <div className="rr-datalage-row">2–6 h · {nowcast?.nwpSource === 'live' ? 'ICON-D2 (2,2 km) · Live-Pfad' : 'buscosun Fusion (Punkt-Cube)'}</div>
-        <div className={`rr-datalage-fresh${fresh?.stale ? ' is-stale' : ''}`}>
-          <span className="rr-fresh-dot" />
-          {fresh ? fresh.label : 'wird geladen …'}
-          <button type="button" className="rr-reload" onClick={onReload} aria-label="Daten neu laden">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 12 A8 8 0 1 1 17.5 6.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M17.5 3 V7 H13.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            neu
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
