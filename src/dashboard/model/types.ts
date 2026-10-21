@@ -300,7 +300,9 @@ export interface TerrainVM {
   /** Temperatur am Ort, Ortshöhe und Gradient — Grundlage der Temperaturfläche auf dem Relief; `null` bei Inversion oder ohne Profil. */
   thermal: { tOrt: number; hOrt: number; gamma: number } | null;
   /** Wind am Ort (10 m, Stunde 0): Herkunftsrichtung in Grad und Mittelwind. Höhenwind gibt der Punkt-Cube nicht her. */
-  wind: { dirDeg: number | null; ms: number | null };
+  wind: { dirDeg: number | null; ms: number | null; gustMs?: number | null };
+  /** Himmel am Ort, Stunde 0 (buscosun Fusion): Wolkenanteile je Schicht in %, Regen mit Chance und Schneeanteil — für die Schnittansicht. */
+  sky: { low: number | null; mid: number | null; high: number | null; precipMmh: number | null; pWet: number | null; pSnow: number | null };
   header: Shown;
   chip: Shown; chipTone: 'ok' | 'warn';
   fromLabel: string; toLabel: string;

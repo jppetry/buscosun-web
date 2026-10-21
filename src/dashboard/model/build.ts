@@ -867,7 +867,11 @@ function buildTerrain(c: Ctx): TerrainVM {
   const header = sh('P80', `Schnitt ${compass8(tin.axisDeg)} → ${compass8(tin.axisDeg + 180)} durch die Fahrtrichtung des Windes · Punkt-Cube t1 (0,05°), γ aus dem Modellprofil`);
   const base: TerrainVM = {
     state: tin.state, halfKm: tin.halfKm, axisDeg: tin.axisDeg, center: c.inp.place ? { lat: c.inp.place.lat, lon: c.inp.place.lon } : null,
-    thermal: null, wind: { dirDeg: s0 ? v(s0, 'windDir') : null, ms: s0 ? v(s0, 'wind') : null },
+    thermal: null, wind: { dirDeg: s0 ? v(s0, 'windDir') : null, ms: s0 ? v(s0, 'wind') : null, gustMs: s0 ? v(s0, 'gust') : null },
+    sky: {
+      low: s0 ? v(s0, 'clcl') : null, mid: s0 ? v(s0, 'clcm') : null, high: s0 ? v(s0, 'clch') : null,
+      precipMmh: s0 ? v(s0, 'precip', 'mean') : null, pWet: s0 ? pWet(s0) : null, pSnow: s0 ? pSnowOf(s0) : null,
+    },
     header, chip: loading('P70'), chipTone: 'ok',
     fromLabel: compass8(tin.axisDeg), toLabel: compass8(tin.axisDeg + 180),
     profile: [], axis: { bottom: 500, top: 3000, step: 500 }, hOrt: c.hOrt, isotherms: [], snowline: null, snowlineLabel: null, stations: [],
