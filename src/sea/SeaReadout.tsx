@@ -103,7 +103,7 @@ export function Compass({ normal, windFrom, waveFrom, label, shore }: { normal: 
         {/* land = the half-disc opposite the shore normal (sea side shows the water colour) */}
         <path d="M10 56 A46 46 0 0 1 102 56 Z" fill="#E7DCC3" transform={`rotate(${(normal + 180) % 360} 56 56)`} />
         <circle cx="56" cy="56" r="46" fill="none" stroke="#D9D0B8" />
-        <text x="56" y="8" textAnchor="middle" fontSize="8" fontFamily="IBM Plex Mono, monospace" fill="#8B7355">N</text>
+        <text x="56" y="8" textAnchor="middle" fontSize="9.5" fontFamily="IBM Plex Mono, monospace" fill="#8B7355">N</text>
         {waveFrom != null && <g transform={`rotate(${waveFrom} 56 56)`}><path d="M56 16v62M49 70l7 9 7-9" fill="none" stroke="#0F6E7A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 3" /></g>}
         {windFrom != null && <g transform={`rotate(${windFrom} 56 56)`}><path d="M56 12v66M48 69l8 10 8-10" fill="none" stroke="#2C2A26" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /></g>}
       </svg>
@@ -638,7 +638,7 @@ function WaterLevelFill({ fill, isNow, big = false }: { fill: WlFill; isNow: boo
         {fill.marks.map((m) => (
           <g key={m.label}>
             <line x1={x0 - 2} x2={x1 + 4} y1={y(m.cm)} y2={y(m.cm)} stroke="#8B7355" strokeDasharray="3 2" />
-            <text x={x1 + 7} y={y(m.cm) + (big ? 4 : 3)} fontSize={big ? 11 : 8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{m.label} {m.cm}</text>
+            <text x={x1 + 7} y={y(m.cm) + (big ? 4 : 3)} fontSize={big ? 12.5 : 10} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{m.label} {m.cm}</text>
           </g>
         ))}
       </svg>

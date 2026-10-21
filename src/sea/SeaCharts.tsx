@@ -35,7 +35,7 @@ function common(hours: readonly SeaChartHour[], selMs: number, extra: Array<(c: 
 }
 
 /** `big`: the dossier draws the charts across its full width — taller, with larger axis text. */
-const theme = (big?: boolean) => ({ text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: big ? 12 : 9, fill: big ? '#5C5447' : '#8B7355' }, grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } }, axis: { ticks: { line: { stroke: 'transparent' } } } });
+const theme = (big?: boolean) => ({ text: { fontFamily: 'IBM Plex Mono, monospace', fontSize: big ? 13.5 : 11, fill: big ? '#5C5447' : '#8B7355' }, grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } }, axis: { ticks: { line: { stroke: 'transparent' } } } });
 /** A series without one value is not drawn: d3 returns `null` for its path and React writes `d="null"` (a console error
  *  per render) — the case of a run without wind at the spot (V-SW-18). Colours by id, so a dropped series shifts none. */
 const drawn = <T extends { data: { y: number | null }[] }>(series: T[]): T[] => series.filter((s) => s.data.some((p) => p.y != null));
@@ -54,7 +54,7 @@ export function WindChart({ hours, selMs, limitKn, limitLabel, big }: { hours: r
     return <path d={`${top} ${bot} Z`} fill="rgba(139,115,85,0.18)" />;
   };
   const Limit = ({ yScale, innerWidth }: Ctx) => (limitKn == null ? null : (
-    <g><line x1={0} x2={innerWidth} y1={yScale(limitKn)} y2={yScale(limitKn)} stroke="#B5482E" strokeDasharray="3 3" /><text x={innerWidth} y={yScale(limitKn) - 3} textAnchor="end" fontSize={big ? 11.5 : 8.5} fill="#9A5A2A" fontFamily="IBM Plex Mono, monospace">{limitLabel}</text></g>
+    <g><line x1={0} x2={innerWidth} y1={yScale(limitKn)} y2={yScale(limitKn)} stroke="#B5482E" strokeDasharray="3 3" /><text x={innerWidth} y={yScale(limitKn) - 3} textAnchor="end" fontSize={big ? 13 : 10.5} fill="#9A5A2A" fontFamily="IBM Plex Mono, monospace">{limitLabel}</text></g>
   ));
   const c = common(hours, selMs, [Band, Limit]);
   return (
@@ -96,7 +96,7 @@ export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel 
     <g>{([[mhwCm, highLabel], [mlwCm, lowLabel]] as Array<[number | null, string]>).filter(([v]) => v != null).map(([v, label]) => (
       <g key={label}>
         <line x1={0} x2={innerWidth} y1={yScale(v!)} y2={yScale(v!)} stroke="#B9AC90" strokeDasharray="3 3" />
-        <text x={innerWidth} y={yScale(v!) - 3} textAnchor="end" fontSize={big ? 11.5 : 8.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{label}</text>
+        <text x={innerWidth} y={yScale(v!) - 3} textAnchor="end" fontSize={big ? 13 : 10.5} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{label}</text>
       </g>
     ))}</g>
   );
