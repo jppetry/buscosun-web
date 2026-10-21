@@ -12,7 +12,7 @@ import { CLUSTER_PAGE, clusterColor, STATIC_GREY } from './fireClusters';
 import { groupPasses, sortPasses } from './activity/overpasses';
 import { footprintRing, VIIRS_NOMINAL_KM, type FirmsRow } from './sources/firmsHotspots';
 import { FirePassChart } from './FirePassChart';
-import { buildFireZones } from './fireZones';
+import { outerOutline, type LonLatRect } from './pixelOutline';
 import { SatImageryBlock } from './FireSatImagery';
 import { bboxPolygon, historyAreaBbox } from './FireMiniMap';
 import { satEnabled } from './detail/fireSatImagery';
@@ -208,20 +208,24 @@ export interface HistoryPixelArea {
 }
 
 function pixelAreaOf(ev: HistoryEvent, id: string): HistoryPixelArea | null {
-  const rows: FirmsRow[] = [];
+  const rects: LonLatRect[] = [];
   let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
   let nominal = false;
   for (const r of shardRows(ev)) {
     const ring = footprintRing(r, VIIRS_NOMINAL_KM);
     if (!ring) continue;
     if (r.scanKm == null || r.trackKm == null) nominal = true;
-    rows.push({ ...r, scanKm: r.scanKm ?? VIIRS_NOMINAL_KM, trackKm: r.trackKm ?? VIIRS_NOMINAL_KM });
-    for (const [x, y] of ring) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
+    const rc = { w: Infinity, s: Infinity, e: -Infinity, n: -Infinity };
+    for (const [x, y] of ring) {
+      rc.w = Math.min(rc.w, x); rc.e = Math.max(rc.e, x); rc.s = Math.min(rc.s, y); rc.n = Math.max(rc.n, y);
+    }
+    rects.push(rc);
+    w = Math.min(w, rc.w); e = Math.max(e, rc.e); s = Math.min(s, rc.s); n = Math.max(n, rc.n);
   }
-  // Only the outer edge of the burnt area: the pixel rectangles overlap, so they are merged
-  // (same rectangle union as the detection raster) instead of being drawn one by one.
-  const features: GeoJSON.Feature[] = buildFireZones(rows).map((z) => (
-    { type: 'Feature', properties: { id }, geometry: { type: 'MultiPolygon', coordinates: z.polys } }
+  // Only the outer edge of the burnt area: the pixel rectangles overlap and sit next to each
+  // other with hairline gaps, so they are merged into one outline without inner lines or holes.
+  const features: GeoJSON.Feature[] = outerOutline(rects).map((poly) => (
+    { type: 'Feature', properties: { id }, geometry: { type: 'Polygon', coordinates: poly } }
   ));
   return features.length > 0 ? { features, bbox: [w, s, e, n], nominal } : null;
 }
