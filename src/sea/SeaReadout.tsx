@@ -76,10 +76,6 @@ const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
 ];
 const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'wetter');
 const SEC_AREA = 'sw-sec-seegebiet';
-function jumpTo(id: string) {
-  const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-}
 function DsSection({ id, title, hint, side, children }: { id?: string; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
   const tid = id ? `${id}-t` : undefined;
   return (
@@ -374,7 +370,6 @@ export default function SeaReadout(p: Props) {
       </Card>
     );
     // In the dossier the link of the official card scrolls to the sea-area report on the same chapter.
-    const officialDsCard = s && <OfficialCard spot={s} texts={p.texts} warning={p.warning} onArea={() => jumpTo(SEC_AREA)} nowMs={p.nowMs} />;
     return (
       <div className="sw-ds" aria-label="Spot-Dossier">
         <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers">
@@ -412,7 +407,7 @@ export default function SeaReadout(p: Props) {
               </DsSection>
             ) : empty}
             <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
-              <div className="sw-ds-grid is-flow">{officialDsCard}{areaTab}</div>
+              <AreaDossier spot={s} texts={p.texts} warning={p.warning} />
             </DsSection>
             {s && disclaimer}
           </>
@@ -747,6 +742,162 @@ function AreaTab({ spot, texts, nowMs }: { spot: SeaSpot | null; texts: SeaTexts
       </Card>
       {void nowMs}
     </>
+  );
+}
+
+/**
+ * Dossier view of the official texts (Seewetterdienst Hamburg): warning status as two status tiles, the coast report
+ * and each forecast day as labelled rows, the medium range as a day list with water temperature tiles. Every text is
+ * the parsed report verbatim — only arranged; numbers are set bold, nothing is reworded (quote rule). The Beaufort
+ * chip is a conversion of the highest number in the wind line and says so.
+ */
+const RowIcon = ({ k }: { k: 'wind' | 'sight' | 'sea' | 'other' }) => (
+  <svg className="sw-ar-ic" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+    {k === 'wind' && <path d="M2 7h10a2.5 2.5 0 1 0-2.5-2.5M2 11h14a2.5 2.5 0 1 1-2.5 2.5M2 15h7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />}
+    {k === 'sight' && <><path d="M1.5 10s3.2-5.5 8.5-5.5S18.5 10 18.5 10s-3.2 5.5-8.5 5.5S1.5 10 1.5 10Z" fill="none" stroke="currentColor" strokeWidth="1.6" /><circle cx="10" cy="10" r="2.4" fill="currentColor" /></>}
+    {k === 'sea' && <path d="M1.5 8c2 0 2-1.8 4.2-1.8S7.9 8 10 8s2-1.8 4.2-1.8S16.4 8 18.5 8M1.5 13.5c2 0 2-1.8 4.2-1.8s2.2 1.8 4.3 1.8 2-1.8 4.2-1.8 2.2 1.8 4.3 1.8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />}
+    {k === 'other' && <circle cx="10" cy="10" r="2.6" fill="currentColor" />}
+  </svg>
+);
+
+/** The quoted text with its numbers set bold — the characters stay exactly as in the report. */
+const numBold = (t: string) => t.split(/(\d+(?:,\d+)?)/).map((x, i) => (i % 2 ? <b key={i}>{x}</b> : x));
+
+/** Highest Beaufort number in a wind line, as a conversion chip (only where the table has the row). */
+function BftChip({ wind }: { wind: string | null }) {
+  const nums = (wind?.match(/\d+/g) ?? []).map(Number).filter((n) => n <= 12);
+  if (!nums.length) return null;
+  const top = Math.max(...nums);
+  const row = BFT_ROWS.find(([b]) => b === top);
+  return row ? <span className="sw-ar-bft" title="Umrechnung der höchsten Windstärke im Text">bis {top} Bft ≈ {row[1]}</span> : null;
+}
+
+function ReportRows({ a }: { a: { wind: string | null; sightWeather: string | null; sea?: string | null; other: string[] } }) {
+  const rows: Array<['wind' | 'sight' | 'sea' | 'other', string, string]> = [];
+  if (a.wind) rows.push(['wind', 'Wind', a.wind]);
+  if (a.sightWeather) rows.push(['sight', 'Sicht/Wetter', a.sightWeather]);
+  if (a.sea) rows.push(['sea', 'Seegang', a.sea]);
+  a.other.forEach((o) => rows.push(['other', '', o]));
+  return (
+    <dl className="sw-ar-rows">
+      {rows.map(([k, label, text], i) => (
+        <div key={i} className={`sw-ar-row is-${k}`}>
+          <dt><RowIcon k={k} />{label && <span>{label}</span>}</dt>
+          <dd>{numBold(text)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function StatusTile({ title, meta, status, text, missing }: { title: string; meta: string; status: 'none' | 'unknown' | null; text: string; missing: string }) {
+  const tone = status === 'none' ? 'is-none' : 'is-unknown';
+  return (
+    <div className={`sw-ar-status ${tone}`}>
+      <span className="sw-ar-status-ic" aria-hidden="true">{status === 'none' ? '✓' : '!'}</span>
+      <div className="sw-ar-status-tx">
+        <span className="sw-ar-k">{title}</span>
+        <p className="sw-official">{text || missing}</p>
+        <span className="sw-ar-meta">{meta}</span>
+      </div>
+    </div>
+  );
+}
+
+function AreaDossier({ spot, texts, warning }: { spot: SeaSpot | null; texts: SeaTexts; warning: Props['warning'] }) {
+  const coastName = spot ? (spot.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste') : 'Küste';
+  const c = warning.coast, area = warning.area;
+  const stale = texts.stale.WODL45;
+  const sec = spot && texts.fq51?.parts.kind === 'report' ? texts.fq51.parts.days[0]?.areas.find((a) => a.id === spot.coast?.id) : null;
+  const d = texts.fq50;
+  const id = spot?.seaArea?.id ?? null;
+  const days = d?.parts.kind === 'report' ? d.parts.days : [];
+  const fx = texts.fx40?.parts.kind === 'medium' ? texts.fx40.parts : null;
+  const sea = fx?.seas.find((x) => x.sea === spot?.region) ?? null;
+  const wodlAt = texts.wodl ? `Stand ${issued(texts.wodl)}` : texts.loading ? 'lädt' : 'nicht lesbar';
+  return (
+    <div className="sw-ar">
+      <div className="sw-ar-statusrow">
+        <StatusTile title={`Warnstatus ${coastName}`} status={c && !stale ? c.status : null}
+          text={c?.text ?? ''} missing="Warnstatus derzeit unbekannt — es gibt keine lesbare, aktuelle Meldung. Das heißt nicht „keine Warnung“."
+          meta={`${c?.nr ? `NR. ${c.nr} · ` : ''}${wodlAt}${stale ? ' · veraltet' : ''}${c?.issuedText ? ` · ${c.kind ? `${c.kind} · ` : ''}${c.issuedText}` : ''}`} />
+        {spot?.seaArea && (
+          <StatusTile title={`Warnstatus Seegebiet ${spot.seaArea.name}`} status={area && !stale ? area.status : null}
+            text={area?.text ?? ''} missing="Für dieses Seegebiet ist keine Zeile der Warnmeldung lesbar — das heißt nicht „keine Warnung“."
+            meta={`WODL45, englischer Teil · ${wodlAt}${stale ? ' · veraltet' : ''}`} />
+        )}
+      </div>
+
+      <div className="sw-ar-grid">
+        <section className="sw-card is-official sw-ar-card">
+          <div className="sw-card-head"><span className="sw-eyebrow is-accent-dark">Küstenbericht</span><span className="sw-unit">wörtlich</span></div>
+          <h4 className="sw-ar-title">{sec?.name ?? spot?.coast?.name ?? 'Küste'}</h4>
+          <div className="sw-ar-meta">{texts.fq51 ? issued(texts.fq51) : texts.loading ? 'lädt' : 'nicht lesbar'}{texts.stale.FQDL51 ? ' · veraltet' : ''}</div>
+          {sec ? <><BftChip wind={sec.wind} /><ReportRows a={sec} /></> : <p className="sw-note">Küstenbericht: {texts.loading ? 'lädt' : 'kein Abschnitt für diesen Spot lesbar'}</p>}
+        </section>
+
+        <section className="sw-card is-official sw-ar-card">
+          <div className="sw-card-head"><span className="sw-eyebrow is-accent-dark">Seewetterbericht · Seegebiet</span><span className="sw-unit">Windstärke in Beaufort</span></div>
+          <h4 className="sw-ar-title">{spot?.seaArea?.name ?? 'Seegebiet'}</h4>
+          <div className="sw-ar-meta">{d ? `${d.heading} · herausgegeben vom Seewetterdienst Hamburg, ${dateTime(Date.parse(d.issuedAt))} (${utcHm(Date.parse(d.issuedAt))} UTC)` : texts.loading ? 'lädt …' : 'Seewetterbericht derzeit nicht lesbar'}{texts.stale.FQDL50 ? ' · veraltet' : ''}</div>
+          {!id && <p className="sw-note">Dieser Spot liegt in keinem Seegebiet des Berichts (z. B. Haff) — siehe Küstenbericht.</p>}
+          <div className="sw-ar-days">
+            {days.map((day) => {
+              const a = day.areas.find((x) => x.id === id);
+              return a ? (
+                <div key={day.label} className="sw-ar-day">
+                  <div className="sw-ar-day-head"><span>{day.label}:</span><BftChip wind={a.wind} /></div>
+                  <ReportRows a={a} />
+                </div>
+              ) : null;
+            })}
+          </div>
+          {d && <details className="sw-details"><summary>Ganzen Bericht lesen (alle Gebiete, Wetterlage)</summary><pre className="sw-pre">{d.text}</pre></details>}
+        </section>
+      </div>
+
+      <section className="sw-card is-cream sw-ar-card">
+        <div className="sw-card-head"><span className="sw-eyebrow">Mittelfrist · {texts.fx40 ? `FXDL40 ${dateTime(Date.parse(texts.fx40.issuedAt))}` : texts.loading ? 'lädt' : 'nicht lesbar'}{texts.stale.FXDL40 ? ' · veraltet' : ''}</span><span className="sw-unit">wörtlich · Windstärke in Beaufort</span></div>
+        {sea ? (
+          <div className="sw-ar-mid">
+            <ol className="sw-ar-timeline">
+              {sea.days.map((x) => (
+                <li key={x.label}><span className="sw-ar-tl-day">{x.label}:</span><span className="sw-ar-tl-tx">{numBold(x.text)}</span></li>
+              ))}
+            </ol>
+            {sea.water.length > 0 && (
+              <div className="sw-ar-water">
+                <span className="sw-ar-k">Temperaturen Wasser</span>
+                {sea.water.map((w) => (
+                  <div key={w.part} className="sw-ar-wt"><span>{w.part}</span><strong>{w.min} bis {w.max} Grad</strong></div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : <p className="sw-note">{texts.fx40 ? 'Kein Abschnitt für dieses Meer gefunden — ganzer Text unten.' : ''}</p>}
+        {texts.fx40 && <details className="sw-details"><summary>Ganzen Mittelfrist-Bericht lesen</summary><pre className="sw-pre">{texts.fx40.text}</pre></details>}
+      </section>
+
+      <div className="sw-ar-grid">
+        {texts.wodl && (
+          <section className="sw-card is-official sw-ar-card">
+            <div className="sw-eyebrow is-accent-dark">Starkwind-, Sturm- und Orkanwarnungen · {issued(texts.wodl)}</div>
+            <details className="sw-details" open={warning.status === 'unknown'}><summary>Warnmeldung im Wortlaut (WODL45)</summary><pre className="sw-pre">{texts.wodl.text}</pre></details>
+          </section>
+        )}
+        <section className="sw-card is-cream sw-ar-card">
+          <div className="sw-eyebrow">Lesehilfe Beaufort</div>
+          <div className="sw-ar-bftscale">
+            {BFT_ROWS.map(([b, k, n]) => (
+              <div key={b} className={`sw-ar-bftcell${b >= 8 ? ' is-hot' : ''}`} style={{ ['--b' as string]: b }}>
+                <strong>{b}</strong><span>{k}</span><em>{n}</em>
+              </div>
+            ))}
+          </div>
+          <p className="sw-note">„Seegang“ im Bericht meint die signifikante Wellenhöhe; einzelne Wellen können fast doppelt so hoch sein.</p>
+        </section>
+      </div>
+    </div>
   );
 }
 
