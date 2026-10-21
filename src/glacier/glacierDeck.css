@@ -223,26 +223,45 @@
 .gl-changes li > span { line-height: 1.35; }
 @media (max-width: 767px) { .gl-star { width: 44px; height: 44px; } .gl-pill-actions { flex: 0 0 auto; } }
 
-/* "Alle Gletscher" in the readout (the dock keeps search, country and metric) */
+/* "Alle Gletscher" in the readout: one tile per glacier, built like the fire list of the Brandradar (the dock keeps search, country, metric) */
 .gl-dock-foot { margin-top: auto; }
-.gl-all { border: 1px solid var(--gl-line); border-radius: 14px; background: #fff; padding: 12px 10px 10px 14px; display: flex; flex-direction: column; gap: 8px; }
-.gl-all-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding-right: 4px; }
-.gl-all-head .gl-h3 { margin: 0; }
-.gl-all-head small { font-size: 11.5px; color: var(--gl-muted); }
-.gl-all-list { list-style: none; margin: 0 -4px 0 -6px; padding: 0 4px 0 0; display: flex; flex-direction: column; gap: 1px; max-height: 460px; overflow-y: auto; }
-.gl-all-list button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 7px 8px 7px 6px; border: 0; border-radius: 10px; background: transparent; cursor: pointer; text-align: left; min-height: 44px; color: var(--gl-ink); }
-.gl-all-list button:hover { background: var(--gl-panel); }
-.gl-all-list button[aria-current="true"] { background: var(--gl-tint); box-shadow: inset 3px 0 0 var(--gl-accent); }
-.gl-all-list button:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: -2px; }
-.gl-all-n { font-family: var(--gl-mono); font-size: 11px; color: var(--gl-faint); width: 26px; text-align: right; flex: 0 0 auto; }
-.gl-all-dot { width: 12px; height: 12px; border-radius: 6px; flex: 0 0 auto; box-shadow: 0 0 0 1px rgba(44,42,38,.12); }
-.gl-all-dot.is-none { border: 1.5px dashed #8B7E62; background: #F3EEE1; box-shadow: none; }
-.gl-all-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.gl-all-body b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gl-all-body > span:not(.gl-all-bar) { font-size: 11px; color: var(--gl-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gl-all-bar { display: block; height: 4px; border-radius: 2px; background: var(--gl-bg); overflow: hidden; margin-top: 2px; }
-.gl-all-bar i { display: block; height: 100%; border-radius: 2px; }
-.gl-all-v { font-family: var(--gl-mono); font-size: 12.5px; font-weight: 600; white-space: nowrap; flex: 0 0 auto; }
-.gl-all-more { display: flex; gap: 8px; padding-top: 2px; }
-.gl-all-more .gl-btn { flex: 1; justify-content: center; height: 34px; font-size: 13px; }
-@media (min-width: 768px) and (max-width: 1279px) { .gl-readout-scroll > .gl-all { grid-column: 1 / -1; } }
+.gl-all { display: flex; flex-direction: column; gap: 6px; }
+.gl-all-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.gl-all-head .gl-label { letter-spacing: 1.6px; }
+.gl-all-head small { font-size: 11px; color: var(--gl-faint); }
+.gl-all-sub { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--gl-muted); }
+.gl-all-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gl-tile { --gl-tile-c: #E6DFCB; position: relative; display: flex; flex-direction: column; gap: 9px; width: 100%; padding: 12px 12px 12px 15px; text-align: left; font: inherit; color: var(--gl-ink); background: #fff; border: 1px solid var(--gl-line); border-radius: 12px; cursor: pointer; overflow: hidden; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.gl-tile::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gl-tile-c); }
+.gl-tile:hover { border-color: var(--gl-line-strong); box-shadow: 0 4px 14px rgba(44,42,38,.08); transform: translateY(-1px); }
+.gl-tile.is-sel { border: 1.5px solid var(--gl-accent); box-shadow: 0 0 0 3px rgba(30,135,168,.12); }
+.gl-tile.is-gone { opacity: .72; }
+.gl-tile:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+.gl-tile-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gl-tile-top svg { flex: 0 0 auto; }
+.gl-tile-n { font-family: var(--gl-mono); font-size: 11px; color: var(--gl-faint); min-width: 18px; text-align: right; flex: 0 0 auto; }
+.gl-tile-name { font-size: 14px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-tile.is-sel .gl-tile-name { color: var(--gl-accent-dark); }
+.gl-tile-badge { flex: 0 0 auto; min-width: 20px; text-align: center; font-size: 11px; font-weight: 700; border-radius: 5px; padding: 2px 6px; color: var(--gl-prov-official-text); background: var(--gl-prov-official-bg); border: 1px solid var(--gl-prov-official-line); }
+.gl-tile-badge.is-A { color: #fff; background: var(--gl-accent-dark); border-color: var(--gl-accent-dark); }
+.gl-tile-badge.is-C { border-style: dashed; background: transparent; }
+.gl-tile-region { margin-left: auto; flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--gl-muted); }
+.gl-tile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.gl-stat { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 8px 9px; background: var(--gl-panel); border: 1px solid var(--gl-line); border-radius: 9px; }
+.gl-stat.is-metric { background: color-mix(in srgb, var(--gl-tile-c) 22%, #fff); border-color: color-mix(in srgb, var(--gl-tile-c) 55%, var(--gl-line)); }
+.gl-stat-lbl { font-size: 10.5px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--gl-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-stat-val { font-size: 15px; font-weight: 700; color: var(--gl-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.gl-stat.is-metric .gl-stat-val { color: var(--gl-loss); }
+.gl-stat-val.is-text { font-family: inherit; font-size: 13.5px; font-weight: 600; }
+.gl-stat-sub { font-size: 11px; color: var(--gl-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-stat-bar { display: block; height: 4px; border-radius: 2px; background: rgba(44,42,38,.08); overflow: hidden; margin-top: 4px; }
+.gl-stat-bar i { display: block; height: 100%; border-radius: 2px; background: var(--gl-tile-c); }
+.gl-tile-notes { display: flex; flex-wrap: wrap; gap: 4px; }
+.gl-tile-note { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 9px; background: var(--gl-tint); color: var(--gl-accent-dark); }
+.gl-all-more { display: flex; gap: 8px; padding-top: 4px; }
+.gl-all-more .gl-btn { flex: 1; justify-content: center; height: 36px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .gl-tile { transition: none; } .gl-tile:hover { transform: none; } }
+@media (min-width: 768px) and (max-width: 1279px) {
+  .gl-readout-scroll > .gl-all { grid-column: 1 / -1; }
+  .gl-all-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+}

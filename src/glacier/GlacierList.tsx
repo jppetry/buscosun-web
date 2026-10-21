@@ -1,10 +1,14 @@
-/** GL — "Alle Gletscher" in the readout: every glacier of the current country/search, ranked ones first (bucket colour + bar), the rest by area with "–". */
+/**
+ * GL — "Alle Gletscher" in the readout: one tile per glacier, built like the fire list of the Brandradar (head row, four key
+ * figures, notes). Ranked glaciers first (bucket colour + bar), the rest by area with "–". Every value carries its origin.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { OriginChip } from './GlacierParts';
-import { GLACIER_RAMPS, displayName, fmt0, fmtKm2, type GlacierMetricDef, type MetricValue, type RankRow } from './glacierView';
-import type { GlacierCatalogEntry } from './glacierContract';
+import { GLACIER_RAMPS, displayName, fmt0, fmtKm2, fmtRefYear, type GlacierMetricDef, type MetricValue, type RankRow } from './glacierView';
+import { GLACIER_COUNTRY_LABEL, GLACIER_REGIONS, type GlacierCatalogEntry } from './glacierContract';
 
-const STEP = 60;
+const STEP = 40;
+const STATUS_LABEL: Record<NonNullable<GlacierCatalogEntry['status']>, string> = { vanished: 'verschwunden (amtlich)', vanishing: 'verschwindend (amtlich)', 'lost-status': 'Status verloren (amtlich)' };
 
 interface Props {
   ranked: readonly RankRow[];
@@ -13,6 +17,15 @@ interface Props {
   hint: string;
   selectedId: string | null;
   onPick: (id: string) => void;
+}
+
+function GlacierIcon({ color }: { color: string }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M2.5 20 9 8.5l3 4.5 2.5-3.5L21.5 20Z" fill={color} stroke="rgba(44,42,38,.55)" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="m7.2 11.7 1.8-3.2 1.9 2.9-1.1-.6-1.2 1.4Z" fill="#fff" opacity=".9" />
+    </svg>
+  );
 }
 
 export default function GlacierList({ ranked, rest, def, hint, selectedId, onPick }: Props) {
@@ -26,35 +39,64 @@ export default function GlacierList({ ranked, rest, def, hint, selectedId, onPic
   return (
     <section className="gl-all" aria-label="Alle Gletscher">
       <div className="gl-all-head">
-        <div><h3 className="gl-h3">Alle Gletscher</h3><small>{fmt0(total)} in der Auswahl · {def.label} · {def.locked ? 'gesperrt' : hint}</small></div>
-        <OriginChip origin={def.origin} />
+        <span className="gl-label">Alle Gletscher</span>
+        <small>{fmt0(Math.min(shown, total))} von {fmt0(total)} gezeigt</small>
       </div>
+      <div className="gl-all-sub">{def.label} · {def.locked ? 'gesperrt' : hint} <OriginChip origin={def.origin} /></div>
       {total === 0 ? <div className="gl-empty">Keine Gletscher für diese Auswahl.</div> : (
-        <ul className="gl-all-list">
+        <ol className="gl-all-list">
           {rows.map((r) => {
+            const g = r.g;
             const b = r.value?.bucket ?? -1;
             const v = r.value?.v;
+            const sel = selectedId === g.id;
+            const region = GLACIER_REGIONS[g.region]?.label ?? g.region;
+            const notes = [g.lead ? 'Leitgletscher' : null, g.debris != null && g.debris >= 2 ? 'überwiegend schuttbedeckt' : null, g.status ? STATUS_LABEL[g.status] : null].filter(Boolean);
             return (
-              <li key={r.g.id}>
-                <button type="button" aria-current={selectedId === r.g.id} onClick={() => onPick(r.g.id)}>
-                  <span className="gl-all-n">{r.n ?? ''}</span>
-                  <span className={`gl-all-dot${b < 0 ? ' is-none' : ''}`} style={b >= 0 ? { background: ramp[b] } : undefined} aria-hidden="true" />
-                  <span className="gl-all-body">
-                    <b>{displayName(r.g)}</b>
-                    <span>{r.g.country} · {fmtKm2(r.g.area.km2)}{r.value?.period ? ` · ${r.value.period}` : ''}</span>
-                    {r.n != null && v != null && <span className="gl-all-bar" aria-hidden="true"><i style={{ width: `${Math.max(3, (Math.abs(v) / maxAbs) * 100)}%`, background: b >= 0 ? ramp[b] : undefined }} /></span>}
+              <li key={g.id}>
+                <button type="button" className={`gl-tile${sel ? ' is-sel' : ''}${g.status === 'vanished' ? ' is-gone' : ''}`} aria-pressed={sel} onClick={() => onPick(g.id)}
+                  style={b >= 0 ? { ['--gl-tile-c' as string]: ramp[b] } : undefined}>
+                  <span className="gl-tile-top">
+                    {r.n != null && <span className="gl-tile-n">{r.n}</span>}
+                    <GlacierIcon color={b >= 0 ? ramp[b] : '#F3EEE1'} />
+                    <span className="gl-tile-name">{displayName(g)}</span>
+                    <span className={`gl-tile-badge is-${g.klass}`} title={`Größenklasse ${g.klass}`}>{g.klass}</span>
+                    <span className="gl-tile-region" title={GLACIER_COUNTRY_LABEL[g.country]}>{g.country}</span>
                   </span>
-                  <span className="gl-all-v" data-origin={def.origin}>{r.value?.text ?? '–'}</span>
+                  <span className="gl-tile-stats">
+                    <span className="gl-stat is-metric" title={r.value?.reason ?? undefined}>
+                      <span className="gl-stat-lbl">{def.label}</span>
+                      <span className="gl-stat-val gl-num" data-origin={def.origin}>{r.value?.text ?? '–'}</span>
+                      <span className="gl-stat-sub">{r.value?.text ? r.value.period : def.locked ? 'gesperrt' : def.noValue}</span>
+                      {r.n != null && v != null && <span className="gl-stat-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, (Math.abs(v) / maxAbs) * 100)}%` }} /></span>}
+                    </span>
+                    <span className="gl-stat">
+                      <span className="gl-stat-lbl">Fläche</span>
+                      <span className="gl-stat-val gl-num" data-origin="official">{fmtKm2(g.area.km2)}</span>
+                      <span className="gl-stat-sub">Inventar {fmtRefYear(g.area.refYear)}</span>
+                    </span>
+                    <span className="gl-stat">
+                      <span className="gl-stat-lbl">Höhe</span>
+                      <span className="gl-stat-val gl-num" data-origin="official">{fmt0(g.z[1])} m</span>
+                      <span className="gl-stat-sub">{fmt0(g.z[0])}–{fmt0(g.z[2])} m</span>
+                    </span>
+                    <span className="gl-stat">
+                      <span className="gl-stat-lbl">Region</span>
+                      <span className="gl-stat-val is-text">{region}</span>
+                      <span className="gl-stat-sub">{g.area.source}</span>
+                    </span>
+                  </span>
+                  {notes.length > 0 && <span className="gl-tile-notes">{notes.map((t) => <span key={t} className="gl-tile-note">{t}</span>)}</span>}
                 </button>
               </li>
             );
           })}
-        </ul>
+        </ol>
       )}
       {shown < total && (
         <div className="gl-all-more">
-          <button type="button" className="gl-btn" onClick={() => setShown((s) => s + STEP * 4)}>Weitere zeigen</button>
-          <button type="button" className="gl-btn" onClick={() => setShown(total)}>Alle {fmt0(total)} zeigen</button>
+          <button type="button" className="gl-btn" onClick={() => setShown((s) => s + STEP * 3)}>Weitere {fmt0(Math.min(STEP * 3, total - shown))} laden</button>
+          <button type="button" className="gl-btn" onClick={() => setShown(total)}>Alle {fmt0(total)}</button>
         </div>
       )}
     </section>
