@@ -262,6 +262,17 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
   const showTabs = vm.status !== 'noplace' && !!onPart;
   return (
     <div className="dbd-root">
+      <div className="dbd-shell">
+      <FeatureRail
+        active="map2d"
+        onOpenFeature={(id) => onOpenFeature?.(id)}
+        onHome={onBack}
+        navClass="mdk-rail"
+        btnClass="mdk-rail-btn"
+        activeClass="is-active"
+        homeBtnClass="mdk-rail-btn mdk-rail-bottom"
+      />
+      <div className="dbd-shell-main">
       {/* Desktop/Tablet: Topbar und Werkzeug-Rail wie auf der Kartenebene (mdk-*, Werte aus map/mapDeck.css, s. dashboard.css) */}
       <header className="mdk-topbar dbd-deckbar">
         <button type="button" className="mdk-brand" onClick={onBack} aria-label="Zur Startseite">
@@ -293,17 +304,6 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
         <div className="dbd-top-right"><span className="dbd-run">{run}</span>{status}</div>
         <div className="dbd-run-mobile">{run}</div>
       </header>
-      <div className="dbd-shell">
-      <FeatureRail
-        active="map2d"
-        onOpenFeature={(id) => onOpenFeature?.(id)}
-        onHome={onBack}
-        navClass="mdk-rail"
-        btnClass="mdk-rail-btn"
-        activeClass="is-active"
-        homeBtnClass="mdk-rail-btn mdk-rail-bottom"
-      />
-      <div className="dbd-shell-main">
       {showTabs && <DashTabs part={part} onPart={onPart!} />}
 
       <main className="dbd-content">
