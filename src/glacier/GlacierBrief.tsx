@@ -270,6 +270,13 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             </button>
           ))}
         </nav>
+        <div className="gl-ds-card gl-ds-mapcard">
+          {mapTools}
+          {mapEl}
+          <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
+            <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
+          </a>
+        </div>
         <div className="gl-ds-grid">
           <div className="gl-ds-main" data-level={level + 1}>
             {notReady ? <>{level === 0 && <section className="gl-ds-card gl-ds-sec" data-tab="heute" aria-label={TAB_LABEL.heute}>{headBlock}</section>}{notReady}</> : (data && (
@@ -286,13 +293,6 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             ))}
           </div>
           <div className="gl-ds-side">
-            <div className="gl-ds-card gl-ds-mapcard">
-              {mapTools}
-              {mapEl}
-              <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
-                <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
-              </a>
-            </div>
             <div className="gl-ds-card"><aside className="gl-sheet-left" aria-label="Steckbrief">{facts}{factsNote}</aside></div>
           </div>
         </div>

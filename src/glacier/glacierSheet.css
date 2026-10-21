@@ -105,7 +105,7 @@
 .gl-dl .gl-btn { flex: 1 1 140px; justify-content: center; }
 
 /* Dossier of one glacier in the centre of the situation page (layout="dossier"): head card with four key figures,
-   the five sections of the sheet as cards on the left, sheet map and Steckbrief on the right (pattern Brandradar BD2) */
+   the sheet map across the full width, the sections as cards on the left, Steckbrief on the right (pattern Brandradar BD2) */
 .gl-ds { display: flex; flex-direction: column; gap: 14px; max-width: 1180px; margin: 0 auto; }
 .gl-ds-card { background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .gl-ds-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--gl-accent-dark); }
@@ -127,7 +127,7 @@
 .gl-ds-main, .gl-ds-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gl-ds-side { position: sticky; top: 0; }
 .gl-ds-mapcard { padding: 0; overflow: hidden; }
-.gl-ds-mapcard .gl-sheet-map { position: relative; flex: none; height: 400px; min-height: 0; border: 0; }
+.gl-ds-mapcard .gl-sheet-map { position: relative; flex: none; height: 460px; min-height: 0; border: 0; }
 /* The three levels of the dossier (pattern Brandradar): a stepper under the head card, one level of sections at a time */
 .gl-ds-steps { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px; background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; box-shadow: 0 4px 14px rgba(44,42,38,.06); }
 .gl-ds-step { display: flex; align-items: center; gap: 11px; min-height: 54px; padding: 8px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--gl-ink); text-align: left; cursor: pointer; font: inherit; transition: background .15s; }
