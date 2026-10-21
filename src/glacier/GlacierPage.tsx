@@ -377,7 +377,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               {map}{zoom}{legend}{pill}{note}
               <div className="gl-attrib">Karte: OpenStreetMap-Mitwirkende · Inventare je nach Land</div>
             </section>
-            {chart}
           </div>
           {readout}
         </div>
