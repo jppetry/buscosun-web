@@ -4,7 +4,7 @@
  * "amtlich" (Seewetterdienst Hamburg, verbatim with number and issue time). The official warning status stands ABOVE
  * the verdict whenever it is not the exact "no warning" sentence (Seewetter check 3). No text says "sicher".
  */
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { SeaSpot } from './seaContract';
 import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
@@ -63,20 +63,29 @@ interface Props {
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
-/** Dossier chapters — same keys as the tabs (URL `tab=`), with a hint line like the Brandradar dossier. */
-const CHAPTERS: Array<[SeaTab, string, string]> = [['spot', 'Spot', 'Allgemein · Satellit · Wetter'], ['gebiet', 'Seegebiet', 'Seewetterbericht · Mittelfrist'], ['quellen', 'Quellen', 'Herkunft · Prüfer-Bilanz']];
-/** Sections of the dossier's spot chapter: anchor id and label of the jump bar. */
-const SECTIONS: Array<[string, string]> = [['sw-sec-allgemein', 'Allgemein'], ['sw-sec-satellit', 'Satellit'], ['sw-sec-wetter', 'Wetter']];
+/**
+ * Dossier chapters (desktop centre stage): Allgemein · Satellit · Wetter. They replace the tabs Spot · Seegebiet ·
+ * Quellen there and take over their content; the URL keeps the tab keys (`tab=spot|gebiet|quellen`, mobile uses
+ * them as tabs): Allgemein ⇔ `quellen`, Wetter ⇔ `spot`/`gebiet`, Satellit is written as `spot`.
+ */
+type DsChapter = 'allgemein' | 'satellit' | 'wetter';
+const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
+  ['allgemein', 'Allgemein', 'Spot · Datenquellen · Prüfer-Bilanz', 'quellen'],
+  ['satellit', 'Satellit', 'Lage · Küste im Zeitverlauf', 'spot'],
+  ['wetter', 'Wetter', 'Stunde · Verlauf · Amtlich · Seegebiet · Pegel', 'spot'],
+];
+const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'wetter');
+const SEC_AREA = 'sw-sec-seegebiet';
 function jumpTo(id: string) {
   const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
 }
-function DsSection({ id, n, title, hint, side, children }: { id: string; n: number; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
+function DsSection({ id, title, hint, side, children }: { id?: string; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
+  const tid = id ? `${id}-t` : undefined;
   return (
-    <section className="sw-sec" id={id} aria-labelledby={`${id}-t`}>
+    <section className="sw-sec" id={id} aria-labelledby={tid} aria-label={id ? undefined : title}>
       <header className="sw-sec-head">
-        <span className="sw-sec-n" aria-hidden="true">{n}</span>
-        <div className="sw-sec-tx"><h3 id={`${id}-t`}>{title}</h3><p>{hint}</p></div>
+        <div className="sw-sec-tx"><h3 id={tid}>{title}</h3><p>{hint}</p></div>
         {side && <div className="sw-sec-side">{side}</div>}
       </header>
       <div className="sw-sec-body">{children}</div>
@@ -117,6 +126,14 @@ function Card({ children, cls = '' }: { children: ReactNode; cls?: string }) { r
 
 export default function SeaReadout(p: Props) {
   const h = p.hour, s = p.spot, v = p.verdict;
+  // Dossier chapter: follows the URL tab, except right after a chapter click wrote the tab itself (Satellit ⇒ `spot`).
+  const [chapter, setChapter] = useState<DsChapter>(() => chapterOf(p.tab));
+  const requestedTab = useRef<SeaTab | null>(null);
+  useEffect(() => {
+    if (requestedTab.current === p.tab) { requestedTab.current = null; return; }
+    requestedTab.current = null;
+    setChapter(chapterOf(p.tab));
+  }, [p.tab]);
   const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const officialBanner = s && p.warning.status === 'unknown' && (
     <Card cls="is-warn">
@@ -228,11 +245,15 @@ export default function SeaReadout(p: Props) {
   const sourcesTab = <SourcesTab spot={s} run={p.run} spotsDoc={p.spotsDoc} texts={p.texts} freshness={p.freshness} wl={p.waterLevel} />;
 
   if (p.layout === 'dossier') {
-    // Spot chapter of the dossier in three sections: general facts of the spot, satellite, weather. The same facts
-    // as the spot card (title, meta, run chip, hour values, compass, verdict, model values), laid out for the wide stage.
+    // Head card on every chapter (title, meta, run chip); the official banner stays right below it on every chapter.
+    // The hour card shows the same facts as the spot card (hour values, compass, verdict, model values) for the wide stage.
     const spread = h && h.windMs != null && h.gustMs != null ? h.gustMs - h.windMs : null;
     const gauge = p.waterLevel?.gauge ?? null;
     const stationName = s?.station ? s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase() : null;
+    const pick = (c: DsChapter, tab: SeaTab) => {
+      setChapter(c);
+      if (tab !== p.tab) { requestedTab.current = tab; p.onTab(tab); }
+    };
     const headCard = s && (
       <section className="sw-card sw-ds-head" aria-label="Spot-Dossier · Kopf">
         <div className="sw-ds-headrow">
@@ -244,28 +265,26 @@ export default function SeaReadout(p: Props) {
           </div>
           {p.onMap && <div className="sw-ds-headside"><button type="button" className="sw-link sw-ds-back" onClick={p.onMap}>↗ Zur Karte</button></div>}
         </div>
-        <nav className="sw-sec-nav" aria-label="Abschnitte des Spot-Dossiers">
-          {SECTIONS.map(([id, label], i) => (
-            <button key={id} type="button" onClick={() => jumpTo(id)}><span aria-hidden="true">{i + 1}</span>{label}</button>
-          ))}
-        </nav>
       </section>
     );
+    // Allgemein: the spot's facts, combined with what the sources say about them (report, station, gauge, model cell).
+    const w = p.spotsDoc?.wind;
     const facts: Array<[string, ReactNode, ReactNode?]> = s ? [
       ['Art', kindsText(s.kinds), `Profil ${p.profileLabel}`],
-      ['Meer', s.region === 'nordsee' ? 'Nordsee' : 'Ostsee', s.wodlCoast === 'Nordseekueste' ? 'Warnblock Deutsche Nordseeküste' : 'Warnblock Deutsche Ostseeküste'],
-      ['Küstenabschnitt', s.coast?.name ?? '–', 'Küstenbericht (FQDL51)'],
-      ['Seegebiet', s.seaArea?.name ?? 'keins', s.seaArea ? 'Seewetterbericht (FQDL50)' : 'liegt in keinem Seegebiet des Berichts (z. B. Haff)'],
+      ['Meer', s.region === 'nordsee' ? 'Nordsee' : 'Ostsee', `Warnstatus: Deutsche ${s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'} (WODL45)`],
+      ['Küstenabschnitt', s.coast?.name ?? '–', p.texts.fq51 ? `Küstenbericht FQDL51 · ${issued(p.texts.fq51)}` : 'Küstenbericht FQDL51 · nicht lesbar'],
+      ['Seegebiet', s.seaArea?.name ?? 'keins', s.seaArea ? (p.texts.fq50 ? `Seewetterbericht FQDL50 · ${issued(p.texts.fq50)}` : 'Seewetterbericht FQDL50 · nicht lesbar') : 'liegt in keinem Seegebiet des Berichts (z. B. Haff)'],
       ['Ufer zeigt nach', `${compass16(s.normal)} · ${s.normal}°`, s.normalFrom === 'set' ? `gesetzt${s.normalWhy ? ` — ${s.normalWhy}` : ''}` : 'aus der Landmaske des Wellenmodells'],
       ...(s.tidal ? [['Watt', 'ja', 'bei Niedrigwasser kann die Stelle trockenfallen'] as [string, ReactNode, ReactNode]] : []),
-      ['Wasserzelle', `${f1(s.cell.km)} km vom Spot`, `Gitter ${s.cell.model.toUpperCase()} — dort werden Seegang und Wind gelesen`],
-      ['Messstation', stationName ? `DWD ${stationName}` : 'keine in der Nähe', s.station ? `${s.station.km} km vom Spot · Messung an Land` : 'keine liefernde Station'],
+      ['Wasserzelle', `${f1(s.cell.km)} km vom Spot`, `${s.cell.model.toUpperCase()} (900 m) · Seegang und Wind ${w?.engine ?? 'buscosun Fusion'} werden dort gelesen`],
+      ['Wassertemperatur', waterText(p.texts, s), p.texts.fx40 ? `Mittelfrist FXDL40 · ${issued(p.texts.fx40)}` : 'Mittelfrist FXDL40 · nicht lesbar'],
+      ['Messstation', stationName ? `DWD ${stationName}` : 'keine in der Nähe', s.station ? `${s.station.km} km vom Spot · stündlich · Messung an Land` : 'keine liefernde Station'],
       ['Pegel', p.waterLevel == null ? 'ausgeschaltet' : gauge ? gauge.name : p.waterLevel.state === 'loading' ? 'lädt …' : 'keiner lesbar',
         gauge && p.waterLevel?.km != null ? `BSH · ${f1(p.waterLevel.km)} km vom Spot` : 'BSH-Wasserstand'],
       ['Lage', `${s.lat.toFixed(4)}° N · ${s.lon.toFixed(4)}° O`, 'WGS84'],
     ] : [];
     const generalCard = s && (
-      <section className="sw-card sw-facts" aria-label="Allgemeine Informationen zum Spot">
+      <section className="sw-card sw-facts" aria-label="Steckbrief des Spots">
         {facts.map(([k, val, sub]) => (
           <div key={k} className="sw-fact"><span className="sw-fact-k">{k}</span><strong>{val}</strong>{sub && <span className="sw-fact-s">{sub}</span>}</div>
         ))}
@@ -322,7 +341,7 @@ export default function SeaReadout(p: Props) {
     const satCard = s && (
       <Card cls="is-cream">
         <div className="sw-card-head"><span className="sw-eyebrow">Satellit · Lage des Spots</span><span className="sw-unit">Esri World Imagery · Klick öffnet die Karte</span></div>
-        <SeaMiniMap spot={s} gauge={gauge} height={260} onClick={p.onMap} ariaLabel={`Satellitenbild: ${s.name}${p.onMap ? ' — zur Kartenbühne wechseln' : ''}`} />
+        <SeaMiniMap spot={s} gauge={gauge} height={320} onClick={p.onMap} ariaLabel={`Satellitenbild: ${s.name}${p.onMap ? ' — zur Kartenbühne wechseln' : ''}`} />
         <div className="sw-ds-maplegend">
           <span><i style={{ background: '#0F6E7A' }} />{s.name} · Ufer zeigt nach {compass16(s.normal)} (gestrichelt)</span>
           {s.station && <span><i style={{ background: '#5F7A4C' }} />DWD-Station {stationName} · {s.station.km} km</span>}
@@ -337,39 +356,53 @@ export default function SeaReadout(p: Props) {
         <SeaSatImagery lat={s.lat} lon={s.lon} name={s.name} nowMs={p.nowMs} />
       </Card>
     );
+    // In the dossier the link of the official card scrolls to the sea-area report on the same chapter.
+    const officialDsCard = s && <OfficialCard spot={s} texts={p.texts} warning={p.warning} onArea={() => jumpTo(SEC_AREA)} nowMs={p.nowMs} />;
     return (
       <div className="sw-ds" aria-label="Spot-Dossier">
         <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers">
-          {CHAPTERS.map(([k, t, hint], i) => (
-            <button key={k} type="button" role="tab" aria-selected={p.tab === k} className={`sw-ds-tab${p.tab === k ? ' is-active' : ''}`} onClick={() => p.onTab(k)}>
+          {DS_CHAPTERS.map(([k, t, hint, tab], i) => (
+            <button key={k} type="button" role="tab" aria-selected={chapter === k} className={`sw-ds-tab${chapter === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
               <span className="sw-ds-tab-n" aria-hidden="true">{i + 1}</span>
               <span className="sw-ds-tab-tx"><span className="sw-ds-tab-t">{t}</span><span className="sw-ds-tab-h">{hint}</span></span>
             </button>
           ))}
         </div>
-        {p.tab === 'spot' && (s ? (
+        {headCard}
+        {officialBanner}
+        {chapter === 'allgemein' && (
           <>
-            {headCard}
-            {officialBanner}
-            <DsSection id={SECTIONS[0][0]} n={1} title="Allgemeine Informationen" hint="Lage, Küste, Seegebiet, Messstation und Pegel">
-              {generalCard}
+            {s ? (
+              <DsSection title="Steckbrief" hint="Lage, Küste und Seegebiet, Wasserzelle des Modells, Messstation und Pegel — mit dem Stand der Quelle">
+                {generalCard}
+              </DsSection>
+            ) : empty}
+            <DsSection title="Datenquellen" hint="Herkunft jedes Werts · Prüfer-Bilanz des Laufs · Modellabgleich · Lizenzen">
+              <div className="sw-ds-grid is-flow">{sourcesTab}</div>
             </DsSection>
-            <DsSection id={SECTIONS[1][0]} n={2} title="Satellit" hint={satDaysCard ? 'Lage aus der Luft · Küste im Zeitverlauf' : 'Lage aus der Luft'}>
-              <div className={`sw-ds-grid${satDaysCard ? '' : ' is-one'}`}>{satCard}{satDaysCard}</div>
-            </DsSection>
-            <DsSection id={SECTIONS[2][0]} n={3} title="Wetter" hint="Stunde · Fenster · Verlauf · Amtlich · Messung · Wasserstand" side={p.chips}>
-              {nowCard}
-              {p.band}
-              <div className="sw-ds-grid">
-                <div className="sw-ds-col">{windowCard}{chartCard}{measuredCard}</div>
-                <div className="sw-ds-col">{officialCard}{waterCard}</div>
-              </div>
-            </DsSection>
-            {disclaimer}
           </>
+        )}
+        {chapter === 'satellit' && (s ? (
+          <div className={`sw-ds-grid${satDaysCard ? '' : ' is-one'}`}>{satCard}{satDaysCard}</div>
         ) : empty)}
-        {p.tab === 'gebiet' && <div className="sw-ds-grid is-flow">{areaTab}</div>}
-        {p.tab === 'quellen' && <div className="sw-ds-grid is-flow">{sourcesTab}</div>}
+        {chapter === 'wetter' && (
+          <>
+            {s ? (
+              <DsSection title="Am Spot" hint="Gewählte Stunde · Stundenband · Fenster · Verlauf · Messung · Wasserstand" side={p.chips}>
+                {nowCard}
+                {p.band}
+                <div className="sw-ds-grid">
+                  <div className="sw-ds-col">{windowCard}{chartCard}</div>
+                  <div className="sw-ds-col">{measuredCard}{waterCard}</div>
+                </div>
+              </DsSection>
+            ) : empty}
+            <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
+              <div className="sw-ds-grid is-flow">{officialDsCard}{areaTab}</div>
+            </DsSection>
+            {s && disclaimer}
+          </>
+        )}
       </div>
     );
   }
