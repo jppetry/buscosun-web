@@ -23,7 +23,7 @@ import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
 import { dynamicsOf } from './activity/dynamics';
 import { DriversView } from './FireFootprintPanel';
-import { DossierChapterTabs, type DossierChapter } from './dossier/DossierPrimitives';
+import { DossierChapterTabs, NoteFold, type DossierChapter } from './dossier/DossierPrimitives';
 import { Stat } from './FireFootprintPanel';
 import { FlameIcon, IndustryIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
@@ -465,11 +465,13 @@ export function HistoryDossierBody({ entry, aside, head }: {
           )}
           {weather === null && <p className="br-note">Wetterlage nicht verfügbar — Ausfall der Historie-Quellen, kein Wert erfunden.</p>}
           {w?.notes.map((n, i) => <p key={i} className="br-note">{n}</p>)}
+          <NoteFold>
           <p className="br-note">
             {w?.day ? <>Tag: {w.day.kind === 'measured' ? 'gemessen' : 'Reanalyse'}{w.day.station ? `, Station ${w.day.station.name} (${w.day.station.distanceKm.toFixed(0)} km)` : ''} · {w.day.source}{w.day.modelFilled.length > 0 ? ' · * vom Anbieter mit Modellwert gefüllt, nicht gemessen' : ''}. </> : null}
             {w?.hour ? <>Stunde: Reanalyse, {w.hour.source}. </> : null}
             Kein ICON-/Fusionswert: die Vorhersagemodelle haben kein Archiv — beide Quellen beschreiben die Umgebung, nicht den Brandort selbst.
           </p>
+          </NoteFold>
         </div>
       </section>
 

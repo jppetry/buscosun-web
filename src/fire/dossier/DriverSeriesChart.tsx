@@ -44,7 +44,7 @@ import { ResponsiveLine } from '@nivo/line';
 import type { FireWeatherHour } from '../detail/fireWeatherAtPoint';
 import type { FireIndexSeries } from '../detail/fireDrivers';
 import { nivoTheme } from '../charts/nivoTheme';
-import { useDossierBreakpoint } from './DossierPrimitives';
+import { NoteFold, useDossierBreakpoint } from './DossierPrimitives';
 
 export interface DriverSeriesChartProps {
   hours: readonly FireWeatherHour[];
@@ -382,13 +382,17 @@ export function DriverSeriesChart({ hours, detectionRange, index, width }: Drive
         </Button>
       )}
 
-      <Typography component="figcaption" variant="caption" sx={{ display: 'block', mt: 1, lineHeight: 1.55 }} className="br-note">
+      <Box component="figcaption" sx={{ mt: 1 }}>
+      <NoteFold>
+      <Typography component="p" variant="caption" sx={{ display: 'block', m: 0, lineHeight: 1.55 }} className="br-note">
         Stündliche Modellwerte über dem Brandzeitfenster; zwischen den beiden roten Marken liegt der
         Zeitraum der Detektionen, davor der Vorlauf. Links steht die Skala der jeweiligen Zeile — die Zeilen
         haben eigene Skalen und sind untereinander nicht vergleichbar. Lücken in einer Linie sind fehlende
         Stunden, keine Nullen. Wind gestrichelt: Böen.
         {index && ' ISI erst nach dem Vorlauf der FFMC-Kette.'}
       </Typography>
+      </NoteFold>
+      </Box>
     </Box>
   );
 }

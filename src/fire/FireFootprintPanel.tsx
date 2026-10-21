@@ -37,7 +37,7 @@ import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
 import { FirePassChart } from './FirePassChart';
 import {
-  ChartSkeleton, CopyButton, FactList, FactRow, KeyStats, Missing, MissingBlock, StatTile,
+  ChartSkeleton, CopyButton, FactList, FactRow, KeyStats, Missing, MissingBlock, NoteFold, StatTile,
   useDossierBreakpoint,
 } from './dossier/DossierPrimitives';
 import {
@@ -901,7 +901,9 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
         />
       )}
       {anchorNote && <p className="br-note">{anchorNote}</p>}
-      <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{DRIVER_RULE_TEXT}</Typography>
+      <NoteFold>
+        <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{DRIVER_RULE_TEXT}</Typography>
+      </NoteFold>
 
       <Box className="br-drv-wind" sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <WindRoseChart rose={rose} spreadBearingDeg={spreadBearingDeg} dominantFromDeg={dom.fromDeg} />
@@ -940,15 +942,22 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
 
       <DriverSeriesChart hours={w.windowHours} detectionRange={w.detectionRange} index={series} width={width} />
 
-      {series && <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{FIRE_INDEX_NOTE}</Typography>}
-      <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
-        Der Gesamt-FWI steht bewusst nicht hier. Wer ihn braucht:{' '}
-        <a href="https://gwis.jrc.ec.europa.eu/apps/gwis_current_situation/" target="_blank" rel="noopener">GWIS · Current Situation</a>{' '}
-        (Copernicus, CC BY 4.0) — der Dienst gibt seine Werte nur als Bild aus, nicht als Zahl, deshalb ist er hier verlinkt statt eingerechnet.
-      </Typography>
+      <NoteFold>
+        {series && <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{FIRE_INDEX_NOTE}</Typography>}
+        <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
+          Der Gesamt-FWI steht bewusst nicht hier. Wer ihn braucht:{' '}
+          <a href="https://gwis.jrc.ec.europa.eu/apps/gwis_current_situation/" target="_blank" rel="noopener">GWIS · Current Situation</a>{' '}
+          (Copernicus, CC BY 4.0) — der Dienst gibt seine Werte nur als Bild aus, nicht als Zahl, deshalb ist er hier verlinkt statt eingerechnet.
+        </Typography>
+        {era5 && (
+          <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
+            Für zurückliegende Brände gibt es kein ICON-Archiv — die Reanalyse ist gröber, ein einzelner Hang oder Talwind steckt in ihr nicht drin.
+          </Typography>
+        )}
+      </NoteFold>
+      {/* Source and licence attribution stay visible (CC BY). */}
       <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
         {era5 ? FIRE_WEATHER_ARCHIVE_LABEL : FIRE_WEATHER_SOURCE_LABEL} · {era5 ? FIRE_WEATHER_ARCHIVE_ATTRIBUTION : FIRE_WEATHER_ATTRIBUTION}.
-        {era5 && ' Für zurückliegende Brände gibt es kein ICON-Archiv — die Reanalyse ist gröber, ein einzelner Hang oder Talwind steckt in ihr nicht drin.'}
       </Typography>
     </Stack>
   );

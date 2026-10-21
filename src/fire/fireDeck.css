@@ -76,6 +76,19 @@
 .br-box.is-gap, .br-box.is-lag { margin: 0 0 10px; }
 .br-box.is-stale { margin: 0 0 8px; }
 .br-note { margin: 10px 0 0; font-size: 10.5px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+/* Notes on source and method, collapsed by default (NoteFold). */
+.br-notefold { margin: 6px 0 0; }
+.br-notefold > summary {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer;
+  font-size: 12px; color: var(--stone-500, #8B7355); list-style: none; user-select: none;
+}
+.br-notefold > summary::-webkit-details-marker { display: none; }
+.br-notefold > summary::before { content: '\25B8'; font-size: 10px; transition: transform .15s; }
+.br-notefold[open] > summary::before { transform: rotate(90deg); }
+.br-notefold > summary:hover { color: var(--ink-800, #3A3833); }
+.br-notefold > summary:focus-visible { outline: 2px solid var(--br-steel, #4A6B8A); outline-offset: 2px; border-radius: 4px; }
+.br-notefold > .br-note:first-of-type { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .br-notefold > summary::before { transition: none; } }
 .br-sources { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--sand-200, #E0D6BE); font-size: 10px; color: var(--stone-400, #A89A7A); line-height: 1.7; }
 .br-empty {
   margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
@@ -997,8 +1010,8 @@
 .br-ds .br-wx > .br-wx-tile:first-of-type .br-wx-lbl { color: var(--br-steel); }
 .br-ds .br-wx-lbl { font-size: 12px; letter-spacing: .14em; margin-bottom: 4px; }
 .br-ds .br-wx-loading { font-size: 13px; }
-.br-ds .br-wx > .fire-fp-reasons, .br-ds .br-wx > .br-note { grid-column: 1 / -1; }
-.br-ds .br-wx > .br-note { font-size: 12.5px; }
+.br-ds .br-wx > .fire-fp-reasons, .br-ds .br-wx > .br-note, .br-ds .br-wx > .br-notefold { grid-column: 1 / -1; }
+.br-ds .br-wx > .br-note, .br-ds .br-wx > .br-notefold > .br-note { font-size: 12.5px; }
 .br-ds .br-wx .fire-fp-reasons { font-size: 12.5px; }
 /* Ursache: der Warn-Kasten der Vorlage. */
 .br-ds-cause { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--br-warn-tint); border: 1px solid var(--br-warn-border); }

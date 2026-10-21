@@ -32,6 +32,7 @@ import type { WindRose } from './detail/fireDrivers';
 import { WIND_CLASS_LABEL } from './detail/fireDrivers';
 import { compassLabel } from './activity/dynamics';
 import { SVG_FONT } from '../theme/buscosunTheme';
+import { NoteFold } from './dossier/DossierPrimitives';
 
 export { DriverSeriesChart } from './dossier/DriverSeriesChart';
 export type { DriverSeriesChartProps } from './dossier/DriverSeriesChart';
@@ -133,6 +134,7 @@ export function WindRoseChart({ rose, spreadBearingDeg = null, dominantFromDeg =
             />
           ))}
         </Box>
+        <NoteFold>
         <Typography variant="caption" component="p" sx={{ m: 0 }} className="br-note">
           Stundenzahl je Richtung, aus der der Wind <b>kommt</b> ({rose.hours} Stunden im Brandzeitfenster
           {rose.calm > 0 && `, davon ${rose.calm} h Windstille in der Mitte`}
@@ -140,6 +142,7 @@ export function WindRoseChart({ rose, spreadBearingDeg = null, dominantFromDeg =
           {dominantFromDeg != null && <> Gestrichelt: vorherrschende Richtung ({compassLabel(dominantFromDeg)}, {dominantFromDeg}°).</>}
           {spreadBearingDeg != null && <> Roter Pfeil: <b>wohin</b> sich der Brandschwerpunkt verlagert hat ({compassLabel(spreadBearingDeg)}) — andere Konvention als die Rose, deshalb eigener Zeiger.</>}
         </Typography>
+        </NoteFold>
       </Box>
     </Box>
   );

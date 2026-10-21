@@ -57,6 +57,16 @@ const TONE_COLOR: Record<Tone, (p: { fire: Record<string, string>; disabled: str
   stone: (p) => p.disabled,
 };
 
+/** Notes on source and method: collapsed by default, the full text opens on demand. */
+export function NoteFold({ children, label = 'Quellen & Methode' }: { children: ReactNode; label?: string }) {
+  return (
+    <details className="br-notefold">
+      <summary>{label}</summary>
+      {children}
+    </details>
+  );
+}
+
 /** Die Eyebrow-Zeile („VERLAUF", „WETTERLAGE AM BRANDORT") als `Typography variant="overline"`. */
 export function Overline({ children, tone = 'stone', component = 'span' }: { children: ReactNode; tone?: Tone; component?: 'span' | 'h3' | 'div' }) {
   return (
