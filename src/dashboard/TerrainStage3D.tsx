@@ -147,6 +147,8 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
       attributionControl: { compact: true },
     });
     mapRef.current = m;
+    // Probe hook for the CDP check, only with `?ztdebug=1` (same as TowerStage).
+    if (/[?&]ztdebug=1/.test(window.location.search)) (window as unknown as { __dbdStage?: maplibregl.Map }).__dbdStage = m;
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
     // Das Stil-Sprite der Basiskarte kennt einige Symbole nicht (z. B. „circle-11"): ein leeres Bild statt einer Konsolenwarnung je Kachel.
     m.on('styleimagemissing', (e) => { if (!m.hasImage(e.id)) m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }); });
@@ -193,10 +195,11 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     });
     markersRef.current.forEach((k) => k.remove());
     const ms: maplibregl.Marker[] = [];
-    const add = (el: HTMLElement, lngLat: [number, number], anchor: 'center' | 'bottom' = 'center') => ms.push(new maplibregl.Marker({ element: el, anchor }).setLngLat(lngLat).addTo(map));
+    const add = (el: HTMLElement, lngLat: [number, number], anchor: 'center' | 'bottom' | 'left' = 'center') => ms.push(new maplibregl.Marker({ element: el, anchor, ...(anchor === 'left' ? { offset: [9, 0] as [number, number] } : {}) }).setLngLat(lngLat).addTo(map));
     add(chip(`${vm.fromLabel} ${R} km`, 'is-end'), a);
     add(chip(`${R} km ${vm.toLabel}`, 'is-end'), b);
-    for (const st of vm.stations) add(chip(`${st.label}`, 'is-station'), offset(c.lat, c.lon, st.s < 0 ? vm.axisDeg : vm.axisDeg + 180, Math.abs(st.s)));
+    // Stationen rechts neben ihren Punkt, damit sie die Ortsmarke nicht überdecken
+    for (const st of vm.stations) add(chip(`${st.label}`, 'is-station'), offset(c.lat, c.lon, st.s < 0 ? vm.axisDeg : vm.axisDeg + 180, Math.abs(st.s)), 'left');
     const ort = chip(vm.hOrt != null ? `${vm.ort.title} · ${de(vm.hOrt)} m` : vm.ort.title, 'is-ort');
     add(ort, [c.lon, c.lat], 'bottom');
     markersRef.current = ms;
@@ -280,7 +283,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
         {showT && th && tempState === 'loading' && <span className="dbd-stage-leg-i">Temperaturfläche lädt …</span>}
         {showT && th && tempState === 'error' && <span className="dbd-stage-leg-i">Temperaturfläche nicht verfügbar (Geländekacheln)</span>}
         {skOn && showSnow && <SnowCapLegend info={snow.info} variant="inline" />}
-        <span className="dbd-stage-leg-foot">Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht · Temperatur in 2-K-Bändern aus Geländehöhe und einem Gradienten (kein Wetterfeld){skOn && showSnow ? ' · Schneefallgrenze von buscosun Fusion auf dem Relief' : ''}</span>
+        <span className="dbd-stage-leg-foot">Gelände {de(TOWER_EXAGGERATION, 1)}-fach überhöht{showT && th ? ' · Temperatur in 2-K-Bändern aus Höhe und einem Gradienten (kein Wetterfeld)' : ''}</span>
       </div>
     </div>
   );

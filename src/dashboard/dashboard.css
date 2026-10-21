@@ -746,7 +746,8 @@
 .dbd-stage { position: relative; min-width: 0; min-height: 440px; border-radius: 11px; overflow: hidden; border: 1px solid var(--dbd-line); background: #E8E2D0; }
 .dbd-stage-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--dbd-muted); font-size: 13px; }
 .dbd-stage-in { position: absolute; inset: 0; }
-.dbd-stage-map { position: absolute; inset: 0; }
+/* höhere Spezifität als `.maplibregl-map { position: relative }` aus maplibre-gl.css, sonst hat die Karte Höhe 0 */
+.dbd-stage-in > .dbd-stage-map { position: absolute; inset: 0; }
 .dbd-stage-note { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); text-align: center; font-size: 13px; color: #5C5447; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 10px; padding: 10px 14px; }
 .dbd-stage-top { position: absolute; left: 12px; top: 12px; right: 56px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; pointer-events: none; }
 .dbd-stage-top > * { pointer-events: auto; }
@@ -771,6 +772,9 @@
 }
 .dbd-stage-leg .nc-radar-leg-item, .dbd-stage-leg-i { display: inline-flex; align-items: center; gap: 6px; }
 .dbd-stage-leg-foot { flex-basis: 100%; color: var(--dbd-muted); font-size: 10.5px; }
+/* Der lange Statussatz der Schneefallgrenze bekommt eine Zeile (Kürzung am Rand), damit die Legende die Bühne nicht zudeckt */
+.dbd-stage-leg .sk-leg-status { flex-basis: 100%; min-width: 0; font-size: 10.5px; color: var(--dbd-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dbd-stage-leg .sk-leg-status.sk-warn { color: #B4501F; }
 .dbd-stage-sw-axis { display: inline-block; width: 16px; height: 0; border-top: 2px dashed var(--dbd-ink); }
 .dbd-stage-pin { font-family: 'League Spartan', sans-serif; white-space: nowrap; pointer-events: none; }
 .dbd-stage-pin.is-ort { font-size: 12px; font-weight: 700; color: #FAF6EA; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; border-radius: 8px; padding: 4px 9px; margin-bottom: 4px; box-shadow: 0 2px 8px rgba(44, 42, 38, .35); }
