@@ -708,5 +708,64 @@
 .dbd-strata-dot.is-leg { position: static; transform: none; margin: 0; width: 8px; height: 8px; box-shadow: none; }
 .dbd-strata-rh.is-leg { position: static; width: 14px; height: 8px; display: inline-block; }
 .dbd-strata-warn { color: #F5F1E8; font-weight: 600; }
+
+/* Terrain-Feld im Radar-Deck-Look (hell, Sand/Ink) mit 3D-Bühne; der Geländeschnitt bleibt als dunkle Tafel erhalten. */
+.dbd-terrain { background: var(--dbd-cream); border-color: var(--dbd-line); }
+.dbd-terrain-head .dbd-eyebrow { color: var(--dbd-muted); }
+.dbd-terrain .dbd-seg-dark { background: var(--dbd-sand); border-color: var(--dbd-line); }
+.dbd-terrain .dbd-seg-dark button { color: var(--dbd-muted); }
+.dbd-terrain .dbd-seg-dark button.is-active { color: var(--dbd-ink); background: #FFFFFF; box-shadow: 0 1px 3px rgba(44, 42, 38, .15); }
+.dbd-terrain-info { color: var(--dbd-muted); }
+.dbd-terrain-chip { color: var(--dbd-sage-deep); } .dbd-terrain-chip i { background: var(--dbd-sage); }
+.dbd-terrain-chip.is-warn { color: #B4501F; } .dbd-terrain-chip.is-warn i { background: #C99A4E; }
+.dbd-terrain .dbd-dbox { background: #FFFFFF; border-color: var(--dbd-line); }
+.dbd-terrain .dbd-dbox-l { color: var(--dbd-eyebrow); }
+.dbd-terrain .dbd-level { border-bottom-color: var(--dbd-sand); }
+.dbd-terrain .dbd-level-h { color: var(--dbd-muted); }
+.dbd-terrain .dbd-level-t { color: var(--dbd-ink); }
+.dbd-terrain .dbd-level-w { color: var(--dbd-sage-deep); }
+.dbd-terrain .dbd-level.is-ort .dbd-level-h, .dbd-terrain .dbd-level.is-ort .dbd-level-t { color: var(--dbd-ink); }
+.dbd-terrain .dbd-readout p { color: #5C5447; }
+.dbd-terrain .dbd-readout strong { color: var(--dbd-ink); }
+.dbd-terrain .dbd-readout-note { color: var(--dbd-muted); border-top-color: var(--dbd-sand); }
+.dbd-terrain .dbd-readout-note strong { color: #5C5447; }
+.dbd-terrain .dbd-site-cap, .dbd-terrain .dbd-site-l, .dbd-terrain .dbd-strata-h, .dbd-terrain .dbd-strata-foot { color: var(--dbd-muted); }
+.dbd-terrain .dbd-site-row, .dbd-terrain .dbd-strata-row, .dbd-terrain .dbd-strata-foot { border-color: var(--dbd-sand); }
+.dbd-terrain .dbd-site-v, .dbd-terrain .dbd-strata-t, .dbd-terrain .dbd-strata-warn { color: var(--dbd-ink); }
+.dbd-terrain .dbd-site-v .dbd-na { color: var(--dbd-eyebrow); }
+.dbd-terrain .dbd-strata-track { background: var(--dbd-sand); border-color: var(--dbd-line); }
+.dbd-terrain .dbd-strata-rh { background: rgba(58, 111, 168, .28); }
+.dbd-terrain .dbd-strata-dot { background: var(--dbd-ink); box-shadow: 0 0 0 2px #FFFFFF; }
+.dbd-terrain .dbd-strata-rhv { color: var(--dbd-steel); }
+.dbd-terrain .dbd-na { color: var(--dbd-eyebrow); }
+.dbd-terrain .dbd-loading { color: #C4B896; }
+/* die dunkle Tafel des Geländeschnitts behält ihre Farben */
+.dbd-terrain .dbd-section .dbd-na { color: #8B8474; }
+
+/* 3D-Bühne */
+.dbd-stage { position: relative; min-width: 0; min-height: 440px; border-radius: 11px; overflow: hidden; border: 1px solid var(--dbd-line); background: #E8E2D0; }
+.dbd-stage-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--dbd-muted); font-size: 13px; }
+.dbd-stage-in { position: absolute; inset: 0; }
+.dbd-stage-map { position: absolute; inset: 0; }
+.dbd-stage-note { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); text-align: center; font-size: 13px; color: #5C5447; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 10px; padding: 10px 14px; }
+.dbd-stage-reset {
+  position: absolute; left: 12px; top: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 12px; font-weight: 600;
+  color: var(--dbd-ink); background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 9px; padding: 7px 11px; cursor: pointer; backdrop-filter: blur(4px);
+}
+.dbd-stage-reset:hover { background: #FFFFFF; }
+.dbd-stage-reset:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
+.dbd-stage-leg {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 11px;
+  font-size: 11px; color: #5C5447; background: rgba(250, 246, 234, .94); border: 1px solid var(--dbd-line); border-radius: 10px; backdrop-filter: blur(4px);
+}
+.dbd-stage-leg .nc-radar-leg-item, .dbd-stage-leg-i { display: inline-flex; align-items: center; gap: 6px; }
+.dbd-stage-leg-foot { flex-basis: 100%; color: var(--dbd-muted); font-size: 10.5px; }
+.dbd-stage-sw-axis { display: inline-block; width: 16px; height: 0; border-top: 2px dashed var(--dbd-ink); }
+.dbd-stage-pin { font-family: 'League Spartan', sans-serif; white-space: nowrap; pointer-events: none; }
+.dbd-stage-pin.is-ort { font-size: 12px; font-weight: 700; color: #FAF6EA; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; border-radius: 8px; padding: 4px 9px; margin-bottom: 4px; box-shadow: 0 2px 8px rgba(44, 42, 38, .35); }
+.dbd-stage-pin.is-ort::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; }
+.dbd-stage-pin.is-end { font-size: 11px; font-weight: 700; color: var(--dbd-ink); background: rgba(250, 246, 234, .95); border: 1px solid var(--dbd-border); border-radius: 7px; padding: 3px 7px; }
+.dbd-stage-pin.is-station { font-size: 10.5px; font-weight: 600; color: #5C5447; background: rgba(255, 255, 255, .92); border: 1px solid var(--dbd-line); border-radius: 6px; padding: 2px 6px; }
+@media (max-width: 767px) { .dbd-stage { min-height: 360px; } }
 @media (max-width: 1279px) { .dbd-terrain-row { grid-template-columns: 1fr; } }
 @media (max-width: 767px) { .dbd-site-grid { grid-template-columns: 1fr; } .dbd-site-vis { flex-direction: row; justify-content: center; gap: 12px; } .dbd-site-row { grid-template-columns: 80px 1fr; font-size: 12px; } }

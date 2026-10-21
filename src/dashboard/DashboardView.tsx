@@ -337,7 +337,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
             )}
             </div>
             <div className="dbd-panel" role={showTabs ? 'tabpanel' : undefined} id="dbd-panel-details" aria-labelledby={showTabs ? 'dbd-tab-details' : undefined} hidden={showTabs && part !== 'details'}>
-            <TerrainField vm={vm.terrain} onHalfKm={onHalfKm} rootRef={refs?.terrain} />
+            <TerrainField vm={vm.terrain} onHalfKm={onHalfKm} rootRef={refs?.terrain} nowMs={vm.nowMs} />
             </div>
           </>
         )}

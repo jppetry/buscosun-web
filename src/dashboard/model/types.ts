@@ -294,6 +294,9 @@ export interface WindRoseVM {
 export interface TerrainVM {
   state: LoadState;
   halfKm: 20 | 50;
+  /** Herkunftsrichtung des Schnitts (Luv-Seite, `s` < 0) und der Ort — die 3D-Bühne legt Schnittlinie und Blickrichtung darauf. */
+  axisDeg: number;
+  center: { lat: number; lon: number } | null;
   header: Shown;
   chip: Shown; chipTone: 'ok' | 'warn';
   fromLabel: string; toLabel: string;

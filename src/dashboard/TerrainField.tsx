@@ -8,15 +8,35 @@
  * (P97: Lage, Neigung und Exposition, Himmelssicht, Kaltluftmulde, Oberfläche, Gewässernähe) und „Schichtung"
  * (P16/P98: Temperatur und Feuchte je Druckfläche).
  */
-import { useId, type RefObject } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Rich, Val } from './tiles';
 import { originTitle } from './origin';
 import type { SiteVM, TerrainVM } from './model/types';
 
 const X0 = 58, X1 = 900, Y_TOP = 10, Y_BOT = 282;
 
-export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfKm: (km: 20 | 50) => void; rootRef?: RefObject<HTMLElement | null> }) {
+/** 3D-Bühne: eigener Lazy-Chunk (MapLibre), erst geladen, wenn das Feld sichtbar wird. */
+const TerrainStage3D = lazy(() => import('./TerrainStage3D'));
+
+/** Wird einmal `true`, sobald das Element im Bild ist (im verborgenen Reiter „Details" bleibt es `false`). */
+function useShownOnce<T extends Element>(): [RefObject<T | null>, boolean] {
+  const ref = useRef<T | null>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    if (seen || !ref.current) return;
+    if (typeof IntersectionObserver === 'undefined') { setSeen(true); return; }
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setSeen(true); io.disconnect(); } }, { rootMargin: '200px 0px' });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [seen]);
+  return [ref, seen];
+}
+
+export function TerrainField({ vm, onHalfKm, rootRef, nowMs }: { vm: TerrainVM; onHalfKm: (km: 20 | 50) => void; rootRef?: RefObject<HTMLElement | null>; nowMs: number }) {
   const uid = useId().replace(/[^a-z0-9]/gi, '');
+  // Ansicht wie im Regenradar „Karte | 3D": zuerst die 3D-Bühne, daneben der bisherige Geländeschnitt.
+  const [view, setView] = useState<'3d' | 'schnitt'>('3d');
+  const [stageRef, stageSeen] = useShownOnce<HTMLDivElement>();
   const ok = vm.state === 'ok' && vm.profile.length > 1;
   const R = vm.halfKm;
   const x = (s: number) => X0 + ((s + R) / (2 * R)) * (X1 - X0);
@@ -46,6 +66,11 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
     <section ref={rootRef} className="dbd-terrain dbd-dark" aria-label="Terrain um den Ort">
       <div className="dbd-terrain-head">
         <span className="dbd-eyebrow">TERRAIN UM DEN ORT · TEMPERATUR NACH HÖHE · WIND JE NIVEAU</span>
+        <div className="dbd-seg-dark" role="group" aria-label="Ansicht">
+          {([['3d', '3D'], ['schnitt', 'Schnitt']] as const).map(([k, l]) => (
+            <button key={k} type="button" className={view === k ? 'is-active' : undefined} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>
+          ))}
+        </div>
         <div className="dbd-seg-dark" role="group" aria-label="Schnittlänge">
           {([20, 50] as const).map((km) => (
             <button key={km} type="button" className={vm.halfKm === km ? 'is-active' : undefined} aria-pressed={vm.halfKm === km} onClick={() => { if (vm.halfKm !== km) onHalfKm(km); }}>± {km} km</button>
@@ -55,7 +80,16 @@ export function TerrainField({ vm, onHalfKm, rootRef }: { vm: TerrainVM; onHalfK
         <span className={`dbd-terrain-chip${vm.chipTone === 'warn' ? ' is-warn' : ''}`}><i /><Val v={vm.chip} long /></span>
       </div>
       <div className="dbd-terrain-grid">
-        <div className="dbd-section">
+        {view === '3d' && (
+          <div ref={stageRef} className="dbd-stage" data-origin="P68">
+            {stageSeen ? (
+              <Suspense fallback={<div className="dbd-stage-wait"><span className="ev-spinner" /> 3D-Bühne lädt …</div>}>
+                <TerrainStage3D vm={vm} nowMs={nowMs} />
+              </Suspense>
+            ) : <div className="dbd-stage-wait">3D-Bühne</div>}
+          </div>
+        )}
+        <div className="dbd-section" hidden={view !== 'schnitt'}>
           <div className="dbd-section-scroll">
             <svg className="dbd-section-svg" viewBox="0 0 900 340" preserveAspectRatio="none" role="img" aria-label={`Geländeschnitt ${vm.fromLabel} → ${vm.toLabel}`} data-origin="P68">
               <defs>
