@@ -169,7 +169,7 @@ function buildNow(c: Ctx): NowVM {
   const night = f.night0 ?? false;
   const icon = symbolFor({ clct: v(s0, 'clct'), popMax: pWet(s0), mmhMax: v(s0, 'precip', 'mean'), night });
   const w = v(s0, 'wind'), g = v(s0, 'gust');
-  const wg = w == null && g == null ? null : `${num(w, 1) ?? '—'} / ${num(g, 1) ?? '—'}`;
+  const wg = w == null && g == null ? null : `${num(w, 1) ?? '—'} / ${num(g, 1) ?? '—'}${NBSP}m/s`;
   const dir = v(s0, 'windDir');
   const ps = v(s0, 'ps');
   // Druckflächen aus dem Cube (E-DB-8): nur Flächen über Grund (p < ps am Ort), sonst „—".
