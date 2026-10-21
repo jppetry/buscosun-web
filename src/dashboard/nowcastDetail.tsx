@@ -24,7 +24,9 @@ const dur = (ms: number) => {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`;
 };
 
-interface Bar { t: number; w: number; mmh: number; src: 'radar' | 'fusion'; p90: number | null; pWet: number | null; pSnow: number | null }
+/** Ein Zeitabschnitt mit konstanter Rate. `native` = so liefert es die Quelle; sonst auf das 5-Minuten-Raster verteilt (gehalten). */
+interface Bar { from: number; to: number; mmh: number; src: 'radar' | 'fusion'; native: boolean; hourT: number | null; p90: number | null; pWet: number | null; pSnow: number | null }
+const FIVE = 5 * 60_000;
 
 function CloseIcon() {
   return (
@@ -52,12 +54,32 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
   const fromMs = vm.nowMs - 10 * 60_000;
   const toMs = vm.nowMs + range * H;
   const slotMs = vm.slotMin * 60_000;
+  // 5-Minuten-Raster: bis +12 h jeder Abschnitt in Fünfminutenzellen (Radar-Frames ≠ 5 min und Fusion-Stunden werden gehalten),
+  // darüber wären die Zellen kleiner als ein Pixel — dort gilt das Raster der Quelle.
+  const [grid5, setGrid5] = useState(true);
+  const gridOn = grid5 && range <= 12;
   const bars = useMemo<Bar[]>(() => {
+    const raw: Bar[] = [];
+    for (const r of vm.radar) if (r.t + slotMs > fromMs && r.t <= toMs) raw.push({ from: Math.max(r.t, fromMs), to: r.t + slotMs, mmh: r.mmh, src: 'radar', native: true, hourT: null, p90: null, pWet: null, pSnow: null });
+    const seam = vm.radarEndMs == null ? -Infinity : vm.radarEndMs + slotMs;
+    for (const x of vm.hours) {
+      if (x.t < seam || x.t > toMs || x.t < fromMs - H / 2) continue;
+      raw.push({ from: Math.max(x.t - H / 2, seam, fromMs), to: x.t + H / 2, mmh: x.mean ?? 0, src: 'fusion', native: true, hourT: x.t, p90: x.p90, pWet: x.pWet, pSnow: x.pSnow });
+    }
+    if (!gridOn) return raw;
     const out: Bar[] = [];
-    for (const r of vm.radar) if (r.t + slotMs > fromMs && r.t <= toMs) out.push({ t: r.t, w: slotMs, mmh: r.mmh, src: 'radar', p90: null, pWet: null, pSnow: null });
-    for (const x of vm.hours) if ((vm.radarEndMs == null || x.t >= vm.radarEndMs + slotMs) && x.t <= toMs && x.t >= fromMs - H / 2) out.push({ t: x.t, w: H, mmh: x.mean ?? 0, src: 'fusion', p90: x.p90, pWet: x.pWet, pSnow: x.pSnow });
+    for (const b of raw) {
+      const native5 = b.src === 'radar' && b.to - b.from === FIVE;
+      for (let t0 = Math.floor(b.from / FIVE) * FIVE; t0 < b.to; t0 += FIVE) {
+        const a = Math.max(t0, b.from), z = Math.min(t0 + FIVE, b.to, toMs);
+        if (z <= a) continue;
+        // eine Spanne (p90) je Stunde, an der Zelle der Stundenmitte — sonst überdecken Striche das Raster
+        const mid = b.hourT != null && b.hourT >= a && b.hourT < z;
+        out.push({ ...b, from: a, to: z, native: native5, p90: mid ? b.p90 : null });
+      }
+    }
     return out;
-  }, [vm.radar, vm.hours, vm.radarEndMs, slotMs, fromMs, toMs]);
+  }, [vm.radar, vm.hours, vm.radarEndMs, slotMs, fromMs, toMs, gridOn]);
 
   const h = 280, padL = 46, padR = 10, padT = 14, padB = 56;
   const plotW = Math.max(10, width - padL - padR), plotH = h - padT - padB, yBase = padT + plotH;
@@ -77,8 +99,7 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
     const r = e.currentTarget.getBoundingClientRect();
     setHoverT(fromMs + ((e.clientX - r.left) / r.width) * (toMs - fromMs));
   };
-  // Mitte des Balkens: Radar-Frames beginnen bei t, Fusion-Stundenwerte sind auf t zentriert (wie die Niederschlags-Kachel)
-  const tMid = (b: Bar) => (b.src === 'radar' ? b.t + b.w / 2 : b.t);
+  const tMid = (b: Bar) => (b.from + b.to) / 2;
   const cxOf = (b: Bar) => X(tMid(b));
   const hov = hoverT == null ? null : bars.reduce<Bar | null>((b, x) => (!b || Math.abs(tMid(x) - hoverT) < Math.abs(tMid(b) - hoverT) ? x : b), null);
   const cur = vm.ranges.find((r) => r.h === range);
@@ -117,6 +138,10 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
               <button key={r} type="button" className={r === range ? 'is-active' : undefined} aria-pressed={r === range} onClick={() => { setRange(r); setHoverT(null); }}>+{r}{NB}h</button>
             ))}
           </div>
+          <div className="dbd-nc-seg" role="group" aria-label="Zeitraster">
+            <button type="button" className={grid5 ? 'is-active' : undefined} aria-pressed={grid5} onClick={() => setGrid5(true)} title="Jeder Abschnitt in Fünfminutenzellen; Stundenwerte und gröbere Radarbilder werden auf 5 min verteilt (gehalten), nicht neu berechnet">5-min-Raster</button>
+            <button type="button" className={!grid5 ? 'is-active' : undefined} aria-pressed={!grid5} onClick={() => setGrid5(false)} title="Das Raster der Quelle: Radar 5/15 min, Fusion stündlich">Quelle</button>
+          </div>
           <div className="dbf-kpis dbd-nc-kpis">
             <div><span className="dbf-k">Summe bis +{range} h</span><b>{cur ? <Val v={cur.sum} /> : '—'}</b></div>
             <div><span className="dbf-k">Spitze</span><b>{cur ? <Val v={cur.peak} /> : '—'}</b></div>
@@ -136,17 +161,15 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                     <text x={padL - 6} y={yBase + 3.5} className="dbd-nc-t" textAnchor="end">0</text>
                     <text transform={`translate(12 ${padT + plotH / 2}) rotate(-90)`} textAnchor="middle" className="dbd-nc-t dbd-nc-t--b">Regen in mm/h</text>
                     {bars.map((b) => {
-                      const gap = Math.min(2, (b.w / (toMs - fromMs)) * plotW * 0.2);
-                      const bw0 = Math.max(1.5, (b.w / (toMs - fromMs)) * plotW - gap);
-                      const x00 = X(b.t) - (b.src === 'fusion' ? bw0 / 2 : 0);
-                      // links an der Achse beschneiden (Stunde 0 beginnt vor „jetzt − 10 min")
-                      const x0 = Math.max(padL, x00), bw = Math.max(1.5, bw0 - (x0 - x00));
+                      const wFull = ((b.to - b.from) / (toMs - fromMs)) * plotW;
+                      const gap = Math.min(2, wFull * 0.2);
+                      const x0 = Math.max(padL, X(b.from)), bw = Math.max(1.2, wFull - gap);
                       const snow = (b.pSnow ?? 0) >= 0.5;
                       const fill = b.src === 'radar' ? CLASS_COL[Math.max(1, rainClass(b.mmh))] : snow ? SNOW : FUSION;
                       const cx = x0 + bw / 2;
                       return (
-                        <g key={`${b.src}${b.t}`}>
-                          {b.mmh >= 0.02 && <rect x={x0} y={Y(b.mmh)} width={bw} height={Math.max(1, yBase - Y(b.mmh))} rx={Math.min(2, bw / 2)} fill={fill} fillOpacity={b.src === 'radar' ? 0.95 : 0.85} />}
+                        <g key={`${b.src}${b.from}`}>
+                          {b.mmh >= 0.02 && <rect x={x0} y={Y(b.mmh)} width={bw} height={Math.max(1, yBase - Y(b.mmh))} rx={Math.min(2, bw / 2)} fill={fill} fillOpacity={b.src === 'radar' ? (b.native ? 0.95 : 0.7) : 0.85} />}
                           {b.p90 != null && b.p90 > b.mmh + 0.02 && <line x1={cx} x2={cx} y1={Y(b.p90)} y2={Y(b.mmh)} className="dbf-whisker" />}
                           {b.p90 != null && b.p90 > b.mmh + 0.02 && bw > 4 && <line x1={cx - bw / 3} x2={cx + bw / 3} y1={Y(b.p90)} y2={Y(b.p90)} className="dbf-whisker" />}
                           {b.pWet != null && <rect x={x0} y={yBase + 30} width={bw} height={6} rx={1} fill={STEEL} fillOpacity={0.1 + 0.85 * b.pWet} />}
@@ -180,11 +203,11 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                 )}
                 {hov && (
                   <Tip left={Math.max(0, Math.min(width - 210, cxOf(hov) - 105))} top={padT + 18}>
-                    <div className="dbf-tip-t">{dayLabel(hov.t)} {hhmm(hov.t)}{hov.src === 'radar' ? `–${hhmm(hov.t + hov.w)}` : ''} Uhr</div>
+                    <div className="dbf-tip-t">{dayLabel(hov.from)} {hhmm(hov.from)}–{hhmm(hov.to)} Uhr</div>
                     <div className="dbf-tip-v">{num(hov.mmh, hov.mmh < 1 ? 2 : 1)}{NB}mm/h{hov.p90 != null ? <span> · bis {num(hov.p90, 1)}{NB}mm/h (p90)</span> : null}</div>
                     <div className="dbf-tip-s">
-                      {RAIN_CLASSES[rainClass(hov.mmh)].label} · {hov.src === 'radar' ? (hov.t <= vm.nowMs + 5 * 60_000 ? 'Radar · Messung' : 'Radar · Vorausberechnung') : 'buscosun Fusion'} · seit jetzt {num(cumAt(tMid(hov)), 1)}{NB}mm<br />
-                      {hov.src === 'radar' ? `Intensität über ${vm.slotMin}${NB}min` : 'Stundenmittel'}
+                      {RAIN_CLASSES[rainClass(hov.mmh)].label} · {hov.src === 'radar' ? (hov.from <= vm.nowMs + 5 * 60_000 ? 'Radar · Messung' : 'Radar · Vorausberechnung') : 'buscosun Fusion'} · seit jetzt {num(cumAt(hov.to), 1)}{NB}mm<br />
+                      {hov.src === 'fusion' ? `Stundenmittel um ${hhmm(hov.hourT ?? hov.from)} Uhr${gridOn ? ', auf 5 min verteilt' : ''}` : hov.native ? 'Radarbild dieser 5 min' : `Radarbild über ${vm.slotMin}${NB}min, auf 5 min verteilt`}
                       {hov.pWet != null ? ` · Regenchance ${Math.round(hov.pWet * 100)}${NB}%` : ''}{hov.pSnow != null && hov.pSnow >= 0.5 ? ` · Schnee ${Math.round(hov.pSnow * 100)}${NB}%` : ''}
                     </div>
                   </Tip>
@@ -195,11 +218,9 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                     <div className="dbd-nc-ph">Intensität im Zeitverlauf</div>
                     <svg width={width} height={stripH + 26} role="img" aria-label="Regenintensität je Zeitabschnitt">
                       {bars.map((b) => {
-                        const a = b.src === 'radar' ? X(b.t) : Math.max(X(b.t - H / 2), radarEdgeX ?? padL);
-                        const z = b.src === 'radar' ? X(b.t + b.w) : X(b.t + H / 2);
-                        const x0 = Math.max(padL, a), x1 = Math.min(padL + plotW, z);
+                        const x0 = Math.max(padL, X(b.from)), x1 = Math.min(padL + plotW, X(b.to));
                         if (x1 <= x0) return null;
-                        return <rect key={`s${b.src}${b.t}`} x={x0} y={2} width={Math.max(1, x1 - x0 - 0.6)} height={stripH - 4} rx={2} fill={CLASS_COL[rainClass(b.mmh)]} />;
+                        return <rect key={`s${b.src}${b.from}`} x={x0} y={2} width={Math.max(0.8, x1 - x0 - (gridOn ? 0.4 : 0.6))} height={stripH - 4} rx={gridOn ? 1 : 2} fill={CLASS_COL[rainClass(b.mmh)]} fillOpacity={b.native || b.src === 'fusion' ? 1 : 0.7} />;
                       })}
                       <rect x={padL} y={2} width={plotW} height={stripH - 4} rx={3} fill="none" className="dbd-nc-stripframe" />
                       {nowX >= padL && nowX <= padL + plotW && <line x1={nowX} x2={nowX} y1={0} y2={stripH} className="dbd-nc-now" />}
@@ -274,6 +295,7 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
         <ul className="dbd-rose-notes dbd-nc-notes">
           <li>Das Radar trägt den Regen bis zu seinem Horizont ({vm.horizon}); dahinter übernimmt buscosun Fusion. Die gestrichelte Linie „Radar-Horizont" markiert den Übergang, beide Quellen werden nie vermischt.</li>
           <li>Radar-Balken sind Regenraten je {vm.slotMin} Minuten, Fusion-Balken Stundenmittel; die Farbe der Radar-Balken und der Intensitätsleiste folgt der Klasse (Nieseln, leicht, mäßig, stark). Werte unter {num(DRY_MMH, 1)}{NB}mm/h gelten als trocken.</li>
+          <li>Im 5-Minuten-Raster (bis +12 h) steht jeder Abschnitt in Fünfminutenzellen. Radarbilder im 5-Minuten-Takt sind echte Einzelwerte; Fusion-Stundenmittel{vm.slotMin !== 5 ? ` und die ${vm.slotMin}-Minuten-Bilder dieser Quelle` : ''} sind auf ihre Zellen verteilt (gehalten, blasser gezeichnet), nicht auf Minuten neu berechnet. Ab +24 h gilt das Raster der Quelle.</li>
           <li>Die Summenlinie und die Phasenliste nehmen je Abschnitt die Rate des Radars bzw. des Fusion-Stundenmittels als konstant an; Phasen sind zusammenhängende Abschnitte mit bzw. ohne messbaren Regen.</li>
           <li>Summe und Spitze rechnen das Radar bis zu seinem Horizont und Fusion danach; die Summe ist daher keine einheitliche Prognose, sondern die Reihenfolge der beiden Quellen.</li>
         </ul>
