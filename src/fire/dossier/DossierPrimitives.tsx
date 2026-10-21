@@ -183,7 +183,7 @@ export function StatTile({ label, value, caption, tone, dotColor, reason }: Stat
       )}
       {/* Touch hat kein Hover: auf Mobil steht der Grund sichtbar unter dem Wert. */}
       {reason && bp === 'mobile' && (
-        <Typography variant="caption" component="span" sx={{ mt: '4px', color: 'text.disabled', fontSize: 11.5 }}>{reason}</Typography>
+        <Typography variant="caption" component="span" sx={{ mt: '4px', color: 'text.disabled', fontSize: 12.5 }}>{reason}</Typography>
       )}
     </Box>
   );
@@ -243,7 +243,7 @@ export function FactRow({ term, children, reason, wide = false }: FactRowProps) 
       <Typography component="dd" variant="body2" sx={{ m: 0, minWidth: 0, overflowWrap: 'anywhere', color: 'text.secondary' }}>
         {children}
         {reason && bp === 'mobile' && (
-          <Typography variant="caption" component="span" sx={{ display: 'block', mt: '2px', color: 'text.disabled', fontSize: 11.5 }}>{reason}</Typography>
+          <Typography variant="caption" component="span" sx={{ display: 'block', mt: '2px', color: 'text.disabled', fontSize: 12.5 }}>{reason}</Typography>
         )}
       </Typography>
     </Box>
@@ -316,7 +316,7 @@ export function Missing({ reason }: { reason?: string | null }) {
     return (
       <Box component="span">
         <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>{' '}
-        <Box component="span" sx={{ color: 'text.disabled', fontSize: 11.5 }}>{reason}</Box>
+        <Box component="span" sx={{ color: 'text.disabled', fontSize: 12.5 }}>{reason}</Box>
       </Box>
     );
   }

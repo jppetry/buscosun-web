@@ -104,9 +104,9 @@ function roundedTopBar(x: number, y: number, w: number, h: number, r: number): s
 function ChartStat({ label, value, caption }: { label: string; value: string; caption?: string }) {
   return (
     <Box sx={{ minWidth: 0 }}>
-      <Typography component="div" sx={{ fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{label}</Typography>
-      <Typography component="div" sx={{ fontSize: 22, lineHeight: 1.15, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{value}</Typography>
-      {caption && <Typography component="div" sx={{ fontSize: 12, color: 'text.secondary' }}>{caption}</Typography>}
+      <Typography component="div" sx={{ fontSize: 12, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{label}</Typography>
+      <Typography component="div" sx={{ fontSize: 24, lineHeight: 1.15, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{value}</Typography>
+      {caption && <Typography component="div" sx={{ fontSize: 13, color: 'text.secondary' }}>{caption}</Typography>}
     </Box>
   );
 }
@@ -116,7 +116,7 @@ function LegendChip({ swatch, children }: { swatch: React.ReactNode; children: R
   return (
     <Box component="span" sx={{
       display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: 99,
-      border: '1px solid', borderColor: 'divider', fontSize: 12, color: 'text.secondary', bgcolor: 'background.paper',
+      border: '1px solid', borderColor: 'divider', fontSize: 13, color: 'text.secondary', bgcolor: 'background.paper',
     }}>
       {swatch}{children}
     </Box>
@@ -359,10 +359,10 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
               position: 'absolute', left: Math.max(70, hover.x), top: hover.y, transform: 'translate(-50%, calc(-100% - 10px))',
               pointerEvents: 'none', zIndex: 2, whiteSpace: 'nowrap', px: 1.5, py: 1, borderRadius: 2,
               bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', boxShadow: 3,
-              fontSize: 12, lineHeight: 1.45, color: 'text.secondary',
+              fontSize: 13, lineHeight: 1.45, color: 'text.secondary',
             }}
           >
-            <Box component="div" sx={{ fontSize: 16, fontWeight: 700, color: 'text.primary' }}>{hover.lines[0]}</Box>
+            <Box component="div" sx={{ fontSize: 17.5, fontWeight: 700, color: 'text.primary' }}>{hover.lines[0]}</Box>
             {hover.lines.slice(1).map((l) => <div key={l}>{l}</div>)}
           </Box>
         )}

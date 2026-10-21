@@ -77,7 +77,7 @@ export function WindRoseChart({ rose, spreadBearingDeg = null, dominantFromDeg =
   const label = (deg: number, text: string) => {
     const [x, y] = pt(R_MAX + 13, deg);
     return (
-      <text key={text} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily={FONT} fontSize="11" fill={t.palette.text.disabled}>
+      <text key={text} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily={FONT} fontSize="12" fill={t.palette.text.disabled}>
         {text}
       </text>
     );
@@ -89,7 +89,7 @@ export function WindRoseChart({ rose, spreadBearingDeg = null, dominantFromDeg =
           <circle key={n} cx={CX} cy={CY} r={n * scale} fill="none" stroke={t.palette.divider} strokeWidth="1" />
         ))}
         {rings.length > 0 && (
-          <text x={CX + 3} y={CY - rings[rings.length - 1] * scale + 10} fontFamily={FONT} fontSize="9.5" fill={t.palette.text.disabled}>
+          <text x={CX + 3} y={CY - rings[rings.length - 1] * scale + 10} fontFamily={FONT} fontSize="10.5" fill={t.palette.text.disabled}>
             {rings[rings.length - 1]} h
           </text>
         )}

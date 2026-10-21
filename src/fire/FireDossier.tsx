@@ -102,7 +102,7 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
           <Card component="div">
             <CardContent sx={{ p: '22px 24px !important' }}>
               <Overline tone="red">Dossier</Overline>
-              <Typography variant="body1" sx={{ mt: 1, fontSize: 14, lineHeight: 1.55, color: 'text.secondary' }}>
+              <Typography variant="body1" sx={{ mt: 1, fontSize: 15.5, lineHeight: 1.55, color: 'text.secondary' }}>
                 <Box component="strong" sx={{ color: 'text.primary' }}>Kein Brand markiert.</Box> Ein Klick auf einen Brand in der Registry{mobile ? '' : ' links'} oder auf der Karte öffnet hier sein Dossier —
                 Kennzahlen, Verlauf je Überflug, Wetterlage am Brandort, Einordnung und Merkmale.
               </Typography>
@@ -140,10 +140,10 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
                   <Typography
                     variant="body2"
                     sx={{
-                      mt: 0.75, color: 'text.secondary', overflowWrap: 'anywhere', fontSize: 13,
+                      mt: 0.75, color: 'text.secondary', overflowWrap: 'anywhere', fontSize: 14.5,
                       // Die Kennung bleibt als Code-Chip erkennbar (Vorlage 1a) — sie ist eine
                       // Kennung, kein Fließtext, und wird zum Kopieren angesehen.
-                      '& code': { fontSize: 12, bgcolor: '#EDE6D3', borderRadius: '5px', px: '6px', py: '1px' },
+                      '& code': { fontSize: 13, bgcolor: '#EDE6D3', borderRadius: '5px', px: '6px', py: '1px' },
                     }}
                   >
                     <DetailSubline r={r} />
@@ -262,7 +262,7 @@ export function DossierMapNote({ r, fromRegistry }: { r: FireRecord; fromRegistr
   return (
     <Typography variant="caption" component="p" className="br-ds-mapnote" sx={{ m: 0, lineHeight: 1.5 }}>
       {/* Die Kartennotiz sagt, WAS gezeichnet ist — Kartierung, Detektionsraster oder nur der Ort. */}
-      {r.sources.cluster && <Box component="strong" sx={{ display: 'block', color: 'text.primary', fontWeight: 600, fontSize: 13 }}>{extentLabel(r.sources.cluster)} Ausdehnung der Detektionen.</Box>}
+      {r.sources.cluster && <Box component="strong" sx={{ display: 'block', color: 'text.primary', fontWeight: 600, fontSize: 14.5 }}>{extentLabel(r.sources.cluster)} Ausdehnung der Detektionen.</Box>}
       {prov
         ? prov.note
         : r.areaHa.kind === 'mapped'
@@ -285,7 +285,7 @@ export function DossierLegend() {
         <LegendRow color="fire.static">ortsfest (grau)</LegendRow>
         <LegendRow outline>markierter Brand</LegendRow>
         {/* Die Farben sind abgeleitet, nicht amtlich — das steht an der Legende, nicht im Impressum. */}
-        <Typography variant="caption" component="span" sx={{ fontSize: 12 }}>Farben abgeleitet — nicht amtlich</Typography>
+        <Typography variant="caption" component="span" sx={{ fontSize: 13 }}>Farben abgeleitet — nicht amtlich</Typography>
       </CardContent>
     </Card>
   );
@@ -293,7 +293,7 @@ export function DossierLegend() {
 
 function LegendRow({ color, outline = false, children }: { color?: string; outline?: boolean; children: ReactNode }) {
   return (
-    <Typography variant="body2" component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 13, color: 'text.primary' }}>
+    <Typography variant="body2" component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 14.5, color: 'text.primary' }}>
       <Box
         component="i" aria-hidden="true"
         sx={{

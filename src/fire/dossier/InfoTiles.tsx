@@ -68,10 +68,10 @@ export function InfoTileGrid({ tiles, minWidth = 170, className }: { tiles: read
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 {t.label && (
-                  <Typography component="div" sx={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
+                  <Typography component="div" sx={{ fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
                 )}
-                <Typography component="div" className={t.valueClass} sx={{ fontSize: 15, lineHeight: 1.25, fontWeight: 700, color: t.tone ? accent : 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
-                {t.caption && <Typography component="div" sx={{ fontSize: 11.5, lineHeight: 1.35, color: 'text.secondary' }}>{t.caption}</Typography>}
+                <Typography component="div" className={t.valueClass} sx={{ fontSize: 16.5, lineHeight: 1.25, fontWeight: 700, color: t.tone ? accent : 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
+                {t.caption && <Typography component="div" sx={{ fontSize: 12.5, lineHeight: 1.35, color: 'text.secondary' }}>{t.caption}</Typography>}
               </Box>
             </Box>
           </Tooltip>

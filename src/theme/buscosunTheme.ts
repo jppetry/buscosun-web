@@ -149,13 +149,13 @@ export const buscosunTheme: Theme = createTheme({
   shape: { borderRadius: 12 },
   typography: {
     fontFamily: DECK_FONT,
-    h5: { fontSize: 26, fontWeight: 700, letterSpacing: '-0.4px', lineHeight: 1.15 },
-    h6: { fontSize: 20, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.2 },
+    h5: { fontSize: 28.5, fontWeight: 700, letterSpacing: '-0.4px', lineHeight: 1.15 },
+    h6: { fontSize: 22, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.2 },
     // Der Wert einer Kennzahl-Kachel — die Vorlage 1a setzt ihn auf 22 px.
-    h4: { fontSize: 22, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.15 },
-    body2: { fontSize: 13, lineHeight: 1.5 },
-    caption: { fontSize: 12.5, lineHeight: 1.5, color: '#8B7355' },
-    overline: { fontSize: 12, fontWeight: 700, letterSpacing: '.16em', lineHeight: 1.2, textTransform: 'uppercase' },
+    h4: { fontSize: 24, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.15 },
+    body2: { fontSize: 14.5, lineHeight: 1.5 },
+    caption: { fontSize: 14, lineHeight: 1.5, color: '#8B7355' },
+    overline: { fontSize: 13, fontWeight: 700, letterSpacing: '.16em', lineHeight: 1.2, textTransform: 'uppercase' },
   },
   transitions: {
     duration: {
@@ -190,13 +190,13 @@ export const buscosunTheme: Theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: { fontFamily: DECK_FONT, fontWeight: 600, letterSpacing: '.04em' },
-        sizeSmall: { height: 26, fontSize: 12, borderRadius: 8 },
+        sizeSmall: { height: 26, fontSize: 13, borderRadius: 8 },
         outlined: ({ theme }) => ({ borderColor: theme.palette.divider, backgroundColor: '#F5F1E8' }),
       },
     },
     MuiAlert: {
       styleOverrides: {
-        root: { borderRadius: 12, fontSize: 13, lineHeight: 1.55, alignItems: 'flex-start' },
+        root: { borderRadius: 12, fontSize: 14.5, lineHeight: 1.55, alignItems: 'flex-start' },
         message: { paddingTop: 2, minWidth: 0 },
       },
       // Sand-Ton statt MUI-Blau/Gelb — der Kasten gehört ins Deck, nicht in Material Default.
@@ -215,7 +215,7 @@ export const buscosunTheme: Theme = createTheme({
     },
     MuiAlertTitle: {
       styleOverrides: {
-        root: { fontSize: 12, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 4 },
+        root: { fontSize: 13, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 4 },
       },
     },
     MuiAccordion: {
@@ -239,16 +239,16 @@ export const buscosunTheme: Theme = createTheme({
     MuiTooltip: {
       defaultProps: { enterTouchDelay: 0, describeChild: true, arrow: true },
       styleOverrides: {
-        tooltip: { fontFamily: DECK_FONT, fontSize: 12.5, lineHeight: 1.5, maxWidth: 320, backgroundColor: '#2C2A26' },
+        tooltip: { fontFamily: DECK_FONT, fontSize: 14, lineHeight: 1.5, maxWidth: 320, backgroundColor: '#2C2A26' },
         arrow: { color: '#2C2A26' },
       },
     },
     MuiTable: { styleOverrides: { root: { fontVariantNumeric: 'tabular-nums' } } },
     MuiTableCell: {
       styleOverrides: {
-        root: ({ theme }) => ({ fontFamily: DECK_FONT, fontSize: 12.5, borderColor: theme.palette.divider, padding: '6px 8px' }),
+        root: ({ theme }) => ({ fontFamily: DECK_FONT, fontSize: 14, borderColor: theme.palette.divider, padding: '6px 8px' }),
         head: ({ theme }) => ({
-          fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+          fontSize: 12, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
           color: theme.palette.text.disabled, backgroundColor: theme.palette.background.paper,
         }),
       },

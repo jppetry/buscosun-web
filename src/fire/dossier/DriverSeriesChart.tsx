@@ -291,7 +291,7 @@ export function DriverSeriesChart({ hours, detectionRange, index, width }: Drive
                     unlesbar. Sie kostet 14 px je Zeile — der Preis für zwei lesbare Angaben. */}
                 <Typography
                   variant="overline" component="span"
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', color: 'text.primary', lineHeight: '18px', mb: 0.5 }}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 12.5, fontWeight: 700, letterSpacing: '.1em', color: 'text.primary', lineHeight: '18px', mb: 0.5 }}
                 >
                   <Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: r.color, flex: '0 0 auto' }} />
                   {r.label}{r.unit ? <Box component="span" sx={{ fontWeight: 500, color: 'text.disabled', letterSpacing: 0, textTransform: 'none' }}> · {r.unit}</Box> : null}

@@ -15,21 +15,21 @@ export function nivoTheme(t: MuiTheme) {
   const muted = t.palette.text.disabled;
   return {
     background: 'transparent',
-    text: { fontFamily: SVG_FONT, fontSize: 10.5, fill: t.palette.text.secondary },
+    text: { fontFamily: SVG_FONT, fontSize: 11.5, fill: t.palette.text.secondary },
     axis: {
       domain: { line: { stroke: t.palette.divider, strokeWidth: 1 } },
       ticks: {
         line: { stroke: t.palette.divider, strokeWidth: 1 },
-        text: { fontFamily: SVG_FONT, fontSize: 10, fill: muted },
+        text: { fontFamily: SVG_FONT, fontSize: 11, fill: muted },
       },
-      legend: { text: { fontFamily: SVG_FONT, fontSize: 10, fill: muted } },
+      legend: { text: { fontFamily: SVG_FONT, fontSize: 11, fill: muted } },
     },
     grid: { line: { stroke: t.palette.divider, strokeWidth: 0.6 } },
     crosshair: { line: { stroke: muted, strokeWidth: 1, strokeOpacity: 1, strokeDasharray: '3 3' } },
     tooltip: {
       container: {
         fontFamily: SVG_FONT,
-        fontSize: 11.5,
+        fontSize: 12.5,
         background: t.palette.background.paper,
         color: t.palette.text.primary,
         border: `1px solid ${t.palette.divider}`,

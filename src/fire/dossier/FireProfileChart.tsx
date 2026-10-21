@@ -105,14 +105,14 @@ function gridLabel(rows: readonly Row[], narrow: boolean, colors: { name: string
       <animated.g transform={a.transform} style={{ pointerEvents: 'none' }}>
         <text
           textAnchor={anchor} dominantBaseline="central"
-          fontFamily={SVG_FONT} fontSize={narrow ? 10 : 10.5} fontWeight={600} fill={colors.name}
+          fontFamily={SVG_FONT} fontSize={narrow ? 11 : 11.5} fontWeight={600} fill={colors.name}
         >
           {id}
         </text>
         {!narrow && (
           <text
             y={12} textAnchor={anchor} dominantBaseline="central"
-            fontFamily={SVG_FONT} fontSize={9.5} fill={colors.sub}
+            fontFamily={SVG_FONT} fontSize={10.5} fill={colors.sub}
           >
             {row ? `${row.raw}${row.hasRank ? ` · P${Math.round(row.rang)}` : ' · —'}` : ''}
           </text>

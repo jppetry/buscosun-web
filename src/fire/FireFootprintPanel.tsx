@@ -698,7 +698,7 @@ export function WeatherBlock({ r, nowMs }: { r: FireRecord; nowMs: number }) {
   return (
     <WeatherGrid>
       {summary && (
-        <Typography variant="body1" sx={{ gridColumn: '1 / -1', fontSize: 17, fontWeight: 500, lineHeight: 1.4, color: 'text.primary', mb: 0.5 }}>
+        <Typography variant="body1" sx={{ gridColumn: '1 / -1', fontSize: 18.5, fontWeight: 500, lineHeight: 1.4, color: 'text.primary', mb: 0.5 }}>
           {summary}
         </Typography>
       )}
@@ -718,7 +718,7 @@ export function WeatherBlock({ r, nowMs }: { r: FireRecord; nowMs: number }) {
       </WeatherTile>
       {w.now && <WeatherTile label={`Jetzt · ${stampH(w.now.atMs)}`}>{hourLine(w.now)}</WeatherTile>}
       {w.notes.length > 0 && (
-        <Box component="ul" className="fire-fp-reasons" sx={{ gridColumn: '1 / -1', m: 0, pl: 2.5, color: 'text.disabled', fontSize: 12.5, lineHeight: 1.5 }}>
+        <Box component="ul" className="fire-fp-reasons" sx={{ gridColumn: '1 / -1', m: 0, pl: 2.5, color: 'text.disabled', fontSize: 14, lineHeight: 1.5 }}>
           {w.notes.map((n) => <li key={n}>{n}</li>)}
         </Box>
       )}
@@ -752,11 +752,11 @@ function WeatherTile({ label, accent = false, children }: { label: string; accen
       sx={{
         bgcolor: accent ? 'fire.steelTint' : 'fire.tile',
         border: '1px solid', borderColor: accent ? 'fire.steelBorder' : 'divider',
-        borderRadius: '10px', p: '11px 13px', fontSize: 13.5, lineHeight: 1.5,
+        borderRadius: '10px', p: '11px 13px', fontSize: 15, lineHeight: 1.5,
         color: 'text.primary', fontVariantNumeric: 'tabular-nums', minWidth: 0, overflowWrap: 'anywhere',
       }}
     >
-      <Typography variant="overline" component="span" sx={{ display: 'block', fontSize: 12, letterSpacing: '.14em', mb: '4px', color: accent ? 'fire.steel' : 'text.disabled' }}>
+      <Typography variant="overline" component="span" sx={{ display: 'block', fontSize: 13, letterSpacing: '.14em', mb: '4px', color: accent ? 'fire.steel' : 'text.disabled' }}>
         {label}
       </Typography>
       {children}
@@ -868,7 +868,7 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
           <Chip
             size="small" variant="outlined" className="br-drv-lbl" label={DRIVER_LABEL[rating.level]}
             sx={{
-              fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase', borderRadius: '999px',
+              fontSize: 13, letterSpacing: '.08em', textTransform: 'uppercase', borderRadius: '999px',
               bgcolor: 'transparent',
               color: rating.level === 'driving' ? 'fire.extreme' : rating.level === 'damping' ? 'fire.steel' : 'text.disabled',
               borderColor: 'currentColor',
@@ -1043,7 +1043,7 @@ export function DetailConfidenceRows({ r }: { r: FireRecord }) {
         {conf.firms ? `FIRMS ${confidenceLabel(r)}` : <Missing reason={missingReason(r, 'confidence')} />}
         {conf.assessment && <> · Bewertung <b>{LEVEL_LABEL[conf.assessment]}</b></>}
         {conf.reasons.length > 0 && (
-          <Box component="ul" className="fire-fp-reasons" sx={{ m: '4px 0 0', pl: 2.5, fontSize: 12.5, lineHeight: 1.5 }}>
+          <Box component="ul" className="fire-fp-reasons" sx={{ m: '4px 0 0', pl: 2.5, fontSize: 14, lineHeight: 1.5 }}>
             {conf.reasons.map((s) => <li key={s}>{s}</li>)}
           </Box>
         )}
@@ -1174,9 +1174,9 @@ export function DetailFactTiles({ r, nowMs }: { r: FireRecord; nowMs: number }) 
               <FactTileIcon k={t.icon} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography component="div" sx={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
-              <Typography component="div" sx={{ fontSize: 15, lineHeight: 1.25, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
-              {t.caption && <Typography component="div" sx={{ fontSize: 11.5, lineHeight: 1.35, color: 'text.secondary' }}>{t.caption}</Typography>}
+              <Typography component="div" sx={{ fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: 'text.disabled' }}>{t.label}</Typography>
+              <Typography component="div" sx={{ fontSize: 16.5, lineHeight: 1.25, fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{t.value}</Typography>
+              {t.caption && <Typography component="div" sx={{ fontSize: 12.5, lineHeight: 1.35, color: 'text.secondary' }}>{t.caption}</Typography>}
             </Box>
           </Box>
         </Tooltip>
