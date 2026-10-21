@@ -271,16 +271,12 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     </section>
   );
   const readout = (
-    <aside className="gl-readout" aria-label="DACH-Lage und amtliche Berichte">
-      <div className="gl-readout-head"><h2>DACH-Lage</h2><p>Amtliche Zahlen, jeweils mit Stand und Quelle</p></div>
+    <aside className="gl-readout" aria-label="Gletscher der Auswahl">
+      <div className="gl-readout-head"><h2>Gletscher</h2><p>Alle Gletscher der Auswahl, jeder Wert mit Herkunft</p></div>
       <div className="gl-readout-scroll">
         {sel && <SelectedGlacier g={sel} latest={d?.summary?.latest[sel.id]} sat={sat.get(sel.id)} nowMs={nowMs} defs={defs} />}
         {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} />}
-        {d && <CountryCards items={d.official} facts={facts} />}
-        {lists}
-        {d && <ReportList items={d.official} />}
-        <Rhythm />
-        <div className="gl-foot-note">Flächen tragen das Bezugsjahr ihres Inventars und sind zwischen den Ländern nicht gleichzeitig. Amtliche Sätze stehen wörtlich mit Quelle und Datum; Schmelze und Schneegrenze folgen, sobald ihre Eichung besteht. Kein amtliches Warnprodukt, keine Tourenfreigabe.</div>
+        {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
       </div>
     </aside>
   );
