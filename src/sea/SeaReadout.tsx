@@ -4,7 +4,7 @@
  * "amtlich" (Seewetterdienst Hamburg, verbatim with number and issue time). The official warning status stands ABOVE
  * the verdict whenever it is not the exact "no warning" sentence (Seewetter check 3). No text says "sicher".
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { SeaSpot } from './seaContract';
 import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
@@ -70,7 +70,7 @@ const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet']
  */
 type DsChapter = 'allgemein' | 'satellit' | 'wetter';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
-  ['wetter', 'Wetter', 'Stunde · Verlauf · Amtlich · Seegebiet · Pegel', 'spot'],
+  ['wetter', 'Wetter', 'Stunde · Wasserstand · Verlauf · Amtlich', 'spot'],
   ['satellit', 'Satellit', 'Lage · Küste im Zeitverlauf', 'spot'],
   ['allgemein', 'Allgemein', 'Spot · Datenquellen · Prüfer-Bilanz', 'quellen'],
 ];
@@ -132,6 +132,7 @@ export default function SeaReadout(p: Props) {
   // Dossier chapter: follows the URL tab, except right after a chapter click wrote the tab itself (Satellit ⇒ `spot`).
   const [chapter, setChapter] = useState<DsChapter>(() => chapterOf(p.tab));
   const requestedTab = useRef<SeaTab | null>(null);
+  const dsRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (requestedTab.current === p.tab) { requestedTab.current = null; return; }
     requestedTab.current = null;
@@ -246,7 +247,7 @@ export default function SeaReadout(p: Props) {
     </>
   );
   const empty = <div className="sw-empty">Spot wählen — in der Liste, auf der Karte oder über die Suche.</div>;
-  const areaTab = <AreaTab spot={s} texts={p.texts} nowMs={p.nowMs} />;
+  const areaTab = <AreaDossier spot={s} texts={p.texts} warning={p.warning} />;
   const sourcesTab = <SourcesTab spot={s} run={p.run} spotsDoc={p.spotsDoc} texts={p.texts} freshness={p.freshness} wl={p.waterLevel} />;
 
   if (p.layout === 'dossier') {
@@ -256,8 +257,19 @@ export default function SeaReadout(p: Props) {
     const gauge = p.waterLevel?.gauge ?? null;
     const stationName = s?.station ? s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase() : null;
     const pick = (c: DsChapter, tab: SeaTab) => {
+      // A new chapter starts at its top, not at the scroll position of the previous one.
+      if (c !== chapter) dsRef.current?.closest('.sw-ds-scroll')?.scrollTo({ top: 0 });
       setChapter(c);
       if (tab !== p.tab) { requestedTab.current = tab; p.onTab(tab); }
+    };
+    // ←/→ move between the chapter tabs (one tab stop for the whole list).
+    const onTabKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = DS_CHAPTERS.findIndex(([k]) => k === chapter);
+      const n = DS_CHAPTERS[(i + (e.key === 'ArrowRight' ? 1 : DS_CHAPTERS.length - 1)) % DS_CHAPTERS.length];
+      e.preventDefault();
+      pick(n[0], n[3]);
+      e.currentTarget.querySelector<HTMLElement>(`[data-ch="${n[0]}"]`)?.focus();
     };
     const headCard = s && (
       <section className="sw-card sw-ds-head" aria-label="Spot-Dossier · Kopf">
@@ -371,10 +383,10 @@ export default function SeaReadout(p: Props) {
     );
     // In the dossier the link of the official card scrolls to the sea-area report on the same chapter.
     return (
-      <div className="sw-ds" aria-label="Spot-Dossier">
-        <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers">
+      <div className="sw-ds" aria-label="Spot-Dossier" ref={dsRef}>
+        <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers" onKeyDown={onTabKey}>
           {DS_CHAPTERS.map(([k, t, hint, tab], i) => (
-            <button key={k} type="button" role="tab" aria-selected={chapter === k} className={`sw-ds-tab${chapter === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
+            <button key={k} type="button" role="tab" data-ch={k} tabIndex={chapter === k ? 0 : -1} aria-selected={chapter === k} className={`sw-ds-tab${chapter === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
               <span className="sw-ds-tab-n" aria-hidden="true">{i + 1}</span>
               <span className="sw-ds-tab-tx"><span className="sw-ds-tab-t">{t}</span><span className="sw-ds-tab-h">{hint}</span></span>
             </button>
@@ -692,61 +704,8 @@ function OfficialCard({ spot, texts, warning, onArea, nowMs }: { spot: SeaSpot; 
   );
 }
 
-function AreaTab({ spot, texts, nowMs }: { spot: SeaSpot | null; texts: SeaTexts; nowMs: number }) {
-  const d = texts.fq50;
-  const id = spot?.seaArea?.id ?? null;
-  const days = d?.parts.kind === 'report' ? d.parts.days : [];
-  const fx = texts.fx40?.parts.kind === 'medium' ? texts.fx40.parts : null;
-  const sea = fx?.seas.find((x) => x.sea === spot?.region) ?? null;
-  return (
-    <>
-      <Card cls="is-official">
-        <div className="sw-eyebrow is-accent-dark">Seewetterbericht · Seegebiet</div>
-        <h2 className="sw-spot-title">{spot?.seaArea?.name ?? 'Seegebiet'}</h2>
-        <div className="sw-official-meta">{d ? `${d.heading} · herausgegeben vom Seewetterdienst Hamburg, ${dateTime(Date.parse(d.issuedAt))} (${utcHm(Date.parse(d.issuedAt))} UTC) · Windstärke in Beaufort` : texts.loading ? 'lädt …' : 'Seewetterbericht derzeit nicht lesbar'}{texts.stale.FQDL50 ? ' · veraltet' : ''}</div>
-        {!id && <p className="sw-note">Dieser Spot liegt in keinem Seegebiet des Berichts (z. B. Haff) — siehe Küstenbericht im Reiter Spot.</p>}
-        {days.map((day) => {
-          const a = day.areas.find((x) => x.id === id);
-          return a ? (
-            <div key={day.label}>
-              <div className="sw-area-day">{day.label}:</div>
-              <p className="sw-official">{[a.wind && `Wind: ${a.wind}`, a.sightWeather && `Sicht/Wetter: ${a.sightWeather}`, a.sea && `Seegang: ${a.sea}`, ...a.other].filter(Boolean).join('\n')}</p>
-            </div>
-          ) : null;
-        })}
-        {d && <details className="sw-details"><summary>Ganzen Bericht lesen (alle Gebiete, Wetterlage)</summary><pre className="sw-pre">{d.text}</pre></details>}
-      </Card>
-      <Card cls="is-cream">
-        <div className="sw-eyebrow">Mittelfrist · {texts.fx40 ? `FXDL40 ${dateTime(Date.parse(texts.fx40.issuedAt))}` : texts.loading ? 'lädt' : 'nicht lesbar'}{texts.stale.FXDL40 ? ' · veraltet' : ''}</div>
-        {sea ? (
-          <>
-            <p className="sw-official">{sea.days.map((x) => `${x.label}: ${x.text}`).join('\n')}</p>
-            {sea.water.length > 0 && <><div className="sw-official-meta sw-gap">Temperaturen Wasser</div><p className="sw-official">{sea.water.map((w) => `${w.part} ${w.min} bis ${w.max} Grad`).join('\n')}</p></>}
-          </>
-        ) : <p className="sw-note">{texts.fx40 ? 'Kein Abschnitt für dieses Meer gefunden — ganzer Text unten.' : ''}</p>}
-        {texts.fx40 && <details className="sw-details"><summary>Ganzen Mittelfrist-Bericht lesen</summary><pre className="sw-pre">{texts.fx40.text}</pre></details>}
-      </Card>
-      {texts.wodl && (
-        <Card cls="is-official">
-          <div className="sw-eyebrow is-accent-dark">Starkwind-, Sturm- und Orkanwarnungen · {issued(texts.wodl)}</div>
-          <pre className="sw-pre">{texts.wodl.text}</pre>
-        </Card>
-      )}
-      <Card cls="is-cream">
-        <div className="sw-eyebrow">Lesehilfe Beaufort</div>
-        <table className="sw-bft">
-          <thead><tr><th>Bft</th><th>Knoten</th><th>Bezeichnung</th></tr></thead>
-          <tbody>{BFT_ROWS.map(([b, k, n]) => <tr key={b}><td>{b}</td><td>{k}</td><td>{n}</td></tr>)}</tbody>
-        </table>
-        <p className="sw-note">„Seegang“ im Bericht meint die signifikante Wellenhöhe; einzelne Wellen können fast doppelt so hoch sein.</p>
-      </Card>
-      {void nowMs}
-    </>
-  );
-}
-
 /**
- * Dossier view of the official texts (Seewetterdienst Hamburg): warning status as two status tiles, the coast report
+ * Official texts (Seewetterdienst Hamburg) — dossier chapter Wetter and the mobile tab Seegebiet: warning status as two status tiles, the coast report
  * and each forecast day as labelled rows, the medium range as a day list with water temperature tiles. Every text is
  * the parsed report verbatim — only arranged; numbers are set bold, nothing is reworded (quote rule). The Beaufort
  * chip is a conversion of the highest number in the wind line and says so.

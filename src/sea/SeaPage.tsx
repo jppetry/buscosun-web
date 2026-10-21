@@ -283,10 +283,11 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
 
   const pickSpot = useCallback((id: string) => {
     setSpotId(id); setPicker(false); setSheet('peek');
-    setTab((tb) => (tb === 'quellen' ? 'spot' : tb));
+    // Mobile shows the new spot's briefing; the desktop dossier keeps its chapter (Allgemein = `quellen`).
+    if (isMobile) setTab((tb) => (tb === 'quellen' ? 'spot' : tb));
     const s = spots.find((x) => x.id === id);
     if (s) mapRef.current?.easeTo({ center: [s.lon, s.lat], zoom: Math.max(mapRef.current.getZoom(), 7.5), duration: 600 });
-  }, [spots]);
+  }, [spots, isMobile]);
 
   // --- lists ----------------------------------------------------------------------------------------------
   const dockSpots = useMemo(() => spots
