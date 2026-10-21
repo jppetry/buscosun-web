@@ -292,9 +292,6 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
               </>
             ))}
           </div>
-          <div className="gl-ds-side">
-            <div className="gl-ds-card"><aside className="gl-sheet-left" aria-label="Steckbrief">{facts}{factsNote}</aside></div>
-          </div>
         </div>
       </section>
     );

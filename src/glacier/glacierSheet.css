@@ -105,7 +105,7 @@
 .gl-dl .gl-btn { flex: 1 1 140px; justify-content: center; }
 
 /* Dossier of one glacier in the centre of the situation page (layout="dossier"): head card with four key figures,
-   the sheet map across the full width, the sections as cards on the left, Steckbrief on the right (pattern Brandradar BD2) */
+   the sheet map across the full width, the sections as cards below it (pattern Brandradar BD2) */
 .gl-ds { display: flex; flex-direction: column; gap: 14px; max-width: 1180px; margin: 0 auto; }
 .gl-ds-card { background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .gl-ds-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--gl-accent-dark); }
@@ -123,9 +123,8 @@
 .gl-ds-time { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* Name, key figures and the scene switch open the Heute card, set off from the section below by a rule */
 .gl-ds-head { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; margin-bottom: 4px; border-bottom: 1px solid var(--gl-line); }
-.gl-ds-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
-.gl-ds-main, .gl-ds-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.gl-ds-side { position: sticky; top: 0; }
+.gl-ds-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.gl-ds-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gl-ds-mapcard { padding: 0; overflow: hidden; }
 .gl-ds-mapcard .gl-sheet-map { position: relative; flex: none; height: 460px; min-height: 0; border: 0; }
 /* The three levels of the dossier (pattern Brandradar): a stepper under the head card, one level of sections at a time */
@@ -152,7 +151,6 @@
 .gl-ds-maplink b { color: var(--gl-accent-dark); font-weight: 600; white-space: nowrap; }
 .gl-ds-maplink:hover b { text-decoration: underline; }
 .gl-ds-mapcard .gl-sheet-legend { width: 200px; left: 10px; bottom: 42px; padding: 8px 10px; }
-.gl-ds-side .gl-sheet-left { width: auto; height: auto; padding: 0; border: 0; background: none; overflow: visible; }
 /* Level "Heute" of the dossier as a dashboard (GlacierHeuteBoard): hero with the key figures, gauge + three tiles, 14-day bars + satellite ring, tour grid */
 .gl-hb { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gl-hb-card { background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -213,10 +211,8 @@
 .gl-hb-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .gl-hb-links .gl-btn { text-decoration: none; }
 @media (min-width: 768px) and (max-width: 1279px) {
-  .gl-ds-grid { grid-template-columns: minmax(0, 1fr); }
   .gl-hb-row--melt, .gl-hb-row--week { grid-template-columns: minmax(0, 1fr); }
   .gl-hb-tourgrid { grid-template-columns: minmax(0, 1fr); }
-  .gl-ds-side { position: static; }
   .gl-ds-kf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gl-ds-step-t small { display: none; }
 }
