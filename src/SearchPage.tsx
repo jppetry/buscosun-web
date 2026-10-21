@@ -13,7 +13,7 @@
  *
  * ALLE bestehenden Verdrahtungen bleiben erhalten und werden weitergenutzt:
  *   onSelect (Geocode-Flow), onOpenFeature (jede Kachel + Palette-Eintrag),
- *   warmMapData()-Warm-up, lazy HeroMapBackground, Favoriten, Intro-Tour.
+ *   warmMapData()-Warm-up, Favoriten, Intro-Tour; Hintergrund = DACH-Karte (SVG).
  * Kein Tile/Palette-Eintrag zeigt ins Leere — jede Ziel-ID existiert in
  * App.tsx (FeatureId). Das Mock-Tile „KI-Meteorologe" hat kein reales Feature;
  * an seiner Stelle steht die bestehende Feedback-Kachel (Entscheidung Jan).
@@ -30,16 +30,11 @@ import { parseCountry } from './countryProfiles';
 import RadarSweepIcon from './RadarSweepIcon';
 import GlobeIcon from './GlobeIcon';
 import FireIcon from './FireIcon';
-import DachMapBackground from './DachMapBackground';
-// Deko-Hero-Karte lazy: maplibre-gl bleibt aus dem Initial-Bundle (eigener Chunk).
-const HeroMapBackground = lazy(() => import('./HeroMapBackground'));
-// Touch-Geräte: die rein dekorative Hintergrundkarte gar nicht laden (SVG genügt).
+// DACH-Karte im Hintergrund lazy: hält den Startseiten-Bundle schlank (eigener Chunk).
+const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
 // im Bento-Grid statt als Quadrat neben der Suche (Jan, 2026-08-09).
 const NARROW_QUERY = '(max-width: 1024px)';
-
-const SHOW_HERO_MAP = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-  && !window.matchMedia('(pointer: coarse)').matches;
 import { warmMapData } from './fusion/loadFusedForecast';
 import { flagForCountry } from './geocode';
 import { getFavorites, removeFavorite, subscribeFavorites } from './favorites';
@@ -200,16 +195,10 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
 
   return (
     <div className="deck">
-      {/* Sehr dezente, lazy geladene Deko-Karte hinter Command-Bar + Hero.
-          Bleibt gemountet, um Warm-up/Chunk-Verhalten zu erhalten; per Scrim
-          zur Sandfläche ausgeblendet, damit die Kacheln auf reinem Sand sitzen. */}
-      {SHOW_HERO_MAP && (
-        <Suspense fallback={null}>
-          <HeroMapBackground />
-        </Suspense>
-      )}
-      {/* DACH-Karte als SVG über der Deko-Karte, unter dem Inhalt. */}
-      <DachMapBackground />
+      {/* DACH-Karte als SVG unter dem Inhalt, läuft mit der Seite. */}
+      <Suspense fallback={null}>
+        <DachMapBackground />
+      </Suspense>
 
       <main className="deck-main">
         <Hero onSelect={selectPlace} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} narrow={narrow} />

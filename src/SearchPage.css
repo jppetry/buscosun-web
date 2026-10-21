@@ -25,7 +25,7 @@
   --font-display: 'League Spartan', var(--font-base);
   --font-mono: 'League Spartan', var(--font-base);
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--cream-50) 0%, var(--sand-50) 380px, var(--sand-100) 100%);
+  background: var(--sand-50);
   color: var(--ink-900);
   font-family: 'League Spartan', var(--font-base);
   position: relative;
@@ -35,64 +35,66 @@
   overflow-x: clip;
 }
 
-/* Alles außer der Deko-Karte über die Karte heben. Palette & Bottom-Tab-Bar
+/* Alles außer der DACH-Karte über die Karte heben. Palette & Bottom-Tab-Bar
    ausnehmen — die brauchen ihr eigenes position:fixed (sonst würde diese Regel
    sie mit höherer Spezifität auf position:relative zwingen). */
-.deck > *:not(.hero-map):not(.deck-mapbg):not(.deck-pal):not(.deck-tabbar) { position: relative; z-index: 1; }
+.deck > *:not(.deck-mapbg):not(.deck-pal):not(.deck-tabbar) { position: relative; z-index: 1; }
 
-/* ============ DACH-KARTE (SVG) — fest hinter der ganzen Startseite ============ */
+/* ============ DACH-KARTE (SVG) — volle Breite, läuft mit der Seite ============
+   Oben Hamburg, beim Scrollen München, Schweiz, Österreich; Nachbarstädte am Rand.
+   Unten weich ausgeblendet, damit der Seitenfuß auf reinem Sand steht. */
 .deck-mapbg {
-  position: fixed;
-  top: -8vh;
+  position: absolute;
+  top: 0;
   left: 50%;
-  height: 116vh;
-  width: 100vw;
+  width: max(100%, 1100px);
   transform: translateX(-50%);
   z-index: 0;
   pointer-events: none;
   opacity: 0;
   transition: opacity 1.2s ease;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 82%, transparent 100%);
 }
 .deck-mapbg.is-ready { opacity: 1; }
-.deck-mapbg svg { width: 100%; height: 100%; display: block; overflow: visible; }
-.deck-mapbg-grid { fill: none; stroke: var(--ink-900); stroke-opacity: 0.07; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.deck-mapbg-land { fill: var(--sand-200); fill-opacity: 0.35; }
+.deck-mapbg svg { width: 100%; height: auto; display: block; }
+.deck-mapbg-cross { fill: none; stroke: var(--ink-900); stroke-opacity: 0.18; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.deck-mapbg-shadow { fill: var(--sand-300); fill-opacity: 0.5; }
+.deck-mapbg-land { fill: #FCFAF3; }
 .deck-mapbg-dots { stroke: none; }
-.deck-mapbg #dmb-dots circle { fill: var(--ink-900); fill-opacity: 0.13; }
-.deck-mapbg-borders { fill: none; stroke: var(--ink-900); stroke-opacity: 0.2; stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
-.deck-mapbg-outline { fill: none; stroke: var(--ink-900); stroke-opacity: 0.3; stroke-width: 1.3; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg #dmb-dots circle { fill: var(--ink-900); fill-opacity: 0.12; }
+.deck-mapbg-borders { fill: none; stroke: var(--ink-900); stroke-opacity: 0.24; stroke-width: 1; stroke-dasharray: 2 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-outline { fill: none; stroke: var(--ink-900); stroke-opacity: 0.4; stroke-width: 1.3; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg text { font-family: 'League Spartan', var(--font-base); text-transform: uppercase; paint-order: stroke; stroke: var(--sand-50); stroke-width: 2px; stroke-linejoin: round; }
+.deck-mapbg-area { font-weight: 600; fill: var(--ink-900); stroke: none; }
+.deck-mapbg-area.is-country { font-size: 14px; letter-spacing: 0.45em; fill-opacity: 0.17; }
+.deck-mapbg-area.is-abroad { font-size: 10px; letter-spacing: 0.4em; fill-opacity: 0.12; }
+.deck-mapbg-area.is-sea { font-size: 11px; letter-spacing: 0.55em; font-style: italic; fill: var(--slate-500); fill-opacity: 0.5; }
+.deck-mapbg-area.is-range { font-size: 9px; letter-spacing: 0.7em; fill-opacity: 0.24; }
+.deck-mapbg-city circle { fill: var(--ink-900); fill-opacity: 0.5; }
+.deck-mapbg-city text { font-size: 6.2px; font-weight: 500; letter-spacing: 0.08em; fill: var(--ink-900); fill-opacity: 0.48; }
+.deck-mapbg-city.is-t2 text { font-size: 7px; font-weight: 600; fill-opacity: 0.56; }
+.deck-mapbg-city.is-t1 circle { fill: var(--terracotta-500); fill-opacity: 0.95; }
+.deck-mapbg-city.is-t1 text { font-size: 8px; font-weight: 700; fill-opacity: 0.7; }
+.deck-mapbg-city.is-abroad circle { fill: var(--sand-50); stroke: var(--ink-900); stroke-opacity: 0.4; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.deck-mapbg-city.is-abroad text { fill-opacity: 0.34; }
+.deck-mapbg-city.is-t1 .deck-mapbg-pulse { fill: none; stroke: var(--terracotta-500); stroke-width: 1.2; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: deck-mapbg-pulse 3.6s ease-out infinite; }
+@keyframes deck-mapbg-pulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
 @media (max-width: 767px) {
-  .deck-mapbg { top: 4vh; height: 92vh; width: 130vw; opacity: 0; }
-  .deck-mapbg.is-ready { opacity: 0.7; }
+  .deck-mapbg { width: 210vw; }
+  .deck-mapbg.is-ready { opacity: 0.8; }
+  .deck-mapbg-city.is-t3 text, .deck-mapbg-area.is-abroad { display: none; }
+  .deck-mapbg-city.is-t2 text { font-size: 10px; }
+  .deck-mapbg-city.is-t1 text { font-size: 11px; }
+  .deck-mapbg-area.is-country { font-size: 17px; }
 }
-@media (prefers-reduced-motion: reduce) { .deck-mapbg { transition: none; } }
-
-/* ============ DEKO-KARTE (lazy, erhalten) — sehr dezent hinter Bar+Hero ============ */
-.hero-map {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 560px;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
+@media (prefers-reduced-motion: reduce) {
+  .deck-mapbg { transition: none; }
+  .deck-mapbg-city.is-t1 .deck-mapbg-pulse { animation: none; transform: scale(1.8); opacity: 0.35; }
 }
-.hero-map-canvas {
-  position: absolute;
-  inset: 0;
-  filter: saturate(0.5) sepia(0.2) brightness(1.06) contrast(0.95);
-  opacity: 0;
-  transition: opacity 1.1s ease;
-}
-.hero-map.is-ready .hero-map-canvas { opacity: 0.28; }
-.hero-map-scrim {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(120% 80% at 50% -10%, rgba(250, 246, 234, 0.25), rgba(245, 241, 232, 0.7) 45%, rgba(237, 230, 211, 0.94) 74%),
-    linear-gradient(to bottom, rgba(250, 246, 234, 0.55) 0%, rgba(245, 241, 232, 0.8) 50%, var(--sand-100) 100%);
-}
-.hero-map .maplibregl-canvas { outline: none; }
-@media (prefers-reduced-motion: reduce) { .hero-map-canvas { transition: none; } }
 
 /* ============ COMMAND BAR ============ */
 .deck-bar {
