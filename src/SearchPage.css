@@ -60,7 +60,8 @@
   -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 260px), transparent calc(100% - 20px));
   mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 260px), transparent calc(100% - 20px));
 }
-.deck-mapbg.is-ready { opacity: 1; }
+/* Zurückhaltend: die Karte bleibt Hintergrund (Jan 21.10.). */
+.deck-mapbg.is-ready { opacity: 0.55; }
 .deck-mapbg svg { position: absolute; top: 0; left: 50%; width: max(150vw, 1900px); height: auto; display: block; transform: translate(var(--dmb-x), var(--dmb-y)); }
 .deck-mapbg-cross { fill: none; stroke: var(--ink-900); stroke-opacity: 0.16; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .deck-mapbg-shadow { fill: var(--sand-300); fill-opacity: 0.5; }
@@ -74,7 +75,7 @@
 .deck-mapbg-road { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .deck-mapbg-road.is-minor { stroke: var(--ink-900); stroke-opacity: 0.16; stroke-width: 0.9; }
 .deck-mapbg-road-case { fill: none; stroke: #FBF8F0; stroke-width: 3.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.deck-mapbg-road.is-major { stroke: #C9A36B; stroke-width: 1.6; }
+.deck-mapbg-road.is-major { stroke: #CDB089; stroke-width: 1.5; }
 .deck-mapbg-borders { fill: none; stroke: var(--ink-900); stroke-opacity: 0.26; stroke-width: 1.2; stroke-dasharray: 3 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .deck-mapbg-outline { fill: none; stroke: var(--ink-900); stroke-opacity: 0.42; stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .deck-mapbg text { font-family: 'League Spartan', var(--font-base); text-transform: uppercase; paint-order: stroke; stroke: #F3EEE2; stroke-width: 1.1px; stroke-linejoin: round; }
@@ -97,7 +98,7 @@
 }
 @media (max-width: 767px) {
   .deck-mapbg svg { width: 330vw; transform: translate(var(--dmb-x-m), var(--dmb-y)); }
-  .deck-mapbg.is-ready { opacity: 0.85; }
+  .deck-mapbg.is-ready { opacity: 0.5; }
   .deck-mapbg-city.is-t3 text, .deck-mapbg-area.is-abroad { display: none; }
   .deck-mapbg-city.is-t2 text { font-size: 8.5px; }
   .deck-mapbg-city.is-t1 text { font-size: 9.5px; }
