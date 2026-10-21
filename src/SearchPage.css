@@ -12,6 +12,9 @@
 .deck {
   --deck-max: 1360px;
   --deck-pad-x: 32px;
+  /* Schatten der Kacheln über der Hintergrundkarte. */
+  --deck-lift: 0 1px 2px rgba(44, 42, 38, 0.08), 0 14px 32px -18px rgba(44, 42, 38, 0.38);
+  --deck-lift-hover: 0 1px 2px rgba(44, 42, 38, 0.08), 0 28px 56px -28px rgba(44, 42, 38, 0.55);
   /* Auftrag Jan 2026-08-09: die KOMPLETTE Startseite in League Spartan.
      Damit zieht sie mit den übrigen Command-Deck-Seiten gleich (D-27) —
      Regenradar, Kartenseite, Historie, Vertikalschnitt, Event- und
@@ -61,12 +64,20 @@
 .deck-mapbg svg { position: absolute; top: 0; left: 50%; width: max(150vw, 1900px); height: auto; display: block; transform: translate(var(--dmb-x), var(--dmb-y)); }
 .deck-mapbg-cross { fill: none; stroke: var(--ink-900); stroke-opacity: 0.16; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .deck-mapbg-shadow { fill: var(--sand-300); fill-opacity: 0.5; }
-.deck-mapbg-land { fill: #FCFAF3; }
+.deck-mapbg-land { fill: #ECE5D3; }
 .deck-mapbg-dots { stroke: none; }
-.deck-mapbg #dmb-dots circle { fill: var(--ink-900); fill-opacity: 0.11; }
+.deck-mapbg #dmb-dots circle { fill: var(--ink-900); fill-opacity: 0.08; }
+/* Straßen, Flüsse, Seen (Natural Earth) — in DACH voll, im Ausland blass. */
+.deck-mapbg-lines.is-abroad { opacity: 0.45; }
+.deck-mapbg-lake { fill: #CFDCE3; stroke: #9FB3C1; stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+.deck-mapbg-river { fill: none; stroke: #8FA7B8; stroke-opacity: 0.8; stroke-width: 1.1; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-road { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-road.is-minor { stroke: var(--ink-900); stroke-opacity: 0.16; stroke-width: 0.9; }
+.deck-mapbg-road-case { fill: none; stroke: #FBF8F0; stroke-width: 3.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-road.is-major { stroke: #C9A36B; stroke-width: 1.6; }
 .deck-mapbg-borders { fill: none; stroke: var(--ink-900); stroke-opacity: 0.26; stroke-width: 1.2; stroke-dasharray: 3 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .deck-mapbg-outline { fill: none; stroke: var(--ink-900); stroke-opacity: 0.42; stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.deck-mapbg text { font-family: 'League Spartan', var(--font-base); text-transform: uppercase; paint-order: stroke; stroke: var(--sand-50); stroke-width: 1.1px; stroke-linejoin: round; }
+.deck-mapbg text { font-family: 'League Spartan', var(--font-base); text-transform: uppercase; paint-order: stroke; stroke: #F3EEE2; stroke-width: 1.1px; stroke-linejoin: round; }
 .deck-mapbg-area { font-weight: 600; fill: var(--ink-900); stroke: none; }
 .deck-mapbg-area.is-country { font-size: 10px; letter-spacing: 0.45em; fill-opacity: 0.15; }
 .deck-mapbg-area.is-abroad { font-size: 6.5px; letter-spacing: 0.4em; fill-opacity: 0.13; }
@@ -374,11 +385,13 @@
 /* Tile-Basis (echtes <button> → Resets) */
 .deck-tile {
   font: inherit; color: inherit; text-align: left; appearance: none; -webkit-appearance: none;
-  background: #fff; border: 1px solid var(--border-default); border-radius: 22px; padding: 24px;
+  background: #fff; border: 1px solid var(--border-medium); border-radius: 22px; padding: 24px;
   display: flex; flex-direction: column; cursor: pointer;
+  /* Hebt die Kachel sichtbar von der Hintergrundkarte ab. */
+  box-shadow: var(--deck-lift);
   transition: transform 0.18s, box-shadow 0.18s, opacity 0.2s;
 }
-.deck-tile:hover { transform: translateY(-3px); box-shadow: 0 24px 50px -34px rgba(44, 42, 38, 0.5); }
+.deck-tile:hover { transform: translateY(-3px); box-shadow: var(--deck-lift-hover); }
 .deck-tile:focus-visible { outline: 2px solid var(--ink-900); outline-offset: 3px; }
 .deck-tile.is-dim { opacity: 0.22; pointer-events: none; }
 
@@ -392,9 +405,9 @@
 
 /* Dunkle Varianten */
 .t-ink { background: var(--ink-900); color: var(--sand-50); }
-.t-ink:hover { box-shadow: 0 24px 50px -34px rgba(44, 42, 38, 0.6); }
+.t-ink:hover { box-shadow: var(--deck-lift-hover); }
 .t-ink2 { background: var(--ink-800); color: var(--sand-50); }
-.t-ink2:hover { box-shadow: 0 24px 50px -34px rgba(44, 42, 38, 0.6); }
+.t-ink2:hover { box-shadow: var(--deck-lift-hover); }
 .t-cream { background: var(--cream-50); }
 
 /* Innen-Bausteine */
@@ -570,7 +583,7 @@
 .deck-h2 { font-family: var(--font-display); font-size: 34px; font-weight: 600; letter-spacing: -1px; margin: 12px 0 0; max-width: 720px; color: var(--ink-900); }
 .deck-lead { font-size: 15px; line-height: 1.55; color: var(--stone-600); margin: 14px 0 0; max-width: 680px; }
 .deck-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
-.deck-step { background: #fff; border: 1px solid var(--border-default); border-radius: 16px; padding: 20px; }
+.deck-step { background: #fff; border: 1px solid var(--border-medium); border-radius: 16px; padding: 20px; box-shadow: var(--deck-lift); }
 .deck-step-num { font-family: var(--font-mono); font-size: 11px; color: var(--terracotta-500); }
 .deck-step-title { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin-top: 8px; }
 .deck-step p { font-size: 12.5px; line-height: 1.5; color: var(--stone-600); margin: 6px 0 0; }

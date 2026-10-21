@@ -8,7 +8,10 @@ import { useEffect, useState, type CSSProperties } from 'react';
 // the edges. Dot matrix inside the dissolved
 // outline DE ∪ AT ∪ CH ∪ LI, country borders, crosshairs on the 1° graticule.
 // Outlines come from the same files as the map's sand mask
-// (public/countries/*.geojson); nothing renders until they are loaded.
+// (public/countries/*.geojson); nothing renders until they are loaded. Roads,
+// rivers and lakes (public/countries/dach-lines.json, Natural Earth, public
+// domain, scripts/gen-dach-lines.mjs) follow when they arrive — inside DACH at
+// full strength, abroad faded.
 // ============================================================================
 
 const LON0 = 4.0, LON1 = 19.4, LAT0 = 45.0, LAT1 = 54.9;
@@ -72,6 +75,18 @@ const SHIFT = {
   '--dmb-y': pct(py(TOP_LAT) / H),
 } as CSSProperties;
 
+type Lines = { roads: { major: number[][]; minor: number[][] }; rivers: number[][]; lakes: number[][] };
+
+/** Flat thousandths of a degree [lon, lat, …] → SVG path (rings closed with Z). */
+function flatPath(lines: number[][], close = false): string {
+  let d = '';
+  for (const l of lines) {
+    for (let i = 0; i < l.length; i += 2) d += `${i ? 'L' : 'M'}${px(l[i] / 1000).toFixed(1)} ${py(l[i + 1] / 1000).toFixed(1)}`;
+    if (close) d += 'Z';
+  }
+  return d;
+}
+
 type Ring = number[][];
 type Geo = { geometry?: { type: string; coordinates: unknown } };
 
@@ -101,6 +116,7 @@ function crosshairs(): string {
 
 export default function DachMapBackground() {
   const [paths, setPaths] = useState<{ dach: string; borders: string } | null>(null);
+  const [lines, setLines] = useState<{ major: string; minor: string; rivers: string; lakes: string } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -111,6 +127,12 @@ export default function DachMapBackground() {
     Promise.all([load('DACH'), load('AT'), load('CH')])
       .then(([dach, at, ch]) => { if (alive) setPaths({ dach: pathOf(dach), borders: pathOf(at) + pathOf(ch) }); })
       .catch(() => { /* decorative only — without outlines the page keeps its plain sand */ });
+    fetch('/countries/dach-lines.json')
+      .then((r) => { if (!r.ok) throw new Error(`dach-lines: ${r.status}`); return r.json() as Promise<Lines>; })
+      .then((l) => {
+        if (alive) setLines({ major: flatPath(l.roads.major), minor: flatPath(l.roads.minor), rivers: flatPath(l.rivers), lakes: flatPath(l.lakes, true) });
+      })
+      .catch(() => { /* the map stays without roads and rivers */ });
     return () => { alive = false; };
   }, []);
 
@@ -122,11 +144,23 @@ export default function DachMapBackground() {
             <pattern id="dmb-dots" width="3.6" height="3.6" patternUnits="userSpaceOnUse">
               <circle cx="1.8" cy="1.8" r="0.55" />
             </pattern>
+            <clipPath id="dmb-dach"><path d={paths.dach} /></clipPath>
+            {lines && (
+              <g id="dmb-lines">
+                <path className="deck-mapbg-lake" d={lines.lakes} />
+                <path className="deck-mapbg-river" d={lines.rivers} />
+                <path className="deck-mapbg-road is-minor" d={lines.minor} />
+                <path className="deck-mapbg-road-case" d={lines.major} />
+                <path className="deck-mapbg-road is-major" d={lines.major} />
+              </g>
+            )}
           </defs>
           <path className="deck-mapbg-cross" d={crosshairs()} />
           <path className="deck-mapbg-shadow" d={paths.dach} transform="translate(2 3)" />
           <path className="deck-mapbg-land" d={paths.dach} />
           <path className="deck-mapbg-dots" d={paths.dach} fill="url(#dmb-dots)" />
+          {lines && <use href="#dmb-lines" className="deck-mapbg-lines is-abroad" />}
+          {lines && <use href="#dmb-lines" className="deck-mapbg-lines" clipPath="url(#dmb-dach)" />}
           <path className="deck-mapbg-borders" d={paths.borders} />
           <path className="deck-mapbg-outline" d={paths.dach} />
           {AREAS.map(([name, lon, lat, kind]) => (
