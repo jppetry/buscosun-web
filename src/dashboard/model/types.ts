@@ -246,6 +246,13 @@ export interface NowcastDetailVM {
   headline: Shown;
   /** Summe und Spitze je Zeitraum (Radar bis zu seinem Horizont + Fusion danach) */
   ranges: Array<{ h: number; sum: Shown; peak: Shown }>;
+  /**
+   * Regen- und Trockenphasen ab jetzt (Radar bis zu seinem Horizont, danach Fusion), je Phase Dauer, Menge und Spitze.
+   * `cls` = Intensitätsklasse der Spitze (`RAIN_CLASSES`); `src` = welche Quelle die Phase trägt.
+   */
+  episodes: Array<{ wet: boolean; fromMs: number; toMs: number; mm: number; peakMmh: number; peakAtMs: number; cls: number; src: 'radar' | 'fusion' | 'mixed' }>;
+  /** Aufsummierte Menge seit jetzt an den Phasengrenzen (stückweise linear: je Abschnitt konstante Rate). */
+  cum: Array<{ t: number; mm: number }>;
   caption: Shown;
 }
 

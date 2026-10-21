@@ -7,14 +7,22 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Val } from './tiles';
 import { Tip, useWidth } from './fusionTiles';
 import { dayLabel, hhmm, num } from './format';
-import { HEAVY_MMH, DRY_MMH } from './model/rules';
+import { DRY_MMH, RAIN_CLASSES, rainClass } from './model/rules';
 import { NOWCAST_DETAIL_RANGES, type NowcastDetailVM } from './model/types';
 
 const H = 3_600_000;
 const NB = ' ';
 /** Abstand der x-Marken je Zeitraum in Minuten */
 const TICK_MIN: Record<number, number> = { 1: 10, 2: 15, 3: 30, 6: 60, 12: 120, 24: 180, 48: 360 };
-const STEEL = '#3A6FA8', HEAVY = '#9B8CE0', SNOW = '#9B8CE0', FUSION = '#8A9AA8';
+const STEEL = '#3A6FA8', SNOW = '#9B8CE0', FUSION = '#8A9AA8';
+/** Farbe je Intensitätsklasse (`RAIN_CLASSES`): trocken · Nieseln · leicht · mäßig · stark */
+const CLASS_COL = ['#E8E2D0', '#BCD3E8', '#6FA3D0', '#3A6FA8', '#7B4FD0'];
+const SRC_LABEL = { radar: 'Radar', fusion: 'buscosun Fusion', mixed: 'Radar + Fusion' } as const;
+/** Dauer als „35 min" / „2 h 10 min" */
+const dur = (ms: number) => {
+  const m = Math.max(1, Math.round(ms / 60_000));
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`;
+};
 
 interface Bar { t: number; w: number; mmh: number; src: 'radar' | 'fusion'; p90: number | null; pWet: number | null; pSnow: number | null }
 
@@ -74,6 +82,22 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
   const cxOf = (b: Bar) => X(tMid(b));
   const hov = hoverT == null ? null : bars.reduce<Bar | null>((b, x) => (!b || Math.abs(tMid(x) - hoverT) < Math.abs(tMid(b) - hoverT) ? x : b), null);
   const cur = vm.ranges.find((r) => r.h === range);
+  /** Menge seit jetzt zum Zeitpunkt t (zwischen den Phasengrenzen linear: je Abschnitt konstante Rate). */
+  const cumAt = (t: number): number => {
+    const c = vm.cum;
+    if (!c.length || t <= c[0].t) return 0;
+    for (let i = 1; i < c.length; i++) if (t <= c[i].t) return c[i - 1].mm + ((c[i].mm - c[i - 1].mm) * (t - c[i - 1].t)) / (c[i].t - c[i - 1].t);
+    return c[c.length - 1].mm;
+  };
+  const total = cumAt(toMs);
+  const eps = vm.episodes.filter((e) => e.toMs > vm.nowMs && e.fromMs < toMs);
+  const wetMs = eps.filter((e) => e.wet).reduce((a, e) => a + Math.min(e.toMs, toMs) - Math.max(e.fromMs, vm.nowMs), 0);
+  const cumPts: Array<[number, number]> = vm.cum.length ? [...vm.cum.filter((p) => p.t <= toMs).map((p): [number, number] => [p.t, p.mm]), [toMs, total]] : [];
+  const cumTop = [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500].find((s) => s >= total * 1.08) ?? Math.ceil(total * 1.1);
+  const cH = 118, cT = 10, cB = 22, cPlotH = cH - cT - cB, cBase = cT + cPlotH;
+  const CY = (mm: number) => cT + (1 - Math.min(mm, cumTop) / cumTop) * cPlotH;
+  const stripH = 30;
+  const radarEdgeX = seamX ?? (vm.radarEndMs != null ? X(vm.radarEndMs + slotMs) : null);
 
   return (
     <div className="dbd-rose-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -96,6 +120,7 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
           <div className="dbf-kpis dbd-nc-kpis">
             <div><span className="dbf-k">Summe bis +{range} h</span><b>{cur ? <Val v={cur.sum} /> : '—'}</b></div>
             <div><span className="dbf-k">Spitze</span><b>{cur ? <Val v={cur.peak} /> : '—'}</b></div>
+            <div><span className="dbf-k">Regenzeit</span><b>{vm.state !== 'ok' ? '—' : wetMs > 0 ? dur(wetMs) : 'trocken'}</b></div>
           </div>
         </div>
 
@@ -116,13 +141,12 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                       const x00 = X(b.t) - (b.src === 'fusion' ? bw0 / 2 : 0);
                       // links an der Achse beschneiden (Stunde 0 beginnt vor „jetzt − 10 min")
                       const x0 = Math.max(padL, x00), bw = Math.max(1.5, bw0 - (x0 - x00));
-                      const heavy = b.mmh >= HEAVY_MMH;
                       const snow = (b.pSnow ?? 0) >= 0.5;
-                      const fill = b.src === 'radar' ? (heavy ? HEAVY : STEEL) : snow ? SNOW : FUSION;
+                      const fill = b.src === 'radar' ? CLASS_COL[Math.max(1, rainClass(b.mmh))] : snow ? SNOW : FUSION;
                       const cx = x0 + bw / 2;
                       return (
                         <g key={`${b.src}${b.t}`}>
-                          {b.mmh >= 0.02 && <rect x={x0} y={Y(b.mmh)} width={bw} height={Math.max(1, yBase - Y(b.mmh))} rx={Math.min(2, bw / 2)} fill={fill} fillOpacity={b.src === 'radar' ? (b.mmh < 0.5 ? 0.6 : 0.9) : 0.85} />}
+                          {b.mmh >= 0.02 && <rect x={x0} y={Y(b.mmh)} width={bw} height={Math.max(1, yBase - Y(b.mmh))} rx={Math.min(2, bw / 2)} fill={fill} fillOpacity={b.src === 'radar' ? 0.95 : 0.85} />}
                           {b.p90 != null && b.p90 > b.mmh + 0.02 && <line x1={cx} x2={cx} y1={Y(b.p90)} y2={Y(b.mmh)} className="dbf-whisker" />}
                           {b.p90 != null && b.p90 > b.mmh + 0.02 && bw > 4 && <line x1={cx - bw / 3} x2={cx + bw / 3} y1={Y(b.p90)} y2={Y(b.p90)} className="dbf-whisker" />}
                           {b.pWet != null && <rect x={x0} y={yBase + 30} width={bw} height={6} rx={1} fill={STEEL} fillOpacity={0.1 + 0.85 * b.pWet} />}
@@ -157,26 +181,100 @@ export function NowcastDetail({ vm, onClose }: { vm: NowcastDetailVM; onClose: (
                 {hov && (
                   <Tip left={Math.max(0, Math.min(width - 210, cxOf(hov) - 105))} top={padT + 18}>
                     <div className="dbf-tip-t">{dayLabel(hov.t)} {hhmm(hov.t)}{hov.src === 'radar' ? `–${hhmm(hov.t + hov.w)}` : ''} Uhr</div>
-                    <div className="dbf-tip-v">{num(hov.mmh, 1)}{NB}mm/h{hov.p90 != null ? <span> · bis {num(hov.p90, 1)}{NB}mm/h (p90)</span> : null}</div>
+                    <div className="dbf-tip-v">{num(hov.mmh, hov.mmh < 1 ? 2 : 1)}{NB}mm/h{hov.p90 != null ? <span> · bis {num(hov.p90, 1)}{NB}mm/h (p90)</span> : null}</div>
                     <div className="dbf-tip-s">
-                      {hov.src === 'radar' ? (hov.t <= vm.nowMs + 5 * 60_000 ? 'Radar · Messung' : 'Radar · Vorausberechnung') : 'buscosun Fusion'}
+                      {RAIN_CLASSES[rainClass(hov.mmh)].label} · {hov.src === 'radar' ? (hov.t <= vm.nowMs + 5 * 60_000 ? 'Radar · Messung' : 'Radar · Vorausberechnung') : 'buscosun Fusion'} · seit jetzt {num(cumAt(tMid(hov)), 1)}{NB}mm<br />
+                      {hov.src === 'radar' ? `Intensität über ${vm.slotMin}${NB}min` : 'Stundenmittel'}
                       {hov.pWet != null ? ` · Regenchance ${Math.round(hov.pWet * 100)}${NB}%` : ''}{hov.pSnow != null && hov.pSnow >= 0.5 ? ` · Schnee ${Math.round(hov.pSnow * 100)}${NB}%` : ''}
                     </div>
                   </Tip>
                 )}
+
+                {width > 0 && (
+                  <>
+                    <div className="dbd-nc-ph">Intensität im Zeitverlauf</div>
+                    <svg width={width} height={stripH + 26} role="img" aria-label="Regenintensität je Zeitabschnitt">
+                      {bars.map((b) => {
+                        const a = b.src === 'radar' ? X(b.t) : Math.max(X(b.t - H / 2), radarEdgeX ?? padL);
+                        const z = b.src === 'radar' ? X(b.t + b.w) : X(b.t + H / 2);
+                        const x0 = Math.max(padL, a), x1 = Math.min(padL + plotW, z);
+                        if (x1 <= x0) return null;
+                        return <rect key={`s${b.src}${b.t}`} x={x0} y={2} width={Math.max(1, x1 - x0 - 0.6)} height={stripH - 4} rx={2} fill={CLASS_COL[rainClass(b.mmh)]} />;
+                      })}
+                      <rect x={padL} y={2} width={plotW} height={stripH - 4} rx={3} fill="none" className="dbd-nc-stripframe" />
+                      {nowX >= padL && nowX <= padL + plotW && <line x1={nowX} x2={nowX} y1={0} y2={stripH} className="dbd-nc-now" />}
+                      {hoverT != null && <line x1={X(hoverT)} x2={X(hoverT)} y1={0} y2={stripH} className="dbf-cross" />}
+                      {vm.radarEndMs != null && bars.some((b) => b.src === 'radar') && (
+                        <text x={padL + ((radarEdgeX != null ? Math.min(radarEdgeX, padL + plotW) : padL + plotW) - padL) / 2} y={stripH + 14} textAnchor="middle" className="dbf-striplabel">Radar · alle {vm.slotMin} min</text>
+                      )}
+                      {hasFusion && radarEdgeX != null && radarEdgeX < padL + plotW - 60 && (
+                        <text x={(radarEdgeX + padL + plotW) / 2} y={stripH + 14} textAnchor="middle" className="dbf-striplabel">buscosun Fusion · stündlich</text>
+                      )}
+                      {hasFusion && radarEdgeX == null && <text x={padL + plotW / 2} y={stripH + 14} textAnchor="middle" className="dbf-striplabel">buscosun Fusion · stündlich</text>}
+                      <rect x={padL} y={0} width={plotW} height={stripH} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} style={{ cursor: 'crosshair', touchAction: 'pan-y' }} />
+                    </svg>
+
+                    <div className="dbd-nc-ph">Aufsummierte Regenmenge seit jetzt{hoverT != null ? <b> · {hhmm(hoverT)} Uhr: {num(cumAt(hoverT), 1)}{NB}mm</b> : <b> · bis +{range}{NB}h: {num(total, 1)}{NB}mm</b>}</div>
+                    <svg width={width} height={cH} role="img" aria-label={`Aufsummierte Regenmenge, insgesamt ${num(total, 1)} Millimeter bis ${range} Stunden voraus`}>
+                      {[0, cumTop / 2, cumTop].map((v) => (
+                        <g key={v}><line x1={padL} x2={padL + plotW} y1={CY(v)} y2={CY(v)} className="dbf-grid" /><text x={padL - 6} y={CY(v) + 3.5} className="dbd-nc-t" textAnchor="end">{num(v, v < 1 && v > 0 ? 1 : 0)}</text></g>
+                      ))}
+                      <text transform={`translate(12 ${cT + cPlotH / 2}) rotate(-90)`} textAnchor="middle" className="dbd-nc-t dbd-nc-t--b">Summe in mm</text>
+                      {cumPts.length > 1 && (
+                        <>
+                          <path d={`M${X(cumPts[0][0]).toFixed(1)} ${cBase}${cumPts.map((p) => `L${X(p[0]).toFixed(1)} ${CY(p[1]).toFixed(1)}`).join('')}L${X(cumPts[cumPts.length - 1][0]).toFixed(1)} ${cBase}Z`} fill={STEEL} fillOpacity=".14" />
+                          <path d={`M${cumPts.map((p) => `${X(p[0]).toFixed(1)} ${CY(p[1]).toFixed(1)}`).join('L')}`} fill="none" stroke={STEEL} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+                        </>
+                      )}
+                      {radarEdgeX != null && radarEdgeX < padL + plotW && hasFusion && <line x1={radarEdgeX} x2={radarEdgeX} y1={cT} y2={cBase} className="dbd-nc-seam" />}
+                      {nowX >= padL && nowX <= padL + plotW && <line x1={nowX} x2={nowX} y1={cT} y2={cBase} className="dbd-nc-now" />}
+                      <line x1={padL} x2={padL + plotW} y1={cBase} y2={cBase} className="dbf-base" />
+                      {ticks.map((t) => <g key={t}><line x1={X(t)} x2={X(t)} y1={cBase} y2={cBase + 4} className="dbf-tick" /><text x={X(t)} y={cBase + 15} className="dbd-nc-t" textAnchor="middle">{hhmm(t)}</text></g>)}
+                      {hoverT != null && <><line x1={X(hoverT)} x2={X(hoverT)} y1={cT} y2={cBase} className="dbf-cross" /><circle cx={X(hoverT)} cy={CY(cumAt(hoverT))} r="4.5" fill="#fff" stroke={STEEL} strokeWidth="2.4" /></>}
+                      <rect x={padL} y={cT} width={plotW} height={cPlotH + 18} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} style={{ cursor: 'crosshair', touchAction: 'pan-y' }} />
+                    </svg>
+                  </>
+                )}
               </div>
             )}
 
+        {vm.state === 'ok' && (
+          <section className="dbd-nc-eps" aria-label="Regen- und Trockenphasen">
+            <div className="dbd-nc-ph">Regen- und Trockenphasen bis +{range}{NB}h</div>
+            {eps.length === 0 ? <div className="dbd-empty">keine Zeitreihe verfügbar</div> : (
+              <ol>
+                {eps.slice(0, 14).map((e) => {
+                  const a = Math.max(e.fromMs, vm.nowMs), z = Math.min(e.toMs, toMs);
+                  return (
+                    <li key={e.fromMs} className={e.wet ? 'is-wet' : 'is-dry'}>
+                      <span className="dbd-nc-ep-t">{a <= vm.nowMs + 60_000 ? 'jetzt' : hhmm(a)}–{hhmm(z)}{e.toMs > toMs ? '…' : ''}</span>
+                      <span className="dbd-nc-ep-bar"><i style={{ left: `${((a - vm.nowMs) / (toMs - vm.nowMs)) * 100}%`, width: `${Math.max(1.5, ((z - a) / (toMs - vm.nowMs)) * 100)}%`, background: CLASS_COL[e.wet ? e.cls : 0] }} /></span>
+                      <span className="dbd-nc-ep-l">
+                        <b>{e.wet ? `Regen · ${RAIN_CLASSES[e.cls].label}` : 'Trocken'}</b> · {dur(z - a)}
+                      </span>
+                      <span className="dbd-nc-ep-v">{e.wet ? `${num(e.mm, e.mm < 1 ? 2 : 1)}${NB}mm · max ${num(e.peakMmh, e.peakMmh < 1 ? 2 : 1)}${NB}mm/h ${hhmm(e.peakAtMs)}` : ''}</span>
+                      <span className="dbd-nc-ep-s">{SRC_LABEL[e.src]}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {eps.length > 14 && <div className="dbd-nc-more">+ {eps.length - 14} weitere Phasen im längeren Zeitraum</div>}
+          </section>
+        )}
+
         <div className="dbf-legend dbd-nc-legend">
-          <span><i className="dbd-nc-sw" style={{ background: STEEL }} />Radar (Messung + Vorausberechnung)</span>
-          <span><i className="dbd-nc-sw" style={{ background: HEAVY }} />Radar, stark (≥ {num(HEAVY_MMH, 1)}{NB}mm/h)</span>
-          <span><i className="dbd-nc-sw" style={{ background: FUSION }} />buscosun Fusion (Stundenmittel)</span>
+          {RAIN_CLASSES.map((k, i) => (
+            <span key={k.label}><i className="dbd-nc-sw" style={{ background: CLASS_COL[i] }} />{k.label}{i ? ` ≥ ${num(k.min, k.min < 1 ? 1 : 0)}${NB}mm/h` : ''}</span>
+          ))}
+          <span><i className="dbd-nc-sw" style={{ background: FUSION }} />buscosun Fusion (Balken in Grau)</span>
           <span><i className="dbd-nc-sw" style={{ background: SNOW }} />Fusion, überwiegend Schnee</span>
           <span><i className="dbd-nc-sw dbd-nc-sw--line" />Spanne bis p90</span>
         </div>
         <ul className="dbd-rose-notes dbd-nc-notes">
           <li>Das Radar trägt den Regen bis zu seinem Horizont ({vm.horizon}); dahinter übernimmt buscosun Fusion. Die gestrichelte Linie „Radar-Horizont" markiert den Übergang, beide Quellen werden nie vermischt.</li>
-          <li>Radar-Balken sind Regenraten je {vm.slotMin} Minuten, Fusion-Balken Stundenmittel. Werte unter {num(DRY_MMH, 1)}{NB}mm/h gelten als trocken.</li>
+          <li>Radar-Balken sind Regenraten je {vm.slotMin} Minuten, Fusion-Balken Stundenmittel; die Farbe der Radar-Balken und der Intensitätsleiste folgt der Klasse (Nieseln, leicht, mäßig, stark). Werte unter {num(DRY_MMH, 1)}{NB}mm/h gelten als trocken.</li>
+          <li>Die Summenlinie und die Phasenliste nehmen je Abschnitt die Rate des Radars bzw. des Fusion-Stundenmittels als konstant an; Phasen sind zusammenhängende Abschnitte mit bzw. ohne messbaren Regen.</li>
           <li>Summe und Spitze rechnen das Radar bis zu seinem Horizont und Fusion danach; die Summe ist daher keine einheitliche Prognose, sondern die Reihenfolge der beiden Quellen.</li>
         </ul>
         <div className="dbd-caption"><Val v={vm.caption} long /></div>

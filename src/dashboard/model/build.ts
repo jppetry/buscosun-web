@@ -10,7 +10,7 @@ import { compass16, compass8, dateTime, dayLabel, hhmm, localParts, num, runLabe
 import { ORIGIN, type ParamId } from '../origin';
 import {
   bandMarks, confidenceClass, confidenceTypical, confidenceWord, dayText, DRY_MMH, spreadText, gammaWord, GUST_WARN_MS, isothermColor, isotherms,
-  leadSentence, PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
+  leadSentence, PHASES, popLevel, rainClass, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
   tpiWord, svfWord, surfaceWord, sinkWord,
 } from './rules';
 import { NOWCAST_DETAIL_RANGES, type DayDetailVM, type DayHour, type NowcastDetailVM } from './types';
@@ -673,10 +673,39 @@ function buildNowcastDetail(c: Ctx): NowcastDetailVM {
       peak: sh('P55', top.mmh >= DRY_MMH ? `${num(top.mmh, 1)}${NBSP}mm/h · ${hhmm(top.t)}` : 'trocken'),
     };
   });
+  // Abschnitte mit konstanter Rate ab jetzt: Radar-Frames [t, t + Takt), dahinter Fusion-Stunden [t − 30 min, t + 30 min]
+  // (wie die Balken gezeichnet), die Naht liegt am Ende des letzten Radar-Frames.
+  const slotMs = slotMin * 60_000;
+  const seam = radarEndMs == null ? nowMs : radarEndMs + slotMs;
+  const segs: Array<{ from: number; to: number; mmh: number; src: 'radar' | 'fusion' }> = [];
+  for (const r of radar) { const from = Math.max(r.t, nowMs), to = r.t + slotMs; if (to > from) segs.push({ from, to, mmh: r.mmh, src: 'radar' }); }
+  for (const x of hours) {
+    if (x.mean == null) continue;
+    const from = Math.max(x.t - H / 2, seam, nowMs), to = x.t + H / 2;
+    if (to > from) segs.push({ from, to, mmh: x.mean, src: 'fusion' });
+  }
+  segs.sort((a, b) => a.from - b.from);
+  const episodes: NowcastDetailVM['episodes'] = [];
+  const cum: NowcastDetailVM['cum'] = segs.length ? [{ t: segs[0].from, mm: 0 }] : [];
+  let acc = 0;
+  for (const sg of segs) {
+    const mm = (sg.mmh * (sg.to - sg.from)) / H;
+    acc += mm;
+    cum.push({ t: sg.to, mm: acc });
+    const wet = sg.mmh >= DRY_MMH;
+    const last = episodes[episodes.length - 1];
+    if (last && last.wet === wet) {
+      last.toMs = sg.to; last.mm += mm;
+      if (sg.mmh > last.peakMmh) { last.peakMmh = sg.mmh; last.peakAtMs = (sg.from + sg.to) / 2; last.cls = rainClass(sg.mmh); }
+      if (last.src !== sg.src) last.src = 'mixed';
+    } else {
+      episodes.push({ wet, fromMs: sg.from, toMs: sg.to, mm, peakMmh: sg.mmh, peakAtMs: (sg.from + sg.to) / 2, cls: rainClass(sg.mmh), src: sg.src });
+    }
+  }
   return {
     state, nowMs, radar, slotMin, radarEndMs, horizon: n.horizonLabel, hours,
     headline: buildNowcast(c.inp).headline,
-    ranges,
+    ranges, episodes, cum,
     caption: sh('P55', `Radar (${n.horizonLabel}) bis zu seinem Horizont, danach buscosun Fusion: Stundenmittel mit Spanne bis p90 und Regenchance`),
   };
 }

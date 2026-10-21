@@ -128,7 +128,7 @@ export function templateVM(): DashboardVM {
     },
     nowcastDetail: {
       state: 'ok', nowMs: NOW, radar: [], slotMin: 10, radarEndMs: null, horizon: '0–2 h DE · 0–3 h AT', hours: [],
-      headline: s('P54', 'Trocken bis 16:40'), ranges: [], caption: s('P55', 'Vorlage'),
+      headline: s('P54', 'Trocken bis 16:40'), ranges: [], episodes: [], cum: [], caption: s('P55', 'Vorlage'),
     },
     clouds: {
       state: 'ok', fromMs: START, toMs: START + 336 * H,

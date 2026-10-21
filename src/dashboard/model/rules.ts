@@ -34,6 +34,20 @@ export const DRY_MMH = 0.1;
  */
 export const HEAVY_MMH = 2.5;
 
+/**
+ * Intensitätsklassen des Regens (literature/set: untere Grenzen 0,1 mm/h Nachweis · 0,5 Nieseln→leicht · 2,5 leicht→mäßig
+ * (DWD-Intensitätsstufen) · 10 mäßig→stark). Index = Klasse; die Detailansicht des Nowcasts färbt und benennt danach.
+ */
+export const RAIN_CLASSES: ReadonlyArray<{ label: string; min: number }> = [
+  { label: 'trocken', min: 0 }, { label: 'Nieseln', min: DRY_MMH }, { label: 'leicht', min: 0.5 }, { label: 'mäßig', min: 2.5 }, { label: 'stark', min: 10 },
+];
+export function rainClass(mmh: number | null): number {
+  if (mmh == null) return 0;
+  let c = 0;
+  RAIN_CLASSES.forEach((k, i) => { if (mmh >= k.min) c = i; });
+  return c;
+}
+
 /** Regen-Summe blau hervorheben ab 1 mm/Tag (set; Vorlage: 0,2 mm schwarz, 4,1/11,6 mm blau). */
 export const WET_DAY_MM = 1;
 
