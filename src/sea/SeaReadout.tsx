@@ -115,11 +115,18 @@ export function Compass({ normal, windFrom, waveFrom, label, shore }: { normal: 
 const KINDS: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
 const kindsText = (k: readonly string[]) => k.map((x) => KINDS[x] ?? x).join(', ');
 /** Water temperature of the spot's sea from FXDL40 (range over its parts, verbatim numbers), or '–'. */
-function waterText(t: SeaTexts, s: SeaSpot): string {
+function waterRange(t: SeaTexts, s: SeaSpot): string | null {
   const fx = t.fx40?.parts.kind === 'medium' ? t.fx40.parts.seas.find((x) => x.sea === s.region) : null;
-  if (!fx || !fx.water.length) return '–';
+  if (!fx || !fx.water.length) return null;
   const lo = Math.min(...fx.water.map((w) => w.min)), hi = Math.max(...fx.water.map((w) => w.max));
-  return `${lo}–${hi} °C ${s.region === 'nordsee' ? 'Nordsee' : 'Ostsee'}`;
+  return `${lo}–${hi} °C`;
+}
+
+const seaName = (s: SeaSpot) => (s.region === 'nordsee' ? 'Nordsee' : 'Ostsee');
+
+function waterText(t: SeaTexts, s: SeaSpot): string {
+  const r = waterRange(t, s);
+  return r ? `${r} ${seaName(s)}` : '–';
 }
 
 function Card({ children, cls = '' }: { children: ReactNode; cls?: string }) { return <section className={`sw-card ${cls}`}>{children}</section>; }
@@ -316,14 +323,28 @@ export default function SeaReadout(p: Props) {
                 <strong>{h.dry || h.tm == null ? '–' : `${f1(h.tm)} s`}</strong>
                 <span className="sw-ds-stat-c">{h.dry ? 'kein Seegang' : h.tm == null ? 'kein Wert' : 'mittlere Periode Tm'}</span>
               </div>
+              <div className="sw-ds-stat">
+                <span className="sw-ds-stat-l">Windsee · Modell</span>
+                <strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m`}</strong>
+                <span className="sw-ds-stat-c">{h.dry ? 'kein Seegang' : h.ws == null ? 'kein Wert' : h.wsPer == null ? 'Periode –' : `Periode ${f1(h.wsPer)} s`}</span>
+              </div>
+              <div className="sw-ds-stat">
+                <span className="sw-ds-stat-l">Dünung · Modell</span>
+                <strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m`}</strong>
+                <span className="sw-ds-stat-c">{h.dry ? 'kein Seegang' : h.sw == null ? 'kein Wert' : `Periode ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} · aus ${compass16(h.swDir)}`}</span>
+              </div>
+              <div className="sw-ds-stat">
+                <span className="sw-ds-stat-l">Wellenrichtung · Modell</span>
+                <strong>{h.hs == null || h.hs < 0.05 ? '–' : `aus ${compass16(h.dir)}`}</strong>
+                <span className="sw-ds-stat-c">{h.hs == null || h.hs < 0.05 ? 'kein Seegang mit Richtung' : `${Math.round(h.dir ?? 0)}°`}</span>
+              </div>
+              <div className="sw-ds-stat">
+                <span className="sw-ds-stat-l">Wasser · Mittelfrist (amtlich)</span>
+                <strong>{waterRange(p.texts, s) ?? '–'}</strong>
+                <span className="sw-ds-stat-c">{waterRange(p.texts, s) ? seaName(s) : 'kein Wert im Bericht'}</span>
+              </div>
               <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
                 label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
-            </div>
-            <div className="sw-vals is-four">
-              <div><span>Windsee · Modell</span><strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m · ${h.wsPer == null ? '–' : `${f1(h.wsPer)} s`}`}</strong></div>
-              <div><span>Dünung · Modell</span><strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m · ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} aus ${compass16(h.swDir)}`}</strong></div>
-              <div><span>Wellenrichtung · Modell</span><strong>{h.hs == null || h.hs < 0.05 ? '–' : `aus ${compass16(h.dir)} (${Math.round(h.dir ?? 0)}°)`}</strong></div>
-              <div><span>Wasser · Mittelfrist (amtlich)</span><strong>{waterText(p.texts, s)}</strong></div>
             </div>
             {p.dry.hours > 0
               ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
