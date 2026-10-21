@@ -297,6 +297,10 @@ export interface TerrainVM {
   /** Herkunftsrichtung des Schnitts (Luv-Seite, `s` < 0) und der Ort — die 3D-Bühne legt Schnittlinie und Blickrichtung darauf. */
   axisDeg: number;
   center: { lat: number; lon: number } | null;
+  /** Temperatur am Ort, Ortshöhe und Gradient — Grundlage der Temperaturfläche auf dem Relief; `null` bei Inversion oder ohne Profil. */
+  thermal: { tOrt: number; hOrt: number; gamma: number } | null;
+  /** Wind am Ort (10 m, Stunde 0): Herkunftsrichtung in Grad und Mittelwind. Höhenwind gibt der Punkt-Cube nicht her. */
+  wind: { dirDeg: number | null; ms: number | null };
   header: Shown;
   chip: Shown; chipTone: 'ok' | 'warn';
   fromLabel: string; toLabel: string;

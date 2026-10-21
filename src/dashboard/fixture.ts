@@ -157,7 +157,7 @@ export function templateVM(): DashboardVM {
     windBand: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, points: [], gustMax: na('P95', 'Vorlage ohne Stundenwerte'), windMax: na('P95', 'Vorlage ohne Stundenwerte'), caption: s('P95', 'Vorlage') },
     pressure: { state: 'ok', fromMs: 0, toMs: 48 * 3_600_000, points: [], now: na('P96', 'Vorlage ohne Stundenwerte'), tendency: na('P96', 'Vorlage ohne Stundenwerte'), tendencyDir: null, range: na('P96', 'Vorlage ohne Stundenwerte'), caption: s('P96', 'Vorlage') },
     terrain: {
-      state: 'ok', halfKm: 20, axisDeg: 225, center: { lat: 47.49, lon: 11.1 },
+      state: 'ok', halfKm: 20, axisDeg: 225, center: { lat: 47.49, lon: 11.1 }, thermal: { tOrt: 18.4, hOrt: 708, gamma: 7.1 }, wind: { dirDeg: 228, ms: 3.2 },
       header: s('P80', 'Schnitt SW → NO durch die Fahrtrichtung des Windes · Punkt-Cube t1 (0,05°), γ aus dem Modellprofil'),
       chip: s('P70', 'γ 7,1 K/km · keine Inversion'), chipTone: 'ok', fromLabel: 'SW', toLabel: 'NO',
       profile, axis: { top: 3000, bottom: 500, step: 500 }, hOrt: 708,

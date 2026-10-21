@@ -867,6 +867,7 @@ function buildTerrain(c: Ctx): TerrainVM {
   const header = sh('P80', `Schnitt ${compass8(tin.axisDeg)} → ${compass8(tin.axisDeg + 180)} durch die Fahrtrichtung des Windes · Punkt-Cube t1 (0,05°), γ aus dem Modellprofil`);
   const base: TerrainVM = {
     state: tin.state, halfKm: tin.halfKm, axisDeg: tin.axisDeg, center: c.inp.place ? { lat: c.inp.place.lat, lon: c.inp.place.lon } : null,
+    thermal: null, wind: { dirDeg: s0 ? v(s0, 'windDir') : null, ms: s0 ? v(s0, 'wind') : null },
     header, chip: loading('P70'), chipTone: 'ok',
     fromLabel: compass8(tin.axisDeg), toLabel: compass8(tin.axisDeg + 180),
     profile: [], axis: { bottom: 500, top: 3000, step: 500 }, hOrt: c.hOrt, isotherms: [], snowline: null, snowlineLabel: null, stations: [],
@@ -931,6 +932,7 @@ function buildTerrain(c: Ctx): TerrainVM {
   if (tin.outside.length) note.push(` ${tin.outside.join(' und ')} ${tin.outside.length > 1 ? 'liegen' : 'liegt'} außerhalb des ±${tin.halfKm}-km-Schnitts.`);
   return {
     ...base, state: 'ok', chip, chipTone: inversion ? 'warn' : 'ok',
+    thermal: tOrt != null && gamma != null && !inversion ? { tOrt, hOrt, gamma } : null,
     profile: tin.profile, axis, hOrt, isotherms: iso,
     snowline: snow, snowlineLabel: snow == null ? null : `Schneegrenze ${withUnit(Math.round(snow / 10) * 10, 0, 'm')}`,
     stations,
