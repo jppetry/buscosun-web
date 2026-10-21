@@ -32,7 +32,6 @@ import './nowcastMobile.css';
 import ShareButton from '../share/ShareButton';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 // Phase NS (audit/niederschlagssummen.md §9): Niederschlagssummen — Dock „Darstellung", Karte am Ort; `?sum=0` = vorher.
-import { SumControls } from '../precipSums/PrecipSumsUi';
 import { SUM_DEFAULT, sumsEnabledFrom, isSumWindow, type SumSelection } from '../precipSums/sumModel';
 // Phase RB (audit/regenbeginn-spanne.md): Regenbeginn als Spanne — voreingestellt an, `?rb=0` = Rückfall.
 import { computeRainWindow, rainWindowEnabledFrom, type RainWindow } from './rainWindow';
@@ -458,7 +457,7 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, withHeight = false, nowcast, onReload, sumSel, setSumSel, chance, country, probeCard = null }: {
+function Dock({ layers, toggleLayer, activeLayerCount, nowcast, onReload, country, probeCard = null }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
   /** Phase RA-250: the place's country — the 250-m switch exists for Germany only (AT/CH have no open 250-m product). */
   country: Location['country'];
@@ -496,22 +495,6 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
       </div>
       {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
       {probeCard}
-
-      {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="dock" {...(chance ? { chance: chance.slot } : {})} />}
-
-      {withHeight && <>
-        <span className="rr-eyebrow">Ansicht</span>
-        <div className="rr-seg">
-          <button type="button" className={`rr-seg-btn${view === 'map' ? ' is-active' : ''}`} onClick={() => setView('map')}>Karte</button>
-          <button type="button" className={`rr-seg-btn${view === 'height' ? ' is-active' : ''}`} onClick={() => setView('height')} title="Karte mit Höhen-Zeit-Schnitt am gewählten Ort">Karte + Höhe</button>
-        </div>
-      </>}
-
-      <span className="rr-eyebrow">Modus</span>
-      <div className="rr-seg rr-seg--modus">
-        <button type="button" className={`rr-seg-btn${mode === 'standard' ? ' is-active' : ''}`} onClick={() => setMode('standard')}>Standard</button>
-        <button type="button" className={`rr-seg-btn${mode === 'detail' ? ' is-active' : ''}`} onClick={() => setMode('detail')}>Detail</button>
-      </div>
 
       <div className="rr-datalage">
         <div className="rr-datalage-eyebrow">Datenlage</div>
@@ -741,7 +724,7 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
 }
 
 // --- Panel: Layer -----------------------------------------------------------
-function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, country, sumSel, setSumSel, chance }: {
+function LayerPanel({ layers, toggleLayer, nowcast, place, country }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; place: string;
@@ -776,12 +759,6 @@ function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, countr
         })}
       </div>
       {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
-      {sumSel && <SumControls sel={sumSel} onChange={setSumSel} variant="mobile" {...(chance ? { chance: chance.slot } : {})} />}
-      <div className="rm-seclabel">Modus</div>
-      <div className="rm-seg rm-seg--modus" role="tablist" aria-label="Modus">
-        <button type="button" role="tab" aria-selected={mode === 'standard'} className={mode === 'standard' ? 'is-active' : ''} onClick={() => setMode('standard')}>Standard</button>
-        <button type="button" role="tab" aria-selected={mode === 'detail'} className={mode === 'detail' ? 'is-active' : ''} onClick={() => setMode('detail')}>Detail</button>
-      </div>
     </>
   );
 }
