@@ -1,37 +1,23 @@
-/* Regenradar — 3D-Punktansicht am Zeiger (Phase P3D). Command-Deck (Sand/Ink), Tokens --np-* für Phasen. */
-.pp-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px; padding: 10px 10px 9px; margin: 0 0 16px;
-  display: flex; flex-direction: column; gap: 8px; }
+/* Regenradar — Werte am Zeiger (Phase P3D): Niederschlag · Höhe · Schneefallgrenze. Command-Deck (Sand/Ink). */
+.pp-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 6px; margin: 0 0 16px;
+  display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .pp-card--mobile { margin: 0 0 12px; }
-.pp-head { display: flex; align-items: center; gap: 8px; min-height: 18px; }
-.pp-eyebrow { font-size: 10px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; }
-.pp-zone { margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--stone-500, #8B7355); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.pp-zone--measured { color: #5F7A4C; }
-.pp-zone--nowcast { color: var(--steel-600, #3A6FA8); }
-.pp-zone--model { color: var(--np-model, #7A9466); }
-.pp-pos { font-size: 10px; color: var(--stone-400, #A89A7A); font-variant-numeric: tabular-nums; margin-top: -4px; }
+.pp-tiles { display: grid; grid-template-columns: 1fr; gap: 4px; min-width: 0; }
+.pp-tile { display: grid; grid-template-columns: 26px minmax(0, 1fr); grid-template-areas: 'ico k' 'ico v' '. s'; column-gap: 8px; align-items: center;
+  padding: 7px 8px; border-radius: 10px; background: var(--cream-50, #FAF6EA); min-width: 0; transition: opacity .15s; }
+.pp-card.is-idle .pp-tile { opacity: .55; }
+.pp-ico { grid-area: ico; align-self: start; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #fff; color: var(--stone-500, #8B7355); box-shadow: inset 0 0 0 1px var(--sand-200, #E0D6BE); }
+.pp-ico svg { width: 15px; height: 15px; }
+.pp-tile--rain .pp-ico { color: var(--steel-600, #3A6FA8); }
+.pp-tile--snow .pp-ico { color: #4F5FB8; }
+.pp-tile.is-wet .pp-ico { background: var(--steel-600, #3A6FA8); color: #fff; box-shadow: none; }
+.pp-tile-k { grid-area: k; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; color: var(--stone-400, #A89A7A); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-tile-v { grid-area: v; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.15; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pp-tile-v small { font-size: 11px; font-weight: 600; letter-spacing: 0; color: var(--stone-500, #8B7355); }
+.pp-tile-s { grid-area: s; font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.3; }
+
+.pp-pin { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 2px; font-size: 10.5px; font-weight: 600; color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums; }
 .pp-unpin { font: inherit; font-size: 10.5px; font-weight: 600; color: var(--steel-600, #3A6FA8); background: none; border: 0; cursor: pointer; padding: 0 2px; }
 .pp-unpin:hover { color: var(--nc-blue-dark, #28507A); }
 
-.pp-idle { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.45; }
-
-.pp-hero { display: flex; flex-direction: column; gap: 1px; }
-.pp-rate { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink-900, #2C2A26); line-height: 1.1; font-variant-numeric: tabular-nums; }
-.pp-rate small { font-size: 12px; font-weight: 600; color: var(--stone-500, #8B7355); letter-spacing: 0; }
-.pp-rate--dry { font-size: 15px; color: var(--stone-600, #6F5E45); }
-.pp-rate-sub { font-size: 11px; color: var(--stone-500, #8B7355); font-weight: 500; }
-
-.pp-rows { margin: 0; display: flex; flex-direction: column; gap: 5px; }
-.pp-row { display: grid; grid-template-columns: 74px 1fr; gap: 6px; align-items: baseline; }
-.pp-row dt { font-size: 10.5px; color: var(--stone-400, #A89A7A); font-weight: 600; letter-spacing: .3px; }
-.pp-row dd { margin: 0; display: flex; flex-direction: column; min-width: 0; }
-.pp-v { font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
-.pp-sub { font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.35; }
-.pp-row.is-hail .pp-v { color: var(--np-hail, #C0307A); }
-.pp-windarrow { color: #5B9BD5; flex: 0 0 auto; }
-
-.pp-foot { margin-top: 2px; padding-top: 7px; border-top: 1px solid var(--sand-200, #E0D6BE); display: flex; flex-direction: column; gap: 2px;
-  font-size: 10px; color: var(--stone-400, #A89A7A); line-height: 1.4; }
-
-@media (max-width: 1024px) { .pp-row { grid-template-columns: 64px 1fr; } }
-@media (max-width: 767px) { .pp-card { margin: 0 0 12px; } .pp-row { grid-template-columns: 86px 1fr; } }
-
+@media (max-width: 767px) { .pp-card { margin: 0 0 12px; } .pp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pp-tile { grid-template-columns: 1fr; grid-template-areas: 'ico' 'k' 'v' 's'; row-gap: 2px; } }
