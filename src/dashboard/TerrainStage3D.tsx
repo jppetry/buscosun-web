@@ -4,7 +4,8 @@
  * Basiskarte positron und der Schneefallgrenze als Fläche auf dem Relief (`useSnowCap`, Phase SK; `?sk=0` schaltet sie ab).
  * Dazu, was das Dashboard am Ort zeigt: der Ort, die Schnittlinie in Windrichtung (± halbe Länge), die Stationen des Katalogs,
  * die Temperaturverteilung auf dem Relief (EIN Gradient aus dem Modellprofil, wie die Isothermen des Schnitts) und die
- * Windrichtung am Ort als Pfeile entlang der Schnittlinie. Nur eingebaute 3D-Mittel von MapLibre — keine Shader, kein Custom-Layer.
+ * ein Windfeld aus Pfeilen über dem Gelände (gemessener Wind der Stationen, abstandsgewichtet). Nur eingebaute 3D-Mittel von
+ * MapLibre — keine Shader, kein Custom-Layer.
  */
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
@@ -47,26 +48,49 @@ function chip(text: string, cls: string): HTMLElement {
   return el;
 }
 
-/** Messstation: Temperatur groß, Name klein; Hintergrund in der Farbe der Temperaturskala (dieselbe wie die Fläche). */
-function obsPin(t: number, name: string, elev: number, stampMs: number): HTMLElement {
+/**
+ * Messstation als Karte: farbige Temperaturpille (Farbe der Temperaturskala, dieselbe wie die Fläche) und daneben Name und
+ * Höhe; ein Stiel führt zum genauen Punkt. `below` = Karte hängt unter dem Punkt (Station direkt am Ort).
+ */
+function obsPin(t: number, name: string, elev: number, stampMs: number, below: boolean): HTMLElement {
   const el = document.createElement('div');
-  el.className = 'dbd-stage-pin is-obs';
+  el.className = `dbd-stage-pin is-obs${below ? ' is-below' : ''}`;
   const col = rampColor(t);
   el.style.setProperty('--c', `rgb(${col[0]},${col[1]},${col[2]})`);
   el.style.setProperty('--ink', col[0] * 0.299 + col[1] * 0.587 + col[2] * 0.114 > 150 ? '#2C2A26' : '#FFFFFF');
-  const b = document.createElement('b');
-  b.textContent = `${t.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}°`;
-  const s = document.createElement('span');
-  s.textContent = name.length > 16 ? `${name.slice(0, 15)}…` : name;
-  el.append(b, s);
+  const pill = document.createElement('b');
+  pill.textContent = `${t.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}°`;
+  const txt = document.createElement('span');
+  const n = document.createElement('em');
+  n.textContent = name.length > 17 ? `${name.slice(0, 16)}…` : name;
+  const h = document.createElement('small');
+  h.textContent = `${Math.round(elev).toLocaleString('de-DE')} m`;
+  txt.append(n, h);
+  el.append(pill, txt);
   el.title = `${name} · ${Math.round(elev)} m · gemessen ${new Date(stampMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
   return el;
 }
 
-function arrow(): HTMLElement {
+/** Windfarbe (m/s): hell → Stahlblau → dunkel → Violett (wie die Windklassen der Karte). */
+const WIND_RAMP: Array<[number, [number, number, number]]> = [[0, [120, 150, 185]], [3, [70, 125, 185]], [6, [40, 95, 160]], [10, [30, 60, 110]], [16, [110, 70, 200]]];
+function windColor(ms: number): string {
+  if (ms <= WIND_RAMP[0][0]) return `rgb(${WIND_RAMP[0][1].join(',')})`;
+  for (let i = 1; i < WIND_RAMP.length; i++) {
+    if (ms <= WIND_RAMP[i][0]) {
+      const [a, ca] = WIND_RAMP[i - 1], [b, cb] = WIND_RAMP[i], k = (ms - a) / (b - a);
+      return `rgb(${ca.map((x, j) => Math.round(x + (cb[j] - x) * k)).join(',')})`;
+    }
+  }
+  return `rgb(${WIND_RAMP[WIND_RAMP.length - 1][1].join(',')})`;
+}
+
+/** Windpfeil (zeigt nach oben, MapLibre dreht ihn auf die Wehrichtung): Größe und Farbe folgen der Geschwindigkeit. */
+function windArrow(ms: number, conf: number): HTMLElement {
   const el = document.createElement('div');
   el.className = 'dbd-stage-arrow';
-  el.innerHTML = '<svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2 L21 22 L13 17 L5 22 Z" fill="#2C2A26" stroke="#FAF6EA" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  const px = Math.round(28 + Math.min(ms, 12) * 1.5);
+  el.style.opacity = String(0.6 + 0.4 * conf);
+  el.innerHTML = `<svg width="${px}" height="${px}" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 1.5 L20.5 22.5 L13 17.5 L5.5 22.5 Z" fill="${windColor(ms)}" stroke="#FAF6EA" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
   return el;
 }
 
@@ -91,24 +115,29 @@ const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) /
 const latOfMercY = (y: number) => ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI;
 
 interface ObsT { name: string; lat: number; lon: number; elev: number; t: number; ms: number }
+/** Gemessener Wind an einer Station: Herkunftsrichtung in Grad und Mittelwind in m/s. */
+interface ObsW { lat: number; lon: number; dd: number; ff: number }
 
 /**
- * Gemessene Temperatur an Stationen rund um den Ort (Messdaten-Spiegel `obs/v1`: DWD, GeoSphere, MeteoSchweiz) — die
- * nächsten Stationen mit Mindestabstand, damit die Schilder sich nicht überdecken. Das ist Messung, kein Modell.
+ * Messwerte rund um den Ort aus dem Messdaten-Spiegel `obs/v1` (DWD, GeoSphere, MeteoSchweiz): die Temperaturen der nächsten
+ * Stationen mit Mindestabstand (damit die Schilder sich nicht überdecken) und der gemessene Wind aller Stationen im Umkreis,
+ * aus denen das Windfeld entsteht. Das ist Messung, kein Modell.
  */
-async function loadObsTemps(c: { lat: number; lon: number }, halfKm: number, nowMs: number, signal: AbortSignal): Promise<ObsT[]> {
+async function loadObs(c: { lat: number; lon: number }, halfKm: number, nowMs: number, signal: AbortSignal): Promise<{ temps: ObsT[]; winds: ObsW[] }> {
   const { loadObsStore, obsVarsOf, obsDistanceM } = await import('../sources/obsStore');
   const store = await loadObsStore({ nowMs });
-  if (signal.aborted) return [];
+  if (signal.aborted) return { temps: [], winds: [] };
   // Offene Stationen mit Temperatur sind dünn gesät (Mittelgebirge: 6 im Umkreis von 40 km, 15 bei 60 km) — der Radius ist deshalb weit.
   const maxM = Math.max(halfKm * 3, 60) * 1000, gapM = Math.max(halfKm / 6, 3) * 1000;
   const cand: Array<ObsT & { d: number }> = [];
+  const winds: Array<ObsW & { d: number }> = [];
   for (const st of store.catalog.stations) {
     const d = obsDistanceM(c.lat, c.lon, st.lat, st.lon);
     if (d > maxM) continue;
-    const t = obsVarsOf(store.latest.stations[st.id], nowMs)?.vars.t;
-    if (!t) continue;
-    cand.push({ name: st.name, lat: st.lat, lon: st.lon, elev: st.elev, t: t.v, ms: t.ms, d });
+    const vars = obsVarsOf(store.latest.stations[st.id], nowMs)?.vars;
+    if (!vars) continue;
+    if (vars.t) cand.push({ name: st.name, lat: st.lat, lon: st.lon, elev: st.elev, t: vars.t.v, ms: vars.t.ms, d });
+    if (vars.ff && vars.dd) winds.push({ lat: st.lat, lon: st.lon, dd: vars.dd.v, ff: vars.ff.v, d });
   }
   cand.sort((a, b) => a.d - b.d);
   const kept: Array<ObsT & { d: number }> = [];
@@ -116,7 +145,44 @@ async function loadObsTemps(c: { lat: number; lon: number }, halfKm: number, now
     if (kept.length >= 24) break;
     if (kept.every((k) => obsDistanceM(k.lat, k.lon, x.lat, x.lon) >= gapM)) kept.push(x);
   }
-  return kept;
+  winds.sort((a, b) => a.d - b.d);
+  return { temps: kept, winds: winds.slice(0, 60) };
+}
+
+interface WindCell { lon: number; lat: number; toDeg: number; ms: number; conf: number }
+
+/**
+ * Windfeld über dem Gelände: Gitter um den Ort, an jedem Punkt der mit 1/d² gewichtete Mittelwert der Windvektoren (u, v) der
+ * acht nächsten Messstationen. Die Zuverlässigkeit `conf` fällt mit dem Abstand zur nächsten Station (30 km Skala) — weit
+ * entfernte Pfeile werden blass. Ohne ausreichend Stationen (< 3) zeigt jeder Punkt die Richtung am Ort aus buscosun Fusion.
+ */
+function windField(c: { lat: number; lon: number }, halfKm: number, viewBearing: number, winds: ObsW[], fallback: { dirDeg: number | null; ms: number | null }): { cells: WindCell[]; measured: boolean } {
+  // Gitter in der Blickrichtung der Bühne: quer ± 1,5 R, in Blickrichtung von − 0,7 R (vor dem Ort) bis + 2,2 R (Ferne)
+  const across = halfKm * 1.5, back = halfKm * 0.7, ahead = halfKm * 2.2;
+  const NX = 9, NY = 6;
+  const cells: WindCell[] = [];
+  const useObs = winds.length >= 3;
+  if (!useObs && fallback.dirDeg == null) return { cells, measured: false };
+  const kmLon = KM_PER_DEG_LAT * Math.cos((c.lat * Math.PI) / 180);
+  const bx = Math.sin((viewBearing * Math.PI) / 180), by = Math.cos((viewBearing * Math.PI) / 180);
+  for (let j = 0; j < NY; j++) {
+    for (let i = 0; i < NX; i++) {
+      const q = -across + (2 * across * i) / (NX - 1), a = -back + ((back + ahead) * j) / (NY - 1);
+      const dx = a * bx + q * by, dy = a * by - q * bx;
+      const lat = c.lat + dy / KM_PER_DEG_LAT, lon = c.lon + dx / kmLon;
+      if (!useObs) { cells.push({ lon, lat, toDeg: ((fallback.dirDeg as number) + 180) % 360, ms: fallback.ms ?? 2, conf: 1 }); continue; }
+      const near = winds.map((w) => ({ w, d: Math.hypot((w.lat - lat) * KM_PER_DEG_LAT, (w.lon - lon) * kmLon) })).sort((a, b) => a.d - b.d).slice(0, 8);
+      let su = 0, sv = 0, sw = 0;
+      for (const { w, d } of near) {
+        const wt = 1 / (d * d + 4);
+        const r = (w.dd * Math.PI) / 180;
+        su += -w.ff * Math.sin(r) * wt; sv += -w.ff * Math.cos(r) * wt; sw += wt;
+      }
+      const u = su / sw, v = sv / sw, ms = Math.hypot(u, v);
+      cells.push({ lon, lat, toDeg: (((Math.atan2(u, v) * 180) / Math.PI) + 360) % 360, ms, conf: Math.exp(-near[0].d / 30) });
+    }
+  }
+  return { cells, measured: useObs };
 }
 
 interface TempImage { url: string; coordinates: [[number, number], [number, number], [number, number], [number, number]]; tMin: number; tMax: number }
@@ -169,7 +235,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const [showSnow, setShowSnow] = useState(true);
   const [tempRange, setTempRange] = useState<{ tMin: number; tMax: number } | null>(null);
   const [tempState, setTempState] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
-  const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[] }>({ state: 'idle', list: [] });
+  const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[]; winds: ObsW[] }>({ state: 'idle', list: [], winds: [] });
   const obsMarkersRef = useRef<maplibregl.Marker[]>([]);
   const c = vm.center;
   const bearing = (vm.axisDeg + 180) % 360; // Blick in Richtung +s (Lee-Seite), wie der Schnitt von links nach rechts liest
@@ -253,22 +319,19 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     map.easeTo({ zoom: ZOOM_OF[R], bearing: (vm.axisDeg + 180) % 360, duration: 500 });
   }, [map, c?.lat, c?.lon, vm.halfKm, vm.axisDeg, vm.stations, vm.ort.title, vm.hOrt, vm.fromLabel, vm.toLabel]);
 
-  // --- Windrichtung am Ort: Pfeile entlang der Schnittlinie (zeigen, wohin der Wind weht) -------------------------
+  // --- Windfeld über dem Gelände: Pfeile in einem Gitter um den Ort (zeigen, wohin der Wind weht) -----------------------
   const windDir = vm.wind.dirDeg;
+  const field = windField(c ?? { lat: 0, lon: 0 }, vm.halfKm, bearing, obs.winds, vm.wind);
+  const fieldKey = `${field.measured}|${field.cells.map((x) => `${Math.round(x.toDeg / 5)}.${Math.round(x.ms)}`).join(',')}`;
   useEffect(() => {
     arrowsRef.current.forEach((k) => k.remove());
     arrowsRef.current = [];
-    if (!map || !c || !showWind || windDir == null) return;
-    const to = (windDir + 180) % 360;
-    const R = vm.halfKm;
-    const out: maplibregl.Marker[] = [];
-    for (const f of [-0.8, -0.55, -0.3, 0.3, 0.55, 0.8]) {
-      const [lon, lat] = offset(c.lat, c.lon, vm.axisDeg + 180, f * R);
-      out.push(new maplibregl.Marker({ element: arrow(), rotation: to, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat([lon, lat]).addTo(map));
-    }
+    if (!map || !c || !showWind) return;
+    const out = field.cells.map((x) => new maplibregl.Marker({ element: windArrow(x.ms, x.conf), rotation: x.toDeg, rotationAlignment: 'map', pitchAlignment: 'viewport' }).setLngLat([x.lon, x.lat]).addTo(map));
     arrowsRef.current = out;
     return () => { out.forEach((k) => k.remove()); };
-  }, [map, c?.lat, c?.lon, showWind, windDir, vm.halfKm, vm.axisDeg]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, c?.lat, c?.lon, showWind, fieldKey, vm.halfKm]);
 
   // --- Temperaturverteilung auf dem Relief ------------------------------------------------------------------------
   const th = vm.thermal;
@@ -291,22 +354,22 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
 
   // --- Gemessene Temperaturen an Stationen (Schilder mit Wert, gefärbt wie die Fläche) --------------------------------
   useEffect(() => {
-    if (!map || !c || !showT) { setObs({ state: 'idle', list: [] }); return; }
+    if (!map || !c || !(showT || showWind)) { setObs({ state: 'idle', list: [], winds: [] }); return; }
     const ac = new AbortController();
-    setObs((o) => ({ state: 'loading', list: o.list }));
-    loadObsTemps(c, vm.halfKm, nowMs, ac.signal)
-      .then((list) => { if (!ac.signal.aborted) setObs({ state: 'ok', list }); })
-      .catch(() => { if (!ac.signal.aborted) setObs({ state: 'error', list: [] }); });
+    setObs((o) => ({ state: 'loading', list: o.list, winds: o.winds }));
+    loadObs(c, vm.halfKm, nowMs, ac.signal)
+      .then((r) => { if (!ac.signal.aborted) setObs({ state: 'ok', list: r.temps, winds: r.winds }); })
+      .catch(() => { if (!ac.signal.aborted) setObs({ state: 'error', list: [], winds: [] }); });
     return () => ac.abort();
-    // `nowMs` ändert sich minütlich — die Messwerte werden mit dem Spiegel (2-min-Memo) neu gelesen.
-  }, [map, c?.lat, c?.lon, vm.halfKm, showT, Math.floor(nowMs / 300_000)]);
+    // Die Messwerte werden mit dem Spiegel (2-min-Memo) alle 5 Minuten neu gelesen.
+  }, [map, c?.lat, c?.lon, vm.halfKm, showT || showWind, Math.floor(nowMs / 300_000)]);
   useEffect(() => {
     obsMarkersRef.current.forEach((k) => k.remove());
     obsMarkersRef.current = [];
     if (!map || !showT) return;
     // Eine Station direkt am Ort hängt UNTER ihrem Punkt, damit sie die Ortsmarke (darüber) nicht überdeckt.
     const nearPlace = (o: ObsT) => !!c && Math.hypot((o.lat - c.lat) * KM_PER_DEG_LAT, (o.lon - c.lon) * KM_PER_DEG_LAT * Math.cos((c.lat * Math.PI) / 180)) < 3;
-    const ms = obs.list.map((o) => new maplibregl.Marker({ element: obsPin(o.t, o.name, o.elev, o.ms), anchor: nearPlace(o) ? 'top' : 'bottom' }).setLngLat([o.lon, o.lat]).addTo(map));
+    const ms = obs.list.map((o) => { const below = nearPlace(o); return new maplibregl.Marker({ element: obsPin(o.t, o.name, o.elev, o.ms, below), anchor: below ? 'top' : 'bottom', offset: below ? [0, 7] : [0, -7] }).setLngLat([o.lon, o.lat]).addTo(map); });
     obsMarkersRef.current = ms;
     return () => { ms.forEach((k) => k.remove()); };
   }, [map, showT, obs.list]);
@@ -333,14 +396,20 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
         </button>
         <div className="dbd-stage-layers" role="group" aria-label="Ebenen der Bühne">
           <button type="button" className={showT ? 'is-on' : undefined} aria-pressed={showT} onClick={() => setShowT((v) => !v)} title="Gemessene Temperaturen an Stationen; dazu die Fläche aus Höhe und Gradient, wenn das Modellprofil einen Gradienten trägt">Temperatur</button>
-          <button type="button" className={showWind ? 'is-on' : undefined} aria-pressed={showWind} disabled={windDir == null} onClick={() => setShowWind((v) => !v)} title={windDir == null ? 'Windrichtung am Ort unbestimmt' : undefined}>Wind</button>
+          <button type="button" className={showWind ? 'is-on' : undefined} aria-pressed={showWind} onClick={() => setShowWind((v) => !v)} title="Windfeld aus gemessenem Wind der Stationen rund um den Ort (ohne genug Stationen: Richtung am Ort aus buscosun Fusion)">Wind</button>
           {skOn && <button type="button" className={showSnow ? 'is-on' : undefined} aria-pressed={showSnow} onClick={() => setShowSnow((v) => !v)}>Schneegrenze</button>}
         </div>
       </div>
       <div className="dbd-stage-leg">
         <span className="dbd-stage-leg-i"><i className="dbd-stage-sw-axis" /> Schnitt in Windrichtung ± {vm.halfKm} km</span>
-        {showWind && windDir != null && (
-          <span className="dbd-stage-leg-i"><svg width="12" height="12" viewBox="0 0 26 26" aria-hidden="true" style={{ transform: `rotate(${(windDir + 180) % 360}deg)` }}><path d="M13 2 L21 22 L13 17 L5 22 Z" fill="#2C2A26" /></svg> Wind am Ort aus {compass16(windDir)} ({Math.round(windDir)}°){vm.wind.ms != null ? `, ${de(vm.wind.ms, 1)} m/s` : ''} — Pfeile zeigen die Richtung, kein Höhenwind</span>
+        {showWind && field.cells.length > 0 && (
+          <span className="dbd-stage-leg-i dbd-stage-leg-w">
+            <svg width="12" height="12" viewBox="0 0 26 26" aria-hidden="true" style={{ transform: `rotate(${windDir != null ? (windDir + 180) % 360 : 0}deg)` }}><path d="M13 1.5 L20.5 22.5 L13 17.5 L5.5 22.5 Z" fill="#3A6FA8" /></svg>
+            {field.measured
+              ? `Windfeld aus ${obs.winds.length} Messstationen (gewichtet nach Abstand) · Pfeil = wohin der Wind weht, Größe und Farbe = Geschwindigkeit, blasser = weit von einer Station`
+              : `Wind am Ort aus ${windDir != null ? `${compass16(windDir)} (${Math.round(windDir)}°)` : '—'}${vm.wind.ms != null ? `, ${de(vm.wind.ms, 1)} m/s` : ''} — zu wenige Messstationen mit Wind, Richtung überall gleich gezeichnet`}
+            <span className="dbd-stage-grad dbd-stage-grad--w" style={{ background: `linear-gradient(90deg, ${[0, 3, 6, 10, 16].map((v) => windColor(v)).join(',')})` }} aria-hidden="true" />0 … 16 m/s
+          </span>
         )}
         {showT && th && tempRange && tempState !== 'error' && (
           <span className="dbd-stage-leg-i dbd-stage-leg-t">

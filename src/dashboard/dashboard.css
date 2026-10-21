@@ -780,9 +780,21 @@
 .dbd-stage-pin.is-ort { font-size: 12px; font-weight: 700; color: #FAF6EA; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; border-radius: 8px; padding: 4px 9px; margin-bottom: 4px; box-shadow: 0 2px 8px rgba(44, 42, 38, .35); }
 .dbd-stage-pin.is-ort::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--dbd-ink); border: 1.5px solid #FAF6EA; }
 .dbd-stage-pin.is-end { font-size: 11px; font-weight: 700; color: var(--dbd-ink); background: rgba(250, 246, 234, .95); border: 1px solid var(--dbd-border); border-radius: 7px; padding: 3px 7px; }
-.dbd-stage-pin.is-obs { display: flex; flex-direction: column; align-items: center; line-height: 1.05; padding: 3px 7px 4px; border-radius: 8px; background: var(--c); color: var(--ink); border: 1.5px solid #FAF6EA; box-shadow: 0 2px 6px rgba(44, 42, 38, .3); pointer-events: auto; }
-.dbd-stage-pin.is-obs b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.dbd-stage-pin.is-obs span { font-size: 9px; font-weight: 600; opacity: .85; }
+/* Temperaturkarte: farbige Pille + Name/Höhe auf Milchglas, Stiel zum Messpunkt */
+.dbd-stage-pin.is-obs {
+  display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; /* (position bleibt `absolute` von .maplibregl-marker — der Stiel hängt daran) */ border-radius: 999px;
+  background: rgba(255, 255, 255, .88); backdrop-filter: blur(6px); border: 1px solid rgba(44, 42, 38, .08);
+  box-shadow: 0 6px 16px -4px rgba(44, 42, 38, .35), 0 1px 3px rgba(44, 42, 38, .15); pointer-events: auto; transition: transform .15s;
+}
+.dbd-stage-pin.is-obs:hover { transform: scale(1.06); z-index: 3; }
+.dbd-stage-pin.is-obs b { display: block; min-width: 46px; text-align: center; padding: 5px 8px; border-radius: 999px; background: var(--c); color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1; letter-spacing: -.2px; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); }
+.dbd-stage-pin.is-obs span { display: flex; flex-direction: column; line-height: 1.15; }
+.dbd-stage-pin.is-obs em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--dbd-ink); }
+.dbd-stage-pin.is-obs small { font-size: 9px; font-weight: 600; color: var(--dbd-muted); font-variant-numeric: tabular-nums; }
+.dbd-stage-pin.is-obs::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 2px; height: 7px; margin-left: -1px; background: var(--c); box-shadow: 0 0 0 .5px rgba(44, 42, 38, .25); }
+.dbd-stage-pin.is-obs.is-below::after { bottom: auto; top: -7px; }
+.dbd-stage-grad--w { width: 56px; margin-left: 6px; }
+.dbd-stage-leg-w { gap: 7px; }
 .dbd-stage-pin.is-station { font-size: 10.5px; font-weight: 600; color: #5C5447; background: rgba(255, 255, 255, .92); border: 1px solid var(--dbd-line); border-radius: 6px; padding: 2px 6px; }
 @media (max-width: 767px) { .dbd-stage { min-height: 360px; } }
 @media (max-width: 1279px) { .dbd-terrain-row { grid-template-columns: 1fr; } }
