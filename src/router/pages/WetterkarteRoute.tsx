@@ -314,6 +314,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
             onSelectView={onSelectView}
             onSelectLocation={onSelectLocation}
             onBack={nav.goHome}
+            onOpenFeature={nav.openFeature}
             onSettled={onDashSettled}
           />
         </Suspense>

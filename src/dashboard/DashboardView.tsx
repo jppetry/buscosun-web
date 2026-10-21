@@ -20,6 +20,8 @@ import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, 
 import { WindRoseTile } from './windRose';
 import { NowcastDetail } from './nowcastDetail';
 import { DayDetail } from './dayDetail';
+import { FeatureRail } from '../nav/featureRail';
+import ShareButton from '../share/ShareButton';
 import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningStrip, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
@@ -35,6 +37,8 @@ interface Props {
   onSelectView: (v: View) => void;
   onSelectLocation: (l: Location) => void;
   onBack: () => void;
+  /** Werkzeug-Rail wie auf der Kartenebene: springt auf die Seite des Werkzeugs. */
+  onOpenFeature?: (id: string) => void;
   /** E-DB-24: sichtbarer Reiter — Überblick (Reihe 1 + Prognose) oder Details (alles weitere). */
   part?: DashPart;
   onPart?: (p: DashPart) => void;
@@ -232,10 +236,14 @@ function useTablet(): boolean {
   return m;
 }
 
-function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onBack, onHalfKm, onRetry, refs, log, part = 'ueberblick', onPart }: Props & {
+function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onHalfKm, onRetry, refs, log, part = 'ueberblick', onPart }: Props & {
   vm: DashboardVM; onHalfKm: (km: 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
+  // Uhr der Topbar im Format der Kartenebene (Zeit, Wochentag · Tag Monat)
+  const clock = new Date(useNow(15_000));
+  const clockTime = clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const clockDate = `${clock.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} · ${clock.getDate()} ${clock.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`.toUpperCase();
   const [ncOpen, setNcOpen] = useState(false);
   const ncOpener = useRef<HTMLButtonElement>(null);
   const [dayIdx, setDayIdx] = useState<number | null>(null);
@@ -256,6 +264,25 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
   const showTabs = vm.status !== 'noplace' && !!onPart;
   return (
     <div className="dbd-root">
+      {/* Desktop/Tablet: Topbar und Werkzeug-Rail wie auf der Kartenebene (mdk-*, Werte aus map/mapDeck.css, s. dashboard.css) */}
+      <header className="mdk-topbar dbd-deckbar">
+        <button type="button" className="mdk-brand" onClick={onBack} aria-label="Zur Startseite">
+          <img className="mdk-brand-mark" src="/buscosun-mark.svg" width={26} height={26} alt="" />
+          <span className="mdk-brand-name">buscosun</span>
+        </button>
+        <ViewToggle active="dashboard" onSelect={onSelectView} />
+        <span className="mdk-topdiv" aria-hidden="true" />
+        <DeckBarSearch placeholder={placeName ? `${placeName}${vm.top.elev.t ? ` · ${vm.top.elev.t}` : ''}` : 'Ort suchen …'} onSelect={onSelectLocation} />
+        <div className="mdk-topright">
+          <span className="dbd-run">{run}</span>
+          {status}
+          <div className="mdk-clock" aria-hidden="true">
+            <div className="mdk-clock-time">{clockTime}</div>
+            <div className="mdk-clock-date">{clockDate}</div>
+          </div>
+          <ShareButton className="mdk-share" />
+        </div>
+      </header>
       <header className="dbd-top">
         <div className="dbd-top-mobile-row">
           <button type="button" className="dbd-brand" onClick={onBack} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={22} height={22} alt="" /><span>buscosun</span></button>
@@ -268,6 +295,17 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
         <div className="dbd-top-right"><span className="dbd-run">{run}</span>{status}</div>
         <div className="dbd-run-mobile">{run}</div>
       </header>
+      <div className="dbd-shell">
+      <FeatureRail
+        active="map2d"
+        onOpenFeature={(id) => onOpenFeature?.(id)}
+        onHome={onBack}
+        navClass="mdk-rail"
+        btnClass="mdk-rail-btn"
+        activeClass="is-active"
+        homeBtnClass="mdk-rail-btn mdk-rail-bottom"
+      />
+      <div className="dbd-shell-main">
       {showTabs && <DashTabs part={part} onPart={onPart!} />}
 
       <main className="dbd-content">
@@ -323,6 +361,8 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
         <div className="dbd-footer">{vm.footer} · n. v. = nicht verfügbar (Grund im Tooltip)</div>
         {log && <div className="dbd-pflog">{JSON.stringify({ emissions: log.emissions, error: log.error, notes: vm.notes.slice(0, 12) }, null, 1)}</div>}
       </main>
+      </div>
+      </div>
       {dayIdx != null && vm.zone.days[dayIdx] && (
         <DayDetail days={vm.zone.days} index={dayIdx} onIndex={setDayIdx} onClose={() => { setDayIdx(null); dayOpener.current?.focus(); }} />
       )}
@@ -363,6 +403,79 @@ function DashTabs({ part, onPart }: { part: DashPart; onPart: (p: DashPart) => v
 // ---------------------------------------------------------------------------
 // Ortssuche (Nominatim über `geocodeDACH`, derselbe Weg wie die Kartensuche)
 // ---------------------------------------------------------------------------
+
+/** Ortssuche der Topbar im Aufbau der Kartenebene (`DeckSearch` in MapView): Enter sucht, ⌘K fokussiert, Treffer als Liste. */
+function DeckBarSearch({ placeholder, onSelect }: { placeholder: string; onSelect: (l: Location) => void }) {
+  const [q, setQ] = useState('');
+  const [hits, setHits] = useState<Location[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const acRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const kd = (e: globalThis.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); inputRef.current?.focus(); }
+    };
+    document.addEventListener('keydown', kd);
+    return () => document.removeEventListener('keydown', kd);
+  }, []);
+  const reset = () => { setHits([]); setErr(null); };
+  const run = async () => {
+    const query = q.trim();
+    if (!query) return;
+    acRef.current?.abort();
+    const ac = new AbortController();
+    acRef.current = ac;
+    setBusy(true);
+    reset();
+    try {
+      const { geocodeDACH } = await import('../geocode');
+      const found = await geocodeDACH(query, ac.signal);
+      if (ac.signal.aborted) return;
+      if (found.length === 0) setErr('Keine Ergebnisse in DE · AT · CH.');
+      else if (found.length === 1) { onSelect(found[0]); setQ(''); }
+      else setHits(found);
+    } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') return;
+      setErr(e instanceof Error ? e.message : 'Suche fehlgeschlagen');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mdk-search">
+      <div className="mdk-search-box">
+        <svg width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" /><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+        <input
+          ref={inputRef}
+          className="mdk-search-input"
+          type="text"
+          value={q}
+          placeholder={placeholder}
+          aria-label="Ort suchen"
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); void run(); }
+            if (e.key === 'Escape') { setQ(''); reset(); }
+          }}
+          disabled={busy}
+        />
+        <span className="mdk-kbd" aria-hidden="true">⌘K</span>
+      </div>
+      {(hits.length > 0 || err) && (
+        <div className="mdk-search-drop" role="listbox" aria-label="Suchergebnisse">
+          {err && <div className="mdk-search-err">⚠ {err}</div>}
+          {hits.map((h) => (
+            <button key={`${h.lat},${h.lon}`} type="button" className="mdk-search-hit" role="option" aria-selected="false" onClick={() => { onSelect(h); setQ(''); reset(); }}>
+              <span className="mdk-search-hit-cc">{h.country}</span>
+              {h.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DashSearch({ label, onSelect }: { label: string; onSelect: (l: Location) => void }) {
   const [q, setQ] = useState('');
