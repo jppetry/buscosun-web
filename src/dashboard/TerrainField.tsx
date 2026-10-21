@@ -9,7 +9,7 @@
  * (P16/P98: Temperatur und Feuchte je Druckfläche).
  */
 import { lazy, Suspense, useEffect, useId, useRef, useState, type RefObject } from 'react';
-import { Rich, Val } from './tiles';
+import { Val } from './tiles';
 import { originTitle } from './origin';
 import { DRY_MMH, tempAt } from './model/rules';
 import type { SiteVM, TerrainVM } from './model/types';
@@ -301,25 +301,6 @@ export function TerrainField({ vm, onHalfKm, rootRef, nowMs }: { vm: TerrainVM; 
             {levelMarks.length > 0 && <span data-origin="P98" className="is-muted">Druckflächen: Höhe nach Standardatmosphäre (ca.)</span>}
             {inv && <span><i style={{ width: 14, height: 8, borderRadius: 2, background: 'repeating-linear-gradient(45deg,#FAF6EA 0 1px,transparent 1px 4px)', border: '1px dashed #8B8474' }} /> Inversionsschicht</span>}
             <span className="is-muted">{vm.legendIso}</span>
-          </div>
-        </div>
-        <div className="dbd-terrain-side">
-          <div className="dbd-dbox">
-            <span className="dbd-dbox-l">JE HÖHENSTUFE</span>
-            <div className="dbd-levels">
-              {vm.table.length ? vm.table.map((r) => (
-                <div key={`${r.h}${r.ort ? 'o' : ''}`} className={`dbd-level${r.ort ? ' is-ort' : ''}`}>
-                  <span className="dbd-level-h">{r.label}</span>
-                  <span className="dbd-level-t"><Val v={r.t} /></span>
-                  <span className="dbd-level-w"><Val v={r.wind} /></span>
-                </div>
-              )) : <div className="dbd-empty">{vm.state === 'loading' ? 'lädt …' : 'nicht verfügbar'}</div>}
-            </div>
-          </div>
-          <div className="dbd-dbox dbd-readout">
-            <span className="dbd-dbox-l">ABLESUNG</span>
-            <p data-origin="P78"><Rich parts={vm.readout.main.length ? vm.readout.main : [vm.state === 'loading' ? 'lädt …' : 'nicht verfügbar']} /></p>
-            {vm.readout.note.length > 0 && <div className="dbd-readout-note"><Rich parts={vm.readout.note} /></div>}
           </div>
         </div>
       </div>
