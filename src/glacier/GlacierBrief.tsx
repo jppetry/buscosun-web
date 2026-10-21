@@ -233,33 +233,35 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
         </div>
       </div>
     );
+    const headBlock = (
+      <div className="gl-ds-head">
+        <div className="gl-ds-headrow">
+          <div className="gl-ds-headtx">
+            <span className="gl-ds-eyebrow">Dossier · Gletscher</span>
+            <h2 className="gl-ds-title">{displayName(g)} <span className="gl-chip is-official"><i aria-hidden="true" />{g.country} · Klasse {g.klass}</span></h2>
+            <p className="gl-ds-sub">{sub}</p>
+          </div>
+          <div className="gl-ds-actions">
+            <button type="button" className={`gl-btn gl-follow${followed ? ' is-on' : ''}`} aria-pressed={followed} onClick={onFollow} aria-label={followed ? `${displayName(g)} nicht mehr folgen` : `${displayName(g)} folgen`}><span aria-hidden="true">{followed ? '★' : '☆'}</span>{followed ? ' Gefolgt' : ' Folgen'}</button>
+            {onOpenSheet && <button type="button" className="gl-btn" onClick={onOpenSheet}>Steckbrief <span aria-hidden="true">↗</span></button>}
+            <button type="button" className="gl-btn" onClick={onBack}>Zur Karte</button>
+          </div>
+        </div>
+        <div className="gl-ds-kf">
+          <span className="gl-ds-tile"><span className="gl-ds-tile-l">Fläche</span><span className="gl-num" data-origin="official">{fmtKm2(g.area.km2)}</span><small>Inventar {fmtRefYear(g.area.refYear)} · {g.area.source}</small></span>
+          <span className="gl-ds-tile"><span className="gl-ds-tile-l">Höhe</span><span className="gl-num" data-origin="official">{fmt0(g.z[0])}–{fmt0(g.z[2])} m</span><small>Median {fmt0(g.z[1])} m</small></span>
+          <span className="gl-ds-tile"><span className="gl-ds-tile-l">Flächenänderung</span>{area
+            ? <><span className={`gl-num${area.pct < 0 ? ' gl-loss-n' : ''}`} data-origin="official">{fmtSigned(area.pct, 0)} %</span><small>seit {area.from[0]} ({fmtKm2(area.from[1])})</small></>
+            : <><span className="gl-num">—</span><small>{data ? 'nur ein Inventar' : 'wird geladen …'}</small></>}</span>
+          <span className="gl-ds-tile"><span className="gl-ds-tile-l">Massenbilanz</span>{mass && mass.ba != null
+            ? <><span className={`gl-num${mass.ba < 0 ? ' gl-loss-n' : ''}`} data-origin="measured">{fmt0(mass.ba)} mm w. e.</span><small>gemessen {mass.year - 1}/{String(mass.year).slice(2)}</small></>
+            : <><span className="gl-num">—</span><small>{data ? 'keine Messreihe' : 'wird geladen …'}</small></>}</span>
+        </div>
+        {scenes.length > 0 && <div className="gl-ds-time"><span className="gl-ds-tile-l">Zeitpunkt der Karte</span>{timeSwitch}</div>}
+      </div>
+    );
     return (
       <section className="gl-ds" aria-label={`Dossier ${displayName(g)}`} data-glacier={g.id}>
-        <header className="gl-ds-card gl-ds-head">
-          <div className="gl-ds-headrow">
-            <div className="gl-ds-headtx">
-              <span className="gl-ds-eyebrow">Dossier · Gletscher</span>
-              <h2 className="gl-ds-title">{displayName(g)} <span className="gl-chip is-official"><i aria-hidden="true" />{g.country} · Klasse {g.klass}</span></h2>
-              <p className="gl-ds-sub">{sub}</p>
-            </div>
-            <div className="gl-ds-actions">
-              <button type="button" className={`gl-btn gl-follow${followed ? ' is-on' : ''}`} aria-pressed={followed} onClick={onFollow} aria-label={followed ? `${displayName(g)} nicht mehr folgen` : `${displayName(g)} folgen`}><span aria-hidden="true">{followed ? '★' : '☆'}</span>{followed ? ' Gefolgt' : ' Folgen'}</button>
-              {onOpenSheet && <button type="button" className="gl-btn" onClick={onOpenSheet}>Steckbrief <span aria-hidden="true">↗</span></button>}
-              <button type="button" className="gl-btn" onClick={onBack}>Zur Karte</button>
-            </div>
-          </div>
-          <div className="gl-ds-kf">
-            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Fläche</span><span className="gl-num" data-origin="official">{fmtKm2(g.area.km2)}</span><small>Inventar {fmtRefYear(g.area.refYear)} · {g.area.source}</small></span>
-            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Höhe</span><span className="gl-num" data-origin="official">{fmt0(g.z[0])}–{fmt0(g.z[2])} m</span><small>Median {fmt0(g.z[1])} m</small></span>
-            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Flächenänderung</span>{area
-              ? <><span className={`gl-num${area.pct < 0 ? ' gl-loss-n' : ''}`} data-origin="official">{fmtSigned(area.pct, 0)} %</span><small>seit {area.from[0]} ({fmtKm2(area.from[1])})</small></>
-              : <><span className="gl-num">—</span><small>{data ? 'nur ein Inventar' : 'wird geladen …'}</small></>}</span>
-            <span className="gl-ds-tile"><span className="gl-ds-tile-l">Massenbilanz</span>{mass && mass.ba != null
-              ? <><span className={`gl-num${mass.ba < 0 ? ' gl-loss-n' : ''}`} data-origin="measured">{fmt0(mass.ba)} mm w. e.</span><small>gemessen {mass.year - 1}/{String(mass.year).slice(2)}</small></>
-              : <><span className="gl-num">—</span><small>{data ? 'keine Messreihe' : 'wird geladen …'}</small></>}</span>
-          </div>
-          {scenes.length > 0 && <div className="gl-ds-time"><span className="gl-ds-tile-l">Zeitpunkt der Karte</span>{timeSwitch}</div>}
-        </header>
         <nav className="gl-ds-steps" aria-label="Ebenen des Dossiers">
           {LEVELS.map((l, i) => (
             <button key={l.tab} type="button" className={`gl-ds-step${level === i ? ' is-on' : ''}`} aria-current={level === i ? 'step' : undefined} onClick={() => onState({ tab: l.tab })}>
@@ -270,11 +272,12 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
         </nav>
         <div className="gl-ds-grid">
           <div className="gl-ds-main" data-level={level + 1}>
-            {notReady ?? (data && (
+            {notReady ? <>{level === 0 && <section className="gl-ds-card gl-ds-sec" data-tab="heute" aria-label={TAB_LABEL.heute}>{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
                 {LEVELS[level].tabs.map((t) => (
                   <section key={t} className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
+                    {t === 'heute' && headBlock}
                     <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
                     {tabBody(t, data)}
                   </section>
