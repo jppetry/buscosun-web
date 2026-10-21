@@ -13,7 +13,7 @@ import {
   leadSentence, PHASES, popLevel, snowlineShown, symbolFor, tempAt, thunderWord, WET_DAY_MM, type LeadDay,
   tpiWord, svfWord, surfaceWord, sinkWord,
 } from './rules';
-import { NOWCAST_DETAIL_RANGES, type NowcastDetailVM } from './types';
+import { NOWCAST_DETAIL_RANGES, type DayDetailVM, type DayHour, type NowcastDetailVM } from './types';
 import type {
   CloudsVM, ConfVM, DashboardVM, DashInputs, DayVM, HourlyVM, IconD2VM, NowcastVM, NowVM, PhaseVM, PollenVM, Shown,
   TerrainVM, TopVM, UvVM, WarningVM, WindVM, WindRoseVM, ZoneVM, FusionIn, PrecipVM, WindBandVM, PressureVM,
@@ -521,8 +521,45 @@ function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): 
     sunSub: uvSub,
     // E-KF-4: Balken = Index, Text = Wort der Klassentabelle
     conf: { pct: confMean == null ? null : Math.round(confMean * 100), text: orNa('P46', confidenceWord(confMean), 'keine Konfidenz'), cls: confidenceClass(confMean) },
+    detail: buildDayDetail(c, day, rainKnown ? rainSum : null),
   };
   return { vm, tmax, rainSum: rainKnown ? rainSum : null };
+}
+
+/** Tages-Detailansicht: die Stundenwerte des Kalendertags (nur Schritte der Fusion, nichts erfunden) und je Größe eine Tageszeile. */
+function buildDayDetail(c: Ctx, day: StepV2[], rainSum: number | null): DayDetailVM {
+  const hours: DayHour[] = day.map((s) => ({
+    t: s.validAtMs,
+    t10: v(s, 't2m', 'p10'), t50: v(s, 't2m'), t90: v(s, 't2m', 'p90'), td: v(s, 'td2m'), rh: v(s, 'rh'),
+    w10: v(s, 'wind', 'p10'), w50: v(s, 'wind'), w90: v(s, 'wind', 'p90'), gust: v(s, 'gust'), dir: v(s, 'windDir'),
+    pr: v(s, 'precip', 'mean'), prP90: v(s, 'precip', 'p90'), pWet: pWet(s), pSnow: pSnowOf(s),
+    clct: v(s, 'clct'), clcl: v(s, 'clcl'), clcm: v(s, 'clcm'), clch: v(s, 'clch'),
+    ps: v(s, 'ps'), snowline: v(s, 'snowline'),
+  }));
+  const fromMs = hours[0].t, toMs = hours[hours.length - 1].t + H;
+  const nights = (c.f?.nights ?? [])
+    .filter(([a, b]) => b > fromMs && a < toMs)
+    .map(([a, b]) => ({ from: Math.max(a, fromMs), to: Math.min(b, toMs) }));
+  const span = (xs: Array<number | null>, unit: string): string | null => {
+    const lo = minOf(xs), hi = maxOf(xs);
+    if (lo == null || hi == null) return null;
+    return Math.round(lo) === Math.round(hi) ? `${num(lo, 0)}${NBSP}${unit}` : `${num(lo, 0)} … ${num(hi, 0)}${NBSP}${unit}`;
+  };
+  const peakPr = maxOf(hours.map((h) => h.pr));
+  const wMean = mean(hours.map((h) => h.w50)), gMax = maxOf(hours.map((h) => h.gust));
+  const cMean = mean(hours.map((h) => h.clct));
+  return {
+    fromMs, toMs, nowMs: c.inp.nowMs, hours, nights,
+    summary: {
+      t: orNa('P32', span(hours.map((h) => h.t50), '°C'), NA_FUSION),
+      precip: orNa('P39', rainSum == null ? null : `${num(rainSum, 1)}${NBSP}mm${peakPr != null && peakPr >= DRY_MMH ? ` · max ${num(peakPr, 1)}${NBSP}mm/h` : ''}`, NA_FUSION),
+      wind: orNa('P36', wMean == null && gMax == null ? null : `Ø ${num(wMean, 0) ?? '—'}${gMax != null ? ` · Böen ${num(gMax, 0)}` : ''}${NBSP}m/s`, NA_FUSION),
+      cloud: orNa('P61', cMean == null ? null : `Ø ${num(cMean, 0)}${NBSP}%`, NA_FUSION),
+      pressure: orNa('P96', span(hours.map((h) => h.ps), 'hPa'), 'der Cube führt am Ort keinen Druck'),
+      humidity: orNa('P09', span(hours.map((h) => h.rh), '%'), NA_FUSION),
+      snow: orNa('P45', span(hours.map((h) => h.snowline), 'm'), 'keine Schneegrenze'),
+    },
+  };
 }
 
 function warningOnDay(inp: DashInputs, key: string): boolean {

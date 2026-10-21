@@ -160,6 +160,24 @@ export interface PhaseVM {
   highlight: boolean;
 }
 
+/** Eine Stunde des Tages für die Tages-Detailansicht — alles aus buscosun Fusion, `null` = nicht verfügbar. */
+export interface DayHour {
+  t: number;
+  t10: number | null; t50: number | null; t90: number | null; td: number | null; rh: number | null;
+  w10: number | null; w50: number | null; w90: number | null; gust: number | null; dir: number | null;
+  pr: number | null; prP90: number | null; pWet: number | null; pSnow: number | null;
+  clct: number | null; clcl: number | null; clcm: number | null; clch: number | null;
+  ps: number | null; snowline: number | null;
+}
+
+/** Tages-Detailansicht: Stundenwerte des Kalendertags und die Tageszusammenfassung je Größe (leer ⇒ Größe nicht wählbar). */
+export interface DayDetailVM {
+  fromMs: number; toMs: number; nowMs: number;
+  hours: DayHour[];
+  nights: Array<{ from: number; to: number }>;
+  summary: { t: Shown; precip: Shown; wind: Shown; cloud: Shown; pressure: Shown; humidity: Shown; snow: Shown };
+}
+
 export interface DayVM {
   key: string;
   title: string;
@@ -173,6 +191,8 @@ export interface DayVM {
   mid: { label: string; value: Shown; sub: Shown; subWarn: boolean };
   sun: Shown; sunSub: Shown;
   conf: { pct: number | null; text: Shown; cls: 'good' | 'fair' };
+  /** Stundenwerte des Tages; fehlt für Tage ohne Fusionswerte (und in der Vorlage). */
+  detail?: DayDetailVM | null;
 }
 
 export interface HourPoint { t: number; t50: number | null; t10: number | null; t90: number | null; td: number | null; pr: number | null }

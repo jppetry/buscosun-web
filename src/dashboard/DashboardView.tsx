@@ -19,6 +19,7 @@ import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type 
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
 import { WindRoseTile } from './windRose';
 import { NowcastDetail } from './nowcastDetail';
+import { DayDetail } from './dayDetail';
 import { ConfidenceCard, CloudsTile, IconD2Tile, NowcastTile, NowCard, PollenTile, UvTile, Val, WarningStrip, WindTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
@@ -237,6 +238,8 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
   const tablet = useTablet();
   const [ncOpen, setNcOpen] = useState(false);
   const ncOpener = useRef<HTMLButtonElement>(null);
+  const [dayIdx, setDayIdx] = useState<number | null>(null);
+  const dayOpener = useRef<HTMLElement | null>(null);
   // Mobil sitzt der Chip „Über diese Ansicht" im Dashboard unten (dashboard.css) — Klasse am body, solange es offen ist.
   useEffect(() => { document.body.classList.add('dbd-active'); return () => document.body.classList.remove('dbd-active'); }, []);
   const placeName = vm.top.place.t ? (tablet ? shortName(vm.top.place.t) : vm.top.place.t) : null;
@@ -289,7 +292,7 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} onDetail={() => setNcOpen(true)} detailRef={ncOpener} />
               <WindRoseTile vm={vm.windRose} />
             </div>
-            <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
+            <ForecastZone vm={vm.zone} range={range} onRange={onRange} onDay={(i, el) => { dayOpener.current = el; setDayIdx(i); }} />
             {showTabs && (
               <button type="button" className="dbd-more" onClick={() => onPart!('details')}>
                 <span className="dbd-more-title">Mehr zur Lage am Ort</span>
@@ -320,6 +323,9 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
         <div className="dbd-footer">{vm.footer} · n. v. = nicht verfügbar (Grund im Tooltip)</div>
         {log && <div className="dbd-pflog">{JSON.stringify({ emissions: log.emissions, error: log.error, notes: vm.notes.slice(0, 12) }, null, 1)}</div>}
       </main>
+      {dayIdx != null && vm.zone.days[dayIdx] && (
+        <DayDetail days={vm.zone.days} index={dayIdx} onIndex={setDayIdx} onClose={() => { setDayIdx(null); dayOpener.current?.focus(); }} />
+      )}
       {ncOpen && <NowcastDetail vm={vm.nowcastDetail} onClose={() => { setNcOpen(false); ncOpener.current?.focus(); }} />}
     </div>
   );

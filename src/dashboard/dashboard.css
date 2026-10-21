@@ -316,6 +316,59 @@
 .dbd-rose-notes strong { color: var(--dbd-ink); }
 .dbd-panel > .dbd-conf { margin-top: 12px; }
 
+/* Tages-Detailansicht */
+.dbd-day-open { width: 26px; height: 26px; }
+.dbd-rose-open:disabled { opacity: .35; cursor: default; }
+.dbd-rose-open:disabled:hover { background: #FFFFFF; }
+.dbd-dd-dialog { width: min(1040px, 100%); }
+.dbd-dd-nav { display: inline-flex; align-items: center; gap: 12px; }
+.dbd-dd-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 10px; }
+.dbd-dd-title { font-size: 28px; font-weight: 700; color: var(--dbd-ink); letter-spacing: -.4px; line-height: 1.1; }
+.dbd-dd-sub { display: block; margin-top: 4px; font-size: 14px; color: var(--dbd-muted); }
+.dbd-dd-temps { display: flex; align-items: center; gap: 12px; flex: none; }
+.dbd-dd-temps > span { text-align: right; }
+.dbd-dd-kpis { display: flex; flex-wrap: wrap; gap: 8px 36px; margin-top: 14px; padding: 12px 0; border-top: 1px solid var(--dbd-line); border-bottom: 1px solid var(--dbd-line); }
+.dbd-dd-kpis > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dbd-dd-kpis b { font-size: 18px; color: var(--dbd-ink); font-variant-numeric: tabular-nums; }
+.dbd-dd-kpis b.is-wet { color: var(--dbd-steel); }
+.dbd-dd-kpis small { font-size: 11.5px; color: var(--dbd-muted); }
+.dbd-dd-kpis small.is-warn { color: #B4501F; font-weight: 600; }
+.dbd-dd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.dbd-dd-chips button { position: relative; display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 12.5px; font-weight: 500; color: #5C5447; background: #FFFFFF; border: 1px solid var(--dbd-line); border-radius: 999px; padding: 6px 13px 6px 10px; cursor: pointer; transition: background .15s, border-color .15s; }
+.dbd-dd-chips button::after { content: ''; position: absolute; inset: -6px -2px; }
+.dbd-dd-chips button i { width: 9px; height: 9px; border-radius: 50%; opacity: .45; }
+.dbd-dd-chips button.is-on { color: var(--dbd-ink); font-weight: 700; border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, #FFFFFF); }
+.dbd-dd-chips button.is-on i { opacity: 1; }
+.dbd-dd-chips button:disabled { opacity: .4; cursor: default; }
+.dbd-dd-chips button:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
+.dbd-dd-charts { margin-top: 12px; display: grid; gap: 10px; }
+.dbd-dd-panel { background: #FFFFFF; border: 1px solid var(--dbd-line); border-radius: 12px; padding: 10px 6px 4px; min-width: 0; }
+.dbd-dd-ph { display: flex; align-items: baseline; gap: 8px; padding: 0 10px 2px; flex-wrap: wrap; }
+.dbd-dd-ph i { width: 8px; height: 8px; border-radius: 50%; align-self: center; flex: none; }
+.dbd-dd-ph b { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--dbd-ink); }
+.dbd-dd-pv { margin-left: auto; font-size: 12.5px; color: var(--dbd-muted); font-variant-numeric: tabular-nums; text-align: right; }
+.dbd-dd-svg { display: block; overflow: visible; font-family: inherit; }
+.dbd-dd-t { font-size: 10px; fill: var(--dbd-muted); font-variant-numeric: tabular-nums; }
+.dbd-dd-t--b { font-weight: 700; fill: var(--dbd-ink); }
+.dbd-dd-grid { stroke: var(--dbd-sand); stroke-width: 1; }
+.dbd-dd-vgrid { stroke: var(--dbd-sand); stroke-width: 1; stroke-dasharray: 2 4; }
+.dbd-dd-base { stroke: var(--dbd-line); stroke-width: 1; }
+.dbd-dd-night { fill: rgba(44, 42, 38, .055); }
+.dbd-dd-now { stroke: var(--dbd-ink); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.dbd-dd-cross { stroke: var(--dbd-ink); stroke-width: 1; stroke-opacity: .45; }
+.dbd-dd-td { fill: none; stroke: #3A6FA8; stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linecap: round; opacity: .8; }
+.dbd-dd-gust { fill: none; stroke: #2F7F78; stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linecap: round; opacity: .75; }
+.dbd-dd-whisk line { stroke: var(--dbd-ink); stroke-width: 1; stroke-opacity: .5; }
+.dbd-dd-arrow path { fill: #2F7F78; }
+.dbd-dd-strip { font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; fill: var(--dbd-eyebrow); }
+.dbd-dd-foot { margin: 14px 0 0; font-size: 11.5px; line-height: 1.55; color: var(--dbd-muted); }
+@media (max-width: 767px) {
+  .dbd-dd-title { font-size: 22px; }
+  .dbd-dd-hero { align-items: flex-start; }
+  .dbd-dd-pv { margin-left: 0; text-align: left; width: 100%; }
+  .dbd-dd-kpis { gap: 8px 22px; }
+}
+
 /* Nowcast-Detailansicht (heller Rahmen wie die Windrose) und Symbol in der dunklen Kachel */
 .dbd-nowcast-head-r { display: inline-flex; align-items: center; gap: 10px; }
 .dbd-nowcast .dbd-rose-open { width: 26px; height: 26px; background: #2A3646; border-color: #3A4859; color: #EDF1F5; }
