@@ -388,13 +388,10 @@ export default function SeaReadout(p: Props) {
         {chapter === 'wetter' && (
           <>
             {s ? (
-              <DsSection title="Am Spot" hint="Gewählte Stunde · Stundenband · Fenster · Verlauf · Messung · Wasserstand" side={p.chips}>
+              <DsSection title="Am Spot" hint="Gewählte Stunde · Stundenband · Verlauf · Wasserstand" side={p.chips}>
                 {nowCard}
                 {p.band}
-                <div className="sw-ds-grid">
-                  <div className="sw-ds-col">{windowCard}{chartCard}</div>
-                  <div className="sw-ds-col">{measuredCard}{waterCard}</div>
-                </div>
+                <div className={`sw-ds-grid${chartCard && waterCard ? '' : ' is-one'}`}>{chartCard}{waterCard}</div>
               </DsSection>
             ) : empty}
             <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
