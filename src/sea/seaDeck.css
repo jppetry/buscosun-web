@@ -373,6 +373,29 @@
 .sw-ds .sw-card { padding: 16px 18px; }
 .sw-ds .sw-card.is-official, .sw-ds .sw-card.is-cream { padding: 14px 16px; }
 .sw-ds .sw-empty { margin-top: 0; }
+/* Spot chapter in three sections (general · satellite · weather) with a jump bar in the head card. */
+.sw-sec-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.sw-sec-nav button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px 0 8px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.sw-sec-nav button:hover { border-color: var(--sw-accent, #0F6E7A); background: #fff; }
+.sw-sec-nav button span { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--sw-tint, #E3F0F1); color: var(--sw-accent-dark, #0B5560); font-size: 11px; font-weight: 700; }
+.sw-sec { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 64px; }
+.sw-sec-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 8px 2px 10px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.sw-sec-n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--sw-accent, #0F6E7A); color: var(--cream-50, #FAF6EA); font-size: 13px; font-weight: 700; }
+.sw-sec-tx { flex: 1 1 220px; min-width: 0; }
+.sw-sec-tx h3 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.2; color: var(--ink-900, #2C2A26); }
+.sw-sec-tx p { margin: 2px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--stone-500, #8B7355); }
+.sw-sec-side { flex: 0 1 auto; margin-left: auto; min-width: 0; }
+.sw-sec-side .sw-times { background: #fff; }
+.sw-sec-body { display: flex; flex-direction: column; gap: 14px; }
+.sw-ds-grid.is-one { grid-template-columns: minmax(0, 1fr); }
+.sw-ds .sw-card.sw-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 14px; }
+.sw-fact { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border-radius: 10px; background: #FDFBF4; border: 1px solid var(--sand-200, #E0D6BE); }
+.sw-fact-k { font-size: 9.5px; letter-spacing: 1.3px; font-weight: 700; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
+.sw-fact strong { font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--ink-900, #2C2A26); overflow-wrap: anywhere; }
+.sw-fact-s { font-size: 11px; line-height: 1.4; color: var(--stone-500, #8B7355); }
+.sw-ds .sw-card.sw-ds-now { padding: 18px 20px; }
+.sw-ds-now .sw-ds-stats { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .sw-sec-nav button { transition: none; } }
 
 /* --- Laptop / tablet (≤ 1439 px): narrower side columns, nothing removed ------------------------------- */
 @media (max-width: 1439px) {
