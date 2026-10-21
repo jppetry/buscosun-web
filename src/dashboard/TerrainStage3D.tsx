@@ -123,10 +123,10 @@ interface ObsW { lat: number; lon: number; dd: number; ff: number }
  * Stationen mit Mindestabstand (damit die Schilder sich nicht überdecken) und der gemessene Wind aller Stationen im Umkreis,
  * aus denen das Windfeld entsteht. Das ist Messung, kein Modell.
  */
-async function loadObs(c: { lat: number; lon: number }, halfKm: number, nowMs: number, signal: AbortSignal): Promise<{ temps: ObsT[]; winds: ObsW[] }> {
+async function loadObs(c: { lat: number; lon: number }, halfKm: number, nowMs: number, signal: AbortSignal): Promise<{ temps: ObsT[]; winds: ObsW[]; fit: Array<{ elev: number; t: number }> }> {
   const { loadObsStore, obsVarsOf, obsDistanceM } = await import('../sources/obsStore');
   const store = await loadObsStore({ nowMs });
-  if (signal.aborted) return { temps: [], winds: [] };
+  if (signal.aborted) return { temps: [], winds: [], fit: [] };
   // Offene Stationen mit Temperatur sind dünn gesät (Mittelgebirge: 6 im Umkreis von 40 km, 15 bei 60 km) — der Radius ist deshalb weit.
   const maxM = Math.max(halfKm * 3, 60) * 1000, gapM = Math.max(halfKm / 6, 3) * 1000;
   const cand: Array<ObsT & { d: number }> = [];
@@ -146,7 +146,78 @@ async function loadObs(c: { lat: number; lon: number }, halfKm: number, nowMs: n
     if (kept.every((k) => obsDistanceM(k.lat, k.lon, x.lat, x.lon) >= gapM)) kept.push(x);
   }
   winds.sort((a, b) => a.d - b.d);
-  return { temps: kept, winds: winds.slice(0, 60) };
+  // Alle Stationen mit Temperatur im Umkreis (nicht ausgedünnt) für die Höhenabhängigkeit der Temperatur
+  return { temps: kept, winds: winds.slice(0, 60), fit: cand.map((x) => ({ elev: x.elev, t: x.t })) };
+}
+
+/**
+ * Temperatur nach Höhe aus den Messstationen: Ausgleichsgerade T = a + b·h (kleinste Quadrate). Gilt nur bei genug Stationen
+ * (≥ 5), genug Höhenspreizung (≥ 200 m) und plausibler Steigung (−12 … +4 K/km) — sonst `null`. Ersatz für den Gradienten des
+ * Modellprofils, wenn der fehlt (dann als Schätzung gekennzeichnet).
+ */
+function lapseFit(pts: Array<{ elev: number; t: number }>): { a: number; b: number; n: number; r2: number } | null {
+  const n = pts.length;
+  if (n < 5) return null;
+  const hs = pts.map((p) => p.elev);
+  if (Math.max(...hs) - Math.min(...hs) < 200) return null;
+  const mh = hs.reduce((s, x) => s + x, 0) / n, mt = pts.reduce((s, p) => s + p.t, 0) / n;
+  let sxx = 0, sxy = 0, syy = 0;
+  for (const p of pts) { sxx += (p.elev - mh) ** 2; sxy += (p.elev - mh) * (p.t - mt); syy += (p.t - mt) ** 2; }
+  if (sxx === 0) return null;
+  const b = sxy / sxx, a = mt - b * mh;
+  const slopeKm = b * 1000;
+  if (slopeKm < -12 || slopeKm > 4) return null;
+  return { a, b, n, r2: syy === 0 ? 0 : (sxy * sxy) / (sxx * syy) };
+}
+
+/** Orte und Gipfel in der Nähe, aus den Vektorkacheln der Basiskarte (nur Namen, Lage und ggf. Höhe) — nach Rang und Nähe zur Mitte. */
+function placeCandidates(map: maplibregl.Map, zoom: number, hOrt: number | null): Array<{ name: string; lon: number; lat: number; ele: number | null; rank: number; peak: boolean }> {
+  const src = Object.entries(map.getStyle().sources).find(([, s]) => s.type === 'vector')?.[0];
+  if (!src) return [];
+  const RANK: Record<string, number> = { city: 5, town: 4, village: 3, suburb: 2, hamlet: 2, neighbourhood: 1, isolated_dwelling: 1 };
+  const minRank = zoom >= 11.3 ? 2 : zoom >= 10.2 ? 3 : 4;
+  const b = map.getBounds();
+  const seen = new Set<string>();
+  const out: Array<{ name: string; lon: number; lat: number; ele: number | null; rank: number; peak: boolean }> = [];
+  const take = (layer: string, peak: boolean) => {
+    for (const f of map.querySourceFeatures(src, { sourceLayer: layer })) {
+      if (f.geometry.type !== 'Point') continue;
+      const p = f.properties as { name?: string; 'name:de'?: string; class?: string; ele?: number | string };
+      const name = p['name:de'] ?? p.name;
+      if (!name) continue;
+      const [lon, lat] = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+      if (lon < b.getWest() || lon > b.getEast() || lat < b.getSouth() || lat > b.getNorth()) continue;
+      const key = `${layer}|${name}|${lon.toFixed(3)}|${lat.toFixed(3)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const ele = peak ? (typeof p.ele === 'string' ? parseFloat(p.ele) : p.ele ?? null) : null;
+      const rank = peak ? (hOrt != null && ele != null && ele > hOrt + 250 ? 3 : 2) : RANK[p.class ?? ''] ?? 0;
+      if (rank < minRank) continue;
+      out.push({ name, lon, lat, ele: Number.isFinite(ele as number) ? (ele as number) : null, rank, peak });
+    }
+  };
+  take('place', false);
+  take('mountain_peak', true);
+  const cen = map.getCenter();
+  return out.sort((a, b2) => b2.rank - a.rank || Math.hypot(a.lon - cen.lng, a.lat - cen.lat) - Math.hypot(b2.lon - cen.lng, b2.lat - cen.lat));
+}
+
+/** Ortskarte (klein): farbige Temperaturpille mit „≈" und Name; die Temperatur ist geschätzt (Höhe + Gradient), nicht gemessen. */
+function placePin(t: number, name: string, h: number, peak: boolean, src: string): HTMLElement {
+  const el = document.createElement('div');
+  el.className = `dbd-stage-pin is-place${peak ? ' is-peak' : ''}`;
+  const col = rampColor(t);
+  el.style.setProperty('--c', `rgb(${col[0]},${col[1]},${col[2]})`);
+  el.style.setProperty('--ink', col[0] * 0.299 + col[1] * 0.587 + col[2] * 0.114 > 150 ? '#2C2A26' : '#FFFFFF');
+  const b = document.createElement('b');
+  b.textContent = `≈${t.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}°`;
+  const n = document.createElement('em');
+  n.textContent = name.length > 18 ? `${name.slice(0, 17)}…` : name;
+  const s = document.createElement('small');
+  s.textContent = `${Math.round(h).toLocaleString('de-DE')} m`;
+  el.append(b, n, s);
+  el.title = `${name} · ${Math.round(h)} m · geschätzt ${t.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C (${src})`;
+  return el;
 }
 
 interface WindCell { lon: number; lat: number; toDeg: number; ms: number; conf: number }
@@ -235,7 +306,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const [showSnow, setShowSnow] = useState(true);
   const [tempRange, setTempRange] = useState<{ tMin: number; tMax: number } | null>(null);
   const [tempState, setTempState] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
-  const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[]; winds: ObsW[] }>({ state: 'idle', list: [], winds: [] });
+  const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[]; winds: ObsW[]; fit: Array<{ elev: number; t: number }> }>({ state: 'idle', list: [], winds: [], fit: [] });
   const obsMarkersRef = useRef<maplibregl.Marker[]>([]);
   const c = vm.center;
   const bearing = (vm.axisDeg + 180) % 360; // Blick in Richtung +s (Lee-Seite), wie der Schnitt von links nach rechts liest
@@ -334,7 +405,10 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   }, [map, c?.lat, c?.lon, showWind, fieldKey, vm.halfKm]);
 
   // --- Temperaturverteilung auf dem Relief ------------------------------------------------------------------------
-  const th = vm.thermal;
+  // Temperatur nach Höhe: Gradient des Modellprofils (buscosun Fusion); fehlt er, die Ausgleichsgerade der Messstationen (Schätzung).
+  const fit = lapseFit(obs.fit);
+  const th = vm.thermal ?? (fit ? { tOrt: fit.a, hOrt: 0, gamma: -fit.b * 1000 } : null);
+  const thSrc: 'model' | 'obs' | null = vm.thermal ? 'model' : fit ? 'obs' : null;
   useEffect(() => {
     if (!map || !c) return;
     const src = map.getSource(SRC_TEMP) as maplibregl.ImageSource | undefined;
@@ -354,12 +428,12 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
 
   // --- Gemessene Temperaturen an Stationen (Schilder mit Wert, gefärbt wie die Fläche) --------------------------------
   useEffect(() => {
-    if (!map || !c || !(showT || showWind)) { setObs({ state: 'idle', list: [], winds: [] }); return; }
+    if (!map || !c || !(showT || showWind)) { setObs({ state: 'idle', list: [], winds: [], fit: [] }); return; }
     const ac = new AbortController();
-    setObs((o) => ({ state: 'loading', list: o.list, winds: o.winds }));
+    setObs((o) => ({ state: 'loading', list: o.list, winds: o.winds, fit: o.fit }));
     loadObs(c, vm.halfKm, nowMs, ac.signal)
-      .then((r) => { if (!ac.signal.aborted) setObs({ state: 'ok', list: r.temps, winds: r.winds }); })
-      .catch(() => { if (!ac.signal.aborted) setObs({ state: 'error', list: [], winds: [] }); });
+      .then((r) => { if (!ac.signal.aborted) setObs({ state: 'ok', list: r.temps, winds: r.winds, fit: r.fit }); })
+      .catch(() => { if (!ac.signal.aborted) setObs({ state: 'error', list: [], winds: [], fit: [] }); });
     return () => ac.abort();
     // Die Messwerte werden mit dem Spiegel (2-min-Memo) alle 5 Minuten neu gelesen.
   }, [map, c?.lat, c?.lon, vm.halfKm, showT || showWind, Math.floor(nowMs / 300_000)]);
@@ -373,6 +447,49 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     obsMarkersRef.current = ms;
     return () => { ms.forEach((k) => k.remove()); };
   }, [map, showT, obs.list]);
+
+  // --- Temperatur an Orten und Gipfeln, je näher man zoomt desto mehr (Höhe → Temperatur über den Gradienten) ---------
+  const placeMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const [placeCount, setPlaceCount] = useState(0);
+  const hOrtNow = vm.hOrt;
+  useEffect(() => {
+    const clear = () => { placeMarkersRef.current.forEach((k) => k.remove()); placeMarkersRef.current = []; setPlaceCount(0); };
+    // Namensschilder der Basiskarte für Orte weichen den Temperaturschildern (sonst steht jeder Name doppelt)
+    const labelLayers = (m: maplibregl.Map) => (m.getStyle().layers ?? []).filter((l) => l.type === 'symbol' && 'source-layer' in l && (l as { 'source-layer'?: string })['source-layer'] === 'place' && /^label_(village|town|city|other)/.test(l.id)).map((l) => l.id);
+    const setLabels = (m: maplibregl.Map, visible: boolean) => { for (const id of labelLayers(m)) m.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none'); };
+    if (!map || !showT || !th) { if (map) setLabels(map, true); clear(); return; }
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const run = () => {
+      const z = map.getZoom();
+      if (z < 9.9) { setLabels(map, true); clear(); return; }
+      setLabels(map, false);
+      const cands = placeCandidates(map, z, hOrtNow);
+      const W = map.getCanvas().clientWidth, Hh = map.getCanvas().clientHeight;
+      // belegte Flächen: die Stationsschilder und bereits gesetzte Ortsschilder (grob 120 × 30 Pixel je Schild)
+      const taken: Array<{ x: number; y: number }> = obs.list.map((o) => { const p = map.project([o.lon, o.lat]); return { x: p.x, y: p.y }; });
+      const out: maplibregl.Marker[] = [];
+      for (const cd of cands) {
+        if (out.length >= 40) break;
+        const p = map.project([cd.lon, cd.lat]);
+        if (p.x < 40 || p.x > W - 40 || p.y < 50 || p.y > Hh - 40) continue;
+        if (taken.some((q) => Math.abs(q.x - p.x) < 112 && Math.abs(q.y - p.y) < 34)) continue;
+        const elev = cd.ele ?? (() => { const e = map.queryTerrainElevation([cd.lon, cd.lat]); return e == null ? null : e / TOWER_EXAGGERATION; })();
+        if (elev == null) continue;
+        const t = tempAt(th.tOrt, th.hOrt, th.gamma, elev);
+        taken.push({ x: p.x, y: p.y });
+        out.push(new maplibregl.Marker({ element: placePin(t, cd.name, elev, cd.peak, thSrc === 'model' ? 'Höhe und Gradient aus buscosun Fusion' : `Höhe und Ausgleichsgerade aus ${fit?.n ?? 0} Messstationen`), anchor: 'top', offset: [0, 4] }).setLngLat([cd.lon, cd.lat]).addTo(map));
+      }
+      placeMarkersRef.current.forEach((k) => k.remove());
+      placeMarkersRef.current = out;
+      setPlaceCount(out.length);
+    };
+    const sched = () => { if (timer) clearTimeout(timer); timer = setTimeout(run, 300); };
+    map.on('idle', sched);
+    map.on('moveend', sched);
+    sched();
+    return () => { if (timer) clearTimeout(timer); map.off('idle', sched); map.off('moveend', sched); setLabels(map, true); clear(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, showT, th?.tOrt, th?.hOrt, th?.gamma, obs.list, hOrtNow]);
 
   // --- Schneefallgrenze als Fläche (Phase SK) ----------------------------------------------------------------------
   const skOn = typeof window !== 'undefined' && snowCapEnabledFrom(window.location.search);
@@ -414,7 +531,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
         {showT && th && tempRange && tempState !== 'error' && (
           <span className="dbd-stage-leg-i dbd-stage-leg-t">
             <span className="dbd-stage-grad" style={{ background: gradCss }} aria-hidden="true" />
-            {de(tempRange.tMin, 0)} … {de(tempRange.tMax, 0)} °C · Temperatur nach Höhe, γ {de(th.gamma, 1)} K/km
+            {de(tempRange.tMin, 0)} … {de(tempRange.tMax, 0)} °C · Temperatur nach Höhe, γ {de(th.gamma, 1)} K/km{thSrc === 'obs' && fit ? ` (Ausgleichsgerade aus ${fit.n} Messstationen, R² ${de(fit.r2, 2)} — Schätzung)` : ' (buscosun Fusion)'}
           </span>
         )}
         {showT && !th && <span className="dbd-stage-leg-i">Keine Temperaturfläche: kein einzelner Gradient trägt (Inversion oder kein Modellprofil)</span>}
@@ -425,6 +542,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
                 : obs.state === 'error' ? 'Messwerte nicht abrufbar' : 'keine aktuellen Messwerte in der Nähe'}
           </span>
         )}
+        {showT && th && <span className="dbd-stage-leg-i">{placeCount > 0 ? `${placeCount} Orte und Gipfel mit geschätzter Temperatur (≈ nach Höhe) — je näher gezoomt, desto mehr` : 'Näher heranzoomen: Orte und Gipfel mit geschätzter Temperatur (≈ nach Höhe)'}</span>}
         {showT && th && tempState === 'loading' && <span className="dbd-stage-leg-i">Temperaturfläche lädt …</span>}
         {showT && th && tempState === 'error' && <span className="dbd-stage-leg-i">Temperaturfläche nicht verfügbar (Geländekacheln)</span>}
         {skOn && showSnow && <SnowCapLegend info={snow.info} variant="inline" />}

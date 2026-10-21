@@ -795,6 +795,12 @@
 .dbd-stage-pin.is-obs.is-below::after { bottom: auto; top: -7px; }
 .dbd-stage-grad--w { width: 56px; margin-left: 6px; }
 .dbd-stage-leg-w { gap: 7px; }
+/* Ortsschild (geschätzte Temperatur): kleiner als die Messkarte, ohne Stiel */
+.dbd-stage-pin.is-place { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 6px; row-gap: 0; padding: 2px 8px 2px 2px; border-radius: 999px; background: rgba(255, 255, 255, .86); backdrop-filter: blur(5px); border: 1px solid rgba(44, 42, 38, .08); box-shadow: 0 3px 10px -3px rgba(44, 42, 38, .32); pointer-events: auto; }
+.dbd-stage-pin.is-place b { grid-row: 1 / 3; padding: 4px 7px; border-radius: 999px; background: var(--c); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; font-style: italic; }
+.dbd-stage-pin.is-place em { font-style: normal; font-size: 10px; font-weight: 700; color: var(--dbd-ink); line-height: 1.1; align-self: end; }
+.dbd-stage-pin.is-place small { font-size: 8.5px; font-weight: 600; color: var(--dbd-muted); line-height: 1.1; font-variant-numeric: tabular-nums; align-self: start; }
+.dbd-stage-pin.is-place.is-peak em::before { content: '▲ '; font-size: 7px; vertical-align: 1px; color: var(--dbd-muted); }
 .dbd-stage-pin.is-station { font-size: 10.5px; font-weight: 600; color: #5C5447; background: rgba(255, 255, 255, .92); border: 1px solid var(--dbd-line); border-radius: 6px; padding: 2px 6px; }
 @media (max-width: 767px) { .dbd-stage { min-height: 360px; } }
 @media (max-width: 1279px) { .dbd-terrain-row { grid-template-columns: 1fr; } }
