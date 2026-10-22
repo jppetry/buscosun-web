@@ -119,6 +119,7 @@ import {
 } from './FireLayerCard';
 import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './FireFootprintPanel';
+import { FireMapCard } from './FireMapCard';
 import { ageText } from '../dataAge';
 import './fireDeck.css';
 
@@ -306,6 +307,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [fpEffisScope, setFpEffisScope] = useState<EffisScope>('season');
   const [hoverFootprint, setHoverFootprint] = useState<string | null>(null);
   const [selectedFootprint, setSelectedFootprint] = useState<string | null>(null);
+  /** Fire whose info card is open on the map (a map click opens the card; the card opens the dossier). */
+  const [mapCard, setMapCard] = useState<string | null>(null);
+  const mapCardRef = useRef<string | null>(null);
+  const openMapCard = useCallback((id: string | null) => { mapCardRef.current = id; setMapCard(id); }, []);
   /** Ziel des nächsten Fokus-Zooms — die Registry gibt ihre Bbox mit (eine Kamera-Logik in FireMap). */
   const [focusBbox, setFocusBbox] = useState<[number, number, number, number] | null>(null);
   const [shownFootprints, setShownFootprints] = useState(CLUSTER_PAGE);
@@ -646,7 +651,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   const selectFromMap = useCallback((id: string | null): boolean => {
     setSelectedCluster(id);
-    if (!id) return false;
+    if (!id) { openMapCard(null); return false; }
     setReadoutTab('fires');
     // BP5: die Hülle gehört zu einer Detektionsgruppe, die Liste führt Brände.
     // Der Klick markiert deshalb den Brand, der diese Gruppe enthält — sonst
@@ -656,18 +661,18 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       (r) => r.sources.cluster?.id === id || r.previousIds.includes(`fire:${id.split('@')[0]}`),
     );
     if (!rec) return false;
+    openMapCard(rec.id);
     setSelectedFootprint(rec.id);
     // TA4: ein Eintrag mit Anlagenmuster gehört zum Reiter „Thermalanomalien";
-    // BD2b (Jans Auftrag 2026-08-31): auch er öffnet sein Dossier — die Bühne
-    // wechselt mit, der Reiter (und damit die Registry links) bleibt „Thermalanomalien".
-    if (rec.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); setStage('dossier'); return true; }
+    // BD2b (Jans Auftrag 2026-08-31): auch er öffnet sein Dossier — seit der Info-Kachel
+    // über deren Knopf; der Reiter (und damit die Registry links) bleibt „Thermalanomalien".
+    if (rec.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); return true; }
     const rank = panelRecordsRef.current.findIndex((r) => r.id === rec.id);
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
-    // BD2a (Jans Auftrag 2026-08-31): ein Brand-Klick auf der Karte öffnet das
-    // Dossier — auch ohne Brandflächen-Layer, wo der Klick nur die Hülle trifft.
-    setStage('dossier');
+    // BD2a (Jans Auftrag 2026-08-31): ein Brand-Klick auf der Karte führt ins
+    // Dossier — auch ohne Brandflächen-Layer; seit 22.10. über die Info-Kachel.
     return true;
-  }, []);
+  }, [openMapCard]);
 
   /** Wie viele Detektionen liegen in einer kartierten Fläche der letzten Woche? */
   const mappedCount = useMemo(
@@ -1058,20 +1063,20 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   const selectFootprintFromMap = useCallback((id: string | null): boolean => {
     setSelectedFootprint(id);
+    openMapCard(id);
     if (!id) { setSelectedSite(null); return false; }
     const rec = recordsById.get(id);
     setSelectedCluster(rec?.sources.cluster?.id ?? null);
     // TA4: ein Eintrag, der zum Anlagenmuster passt, steht im Reiter „Thermalanomalien" —
-    // der Klick führt dorthin; Abweichungen bleiben Brände. BD2b: auch er öffnet sein Dossier.
-    if (rec?.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); setStage('dossier'); return true; }
+    // der Klick führt dorthin; Abweichungen bleiben Brände. BD2b: das Dossier öffnet die Info-Kachel.
+    if (rec?.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); return true; }
     setSelectedSite(null);
     setReadoutTab('fires');
-    // BD2: ein Brand von der Karte öffnet sein Dossier.
-    setStage('dossier');
+    // BD2: ein Brand von der Karte öffnet seine Info-Kachel, die Kachel das Dossier.
     const rank = panelRecords.findIndex((r) => r.id === id);
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
     return true;
-  }, [panelRecords, recordsById]);
+  }, [panelRecords, recordsById, openMapCard]);
   const clearFootprint = useCallback(() => { setSelectedFootprint(null); setSelectedSite(null); setFocusBbox(null); }, []);
   /**
    * BD2b: Klick auf eine EFFIS-Fläche — gehört sie einem Brand der Registry
@@ -1135,7 +1140,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     if (!selectedFootprint) return;
     // TA4: Einträge mit Anlagenmuster gehören zum Reiter „Thermalanomalien".
     setReadoutTab(recordsRef.current.find((r) => r.id === selectedFootprint)?.anomaly?.kind === 'site' ? 'anomalies' : 'fires');
-    if (isMobile) setMobileTab('fires');
+    // A map click shows the info card on the map; the list opens with the dossier.
+    if (isMobile && mapCardRef.current !== selectedFootprint) setMobileTab('fires');
   }, [selectedFootprint, isMobile]);
 
   // --- Playback (WB3) --------------------------------------------------------
@@ -1846,6 +1852,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // --- BD2: Bühne Karte | Dossier --------------------------------------------------
   const dossierRecord = selectedFootprint ? recordsById.get(selectedFootprint) ?? null : null;
   const inDossier = stage === 'dossier';
+  /** Info card of the fire picked on the map — only while it is still the selected one and the map is the stage. */
+  const mapCardRecord = mapCard && mapCard === selectedFootprint && !inDossier ? recordsById.get(mapCard) ?? null : null;
+  const mapCardEl = mapCardRecord && (
+    <FireMapCard
+      r={mapCardRecord} nowMs={nowMs}
+      onOpenDossier={() => { openMapCard(null); setStage('dossier'); if (isMobile) setMobileTab('fires'); }}
+      onClose={() => openMapCard(null)}
+    />
+  );
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
   const stageSeg = (big: boolean) => (
     <div className={`br-seg br-stage-seg${big ? ' is-big' : ''}`} role="group" aria-label="Bühne der Mitte">
@@ -2143,10 +2158,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   das sie tragen könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). */}
               {isMobile && viewChips}
               {isMobile && mapNotes}
+              {isMobile && mapCardEl}
             </div>
 
             {/* Unten links: Straßen | Satellit (Jans Auftrag 2026-10-14) — ersetzt die Basiskarten-Zeile im Dock. */}
             <div className="br-map-bl">{basemapSeg}</div>
+            {!isMobile && mapCardEl && <div className="br-map-card">{mapCardEl}</div>}
 
             {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler
                 ist entfallen (Jans Auftrag 2026-09-05), das hier ist der einzige verbliebene

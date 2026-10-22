@@ -125,9 +125,11 @@ add('[bd2] Chart-Breite kommt aus der Karte, nicht aus einer Tabelle fester Brea
   && /CHART_MAX_WIDTH/.test(dossier) && !/CHART_WIDTH\b/.test(dossier));
 add('[bd2] Minikarte ist KEINE zweite FireMap (eigene leichte Instanz, nicht interaktiv, Klick ⇒ Bühne)',
   /new maplibregl\.Map\(/.test(mini) && /interactive: false/.test(mini) && !/<FireMap\b/.test(mini) && /onClick/.test(mini));
-add('[bd2] Bühne: Segment Karte | Dossier, Klick auf Brand (Karte + Registry) öffnet das Dossier',
+// 2026-10-22 (Jans Auftrag): ein Brand-Klick auf der KARTE öffnet die Info-Kachel, deren Knopf das Dossier.
+add('[bd2] Bühne: Segment Karte | Dossier, Klick auf Brand (Karte ⇒ Info-Kachel ⇒ Dossier, Registry ⇒ Dossier)',
   /br-stage-seg/.test(page) && /const openDossier/.test(page)
-  && /setStage\('dossier'\)/.test(page.slice(page.indexOf('const selectFootprintFromMap'), page.indexOf('const clearFootprint')))
+  && /openMapCard\(id\)/.test(page.slice(page.indexOf('const selectFootprintFromMap'), page.indexOf('const clearFootprint')))
+  && /onOpenDossier=\{\(\) => \{ openMapCard\(null\); setStage\('dossier'\)/.test(page)
   && /onSelect=\{openDossier\}/.test(page));
 add('[bd2] Hauptkarte bleibt im Dossier montiert (nur außer Bild, kein Remount)',
   /fire-center\$\{inDossier && !isMobile \? ' is-offstage'/.test(page) && /\.fire-center\.is-offstage \{[^}]*visibility: hidden/.test(css));
@@ -144,14 +146,14 @@ add('[bd2] Mobil: eigene Seite mit Kartenstreifen, Segment ≥ 44 px, Bottom-Bar
   /br-m-dossier/.test(page) && /br-ds-mapstrip/.test(page) && /\.br-stage-seg\.is-big button \{[^}]*min-height: 44px/.test(css) && /\{bottomBar\}/.test(page));
 // --- BD2a (2026-08-31, Jans Auftrag): jeder Brand-Klick auf der Karte öffnet das Dossier ---
 const fmap = readFileSync(join(ROOT, 'src', 'fire', 'FireMap.tsx'), 'utf8');
-add('[bd2a] Hüllen-Klick öffnet das Dossier (auch ohne Brandflächen-Layer) und meldet es zurück', (() => {
+add('[bd2a] Hüllen-Klick öffnet die Info-Kachel (auch ohne Brandflächen-Layer) und meldet es zurück', (() => {
   const fn = page.slice(page.indexOf('const selectFromMap'), page.indexOf('const selectFootprintFromMap'));
-  return /useCallback\(\(id: string \| null\): boolean/.test(fn) && /setStage\('dossier'\)/.test(fn) && /return true;/.test(fn);
+  return /useCallback\(\(id: string \| null\): boolean/.test(fn) && /openMapCard\(rec\.id\)/.test(fn) && /return true;/.test(fn);
 })());
-add('[bd2b] auch der Anlagen-Eintrag (site) öffnet sein Dossier — der Reiter bleibt Thermalanomalien (Jans Auftrag 2026-08-31)', (() => {
+add('[bd2b] auch der Anlagen-Eintrag (site) öffnet seine Info-Kachel — der Reiter bleibt Thermalanomalien (Jans Auftrag 2026-08-31)', (() => {
   const fn = page.slice(page.indexOf('const selectFromMap'), page.indexOf('const selectFootprintFromMap'));
   const site = fn.slice(fn.indexOf("kind === 'site'"), fn.indexOf("kind === 'site'") + 220);
-  return /setReadoutTab\('anomalies'\); setStage\('dossier'\); return true;/.test(site);
+  return /setReadoutTab\('anomalies'\); return true;/.test(site);
 })());
 // BD2f (2026-08-31): auch im Historie-Modus (Monat/Saison) öffnet der Ereignis-Klick das Dossier —
 // derselbe Detailkörper (HistoryDetailBody) für Inline-Karte und Mitte, Minikarte strukturell (MiniMapTarget).
