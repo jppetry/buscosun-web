@@ -1195,6 +1195,90 @@
   .br-ds-legend .br-legend-dot { font-size: 14px; }
 }
 
+/* --- Right sidebar in the concept of the map info card (Jans Auftrag 2026-10-23) ---
+   Glass surfaces, an accent glow per fire (`--br-row-acc`, set in the panels), the key
+   figures as small tiles, gradient for the active state. Scoped to `.br-readout`, so the
+   dock and the mobile sheet keep their look; type sizes stay as they are. */
+.br-readout { background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, var(--sand-50, #F5F1E8) 100%); }
+.br-readout .br-tabs {
+  gap: 4px; padding: 4px; border-radius: 13px;
+  background: rgba(255, 255, 255, 0.72); border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 8px 18px -12px rgba(44, 42, 38, 0.28);
+}
+.br-readout .br-tabs button { border-radius: 9px; transition: background .15s, color .15s, box-shadow .15s; }
+.br-readout .br-tabs button.is-active {
+  background: linear-gradient(135deg, var(--br-red), color-mix(in srgb, var(--br-red) 70%, var(--ink-900, #2C2A26)));
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--br-red) 70%, transparent);
+}
+.br-readout .br-card:not(.is-preview):not(.is-blocked) {
+  border-radius: 16px; padding: 15px;
+  background:
+    radial-gradient(120% 80px at 0% 0%, color-mix(in srgb, var(--br-acc, var(--br-red)) 11%, transparent), transparent 100%),
+    var(--br-glass-strong);
+  border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 12px 26px -16px rgba(44, 42, 38, 0.3);
+}
+.br-readout .br-card.is-preview, .br-readout .br-card.is-blocked { border-radius: 16px; }
+.br-readout .br-chip {
+  border-radius: 999px; padding: 5px 11px; background: rgba(255, 255, 255, 0.78);
+  transition: background .15s, border-color .15s, box-shadow .15s;
+}
+.br-readout .br-chip.is-ghost { background: transparent; }
+.br-readout .br-chip.is-red.is-active {
+  background: linear-gradient(135deg, var(--br-red), color-mix(in srgb, var(--br-red) 70%, var(--ink-900, #2C2A26)));
+  border-color: transparent; box-shadow: 0 5px 12px -6px color-mix(in srgb, var(--br-red) 70%, transparent);
+}
+.br-readout .br-chip.is-ink.is-active {
+  background: linear-gradient(135deg, var(--ink-900, #2C2A26), color-mix(in srgb, var(--ink-900, #2C2A26) 75%, var(--stone-500, #8B7355)));
+  border-color: transparent;
+}
+.br-readout .br-chip.is-ghost.is-active { background: var(--sand-50, #F5F1E8); }
+.br-readout .br-filters { border-bottom: 0; padding-bottom: 2px; }
+.br-readout .br-firelist { gap: 10px; }
+.br-readout .br-fire {
+  --br-row-acc: var(--br-red);
+  position: relative; border-radius: 16px;
+  background:
+    radial-gradient(120% 80px at 0% 0%, color-mix(in srgb, var(--br-row-acc) 13%, transparent), transparent 100%),
+    var(--br-glass-strong);
+  border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 10px 22px -16px rgba(44, 42, 38, 0.32);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.br-readout .br-fire.is-site-row { --br-row-acc: var(--stone-500, #8B7355); }
+.br-readout .br-fire:hover {
+  transform: translateY(-1px); border-color: color-mix(in srgb, var(--br-row-acc) 35%, var(--sand-200, #E0D6BE));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 16px 28px -16px rgba(44, 42, 38, 0.38);
+}
+.br-readout .br-fire.is-sel, .br-readout .br-fire.is-selected {
+  border: 1px solid color-mix(in srgb, var(--br-row-acc) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--br-row-acc) 16%, transparent), 0 16px 28px -16px rgba(44, 42, 38, 0.38);
+}
+.br-readout .br-fire-btn, .br-readout .br-fire.is-sel .br-fire-btn { padding: 12px; gap: 10px; border-radius: 16px; }
+.br-readout .br-fire-btn:focus-visible { outline: 2px solid var(--br-terra); outline-offset: 2px; }
+.br-readout .br-fire-top { gap: 9px; }
+.br-readout .br-fire-ic {
+  width: 34px; aspect-ratio: 1; align-items: center; justify-content: center; border-radius: 11px;
+  background: color-mix(in srgb, currentColor 13%, var(--cream-50, #FAF6EA));
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 26%, transparent) inset;
+}
+.br-readout .br-fire-stats { gap: 6px; }
+.br-readout .br-stat {
+  padding: 7px 9px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72); border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 70%, transparent);
+}
+.br-readout .br-stat-lbl { letter-spacing: 1px; font-weight: 600; }
+.br-readout .br-stat-sub { line-height: 1.3; color: var(--stone-500, #8B7355); }
+.br-readout .br-more {
+  border: 1px solid color-mix(in srgb, var(--br-terra) 35%, transparent); border-radius: 13px;
+  background: rgba(255, 255, 255, 0.6); transition: background .15s, box-shadow .15s;
+}
+.br-readout .br-more:hover { background: #fff; box-shadow: 0 8px 18px -12px rgba(44, 42, 38, 0.3); }
+@media (prefers-reduced-motion: reduce) {
+  .br-readout .br-fire, .br-readout .br-chip, .br-readout .br-tabs button, .br-readout .br-more { transition: none; }
+  .br-readout .br-fire:hover { transform: none; }
+}
+
 /* ---------------------------------------------------------------------------
    BDE-C — Wetterführung im Brandzeitfenster (Einstufung, Windrose, Zeitreihe).
    Farben ausschließlich aus vorhandenen Tokens: die Stärkeklassen der Rose sind

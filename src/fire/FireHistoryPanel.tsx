@@ -105,7 +105,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
             {rows.slice(0, shown).map((e) => {
               const color = e.anomalyKind === 'site' ? STATIC_GREY : clusterColor(e.frpSumMw ?? 0);
               return (
-                <li key={e.id} className={`br-fire${p.selectedId === e.id ? ' is-selected' : ''}${e.anomalyKind === 'site' ? ' is-static' : ''}`}>
+                <li key={e.id} className={`br-fire${p.selectedId === e.id ? ' is-selected' : ''}${e.anomalyKind === 'site' ? ' is-static' : ''}`} style={{ ['--br-row-acc' as string]: color }}>
                   <button type="button" className="br-fire-btn" onClick={() => p.onSelect(e)} aria-pressed={p.selectedId === e.id}>
                     <span className="br-fire-top">
                       <span className="br-fire-ic" style={{ color }}>

@@ -504,6 +504,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                 <div
                   data-fire={r.id}
                   className={`br-fire fire-fprow${sel ? ' is-sel' : ''}${r.suspectedStatic ? ' is-static' : ''}`}
+                  style={{ ['--br-row-acc' as string]: r.suspectedStatic ? STATIC_GREY : STATUS_COLOR[r.status.kind] }}
                   onMouseEnter={() => p.onHover(r.id)}
                 >
                   <button
