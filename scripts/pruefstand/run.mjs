@@ -199,6 +199,16 @@ async function runCandidate(idRaw, mode) {
   for (const k of judgedKeys) if (sets[k].overfit?.warning) warnings.push(`Verdacht Überanpassung (${sets[k].label}): Gewinn gegen den Champion an Rolle A ${pct(sets[k].overfit.gainA)} gegen ${pct(sets[k].overfit.gainB)} an Rolle B.`);
   for (const [k, s] of Object.entries(sets)) if (s.unripeCounted) warnings.push(`${s.label}: ${s.unripeCounted} Werte mit unreifer Wahrheit (jünger als ${proto.truth.maturityDays} Tage) sind mitgezählt.`);
   if (mode === 'abnahme' && !rUsable) warnings.push('Spur R kontaminiert: ein Fit-Fenster reicht in den Tresor — Spur R zählt nicht.');
+  // V-OF-22: a dense-set candidate must have had its day file for every archive day it is judged on — without it the replay fed
+  // the archive measurement and the numbers belong to another model (21.10.: all 13 Spur-P days of 12t/12u ran that way).
+  if (cand.options?.obsDense === 1) {
+    const gaps = judgedKeys.filter((k) => k !== 'spurR').flatMap((k) => (sets[k]?.models?.[cand.id]?.obs?.daysMissing ?? []).map((d) => `${sets[k].label}: ${d}`));
+    if (gaps.length) {
+      const msg = `Dichte Messdateien fehlen für ${gaps.length} Ausgabetage des Kandidaten (${gaps.slice(0, 6).join(', ')}${gaps.length > 6 ? ', …' : ''}) — der Replay rechnete dort mit der Archiv-Messung (V-OF-22). Nachbauen mit scripts/obsfusion/build-dense-obs.mjs --from=<Tag> --to=<Tag>, dann die Konserven dieser Tage löschen und neu rechnen.`;
+      if (mode === 'abnahme') fail(1, `STOPP: ${msg} Kein Urteil.`);
+      warnings.push(msg);
+    }
+  }
   const same = cand.id === champ.id;
   const label = mode === 'voll' ? 'Volltest' : verdictOf(gates, same);
   const main = pc(mode === 'voll' ? 'entwicklung' : rUsable ? 'spurR' : 'spurP')?.indexB ?? null;

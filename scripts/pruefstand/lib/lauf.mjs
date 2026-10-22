@@ -60,7 +60,12 @@ function modelSummary(proto, acc) {
   const wet = [];
   for (let w = 0; w < proto.windows.length; w++) for (let role = 0; role < ROLES.length; role++) { const s = wetSummary(proto, acc, w, role); if (s) wet.push({ window: proto.windows[w].id, role: ROLES[role], ...s }); }
   const ms = acc.info.map((i) => i.pointMsMedian).filter((x) => x != null).sort((a, b) => a - b);
-  return { issues: acc.issues, pointMsMedian: ms.length ? ms[Math.floor(ms.length / 2)] : null, cells, wet };
+  // V-OF-22: which measurements the replay really fed — a dense-set version whose day file was missing fell back to the
+  // archive measurement silently (21.10.: 13 days of Spur P for every obsDense version). Reported per model; `run.mjs` stops
+  // an acceptance on it.
+  const dense = acc.info.filter((i) => i.obsMode === 'dense');
+  const obs = dense.length ? { mode: 'dense', denseUsed: dense.reduce((a, i) => a + (i.denseUsed ?? 0), 0), denseMissing: dense.reduce((a, i) => a + (i.denseMissing ?? 0), 0), daysMissing: [...new Set(dense.filter((i) => (i.denseMissing ?? 0) > 0).map((i) => i.day))].sort() } : { mode: acc.info[0]?.obsMode ?? null };
+  return { issues: acc.issues, pointMsMedian: ms.length ? ms[Math.floor(ms.length / 2)] : null, obs, cells, wet };
 }
 const kernFilled = (proto, acc) => { let n = 0; for (let v = 0; v < NVS; v++) for (let w = 0; w < proto.windows.length; w++) if (isKern(proto, v, w)) for (let role = 0; role < 2; role++) n += acc.cells[cellIndex(proto, v, w, 3, role) * F.N + F.n]; return n; };
 

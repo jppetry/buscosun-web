@@ -2,8 +2,24 @@
  "schema": 1,
  "kind": "pruefstand/rangliste",
  "note": "Güteindex gegen die lokale Klimatologie an Rolle B; nur der Modus abnahme schreibt.",
- "updated": "2026-10-07",
+ "updated": "2026-10-21",
  "entries": [
+  {
+   "id": "fusion-12r",
+   "name": "buscosun Fusion 12 mit σ-Kopplung (ρ gemessen) und σ-Skala (OF-7, Kandidat nach §11.4)",
+   "guete": 0.18709,
+   "ci95": [
+    0.16489,
+    0.20527
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
   {
    "id": "fusion-10",
    "name": "buscosun Fusion 10",
@@ -16,9 +32,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "fusion-11",
@@ -32,9 +48,105 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
+  {
+   "id": "fusion-12",
+   "name": "buscosun Fusion 12",
+   "guete": 0.18687,
+   "ci95": [
+    0.16456,
+    0.20523
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
+  {
+   "id": "fusion-12s",
+   "name": "buscosun Fusion 12 mit σ-Kopplung am Anker (OF-6, Kandidat)",
+   "guete": 0.18687,
+   "ci95": [
+    0.16456,
+    0.20523
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
+  {
+   "id": "fusion-12q",
+   "name": "buscosun Fusion 12 mit σ-Kopplung, ρ gemessen (OF-7, Hebel 1 allein)",
+   "guete": 0.18687,
+   "ci95": [
+    0.16456,
+    0.20523
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
+  {
+   "id": "fusion-12t",
+   "name": "buscosun Fusion 12 mit K-Stationen-Kopplung und σ-Skala der Spur-P-Hypothese (OF-7b, E-OF-5, nur Spur P)",
+   "guete": 0.18686,
+   "ci95": [
+    0.16456,
+    0.20525
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
+  {
+   "id": "fusion-12u",
+   "name": "buscosun Fusion 12 mit K-Stationen-Kopplung und σ-Skala der Spur-P-Hypothese, Windknoten 24–48 h = 1 (OF-7b, E-OF-5, nur Spur P)",
+   "guete": 0.18685,
+   "ci95": [
+    0.16456,
+    0.20524
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
+  },
+  {
+   "id": "fusion-12p",
+   "name": "buscosun Fusion 12 mit σ-Kopplung (ρ gemessen) und σ-Skala nur > 48 h (OF-7, Variante Datenlage)",
+   "guete": 0.18669,
+   "ci95": [
+    0.16418,
+    0.2049
+   ],
+   "days": 70,
+   "cells": 63,
+   "set": "spurR",
+   "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "fusion-6",
@@ -48,9 +160,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "fusion-7",
@@ -64,9 +176,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "fusion-8",
@@ -80,9 +192,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "fusion-9",
@@ -96,9 +208,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "fusion-5e",
@@ -112,9 +224,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "ref-naiv",
@@ -128,9 +240,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "ref-roh-lapse",
@@ -144,9 +256,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "ref-roh",
@@ -160,9 +272,9 @@
    "cells": 63,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   },
   {
    "id": "ref-persistenz",
@@ -176,9 +288,9 @@
    "cells": 99,
    "set": "spurR",
    "protocol": "4b633f0766a74019f0e1fbe6042437ea263eff1009752e6af73b2c7805cea4cb",
-   "truth": "150cf00b6ee56a89d65c32318702ce2b2b6dc7eed9c8c0e3a1651e3d2bfb0033",
-   "abnahme": "2026-10-07",
-   "by": "fusion-11"
+   "truth": "3c99e1ca339f01d4d9be6d5409f8f52b44e98df8336547246e7c5ab6967b0332",
+   "abnahme": "2026-10-21",
+   "by": "fusion-12u"
   }
  ]
 }

@@ -772,3 +772,113 @@ vier Gates bestanden, Spur P war leer, Spur R unterscheidet die Messungs-Kandida
 | `verify:np0-fields` | 23/24 — B rot: `publish-point` meldet in der Kopie des lokalen Daten-Klons 208 Manifesteinträge ohne Datei für den Lauf 2026100812 (der Klon trägt seit 22:32 UTC einen lokalen HD-Commit der parallelen Sitzung); der Fehler fällt vor jeder Feldrechnung, die Felder lesen das Register unverändert über `fusionStage()` — Umgebung, nicht diese Änderung; Wiederholung mit frischem Klon = Jans Gate |
 | Build | grün |
 | `npm run budget` | totalJs **1 611,5 KB** gegen HEAD `f16f82d` 1 611,4 (Kontrollbau, +0,1 KB); Grenze 1 609 → **1 612** (OF-7/OF-7b lagen schon 2,4 KB darüber, ungemessen; Notiz in `budget.json`); eagerJs 109,3 unverändert |
+
+## 13 Spur-P-Abnahme von `fusion-12t` und `fusion-12u` (21.10., Jans Auftrag: „führe beide Punkte durch")
+
+Auftrag vom 21.10.: (1) Hindcast-Nachholkette wieder anwerfen und W1 neu bauen, (2) Spur-P-Abnahme von 12t und 12u „sofort als
+Vorblick, verbindlich um den 30.10."; das Wort `abnahme` fiel im Auftrag. Kein Code unter `src/` geändert, keine Tabelle, kein Protokoll.
+
+### 13.1 Vorbereitung (beides lokal, nichts ins Daten- oder Archiv-Repo)
+
+- **Wahrheit W1 stand auf dem 07.10.** (letzter Lauf `2026-10-07T15:04Z`): ohne Neubau hätte Spur P null reife Tage gehabt.
+  `build-w1.mjs` (21.10. 18:48 UTC, 190 s): 22 Tage geschrieben, 2 final belassen, 8 Werte verworfen ⇒ **W1 `3c99e1ca339f`, 1 239 Tage
+  (2023-06-01 … 2026-10-21), reif 1 231** (Reifezeit 7 Tage ⇒ reif bis 13.10.).
+- Archiv-Klon `C:\dev\buscosun-archiv` per `pull --ff-only` auf `357a4f4`: 37 Ausgabetage (14.09. … 20.10.); Spur P nach dem Freeze
+  08.10. = 12 Ausgabetage (09.–20.10.), davon 4 mit reifer Wahrheit im Sinn des Protokolls (`minDays` 4 — gerade erreicht).
+- **Die Hindcast-Nachholkette `follow` stand seit dem 24.09.** (letzter Slot 21.09., letzter Lauf `score-full2` 24.09.; §11.6 V-OF-17 und
+  §8.8 des Hindcast-Audits nahmen an, sie laufe täglich — sie lief genau einmal, am 22.09. für 19.–21.09.) ⇒ **V-OF-19**. Neu gestartet
+  21.10. 18:52 UTC: `log\chains.json` um `{"name":"follow-2026-10-21","mode":"follow","args":"2026-09-22 2026-10-20"}` ergänzt, Wachhund
+  `watchdog8` losgelöst (`detach.ps1`, WMI). Messung aus dem Log vom 22.09.: ≈ 10 min je Tag ⇒ ≈ 5 h für 29 Tage; `data_run` hält
+  ≈ 3 Monate, der 22.09. war also noch nicht verloren. Der ERSTE losgelöste Start (`watchdog7`, 18:51 UTC) starb still nach der
+  START-Zeile — Wachhund und Kette zugleich, kein Fehler im Log; der zweite Start, in derselben PowerShell-Sitzung mit 20 s Wartezeit
+  vor dem Rückkehren, lebt (python-Kinder sichtbar, um 19:59 UTC 30 Aufrufe `status 0`, 0 Fehlschläge) ⇒ **V-OF-20**.
+
+### 13.2 Ergebnis (Protokoll P1 `4b633f0766a7`, Wahrheit W1 `3c99e1ca339f`, Champion `fusion-9`; `zugriffe.log` 18:55 und 19:59 UTC)
+
+| | `fusion-12t` | `fusion-12u` |
+|---|---|---|
+| Urteil | **abgelehnt** (G2, G3 rot) | **abgelehnt** (G2, G3 rot) |
+| Spur P (12 Ausgabetage, 4 reif, 69 Zellen, 402 960 unreife Werte übersprungen): Index gegen 9 | **+0,25 %** (95 %: +0,20 … +0,30), einseitig signifikant, Nachweisgrenze 0,15 % | **+0,26 %** (+0,21 … +0,32) |
+| Spur P: G2 · G3 | grün (0 von 36 Kernzellen schlechter) · grün (0 von 10 rot, 2 außerhalb des Bands: Niederschlag 96 % wie der Champion) | grün · grün |
+| Spur R (Tresor, 70 Ausgaben): Index gegen 9 | +0,97 % (+0,65 … +1,26) | +0,97 % (+0,65 … +1,26) |
+| Spur R: G2 | **rot** — ws 0–6 h DE **−2,1 %**, gust 0–6 h CH −0,5 % (beide signifikant nach BH) | rot — dieselben zwei Zellen, dieselben Zahlen |
+| Spur R: G3 | **rot** — ws 0–6 h 73,4 % (Champion 76,9 %, Band 78,3–81,7), t 48–120 h 75,3 % (Champion 75,6 %); 9 von 17 außerhalb des Bands | rot — dieselben zwei Zellen |
+| G1 · G4 | grün · grün (Determinismus `9a8b6ffa5897`, Physik) | grün · grün |
+| Beste Kernzellen (Spur R) | ws 240–336 h AT +8,9 %, CH +6,6 %; td 120–240 h AT +6,4 % | gleich |
+| Produktaussage | 63 von 63 Kernzellen besser als jede Einzelquelle | gleich |
+| Bericht | `audit/pruefstand/berichte/fusion-12t/2026-10-21-abnahme/` | `audit/pruefstand/berichte/fusion-12u/2026-10-21-abnahme/` |
+
+**Prüfung der eingefrorenen Behauptung (§11.8.3, `claims-addendum-2.md`):** „auf Spur P sind G1–G4 grün und der Fortschrittsindex
+gegen Fusion 9 liegt ≥ +1,3 %". Gates auf Spur P: grün. Index auf Spur P: **+0,25 % ⇒ die Behauptung trifft nicht zu**, unabhängig von
+Spur R. Die Vorzugsreihenfolge aus §11.8.4 („keiner grün ⇒ rote Zellen beider benennen, kein dritter Kandidat ohne neues Fenster") gilt:
+die roten Zellen sind oben benannt, ein dritter Kandidat braucht ein neues Fenster (E-OF-8). `fusion-12u` unterscheidet sich von 12t nur
+im Windknoten 24–48 h; auf Spur R ist das in keiner berichteten Zahl sichtbar (Index auf zwei Stellen gleich), auf Spur P +0,01 pp.
+
+### 13.3 Deutung (Diagnose, keine Nachstellung)
+
+1. **Spur R zeigt V-OF-17 in Reinform:** der Tresor (April 2024 … August 2025) trägt alle Jahreszeiten, die σ-Skala ≤ 48 h stammt aus
+   95 Sommertagen. Der Windknoten 0–6 h DE 0,839 (§11.8.1) verengt σ dort, wo die Abdeckung schon beim Champion unter dem Band liegt
+   (76,9 %) — Ergebnis 73,4 % und −2,1 % CRPS. T 48–120 h liegt beim Champion ebenso unter dem Band (75,6 %); 12t verschiebt es um
+   0,4 pp weiter weg — signifikant, aber das Band verfehlt schon Fusion 9.
+2. **Spur P ist noch dünn:** 4 reife Ausgabetage, nur Vorläufe bis ≈ 96 h reif (402 960 Werte übersprungen). Der kleine, aber
+   signifikante Vorsprung +0,25 % auf Spur P ist ein Herbst-Befund für 0–48 h, wo die Skala hingehört. Eine Wiederholung derselben zwei
+   Kandidaten auf Spur P um den 30.10. (≥ 14 reife Tage ≈ 3.11.) ist **keine Nachstellung** (gleicher Kandidat, gleiche Hypothese) — sie
+   kann aber Spur R nicht aufheben: das Urteil „abgelehnt" bleibt, solange das Protokoll Spur R mitprüft.
+3. **Was ein neues Fenster bräuchte:** entweder (a) die σ-Skala ≤ 48 h nach Jahreszeit (Herbst/Winter-Knoten aus der laufenden
+   `follow`-Kette, frühestens Dezember, V-OF-17), oder (b) ein Kandidat ohne σ-Skala ≤ 48 h, nur `anchorKSet` auf 12s (die Kopplung
+   allein hatte in OF-7b bei Böe/Wind 0–6 h gewirkt), oder (c) Fusion 12 bleibt, bis (a) messbar ist. Entscheidung E-OF-8 (Jan).
+
+- **V-OF-19** Hindcast-Nachholkette ist kein Dauerbetrieb: sie läuft nur, wenn jemand `chains.json` ergänzt und den Wachhund startet
+  (Lehre: „läuft täglich auf Jans Maschine" war eine Absicht, kein Mechanismus). Mehrwert: ohne sie gibt es im Dezember keinen
+  Winter-Nachfit (FL-AP7) und keine Herbst-Knoten für V-OF-17. Umsetzung: geplante Aufgabe (Task Scheduler) einmal täglich
+  `queue.mjs follow <gestern-2> <gestern>` + Wachhund, oder ein Eintrag in `chains.json` je Woche von Hand; der Wächter
+  `verify-hindcast` sollte den jüngsten Slot gegen „heute − 3 Tage" prüfen.
+- **V-OF-20** Ein per WMI losgelöster Wachhund kann beim ersten Start still sterben (21.10. 18:51 UTC: `watchdog7` und seine Kette ohne
+  Logzeile weg; zweiter Start 18:52 UTC lebt). Ursache nicht gemessen (Verdacht: Ende des aufrufenden Werkzeugprozesses binnen
+  Sekunden). Umsetzung: `detach.ps1` nach dem Start 15–20 s warten und die PID prüfen, sonst Fehler melden; `pids.jsonl` um ein
+  „alive"-Feld ergänzen.
+- **V-OF-21** Die Abnahme nennt im Urteil den Index der Spur R als Hauptzahl, obwohl die Hypothese „nur Spur P" formuliert war
+  (§11.8.3). Das ist das Protokoll (Spur R ist die größere saubere Menge), kein Fehler — aber eine „nur Spur P"-Hypothese sollte im
+  Register als solche stehen, damit der Bericht beide Indizes nebeneinander im Kopf zeigt statt nur in `scores.json`.
+
+### 13.4 Korrektur (22.10.): die Spur-P-Zahlen vom 21.10. entstanden OHNE den dichten Messsatz — V-OF-22
+
+Beim Vorbereiten von E-OF-8 b fiel auf, dass auf Spur P `fusion-12 ≡ fusion-11 ≡ fusion-10` war (Paar `12t|12` = `12t|11` = `12t|10`
+= +0,298 % auf drei Stellen; Fusion 12 gegen Klima 0,26264 = Fusion 11). Ursache: die dichten Tagesdateien
+`C:\dev\buscosun-pruefstand\obs-dense\<Tag>.json.gz` (aus den Originalen, `build-dense-obs.mjs`) **endeten am 07.10.**; der Replay
+greift ohne Tagesdatei still auf die Archiv-Messung zurück und zählt das nur (`replay.mjs`: „Without a day file the replay keeps the
+archive measurement and counts it"). In den Konserven stand es: 91 Konserven (7 obsDense-Versionen × 13 Tage 08.–20.10.) mit
+`denseMissing 365` von 365 Punkten. Folgen:
+
+- Die Spur-P-Spalte in §13.2 (Index +0,25 %, Gates grün) misst **12t ohne dichten Anker**: nur `anchorSigma`/`anchorKSet` am Archiv-Anker
+  (eine Station je Punkt) und die σ-Skala. Das Spur-R-Urteil (G2/G3 rot) ist davon unberührt — der Tresor hat keine Messungen —, die
+  Ablehnung bleibt. Die Deutung 2 in §13.3 („+0,25 % ist ein Herbst-Befund für 0–48 h") gilt nur für diese Konfiguration.
+- Umsetzung 22.10.: `build-dense-obs.mjs --from=2026-10-08 --to=2026-10-21` (335 s; 13 Archivtage 08.–20.10., je ≈ 1 410–1 434 DE,
+  283 AT, 156 + 141 CH Stationen); die 91 veralteten Konserven gelöscht (Scratchpad-Scan über die Blockköpfe, `info.denseMissing`;
+  der `caseHash` kennt die Tagesdatei nicht — V-OF-22). **Wächter:** `lauf.mjs` meldet je Modell `obs: { mode, denseUsed, denseMissing,
+  daysMissing }`, `run.mjs` bricht eine Abnahme eines obsDense-Kandidaten mit Exit 1 ab, wenn auf Spur P oder der Entwicklungsmenge ein
+  Tag ohne Tagesdatei lief (Volltest: Warnung). Protokoll P1 unverändert (Siegel deckt nur `protokoll.json`, `pruefnetz.json`, `tresor.json`).
+- Eine Wiederholung der Abnahme 12t/12u mit dichten Dateien ist keine Nachstellung; sie ändert das Urteil nicht (Spur R), zeigt aber die
+  echten Spur-P-Zahlen. Vorschlag: zusammen mit der ersten Abnahme von 12v (≈ 03.11.).
+- Dauerbetrieb fehlt auch hier (wie V-OF-19): die Tagesdateien entstehen nur auf Zuruf. Vor jeder Abnahme `build-dense-obs.mjs` bis zum
+  Vortag laufen lassen; der Wächter fängt das Vergessen ab.
+
+## 14 E-OF-8 b — Kandidat `fusion-12v` (22.10., Jans Auftrag „mache b")
+
+**Kandidat:** `fusion-12v` = Register `fusion-12u` ohne `sigmaScale` = `fusion-12s` + `anchorKSet: 1` (Optionen oben in §13.2 geprüft:
+`obsDense 1`, `anchorSigma 1`, `anchorKSet 1`, kein `sigmaScale`). Motor-Commit `4350886` (derselbe wie 12t/12u, also dieselbe Kette;
+die Prüfung isoliert damit genau das Weglassen der σ-Skala), Tabellen `0714300fe2a5`/`9d22ff35986f`/`85d73cead2cb`/`a71e53c9de12`,
+Fit-Fenster wie 12u, Tresor sauber (`contaminated: false`), `modelHash 2efa2b5a1831758d`, Order 12,7, Status `kandidat`. Registriert
+22.10. 08:33 Ortszeit (Scratchpad `reg12v.mjs` über `writeRegister`, wie 12t/12u), **Freeze 2026-10-22** (Tag der Registrierung; die
+Entwicklung sah die Berichte vom 21.10. über Spur P 09.–20.10.). Spur P = Archivtage ab 23.10.; erste Abnahme mit ≥ 4 reifen Tagen
+frühestens **03.11.**, belastbar ≈ 13.11. Kein Eintrag in `fusionRelease.ts` (eine Nummer gibt es erst bei grün: Fusion 13).
+
+**Hypothese H-OF-5c** (`audit/obs-fusion/claims-addendum-4.md`, sha256 `b60ae6cb95af…` in `claims-frozen.sha256`, Zeit in
+`claims-frozen.at`, vor dem ersten Spur-P-Tag): auf Spur P G1–G4 grün, Index gegen Fusion 9 ≥ +0,5 % (Nachweisgrenze des Protokolls),
+Abdeckung T 0–6 h im Band um 80 % (12s auf der Entwicklungsmenge: 74,4 %); auf Spur R keine Kernzelle signifikant schlechter (dort ist
+12v rechnerisch Fusion 11, der Tresor trägt keine Messungen). Voraussetzung: dichte Tagesdatei für jeden Spur-P-Tag (V-OF-22-Wächter).
+Bei rot: Zellen benennen, keine Nachstellung. Erwartung ehrlich gesagt: Zehntelprozente, kein Sprung — der Hebel wirkt nur über den
+Anker im Nahbereich 0–48 h.
+
+**Was 12v nicht kann:** die Winter-Lücke der σ-Skala schließen (das ist Weg a, ab Dezember aus der Hindcast-Kette) und die geerbte
+Über-Abdeckung bei Wind 6–24 h / Böe 24–48 h beheben (das tat nur die Skala).
