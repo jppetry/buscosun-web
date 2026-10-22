@@ -29,7 +29,7 @@ import GlacierDock from './GlacierDock';
 import GlacierList from './GlacierList';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import GlacierLageChart, { type ChartKind } from './GlacierLageChart';
-import { CountryCards, ReportList, Rhythm, SelectedGlacier, type CountryFacts } from './GlacierReadout';
+import { CountryCards, ReportList, Rhythm, type CountryFacts } from './GlacierReadout';
 import { FeedList, FollowList, StatusList } from './GlacierFeedView';
 import { readFavs, writeFavs, toggleFav, readLast, writeLast, newSinceLastVisit } from './glacierFollow';
 import type { GlacierFeedEvent } from './glacierFeedContract';
@@ -276,7 +276,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     <aside className="gl-readout" aria-label="Gletscher der Auswahl">
       <div className="gl-readout-head"><h2>Gletscher</h2><p>Alle Gletscher der Auswahl, jeder Wert mit Herkunft</p></div>
       <div className="gl-readout-scroll">
-        {sel && <SelectedGlacier g={sel} latest={d?.summary?.latest[sel.id]} sat={sat.get(sel.id)} nowMs={nowMs} defs={defs} />}
         {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} />}
         {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
       </div>
@@ -365,7 +364,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
                   <li key={r.g.id}><button type="button" onClick={() => pick(r.g.id)}><span className="gl-r-n">{i + 1}</span><span className="gl-r-body"><b>{displayName(r.g)}</b><span>{r.g.country} · {fmtKm2(r.g.area.km2)} · {r.value.period}</span></span><span className="gl-r-v" data-origin={def.origin}>{r.value.text}</span></button></li>
                 ))}</ul>
               )}
-              {sel && <SelectedGlacier g={sel} latest={d?.summary?.latest[sel.id]} sat={sat.get(sel.id)} nowMs={nowMs} defs={defs} />}
               {chart}
               {lists}
               {d && <ReportList items={d.official} />}

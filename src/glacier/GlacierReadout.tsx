@@ -1,13 +1,11 @@
 /**
  * GL-1 — Readout of the situation page: the newest OFFICIAL numbers per country with date, source and the authority's key
- * sentence VERBATIM (plan §6 `official.json`), the inventory facts with their reference year, the selected glacier, the list of
+ * sentence VERBATIM (plan §6 `official.json`), the inventory facts with their reference year, the list of
  * official reports, the usual reporting rhythm. Nothing here is modelled; the model lines (melt, snow line) stay locked.
  */
-import { Valued, OriginChip, LockNote } from './GlacierParts';
-import { fmtKm2, fmt0, fmt1, fmtRefYear, displayName, metricValue, satLines, type GlacierMetricDef } from './glacierView';
-import type { GlacierMetric } from './glacierState';
-import { GLACIER_COUNTRY_LABEL, GLACIER_REGIONS, type GlacierCatalogEntry, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
-import type { GlacierLatest, GlacierSatLatest } from './glacierClient';
+import { OriginChip } from './GlacierParts';
+import { fmt0, fmt1, fmtRefYear } from './glacierView';
+import { GLACIER_COUNTRY_LABEL, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
 
 const dateDe = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 const val = (items: readonly GlacierOfficialItem[], id: string, key: string) => items.find((i) => i.id === id)?.values?.find((v) => v.key === key)?.value ?? null;
@@ -106,21 +104,3 @@ export function Rhythm() {
   );
 }
 
-export function SelectedGlacier({ g, latest, sat, nowMs, defs }: { g: GlacierCatalogEntry; latest: GlacierLatest | undefined; sat: GlacierSatLatest | undefined; nowMs: number; defs: Readonly<Record<GlacierMetric, GlacierMetricDef>> }) {
-  const len = metricValue('laenge', latest, g), ba = metricValue('bilanz', latest, g), da = metricValue('flaeche', latest, g);
-  const reg = GLACIER_REGIONS[g.region]?.label ?? g.region;
-  return (
-    <article className="gl-card" data-glacier={g.id} aria-label={`Gletscher ${displayName(g)}`}>
-      <div className="gl-card-head"><b>{displayName(g)}</b><span className="gl-chip is-official"><i aria-hidden="true" />Klasse {g.klass}</span></div>
-      <p>{g.country} · {reg} · {fmtKm2(g.area.km2)} <OriginChip origin="official" label={`Inventar ${fmtRefYear(g.area.refYear)}`} /></p>
-      <p>Höhe {fmt0(g.z[0])}–{fmt0(g.z[2])} m (Median {fmt0(g.z[1])} m) · {g.zSource}{g.debris != null && g.debris >= 2 ? ' · überwiegend schuttbedeckt' : ''}</p>
-      {len.v != null && <p>Länge {len.period}: <Valued origin="measured">{len.text}</Valued></p>}
-      {ba.v != null && <p>Bilanz {ba.period}: <Valued origin="measured">{ba.text}</Valued></p>}
-      {da.v != null && <p>Fläche {da.period}: <Valued origin="official">{da.text} je 10 Jahre</Valued></p>}
-      {len.v == null && ba.v == null && da.v == null && <p>Keine Messreihe zugeordnet — nur Inventar.</p>}
-      {satLines(g, sat, nowMs).map((l, i) => <p key={i}>{l.origin ? <><OriginChip origin={l.origin} /> {l.text}</> : l.text}</p>)}
-      {defs.schmelze.locked && <p><LockNote>{defs.schmelze.label}: {defs.schmelze.locked}</LockNote></p>}
-      {g.status && <p>Status laut Behörde: {g.status}</p>}
-    </article>
-  );
-}
