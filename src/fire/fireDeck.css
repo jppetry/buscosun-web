@@ -992,6 +992,45 @@
 .br-ds-tab.is-active .br-ds-tab-n { background: var(--cream-50, #FAF6EA); color: var(--ink-900, #2C2A26); border-color: var(--cream-50, #FAF6EA); }
 @media (max-width: 1439px) { .br-ds-tabs { top: -10px; } }
 @media (max-width: 767px) { .br-ds-tabs { padding: 4px; gap: 4px; } .br-ds-tab { padding: 6px 6px; min-height: 44px; gap: 6px; } .br-ds-tab-h { display: none; } .br-ds-tab-t { font-size: 14px; } .br-ds-tab-n { width: 20px; height: 20px; font-size: 12px; } }
+/* --- Dossier in the concept of the map info card (Jans Auftrag 2026-10-23) ---
+   Glass cards with a soft shadow, an accent glow in the head (`--br-row-acc`, status colour
+   of the fire), key figures as lifted tiles, the chapter tabs as a frosted bar with the red
+   gradient. Type sizes and layout stay as they are. */
+.br-ds .MuiCard-root, .br-ds .br-ds-card {
+  border-radius: 18px;
+  background: var(--br-glass-strong);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 14px 30px -18px rgba(44, 42, 38, 0.32);
+}
+.br-ds .br-ds-head {
+  --br-row-acc: var(--br-red);
+  background:
+    radial-gradient(70% 160px at 0% 0%, color-mix(in srgb, var(--br-row-acc) 15%, transparent), transparent 100%),
+    var(--br-glass-strong);
+}
+.br-ds .br-ds-head .MuiChip-root, .br-ds .br-ds-chips .fire-fp-src, .br-ds .br-ds-chips .fire-fp-assess { border-radius: 999px; background: rgba(255, 255, 255, 0.72); }
+.br-ds .br-ds-stat, .br-ds .br-fire-stats.is-wide .br-stat {
+  border-radius: 14px; background: rgba(255, 255, 255, 0.76);
+  border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 70%, transparent);
+  box-shadow: 0 8px 16px -14px rgba(44, 42, 38, 0.4);
+  transition: transform .15s, box-shadow .15s;
+}
+.br-ds .br-ds-stat:hover, .br-ds .br-fire-stats.is-wide .br-stat:hover { transform: translateY(-1px); box-shadow: 0 12px 22px -14px rgba(44, 42, 38, 0.45); }
+.br-ds-tabs {
+  border-radius: 15px; background: rgba(250, 246, 234, 0.86);
+  backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 -14px 0 0 var(--sand-50, #F5F1E8), 0 12px 24px -18px rgba(44, 42, 38, 0.4);
+}
+.br-ds-tab { border-radius: 11px; }
+.br-ds-tab.is-active {
+  background: linear-gradient(135deg, var(--br-red), color-mix(in srgb, var(--br-red) 70%, var(--ink-900, #2C2A26)));
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--br-red) 70%, transparent);
+}
+.br-ds-tab.is-active .br-ds-tab-n { color: var(--br-red); }
+@media (prefers-reduced-motion: reduce) {
+  .br-ds .br-ds-stat, .br-ds .br-fire-stats.is-wide .br-stat { transition: none; }
+  .br-ds .br-ds-stat:hover, .br-ds .br-fire-stats.is-wide .br-stat:hover { transform: none; }
+}
 .br-sat-label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 8px; font-family: 'League Spartan', system-ui, sans-serif; font-size: 14px; color: var(--stone-600, #5C5447); }
 .br-sat-label strong { padding: 3px 11px; border-radius: 999px; background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 .br-sat-label span { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--sand-200, #E0D6BE); background: #FDFBF4; }

@@ -162,6 +162,7 @@ export function StatTile({ label, value, caption, tone, dotColor, reason }: Stat
   const bp = useDossierBreakpoint();
   const tile = (
     <Box
+      className="br-ds-stat"
       sx={{
         display: 'flex', flexDirection: 'column', minWidth: 0,
         bgcolor: 'fire.tile', border: '1px solid', borderColor: 'divider', borderRadius: '12px',

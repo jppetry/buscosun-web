@@ -34,8 +34,8 @@ import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import type { FireRecord } from './footprint/fireRegistry';
-import { METHOD_LABEL, provisionalArea } from './footprint/fireRegistry';
-import { extentLabel } from './fireClusters';
+import { METHOD_LABEL, STATUS_COLOR, provisionalArea } from './footprint/fireRegistry';
+import { STATIC_GREY, extentLabel } from './fireClusters';
 import { LEVEL_LABEL } from './fireAssessment';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
 import type { FirmsRow } from './sources/firmsHotspots';
@@ -128,7 +128,7 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
 
         {chapter === 1 && (
           <>
-        <Card component="header" className="br-ds-head">
+        <Card component="header" className="br-ds-head" style={{ ['--br-row-acc' as string]: r.suspectedStatic ? STATIC_GREY : STATUS_COLOR[r.status.kind] }}>
           <CardContent>
             {/* Mobil trägt die App-Leiste Titel, Abzeichen und Region — hier wären sie doppelt. */}
             {!mobile && (
