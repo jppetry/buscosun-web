@@ -300,17 +300,21 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   );
   const topbar = (
     <header className="gl-topbar">
-      <div className="gl-title"><b>Gletscher</b><span>DACH · rund {fmt0(glaciers.length || 2199)} Gletscher im Atlas</span></div>
+      <a className="gl-brand" href="/" onClick={(e) => { e.preventDefault(); nav.goHome(); }} aria-label="Zur Startseite">
+        <img src="/buscosun-mark.svg" width={isMobile ? 22 : 24} height={isMobile ? 22 : 24} alt="" /><span>buscosun</span>
+      </a>
+      <span className="gl-topdiv" aria-hidden="true" />
+      <div className="gl-title"><b>Gletscher DACH</b><span>rund {fmt0(glaciers.length || 2199)} Gletscher im Atlas</span></div>
       {!isMobile && (
         <div className="gl-seg2 gl-stage-seg" role="group" aria-label="Bühne der Mitte">
           <button type="button" aria-pressed={stage === 'map'} onClick={() => setStage('map')}>Karte</button>
           <button type="button" aria-pressed={stage === 'dossier'} onClick={() => setStage('dossier')}>Dossier</button>
         </div>
       )}
-      {!isMobile && stand}
       <div className="gl-grow" />
+      {!isMobile && stand}
       {!isMobile && <span className="gl-season">{season.label}</span>}
-      <ShareButton className="gl-btn" text={isMobile ? undefined : 'Teilen'} compact={isMobile} />
+      <ShareButton className="gl-share" text={isMobile ? undefined : 'Teilen'} compact={isMobile} />
     </header>
   );
   const rail = (
