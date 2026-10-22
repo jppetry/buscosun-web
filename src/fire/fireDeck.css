@@ -992,6 +992,37 @@
 .br-ds-tab.is-active .br-ds-tab-n { background: var(--cream-50, #FAF6EA); color: var(--ink-900, #2C2A26); border-color: var(--cream-50, #FAF6EA); }
 @media (max-width: 1439px) { .br-ds-tabs { top: -10px; } }
 @media (max-width: 767px) { .br-ds-tabs { padding: 4px; gap: 4px; } .br-ds-tab { padding: 6px 6px; min-height: 44px; gap: 6px; } .br-ds-tab-h { display: none; } .br-ds-tab-t { font-size: 14px; } .br-ds-tab-n { width: 20px; height: 20px; font-size: 12px; } }
+/* --- Left dock, subtly in the concept of the map info card (Jans Auftrag 2026-10-23) ---
+   Same surfaces as the right sidebar, toned down: glass layer rows with a faint shadow,
+   the accent of the group as a soft glow when a layer is on, icons in a tinted square,
+   pill chips. Scoped to `.br-dock`; blocked layers and type sizes stay as they are. */
+.br-dock { background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, var(--sand-50, #F5F1E8) 100%); }
+.br-dock .br-layer:not(.is-blocked), .br-dock .br-layerwrap.has-seg {
+  border-radius: 12px; background: rgba(255, 255, 255, 0.74);
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 14px -12px rgba(44, 42, 38, 0.3);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.br-dock .br-layerwrap.has-seg > .br-layer:not(.is-blocked) { background: transparent; box-shadow: none; border-radius: 0; }
+.br-dock .br-layer:not(.is-blocked):hover { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 10px 18px -12px rgba(44, 42, 38, 0.36); }
+.br-dock .br-layer.is-on:not(.is-blocked) {
+  background:
+    radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--br-acc) 10%, transparent), transparent 100%),
+    rgba(255, 255, 255, 0.86);
+  border-color: color-mix(in srgb, var(--br-acc) 55%, transparent);
+}
+.br-dock .br-layerwrap.has-seg:has(> .br-layer.is-on) { border-color: color-mix(in srgb, var(--br-acc) 55%, transparent); }
+.br-dock .br-layer-ic {
+  width: 28px; aspect-ratio: 1; align-items: center; justify-content: center; border-radius: 9px;
+  background: color-mix(in srgb, var(--br-acc) 11%, var(--cream-50, #FAF6EA));
+}
+.br-dock .br-layer.is-off .br-layer-ic { background: var(--sand-50, #F5F1E8); }
+.br-dock .br-layer.is-on .br-switch { background: linear-gradient(135deg, var(--br-acc), color-mix(in srgb, var(--br-acc) 75%, var(--ink-900, #2C2A26))); }
+.br-dock .br-switch-knob { box-shadow: 0 1px 2px rgba(44, 42, 38, 0.25); }
+.br-dock .br-views button { border-radius: 999px; background: rgba(255, 255, 255, 0.78); }
+.br-dock .br-views button.is-active { background: color-mix(in srgb, var(--br-red) 8%, #fff); }
+.br-dock .br-card { border-radius: 12px; box-shadow: 0 6px 14px -12px rgba(44, 42, 38, 0.3); }
+@media (prefers-reduced-motion: reduce) { .br-dock .br-layer, .br-dock .br-layerwrap.has-seg { transition: none; } }
 /* --- Dossier in the concept of the map info card (Jans Auftrag 2026-10-23) ---
    Glass cards with a soft shadow, an accent glow in the head (`--br-row-acc`, status colour
    of the fire), key figures as lifted tiles, the chapter tabs as a frosted bar with the red
