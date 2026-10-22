@@ -17,7 +17,7 @@ import {
   glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
   type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
-import { GLACIER_COUNTRIES, GLACIER_SAT_MAX_AGE_DAYS, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
+import { GLACIER_COUNTRIES, GLACIER_REGIONS, GLACIER_SAT_MAX_AGE_DAYS, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
 import {
   GLACIER_RAMPS, defsFor, displayName, fmt0, fmtKm2, fmtRefYear, inLand, matchesQuery, metricValue, officialStandLabel, rankGlaciers, satAgeDays, seasonStatus,
 } from './glacierView';
@@ -27,6 +27,7 @@ import {
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierDock from './GlacierDock';
 import GlacierList from './GlacierList';
+import GlacierFilters, { NO_FILTER, passesFilter, type GlacierFilter } from './GlacierFilters';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import GlacierLageChart, { type ChartKind } from './GlacierLageChart';
 import { CountryCards, ReportList, Rhythm, type CountryFacts } from './GlacierReadout';
@@ -63,6 +64,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [land, setLand] = useState<GlacierLand>(initial.land);
   const [metric, setMetric] = useState<GlacierMetric>(initial.m);
   const [query, setQuery] = useState(initial.q);
+  const [filter, setFilter] = useState<GlacierFilter>(NO_FILTER);
+  // a region of another country makes no sense after a country switch
+  useEffect(() => { setFilter((f) => (f.region && land !== 'alle' && GLACIER_REGIONS[f.region]?.country.toLowerCase() !== land ? { ...f, region: '' } : f)); }, [land]);
   const [selSeg, setSelSeg] = useState<string | null>(initial.glacier ?? initial.sel);
   const [chartKind, setChartKind] = useState<ChartKind>('ba');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -144,11 +148,11 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     const out: GlacierMapFeature[] = [];
     for (const [id, lat, lon, k, km2] of d.points.rows) {
       const g = d.cat.byId.get(id);
-      if (!g || !inLand(g, land) || !matchesQuery(g, query)) continue;
+      if (!g || !inLand(g, land) || !matchesQuery(g, query) || !passesFilter(g, filter, d.summary?.latest[id])) continue;
       out.push({ id, lon, lat, km2, k, b: values.get(id)?.bucket ?? -1, name: g.name });
     }
     return out;
-  }, [d, land, query, values]);
+  }, [d, land, query, values, filter]);
 
   const regionBoxes = useMemo<RegionBoxes>(() => {
     const r: RegionBoxes = {};
@@ -160,15 +164,16 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     return r;
   }, [glaciers]);
 
-  const rows = useMemo(() => rankGlaciers(glaciers, d?.summary ?? null, metric, land, query, isMobile ? 6 : 8, satCtx), [glaciers, d, metric, land, query, isMobile, satCtx]);
-  const allRanked = useMemo(() => (isMobile ? [] : rankGlaciers(glaciers, d?.summary ?? null, metric, land, query, Infinity, satCtx)), [isMobile, glaciers, d, metric, land, query, satCtx]);
+  const pass = useCallback((g: (typeof glaciers)[number]) => passesFilter(g, filter, d?.summary?.latest[g.id]), [filter, d]);
+  const rows = useMemo(() => rankGlaciers(glaciers.filter(pass), d?.summary ?? null, metric, land, query, isMobile ? 6 : 8, satCtx), [glaciers, pass, d, metric, land, query, isMobile, satCtx]);
+  const allRanked = useMemo(() => (isMobile ? [] : rankGlaciers(glaciers.filter(pass), d?.summary ?? null, metric, land, query, Infinity, satCtx)), [isMobile, glaciers, pass, d, metric, land, query, satCtx]);
   const allRest = useMemo(() => {
     if (isMobile) return [];
     const inRank = new Set(allRanked.map((r) => r.g.id));
-    return glaciers.filter((g) => !inRank.has(g.id) && inLand(g, land) && matchesQuery(g, query))
+    return glaciers.filter((g) => !inRank.has(g.id) && inLand(g, land) && matchesQuery(g, query) && pass(g))
       .sort((a, b) => b.area.km2 - a.area.km2 || (a.id < b.id ? -1 : 1))
       .map((g) => ({ g, value: values.get(g.id) }));
-  }, [isMobile, allRanked, glaciers, land, query, values]);
+  }, [isMobile, allRanked, glaciers, land, query, values, pass]);
   const facts = useMemo<Record<GlacierCountry, CountryFacts>>(() => {
     const out = {} as Record<GlacierCountry, CountryFacts>;
     for (const c of GLACIER_COUNTRIES) {
@@ -286,6 +291,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     <aside className="gl-readout" aria-label="Gletscher der Auswahl">
       <div className="gl-readout-head"><h2>Gletscher</h2><p>Alle Gletscher der Auswahl, jeder Wert mit Herkunft</p></div>
       <div className="gl-readout-scroll">
+        {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
         {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} />}
         {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
       </div>
