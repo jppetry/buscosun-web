@@ -882,3 +882,143 @@ Anker im Nahbereich 0–48 h.
 
 **Was 12v nicht kann:** die Winter-Lücke der σ-Skala schließen (das ist Weg a, ab Dezember aus der Hindcast-Kette) und die geerbte
 Über-Abdeckung bei Wind 6–24 h / Böe 24–48 h beheben (das tat nur die Skala).
+
+## 15 OF-8 — Kandidat `fusion-12w`: Kurzfrist-Skala aus der Tag-0-Reihe aller Jahreszeiten (22.10., Jans Auftrag „bauen wir einen neuen Kandidaten und testen ihn gegen den Champion … nutze dafür diese neuen Datenmöglichkeiten")
+
+### 15.1 Auftrag und Datenlage
+
+Jan hat am 22.10. die Tabelle der ungenutzten Daten (Antwort zu §14: Tag-0-Slots außerhalb des Tresors · Nachholkette · Archiv der
+echten Kette · Fremdquellen) bestätigt und den Bau eines neuen Kandidaten mit Prüfstandlauf gegen den Champion beauftragt; dazu
+„alle Freiheiten in buscosun-data, Archiv oder Hindcast". Von den vier Zeilen ist heute nur die erste belastbar: die Tag-0-Reihe des
+Hindcasts außerhalb des Tresors. Die Nachholkette hat ihren Winter erst 26/27, das Archiv der echten Kette ab Dezember, die
+Fremdquellen aus dem Vorschlag sind unverifiziert — sie bleiben draußen. Die 232 Herbst-Slots der Nachholkette (22.09.–20.10.)
+liegen in der Entwicklungsmenge; ein Fit darauf machte den heutigen Volltest in-sample. Sie bleiben für diesen Kandidaten ebenfalls
+draußen (Option für einen späteren Kandidaten nach dem Spur-P-Urteil, nicht vorher).
+
+Bestand der Tag-0-Reihe (gezählt 22.10., `slots\`): 2023-05-25 … 2024-03-24 nur 00 UTC (305 Slots; Wahrheit W1 ab 2023-06-01 ⇒
+298 nutzbar; Modelle ICON-D2 + ICON-EU, IFS erst ab 25.01.2024, keine Stufe 2/3), 2025-09-08 … 2026-06-16 vier Slots je Tag, aber
+**Stufe 1 (Tag 0) nur im 00-UTC-Slot** — die 06/12/18-UTC-Slots tragen allein die dyn-Route t2/t3 (V-OF-23; Sonde `probe-of8.mjs`
+22.10.: `2026-01-15/1200` hat kein `cube.t1`). Nutzbar also 282 + 298 = 580 Tag-0-Slots, alle 00 UTC, Vorlauf 1–2 h, zwei Winter
+(23/24, 25/26), zwei Herbste, ein Frühjahr, ein Sommer (JJA 2023 ganz, Juni 2026 halb). Das ist genau der Datentyp der Spur R
+(Tresor = 00-UTC-Tag-0-Slots, Fenster 0–6 h = Vorlauf 1–2 h), nur in anderen Jahren.
+
+### 15.2 Diagnose (aus vorhandenen Zahlen, §13.2 und `berichte/fusion-12t/2026-10-21-abnahme/scores.json`; keine neuen Läufe)
+
+Abdeckung q10–q90 des Champions Fusion 9 im Fenster 0–6 h, nach Regime:
+
+| Größe | Spur R (Tag 0, 1–2 h, ohne Station/Messung, 70 Tage 2024/25) | Entwicklungsmenge Rolle A (echte Kette, eigene Station + Messung) | Entwicklungsmenge Rolle B (fremde Station) | Spur P gepoolt (4 reife Tage) |
+|---|---|---|---|---|
+| T | **90,4 %** (viel zu breit) | 81–85 % | DE 81, AT 75, CH 76 % | 78,7 % |
+| Td | 76,8 % | 88–94 % | 66–81 % | 74,8 % |
+| Wind | **76,9 %** (zu schmal; Band 78,3–81,7) | **85 %** (zu breit) | DE 82, **AT 72, CH 75 %** (zu schmal) | 81,7 % |
+| Böe | **83,5 %** (zu breit) | 85–86 % | 86–88 % | 85,9 % |
+
+Lesart: (1) **T und Td** sind im Produkt an Stationswert und Anker gekoppelt (12v misst genau diese Kopplung); die 90 % der Spur R
+sind ein Artefakt der Kette OHNE lokale Information und existieren im Produkt nicht. Eine Skala auf T/Td, die „zuletzt" auf das
+gekoppelte σ wirkt, zählt doppelt (12r: T 0–6 h zu schmal). ⇒ T/Td 0–6 h bleiben 1, wie in 12t. (2) **Böe** ist in jedem Regime zu
+breit (83–88 %); ein Faktor < 1 ist regimeunabhängig richtig, nur seine Größe je Land ist offen (Spur R: DE 87, AT 83, CH 79 %).
+(3) **Wind** ist ohne lokale Information zu schmal (Spur R 76,9 %, Rolle B AT/CH 72–75 %) und mit lokaler Information zu breit
+(Rolle A 85 %). Eine Zahl je Fenster kann nicht beiden dienen; gepoolt liegt die echte Kette bei ≈ 82–83 %, Spur R bei 77 %.
+12t trug den Sommerknoten 0,84–0,90 aus Vorlauf 1–6 h gepoolt — auf der Tag-0-Reihe (1–2 h, alle Jahreszeiten) war das zu eng.
+
+Zwei messbare Erklärungen für den Abstand Sommer-Lauf (0,9) ↔ Tag-0-Tresor (> 1): **Vorlaufstruktur** — die ersten zwei Stunden
+sind der steilste Teil der σ-Kurve, ein Knoten bei 3,5 h aus 1–6 h gepoolt verfehlt sie; und **Jahreszeit** — Sommer gegen
+Winter. Beides ist am Hindcast außerhalb des Tresors messbar: Fenster A (echte Läufe Sommer 2026) nach Vorlauf 1 … 6 aufgelöst,
+Fenster C (Tag 0, 00 UTC) nach Jahreszeit. Was NICHT messbar ist: der Anteil des Datentyps (Tag-0-Reihe ≠ echter Lauf) — dafür gibt
+es nur den Vergleich Tag-0 JJA 2023/26 gegen Lauf JJA 2026 bei 1–2 h, 00 UTC, der als Befund berichtet wird.
+
+### 15.3 Form im Motor (eine Tabelle, eine Optionsstufe; sonst nichts)
+
+`SIGMA_SCALE_TABLE_W` in `fusion/sigmaScale.ts`: wie die bisherigen Tabellen, aber mit **sieben Knoten** `centresH = [1,5 · 4,5 ·
+15,5 · 36,5 · 84,5 · 180,5 · 288,5]` — das Fenster 0–6 h bekommt zwei Knoten (Vorlauf 1–2 h, 3–6 h), alle übrigen bleiben 1. Nur
+`ws` und `gust` werden skaliert, `t`/`td` sind überall 1. Knoten je Land (`byCountry` DE/AT/CH, V-OF-16; der Motor nimmt sie seit
+OF-7 für Punkte im Land, sonst `nodes`). `sigmaScaleAt` ist über die Länge von `centresH` generisch (keine Änderung), der Motor
+bekommt nur die Stufe `sigmaScale: 5` (Tabellenwahl). Die Knoten 6–48 h der Sommertabelle (12t/12u) kommen NICHT mit: der Hebel von
+12w ist allein die Kurzfrist-Skala aus der Tag-0-Reihe; die Spur P von 12t hat für die Sommerknoten 6–48 h keinen Nutzen gezeigt
+(+0,25 % statt ≥ 1,3 %), und Spur R kann sie nicht prüfen (Fenster leer).
+
+### 15.4 Messung (`scripts/obsfusion/of8.mjs`, nur lesend; Rohdaten `audit/obs-fusion/of8/part-*.json`, Fit `of8-fit.json`)
+
+- **Fenster A** (echte Läufe): Route `run` 2026-06-18 … 2026-09-13, jeder 2. Tag, 00 + 12 UTC (wie of7); Kette ohne Anker (der
+  Hindcast trägt keine Messungen), Fenster 8 h (Sonde 22.10.: bei Vorlauf 1–6 h byte-gleich zum 336-h-Fenster, 4 statt 46 ms je
+  Punkt); Zeilen je Größe × Vorlauf 1 … 6 × Land × Rolle × Stunde.
+- **Fenster C** (Tag 0): 00-UTC-Slots 2023-06-01 … 2024-03-24 (C1) und 2025-09-08 … 2026-06-16 (C2), jeder Tag; Aufruf exakt wie
+  `predictHindcast` für Tag-0-Slots (nur `t1`, Fenster 2 h); Zeilen je Größe × Vorlauf 1–2 × Land × Rolle × Saison-Jahr
+  (DJF nach dem Dezemberjahr). Dazu die K-Satz-Statistik (V-OF-15) bei τ = 1, 2 getrennt nach DJF und Rest — **nur Diagnose**
+  (die K-Satz-Tabelle hat keine τ-Achse; ein Winter-Nachfit wäre ein eigener Kandidat).
+- Jeder Slot-Tag wird gegen Tresor (`tresor.json`) und Entwicklungsmenge (ab 2026-09-14) geprüft und bricht bei Verstoß ab.
+- Register für die Kette: `fusion-12v` (Optionen des Kandidaten ohne Skala; Tabellen `0714300fe2a5`/`9d22ff35986f`/…).
+
+### 15.5 Regel vor den Zahlen (eingefroren 22.10., bevor `--fit` gelesen und der Prüfstand gestartet wird)
+
+1. **Knoten aus Fenster A** (Sommer, echte Läufe), je Größe (`ws`, `gust`) und Land (DE/AT/CH, dazu gepoolt): zwei Knoten gemeinsam
+   gefittet (Knoten 1,5 h auf den Zeilen Vorlauf 1–2, Knoten 4,5 h auf Vorlauf 3–6; linear dazwischen, flach außen; drei Durchläufe
+   Bisektion auf 80 % Abdeckung, wie of7). Ein Fit-Satz braucht ≥ 2 000 Zeilen, sonst gilt der gepoolte Wert.
+2. **Saisonfaktor aus Fenster C** (Tag 0, 00 UTC), je Größe und Land: R = N_C(alle Jahreszeiten C1 + C2) / N_C(JJA 2023 + Juni 2026),
+   mit N_C = der konstante Faktor, der die Zeilen Vorlauf 1–2 auf 80 % Abdeckung bringt. Der Quotient misst, wie viel breiter die
+   Kette im Jahresmittel sein muss als im Sommer — bei gleicher Stunde (00 UTC) und gleichem Datentyp, sodass Tageszeit und
+   Datentyp im Verhältnis herausfallen. Unter 2 000 Zeilen im JJA-Satz eines Landes gilt das gepoolte R.
+3. **Kandidatenknoten:** Knoten 1,5 h = clamp(n₁(A) · R), Knoten 4,5 h = clamp(n₂(A) · R), clamp auf [0,6; 1,6]; die Jahresskala
+   gilt für beide Kurzfristknoten (das einzige saisonale Zeugnis ≤ 6 h ist die Tag-0-Reihe). T/Td: 1. Knoten ≥ 15,5 h: 1.
+4. **Berichtet, nicht benutzt:** die direkt gefitteten Tag-0-Knoten N_C je Saison-Jahr, je Land und je Jahr (23/24 gegen 25/26);
+   die T/Td-Knoten beider Fenster; der Regime-Vergleich N_C(JJA, 00 UTC) gegen n₁(A, nur 00 UTC); der Tag/Nacht-Vergleich n₁(A, 00 UTC)
+   gegen n₁(A, 12 UTC); CRPS vor/nach auf beiden Fenstern; die K-Satz-Klassen DJF gegen Rest.
+5. **Kandidat `fusion-12w`** = Register `fusion-12v` + `sigmaScale: 5`, Motor-Commit dieses Schritts, Tabellen und Fit-Fenster von
+   12v plus die drei neuen Fit-Fenster (A, C1, C2; alle außerhalb des Tresors ⇒ `contaminated: false`), **Freeze 2026-10-22**
+   (Registrierungstag, wie 12v — beide teilen das Spur-P-Fenster ab 23.10.), Order 12,8, Status `kandidat`.
+6. **Bewertung:** heute `--modus=voll` (Entwicklungsmenge 14.09.–21.10.: Diagnose + Rangfolge gegen alle Stände, kein Urteil — die
+   Tage haben die Entwicklung gesehen, die Fit-Fenster liegen davor). Urteil nur mit `--modus=abnahme` ab ≈ 03.11. (≥ 4 reife
+   Spur-P-Tage; dann auch 12v und die Wiederholung von 12t/12u). Spur R vorher nur auf Jans Wort (`vergleich … tresor`). Keine
+   Nachstellung an Spur-P- oder Spur-R-Zahlen; bei rot werden die Zellen benannt. Hypothese H-OF-5d in `claims-addendum-5.md`,
+   Hash in `claims-frozen.sha256`, geschrieben vor dem Prüfstandlauf.
+
+### 15.6 Fit-Ergebnis (`of8-fit.json`, 22.10. 18:21 UTC; A 88 Slots / 759 k Zeilen, C 580 Slots / 1,66 M Zeilen, 0 Fehler; Logs `laeufe/10-of8-*.log`) und Regeländerung VOR dem Prüfstandlauf
+
+Knoten auf 80 % Abdeckung, Kette ohne Anker (Fenster A gepoolt über DE/AT/CH und beide Rollen; „vorher" = Abdeckung bei Faktor 1):
+
+| Größe | A: Knoten 1,5 h / 4,5 h (vorher) | A nur 00 UTC / nur 12 UTC (Vorlauf 1–2) | C alle Jahreszeiten (vorher) | C JJA | R | C je Saison DJF / MAM / SON | C 23/24 / 25/26 |
+|---|---|---|---|---|---|---|---|
+| T | 0,742 / 0,802 (89,7 / 88,0 %) | 0,767 / 0,727 | 0,769 (88,6 %) | 0,72 | 1,07 | 0,80 / 0,79 / 0,76 | 0,76 / 0,78 |
+| Td | 0,924 / 0,919 (83,1 / 83,3 %) | 0,908 / 0,938 | 1,114 (75,4 %) | 0,923 | 1,21 | 1,22 / 1,29 / 0,99 | 1,07 / 1,16 |
+| Wind | 0,896 / 0,887 (83,1 / 83,2 %) | **1,075 / 0,77** | 1,176 (75,7 %) | 1,067 | 1,10 | 1,26 / 1,16 / 1,17 | 1,17 / 1,18 |
+| Böe | 0,891 / 0,885 (84,5 / 84,6 %) | 0,874 / 0,906 | 0,963 (81,5 %) | 0,921 | 1,05 | 1,04 / 0,88 / 0,97 | 1,00 / 0,92 |
+
+Je Land, Wind: DE A 0,859/0,818, C alle 1,057, JJA 0,963 (R 1,10); AT A 0,962/1,005, C **am Deckel 1,6** in jeder Jahreszeit (R
+damit 1); CH A 0,94/0,996, C alle 1,6 (Deckel), JJA 1,433 (R 1,12). Böe: DE A 0,841/0,862, C alle 0,912, JJA 0,861 (R 1,06); AT A
+0,928/0,874, C 0,95 / 0,919 (R 1,03); CH A 0,95/0,93, C 1,07 / 1,033 (R 1,04). Regelknoten nach §15.5 Punkt 3 — Wind: gepoolt
+0,987/0,977, DE 0,943/0,898, AT 0,962/1,005, CH 1,05/1,113; Böe: gepoolt 0,932/0,926, DE 0,891/0,913, AT 0,96/0,904, CH 0,984/0,963.
+Abdeckung mit den Regelknoten auf C (Tag 0, alle Jahreszeiten): Wind 75,3 % (DE 75,5, AT 72,4, CH 75,0; DJF 73,1), CRPS DE −0,9 %,
+CH −0,7 %, AT +0,3 %; Böe 78,6 % (DE 79,1, AT 80,2, CH 76,4; DJF 75,6), CRPS ±0,1 %; auf A Wind 82,7 %, Böe 81,8 %.
+
+**V-OF-24 — die Kurzfrist-Kalibrierung des Windes ist eine Tageszeit-, keine Vorlauffrage.** Bei Vorlauf 1–2 h wollen die echten
+Sommerläufe bei 00 UTC den Faktor 1,075 (zu schmal), bei 12 UTC 0,77 (zu breit); gepoolt 0,896. Die Tag-0-Reihe bei 00 UTC (JJA
+1,067) stimmt mit den echten Läufen derselben Stunde (1,075) überein — der Datentyp ist also nicht der Grund, warum 12t auf Spur R
+versagte, sondern die Stunde: **Spur R ist 00 UTC** (Tag-0-Slots), und das Archiv liefert EINEN Slot je Tag um 23:22 UTC, also
+Vorlauf 1–6 h = 00–05 UTC — Spur P und Entwicklungsmenge sehen das Fenster 0–6 h ebenfalls nur nachts; 12t trug den
+Tag/Nacht-Mittelwert in die Nacht. Der Winter legt bei Nacht noch einmal 18 % drauf (DJF 1,256 gegen JJA 1,067). Eine Skala je
+Vorlauf kann das nicht tragen; der richtige Hebel ist eine Achse Tagesstunde (oder Stabilität) in der Skala — messbar aus den acht
+Slots je Tag der Lauf-Route (17.06.–13.09.) und der Nachholkette, aber eine neue Form und damit ein eigener Kandidat. Für T zeigt
+sich dasselbe Bild schwächer (0,767 gegen 0,727), für Böe fast nicht (0,874 gegen 0,906).
+
+**V-OF-25 — Wind in AT und CH ohne lokale Information ist jenseits des Deckels zu schmal.** Die Tag-0-Reihe erreicht in AT in keiner
+Jahreszeit 80 % Abdeckung, selbst bei Faktor 1,6 nicht (DJF, MAM, JJA, SON alle am Deckel); CH im Winter ebenso. Das deckt sich mit
+Spur R (AT Rolle A 72 %, CH 74 %) und mit der Rolle B der echten Kette (AT 72, CH 75 %). Eine multiplikative Skala ist dort das
+falsche Werkzeug; die Form des Windfehlers in Gebirgsländern (Rice/zensiert, Mindest-σ, Bodenrauigkeit) wäre zu prüfen — Befund, kein
+Plan.
+
+**Regeländerung (vor jedem Prüfstandlauf, 22.10. 18:30 UTC):** Die Windknoten bleiben 1. Begründung: der Regelknoten für Wind
+verfehlt das eigene Ziel der Regel auf ihren eigenen Fit-Daten (Abdeckung auf C 75,3 % statt 80 %, CRPS in DE −0,9 %), weil die
+Prämisse der Regel — Tageszeit fällt im Verhältnis R heraus — zwar für R gilt, nicht aber für den Basisknoten n(A), der Tag und
+Nacht mittelt, während Prüfstand (00 UTC bzw. ein Archiv-Slot je Tag) und Produkt (jede Stunde) Verschiedenes sehen. Ein nachts
+gefitteter Windknoten > 1 wäre für das Produkt am Tag falsch (12 UTC: 0,77) und nur für die blinde Stelle des Prüfstands richtig —
+das wird nicht gebaut. Die Böe erfüllt die Prämissen (Tag/Nacht 0,874/0,906, Regime JJA 0,921 gegen 0,874, Abdeckung mit Regelknoten
+auf C 78,6 %, auf A 81,8 %, CRPS neutral) und bleibt der einzige Hebel von 12w. Der Nachtrag 5 (`claims-addendum-5.md`) ist VOR der
+Hash-Bildung entsprechend geändert; das ist dieselbe Lage wie bei der ρ-Form von OF-7 (§11.2: Form an den Hindcast-Residuen geändert,
+vor jedem Prüfstandlauf). Erwartung ehrlich: ein kleiner Hebel — Spur R Böe 0–6 h von 83,5 % Richtung Band, Spur P Böe 0–6 h von 85,9 %
+Richtung Band, Zehntelprozente im Index.
+
+K-Satz auf der Tag-0-Reihe bei τ = 1 (Diagnose, nicht benutzt): T in DJF C 0,31 / 0,32 / 0,40 / 0,61 / 0,37 (f-Klassen 0,15 … 1)
+gegen Rest 0,24 / 0,26 / 0,30 / 0,45 / 0,35 — die Kopplung ist im Winter STÄRKER (ruhige Nächte, regional kohärente Fehler), die
+Sommertabelle von OF-7b (0,26 … 0,45) unterschätzt sie im Winter; Wind/Böe ähnlich (DJF C 0,25–0,45 / 0,22–0,62 gegen Rest
+0,22–0,48 / 0,20–0,58), die Klassen f ≥ 0,7 bleiben wie im Sommer leer oder negativ. Ein Winter-Nachfit der K-Satz-Tabelle ist damit
+belegt möglich (eigener Kandidat; 12v misst erst die Sommertabelle).

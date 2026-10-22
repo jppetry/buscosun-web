@@ -104,6 +104,35 @@ export const SIGMA_SCALE_TABLE_U: SigmaScaleTable = Object.freeze({
 });
 
 /**
+ * `FuseCubeOptions.sigmaScale: 5` — OF-8 (`audit/obs-fusion.md` §15, `scripts/obsfusion/of8.mjs`, `audit/obs-fusion/of8-fit.json`,
+ * 2026-10-22), the table of the candidate `fusion-12w`: SEVEN centres — the window 0–6 h gets two nodes (1,5 h for leads 1–2,
+ * 4,5 h for leads 3–6), everything from 15,5 h on is 1. Only the GUST is scaled, per country; wind, T and Td stay 1.
+ *   Gust node = n(A) · R: n(A) from 88 real stage-1 runs (2026-06-18 … 09-13, every 2nd day, 00 + 12 UTC, the chain without
+ *   anchor, 759 k rows) fitted jointly on 80 % coverage per lead group; R = the seasonal factor of the Tag-0 series at 00 UTC
+ *   outside the vault (580 slots 2023-06-01 … 2024-03-24 and 2025-09-08 … 2026-06-16, 1,66 M rows): node of all seasons / node
+ *   of JJA (pooled 0,963 / 0,921 = 1,046; DE 1,059, AT 1,034, CH 1,036). Gust is diurnally stable at 1–2 h (00 UTC 0,874, 12 UTC
+ *   0,906) and the Tag-0 series agrees with the real runs at the same hour (JJA 0,921 vs 0,874).
+ *   Wind stays 1 (V-OF-24, rule amended BEFORE the Prüfstand run, §15.6): its short-lead calibration is dominated by the hour of
+ *   the day — at 1–2 h the summer runs want 1,075 at 00 UTC and 0,77 at 12 UTC — so a factor per lead cannot carry it; the
+ *   pooled rule node (DE 0,943/0,898) narrowed the Tag-0 series further (coverage 75,5 %, CRPS −0,9 %). Winter factor for wind
+ *   at night: DJF 1,256 vs JJA 1,067 (reported for the hour-of-day form of a later candidate).
+ */
+export const SIGMA_SCALE_CENTRES_W_H: readonly number[] = Object.freeze([1.5, 4.5, 15.5, 36.5, 84.5, 180.5, 288.5]);
+const ONES_W = (): readonly number[] => Object.freeze(SIGMA_SCALE_CENTRES_W_H.map(() => 1));
+const gustW = (n1: number, n2: number): readonly number[] => Object.freeze([n1, n2, 1, 1, 1, 1, 1]);
+export const SIGMA_SCALE_TABLE_W: SigmaScaleTable = Object.freeze({
+  version: 1 as const,
+  provenance: { kind: 'hindcast' as const, note: 'OF-8 fit 2026-10-22 — gust nodes 1,5 h / 4,5 h per country = summer real-run nodes (hindcast 2026-06-18 … 09-13, 00 + 12 UTC) × seasonal factor of the Tag-0 series at 00 UTC outside the vault (2023-06-01 … 2024-03-24, 2025-09-08 … 2026-06-16); wind, T, Td and every node ≥ 15,5 h = 1 (sigmaScale: 5)', fitWindow: { from: '2023-06-01', to: '2026-09-13' }, slots: 668, rows: 2_424_084, date: '2026-10-22', nominal: 0.8 },
+  centresH: SIGMA_SCALE_CENTRES_W_H,
+  nodes: Object.freeze({ t: ONES_W(), td: ONES_W(), ws: ONES_W(), gust: gustW(0.932, 0.926) }),
+  byCountry: Object.freeze({
+    DE: Object.freeze({ t: ONES_W(), td: ONES_W(), ws: ONES_W(), gust: gustW(0.891, 0.913) }),
+    AT: Object.freeze({ t: ONES_W(), td: ONES_W(), ws: ONES_W(), gust: gustW(0.96, 0.904) }),
+    CH: Object.freeze({ t: ONES_W(), td: ONES_W(), ws: ONES_W(), gust: gustW(0.984, 0.963) }),
+  }),
+});
+
+/**
  * Scale at lead `leadH`: linear between the nodes, flat before the first and beyond the last centre. 1 when the table has no
  * node. With `country` and a `byCountry` entry for it, that country's nodes; otherwise the pooled nodes.
  */

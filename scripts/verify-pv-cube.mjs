@@ -738,6 +738,18 @@ function cubeSampleOfValues(r, i) {
     add('(12) OF-7 eingebaute Tabellen: Knoten endlich in [0,6; 1,6], Herkunft hindcast; LONG = dieselben Knoten > 48 h, 1 bei ≤ 48 h; `sigmaScale: 2` byte-gleich zu `sigmaScale: 1` mit LONG; mit LONG ist +0 h byte-gleich zur Basis',
       nodesOk(S.SIGMA_SCALE_TABLE) && S.SIGMA_SCALE_TABLE.provenance.kind === 'hindcast' && S.ANCHOR_RHO_TABLE.provenance.kind === 'hindcast' && longOk
       && fusedOf(ss2) === fusedOf(ssLong) && JSON.stringify(ss2.steps[0].fused) === JSON.stringify(base.steps[0].fused) && ss2.calib.some((c) => /sigmaScale: 2/.test(c)));
+    // OF-8 (`sigmaScale: 5`, table W): seven centres, only wind/gust at 1,5 h and 4,5 h, t/td and every node ≥ 15,5 h at 1, per-country
+    // nodes of the same length; `sigmaScaleAt` with seven centres interpolates (3 h = the mean of the two short nodes); option 5
+    // byte-identical to option 1 with W.
+    const W = S.SIGMA_SCALE_TABLE_W;
+    const wLen = (tab) => S.SIGMA_SCALE_VARS.every((v) => tab[v].length === W.centresH.length && tab[v].every((s) => Number.isFinite(s) && s >= 0.6 && s <= 1.6));
+    const wShape = (tab) => tab.t.every((s) => s === 1) && tab.td.every((s) => s === 1) && ['ws', 'gust'].every((v) => tab[v].every((s, i) => (W.centresH[i] >= 15.5 ? s === 1 : true)));
+    const wTabs = [W.nodes, ...Object.values(W.byCountry ?? {})];
+    const ss5 = fuseCubePoint(mkInput(), { sigmaScale: 5 }), ssW = fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: W });
+    add('(12) OF-8 Tabelle W (`sigmaScale: 5`): sieben Knoten 1,5/4,5/15,5/…, je Land DE/AT/CH; T/Td überall 1, Wind/Böe ab 15,5 h 1, Knoten in [0,6; 1,6]; 3 h = Mittel der Kurzfristknoten; Option 5 byte-gleich zu Option 1 mit W; Herkunft hindcast',
+      W.centresH.join() === '1.5,4.5,15.5,36.5,84.5,180.5,288.5' && W.provenance.kind === 'hindcast' && ['DE', 'AT', 'CH'].every((c) => !!W.byCountry?.[c]) && wTabs.every((t) => wLen(t) && wShape(t))
+      && near(S.sigmaScaleAt(W, 'ws', 3, 'DE'), 0.5 * (W.byCountry.DE.ws[0] + W.byCountry.DE.ws[1]), 1e-12) && S.sigmaScaleAt(W, 'ws', 1, 'AT') === W.byCountry.AT.ws[0] && S.sigmaScaleAt(W, 'ws', 24, 'CH') === 1 && S.sigmaScaleAt(W, 't', 1, 'DE') === 1
+      && fusedOf(ss5) === fusedOf(ssW) && ss5.calib.some((c) => /sigmaScale: 5/.test(c)));
     // engine: anchorRho — the factor follows anchorSigmaFactorRho with ρ of the fixture station (3 km, Δh 0) from the built-in table
     const rhoT = S.anchorRhoOf(S.ANCHOR_RHO_TABLE.t, 3000, 0);
     const rOn = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorRho: 1 });
