@@ -2720,3 +2720,111 @@ Push ins Daten-Repo abgelehnt, im manuellen Modus freigegeben).
    `scripts/verify-health.mjs`.
    *Commit der Umsetzung (7 + 8) auf dein Wort, ohne die fremde Linie in `src/fire/`:* `src/road/roadContract.ts`, `scripts/verify-road-contract.mjs`,
    `scripts/health-manifests.mjs`, `scripts/verify-health.mjs`, `audit/autobahnwetter.md`, `MANUELLE-SCHRITTE.md`, `CLAUDE.md`.
+
+## 72. buscosun Fusion — Spur-P-Abnahme von `fusion-12t`/`12u` (beide abgelehnt), W1 neu, Hindcast-Kette neu gestartet (`audit/obs-fusion.md` §13), 2026-10-21
+
+Dein Auftrag 21.10.: „führe beide Punkte durch" — (1) Hindcast-Nachholkette anwerfen + W1 neu bauen, (2) Spur-P-Abnahme von 12t und 12u.
+Beides ist gelaufen, nichts committet, nichts ins Daten- oder Archiv-Repo geschrieben. **Ergebnis: beide Kandidaten abgelehnt.** Auf Spur P
+(12 Ausgabetage nach dem Freeze, 4 reif) sind alle Gates grün, der Index gegen Fusion 9 liegt aber bei +0,25 % (12t) / +0,26 % (12u)
+statt der behaupteten ≥ +1,3 %. Auf Spur R (Hindcast-Tresor) sind G2 und G3 rot: Wind 0–6 h DE −2,1 %, Böe 0–6 h CH −0,5 %,
+Abdeckung Wind 0–6 h 73,4 % (Champion 76,9 %). Das ist V-OF-17: die Sommer-σ-Skala passt nicht in andere Jahreszeiten.
+buscosun Fusion 12 (= 12s) bleibt der aktive Stand, Fusion 13 ist nicht vergeben.
+
+1. **E-OF-8 — der Weg zu Fusion 13 (deine Entscheidung):** (a) σ-Skala ≤ 48 h nach Jahreszeit aus der jetzt laufenden Hindcast-Kette —
+   frühestens Dezember, dann ein neues Fenster; (b) sofort ein Kandidat `fusion-12v` = 12s + `anchorKSet` OHNE σ-Skala ≤ 48 h, Hypothese
+   vorab einfrieren, neues Spur-P-Fenster ab dem Freeze-Tag (erste Abnahme ≥ 4 reife Tage = Freeze + 12 Tage); (c) nichts, Fusion 12
+   bleibt. Empfehlung: (b) jetzt einfrieren, (a) im Dezember — beides schließt sich nicht aus.
+2. **Wiederholung derselben Abnahme auf breiterer Spur P ≈ 3.11.** (≥ 14 reife Tage): keine Nachstellung, nur mit dem Wort `abnahme`
+   von dir; sie kann das Spur-R-Urteil nicht aufheben, zeigt aber, ob der +0,25 % im Herbst hält.
+3. **Hindcast-Kette (`C:\dev\buscosun-hindcast`):** `follow 2026-09-22 … 2026-10-20` läuft seit 18:52 UTC unter `watchdog8`
+   (≈ 5 h; Log `log\pull-follow-2026-10-21.log`, Fortschritt `grep -c "status 0"`, Ende „DONE follow"). Danach fehlt ein Dauerbetrieb
+   (V-OF-19): entweder du legst eine geplante Aufgabe an (täglich, `queue.mjs follow <gestern−2> <gestern>` + Wachhund) oder du sagst mir,
+   dass ich je Sitzung einen Eintrag in `log\chains.json` nachtrage. Ohne Kette kein Winter-Nachfit im Dezember.
+   Falle V-OF-20: der erste losgelöste Start starb still; nach jedem Start die PID prüfen.
+4. **Commit auf dein Wort:** `audit/obs-fusion.md` (§13), `CLAUDE.md` (Zeile OF, Stand 13), diese Datei, `audit/pruefstand/rangliste.json`
+   (von der Abnahme geschrieben), neue Berichte `audit/pruefstand/berichte/fusion-12t/2026-10-21-abnahme/` und `…/fusion-12u/…`,
+   `scripts/pruefstand/register/zugriffe.log` (zwei Abnahme-Zeilen). Register-Status 12t/12u bleibt `kandidat`, setzt nur du.
+5. **Rückwege:** W1 ist append-only (reife Tage final), nichts zurückzunehmen. Die Kette stoppen:
+   `Get-CimInstance Win32_Process | ? { $_.CommandLine -like '*hindcast*' } | % { Stop-Process -Id $_.ProcessId }`.
+
+**Nachtrag 22.10. (Jan: „mache b"):**
+
+6. **Hindcast-Kette fertig:** `follow 2026-09-22 … 2026-10-20` endete 21.10. 22:38 UTC (232 Slots, 0 unvollständig, 726 MiB). Punkt 3 bleibt:
+   Dauerbetrieb nur mit geplanter Aufgabe oder auf Zuruf; der nächste Nachtrag wäre `follow 2026-10-21 <gestern>`.
+7. **V-OF-22 — die Spur-P-Zahlen vom 21.10. entstanden ohne den dichten Messsatz** (`audit/obs-fusion.md` §13.4): die Tagesdateien
+   `obs-dense/<Tag>.json.gz` endeten am 07.10., der Replay fiel still auf die Archiv-Messung zurück (Fusion 12 ≡ 11 auf Spur P). Das
+   Spur-R-Urteil (abgelehnt) bleibt. Behoben: Dateien 08.–20.10. nachgebaut (335 s), 91 veraltete Konserven gelöscht, Wächter in
+   `scripts/pruefstand/run.mjs`/`lib/lauf.mjs` (Abnahme bricht mit Exit 1 ab, wenn ein Tag ohne Tagesdatei lief); `verify:pruefstand` 60/60.
+   **Vor jeder Abnahme:** `build-dense-obs.mjs --from=<letzter Tag + 1> --to=<Vortag>` — oder du sagst mir, dass ich das je Sitzung tue.
+8. **Kandidat `fusion-12v` registriert (E-OF-8 b):** = `fusion-12s` + `anchorKSet`, ohne σ-Skala; Motor-Commit `4350886` (wie 12t/12u),
+   Freeze **2026-10-22**, Status `kandidat`, Hypothese H-OF-5c in `audit/obs-fusion/claims-addendum-4.md` (Hash in `claims-frozen.sha256`):
+   Spur P G1–G4 grün, Index ≥ +0,5 %, T 0–6 h im Band; Spur R nichts schlechter. **Erste Abnahme frühestens 03.11.** (4 reife Tage ab 23.10.),
+   belastbar ≈ 13.11. — nur mit deinem Wort `abnahme`; dabei 12t/12u mit dichten Dateien wiederholen (keine Nachstellung, Urteil bleibt).
+   Bei grün: 12v = buscosun Fusion 13 — Eintrag in `fusionRelease.ts` und Liveschaltung sind dann dein Gate.
+9. **Commit:** Zweig `fusion-12v` mit Register-Eintrag, Hypothese, Wächter, Berichten 12t/12u, `rangliste.json`, `zugriffe.log` und
+   `audit/obs-fusion.md`; `main` per Fast-Forward darauf gesetzt (lokal, nicht gepusht — der Register-Eintrag muss im Arbeitsbaum liegen,
+   sonst findet ihn der Prüfstand nicht). `CLAUDE.md`/diese Datei bleiben uncommitted (tragen fremde AW-Änderungen). Push = du.
+
+**Nachtrag 22.10. abends (Jan: „bauen wir einen neuen Kandidaten … nutze dafür diese neuen Datenmöglichkeiten", `audit/obs-fusion.md` §15):**
+
+10. **Kandidat `fusion-12w` registriert (OF-8, E-OF-9):** = `fusion-12v` + `sigmaScale: 5` (`SIGMA_SCALE_TABLE_W`: nur die Böe bei
+    1,5 h und 4,5 h je Land, DE 0,891/0,913 · AT 0,96/0,904 · CH 0,984/0,963; Wind/T/Td und alles ab 15,5 h = 1). Knoten aus den
+    echten Sommerläufen mal dem Saisonfaktor der Tag-0-Reihe aller Jahreszeiten außerhalb des Tresors (580 Slots 2023/24 + 2025/26,
+    00 UTC). Motor-Commit `35f1285a`, Register `fb00d640` (beide lokal auf `main`, nicht gepusht), Freeze **2026-10-22** (wie 12v),
+    Hypothese H-OF-5d in `claims-addendum-5.md` (Hash `83b95c044ea5…`). **Erste Abnahme frühestens 03.11.**, zusammen mit 12v (gleiches
+    Spur-P-Fenster), nur mit deinem Wort `abnahme`; vorab festgelegt: sind beide grün, gilt der höhere Index gegen Fusion 9, bei nicht
+    nachweisbarem Unterschied 12v. Vorher `build-dense-obs.mjs` bis zum Vortag und `build-w1.mjs` (heute bis 21.10. bzw. 22.10. gelaufen).
+11. **V-OF-24 — deine Entscheidung für den nächsten Hebel:** der Fit zeigt, dass die Kurzfrist-Kalibrierung des Windes von der
+    Tagesstunde beherrscht wird (bei 1–2 h: 00 UTC Faktor 1,075 nötig, 12 UTC 0,77), nicht vom Vorlauf oder nur der Jahreszeit (Winter
+    nachts +18 %). Der Prüfstand sieht das Fenster 0–6 h NUR nachts (Spur R 00 UTC, Archiv-Slot 23:22 UTC). Die ursprünglich geplanten
+    Windknoten wurden deshalb VOR dem Prüfstandlauf auf 1 gesetzt (nicht am Prüfstand nachgestellt; §15.6). Eine Skala mit Achse
+    Tagesstunde wäre eine neue Form = eigener Kandidat (E-OF-10, messbar aus den 8 Slots je Tag der Lauf-Route und der Nachholkette) —
+    sag, ob ich das als nächste Phase vorbereiten soll. Dazu V-OF-25: Wind in AT/CH ohne lokale Information ist auch mit Faktor 1,6
+    zu schmal — eine Formfrage, kein Faktor.
+12. **Spur R vor der Abnahme:** nur auf dein Wort `vergleich 9 12s 12v 12w tresor` — der Vergleich entscheidet nichts, zeigt aber, ob die
+    Böe-Zelle 0–6 h auf dem Tresor ins Band kommt. Ohne das Wort rechne ich den Tresor nicht.
+13. **Volltest von 12w gerechnet** (erster Lauf 16:40 UTC bei 100/186 vom Speicherwächter gestoppt; Neustart auf dein „weiter" 18:25 UTC
+    losgelöst mit einem Arbeiter, fertig ≈ 18:55 UTC; Bericht `audit/pruefstand/berichte/fusion-12w/2026-10-22-voll/bericht.html`, Audit
+    §15.8): Index gegen Fusion 9 **+1,90 %** (+1,56 … +2,17), G1/G2/G4 grün, G3 rot (3 Zellen zu breit, aus der 12s-Linie), 84 von 99
+    Kernzellen besser als jede Einzelquelle. Rangfolge auf der Entwicklungsmenge: Platz 4 von 15 hinter 12u/12t (abgelehnt) und 12s;
+    gegen 12v +0,02 % (nur Böe 0–6 h, DE +1,2 %). Kein Urteil — das gibt nur die Abnahme. **Für dich:** (a) Bericht-Ordner (untracked)
+    und Audit §15.8 committen — auf dein Wort; (b) **V-OF-26:** die K-Kopplung von 12v weitet σ an DE-Stationen im Fenster 0–6 h
+    (Wind-Abdeckung 83,7 → 88,5 %, CRPS −1,4 %), weil die Sommertabelle im Herbst unterkoppelt; 12v liegt dort ≈ 0,05 % unter 12s. Ein
+    K-Satz nach Jahreszeit aus den Tag-0-Daten wäre ein neuer Kandidat (**E-OF-11**), kein Umbau von 12v/12w vor der Abnahme — sag,
+    ob ich ihn vorbereiten soll (zusammen mit E-OF-10 oder getrennt).
+14. **Projekt „buscosun Fusion 13" gestartet (dein Auftrag 22.10. abends, E-OF-10 + E-OF-11; `audit/obs-fusion.md` §16):** drei Kandidaten
+    gebaut, registriert (Commits `2d0eb64e` Motor + Tabellen, `ee2badcc` Register; nichts gepusht) und im Volltest gegen 12s gemessen —
+    **`fusion-12x`** (12s + σ-Skala je Tagesstunde × Vorlauf × Land, `sigmaScale: 6`), **`fusion-12y`** (12s + K-Satz je Jahreszeit,
+    `anchorKSet: 2`), **`fusion-12z`** (beides). Ergebnis (Entwicklungsmenge 14.09.–21.10., 38 Tage, Diagnose, kein Urteil):
+    **12x +2,05 % gegen 9, gegen 12s +0,13 % (+0,09 … +0,17, nachweisbar)**, Platz 3 hinter den abgelehnten 12u/12t, G2 rot 1 (Td 0–6 h AT, −0,0 %),
+    G3 rot 2 (T 0–6 h zu schmal = 12s-Linie, Wind 6–24 h zu breit); **12z +2,02 %, gegen 12s +0,09 %**, G3 nur noch 1 rot; **12y +1,88 %, gegen
+    12s −0,05 %** (= 12v, der Saison-K-Satz behebt V-OF-26 nicht). Preis von 12x/12z: T 6–48 h in AT/CH unter dem Band (AT 24–48 h 72 %,
+    V-OF-32). Der Wind wird in keinem Kandidaten skaliert: die Stundenskala brachte ihn auf 80 % Abdeckung, verschlechterte aber den CRPS in
+    jedem Land (V-OF-30) — der Wächter der Regel hat sie gestrichen. Berichte `audit/pruefstand/berichte/fusion-12{x,y,z}/2026-10-22-voll/`.
+    **Für dich:** (a) Commit der Berichte 12w/12x/12y/12z (untracked), Audit §15.8/§16, CLAUDE.md, MANUELLE-SCHRITTE — auf dein Wort;
+    (b) Push von `35f1285a` … `ee2badcc`; (c) Abnahme ≈ 03.11. für 12x und 12z (mit 12v/12w, Wiederholung 12t/12u) — dann erst die
+    Fusion-13-Frage; Spur R vorher nur auf dein Wort (`vergleich 9 12s 12x 12z tresor`); (d) Entscheidungen **E-OF-12** (Wind-Form: mittelwerttreue
+    σ-Skalierung oder Quantil-Nachkalibrierung je Stunde), **E-OF-13** (K-Satz auf dem dichten Satz je Land messen), **E-OF-14** (Saisonfaktor für
+    7–48 h, erst ab Dezember messbar). Hinweis: H-OF-6 (b) (Wind auf Spur R) ist nach der Regeländerung §16.4a gegenstandslos — ich habe den Satz
+    vor der Hash-Bildung nicht angepasst; die Abnahme wird (b) als nicht erfüllt ausweisen, (a) und (c) gelten.
+15. **E-OF-15 umgesetzt — buscosun Fusion 13 = `fusion-12x` (dein Wort 22.10. nachts: „12x live schalten … buscosun fusion 13 nennen";
+    `audit/obs-fusion.md` §17):** Eintrag `n: 13` im Register der Stände (`FUSION13_SIGMA_SCALE = 6`), Schalter `?sscale=0` = Fusion 12,
+    `FUSION_CURRENT` = 13 — jede Seite und jeder Producer nennt den Stand aus der Datei. Verifier: `verify:fusion-release` 30/30, Typecheck,
+    Build 260/260 grün, `verify:pv-cube` 452/453 (fremdes Rot (21)). Committet, **nicht gepusht. Für dich:** (a) **Push von `main`** — erst damit
+    ist Fusion 13 auf buscosun.com; der Push trägt auch fremde Commits seit `83ba8b0` (Glacier-Stil `a1d917ed`, Atmosphäre `ba521731`…`90f910c8`)
+    und meine `35f1285a` … Fusion 13. Danach bauen die Workflows im Daten-Repo (Streckenprognose, Kartenfelder, Seewetter) beim nächsten Lauf
+    mit Fusion 13; bis dahin nennen die Produkte Fusion 12 (E-FR-1). (b) **Budget:** totalJs 1 892,6/1 825 KB und eagerJs 110,1/110 KB rot —
+    beide schon vor diesem Schritt rot durch die HB-Linie (§73.4); Fusion 13 bringt +3,8 KB in den lazy Fusionskern, der Erstbild-Pfad ist
+    unverändert. Ratsche anheben oder zuordnen = deine Entscheidung mit §73.4. (c) Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7), die
+    Abnahme von 12x/12z ≈ 03.11. läuft weiter; wenn sie rot wird, ist `?sscale=0` der benannte Rückweg und `FUSION13_SIGMA_SCALE = 0` die
+    Abschaltung im Code. (d) Nach dem Push einmal `/wetter/<ort>` ansehen: Stufen-Zeile nennt „buscosun Fusion 13".
+
+## 73. Historie neu gestaltet — Plattform-Angleich + Bühne (Phase HB, `audit/historie-buehne.md`), 2026-10-22
+
+1. `/wetterarchiv/<ort>` im eigenen Chrome ansehen: Rail links zeigt wieder alle Werkzeuge; Zeiger über die Klimastreifen
+   führen → unten links erscheinen Jahr, Wert und Abweichung; Klick auf einen Streifen öffnet das Tagesband.
+2. Dunkelmodus (☾ oben rechts) einmal ansehen.
+3. Wenn es passt: Commit der drei Dateien `src/history/HistoryPage.tsx`, `src/history/historyDeck.css`,
+   `src/history/charts/Stripes.tsx` plus `audit/historie-buehne.md` (Arbeitsbaum ist geteilt — nur diese Dateien stagen).
+4. Entscheiden, ob das schon vorher rote Budget (V-HB-1: eagerJs 110,1/110 KB, totalJs 1 888,8/1 825 KB) zugeordnet oder
+   bewusst angehoben werden soll.

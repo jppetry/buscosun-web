@@ -99,7 +99,7 @@ import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../po
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
-import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom, pfObsVarFrom, pfAnchorBeforeAxisFrom } from './pfFlags';
+import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom, pfObsVarFrom, pfAnchorBeforeAxisFrom, pfSigmaScaleHourFrom } from './pfFlags';
 import { OBS_DENSE_MAX, OBS_VAR_MAX_AGE_MS, OBS_PRODUCT_MAX_AGE_MS } from '../sources/obsStore';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
 import { fusionStage, fusionStageIo, fusionStageNote } from './fusion/fusionRelease';
@@ -2436,6 +2436,11 @@ export interface CubeIo {
    * option (`FUSION12_ANCHOR_BEFORE_AXIS`).
    */
   anchorBeforeAxis?: boolean;
+  /**
+   * buscosun Fusion 13 (E-OF-15, OF-9): `false` is the named fallback to Fusion 12 (`?sscale=0`) — it takes `sigmaScale` (table H:
+   * σ per valid hour × lead × country) from the stage fs. Without the field the stage sets the option (`FUSION13_SIGMA_SCALE`).
+   */
+  sigmaScaleHour?: boolean;
   decodeRgbPng?: RgbPngDecoder;
   terrain: TerrainOptions | false;
   clima: () => Promise<ClimaField | null>;
@@ -2935,6 +2940,8 @@ export function defaultCubeIo(): CubeIo {
     ...(obsVarFlag ? {} : { obsPerVar: false }),
     // V-AF-10: `?ancpre=0` = the anchor without the cube steps before the axis start; no entry otherwise.
     ...(anchorBeforeAxisFlag ? {} : { anchorBeforeAxis: false }),
+    // buscosun Fusion 13 (E-OF-15): `?sscale=0` takes the σ scale per valid hour back to Fusion 12 (no entry otherwise, key unchanged).
+    ...(sigmaScaleHourFlag ? {} : { sigmaScaleHour: false }),
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2946,6 +2953,7 @@ const hourMeanFlag = pfHourMeanFrom(typeof window !== 'undefined' ? window.locat
 const anchorAtObsFlag = pfAnchorAtObsFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsStoreFlag = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsDenseFlag = pfObsDenseFrom(typeof window !== 'undefined' ? window.location.search : '');
+const sigmaScaleHourFlag = pfSigmaScaleHourFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsVarFlag = pfObsVarFrom(typeof window !== 'undefined' ? window.location.search : '');
 const anchorBeforeAxisFlag = pfAnchorBeforeAxisFrom(typeof window !== 'undefined' ? window.location.search : '');
 

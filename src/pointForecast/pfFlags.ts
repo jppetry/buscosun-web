@@ -87,6 +87,16 @@ export function pfObsDenseFrom(search: string): boolean {
 }
 
 /**
+ * buscosun Fusion 13 (E-OF-15, Jan 22.10.2026 night, `audit/obs-fusion.md` §16.7): the σ scale per valid hour × lead × country
+ * (`FuseCubeOptions.sigmaScale: 6`, table H of OF-9). Default ON.
+ *   `?sscale=0` → off: the named fallback to buscosun Fusion 12 (no σ scale).
+ *   anything else → on.
+ */
+export function pfSigmaScaleHourFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('sscale') !== '0'; } catch { return true; }
+}
+
+/**
  * V-AF-9 (`audit/autobahn-fusion12-lueckenlos.md` §8.3, part of buscosun Fusion 12): the reader of `obs/v1` takes the newest
  * value PER VARIABLE, each with its own stamp (the DWD temperature lags the rain stamp by 30 min in every half hour). Default ON.
  *   `?obsvar=0` → off: the named fallback — only the values at the station's newest stamp, exactly the reader before V-AF-9.

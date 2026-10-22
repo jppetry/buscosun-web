@@ -122,8 +122,10 @@ const NAME_RE = /buscosun Fusion \d/;
   // Hand-copied options of a stand: an object key of a stand's option outside the engine and the reader.
   const keys = [...FUSION_RELEASES.flatMap((r) => [r.option, ...Object.keys(r.also ?? {})]), ...Object.keys(FUSION_BASE_OPTIONS)];
   const KEY_RE = new RegExp(`(^|[^.\\w])(${keys.join('|')})\\s*:\\s*[^;]`);
-  // Where these keys are DEFINED or read as options: the engine and its reader, the URL switches, the scorer of the archive.
-  const KEY_HOME = (p) => /^src\/pointForecast\//.test(p) || /^src\/point\//.test(p);
+  // Where these keys are DEFINED or read as options: the engine and its reader, the URL switches, the scorer of the archive — and the
+  // fit scripts of phase OF that WRITE the tables of a stand (`scripts/obsfusion/of*.mjs`: their result JSON names the option it fits,
+  // the generator of `fusion/sigmaScaleH.ts` writes the table's provenance note; Fusion 13 made `sigmaScale` a stand option).
+  const KEY_HOME = (p) => /^src\/pointForecast\//.test(p) || /^src\/point\//.test(p) || /^scripts\/obsfusion\/of\d+\.mjs$/.test(p);
   const khits = [];
   for (const p of FILES) if (!KEY_HOME(p)) codeOf(src(p)).split('\n').forEach((l, i) => { if (KEY_RE.test(l)) khits.push(`${p}:${i + 1}`); });
   const kprobe = (s) => KEY_RE.test(codeOf(s));

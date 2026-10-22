@@ -1022,3 +1022,362 @@ gegen Rest 0,24 / 0,26 / 0,30 / 0,45 / 0,35 — die Kopplung ist im Winter STÄR
 Sommertabelle von OF-7b (0,26 … 0,45) unterschätzt sie im Winter; Wind/Böe ähnlich (DJF C 0,25–0,45 / 0,22–0,62 gegen Rest
 0,22–0,48 / 0,20–0,58), die Klassen f ≥ 0,7 bleiben wie im Sommer leer oder negativ. Ein Winter-Nachfit der K-Satz-Tabelle ist damit
 belegt möglich (eigener Kandidat; 12v misst erst die Sommertabelle).
+
+### 15.7 Umsetzung und Volltest (22.10. abends)
+
+- Motor: `SIGMA_SCALE_TABLE_W` + Stufe `sigmaScale: 5` (`cubeSource.ts`: Optionstyp, Tabellenwahl, Calib-Notiz; `sigmaScaleAt`
+  unverändert, generisch über sieben Knoten). `npm run typecheck` grün; `verify:pv-cube` 446/447 — der neue Block (12) OF-8 grün
+  (Form der Tabelle, Interpolation 3 h = Mittel der Kurzfristknoten, Option 5 byte-gleich zu Option 1 + W), die eine rote Prüfung
+  (21, `profileColumn`-Import in `src/nowcast/heightTime/heightTimeModel.ts`) ist an HEAD vor diesem Schritt schon rot (fremde Linie
+  HZS, Commit `aa464517`); `verify:fusion-release` 30/30 (kein neuer Stand, Fusion 12 bleibt). Commit **`35f1285a`** (nur die
+  OF-8-Dateien; der Arbeitsbaum trägt daneben die fremde Linie HB unter `src/history/`), Register **`fb00d640`**.
+- Register `fusion-12w`: Commit `35f1285`, Order 12,8, Freeze 2026-10-22, Fit-Fenster von 12v plus A/C1/C2 (alle außerhalb des
+  Tresors, `contaminated: false`), `modelHash d92ae0d2849c`. Hypothese H-OF-5d `claims-addendum-5.md`, sha256 `83b95c044ea5…`
+  (LF-Inhalt; Gegenprobe: Nachtrag 4 mit derselben Methode = gespeicherter Hash), Zeit 16:27 UTC in `claims-frozen.at`.
+- Vorbereitung: Archiv-Klon `3db9be3` (bis 21.10. 23:22 UTC), dichte Tagesdatei 21.10. gebaut (DE 1 409 · AT 285 · CH 156 + 141
+  Niederschlag), W1 neu bis 22.10. (`laeufe/10-w1-build.log`).
+- **Volltest `--modus=voll` gestartet 16:40 UTC** (Entwicklungsmenge 14.09.–21.10., 38 Tage; 186 neue Konserven: 12v und 12w auf allen
+  Tagen, alle übrigen Versionen für den 21.10.; 2 Arbeiter, 16–21 s je Konserve). **Vom Speicherwächter von Claude Code bei 100/186
+  nach 928 s gestoppt** (Systemspeicher knapp; daneben laufen zwei fremde Vite-Server). Konserven sind inkrementell: die 100 gerechneten
+  bleiben gültig, es fehlen 86 (≈ 25 min mit einem Arbeiter). Kein Bericht, keine Zahl. Neustart nur auf Jans Wort, dann mit
+  `PRUEFSTAND_WORKERS=1` und losgelöst vom Claude-Code-Prozessbaum (`detach.ps1`-Muster aus §13.1, PID prüfen, V-OF-20).
+- **Neustart auf Jans Wort „weiter" 18:25 UTC:** `detach.ps1 -Root C:\dev\buscosun-pruefstand -Shell cmd` mit
+  `set PRUEFSTAND_WORKERS=1&& node … run.mjs --kandidat=fusion-12w --modus=voll` (WMI, Priorität BelowNormal; PID nach 20 s geprüft,
+  lebte; Log `C:\dev\buscosun-pruefstand\log\pull-voll-12w-2.log`, an `laeufe/10-voll-12w.log` angehängt). 85 fehlende Konserven in
+  1 717 s (14–23 s je Konserve, Runner 3,3 GB), Auswertung mit G4-Zweitlauf bis ≈ 18:55 UTC. Kein Eingriff des Speicherwächters.
+
+### 15.8 Ergebnis des Volltests (Protokoll P1 `4b633f0766a7`, Wahrheit W1 `bf39c35589f2`, Champion `fusion-9`; Bericht `audit/pruefstand/berichte/fusion-12w/2026-10-22-voll/`)
+
+Entwicklungsmenge 14.09.–21.10. (38 Ausgabetage, 99 Kernzellen; 1 917 823 Werte mit unreifer Wahrheit mitgezählt). **Diagnose und
+Rangfolge, kein Urteil** — H-OF-5d wird nur mit `--modus=abnahme` bewertet; diese Tage hat die Entwicklung gesehen.
+
+| | `fusion-12w` |
+|---|---|
+| Fortschrittsindex gegen Fusion 9 (Rolle B) | **+1,90 %** (95 %: +1,56 … +2,17), Nachweisgrenze 0,37 %; Rolle A +1,06 % (+0,79 … +1,30) |
+| G1 · G2 | grün · grün (0 von 99 Kernzellen signifikant schlechter) |
+| G3 | **rot** — 3 von 27: T 6–24 h 84,7 % (Champion 84,3 %), T 24–48 h 84,3 % (84,0 %), Wind 6–24 h 84,0 % (83,3 %); alle drei **zu breit**, über dem Band und 0,3–0,6 pp weiter vom Soll als der Champion (signifikant). 18 von 27 außerhalb des Bands, der Champion dort fast überall genauso (Niederschlag 94–97 %, Böe 86–89 %) |
+| G4 | grün (Determinismus `e6bc200fa6eb`, Physik, Vollständigkeit 6 876 764 Kernfälle = Champion, Punktabfrage 32,6 ms, Leck-Prüfung Tresor) |
+| Beste Kernzellen | Wind 0–6 h DE +21,1 %, T 0–6 h DE +20,5 %, Wind 240–336 h CH +17,1 %, Böe 0–6 h DE +17,0 % (alle signifikant) |
+| Schlechteste Kernzellen | Td 48–120 h DE −1,1 %, T 48–120 h DE −0,5 % (beide nicht nachweisbar) |
+| Produktaussage | 84 von 99 Kernzellen besser als jede Einzelquelle |
+| Überanpassung | Gewinn Rolle A +1,06 %, Rolle B +1,90 %, keine Warnung |
+
+**Rangfolge aller Stände auf derselben Menge** (Skill gegen Klimatologie, Rolle B; rechts 12w gegen den Stand, Rolle B, 95 %):
+
+| Platz | Stand | Skill gegen Klima | 12w dagegen |
+|---|---|---|---|
+| 1 | `fusion-12u` (abgelehnt 21.10., Spur R) | 20,87 % | −0,21 % (−0,27 … −0,15) |
+| 2 | `fusion-12t` (abgelehnt 21.10., Spur R) | 20,86 % | −0,20 % (−0,25 … −0,14) |
+| 3 | `fusion-12s` = buscosun Fusion 12 | 20,72 % | −0,03 % (−0,04 … −0,02) |
+| 4 | **`fusion-12w`** | 20,71 % | — |
+| 5 | `fusion-12v` | 20,70 % | +0,02 % (+0,01 … +0,03) |
+| 6 | `fusion-12r` | 20,70 % | −0,07 % (−0,13 … 0,00; nicht nachweisbar) |
+| 7 | `fusion-12q` | 20,68 % | +0,05 % |
+| 8 | `fusion-12` | 20,67 % | +0,07 % |
+| 9 | `fusion-12p` | 20,55 % | +0,14 % |
+| 10 | buscosun Fusion 10 | 20,29 % | +0,88 % |
+| 11 | buscosun Fusion 11 | 20,04 % | +1,07 % |
+| 12 | buscosun Fusion 9 (Champion) = Fusion 8 | 18,97 % | +1,90 % |
+| 13 | buscosun Fusion 7 | 18,88 % | +2,05 % |
+| 14 | buscosun Fusion 6 | 18,87 % | +2,06 % |
+| 15 | 5e | 16,57 % | +5,11 % |
+| — | Referenzen: MOSMIX 1,64 %, naiv −0,81 %, roh-lapse −25,7 %, roh −31,1 % | | |
+
+**Deutung (Diagnose, keine Nachstellung):**
+
+1. **Die Tabelle W tut das Vorgesehene und nichts sonst.** Gegen 12v ändern sich ausschließlich Böe-Zellen der Rolle B: 0–6 h DE
+   **+1,21 %** (+0,79 … +1,67, signifikant nach BH), AT +0,39 %, CH +0,17 % (nicht nachweisbar); 6–24 h +0,06 … +0,14 % (der 4,5-h-Knoten
+   läuft linear bis 15,5 h aus). Abdeckung Böe 0–6 h Rolle B: DE 88,6 → 86,1 %, AT 86,1 → 84,2 %, CH 87,1 → 86,2 % — in allen drei Ländern
+   Richtung 80 %, noch über dem Band. Rolle A (Stationswert) unverändert, alle Wind-/T-/Td-Zellen identisch mit 12v. Summe gegen 12v
+   +0,02 % — nachweisbar, aber die erwarteten Hundertstel; auf der Entwicklungsmenge entscheidet das nichts.
+2. **V-OF-26 — die K-Stationen-Kopplung weitet σ im Herbst (Diagnose zu 12v):** gegenüber 12s (ohne `anchorKSet`) steigt die Abdeckung
+   an DE-Stationen der Rolle B im Fenster 0–6 h von Wind 83,7 → **88,5 %**, Böe 84,5 → 88,6 %, T 77,6 → 86,0 %; CRPS Wind 0–6 h DE/B
+   **−1,41 %** (signifikant), T 0–6 h DE/B −0,69 %, Böe −2,2 % (12w holt davon die Hälfte zurück). Keine Zelle gewinnt gegen 12s mehr als
+   0,1 % ⇒ 12v liegt auf der Entwicklungsmenge ≈ 0,05 % unter 12s. Den Abdeckungs-Satz der H-OF-5c erfüllt 12v zwar (T 0–6 h gepoolt
+   76,5 → 81,5 %, im Band), aber durch Mischung: DE zu breit (86,0 %), AT/CH weiter zu schmal (75,8/77,8 %). Das passt zur Messung in
+   §15.6: der K-Satz ist im Herbst/Winter stärker gekoppelt als die Sommertabelle annimmt (T C 0,31–0,61 statt 0,24–0,45) — die
+   Sommertabelle **unterkoppelt im Herbst** und lässt σ zu weit. Mehrwert: ein K-Satz nach Jahreszeit (die Akkumulatoren DJF/rest der
+   Tag-0-Reihe liegen in `of8-fit.json`) wäre der nächste Kandidat — **E-OF-11 (Jan)**, ein neuer Kandidat mit neuem Fenster, keine
+   Änderung an 12v oder 12w vor ihrer Abnahme.
+3. **Die roten G3-Zellen gehören der 12s-Linie** (`obsDense`/`anchorSigma`: T 6–48 h, Wind 6–24 h zu breit), nicht der Tabelle W; der
+   Champion liegt dort ebenso über dem Band. Mit 38 statt 23 Tagen ist das Binomialband enger, darum wechseln die roten Zellen gegenüber
+   dem 08.10. (damals Wind 6–24, Böe 24–48 zu breit, T 0–6 zu schmal — Letzteres hat die Kopplung behoben, s. 2).
+4. **12t/12u führen die Entwicklungsmenge um 0,20 % an.** Ihre σ-Skala ≤ 48 h gewinnt im Herbst-Archiv mit Stationen (gegen 12w: T/Td
+   6–48 h DE −0,8 … −1,4 %, Wind 0–24 h AT/CH −1,7 … −2,4 %, Böe 6–48 h −0,6 … −1,2 %), verlor aber auf dem Tresor (Spur R rot am 21.10.).
+   Derselbe Befund wie V-OF-17/V-OF-24: die Prüfmengen sehen verschiedene Regime (Jahreszeit, Tagesstunde, Stationen ja/nein).
+5. **Was bleibt:** Spur P ab 23.10.; Abnahme 12v + 12w ≈ 03.11. (vorher `build-dense-obs.mjs` bis Vortag + `build-w1.mjs`); Spur R nur auf
+   Jans Wort (`vergleich 9 12s 12v 12w tresor`). Bericht-Ordner und dieser Abschnitt sind uncommitted (Jans Gate).
+
+## 16 OF-9 — Projekt „buscosun Fusion 13": Skala mit Tagesstunden-Achse (E-OF-10) und K-Satz nach Jahreszeit (E-OF-11), gemessen gegen `fusion-12s` (22.10. abends)
+
+**Auftrag (wörtlich, Jan 22.10. abends):** „dann start das Projekt fusion 13 und teste es gegen das bestehende fusion 12s" — mit dem Zitat aus
+§15.8/der Einschätzung: „Eine Skala mit Tagesstunden-Achse (E-OF-10) und ein K-Satz nach Jahreszeit (E-OF-11) sind die beiden Kandidaten, die
+diesen Gewinn ohne den Nachtfehler holen könnten." Damit sind **E-OF-10 und E-OF-11 entschieden** (beide bauen, beide prüfen). Der Prüfstand
+misst Gates und Index immer gegen den Champion (Fusion 9); der Vergleich gegen 12s kommt aus den Paaren derselben `scores.json`
+(`cand|fusion-12s`, Rolle B, 95 %) — keine Änderung am Protokoll, kein zweiter Champion.
+
+### 16.1 Ausgangslage (Volltest 22.10., Entwicklungsmenge, Abdeckung q10–q90 in %, Rolle B = Punkte ohne eigene Station)
+
+| Größe · Fenster | 12s DE / AT / CH | 12v DE / AT / CH | 12t DE / AT / CH | Fusion 9 DE / AT / CH |
+|---|---|---|---|---|
+| T 0–6 h | 77,6 / 73,6 / 76,7 | 86,0 / 75,8 / 77,8 | 85,6 / 75,4 / 77,2 | 82,6 / 73,7 / 75,1 |
+| T 6–24 · 24–48 h | 86,1 · 86,1 / 81,3 · 79,6 / 84,0 · 84,0 | ≈ 12s | 81,5 · 80,3 / 76,5 · 72,9 / 78,8 · 77,7 | ≈ 12s |
+| Wind 0–6 h | 83,7 / 72,9 / 75,5 | 88,5 / 73,3 / 75,5 | 85,5 / 70,8 / 73,7 | 81,2 / 73,3 / 75,6 |
+| Wind 6–24 · 24–48 h | 86,8 · 83,1 / 79,7 · 74,3 / 81,6 · 76,7 | ≈ 12s | 83,5 · 83,1 / 77,0 · 74,2 / 79,0 · 76,7 | ≈ 12s |
+| Böe 0–6 h | 84,5 / 85,9 / 87,2 | 88,6 / 86,1 / 87,1 | 85,3 / 82,4 / 83,0 | 85,1 / 86,1 / 86,9 |
+| Böe 6–24 · 24–48 h | 87,6 · 88,4 / 87,6 · 89,0 / 88,6 · 89,4 | ≈ 12s | 83,7 · 84,4 / 83,6 · 85,5 / 83,4 · 84,4 | ≈ 12s |
+| Td 0–6 h | 81,2 / 66,4 / 67,8 | = 12s | ≈ 12s | = 12s |
+| Td 6–24 · 24–48 h | 89,2 · 90,5 / 83,2 · 83,3 / 79,2 · 81,7 | = 12s | 86,6 · 87,7 / 80,5 · 79,8 / 76,2 · 78,0 | = 12s |
+
+Lesart: (1) Die gepoolte Sommerskala von 12t trifft DE bei 6–48 h (T 86 → 81, Böe 88 → 84) und verengt AT/CH zu weit (T AT 81 → 73–77):
+Knoten **je Land** sind nötig (die of7-Landknoten `byLandNodes` lagen vor und wurden nicht benutzt). (2) Bei 0–6 h ist der verankerte Herbst-Punkt
+der Rolle B bei T in allen drei Ländern schon leicht zu schmal (74–78 %), bei Wind in AT/CH zu schmal (73–76 %) und in DE zu breit (84 %), bei Böe
+überall zu breit (84–87 %). (3) Td hat im Cube-Pfad keinen Anker; AT/CH 0–6 h 66–68 % ist der rohe gelernte Td.
+
+**V-OF-27 — die Tag-0-Reihe und das Archiv sind bei T ≤ 6 h verschiedene Regime.** Die Kette ohne Anker deckt T in DE nachts auf der Tag-0-Reihe
+im Herbst 92 % (Knoten 0,643, §15.6), auf den echten Sommerläufen 87 % (Knoten 0,818); Fusion 9 — Anker nur im Mittel, σ unverändert — deckt im
+Herbst-Archiv an DE-Punkten der Rolle B 82,6 %, 12s (σ-Kopplung) 77,6 %. Ein T-Knoten < 1 bei ≤ 6 h aus der Hindcast-Kette würde das Archiv unter
+das Band drücken (dieselbe Lehre wie bei 12t: T/Td 0–6 h = 1). Mehrwert: die Regel unten setzt T/Td ≤ 6 h auf 1 und misst die Tagesstunden-Skala
+bei ≤ 6 h nur für Wind und Böe; die Ursache des Regime-Unterschieds (Tag-0-Cube nur `t1`, Fenster 2 h; jüngster Lauf je Stunde) bleibt offen.
+
+### 16.2 Datenlage (gezählt 22.10.)
+
+- **Lauf-Route** (`run`, echte Stufe-1-Läufe): 2026-06-17 … 09-13, **acht Slots je Tag** (00 … 21 UTC; 00/03 UTC ab 18.06.), 712 Slots, nur `t1`
+  (0–48 h), ohne Messungen. Die einzige Reihe, die jede Tagesstunde sieht — Grundlage der Tagesstunden-Achse. Sommer.
+- **Tag-0-Reihe** 00 UTC (C1 2023-06-01 … 2024-03-24, C2 2025-09-08 … 2026-06-16, 580 Slots): Jahreszeiten, Vorlauf 1–2 h, nachts; Saisonfaktoren
+  R liegen in `of8-fit.json` (§15.6, je Größe und Land); die K-Satz-Statistik dort nur DJF/Rest — für E-OF-11 wird sie **je Jahreszeit** neu
+  gesammelt (derselbe Code-Pfad wie of8, Gruppen DJF/MAM/JJA/SON × Land).
+- **Nachholkette** `follow` 22.09.–20.10. (232 Slots, 8 je Tag) liegt in der Entwicklungsmenge (ab 14.09.) — **nicht für den Fit** (Wächter in
+  of9 wie in of8). Sie bleibt die einzige Herbstreihe mit Tagstunden ≤ 6 h; eine Diagnose der Tag-Knoten darauf wäre Volltest-Charakter
+  (gesehene Tage) — **V-OF-28 (offen):** Tag-Knoten der Skala auf der Nachholkette nachmessen (Diagnose, kein Fit), sobald die Kandidaten
+  registriert sind.
+
+### 16.3 Form im Motor (zwei Optionen, zwei Tabellen, sonst nichts)
+
+1. **`sigmaScale: 6` — `SIGMA_SCALE_TABLE_H`** (`fusion/sigmaScaleH.ts`, von `of9.mjs --fit` GESCHRIEBEN, Provenienz im Kopf; Typ und Funktionen
+   in `fusion/sigmaScale.ts`): Achsen **Vorlauf** (Zeilen-Zentren 1,5 · 4,5 · 15,5 · 36,5 h, dazu die Zeile 84,5 h = 1 als Auslauf) × **Tagesstunde
+   der Gültigzeit** (acht Klassen zu 3 h, Zentren 1,5 … 22,5 UTC, zyklisch linear dazwischen), Knoten je Größe (T, Td, Wind, Böe) **je Land**
+   (DE/AT/CH; sonst gepoolt). Dazu der **Saisonfaktor** R(Größe, Land, Jahreszeit) aus der Tag-0-Reihe (§15.6), der NUR die Zeilen ≤ 6 h von Wind
+   und Böe multipliziert (dort gemessen; die T/Td-Zeilen ≤ 6 h sind 1, V-OF-27), zyklisch linear im Tag des Jahres zwischen den Saisonzentren
+   15.01. / 15.04. / 15.07. / 15.10. interpoliert (kein Sprung am Monatswechsel). `sigmaScaleHourAt(table, v, leadH, validAtMs, country)`:
+   Stundenwert je Zeile, Zeilen ≤ 6 h × R, dann linear im Vorlauf (flach vor 1,5 h, 1 ab 84,5 h). Angewendet wie bisher: zuletzt, Größen des
+   Stationswerts behalten ihre σ. `sigmaScaleTable` nimmt auch eine H-Tabelle (`kind: 'hour'`; Identität für den Verifier).
+2. **`anchorKSet: 2` — `ANCHOR_KSET_TABLE_S`** (dieselbe Datei): die K-Satz-Klassen (C, V je f-Klasse, T/Wind/Böe) **je Jahreszeit** DJF/MAM/JJA/SON
+   aus der Tag-0-Reihe (τ = 1, Länder gepoolt); `anchorKSetClassesAt(table, fam, validAtMs)` interpoliert C und V je Klasse zyklisch linear im
+   Tag des Jahres zwischen den Saisonzentren, wo beide Nachbarn besetzt sind, sonst die besetzte Seite, sonst leer (dann greift die Rückfallregel
+   von `anchorKSetOf`: nächste besetzte Klasse darunter). Formel, Deckel und Boden wie `anchorKSet: 1`; `anchorKSetTable` als Verifier-Eingang.
+3. **Kandidaten** (alle = Register `fusion-12s`, Motor-Commit dieses Schritts, Tabellen/Fit-Fenster von 12s plus die neuen Fenster, Freeze 22.10.,
+   Order 12,85/12,9/12,95, Status `kandidat`): **`fusion-12x`** = 12s + `sigmaScale: 6`; **`fusion-12y`** = 12s + `anchorKSet: 2`;
+   **`fusion-12z`** = 12s + beides. 12v (Sommer-K-Satz) und 12w (Böentabelle W) gehen in keinem auf: die H-Tabelle enthält die Böe ≤ 6 h je Stunde,
+   der Saison-K-Satz ersetzt die Sommertabelle. Beide bleiben registriert und kommen wie geplant in die Abnahme.
+
+### 16.4 Regel vor den Zahlen (eingefroren 22.10. abends, bevor `of9.mjs --fit` gelesen wird; Hypothese H-OF-6 in `claims-addendum-6.md`)
+
+1. **Fenster H** (Stunde): Lauf-Route 2026-06-18 … 09-13, alle acht Slots je Tag, Vorlauf 1 … 48 h stündlich, Kette ohne Anker, Fenster 48 h,
+   Register `fusion-12s` (Optionen der Basis ohne Skala). Zeilen je Größe × Vorlauf × Land × Rolle × Gültigstunde (Reservoir 2 000 je Schlüssel bei
+   Vorlauf ≤ 6 h, 400 darüber; binär). **Zelle** = (Größe, Land ∈ {gepoolt, DE, AT, CH}, Vorlaufzeile {1–2, 3–6, 7–24, 25–48 h}, Stundenklasse);
+   **Knoten** = der konstante Faktor, der die Zeilen der Zelle auf 80 % Abdeckung bringt (18 Schritte Bisektion in [0,6; 1,6]); Zelle unter 2 000
+   Zeilen ⇒ gepoolter Knoten derselben Zelle, sonst 1. Rollen A und B gepoolt (im Hindcast ohne Messung dasselbe Regime). Berichtet: die
+   erreichte Abdeckung je Zelle MIT der interpolierten Tabelle (Stunde und Vorlauf), je Vorlauf und je Gültigstunde.
+2. **Wächter je Zeile** (Größe, Land, Vorlaufzeile): verschlechtert die interpolierte Tabelle den CRPS der Zeilen dieser Zeile auf den eigenen
+   Fit-Daten um mehr als 0,1 % (Skill < −0,001 gegen Faktor 1), werden alle acht Knoten der Zeile auf 1 gesetzt (Lehre V-OF-18: Abdeckung rauf,
+   CRPS runter = Form, nicht Skala). Berichtet je Zeile.
+3. **T und Td in den Zeilen ≤ 6 h = 1** (V-OF-27); Wind und Böe ≤ 6 h aus dem Fit **× R**(Größe, Land, Jahreszeit) mit R_s = N_C(s) / N_C(JJA) aus
+   `of8-fit.json` (`vars[v].C[Land].bySeason[s].node / jja.node`); gepooltes R, wo der JJA-Satz eines Landes < 2 000 Zeilen hat; R = 1, wo der
+   JJA-Knoten am Deckel 1,6 liegt (AT Wind, §15.6); R_JJA = 1. Produkt Knoten × R geklemmt auf [0,6; 1,6]. Die Zeilen 7–24 und 25–48 h tragen
+   keinen Saisonfaktor (dort nicht gemessen) — ihre Winterübertragung misst erst die Spur P ab Dezember; der Winter-Nachfit der Lernstufe
+   (Dezember) ist der vorgesehene Ort dafür.
+4. **Fenster K** (K-Satz): Tag-0-Reihe C1 + C2, 00 UTC, jeder Tag; K-Satz-Statistik wie of8 (K = 6 beste der 12 nächsten Prüfnetz-Stationen,
+   Wind/Böe 10-km-Dämpfung) bei τ = 1, 2, Gruppen **Jahreszeit × Land**. Tabelle: je Jahreszeit die Klassen mit n ≥ 2 000 und C > 0 (Länder
+   gepoolt), sonst leer. Berichtet, nicht benutzt: je Land; τ = 2; JJA nachts (Tag-0) gegen die Sommertabelle OF-7b (alle Stunden, Lauf-Route) als
+   Regimeprobe; aus Fenster H die K-Satz-Statistik je Startstunde (ist C tagesstundenabhängig?).
+5. **Bewertung:** heute `--modus=voll` für 12x, 12y, 12z (Entwicklungsmenge 14.09.–21.10.: Diagnose und Rangfolge; der Vergleich gegen 12s aus den
+   Paaren der `scores.json`). Urteil nur `--modus=abnahme` ab ≈ 03.11. (≥ 4 reife Spur-P-Tage); Spur R nur auf Jans Wort. Keine Nachstellung an
+   Spur-P- oder Spur-R-Zahlen; bei rot werden die Zellen benannt. Ein Stand heißt nur dann buscosun Fusion 13, wenn er auf Spur P alle Gates
+   besteht UND nachweisbar vor 12s liegt — kein 13 um Hundertstel (Vorzugsreihenfolge im Nachtrag 6).
+6. **Erwartung vorab (ehrlich):** Auf der Entwicklungsmenge (Herbst, mit Stationen, 0–6 h nur nachts) ändert 12x Wind/Böe ≤ 6 h nachts (DE ≈
+   neutral, AT/CH breiter) und alle vier Größen bei 6–48 h je Stunde und Land — erwartet +0,1 … +0,3 % gegen 12s (12t holte gepoolt +0,2 % mit
+   AT/CH-Verlusten); 12y ändert nur den K-Satz und dürfte im Herbst nahe 12v liegen (die Nacht-Klassen „Rest" gleichen der Sommertabelle, §15.6),
+   V-OF-26 bliebe dann bestehen; 12z = Summe. Wo beide Hebel ausgelegt sind, zu wirken, ist Spur R (Nacht, alle Jahreszeiten).
+
+### 16.4a Die eine Regeländerung vor dem Prüfstandlauf (22.10. ≈ 20:00 UTC, nach dem Lesen der K-Satz-Statistik aus Fenster K, vor dem Fit der Skala und vor jedem Prüfstandlauf)
+
+Fenster K (580 Slots, 211 700 Aufrufe, 0 Fehler) zeigt für **Wind und Böe je Jahreszeit nur die Klasse f < 0,15 mit ≥ 2 000 Zeilen** (Klassen
+0,15–0,7: 650–1 800 Zeilen je Jahreszeit; f ≥ 0,7 wie im Sommer leer). Regel 4 wörtlich angewandt hieße: alle Klassen ab f 0,15 leer ⇒ die
+Rückfallregel von `anchorKSetOf` nimmt die Klasse darunter, also f < 0,15 mit C ≈ 0,09–0,19 und V ≈ 0,63–0,75 ⇒ g = 2C/f − V < 0 bei jedem
+realen f ⇒ Faktor 1 — der Saison-K-Satz hätte die Wind-/Böen-Kopplung **abgeschaltet**, nicht saisonalisiert; an DE-Punkten der Rolle B
+würde Wind 0–6 h noch breiter als bei 12v (88,5 %). Das ist kein Messergebnis, sondern eine Lücke der Rückfallregel bei dünnen Klassen. §15.6
+hatte für Wind/Böe ohnehin keinen Saisonunterschied gezeigt (DJF C 0,25–0,45 / 0,22–0,62 gegen Rest 0,22–0,48 / 0,20–0,58). Für T sind in
+MAM und JJA die beiden Klassen f ≥ 0,7 knapp leer (1 620–1 966 Zeilen) — dort stünde die Klasse 0,5–0,7 (C 0,24–0,25) ein, obwohl OF-7b für
+f ≥ 0,7 im Sommer 0,45/0,44 misst (352 Slots, alle Stunden).
+
+**Änderung (einmalig, dokumentiert, vor der Hash-Bildung in den Nachtrag 6 übernommen):** `ANCHOR_KSET_TABLE_S` trägt die Saisonklassen **nur
+für T**; eine T-Klasse ohne ≥ 2 000 Zeilen oder mit C ≤ 0 nimmt die **OF-7b-Klasse** (Sommertabelle, alle Stunden) statt der Klasse darunter;
+**Wind und Böe behalten in jeder Jahreszeit die OF-7b-Klassen** (= `anchorKSet: 1`). 12y unterscheidet sich von 12v damit genau in der
+T-Kopplung je Jahreszeit. Die Regel 4 (Statistik, Schwellen, Länder gepoolt) bleibt; nur die Rückfallregel bei leeren Klassen und der
+Geltungsbereich ändern sich. Wie bei OF-7 (§11.2) und OF-8 (§15.6): Form an den Fit-Daten geändert, vor jedem Prüfstandlauf.
+
+**Zweiter Teil derselben Änderung (nach dem ersten Fit-Lauf der Skala, 20:05 UTC, vor jedem Prüfstandlauf):** Der CRPS-Wächter (Regel 2) hat
+**alle 16 Windzeilen** auf 1 gesetzt — gepoolt −2,0 … −2,4 %, DE −0,1 … −0,5 %, AT −4,9 … −5,4 %, CH −1,9 … −3,8 % CRPS-Skill auf den eigenen
+Fit-Zeilen, obwohl jede Zelle auf 80 % Abdeckung gebracht war (**V-OF-30:** die Tagesstunden-Skala des Windes verbessert die Abdeckung und
+verschlechtert den CRPS in jedem Land und jeder Zeile — V-OF-25 gilt für alle Stunden: `scaleDistSigma` verschiebt bei der Rice-Form den
+Mittelwert mit, die Form des Windfehlers ist das Problem, nicht die Skala). Regel 3 wörtlich hätte die Zeilen ≤ 6 h des Windes danach mit R
+multipliziert, also allein R = 1,08–1,19 (SON/DJF) zu jeder Tagesstunde angewandt — genau der nachts gefittete Windfaktor > 1, den §15.6 für das
+Produkt am Tag ausgeschlossen hat. Klarstellung: **R kalibriert den Sommer-Fit auf die anderen Jahreszeiten; eine Größe ohne Fit-Knoten in den
+Zeilen ≤ 6 h (alle 1, durch Wächter oder ungefittet) bekommt R = 1.** Damit skaliert `fusion-12x` den **Wind gar nicht**; der Hebel E-OF-10
+liegt in T und Td bei 7–48 h (je Stunde und Land, Wächter +0,4 … +1,5 %) und in der Böe in allen Zeilen (Wächter +0,3 … +0,7 %, CH 1–2 h −0,04 %,
+innerhalb der Schwelle) × R_Böe (DJF 1,12 / MAM 0,96 / SON 1,06; DE 1,14 / 0,96 / 1,08; AT 1,09 / 0,98 / 1,04; CH 1,12 / 0,94 / 1,04).
+
+Erster Blick auf T (Länder gepoolt, τ = 1, Klassen f 0,15–0,3 / 0,3–0,5 / 0,5–0,7 / 0,7–0,85 / ≥ 0,85): **SON C 0,29 / 0,32 / 0,36 / 0,50 / 0,35** —
+nahe DJF (0,31 / 0,32 / 0,40 / 0,61 / 0,37) und deutlich über MAM (0,22 / 0,17 / 0,25 / — / —) und JJA (0,17 / 0,24 / 0,24 / — / —). Der Herbst
+koppelt wie der Winter; die Sommertabelle (0,26 / 0,32 / 0,30 / 0,45 / 0,44) liegt bei kleinem f darunter — die Richtung von V-OF-26. **V-OF-29
+(Diagnose, berichtet):** je Land ist die T-Kopplung in DE schwach (SON C 0,18 / 0,05 / 0,22), in AT/CH stark (0,36 / 0,42 bzw. 0,32 / 0,35 / 0,38);
+der gepoolte Satz wird von AT/CH getragen (größere Fehlervarianz). Das Prüfnetz ist in DE zu weitmaschig für hohe f-Klassen; ein K-Satz je Land
+bräuchte den dichten Satz als Messnetz (eigener Schritt).
+
+### 16.5 Messung und Fit (`scripts/obsfusion/of9.mjs`; Rohdaten `audit/obs-fusion/of9/part-*.{json,f32}` (gitignored, ≈ 290 MB), Fit `of9-fit.json` sha256 `5c238bd4b161…`, Logs `laeufe/11-of9-*.log`; Tabellen GESCHRIEBEN nach `src/pointForecast/fusion/sigmaScaleH.ts`)
+
+- **Fenster H:** 704 Slots (88 Tage × 8 Startstunden), 256 960 Aufrufe, **48,6 Mio. Zeilen**, 0 Fehler; drei losgelöste Teile (`detach.ps1`,
+  je 27–28 min, 97 MB f32 je Teil); 9 216 Schlüssel (Größe × Vorlauf 1–48 × Land × Rolle × Gültigstunde). **Fenster K:** 580 Slots, 211 700
+  Aufrufe, 0 Fehler, 23 min. Fit 2 min. Der Verifier `verify:pv-cube` Block (13) prüft Form, Interpolation (Stunde zyklisch, Saison im Tag des
+  Jahres, Klemme), Byte-Gleichheit Option 6 ≡ Option 1 mit H, Identität, Saisonklassen; 452/453 (das eine Rot ist das fremde (21) seit `aa464517`).
+- **Knoten der Tabelle H (benutzt), Nacht = Klassen 22,5/1,5/4,5 UTC, Tag = 10,5/13,5/16,5 UTC:**
+
+| Größe · Zeile | gepoolt Nacht / Tag | DE | AT | CH |
+|---|---|---|---|---|
+| T 7–24 h | 0,86 / 0,80 | 0,92 / 0,85 | 0,77 / 0,77 | 0,82 / 0,74 |
+| T 25–48 h | 0,87 / 0,81 | 0,93 / 0,84 | 0,79 / 0,81 | 0,84 / 0,76 |
+| Td 7–24 h | 0,93 / 0,94 | 0,87 / 0,89 | 0,96 / 0,96 | 1,04 / 0,99 |
+| Td 25–48 h | 0,89 / 0,90 | 0,83 / 0,85 | 0,88 / 0,91 | 0,98 / 0,97 |
+| Böe 1–2 h · 3–6 h | 0,88 / 0,91 · 0,86 / 0,90 | 0,85 / 0,85 · 0,84 / 0,86 | 0,89 / 0,95 · 0,85 / 0,92 | 0,93 / 0,99 · 0,89 / 0,96 |
+| Böe 7–24 h · 25–48 h | 0,85 / 0,90 · 0,84 / 0,89 | 0,83 / 0,84 · 0,83 / 0,84 | 0,84 / 0,92 · 0,81 / 0,91 | 0,90 / 0,97 · 0,86 / 0,95 |
+| Wind (alle Zeilen) | 1 (Wächter) | 1 | 1 | 1 |
+| T/Td 1–6 h | 1 (Regel 3) | 1 | 1 | 1 |
+
+  Saisonfaktor R auf Böe ≤ 6 h (DJF / MAM / SON; JJA 1): gepoolt 1,12 / 0,96 / 1,06, DE 1,14 / 0,96 / 1,08, AT 1,09 / 0,98 / 1,04, CH 1,12 / 0,94 / 1,04;
+  Wind R = 1 (§16.4a). Der Tagesgang der T-Knoten ist in DE und CH klar (nachts breiter nötig als tags: DE 0,92 gegen 0,85, CH 0,82 gegen 0,74),
+  in AT flach; die Böe braucht nachts mehr Einengung als tags (AT 0,81–0,89 gegen 0,91–0,95). Der Landesunterschied ist größer als der Tagesgang
+  (T AT/CH 0,73–0,86 gegen DE 0,81–0,94) — genau das, was 12t gepoolt (0,83) in AT zu weit trieb (§16.1).
+- **Erreichte Abdeckung auf den Fit-Daten mit der interpolierten Tabelle** (Sommer, ohne Anker): T 86,9 → 81,8 % (Zeilen ≤ 6 h bleiben 86–92 %,
+  Zeilen 7–48 h 79–83 % je Zelle), Td 84,0 → 81,0 %, Böe 85,1 → 80,3 % (jede Zelle 79–82 %), Wind unverändert 81,8 %. CRPS-Skill: T **+0,93 %**
+  (DE +0,52, AT +1,16, CH +1,33), Td +0,37 % (DE +0,67), Böe +0,46 % (DE +0,71, AT +0,45, CH +0,12), Wind 0. Je Vorlauf T: 6 h 87 → 87, 12 h
+  88 → 84, 24 h 87 → 80, 48 h 86 → 82 %.
+- **Wind, berichtet, nicht benutzt (V-OF-30):** die gefitteten Stundenknoten wären gepoolt nachts 1,05–1,09 und tags 0,76–0,79 (DE 0,96–0,99 /
+  0,74; AT nachts am Deckel 1,6, tags 0,79–0,85; CH nachts 1,25–1,6, tags 0,78–0,83) — der Tagesgang aus V-OF-24, jetzt für alle Stunden und
+  Zeilen bis 48 h belegt: Abdeckung ohne Skala bei ≤ 6 h gepoolt nachts 77–80 %, tags 85–89 % (AT 74 gegen 86 %, DE 79–84 gegen 90 %). Aber
+  jede Zeile verschlechtert den CRPS (gepoolt −2,0 … −2,4 %, DE −0,1 … −0,5 %, AT −4,9 … −5,4 %, CH −1,9 … −3,8 %) ⇒ alle 16 Zeilen auf 1. Der
+  multiplikative Faktor auf σ ist beim Wind das falsche Werkzeug (Rice-Form: σ verschiebt den Mittelwert mit; V-OF-25); der richtige Hebel
+  wäre eine mittelwerttreue Umformung oder eine Nachkalibrierung der Quantile je Stunde — eigener Kandidat, nicht heute.
+- **K-Satz je Jahreszeit (benutzt, T; Länder gepoolt, Klassen f 0–0,15 / 0,15–0,3 / 0,3–0,5 / 0,5–0,7 / 0,7–0,85 / ≥ 0,85):** DJF C 0,09 / 0,31 /
+  0,32 / 0,40 / 0,61 / 0,37 · MAM 0,08 / 0,22 / 0,17 / 0,25 / 0,45\* / 0,44\* · JJA 0,06 / 0,17 / 0,24 / 0,24 / 0,45\* / 0,44\* · SON 0,05 / 0,29 / 0,32 /
+  0,36 / 0,50 / 0,35 (\* = OF-7b-Klasse eingesetzt, Saison-n 1 620–1 966); V 0,26–0,75. Wind/Böe = OF-7b in jeder Jahreszeit (§16.4a; je
+  Jahreszeit nur f < 0,15 besetzt, dort C 0,09–0,19). τ = 2 bestätigt die Faktorisierung (R(2)/C 0,9–1,1, w(2) 0,86–0,97).
+- **V-OF-31 — die K-Kopplung ist tagesstundenabhängig (Diagnose aus Fenster H, Sommer, T, Klassen 0,15–0,7):** Start 06–15 UTC C 0,21–0,48,
+  Start 00/03/21 UTC 0,08–0,21. Die Saisontabelle stammt aus der Tag-0-Reihe um 00 UTC und ist damit eine **Nacht-Tabelle**; am Tag koppelt sie
+  in MAM/JJA schwächer als die Sommertabelle OF-7b (alle Stunden). Der Prüfstand sieht 0–6 h nur nachts — dort ist sie richtig; für den Tag im
+  Produkt fehlt die Messung (Nachholkette / Archiv ab Dezember). Berichtet, Form unverändert.
+- Commit **`2d0eb64e`** (Motor, Tabellen, of9, Verifier, Nachtrag 6 + Hash `4cdd797e68ab…` auf LF-Inhalt, Gegenprobe Nachtrag 5 passt, 20:11:51
+  UTC), Register **`ee2badcc`** (12x `ca468398d622`, 12y `5367d75d9439`, 12z `b5b81a33ccef`; Freeze 22.10., Spur R sauber); `typecheck` grün,
+  `verify:fusion-release` 30/30, `verify:pruefstand` 60/60. Volltests gestartet 20:20 UTC losgelöst (`voll13.cmd`, `PRUEFSTAND_WORKERS=2`,
+  nacheinander 12x → 12y → 12z; Log `C:\dev\buscosun-pruefstand\log\pull-voll-13.log`, Kopie `laeufe/11-voll-12xyz.log`; je Kandidat 38 Konserven
+  in ≈ 11 min (34 s je Konserve bei zwei Arbeitern, Runner 3,8 GB) plus Auswertung, fertig 21:07 UTC; kein Eingriff eines Wächters).
+
+### 16.6 Ergebnis der drei Volltests (Protokoll P1 `4b633f0766a7`, Wahrheit W1 `bf39c35589f2`, Champion Fusion 9; Berichte `audit/pruefstand/berichte/fusion-12{x,y,z}/2026-10-22-voll/`, untracked)
+
+Entwicklungsmenge 14.09.–21.10. (38 Ausgabetage, 99 Kernzellen, 1 917 823 Werte mit unreifer Wahrheit mitgezählt). **Diagnose und Rangfolge, kein
+Urteil** — H-OF-6 wird nur mit `--modus=abnahme` bewertet. Der Vergleich gegen 12s steht in den Paaren `cand|fusion-12s` (Rolle B, 95 %).
+
+| | **`fusion-12x`** (Skala H) | **`fusion-12y`** (Saison-K-Satz) | **`fusion-12z`** (beides) | `fusion-12s` = Fusion 12 |
+|---|---|---|---|---|
+| Index gegen Fusion 9 (Rolle B) | **+2,05 %** (+1,71 … +2,34), MDE 0,38 % | +1,88 % (+1,54 … +2,15) | **+2,02 %** (+1,68 … +2,30) | ≈ +1,9 % |
+| gegen 12s | **+0,13 %** (+0,09 … +0,17) nachweisbar besser | **−0,05 %** (−0,07 … −0,04) nachweisbar schlechter | **+0,09 %** (+0,05 … +0,13) nachweisbar besser | — |
+| gegen 12v · 12w | +0,18 · +0,16 | ±0,00 · −0,03 | +0,14 · +0,12 | |
+| gegen 12t · 12u (abgelehnt) | −0,04 · −0,05 | −0,22 · −0,23 | −0,08 · −0,09 | −0,17 · −0,18 |
+| G1 · G2 | grün · **rot 1** (Td 0–6 h AT: −0,0 %, signifikant) | grün · grün | grün · **rot 1** (Td 0–6 h AT) | grün · grün |
+| G3 | **rot 2**: T 0–6 h 76,3 % zu schmal (Champion 78,6, Band 77,0–83,0), Wind 6–24 h 83,8 % zu breit | **rot 5**: T 6–24/24–48, Wind 6–24, Böe 0–6/6–24 zu breit | **rot 1**: Wind 6–24 h 84,0 % zu breit | rot 3 |
+| G4 | grün (`ad34ed85830c`) | grün (`7e098270b2da`) | grün (`e2d01aed163a`) | grün |
+| Produktaussage | 84 von 99 | 84 von 99 | 84 von 99 | 84 von 99 (12w) |
+| Rang (Skill gegen Klima, Rolle B) | **3.** (20,79 %) | 9. (20,70 %) | **4.** (20,77 %) | 5. (20,72 %) |
+| Rolle A gegen 9 | +1,07 % | +1,06 % | +1,06 % | |
+
+Rangfolge: 12u 20,87 · 12t 20,86 · **12x 20,79 · 12z 20,77** · 12s 20,72 · 12w 20,71 · 12v 20,70 · 12r 20,70 · **12y 20,70** · 12q 20,68 · 12 20,67 · 12p 20,55 · 10 20,29 ·
+11 20,04 · 9 = 8 18,97. Beste Kernzellen gegen 9 (alle drei): Wind 0–6 h DE +21–22 %, T 0–6 h DE +20–21 %, Böe 0–6 h DE +16–18 %, Wind 240–336 h CH +17 %;
+schlechteste Td 48–120 h DE −1,0 %, T 48–120 h DE −0,3 % (nicht nachweisbar). Überanpassung: keine Warnung (Gewinn A +1,06 %, B +1,9–2,0 %).
+
+**Abdeckung Rolle B je Land (12s → Kandidat), die Zellen, die sich ändern:**
+
+| Größe · Fenster | 12x DE / AT / CH | 12y DE / AT / CH | 12z DE / AT / CH |
+|---|---|---|---|
+| T 0–6 h | 77,6 → 77,5 / 73,6 → 73,3 / 76,7 → 76,5 | 77,6 → **86,8** / 75,9 / 77,7 | 86,7 / 75,7 / 77,5 |
+| T 6–24 h | 86,1 → **81,7** / 81,3 → **74,7** / 84,0 → **76,1** | ≈ 12s | 82,2 / 74,9 / 76,2 |
+| T 24–48 h | 86,1 → **81,5** / 79,6 → **71,7** / 84,0 → **76,1** | ≈ 12s | 81,9 / 71,8 / 76,1 |
+| Td 6–24 · 24–48 h | 89,2 → 85,2 · 90,5 → 85,8 / 83,2 → 81,4 · 83,3 → 79,5 / 79,2 → 79,1 · 81,7 → 81,1 | = 12s | wie 12x |
+| Wind 0–6 h | = 12s | 83,7 → **88,5** / 73,3 / 75,5 | 88,5 / 73,3 / 75,5 |
+| Böe 0–6 h | 84,5 → 82,1 / 85,9 → 82,8 / 87,2 → 85,1 | 84,5 → 88,6 / 86,1 / 87,1 | 86,5 / 82,8 / 85,0 |
+| Böe 6–24 · 24–48 h | 87,6 → 82,6 · 88,4 → 83,5 / 87,6 → 84,4 · 89,0 → 85,3 / 88,6 → 86,8 · 89,4 → 86,1 | ≈ 12s | wie 12x |
+
+**Deutung (Diagnose, keine Nachstellung):**
+
+1. **Die Skala H (12x) ist der erste Kandidat seit 12t/12u, der 12s auf der Entwicklungsmenge nachweisbar schlägt** (+0,13 %, Intervall ganz
+   über 0, Nachweisgrenze 0,07 %), und anders als 12t/12u ohne Sommer-Windknoten (der Wind rechnet wie 12s, V-OF-30). Ihr Gewinn liegt genau
+   dort, wo die Zellen von 12s zu breit waren: Td DE 6–48 h (+1,1 … +2,1 % CRPS, Abdeckung 89–90 → 85–86 %), Böe 6–48 h in allen Ländern (+1,0 …
+   +1,3 %, 88–89 → 83–86 %), T DE 6–48 h (86 → 82 %, im Band). Ihr Preis: **V-OF-32 — T in AT und CH bei 6–48 h fällt unter das Band** (AT 24–48 h
+   71,7 %, CH 76,1 %; CRPS T 24–48 h AT −0,3 %, die einzige nachweisbar schlechtere Zelle gegen 12s neben Td 0–6 h AT −0,0 %). Die Knoten
+   stammen aus der Sommerkette ohne Anker (AT 0,73–0,86), das Herbst-Archiv mit Anker steht in AT schon bei 80–81 % — derselbe Regime-Unterschied
+   wie V-OF-18/V-OF-27, nur im Fenster 6–48 h; die Tag-0-Reihe misst dort keinen Saisonfaktor (Regel 3). Gepoolt landen T 6–24/24–48 h bei
+   78,6/77,8 % „im Band" — durch Mischung von DE (82) und AT/CH (72–76), wie bei 12v (§15.8, 2).
+2. **Der Saison-K-Satz (12y) ist 12v** (±0,00 %, Rangplatz 9) und behebt V-OF-26 nicht: T 0–6 h DE wird noch etwas breiter (86,8 statt 86,0 %),
+   weil die SON-Klasse f ≥ 0,85 (C 0,35, V 0,44 ⇒ g = 2C/f − V ≈ 0,34) schwächer koppelt als die Sommertabelle (0,44/0,50 ⇒ 0,47). Die Klasse, in
+   der der dichte DE-Satz steht, wird im Prüfnetz von AT/CH getragen (V-OF-29) — ein K-Satz aus dem Prüfnetz erreicht den dichten Satz nicht,
+   gleich in welcher Jahreszeit. E-OF-11 ist in dieser Form ausgereizt; der nächste Schritt wäre die K-Satz-Statistik **auf dem dichten Satz
+   (`obs/v1`) je Land** als Messnetz — eine neue Messung, kein Kandidat heute.
+3. **12z = 12x + 12y:** +0,09 % gegen 12s; der K-Satz kostet 0,04 % gegen 12x und bringt dafür T 0–6 h ins Band (G3 nur noch Wind 6–24 h rot,
+   die 12s-Linie) — wieder durch die DE-Verbreiterung (86,7 %), nicht durch AT/CH. Nach der Vorzugsregel des Nachtrags 6 (gleich grün ⇒ der
+   einfachere) wäre 12x vor 12z.
+4. **G2 rot bei 12x/12z ist eine Zelle mit −0,0 %:** Td 0–6 h AT, der Vorlauf 5–6 h bekommt durch die lineare Interpolation zur Zeile 15,5 h
+   (AT Td 0,96) einen Faktor knapp unter 1; bei n = 4 500 wird das signifikant. Kein Nutzerproblem, aber ein Gate — die Interpolation zwischen
+   der Zeile 4,5 h (= 1) und 15,5 h reicht ins Fenster 0–6 h hinein (Vorlauf 5 und 6). Für die Abnahme bleibt es, wie es ist (keine Nachstellung).
+5. **H-OF-6 (b) ist nach §16.4a gegenstandslos:** die Behauptung zur Wind-Abdeckung 0–6 h auf Spur R setzt eine Windskala voraus, die der
+   Wächter vor dem Lauf gestrichen hat; ich habe den Satz (b) vor der Hash-Bildung nicht angepasst (Versehen). Die Abnahme wird (b) als „nicht
+   erfüllt" ausweisen; (a) und (c) sind davon unberührt. Auf Spur R unterscheidet sich 12x von 12s nur in der Böe 1–2 h (Stundenknoten × R); 12y
+   dort = 12s (kein Anker im Tresor).
+6. **Was bleibt:** Spur P ab 23.10.; Abnahme ≈ 03.11. für 12x und 12z (dazu 12v, 12w, 12t/12u-Wiederholung; vorher `build-dense-obs.mjs` bis
+   Vortag + `build-w1.mjs`); Spur R nur auf Jans Wort (`vergleich 9 12s 12x 12z tresor`). Entscheidungen für Jan: **E-OF-12** (Wind-Form:
+   mittelwerttreue σ-Skalierung oder Quantil-Nachkalibrierung je Stunde — der größte bekannte Fehler bleibt ungenutzt, V-OF-30),
+   **E-OF-13** (K-Satz auf dem dichten Satz je Land messen, V-OF-29), **E-OF-14** (Saisonfaktor für 7–48 h, messbar erst aus Nachholkette/Archiv
+   ab Dezember, V-OF-32). Bericht-Ordner 12x/12y/12z (untracked), dieser Abschnitt, §15.8, CLAUDE.md und MANUELLE-SCHRITTE sind uncommitted (Jans Gate).
+
+## 17 E-OF-15 entschieden — „buscosun Fusion 13" = Kandidat `fusion-12x`, eingeschaltet ohne Spur P (Jan 22.10. nachts)
+
+**Auftrag (wörtlich):** „ich möchte dass du 12 x live schaltest auf der kompletten website und buscosun fusion 13 nennst." Vorher gesagt
+(§16.6, Bericht an Jan): der Volltest ist Diagnose, die Abnahme ≈ 03.11. entscheidet; die Vorzugsregel des Nachtrags 6 sah keine 13 ohne
+Spur P vor. Jan hat das gehört und entschieden — wie bei Fusion 12 (E-OF-4, §12). Der Prüfstand-Champion bleibt Fusion 9 (E-OF-7); die
+Abnahme von 12x/12z auf Spur P läuft wie geplant weiter und bleibt das einzige Urteil; `fusion-12x` behält im Register den Status `kandidat`.
+
+### 17.1 Umsetzung (Register der Stände, E-FR-1: EIN Eintrag, eine Nummer überall)
+
+- `fusion/fusionRelease.ts`: Konstante `FUSION13_SIGMA_SCALE: 0 | 6 = 6` (Doku mit Volltest-Zahlen, Preis V-OF-32, Wind unskaliert V-OF-30,
+  E-OF-15 wörtlich), Eintrag `n: 13` = `sigmaScale: 6` mit Schalter `io: { key: 'sigmaScaleHour', flag: '?sscale=0' }`, `offLabel`
+  „Stundenskala per Schalter aus"; `FusionIoSwitch` + `'sigmaScaleHour'`. `FUSION_CURRENT` = 13, `FUSION_NAME` „buscosun Fusion 13" — jede
+  Seite, jeder Producer (Streckenprognose, Kartenfelder, Seewetter, Dashboard) und jede Stufen-Notiz nennt den Stand aus dieser Datei.
+- `pfFlags.ts`: `pfSigmaScaleHourFrom` (`?sscale=0` = benannter Rückfall auf Fusion 12); `cubeSource.ts`: `CubeIo.sigmaScaleHour`, im
+  Browser-`defaultCubeIo` aus dem Schalter gesetzt; der Stufen-Mechanismus (`fusionStage((r) => io[r.io.key] === false)`) nimmt die Option
+  und die Notiz des Stands mit dem Schalter zurück, Label „buscosun Fusion 12 (Stundenskala per Schalter aus)".
+- `verify-fusion-release.mjs` B3: die Fit-Skripte `scripts/obsfusion/of*.mjs` sind Definitionsort der Tabellen (ihr Ergebnis-JSON nennt die
+  gefittete Option, der Generator schreibt die Provenienz-Notiz) — seit `sigmaScale` eine Stands-Option ist, traf das Muster dort zwei
+  Fehlalarme (of7.mjs:234 JSON-Schlüssel, of9.mjs:451 Notiz-Text). `verify-obs-reader.mjs` (11): „`FUSION_CURRENT` folgt" hieß bisher
+  `=== 12`, jetzt `≥ 12` genau dann, wenn 12 an ist (ein späterer Stand baut auf 12 auf). Gegenproben unverändert.
+- Verifier: `typecheck` grün; `verify:fusion-release` **30/30** (A3: `?sscale=0 ⇒ buscosun Fusion 12 (Stundenskala per Schalter aus)`);
+  `verify:pv-cube` 452/453 (das fremde Rot (21)); `verify:obs-reader` 70/70; `npm run build` grün (260/260 Shell-Prüfungen).
+- **Budget:** eagerJs 110,1/110 KB und totalJs 1 892,6/1 825 KB rot — beide Ratschen waren vor diesem Schritt schon rot (V-HB-1, fremde Linie
+  HB: eagerJs 110,1, totalJs 1 888,8; MANUELLE-SCHRITTE §73.4). Fusion 13 bringt **+3,8 KB gzip** in den lazy Fusionskern (Tabelle H ≈ 12 KB
+  roh, Interpolation, Saisonfaktor); der Erstbild-Pfad (eagerJs) ist unverändert. Keine Anhebung der Ratsche von mir — zusammen mit §73.4
+  Jans Entscheidung.
+- Was sich im Produkt ändert (gegen Fusion 12, aus dem Volltest §16.6): schmalere Bänder für Td in DE bei 6–48 h, für die Böe in allen
+  Ländern bei 6–48 h, für T in DE bei 6–48 h; tags enger als nachts (DE T 0,85 gegen 0,92); Böe ≤ 6 h im Herbst/Winter leicht weiter als im
+  Sommer (Saisonfaktor); **T in AT/CH bei 6–48 h deutlich schmaler** (Abdeckung 72–76 % statt 80–84 % — der Preis, V-OF-32); Wind, T/Td ≤ 6 h,
+  Niederschlag, Bewölkung unverändert. Datenprodukte nennen den Stand, mit dem sie GEBAUT wurden: bis zum ersten Lauf der Workflows nach dem
+  Push stehen `road/fc`, Kartenfelder und Seewetter-Produkte auf Fusion 12 und die Seiten sagen das (E-FR-1).
+- **Live heißt Push:** Produktion baut aus `origin/main`. Der Push von `35f1285a` … dem Commit dieses Schritts ist Jans Gate (er trägt auch
+  fremde Commits anderer Sitzungen seit `83ba8b0`: Glacier-Stil, Atmosphäre). Bis dahin ist Fusion 13 im Code und lokal, nicht auf
+  buscosun.com.

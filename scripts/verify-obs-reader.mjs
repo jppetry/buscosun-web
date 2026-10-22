@@ -301,7 +301,8 @@ if (LIVE) {
   // the register: Fusion 12 = obsDense with the reader switch; the gauge bundle is 0/0 until OF-4 decides
   add('(11) Register: Stand 12 = Option obsDense mit Leser-Schalter obsDense (set) und ?dense=0; Bündel nach OF-4: Auftrittsanker aus, Messgerät–Radar-Faktor an (claims.md §3), Stationswert-Minute nach Nachtrag 1; FUSION_CURRENT folgt',
     F.FUSION_RELEASES.some((r) => r.n === 12 && r.option === 'obsDense' && r.io?.key === 'obsDense' && r.io.set === true && r.io.flag === '?dense=0') && E.FUSION12_GAUGE.occurrence === 0 && E.FUSION12_GAUGE.radar === 1 && (E.FUSION12_SV_AT_OBS === 0 || E.FUSION12_SV_AT_OBS === 1)
-    && (F.FUSION_CURRENT === 12) === (F.FUSION12_OBS_DENSE === 1) && F.fusionStageIo().obsDense === (F.FUSION12_OBS_DENSE === 1 ? true : undefined));
+    // the current stand is 12 OR a later one built on it (Fusion 13 = 12 + sigmaScale, E-OF-15) exactly when 12 is on
+    && (F.FUSION_CURRENT >= 12) === (F.FUSION12_OBS_DENSE === 1) && F.fusionStageIo().obsDense === (F.FUSION12_OBS_DENSE === 1 ? true : undefined));
   add('(11) Schalter: ?dense=0 ⇒ aus, sonst an', (await import('../src/pointForecast/pfFlags.ts')).pfObsDenseFrom('?dense=0') === false && (await import('../src/pointForecast/pfFlags.ts')).pfObsDenseFrom('') === true);
 }
 
