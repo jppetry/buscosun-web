@@ -72,31 +72,6 @@
 .vsd-rail-btn--active::before { content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--steel-600); }
 .vsd-rail-spacer { margin-top: auto; }
 
-/* ============================ Lens-Pills (Umschalter) ============================ */
-.vsd-lenses { display: flex; gap: 6px; flex-wrap: wrap; }
-.vsd-lens { font-size: 12px; font-weight: 600; color: var(--stone-500); background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 16px; padding: 7px 14px; cursor: pointer; }
-.vsd-lens:hover { border-color: var(--border-medium); }
-.vsd-lens--active { font-weight: 700; color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
-
-/* ============================ Höhenwind — Dock ============================ */
-.vsd-dock { width: 300px; flex: 0 0 auto; background: var(--cream-50); border-right: 1px solid var(--border-default); overflow-y: auto; padding: 16px 14px; }
-.vsd-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--steel-600); font-weight: 700; text-transform: uppercase; }
-.vsd-eyebrow--mut { color: var(--stone-400); letter-spacing: 2px; }
-.vsd-dock-title { font-size: 16px; font-weight: 700; color: var(--ink-900); margin-top: 4px; }
-.vsd-toggle { display: flex; gap: 4px; margin-top: 12px; background: #fff; border: 1px solid var(--border-default); border-radius: 10px; padding: 3px; width: max-content; }
-.vsd-toggle-btn { font-size: 12px; font-weight: 600; color: var(--stone-500); border-radius: 7px; padding: 6px 14px; cursor: pointer; background: none; border: none; }
-.vsd-toggle-btn--active { font-weight: 700; color: var(--cream-50); background: var(--steel-600); }
-.vsd-toggle-btn:disabled { opacity: .45; cursor: not-allowed; }
-.vsd-note { font-size: 10.5px; color: var(--stone-500); margin-top: 6px; }
-
-.vsd-mapcard { margin-top: 14px; height: 220px; border-radius: 14px; position: relative; overflow: hidden; background: var(--sand-100); border: 1px solid var(--border-default); }
-.vsd-mapcard .maplibregl-map, .vsd-mapcard .td-map { position: absolute; inset: 0; width: 100%; height: 100%; }
-.vsd-map-badge { position: absolute; left: 10px; top: 10px; z-index: 3; display: flex; align-items: center; gap: 7px; background: var(--surface-glass-strong); border: 1px solid var(--border-default); border-radius: 14px; padding: 5px 10px; }
-.vsd-map-badge-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--steel-600); }
-.vsd-map-badge-txt { font-size: 10.5px; font-weight: 600; color: var(--ink-900); }
-.vsd-map-tour { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: flex; align-items: center; gap: 7px; background: var(--surface-glass-strong); border: 1px solid var(--border-default); border-radius: 14px; padding: 6px 10px; cursor: pointer; color: var(--steel-600); }
-.vsd-map-tour span { font-size: 10px; font-weight: 600; }
-
 .vsd-pquery { margin-top: 14px; background: #fff; border: 1px solid var(--border-default); border-radius: 13px; padding: 14px; }
 .vsd-pquery-lab { font-size: 10px; letter-spacing: 1px; color: var(--stone-500); font-weight: 600; text-transform: uppercase; }
 .vsd-pquery-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; font-size: 13px; }
@@ -109,12 +84,6 @@
 
 /* ============================ Höhenwind — Center ============================ */
 .vsd-center { flex: 1; min-width: 0; overflow-y: auto; background: var(--sand-100); padding: 18px 20px; }
-.vsd-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
-.vsd-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; border-radius: 16px; padding: 6px 13px; cursor: pointer; border: 1px solid var(--border-default); background: #fff; color: var(--stone-500); }
-.vsd-chip-dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--border-strong); }
-.vsd-chip--active { color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
-.vsd-chip--active .vsd-chip-dot { background: var(--cream-50); border-color: var(--cream-50); }
-.vsd-chip-info { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 10px; color: var(--stone-600); background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 6px 11px; }
 .vsd-ibadge { width: 16px; height: 16px; border-radius: 50%; background: var(--stone-500); color: var(--cream-50); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10px; flex: 0 0 auto; }
 
 .vsd-plot { background: linear-gradient(180deg, var(--vs-plot-1), var(--vs-plot-2)); border: 1px solid var(--border-default); border-radius: 16px; padding: 16px; position: relative; }
@@ -153,8 +122,6 @@
 .vsd-caption { font-size: 11px; color: var(--stone-500); margin: 12px 2px 0; text-align: center; }
 
 /* ============================ Inversion ============================ */
-.vsd-inv-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
-.vsd-inv-title { font-size: 20px; font-weight: 700; color: var(--ink-900); margin-top: 3px; }
 .vsd-inv-row { display: flex; gap: 16px; align-items: stretch; }
 .vsd-scene { flex: 1; min-width: 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-default); position: relative; background: linear-gradient(180deg, var(--vs-scene-1), var(--vs-scene-2) 55%, var(--vs-scene-3)); }
 .vsd-scene svg { width: 100%; height: 100%; display: block; }
@@ -185,7 +152,6 @@
 .vsd-invday-body { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
 
 /* ============================ Go/No-Go — Dock ============================ */
-.vsd-dock--wide { width: 466px; }
 .vsd-hero { margin-top: 14px; background: var(--vs-danger-tint); border: 2px solid var(--terracotta-500); border-radius: 18px; padding: 18px; }
 .vsd-hero--go { background: var(--vs-go-tint); border-color: var(--sage-600); }
 .vsd-hero-top { display: flex; align-items: center; gap: 16px; }
@@ -262,8 +228,6 @@
   .vsd-brand { font-size: 17px; }
   .vsd-rail { width: 54px; padding: 12px 0; }
   .vsd-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
-  .vsd-dock { width: 240px; padding: 14px 12px; }
-  .vsd-dock--wide { width: 300px; }
   .vsd-center { padding: 14px 16px; }
   .vsd-inv-cards { width: 300px; }
   .vsd-hero-status { font-size: 32px; }
@@ -285,10 +249,6 @@
 .vsd-m-title { font-size: 15px; font-weight: 700; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vsd-m-share { font-size: 11px; color: var(--steel-600); font-weight: 600; border: 1px solid var(--border-default); border-radius: 8px; background: none; cursor: pointer; flex: 0 0 auto; }
 .vsd-m-back { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-default); background: var(--cream-50); display: flex; align-items: center; justify-content: center; color: var(--stone-500); flex: 0 0 auto; cursor: pointer; }
-.vsd-m-tabs { flex: 0 0 auto; display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px 3px; scrollbar-width: none; }
-.vsd-m-tabs::-webkit-scrollbar { display: none; }
-.vsd-m-tab { flex: 0 0 auto; font-size: 12px; color: var(--stone-600); background: #fff; border: 1px solid var(--border-default); border-radius: 8px; padding: 9px 13px; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; }
-.vsd-m-tab--active { font-weight: 700; color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
 .vsd-m-scroll { flex: 1; overflow-y: auto; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); }
 .vsd-m-scroll > * + * { margin-top: 12px; }
 .vsd-m-pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
@@ -313,24 +273,6 @@
 }
 @media (prefers-reduced-motion: reduce) { .vsd-cuthint-line { animation: none; } }
 
-/* Karten-Overlay: derselbe Hinweis kompakt, solange die Linie fehlt.
-   pointer-events: none — die Karte bleibt vollständig bedienbar. */
-.vsd-plot--map { position: relative; }
-.vsd-cuthint-pill {
-  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
-  z-index: 2; pointer-events: none;
-  display: flex; align-items: center; gap: 11px;
-  max-width: min(620px, calc(100% - 28px));
-  padding: 11px 16px 11px 12px;
-  background: rgba(250, 246, 234, 0.94);
-  border: 1px solid var(--border-default, #E0D6BE);
-  border-radius: 14px;
-  box-shadow: 0 10px 26px -14px rgba(44, 42, 38, 0.55);
-  font-size: 15px; line-height: 1.45; color: var(--stone-600, #5C5447);
-}
-.vsd-cuthint-pill b { color: var(--ink-900, #2C2A26); }
-.vsd-cuthint-pill svg { flex: 0 0 auto; }
-
 /* ---------------------------------------------------------------------------
    Höhenwind-Ansicht auf eine Bildschirmhöhe: die Mitte ist eine Flex-Spalte,
    der Schnitt-Plot nimmt den Rest — Chips, Legende und Zeitverlauf behalten
@@ -349,7 +291,268 @@
   .vsd-legend { padding: 8px 13px; gap: 13px; margin-top: 9px; }
   .vsd-timedeck { padding: 10px 14px; margin-top: 9px; }
   .vsd-timedeck-row { margin-top: 8px; }
-  .vsd-chips { margin-bottom: 9px; }
+}
+
+/* ============================================================================
+   Aufbau wie Wetterkarte/Brandradar: linke Funktionsleiste mit Icon-Zeilen und
+   Schaltern, Bühne mit Kopf (Karte | Schnitt), Schnitt-Anleitung auf der Karte,
+   mobil dieselbe Leiste als Bottom-Sheet. Akzentfarben je Gruppe wie im
+   Layer-Dock der Wetterkarte (mapDeck.css).
+   ============================================================================ */
+.vsd-root, .vsd-m-root {
+  /* Föhn/Thermik/Nerd-Bausteine lesen die Akzente der alten Shell (.atm-page). */
+  --atm-accent: var(--steel-600, #3A6FA8);
+  --atm-accent-dark: #28507A;
+  --atm-accent-soft: var(--steel-50, #E8F0FA);
+}
+.vsd-side-panel [data-accent='steel'] { --vsd-acc: var(--steel-600, #3A6FA8); }
+.vsd-side-panel [data-accent='terracotta'] { --vsd-acc: var(--terracotta-500, #C97B47); }
+.vsd-side-panel [data-accent='sage'] { --vsd-acc: var(--sage-600, #7A9466); }
+.vsd-side-panel [data-accent='slate'] { --vsd-acc: var(--slate-500, #6B7A8F); }
+
+.vsd-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--steel-600); font-weight: 700; text-transform: uppercase; }
+.vsd-note { font-size: 10.5px; color: var(--stone-500); margin-top: 6px; }
+
+/* ---- Funktionsleiste ------------------------------------------------------ */
+.vsd-side {
+  width: 276px; flex: 0 0 auto; overflow-y: auto;
+  background: var(--cream-50); border-right: 1px solid var(--border-default);
+  padding: 16px 12px 22px;
+}
+.vsd-side-panel { display: flex; flex-direction: column; gap: 16px; }
+.vsd-side-panel > .vsd-pquery, .vsd-side-panel > .vsd-fh, .vsd-side-panel > .vsd-limits { margin-top: 0; }
+.vsd-side-head { display: flex; align-items: center; justify-content: space-between; }
+.vsd-side-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+.vsd-side-count { font-size: 10px; color: var(--stone-600); font-weight: 600; background: var(--sand-100); border-radius: 6px; padding: 3px 8px; }
+.vsd-sgroup-head { font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: var(--vsd-acc, var(--stone-400)); margin: 0 2px 7px; }
+.vsd-srows { display: flex; flex-direction: column; gap: 6px; }
+.vsd-srow {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px;
+  padding: 7px 10px 7px 8px; min-height: 46px; cursor: pointer; font: inherit; color: inherit;
+  transition: border-color .15s, background-color .15s;
+}
+.vsd-srow:hover { border-color: var(--border-medium, #D9D0B8); }
+.vsd-srow:focus-visible { outline: 2px solid var(--vsd-acc, var(--steel-600)); outline-offset: 1px; }
+.vsd-srow.is-on { border-color: var(--vsd-acc); }
+.vsd-srow[role='radio'].is-on { background: color-mix(in srgb, var(--vsd-acc) 7%, #fff); }
+.vsd-srow-ic {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--vsd-acc, var(--steel-600)); background: var(--sand-50, #F5F1E8);
+}
+.vsd-srow.is-off .vsd-srow-ic { color: var(--stone-500, #8B7355); }
+.vsd-srow[role='radio'].is-on .vsd-srow-ic { background: var(--vsd-acc); color: var(--cream-50); }
+.vsd-srow-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.vsd-srow-label { font-size: 13px; font-weight: 600; color: var(--ink-900); }
+.vsd-srow.is-off .vsd-srow-label { font-weight: 500; color: var(--stone-600, #5C5447); }
+.vsd-srow-sub { font-size: 10.5px; color: var(--stone-400, #A89A7A); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vsd-radio {
+  flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%;
+  border: 1.5px solid var(--border-strong, #C4B896); background: #fff; transition: background .15s, border-color .15s;
+}
+.vsd-srow.is-on .vsd-radio { border-color: var(--vsd-acc); background: var(--vsd-acc); box-shadow: inset 0 0 0 3px #fff; }
+.vsd-switch { width: 34px; height: 19px; border-radius: 10px; background: var(--sand-200, #E0D6BE); position: relative; flex: 0 0 auto; transition: background .15s; }
+.vsd-switch-knob { position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(44,42,38,.25); }
+.vsd-srow.is-on .vsd-switch { background: var(--vsd-acc); }
+.vsd-srow.is-on .vsd-switch-knob { transform: translateX(15px); }
+.vsd-srow--action .vsd-srow-ic { color: var(--vsd-acc, var(--slate-500)); }
+.vsd-srow-chev { flex: 0 0 auto; display: flex; color: var(--stone-400); }
+.vsd-srow:disabled { cursor: default; opacity: .55; }
+.vsd-srow:disabled:hover { border-color: var(--sand-200, #E0D6BE); }
+.vsd-side-note { font-size: 10.5px; line-height: 1.45; color: var(--stone-500); margin: 2px 2px 0; }
+.vsd-side-err { font-size: 11px; color: var(--vs-danger, #B5341F); margin: 0 2px; }
+
+/* Ablauf in drei Schritten (oben in der Leiste) */
+.vsd-flow {
+  list-style: none; margin: 0; padding: 6px;
+  background: var(--sand-50, #F5F1E8); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.vsd-flow-step { position: relative; }
+.vsd-flow-step:not(:last-child)::after {
+  content: ''; position: absolute; left: 16px; top: 36px; bottom: -10px; width: 1.5px;
+  background: var(--border-default, #E0D6BE);
+}
+.vsd-flow-step.is-done:not(:last-child)::after { background: var(--sage-600, #7A9466); }
+.vsd-flow-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px;
+  background: none; border: 0; border-radius: 8px; padding: 6px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+}
+.vsd-flow-btn:disabled { cursor: default; }
+.vsd-flow-btn:not(:disabled):hover { background: #fff; }
+.vsd-flow-btn:focus-visible { outline: 2px solid var(--steel-600); outline-offset: 1px; }
+.vsd-flow-num {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+  border: 1.5px solid var(--border-strong, #C4B896); background: #fff; color: var(--stone-500);
+}
+.vsd-flow-step.is-done .vsd-flow-num { background: var(--sage-600); border-color: var(--sage-600); color: var(--cream-50); }
+.vsd-flow-step.is-active .vsd-flow-num { background: var(--steel-600); border-color: var(--steel-600); color: var(--cream-50); box-shadow: 0 0 0 4px rgba(58, 111, 168, .16); }
+.vsd-flow-tx { min-width: 0; display: flex; flex-direction: column; }
+.vsd-flow-label { font-size: 12.5px; font-weight: 600; color: var(--ink-900); }
+.vsd-flow-step.is-todo .vsd-flow-label { color: var(--stone-500); font-weight: 500; }
+.vsd-flow-sub { font-size: 10.5px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Bühne: Kopf + Umschalter Karte | Schnitt ----------------------------- */
+.vsd-stagehead { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.vsd-stagehead-tx { min-width: 0; }
+/* Die App fokussiert beim Seitenwechsel die h1 (tabindex -1) — kein Rahmen um den Titel. */
+.vsd-stage-title:focus, .vsd-intro-title:focus { outline: none; }
+.vsd-stage-title { margin: 3px 0 0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; color: var(--ink-900); }
+.vsd-seg { display: inline-flex; gap: 3px; background: #fff; border: 1px solid var(--border-default); border-radius: 11px; padding: 3px; }
+.vsd-seg-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  font-size: 12.5px; font-weight: 600; color: var(--stone-600); background: none; border: 0; border-radius: 8px;
+  padding: 7px 14px; cursor: pointer; font-family: inherit;
+}
+.vsd-seg-btn:hover:not(:disabled):not(.is-active) { background: var(--sand-50); }
+.vsd-seg-btn.is-active { background: var(--steel-600); color: var(--cream-50); font-weight: 700; }
+.vsd-seg-btn:disabled { opacity: .45; cursor: not-allowed; }
+.vsd-seg-btn:focus-visible { outline: 2px solid var(--steel-600); outline-offset: 1px; }
+.vsd-seg--wide { display: flex; width: 100%; }
+.vsd-seg--wide .vsd-seg-btn { flex: 1; justify-content: center; min-height: 44px; }
+
+/* ---- Karte mit Schnitt-Anleitung ------------------------------------------ */
+.vsd-plot--map { position: relative; padding: 0; overflow: hidden; }
+.vsd-center > .vsd-plot--map { min-height: 420px; }
+.vsd-guide {
+  position: absolute; left: 16px; bottom: 16px; z-index: 3;
+  width: min(340px, calc(100% - 32px));
+  background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 16px;
+  padding: 14px 16px 14px;
+  box-shadow: 0 20px 44px -24px rgba(44, 42, 38, .65);
+}
+.vsd-guide-art { margin-bottom: 10px; display: flex; }
+.vsd-guide-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.vsd-guide-step { display: flex; gap: 11px; align-items: flex-start; }
+.vsd-guide-num {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+  border: 1.5px solid var(--border-strong, #C4B896); background: #fff; color: var(--stone-500);
+}
+.vsd-guide-step.is-done .vsd-guide-num { background: var(--sage-600); border-color: var(--sage-600); color: var(--cream-50); }
+/* Der eine bewegte Moment: der nächste Schritt pulsiert in der Farbe der Schnittlinie. */
+.vsd-guide-step.is-active .vsd-guide-num {
+  background: var(--terracotta-500); border-color: var(--terracotta-500); color: var(--cream-50);
+  animation: vsd-guide-pulse 1.8s ease-out infinite;
+}
+@keyframes vsd-guide-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(201, 123, 71, .45); }
+  100% { box-shadow: 0 0 0 9px rgba(201, 123, 71, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .vsd-guide-step.is-active .vsd-guide-num { animation: none; box-shadow: 0 0 0 4px rgba(201, 123, 71, .2); } }
+.vsd-guide-tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding-top: 2px; }
+.vsd-guide-tx b { font-size: 13.5px; font-weight: 700; color: var(--ink-900); }
+.vsd-guide-tx span { font-size: 11.5px; line-height: 1.4; color: var(--stone-600); }
+.vsd-guide-step.is-todo .vsd-guide-tx b { color: var(--stone-500); font-weight: 600; }
+.vsd-guide-step.is-done .vsd-guide-tx b { color: var(--stone-600); }
+.vsd-guide-foot {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-default);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  font-size: 11px; line-height: 1.45; color: var(--stone-500);
+}
+.vsd-guide--inline { position: static; width: auto; background: #fff; box-shadow: none; }
+
+/* ---- Go/No-Go auf der Bühne ----------------------------------------------- */
+.vsd-gng-hero { max-width: 560px; margin-bottom: 18px; }
+.vsd-gng-hero .vsd-hero { margin-top: 0; }
+
+/* ---- Föhn/Thermik: Stunden-Regler im Deck-Stil, klebt unten ---------------- */
+.vsd-host { max-width: 1180px; }
+.vsd-hourdeck { position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -12px 24px -20px rgba(44, 42, 38, .5); }
+
+/* ---- Tablet --------------------------------------------------------------- */
+@media (max-width: 1439px) {
+  .vsd-side { width: 248px; padding: 14px 10px 20px; }
+  .vsd-stage-title { font-size: 18px; }
+}
+
+/* ---- Mobil: Funktionsleiste und Bottom-Sheet ------------------------------ */
+.vsd-m-fnbar {
+  flex: 0 0 auto; margin: 10px 16px 0; display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid var(--border-default); border-radius: 12px;
+  padding: 7px 8px; min-height: 54px; text-align: left; cursor: pointer; font: inherit; color: inherit;
+}
+.vsd-m-fnbar:focus-visible { outline: 2px solid var(--steel-600); outline-offset: 2px; }
+.vsd-m-fnbar-ic { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 9px; background: var(--steel-600); color: var(--cream-50); display: flex; align-items: center; justify-content: center; }
+.vsd-m-fnbar-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.vsd-m-fnbar-tx b { font-size: 14px; font-weight: 700; color: var(--ink-900); }
+.vsd-m-fnbar-tx span { font-size: 11px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vsd-m-fnbar-cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--steel-600); background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 9px; padding: 8px 10px; }
+.vsd-m-map { height: 56vh; min-height: 300px; }
+@media (max-width: 767px) {
+  /* „Über diese Ansicht" (.rsb) säße mobil oben rechts auf dem Funktionen-Knopf — hier unten rechts
+     wie am Desktop; der Scrollbereich hält unten Platz frei, damit nichts dauerhaft darunter liegt. */
+  .rsb[data-route="atmosphaere"] { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .vsd-m-scroll { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
+
+.vsd-m-map > .td-map-shell, .vsd-m-map .td-map { width: 100%; height: 100%; }
+.vsd-m-sheetwrap { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: flex-end; }
+.vsd-m-backdrop { position: absolute; inset: 0; background: rgba(44, 42, 38, .42); border: 0; padding: 0; cursor: pointer; }
+.vsd-m-sheet {
+  position: relative; max-height: 86dvh; overflow-y: auto;
+  background: var(--cream-50); border-radius: 20px 20px 0 0;
+  padding: 6px 16px calc(22px + env(safe-area-inset-bottom));
+  box-shadow: 0 -20px 44px -24px rgba(44, 42, 38, .55);
+  animation: vsd-sheet-in .22s ease-out;
+}
+.vsd-m-sheet::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--border-strong, #C4B896); margin: 4px auto; }
+@keyframes vsd-sheet-in { from { transform: translateY(24px); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vsd-m-sheet { animation: none; } }
+.vsd-m-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.vsd-m-sheet-title { font-size: 17px; font-weight: 700; color: var(--ink-900); }
+.vsd-m-sheet-close { width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: var(--stone-600); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.vsd-m-sheet .vsd-srow { min-height: 54px; }
+.vsd-m-sheet .vsd-srow-label { font-size: 14.5px; }
+.vsd-m-sheet .vsd-srow-sub { font-size: 11.5px; }
+.vsd-m-sheet .vsd-switch { width: 42px; height: 24px; border-radius: 12px; }
+.vsd-m-sheet .vsd-switch-knob { width: 20px; height: 20px; }
+.vsd-m-sheet .vsd-srow.is-on .vsd-switch-knob { transform: translateX(18px); }
+
+/* ---- Einstieg (Schritt 1) -------------------------------------------------- */
+.vsd-top-label { font-size: 13px; font-weight: 600; color: var(--stone-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vsd-intro-stage { flex: 1; min-width: 0; overflow-y: auto; padding: 40px 32px 56px; }
+.vsd-intro {
+  max-width: 1120px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 28px; align-items: start;
+}
+.vsd-intro-main { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 20px; padding: 32px 32px 28px; }
+.vsd-intro-title { margin: 8px 0 0; font-size: 38px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.08; color: var(--ink-900); }
+.vsd-intro-lead { margin: 14px 0 0; font-size: 15px; line-height: 1.55; color: var(--stone-600); max-width: 56ch; }
+.vsd-intro-action { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.vsd-intro-action .ev-search-wrap { flex: 1 1 300px; min-width: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.vsd-intro-action .ev-search { max-width: none; background: #fff; min-height: 50px; }
+.vsd-intro-action .ev-loc-chip { flex: 1 1 300px; }
+.vsd-intro-action .atm-tour-btn { min-height: 50px; padding: 0 16px; font-size: 13px; }
+.vsd-intro-flow {
+  list-style: none; margin: 26px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;
+}
+.vsd-intro-flow li { display: flex; flex-direction: column; gap: 9px; background: #fff; border: 1px solid var(--border-default); border-radius: 14px; padding: 14px; }
+.vsd-intro-flow li.is-active { border-color: var(--steel-600); box-shadow: 0 0 0 3px rgba(58, 111, 168, .12); }
+.vsd-intro-flow-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 1.5px solid var(--border-strong); color: var(--stone-500); background: #fff; }
+.vsd-intro-flow li.is-active .vsd-intro-flow-num { background: var(--steel-600); border-color: var(--steel-600); color: var(--cream-50); }
+.vsd-intro-flow-tx { display: flex; flex-direction: column; gap: 3px; }
+.vsd-intro-flow-tx b { font-size: 13.5px; font-weight: 700; color: var(--ink-900); }
+.vsd-intro-flow-tx span { font-size: 12px; line-height: 1.45; color: var(--stone-600); }
+.vsd-intro-side { display: flex; flex-direction: column; gap: 14px; padding-top: 6px; }
+.vsd-intro-side .vsd-cuthint { width: 100%; }
+.vsd-intro-caps-head { font-size: 14px; font-weight: 700; color: var(--ink-900); margin-top: 6px; }
+.vsd-intro-caps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.vsd-intro-caps li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.45; color: var(--stone-600); }
+.vsd-intro-caps-mark { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--evd-sage-tint, #E6EDDD); color: var(--sage-600); margin-top: 1px; }
+.vsd-intro-trust { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 11.5px; color: var(--stone-500); }
+@media (max-width: 767px) {
+  .vsd-intro-root .vsd-rail, .vsd-intro-root .vsd-top-label, .vsd-intro-root .vsd-topdivider { display: none; }
+  .vsd-intro-root .vsd-topbar { height: 56px; padding: 0 16px; }
+  .vsd-intro-stage { padding: 16px 16px calc(76px + env(safe-area-inset-bottom)); }
+  .vsd-intro { gap: 18px; }
+  .vsd-intro-main { padding: 22px 18px 20px; border-radius: 18px; }
+  .vsd-intro-title { font-size: 28px; letter-spacing: -0.5px; }
+  .vsd-intro-lead { font-size: 14px; }
+  .vsd-intro-action .atm-tour, .vsd-intro-action .atm-tour-btn { width: 100%; justify-content: center; }
 }
 
 /* ── E-7: Druckbericht des Arbeitsfensters ─────────────────────────────────────

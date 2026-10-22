@@ -1,17 +1,20 @@
 /**
  * Vertikalschnitt / 3D-Wetter — „Command-Deck" (hell).
  *
- * Ersetzt das alte Schnitt-Layout (SectionLens/td-*) durch das Command-Deck aus
- * references/vertikalschnitt.dc.html. Drei Linsen — Höhenwind-Geländeschnitt,
- * Inversion/Kaltluftsee, Go/No-Go (B2B) — plus die erhaltenen Linsen Föhn & Thermik.
- * Alle drei Schnitt-Linsen speisen sich aus EINEM vorbereiteten Vertikalschnitt
- * (prepareCrossSection → sectionAtTime → CrossSection) und der bestehenden
- * Go/No-Go-Logik (goNoGo.ts). Keine erfundenen Daten: ohne Schnittlinie ehrlicher
- * Hinweis statt Fake-Werte. Funktionserhalt: SectionChart, evaluateGoNoGo,
- * estimateInversion, FoehnPanel, ThermalMap, Profil & Nerd bleiben verdrahtet.
+ * Aufbau wie Wetterkarte und Brandradar: Topbar · Rail · linke Funktionsleiste
+ * (Ansichten, Ebenen, Schnittlinie, Föhn/Thermik — Zeilen mit Icon und Schalter)
+ * · Bühne. Ablauf für den Anwender: Ort (Intro) → Karte mit Schnitt-Anleitung →
+ * nach dem zweiten Punkt öffnet sich der Schnitt von selbst.
+ *
+ * Alle drei Schnitt-Ansichten — Höhenwind, Inversion, Go/No-Go — speisen sich aus
+ * EINEM vorbereiteten Vertikalschnitt (prepareCrossSection → sectionAtTime →
+ * CrossSection) und der bestehenden Go/No-Go-Logik (goNoGo.ts). Keine erfundenen
+ * Daten: ohne Schnittlinie die Karte mit Anleitung statt Fake-Werte.
+ * Funktionserhalt: SectionChart, evaluateGoNoGo, estimateInversion, FoehnPanel,
+ * ThermalMap, Profil & Nerd bleiben verdrahtet.
  */
 
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { tourFileToCutLine } from '../threed/tourImport';
@@ -25,6 +28,7 @@ import {
 } from '../threed/buildCrossSection';
 import { SECTION_LEVEL_STEP_M } from '../threed/crossSection';
 import type { CrossSection } from '../threed/crossSection';
+import type { ThreeDLayers } from '../threed/threedState';
 import { evaluateGoNoGo, loadGoNoGo, saveGoNoGo, type GoNoGoConfig } from '../threed/goNoGo';
 // E-7: der PDF-Knopf war eine Attrappe — jetzt druckt er einen echten Bericht.
 import GoNoGoReport, { printGoNoGoReport } from './GoNoGoReport';
@@ -112,7 +116,7 @@ function useSectionData() {
 // ----------------------------------------------------------------------------
 export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, routeSub, onSubChange }: Props) {
   const isMobile = useIsMobile();
-  const { lens, setLens, location } = useAtmosphere();
+  const { lens, setLens, location, cutPoints } = useAtmosphere();
   const [sub, setSub] = useState<DeckSub>(initialSub ?? 'hoehenwind');
   // Router (RT1): Unterlinse ⇒ `?ansicht=` (replace, kein History-Eintrag).
   const onSubChangeRef = useRef(onSubChange);
@@ -127,29 +131,52 @@ export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, rout
     else { setLens('section'); setSub(l); }
   };
 
-  const { cutPoints, sectionMode, setSectionMode } = useAtmosphere();
   const sectionData = useSectionData();
-  // Beim Öffnen mit vorhandener Schnittlinie direkt in den 3D-Schnitt (Vorlage).
-  const auto3dRef = useRef(false);
+  // Ablauf: ohne Linie die Karte mit Anleitung; sobald die Linie steht (zweiter
+  // Punkt, Tour-Import oder Permalink), öffnet sich der Schnitt von selbst.
+  // „Karte" in der Bühne holt die Linie zum Bearbeiten zurück.
+  const [editing, setEditing] = useState(false);
+  const prevCutRef = useRef(cutPoints.length);
   useEffect(() => {
-    if (!auto3dRef.current && cutPoints.length >= 2 && sectionMode === '2d') { auto3dRef.current = true; setSectionMode('3d'); }
-  }, [cutPoints, sectionMode, setSectionMode]);
+    const prev = prevCutRef.current;
+    prevCutRef.current = cutPoints.length;
+    if (cutPoints.length >= 2 && prev < 2) setEditing(false);
+  }, [cutPoints]);
+  const isSection = deckLens === 'hoehenwind' || deckLens === 'inversion' || deckLens === 'gonogo';
+  const hasCut = cutPoints.length >= 2;
+  const mapOpen = isSection && (!hasCut || editing);
+
   const [picked, setPicked] = useState<PickedPoint | null>(null);
   const [cfg, setCfgState] = useState<GoNoGoConfig>(() => loadGoNoGo());
   const setCfg = (c: GoNoGoConfig) => { setCfgState(c); saveGoNoGo(c); };
+  const res = useMemo(
+    () => (sectionData.data.kind === 'ready' ? evaluateGoNoGo(sectionData.data.prepared, cfg) : null),
+    [sectionData.data, cfg],
+  );
 
-  const ctx = { deckLens, setDeckLens, ...sectionData, picked, setPicked, cfg, setCfg, onBack, onOpenFeature, location };
+  const ctx: DeckCtx = {
+    deckLens, setDeckLens, ...sectionData, picked, setPicked, cfg, setCfg, res, onBack, onOpenFeature, location,
+    isSection, hasCut, mapOpen, openMap: () => setEditing(true), openSection: () => setEditing(false),
+  };
 
   if (isMobile) return <MobileDeck {...ctx} />;
   return <DesktopDeck {...ctx} />;
 }
 
+type GoNoGoResult = ReturnType<typeof evaluateGoNoGo>;
 type DeckCtx = {
   deckLens: DeckLens; setDeckLens: (l: DeckLens) => void;
   data: DataState; section: CrossSection | null; timeMs: number | null; setTimeMs: (v: number | ((p: number | null) => number | null)) => void;
   picked: PickedPoint | null; setPicked: (p: PickedPoint | null) => void;
-  cfg: GoNoGoConfig; setCfg: (c: GoNoGoConfig) => void;
+  cfg: GoNoGoConfig; setCfg: (c: GoNoGoConfig) => void; res: GoNoGoResult | null;
   onBack: () => void; onOpenFeature?: (id: RailFeature) => void; location: Location | null;
+  /** Höhenwind/Inversion/Go-No-Go (brauchen die Schnittlinie). */
+  isSection: boolean;
+  /** Schnittlinie mit mindestens zwei Punkten. */
+  hasCut: boolean;
+  /** Bühne zeigt die Karte zum Zeichnen/Bearbeiten der Linie. */
+  mapOpen: boolean;
+  openMap: () => void; openSection: () => void;
 };
 
 // ============================ Desktop / Tablet ============================
@@ -158,10 +185,14 @@ const dataOrigin = (d: DataState): string => sectionOrigin(d.kind === 'ready' ? 
 const hhmm = (ms: number): string => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 
 function DesktopDeck(ctx: DeckCtx) {
-  const { deckLens, onBack, onOpenFeature, location, data } = ctx;
+  const { deckLens, onBack, onOpenFeature, data, mapOpen, res, cfg, location } = ctx;
   const isGoNoGo = deckLens === 'gonogo';
+  const prepared = data.kind === 'ready' ? data.prepared : null;
   return (
     <div className="vsd-root">
+      {/* E-7: liegt am Schirm auf `display: none` und ist im Druck das Einzige,
+          was erscheint. Der Knopf in der Topbar löst nur `window.print()` aus. */}
+      {isGoNoGo && <GoNoGoReport res={res} prepared={prepared} cfg={cfg} location={location} />}
       <div className="vsd-topbar">
         <div className="vsd-brandwrap">
           <img src="/buscosun-mark.svg" width={26} height={26} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
@@ -191,10 +222,19 @@ function DesktopDeck(ctx: DeckCtx) {
       </div>
       <div className="vsd-body">
         <Rail onBack={onBack} onOpenFeature={onOpenFeature} />
-        {deckLens === 'hoehenwind' && <HoehenwindDesktop {...ctx} />}
-        {deckLens === 'inversion' && <InversionDesktop {...ctx} />}
-        {deckLens === 'gonogo' && <GoNoGoDesktop {...ctx} />}
-        {(deckLens === 'foehn' || deckLens === 'thermik') && <PreservedHost {...ctx} location={location} />}
+        <aside className="vsd-side vsd-scroll" aria-label="Atmosphäre-Funktionen">
+          <SidePanel ctx={ctx} />
+        </aside>
+        <main className="vsd-center vsd-scroll">
+          {mapOpen ? <CutStage {...ctx} /> : (
+            <>
+              {deckLens === 'hoehenwind' && <HoehenwindDesktop {...ctx} />}
+              {deckLens === 'inversion' && <InversionDesktop {...ctx} />}
+              {deckLens === 'gonogo' && <GoNoGoDesktop {...ctx} />}
+              {(deckLens === 'foehn' || deckLens === 'thermik') && <PreservedHost {...ctx} />}
+            </>
+          )}
+        </main>
       </div>
     </div>
   );
@@ -214,139 +254,342 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
   );
 }
 
-function LensPills({ deckLens, setDeckLens }: { deckLens: DeckLens; setDeckLens: (l: DeckLens) => void }) {
-  const items: Array<{ id: DeckLens; label: string }> = [
-    { id: 'hoehenwind', label: 'Höhenwind' },
-    { id: 'inversion', label: 'Inversion' },
-    { id: 'gonogo', label: 'Go/No-Go' },
-    { id: 'foehn', label: 'Föhn' },
-    { id: 'thermik', label: 'Thermik' },
+// ============================ Funktionsleiste (links) ============================
+const VIEW_META: Record<DeckLens, { label: string; sub: string; icon: () => ReactNode }> = {
+  hoehenwind: { label: 'Höhenwind', sub: 'Wind & Böen im Querschnitt', icon: IconViewWind },
+  inversion: { label: 'Inversion', sub: 'Kaltluftsee · Nebelobergrenze', icon: IconViewInversion },
+  gonogo: { label: 'Go/No-Go', sub: 'Betriebs-Check · Drohne', icon: IconViewGoNoGo },
+  foehn: { label: 'Föhn', sub: 'Föhn-Index · Talwind · Profil', icon: IconViewFoehn },
+  thermik: { label: 'Thermik', sub: 'Aufwind · Wolkenbasis · Profil', icon: IconViewThermik },
+};
+
+const LAYER_ROWS: Array<{ key: keyof ThreeDLayers; label: string; sub: string; icon: () => ReactNode }> = [
+  { key: 'mean', label: 'Mittelwind', sub: 'Farbflächen · Pfeile', icon: IconLayerMean },
+  { key: 'gust', label: 'Böen', sub: 'Isotachen gestrichelt', icon: IconLayerGust },
+  { key: 'shear', label: 'Shear', sub: 'Windscherung', icon: IconLayerShear },
+  { key: 'streamlines', label: 'Streamlines', sub: 'Strömungslinien', icon: IconLayerStream },
+  { key: 'cloudBase', label: 'Wolkenbasis', sub: 'Untergrenze der Wolken', icon: IconLayerCloud },
+];
+
+function SidePanel({ ctx, mobile = false, onPicked }: { ctx: DeckCtx; mobile?: boolean; onPicked?: () => void }) {
+  const { deckLens, setDeckLens, isSection, mapOpen, hasCut, openMap, openSection, picked } = ctx;
+  const { cutPoints, setCutPoints, sectionLayers, setSectionLayers, nerdOpen, setNerdOpen } = useAtmosphere();
+  const pick = (l: DeckLens) => { setDeckLens(l); onPicked?.(); };
+  return (
+    <div className="vsd-side-panel">
+      {!mobile && (
+        <div className="vsd-side-head">
+          <span className="vsd-side-eyebrow">Atmosphäre</span>
+          <span className="vsd-side-count">{VIEW_META[deckLens].label}</span>
+        </div>
+      )}
+
+      {isSection && <FlowSteps ctx={ctx} onPicked={onPicked} />}
+
+      <SideGroup title="Am Schnitt" accent="steel" role="radiogroup">
+        {(['hoehenwind', 'inversion', 'gonogo'] as DeckLens[]).map((l) => (
+          <ViewRow key={l} lens={l} on={deckLens === l} accent="steel" onClick={() => pick(l)} />
+        ))}
+      </SideGroup>
+
+      <SideGroup title="Am Ort · ohne Schnitt" accent="sage" role="radiogroup">
+        {(['foehn', 'thermik'] as DeckLens[]).map((l) => (
+          <ViewRow key={l} lens={l} on={deckLens === l} accent="sage" onClick={() => pick(l)} />
+        ))}
+        {!isSection && (
+          <SwitchRow label="Detailansicht" sub="Skew-T, Indizes, Werte-Tabelle" icon={IconDetail} accent="sage" on={nerdOpen} onClick={() => setNerdOpen(!nerdOpen)} />
+        )}
+      </SideGroup>
+
+      {deckLens === 'gonogo' && !mobile && <GoNoGoSettings cfg={ctx.cfg} setCfg={ctx.setCfg} />}
+
+      {deckLens === 'hoehenwind' && (
+        <SideGroup title="Ebenen im Schnitt" accent="terracotta">
+          {LAYER_ROWS.map((r) => (
+            <SwitchRow key={r.key} label={r.label} sub={r.sub} icon={r.icon} accent="terracotta" on={sectionLayers[r.key]}
+              onClick={() => setSectionLayers({ ...sectionLayers, [r.key]: !sectionLayers[r.key] })} />
+          ))}
+          <p className="vsd-side-note">{SECTION_ANCHORS} Wetterpunkte entlang der Linie · Höhenstufen {SECTION_LEVEL_STEP_M} m · Auflösung begrenzt die Genauigkeit</p>
+        </SideGroup>
+      )}
+
+      {deckLens === 'hoehenwind' && !mobile && !mapOpen && <PointQuery picked={picked} />}
+
+      {isSection && (
+        <SideGroup title="Schnittlinie" accent="slate">
+          {mapOpen && hasCut ? (
+            <ActionRow icon={IconViewWind} label="Schnitt anzeigen" sub={`${cutPoints.length} Punkte gesetzt`} onClick={() => { openSection(); onPicked?.(); }} />
+          ) : (
+            <ActionRow icon={IconPencil} label={hasCut ? 'Linie bearbeiten' : 'Linie zeichnen'} sub={hasCut ? 'Punkte verschieben, ergänzen, löschen' : 'Zwei Punkte auf der Karte setzen'}
+              onClick={() => { openMap(); onPicked?.(); }} disabled={mapOpen} />
+          )}
+          <TourRow onDone={onPicked} />
+          {cutPoints.length > 0 && (
+            <ActionRow icon={IconTrash} label="Linie löschen" sub="Neu beginnen" onClick={() => { setCutPoints([]); onPicked?.(); }} />
+          )}
+        </SideGroup>
+      )}
+    </div>
+  );
+}
+
+/** Ablauf in drei Schritten — zeigt, wo der Anwender steht, und springt dorthin. */
+function FlowSteps({ ctx, onPicked }: { ctx: DeckCtx; onPicked?: () => void }) {
+  const { hasCut, mapOpen, openMap, openSection, location } = ctx;
+  const { setLocation } = useAtmosphere();
+  const steps: Array<{ label: string; sub: string; state: 'done' | 'active' | 'todo'; onClick?: () => void }> = [
+    { label: 'Ort', sub: location?.name ?? 'gewählt', state: 'done', onClick: () => setLocation(null) },
+    { label: 'Schnitt ziehen', sub: hasCut ? 'Linie steht' : 'zwei Punkte auf der Karte', state: hasCut && !mapOpen ? 'done' : 'active', onClick: () => { openMap(); onPicked?.(); } },
+    { label: 'Atmosphäre ansehen', sub: hasCut ? 'entlang der Linie' : 'nach dem Schnitt', state: hasCut && !mapOpen ? 'active' : 'todo', onClick: hasCut ? () => { openSection(); onPicked?.(); } : undefined },
   ];
   return (
-    <div className="vsd-lenses" role="tablist" aria-label="Linse">
-      {items.map((it) => (
-        <button key={it.id} type="button" role="tab" aria-selected={deckLens === it.id}
-          className={`vsd-lens${deckLens === it.id ? ' vsd-lens--active' : ''}`} onClick={() => setDeckLens(it.id)}>
-          {it.label}
-        </button>
+    <ol className="vsd-flow" aria-label="Ablauf">
+      {steps.map((s, i) => (
+        <li key={s.label} className={`vsd-flow-step is-${s.state}`}>
+          <button type="button" className="vsd-flow-btn" onClick={s.onClick} disabled={!s.onClick} aria-current={s.state === 'active' ? 'step' : undefined}
+            title={i === 0 ? 'Ort ändern' : undefined}>
+            <span className="vsd-flow-num" aria-hidden="true">{s.state === 'done' ? <IconTick /> : i + 1}</span>
+            <span className="vsd-flow-tx"><span className="vsd-flow-label">{s.label}</span><span className="vsd-flow-sub">{s.sub}</span></span>
+          </button>
+        </li>
       ))}
+    </ol>
+  );
+}
+
+function SideGroup({ title, accent, role, children }: { title: string; accent: string; role?: string; children: ReactNode }) {
+  return (
+    <section className="vsd-sgroup" data-accent={accent}>
+      <div className="vsd-sgroup-head">{title}</div>
+      <div className="vsd-srows" role={role} aria-label={role ? title : undefined}>{children}</div>
+    </section>
+  );
+}
+
+function ViewRow({ lens, on, accent, onClick }: { lens: DeckLens; on: boolean; accent: string; onClick: () => void }) {
+  const m = VIEW_META[lens];
+  return (
+    <button type="button" role="radio" aria-checked={on} className={`vsd-srow${on ? ' is-on' : ' is-off'}`} data-accent={accent} onClick={onClick}>
+      <span className="vsd-srow-ic">{m.icon()}</span>
+      <span className="vsd-srow-tx"><span className="vsd-srow-label">{m.label}</span><span className="vsd-srow-sub">{m.sub}</span></span>
+      <span className="vsd-radio" aria-hidden="true" />
+    </button>
+  );
+}
+
+function SwitchRow({ label, sub, icon, accent, on, onClick }: { label: string; sub: string; icon: () => ReactNode; accent: string; on: boolean; onClick: () => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} className={`vsd-srow${on ? ' is-on' : ' is-off'}`} data-accent={accent} onClick={onClick}>
+      <span className="vsd-srow-ic">{icon()}</span>
+      <span className="vsd-srow-tx"><span className="vsd-srow-label">{label}</span><span className="vsd-srow-sub">{sub}</span></span>
+      <span className="vsd-switch" aria-hidden="true"><span className="vsd-switch-knob" /></span>
+    </button>
+  );
+}
+
+function ActionRow({ icon, label, sub, onClick, disabled }: { icon: () => ReactNode; label: string; sub: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button type="button" className="vsd-srow vsd-srow--action" onClick={onClick} disabled={disabled}>
+      <span className="vsd-srow-ic">{icon()}</span>
+      <span className="vsd-srow-tx"><span className="vsd-srow-label">{label}</span><span className="vsd-srow-sub">{sub}</span></span>
+      <span className="vsd-srow-chev" aria-hidden="true"><IconChevron /></span>
+    </button>
+  );
+}
+
+/** Tour/GPX als Schnittlinie übernehmen (vorher die Pille in der Dock-Karte). */
+function TourRow({ onDone }: { onDone?: () => void }) {
+  const { setLocation, setCutPoints } = useAtmosphere();
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
+    setErr(null);
+    try {
+      const tour = await tourFileToCutLine(f);
+      const s = tour.points[0];
+      setLocation({ name: tour.name, lat: s.lat, lon: s.lon, country: pickCountry(s.lat, s.lon) });
+      setCutPoints(tour.points);
+      onDone?.();
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : 'Tour konnte nicht gelesen werden.');
+    }
+  }
+  return (
+    <>
+      <input ref={fileRef} type="file" accept=".gpx,.tcx,.fit,.kml,.kmz" style={{ display: 'none' }} onChange={onFile} />
+      <ActionRow icon={IconRoute} label="Tour als Linie laden" sub="GPX · TCX · FIT · KML" onClick={() => fileRef.current?.click()} />
+      {err && <p className="vsd-side-err">⚠ {err}</p>}
+    </>
+  );
+}
+
+function PointQuery({ picked }: { picked: PickedPoint | null }) {
+  return (
+    <div className="vsd-pquery">
+      <div className="vsd-pquery-lab">{picked ? `Punkt-Abfrage · ${(picked.distanceM / 1000).toFixed(1).replace('.', ',')} km · ${Math.round(picked.levelM)} m` : 'Punkt-Abfrage'}</div>
+      {picked ? (
+        <div className="vsd-pquery-rows">
+          <div className="vsd-pquery-row"><span>Höhe</span><b>{Math.round(picked.levelM)} m ü. NN</b></div>
+          <div className="vsd-pquery-row"><span>über Grund</span><b>{Math.round(picked.agl)} m AGL</b></div>
+          <div className="vsd-pquery-row"><span>Mittelwind</span><b className="wind">{Math.round(picked.windKmh)} km/h · {compass(picked.windDirDeg)}</b></div>
+          <div className="vsd-pquery-row"><span>Böen</span><b className="gust">{Math.round(picked.gustKmh)} km/h</b></div>
+          <div className="vsd-pquery-row"><span>Temperatur</span><b>{fmtTemp(picked.tempC)} °C</b></div>
+        </div>
+      ) : (
+        <div className="vsd-pquery-empty">Tippe in den Schnitt, um Höhe, Wind, Böen und Temperatur an einem Punkt abzulesen.</div>
+      )}
+    </div>
+  );
+}
+
+function GoNoGoSettings({ cfg, setCfg, compact = false }: { cfg: GoNoGoConfig; setCfg: (c: GoNoGoConfig) => void; compact?: boolean }) {
+  return (
+    <>
+      <div className="vsd-fh">
+        <div className="vsd-pquery-lab">Flughöhe (AGL)</div>
+        <div className="vsd-fh-body">
+          <div className="vsd-fh-box"><input type="number" min={5} max={1500} value={cfg.heightAglM} onChange={(e) => setCfg({ ...cfg, heightAglM: clampNum(e.target.value, 5, 1500, cfg.heightAglM) })} aria-label="Flughöhe in Meter über Grund" /><span>{compact ? 'm' : 'm über Grund'}</span></div>
+          <div className="vsd-fh-quick">
+            <div className="vsd-fh-quick-lab">Schnellwahl</div>
+            <div className="vsd-fh-quick-row">
+              {[50, 120, 300].map((h) => (
+                <button key={h} className={`vsd-qbtn${cfg.heightAglM === h ? ' vsd-qbtn--active' : ''}`} onClick={() => setCfg({ ...cfg, heightAglM: h })}>{h} m</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      {!compact && (
+        <div className="vsd-limits">
+          <div className="vsd-pquery-lab">Eigene Grenzwerte · gespeichert</div>
+          <div className="vsd-limits-rows">
+            <div className="vsd-limit"><span>Böen-Limit</span><div><input type="number" min={5} max={200} value={cfg.gustLimitKmh} onChange={(e) => setCfg({ ...cfg, gustLimitKmh: clampNum(e.target.value, 5, 200, cfg.gustLimitKmh) })} aria-label="Böen-Limit km/h" /> <b style={{ fontWeight: 400, color: 'var(--stone-500)', fontSize: 12 }}>km/h</b></div></div>
+            <ExtraLimit label="Mittelwind-Limit" unit="km/h" storeKey="mean" fallback={28} />
+            <ExtraLimit label="Niederschlag" unit="mm" storeKey="precip" fallback={0} />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ============================ Bühne ============================
+/** Kopf der Bühne: Titel + Umschalter Karte | Schnitt (nur Schnitt-Ansichten). */
+function StageHead({ ctx, eyebrow, title }: { ctx: DeckCtx; eyebrow: string; title: ReactNode }) {
+  const { isSection, mapOpen, hasCut, openMap, openSection } = ctx;
+  return (
+    <div className="vsd-stagehead">
+      <div className="vsd-stagehead-tx">
+        <div className="vsd-eyebrow">{eyebrow}</div>
+        <h1 className="vsd-stage-title">{title}</h1>
+      </div>
+      {isSection && (
+        <div className="vsd-seg" role="tablist" aria-label="Bühne">
+          <button type="button" role="tab" aria-selected={mapOpen} className={`vsd-seg-btn${mapOpen ? ' is-active' : ''}`} onClick={openMap}><IconMapSmall />Karte</button>
+          <button type="button" role="tab" aria-selected={!mapOpen} className={`vsd-seg-btn${!mapOpen ? ' is-active' : ''}`} onClick={openSection} disabled={!hasCut}
+            title={hasCut ? undefined : 'Erst eine Schnittlinie zeichnen'}><IconViewWind />Schnitt</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Karte mit Schnitt-Anleitung. Die Anleitung folgt live dem Stand der Linie
+ * (Start → Ende → Schnitt öffnet sich) und liegt neben, nicht auf der
+ * Zeichenfläche — die Karte bleibt vollständig bedienbar.
+ */
+function CutStage(ctx: DeckCtx) {
+  const { location, hasCut } = ctx;
+  const { cutPoints, setCutPoints } = useAtmosphere();
+  const center = location ? { lat: location.lat, lon: location.lon } : { lat: 47.42, lon: 10.98 };
+  return (
+    <>
+      <StageHead ctx={ctx} eyebrow={hasCut ? 'Schnittlinie bearbeiten' : 'Schritt 2 von 3 · Schnitt ziehen'}
+        title={hasCut ? 'Linie anpassen, dann Schnitt anzeigen' : 'Zieh eine Linie durch die Landschaft'} />
+      <div className="vsd-plot vsd-plot--map">
+        <ThreeDMap center={center} points={cutPoints} onChange={setCutPoints} />
+        <CutGuide ctx={ctx} />
+      </div>
+    </>
+  );
+}
+
+function CutGuide({ ctx, inline = false }: { ctx: DeckCtx; inline?: boolean }) {
+  const { hasCut, openSection } = ctx;
+  const { cutPoints } = useAtmosphere();
+  const n = cutPoints.length;
+  const steps = [
+    { label: 'Startpunkt antippen', sub: 'auf einer Seite von Tal oder Grat' },
+    { label: 'Endpunkt antippen', sub: 'auf der anderen Seite — die Linie quert das Gelände' },
+    { label: 'Atmosphäre ansehen', sub: hasCut ? 'mit „Schnitt anzeigen" weiter' : 'der Schnitt öffnet sich von selbst' },
+  ];
+  const state = (i: number) => (i < Math.min(n, 2) ? 'done' : i === Math.min(n, 2) ? 'active' : 'todo');
+  return (
+    <div className={`vsd-guide${inline ? ' vsd-guide--inline' : ''}`} role="status" aria-live="polite">
+      {!inline && <div className="vsd-guide-art" aria-hidden="true"><CutHintMark /></div>}
+      <ol className="vsd-guide-steps">
+        {steps.map((s, i) => (
+          <li key={s.label} className={`vsd-guide-step is-${hasCut && i === 2 ? 'active' : state(i)}`}>
+            <span className="vsd-guide-num" aria-hidden="true">{state(i) === 'done' ? <IconTick /> : i + 1}</span>
+            <span className="vsd-guide-tx"><b>{s.label}</b><span>{s.sub}</span></span>
+          </li>
+        ))}
+      </ol>
+      {hasCut ? (
+        <div className="vsd-guide-foot">
+          <span>{n} Punkte · Marker ziehen zum Verschieben, antippen zum Löschen. Weitere Punkte knicken die Linie.</span>
+          <button type="button" className="vsd-toppill vsd-toppill--primary" onClick={openSection}>Schnitt anzeigen</button>
+        </div>
+      ) : (
+        <div className="vsd-guide-foot"><span>Tipp: Eine Linie quer über ein Tal zeigt Kaltluftsee und Talwind am besten.</span></div>
+      )}
     </div>
   );
 }
 
 // ---------------------------- Höhenwind (Desktop) ----------------------------
 function HoehenwindDesktop(ctx: DeckCtx) {
-  const { data, section, timeMs, setTimeMs, picked, setPicked, deckLens, setDeckLens, location } = ctx;
-  const { cutPoints, setCutPoints, sectionLayers, setSectionLayers, sectionMode, setSectionMode } = useAtmosphere();
-  const center = location ? { lat: location.lat, lon: location.lon } : { lat: 47.42, lon: 10.98 };
+  const { data, section, timeMs, setTimeMs, picked, setPicked, location } = ctx;
+  const { sectionLayers } = useAtmosphere();
 
   return (
     <>
-      <div className="vsd-dock vsd-scroll">
-        <div className="vsd-eyebrow">Höhenwind-Geländeschnitt</div>
-        <div className="vsd-dock-title">{location?.name ?? 'Schnittlinie zeichnen'}</div>
-        <div className="vsd-toggle" role="tablist" aria-label="Ansicht">
-          <button role="tab" aria-selected={sectionMode === '2d'} className={`vsd-toggle-btn${sectionMode === '2d' ? ' vsd-toggle-btn--active' : ''}`} onClick={() => setSectionMode('2d')}>2D</button>
-          <button role="tab" aria-selected={sectionMode !== '2d'} className={`vsd-toggle-btn${sectionMode !== '2d' ? ' vsd-toggle-btn--active' : ''}`} onClick={() => setSectionMode('3d')}>3D</button>
-        </div>
-        <div className="vsd-note">Ort · Zeit · Parameter bleiben erhalten</div>
+      <StageHead ctx={ctx} eyebrow="Höhenwind am Schnitt" title={location?.name ?? 'Schnittlinie'} />
 
-        <div className="vsd-mapcard">
-          <DockMapSchematic points={cutPoints.length} />
-          <div className="vsd-map-badge"><span className="vsd-map-badge-dot" /><span className="vsd-map-badge-txt">Schnitt-Modus aktiv</span></div>
-          <TourPill />
-        </div>
-        <div className="vsd-note">{cutPoints.length === 0 ? 'Wechsle auf 2D, um die Schnittlinie zu zeichnen' : `${cutPoints.length} Punkt${cutPoints.length === 1 ? '' : 'e'} · Marker ziehen oder antippen zum Löschen`}</div>
-
-        <div className="vsd-pquery">
-          <div className="vsd-pquery-lab">{picked ? `Punkt-Abfrage · ${(picked.distanceM / 1000).toFixed(1).replace('.', ',')} km · ${Math.round(picked.levelM)} m` : 'Punkt-Abfrage'}</div>
-          {picked ? (
-            <div className="vsd-pquery-rows">
-              <div className="vsd-pquery-row"><span>Höhe</span><b>{Math.round(picked.levelM)} m ü. NN</b></div>
-              <div className="vsd-pquery-row"><span>über Grund</span><b>{Math.round(picked.agl)} m AGL</b></div>
-              <div className="vsd-pquery-row"><span>Mittelwind</span><b className="wind">{Math.round(picked.windKmh)} km/h · {compass(picked.windDirDeg)}</b></div>
-              <div className="vsd-pquery-row"><span>Böen</span><b className="gust">{Math.round(picked.gustKmh)} km/h</b></div>
-              <div className="vsd-pquery-row"><span>Temperatur</span><b>{fmtTemp(picked.tempC)} °C</b></div>
-            </div>
-          ) : (
-            <div className="vsd-pquery-empty">Tippe in den Schnitt, um Höhe, Wind, Böen und Temperatur an einem Punkt abzulesen.</div>
-          )}
-        </div>
-      </div>
-
-      <div className="vsd-center vsd-scroll">
-        <div className="vsd-inv-head">
-          <div />
-          <LensPills deckLens={deckLens} setDeckLens={setDeckLens} />
-        </div>
-
-        {sectionMode === '2d' ? (
-          <div className="vsd-plot vsd-plot--map" style={{ padding: 0, overflow: 'hidden', height: 560 }}>
-            <ThreeDMap center={center} points={cutPoints} onChange={setCutPoints} />
-            {cutPoints.length < 2 && (
-              <div className="vsd-cuthint-pill" role="status">
-                <CutHintMark />
-                <span>
-                  <b>Schnittlinie zeichnen:</b> tippe {cutPoints.length === 0 ? 'zwei Punkte' : 'noch einen Punkt'} auf die Karte,
-                  am besten quer über ein Tal oder einen Grat.
-                </span>
+      <div className="vsd-plot">
+        {section ? (
+          <>
+            <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} wide />
+            {picked && (
+              <div className="vsd-pickpill">
+                <div className="vsd-pickpill-lab">{Math.round(picked.levelM)} M · {Math.round(picked.agl)} M AGL</div>
+                <div className="vsd-pickpill-val">{Math.round(picked.windKmh)} km/h <small>Mittel</small></div>
+                <div className="vsd-pickpill-sub">Böe <b>{Math.round(picked.gustKmh)}</b> · {compass(picked.windDirDeg)} · {fmtTemp(picked.tempC)} °C</div>
               </div>
             )}
-          </div>
-        ) : (
-          <>
-            <div className="vsd-chips">
-              <LayerChip label="Mittelwind" on={sectionLayers.mean} onClick={() => setSectionLayers({ ...sectionLayers, mean: !sectionLayers.mean })} />
-              <LayerChip label="Böen" on={sectionLayers.gust} onClick={() => setSectionLayers({ ...sectionLayers, gust: !sectionLayers.gust })} />
-              <LayerChip label="Shear" on={sectionLayers.shear} onClick={() => setSectionLayers({ ...sectionLayers, shear: !sectionLayers.shear })} />
-              <LayerChip label="Streamlines" on={sectionLayers.streamlines} onClick={() => setSectionLayers({ ...sectionLayers, streamlines: !sectionLayers.streamlines })} />
-              <LayerChip label="Wolkenbasis" on={sectionLayers.cloudBase} onClick={() => setSectionLayers({ ...sectionLayers, cloudBase: !sectionLayers.cloudBase })} />
-              <span className="vsd-chip-info"><span className="vsd-ibadge">i</span>{SECTION_ANCHORS} Wetterpunkte entlang der Linie · Höhenstufen {SECTION_LEVEL_STEP_M} m · Auflösung begrenzt die Genauigkeit</span>
-            </div>
-
-            <div className="vsd-plot">
-              {section ? (
-                <>
-                  <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} wide />
-                  {picked && (
-                    <div className="vsd-pickpill">
-                      <div className="vsd-pickpill-lab">{Math.round(picked.levelM)} M · {Math.round(picked.agl)} M AGL</div>
-                      <div className="vsd-pickpill-val">{Math.round(picked.windKmh)} km/h <small>Mittel</small></div>
-                      <div className="vsd-pickpill-sub">Böe <b>{Math.round(picked.gustKmh)}</b> · {compass(picked.windDirDeg)} · {fmtTemp(picked.tempC)} °C</div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <SectionPlaceholder data={data} onDraw={() => setSectionMode('2d')} />
-              )}
-            </div>
-
-            <div className="vsd-legend">
-              <span className="vsd-legend-lab">Windgeschwindigkeit km/h · Höhe = m ü. NN</span>
-              {BAND_COLORS.map((c, i) => (
-                <div key={c} className="vsd-legend-item"><span className="vsd-legend-sw" style={{ background: c }} /><span>{BAND_LABELS[i]}</span></div>
-              ))}
-              <span className="vsd-legend-div" />
-              <div className="vsd-legend-item"><span className="vsd-legend-line" /><span>Mittelwind</span></div>
-              <div className="vsd-legend-item"><span className="vsd-legend-line vsd-legend-line--dash" /><span>Böen</span></div>
-              {/* E-FR-5: buscosun Fusion withholds the direction of weak/unsteady wind — no arrow instead of a north arrow. */}
-              <div className="vsd-legend-item"><span>ohne Pfeil = keine eindeutige Richtung</span></div>
-            </div>
-
-            <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />
-            <p className="vsd-caption">{dataOrigin(data)} · {sectionMethod(section)} · ≥30 FPS · werbefrei</p>
           </>
+        ) : (
+          <SectionPlaceholder data={data} onDraw={ctx.openMap} />
         )}
       </div>
-    </>
-  );
-}
 
-function LayerChip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
-  return (
-    <button type="button" className={`vsd-chip${on ? ' vsd-chip--active' : ''}`} aria-pressed={on} onClick={onClick}>
-      <span className="vsd-chip-dot" />{label}
-    </button>
+      <div className="vsd-legend">
+        <span className="vsd-legend-lab">Windgeschwindigkeit km/h · Höhe = m ü. NN</span>
+        {BAND_COLORS.map((c, i) => (
+          <div key={c} className="vsd-legend-item"><span className="vsd-legend-sw" style={{ background: c }} /><span>{BAND_LABELS[i]}</span></div>
+        ))}
+        <span className="vsd-legend-div" />
+        <div className="vsd-legend-item"><span className="vsd-legend-line" /><span>Mittelwind</span></div>
+        <div className="vsd-legend-item"><span className="vsd-legend-line vsd-legend-line--dash" /><span>Böen</span></div>
+        {/* E-FR-5: buscosun Fusion withholds the direction of weak/unsteady wind — no arrow instead of a north arrow. */}
+        <div className="vsd-legend-item"><span>ohne Pfeil = keine eindeutige Richtung</span></div>
+      </div>
+
+      <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />
+      <p className="vsd-caption">{dataOrigin(data)} · {sectionMethod(section)} · ≥30 FPS · werbefrei</p>
+    </>
   );
 }
 
@@ -361,19 +604,19 @@ function SectionPlaceholder({ data, onDraw }: { data: DataState; onDraw: () => v
       </div>
     );
   }
-  if (data.kind === 'error') return <div className="vsd-plot-empty"><strong>Schnitt nicht verfügbar</strong><p>⚠ {data.message}</p></div>;
+  if (data.kind === 'error') return <div className="vsd-plot-empty"><strong>Schnitt nicht verfügbar</strong><p>⚠ {data.message}</p><button className="vsd-toppill" onClick={onDraw}>Linie bearbeiten</button></div>;
   return (
     <div className="vsd-plot-empty">
       <CutHintArt />
       <strong>Zeichne eine Schnittlinie durch die Landschaft</strong>
-      <p>Wechsle auf <b>2D</b> und tippe mindestens zwei Punkte auf der Karte — z. B. quer über ein Tal oder einen Grat.
+      <p>Tippe auf der Karte mindestens zwei Punkte — z. B. quer über ein Tal oder einen Grat.
         Entlang dieser Linie schneiden wir die Atmosphäre auf und zeigen Höhenwind, Inversion und Wolkenschichten.</p>
-      <button className="vsd-toppill vsd-toppill--primary" onClick={onDraw}>Zur Karte (2D)</button>
+      <button className="vsd-toppill vsd-toppill--primary" onClick={onDraw}>Zur Karte</button>
     </div>
   );
 }
 
-/** Kompakte Variante der Hinweis-Zeichnung für das Karten-Overlay. */
+/** Kompakte Variante der Hinweis-Zeichnung für die Anleitung auf der Karte. */
 function CutHintMark() {
   return (
     <svg width="52" height="34" viewBox="0 0 52 34" fill="none" aria-hidden="true">
@@ -394,7 +637,7 @@ function CutHintMark() {
  * getippten Linie über dem Gelände, rechts das Ergebnis — der aufgeschnittene
  * Luftraum. Rein dekorativ (aria-hidden), keine Daten, keine Behauptungen.
  */
-function CutHintArt() {
+export function CutHintArt() {
   return (
     <svg className="vsd-cuthint" viewBox="0 0 420 150" fill="none" aria-hidden="true">
       <defs>
@@ -446,19 +689,14 @@ function CutHintArt() {
 
 // ---------------------------- Inversion (Desktop) ----------------------------
 function InversionDesktop(ctx: DeckCtx) {
-  const { section, data, deckLens, setDeckLens, location } = ctx;
+  const { section, data, location } = ctx;
   const inv = section?.inversion;
   const present = !!(section && inv && inv.present && inv.heightM != null);
   const heightM = inv?.heightM ?? 0, aboveC = inv?.aboveTempC ?? 0, valleyC = inv?.valleyTempC ?? 0, diffK = inv?.diffK ?? 0;
   return (
-    <div className="vsd-center vsd-scroll">
-      <div className="vsd-inv-head">
-        <div>
-          <div className="vsd-eyebrow">Inversion · Kaltluftsee</div>
-          <div className="vsd-inv-title">{location?.name ?? 'Inntal'}{present ? ` · Nebelobergrenze ${fmtM(heightM)} m${inv?.thin ? ' · evtl. nicht aufgelöst' : ''}` : ''}</div>
-        </div>
-        <LensPills deckLens={deckLens} setDeckLens={setDeckLens} />
-      </div>
+    <>
+      <StageHead ctx={ctx} eyebrow="Inversion · Kaltluftsee"
+        title={`${location?.name ?? 'Inntal'}${present ? ` · Nebelobergrenze ${fmtM(heightM)} m${inv?.thin ? ' · evtl. nicht aufgelöst' : ''}` : ''}`} />
 
       {section && present ? (
         <>
@@ -501,9 +739,9 @@ function InversionDesktop(ctx: DeckCtx) {
           ? <div className="vsd-plot"><div className="vsd-plot-empty"><strong>Inversion nicht geprüft</strong><p>{inv.note}</p></div></div>
           : <div className="vsd-plot"><div className="vsd-plot-empty"><strong>Keine Inversion erkannt</strong><p>Zur gewählten Zeit zeigt das T-Profil des Höhen-Cubes über dem Tal keine Inversion — kein Kaltluftsee. Scrubbe im Höhenwind-Zeitverlauf zu einer Morgen-/Nachtstunde, um eine Inversion zu sehen.</p></div></div>
       ) : (
-        <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => ctx.setDeckLens('hoehenwind')} /></div>
+        <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={ctx.openMap} /></div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -546,70 +784,29 @@ function InversionOverDay({ ctx }: { ctx: DeckCtx }) {
 
 // ---------------------------- Go/No-Go (Desktop) ----------------------------
 function GoNoGoDesktop(ctx: DeckCtx) {
-  const { data, deckLens, setDeckLens, cfg, setCfg, location } = ctx;
-  const res = useMemo(() => (data.kind === 'ready' ? evaluateGoNoGo(data.prepared, cfg) : null), [data, cfg]);
+  const { data, cfg, res, location } = ctx;
   const prepared = data.kind === 'ready' ? data.prepared : null;
 
   return (
     <>
-      {/* E-7: liegt am Schirm auf `display: none` und ist im Druck das Einzige,
-          was erscheint. Muss HIER stehen, wo `res`/`cfg`/`prepared` sind —
-          der Knopf in der Topbar löst nur `window.print()` aus. */}
-      <GoNoGoReport res={res} prepared={prepared} cfg={cfg} location={location} />
-      <div className="vsd-dock vsd-dock--wide vsd-scroll">
-        <div className="vsd-eyebrow">Betriebs-Check · Drohne</div>
-        <div className="vsd-dock-title">Vermessungsflug · {location?.name ?? 'Feldberg-Süd'}</div>
-
-        {res ? <GoNoGoHero res={res} prepared={prepared!} cfg={cfg} /> : (
-          <div className="vsd-hero" style={{ borderColor: 'var(--border-default)', background: 'var(--cream-50)' }}>
-            <div className="vsd-hero-sub" style={{ marginTop: 0 }}>Noch keine Schnittlinie — wechsle auf <b>Höhenwind</b> und zeichne eine Linie, dann werten wir Go/No-Go über den Tag aus.</div>
+      <StageHead ctx={ctx} eyebrow="Betriebs-Check · Drohne" title={`Vermessungsflug · ${location?.name ?? 'Feldberg-Süd'}`} />
+      {res && prepared ? (
+        <>
+          <div className="vsd-gng-hero"><GoNoGoHero res={res} prepared={prepared} cfg={cfg} /></div>
+          <div className="vsd-sec-lab">Höhenfaktor-Profil · Wind nimmt mit der Höhe zu</div>
+          <div className="vsd-panel"><HeightFactorChart res={res} cfg={cfg} /></div>
+          <div className="vsd-hf-foot">
+            <span>Bodenwert <b>{Math.round(res.groundGustKmh)} km/h</b></span>
+            <span>Arbeitshöhe ({cfg.heightAglM} m) <b className={res.heightGustKmh > cfg.gustLimitKmh ? 'over' : ''}>{Math.round(res.heightGustKmh)} km/h</b></span>
+            <span>Faktor <b>×{res.heightFactor.toFixed(1).replace('.', ',')}</b></span>
           </div>
-        )}
-
-        <div className="vsd-fh">
-          <div className="vsd-pquery-lab">Flughöhe (AGL)</div>
-          <div className="vsd-fh-body">
-            <div className="vsd-fh-box"><input type="number" min={5} max={1500} value={cfg.heightAglM} onChange={(e) => setCfg({ ...cfg, heightAglM: clampNum(e.target.value, 5, 1500, cfg.heightAglM) })} aria-label="Flughöhe in Meter über Grund" /><span>m über Grund</span></div>
-            <div className="vsd-fh-quick">
-              <div className="vsd-fh-quick-lab">Schnellwahl</div>
-              <div className="vsd-fh-quick-row">
-                {[50, 120, 300].map((h) => (
-                  <button key={h} className={`vsd-qbtn${cfg.heightAglM === h ? ' vsd-qbtn--active' : ''}`} onClick={() => setCfg({ ...cfg, heightAglM: h })}>{h} m</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="vsd-limits">
-          <div className="vsd-pquery-lab">Eigene Grenzwerte · gespeichert</div>
-          <div className="vsd-limits-rows">
-            <div className="vsd-limit"><span>Böen-Limit</span><div><input type="number" min={5} max={200} value={cfg.gustLimitKmh} onChange={(e) => setCfg({ ...cfg, gustLimitKmh: clampNum(e.target.value, 5, 200, cfg.gustLimitKmh) })} aria-label="Böen-Limit km/h" /> <b style={{ fontWeight: 400, color: 'var(--stone-500)', fontSize: 12 }}>km/h</b></div></div>
-            <ExtraLimit label="Mittelwind-Limit" unit="km/h" storeKey="mean" fallback={28} />
-            <ExtraLimit label="Niederschlag" unit="mm" storeKey="precip" fallback={0} />
-          </div>
-        </div>
-      </div>
-
-      <div className="vsd-center vsd-scroll">
-        <div className="vsd-inv-head"><div /><LensPills deckLens={deckLens} setDeckLens={setDeckLens} /></div>
-        {res && prepared ? (
-          <>
-            <div className="vsd-sec-lab">Höhenfaktor-Profil · Wind nimmt mit der Höhe zu</div>
-            <div className="vsd-panel"><HeightFactorChart res={res} cfg={cfg} /></div>
-            <div className="vsd-hf-foot">
-              <span>Bodenwert <b>{Math.round(res.groundGustKmh)} km/h</b></span>
-              <span>Arbeitshöhe ({cfg.heightAglM} m) <b className={res.heightGustKmh > cfg.gustLimitKmh ? 'over' : ''}>{Math.round(res.heightGustKmh)} km/h</b></span>
-              <span>Faktor <b>×{res.heightFactor.toFixed(1).replace('.', ',')}</b></span>
-            </div>
-            <div className="vsd-sec-lab">Go / No-Go über den Tag · {cfg.heightAglM} m AGL</div>
-            <div className="vsd-panel"><GoNoGoBand res={res} prepared={prepared} /></div>
-            <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — über „PDF" druckbar (im Druckdialog „Als PDF speichern") oder als Link teilbar. Daten: {dataOrigin(data)}, {SECTION_ANCHORS} Wetterpunkte entlang der Schnittlinie.</span></div>
-          </>
-        ) : (
-          <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => setDeckLens('hoehenwind')} /></div>
-        )}
-      </div>
+          <div className="vsd-sec-lab">Go / No-Go über den Tag · {cfg.heightAglM} m AGL</div>
+          <div className="vsd-panel"><GoNoGoBand res={res} prepared={prepared} /></div>
+          <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — über „PDF" druckbar (im Druckdialog „Als PDF speichern") oder als Link teilbar. Daten: {dataOrigin(data)}, {SECTION_ANCHORS} Wetterpunkte entlang der Schnittlinie.</span></div>
+        </>
+      ) : (
+        <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={ctx.openMap} /></div>
+      )}
     </>
   );
 }
@@ -622,7 +819,7 @@ function ExtraLimit({ label, unit, storeKey, fallback }: { label: string; unit: 
   );
 }
 
-function GoNoGoHero({ res, prepared, cfg }: { res: ReturnType<typeof evaluateGoNoGo>; prepared: PreparedSection; cfg: GoNoGoConfig }) {
+function GoNoGoHero({ res, prepared, cfg }: { res: GoNoGoResult; prepared: PreparedSection; cfg: GoNoGoConfig }) {
   const noGo = res.status === 'no-go';
   const nextGo = useMemo(() => {
     if (!noGo || !res.noGoWindows.length) return null;
@@ -648,7 +845,7 @@ function GoNoGoHero({ res, prepared, cfg }: { res: ReturnType<typeof evaluateGoN
   );
 }
 
-function HeightFactorChart({ res, cfg }: { res: ReturnType<typeof evaluateGoNoGo>; cfg: GoNoGoConfig }) {
+function HeightFactorChart({ res, cfg }: { res: GoNoGoResult; cfg: GoNoGoConfig }) {
   const W = 820, H = 300;
   const maxGust = Math.max(res.heightGustKmh, res.groundGustKmh, cfg.gustLimitKmh) * 1.15;
   const px = (g: number) => 46 + (758 - 46) * (g / maxGust);
@@ -674,7 +871,7 @@ function HeightFactorChart({ res, cfg }: { res: ReturnType<typeof evaluateGoNoGo
   );
 }
 
-function GoNoGoBand({ res, prepared }: { res: ReturnType<typeof evaluateGoNoGo>; prepared: PreparedSection }) {
+function GoNoGoBand({ res, prepared }: { res: GoNoGoResult; prepared: PreparedSection }) {
   const total = prepared.endMs - prepared.startMs || 1;
   // Segmente aus No-Go-Fenstern über die volle Zeitachse.
   const segs: Array<{ w: number; nogo: boolean; label: string }> = [];
@@ -705,12 +902,12 @@ function GoNoGoBand({ res, prepared }: { res: ReturnType<typeof evaluateGoNoGo>;
 }
 
 // ---------------------------- Erhaltene Linsen (Föhn/Thermik) ----------------
-function PreservedHost({ deckLens, setDeckLens }: DeckCtx) {
+function PreservedHost(ctx: DeckCtx) {
   const { lens } = useAtmosphere();
   return (
-    <div className="vsd-center vsd-scroll vsd-host">
-      <div className="vsd-inv-head"><div><div className="vsd-eyebrow">{lens === 'fly' ? 'Thermik' : 'Föhn'}</div></div><LensPills deckLens={deckLens} setDeckLens={setDeckLens} /></div>
-      <div className="atm-grid" style={{ maxWidth: 1100 }}>
+    <div className="vsd-host">
+      <StageHead ctx={ctx} eyebrow={lens === 'fly' ? 'Am Ort · Thermik' : 'Am Ort · Föhn'} title={ctx.location?.name ?? 'Atmosphäre'} />
+      <div className="atm-grid">
         <AtmosphereVerdict />
         {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
         <AtmosphereProfile />
@@ -735,20 +932,32 @@ function DeckNerd() {
 
 function DeckScrubber() {
   const { hour, setHour } = useAtmosphere();
+  const pct = ((hour - HOUR_MIN) / (HOUR_MAX - HOUR_MIN || 1)) * 100;
   return (
-    <div className="atm-scrub" style={{ maxWidth: 1100 }}>
-      <div className="atm-scrub-track">
-        <input type="range" className="atm-scrub-range" min={HOUR_MIN} max={HOUR_MAX} step={1} value={hour} onChange={(e) => setHour(Number(e.target.value))} aria-label="Vorhersage-Vorlaufstunde" />
+    <div className="vsd-timedeck vsd-hourdeck">
+      <div className="vsd-timedeck-head"><span className="vsd-timedeck-lab">Vorhersage</span><span className="vsd-timedeck-when">+{hour} h</span></div>
+      <div className="vsd-timedeck-row">
+        <span className="vsd-timedeck-end">jetzt</span>
+        <div className="vsd-track">
+          <input type="range" min={HOUR_MIN} max={HOUR_MAX} step={1} value={hour} onChange={(e) => setHour(Number(e.target.value))} aria-label="Vorhersage-Vorlaufstunde"
+            style={{ ['--pct' as string]: `${pct}%` } as CSSProperties} />
+        </div>
+        <span className="vsd-timedeck-end">+48 h</span>
       </div>
-      <span className="atm-scrub-label"><span className="atm-scrub-time">+{hour} h</span></span>
-      <span className="atm-scrub-end">+48h</span>
     </div>
   );
 }
 
 // ============================ Mobile ============================
 function MobileDeck(ctx: DeckCtx) {
-  const { deckLens, setDeckLens, onBack, location } = ctx;
+  const { deckLens, onBack, location, mapOpen, data, res, cfg } = ctx;
+  const [sheetOpen, setSheetOpen] = useState(false);
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSheetOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sheetOpen]);
   const titles: Record<DeckLens, { eyebrow: string; title: string }> = {
     hoehenwind: { eyebrow: '3D-Wetter · Schnitt', title: location?.name ?? 'Schnittlinie' },
     inversion: { eyebrow: 'Inversion · Kaltluftsee', title: location?.name ?? 'Inntal' },
@@ -757,8 +966,14 @@ function MobileDeck(ctx: DeckCtx) {
     thermik: { eyebrow: 'Thermik', title: location?.name ?? 'Atmosphäre' },
   };
   const t = titles[deckLens];
+  const m = VIEW_META[deckLens];
+  const prepared = data.kind === 'ready' ? data.prepared : null;
   return (
     <div className="vsd-m-root">
+      {/* E-7: derselbe Bericht wie am Desktop — am Schirm unsichtbar, im Druck
+          das Einzige. Ein zweiter Ausdruck kann nicht entstehen: das Deck
+          rendert entweder die mobile ODER die Desktop-Fassung. */}
+      {deckLens === 'gonogo' && <GoNoGoReport res={res} prepared={prepared} cfg={cfg} location={location} />}
       <div className="vsd-m-header">
         <div className="vsd-m-brandrow">
           <img src="/buscosun-mark.svg" width={22} height={22} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onClick={onBack} />
@@ -769,41 +984,75 @@ function MobileDeck(ctx: DeckCtx) {
           {deckLens !== 'gonogo' && <button className="vsd-m-back" onClick={onBack} aria-label="Zurück"><IconRailMap /></button>}
         </div>
       </div>
-      <div className="vsd-m-tabs" role="tablist" aria-label="Linse">
-        {(['hoehenwind', 'inversion', 'gonogo', 'foehn', 'thermik'] as DeckLens[]).map((l) => (
-          <button key={l} role="tab" aria-selected={deckLens === l} className={`vsd-m-tab${deckLens === l ? ' vsd-m-tab--active' : ''}`} onClick={() => setDeckLens(l)}>{mLensLabel(l)}</button>
-        ))}
-      </div>
+      <button type="button" className="vsd-m-fnbar" onClick={() => setSheetOpen(true)} aria-haspopup="dialog" aria-expanded={sheetOpen}>
+        <span className="vsd-m-fnbar-ic" aria-hidden="true">{m.icon()}</span>
+        <span className="vsd-m-fnbar-tx"><b>{m.label}</b><span>{m.sub}</span></span>
+        <span className="vsd-m-fnbar-cta"><IconSliders />Funktionen</span>
+      </button>
       <div className="vsd-m-scroll vsd-scroll">
-        {deckLens === 'hoehenwind' && <HoehenwindMobile {...ctx} />}
-        {deckLens === 'inversion' && <InversionMobile {...ctx} />}
-        {deckLens === 'gonogo' && <GoNoGoMobile {...ctx} />}
-        {(deckLens === 'foehn' || deckLens === 'thermik') && <MobilePreserved />}
+        {mapOpen ? <CutStageMobile {...ctx} /> : (
+          <>
+            {deckLens === 'hoehenwind' && <HoehenwindMobile {...ctx} />}
+            {deckLens === 'inversion' && <InversionMobile {...ctx} />}
+            {deckLens === 'gonogo' && <GoNoGoMobile {...ctx} />}
+            {(deckLens === 'foehn' || deckLens === 'thermik') && <MobilePreserved />}
+          </>
+        )}
       </div>
+      {sheetOpen && (
+        <div className="vsd-m-sheetwrap">
+          <button type="button" className="vsd-m-backdrop" aria-label="Funktionen schließen" onClick={() => setSheetOpen(false)} />
+          <div className="vsd-m-sheet vsd-scroll" role="dialog" aria-modal="true" aria-label="Funktionen">
+            <div className="vsd-m-sheet-head">
+              <span className="vsd-m-sheet-title">Funktionen</span>
+              <button type="button" className="vsd-m-sheet-close" onClick={() => setSheetOpen(false)} aria-label="Schließen"><IconClose /></button>
+            </div>
+            <SidePanel ctx={ctx} mobile onPicked={() => setSheetOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function mLensLabel(l: DeckLens): string {
-  return l === 'hoehenwind' ? 'Höhenwind' : l === 'inversion' ? 'Inversion' : l === 'gonogo' ? 'Go/No-Go' : l === 'foehn' ? 'Föhn' : 'Thermik';
+/** Mobil: Kopf über dem Inhalt (Karte | Schnitt) — gleiche Logik wie die Bühne am Desktop. */
+function MobileStageSwitch({ ctx }: { ctx: DeckCtx }) {
+  const { isSection, mapOpen, hasCut, openMap, openSection } = ctx;
+  if (!isSection) return null;
+  return (
+    <div className="vsd-seg vsd-seg--wide" role="tablist" aria-label="Bühne">
+      <button type="button" role="tab" aria-selected={mapOpen} className={`vsd-seg-btn${mapOpen ? ' is-active' : ''}`} onClick={openMap}><IconMapSmall />Karte</button>
+      <button type="button" role="tab" aria-selected={!mapOpen} className={`vsd-seg-btn${!mapOpen ? ' is-active' : ''}`} onClick={openSection} disabled={!hasCut}><IconViewWind />Schnitt</button>
+    </div>
+  );
+}
+
+function CutStageMobile(ctx: DeckCtx) {
+  const { location } = ctx;
+  const { cutPoints, setCutPoints } = useAtmosphere();
+  const center = location ? { lat: location.lat, lon: location.lon } : { lat: 47.42, lon: 10.98 };
+  return (
+    <>
+      <MobileStageSwitch ctx={ctx} />
+      <div className="vsd-plot vsd-plot--map vsd-m-map">
+        <ThreeDMap center={center} points={cutPoints} onChange={setCutPoints} />
+      </div>
+      <CutGuide ctx={ctx} inline />
+    </>
+  );
 }
 
 function HoehenwindMobile(ctx: DeckCtx) {
   const { data, section, timeMs, setTimeMs, picked, setPicked } = ctx;
-  const { cutPoints, setCutPoints, sectionLayers, location } = useAtmosphere();
-  const center = location ? { lat: location.lat, lon: location.lon } : { lat: 47.42, lon: 10.98 };
+  const { sectionLayers } = useAtmosphere();
   return (
     <>
-      {section ? (
-        <div className="vsd-plot" style={{ padding: 12 }}>
-          <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} portrait />
-        </div>
-      ) : (
-        <div className="vsd-plot" style={{ padding: 0, overflow: 'hidden', height: 300 }}>
-          <ThreeDMap center={center} points={cutPoints} onChange={setCutPoints} />
-        </div>
-      )}
-      {!section && <p className="vsd-m-caption">Tippe zwei Punkte auf der Karte, um den Höhenwind-Geländeschnitt zu berechnen.</p>}
+      <MobileStageSwitch ctx={ctx} />
+      <div className="vsd-plot" style={{ padding: 12 }}>
+        {section
+          ? <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} portrait />
+          : <SectionPlaceholder data={data} onDraw={ctx.openMap} />}
+      </div>
       <div className="vsd-legend" style={{ gap: 8 }}>
         {BAND_COLORS.slice(1).map((c, i) => (<div key={c} className="vsd-legend-item"><span className="vsd-legend-sw" style={{ width: 16, height: 8, background: c }} /><span>{BAND_LABELS[i + 1]}</span></div>))}
       </div>
@@ -828,11 +1077,12 @@ function InversionMobile(ctx: DeckCtx) {
   const { section, data } = ctx;
   const inv = section?.inversion;
   const present = !!(section && inv && inv.present && inv.heightM != null);
-  if (section && !present) return <div className="vsd-plot"><div className="vsd-plot-empty"><strong>{inv?.unchecked ? 'Inversion nicht geprüft' : 'Keine Inversion erkannt'}</strong><p>{inv?.unchecked ? inv.note : 'Zur gewählten Zeit zeigt das T-Profil des Höhen-Cubes über dem Tal keine Inversion — kein Kaltluftsee.'}</p></div></div>;
-  if (!section || !present) return <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => ctx.setDeckLens('hoehenwind')} /></div>;
+  if (section && !present) return <><MobileStageSwitch ctx={ctx} /><div className="vsd-plot"><div className="vsd-plot-empty"><strong>{inv?.unchecked ? 'Inversion nicht geprüft' : 'Keine Inversion erkannt'}</strong><p>{inv?.unchecked ? inv.note : 'Zur gewählten Zeit zeigt das T-Profil des Höhen-Cubes über dem Tal keine Inversion — kein Kaltluftsee.'}</p></div></div></>;
+  if (!section || !present) return <><MobileStageSwitch ctx={ctx} /><div className="vsd-plot"><SectionPlaceholder data={data} onDraw={ctx.openMap} /></div></>;
   const heightM = inv!.heightM ?? 0, aboveC = inv!.aboveTempC ?? 0, valleyC = inv!.valleyTempC ?? 0, diffK = inv!.diffK ?? 0;
   return (
     <>
+      <MobileStageSwitch ctx={ctx} />
       <div className="vsd-scene" style={{ height: 220 }}><InversionScene section={section} heightM={heightM} /></div>
       <div className="vsd-card">
         <div className="vsd-card-lab">Temperatur-Differenz</div>
@@ -851,24 +1101,14 @@ function InversionMobile(ctx: DeckCtx) {
 }
 
 function GoNoGoMobile(ctx: DeckCtx) {
-  const { data, cfg, setCfg, location } = ctx;
-  const res = useMemo(() => (data.kind === 'ready' ? evaluateGoNoGo(data.prepared, cfg) : null), [data, cfg]);
+  const { data, cfg, setCfg, res } = ctx;
   const prepared = data.kind === 'ready' ? data.prepared : null;
-  if (!res || !prepared) return <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => ctx.setDeckLens('hoehenwind')} /></div>;
+  if (!res || !prepared) return <><MobileStageSwitch ctx={ctx} /><div className="vsd-plot"><SectionPlaceholder data={data} onDraw={ctx.openMap} /></div></>;
   return (
     <>
-      {/* E-7: derselbe Bericht wie am Desktop — am Schirm unsichtbar, im Druck
-          das Einzige. Ein zweiter Ausdruck kann nicht entstehen: das Deck
-          rendert entweder die mobile ODER die Desktop-Fassung. */}
-      <GoNoGoReport res={res} prepared={prepared} cfg={cfg} location={location} />
+      <MobileStageSwitch ctx={ctx} />
       <GoNoGoHero res={res} prepared={prepared} cfg={cfg} />
-      <div className="vsd-fh">
-        <div className="vsd-pquery-lab">Flughöhe (AGL)</div>
-        <div className="vsd-fh-body">
-          <div className="vsd-fh-box"><input type="number" value={cfg.heightAglM} onChange={(e) => setCfg({ ...cfg, heightAglM: clampNum(e.target.value, 5, 1500, cfg.heightAglM) })} aria-label="Flughöhe" style={{ width: 46, fontSize: 22 }} /><span>m</span></div>
-          {[50, 120, 300].map((h) => <button key={h} className={`vsd-qbtn${cfg.heightAglM === h ? ' vsd-qbtn--active' : ''}`} onClick={() => setCfg({ ...cfg, heightAglM: h })}>{h}</button>)}
-        </div>
-      </div>
+      <GoNoGoSettings cfg={cfg} setCfg={setCfg} compact />
       <div className="vsd-sec-lab" style={{ marginTop: 4 }}>Go / No-Go über den Tag · {cfg.heightAglM} m</div>
       <GoNoGoBand res={res} prepared={prepared} />
       <div className="vsd-sec-lab">Höhenfaktor · Wind ↑ mit Höhe</div>
@@ -935,22 +1175,6 @@ function TimeDeck({ data, timeMs, setTimeMs }: { data: DataState; timeMs: number
   );
 }
 
-/** Kartenschematik im Dock (nicht-interaktiv) — reproduziert die Vorlage. */
-function DockMapSchematic({ points }: { points: number }) {
-  return (
-    <svg viewBox="0 0 300 220" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-      <g opacity=".4" fill="none" stroke="var(--stone-500)" strokeWidth="0.8">
-        <path d="M20 150 Q90 135 150 140 Q220 145 280 135" /><path d="M25 120 Q95 100 160 108 Q225 116 280 104" /><path d="M40 90 Q110 70 165 78 Q220 86 270 76" />
-      </g>
-      <ellipse cx="230" cy="160" rx="34" ry="18" fill="var(--steel-600)" fillOpacity=".3" />
-      {points >= 1 && <>
-        <line x1="55" y1="170" x2="140" y2="90" stroke="var(--terracotta-500)" strokeWidth="3" /><line x1="140" y1="90" x2="240" y2="155" stroke="var(--terracotta-500)" strokeWidth="3" />
-        <circle cx="55" cy="170" r="7" fill="var(--cream-50)" stroke="var(--terracotta-500)" strokeWidth="3" /><circle cx="140" cy="90" r="6" fill="var(--terracotta-500)" /><circle cx="240" cy="155" r="7" fill="var(--cream-50)" stroke="var(--terracotta-500)" strokeWidth="3" />
-      </>}
-    </svg>
-  );
-}
-
 /** Inversions-Szene (3D-Kaltluftsee) — reproduziert die Vorlage mit echten Werten. */
 function InversionScene({ section, heightM }: { section: CrossSection; heightM: number }) {
   return (
@@ -1008,26 +1232,6 @@ function LocationChip() {
   );
 }
 
-function TourPill() {
-  const { setLocation, setCutPoints } = useAtmosphere();
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
-    try {
-      const tour = await tourFileToCutLine(f);
-      const s = tour.points[0];
-      setLocation({ name: tour.name, lat: s.lat, lon: s.lon, country: pickCountry(s.lat, s.lon) });
-      setCutPoints(tour.points);
-    } catch { /* ignore */ }
-  }
-  return (
-    <button className="vsd-map-tour" onClick={() => fileRef.current?.click()}>
-      <input ref={fileRef} type="file" accept=".gpx,.tcx,.fit,.kml,.kmz" style={{ display: 'none' }} onChange={onFile} />
-      <IconRoute /><span>Gespeicherte Tour als Schnittlinie übernehmen</span>
-    </button>
-  );
-}
-
 // ---------------------------- Helpers ----------------------------
 const compass = (deg: number | null) => (deg == null ? 'keine Richtung' : ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(((deg % 360) / 22.5)) % 16]);
 const fmtTemp = (c: number) => (Math.round(c * 10) / 10).toFixed(1).replace('.', ',');
@@ -1048,4 +1252,25 @@ function IconCheck() { return <svg width="12" height="12" viewBox="0 0 24 24" fi
 function IconDownload() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4 V15 M8 12 L12 16 L16 12 M6 20 H18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
 function IconRotate() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 12 A8 8 0 1 1 10 17" stroke="var(--stone-600)" strokeWidth="1.6" fill="none" /><path d="M10 13 L10 18 L5 17 Z" fill="var(--stone-600)" /></svg>; }
 function IconTriangle() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 20 L12 6 L18 20 Z" stroke="var(--vs-valley)" strokeWidth="1.6" strokeLinejoin="round" /></svg>; }
-function IconRoute() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 4 H14 L18 8 V20 H6 Z" stroke="var(--steel-600)" strokeWidth="1.5" strokeLinejoin="round" /></svg>; }
+function IconRoute() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4 H14 L18 8 V20 H6 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M9 16 C10 13 13 14 14 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>; }
+
+// Funktionsleiste — gleiche Strichstärke wie die Layer-Icons der Wetterkarte.
+const SI = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true };
+function IconViewWind() { return <svg {...SI}><path d="M3 8 H14 A3 3 0 1 0 11 5" /><path d="M3 12 H18 A3 3 0 1 1 15 15" /><path d="M3 16 H10" /></svg>; }
+function IconViewInversion() { return <svg {...SI}><path d="M3 19 L9 10 L13 15 L16 11 L21 19 Z" /><path d="M3 9 H21" strokeDasharray="2.5 2.5" /><path d="M12 3 V6" /></svg>; }
+function IconViewGoNoGo() { return <svg {...SI}><path d="M8 3 H16 L21 8 V16 L16 21 H8 L3 16 V8 Z" /><path d="M8.5 12 L11 14.5 L15.5 9.5" /></svg>; }
+function IconViewFoehn() { return <svg {...SI}><path d="M2 20 L9 9 L13 14 L16 10 L22 20 Z" /><path d="M4 6 H12 A2 2 0 1 0 10 4" /></svg>; }
+function IconViewThermik() { return <svg {...SI}><path d="M12 21 C8 19 8 15 12 14 C16 13 16 9 12 8" /><path d="M9 6 L12 3 L15 6" /><path d="M5 21 H19" /></svg>; }
+function IconDetail() { return <svg {...SI}><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 10 H20 M4 15 H20 M10 4 V20" /></svg>; }
+function IconLayerMean() { return <svg {...SI}><path d="M4 12 H19" /><path d="M14 7 L19 12 L14 17" /></svg>; }
+function IconLayerGust() { return <svg {...SI}><path d="M3 15 L7 9 L11 15 L15 9 L19 15" /><path d="M19 15 L21 13" /></svg>; }
+function IconLayerShear() { return <svg {...SI}><path d="M4 8 H17 M13 5 L17 8 L13 11" /><path d="M20 16 H7 M11 13 L7 16 L11 19" /></svg>; }
+function IconLayerStream() { return <svg {...SI}><path d="M3 8 C7 5 10 11 14 8 S20 6 21 7" /><path d="M3 14 C7 11 10 17 14 14 S20 12 21 13" /><path d="M3 20 C7 17 10 21 14 19" /></svg>; }
+function IconLayerCloud() { return <svg {...SI}><path d="M7 15 A4 4 0 0 1 7.5 7 A5 5 0 0 1 17 8 A3.5 3.5 0 0 1 17 15 Z" /><path d="M4 19 H20" strokeDasharray="2.5 2.5" /></svg>; }
+function IconPencil() { return <svg {...SI}><path d="M4 20 L5 15 L16 4 L20 8 L9 19 Z" /><path d="M14 6 L18 10" /></svg>; }
+function IconTrash() { return <svg {...SI}><path d="M4 7 H20" /><path d="M9 7 V4 H15 V7" /><path d="M6 7 L7 20 H17 L18 7" /></svg>; }
+function IconChevron() { return <svg {...SI} width={14} height={14}><path d="M9 6 L15 12 L9 18" /></svg>; }
+function IconTick() { return <svg {...SI} width={12} height={12} strokeWidth={2.6}><path d="M5 13 L10 18 L19 6" /></svg>; }
+function IconMapSmall() { return <svg {...SI} width={14} height={14}><path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z" /><path d="M9 4 V18 M15 6 V20" /></svg>; }
+function IconSliders() { return <svg {...SI} width={15} height={15}><path d="M4 7 H14 M18 7 H20 M4 17 H6 M10 17 H20" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>; }
+function IconClose() { return <svg {...SI} width={18} height={18}><path d="M6 6 L18 18 M18 6 L6 18" /></svg>; }
