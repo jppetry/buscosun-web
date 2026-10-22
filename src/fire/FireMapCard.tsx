@@ -18,7 +18,8 @@ interface CardActions {
   onClose: () => void;
 }
 
-function MapCardShell({ name, region, regionTitle, accent, isSite, badge, children, meta, onOpenDossier, onClose }: CardActions & {
+function MapCardShell({ eyebrow, name, region, regionTitle, accent, isSite, badge, children, meta, onOpenDossier, onClose }: CardActions & {
+  eyebrow: string;
   name: string;
   region: string;
   regionTitle?: string;
@@ -45,10 +46,10 @@ function MapCardShell({ name, region, regionTitle, accent, isSite, badge, childr
           {isSite ? <IndustryIcon size={20} /> : <FlameIcon size={20} />}
         </span>
         <span className="br-mapcard-titles">
+          <span className="br-mapcard-eyebrow">{eyebrow}{badge}</span>
           <span className="br-mapcard-name">{name}</span>
           <span className="br-mapcard-region" title={regionTitle}>{region}</span>
         </span>
-        {badge}
         <button type="button" className="br-mapcard-close" aria-label="Kachel schließen" onClick={onClose}>
           <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
             <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -58,10 +59,12 @@ function MapCardShell({ name, region, regionTitle, accent, isSite, badge, childr
       {children}
       {meta != null && <p className="br-mapcard-meta">{meta}</p>}
       <button type="button" className="br-mapcard-cta" onClick={onOpenDossier}>
-        Dossier öffnen
-        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-          <path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        Detailansicht öffnen
+        <span className="br-mapcard-cta-arrow" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 14 14">
+            <path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
       </button>
     </section>
   );
@@ -72,6 +75,7 @@ export function FireMapCard({ r, nowMs, ...actions }: CardActions & { r: FireRec
   return (
     <MapCardShell
       {...actions}
+      eyebrow={r.anomaly?.kind === 'site' ? 'Thermalanomalie' : 'Brand'}
       name={recordName(r)} region={regionLabel(r)} regionTitle={missingReason(r, 'country') ?? undefined}
       accent={r.suspectedStatic ? STATIC_GREY : STATUS_COLOR[r.status.kind]}
       isSite={r.anomaly?.kind === 'site'}
@@ -94,6 +98,7 @@ export function HistoryMapCard({ e, ...actions }: CardActions & { e: HistoryInde
   return (
     <MapCardShell
       {...actions}
+      eyebrow={site ? 'Thermalanomalie · Rückblick' : 'Brand · Rückblick'}
       name={historyEntryName(e)} region={COUNTRY_NAME[e.country] ?? e.country}
       accent={site ? STATIC_GREY : clusterColor(e.frpSumMw ?? 0)}
       isSite={site}
