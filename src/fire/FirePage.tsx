@@ -119,7 +119,7 @@ import {
 } from './FireLayerCard';
 import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './FireFootprintPanel';
-import { FireMapCard } from './FireMapCard';
+import { FireMapCard, HistoryMapCard } from './FireMapCard';
 import { ageText } from '../dataAge';
 import './fireDeck.css';
 
@@ -308,9 +308,19 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [hoverFootprint, setHoverFootprint] = useState<string | null>(null);
   const [selectedFootprint, setSelectedFootprint] = useState<string | null>(null);
   /** Fire whose info card is open on the map (a map click opens the card; the card opens the dossier). */
-  const [mapCard, setMapCard] = useState<string | null>(null);
+  const [mapCard, setMapCard] = useState<{ kind: 'fire' | 'history'; id: string } | null>(null);
+  /** Registry id of the open fire card — read by the mobile tab effect without re-running it. */
   const mapCardRef = useRef<string | null>(null);
-  const openMapCard = useCallback((id: string | null) => { mapCardRef.current = id; setMapCard(id); }, []);
+  const openMapCard = useCallback((id: string | null) => { mapCardRef.current = id; setMapCard(id ? { kind: 'fire', id } : null); }, []);
+  /** History click on the MAP: mark the event and open its card; zoom and dossier follow from the card (`selectHistory`). */
+  const selectHistoryFromMap = useCallback((id: string) => {
+    if (!historyEntriesById?.get(id)) return;
+    setSelectedHistory(id);
+    setSelectedFootprint(null); setSelectedSite(null);
+    setReadoutTab('fires');
+    mapCardRef.current = null;
+    setMapCard({ kind: 'history', id });
+  }, [historyEntriesById]);
   /** Ziel des nächsten Fokus-Zooms — die Registry gibt ihre Bbox mit (eine Kamera-Logik in FireMap). */
   const [focusBbox, setFocusBbox] = useState<[number, number, number, number] | null>(null);
   const [shownFootprints, setShownFootprints] = useState(CLUSTER_PAGE);
@@ -1853,14 +1863,21 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const dossierRecord = selectedFootprint ? recordsById.get(selectedFootprint) ?? null : null;
   const inDossier = stage === 'dossier';
   /** Info card of the fire picked on the map — only while it is still the selected one and the map is the stage. */
-  const mapCardRecord = mapCard && mapCard === selectedFootprint && !inDossier ? recordsById.get(mapCard) ?? null : null;
-  const mapCardEl = mapCardRecord && (
+  const mapCardRecord = mapCard?.kind === 'fire' && mapCard.id === selectedFootprint && !inDossier ? recordsById.get(mapCard.id) ?? null : null;
+  const mapCardHistory = mapCard?.kind === 'history' && mapCard.id === selectedHistory && !inDossier ? historyEntriesById?.get(mapCard.id) ?? null : null;
+  const mapCardEl = mapCardRecord ? (
     <FireMapCard
       r={mapCardRecord} nowMs={nowMs}
       onOpenDossier={() => { openMapCard(null); setStage('dossier'); if (isMobile) setMobileTab('fires'); }}
       onClose={() => openMapCard(null)}
     />
-  );
+  ) : mapCardHistory ? (
+    <HistoryMapCard
+      e={mapCardHistory}
+      onOpenDossier={() => { openMapCard(null); selectHistory(mapCardHistory.id); }}
+      onClose={() => openMapCard(null)}
+    />
+  ) : null;
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
   const stageSeg = (big: boolean) => (
     <div className={`br-seg br-stage-seg${big ? ' is-big' : ''}`} role="group" aria-label="Bühne der Mitte">
@@ -2119,7 +2136,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
               footprintFc={footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
               anomalyFc={anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
-              historyFc={historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistory}
+              historyFc={historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistoryFromMap}
               focusBbox={focusBbox} onSelectFootprint={selectFootprintFromMap}
               onSelectBurnt={openDossierForEffis} onSelectZone={openDossierForZone}
               onSelectDetection={openDossierForDetection}
