@@ -791,19 +791,26 @@ function GoNoGoDesktop(ctx: DeckCtx) {
     <>
       <StageHead ctx={ctx} eyebrow="Betriebs-Check · Drohne" title={`Vermessungsflug · ${location?.name ?? 'Feldberg-Süd'}`} />
       {res && prepared ? (
-        <>
-          <div className="vsd-gng-hero"><GoNoGoHero res={res} prepared={prepared} cfg={cfg} /></div>
-          <div className="vsd-sec-lab">Höhenfaktor-Profil · Wind nimmt mit der Höhe zu</div>
-          <div className="vsd-panel"><HeightFactorChart res={res} cfg={cfg} /></div>
-          <div className="vsd-hf-foot">
-            <span>Bodenwert <b>{Math.round(res.groundGustKmh)} km/h</b></span>
-            <span>Arbeitshöhe ({cfg.heightAglM} m) <b className={res.heightGustKmh > cfg.gustLimitKmh ? 'over' : ''}>{Math.round(res.heightGustKmh)} km/h</b></span>
-            <span>Faktor <b>×{res.heightFactor.toFixed(1).replace('.', ',')}</b></span>
+        <div className="vsd-gng">
+          {/* Oben, was man zuerst sucht: Status jetzt und das Band über den Tag nebeneinander. */}
+          <div className="vsd-gng-top">
+            <div className="vsd-gng-hero"><GoNoGoHero res={res} prepared={prepared} cfg={cfg} /></div>
+            <section className="vsd-gng-day">
+              <div className="vsd-sec-lab">Go / No-Go über den Tag · {cfg.heightAglM} m AGL</div>
+              <div className="vsd-panel"><GoNoGoBand res={res} prepared={prepared} /></div>
+            </section>
           </div>
-          <div className="vsd-sec-lab">Go / No-Go über den Tag · {cfg.heightAglM} m AGL</div>
-          <div className="vsd-panel"><GoNoGoBand res={res} prepared={prepared} /></div>
+          <section className="vsd-gng-hf">
+            <div className="vsd-sec-lab">Höhenfaktor-Profil · Wind nimmt mit der Höhe zu</div>
+            <div className="vsd-panel vsd-panel--fit"><HeightFactorChart res={res} cfg={cfg} /></div>
+            <div className="vsd-hf-foot">
+              <span>Bodenwert <b>{Math.round(res.groundGustKmh)} km/h</b></span>
+              <span>Arbeitshöhe ({cfg.heightAglM} m) <b className={res.heightGustKmh > cfg.gustLimitKmh ? 'over' : ''}>{Math.round(res.heightGustKmh)} km/h</b></span>
+              <span>Faktor <b>×{res.heightFactor.toFixed(1).replace('.', ',')}</b></span>
+            </div>
+          </section>
           <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — über „PDF" druckbar (im Druckdialog „Als PDF speichern") oder als Link teilbar. Daten: {dataOrigin(data)}, {SECTION_ANCHORS} Wetterpunkte entlang der Schnittlinie.</span></div>
-        </>
+        </div>
       ) : (
         <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={ctx.openMap} /></div>
       )}
@@ -905,9 +912,9 @@ function GoNoGoBand({ res, prepared }: { res: GoNoGoResult; prepared: PreparedSe
 function PreservedHost(ctx: DeckCtx) {
   const { lens } = useAtmosphere();
   return (
-    <div className="vsd-host">
+    <div className={`vsd-host vsd-atm vsd-atm--${lens === 'fly' ? 'thermik' : 'foehn'}`}>
       <StageHead ctx={ctx} eyebrow={lens === 'fly' ? 'Am Ort · Thermik' : 'Am Ort · Föhn'} title={ctx.location?.name ?? 'Atmosphäre'} />
-      <div className="atm-grid">
+      <div className="atm-grid vsd-atm-grid">
         <AtmosphereVerdict />
         {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
         <AtmosphereProfile />
@@ -1130,13 +1137,13 @@ function GoNoGoMobile(ctx: DeckCtx) {
 function MobilePreserved() {
   const { lens } = useAtmosphere();
   return (
-    <div className="vsd-host">
-      <AtmosphereVerdict />
-      <div style={{ height: 12 }} />
-      {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
-      <div style={{ height: 12 }} />
-      <AtmosphereProfile />
-      <DeckNerd />
+    <div className={`vsd-host vsd-atm vsd-atm--${lens === 'fly' ? 'thermik' : 'foehn'}`}>
+      <div className="atm-grid vsd-atm-grid">
+        <AtmosphereVerdict />
+        {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
+        <AtmosphereProfile />
+        <DeckNerd />
+      </div>
       <DeckScrubber />
     </div>
   );

@@ -24,6 +24,10 @@ const DEM_SRC = 'atm-dem';
 const OV_SRC = 'atm-thermal';
 const OV_LAYER = 'atm-thermal-layer';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
+// Bühnenoptik wie die 3D-Geländebühne des Dashboards (dashboard/TerrainStage3D): helle Basiskarte,
+// sandfarbene Schummerung, Himmel. Nur Darstellung — Feld, Rückfall und Marker-Logik unverändert.
+const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+const STAGE_PITCH = 62;
 const EXAGGERATION = 1.3;
 const LAT_HALF = 0.32, LON_HALF = 0.5;   // Overlay-/Kamera-Ausschnitt um den Marker
 const GRID_COLS = 160, GRID_ROWS = 120;  // Feld-Auflösung (CPU-Bild)
@@ -59,23 +63,34 @@ export default function ThermalMap() {
   useEffect(() => {
     if (!containerRef.current) return;
     if (!supportsWebGL()) { setNoWebgl(true); return; }
+    const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      style: STYLE_URL,
       // OpenFreeMap/OpenMapTiles/OSM verlangen zwingend eine sichtbare
       // Attribution (ODbL) — compact wie in radar/RadarMap.tsx (V-105).
-      center: [lon, lat], zoom: 9.5, pitch: 55, maxPitch: 80, attributionControl: { compact: true },
+      center: [lon, lat], zoom: 9.5, pitch: STAGE_PITCH, bearing: -12, maxPitch: 80, fadeDuration: 0,
+      ...(coarse ? { pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5) } : {}),
+      attributionControl: { compact: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    // Das Sprite der Basiskarte kennt einige Symbole nicht — leeres Bild statt Konsolenwarnung je Kachel (wie TerrainStage3D).
+    map.on('styleimagemissing', (e) => { if (!map.hasImage(e.id)) map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }); });
+    map.once('load', () => { map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open')); });
 
     map.on('load', () => {
       if (!map.getSource(DEM_SRC)) {
         map.addSource(DEM_SRC, { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
       }
       map.setTerrain({ source: DEM_SRC, exaggeration: EXAGGERATION });
+      const firstSymbol = map.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
+      map.addLayer({
+        id: 'atm-hillshade', type: 'hillshade', source: DEM_SRC,
+        paint: { 'hillshade-exaggeration': 0.45, 'hillshade-shadow-color': '#4A4234', 'hillshade-accent-color': '#6B5A45', 'hillshade-illumination-anchor': 'map', 'hillshade-illumination-direction': 335 },
+      }, firstSymbol);
       try {
-        map.setSky({ 'sky-color': '#9fc4e8', 'horizon-color': '#e7ecf1', 'fog-color': '#f2efe6', 'sky-horizon-blend': 0.6, 'horizon-fog-blend': 0.5, 'fog-ground-blend': 0.4 });
+        map.setSky({ 'sky-color': '#DCE3EA', 'horizon-color': '#F3EEE2', 'fog-color': '#F3EEE2', 'sky-horizon-blend': 0.6, 'horizon-fog-blend': 0.5, 'fog-ground-blend': 0.4 });
       } catch { /* setSky optional */ }
       readyRef.current = true;
       void reloadDem();
@@ -145,7 +160,9 @@ export default function ThermalMap() {
     if (src) src.updateImage({ url, coordinates });
     else {
       map.addSource(OV_SRC, { type: 'image', url, coordinates });
-      map.addLayer({ id: OV_LAYER, type: 'raster', source: OV_SRC, paint: { 'raster-opacity': 0.75, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } });
+      // Unter den Beschriftungen, damit Orts- und Gipfelnamen lesbar bleiben.
+      const firstSymbol = map.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
+      map.addLayer({ id: OV_LAYER, type: 'raster', source: OV_SRC, paint: { 'raster-opacity': 0.75, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, firstSymbol);
     }
   }
 

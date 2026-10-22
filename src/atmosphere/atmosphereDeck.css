@@ -215,7 +215,6 @@
 
 /* ============================ Föhn / Thermik host ============================ */
 .vsd-host { padding: 4px 2px; }
-.vsd-host .atm-foehn, .vsd-host .atm-thermal-card, .vsd-host .rt-card { max-width: 900px; }
 
 /* ============================ Loading / states ============================ */
 .vsd-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 300px; color: var(--stone-600); }
@@ -459,7 +458,7 @@
 .vsd-gng-hero .vsd-hero { margin-top: 0; }
 
 /* ---- Föhn/Thermik: Stunden-Regler im Deck-Stil, klebt unten ---------------- */
-.vsd-host { max-width: 1180px; }
+.vsd-host { max-width: 1480px; }
 .vsd-hourdeck { position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -12px 24px -20px rgba(44, 42, 38, .5); }
 
 /* ---- Tablet --------------------------------------------------------------- */
@@ -553,6 +552,113 @@
   .vsd-intro-title { font-size: 28px; letter-spacing: -0.5px; }
   .vsd-intro-lead { font-size: 14px; }
   .vsd-intro-action .atm-tour, .vsd-intro-action .atm-tour-btn { width: 100%; justify-content: center; }
+}
+
+/* ============================================================================
+   Föhn · Thermik am Ort — Raster, das sich der Bildschirmhöhe anpasst.
+   Desktop: Einschätzung + Hauptbild links, Vertikalprofil rechts über beide
+   Zeilen; das Profil wird höchstens so hoch, dass Kopf, Bühne und Stunden-Regler
+   ohne Scrollen auf den Schirm passen. Tablet: dieselben zwei Spalten, Föhn-
+   Karten untereinander. Mobil: gestapelt. Die Bausteine (rt-card) bekommen
+   hier die Deck-Optik statt der alten Shell-Optik.
+   ============================================================================ */
+.vsd-atm { --vsd-atm-free: 100dvh - 400px; }
+.vsd-atm .rt-card {
+  background: var(--cream-50); border: 1px solid var(--border-default);
+  border-radius: 16px; box-shadow: none;
+}
+.vsd-atm .rt-eyebrow { font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; color: var(--stone-500); }
+
+/* Einschätzung als ruhiges Kopfband */
+.vsd-atm .atm-verdict { padding: 16px 18px; display: flex; flex-direction: column; justify-content: center; }
+.vsd-atm .atm-verdict-line { font-size: 19px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.25; }
+.vsd-atm .atm-verdict-dot { width: 11px; height: 11px; margin-right: 9px; vertical-align: 1px; }
+.vsd-atm .atm-verdict-sub { font-size: 13px; margin-top: 4px; }
+
+/* Föhn: Index-Karte und Talwind nebeneinander, darunter der Querschnitt */
+.vsd-atm .atm-foehn { gap: 12px; }
+.vsd-atm .atm-foehn-card { padding: 16px 18px; }
+.vsd-atm .atm-foehn-head { font-size: 17px; font-weight: 700; }
+.vsd-atm .atm-foehn-text { font-size: 13.5px; }
+.vsd-atm .atm-talwind { padding: 16px 18px; }
+.vsd-atm .atm-xsec { padding: 14px 16px; }
+.vsd-atm .atm-xsec-svg { max-height: calc(var(--vsd-atm-free) - 300px); min-height: 180px; }
+
+/* Profil: Höhe an den Schirm gekoppelt (viewBox bleibt, die Zeichnung skaliert mit) */
+.vsd-atm .atm-profile-box { padding: 16px 18px; }
+.vsd-atm .atm-prof-svg { max-height: max(340px, calc(var(--vsd-atm-free) - 150px)); }
+
+/* Thermik: 3D-Bühne füllt die Zeile neben dem Profil */
+.vsd-atm .atm-thermal-card { min-height: max(380px, calc(var(--vsd-atm-free) - 110px)); }
+.vsd-atm .atm-thermal-legend {
+  left: 12px; bottom: 44px; border-radius: 10px; padding: 6px 10px; font-size: 11px;
+  background: var(--cream-50); border-color: var(--border-default); box-shadow: 0 8px 20px -14px rgba(44, 42, 38, .5);
+}
+.vsd-atm .atm-thermal-legend-bar { width: 90px; }
+.vsd-atm .atm-thermal-cap {
+  left: 12px; right: auto; bottom: 12px; max-width: min(560px, calc(100% - 120px));
+  text-align: left; font-size: 11px; line-height: 1.4; padding: 5px 9px; border-radius: 8px;
+  background: rgba(250, 246, 234, .94);
+}
+
+/* Detailansicht: als Leiste, nicht als zweite große Karte */
+.vsd-atm .atm-nerd { padding: 6px 8px; }
+
+@media (min-width: 768px) {
+  .vsd-atm-grid {
+    gap: 14px; align-items: stretch;
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+    grid-template-areas:
+      "verdict profile"
+      "globe   profile"
+      "nerd    nerd";
+    grid-template-rows: auto 1fr auto;
+  }
+  .vsd-atm .atm-profile-box { align-self: start; }
+  .vsd-atm .atm-globe { height: auto; }
+  .vsd-atm--thermik .atm-thermal-card { align-self: stretch; }
+}
+@media (min-width: 1440px) {
+  .vsd-atm--foehn .atm-foehn {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch;
+  }
+  .vsd-atm--foehn .atm-foehn > :nth-child(3) { grid-column: 1 / -1; }
+  .vsd-atm-grid { grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); }
+}
+@media (max-width: 767px) {
+  .vsd-atm-grid { gap: 12px; }
+  .vsd-atm .atm-thermal-card { min-height: 0; height: 62vh; }
+  .vsd-atm .atm-thermal-cap { max-width: none; right: 12px; }
+  .vsd-atm .atm-prof-svg { max-height: none; }
+  .vsd-atm .atm-xsec-svg { max-height: none; }
+  .vsd-atm .atm-verdict-line { font-size: 17px; }
+}
+
+/* ============================================================================
+   Go/No-Go — Status und Tagesband oben nebeneinander, das Höhenfaktor-Profil
+   darunter füllt die Resthöhe (Diagramm skaliert in der Höhe mit).
+   ============================================================================ */
+.vsd-gng { display: flex; flex-direction: column; gap: 16px; }
+.vsd-gng-top { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.vsd-gng-top > .vsd-gng-hero { flex: 0 1 400px; min-width: 300px; max-width: none; margin: 0; display: flex; }
+.vsd-gng-top > .vsd-gng-hero .vsd-hero { flex: 1; display: flex; flex-direction: column; }
+.vsd-gng-top > .vsd-gng-hero .vsd-hero-window { margin-top: auto; }
+.vsd-gng-top > .vsd-gng-hero .vsd-hero-rule + .vsd-hero-metric { margin-top: 0; }
+.vsd-gng-day { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; }
+.vsd-gng-day .vsd-panel { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.vsd-gng-day .vsd-band { height: 56px; }
+.vsd-gng-day .vsd-band-seg span { font-size: 12px; }
+.vsd-gng-hf { display: flex; flex-direction: column; }
+.vsd-panel--fit { display: flex; justify-content: center; padding: 14px 18px; }
+.vsd-panel--fit svg { width: 100%; max-height: max(240px, calc(100dvh - 500px)); }
+.vsd-gng .vsd-info { margin-top: 0; }
+@media (max-width: 767px) {
+  /* Mobil: Flughöhe in voller Breite der Zahl (dreistellig wurde abgeschnitten). */
+  .vsd-m-root .vsd-fh-box { padding: 8px 12px; }
+  .vsd-m-root .vsd-fh-box input { width: 62px; font-size: 24px; }
+}
+@media (max-width: 1439px) {
+  .vsd-panel--fit svg { max-height: max(220px, calc(100dvh - 520px)); }
 }
 
 /* ── E-7: Druckbericht des Arbeitsfensters ─────────────────────────────────────
