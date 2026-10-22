@@ -34,6 +34,16 @@ const GRID_COLS = 160, GRID_ROWS = 120;  // Feld-Auflösung (CPU-Bild)
 
 interface DemBox { grid: Float32Array; lngMin: number; lngMax: number; latMin: number; latMax: number }
 
+/**
+ * Deckkraft fürs Kartenbild anheben: die Rampe (thermalField, 27–74 % Alpha) ist für ein Overlay über einer
+ * bunten Basiskarte gedacht; auf dem grau-grünen Relief der Bühne verschwand sie (nur ein Schleier). Farben und
+ * Schwellen bleiben — transparente Pixel (< 250 m) bleiben transparent, nur sichtbare werden deckender.
+ */
+function boostAlpha(rgba: Uint8ClampedArray): Uint8ClampedArray {
+  for (let o = 3; o < rgba.length; o += 4) if (rgba[o] > 0) rgba[o] = Math.min(235, 110 + rgba[o] * 0.7);
+  return rgba;
+}
+
 function rgbaToDataUrl(rgba: Uint8ClampedArray, w: number, h: number): string {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -152,7 +162,7 @@ export default function ThermalMap() {
       rgba = buildThermalImage(levels, dem.grid, GRID_COLS, GRID_ROWS);
       setFallback(reason ?? 'nicht verfügbar');
     }
-    const url = rgbaToDataUrl(rgba, GRID_COLS, GRID_ROWS);
+    const url = rgbaToDataUrl(boostAlpha(rgba), GRID_COLS, GRID_ROWS);
     const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [
       [dem.lngMin, dem.latMax], [dem.lngMax, dem.latMax], [dem.lngMax, dem.latMin], [dem.lngMin, dem.latMin],
     ];
@@ -160,9 +170,10 @@ export default function ThermalMap() {
     if (src) src.updateImage({ url, coordinates });
     else {
       map.addSource(OV_SRC, { type: 'image', url, coordinates });
-      // Unter den Beschriftungen, damit Orts- und Gipfelnamen lesbar bleiben.
+      // Über der Reliefschattierung (darunter dunkelte sie die Farbe zum Schleier ab, A/B 22.10.), unter den
+      // Beschriftungen; das Relief bleibt über das 3D-Gelände und den Rest der Schummerung lesbar.
       const firstSymbol = map.getStyle().layers?.find((l) => l.type === 'symbol')?.id;
-      map.addLayer({ id: OV_LAYER, type: 'raster', source: OV_SRC, paint: { 'raster-opacity': 0.75, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, firstSymbol);
+      map.addLayer({ id: OV_LAYER, type: 'raster', source: OV_SRC, paint: { 'raster-opacity': 0.82, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, firstSymbol);
     }
   }
 
