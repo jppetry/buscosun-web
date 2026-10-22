@@ -279,3 +279,123 @@
 .rr-sheet-head-tag { font-size: 9px; letter-spacing: 1.5px; color: var(--steel-600, #3A6FA8); font-weight: 700; text-transform: uppercase; }
 .rr-sheet-head-line { font-size: 14px; font-weight: 600; color: var(--ink-900, #2C2A26); letter-spacing: -0.2px; }
 .rr-sheet-head-line .rr-accent { color: var(--steel-600, #3A6FA8); }
+
+/* ============================================================================
+   Modernisierung nach dem Schema der Brandradar-Kachel (Jans Auftrag 2026-10-23):
+   Glas-Flächen mit weichem Schatten, ein Schimmer in der Akzentfarbe, Verläufe für
+   den aktiven Zustand, runde Chips. Farben unverändert (Steel, Sand/Ink, Layerfarben);
+   Schriftgrößen und Aufbau bleiben. Rein additiv, alles unter `.rr-deck`.
+   ============================================================================ */
+.rr-deck { --rr-acc: var(--steel-600, #3A6FA8); }
+
+/* Kopf */
+.rr-deck .rr-topbar {
+  background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, color-mix(in srgb, var(--cream-50, #FAF6EA) 70%, var(--sand-100, #EDE6D3)) 100%);
+  box-shadow: 0 8px 18px -16px rgba(44, 42, 38, 0.35);
+  position: relative; z-index: 2;
+}
+.rr-deck .rr-topsearch .ev-loc-chip, .rr-deck .rr-topsearch .ev-search {
+  border-radius: 12px; border-color: color-mix(in srgb, var(--border-medium, #D9D0B8) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 14px -12px rgba(44, 42, 38, 0.35);
+}
+
+/* Rail: aktiver Knopf mit Steel-Schimmer */
+.rr-deck .rr-rail-btn { transition: color .15s, background .15s, box-shadow .15s; }
+.rr-deck .rr-rail-btn.is-active {
+  background: radial-gradient(100% 100% at 0% 0%, color-mix(in srgb, var(--rr-acc) 28%, transparent), transparent 100%), #3A3833;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rr-acc) 35%, transparent) inset;
+}
+
+/* Linkes Dock */
+.rr-deck .rr-dock { background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, var(--sand-50, #F5F1E8) 100%); }
+.rr-deck .rr-layer {
+  border-radius: 12px; background: rgba(255, 255, 255, 0.74);
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 14px -12px rgba(44, 42, 38, 0.3);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.rr-deck .rr-layer:hover { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 10px 18px -12px rgba(44, 42, 38, 0.36); }
+.rr-deck .rr-layer.is-on {
+  background:
+    radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--rr-layer-color, #3A6FA8) 11%, transparent), transparent 100%),
+    rgba(255, 255, 255, 0.86);
+  border-color: color-mix(in srgb, var(--rr-layer-color, #3A6FA8) 55%, transparent);
+}
+.rr-deck .rr-layer-ic {
+  width: 28px; aspect-ratio: 1; align-items: center; justify-content: center; border-radius: 9px;
+  background: color-mix(in srgb, var(--rr-layer-color, #3A6FA8) 11%, var(--cream-50, #FAF6EA));
+}
+.rr-deck .rr-layer.is-off .rr-layer-ic { background: var(--sand-50, #F5F1E8); }
+.rr-deck .rr-layer.is-on .rr-switch {
+  background: linear-gradient(135deg, var(--rr-layer-color, #3A6FA8), color-mix(in srgb, var(--rr-layer-color, #3A6FA8) 75%, var(--ink-900, #2C2A26)));
+}
+.rr-deck .rr-switch-knob { box-shadow: 0 1px 2px rgba(44, 42, 38, 0.25); }
+.rr-deck .rr-seg, .rr-deck .rr-viewtoggle, .rr-deck .rr-sheet-toggle {
+  border-radius: 13px; padding: 4px; gap: 4px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 8px 18px -12px rgba(44, 42, 38, 0.28);
+}
+.rr-deck .rr-seg { background: rgba(255, 255, 255, 0.74); border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent); }
+.rr-deck .rr-seg-btn, .rr-deck .rr-viewtoggle button, .rr-deck .rr-sheet-toggle button { border-radius: 9px; transition: background .15s, color .15s, box-shadow .15s; }
+.rr-deck .rr-seg-btn.is-active, .rr-deck .rr-viewtoggle button.is-active, .rr-deck .rr-sheet-toggle button.is-active {
+  background: linear-gradient(135deg, var(--rr-acc), color-mix(in srgb, var(--rr-acc) 70%, var(--ink-900, #2C2A26)));
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--rr-acc) 70%, transparent);
+}
+.rr-deck .rr-seg--modus .rr-seg-btn.is-active { background: var(--sand-100, #EDE6D3); box-shadow: 0 1px 2px rgba(44, 42, 38, 0.12); }
+.rr-deck .rr-datalage {
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 70px at 0% 0%, color-mix(in srgb, var(--rr-acc) 9%, transparent), transparent 100%),
+    rgba(255, 255, 255, 0.8);
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 10px 22px -16px rgba(44, 42, 38, 0.32);
+}
+
+/* Schwebende Overlays über der Karte */
+.rr-deck .rr-glass {
+  border-radius: 13px; background: var(--br-glass-strong, rgba(250, 246, 234, 0.96));
+  backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 14px 30px -14px rgba(0, 0, 0, 0.45);
+}
+.rr-deck .rr-zoom button { transition: background .15s; }
+.rr-deck .rr-zoom button:hover { background: rgba(255, 255, 255, 0.6); }
+
+/* Rechter Readout: Karten als Glas mit Schimmer */
+.rr-deck .rr-readout { background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, var(--sand-50, #F5F1E8) 100%); }
+.rr-deck .rr-readout .mv-card {
+  --rr-card-acc: var(--rr-acc);
+  background:
+    radial-gradient(120% 90px at 0% 0%, color-mix(in srgb, var(--rr-card-acc) 13%, transparent), transparent 100%),
+    var(--br-glass-strong, rgba(250, 246, 234, 0.96));
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 14px 30px -18px rgba(44, 42, 38, 0.34);
+}
+.rr-deck .rr-readout .mv-card.mv-tone-dry { --rr-card-acc: #7A9466; }
+.rr-deck .rr-readout .mv-card.ed-tile { --rr-card-acc: var(--ink-900, #2C2A26); }
+/* Der Akzent sitzt jetzt im Schimmer — der 3-px-Streifen bleibt, nur feiner. */
+.rr-deck .rr-readout .mv-card::before { top: 14px; bottom: 14px; border-radius: 0 3px 3px 0; opacity: .7; }
+.rr-deck .rr-readout .zo-card, .rr-deck .rr-readout .nc-card, .rr-deck .rr-readout .rr-ev-card, .rr-deck .rr-sources details {
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 80px at 0% 0%, color-mix(in srgb, var(--rr-acc) 9%, transparent), transparent 100%),
+    var(--br-glass-strong, rgba(250, 246, 234, 0.96));
+  border-color: color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 12px 26px -18px rgba(44, 42, 38, 0.32);
+}
+.rr-deck .rr-readout .nc-card-alert {
+  background: radial-gradient(120% 80px at 0% 0%, rgba(230, 166, 160, 0.35), transparent 100%), #FBEDEB;
+  border-color: #E6A6A0;
+}
+.rr-deck .rr-honesty { border-radius: 14px; box-shadow: 0 10px 22px -18px rgba(44, 42, 38, 0.3); }
+.rr-deck .mv-expand { border-radius: 50%; }
+
+/* Diagramm-Ansicht */
+.rr-deck .rr-chart .rt-card {
+  border-radius: 18px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 18px 40px -18px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-deck .rr-rail-btn, .rr-deck .rr-layer, .rr-deck .rr-seg-btn, .rr-deck .rr-viewtoggle button,
+  .rr-deck .rr-sheet-toggle button, .rr-deck .rr-zoom button { transition: none; }
+}
