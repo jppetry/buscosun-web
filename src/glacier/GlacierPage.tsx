@@ -78,6 +78,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [sheet, setSheet] = useState<Pick<GlacierUrlState, 'tab' | 't' | 'v' | 'e' | 'o'>>({ tab: initial.tab, t: initial.t, v: initial.v, e: initial.e, o: initial.o });
   const briefSeg = initial.glacier;
   const allow3d = useMemo(() => { try { return new URLSearchParams(window.location.search).get('gl3d') !== '0'; } catch { return true; } }, []);
+  // overview map: 3D terrain by default, 2D stays one click away; `?gl3d=0` or a terrain failure keeps it flat
+  const [mapView, setMapView] = useState<'2d' | '3d'>(allow3d ? '3d' : '2d');
+  const [map3dFailed, setMap3dFailed] = useState(false);
 
   // --- Data -----------------------------------------------------------------------------------------------------
   useEffect(() => {
@@ -242,7 +245,14 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   const map = d && (
     <GlacierMap features={features} ramp={def.ramp} selectedId={selId} onSelect={pick} regionBoxes={regionBoxes} loadOutline={loadOutlineFn} bucketOf={bucketOf}
-      padding={isMobile ? { top: 0, bottom: 70, left: 0, right: 0 } : { top: 0, bottom: 0, left: 0, right: 300 }} onMap={(m) => { mapRef.current = m; }} />
+      padding={isMobile ? { top: 0, bottom: 70, left: 0, right: 0 } : { top: 0, bottom: 0, left: 0, right: 300 }} onMap={(m) => { mapRef.current = m; }}
+      view={map3dFailed ? '2d' : mapView} onView3dFailed={() => setMap3dFailed(true)} />
+  );
+  const viewSeg = d && allow3d && !map3dFailed && (
+    <div className="gl-seg2 gl-view-seg" role="group" aria-label="Ansicht der Karte">
+      <button type="button" aria-pressed={mapView === '2d'} onClick={() => setMapView('2d')}>2D</button>
+      <button type="button" aria-pressed={mapView === '3d'} onClick={() => setMapView('3d')}>3D</button>
+    </div>
   );
   const zoom = !isMobile && (
     <div className="gl-zoom">
@@ -345,7 +355,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           <div className="gl-body">
             <div className="gl-center">
               <section className="gl-map" aria-label="Karte">
-                {map}{note}
+                {map}{note}{viewSeg}
                 <div className="gl-m-overlay"><span className="gl-season">{season.label}</span>{satChip}</div>
                 <div className="gl-pill-slot">{pill}</div>
               </section>
@@ -384,7 +394,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           {dock}
           <div className="gl-center">
             <section className={`gl-map${stage === 'dossier' ? ' is-offstage' : ''}`} aria-label="Karte aller Gletscher" aria-hidden={stage === 'dossier' ? true : undefined}>
-              {map}{zoom}{legend}{pill}{note}
+              {map}{zoom}{viewSeg}{legend}{pill}{note}
               <div className="gl-attrib">Karte: OpenStreetMap-Mitwirkende · Inventare je nach Land</div>
             </section>
             {stage === 'dossier' && (

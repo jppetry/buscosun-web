@@ -3,6 +3,8 @@
  * and coloured by the chosen metric's bucket (ramp light → dark); a glacier WITHOUT a value is a dashed ring, never a faint
  * colour (README-gletscher.md "Zeichensprache"). From zoom 9 the outlines of the regions in view replace the circles
  * (levels L1/L2/L3 by zoom, loaded lazily per region, each outline coloured like its circle). No shader, no custom layer.
+ * `view = '3d'` (default of the page) lays the same map on Terrarium terrain with hillshade and a tilted camera — built-in
+ * MapLibre means like the sheet map (`GlacierSheetMap.tsx`); a terrain failure falls back to 2D via `onView3dFailed`.
  */
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
@@ -15,6 +17,10 @@ const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 export const GLACIER_START_BOUNDS: [number, number, number, number] = [6.0, 45.7, 13.9, 47.9];
 export const GLACIER_MAX_BOUNDS: [[number, number], [number, number]] = [[2.5, 43.5], [17.5, 49.8]];
 const OUTLINE_MIN_ZOOM = 9;
+const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
+/** The overview starts at zoom ≈ 6.5, where the Alps need more lift than the sheet's 1.3 to read as relief. */
+const OVERVIEW_EXAGGERATION = 1.8;
+const PITCH_3D = 50, BEARING_3D = -12;
 const levelOf = (z: number): 1 | 2 | 3 => (z >= 13 ? 3 : z >= 11 ? 2 : 1);
 
 export interface GlacierMapFeature { id: string; lon: number; lat: number; km2: number; k: 'A' | 'B' | 'C'; b: number; name: string | null }
@@ -32,6 +38,8 @@ interface Props {
   bucketOf: (id: string) => number;
   padding?: { top: number; bottom: number; left: number; right: number };
   onMap?: (m: maplibregl.Map | null) => void;
+  view?: '2d' | '3d';
+  onView3dFailed?: () => void;
 }
 
 function dashedRing(): ImageData {
@@ -49,7 +57,7 @@ const colorExpr = (ramp: 'loss' | 'snow'): maplibregl.ExpressionSpecification =>
   return ['match', ['get', 'b'], 0, r[0], 1, r[1], 2, r[2], 3, r[3], 4, r[4], '#CFC6B0'];
 };
 
-export default function GlacierMap({ features, ramp, selectedId, onSelect, regionBoxes, loadOutline, bucketOf, padding, onMap }: Props) {
+export default function GlacierMap({ features, ramp, selectedId, onSelect, regionBoxes, loadOutline, bucketOf, padding, onMap, view = '2d', onView3dFailed }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
@@ -57,6 +65,30 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
   latest.current = { features, ramp, selectedId, regionBoxes, loadOutline, bucketOf };
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const onFailRef = useRef(onView3dFailed);
+  onFailRef.current = onView3dFailed;
+
+  const apply3d = (on: boolean, animate: boolean, first = false) => {
+    const map = mapRef.current;
+    if (!map || !ready.current) return;
+    try {
+      if (on) {
+        map.setTerrain({ source: 'gl-dem', exaggeration: OVERVIEW_EXAGGERATION });
+        map.setLayoutProperty('gl-hill', 'visibility', 'visible');
+        map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); map.touchPitch.enable();
+        // first view: tilted, closer and centred on the glacier belt (a tilted fit of the 2D bounds shows mostly lowland)
+        if (first) map.easeTo({ center: [10.0, 46.5], zoom: map.getZoom() + 0.3, pitch: PITCH_3D, bearing: BEARING_3D, duration: 1200 });
+        else map.easeTo({ pitch: PITCH_3D, bearing: BEARING_3D, duration: animate ? 700 : 0 });
+      } else {
+        map.setTerrain(null);
+        map.setLayoutProperty('gl-hill', 'visibility', 'none');
+        map.dragRotate.disable(); map.touchZoomRotate.disableRotation(); map.touchPitch.disable();
+        map.easeTo({ pitch: 0, bearing: 0, duration: animate ? 500 : 0 });
+      }
+    } catch { onFailRef.current?.(); }
+  };
   const loaded = useRef(new Map<string, GlacierOutlineFC | null>());
   const wanted = useRef('');
 
@@ -108,6 +140,11 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
     map.on('load', () => {
       if (mapRef.current !== map) return;
       map.addImage('gl-novalue', dashedRing(), { pixelRatio: 2 });
+      try {
+        map.addSource('gl-dem', { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
+        const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id;
+        map.addLayer({ id: 'gl-hill', type: 'hillshade', source: 'gl-dem', layout: { visibility: 'none' }, paint: { 'hillshade-exaggeration': 0.45, 'hillshade-shadow-color': '#4A4234', 'hillshade-accent-color': '#6B5A45', 'hillshade-illumination-anchor': 'map', 'hillshade-illumination-direction': 315 } }, firstSymbol);
+      } catch { onFailRef.current?.(); }
       map.addSource('gl-points', { type: 'geojson', data: pointsFC() });
       map.addSource('gl-outlines', { type: 'geojson', data: EMPTY });
       map.addSource('gl-selected', { type: 'geojson', data: EMPTY });
@@ -152,6 +189,17 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
       map.on('moveend', refreshOutlines);
       refreshOutlines();
       syncSelected();
+      // 3D start: the flat map with its circles comes first (terrain holds back the whole frame until its DEM tiles are
+      // there); the hillshade fetches the DEM in 2D, and once it is loaded the camera tilts into the terrain view
+      if (viewRef.current === '3d') {
+        try { map.setLayoutProperty('gl-hill', 'visibility', 'visible'); } catch { /* no DEM layer — stays 2D */ }
+        const tilt = () => {
+          if (mapRef.current !== map || !map.getSource('gl-dem') || !map.isSourceLoaded('gl-dem')) return;
+          map.off('sourcedata', tilt);
+          if (viewRef.current === '3d' && !map.getTerrain()) apply3d(true, true, true);
+        };
+        map.on('sourcedata', tilt);
+      }
     });
     return () => { ready.current = false; onMap?.(null); map.remove(); if (mapRef.current === map) mapRef.current = null; loaded.current.clear(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,5 +235,8 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  return <div ref={box} className="gl-map-canvas" role="img" aria-label="Karte aller Gletscher in Deutschland, Österreich und der Schweiz" />;
+  useEffect(() => { apply3d(view === '3d', true); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  return <div ref={box} className="gl-map-canvas" role="img" aria-label={`Karte aller Gletscher in Deutschland, Österreich und der Schweiz${view === '3d' ? ', 3D-Ansicht' : ''}`} />;
 }

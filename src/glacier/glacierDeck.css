@@ -288,3 +288,12 @@
 .gl-ds-emptycard p { margin: 0; font-size: 13.5px; color: var(--gl-muted); line-height: 1.5; }
 .gl-ds-emptycard strong { color: var(--gl-ink); }
 .gl-pill-actions .gl-btn:not(.is-primary) { flex: 0 0 auto; }
+
+/* 2D | 3D of the overview map: top right under the zoom buttons (desktop), top right under the status chips (mobile) */
+.gl-view-seg { position: absolute; right: 14px; top: 96px; z-index: 2; flex-direction: column; background: #fff; border: 1px solid var(--gl-line-strong); border-radius: 10px; }
+.gl-view-seg button { width: 32px; height: 28px; padding: 0; font-size: 12.5px; }
+.gl-view-seg button[aria-pressed="true"] { background: var(--gl-ink); color: #FAF6EA; }
+@media (max-width: 767px) {
+  .gl-view-seg { top: 50px; right: 10px; flex-direction: row; }
+  .gl-view-seg button { width: 44px; min-height: 44px; padding: 0; }
+}
