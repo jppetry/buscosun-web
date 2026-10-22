@@ -805,6 +805,50 @@ function cubeSampleOfValues(r, i) {
       fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 1 })) === fusedOf(anchored) && fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 1 }).notes.some((n) => /^anchorKSet: Option an, aber anchorSigma aus/.test(n))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 0 })) === fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1 }))
       && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorKSet: 1 })) === fusedOf(base));
+    // OF-9 (E-OF-10/E-OF-11, audit/obs-fusion.md §16): the σ scale with the VALID-HOUR axis (`sigmaScale: 6`, generated `SIGMA_SCALE_TABLE_H`)
+    // and the K-set table per SEASON (`anchorKSet: 2`, `ANCHOR_KSET_TABLE_S`); both interpolate in the day of the year between the season centres.
+    const HT = await import('../src/pointForecast/fusion/sigmaScaleH.ts');
+    const HH = HT.SIGMA_SCALE_TABLE_H, KS = HT.ANCHOR_KSET_TABLE_S;
+    const sw = S.seasonWeightsAt, jan15 = Date.UTC(2026, 0, 15), jul15 = Date.UTC(2026, 6, 15), oct15 = Date.UTC(2026, 9, 15), mar1 = Date.UTC(2026, 2, 1);
+    add('(13) OF-9 seasonWeightsAt: 15.01. ⇒ DJF allein; 15.07. ⇒ JJA allein; 01.03. ⇒ DJF→MAM mit f 45/90; 31.12. ⇒ SON→DJF (Jahresumbruch) mit f 77/92; 01.01. ⇒ f 78/92; seasonFactorAt interpoliert; fehlender oder falsch langer Vektor ⇒ 1',
+      JSON.stringify(sw(jan15)) === JSON.stringify({ a: 0, b: 1, f: 0 }) && JSON.stringify(sw(jul15)) === JSON.stringify({ a: 2, b: 3, f: 0 })
+      && (() => { const w = sw(mar1); return w.a === 0 && w.b === 1 && near(w.f, 45 / 90, 1e-12); })()
+      && (() => { const w = sw(Date.UTC(2026, 11, 31)); return w.a === 3 && w.b === 0 && near(w.f, 77 / 92, 1e-12); })()
+      && (() => { const w = sw(Date.UTC(2026, 0, 1)); return w.a === 3 && w.b === 0 && near(w.f, 78 / 92, 1e-12); })()
+      && near(S.seasonFactorAt([1, 2, 3, 4], mar1), 1.5, 1e-12) && S.seasonFactorAt(null, mar1) === 1 && S.seasonFactorAt([1, 2], mar1) === 1);
+    const TH = { ...S.SIGMA_SCALE_IDENTITY_H, provenance: { kind: 'hindcast', note: 'Testtabelle H des Verifiers' },
+      nodes: { ...S.SIGMA_SCALE_IDENTITY_H.nodes, ws: [[0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3], [1, 1, 1, 1, 1, 1, 1, 1], [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]] },
+      season: { rowsToH: 6, nodes: { ...S.SIGMA_SCALE_IDENTITY_H.season.nodes, ws: [1.5, 1, 1, 1.2] } } };
+    add('(13) OF-9 sigmaScaleHourAt: Stunde zyklisch (00 UTC = Mittel aus 22,5 und 1,5 UTC ⇒ 0,95; 03 UTC ⇒ 0,65; 1,5 UTC ⇒ 0,6); Vorlauf flach vor 1,5 h, 3 h = Mittel der Zeilen 1,5/4,5 h, Zeile 15,5 h 0,5 ⇒ geklemmt 0,6, ab 84,5 h 1; Saison nur auf Zeilen ≤ 6 h (15.10. ×1,2; 15.01. ×1,5, 22,5 UTC geklemmt 1,6); T unberührt; Identität 1',
+      near(S.sigmaScaleHourAt(TH, 'ws', 1, jul15), 0.95, 1e-12) && near(S.sigmaScaleHourAt(TH, 'ws', 1, jul15 + 3 * H), 0.65, 1e-12) && near(S.sigmaScaleHourAt(TH, 'ws', 1, jul15 + 1.5 * H), 0.6, 1e-12)
+      && near(S.sigmaScaleHourAt(TH, 'ws', 0.5, jul15 + 1.5 * H), 0.6, 1e-12) && near(S.sigmaScaleHourAt(TH, 'ws', 3, jul15 + 1.5 * H), 0.8, 1e-12)
+      && S.sigmaScaleHourAt(TH, 'ws', 15.5, jul15) === 0.6 && S.sigmaScaleHourAt(TH, 'ws', 84.5, jul15) === 1 && S.sigmaScaleHourAt(TH, 'ws', 300, jul15) === 1
+      && near(S.sigmaScaleHourAt(TH, 'ws', 1, oct15 + 1.5 * H), 0.72, 1e-12) && S.sigmaScaleHourAt(TH, 'ws', 1, jan15 + 22.5 * H) === 1.6 && near(S.sigmaScaleHourAt(TH, 'ws', 1, jan15 + 1.5 * H), 0.9, 1e-12)
+      && S.sigmaScaleHourAt(TH, 't', 1, oct15) === 1 && [0.5, 3, 20, 100].every((L) => S.sigmaScaleHourAt(S.SIGMA_SCALE_IDENTITY_H, 'ws', L, oct15) === 1));
+    const hLen = (tab) => S.SIGMA_SCALE_VARS.every((v) => tab[v].length === HH.centresH.length && tab[v].every((r) => r.length === HH.hourCentresH.length && r.every((s) => Number.isFinite(s) && s >= 0.6 && s <= 1.6)));
+    const hShape = (tab) => S.SIGMA_SCALE_VARS.every((v) => tab[v][tab[v].length - 1].every((s) => s === 1)) && ['t', 'td'].every((v) => [0, 1].every((ri) => tab[v][ri].every((s) => s === 1)));
+    const seasonOk = (sn) => S.SIGMA_SCALE_VARS.every((v) => sn[v].length === 4 && sn[v][2] === 1 && sn[v].every((x) => Number.isFinite(x) && x > 0)) && sn.t.every((x) => x === 1) && sn.td.every((x) => x === 1);
+    const ss6 = fuseCubePoint(mkInput(), { sigmaScale: 6 }), ssH = fuseCubePoint(mkInput(), { sigmaScale: 1, sigmaScaleTable: HH });
+    add('(13) OF-9 Tabelle H (`sigmaScale: 6`): kind hour, Zeilen 1,5/4,5/15,5/36,5/84,5 h, acht Stundenklassen, je Land DE/AT/CH; Knoten in [0,6; 1,6], Zeile 84,5 h = 1, T/Td ≤ 6 h = 1; Saisonfaktoren vier je Größe, JJA = 1, T/Td = 1; Option 6 byte-gleich zu Option 1 mit H und ≠ Basis; calib nennt „OF-9, sigmaScale: 6“; Herkunft hindcast',
+      HH.kind === 'hour' && HH.centresH.join() === '1.5,4.5,15.5,36.5,84.5' && HH.hourCentresH.length === 8 && HH.provenance.kind === 'hindcast' && ['DE', 'AT', 'CH'].every((c) => !!HH.byCountry?.[c])
+      && [HH.nodes, ...Object.values(HH.byCountry ?? {})].every((t) => hLen(t) && hShape(t)) && seasonOk(HH.season.nodes) && Object.values(HH.season.byCountry ?? {}).every(seasonOk)
+      && fusedOf(ss6) === fusedOf(ssH) && fusedOf(ss6) !== fusedOf(base) && ss6.calib.some((c) => /OF-9, sigmaScale: 6/.test(c)));
+    add('(13) OF-9 sigmaScale 6 Negativkontrollen: Identitäts-H-Tabelle byte-gleich zur Basis (Notiz „Identitätstabelle“); mit H bleibt der Median (T bei +30 h); Option 0 byte-gleich',
+      fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 6, sigmaScaleTable: S.SIGMA_SCALE_IDENTITY_H })) === fusedOf(base) && fuseCubePoint(mkInput(), { sigmaScale: 6, sigmaScaleTable: S.SIGMA_SCALE_IDENTITY_H }).notes.some((n) => /^sigmaScale: Option an, aber Identitätstabelle/.test(n))
+      && near(med(ss6.steps[30]), med(base.steps[30]), 1e-9) && fusedOf(fuseCubePoint(mkInput(), { sigmaScale: 0 })) === fusedOf(base));
+    const cl = (C, V, n = 5000) => ({ fLo: 0, fHi: 1.0001, n, C, V });
+    const KT = { version: 1, kind: 'season', provenance: { kind: 'hindcast', note: 'Test' }, bySeason: { DJF: { t: [cl(0.4, 0.5)], wind: [], gust: [] }, MAM: { t: [cl(0.2, 0.3)], wind: [], gust: [] }, JJA: { t: [cl(null, null)], wind: [], gust: [] }, SON: { t: [cl(0.3, 0.6)], wind: [], gust: [] } } };
+    const kAt = (ms) => S.anchorKSetClassesAt(KT, 't', ms)[0];
+    add('(13) OF-9 anchorKSetClassesAt: 15.01. ⇒ die DJF-Klasse selbst; 01.03. ⇒ linear DJF→MAM (C 0,3, V 0,4); 15.08. (JJA leer) ⇒ die besetzte Seite SON; 15.07. ⇒ JJA (leer bleibt leer); Familie ohne Klassen ⇒ leer',
+      kAt(jan15).C === 0.4 && near(kAt(mar1).C, 0.3, 1e-12) && near(kAt(mar1).V, 0.4, 1e-12) && kAt(Date.UTC(2026, 7, 15)).C === 0.3 && kAt(jul15).C === null && S.anchorKSetClassesAt(KT, 'wind', jan15).length === 0);
+    const KSame = { version: 1, kind: 'season', provenance: { kind: 'hindcast', note: 'Test' }, bySeason: Object.fromEntries(['DJF', 'MAM', 'JJA', 'SON'].map((s) => [s, { t: S.ANCHOR_KSET_TABLE.t, wind: S.ANCHOR_KSET_TABLE.wind, gust: S.ANCHOR_KSET_TABLE.gust }])) };
+    const k2 = fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 2 });
+    add('(13) OF-9 anchorKSet 2 (Saisontabelle): vier Jahreszeiten mit je sechs Klassen T/Wind/Böe, Herkunft hindcast; Saisontabelle = Sommertabelle in jeder Jahreszeit ⇒ byte-gleich zu anchorKSet 1; eingebaute Tabelle: calib „OF-9, anchorKSet: 2“, Notiz K-Satz; ohne anchorSigma ohne Wirkung; ohne Messung byte-gleich zur Basis',
+      KS.kind === 'season' && KS.provenance.kind === 'hindcast' && ['DJF', 'MAM', 'JJA', 'SON'].every((s) => ['t', 'wind', 'gust'].every((f) => Array.isArray(KS.bySeason[s][f]) && KS.bySeason[s][f].length === 6))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorSigma: 1, anchorKSet: 2, anchorKSetTable: KSame })) === fusedOf(kOn)
+      && k2.calib.some((c) => /OF-9, anchorKSet: 2/.test(c)) && k2.notes.some((n) => /^anchorKSet: K-Satz-Tabelle an \d+ Größen-Schritten/.test(n))
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: obsAt(2) }, { anchorKSet: 2 })) === fusedOf(anchored)
+      && fusedOf(fuseCubePoint({ ...mkInput(), obs: [] }, { anchorSigma: 1, anchorKSet: 2 })) === fusedOf(base));
   }
   // V-SW-3: wind and gust get separate corrections, their means can cross. In the plain engine the gust prior keeps the gust
   // above the wind (this fixture: min gust − wind ≥ +0,18 m/s even with every input gust at 10–30 %); the crossing comes from

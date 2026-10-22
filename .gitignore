@@ -50,3 +50,5 @@ __pycache__/
 *.pyc
 
 audit/obs-fusion/of8/
+# OF-9 raw collection parts (f32 rows + index, ≈ 100 MB each, reproducible from the hindcast)
+audit/obs-fusion/of9/

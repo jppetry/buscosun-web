@@ -132,6 +132,123 @@ export const SIGMA_SCALE_TABLE_W: SigmaScaleTable = Object.freeze({
   }),
 });
 
+// ---------------------------------------------------------------------------
+// OF-9 (`audit/obs-fusion.md` §16, E-OF-10): the σ scale with a VALID-HOUR axis — `SIGMA_SCALE_TABLE_H` in the generated
+// `sigmaScaleH.ts` (`FuseCubeOptions.sigmaScale: 6`). V-OF-24 showed that the short-lead calibration of the wind is a question of
+// the hour of the day (00 UTC 1,075, 12 UTC 0,77), not of the lead; the Prüfstand sees 0–6 h only at night, the product every hour.
+// Rows = lead centres (the last row is the run-out to 1), columns = 3-h classes of the valid hour (UTC, cyclic). The seasonal factor
+// R(season) of the Tag-0 series (of8, §15.6) multiplies the rows ≤ `season.rowsToH` (wind and gust; T/Td carry 1 there, V-OF-27),
+// interpolated in the day of the year between the season centres so nothing jumps at a month border.
+// ---------------------------------------------------------------------------
+export type Season = 'DJF' | 'MAM' | 'JJA' | 'SON';
+export const SEASONS: readonly Season[] = Object.freeze(['DJF', 'MAM', 'JJA', 'SON']);
+/** Day-of-year centres of the seasons: 15.01. · 15.04. · 15.07. · 15.10. (period 365). */
+export const SEASON_CENTRE_DOY: readonly number[] = Object.freeze([15, 105, 196, 288]);
+const DOY_PERIOD = 365;
+
+export interface SigmaScaleTableH {
+  version: 1;
+  kind: 'hour';
+  provenance: { kind: 'identity' | 'hindcast'; note: string; fitWindow?: { from: string; to: string }; slots?: number; rows?: number; date?: string; nominal?: number };
+  /** Lead (h) of each row; the last row is the run-out (its nodes are 1 in the fitted table). */
+  centresH: readonly number[];
+  /** Valid hour (UTC) of each column, cyclic with period 24. */
+  hourCentresH: readonly number[];
+  /** nodes[v][row][hourClass]; 1 = unchanged. */
+  nodes: Record<SigmaScaleVar, readonly (readonly number[])[]>;
+  byCountry?: Readonly<Record<string, Record<SigmaScaleVar, readonly (readonly number[])[]>>>;
+  /** The seasonal factor on the rows with centre ≤ `rowsToH`, per variable in the order of `SEASONS`; `byCountry` alike. */
+  season: { rowsToH: number; nodes: Record<SigmaScaleVar, readonly number[]>; byCountry?: Readonly<Record<string, Record<SigmaScaleVar, readonly number[]>>> };
+  /** The final factor is clamped to this range (the fit's search range). */
+  clamp: readonly [number, number];
+}
+
+export const SIGMA_SCALE_CENTRES_HOUR_H: readonly number[] = Object.freeze([1.5, 4.5, 15.5, 36.5, 84.5]);
+export const SIGMA_SCALE_HOUR_CENTRES: readonly number[] = Object.freeze([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]);
+const ONES_ROWS = (): readonly (readonly number[])[] => Object.freeze(SIGMA_SCALE_CENTRES_HOUR_H.map(() => Object.freeze(SIGMA_SCALE_HOUR_CENTRES.map(() => 1))));
+const ONES_SEASON = (): readonly number[] => Object.freeze(SEASONS.map(() => 1));
+/** Identity: every node and every seasonal factor 1 — the engine computes exactly as without the option (used by the verifier). */
+export const SIGMA_SCALE_IDENTITY_H: SigmaScaleTableH = Object.freeze({
+  version: 1 as const,
+  kind: 'hour' as const,
+  provenance: { kind: 'identity' as const, note: 'all nodes 1 — no scaling' },
+  centresH: SIGMA_SCALE_CENTRES_HOUR_H,
+  hourCentresH: SIGMA_SCALE_HOUR_CENTRES,
+  nodes: Object.freeze({ t: ONES_ROWS(), td: ONES_ROWS(), ws: ONES_ROWS(), gust: ONES_ROWS() }),
+  season: { rowsToH: 6, nodes: Object.freeze({ t: ONES_SEASON(), td: ONES_SEASON(), ws: ONES_SEASON(), gust: ONES_SEASON() }) },
+  clamp: [0.6, 1.6] as const,
+});
+
+/** Day of the year (1 … 366) of a UTC instant. */
+export function dayOfYearUtc(ms: number): number {
+  const d = new Date(ms);
+  return Math.floor((ms - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86_400_000) + 1;
+}
+/**
+ * The two neighbouring seasons of a UTC instant and the weight of the later one: cyclic linear interpolation between the season
+ * centres (15.01. → DJF, 15.04. → MAM, 15.07. → JJA, 15.10. → SON). Exactly at a centre the weight is 0 (that season alone).
+ */
+export function seasonWeightsAt(ms: number): { a: number; b: number; f: number } {
+  const doy = Number.isFinite(ms) ? dayOfYearUtc(ms) : 1;
+  const c = SEASON_CENTRE_DOY, n = c.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    let lo = c[i], hi = c[j], x = doy;
+    if (hi < lo) { hi += DOY_PERIOD; if (x < lo) x += DOY_PERIOD; }
+    if (x >= lo && x < hi) return { a: i, b: j, f: (x - lo) / (hi - lo) };
+  }
+  return { a: 0, b: 1, f: 0 };
+}
+/** Linear interpolation of a per-season vector (order `SEASONS`) at a UTC instant; 1 when the vector is missing or malformed. */
+export function seasonFactorAt(nodes: readonly number[] | null | undefined, ms: number): number {
+  if (!nodes || nodes.length !== SEASONS.length) return 1;
+  const { a, b, f } = seasonWeightsAt(ms);
+  const x = nodes[a] + f * (nodes[b] - nodes[a]);
+  return Number.isFinite(x) ? x : 1;
+}
+/** Cyclic linear interpolation over the hour centres (period 24) at the valid hour `h` (0 … 24). */
+function hourInterp(centres: readonly number[], nodes: readonly number[], h: number): number {
+  const n = centres.length;
+  if (n === 1) return nodes[0];
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    let lo = centres[i], hi = centres[j], x = h;
+    if (hi <= lo) { hi += 24; if (x < lo) x += 24; }
+    if (x >= lo && x < hi) return nodes[i] + ((x - lo) / (hi - lo)) * (nodes[j] - nodes[i]);
+  }
+  return nodes[0];
+}
+/**
+ * Scale of the H table at lead `leadH` for the valid instant `validAtMs` (UTC): per row the cyclic hour interpolation, the rows
+ * ≤ `season.rowsToH` times the seasonal factor of the day of the year, then linear in lead between the row centres (flat before the
+ * first, the last row beyond its centre), clamped to `table.clamp`. 1 when the table has no node or the inputs are not finite. With
+ * `country` and a `byCountry` entry for it, that country's nodes (and seasonal factors); otherwise the pooled ones.
+ */
+export function sigmaScaleHourAt(table: SigmaScaleTableH, v: SigmaScaleVar, leadH: number, validAtMs: number, country?: string | null): number {
+  const c = table.centresH, hc = table.hourCentresH;
+  const rows = (country && table.byCountry?.[country]?.[v]) || table.nodes[v];
+  if (!c?.length || !hc?.length || !rows || rows.length !== c.length || !Number.isFinite(leadH) || !Number.isFinite(validAtMs)) return 1;
+  const h = ((validAtMs / 3_600_000) % 24 + 24) % 24;
+  const R = seasonFactorAt((country && table.season?.byCountry?.[country]?.[v]) || table.season?.nodes?.[v], validAtMs);
+  const rowAt = (i: number): number => {
+    const r = rows[i];
+    if (!r || r.length !== hc.length) return 1;
+    const x = hourInterp(hc, r, h);
+    return c[i] <= (table.season?.rowsToH ?? 0) ? x * R : x;
+  };
+  let s: number;
+  if (leadH <= c[0]) s = rowAt(0);
+  else {
+    s = rowAt(c.length - 1);
+    for (let i = 1; i < c.length; i++) {
+      if (leadH <= c[i]) { const f = (leadH - c[i - 1]) / (c[i] - c[i - 1]); const a = rowAt(i - 1); s = a + f * (rowAt(i) - a); break; }
+    }
+  }
+  if (!Number.isFinite(s)) return 1;
+  const [lo, hi] = table.clamp ?? [0, Infinity];
+  return Math.min(hi, Math.max(lo, s));
+}
+
 /**
  * Scale at lead `leadH`: linear between the nodes, flat before the first and beyond the last centre. 1 when the table has no
  * node. With `country` and a `byCountry` entry for it, that country's nodes; otherwise the pooled nodes.
@@ -213,6 +330,36 @@ export function anchorKSetOf(classes: readonly AnchorKSetClass[], f: number): { 
   for (let i = idx; i >= 0; i--) if (ok(classes[i])) return { C: classes[i].C as number, V: classes[i].V as number, cls: classes[i] };
   for (let i = idx + 1; i < classes.length; i++) if (ok(classes[i])) return { C: classes[i].C as number, V: classes[i].V as number, cls: classes[i] };
   return null;
+}
+
+/**
+ * OF-9 (E-OF-11): the K-set table PER SEASON — `ANCHOR_KSET_TABLE_S` in the generated `sigmaScaleH.ts` (`FuseCubeOptions.anchorKSet: 2`).
+ * The coupling of the error at a point with the averaged error of its K stations is stronger in winter than the summer table of OF-7b
+ * assumes (Tag-0 series, §15.6: T in DJF C 0,31–0,61 against 0,24–0,45); the classes are measured per season on the Tag-0 series.
+ */
+export type AnchorKSetFamily = 't' | 'wind' | 'gust';
+export interface AnchorKSetTableS {
+  version: 1;
+  kind: 'season';
+  provenance: { kind: 'set' | 'hindcast'; note: string; fitWindow?: { from: string; to: string }; slots?: number; date?: string; k?: number };
+  bySeason: Readonly<Record<Season, Record<AnchorKSetFamily, readonly AnchorKSetClass[]>>>;
+}
+/**
+ * The classes of a family at a UTC instant: (C, V) of each class interpolated linearly in the day of the year between the two
+ * neighbouring seasons (`seasonWeightsAt`) where both are populated; where only one is, that one; where neither is, the class stays
+ * empty (then `anchorKSetOf` takes the nearest populated class below). Exactly at a season centre the season's classes themselves.
+ */
+export function anchorKSetClassesAt(table: AnchorKSetTableS, fam: AnchorKSetFamily, validAtMs: number): readonly AnchorKSetClass[] {
+  const { a, b, f } = seasonWeightsAt(validAtMs);
+  const A = table.bySeason?.[SEASONS[a]]?.[fam], B = table.bySeason?.[SEASONS[b]]?.[fam];
+  if (!A?.length) return B ?? [];
+  if (!B?.length || f === 0) return A;
+  const ok = (c: AnchorKSetClass | undefined) => !!c && c.C != null && c.V != null && Number.isFinite(c.C) && Number.isFinite(c.V);
+  return A.map((ca, i) => {
+    const cb = B[i];
+    if (ok(ca) && ok(cb)) return { fLo: ca.fLo, fHi: ca.fHi, n: Math.round(ca.n + f * ((cb as AnchorKSetClass).n - ca.n)), C: (ca.C as number) + f * ((cb as AnchorKSetClass).C as number - (ca.C as number)), V: (ca.V as number) + f * ((cb as AnchorKSetClass).V as number - (ca.V as number)) };
+    return ok(ca) ? ca : ok(cb) ? (cb as AnchorKSetClass) : ca;
+  });
 }
 
 /** ρ = ρ₀ · (c + (1 − c)·e^(−d/D)) / (1 + (Δh/H)²): `c` = the floor the shared synoptic error keeps at 60–120 km, D in km, H in m. */
