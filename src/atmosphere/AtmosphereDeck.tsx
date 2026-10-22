@@ -263,6 +263,9 @@ const VIEW_META: Record<DeckLens, { label: string; sub: string; icon: () => Reac
   thermik: { label: 'Thermik', sub: 'Aufwind · Wolkenbasis · Profil', icon: IconViewThermik },
 };
 
+const SECTION_VIEWS: DeckLens[] = ['hoehenwind', 'inversion', 'gonogo'];
+const PLACE_VIEWS: DeckLens[] = ['foehn', 'thermik'];
+
 const LAYER_ROWS: Array<{ key: keyof ThreeDLayers; label: string; sub: string; icon: () => ReactNode }> = [
   { key: 'mean', label: 'Mittelwind', sub: 'Farbflächen · Pfeile', icon: IconLayerMean },
   { key: 'gust', label: 'Böen', sub: 'Isotachen gestrichelt', icon: IconLayerGust },
@@ -286,20 +289,27 @@ function SidePanel({ ctx, mobile = false, onPicked }: { ctx: DeckCtx; mobile?: b
 
       {isSection && <FlowSteps ctx={ctx} onPicked={onPicked} />}
 
-      <SideGroup title="Am Schnitt" accent="steel" role="radiogroup">
-        {(['hoehenwind', 'inversion', 'gonogo'] as DeckLens[]).map((l) => (
-          <ViewRow key={l} lens={l} on={deckLens === l} accent="steel" onClick={() => pick(l)} />
-        ))}
-      </SideGroup>
+      {/* Die Ansichten stehen am Desktop als Knöpfe im Bühnenkopf (ViewBar); mobil hier im Sheet. */}
+      {mobile && (
+        <>
+          <SideGroup title="Am Schnitt" accent="steel" role="radiogroup">
+            {SECTION_VIEWS.map((l) => (
+              <ViewRow key={l} lens={l} on={deckLens === l} accent="steel" onClick={() => pick(l)} />
+            ))}
+          </SideGroup>
+          <SideGroup title="Am Ort · ohne Schnitt" accent="sage" role="radiogroup">
+            {PLACE_VIEWS.map((l) => (
+              <ViewRow key={l} lens={l} on={deckLens === l} accent="sage" onClick={() => pick(l)} />
+            ))}
+          </SideGroup>
+        </>
+      )}
 
-      <SideGroup title="Am Ort · ohne Schnitt" accent="sage" role="radiogroup">
-        {(['foehn', 'thermik'] as DeckLens[]).map((l) => (
-          <ViewRow key={l} lens={l} on={deckLens === l} accent="sage" onClick={() => pick(l)} />
-        ))}
-        {!isSection && (
+      {!isSection && (
+        <SideGroup title="Anzeige" accent="sage">
           <SwitchRow label="Detailansicht" sub="Skew-T, Indizes, Werte-Tabelle" icon={IconDetail} accent="sage" on={nerdOpen} onClick={() => setNerdOpen(!nerdOpen)} />
-        )}
-      </SideGroup>
+        </SideGroup>
+      )}
 
       {deckLens === 'gonogo' && !mobile && <GoNoGoSettings cfg={ctx.cfg} setCfg={ctx.setCfg} />}
 
@@ -484,13 +494,42 @@ function StageHead({ ctx, eyebrow, title }: { ctx: DeckCtx; eyebrow: string; tit
         <div className="vsd-eyebrow">{eyebrow}</div>
         <h1 className="vsd-stage-title">{title}</h1>
       </div>
-      {isSection && (
-        <div className="vsd-seg" role="tablist" aria-label="Bühne">
-          <button type="button" role="tab" aria-selected={mapOpen} className={`vsd-seg-btn${mapOpen ? ' is-active' : ''}`} onClick={openMap}><IconMapSmall />Karte</button>
-          <button type="button" role="tab" aria-selected={!mapOpen} className={`vsd-seg-btn${!mapOpen ? ' is-active' : ''}`} onClick={openSection} disabled={!hasCut}
-            title={hasCut ? undefined : 'Erst eine Schnittlinie zeichnen'}><IconViewWind />Schnitt</button>
-        </div>
-      )}
+      <div className="vsd-stagehead-tools">
+        <ViewBar ctx={ctx} />
+        {isSection && (
+          <div className="vsd-seg" role="tablist" aria-label="Bühne">
+            <button type="button" role="tab" aria-selected={mapOpen} className={`vsd-seg-btn${mapOpen ? ' is-active' : ''}`} onClick={openMap}><IconMapSmall />Karte</button>
+            <button type="button" role="tab" aria-selected={!mapOpen} className={`vsd-seg-btn${!mapOpen ? ' is-active' : ''}`} onClick={openSection} disabled={!hasCut}
+              title={hasCut ? undefined : 'Erst eine Schnittlinie zeichnen'}><IconViewWind />Schnitt</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Ansichten als Knöpfe im Bühnenkopf: „Am Schnitt" und „Am Ort" als zwei Gruppen. */
+function ViewBar({ ctx }: { ctx: DeckCtx }) {
+  const { deckLens, setDeckLens } = ctx;
+  const group = (label: string, accent: string, views: DeckLens[]) => (
+    <div className="vsd-views" data-accent={accent} role="radiogroup" aria-label={label}>
+      <span className="vsd-views-lab" aria-hidden="true">{label}</span>
+      {views.map((l) => {
+        const m = VIEW_META[l];
+        const on = deckLens === l;
+        return (
+          <button key={l} type="button" role="radio" aria-checked={on} className={`vsd-view-btn${on ? ' is-active' : ''}`}
+            onClick={() => setDeckLens(l)} title={`${m.label} — ${m.sub}`}>
+            {m.icon()}<span>{m.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+  return (
+    <div className="vsd-viewbar">
+      {group('Am Schnitt', 'steel', SECTION_VIEWS)}
+      {group('Am Ort', 'sage', PLACE_VIEWS)}
     </div>
   );
 }

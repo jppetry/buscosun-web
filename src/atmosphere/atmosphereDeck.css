@@ -409,6 +409,25 @@
 .vsd-seg-btn.is-active { background: var(--steel-600); color: var(--cream-50); font-weight: 700; }
 .vsd-seg-btn:disabled { opacity: .45; cursor: not-allowed; }
 .vsd-seg-btn:focus-visible { outline: 2px solid var(--steel-600); outline-offset: 1px; }
+/* Ansichten im Bühnenkopf: zwei Gruppen (Am Schnitt · Am Ort) neben Karte | Schnitt.
+   Bricht bei schmaler Bühne unter den Titel um; die Gruppenbeschriftung erst ab 1440 px. */
+.vsd-stagehead-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.vsd-viewbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.vsd-views[data-accent='steel'] { --vsd-acc: var(--steel-600, #3A6FA8); }
+.vsd-views[data-accent='sage'] { --vsd-acc: var(--sage-600, #7A9466); }
+.vsd-views { display: inline-flex; align-items: center; gap: 2px; background: #fff; border: 1px solid var(--border-default); border-radius: 11px; padding: 3px; }
+.vsd-views-lab { display: none; font-size: 9.5px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: var(--vsd-acc); padding: 0 8px 0 7px; }
+.vsd-view-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  font-size: 12.5px; font-weight: 600; color: var(--stone-600); background: none; border: 0; border-radius: 8px;
+  padding: 7px 11px; cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.vsd-view-btn svg { color: var(--stone-500); flex: 0 0 auto; }
+.vsd-view-btn:hover:not(.is-active) { background: var(--sand-50); color: var(--ink-900); }
+.vsd-view-btn.is-active { background: var(--vsd-acc); color: var(--cream-50); font-weight: 700; }
+.vsd-view-btn.is-active svg { color: var(--cream-50); }
+.vsd-view-btn:focus-visible { outline: 2px solid var(--vsd-acc); outline-offset: 1px; }
+@media (min-width: 1440px) { .vsd-views-lab { display: inline; } }
 .vsd-seg--wide { display: flex; width: 100%; }
 .vsd-seg--wide .vsd-seg-btn { flex: 1; justify-content: center; min-height: 44px; }
 
