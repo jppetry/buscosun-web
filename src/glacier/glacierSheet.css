@@ -216,3 +216,55 @@
   .gl-ds-kf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gl-ds-step-t small { display: none; }
 }
+
+/* Modernisation in the scheme of the Brandradar map card (Jans Auftrag 2026-10-23); tokens from glacierDeck.css.
+   Glass cards, a cyan glow in the head, lifted key-figure tiles, the level stepper as a frosted bar with the accent
+   gradient. Colours (incl. the origin colours of the tiles), type sizes and layout unchanged. */
+.gl-timesw { border-radius: 13px; }
+.gl-timesw button[aria-pressed="true"] { box-shadow: var(--gl-shadow-s); }
+.gl-sheet-left { background: linear-gradient(180deg, var(--gl-panel) 0%, var(--sand-50, #F5F1E8) 100%); }
+.gl-layer { border-radius: 12px; background: var(--gl-surface); border-color: var(--gl-hair); box-shadow: var(--gl-shadow-s); }
+.gl-layer:has(input:checked) {
+  background: radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--gl-accent) 14%, transparent), transparent 100%), rgba(255, 255, 255, 0.88);
+  border-color: color-mix(in srgb, var(--gl-accent) 55%, transparent);
+}
+.gl-ids code { border-radius: 999px; padding: 1px 8px; }
+.gl-sheet-status { background: var(--gl-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top-color: var(--gl-hair); }
+.gl-tabs { background: linear-gradient(180deg, var(--gl-panel) 0%, color-mix(in srgb, var(--gl-panel) 70%, var(--gl-bg)) 100%); }
+.gl-tabs button { transition: color .15s, border-color .15s, background .15s; }
+.gl-tabs button[aria-selected="true"] { background: linear-gradient(0deg, color-mix(in srgb, var(--gl-accent) 9%, transparent), transparent 70%); }
+.gl-stat, .gl-tour li { border-radius: 14px; border-color: var(--gl-hair); background: rgba(255, 255, 255, 0.78); box-shadow: var(--gl-shadow-s); }
+.gl-tour-note { background: var(--gl-prov-model-bg); }
+
+/* Dossier */
+.gl-ds-stage { background: linear-gradient(180deg, var(--sand-50, #F5F1E8) 0%, var(--gl-bg) 100%); }
+.gl-ds-card, .gl-hb-card { border-radius: 18px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-m); background: var(--gl-glass); }
+.gl-hb-hero { background: radial-gradient(70% 160px at 0% 0%, color-mix(in srgb, var(--gl-accent) 15%, transparent), transparent 100%), var(--gl-glass); }
+.gl-ds-tile, .gl-hb-tile, .gl-hb-tourtile {
+  border-radius: 14px; box-shadow: var(--gl-inset), 0 8px 16px -14px rgba(44, 42, 38, 0.4);
+  transition: transform .15s, box-shadow .15s;
+}
+.gl-ds-tile { background: rgba(255, 255, 255, 0.78); border-color: var(--gl-hair); }
+.gl-hb-hero .gl-ds-tile { background: rgba(255, 255, 255, 0.82); }
+.gl-ds-tile:hover, .gl-hb-tile:hover, .gl-hb-tourtile:hover { transform: translateY(-1px); box-shadow: var(--gl-inset), 0 12px 22px -14px rgba(44, 42, 38, 0.45); }
+.gl-ds-steps {
+  border-radius: 16px; background: rgba(250, 246, 234, 0.86); border-color: var(--gl-hair);
+  backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  box-shadow: var(--gl-inset), 0 12px 24px -18px rgba(44, 42, 38, 0.4);
+}
+.gl-ds-step { border-radius: 12px; }
+.gl-ds-step.is-on { background: var(--gl-grad); color: #FAF6EA; box-shadow: var(--gl-grad-shadow); }
+.gl-ds-step.is-on .gl-ds-step-n { background: #FAF6EA; border-color: #FAF6EA; color: var(--gl-accent-dark); }
+.gl-ds-step.is-on .gl-ds-step-t small { color: color-mix(in srgb, #FAF6EA 78%, transparent); }
+.gl-ds-maptools { background: linear-gradient(180deg, var(--gl-panel) 0%, color-mix(in srgb, var(--gl-panel) 70%, var(--gl-bg)) 100%); }
+.gl-ds-lay[aria-pressed="true"] {
+  background: radial-gradient(120% 40px at 0% 0%, color-mix(in srgb, var(--gl-accent) 18%, transparent), transparent 100%), var(--gl-tint);
+  box-shadow: var(--gl-shadow-s);
+}
+.gl-hb-chips span, .gl-hb-disclaimer { box-shadow: var(--gl-shadow-s); }
+.gl-hb-disclaimer { border-radius: 14px; }
+.gl-divider-handle { background: var(--gl-grad); box-shadow: var(--gl-grad-shadow), 0 2px 8px rgba(44, 42, 38, .3); }
+@media (prefers-reduced-motion: reduce) {
+  .gl-ds-tile, .gl-hb-tile, .gl-hb-tourtile, .gl-tabs button { transition: none; }
+  .gl-ds-tile:hover, .gl-hb-tile:hover, .gl-hb-tourtile:hover { transform: none; }
+}

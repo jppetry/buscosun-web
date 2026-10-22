@@ -314,3 +314,106 @@
 .gl-rf-select { margin-left: auto; height: 30px; min-width: 0; max-width: 170px; padding: 0 8px; border: 1px solid var(--gl-line); border-radius: 8px; background: #fff; font-family: inherit; font-size: 13px; color: var(--gl-ink); cursor: pointer; }
 .gl-rf-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; color: #8B7355; }
 .gl-rf-foot .gl-linkish { font-size: 12px; }
+
+/* =====================================================================================================
+   Modernisation in the scheme of the Brandradar map card (Jans Auftrag 2026-10-23): glass surfaces with
+   soft shadows, a glow in the accent (glacier cyan, per tile its own colour `--gl-tile-c`), key figures
+   as small tiles, gradient for the active state, round chips. Colours, type sizes and layout unchanged.
+   ===================================================================================================== */
+.gl-root {
+  --gl-glass: rgba(250, 246, 234, 0.96);
+  --gl-surface: rgba(255, 255, 255, 0.76);
+  --gl-hair: color-mix(in srgb, var(--gl-line) 80%, transparent);
+  --gl-inset: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  --gl-shadow-s: var(--gl-inset), 0 6px 14px -12px rgba(44, 42, 38, 0.3);
+  --gl-shadow-m: var(--gl-inset), 0 12px 26px -16px rgba(44, 42, 38, 0.32);
+  --gl-shadow-l: var(--gl-inset), 0 18px 40px -16px rgba(44, 42, 38, 0.38);
+  --gl-grad: linear-gradient(135deg, var(--gl-accent), color-mix(in srgb, var(--gl-accent) 65%, var(--gl-accent-dark)));
+  --gl-grad-shadow: 0 6px 14px -6px color-mix(in srgb, var(--gl-accent) 70%, transparent);
+}
+
+/* Topbar + rail */
+.gl-topbar { background: linear-gradient(180deg, var(--gl-panel) 0%, color-mix(in srgb, var(--gl-panel) 70%, var(--gl-bg)) 100%); box-shadow: 0 8px 18px -16px rgba(44, 42, 38, 0.35); position: relative; z-index: 3; }
+.gl-rail-btn { transition: color .15s, background .15s, box-shadow .15s; }
+.gl-rail-btn.is-active {
+  background: radial-gradient(100% 100% at 0% 0%, color-mix(in srgb, var(--gl-accent) 30%, transparent), transparent 100%), var(--ink-800, #3A3833);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gl-accent) 35%, transparent) inset;
+}
+
+/* Buttons, inputs, segments */
+.gl-btn { border-radius: 12px; box-shadow: var(--gl-shadow-s); transition: border-color .15s, box-shadow .15s, transform .15s; }
+.gl-btn:hover:not([disabled]) { box-shadow: var(--gl-inset), 0 10px 18px -12px rgba(44, 42, 38, 0.36); }
+.gl-btn.is-primary { background: var(--gl-grad); border-color: transparent; box-shadow: var(--gl-grad-shadow); }
+.gl-btn.is-primary:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 10px 20px -8px color-mix(in srgb, var(--gl-accent) 80%, transparent); }
+.gl-input, .gl-rsearch, .gl-rf-select { border-radius: 12px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-s); }
+.gl-rsearch:focus-within { border-color: var(--gl-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gl-accent) 16%, transparent); }
+.gl-seg, .gl-stage-seg, .gl-seg2 { border-radius: 13px; padding: 4px; gap: 4px; background: var(--gl-surface); border: 1px solid var(--gl-hair); box-shadow: var(--gl-shadow-s); }
+.gl-seg button, .gl-stage-seg button, .gl-seg2 button { border-radius: 9px; transition: background .15s, color .15s, box-shadow .15s; }
+.gl-seg button[aria-pressed="true"], .gl-stage-seg button[aria-pressed="true"], .gl-seg2 button[aria-pressed="true"] { background: var(--gl-grad); color: #FAF6EA; box-shadow: var(--gl-grad-shadow); }
+.gl-rf-chips button, .gl-ds-lay { border-radius: 999px; background: var(--gl-surface); border-color: var(--gl-hair); transition: background .15s, border-color .15s, box-shadow .15s; }
+.gl-rf-chips button[aria-pressed="true"] { background: var(--gl-grad); border-color: transparent; box-shadow: var(--gl-grad-shadow); }
+
+/* Dock */
+.gl-dock { background: linear-gradient(180deg, var(--gl-panel) 0%, var(--sand-50, #F5F1E8) 100%); }
+.gl-metric { border-radius: 12px; background: var(--gl-surface); border-color: var(--gl-hair); box-shadow: var(--gl-shadow-s); transition: border-color .15s, box-shadow .15s, background .15s; }
+.gl-metric:hover:not(.is-locked) { box-shadow: var(--gl-inset), 0 10px 18px -12px rgba(44, 42, 38, 0.36); }
+.gl-metric[aria-pressed="true"] {
+  background: radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--gl-accent) 14%, transparent), transparent 100%), rgba(255, 255, 255, 0.88);
+  border-color: color-mix(in srgb, var(--gl-accent) 55%, transparent);
+}
+.gl-metric.is-locked { box-shadow: none; background: transparent; }
+.gl-rank button { border-radius: 10px; transition: background .15s; }
+.gl-rank button[aria-current="true"] { background: radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--gl-accent) 16%, transparent), transparent 100%), var(--gl-tint); }
+
+/* Map overlays: frosted glass */
+.gl-legend, .gl-pill, .gl-map-note, .gl-view-seg {
+  background: var(--gl-glass); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border-color: var(--gl-hair); box-shadow: var(--gl-shadow-l);
+}
+.gl-legend { border-radius: 14px; }
+.gl-pill {
+  border-radius: 18px;
+  background: radial-gradient(120% 90px at 0% 0%, color-mix(in srgb, var(--gl-accent) 14%, transparent), transparent 100%), var(--gl-glass);
+}
+.gl-map-note { border-radius: 12px; }
+.gl-view-seg { border-radius: 12px; padding: 3px; gap: 3px; }
+.gl-view-seg button { border-radius: 8px; }
+.gl-view-seg button[aria-pressed="true"] { background: var(--gl-grad); box-shadow: var(--gl-grad-shadow); }
+.gl-zoom button { border-color: var(--gl-hair); background: var(--gl-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--gl-shadow-m); transition: background .15s; }
+.gl-zoom button:hover { background: #fff; }
+.gl-star { border-radius: 12px; box-shadow: var(--gl-shadow-s); }
+.gl-tip { border-radius: 10px; background: var(--gl-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: var(--gl-shadow-m); }
+
+/* Chart section + readout */
+.gl-chart-sec { background: linear-gradient(180deg, var(--gl-panel) 0%, var(--sand-50, #F5F1E8) 100%); }
+.gl-readout { background: linear-gradient(180deg, var(--gl-panel) 0%, var(--sand-50, #F5F1E8) 100%); }
+.gl-card, .gl-fav li, .gl-ds-emptycard {
+  border-radius: 16px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-m);
+  background: radial-gradient(120% 80px at 0% 0%, color-mix(in srgb, var(--gl-accent) 9%, transparent), transparent 100%), var(--gl-glass);
+}
+.gl-fav li { border-radius: 14px; box-shadow: var(--gl-shadow-s); }
+.gl-new { background: radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--gl-accent) 18%, transparent), transparent 100%), var(--gl-tint); }
+
+/* Glacier tiles: glow in the tile colour, key figures as small tiles */
+.gl-tile {
+  border-radius: 16px; padding: 12px; gap: 10px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-m);
+  background: radial-gradient(120% 80px at 0% 0%, color-mix(in srgb, var(--gl-tile-c) 30%, transparent), transparent 100%), var(--gl-glass);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.gl-tile:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--gl-accent) 30%, var(--gl-line)); box-shadow: var(--gl-inset), 0 16px 28px -16px rgba(44, 42, 38, 0.38); }
+.gl-tile.is-sel {
+  padding: 12px; border: 1px solid color-mix(in srgb, var(--gl-accent) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gl-accent) 16%, transparent), 0 16px 28px -16px rgba(44, 42, 38, 0.38);
+}
+.gl-tile-badge { border-radius: 999px; padding: 2px 8px; }
+.gl-tile-badge.is-A { background: var(--gl-grad); border-color: transparent; }
+.gl-tile-stats { gap: 6px; }
+.gl-kf { padding: 7px 9px; border-radius: 10px; background: rgba(255, 255, 255, 0.72); border: 1px solid color-mix(in srgb, var(--gl-line) 70%, transparent); }
+.gl-kf-lbl { letter-spacing: 1px; font-weight: 600; }
+.gl-tile-notes { border-top: 0; padding-top: 0; }
+.gl-tile-note { border-radius: 999px; padding: 2px 9px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-btn, .gl-metric, .gl-rank button, .gl-seg button, .gl-stage-seg button, .gl-seg2 button, .gl-rf-chips button, .gl-ds-lay, .gl-zoom button, .gl-rail-btn { transition: none; }
+  .gl-btn.is-primary:hover:not([disabled]), .gl-tile:hover { transform: none; }
+}
