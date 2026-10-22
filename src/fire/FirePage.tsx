@@ -2171,6 +2171,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                 </div>
               )}
               {!isMobile && sourcePill}
+              {/* Straßen | Satellit: Desktop/Tablet oben links (Jans Auftrag 2026-10-23), mobil weiter unten links. */}
+              {!isMobile && basemapSeg}
               {/* Mobil bleiben Chips und Treiber-Notiz über der Karte: dort gibt es kein Dock,
                   das sie tragen könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). */}
               {isMobile && viewChips}
@@ -2178,8 +2180,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {isMobile && mapCardEl}
             </div>
 
-            {/* Unten links: Straßen | Satellit (Jans Auftrag 2026-10-14) — ersetzt die Basiskarten-Zeile im Dock. */}
-            <div className="br-map-bl">{basemapSeg}</div>
+            {/* Unten links (mobil): Straßen | Satellit (Jans Auftrag 2026-10-14) — ersetzt die Basiskarten-Zeile im Dock. */}
+            {isMobile && <div className="br-map-bl">{basemapSeg}</div>}
             {!isMobile && mapCardEl && <div className="br-map-card">{mapCardEl}</div>}
 
             {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler

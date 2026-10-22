@@ -289,14 +289,14 @@
 .br-map-tr { position: absolute; right: 16px; top: 16px; z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
 .br-map-pc { position: absolute; right: 16px; top: 150px; z-index: 5; width: 250px; }
 .br-map-bl { position: absolute; left: 16px; bottom: 16px; z-index: 5; }
-/* Info card of a fire picked on the map (desktop/tablet: above the basemap switch; mobile: in the top stack). */
-.br-map-card { position: absolute; left: 16px; right: 16px; bottom: 64px; z-index: 6; pointer-events: none; }
+/* Info card of a fire picked on the map (desktop/tablet: bottom left; mobile: in the top stack). */
+.br-map-card { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 6; pointer-events: none; }
 .br-map-card > .br-mapcard { pointer-events: auto; }
 .br-mapcard {
   --br-mapcard-acc: var(--br-red);
   /* Fluid with the viewport (no extra breakpoints): ≈ 260 px on small desktops, ≈ 310 px at 1440, up to 380 px. */
   position: relative; width: clamp(260px, 18vw + 50px, 380px); max-width: 100%; box-sizing: border-box;
-  max-height: calc(100vh - 220px); overflow-y: auto; overscroll-behavior: contain;
+  max-height: calc(100vh - 180px); overflow-y: auto; overscroll-behavior: contain;
   display: flex; flex-direction: column; gap: clamp(8px, 0.7vw, 12px); padding: clamp(11px, 0.9vw, 16px);
   background:
     radial-gradient(120% 90px at 0% 0%, color-mix(in srgb, var(--br-mapcard-acc) 16%, transparent), transparent 100%),
