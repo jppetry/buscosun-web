@@ -757,6 +757,8 @@
   .fire-center .maplibregl-ctrl-group { border-radius: 11px; }
   .fire-center .maplibregl-ctrl-group button { width: 40px; height: 40px; }
   .fire-center .maplibregl-ctrl-bottom-left, .fire-center .maplibregl-ctrl-bottom-right { bottom: calc(46vh + 8px); }
+  /* Der ⓘ-Knopf der Kartenquellen (MapLibre-Attribution) entfällt mobil auf der Karte (Jans Auftrag 2026-10-23). */
+  .fire-center .maplibregl-ctrl-attrib { display: none; }
   .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; }
   .br-map-tl > .br-pill { margin-right: 49px; }
   .br-m-basemaprow .br-basemap button { min-height: 38px; }
