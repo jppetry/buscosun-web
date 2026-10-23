@@ -155,7 +155,10 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const [sumSel, setSumSel] = useState<SumSelection>(() => loadSumSel(rcOn));
   useEffect(() => { try { localStorage.setItem(SUM_SEL_KEY, JSON.stringify(sumSel)); } catch { /* ohne Speicher */ } }, [sumSel]);
   // Tabwechsel: Schnellblick als Peek, alle inhaltsreichen Bereiche als Voll.
+  // Der Schnellblick hat mobil kein Sheet mehr (Jans Auftrag 2026-10-23): 'glance' = nur die Karte; ein zweiter Tipp auf den
+  // offenen Reiter schließt sein Sheet wieder.
   const selectMTab = (t: MobileTab) => {
+    if (t === mTab) { setMTab('glance'); setMSnap('peek'); return; }
     setMTab(t); setMSnap(t === 'glance' ? 'peek' : 'full');
     // The 3D tab shows snow only: without a snow layer it switches the `snowline` layer on.
     if (t === '3d' && !layers.includes('snow') && !layers.includes('snowline')) setLayers((ls) => [...ls, 'snowline']);
@@ -393,13 +396,13 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Hineinzoomen"><PlusIcon /></button>
             <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Herauszoomen"><MinusIcon /></button>
           </div>
-          <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
+          {mTab !== 'glance' && <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
             sumSel={sumsOn ? sumSel : null} setSumSel={setSumSel} rainWindow={rainWindow} chance={chance}
             cellCard={cellCardMobile} minuteCard={minuteCard('mobile')} {...(skOn ? { snowCard: skCard('mobile') } : {})} {...(p3dOn ? { probeCard: probeCard('mobile') } : {})} {...(hzsOn ? { heightPanel: hzsVisible ? hzsPanel('mobile') : null } : {})}
-            {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}</div> : null } : {})} />
+            {...(z3dOn ? { towersPanel: ztMobile ? <div className="zt-mobile">{towerStage('mobile')}</div> : null } : {})} />}
           <MobileTabBar tab={mTab} onSelect={selectMTab} withHeight={hzsOn} with3d={z3dOn} />
         </div>
       ) : (
@@ -572,8 +575,10 @@ const TOWERS_TAB: { id: MobileTab; label: string; icon: ReactNode } = { id: '3d'
 function Tab3dIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 19 L8 12 L11 15 L15 9 L21 19 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 12 V4 H14 V10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>; }
 
 function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { tab: MobileTab; onSelect: (t: MobileTab) => void; withHeight?: boolean; with3d?: boolean }) {
-  const base = withHeight ? [...MOBILE_TABS.slice(0, 3), HEIGHT_TAB, ...MOBILE_TABS.slice(3)] : MOBILE_TABS;
-  const tabs = with3d ? [...base.slice(0, withHeight ? 4 : 3), TOWERS_TAB, ...base.slice(withHeight ? 4 : 3)] : base;
+  // Ohne den Schnellblick-Reiter (Jans Auftrag 2026-10-23): der Rest behält seine Reihenfolge.
+  const visible = MOBILE_TABS.filter((t) => t.id !== 'glance');
+  const base = withHeight ? [...visible.slice(0, 2), HEIGHT_TAB, ...visible.slice(2)] : visible;
+  const tabs = with3d ? [...base.slice(0, withHeight ? 3 : 2), TOWERS_TAB, ...base.slice(withHeight ? 3 : 2)] : base;
   return (
     <nav className="rm-tabbar" aria-label="Regenradar-Bereiche">
       {tabs.map((t) => (
