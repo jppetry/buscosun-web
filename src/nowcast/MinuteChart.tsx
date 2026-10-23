@@ -23,7 +23,7 @@ export interface MinuteChartProps {
 }
 
 const PAD = {
-  mini: { t: 14, r: 8, b: 18, l: 8 },
+  mini: { t: 14, r: 8, b: 18, l: 30 },
   full: { t: 30, r: 18, b: 52, l: 40 },
 };
 
@@ -164,10 +164,12 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
           {yGrid.map((v) => (
             <g key={`g${v}`}>
               <line x1={pad.l} x2={pad.l + plotW} y1={Y(v)} y2={Y(v)} className="mv-grid" />
-              {full && <text x={pad.l - 6} y={Y(v) + 3.5} className="mv-ylabel" textAnchor="end">{fmtY(v)}</text>}
+              <text x={pad.l - 6} y={Y(v) + 3.5} className="mv-ylabel" textAnchor="end">{fmtY(v)}</text>
             </g>
           ))}
-          {full && <text x={pad.l - 6} y={pad.t - 10} className="mv-ylabel" textAnchor="end">mm/h</text>}
+          {full
+            ? <text x={pad.l - 6} y={pad.t - 10} className="mv-ylabel" textAnchor="end">mm/h</text>
+            : <text x={2} y={pad.t - 4} className="mv-ylabel" textAnchor="start">mm/h</text>}
           {thresholds.map((t) => (
             <g key={t.l}>
               <line x1={pad.l} x2={pad.l + plotW} y1={Y(t.v)} y2={Y(t.v)} className="mv-thr" />
