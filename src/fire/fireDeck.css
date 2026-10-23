@@ -856,7 +856,7 @@
   .br-close { width: 44px; height: 44px; }
 
   /* Bottom-Bar */
-  .br-bar { display: flex; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; justify-content: space-around; padding: 10px 0 24px; --pad: 24px; background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); }
+  .br-bar { display: flex; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; justify-content: space-around; padding: 10px 0 calc(8px + var(--safe-bottom, 0px)); --pad: 24px; background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); }
   .br-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--stone-400, #A89A7A); background: none; border: 0; padding: 0 10px; min-width: 64px; min-height: 44px; cursor: pointer; font: inherit; font-size: 10.5px; }
   .br-bar-btn.is-active { color: var(--br-red); font-weight: 600; }
 }
