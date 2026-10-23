@@ -799,6 +799,13 @@
     cursor: pointer;
   }
   .mdk-m-topfloat > div { display: flex; }
+  /* Logo links wie im Feuer-Feature (`.br-m-brand`): führt zur Startseite, gleiche Höhe wie Suche und Land. */
+  .mdk-m-brand {
+    flex: 0 0 auto; width: 46px; min-height: 46px;
+    border-radius: 14px; border: 1px solid var(--border-medium, #D9D0B8);
+    background: var(--cream-50, #FAF6EA); box-shadow: var(--shadow-card);
+    display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+  }
   /* Phase DB (E-DB-2): Umschalter Dashboard|Karte als zweite Zeile der Schwebeleiste, volle Breite wie in der
      Mobil-Vorlage; die Modell-Pille rückt um diese Zeile (44 px + 8 px Abstand) nach unten. */
   .mdk-has-viewtoggle .mdk-m-topfloat { flex-wrap: wrap; row-gap: 8px; }

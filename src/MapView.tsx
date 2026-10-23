@@ -5855,6 +5855,9 @@ export default function MapView({
           {isMobileMap && (
             <>
               <div className="mdk-m-topfloat">
+                <button type="button" className="mdk-m-brand" aria-label="Zur Startseite" onClick={onBack}>
+                  <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
+                </button>
                 <DeckSearch placeholder={overview ? 'Ort suchen …' : location.name} onSelect={onSelectLocation} compact />
                 {MODEL_SWITCHER_VISIBLE && (
                   <div style={{ position: 'relative', flex: '0 0 auto' }}>
