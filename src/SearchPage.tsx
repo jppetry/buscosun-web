@@ -32,6 +32,7 @@ import GlobeIcon from './GlobeIcon';
 import FireIcon from './FireIcon';
 import GlacierIcon from './GlacierIcon';
 import SeaIcon from './SeaIcon';
+import RoadIcon from './RoadIcon';
 // DACH-Karte im Hintergrund lazy: hält den Startseiten-Bundle schlank (eigener Chunk).
 const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
@@ -397,11 +398,8 @@ const TILE_GLACIER = (
 const TILE_ROAD = (
   <>
     <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
-    <div className="tile-road-icon" aria-hidden="true">
-      <svg width="52" height="52" viewBox="0 0 56 56">
-        <path d="M21 10 L11 46 M35 10 L45 46" fill="none" stroke="#8FB4E3" strokeWidth="2.6" strokeLinecap="round" />
-        <path d="M28 12 V18 M28 25 V31 M28 38 V44" fill="none" stroke="#C9BFA8" strokeWidth="2.4" strokeLinecap="round" />
-      </svg>
+    <div className="tile-road-icon">
+      <RoadIcon />
     </div>
     <div>
       <div className="tile-title tile-title-sm">Ist die Strecke glatt?</div>
