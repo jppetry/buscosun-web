@@ -762,6 +762,8 @@
   .br-m-basemaprow .br-basemap button { min-height: 38px; }
   /* Mobil sitzt die Kachel knapp über der Bottom-Bar statt im oberen Stapel. */
   .br-mapcard { position: fixed; left: 12px; right: 12px; bottom: calc(var(--br-bar-h) + 10px); z-index: 6; width: auto; max-width: none; max-height: calc(54vh - 130px); }
+  /* Der globale Chip „Über diese Ansicht" (RouteSeoBlock) entfällt mobil im Brandradar. */
+  .rsb[data-route="waldbrand"] { display: none; }
   .br-mapcard-close { width: 44px; height: 44px; margin: -8px -8px 0 0; }
   .br-mapcard-cta { min-height: 44px; }
   .br-views { background: none; border: 0; padding: 0 0 2px; gap: 5px; border-radius: 0; max-width: none; }
