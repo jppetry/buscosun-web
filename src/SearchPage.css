@@ -520,36 +520,23 @@
 .tile-road { justify-content: space-between; min-height: 210px; padding: 22px; }
 .tile-road-icon { height: 64px; display: flex; align-items: center; justify-content: center; }
 .tile-autobahn-svg { overflow: visible; }
-/* Autobahn-Glyphe (src/RoadIcon.tsx), flach wie die Flamme: Fahrbahn in Perspektive in den Sattel zweier
-   Hügel, Schilderbrücke mit blauem Schild, verschneite Tannen. Die Leitlinie fließt auf den Betrachter zu, Scheinwerfer
-   kommen aus der Ferne, Rücklichter fahren davon, Schnee fällt, Reif glitzert. Ohne prefers-reduced-motion-Ausnahme. */
+/* Autobahn-Glyphe (src/RoadIcon.tsx), reduziert wie die Flamme: nur die Strecke in Perspektive und ein Auto von hinten.
+   Die Leitlinie fließt auf den Betrachter zu, das Auto wiegt sich leicht, die Rücklichter glimmen, über dem Horizont
+   atmet ein Schein. Ohne prefers-reduced-motion-Ausnahme. */
 .tile-autobahn-glow { transform-box: fill-box; transform-origin: center; animation: deck-autobahn-glow 4.4s ease-in-out infinite; }
 @keyframes deck-autobahn-glow { 0%, 100% { opacity: .55; transform: scale(.95); } 50% { opacity: 1; transform: scale(1.05); } }
-.tile-autobahn-hill { fill: var(--sand-200); }
-.tile-autobahn-edge { fill: none; stroke: #F7FBFC; stroke-opacity: .85; stroke-width: .9; stroke-linecap: round; }
-.tile-autobahn-dash { fill: none; stroke: #C9BFA8; stroke-width: 1.6; stroke-dasharray: 4 4; animation: deck-autobahn-dash .8s linear infinite; }
-@keyframes deck-autobahn-dash { to { stroke-dashoffset: -8; } }
-.tile-autobahn-car { opacity: 0; }
-.tile-autobahn-car-in { animation: deck-autobahn-in 3.2s ease-in infinite; }
-@keyframes deck-autobahn-in { 0% { opacity: 0; transform: translate(72.5px, 26px) scale(.2); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(58px, 55px) scale(1.5); } }
-.tile-autobahn-car-out { animation: deck-autobahn-out 4.2s ease-out infinite; animation-delay: -1.4s; }
-@keyframes deck-autobahn-out { 0% { opacity: 0; transform: translate(90px, 55px) scale(1.5); } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(75.5px, 26px) scale(.2); } }
-.tile-autobahn-head { fill: #FFF6DC; }
+.tile-autobahn-edge { fill: none; stroke: #F7FBFC; stroke-opacity: .85; stroke-width: 1.1; stroke-linecap: round; }
+.tile-autobahn-dash { fill: none; stroke: #C9BFA8; stroke-width: 1.8; stroke-dasharray: 5 5; animation: deck-autobahn-dash .7s linear infinite; }
+@keyframes deck-autobahn-dash { to { stroke-dashoffset: -10; } }
+.tile-autobahn-car { animation: deck-autobahn-car 2.6s ease-in-out infinite; }
+@keyframes deck-autobahn-car { 0%, 100% { transform: translate(0, 0); } 30% { transform: translate(-.8px, -.4px); } 65% { transform: translate(.6px, .2px); } }
+.tile-autobahn-shadow { fill: var(--ink-900); fill-opacity: .35; }
+.tile-autobahn-wheel { fill: var(--ink-900); }
+.tile-autobahn-window { fill: #DCEBFA; fill-opacity: .9; }
 .tile-autobahn-tail { fill: #E0554F; }
-.tile-autobahn-gantry { fill: none; stroke: var(--stone-600); stroke-width: 1.4; stroke-linecap: round; }
-.tile-autobahn-sign { fill: #2F6DB5; stroke: #F7FBFC; stroke-width: .7; }
-.tile-autobahn-sign-text { fill: none; stroke: #F7FBFC; stroke-width: 1.1; stroke-linecap: round; }
-.tile-autobahn-tree { fill: var(--sage-600); opacity: .85; }
-.tile-autobahn-tree-back { opacity: .4; }
-.tile-autobahn-tree-snow { fill: #F7FBFC; stroke: #A9C6E8; stroke-width: .4; stroke-linejoin: round; }
-.tile-autobahn-flake { fill: #F7FBFC; stroke: #8FB4E3; stroke-width: .4; opacity: 0; animation: deck-autobahn-flake 4s linear infinite; }
-.tile-autobahn-flake-b { animation-delay: -1.2s; animation-duration: 4.6s; }
-.tile-autobahn-flake-c { animation-delay: -2.4s; animation-duration: 3.6s; }
-.tile-autobahn-flake-d { animation-delay: -3.1s; animation-duration: 5s; }
-.tile-autobahn-flake-e { animation-delay: -.6s; animation-duration: 4.3s; }
-@keyframes deck-autobahn-flake { 0% { opacity: 0; transform: translate(0, 0); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(-4px, 16px); } }
-.tile-autobahn-glint { fill: #FFFFFF; stroke: #8FB4E3; stroke-width: .4; transform-box: fill-box; transform-origin: center; animation: deck-autobahn-glint 3.2s ease-in-out infinite; }
-@keyframes deck-autobahn-glint { 0%, 60%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); } 75% { opacity: 1; transform: scale(1.3) rotate(45deg); } }
+.tile-autobahn-tail-glow { transform-box: fill-box; transform-origin: center; animation: deck-autobahn-tail 2s ease-in-out infinite; }
+@keyframes deck-autobahn-tail { 0%, 100% { opacity: .5; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.1); } }
+.tile-autobahn-plate { fill: #F7FBFC; }
 .tile-autobahn-ground { fill: none; stroke: var(--border-strong); stroke-opacity: .6; stroke-width: 1; stroke-linecap: round; }
 
 /* Gletscher (Kachel 13, Phase GL; nur mit ?gl=1 bis Gate D): Text links, rechts eine schematische Gletscherkarte
