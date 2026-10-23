@@ -1471,3 +1471,45 @@
   .br-stat-val { font-size: 18px; letter-spacing: -0.3px; }
   .br-more { border-radius: 14px; }
 }
+
+/* --- Mobil: Seite „Einstellungen" (Rückblick, Anzeige, Monatsbereich der Saison) ------------ */
+@media (max-width: 767px) {
+  .br-set-card {
+    display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 12px;
+    background: #fff; border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent); border-radius: 18px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 12px 26px -16px rgba(44, 42, 38, 0.32), 0 2px 6px rgba(44, 42, 38, 0.05);
+  }
+  .br-set-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .br-set-card .br-seg { display: flex; gap: 4px; padding: 4px; background: var(--sand-100, #EDE6D3); border: 0; border-radius: 14px; max-width: none; }
+  .br-set-card .br-seg button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 4px; border: 0; border-radius: 11px; background: transparent; font: inherit; font-size: 14px; font-weight: 500; color: var(--stone-600, #5C5447); cursor: pointer; }
+  .br-set-card .br-seg button.is-active { background: #fff; color: var(--br-red); font-weight: 700; box-shadow: 0 2px 8px -2px rgba(44, 42, 38, 0.25); }
+  .br-set-card .br-fires-seg { margin: 0; }
+  .br-set-card .br-fires-seg button { font-size: 13px; }
+  .br-set-card .br-note { margin: 0; }
+
+  /* Zwei Griffe auf einer Spur: die Eingaben liegen übereinander, nur die Griffe fangen Berührung. */
+  .br-mrange-val { font-size: 15px; color: var(--ink-900, #2C2A26); }
+  .br-mrange-track { position: relative; height: 44px; --thumb: 28px; }
+  .br-mrange-track::before, .br-mrange-track::after { content: ''; position: absolute; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; }
+  .br-mrange-track::before { left: calc(var(--thumb) / 2); right: calc(var(--thumb) / 2); background: var(--sand-200, #E0D6BE); }
+  .br-mrange-track::after {
+    left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--lo));
+    right: calc(var(--thumb) / 2 + (100% - var(--thumb)) * (1 - var(--hi)));
+    background: var(--br-red);
+  }
+  .br-mrange-track input[type='range'] {
+    position: absolute; inset: 0; width: 100%; height: 44px; margin: 0; background: none;
+    -webkit-appearance: none; appearance: none; pointer-events: none; z-index: 1;
+  }
+  .br-mrange-track input[type='range']::-webkit-slider-runnable-track { background: transparent; height: 44px; }
+  .br-mrange-track input[type='range']::-moz-range-track { background: transparent; height: 44px; }
+  .br-mrange-track input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; pointer-events: auto; width: var(--thumb); height: var(--thumb); margin-top: 8px;
+    border-radius: 50%; background: #fff; border: 2px solid var(--br-red); box-shadow: 0 3px 10px -2px rgba(44, 42, 38, 0.35);
+  }
+  .br-mrange-track input[type='range']::-moz-range-thumb {
+    pointer-events: auto; width: calc(var(--thumb) - 4px); height: calc(var(--thumb) - 4px);
+    border-radius: 50%; background: #fff; border: 2px solid var(--br-red); box-shadow: 0 3px 10px -2px rgba(44, 42, 38, 0.35);
+  }
+  .br-mrange-ticks { display: flex; justify-content: space-between; padding: 0 2px; font-size: 11px; color: var(--stone-500, #8B7355); }
+}

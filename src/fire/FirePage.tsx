@@ -112,7 +112,7 @@ import type { PerfTier } from '../wind/perfGovernor';
 import { dataAgeText, type DataRef } from '../dataAge';
 import { fireSourceFor, fireIncidentSourcesFor, hasOfficialFireConfirmation } from '../officialSources';
 import {
-  FireIcon, IcoBarMap, IcoBarLayers, IcoBarFire,
+  FireIcon, IcoBarMap, IcoBarLayers, IcoBarFire, IcoBarSettings,
 } from './fireIcons';
 import {
   FireLayerCard, FIRE_LAYER_INFO, HOTSPOTS_DEGRADED_INFO, dangerInfoFor, soilDrynessInfoFor,
@@ -124,7 +124,11 @@ import { ageText } from '../dataAge';
 import './fireDeck.css';
 
 /** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
-type MobileTab = 'map' | 'layers' | 'fires' | 'time';
+/** Saison 1.3.–31.10. (siehe `currentSeasonWindow`) als 0-basierte Monatsindizes. */
+const SEASON_FIRST_MONTH = 2;
+const SEASON_LAST_MONTH = 9;
+const MONTH_ABBR = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+type MobileTab ='map' | 'layers' | 'fires' | 'time' | 'settings';
 
 /** Ladezustand je Layer — „Fehler" schaltet den Layer AB und verlinkt die
  *  amtliche Quelle, statt eine leere Fläche zu zeigen (Gate-Punkt WB-T2-6). */
@@ -268,7 +272,19 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // Historie nicht per `?bh=0` abgeschaltet ist; ein Hash im Link gewinnt wie bisher.
   // Standard: Saison (Jan 16.10.). Ein Link mit Reiter Anomalien (Thermalanomalien) bleibt im Live-Fenster.
   const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && (initial?.historyWindow ?? (initial?.readoutTab === 'anomalies' ? null : 'season'))) || null);
-  const [historyLoad, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
+  const [historyRaw, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
+  /** Mobile Einstellungen: Monatsbereich der Saison (0-basiert, März = 2 … Oktober = 9); voll = unverändert. */
+  const [histMonths, setHistMonths] = useState<[number, number]>([SEASON_FIRST_MONTH, SEASON_LAST_MONTH]);
+  const historyLoad = useMemo<HistoryLoad>(() => {
+    if (history !== 'season' || historyRaw.kind !== 'ok') return historyRaw;
+    const [lo, hi] = histMonths;
+    if (lo <= SEASON_FIRST_MONTH && hi >= SEASON_LAST_MONTH) return historyRaw;
+    const entries = historyRaw.entries.filter((e) => {
+      const m = new Date(e.firstMs).getUTCMonth();
+      return m >= lo && m <= hi;
+    });
+    return { ...historyRaw, entries, file: { ...historyRaw.file, counts: { ...historyRaw.file.counts, total: entries.length } } };
+  }, [history, historyRaw, histMonths]);
   const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
   useEffect(() => {
     if (!history) { setHistoryLoad({ kind: 'idle' }); setSelectedHistory(null); return; }
@@ -2009,6 +2025,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         ['map', 'Karte', <IcoBarMap key="i" />],
         ['layers', 'Layer', <IcoBarLayers key="i" />],
         ['fires', 'Brände', <IcoBarFire key="i" />],
+        ['settings', 'Einstellungen', <IcoBarSettings key="i" />],
       ] as const).map(([id, label, icon]) => (
         <button
           key={id} type="button"
@@ -2020,6 +2037,56 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         </button>
       ))}
     </nav>
+  );
+
+  /** Monatsbereich der Saison: zwei Griffe auf einer Spur; schiebt der eine am anderen, nimmt er ihn mit. */
+  const [monthLo, monthHi] = histMonths;
+  const setMonthLo = (v: number) => setHistMonths(([, hi]) => [v, Math.max(hi, v)]);
+  const setMonthHi = (v: number) => setHistMonths(([lo]) => [Math.min(lo, v), v]);
+  const monthSpan = SEASON_LAST_MONTH - SEASON_FIRST_MONTH;
+  const monthCard = (
+    <div className="br-set-card br-mrange">
+      <div className="br-set-head">
+        <span className="br-eyebrow">Monate der Saison</span>
+        {history === 'season' && (
+          <strong className="br-mrange-val">
+            {monthLo === monthHi ? MONTH_ABBR[monthLo] : `${MONTH_ABBR[monthLo]} – ${MONTH_ABBR[monthHi]}`}
+          </strong>
+        )}
+      </div>
+      {history === 'season' ? (
+        <>
+          <div
+            className="br-mrange-track"
+            style={{ ['--lo' as string]: (monthLo - SEASON_FIRST_MONTH) / monthSpan, ['--hi' as string]: (monthHi - SEASON_FIRST_MONTH) / monthSpan }}
+          >
+            <input type="range" min={SEASON_FIRST_MONTH} max={SEASON_LAST_MONTH} step={1} value={monthLo} aria-label="Erster Monat" onChange={(e) => setMonthLo(Number(e.target.value))} />
+            <input type="range" min={SEASON_FIRST_MONTH} max={SEASON_LAST_MONTH} step={1} value={monthHi} aria-label="Letzter Monat" onChange={(e) => setMonthHi(Number(e.target.value))} />
+          </div>
+          <div className="br-mrange-ticks" aria-hidden="true">
+            {MONTH_ABBR.slice(SEASON_FIRST_MONTH, SEASON_LAST_MONTH + 1).map((m) => <span key={m}>{m}</span>)}
+          </div>
+          <p className="br-note">
+            {historyLoad.kind === 'ok' ? `${historyLoad.file.counts.total.toLocaleString('de-DE')} Ereignisse` : 'lädt …'} nach Monat des ersten Satellitenüberflugs (Saison 1.3.–31.10.).
+          </p>
+        </>
+      ) : (
+        <p className="br-note">Der Monatsbereich wirkt auf das Rückblick-Fenster „Saison". Wähle es oben, um einzelne Monate einzugrenzen.</p>
+      )}
+    </div>
+  );
+  const settingsCards = (
+    <>
+      <div className="br-set-card">
+        <div className="br-set-head"><span className="br-eyebrow">Rückblick</span></div>
+        {windowSeg ?? <span className="br-muted">Detektionen aus — kein Rückblickfenster</span>}
+      </div>
+      <div className="br-set-card">
+        <div className="br-set-head"><span className="br-eyebrow">Anzeige in der Liste</span></div>
+        {firesSeg}
+      </div>
+      {monthCard}
+    </>
   );
 
   const sheetContent = (
@@ -2203,6 +2270,17 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     {dockGroups(true)}
                     <p className="br-note">Blockierte Layer bleiben sichtbar: die Größe existiert, nur die Quelle ist nicht erreichbar.</p>
                   </div>
+                </section>
+              )}
+              {mobileTab === 'settings' && (
+                <section className="br-m-page" aria-label="Einstellungen">
+                  <header className="br-m-head">
+                    <div>
+                      <div className="br-eyebrow">Brandradar · Anzeige</div>
+                      <h1 className="br-m-title">Einstellungen</h1>
+                    </div>
+                  </header>
+                  <div className="br-m-scroll">{settingsCards}</div>
                 </section>
               )}
               {/* BD2 (mobil): das Dossier als eigene Seite des Bereichs „Brände" — Kartenstreifen oben, Segment, Bottom-Bar bleibt. */}
