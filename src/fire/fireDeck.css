@@ -340,7 +340,7 @@
   border: 0; border-radius: 11px; color: var(--cream-50, #FAF6EA); cursor: pointer;
   background: linear-gradient(135deg, var(--br-red), color-mix(in srgb, var(--br-red) 70%, var(--ink-900, #2C2A26)));
   box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--br-red) 70%, transparent);
-  font: inherit; font-size: clamp(13px, 0.3vw + 8.5px, 14.5px); font-weight: 600; letter-spacing: .1px;
+  font: inherit; font-size: clamp(15px, 0.3vw + 10.5px, 16.5px); font-weight: 600; letter-spacing: .1px;
   transition: transform .15s, box-shadow .15s;
 }
 .br-mapcard-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -8px color-mix(in srgb, var(--br-red) 80%, transparent); }
@@ -937,13 +937,7 @@
 .br-ds-aside .br-scales .br-card-eyebrow { font-size: 13px; letter-spacing: .16em; }
 .br-ds-foot { flex: 0 0 auto; padding: 10px 16px 12px; background: var(--sand-50, #F5F1E8); border-top: 1px solid var(--sand-200, #E0D6BE); }
 
-.br-ds { display: flex; flex-direction: column; gap: 14px; }
-/* Dossier-Schrift größer (Jan, 2026-10-23): ein Zoom über das ganze Dossier, damit auch die px-Größen
-   aus sx und die Diagrammtexte mitwachsen. Minikarte und COG-Viewer rechnen Zeiger aus Rechteck und
-   clientWidth — sie laufen ungezoomt (Kehrwert), damit Klick, Wheel-Zoom und Pan genau bleiben. */
-.br-ds { zoom: 1.1; }
-.br-ds .br-minimap, .br-ds .br-cog-inline { zoom: calc(1 / 1.1); }
-.br-ds-card { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+.br-ds { display: flex; flex-direction: column; gap: 14px; }.br-ds-card { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 18px 20px; min-width: 0; }
 .br-ds-eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
 .br-ds-eyebrow.is-red { color: var(--br-red); }
 .br-ds-eyebrow.is-steel { color: var(--br-steel); }
