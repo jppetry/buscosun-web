@@ -39,6 +39,8 @@ const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
 // im Bento-Grid statt als Quadrat neben der Suche (Jan, 2026-08-09).
 const NARROW_QUERY = '(max-width: 1024px)';
+/** Mobil (≤ 767 px, Projekt-Breakpoint): dieselben kompakten Kacheln wie am Desktop, im 2-Spalten-Raster. */
+const MOBILE_QUERY = '(max-width: 767px)';
 import { warmMapData } from './fusion/loadFusedForecast';
 import { flagForCountry } from './geocode';
 import { getFavorites, removeFavorite, subscribeFavorites } from './favorites';
@@ -683,6 +685,11 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // Dim-Logik: bei aktivem Filter alles ausblenden, was nicht zur Kategorie passt.
   // 04 + 05 stehen auf Desktop im Hero (HeroQuad) und nutzen dieselbe Fabrik.
   const tile = makeTile(activeCat, onOpenFeature);
+  // Mobil nutzt dieselben kompakten Kachel-Inhalte wie der Desktop (Waldbrand, Regenradar, Gletscher, Autobahnwetter,
+  // Seewetter, Globus, Historie, 3D-Wetter je eine Spalte); die Reihenfolge steht in SearchPage.css (≤ 767 px, `order`).
+  const mobile = useMediaQuery(MOBILE_QUERY);
+  const compact = !narrow || mobile;
+  const half = mobile ? ' t-half' : '';
   // 06 · HISTORIE / 07 · 3D-WETTER: auf ≤ 1024 px je eine Spalte der Reihe 06–09; auf Desktop seit 23.10.2026 (Jan)
   // darunter als zwei halbe Kacheln — ihre Plätze in der Reihe tragen Gletscher und Seewetter.
   const historyTile = tile(['verstehen'], 'tile-history t-half', FEATURE.history, 'Historie öffnen', TILE_HISTORY);
@@ -691,7 +698,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // auf Desktop seit 23.10.2026 (Jan) in der Reihe 06–09 als Kachel wie Waldbrand (TILE_SEA). Seit 10.10.2026 für
   // alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts (`.tile-sea*` in
   // SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten.
-  const seaTile = seaFlagFrom() && (!narrow ? tile(['planen'], 'tile-coast t-half', FEATURE.sea, 'Seewetter öffnen', TILE_SEA) : tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
+  const seaTile = seaFlagFrom() && (compact ? tile(['planen'], 'tile-coast t-half', FEATURE.sea, 'Seewetter öffnen', TILE_SEA) : tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
         <>
           <div className="tile-sea-text">
             <div className="tile-sea-head">
@@ -758,7 +765,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
   // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
   // Zeichnung, kein Datenbild). Lädt keine Daten.
-  const glacierTile = glacierFlagFrom() && (!narrow ? null : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
+  const glacierTile = glacierFlagFrom() && (mobile ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER) : !narrow ? null : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
         <>
           <div className="tile-gl-text">
             <div className="tile-gl-head">
@@ -878,16 +885,18 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           ihrer angestammten Stelle — so bleibt die schmale Ansicht wie zuvor. */}
       {narrow && (
         <>
-          {tile(['erkunden'], 'tile-fire', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
-          {tile(['radar'], 'tile-nowcast', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
-          {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
+          {tile(['erkunden'], `tile-fire${half}`, FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
+          {tile(['radar'], `tile-nowcast${half}`, FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
+          {!FORECAST_TILE_HIDDEN && tile(['verstehen'], `tile-forecast t-cream${half}`, FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
         </>
       )}
 
       {/* 06–09 stehen als EINE Reihe zu vier Spalten (Jan, 2026-08-09). */}
       {/* Desktop: 13 · GLETSCHER · 12 · SEEWETTER · 08 · GLOBUS · 09 · FEEDBACK, darunter 06 · HISTORIE und 07 · 3D-WETTER.
           ≤ 1024 px unverändert: 06 · 07 · 08 · 09, Seewetter und Gletscher am Ende. */}
-      {narrow ? <>{historyTile}{threedTile}</> : <>{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}{seaTile}</>}
+      {compact
+        ? <>{mobile && glacierTile}{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}{seaTile}</>
+        : <>{historyTile}{threedTile}</>}
 
       {/* 08 · GLOBUS */}
       {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
@@ -922,14 +931,14 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           <span className="tile-badge badge-mono-ghost">E-MAIL</span>
         </>)}
 
-      {!narrow && <>{historyTile}{threedTile}</>}
+      {compact && <>{historyTile}{threedTile}</>}
 
       {/* 10 · WALDBRAND steht seit 2026-10-03 (Jan) links neben dem Regenradar: auf Desktop im
           Hero (HeroQuad), auf ≤1024 px im narrow-Block oben (TILE_FIRE). */}
       {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — auf Desktop seit 17.10.2026 im Hero (HeroQuad, TILE_ROAD); auf
           ≤1024 px volle Breite am Ende des Bento-Rasters, Stellung und Breite inline (`order: 11` hinter den
           Tablet-Rängen 1–10, `grid-column: 1 / -1`), Farben inline. Lädt keine Daten. `?road=0` blendet aus. */}
-      {narrow && roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahnwetter öffnen',
+      {narrow && !mobile && roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahnwetter öffnen',
         <>
           <div className="tile-feedback-icon" aria-hidden="true">
             <svg width="34" height="34" viewBox="0 0 56 56">
@@ -950,7 +959,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </p>
           </div>
         </>, AW_TILE_STYLE)}
-      {narrow && <>{seaTile}{glacierTile}</>}
+      {narrow && !mobile && <>{seaTile}{glacierTile}</>}
     </section>
   );
 }

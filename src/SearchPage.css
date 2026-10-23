@@ -867,11 +867,24 @@
   .tile-title-xl { font-size: 21px; }
   .tile-title-lg { font-size: 19px; }
   .tile-map { min-height: 118px; }
-  .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus { min-height: 0; }
-  /* Mobil bleibt es bei zwei Spalten: Historie über die volle Breite (ihr
-     Streifenband braucht sie), darunter 3D-Wetter + Globus als Paar — sonst
-     stünde der Globus allein neben einer Lücke. */
-  .tile-history { grid-column: span 2; }
+  .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus,
+  .tile-glacier, .tile-road, .tile-coast { min-height: 0; }
+  /* Mobil dieselben kompakten Kacheln wie am Desktop, je eine Spalte (t-half), Reihenfolge wie dort:
+     Karte · Tour (volle Breite), dann Paare Waldbrand|Regenradar · Gletscher|Autobahn · See|Globus ·
+     Historie|3D-Wetter, zuletzt Feedback. Texte werden nicht gekürzt (Ehrlichkeitshinweise bleiben). */
+  .tile-fire, .tile-nowcast, .tile-glacier, .tile-road, .tile-coast, .tile-globus, .tile-history, .tile-threed { padding: 14px; border-radius: 16px; }
+  .tile-karte { order: 1; }
+  .tile-tour { order: 2; }
+  .tile-fire { order: 3; }
+  .tile-nowcast { order: 4; }
+  .tile-glacier { order: 5; }
+  .tile-road { order: 6; }
+  .tile-coast { order: 7; }
+  .tile-globus { order: 8; }
+  .tile-history { order: 9; }
+  .tile-threed { order: 10; }
+  .tile-feedback { order: 11; }
+  .tile-threed .tile-head { flex-wrap: wrap; gap: 4px 8px; }
   /* Feedback bleibt mobil volle Breite (t-half zieht sonst auf eine Spalte)
      und behält die kompakte Zeilenform. */
   .tile-feedback { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; min-height: 0; padding: 16px; }
