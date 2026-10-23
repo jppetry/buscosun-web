@@ -644,6 +644,137 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // Dim-Logik: bei aktivem Filter alles ausblenden, was nicht zur Kategorie passt.
   // 04 + 05 stehen auf Desktop im Hero (HeroQuad) und nutzen dieselbe Fabrik.
   const tile = makeTile(activeCat, onOpenFeature);
+  // 06 · HISTORIE / 07 · 3D-WETTER: auf ≤ 1024 px je eine Spalte der Reihe 06–09; auf Desktop seit 23.10.2026 (Jan)
+  // darunter als zwei halbe Kacheln — ihre Plätze in der Reihe tragen Gletscher und Seewetter.
+  const historyTile = tile(['verstehen'], `tile-history ${narrow ? 't-half' : 't-w2'}`, FEATURE.history, 'Historie öffnen', TILE_HISTORY);
+  const threedTile = tile(['erkunden'], `tile-threed ${narrow ? 't-half' : 't-w2'}`, FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen', TILE_THREED);
+  // 12 · SEEWETTER (Phase SW, E-SW-8) — auf ≤ 1024 px volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`);
+  // auf Desktop seit 23.10.2026 (Jan) als kompakte Viertel-Kachel in der Reihe 06–09 (`.is-compact`). Seit 10.10.2026 für
+  // alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts (`.tile-sea*` in
+  // SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten.
+  const seaTile = seaFlagFrom() && tile(['planen'], narrow ? 'tile-sea' : 'tile-sea t-half is-compact', FEATURE.sea, 'Seewetter öffnen',
+        <>
+          <div className="tile-sea-text">
+            <div className="tile-sea-head">
+              <div className="tile-feedback-icon" aria-hidden="true">
+                <svg width="34" height="34" viewBox="0 0 24 24">
+                  <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" fill="none" stroke="#7FC4CC" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#2A9AA6" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#C9BFA8" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div>
+                <div className="tile-eyebrow">12 · SEEWETTER</div>
+                <div className="tile-title tile-title-lg">Wie wird es auf dem Wasser?</div>
+              </div>
+            </div>
+            <p className="tile-desc">
+              Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots,
+              Seewetterbericht und Warnstatus im Wortlaut — mit deinen eigenen Grenzen je Profil.
+              {' '}
+              <span className="tile-caveat">
+                Kein amtliches Warnprodukt, keine Sicherheitsbewertung. Binnenseen ohne Welle (nicht im DWD-Bestand).
+              </span>
+            </p>
+            <div className="tile-tags">
+              {['Seegang', 'Windsee & Dünung', 'Wind & Böen', 'Seewetterbericht', 'Kite · Segeln · SUP'].map((t) => (
+                <span key={t} className="tile-tag">{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="tile-sea-preview" aria-hidden="true">
+            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="tile-sea-field" x1="0" y1="0" x2="1" y2="0.35">
+                  <stop offset="0" stopColor="#E0A23C" />
+                  <stop offset="0.3" stopColor="#5FB7A6" />
+                  <stop offset="0.62" stopColor="#2A9AA6" />
+                  <stop offset="1" stopColor="#1C5F6B" />
+                </linearGradient>
+              </defs>
+              <rect width="520" height="200" fill="url(#tile-sea-field)" />
+              {/* Land (schematisch): Küste unten und eine Insel */}
+              <path d="M0 200 L0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124 L520 200 Z" fill="var(--ink-900)" />
+              <path d="M300 62 C322 50 356 54 368 68 C356 82 318 84 300 62 Z" fill="var(--ink-900)" />
+              <path d="M0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124" fill="none" stroke="#E8C98A" strokeWidth="1.4" strokeDasharray="5 4" strokeOpacity=".8" />
+              {/* Wellen laufen in Pfeilrichtung */}
+              <g stroke="var(--sand-50)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity=".7">
+                {[[60, 44], [150, 34], [240, 46], [110, 96], [200, 82], [430, 56], [470, 92], [400, 100]].map(([x, y]) => (
+                  <path key={`${x}-${y}`} d={`M${x} ${y} l20 7 m-6 -6 l6 6 l-8 3`} />
+                ))}
+              </g>
+              {/* Spots: passt · knapp · außerhalb */}
+              <g stroke="var(--sand-50)" strokeWidth="2">
+                <circle cx="150" cy="146" r="6.5" fill="var(--sage-600)" />
+                <circle cx="262" cy="108" r="6.5" fill="var(--amber-500)" />
+                <circle cx="366" cy="150" r="6.5" fill="var(--sage-600)" />
+                <circle cx="334" cy="60" r="6.5" fill="var(--terracotta-500)" />
+                <circle cx="470" cy="122" r="6.5" fill="var(--amber-500)" />
+              </g>
+            </svg>
+            <span className="tile-map-tag">DWD CWAM · BUSCOSUN FUSION · NORD- UND OSTSEE</span>
+          </div>
+        </>, narrow ? SW_TILE_STYLE : undefined);
+  // 13 · GLETSCHER (Phase GL) — auf ≤ 1024 px volle Breite hinter Seewetter, Stellung inline (`order: 13`); auf Desktop
+  // seit 23.10.2026 (Jan) als kompakte Viertel-Kachel an erster Stelle der Reihe 06–09 (`.is-compact`). Hinter
+  // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
+  // Zeichnung, kein Datenbild). Lädt keine Daten.
+  const glacierTile = glacierFlagFrom() && tile(['planen'], narrow ? 'tile-gl' : 'tile-gl t-half is-compact', FEATURE.glacier, 'Gletscher öffnen',
+        <>
+          <div className="tile-gl-text">
+            <div className="tile-gl-head">
+              <div className="tile-feedback-icon" aria-hidden="true">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FD0E3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z" />
+                  <path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4" />
+                </svg>
+              </div>
+              <div>
+                <div className="tile-eyebrow">13 · GLETSCHER</div>
+                <div className="tile-title tile-title-lg">Wie geht es dem Eis?</div>
+              </div>
+            </div>
+            <p className="tile-desc">
+              Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen mit Datum, Längen- und Massenreihen der
+              Messnetze, Umrisse mit Bezugsjahr — an jedem Wert steht, ob er gemessen, vom Satelliten, aus dem Modell oder amtlich ist.
+              {' '}
+              <span className="tile-caveat">
+                Kein amtliches Warnprodukt, keine Tourenfreigabe. Schmelze und Schneegrenze folgen, sobald die Eichung besteht.
+              </span>
+            </p>
+            <div className="tile-tags">
+              {['Lage der Gletscher', 'Messreihen', 'Umrisse seit 1850', 'Herkunft je Wert'].map((t) => (
+                <span key={t} className="tile-tag">{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="tile-gl-preview" aria-hidden="true">
+            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="tile-gl-ice" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#E3F1F5" />
+                  <stop offset="0.5" stopColor="#A9D4E2" />
+                  <stop offset="1" stopColor="#5FAFC9" />
+                </linearGradient>
+              </defs>
+              <rect width="520" height="200" fill="var(--ink-900)" />
+              {/* Gebirgsrelief (schematisch) und zwei Gletscherzungen */}
+              <path d="M0 200 L0 120 L70 74 L118 108 L186 40 L262 112 L318 66 L392 130 L452 88 L520 124 L520 200 Z" fill="#3A3833" />
+              <path d="M150 70 C168 74 190 92 200 118 C212 148 232 160 224 186 C208 196 176 190 160 170 C140 146 134 96 150 70 Z" fill="url(#tile-gl-ice)" />
+              <path d="M368 100 C384 104 398 120 404 138 C410 158 424 166 418 186 C404 194 380 188 370 172 C358 152 356 116 368 100 Z" fill="url(#tile-gl-ice)" opacity=".85" />
+              {/* Umriss eines früheren Jahres (gestrichelt) */}
+              <path d="M146 62 C170 64 198 86 212 120 C226 154 250 172 232 196" fill="none" stroke="#E0A567" strokeWidth="1.4" strokeDasharray="5 4" />
+              {/* Gletscher als Kreise nach Fläche */}
+              <g stroke="var(--sand-50)" strokeWidth="2">
+                <circle cx="188" cy="124" r="8" fill="#5FAFC9" />
+                <circle cx="396" cy="146" r="6" fill="#A9D4E2" />
+                <circle cx="268" cy="112" r="4.5" fill="#E3F1F5" />
+                <circle cx="468" cy="112" r="5" fill="#A9D4E2" />
+              </g>
+            </svg>
+            <span className="tile-map-tag">GLAMOS · ÖAV · AGI 5 · WGMS · BAdW</span>
+          </div>
+        </>, narrow ? GL_TILE_STYLE : undefined);
 
   return (
     <section className="deck-bento" aria-label="Werkzeuge">
@@ -718,11 +849,9 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       )}
 
       {/* 06–09 stehen als EINE Reihe zu vier Spalten (Jan, 2026-08-09). */}
-      {/* 06 · HISTORIE */}
-      {tile(['verstehen'], 'tile-history t-half', FEATURE.history, 'Historie öffnen', TILE_HISTORY)}
-
-      {/* 07 · 3D-WETTER → Atmosphäre */}
-      {tile(['erkunden'], 'tile-threed t-half', FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen', TILE_THREED)}
+      {/* Desktop: 13 · GLETSCHER · 12 · SEEWETTER · 08 · GLOBUS · 09 · FEEDBACK, darunter 06 · HISTORIE und 07 · 3D-WETTER.
+          ≤ 1024 px unverändert: 06 · 07 · 08 · 09, Seewetter und Gletscher am Ende. */}
+      {narrow ? <>{historyTile}{threedTile}</> : <>{glacierTile}{seaTile}</>}
 
       {/* 08 · GLOBUS */}
       {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
@@ -757,6 +886,8 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           <span className="tile-badge badge-mono-ghost">E-MAIL</span>
         </>)}
 
+      {!narrow && <>{historyTile}{threedTile}</>}
+
       {/* 10 · WALDBRAND steht seit 2026-10-03 (Jan) links neben dem Regenradar: auf Desktop im
           Hero (HeroQuad), auf ≤1024 px im narrow-Block oben (TILE_FIRE). */}
       {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — auf Desktop seit 17.10.2026 im Hero (HeroQuad, TILE_ROAD); auf
@@ -783,131 +914,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </p>
           </div>
         </>, AW_TILE_STYLE)}
-      {/* 12 · SEEWETTER (Phase SW, E-SW-8) — volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`). Seit
-          10.10.2026 für alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts
-          (`.tile-sea*` in SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten. */}
-      {seaFlagFrom() && tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
-        <>
-          <div className="tile-sea-text">
-            <div className="tile-sea-head">
-              <div className="tile-feedback-icon" aria-hidden="true">
-                <svg width="34" height="34" viewBox="0 0 24 24">
-                  <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" fill="none" stroke="#7FC4CC" strokeWidth="1.6" strokeLinecap="round" />
-                  <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#2A9AA6" strokeWidth="1.6" strokeLinecap="round" />
-                  <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#C9BFA8" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div>
-                <div className="tile-eyebrow">12 · SEEWETTER</div>
-                <div className="tile-title tile-title-lg">Wie wird es auf dem Wasser?</div>
-              </div>
-            </div>
-            <p className="tile-desc">
-              Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots,
-              Seewetterbericht und Warnstatus im Wortlaut — mit deinen eigenen Grenzen je Profil.
-              {' '}
-              <span className="tile-caveat">
-                Kein amtliches Warnprodukt, keine Sicherheitsbewertung. Binnenseen ohne Welle (nicht im DWD-Bestand).
-              </span>
-            </p>
-            <div className="tile-tags">
-              {['Seegang', 'Windsee & Dünung', 'Wind & Böen', 'Seewetterbericht', 'Kite · Segeln · SUP'].map((t) => (
-                <span key={t} className="tile-tag">{t}</span>
-              ))}
-            </div>
-          </div>
-          <div className="tile-sea-preview" aria-hidden="true">
-            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
-              <defs>
-                <linearGradient id="tile-sea-field" x1="0" y1="0" x2="1" y2="0.35">
-                  <stop offset="0" stopColor="#E0A23C" />
-                  <stop offset="0.3" stopColor="#5FB7A6" />
-                  <stop offset="0.62" stopColor="#2A9AA6" />
-                  <stop offset="1" stopColor="#1C5F6B" />
-                </linearGradient>
-              </defs>
-              <rect width="520" height="200" fill="url(#tile-sea-field)" />
-              {/* Land (schematisch): Küste unten und eine Insel */}
-              <path d="M0 200 L0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124 L520 200 Z" fill="var(--ink-900)" />
-              <path d="M300 62 C322 50 356 54 368 68 C356 82 318 84 300 62 Z" fill="var(--ink-900)" />
-              <path d="M0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124" fill="none" stroke="#E8C98A" strokeWidth="1.4" strokeDasharray="5 4" strokeOpacity=".8" />
-              {/* Wellen laufen in Pfeilrichtung */}
-              <g stroke="var(--sand-50)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity=".7">
-                {[[60, 44], [150, 34], [240, 46], [110, 96], [200, 82], [430, 56], [470, 92], [400, 100]].map(([x, y]) => (
-                  <path key={`${x}-${y}`} d={`M${x} ${y} l20 7 m-6 -6 l6 6 l-8 3`} />
-                ))}
-              </g>
-              {/* Spots: passt · knapp · außerhalb */}
-              <g stroke="var(--sand-50)" strokeWidth="2">
-                <circle cx="150" cy="146" r="6.5" fill="var(--sage-600)" />
-                <circle cx="262" cy="108" r="6.5" fill="var(--amber-500)" />
-                <circle cx="366" cy="150" r="6.5" fill="var(--sage-600)" />
-                <circle cx="334" cy="60" r="6.5" fill="var(--terracotta-500)" />
-                <circle cx="470" cy="122" r="6.5" fill="var(--amber-500)" />
-              </g>
-            </svg>
-            <span className="tile-map-tag">DWD CWAM · BUSCOSUN FUSION · NORD- UND OSTSEE</span>
-          </div>
-        </>, SW_TILE_STYLE)}
-      {/* 13 · GLETSCHER (Phase GL) — volle Breite hinter Seewetter, Stellung inline (`order: 13`). Nur mit `?gl=1`, bis
-          Jan `GLACIER_LIVE` schaltet: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die
-          Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten. */}
-      {glacierFlagFrom() && tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
-        <>
-          <div className="tile-gl-text">
-            <div className="tile-gl-head">
-              <div className="tile-feedback-icon" aria-hidden="true">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FD0E3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z" />
-                  <path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4" />
-                </svg>
-              </div>
-              <div>
-                <div className="tile-eyebrow">13 · GLETSCHER</div>
-                <div className="tile-title tile-title-lg">Wie geht es dem Eis?</div>
-              </div>
-            </div>
-            <p className="tile-desc">
-              Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen mit Datum, Längen- und Massenreihen der
-              Messnetze, Umrisse mit Bezugsjahr — an jedem Wert steht, ob er gemessen, vom Satelliten, aus dem Modell oder amtlich ist.
-              {' '}
-              <span className="tile-caveat">
-                Kein amtliches Warnprodukt, keine Tourenfreigabe. Schmelze und Schneegrenze folgen, sobald die Eichung besteht.
-              </span>
-            </p>
-            <div className="tile-tags">
-              {['Lage der Gletscher', 'Messreihen', 'Umrisse seit 1850', 'Herkunft je Wert'].map((t) => (
-                <span key={t} className="tile-tag">{t}</span>
-              ))}
-            </div>
-          </div>
-          <div className="tile-gl-preview" aria-hidden="true">
-            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
-              <defs>
-                <linearGradient id="tile-gl-ice" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#E3F1F5" />
-                  <stop offset="0.5" stopColor="#A9D4E2" />
-                  <stop offset="1" stopColor="#5FAFC9" />
-                </linearGradient>
-              </defs>
-              <rect width="520" height="200" fill="var(--ink-900)" />
-              {/* Gebirgsrelief (schematisch) und zwei Gletscherzungen */}
-              <path d="M0 200 L0 120 L70 74 L118 108 L186 40 L262 112 L318 66 L392 130 L452 88 L520 124 L520 200 Z" fill="#3A3833" />
-              <path d="M150 70 C168 74 190 92 200 118 C212 148 232 160 224 186 C208 196 176 190 160 170 C140 146 134 96 150 70 Z" fill="url(#tile-gl-ice)" />
-              <path d="M368 100 C384 104 398 120 404 138 C410 158 424 166 418 186 C404 194 380 188 370 172 C358 152 356 116 368 100 Z" fill="url(#tile-gl-ice)" opacity=".85" />
-              {/* Umriss eines früheren Jahres (gestrichelt) */}
-              <path d="M146 62 C170 64 198 86 212 120 C226 154 250 172 232 196" fill="none" stroke="#E0A567" strokeWidth="1.4" strokeDasharray="5 4" />
-              {/* Gletscher als Kreise nach Fläche */}
-              <g stroke="var(--sand-50)" strokeWidth="2">
-                <circle cx="188" cy="124" r="8" fill="#5FAFC9" />
-                <circle cx="396" cy="146" r="6" fill="#A9D4E2" />
-                <circle cx="268" cy="112" r="4.5" fill="#E3F1F5" />
-                <circle cx="468" cy="112" r="5" fill="#A9D4E2" />
-              </g>
-            </svg>
-            <span className="tile-map-tag">GLAMOS · ÖAV · AGI 5 · WGMS · BAdW</span>
-          </div>
-        </>, GL_TILE_STYLE)}
+      {narrow && <>{seaTile}{glacierTile}</>}
     </section>
   );
 }

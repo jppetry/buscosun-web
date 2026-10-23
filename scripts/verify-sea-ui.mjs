@@ -225,8 +225,8 @@ const READY = `document.querySelectorAll('.sw-band-table thead th button').lengt
   await until(ctx, `!!document.querySelector('.deck-chips-count')`, 20_000);
   await sleep(800);
   const r = await ctx.evaluate(`(() => { const t = [...document.querySelectorAll('.deck-bento > .deck-tile')].find((x) => /Seewetter/.test(x.getAttribute('aria-label') ?? '') && x.offsetParent !== null); const b = t?.getBoundingClientRect(); const pv = t?.querySelector('.tile-sea-preview')?.getBoundingClientRect(); return { tile: !!t, eyebrow: t?.querySelector('.tile-eyebrow')?.textContent ?? null, count: document.querySelector('.deck-chips-count')?.textContent ?? '', preview: pv ? [Math.round(pv.width), Math.round(pv.height)] : null, inside: !!(b && pv && pv.left >= b.left && pv.right <= b.right && pv.top >= b.top && pv.bottom <= b.bottom), tags: [...(t?.querySelectorAll('.tile-tag') ?? [])].map((e) => e.textContent), overflow: document.documentElement.scrollWidth > innerWidth }; })()`);
-  add('A3 Startseite ohne Parameter (Flag an für alle, SEA_LIVE): Kachel „12 · SEEWETTER“ sichtbar mit Vorschau und Stichworten, Zähler 13 (mit Gletscher-Kachel)',
-    r.tile && r.eyebrow === '12 · SEEWETTER' && /\b13\b/.test(r.count) && r.preview && r.preview[0] >= 300 && r.preview[1] >= 120 && r.inside && r.tags.length >= 4 && !r.overflow, JSON.stringify(r));
+  add('A3 Startseite ohne Parameter (Flag an für alle, SEA_LIVE): Kachel „12 · SEEWETTER“ sichtbar mit Vorschau (Desktop seit 23.10. als Viertel-Kachel mit Vorschau-Streifen) und Stichworten, Zähler 13 (mit Gletscher-Kachel)',
+    r.tile && r.eyebrow === '12 · SEEWETTER' && /\b13\b/.test(r.count) && r.preview && r.preview[0] >= 120 && r.preview[1] >= 60 && r.inside && r.tags.length >= 4 && !r.overflow, JSON.stringify(r));
   await shot(ctx, 'home-tile-desktop');
   off(); allErrors.push(...errors); await ctx.close();
 }

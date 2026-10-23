@@ -544,6 +544,14 @@
   background: var(--ink-900); border: 1px solid var(--border-default);
 }
 .tile-sea-preview svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Desktop seit 23.10.2026 (Jan): Gletscher und Seewetter als Viertel-Kacheln in der Reihe 06–09 (Klasse nur > 1024 px
+   gesetzt) — Vorschau als Streifen oben, Text darunter wie bei den Nachbarkacheln; Hinweistext bleibt vollständig. */
+.tile-sea.is-compact, .tile-gl.is-compact { flex-direction: column; justify-content: flex-start; gap: 14px; min-height: 210px; }
+.is-compact .tile-sea-preview, .is-compact .tile-gl-preview { order: -1; flex: 0 0 auto; min-height: 0; height: 70px; border-radius: 12px; }
+.is-compact .tile-sea-text, .is-compact .tile-gl-text { justify-content: flex-start; }
+.is-compact .tile-feedback-icon, .is-compact .tile-tags, .is-compact .tile-map-tag { display: none; }
+.is-compact .tile-sea-head .tile-title, .is-compact .tile-gl-head .tile-title { font-size: 18px; letter-spacing: -0.3px; }
+.is-compact .tile-desc { font-size: 12px; line-height: 1.45; margin-top: 5px; }
 .tile-flame { height: 64px; display: flex; align-items: center; justify-content: center; }
 .tile-flame-svg { overflow: visible; }
 .tile-flame-outer, .tile-flame-inner, .tile-flame-core { transform-origin: 32px 58px; animation: deck-flame 1.8s ease-in-out infinite; }
