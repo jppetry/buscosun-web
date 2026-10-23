@@ -367,3 +367,8 @@
 @media (max-width: 767px) {
   .rsb[data-route="regenradar"] { display: none; }
 }
+
+/* Mobil entfallen (Jans Auftrag 2026-10-23): die Zoom-Knöpfe + / − und der ⓘ-Knopf der Kartenquellen (MapLibre-Attribution)
+   rechts unten; gezoomt wird per Geste. */
+.rm-zoom { display: none; }
+.rm-map .maplibregl-ctrl-attrib { display: none; }
