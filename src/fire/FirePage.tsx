@@ -25,7 +25,7 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
   FIRE_ALWAYS_ON, withFireAlwaysOn,
-  FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS,
+  FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_MVP_LAYERS,
   FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_ANOMALY_LAYERS,
   type FireLayerId,
 } from './fireModel';
@@ -102,7 +102,7 @@ import {
   fetchBurntAreas, fetchBurntWeek, burntPeriodLabel, burntThresholdNote, fetchBucketOf,
   type BurntBucket, type BurntFetchBucket, type BurntRun,
 } from './sources/euContext';
-import { DANGER_VIEWS, DANGER_VIEW_ORDER, DEFAULT_DANGER_VIEW, companionView, type DangerView } from './dangerViews';
+import { DANGER_VIEWS, DANGER_VIEW_ORDER, DEFAULT_DANGER_VIEW, type DangerView } from './dangerViews';
 import { countMapped, mappedAreaFor, type BurntPolygon } from './fireCorroboration';
 import { defaultPlayback, stepPlayback, prefetchTarget, daysPerSecondForTier, hoursPerSecondForTier } from './firePlayback';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
@@ -1692,10 +1692,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
   // --- Readout ----------------------------------------------------------------
 
-  /** BD3: die Karten des mobilen Karten-Sheets — nur aktive Layer (die Hover-Vorschau des
-   *  Readouts ist mit dem Reiter „Layer" entfallen). */
-  const readoutLayers = FIRE_LAYER_ORDER.filter((id) => active.has(id) && !FIRE_ALWAYS_ON.includes(id));
-
   /** Kennzahl-Kacheln der Detektionen (Steckbrief + Mobile-Sheet). */
   const detTiles = (withFires: boolean) => (
     <div className="br-tiles">
@@ -1715,19 +1711,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </p>
   );
 
-  const layerCard = (id: FireLayerId, compact: boolean) => (
-    <FireLayerCard
-      key={id} layer={id} preview={!active.has(id)} info={infoFor(id)} meta={metaFor(id)}
-      stand={standFor(id)} compact={compact}
-      tiles={id === 'fireHotspots' ? detTiles(false) : undefined}
-      lead={id === 'fireHotspots' ? detLead : undefined}
-      link={id === 'fireDanger' && companionView(dangerView) ? (
-        <button type="button" className="br-link" onClick={() => setDangerView(companionView(dangerView)!)}>
-          → {dangerView === 'fwi' ? 'Einordnung (Perzentil) öffnen' : 'Index (FWI) öffnen'}
-        </button>
-      ) : undefined}
-    />
-  );
 
   /** GeoSphere-Kontext je Brand: das nächste AT-Ereignis (≤ 10 km) — Kontext, nie Bestätigung. */
   const atContextFor = useCallback((r: FireRecord): AtWarnContext | null => {
@@ -2040,7 +2023,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </nav>
   );
 
-  const sheetContent = mobileTab === 'time' ? (
+  const sheetContent = (
     <>
       {timeCardMobile}
       {lagging.length > 0 && (
@@ -2051,11 +2034,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       {dailyOnly.length > 0 && hourly && time.hour > 0 && (
         <p className="br-note">Tages-Layer zeigen auf der Stundenachse den Tageswert für {dayLabel(dayForLayers, nowMs)}.</p>
       )}
-    </>
-  ) : (
-    <>
-      {/* Rückblick, Kennzahlen und Quellenzeile entfallen im Karten-Sheet (Jan, 2026-10-23); der Rückblick bleibt im Reiter „Zeit". */}
-      {readoutLayers.map((id) => layerCard(id, true))}
     </>
   );
 
@@ -2288,7 +2266,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </div>
                 </section>
               )}
-              {(mobileTab === 'map' || mobileTab === 'time') && (
+              {/* Im Reiter „Karte" ohne Sheet über der Bottom-Bar (Jan, 2026-10-23); der Reiter „Zeit" behält es für den Rückblick. */}
+              {mobileTab === 'time' && (
                 <BottomSheet
                   snap={sheetSnap}
                   onSnapChange={setSheetSnap}
