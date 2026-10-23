@@ -594,7 +594,7 @@ function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { t
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
 function MobileTabSheet({ tab, snap, onSnapChange, onClose, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null, probeCard = null }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
-  /** Schließt die Ganzseiten-Ansicht (Layer) zurück auf die Karte. */
+  /** Schließt die Ganzseiten-Ansicht (Layer, Diagramm, 3D) zurück auf die Karte. */
   onClose: () => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
@@ -631,13 +631,13 @@ function MobileTabSheet({ tab, snap, onSnapChange, onClose, nowcast, state, mode
     document.addEventListener('pointermove', onMove); document.addEventListener('pointerup', onUp);
   };
 
-  // Die Layer sind eine ganze Seite (Jans Auftrag 2026-10-23): kein Ziehen, X oben rechts; ein Tipp auf ein anderes Symbol der Leiste wechselt.
-  const isPage = tab === 'layer';
+  // Layer, Diagramm und 3D sind ganze Seiten (Jans Aufträge 2026-10-23): kein Ziehen, X oben rechts; ein Tipp auf ein anderes Symbol der Leiste wechselt.
+  const isPage = tab === 'layer' || tab === 'chart' || tab === '3d';
   return (
     <div className={`rm-sheet rm-tabsheet${snap === 'full' ? ' is-full' : ''}${isPage ? ' is-page' : ''}`} style={isPage ? undefined : { height: `${liveVh}vh` }}
       role="region" aria-label={`Bereich ${tab}`}>
       {isPage ? (
-        <button type="button" className="rm-page-close" aria-label="Layer schließen" onClick={onClose}>
+        <button type="button" className="rm-page-close" aria-label="Seite schließen" onClick={onClose}>
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
         </button>
       ) : (
