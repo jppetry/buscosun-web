@@ -561,6 +561,12 @@
 .tile-flame-ember-b { animation-delay: -.9s; animation-duration: 3s; }
 .tile-flame-ember-c { animation-delay: -1.7s; animation-duration: 2.2s; }
 @keyframes deck-flame-ember { 0% { opacity: 0; transform: translate(0, 8px); } 20% { opacity: .95; } 100% { opacity: 0; transform: translate(3px, -22px); } }
+/* Nadelwald um das Feuer: hintere Reihe blass, die beiden Nachbarbäume im Feuerschein (atmen mit dem Glow). */
+.tile-fire-tree { fill: var(--sage-600); opacity: .85; }
+.tile-fire-tree-back { opacity: .4; }
+.tile-fire-tree-lit { animation: deck-fire-tree-lit 2.4s ease-in-out infinite; }
+@keyframes deck-fire-tree-lit { 0%, 100% { opacity: .82; } 50% { opacity: 1; } }
+.tile-fire-ground { fill: none; stroke: var(--sage-600); stroke-opacity: .45; stroke-width: 1; stroke-linecap: round; }
 
 /* Feedback (Slot 09) */
 /* Seit 2026-08-09 steht Feedback als vierte Kachel EINER Reihe (statt über zwei
