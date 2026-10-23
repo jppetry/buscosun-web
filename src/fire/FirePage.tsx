@@ -124,6 +124,8 @@ import { ageText } from '../dataAge';
 import './fireDeck.css';
 
 /** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
+const NO_ZONES: readonly FireZone[] = [];
+const NO_CLUSTERS: readonly FireCluster[] = [];
 /** Saison 1.3.–31.10. (siehe `currentSeasonWindow`) als 0-basierte Monatsindizes. */
 const SEASON_FIRST_MONTH = 2;
 const SEASON_LAST_MONTH = 9;
@@ -1158,6 +1160,19 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
   const isMobile = useMediaQuery('(max-width: 767px)');
+  /**
+   * Mobil zeigt die Karte nur, wofür der Schalter Brände | Thermalanomalien steht: bei „Brände" ohne die
+   * Anlagen-Rauten, bei „Thermalanomalien" ohne Detektionen, Brandflächen, Hüllen und Historie-Punkte.
+   * Desktop und Tablet zeigen weiter beides (dort ist der Reiter nur die Liste).
+   */
+  const onlyKind: 'fires' | 'anomalies' | null = isMobile ? readoutTab : null;
+  const mapActive = useMemo(() => {
+    if (!onlyKind) return active;
+    const hide: readonly FireLayerId[] = onlyKind === 'fires' ? FIRE_ANOMALY_LAYERS : ['fireHotspots', 'fireFootprints', 'fireBurnt'];
+    const next = new Set(active);
+    for (const l of hide) next.delete(l);
+    return next;
+  }, [active, onlyKind]);
   // Startwert `half` (Vorlage B4): Karte oben, Zeit-Deck und Legende im Sheet sichtbar.
   const [sheetSnap, setSheetSnap] = useState<BottomSheetSnap>('half');
   // Eine Kartenauswahl macht die Brandliste sichtbar — sonst wäre der Klick
@@ -2165,15 +2180,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
           <main className={`fire-center${inDossier && !isMobile ? ' is-offstage' : ''}`} aria-hidden={inDossier && !isMobile ? true : undefined}>
             <FireMap
-              active={active} basemap={basemap} day={committedDay} isoDate={committedIso}
-              hotspots={hotspots}
-              hotspotFootprints={hotspotFootprints} hotspotProvider={hotspotProvider}
-              fireZones={mapZones} zoneEstimates={zoneEstimates}
-              clusters={clusterList} selectedClusterId={selectedCluster}
+              active={mapActive} basemap={basemap} day={committedDay} isoDate={committedIso}
+              hotspots={onlyKind === 'anomalies' ? null : hotspots}
+              hotspotFootprints={onlyKind === 'anomalies' ? null : hotspotFootprints} hotspotProvider={hotspotProvider}
+              fireZones={onlyKind === 'anomalies' ? NO_ZONES : mapZones} zoneEstimates={zoneEstimates}
+              clusters={onlyKind === 'anomalies' ? NO_CLUSTERS : clusterList} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
-              footprintFc={footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
-              anomalyFc={anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
-              historyFc={historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistoryFromMap}
+              footprintFc={onlyKind === 'anomalies' ? null : footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
+              anomalyFc={onlyKind === 'fires' ? null : anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
+              historyFc={onlyKind === 'anomalies' ? null : historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistoryFromMap}
               focusBbox={focusBbox} onSelectFootprint={selectFootprintFromMap}
               onSelectBurnt={openDossierForEffis} onSelectZone={openDossierForZone}
               onSelectDetection={openDossierForDetection}
