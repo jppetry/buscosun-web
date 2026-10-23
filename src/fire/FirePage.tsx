@@ -2128,12 +2128,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   <button type="button" className="br-m-brand" aria-label="Zur Startseite" onClick={onBack}>
                     <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
                   </button>
-                  {sourcePill}
+                  {/* Mobil: Straßen | Satellit auf Höhe des Logos (Jans Auftrag 2026-10-23), die Quellen-Pille rückt darunter. */}
+                  <div className="br-m-basemaprow">{basemapSeg}</div>
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}
-              {/* Mobil: Straßen | Satellit oben mittig unter der Kopfzeile (Jans Auftrag 2026-10-23). */}
-              {isMobile && <div className="br-m-basemaprow">{basemapSeg}</div>}
+              {isMobile && sourcePill}
               {/* BD3: beides statt „entweder/oder je Reiter" — die Quellen-Pille bleibt, die
                   Markierung kommt darüber dazu, sobald ein Brand gewählt ist. */}
               {!isMobile && selectedFootprint && recordsById.get(selectedFootprint) && (

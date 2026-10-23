@@ -757,7 +757,8 @@
   .fire-center .maplibregl-ctrl-group { border-radius: 11px; }
   .fire-center .maplibregl-ctrl-group button { width: 40px; height: 40px; }
   .fire-center .maplibregl-ctrl-bottom-left, .fire-center .maplibregl-ctrl-bottom-right { bottom: calc(46vh + 8px); }
-  .br-m-basemaprow { display: flex; justify-content: center; }
+  .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; }
+  .br-map-tl > .br-pill { margin-right: 49px; }
   .br-m-basemaprow .br-basemap button { min-height: 38px; }
   /* Mobil sitzt die Kachel knapp über der Bottom-Bar statt im oberen Stapel. */
   .br-mapcard { position: fixed; left: 12px; right: 12px; bottom: calc(var(--br-bar-h) + 10px); z-index: 6; width: auto; max-width: none; max-height: calc(54vh - 130px); }
