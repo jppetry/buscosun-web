@@ -383,3 +383,6 @@
 .rm-brand { flex: 0 0 auto; min-width: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
   background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: var(--shadow-card); }
 .rm-brand:active { background: var(--sand-100, #EDE6D3); }
+
+/* 3D-Seite: das Fenster sitzt weiter unten, unter dem X (Jans Auftrag 2026-10-23). */
+.rm-tabsheet.is-page .zt-mobile { padding-top: 48px; }

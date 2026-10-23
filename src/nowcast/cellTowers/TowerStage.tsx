@@ -25,12 +25,13 @@ const DEM_SRC = 'zt-dem';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
 const HILLSHADE_ID = 'zt-hillshade';
 /**
- * Start- und Rücksetz-Ansicht (Jans Auftrag 2026-10-23): flacher (tiefere Kamera) und nach Süden auf die Alpen, wo der meiste
- * Schnee fällt. Das Ziel liegt am Alpennordrand, damit der Hauptkamm in der oberen Bildhälfte steht und das Vorland davor.
+ * Start- und Rücksetz-Ansicht (Jans Aufträge 2026-10-23): flacher (tiefere Kamera) und von den Alpen, wo der meiste Schnee
+ * fällt, nach Norden Richtung Deutschland. Das Ziel liegt knapp nördlich des Hauptkamms: die Alpen stehen im Vordergrund,
+ * Deutschland dahinter.
  */
 const STAGE_PITCH = 68;
-const STAGE_BEARING = 180;
-const ALPS_CENTER: [number, number] = [10.8, 47.4];
+const STAGE_BEARING = 0;
+const ALPS_CENTER: [number, number] = [10.6, 47.3];
 const ALPS_ZOOM = { desktop: 7.4, mobile: 6.8 } as const;
 const ILLUMINATION_DEG = 335;
 const SRC_RADAR = 'zt-radar';
