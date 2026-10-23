@@ -245,7 +245,15 @@ function buildWarning(inp: DashInputs): WarningVM {
     items.length > 1 ? `1 von ${items.length}` : null,
     w.note,
   ];
-  return { state: 'active', channel: w.channel, quote: quote || null, footer: parts.filter(Boolean).join(' · ') };
+  const until = (ms: number | null) => (ms != null ? `bis ${dateTime(ms)}` : 'bis auf Widerruf');
+  const list = items.map((it) => ({
+    level: it.severityRank,
+    headline: it.headline?.trim() || null,
+    description: it.description?.trim() || null,
+    when: it.onsetMs != null && it.onsetMs > inp.nowMs ? `ab ${dateTime(it.onsetMs)} · ${until(it.expiresMs)}` : `gültig ${until(it.expiresMs)}`,
+    sender: it.sender ?? w.channel,
+  }));
+  return { state: 'active', channel: w.channel, quote: quote || null, footer: parts.filter(Boolean).join(' · '), items: list, note: w.note };
 }
 
 // ---------------------------------------------------------------------------

@@ -129,6 +129,20 @@ export interface WarningVM {
   channel: string;
   quote: string | null;
   footer: string;
+  /** Alle Warnungen am Punkt, schwerste zuerst; Überschrift und Text wörtlich. Fehlt (Vorlage) ⇒ nur `quote`. */
+  items?: WarnItemVM[];
+  /** Hinweis der Quelle (Gemeinde, Meldungen ohne Wortlaut), sonst null. */
+  note?: string | null;
+}
+
+export interface WarnItemVM {
+  /** 1 gelb … 4 violett wie der Warn-Layer, 0 unbekannt. */
+  level: number;
+  headline: string | null;
+  description: string | null;
+  /** „gültig bis …" bzw. „ab … · bis …". */
+  when: string;
+  sender: string;
 }
 
 export interface ConfVM {

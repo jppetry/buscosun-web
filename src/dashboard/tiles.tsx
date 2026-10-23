@@ -8,7 +8,7 @@ import { originTitle } from './origin';
 import { WeatherIcon } from './icons';
 import { NowcastChart } from './charts';
 import { pollenColor, uvBarPct, uvColor } from './model/rules';
-import type { ConfVM, IconD2VM, NowcastVM, NowVM, PollenVM, Shown, UvVM, WarningVM, WindVM, CloudsVM } from './model/types';
+import type { ConfVM, IconD2VM, NowcastVM, NowVM, PollenVM, Shown, UvVM, WarningVM, WarnItemVM, WindVM, CloudsVM } from './model/types';
 
 /** Ein Wert mit Herkunft. `long` = „nicht verfügbar" ausschreiben (wo Platz ist). */
 export function Val({ v, className, long, prefix }: { v: Shown; className?: string; long?: boolean; prefix?: string }) {
@@ -57,17 +57,61 @@ function KV({ l, v }: { l: string; v: Shown }) {
   return <div><div className="dbd-kv-l">{l}</div><div className="dbd-kv-v"><Val v={v} /></div></div>;
 }
 
-function WarnTriangle() {
+function WarnTriangle({ size = 15 }: { size?: number }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2C2A26" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3 L22 20 H2 Z" /><line x1="12" y1="10" x2="12" y2="14" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#2C2A26" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path className="dbd-warn-tri" d="M12 3 L22 20 H2 Z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17" x2="12" y2="17.2" />
     </svg>
+  );
+}
+
+/** Eine Warnung: Überschrift und Text wörtlich als Zitat, darunter Gültigkeit und Absender. */
+function WarnItem({ it }: { it: WarnItemVM }) {
+  return (
+    <>
+      <blockquote className="dbd-warn-quote" lang="de">
+        {it.headline && <p className="dbd-warn-title">{it.headline}</p>}
+        {it.description && <p className="dbd-warn-text">{it.description}</p>}
+      </blockquote>
+      <span className="dbd-warn-meta" data-origin="P19">{it.when} · wörtlich zitiert · {it.sender}</span>
+    </>
   );
 }
 
 /** Amtliche Warnung als Statuszeile in der Jetzt-Kachel; bei aktiver Warnung wächst sie um das wörtliche Zitat. */
 export function WarningStrip({ vm }: { vm: WarningVM }) {
   const active = vm.state === 'active';
+  if (active && vm.items?.length) {
+    const [top, ...rest] = vm.items;
+    return (
+      <div className="dbd-warn is-active is-rich" data-level={top.level} role="group" aria-label="Amtliche Warnung" data-origin="P18" title={originTitle('P18')}>
+        <span className="dbd-warn-badge"><WarnTriangle size={18} /></span>
+        <div className="dbd-warn-body">
+          <span className="dbd-warn-head">
+            AMTLICHE WARNUNG · {vm.channel.toUpperCase()}
+            {vm.items.length > 1 && <span className="dbd-warn-count">{vm.items.length} Warnungen</span>}
+          </span>
+          <WarnItem it={top} />
+          {rest.length > 0 && (
+            <details className="dbd-warn-more">
+              <summary>
+                <span className="dbd-warn-dots" aria-hidden="true">
+                  {rest.map((it, i) => <span key={i} className="dbd-warn-dot" data-level={it.level} />)}
+                </span>
+                {rest.length === 1 ? '1 weitere Warnung' : `${rest.length} weitere Warnungen`}
+              </summary>
+              {rest.map((it, i) => (
+                <div key={i} className="dbd-warn-sub" data-level={it.level}>
+                  <WarnItem it={it} />
+                </div>
+              ))}
+            </details>
+          )}
+          {vm.note && <span className="dbd-warn-note">{vm.note}</span>}
+        </div>
+      </div>
+    );
+  }
   const text = active ? `„${vm.quote ?? ''}"`
     : vm.state === 'none' ? 'Keine amtliche Warnung für diesen Ort'
       : vm.state === 'loading' ? 'Warnlage wird geladen …'
