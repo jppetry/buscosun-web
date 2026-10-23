@@ -395,7 +395,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Hineinzoomen"><PlusIcon /></button>
             <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Herauszoomen"><MinusIcon /></button>
           </div>
-          {mTab !== 'glance' && <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
+          {mTab !== 'glance' && <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap} onClose={() => { setMTab('glance'); setMSnap('peek'); }}
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
             layers={layers} toggleLayer={toggleLayer} location={location}
             snowMode={snowMode} setSnowMode={setSnowMode}
@@ -592,8 +592,10 @@ function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { t
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null, probeCard = null }: {
+function MobileTabSheet({ tab, snap, onSnapChange, onClose, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode, sumSel, setSumSel, rainWindow, chance, cellCard = null, heightPanel = null, towersPanel = null, snowCard = null, minuteCard = null, probeCard = null }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
+  /** Schließt die Ganzseiten-Ansicht (Layer) zurück auf die Karte. */
+  onClose: () => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
   snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
@@ -629,10 +631,18 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
     document.addEventListener('pointermove', onMove); document.addEventListener('pointerup', onUp);
   };
 
+  // Die Layer sind eine ganze Seite (Jans Auftrag 2026-10-23): kein Ziehen, X oben rechts; ein Tipp auf ein anderes Symbol der Leiste wechselt.
+  const isPage = tab === 'layer';
   return (
-    <div className={`rm-sheet rm-tabsheet${snap === 'full' ? ' is-full' : ''}`} style={{ height: `${liveVh}vh` }}
+    <div className={`rm-sheet rm-tabsheet${snap === 'full' ? ' is-full' : ''}${isPage ? ' is-page' : ''}`} style={isPage ? undefined : { height: `${liveVh}vh` }}
       role="region" aria-label={`Bereich ${tab}`}>
-      <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
+      {isPage ? (
+        <button type="button" className="rm-page-close" aria-label="Layer schließen" onClick={onClose}>
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        </button>
+      ) : (
+        <div className="rm-sheet-grab" onPointerDown={startDrag}><span className="rm-sheet-handle" /></div>
+      )}
       <div className="rm-sheet-body rm-tabsheet-body">
         {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} probeCard={probeCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}

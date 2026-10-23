@@ -369,3 +369,12 @@
    rechts unten; gezoomt wird per Geste. */
 .rm-zoom { display: none; }
 .rm-map .maplibregl-ctrl-attrib { display: none; }
+
+/* Layer als ganze Seite (Jans Auftrag 2026-10-23): füllt den Bereich über der Tab-Bar, X oben rechts. */
+.rm-tabsheet.is-page { top: 0; height: auto; max-height: none; border-radius: 0; box-shadow: none; }
+.rm-tabsheet.is-page .rm-sheet-body { padding-top: calc(var(--rm-safe-top) + 16px); }
+.rm-page-close { position: absolute; top: calc(var(--rm-safe-top) + 10px); right: 14px; z-index: 2; width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center; border-radius: 14px; cursor: pointer; color: var(--ink-900, #2C2A26);
+  background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: var(--shadow-card); }
+.rm-page-close:active { background: var(--sand-100, #EDE6D3); }
+.rm-tabsheet.is-page .rm-panelhead { padding-right: 56px; }
