@@ -575,10 +575,11 @@ const TOWERS_TAB: { id: MobileTab; label: string; icon: ReactNode } = { id: '3d'
 function Tab3dIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 19 L8 12 L11 15 L15 9 L21 19 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 12 V4 H14 V10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>; }
 
 function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { tab: MobileTab; onSelect: (t: MobileTab) => void; withHeight?: boolean; with3d?: boolean }) {
-  // Ohne den Schnellblick-Reiter (Jans Auftrag 2026-10-23): der Rest behält seine Reihenfolge.
-  const visible = MOBILE_TABS.filter((t) => t.id !== 'glance');
+  // Ohne die Reiter Schnellblick, Detail und Höhe (Jans Aufträge 2026-10-23): der Rest behält seine Reihenfolge.
+  const visible = MOBILE_TABS.filter((t) => t.id !== 'glance' && t.id !== 'detail');
   const base = withHeight ? [...visible.slice(0, 2), HEIGHT_TAB, ...visible.slice(2)] : visible;
-  const tabs = with3d ? [...base.slice(0, withHeight ? 3 : 2), TOWERS_TAB, ...base.slice(withHeight ? 3 : 2)] : base;
+  const tabs = (with3d ? [...base.slice(0, withHeight ? 3 : 2), TOWERS_TAB, ...base.slice(withHeight ? 3 : 2)] : base)
+    .filter((t) => t.id !== 'height');
   return (
     <nav className="rm-tabbar" aria-label="Regenradar-Bereiche">
       {tabs.map((t) => (
