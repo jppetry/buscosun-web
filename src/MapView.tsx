@@ -28,7 +28,7 @@ import { modelEntry, isWhitelisted, RADAR_SOURCE, type ModelId } from './fusion/
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
-import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels } from './map/weatherBasemap';
+import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels, orientationEnabledFrom, weatherLabelContrast, addOrientationLayers } from './map/weatherBasemap';
 import { PointForecastPanel, type PointForecastView } from './pointForecast/PointForecastPanel';
 import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, tempLabelColor, type TemperatureSamplerOptions, type City } from './temperatureLabels';
 import { LayerIcon } from './components/LayerIcon';
@@ -993,6 +993,8 @@ export default function MapView({
   // (`?rmin=`); at the default 0,06 = `PRECIP_LOG_MIN` it does nothing (same array back) — the threshold is realised by the
   // mirror, which encodes the plane from the native values. Memoised per plane object.
   const rminRef = useRef(radarDisplayMinFrom());
+  /** Orientation under the weather layers (label contrast + thin vector layers of the basemap); `?orient=0` = the picture before. */
+  const orientRef = useRef(orientationEnabledFrom());
   const rminCacheRef = useRef(new WeakMap<Uint8Array, Uint8Array>());
   const withDisplayMin = (v: Uint8Array): Uint8Array => {
     if (!(rminRef.current > PRECIP_LOG_MIN)) return v;
@@ -1301,7 +1303,11 @@ export default function MapView({
 
     // Dark style: country/place labels default to the English name — force German/local (`germanLabels` in
     // `RoadMap.tsx`).
-    map.on('style.load', () => germanBasemapLabels(map));
+    map.on('style.load', () => {
+      germanBasemapLabels(map);
+      // Cream labels on an ink halo — the style's grey ones vanish over a saturated heatmap (`weatherBasemap.ts`).
+      if (orientRef.current) weatherLabelContrast(map);
+    });
 
     // Router (RT1): Kamera nach jeder Bewegung melden — der Wrapper schreibt sie
     // debounced (≥ 300 ms) per replaceState in die Query, nie als History-Eintrag.
@@ -1673,6 +1679,9 @@ export default function MapView({
       // Schleier ZULETZT mit beforeId → liegt über den Datenschichten, aber unter
       // Grenzen/Beschriftungen (die lesbar bleiben sollen).
       if (!map.getLayer(confidenceLayer.id)) map.addLayer(confidenceLayer, beforeId);
+      // Orientation layers (built-up veil, water outlines, rivers, motorways, city dots) ABOVE the weather layers
+      // and the veil, still below boundaries, labels and the DACH mask — the same `beforeId`, inserted last.
+      if (orientRef.current) addOrientationLayers(map, beforeId);
       // Schneefallgrenze (ML #2) — native GeoJSON-Linie: weißes Casing + blaue
       // Hauptlinie für Lesbarkeit über jedem Untergrund. Daten kommen aus dem
       // Build-Effekt; initial leer/unsichtbar.
