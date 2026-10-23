@@ -1,0 +1,116 @@
+# ============================================================================
+# ruc.yml — 5-min-Niederschlagsform aus ICON-D2-RUC (Phase RUC, buscosun-web/audit/niederschlag-ruc.md §4.2)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/ruc.yml` im Daten-Repo
+# `jppetry/buscosun-data` (Jans Gate, MANUELLE-SCHRITTE §74). Der Code lebt in
+# `buscosun-web` (`scripts/ruc/*`, Vertrag `src/point/rucFormat.ts`) und wird bei
+# jedem Lauf frisch von `main` geklont.
+#
+# Stündlich um :52: der RUC-Lauf H ist um H:41 vollständig (gemessen 23.10.2026 an zwei
+# Läufen); der Producer nimmt den jüngsten Lauf, dessen `PT027H00M` per HEAD da ist,
+# sonst den davor (der ist dann schon gebaut ⇒ Ende ohne Schreiben). Die Minute ist
+# gegen alle Vorlagen gezählt frei (verify:ruc D2) und liegt ≥ 15 min abseits der
+# Force-Push-Fenster der Kartenlinie (:20 von 0/3/6/…, :30 von 2/5/8/…; D3).
+# Ein Volllauf lädt 325 Dateien (≈ 190 MB) und braucht ≈ 70 s (gemessen lokal);
+# ein Lauf schreibt 208 PNG ≈ 5,4 MB + Stationsreihe ≈ 0,2 MB; der Speicher hält die
+# drei jüngsten Läufe und die Stationsreihen von 21 Tagen. Die Historie des Daten-Repos
+# setzt die Kartenlinie bei jedem Publish neu auf — die Größe ist eine Baumfrage.
+#
+# Leerlauf bis zum Push von buscosun-web: fehlt der Producer auf `main`, endet der
+# Job grün ohne Schreiben.
+# Veröffentlichung: `ruc-publish.mjs` — frische Basis je Versuch, nur `ruc/`, kein
+# Force; danach Purge von `ruc/v1/latest.json` und Warm-up der neuen Dateien (nie fatal).
+#
+# Kill-Schalter: Repo-Variable RUC_KILL=1 (der Client zeigt ab 3 h Alter die Stunden-
+# balken wie ohne das Produkt).
+# ============================================================================
+
+name: ruc
+
+on:
+  schedule:
+    - cron: '52 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: ruc
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ruc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    if: ${{ vars.RUC_KILL != '1' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web main, sparse)
+        id: app
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/ruc/ruc-build.mjs scripts/ruc/ruc-publish.mjs src/point/rucFormat.ts src/sources/gribDecode.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on main yet ($f fehlt in buscosun-web main) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cell cache (CLAT/CLON of the RUC grid, domain subset)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: ruc-cells-v1
+
+      - name: Checkout store (buscosun-data, sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: ruc
+          sparse-checkout-cone-mode: true
+
+      - name: Prepare store and station catalogue
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd data
+          git config user.name  'buscosun-ruc[bot]'
+          git config user.email 'ruc@users.noreply.github.com'
+          mkdir -p ../store
+          if [ -d ruc/v1 ]; then cp -r ruc/v1/. ../store/; fi
+          cd ..
+          # Stationskatalog für die Stationsreihen (T9) — per GET, fehlt er, läuft der Bau ohne Stationsreihen
+          if ! curl -fsSL --max-time 30 -o obs-stations.json https://raw.githubusercontent.com/jppetry/buscosun-data/main/obs/v1/stations.json; then
+            echo "obs/v1/stations.json nicht lesbar — Bau ohne Stationsreihen"; rm -f obs-stations.json
+          fi
+
+      - name: Build
+        id: build
+        if: steps.app.outputs.ready == '1'
+        run: |
+          cd app
+          OBS=""
+          if [ -f ../obs-stations.json ]; then OBS="--obs=../obs-stations.json"; fi
+          OUT=$(node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/ruc/ruc-build.mjs --store=../store --cache=../cache $OBS | tail -1)
+          echo "$OUT"
+          CHANGED=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.changed ? '1' : '0')" "$OUT")
+          RUN=$(node -e "const j=JSON.parse(process.argv[1]); process.stdout.write(j.run || '')" "$OUT")
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        if: steps.build.outputs.changed == '1'
+        run: |
+          node --experimental-strip-types --import ./app/scripts/lib/register-ts.mjs app/scripts/ruc/ruc-publish.mjs --repo=data --store=store --run=${{ steps.build.outputs.run }} --message="ruc: ${{ steps.build.outputs.run }}"

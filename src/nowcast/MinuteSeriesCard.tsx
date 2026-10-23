@@ -2,12 +2,15 @@
  * Minutenverlauf — tile at the top of the readout (Command-Deck: hero value, source chips, small chart) with an
  * "enlarge" icon that opens an overlay over the page: KPI row + the same series over 48 h with a range switch
  * (2 | 6 | 24 | 48 h). Pure presentation of `buildMinuteSeries`.
+ * Phase RUC (on, `?ruc=0` = fallback): a first rain from the 5-min form of ICON-D2-RUC leads the tile (minute from the form, sum from
+ * buscosun Fusion); source line, KPI and footer name the third layer. Without `nowcast.ruc` nothing changes.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { buildMinuteSeries, MV_HORIZON_H, type MinuteSeries } from './minuteSeries';
 import MinuteChart from './MinuteChart';
 import { fmtClock, fmtMmH, leadLabel, nwpLabel, type Nowcast } from './nowcastView';
+import { RUC_LABEL, RUC_HORIZON_H } from '../point/rucFormat';
 import './minuteSeries.css';
 
 const RANGES: Array<{ h: number; label: string }> = [{ h: 2, label: '2 h' }, { h: 6, label: '6 h' }, { h: 24, label: '24 h' }, { h: 48, label: '48 h' }];
@@ -44,6 +47,13 @@ function hero(s: MinuteSeries): { value: string; line: string; tone: 'wet' | 'so
     if (lead <= 1) return { value: 'Jetzt', line: 'Regen am Ort · Radar', tone: 'wet', tile: true };
     return { value: `in ${leadLabel(lead)}`, line: `Regen ab ${fmtClock(s.firstWet.tMs)} · Radar, minutengenau`, tone: 'soon', tile: true };
   }
+  if (s.firstWet.source === 'ruc') {
+    // Phase RUC: the minute comes from the 5-min form, the amount from the hourly sum of buscosun Fusion — the tile may lead with it.
+    const line = `Regen ab ${fmtClock(s.firstWet.tMs)} · 5-min-Form ${RUC_LABEL}, Stundensumme ${s.fusionLabel}`;
+    if (lead <= 1) return { value: 'Jetzt', line: `Regen am Ort · 5-min-Form ${RUC_LABEL}`, tone: 'wet', tile: true };
+    if (lead <= 6 * 60) return { value: `in ${leadLabel(lead)}`, line, tone: 'soon', tile: true };
+    return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line, tone: 'soon', tile: true };
+  }
   if (lead <= 1) return { value: 'Diese Stunde', line: `${s.fusionLabel}, stündlich`, tone: 'wet', tile: false };
   return { value: `${dayWord(s.nowMs, s.firstWet.tMs)}ab ${fmtClock(s.firstWet.tMs)}`, line: `${s.fusionLabel}, stündlich`, tone: 'soon', tile: false };
 }
@@ -51,9 +61,10 @@ function hero(s: MinuteSeries): { value: string; line: string; tone: 'wet' | 'so
 function dryWindowHero(s: MinuteSeries, rangeH: number): { value: string; line: string; tone: 'dry'; tile: true } {
   const to = s.nowMs + rangeH * 3_600_000;
   const radarTo = s.radar ? Math.min(s.radar.toMs, to) : null;
+  const after = s.ruc ? `5-min-Form ${RUC_LABEL}` : s.fusionLabel;
   const line = radarTo != null && radarTo > s.nowMs
-    ? `kein Regen bis ${fmtClock(to)} · Radar bis ${fmtClock(radarTo)}, dann ${s.fusionLabel}`
-    : `kein Niederschlag bis ${fmtClock(to)} · ${s.fusionLabel}`;
+    ? `kein Regen bis ${fmtClock(to)} · Radar bis ${fmtClock(radarTo)}, dann ${after}`
+    : `kein Niederschlag bis ${fmtClock(to)} · ${after}`;
   return { value: 'Trocken', line, tone: 'dry', tile: true };
 }
 
@@ -69,6 +80,7 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
     fusionHours: nowcast.fusionHours ?? [],
     fusionPWet: nowcast.fusionPWet ?? null,
     fusionLabel: nwpLabel(nowcast),
+    ruc: nowcast.ruc ?? null,
   }), [nowcast]);
 
   useEffect(() => {
@@ -83,16 +95,23 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
   if (!series.radar && !series.hours.length) return null;
   const h0 = hero(series);
   const h = h0.tile || !series.firstWet || series.firstWet.tMs <= series.nowMs + MINI_RANGE_H * 3_600_000 ? h0 : dryWindowHero(series, MINI_RANGE_H);
-  const sourceLine = `${series.radar ? `${series.radar.product} (Bild alle ${series.radar.frameStepMin} min, Minute interpoliert, bis ${fmtClock(series.radar.toMs)})` : 'kein Radar-Nowcast am Ort'} · ${series.fusionLabel} als Stundenmittel bis +${MV_HORIZON_H} h`;
+  const ruc = series.ruc;
+  const rucRunUtc = ruc ? `${ruc.run.slice(8, 10)} UTC` : '';
+  const sourceLine = `${series.radar ? `${series.radar.product} (Bild alle ${series.radar.frameStepMin} min, Minute interpoliert, bis ${fmtClock(series.radar.toMs)})` : 'kein Radar-Nowcast am Ort'}`
+    + (ruc ? ` · ${ruc.label} (Lauf ${rucRunUtc}) bis ${fmtClock(ruc.toMs)}, Stundensumme ${series.fusionLabel}` : '')
+    + ` · ${series.fusionLabel} als Stundenmittel bis +${MV_HORIZON_H} h`;
   const kpis = [
     { k: 'Nächster Regen', v: h0.value, s: h0.line },
-    { k: 'Spitze · 48 h', v: series.peak ? fmtMmH(series.peak.mmH) : '—', s: series.peak ? `${dayWord(series.nowMs, series.peak.tMs)}${fmtClock(series.peak.tMs)} · ${series.peak.source === 'radar' ? 'Radar' : series.fusionLabel}` : 'kein Niederschlag' },
-    { k: 'Summe · 48 h', v: fmtMm(series.sumMm), s: 'Radar-Minuten + Stundenmittel' },
+    { k: 'Spitze · 48 h', v: series.peak ? fmtMmH(series.peak.mmH) : '—', s: series.peak ? `${dayWord(series.nowMs, series.peak.tMs)}${fmtClock(series.peak.tMs)} · ${series.peak.source === 'radar' ? 'Radar' : series.peak.source === 'ruc' ? `5-min-Form ${RUC_LABEL}` : series.fusionLabel}` : 'kein Niederschlag' },
+    { k: 'Summe · 48 h', v: fmtMm(series.sumMm), s: ruc ? 'Radar-Minuten + 5-min-Form + Stundenmittel' : 'Radar-Minuten + Stundenmittel' },
   ];
+  const footNote = ruc
+    ? `Minuten gibt es bis zum letzten Radarbild; danach zeigt die Stufenlinie die 5-min-Form von ${RUC_LABEL} (Lauf ${rucRunUtc}), deren Stundensumme der Wert von ${series.fusionLabel} ist — schraffierte Stunden haben keine Form (RUC trocken); jenseits +${RUC_HORIZON_H} h zeigt jeder Balken das Stundenmittel, der Streifen darunter die Regenchance der Stunde.`
+    : `Minuten gibt es nur bis zum letzten Radarbild; danach zeigt jeder Balken das Stundenmittel von ${series.fusionLabel}, der Streifen darunter die Regenchance der Stunde.`;
 
   return (
     <>
-      <section className={`mv-card mv-card--${variant} mv-tone-${h.tone}`} aria-label="Minutenverlauf" data-origin={series.radar ? 'radar+fusion' : 'fusion'}>
+      <section className={`mv-card mv-card--${variant} mv-tone-${h.tone}`} aria-label="Minutenverlauf" data-origin={series.radar ? (ruc ? 'radar+ruc+fusion' : 'radar+fusion') : (ruc ? 'ruc+fusion' : 'fusion')}>
         <div className="mv-head">
           <span className="mv-eyebrow"><span className="mv-live" aria-hidden="true"><span /><span /></span>Minutenverlauf</span>
           <button type="button" className="mv-expand" onClick={() => setOpen(true)} aria-label={`Minutenverlauf über ${MV_HORIZON_H} Stunden groß öffnen`} title={`Groß öffnen · ${MV_HORIZON_H} h`}>
@@ -133,7 +152,7 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
             </div>
             <div className="mv-modal-foot">
               <span>● {sourceLine}</span>
-              <span>Minuten gibt es nur bis zum letzten Radarbild; danach zeigt jeder Balken das Stundenmittel von {series.fusionLabel}, der Streifen darunter die Regenchance der Stunde.</span>
+              <span>{footNote}</span>
             </div>
           </div>
         </div>,

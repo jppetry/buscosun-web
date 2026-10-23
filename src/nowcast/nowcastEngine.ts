@@ -15,6 +15,10 @@ import type { PointForecastV2 } from '../pointForecast/fusion/output';
 import type { Dist } from '../pointForecast/fusion/dist';
 import { rainWindowEnabledFrom, rbWetThresholdFrom, RB_HORIZON_H, RB_WET_X_MMH } from './rainWindow';
 import { minuteSeriesEnabledFrom, MV_HORIZON_H } from './minuteSeries';
+// Phase RUC (`audit/niederschlag-ruc.md`, `?ruc=1`): 5-min form of ICON-D2-RUC behind the radar, fitted to the hourly sums.
+import { rucEnabledFrom, rucBaseFrom, fitRucToFusion, rucMeanOver, type RucFitted } from './rucSeries';
+import { loadRucPoint, type RucPointSeries } from '../point/client/rucPoint';
+import { httpStore } from '../point/client/store';
 import { classifyPrecipitation } from '../pointForecast/precipType';
 import type { Country } from '../types';
 import {
@@ -56,6 +60,12 @@ export interface AssembleInput {
   lapseRatePerM?: number | null;
   /** Phase RR: Herkunft der NWP-Stunden (wird nur durchgereicht, rechnet nicht mit). */
   nwpSource?: 'cube' | 'live';
+  /**
+   * Phase RUC: the 5-min value where the RUC carries (fitted to the hourly sums of buscosun Fusion); `null` at a time it
+   * does not cover ⇒ the hourly interpolation as before. Replaces ONLY the model side (the `nwp` step and the model side
+   * of the blend); radar minutes, confidence and phase are untouched.
+   */
+  rucAt?: (etaMs: number) => number | null;
 }
 
 interface NwpInterp { mmH: number; conf: number; snowLineM: number | null; tempC: number | null }
@@ -113,15 +123,16 @@ export function assembleNowcast(input: AssembleInput): Nowcast {
     const radarOk = r != null && Number.isFinite(r);
     if (radarOk) radarValidMin = minutes;
     const n = interpNwp(nwp, etaMs);
+    const nm = input.rucAt ? (input.rucAt(etaMs) ?? n.mmH) : n.mmH;
 
     let mmH: number, source: NowcastSource, blendW = 0;
     if (radarOk && minutes <= BLEND_FROM_MIN) {
       mmH = r as number; source = 'radar';
     } else if (radarOk && minutes < BLEND_TO_MIN) {
       blendW = (minutes - BLEND_FROM_MIN) / (BLEND_TO_MIN - BLEND_FROM_MIN);
-      mmH = (r as number) * (1 - blendW) + n.mmH * blendW; source = 'blend';
+      mmH = (r as number) * (1 - blendW) + nm * blendW; source = 'blend';
     } else {
-      mmH = n.mmH; source = 'nwp';
+      mmH = nm; source = 'nwp';
     }
     mmH = Math.max(0, mmH);
 
@@ -408,8 +419,13 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   const mv = minuteSeriesEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
   const cubeHoursMv = mv ? Math.max(cubeHours, MV_HORIZON_H + 1) : cubeHours;
   let exceed: ((d: Dist, x: number) => number) | null = null;
+  // Phase RUC (on, `?ruc=0` = fallback): the 5-min form of ICON-D2-RUC at the place, read next to the cube and fitted to the
+  // hourly sums of buscosun Fusion; where it carries it replaces the hourly interpolation of the engine's model side.
+  const rucOn = rucEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  let rucSeries: RucPointSeries | null = null;
   const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
     const nwpFull = nwpOf(forecast);
+    const fit: RucFitted | null = rucOn && nwpSource === 'cube' && rucSeries ? fitRucToFusion(rucSeries, nwpFull, nowMs) : null;
     // Minutenverlauf without the rain window: the 48-h request must not widen the engine's series (8 h as before).
     const nwpAll = mv && !rb ? nwpFull.filter((h) => h.tMs < Math.floor(nowMs / 3_600_000) * 3_600_000 + 8 * 3_600_000) : nwpFull;
     const nc = assembleNowcast({
@@ -423,6 +439,8 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       elevationM: forecast.query?.elevation ?? null,
       lapseRatePerM: forecast.lapseRatePerM ?? null,
       nwpSource,
+      // the mean of the 5-min intervals of the 15-min step (eta − 15, eta] keeps the hourly sum of buscosun Fusion exact (review I3)
+      ...(fit ? { rucAt: (eta: number) => rucMeanOver(fit, eta - NOWCAST_STEP_MIN * 60_000, eta) } : {}),
     });
     if (rb && nwpSource === 'cube' && exceed) {
       const pw = fusionPWetOf(forecast, exceed, wetX);
@@ -432,6 +450,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       nc.radarFrames = radarFramesAt(s, lat, lon);
       nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf, tempC: h.tempC, snowLineM: h.snowLineM, windDir: h.windDir ?? null, windMs: h.windMs ?? null, gustMs: h.gustMs ?? null }));
     }
+    if (fit) nc.ruc = fit;
     return nc;
   };
 
@@ -447,6 +466,18 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   }); }).then((forecast) => ({ forecast, source: 'cube' as const }));
 
   const pf = pfSourceFrom(typeof window !== 'undefined' ? window.location.search : '');
+  // The RUC reader runs next to the cube request (same store, same PNG decoder); any failure = no form (the hourly bars as before).
+  const rucP: Promise<RucPointSeries | null> = !rucOn || pf === 'live'
+    ? Promise.resolve(null)
+    : import('../pointForecast/cubeSource')
+      .then((mod) => {
+        const io = mod.defaultCubeIo();
+        const base = rucBaseFrom(typeof window !== 'undefined' ? window.location.search : '');
+        const store = base ? httpStore({ base, timeoutMs: 8_000 }) : io.store;
+        return io.decodePng ? loadRucPoint(store, lat, lon, nowMs, io.decodePng) : null;
+      })
+      .catch(() => null)
+      .then((r) => { rucSeries = r; return r; });
   let forecastP: Promise<{ forecast: PointForecast; source: 'cube' | 'live' }>;
   if (pf === 'live') {
     console.log('[buscosun Fusion] Regenradar-Streifen: ?pf=live — Live-Pfad statt Cube-Pfad');
@@ -460,7 +491,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
     });
   }
 
-  const [s, { forecast, source }] = await Promise.all([samplerP, forecastP]);
+  const [s, { forecast, source }] = await Promise.all([samplerP, forecastP, rucP]);
   sampler = s;
   // Kam die Nachlieferung, bevor der Radar-Sampler fertig war, rechnet die erste Ausgabe schon mit ihr.
   return assemble(s, source === 'cube' && latestCube ? latestCube : forecast, source);

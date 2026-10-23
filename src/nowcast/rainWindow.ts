@@ -3,7 +3,7 @@
  *
  * Pure: from the radar minute at the point and the hourly rain probability of buscosun Fusion, derive ONE statement for
  * the place — when rain starts (or, if it rains, when it stops), as a window instead of a minute, with the probability
- * of the statement and its source. No DOM, no network, no imports: the verifier (`scripts/verify-rain-window.mjs`) runs
+ * of the statement and its source. No DOM, no network (only the contract constants of phase RUC are imported): the verifier (`scripts/verify-rain-window.mjs`) runs
  * it headless.
  *
  * Rules (Jan 09.10.2026, E-RB-1…6):
@@ -17,6 +17,10 @@
  *  - wide or unsure windows say so in words ("Beginn unsicher, zwischen 14 und 15 Uhr").
  */
 
+import type { RucFitted } from './rucSeries';
+import { RUC_LABEL } from '../point/rucFormat';
+import { WET_MMH as RB_RUC_WET_MMH } from './nowcastModel';
+
 export const RB_HORIZON_H = 24;
 /** Fusion thresholds (set, E-RB-4 — measurable at the archive, V-RB-3). */
 export const RB_P_CORE = 0.5;
@@ -28,6 +32,14 @@ export const RB_SPEED_HI = 1.15;
 /** Width above which a window is called unsure (set). */
 export const RB_WIDE_RADAR_MIN = 45;
 export const RB_WIDE_FUSION_H = 3;
+/**
+ * Phase RUC (E-RUC-6, set): half-width of the window around a 5-min onset/end of ICON-D2-RUC by lead — ≤ 3 h ±15 min,
+ * ≤ 12 h ±30 min, beyond ±45 min; replaced by measured quantiles after ≥ 14 days of shadow (T9, `audit/niederschlag-ruc.md`).
+ */
+export const RB_RUC_SPAN_MIN = Object.freeze({ 3: 15, 12: 30, 27: 45 } as const);
+export function rucSpanMin(leadMin: number): number { return leadMin <= 180 ? RB_RUC_SPAN_MIN[3] : leadMin <= 720 ? RB_RUC_SPAN_MIN[12] : RB_RUC_SPAN_MIN[27]; }
+/** Phase RUC: an end needs this many minutes of consecutive dry 5-min intervals (six). set. */
+export const RB_RUC_DRY_MIN = 30;
 
 const MIN = 60_000;
 const H = 3_600_000;
@@ -72,13 +84,15 @@ export interface RainWindowInput {
   /** The threshold `fusion` was read at (mm/h): 0 = 1 − pDry (V-RC-1, default), 0.1 = the fallback `?rbwet=0.1`. Only for the note. */
   fusionWetMmH?: number;
   horizonH?: number;
+  /** Phase RUC (on, `?ruc=0` = fallback): the fitted 5-min form; absent/null = the hourly rules as before. */
+  ruc?: RucFitted | null;
 }
 
 export type RainWindowKind = 'onset' | 'end' | 'dry' | 'wet' | 'none';
 
 export interface RainWindow {
   kind: RainWindowKind;
-  source: 'radar' | 'fusion';
+  source: 'radar' | 'fusion' | 'ruc';
   /** For `onset`/`end`: the window. For `dry`: now…dry-until. For `wet`: now…wet-until. */
   fromMs: number;
   toMs: number;
@@ -220,6 +234,42 @@ function fusionEnd(hours: FusionHour[]): { fromMs: number; toMs: number; prob: n
 }
 
 // ---------------------------------------------------------------------------
+// RUC part (phase RUC): 5-min form between the radar and the hourly rules
+// ---------------------------------------------------------------------------
+
+/** First 5-min interval ≥ 0,1 mm/h after `fromMs` in an hour that is not `flat` (RUC dry, Fusion wet) and has P(wet) ≥ edge. */
+function rucOnset(fit: RucFitted, hours: FusionHour[], fromMs: number): { atMs: number; prob: number; core: boolean } | null {
+  for (const p of fit.points) {
+    if (p.toMs <= fromMs || p.mmH < RB_RUC_WET_MMH) continue;
+    const prob = pAt(hours, p.fromMs);
+    if (prob == null || prob < RB_P_EDGE) continue;
+    // a wet hour of buscosun Fusion without a form (RUC dry): the hourly sentence speaks, not a later 5-min onset (review I1, §4.5)
+    if (p.kind === 'flat') return null;
+    return { atMs: Math.max(fromMs, p.fromMs), prob, core: prob >= RB_P_CORE };
+  }
+  return null;
+}
+
+/** Start of the first dry window (`RB_RUC_DRY_MIN` of consecutive intervals < 0,1 mm/h) after `fromMs`, in an hour with P(wet) < core. */
+function rucEnd(fit: RucFitted, hours: FusionHour[], fromMs: number): { atMs: number; prob: number } | null {
+  const pts = fit.points;
+  const need = RB_RUC_DRY_MIN / 5;
+  for (let i = 0; i < pts.length; i++) {
+    if (pts[i].toMs <= fromMs) continue;
+    let dry = true;
+    for (let j = 0; j < need; j++) {
+      const q = pts[i + j];
+      if (!q || q.mmH >= RB_RUC_WET_MMH || (j > 0 && q.fromMs !== pts[i + j - 1].toMs)) { dry = false; break; }
+    }
+    if (!dry) continue;
+    const p = pAt(hours, pts[i].fromMs);
+    if (p == null || p >= RB_P_CORE) continue;
+    return { atMs: Math.max(fromMs, pts[i].fromMs), prob: 1 - p };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -234,6 +284,7 @@ export function computeRainWindow(inp: RainWindowInput): RainWindow {
   const notes: string[] = [];
   const radarSrc = radar ? `Radar · ${radar.product}` : 'Radar';
   const fusionSrc = 'buscosun Fusion';
+  const rucSrc = `buscosun Fusion · 5 min (${RUC_LABEL})`;
   const fusionAll = (inp.fusion ?? []).filter((h) => Number.isFinite(h.p) && h.tMs <= horizonEnd).sort((a, b) => a.tMs - b.tMs);
   // Fusion hours after the radar horizon (or from the running hour without radar nowcast).
   const fusionAfter = fusionAll.filter((h) => h.tMs >= (radarH > 0 ? radarEnd : floorH(nowMs)));
@@ -241,7 +292,9 @@ export function computeRainWindow(inp: RainWindowInput): RainWindow {
   if (radar?.kind === 'extrapolation') notes.push(`Radar: Minute der ${radar.product}-Extrapolation, Spanne aus der Tempo-Unsicherheit ×${String(RB_SPEED_LO).replace('.', ',')}…×${String(RB_SPEED_HI).replace('.', ',')} (gesetzt, mittlere Hälfte der Tempo-Member des Ensemble-Designs); Richtungsunsicherheit nicht erfasst`);
   if (radar?.kind === 'analysis') notes.push('Radar: MeteoSchweiz rzc ist ein Analysebild ohne Nowcast — Beginn/Ende kommen aus buscosun Fusion');
   if (inp.fusion) notes.push(`buscosun Fusion: ${(inp.fusionWetMmH ?? RB_WET_X_MMH) > 0 ? `P(≥ ${String(inp.fusionWetMmH).replace('.', ',')} mm/h)` : 'P(Niederschlag) = 1 − pDry wie Karte und Dashboard'} je Stunde; Schwellen Rand ${pct(RB_P_EDGE)} / Kern ${pct(RB_P_CORE)} / trocken < ${pct(RB_P_DRY)} gesetzt`);
+  if (inp.ruc) notes.push(`${RUC_LABEL}: 5-min-Form des Laufs ${inp.ruc.run.slice(8, 10)} UTC, an die Stundensummen von buscosun Fusion angepasst (Stundensumme bleibt); Spanne ±15/30/45 min nach Vorlauf ≤ 3 / ≤ 12 / > 12 h (gesetzt, E-RUC-6, Messung nach ≥ 14 Tagen)`);
   const minMs = (m: number) => nowMs + m * MIN;
+  const rucAxis = (leadMin: number) => ({ axisFromMs: nowMs, axisToMs: nowMs + (leadMin <= 180 ? 6 * H : horizonH * H) });
   const radarProbNote = inp.fusion
     ? 'Regenwahrscheinlichkeit von buscosun Fusion in der Stunde des Fensters (enthält das Radar-Stundenmittel als Member)'
     : 'ohne buscosun Fusion keine Wahrscheinlichkeit';
@@ -268,6 +321,22 @@ export function computeRainWindow(inp: RainWindowInput): RainWindow {
           sentence: `Kein Regen bis ${clock(radarEnd)}`, label: `trocken bis ${clock(radarEnd)}`, sourceLabel: radarSrc, ...radarAxis, notes };
       }
       return none(nowMs, notes);
+    }
+    // ---- onset: the 5-min form of ICON-D2-RUC between the radar and the hourly rule (phase RUC)
+    if (inp.ruc) {
+      const o = rucOnset(inp.ruc, fusionAll, radarH > 0 ? radarEnd : nowMs);
+      if (o) {
+        const leadMin = (o.atMs - nowMs) / MIN;
+        const d = rucSpanMin(leadMin);
+        const dw = dayWord(o.atMs, nowMs);
+        const pre = dw === 'heute' ? '' : `${dw} `;
+        return {
+          kind: 'onset', source: 'ruc', fromMs: Math.max(nowMs, o.atMs - d * MIN), toMs: o.atMs + d * MIN, prob: o.prob,
+          probNote: 'Regenwahrscheinlichkeit von buscosun Fusion in der Stunde des Beginns', precision: 'min', uncertain: !o.core,
+          sentence: o.core ? `Regen wahrscheinlich ${pre}ab etwa ${clock(o.atMs)} (±${d} min)` : `Regen möglich ${pre}ab etwa ${clock(o.atMs)}`,
+          label: `Regen ~${clock(o.atMs)}${pre ? ` ${dw}` : ''}`, sourceLabel: rucSrc, ...rucAxis(leadMin), notes,
+        };
+      }
     }
     const f = fusionOnset(fusionAfter);
     if (f) {
@@ -313,6 +382,22 @@ export function computeRainWindow(inp: RainWindowInput): RainWindow {
       label: wide ? `Ende ~${hourNum(floorH(fromMs))}–${endHour(fromMs, ceilH(toMs))} Uhr` : `Ende ${span}`,
       sourceLabel: radarSrc, ...radarAxis, notes,
     };
+  }
+  // ---- end: the first dry 30 min of the 5-min form (phase RUC)
+  if (inp.ruc && inp.fusion) {
+    const e = rucEnd(inp.ruc, fusionAll, radarH > 0 ? radarEnd : nowMs);
+    if (e) {
+      const leadMin = (e.atMs - nowMs) / MIN;
+      const d = rucSpanMin(leadMin);
+      const dw = dayWord(e.atMs, nowMs);
+      const pre = dw === 'heute' ? '' : `${dw} `;
+      return {
+        kind: 'end', source: 'ruc', fromMs: Math.max(nowMs, e.atMs - d * MIN), toMs: e.atMs + d * MIN, prob: e.prob,
+        probNote: 'Gegenwahrscheinlichkeit der Regenwahrscheinlichkeit von buscosun Fusion in der Stunde des Endes', precision: 'min', uncertain: e.prob < 0.5,
+        sentence: `Regen hört voraussichtlich ${pre}gegen ${clock(e.atMs)} auf (±${d} min)`, label: `Ende ~${clock(e.atMs)}${pre ? ` ${dw}` : ''}`,
+        sourceLabel: rucSrc, ...rucAxis(leadMin), notes,
+      };
+    }
   }
   if (inp.fusion && fusionAfter.length) {
     const f = fusionEnd(fusionAfter);

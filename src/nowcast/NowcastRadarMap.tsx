@@ -589,7 +589,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const markerLabel = useMemo(() => {
     if (!rbOn || !stack || !pointNowcast) return null;
     const nowMs = Date.now();
-    const w = computeRainWindow({ nowMs, radar: radarTimesAt(stack, point.lat, point.lon, nowMs), fusion: pointNowcast.fusionPWet ?? null, fusionWetMmH: pointNowcast.fusionPWetMmH });
+    const w = computeRainWindow({ nowMs, radar: radarTimesAt(stack, point.lat, point.lon, nowMs), fusion: pointNowcast.fusionPWet ?? null, fusionWetMmH: pointNowcast.fusionPWetMmH, ruc: pointNowcast.ruc ?? null });
     return w.kind === 'none' ? null : w.label;
   }, [rbOn, stack, point.lat, point.lon, pointNowcast]);
   const frameMmH = useMemo(() => (stack ? frameIntensities(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);

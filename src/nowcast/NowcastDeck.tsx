@@ -210,6 +210,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
       radar: rbStack ? radarTimesAt(rbStack, location.lat, location.lon, nowMs) : null,
       fusion: nowcast.fusionPWet ?? null,
       fusionWetMmH: nowcast.fusionPWetMmH,
+      // Phase RUC: the fitted 5-min form (only with `?ruc=1`), the rule between radar and hours.
+      ruc: nowcast.ruc ?? null,
     });
   }, [rbOn, nowcast, rbStack, location.lat, location.lon]);
   const onRadarStack = rbOn || p3dOn ? setRbStack : undefined;

@@ -16,6 +16,7 @@ import { classifyPrecipitation } from '../pointForecast/precipType';
 import { buildMinuteSeries, type MinuteSeries } from './minuteSeries';
 import { RB_P_EDGE, RB_P_CORE } from './rainWindow';
 import { intensityBand, WET_MMH, STARKREGEN_MMH, NOWCAST_HORIZON_MIN, NOWCAST_STEP_MIN, type Nowcast, type NowcastStep, type EventTone, type StepPhase, type StepCharacter } from './nowcastModel';
+import { RUC_LABEL } from '../point/rucFormat';
 
 const H = 3_600_000;
 const MIN = 60_000;
@@ -33,6 +34,8 @@ export interface EventItem {
   sourceLabel: string;
   /** `min` = a radar minute, `hour` = a Fusion hour (start of the hour), `step` = a 15-min engine step. */
   precision: 'min' | 'step' | 'hour';
+  /** Phase RUC: where a minute comes from — the radar or the 5-min form of ICON-D2-RUC (absent for hours and steps). */
+  minSource?: 'radar' | 'ruc';
   kind: string;
 }
 
@@ -122,12 +125,40 @@ function runFrom(steps: NowcastStep[], fromMin: number): { endMin: number | null
   return { endMin, peak, peakMin, lenMin: (endMin ?? last + NOWCAST_STEP_MIN) - fromMin };
 }
 
+/** Phase RUC: the first wet 5-min point of the fitted hour starting at `hourStartMs`; null for flat/dry hours or outside the fit. */
+function rucFirstWet(nc: Nowcast, hourStartMs: number): number | null {
+  const fit = nc.ruc;
+  if (!fit) return null;
+  const h = fit.hours.find((x) => x.hourStartMs === hourStartMs);
+  if (!h || h.kind === 'flat' || h.kind === 'dry') return null;
+  const p = fit.points.find((x) => x.fromMs >= h.hourStartMs && x.toMs <= h.hourEndMs && x.mmH >= WET_MMH);
+  return p ? p.fromMs : null;
+}
+/** Phase RUC: end of the last wet 5-min point of the fitted hour starting at `hourStartMs`. */
+function rucLastWetEnd(nc: Nowcast, hourStartMs: number): number | null {
+  const fit = nc.ruc;
+  if (!fit) return null;
+  const h = fit.hours.find((x) => x.hourStartMs === hourStartMs);
+  if (!h || h.kind === 'flat' || h.kind === 'dry') return null;
+  let end: number | null = null;
+  for (const x of fit.points) if (x.fromMs >= h.hourStartMs && x.toMs <= h.hourEndMs && x.mmH >= WET_MMH) end = x.toMs;
+  return end;
+}
+/** Phase RUC: the first wet 5-min point inside the 15-min engine step that ends at `stepMs` (not in a flat hour). */
+function rucFirstWetNear(nc: Nowcast, stepMs: number): number | null {
+  const fit = nc.ruc;
+  if (!fit) return null;
+  const p = fit.points.find((x) => x.fromMs > stepMs - 15 * MIN && x.fromMs <= stepMs && x.mmH >= WET_MMH && x.kind !== 'flat');
+  return p ? p.fromMs : null;
+}
+
 export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): EventDetail {
   const fusionLabel = nc.nwpSource === 'cube' ? 'buscosun Fusion' : 'ICON-D2';
   const hours48 = nc.fusionHours ?? [];
   const series = buildMinuteSeries({
     nowMs, radarFrames: nc.radarFrames ?? [], radarSource: nc.radarSource,
     fusionHours: hours48, fusionPWet: nc.fusionPWet ?? null, fusionLabel,
+    ruc: nc.ruc ?? null,
   });
   const items: EventItem[] = [];
   const wind = (tMs: number) => windText(hours48, tMs);
@@ -155,6 +186,7 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
     const src: EventSource = step.source === 'nwp' ? 'fusion' : step.source;
     let tMs = nc.nowMs + e.atMinutes * MIN;
     let precision: EventItem['precision'] = 'step';
+    let minSource: EventItem['minSource'];
     let title = e.title;
     let detail = e.detail;
     if (e.kind === 'rain-start' || e.kind === 'shower') {
@@ -166,12 +198,15 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
         const word = precipWord(Math.max(step.mmH, r.peak), step.phase, step.character ?? 'unknown');
         if (e.kind === 'rain-start' && !sharpened && src === 'radar' && series.firstWet?.source === 'radar') {
           tMs = series.firstWet.tMs; precision = 'min'; sharpened = true;
+        } else if (e.kind === 'rain-start' && !sharpened && nc.ruc) {
+          const m = rucFirstWetNear(nc, tMs);
+          if (m != null) { tMs = m; precision = 'min'; minSource = 'ruc'; sharpened = true; }
         }
         title = e.kind === 'rain-start' ? `${word} ab ${clock(tMs)}` : `${word}${e.title.startsWith('Zweiter') ? ' (zweiter Schauer)' : ' (weiterer Schauer)'}`;
         detail = join(
           `~${d1(step.mmH)}${NB}mm/h${r.peak > step.mmH + 0.3 ? `, Spitze ~${d1(r.peak)} um ${clock(nc.nowMs + r.peakMin * MIN)}` : ''}`,
           r.endMin != null ? `etwa ${fmtDur(r.lenMin)} bis ca. ${clock(nc.nowMs + r.endMin * MIN)}` : 'bis über das 6-h-Fenster hinaus',
-          precision === 'min' ? 'minutengenau aus dem Radar' : null, wind(tMs),
+          precision === 'min' ? (minSource === 'ruc' ? `5-min-Form ${RUC_LABEL}` : 'minutengenau aus dem Radar') : null, wind(tMs),
         );
       }
     } else if (e.kind === 'rain-end') {
@@ -186,6 +221,7 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
     items.push({
       id: `e-${e.kind}-${e.atMinutes}`, tMs, title, detail,
       tone: e.tone, source: src, sourceLabel: sourceLabelOf(src, fusionLabel), precision, kind: e.kind,
+      ...(minSource === 'ruc' ? { minSource } : {}),
     });
   }
 
@@ -214,10 +250,12 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
       startItem.detail = startItem.detail.replace('__LEN__', `${r.toMs < endMs ? `etwa ${lenH}${NB}h bis ca. ${clock(r.toMs)}` : 'bis über 48 h hinaus'}${r.peak >= Math.max(0.5, r.first * 2) ? ` · später bis ~${d1(r.peak)}${NB}mm/h (${clock(r.peakMs)})` : ''}`);
     }
     if (r.toMs < endMs) {
+      const m = rucLastWetEnd(nc, r.toMs - H);
       items.push({
-        id: `f-end-${r.toMs}`, tMs: r.toMs, title: `${PHASE_WORD[r.phase]} hört auf`,
-        detail: join(`nach ${lenH}${NB}h`, `Spitze ~${d1(r.peak)}${NB}mm/h um ${clock(r.peakMs)}`, wind(r.toMs)),
-        tone: 'good', source: 'fusion', sourceLabel: fusionLabel, precision: 'hour', kind: 'fusion-end',
+        id: `f-end-${r.toMs}`, tMs: m ?? r.toMs, title: `${PHASE_WORD[r.phase]} hört auf`,
+        detail: join(`nach ${lenH}${NB}h`, `Spitze ~${d1(r.peak)}${NB}mm/h um ${clock(r.peakMs)}`, m != null ? `5-min-Form ${RUC_LABEL}` : null, wind(r.toMs)),
+        tone: 'good', source: 'fusion', sourceLabel: fusionLabel, precision: m != null ? 'min' : 'hour', kind: 'fusion-end',
+        ...(m != null ? { minSource: 'ruc' as const } : {}),
       });
     }
   };
@@ -233,10 +271,13 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
     } else if (wet && !run) {
       const likely = p == null ? true : p >= RB_P_CORE;
       run = { fromMs: from, toMs: h.tMs, peak: h.mmH, peakMs: from, phase, pMax: p ?? 0, startIdx: items.length, first: h.mmH };
+      // Phase RUC: the minute of the start from the 5-min form where the hour has one (the amount stays the hourly mean).
+      const m = rucFirstWet(nc, from);
       items.push({
-        id: `f-start-${from}`, tMs: from, title: `__WORD__ ${likely ? 'wahrscheinlich' : 'möglich'}`,
-        detail: join(`~${d1(h.mmH)}${NB}mm/h im Stundenmittel`, '__LEN__', p != null ? `Regenchance ${pct(p)}` : null, h.tempC != null ? `${d1(h.tempC)}${NB}°C` : null, wind(from)),
-        tone: phase === 'freezing' ? 'alert' : likely ? 'info' : 'muted', source: 'fusion', sourceLabel: fusionLabel, precision: 'hour', kind: 'fusion-start',
+        id: `f-start-${from}`, tMs: m ?? from, title: `__WORD__ ${likely ? 'wahrscheinlich' : 'möglich'}`,
+        detail: join(`~${d1(h.mmH)}${NB}mm/h im Stundenmittel`, '__LEN__', m != null ? `5-min-Form ${RUC_LABEL}` : null, p != null ? `Regenchance ${pct(p)}` : null, h.tempC != null ? `${d1(h.tempC)}${NB}°C` : null, wind(from)),
+        tone: phase === 'freezing' ? 'alert' : likely ? 'info' : 'muted', source: 'fusion', sourceLabel: fusionLabel, precision: m != null ? 'min' : 'hour', kind: 'fusion-start',
+        ...(m != null ? { minSource: 'ruc' as const } : {}),
       });
     } else if (wet && run) {
       if (phase !== run.phase) {

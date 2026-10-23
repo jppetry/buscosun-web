@@ -106,3 +106,9 @@
   .mv-kpi-v { font-size: 22px; }
   .mv-modal-chart { padding: 10px 6px 6px; }
 }
+
+/* Phase RUC: 5-min form of ICON-D2-RUC between the radar seam and +27 h (steps + area); hours without a form hatched. */
+.mv-ruc-line { fill: none; stroke: var(--steel-600, #3A6FA8); stroke-width: 1.6; stroke-linejoin: miter; stroke-linecap: butt; }
+.mv-ruc-area { fill: rgba(58, 111, 168, 0.16); }
+.mv-ruc-flat { stroke: var(--steel-600, #3A6FA8); stroke-width: 0.6; stroke-opacity: 0.5; }
+.mv-hatch-line { stroke: var(--steel-600, #3A6FA8); stroke-width: 1; stroke-opacity: 0.45; }

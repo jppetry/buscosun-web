@@ -8,6 +8,8 @@
  * jenseits des Radar-Skill-Horizonts (~2 h) gibt es keine minutengenaue Aussage.
  */
 
+import type { RucFitted } from './rucSeries';
+
 /** Horizont der Vorhersage in Minuten (6 h). */
 export const NOWCAST_HORIZON_MIN = 360;
 /** Zeitliche Auflösung der Serie in Minuten. */
@@ -218,6 +220,11 @@ export interface Nowcast {
   radarFrames?: Array<{ tMs: number; mmH: number | null }>;
   /** Minutenverlauf: ALLE Stundenwerte von buscosun Fusion (bis +48 h), `tMs` = Ende der Stunde. Fehlt ohne Schalter. */
   fusionHours?: Array<{ tMs: number; mmH: number; conf: number; tempC: number | null; snowLineM: number | null; windDir: number | null; windMs: number | null; gustMs: number | null }>;
+  /**
+   * Phase RUC (`audit/niederschlag-ruc.md`, an, `?ruc=0` = Rückfall): die 5-min-Form von ICON-D2-RUC, an die
+   * Stundensummen von buscosun Fusion 13 angepasst (`rucSeries.ts`). Fehlt ohne Schalter, ohne Produkt und im Live-Pfad.
+   */
+  ruc?: RucFitted;
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */

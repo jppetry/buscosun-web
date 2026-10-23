@@ -23,8 +23,8 @@ Lizenzen betreffen nur diese Datei.
 
 | Bereich | Deutschland | Österreich | Schweiz |
 |---|---|---|---|
-| **0–3 h** | **RADVOR RV** (1 km, 5 min, ≈ +2 h)<br>RADOLAN RY, HG<br>**ICON-D2** | **INCA Nowcast** (1 km, 15 min, +3 h)<br>RV ⚠¹<br>**ICON-D2** | **CombiPrecip** (5 min)<br>PRECIP RZC<br>**ICON-CH1-EPS** ⚠² |
-| **3–33 h** | **ICON-D2** (2,2 km, 8 Läufe)<br>ICON-D2-EPS (20 M)<br>MOSMIX-S / -L | **C-LAEF AlpeAdria** (1 km)<br>C-LAEF-EPS ⚠³<br>ICON-D2, MOSMIX-L | **ICON-CH1-EPS** (1 km, 11 M)<br>**E4 Local Forecast** ⚠⁴<br>ICON-D2, KENDA-CH1 |
+| **0–3 h** | **RADVOR RV** (1 km, 5 min, ≈ +2 h)<br>RADOLAN RY, HG<br>**ICON-D2**<br>ICON-D2-RUC ⚠⁸ | **INCA Nowcast** (1 km, 15 min, +3 h)<br>RV ⚠¹<br>**ICON-D2**<br>ICON-D2-RUC ⚠⁸ | **CombiPrecip** (5 min)<br>PRECIP RZC<br>**ICON-CH1-EPS** ⚠²<br>ICON-D2-RUC ⚠⁸ |
+| **3–33 h** | **ICON-D2** (2,2 km, 8 Läufe)<br>ICON-D2-EPS (20 M)<br>MOSMIX-S / -L<br>ICON-D2-RUC ⚠⁸ (bis 27 h) | **C-LAEF AlpeAdria** (1 km)<br>C-LAEF-EPS ⚠³<br>ICON-D2, MOSMIX-L<br>ICON-D2-RUC ⚠⁸ (bis 27 h) | **ICON-CH1-EPS** (1 km, 11 M)<br>**E4 Local Forecast** ⚠⁴<br>ICON-D2, KENDA-CH1<br>ICON-D2-RUC ⚠⁸ (bis 27 h) |
 | **33–48 h** | **ICON-D2**<br>ICON-D2-EPS<br>MOSMIX-L | **C-LAEF AlpeAdria**<br>C-LAEF-EPS<br>ICON-D2, MOSMIX-L | **ICON-CH2-EPS** (2,1 km, 21 M)<br>**E4 Local Forecast**<br>ICON-D2 |
 | **48–60 h** | **ICON-EU** ⚠⁵<br>ICON-EU-EPS (40 M)<br>MOSMIX-L | **C-LAEF AlpeAdria**<br>C-LAEF-EPS<br>ICON-EU, MOSMIX-L | **ICON-CH2-EPS**<br>**E4 Local Forecast**<br>ICON-EU |
 | **60–120 h** | **ICON-EU** ⚠⁵<br>ICON-EU-EPS<br>MOSMIX-L | **ICON-EU** ⚠⁵<br>ICON-EU-EPS<br>MOSMIX-L | **ICON-CH2-EPS**<br>**E4 Local Forecast**<br>ICON-EU |
@@ -33,6 +33,12 @@ Lizenzen betreffen nur diese Datei.
 | **240–336 h** | **IFS ENS**<br>**AIFS ENS**<br>IFS HRES ⚠⁷ | **IFS ENS**<br>**AIFS ENS**<br>IFS HRES ⚠⁷ | **IFS ENS**<br>**AIFS ENS**<br>IFS HRES ⚠⁷ |
 
 ### Fußnoten zur Matrix
+
+⚠⁸ **ICON-D2-RUC** (Phase RUC, `audit/niederschlag-ruc.md`, 23.10.2026): Rapid Update Cycle des DWD auf dem neuen Pfad
+`/weather/nwp/v1/m/icon-d2-ruc/`, stündliche Läufe, `TOT_PREC` in **5-min-Schritten bis +27 h**, vollständig um Lauf + 41 min.
+Kein Member von buscosun Fusion (die Stundensumme bleibt der verifizierte Wert): im Regenradar liefert er hinter dem Radar nur
+die **Form innerhalb der Stunde** (Produkt `ruc/v1/` im Daten-Repo, Schalter `?ruc=1`, Schattenphase bis zur Messung T9).
+Daneben ICON-D2-RUC-EPS (20 Member, 5 min) als Kandidat für eine gemessene Spanne (V-RUC-2).
 
 **⚠¹ RADVOR RV in Österreich nur im Westen.** Das DWD-Komposit reicht 150 km um die
 Radarstandorte, praktisch also nur **westlich ca. 14,0–14,3 °E**. Abgedeckt: Bregenz,

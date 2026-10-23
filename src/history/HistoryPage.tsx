@@ -24,13 +24,14 @@ import {
 } from './historyModel';
 import {
   DEFAULT_SETTINGS, resolveYearRange,
-  isFavorite, toggleFavorite, pushRecent,
+  isFavorite, toggleFavorite, pushRecent, getRecents,
   type HistorySettings, type HistoryLocation, type ChartType,
 } from './historyState';
 import { summarizeTrend, summarizeKenntage, summarizeSeries } from './historySummary';
-import { divergingLegend, anomalySpan } from './historyColors';
+import { divergingLegend, anomalySpan, divergingColor } from './historyColors';
 import { yearInsight } from './historyExplore';
-import Stripes from './charts/Stripes';
+import Stripes, { type StripeHover } from './charts/Stripes';
+import { fmtNum } from './charts/common';
 import AnomalyBars from './charts/AnomalyBars';
 import KenntageBars from './charts/KenntageBars';
 import DayBand from './charts/DayBand';
@@ -286,6 +287,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
     <div className="hd-root" data-theme={themeAttr}>
       <Topbar view={view} loc={loc} available={available} dark={dark} onToggleDark={toggleDark}
         onBrand={handleBack} onChangeLoc={changeLocation} onModeSwitch={backToMode}
+        onSetMode={(mode) => { setDrillDate(null); patch({ mode }); }}
         fav={loc ? isFavorite(loc) : false} onFav={() => { if (loc) { toggleFavorite(loc); setFavTick((n) => n + 1); } }} favTick={favTick}
         proOpen={proOpen} onPro={() => setProOpen((o) => !o)} />
 
@@ -303,9 +305,11 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
 
         {view === 'modus' && status === 'ready' && days && (
           <div className="hd-main">
-            <BriefingStrip loc={loc!} available={available} recordCount={days.length} />
-            <ModeTiles available={available} warmingDelta={warmingDelta} hottest={recordSet?.warmestDay ?? null}
-              onPick={(mode, gran) => { patch(gran ? { mode, exploreGran: gran } : { mode }); setModePicked(true); }} />
+            <div className="hd-modepage">
+              <ModeHead loc={loc!} available={available} recordCount={days.length} />
+              <ModeTiles available={available} warmingDelta={warmingDelta} hottest={recordSet?.warmestDay ?? null} stripeYears={tmeanYearly}
+                onPick={(mode, gran) => { patch(gran ? { mode, exploreGran: gran } : { mode }); setModePicked(true); }} />
+            </div>
           </div>
         )}
 
@@ -313,7 +317,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
           <>
             <ChangeDock settings={settings} patch={patch} available={available} />
             <div className="hd-center hd-scroll" ref={chartsRef}>
-              <ChangeCenter settings={settings} patch={patch} days={days} workDays={workDays} meta={meta} normal={normal} normalPeriod={normalPeriod} range={range} available={available} onDrillDate={setDrillDate} />
+              <ChangeCenter stage placeName={shortLoc(loc!.name)} settings={settings} patch={patch} days={days} workDays={workDays} meta={meta} normal={normal} normalPeriod={normalPeriod} range={range} available={available} onDrillDate={setDrillDate} />
               {proOpen && <HistoryPro loc={loc!} days={days} settings={settings} buckets={exportBuckets} range={range} chartsRef={chartsRef} />}
               {drillDate && (
                 <DayDetail days={days} lat={loc!.lat} lon={loc!.lon} dateISO={drillDate} onClose={() => setDrillDate(null)}
@@ -361,40 +365,45 @@ function Rail({ active, onMap, onOpenFeature }: { active: 'onboard' | 'modus' | 
 
 // ============================ Topbar ============================
 
-function Topbar({ view, loc, available, dark, onToggleDark, onBrand, onChangeLoc, onModeSwitch, fav, onFav, favTick, proOpen, onPro }: {
+function Topbar({ view, loc, available, dark, onToggleDark, onBrand, onChangeLoc, onModeSwitch, onSetMode, fav, onFav, favTick, proOpen, onPro }: {
   view: 'onboard' | 'modus' | 'change' | 'explore';
   loc: HistoryLocation | null; available: { min: number; max: number } | null;
-  dark: boolean; onToggleDark: () => void; onBrand: () => void; onChangeLoc: () => void; onModeSwitch: () => void;
+  dark: boolean; onToggleDark: () => void; onBrand: () => void; onChangeLoc: () => void; onModeSwitch: () => void; onSetMode: (m: HistoryMode) => void;
   fav: boolean; onFav: () => void; favTick: number; proOpen: boolean; onPro: () => void;
 }) {
-  const span = available ? `· ${available.min}–${available.max}` : '';
+  const span = available ? `${available.min}–${available.max}` : '';
   return (
     <header className="hd-topbar" key={favTick}>
-      <button type="button" className="hd-brandwrap" onClick={onBrand} aria-label="Zur Übersicht">
-        <span className="rt-nav-logo-mark hd-brandmark" aria-hidden="true" />
+      <button type="button" className="hd-brandwrap" onClick={onBrand} aria-label="Zur Startseite">
+        <img className="hd-brandmark" src="/buscosun-mark.svg" width={26} height={26} alt="" />
         <span className="hd-brand">buscosun</span>
       </button>
       <span className="hd-topdivider" />
+      <span className="hd-topname">Historie</span>
       {loc && (
-        <div className="hd-locchip">
-          <span className="hd-locchip-flag" aria-hidden="true">{flagForCountry(loc.country ?? 'DE')}</span>
-          <span className="hd-locchip-name">{shortLoc(loc.name)}</span>
-          {span && <span className="hd-locchip-range">{span}</span>}
-          {view === 'modus' && <button type="button" className="hd-locchip-change" onClick={onChangeLoc}>Ort wechseln</button>}
-        </div>
+        <button type="button" className="hd-locfield" onClick={onChangeLoc} title="Ort wechseln">
+          <svg className="hd-locfield-ic" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6" /><line x1="13" y1="13" x2="17" y2="17" strokeLinecap="round" /></svg>
+          <span className="hd-locfield-flag" aria-hidden="true">{flagForCountry(loc.country ?? 'DE')}</span>
+          <span className="hd-locfield-name">{shortLoc(loc.name)}</span>
+          {span && <span className="hd-locfield-range">{span}</span>}
+          <span className="hd-locfield-cta">Ort wechseln</span>
+        </button>
       )}
       {view === 'change' && (
         <div className="hd-topbtns">
-          <button type="button" className={`hd-topbtn${fav ? ' hd-topbtn--on' : ''}`} onClick={onFav}>{fav ? '★ Favorit' : '☆ Favorit'}</button>
-          <button type="button" className={`hd-topbtn${proOpen ? ' hd-topbtn--on' : ''}`} onClick={onPro}>Vergleichen / Profi</button>
+          <button type="button" className={`hd-topbtn${fav ? ' hd-topbtn--on' : ''}`} aria-pressed={fav} onClick={onFav}>{fav ? '★ Favorit' : '☆ Favorit'}</button>
+          <button type="button" className={`hd-topbtn${proOpen ? ' hd-topbtn--on' : ''}`} aria-pressed={proOpen} onClick={onPro}>Vergleichen / Profi</button>
         </div>
       )}
       <div className="hd-topright">
         {(view === 'change' || view === 'explore') && (
-          <button type="button" className={`hd-modelink hd-modelink--${view === 'explore' ? 'steel' : 'terra'}`} onClick={onModeSwitch}><IconChevronLeft /> Modus wechseln</button>
+          <div className="hd-modeseg" role="group" aria-label="Modus">
+            <button type="button" className="hd-modeseg-back" onClick={onModeSwitch} aria-label="Zur Modus-Wahl" title="Zur Modus-Wahl"><IconChevronLeft /></button>
+            <button type="button" className={`hd-modeseg-btn${view === 'explore' ? ' is-on hd-modeseg-btn--steel' : ''}`} onClick={() => onSetMode('explore')} aria-pressed={view === 'explore'}>Rückblick</button>
+            <button type="button" className={`hd-modeseg-btn${view === 'change' ? ' is-on hd-modeseg-btn--terra' : ''}`} onClick={() => onSetMode('change')} aria-pressed={view === 'change'}>Veränderung</button>
+          </div>
         )}
         <button type="button" className="hd-theme-btn" onClick={onToggleDark} aria-label={dark ? 'Heller Modus' : 'Dunkler Modus'} title="Hell/Dunkel">{dark ? '☀' : '☾'}</button>
-        {view === 'modus' && <span className="hd-live-txt">KLIMA-RÜCKBLICK</span>}
         {/* SH4: teilbar, sobald ein Ort gewählt ist — vorher trägt die URL nichts. */}
         {loc && <ShareButton className="hd-share" />}
       </div>
@@ -402,24 +411,22 @@ function Topbar({ view, loc, available, dark, onToggleDark, onBrand, onChangeLoc
   );
 }
 
-// ============================ Briefing-Strip ============================
+// ============================ Kopf der Modus-Wahl ============================
 
-function BriefingStrip({ loc, available, recordCount }: { loc: HistoryLocation; available: { min: number; max: number } | null; recordCount: number }) {
-  const span = available ? `${available.min}–${available.max}` : '—';
-  const recordsTxt = recordCount > 0 ? `${recordCount.toLocaleString('de-DE')} T.` : '—';
+function ModeHead({ loc, available, recordCount }: { loc: HistoryLocation; available: { min: number; max: number } | null; recordCount: number }) {
+  const years = available ? available.max - available.min + 1 : null;
+  const station = defaultHistorySource.lastStation;
   return (
-    <div className="hd-brief">
-      <div className="hd-brief-main">
-        <div className="hd-brief-kicker"><span className="hd-brief-dot" /><span className="hd-brief-kickertxt">KLIMA-LEITSTAND · ARCHIV BEREIT</span></div>
-        <div className="hd-brief-title">Was möchtest du sehen?</div>
-        <div className="hd-brief-sub">Zwei Sichten auf das Stationsarchiv — wähle einen Modus.</div>
+    <div className="hd-modehead">
+      <div className="hd-modehead-main">
+        <h1 className="hd-modehead-title">{shortLoc(loc.name)}{years ? <span> · {years} Jahre Wetter</span> : null}</h1>
+        <p className="hd-modehead-sub">Was möchtest du sehen? Einen bestimmten Tag nachschlagen oder die Veränderung über die Jahrzehnte.</p>
       </div>
-      <div className="hd-brief-tele">
-        <div className="hd-tele"><div className="hd-tele-lab">STATION</div><div className="hd-tele-val">{shortLoc(loc.name)}</div></div>
-        <div className="hd-tele"><div className="hd-tele-lab">ZEITRAUM</div><div className="hd-tele-val">{span}</div></div>
-        <div className="hd-tele"><div className="hd-tele-lab">RECORDS</div><div className="hd-tele-val">{recordsTxt}</div></div>
-        <div className="hd-tele"><div className="hd-tele-lab">QUELLE</div><div className="hd-tele-val">{defaultHistorySource.kind === 'reanalysis' ? 'DWD · ERA5' : 'DWD'}</div></div>
-      </div>
+      <dl className="hd-modehead-facts">
+        <div><dt>Zeitraum</dt><dd>{available ? `${available.min}–${available.max}` : '—'}</dd></div>
+        <div><dt>Tage im Archiv</dt><dd>{recordCount > 0 ? recordCount.toLocaleString('de-DE') : '—'}</dd></div>
+        <div><dt>{defaultHistorySource.kind === 'reanalysis' ? 'Quelle' : 'Station'}</dt><dd>{station ? `${station.name} · ${station.distanceKm} km` : defaultHistorySource.kind === 'reanalysis' ? 'ERA5' : 'DWD'}</dd></div>
+      </dl>
     </div>
   );
 }
@@ -433,72 +440,60 @@ function fmtRecordDate(iso: string): string {
 /** Kurzer Anzeigename: Geocoder liefert „Ort, Kreis, Land …"; das Deck zeigt nur den Ort. */
 function shortLoc(name: string): string { return name.split(',')[0].trim(); }
 
-function TileArtRueckblick() {
+/** HB: die echten Klimastreifen des Orts (Jahresmittel), nicht eine feste Beispielgrafik. */
+function TileStripes({ years }: { years: ReturnType<typeof yearly> }) {
+  const data = years.filter((b) => b.value != null);
+  if (data.length < 2) return null;
+  const mean = data.reduce((s, b) => s + (b.value as number), 0) / data.length;
+  const span = anomalySpan(data.map((b) => (b.value as number) - mean));
+  const bw = 100 / data.length;
   return (
-    <>
-      <svg viewBox="0 0 260 132" preserveAspectRatio="xMidYMid slice" className="hd-tile-art-grid" aria-hidden="true"><g stroke="#D4E0EC" strokeWidth="1"><path d="M0 44 H260 M0 88 H260 M65 0 V132 M130 0 V132 M195 0 V132" /></g></svg>
-      <svg viewBox="0 0 260 132" className="hd-tile-art-svg" fill="none" aria-hidden="true">
-        <rect x="40" y="30" width="92" height="76" rx="9" stroke="#3A6FA8" strokeWidth="2" /><line x1="40" y1="50" x2="132" y2="50" stroke="#3A6FA8" strokeWidth="2" /><line x1="61" y1="24" x2="61" y2="37" stroke="#3A6FA8" strokeWidth="2" strokeLinecap="round" /><line x1="111" y1="24" x2="111" y2="37" stroke="#3A6FA8" strokeWidth="2" strokeLinecap="round" />
-        <rect x="55" y="60" width="20" height="17" rx="3" fill="#3A6FA8" /><g opacity=".35" stroke="#3A6FA8" strokeWidth="2"><line x1="86" y1="68" x2="118" y2="68" /><line x1="55" y1="90" x2="118" y2="90" /></g>
-        <path d="M 152 86 Q 182 54 204 74 T 238 50" stroke="#2C2A26" strokeWidth="2" strokeLinecap="round" /><circle cx="238" cy="50" r="4.5" fill="#2C2A26" />
-      </svg>
-    </>
-  );
-}
-function TileArtVeraenderung() {
-  const fills = ['#3A6FA8', '#5B87B0', '#89AEC9', '#BFD0DC', '#E8E0CC', '#EAD3A8', '#E3B679', '#DD9A57', '#D68A4E', '#CE6E3C', '#C0492F', '#B03B28', '#A83424'];
-  const ops = [.55, .6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-  return (
-    <svg viewBox="0 0 260 132" className="hd-tile-art-svg" aria-hidden="true">
-      <g>{fills.map((f, i) => <rect key={i} x={26 + i * 13} y="30" width="11.5" height="72" rx="1.5" fill={f} opacity={ops[i]} />)}</g>
-      <path d="M 30 92 Q 132 84 230 52" stroke="#2C2A26" strokeWidth="2" fill="none" strokeLinecap="round" /><circle cx="230" cy="52" r="4.5" fill="#2C2A26" />
+    <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="hd-tile-stripes" aria-hidden="true">
+      {data.map((b, i) => <rect key={b.key} x={i * bw} y="0" width={bw + 0.05} height="10" fill={divergingColor((b.value as number) - mean, span)} />)}
     </svg>
   );
 }
 
-function ModeTiles({ available, warmingDelta, hottest, onPick }: {
+function ModeTiles({ available, warmingDelta, hottest, stripeYears, onPick }: {
   available: { min: number; max: number } | null; warmingDelta: number | null;
-  hottest: { value: number; dateISO: string } | null; onPick: (m: HistoryMode, gran?: ExploreGranularity) => void;
+  hottest: { value: number; dateISO: string } | null; stripeYears: ReturnType<typeof yearly>;
+  onPick: (m: HistoryMode, gran?: ExploreGranularity) => void;
 }) {
   const span = available ? `${available.min}–${available.max}` : null;
   const deltaTxt = warmingDelta != null ? `${warmingDelta > 0 ? '+' : ''}${warmingDelta.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : null;
   return (
     <div className="hd-tiles">
-      {/* MODUS 01 · Rückblick (Steel) */}
+      {/* Rückblick (Steel): Tag, Monat oder Jahr direkt wählen */}
       <div className="hd-tile hd-tile--steel" role="group" aria-label="Modus Rückblick">
-        <span className="hd-tile-corner hd-tile-corner--l" /><span className="hd-tile-corner hd-tile-corner--r" />
-        <div className="hd-tile-art"><TileArtRueckblick /></div>
-        <div className="hd-tile-body">
-          <div className="hd-tile-eyebrow"><span className="hd-tile-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 8 V12 L15 14" stroke="#3A6FA8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M3.5 12 A8.5 8.5 0 1 0 6 6" stroke="#3A6FA8" strokeWidth="1.8" strokeLinecap="round" /><path d="M3 3 V6.5 H6.5" stroke="#3A6FA8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span className="hd-tile-eyebrow-tx">MODUS 01 · RÜCKBLICK</span></div>
-          <div className="hd-tile-title">Wie war das Wetter?</div>
-          <p className="hd-tile-desc">Schlag einen konkreten Zeitpunkt nach — mit Stundenverlauf, Min/Max und Niederschlag.</p>
-          <div className="hd-tile-pick">
-            <span className="hd-pick-label">Zeitpunkt wählen</span>
-            <button type="button" className="hd-pick-day" onClick={() => onPick('explore', 'day')}>
-              <span className="hd-pick-day-ic"><svg width="18" height="18" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="24" height="21" rx="3" /><line x1="2" y1="11" x2="26" y2="11" /><line x1="8" y1="2" x2="8" y2="7" /><line x1="20" y1="2" x2="20" y2="7" /><rect x="7" y="15" width="6" height="6" rx="1" fill="currentColor" stroke="none" /></svg></span>
-              <span className="hd-pick-day-tx"><b>Einzelnen Tag</b><em>Stunde für Stunde nachschlagen</em></span>
-              <span className="hd-pick-day-arr"><IconArrow /></span>
-            </button>
-            <div className="hd-pick-row">
-              <button type="button" className="hd-pick-btn" onClick={() => onPick('explore', 'month')}>Ganzer Monat</button>
-              <button type="button" className="hd-pick-btn" onClick={() => onPick('explore', 'year')}>Ganzes Jahr</button>
-            </div>
+        <div className="hd-tile-head">
+          <span className="hd-tile-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 8 V12 L15 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M3.5 12 A8.5 8.5 0 1 0 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M3 3 V6.5 H6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+          <span className="hd-tile-kind">Rückblick</span>
+        </div>
+        <div className="hd-tile-title">Wie war das Wetter?</div>
+        <p className="hd-tile-desc">Einen Tag Stunde für Stunde nachschlagen, oder einen ganzen Monat oder ein Jahr – mit Min/Max und Niederschlag.</p>
+        <div className="hd-tile-bottom">
+          {hottest && <p className="hd-tile-fact">Heißester Tag seit Messbeginn: <strong>{fmtRecordDate(hottest.dateISO)} · {Math.round(hottest.value)} °C</strong></p>}
+          <div className="hd-tile-actions" role="group" aria-label="Zeitpunkt wählen">
+            <button type="button" className="hd-tile-btn hd-tile-btn--primary" onClick={() => onPick('explore', 'day')}>Einzelner Tag</button>
+            <button type="button" className="hd-tile-btn" onClick={() => onPick('explore', 'month')}>Ganzer Monat</button>
+            <button type="button" className="hd-tile-btn" onClick={() => onPick('explore', 'year')}>Ganzes Jahr</button>
           </div>
-          {hottest && <div className="hd-tile-foothint"><span className="dot" />Heißester Tag seit Messbeginn: <strong>{fmtRecordDate(hottest.dateISO)} · {Math.round(hottest.value)} °C</strong></div>}
         </div>
       </div>
 
-      {/* MODUS 02 · Veränderung (Terracotta, empfohlen) */}
+      {/* Veränderung (Terracotta, empfohlen) — Band zeigt die echten Klimastreifen des Orts */}
       <button type="button" className="hd-tile hd-tile--terra" onClick={() => onPick('change')}>
-        <span className="hd-tile-corner hd-tile-corner--l" /><span className="hd-tile-flag">EMPFOHLEN</span>
-        <div className="hd-tile-art"><TileArtVeraenderung /></div>
-        <div className="hd-tile-body">
-          <div className="hd-tile-eyebrow"><span className="hd-tile-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 18 L10 11 L14 14 L20 5" stroke="#C97B47" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 5 H20 V10" stroke="#C97B47" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span className="hd-tile-eyebrow-tx">MODUS 02 · VERÄNDERUNG</span></div>
-          <div className="hd-tile-title">Wie hat sich das Wetter verändert?</div>
-          <p className="hd-tile-desc">Klimastreifen, Abweichungen, Kenntage und Trends über die Jahrzehnte.</p>
-          <div className="hd-tile-tags"><i>Klimastreifen</i><i>Anomalien</i><i>Kenntage</i><i>Trend</i></div>
+        <div className="hd-tile-head">
+          <span className="hd-tile-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 18 L10 11 L14 14 L20 5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 5 H20 V10" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+          <span className="hd-tile-kind">Veränderung</span>
+          <span className="hd-tile-flag">Empfohlen</span>
+        </div>
+        <div className="hd-tile-title">Wie hat sich das Wetter verändert?</div>
+        <p className="hd-tile-desc">Klimastreifen, Abweichungen, Kenntage und Trends über die Jahrzehnte.</p>
+        <div className="hd-tile-bottom">
+          <div className="hd-tile-band"><TileStripes years={stripeYears} /></div>
           <div className="hd-tile-foot">
-            {deltaTxt ? <span className="hd-tile-stat"><b>{deltaTxt}</b><em>Trend Jahresmittel{span ? ` · ${span}` : ''}</em></span> : <span />}
+            {deltaTxt ? <span className="hd-tile-stat"><b>{deltaTxt}</b><em>Trend Jahresmittel{span ? ` ${span}` : ''} · jedes Jahr ein Streifen</em></span> : <span />}
             <span className="hd-tile-open">Öffnen <IconArrow /></span>
           </div>
         </div>
@@ -513,14 +508,8 @@ function ChangeDock({ settings, patch, available }: { settings: HistorySettings;
   return (
     <aside className="hd-dock hd-scroll" aria-label="Steuerung">
       <div className="hd-dock-group">
-        <span className="hd-field-lab">Variable</span>
-        <div className="hd-segs">{VARIABLES.map((v) => <DockSeg key={v.key} on={settings.variable === v.key} onClick={() => patch({ variable: v.key })}>{v.short}</DockSeg>)}</div>
-      </div>
-      <div className="hd-dock-group">
-        <span className="hd-field-lab">Auflösung</span>
-        <div className="hd-segs">{(['daily', 'monthly', 'seasonal', 'yearly'] as const).map((r) => (
-          <DockSeg key={r} on={settings.resolution === r} onClick={() => patch({ resolution: r })}>{r === 'daily' ? 'Täglich' : r === 'monthly' ? 'Monatl.' : r === 'seasonal' ? 'Saison' : 'Jährl.'}</DockSeg>
-        ))}</div>
+        <span className="hd-field-lab">Größe</span>
+        <div className="hd-segs">{VARIABLES.map((v) => <DockSeg key={v.key} on={settings.variable === v.key} onClick={() => patch({ variable: v.key })} title={v.label}>{v.short}</DockSeg>)}</div>
       </div>
       <div className="hd-dock-group">
         <span className="hd-field-lab">Zeitraum</span>
@@ -530,34 +519,80 @@ function ChangeDock({ settings, patch, available }: { settings: HistorySettings;
           <DockSeg on={settings.period === '30y'} onClick={() => patch({ period: '30y' })}>30 J</DockSeg>
           <DockSeg on={settings.period === 'all'} onClick={() => patch({ period: 'all' })}>Gesamt</DockSeg>
         </div>
-        {available && <p className="hd-avail-note">verfügbar {available.min}–{available.max}</p>}
+        {available && <p className="hd-avail-note">Archiv {available.min}–{available.max}{settings.period === 'custom' ? ` · eigener Zeitraum ${settings.customStart}–${settings.customEnd}` : ''}</p>}
+      </div>
+      <div className="hd-dock-head"><span className="hd-dock-title">Ansicht</span><span className="hd-dock-count">{CHART_LABELS.length} Diagramme</span></div>
+      {CHART_GROUPS.map((g) => (
+        <div key={g.title} className="hd-cgroup" data-accent={g.accent}>
+          <span className="hd-cgroup-head">{g.title}</span>
+          <div className="hd-crows">
+            {g.ids.map((id) => {
+              const c = CHART_ROWS[id];
+              const on = settings.chart === id;
+              return (
+                <button key={id} type="button" className={`hd-crow${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => patch({ chart: id })}>
+                  <span className="hd-crow-ic">{c.icon}</span>
+                  <span className="hd-crow-tx"><span className="hd-crow-label">{CHART_LABELS.find((l) => l.id === id)?.label}</span><span className="hd-crow-sub">{c.sub}</span></span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      <div className="hd-dock-sep" />
+      <div className="hd-dock-group">
+        <span className="hd-field-lab">Auflösung</span>
+        <div className="hd-segs">{(['daily', 'monthly', 'seasonal', 'yearly'] as const).map((r) => (
+          <DockSeg key={r} on={settings.resolution === r} onClick={() => patch({ resolution: r })}>{r === 'daily' ? 'Täglich' : r === 'monthly' ? 'Monatl.' : r === 'seasonal' ? 'Saison' : 'Jährl.'}</DockSeg>
+        ))}</div>
       </div>
       <div className="hd-dock-group">
         <span className="hd-field-lab">Referenz</span>
         <div className="hd-segs">{NORMAL_PERIODS.map((p) => <DockSeg key={p.id} on={settings.normalPeriodId === p.id} onClick={() => patch({ normalPeriodId: p.id })}>{p.label}</DockSeg>)}</div>
       </div>
-      <div className="hd-diagrambox">
-        <span className="hd-field-lab">Diagramm</span>
-        <div className="hd-diagram-chips">
-          {CHART_LABELS.map((c) => <button key={c.id} type="button" className={`hd-diagram-chip${settings.chart === c.id ? ' hd-diagram-chip--on' : ''}`} aria-pressed={settings.chart === c.id} onClick={() => patch({ chart: c.id })}>{c.label}</button>)}
-        </div>
-      </div>
     </aside>
   );
 }
 
-function DockSeg({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
-  return <button type="button" className={`hd-seg${on ? ' hd-seg--on' : ''}`} role="tab" aria-selected={on} onClick={onClick}>{children}</button>;
+function DockSeg({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: ReactNode; title?: string }) {
+  return <button type="button" className={`hd-seg${on ? ' hd-seg--on' : ''}`} aria-pressed={on} onClick={onClick} title={title}>{children}</button>;
 }
+
+// HB: Diagramme als Zeilen in vier Gruppen, wie die Layer-Liste der Wetterkarte.
+const ci = (d: ReactNode) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
+const CHART_ROWS: Record<ChartType, { sub: string; icon: ReactNode }> = {
+  stripes: { sub: 'Jedes Jahr ein Streifen', icon: ci(<><rect x="3" y="5" width="3.6" height="14" fill="currentColor" stroke="none" opacity=".45" /><rect x="7.5" y="5" width="3.6" height="14" fill="currentColor" stroke="none" opacity=".25" /><rect x="12" y="5" width="3.6" height="14" fill="currentColor" stroke="none" opacity=".7" /><rect x="16.5" y="5" width="3.6" height="14" fill="currentColor" stroke="none" /></>) },
+  anomaly: { sub: 'Abweichung vom Normal je Jahr', icon: ci(<><line x1="3" y1="12" x2="21" y2="12" /><line x1="6" y1="12" x2="6" y2="15" /><line x1="10" y1="12" x2="10" y2="9" /><line x1="14" y1="12" x2="14" y2="7" /><line x1="18" y1="12" x2="18" y2="5" /></>) },
+  line: { sub: 'Werte über die Zeit', icon: ci(<polyline points="3,17 8,12 12,14 17,7 21,9" />) },
+  kenntage: { sub: 'Sommer-, Hitze-, Frosttage je Jahr', icon: ci(<><rect x="4" y="12" width="3" height="8" /><rect x="10.5" y="8" width="3" height="12" /><rect x="17" y="4" width="3" height="16" /></>) },
+  records: { sub: 'Extreme seit Messbeginn', icon: ci(<><path d="M8 4h8v4a4 4 0 0 1-8 0z" /><path d="M12 12v4" /><path d="M8 20h8" /><path d="M8 6H5a3 3 0 0 0 3 4" /><path d="M16 6h3a3 3 0 0 1-3 4" /></>) },
+  dayband: { sub: 'Ein Jahr im typischen Bereich', icon: ci(<><path d="M3 15c4-1 6-6 9-6s5 4 9 3v5c-4 1-6-3-9-3s-5 4-9 4z" opacity=".5" /><polyline points="3,13 8,11 12,13 16,9 21,11" /></>) },
+  calendar: { sub: 'Jeder Tag eines Jahres', icon: ci(<><rect x="3" y="5" width="18" height="16" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="3" x2="8" y2="6" /><line x1="16" y1="3" x2="16" y2="6" /></>) },
+  overlay: { sub: 'Jahre übereinander gelegt', icon: ci(<><polyline points="3,15 8,11 13,13 21,7" /><polyline points="3,18 8,14 13,16 21,11" opacity=".45" /></>) },
+  bands: { sub: 'Anteil je Temperaturstufe', icon: ci(<><path d="M3 20V14c4-2 7 1 9-1s5-3 9-2v9z" /><path d="M3 14V9c4-2 7 1 9-1s5-3 9-2" opacity=".5" /></>) },
+  box: { sub: 'Streuung je Monat', icon: ci(<><line x1="8" y1="3" x2="8" y2="21" /><rect x="5" y="8" width="6" height="7" /><line x1="16" y1="5" x2="16" y2="19" /><rect x="13" y="9" width="6" height="5" /></>) },
+  windrose: { sub: 'Woher der Wind weht', icon: ci(<><circle cx="12" cy="12" r="8" opacity=".45" /><path d="M12 4l2 8-2 8-2-8z" /></>) },
+  dateLookup: { sub: 'Ein Kalendertag über alle Jahre', icon: ci(<><rect x="3" y="5" width="18" height="16" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><rect x="10" y="13" width="4" height="4" fill="currentColor" stroke="none" /></>) },
+};
+const CHART_GROUPS: { title: string; accent: 'terra' | 'steel' | 'sage' | 'stone'; ids: ChartType[] }[] = [
+  { title: 'Über die Jahre', accent: 'terra', ids: ['stripes', 'anomaly', 'line', 'kenntage', 'records'] },
+  { title: 'Innerhalb eines Jahres', accent: 'steel', ids: ['dayband', 'calendar', 'overlay'] },
+  { title: 'Verteilung', accent: 'sage', ids: ['bands', 'box', 'windrose'] },
+  { title: 'Nachschlagen', accent: 'stone', ids: ['dateLookup'] },
+];
 
 // ============================ Veränderung — Center ============================
 
 /** Kern-Rendering der Diagramme (ohne Diagramm-Umschalter, der lebt im Dock). */
-function ChangeCenter({ settings, patch, days, workDays, meta, normal, normalPeriod, range, available, onDrillDate }: {
+function ChangeCenter({ settings, patch, days, workDays, meta, normal, normalPeriod, range, available, onDrillDate, stage, placeName }: {
   settings: HistorySettings; patch: (p: Partial<HistorySettings>) => void; days: DailyRecord[]; workDays: DailyRecord[];
   meta: ReturnType<typeof variableMeta>; normal: number | null; normalPeriod: { label: string }; range: { start: number; end: number };
   available: { min: number; max: number } | null; onDrillDate: (iso: string) => void;
+  /** HB: Desktop/Tablet — Diagramm auf der Bühne mit Glas-Pillen und Zeit-Deck; mobil bleibt die Kartenfolge. */
+  stage?: boolean; placeName?: string;
 }) {
+  const [hover, setHover] = useState<StripeHover | null>(null);
   const yr = useMemo(() => yearly(workDays, settings.variable), [workDays, settings.variable]);
   const buckets = useMemo(() => aggregate(workDays, settings.variable, settings.resolution), [workDays, settings.variable, settings.resolution]);
   const anos = useMemo(() => anomalies(yr, normal), [yr, normal]);
@@ -583,39 +618,110 @@ function ChangeCenter({ settings, patch, days, workDays, meta, normal, normalPer
 
   const panelCharts: ChartType[] = ['stripes', 'anomaly', 'dayband', 'kenntage', 'line', 'calendar', 'overlay', 'bands', 'box', 'windrose'];
   const inPanel = panelCharts.includes(settings.chart);
+  const summaryHtml = summary && settings.chart !== 'records' && settings.chart !== 'dateLookup'
+    ? summary.replace(/(\+?\d+[.,]\d+\s?°C)/, '<strong>$1</strong>') : '';
+  const showRange = !!available && ['stripes', 'anomaly', 'kenntage', 'line'].includes(settings.chart);
+
+  const tools = (
+    <>
+      {settings.chart === 'stripes' && (
+        <label className="hd-toggle"><input type="checkbox" checked={settings.showLabels} onChange={(e) => patch({ showLabels: e.target.checked })} /><span className="hd-toggle-track" />Beschriftung</label>
+      )}
+      {settings.chart === 'anomaly' && (
+        <label className="hd-toggle"><input type="checkbox" checked={settings.showTrend} onChange={(e) => patch({ showTrend: e.target.checked })} /><span className="hd-toggle-track" />Trendlinie</label>
+      )}
+      {(settings.chart === 'dayband' || settings.chart === 'calendar' || settings.chart === 'overlay') && <YearStepper year={focusYear} range={range} onChange={(y) => patch({ focusYear: y })} />}
+      {settings.chart === 'kenntage' && <KenntagPicker settings={settings} patch={patch} />}
+      {['stripes', 'anomaly', 'dayband', 'kenntage', 'calendar'].includes(settings.chart) && <HowTo type={settings.chart} />}
+      <button type="button" className="hd-howto-link" aria-expanded={showTable} onClick={() => setShowTable((t) => !t)}>{showTable ? 'Tabelle aus' : 'Tabelle'}</button>
+    </>
+  );
+
+  const chartBody = (
+    <>
+      {settings.chart === 'stripes' && <Stripes buckets={yr} unit={meta.unit} showLabels={settings.showLabels} onPick={(y) => patch({ chart: 'dayband', focusYear: y })} stretch={stage} onHover={stage ? setHover : undefined} />}
+      {settings.chart === 'anomaly' && <AnomalyBars points={anos} unit={meta.unit} trend={trend} normalLabel={normalPeriod.label} onPick={(y) => patch({ chart: 'dayband', focusYear: y })} />}
+      {settings.chart === 'dayband' && <DayBand clim={clim} series={fSeries} unit={meta.unit} year={focusYear} />}
+      {settings.chart === 'kenntage' && <KenntageBars data={kenn} label={def.label} threshold={threshold} unitHint="°C" focusYear={settings.focusYear} onPick={(y) => patch({ focusYear: y })} />}
+      {settings.chart === 'line' && <LineChart buckets={buckets} unit={meta.unit} onPick={(y) => patch({ chart: 'dayband', focusYear: y })} />}
+      {settings.chart === 'calendar' && <CalendarHeatmap cells={calCells} meta={meta} year={focusYear} onPick={onDrillDate} />}
+      {settings.chart === 'overlay' && <YearOverlay days={days} meta={meta} focusYear={focusYear} years={overlayYears} />}
+      {settings.chart === 'bands' && <TempBands data={bands} />}
+      {settings.chart === 'box' && <BoxPlot data={box} unit={meta.unit} />}
+      {settings.chart === 'windrose' && <Windrose data={rose} />}
+    </>
+  );
+
+  if (stage) {
+    const fillStripes = settings.chart === 'stripes' && !settings.showLabels;
+    const stripeYears = yr.filter((b) => b.value != null);
+    const axisStep = stripeYears.length > 60 ? 20 : stripeYears.length > 12 ? 10 : 2;
+    return (
+      <section className="hd-stagecol">
+        <div className={`hd-stage${fillStripes ? ' hd-stage--fill' : ''}${inPanel ? '' : ' hd-stage--panel'}`}>
+          <div className="hd-stage-head">
+            <div className="hd-stage-pill hd-glass">
+              <span className="hd-stage-dot" aria-hidden="true" />
+              <span className="hd-stage-title">{chartTitle(settings.chart, meta.label)}</span>
+              <span className="hd-stage-meta">{placeName ? `${placeName} · ` : ''}{range.start}–{range.end}</span>
+            </div>
+            <div className="hd-stage-tools hd-glass">{tools}</div>
+          </div>
+          <div className="hd-stage-body">
+            {inPanel && chartBody}
+            {settings.chart === 'records' && <RecordsPanel days={days} />}
+            {settings.chart === 'dateLookup' && <DateLookup days={days} month={settings.lookupMonth} day={settings.lookupDay} onChange={(m, d) => patch({ lookupMonth: m, lookupDay: d })} />}
+          </div>
+          {fillStripes && (
+            <div className="hd-stage-read hd-glass" aria-live="polite">
+              {hover ? (
+                <>
+                  <span className="hd-stage-read-sw" style={{ background: hover.color }} aria-hidden="true" />
+                  <b>{hover.label}</b>
+                  <span>{fmtNum(hover.value)} {meta.unit}</span>
+                  <em>{hover.anomaly >= 0 ? '+' : '−'}{fmtNum(Math.abs(hover.anomaly))} {meta.unit} gegenüber dem Mittel {range.start}–{range.end}</em>
+                </>
+              ) : <em>Zeiger auf einen Streifen zeigt Jahr und Wert · Klick öffnet das Tagesband des Jahres</em>}
+            </div>
+          )}
+        </div>
+        {fillStripes && stripeYears.length > 1 && (
+          <div className="hd-stage-axis" aria-hidden="true">
+            {stripeYears.map((b, i) => (b.year % axisStep === 0
+              ? <span key={b.key} style={{ left: `${((i + 0.5) / stripeYears.length) * 100}%` }}>{b.year}</span> : null))}
+          </div>
+        )}
+
+        {showTable && <div className="hd-panel hd-stage-table"><DataTable buckets={buckets} meta={meta} /></div>}
+
+        {(showRange || settings.chart === 'stripes') && (
+          <div className="hd-timedeck">
+            {showRange && available && (
+              <div className="hd-timedeck-range">
+                <div className="hd-timedeck-lab"><span className="hd-field-lab">Zeitraum</span><b>{range.start} – {range.end}</b><em>{range.end - range.start + 1} Jahre</em></div>
+                <TimeRangeSlider min={available.min} max={available.max} start={range.start} end={range.end} onChange={(s, e) => patch({ period: 'custom', customStart: s, customEnd: e })} />
+              </div>
+            )}
+            {settings.chart === 'stripes' && <div className="hd-timedeck-legend"><DivLegend span={span} /></div>}
+          </div>
+        )}
+
+        {summaryHtml && <p className="hd-summary" dangerouslySetInnerHTML={{ __html: summaryHtml }} />}
+        <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} deck />
+      </section>
+    );
+  }
 
   return (
     <section>
       <div className="hd-center-head">
         <span className="hd-center-title">{chartTitle(settings.chart, meta.label)}</span>
-        <div className="hd-center-tools">
-          {settings.chart === 'stripes' && (
-            <label className="hd-toggle"><input type="checkbox" checked={settings.showLabels} onChange={(e) => patch({ showLabels: e.target.checked })} /><span className="hd-toggle-track" />Beschriftung</label>
-          )}
-          {settings.chart === 'anomaly' && (
-            <label className="hd-toggle"><input type="checkbox" checked={settings.showTrend} onChange={(e) => patch({ showTrend: e.target.checked })} /><span className="hd-toggle-track" />Trendlinie</label>
-          )}
-          {(settings.chart === 'dayband' || settings.chart === 'calendar' || settings.chart === 'overlay') && <YearStepper year={focusYear} range={range} onChange={(y) => patch({ focusYear: y })} />}
-          {settings.chart === 'kenntage' && <KenntagPicker settings={settings} patch={patch} />}
-          {['stripes', 'anomaly', 'dayband', 'kenntage', 'calendar'].includes(settings.chart) && <HowTo type={settings.chart} />}
-          <button type="button" className="hd-howto-link" aria-expanded={showTable} onClick={() => setShowTable((t) => !t)}>{showTable ? 'Tabelle aus' : 'Tabelle'}</button>
-        </div>
+        <div className="hd-center-tools">{tools}</div>
       </div>
 
       {showTable && <div className="hd-panel" style={{ marginBottom: 12 }}><DataTable buckets={buckets} meta={meta} /></div>}
 
-      <div className={inPanel ? 'hd-panel' : ''}>
-        {settings.chart === 'stripes' && <Stripes buckets={yr} unit={meta.unit} showLabels={settings.showLabels} onPick={(y) => patch({ chart: 'dayband', focusYear: y })} />}
-        {settings.chart === 'anomaly' && <AnomalyBars points={anos} unit={meta.unit} trend={trend} normalLabel={normalPeriod.label} onPick={(y) => patch({ chart: 'dayband', focusYear: y })} />}
-        {settings.chart === 'dayband' && <DayBand clim={clim} series={fSeries} unit={meta.unit} year={focusYear} />}
-        {settings.chart === 'kenntage' && <KenntageBars data={kenn} label={def.label} threshold={threshold} unitHint="°C" focusYear={settings.focusYear} onPick={(y) => patch({ focusYear: y })} />}
-        {settings.chart === 'line' && <LineChart buckets={buckets} unit={meta.unit} onPick={(y) => patch({ chart: 'dayband', focusYear: y })} />}
-        {settings.chart === 'calendar' && <CalendarHeatmap cells={calCells} meta={meta} year={focusYear} onPick={onDrillDate} />}
-        {settings.chart === 'overlay' && <YearOverlay days={days} meta={meta} focusYear={focusYear} years={overlayYears} />}
-        {settings.chart === 'bands' && <TempBands data={bands} />}
-        {settings.chart === 'box' && <BoxPlot data={box} unit={meta.unit} />}
-        {settings.chart === 'windrose' && <Windrose data={rose} />}
-      </div>
+      <div className={inPanel ? 'hd-panel' : ''}>{chartBody}</div>
 
       {settings.chart === 'records' && <RecordsPanel days={days} />}
       {settings.chart === 'dateLookup' && <DateLookup days={days} month={settings.lookupMonth} day={settings.lookupDay} onChange={(m, d) => patch({ lookupMonth: m, lookupDay: d })} />}
@@ -630,7 +736,7 @@ function ChangeCenter({ settings, patch, days, workDays, meta, normal, normalPer
         </div>
       )}
 
-      {summary && settings.chart !== 'records' && settings.chart !== 'dateLookup' && <p className="hd-summary" dangerouslySetInnerHTML={{ __html: summary.replace(/(\+?\d+[.,]\d+\s?°C)/, '<strong>$1</strong>') }} />}
+      {summaryHtml && <p className="hd-summary" dangerouslySetInnerHTML={{ __html: summaryHtml }} />}
       <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} deck />
     </section>
   );
@@ -670,7 +776,7 @@ function ChangeReadout({ days }: { days: DailyRecord[] }) {
             return <rect key={s.year} x={i * gap + 4} y={104 - h} width={bw} height={h} rx="1.5" fill={isRec ? '#C0492F' : '#D68A4E'} />;
           })}
         </svg>
-        {recRow && <div className="hd-kenn-note">Rekordjahr {recRow.year}: <strong>{recRow.count} {def.label}</strong> — deutlich über dem langjährigen Mittel.</div>}
+        {recRow && <div className="hd-kenn-note">Rekordjahr {recRow.year}: <strong>{recRow.count} {def.label}</strong>{n > 0 ? ` · im Mittel ${Math.round(series.reduce((a, x) => a + x.count, 0) / n)} je Jahr` : ''}</div>}
       </div>
 
       <span className="hd-field-lab hd-readout-sep">Rekorde seit Messbeginn</span>
@@ -756,7 +862,7 @@ function MobileBrandHead({ loc, onWechseln }: { loc: HistoryLocation | null; onW
   return (
     <header className="hd-m-modehead">
       <div className="hd-m-brand">
-        <span className="rt-nav-logo-mark hd-brandmark" aria-hidden="true" style={{ width: 22, height: 22 }} />
+        <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
         <div>
           <div className="hd-m-brand-eyebrow">KLIMA-RÜCKBLICK</div>
           <div className="hd-m-brand-loc">{loc ? `${flagForCountry(loc.country ?? 'DE')} ${shortLoc(loc.name)}` : 'Standort wählen'}</div>
@@ -890,19 +996,31 @@ function Onboarding({ onPick, deck }: { onPick: (l: HistoryLocation) => void; de
       </section>
     );
   }
+  const recents = getRecents().slice(0, 5);
   return (
-    <>
+    <div className="hd-onboard-card">
       <span className="hd-onboard-eyebrow">Wetterhistorie · Klima-Rückblick</span>
       <h1 className="hd-onboard-title">Wie hat sich das Wetter bei dir verändert?</h1>
       <p className="hd-onboard-lead">Echte Archivdaten für deinen Ort in Deutschland, Österreich oder der Schweiz — danach wählst du, was du sehen willst.</p>
+      <div className="hd-onboard-search">
+        <LocationSearch onPick={onPick} />
+      </div>
+      {recents.length > 0 && (
+        <div className="hd-onboard-recents">
+          <span className="hd-field-lab">Zuletzt angesehen</span>
+          <div className="hd-onboard-recent-row">
+            {recents.map((r) => (
+              <button key={`${r.lat},${r.lon}`} type="button" className="hd-onboard-recent" onClick={() => onPick(r)}>
+                <span aria-hidden="true">{flagForCountry(r.country ?? 'DE')}</span>{shortLoc(r.name)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <ul className="hd-onboard-caps">
         {HIST_INTRO_CAPS.map((c) => <li key={c}><span className="m"><IconCheck /></span>{c}</li>)}
       </ul>
-      <div className="hd-onboard-search">
-        <span className="hd-field-lab">Standort</span>
-        <LocationSearch onPick={onPick} />
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -972,7 +1090,11 @@ function DataTable({ buckets, meta }: { buckets: ReturnType<typeof aggregate>; m
 }
 
 function chartTitle(c: ChartType, varLabel: string): string {
-  const map: Record<string, string> = { stripes: `Klimastreifen · ${varLabel}`, anomaly: `Abweichung vom Normal · ${varLabel}`, dayband: `Tagesband · ${varLabel}`, kenntage: 'Kenntage pro Jahr', line: `Verlauf · ${varLabel}` };
+  const map: Record<string, string> = {
+    stripes: `Klimastreifen · ${varLabel}`, anomaly: `Abweichung vom Normal · ${varLabel}`, dayband: `Tagesband · ${varLabel}`, kenntage: 'Kenntage pro Jahr', line: `Verlauf · ${varLabel}`,
+    calendar: `Kalender · ${varLabel}`, overlay: `Jahre im Vergleich · ${varLabel}`, bands: 'Temperaturstufen je Monat', box: `Streuung je Monat · ${varLabel}`,
+    windrose: 'Windrose', records: 'Rekorde', dateLookup: 'Ein Kalendertag über alle Jahre',
+  };
   return map[c] ?? varLabel;
 }
 

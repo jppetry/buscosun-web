@@ -10,6 +10,7 @@ import { buildEventDetail, ED_HORIZON_H, type EventItem } from './eventDetail';
 import { phaseLabelStep, type EventTone, type Nowcast } from './nowcastModel';
 import { fmtClock, fmtMmH, freshness, nwpLabel, sourceLabel } from './nowcastView';
 import { dayWord, type RainWindow } from './rainWindow';
+import { RUC_LABEL } from '../point/rucFormat';
 import { AlpineCard } from './NowcastDetail';
 import './minuteSeries.css';
 import './eventsTile.css';
@@ -77,7 +78,9 @@ function EventRow({ e, nowMs, compact }: { e: EventItem; nowMs: number; compact:
         {sub && <em>{sub}</em>}
       </span>
       <span className="ed-body">
-        <span className="ed-title">{e.title}{e.precision === 'min' && <i className="ed-min" title="minutengenau aus dem Radar">min</i>}</span>
+        <span className="ed-title">{e.title}{e.precision === 'min' && (e.minSource === 'ruc'
+          ? <i className="ed-min" title={`5-min-Form ${RUC_LABEL}, Stundensumme buscosun Fusion`}>5 min</i>
+          : <i className="ed-min" title="minutengenau aus dem Radar">min</i>)}</span>
         {e.detail && <span className="ed-detail">{e.detail}</span>}
         {e.sourceLabel && !compact && <span className={`ed-src ed-src--${e.source}`}>{e.sourceLabel}</span>}
       </span>

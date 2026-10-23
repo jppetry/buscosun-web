@@ -132,6 +132,7 @@ Grundlage für „Erweiterung statt Neubau". Alle Angaben aus dem Code verifizie
 | GeoSphere INCA | `sources/geosphereIncaGrid.ts` | `nowcast-v1-15min-1km`, `rr`, NetCDF-4 | direkt + `jsfive` | AT-Niederschlag; erweiterbar auf weitere Parameter |
 | MeteoSchweiz rzc | `sources/meteoSwissRadar.ts` | `ch.meteoschweiz.ogd-radar-precip`, ODIM-HDF5 | direkt + `jsfive` | **Das Muster für POH/MESHS ist wortwörtlich schon da** |
 | ICON-D2 (diverse) | `sources/iconD2*.ts` | Precip, Snow, Thunder, LPI, Rotation | `/_dwd_grib` Edge Function | Modell-Layer; ergänzen die Messlayer, ersetzen sie nicht |
+| ICON-D2-RUC `TOT_PREC` (neuer DWD-Pfad `/weather/nwp/v1/m/icon-d2-ruc/`, stündlich, 5 min, +27 h) | Producer `scripts/ruc/*`, Vertrag `src/point/rucFormat.ts`, Leser `src/point/client/rucPoint.ts` | Regenradar: 5-min-Form hinter dem Radar (`?ruc=1`, Phase RUC) | Daten-Repo `ruc/v1/` (Producer liest DWD direkt, Workflow `ruc.yml`) | nur die Form in der Stunde — die Stundensumme bleibt buscosun Fusion; Schattenphase, Messung nach ≥ 14 Tagen (`audit/niederschlag-ruc.md`) |
 
 **Zwei Befunde aus der Bestandsaufnahme, die in den Umsetzungsplan gehören:**
 

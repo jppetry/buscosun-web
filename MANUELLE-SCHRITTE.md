@@ -2708,6 +2708,13 @@ Push ins Daten-Repo abgelehnt, im manuellen Modus freigegeben).
    Reihe steht in `status.json` `recent[].hz` und im Archiv (`road-archiv.yml` trägt `status.json` mit). Vorab aus §19.6 anzusehen:
    E-AW-38 (Terrarium statt DGM200), E-AW-39 (Nebel-Proxy — 292 von 1 629 Abschnitten am 13.10. 17 UTC), E-AW-40 (Fortschreibung
    der Glätte), V-AW-47…54.
+   **Gelaufen 23.10. — ROT** (`audit/autobahnwetter.md` §19.12): 17 von 672 Slots gesperrt (Konsistenz „Hitze" am 16.10., Ursache
+   N443 Irxleben +41 °C durch `roadAir`, V-AW-62/63), `missing` 0 % im Fenster, Stichprobe 167/167 ohne Fehlbegründung (Ersatz-Slot
+   23.10., V-AW-64). Seit 21.10. 15:30 UTC fehlt `fc` in 83 % der Slots: der Punkt-Cron steht seit 19.10. 13:02 UTC am Terminregister
+   (Radar-Termin 20.10. ohne `resolved`). **Von dir:** (a) `resolved` für diesen Termin freigeben + Commit/Push von `main`;
+   (b) entscheiden, ob `ROAD_HZ_LIVE` bis zu einem grünen Gate E wieder auf `false` geht; (c) V-AW-62/63, danach Gate E neu (7 Tage).
+   **Erledigt 23.10.:** (a) ja — `6303c419` auf `origin/main` (nur dieser Commit; **dein lokaler `main` braucht vor dem nächsten Push
+   `git pull --rebase`**, 38 Commits inkl. Fusion 13 liegen weiter nur lokal); (b) nein — Leiste bleibt live. Offen: (c).
 6. **Gate C+ (Leiste live):** `ROAD_HZ_LIVE = true` erst nach deinem OK im Chat; bis dahin `?roadhz=1`.
 7. **V-AW-48 (Füllwert) — umgesetzt 14.10., NICHT committet, wirkt erst mit dem Push von `main`:** Q290 Wolfskopf fällt zwischendurch (17 von 24
    Ring-Slots) auf Fahrbahn = Luft = −0,01 °C **ohne Taupunkt**; die Toleranz allein hätte ihn nicht erfasst. Jetzt `ROAD_FILL.eps` 0,011 **und** Regel 1b
@@ -2828,3 +2835,44 @@ buscosun Fusion 12 (= 12s) bleibt der aktive Stand, Fusion 13 ist nicht vergeben
    `src/history/charts/Stripes.tsx` plus `audit/historie-buehne.md` (Arbeitsbaum ist geteilt — nur diese Dateien stagen).
 4. Entscheiden, ob das schon vorher rote Budget (V-HB-1: eagerJs 110,1/110 KB, totalJs 1 888,8/1 825 KB) zugeordnet oder
    bewusst angehoben werden soll.
+
+## 74. 5-min-Niederschlagsform aus ICON-D2-RUC (Phase RUC, `audit/niederschlag-ruc.md`), 2026-10-23
+
+Gebaut, verifiziert (`verify:ruc` 100/100), reviewt und **auf dein Wort („komplett aktiv schalten", 23.10. abends) im Code eingeschaltet**:
+die Form ist voreingestellt an, `?ruc=0` ist der Rückfall. Commit, Workflow-Push und Push von `main` hat der Berechtigungs-Klassifizierer
+der Sitzung verweigert („Production Deploy"); die drei Schritte sind deshalb deine, in dieser Reihenfolge:
+
+1. **Commit der Phase in `buscosun-web`** (nur die RUC-Dateien; die fremden Linien `src/history/*`, `audit/historie-buehne.md`,
+   `audit/autobahnwetter.md`, `tsconfig.app.tsbuildinfo` bleiben unberührt):
+   ```
+   git add -- CLAUDE.md MANUELLE-SCHRITTE.md QUELLENMATRIX.md budget.json docs/DATA_SOURCES.md package.json src/nowcast/EventsTile.tsx src/nowcast/MinuteChart.tsx src/nowcast/MinuteSeriesCard.tsx src/nowcast/NowcastDeck.tsx src/nowcast/NowcastRadarMap.tsx src/nowcast/eventDetail.ts src/nowcast/minuteSeries.css src/nowcast/minuteSeries.ts src/nowcast/nowcastEngine.ts src/nowcast/nowcastModel.ts src/nowcast/rainWindow.ts audit/niederschlag-ruc.md audit/niederschlag-ruc scripts/lib/fixtures/ruc scripts/ruc scripts/verify-ruc.mjs src/nowcast/rucSeries.ts src/point/client/rucPoint.ts src/point/rucFormat.ts
+   git commit -m "feat(regenradar): 5-min precipitation form from ICON-D2-RUC behind the radar (phase RUC)"
+   ```
+2. **Workflow ins Daten-Repo** (frische Basis, kein Rebase, kein Force; `C:\dev\buscosun-data` ist ein Klon mit `origin`):
+   ```
+   cd C:\dev\buscosun-data
+   git fetch --depth=1 origin main
+   git checkout --detach FETCH_HEAD
+   copy C:\dev\buscosun-web\scripts\ruc\workflow-ruc.yml .github\workflows\ruc.yml
+   git add .github/workflows/ruc.yml
+   git commit -m "ci: ruc.yml - 5-min precipitation form from ICON-D2-RUC (phase RUC, cron :52)"
+   git push origin HEAD:main
+   ```
+   (Sparse-Checkout: fehlt `.github` in den Mustern, vorher `git sparse-checkout add .github`; wird der Push abgewiesen, die Schritte
+   ab `fetch` wiederholen.) Bis `main` von `buscosun-web` gepusht ist, endet jeder Lauf grün ohne Schreiben.
+3. **Push von `buscosun-web` `main`**: `main` liegt 40 Commits vor `origin/main` (Fusion 13 `1b61ba35`, Start-Kacheln, Atmo, Brand,
+   Glacier, Seewetter, Dashboard-Stil, dazu RUC); der Push macht alles davon auf buscosun.com live. Der erste RUC-Lauf kommt danach
+   von selbst um :52 (kein `gh` hier, deshalb kein manueller Dispatch); `RUC_KILL` nur bei Bedarf anlegen (fehlt sie, läuft der
+   Workflow; `1` hält ihn an). Erwartung laut lokalem Volllauf: Bau ≈ 70 s, Publish ≈ 10 s, Commit `ruc: <Lauf>` mit 208 PNG (≈ 5,4 MB)
+   + `run.json` + `latest.json` + `stations/<Lauf>-<Katalog>.png`; die letzte Zeile des Bau-Schritts ist eine JSON-Zeile mit `stats`
+   (`missing` sollte 0 sein) und `timing`.
+4. **Sichtprüfung** nach dem ersten Commit des Workflows: `https://raw.githubusercontent.com/jppetry/buscosun-data/main/ruc/v1/latest.json`
+   zeigt den Lauf; `/regenradar` an einem Ort mit Regen in den nächsten Stunden zeigt im Minutenverlauf die 5-min-Stufen hinter dem
+   Radar und im Regenbeginn-Satz „ab etwa HH:MM (±30 min)". `?ruc=0` ist der Rückfall (alles wie vor RUC, Verifier G).
+5. **Messung T9 nach ≥ 14 Tagen** (läuft parallel zum eingeschalteten Produkt): vorher `build-dense-obs.mjs` bis zum Vortag (wie vor
+   einer Prüfstand-Abnahme), dann `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/ruc/ruc-measure.mjs
+   --store=<Klon des Daten-Repos>/ruc/v1 --obs=C:/dev/buscosun-pruefstand/obs-dense --from=<Tag nach dem Erstlauf>
+   --out=audit/niederschlag-ruc/t9-<datum>.json`. Die Regel ist eingefroren (Hash `4e660c231a709c8a`, Audit §6 T9); das Verdikt rechnet
+   das Skript. Mit grünem Verdikt wird die gesetzte Spanne ±15/30/45 durch die gemessene ersetzt; mit rotem Verdikt ist `?ruc=0` der
+   Rückfall und die Voreinstellung deine Entscheidung.
+6. Optional: der Erstlauf eines Monats (CLAT/CLON-Cache `ruc-cells-v1` leer) holt die Zellkoordinaten einmal (≈ 1 s); nichts zu tun.

@@ -26,6 +26,7 @@
     "verify:np0-fields": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-np0-fields.mjs",
     "verify:precip-sums": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-precip-sums.mjs",
     "verify:rain-window": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-rain-window.mjs",
+    "verify:ruc": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-ruc.mjs",
     "verify:regenchance": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-regenchance.mjs",
     "verify:height-time": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-height-time.mjs",
     "verify:snowcap": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-snowcap.mjs",

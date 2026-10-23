@@ -1684,3 +1684,105 @@ von 50 Einträgen je Stufe ≥ 2); der erste `hz/`-Slot ist 2610140830, die Schw
   lässt H1/H4/H5 scharf, I3 wird rot, wenn nur EINE Familie veraltet). Echt gegen buscosun.com: **18 von 18 Prüfungen grün**, I3 „wind/temp/gust/precip
   2026101406 (3,7 h)".
 - **Nicht angefasst:** `ROAD_HZ_LIVE` (Gate E ab 21.10.), `?roadhz=1` bleibt der einzige Weg zur Leiste.
+
+### 19.12 Gate E — Gefahren-Schatten (23.10.2026, Jans „ja starte GATE E"; nur gelesen, gemessen, verifiziert — kein Code geändert)
+
+**Vorbemerkung.** `ROAD_HZ_LIVE` steht seit `0a46c4f3` („update road", 21.10. 20:49 MESZ, auf `origin/main`) auf `true` — die Leiste
+ist live, bevor Gate E gelaufen ist. Gate E wird trotzdem über das vorgesehene Fenster bewertet: **14.10. 08:30 – 21.10. 08:30 UTC (672
+Slots)**, als der Schalter noch aus war; der Zeitraum danach steht getrennt. Quellen: Slot-Protokoll `road/v1/<Tag>/slots.json` im Archiv
+(`buscosun-archiv` `9aa66bc`, enthält `recent[].hz` je Slot), die Halbtagesdateien `road/v1/<Tag>/{00,12}.json.gz`, der Live-`status.json`,
+die vorhandenen `hz/`-Slots, `rv-past/` und die Actions-API des Daten-Repos (ohne Token). Werkzeuge und Rohausgaben:
+`C:\Users\User\AppData\Local\Temp\claude\C--dev-buscosun-web\f590d117-c332-4ee6-af8e-e11d257df51c\scratchpad\gateE\` (`series.mjs`,
+`sample.mjs`, `sample-0430.txt`, `v-*.txt`, `verify-road-ui*.txt`, Bilder `shots-*`).
+
+**Verdikt: Gate E ROT** — zwei der vier Kriterien verfehlt, ein drittes nur ersatzweise belegt.
+
+| Kriterium (`autobahnwetter-gefahren.md` Gates) | Messung | Urteil |
+|---|---|---|
+| D-1…D-4 erledigt | harte Regeln M1–M5 aktiv (§19.1); **aber** ein Rückfall der Art D-2: GMA Irxleben (N443, A 2) Luft **+41,3 … +40,8 °C** am 16.10. 09:15–10:15 UTC als gültig durchgelassen (V-AW-62) | **gelb** |
+| keine Konsistenzverletzung | **17 von 672 Slots gesperrt** (16.10. 09:15–13:15 UTC), alle „Hitze bei T2m < 25 °C" an `A2-372`/`A2-379` (T2m 13,3–19,3 °C); die Sperre hat gewirkt (nicht veröffentlicht, der letzte gute Slot blieb) | **rot** |
+| `missing` ≤ 2 % der Slots | 0 von 672 (0,00 %); 672/672 `obs`-Slots frei, 672 Ableitungen, 0 Lücken im Protokoll; ohne nutzbaren `hz`-Slot nur die 17 gesperrten (2,53 %) | grün |
+| Stichprobe 50 Einträge Stufe ≥ 2 ohne Fehlbegründung | die `hz/`-Dateien des Fensters gibt es nicht mehr (Aufbewahrung 3 h, das Archiv legt `hz/` nicht ab, Daten-Repo-Historie ≈ 2 h, V-AW-64); ersatzweise **alle 167 Einträge** mit Stufe ≥ 2 des Slots 2610230430: **0 Fehlbegründungen** | grün, nicht im Fenster |
+| *nach dem Fenster (21.10. 08:30 – 23.10. 04:00, 174 Slots)* | `missing: fc` in **144 von 172** Slots (83 %) seit 21.10. 15:30 UTC — alle 1 731 Abschnitte „unbekannt" für die Prognose-Stunden, die Leiste ist live | **rot** |
+
+**Der Ausfall seit 21.10. — Ursache: das Terminregister hält den Punkt-Cron an (Wiederholung von V-EX-1).**
+- Jeder `point`-Lauf im Daten-Repo scheitert seit **19.10. 13:02 UTC** (Lauf 39256822994; letzter grüner 11:55 UTC) im Schritt „Gate — Form
+  der Punktdaten" (`scripts/verify-point-data.mjs`) — t1, t2 und `stations-s` gleich. Lokal an `HEAD`: **1025/1027**, rot genau die zwei
+  Prüfungen „Termin nicht überfällig: DWD schaltet die Altformate der Radarprodukte ab … — −3 Tage" (`SCHEDULED_CHANGES` in
+  `src/point/sourceMatrix.ts`, Eintrag `on: '2026-10-20'` ohne `resolved`). Das Gate fällt ab 12 UTC des Vortags (V-EX-1).
+- Folge: der Cube steht auf den Läufen t1 `2026101909` / t2 `2026101906` (so nennt sie noch der letzte `road-fc`-Lauf `2610211235`); `road-fc`
+  scheitert seit 21.10. 13:02 UTC mit Exit 3, `road/fc/v1/index.json` endet bei 21.10. 12:36 UTC. Das trifft **jede Seite, die buscosun Fusion
+  aus dem Cube liest**, nicht nur die Autobahn.
+- Der Termin selbst ist in den Daten erledigt (gemessen 23.10. ≈ 06:30 UTC): `opendata.dwd.de/weather/radar/radolan/rv/` antwortet **404**,
+  `…/composite/rv/` liefert `composite_rv_<JJJJMMTT>_<HHMM>.tar` (HDF5) im 5-min-Takt bis 06:25 UTC, der Spiegel hat frische RV-Slots
+  (`hz.inputs.rv` 2610230620), der HDF5-Weg ist seit 30.09. an (EX-3). Der Client liest RV zuerst als HDF5 (`radolanDecode.ts`), das Altformat
+  nur noch als benannter Rückfall; `fetchRyLatest` (`radolan/ry/…-latest…bin.bz2`, ebenfalls 404) hat keinen Aufrufer.
+- **Vorschlag (dein Gate: Commit + Push von `main`, der Cron klont `main`):** dem Eintrag `resolved: { on: '2026-10-23', evidence: '…' }` mit
+  diesen Messungen geben; danach sollte der nächste `point`-Lauf grün sein und `road-fc` von selbst folgen. Nicht umgesetzt.
+- Alarm gab es: `road-archiv` (Archiv-Repo) ist seit 21.10. 15:36 UTC in jedem Lauf rot (V-AW-28), `health-manifests --url` meldet R7 rot
+  (17/18 grün, rot nur „Gefahren-Eingänge — fehlen oder zu alt: fc"). Gelesen hat es niemand (V-AW-69).
+
+**N443 Irxleben — wie 41 °C durch die harten Regeln kamen (V-AW-62).** Der Luftfühler meldet seit Tagen ≈ +41 °C (Taupunkt ≈ +31 °C);
+`roadAir` verwirft ihn sonst in jedem Slot über den Nachbar-Schiedsrichter („Nachbarn Fahrbahn 11, Luft 9"). Am Vormittag des 16.10. erwärmten
+sich die Nachbar-Fahrbahnen schneller als die eigene (eigene 13,7 °C, Nachbarn 17,1 °C): die eigene Fahrbahn passte nicht mehr ins Band der
+Nachbarn, `off.every(roadFits)` wurde falsch, und der `else`-Zweig verwarf die **Fahrbahn** statt der Luft — fünf Slots 09:15–10:15 UTC mit
+Luft 41,3/41,4/41,0/40,9/40,8 °C im Archiv als gültige Werte (`src/road/roadContract.ts` Z. 786–793). Die Luft lag 26 K neben den Nachbarn,
+die Fahrbahn 3,4 K. Im Gefahren-Derive zählt `blowupOf` die Luft-Historie **aller** Stationen, auch `suspect` (N443 trug in diesen Slots
+`cube(o)`), obwohl der Kommentar in `HzStation.suspect` das ausschließt (V-AW-63) — daher „Hitze" an zwei Betonabschnitten, drei Stunden lang
+(Luft-Historie 3 h), bis die Konsistenzsperre griff.
+
+**Stichprobe (Slot 2610230430, 167 Einträge mit Stufe ≥ 2 — sechs Gefahren: Gischt 134, Aquaplaning 24, Reif 2, Erster Frost 4, Überfrierende
+Nässe 2, Seitenwind 1).** `sample.mjs` prüft je Eintrag: jeder `why`-Wert mit Messstelle gegen den `obs`-Slot derselben Station (Wasserfilm,
+Tf, Td, rF, Böe, Richtung), die Station gegen `stations`/`near` des Abschnitts, die Stufe aus den Schwellen in `ROAD_HZ_T`; die Nowcast-Stunden
++1/+2 gegen die RV-Analysen **danach** (`rv-past/<ts>/g000.png`, Maximum über die Stützpunkte, 12 Analysen je Stunde, alle vorhanden).
+- Stunde 0 (gemessen/abgeleitet): **0 Fehlbegründungen** — z. B. A8-069 Reif 2 aus Tf −0,5 / Td +0,69 / rF 91 an P879 (Klasse frost), A48-069
+  Seitenwind 2 aus Böe 56,5 km/h quer 54,6 km/h an K164 mit Brücke/Damm (Schwelle 50), A93.2-010 Nässe 2 aus Tf +0,3 und Zustandscode 2.
+- Nowcast (Nachweis p): 206 Stunden — **101 Stufe erreicht, 47 schwächer, 58 ohne Regen auf dieser Stufe (28 %)**, z. B. A7-000 Aquaplaning
+  +1 h aus 15,1 mm/h, gemessen höchstens 0,2 mm/h. Das ist keine Fehlbegründung (der Wert steht so im Nowcast), aber die Frage von E-AW-42:
+  das Maximum der 5-min-Frames ist zu scharf (V-AW-66).
+- Wasserfilm: 11 der 34 nassen Stationen melden nur ganze Millimeter (Gruppen KM-NW 9, NI-NI 1, SP-BB 1; E311 6 mm, H326/H500 3 mm) —
+  daraus Aquaplaning Stufe 3 an A3-039/087/094 (V-AW-67).
+
+**Verteilung im Fenster.** Abschnitte mit Stufe ≥ 1 je Slot: Minimum 89, Median **879 von 1 731 (51 %)**, p90 1 314, Maximum **1 544
+(89 %)**; die Beobachtungsregel „Anteil > 60 %" steht nur in der Bilanz. Welche Gefahr das trägt, sagt das Slot-Protokoll nicht (`recent[].hz`
+ohne `byHazard`, V-AW-65); am 13./14.10. waren es Nebel-Proxy und Sonne (§19.4, §19.11). Laufzeit je Slot Median 1,7 s (max 2,0 s), Datei
+Median 180 KB (max 380 KB); seit `fc` fehlt 1,6 MB (jeder Abschnitt trägt `null`-Reihen).
+
+**Verifier (23.10., PowerShell, ohne `2>&1`).** Hauptbaum: `verify:road-decode` 15/15, `road-contract` 117/117, `road-derive` 36/36,
+`road-archive` 26/26, `road-fc` 107/107, `road-positions` 23/23, `road-hazards` 91/91, `verify:health` 57/57; `health-manifests --url
+https://buscosun.com` 17/18 (R7). `verify:road-ui` gegen einen sauberen Bau von `origin/main` (`0a46c4f3`, Worktree, `npm run build` 260/260,
+`vite preview` :4199): **bricht im Block R3 ab** (`.aw-chart` fehlt) — die Blöcke A–T öffnen die Seite ohne `roadhz` und erwarten die Seite mit
+Schalter aus; seit `ROAD_HZ_LIVE = true` steht dort die Leiste. Mit einer Wegwerf-Kopie, die A–T `roadhz=0` anhängt: **101/102**, rot nur A4
+(sucht die Kachel unter `.deck-bento`, sie sitzt seit dem Startseiten-Umbau vom 17.10. in `.deck-quad`) — beides Verifier-Drift, keine
+Regression der Seite (V-AW-68). **Gate C+** (Pixelvergleich mit den Vorlagen, Erstanzeige < 1,5 s) nicht gelaufen: die Leiste ist bereits live,
+und ein Pixel-Diff gegen Vorlagen mit erfundenen Daten bleibt ohne Aussage (§19.5).
+
+**Befunde (D-28).**
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-AW-62 | `roadAir`: passt die eigene Fahrbahn UND die Luft nicht zu den Nachbarn, wird die Fahrbahn verworfen — auch wenn die Luft 26 K und die Fahrbahn 3 K daneben liegt (N443, 16.10.) | kein 41-°C-Fühler als Messwert, keine „Hitze" im Oktober | den Sensor verwerfen, der relativ zu seiner Schwelle weiter neben den Nachbarn liegt (\|ta − nbTa\|/thrTa gegen \|rs − nbRs\|/thrRs); Fixture N443 2610160915; Messlinie = dein Gate |
+| V-AW-63 | `blowupOf` nimmt `taMax` über alle Stationen, auch `suspect` | eine verdächtige Station baut nie eine Stufe | `st.filter((s) => !s.suspect)` wie bei `rsMax`; Verifier-Fall mit N443-Muster |
+| V-AW-64 | `hz/` wird nicht archiviert (3 h Aufbewahrung, Daten-Repo ohne Historie) — Gate E/F können Stufen im Nachhinein nicht prüfen | Stichprobe und Kalibrierung über Wochen | `road-archive.mjs`: je Tag die Einträge mit Stufe ≥ 2 (oder alle `hz/`-Slots gz) ablegen; ≈ 180 KB × 96 ≈ 17 MB/Tag roh — gz und nur Stufe ≥ 1 messen |
+| V-AW-65 | `recent[].hz` ohne `byHazard` | man sieht, welche Gefahr die Leiste füllt (51 % der Abschnitte im Median) | `byHazard` in den Protokolleintrag (≈ 200 B je Slot) |
+| V-AW-66 | Nowcast-Stufen aus dem Maximum der 5-min-Frames: 28 % der Prognose-Stunden ohne Regen auf der Stufe | weniger Fehlalarme bei Gischt/Aquaplaning | E-AW-42 entscheiden: Stundenmittel `m060`/`m120` (spart auch 22 Bilder, V-AW-52) oder p90 der Frames; an einer Woche Archiv messen (braucht V-AW-64) |
+| V-AW-67 | Wasserfilm in ganzen mm bei KM-NW/NI-NI/SP-BB, bis 6 mm | Aquaplaning-Stufe 3 nur aus echter Filmdicke | Auflösung/Einheit je Gruppe im BUFR (Deskriptor, Skala) prüfen; bis dahin ganzzahlige Gruppen auf Stufe 2 deckeln oder `observe` |
+| V-AW-68 | `verify:road-ui` nicht mit `ROAD_HZ_LIVE = true` nachgezogen (Abbruch R3), A4-Selektor veraltet | der Verifier prüft wieder die Live-Seite | A–T mit `roadhz=0` als „Seite ohne Leiste", U1 umdrehen (ohne Parameter = Leiste), A4 auf `.deck-quad` |
+| V-AW-69 | Rote Läufe (`road-archiv` seit 21.10. 15:36, `point` seit 19.10. 13:02) blieben 2–4 Tage unbemerkt | ein Ausfall wird in Stunden gesehen | ein Kanal, der Jan erreicht (E-Mail-Benachrichtigung der Actions prüfen oder `health-manifests` als Cron mit Issue) |
+
+**Offen für Jan.** (1) Freigabe: `resolved` für den Radar-Termin vom 20.10. (`sourceMatrix.ts`), Commit + Push — behebt den Cube- und
+`road-fc`-Ausfall; (2) Entscheidung, ob die Leiste bis zu einem grünen Gate E wieder hinter `ROAD_HZ_LIVE = false` geht — sie zeigt seit
+21.10. abends für alle Prognose-Stunden „unbekannt"; (3) V-AW-62/63 (Messlinie bzw. Gefahren-Vertrag), danach Gate E neu: 7 Tage ab dem Fix,
+mit V-AW-64 als Beleg für die Stichprobe im Fenster.
+
+**Jans Entscheidungen (23.10.).** (a) **ja**: `resolved` gesetzt und NUR dieser Commit gepusht — **`6303c419`** auf `origin/main`
+(`0a46c4f3..6303c419`, direkt auf `origin/main` gebaut; die 38 lokalen, ungepushten Commits von `main` inkl. Fusion 13 bleiben lokal,
+der lokale `main` braucht vor dem nächsten Push `git pull --rebase`). Vorher im sauberen Worktree auf `origin/main`: `verify-point-data`
+1015/1015, typecheck grün. (Im Hauptbaum zeigt `verify-point-data` zusätzlich „QUELLENMATRIX §1 … ICON-D2-RUC" rot — die uncommittete
+RUC-Linie, nicht im Push.) (b) **nein**: `ROAD_HZ_LIVE` bleibt `true`, die Leiste bleibt live. (c) offen.
+
+**Wirkung gemessen (23.10.).** `point`-Lauf 39920349929 (t1, Start 07:49 UTC): „Gate — Form der Punktdaten" grün, Bau und Publish grün;
+`stations-s` (39921223017) grün. `road-fc` 08:05 UTC grün: Lauf **2610230806**, 4 772 Punkte, 0 fehlgeschlagen, buscosun Fusion 12, t1
+`2026102306` (t2 `2026101906`, t3 `2026101900`, stations `2026101909` ziehen mit ihren eigenen Takten nach). Gefahren-Slot **2610230800**:
+`missing []`, 862 von 1 731 Abschnitten mit Stufe, **3 unbekannt** (vorher 1 731), keine Sperre. Der Ausfall dauerte für den Cube 19.10.
+13:02 – 23.10. 07:49 UTC (≈ 3 d 19 h), für `road-fc`/`hz` 21.10. 13:02 – 23.10. 08:07 UTC.

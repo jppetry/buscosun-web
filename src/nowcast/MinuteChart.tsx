@@ -2,6 +2,8 @@
  * Minutenverlauf — the chart (SVG, no library). Radar minutes as a line with a soft area, buscosun Fusion hours as
  * bars (hourly means), a dashed seam between the two sources with both named, "jetzt" marker, midnight lines with the
  * date, a P(wet) strip per Fusion hour below the axis (full variant), crosshair + tooltip on hover.
+ * Phase RUC (on, `?ruc=0` = fallback): between the seam and +27 h the 5-min form of ICON-D2-RUC as a step line with area (hour bars it
+ * covers are not drawn); hours without a form (`flat`) are hatched; a second seam names the hourly part beyond.
  * Single series ⇒ no legend; identity is in the title and the seam labels. Text wears text tokens, never the series colour.
  */
 import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
@@ -57,10 +59,13 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
     let maxInRange = 0;
     const radarPts = series.radar ? series.radar.points.filter((p) => p.tMs <= endMs) : [];
     for (const p of radarPts) maxInRange = Math.max(maxInRange, p.mmH);
-    const bars = series.hours.filter((b) => b.fromMs < endMs);
+    const rucPts = series.ruc ? series.ruc.points.filter((s) => s.fromMs < endMs) : [];
+    for (const s of rucPts) maxInRange = Math.max(maxInRange, s.mmH);
+    const stripBars = series.hours.filter((b) => b.fromMs < endMs);
+    const bars = series.ruc ? stripBars.filter((b) => !b.rucCovered) : stripBars;
     for (const b of bars) maxInRange = Math.max(maxInRange, b.mmH);
     const yMax = niceMaxMmH(maxInRange);
-    return { radarPts, bars, yMax };
+    return { radarPts, rucPts, bars, stripBars, yMax };
   }, [series, endMs]);
   const Y = (v: number) => pad.t + plotH - (Math.min(v, geom.yMax) / geom.yMax) * plotH;
 
@@ -74,10 +79,39 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geom, width, plotW, plotH, rangeMs]);
 
+  // Phase RUC: step path over the 5-min intervals (horizontal per interval, vertical at the joints) + area; flat hours as hatched blocks.
+  const rucPath = useMemo(() => {
+    const pts = geom.rucPts;
+    if (!pts.length || width === 0) return null;
+    let line = `M${X(pts[0].fromMs).toFixed(1)},${Y(pts[0].mmH).toFixed(1)}`;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (i > 0) line += `V${Y(p.mmH).toFixed(1)}`;
+      line += `H${X(Math.min(p.toMs, endMs)).toFixed(1)}`;
+    }
+    const xEnd = X(Math.min(pts[pts.length - 1].toMs, endMs)).toFixed(1);
+    const area = `${line}L${xEnd},${yBase}L${X(pts[0].fromMs).toFixed(1)},${yBase}Z`;
+    const flats: Array<{ x0: number; x1: number; y: number; key: number }> = [];
+    for (const p of pts) {
+      if (p.kind !== 'flat' || p.mmH <= 0) continue;
+      const x0 = X(p.fromMs), x1 = X(Math.min(p.toMs, endMs));
+      const last = flats[flats.length - 1];
+      if (last && Math.abs(last.x1 - x0) < 0.6 && Math.abs(last.y - Y(p.mmH)) < 0.01) last.x1 = x1;
+      else flats.push({ x0, x1, y: Y(p.mmH), key: p.fromMs });
+    }
+    return { line, area, flats };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geom, width, plotW, plotH, rangeMs]);
+
   const ticks = useMemo(() => timeTicks(nowMs, rangeH), [nowMs, rangeH]);
   const seamMs = series.radar ? series.radar.toMs : null;
   const seamVisible = seamMs != null && seamMs < endMs;
   const full = variant === 'full';
+  const ruc = series.ruc;
+  const rucEndVisible = ruc != null && ruc.toMs < endMs && geom.bars.some((b) => b.fromMs >= ruc.toMs);
+  // Phase RUC: with the layer the seam names the 5-min form; WITHOUT it the three seam texts are the literals of the stand before RUC (review C1).
+  const rucFull = ruc ? `${ruc.label} · Stundensumme ${series.fusionLabel}` : null;
+  const rucMini = ruc ? 'RUC 5 min' : null;
 
   const onMove = (e: PointerEvent<SVGRectElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -105,16 +139,25 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
   const seamRoomRight = pad.l + plotW - seamX >= (full ? 180 : 70);
   const thresholds = full ? [{ v: 1, l: 'leicht' }, { v: 2.5, l: 'mäßig' }, { v: 10, l: 'stark' }].filter((t) => t.v < geom.yMax * 0.98) : [];
   const gradId = `mv-grad-${variant}`;
+  const hatchId = `mv-hatch-${variant}`;
+  const ariaLabel = ruc
+    ? `Niederschlag am Ort, ${rangeH} Stunden: Radar minutengenau, danach die 5-min-Form von ${ruc.label.split(' ·')[0]} mit den Stundensummen von ${series.fusionLabel}, jenseits +27 h ${series.fusionLabel} stündlich`
+    : `Niederschlag am Ort, ${rangeH} Stunden: Radar minutengenau, danach buscosun Fusion stündlich`;
 
   return (
     <div ref={wrapRef} className={`mv-chart mv-chart--${variant}`} onPointerLeave={() => setHoverMs(null)}>
       {width > 0 && (
-        <svg width={width} height={h} role="img" aria-label={`Niederschlag am Ort, ${rangeH} Stunden: Radar minutengenau, danach buscosun Fusion stündlich`}>
+        <svg width={width} height={h} role="img" aria-label={ariaLabel}>
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#3A6FA8" stopOpacity="0.38" />
               <stop offset="100%" stopColor="#3A6FA8" stopOpacity="0.03" />
             </linearGradient>
+            {ruc && (
+              <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="6" className="mv-hatch-line" />
+              </pattern>
+            )}
           </defs>
 
           {/* grid */}
@@ -141,7 +184,7 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
             </g>
           ))}
 
-          {/* buscosun Fusion: hourly means as bars */}
+          {/* buscosun Fusion: hourly means as bars (hours the RUC covers are drawn as steps instead) */}
           {geom.bars.map((b) => {
             const x0 = X(b.fromMs) + 1;
             const x1 = X(Math.min(b.toMs, endMs)) - 1;
@@ -152,14 +195,31 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
               <g key={b.fromMs}>
                 {barH > 0.5 && <rect x={x0} y={y} width={w} height={barH} rx={Math.min(3, w / 2)} className="mv-bar" />}
                 {barH > 0.5 && <line x1={x0} x2={x0 + w} y1={y} y2={y} className="mv-bar-top" />}
-                {full && b.pWet != null && (
-                  <rect x={x0} y={yBase + 24} width={w} height={6} rx={2} className="mv-pwet" style={{ fillOpacity: 0.12 + 0.8 * b.pWet }} />
-                )}
               </g>
             );
           })}
-          {full && geom.bars.some((b) => b.pWet != null) && (
+          {/* P(wet) strip per Fusion hour — every hour, also those the RUC covers (the sum is Fusion's) */}
+          {full && geom.stripBars.map((b) => {
+            if (b.pWet == null) return null;
+            const x0 = X(b.fromMs) + 1;
+            const w = Math.max(1, X(Math.min(b.toMs, endMs)) - 1 - x0);
+            return <rect key={`p${b.fromMs}`} x={x0} y={yBase + 24} width={w} height={6} rx={2} className="mv-pwet" style={{ fillOpacity: 0.12 + 0.8 * b.pWet }} />;
+          })}
+          {full && geom.stripBars.some((b) => b.pWet != null) && (
             <text x={pad.l} y={yBase + 42} className="mv-striplabel">Regenchance je Stunde · buscosun Fusion</text>
+          )}
+
+          {/* Phase RUC: 5-min steps as line + area, flat hours hatched */}
+          {rucPath && (
+            <>
+              <path d={rucPath.area} className="mv-ruc-area" />
+              {rucPath.flats.map((f) => (
+                <rect key={f.key} x={f.x0} y={f.y} width={Math.max(1, f.x1 - f.x0)} height={Math.max(0, yBase - f.y)} fill={`url(#${hatchId})`} className="mv-ruc-flat">
+                  <title>Stunde ohne Form (RUC trocken) · Stundenmittel {series.fusionLabel}</title>
+                </rect>
+              ))}
+              <path d={rucPath.line} className="mv-ruc-line" />
+            </>
           )}
 
           {/* radar: minutes as line + area */}
@@ -173,24 +233,31 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
           {/* baseline */}
           <line x1={pad.l} x2={pad.l + plotW} y1={yBase} y2={yBase} className="mv-base" />
 
-          {/* seam radar → Fusion */}
+          {/* seam radar → Fusion (or → RUC) */}
           {seamVisible && seamMs != null && (
             <g>
               <line x1={X(seamMs)} x2={X(seamMs)} y1={pad.t - 2} y2={yBase} className="mv-seam" />
               {seamRoomLeft && !seamRoomRight ? (
-                <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? `Radar · minutengenau bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸` : `Radar · ${series.fusionLabel} ▸`}</text>
+                <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{rucFull ? (full ? `Radar · minutengenau bis ${fmtClock(seamMs)} · danach ${rucFull} ▸` : `Radar · ${rucMini} ▸`) : (full ? `Radar · minutengenau bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸` : `Radar · ${series.fusionLabel} ▸`)}</text>
               ) : seamRoomLeft ? (
                 <>
                   <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? `Radar · minutengenau bis ${fmtClock(seamMs)}` : 'Radar'}</text>
-                  <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{full ? `${series.fusionLabel} · Stundenmittel` : series.fusionLabel}</text>
+                  <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{rucFull ? (full ? rucFull : rucMini) : (full ? `${series.fusionLabel} · Stundenmittel` : series.fusionLabel)}</text>
                 </>
               ) : (
-                <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${series.fusionLabel} als Stundenmittel` : `◂ Radar · ${series.fusionLabel}`}</text>
+                <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{rucFull ? (full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${rucFull}` : `◂ Radar · ${rucMini}`) : (full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${series.fusionLabel} als Stundenmittel` : `◂ Radar · ${series.fusionLabel}`)}</text>
               )}
             </g>
           )}
           {!series.radar && (
-            <text x={pad.l + 2} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{series.fusionLabel} · Stundenmittel{full ? ' (kein Radar-Nowcast am Ort)' : ''}</text>
+            <text x={pad.l + 2} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{rucFull ? (full ? rucFull : rucMini) : <>{series.fusionLabel} · Stundenmittel{full ? ' (kein Radar-Nowcast am Ort)' : ''}</>}</text>
+          )}
+          {/* Phase RUC: second seam where the 5-min form ends and the hourly means carry on */}
+          {ruc && rucEndVisible && full && (
+            <g>
+              <line x1={X(ruc.toMs)} x2={X(ruc.toMs)} y1={pad.t - 2} y2={yBase} className="mv-seam" />
+              <text x={X(ruc.toMs) + 5} y={pad.t + 10} className="mv-seamlabel">{`◂ 5-min-Form bis ${fmtClock(ruc.toMs)} · ab hier ${series.fusionLabel} als Stundenmittel`}</text>
+            </g>
           )}
 
           {/* now: line + pulsing point at the current value */}
@@ -220,9 +287,11 @@ export default function MinuteChart({ series, rangeH, variant, height }: MinuteC
           <div className="mv-tip-src">
             {hover.source === 'radar' && series.radar
               ? `${series.radar.product} · Bild alle ${series.radar.frameStepMin} min, Minute interpoliert`
-              : hover.bar
-                ? `${series.fusionLabel} · Stundenmittel ${fmtClock(hover.bar.fromMs)}–${fmtClock(hover.bar.toMs)}${hover.bar.pWet != null ? ` · Regenchance ${Math.round(hover.bar.pWet * 100)}\u00A0%` : ''}`
-                : ''}
+              : hover.source === 'ruc' && hover.step && ruc
+                ? `${ruc.label} ${fmtClock(hover.step.fromMs)}–${fmtClock(hover.step.toMs)} · Stundensumme ${series.fusionLabel}${hover.bar?.pWet != null ? ` · Regenchance ${Math.round(hover.bar.pWet * 100)} %` : ''}${hover.step.kind === 'flat' ? ' · Stunde ohne Form (RUC trocken)' : ''}`
+                : hover.bar
+                  ? `${series.fusionLabel} · Stundenmittel ${fmtClock(hover.bar.fromMs)}–${fmtClock(hover.bar.toMs)}${hover.bar.pWet != null ? ` · Regenchance ${Math.round(hover.bar.pWet * 100)} %` : ''}`
+                  : ''}
           </div>
         </div>
       )}
