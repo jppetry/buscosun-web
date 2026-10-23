@@ -1165,11 +1165,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
   const isMobile = useMediaQuery('(max-width: 767px)');
   /**
-   * Mobil zeigt die Karte nur, wofür der Schalter Brände | Thermalanomalien steht: bei „Brände" ohne die
-   * Anlagen-Rauten, bei „Thermalanomalien" ohne Detektionen, Brandflächen, Hüllen und Historie-Punkte.
-   * Desktop und Tablet zeigen weiter beides (dort ist der Reiter nur die Liste).
+   * Die Karte zeigt nur, wofür der Schalter Brände | Thermalanomalien steht (mobil das Segment, auf
+   * Desktop und Tablet der Reiter rechts; Jans Auftrag 2026-10-23): bei „Brände" ohne die Anlagen-Rauten,
+   * bei „Thermalanomalien" ohne Detektionen, Brandflächen, Hüllen und Historie-Punkte.
    */
-  const onlyKind: 'fires' | 'anomalies' | null = isMobile ? readoutTab : null;
+  const onlyKind: 'fires' | 'anomalies' = readoutTab;
   const mapActive = useMemo(() => {
     if (!onlyKind) return active;
     const hide: readonly FireLayerId[] = onlyKind === 'fires' ? FIRE_ANOMALY_LAYERS : ['fireHotspots', 'fireFootprints', 'fireBurnt'];
