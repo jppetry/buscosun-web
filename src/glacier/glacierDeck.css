@@ -107,6 +107,12 @@
 .gl-ramp i { display: block; height: 10px; border-radius: 2px; }
 .gl-ramp span { font-family: var(--gl-mono); font-size: 10.5px; color: var(--gl-muted); }
 .gl-legend-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--gl-muted); }
+/* Kartenlegende kompakt am linken oberen Rand (Jan, 2026-10-23); die Mobil-Legende unter der Karte bleibt wie sie ist. */
+.gl-map .gl-legend { top: 14px; bottom: auto; width: 228px; padding: 7px 10px; gap: 4px; }
+.gl-map .gl-legend-head b { font-size: 11.5px; }
+.gl-map .gl-ramp i { height: 7px; }
+.gl-map .gl-ramp span { font-size: 9.5px; }
+.gl-map .gl-legend-row { font-size: 10.5px; }
 .gl-dash { width: 10px; height: 10px; border-radius: 6px; border: 1.5px dashed #8B7E62; background: #F3EEE1; flex: 0 0 auto; }
 .gl-pill { position: absolute; right: 14px; bottom: 26px; width: 290px; max-width: calc(100% - 28px); z-index: 2; background: rgba(250,246,234,.97); border: 1px solid var(--gl-line-strong); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 6px 20px rgba(44,42,38,.14); }
 .gl-pill-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
