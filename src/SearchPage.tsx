@@ -30,6 +30,7 @@ import { parseCountry } from './countryProfiles';
 import RadarSweepIcon from './RadarSweepIcon';
 import GlobeIcon from './GlobeIcon';
 import FireIcon from './FireIcon';
+import GlacierIcon from './GlacierIcon';
 // DACH-Karte im Hintergrund lazy: hält den Startseiten-Bundle schlank (eigener Chunk).
 const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
@@ -347,6 +348,25 @@ const TILE_FIRE = (
       <div className="tile-title tile-title-sm">Wo brennt es gerade?</div>
       <p className="tile-desc sm">
         Aktive Brände und Brandflächen per Satellit, aktuell und im Rückblick.
+      </p>
+    </div>
+  </>
+);
+
+// 13 · Gletscher — Desktop-Kachel wie Waldbrand (Jan 23.10.2026): animierter Gletscher statt Flamme, Kernaussage
+// samt Ehrlichkeitshinweis. Auf ≤1024 px bleibt die Vollbreiten-Kachel mit Vorschaukarte (GL_TILE_STYLE).
+const TILE_GLACIER = (
+  <>
+    <div className="tile-eyebrow">13 · GLETSCHER</div>
+    <div className="tile-glacier-art">
+      <GlacierIcon />
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Wie geht es dem Eis?</div>
+      <p className="tile-desc sm">
+        Rund 2 200 Gletscher in DACH: Messreihen, Umrisse und Herkunft je Wert.
+        {' '}
+        <span className="tile-caveat">Keine Tourenfreigabe.</span>
       </p>
     </div>
   </>
@@ -716,10 +736,10 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           </div>
         </>, narrow ? SW_TILE_STYLE : undefined);
   // 13 · GLETSCHER (Phase GL) — auf ≤ 1024 px volle Breite hinter Seewetter, Stellung inline (`order: 13`); auf Desktop
-  // seit 23.10.2026 (Jan) als kompakte Viertel-Kachel an erster Stelle der Reihe 06–09 (`.is-compact`). Hinter
+  // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
   // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
   // Zeichnung, kein Datenbild). Lädt keine Daten.
-  const glacierTile = glacierFlagFrom() && tile(['planen'], narrow ? 'tile-gl' : 'tile-gl t-half is-compact', FEATURE.glacier, 'Gletscher öffnen',
+  const glacierTile = glacierFlagFrom() && (!narrow ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER) : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
         <>
           <div className="tile-gl-text">
             <div className="tile-gl-head">
@@ -774,7 +794,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </svg>
             <span className="tile-map-tag">GLAMOS · ÖAV · AGI 5 · WGMS · BAdW</span>
           </div>
-        </>, narrow ? GL_TILE_STYLE : undefined);
+        </>, GL_TILE_STYLE));
 
   return (
     <section className="deck-bento" aria-label="Werkzeuge">

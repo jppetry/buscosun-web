@@ -546,12 +546,42 @@
 .tile-sea-preview svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* Desktop seit 23.10.2026 (Jan): Gletscher und Seewetter als Viertel-Kacheln in der Reihe 06–09 (Klasse nur > 1024 px
    gesetzt) — Vorschau als Streifen oben, Text darunter wie bei den Nachbarkacheln; Hinweistext bleibt vollständig. */
-.tile-sea.is-compact, .tile-gl.is-compact { flex-direction: column; justify-content: flex-start; gap: 14px; min-height: 210px; }
-.is-compact .tile-sea-preview, .is-compact .tile-gl-preview { order: -1; flex: 0 0 auto; min-height: 0; height: 70px; border-radius: 12px; }
-.is-compact .tile-sea-text, .is-compact .tile-gl-text { justify-content: flex-start; }
+.tile-sea.is-compact { flex-direction: column; justify-content: flex-start; gap: 14px; min-height: 210px; }
+.is-compact .tile-sea-preview { order: -1; flex: 0 0 auto; min-height: 0; height: 70px; border-radius: 12px; }
+.is-compact .tile-sea-text { justify-content: flex-start; }
 .is-compact .tile-feedback-icon, .is-compact .tile-tags, .is-compact .tile-map-tag { display: none; }
-.is-compact .tile-sea-head .tile-title, .is-compact .tile-gl-head .tile-title { font-size: 18px; letter-spacing: -0.3px; }
+.is-compact .tile-sea-head .tile-title { font-size: 18px; letter-spacing: -0.3px; }
 .is-compact .tile-desc { font-size: 12px; line-height: 1.45; margin-top: 5px; }
+
+/* Gletscher (Slot 13) auf Desktop seit 23.10.2026 (Jan): Kachel wie Waldbrand. Gletscher-Glyphe (src/GlacierIcon.tsx):
+   die Zunge fließt — ein Lichtschimmer gleitet über das Eis, Spalten wandern talwärts, Schmelzwasser tropft in den See,
+   der Gipfelschnee glitzert, ein kalter Schein atmet. Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus/Flamme. */
+.tile-glacier { justify-content: space-between; min-height: 210px; padding: 22px; }
+.tile-glacier-art { height: 64px; display: flex; align-items: center; justify-content: center; }
+.tile-glacier-svg { overflow: visible; }
+.tile-glacier-back { fill: var(--sand-200); }
+.tile-glacier-facet { fill: var(--ink-900); fill-opacity: .08; }
+.tile-glacier-snow { fill: #F7FBFC; stroke: #CFE6EE; stroke-width: .6; stroke-linejoin: round; }
+.tile-glacier-edge { fill: none; stroke: #5FAFC9; stroke-opacity: .55; stroke-width: .8; }
+.tile-glacier-glow { transform-box: fill-box; transform-origin: center; animation: deck-glacier-glow 4.8s ease-in-out infinite; }
+@keyframes deck-glacier-glow { 0%, 100% { opacity: .55; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+.tile-glacier-sheen { animation: deck-glacier-sheen 4.2s ease-in-out infinite; }
+@keyframes deck-glacier-sheen { 0% { transform: translate(-14px, -28px); opacity: 0; } 20% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(10px, 40px); opacity: 0; } }
+.tile-glacier-crev path { fill: none; stroke: #3F8FAE; stroke-opacity: .5; stroke-width: .9; stroke-linecap: round; }
+.tile-glacier-crev { animation: deck-glacier-flow 6s linear infinite; }
+@keyframes deck-glacier-flow { 0% { transform: translateY(-8px); opacity: 0; } 15%, 85% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
+.tile-glacier-drop { fill: #5FAFC9; opacity: 0; animation: deck-glacier-drop 2.4s ease-in infinite; }
+.tile-glacier-drop-b { animation-delay: -.8s; animation-duration: 2.8s; }
+.tile-glacier-drop-c { animation-delay: -1.6s; animation-duration: 2.1s; }
+@keyframes deck-glacier-drop { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: .95; } 80% { opacity: .9; transform: translateY(4.5px); } 100% { opacity: 0; transform: translateY(5px); } }
+.tile-glacier-lake { fill: #8FD0E3; fill-opacity: .75; }
+.tile-glacier-ripple { fill: none; stroke: #F7FBFC; stroke-width: .7; transform-box: fill-box; transform-origin: center; animation: deck-glacier-ripple 2.4s ease-out infinite; }
+@keyframes deck-glacier-ripple { 0% { transform: scale(.4); opacity: .9; } 100% { transform: scale(2.2); opacity: 0; } }
+.tile-glacier-glint { fill: #FFFFFF; stroke: #8FD0E3; stroke-width: .4; transform-box: fill-box; transform-origin: center; animation: deck-glacier-glint 3s ease-in-out infinite; }
+.tile-glacier-glint-b { animation-delay: -1s; animation-duration: 3.6s; }
+.tile-glacier-glint-c { animation-delay: -2s; animation-duration: 2.6s; }
+@keyframes deck-glacier-glint { 0%, 60%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); } 75% { opacity: 1; transform: scale(1.3) rotate(45deg); } }
+.tile-glacier-ground { fill: none; stroke: var(--border-strong); stroke-opacity: .7; stroke-width: 1; stroke-linecap: round; }
 .tile-flame { height: 64px; display: flex; align-items: center; justify-content: center; }
 .tile-flame-svg { overflow: visible; }
 .tile-flame-outer, .tile-flame-inner, .tile-flame-core { transform-origin: 32px 58px; animation: deck-flame 1.8s ease-in-out infinite; }
