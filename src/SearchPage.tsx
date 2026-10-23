@@ -293,11 +293,11 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: He
 function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
   const tile = makeTile(activeCat, onOpenFeature);
   return (
-    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage, Autobahnwetter">
+    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage, Gletscher">
       {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
       {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
-      {roadFlagFrom() && tile(['planen'], 'tile-road q-tile', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}
+      {glacierFlagFrom() && tile(['planen'], 'tile-glacier q-tile', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER)}
     </div>
   );
 }
@@ -758,7 +758,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
   // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
   // Zeichnung, kein Datenbild). Lädt keine Daten.
-  const glacierTile = glacierFlagFrom() && (!narrow ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER) : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
+  const glacierTile = glacierFlagFrom() && (!narrow ? null : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
         <>
           <div className="tile-gl-text">
             <div className="tile-gl-head">
@@ -887,7 +887,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {/* 06–09 stehen als EINE Reihe zu vier Spalten (Jan, 2026-08-09). */}
       {/* Desktop: 13 · GLETSCHER · 12 · SEEWETTER · 08 · GLOBUS · 09 · FEEDBACK, darunter 06 · HISTORIE und 07 · 3D-WETTER.
           ≤ 1024 px unverändert: 06 · 07 · 08 · 09, Seewetter und Gletscher am Ende. */}
-      {narrow ? <>{historyTile}{threedTile}</> : <>{glacierTile}{seaTile}</>}
+      {narrow ? <>{historyTile}{threedTile}</> : <>{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}{seaTile}</>}
 
       {/* 08 · GLOBUS */}
       {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
