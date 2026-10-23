@@ -1729,10 +1729,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     />
   );
 
-  const sourcesLine = (compact: boolean) => (
-    <p className="br-sources">● {compact ? 'GWIS · FIRMS · ICON-D2 · EFFIS · BAFU' : 'Copernicus EMS GWIS · NASA FIRMS · DWD ICON-D2 · EFFIS · BAFU · keine Tracker'}</p>
-  );
-
   /** GeoSphere-Kontext je Brand: das nächste AT-Ereignis (≤ 10 km) — Kontext, nie Bestätigung. */
   const atContextFor = useCallback((r: FireRecord): AtWarnContext | null => {
     if (atContexts.size === 0) return null;
@@ -2058,11 +2054,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </>
   ) : (
     <>
-      {timeCardMobile}
-      {detTiles(true)}
-
+      {/* Rückblick, Kennzahlen und Quellenzeile entfallen im Karten-Sheet (Jan, 2026-10-23); der Rückblick bleibt im Reiter „Zeit". */}
       {readoutLayers.map((id) => layerCard(id, true))}
-      {sourcesLine(true)}
     </>
   );
 
