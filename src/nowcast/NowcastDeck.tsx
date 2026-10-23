@@ -16,11 +16,10 @@ import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
 import { Hd250Switch } from '../components/Hd250Switch';   // Phase RA-250: 1 km | 250 m (DE only)
-import { NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN } from './nowcastModel';
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
-import { fmtClock, nwpLabel, freshness, type Nowcast } from './nowcastView';
+import { freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastRadarMap from './NowcastRadarMap';
 import NowcastRainSlider from './NowcastRainSlider';
@@ -540,7 +539,6 @@ function FreshTag({ nowcast }: { nowcast: Nowcast }) {
 }
 
 
-const d1 = (n: number): string => (Math.round(n * 10) / 10).toString().replace('.', ',');
 
 // ============================================================================
 // MOBILE (RM1–RM6) — nur < 768 px. Alle Bausteine bleiben erhalten, nur mobile
@@ -638,7 +636,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
       <div className="rm-sheet-body rm-tabsheet-body">
         {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} probeCard={probeCard} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
-        {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
+        {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} minuteCard={minuteCard} snowCard={snowCard} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
         {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} rainWindow={rainWindow} />}
         {tab === 'height' && heightPanel && <div className="rm-hzs">{heightPanel}</div>}
@@ -695,18 +693,16 @@ function TimelinePanel({ nowcast, state, place }: { nowcast: Nowcast | null; sta
 }
 
 // --- Panel: Diagramm --------------------------------------------------------
-function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state: DeckState; place: string }) {
+// Jans Auftrag 2026-10-23: statt der kumulierten Summe das Minutendiagramm des Niederschlags und das Schneefallgrenze-Diagramm.
+function ChartPanel({ nowcast, state, place, minuteCard = null, snowCard = null }: { nowcast: Nowcast | null; state: DeckState; place: string; minuteCard?: ReactNode; snowCard?: ReactNode }) {
   return (
     <>
       <PanelHead place={place} title="Diagramm" />
       {nowcast ? (
-        <>
-          <div className="rm-seclabel rm-seclabel--wide">Kumulierte Summe</div>
-          <div className="rm-card rm-chartcard"><MobileCumChart nowcast={nowcast} /></div>
-          <div className="rm-chartpage-foot">
-            <span className="rm-src-dot" /> RADOLAN-RV (0–2 h) · {nwpLabel(nowcast)} (2–6 h) · Lauf {fmtClock(nowcast.runAtMs || nowcast.fetchedAtMs)}
-          </div>
-        </>
+        <div className="rm-glance">
+          {minuteCard}
+          {snowCard}
+        </div>
       ) : <PanelState state={state} />}
     </>
   );
@@ -766,35 +762,6 @@ function DetailPanel({ nowcast, state, mode, place, rainWindow }: {
         </>
       ) : <PanelState state={state} />}
     </>
-  );
-}
-
-function MobileCumChart({ nowcast }: { nowcast: Nowcast }) {
-  const stepH = NOWCAST_STEP_MIN / 60;
-  let c = 0; let peakStep = nowcast.steps[0];
-  const pts = nowcast.steps.map((s) => { c += Math.max(0, s.mmH) * stepH; if (!peakStep || s.mmH > peakStep.mmH) peakStep = s; return { min: s.minutes, mm: c }; });
-  const total = c;
-  const top = Math.max(0.5, total);
-  const W = 320, H = 118, padL = 6, padR = 6, padT = 12, padB = 22;
-  const x = (min: number) => padL + ((W - padL - padR) * min) / NOWCAST_HORIZON_MIN;
-  const y = (mm: number) => padT + (H - padT - padB) * (1 - mm / top);
-  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.min).toFixed(1)} ${y(p.mm).toFixed(1)}`).join(' ');
-  const area = `M ${x(0)} ${y(0)} ${pts.map((p) => `L ${x(p.min).toFixed(1)} ${y(p.mm).toFixed(1)}`).join(' ')} L ${x(NOWCAST_HORIZON_MIN)} ${y(0)} Z`;
-  const hasRain = total >= 0.1 && peakStep.mmH >= 0.1;
-  return (
-    <div className="rm-cum">
-      <svg className="rm-cum-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Kumulierte Niederschlagssumme, gesamt ${d1(total)} mm über 6 Stunden`}>
-        <rect x={padL} y={padT} width={W - padL - padR} height={H - padT - padB} rx="6" className="rm-cum-plot" />
-        <path d={area} className="rm-cum-area" />
-        <path d={line} className="rm-cum-line" />
-        <text x={padL + 2} y={H - 6} className="rm-cum-xlabel">jetzt</text>
-        <text x={W / 2} y={H - 6} className="rm-cum-xlabel" textAnchor="middle">+3h</text>
-        <text x={W - padR - 2} y={H - 6} className="rm-cum-xlabel" textAnchor="end">+6h</text>
-      </svg>
-      <div className="rm-cum-cap">
-        {hasRain ? <><b>{d1(total)} mm</b> über 6 h · Spitze gegen {fmtClock(peakStep.timestamp.getTime())}</> : <>kein nennenswerter Niederschlag in den nächsten 6 h</>}
-      </div>
-    </div>
   );
 }
 
