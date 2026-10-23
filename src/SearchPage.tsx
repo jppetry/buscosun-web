@@ -344,8 +344,7 @@ const TILE_FIRE = (
     <div>
       <div className="tile-title tile-title-sm">Wo brennt es gerade?</div>
       <p className="tile-desc sm">
-        Aktive Brände und Brandflächen per Satellit, aktuell und im Rückblick.{' '}
-        <span className="tile-caveat">Kein amtliches Warnprodukt.</span>
+        Aktive Brände und Brandflächen per Satellit, aktuell und im Rückblick.
       </p>
     </div>
   </>
