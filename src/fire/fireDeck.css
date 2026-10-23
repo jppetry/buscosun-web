@@ -938,6 +938,11 @@
 .br-ds-foot { flex: 0 0 auto; padding: 10px 16px 12px; background: var(--sand-50, #F5F1E8); border-top: 1px solid var(--sand-200, #E0D6BE); }
 
 .br-ds { display: flex; flex-direction: column; gap: 14px; }
+/* Dossier-Schrift größer (Jan, 2026-10-23): ein Zoom über das ganze Dossier, damit auch die px-Größen
+   aus sx und die Diagrammtexte mitwachsen. Minikarte und COG-Viewer rechnen Zeiger aus Rechteck und
+   clientWidth — sie laufen ungezoomt (Kehrwert), damit Klick, Wheel-Zoom und Pan genau bleiben. */
+.br-ds { zoom: 1.1; }
+.br-ds .br-minimap, .br-ds .br-cog-inline { zoom: calc(1 / 1.1); }
 .br-ds-card { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 18px 20px; min-width: 0; }
 .br-ds-eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
 .br-ds-eyebrow.is-red { color: var(--br-red); }
