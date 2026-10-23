@@ -82,7 +82,7 @@ const FEATURE: Record<string, FeatureInfo> = {
   history:    { id: 'history',    eyebrow: 'Historie',      title: 'Klima seit 1940' },
   atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre',    title: 'Die Atmosphäre über dir' },
   globe:      { id: 'globe',      eyebrow: '3D-Globus',     title: 'Das Wetter der ganzen Erde' },
-  fire:       { id: 'fire',       eyebrow: 'Waldbrand',     title: 'Wie trocken ist der Wald?' },
+  fire:       { id: 'fire',       eyebrow: 'Waldbrand',     title: 'Wo brennt es gerade?' },
   road:       { id: 'road',       eyebrow: 'Autobahnwetter', title: 'Ist die Strecke glatt?' },
   sea:        { id: 'sea',        eyebrow: 'Seewetter',     title: 'Wie wird es auf dem Wasser?' },
   glacier:    { id: 'glacier',    eyebrow: 'Gletscher',     title: 'Wie geht es dem Eis?' },
@@ -119,7 +119,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '06', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
   { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Föhn',           feature: FEATURE.atmosphere },
   { num: '08', label: '3D-Globus',              hint: 'Live-Wind (GFS)',            feature: FEATURE.globe },
-  { num: '09', label: 'Waldbrand DACH',         hint: 'Gefahr · Brände · Trockenheit', feature: FEATURE.fire },
+  { num: '09', label: 'Waldbrand DACH',         hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
   { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
   { num: '12', label: 'Autobahnwetter',         hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
@@ -342,10 +342,10 @@ const TILE_FIRE = (
       <FireIcon />
     </div>
     <div>
-      <div className="tile-title tile-title-sm">Wie trocken ist der Wald?</div>
+      <div className="tile-title tile-title-sm">Wo brennt es gerade?</div>
       <p className="tile-desc sm">
-        EU-Gefahrenindex bis +9 Tage, aktive Brände, Faktoren dahinter.{' '}
-        <span className="tile-caveat">Kein amtliches Warnprodukt; für Österreich keine offene amtliche Stufe.</span>
+        Aktive Brände und Brandflächen per Satellit, aktuell und im Rückblick. Dazu die Gefahr bis +9 Tage.{' '}
+        <span className="tile-caveat">Kein amtliches Warnprodukt.</span>
       </p>
     </div>
   </>
