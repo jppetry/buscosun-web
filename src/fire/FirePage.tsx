@@ -112,7 +112,7 @@ import type { PerfTier } from '../wind/perfGovernor';
 import { dataAgeText, type DataRef } from '../dataAge';
 import { fireSourceFor, fireIncidentSourcesFor, hasOfficialFireConfirmation } from '../officialSources';
 import {
-  FireIcon, IcoBarMap, IcoBarLayers, IcoBarFire, IcoBarTime,
+  FireIcon, IcoBarMap, IcoBarLayers, IcoBarFire,
 } from './fireIcons';
 import {
   FireLayerCard, FIRE_LAYER_INFO, HOTSPOTS_DEGRADED_INFO, dangerInfoFor, soilDrynessInfoFor,
@@ -2009,7 +2009,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         ['map', 'Karte', <IcoBarMap key="i" />],
         ['layers', 'Layer', <IcoBarLayers key="i" />],
         ['fires', 'Brände', <IcoBarFire key="i" />],
-        ['time', 'Zeit', <IcoBarTime key="i" />],
       ] as const).map(([id, label, icon]) => (
         <button
           key={id} type="button"
