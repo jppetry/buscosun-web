@@ -288,7 +288,6 @@
 .br-map-tl { position: absolute; left: 16px; top: 16px; z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; max-width: calc(100% - 330px); }
 .br-map-tr { position: absolute; right: 16px; top: 16px; z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
 .br-map-pc { position: absolute; right: 16px; top: 150px; z-index: 5; width: 250px; }
-.br-map-bl { position: absolute; left: 16px; bottom: 16px; z-index: 5; }
 /* Info card of a fire picked on the map (desktop/tablet: bottom left; mobile: in the top stack). */
 .br-map-card { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 6; pointer-events: none; }
 .br-map-card > .br-mapcard { pointer-events: auto; }
@@ -758,8 +757,8 @@
   .fire-center .maplibregl-ctrl-group { border-radius: 11px; }
   .fire-center .maplibregl-ctrl-group button { width: 40px; height: 40px; }
   .fire-center .maplibregl-ctrl-bottom-left, .fire-center .maplibregl-ctrl-bottom-right { bottom: calc(46vh + 8px); }
-  .br-map-bl { left: 12px; bottom: calc(46vh + 8px); }
-  .br-map-bl .br-basemap button { min-height: 38px; }
+  .br-m-basemaprow { display: flex; justify-content: center; }
+  .br-m-basemaprow .br-basemap button { min-height: 38px; }
   .br-mapcard { width: auto; max-width: none; max-height: calc(54vh - 130px); }
   .br-mapcard-close { width: 44px; height: 44px; margin: -8px -8px 0 0; }
   .br-mapcard-cta { min-height: 44px; }

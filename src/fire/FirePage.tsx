@@ -2133,6 +2133,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}
+              {/* Mobil: Straßen | Satellit oben mittig unter der Kopfzeile (Jans Auftrag 2026-10-23). */}
+              {isMobile && <div className="br-m-basemaprow">{basemapSeg}</div>}
               {/* BD3: beides statt „entweder/oder je Reiter" — die Quellen-Pille bleibt, die
                   Markierung kommt darüber dazu, sobald ein Brand gewählt ist. */}
               {!isMobile && selectedFootprint && recordsById.get(selectedFootprint) && (
@@ -2142,7 +2144,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                 </div>
               )}
               {!isMobile && sourcePill}
-              {/* Straßen | Satellit: Desktop/Tablet oben links (Jans Auftrag 2026-10-23), mobil weiter unten links. */}
+              {/* Straßen | Satellit: Desktop/Tablet oben links (Jans Auftrag 2026-10-23), mobil oben mittig. */}
               {!isMobile && basemapSeg}
               {/* Mobil bleiben Chips und Treiber-Notiz über der Karte: dort gibt es kein Dock,
                   das sie tragen könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). */}
@@ -2151,8 +2153,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {isMobile && mapCardEl}
             </div>
 
-            {/* Unten links (mobil): Straßen | Satellit (Jans Auftrag 2026-10-14) — ersetzt die Basiskarten-Zeile im Dock. */}
-            {isMobile && <div className="br-map-bl">{basemapSeg}</div>}
             {!isMobile && mapCardEl && <div className="br-map-card">{mapCardEl}</div>}
 
             {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler
