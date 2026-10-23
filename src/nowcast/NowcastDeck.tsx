@@ -429,9 +429,13 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-readout-eyebrow">Regenradar · {flagForCountry(location.country)} {shortPlace(location.name)}</span>
               {nowcast && <FreshTag nowcast={nowcast} />}
             </div>
+            {/* Ereignisse ganz oben in der rechten Seitenleiste (Jans Auftrag 2026-10-23). */}
+            {nowcast && state.kind !== 'loading' && state.kind !== 'error' && (
+              <EventsTile nowcast={nowcast} rainWindow={rainWindow} place={shortPlace(location.name)} variant="desktop" />
+            )}
             {minuteCard('desktop')}
             {skCard('desktop')}
-            <ReadoutBody nowcast={nowcast} state={state} mode={mode} chance={chance} cellCard={cellCardDesktop} rainWindow={rainWindow} place={shortPlace(location.name)} />
+            <ReadoutBody nowcast={nowcast} state={state} mode={mode} chance={chance} cellCard={cellCardDesktop} />
           </div>
         </div>
       )}
@@ -503,8 +507,8 @@ function Dock({ layers, toggleLayer, activeLayerCount, country, probeCard = null
 // ============================================================================
 // Readout-Inhalt (Regenbeginn · Karten am Ort · Ereignisse · Alpin · Quellen)
 // ============================================================================
-function ReadoutBody({ nowcast, state, mode, chance, cellCard = null, rainWindow, place }: {
-  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; chance: ChanceCtx | null; rainWindow: RainWindow | null; place: string;
+function ReadoutBody({ nowcast, state, mode, chance, cellCard = null }: {
+  nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; chance: ChanceCtx | null;
   /** Phase ZO: betroffene Orte der Gewitterzellen (`null` = aus). */
   cellCard?: ReactNode;
 }) {
@@ -525,8 +529,6 @@ function ReadoutBody({ nowcast, state, mode, chance, cellCard = null, rainWindow
           {chance.card}
         </>
       )}
-
-      <EventsTile nowcast={nowcast} rainWindow={rainWindow} place={place} variant="desktop" />
 
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
