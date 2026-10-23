@@ -31,6 +31,7 @@ import RadarSweepIcon from './RadarSweepIcon';
 import GlobeIcon from './GlobeIcon';
 import FireIcon from './FireIcon';
 import GlacierIcon from './GlacierIcon';
+import SeaIcon from './SeaIcon';
 // DACH-Karte im Hintergrund lazy: hält den Startseiten-Bundle schlank (eigener Chunk).
 const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
@@ -353,6 +354,25 @@ const TILE_FIRE = (
   </>
 );
 
+// 12 · Seewetter — Desktop-Kachel wie Waldbrand und Gletscher (Jan 23.10.2026): animierte Küste mit Wellen, Leuchtturm
+// und Boot; Kernaussage samt Ehrlichkeitshinweis. Auf ≤1024 px bleibt die Vollbreiten-Kachel mit Seekarte (SW_TILE_STYLE).
+const TILE_SEA = (
+  <>
+    <div className="tile-eyebrow">12 · SEEWETTER</div>
+    <div className="tile-coast-art">
+      <SeaIcon />
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Wie wird es auf dem Wasser?</div>
+      <p className="tile-desc sm">
+        Seegang, Wind und Böen an rund 60 Spots an Nord- und Ostsee.
+        {' '}
+        <span className="tile-caveat">Keine Sicherheitsbewertung.</span>
+      </p>
+    </div>
+  </>
+);
+
 // 13 · Gletscher — Desktop-Kachel wie Waldbrand (Jan 23.10.2026): animierter Gletscher statt Flamme, Kernaussage
 // samt Ehrlichkeitshinweis. Auf ≤1024 px bleibt die Vollbreiten-Kachel mit Vorschaukarte (GL_TILE_STYLE).
 const TILE_GLACIER = (
@@ -669,10 +689,10 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   const historyTile = tile(['verstehen'], `tile-history ${narrow ? 't-half' : 't-w2'}`, FEATURE.history, 'Historie öffnen', TILE_HISTORY);
   const threedTile = tile(['erkunden'], `tile-threed ${narrow ? 't-half' : 't-w2'}`, FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen', TILE_THREED);
   // 12 · SEEWETTER (Phase SW, E-SW-8) — auf ≤ 1024 px volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`);
-  // auf Desktop seit 23.10.2026 (Jan) als kompakte Viertel-Kachel in der Reihe 06–09 (`.is-compact`). Seit 10.10.2026 für
+  // auf Desktop seit 23.10.2026 (Jan) in der Reihe 06–09 als Kachel wie Waldbrand (TILE_SEA). Seit 10.10.2026 für
   // alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts (`.tile-sea*` in
   // SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten.
-  const seaTile = seaFlagFrom() && tile(['planen'], narrow ? 'tile-sea' : 'tile-sea t-half is-compact', FEATURE.sea, 'Seewetter öffnen',
+  const seaTile = seaFlagFrom() && (!narrow ? tile(['planen'], 'tile-coast t-half', FEATURE.sea, 'Seewetter öffnen', TILE_SEA) : tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
         <>
           <div className="tile-sea-text">
             <div className="tile-sea-head">
@@ -734,7 +754,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </svg>
             <span className="tile-map-tag">DWD CWAM · BUSCOSUN FUSION · NORD- UND OSTSEE</span>
           </div>
-        </>, narrow ? SW_TILE_STYLE : undefined);
+        </>, SW_TILE_STYLE));
   // 13 · GLETSCHER (Phase GL) — auf ≤ 1024 px volle Breite hinter Seewetter, Stellung inline (`order: 13`); auf Desktop
   // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
   // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
