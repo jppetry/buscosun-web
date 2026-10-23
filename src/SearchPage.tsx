@@ -33,6 +33,7 @@ import FireIcon from './FireIcon';
 import GlacierIcon from './GlacierIcon';
 import SeaIcon from './SeaIcon';
 import RoadIcon from './RoadIcon';
+import RouteHikerIcon from './RouteHikerIcon';
 // DACH-Karte im Hintergrund lazy: hält den Startseiten-Bundle schlank (eigener Chunk).
 const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
@@ -855,10 +856,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             <span className="tile-badge badge-mono-ghost">E-BIKE</span>
           </div>
           <p className="tile-desc on-ink">GPX/TCX/FIT/KML hochladen — Wind, Regen und Temperatur pro km zur echten Ankunftszeit. 8 Bewegungsarten, E-Bike-Akku-Reichweite, Pausenplanung, Rücken-/Gegenwind.</p>
-          <svg viewBox="0 0 520 70" preserveAspectRatio="none" className="tile-route-svg" aria-hidden="true">
-            <path d="M0 56 L70 38 L140 48 L210 18 L290 32 L360 22 L440 40 L520 12" fill="none" stroke="var(--amber-500)" strokeWidth="2.5" />
-            <circle cx="210" cy="18" r="4" fill="var(--terracotta-500)" /><circle cx="440" cy="40" r="4" fill="var(--steel-600)" />
-          </svg>
+          <RouteHikerIcon />
         </>)}
 
       {/* 03 · EVENT-PLANUNG — weiß, span 2 */}
