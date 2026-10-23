@@ -4363,9 +4363,11 @@ export default function MapView({
         const el = document.createElement('div');
         el.className = 'temp-label';
         el.style.opacity = '0';
-        // Windy-Stil: kleiner Standort-Punkt + reine, eingefärbte Zahl.
-        el.innerHTML = `<span class="temp-label-dot"></span><span class="temp-label-val"></span>`;
-        m = new maplibregl.Marker({ element: el, anchor: 'center' })
+        // Windy-Stil: kleiner Standort-Punkt + reine, eingefärbte Zahl. Die Zahl steht LINKS vom Punkt (Jan,
+        // 2026-10-23): rechts davon steht der Ortsname der Basiskarte (`weatherLabelContrast`), beide decken sich nie.
+        // Anker rechts + 2 px Versatz = der 4-px-Punkt liegt mittig auf dem Ort.
+        el.innerHTML = `<span class="temp-label-val"></span><span class="temp-label-dot"></span>`;
+        m = new maplibregl.Marker({ element: el, anchor: 'right', offset: [2, 0] })
           .setLngLat([lng, lat])
           .addTo(map);
         // Auf den nächsten Frame warten, dann opacity freigeben → Transition greift.

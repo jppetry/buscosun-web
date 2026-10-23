@@ -49,8 +49,14 @@ export const ORIENTATION_LAYER_IDS = [
   'wx-orient-urban', 'wx-orient-water', 'wx-orient-river', 'wx-orient-road', 'wx-orient-road-primary', 'wx-orient-place',
 ] as const;
 
-/** Place and water labels: cream text on an ink halo instead of grey on a thin black one; the style's tiny grey
- *  city sprite (z < 9) gives way to `wx-orient-place`. Idempotent — runs on every `style.load`. */
+/** The point-place layers (settlements) — not states or countries, those label an area. */
+const SETTLEMENT_LAYERS = new Set(['place_city_large', 'place_city', 'place_town', 'place_village', 'place_suburb', 'place_other']);
+
+/** Place and water labels: cream text on an ink halo instead of grey on a thin black one. Settlement names sit to
+ *  the RIGHT of their point at every zoom (the style centres them from z8/9): the city temperature of the
+ *  Wetterkarte (`temp-label`, number LEFT of the point) and the name never cover each other, and the point itself
+ *  is drawn by `wx-orient-place` — the style's tiny grey sprite gives way to it. Idempotent, runs on every
+ *  `style.load`. */
 export function weatherLabelContrast(map: maplibregl.Map) {
   for (const l of map.getStyle()?.layers ?? []) {
     if (l.type !== 'symbol') continue;
@@ -61,7 +67,12 @@ export function weatherLabelContrast(map: maplibregl.Map) {
       map.setPaintProperty(l.id, 'text-halo-color', INK);
       map.setPaintProperty(l.id, 'text-halo-width', big ? 2 : minor ? 1.3 : 1.6);
       map.setPaintProperty(l.id, 'text-halo-blur', 0.5);
-      if (l.id === 'place_city' || l.id === 'place_city_large') map.setPaintProperty(l.id, 'icon-opacity', 0);
+      if (SETTLEMENT_LAYERS.has(l.id)) {
+        map.setLayoutProperty(l.id, 'text-anchor', 'left');
+        map.setLayoutProperty(l.id, 'text-justify', 'left');
+        map.setLayoutProperty(l.id, 'text-offset', [0.6, 0.15]);
+        map.setPaintProperty(l.id, 'icon-opacity', 0);
+      }
     } else if (l.id === 'water_name') {
       map.setPaintProperty(l.id, 'text-color', '#BFD4E6');
       map.setPaintProperty(l.id, 'text-halo-color', INK);
@@ -109,14 +120,18 @@ export function addOrientationLayers(map: maplibregl.Map, beforeId: string | und
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': 'rgba(255,255,255,0.28)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.6, 14, 1.6] },
   });
-  // A dot per city while its label sits beside the point (the style anchors it left below z8/9); above that the
-  // urban veil carries the shape and the label is centred on the point.
+  // The settlement point itself: its name sits to the right of it (`weatherLabelContrast`), the city temperature
+  // to the left. Cities and towns at every zoom, villages from z10 (where the style names them).
   add({
-    id: 'wx-orient-place', type: 'circle', source: TILES, 'source-layer': 'place', maxzoom: 9,
-    filter: ['all', ['match', ['geometry-type'], ['Point', 'MultiPoint'], true, false], ['==', ['get', 'class'], 'city']],
+    id: 'wx-orient-place', type: 'circle', source: TILES, 'source-layer': 'place',
+    filter: ['all', ['match', ['geometry-type'], ['Point', 'MultiPoint'], true, false], ['match', ['get', 'class'], ['city', 'town', 'village'], true, false]],
     paint: {
       'circle-color': CREAM, 'circle-stroke-color': INK, 'circle-stroke-width': 1.2,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2, 8, 3.4],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'],
+        4, ['match', ['get', 'class'], 'city', 2, 'town', 1.4, 0],
+        8, ['match', ['get', 'class'], 'city', 3.4, 'town', 2.4, 0],
+        10, ['match', ['get', 'class'], 'city', 3.8, 'town', 2.8, 1.8],
+      ],
     },
   });
 }
