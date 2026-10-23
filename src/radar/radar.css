@@ -180,26 +180,33 @@
 .nc-radar-leg-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ink-800, #3A3833); }
 .nc-radar-leg-item i { width: 0.9rem; height: 0.5rem; border-radius: 3px; }
 
-/* Legende als gruppierte Karte: Intensität als Segmentleiste, Schnee/Graupel/Hagel als Verlauf, Schneefallgrenze als Abschnitt. */
+/* Legende als schmale Leiste am Kartenrand (Jan 23.10.2026, vorher waagerechte Karte): Intensität als senkrechte
+   Skala (extrem oben), Schnee/Graupel/Hagel als Verlauf, Schneefallgrenze als Abschnitt; deren Statuszeile ist auf zwei
+   Zeilen gekürzt und klappt beim Überfahren ganz auf (der volle Text bleibt im DOM). */
 .nc-radar-legend.rl {
-  flex-direction: column; flex-wrap: nowrap; gap: 0.55rem; width: max-content; max-width: min(26rem, calc(100% - 1.3rem));
-  padding: 0.6rem 0.75rem 0.65rem; border-radius: 12px; font-variant-numeric: tabular-nums;
+  flex-direction: column; flex-wrap: nowrap; gap: 0.45rem; width: max-content; max-width: 11rem;
+  padding: 0.5rem 0.6rem 0.55rem; border-radius: 11px; font-variant-numeric: tabular-nums;
 }
-.rl-sec + .rl-sec { padding-top: 0.5rem; border-top: 1px solid rgba(224,214,190,0.7); }
-.rl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.35rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-900, #2C2A26); }
+.rl-sec + .rl-sec { padding-top: 0.45rem; border-top: 1px solid rgba(224,214,190,0.7); }
+.rl-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.1rem 0.5rem; margin-bottom: 0.3rem; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-900, #2C2A26); }
 .rl-head span { font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--stone-500, #8B7355); }
-.rl-scale { display: grid; grid-template-columns: repeat(5, minmax(3.6rem, 1fr)); gap: 3px; }
-.rl-seg { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.rl-seg i { height: 0.5rem; border-radius: 3px; margin-bottom: 0.25rem; }
-.rl-seg:first-child i { border-radius: 5px 3px 3px 5px; }
-.rl-seg:last-child i { border-radius: 3px 5px 5px 3px; }
-.rl-seg b { font-size: 0.7rem; font-weight: 600; line-height: 1.15; color: var(--ink-800, #3A3833); white-space: nowrap; }
-.rl-seg small { font-size: 0.62rem; color: var(--stone-500, #8B7355); }
+.rl-scale { display: flex; flex-direction: column-reverse; }
+.rl-seg { display: grid; grid-template-columns: 0.5rem 4.3rem auto; align-items: center; column-gap: 0.45rem; min-width: 0; height: 1.02rem; }
+.rl-seg i { align-self: stretch; }
+.rl-seg:first-child i { border-radius: 0 0 4px 4px; }
+.rl-seg:last-child i { border-radius: 4px 4px 0 0; }
+.rl-seg b { font-size: 0.66rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
+.rl-seg small { font-size: 0.6rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
 .rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.2rem; }
-.rl-grad i { grid-column: 1 / -1; height: 0.5rem; border-radius: 5px; }
-.rl-grad small { font-size: 0.62rem; color: var(--stone-500, #8B7355); }
-.rl-sk { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; }
-.rl-sk .sk-leg-status { flex-basis: 100%; margin-top: 0.1rem; font-size: 0.62rem; line-height: 1.35; color: var(--stone-500, #8B7355); }
+.rl-grad i { grid-column: 1 / -1; height: 0.45rem; border-radius: 5px; }
+.rl-grad small { font-size: 0.6rem; color: var(--stone-500, #8B7355); }
+.rl-sk { display: flex; flex-direction: column; gap: 0.22rem; }
+.rl-sk .nc-radar-leg-item { font-size: 0.64rem; line-height: 1.2; }
+.rl-sk .sk-leg-status {
+  flex-basis: auto; margin-top: 0.1rem; font-size: 0.6rem; line-height: 1.35; color: var(--stone-500, #8B7355);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.nc-radar-legend.rl:hover .rl-sk .sk-leg-status { -webkit-line-clamp: unset; }
 .rl-sk .sk-leg-status.sk-warn { color: #8B4A1F; }
 
 /* Niederschlagsart-Hinweis (Schneefallgrenze) */
