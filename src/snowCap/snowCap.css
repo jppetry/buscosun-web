@@ -11,6 +11,8 @@
 @media (max-width: 767px) {
   /* above the "Punktabfrage" pill (bottom: 34vh + 12px), clear of the search bar and source chips at the top */
   .rm-map .nc-radar-snownote.sk-legend-m { display: block; top: auto; bottom: calc(34vh + 64px); left: 12px; max-width: calc(100% - 24px); font-size: 0.64rem; }
+  /* Der Statussatz (Quelle, Lauf, Gültigkeit) entfällt mobil; Hinweise auf fehlende Daten (.sk-warn) bleiben. */
+  .rm-map .nc-radar-snownote.sk-legend-m:not(.sk-warn) { display: none; }
 }
 
 /* Place tile (readout under the Minutenverlauf, mobile Schnellblick) — Command-Deck tile classes from minuteSeries.css, snow accent. */

@@ -360,3 +360,10 @@
 .rm-done { width: 100%; margin-top: 20px; background: var(--steel-600, #3A6FA8); color: #fff; border: 0; border-radius: 15px;
   padding: 18px; font-family: var(--rm-font); font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-card); }
 .rm-done:active { background: var(--nc-blue-dark, #28507A); }
+
+/* Mobil entfallen (Jans Auftrag 2026-10-23): die Pille „Punktabfrage & Datenqualität" auf der Karte und der Chip
+   „Über diese Ansicht" (RouteSeoBlock) des Regenradars. Die Quellen-Pille `.rm-sourcepill` ist aus dem Markup. */
+.rm-map .nc-radar-morebox { display: none; }
+@media (max-width: 767px) {
+  .rsb[data-route="regenradar"] { display: none; }
+}

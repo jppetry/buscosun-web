@@ -393,12 +393,6 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Hineinzoomen"><PlusIcon /></button>
             <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Herauszoomen"><MinusIcon /></button>
           </div>
-          {nowcast && (
-            <div className="rm-sourcepill">
-              <span className="rm-src-dot" />
-              {nowcast.hasRadar ? 'RADOLAN-RV · 1 km' : nowcast.nwpSource === 'cube' ? 'buscosun Fusion' : 'ICON-D2 · 2,2 km'} · Lauf {fmtClock(nowcast.runAtMs || nowcast.fetchedAtMs)}
-            </div>
-          )}
           <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
             layers={layers} toggleLayer={toggleLayer} location={location}
