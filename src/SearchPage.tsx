@@ -99,8 +99,10 @@ const FEATURE: Record<string, FeatureInfo> = {
  * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
  */
 const TOOL_TILE_COUNT = 13;
+/** Kachel „Konfidenz & Modelle“ vorerst ausgeblendet (Jan, 2026-10-23); die Seite bleibt über Palette und Rail erreichbar. */
+const FORECAST_TILE_HIDDEN = true;
 /** Autobahnwetter- und Seewetter-Kachel zählen, solange ihr Flag an ist (`ROAD_LIVE`/`SEA_LIVE`; `?road=0`, `?sea=0` blenden aus). */
-const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1) - (glacierFlagFrom() ? 0 : 1);
+const toolTileCount = () => TOOL_TILE_COUNT - (FORECAST_TILE_HIDDEN ? 1 : 0) - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1) - (glacierFlagFrom() ? 0 : 1);
 /** Autobahnwetter-Kachel: hinter allen Tablet-Rängen (`order` 1–10 in SearchPage.css) und über die volle Breite —
  *  inline, weil SearchPage.css für diese Phase unverändert bleibt (E-AW-5). */
 const AW_TILE_STYLE: CSSProperties = { order: 11, gridColumn: '1 / -1' };
@@ -290,7 +292,7 @@ function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; 
     <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage, Autobahnwetter">
       {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
-      {tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
+      {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
       {roadFlagFrom() && tile(['planen'], 'tile-road q-tile', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}
     </div>
   );
@@ -711,7 +713,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
         <>
           {tile(['erkunden'], 'tile-fire', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
           {tile(['radar'], 'tile-nowcast', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
-          {tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
+          {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
         </>
       )}
 
