@@ -545,39 +545,33 @@
 }
 .tile-sea-preview svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* Seewetter (Slot 12) auf Desktop seit 23.10.2026 (Jan): Kachel wie Waldbrand und Gletscher. Wellen-Glyphe
-   (src/SeaIcon.tsx), reduziert wie Flamme und Gletscher: eine brechende Welle schwillt, die innere Schicht läuft
-   phasenversetzt, Gischt steigt vom Kamm auf, die kleinen Wellen rechts wiegen, der Leuchtturm links blinkt.
-   Ohne prefers-reduced-motion-Ausnahme, wie Radar/Globus/Flamme. */
+   (src/SeaIcon.tsx) aufgebaut wie die Flamme: drei Wellenschichten schwellen phasenversetzt, Gischt steigt auf wie Glut,
+   ein weicher Schein atmet, die nassen Dünen neben der Welle glänzen. Ohne prefers-reduced-motion-Ausnahme, wie die Flamme. */
 .tile-coast { justify-content: space-between; min-height: 210px; padding: 22px; }
 .tile-coast-art { flex: 1 1 auto; min-height: 64px; display: flex; align-items: center; justify-content: center; margin: 6px 0 10px; }
 .tile-coast-svg { overflow: visible; width: min(100%, 236px); height: auto; aspect-ratio: 148 / 64; }
-.tile-coast-outer, .tile-coast-inner { transform-origin: 32px 58px; animation: deck-coast-surge 3.4s ease-in-out infinite; }
-.tile-coast-inner { animation-duration: 2.6s; animation-delay: -1s; }
+.tile-coast-outer, .tile-coast-inner, .tile-coast-core { transform-origin: 32px 58px; animation: deck-coast-surge 2.8s ease-in-out infinite; }
+.tile-coast-inner { animation-duration: 2.1s; animation-delay: -.6s; }
+.tile-coast-core { animation-duration: 1.6s; animation-delay: -.3s; transform-origin: 52px 58px; }
+.tile-coast-crest { fill: #F5FBFB; fill-opacity: .9; transform-origin: 32px 58px; animation: deck-coast-surge 2.8s ease-in-out infinite; }
+.tile-coast-core { fill: #F5FBFB; stroke: #A9DCE0; stroke-width: .6; stroke-linejoin: round; }
 @keyframes deck-coast-surge {
   0%, 100% { transform: scale(1, 1) skewX(0deg); }
-  50% { transform: scale(1.03, .96) skewX(-2.5deg); }
+  30% { transform: scale(.97, 1.04) skewX(-2deg); }
+  65% { transform: scale(1.03, .96) skewX(1.5deg); }
 }
-.tile-coast-foam { fill: none; stroke: #F5FBFB; stroke-opacity: .9; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transform-origin: 32px 58px; animation: deck-coast-surge 3.4s ease-in-out infinite; }
-.tile-coast-glow { transform-origin: 32px 36px; animation: deck-coast-glow 3.4s ease-in-out infinite; }
+.tile-coast-glow { transform-origin: 32px 38px; animation: deck-coast-glow 2.8s ease-in-out infinite; }
 @keyframes deck-coast-glow { 0%, 100% { opacity: .6; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.06); } }
-.tile-coast-spray { fill: #7FC4CC; opacity: 0; animation: deck-coast-spray 2.6s ease-out infinite; }
+.tile-coast-spray { fill: #5FB7C2; opacity: 0; animation: deck-coast-spray 2.6s ease-out infinite; }
 .tile-coast-spray-b { animation-delay: -.9s; animation-duration: 3s; }
 .tile-coast-spray-c { animation-delay: -1.7s; animation-duration: 2.2s; }
-@keyframes deck-coast-spray { 0% { opacity: 0; transform: translate(0, 4px); } 20% { opacity: .95; } 100% { opacity: 0; transform: translate(4px, -10px); } }
-.tile-coast-drip { fill: #F5FBFB; opacity: 0; animation: deck-coast-drip 2.2s ease-in infinite; }
-@keyframes deck-coast-drip { 0% { opacity: 0; transform: translateY(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px); } }
-.tile-coast-swell { opacity: .9; animation: deck-coast-bob 3s ease-in-out infinite; }
-.tile-coast-swell-back { opacity: .5; animation-duration: 3.8s; animation-delay: -1.2s; }
-@keyframes deck-coast-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
-.tile-coast-minifoam { fill: none; stroke: #F5FBFB; stroke-opacity: .9; stroke-width: 2.4; stroke-linecap: round; }
-.tile-coast-dune { fill: var(--sand-200); }
-.tile-coast-grass { fill: none; stroke: var(--sage-600); stroke-width: .9; stroke-linecap: round; }
-.tile-coast-tower { fill: #FAF6EA; stroke: var(--ink-900); stroke-opacity: .3; stroke-width: .4; stroke-linejoin: round; }
-.tile-coast-band { fill: var(--terracotta-500); }
-.tile-coast-gallery, .tile-coast-roof { fill: var(--ink-900); }
-.tile-coast-lamp { fill: #FFD27A; animation: deck-coast-lamp 2.8s ease-in-out infinite; }
-@keyframes deck-coast-lamp { 0%, 100% { fill: #E0A23C; } 45%, 55% { fill: #FFF3D6; } }
-.tile-coast-ground { fill: none; stroke: var(--border-strong); stroke-opacity: .7; stroke-width: 1; stroke-linecap: round; }
+@keyframes deck-coast-spray { 0% { opacity: 0; transform: translate(0, 6px); } 20% { opacity: .95; } 100% { opacity: 0; transform: translate(3px, -16px); } }
+.tile-coast-dune { fill: var(--border-strong); opacity: .9; }
+.tile-coast-dune-back { opacity: .45; }
+.tile-coast-dune-wet { animation: deck-coast-wet 2.8s ease-in-out infinite; }
+@keyframes deck-coast-wet { 0%, 100% { opacity: .82; } 50% { opacity: 1; } }
+.tile-coast-grass { fill: none; stroke: var(--sage-600); stroke-opacity: .85; stroke-width: .9; stroke-linecap: round; }
+.tile-coast-ground { fill: none; stroke: var(--border-strong); stroke-opacity: .6; stroke-width: 1; stroke-linecap: round; }
 
 /* Gletscher (Slot 13) auf Desktop seit 23.10.2026 (Jan): Kachel wie Waldbrand. Gletscher-Glyphe (src/GlacierIcon.tsx):
    die Zunge fließt — ein Lichtschimmer gleitet über das Eis, Spalten wandern talwärts, Schmelzwasser tropft in den See,

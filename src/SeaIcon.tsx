@@ -1,78 +1,79 @@
 /**
- * Wave glyph of the Seewetter tile on the start page, in the reduced style of the flame (src/FireIcon.tsx)
- * and the glacier (src/GlacierIcon.tsx): one breaking wave in the middle, flanked by a dune with a
- * lighthouse on the left and two smaller waves on the right. Pure SVG + CSS (.tile-coast-*): the wave
- * surges, its inner layer swells out of phase, spray rises off the crest, the swells bob and the lamp
- * blinks. No JS, no per-frame work.
+ * Wave glyph of the Seewetter tile on the start page, composed like the flame of the Waldbrand tile
+ * (src/FireIcon.tsx): one layered breaking wave with whitewater at its foot in the middle, flanked on both sides by a stand of
+ * three dunes with beach grass that shrink and pale outwards; the two dunes next to the wave are wet
+ * on their inner side. Pure SVG + CSS (.tile-coast-*): the wave layers surge out of phase, a soft
+ * glow breathes, spray rises off the crest and the wet sand glistens. No JS, no per-frame work.
  */
+const stop = (v: string) => ({ stopColor: `var(${v})` });
+
 const GROUND = 58;
 
-/** Breaking wave in its own 64×64 box (base on y 58): body, light inner layer and foam band inside the crest. */
-const WAVE_OUTER = 'M4 58C12 51 18 38 26 28C32 20 40 13 49 13C56 13 60 18 58 23.5C56.5 27.5 51.5 28 50 24.5C49 22 45.5 21.5 43.5 25C40 31 44 42 52 48.5C55.5 51.5 58.5 54.5 60 58Z';
-const WAVE_INNER = 'M15 58C20 50 24 41 30 33C34.5 27 40 22 46 20.5C42 25 39.5 31 40.5 38C41.5 45 46 51 50 58Z';
-const WAVE_FOAM = 'M29 27.5C34.5 20.5 41.5 16 48.5 15.8C53.5 15.6 56.6 18.4 56.2 21.8';
+/** Dune hump standing on the ground line at x. */
+function dune(x: number, w: number, h: number): string {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return `M${r(x - w / 2)} ${GROUND}C${r(x - w / 3.2)} ${r(GROUND - h * 1.3)} ${r(x + w / 3.2)} ${r(GROUND - h * 1.3)} ${r(x + w / 2)} ${GROUND}Z`;
+}
 
-/** A smaller copy of the wave standing on the ground line at x (like the smaller trees beside the flame). */
-function miniWave(x: number, scale: number, cls: string) {
-  return (
-    <g transform={`translate(${x} ${GROUND - GROUND * scale}) scale(${scale})`}>
-      {/* The CSS animation sits on the inner group so it does not replace the placement transform. */}
-      <g className={cls}>
-        <path fill="url(#coast-wave-outer)" d={WAVE_OUTER} />
-        <path fill="url(#coast-wave-inner)" d={WAVE_INNER} />
-        <path className="tile-coast-minifoam" d={WAVE_FOAM} />
-      </g>
-    </g>
-  );
+/** Tuft of beach grass on the top of a dune at x (top y). */
+function grass(x: number, top: number, h: number): string {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return `M${r(x - 1)} ${r(top + 0.6)}l${r(-h * 0.35)} ${r(-h)}M${r(x)} ${r(top + 0.4)}l${r(h * 0.05)} ${r(-h * 1.15)}M${r(x + 1)} ${r(top + 0.6)}l${r(h * 0.4)} ${r(-h * 0.9)}`;
 }
 
 export default function SeaIcon() {
   return (
     <svg className="tile-coast-svg" width="148" height="64" viewBox="0 0 148 64" aria-hidden="true">
       <defs>
-        <linearGradient id="coast-wave-outer" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#2A9AA6" />
+        <linearGradient id="coast-outer" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5FB7C2" />
+          <stop offset="0.55" stopColor="#2A9AA6" />
           <stop offset="1" stopColor="#1C5F6B" />
         </linearGradient>
-        <linearGradient id="coast-wave-inner" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#A9DCE0" />
+        <linearGradient id="coast-inner" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#CDEBEE" />
+          <stop offset="1" stopColor="#5FB7C2" />
+        </linearGradient>
+        <radialGradient id="coast-glow" cx="50%" cy="62%" r="50%">
+          <stop offset="0" stopColor="#5FB7C2" stopOpacity="0.34" />
+          <stop offset="1" stopColor="#5FB7C2" stopOpacity="0" />
+        </radialGradient>
+        {/* Wet dunes: dry sand on the far side, sea-wet towards the wave. */}
+        <linearGradient id="coast-dune-wet-l" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0.3" style={stop('--border-strong')} />
           <stop offset="1" stopColor="#2A9AA6" />
         </linearGradient>
-        <radialGradient id="coast-glow" cx="50%" cy="60%" r="50%">
-          <stop offset="0" stopColor="#7FC4CC" stopOpacity="0.38" />
-          <stop offset="1" stopColor="#7FC4CC" stopOpacity="0" />
-        </radialGradient>
+        <linearGradient id="coast-dune-wet-r" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0.3" style={stop('--border-strong')} />
+          <stop offset="1" stopColor="#2A9AA6" />
+        </linearGradient>
       </defs>
       {/* Own viewport keeps the wave's 64×64 coordinates (CSS transform-origin) unchanged, like the flame. */}
       <svg x="42" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="visible">
-        <circle className="tile-coast-glow" cx="32" cy="36" r="30" fill="url(#coast-glow)" />
+        <circle className="tile-coast-glow" cx="34" cy="36" r="31" fill="url(#coast-glow)" />
         <path
           className="tile-coast-outer"
-          fill="url(#coast-wave-outer)"
-          d={WAVE_OUTER}
+          fill="url(#coast-outer)"
+          d="M8 58C9 44 15 30 24 20C31 12 40 5 50 5C57.5 5 61 11 59 16.5C57.5 20.5 52.5 21.5 50.5 18C49.2 15.8 46 16 44 19.5C40 26 41.5 37 48 46C51.5 51 55 54.5 57 58Z"
         />
         <path
           className="tile-coast-inner"
-          fill="url(#coast-wave-inner)"
-          d={WAVE_INNER}
+          fill="url(#coast-inner)"
+          d="M17 58C18.5 47 23 37 29.5 28.5C34 22.5 39.5 18 45 16.5C40 22 37.8 29 38.6 37C39.5 45 43 52 46 58Z"
         />
-        <path className="tile-coast-foam" d={WAVE_FOAM} />
-        <circle className="tile-coast-drip" cx="51" cy="28" r="1" />
-        <circle className="tile-coast-spray" cx="52" cy="11" r="1.3" />
-        <circle className="tile-coast-spray tile-coast-spray-b" cx="58" cy="15" r="1" />
-        <circle className="tile-coast-spray tile-coast-spray-c" cx="45" cy="10" r="1.1" />
+        <path className="tile-coast-crest" d="M27.5 21.5C33.5 13.5 41.5 8.2 49.5 7.8C54.8 7.6 57.6 10.8 56.8 14.6C55.4 11.9 52.6 10.8 49.4 11C42.4 11.5 34.8 15.8 27.5 21.5Z" />
+        {/* Core: whitewater where the wave crashes, in the place of the flame's bright core */}
+        <path className="tile-coast-core" d="M37 58C37.5 55.6 40 54.2 42.5 54.8C43.6 52.2 46.6 51 49.2 52.2C50.8 49.8 54.6 49.6 56.4 52C58.8 51.2 61.8 52.8 62.2 55.4C63.6 55.6 64.4 56.8 64 58Z" />
+        <circle className="tile-coast-spray" cx="46" cy="6" r="1.3" />
+        <circle className="tile-coast-spray tile-coast-spray-b" cx="55" cy="50" r="1.1" />
+        <circle className="tile-coast-spray tile-coast-spray-c" cx="52" cy="3" r="1" />
       </svg>
-      {/* Left: dune with beach grass and a lighthouse */}
-      <path className="tile-coast-dune" d={`M4 ${GROUND}C10 50 18 46 26 46C32 46 37 51 40 ${GROUND}Z`} />
-      <path className="tile-coast-grass" d="M10 51l-1.5-3.6M12 49.6l.4-4M30 47l1.6-3.6M33 48.4l2-3" />
-      <path className="tile-coast-tower" d="M18.6 46.6L19.8 30h4.4l1.2 16.6z" />
-      <path className="tile-coast-band" d="M19.4 35h5.2l.3 3.6h-5.8zM19 41.6h6l.3 3.4h-6.6z" />
-      <path className="tile-coast-gallery" d="M18.8 29.4h6.4v1.2h-6.4z" />
-      <rect className="tile-coast-lamp" x="20.4" y="25.6" width="3.2" height="3.8" rx="0.6" />
-      <path className="tile-coast-roof" d="M19.6 25.8L22 23.2l2.4 2.6z" />
-      {/* Right: two smaller waves, the far one paler */}
-      {miniWave(126, 0.32, 'tile-coast-swell tile-coast-swell-back')}
-      {miniWave(108, 0.46, 'tile-coast-swell')}
+      {/* Dune stands: pale far dunes, full middle dunes with grass, wet inner dunes */}
+      <path className="tile-coast-dune tile-coast-dune-back" d={dune(10, 18, 13) + dune(138, 18, 14)} />
+      <path className="tile-coast-dune" d={dune(25, 28, 21) + dune(123, 28, 22)} />
+      <path className="tile-coast-grass" d={grass(22, 37.9, 10) + grass(29, 39.6, 7) + grass(120, 36.9, 10) + grass(127, 38.6, 7)} />
+      <path className="tile-coast-dune-wet" fill="url(#coast-dune-wet-l)" d={dune(41.5, 20, 15)} />
+      <path className="tile-coast-dune-wet" fill="url(#coast-dune-wet-r)" d={dune(106.5, 20, 15.5)} />
       <path className="tile-coast-ground" d={`M2 ${GROUND + 0.5}H146`} />
     </svg>
   );
