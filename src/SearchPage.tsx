@@ -691,7 +691,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // auf Desktop seit 23.10.2026 (Jan) in der Reihe 06–09 als Kachel wie Waldbrand (TILE_SEA). Seit 10.10.2026 für
   // alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts (`.tile-sea*` in
   // SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten.
-  const seaTile = seaFlagFrom() && (!narrow ? tile(['planen'], 'tile-coast t-w2', FEATURE.sea, 'Seewetter öffnen', TILE_SEA) : tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
+  const seaTile = seaFlagFrom() && (!narrow ? tile(['planen'], 'tile-coast t-half', FEATURE.sea, 'Seewetter öffnen', TILE_SEA) : tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
         <>
           <div className="tile-sea-text">
             <div className="tile-sea-head">
@@ -758,7 +758,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
   // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
   // Zeichnung, kein Datenbild). Lädt keine Daten.
-  const glacierTile = glacierFlagFrom() && (!narrow ? tile(['planen'], 'tile-glacier t-w2', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER) : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
+  const glacierTile = glacierFlagFrom() && (!narrow ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER) : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
         <>
           <div className="tile-gl-text">
             <div className="tile-gl-head">
