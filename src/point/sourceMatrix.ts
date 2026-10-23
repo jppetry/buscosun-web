@@ -669,6 +669,10 @@ export const SCHEDULED_CHANGES: readonly ScheduledChange[] = Object.freeze([
     on: '2026-10-20', what: 'DWD schaltet die Altformate der Radarprodukte ab (RADOLAN-Binär; HDF5 bleibt), 08 UTC',
     action: 'RV aus composite_rv_<JJJJMMTT>_<HHMM>.tar (ODIM-HDF5) lesen: Spiegel, Ableitung, Client-Rohweg, Nowcast-Leser',
     affects: ['dwd_rv'], improvement: 'V-EX-3',
+    resolved: Object.freeze({
+      on: '2026-10-23',
+      evidence: 'gemessen 23.10. ≈ 06:30 UTC: opendata.dwd.de/weather/radar/radolan/rv/ antwortet 404, …/composite/rv/ liefert composite_rv_<JJJJMMTT>_<HHMM>.tar (ODIM-HDF5) im 5-min-Takt; der Spiegel liest HDF5 seit EX-3 (30.09.) und schreibt frische RV-Slots (road/v1 hz.inputs.rv 2610230620); der Client versucht HDF5 zuerst (radolanDecode.ts). Ohne diesen Eintrag stand der Punkt-Cron ab 19.10. 13:02 UTC (audit/autobahnwetter.md §19.12)',
+    }),
   }),
   Object.freeze({
     on: '2026-11-30', what: 'DWD: altes URL-Schema für ICON(-EPS), ICON-EU(-EPS), ICON-D2(-EPS) endet; danach nur noch Dreiecksgitter unter /weather/nwp/v1/m/, Member als Einzeldateien, CCSDS statt bz2',
