@@ -22,7 +22,6 @@ import { loadLastView } from '../radar/radarState';
 import { freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastRadarMap from './NowcastRadarMap';
-import NowcastRainSlider from './NowcastRainSlider';
 import { AlpineCard } from './NowcastDetail';
 import { useIsMobile } from '../mobile/useIsMobile';
 import './nowcastDeck.css';
@@ -108,7 +107,7 @@ const DECK_LAYERS: Array<{ id: RadarLayerId; label: string; sub: string; color: 
 function shortPlace(name: string): string { return name.split(',')[0]; }
 
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
-type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail' | 'height' | '3d';
+type MobileTab = 'glance' | 'events' | 'chart' | 'layer' | 'detail' | 'height' | '3d';
 /** Ansicht der Bühne; `height` = „Karte + Höhe" (Phase HZS, nur `?hzs=1`). */
 type DeckView = 'map' | 'height';
 
@@ -558,7 +557,7 @@ function TabDetailIcon() { return <svg width="23" height="23" viewBox="0 0 24 24
 // --- Bottom-Tab-Bar (fix am unteren Rand, über dem Panel-Sheet) -------------
 const MOBILE_TABS: Array<{ id: MobileTab; label: string; icon: ReactNode }> = [
   { id: 'glance', label: 'Schnellblick', icon: <TabGlanceIcon /> },
-  { id: 'timeline', label: 'Zeitachse', icon: <TabTimelineIcon /> },
+  { id: 'events', label: 'Ereignisse', icon: <TabTimelineIcon /> },
   { id: 'chart', label: 'Diagramm', icon: <TabChartIcon /> },
   { id: 'layer', label: 'Layer', icon: <TabLayerIcon /> },
   { id: 'detail', label: 'Detail', icon: <TabDetailIcon /> },
@@ -632,7 +631,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, onClose, nowcast, state, mode
   };
 
   // Layer, Diagramm und 3D sind ganze Seiten (Jans Aufträge 2026-10-23): kein Ziehen, X oben rechts; ein Tipp auf ein anderes Symbol der Leiste wechselt.
-  const isPage = tab === 'layer' || tab === 'chart' || tab === '3d';
+  const isPage = tab === 'layer' || tab === 'chart' || tab === '3d' || tab === 'events';
   return (
     <div className={`rm-sheet rm-tabsheet${snap === 'full' ? ' is-full' : ''}${isPage ? ' is-page' : ''}`} style={isPage ? undefined : { height: `${liveVh}vh` }}
       role="region" aria-label={`Bereich ${tab}`}>
@@ -645,7 +644,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, onClose, nowcast, state, mode
       )}
       <div className="rm-sheet-body rm-tabsheet-body">
         {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} chance={chance} cellCard={cellCard} snowCard={snowCard} minuteCard={minuteCard} probeCard={probeCard} />}
-        {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
+        {tab === 'events' && <EventsPanel nowcast={nowcast} state={state} place={place} rainWindow={rainWindow} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} minuteCard={minuteCard} snowCard={snowCard} />}
         {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} country={location.country} snowMode={snowMode} setSnowMode={setSnowMode} sumSel={sumSel} setSumSel={setSumSel} chance={chance} />}
         {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} rainWindow={rainWindow} />}
@@ -692,12 +691,12 @@ function GlancePanel({ nowcast, state, place, rainWindow, chance, cellCard = nul
   );
 }
 
-// --- Panel: Zeitachse (Regenslider) -----------------------------------------
-function TimelinePanel({ nowcast, state, place }: { nowcast: Nowcast | null; state: DeckState; place: string }) {
+// --- Panel: Ereignisse (die Ereignisanzeige der Desktop-App; ersetzt die Zeitachse, Jans Auftrag 2026-10-23) ---
+function EventsPanel({ nowcast, state, place, rainWindow }: { nowcast: Nowcast | null; state: DeckState; place: string; rainWindow: RainWindow | null }) {
   return (
     <>
-      <PanelHead place={place} title="Regenverlauf" />
-      {nowcast ? <NowcastRainSlider nowcast={nowcast} /> : <PanelState state={state} />}
+      <PanelHead place={place} title="Ereignisse" />
+      {nowcast ? <EventsTile nowcast={nowcast} rainWindow={rainWindow} place={place} variant="desktop" full /> : <PanelState state={state} />}
     </>
   );
 }

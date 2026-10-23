@@ -92,7 +92,7 @@ function Eyebrow({ text }: { text: string }) {
   return <span className="mv-eyebrow"><span className="mv-live ed-live" aria-hidden="true"><span /><span /></span>{text}</span>;
 }
 
-export default function EventsTile({ nowcast, rainWindow, place, variant }: { nowcast: Nowcast; rainWindow: RainWindow | null; place: string; variant: 'desktop' | 'mobile' }) {
+export default function EventsTile({ nowcast, rainWindow, place, variant, full = false }: { nowcast: Nowcast; rainWindow: RainWindow | null; place: string; variant: 'desktop' | 'mobile'; full?: boolean }) {
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<6 | 48>(48);
   const ed = useMemo(() => buildEventDetail(nowcast), [nowcast]);
@@ -108,7 +108,7 @@ export default function EventsTile({ nowcast, rainWindow, place, variant }: { no
 
   const s = nowcast.summary;
   // Desktop-Readout (ganz oben in der Seitenleiste): halbe Höhe — drei statt sechs Einträge, der Rest im Detail.
-  const tileItems = ed.items.slice(0, variant === 'desktop' ? TILE_MAX / 2 : TILE_MAX);
+  const tileItems = ed.items.slice(0, variant === 'desktop' && !full ? TILE_MAX / 2 : TILE_MAX);
   const more = ed.items.length - tileItems.length;
   const listed = ed.items.filter((e) => range === 48 || e.tMs <= nowMs + 6 * 60 * MIN);
 
