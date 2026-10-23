@@ -107,7 +107,8 @@ export default function EventsTile({ nowcast, rainWindow, place, variant }: { no
   }, [open]);
 
   const s = nowcast.summary;
-  const tileItems = ed.items.slice(0, TILE_MAX);
+  // Desktop-Readout (ganz oben in der Seitenleiste): halbe Höhe — drei statt sechs Einträge, der Rest im Detail.
+  const tileItems = ed.items.slice(0, variant === 'desktop' ? TILE_MAX / 2 : TILE_MAX);
   const more = ed.items.length - tileItems.length;
   const listed = ed.items.filter((e) => range === 48 || e.tMs <= nowMs + 6 * 60 * MIN);
 
