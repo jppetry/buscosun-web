@@ -24,7 +24,14 @@ import './cellTowers.css';
 const DEM_SRC = 'zt-dem';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
 const HILLSHADE_ID = 'zt-hillshade';
-const STAGE_PITCH = 60;
+/**
+ * Start- und Rücksetz-Ansicht (Jans Auftrag 2026-10-23): flacher (tiefere Kamera) und nach Süden auf die Alpen, wo der meiste
+ * Schnee fällt. Das Ziel liegt am Alpennordrand, damit der Hauptkamm in der oberen Bildhälfte steht und das Vorland davor.
+ */
+const STAGE_PITCH = 68;
+const STAGE_BEARING = 180;
+const ALPS_CENTER: [number, number] = [10.8, 47.4];
+const ALPS_ZOOM = { desktop: 7.4, mobile: 6.8 } as const;
 const ILLUMINATION_DEG = 335;
 const SRC_RADAR = 'zt-radar';
 const SRC_SNOW = 'zt-snow';
@@ -47,7 +54,7 @@ export interface TowerStageProps {
   /** The stage map after terrain + hillshade are set; null on unmount (other modules add their layers there). */
   onStageReady?: (map: maplibregl.Map | null) => void;
   variant: 'desktop' | 'mobile';
-  /** Start centre when there is no main map. */
+  /** Not used any more: the stage starts on the Alps (kept so callers still compile). */
   fallbackCenter: { lat: number; lon: number };
 }
 
@@ -83,7 +90,7 @@ function drapeBoxOf(map: maplibregl.Map): DrapeBox | null {
   return box.east > box.west && box.north > box.south ? box : null;
 }
 
-export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady, variant, fallbackCenter }: TowerStageProps) {
+export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady, variant }: TowerStageProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [ready, setReady] = useState(false);
@@ -98,15 +105,14 @@ export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady,
   useEffect(() => {
     if (!containerRef.current) return;
     if (!supportsWebGL()) { setNoWebgl(true); return; }
-    const main = mainRef.current;
     const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STAGE_STYLE_URL,
-      center: main ? main.getCenter() : [fallbackCenter.lon, fallbackCenter.lat],
-      zoom: main ? main.getZoom() : 8,
+      center: ALPS_CENTER,
+      zoom: ALPS_ZOOM[variant],
       pitch: STAGE_PITCH,
-      bearing: 0,
+      bearing: STAGE_BEARING,
       maxPitch: 80,
       fadeDuration: 0,
       // Same cap as the main map on touch devices (MapView.tsx: coarse pointer ⇒ ≤ 1,5) — the phone has to stay fluid.
@@ -179,7 +185,8 @@ export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady,
       mainMap.jumpTo({ center: stage.getCenter(), zoom: stage.getZoom() });
       fromStage = false;
     };
-    stage.jumpTo({ center: mainMap.getCenter(), zoom: mainMap.getZoom() });
+    // Start auf den Alpen statt am Kartenmittelpunkt; die Hauptkarte bleibt dabei stehen (die Listener hängen noch nicht).
+    stage.jumpTo({ center: ALPS_CENTER, zoom: ALPS_ZOOM[variant] });
     mainMap.on('move', onMain);
     stage.on('move', onStage);
     return () => { mainMap.off('move', onMain); stage.off('move', onStage); };
@@ -273,8 +280,7 @@ export default function TowerStage({ timeMs, snow, mainMap, radar, onStageReady,
   const resetView = () => {
     const map = mapRef.current;
     if (!map) return;
-    const main = mainRef.current;
-    map.easeTo({ pitch: STAGE_PITCH, bearing: 0, ...(main ? { center: main.getCenter(), zoom: main.getZoom() } : {}), duration: 600 });
+    map.easeTo({ pitch: STAGE_PITCH, bearing: STAGE_BEARING, center: ALPS_CENTER, zoom: ALPS_ZOOM[variant], duration: 600 });
   };
 
   return (
