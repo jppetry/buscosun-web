@@ -68,7 +68,8 @@ export default function RouteUpload({ onFile }: Props) {
             <path d="M24 50 Q36 56 48 50" stroke="var(--sage-600)" strokeWidth="1.6" fill="none" />
             <path d="M36 52 V34 M30 40 L36 34 L42 40" stroke="var(--terracotta-500)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <p className="rd-dropzone-title">Strecke hierher ziehen</p>
+          {/* Touch-Geräte kennen kein Ziehen: dort zeigt CSS „Strecke hochladen" statt „hierher ziehen". */}
+          <p className="rd-dropzone-title">Strecke <span className="rd-dz-drag">hierher ziehen</span><span className="rd-dz-pick">hochladen</span></p>
           <span className="rd-dropzone-or">oder</span>
           <span className="rd-dropzone-btn">Datei auswählen</span>
           <p className="rd-dropzone-sub">GPX · TCX · FIT · KML · KMZ · max. 25 MB</p>

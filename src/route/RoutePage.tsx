@@ -220,7 +220,7 @@ export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView, 
       )}
 
       {status.kind === 'parsing' && (
-        <p className="rd-status">„{status.fileName}" wird geprüft und gelesen …</p>
+        <p className="rd-status rd-status--busy" role="status">„{status.fileName}" wird geprüft und gelesen …</p>
       )}
 
       {status.kind === 'error' && (

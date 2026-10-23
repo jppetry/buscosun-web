@@ -97,7 +97,7 @@ export default function RouteResult({ file, format, parsed, onReset, onHome, onO
       {!validation.ok ? (
         <p className="rd-status rd-status--error" role="alert">{validation.message}</p>
       ) : tour.kind === 'working' ? (
-        <p className="rd-status">Strecke wird aufbereitet …</p>
+        <p className="rd-status rd-status--busy" role="status">Strecke wird aufbereitet …</p>
       ) : tour.kind === 'error' ? (
         <p className="rd-status rd-status--error" role="alert">{tour.message}</p>
       ) : tour.kind === 'done' ? (

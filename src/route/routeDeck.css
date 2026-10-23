@@ -558,3 +558,71 @@
     width: 44px; height: 44px; transform: translate(-50%, -50%);
   }
 }
+
+/* ============================================================================
+   Feinschliff Desktop · Tablet · Mobil (23.10.2026)
+   Nur Abstände, Zustände und Umbrüche — Layout und Funktionen bleiben. Steht am
+   Dateiende, damit es bei gleicher Spezifität die Blöcke darüber überschreibt.
+   ============================================================================ */
+
+/* Tastatur-Fokus: die Datei-Eingabe der Dropzone ist unsichtbar, ihre Karte trägt den Ring. */
+:is(.rd-root, .rd-m-root) :is(button, a, [role='radio']):focus-visible { outline: 2px solid var(--terracotta-500); outline-offset: 2px; }
+.rd-dropzone:focus-within { border-color: var(--terracotta-500); outline: 2px solid var(--terracotta-500); outline-offset: 3px; }
+.rd-dropzone:hover { border-color: var(--terracotta-500); background: rgba(201, 123, 71, 0.04); }
+.rd-dz-pick { display: none; }
+
+/* Laufender Schritt: kleiner Kreisel statt nackter Text. */
+.rd-status--busy { display: flex; align-items: center; gap: 10px; }
+.rd-status--busy::before {
+  content: ''; width: 16px; height: 16px; flex: 0 0 auto; border-radius: 50%;
+  border: 2px solid var(--sand-200); border-top-color: var(--terracotta-500);
+  animation: rd-spin 0.8s linear infinite;
+}
+@keyframes rd-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rd-status--busy::before { animation: none; border-top-color: var(--terracotta-500); } }
+
+/* Bewegungsart-Karten: gewählte Karte mit weichem Ring, Hover hebt leicht an. */
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active { box-shadow: 0 0 0 3px rgba(201, 123, 71, 0.14); }
+:is(.rd-root, .rd-m-root) .rt-mvcard:hover:not(.is-active) { transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) { :is(.rd-root, .rd-m-root) .rt-mvcard:hover:not(.is-active) { transform: none; } }
+
+/* Kopfzeile der Konfiguration darf umbrechen (lange Beschreibung neben „andere Art wählen"). */
+.rd-config-head { flex-wrap: wrap; row-gap: 4px; }
+.rd-config-blurb { flex: 1 1 200px; min-width: 0; }
+
+/* ---- Tablet (768–1100): schmalere Formatliste, damit die Dropzone Platz behält ---- */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .rd-formats { width: 280px; padding: 18px; }
+  .rd-result-grid, .rd-analysis-grid--lr, .rd-analysis-grid--rl { gap: 14px; }
+  .rd-result-grid, .rd-analysis-grid--lr { grid-template-columns: minmax(0, 1fr) 300px; }
+  .rd-analysis-grid--rl { grid-template-columns: 300px minmax(0, 1fr); }
+}
+
+/* ---- Tablet hochkant (≤900): Ergebnis, Analyse und Konfiguration einspaltig ---- */
+@media (max-width: 900px) {
+  .rd-result-grid, .rd-analysis-grid--lr, .rd-analysis-grid--rl, .rd-config-cols { grid-template-columns: minmax(0, 1fr); }
+  .rd-mapwrap { height: 400px; }
+  .rd-upload { flex-direction: column; }
+  .rd-formats { width: 100%; }
+  .rd-formats-list { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
+  .rd-format-row { gap: 10px; }
+}
+
+/* ---- Touch-Geräte: „ziehen" gibt es dort nicht ---- */
+@media (hover: none) and (pointer: coarse) {
+  .rd-dz-drag, .rd-dropzone-or { display: none; }
+  .rd-dz-pick { display: inline; }
+}
+
+/* ---- Mobil (≤767): größere Karte, 44-px-Ziele, Notch-Ränder ---- */
+@media (max-width: 767px) {
+  .rd-m-header { padding-left: max(16px, env(safe-area-inset-left, 0)); padding-right: max(16px, env(safe-area-inset-right, 0)); }
+  .rd-m-scroll { padding-left: max(16px, env(safe-area-inset-left, 0)); padding-right: max(16px, env(safe-area-inset-right, 0)); }
+  /* 170 px war für eine Streckenkarte zu knapp: bis zu einem Drittel der Bildschirmhöhe. */
+  .rd-mapwrap { height: clamp(220px, 36dvh, 320px); }
+  .rd-result-title { font-size: 22px; }
+  .rd-track-chip, .rd-filebar-replace, .rd-config-change { min-height: 44px; }
+  .rd-filebar { flex-wrap: wrap; row-gap: 6px; }
+  .rd-filebar-name { flex: 1 1 140px; }
+  :is(.rd-root, .rd-m-root) .tp-seg-btn { min-height: 44px; }
+}
