@@ -124,6 +124,10 @@ import { ageText } from '../dataAge';
 import './fireDeck.css';
 
 /** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
+/** Kopie einer Feature-Sammlung ohne die Einträge, auf die `drop` zutrifft (`null` bleibt `null`). */
+function withoutFeatures(fc: GeoJSON.FeatureCollection | null, drop: (p: GeoJSON.GeoJsonProperties) => boolean): GeoJSON.FeatureCollection | null {
+  return fc ? { ...fc, features: fc.features.filter((f) => !drop(f.properties)) } : null;
+}
 const NO_ZONES: readonly FireZone[] = [];
 const NO_CLUSTERS: readonly FireCluster[] = [];
 /** Saison 1.3.–31.10. (siehe `currentSeasonWindow`) als 0-basierte Monatsindizes. */
@@ -1173,6 +1177,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     for (const l of hide) next.delete(l);
     return next;
   }, [active, onlyKind]);
+  /** Bei „Brände" ohne Anlagen-Ereignisse: Historie-Punkte (Saison/Monat) und Flächen der Standort-Einträge. */
+  const mapHistoryFc = useMemo(
+    () => (onlyKind === 'fires' ? withoutFeatures(historyFc, (p) => p?.site === 1) : onlyKind === 'anomalies' ? null : historyFc),
+    [historyFc, onlyKind],
+  );
+  const mapFootprintFc = useMemo(
+    () => (onlyKind === 'fires' ? withoutFeatures(footprintFc, (p) => p?.anomaly === 'site') : onlyKind === 'anomalies' ? null : footprintFc),
+    [footprintFc, onlyKind],
+  );
   // Startwert `half` (Vorlage B4): Karte oben, Zeit-Deck und Legende im Sheet sichtbar.
   const [sheetSnap, setSheetSnap] = useState<BottomSheetSnap>('half');
   // Eine Kartenauswahl macht die Brandliste sichtbar — sonst wäre der Klick
@@ -2186,9 +2199,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               fireZones={onlyKind === 'anomalies' ? NO_ZONES : mapZones} zoneEstimates={zoneEstimates}
               clusters={onlyKind === 'anomalies' ? NO_CLUSTERS : clusterList} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
-              footprintFc={onlyKind === 'anomalies' ? null : footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
+              footprintFc={mapFootprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
               anomalyFc={onlyKind === 'fires' ? null : anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
-              historyFc={onlyKind === 'anomalies' ? null : historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistoryFromMap}
+              historyFc={mapHistoryFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistoryFromMap}
               focusBbox={focusBbox} onSelectFootprint={selectFootprintFromMap}
               onSelectBurnt={openDossierForEffis} onSelectZone={openDossierForZone}
               onSelectDetection={openDossierForDetection}
