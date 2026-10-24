@@ -674,9 +674,19 @@ export default function FireMap({
     // dort jeden Brand-Klick (elementFromPoint zeigte das details-Element, der Karten-
     // Click-Handler feuerte nie). Zugeklappt bleibt der ⓘ-Knopf; die Quellenangabe ist
     // einen Klick entfernt, nichts wird entfernt.
-    map.once('load', () => {
+    // Spätere Quellen (Basiskarte Satellit, Detektionen, EFFIS) schreiben ihre Zeile in dieselbe
+    // Attribution und MapLibre klappt sie dabei wieder auf: bis der Nutzer selbst auf ⓘ tippt,
+    // bleibt sie nach jedem Leerlauf zugeklappt (die Quellenangabe bleibt einen Klick entfernt).
+    let attribTouched = false;
+    const collapseAttrib = () => {
+      if (attribTouched) return;
       map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
-    });
+    };
+    map.getContainer().addEventListener('click', (e) => {
+      if ((e.target as Element | null)?.closest?.('.maplibregl-ctrl-attrib-button')) attribTouched = true;
+    }, true);
+    map.once('load', collapseAttrib);
+    map.on('idle', collapseAttrib);
 
     // --- Detektions-Steckbrief (F1) ------------------------------------------
     // Ein Klick auf eine Thermalanomalie öffnet ihre gemessenen Werte. Der
