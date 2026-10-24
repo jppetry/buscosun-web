@@ -1468,7 +1468,7 @@
   .br-fire.is-sel .br-fire-btn { padding: 14px; }
   /* „Zur Detailansicht": rechts unten auf der Höhe der Quellen-Chips; die Chips lassen ihm Platz. */
   .br-fire.has-cta { position: relative; }
-  .br-fire.has-cta .br-fire-chips { min-height: 30px; align-items: center; padding-right: 138px; }
+  .br-fire.has-cta .br-fire-chips, .br-history .br-fire.has-cta .br-fire-meta { min-height: 30px; align-items: center; padding-right: 138px; }
   .br-fire-cta {
     position: absolute; right: 14px; bottom: 14px; height: 30px; padding: 0 12px;
     border: 0; border-radius: 999px; background: var(--br-red); color: #fff;
