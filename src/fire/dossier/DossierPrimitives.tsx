@@ -349,7 +349,7 @@ export type DossierChapter = 1 | 2 | 3;
 
 const CHAPTERS: ReadonlyArray<{ id: DossierChapter; title: string; hint: string }> = [
   { id: 1, title: 'Brand', hint: 'Kennzahlen · Verlauf' },
-  { id: 2, title: 'Satellitenbilder', hint: 'vorher · während · nachher' },
+  { id: 2, title: 'Satellit', hint: 'vorher · während · nachher' },
   { id: 3, title: 'Wetter', hint: 'Wetterführung · Brandprofil' },
 ];
 
