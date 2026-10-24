@@ -17,6 +17,8 @@ interface Props {
   hint: string;
   selectedId: string | null;
   onPick: (id: string) => void;
+  /** Selects the glacier AND opens its detail view (dossier): the button bottom right of every tile. */
+  onOpen: (id: string) => void;
 }
 
 function GlacierIcon({ color }: { color: string }) {
@@ -28,7 +30,7 @@ function GlacierIcon({ color }: { color: string }) {
   );
 }
 
-export default function GlacierList({ ranked, rest, def, hint, selectedId, onPick }: Props) {
+export default function GlacierList({ ranked, rest, def, hint, selectedId, onPick, onOpen }: Props) {
   const [shown, setShown] = useState(STEP);
   const total = ranked.length + rest.length;
   useEffect(() => { setShown(STEP); }, [def.id, total]);
@@ -53,7 +55,7 @@ export default function GlacierList({ ranked, rest, def, hint, selectedId, onPic
             const region = GLACIER_REGIONS[g.region]?.label ?? g.region;
             const notes = [g.lead ? 'Leitgletscher' : null, g.debris != null && g.debris >= 2 ? 'überwiegend schuttbedeckt' : null, g.status ? STATUS_LABEL[g.status] : null].filter(Boolean);
             return (
-              <li key={g.id}>
+              <li key={g.id} className="gl-tile-li">
                 <button type="button" className={`gl-tile${sel ? ' is-sel' : ''}${g.status === 'vanished' ? ' is-gone' : ''}`} aria-pressed={sel} onClick={() => onPick(g.id)}
                   style={b >= 0 ? { ['--gl-tile-c' as string]: ramp[b] } : undefined}>
                   <span className="gl-tile-top">
@@ -87,6 +89,10 @@ export default function GlacierList({ ranked, rest, def, hint, selectedId, onPic
                     </span>
                   </span>
                   {notes.length > 0 && <span className="gl-tile-notes">{notes.map((t) => <span key={t} className="gl-tile-note">{t}</span>)}</span>}
+                </button>
+                <button type="button" className="gl-tile-open" aria-label={`Detailansicht öffnen: ${displayName(g)}`} onClick={() => onOpen(g.id)}>
+                  Detailansicht
+                  <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
               </li>
             );

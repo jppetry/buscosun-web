@@ -285,7 +285,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       <div className="gl-readout-head"><h2>Gletscher</h2><p>Alle Gletscher der Auswahl, jeder Wert mit Herkunft</p></div>
       <div className="gl-readout-scroll">
         {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
-        {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} />}
+        {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} onOpen={(id) => { pick(id); setStage('dossier'); }} />}
         {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
       </div>
     </aside>
