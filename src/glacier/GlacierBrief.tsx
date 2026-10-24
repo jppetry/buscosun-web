@@ -272,13 +272,16 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             </button>
           ))}
         </nav>
-        <div className="gl-ds-card gl-ds-mapcard">
-          {mapTools}
-          {mapEl}
-          <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
-            <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
-          </a>
-        </div>
+        {/* the level "Satellit" shows the Sentinel-2 10 m picture instead of the map card (Jan, 2026-10-24) */}
+        {LEVELS[level].tab !== 'saison' && (
+          <div className="gl-ds-card gl-ds-mapcard">
+            {mapTools}
+            {mapEl}
+            <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
+              <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
+            </a>
+          </div>
+        )}
         <div className="gl-ds-grid">
           <div className="gl-ds-main" data-level={level + 1}>
             {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
