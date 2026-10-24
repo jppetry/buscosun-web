@@ -291,6 +291,29 @@
 /* Info card of a fire picked on the map (desktop/tablet: bottom left; mobile: in the top stack). */
 .br-map-card { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 6; pointer-events: none; }
 .br-map-card > .br-mapcard { pointer-events: auto; }
+
+/* Kleine Kartenlegende (Brandflächen / Thermalanomalien), Desktop und Tablet, unten links. */
+.br-maplegend {
+  position: absolute; left: 16px; bottom: 16px; z-index: 5; max-width: 250px;
+  display: flex; flex-direction: column; gap: 5px; padding: 10px 12px;
+  background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px;
+  box-shadow: 0 8px 20px -14px rgba(44, 42, 38, 0.4);
+  font-size: 12px; line-height: 1.3; color: var(--ink-900, #2C2A26);
+}
+.br-maplegend .br-eyebrow { font-size: 11px; letter-spacing: 1.5px; margin-bottom: 1px; }
+.br-ml-row { display: flex; align-items: center; gap: 8px; }
+.br-ml-note { margin-top: 2px; font-size: 11px; color: var(--stone-500, #8B7355); }
+.br-ml-sw { flex: 0 0 auto; width: 16px; height: 11px; box-sizing: border-box; border-radius: 3px; }
+.br-ml-sw.is-area { background: color-mix(in srgb, var(--c) 42%, transparent); border: 2px solid var(--c); }
+.br-ml-sw.is-line { height: 0; border-top: 2px solid var(--ink-900, #2C2A26); border-radius: 0; }
+.br-ml-sw.is-line.is-dashed { border-top-style: dashed; }
+.br-ml-sw.is-mark { background: transparent; border: 2px solid var(--br-red); }
+.br-ml-dia { flex: 0 0 auto; width: 10px; height: 10px; margin: 0 3px; box-sizing: border-box; transform: rotate(45deg); }
+.br-ml-dia.is-a { background: #2C2A26; }
+.br-ml-dia.is-b { background: #9A9186; }
+.br-ml-dia.is-c { border: 2px dashed #9A9186; }
+.br-ml-dia.is-dev { border: 2px solid #C2542B; background: #2C2A26; box-shadow: inset 0 0 0 1.5px #FAF6EA; }
 .br-mapcard {
   --br-mapcard-acc: var(--br-red);
   /* Fluid with the viewport (no extra breakpoints): ≈ 240 px on small desktops, ≈ 270 px at 1440, up to 340 px. */
