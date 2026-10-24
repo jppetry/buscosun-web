@@ -127,10 +127,11 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
       ))}
     </div>
   );
-  const tabBody = (t: GlacierTab, d: SheetData) => (
+  /** `noMap`: the dossier shows the map only on the level Heute — the before/after card of Langzeit needs it and is left out then. */
+  const tabBody = (t: GlacierTab, d: SheetData, noMap = false) => (
     t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} />
     : t === 'saison' ? <TabSaison g={g} data={d} year={year} selDate={selScene?.date ?? null} mass={mass} />
-    : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
+    : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} noCompare={noMap} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
         onCsv={() => { const text = seriesCsv(g, d.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />
     : t === 'tour' ? <TabTour g={g} melt={mv} season={season} nowMs={nowMs} bandZ={g.z} />
     : <TabQuellen rows={rows} sources={d.sources} />
@@ -272,8 +273,8 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             </button>
           ))}
         </nav>
-        {/* the level "Satellit" shows the Sentinel-2 10 m picture instead of the map card (Jan, 2026-10-24) */}
-        {LEVELS[level].tab !== 'saison' && (
+        {/* the map card belongs to the level Heute only: Satellit shows the Sentinel-2 10 m picture, Langzeit the series (Jan, 2026-10-24) */}
+        {LEVELS[level].tab === 'heute' && (
           <div className="gl-ds-card gl-ds-mapcard">
             {mapTools}
             {mapEl}
@@ -297,7 +298,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
                     )}
                     <section className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
                       <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
-                      {tabBody(t, data)}
+                      {tabBody(t, data, true)}
                     </section>
                   </Fragment>
                 ))}

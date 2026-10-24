@@ -126,16 +126,16 @@ export function TabSaison({ g, data, year, selDate, mass }: { g: GlacierCatalogE
 }
 
 // --- Langzeit ----------------------------------------------------------------------------------------------------------------------------
-export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, compareOn, onCompare, official, status, onCsv, hasSeries }: {
+export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, compareOn, onCompare, noCompare, official, status, onCsv, hasSeries }: {
   g: GlacierCatalogEntry; area: { from: [number, number]; to: [number, number]; pct: number } | null; length: { points: { year: number; cum: number }[]; total: number; from: number; to: number; gaps: number } | null;
-  lengthTotal?: number; proj: ProjectionView | null; compareYear: number | null; compareOn: boolean; onCompare: (on: boolean) => void;
+  lengthTotal?: number; proj: ProjectionView | null; compareYear: number | null; compareOn: boolean; onCompare: (on: boolean) => void; noCompare?: boolean;
   official: readonly GlacierOfficialItem[]; status: GlacierCatalogEntry['status'] | null; onCsv: () => void; hasSeries: boolean;
 }) {
   void lengthTotal;
   const statusItem = status ? official.find((i) => i.kind === 'status' && i.scope === g.country) ?? null : null;
   return (
     <>
-      {compareYear != null ? (
+      {noCompare ? null : compareYear != null ? (
         <section className="gl-card" aria-label="Vergleich">
           <div className="gl-card-head"><b>VORHER – NACHHER</b><OriginChip origin="official" /></div>
           <p>Umriss {compareYear} (gestrichelt) gegen den heutigen Umriss ({g.area.source}, {fmtRefYear(g.area.refYear)}). Regler in der Karte ziehen.</p>
