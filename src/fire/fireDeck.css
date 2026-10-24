@@ -589,6 +589,16 @@
 .br-fire-ctx { font-size: 13px; color: var(--stone-600, #5C5447); line-height: 1.5; }
 .br-fire.is-static .br-fire-ctx { color: var(--stone-500, #8B7355); }
 .br-fire-chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
+/* „Zur Detailansicht": rechts unten auf der Höhe der Quellen-Chips; die Chips lassen ihm Platz. */
+.br-fire.has-cta { position: relative; }
+.br-fire.has-cta .br-fire-chips, .br-history .br-fire.has-cta .br-fire-meta { min-height: 28px; align-items: center; padding-right: 128px; }
+.br-fire-cta {
+  position: absolute; right: 12px; bottom: 12px; height: 28px; padding: 0 11px;
+  border: 0; border-radius: 999px; background: var(--br-red); color: #fff;
+  font: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
+}
+.br-fire-cta:hover { filter: brightness(0.92); }
+.br-fire-cta:focus-visible { outline: 2px solid var(--br-terra); outline-offset: 2px; }
 .fire-crow-dot { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; display: inline-block; }
 .fire-fp-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; display: inline-block; }
 .fire-fp-src, .fire-fp-assess {
@@ -1466,15 +1476,10 @@
   .br-fire.is-static { background: #fff; }
   .br-fire-btn { padding: 14px; gap: 10px; border-radius: 18px; }
   .br-fire.is-sel .br-fire-btn { padding: 14px; }
-  /* „Zur Detailansicht": rechts unten auf der Höhe der Quellen-Chips; die Chips lassen ihm Platz. */
-  .br-fire.has-cta { position: relative; }
-  .br-fire.has-cta .br-fire-chips, .br-history .br-fire.has-cta .br-fire-meta { min-height: 30px; align-items: center; padding-right: 138px; }
-  .br-fire-cta {
-    position: absolute; right: 14px; bottom: 14px; height: 30px; padding: 0 12px;
-    border: 0; border-radius: 999px; background: var(--br-red); color: #fff;
-    font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
-  }
-  .br-fire-cta::after { content: ''; position: absolute; inset: -7px -4px; } /* Trefferfläche ≥ 44 px */
+  /* Mobil: etwas größer, Trefferfläche ≥ 44 px. */
+  .br-fire.has-cta .br-fire-chips, .br-history .br-fire.has-cta .br-fire-meta { min-height: 30px; padding-right: 138px; }
+  .br-fire-cta { right: 14px; bottom: 14px; height: 30px; padding: 0 12px; font-size: 13px; }
+  .br-fire-cta::after { content: ''; position: absolute; inset: -7px -4px; }
   .br-fire-name { font-size: 16.5px; letter-spacing: -0.2px; }
   .br-fire-stats { gap: 8px; }
   .br-stat { background: var(--cream-50, #FAF6EA); border: 0; border-radius: 12px; padding: 10px 11px; }

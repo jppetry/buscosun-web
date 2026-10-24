@@ -105,7 +105,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
             {rows.slice(0, shown).map((e) => {
               const color = e.anomalyKind === 'site' ? STATIC_GREY : clusterColor(e.frpSumMw ?? 0);
               return (
-                <li key={e.id} className={`br-fire${p.selectedId === e.id ? ' is-selected' : ''}${e.anomalyKind === 'site' ? ' is-static' : ''}${p.inSheet ? ' has-cta' : ''}`} style={{ ['--br-row-acc' as string]: color }}>
+                <li key={e.id} className={`br-fire${p.selectedId === e.id ? ' is-selected' : ''}${e.anomalyKind === 'site' ? ' is-static' : ''} has-cta`} style={{ ['--br-row-acc' as string]: color }}>
                   <button type="button" className="br-fire-btn" onClick={() => p.onSelect(e)} aria-pressed={p.selectedId === e.id}>
                     <span className="br-fire-top">
                       <span className="br-fire-ic" style={{ color }}>
@@ -126,12 +126,10 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
                       {e.nrt > 0 && <span className="br-chip is-ghost">vorläufig</span>}
                     </span>
                   </button>
-                  {/* Mobil: sichtbarer Weg ins Dossier, rechts neben den Chips (die Karte selbst öffnet es auch). */}
-                  {p.inSheet && (
-                    <button type="button" className="br-fire-cta" onClick={() => p.onSelect(e)}>
-                      Zur Detailansicht
-                    </button>
-                  )}
+                  {/* Sichtbarer Weg ins Dossier, rechts neben den Chips (die Karte selbst öffnet es auch). */}
+                  <button type="button" className="br-fire-cta" onClick={() => p.onSelect(e)}>
+                    Zur Detailansicht
+                  </button>
                 </li>
               );
             })}

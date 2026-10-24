@@ -503,7 +503,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
               <li key={r.id}>
                 <div
                   data-fire={r.id}
-                  className={`br-fire fire-fprow${sel ? ' is-sel' : ''}${r.suspectedStatic ? ' is-static' : ''}${p.inSheet ? ' has-cta' : ''}`}
+                  className={`br-fire fire-fprow${sel ? ' is-sel' : ''}${r.suspectedStatic ? ' is-static' : ''} has-cta`}
                   style={{ ['--br-row-acc' as string]: r.suspectedStatic ? STATIC_GREY : STATUS_COLOR[r.status.kind] }}
                   onMouseEnter={() => p.onHover(r.id)}
                 >
@@ -545,12 +545,10 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                       )}
                     </span>
                   </button>
-                  {/* Mobil: sichtbarer Weg ins Dossier, auf der Höhe der Quellen-Chips (die Karte selbst öffnet es auch). */}
-                  {p.inSheet && (
-                    <button type="button" className="br-fire-cta" onClick={() => p.onSelect(r.id)}>
-                      Zur Detailansicht
-                    </button>
-                  )}
+                  {/* Sichtbarer Weg ins Dossier, auf der Höhe der Quellen-Chips (die Karte selbst öffnet es auch). */}
+                  <button type="button" className="br-fire-cta" onClick={() => p.onSelect(r.id)}>
+                    Zur Detailansicht
+                  </button>
                 </div>
               </li>
             );
