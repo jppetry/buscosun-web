@@ -115,6 +115,25 @@
 .gl-map .gl-ramp i { height: 7px; }
 .gl-map .gl-ramp span { font-size: 9.5px; }
 .gl-map .gl-legend-row { font-size: 10.5px; }
+/* Kartenlegende als Leiste unten in der Karte (Jan, 2026-10-24): rechtsbündig, Titel + Herkunft | Skala | Hinweise; steht die Kartenkarte
+   des gewählten Gletschers links unten, rückt die Leiste rechts daneben und bricht bei Platzmangel um. */
+.gl-legend-main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.gl-legend-side { display: flex; flex-direction: column; gap: 6px; }
+.gl-size { display: inline-flex; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
+.gl-size i { display: block; border-radius: 50%; border: 1.5px solid #4F93BE; background: #D6ECF8; width: 7px; height: 7px; }
+.gl-size i + i { width: 12px; height: 12px; }
+.gl-map .gl-legend.gl-legend-bar {
+  top: auto; bottom: 26px; left: auto; right: 14px; width: max-content; max-width: calc(100% - 28px);
+  flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 11px 16px;
+}
+.gl-map .gl-legend.gl-legend-bar:has(~ .gl-pill) { max-width: calc(100% - clamp(240px, 15vw + 54px, 340px) - 56px); }
+.gl-map .gl-legend-bar .gl-legend-head { justify-content: flex-start; gap: 10px; }
+.gl-map .gl-legend-bar .gl-legend-head b { font-size: 13.5px; }
+.gl-map .gl-legend-bar .gl-ramp { width: 250px; max-width: 100%; gap: 3px; }
+.gl-map .gl-legend-bar .gl-ramp i { height: 9px; border-radius: 5px; }
+.gl-map .gl-legend-bar .gl-ramp span { display: block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--gl-ink); font-variant-numeric: tabular-nums; }
+.gl-map .gl-legend-bar .gl-legend-side { padding-left: 20px; border-left: 1px solid var(--gl-line-strong); }
+.gl-map .gl-legend-bar .gl-legend-row { font-size: 12px; }
 .gl-dash { width: 10px; height: 10px; border-radius: 6px; border: 1.5px dashed #4F93BE; background: #D6ECF8; flex: 0 0 auto; }
 /* Map card of the picked glacier (Jan, 2026-10-24): bottom LEFT of the map, built like the Brandradar's `.br-mapcard`
    (GlacierMapCard.tsx) — head with icon tile, eyebrow, name, region, star and close; two key-figure tiles; one CTA. */

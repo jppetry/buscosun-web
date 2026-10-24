@@ -227,14 +227,19 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       onClose={() => setSelSeg(null)}
     />
   );
+  // Legend (bar at the bottom of the map since Jan 2026-10-24): title and origin, the five-step scale, then the two notes.
   const legend = (
-    <div className="gl-legend" aria-label="Legende">
-      <div className="gl-legend-head"><b>{def.legendTitle}</b><OriginChip origin={def.origin} /></div>
-      {def.locked ? <LockNote>{def.locked}</LockNote> : (
-        <div className="gl-ramp" aria-hidden="true">{ramp.map((c, i) => <div key={c}><i style={{ background: c }} /><span>{rampLabels[i]}</span></div>)}</div>
-      )}
-      <div className="gl-legend-row"><span className="gl-dash" />{def.noValue}</div>
-      <div className="gl-legend-row">Kreisgröße = Fläche laut Inventar</div>
+    <div className="gl-legend gl-legend-bar" aria-label="Legende">
+      <div className="gl-legend-main">
+        <div className="gl-legend-head"><b>{def.legendTitle}</b><OriginChip origin={def.origin} /></div>
+        {def.locked ? <LockNote>{def.locked}</LockNote> : (
+          <div className="gl-ramp" aria-hidden="true">{ramp.map((c, i) => <div key={c}><i style={{ background: c }} /><span>{rampLabels[i]}</span></div>)}</div>
+        )}
+      </div>
+      <div className="gl-legend-side">
+        <div className="gl-legend-row"><span className="gl-dash" />{def.noValue}</div>
+        <div className="gl-legend-row"><span className="gl-size" aria-hidden="true"><i /><i /></span>Kreisgröße = Fläche laut Inventar</div>
+      </div>
     </div>
   );
   const note = load.s === 'loading' ? <div className="gl-map-note" role="status">Gletscher werden geladen …</div>
