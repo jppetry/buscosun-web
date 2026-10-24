@@ -76,8 +76,10 @@ function SatPanel({ g, season, nowMs }: { g: GlacierCatalogEntry; season: Season
   );
 }
 
-export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head }: {
+export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head, bottom }: {
   g: GlacierCatalogEntry; melt: MeltView | null; meltWhy: string | null; season: SeasonSummary | null; nowMs: number; neighbourName: string | null; head: ReactNode;
+  /** Section at the very bottom of the level (the satellite season). */
+  bottom?: ReactNode;
 }) {
   const ok = melt && melt.fresh && melt.todayIdx ? melt : null;
   const t = ok?.todayIdx ?? null;
@@ -166,6 +168,7 @@ export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, nei
         </div>
         {bad.length > 0 && <p className="gl-problem" role="alert" data-tour-problems={bad.length}>Textprüfung: {bad.join('; ')}</p>}
       </section>
+      {bottom}
     </div>
   );
 }

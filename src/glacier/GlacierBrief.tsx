@@ -2,8 +2,8 @@
  * GL-4 — the glacier sheet (`/gletscher/<slug>`): Steckbrief left, map or 3D in the middle, five tabs on the right (Heute · Saison · Langzeit · Tour · Quellen);
  * mobile: map on top, tabs and content below. Design `reference/gletscher-desktop-steckbrief.dc.html` (+ mobile). State (tab, time point, view, layers,
  * outline year) lives in the URL via the page; everything else is derived here from the documents of `glacierSheetData.ts`.
- * The dossier (`layout="dossier"`) folds the five sections into three levels (pattern Brandradar): Heute · Satellit · Langzeit — the URL `tab`
- * names the level. The map carries a "Karte | Satellit" basemap (Esri imagery, as in the Brandradar) and a 10-m deep link to the Copernicus Browser.
+ * The dossier (`layout="dossier"`) folds the five sections into two levels (pattern Brandradar): Heute · Langzeit — the URL `tab`
+ * names the level (the former "Satellit" level, section `saison`, sits at the bottom of Heute). The map carries a "Karte | Satellit" basemap (Esri imagery, as in the Brandradar) and a 10-m deep link to the Copernicus Browser.
  */
 import { useEffect, useMemo, useState } from 'react';
 import './glacierSheet.css';
@@ -24,8 +24,7 @@ import type { GlacierSatIndex } from './glacierClient';
 const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen' };
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
-  { tab: 'heute', title: 'Heute', sub: 'Schmelze · Oberfläche · Tour', tabs: ['heute', 'tour'] },
-  { tab: 'saison', title: 'Satellit', sub: 'Saison · Schneegrenze · Bilanz', tabs: ['saison'] },
+  { tab: 'heute', title: 'Heute', sub: 'Schmelze · Tour · Satellit und Saison', tabs: ['heute', 'tour', 'saison'] },
   { tab: 'langzeit', title: 'Langzeit', sub: 'Reihen · Projektion · Quellen', tabs: ['langzeit', 'quellen'] },
 ];
 const levelOf = (t: GlacierTab): number => Math.max(0, LEVELS.findIndex((l) => l.tabs.includes(t)));
@@ -283,7 +282,8 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} /> : LEVELS[level].tabs.map((t) => (
+                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock}
+                  bottom={<section className="gl-ds-card gl-ds-sec" data-tab="saison" aria-label={TAB_LABEL.saison}><span className="gl-ds-eyebrow">Satellit · {TAB_LABEL.saison}</span>{tabBody('saison', data)}</section>} /> : LEVELS[level].tabs.map((t) => (
                   <section key={t} className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
                     <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
                     {tabBody(t, data)}
