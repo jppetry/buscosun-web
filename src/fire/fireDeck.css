@@ -1466,6 +1466,15 @@
   .br-fire.is-static { background: #fff; }
   .br-fire-btn { padding: 14px; gap: 10px; border-radius: 18px; }
   .br-fire.is-sel .br-fire-btn { padding: 14px; }
+  /* „Zur Detailansicht": rechts unten auf der Höhe der Quellen-Chips; die Chips lassen ihm Platz. */
+  .br-fire.has-cta { position: relative; }
+  .br-fire.has-cta .br-fire-chips { min-height: 30px; align-items: center; padding-right: 138px; }
+  .br-fire-cta {
+    position: absolute; right: 14px; bottom: 14px; height: 30px; padding: 0 12px;
+    border: 0; border-radius: 999px; background: var(--br-red); color: #fff;
+    font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  }
+  .br-fire-cta::after { content: ''; position: absolute; inset: -7px -4px; } /* Trefferfläche ≥ 44 px */
   .br-fire-name { font-size: 16.5px; letter-spacing: -0.2px; }
   .br-fire-stats { gap: 8px; }
   .br-stat { background: var(--cream-50, #FAF6EA); border: 0; border-radius: 12px; padding: 10px 11px; }
