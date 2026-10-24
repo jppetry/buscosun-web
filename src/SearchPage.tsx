@@ -209,8 +209,7 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
       </Suspense>
 
       <main className="deck-main">
-        <Hero onSelect={selectPlace} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} narrow={narrow} />
-        <FilterChips active={activeCat} onChange={setActiveCat} />
+        <Hero onSelect={selectPlace} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} onCatChange={setActiveCat} narrow={narrow} />
         <BentoGrid activeCat={activeCat} onOpenFeature={openFeature} narrow={narrow} />
         <Fundament />
       </main>
@@ -258,10 +257,11 @@ interface HeroProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   tour: IntroTour;
   activeCat: 'alle' | Category;
+  onCatChange: (c: 'alle' | Category) => void;
   /** ≤1024 px: das Kachel-Quadrat entfällt hier und steht wieder im Bento-Grid. */
   narrow: boolean;
 }
-function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: HeroProps) {
+function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, onCatChange, narrow }: HeroProps) {
   return (
     <section className="deck-hero" id="top">
       {/* Auftrag Jan 2026-08-09: Eyebrow „LIVE · DE · AT · CH · OHNE ACCOUNT"
@@ -275,6 +275,7 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: He
       </div>
 
       <HeroSearch onSelect={onSelect} inputRef={inputRef} />
+      <FilterChips active={activeCat} onChange={onCatChange} />
       {!narrow && <HeroQuad activeCat={activeCat} onOpenFeature={onOpenFeature} />}
       <HeroFavorites onSelect={onSelect} />
       <IntroTrigger tour={tour} />

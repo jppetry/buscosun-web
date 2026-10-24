@@ -214,12 +214,13 @@
     "title quad"
     "sub   quad"
     "search quad"
+    "chips quad"
     "favs  quad"
     "intro quad";
   /* Zeilen alle inhaltshoch; die Resthöhe des Kachel-Paars verteilt sich
      gleichmäßig ober-/unterhalb, statt als Lücke unter dem Suchfeld zu
      stehen. */
-  grid-template-rows: repeat(5, auto);
+  grid-template-rows: repeat(6, auto);
   column-gap: 32px;
   align-content: start;
 }
@@ -363,9 +364,10 @@
 @keyframes deck-intro-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(201,123,71,0); } 40% { box-shadow: 0 0 0 6px rgba(201,123,71,0.14); } }
 
 /* ============ FILTER CHIPS ============ */
+/* Steht seit 2026-10-24 im Hero direkt unter der Ortssuche (Jan), nicht mehr als eigener Streifen darunter. */
 .deck-chips {
-  max-width: var(--deck-max); margin: 0 auto;
-  padding: 8px var(--deck-pad-x) 8px;
+  grid-area: chips;
+  padding: 14px 0 0;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 .deck-chips-count { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--stone-400); margin-right: 6px; }
@@ -787,7 +789,7 @@
   .deck-hero { padding-top: 20px; }
 
   /* Hero zweispaltig (Text links, Suche rechts) */
-  .deck-hero { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title search" "sub search" "quad quad" "favs favs" "intro intro"; column-gap: 24px; align-items: end; }
+  .deck-hero { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title search" "sub search" "chips chips" "quad quad" "favs favs" "intro intro"; column-gap: 24px; align-items: end; }
   /* Quadrat rückt unter Titel/Suche und wird zur breiten 2×2-Fläche */
   .deck-quad { grid-area: quad; aspect-ratio: auto; margin-top: 18px; }
   .deck-quad .q-tile { grid-column: span 1; }
@@ -854,7 +856,7 @@
   .deck-search-go svg { display: none; }
 
   /* Chips: horizontaler Scroll */
-  .deck-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 16px var(--deck-pad-x) 6px; }
+  .deck-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--deck-pad-x)); padding: 14px var(--deck-pad-x) 2px; }
   .deck-chips::-webkit-scrollbar { display: none; }
   .deck-chips-count { display: none; }
   .deck-chip { flex: 0 0 auto; }
