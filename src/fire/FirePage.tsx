@@ -2279,6 +2279,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           {!isMobile && (
             <aside className="br-readout" aria-label="Steckbriefe und Brände">
               {readoutTabs}
+              {history === 'season' && readoutTab === 'fires' && monthCard}
               {readoutTab === 'anomalies' ? anomalyPanel(false) : history ? historyPanel(false) : footprintPanel(false)}
             </aside>
           )}
