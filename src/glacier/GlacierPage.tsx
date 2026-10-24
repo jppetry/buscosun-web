@@ -25,6 +25,7 @@ import {
   glacierIdOfSegment, glacierSegmentOf, GLACIER_METRICS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
 } from './glacierState';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
+import GlacierMapCard from './GlacierMapCard';
 import GlacierDock from './GlacierDock';
 import GlacierList from './GlacierList';
 import GlacierFilters, { NO_FILTER, passesFilter, type GlacierFilter } from './GlacierFilters';
@@ -216,23 +217,15 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const bounds = def.bounds;
   const rampLabels = [`<${bounds[0]}`, `${bounds[0]}`, `${bounds[1]}`, `${bounds[2]}`, `≥${bounds[3]}`];
 
+  // Map card of the picked glacier (shape of the Brandradar's map card): "Detailansicht öffnen" opens the dossier in the
+  // middle on desktop (the sheet is one click further, as in the dossier) and the sheet `/gletscher/<slug>` on mobile.
   const pill = sel && (
-    <div className="gl-pill" role="region" aria-label="Ausgewählter Gletscher">
-      <div className="gl-pill-head"><b>{displayName(sel)}</b><span className="gl-chip is-official"><i aria-hidden="true" />Klasse {sel.klass}</span></div>
-      <small>{sel.country} · {fmtKm2(sel.area.km2)} · Inventar {fmtRefYear(sel.area.refYear)}</small>
-      <div className="gl-pill-val">
-        {selVal?.v != null ? <><span className="gl-num" data-origin={def.origin}>{selVal.text}</span><OriginChip origin={def.origin} /><small>{def.label} · {selVal.period}</small></>
-          : <small>{def.locked ? <LockNote>{def.label}: gesperrt</LockNote> : selVal?.reason ?? ''}</small>}
-      </div>
-      <div className="gl-pill-actions">
-      <button type="button" className={`gl-star${favs.includes(sel.id) ? ' is-on' : ''}`} aria-pressed={favs.includes(sel.id)} aria-label={favs.includes(sel.id) ? `${displayName(sel)} nicht mehr folgen` : `${displayName(sel)} folgen`} onClick={() => follow(sel.id)}>{favs.includes(sel.id) ? '★' : '☆'}</button>
-      {!isMobile && <button type="button" className="gl-btn" onClick={() => setStage('dossier')}>Dossier</button>}
-      <button type="button" className="gl-btn is-primary" disabled={!GLACIER_BRIEF_READY} onClick={openBrief}
-        title={GLACIER_BRIEF_READY ? undefined : 'Der Steckbrief mit Heute, Saison, Langzeit, Tour und Quellen folgt (GL-4)'}>
-        Steckbrief{GLACIER_BRIEF_READY ? ' öffnen' : ' folgt (GL-4)'}
-      </button>
-      </div>
-    </div>
+    <GlacierMapCard
+      g={sel} def={def} value={selVal ?? undefined}
+      followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
+      onOpenDetail={() => { if (isMobile) openBrief(); else setStage('dossier'); }}
+      onClose={() => setSelSeg(null)}
+    />
   );
   const legend = (
     <div className="gl-legend" aria-label="Legende">
@@ -250,7 +243,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   const map = d && (
     <GlacierMap features={features} ramp={def.ramp} selectedId={selId} onSelect={pick} regionBoxes={regionBoxes} loadOutline={loadOutlineFn} bucketOf={bucketOf}
-      padding={isMobile ? { top: 0, bottom: 70, left: 0, right: 0 } : { top: 0, bottom: 0, left: 0, right: 300 }} onMap={(m) => { mapRef.current = m; }}
+      padding={isMobile ? { top: 0, bottom: 200, left: 0, right: 0 } : { top: 0, bottom: 0, left: 300, right: 0 }} onMap={(m) => { mapRef.current = m; }}
       view={map3dFailed ? '2d' : mapView} onView3dFailed={() => setMap3dFailed(true)} />
   );
   const viewSeg = d && allow3d && !map3dFailed && (
