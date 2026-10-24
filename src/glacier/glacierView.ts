@@ -222,7 +222,8 @@ export function officialStandLabel(items: ReadonlyArray<{ date: string; source: 
 
 /** Colours (README-gletscher.md): ramps from light to dark; "no value" is a dashed circle. */
 export const GLACIER_RAMPS: Readonly<Record<'loss' | 'snow', readonly string[]>> = Object.freeze({
-  loss: ['#F4DCC6', '#E9B48C', '#D68A55', '#B5602C', '#7E3C17'],
+  // Blue tones (Jan, 2026-10-24): against the warm sand of the map the glaciers read better in blue than in brown; darker = more loss.
+  loss: ['#BFE0F2', '#7FBBE0', '#3F94CF', '#1F69A8', '#0E3B6E'],
   snow: ['#E3F1F5', '#A9D4E2', '#5FAFC9', '#1E87A8', '#145A70'],
 });
 export const GLACIER_ORIGIN_STYLE: Readonly<Record<GlacierOrigin, { text: string; fill: string; border: string; dot: string }>> = Object.freeze({
