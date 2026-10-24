@@ -840,7 +840,41 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         {/* Legende — Phase NS: in der Summen-Ansicht die Summen-Legende */}
         {sumMode && sum && <SumLegend info={sumMap.info} sel={sum} />}
         {chanceMode && chance && <ChanceLegend info={chanceMap.info} threshold={chance.threshold} nowMs={Date.now()} />}
-        {!sumMode && !chanceMode && <div className="nc-radar-legend rl">
+
+        {/* Phase RR (RR-f): die Schneefallgrenze der Karte ist die der Wetterkarte — Quelle benannt; der Punktwert
+            am gewählten Ort kommt aus der Punktvorhersage des Streifens. */}
+        {useProfile && layerSet.has('snowline') && !snowCap && (
+          <div className="nc-radar-snownote">
+            ❄ Schneefallgrenze: ICON-D2-Temperatur + Gelände (ML #2)
+            {snowLineM != null && <> · am Punkt <strong>~{snowLineM} m</strong></>}
+          </div>
+        )}
+        {/* Phase SK: mobile status note (map legends are hidden on mobile) — source, run, validity, gaps. */}
+        {useProfile && skActive && <SnowCapLegend info={snowCap2d.info} variant="note" />}
+
+        {/* Niederschlagsart-Hinweis */}
+        {needTerrain && (
+          <div className="nc-radar-snownote">
+            {snowLineM != null
+              ? <>❄ Schneefallgrenze <strong>~{snowLineM} m</strong> · Regen/Schnee aus Geländehöhe (DEM) + Schneefallgrenze</>
+              : <>❄ Keine Schneefallgrenze in der Vorhersage — alles als Regen klassifiziert</>}
+            {(layerSet.has('graupel') || layerSet.has('hail')) && <span className="nc-radar-snownote-heur"> · Graupel/Hagel = Heuristik (geschätzt)</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Phase ZT: 3D stage beside the map (grid of `.zt-has-aside`, `cellTowersShell.css`); the time axis below spans both. */}
+      {stageAside && <div className="zt-aside">{stageAside}</div>}
+
+      {/* Zeitachse (Scrubber) · Punkt-Streifen · Datenqualität.
+          Deck (compact): alles in ein eingeklapptes Akkordeon gefaltet — der
+          Play-Button lebt im schwebenden Deck. Standalone: direkt sichtbar.
+          Funktion bleibt in beiden Fällen vollständig erhalten. */}
+      {(() => {
+        // Legende (Jan 2026-10-24): sitzt im Zeitachsen-Streifen rechts neben dem Zeitstempel, nicht mehr auf der Karte;
+        // die Summen- und die Chance-Ansicht haben ihre eigene Legende auf der Karte.
+        const legend = !sumMode && !chanceMode ? (
+        <div className="rl-dock">
           <div className="rl-sec">
             <div className="rl-head">Regenintensität <span>mm/h</span></div>
             <div className="rl-scale" role="list">
@@ -879,44 +913,15 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
               <div className="rl-sk"><SnowCapLegend info={snowCap2d.info} variant="inline" /></div>
             </div>
           )}
-        </div>}
-
-        {/* Phase RR (RR-f): die Schneefallgrenze der Karte ist die der Wetterkarte — Quelle benannt; der Punktwert
-            am gewählten Ort kommt aus der Punktvorhersage des Streifens. */}
-        {useProfile && layerSet.has('snowline') && !snowCap && (
-          <div className="nc-radar-snownote">
-            ❄ Schneefallgrenze: ICON-D2-Temperatur + Gelände (ML #2)
-            {snowLineM != null && <> · am Punkt <strong>~{snowLineM} m</strong></>}
-          </div>
-        )}
-        {/* Phase SK: mobile status note (map legends are hidden on mobile) — source, run, validity, gaps. */}
-        {useProfile && skActive && <SnowCapLegend info={snowCap2d.info} variant="note" />}
-
-        {/* Niederschlagsart-Hinweis */}
-        {needTerrain && (
-          <div className="nc-radar-snownote">
-            {snowLineM != null
-              ? <>❄ Schneefallgrenze <strong>~{snowLineM} m</strong> · Regen/Schnee aus Geländehöhe (DEM) + Schneefallgrenze</>
-              : <>❄ Keine Schneefallgrenze in der Vorhersage — alles als Regen klassifiziert</>}
-            {(layerSet.has('graupel') || layerSet.has('hail')) && <span className="nc-radar-snownote-heur"> · Graupel/Hagel = Heuristik (geschätzt)</span>}
-          </div>
-        )}
-      </div>
-
-      {/* Phase ZT: 3D stage beside the map (grid of `.zt-has-aside`, `cellTowersShell.css`); the time axis below spans both. */}
-      {stageAside && <div className="zt-aside">{stageAside}</div>}
-
-      {/* Zeitachse (Scrubber) · Punkt-Streifen · Datenqualität.
-          Deck (compact): alles in ein eingeklapptes Akkordeon gefaltet — der
-          Play-Button lebt im schwebenden Deck. Standalone: direkt sichtbar.
-          Funktion bleibt in beiden Fällen vollständig erhalten. */}
-      {(() => {
+        </div>
+        ) : null;
         const scrubber = stack ? (
           <RadarTimeline
             stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
             onScrub={(p) => { onUserTime?.(); if (p <= 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos(p); }}
             onTogglePlay={() => applyPlaying(!playing)} onStep={step} onJumpNow={jumpNow}
             onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
+            legend={legend}
           />
         ) : null;
         const pointStrip = stack ? (

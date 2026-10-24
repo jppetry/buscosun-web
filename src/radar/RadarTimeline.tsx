@@ -7,7 +7,7 @@
  * „jetzt". Controlled-Component: Abspiel-Engine liegt im Radar-Block (NowcastRadarMap).
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, type ReactNode } from 'react';
 import type { RadarStack } from './radarFrames';
 import { IconPlay, IconPause, IconStepBack, IconStepForward, IconCrosshair, IconLoop } from './radarIcons';
 
@@ -25,6 +25,8 @@ interface Props {
   onJumpNow: () => void;
   onSpeed: (s: number) => void;
   onToggleLoop: () => void;
+  /** Map legend, shown right of the time stamp (Jan 2026-10-24). */
+  legend?: ReactNode;
 }
 
 const SPEEDS = [0.5, 1, 2];
@@ -49,7 +51,7 @@ function fmtRel(leadMin: number): string {
 
 export default function RadarTimeline({
   stack, framePos, playing, speed, loop, intensities,
-  onScrub, onTogglePlay, onStep, onJumpNow, onSpeed, onToggleLoop,
+  onScrub, onTogglePlay, onStep, onJumpNow, onSpeed, onToggleLoop, legend,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const n = stack.frames.length;
@@ -105,6 +107,7 @@ export default function RadarTimeline({
             </span>
           )}
         </div>
+        {legend}
         <div className="rdr-tl-legend2">
           {profile && profile.peak >= 0.05 && (
             <span className="rdr-tl-peak"><i className="rdr-tl-peak-drop" /> Spitze {profile.peak.toFixed(profile.peak >= 1 ? 0 : 1).replace('.', ',')} mm/h</span>

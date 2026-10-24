@@ -180,34 +180,36 @@
 .nc-radar-leg-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ink-800, #3A3833); }
 .nc-radar-leg-item i { width: 0.9rem; height: 0.5rem; border-radius: 3px; }
 
-/* Legende als schmale Leiste am Kartenrand (Jan 23.10.2026, vorher waagerechte Karte): Intensität als senkrechte
-   Skala (extrem oben), Schnee/Graupel/Hagel als Verlauf, Schneefallgrenze als Abschnitt; deren Statuszeile ist auf zwei
-   Zeilen gekürzt und klappt beim Überfahren ganz auf (der volle Text bleibt im DOM). */
-.nc-radar-legend.rl {
-  flex-direction: column; flex-wrap: nowrap; gap: 0.45rem; width: max-content; max-width: 11rem;
-  padding: 0.5rem 0.6rem 0.55rem; border-radius: 11px; font-variant-numeric: tabular-nums;
+/* Legende im Zeitachsen-Streifen (Jan 2026-10-24, vorher Karte am Kartenrand): rechts neben dem Zeitstempel, Abschnitte
+   nebeneinander — Regenintensität als zusammenhängende Farbleiste mit Stufe und mm/h darunter, Schnee/Graupel/Hagel als
+   Verlauf, Schneefallgrenze mit ihren drei Zeichen. Deren Statuszeile ist auf eine Zeile gekürzt und klappt beim
+   Überfahren auf (der volle Text bleibt im DOM). Mobil ausgeblendet wie die frühere Kartenlegende. */
+.rl-dock {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start;
+  gap: 0.5rem 0; font-variant-numeric: tabular-nums;
 }
-.rl-sec + .rl-sec { padding-top: 0.45rem; border-top: 1px solid rgba(224,214,190,0.7); }
-.rl-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.1rem 0.5rem; margin-bottom: 0.3rem; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-900, #2C2A26); }
+.rl-dock .rl-sec { padding: 0 0.95rem; }
+.rl-dock .rl-sec + .rl-sec { border-left: 1px solid rgba(224,214,190,0.9); }
+.rl-dock .rl-sec:last-child { padding-right: 0; }
+.rl-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.45rem; margin-bottom: 0.35rem; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-900, #2C2A26); white-space: nowrap; }
 .rl-head span { font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--stone-500, #8B7355); }
-.rl-scale { display: flex; flex-direction: column-reverse; }
-.rl-seg { display: grid; grid-template-columns: 0.5rem 4.3rem auto; align-items: center; column-gap: 0.45rem; min-width: 0; height: 1.02rem; }
-.rl-seg i { align-self: stretch; }
-.rl-seg:first-child i { border-radius: 0 0 4px 4px; }
-.rl-seg:last-child i { border-radius: 4px 4px 0 0; }
+.rl-scale { display: flex; gap: 3px; }
+.rl-seg { display: flex; flex-direction: column; gap: 0.22rem; min-width: 3.5rem; }
+.rl-seg i { display: block; height: 0.42rem; border-radius: 3px; }
 .rl-seg b { font-size: 0.66rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
 .rl-seg small { font-size: 0.6rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
-.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.2rem; }
-.rl-grad i { grid-column: 1 / -1; height: 0.45rem; border-radius: 5px; }
+.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.25rem; min-width: 6.5rem; }
+.rl-grad i { grid-column: 1 / -1; height: 0.42rem; border-radius: 3px; }
 .rl-grad small { font-size: 0.6rem; color: var(--stone-500, #8B7355); }
-.rl-sk { display: flex; flex-direction: column; gap: 0.22rem; }
-.rl-sk .nc-radar-leg-item { font-size: 0.64rem; line-height: 1.2; }
+.rl-sk { display: flex; flex-flow: row wrap; gap: 0.15rem 0.8rem; max-width: 19rem; }
+.rl-sk .nc-radar-leg-item { font-size: 0.64rem; line-height: 1.2; white-space: nowrap; }
 .rl-sk .sk-leg-status {
-  flex-basis: auto; margin-top: 0.1rem; font-size: 0.6rem; line-height: 1.35; color: var(--stone-500, #8B7355);
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  flex-basis: 100%; font-size: 0.6rem; line-height: 1.35; color: var(--stone-500, #8B7355); white-space: normal;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden;
 }
-.nc-radar-legend.rl:hover .rl-sk .sk-leg-status { -webkit-line-clamp: unset; }
+.rl-dock:hover .rl-sk .sk-leg-status { -webkit-line-clamp: unset; }
 .rl-sk .sk-leg-status.sk-warn { color: #8B4A1F; }
+@media (max-width: 767px) { .rl-dock { display: none; } }
 
 /* Niederschlagsart-Hinweis (Schneefallgrenze) */
 .nc-radar-snownote {
