@@ -272,6 +272,8 @@
   background: rgba(11, 14, 18, 0.6); color: #8B95A3; font-size: 11px; border-radius: 6px; padding: 1px 6px;
 }
 .fire-center .maplibregl-ctrl-attrib a { color: #A8B2C0; }
+/* Jans Auftrag 2026-10-24: kein ⓘ-Knopf mehr auf der Karte. */
+.fire-center .maplibregl-ctrl-attrib { display: none !important; }
 .fire-center .maplibregl-ctrl-attrib-button { filter: invert(0.7); }
 .fire-center .maplibregl-ctrl-bottom-right { bottom: 128px; right: 16px; }
 .fire-center .maplibregl-ctrl-bottom-left { bottom: 128px; left: 16px; }
