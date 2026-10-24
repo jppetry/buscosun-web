@@ -182,8 +182,7 @@
 
 /* Legende im Zeitachsen-Streifen (Jan 2026-10-24, vorher Karte am Kartenrand): rechts neben dem Zeitstempel, Abschnitte
    nebeneinander — Regenintensität als zusammenhängende Farbleiste mit Stufe und mm/h darunter, Schnee/Graupel/Hagel als
-   Verlauf, Schneefallgrenze mit ihren drei Zeichen. Deren Statuszeile ist auf eine Zeile gekürzt und klappt beim
-   Überfahren auf (der volle Text bleibt im DOM). Mobil ausgeblendet wie die frühere Kartenlegende. */
+   Verlauf, Schneefallgrenze mit ihren drei Zeichen (ohne Statuszeile, Jan 2026-10-24). Mobil ausgeblendet wie die frühere Kartenlegende. */
 .rl-dock {
   flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start;
   gap: 0.5rem 0; font-variant-numeric: tabular-nums;
@@ -203,12 +202,6 @@
 .rl-grad small { font-size: 0.6rem; color: var(--stone-500, #8B7355); }
 .rl-sk { display: flex; flex-flow: row wrap; gap: 0.15rem 0.8rem; max-width: 19rem; }
 .rl-sk .nc-radar-leg-item { font-size: 0.64rem; line-height: 1.2; white-space: nowrap; }
-.rl-sk .sk-leg-status {
-  flex-basis: 100%; font-size: 0.6rem; line-height: 1.35; color: var(--stone-500, #8B7355); white-space: normal;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden;
-}
-.rl-dock:hover .rl-sk .sk-leg-status { -webkit-line-clamp: unset; }
-.rl-sk .sk-leg-status.sk-warn { color: #8B4A1F; }
 @media (max-width: 767px) { .rl-dock { display: none; } }
 
 /* Niederschlagsart-Hinweis (Schneefallgrenze) */

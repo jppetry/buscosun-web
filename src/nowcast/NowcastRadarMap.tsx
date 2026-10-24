@@ -910,7 +910,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           {useProfile && skActive && (
             <div className="rl-sec rl-sec-sk">
               <div className="rl-head">Schneefallgrenze <span>buscosun Fusion</span></div>
-              <div className="rl-sk"><SnowCapLegend info={snowCap2d.info} variant="inline" /></div>
+              <div className="rl-sk"><SnowCapLegend info={snowCap2d.info} variant="inline" status={false} /></div>
             </div>
           )}
         </div>

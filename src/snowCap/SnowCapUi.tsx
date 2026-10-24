@@ -28,7 +28,7 @@ function capStatus(info: SnowCapInfo): { text: string; warn: boolean } | null {
  * Legend of the cap. Desktop: items inside the radar legend at the bottom (`inline`, no extra box over the notes at the
  * top); mobile (map legends hidden there): only the status sentence as a compact note (`note`), so "no data" is said.
  */
-export function SnowCapLegend({ info, variant }: { info: SnowCapInfo; variant: 'inline' | 'note' }) {
+export function SnowCapLegend({ info, variant, status = true }: { info: SnowCapInfo; variant: 'inline' | 'note'; /** `false`: only the three legend items, no status sentence (radar legend, Jan 2026-10-24). */ status?: boolean }) {
   const st = capStatus(info);
   if (variant === 'note') {
     return st ? <div className={`nc-radar-snownote sk-legend-m${st.warn ? ' sk-warn' : ''}`} role="note">❄ {st.text}</div> : null;
@@ -38,7 +38,7 @@ export function SnowCapLegend({ info, variant }: { info: SnowCapInfo; variant: '
       <span className="nc-radar-leg-item sk-leg"><i className="sk-sw sk-sw-cap" /> Schneefall oberhalb der Grenze</span>
       <span className="nc-radar-leg-item sk-leg"><i className="sk-sw sk-sw-band" /> Spanne p10–p90</span>
       <span className="nc-radar-leg-item sk-leg"><i className="sk-sw sk-sw-line" style={{ background: SK_LINE_COLOR }} /> Schneefallgrenze</span>
-      {st && <span className={`nc-radar-leg-item sk-leg sk-leg-status${st.warn ? ' sk-warn' : ''}`}>{st.text}</span>}
+      {status && st && <span className={`nc-radar-leg-item sk-leg sk-leg-status${st.warn ? ' sk-warn' : ''}`}>{st.text}</span>}
     </>
   );
 }
