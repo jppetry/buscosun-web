@@ -686,8 +686,27 @@ export default function FireMap({
     // sogar erneut. `queryRenderedFeatures` ist dagegen jederzeit gültig.
     const BURNT_FILLS = ['fire-burnt-week-fill', 'fire-burnt-season-fill', 'fire-burnt-archive-fill'];
     const present = (ids: string[]) => ids.filter((id) => !!map.getLayer(id));
+    /**
+     * Trefferzone um den Klickpunkt: kleine Punkte, Rauten und schmale Flächen trifft man mit dem
+     * Finger (Handy, Tablet — `pointer: coarse`) und selbst mit der Maus nicht auf den Pixel genau.
+     * Statt `queryRenderedFeatures(punkt)` fragt die Karte ein Quadrat um den Punkt ab.
+     */
+    const hitBox = (pt: maplibregl.Point): [maplibregl.PointLike, maplibregl.PointLike] => {
+      const r = window.matchMedia('(pointer: coarse)').matches ? 24 : 9;
+      return [[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]];
+    };
+    /** Pixelabstand eines Punkt-Features zum Klick; Nicht-Punkte zählen als „getroffen" (0). */
+    const pxDist = (f: maplibregl.MapGeoJSONFeature, at: maplibregl.Point): number => {
+      const g = f.geometry as GeoJSON.Point;
+      if (g?.type !== 'Point' || !Array.isArray(g.coordinates)) return 0;
+      const p = map.project([g.coordinates[0], g.coordinates[1]]);
+      return Math.hypot(p.x - at.x, p.y - at.y);
+    };
+    const nearestFeature = (fs: maplibregl.MapGeoJSONFeature[], at: maplibregl.Point) =>
+      fs.reduce((a, b) => (pxDist(b, at) < pxDist(a, at) ? b : a));
     map.on('click', (ev) => {
       const s = stateRef.current;
+      const hb = hitBox(ev.point);
       /**
        * BC1 — die Auswahl läuft VOR der Popup-Kette und greift nicht in sie ein:
        * Sie öffnet nichts, schließt nichts und hat kein `return`. Ein Klick auf
@@ -703,17 +722,18 @@ export default function FireMap({
        */
       // BH3: ein Historie-Punkt — nur im Historie-Modus sichtbar und damit klickbar.
       if (onSelectHistoryRef.current && s.historyFc && map.getLayer(HISTORY_LAYER_ID)) {
-        const hs = map.queryRenderedFeatures(ev.point, { layers: [HISTORY_LAYER_ID] });
-        const id = hs.length > 0 ? String(hs[0].properties?.id ?? '') : '';
+        const hs = map.queryRenderedFeatures(hb, { layers: [HISTORY_LAYER_ID] });
+        const id = hs.length > 0 ? String(nearestFeature(hs, ev.point).properties?.id ?? '') : '';
         if (id) { onSelectHistoryRef.current(id); return; }
       }
       // TA5: eine Standort-Raute vor den Flächen — sie ist die spezifischere Aussage. Mit
       // Eintrag im Fenster springt die Auswahl auf ihn, sonst nur auf den Standort.
       if (onSelectSiteRef.current && map.getLayer(ANOMALY_LAYER_ID)) {
-        const sites = map.queryRenderedFeatures(ev.point, { layers: [ANOMALY_LAYER_ID] });
-        const siteId = sites.length > 0 ? String(sites[0].properties?.id ?? '') : null;
-        if (siteId) {
-          const recordId = String(sites[0].properties?.recordId ?? '');
+        const sites = map.queryRenderedFeatures(hb, { layers: [ANOMALY_LAYER_ID] });
+        const site = sites.length > 0 ? nearestFeature(sites, ev.point) : null;
+        const siteId = site ? String(site.properties?.id ?? '') : null;
+        if (site && siteId) {
+          const recordId = String(site.properties?.recordId ?? '');
           onSelectSiteRef.current(siteId, recordId || null);
           return;
         }
@@ -725,7 +745,7 @@ export default function FireMap({
       // Anlagen, Historie-lose Flächen, Raster) behalten ihre Steckbriefe.
       let openedDossier = false;
       if (onSelectFootprintRef.current && map.getLayer('fire-footprints-fill')) {
-        const fps = map.queryRenderedFeatures(ev.point, { layers: ['fire-footprints-fill'] });
+        const fps = map.queryRenderedFeatures(hb, { layers: ['fire-footprints-fill'] });
         // Bei überlappenden Flächen die KLEINSTE — sie ist die spezifischere;
         // ohne Flächenangabe zählt die Reihenfolge der Zeichnung.
         const pick = fps.reduce<maplibregl.MapGeoJSONFeature | null>((a, b) => {
@@ -741,13 +761,13 @@ export default function FireMap({
         else if (s.selectedFootprintId) {
           // Klick daneben hebt die Markierung auf — außer, er trifft eine Hülle
           // (dann übernimmt der Cluster-Block; die Seite nullt die Brandfläche).
-          const hulls = map.getLayer('fire-clusters-fill') ? map.queryRenderedFeatures(ev.point, { layers: ['fire-clusters-fill'] }) : [];
+          const hulls = map.getLayer('fire-clusters-fill') ? map.queryRenderedFeatures(hb, { layers: ['fire-clusters-fill'] }) : [];
           if (hulls.length === 0) onSelectFootprintRef.current(null);
         }
       }
       if (onSelectClusterRef.current) {
         const hullLayer = map.getLayer('fire-clusters-fill') ? ['fire-clusters-fill'] : [];
-        const hulls = hullLayer.length > 0 ? map.queryRenderedFeatures(ev.point, { layers: hullLayer }) : [];
+        const hulls = hullLayer.length > 0 ? map.queryRenderedFeatures(hb, { layers: hullLayer }) : [];
         // Bei überlappenden Hüllen die STÄRKSTE — sie ist die, die in der Liste
         // oben steht und die der Nutzer meint, wenn er in ein Nest klickt.
         const pick = hulls.reduce<maplibregl.MapGeoJSONFeature | null>(
@@ -759,14 +779,18 @@ export default function FireMap({
       }
       if (openedDossier) { popupRef.current?.remove(); popupRef.current = null; return; }
       if (map.getLayer('fire-hotspots-points')) {
-        const hits = map.queryRenderedFeatures(ev.point, { layers: ['fire-hotspots-points'] });
+        const hits = map.queryRenderedFeatures(hb, { layers: ['fire-hotspots-points'] });
         if (hits.length > 0) {
           // In einem dichten Nest (Industriestandorte häufen dutzende Detektionen auf
           // wenige hundert Meter) liegen mehrere Punkte übereinander. Ohne Hinweis
           // klickt man den großen dunklen Kreis an und bekommt die Werte eines
           // kleinen darunter — ein stiller Etikettenschwindel. Gezeigt wird deshalb
           // die JÜNGSTE Detektion, und die Zahl der übrigen steht im Steckbrief.
-          const chosen = hits.reduce((a, b) =>
+          // Mit der Trefferzone kommen auch Nachbarpunkte in Frage: erst die dem Klick nächsten
+          // (Toleranz 4 px — gestapelte Punkte zählen als einer), unter ihnen die jüngste.
+          const minD = Math.min(...hits.map((h) => pxDist(h, ev.point)));
+          const near = hits.filter((h) => pxDist(h, ev.point) <= minD + 4);
+          const chosen = near.reduce((a, b) =>
             (Number(b.properties?.acqMs ?? 0) > Number(a.properties?.acqMs ?? 0) ? b : a));
           const p = chosen.properties as unknown as FirmsProps;
           // E1/E2: die Bestätigung durch die EFFIS-Kartierung — räumlich UND
@@ -821,7 +845,7 @@ export default function FireMap({
       // Die amtliche Kartierung hat Vorrang vor dem abgeleiteten Raster: wo
       // beide liegen, ist die kartierte Fläche die Antwort.
       const fills = present(BURNT_FILLS);
-      const bHits = fills.length > 0 ? map.queryRenderedFeatures(ev.point, { layers: fills }) : [];
+      const bHits = fills.length > 0 ? map.queryRenderedFeatures(hb, { layers: fills }) : [];
       const poly = bHits.length > 0 ? s.burntLookup.get(String(bHits[0].properties?.id)) : undefined;
       if (poly) {
         // BD2b: gehört die Fläche einem Brand der Registry, öffnet der Klick sein
@@ -858,7 +882,7 @@ export default function FireMap({
     map.on('mousemove', (ev) => {
       const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', ANOMALY_LAYER_ID, ...BURNT_FILLS]);
       if (layers.length === 0) return;
-      const over = map.queryRenderedFeatures(ev.point, { layers }).length > 0;
+      const over = map.queryRenderedFeatures(hitBox(ev.point), { layers }).length > 0;
       map.getCanvas().style.cursor = over ? 'pointer' : '';
     });
     mapRef.current = map;
