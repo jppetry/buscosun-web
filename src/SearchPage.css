@@ -208,7 +208,7 @@
   display: grid;
   /* Quad-Spalte so breit wie die Tourenplanungs-Kachel darunter (`t-w2` im 4er-Bento:
      halbe Breite minus halbe Lücke) und mit deren linker Kante bündig. */
-  grid-template-columns: minmax(0, 1fr) minmax(560px, calc(50% - 8px));
+  grid-template-columns: minmax(0, 1fr) minmax(480px, calc(50% - 8px));
   /* Zeile "eye" entfiel mit dem Eyebrow (2026-08-09). */
   grid-template-areas:
     "title quad"
@@ -783,7 +783,7 @@
    TABLET (768–1024) — 3-Spalten-Bento, Hero zweispaltig, per `order` umsortiert.
    Range-Query (min 768), damit `order`/Spans NICHT in den Mobile-Bereich lecken.
    ============================================================================ */
-@media (min-width: 768px) and (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 900px) {
   .deck { --deck-pad-x: 28px; }
   .deck-h1 { font-size: 52px; letter-spacing: -1.8px; }
   .deck-hero { padding-top: 20px; }
