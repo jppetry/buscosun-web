@@ -47,14 +47,14 @@ function dashedRing(): ImageData {
   c.width = px; c.height = px;
   const g = c.getContext('2d')!;
   g.beginPath(); g.arc(px / 2, px / 2, px / 2 - 5, 0, Math.PI * 2);
-  g.fillStyle = 'rgba(243,238,225,0.85)'; g.fill();
-  g.setLineDash([7, 6]); g.lineWidth = 3.5; g.strokeStyle = '#8B7E62'; g.stroke();
+  g.fillStyle = 'rgba(214,236,248,0.92)'; g.fill();
+  g.setLineDash([7, 6]); g.lineWidth = 3.5; g.strokeStyle = '#4F93BE'; g.stroke();
   return g.getImageData(0, 0, px, px);
 }
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const colorExpr = (ramp: 'loss' | 'snow'): maplibregl.ExpressionSpecification => {
   const r = GLACIER_RAMPS[ramp];
-  return ['match', ['get', 'b'], 0, r[0], 1, r[1], 2, r[2], 3, r[3], 4, r[4], '#CFC6B0'];
+  return ['match', ['get', 'b'], 0, r[0], 1, r[1], 2, r[2], 3, r[3], 4, r[4], '#D6ECF8'];
 };
 
 export default function GlacierMap({ features, ramp, selectedId, onSelect, regionBoxes, loadOutline, bucketOf, padding, onMap, view = '2d', onView3dFailed }: Props) {

@@ -113,7 +113,7 @@
 .gl-map .gl-ramp i { height: 7px; }
 .gl-map .gl-ramp span { font-size: 9.5px; }
 .gl-map .gl-legend-row { font-size: 10.5px; }
-.gl-dash { width: 10px; height: 10px; border-radius: 6px; border: 1.5px dashed #8B7E62; background: #F3EEE1; flex: 0 0 auto; }
+.gl-dash { width: 10px; height: 10px; border-radius: 6px; border: 1.5px dashed #4F93BE; background: #D6ECF8; flex: 0 0 auto; }
 /* Map card of the picked glacier (Jan, 2026-10-24): bottom LEFT of the map, built like the Brandradar's `.br-mapcard`
    (GlacierMapCard.tsx) — head with icon tile, eyebrow, name, region, star and close; two key-figure tiles; one CTA. */
 .gl-pill {

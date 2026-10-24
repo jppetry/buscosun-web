@@ -60,7 +60,7 @@ export default function GlacierList({ ranked, rest, def, hint, selectedId, onPic
                   style={b >= 0 ? { ['--gl-tile-c' as string]: ramp[b] } : undefined}>
                   <span className="gl-tile-top">
                     {r.n != null && <span className="gl-tile-n">{r.n}</span>}
-                    <GlacierIcon color={b >= 0 ? ramp[b] : '#F3EEE1'} />
+                    <GlacierIcon color={b >= 0 ? ramp[b] : '#D6ECF8'} />
                     <span className="gl-tile-name">{displayName(g)}</span>
                     <span className={`gl-tile-badge is-${g.klass}`} title={`Größenklasse ${g.klass}`}>{g.klass}</span>
                     <span className="gl-tile-region" title={GLACIER_COUNTRY_LABEL[g.country]}>{g.country}</span>
