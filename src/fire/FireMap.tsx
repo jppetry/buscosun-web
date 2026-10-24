@@ -1456,7 +1456,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     'fire-clusters-sel-line': {
       id: 'fire-clusters-sel-line', type: 'line', source: 'fire-clusters',
       filter: ['==', ['get', 'id'], ''],
-      paint: { 'line-color': '#2C2A26', 'line-width': 2.6, 'line-opacity': 0.95 },
+      paint: { 'line-color': '#A32B1E', 'line-width': 2.6, 'line-opacity': 0.95 },
     },
     // Footprint: die ehrliche räumliche Unsicherheit (scan×track, gemessen
     // 0,32–0,80 km). Erst ab FOOTPRINT_MIN_ZOOM — darunter wäre das Rechteck
@@ -1564,7 +1564,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     'fire-footprints-sel-line': {
       id: 'fire-footprints-sel-line', type: 'line', source: 'fire-footprints',
       filter: ['==', ['get', 'id'], ''],
-      paint: { 'line-color': '#2C2A26', 'line-width': 3, 'line-opacity': 0.98 },
+      paint: { 'line-color': '#A32B1E', 'line-width': 3, 'line-opacity': 0.98 },
     },
     /**
      * SF1 — der Unsicherheitsfächer: offener Sektor am Brandpunkt, Öffnung =
@@ -1703,7 +1703,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     map.addLayer({
       id: HISTORY_SEL_LAYER_ID, type: 'circle', source: HISTORY_SOURCE_ID,
       filter: ['==', ['get', 'id'], ''], layout: { visibility: 'none' },
-      paint: { 'circle-radius': 15, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2C2A26', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': 0.95 },
+      paint: { 'circle-radius': 15, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#A32B1E', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': 0.95 },
     } as maplibregl.LayerSpecification);
   }
 
