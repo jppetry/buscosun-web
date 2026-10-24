@@ -5,7 +5,7 @@
  * The dossier (`layout="dossier"`) folds the five sections into three levels (pattern Brandradar): Heute · Satellit · Langzeit — the URL `tab`
  * names the level. The map carries a "Karte | Satellit" basemap (Esri imagery, as in the Brandradar) and a 10-m deep link to the Copernicus Browser.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import './glacierSheet.css';
 import ShareButton from '../share/ShareButton';
 import { GLACIER_COUNTRY_LABEL, GLACIER_REGIONS, type GlacierCatalogEntry, type GlacierOfficialItem } from './glacierContract';
@@ -21,6 +21,7 @@ import {
 } from './glacierSheetModel';
 import type { GlacierSatIndex } from './glacierClient';
 
+const GlacierSatImagery = lazy(() => import('./GlacierSatImagery'));
 const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen' };
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
@@ -284,10 +285,18 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
                 {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} /> : LEVELS[level].tabs.map((t) => (
-                  <section key={t} className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
-                    <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
-                    {tabBody(t, data)}
-                  </section>
+                  <Fragment key={t}>
+                    {t === 'saison' && (
+                      <section className="gl-ds-card gl-ds-sec" data-tab="sat10" aria-label="Sentinel-2 in 10 m">
+                        <span className="gl-ds-eyebrow">Sentinel-2 in 10 m</span>
+                        <Suspense fallback={<p className="gl-fine" role="status">Satellitenbild wird geladen …</p>}><GlacierSatImagery lat={g.lat} lon={g.lon} name={displayName(g)} nowMs={nowMs} /></Suspense>
+                      </section>
+                    )}
+                    <section className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
+                      <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
+                      {tabBody(t, data)}
+                    </section>
+                  </Fragment>
                 ))}
               </>
             ))}

@@ -128,6 +128,39 @@
 .gl-ds-mapcard { padding: 0; overflow: hidden; }
 .gl-ds-mapcard .gl-sheet-map { position: relative; flex: none; height: 460px; min-height: 0; border: 0; }
 /* The three levels of the dossier (pattern Brandradar): a stepper under the head card, one level of sections at a time */
+/* Dossier level "Satellit": Sentinel-2 10-m picture (GlacierSatImagery.tsx). The viewer (`fire/FireCogViewer.tsx`) carries the Brandradar's class
+   names; these rules mirror `fireDeck.css` / `seaDeck.css` 1:1 because fireDeck.css is not loaded on this chunk. */
+.gl-sat-label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 8px; font-size: 13.5px; color: var(--gl-muted); }
+.gl-sat-label strong { padding: 3px 10px; border-radius: 999px; background: var(--gl-accent); color: #FAF6EA; font-size: 13px; letter-spacing: .08em; }
+.gl-sat-label span { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--gl-line); background: #FDFBF4; }
+.gl-sat-frame { position: relative; border-radius: 12px; overflow: hidden; background: #F5F1E8; border: 1px solid var(--gl-line); aspect-ratio: 16 / 10; max-height: 560px; width: 100%; }
+.gl-sat-days { display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-bottom: 4px; }
+.gl-sat-day { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 54px; min-height: 44px; padding: 6px 8px; border: 1px solid var(--gl-line); border-radius: 8px; background: #FDFBF4; color: var(--gl-ink); font: inherit; font-size: 13.5px; cursor: pointer; }
+.gl-sat-day.is-on { border-color: var(--gl-accent); background: var(--gl-accent); color: #fff; }
+.gl-sat-day-cloud { font-size: 12.5px; color: #A89A7A; }
+.gl-sat-day.is-on .gl-sat-day-cloud { color: #fff; }
+.gl-sat-notes { margin: 8px 0 0; padding-left: 16px; font-size: 12.5px; line-height: 1.5; color: var(--gl-muted); }
+.br-muted { color: #8B7355; }
+.br-sat-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px 22px; margin: 0; font-size: 15.5px; text-align: center; }
+.br-cog-inline { position: absolute; inset: 0; background: var(--ink-900, #2C2A26); }
+.br-cog-full { position: fixed; inset: 0; z-index: 120; background: var(--ink-900, #2C2A26); }
+.br-cog-inline canvas, .br-cog-full canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.br-cog-inline .br-sat-wait, .br-cog-full .br-sat-wait { color: #EDE6D3; }
+.br-cog-inline a, .br-cog-full a { color: #EAF1F7; }
+.br-cog-ctrl { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+.br-cog-ctrl button { width: 34px; height: 34px; border: 1px solid var(--gl-line); border-radius: 8px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-size: 19px; line-height: 1; cursor: pointer; }
+.br-cog-status { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: #EDE6D3; }
+.br-cog-scale { display: inline-block; flex: 0 0 auto; height: 0; border-bottom: 2px solid #EDE6D3; }
+.br-cog-notes { position: absolute; left: 8px; right: 56px; bottom: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.br-cog-note { margin: 0; padding: 3px 7px; border-radius: 6px; background: var(--ink-900, #2C2A26); font-size: 14px; color: #EDE6D3; }
+.br-cog-mode { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; }
+.br-cog-mode button, .br-cog-over button { padding: 7px 12px; border: 1px solid var(--gl-line); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
+.br-cog-over { position: absolute; top: 48px; left: 8px; display: flex; gap: 6px; }
+.br-cog-over button { padding: 5px 10px; }
+.br-cog-mode button.is-active, .br-cog-over button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
+.br-cog-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 3px 7px; border-radius: 6px; background: var(--ink-900, #2C2A26); font-size: 14px; color: #EDE6D3; }
+.br-cog-legend i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; border: 1px solid #EDE6D3; }
+@media (max-width: 767px) { .gl-sat-frame { aspect-ratio: 4 / 5; } .br-cog-ctrl button { width: 44px; height: 44px; } }
 .gl-ds-steps { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px; background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; box-shadow: 0 4px 14px rgba(44,42,38,.06); }
 .gl-ds-step { display: flex; align-items: center; gap: 11px; min-height: 54px; padding: 8px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--gl-ink); text-align: left; cursor: pointer; font: inherit; transition: background .15s; }
 .gl-ds-step:hover { background: var(--gl-panel); }
