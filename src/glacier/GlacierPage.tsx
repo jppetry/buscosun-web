@@ -320,6 +320,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           <button type="button" aria-pressed={stage === 'dossier'} onClick={() => setStage('dossier')}>Dossier</button>
         </div>
       )}
+      {/* Mobile (Jan 2026-10-25, like the Brandradar's map row): logo left, 2D | 3D in the middle at the same height, share right. */}
+      {isMobile && <div className="gl-m-topmid">{viewSeg}</div>}
       <div className="gl-grow" />
       {!isMobile && stand}
       {!isMobile && <span className="gl-season">{season.label}</span>}
@@ -355,7 +357,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           <div className="gl-body">
             <div className="gl-center">
               <section className="gl-map" aria-label="Karte">
-                {map}{note}{viewSeg}
+                {map}{note}
                 <div className="gl-m-overlay"><span className="gl-season">{season.label}</span>{satChip}</div>
                 <div className="gl-pill-slot">{pill}</div>
               </section>

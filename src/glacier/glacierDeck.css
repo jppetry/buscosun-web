@@ -225,10 +225,15 @@
   .gl-root { flex-direction: column; }
   .gl-rail-desktop { display: none; }
   .gl-main { flex: 1; min-height: 0; }
+  /* Topbar like the Brandradar's mobile map row (Jan 2026-10-25): logo tile | 2D 3D | share, all 40 px high; the title stays for screen readers. */
   .gl-topbar { height: 56px; padding: 0 12px; gap: 10px; }
-  .gl-title { flex: 1; min-width: 0; }
-  .gl-title b { font-size: 15px; font-weight: 600; color: var(--gl-ink); }
-  .gl-title span { font-size: 11.5px; }
+  .gl-topdiv, .gl-grow { display: none; }
+  .gl-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .gl-root a.gl-brand { width: 40px; height: 40px; justify-content: center; border-radius: 11px; background: var(--gl-surface, #fff); border: 1px solid var(--gl-line-strong); box-sizing: border-box; }
+  .gl-m-topmid { flex: 1; min-width: 0; display: flex; justify-content: center; }
+  .gl-m-topmid .gl-view-seg { position: static; flex-direction: row; height: 40px; box-sizing: border-box; padding: 3px; gap: 3px; }
+  .gl-m-topmid .gl-view-seg button { width: 52px; height: 32px; min-height: 32px; }
+  .gl-topbar .gl-share { width: 40px; height: 40px; padding: 0; justify-content: center; }
   .gl-root a.gl-brand span { display: none; }
   .gl-stand, .gl-season-d { display: none; }
   .gl-body { flex-direction: column; overflow-y: auto; }
