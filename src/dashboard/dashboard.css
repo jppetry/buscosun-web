@@ -921,3 +921,17 @@
   .dbd-warn.is-rich { padding: 12px 12px 11px 14px; gap: 10px; }
   .dbd-warn-badge { width: 30px; height: 30px; border-radius: 10px; }
 }
+
+/* ============================================================================
+   Desktop ≥ 1280 px: Jetzt-Kachel schmaler (Werte als 2 × 2), daneben der Kartenausschnitt mit Wind und Niederschlag
+   ============================================================================ */
+@media (min-width: 1280px) {
+  .dbd-row1 { grid-template-columns: 1.5fr 1.1fr 1.15fr .95fr; }
+  .dbd-row1 > * { min-width: 0; }
+  .dbd-now-main { flex-wrap: wrap; gap: 14px 18px; }
+  .dbd-now-grid { flex: 1 1 100%; grid-template-columns: repeat(2, 1fr); }
+}
+.dbd-minimap { position: relative; padding: 0; overflow: hidden; min-height: 260px; border: 1px solid var(--dbd-line); border-radius: 16px; background: var(--dbd-cream); box-shadow: var(--dbd-shadow-l); }
+.dbd-mm-inner, .dbd-mm-map { position: absolute; inset: 0; }
+.dbd-mm-cap { position: absolute; left: 8px; bottom: 8px; z-index: 2; max-width: calc(100% - 100px); padding: 3px 8px; border-radius: 7px; font-size: 10.5px; line-height: 1.35; color: var(--dbd-ink); background: var(--dbd-glass-cream); box-shadow: 0 1px 3px rgba(44, 42, 38, .18); }
+.dbd-mm-pin { width: 12px; height: 12px; border-radius: 50%; background: var(--terracotta-500, #C2542B); border: 2px solid #fff; box-shadow: 0 0 0 4px rgba(194, 84, 43, .25), 0 1px 4px rgba(44, 42, 38, .4); }

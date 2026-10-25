@@ -8,7 +8,7 @@
  * Die Kacheln zeichnen `buildDashboardVM(...)` — rein, geprüft von `verify:dashboard`. Im Entwicklungsmodus liefert
  * `?dbfixture=vorlage` die Werte der Vorlage (Pixel-Diff, §5.7); im Produktions-Bau ist der Zweig entfernt.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import './dashboard.css';
 import ViewToggle, { type DashboardView as View } from './ViewToggle';
 import { DASH_PARTS, DASH_PART_LABEL, type DashPart, type DashRange } from './dashUrl';
@@ -48,6 +48,9 @@ interface Props {
 }
 
 const REFRESH_EXTRAS_MS = 5 * 60_000;
+
+/** Kartenausschnitt neben der Jetzt-Kachel (nur Desktop, erst nach der Fusion): eigener Chunk mit MapLibre. */
+const MiniMap = lazy(() => import('./MiniMap'));
 
 export default function DashboardView(props: Props) {
   const fixtureOn = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dbfixture') === 'vorlage';
@@ -234,10 +237,23 @@ function useTablet(): boolean {
   return m;
 }
 
-function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onHalfKm, onRetry, refs, log, part = 'ueberblick', onPart }: Props & {
+function useWide(): boolean {
+  const q = '(min-width: 1280px)';
+  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(q);
+    const on = () => setM(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return m;
+}
+
+function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onHalfKm, onRetry, refs, log, part = 'ueberblick', onPart }: Props & {
   vm: DashboardVM; onHalfKm: (km: 10 | 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
+  const wide = useWide();
   // Uhr der Topbar im Format der Kartenebene (Zeit, Wochentag · Tag Monat)
   const clock = new Date(useNow(15_000));
   const clockTime = clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -324,6 +340,13 @@ function DashboardPage({ vm, range, onRange, onSelectView, onSelectLocation, onB
                   <WarningStrip vm={vm.warning} />
                 </section>
               ) : <NowCard vm={vm.now} warning={vm.warning} />}
+              {wide && (
+                <section className="dbd-card dbd-minimap" aria-label="Karte: Wind und Niederschlag am Ort">
+                  {(vm.status === 'ok' || vm.status === 'error') && place && (
+                    <Suspense fallback={null}><MiniMap key={`${place.country}:${place.lat}:${place.lon}`} place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} /></Suspense>
+                  )}
+                </section>
+              )}
               {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} onDetail={() => setNcOpen(true)} detailRef={ncOpener} />
               <WindRoseTile vm={vm.windRose} />
