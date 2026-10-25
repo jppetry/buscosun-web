@@ -325,6 +325,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               <section className="gl-map" aria-label="Karte">
                 {map}{note}
                 <div className="gl-m-overlay"><span className="gl-season">{season.label}</span>{satChip}</div>
+                {/* Compact legend above the bottom bar while no glacier card covers the map (Jan 2026-10-25). */}
+                {!sel && <div className="gl-m-maplegend">{legend}</div>}
                 <div className="gl-pill-slot">{pill}</div>
               </section>
             </div>

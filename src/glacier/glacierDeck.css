@@ -263,6 +263,17 @@
   .gl-m-title { margin: 3px 0 0; font-size: 22px; line-height: 1.15; font-weight: 700; letter-spacing: -0.4px; color: var(--gl-ink); }
   .gl-m-x { flex: 0 0 auto; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--gl-line-strong); background: #fff; color: var(--gl-ink); cursor: pointer; }
   .gl-m-page .gl-m-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px 20px; gap: 10px; }
+  /* Compact legend on the map, right above the bottom bar. */
+  .gl-m-maplegend { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; }
+  .gl-m-maplegend .gl-legend.gl-legend-bar { display: flex; position: static; width: auto; max-width: none; flex-direction: column; align-items: stretch; gap: 5px; padding: 7px 10px 8px; border-radius: 12px; }
+  .gl-m-maplegend .gl-legend-main { gap: 4px; }
+  .gl-m-maplegend .gl-legend-head { justify-content: flex-start; gap: 8px; }
+  .gl-m-maplegend .gl-legend-head b { font-size: 11.5px; }
+  .gl-m-maplegend .gl-ramp { width: auto; gap: 2px; }
+  .gl-m-maplegend .gl-ramp i { height: 6px; border-radius: 3px; }
+  .gl-m-maplegend .gl-ramp span { margin-top: 2px; font-size: 10.5px; font-weight: 600; color: var(--gl-ink); }
+  .gl-m-maplegend .gl-legend-side { flex-direction: row; flex-wrap: wrap; gap: 2px 12px; padding: 0; border: 0; }
+  .gl-m-maplegend .gl-legend-row { font-size: 10px; }
   .gl-bar { flex: 0 0 auto; display: flex; justify-content: space-around; padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--gl-panel); border-top: 1px solid var(--gl-line-strong); }
   .gl-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 72px; min-height: 44px; padding: 0 10px; border: 0; background: none; color: var(--gl-faint); font: inherit; font-size: 10.5px; cursor: pointer; }
   .gl-bar-btn svg { width: 26px; height: 26px; }
