@@ -28,7 +28,7 @@ import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierM
 import GlacierMapCard from './GlacierMapCard';
 import GlacierDock from './GlacierDock';
 import GlacierList from './GlacierList';
-import { IcoBarLayers, IcoBarSettings } from '../fire/fireIcons';
+import { IcoBarMap, IcoBarLayers, IcoBarSettings } from '../fire/fireIcons';
 import GlacierFilters, { NO_FILTER, passesFilter, type GlacierFilter } from './GlacierFilters';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import { FollowList } from './GlacierFeedView';
@@ -390,11 +390,12 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           </div>
           <nav className="gl-bar" aria-label="Gletscher-Bereiche">
             {([
+              ['map', 'Karte', <IcoBarMap key="i" />],
               ['glacier', 'Gletscher', <svg key="i" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 20 9 8.5l3 4.5 2.5-3.5L21.5 20Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>],
               ['layer', 'Layer', <IcoBarLayers key="i" />],
               ['settings', 'Einstellungen', <IcoBarSettings key="i" />],
             ] as const).map(([id, label, icon]) => (
-              <button key={id} type="button" className={`gl-bar-btn${mTab === id ? ' is-active' : ''}`} aria-current={mTab === id ? 'page' : undefined} onClick={() => setMTab(id)}>
+              <button key={id} type="button" className={`gl-bar-btn${(mTab ?? 'map') === id ? ' is-active' : ''}`} aria-current={(mTab ?? 'map') === id ? 'page' : undefined} onClick={() => setMTab(id === 'map' ? null : id)}>
                 {icon}<span>{label}</span>
               </button>
             ))}
