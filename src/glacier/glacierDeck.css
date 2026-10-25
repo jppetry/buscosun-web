@@ -254,9 +254,15 @@
   .gl-m-overlay .gl-season { height: 30px; font-size: 12.5px; }
   .gl-m-overlay .gl-chip { height: 30px; padding: 0 10px; font-size: 12.5px; background-color: #fff; }
   /* Bottom bar + page (Jan 2026-10-25, like the Brandradar's .br-bar): the map keeps its strip on top, the page below scrolls. */
-  .gl-root.is-mobile .gl-body { overflow: hidden; }
-  .gl-root.is-mobile .gl-map { flex: 0 0 clamp(220px, 36vh, 330px); min-height: 220px; }
-  .gl-m-page { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--gl-panel); border-top: 1px solid var(--gl-line); }
+  .gl-root.is-mobile .gl-body { position: relative; overflow: hidden; }
+  .gl-root.is-mobile .gl-center { flex: 1 1 auto; min-height: 0; }
+  .gl-root.is-mobile .gl-center > .gl-map:not(.gl-sheet-map) { flex: 1 1 auto; min-height: 0; }
+  /* Every bar item is a full page over the map with an X at the top right (closes it) — or switch via the bar. */
+  .gl-m-page { position: absolute; inset: 0; z-index: 45; display: flex; flex-direction: column; background: var(--gl-panel); }
+  .gl-m-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 12px 18px; border-bottom: 1px solid var(--gl-line); }
+  .gl-m-title { margin: 3px 0 0; font-size: 22px; line-height: 1.15; font-weight: 700; letter-spacing: -0.4px; color: var(--gl-ink); }
+  .gl-m-x { flex: 0 0 auto; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--gl-line-strong); background: #fff; color: var(--gl-ink); cursor: pointer; }
+  .gl-m-page .gl-m-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px 20px; gap: 10px; }
   .gl-bar { flex: 0 0 auto; display: flex; justify-content: space-around; padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--gl-panel); border-top: 1px solid var(--gl-line-strong); }
   .gl-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 72px; min-height: 44px; padding: 0 10px; border: 0; background: none; color: var(--gl-faint); font: inherit; font-size: 10.5px; cursor: pointer; }
   .gl-bar-btn svg { width: 26px; height: 26px; }

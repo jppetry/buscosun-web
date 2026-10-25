@@ -48,6 +48,8 @@ export interface GlacierPageProps {
 
 /** The sheet (five tabs, GL-4): `/gletscher/<slug>`; the situation page's button opens it. */
 export const GLACIER_BRIEF_READY = true;
+/** Titles of the mobile bottom-bar pages (each one is a full page with an X, Jan 2026-10-25). */
+const M_TAB_TITLE = { glacier: 'Gletscher', layer: 'Layer', settings: 'Einstellungen' } as const;
 const REFRESH_MS = 30 * 60_000;
 
 type Loaded = {
@@ -65,7 +67,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [metric, setMetric] = useState<GlacierMetric>(initial.m);
   const [query, setQuery] = useState(initial.q);
   const [filter, setFilter] = useState<GlacierFilter>(NO_FILTER);
-  const [mTab, setMTab] = useState<'glacier' | 'layer' | 'settings'>('glacier');
+  const [mTab, setMTab] = useState<'glacier' | 'layer' | 'settings' | null>(null);
   // a region of another country makes no sense after a country switch
   useEffect(() => { setFilter((f) => (f.region && land !== 'alle' && GLACIER_REGIONS[f.region]?.country.toLowerCase() !== land ? { ...f, region: '' } : f)); }, [land]);
   const [selSeg, setSelSeg] = useState<string | null>(initial.glacier ?? initial.sel);
@@ -327,13 +329,21 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               </section>
             </div>
             {/* Bottom bar like the Brandradar's (Jan 2026-10-25): Gletscher (the desktop list), Layer (colour the map by), Einstellungen. */}
-            <div className="gl-m-page">
+            {mTab && (
+            <section className="gl-m-page" aria-label={M_TAB_TITLE[mTab]}>
+              <header className="gl-m-head">
+                <div><div className="gl-label">Gletscher DACH</div><h1 className="gl-m-title">{M_TAB_TITLE[mTab]}</h1></div>
+                <button type="button" className="gl-m-x" aria-label="Seite schließen" onClick={() => setMTab(null)}>
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                </button>
+              </header>
+              <div className="gl-m-scroll">
               {mTab === 'glacier' && (
                 <>
                   {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
-                  {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick}
+                  {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={(id) => { pick(id); setMTab(null); }}
                     onOpen={(id) => { if (GLACIER_BRIEF_READY) onGlacier(stateNow({ glacier: glacierSegmentOf(id), sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); else pick(id); }} />}
-                  {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
+                  {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={(id) => { pick(id); setMTab(null); }} onUnfollow={follow} fresh={fresh} />}
                 </>
               )}
               {mTab === 'layer' && (
@@ -370,7 +380,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
                   <div className="gl-dock-foot">Bezugsjahre der Flächen: CH {fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025</div>
                 </>
               )}
-            </div>
+              </div>
+            </section>
+            )}
           </div>
           <nav className="gl-bar" aria-label="Gletscher-Bereiche">
             {([
