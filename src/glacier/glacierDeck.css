@@ -253,6 +253,16 @@
   .gl-m-overlay { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; pointer-events: none; }
   .gl-m-overlay .gl-season { height: 30px; font-size: 12.5px; }
   .gl-m-overlay .gl-chip { height: 30px; padding: 0 10px; font-size: 12.5px; background-color: #fff; }
+  /* Bottom bar + page (Jan 2026-10-25, like the Brandradar's .br-bar): the map keeps its strip on top, the page below scrolls. */
+  .gl-root.is-mobile .gl-body { overflow: hidden; }
+  .gl-root.is-mobile .gl-map { flex: 0 0 clamp(220px, 36vh, 330px); min-height: 220px; }
+  .gl-m-page { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--gl-panel); border-top: 1px solid var(--gl-line); }
+  .gl-bar { flex: 0 0 auto; display: flex; justify-content: space-around; padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--gl-panel); border-top: 1px solid var(--gl-line-strong); }
+  .gl-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 72px; min-height: 44px; padding: 0 10px; border: 0; background: none; color: var(--gl-faint); font: inherit; font-size: 10.5px; cursor: pointer; }
+  .gl-bar-btn svg { width: 26px; height: 26px; }
+  .gl-bar-btn.is-active { color: var(--gl-accent-dark); font-weight: 600; }
+  .gl-m-page .gl-stand { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; white-space: normal; }
+  .gl-m-page .gl-seg button { height: 40px; }
   .gl-m-chips { flex: 0 0 auto; display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; scrollbar-width: none; background: var(--gl-panel); border-bottom: 1px solid var(--gl-line); }
   .gl-m-chips button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--gl-line-strong); background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
   .gl-m-chips button[aria-pressed="true"] { background: var(--gl-tint); border-color: var(--gl-accent); color: var(--gl-accent-dark); }

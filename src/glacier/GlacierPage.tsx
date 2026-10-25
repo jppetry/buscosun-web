@@ -22,12 +22,13 @@ import {
   GLACIER_RAMPS, defsFor, fmt0, fmtRefYear, inLand, matchesQuery, metricValue, officialStandLabel, rankGlaciers, satAgeDays, seasonStatus,
 } from './glacierView';
 import {
-  glacierIdOfSegment, glacierSegmentOf, GLACIER_METRICS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
+  glacierIdOfSegment, glacierSegmentOf, GLACIER_METRICS, GLACIER_LANDS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
 } from './glacierState';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierMapCard from './GlacierMapCard';
 import GlacierDock from './GlacierDock';
 import GlacierList from './GlacierList';
+import { IcoBarLayers, IcoBarSettings } from '../fire/fireIcons';
 import GlacierFilters, { NO_FILTER, passesFilter, type GlacierFilter } from './GlacierFilters';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
 import { FollowList } from './GlacierFeedView';
@@ -64,6 +65,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [metric, setMetric] = useState<GlacierMetric>(initial.m);
   const [query, setQuery] = useState(initial.q);
   const [filter, setFilter] = useState<GlacierFilter>(NO_FILTER);
+  const [mTab, setMTab] = useState<'glacier' | 'layer' | 'settings'>('glacier');
   // a region of another country makes no sense after a country switch
   useEffect(() => { setFilter((f) => (f.region && land !== 'alle' && GLACIER_REGIONS[f.region]?.country.toLowerCase() !== land ? { ...f, region: '' } : f)); }, [land]);
   const [selSeg, setSelSeg] = useState<string | null>(initial.glacier ?? initial.sel);
@@ -162,14 +164,13 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   }, [glaciers]);
 
   const pass = useCallback((g: (typeof glaciers)[number]) => passesFilter(g, filter, d?.summary?.latest[g.id]), [filter, d]);
-  const allRanked = useMemo(() => (isMobile ? [] : rankGlaciers(glaciers.filter(pass), d?.summary ?? null, metric, land, query, Infinity, satCtx)), [isMobile, glaciers, pass, d, metric, land, query, satCtx]);
+  const allRanked = useMemo(() => rankGlaciers(glaciers.filter(pass), d?.summary ?? null, metric, land, query, Infinity, satCtx), [glaciers, pass, d, metric, land, query, satCtx]);
   const allRest = useMemo(() => {
-    if (isMobile) return [];
     const inRank = new Set(allRanked.map((r) => r.g.id));
     return glaciers.filter((g) => !inRank.has(g.id) && inLand(g, land) && matchesQuery(g, query) && pass(g))
       .sort((a, b) => b.area.km2 - a.area.km2 || (a.id < b.id ? -1 : 1))
       .map((g) => ({ g, value: values.get(g.id) }));
-  }, [isMobile, allRanked, glaciers, land, query, values, pass]);
+  }, [allRanked, glaciers, land, query, values, pass]);
 
   const def = defs[metric];
   const season = seasonStatus(nowMs);
@@ -325,14 +326,63 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
                 <div className="gl-pill-slot">{pill}</div>
               </section>
             </div>
-            <div className="gl-m-chips" role="group" aria-label="Karte färben nach">
-              {GLACIER_METRICS.map((m) => <button key={m} type="button" aria-pressed={metric === m} disabled={!!defs[m].locked} onClick={() => setMetric(m)}>{defs[m].label}</button>)}
-            </div>
-            <div className="gl-readout-scroll gl-m-scroll">
-              <div className="gl-m-only gl-m-legend">{legend}</div>
-              {/* Jan 2026-10-25: below the map the mobile view shows only the legend — search, country cards, ranking, chart, lists, reports and the rhythm are gone here. */}
+            {/* Bottom bar like the Brandradar's (Jan 2026-10-25): Gletscher (the desktop list), Layer (colour the map by), Einstellungen. */}
+            <div className="gl-m-page">
+              {mTab === 'glacier' && (
+                <>
+                  {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
+                  {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick}
+                    onOpen={(id) => { if (GLACIER_BRIEF_READY) onGlacier(stateNow({ glacier: glacierSegmentOf(id), sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); else pick(id); }} />}
+                  {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
+                </>
+              )}
+              {mTab === 'layer' && (
+                <>
+                  <div className="gl-label">Karte färben nach</div>
+                  <div role="group" aria-label="Größe der Karte">
+                    {GLACIER_METRICS.map((m) => {
+                      const md = defs[m];
+                      return (
+                        <button key={m} type="button" className={`gl-metric${md.locked ? ' is-locked' : ''}`} aria-pressed={metric === m} aria-disabled={!!md.locked}
+                          title={md.locked ?? undefined} onClick={() => { if (!md.locked) setMetric(m); }}>
+                          <span className="gl-m-main"><b>{md.label}</b><span>{md.locked ? 'gesperrt' : md.sub}</span></span>
+                          <OriginChip origin={md.origin} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {def.locked && <LockNote>{def.locked}</LockNote>}
+                  <div className="gl-m-only gl-m-legend">{legend}</div>
+                </>
+              )}
+              {mTab === 'settings' && (
+                <>
+                  <div className="gl-field">
+                    <div className="gl-label" id="gl-m-land">Land</div>
+                    <div className="gl-seg" role="group" aria-labelledby="gl-m-land">
+                      {GLACIER_LANDS.map((l) => <button key={l} type="button" aria-pressed={land === l} onClick={() => setLand(l)}>{l === 'alle' ? 'Alle' : l.toUpperCase()}</button>)}
+                    </div>
+                  </div>
+                  <div className="gl-field">
+                    <div className="gl-label">Datenstand</div>
+                    {stand}
+                  </div>
+                  <div className="gl-dock-foot">Bezugsjahre der Flächen: CH {fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025</div>
+                </>
+              )}
             </div>
           </div>
+          <nav className="gl-bar" aria-label="Gletscher-Bereiche">
+            {([
+              ['glacier', 'Gletscher', <svg key="i" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 20 9 8.5l3 4.5 2.5-3.5L21.5 20Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>],
+              ['layer', 'Layer', <IcoBarLayers key="i" />],
+              ['settings', 'Einstellungen', <IcoBarSettings key="i" />],
+            ] as const).map(([id, label, icon]) => (
+              <button key={id} type="button" className={`gl-bar-btn${mTab === id ? ' is-active' : ''}`} aria-current={mTab === id ? 'page' : undefined} onClick={() => setMTab(id)}>
+                {icon}<span>{label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
     );
