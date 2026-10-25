@@ -227,7 +227,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       onClose={() => setSelSeg(null)}
     />
   );
-  // Legend (bar at the bottom of the map since Jan 2026-10-24): title and origin, the five-step scale, then the two notes.
+  // Legend (bar at the bottom of the map since Jan 2026-10-24): title and origin, then the five-step scale.
   const legend = (
     <div className="gl-legend gl-legend-bar" aria-label="Legende">
       <div className="gl-legend-main">
@@ -235,10 +235,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         {def.locked ? <LockNote>{def.locked}</LockNote> : (
           <div className="gl-ramp" aria-hidden="true">{ramp.map((c, i) => <div key={c}><i style={{ background: c }} /><span>{rampLabels[i]}</span></div>)}</div>
         )}
-      </div>
-      <div className="gl-legend-side">
-        <div className="gl-legend-row"><span className="gl-dash" />{def.noValue}</div>
-        <div className="gl-legend-row"><span className="gl-size" aria-hidden="true"><i /><i /></span>Kreisgröße = Fläche laut Inventar</div>
       </div>
     </div>
   );
