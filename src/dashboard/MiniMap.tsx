@@ -21,7 +21,7 @@ import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { drapeCorners, drapeImageSliced, type DrapeBox, type TowerRadarPick } from '../nowcast/cellTowers/radarDrape';
 import type { PlaceIn } from './model/types';
 
-const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
 const SRC_RADAR = 'dbd-mm-radar';
 const ZOOM = 8.2;
 /** Radar picture box around the place (degrees): a bit more than the visible area, so a slow pan never shows an edge. */
