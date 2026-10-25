@@ -130,6 +130,8 @@ export function deriveRoadSlot({ inDir, storeDir, outDir, stamp, inDE = makeInDE
         ...(pos?.flag ? { posFlag: pos.flag } : {}), ...(pos?.flag === 'posCatalog' ? { reportPos: [r.lat, r.lon] } : {}),
         airT: r.airT, dewT: r.dewT, rh: r.rh, visM: r.visM,
         sensors: r.sensors.map((s) => ({ roadT: s.roadT, filmMm: s.filmMm, cond: s.cond })),
+        // V-AW-67: the 2015 template carries the water film in whole millimetres (0 13 241, scale 3, 7 bits).
+        filmResMm: r.layout === 'swis-local' ? 1 : 0.1,
         windMs: r.windMs, gustMs: r.gustMs, windDir: r.windDir,
         precipType: r.precipType, precipRateMmH: r.precipRateMmH, precipMm: r.precipMm, precipIntensity: r.precipIntensity, quality: r.quality,
       });

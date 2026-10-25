@@ -155,7 +155,13 @@ Messpunkten des Slots, der Streckenprognose `road/fc/v1`, dem Radar (RV, KONRAD3
 ICON-D2-Kartenprodukten (`runs/`). Jede Stufe ist eine Regel über benannten Eingängen; Stufe und
 Nachweis sind getrennt; fehlt ein Pflichteingang, steht `null` (unbekannt), nie 0; Prognose-Stufen sind
 bis zur Abnahme auf Stufe 2 gedeckelt (`capP`). `status.json` trägt den Block `hz` (letzter Slot,
-Sperre, fehlende Eingänge, Bilanz je Gefahr). `segments.json` ist eine abgeleitete Datenbank aus
+Sperre, fehlende Eingänge, Bilanz je Gefahr); `recent[].hz` nennt je Slot auch `byHazard` und die Eingänge.
+`inputs.rvMode` der Datei sagt, wie die Radar-Stunden +1/+2 gerechnet wurden: `max` über die 5-min-Frames
+(Voreinstellung) oder `mean` = Stundenmittel des Spiegels (`m<lead>.png`, Schalter `ROAD_HZ_RADAR=mean` im
+Radar-Job, Entscheidung E-AW-42). Ein Messpunkt in `obs/` trägt `wfr: 1`, wenn seine Reihe den Wasserfilm
+nur in ganzen Millimetern meldet (DWD-Vorlage 2015, Deskriptor 0 13 241 mit Skala 3): Aquaplaning baut
+darauf keine Stufe 3. Jeder Slot wird im Archiv `buscosun-archiv` als `road/v1/<Tag>/hz/<Slot>.json.gz`
+dauerhaft abgelegt (Einträge mit Stufe ≥ 1, ≈ 8 KB je Slot). `segments.json` ist eine abgeleitete Datenbank aus
 OpenStreetMap-Daten (Anschlussstellen, Brücken, Tunnel, Einschnitte, Dämme, Betonbelag) und steht unter
 ODbL 1.0 — © OpenStreetMap-Mitwirkende; Wald- und Ackeranteil aus ESA WorldCover 2021 (CC BY 4.0), Höhe
 und Steigung aus den Terrarium-Höhenkacheln.
@@ -618,7 +624,7 @@ trägt weiterhin 0–336 h; er fällt heraus, sobald er selbst zu alt ist.
 | `road/v1/quarantine/` | Alter ≤ 24 h, mindestens 2 Slots | 96 Slots |
 | `road/v1/h24/<Reihe>/` | Alter ≤ 1 h, mindestens 2 Dateien je Reihe (jede Datei trägt den ganzen 24-h-Verlauf) | ≈ 4 je Reihe |
 | `road/fc/v1/<lauf>/` | Alter ≤ **3 h**, mindestens 2 Läufe | 3 Läufe |
-| `road/v1/hz/` | Alter ≤ **3 h**, mindestens 2 Slots (wie `obs/`) | 12 Slots |
+| `road/v1/hz/` | Alter ≤ **4 h**, mindestens 2 Slots (eine Stunde länger als `obs/`, damit der Archiv-Lauf alle 3 h jeden Slot sieht) | 16 Slots |
 
 **Je Stufe**, weil die Stufen verschieden oft kommen: Stufe 1 achtmal täglich à ≈ 75 MiB
 würde bei 24 h acht Läufe halten und den Arbeitsbaum sprengen; die Fernstufe kommt

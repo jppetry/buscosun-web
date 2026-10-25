@@ -126,6 +126,19 @@ export function WarningStrip({ vm }: { vm: WarningVM }) {
 }
 
 /**
+ * Kachel „Amtliche Warnungen" (Jan 25.10.: ersetzt die Windrose in der ersten Reihe). Dieselbe wörtliche Darstellung wie die
+ * frühere Zeile in der Jetzt-Kachel (`WarningStrip`) — nichts zusammengefasst, nichts umformuliert; lange Texte scrollen in der Kachel.
+ */
+export function WarningsTile({ vm }: { vm: WarningVM }) {
+  return (
+    <section className="dbd-tile dbd-warntile" aria-label="Amtliche Warnungen">
+      <span className="dbd-eyebrow">AMTLICHE WARNUNGEN</span>
+      <div className="dbd-warntile-scroll"><WarningStrip vm={vm} /></div>
+    </section>
+  );
+}
+
+/**
  * E-DB-23: Trichter der halben 80 %-Bandbreite über den ganzen Horizont (P90) — so breit wie die Temperatur jetzt schwankt,
  * und wie weit sie in 14 Tagen schwankt. Marken (P93) dort, wo ±2/3/4 °C zuerst erreicht sind.
  */

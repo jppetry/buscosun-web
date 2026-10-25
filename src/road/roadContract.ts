@@ -104,6 +104,12 @@ export function roadExpectedSlot(nowMs: number): number {
 export const ROAD_RETENTION = Object.freeze({
   /** obs/ and fc/: at most 3 h, at least 2 slots (plan). */
   obsMaxAgeMs: 3 * 3_600_000, obsMinKeep: 2,
+  /**
+   * hz/: 4 h (V-AW-64). The archive runs every 3 h (`ROAD_ARCHIVE_EVERY_H`) and a slot is derived ≈ 10 min after its
+   * time — with a 3-h window a slot derived just after one run was already pruned at the next; one hour of overlap
+   * keeps every slot visible to at least one run (16 slots × ≈ 200 KB in the data repo instead of 12).
+   */
+  hzMaxAgeMs: 4 * 3_600_000, hzMinKeep: 2,
   /** quarantine/: 24 h (plan). */
   quarantineMaxAgeMs: 24 * 3_600_000, quarantineMinKeep: 2,
   /** h24/<group>/: each file holds the whole ring, so 1 h and 2 files per group are enough (E-AW-10). */
@@ -360,6 +366,8 @@ export interface RoadPoint {
   vis: number | null;
   /** Largest water film of the plausible sensors, mm. */
   wf: number | null;
+  /** V-AW-67: the film is reported in whole millimetres (template of 2015); absent = 0.1 mm. Only with a film value. */
+  wfr?: 1;
   /** Most severe condition code of the plausible sensors (0–7), null = unknown. */
   cond: number | null;
   ws: number | null;
@@ -483,6 +491,11 @@ export interface RoadRawStation {
   rh: number | null;
   visM: number | null;
   sensors: Array<{ roadT: number | null; filmMm: number | null; cond: number | null }>;
+  /**
+   * V-AW-67: resolution of the water film in the bulletin — 1 mm for the DWD template of 2015 (`swis-local`, 0 13 241
+   * with scale 3 and 7 bits), 0.1 mm for the other two layouts. Absent in callers built before V-AW-67 (= fine).
+   */
+  filmResMm?: number;
   windMs: number | null;
   gustMs: number | null;
   windDir: number | null;
@@ -774,6 +787,10 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
     // M1/M2 road vs. own air (hard): which sensor is broken decides the neighbourhood. Road normal for the area and air
     // not ⇒ the air and its dew point (N443 +41.7 °C); otherwise the road sensor (H637 −25.00 °C). Road far above the air
     // without neighbours to decide stays observed (summer midday not measured).
+    // V-AW-62 (N443, 16.10.2026 09:15 UTC): the neighbour band is k·MAD and gets wide when four neighbours spread by
+    // 3 K (27 K for the air) — then an air of +41 °C "fits" and the road 3 K beside its neighbours was thrown out
+    // because it lay > 12 K under that air. With neighbours for both, the sensor that lies farther from its
+    // neighbours RELATIVE to its own band is the broken one (|ta − med|/thr against |rs − med|/thr).
     if (ta != null) {
       const airT = ta;
       const off = sensors.filter((z) => z.roadT != null && (z.roadT < airT - ROAD_AIR.belowK || z.roadT > airT + ROAD_AIR.aboveK));
@@ -782,8 +799,12 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
         const nbRs = me ? roadNeighbourStat(me, nbCands, 'rs') : null;
         const nbTa = me ? roadNeighbourStat(me, nbCands, 'ta') : null;
         const roadFits = (v: number) => nbRs != null && Math.abs(v - nbRs.med) <= nbRs.thr;
-        const nbText = `Nachbarn Fahrbahn ${nbRs ? round(nbRs.med, 1) : '–'}, Luft ${nbTa ? round(nbTa.med, 1) : '–'}`;
-        if (nbTa != null && Math.abs(airT - nbTa.med) > nbTa.thr && off.every((z) => roadFits(z.roadT as number))) {
+        const airDev = nbTa != null ? Math.abs(airT - nbTa.med) / nbTa.thr : null;
+        const roadDev = (v: number) => (nbRs != null ? Math.abs(v - nbRs.med) / nbRs.thr : null);
+        const airWorse = airDev != null && off.every((z) => { const d = roadDev(z.roadT as number); return d != null && d < airDev; });
+        const nbText = `Nachbarn Fahrbahn ${nbRs ? round(nbRs.med, 1) : '–'}, Luft ${nbTa ? round(nbTa.med, 1) : '–'}`
+          + (airDev != null && nbRs != null ? `; Abstand/Band Luft ${round(airDev, 2)}, Fahrbahn ${off.map((z) => round(roadDev(z.roadT as number) as number, 2)).join('/')}` : '');
+        if (nbTa != null && ((Math.abs(airT - nbTa.med) > nbTa.thr && off.every((z) => roadFits(z.roadT as number))) || airWorse)) {
           reject('ta', airT, 'roadAir', nbText); x.ta = 'roadAir'; nRejected++; ta = null;
           if (td != null) { reject('td', td, 'roadAir', `Taupunkt desselben Luftfühlers; ${nbText}`); x.td = 'roadAir'; nRejected++; td = null; }
         } else {
@@ -844,6 +865,7 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
       road, kind, dir: catNorm.dir ?? norm.dir, km: s.km, t: s.obsMs, cls, q: provenance,
       rs, ...(rsHi !== undefined ? { rsHi } : {}), ns: roads.length,
       ta, td, rh, vis, wf, cond, ws, wg, wd, pt, pr, pa,
+      ...(wf != null && s.filmResMm != null && s.filmResMm >= 1 ? { wfr: 1 as const } : {}),
       ...(flags.length ? { f: flags } : {}),
       ...(s.posFlag === 'posCatalog' && s.reportPos ? { rpos: [round(s.reportPos[0], 5), round(s.reportPos[1], 5)] as [number, number] } : {}),
       ...(Object.keys(x).length ? { x } : {}),
@@ -936,6 +958,7 @@ export function roadPointOk(p: unknown): p is RoadPoint {
   if (o.cond != null && !isKnownCondition(o.cond as number)) return false;
   if (typeof o.cls !== 'string' || !isNum(o.ns)) return false;
   if (o.rpos !== undefined && !(Array.isArray(o.rpos) && o.rpos.length === 2 && isNum(o.rpos[0]) && isNum(o.rpos[1]))) return false;
+  if (o.wfr !== undefined && !(o.wfr === 1 && o.wf != null)) return false;
   if (o.qf !== undefined && !(isNum(o.qf) && Number.isInteger(o.qf) && o.qf >= 0 && o.qf < 2 ** 30)) return false;
   if (o.o !== undefined) {
     if (!o.o || typeof o.o !== 'object' || Array.isArray(o.o)) return false;

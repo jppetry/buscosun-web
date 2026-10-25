@@ -20,11 +20,12 @@
 import type { RucFitted } from './rucSeries';
 import { RUC_LABEL } from '../point/rucFormat';
 import { WET_MMH as RB_RUC_WET_MMH } from './nowcastModel';
+import { RAIN_GATE_P } from './rainGate';
 
 export const RB_HORIZON_H = 24;
-/** Fusion thresholds (set, E-RB-4 — measurable at the archive, V-RB-3). */
+/** Fusion thresholds (set, E-RB-4 — measurable at the archive, V-RB-3). The edge IS the rain gate of the displays (E-RUC-11, one rule). */
 export const RB_P_CORE = 0.5;
-export const RB_P_EDGE = 0.3;
+export const RB_P_EDGE = RAIN_GATE_P;
 export const RB_P_DRY = 0.2;
 /** Radar: middle half of the speed members of the flow-ensemble design (0,7 / 0,85 / 1,0 / 1,15 / 1,3; set). */
 export const RB_SPEED_LO = 0.85;
@@ -241,6 +242,8 @@ function fusionEnd(hours: FusionHour[]): { fromMs: number; toMs: number; prob: n
 function rucOnset(fit: RucFitted, hours: FusionHour[], fromMs: number): { atMs: number; prob: number; core: boolean } | null {
   for (const p of fit.points) {
     if (p.toMs <= fromMs || p.mmH < RB_RUC_WET_MMH) continue;
+    // E-RUC-11: a trace hour (gate on: mean < 0,1 mm/h or P(wet) < 30 %) gives no onset — the same rule as the chart and the events
+    if (p.trace) continue;
     const prob = pAt(hours, p.fromMs);
     if (prob == null || prob < RB_P_EDGE) continue;
     // a wet hour of buscosun Fusion without a form (RUC dry): the hourly sentence speaks, not a later 5-min onset (review I1, §4.5)

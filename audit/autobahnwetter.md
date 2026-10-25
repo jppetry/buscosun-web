@@ -1786,3 +1786,99 @@ RUC-Linie, nicht im Push.) (b) **nein**: `ROAD_HZ_LIVE` bleibt `true`, die Leist
 `2026102306` (t2 `2026101906`, t3 `2026101900`, stations `2026101909` ziehen mit ihren eigenen Takten nach). Gefahren-Slot **2610230800**:
 `missing []`, 862 von 1 731 Abschnitten mit Stufe, **3 unbekannt** (vorher 1 731), keine Sperre. Der Ausfall dauerte für den Cube 19.10.
 13:02 – 23.10. 07:49 UTC (≈ 3 d 19 h), für `road-fc`/`hz` 21.10. 13:02 – 23.10. 08:07 UTC.
+
+### 19.13 Umsetzung der Befunde V-AW-62…69 (23.10.2026, Jans „setze jetzt alle offenen Punkte um"; im Arbeitsbaum, NICHT committet)
+
+Alles unten liegt uncommitted im Hauptbaum (Dateiliste in `MANUELLE-SCHRITTE.md` §71.9) und wirkt erst mit Jans Push von `main`:
+der Radar-Job klont `buscosun-web` `main` beim Jobstart (alle 5,75 h), der Archiv-Job bei jedem Lauf (alle 3 h), der Punkt-Cron ebenso.
+Reihenfolge der Belege: Diagnose nachgemessen → Code → Verifier-Fall mit echter Datenform → Zahl neu gezählt.
+
+**V-AW-62 — `roadAir` verwarf den richtigen Fühler (umgesetzt).** Die Diagnose aus §19.12 war im Mechanismus ungenau; nachgemessen
+am Archiv-Halbtag `road/v1/2026-10-16/00.json.gz`, Slot 2610160915: N443 Fahrbahn **13,73** (Quarantäne, roh), Luft **41,29**, Taupunkt
+31,4. Nachbarn nach `ROAD_NEIGHBOUR` (25 km, Höhenklasse 0–300 m): N452 Hohenwarthe 13,4/11,3 · N453 Burg 14,3/11,6 · N422 Morsleben
+17,1/15,0 · N450 Schönebeck 17,1/15,3 (Fahrbahn/Luft). Median Fahrbahn 17,1, Luft 15; MAD 2,8 bzw. 3,4; Band `k·MAD` = **22,4 K** bzw.
+**27,2 K**. Damit „passte" die Luft (26,3 ≤ 27,2) UND die Fahrbahn (3,4 ≤ 22,4) — der `if`-Zweig (Luft außerhalb, Fahrbahn innerhalb)
+griff nicht, und der `else`-Zweig verwarf die Fahrbahn allein wegen `rs < Luft − 12 K` (`roadContract.ts`). Vier Nachbarn, die 3 K
+streuen, machen das Band achtmal so breit wie die Streuung; das ist die Falle. **Fix:** liegen Nachbarn für beide vor, wird der Fühler
+verworfen, der RELATIV zu seinem Band weiter neben den Nachbarn liegt (`|ta − med|/thr` gegen `|rs − med|/thr`, Luft 0,97 gegen Fahrbahn
+0,15 ⇒ Luft und Taupunkt `roadAir`, Fahrbahn bleibt); der bisherige Weg (Luft außerhalb, alle Fahrbahnen innerhalb) bleibt davor. Die
+Quarantäne nennt die Verhältnisse („Abstand/Band Luft 0.97, Fahrbahn 0.15"). Kein Schalter: harte Regel der Messlinie wie M1–M5 und
+V-AW-48, der Rückweg ist der Verifier mit der echten Nachbarschaft (`verify:road-contract` V62a Gegenprobe auf den alten Weg, V62b N443,
+V62c beide daneben/Fahrbahn weiter, V62d Luft weiter; **123/123**). Nicht geändert: `ROAD_NEIGHBOUR.k` — es trägt auch die
+Beobachtungsregel `neighbours`, deren Zählung sonst springt.
+
+**V-AW-63 — `blowupOf` zählte verdächtige Stationen (umgesetzt).** `taMax` jetzt über `st.filter((s) => !s.suspect)` wie `rsMax`;
+`verify:road-hazards` D5c (41 °C in der Luft-Historie einer `suspect`-Station ⇒ keine Hitze-Stufe; dieselbe Historie sauber ⇒ Stufe ≥ 1 d).
+
+**V-AW-64 — `hz/` wird archiviert (umgesetzt, `scripts/road/road-archive.mjs`).** Je Slot EINE Datei `road/v1/<Tag>/hz/<Slot>.json.gz`:
+Kopf wie veröffentlicht (`slot`, `hours`, `inputs`, `missing`, `killed`, `capP`), `seg` nur mit Einträgen, die in irgendeiner Stunde
+irgendeiner Gefahr Stufe ≥ `ROAD_HZ_ARCHIVE_MIN_LEVEL` (= 1) tragen, dazu `counts` (Abschnitte, mit Stufe, unbekannt, abgelegt). Einmal
+geschrieben, nie neu (ein Slot ist unveränderlich; A19 prüft das gegen veränderten Bestand). Index je Tag `hz: {slots, complete, from, to}`,
+README-Zeile. Gemessen an zwei Live-Slots: 2610230430 1,65 MB roh, **20,3 KB gz voll**, **7,9 KB gz mit Stufe ≥ 1** (369 von 1 731
+Einträgen), 4,0 KB mit Stufe ≥ 2 (141); 2610230615 20,4 / 8,2 KB (412). Also ≈ 0,8 MB je Tag, ≈ 24 MB je Monat im Archiv-Repo. Verworfen:
+eine Halbtagesdatei, die alle 3 h wächst — Git hielte vier wachsende Fassungen je Halbtag. **Aufbewahrung `hz/` im Daten-Repo 3 h → 4 h**
+(`ROAD_RETENTION.hzMaxAgeMs`, Spiegel liest es aus dem Plan): der Archiv-Lauf kommt alle 3 h, ein Slot ist ≈ 10 min nach seiner Zeit
+abgeleitet — mit 3 h Fenster wäre der Slot direkt nach einem Lauf beim nächsten schon weg (12 → 16 Slots, +0,8 MB im Daten-Repo).
+`verify:road-archive` A18 (echter Derive-Slot archiviert, byte-gleiche Einträge, Zähler), A19 (nie neu geschrieben), A20 (Index, README),
+A21 (rein), C1b (Aufbewahrung ≥ Takt + 1 h); **33/33**. Der Workflow `road-archiv.yml` braucht keine Änderung (sparse `road/v1` trägt `hz/`).
+
+**V-AW-65 — `byHazard` im Slot-Protokoll (umgesetzt).** `recent[].hz` trägt `byHazard` und `inputs` (≈ 250 B je Slot), das Archiv nimmt es mit.
+
+**V-AW-66 / E-AW-42 — Nowcast-Schärfe (vorbereitet, Entscheidung bleibt bei Jan).** (1) Der Spiegel liefert die Stundenmittel
+schon: der Live-Slot `rv/2610230905` trägt `m055.png` und `m115.png` (Summenbild der Frame-Bytes, E-AX-16). `road-hazards.mjs` liest sie
+hinter **`ROAD_HZ_RADAR=mean`** (Voreinstellung `max` = heutiges Verhalten; Umgebungsvariable des Mirror-Schritts in `radar.yml`,
+`execFileSync` erbt sie): Stunde +1 = erstes Stundenende nach dem Slot, +2 = das nächste, Maximum über die Stützpunkte bleibt; fehlt ein
+Mittelbild, kommt DIESE Stunde aus den Frames (`inputs.rvMode` = `max` · `mean` · `mixed`). `verify:road-hazards` I10/I10b mit
+synthetischen Frames (12 × 51 Bytes ⇒ 4,0 mm/h Mittel gegen 20 mm/h Maximum). (2) Die Messung: `scripts/road/hz-nowcast-score.mjs
+--archive=<buscosun-archiv>/road/v1` vergleicht je Abschnitt die Prognose-Stufe +1 h (p) von Slot S mit der gemessenen Stufe (d) des
+Slots S + 1 h — erreicht / schwächer / ohne / unbekannt je Gefahr und Stufe (`verify:road-archive` A22/A23). Nach ≥ 7 Tagen Archiv ist das
+eine Zahl, kein Eindruck; dann E-AW-42: `max` behalten oder `ROAD_HZ_RADAR=mean` setzen (Jans Workflow-Gate).
+
+**V-AW-67 — Wasserfilm in ganzen Millimetern (Ursache gemessen, umgesetzt).** Die Ursache steht im BUFR: die DWD-Vorlage von 2015
+(`swis-local`, 16 Reihen) trägt den Film als **0 13 241 mit Skala 3 und 7 Bit** = ganze Millimeter bis 127 mm; `swis-local-film01`
+(HH/SH, 2 01 131/2 02 129) und `wmo-307102` (0 13 116, Skala 4) liefern 0,1 mm. Live-Slot 2610230430: KM-NW 9 von 9 nassen Stationen
+ganzzahlig (max 3 mm), NI-NI 6 mm, SP-BB 2 mm; KO-RP/RP-RP/KK-SH/SD-BW/HJ-HH mit Zehnteln. Im eingefrorenen Slot 03.10. 08:00: E311 Jerxheim
+6 mm, F843 2 mm (beide `swis-local`), FN-BY P550/P631/P828 100 mm (fällt an `limit`). **Fix in drei Schritten:** der Decoder kennt das
+Layout je Datensatz (`SwisRecord.layout`), der Derive gibt `filmResMm` (1 bzw. 0,1) an die Regeln, der Messpunkt trägt **`wfr: 1`** (nur
+mit Filmwert, nur bei 1 mm; Client-Prüfer `roadPointOk` nimmt genau das an); der Gefahren-Derive setzt daraus `HzStation.wfCoarse`, und
+`aqua` deckelt grobe Filme auf **Stufe 2** mit `filmRes:1@<Station>` im `why` (Gischt hat ohnehin nur zwei Stufen). Preis: ≈ 600 Punkte je
+Slot tragen `wfr` (auch bei 0 mm — „0" heißt dort „< 0,5 mm"), ≈ 5 KB roh von 504 KB. `verify:road-contract` V67a/b, `verify:road-hazards`
+C1b, I3b. Offen bleibt die Frage an den DWD, ob die 2015-Reihen wirklich nur ganze Millimeter messen oder nur so senden (E-AW-45).
+
+**V-AW-68 — `verify:road-ui` nachgezogen (umgesetzt).** `openPage` hängt an jede `/autobahnwetter`-Adresse ohne `roadhz=` ein `roadhz=0`
+(Blöcke A–T beschreiben die Seite ohne Leiste), Block U übergibt `hz: true`; U1 bleibt der Schalter-aus-Fall, **U1b** neu: ohne Parameter
+steht die Leiste (Reiter „Gefahren", 541 Zeilen); A4 sucht die Kachel in `.deck-quad` (seit dem Startseiten-Umbau 17.10.). Lauf gegen
+`vite preview` des aktuellen Baus (`npm run build` 260/260): **102/103**, rot nur A4 — der Zähler der Startseite sagt „12 WERKZEUGE":
+`toolTileCount()` zieht seit dem Umbau die versteckte Vorhersage-Kachel ab (`FORECAST_TILE_HIDDEN`), der Verifier erwartete fest „13".
+Der Verifier liest die Erwartung jetzt aus den Konstanten der Seite (`TOOL_TILE_COUNT` − versteckte Kachel = 12); Wiederholung
+gegen denselben Bau: **103/103**.
+
+**V-AW-69 — ein Kanal, der Jan erreicht (umgesetzt, `.github/workflows/health-watch.yml` in DIESEM Repo).** Stündlich (:17) läuft
+`scripts/health-manifests.mjs --url https://buscosun.com`; rot ⇒ EIN Issue mit Label `health` (bestehendes bekommt einen Kommentar, keine
+Mailflut), grün ⇒ das offene Issue wird mit dem grünen Lauf geschlossen. Issues im eigenen Repo erreichen den Besitzer (E-Mail, Mobil);
+rote Läufe im Daten- oder Archiv-Repo taten das nachweislich nicht. Kein `| tee` (ohne pipefail wäre der Schritt nie rot). Dazu die Lücke,
+die den Ausfall vom 19.10. unsichtbar ließ: der Wächter prüfte den Index der KARTENLINIE (I1–I3), nicht den Punkt-Cube — neu **P1–P3**
+(`point/index.json`: lesbar; `publishedAt` < 6 h; je Stufe jüngster Lauf unter Takt + gemessener Bereitstellung + Rand: t1 7 h, t2 13 h,
+t3 22 h, gesetzt aus `workflow-point.yml`, nicht am Ausfall gemessen). `verify:health` **62/62**; Probelauf gegen Produktion 23.10. 09:55 UTC:
+20 von 21 grün, rot **P3** „t2 2026101906 (99,9 h) · t3 2026101900 (105,9 h)" — richtig: t2/t3 ziehen erst um 10:30 bzw. 21:55 UTC nach
+(§19.12). Am 19.10. hätte P2 um ≈ 19:00 UTC das erste Issue geöffnet statt vier Tage später jemand den Zufall.
+
+**Bau und Budget.** `npm run typecheck` grün, `npm run build` 260/260; `npm run budget`: `eagerJs` **110,1 KB > 110 KB** — nicht diese
+Linie: die Vertragsänderungen liegen im Producer (`validateRoadSlot` ist in keinem Chunk) und im lazy `RoadPage`-Chunk (`filmRes`), der
+eager-Chunk trägt die fremden uncommitteten Linien des Baums (RUC in `src/nowcast/`, HB); `budget.json` ist gegenüber `HEAD` unverändert.
+Nicht angehoben — das ist die Entscheidung der Linie, die es verursacht.
+
+**Verifier (23.10., PowerShell, ohne `2>&1`):** `road-contract` 123/123 · `road-hazards` 96/96 · `road-archive` 33/33 · `road-derive`
+36/36 · `road-decode` 15/15 · `road-fc` 107/107 · `road-positions` 23/23 · `health` 62/62 · `road-ui` 103/103 (nach A4-Korrektur, s. V-AW-68).
+
+**Neue Befunde.**
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| E-AW-45 | Film-Auflösung der 2015-Reihen: misst der Sensor ganze Millimeter oder rundet nur die Vorlage? | Stufe 3 auch in NRW/NI/BB, wenn echte Zehntel vorliegen | Frage an den DWD (SWIS-Vorlage, 0 13 241 Skala 3); bis dahin Deckel |
+| V-AW-70 | `ROAD_NEIGHBOUR.k = 8` macht das Band bei streuenden Nachbarn absurd breit (27 K bei 3,4 K MAD) — die Beobachtungsregel `neighbours` sieht deshalb fast nichts | eine Nachbarregel, die auch Ausreißer < 20 K sieht | Band deckeln (`maxAbsK` ≈ 12 K) und die Trefferzahl von `neighbours` vorher/nachher an einer Woche Archiv zählen; Jans Gate, weil Messlinie |
+| V-AW-71 | `wfr` steht an ≈ 600 Punkten je Slot, meist bei 0 mm | 5 KB je Slot weniger, wenn der Client die Auflösung je Reihe aus `status.groups` läse | `layout` je Reihe in `status.json`, `wfr` nur bei Film > 0 — erst, wenn jemand die Bytes braucht |
+
+**Gate E neu:** 7 Tage ab dem Push von `main` (der Spiegel übernimmt die Vertragsfixes beim nächsten Jobstart, der Archiv-Lauf schreibt
+ab dann `hz/`), Folgeprompt wie in §19.12, diesmal mit den archivierten `hz`-Slots als Stichprobe im Fenster und mit
+`hz-nowcast-score.mjs` für E-AW-42.

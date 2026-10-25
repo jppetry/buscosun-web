@@ -34,6 +34,7 @@ import GlacierIcon from './GlacierIcon';
 import SeaIcon from './SeaIcon';
 import RoadIcon from './RoadIcon';
 import RouteHikerIcon from './RouteHikerIcon';
+import { DachMapPreview } from './DachMapPreview';
 // DACH-Karte im Hintergrund lazy: hält den Startseiten-Bundle schlank (eigener Chunk).
 const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
@@ -833,23 +834,10 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
               <div className="tile-eyebrow">01 · WETTERKARTE</div>
               <div className="tile-title tile-title-xl">Die ganze DACH-Wetterkarte</div>
             </div>
-            <span className="tile-badge badge-live">● Regenradar an</span>
           </div>
           <p className="tile-desc">Wind, Niederschlag, Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze und Stationen — mit Zeit-Slider und Modellwahl je Land. Direkt-Einstieg ohne Ortssuche.</p>
           <div className="tile-map">
-            <svg viewBox="0 0 600 320" preserveAspectRatio="none" className="tile-map-svg" aria-hidden="true">
-              <g fill="none" stroke="var(--steel-600)" strokeWidth="1.5" strokeOpacity=".5">
-                <path d="M30 100 C160 60 380 140 580 90" /><path d="M30 160 C160 120 380 200 580 150" /><path d="M30 220 C160 180 380 260 580 210" />
-              </g>
-              <g fill="var(--terracotta-500)" fillOpacity=".45"><circle cx="200" cy="150" r="40" /><circle cx="440" cy="220" r="52" /></g>
-              <g fill="var(--amber-500)"><circle cx="120" cy="220" r="4" /><circle cx="300" cy="170" r="4" /><circle cx="480" cy="120" r="4" /><circle cx="240" cy="260" r="4" /><circle cx="380" cy="90" r="4" /></g>
-            </svg>
-            <span className="tile-map-tag">2D · MAPLIBRE · DWD ICON-D2 · RADOLAN-RV</span>
-          </div>
-          <div className="tile-tags">
-            {['Wind', 'Niederschlag', 'Temperatur', 'Wolken', 'Satellit', 'Blitze', 'Stationen'].map((t) => (
-              <span key={t} className="tile-tag">{t}</span>
-            ))}
+            <DachMapPreview />
           </div>
         </>)}
 

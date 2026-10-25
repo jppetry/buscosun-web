@@ -7,7 +7,7 @@
  * Der Wächter ist selbst ein Prüfmittel — er muss also nachweislich rot werden
  * können, sonst wiederholt er den Fehler, den er aufdecken soll (V-91).
  */
-import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH, checkSeaStatus, SEA_HEALTH, checkRepackIndex, INDEX_HEALTH } from './health-manifests.mjs';
+import { checkManifest, checkRoadStatus, checkRoadCdn, roadCdnSlot, ROAD_HEALTH, checkSeaStatus, SEA_HEALTH, checkRepackIndex, INDEX_HEALTH, checkPointIndex, POINT_HEALTH } from './health-manifests.mjs';
 
 const NOW = Date.parse('2026-08-03T12:00:00.000Z');
 const OPTS = { origin: 'https://buscosun.com', nowMs: NOW, maxRunAgeH: 9, maxUpdateAgeH: 6, proxyPath: '/_dwd_grib' };
@@ -194,6 +194,22 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   const r3 = ir(noPrecip, 'I3');
   add('I3 rot, wenn EINE Familie (precip) nur noch in einem 11,8 h alten Lauf Schritte hat, und nennt sie', r3?.pass === false && /precip 2026101321 \(11\.8 h\)/.test(r3.detail ?? '') && /wind 2026101406/.test(r3.detail ?? ''), r3?.detail);
   add('I3 Gegenprobe: dieselbe Lage mit Niederschlag im 03z-Lauf ⇒ grün', ir({ ...noPrecip, runs: [noPrecip.runs[0], run('2026101403', '2026-10-14T03:00:00.000Z'), noPrecip.runs[2], noPrecip.runs[3]] }, 'I3')?.pass === true);
+
+  // V-AW-69: point/index.json in der echten Form (Schema 6, latestByTier je Stufe mit runAt = Laufzeit der Quelle).
+  const tier = (run, runAt) => ({ run, runAt, path: `point/${run}`, manifest: `point/${run}/run.json`, sourceRun: run, sourceRunAt: runAt, ageH: 0, files: 1, bytes: 1 });
+  const pidx = { schema: 6, commit: 'abc', publishedAt: '2026-10-14T07:47:00.000Z', retentionHours: 24,
+    latestByTier: { t1: tier('2026101406', '2026-10-14T06:00:00Z'), t2: tier('2026101400', '2026-10-14T00:00:00Z'), t3: tier('2026101312', '2026-10-13T12:00:00Z') } };
+  const pr = (x, id) => checkPointIndex(x, { nowMs: RNOW }).find((r) => r.id.startsWith(id));
+  const pgreen = checkPointIndex(pidx, { nowMs: RNOW });
+  add('P1–P3 grün beim frischen Punkt-Index (t1 2,8 h, t2 8,8 h, t3 20,8 h alt, veröffentlicht vor 1 h)', pgreen.length === 3 && pgreen.every((x) => x.pass), pgreen.map((x) => `${x.id}:${x.pass}`).join(','));
+  add('P1 rot bei nicht lesbarem Index, ohne Stufen und ohne t3', pr(null, 'P1')?.pass === false && pr({ ...pidx, latestByTier: undefined }, 'P1')?.pass === false && pr({ ...pidx, latestByTier: { t1: pidx.latestByTier.t1, t2: pidx.latestByTier.t2 } }, 'P1')?.pass === false);
+  add(`P2 rot, wenn seit ${POINT_HEALTH.maxPublishAgeH} h nichts veröffentlicht wurde (19.10.: stehender Punkt-Cron) und ohne publishedAt`,
+    pr({ ...pidx, publishedAt: '2026-10-14T02:40:00.000Z' }, 'P2')?.pass === false && pr({ ...pidx, publishedAt: undefined }, 'P2')?.pass === false && pr(pidx, 'P2')?.pass === true);
+  const stale1 = pr({ ...pidx, latestByTier: { ...pidx.latestByTier, t1: tier('2026101400', '2026-10-14T00:00:00Z') } }, 'P3');
+  add(`P3 rot, wenn t1 8,8 h alt ist (Grenze ${POINT_HEALTH.maxRunAgeH.t1} h), und nennt die Stufe ROT; t2 8,8 h bleibt grün (Grenze ${POINT_HEALTH.maxRunAgeH.t2} h)`,
+    stale1?.pass === false && /t1 2026101400 \(8\.8 h, Grenze 7 h\) ROT/.test(stale1?.detail ?? '') && /t2 2026101400 \(8\.8 h, Grenze 13 h\)(?! ROT)/.test(stale1?.detail ?? ''), stale1?.detail);
+  add('P3 Grenzen stehen über Takt + Bereitstellung aus workflow-point.yml (t1 3 + 1,67 h; t2 6 + 4,5 h; t3 12 + 7,6 h) und unter dem doppelten Takt',
+    POINT_HEALTH.maxRunAgeH.t1 > 3 + 1.67 && POINT_HEALTH.maxRunAgeH.t1 <= 6 + 1.67 && POINT_HEALTH.maxRunAgeH.t2 > 6 + 4.5 && POINT_HEALTH.maxRunAgeH.t2 <= 12 + 4.5 && POINT_HEALTH.maxRunAgeH.t3 > 12 + 7.6 && POINT_HEALTH.maxRunAgeH.t3 <= 24 + 7.6);
   add('I3 rot bei einem Index, dessen jüngster Lauf 12 h alt ist (Publisher steht, publishedAt frisch)', ir({ ...idx, runs: [run('2026101321', '2026-10-13T21:00:00.000Z')] }, 'I3')?.pass === false);
   add('I3 eine Familie ohne `steps`-Liste zählt nicht (wind ohne Schritte in jedem Lauf ⇒ rot)', ir({ ...idx, runs: idx.runs.map((r) => ({ ...r, wind: { channels: 3 } })) }, 'I3')?.pass === false);
   add('Index-Familien = die vier, die der Client auflöst', INDEX_HEALTH.families.join() === 'wind,temp,gust,precip' && /raw\.githubusercontent\.com\/jppetry\/buscosun-data\/main\/index\.json$/.test(INDEX_HEALTH.url));

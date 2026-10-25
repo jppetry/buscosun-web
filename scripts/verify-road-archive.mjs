@@ -17,11 +17,14 @@ import {
 } from '../src/road/roadContract.ts';
 import { exportRoadWindow, readRoadStore } from './road/road-export.mjs';
 import {
-  ROAD_ARCHIVE_EVERY_H, ROAD_HALF_SLOTS, ROAD_ARCHIVE_STALE_MIN, halfDayOf, halfDaySlots, buildHalfDays, mergeHalfDay,
-  mergeSlotLog, slotEntriesByDay, archiveRoad, archiveReadme, readQuarantine,
+  ROAD_ARCHIVE_EVERY_H, ROAD_HALF_SLOTS, ROAD_ARCHIVE_STALE_MIN, ROAD_HZ_ARCHIVE_MIN_LEVEL, halfDayOf, halfDaySlots, buildHalfDays, mergeHalfDay,
+  mergeSlotLog, slotEntriesByDay, archiveRoad, archiveReadme, readQuarantine, hzArchiveDoc, readHzSlots, hzSlotPath,
 } from './road/road-archive.mjs';
 import { ROAD_RECENT_SLOTS } from './road/road-mirror.mjs';
 import { deriveRoadSlot } from './road/road-derive.mjs';
+import { deriveRoadHazards } from './road/road-hazards.mjs';
+import { scoreNowcast, readArchivedHz, formatScore } from './road/hz-nowcast-score.mjs';
+import { parseRoadHz } from '../src/road/roadHazards.ts';
 import { rebuildIndexes } from './punktarchiv/lib/punktarchiv.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -160,6 +163,61 @@ const msOf = (s) => roadStampToMs(s);
   const pIdx = rebuildIndexes(root);
   add('A16 Punktarchiv daneben: sein Index sieht nur Tagesordner, road/ bleibt Byte für Byte unberührt',
     pIdx.days.length === 1 && pIdx.days[0].day === '2026-10-03' && snap() === before);
+
+  // V-AW-64: hazard slots — the REAL derive on the hazard fixture store (13.10.2026 17:00) gives the slot file.
+  const hzFx = join(FIX, 'hz');
+  const hzStore = join(tmp, 'hz-store'), hzRoot = join(tmp, 'hz-root'), hzOut = join(tmp, 'hz-out');
+  cpSync(join(hzFx, 'store'), hzStore, { recursive: true });
+  mkdirSync(join(hzRoot, 'road', 'fc'), { recursive: true });
+  cpSync(join(hzFx, 'fc'), join(hzRoot, 'road', 'fc', 'v1'), { recursive: true });
+  const hzSlotMs = roadStampToMs('2610131700');
+  deriveRoadHazards({ storeDir: hzStore, imgDir: join(tmp, 'img-none'), rootDir: hzRoot, outDir: hzOut, stamp: '2610131700', nowMs: hzSlotMs + 20 * 60_000 });
+  mkdirSync(join(store, 'hz'), { recursive: true });
+  cpSync(join(hzOut, 'hz', '2610131700.json'), join(store, 'hz', '2610131700.json'));
+  writeFileSync(join(store, 'hz', '2610131715.json'), '{"schema":1,"product":"road-hz"}');   // fails the client parser ⇒ ignored
+  const src = parseRoadHz(JSON.parse(readFileSync(join(store, 'hz', '2610131700.json'), 'utf8')));
+  const hasLv = (e, min) => Object.values(e.lv).some((a) => a.some((l) => (l ?? 0) >= min));
+  const keptIds = Object.keys(src.seg).filter((id) => hasLv(src.seg[id], ROAD_HZ_ARCHIVE_MIN_LEVEL)).sort();
+  const archiveHz = join(tmp, 'archiv-hz', ROAD_REPO_DIR);
+  const h1 = archiveRoad({ storeDir: store, archiveDir: archiveHz, nowMs: now });
+  const hzRel = hzSlotPath('2026-10-13', '2610131700');
+  const hzDoc = existsSync(join(archiveHz, hzRel)) ? gz(join(archiveHz, hzRel)) : null;
+  add('A18 Gefahren-Slot: der echte Derive-Slot landet als <Tag>/hz/<Slot>.json.gz — Kopf wie veröffentlicht, nur Einträge mit Stufe ≥ 1 (byte-gleich), Zähler der ganzen Datei; der unlesbare Slot wird übergangen',
+    h1.hzSlots.join() === hzRel && hzDoc && hzDoc.product === 'road-archive-hz' && hzDoc.slot === '2610131700' && JSON.stringify(hzDoc.hours) === JSON.stringify(src.hours)
+    && JSON.stringify(hzDoc.inputs) === JSON.stringify(src.inputs) && JSON.stringify(hzDoc.missing) === JSON.stringify(src.missing)
+    && JSON.stringify(Object.keys(hzDoc.seg).sort()) === JSON.stringify(keptIds) && keptIds.length > 0 && keptIds.length < Object.keys(src.seg).length
+    && keptIds.every((id) => JSON.stringify(hzDoc.seg[id]) === JSON.stringify(src.seg[id]))
+    && hzDoc.counts.segments === Object.keys(src.seg).length && hzDoc.counts.kept === keptIds.length && hzDoc.counts.minLevel === ROAD_HZ_ARCHIVE_MIN_LEVEL
+    && Object.keys(readHzSlots(join(store, 'hz'))).join() === '2610131700',
+    JSON.stringify({ hzSlots: h1.hzSlots, counts: hzDoc?.counts, segs: Object.keys(src.seg).length }));
+  const hzIdx1 = readFileSync(join(archiveHz, 'index.json'), 'utf8');
+  const hzBytes1 = readFileSync(join(archiveHz, hzRel));
+  writeFileSync(join(store, 'hz', '2610131700.json'), JSON.stringify({ ...src, made: '2099-01-01T00:00:00Z' }));
+  const h2 = archiveRoad({ storeDir: store, archiveDir: archiveHz, nowMs: now + 3 * 3_600_000 });
+  add('A19 ein archivierter Gefahren-Slot wird nie neu geschrieben (auch nicht bei anderem Inhalt im Bestand): zweiter Lauf schreibt nichts, Datei und Index byte-gleich',
+    !h2.hzSlots.length && h2.hzKept === 1 && readFileSync(join(archiveHz, hzRel)).equals(hzBytes1) && readFileSync(join(archiveHz, 'index.json'), 'utf8') === hzIdx1);
+  add('A20 Index je Tag: Gefahren-Slots gezählt (1, davon mit fehlenden Eingängen 1 — radar/konrad/runs fehlen im Fixture); README nennt hz/ und die Mindeststufe',
+    JSON.parse(hzIdx1).days['2026-10-13'].hz.slots === 1 && JSON.parse(hzIdx1).days['2026-10-13'].hz.complete === 0 && JSON.parse(hzIdx1).days['2026-10-13'].hz.from === '2610131700'
+    && archiveReadme().includes('<Tag>/hz/<Slot>.json.gz') && archiveReadme().includes(`Stufe ≥ ${ROAD_HZ_ARCHIVE_MIN_LEVEL}`),
+    JSON.stringify(JSON.parse(hzIdx1).days['2026-10-13'].hz));
+  const pureA = hzArchiveDoc(src), pureB = hzArchiveDoc(JSON.parse(JSON.stringify(src)));
+  add('A21 hzArchiveDoc ist rein: gleiche Datei ⇒ gleiches Dokument; Einträge ohne Stufe fehlen, der Zähler withLevel zählt sie trotzdem nicht mit',
+    JSON.stringify(pureA) === JSON.stringify(pureB) && pureA.counts.withLevel === keptIds.length && Object.keys(pureA.seg).every((id) => hasLv(pureA.seg[id], 1)));
+  // V-AW-66: the nowcast score over archived slots — forecast +1 h (p) against the measurement one hour later (d).
+  const mk = (gischt1, ev1) => ({ lv: { gischt: [0, gischt1, 0, 0, 0, 0, 0] }, ev: { gischt: `-${ev1}-----` }, why: { gischt: ['rate:3@RV'] } });
+  const now0 = (g0) => ({ lv: { gischt: [g0, 0, 0, 0, 0, 0, 0] }, ev: { gischt: 'd------' }, why: { gischt: ['film:0.3@X'] } });
+  const docs = {
+    2610131700: { seg: { S1: mk(2, 'p'), S2: mk(1, 'p'), S3: mk(2, 'p'), S4: mk(1, 'd') } },          // S4: not a forecast ⇒ no pair
+    2610131800: { seg: { S1: now0(2), S2: { lv: { gischt: [null, 0, 0, 0, 0, 0, 0] }, ev: { gischt: '-------' }, why: { gischt: ['gap:X'] } } } },   // S3 absent ⇒ 0
+    2610131900: { seg: { S1: mk(1, 'p') } },                                                           // 20:00 missing ⇒ unknown
+  };
+  const sc = scoreNowcast(docs);
+  const g = sc.byHazard.gischt.byLevel;
+  add('A22 Nowcast-Score: Stufe 2 → erreicht 1 (S1), ohne 1 (S3 fehlt im späteren Slot = Stufe 0); Stufe 1 → unbekannt 2 (S2 Lücke, 19:00 ohne Folgeslot); Messung (d) zählt nicht als Prognose',
+    sc.pairs === 4 && g[2].pairs === 2 && g[2].hit === 1 && g[2].none === 1 && g[1].pairs === 2 && g[1].unknown === 2 && g[1].hit === 0 && formatScore(sc).includes('gischt Stufe 2: 2 Paare'),
+    JSON.stringify(g));
+  const fromArchive = readArchivedHz(archiveHz);
+  add('A23 readArchivedHz liest die Tagesordner des Archivs (der Slot von A18) — Score darauf 0 Paare (ein Slot, kein Folgeslot)', Object.keys(fromArchive).join() === '2610131700' && scoreNowcast(fromArchive).pairs >= 0 && scoreNowcast(fromArchive).slots === 1);
 }
 
 // --- B: the real producer ------------------------------------------------------------------------------
@@ -207,6 +265,8 @@ const msOf = (s) => roadStampToMs(s);
   const slotsPerRun = ROAD_ARCHIVE_EVERY_H * 4;
   add(`C1 Takt = ROAD_ARCHIVE_EVERY_H (${ROAD_ARCHIVE_EVERY_H} h); das Slot-Protokoll (${ROAD_RECENT_SLOTS} Slots) und die Quarantäne (24 h) sieht jeder Slot mindestens zweimal`,
     Number(every) === ROAD_ARCHIVE_EVERY_H && ROAD_RECENT_SLOTS >= 2 * slotsPerRun && ROAD_RETENTION.quarantineMaxAgeMs >= 2 * ROAD_ARCHIVE_EVERY_H * 3_600_000 && cron !== '10 23 * * *', cron);
+  add(`C1b hz/ bleibt mindestens ${ROAD_ARCHIVE_EVERY_H} h + 1 h im Daten-Repo (V-AW-64: ein Slot, der kurz nach einem Lauf abgeleitet wird, steht beim nächsten noch da)`,
+    ROAD_RETENTION.hzMaxAgeMs >= (ROAD_ARCHIVE_EVERY_H + 1) * 3_600_000 && ROAD_RETENTION.hzMinKeep >= 2, `${ROAD_RETENTION.hzMaxAgeMs / 3_600_000} h`);
   add('C2 append-only: kein --force, Push mit Wiederholung und Rebase, contents: write, eigene concurrency-Gruppe',
     !/--force|-f\b.*push|push\s+-f/.test(code) && /git pull --rebase origin main/.test(code) && /contents:\s*write/.test(code) && /group:\s*road-archiv\b/.test(code));
   add('C3 Commit nur unter road/, Archiv-Ziel = ROAD_REPO_DIR, Bestand = road/v1 des Daten-Repos (sparse)',

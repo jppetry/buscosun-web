@@ -39,6 +39,10 @@
 .mv-line { fill: none; stroke: var(--steel-600, #3A6FA8); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round;
   filter: drop-shadow(0 2px 3px rgba(58, 111, 168, 0.28)); }
 .mv-bar { fill: rgba(58, 111, 168, 0.26); }
+/* E-RUC-15: every layer as bars — the measured radar strongest, the 5-min form in between, the hourly means lightest */
+.mv-bar--radar { fill: rgba(58, 111, 168, 0.46); }
+.mv-bar--ruc { fill: rgba(58, 111, 168, 0.3); }
+.mv-bar--fusion { fill: rgba(58, 111, 168, 0.16); }
 .mv-bar-top { stroke: var(--steel-600, #3A6FA8); stroke-width: 1.5; stroke-linecap: round; }
 .mv-pwet { fill: var(--steel-600, #3A6FA8); }
 .mv-striplabel { font-size: 9px; fill: var(--stone-400, #A89A7A); letter-spacing: 0.6px; text-transform: uppercase; }
@@ -107,8 +111,11 @@
   .mv-modal-chart { padding: 10px 6px 6px; }
 }
 
-/* Phase RUC: 5-min form of ICON-D2-RUC between the radar seam and +27 h (steps + area); hours without a form hatched. */
+/* Phase RUC: 5-min form of ICON-D2-RUC between the radar seam and +27 h (steps + area); no hatching for hours without a form (E-RUC-12). */
 .mv-ruc-line { fill: none; stroke: var(--steel-600, #3A6FA8); stroke-width: 1.6; stroke-linejoin: miter; stroke-linecap: butt; }
 .mv-ruc-area { fill: rgba(58, 111, 168, 0.16); }
-.mv-ruc-flat { stroke: var(--steel-600, #3A6FA8); stroke-width: 0.6; stroke-opacity: 0.5; }
-.mv-hatch-line { stroke: var(--steel-600, #3A6FA8); stroke-width: 1; stroke-opacity: 0.45; }
+
+/* E-RUC-11: trace spans (below the rain gate) — a quiet dotted mark on the baseline and the hint "16 % · 0,05 mm" */
+.mv-hint-line { stroke: var(--stone-500, #8B7355); stroke-width: 1.5; stroke-dasharray: 1.5 3; stroke-linecap: round; opacity: 0.8; }
+.mv-hint-text { font-size: 10px; fill: var(--stone-500, #8B7355); font-weight: 500; letter-spacing: 0.01em; pointer-events: none; }
+.mv-tip-trace { margin-top: 2px; font-size: 11px; color: var(--stone-500, #8B7355); }

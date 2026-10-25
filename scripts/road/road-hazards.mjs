@@ -24,6 +24,8 @@ import { pathToFileURL } from 'node:url';
 import { decodePng } from '../lib/png.mjs';
 import { psFwd, DE1200_CORNERS } from '../../src/sources/radolanGeo.ts';
 import { PRECIP_VMAX, precipFromU8Log } from '../../src/scalar/RainLayer.ts';
+import { rvHourMeanPixel } from '../../src/sources/radarImgHourMean.ts';
+import { nowcastHourMeanFromSum } from '../../src/point/nowcastFormat.ts';
 import { ROAD_STATE_PATH, roadObsPath, roadStampToMs, roadStamp, parseRoadObs, parseRoadH24 } from '../../src/road/roadContract.ts';
 import { ROAD_FC_INDEX_PATH, parseRoadFcIndex, parseRoadFcFile, roadFcDecode } from '../../src/road/roadFc.ts';
 import { ROAD_SEGMENTS_PATH, parseRoadSegments } from '../../src/road/roadSegments.ts';
@@ -66,8 +68,16 @@ export function pickRvSlot(imgDir, slotMs) {
   const ok = slots.filter((s) => { const ms = roadStampToMs(s); return Number.isFinite(ms) && ms <= slotMs + 10 * 60_000 && slotMs - ms <= ROAD_HZ_INPUT_AGE_MS.radar; });
   return ok.length ? ok[ok.length - 1] : null;
 }
-/** Per segment: max rate now, max over the nowcast frames of hour +1 (5…60 min) and +2 (65…120 min). */
-export function radarForSegments(imgDir, rvStamp, segments) {
+/** Radar mode of the nowcast hours: `max` over the 5-min frames (the shadow since 14.10.) or the mirror's hour `mean`. */
+export const ROAD_HZ_RADAR_MODES = Object.freeze(['max', 'mean']);
+export const ROAD_HZ_RADAR_DEFAULT = 'max';
+/**
+ * Per segment: max rate now, and for hour +1 and +2 either the max over the nowcast frames (5…60 / 65…120 min) or —
+ * `mode: 'mean'` (E-AW-42 / V-AW-66, behind `ROAD_HZ_RADAR=mean`, default off) — the mirror's hour means `m<lead>.png`
+ * (`meta.hourMeans`: sum of the frame bytes per pixel, E-AX-16), the first hour end after the slot for +1, the next for
+ * +2; max over the support points stays. Without hour means in the slot the frames count (`mode` says what was used).
+ */
+export function radarForSegments(imgDir, rvStamp, segments, mode = ROAD_HZ_RADAR_DEFAULT) {
   const dir = join(imgDir, 'rv', rvStamp);
   const meta = readJson(join(dir, 'meta.json'));
   if (!meta) return null;
@@ -78,14 +88,41 @@ export function radarForSegments(imgDir, rvStamp, segments) {
   const out = new Map();
   const f0 = loadFrame(dir, 0, dual);
   for (const s of segments) out.set(s.id, { rateNow: maxAt(f0, pxOf.get(s.id)), rateH1: null, rateH2: null });
-  for (const f of meta.frames ?? []) {
-    if (f.lead <= 0 || f.lead > 120) continue;
-    const frame = loadFrame(dir, f.lead, dual);
-    if (!frame) continue;
-    const key = f.lead <= 60 ? 'rateH1' : 'rateH2';
-    for (const s of segments) { const r = maxAt(frame, pxOf.get(s.id)); const o = out.get(s.id); if (r != null && (o[key] == null || r > o[key])) o[key] = r; }
+  const means = mode === 'mean' && Array.isArray(meta.hourMeans) ? meta.hourMeans.filter((h) => h.lead > 0 && h.lead <= 120).sort((a, b) => a.lead - b.lead).slice(0, 2) : [];
+  const fromMean = { rateH1: false, rateH2: false };
+  if (means.length) {
+    const meanAt = (img, h, pxs) => {
+      let m = null;
+      for (const px of pxs) {
+        const i = (px.row * img.width + px.col) * img.channels;
+        const { sum, nSat } = rvHourMeanPixel(img.data[i], img.data[i + 1], img.data[i + 2]);
+        const r = nowcastHourMeanFromSum(sum, nSat, h.frames).mmh;
+        if (m == null || r > m) m = r;
+      }
+      return m;
+    };
+    means.forEach((h, k) => {
+      let img = null;
+      try { img = decodePng(readFileSync(join(dir, h.file))); } catch { img = null; }
+      if (!img || img.channels < 3) return;
+      const key = k === 0 ? 'rateH1' : 'rateH2';
+      fromMean[key] = true;
+      for (const s of segments) out.get(s.id)[key] = meanAt(img, h, pxOf.get(s.id));
+    });
   }
-  return { stamp: rvStamp, validAtMs: roadStampToMs(rvStamp), bySeg: out };
+  // Hours without a readable hour mean come from the frames (per hour — one unreadable mean never leaves an hour unknown).
+  if (!fromMean.rateH1 || !fromMean.rateH2) {
+    for (const f of meta.frames ?? []) {
+      if (f.lead <= 0 || f.lead > 120) continue;
+      const key = f.lead <= 60 ? 'rateH1' : 'rateH2';
+      if (fromMean[key]) continue;
+      const frame = loadFrame(dir, f.lead, dual);
+      if (!frame) continue;
+      for (const s of segments) { const r = maxAt(frame, pxOf.get(s.id)); const o = out.get(s.id); if (r != null && (o[key] == null || r > o[key])) o[key] = r; }
+    }
+  }
+  const used = fromMean.rateH1 && fromMean.rateH2 ? 'mean' : fromMean.rateH1 || fromMean.rateH2 ? 'mixed' : 'max';
+  return { stamp: rvStamp, validAtMs: roadStampToMs(rvStamp), mode: used, means: means.map((h) => h.lead), bySeg: out };
 }
 
 // --- KONRAD3D cells --------------------------------------------------------------------------------
@@ -235,12 +272,13 @@ export function stationInput(p, ring, slotMs, inside) {
     ws: p.ws ?? null, wg: p.wg ?? null, wd: p.wd ?? null, pt: p.pt ?? null, pr: p.pr ?? null,
     rsTrendKh, taHist, rsMax: rsMax ?? null, roadRejected: p.rs == null && !!p.x && Object.keys(p.x).some((k) => k.startsWith('rs')), inside,
     suspect: (!!p.o && Object.keys(p.o).length > 0) || (!!p.x && 'ta' in p.x),
+    ...(p.wfr === 1 ? { wfCoarse: true } : {}),   // V-AW-67: film in whole millimetres
   };
 }
 
 // --- The slot ------------------------------------------------------------------------------------------
 
-export function deriveRoadHazards({ storeDir, imgDir, rootDir, outDir, stamp, nowMs = Date.now(), killed = process.env.ROAD_HZ_KILL === '1' }) {
+export function deriveRoadHazards({ storeDir, imgDir, rootDir, outDir, stamp, nowMs = Date.now(), killed = process.env.ROAD_HZ_KILL === '1', radarMode = ROAD_HZ_RADAR_MODES.includes(process.env.ROAD_HZ_RADAR) ? process.env.ROAD_HZ_RADAR : ROAD_HZ_RADAR_DEFAULT }) {
   const t0 = Date.now();
   const slotMs = roadStampToMs(stamp);
   if (!Number.isFinite(slotMs)) throw new Error(`unlesbarer Slot ${stamp}`);
@@ -249,7 +287,7 @@ export function deriveRoadHazards({ storeDir, imgDir, rootDir, outDir, stamp, no
   const segments = segFile.segments;
   const hours = Array.from({ length: ROAD_HZ_HOURS }, (_, i) => slotMs + i * H);
   const missing = new Set();
-  const inputs = { obs: null, fc: null, rv: null, konrad: null, runs: null, segments: segFile.builtAt };
+  const inputs = { obs: null, fc: null, rv: null, rvMode: null, konrad: null, runs: null, segments: segFile.builtAt };
 
   // obs: the published slot itself (the mirror calls this only after a green obs slot; catch-up may still miss one).
   const obs = parseRoadObs(readJson(join(storeDir, roadObsPath(stamp))));
@@ -265,8 +303,8 @@ export function deriveRoadHazards({ storeDir, imgDir, rootDir, outDir, stamp, no
 
   // radar, cells, runs
   const rvStamp = pickRvSlot(imgDir, slotMs);
-  const radar = rvStamp ? radarForSegments(imgDir, rvStamp, segments) : null;
-  if (!radar) missing.add('radar'); else inputs.rv = radar.stamp;
+  const radar = rvStamp ? radarForSegments(imgDir, rvStamp, segments, radarMode) : null;
+  if (!radar) missing.add('radar'); else { inputs.rv = radar.stamp; inputs.rvMode = radar.mode; }
   const krStamp = pickKonradSlot(imgDir, slotMs);
   const cells = krStamp ? cellsForSegments(imgDir, krStamp, segments) : null;
   if (!cells) missing.add('konrad'); else inputs.konrad = cells.stamp;

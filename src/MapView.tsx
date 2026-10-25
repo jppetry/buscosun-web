@@ -9,7 +9,7 @@ import type { ExpressionSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Location, Country } from './types';
 import { WindLayer } from './wind/WindLayer';
-import { GLOBE_PARTICLE_RAMP as PARTICLE_RAMP } from './wind/particlePreset';
+import { weatherWindOptions, WEATHER_WIND_DENSITY, WEATHER_WIND_POINT_SIZE, WEATHER_WIND_FADE } from './wind/weatherWindPreset';
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
@@ -841,8 +841,9 @@ export default function MapView({
   // Wind-Partikel-Steuerung (UI „Aus / Normal / Intensiv" + Dichte-Regler).
   // `on`=Animation an (Heatmap bleibt auch bei „Aus"), `intensive` verbreitert
   // Partikel + verlängert Schweif, `density` skaliert die viewport-Partikelzahl.
+  // Default density: `WEATHER_WIND_DENSITY` (wind/weatherWindPreset.ts); the slider runs from 0,3 to 2,5.
   const [windCfg, setWindCfg] = useState<{ on: boolean; intensive: boolean; density: number }>(
-    { on: true, intensive: false, density: 1 },
+    { on: true, intensive: false, density: WEATHER_WIND_DENSITY },
   );
   // Wind-Höhe: 'surface' = natives ICON-D2 10-m-Gitter (2,2 km), sonst ICON-EU-
   // Druckfläche (850/700/500 hPa, ~7 km). windLevelRef spiegelt den State für
@@ -1444,67 +1445,15 @@ export default function MapView({
     // Zeitraffer sinkt dafür beim Reinzoomen; die Bahn bleibt die echte. (Das
     // frühere `speedZoomDamping: 0.25` entspräche exp 0.75.)
     const wind = new WindLayer({
-      windPngUrl: '', windJsonUrl: '',
-      // WG-1 (2026-08-22, Jans Auftrag „nach dem Vorbild des Globus"): die
-      // Wetterkarte zeichnete ~2 850 dicke Punkte, der Globus ~23 300 feine —
-      // dieselbe Klasse, nur andere Parameter (Diagnose:
-      // `audit/windpartikel-globus-vorbild.md`). Angeglichen wird NUR die Optik;
-      // Tempo/GRIB-Treue (speedPxPerMs 6, speedRefZoom 5,5,
-      // screenTempoZoomExp 0,35) bleiben unangetastet — Jans Entscheid
-      // 2026-08-09 gilt weiter. EINE Dichte fuer alle Geraete (Jans Entscheid
-      // 2026-08-22); wo sie nicht traegt, regelt der FrameGovernor.
-      baseDensity: 18000, minParticles: 2500, maxParticles: 48000,
-      // Glatte, gekruemmte Bahnen statt Polygonzug. Kostet Advektionsarbeit im
-      // Update-Pass, aber KEINEN zusaetzlichen Draw-Pass.
-      subSteps: 3,
-      // Tempo als Farbe lesbar (nullschool-/Globus-Optik). Die Partikel bekommen
-      // eine EIGENE Rampe: die Heatmap-Rampe beginnt bei rgb(20,30,55) und wuerde
-      // langsame Faeden verschlucken — die Heatmap selbst bleibt farbgleich.
-      particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62,
-      particleColorRamp: PARTICLE_RAMP,
-      // Partikel-Stil: 'points' (Bestand). Der WP1-Segment-Stil (windy-artige
-      // Striche, src/wind/particlePreset.ts) wurde am 2026-08-08 auf Jans
-      // Auftrag wieder DEAKTIVIERT — Optik gefiel nicht; der Code bleibt
-      // default-off hinter particleStyle:'segments' verfügbar (Gate GWP1).
-      // Jans Wunsch 2026-10-10: generell langsamer (6 -> 4,2 px/s je m/s, -30 %).
-      speedPxPerMs: 4.2, speedRefZoom: 5.5,
-      // Jans Befund 2026-08-09: beim Rauszoomen wirkten die Partikel zu schnell.
-      // exp 0 hielt das Bildschirmtempo über alle Stufen konstant — geografisch
-      // ist das weit draußen ein enormer Zeitraffer. 0,35 dämpft das Tempo unter
-      // dem Referenzzoom (z4 ≈ 0,68×) und lässt es beim Reinzoomen leicht
-      // anziehen; die Richtung/Proportionalität zu |V| bleibt unangetastet.
-      screenTempoZoomExp: 0.35,
-      // HZ1 (2026-09-18, Jans Befund „bei hohem Zoom zu viele Windpartikel"):
-      // exp 0,35 macht die Schweife beim Reinzoomen länger, die Zahl blieb
-      // gleich — die bedeckte Fläche stieg von 4,7 % (z6) auf 47 % (z13), aus
-      // Strömungslinien wurde ein Sprenkel-Teppich. Ab z7 fällt die gezeichnete
-      // Zahl je Zoomstufe um 2^−0,75; darunter bleibt alles wie bisher. Tempo
-      // und GRIB-Treue unberührt. Messreihe: audit/windpartikel-hochzoom.md.
-      // Fallback (Rule 2): zoomInThinExp 0 = Altverhalten.
-      // Jans Wunsch 2026-10-10: noch weniger beim Reinzoomen (0,75 -> 1,25, ab z6,5).
-      zoomInThinExp: 1.25, zoomInThinFrom: 6.5,
-      // Touch/coarse-pointer (mobile/tablet): skip the particle passes during
-      // active pan/zoom so the basemap + heatmap stay smooth; particles resume
-      // on moveend. Desktop (fine pointer) keeps full fidelity.
-      // Gegen die Wind-Klumpen weit draußen: die Auffrischrate steigt beim
-      // Rauszoomen (s. zoomDropScale in WindLayer) — Basiswerte bleiben.
-      zoomDropBoost: 0.42,
+      // Look, tempo, zoom-in thinning, fade-out and device tuning: `wind/weatherWindPreset.ts` (shared with the
+      // Dashboard's map tile). The history of each value (WG-1, HZ1, Jans wishes of 09.08./10.10./25.10.) is there.
+      ...weatherWindOptions(coarsePointer),
+      // Area clamps of the full-size map (EINE Dichte fuer alle Geraete, Jans Entscheid 2026-08-22; wo sie nicht
+      // traegt, regelt der FrameGovernor).
+      minParticles: 2500, maxParticles: 48000,
+      // Touch/coarse-pointer (mobile/tablet): skip the particle passes during active pan/zoom so the basemap +
+      // heatmap stay smooth; particles resume on moveend. Desktop (fine pointer) keeps full fidelity.
       reduceMotionOnMove: coarsePointer,
-      // The CPU wind-field refine (bilinear ×upsample + 3×3 smooth, then a
-      // HALF_FLOAT upload) runs on every genuine frame change — toggle re-apply
-      // that slips past the dedup guard, slider scrub, time interpolation. At
-      // upsample 2 it was measured at ~2.5 s on a 4×-throttled phone and blocked
-      // the main thread. On coarse-pointer devices the map renders at half native
-      // resolution (pixelRatio cap) and the GPU already samples the field with
-      // LINEAR bilinear, so the extra CPU upsample is largely invisible there —
-      // drop it to 1 (skips the 4× pixel grid AND the smooth) to cut the decode
-      // ~4–8×. Desktop keeps upsample 2 for the crisp continuous field.
-      upsample: coarsePointer ? 1 : 2,
-      // Wind-Animation auf Touch-/Schwachgeräten auf ~30 fps deckeln (statt des
-      // ungedeckelten Display-Rate-Dauerloops): halbiert Idle-GPU/Compositor-Last
-      // und damit Akku/Thermik. Advektion ist dt-normalisiert → Partikel-Tempo und
-      // Trails bleiben identisch. Desktop (fine pointer) ungedeckelt = Referenz.
-      maxParticleFps: coarsePointer ? 30 : 0,
     });
     const tempLayer = new ScalarLayer({
       id: 'temperature',
@@ -4128,7 +4077,7 @@ export default function MapView({
     wind.setDensityMultiplier(windCfg.density * (windCfg.intensive ? 2.1 : 1));
     // WG-1: feine Filamente statt fetter Punkte — die hohe Dichte und die kleine
     // Punktgroesse sind EIN Paar, einzeln kippt die Optik (Globus: 1,7).
-    wind.setPointSize(windCfg.intensive ? 2.0 : 1.7);
+    wind.setPointSize(windCfg.intensive ? 2.0 : WEATHER_WIND_POINT_SIZE);
     // Schweiflänge = Tempo × Lebensdauer der Spur. 0,972 ⇒ ~36 Frames ⇒ bei den
     // ~0,6 px/Frame der Übersicht ein ~22-px-Strich mit weichem Auslauf — die
     // Kometenform der Vorlage (WetterOnline: ~25 px). Vorher 0,955 ⇒ 22 Frames
@@ -4139,7 +4088,7 @@ export default function MapView({
     // fadeOpacity² zerfiel (0,972 wirkte wie 0,9448, also ~10 statt ~19 px).
     // Behoben in shaders.ts/screenFrag; Messung: audit/windpartikel-schweif.md.
     // Die Zahlen hier sind seither unverändert und beschreiben wieder die Realität.
-    wind.setFadeOpacity(windCfg.intensive ? 0.982 : 0.972);
+    wind.setFadeOpacity(windCfg.intensive ? 0.982 : WEATHER_WIND_FADE);
   }, [windCfg, active]);
 
   // Temperatur-Layer (natives ICON-D2 t_2m): bei jeder Slider-Bewegung den Frame

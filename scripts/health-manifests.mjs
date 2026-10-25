@@ -36,6 +36,11 @@
  *   I1  lesbar, Schema 1, Läufe vorhanden
  *   I2  `publishedAt` ≤ MAX_UPDATE_AGE_H (Default 6 h) — der Publisher lebt
  *   I3  je Hauptfamilie (wind, temp, gust, precip) der jüngste Lauf mit Schritten ≤ MAX_RUN_AGE_H (Default 9 h)
+ * Der Punkt-Cube `point/index.json` (V-AW-69, 23.10.2026 — vier Tage stehender Punkt-Cron blieb unbemerkt; `POINT_HEALTH=0`
+ * schaltet ab, `POINT_INDEX_URL` überschreibt):
+ *   P1  lesbar, Stufen t1/t2/t3 vorhanden
+ *   P2  `publishedAt` < 6 h — irgendeine Stufe veröffentlicht alle 3 h
+ *   P3  je Stufe der jüngste Lauf jünger als Takt + Bereitstellung + Rand (t1 7 h, t2 13 h, t3 22 h)
  *
  * Dazu das Straßenwetter (Phase AW, audit/autobahnwetter.md §4.4) — `road/v1/status.json` im Daten-Repo, das der
  * Radar-Spiegel bei jedem Push schreibt (Abruf über raw.githubusercontent, nicht über das CDN: fester Pfad,
@@ -177,6 +182,49 @@ export function checkRepackIndex(idx, { nowMs, maxRunAgeH, maxUpdateAgeH }) {
     parts.push(`${fam} ${bestRun ?? '—'}${Number.isFinite(ageH) ? ` (${ageH.toFixed(1)} h)` : ''}`);
   }
   ok('I3 Läufe je Familie', !bad, `${parts.join(' · ')} — Grenze ${maxRunAgeH} h`);
+  return out;
+}
+
+/**
+ * V-AW-69 (23.10.2026): der Punkt-Cube (`point/index.json`) — das, was buscosun Fusion liest. Vom 19.10. 13:02 UTC an
+ * scheiterte jeder `point`-Lauf am Terminregister (V-EX-1), der Cube stand vier Tage, `road-fc` ab 21.10.; der Index
+ * des Kartenlayers (I1–I3) blieb grün, weil die Kartenlinie ein anderer Workflow ist. Grenzen je Stufe aus
+ * `scripts/repack-repo/workflow-point.yml`: Takt + gemessene Bereitstellung der Quelle + Lauf + Rand —
+ * t1 8×/Tag (3 h + 1,67 h ICON-D2), t2 4×/Tag (6 h + 4,5 h ICON-EU/MOSMIX-L), t3 2×/Tag (12 h + 7,6 h IFS).
+ * `runAt` im Index ist die Laufzeit der QUELLE, deshalb rechnen die Grenzen die Bereitstellung mit.
+ * `POINT_HEALTH=0` schaltet ab, `POINT_INDEX_URL` überschreibt die Adresse.
+ */
+export const POINT_HEALTH = Object.freeze({
+  url: 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/point/index.json',
+  /** Longest acceptable age (h) of the newest run per tier — set from the cron table, not measured on an outage. */
+  maxRunAgeH: Object.freeze({ t1: 7, t2: 13, t3: 22 }),
+  /** Some tier publishes at least every 3 h (t1); a stalled gate leaves `publishedAt` standing. */
+  maxPublishAgeH: 6,
+});
+export function checkPointIndex(idx, { nowMs }) {
+  const out = [];
+  const name = 'point/index.json (Punkt-Cube)';
+  const ok = (id, pass, detail) => out.push({ id, name: `${name} · ${id}`, pass, detail });
+  const tiers = idx && typeof idx === 'object' && idx.latestByTier && typeof idx.latestByTier === 'object' ? idx.latestByTier : null;
+  if (!tiers || !Number.isInteger(idx.schema) || !Object.keys(POINT_HEALTH.maxRunAgeH).every((t) => tiers[t] && typeof tiers[t] === 'object')) {
+    ok('P1 Index lesbar', false, !idx || typeof idx !== 'object' ? 'nicht lesbar oder kein Objekt' : `Schema ${idx.schema ?? '(fehlt)'}, Stufen ${tiers ? Object.keys(tiers).join(', ') || '(keine)' : '(fehlen)'}`);
+    return out;
+  }
+  ok('P1 Index lesbar', true, `Schema ${idx.schema}, Stufen ${Object.keys(tiers).join(', ')}`);
+  const pubAt = Date.parse(idx.publishedAt ?? '');
+  const pubH = Number.isFinite(pubAt) ? (nowMs - pubAt) / 3.6e6 : NaN;
+  ok('P2 Punkt-Cron', Number.isFinite(pubH) && pubH < POINT_HEALTH.maxPublishAgeH,
+    Number.isFinite(pubH) ? `zuletzt veröffentlicht vor ${pubH.toFixed(1)} h (Grenze ${POINT_HEALTH.maxPublishAgeH} h)` : 'publishedAt fehlt/ungültig');
+  const parts = [];
+  let bad = false;
+  for (const [tier, limit] of Object.entries(POINT_HEALTH.maxRunAgeH)) {
+    const t = Date.parse(tiers[tier]?.runAt ?? '');
+    const ageH = Number.isFinite(t) ? (nowMs - t) / 3.6e6 : NaN;
+    const pass = Number.isFinite(ageH) && ageH < limit;
+    if (!pass) bad = true;
+    parts.push(`${tier} ${tiers[tier]?.run ?? '—'}${Number.isFinite(ageH) ? ` (${ageH.toFixed(1)} h, Grenze ${limit} h)` : ' (runAt fehlt)'}${pass ? '' : ' ROT'}`);
+  }
+  ok('P3 Läufe je Stufe', !bad, parts.join(' · '));
   return out;
 }
 
@@ -332,6 +380,13 @@ async function main() {
       try { idx = await loadRemote(process.env.REPACK_INDEX_URL ?? INDEX_HEALTH.url); }
       catch (e) { results.push({ id: 'I1', name: 'index.json (Daten-Repo) · I1 erreichbar', pass: false, detail: String(e?.message ?? e) }); }
       if (idx) results.push(...checkRepackIndex(idx, { nowMs, maxRunAgeH: MAX_RUN_AGE_H, maxUpdateAgeH: MAX_UPDATE_AGE_H }));
+    }
+    // V-AW-69: the point cube — the product buscosun Fusion and the route forecast read; a stalled `point` cron shows here.
+    if (process.env.POINT_HEALTH !== '0') {
+      let pidx = null;
+      try { pidx = await loadRemote(process.env.POINT_INDEX_URL ?? POINT_HEALTH.url); }
+      catch (e) { results.push({ id: 'P1', name: 'point/index.json (Punkt-Cube) · P1 erreichbar', pass: false, detail: String(e?.message ?? e) }); }
+      if (pidx) results.push(...checkPointIndex(pidx, { nowMs }));
     }
     if (process.env.ROAD_HEALTH !== '0') {
       let s = null;

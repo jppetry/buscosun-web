@@ -387,3 +387,22 @@
 }
 .nc-idle-rail-btn:focus-visible { outline: 2px solid var(--sand-50, #F5F1E8); outline-offset: 2px; }
 .nc-idle-rail-spacer { margin-top: auto; }
+
+/* ===== Ortswahl (Idle): Karte + Such-Pille wie der Vertikalschnitt-Einstieg, DACH-Karte wie die Startseite dahinter ===== */
+.nc-page--map { position: relative; isolation: isolate; }
+.nc-page--map > :not(.deck-mapbg):not(.rt-grain) { position: relative; z-index: 1; }
+[data-theme="dark"] .nc-page--map .deck-mapbg { display: none; }
+.nc-page--map .nc-intro { margin-top: 2.4rem; }
+.nc-page--map .nc-intro-copy { max-width: 680px; width: 100%; gap: 0.6rem; background: var(--cream-50, #FAF6EA); border: 1px solid var(--border-default, #E0D6BE); border-radius: 20px; padding: 32px 34px 28px; box-shadow: var(--shadow-card, 0 4px 16px rgba(44, 42, 38, 0.06)); }
+.nc-page--map .nc-intro-title { font-size: clamp(2rem, 4.6vw, 2.4rem); font-weight: 700; letter-spacing: -0.8px; line-height: 1.08; }
+.nc-page--map .nc-intro-search { margin-top: 0.9rem; }
+.nc-page--map .nc-intro-search .ev-search-wrap { max-width: none; padding: 0; border: 0; background: none; box-shadow: none; }
+.nc-page--map .nc-intro-search .ev-search { max-width: none; min-height: 50px; padding: 0.35rem 0.35rem 0.35rem 1.05rem; background: #fff; border-color: var(--border-medium, #D9D0B8); box-shadow: 0 1px 2px rgba(44, 42, 38, 0.05); }
+.nc-page--map .nc-intro-search .ev-search:focus-within { border-color: var(--nc-blue, #3A6FA8); box-shadow: 0 0 0 3px rgba(58, 111, 168, 0.14); }
+.nc-page--map .nc-intro-search .ev-search-input { font-size: 1rem; }
+.nc-page--map .nc-intro-search .ev-search-go { padding: 0.7rem 1.35rem; font-size: 0.86rem; font-weight: 600; }
+.nc-page--map .rt-trust { background: rgba(250, 246, 234, 0.82); border-radius: 999px; padding: 0.45rem 1rem; width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+@media (max-width: 760px) {
+  .nc-page--map .nc-intro-copy { padding: 24px 20px 22px; border-radius: 18px; }
+}
+.nc-page--map .nc-intro-title:focus, .rm-idle--map .rm-idle-title:focus { outline: none; }

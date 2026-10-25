@@ -130,7 +130,7 @@ function rucFirstWet(nc: Nowcast, hourStartMs: number): number | null {
   const fit = nc.ruc;
   if (!fit) return null;
   const h = fit.hours.find((x) => x.hourStartMs === hourStartMs);
-  if (!h || h.kind === 'flat' || h.kind === 'dry') return null;
+  if (!h || h.kind === 'flat' || h.kind === 'dry' || h.trace) return null;
   const p = fit.points.find((x) => x.fromMs >= h.hourStartMs && x.toMs <= h.hourEndMs && x.mmH >= WET_MMH);
   return p ? p.fromMs : null;
 }
@@ -139,16 +139,19 @@ function rucLastWetEnd(nc: Nowcast, hourStartMs: number): number | null {
   const fit = nc.ruc;
   if (!fit) return null;
   const h = fit.hours.find((x) => x.hourStartMs === hourStartMs);
-  if (!h || h.kind === 'flat' || h.kind === 'dry') return null;
+  if (!h || h.kind === 'flat' || h.kind === 'dry' || h.trace) return null;
   let end: number | null = null;
   for (const x of fit.points) if (x.fromMs >= h.hourStartMs && x.toMs <= h.hourEndMs && x.mmH >= WET_MMH) end = x.toMs;
   return end;
 }
-/** Phase RUC: the first wet 5-min point inside the 15-min engine step that ends at `stepMs` (not in a flat hour). */
-function rucFirstWetNear(nc: Nowcast, stepMs: number): number | null {
+/**
+ * Phase RUC: the first wet 5-min point inside the 15-min engine step that ends at `stepMs` (not in a flat hour). E-RUC-11 (V-RUC-21):
+ * never a minute the radar still covers (`seamMs` = end of the radar minutes) and none from a trace hour.
+ */
+function rucFirstWetNear(nc: Nowcast, stepMs: number, seamMs: number): number | null {
   const fit = nc.ruc;
   if (!fit) return null;
-  const p = fit.points.find((x) => x.fromMs > stepMs - 15 * MIN && x.fromMs <= stepMs && x.mmH >= WET_MMH && x.kind !== 'flat');
+  const p = fit.points.find((x) => x.fromMs > stepMs - 15 * MIN && x.fromMs <= stepMs && x.fromMs >= seamMs && x.mmH >= WET_MMH && x.kind !== 'flat' && !x.trace);
   return p ? p.fromMs : null;
 }
 
@@ -158,8 +161,10 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
   const series = buildMinuteSeries({
     nowMs, radarFrames: nc.radarFrames ?? [], radarSource: nc.radarSource,
     fusionHours: hours48, fusionPWet: nc.fusionPWet ?? null, fusionLabel,
-    ruc: nc.ruc ?? null,
+    ruc: nc.ruc ?? null, gate: nc.rainGate === true,
   });
+  // E-RUC-11: with the gate the 5-min minute of a start never lies inside the radar minutes (V-RUC-21); without it as before.
+  const seamMs = nc.rainGate === true && series.radar ? series.radar.toMs : -Infinity;
   const items: EventItem[] = [];
   const wind = (tMs: number) => windText(hours48, tMs);
   const join = (...parts: Array<string | null | undefined>) => parts.filter((p): p is string => !!p).join(' · ');
@@ -196,10 +201,15 @@ export function buildEventDetail(nc: Nowcast, nowMs: number = Date.now()): Event
       } else {
         const r = runFrom(nc.steps, e.atMinutes);
         const word = precipWord(Math.max(step.mmH, r.peak), step.phase, step.character ?? 'unknown');
-        if (e.kind === 'rain-start' && !sharpened && src === 'radar' && series.firstWet?.source === 'radar') {
-          tMs = series.firstWet.tMs; precision = 'min'; sharpened = true;
+        // E-RUC-11: with the gate a radar minute also leads a start whose step lies in the blend zone (90–150 min) — one minute, not 22:09 here and 22:20 there
+        const radarMinute = series.firstWet?.source === 'radar' && (src === 'radar' || (nc.rainGate === true && src === 'blend' && series.firstWet.tMs <= tMs)) ? series.firstWet.tMs : null;
+        if (e.kind === 'rain-start' && !sharpened && radarMinute != null) {
+          tMs = radarMinute; precision = 'min'; sharpened = true;
         } else if (e.kind === 'rain-start' && !sharpened && nc.ruc) {
-          const m = rucFirstWetNear(nc, tMs);
+          // E-RUC-11: with the gate the minute is the first rain of the minute series when it lies at or before the step — ONE minute for
+          // chart, pin and event (V-RUC-22); otherwise the first wet 5-min point of the step as before
+          const fw = nc.rainGate === true && series.firstWet?.source === 'ruc' && series.firstWet.tMs <= tMs && series.firstWet.tMs >= seamMs ? series.firstWet.tMs : null;
+          const m = fw ?? rucFirstWetNear(nc, tMs, seamMs);
           if (m != null) { tMs = m; precision = 'min'; minSource = 'ruc'; sharpened = true; }
         }
         title = e.kind === 'rain-start' ? `${word} ab ${clock(tMs)}` : `${word}${e.title.startsWith('Zweiter') ? ' (zweiter Schauer)' : ' (weiterer Schauer)'}`;

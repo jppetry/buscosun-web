@@ -25,7 +25,8 @@
  *      `engine.dense`, no run file yet, measurement outage, mobile; a motorway of such sections only
  *   T  town labels under the band (V-AF-28): none overlaps or leaves the band, end towns first, a dropped name sits in a
  *      tooltip; `--towns=<corridors.json>` walks every corridor of a real file
- *   U  phase AW-8 (behind `?roadhz=1`): switch off = the page of before; rail with matrix, chips, groups, rows as buttons;
+ *   U  phase AW-8 (ROAD_HZ_LIVE on since 21.10., V-AW-68: A–T open the page with `roadhz=0`): `?roadhz=0` = the page of before, no
+ *      parameter = the rail; rail with matrix, chips, groups, rows as buttons;
  *      period and matrix cell = filter + shared hour; keyboard ↑/↓/Enter/Esc; detail (cross-section, text, timetable, lazy
  *      nivo charts with role=img + hidden tables, features, measuring points + station card, provenance); no hazard file;
  *      mobile sheet (44 px, matrix scrolls); segment lines on the map; no Google Fonts request
@@ -155,7 +156,10 @@ const chrome = findHeadlessChrome();
 if (!chrome) { console.error('kein chrome-headless-shell gefunden'); process.exit(2); }
 const browser = await openBrowser(chrome, { timeoutMs: 90_000, extraArgs: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 
-async function openPage({ path, width = 1440, height = 900, mobile = false, offsetMin = 12, root = site, fcRoot = fcLive.dir, radarPng = null, initScript = null, blockAssets = false }) {
+async function openPage({ path, width = 1440, height = 900, mobile = false, offsetMin = 12, root = site, fcRoot = fcLive.dir, radarPng = null, initScript = null, blockAssets = false, hz = false }) {
+  // V-AW-68: since ROAD_HZ_LIVE = true the page carries the hazard rail by default. Blocks A–T describe the page WITHOUT
+  // the rail (the page of AW-5/AW-6.1b) and open it with `roadhz=0`; block U passes `hz: true` and says itself what it wants.
+  if (!hz && /^\/autobahnwetter(?:[/?]|$)/.test(path) && !/[?&]roadhz=/.test(path)) path += `${path.includes('?') ? '&' : '?'}roadhz=0`;
   const ctx = await browser.newContext({ width, height, mobile });
   const errors = [];
   const served = [];
@@ -246,9 +250,16 @@ const allErrors = [];
 }
 {
   const { ctx, errors, off } = await openPage({ path: '/' });
-  const tile = await until(ctx, `[...document.querySelectorAll('.deck-bento > .deck-tile')].some((t) => /Autobahnwetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null)`, 20_000);
+  // V-AW-68: the tile sits in `.deck-quad` since the start-page rebuild of 17.10. (before: `.deck-bento`).
+  const tile = await until(ctx, `[...document.querySelectorAll('.deck-quad .deck-tile, .deck-bento > .deck-tile')].some((t) => /Autobahnwetter/.test(t.getAttribute('aria-label') ?? '') && t.offsetParent !== null)`, 20_000);
   const count = await ctx.evaluate(`document.querySelector('.deck-chips-count')?.textContent ?? ''`);
-  add('A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar, Zähler „13 Werkzeuge" (seit 13.10. mit Gletscher)', tile && /13/.test(count), count);
+  // V-AW-68: the counter follows the page's own constants (`toolTileCount()`: TOOL_TILE_COUNT minus the hidden forecast tile; the
+  // road/sea/glacier flags are on for everyone) — not a number copied into the verifier.
+  const sp = readFileSync(join(HERE, '..', 'src', 'SearchPage.tsx'), 'utf8');
+  const tiles = Number(/const TOOL_TILE_COUNT = (\d+);/.exec(sp)?.[1]);
+  const hidden = /const FORECAST_TILE_HIDDEN = (true|false);/.exec(sp)?.[1] === 'true';
+  const wantCount = tiles - (hidden ? 1 : 0);
+  add(`A4 Startseite ohne Parameter: Kachel Autobahnwetter sichtbar (.deck-quad), Zähler „${wantCount} Werkzeuge" (TOOL_TILE_COUNT ${tiles}${hidden ? ' − versteckte Vorhersage-Kachel' : ''})`, tile && Number.isFinite(wantCount) && new RegExp(`^0?${wantCount} `).test(count.trim()), count);
   off(); allErrors.push(...errors); await ctx.close();
 }
 
@@ -1112,17 +1123,25 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
   add('U0 Gefahren-Fixture: echter Derive auf dem Fixture-Bestand (radar/konrad/runs als fehlend benannt) + Szenario-Einträge, alle bestehen die Eintrags-Sperre',
     hzSum.publish && JSON.stringify(hzSum.missing) === '["konrad","radar","runs"]' && hzBad.length === 0, `${hzSum.withLevel} Abschnitte mit Stufe · ${hzBad.join('; ')}`);
 
-  // U1 switch off: the right column is the page of before — three tabs Station · Strecke · Quellen, no rail in the DOM.
+  // U1 switch off (`?roadhz=0`): the right column is the page of before — three tabs Station · Strecke · Quellen, no rail in the DOM.
   {
-    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=0', root: hzSite });
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=0', root: hzSite, hz: true });
     await until(ctx, `document.querySelectorAll('.aw-band-tick').length > 0`, 30_000);
     const r = await ctx.evaluate(`JSON.stringify({ tabs: [...document.querySelectorAll('.aw-tabs [role=tab]')].map((b) => b.textContent), hz: document.querySelectorAll('.aw-hz, .aw-hz-detail').length, chips: document.querySelectorAll('.aw-times button').length })`);
     const o = JSON.parse(r);
-    add('U1 Schalter aus: Reiter Station · Strecke · Quellen, keine Gefahren-Leiste im DOM, vier Zeitchips wie bisher', JSON.stringify(o.tabs) === '["Station","Strecke","Quellen"]' && o.hz === 0 && o.chips === 4, r);
+    add('U1 Schalter aus (?roadhz=0): Reiter Station · Strecke · Quellen, keine Gefahren-Leiste im DOM, vier Zeitchips wie bisher', JSON.stringify(o.tabs) === '["Station","Strecke","Quellen"]' && o.hz === 0 && o.chips === 4, r);
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // U1b (V-AW-68): WITHOUT a parameter the rail is there — ROAD_HZ_LIVE = true since 21.10. (Gate C+ on Jan's word).
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1', root: hzSite, hz: true });
+    const rail = await until(ctx, `document.querySelectorAll('.aw-hz-row').length > 0`, 45_000);
+    const r = await ctx.evaluate(`JSON.stringify({ tabs: [...document.querySelectorAll('.aw-tabs [role=tab]')].map((b) => b.textContent), rows: document.querySelectorAll('.aw-hz-row').length })`);
+    add('U1b ohne Parameter: die Leiste rendert (ROAD_HZ_LIVE an für alle), Reiter mit „Gefahren"', rail && JSON.parse(r).tabs.includes('Gefahren'), r);
     off(); allErrors.push(...errors); await ctx.close();
   }
   // U2 switch on: the rail — tabs, title, matrix (49 cells as buttons), legend, chips, seven groups, rows as buttons, hourly chips.
-  const { ctx, errors, off, served } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: hzSite });
+  const { ctx, errors, off, served } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: hzSite, hz: true });
   const ready = await until(ctx, `document.querySelectorAll('.aw-hz-row').length > 0`, 45_000);
   // The rail renders as soon as the hazard file is there; the map draws its lines after its own `load` (style + tiles).
   await until(ctx, `Number(document.querySelector('.aw-map-canvas')?.dataset.segs) >= 2`, 30_000);
@@ -1215,7 +1234,7 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     const noHz = join(tmp, 'site-nohz');
     cpSync(site, noHz, { recursive: true });
     cpSync(join(FIX, 'segments-munich.json'), join(noHz, 'static', 'segments.json'));
-    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: noHz });
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: noHz, hz: true });
     const ok = await until(ctx, `/nicht verfügbar/.test(document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent ?? '') && document.querySelectorAll('.aw-band-tick').length > 0`, 30_000);
     const t = await ctx.evaluate(`document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent`);
     add('U9 kein Gefahren-Slot (404) ⇒ „Gefahrenlage derzeit nicht verfügbar … keine Entwarnung", Messung und Band bleiben', ok && /keine Entwarnung/.test(t ?? ''), t);
@@ -1223,7 +1242,7 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
   }
   // U10 mobile: the sheet opens on the Gefahren tab, matrix scrolls horizontally, rows ≥ 44 px, the detail as a full sheet.
   {
-    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', width: 390, height: 844, mobile: true, root: hzSite });
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', width: 390, height: 844, mobile: true, root: hzSite, hz: true });
     await until(ctx, `document.querySelectorAll('.aw-sheet-row').length > 0`, 45_000);
     await ctx.evaluate(`document.querySelector('.aw-btn.is-primary')?.click()`);
     const open = await until(ctx, `!!document.querySelector('.aw-sheet.is-open .aw-tabs')`, 8000);

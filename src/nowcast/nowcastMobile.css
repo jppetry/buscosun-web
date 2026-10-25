@@ -386,3 +386,14 @@
 
 /* 3D-Seite: das Fenster sitzt weiter unten, unter dem X (Jans Auftrag 2026-10-23). */
 .rm-tabsheet.is-page .zt-mobile { padding-top: 48px; }
+
+/* Ortswahl (Idle): DACH-Karte wie die Startseite hinter dem Inhalt, Suche als große weiße Pille mit Knopf (wie Vertikalschnitt). */
+.rm-idle--map { isolation: isolate; }
+.rm-idle--map > :not(.deck-mapbg) { position: relative; z-index: 1; }
+[data-theme="dark"] .rm-idle--map .deck-mapbg { display: none; }
+.rm-idle--map .rm-idle-nav { border-bottom-color: transparent; }
+.rm-idle--map .rm-idle-search .ev-search { border-radius: 999px; min-height: 54px; padding: 4px 5px 4px 18px; box-shadow: 0 1px 2px rgba(44, 42, 38, 0.05); }
+.rm-idle--map .rm-idle-search .ev-search:focus-within { border-color: var(--steel-600, #3A6FA8); box-shadow: 0 0 0 3px rgba(58, 111, 168, 0.14); }
+.rm-idle--map .rm-idle-search .ev-search-input { padding: 12px 6px; }
+.rm-idle--map .rm-idle-search .nc-search-go { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; }
+.rm-idle--map .rm-idle-howto, .rm-idle--map .rm-idle-geo { box-shadow: var(--shadow-card); }

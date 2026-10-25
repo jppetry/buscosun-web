@@ -225,6 +225,11 @@ export interface Nowcast {
    * Stundensummen von buscosun Fusion 13 angepasst (`rucSeries.ts`). Fehlt ohne Schalter, ohne Produkt und im Live-Pfad.
    */
   ruc?: RucFitted;
+  /**
+   * E-RUC-11 (an, `?mvgate=0` = Rückfall): die Regen-Kante der Anzeigen (`rainGate.ts`) — Minutenverlauf, Ereignisse und
+   * Karten-Pin zeigen eine Fusion-Stunde nur als Regen, wenn Stundenmittel ≥ 0,1 mm/h UND Regenchance ≥ 30 %.
+   */
+  rainGate?: boolean;
 }
 
 /** Schwellen für „nass" (leichter Regen) in mm/h. */

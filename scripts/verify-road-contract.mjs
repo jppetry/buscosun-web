@@ -17,6 +17,7 @@ import {
   validateRoadSlot, parseRoadObs, parseRoadH24, roadObsRoundTripOk, roadFreshness, roadExpectedSlot, roadFlagFrom,
   roadStamp, roadStampToMs, normaliseRoad, ROAD_GROUPS, ROAD_SLOT_MS, ROAD_STUCK_RUN, ROAD_RULES, ROAD_OBS_GATE_MS,
   ROAD_STALE_MS, ROAD_RAW_BASE, ROAD_CDN_BASE, ROAD_REPO_DIR, ROAD_STATUS_PATH, ROAD_LIVE, ROAD_STUCK_PLATEAU, dwdCheckText, roadPointOk, ROAD_FILL,
+  roadNeighbourStat,
 } from '../src/road/roadContract.ts';
 import { ROAD_HEALTH } from './health-manifests.mjs';
 import { classifySensor, mostSevereCondition } from '../src/road/roadClasses.ts';
@@ -208,6 +209,37 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
   const hot = run([raw({ airT: 12, sensors: [{ roadT: 43, filmMm: 0, cond: 0 }] })]);
   add('M1j Fahrbahn 31 K über der Luft OHNE Nachbarn ⇒ nur beobachtet (Sommermittag nicht gemessen), Marke o.rs',
     pt(hot).rs === 43 && hot.balance.observe.roadAir === 1 && pt(hot).o?.rs === 'roadAir');
+  // V-AW-62: N443 Irxleben, 16.10.2026 09:15 UTC — the real neighbourhood from the archive half day (buscosun-archiv
+  // road/v1/2026-10-16/00.json.gz: HL-ST on A 2/A 14 within 25 km, same 300-m class). Four neighbours spread by 3 K,
+  // so k·MAD gives a 27-K band for the air: +41,3 °C "fitted", the road 3,4 K beside its neighbours lay > 12 K under
+  // that air and was thrown out (quarantine of the slot: rs 13,73 roadAir „Luft 41.29; Nachbarn Fahrbahn 17.1, Luft 15").
+  const n443nb = [['N452', 52.22095, 11.70463, 58, 13.4, 11.3, 10], ['N453', 52.22759, 11.75539, 62, 14.3, 11.6, 9.2], ['N422', 52.20917, 11.10972, 150, 17.1, 15, 11.1], ['N450', 52.002, 11.66005, 75, 17.1, 15.3, 10.6]]
+    .map(([id, lat, lon, h, rs, ta, td]) => ({ ...raw({ airT: ta, dewT: td, sensors: [{ roadT: rs, filmMm: 0, cond: 0 }] }), id, lat, lon, elevM: h }));
+  const n443me = { ...raw({ airT: 41.29, dewT: 31.4, sensors: [{ roadT: 13.73, filmMm: 0, cond: 1 }] }), id: 'N443', lat: 52.18361, lon: 11.45278, elevM: 122 };
+  const cands = [n443me, ...n443nb].map((s) => ({ id: s.id, lat: s.lat, lon: s.lon, h: s.elevM, rs: s.sensors[0].roadT, ta: s.airT }));
+  const nbTa = roadNeighbourStat(cands[0], cands, 'ta'), nbRs = roadNeighbourStat(cands[0], cands, 'rs');
+  add('V62a Gegenprobe auf den alten Weg: vier Nachbarn, Luft-Median 15 °C, Band 8·MAD > 26 K — +41,3 °C liegt IM Band, die Fahrbahn 13,73 liegt 3,4 K neben ihrem Median 17,1',
+    nbTa && nbRs && nbTa.n === 4 && nbTa.med === 15 && Math.abs(41.29 - nbTa.med) <= nbTa.thr && nbRs.med === 17.1 && Math.abs(13.73 - nbRs.med) <= nbRs.thr && 13.73 < 41.29 - 12,
+    JSON.stringify({ nbTa, nbRs }));
+  const n443b = run([n443me, ...n443nb]);
+  add('V62b N443 16.10. 09:15: Luft 41,29 und Taupunkt 31,4 roadAir (Abstand/Band 0,97 gegen 0,15), Fahrbahn 13,73 bleibt; kein Nachbar verliert einen Wert',
+    pt(n443b, 'N443').ta === null && pt(n443b, 'N443').td === null && pt(n443b, 'N443').x.ta === 'roadAir' && pt(n443b, 'N443').rs === 13.73
+    && n443nb.every((s) => pt(n443b, s.id).rs === s.sensors[0].roadT && pt(n443b, s.id).ta === s.airT) && /Abstand\/Band Luft 0\.9\d, Fahrbahn 0\.1\d/.test(q(n443b, 'roadAir', 'ta')[0]?.detail ?? ''),
+    q(n443b, 'roadAir', 'ta')[0]?.detail);
+  const bothOff = run([raw({ airT: 20, dewT: 12, sensors: [{ roadT: 2, filmMm: 0, cond: 0 }] }), ...hood(15, 15)]);
+  add('V62c beide neben den Nachbarn, Fahrbahn weiter (2 bei Median 15: 1,6 Bänder; Luft 20 bei 15: 0,6) ⇒ Fahrbahn roadAir, Luft bleibt',
+    pt(bothOff).rs === null && pt(bothOff).x.rs === 'roadAir' && pt(bothOff).ta === 20);
+  const airOff = run([raw({ airT: 30, dewT: 12, sensors: [{ roadT: 16, filmMm: 0, cond: 0 }] }), ...hood(17, 15)]);
+  add('V62d Luft 30 bei Nachbarn 15 (1,9 Bänder), Fahrbahn 16 bei 17 (0,1) ⇒ Luft roadAir, Fahrbahn bleibt (wie M1g)', pt(airOff).ta === null && pt(airOff).x.ta === 'roadAir' && pt(airOff).rs === 16);
+  // V-AW-67: film resolution of the bulletin layout travels with the point (`wfr: 1` only for whole-millimetre films).
+  const coarse = run([raw({ filmResMm: 1, sensors: [{ roadT: 3.5, filmMm: 2, cond: 2 }] })]);
+  const fine = run([raw({ filmResMm: 0.1, sensors: [{ roadT: 3.5, filmMm: 2, cond: 2 }] })]);
+  const dryCoarse = run([raw({ filmResMm: 1, sensors: [{ roadT: 3.5, filmMm: null, cond: 0 }] })]);
+  add('V67a filmResMm 1 ⇒ Punkt trägt wfr: 1 (nur mit Filmwert); 0,1 oder ohne Angabe ⇒ kein wfr; Rundlauf besteht',
+    pt(coarse).wfr === 1 && pt(coarse).wf === 2 && pt(fine).wfr === undefined && pt(dryCoarse).wfr === undefined && pt(run([raw({ sensors: [{ roadT: 3.5, filmMm: 2, cond: 2 }] })])).wfr === undefined
+    && roadObsRoundTripOk(coarse.obs) && roadPointOk(pt(coarse)));
+  add('V67b Client-Prüfer: wfr nur als 1 und nur mit Film (wfr 0,1 oder ohne wf fällt durch)',
+    !roadPointOk({ ...pt(coarse), wfr: 0.1 }) && !roadPointOk({ ...pt(coarse), wf: null, wfr: 1 }) && roadPointOk({ ...pt(coarse), wfr: undefined }));
   // Thaw plateau cap: a value that never moves is stuck after 12 h even in thaw weather.
   const series = (n, mk2) => { let prev = null, res = null; for (let i = 0; i < n; i++) { res = validateRoadSlot({ slotMs: T0 + i * ROAD_SLOT_MS, stations: [{ ...raw(mk2(i)), obsMs: T0 + i * ROAD_SLOT_MS }], catalog, catalogEtag: 'x', catalogState: 'ok', prev, inDE, groups: allGroupsOk() }); prev = res.state; } return res; };
   const pl47 = series(ROAD_STUCK_PLATEAU.maxRun - 1, () => ({ airT: 0.4, dewT: -0.5, sensors: [{ roadT: 0, filmMm: 0.3, cond: 2 }] }));

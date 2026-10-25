@@ -14,6 +14,7 @@
 import type { RucPointSeries } from '../point/client/rucPoint';
 import { RUC_CAP_FACTOR, RUC_STEP_MS } from '../point/rucFormat';
 import type { FusionHourValue } from './minuteSeries';
+import { hourShowsRain } from './rainGate';
 
 const H = 3_600_000;
 const PER_HOUR = H / RUC_STEP_MS;
@@ -41,7 +42,8 @@ export function rucBaseFrom(search: string): string | null {
 
 export type RucHourKind = 'dry' | 'flat' | 'form' | 'mixed';
 
-export interface RucFittedPoint { fromMs: number; toMs: number; mmH: number; kind: RucHourKind }
+/** `trace` (E-RUC-11): the hour is below the rain gate (mean < WET_MMH or P(wet) < RAIN_GATE_P) — present only with the gate on. */
+export interface RucFittedPoint { fromMs: number; toMs: number; mmH: number; kind: RucHourKind; trace?: boolean }
 
 export interface RucFittedHour {
   hourStartMs: number;
@@ -51,6 +53,17 @@ export interface RucFittedHour {
   /** scaling factor applied to the form (0 for dry/flat, ≤ RUC_CAP_FACTOR otherwise). */
   factor: number;
   kind: RucHourKind;
+  /** P(wet) of the hour from buscosun Fusion (gate on only; `null` = unknown). */
+  pWet?: number | null;
+  /** E-RUC-11: below the rain gate (gate on only). */
+  trace?: boolean;
+}
+
+export interface RucFitOptions {
+  /** P(wet) per hour (`tMs` = START of the hour), as the engine reads it (`fusionPWetOf`). */
+  pWet?: Array<{ tMs: number; p: number }> | null;
+  /** E-RUC-11: mark trace hours (`?mvgate=0` = false = exactly as before). */
+  gate?: boolean;
 }
 
 export interface RucFitted {
@@ -69,9 +82,12 @@ export interface RucFitted {
  * @param ruc         the point series of the newest run (`loadRucPoint`)
  * @param fusionHours hourly values of buscosun Fusion as the engine reduces them (`tMs` = END of the hour)
  */
-export function fitRucToFusion(ruc: RucPointSeries, fusionHours: FusionHourValue[], _nowMs?: number): RucFitted {
+export function fitRucToFusion(ruc: RucPointSeries, fusionHours: FusionHourValue[], _nowMs?: number, opts?: RucFitOptions): RucFitted {
   const byFrom = new Map<number, number | null>();
   for (const p of ruc.points) byFrom.set(p.fromMs, p.mmH);
+  const gate = opts?.gate === true;
+  const pByStart = new Map<number, number>();
+  for (const e of opts?.pWet ?? []) pByStart.set(e.tMs, e.p);
   const points: RucFittedPoint[] = [];
   const hours: RucFittedHour[] = [];
   const stats = { hours: 0, dry: 0, flat: 0, form: 0, mixed: 0, missing: 0 };
@@ -96,8 +112,11 @@ export function fitRucToFusion(ruc: RucPointSeries, fusionHours: FusionHourValue
     else if (r <= 0) { kind = 'flat'; vals = raw.map(() => f); }
     else if (f / r <= RUC_CAP_FACTOR) { kind = 'form'; factor = f / r; vals = raw.map((v) => v * factor); }
     else { kind = 'mixed'; factor = RUC_CAP_FACTOR; const rest = f - RUC_CAP_FACTOR * r; vals = raw.map((v) => v * RUC_CAP_FACTOR + rest); }
-    for (let k = 0; k < PER_HOUR; k++) points.push({ fromMs: start + k * RUC_STEP_MS, toMs: start + (k + 1) * RUC_STEP_MS, mmH: vals[k], kind });
-    hours.push({ hourStartMs: start, hourEndMs: h.tMs, fusionMmH: f, rucMeanMmH: r, factor, kind });
+    // E-RUC-11: with the gate every point and hour says whether it is below the rain gate (the sum stays — only the displays change)
+    const pWet = gate ? (pByStart.get(start) ?? null) : null;
+    const trace = gate && !hourShowsRain(f, pWet);
+    for (let k = 0; k < PER_HOUR; k++) points.push({ fromMs: start + k * RUC_STEP_MS, toMs: start + (k + 1) * RUC_STEP_MS, mmH: vals[k], kind, ...(gate ? { trace } : {}) });
+    hours.push({ hourStartMs: start, hourEndMs: h.tMs, fusionMmH: f, rucMeanMmH: r, factor, kind, ...(gate ? { pWet, trace } : {}) });
     stats.hours++;
     stats[kind]++;
   }
@@ -124,7 +143,10 @@ export function rucMeanOver(fitted: RucFitted, fromMs: number, toMs: number): nu
   return n ? sum / n : null;
 }
 
-/** Value of the interval that contains `etaMs` under (from, to]; `null` outside the fitted points or in a gap. */
+/**
+ * Value of the interval that contains `etaMs` under (from, to]; `null` outside the fitted points, in a gap — or in a TRACE hour
+ * (E-RUC-11: the engine then falls back to the hourly interpolation, exactly as before RUC).
+ */
 export function rucAt(fitted: RucFitted, etaMs: number): number | null {
   const pts = fitted.points;
   if (!pts.length || etaMs < fitted.fromMs || etaMs > fitted.toMs) return null;
@@ -134,6 +156,7 @@ export function rucAt(fitted: RucFitted, etaMs: number): number | null {
     if (pts[mid].toMs < etaMs) lo = mid + 1; else hi = mid;
   }
   const p = pts[lo];
+  if (p.trace) return null;
   if (etaMs === fitted.fromMs && lo === 0) return p.mmH;
   return p.fromMs < etaMs && etaMs <= p.toMs ? p.mmH : null;
 }

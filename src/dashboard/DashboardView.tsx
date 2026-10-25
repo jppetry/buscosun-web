@@ -17,12 +17,11 @@ import { buildDashboardVM, shortName } from './model/build';
 import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, PlaceIn, PollenIn, TerrainIn, UvIn, WarningsIn } from './model/types';
 import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
-import { WindRoseTile } from './windRose';
 import { NowcastDetail } from './nowcastDetail';
 import { DayDetail } from './dayDetail';
 import { FeatureRail } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
-import { NowcastTile, NowCard, Val, WarningStrip } from './tiles';
+import { NowcastTile, NowCard, Val, WarningsTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
 import { TerrainField } from './TerrainField';
 import { pfLogFrom } from '../pointForecast/pfFlags';
@@ -337,9 +336,8 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
                   <span className="dbd-eyebrow">JETZT · BUSCOSUN FUSION NICHT ERREICHBAR</span>
                   <p className="dbd-empty">Der Punkt-Cube konnte nicht gelesen werden{vm.error ? ` (${vm.error})` : ''}. Es gibt bewusst keinen Rückfall auf andere Rechenwege.</p>
                   <button type="button" className="dbd-retry" onClick={onRetry}>Erneut versuchen</button>
-                  <WarningStrip vm={vm.warning} />
                 </section>
-              ) : <NowCard vm={vm.now} warning={vm.warning} />}
+              ) : <NowCard vm={vm.now} />}
               {wide && (
                 <section className="dbd-card dbd-minimap" aria-label="Karte: Wind und Niederschlag am Ort">
                   {(vm.status === 'ok' || vm.status === 'error') && place && (
@@ -349,7 +347,8 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
               )}
               {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} onDetail={() => setNcOpen(true)} detailRef={ncOpener} />
-              <WindRoseTile vm={vm.windRose} />
+              {/* Jan 25.10.: die amtlichen Warnungen stehen jetzt hier (vorher die Windrose, davor eine Zeile in der Jetzt-Kachel). */}
+              <WarningsTile vm={vm.warning} />
             </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} onDay={(i, el) => { dayOpener.current = el; setDayIdx(i); }} />
             {showTabs && (

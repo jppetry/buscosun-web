@@ -13,7 +13,9 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { WindLayer } from '../wind/WindLayer';
-import { GLOBE_PARTICLE_RAMP as PARTICLE_RAMP } from '../wind/particlePreset';
+import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels, orientationEnabledFrom, weatherLabelContrast, addOrientationLayers } from '../map/weatherBasemap';
+import { loadDachMask } from '../countryMask';
+import { weatherWindOptions, WEATHER_WIND_DENSITY } from '../wind/weatherWindPreset';
 import { fetchIconD2Wind, loadWindNowCache, windFrameAtValidTime } from '../wind/iconD2WindSource';
 import { fetchRvLatestAnalysis } from '../sources/radolan';
 import { fetchRzcLatest } from '../sources/meteoSwissRadar';
@@ -21,9 +23,14 @@ import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { drapeCorners, drapeImageSliced, type DrapeBox, type TowerRadarPick } from '../nowcast/cellTowers/radarDrape';
 import type { PlaceIn } from './model/types';
 
-const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
+/** Same basemap, labels, orientation layers and DACH mask as the Wetterkarte (`MapView`), so the tile reads as a piece of it. */
+const STYLE_URL = WEATHER_BASEMAP_STYLE;
+const MASK_SOURCE = 'dbd-mm-mask';
+const MASK_LAYER = 'dbd-mm-mask-fill';
+/** sand-200, the Wetterkarte's `country-mask-fill`. */
+const MASK_SAND = '#E0D6BE';
 const SRC_RADAR = 'dbd-mm-radar';
-const ZOOM = 8.2;
+const ZOOM = 9;
 /** Radar picture box around the place (degrees): a bit more than the visible area, so a slow pan never shows an edge. */
 const BOX_LON = 0.75, BOX_LAT = 0.5;
 const PICTURE_PX = 512;
@@ -76,6 +83,12 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
     map.once('load', () => {
       map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
     });
+    // German names and cream labels on an ink halo, exactly as in the Wetterkarte (`?orient=0` = the plain basemap).
+    const orient = orientationEnabledFrom();
+    map.on('style.load', () => {
+      germanBasemapLabels(map);
+      if (orient) weatherLabelContrast(map);
+    });
 
     const pin = document.createElement('div');
     pin.className = 'dbd-mm-pin';
@@ -87,17 +100,27 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
       canvas.width = 2; canvas.height = 2;
       const box: DrapeBox = { west: place.lon - BOX_LON, east: place.lon + BOX_LON, south: place.lat - BOX_LAT, north: place.lat + BOX_LAT };
       map.addSource(SRC_RADAR, { type: 'canvas', canvas, animate: false, coordinates: drapeCorners(box) });
-      map.addLayer({ id: SRC_RADAR, type: 'raster', source: SRC_RADAR, layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.85, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } });
+      // Like the Wetterkarte: the weather picture goes in right below the first boundary layer, the orientation layers
+      // (built-up areas, water, rivers, motorways, place dots) above it, boundaries and labels on top.
+      const beforeBoundary = firstBoundaryLayerId(map);
+      map.addLayer({ id: SRC_RADAR, type: 'raster', source: SRC_RADAR, layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.85, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, beforeBoundary);
+      if (orient) addOrientationLayers(map, beforeBoundary);
 
       const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-      const wind = new WindLayer({
-        windPngUrl: '', windJsonUrl: '',
-        baseDensity: 18000, minParticles: 800, maxParticles: 9000, subSteps: 3,
-        particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62, particleColorRamp: PARTICLE_RAMP,
-        speedPxPerMs: 4.2, speedRefZoom: 5.5, screenTempoZoomExp: 0.35,
-        upsample: coarse ? 1 : 2, maxParticleFps: coarse ? 30 : 0,
-      });
+      // EXACTLY the Wetterkarte's wind settings (`weatherWindPreset.ts`, also used by `MapView`): same look, tempo,
+      // thinning on zoom-in and density. Only the area clamps differ: no floor (a floor of the full-size map would
+      // multiply the density per pixel on this small tile), so the particles per area equal the Wetterkarte at this zoom.
+      const wind = new WindLayer({ ...weatherWindOptions(coarse), minParticles: 50, maxParticles: 48000 });
+      wind.setDensityMultiplier(WEATHER_WIND_DENSITY);
       map.addLayer(wind);
+
+      // DACH mask: everything outside DE · AT · CH · LI is sand, as in the Wetterkarte. It lies above the whole basemap
+      // and the weather picture, below the wind particles.
+      void loadDachMask().then((mask) => {
+        if (ac.signal.aborted || map.getSource(MASK_SOURCE)) return;
+        map.addSource(MASK_SOURCE, { type: 'geojson', data: mask });
+        map.addLayer({ id: MASK_LAYER, type: 'fill', source: MASK_SOURCE, paint: { 'fill-color': MASK_SAND, 'fill-opacity': 1 } }, wind.id);
+      }).catch(() => { /* without the outline the basemap simply stays as it is */ });
 
       // Wind: instant picture from the cache, then the fresh "now" frame.
       void (async () => {

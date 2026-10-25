@@ -84,7 +84,7 @@ export function createRoadMirror({
     const r = plan.retention;
     keepByAge(join(store, 'obs'), r.obsMaxAgeMs, r.obsMinKeep);
     keepByAge(join(store, 'fc'), r.obsMaxAgeMs, r.obsMinKeep);
-    keepByAge(join(store, 'hz'), r.obsMaxAgeMs, r.obsMinKeep);   // AW-7.3: like obs/ (gefahren §Datenvertrag)
+    keepByAge(join(store, 'hz'), r.hzMaxAgeMs ?? r.obsMaxAgeMs, r.hzMinKeep ?? r.obsMinKeep);   // AW-7.3; 4 h since V-AW-64 (the archive sees every slot)
     keepByAge(join(store, 'quarantine'), r.quarantineMaxAgeMs, r.quarantineMinKeep);
     const h24 = join(store, 'h24');
     if (existsSync(h24)) for (const g of readdirSync(h24)) keepByAge(join(h24, g), r.h24MaxAgeMs, r.h24MinKeep);
@@ -208,7 +208,8 @@ export function createRoadMirror({
     status.hz.missing = s.missing; status.hz.inputs = s.inputs; status.hz.observe = s.observe;
     status.hz.balance = { segments: s.segments, withLevel: s.withLevel, unknown: s.unknown, byHazard: s.byHazard, dropped: s.dropped, bytes: s.bytes, ms: s.ms, derivedAt: new Date(now()).toISOString() };
     log(`road hz ${stamp} · ${s.withLevel} von ${s.segments} Abschnitten mit Stufe · unbekannt ${s.unknown} · fehlt ${s.missing.join(',') || '—'} · ${(s.bytes / 1024).toFixed(0)} KB · ${now() - t0} ms · ${s.publish ? 'frei' : `GESPERRT (${s.reasons.slice(0, 2).join('; ')})`}`);
-    return { ok: true, publish: s.publish, reasons: s.reasons, withLevel: s.withLevel, unknown: s.unknown, missing: s.missing, bytes: s.bytes, ms: now() - t0 };
+    // V-AW-65: `byHazard` (≈ 200 B) in the slot log — Gate E reads which hazard fills the rail, the archive keeps it.
+    return { ok: true, publish: s.publish, reasons: s.reasons, withLevel: s.withLevel, unknown: s.unknown, byHazard: s.byHazard, missing: s.missing, inputs: s.inputs, bytes: s.bytes, ms: now() - t0 };
   }
 
   /** Derive the pending slot from what arrived, fold the result into the store. Returns the summary. */

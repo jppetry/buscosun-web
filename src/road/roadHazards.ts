@@ -173,6 +173,11 @@ export interface HzStation {
   suspect: boolean;
   /** Inside the segment (true) or within reach before/after it (false). */
   inside: boolean;
+  /**
+   * V-AW-67: the water film is reported in whole millimetres (`wfr` of the obs point, DWD template of 2015) — a film
+   * of "2 mm" may be 1.5 mm; `aqua` never builds Stufe 3 on it. Absent = 0.1 mm resolution.
+   */
+  wfCoarse?: boolean;
 }
 
 export interface HzHour {
@@ -366,7 +371,14 @@ function schneeFc(points: readonly HzPoint[], i: number, fresh6h: number | null)
 const stepLevel = (x: number | null, th: readonly number[]): RoadLevel => { if (x == null) return 0; let l: RoadLevel = 0; th.forEach((t, k) => { if (x >= t) l = (k + 1) as RoadLevel; }); return l; };
 
 function aquaNow(st: readonly HzStation[], radar: HzRadar | null): Cand {
-  const cands: Cand[] = st.map((s): Cand => (s.rs == null && s.wf == null ? null : { lv: stepLevel(s.wf, ROAD_HZ_T.aqua.filmMm), ev: 'd', why: s.wf != null ? [w('film', s.wf, s.id)] : [] }));
+  const cands: Cand[] = st.map((s): Cand => {
+    if (s.rs == null && s.wf == null) return null;
+    let lv = stepLevel(s.wf, ROAD_HZ_T.aqua.filmMm);
+    const why = s.wf != null ? [w('film', s.wf, s.id)] : [];
+    // V-AW-67: whole-millimetre film (template of 2015) carries no Stufe 3 — "2 mm" may be 1.5 mm; the detail names it.
+    if (s.wfCoarse && lv === 3) { lv = 2; why.push(w('filmRes', 1, s.id)); }
+    return { lv, ev: 'd', why };
+  });
   if (radar?.rateNow != null) cands.push({ lv: stepLevel(radar.rateNow, ROAD_HZ_T.aqua.rateMmH), ev: 'd', why: [w('rate', radar.rateNow, 'RV')] });
   return best(cands);
 }
@@ -488,7 +500,9 @@ function blowupOf(seg: RoadSegment, st: readonly HzStation[], points: readonly H
   const rsMax = maxOf(st.filter((s) => !s.suspect).map((s) => s.rsMax));
   if (rsMax != null && rsMax >= ROAD_HZ_T.blowup.rsC) return { lv: 3, ev: 'd', why: [w('TfMax', rsMax, 'GMA'), w('concrete', seg.f.concrete, 'seg')] };
   const tmax = maxOf(points.map((p) => p.tmaxToday));
-  const taMax = maxOf(st.flatMap((s) => s.taHist.map((x) => x[1])));
+  // V-AW-63: a suspect station (observe hit, air rejected) never builds a level on its history — like `rsMax` above
+  // (N443 Irxleben, 16.10.2026: +41 °C under `cube(o)` made "Hitze" on two concrete segments for three hours).
+  const taMax = maxOf(st.filter((s) => !s.suspect).flatMap((s) => s.taHist.map((x) => x[1])));
   const hot = (tmax != null && tmax >= ROAD_HZ_T.blowup.tmaxC) || (taMax != null && taMax >= ROAD_HZ_T.blowup.tmaxC);
   if (!hot) return { lv: 0, ev: 'p', why: [] };
   const days = hotDays + 1;

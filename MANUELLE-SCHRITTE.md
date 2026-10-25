@@ -2727,6 +2727,29 @@ Push ins Daten-Repo abgelehnt, im manuellen Modus freigegeben).
    `scripts/verify-health.mjs`.
    *Commit der Umsetzung (7 + 8) auf dein Wort, ohne die fremde Linie in `src/fire/`:* `src/road/roadContract.ts`, `scripts/verify-road-contract.mjs`,
    `scripts/health-manifests.mjs`, `scripts/verify-health.mjs`, `audit/autobahnwetter.md`, `MANUELLE-SCHRITTE.md`, `CLAUDE.md`.
+9. **Befunde V-AW-62…69 — umgesetzt 23.10., NICHT committet (`audit/autobahnwetter.md` §19.13).** Dein Auftrag „setze jetzt alle offenen
+   Punkte um": Schiedsrichter `roadAir` (V-AW-62, N443-Nachbarschaft aus dem Archiv als Fixture), `blowupOf` ohne verdächtige Stationen
+   (V-AW-63), `hz/`-Archiv je Slot (V-AW-64, ≈ 8 KB gz, Aufbewahrung im Daten-Repo 4 h), `byHazard` im Slot-Protokoll (V-AW-65), Radar-
+   Stundenmittel hinter `ROAD_HZ_RADAR=mean` + Messskript (V-AW-66, Entscheidung E-AW-42 bleibt bei dir), Film-Auflösung `wfr`/Deckel Stufe 2
+   (V-AW-67, Ursache 0 13 241 Skala 3), `verify:road-ui` nachgezogen (V-AW-68), Wächter mit Zeitplan + Punkt-Cube-Prüfung P1–P3 (V-AW-69).
+   **Von dir, in dieser Reihenfolge:**
+   (a) **Commit + Push von `main`** (vorher `git pull --rebase`, s. Punkt 5; der Push trägt dann auch Fusion 13 und die 38 lokalen Commits —
+   oder du baust wie bei `6303c419` einen Zweig auf `origin/main` mit nur diesen Dateien). Dateien dieser Umsetzung: `src/road/roadContract.ts`,
+   `src/road/roadHazards.ts`, `scripts/road/road-derive.mjs`, `scripts/road/road-hazards.mjs`, `scripts/road/road-mirror.mjs`,
+   `scripts/road/road-archive.mjs`, `scripts/road/hz-nowcast-score.mjs` (neu), `scripts/health-manifests.mjs`, `scripts/verify-road-contract.mjs`,
+   `scripts/verify-road-hazards.mjs`, `scripts/verify-road-archive.mjs`, `scripts/verify-road-ui.mjs`, `scripts/verify-health.mjs`,
+   `scripts/repack-repo/README.md`, `.github/workflows/health-watch.yml` (neu), `audit/autobahnwetter.md`, `MANUELLE-SCHRITTE.md`, `CLAUDE.md`.
+   Wirkung ohne weiteren Schritt: Radar-Job (Vertragsfixes, `wfr`, 4 h `hz/`) beim nächsten Jobstart ≤ 5,75 h, Archiv-Job (`hz/`-Ablage) beim
+   nächsten Lauf ≤ 3 h, Build-Job übernimmt die README-Vorlage.
+   (b) **`health-watch.yml`** läuft mit dem Push von selbst (Workflow in diesem Repo, Label `health`); beim ersten Lauf siehst du vermutlich
+   ein Issue „P3 … t2/t3 ROT", solange t2/t3 noch vom 19.10. sind — es schließt sich nach 10:30 bzw. 21:55 UTC von selbst. Prüfe einmal
+   GitHub → Settings → Notifications: „Actions: failed workflows" UND dass Issues deines Repos dich per E-Mail erreichen.
+   (c) **E-AW-42** nach ≥ 7 Tagen Archiv: `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/hz-nowcast-score.mjs
+   --archive=<buscosun-archiv>/road/v1` — bleibt der Anteil „ohne Regen auf der Stufe" bei ≈ 28 %, ist `ROAD_HZ_RADAR: 'mean'` im Mirror-Schritt
+   von `radar.yml` der Kandidat (Rückweg: Zeile entfernen).
+   (d) **Gate E neu:** 7 Tage nach (a), Folgeprompt aus dem Startprompt, Stichprobe aus `road/v1/<Tag>/hz/` des Archivs.
+   Nicht angefasst: `budget.json` (eagerJs 110,1 > 110 KB stammt aus den fremden uncommitteten Linien RUC/HB, nicht aus dieser), `ROAD_NEIGHBOUR.k`
+   (V-AW-70, dein Gate).
 
 ## 72. buscosun Fusion — Spur-P-Abnahme von `fusion-12t`/`12u` (beide abgelehnt), W1 neu, Hindcast-Kette neu gestartet (`audit/obs-fusion.md` §13), 2026-10-21
 
@@ -2838,9 +2861,12 @@ buscosun Fusion 12 (= 12s) bleibt der aktive Stand, Fusion 13 ist nicht vergeben
 
 ## 74. 5-min-Niederschlagsform aus ICON-D2-RUC (Phase RUC, `audit/niederschlag-ruc.md`), 2026-10-23
 
-Gebaut, verifiziert (`verify:ruc` 100/100), reviewt und **auf dein Wort („komplett aktiv schalten", 23.10. abends) im Code eingeschaltet**:
-die Form ist voreingestellt an, `?ruc=0` ist der Rückfall. Commit, Workflow-Push und Push von `main` hat der Berechtigungs-Klassifizierer
-der Sitzung verweigert („Production Deploy"); die drei Schritte sind deshalb deine, in dieser Reihenfolge:
+Gebaut, verifiziert (`verify:ruc` 100/100), reviewt und **auf dein Wort („komplett aktiv schalten", 23.10.) eingeschaltet**: die Form
+ist voreingestellt an, `?ruc=0` ist der Rückfall. **Stand 23.10. 12:30 MESZ:** Schritt 1 und 3 hast du gemacht (Commit `18674137`
+„Update", `main` gepusht, Netlify liefert das Bundle aus); Schritt 2 habe ich mit deiner Erlaubnis gepusht (Daten-Repo `8323d36`,
+Workflow `ruc` bei Actions `active`). **Erstlauf 12:55–12:57 MESZ erfolgreich** (Lauf 10z, 41 s, 208 Chunks, `missing` 0, Commit
+`1c560b89`); buscosun.com zeigt die 5-min-Schicht (Köln `data-origin="radar+ruc+fusion"`, `?ruc=0` fällt sauber zurück). Offen bleibt
+nur die Messung T9 (Schritt 5). Die Schritte bleiben als Protokoll stehen:
 
 1. **Commit der Phase in `buscosun-web`** (nur die RUC-Dateien; die fremden Linien `src/history/*`, `audit/historie-buehne.md`,
    `audit/autobahnwetter.md`, `tsconfig.app.tsbuildinfo` bleiben unberührt):
@@ -2862,7 +2888,7 @@ der Sitzung verweigert („Production Deploy"); die drei Schritte sind deshalb d
    ab `fetch` wiederholen.) Bis `main` von `buscosun-web` gepusht ist, endet jeder Lauf grün ohne Schreiben.
 3. **Push von `buscosun-web` `main`**: `main` liegt 40 Commits vor `origin/main` (Fusion 13 `1b61ba35`, Start-Kacheln, Atmo, Brand,
    Glacier, Seewetter, Dashboard-Stil, dazu RUC); der Push macht alles davon auf buscosun.com live. Der erste RUC-Lauf kommt danach
-   von selbst um :52 (kein `gh` hier, deshalb kein manueller Dispatch); `RUC_KILL` nur bei Bedarf anlegen (fehlt sie, läuft der
+   von selbst um :52 (sofort: Actions → ruc → „Run workflow"; kein `gh` hier, deshalb kein Dispatch aus der Sitzung); `RUC_KILL` nur bei Bedarf anlegen (fehlt sie, läuft der
    Workflow; `1` hält ihn an). Erwartung laut lokalem Volllauf: Bau ≈ 70 s, Publish ≈ 10 s, Commit `ruc: <Lauf>` mit 208 PNG (≈ 5,4 MB)
    + `run.json` + `latest.json` + `stations/<Lauf>-<Katalog>.png`; die letzte Zeile des Bau-Schritts ist eine JSON-Zeile mit `stats`
    (`missing` sollte 0 sein) und `timing`.
@@ -2876,3 +2902,48 @@ der Sitzung verweigert („Production Deploy"); die drei Schritte sind deshalb d
    das Skript. Mit grünem Verdikt wird die gesetzte Spanne ±15/30/45 durch die gemessene ersetzt; mit rotem Verdikt ist `?ruc=0` der
    Rückfall und die Voreinstellung deine Entscheidung.
 6. Optional: der Erstlauf eines Monats (CLAT/CLON-Cache `ruc-cells-v1` leer) holt die Zellkoordinaten einmal (≈ 1 s); nichts zu tun.
+
+## 75. Regen-Kante der Anzeigen im Regenradar (E-RUC-11, `audit/niederschlag-ruc.md` §10, V-RUC-20…23), 2026-10-24
+
+Auf dein Wort („mache die Änderungen so", 24.10. abends) gebaut und **voreingestellt an**; `?mvgate=0` ist der Rückfall (byte-gleich zu
+vorher, `verify:ruc` Block J). Eine Fusion-Stunde gilt in Minutenverlauf, Ereignissen und Karten-Pin nur als Regen, wenn Stundenmittel
+≥ 0,1 mm/h UND Regenchance ≥ 30 % (`src/nowcast/rainGate.ts`, = `RB_P_EDGE`); darunter kein Balken und keine Stufe, in der Detailansicht
+der Hinweis „‹Chance› · ‹Menge›", die Summe zählt nur gezeichnete Stunden und nennt den Rest als „+ x mm möglich". Ereignis-Minuten liegen
+nie mehr im Radarfenster (V-RUC-21), die drei Anzeigen nennen eine Minute (V-RUC-22). Beleg `audit/niederschlag-ruc/2026-10-24-regenkante-herborn-48h.jpg`.
+Die Messung RUC gegen Fusion 13 vom 23./24.10. (V-RUC-23) liegt unter `audit/niederschlag-ruc/2026-10-24-ruc-vs-fusion13-niederschlag.*`;
+dafür wurden lokal die Hindcast-Slots 22.–24.10. nachgezogen (`queue.mjs follow`, `C:\dev\buscosun-hindcast\slots\`) und W1 für
+23./24.10. unreif gebaut — beides bleibt lokal, nichts wurde gepusht.
+
+1. **Commit in `buscosun-web`** (nur diese Linie; `MinuteChart.tsx`/`MinuteSeriesCard.tsx` tragen auch die 2-h-Kachel von E-RUC-10 vom 23.10.; die
+   fremden Linien AW §19.13, HB, LM, WL-5 bleiben unberührt):
+   ```
+   git add -- CLAUDE.md MANUELLE-SCHRITTE.md budget.json src/nowcast/rainGate.ts src/nowcast/rucSeries.ts src/nowcast/minuteSeries.ts src/nowcast/minuteSeries.css src/nowcast/MinuteChart.tsx src/nowcast/MinuteSeriesCard.tsx src/nowcast/eventDetail.ts src/nowcast/nowcastEngine.ts src/nowcast/nowcastModel.ts src/nowcast/rainWindow.ts scripts/verify-ruc.mjs audit/niederschlag-ruc.md audit/niederschlag-ruc/2026-10-24-live-herborn-naht-drei-zeiten.jpg audit/niederschlag-ruc/2026-10-24-regenkante-herborn-48h.jpg audit/niederschlag-ruc/2026-10-24-ruc-vs-fusion13-niederschlag.txt audit/niederschlag-ruc/2026-10-24-ruc-vs-fusion13-niederschlag.json audit/niederschlag-ruc/2026-10-24-measure-ruc-f13.mjs
+   git commit -m "feat(regenradar): rain gate of the displays - hours under 0.1 mm/h or 30 % chance are hints, not rain (E-RUC-11)"
+   ```
+   `verify:ruc` 115/115, `verify:rain-window` 62/64 (G2/G3 an HEAD rot, V-RUC-14), typecheck grün, Build 260/260; Budget-Ratsche
+   totalJs 1905 → 1912 mit Notiz (IST 1905,7 im geteilten Arbeitsbaum, nicht isoliert messbar), eagerJs unverändert 110,1 (HB, §73.4).
+2. **Push = live.** Danach am Regenradar eine Spurenstunde ansehen (Detailansicht, Hinweis „x % · y mm" an der Grundlinie).
+3. **Offen für T9:** die Kante 30 % ist gesetzt; V-RUC-23 nennt 35 % als gemessenen Kandidaten eines Herbst-Frontregens — nach 14 Tagen
+   Messung entscheiden, ob `RAIN_GATE_P` nachzieht (eine Konstante, ein Ort).
+4. **Nachtrag 25.10. (E-RUC-12, `audit/niederschlag-ruc.md` §11, V-RUC-24):** auf dein Wort („das mit den schraffierten Kacheln rückgängig
+   machen") zeichnet der Minutenverlauf Stunden ohne RUC-Form nicht mehr schraffiert, sondern wie den Rest der 5-min-Form; der Regenchance-
+   Streifen trägt die Unsicherheit. Dieselben Dateien (`MinuteChart.tsx`, `minuteSeries.css`, `MinuteSeriesCard.tsx`, Audit) — der Commit-
+   Befehl in Punkt 1 deckt sie, dazu den Beleg `audit/niederschlag-ruc/2026-10-25-ohne-schraffur-herborn-48h.jpg` mit `git add`; wenn du getrennt
+   committen willst: `git commit -m "style(regenradar): no hatching for hours without a RUC form (E-RUC-12)"`.
+5. **Nachtrag 25.10. (E-RUC-13, `audit/niederschlag-ruc.md` §12):** auf dein Wort („ja, mache, nur bis 27 h") zeichnet der Minutenverlauf die
+   5-min-Form bis +27 h als Minutenkurve statt als Stufen: die kumulierte Menge wird monoton-kubisch durch die 5-min-Stützstellen gelegt, jede
+   5-min-Summe und jede Stundensumme bleibt exakt (`verify:ruc` Block K, 130/130); Zahlen (erster Regen, Spitze, Summe) bleiben auf den Stufen,
+   Fusion-Stunden jenseits +27 h bleiben Balken. Dazu auf dein Wort („ein weicher Übergang, ohne die Daten zu verfälschen") der weiche Start an
+   der Radar-Naht (§12.1: Starttangente = letzter Radar-Minutenwert, Deckel 3 × erstes 5-min-Mittel, keine Summe ändert sich). Rückfall
+   `?mvcurve=0` = Stufen. Offen für dich: V-RUC-25 (Kurvengipfel über der KPI „Spitze", Empfehlung Untertitel „5-min-Mittel"). Zusätzlich zum Befehl in Punkt 1:
+   `git add src/nowcast/rucCurve.ts audit/niederschlag-ruc/2026-10-25-minutenkurve-herborn-48h.jpg audit/niederschlag-ruc/2026-10-25-minutenkurve-naht-herborn-48h.jpg audit/niederschlag-ruc/2026-10-25-detail-27h-herborn.jpg audit/niederschlag-ruc/2026-10-25-detail-27h-naht-rechts-herborn.png`; getrennter Commit, wenn gewünscht:
+   `git commit -m "feat(regenradar): 5-min form of the RUC as a mass-conserving minute curve (E-RUC-13)"`.
+6. **Nachtrag 25.10. (E-RUC-14, `audit/niederschlag-ruc.md` §13):** auf dein Wort („nur noch 2 h, 6 h und 27 h") zeigt die Detailansicht des
+   Minutenverlaufs die Stufen 2 | 6 | 27 h (Voreinstellung 27 h, Titel/KPIs/Summe bis +27 h, `MV_VIEW_H`); die Ereignisse behalten 48 h. Dateien
+   `minuteSeries.ts`, `MinuteSeriesCard.tsx`, `verify-ruc.mjs` sind im Befehl von Punkt 1 enthalten; getrennter Commit, wenn gewünscht:
+   `git commit -m "feat(regenradar): minute chart overlay offers 2 | 6 | 27 h (E-RUC-14)"`.
+7. **Nachtrag 25.10. (E-RUC-15, `audit/niederschlag-ruc.md` §14):** auf dein Wort („mach ein Balkendiagramm daraus", Rückfrage: alles als Balken)
+   zeichnet der Minutenverlauf jede Ebene als Balken in ihrer Auflösung (Radarbild 5 min, RUC 5 min, Fusion 1 h), nichts ist interpoliert;
+   erster Regen/Spitze/Summe des Radar-Teils aus den Bild-Balken. Rückfall `?mvbars=0` = Linie + Kurve wie vorher (`verify:ruc` 136/136).
+   Dateien im Befehl von Punkt 1 enthalten; dazu `git add audit/niederschlag-ruc/2026-10-25-balken-herborn-27h.jpg audit/niederschlag-ruc/2026-10-25-balken-hover-herborn.png`;
+   getrennter Commit, wenn gewünscht: `git commit -m "feat(regenradar): minute chart draws every layer as bars at its own resolution (E-RUC-15)"`.

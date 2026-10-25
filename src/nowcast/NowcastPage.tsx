@@ -9,7 +9,7 @@
  * terracotta-getönten Event-Planung.
  */
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Location } from '../types';
 import { reverseGeocode } from '../geocode';
 import { buildNowcast } from './nowcastEngine';
@@ -22,6 +22,10 @@ import '../intro/intro.css';
 import '../route/tourTheme.css';
 import './nowcast.css';
 import './nowcastMobile.css';
+
+/** DACH-Karte wie auf der Startseite hinter der Ortswahl (läuft mit dem Inhalt, im Dunkelmodus aus; wie Historie). */
+const DachMapBackground = lazy(() => import('../DachMapBackground'));
+const mapBg = <Suspense fallback={null}><DachMapBackground /></Suspense>;
 
 /** Möglichkeiten-Liste des Idle-Kopfs — gespiegelt aus dem Intro-Radar-Schritt. */
 const NC_INTRO_CAPS = [
@@ -155,7 +159,8 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
   // RM1 — Mobile-Idle: eigenes Startbild 1:1 nach references/mobile-RM1.
   if (isMobile) {
     return (
-      <div className="rm-idle">
+      <div className="rm-idle rm-idle--map">
+        {mapBg}
         <nav className="rm-idle-nav">
           <button type="button" className="rm-idle-brand" onClick={onBack} aria-label="Zur Startseite">
             <img src="/buscosun-mark.svg" width={26} height={26} alt="" />
@@ -199,7 +204,8 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
         activeClass="is-active"
         spacerClass="nc-idle-rail-spacer"
       />
-    <div className="rt-page nc-page">
+    <div className="rt-page nc-page nc-page--map">
+      {mapBg}
       <div className="rt-grain" />
       <nav className="rt-nav">
         <a className="rt-nav-logo" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>

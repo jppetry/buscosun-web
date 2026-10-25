@@ -25,6 +25,8 @@
  *   Aggregat (MAE, Treffer, Quantile, Verdikt, Spannen), Dateilauf mit Katalog, Stationsreihe und dense-day.
  * I Nachbesserungen aus dem Review vom 23.10.: Naht-Texte ohne Schalter wortgleich (C1), Messfenster gegen 7-h-Deckung (C2),
  *   flache Stunde ⇒ Stundensatz (I1), Koordinaten-Cache bei Gitterwechsel (I2), 15-min-Mittel in der Engine (I3), Schlüssel nur mit ruc (I4).
+ * J Regen-Kante der Anzeigen (E-RUC-11). K Minutenkurve der 5-min-Form (E-RUC-13): kumulierte Menge monoton-kubisch interpoliert — jede
+ *   5-min-Summe und jede Stundensumme exakt erhalten, nie negativ, flache Läufe flach, Lücken ⇒ getrennte Läufe, Schalter, Verdrahtung.
  */
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -39,9 +41,10 @@ import { publishRuc, planRucCdn, syncRucCdn, RUC_REPO_PATH } from './ruc/ruc-pub
 import { loadRucPoint } from '../src/point/client/rucPoint.ts';
 import { memoryStore } from '../src/point/client/store.ts';
 import { fitRucToFusion, rucAt, rucMeanOver, rucEnabledFrom, rucBaseFrom } from '../src/nowcast/rucSeries.ts';
+import { rucMinuteCurve, rucCurveAt, rucCurveEnabledFrom } from '../src/nowcast/rucCurve.ts';
 import { loadRucCoords } from './ruc/lib/rucCoords.mjs';
 import { computeRainWindow, clock } from '../src/nowcast/rainWindow.ts';
-import { buildMinuteSeries, valueAt } from '../src/nowcast/minuteSeries.ts';
+import { buildMinuteSeries, valueAt, MV_VIEW_H, MV_HORIZON_H, minuteBarsEnabledFrom } from '../src/nowcast/minuteSeries.ts';
 import { assembleNowcast } from '../src/nowcast/nowcastEngine.ts';
 import { buildEventDetail } from '../src/nowcast/eventDetail.ts';
 import { MEASURE_RULE, ruleHash, measureCase, aggregate, measureRuc } from './ruc/ruc-measure.mjs';
@@ -421,8 +424,8 @@ console.log('\nD Workflow-Vorlage scripts/ruc/workflow-ruc.yml');
     /ruc-build\.mjs --store=\.\.\/store/.test(wf) && /ruc-publish\.mjs --repo=data --store=store/.test(wf) && /actions\/cache/.test(wf) && /--cache=\.\.\/cache/.test(wf));
   const ms = readFileSync(join(ROOT, 'MANUELLE-SCHRITTE.md'), 'utf8');
   const sec74 = ms.slice(ms.indexOf('\n## 74.'));
-  add('D8 MANUELLE-SCHRITTE §74: Kopie der Vorlage nach .github/workflows/ruc.yml, Variable RUC_KILL, Erstlauf per workflow_dispatch, Sichtprüfung ?ruc=1',
-    ms.includes('\n## 74.') && /workflows\/ruc\.yml/.test(sec74) && /RUC_KILL/.test(sec74) && /workflow_dispatch/.test(sec74) && /\?ruc=1/.test(sec74));
+  add('D8 MANUELLE-SCHRITTE §74: Vorlage als .github/workflows/ruc.yml im Daten-Repo, Variable RUC_KILL, Erstlauf (Run workflow), Rückfall ?ruc=0, Messung T9',
+    ms.includes('\n## 74.') && /workflows\/ruc\.yml/.test(sec74) && /RUC_KILL/.test(sec74) && /Run workflow/.test(sec74) && /\?ruc=0/.test(sec74) && /ruc-measure\.mjs/.test(sec74));
 }
 
 // ---------------------------------------------------------------------------
@@ -811,8 +814,8 @@ console.log('\nI Nachbesserungen aus dem Review (23.10.): Naht-Texte ohne Schalt
 {
   const chart = readFileSync(join(ROOT, 'src/nowcast/MinuteChart.tsx'), 'utf8');
   // die drei Naht-Texte des Standes vor RUC (git show HEAD) müssen ohne ruc wortgleich bleiben
-  add('I1 (C1) Naht-Texte ohne ruc wortgleich wie vor RUC: „danach ‹Fusion› ▸", „ab hier ‹Fusion› als Stundenmittel", „‹Fusion› · Stundenmittel (kein Radar-Nowcast am Ort)"',
-    chart.includes('`Radar · minutengenau bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸`')
+  add('I1 (C1) Naht-Texte ohne ruc wortgleich wie vor RUC (seit E-RUC-15 steht „minutengenau" als `radarRes` darin, mit `?mvbars=0` wortgleich): „danach ‹Fusion› ▸", „ab hier ‹Fusion› als Stundenmittel", „‹Fusion› · Stundenmittel (kein Radar-Nowcast am Ort)"',
+    chart.includes('`Radar · ${radarRes} bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸`') && /const radarRes = bars && series\.radar \? `Bild alle \$\{series\.radar\.frameStepMin\} min` : 'minutengenau';/.test(chart)
     && chart.includes('`◂ Radar bis ${fmtClock(seamMs)} · ab hier ${series.fusionLabel} als Stundenmittel`')
     && chart.includes("{series.fusionLabel} · Stundenmittel{full ? ' (kein Radar-Nowcast am Ort)' : ''}")
     && chart.includes('`${series.fusionLabel} · Stundenmittel`'));
@@ -820,6 +823,11 @@ console.log('\nI Nachbesserungen aus dem Review (23.10.): Naht-Texte ohne Schalt
   add('I2 (I4) minSource wird nur für ruc in das Ereignis gespreizt (Radar-Fälle ohne Schalter bleiben ohne neuen Schlüssel); die Serie des Ereignis-Details kennt ruc (M2)',
     /\.\.\.\(minSource === 'ruc' \? \{ minSource \} : \{\}\)/.test(ed) && !/minSource = 'radar'/.test(ed) && /ruc: nc\.ruc \?\? null/.test(ed));
   const eng = readFileSync(join(ROOT, 'src/nowcast/nowcastEngine.ts'), 'utf8');
+  const card = readFileSync(join(ROOT, 'src/nowcast/MinuteSeriesCard.tsx'), 'utf8');
+  add('I9 (Jan 23.10./25.10.) die kleine Kachel zeigt 2 h (Radar-Horizont), das Overlay 27 h (MV_VIEW_H, Stufen 2 | 6 | 27 h, Reihe über horizonH: MV_VIEW_H); die Mini-Achse beschriftet bei 2 h nur volle und halbe Stunden',
+    /const MINI_RANGE_H = 2;/.test(card) && /const \[rangeH, setRangeH\] = useState\(MV_VIEW_H\);/.test(card) && /horizonH: MV_VIEW_H,/.test(card)
+    && /\[\{ h: 2, label: '2 h' \}, \{ h: 6, label: '6 h' \}, \{ h: MV_VIEW_H, label: `\$\{MV_VIEW_H\} h` \}\]/.test(card) && !/48 h/.test(card) && MV_VIEW_H === 27 && MV_HORIZON_H === 48
+    && /getMinutes\(\) % 30 === 0/.test(chart));
   add('I3 (I3) die Engine nimmt das Mittel der 5-min-Intervalle des 15-min-Schritts (rucMeanOver), nicht den Punktwert',
     /rucAt: \(eta: number\) => rucMeanOver\(fit, eta - NOWCAST_STEP_MIN \* 60_000, eta\)/.test(eng));
 }
@@ -878,6 +886,231 @@ console.log('\nI Nachbesserungen aus dem Review (23.10.): Naht-Texte ohne Schalt
     MEASURE_RULE.minCovered === 25 && c.valid && c.onsetCase && c.nSlices === 43 && c.truthOnsetMin === 310 && c.aOnsetMin === 310 && c.errA === 0, JSON.stringify({ v: c.valid, n: c.nSlices, t: c.truthOnsetMin, a: c.aOnsetMin }));
   const few = measureCase({ runAtMs: RUN, ruc5, truth: { t0Ms: Date.UTC(2026, 9, 23, 18), stepMs: 10 * MIN, rr: new Array(19).fill(0) } });
   add('I8b nur 19 gedeckte Stempel ⇒ ungültig; Hash der Regel neu eingefroren', !few.valid && ruleHash() !== 'cebb3885c364bdac' && /^[0-9a-f]{16}$/.test(ruleHash()), ruleHash());
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nJ Regen-Kante der Anzeigen (E-RUC-11, 24.10.): Spurenstunde ⇒ kein erster Regen, Hinweis, Summen-Split; Ereignis-Minute ≥ Naht; Pin unverändert; Schalter aus ⇒ byte-gleich');
+{
+  // Herborn 24.10. 19:02 MESZ nachgestellt: jetzt 17:00 UTC, Lauf 16 UTC; Radar trocken bis 19:00 UTC; Stunde 18–19 UTC (20–21 MESZ) f 0,047 p 0,16 mit der
+  // RUC-Form am Stundenende (roh 0,005/0,031/0,077/0,042 ⇒ ×2,99 = 0,017/0,093/0,230/0,127); Stunde 19–20 UTC f 0,124 p 0,39, Form ab 19:15 ≥ 0,1; 20–21 UTC f 0,16 p 0,41
+  const t = (h, m = 0) => Date.UTC(2026, 9, 24, h, m);
+  const NOW = t(17, 2);                 // 19:02 MESZ wie im Befund: die Engine-Schritte liegen bei :47/:02
+  const RUN_MS = t(16), STEP = 5 * MIN;
+  const mkRuc = (values) => ({ run: '2026102416', runAtMs: RUN_MS, builtAtMs: RUN_MS + 45 * MIN, ageMin: 60, stepMin: 5, cell: { iy: 0, ix: 0 }, chunk: { cy: 0, cx: 0, column: 0 }, manifest: null,
+    points: values.map((v, k) => ({ fromMs: RUN_MS + k * STEP, toMs: RUN_MS + (k + 1) * STEP, mmH: v })) });
+  const kOf = (h, m = 0) => (h - 16) * 12 + m / 5;
+  const vals = new Array(RUC_STEPS).fill(0);
+  vals[kOf(18, 40)] = 0.005; vals[kOf(18, 45)] = 0.031; vals[kOf(18, 50)] = 0.077; vals[kOf(18, 55)] = 0.042;
+  for (let k = kOf(19, 0); k < kOf(19, 15); k++) vals[k] = 0.2;
+  for (let k = kOf(19, 15); k < kOf(21, 0); k++) vals[k] = 0.5;
+  const fusionHours = [], fusionPWet = [];
+  for (let h = 1; h <= 30; h++) {
+    const start = RUN_MS + (h - 1) * H, key = 16 + h - 1;
+    fusionHours.push({ tMs: start + H, mmH: key === 18 ? 0.047 : key === 19 ? 0.124 : key === 20 ? 0.16 : 0, conf: 0.5, tempC: 10, snowLineM: null, windDir: null, windMs: null, gustMs: null });
+    fusionPWet.push({ tMs: start, p: key === 18 ? 0.16 : key === 19 ? 0.39 : key === 20 ? 0.41 : 0.05 });
+  }
+  const fit0 = fitRucToFusion(mkRuc(vals), fusionHours, NOW);
+  const fitOff = fitRucToFusion(mkRuc(vals), fusionHours, NOW, { pWet: fusionPWet, gate: false });
+  const fit = fitRucToFusion(mkRuc(vals), fusionHours, NOW, { pWet: fusionPWet, gate: true });
+  const h18 = fit.hours.find((x) => x.hourStartMs === t(18)), h19 = fit.hours.find((x) => x.hourStartMs === t(19));
+  add('J1 fitRucToFusion mit Kante: Stunde 18–19 UTC (0,047 mm/h, 16 %) ist Spur (trace, pWet 0,16), 19–20 (0,124, 39 %) nicht; Punkte tragen die Marke; die Summe bleibt (Mittel = f)',
+    h18?.trace === true && h18.pWet === 0.16 && h19?.trace === false && fit.points.filter((p) => p.fromMs >= t(18) && p.fromMs < t(19)).every((p) => p.trace === true)
+    && Math.abs(fit.points.filter((p) => p.fromMs >= t(18) && p.fromMs < t(19)).reduce((a, p) => a + p.mmH, 0) / 12 - 0.047) < 1e-9
+    && Math.abs(fit.points.find((p) => p.fromMs === t(18, 50)).mmH - 0.077 * (0.047 / ((0.005 + 0.031 + 0.077 + 0.042) / 12))) < 1e-9, JSON.stringify(h18));
+  add('J1b ohne Kante (gate: false / ohne Optionen) byte-gleich und ohne Marken', JSON.stringify(fit0) === JSON.stringify(fitOff) && !('trace' in fit0.hours[0]) && !('trace' in fit0.points[0]));
+  add('J1c rucAt/rucMeanOver liefern in der Spurenstunde null (Engine fällt auf die Stundeninterpolation zurück), in der Regenstunde den Wert',
+    rucAt(fit, t(18, 53)) === null && rucMeanOver(fit, t(18, 45), t(19, 0)) === null && Math.abs(rucAt(fit, t(19, 20)) - 0.5 * (0.124 / ((0.2 * 3 + 0.5 * 9) / 12))) < 1e-9 && rucAt(fit0, t(18, 53)) != null);
+
+  // Minutenverlauf: Radar trocken bis 19:00 UTC
+  const frames = []; for (let tm = t(17); tm <= t(18, 55); tm += 5 * MIN) frames.push({ tMs: tm, mmH: 0 });
+  const inp = { nowMs: NOW, radarFrames: frames, radarSource: 'radolan_rv', fusionHours, fusionPWet, fusionLabel: 'buscosun Fusion' };
+  const s0 = buildMinuteSeries({ ...inp, ruc: fit0 });
+  const sOff = buildMinuteSeries({ ...inp, ruc: fitOff, gate: false });
+  const s = buildMinuteSeries({ ...inp, ruc: fit, gate: true });
+  const bar18 = s.hours.find((b) => Math.floor(b.fromMs / H) * H === t(18)), bar19 = s.hours.find((b) => b.fromMs === t(19));
+  add('J2 ohne Kante: erster Regen 18:55 UTC (die Spurenstunde, direkt an der Naht) — der Befund V-RUC-20', s0.firstWet?.source === 'ruc' && s0.firstWet.tMs === t(18, 55), `${s0.firstWet && new Date(s0.firstWet.tMs).toISOString()}`);
+  add('J2b mit Kante: erster Regen 19:15 UTC aus der Regenstunde (Quelle ruc); Balken 18–19 trace, 19–20 nicht; Stufen 18:55–19:00 trace',
+    s.firstWet?.source === 'ruc' && s.firstWet.tMs === t(19, 15) && bar18?.trace === true && bar19?.trace === false
+    && s.ruc.points.filter((p) => p.fromMs < t(19)).every((p) => p.trace === true) && s.ruc.points.filter((p) => p.fromMs >= t(19) && p.fromMs < t(21)).every((p) => p.trace === false),
+    `${s.firstWet && new Date(s.firstWet.tMs).toISOString()} bar18 ${JSON.stringify(bar18)}`);
+  add('J2c Spitze und Summe überspringen die Spur: Spitze aus der Regenstunde, sumMm = Regenstunden, sumTraceMm = Spur (18:55–19:00 ⇒ 0,127 × 5/60 ≈ 0,0 mm, gerundet), Hinweis-Spanne 18:55–19:00 mit pMax 0,16',
+    s.peak?.source === 'ruc' && s.peak.tMs >= t(19) && Math.abs(s.sumMm - (s0.sumMm - 0.127 * 5 / 60)) < 0.11 && s.sumTraceMm < 0.05 && s.hints.length >= 1 && s.hints[0].fromMs === t(18, 55) && s.hints[0].toMs === t(19) && s.hints[0].pMax === 0.16,
+    `Summe ${s.sumMm} (ohne Kante ${s0.sumMm}), Spur ${s.sumTraceMm}, Hinweise ${JSON.stringify(s.hints)}`);
+  add('J2d Schalter aus (gate: false) ⇒ buildMinuteSeries byte-gleich zum Stand ohne Optionen; sumTraceMm 0, keine Hinweise', JSON.stringify(sOff) === JSON.stringify(s0) && s0.sumTraceMm === 0 && s0.hints.length === 0);
+  // ohne Radar: ganze Spurenstunde ⇒ Hinweis mit 0,05 mm, Summe geteilt
+  const sNoRadar = buildMinuteSeries({ ...inp, radarFrames: [], radarSource: '', ruc: fit, gate: true });
+  add('J2e ohne Radar: die ganze Spurenstunde 18–19 UTC ist EIN Hinweis „16 % · 0,05 mm", sumTraceMm ≈ 0,0–0,1, erster Regen 19:15',
+    sNoRadar.hints.length >= 1 && sNoRadar.hints[0].fromMs === t(18) && sNoRadar.hints[0].toMs === t(19) && Math.abs(sNoRadar.hints[0].mm - 0.05) < 0.006 && sNoRadar.firstWet?.tMs === t(19, 15),
+    JSON.stringify(sNoRadar.hints[0]));
+
+  // Ereignisse: Engine-Schritt 120 min (19:00 UTC) liegt in der Blend-Zone; ohne Kante nennt das Ereignis 18:50 (im Radarfenster), mit Kante 19:15
+  const nwp = fusionHours.filter((h) => h.tMs <= NOW + 8 * H).map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf, snowLineM: null, tempC: 10 }));
+  const radarSampleAt = (eta) => (eta <= t(18, 55) ? 0 : null);
+  const ncOf = (f, gate) => {
+    const nc = assembleNowcast({ nowMs: NOW, radarSampleAt, radarValidUntilMs: t(18, 55), radarSource: 'radolan_rv', runAtMs: NOW, fetchedAtMs: NOW, nwp, nwpSource: 'cube',
+      rucAt: (eta) => rucMeanOver(f, eta - 15 * MIN, eta) });
+    nc.radarFrames = frames; nc.fusionHours = fusionHours; nc.fusionPWet = fusionPWet; nc.ruc = f; nc.rainGate = gate;
+    return nc;
+  };
+  const d0 = buildEventDetail(ncOf(fit0, false), NOW), d1 = buildEventDetail(ncOf(fit, true), NOW);
+  const st0 = d0.items.find((i) => i.kind === 'rain-start' && i.precision === 'min'), st1 = d1.items.find((i) => (i.kind === 'rain-start' || i.kind === 'fusion-start') && i.tMs >= NOW);
+  add('J3 ohne Kante: „ab 18:50 UTC" aus dem Radarfenster (V-RUC-21); mit Kante: keine Minute vor der Naht und keine aus der Spur — der Beginn ist die Minute des Minutenverlaufs, 19:15 UTC (V-RUC-22)',
+    st0?.tMs === t(18, 50) && st1?.tMs === t(19, 15) && st1.minSource === 'ruc' && !d1.items.some((i) => i.precision === 'min' && i.minSource === 'ruc' && i.tMs < t(19)),
+    `ohne ${st0 && new Date(st0.tMs).toISOString()} · mit ${st1 && st1.title} ${st1 && new Date(st1.tMs).toISOString()}`);
+  add('J3b Schalter aus ⇒ buildEventDetail byte-gleich (rainGate false mit gate-freiem Fit)', JSON.stringify(buildEventDetail(ncOf(fitOff, false), NOW)) === JSON.stringify(d0));
+  // Radar-Minute in der Blend-Zone (Regen laut Radar ab 18:40 UTC = +98 min, Schritt 105 ist „blend"): mit Kante nennt das Ereignis die Radar-Minute, ohne Kante die RUC-Minute des Schritts
+  const wetFrames = frames.map((f) => ({ tMs: f.tMs, mmH: f.tMs >= t(18, 40) ? 1.5 : 0 }));
+  const ncBlend = (f, gate) => {
+    const nc = assembleNowcast({ nowMs: NOW, radarSampleAt: (eta) => (eta <= t(18, 55) ? (eta >= t(18, 40) ? 1.5 : 0) : null), radarValidUntilMs: t(18, 55), radarSource: 'radolan_rv', runAtMs: NOW, fetchedAtMs: NOW, nwp, nwpSource: 'cube',
+      rucAt: (eta) => rucMeanOver(f, eta - 15 * MIN, eta) });
+    nc.radarFrames = wetFrames; nc.fusionHours = fusionHours; nc.fusionPWet = fusionPWet; nc.ruc = f; nc.rainGate = gate;
+    return nc;
+  };
+  const b0 = buildEventDetail(ncBlend(fit0, false), NOW).items.find((i) => i.kind === 'rain-start'), b1 = buildEventDetail(ncBlend(fit, true), NOW).items.find((i) => i.kind === 'rain-start');
+  const sBlend = buildMinuteSeries({ ...inp, radarFrames: wetFrames, ruc: fit, gate: true });
+  add('J3c Radar-Beginn in der Blend-Zone: mit Kante nennt das Ereignis die Radar-Minute des Minutenverlaufs (18:40 UTC), ohne Kante wie bisher nicht (Schritt „blend" bleibt beim RUC-Punkt)',
+    sBlend.firstWet?.source === 'radar' && sBlend.firstWet.tMs >= t(18, 35) && sBlend.firstWet.tMs <= t(18, 40) && b1?.tMs === sBlend.firstWet.tMs && b1.precision === 'min' && b1.minSource !== 'ruc' && b0 != null && b0.tMs !== b1.tMs,
+    `ohne ${b0 && new Date(b0.tMs).toISOString()} ${b0?.minSource ?? ''} · mit ${b1 && new Date(b1.tMs).toISOString()}`);
+
+  // Karten-Pin: schon vor der Kante 19:15 (P-Kante); mit Kante dieselbe Minute
+  const w0 = computeRainWindow({ nowMs: NOW, radar: { kind: 'extrapolation', product: 'RADOLAN-RV', horizonMin: 120, wetNow: false, onsetMin: null, endMin: null }, fusion: fusionPWet, ruc: fit0 });
+  const w1 = computeRainWindow({ nowMs: NOW, radar: { kind: 'extrapolation', product: 'RADOLAN-RV', horizonMin: 120, wetNow: false, onsetMin: null, endMin: null }, fusion: fusionPWet, ruc: fit });
+  add('J4 Karten-Pin: 19:15 UTC vor und nach der Kante (eine Regel, drei Anzeigen nennen dieselbe Minute wie der Minutenverlauf)',
+    w0.kind === 'onset' && w0.source === 'ruc' && w1.kind === 'onset' && w1.source === 'ruc' && w0.label === w1.label && /19:15|21:15/.test(w1.label) && s.firstWet.tMs === t(19, 15), `${w0.label} | ${w1.label}`);
+
+  // Verdrahtung als Quelltext
+  const eng = readFileSync(join(ROOT, 'src/nowcast/nowcastEngine.ts'), 'utf8');
+  const card = readFileSync(join(ROOT, 'src/nowcast/MinuteSeriesCard.tsx'), 'utf8');
+  const chart = readFileSync(join(ROOT, 'src/nowcast/MinuteChart.tsx'), 'utf8');
+  const ed = readFileSync(join(ROOT, 'src/nowcast/eventDetail.ts'), 'utf8');
+  const rw = readFileSync(join(ROOT, 'src/nowcast/rainWindow.ts'), 'utf8');
+  add('J5 Verdrahtung: Engine rechnet P(nass) vor dem Fit und reicht { pWet, gate }; nc.rainGate; Kachel reicht gate und zeigt „möglich"; Diagramm zeichnet Hinweise (mv-hint); Ereignisse schneiden an der Naht; Pin nutzt RAIN_GATE_P',
+    /const gate = rainGateEnabledFrom\(/.test(eng) && /fitRucToFusion\(rucSeries, nwpFull, nowMs, \{ pWet: pw, gate \}\)/.test(eng) && /nc\.rainGate = gate/.test(eng)
+    && /gate: nowcast\.rainGate === true/.test(card) && /sumTraceMm/.test(card) && /möglich \(Stunden unter der Kante\)/.test(card)
+    && /mv-hint/.test(chart) && /traceHintText\(/.test(chart) && /s\.trace \? \{ \.\.\.s, mmH: 0 \}/.test(chart)
+    && /rucFirstWetNear\(nc, tMs, seamMs\)/.test(ed) && /x\.fromMs >= seamMs/.test(ed) && /RB_P_EDGE = RAIN_GATE_P/.test(rw) && /if \(p\.trace\) continue;/.test(rw));
+  add('J5b Gegenprobe: Muster J5 erkennt die Abwesenheit', !/nc\.rainGate = gate/.test(eng.replace('nc.rainGate = gate', 'nc.rainGate = false')));
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nK Minutenkurve der 5-min-Form (E-RUC-13, 25.10.): Masse je 5 min und je Stunde exakt, nie negativ, flach bleibt flach, Lücken trennen, Schalter, Verdrahtung');
+{
+  const STEP = 5 * MIN, T0 = Date.UTC(2026, 9, 25, 6);
+  // 240 steps (20 h): 2 h zeros, 1 h flat 0,3, then a noisy mix with 30 % zeros; the first step is cut at a seam (2 min long)
+  const steps = [];
+  for (let k = 0; k < 240; k++) {
+    const v = k < 24 ? 0 : k < 36 ? 0.3 : rnd() < 0.3 ? 0 : rnd() * 6;
+    steps.push({ fromMs: T0 + k * STEP, toMs: T0 + (k + 1) * STEP, mmH: v });
+  }
+  steps[0] = { fromMs: T0 + 3 * MIN, toMs: T0 + STEP, mmH: 0.8 };
+  const runs = rucMinuteCurve(steps);
+  const run = runs[0];
+  const at = (t) => run.find((p) => p.tMs === t);
+  let massErr = 0, hourErr = 0, neg = 0, flatErr = 0, integErr = 0;
+  for (const s of steps) {
+    const a = at(s.fromMs), b = at(s.toMs);
+    massErr = Math.max(massErr, Math.abs(b.mm - a.mm - s.mmH * (s.toMs - s.fromMs) / H));
+  }
+  for (let h = 1; h < 20; h++) {
+    const a = at(T0 + h * H), b = at(T0 + (h + 1) * H);
+    const f = steps.slice(h * 12, h * 12 + 12).reduce((x, s) => x + s.mmH, 0) / 12;
+    hourErr = Math.max(hourErr, Math.abs(b.mm - a.mm - f));
+  }
+  for (const p of run) { if (p.mmH < 0) neg++; if (p.tMs > T0 + 25 * STEP && p.tMs < T0 + 35 * STEP) flatErr = Math.max(flatErr, Math.abs(p.mmH - 0.3)); }
+  // fine sampling (1 s): the integral of the drawn rate over each 5 min is the 5-min sum (the slope IS the derivative of the value)
+  const fine = rucMinuteCurve(steps.slice(36, 60), Infinity, 1000)[0];
+  for (let k = 36; k < 60; k++) {
+    const s = steps[k], seg = fine.filter((p) => p.tMs >= s.fromMs && p.tMs <= s.toMs);
+    let integ = 0; for (let i = 1; i < seg.length; i++) integ += ((seg[i].mmH + seg[i - 1].mmH) / 2) * (seg[i].tMs - seg[i - 1].tMs) / H;
+    integErr = Math.max(integErr, Math.abs(integ - s.mmH * STEP / H));
+  }
+  add('K1 ein Lauf, eine Probe je Minute von der Naht (06:03) bis 02:00, Enden inklusive', runs.length === 1 && run[0].tMs === T0 + 3 * MIN && run[run.length - 1].tMs === T0 + 240 * STEP && run.length === 240 * 5 - 3 + 1, `${runs.length} Läufe, ${run.length} Proben`);
+  add('K2 jede 5-min-Summe exakt erhalten (auch die angeschnittene erste): max. Abweichung der kumulierten Menge an den Stützstellen < 1e-9 mm', massErr < 1e-9, `${massErr}`);
+  add('K3 jede Stundensumme exakt der Wert von buscosun Fusion (Mittel der zwölf Stufen): max. Abweichung < 1e-9 mm', hourErr < 1e-9, `${hourErr}`);
+  add('K4 Integral der gezeichneten Rate (1-s-Trapez) = 5-min-Summe auf 1e-5 mm; keine negative Minute', integErr < 1e-5 && neg === 0, `Integral ${integErr}, negativ ${neg}`);
+  add('K5 flache Stunde (zwölf gleiche Stufen 0,3 mm/h) bleibt eine waagerechte Linie (< 1e-12); Nullen bleiben Nullen', flatErr < 1e-12 && run.filter((p) => p.tMs > T0 + STEP && p.tMs < T0 + 24 * STEP).every((p) => p.mmH === 0), `${flatErr}`);
+  const peakStep = Math.max(...steps.map((s) => s.mmH)), peakCurve = Math.max(...run.map((p) => p.mmH));
+  add('K6 Überschwingen begrenzt: Gipfel der Kurve ≤ 3 × höchste Stufe (Fritsch–Butland), hier gemessen', peakCurve <= 3 * peakStep + 1e-9, `Stufe ${peakStep.toFixed(2)}, Kurve ${peakCurve.toFixed(2)} (×${(peakCurve / peakStep).toFixed(2)})`);
+  // gaps: a missing hour splits the runs, no minute lies in the gap; clipping at endMs
+  const gapped = steps.filter((s) => s.fromMs < T0 + 5 * H || s.fromMs >= T0 + 6 * H);
+  const gRuns = rucMinuteCurve(gapped, T0 + 10 * H + 2 * MIN);
+  add('K7 Lücke (Stunde 11–12 UTC fehlt) ⇒ zwei Läufe, keine Probe in der Lücke; endMs schneidet den zweiten Lauf bei 16:02',
+    gRuns.length === 2 && gRuns[0][gRuns[0].length - 1].tMs === T0 + 5 * H && gRuns[1][0].tMs === T0 + 6 * H && gRuns[1][gRuns[1].length - 1].tMs === T0 + 10 * H + 2 * MIN
+    && !gRuns.flat().some((p) => p.tMs > T0 + 5 * H && p.tMs < T0 + 6 * H), `${gRuns.length} Läufe`);
+  add('K8 rucCurveAt: Probe der Minute, in der Lücke null, vor dem Anfang null', rucCurveAt(gRuns, T0 + 4 * H + 7 * MIN)?.tMs === T0 + 4 * H + 7 * MIN && rucCurveAt(gRuns, T0 + 5 * H + 30 * MIN) === null && rucCurveAt(gRuns, T0) === null);
+  // the curve on a real fit: hourly sums of the fit are Fusion's (block F), the curve keeps them
+  const RUN_MS = T0 - 2 * H;
+  const rucIn = { run: '2026102504', runAtMs: RUN_MS, builtAtMs: RUN_MS + 45 * MIN, ageMin: 60, stepMin: 5, cell: { iy: 0, ix: 0 }, chunk: { cy: 0, cx: 0, column: 0 }, manifest: null,
+    points: Array.from({ length: RUC_STEPS }, (_, k) => ({ fromMs: RUN_MS + k * STEP, toMs: RUN_MS + (k + 1) * STEP, mmH: k % 7 === 0 ? 0 : rnd() * 3 })) };
+  const fh = Array.from({ length: 30 }, (_, i) => ({ tMs: RUN_MS + (i + 1) * H, mmH: i % 5 === 0 ? 0 : Math.round(rnd() * 20) / 10, conf: 0.5, tempC: 10, snowLineM: null, windDir: null, windMs: null, gustMs: null }));
+  const fit = fitRucToFusion(rucIn, fh, T0);
+  const fRuns = rucMinuteCurve(fit.points);
+  let fitErr = 0, n = 0;
+  for (const hr of fit.hours) {
+    const a = rucCurveAt(fRuns, hr.hourStartMs), b = rucCurveAt(fRuns, hr.hourEndMs);
+    if (!a || !b || a.tMs !== hr.hourStartMs || b.tMs !== hr.hourEndMs) continue;
+    n++; fitErr = Math.max(fitErr, Math.abs(b.mm - a.mm - hr.fusionMmH));
+  }
+  add('K9 auf einem echten Fit (fitRucToFusion, 27 Stunden mit dry/flat/form/mixed): die Kurve trägt je Stunde exakt die Fusion-Summe (< 1e-9 mm)', n >= 20 && fitErr < 1e-9, `${n} Stunden, max ${fitErr}`);
+  add('K10 Schalter: ohne Query an, `?mvcurve=0` aus, `?mvcurve=1` an, kaputte Query an', rucCurveEnabledFrom('') && !rucCurveEnabledFrom('?a=1&mvcurve=0') && rucCurveEnabledFrom('?mvcurve=1') && rucCurveEnabledFrom(null));
+  const chartSrc = readFileSync(join(ROOT, 'src/nowcast/MinuteChart.tsx'), 'utf8');
+  const cardSrc = readFileSync(join(ROOT, 'src/nowcast/MinuteSeriesCard.tsx'), 'utf8');
+  add('K11 Verdrahtung: Diagramm rechnet die Kurve aus den (kanten-bereinigten) Stufen, nimmt ihr Maximum in yMax, zeichnet je Lauf, Hover auf der Kurve mit 5-min-Mittel; Kachel liest den Schalter und reicht ihn beiden Diagrammen; Quellzeile „Minute interpoliert"',
+    /rucMinuteCurve\(rucPts, endMs, undefined, /.test(chartSrc) && /for \(const run of rucCurve\) for \(const p of run\) maxInRange = Math\.max\(maxInRange, p\.mmH\)/.test(chartSrc) && /rucCurveAt\(geom\.rucCurve, hoverMs\)/.test(chartSrc) && /5-min-Mittel/.test(chartSrc)
+    && /const curve = rucCurveEnabledFrom\(/.test(cardSrc) && (cardSrc.match(/curve=\{curve\}/g) ?? []).length === 2 && /5-min-Summen\$\{bars \? ', ein Balken je 5 min' : curve \? ', Minute interpoliert' : ''\}/.test(cardSrc));
+  add('K11b Gegenprobe: Muster K11 erkennt die Abwesenheit', !/rucCurveAt\(geom\.rucCurve, hoverMs\)/.test(chartSrc.replace('rucCurveAt(geom.rucCurve, hoverMs)', 'null')));
+
+  // soft start at the radar seam (Jan 25.10.): the radar's last minute is the start tangent, every sum untouched, clamped to 3 × first mean
+  const seamSteps = steps.slice(36, 60).map((s) => ({ ...s }));
+  seamSteps[0].mmH = 0.6;
+  const seamAt = seamSteps[0].fromMs;
+  const soft = rucMinuteCurve(seamSteps, Infinity, 1000, { startMmH: 1.2, startAtMs: seamAt })[0];
+  const plain = rucMinuteCurve(seamSteps, Infinity, 1000)[0];
+  let softMass = 0, softNeg = 0;
+  for (const s of seamSteps) { const a = soft.find((p) => p.tMs === s.fromMs), b = soft.find((p) => p.tMs === s.toMs); softMass = Math.max(softMass, Math.abs(b.mm - a.mm - s.mmH * (s.toMs - s.fromMs) / H)); }
+  for (const p of soft) if (p.mmH < 0) softNeg++;
+  const firstEnd = seamSteps[0].toMs;
+  add('K12 weicher Start: Kurve beginnt mit dem Radarwert 1,2 (erstes 5-min-Mittel 0,6), ab dem zweiten Intervall gleich der Kurve ohne Start; jede 5-min-Summe exakt, keine negative Minute',
+    Math.abs(soft[0].mmH - 1.2) < 1e-12 && Math.abs(plain[0].mmH - 0.6) < 1e-12 && softMass < 1e-9 && softNeg === 0
+    && soft.filter((p) => p.tMs >= firstEnd).every((p, i) => Math.abs(p.mmH - plain.filter((q) => q.tMs >= firstEnd)[i].mmH) < 1e-12), `Start ${soft[0].mmH}, Masse ${softMass}, negativ ${softNeg}`);
+  const capped = rucMinuteCurve(seamSteps, Infinity, 1000, { startMmH: 5, startAtMs: seamAt })[0];
+  const dryFirst = seamSteps.map((s, i) => (i === 0 ? { ...s, mmH: 0 } : s));
+  const dry = rucMinuteCurve(dryFirst, Infinity, 1000, { startMmH: 1.2, startAtMs: seamAt })[0];
+  const elsewhere = rucMinuteCurve(seamSteps, Infinity, 1000, { startMmH: 1.2, startAtMs: seamAt + MIN })[0];
+  add('K13 Deckel 3 × Mittel (Radar 5 ⇒ Start 1,8, keine negative Minute), trockenes erstes Intervall ⇒ Start 0 (Kante bleibt), Startzeit ≠ Laufbeginn ⇒ ohne Wirkung',
+    Math.abs(capped[0].mmH - 1.8) < 1e-12 && capped.every((p) => p.mmH >= 0) && dry[0].mmH === 0 && dry.every((p) => p.tMs > firstEnd || p.mmH === 0) && Math.abs(elsewhere[0].mmH - 0.6) < 1e-12,
+    `Deckel ${capped[0].mmH}, trocken ${dry[0].mmH}, anderswo ${elsewhere[0].mmH}`);
+  add('K14 Verdrahtung: das Diagramm reicht den letzten Radar-Minutenwert als Start, nur wenn das Radar genau am ersten Schritt endet',
+    /radarLast && radarLast\.tMs === rucPts\[0\]\.fromMs \? \{ startMmH: radarLast\.mmH, startAtMs: radarLast\.tMs \} : \{\}/.test(readFileSync(join(ROOT, 'src/nowcast/MinuteChart.tsx'), 'utf8')));
+}
+
+// ---------------------------------------------------------------------------
+console.log('\nL Balken je Ebene (E-RUC-15, 25.10.): ein Balken je Radarbild, Kachel-Zahlen aus den Balken, Schalter aus ⇒ byte-gleich, Verdrahtung');
+{
+  const T0 = Date.UTC(2026, 9, 25, 8), NOW = T0 + 2 * MIN;    // now 08:02, images 08:00, 08:05, … 10:00 (25 frames)
+  const frames = [];
+  for (let k = 0; k <= 24; k++) frames.push({ tMs: T0 + k * 5 * MIN, mmH: k < 4 ? 0 : k === 4 ? 0.08 : k < 10 ? 0.6 + 0.1 * k : k === 10 ? 3 : 0.2 });
+  const fusionHours = Array.from({ length: 30 }, (_, i) => ({ tMs: T0 + (i + 1) * H, mmH: 0, conf: 0.5 }));   // dry hours: the sum is the radar's alone
+  const inp = { nowMs: NOW, radarFrames: frames, radarSource: 'radolan_rv', fusionHours, fusionPWet: null, fusionLabel: 'buscosun Fusion' };
+  const s0 = buildMinuteSeries(inp), sOff = buildMinuteSeries({ ...inp, bars: false }), s1 = buildMinuteSeries({ ...inp, bars: true });
+  const b = s1.radar.bars;
+  add('L1 Balken: 24 Balken (ein Bild weniger als Bilder), lückenlos von jetzt (erster Balken bei 08:02 angeschnitten) bis zum letzten Bild 10:00, Wert = Bild am Balkenanfang, kein Balken über das Radar hinaus',
+    b.length === 24 && b[0].fromMs === NOW && b[0].frameMs === T0 && b[0].toMs === T0 + 5 * MIN && b.every((x, i) => i === 0 || x.fromMs === b[i - 1].toMs) && b[b.length - 1].toMs === s1.radar.toMs
+    && b.every((x) => x.mmH === frames.find((f) => f.tMs === x.frameMs).mmH), `${b.length} Balken, ${JSON.stringify(b[0])}`);
+  add('L2 mit Balken: erster Regen = Beginn des ersten nassen Bildes (08:25, Bild 4 ist 0,08 < 0,1), Spitze 3 mm/h um 08:50, Summe = Σ Bild × Dauer; ohne Balken: Minute 08:21 (interpoliert), gleiche Spitze',
+    s1.firstWet?.tMs === T0 + 25 * MIN && s1.firstWet.source === 'radar' && s1.peak?.mmH === 3 && s1.peak.tMs === T0 + 50 * MIN
+    && Math.abs(s1.sumMm - Math.round(b.reduce((a, x) => a + x.mmH * (x.toMs - x.fromMs) / H, 0) * 10) / 10) < 1e-9
+    && s0.firstWet?.tMs > T0 + 20 * MIN && s0.firstWet.tMs < T0 + 25 * MIN && s0.peak?.mmH === 3,
+    `mit ${new Date(s1.firstWet?.tMs).toISOString()} Summe ${s1.sumMm} · ohne ${new Date(s0.firstWet?.tMs).toISOString()} Summe ${s0.sumMm}`);
+  add('L3 Schalter aus (bars: false) ⇒ byte-gleich zur Reihe ohne Option; Radar-Balken liegen trotzdem bereit (die Zeichnung wählt)', JSON.stringify(sOff) === JSON.stringify(s0) && s0.radar.bars.length === 24);
+  add('L4 Schalter: ohne Query an, `?mvbars=0` aus, kaputte Query an', minuteBarsEnabledFrom('') && !minuteBarsEnabledFrom('?mvbars=0&x=1') && minuteBarsEnabledFrom(null));
+  const chartL = readFileSync(join(ROOT, 'src/nowcast/MinuteChart.tsx'), 'utf8');
+  const cardL = readFileSync(join(ROOT, 'src/nowcast/MinuteSeriesCard.tsx'), 'utf8');
+  add('L5 Verdrahtung: Kachel liest den Schalter, reicht `bars` an die Reihe und beide Diagramme; Diagramm zeichnet Radar- und RUC-Balken nur mit `bars`, Linie/Kurve nur ohne; Hover nennt das Bild; Fußtext „Nichts ist interpoliert"',
+    /const bars = minuteBarsEnabledFrom\(/.test(cardL) && /horizonH: MV_VIEW_H,\n    bars,/.test(cardL) && (cardL.match(/bars=\{bars\}/g) ?? []).length === 2 && /Nichts ist interpoliert\./.test(cardL)
+    && /\{bars && geom\.radarBars\.map/.test(chartL) && /\{bars && geom\.rucPts\.map/.test(chartL) && /if \(bars \|\| pts\.length < 2 \|\| width === 0\) return null;/.test(chartL)
+    && /curve && !bars && rucPts\.length/.test(chartL) && /mv-bar mv-bar--radar/.test(chartL) && /mv-bar mv-bar--ruc/.test(chartL) && /gilt bis \$\{fmtClock\(hoverBar\.toMs\)\}/.test(chartL));
+  add('L5b Gegenprobe: Muster L5 erkennt die Abwesenheit', !/\{bars && geom\.radarBars\.map/.test(chartL.replace('{bars && geom.radarBars.map', '{geom.radarBars.map')));
 }
 
 console.log(`\nverify:ruc ${pass}/${pass + fail}`);

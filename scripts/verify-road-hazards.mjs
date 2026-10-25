@@ -24,8 +24,11 @@ import { sunPosition, sunInEyes, bearingDiffDeg } from '../src/road/roadSun.ts';
 import { roadNarrative, narrativeText, ROAD_NARRATIVE_BANNED } from '../src/road/roadNarrative.ts';
 import { parseRoadObs } from '../src/road/roadContract.ts';
 import { piecesOf, corridorJunctions, junctionIndex } from './road/build-segments.mjs';
-import { deriveRoadHazards, rvPixel, cellsForSegments, stationInput } from './road/road-hazards.mjs';
+import { deriveRoadHazards, rvPixel, cellsForSegments, stationInput, radarForSegments, ROAD_HZ_RADAR_MODES, ROAD_HZ_RADAR_DEFAULT } from './road/road-hazards.mjs';
 import { createRoadMirror } from './road/road-mirror.mjs';
+import { encodePng } from './lib/png.mjs';
+import { PRECIP_VMAX } from '../src/scalar/RainLayer.ts';
+import { nowcastHourMeanFromSum } from '../src/point/nowcastFormat.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FX = join(HERE, 'lib', 'fixtures', 'road', 'hz');
@@ -110,6 +113,11 @@ add('A4 Deckelung der Prognose-Stufen = 2 (E-AW-34)', ROAD_HZ_CAP_P === 2);
 {
   const r = run({ stations: [st({ wf: 1.2, cond: 2 })] });
   add('C1 Wasserfilm 1,2 mm ⇒ aqua Stufe 2, gischt Stufe 2, beide abgeleitet', lv(r, 'aqua')?.[0] === 2 && lv(r, 'gischt')?.[0] === 2 && ev(r, 'aqua')?.[0] === 'd');
+  // V-AW-67: whole-millimetre film (E311 Jerxheim 6 mm, F843 2 mm in the frozen slot, template of 2015) never builds Stufe 3.
+  const c6 = run({ stations: [st({ wf: 6, cond: 2, wfCoarse: true })] }), c6f = run({ stations: [st({ wf: 6, cond: 2 })] }), c1 = run({ stations: [st({ wf: 1, cond: 2, wfCoarse: true })] });
+  add('C1b Film 6 mm in ganzen Millimetern ⇒ aqua Stufe 2 mit filmRes:1 im why (feine Auflösung: Stufe 3); 1 mm grob bleibt Stufe 2; gischt unverändert 2',
+    lv(c6, 'aqua')?.[0] === 2 && (c6.entry.why.aqua ?? []).some((s) => s.startsWith('filmRes:1@')) && lv(c6f, 'aqua')?.[0] === 3 && !(c6f.entry.why.aqua ?? []).some((s) => s.startsWith('filmRes:'))
+    && lv(c1, 'aqua')?.[0] === 2 && lv(c6, 'gischt')?.[0] === 2, JSON.stringify(c6.entry.why.aqua));
   const r2 = run({ stations: [st()], radar: { rateNow: 27, rateH1: 6, rateH2: 0 } });
   add('C2 Radarrate 27 mm/h jetzt ⇒ aqua Stufe 3 (d), +1 h 6 mm/h ⇒ Stufe 1 (p), gischt nie über 2', lv(r2, 'aqua')?.[0] === 3 && lv(r2, 'aqua')?.[1] === 1 && ev(r2, 'aqua')?.[1] === 'p' && lv(r2, 'gischt')?.[0] === 2);
   const r3 = run({ stations: [st({ vis: 40, rh: 97, pr: 0, pt: null })] });
@@ -155,6 +163,12 @@ add('A4 Deckelung der Prognose-Stufen = 2 (E-AW-34)', ROAD_HZ_CAP_P === 2);
   add('D5 Hitze auf Beton: Tmax 32 °C laut Prognose ⇒ blowup Stufe 1 (p); zweiter Tag in Folge ⇒ Stufe 2', lv(r5, 'blowup')?.[0] === 1 && ev(r5, 'blowup')?.[0] === 'p'
     && lv(run({ seg: concrete, points: [pt({}, { tmaxToday: 32 })], state: { hotDays: [new Date(SLOT - 86_400_000).toISOString().slice(0, 10)] } }), 'blowup')?.[0] === 2);
   add('D5b ohne Betonbelag keine Hitze-Stufe und kein Eintrag (nicht „unbekannt“)', !run({ points: [pt({}, { tmaxToday: 35 })] }).entry?.lv.blowup);
+  // V-AW-63: N443 pattern — a suspect station (cube hit, +41 °C in its air history) builds no "Hitze"; the same history on a clean station does.
+  const hotHist = [[SLOT - 2 * 3_600_000, 40.9], [SLOT - 3_600_000, 41.3], [SLOT, 41.29]];
+  const r5s = run({ seg: concrete, stations: [st({ ta: 41.29, taHist: hotHist, suspect: true })], points: [pt({}, { tmaxToday: 13.3 })] });
+  const r5c = run({ seg: concrete, stations: [st({ ta: 41.29, taHist: hotHist, suspect: false })], points: [pt({}, { tmaxToday: 13.3 })] });
+  add('D5c verdächtige Station mit 41 °C in der Luft-Historie (N443 16.10.) ⇒ keine Hitze-Stufe bei Tmax-Prognose 13 °C (Eintrag ohne Stufe wird nicht geschrieben); dieselbe Historie an einer sauberen Station ⇒ Stufe ≥ 1 (d)',
+    !(lv(r5s, 'blowup')?.[0]) && !r5s.dropped.some((d) => d.includes('blowup')) && (lv(r5c, 'blowup')?.[0] ?? 0) >= 1 && ev(r5c, 'blowup')?.[0] === 'd', JSON.stringify({ suspect: lv(r5s, 'blowup'), clean: lv(r5c, 'blowup') }));
   const r6 = run({ stations: [st({ rs: -0.3 })], state: null });
   add('D6 erster Frost: Tf ≤ 0 erstmals seit Saisonbeginn ⇒ frost1 Stufe 2 (d), Zustand merkt sich den Zeitpunkt; zweites Mal keine Stufe', lv(r6, 'frost1')?.[0] === 2 && r6.state.frostObsAt
     && !lv(run({ stations: [st({ rs: -0.3 })], state: r6.state }), 'frost1')?.some((l) => l));
@@ -274,6 +288,35 @@ add('A4 Deckelung der Prognose-Stufen = 2 (E-AW-34)', ROAD_HZ_CAP_P === 2);
   // Station input from the real slot: Q290 is suspect (o), M080's air was rejected (x.ta) ⇒ suspect; V164 not.
   const q290 = obs.points.find((p) => p.id === 'Q290'), m080 = obs.points.find((p) => p.id === 'M080');
   add('I3 Stationseingang: Q290 (o: jump/cube) und M080 (Luft verworfen) sind „suspect“, eine saubere Anlage nicht', q290 && m080 && stationInput(q290, null, SLOT, true).suspect && stationInput(m080, null, SLOT, true).suspect && !stationInput(realStation, null, SLOT, true).suspect);
+  add('I3b Stationseingang: wfr 1 des Punkts ⇒ wfCoarse (V-AW-67), sonst nicht gesetzt', stationInput({ ...realStation, wf: 2, wfr: 1 }, null, SLOT, true).wfCoarse === true && stationInput(realStation, null, SLOT, true).wfCoarse === undefined);
+  // V-AW-66 / E-AW-42: radar mode `mean` reads the mirror's hour means (`m<lead>.png`, sum of frame bytes) instead of the frame maximum.
+  {
+    const rv = join(tmp, 'img', 'rv', '2610131700');
+    mkdirSync(rv, { recursive: true });
+    const W = 1100, Hh = 1200, px = rvPixel(11.575, 48.137);
+    const gray = (v) => { const d = new Uint8Array(W * Hh); d[px.row * W + px.col] = v; return encodePng(W, Hh, d, 1); };
+    const rgb = (sum) => { const d = new Uint8Array(W * Hh * 3); const i = (px.row * W + px.col) * 3; d[i] = sum >> 8; d[i + 1] = sum & 255; d[i + 2] = 0; return encodePng(W, Hh, d, 3); };
+    writeFileSync(join(rv, 'f000.png'), gray(51)); writeFileSync(join(rv, 'f060.png'), gray(255)); writeFileSync(join(rv, 'f120.png'), gray(0));
+    writeFileSync(join(rv, 'm060.png'), rgb(12 * 51)); writeFileSync(join(rv, 'm120.png'), rgb(0));
+    writeFileSync(join(rv, 'meta.json'), JSON.stringify({ schema: 1, source: 'rv', stamp: '2610131700', runAtMs: SLOT, width: W, height: Hh, vMax: PRECIP_VMAX,
+      frames: [0, 60, 120].map((l) => ({ lead: l, file: `f${String(l).padStart(3, '0')}.png`, bytes: 1, validAtMs: SLOT + l * 60_000 })),
+      hourMeans: [{ lead: 60, file: 'm060.png', bytes: 1, frames: 12, leadFrom: 5, leadTo: 60 }, { lead: 120, file: 'm120.png', bytes: 1, frames: 12, leadFrom: 65, leadTo: 120 }] }));
+    const segM = { ...SEG['A8-034'], coords: [[11.575, 48.137]] };
+    const rMax = radarForSegments(join(tmp, 'img'), '2610131700', [segM]), rMean = radarForSegments(join(tmp, 'img'), '2610131700', [segM], 'mean');
+    const want = nowcastHourMeanFromSum(12 * 51, 0, 12).mmh;
+    const vMax = rMax.bySeg.get(segM.id), vMean = rMean.bySeg.get(segM.id);
+    add('I10 Radar-Modus: max ⇒ +1 h = Frame-Maximum (255 ⇒ vMax); mean ⇒ +1 h = Stundenmittel aus m060 (12 × 51 Bytes ⇒ 4,0 mm/h), +2 h 0; jetzt in beiden 51 Bytes; der Modus steht im Ergebnis',
+      rMax.mode === 'max' && vMax.rateH1 === PRECIP_VMAX && rMean.mode === 'mean' && Math.abs(vMean.rateH1 - want) < 1e-9 && vMean.rateH2 === 0 && vMax.rateNow === vMean.rateNow && vMean.rateNow > 0 && JSON.stringify(rMean.means) === '[60,120]',
+      JSON.stringify({ max: vMax, mean: vMean, want }));
+    rmSync(join(rv, 'm060.png'));
+    const rMixed = radarForSegments(join(tmp, 'img'), '2610131700', [segM], 'mean');
+    rmSync(join(rv, 'm120.png'));
+    const rFall = radarForSegments(join(tmp, 'img'), '2610131700', [segM], 'mean');
+    add('I10b mean mit EINEM unlesbaren Stundenmittel ⇒ diese Stunde aus den Frames (Modus „mixed"), ohne beide ⇒ Frames, Modus „max"; Voreinstellung max, mean in der Liste',
+      rMixed.mode === 'mixed' && rMixed.bySeg.get(segM.id).rateH1 === PRECIP_VMAX && rMixed.bySeg.get(segM.id).rateH2 === 0
+      && rFall.mode === 'max' && rFall.bySeg.get(segM.id).rateH1 === PRECIP_VMAX && ROAD_HZ_RADAR_DEFAULT === 'max' && ROAD_HZ_RADAR_MODES.includes('mean'),
+      JSON.stringify({ mixed: rMixed.bySeg.get(segM.id), mode: rMixed.mode, fall: rFall.mode }));
+  }
   // End to end: the fixture store (obs, rings, segments, state), no radar/KONRAD/runs images, the fixture fc run.
   const store = join(tmp, 'store'), root = join(tmp, 'root');
   cpSync(join(FX, 'store'), store, { recursive: true });

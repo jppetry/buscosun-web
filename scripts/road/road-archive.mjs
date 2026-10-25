@@ -13,8 +13,13 @@
  *                              Written once the half day is closed (its last slot ≤ the newest ring); a later run only
  *                              fills gaps (a late series) — a file never loses a value, unchanged content is not written.
  *   <YYYY-MM-DD>/slots.json    per-slot log from `status.json` `recent` (publish, points, share, series, DWD arrival,
- *                              derive time, reasons of a blocked slot).
- *   index.json, README.md      days, half days, filled slots; the README is written from the constants below.
+ *                              derive time, reasons of a blocked slot, the hazard step with `byHazard` since V-AW-65).
+ *   <YYYY-MM-DD>/hz/<stamp>.json.gz  V-AW-64: one hazard slot (`road/v1/hz/<stamp>.json`, kept 3 h in the data repo):
+ *                              header (inputs, missing, hours) + every segment entry with a level ≥ ROAD_HZ_ARCHIVE_MIN_LEVEL
+ *                              and the counts of the whole file. Written once, never rewritten (a slot is immutable);
+ *                              ≈ 8 KB gz per slot (measured 23.10.2026 on two live slots, full file 20 KB gz) — Gate E/F
+ *                              and the nowcast calibration (V-AW-66) read levels and `why` weeks later.
+ *   index.json, README.md      days, half days, filled slots, hazard slots; the README is written from the constants below.
  *
  * The merge functions are pure (same input ⇒ same output, no clock). CLI:
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-archive.mjs \
@@ -31,6 +36,7 @@ import { pathToFileURL } from 'node:url';
 import {
   ROAD_SLOT_MS, ROAD_SOURCE_TEXT, ROAD_CLASS_NONE, ROAD_STATUS_PATH, roadStamp, roadStampToMs,
 } from '../../src/road/roadContract.ts';
+import { parseRoadHz, ROAD_HZ_DIR } from '../../src/road/roadHazards.ts';
 import { readRoadStore, exportRoadWindow } from './road-export.mjs';
 import { roadFcPointerAgeOf } from './road-fc-archive.mjs';
 
@@ -41,6 +47,8 @@ export const ROAD_HALF_SLOTS = 48;
 /** Newest ring older than this (and no kill switch) ⇒ the job turns red after archiving. */
 export const ROAD_ARCHIVE_STALE_MIN = 180;
 export const ROAD_ARCHIVE_SCHEMA = 1;
+/** V-AW-64: a hazard entry is archived when any hour of any hazard reaches this level (0 would keep every entry). */
+export const ROAD_HZ_ARCHIVE_MIN_LEVEL = 1;
 
 const META = ['g', 'n', 'lat', 'lon', 'h', 'road', 'kind', 'dir', 'km'];
 const SERIES = ['rs', 'ta', 'td'];
@@ -55,6 +63,52 @@ export function halfDayOf(stamp) {
 export const halfDaySlots = (startMs) => Array.from({ length: ROAD_HALF_SLOTS }, (_, i) => roadStamp(startMs + i * ROAD_SLOT_MS));
 export const halfDayPath = (day, half) => `${day}/${half}.json.gz`;
 export const slotLogPath = (day) => `${day}/slots.json`;
+export const hzSlotPath = (day, stamp) => `${day}/hz/${stamp}.json.gz`;
+
+/**
+ * V-AW-64: archive form of one hazard slot (a parsed `RoadHzFile`): the header as published, `seg` reduced to the
+ * entries with a level ≥ `ROAD_HZ_ARCHIVE_MIN_LEVEL` in any hour of any hazard, and the counts of the whole file
+ * (`segments`, `withLevel`, `unknown`, `kept`) — an entry absent from `seg` had no level (or was dropped by its lock).
+ * Pure: same file ⇒ same document.
+ */
+export function hzArchiveDoc(file) {
+  const seg = {};
+  let withLevel = 0, unknown = 0;
+  for (const id of Object.keys(file.seg).sort()) {
+    const e = file.seg[id];
+    const rows = Object.values(e.lv);
+    const has = (min) => rows.some((a) => a.some((l) => (l ?? 0) >= min));
+    if (has(1)) withLevel++;
+    if (rows.some((a) => a.some((l) => l === null))) unknown++;
+    if (has(ROAD_HZ_ARCHIVE_MIN_LEVEL)) seg[id] = e;
+  }
+  const { seg: _seg, ...header } = file;
+  return {
+    ...header, schema: ROAD_ARCHIVE_SCHEMA, product: 'road-archive-hz', hzSchema: file.schema,
+    counts: { segments: Object.keys(file.seg).length, withLevel, unknown, kept: Object.keys(seg).length, minLevel: ROAD_HZ_ARCHIVE_MIN_LEVEL }, seg,
+  };
+}
+
+/** `hz/<stamp>.json` of a store that pass the client parser: { stamp: RoadHzFile }, sorted by stamp. */
+export function readHzSlots(dir) {
+  const out = {};
+  if (!existsSync(dir)) return out;
+  for (const f of readdirSync(dir).filter((x) => /^\d{10}\.json$/.test(x)).sort()) {
+    const file = parseRoadHz(readJson(join(dir, f)));
+    if (file && file.slot === f.slice(0, 10)) out[file.slot] = file;
+  }
+  return out;
+}
+
+/** Index row of a day's hazard slots: how many are archived, how many of those were derived without a missing input. */
+export function hzDaySummary(archiveDir, day) {
+  const dir = join(archiveDir, day, 'hz');
+  if (!existsSync(dir)) return null;
+  const files = readdirSync(dir).filter((x) => /^\d{10}\.json\.gz$/.test(x)).sort();
+  let complete = 0;
+  for (const f of files) { const d = readGzJson(join(dir, f)); if (d && Array.isArray(d.missing) && d.missing.length === 0) complete++; }
+  return { slots: files.length, complete, from: files[0]?.slice(0, 10) ?? null, to: files.at(-1)?.slice(0, 10) ?? null };
+}
 
 /**
  * Half days of one export window (`exportRoadWindow`) that are closed (last slot ≤ window end), each with the
@@ -184,8 +238,9 @@ aus \`buscosun-web\` (frisch geklont je Lauf). Ein Lauf füllt nur Lücken, er l
 | Datei | Inhalt |
 |---|---|
 | \`<Tag>/00.json.gz\`, \`<Tag>/12.json.gz\` | Halbtag (UTC, ${ROAD_HALF_SLOTS} Slots à 15 min): je Station Stammdaten, Fahrbahn \`rs\`, Luft \`ta\`, Taupunkt \`td\` (0,1 °C; nur Werte nach den harten Regeln, sonst \`null\`), Klasse je Slot \`k\` (\`i\` Glätte · \`f\` Frostgefahr · \`w\` nass · \`d\` trocken · \`u\` Zustand unbekannt · \`n\` keine gültige Messung · \`-\` kein Punkt); \`quarantine\` = jeder verworfene und jeder „wäre verworfene" Wert des Slots mit Regel und Rohwert; \`rings\`/\`windows\` = welche Ringe beigetragen haben |
-| \`<Tag>/slots.json\` | Slot-Protokoll: freigegeben, Punkte, Anteil verworfen, Reihen, DWD-Ankunft, Ableitung, Sperrgrund |
-| \`index.json\` | Tage, Halbtage, gefüllte Slots |
+| \`<Tag>/slots.json\` | Slot-Protokoll: freigegeben, Punkte, Anteil verworfen, Reihen, DWD-Ankunft, Ableitung, Sperrgrund; \`hz\` = der Gefahren-Schritt des Slots (frei/gesperrt, Abschnitte mit Stufe, unbekannt, je Gefahr \`byHazard\`, fehlende Eingänge) |
+| \`<Tag>/hz/<Slot>.json.gz\` | ein Gefahren-Slot (\`road/v1/hz/<Slot>.json\` des Daten-Repos, dort nur 3 h): Kopf (Eingänge, fehlende Eingänge, Stunden) + jeder Abschnitt mit Stufe ≥ ${ROAD_HZ_ARCHIVE_MIN_LEVEL} in irgendeiner Stunde (\`lv\`/\`ev\`/\`why\` wie veröffentlicht) + \`counts\` (Abschnitte, mit Stufe, unbekannt, abgelegt). Einmal geschrieben, nie neu |
+| \`index.json\` | Tage, Halbtage, gefüllte Slots, Gefahren-Slots je Tag |
 `;
 }
 
@@ -216,7 +271,7 @@ export function archiveRoad({ storeDir, archiveDir, nowMs = Date.now() }) {
   if (!window) return { ok: false, reason: `keine Ringe unter ${storeDir}` };
   const quarantine = readQuarantine(join(storeDir, 'quarantine'));
   const status = readJson(join(storeDir, ROAD_STATUS_PATH));
-  const res = { ok: true, window: [window.from, window.to], written: [], merged: [], unchanged: [], slotLogs: [] };
+  const res = { ok: true, window: [window.from, window.to], written: [], merged: [], unchanged: [], slotLogs: [], hzSlots: [], hzKept: 0 };
   const indexPath = join(archiveDir, 'index.json');
   const index = readJson(indexPath) ?? { schema: ROAD_ARCHIVE_SCHEMA, product: 'road-archive-index', updatedAt: null, days: {} };
   for (const add of buildHalfDays({ window, quarantine })) {
@@ -238,12 +293,24 @@ export function archiveRoad({ storeDir, archiveDir, nowMs = Date.now() }) {
     res.slotLogs.push(slotLogPath(day));
     (index.days[day] ??= {}).slots = slotLogSummary(doc);
   }
+  // V-AW-64: hazard slots — a slot file is written once; one already archived is kept as it is (never compared, never rewritten).
+  const hzDays = new Set();
+  for (const [stamp, file] of Object.entries(readHzSlots(join(storeDir, ROAD_HZ_DIR)))) {
+    const day = halfDayOf(stamp).day;
+    const rel = hzSlotPath(day, stamp);
+    const p = join(archiveDir, rel);
+    if (existsSync(p)) { res.hzKept++; continue; }
+    writeAtomic(p, gzipSync(JSON.stringify(hzArchiveDoc(file)), { level: 9 }));
+    res.hzSlots.push(rel);
+    hzDays.add(day);
+  }
+  for (const day of hzDays) (index.days[day] ??= {}).hz = hzDaySummary(archiveDir, day);
   const readme = archiveReadme();
   const readmePath = join(archiveDir, 'README.md');
   // A Windows checkout (core.autocrlf) carries CRLF — same text, no rewrite, no fresh index stamp.
   const readmeChanged = (existsSync(readmePath) ? readFileSync(readmePath, 'utf8').replace(/\r\n/g, '\n') : null) !== readme;
   if (readmeChanged) writeAtomic(readmePath, readme);
-  if (res.written.length || res.merged.length || res.slotLogs.length || readmeChanged) {
+  if (res.written.length || res.merged.length || res.slotLogs.length || res.hzSlots.length || readmeChanged) {
     index.updatedAt = new Date(nowMs).toISOString();
     index.days = sortKeys(index.days);
     writeAtomic(indexPath, `${JSON.stringify(index, null, 1)}\n`);

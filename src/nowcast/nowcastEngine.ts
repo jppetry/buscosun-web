@@ -17,6 +17,7 @@ import { rainWindowEnabledFrom, rbWetThresholdFrom, RB_HORIZON_H, RB_WET_X_MMH }
 import { minuteSeriesEnabledFrom, MV_HORIZON_H } from './minuteSeries';
 // Phase RUC (`audit/niederschlag-ruc.md`, `?ruc=1`): 5-min form of ICON-D2-RUC behind the radar, fitted to the hourly sums.
 import { rucEnabledFrom, rucBaseFrom, fitRucToFusion, rucMeanOver, type RucFitted } from './rucSeries';
+import { rainGateEnabledFrom } from './rainGate';
 import { loadRucPoint, type RucPointSeries } from '../point/client/rucPoint';
 import { httpStore } from '../point/client/store';
 import { classifyPrecipitation } from '../pointForecast/precipType';
@@ -422,10 +423,15 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   // Phase RUC (on, `?ruc=0` = fallback): the 5-min form of ICON-D2-RUC at the place, read next to the cube and fitted to the
   // hourly sums of buscosun Fusion; where it carries it replaces the hourly interpolation of the engine's model side.
   const rucOn = rucEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  // E-RUC-11 (on, `?mvgate=0` = fallback): the rain gate of the displays — an hour below 0,1 mm/h or 30 % P(wet) is a trace hour.
+  const gate = rainGateEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
   let rucSeries: RucPointSeries | null = null;
   const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
     const nwpFull = nwpOf(forecast);
-    const fit: RucFitted | null = rucOn && nwpSource === 'cube' && rucSeries ? fitRucToFusion(rucSeries, nwpFull, nowMs) : null;
+    // P(wet) per hour BEFORE the fit: the gate marks the trace hours of the 5-min form with it (rain window only, as before)
+    let pw: Array<{ tMs: number; p: number }> | null = null;
+    if (rb && nwpSource === 'cube' && exceed) pw = fusionPWetOf(forecast, exceed, wetX);
+    const fit: RucFitted | null = rucOn && nwpSource === 'cube' && rucSeries ? fitRucToFusion(rucSeries, nwpFull, nowMs, { pWet: pw, gate }) : null;
     // Minutenverlauf without the rain window: the 48-h request must not widen the engine's series (8 h as before).
     const nwpAll = mv && !rb ? nwpFull.filter((h) => h.tMs < Math.floor(nowMs / 3_600_000) * 3_600_000 + 8 * 3_600_000) : nwpFull;
     const nc = assembleNowcast({
@@ -442,15 +448,13 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       // the mean of the 5-min intervals of the 15-min step (eta − 15, eta] keeps the hourly sum of buscosun Fusion exact (review I3)
       ...(fit ? { rucAt: (eta: number) => rucMeanOver(fit, eta - NOWCAST_STEP_MIN * 60_000, eta) } : {}),
     });
-    if (rb && nwpSource === 'cube' && exceed) {
-      const pw = fusionPWetOf(forecast, exceed, wetX);
-      if (pw) { nc.fusionPWet = pw; nc.fusionPWetMmH = wetX; }
-    }
+    if (pw) { nc.fusionPWet = pw; nc.fusionPWetMmH = wetX; }
     if (mv) {
       nc.radarFrames = radarFramesAt(s, lat, lon);
       nc.fusionHours = nwpFull.map((h) => ({ tMs: h.tMs, mmH: h.mmH, conf: h.conf, tempC: h.tempC, snowLineM: h.snowLineM, windDir: h.windDir ?? null, windMs: h.windMs ?? null, gustMs: h.gustMs ?? null }));
     }
     if (fit) nc.ruc = fit;
+    nc.rainGate = gate;
     return nc;
   };
 

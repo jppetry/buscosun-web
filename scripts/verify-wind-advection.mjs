@@ -262,15 +262,15 @@ console.log('── T7  Regressionswächter: die ALTE Formel war nachweislich fa
 
 console.log('── T8  HZ1: Ausdünnung beim Reinzoomen (audit/windpartikel-hochzoom.md) ──');
 {
-  // Die Werte der Wetterkarte stehen als Literale in MapView — hier gelesen,
+  // Die Werte der Wetterkarte stehen als Literale im gemeinsamen Preset (MapView und Dashboard-Karte) — hier gelesen,
   // nicht abgeschrieben, damit der Wächter der echten Einstellung folgt.
-  const src = readFileSync(new URL('../src/MapView.tsx', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../src/wind/weatherWindPreset.ts', import.meta.url), 'utf8');
   const num = (key) => { const m = src.match(new RegExp(`\\b${key}:\\s*([0-9.]+)`)); return m ? Number(m[1]) : NaN; };
   const cfg = {
     thinExp: num('zoomInThinExp'), thinFrom: num('zoomInThinFrom'),
     tempoExp: num('screenTempoZoomExp'), refZoom: num('speedRefZoom'), pxPerMs: num('speedPxPerMs'),
   };
-  check('T8.0 MapView setzt zoomInThinExp/zoomInThinFrom/screenTempoZoomExp', Object.values(cfg).every(Number.isFinite), JSON.stringify(cfg));
+  check('T8.0 weatherWindPreset setzt zoomInThinExp/zoomInThinFrom/screenTempoZoomExp', Object.values(cfg).every(Number.isFinite), JSON.stringify(cfg));
 
   // Altverhalten: exp 0 lässt JEDE Zoomstufe exakt unverändert.
   let altOk = true;

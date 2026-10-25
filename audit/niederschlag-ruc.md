@@ -17,10 +17,10 @@
 > Messlauf T9 folgt nach ≥ 14 Tagen Schatten (Regel eingefroren, Hash `4e660c231a709c8a`). Umsetzungsstand in §6, Belege in §7.
 >
 > **Nachtrag 23.10. abends (Jan: „komplett aktiv schalten"):** E-RUC-7 gedreht, die Form ist **voreingestellt an**, `?ruc=0` ist der
-> benannte Rückfall (Code, Verifier, Doku umgestellt, Build grün). Commit in `buscosun-web`, Commit/Push von `ruc.yml` ins Daten-Repo
-> und Push von `main` hat der Berechtigungs-Klassifizierer der Sitzung verweigert („Production Deploy"); sie stehen als Befehle in §74.
-> Die Spannen ±15/30/45 min bleiben GESETZT, bis T9 sie misst (die Stationsreihen laufen ab dem ersten Workflow-Lauf mit). Der Push
-> von `main` trägt 40 fremde Commits (Fusion 13, Start-Kacheln, Atmo, Brand, Glacier, Seewetter).
+> benannte Rückfall (Code, Verifier, Doku umgestellt, Build grün). **Live seit 23.10. vormittags:** Jan hat die Phase committet
+> (`18674137` „Update") und `main` gepusht (mit den 40 fremden Commits: Fusion 13, Start-Kacheln, Atmo, Brand, Glacier, Seewetter);
+> Netlify liefert das Bundle aus. `ruc.yml` habe ich mit Jans Erlaubnis ins Daten-Repo gepusht (`8323d36`, 10:30 UTC, Workflow `active`);
+> erster Lauf 10:52 UTC. Die Spannen ±15/30/45 min bleiben GESETZT, bis T9 sie misst (Stationsreihen laufen ab dem ersten Lauf mit).
 
 1. **Hinter dem Radar gibt es echte 5-Minuten-Daten — nicht von ICON-D2, sondern von ICON-D2-RUC.** Auf dem neuen DWD-Pfad
    `/weather/nwp/v1/m/icon-d2-ruc/` liegt der Rapid Update Cycle: **stündliche Läufe**, Niederschlag `TOT_PREC` in **5-min-Schritten
@@ -219,7 +219,13 @@ ab 3 h Alter die Stundenbalken wie heute. Kein Eingriff in buscosun Fusion, kein
 | E-RUC-6 | Spanne | **gesetzt 15/30/45 min nach Vorlauf**, nach ≥ 14 Tagen am 10-min-Messsatz nachgemessen (T9); RUC-EPS (20 Member) als gemessene Spanne = spätere Phase |
 | E-RUC-7 | Einschalten | ~~hinter `?ruc=1`; nach T9 und Freigabe voreingestellt an~~ **Jan 23.10. abends: sofort an, `?ruc=0` = Rückfall; T9 misst die gesetzten Spannen nachträglich** |
 | E-RUC-8 | Ablage und Takt | **`ruc/v1/` außerhalb `point/`**, 3 Läufe + Stationsreihen 21 Tage; eigener Workflow `52 * * * *` (:47 war belegt, §4.2); Kopie der Vorlage und Repo-Variable = Jans Gate (§74) |
+| E-RUC-10 | Sprung an der Radar-Naht (V-RUC-19) | **Jan 23.10. mittags: „wir lassen es so"** (Option c, die Naht bleibt ehrlich); dazu: **die kleine Minutenverlauf-Kachel zeigt nur die ersten 2 h** (Radar-Horizont, `MINI_RANGE_H = 2`, Mini-Achse beschriftet volle und halbe Stunden), die Detailansicht bleibt bei 48 h; Verifier I9, Bilder `audit/niederschlag-ruc/2026-10-23-tile-2h-{desktop,mobile}.png`; uncommitted |
 | E-RUC-9 | RUC als Member von buscosun Fusion (Fusion 14) | **nicht in dieser Phase** — Befund V-RUC-11, Prüfstand-Frage |
+| E-RUC-11 | Regenbeginn aus der 5-min-Form in einer Spurenstunde (V-RUC-20…22, Herborn 24.10.) | **Jan 24.10. abends: (a) + (b), dazu Hinweise statt hartem Schnitt und die Summe geteilt** („wir können keinen klaren Cut machen, aber für solche Zeiträume Hinweise anfügen → 20 % Regenchance bei 0,05 mm"); Umsetzung §10. Ursprünglicher Vorschlag: (a) Minutenverlauf-`firstWet` und Ereignis „‹Wort› ab hh:mm" nehmen einen 5-min-Beginn nur aus Stunden, in denen buscosun Fusion selbst nass ist (Stundenmittel ≥ `WET_MMH` UND P(nass) ≥ `RB_P_EDGE` = 30 %) — dieselbe Regel, die der Karten-Pin (`rucOnset`) schon heute anwendet; sonst spricht der Stundensatz („leichtes Nieseln möglich"); (b) `rucFirstWetNear` schneidet an der Radar-Naht (keine RUC-Minute, die das Radar gerade trocken nannte — wie I6/M7 für den Minutenverlauf); (c) nichts, T9 misst erst. Rückfall bleibt `?ruc=0` |
+| E-RUC-12 | Schraffur der Stunden ohne RUC-Form (V-RUC-24, Herborn 25.10.) | **Jan 25.10.: „das mit den schraffierten Kacheln rückgängig machen; wenn die Regenchance gering ist, macht das der Regenchance-Streifen unter dem Diagramm sichtbar"** ⇒ flache Stunden (`flat`, RUC trocken, Fusion nass) werden wie der Rest der 5-min-Form gezeichnet (Stufe + Fläche); die Art `flat` bleibt im Fit, im Tooltip („Stunde ohne Form (RUC trocken)") und in den Statistiken; kein Schalter (reine Zeichnung, E-RUC-4 unverändert); Umsetzung §11 |
+| E-RUC-13 | Minutenverlauf: die 5-min-Form „so wie im Radar" interpoliert, ohne Verlust an Genauigkeit (Jan 25.10.) | **Jan 25.10.: „ja, mache, nur bis 27 h"** ⇒ die 5-min-Form wird als Minutenkurve gezeichnet (`nowcast/rucCurve.ts`): nicht die Rate wird interpoliert (die 5-min-Werte sind Intervallmittel, lineares Verbinden verschöbe Masse zwischen den Intervallen und bräche E-RUC-4), sondern die **kumulierte Menge** durch die 5-min-Stützstellen mit einer monotonen kubischen Hermite-Kurve (Fritsch–Butland-Tangenten); die Minutenrate ist ihre Steigung. Eigenschaften (Block K): jede 5-min-Summe und jede Stundensumme exakt erhalten, nie negativ, flache Stunden bleiben flach, Lücken ⇒ getrennte Läufe. Nur Zeichnung: erster Regen, Spitze, Summe und Ereignisse lesen die Stufen; Hover-Punkt und -Wert folgen der Kurve, die Quellzeile nennt das 5-min-Mittel und „Minute interpoliert" (wie beim Radar). Fusion-Stunden jenseits +27 h bleiben Balken (keine Form vorhanden, keine wird erfunden). Schalter `?mvcurve=0` = Stufen (Rule 2). **Nachtrag (Jan 25.10.: „ja bitte, einfach ein weicher Übergang, ohne die Daten zu verfälschen"):** weicher Start an der Radar-Naht — die Starttangente der Kurve ist der letzte Radar-Minutenwert statt des ersten 5-min-Mittels, gedeckelt auf 0 … 3 × erstes Mittel (`RUC_CURVE_START_CAP`, Monotonie-Box nach Fritsch–Carlson); die Kurve biegt innerhalb der ersten fünf Minuten ein, deren Summe exakt bleibt; darüber oder bei trockenem erstem Intervall bleibt die Kante (echter Widerspruch der Quellen). Keine Überblendzone im Radar-Teil, keine Annäherung an der +27-h-Naht (abgelehnt, siehe §12). Umsetzung §12 |
+| E-RUC-14 | Zeitstufen der Detailansicht | **Jan 25.10.: „der Minutenverlauf soll jetzt nur noch 2 h, 6 h und 27 h anzeigen"** ⇒ `MV_VIEW_H = 27` (`minuteSeries.ts`): Stufen 2 \| 6 \| 27 h, Voreinstellung 27 h, Titel, KPIs „Spitze · 27 h"/„Summe · 27 h", Quellzeile und Reihe (`horizonH: MV_VIEW_H`) laufen bis +27 h; die 24-h- und 48-h-Stufen entfallen (Jans Freigabe, Funktionserhalt-Ausnahme). `MV_HORIZON_H` bleibt 48 für die Engine-Anfrage — die Ereignisse behalten ihre 48 h. Umsetzung §13 |
+| E-RUC-15 | Darstellung des Minutenverlaufs | **Jan 25.10.: „mach in der Minutenanzeige im Regenradar doch ein Balkendiagramm daraus, das macht mehr Sinn"; Rückfrage, Antwort: alles als Balken** ⇒ jede Ebene als Balken in ihrer eigenen Auflösung: ein Balken je Radarbild (Wert des Bildes vom Bild bis zum nächsten, erster Balken an „jetzt" angeschnitten, keiner über das letzte Bild hinaus), ein Balken je 5-min-Intervall des RUC, ein Balken je Fusion-Stunde; keine Linie, keine Kurve, nichts interpoliert (die Kurve E-RUC-13 und der weiche Start bleiben hinter `?mvbars=0` erreichbar). Erster Regen, Spitze und Summe des Radar-Teils lesen die Bild-Balken (Minute = Beginn des ersten nassen Bildes, nicht mehr die interpolierte Minute) — damit zeigt das Diagramm genau das, was die Zahlen sagen, und V-RUC-25 (Kurvengipfel über der Spitze) entfällt. Hover nennt „Bild hh:mm (alle 5 min), gilt bis hh:mm". Rule 2: `?mvbars=0` = Stand davor byte-gleich (Block L3). Umsetzung §14 |
 
 ## 6. Umsetzungsplan
 
@@ -345,6 +351,13 @@ node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/r
 | T8 | `budget.json` (totalJs 1 825 → 1 905 mit Notiz), CLAUDE.md-Zeile, QUELLENMATRIX ⚠⁸, `docs/DATA_SOURCES.md` | — | typecheck grün, Build 260/260, `verify:ruc` 100/100 (nach dem Review), `verify:rain-window` 62/64 (G2/G3 schon an HEAD rot, V-RUC-14) |
 | T9 | `scripts/ruc/ruc-measure.mjs` | H 8 | Messregel **eingefroren** (Hash `4e660c231a709c8a` = sha256 des Regel-JSON; Skript sha256 `5e861be6ded187f7…`), Fall-Rechnung gegen Handrechnung, Dateilauf mit Katalog/Reihe/dense-day; der Lauf selbst folgt nach ≥ 14 Tagen Schatten (braucht das Produkt im Daten-Repo und die dense-day-Dateien bis zum Vortag) |
 
+**Erstlauf in Produktion (23.10., gemessen):** Workflow `ruc` Lauf 1 (`schedule`) 10:55:31–10:57:25 UTC, `success`; Commit `1c560b89`
+„ruc: 2026102310" um 10:56:29 UTC. Manifest: Lauf 10z, 208 Chunks 5,73 MB, `missing` 0, `maxMmH` 178,0, 22 gesättigte Zell-Intervalle,
+kleinstes Δ 0,00104 mm, Stationsreihe 3 052 Stationen (Katalog `d213d4de`); Laufzeit fetch 13,2 s, decode 20,6 s, sample 5,1 s, gesamt
+41,2 s (Actions-Runner schneller als die lokale Maschine). Produktionsseite (CDP-Harness gegen buscosun.com, 11:0x UTC): Köln Desktop
+`data-origin="radar+ruc+fusion"`, Naht „Radar · RUC 5 min", Ereignis-Marken „min, 5 min"; mit `?ruc=0` `radar+fusion`, Naht „Radar ·
+buscosun Fusion", nur „min" (Rückfall greift); Regensburg Mobil ebenfalls `radar+ruc+fusion`. Bilder `audit/niederschlag-ruc/2026-10-23-live-*.png`.
+
 ## 7a. Frischer Review (23.10. abends, Fable 5.1 als Reviewer auf dem ganzen Stand) und Nachbesserungen
 
 | Nr. | Befund | Behoben (Verifier I) |
@@ -396,7 +409,14 @@ node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/r
 | V-RUC-16 | Chrome-MCP `resize_window` greift bei maximiertem Fenster nicht (Viewport blieb 1920 × 953); Mobil-Belege über den CDP-Harness `headlessShot.mjs` (390 × 844) | Werkzeugfalle | im CLAUDE.md-Werkzeugblock nennen |
 | V-RUC-17 | Long Tasks / Ladezeit mit RUC nicht gemessen (Emulation untauglich) | Gate-Frage 5 offen | `scripts/perf-measure.mjs` am Prod-Build nach dem ersten Workflow-Lauf |
 | V-RUC-18 | **Grenzen der Messung T9:** die Stationsreihen tragen den rohen RUC (nicht die an buscosun Fusion angepasste Form des Clients); die dense-day-Dateien decken je Tag nur [Slot − 7 h, Slot] = 16:20–23:20 UTC (⇒ ein Fall braucht ≥ 25 gedeckte Stempel im Fenster 2–12 h: messbar sind die Läufe ≈ 06z–17z, Review C2); die Klasse > 12 h ist mit 0–12-h-Reihen nicht messbar | das Verdikt gilt für die Form, nicht für die Summe; der Zeitraum ist ein Abendfenster | `build-dense-obs.mjs` um ein 24-h-Fenster erweitern (eigene Zeile); Spanne > 12 h bleibt gesetzt (45 min) bis zu Stationsreihen über 27 h |
+| V-RUC-19 | **Sprung an der Radar-Naht (Jan, 23.10. 13:30 MESZ, Köln):** die RV-Extrapolation steigt in den letzten fünf Minuten vor der Naht von 0,86 auf 2,43 mm/h (15:20–15:25), die Fusion-Stunde 15–16 dahinter trägt ≈ 0,1 mm/h, die RUC-Form zeigt 0,16 / 0,12 / 0,02 / 0 … Der Sprung ist der Widerspruch zwischen dem Rand der Radar-Extrapolation (+115…+120 min, dort am schwächsten, V-RB-4) und der modellgetragenen Stundensumme; vor RUC stand derselbe Sprung als flacher Balken da, die Stufenlinie macht ihn sichtbar. Bild `audit/niederschlag-ruc/2026-10-23-live-koeln-naht-6h.jpg` | der Leser sieht an der Naht zwei Quellen, die sich widersprechen, ohne dass es gesagt wird | Optionen (Jans Wahl): (a) Naht-Text nennt beide Werte („Radar 2,4 → buscosun Fusion 0,1 mm/h"); (b) die Karte überblendet 90–120 min wie die Engine (dann ist der Radar-Teil dort keine reine Extrapolation mehr, Beschriftung ändern); (c) nichts, die Naht ist ehrlich | 
 | V-RUC-12 | ICON-D2 auf dem neuen Pfad ist um ≈ 15 min FRÜHER vollständig (+48 h um Lauf + 1,1 h) als die `regular-lat-lon`-Fassung (+1,35 h gemessen 09/2026) | der t1-Slot `:40` hätte mehr Rand | mit E-EX-5 (Umstellung bis 30.11.) nachmessen |
+| V-RUC-20 | **„Leichter Regen" direkt an der Radar-Naht aus einer Spurenstunde (Jan, 24.10. 19:05 MESZ, Herborn):** Radar 19:02–20:55 durchgehend 0,00 mm/h; Fusion-Stunde 20–21 trägt im Mittel **0,047 mm/h bei P(nass) = 16 %**, die RUC-Form (Lauf 16 UTC) legt den Regen ans Stundenende (roh 20:40 0,005 · 20:45 0,031 · 20:50 0,077 · 20:55 0,042), Faktor ×2,99 ⇒ 20:50 0,230 und 20:55 0,127 mm/h. Das Radar deckt 20:00–20:55 ab, sichtbar bleibt nur die Stufe 20:55–21:00 = 0,127 ≥ `WET_MMH` 0,1 ⇒ Minutenverlauf „Regen ab 20:55 · in 1 Std 53", obwohl die Stunde als Ganze unter der Nassschwelle liegt und nur 0,05 mm bringt. Die Form-Skalierung hebt ein Spurenmittel über die 5-min-Schwelle; ohne RUC (`?ruc=0`) erster Regen 21:00 (Stunde 21–22, 0,124 mm/h, P 39 %). Bild `audit/niederschlag-ruc/2026-10-24-live-herborn-naht-drei-zeiten.jpg` | der Leser liest einen Regenbeginn aus einer Stunde, die buscosun Fusion selbst mit 16 % und 0,05 mm führt — kein Fehler von Jan, kein Datenfehler, eine Regel-Lücke: der Minutenverlauf und die Ereignisse kennen die P(nass)-Schwelle des Karten-Pins nicht | E-RUC-11 (a): `firstWet`/Ereignis-Minute nur aus Stunden mit Fusion-Mittel ≥ `WET_MMH` und P(nass) ≥ `RB_P_EDGE` |
+| V-RUC-21 | **Ereignis-Minute liegt im Radarfenster:** Ereignis „leichter Schauer ab 20:50 · 5 min", das Radar ist bis 20:55 gültig und dort trocken. `rucFirstWetNear(nc, 21:02)` sucht den ersten nassen Fit-Punkt in (20:47, 21:02] und nimmt 20:50 (0,230) — ohne Rücksicht auf die Naht; der Engine-Schritt 20:47 (105 min) ist noch Blend (0,009), 21:02 reine Modellseite (0,133 = `rucMeanOver` 20:47–21:02). Der Minutenverlauf schneidet die RUC-Punkte an der Naht (I6/M7), das Ereignis nicht | zwei Angaben auf einer Seite widersprechen dem Radar, das die Seite selbst als minutengenau ausweist | E-RUC-11 (b): `max(Naht, Minute)` in `rucFirstWetNear`, Fall in `verify:ruc` |
+| V-RUC-22 | **Drei Beginnzeiten auf einer Seite:** Ereignis 20:50 (Engine-Schritt + `rucFirstWetNear`), Minutenverlauf 20:55 (`firstWet`, Naht), Karten-Pin „Regen ~21:15" (`rucOnset`: überspringt die Stunde 20–21 wegen P 16 % < 30 %, nimmt in 21–22 den ersten Punkt ≥ 0,1 = 21:15 mit 0,186). Ohne RUC dasselbe Bild mit anderen Zahlen (Ereignis 21:51, Minutenverlauf 21:00). Die drei Pfade haben drei Regeln für „erster Regen" | die Seite nennt für eine Frage drei Antworten; die ehrlichste (Pin, mit P-Schwelle und „möglich") steht am kleinsten | eine Funktion `firstRainMinute(series, hours, radarSeam)` für alle drei Anzeigen (Regel des Pins), Verifier-Fall „drei Anzeigen, eine Minute"; Messung T9 entscheidet die Schwellen |
+| V-RUC-23 | **Roher RUC gegen buscosun Fusion 13 im Regenereignis 23./24.10. (Jan, 24.10. abends, nur Niederschlag):** Fenster 23.10. 12 UTC – 24.10. 15 UTC (Regen ab dem Abend, Kern 23–05 UTC mit bis 37 % nassen Stationen), Prüfnetz P1 (365 Stationen, 364 in der RUC-Stationsreihe `ruc/v1/stations`), Wahrheit W1 (unreif, 23./24.10. frisch gebaut), Fusion 13 = Register `fusion-12x` auf den Hindcast-Slots (dafür `queue.mjs follow` 22.–24.10. nachgezogen: 20 Slots, lokal; ohne Radar-Member und ohne Anker), RUC = Stundenmittel der 5-min-Reihe je Lauf. **Paare = gleiche Station, gleicher Stempel, gleicher Vorlauf (1–12 h), n = 31 452.** Ergebnis: Summe über alle Paare RUC 1,09, Fusion-Mittel 1,11 der gemessenen (beide unverzerrt); Fehler RUC MAE 0,193 mm/h, Fusion CRPS der Quantile 0,127 (−34 %), Fusion-Mittel MAE 0,190 (gleich); je Vorlauf 1–3 h RUC 0,150 / Fusion CRPS 0,110, 7–12 h 0,222 / 0,140. Nass/trocken (≥ 0,1 mm/h): RUC POD 73 % FAR 40 % ETS 0,34; Fusion bei P ≥ 50 % POD 35 % FAR 15 % ETS 0,25 (zu vorsichtig), bei P ≥ 30 % POD 82 % FAR 42 % ETS 0,35 (= RUC). Länder: DE RUC 0,99 der Summe, CH RUC 1,21 (zu nass); Fusion-Median überall ≈ ¼ der Summe (die Verteilung ist breit, der Median ist nicht der Produktwert). Stationen mit viel Regen (27 h): Säntis 39,2 mm gemessen, RUC 15,6, Fusion 24,9; La Dôle 32,8 / 37,1 / 26,7; Lüdenscheid 21,4 / 17,4 / 19,0; Ahaus 21,1 / 18,2 / 18,3. **Verlässlichkeit der Regenchance (39 120 Fusion-Zeilen, 1–12 h):** angezeigt 0–10 % ⇒ 3 % nass, 20–30 % ⇒ 17 %, 30–40 % ⇒ 39 %, 40–50 % ⇒ 62 %, 50–60 % ⇒ 76 %, 70–80 % ⇒ 94 %, ab 80 % ⇒ 98–100 % — bis 40 % ehrlich, darüber zu vorsichtig (es regnete öfter als gesagt). Schwellen-Sweep: P ≥ 30 % POD 80 % FAR 43 % ETS 0,35 (sagt 1,4-mal so oft Regen, wie er fiel), **P ≥ 35 % ETS 0,38 bei Häufigkeitsfaktor 0,97 (beste Trennung)**, P ≥ 40 % ETS 0,34, P ≥ 50 % POD 33 % ETS 0,24 (verfehlt zwei Drittel der nassen Stunden). Belege `audit/niederschlag-ruc/2026-10-24-ruc-vs-fusion13-niederschlag.{txt,json}`, Skript `…/2026-10-24-measure-ruc-f13.mjs` | ein Tag ist eine Stichprobe, kein Urteil; er stützt aber E-RUC-4 (Summe von Fusion 13, Form vom RUC) und zeigt, dass die Nass-Entscheidung der Fusion bei 50 % das Ereignis verfehlt, bei 30 % den RUC erreicht | (a) in T9 die Stundensummen beider Quellen mitmessen (RUC-Reihe liegt vor); (b) V-RUC-11 bleibt: RUC als Member in den Prüfstand (Fusion 14); (c) die Nass-Schwelle der Anzeigen an `RB_P_EDGE` 30 % hängen, nicht an 50 % (siehe E-RUC-11 a); Hindcast-Slots 22.–24.10. liegen lokal in `C:\dev\buscosun-hindcast\slots\` (Publish = Jan) |
+| V-RUC-25 | **Kurvengipfel über der „Spitze · 48 h" (E-RUC-13, Herborn 25.10. 01:00 MESZ):** die KPI liest die Stufen und das Radar (2 mm/h, 01:10 Radar), die Minutenkurve erreicht um 06:50 ≈ 2,5 mm/h (5-min-Mittel 06:50–06:55 1,9 mm/h) und die y-Achse zeigt 3. Das ist kein Rechenfehler, sondern die Eigenschaft jeder glatten Kurve durch Intervallmittel: liegt ein 5-min-Mittel über seinen Nachbarn, muss die Rate innerhalb der fünf Minuten irgendwo darüber liegen, sonst stimmt die Summe nicht; Fritsch–Butland begrenzt den Gipfel auf ≤ 3 × Stufe, gemessen ×1,35 (Block K6 auf Rauschen, Herborn ≈ ×1,3). Ein einzelner nasser 5-min-Schritt zwischen Nullen wird zur schmalen Spitze (Herborn 21:00) | eine Seite nennt eine Spitze und zeichnet eine höhere; die Zahl ist die ehrlichere (Daten), die Kurve die anschaulichere | Optionen für Jan: (a) so lassen, Tooltip erklärt es („5-min-Mittel x, Minute interpoliert"); (b) KPI-Untertitel „5-min-Mittel" bei RUC-Spitzen; (c) die KPI nimmt die Kurve mit dem Zusatz „Minute interpoliert" (wie das Radar, dessen Minuten ebenfalls interpoliert sind). Empfehlung (b): ein Wort, keine neue Zahl |
+| V-RUC-24 | **„Ab 9 Uhr Stundenbalken" im Minutenverlauf (Jan, 25.10. früh, Herborn):** die 5-min-Schicht reicht bis Lauf + 27 h (Lauf 21 UTC ⇒ Naht 01:00 MEZ, Produkt 324 Schritte, 0 Lücken — am Punkt direkt gelesen); ICON-D2-RUC rechnet Herborn aber ab +11 h (09:00) zehn Stunden exakt trocken und danach nur Spuren ≤ 0,04 mm/h, buscosun Fusion hält 0,2–0,4 mm/h bei 30–45 % Regenchance. Diese Stunden sind `flat` (keine Form, Fusion-Summe gleichmäßig) und wurden als schraffierte Blöcke gezeichnet — zwölf gleiche 5-min-Stufen sehen aus wie Stundenbalken, die Schraffur liest sich nicht als „ohne Form", sondern als anderes Produkt. Tooltip nannte es korrekt („Stunde ohne Form (RUC trocken) · Regenchance 43 %"). Die Nullen sind echt (Producer-Schwelle 0,001 mm je 5 min, `RUC_DRY_MM`) | eine zweite Kodierung (Schraffur) neben dem Regenchance-Streifen für dieselbe Unsicherheit verwirrt mehr, als sie erklärt; das Produkt erklärt sich über Streifen, Tooltip und Fußtext | E-RUC-12: Schraffur entfernt; Rest bleibt |
 
 ## 9. Belege (Befehle, 23.10.2026)
 
@@ -411,3 +431,223 @@ curl -s https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1
 curl -s https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-nowcasting/items/20261023-ch                        # assets: 0
 node --experimental-strip-types --import ./scripts/lib/register-ts.mjs <scratch>/decode-probe.mjs <scratch>/ruc                  # 542 040 Zellen, 94 / 77 ms
 ```
+
+## 10. Regen-Kante der Anzeigen (E-RUC-11, 24.10.2026 abends)
+
+**Diagnose:** V-RUC-20…23. Der Minutenverlauf und die Ereignisse kennen keine Wahrscheinlichkeitsschwelle; eine Stunde mit 0,047 mm/h
+und 16 % Regenchance wird über die ×3-skalierte RUC-Form zum „Regen ab 20:55". Die Messung V-RUC-23 zeigt: unter 30 % Regenchance
+regnete es in 3–17 % der Stunden, ab 30 % in 39 % und mehr; 35 % trennt am besten (ETS 0,38), 50 % verfehlt zwei Drittel.
+
+**Regel (eine Funktion, `src/nowcast/rainGate.ts`):** eine Stunde von buscosun Fusion „zeigt Regen", wenn Stundenmittel ≥ `WET_MMH`
+(0,1 mm/h) UND Regenchance ≥ `RAIN_GATE_P` = 0,3 (= `RB_P_EDGE` des Karten-Pins; ohne Regenchance — Live-Rückfall — entscheidet das
+Mittel allein). Alles andere ist eine **Spurenstunde** (`trace`). Die Kante bleibt GESETZT; T9 misst sie nach (V-RUC-23 nennt 35 % als
+gemessenen Kandidaten für einen Herbst-Frontregen).
+
+**Umsetzung (Rule 2: Schalter `?mvgate=0` = alles wie heute, byte-gleich):**
+1. `rucSeries.ts`: `fitRucToFusion(…, { pWet, gate })` markiert Stunden und Punkte `trace`; `rucAt` liefert in Spurenstunden `null`
+   ⇒ die Engine fällt dort auf die Stundeninterpolation zurück (wie vor RUC), der 15-min-Schritt wird nicht nass.
+2. `minuteSeries.ts`: Balken und Stufen der Spurenstunden tragen `trace`; erster Regen, Spitze und `maxMmH` überspringen sie;
+   `sumMm` zählt nur gezeichnete Regenstunden (+ Radar), `sumTraceMm` die Spurenstunden; `hints` = zusammenhängende Spurenstunden
+   als Spanne {von, bis, pMax, mm}.
+3. `MinuteChart.tsx`: Spurenstunden ohne Balken/Stufe (Stufenlinie auf 0), in der Detailansicht ein leiser Hinweis je Spanne
+   („16 % · 0,05 mm", ab 56 px Breite, sonst nur im Tooltip); die kleine Kachel bleibt still. Tooltip nennt die Spur.
+4. `MinuteSeriesCard.tsx`: KPI „Summe · 48 h" = gezeichnete Stunden, darunter „+ x mm möglich (unter der Kante)"; Fußtext nennt die Regel.
+5. `eventDetail.ts`: `rucFirstWetNear` nimmt keine Minute vor der Radar-Naht und keine aus Spurenstunden (V-RUC-21); `rucFirstWet`/
+   `rucLastWetEnd` überspringen Spurenstunden.
+6. `rainWindow.ts`: `rucOnset` überspringt Spurenpunkte (dieselbe Regel wie bisher plus Stundenmittel ≥ 0,1); `RB_P_EDGE` = `RAIN_GATE_P`.
+7. `nowcastEngine.ts`: Regenchance VOR der Anpassung rechnen, an `fitRucToFusion` reichen; `nc.rainGate` trägt den Schalter.
+8. `verify:ruc` Block J: Spurenstunde ⇒ kein erster Regen, Hinweis, Summen-Split; Ereignis-Minute ≥ Naht; Pin unverändert;
+   Schalter aus ⇒ byte-gleich; Quelltext-Verdrahtung.
+
+**Erwartung am Herborn-Fall (24.10. 19:05):** keine Stufe 20:55–21:00, Hinweis „16 % · 0,05 mm" an der Stunde 20–21, erster Regen
+21:15 (Stunde 21–22, 39 %), Ereignis und Pin nennen dieselbe Minute, Summe ohne die Spurenstunde + „möglich"-Zeile.
+
+**Gate E-RUC-11 (24.10. 20:45 MESZ):** `npm run typecheck` grün · `verify:ruc` **115/115** (Block J: J1–J1c Fit mit Kante und byte-gleich ohne,
+J2–J2e Minutenverlauf am Herborn-Fall — ohne Kante erster Regen 18:55 UTC an der Naht (V-RUC-20), mit Kante 19:15 UTC aus der Regenstunde,
+Balken/Stufen `trace`, Summe geteilt, Hinweis-Spanne; J3–J3c Ereignisse — ohne Kante „ab 18:50" aus dem Radarfenster (V-RUC-21), mit Kante
+19:15 = die Minute des Minutenverlaufs, Radar-Minute auch in der Blend-Zone; J4 Karten-Pin 19:15 vor und nach der Kante; J5/J5b Verdrahtung
+mit Gegenprobe) · `verify:rain-window` 62/64 (G2/G3 an HEAD rot, V-RUC-14; G7-Muster erhalten) · Build 260/260 · Budget totalJs 1905,7
+≤ 1912 (Ratsche mit Notiz angehoben), eagerJs 110,1 unverändert (0,1 über der Ratsche seit HB, Jans Entscheidung §73.4).
+Live am Dev-Server (Herborn, 20:36 MESZ): `nc.rainGate = true`, sechs Hinweis-Spannen am 25.10. (28–30 %, 0,08–0,74 mm), KPI „Summe 13,0 mm ·
++ 1,9 mm möglich (Stunden unter der Kante)", Ereignis „mäßiger Regen ab 22:09 · min" = Minutenverlauf „Regen ab 22:09 · Radar" (vorher 22:09
+gegen 22:20, eine Blend-Zonen-Abweichung, die J3c jetzt deckt). Bild `audit/niederschlag-ruc/2026-10-24-regenkante-herborn-48h.jpg`.
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt einzeln | `?mvgate=0` ⇒ Fit, Minutenverlauf, Ereignisse byte-gleich (J1b, J2d, J3b); Regenchance-Streifen, Schraffur, Nähte, Tooltip unverändert; Hinweise nur zusätzlich |
+| 2 Desktop pixelgleich | ohne Spurenstunden keine Änderung am Bild; mit Spurenstunden fehlen Balken/Stufen unter der Kante, neue Hinweise nur im Overlay (Bild oben), Kachel still |
+| 3 Touch-Targets ≥ 44 px | keine neuen Bedienelemente (Hinweise sind Text/`<title>`) |
+| 4 Konsole sauber | keine Fehler beim Laden der Herborn-Seite nach HMR (Fiber-Lesung ohne Warnungen); Build ohne Warnung zu den neuen Dateien |
+| 5 keine Long Tasks > 200 ms | Rechenaufwand: eine `find` je RUC-Punkt über ≤ 48 Balken (≤ 324 × 48), vernachlässigbar; nicht gemessen (Emulation untauglich, V-RUC-17) |
+
+Nicht gemessen: der Bundle-Anteil dieser Änderung isoliert (geteilter Arbeitsbaum, Notiz in `budget.json`); Mobil-Bild (keine Layout-Änderung,
+Hinweise nur im Overlay ab 56 px Spannenbreite).
+
+## 11. Keine Schraffur für Stunden ohne RUC-Form (E-RUC-12, 25.10.2026)
+
+**Diagnose:** V-RUC-24. **Änderung (nur Zeichnung):** `MinuteChart.tsx` zeichnet die 5-min-Form als eine Stufenlinie mit Fläche, ohne
+`<pattern>`/`<rect>` je flacher Stunde; `minuteSeries.css` ohne `.mv-ruc-flat`/`.mv-hatch-line`; Fußtext in `MinuteSeriesCard.tsx` nennt statt
+der Schraffur den Satz „rechnet der RUC eine Stunde trocken, liegt die Summe gleichmäßig in ihr". Fit (`kind: 'flat'`, `stats.flat`), Tooltip-Zusatz,
+Regenchance-Streifen, Nähte und Kante (E-RUC-11) unverändert; `verify:ruc` prüft keine Schraffur (nichts anzupassen). Kein Schalter: die
+Schraffur war eine Darstellungswahl der RUC-Phase, keine Rechenregel (Rule 2 betrifft Rechenpfade).
+
+**Gate E-RUC-12 (25.10. 00:45 MESZ):** `npm run typecheck` grün · `verify:ruc` 115/115 · Build 260/260 · Budget totalJs 1908,5 ≤ 1912
+(gestern 1905,7; die Differenz stammt nicht aus dieser Änderung, die nur Code entfernt — geteilter Arbeitsbaum, nicht isoliert messbar),
+eagerJs 110,1 > 110 unverändert (HB, Jans Entscheidung §73.4), largestChunk 278,4 ≤ 302. Live am Dev-Server (Herborn, Lauf 21 UTC): die Stunden
+09:00–01:00 laufen als eine Stufenlinie mit Fläche durch, keine Schraffur, Nähte 02:35 (Radar) und 01:00 (5-min-Form) unverändert, Hinweise und
+„+ 1,0 mm möglich" unverändert. Bild `audit/niederschlag-ruc/2026-10-25-ohne-schraffur-herborn-48h.jpg`.
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt einzeln | Fit, Statistiken (`stats.flat`), Tooltip-Zusatz „Stunde ohne Form (RUC trocken)", Regenchance-Streifen, Nähte, Kante, Hinweise unverändert (`verify:ruc` 115/115); nur die Schraffur-Rechtecke und das `<pattern>` entfallen |
+| 2 Desktop pixelgleich | ohne flache Stunden pixelgleich (Stufenlinie und Fläche unverändert); mit flachen Stunden fehlt nur die Schraffur (Bild oben) |
+| 3 Touch-Targets ≥ 44 px | keine Bedienelemente berührt |
+| 4 Konsole sauber | Seite nach HMR ohne Fehler geladen; Build ohne neue Warnung |
+| 5 keine Long Tasks > 200 ms | weniger Arbeit als vorher (eine Schleife über die RUC-Punkte und bis zu 27 `<rect>` je Render entfallen) |
+
+## 12. Minutenkurve der 5-min-Form (E-RUC-13, 25.10.2026)
+
+**Auftrag (Jan):** „könnten wir die Ansicht des Minutendiagramms so wie im Radar machen, sodass wir es interpolieren, aber dabei die
+Genauigkeit nicht leidet" — „ja, mache, nur bis 27 h".
+
+**Diagnose:** Der Radar-Teil interpoliert Momentwerte (Bild alle 5 min) linear zur Minute (`interpolateMinutes`). Die 5-min-Werte des RUC sind
+dagegen Intervallmittel (Δ zweier Akkumulationen, `intervalRateMmH`); eine lineare Verbindung dieser Mittel verschöbe Masse zwischen den
+Intervallen, die Stundensumme wäre nicht mehr der Fusion-Wert (E-RUC-4). Fusion-Stunden jenseits +27 h tragen keine Form; eine Kurve dort
+wäre erfunden (Kopfkommentar `minuteSeries.ts`: „No minute is invented beyond the radar").
+
+**Änderung:** `src/nowcast/rucCurve.ts` (neu, rein): `rucMinuteCurve(steps, endMs, stepMs)` legt durch die kumulierte Menge an den 5-min-Stützstellen
+eine monotone kubische Hermite-Kurve (Fritsch–Butland-Tangenten, Null-Tangente neben einem trockenen Intervall, Sekante an den Enden) und gibt je
+zusammenhängendem Lauf eine Probe je Minute mit Rate (Steigung) und kumulierter Menge (Wert); `rucCurveAt`, Schalter `rucCurveEnabledFrom`
+(`?mvcurve=0`). `MinuteChart.tsx`: Prop `curve` (Voreinstellung an); `geom` rechnet die Kurve aus den kanten-bereinigten Stufen (Spurenstufen = 0
+⇒ Kurve auf der Grundlinie) und nimmt ihr Maximum in `yMax`; `rucPath` zeichnet je Lauf Linie + Fläche, mit Schalter aus den Stufenpfad wie bisher;
+Hover-Punkt und -Wert folgen der Kurve, die Quellzeile des Tooltips nennt „5-min-Mittel x, Minute interpoliert". `MinuteSeriesCard.tsx` liest
+den Schalter, reicht ihn beiden Diagrammen, Quellzeile „(Lauf hh UTC, 5-min-Summen, Minute interpoliert)", Fußtext „Kurve … zwischen den
+5-min-Summen zur Minute interpoliert, ohne dass sich eine 5-min-Summe ändert". Unverändert: Fit, `firstWet`, Spitze, Summe, Hinweise, Ereignisse,
+Karten-Pin, Nähte, Balken jenseits +27 h, Regenchance-Streifen.
+
+**Belege (Block K, `verify:ruc` 127/127):** K2 kumulierte Menge an jeder 5-min-Stützstelle exakt (1,8e-15 mm, auch die an der Naht angeschnittene
+Stufe), K3 jede Stundensumme exakt das Mittel der zwölf Stufen (1,8e-15), K4 Integral der gezeichneten Rate je 5 min = Summe (1-s-Trapez 5e-6 mm),
+keine negative Minute, K5 flache Stunde exakt flach (5,6e-17), Nullen bleiben Nullen, K6 Gipfel ≤ 3 × Stufe (gemessen ×1,35 auf Rauschen), K7/K8
+Lücke ⇒ zwei Läufe ohne Brücke, `endMs` schneidet, `rucCurveAt` in der Lücke null, K9 auf einem echten `fitRucToFusion` (27 Stunden dry/flat/form/
+mixed) trägt die Kurve je Stunde exakt die Fusion-Summe (4,3e-15), K10 Schalter, K11/K11b Verdrahtung als Quelltext mit Gegenprobe.
+
+**Gate E-RUC-13 (25.10. 01:05 MESZ):** `npm run typecheck` grün · `verify:ruc` 127/127 (115 + 12) · `npm run build` Exit 0 · Budget totalJs
+1910 ≤ 1912 (vor E-RUC-13 1908,5; +1,5 KB gz = `rucCurve.ts` im Regenradar-Chunk), largestChunk 278,4 ≤ 302, eagerCss 2,4 ≤ 2,5, eagerJs 110,1 > 110
+unverändert (HB, Jans Entscheidung §73.4). Live am Dev-Server (Herborn, Lauf 22 UTC, Radar bis 02:55, 5-min-Form bis 02:00): die Form läuft als
+durchgehende Kurve von der Radar-Naht bis zur zweiten Naht, flache Stunden (09–19 Uhr) als waagerechte Linie, ein einzelner nasser Schritt um 21:00
+als schmale Spitze, Tooltip um 06:55 „1,7 mm/h · mäßig · ICON-D2-RUC · 5-min-Form 06:55–07:00 · 5-min-Mittel 1,9 mm/h, Minute interpoliert ·
+Stundensumme buscosun Fusion · Regenchance 69 %"; Balken ab 02:00 unverändert. Mit `?mvcurve=0` die Stufenlinie wie vor E-RUC-13 (gesichtet).
+Konsole: nur die sechs Meldungen der Chrome-Erweiterung („message channel closed"), keine App-Fehler. Bild
+`audit/niederschlag-ruc/2026-10-25-minutenkurve-herborn-48h.jpg`. Befund V-RUC-25 (Kurvengipfel über der KPI „Spitze"), Entscheidung bei Jan.
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt einzeln | `?mvcurve=0` ⇒ Stufenpfad, Tooltip-Texte und Quellzeile wie vor E-RUC-13 (gesichtet); Fit, Zahlen, Ereignisse, Pin unberührt (`verify:ruc` 115 Altprüfungen grün); Fusion-Balken jenseits +27 h unverändert |
+| 2 Desktop pixelgleich | ohne RUC-Schicht pixelgleich (Radar-Pfad und Balken unverändert); mit Schicht ersetzt die Kurve die Stufen, `yMax` kann durch den Kurvengipfel eine Stufe höher liegen (V-RUC-25) |
+| 3 Touch-Targets ≥ 44 px | keine Bedienelemente berührt |
+| 4 Konsole sauber | keine App-Fehler (s. o.) |
+| 5 keine Long Tasks > 200 ms | Kurve: ≤ 1 620 Proben je Render (27 h × 60), einfache Arithmetik, im `useMemo` von `geom`; nicht gemessen (Emulation untauglich, V-RUC-17) |
+
+Nicht gemessen: Mobil-Bild (gleiche Komponente, keine Layout-Änderung); Long Tasks am Prod-Build.
+
+### 12.1 Weicher Start an der Radar-Naht (Nachtrag E-RUC-13, 25.10.2026)
+
+**Frage (Jan):** „macht es Sinn, jetzt noch eine Annäherung beim Übergang zwischen Radar- und buscosun-Fusion-Ebene zu machen?" — Antwort: an der
+Radar-Naht ja, summentreu; keine Überblendzone im Radar-Teil (der Teil hieße dann zu Unrecht „Radar, minutengenau", und die Summe der Zone
+verschöbe sich); keine Annäherung an der +27-h-Naht (jenseits nur Stundenmittel, jede Form dort wäre erfunden; Jans „nur bis 27 h").
+**Entscheidung (Jan):** „ja bitte, einfach ein weicher Übergang, ohne die Daten zu verfälschen."
+
+**Änderung:** `rucCurve.ts` nimmt `opts: { startMmH, startAtMs }`; beginnt der erste Lauf genau bei `startAtMs`, ist seine Starttangente
+`min(max(0, startMmH), 3 × erstes 5-min-Mittel)` statt des Mittels (`RUC_CURVE_START_CAP = 3`, Fritsch–Carlson-Box ⇒ Kurve bleibt monoton, Rate
+≥ 0; Fritsch–Butland liefert für die zweite Tangente ohnehin ≤ 3 × Mittel). Die Kurve läuft weiter durch jede Stützstelle, also ändert sich
+keine 5-min-Summe und keine Stundensumme — nur die Form innerhalb der ersten fünf Minuten. `MinuteChart.tsx` reicht den letzten Radar-Minutenwert,
+wenn das Radar genau am ersten RUC-Schritt endet (sonst nichts). Hängt am Schalter `?mvcurve=0` (dann Stufen, kein Start). Ist das erste
+Intervall trocken (Mittel 0, auch Spurenstufe), bleibt der Start 0 ⇒ Kante; liegt das Radar über dem Dreifachen, startet die Kurve beim Dreifachen
+⇒ Restkante. Beides gewollt: dann widersprechen sich die Quellen, und die Naht-Beschriftung sagt es.
+
+**Belege (Block K, `verify:ruc` 130/130):** K12 Start 1,2 bei Mittel 0,6: Kurve beginnt bei 1,2, ab dem zweiten Intervall identisch zur Kurve ohne
+Start (< 1e-12), jede 5-min-Summe exakt (2,2e-16 mm), keine negative Minute (1-s-Proben); K13 Radar 5 ⇒ Start 1,8 (Deckel), keine negative Minute;
+trockenes erstes Intervall ⇒ Start 0 und Nullen bis zu dessen Ende; `startAtMs` ≠ Laufbeginn ⇒ ohne Wirkung; K14 Verdrahtung als Quelltext.
+Live (Herborn, Lauf 22 UTC, Radar bis 02:10 mit 2,5 mm/h am letzten Bild, 01:10 MESZ): die Kurve setzt bei 2,5 an und fällt in den ersten fünf
+Minuten auf die RUC-Form um 1 mm/h — keine senkrechte Kante mehr, die Naht-Linie und ihr Text bleiben. Bild
+`audit/niederschlag-ruc/2026-10-25-minutenkurve-naht-herborn-48h.jpg`. typecheck grün.
+
+**Gate Nachtrag (25.10. 01:25 MESZ):** `npm run typecheck` grün · `verify:ruc` 130/130 · `npm run build` grün (44 s) · Budget totalJs 1910,1 ≤ 1912
+(+0,1 KB gegen §12), largestChunk 278,4 ≤ 302, eagerCss 2,4 ≤ 2,5, eagerJs 110,1 > 110 unverändert (HB, §73.4 — der Exit 1 des Budget-Skripts
+stammt allein daraus). Die fünf Fragen wie in §12: 1 `?mvcurve=0` ⇒ Stufen ohne Start, Zahlen unberührt; 2 ohne RUC-Schicht pixelgleich, mit
+Schicht ändert sich nur die Form der ersten fünf Minuten nach der Naht; 3 keine Bedienelemente; 4 keine App-Fehler in der Konsole; 5 eine
+Vergleichsoperation mehr je Render.
+
+## 13. Detailansicht 2 | 6 | 27 h (E-RUC-14, 25.10.2026)
+
+**Auftrag (Jan):** „der Minutenverlauf soll jetzt nur noch 2 h, 6 h und 27 h anzeigen."
+
+**Diagnose:** Die Detailansicht bot 2 | 6 | 24 | 48 h mit Voreinstellung 48 h; Titel, KPIs („Spitze · 48 h", „Summe · 48 h"), Quellzeile und die
+Reihe selbst hingen an `MV_HORIZON_H = 48`. Dieselbe Konstante bestimmt in `nowcastEngine.ts` die Zahl der Fusion-Stunden aus dem Cube
+(`cubeHoursMv = MV_HORIZON_H + 1`), und `nc.fusionHours` speist auch die Ereignisse (48 h). Ein bloßes Absenken auf 27 hätte die Ereignisse
+mitgekürzt (V-Regression außerhalb des Auftrags).
+
+**Änderung:** neue Konstante `MV_VIEW_H = 27` in `minuteSeries.ts` (Horizont, den der Minutenverlauf ZEIGT); `MinuteSeriesCard.tsx` nutzt sie für
+die Stufen `[2, 6, 27]`, die Voreinstellung, `horizonH` der Reihe (Spitze und Summe zählen bis +27 h), Titel, KPI-Beschriftungen, Hero-Satz
+(„kein Niederschlag in den nächsten 27 h"), Quellzeile und Öffnen-Knopf; der Fußtext sagt „jenseits der 5-min-Form (Lauf + 27 h) zeigt jeder
+Balken das Stundenmittel", weil die 5-min-Form bei Lauf + 27 h endet und die letzten ein bis zwei Stunden der Ansicht Fusion-Balken sind.
+`timeTicks` setzt bis 30 h 3-h-Schritte (vorher 6 h ab 25 h). `MV_HORIZON_H` bleibt 48 (Engine, Ereignisse). Verifier I9 prüft Stufen,
+Voreinstellung, `horizonH` und dass kein „48 h" mehr in der Kachel steht. Mini-Kachel (2 h) unverändert.
+Nachbesserung aus der Sichtprüfung: in der 27-h-Ansicht liegt die zweite Naht (Lauf + 27 h) nahe am rechten Rand, ihr Text lief über den Rand;
+bei weniger als 330 px Platz rechts steht er jetzt links der Naht („5-min-Form bis hh:mm · danach buscosun Fusion als Stundenmittel ▸").
+
+**Gate E-RUC-14 (25.10. 01:45 MESZ):** `npm run typecheck` grün · `verify:ruc` 130/130 (I9 angepasst) · `npm run build` grün (39 s) · Budget totalJs
+1910,3 ≤ 1912, largestChunk 278,4 ≤ 302, eagerCss 2,4 ≤ 2,5, eagerJs 110,1 > 110 unverändert (HB, §73.4). Live (Herborn, Lauf 22 UTC, 01:20 MESZ):
+Titel „Minutenverlauf · 27 h", Stufen 2 h | 6 h | 27 h (27 h aktiv), KPIs „Spitze · 27 h 3,9 mm/h 02:10 Radar", „Summe · 27 h 11,3 mm", Achse in
+3-h-Schritten, Radar-Naht 02:20, zweite Naht 02:00 mit Text links davon, Fusion-Balken danach bis +27 h. Bilder
+`audit/niederschlag-ruc/2026-10-25-detail-27h-herborn.jpg` (vor der Nachbesserung, Text abgeschnitten) und
+`audit/niederschlag-ruc/2026-10-25-detail-27h-naht-rechts-herborn.png` (danach). Ereignisse-Kachel weiter „48 h" (gesichtet).
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt einzeln | 24-h- und 48-h-Stufen entfallen auf Jans Wort (E-RUC-14); Mini-Kachel 2 h, Kurve, Kante, Hinweise, Nähte unverändert; Ereignisse 48 h unverändert (`MV_HORIZON_H` bleibt 48) |
+| 2 Desktop pixelgleich | Kachel pixelgleich; Overlay zeigt 27 statt 48 h (gewollt) |
+| 3 Touch-Targets ≥ 44 px | Stufen-Knöpfe unverändert in Größe, einer weniger |
+| 4 Konsole sauber | keine App-Fehler |
+| 5 keine Long Tasks > 200 ms | weniger Arbeit (Reihe über 27 statt 48 h) |
+
+## 14. Balken je Ebene (E-RUC-15, 25.10.2026)
+
+**Auftrag (Jan):** „mach in der Minutenanzeige im Regenradar doch ein Balkendiagramm daraus, das macht mehr Sinn" — Rückfrage (nur RUC, alles,
+Radar je Minute), Antwort: **alles als Balken**.
+
+**Diagnose:** Drei Ebenen hatten drei Zeichensprachen (Radar: interpolierte Minutenlinie mit Fläche; RUC: Kurve/Stufen; Fusion: Stundenbalken), dazu
+die Kurvenfrage V-RUC-25 (Gipfel über der KPI). Jede Ebene hat eine echte Auflösung: Radarbild alle 5 min (INCA 15 min), RUC 5-min-Summe,
+Fusion Stundenmittel. Ein Balken je Einheit zeigt genau diese Auflösung und nichts Erfundenes.
+
+**Änderung:** `minuteSeries.ts`: `radar.bars` (ein Balken je Bild über [Bild, nächstes Bild), erster an „jetzt" angeschnitten, keiner über das
+letzte Bild hinaus — das letzte Bild ist das Ende, nicht ein weiterer Balken), Option `bars` ⇒ erster Regen, Spitze und Summe des Radar-Teils aus den
+Bild-Balken (erster Regen = Beginn des ersten nassen Bildes statt der interpolierten Minute; Spitze identisch, Summe Σ Bild × Dauer statt Σ Minute/60);
+Schalter `minuteBarsEnabledFrom` (`?mvbars=0`). `MinuteChart.tsx`: Prop `bars` (an), Radar-Balken (`mv-bar--radar`, 0,46), RUC-Balken je 5 min
+(`mv-bar--ruc`, 0,30), Fusion-Balken heller (`mv-bar--fusion`, 0,16); 1-px-Lücke nur ab 6 px Balkenbreite (im 27-h-Blick liegen 324 RUC-Balken auf
+≈ 800 px, sie bilden dann eine geschlossene Fläche); Linie, Fläche und Kurve nur ohne `bars`; Hover nennt „Bild hh:mm (alle 5 min), gilt bis hh:mm",
+„jetzt"-Punkt auf dem Bild-Balken; Naht- und Aria-Texte „Radar · Bild alle 5 min" statt „minutengenau" (`radarRes`; mit `?mvbars=0` die alten
+Literale, I1 angepasst). `MinuteSeriesCard.tsx`: liest den Schalter, reicht `bars` an Reihe und beide Diagramme, Hero „Radar, Bild alle 5 min",
+Quellzeile „ein Balken je Bild" / „ein Balken je 5 min", Fußtext endet mit „Nichts ist interpoliert." Kurve (E-RUC-13) und weicher Start bleiben
+hinter `?mvbars=0` als benannter Rückfall (Rule 2); V-RUC-25 ist mit Balken gegenstandslos (kein Gipfel über der Spitze möglich).
+
+**Belege (Block L, `verify:ruc` 136/136):** L1 24 Balken aus 25 Bildern, lückenlos von jetzt bis zum letzten Bild, Wert = Bild am Balkenanfang;
+L2 mit Balken erster Regen 08:25 (Bild 08:20 ist 0,08 < 0,1), ohne Balken 08:21 (interpolierte Minute), Spitze gleich, Summe Σ Bild × Dauer;
+L3 `bars: false` byte-gleich zur Reihe ohne Option; L4 Schalter; L5/L5b Verdrahtung mit Gegenprobe; I1 (Naht-Literale über `radarRes`) und K11
+(Quellzeile) angepasst.
+
+**Gate E-RUC-15 (25.10. 02:10 MESZ):** `npm run typecheck` grün · `verify:ruc` 136/136 · `npm run build` grün (38 s) · Budget totalJs 1911,8 ≤ 1912
+(+1,5 KB gegen §13 — die Balkenpfade kommen zur bestehenden Linie/Kurve hinzu, die hinter `?mvbars=0` bleibt; nur noch 0,2 KB Luft, die nächste
+Änderung am Regenradar-Chunk hebt die Ratsche mit Notiz), largestChunk 278,4 ≤ 302, eagerCss 2,4 ≤ 2,5, eagerJs 110,1 > 110 unverändert (HB, §73.4).
+Live (Herborn, Lauf 22 UTC, 01:50 MESZ): Kachel und Detailansicht als Balken — Radar (dunkel) bis 02:50, 5-min-Balken des RUC bis 02:00, hellere
+Fusion-Balken danach; Spitze „4,3 mm/h 02:25 Radar" = höchster Radar-Balken; Hover 02:59 „1,9 mm/h · DWD RADOLAN-RV · Bild 02:55 (alle 5 min), gilt
+bis 02:00" — richtig, in dieser Nacht springt die Uhr um 03:00 MESZ auf 02:00 MEZ zurück. Mit `?mvbars=0` Linie + Kurve wie vor E-RUC-15 (gesichtet).
+Bilder `audit/niederschlag-ruc/2026-10-25-balken-herborn-27h.jpg`, `audit/niederschlag-ruc/2026-10-25-balken-hover-herborn.png`.
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt einzeln | `?mvbars=0` ⇒ Reihe byte-gleich (L3), Linie/Kurve/Nähte/Texte wie vorher (I1, K11 angepasst, gesichtet); Kante, Hinweise, Streifen, Ereignisse, Pin unberührt |
+| 2 Desktop pixelgleich | gewollt anders (Balken); Rückfall pixelgleich |
+| 3 Touch-Targets ≥ 44 px | keine Bedienelemente berührt |
+| 4 Konsole sauber | keine App-Fehler (nur die Meldungen der Chrome-Erweiterung) |
+| 5 keine Long Tasks > 200 ms | ≤ 24 + 324 + 27 `<rect>` je Render, keine Kurvenrechnung mehr im Balkenmodus |
