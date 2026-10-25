@@ -17,9 +17,9 @@ import {
   glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
   type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
-import { GLACIER_COUNTRIES, GLACIER_REGIONS, GLACIER_SAT_MAX_AGE_DAYS, type GlacierCountry, type GlacierOfficialItem } from './glacierContract';
+import { GLACIER_COUNTRIES, GLACIER_REGIONS, GLACIER_SAT_MAX_AGE_DAYS, type GlacierOfficialItem } from './glacierContract';
 import {
-  GLACIER_RAMPS, defsFor, displayName, fmt0, fmtKm2, fmtRefYear, inLand, matchesQuery, metricValue, officialStandLabel, rankGlaciers, satAgeDays, seasonStatus,
+  GLACIER_RAMPS, defsFor, fmt0, fmtRefYear, inLand, matchesQuery, metricValue, officialStandLabel, rankGlaciers, satAgeDays, seasonStatus,
 } from './glacierView';
 import {
   glacierIdOfSegment, glacierSegmentOf, GLACIER_METRICS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
@@ -30,9 +30,7 @@ import GlacierDock from './GlacierDock';
 import GlacierList from './GlacierList';
 import GlacierFilters, { NO_FILTER, passesFilter, type GlacierFilter } from './GlacierFilters';
 const GlacierBrief = lazy(() => import('./GlacierBrief'));
-import GlacierLageChart, { type ChartKind } from './GlacierLageChart';
-import { CountryCards, ReportList, Rhythm, type CountryFacts } from './GlacierReadout';
-import { FeedList, FollowList, StatusList } from './GlacierFeedView';
+import { FollowList } from './GlacierFeedView';
 import { readFavs, writeFavs, toggleFav, readLast, writeLast, newSinceLastVisit } from './glacierFollow';
 import type { GlacierFeedEvent } from './glacierFeedContract';
 import { glacierMeltFresh } from './glacierContract';
@@ -69,8 +67,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   // a region of another country makes no sense after a country switch
   useEffect(() => { setFilter((f) => (f.region && land !== 'alle' && GLACIER_REGIONS[f.region]?.country.toLowerCase() !== land ? { ...f, region: '' } : f)); }, [land]);
   const [selSeg, setSelSeg] = useState<string | null>(initial.glacier ?? initial.sel);
-  const [chartKind, setChartKind] = useState<ChartKind>('ba');
-  const [searchOpen, setSearchOpen] = useState(false);
   const [stage, setStage] = useState<'map' | 'dossier'>(initial.dossier ? 'dossier' : 'map');
   const [sat, setSat] = useState<ReadonlyMap<string, GlacierSatLatest>>(() => new Map());
   const [meltToday, setMeltToday] = useState<ReadonlyMap<string, [number, number, number]> | null>(null);
@@ -166,7 +162,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   }, [glaciers]);
 
   const pass = useCallback((g: (typeof glaciers)[number]) => passesFilter(g, filter, d?.summary?.latest[g.id]), [filter, d]);
-  const rows = useMemo(() => rankGlaciers(glaciers.filter(pass), d?.summary ?? null, metric, land, query, isMobile ? 6 : 8, satCtx), [glaciers, pass, d, metric, land, query, isMobile, satCtx]);
   const allRanked = useMemo(() => (isMobile ? [] : rankGlaciers(glaciers.filter(pass), d?.summary ?? null, metric, land, query, Infinity, satCtx)), [isMobile, glaciers, pass, d, metric, land, query, satCtx]);
   const allRest = useMemo(() => {
     if (isMobile) return [];
@@ -175,14 +170,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       .sort((a, b) => b.area.km2 - a.area.km2 || (a.id < b.id ? -1 : 1))
       .map((g) => ({ g, value: values.get(g.id) }));
   }, [isMobile, allRanked, glaciers, land, query, values, pass]);
-  const facts = useMemo<Record<GlacierCountry, CountryFacts>>(() => {
-    const out = {} as Record<GlacierCountry, CountryFacts>;
-    for (const c of GLACIER_COUNTRIES) {
-      const l = glaciers.filter((g) => g.country === c);
-      out[c] = { n: l.length, km2: l.reduce((s, g) => s + g.area.km2, 0), refYear: c === 'CH' ? '2013–2018' : c === 'AT' ? '2021–2023' : '2025', source: c === 'CH' ? 'SGI2016' : c === 'AT' ? 'AGI 5' : 'BAdW' };
-    }
-    return out;
-  }, [glaciers]);
 
   const def = defs[metric];
   const season = seasonStatus(nowMs);
@@ -199,13 +186,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const follow = useCallback((id: string) => setFavs((cur) => { const next = toggleFav(cur, id); writeFavs(next); return next; }), []);
   const fresh = useMemo(() => newSinceLastVisit(feed ?? [], favs, lastVisit.current ?? null), [feed, favs]);
   const favValue = useCallback((id: string) => { const g = d?.cat.byId.get(id); if (!g) return null; const v = metricValue(metric, d?.summary?.latest[id], g, satCtx); return v.v == null ? null : { text: v.text ?? '', origin: defs[metric].origin, label: defs[metric].label }; }, [d, metric, satCtx, defs]);
-  const lists = d && (
-    <>
-      <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />
-      {feed && <FeedList events={feed} onPick={pick} cardWeek={d.feed?.card ?? null} cardUrl={d.feed?.card ? `${bases.cdn}/card/${d.feed.card}.png` : null} />}
-      <StatusList items={d.official} />
-    </>
-  );
   const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); };
   const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false);
   const bucketOf = useCallback((id: string) => values.get(id)?.bucket ?? -1, [values]);
@@ -263,23 +243,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const dock = (
     <GlacierDock query={query} onQuery={setQuery} land={land} onLand={setLand} metric={metric} onMetric={setMetric}
       refYears={`CH ${fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025`} defs={defs} />
-  );
-  const chart = d?.summary && (
-    <section className="gl-chart-sec" aria-label="Messreihen je Land">
-      <div className="gl-chart-head">
-        <div>
-          <h2>{chartKind === 'ba' ? 'Jahresbilanz der Messgletscher' : 'Längenänderung der Messgletscher'}</h2>
-          <p>{chartKind === 'ba' ? 'Mittel über die Gletscher mit Massenbilanz je Land, in m Wasseräquivalent' : 'Mittel über die vermessenen Zungen je Land, in m je Messjahr'} · <OriginChip origin="measured" /></p>
-        </div>
-        <div className="gl-seg2" role="group" aria-label="Größe des Diagramms">
-          <button type="button" aria-pressed={chartKind === 'ba'} onClick={() => setChartKind('ba')}>Bilanz</button>
-          <button type="button" aria-pressed={chartKind === 'len'} onClick={() => setChartKind('len')}>Länge</button>
-        </div>
-      </div>
-      <div className="gl-legend-lines" aria-hidden="true"><span><i style={{ background: '#1E87A8' }} />CH</span><span><i style={{ background: '#B5602C' }} />AT</span><span><i style={{ background: '#6B5BB8' }} />DE</span></div>
-      <GlacierLageChart summary={d.summary} kind={chartKind} />
-      <div className="gl-chart-note">Gemessen (WGMS-Datenbank, für die Schweiz die Reihen des Gletschermessnetzes GLAMOS; für Österreich WGMS und ÖAV). Deutschland hat in diesen Netzen keine laufende Reihe. Der Saisonverlauf der Schmelze folgt mit der Schmelzrechnung (GL-3).</div>
-    </section>
   );
   const readout = (
     <aside className="gl-readout" aria-label="Gletscher der Auswahl">
@@ -367,20 +330,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
             </div>
             <div className="gl-readout-scroll gl-m-scroll">
               <div className="gl-m-only gl-m-legend">{legend}</div>
-              <button type="button" className="gl-btn" onClick={() => setSearchOpen((v) => !v)} aria-expanded={searchOpen}>Gletscher suchen</button>
-              {searchOpen && <input className="gl-input" type="search" placeholder="Name, Gebirge, Inventar-Nr. …" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Gletscher suchen" />}
-              <div className="gl-m-cards">{d && <CountryCards items={d.official} facts={facts} />}</div>
-              <h3 className="gl-h3">Rangliste · {def.label}</h3>
-              {rows.length === 0 ? <div className="gl-empty">{def.locked ? 'Gesperrt — keine Zahl ohne Berechnung.' : 'Keine Gletscher mit Wert.'}</div> : (
-                <ul className="gl-rank">{rows.map((r, i) => (
-                  <li key={r.g.id}><button type="button" onClick={() => pick(r.g.id)}><span className="gl-r-n">{i + 1}</span><span className="gl-r-body"><b>{displayName(r.g)}</b><span>{r.g.country} · {fmtKm2(r.g.area.km2)} · {r.value.period}</span></span><span className="gl-r-v" data-origin={def.origin}>{r.value.text}</span></button></li>
-                ))}</ul>
-              )}
-              {chart}
-              {lists}
-              {d && <ReportList items={d.official} />}
-              <Rhythm />
-              <div className="gl-foot-note">Flächen tragen das Bezugsjahr ihres Inventars. Kein amtliches Warnprodukt, keine Tourenfreigabe.</div>
+              {/* Jan 2026-10-25: below the map the mobile view shows only the legend — search, country cards, ranking, chart, lists, reports and the rhythm are gone here. */}
             </div>
           </div>
         </div>
