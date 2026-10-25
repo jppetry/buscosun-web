@@ -254,9 +254,9 @@
   .gl-m-overlay .gl-season { height: 30px; font-size: 12.5px; }
   .gl-m-overlay .gl-chip { height: 30px; padding: 0 10px; font-size: 12.5px; background-color: #fff; }
   /* Bottom bar + page (Jan 2026-10-25, like the Brandradar's .br-bar): the map keeps its strip on top, the page below scrolls. */
-  .gl-root.is-mobile .gl-body { position: relative; overflow: hidden; }
-  .gl-root.is-mobile .gl-center { flex: 1 1 auto; min-height: 0; }
-  .gl-root.is-mobile .gl-center > .gl-map:not(.gl-sheet-map) { flex: 1 1 auto; min-height: 0; }
+  .gl-root.is-mobile .gl-body:not(.gl-sheet-body) { position: relative; overflow: hidden; }
+  .gl-root.is-mobile .gl-body:not(.gl-sheet-body) > .gl-center { flex: 1 1 auto; min-height: 0; }
+  .gl-root.is-mobile .gl-body:not(.gl-sheet-body) > .gl-center > .gl-map { flex: 1 1 auto; min-height: 0; }
   /* Every bar item is a full page over the map with an X at the top right (closes it) — or switch via the bar. */
   .gl-m-page { position: absolute; inset: 0; z-index: 45; display: flex; flex-direction: column; background: var(--gl-panel); }
   .gl-m-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 12px 18px; border-bottom: 1px solid var(--gl-line); }
