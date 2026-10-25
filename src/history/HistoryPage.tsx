@@ -12,7 +12,7 @@
  * Zeitraum-Slider, Datentabelle, Provenienz, Permalink/Embed, Hell/Dunkel.
  */
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { defaultHistorySource } from './historySource';
 import type { DailyRecord } from './historyModel';
@@ -55,6 +55,10 @@ import './historyDeck.css';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 // SH4: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
 import ShareButton from '../share/ShareButton';
+
+// Same DACH map as behind the start page, behind the location search and the mode choice.
+const DachMapBackground = lazy(() => import('../DachMapBackground'));
+const mapBg = <Suspense fallback={null}><DachMapBackground /></Suspense>;
 
 interface Props {
   onBack: () => void;
@@ -231,7 +235,8 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
         {view === 'onboard' && (
           <>
             <MobileBrandHead loc={null} onWechseln={undefined} />
-            <div className="hd-m-scroll">
+            <div className="hd-m-scroll hd-m-scroll--map">
+              {mapBg}
               <div className="hd-m-onboard"><Onboarding onPick={applyLocation} deck /></div>
             </div>
           </>
@@ -253,7 +258,8 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
         {view === 'modus' && status === 'ready' && days && (
           <>
             <MobileBrandHead loc={loc} onWechseln={changeLocation} />
-            <div className="hd-m-scroll">
+            <div className="hd-m-scroll hd-m-scroll--map">
+              {mapBg}
               <MobileModeChoice available={available} warmingDelta={warmingDelta} hottest={recordSet?.warmestDay ?? null}
                 onPick={(mode, gran) => { patch(gran ? { mode, exploreGran: gran } : { mode }); setModePicked(true); }} />
             </div>
@@ -294,17 +300,18 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
       <div className="hd-body">
         <Rail active={view} onMap={handleBack} onOpenFeature={onOpenFeature} />
 
-        {view === 'onboard' && <div className="hd-main"><div className="hd-onboard"><Onboarding onPick={applyLocation} deck /></div></div>}
+        {view === 'onboard' && <div className="hd-main hd-main--map">{mapBg}<div className="hd-onboard"><Onboarding onPick={applyLocation} deck /></div></div>}
 
         {view === 'modus' && status !== 'ready' && (
-          <div className="hd-main">
+          <div className="hd-main hd-main--map">{mapBg}
             {status === 'loading' && <div className="hd-panel"><span className="ev-spinner" /> Stationsdaten werden geladen … (bis zu {new Date().getFullYear() - defaultHistorySource.minYear} Jahre)</div>}
             {status === 'error' && <div className="hd-panel">⚠ {errMsg} <button type="button" className="hd-seg" onClick={() => setLoc(loc ? { ...loc } : null)}>Erneut versuchen</button></div>}
           </div>
         )}
 
         {view === 'modus' && status === 'ready' && days && (
-          <div className="hd-main">
+          <div className="hd-main hd-main--map">
+            {mapBg}
             <div className="hd-modepage">
               <ModeHead loc={loc!} available={available} recordCount={days.length} />
               <ModeTiles available={available} warmingDelta={warmingDelta} hottest={recordSet?.warmestDay ?? null} stripeYears={tmeanYearly}

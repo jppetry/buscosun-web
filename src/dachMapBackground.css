@@ -1,0 +1,61 @@
+/* DACH-Kartenhintergrund (DachMapBackground.tsx): Startseite und Historie-Einstieg.
+   Regeln wie in SearchPage.css (Stand 2026-10-25); die Historie hat ihr Positionierungs-Gerüst in historyDeck.css. */
+.deck-mapbg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 260px), transparent calc(100% - 20px));
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 260px), transparent calc(100% - 20px));
+}
+/* Zurückhaltend: die Karte bleibt Hintergrund (Jan 21.10.). */
+.deck-mapbg.is-ready { opacity: 0.4; }
+.deck-mapbg svg { position: absolute; top: 0; left: 50%; width: max(150vw, 1900px); height: auto; display: block; transform: translate(var(--dmb-x), var(--dmb-y)); }
+.deck-mapbg-cross { fill: none; stroke: var(--ink-900); stroke-opacity: 0.16; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.deck-mapbg-shadow { fill: var(--sand-300); fill-opacity: 0.5; }
+.deck-mapbg-land { fill: #ECE5D3; }
+.deck-mapbg-dots { stroke: none; }
+.deck-mapbg #dmb-dots circle { fill: var(--ink-900); fill-opacity: 0.08; }
+/* Straßen, Flüsse, Seen (Natural Earth) — in DACH voll, im Ausland blass. */
+.deck-mapbg-lines.is-abroad { opacity: 0.45; }
+.deck-mapbg-lake { fill: #CFDCE3; stroke: #9FB3C1; stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+.deck-mapbg-river { fill: none; stroke: #8FA7B8; stroke-opacity: 0.8; stroke-width: 1.1; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-road { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-road.is-minor { stroke: var(--ink-900); stroke-opacity: 0.16; stroke-width: 0.9; }
+.deck-mapbg-road-case { fill: none; stroke: #FBF8F0; stroke-width: 3.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-road.is-major { stroke: #CDB089; stroke-width: 1.5; }
+.deck-mapbg-borders { fill: none; stroke: var(--ink-900); stroke-opacity: 0.26; stroke-width: 1.2; stroke-dasharray: 3 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg-outline { fill: none; stroke: var(--ink-900); stroke-opacity: 0.42; stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.deck-mapbg text { font-family: 'League Spartan', var(--font-base); text-transform: uppercase; paint-order: stroke; stroke: #F3EEE2; stroke-width: 1.1px; stroke-linejoin: round; }
+.deck-mapbg-area { font-weight: 600; fill: var(--ink-900); stroke: none; }
+.deck-mapbg-area.is-country { font-size: 10px; letter-spacing: 0.45em; fill-opacity: 0.15; }
+.deck-mapbg-area.is-abroad { font-size: 6.5px; letter-spacing: 0.4em; fill-opacity: 0.13; }
+.deck-mapbg-area.is-sea { font-size: 6.5px; letter-spacing: 0.55em; font-style: italic; fill: var(--slate-500); fill-opacity: 0.55; }
+.deck-mapbg-area.is-range { font-size: 6px; letter-spacing: 0.7em; fill-opacity: 0.24; }
+.deck-mapbg-city circle { fill: var(--ink-900); fill-opacity: 0.6; }
+.deck-mapbg-city text { font-size: 4.3px; font-weight: 500; letter-spacing: 0.07em; fill: var(--ink-900); fill-opacity: 0.6; }
+.deck-mapbg-city.is-t2 text { font-size: 5px; font-weight: 600; fill-opacity: 0.7; }
+.deck-mapbg-city.is-t1 circle { fill: var(--terracotta-500); fill-opacity: 1; }
+.deck-mapbg-city.is-t1 text { font-size: 5.6px; font-weight: 700; fill-opacity: 0.8; }
+.deck-mapbg-city.is-abroad circle { fill: var(--sand-50); stroke: var(--ink-900); stroke-opacity: 0.5; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.deck-mapbg-city.is-abroad text { fill-opacity: 0.45; }
+.deck-mapbg-city.is-t1 .deck-mapbg-pulse { fill: none; stroke: var(--terracotta-500); stroke-width: 1.4; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: deck-mapbg-pulse 3.6s ease-out infinite; }
+@keyframes deck-mapbg-pulse {
+  0% { transform: scale(1); opacity: 0.75; }
+  100% { transform: scale(3.6); opacity: 0; }
+}
+@media (max-width: 767px) {
+  .deck-mapbg svg { width: 330vw; transform: translate(var(--dmb-x-m), var(--dmb-y)); }
+  .deck-mapbg.is-ready { opacity: 0.36; }
+  .deck-mapbg-city.is-t3 text, .deck-mapbg-area.is-abroad { display: none; }
+  .deck-mapbg-city.is-t2 text { font-size: 8.5px; }
+  .deck-mapbg-city.is-t1 text { font-size: 9.5px; }
+  .deck-mapbg-area.is-country { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck-mapbg { transition: none; }
+  .deck-mapbg-city.is-t1 .deck-mapbg-pulse { animation: none; transform: scale(1.8); opacity: 0.35; }
+}

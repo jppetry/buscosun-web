@@ -98,6 +98,10 @@
 
 /* ============================ Main (scrollflächen) ============================ */
 .hd-main { flex: 1; overflow-y: auto; background: var(--sand-100); padding: 30px 40px 40px; }
+/* Ortssuche und Moduswahl: DACH-Karte wie auf der Startseite dahinter (läuft mit dem Inhalt, im Dunkelmodus aus). */
+.hd-main--map, .hd-m-scroll--map { position: relative; isolation: isolate; }
+.hd-main--map > :not(.deck-mapbg), .hd-m-scroll--map > :not(.deck-mapbg) { position: relative; z-index: 1; }
+[data-theme="dark"] .hd-main--map .deck-mapbg, [data-theme="dark"] .hd-m-scroll--map .deck-mapbg { display: none; }
 
 /* ============================ Onboarding (Ortssuche) ============================ */
 .hd-onboard { max-width: 680px; margin: 12px auto 0; }

@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import './dachMapBackground.css';
 
 // ============================================================================
 // DACH map as the one background of the start page, zoomed in so that only a
