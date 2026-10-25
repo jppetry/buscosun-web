@@ -65,16 +65,27 @@ function WarnTriangle({ size = 15 }: { size?: number }) {
   );
 }
 
-/** Eine Warnung: Überschrift und Text wörtlich als Zitat, darunter Gültigkeit und Absender. */
-function WarnItem({ it }: { it: WarnItemVM }) {
-  return (
+/**
+ * Eine Warnung als kompakte Zeile: Warnstufe, Überschrift (wörtlich) und Gültigkeit; die Detailansicht klappt den Text auf —
+ * wörtlich als Zitat, darunter Absender. Ohne Beschreibung gibt es nichts aufzuklappen.
+ */
+function WarnRow({ it }: { it: WarnItemVM }) {
+  const head = (
     <>
-      <blockquote className="dbd-warn-quote" lang="de">
-        {it.headline && <p className="dbd-warn-title">{it.headline}</p>}
-        {it.description && <p className="dbd-warn-text">{it.description}</p>}
-      </blockquote>
-      <span className="dbd-warn-meta" data-origin="P19">{it.when} · wörtlich zitiert · {it.sender}</span>
+      <span className="dbd-warn-dot" data-level={it.level} aria-hidden="true" />
+      <span className="dbd-warn-row-title" lang="de">{it.headline ?? 'Amtliche Warnung'}</span>
+      <span className="dbd-warn-row-when" data-origin="P19">{it.when}</span>
     </>
+  );
+  if (!it.description) return <div className="dbd-warn-row is-flat" data-level={it.level}><div className="dbd-warn-row-sum">{head}</div></div>;
+  return (
+    <details className="dbd-warn-row" data-level={it.level}>
+      <summary className="dbd-warn-row-sum">{head}<span className="dbd-warn-row-more">Details</span></summary>
+      <blockquote className="dbd-warn-quote" lang="de">
+        <p className="dbd-warn-text">{it.description}</p>
+      </blockquote>
+      <span className="dbd-warn-meta" data-origin="P19">wörtlich zitiert · {it.sender}</span>
+    </details>
   );
 }
 
@@ -82,7 +93,7 @@ function WarnItem({ it }: { it: WarnItemVM }) {
 export function WarningStrip({ vm }: { vm: WarningVM }) {
   const active = vm.state === 'active';
   if (active && vm.items?.length) {
-    const [top, ...rest] = vm.items;
+    const [top] = vm.items;
     return (
       <div className="dbd-warn is-active is-rich" data-level={top.level} role="group" aria-label="Amtliche Warnung" data-origin="P18" title={originTitle('P18')}>
         <span className="dbd-warn-badge"><WarnTriangle size={18} /></span>
@@ -91,22 +102,7 @@ export function WarningStrip({ vm }: { vm: WarningVM }) {
             AMTLICHE WARNUNG · {vm.channel.toUpperCase()}
             {vm.items.length > 1 && <span className="dbd-warn-count">{vm.items.length} Warnungen</span>}
           </span>
-          <WarnItem it={top} />
-          {rest.length > 0 && (
-            <details className="dbd-warn-more">
-              <summary>
-                <span className="dbd-warn-dots" aria-hidden="true">
-                  {rest.map((it, i) => <span key={i} className="dbd-warn-dot" data-level={it.level} />)}
-                </span>
-                {rest.length === 1 ? '1 weitere Warnung' : `${rest.length} weitere Warnungen`}
-              </summary>
-              {rest.map((it, i) => (
-                <div key={i} className="dbd-warn-sub" data-level={it.level}>
-                  <WarnItem it={it} />
-                </div>
-              ))}
-            </details>
-          )}
+          {vm.items.map((it, i) => <WarnRow key={i} it={it} />)}
           {vm.note && <span className="dbd-warn-note">{vm.note}</span>}
         </div>
       </div>
