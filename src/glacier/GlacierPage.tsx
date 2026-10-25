@@ -198,6 +198,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const selVal = sel ? values.get(sel.id) : null;
   const ramp = GLACIER_RAMPS[def.ramp];
   const bounds = def.bounds;
+  /** Text colour on a ramp tile (the compact mobile legend prints the value ON the tile). */
+  const inkOn = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) > 140 ? '#2C2A26' : '#FFFFFF'; };
   const rampLabels = [`<${bounds[0]}`, `${bounds[0]}`, `${bounds[1]}`, `${bounds[2]}`, `≥${bounds[3]}`];
 
   // Map card of the picked glacier (shape of the Brandradar's map card): "Detailansicht öffnen" opens the dossier in the
@@ -216,7 +218,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       <div className="gl-legend-main">
         <div className="gl-legend-head"><b>{def.legendTitle}</b><OriginChip origin={def.origin} /></div>
         {def.locked ? <LockNote>{def.locked}</LockNote> : (
-          <div className="gl-ramp" aria-hidden="true">{ramp.map((c, i) => <div key={c}><i style={{ background: c }} /><span>{rampLabels[i]}</span></div>)}</div>
+          <div className="gl-ramp" aria-hidden="true">{ramp.map((c, i) => <div key={c}><i style={{ background: c }} /><span style={{ color: inkOn(c) }}>{rampLabels[i]}</span></div>)}</div>
         )}
       </div>
     </div>
