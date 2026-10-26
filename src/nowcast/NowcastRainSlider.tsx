@@ -176,7 +176,9 @@ export default function NowcastRainSlider({ nowcast }: { nowcast: Nowcast }) {
       {/* Ehrlichkeits-Hinweis */}
       <div className="rm-honesty">
         <FlagIcon />
-        <span>Jenseits des Skill-Horizonts (~{Math.round(SKILL_HORIZON_MIN / 60)} h) blendet Radar gleitend aufs Modell über — keine minutengenauen Start-/Stoppzeiten.</span>
+        <span>{steps.some((s) => s.source === 'blend')
+          ? <>Jenseits des Skill-Horizonts (~{Math.round(SKILL_HORIZON_MIN / 60)} h) blendet Radar gleitend aufs Modell über — keine minutengenauen Start-/Stoppzeiten.</>
+          : <>Radar bis zum Skill-Horizont (+{Math.round(SKILL_HORIZON_MIN / 60)} h), danach allein buscosun Fusion als Stundenmittel — nichts überblendet, keine minutengenauen Start-/Stoppzeiten.</>}</span>
       </div>
     </div>
   );

@@ -677,7 +677,8 @@ console.log('\nG Verdrahtung im Regenradar (ohne ruc byte-gleich; mit ruc: Begin
     const n1 = assembleNowcast({ ...base, rucAt: (eta) => (eta >= NOW + 150 * MIN ? 3 : null) });
     add('G15 rucAt trägt ab +150 min: Schritte davor 0,05 (Fusion-Stunde), ab 150 min 3 mm/h; Regenbeginn 150 min',
       n1.steps.filter((s) => s.minutes < 150).every((s) => s.mmH === 0.05) && n1.steps.filter((s) => s.minutes >= 150).every((s) => s.mmH === 3) && n1.nextRainInMin === 150);
-    const radarBase = { ...base, radarSampleAt: (eta) => (eta <= NOW + 120 * MIN ? 1 : null), radarValidUntilMs: NOW + 120 * MIN, radarSource: 'radolan_rv' };
+    // the blend exists only behind `?ncblend=1` since 26.10. (radar → buscosun Fusion without blend)
+    const radarBase = { ...base, radarSampleAt: (eta) => (eta <= NOW + 120 * MIN ? 1 : null), radarValidUntilMs: NOW + 120 * MIN, radarSource: 'radolan_rv', blend: true };
     const nb0 = assembleNowcast(radarBase), nb1 = assembleNowcast({ ...radarBase, rucAt: () => 5 });
     const blend0 = nb0.steps.find((s) => s.minutes === 120), blend1 = nb1.steps.find((s) => s.minutes === 120);
     add('G16 Überblendung 90–150 min: die Modellseite ist der RUC-Wert (bei 120 min: 1·0,5 + 5·0,5 = 3 statt 0,525), Radarseite unverändert',
@@ -961,7 +962,7 @@ console.log('\nJ Regen-Kante der Anzeigen (E-RUC-11, 24.10.): Spurenstunde ⇒ k
   // Radar-Minute in der Blend-Zone (Regen laut Radar ab 18:40 UTC = +98 min, Schritt 105 ist „blend"): mit Kante nennt das Ereignis die Radar-Minute, ohne Kante die RUC-Minute des Schritts
   const wetFrames = frames.map((f) => ({ tMs: f.tMs, mmH: f.tMs >= t(18, 40) ? 1.5 : 0 }));
   const ncBlend = (f, gate) => {
-    const nc = assembleNowcast({ nowMs: NOW, radarSampleAt: (eta) => (eta <= t(18, 55) ? (eta >= t(18, 40) ? 1.5 : 0) : null), radarValidUntilMs: t(18, 55), radarSource: 'radolan_rv', runAtMs: NOW, fetchedAtMs: NOW, nwp, nwpSource: 'cube',
+    const nc = assembleNowcast({ nowMs: NOW, radarSampleAt: (eta) => (eta <= t(18, 55) ? (eta >= t(18, 40) ? 1.5 : 0) : null), radarValidUntilMs: t(18, 55), radarSource: 'radolan_rv', runAtMs: NOW, fetchedAtMs: NOW, nwp, nwpSource: 'cube', blend: true,
       rucAt: (eta) => rucMeanOver(f, eta - 15 * MIN, eta) });
     nc.radarFrames = wetFrames; nc.fusionHours = fusionHours; nc.fusionPWet = fusionPWet; nc.ruc = f; nc.rainGate = gate;
     return nc;

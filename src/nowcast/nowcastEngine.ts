@@ -67,6 +67,32 @@ export interface AssembleInput {
    * of the blend); radar minutes, confidence and phase are untouched.
    */
   rucAt?: (etaMs: number) => number | null;
+  /**
+   * Seam radar → buscosun Fusion (Jan 26.10.): without this flag the radar stands alone up to the skill horizon and
+   * buscosun Fusion alone behind it, its hourly mean held over the hour — no blend, no interpolation between the hours.
+   * `true` (`?ncblend=1`) = the stand before: radar → model blend 90–150 min, hourly values interpolated linearly.
+   */
+  blend?: boolean;
+}
+
+/** `?ncblend=1` = fallback to the radar → model blend with linearly interpolated hours (stand before 26.10.). */
+export function ncBlendEnabledFrom(search: string): boolean {
+  return new URLSearchParams(search).get('ncblend') === '1';
+}
+
+/**
+ * Mean rate of buscosun Fusion over (fromMs, toMs] with every hour held constant over (tMs − 1 h, tMs] (a cube step
+ * at t is the mean rate over the hour ending at t) — no interpolation between hours. Outside the hours: the nearest.
+ */
+function holdNwpMmH(nwp: NwpHour[], fromMs: number, toMs: number): number {
+  if (!nwp.length) return 0;
+  let acc = 0, len = 0;
+  for (const h of nwp) {
+    const a = Math.max(fromMs, h.tMs - 3_600_000), b = Math.min(toMs, h.tMs);
+    if (b > a) { acc += h.mmH * (b - a); len += b - a; }
+  }
+  if (len > 0) return acc / len;
+  return toMs <= nwp[0].tMs ? nwp[0].mmH : nwp[nwp.length - 1].mmH;
 }
 
 interface NwpInterp { mmH: number; conf: number; snowLineM: number | null; tempC: number | null }
@@ -124,10 +150,12 @@ export function assembleNowcast(input: AssembleInput): Nowcast {
     const radarOk = r != null && Number.isFinite(r);
     if (radarOk) radarValidMin = minutes;
     const n = interpNwp(nwp, etaMs);
-    const nm = input.rucAt ? (input.rucAt(etaMs) ?? n.mmH) : n.mmH;
+    // the 15-min step stands for (eta − 15 min, eta], like the RUC mean below
+    const nwpMmH = input.blend ? n.mmH : holdNwpMmH(nwp, etaMs - NOWCAST_STEP_MIN * 60_000, etaMs);
+    const nm = input.rucAt ? (input.rucAt(etaMs) ?? nwpMmH) : nwpMmH;
 
     let mmH: number, source: NowcastSource, blendW = 0;
-    if (radarOk && minutes <= BLEND_FROM_MIN) {
+    if (radarOk && (!input.blend || minutes <= BLEND_FROM_MIN)) {
       mmH = r as number; source = 'radar';
     } else if (radarOk && minutes < BLEND_TO_MIN) {
       blendW = (minutes - BLEND_FROM_MIN) / (BLEND_TO_MIN - BLEND_FROM_MIN);
@@ -426,7 +454,8 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   // E-RUC-11 (on, `?mvgate=0` = fallback): the rain gate of the displays — an hour below 0,1 mm/h or 30 % P(wet) is a trace hour.
   const gate = rainGateEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
   let rucSeries: RucPointSeries | null = null;
-  const assemble = (s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
+  const blend = ncBlendEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  const assemble =(s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
     const nwpFull = nwpOf(forecast);
     // P(wet) per hour BEFORE the fit: the gate marks the trace hours of the 5-min form with it (rain window only, as before)
     let pw: Array<{ tMs: number; p: number }> | null = null;
@@ -445,6 +474,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       elevationM: forecast.query?.elevation ?? null,
       lapseRatePerM: forecast.lapseRatePerM ?? null,
       nwpSource,
+      blend,
       // the mean of the 5-min intervals of the 15-min step (eta − 15, eta] keeps the hourly sum of buscosun Fusion exact (review I3)
       ...(fit ? { rucAt: (eta: number) => rucMeanOver(fit, eta - NOWCAST_STEP_MIN * 60_000, eta) } : {}),
     });
