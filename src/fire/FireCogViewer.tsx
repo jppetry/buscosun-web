@@ -1160,8 +1160,6 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         </div>
       )}
       <div className="br-cog-ctrl" role="group" aria-label="10-m-Ansicht steuern">
-        <button type="button" onClick={() => zoomBy(0.5)} aria-label="Hineinzoomen">+</button>
-        <button type="button" onClick={() => zoomBy(2)} aria-label="Herauszoomen">−</button>
         <button type="button" onClick={resetView} aria-label="Ansicht auf den Brand zurücksetzen">⌂</button>
         <button type="button" onClick={() => setFull((f) => !f)} aria-label={full ? 'Vollbild verlassen' : 'Vollbild'}>
           {full ? '⇲' : '⤢'}
