@@ -754,6 +754,7 @@ export default function FireMap({
       // öffnet, öffnet deshalb KEIN Popup; alle übrigen Klicks (ortsfeste
       // Anlagen, Historie-lose Flächen, Raster) behalten ihre Steckbriefe.
       let openedDossier = false;
+      let footprintHit = false;
       if (onSelectFootprintRef.current && map.getLayer('fire-footprints-fill')) {
         const fps = map.queryRenderedFeatures(hb, { layers: ['fire-footprints-fill'] });
         // Bei überlappenden Flächen die KLEINSTE — sie ist die spezifischere;
@@ -767,7 +768,7 @@ export default function FireMap({
         // BD2a: auch der WIEDERHOLTE Klick auf den markierten Brand öffnet das
         // Dossier (nach „Bühne zurück" wäre er sonst folgenlos) — die Setter
         // sind idempotent, der frühere Gleichheits-Wächter entfällt.
-        if (id) openedDossier = onSelectFootprintRef.current(id) === true || openedDossier;
+        if (id) { footprintHit = true; openedDossier = onSelectFootprintRef.current(id) === true || openedDossier; }
         else if (s.selectedFootprintId) {
           // Klick daneben hebt die Markierung auf — außer, er trifft eine Hülle
           // (dann übernimmt der Cluster-Block; die Seite nullt die Brandfläche).
@@ -785,7 +786,8 @@ export default function FireMap({
         const id = pick ? String(pick.properties?.id ?? '') : null;
         // BD2a: derselbe Grund wie bei der Brandfläche — der wiederholte Klick zählt.
         if (id) openedDossier = onSelectClusterRef.current(id) === true || openedDossier;
-        else if (id !== s.selectedClusterId) onSelectClusterRef.current(null);
+        // Ein Treffer auf eine Brandfläche hat die Auswahl schon gesetzt — das Leeren der Hülle würde die Kachel wieder schließen.
+        else if (!footprintHit && id !== s.selectedClusterId) onSelectClusterRef.current(null);
       }
       if (openedDossier) { popupRef.current?.remove(); popupRef.current = null; return; }
       if (map.getLayer('fire-hotspots-points')) {
