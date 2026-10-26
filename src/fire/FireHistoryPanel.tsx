@@ -157,6 +157,10 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
 
 const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 const num = (n: number | null | undefined, unit = '', frac = 0) => (n == null ? '—' : `${n.toLocaleString('de-DE', { maximumFractionDigits: frac })}${unit}`);
+/** Ein Messwert als kleine Kachel: große Zahl, darunter die Größe. */
+function WxStat({ lbl, val }: { lbl: string; val: string }) {
+  return <span className="br-wx-stat"><b>{val}</b><em>{lbl}</em></span>;
+}
 
 /**
  * BD2f — der Detailkörper eines Historie-Ereignisses: Index-Zeilen + Shard-Detail (BH4).
@@ -452,19 +456,29 @@ export function HistoryDossierBody({ entry, aside, head }: {
           {w?.day && (
             <div className="br-wx-tile">
               <span className="br-wx-lbl">Tag · {w.dateISO.split('-').reverse().join('.')}</span>
-              max {num(w.day.tMaxC, ' °C', 1)}{w.day.modelFilled.includes('tMaxC') && '*'} · Feuchte {num(w.day.humidityPct, ' %')}{w.day.modelFilled.includes('humidityPct') && '*'} · Wind max {num(w.day.windMaxKmh, ' km/h')}{w.day.modelFilled.includes('windMaxKmh') && '*'} · Regen {num(w.day.precipMm, ' mm', 1)}{w.day.modelFilled.includes('precipMm') && '*'}
+              <span className="br-wx-stats">
+                <WxStat lbl="Höchsttemp." val={`${num(w.day.tMaxC, ' °C', 1)}${w.day.modelFilled.includes('tMaxC') ? '*' : ''}`} />
+                <WxStat lbl="Feuchte" val={`${num(w.day.humidityPct, ' %')}${w.day.modelFilled.includes('humidityPct') ? '*' : ''}`} />
+                <WxStat lbl="Wind max." val={`${num(w.day.windMaxKmh, ' km/h')}${w.day.modelFilled.includes('windMaxKmh') ? '*' : ''}`} />
+                <WxStat lbl="Regen" val={`${num(w.day.precipMm, ' mm', 1)}${w.day.modelFilled.includes('precipMm') ? '*' : ''}`} />
+              </span>
             </div>
           )}
           {w?.hour && (
             <div className="br-wx-tile">
               <span className="br-wx-lbl">Stunde {fmtClock(w.hour.atMs)}</span>
-              {num(w.hour.tempC, ' °C', 1)} · Wind {num(w.hour.windKmh, ' km/h')} · Regen {num(w.hour.precipMm, ' mm', 1)}
+              <span className="br-wx-stats">
+                <WxStat lbl="Temperatur" val={num(w.hour.tempC, ' °C', 1)} />
+                <WxStat lbl="Wind" val={num(w.hour.windKmh, ' km/h')} />
+                <WxStat lbl="Regen" val={num(w.hour.precipMm, ' mm', 1)} />
+              </span>
             </div>
           )}
           {w && (
             <div className="br-wx-tile">
               <span className="br-wx-lbl">Trockenphase</span>
-              {rainLabel(w)}{w.day ? '' : ' (Tagesreihe fehlt)'}
+              <span className="br-wx-big">{rainLabel(w)}</span>
+              {!w.day && <span className="br-wx-sub">Tagesreihe fehlt</span>}
             </div>
           )}
           {weather === null && <p className="br-note">Wetterlage nicht verfügbar — Ausfall der Historie-Quellen, kein Wert erfunden.</p>}

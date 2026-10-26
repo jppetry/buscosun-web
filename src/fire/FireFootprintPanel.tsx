@@ -61,7 +61,7 @@ import { activitySummary } from './activity/fireActivity';
 import { STATE_LABEL, compassLabel, SPREAD_MIN_M } from './activity/dynamics';
 import {
   driverRating, dominantWind, windRose, spreadVsWind, spreadVsWindLabel, fireIndexSeries, indexAt,
-  DRIVER_LABEL, DRIVER_RULE_TEXT, FIRE_INDEX_NOTE, STEADY_MIN,
+  DRIVER_LABEL, DRIVER_RULE_TEXT, DRIVER_RULES, FIRE_INDEX_NOTE, STEADY_MIN,
 } from './detail/fireDrivers';
 import { WindRoseChart, DriverSeriesChart } from './FireDriverCharts';
 import { OBSERVATION_LABEL } from './activity/observation';
@@ -890,6 +890,7 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
       ) : (
         <MissingBlock>Keine Einstufung — für den Zeitraum der Detektionen liegt keine Modellstunde vor.</MissingBlock>
       )}
+      {rating && <ScoreMeter score={rating.score} level={rating.level} />}
       {rating && (
         <InfoTileGrid
           className="br-drv-reasons"
@@ -965,6 +966,30 @@ export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: Fir
         {era5 ? FIRE_WEATHER_ARCHIVE_LABEL : FIRE_WEATHER_SOURCE_LABEL} · {era5 ? FIRE_WEATHER_ARCHIVE_ATTRIBUTION : FIRE_WEATHER_ATTRIBUTION}.
       </Typography>
     </Stack>
+  );
+}
+
+/**
+ * Die Punktsumme der Einstufung auf einer Skala dämpfend | neutral | brandtreibend. Die Grenzen sind die der Regel
+ * (`DRIVER_RULES`), die Marke steht an der Summe — wer „-2" liest, sieht auch, wo das auf der Skala liegt.
+ */
+const METER_MIN = -6;
+const METER_MAX = 8;
+function ScoreMeter({ score, level }: { score: number; level: 'driving' | 'neutral' | 'damping' }) {
+  const pos = (v: number) => `${((Math.min(METER_MAX, Math.max(METER_MIN, v)) - METER_MIN) / (METER_MAX - METER_MIN)) * 100}%`;
+  const lo = DRIVER_RULES.dampingFrom + 0.5, hi = DRIVER_RULES.drivingFrom - 0.5;
+  return (
+    <div className={`br-drv-meter is-${level}`} role="img" aria-label={`Punktsumme ${score > 0 ? '+' : ''}${score}: ${DRIVER_LABEL[level]} (dämpfend ab ${DRIVER_RULES.dampingFrom}, brandtreibend ab +${DRIVER_RULES.drivingFrom})`}>
+      <div className="br-drv-meter-track">
+        <i className="is-damping" style={{ left: 0, width: pos(lo) }} />
+        <i className="is-neutral" style={{ left: pos(lo), width: `calc(${pos(hi)} - ${pos(lo)})` }} />
+        <i className="is-driving" style={{ left: pos(hi), right: 0 }} />
+        <b className="br-drv-meter-mark" style={{ left: pos(score) }}><span>{score > 0 ? `+${score}` : score}</span></b>
+      </div>
+      <div className="br-drv-meter-lbl" aria-hidden="true">
+        <span>dämpfend</span><span>neutral</span><span>brandtreibend</span>
+      </div>
+    </div>
   );
 }
 

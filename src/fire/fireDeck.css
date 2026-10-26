@@ -637,6 +637,33 @@
 .br-wx-lbl { display: block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: var(--stone-400, #A89A7A); margin-bottom: 1px; }
 .br-wx-loading { font-size: 12px; margin: 0; }
 .br-wx .fire-fp-reasons { font-size: 11.5px; }
+/* Messwerte der Wetterlage als Kacheln: große Zahl, darunter die Größe. */
+.br-wx-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 6px; margin-top: 4px; }
+.br-wx-stat { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: 8px; background: rgba(74, 107, 138, 0.08); }
+.br-wx-stat b { font-size: 15px; font-weight: 700; line-height: 1.15; color: var(--ink-900, #2C2A26); white-space: nowrap; }
+.br-wx-stat em { font-style: normal; font-size: 11px; color: var(--stone-500, #8B7355); }
+.br-wx-big { display: block; font-size: 15px; font-weight: 700; color: var(--ink-900, #2C2A26); line-height: 1.25; }
+.br-wx-sub { display: block; font-size: 11.5px; color: var(--stone-500, #8B7355); }
+.br-ds .br-wx-stats { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-top: 8px; }
+.br-ds .br-wx-stat { padding: 9px 11px; border-radius: 10px; }
+.br-ds .br-wx-stat b { font-size: 19px; }
+.br-ds .br-wx-stat em { font-size: 13px; }
+.br-ds .br-wx-big { font-size: 19px; }
+.br-ds .br-wx-sub { font-size: 13.5px; }
+/* Wetterführung: Punktsumme auf der Skala dämpfend | neutral | brandtreibend. */
+.br-drv-meter { padding: 2px 2px 0; }
+.br-drv-meter-track { position: relative; height: 12px; border-radius: 999px; overflow: visible; background: var(--sand-100, #EDE6D3); }
+.br-drv-meter-track i { position: absolute; top: 0; bottom: 0; }
+.br-drv-meter-track i.is-damping { background: rgba(58, 111, 168, 0.30); border-radius: 999px 0 0 999px; }
+.br-drv-meter-track i.is-neutral { background: rgba(139, 115, 85, 0.20); }
+.br-drv-meter-track i.is-driving { background: rgba(212, 99, 46, 0.34); border-radius: 0 999px 999px 0; }
+.br-drv-meter-mark { position: absolute; top: 50%; width: 0; height: 0; }
+.br-drv-meter-mark::before { content: ''; position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink-900, #2C2A26); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(44, 42, 38, 0.4); box-sizing: border-box; }
+.br-drv-meter.is-damping .br-drv-meter-mark::before { background: var(--br-steel, #3A6FA8); }
+.br-drv-meter.is-driving .br-drv-meter-mark::before { background: var(--br-red, #A32B1E); }
+.br-drv-meter-mark span { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-900, #2C2A26); }
+.br-drv-meter-lbl { display: flex; justify-content: space-between; margin-top: 20px; font-size: 11.5px; color: var(--stone-500, #8B7355); }
+.br-ds .br-drv-meter-lbl { font-size: 13px; }
 .br-stat-val.is-spread { color: #D4632E; }
 .br-stat-sub { font-size: 12px; color: var(--stone-500, #8B7355); }
 .br-stat-sub.is-mapped { color: var(--br-sage-text); }

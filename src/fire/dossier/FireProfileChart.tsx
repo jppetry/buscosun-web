@@ -48,6 +48,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Radar } from '@nivo/radar';
@@ -140,7 +141,69 @@ function referenceRing(color: string) {
   };
 }
 
-export function FireProfileChart({ profile, compact = false }: FireProfileChartProps) {
+/** Wortlaut zur Lage des Rangs — dieselbe Lesart wie `axisRankText`: Rang = Anteil der Vergleichsstunden, die weniger brandförderlich waren. */
+function rankWord(pct: number): { text: string; tone: 'high' | 'mid' | 'low' } {
+  if (pct >= 75) return { text: 'ungewöhnlich brandförderlich', tone: 'high' };
+  if (pct <= 25) return { text: 'weniger brandförderlich als üblich', tone: 'low' };
+  return { text: 'im üblichen Bereich', tone: 'mid' };
+}
+
+/**
+ * Die Rang-Leisten: je Größe eine Zeile mit Rohwert, einer Skala 0–100 (Rang), der Marke bei P50
+ * („üblich für diesen Ort") und einem Wort. Gleiche Aussage wie das Netz, aber ohne Eck-Beschriftung —
+ * jede Zahl steht direkt neben ihrer Leiste und die Richtung (rechts = brandförderlicher) ist überall dieselbe.
+ */
+function RankBars({ profile }: { profile: FireProfile }) {
+  const t = useTheme();
+  const toneColor = { high: t.palette.fire.veryHigh, mid: t.palette.fire.sage, low: t.palette.fire.steel } as const;
+  return (
+    <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 1.15 }} aria-label="Rang je Größe gegen die Vergleichsstunden">
+      {profile.axes.map((a) => {
+        const has = a.pct != null;
+        const w = has ? rankWord(a.pct as number) : null;
+        const col = w ? toneColor[w.tone] : t.palette.text.disabled;
+        return (
+          <Box component="li" key={a.key} sx={{ display: 'grid', gap: 0.4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{a.label}</Typography>
+              <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                {axisValueText(a)}
+                <Box component="span" sx={{ ml: 0.8, color: col, fontWeight: 700 }}>{has ? `P${Math.round(a.pct as number)}` : '—'}</Box>
+              </Typography>
+            </Box>
+            <Box
+              role="img" aria-label={`${a.label}: ${axisValueText(a)}, ${axisRankText(a)}`}
+              sx={{ position: 'relative', height: 10, borderRadius: 999, bgcolor: 'action.hover', overflow: 'visible' }}
+            >
+              {has && (
+                <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(2, a.pct as number)}%`, borderRadius: 999, bgcolor: col, opacity: 0.32 }} />
+              )}
+              <Box sx={{ position: 'absolute', left: `${REFERENCE_PCT}%`, top: -3, bottom: -3, width: 0, borderLeft: '1.5px dashed', borderColor: 'fire.sage' }} />
+              {has && (
+                <Box sx={{
+                  position: 'absolute', left: `${a.pct}%`, top: '50%', width: 14, height: 14, ml: '-7px', mt: '-7px',
+                  borderRadius: '50%', bgcolor: col, border: 2, borderColor: 'background.paper', boxShadow: 1,
+                }} />
+              )}
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              {w ? `${w.text} · ${axisRankText(a)}` : axisRankText(a)}
+            </Typography>
+          </Box>
+        );
+      })}
+      <Stack direction="row" spacing={0.6} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.4 }}>
+        <Box sx={{ width: 0, height: 14, borderLeft: '1.5px dashed', borderColor: 'fire.sage', flexShrink: 0 }} />
+        <Typography variant="caption" color="text.secondary">
+          Strich = üblich für diesen Ort (P{REFERENCE_PCT}) · Punkt = diese Brandstunde · weiter rechts = ungewöhnlicher brandförderlich
+        </Typography>
+      </Stack>
+    </Box>
+  );
+}
+
+/** Das Netz — die frühere Hauptansicht, jetzt die zweite Ansicht neben den Leisten. */
+function ProfileRadar({ profile, compact = false }: FireProfileChartProps) {
   const t = useTheme();
   const box = useRef<HTMLDivElement | null>(null);
   const [w, setW] = useState<number | null>(null);
@@ -267,6 +330,30 @@ export function FireProfileChart({ profile, compact = false }: FireProfileChartP
           Die Achse bleibt stehen — sie wegzulassen würde die Form und damit die Aussage verändern.
         </Typography>
       )}
+    </Box>
+  );
+}
+
+/**
+ * Das Brandprofil in zwei Ansichten: Rang-Leisten (Vorgabe — jede Zahl steht neben ihrer Leiste, auch in der
+ * schmalen Spalte lesbar) und das Netz (alle Größen als eine Form). Beide lesen dieselben `profile.axes`.
+ */
+export function FireProfileChart({ profile, compact = false }: FireProfileChartProps) {
+  const [view, setView] = useState<'bars' | 'radar'>('bars');
+  return (
+    <Box>
+      <Stack direction="row" spacing={0.5} sx={{ mb: 1 }} role="group" aria-label="Ansicht des Brandprofils">
+        {(['bars', 'radar'] as const).map((v) => (
+          <Button
+            key={v} size="small" variant={view === v ? 'contained' : 'outlined'} color="inherit" disableElevation
+            aria-pressed={view === v} onClick={() => setView(v)}
+            sx={{ minWidth: 0, px: 1.4, py: 0.3, fontSize: 12.5, textTransform: 'none', borderRadius: 999 }}
+          >
+            {v === 'bars' ? 'Leisten' : 'Netz'}
+          </Button>
+        ))}
+      </Stack>
+      {view === 'bars' ? <RankBars profile={profile} /> : <ProfileRadar profile={profile} compact={compact} />}
     </Box>
   );
 }
