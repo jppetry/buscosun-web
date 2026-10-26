@@ -28,14 +28,10 @@ import type { Nowcast } from './nowcastModel';
 
 import RadarMap from '../radar/RadarMap';
 import RadarTimeline from '../radar/RadarTimeline';
-import PointStrip, { stripSamples, frameIntensities } from '../radar/PointStrip';
+import { frameIntensities } from '../radar/PointStrip';
 import { getRadarStack, seedDePastArchive, DE_PAST_SEED_FRAMES, seedChPastArchive, CH_PAST_SEED_FRAMES, type RadarStack } from '../radar/radarFrames';
-import { pointPoPSeries } from '../radar/pointPoP';
 import { computeRainWindow, rainWindowEnabledFrom } from './rainWindow';
 import { radarTimesAt } from './rainWindowRadar';
-import { convectiveIndex, type ConvectiveIndex } from '../radar/convectiveIndex';
-import { fetchPeakCapeAtPoint } from '../sources/iconD2Cape';
-import { fetchDwdAlerts } from '../sources/dwdAlerts';
 import { fetchKonrad3d } from '../sources/dwdKonrad3d';
 import type { Konrad3dRun } from '../radar/konrad3d';
 import { buildCellFeatures, cellLocationRelevance, cellRelevanceText } from '../radar/cellPolygons';
@@ -254,9 +250,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   onPointChangeRef.current = onPointChange;
   const hasPointCb = !!onPointChange;
   useEffect(() => { onPointChangeRef.current?.(point); }, [point, hasPointCb]);
-  // Gewittergefahr-Zutaten (DE): CAPE-Spitze + DWD-Gewitterwarnstufe am Punkt.
-  const [capePeak, setCapePeak] = useState<number | null>(null);
-  const [warnLevel, setWarnLevel] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   // Phase NS: die Karte als Zustand, damit die Summen-Ebene an ihr hängen kann.
@@ -422,27 +415,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     return () => ac.abort();
   }, [point.lat, point.lon, point.country]);
 
-  // Gewittergefahr-Index: CAPE (ICON-D2) + amtliche Gewitterwarnung am Punkt lazy
-  // im Hintergrund laden (NUR DE — beides DACH-weit nicht verfügbar). Blockiert den
-  // Radar-Kaltstart nicht; AT/CH fallen sauber auf das Radarsignal zurück.
-  // Phase PF (M11, audit/performance-2026-10-10.md): CAPE (4 ICON-D2 PNGs, 450 KB) and the warnings start once the radar stack
-  // is there — before, they competed with the RV frames for the line on mobile 4G (the index is a background value).
-  const hasStack = !!stack;
-  useEffect(() => {
-    setCapePeak(null); setWarnLevel(0);
-    if (point.country !== 'DE' || !hasStack) return;
-    const ac = new AbortController();
-    void fetchPeakCapeAtPoint(point.lat, point.lon, ac.signal)
-      .then((c) => { if (!ac.signal.aborted && c != null) setCapePeak(c); }).catch(() => {});
-    void fetchDwdAlerts(point.lat, point.lon, ac.signal)
-      .then((r) => {
-        if (ac.signal.aborted) return;
-        const lvl = r.alerts.reduce((m, a) => (/gewitter/i.test(a.event) || /gewitter/i.test(a.headline) ? Math.max(m, a.level) : m), 0);
-        setWarnLevel(lvl);
-      }).catch(() => {});
-    return () => ac.abort();
-  }, [point.lat, point.lon, point.country, hasStack]);
-
   // RL1 — Nachbarquellen des DACH-Komposits (best-effort, entdoppelt über
   // `shareInFlight` wie in der Wetterkarte). Das eigene Land kommt aus dem Stack;
   // die beiden anderen werden parallel geholt. Schlägt alles fehl, bleibt
@@ -553,22 +525,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     [cellsRun, cellRel, zoAffectsCellId],
   );
 
-  // Gewittergefahr-Index am Punkt: fusioniert CAPE (Potenzial), Zellintensität
-  // (Realisierung) und amtliche Warnung zu EINER Aussage. cellPeak aus dem
-  // Punktforecast (layer-unabhängig); „verstärkend" seit RL1 = die für den Ort
-  // relevante KONRAD3D-Zelle hat Severity ≥ 1 (KONRAD3D kennt keinen Trend —
-  // die Eigenverfolgung, die ihn lieferte, ist ersetzt; benannt, nicht kaschiert).
-  const convective: ConvectiveIndex | null = useMemo(() => {
-    if (!pointNowcast) return null;
-    return convectiveIndex({
-      capeJkg: capePeak,
-      cellPeakMmH: pointNowcast.summary.peakMmH ?? null,
-      cellIntensifying: relCell != null && cellRel?.kind === 'eta' && (relCell.severityDecimal ?? relCell.severity ?? 0) >= 1,
-      warningLevel: warnLevel,
-      fallbackRiskPct: pointNowcast.summary.thunderRiskPct ?? 0,
-    });
-  }, [capePeak, warnLevel, pointNowcast, relCell, cellRel]);
-
   const accumValues = useMemo(() => {
     if (!stack || !layerSet.has('accum')) return null;
     const fr = stack.frames[stack.nowIndex] ?? stack.frames[0]; const w = ACCUM_WINDOWS[accumIdx];
@@ -581,9 +537,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     return buildEdgeFalloffMask(fr.width, fr.height).values;
   }, [stack, layerSet]);
 
-  const pointSamples = useMemo(() => (stack ? stripSamples(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
-  // Ensemble-Regenwahrscheinlichkeit am Punkt (nur DE) — hängt an stack+Punkt, nicht am Slider.
-  const pointPop = useMemo(() => (stack ? pointPoPSeries(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
   // Phase RB (an, `?rb=0` aus): dieselbe Spanne als Label am Ortsmarker — für den Punkt am Marker (kann vom Ort der Seite abweichen).
   const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const markerLabel = useMemo(() => {
@@ -924,13 +877,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
             legend={legend}
           />
         ) : null;
-        const pointStrip = stack ? (
-          <PointStrip
-            name={point.name} country={point.country} samples={pointSamples}
-            nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={shownPalette}
-            nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
-          />
-        ) : null;
         const qualityList = (
           <ul>
             {stack && <li><strong>Quelle:</strong> {stack.attribution}</li>}
@@ -943,20 +889,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           return (
             <>
               {/* Zeitachse steht immer offen — sie ist die Hauptbedienung des
-                  Radars, nicht ein Detail. Punktabfrage und Methodik bleiben
-                  eingeklappt darunter. */}
+                  Radars, nicht ein Detail. Die Methodik bleibt eingeklappt darunter. */}
               {scrubber}
               <details className="nc-radar-morebox">
-              <summary><IconRadarSignal size={15} /> Punktabfrage &amp; Datenqualität</summary>
+              <summary><IconRadarSignal size={15} /> Methodik &amp; Datenqualität</summary>
               <div className="nc-radar-morebox-body">
-                {pointStrip}
-                {/* Methodik als eigene, zugeklappte Kachel: Herkunft, Skill-Horizont,
-                    Radarsicht und Raster-Sättigung bleiben vollständig erreichbar
-                    (Funktionserhalt), kosten aber nur noch eine Zeile Platz. */}
-                <details className="nc-radar-quality nc-radar-quality-inline nc-methodik">
-                  <summary><IconRadarSignal size={14} /> Methodik &amp; Datenqualität</summary>
-                  {qualityList}
-                </details>
+                {/* Herkunft, Skill-Horizont, Radarsicht und Raster-Sättigung
+                    bleiben vollständig erreichbar (Funktionserhalt). */}
+                {qualityList}
               </div>
               </details>
             </>
@@ -965,7 +905,6 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         return (
           <>
             {scrubber}
-            {pointStrip}
             <details className="nc-radar-quality">
               <summary><IconRadarSignal size={15} /> Datenqualität &amp; Radarsicht</summary>
               {qualityList}
