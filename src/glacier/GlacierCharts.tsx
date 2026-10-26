@@ -10,8 +10,8 @@ import { dateDe, type Scene, type CumPoint, type ProjectionView } from './glacie
 import type { Triple } from './glacierMeltContract';
 
 const THEME = {
-  text: { fontFamily: "'League Spartan', system-ui, sans-serif", fontSize: 10.5, fill: '#5C5447' },
-  grid: { line: { stroke: '#E0D6BE', strokeWidth: 1 } },
+  text: { fontFamily: "'League Spartan', system-ui, sans-serif", fontSize: 12, fill: '#5C5447' },
+  grid: { line: { stroke: '#E8DFC9', strokeWidth: 1 } },
   axis: { ticks: { line: { stroke: 'transparent' } }, domain: { line: { stroke: '#9D8F6E', strokeWidth: 1 } } },
 };
 const MONTHS = [['Mai', 121], ['Jun', 152], ['Jul', 182], ['Aug', 213], ['Sep', 244], ['Okt', 274]] as const;
@@ -57,17 +57,51 @@ export function SeasonChart({ scenes, band, zRange }: { scenes: readonly Scene[]
 }
 
 // --- cumulative length ---------------------------------------------------------------------------------------------------------------------
+const FONT = "'League Spartan', system-ui, sans-serif";
+/** A "nice" tick step (1, 2, 2.5, 5 × 10ⁿ) that gives about `target` ticks over `span`. */
+function niceStep(span: number, target = 5): number {
+  const raw = Math.max(1e-9, span) / target, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+}
+/** Light halo behind chart text, so it stays readable on top of lines and areas. */
+const HALO = { paintOrder: 'stroke', stroke: '#FAF6EA', strokeWidth: 4, strokeLinejoin: 'round' } as const;
+
 export function LengthChart({ points }: { points: readonly CumPoint[] }) {
-  const lo = Math.floor(Math.min(...points.map((p) => p.cum), 0) / 100) * 100;
+  const first = points[0], last = points[points.length - 1];
+  const minCum = Math.min(...points.map((p) => p.cum), 0);
+  const step = niceStep(-minCum || 100, 4);
+  const lo = -Math.ceil((-minCum || 100) / step) * step;
+  const yTicks: number[] = [];
+  for (let v = 0; v >= lo - 1e-9; v -= step) yTicks.push(Math.round(v * 100) / 100);
+  const span = last.year - first.year, xStep = span > 100 ? 20 : span > 50 ? 10 : 5;
+  const xTicks: number[] = [];
+  for (let y = Math.ceil(first.year / xStep) * xStep; y <= last.year; y += xStep) xTicks.push(y);
+  const layer = ({ xScale, yScale, innerWidth }: LayerArgs) => {
+    const ex = xScale(last.year), ey = yScale(last.cum);
+    return (
+      <g aria-hidden="true" fontFamily={FONT}>
+        <line x1={0} x2={innerWidth} y1={yScale(0)} y2={yScale(0)} stroke="#9D8F6E" strokeWidth={1.4} />
+        <text x={4} y={yScale(0) + 15} fontSize={12} fill="#5C5447" {...HALO}>Stand {first.year}: 0 m</text>
+        <text x={4} y={yScale(0) + 15} fontSize={12} fill="#5C5447">Stand {first.year}: 0 m</text>
+        <circle cx={ex} cy={ey} r={5} fill="#fff" stroke="#B5602C" strokeWidth={2.4} />
+        <text x={ex - 9} y={ey - 10} fontSize={14} fontWeight={700} textAnchor="end" fill="#8A4519" {...HALO}>{fmt0(last.cum)} m</text>
+        <text x={ex - 9} y={ey - 10} fontSize={14} fontWeight={700} textAnchor="end" fill="#8A4519">{fmt0(last.cum)} m</text>
+        <text x={ex - 9} y={ey + 6} fontSize={11.5} textAnchor="end" fill="#5C5447" {...HALO}>bis {last.year}</text>
+        <text x={ex - 9} y={ey + 6} fontSize={11.5} textAnchor="end" fill="#5C5447">bis {last.year}</text>
+      </g>
+    );
+  };
   return (
-    <div className="gl-chart gl-chart-s" role="img" data-origin="measured"
-      aria-label={`Längenänderung der Zunge, kumuliert in m, ${points[0].year} bis ${points[points.length - 1].year}: ${fmt0(points[points.length - 1].cum)} m`}>
+    <div className="gl-chart gl-chart-s" style={{ height: 244 }} role="img" data-origin="measured"
+      aria-label={`Längenänderung der Zunge, kumuliert in m, ${first.year} bis ${last.year}: ${fmt0(last.cum)} m`}>
       <ResponsiveLine
-        data={[{ id: 'Länge', data: points.map((p) => ({ x: p.year, y: p.cum })) }]} colors={['#B5602C']} lineWidth={2.2} margin={{ top: 10, right: 12, bottom: 24, left: 52 }}
-        xScale={{ type: 'linear', min: points[0].year, max: points[points.length - 1].year }} yScale={{ type: 'linear', min: lo, max: 0 }} theme={THEME} animate={false}
-        enablePoints={false} enableGridX={false} gridYValues={5} useMesh enableArea areaOpacity={0.12}
-        axisBottom={{ tickSize: 0, tickPadding: 6, tickValues: 6, format: (v: number) => String(v) }} axisLeft={{ tickSize: 0, tickPadding: 6, tickValues: 5, format: (v: number) => fmt0(v) }}
-        tooltip={({ point }) => <div className="gl-tip"><b>{(point.data as { x: number }).x}</b>: {fmt0((point.data as { y: number }).y)} m seit {points[0].year}</div>}
+        data={[{ id: 'Länge', data: points.map((p) => ({ x: p.year, y: p.cum })) }]} colors={['#B5602C']} lineWidth={2.8} margin={{ top: 14, right: 16, bottom: 30, left: 64 }}
+        xScale={{ type: 'linear', min: first.year, max: last.year }} yScale={{ type: 'linear', min: lo, max: 0 }} theme={THEME} animate={false}
+        enablePoints={false} enableGridX={false} gridYValues={yTicks} useMesh enableArea areaOpacity={0.16} areaBaselineValue={0} enableCrosshair crosshairType="x"
+        axisBottom={{ tickSize: 0, tickPadding: 8, tickValues: xTicks, format: (v: number) => String(v) }}
+        axisLeft={{ tickSize: 0, tickPadding: 8, tickValues: yTicks, format: (v: number) => `${fmt0(v)} m` }}
+        layers={['grid', 'axes', 'areas', 'lines', layer, 'crosshair', 'mesh']}
+        tooltip={({ point }) => <div className="gl-tip"><b>{(point.data as { x: number }).x}</b>: {fmt0((point.data as { y: number }).y)} m<small>Zunge kürzer als {first.year}</small></div>}
       />
     </div>
   );
@@ -76,6 +110,7 @@ export function LengthChart({ points }: { points: readonly CumPoint[] }) {
 // --- projection ----------------------------------------------------------------------------------------------------------------------------
 const SSP_COLOUR: Record<string, string> = { ssp126: '#1E87A8', ssp245: '#B8862F', ssp370: '#B5602C', ssp585: '#7E3C17' };
 export function ProjectionChart({ view }: { view: ProjectionView }) {
+  const lastYear = view.years[view.years.length - 1];
   const layer = ({ xScale, yScale }: LayerArgs) => (
     <g aria-hidden="true">
       {view.scenarios.map((s) => (
@@ -84,15 +119,33 @@ export function ProjectionChart({ view }: { view: ProjectionView }) {
       ))}
     </g>
   );
+  // Band under 10 % ("practically gone") and the end values (median 2100) at the line ends, pushed apart where they would touch.
+  const guides = ({ xScale, yScale, innerWidth }: LayerArgs) => {
+    const ends = view.scenarios.map((s) => ({ key: s.key, v: s.p50[s.p50.length - 1], y: yScale(s.p50[s.p50.length - 1]) })).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
+    return (
+      <g aria-hidden="true" fontFamily={FONT}>
+        <rect x={0} width={innerWidth} y={yScale(10)} height={Math.max(0, yScale(0) - yScale(10))} fill="#9D8F6E" fillOpacity={0.14} />
+        <line x1={0} x2={innerWidth} y1={yScale(10)} y2={yScale(10)} stroke="#7A6B57" strokeWidth={1.2} strokeDasharray="5 3" />
+        <text x={4} y={yScale(10) - 6} fontSize={12} fill="#5C5447" {...HALO}>unter 10 % ≈ so gut wie weg</text>
+        <text x={4} y={yScale(10) - 6} fontSize={12} fill="#5C5447">unter 10 % ≈ so gut wie weg</text>
+        {ends.map((e) => (
+          <g key={e.key}>
+            <circle cx={xScale(lastYear)} cy={yScale(e.v)} r={3.5} fill={SSP_COLOUR[e.key] ?? '#999'} />
+            <text x={xScale(lastYear) + 8} y={e.y + 4} fontSize={12.5} fontWeight={700} fill={SSP_COLOUR[e.key] ?? '#999'}>{Math.round(e.v)} %</text>
+          </g>
+        ))}
+      </g>
+    );
+  };
   return (
-    <div className="gl-chart gl-chart-s" role="img" data-origin="model" aria-label={`Volumen in Prozent von 2020 bis 2100 je Szenario (Median und Spanne p10 bis p90 über 12 Klimamodelle): ${view.scenarios.map((s) => `${s.label} 2100 ${Math.round(s.p50[s.p50.length - 1])} % (${Math.round(s.p10[s.p10.length - 1])} bis ${Math.round(s.p90[s.p90.length - 1])} %)`).join('; ')}`}>
+    <div className="gl-chart gl-chart-s" style={{ height: 262 }} role="img" data-origin="model" aria-label={`Volumen in Prozent von 2020 bis 2100 je Szenario (Median und Spanne p10 bis p90 über 12 Klimamodelle): ${view.scenarios.map((s) => `${s.label} 2100 ${Math.round(s.p50[s.p50.length - 1])} % (${Math.round(s.p10[s.p10.length - 1])} bis ${Math.round(s.p90[s.p90.length - 1])} %)`).join('; ')}`}>
       <ResponsiveLine
         data={view.scenarios.map((s) => ({ id: s.label, data: view.years.map((y, i) => ({ x: y, y: s.p50[i] })) }))} colors={view.scenarios.map((s) => SSP_COLOUR[s.key] ?? '#999')}
-        lineWidth={2} margin={{ top: 10, right: 12, bottom: 24, left: 40 }} xScale={{ type: 'linear', min: view.years[0], max: view.years[view.years.length - 1] }}
-        yScale={{ type: 'linear', min: 0, max: 100 }} theme={THEME} animate={false} enablePoints={false} enableGridX={false} gridYValues={5} useMesh
-        axisBottom={{ tickSize: 0, tickPadding: 6, tickValues: [2020, 2040, 2060, 2080, 2100], format: (v: number) => String(v) }} axisLeft={{ tickSize: 0, tickPadding: 6, tickValues: 5, format: (v: number) => `${v} %` }}
-        markers={[{ axis: 'y', value: 10, lineStyle: { stroke: '#9D8F6E', strokeWidth: 1, strokeDasharray: '4 3' }, legend: '10 %', legendPosition: 'right', textStyle: { fontSize: 10, fill: '#5C5447' } }]}
-        layers={['grid', 'markers', 'axes', layer, 'lines', 'mesh']}
+        lineWidth={2.6} margin={{ top: 14, right: 48, bottom: 30, left: 52 }} xScale={{ type: 'linear', min: view.years[0], max: lastYear }}
+        yScale={{ type: 'linear', min: 0, max: 100 }} theme={THEME} animate={false} enablePoints={false} enableGridX={false} gridYValues={[0, 20, 40, 60, 80, 100]} useMesh enableCrosshair crosshairType="x"
+        axisBottom={{ tickSize: 0, tickPadding: 8, tickValues: [2020, 2040, 2060, 2080, 2100], format: (v: number) => String(v) }} axisLeft={{ tickSize: 0, tickPadding: 8, tickValues: [0, 20, 40, 60, 80, 100], format: (v: number) => `${v} %` }}
+        layers={['grid', 'axes', layer, guides, 'lines', 'crosshair', 'mesh']}
         tooltip={({ point }) => <div className="gl-tip"><b>{point.seriesId} · {(point.data as { x: number }).x}</b>: {fmt0((point.data as { y: number }).y)} % des Volumens von 2020<small>Median über 12 Klimamodelle</small></div>}
       />
     </div>
