@@ -1210,8 +1210,8 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     focused2 === 1 && opened && det.h2 === 'Weyarn – Irschenberg' && det.focused === true && /seg=A8-034/.test(det.url) && /^1 \/ \d+$/.test(det.pos ?? ''), JSON.stringify({ focused2, h2: det.h2, focused: det.focused, pos: det.pos, url: det.url, loading: det.loading, errs: det.errs }));
   add('U5 Detail: Kopf „Abschnitt · DE · Messung", Chips der aktiven Gefahren (Reifglätte Stufe 3, tiefe Sonne ab …), Querschnitt zeigt die MESSUNG des Slots („trocken (Sensor)", +18,4 °C — die Szenario-Stufe steht im Text, nicht am Sensor), Detailtext nennt Anlage, Uhrzeit, Zustand „Reif" und −1,4 °C, Ausblick „laut Prognose", Richtungs-Schalter, Fahrplan 2 × 9 Zellen, Ortsmerkmale, Messpunkte (7), Stationskarte darunter, „Nicht messbar", Herkunft mit ODbL; die Karte markiert den Abschnitt',
     /Abschnitt · DE · Messung/.test(det.eyebrow ?? '') && det.chips.some((c) => /Reifglätte · Stufe 3/.test(c)) && det.chips.some((c) => /Tiefe Sonne · ab/.test(c)) && /trocken \(Sensor\), Fahrbahn \+18,4/.test(det.xs ?? '')
-    && /meldet um \d\d:\d\d den Zustand „Reif“ bei −1,4 °C/.test(det.text ?? '') && /Laut Prognose/.test(det.out ?? '') && det.dirs.length === 2 && det.plan === 18 && det.planRows === 2 && det.feats >= 2 && det.stations === 7
-    && det.stationCard === 1 && /Nicht messbar/.test(det.notobs ?? '') && /ODbL/.test(det.src ?? '') && det.segSel === 'A8-034',
+    && /meldet um \d\d:\d\d den Zustand „Reif“ bei −1,4 °C/.test(det.text ?? '') && /Laut Prognose/.test(det.out ?? '') && det.dirs.length === 2 && det.plan === 18 && det.planRows === 2 && det.feats === 0 && det.stations === 0
+    && det.stationCard === 0 && /Nicht messbar/.test(det.notobs ?? '') && /ODbL/.test(det.src ?? '') && det.segSel === 'A8-034',
     JSON.stringify({ eyebrow: det.eyebrow, chips: det.chips, xs: det.xs, text: (det.text ?? '').slice(0, 120), plan: det.plan, feats: det.feats, stations: det.stations, card: det.stationCard, segSel: det.segSel }));
   const charts = await until(ctx, `document.querySelectorAll('.aw-hz-chart svg, .aw-hz-bullet-box svg, .aw-hz-wind-box svg').length >= 6`, 20_000);
   const ch = JSON.parse(await ctx.evaluate(`JSON.stringify({ imgs: [...document.querySelectorAll('.aw-hz-detail [role=img]')].map((e) => e.getAttribute('aria-label')?.slice(0, 40)), tables: document.querySelectorAll('.aw-hz-detail table.aw-visually-hidden').length, bullets: document.querySelectorAll('.aw-hz-bullet').length, windLegend: document.querySelector('.aw-hz-windtext strong')?.textContent, google: performance.getEntriesByType('resource').filter((r) => /fonts\\.g(oogle|static)/.test(r.name)).length })`));
@@ -1308,7 +1308,7 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     add('V3 Dossier: das Detail steht in der Mitte unter dem Band und NICHT mehr im Readout; die Karte ist ausgeblendet (nicht abgebaut), genau ein Band im Fluss (static) und keines auf der Karte; URL ds=1&seg=…; Liste rechts bleibt mit markierter Zeile, ohne „Dossier öffnen“; Zurück heißt „Alle Abschnitte“; Kopf mit Pill und Zeitchips; Stationskarte im Dossier',
       inDs && ds.mapHidden === true && ds.bandsInDossier === 1 && ds.bandsInMap === 0 && /ds=1/.test(ds.url) && /seg=A8-034/.test(ds.url) && ds.detailInReadout === 0 && ds.railInReadout > 0 && ds.sel === 'A8-034'
       && ds.open === 0 && /Alle Abschnitte/.test(ds.back ?? '') && ds.h2 === 'Weyarn – Irschenberg' && ds.head[0] === true && ds.head[1] === 7 && JSON.stringify(ds.seg) === '["false","true"]'
-      && ds.bandPos === 'static' && /Messung DWD/.test(ds.legend ?? '') && ds.station === 1, JSON.stringify(ds));
+      && ds.bandPos === 'static' && /Messung DWD/.test(ds.legend ?? '') && ds.station === 0, JSON.stringify(ds));
     await shot(ctx, 'v3-dossier');
 
     // The band in the dossier is the same band: a tick opens that segment's detail here.

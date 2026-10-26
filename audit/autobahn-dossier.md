@@ -134,6 +134,13 @@ Höhe (Kartenrand `bottom` 80 statt 232, Steuerelemente am echten Rand, Klasse `
 und Abschnitte wählt man über Karte oder Liste, im Dossier weiter über das Band. Mobil unberührt (dort gibt es nur das Mini-Band im Blatt).
 `verify:road-ui` 117/117 (V1/V2/V6/V8/U9 angepasst), Beleg `%TEMP%\awd-shots\v1-karte-ohne-band.png`.
 
+**Nachtrag 27.10. (E-AWD-4, Jan: „Ort & Messung brauchts im autobahn feature eigentlich nicht, entferne es"):** das vierte Kapitel des Dossiers
+(Ortsmerkmale, Messpunkte und Anker mit der Stationskarte darunter) ist weg — `RoadDossierChapter` = 1 | 2 | 3, `RoadHazardDetail.part` = `seg` | `wx`,
+Props `selectedStation`/`onPickStation`/`stationCard` gestrichen, CSS `.aw-hz-feat*`/`.aw-hz-station*` gelöscht. **Behalten, ans Ende des Kapitels
+„Abschnitt" gerückt:** die Herkunftszeile (OSM-Attribution ODbL ist Lizenzpflicht, `docs/API.md` §7) und „Nicht messbar" (eine Zeile, Ehrlichkeit).
+Die Stationskarte der Messpunkte bleibt im Readout der Kartenbühne (AW-5) erreichbar. `verify:road-ui` U5/V3 auf den neuen Stand gesetzt
+(Ortsmerkmale 0, Messpunkte 0, Stationskarte 0 im Dossier), **nicht gelaufen** (Sessionregel: kein Browser) — V-AWD-3.
+
 **Verhalten:** Karten-Klick markiert nur; Zeilenklick öffnet Abschnitt + Dossier; im Dossier schließen „Alle Abschnitte"/Esc den Abschnitt
 (das Dossier bleibt offen); Permalink `ds=1`; ohne den Schalter `hz` ist die Seite unverändert (V8).
 

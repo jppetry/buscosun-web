@@ -32,7 +32,7 @@ import {
 import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
-import RoadReadout, { RoadStationCard } from './RoadReadout';
+import RoadReadout from './RoadReadout';
 import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import type { RoadSegLine } from './RoadMap';
 import type { RoadSegment } from './roadSegments';
@@ -508,7 +508,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     <div className="aw-dossier-empty" role="status">
       {segId && !hzShown
         ? <><strong>Abschnitt nicht verfügbar.</strong> {hzWhy}</>
-        : <><strong>Kein Abschnitt markiert.</strong> Wähle in der Streckenkarte einen Abschnitt — dann erscheinen hier Fahrbahn, Gefahren-Fahrplan, Wetter und Messpunkte.</>}
+        : <><strong>Kein Abschnitt markiert.</strong> Wähle in der Streckenkarte einen Abschnitt — dann erscheinen hier Fahrbahn, Gefahren-Fahrplan und Wetter.</>}
       {dsChapter !== 1 && <button type="button" className="aw-ds-link" onClick={() => setDsChapter(1)}>Zur Streckenkarte →</button>}
     </div>
   );
@@ -526,12 +526,11 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     </>
   ) : openSeg && hzShown ? (
     <Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
-      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : dsChapter === 3 ? 'wx' : 'site'}
+      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : 'wx'}
         seg={openSeg} entry={hzShown.seg[openSeg.id] ?? null} file={hzShown} prev={hzPrev && hzPrev.slot === hzSlot ? hzPrev.files : [undefined, undefined]}
         corridor={corridor} byId={shownById} fcFile={fcFile} ring={ring} nowMs={nowMs} dir={hzDir} onDir={setHzDir} backLabel="Alle Abschnitte"
         pos={{ i: Math.max(1, hzOrder.indexOf(openSeg.id) + 1), n: Math.max(1, hzOrder.length) }} onBack={hzBack} onPrev={() => hzStep(-1)} onNext={() => hzStep(1)}
-        selectedStation={point?.id ?? null} onPickStation={(id) => setStId(id)} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} stale={freshness === 'stale'}
-        stationCard={point && (openSeg.stations.includes(point.id) || openSeg.near.includes(point.id)) ? <RoadStationCard {...readoutProps} axis={null} /> : null} />
+        warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} stale={freshness === 'stale'} />
     </Suspense>
   ) : noSeg;
   const dossier = !inDossier ? null : (

@@ -332,18 +332,18 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
 
 // --- chapters (like the fire dossier) ---------------------------------------------------------------------------
 
-export type RoadDossierChapter = 1 | 2 | 3 | 4;
+export type RoadDossierChapter = 1 | 2 | 3;
 
 /**
- * The four parts of the dossier as tabs, pinned on top (same pattern as the fire dossier): only the chosen part is
- * rendered. 2–4 belong to the open segment; without one they point back to the route map.
+ * The three parts of the dossier as tabs, pinned on top (same pattern as the fire dossier): only the chosen part is
+ * rendered. 2–3 belong to the open segment; without one they point back to the route map. A fourth chapter
+ * „Ort & Messung“ (features, measuring points, provenance) was removed on Jan's word (27.10.2026).
  */
 export function RoadDossierTabs({ value, onChange, segName }: { value: RoadDossierChapter; onChange: (c: RoadDossierChapter) => void; segName: string | null }) {
   const chapters: ReadonlyArray<{ id: RoadDossierChapter; title: string; hint: string }> = [
     { id: 1, title: 'Strecke', hint: 'Karte · alle Abschnitte' },
     { id: 2, title: 'Abschnitt', hint: segName ?? 'Fahrbahn · Gefahren-Fahrplan' },
     { id: 3, title: 'Wetter', hint: 'Temperaturen · Schwellen · Wind' },
-    { id: 4, title: 'Ort & Messung', hint: 'Merkmale · Messpunkte · Herkunft' },
   ];
   return (
     <div className="aw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers">

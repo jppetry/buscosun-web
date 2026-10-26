@@ -2,9 +2,10 @@
  * AW-8.2 — The detail view of one segment (gefahren §AW-8, board `autobahnwetter-gefahren-detail.dc.html`): sticky
  * head with Zurück, „n / N“ and Vor/Zurück · article with shield, name, km, length, height, direction switch, chips of
  * the active hazards, the cross-section „Was auf der Fahrbahn liegt“ with the rule-based detail text · timetable
- * −2 … +6 h · temperatures −12 … +6 h · measured values against thresholds · wind to the road axis · site features ·
- * measuring points and anchors (the station card of AW-5 opens below) · official warning verbatim · „Nicht messbar“ ·
- * provenance. Charts (nivo) load lazily. Esc goes back; the focus lands on the heading.
+ * −2 … +6 h · temperatures −12 … +6 h · measured values against thresholds · wind to the road axis · official warning
+ * verbatim · „Nicht messbar“ · provenance. Charts (nivo) load lazily. Esc goes back; the focus lands on the heading.
+ * The site chapter (features, measuring points and anchors, station card) was removed on Jan's word (27.10.2026,
+ * „Ort & Messung brauchts im autobahn feature eigentlich nicht“); the OSM attribution (ODbL) stays in the provenance line.
  */
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
 import type { RoadH24File, RoadPoint } from './roadContract';
@@ -15,7 +16,7 @@ import type { RoadSegment } from './roadSegments';
 import { ROAD_HAZARD_BY_ID, ROAD_HZ_HOURS, type HzEntry, type RoadEvidence, type RoadHazardId, type RoadHzFile, type RoadLevel } from './roadHazards';
 import { roadNarrative, type Narrative } from './roadNarrative';
 import { AW_SEV, AW_SEV_TINT, AW_HATCH, AW_UNKNOWN_TINT, AW_MONO } from './roadNivoTheme';
-import { HZ_FEATURE_ICON, HZ_GROUP_ICON, HZ_SHORT, bulletRows, crossSectionOf, featureRows, planRows, windSectors, segmentMainStation, tempSeriesOf } from './roadHzView';
+import { HZ_GROUP_ICON, HZ_SHORT, bulletRows, crossSectionOf, planRows, windSectors, segmentMainStation, tempSeriesOf } from './roadHzView';
 import RoadCrossSection from './RoadCrossSection';
 import { EvDot } from './RoadHazardPanel';
 import { hm, dec, f1 } from './roadView';
@@ -65,18 +66,14 @@ export interface RoadHazardDetailProps {
   onBack: () => void;
   onPrev: () => void;
   onNext: () => void;
-  selectedStation: string | null;
-  onPickStation: (id: string) => void;
   warnings: CapAlert[];
   warnState: 'off' | 'loading' | 'ok' | 'error';
   warnAt: number | null;
-  /** The station card of AW-5 for the selected station (rendered by the readout). */
-  stationCard: React.ReactNode;
   stale: boolean;
   /** AWD: label of the back button — in the dossier it closes the segment, not a list below it. */
   backLabel?: string;
-  /** AWD chapters: render only one part (`seg` = segment + timetable + warnings, `wx` = charts, `site` = features, measuring points, provenance); absent = all. */
-  part?: 'seg' | 'wx' | 'site';
+  /** AWD chapters: render only one part (`seg` = segment + timetable + warnings + provenance, `wx` = charts); absent = all. */
+  part?: 'seg' | 'wx';
 }
 
 export default function RoadHazardDetail(p: RoadHazardDetailProps) {
@@ -108,7 +105,6 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
   const mainSt = xs.station?.id ?? segmentMainStation(seg, p.byId);
   const temp = useMemo(() => tempSeriesOf(p.ring, mainSt, file.slotMs, fcHours.map((h) => (h ? { t: h.t, td: h.td } : null))), [p.ring, mainSt, file.slotMs, fcHours]);
   temp.stationName = mainSt ? p.byId.get(mainSt)?.n ?? null : null;
-  const feats = useMemo(() => featureRows(seg), [seg]);
 
   // Chips of the active hazards (now, or "ab HH:MM").
   const chips = entry ? (Object.keys(entry.lv) as RoadHazardId[]).filter((id) => ROAD_HAZARD_BY_ID[id]).map((id) => {
@@ -124,9 +120,10 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
   // With the „Nicht auswertbar“ block below, the unknown chips would say the same twice — the chips keep the levels only.
   const shownChips = narrative?.unknown.length ? chips.filter((c) => !c.unknown) : chips;
   const evTop = xs.kind === 'unbekannt' ? 'Fahrbahnsensor verworfen' : xs.kind === 'nichtgemessen' ? 'Prognose, ohne Fahrbahnmessung' : `Messung ${hm(file.slotMs)}${p.stale ? ' · veraltet' : ''}`;
+  // Measuring points in and near the segment — only counted (key tile); their list and the station card left with the site chapter.
   const stations = [...seg.stations, ...seg.near].map((id) => p.byId.get(id)).filter((s): s is RoadPoint => !!s);
   const fcPointsN = seg.points.length;
-  const show = (k: 'seg' | 'wx' | 'site') => !p.part || p.part === k;
+  const show = (k: 'seg' | 'wx') => !p.part || p.part === k;
   // Key tiles of the segment (dossier look): level now, road, size, measuring points.
   const nowLv: RoadLevel | null = entry ? (Math.max(0, ...(Object.values(entry.lv) as Array<Array<RoadLevel | null> | undefined>).map((a) => a?.[0] ?? 0)) as RoadLevel) : null;
 
@@ -225,43 +222,6 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
       </Suspense>
       )}
 
-      {show('site') && (
-      <section className="aw-card" aria-label="Ortsmerkmale">
-        <span className="aw-eyebrow">Ortsmerkmale im Abschnitt</span>
-        <div className="aw-hz-feats">
-          {feats.map((f, i) => (
-            <div key={i} className="aw-hz-feat">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F5FAE" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={HZ_FEATURE_ICON[f.icon]} /></svg>
-              <span><strong>{f.t}</strong><em>{f.d}</em></span>
-            </div>
-          ))}
-        </div>
-        <div className="aw-note">Ortsmerkmale lösen allein keine Stufe aus; sie senken Schwellen oder ergänzen den Text. Quellen: OpenStreetMap (ODbL), Terrarium-Höhenmodell, ESA WorldCover.</div>
-      </section>
-      )}
-
-      {show('site') && (
-      <section className="aw-card" aria-label="Messpunkte und Anker">
-        <span className="aw-eyebrow">Messpunkte und Anker</span>
-        <div className="aw-hz-stations">
-          {stations.map((s) => {
-            const inside = seg.stations.includes(s.id);
-            const rej = s.rs == null && !!s.x && 'rs' in s.x;
-            return (
-              <button key={s.id} type="button" className={`aw-hz-station${p.selectedStation === s.id ? ' is-on' : ''}`} onClick={() => p.onPickStation(s.id)} aria-pressed={p.selectedStation === s.id}>
-                <i style={rej || s.rs == null ? { background: AW_HATCH } : { background: '#2C2A26' }} />
-                <span className="aw-hz-station-body"><strong>{s.n} <small style={{ fontFamily: AW_MONO }}>{s.km != null ? `km ${dec(s.km)}` : ''}{inside ? '' : ' · in Reichweite'}</small></strong><em>{s.rs != null ? `Fahrbahn ${f1(s.rs)} °C${s.cond != null ? ` · ${['trocken', 'feucht', 'nass', 'Reif', 'Schnee', 'Eis', 'Glätte', 'nicht trocken'][s.cond] ?? 'unbekannt'}` : ''}${s.wf ? ` · ${dec(s.wf, 2)} mm` : ''}` : rej ? 'Fahrbahnsensor verworfen' : s.ta != null ? `Luft ${f1(s.ta)} °C · keine Fahrbahn` : 'keine gültige Messung'}</em></span>
-                <span className="aw-hz-station-k">{hm(s.t)}</span>
-              </button>
-            );
-          })}
-          {!stations.length && <div className="aw-hz-group-empty">Keine Glättemeldeanlage im Abschnitt oder in 5 km Reichweite — die Stufen jetzt stammen aus dem Modell an {fcPointsN} {fcPointsN === 1 ? 'Stützpunkt' : 'Stützpunkten'} (Nachweis Prognose).</div>}
-          {stations.length > 0 && <div className="aw-note">{fcPointsN} {fcPointsN === 1 ? 'Stützpunkt' : 'Stützpunkte'} der Streckenprognose alle 5 km; die Anlagen in Reichweite (± 5 km) zählen mit.</div>}
-        </div>
-        {p.stationCard && <div className="aw-hz-stationcard">{p.stationCard}</div>}
-      </section>
-      )}
-
       {show('seg') && p.warnState === 'ok' && p.warnings.map((w) => (
         <div key={w.id} className="aw-card aw-warn">
           <div className="aw-eyebrow is-warn">Amtliche Warnung · DWD{w.areas[0]?.desc ? ` · ${w.areas[0].desc}` : ''}</div>
@@ -271,8 +231,8 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         </div>
       ))}
 
-      {show('site') && <div className="aw-hz-notobs"><strong>Nicht messbar:</strong> {narrative?.notMeasured ?? 'Verkehrsdichte (Gischt), Spurrinnen und Reifenzustand kennt buscosun nicht; Hinweise dazu beruhen nur auf Wetterbedingungen.'}</div>}
-      {show('site') && (
+      {show('seg') && <div className="aw-hz-notobs"><strong>Nicht messbar:</strong> {narrative?.notMeasured ?? 'Verkehrsdichte (Gischt), Spurrinnen und Reifenzustand kennt buscosun nicht; Hinweise dazu beruhen nur auf Wetterbedingungen.'}</div>}
+      {show('seg') && (
       <div className="aw-sources aw-hz-src">
         Herkunft: DWD-Glättemeldeanlagen (Messung) · {fusion ?? 'buscosun Fusion'} an {fcPointsN} Stützpunkten, DWD RADOLAN-RV, KONRAD3D, ICON-D2 (Prognose) · Abschnitte und Ortsmerkmale © OpenStreetMap-Mitwirkende (ODbL)
         {file.missing.length ? ` · fehlend in diesem Slot: ${file.missing.join(', ')}` : ''}<br />Kein amtliches Warnprodukt · Prognose-Stufen in Erprobung, höchstens Stufe 2 · Stand {hm(file.slotMs)}
