@@ -284,40 +284,13 @@ export default function SeaReadout(p: Props) {
       pick(n[0], n[3]);
       e.currentTarget.querySelector<HTMLElement>(`[data-ch="${n[0]}"]`)?.focus();
     };
-    // Key figures of the chosen hour (like the key tiles in the head of the Brandradar dossier): verdict of the profile,
-    // wind, sea state, next window. The detail (gusts, periods, wave direction) follows in the section below.
+    // Hour line in the head (chosen hour, profile, chips). The four key tiles that stood below it (verdict, wind, sea state,
+    // next window) were removed on Jan's word (27.10.2026) — the hour card in the section below carries the same facts.
     const kpiRow = s && h && !p.noData && (
-      <>
-        <div className="sw-ds-kpibar">
-          <span className="sw-ds-kpibar-t">{dayShort(h.t)} {hh(h.t)} Uhr · Profil {p.profileLabel}</span>
-          {p.chips}
-        </div>
-        <div className="sw-ds-kpis">
-          <div className={`sw-kpi is-verdict is-${v?.cls ?? 'none'}`}>
-            <span className="sw-kpi-l">Einordnung</span>
-            <strong>
-              {v && <span className={`sw-dot${v.cls === 'keine' ? ' is-hatched' : ''}`} style={v.cls !== 'keine' ? { background: CLASS_COLOR[v.cls] } : undefined} />}
-              {v ? CLASS_LABEL[v.cls] : '–'}
-            </strong>
-            <span className="sw-kpi-c">{v && v.reasons.length > 0 ? v.reasons.join(' · ') : 'nach deinem Profil'}</span>
-          </div>
-          <div className="sw-kpi">
-            <span className="sw-kpi-l">Wind · {windName}</span>
-            <strong>{h.windMs == null ? '–' : <>{fmtWind(h.windMs, p.unit)}<small>{unitLabel(p.unit)}</small></>}</strong>
-            <span className="sw-kpi-c">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.gustMs != null ? ` · Böen ${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</span>
-          </div>
-          <div className="sw-kpi is-sea">
-            <span className="sw-kpi-l">Seegang · Modell CWAM</span>
-            <strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : <>{f1(h.hs)}<small>m</small></>}</strong>
-            <span className="sw-kpi-c">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)}${h.tm != null ? ` · Periode ${f1(h.tm)} s` : ''}`}</span>
-          </div>
-          <div className="sw-kpi is-win">
-            <span className="sw-kpi-l">Nächstes Fenster · {p.profileLabel}</span>
-            <strong>{p.windows.next ? `${dayShort(p.windows.next.from)} ${hh(p.windows.next.from)}–${hh(p.windows.next.to)} Uhr` : 'keins'}</strong>
-            <span className="sw-kpi-c">{p.windows.next ? `${p.windows.next.hours} h ${p.windows.next.tight ? 'passt oder knapp' : 'passt'}${p.windows.longest && p.windows.longest !== p.windows.next ? ` · längstes ${dayShort(p.windows.longest.from)} ${hh(p.windows.longest.from)}–${hh(p.windows.longest.to)} Uhr` : ''}` : 'bis zum Ende des Laufs'}</span>
-          </div>
-        </div>
-      </>
+      <div className="sw-ds-kpibar">
+        <span className="sw-ds-kpibar-t">{dayShort(h.t)} {hh(h.t)} Uhr · Profil {p.profileLabel}</span>
+        {p.chips}
+      </div>
     );
     const headCard = s && (
       <section className="sw-card sw-ds-head" aria-label="Spot-Dossier · Kopf">
