@@ -3008,3 +3008,9 @@ gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER =
    Vorkommen. Für 13–27 h braucht es Stationsreihen über 12 h hinaus (`RUC_STATION_STEPS` im Producer = Daten-Repo = dein Gate).
 4. **Offen zur Entscheidung:** V-RUC-26 (Brier 7–11 h: Modus 3 = Menge aus K-2, P(nass) aus der gelernten Hürde — eine Zeile im Motor,
    dieselbe Messung); Spur P bleibt unmöglich, bis der Hindcast RUC trägt (V-RUC-11).
+5. **Streckenprognose `road/fc` (Nachtrag 26.10. abends, §15.5):** der Producer-Workflow checkte `ruc/` nicht aus ⇒ die Streckenprognose
+   hätte unter dem Namen Fusion 14 den Niederschlag von 13 gerechnet. Die Vorlage `scripts/road/workflow-road-fc.yml` checkt jetzt auch
+   `ruc` aus (`verify:road-fc` E3). **Kopie ins Daten-Repo = dein Gate:** `.github/workflows/road-fc.yml` durch die Vorlage ersetzen und
+   pushen; der nächste Lauf nennt im Kopf `rucMember: ICON-D2-RUC-Member an N Stunden`. Ohne die Kopie läuft alles weiter, nur ohne Member.
+6. **Kartenfelder `point/field` (V-RUC-28):** rechnen ohne RUC-Member (wie ohne Messung/Radar, Etikett „Modell · Cube") — eigene Zeile,
+   wenn du die Regenchance-Karte auf Fusion 14 heben willst (Punkt-Cron braucht `ruc/` im Checkout).

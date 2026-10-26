@@ -7,7 +7,9 @@
 #
 # Was der Job tut: buscosun Fusion 8 an jedem Punkt aus `road/fc/v1/static/points.json` (alle 5 km je
 # Autobahn-Korridor, auf der OSM-Fahrbahn; dazu jede Glättemeldeanlage), 0–48 h stündlich, aus dem Punkt-Cube
-# (`point/`), dem Radar-Stundenmittel (`radar/img/v1/rv`) und MOSMIX-L (`point/stations`) DIESES Checkouts.
+# (`point/`), dem Radar-Stundenmittel (`radar/img/v1/rv`), MOSMIX-L (`point/stations`) und — seit buscosun Fusion 14
+# (E-RUC-16, 26.10.2026) — der 5-min-Niederschlagsreihe des ICON-D2-RUC (`ruc/v1`, neuester Lauf ≤ 3 h) DIESES Checkouts;
+# fehlt `ruc/` im Checkout, rechnet der Niederschlag wie der Stand davor und der Lauf nennt es in der Notiz.
 # Ergebnis: `road/fc/v1/<lauf>/c/<korridor>.json`, `…/s/<land>.json`, Zeiger `road/fc/v1/index.json`.
 #
 # ── Eigene Linie, eigener Job ───────────────────────────────────────────────
@@ -69,6 +71,7 @@ jobs:
           sparse-checkout: |
             point
             radar/img
+            ruc
             road
           sparse-checkout-cone-mode: true
 

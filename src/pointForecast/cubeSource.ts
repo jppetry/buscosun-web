@@ -3210,12 +3210,14 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
 
   const nowMs = io.nowMs ? io.nowMs() : Date.now();
   const t0Ms = Math.floor(nowMs / H) * H;
-  // buscosun Fusion 14 (E-RUC-16): the RUC series of the point (one chunk column) in parallel with the bundle — only with
-  // `CubeIo.rucMember` (fusionStageIo sets it, `?rucm=0` takes it back), a gray decoder and the radar (the parts without the
-  // radar member compute without the RUC member too, like Fusion 8 without the radar). Never awaited beyond the grace period:
-  // a late series rides with the progressive update, a failed read is `null` and the stage names it.
+  // buscosun Fusion 14 (E-RUC-16): the RUC series of the point (one chunk column) in parallel with the bundle — with
+  // `CubeIo.rucMember` (fusionStageIo sets it, `?rucm=0` takes it back) and a gray decoder, in EVERY part (Jan 26.10.: the
+  // stand is active in the dashboard, the rain radar and all other features — also the pointer probe of the rain radar, which
+  // calls without the radar member). A store without the product (a producer checkout without `ruc/`) yields `null` at once.
+  // Never awaited beyond the grace period: a late series rides with the progressive update, a failed read is `null` and the
+  // stage names it.
   const rucT0 = now();
-  const rucP: Promise<RucPointSeries | null> = io.rucMember && io.decodePng && withRadar
+  const rucP: Promise<RucPointSeries | null> = io.rucMember && io.decodePng
     ? loadRucPoint(io.store, lat, lon, nowMs, io.decodePng, { priority: 'low' }).catch(() => null)
     : Promise.resolve(null);
   let rucVal: RucPointSeries | null | undefined;

@@ -428,8 +428,8 @@ let built, runFiles;
   add('E7 zweiter Auslöser: nach jedem abgeschlossenen Lauf von „point" (workflow_run hört nur zu — kein Dispatch, point.yml unberührt); der Zeitplan bleibt',
     /workflow_run:\s*\n\s+workflows:\s*\[point\]\s*\n\s+types:\s*\[completed\]/.test(code) && /schedule:/.test(code) && /workflow_dispatch:/.test(code));
   const sparse = /sparse-checkout:\s*\|\n((?:\s{12}\S.*\n)+)/.exec(code)?.[1].trim().split(/\s+/) ?? [];
-  add('E3 Checkout des Daten-Repos: sparse mit point (Cube, MOSMIX, Tabellen), radar/img (Stundenmittel), road (Punkte, Zeiger); ohne Blobs der übrigen Pfade',
-    eq(sparse, ['point', 'radar/img', 'road']) && /filter:\s*blob:none/.test(code) && /fetch-depth:\s*1/.test(code), sparse.join(' '));
+  add('E3 Checkout des Daten-Repos: sparse mit point (Cube, MOSMIX, Tabellen), radar/img (Stundenmittel), ruc (RUC-Member von buscosun Fusion 14, E-RUC-16), road (Punkte, Zeiger); ohne Blobs der übrigen Pfade',
+    eq(sparse, ['point', 'radar/img', 'ruc', 'road']) && /filter:\s*blob:none/.test(code) && /fetch-depth:\s*1/.test(code), sparse.join(' '));
   const prodSrc = readFileSync(join(HERE, 'road', 'road-forecast.mjs'), 'utf8');
   add('E4 Aufruf: --data = Checkout, --publish; Schalter ROAD_FC aus der Repo-Variable; die Punktdatei verlangt nicht mehr der Workflow, der Producer holt sie bei Verlust aus dem Archiv, bevor er rechnet (V-AW-24)',
     /road-forecast\.mjs --data="\$GITHUB_WORKSPACE" --publish/.test(code) && /ROAD_FC:\s*\$\{\{ vars\.ROAD_FC \}\}/.test(code) && !/test -f road\/fc\/v1\/static\/points\.json/.test(code)
