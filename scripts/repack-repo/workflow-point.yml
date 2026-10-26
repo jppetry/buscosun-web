@@ -160,12 +160,17 @@ jobs:
       # sparse Checkout ohne dieses Muster laesst `git add` die Datei STILL verwerfen
       # (Exit 0). Die Liste hier und `PUBLISH_PATHS` in `scripts/point/sparseCover.mjs`
       # prueft der Verifier GEGENEINANDER, je Job.
+      #
+      # `ruc` seit buscosun Fusion 14 (E-RUC-16, Jan 26.10.2026): der Feldschritt (t1, 0–48 h) rechnet den Niederschlag mit dem
+      # ICON-D2-RUC-Member aus `ruc/v1/` dieses Checkouts (≈ 1 MB je Lauf, Produkt des Workflows `ruc`); ohne das Muster rechnet
+      # er wie der Stand davor und das Feld-Manifest nennt es. Nur gelesen — geschrieben wird weiter nur `point/`.
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 1
           sparse-checkout: |
             point
+            ruc
             index.json
             .gitattributes
           sparse-checkout-cone-mode: false
@@ -217,7 +222,8 @@ jobs:
             ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
       # NP-0b (audit/np0-datenprodukte.md §3.3, §8; E-NP0-4 F1, E-NP0-5): Kartenfelder `point/field/v1/<lauf>/t1/` aus dem
-      # eben gebauten Cube — buscosun Fusion mit dem Cube als einziger Quelle je Zelle („Modell · Cube“), Worker-Pool.
+      # eben gebauten Cube — buscosun Fusion mit dem Cube je Zelle („Modell · Cube“) und, seit buscosun Fusion 14, dem
+      # ICON-D2-RUC-Member aus `ruc/` dieses Checkouts (E-RUC-16), Worker-Pool.
       # ⚠ `continue-on-error` + eigenes Timeout: ein Feld-Fehler nimmt NIE den Cube mit. Frist: fertig spaetestens
       # FIELD_END_MIN nach dem Jobstart (Regel F′: dahinter Publish + CDN + 1 min bis JOB_MAX_MIN); ist der Bau langsam,
       # entfaellt das Feld dieses Laufs. Rueckweg: POINT_FIELDS: '0' (der Publisher baut den Altbestand dann ab).

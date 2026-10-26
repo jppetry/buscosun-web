@@ -5,9 +5,14 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-fields.mjs \
  *        --tier=t1 [--point=<…/point>] [--run=YYYYMMDDHH] [--workers=N] [--cells=N] [--force] [--out=<dir>]
  *
- * Je Zelle der Stufe (am Zellmittelpunkt) rechnet es buscosun Fusion mit dem Cube als EINZIGER Quelle — `fuseCubePoint`
+ * Je Zelle der Stufe (am Zellmittelpunkt) rechnet es buscosun Fusion mit dem Cube als Quelle — `fuseCubePoint`
  * UNVERÄNDERT, mit den Optionen der Stufe fs (Lernstufe, gelernte Hürde, …; ohne Station, Radar, Messung) — und liest
- * aus dem Ergebnis dieselben Größen, die der Ort ohne Station zeigt (Regeln von `toPointForecastV2`, nur für diese zwei
+ * aus dem Ergebnis dieselben Größen, die der Ort ohne Station zeigt. Seit buscosun Fusion 14 (E-RUC-16, Jan 26.10.2026: „schalte
+ * es da auch an") kommt je t1-Zelle die 5-min-Niederschlagsreihe des ICON-D2-RUC als Member dazu (`ruc/v1/` im selben
+ * Checkout, Leser `src/point/client/rucPoint.ts` mit der Stundenmittel-Regel des Motors; V-RUC-28). Fehlt `ruc/` (Checkout
+ * ohne das Muster, Lauf älter als 3 h, Stufe jenseits 27 h), rechnet der Niederschlag wie der Stand davor und das Manifest
+ * sagt es (`chain.options.ruc`). Das Etikett „Modell · Cube" bleibt (F1). Gelesen werden dieselben Größen, die der Ort zeigt
+ * (Regeln von `toPointForecastV2`, nur für diese zwei
  * Größen — `fieldValuesFromResult`, gegen V2 geprüft im Verifier; nur die Ebenen dieser Größen, `fieldPlanes`):
  *   · Niederschlag: Chance = 1 − cdf(0), Median | nass, q90 unbedingt (`fusion/dist.ts`)
  *   · Schneefallgrenze: Mitte und Band ∓ 1,2816·σ mit der Herkunft σ_ens / σ_div (`fusion/output.ts` fromCell)
@@ -44,7 +49,9 @@ import {
   fieldRunDir, fieldFileName, fieldPixelOffset, encodePrecipPixel, encodeSnowPixel, encodePrecipCumPixel, encodePexcPixel, makeFieldManifest,
   FIELD_MANIFEST_FILE, PRECIP_XMAX,
 } from '../../src/point/fieldFormat.ts';
-import { encodePng } from '../lib/png.mjs';
+import { loadRucManifest, loadRucPoint } from '../../src/point/client/rucPoint.ts';
+import { RUC_HORIZON_H, RUC_STALE_MS } from '../../src/point/rucFormat.ts';
+import { encodePng, decodePng } from '../lib/png.mjs';
 import { latestTierRun, fieldRoot, writeFieldIndex, FIELD_MIN_S_BY_TIER } from './fieldStore.mjs';
 
 const H = 3_600_000;
@@ -69,8 +76,12 @@ export function flatTerrain(h, lat, lon) {
   return { elevationM: h, tpi500M: 0, tpi2000M: 0, svf: 1, slopeDeg: 0, aspectDeg: null, horizonDeg: new Array(8).fill(0), scales, sinkDepthM: 0 };
 }
 
-/** Eingabe des Motors für EINE Zelle (rein; der Verifier ruft dieselbe Funktion für die Konsistenz-Probe). */
-export function cellInput({ series, tier, runAtMs, nowMs, clima, learned }) {
+/**
+ * Eingabe des Motors für EINE Zelle (rein; der Verifier ruft dieselbe Funktion für die Konsistenz-Probe). `ruc` = die
+ * RUC-Reihe der Zelle (`RucPointSeries`) oder `null` — buscosun Fusion 14 rechnet damit den Niederschlags-Member, ohne sie
+ * wie der Stand davor (der Motor nennt beides in seinen Notizen).
+ */
+export function cellInput({ series, tier, runAtMs, nowMs, clima, learned, ruc = null }) {
   const h = series.hModEffM ?? series.steps.find((s) => s.values.hModEff != null)?.values.hModEff ?? null;
   const lat = series.cell.lat, lon = series.cell.lon;
   return {
@@ -80,8 +91,35 @@ export function cellInput({ series, tier, runAtMs, nowMs, clima, learned }) {
     terrain: h == null ? null : flatTerrain(h, lat, lon),
     cube: { [tier.id]: series }, station: null, stationReason: 'Kartenfeld: keine Station (Modell · Cube)',
     nowcast: [], nowcastCovering: [], urban: null, index: { commit: null },
-    clima, obs: null, learned, notes: [], skips: [], errors: [],
+    clima, obs: null, learned, ruc, notes: [], skips: [], errors: [],
   };
+}
+
+/**
+ * buscosun Fusion 14 (E-RUC-16, V-RUC-28): der RUC-Leser des Feldlaufs — `ruc/v1/` aus dem Checkout des Daten-Repos
+ * (`dataRoot`, neben `point/`), gelesen mit DEMSELBEN Leser wie der Client (`loadRucPoint`: Zeiger `latest.json`, eine
+ * Chunk-Spalte je t1-Zelle). Ein kleiner Verzeichnis-Store statt `dirStore` aus `road-forecast.mjs` — dessen Import zöge die
+ * ganze Streckenprognose in den Punkt-Job. Bytes und dekodierte Chunks je Datei einmal (ein Chunk trägt 1 024 Zellen).
+ * `manifest` = null nennt den Grund (`reason`): kein Produkt, Lauf älter als 3 h, Stufe jenseits des RUC-Horizonts.
+ */
+export async function rucReader(dataRoot, nowMs, tier) {
+  if (tier.fromH > RUC_HORIZON_H) return { manifest: null, reason: `Stufe ${tier.id} ab +${tier.fromH} h liegt jenseits des RUC-Horizonts (+${RUC_HORIZON_H} h)`, at: async () => null };
+  const bytesMemo = new Map(), pngMemo = new WeakMap();
+  const bytes = async (p) => {
+    const k = String(p).replace(/^\/+/, '');
+    if (!bytesMemo.has(k)) { const f = join(dataRoot, k); bytesMemo.set(k, existsSync(f) ? new Uint8Array(readFileSync(f)) : null); }
+    return bytesMemo.get(k);
+  };
+  const store = {
+    base: pathToFileURL(dataRoot).href.replace(/\/+$/, ''), bytes,
+    async json(p) { const b = await bytes(p); return b ? JSON.parse(new TextDecoder().decode(b)) : null; },
+    withBase() { return store; },
+  };
+  const decode = (b) => { let png = pngMemo.get(b); if (!png) { png = decodePng(b); pngMemo.set(b, png); } return png; };
+  const manifest = await loadRucManifest(store);
+  if (!manifest) return { manifest: null, reason: existsSync(join(dataRoot, 'ruc')) ? 'ruc/v1/latest.json fehlt oder hat ein anderes Schema' : 'ruc/ nicht im Checkout', at: async () => null };
+  if (nowMs - manifest.runAtMs > RUC_STALE_MS) return { manifest: null, reason: `RUC-Lauf ${manifest.run} älter als ${RUC_STALE_MS / H} h`, at: async () => null };
+  return { manifest, reason: null, at: (lat, lon) => loadRucPoint(store, lat, lon, nowMs, decode, { manifest }) };
 }
 
 /**
@@ -198,7 +236,8 @@ async function runWorker() {
   const leadsMs = tm.leadHours.map((L) => runAtMs + L * H);
   const nl = leadsMs.length;
   const wanted = fieldPlanes(man.planes);
-  let errors = 0, done = 0;
+  const ruc = await rucReader(dataRoot, nowMs, tier);
+  let errors = 0, done = 0, rucCells = 0;
   for (const f of files) {
     const bytes = new Uint8Array(readFileSync(join(dataRoot, f.file)));
     const chunk = await decodeCubeChunk(bytes, { planes: man.planes.map((p) => ({ id: p.id })) });
@@ -221,7 +260,9 @@ async function runWorker() {
         const addr = { tierId, tier, pointer, cell: { iy, ix }, chunk: { cy: f.cy, cx: f.cx }, path: f.file };
         const centre = { lat: tier.lat0 + iy * tier.deg, lon: tier.lon0 + ix * tier.deg };
         const series = cubeSeriesFrom(chunk, addr, man.planes, { bytes: bytes.length, manifest: man, manifestFrom: 'caller', lat: centre.lat, lon: centre.lon, neighbours: false, wanted });
-        const input = cellInput({ series, tier, runAtMs, nowMs, clima, learned });
+        const rucSeries = ruc.manifest ? await ruc.at(centre.lat, centre.lon) : null;
+        if (rucSeries) rucCells++;
+        const input = cellInput({ series, tier, runAtMs, nowMs, clima, learned, ruc: rucSeries });
         if (input.elevationM == null) continue;
         const r = fuseCubePoint(input, FIELD_FUSE_OPTIONS);
         const vals = fieldValuesFromResult(r, leadsMs, tier.stepH);
@@ -234,7 +275,7 @@ async function runWorker() {
     }
     parentPort.postMessage({ kind: 'chunk', out }, Object.values(out).map((a) => a.buffer));
   }
-  parentPort.postMessage({ kind: 'done', errors, cells: done });
+  parentPort.postMessage({ kind: 'done', errors, cells: done, rucCells });
 }
 
 // ─── Hauptprozess ─────────────────────────────────────────────────────────────────────────────
@@ -300,7 +341,10 @@ async function main() {
   const withPexc = process.env.POINT_FIELD_PEXC !== '0';
   const pexcImg = withPexc ? Array.from({ length: nl }, () => new Uint8Array(N * 4)) : null;
   const leadHasPexc = new Array(nl).fill(false);
-  const stats = { cells: 0, precipMissing: 0, snowMissing: 0, saturated: 0, errors: 0, ...(withCum ? { cumBroken: 0 } : {}) };
+  const stats = { cells: 0, rucCells: 0, precipMissing: 0, snowMissing: 0, saturated: 0, errors: 0, ...(withCum ? { cumBroken: 0 } : {}) };
+  // buscosun Fusion 14: the RUC run of this field (the workers read the same pointer); the manifest names run or reason.
+  const ruc = await rucReader(dataRoot, nowMs, tier);
+  log(`${run}/${tierId}: RUC-Member ${ruc.manifest ? `Lauf ${ruc.manifest.run} (${Math.round((nowMs - ruc.manifest.runAtMs) / 60_000)} min alt)` : `aus — ${ruc.reason}`}`);
   const leadHasPrecip = new Array(nl).fill(false), leadHasSnow = new Array(nl).fill(false);
 
   const groups = Array.from({ length: workers }, () => []);
@@ -330,7 +374,7 @@ async function main() {
     const w = new Worker(new URL(import.meta.url), { workerData: { pointDir, dataRoot, run, tierId, files, nowMs, cellLimit } });
     pool.push(w);
     w.on('message', (m) => {
-      if (m.kind === 'done') { stats.errors += m.errors; stats.cells += m.cells; return; }
+      if (m.kind === 'done') { stats.errors += m.errors; stats.cells += m.cells; stats.rucCells += m.rucCells ?? 0; return; }
       const o = m.out;
       for (let c = 0; c < o.iy.length; c++) {
         const off = fieldPixelOffset(tier, o.iy[c], o.ix[c]);
@@ -400,7 +444,11 @@ async function main() {
   const manifest = makeFieldManifest({
     run, tier: tierId, runAtMs, builtAtMs: Date.now(), leads, cum: !!cumImg, pexc: !!pexcImg,
     chain: {
-      options: { ...FIELD_FUSE_OPTIONS, fusion: FUSION_CURRENT, fusionName: FUSION_NAME, nowMs, terrain: 'flach in Modellhöhe (terrainScales, konstante Höhe)', elevation: 'hModEff der Zelle', station: null, radar: null },
+      options: {
+        ...FIELD_FUSE_OPTIONS, fusion: FUSION_CURRENT, fusionName: FUSION_NAME, nowMs, terrain: 'flach in Modellhöhe (terrainScales, konstante Höhe)', elevation: 'hModEff der Zelle', station: null, radar: null,
+        // buscosun Fusion 14 (E-RUC-16): the RUC member of this field — run and cells with a series, or why there is none.
+        ruc: ruc.manifest ? { run: ruc.manifest.run, runAtMs: ruc.manifest.runAtMs, ageMin: Math.round((nowMs - ruc.manifest.runAtMs) / 60_000), cells: stats.rucCells } : { run: null, reason: ruc.reason },
+      },
       tables: { path: 'point/fusion.client.json', sha256: inputs.sha256 }, codeCommit, notes: inputs.notes,
     },
     stats, timing: { ms, workers },
@@ -408,7 +456,7 @@ async function main() {
   writeFileSync(join(target, FIELD_MANIFEST_FILE), `${JSON.stringify(manifest, null, 2)}\n`);
   writeFieldIndex(outRoot);
   noteBudget({ run, runAtMs, durationMs: ms, aborted: false, at: new Date().toISOString() });
-  log(`${run}/${tierId}: ${leads.filter((l) => l.precip).length} Niederschlags-, ${leads.filter((l) => l.snowlmt).length} Schneefallgrenzen-Felder, ${(bytes / 1048576).toFixed(2)} MiB, ${(ms / 1000).toFixed(1)} s (${stats.cells} Zellen, ${stats.errors} Fehler, fehlend ${stats.precipMissing}/${stats.snowMissing}, gesättigt ${stats.saturated})`);
+  log(`${run}/${tierId}: ${leads.filter((l) => l.precip).length} Niederschlags-, ${leads.filter((l) => l.snowlmt).length} Schneefallgrenzen-Felder, ${(bytes / 1048576).toFixed(2)} MiB, ${(ms / 1000).toFixed(1)} s (${stats.cells} Zellen, RUC-Member an ${stats.rucCells}, ${stats.errors} Fehler, fehlend ${stats.precipMissing}/${stats.snowMissing}, gesättigt ${stats.saturated})`);
   return 0;
 }
 

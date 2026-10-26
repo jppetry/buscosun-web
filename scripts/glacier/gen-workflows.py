@@ -278,12 +278,14 @@ jobs:
 
 {DATA_STEP}
 {VIEW_STEP}
-      - name: Checkout cube (buscosun-data point/, sparse)
+      # `ruc/` since buscosun Fusion 14 (E-RUC-16, Jan 26.10.2026): the stage computes with the ICON-D2-RUC precipitation member;
+      # the melt reads temperature only, so the values stay the same — the run names the stand it was computed with.
+      - name: Checkout cube (buscosun-data point/ + ruc/, sparse)
         if: steps.app.outputs.ready == '1' && steps.view.outputs.ready == '1'
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
           cd cube
-          git sparse-checkout set point
+          git sparse-checkout set point ruc
           git checkout --quiet
 
 {kill_step("Kill-Schalter AN — kein Schmelzlauf.")}

@@ -122,13 +122,15 @@ jobs:
           DUE=$(node -e "try { const j=JSON.parse(process.argv[1]); process.stdout.write(j.due===true ? (j.indexT1||'') : '') } catch { }" "$OUT")
           echo "t1=$DUE" >> "$GITHUB_OUTPUT"
 
-      - name: Cube checkout (point/, for buscosun Fusion wind at the spots)
+      # `ruc/` since buscosun Fusion 14 (E-RUC-16, Jan 26.10.2026): the stage computes with the ICON-D2-RUC precipitation member in every
+      # part; the spots read wind only, so the values stay the same — the run names the stand it was computed with, honestly.
+      - name: Cube checkout (point/ + ruc/, for buscosun Fusion wind at the spots)
         if: steps.due.outputs.run != '' || steps.wdue.outputs.t1 != ''
         continue-on-error: true
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
           cd cube
-          git sparse-checkout set point
+          git sparse-checkout set point ruc
           git checkout --quiet
 
       - name: Field run

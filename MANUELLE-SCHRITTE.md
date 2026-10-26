@@ -3012,5 +3012,11 @@ gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER =
    hätte unter dem Namen Fusion 14 den Niederschlag von 13 gerechnet. Die Vorlage `scripts/road/workflow-road-fc.yml` checkt jetzt auch
    `ruc` aus (`verify:road-fc` E3). **Kopie ins Daten-Repo = dein Gate:** `.github/workflows/road-fc.yml` durch die Vorlage ersetzen und
    pushen; der nächste Lauf nennt im Kopf `rucMember: ICON-D2-RUC-Member an N Stunden`. Ohne die Kopie läuft alles weiter, nur ohne Member.
-6. **Kartenfelder `point/field` (V-RUC-28):** rechnen ohne RUC-Member (wie ohne Messung/Radar, Etikett „Modell · Cube") — eigene Zeile,
-   wenn du die Regenchance-Karte auf Fusion 14 heben willst (Punkt-Cron braucht `ruc/` im Checkout).
+6. **Kartenfelder, Seewetter, Gletscher (Nachtrag 26.10. abends, dein Wort „schalte es da auch an", §15.5):** der Feld-Producer liest
+   jetzt je t1-Zelle die RUC-Spalte (V-RUC-28 umgesetzt); Seewetter- und Gletscher-Producer holen `ruc/` mit in den Cube-Checkout (Werte
+   dort byte-gleich, der Lauf nennt den Stand ehrlich). **Drei Kopien ins Daten-Repo = dein Gate**, jede für sich, ohne Kopie läuft alles
+   wie bisher: `scripts/repack-repo/workflow-point.yml` → `.github/workflows/point.yml` (nur der t1-Job hat `ruc` im Sparse-Block),
+   `scripts/sea/workflow-sea.yml` → `sea.yml`, `scripts/glacier/workflow-glacier-melt.yml` → `glacier-melt.yml`. Prüfung danach: der
+   t1-Feldlauf loggt „RUC-Member an N" und `point/field/v1/<lauf>/t1/field.json` trägt `chain.options.ruc.run`; ohne Kopie steht dort
+   `reason: "ruc/ nicht im Checkout"`. Offen: V-RUC-29 — das Etikett „Modell · Cube" der Karte nennt den RUC-Anteil nicht (deine Wortwahl
+   F1 ⇒ Rückfrage).
