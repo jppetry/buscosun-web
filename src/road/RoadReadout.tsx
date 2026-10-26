@@ -21,7 +21,7 @@ import {
 import { ROAD_SURFACE_HINT_LABEL, ROAD_SURFACE_HORIZON_H, ROAD_SURFACE_WORD } from './roadSurface';
 import {
   ROAD_CLASS_COLOR, ROAD_CLASS_INK, ROAD_CLASS_TINT, ROAD_GAP_TEXT, ROAD_GAP_TITLE, ageMinText, classBadge, conditionText, corridorRouteText, dec, driverHint,
-  etaRows, f1, hm, isCritical, isGapCorridor, isHatched, kmIn, shieldText, visText, DEFAULT_SPEED_KMH, DWD_WARNINGS_URL,
+  etaRows, f1, hm, isCritical, isGapCorridor, isHatched, kmIn, roadNoValueSince, shieldText, visText, DEFAULT_SPEED_KMH, DWD_WARNINGS_URL,
 } from './roadView';
 
 const DIR_TEXT: Record<string, string> = { N: 'Fahrtrichtung Nord', S: 'Fahrtrichtung Süd', O: 'Fahrtrichtung Ost', W: 'Fahrtrichtung West', X: 'beide Richtungen' };
@@ -414,6 +414,8 @@ function StationTab(p: Props) {
   const warns = (p.warnings ?? []);
   const fcPoint = p.fcFile ? p.fcById.get(s.id) ?? (p.fcStation && p.fcStation !== 'loading' ? p.fcStation.point : null) : null;
   const refMs = p.slotMs ?? s.t;
+  // The DWD stamps a row without values with the slot time too — „gemessen 00:00" would be wrong for a station with no road value.
+  const noSince = s.cls === 'nodata' ? roadNoValueSince(p.ring, s.id, s.g, refMs) : null;
   return (
     <>
       <div className="aw-card aw-station">
@@ -421,7 +423,9 @@ function StationTab(p: Props) {
         <div className={`aw-eyebrow${s.cls === 'nodata' ? ' is-muted' : ' is-accent'}`}>{s.cls === 'nodata' ? 'Glättemeldeanlage · keine gültige Messung' : 'Glättemeldeanlage · DWD'}</div>
         <h2 className="aw-station-name">{s.n}</h2>
         <div className="aw-station-sub">{sub}</div>
-        <div className={`aw-chip${p.stale ? ' is-stale' : ''}`}><i />{p.stale ? `veraltet · gemessen ${hm(s.t)}` : `gemessen ${hm(s.t)} · ${ageMinText(age)}`}</div>
+        {noSince
+          ? <div className="aw-chip is-stale"><i />{noSince}</div>
+          : <div className={`aw-chip${p.stale ? ' is-stale' : ''}`}><i />{p.stale ? `veraltet · gemessen ${hm(s.t)}` : `gemessen ${hm(s.t)} · ${ageMinText(age)}`}</div>}
         <div className="aw-hero">
           <div>
             <div className="aw-eyebrow">Fahrbahn</div>

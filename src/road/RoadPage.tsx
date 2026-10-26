@@ -48,7 +48,7 @@ const RoadHazardPanel = lazy(() => import('./RoadHazardPanel'));
 const RoadHazardDetail = lazy(() => import('./RoadHazardDetail'));
 type RoadHzPanelState = React.ComponentProps<typeof import('./RoadHazardPanel').default>['state'];
 import {
-  ROAD_CLASS_COLOR, ROAD_GAP_SHORT, ROAD_GAP_TITLE, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, kmIn, roadGapHead, roadNumber,
+  ROAD_CLASS_COLOR, ROAD_GAP_SHORT, ROAD_GAP_TITLE, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, kmIn, roadGapHead, roadNoValueSince, roadNumber,
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS, DEFAULT_SPEED_KMH,
 } from './roadView';
 import './roadDeck.css';
@@ -493,7 +493,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   } : point ? {
     lon: point.lon, lat: point.lat, name: point.n,
     line: point.rs != null ? `Fahrbahn ${f1(point.rs)} °C · ${ROAD_CLASS_LABEL[point.cls].label}`
-      : fcRs.has(point.id) ? `${ROAD_CLASS_LABEL[point.cls].label} · Fusion Fahrbahn ${f1(fcRs.get(point.id) as number)} °C (berechnet)` : ROAD_CLASS_LABEL[point.cls].label,
+      : [point.cls === 'nodata' && roadNoValueSince(ring, point.id, point.g, obs?.slotMs ?? point.t) || ROAD_CLASS_LABEL[point.cls].label,
+        fcRs.has(point.id) ? `Fusion Fahrbahn ${f1(fcRs.get(point.id) as number)} °C (berechnet)` : null].filter(Boolean).join(' · '),
     color: isHatched(point.cls) ? null : ROAD_CLASS_COLOR[point.cls],
   } : null;
   const map = (

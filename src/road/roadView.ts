@@ -4,7 +4,7 @@
  * script (cosine day curve, class derivation) is illustration only and was NOT reused (README-autobahnwetter.md).
  */
 import { ROAD_CLASS_LABEL, ROAD_CLASS_RANK, ROAD_CONDITION_LABEL, type RoadClass } from './roadClasses';
-import { roadFreshness, type RoadFreshness, type RoadObsFile, type RoadPoint, type RoadRuleId } from './roadContract';
+import { roadFreshness, roadStampToMs, type RoadFreshness, type RoadH24File, type RoadObsFile, type RoadPoint, type RoadRuleId } from './roadContract';
 import type { CapAlert } from '../warnings/capAlerts';
 import { isActiveAt } from '../warnings/warnField';
 import type { RoadCorridor } from './roadClient';
@@ -402,3 +402,25 @@ export function searchCorridors(cs: readonly RoadCorridor[], byId: ReadonlyMap<s
 }
 
 export const isStale = (f: RoadFreshness) => f !== 'live';
+
+/** `3 h 15 min` / `45 min` for a span in minutes. */
+const spanText = (min: number): string => (min < 60 ? `${min} min` : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`);
+
+/**
+ * How long a station with no valid road value has been without one, read from the 24-h ring of its group:
+ * `ohne Fahrbahnwert seit 3 h 15 min · letzter Wert 20:45`. A station that is not in the ring (no value in 24 h) or has no
+ * road value in it reads `seit über 24 h` — `mindestens …` when the ring is shorter than a day. `null` while the ring is
+ * not loaded. The DWD stamps every row with the slot time, so this is the only place the age of a missing value shows.
+ */
+export function roadNoValueSince(ring: RoadH24File | null, id: string, group: string, slotMs: number): string | null {
+  if (!ring || ring.group !== group || !ring.slots.length) return null;   // a ring of another group (selection just changed) says nothing
+  const st = ring.stations[id];
+  let last = -1;
+  if (st) for (let i = ring.slots.length - 1; i >= 0; i--) if (st.rs[i] != null) { last = i; break; }
+  if (last < 0) {
+    const spanMin = Math.round((slotMs - roadStampToMs(ring.slots[0])) / 60_000);
+    return spanMin >= 23 * 60 ? 'ohne Fahrbahnwert seit über 24 h' : `ohne Fahrbahnwert seit mindestens ${spanText(Math.max(0, spanMin))}`;
+  }
+  const lastMs = roadStampToMs(ring.slots[last]);
+  return `ohne Fahrbahnwert seit ${spanText(Math.max(0, Math.round((slotMs - lastMs) / 60_000)))} · letzter Wert ${hm(lastMs)}`;
+}
