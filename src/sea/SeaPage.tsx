@@ -37,6 +37,7 @@ import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapSpot } from './Se
 import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
+import SeaMapCard from './SeaMapCard';
 import './seaDeck.css';
 
 export interface SeaPageProps {
@@ -90,6 +91,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [picker, setPicker] = useState(false);
   /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
   const [stage, setStage] = useState<'map' | 'dossier'>('map');
+  /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
+  const [mapCard, setMapCard] = useState<string | null>(null);
+  useEffect(() => { if (stage === 'dossier') setMapCard(null); }, [stage]);
   const firstSpot = useRef(true);
 
   const popKey = popState?.key ?? null;
@@ -288,6 +292,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     const s = spots.find((x) => x.id === id);
     if (s) mapRef.current?.easeTo({ center: [s.lon, s.lat], zoom: Math.max(mapRef.current.getZoom(), 7.5), duration: 600 });
   }, [spots, isMobile]);
+  const pickSpotFromMap = useCallback((id: string) => { pickSpot(id); setMapCard(id); }, [pickSpot]);
 
   // --- lists ----------------------------------------------------------------------------------------------
   const dockSpots = useMemo(() => spots
@@ -389,7 +394,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const catFail = catalog === null && <div className="sw-map-note" role="status"><strong>Spotkatalog nicht ladbar.</strong> Der Datenspeicher antwortet nicht.</div>;
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
-      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpot} onMap={(m) => { mapRef.current = m; }} callout={callout} />
+      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
@@ -410,6 +415,24 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       layout={isMobile ? 'aside' : 'dossier'} band={isMobile ? undefined : band} chips={isMobile ? undefined : (usable && chips)} onMap={isMobile ? undefined : () => setStage('map')} />
   );
   const inDossier = stage === 'dossier';
+  // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.
+  const official = !spot ? null : warning.status === 'unknown'
+    ? { text: 'Amtlich: Meldung liegt vor oder Status unbekannt — im Wortlaut in der Detailansicht.', warn: true }
+    : warning.coast?.text && warning.coast.text.length <= 70 ? { text: `Amtlich: „${warning.coast.text}“`, warn: false } : { text: 'Amtlicher Warnstatus: im Wortlaut in der Detailansicht.', warn: false };
+  const cardEl = mapCard && spot && spot.id === mapCard && !inDossier ? (
+    <SeaMapCard badge={pillBadge} name={spot.name} sub={`${spot.seaArea?.name ?? spot.coast?.name ?? ''} · ${kindsLabel(spot.kinds)} · Profil ${profLabel}`}
+      verdict={noData ? 'keine Daten' : CLASS_LABEL[verdict?.cls ?? 'keine']} color={!noData && verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null}
+      stats={!hour || noData ? [] : [
+        { l: 'Wind', v: `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)}`, s: `aus ${compass16(hour.windDir)}` },
+        { l: 'Böen', v: `${fmtWind(hour.gustMs, unit)} ${unitLabel(unit)}` },
+        { l: 'Welle', v: hour.dry ? DRY_VALUE : f1(hour.hs, ' m'), s: !hour.dry && hour.tm != null ? `${f1(hour.tm)} s` : undefined },
+      ]}
+      reason={!noData && verdict && verdict.cls !== 'passt' ? verdict.reasons[0] ?? null : null}
+      window={noData || !usable ? null : wins.next ? `Nächstes Fenster ${dayShort(wins.next.from)} ${hh(wins.next.from)}–${hh(wins.next.to)} Uhr` : 'Kein Fenster im Lauf'}
+      official={official}
+      onOpenDossier={() => { setMapCard(null); if (isMobile) { setTab('spot'); setSheet('open'); } else setStage('dossier'); }}
+      onClose={() => setMapCard(null)} />
+  ) : null;
   const stageSeg = (
     <div className="sw-seg sw-stage-seg" role="group" aria-label="Bühne der Mitte">
       <button type="button" className={!inDossier ? 'is-active' : ''} aria-pressed={!inDossier} onClick={() => setStage('map')}>Karte</button>
@@ -441,8 +464,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           <div className="sw-m-times">{chips}</div>
           <div className="sw-m-legend"><div className="sw-legend-ramp" style={{ background: cssGradient(layer === 'per' ? PER_STOPS : HS_STOPS) }} /><div className="sw-legend-ticks"><span>0</span><span>{layer === 'per' ? '6' : '3'}</span><span>{layer === 'per' ? '12 s' : '6 m'}</span></div></div>
           {emptyMap}{catFail}
+          {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
-        <section className={`sw-sheet is-${sheet}`} aria-label="Spot-Briefing">
+        <section className={`sw-sheet is-${sheet}`} aria-label="Spot-Briefing" hidden={!!cardEl}>
           <button type="button" className="sw-sheet-grip" aria-label={sheet === 'open' ? 'Briefing verkleinern' : 'Briefing aufklappen'} aria-expanded={sheet === 'open'} onClick={() => setSheet((s) => (s === 'open' ? 'peek' : 'open'))}><span /></button>
           <div className="sw-sheet-head"><span className="sw-eyebrow is-accent">Spot-Briefing · {profLabel}</span><span className="sw-eyebrow">{noData ? 'keine Daten' : `Modell · ${dayShort(validMs)} ${hh(validMs)}:00`}</span></div>
           <h2 className="sw-sheet-title">{head}</h2>
@@ -510,6 +534,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
             </div>
             <div className="sw-ov-right">{legend}</div>
             {emptyMap}{catFail}
+            {cardEl && <div className="sw-map-card">{cardEl}</div>}
           </main>
           {inDossier && (
             <main className="sw-ds-main" aria-label="Spot-Dossier">
