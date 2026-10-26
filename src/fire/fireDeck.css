@@ -316,6 +316,26 @@
 .br-ml-dia.is-b { background: #9A9186; }
 .br-ml-dia.is-c { border: 2px dashed #9A9186; }
 .br-ml-dia.is-dev { border: 2px solid #C2542B; background: #2C2A26; box-shadow: inset 0 0 0 1.5px #FAF6EA; }
+
+/* Brand-Legende der Punkte (Detektionen / Historie-Ereignisse): Desktop und Tablet unten am Kartenrand rechts, mobil über der Bottom-Bar. */
+.br-pointlegend {
+  position: absolute; right: 16px; bottom: 16px; z-index: 5; box-sizing: border-box;
+  width: max-content; max-width: min(560px, calc(100% - 298px));
+  display: flex; flex-direction: column; gap: 5px; padding: 10px 12px;
+  background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px;
+  box-shadow: 0 8px 20px -14px rgba(44, 42, 38, 0.4);
+  font-size: 12px; line-height: 1.3; color: var(--ink-900, #2C2A26);
+}
+.br-pointlegend .br-eyebrow { font-size: 11px; letter-spacing: 1.5px; margin-bottom: 1px; }
+.br-pl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.br-pl-lbl { font-size: 11px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.br-pl-it { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.br-pl-dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(44, 42, 38, 0.25); }
+.br-pl-dot.is-s { width: 6px; height: 6px; background: #DD6A2B; }
+.br-pl-dot.is-l { width: 14px; height: 14px; background: #DD6A2B; }
+.br-pl-dot.is-ring { background: #DD6A2B; border: 2px solid; box-shadow: 0 0 0 1px rgba(44, 42, 38, 0.35); }
+.br-pl-dot.is-faint { background: #DD6A2B; opacity: 0.45; }
 .br-mapcard {
   --br-mapcard-acc: var(--br-red);
   /* Fluid with the viewport (no extra breakpoints): ≈ 240 px on small desktops, ≈ 270 px at 1440, up to 340 px. */
@@ -797,6 +817,10 @@
   .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; }
   .br-map-tl > .br-pill { margin-right: 49px; }
   .br-m-basemaprow .br-basemap button { min-height: 38px; }
+  /* Brand-Legende der Punkte: volle Breite knapp über der Bottom-Bar (die Karte endet an ihr). */
+  .br-pointlegend { left: 12px; right: 12px; bottom: 10px; width: auto; max-width: none; padding: 8px 10px; gap: 4px; font-size: 11.5px; }
+  .br-pointlegend .br-eyebrow { font-size: 10.5px; }
+  .br-pl-row { gap: 3px 10px; }
   /* Mobil sitzt die Kachel knapp über der Bottom-Bar statt im oberen Stapel. */
   .br-mapcard { position: fixed; left: 12px; right: 12px; bottom: calc(var(--br-bar-h) + 10px); z-index: 6; width: auto; max-width: none; max-height: calc(54vh - 130px); }
   /* Der globale Chip „Über diese Ansicht" (RouteSeoBlock) entfällt mobil im Brandradar. */

@@ -47,7 +47,7 @@ import {
 import ShareButton from '../share/ShareButton';
 import { fetchHotspots } from './sources/gwisHotspots';
 import {
-  fetchFirmsHotspots, toRun, detectionKey, type HotspotRun, type FirmsRow,
+  fetchFirmsHotspots, toRun, detectionKey, FRP_STOPS, ageStroke, type HotspotRun, type FirmsRow,
 } from './sources/firmsHotspots';
 import { type FireEvent } from './fireEvents';
 import { classifyHotspots, computeZonesAndClusters, computeFireClusters } from './fireEventsClient';
@@ -55,7 +55,7 @@ import type { FireZone } from './fireZones';
 import {
   // BP5: die Stärke-Beschriftungen sind mit der Liste ins Panel gezogen
   // (`FireFootprintPanel`); hier bleibt, was die Seite selbst braucht.
-  withCountries, CLUSTER_PAGE, STATIC_GREY,
+  withCountries, CLUSTER_PAGE, STATIC_GREY, CLUSTER_FRP_STOPS,
   type FireCluster, type CountryRings,
 } from './fireClusters';
 import { loadCountryRings } from '../countryMask';
@@ -1681,6 +1681,48 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   ) : null;
 
+  /**
+   * Brand-Legende der PUNKTE (Desktop: unten am Kartenrand rechts, mobil: über der Bottom-Bar).
+   * Live: Farbe = Feuerstrahlungsleistung der Detektion, Größe wächst mit ihr, Rand = Alter, blass = geringe
+   * Konfidenz, grau = ortsfest — Stufen aus `FRP_STOPS`/`ageStroke` (dieselben wie die Karte, `FireMap`).
+   * Historie: Punkte = Ereignisse, Farbe/Größe nach ΣFRP (`CLUSTER_FRP_STOPS`, wie `historyToGeoJSON`).
+   */
+  const mwRange = (stops: readonly (readonly [number, string])[], i: number) =>
+    i === stops.length - 1 ? `ab ${stops[i][0]}` : i === 0 ? `< ${stops[1][0]}` : `${stops[i][0]}–${stops[i + 1][0]}`;
+  const legendPointsLive = onlyKind === 'fires' && !history && mapActive.has('fireHotspots');
+  const legendPointsHistory = onlyKind === 'fires' && !!history;
+  const pointLegend = (legendPointsLive || legendPointsHistory) ? (
+    <div className="br-pointlegend" role="group" aria-label={legendPointsLive ? 'Legende Brandpunkte' : 'Legende Ereignispunkte'}>
+      <span className="br-eyebrow">{legendPointsLive ? 'Legende · Brandpunkte (Satellit)' : 'Legende · Ereignisse (Historie)'}</span>
+      <div className="br-pl-row">
+        <span className="br-pl-lbl">{legendPointsLive ? 'Farbe · Leistung (MW)' : 'Farbe · Σ Leistung (MW)'}</span>
+        {(legendPointsLive ? FRP_STOPS : CLUSTER_FRP_STOPS).map(([mw, col], i, a) => (
+          <span key={mw} className="br-pl-it"><i className="br-pl-dot" style={{ background: col }} />{mwRange(a, i)}</span>
+        ))}
+      </div>
+      <div className="br-pl-row">
+        <span className="br-pl-lbl">Größe</span>
+        <span className="br-pl-it"><i className="br-pl-dot is-s" />schwächer</span>
+        <span className="br-pl-it"><i className="br-pl-dot is-l" />stärker</span>
+        {legendPointsLive && (
+          <>
+            <span className="br-pl-lbl">Rand · Alter</span>
+            {([[1, '≤ 3 h'], [12, '≤ 24 h'], [48, '≤ 72 h'], [100, 'älter']] as const).map(([h, t]) => (
+              <span key={t} className="br-pl-it"><i className="br-pl-dot is-ring" style={{ borderColor: ageStroke(h) }} />{t}</span>
+            ))}
+          </>
+        )}
+      </div>
+      <div className="br-pl-row">
+        <span className="br-pl-it"><i className="br-pl-dot" style={{ background: STATIC_GREY }} />ortsfest (vermutlich Anlage)</span>
+        {legendPointsLive && <span className="br-pl-it"><i className="br-pl-dot is-faint" />blass: geringe Konfidenz</span>}
+      </div>
+      <span className="br-ml-note">
+        {legendPointsLive ? 'Satelliten-Detektion — kein bestätigter Brand' : 'Ein Punkt = ein Ereignis der Historie — keine amtliche Meldung'}
+      </span>
+    </div>
+  ) : null;
+
   const basemapSeg = (
     <div className="br-basemap" role="group" aria-label="Basiskarte">
       {(['streets', 'satellite'] as FireBasemap[]).map((b) => (
@@ -2285,6 +2327,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
             {!isMobile && mapCardEl && <div className="br-map-card">{mapCardEl}</div>}
             {!isMobile && !mapCardEl && !inDossier && mapLegend}
+            {!mapCardEl && !inDossier && (!isMobile || mobileTab === 'map') && pointLegend}
 
             {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler
                 ist entfallen (Jans Auftrag 2026-09-05), das hier ist der einzige verbliebene
