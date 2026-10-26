@@ -242,7 +242,7 @@ add('jede Stufe wird von mindestens einer Quelle voll abgedeckt',
         const cell = cellRaw
           .replace(/\([^)]*\)/g, '')                 // Klammerzusaetze
           .replace(/\*\*/g, '')                      // Fettschrift
-          .replace(/[⚠¹²³⁴⁵⁶⁷]/g, '');               // Fussnotenmarken
+          .replace(/[⚠¹²³⁴⁵⁶⁷⁸⁹]/g, '');             // Fussnotenmarken
         for (const raw of cell.split(/<br>|,/)) {
           const t = raw.trim();
           if (!t || t === '—') continue;
