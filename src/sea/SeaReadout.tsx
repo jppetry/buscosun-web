@@ -9,7 +9,7 @@ import type { SeaSpot } from './seaContract';
 import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
 import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
-import { fmtWind, unitLabel, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
+import { fmtWind, unitLabel, MS_TO_KN, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
 import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
 import SeaMiniMap from './SeaMiniMap';
 import SeaSatImagery from './SeaSatImagery';
@@ -64,17 +64,20 @@ interface Props {
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
 /**
- * Dossier chapters (desktop centre stage): Allgemein · Satellit · Wetter. They replace the tabs Spot · Seegebiet ·
- * Quellen there and take over their content; the URL keeps the tab keys (`tab=spot|gebiet|quellen`, mobile uses
- * them as tabs): Allgemein ⇔ `quellen`, Wetter ⇔ `spot`/`gebiet`, Satellit is written as `spot`.
+ * Dossier chapters (desktop centre stage): Am Spot · Wasserstand · Amtlich · Satellit · Allgemein. They replace the
+ * tabs Spot · Seegebiet · Quellen there and take over their content; the URL keeps the tab keys
+ * (`tab=spot|gebiet|quellen`, mobile uses them as tabs): Amtlich ⇔ `gebiet`, Allgemein ⇔ `quellen`, the others are
+ * written as `spot`. Wasserstand is left out when the water level is switched off (`?wl=0`).
  */
-type DsChapter = 'allgemein' | 'satellit' | 'wetter';
+type DsChapter = 'spot' | 'wasser' | 'amtlich' | 'satellit' | 'allgemein';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
-  ['wetter', 'Wetter', 'Stunde · Wasserstand · Verlauf · Amtlich', 'spot'],
+  ['spot', 'Am Spot', 'Stunde · Stundenband · Verlauf', 'spot'],
+  ['wasser', 'Wasserstand', 'BSH-Pegel · Füllstand · Vorhersage', 'spot'],
+  ['amtlich', 'Amtlich', 'Warnstatus · Berichte · Mittelfrist', 'gebiet'],
   ['satellit', 'Satellit', 'Lage · Küste im Zeitverlauf', 'spot'],
-  ['allgemein', 'Allgemein', 'Spot · Datenquellen · Prüfer-Bilanz', 'quellen'],
+  ['allgemein', 'Allgemein', 'Steckbrief · Datenquellen', 'quellen'],
 ];
-const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'wetter');
+const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : t === 'gebiet' ? 'amtlich' : 'spot');
 const SEC_AREA = 'sw-sec-seegebiet';
 function DsSection({ id, title, hint, side, children }: { id?: string; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
   const tid = id ? `${id}-t` : undefined;
@@ -140,16 +143,24 @@ export default function SeaReadout(p: Props) {
   }, [p.tab]);
   const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const officialBanner = s && p.warning.status === 'unknown' && (
-    <Card cls="is-warn">
-      <div className="sw-eyebrow is-warn">Amtliche Meldung · Seewetterdienst Hamburg · zuerst lesen</div>
-      {p.warning.area && p.warning.area.status === 'unknown' && p.warning.area.text && (
-        <p className="sw-official"><span className="sw-official-meta">Seegebiet {p.warning.area.name} (WODL45, englischer Teil):</span>{p.warning.area.text}</p>
-      )}
-      {p.warning.coast && p.warning.coast.status === 'unknown' && (p.warning.coast.text
-        ? <p className="sw-official"><span className="sw-official-meta">Deutsche {s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'}{p.warning.coast.nr ? ` · NR. ${p.warning.coast.nr}` : ''}:</span>{p.warning.coast.text}</p>
-        : null)}
-      <p className="sw-official-why">{p.warning.why}</p>
-    </Card>
+    <section className="sw-card is-warn sw-warnbar" aria-label="Amtliche Meldung">
+      <span className="sw-warnbar-ic" aria-hidden="true">!</span>
+      <div className="sw-warnbar-tx">
+        <div className="sw-eyebrow is-warn">Amtliche Meldung · Seewetterdienst Hamburg · zuerst lesen</div>
+        {p.warning.area && p.warning.area.status === 'unknown' && p.warning.area.text && (
+          <p className="sw-official"><span className="sw-official-meta">Seegebiet {p.warning.area.name} (WODL45, englischer Teil):</span>{p.warning.area.text}</p>
+        )}
+        {p.warning.coast && p.warning.coast.status === 'unknown' && (p.warning.coast.text
+          ? (
+            <>
+              <span className="sw-official-meta">Deutsche {s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'}{p.warning.coast.nr ? ` · NR. ${p.warning.coast.nr}` : ''}{p.warning.coast.kind ? ` · ${p.warning.coast.kind}` : ''}</span>
+              <WarnRows text={p.warning.coast.text} own={s.coast?.name} />
+            </>
+          )
+          : null)}
+        <p className="sw-official-why">{p.warning.why}</p>
+      </div>
+    </section>
   );
 
   const spotCard = s && (
@@ -256,17 +267,19 @@ export default function SeaReadout(p: Props) {
     const spread = h && h.windMs != null && h.gustMs != null ? h.gustMs - h.windMs : null;
     const gauge = p.waterLevel?.gauge ?? null;
     const stationName = s?.station ? s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase() : null;
+    const chapters = DS_CHAPTERS.filter(([k]) => k !== 'wasser' || p.waterLevel);
+    const cur: DsChapter = chapters.some(([k]) => k === chapter) ? chapter : 'spot';
     const pick = (c: DsChapter, tab: SeaTab) => {
       // A new chapter starts at its top, not at the scroll position of the previous one.
-      if (c !== chapter) dsRef.current?.closest('.sw-ds-scroll')?.scrollTo({ top: 0 });
+      if (c !== cur) dsRef.current?.closest('.sw-ds-scroll')?.scrollTo({ top: 0 });
       setChapter(c);
       if (tab !== p.tab) { requestedTab.current = tab; p.onTab(tab); }
     };
     // ←/→ move between the chapter tabs (one tab stop for the whole list).
     const onTabKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      const i = DS_CHAPTERS.findIndex(([k]) => k === chapter);
-      const n = DS_CHAPTERS[(i + (e.key === 'ArrowRight' ? 1 : DS_CHAPTERS.length - 1)) % DS_CHAPTERS.length];
+      const i = chapters.findIndex(([k]) => k === cur);
+      const n = chapters[(i + (e.key === 'ArrowRight' ? 1 : chapters.length - 1)) % chapters.length];
       e.preventDefault();
       pick(n[0], n[3]);
       e.currentTarget.querySelector<HTMLElement>(`[data-ch="${n[0]}"]`)?.focus();
@@ -312,53 +325,71 @@ export default function SeaReadout(p: Props) {
         {p.noData && <div className="sw-empty"><strong>Keine Daten.</strong> {p.noData}</div>}
         {!p.noData && h && (
           <>
-            <div className="sw-ds-stats">
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Wind {dayShort(h.t)} {hh(h.t)} Uhr · {windName}</span>
-                <strong>{h.windMs == null ? '–' : `${fmtWind(h.windMs, p.unit)} ${unitLabel(p.unit)}`}</strong>
-                <span className="sw-ds-stat-c">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` (${Math.round(h.windDir)}°)` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Böen · {windName}</span>
-                <strong>{h.gustMs == null ? '–' : `${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</strong>
-                <span className="sw-ds-stat-c">{spread == null ? 'keine Böe für diese Stunde berechnet' : `Böenspanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Seegang · Modell CWAM</span>
-                <strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : `${f1(h.hs)} m`}</strong>
-                <span className="sw-ds-stat-c">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)}${h.hs >= 0.05 ? ` (${Math.round(h.dir ?? 0)}°)` : ''}`}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Periode · Modell CWAM</span>
-                <strong>{h.dry || h.tm == null ? '–' : `${f1(h.tm)} s`}</strong>
-                <span className="sw-ds-stat-c">{h.dry ? 'kein Seegang' : h.tm == null ? 'kein Wert' : 'mittlere Periode Tm'}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Windsee · Modell</span>
-                <strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m`}</strong>
-                <span className="sw-ds-stat-c">{h.dry ? 'kein Seegang' : h.ws == null ? 'kein Wert' : h.wsPer == null ? 'Periode –' : `Periode ${f1(h.wsPer)} s`}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Dünung · Modell</span>
-                <strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m`}</strong>
-                <span className="sw-ds-stat-c">{h.dry ? 'kein Seegang' : h.sw == null ? 'kein Wert' : `Periode ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} · aus ${compass16(h.swDir)}`}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Wellenrichtung · Modell</span>
-                <strong>{h.hs == null || h.hs < 0.05 ? '–' : `aus ${compass16(h.dir)}`}</strong>
-                <span className="sw-ds-stat-c">{h.hs == null || h.hs < 0.05 ? 'kein Seegang mit Richtung' : `${Math.round(h.dir ?? 0)}°`}</span>
-              </div>
-              <div className="sw-ds-stat">
-                <span className="sw-ds-stat-l">Wasser · Mittelfrist (amtlich)</span>
-                <strong>{waterRange(p.texts, s) ?? '–'}</strong>
-                <span className="sw-ds-stat-c">{waterRange(p.texts, s) ? seaName(s) : 'kein Wert im Bericht'}</span>
-              </div>
-              <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
-                label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
+            <div className="sw-now-top">
+              {v && (
+                <div className={`sw-now-verdict is-${v.cls}`}>
+                  <span className={`sw-dot${v.cls === 'keine' ? ' is-hatched' : ''}`} style={v.cls !== 'keine' ? { background: CLASS_COLOR[v.cls] } : undefined} />
+                  <span className="sw-now-verdict-tx">
+                    <em>Profil {p.profileLabel} · {dayShort(h.t)} {hh(h.t)} Uhr</em>
+                    <strong>{CLASS_LABEL[v.cls]}</strong>
+                    {v.reasons.length > 0 && <small>{v.reasons.join(' · ')}</small>}
+                  </span>
+                </div>
+              )}
+              {p.windows.next && (
+                <div className="sw-now-win">
+                  <em>Nächstes Fenster · {p.profileLabel}</em>
+                  <strong>{dayShort(p.windows.next.from)} {hh(p.windows.next.from)}–{hh(p.windows.next.to)} Uhr</strong>
+                  <small>{p.windows.next.hours} h {p.windows.next.tight ? 'passt oder knapp' : 'passt'}{p.windows.longest && p.windows.longest !== p.windows.next ? ` · längstes ${dayShort(p.windows.longest.from)} ${hh(p.windows.longest.from)}–${hh(p.windows.longest.to)} Uhr` : ''}</small>
+                </div>
+              )}
             </div>
+            <div className="sw-now-grid">
+              <div className="sw-now-block">
+                <span className="sw-ds-stat-l">Wind · {windName}</span>
+                <div className="sw-now-big">
+                  {h.windDir != null && h.windMs != null && <WindArrow from={h.windDir} />}
+                  <strong>{h.windMs == null ? '–' : fmtWind(h.windMs, p.unit)}</strong>{h.windMs != null && <span>{unitLabel(p.unit)}</span>}
+                </div>
+                <span className="sw-ds-stat-c">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` (${Math.round(h.windDir)}°)` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</span>
+                <div className="sw-now-kv">
+                  <span>Böen</span>
+                  <strong>{h.gustMs == null ? '–' : `${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</strong>
+                  <em>{spread == null ? 'keine Böe für diese Stunde berechnet' : `Böenspanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}</em>
+                </div>
+                {h.windMs != null && h.gustMs != null && <GustMeter windKn={h.windMs * MS_TO_KN} gustKn={h.gustMs * MS_TO_KN} limitKn={p.limitKn} limitLabel={p.limitLabel} />}
+              </div>
+              <div className="sw-now-block is-sea">
+                <span className="sw-ds-stat-l">Seegang · Modell CWAM</span>
+                <div className="sw-now-big"><strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : f1(h.hs)}</strong>{!h.dry && h.hs != null && <span>m</span>}</div>
+                <span className="sw-ds-stat-c">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)}${h.hs >= 0.05 ? ` (${Math.round(h.dir ?? 0)}°)` : ''}`}</span>
+                <dl className="sw-now-rows">
+                  <div><dt>Periode</dt><dd><strong>{h.dry || h.tm == null ? '–' : `${f1(h.tm)} s`}</strong><small>{h.dry ? 'kein Seegang' : h.tm == null ? 'kein Wert' : 'mittlere Periode Tm'}</small></dd></div>
+                  <div><dt>Windsee</dt><dd><strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m`}</strong><small>{h.dry ? 'kein Seegang' : h.ws == null ? 'kein Wert' : h.wsPer == null ? 'Periode –' : `Periode ${f1(h.wsPer)} s`}</small></dd></div>
+                  <div><dt>Dünung</dt><dd><strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m`}</strong><small>{h.dry ? 'kein Seegang' : h.sw == null ? 'kein Wert' : `Periode ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} · aus ${compass16(h.swDir)}`}</small></dd></div>
+                  <div><dt>Wellenrichtung</dt><dd><strong>{h.hs == null || h.hs < 0.05 ? '–' : `aus ${compass16(h.dir)}`}</strong><small>{h.hs == null || h.hs < 0.05 ? 'kein Seegang mit Richtung' : `${Math.round(h.dir ?? 0)}°`}</small></dd></div>
+                </dl>
+              </div>
+              <div className="sw-now-block is-side">
+                <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
+                  label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
+                <div className="sw-now-water">
+                  <span className="sw-ds-stat-l">Wasser · Mittelfrist (amtlich)</span>
+                  <strong>{waterRange(p.texts, s) ?? '–'}</strong>
+                  <small>{waterRange(p.texts, s) ? seaName(s) : 'kein Wert im Bericht'}</small>
+                </div>
+              </div>
+            </div>
+            {s.station && p.poi && p.poi !== 'loading' && (
+              <div className="sw-now-meas">
+                <span className="sw-ds-stat-l is-measured">Gemessen an Land · {hm(p.poi.t)} Uhr</span>
+                <strong>{fmtWind(p.poi.ffMs, p.unit)} {unitLabel(p.unit)} aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)}</strong>
+                <small>DWD-Station {stationName}, {s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde) · Messung an Land, nicht auf dem Wasser</small>
+              </div>
+            )}
             {p.dry.hours > 0
               ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
-              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt die Karte „Wasserstand“ unten, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
+              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt das Kapitel „Wasserstand“, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
           </>
         )}
       </section>
@@ -385,16 +416,17 @@ export default function SeaReadout(p: Props) {
     return (
       <div className="sw-ds" aria-label="Spot-Dossier" ref={dsRef}>
         <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers" onKeyDown={onTabKey}>
-          {DS_CHAPTERS.map(([k, t, hint, tab], i) => (
-            <button key={k} type="button" role="tab" data-ch={k} tabIndex={chapter === k ? 0 : -1} aria-selected={chapter === k} className={`sw-ds-tab${chapter === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
-              <span className="sw-ds-tab-n" aria-hidden="true">{i + 1}</span>
+          {chapters.map(([k, t, hint, tab], i) => (
+            <button key={k} type="button" role="tab" data-ch={k} tabIndex={cur === k ? 0 : -1} aria-selected={cur === k} className={`sw-ds-tab${cur === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
+              <span className="sw-ds-tab-n" aria-hidden="true">{k === 'amtlich' && p.warning.status === 'unknown' && s ? '!' : i + 1}</span>
               <span className="sw-ds-tab-tx"><span className="sw-ds-tab-t">{t}</span><span className="sw-ds-tab-h">{hint}</span></span>
             </button>
           ))}
         </div>
         {headCard}
-        {officialBanner}
-        {chapter === 'allgemein' && (
+        {/* The status tiles open the chapter Amtlich with the same verbatim text — the banner stands on every other one. */}
+        {cur !== 'amtlich' && officialBanner}
+        {cur === 'allgemein' && (
           <>
             {s ? (
               <DsSection title="Steckbrief" hint="Lage, Küste und Seegebiet, Wasserzelle des Modells, Messstation und Pegel — mit dem Stand der Quelle">
@@ -406,18 +438,32 @@ export default function SeaReadout(p: Props) {
             </DsSection>
           </>
         )}
-        {chapter === 'satellit' && (s ? (
+        {cur === 'satellit' && (s ? (
           <div className={`sw-ds-grid${satDaysCard ? '' : ' is-one'}`}>{satCard}{satDaysCard}</div>
         ) : empty)}
-        {chapter === 'wetter' && (
+        {cur === 'spot' && (
           <>
             {s ? (
-              <DsSection title="Am Spot" hint="Gewählte Stunde · Stundenband · Wasserstand · Verlauf" side={p.chips}>
-                {nowCard}
-                {p.band}
-                <div className="sw-ds-grid is-one">{waterCardOf(true)}{chartCardOf(true)}</div>
-              </DsSection>
+              <>
+                <DsSection title="Gewählte Stunde" hint="Einordnung nach deinem Profil · Wind und Böen · Seegang · Lage zum Ufer" side={p.chips}>
+                  {nowCard}
+                </DsSection>
+                <DsSection title="Stundenband und Verlauf" hint="Jede Stunde des Laufs — eine Stunde wählen setzt Karte und Werte oben auf diese Zeit">
+                  {p.band}
+                  {chartCardOf(true)}
+                </DsSection>
+              </>
             ) : empty}
+            {s && disclaimer}
+          </>
+        )}
+        {cur === 'wasser' && (s ? (
+          <DsSection title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text" side={p.chips}>
+            {waterCardOf(true)}
+          </DsSection>
+        ) : empty)}
+        {cur === 'amtlich' && (
+          <>
             <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
               <AreaDossier spot={s} texts={p.texts} warning={p.warning} />
             </DsSection>
@@ -533,14 +579,16 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
         </div>
       )}
 
-      <div className="sw-vals">
-        <div>
-          <span>{at && at.forecast == null && at.measured != null ? 'Gemessen · zur gewählten Stunde' : 'Vorhersage · zur gewählten Stunde'}</span>
-          <strong>{shown == null ? '–' : `${cmText(shown)} cm`}</strong>
+      <div className="sw-wl-top">
+        <div className="sw-vals">
+          <div>
+            <span>{at && at.forecast == null && at.measured != null ? 'Gemessen · zur gewählten Stunde' : 'Vorhersage · zur gewählten Stunde'}</span>
+            <strong>{shown == null ? '–' : `${cmText(shown)} cm`}</strong>
+          </div>
+          <div><span>Bezug dieses Pegels</span><strong>{refs || '– (keine Bezugshöhen)'}</strong></div>
         </div>
-        <div><span>Bezug dieses Pegels</span><strong>{refs || '– (keine Bezugshöhen)'}</strong></div>
+        {fill && <WaterLevelFill fill={fill} isNow={fillNow} big={big} />}
       </div>
-      {fill && <WaterLevelFill fill={fill} isNow={fillNow} big={big} />}
       {beyond && (
         <p className="sw-note">Der Verlauf des BSH reicht bis {dayShort(curveEnd!)} {hm(curveEnd!)} Uhr — für die gewählte Stunde gibt es dort keinen Wert. Die Hoch- und Niedrigwasserzeiten unten reichen weiter.</p>
       )}
@@ -749,14 +797,73 @@ function ReportRows({ a }: { a: { wind: string | null; sightWeather: string | nu
   );
 }
 
-function StatusTile({ title, meta, status, text, missing }: { title: string; meta: string; status: 'none' | 'unknown' | null; text: string; missing: string }) {
+const fold = (x: string) => x.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z]/g, '');
+
+/**
+ * A WODL45 coast warning as area rows: each "Name:" line heads the lines below it. The characters stay as in the
+ * report (quote rule) — only arranged, numbers set bold; the spot's own coast section is marked. Any text that does
+ * not have that shape is shown as one block.
+ */
+function WarnRows({ text, own }: { text: string; own?: string | null }) {
+  const rows: Array<{ area: string; lines: string[] }> = [];
+  for (const raw of text.split('\n')) {
+    const l = raw.trim();
+    if (!l) continue;
+    if (l.endsWith(':')) rows.push({ area: l.slice(0, -1), lines: [] });
+    else if (rows.length) rows[rows.length - 1].lines.push(l);
+    else return <p className="sw-official">{text}</p>;
+  }
+  if (!rows.length || rows.some((r) => !r.lines.length)) return <p className="sw-official">{text}</p>;
+  const mine = own ? fold(own) : null;
+  return (
+    <dl className="sw-warn-rows">
+      {rows.map((r) => {
+        const isOwn = mine != null && fold(r.area) === mine;
+        return (
+          <div key={r.area} className={`sw-warn-row${isOwn ? ' is-own' : ''}`}>
+            <dt>{r.area}:{isOwn && <span className="sw-warn-own">dein Abschnitt</span>}</dt>
+            <dd>{numBold(r.lines.join('\n'))}</dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
+/** Arrow pointing where the wind blows to (the band's convention: arrows show where wind and waves run). */
+const WindArrow = ({ from }: { from: number }) => (
+  <svg className="sw-now-arrow" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" style={{ transform: `rotate(${(from + 180) % 360}deg)` }}>
+    <path d="M12 3v17M5.5 9.5 12 3l6.5 6.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** Mean wind and gust of the hour on one bar (knots), with the profile's limit as a mark when it has one. */
+function GustMeter({ windKn, gustKn, limitKn, limitLabel }: { windKn: number; gustKn: number; limitKn: number | null; limitLabel: string }) {
+  const max = Math.max(gustKn, windKn, limitKn ?? 0, 10) * 1.12;
+  const pc = (x: number) => `${Math.min(100, (x / max) * 100)}%`;
+  return (
+    <div className="sw-now-meter-wrap">
+      <div className="sw-now-meter" role="img" aria-label={`Mittelwind ${Math.round(windKn)} kn, Böen ${Math.round(gustKn)} kn${limitKn != null && limitLabel ? `, Grenze ${limitLabel}` : ''}`}>
+        <i className="is-gust" style={{ width: pc(gustKn) }} />
+        <i className="is-wind" style={{ width: pc(windKn) }} />
+        {limitKn != null && <b style={{ left: pc(limitKn) }} />}
+      </div>
+      <div className="sw-now-meter-l">
+        <span><i className="is-wind" />Mittelwind</span><span><i className="is-gust" />bis Böe</span>
+        {limitKn != null && limitLabel && <span><i className="is-limit" />Grenze {limitLabel}</span>}
+      </div>
+    </div>
+  );
+}
+
+function StatusTile({ title, meta, status, text, missing, own }: { title: string; meta: string; status: 'none' | 'unknown' | null; text: string; missing: string; own?: string | null }) {
   const tone = status === 'none' ? 'is-none' : 'is-unknown';
   return (
     <div className={`sw-ar-status ${tone}`}>
       <span className="sw-ar-status-ic" aria-hidden="true">{status === 'none' ? '✓' : '!'}</span>
       <div className="sw-ar-status-tx">
         <span className="sw-ar-k">{title}</span>
-        <p className="sw-official">{text || missing}</p>
+        {text ? <WarnRows text={text} own={own} /> : <p className="sw-official">{missing}</p>}
         <span className="sw-ar-meta">{meta}</span>
       </div>
     </div>
@@ -777,7 +884,7 @@ function AreaDossier({ spot, texts, warning }: { spot: SeaSpot | null; texts: Se
   return (
     <div className="sw-ar">
       <div className="sw-ar-statusrow">
-        <StatusTile title={`Warnstatus ${coastName}`} status={c && !stale ? c.status : null}
+        <StatusTile title={`Warnstatus ${coastName}`} status={c && !stale ? c.status : null} own={spot?.coast?.name}
           text={c?.text ?? ''} missing="Warnstatus derzeit unbekannt — es gibt keine lesbare, aktuelle Meldung. Das heißt nicht „keine Warnung“."
           meta={`${c?.nr ? `NR. ${c.nr} · ` : ''}${wodlAt}${stale ? ' · veraltet' : ''}${c?.issuedText ? ` · ${c.kind ? `${c.kind} · ` : ''}${c.issuedText}` : ''}`} />
         {spot?.seaArea && (

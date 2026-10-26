@@ -472,6 +472,83 @@
 .sw-fact-s { font-size: 13px; line-height: 1.4; color: var(--stone-500, #8B7355); }
 .sw-ds .sw-card.sw-ds-now { padding: 18px 20px; }
 .sw-ds-now .sw-ds-stats { margin-top: 0; }
+/* Official banner as a warning strip: the coast warning as area rows (verbatim), the spot's own section marked. */
+.sw-warnbar { display: flex; gap: 12px; align-items: flex-start; }
+.sw-warnbar-ic { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #B86A2E; color: #fff; font-size: 16px; font-weight: 700; }
+.sw-warnbar-tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sw-warnbar-tx .sw-official-meta { margin-top: 2px; }
+.sw-ds .sw-card.sw-warnbar { padding: 14px 18px; }
+.sw-warn-rows { margin: 4px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.sw-ds .sw-warn-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.sw-warn-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 7px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.7); border: 1px solid #EBD3B0; }
+.sw-warn-row dt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #7A4520; }
+.sw-warn-row dd { margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; color: var(--ink-900, #2C2A26); }
+.sw-warn-row dd b { font-weight: 700; color: #8A3320; }
+.sw-warn-row.is-own { background: #fff; border-color: #D9A36A; box-shadow: inset 3px 0 0 #B86A2E; }
+.sw-warn-own { padding: 1px 7px; border-radius: 999px; background: #B86A2E; color: #fff; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.sw-ar-status .sw-warn-rows { margin-top: 2px; }
+/* Hour card of the chapter Am Spot: verdict and next window on top, then wind · sea state · compass in three blocks. */
+.sw-now-top { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.sw-now-verdict { flex: 1 1 320px; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #F4F0E4; border: 1px solid var(--sand-200, #E0D6BE); }
+.sw-now-verdict .sw-dot { width: 14px; height: 14px; margin-top: 3px; }
+.sw-now-verdict.is-passt { background: #EFF3E8; border-color: #CFDCC2; color: #4D6A3B; }
+.sw-now-verdict.is-knapp { background: #FBF3E7; border-color: #EBD3B0; color: #9A5A2A; }
+.sw-now-verdict.is-ausserhalb { background: #F6E6E1; border-color: #E5C3B8; color: #8A3320; }
+.sw-now-verdict-tx, .sw-now-win { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sw-now-verdict em, .sw-now-win em { font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.8; }
+.sw-now-verdict strong, .sw-now-win strong { font-size: 19px; font-weight: 700; line-height: 1.2; }
+.sw-now-verdict small, .sw-now-win small { font-size: 13px; line-height: 1.4; }
+.sw-now-win { flex: 0 1 300px; padding: 12px 14px; border-radius: 12px; background: #EFF3E8; border: 1px solid #C3D2AF; color: #4D6A3B; }
+.sw-now-win strong { color: var(--ink-900, #2C2A26); }
+.sw-now-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) auto; gap: 12px; align-items: stretch; }
+.sw-now-block { display: flex; flex-direction: column; min-width: 0; padding: 14px 16px; border-radius: 12px; background: #FDFBF4; border: 1px solid var(--sand-200, #E0D6BE); }
+.sw-now-block.is-sea { background: linear-gradient(180deg, #EEF5F5, #FDFBF4 70%); border-color: #D3E3E4; }
+.sw-now-block.is-side { align-items: center; justify-content: space-between; gap: 12px; }
+.sw-now-big { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.sw-now-big strong { font-size: 40px; font-weight: 700; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.sw-now-big strong.is-dry { font-size: 22px; letter-spacing: -0.2px; color: var(--stone-600, #5C5447); }
+.sw-now-big > span { align-self: flex-end; padding-bottom: 3px; font-size: 16px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.sw-now-arrow { flex: none; color: var(--ink-900, #2C2A26); }
+.sw-now-kv { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--sand-100, #EDE6D3); }
+.sw-now-kv span { font-size: 11px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
+.sw-now-kv strong { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sw-now-kv em { font-style: normal; font-size: 13px; color: var(--stone-500, #8B7355); }
+.sw-now-meter-wrap { margin-top: 10px; }
+.sw-now-meter { position: relative; height: 10px; border-radius: 999px; background: var(--sand-100, #EDE6D3); }
+.sw-now-meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+.sw-now-meter i.is-gust, .sw-now-meter-l i.is-gust { background: rgba(139, 115, 85, 0.45); }
+.sw-now-meter i.is-wind, .sw-now-meter-l i.is-wind { background: var(--ink-900, #2C2A26); }
+.sw-now-meter b { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: #B5482E; }
+.sw-now-meter-l { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 7px; font-size: 12px; color: var(--stone-500, #8B7355); }
+.sw-now-meter-l span { display: inline-flex; align-items: center; gap: 5px; }
+.sw-now-meter-l i { display: inline-block; width: 12px; height: 6px; border-radius: 3px; }
+.sw-now-meter-l i.is-limit { width: 2px; height: 11px; border-radius: 1px; background: #B5482E; }
+.sw-now-rows { margin: 12px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sw-now-rows > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 8px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.8); border: 1px solid #DCE8E9; }
+.sw-now-rows dt { font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--sw-accent-dark, #0B5560); }
+.sw-now-rows dd { margin: 0; display: flex; flex-direction: column; }
+.sw-now-rows dd strong { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sw-now-rows dd small { font-size: 12px; line-height: 1.35; color: var(--stone-500, #8B7355); }
+.sw-now-water { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; padding-top: 10px; border-top: 1px solid var(--sand-100, #EDE6D3); text-align: center; }
+.sw-now-water strong { font-size: 18px; font-weight: 700; }
+.sw-now-water small { font-size: 12px; color: var(--stone-500, #8B7355); }
+.sw-now-meas { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: #F3F6EE; border: 1px solid #D5E0C8; }
+.sw-now-meas strong { font-size: 16px; font-weight: 700; }
+.sw-now-meas small { font-size: 12.5px; line-height: 1.4; color: var(--stone-500, #8B7355); }
+.sw-ds-stat-l.is-measured { color: #5F7A4C; }
+/* Water level: value and reference beside the fill glass on the wide card. */
+.sw-wl-top { display: flex; flex-direction: column; }
+.sw-card.is-wide .sw-wl-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; align-items: stretch; margin-top: 10px; }
+.sw-card.is-wide .sw-wl-top .sw-vals { margin-top: 0; grid-template-columns: minmax(0, 1fr); align-content: start; }
+.sw-card.is-wide .sw-wl-top .sw-wl-fill { margin-top: 0; }
+@container (max-width: 980px) {
+  .sw-now-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sw-now-block.is-side { grid-column: 1 / -1; flex-direction: row; justify-content: space-around; }
+  .sw-now-water { width: auto; padding-top: 0; border-top: 0; }
+}
+@container (max-width: 640px) {
+  .sw-now-grid, .sw-card.is-wide .sw-wl-top { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* --- Laptop / tablet (≤ 1439 px): narrower side columns, nothing removed ------------------------------- */
 @media (max-width: 1439px) {
@@ -480,6 +557,7 @@
   .sw-topbar-stand { display: none; }
   .sw-band-foot-note { display: none; }
   .sw-ds-tabs { top: -12px; }
+  .sw-ds-tab-h { display: none; }
   .sw-ds-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) auto; }
   .sw-ds-stats .sw-compass { grid-column: 3; grid-row: 1 / 5; }
   .sw-ds-headrow { flex-wrap: wrap; }
