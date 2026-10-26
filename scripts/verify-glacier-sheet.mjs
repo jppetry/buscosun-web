@@ -112,11 +112,11 @@ const rowsHef = SAT.seasons['2026/at-oetztaler-alpen'].glaciers[hefCat.id];
   const mv = meltView(doc, row, Date.parse(doc.runAt) + 2 * 3_600_000);
   const sum = seasonSummary(rowsHef, 'A');
   const lines = tourLines({ ...hefCat }, mv, sum, Date.parse('2026-10-11T12:00:00Z'));
-  add('T1 Tour: Zeilen zu Nächten, Eisoberfläche, Zustand per Satellit, Quellen aus erster Hand — jede mit Herkunft; kein Wort „begehbar“, „sicher“, „frei“ (Prüfer über Zeilen und Vorbehalt)', lines.length >= 3 && lines.every((l) => l.origin && l.source && l.title && l.text) && tourProblems(lines).length === 0 && glacierForbiddenWords(TOUR_DISCLAIMER).length === 0 && /Kein Urteil über Begehbarkeit/.test(TOUR_DISCLAIMER), JSON.stringify(lines.map((l) => l.key)));
+  add('T1 Tour: Zeile zum Zustand per Satellit — mit Herkunft; kein Wort „begehbar“, „sicher“, „frei“ (Prüfer über Zeilen und Vorbehalt)', lines.length >= 1 && lines.every((l) => l.origin && l.source && l.title && l.text) && tourProblems(lines).length === 0 && glacierForbiddenWords(TOUR_DISCLAIMER).length === 0 && /Kein Urteil über Begehbarkeit/.test(TOUR_DISCLAIMER), JSON.stringify(lines.map((l) => l.key)));
   const bad = tourProblems([...lines, { key: 'x', title: 'Zustand', text: 'Der Gletscher ist sicher begehbar und frei von Spalten', origin: 'model', source: 'x' }]);
   add('T1b Gegenprobe: ein Satz mit „sicher“, „begehbar“ und „frei“ wird vom Prüfer gefunden', bad.length === 1 && /sicher/.test(bad[0]) && /begehbar/.test(bad[0]) && /frei/.test(bad[0]), bad.join('|'));
   const none = tourLines({ ...hefCat }, null, null, Date.parse('2026-10-11T12:00:00Z'));
-  add('T2 ohne Schmelzlauf und ohne Szene bleibt nur der Hinweis auf erste Hand — keine Zeilen mit erfundenen Werten', none.length === 1 && none[0].key === 'links', JSON.stringify(none.map((l) => l.key)));
+  add('T2 ohne Schmelzlauf und ohne Szene gibt es keine Zeilen — keine Zeilen mit erfundenen Werten', none.length === 0, JSON.stringify(none.map((l) => l.key)));
   const old = tourLines({ ...hefCat }, mv, { ...sum, last: { ...sum.last, date: '2026-08-01' } }, Date.parse('2026-10-11T12:00:00Z'));
   add('T3 eine Szene älter als 20 Tage erzeugt keine Satellitenzeile (Frische-Regel des Vertrags)', !old.some((l) => l.key === 'sat') && lines.some((l) => l.key === 'sat'), '');
 }

@@ -182,19 +182,8 @@ export function indexWord(v: number): string {
 
 export interface TourLine { key: string; title: string; text: string; origin: GlacierOrigin; source: string }
 export const TOUR_DISCLAIMER = 'Kein Urteil über Begehbarkeit. Wetter und Zustand am Gletscher als Planungshilfe; Verhältnisse bei Hütte und Bergführern erfragen.';
-export function tourLines(g: GlacierCatalogEntry, melt: MeltView | null, season: SeasonSummary | null, nowMs: number): TourLine[] {
+export function tourLines(_g: GlacierCatalogEntry, _melt: MeltView | null, season: SeasonSummary | null, nowMs: number): TourLine[] {
   const out: TourLine[] = [];
-  const [zMin, , zMax] = g.z;
-  if (melt && melt.fresh) {
-    const zf = melt.zf.filter((v): v is number => v != null);
-    if (zf.length) {
-      const hi = Math.max(...zf), lo = Math.min(...zf);
-      const where = hi < zMin ? 'unter der Zunge' : lo > zMax ? 'über dem höchsten Punkt' : hi > zMax ? 'zeitweise über dem höchsten Punkt' : 'innerhalb der Höhe des Gletschers';
-      out.push({ key: 'zero', title: 'Nullgradgrenze, Tagesmaximum der nächsten 14 Tage', text: `${fmtM(lo)}–${fmtM(hi)}, ${where} (${fmtM(zMin)}–${fmtM(zMax)})`, origin: 'model', source: `${melt.engine}, Lauf ${dateDe(melt.runAt.slice(0, 10))}${melt.zs === 'cells' ? ', Druckflächen' : ', aus der Temperatur am Gletscher und dem Standardgradienten (0,65 K je 100 m)'}` });
-    }
-    out.push({ key: 'nights', title: 'Nächte ohne Frost an der Zunge', text: melt.nf === 0 ? 'In keiner der berechneten Nächte bleibt die Temperatur an der Zunge über 0 °C' : `In ${melt.nf} der berechneten Nächte bleibt die Temperatur an der Zunge über 0 °C — die Oberfläche gefriert dann nicht durch`, origin: 'model', source: melt.engine });
-    out.push({ key: 'ice', title: 'Eisoberfläche nach Modellzustand', text: `${melt.ice} % der Fläche ohne Schneedecke${melt.state.source === 'cold' ? ' (Modellzustand ohne Vorgänger: nur Satellit und Gleichgewichtslinie)' : ''}`, origin: 'model', source: melt.engine });
-  }
   if (season?.last) {
     const s = season.last;
     const age = Math.floor((nowMs - Date.parse(`${s.date}T12:00:00Z`)) / SHEET_DAY_MS);
@@ -203,7 +192,6 @@ export function tourLines(g: GlacierCatalogEntry, melt: MeltView | null, season:
       out.push({ key: 'sat', title: `Zustand der Oberfläche, Satellit ${dateDeLong(s.date)}`, text: t, origin: 'satellite', source: 'Sentinel-2 L2A' });
     }
   }
-  out.push({ key: 'links', title: 'Verhältnisse aus erster Hand', text: 'Hütte und Bergführer, Sperrungen und Berichte der Vereine, Lawinenreport im Winter; Webcams nur als Link', origin: 'official', source: 'Links' });
   return out;
 }
 const fmtM = (v: number) => `${Math.round(v).toLocaleString('de-DE').replace(/\./g, ' ')} m`;
