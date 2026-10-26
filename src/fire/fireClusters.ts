@@ -375,9 +375,19 @@ export function countryLabel(c: FireCluster['country']): string {
 }
 
 /** Stärke als Text. Ohne FRP in den Daten gibt es keine Stärke, nur Detektionen. */
+/**
+ * Leistung in MW als Text. Unter 1 MW mit bis zu zwei Nachkommastellen (0,4 MW bleibt 0,4 MW),
+ * darunter „< 0,01" — ein Wert über 0 wird nie als „0" gezeigt, das läse sich wie „keine Leistung".
+ * Ab 1 MW gilt die übergebene Genauigkeit (Standard: eine Nachkommastelle).
+ */
+export function mwText(n: number, frac = 1): string {
+  if (n > 0 && n < 1) return n < 0.005 ? '< 0,01' : n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+  return n.toLocaleString('de-DE', { maximumFractionDigits: frac });
+}
+
 export function strengthLabel(c: FireCluster): string {
   if (!(c.sumFrp > 0)) return 'ohne FRP-Angabe';
-  return `${c.sumFrp.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW`;
+  return `${mwText(c.sumFrp)} MW`;
 }
 
 /**

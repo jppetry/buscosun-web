@@ -14,7 +14,7 @@
 import { IndustryIcon } from './fireIcons';
 import { useMemo, useState } from 'react';
 import type { FireRecord } from './footprint/fireRegistry';
-import { CLUSTER_PAGE } from './fireClusters';
+import { CLUSTER_PAGE, mwText } from './fireClusters';
 import {
   SITE_CLASS_LABEL, FACILITY_KIND_LABEL, type ThermalSitesIndex, type ThermalSite, type SiteClass,
 } from './anomaly/thermalSites';
@@ -189,7 +189,7 @@ export function FireAnomalyPanel(p: AnomalyPanelProps) {
                   <span className="br-fire-meta">
                     Ø {de(daysPerYear(site))} Tage/Jahr · {siteYearsLabel(site).replace('Signal in ', '')} · zuletzt {fmtDate(site.stats.lastMs)} (Archiv)
                     {rec
-                      ? <> · im Fenster: {rec.hotspots ?? 0} Detektionen{rec.frpSumMw != null ? `, ΣFRP ${de(rec.frpSumMw)} MW` : ''}, zuletzt {fmtStamp(rec.lastMs)}</>
+                      ? <> · im Fenster: {rec.hotspots ?? 0} Detektionen{rec.frpSumMw != null ? `, ΣFRP ${mwText(rec.frpSumMw, 0)} MW` : ''}, zuletzt {fmtStamp(rec.lastMs)}</>
                       : <> · im Fenster: kein Signal</>}
                   </span>
                   {rec?.anomaly?.kind === 'site-deviating' && (
@@ -269,7 +269,7 @@ export function AnomalySiteCards({ site, rec }: { site: ThermalSite; rec: FireRe
         <div className="br-ds-cardhead"><span className="br-ds-eyebrow is-stone">Im Fenster &amp; Prüfung</span></div>
         <dl className="fire-fp-dl br-ds-dl">
           <dt>Im Fenster</dt>
-          <dd>{rec ? <>{rec.hotspots ?? 0} Detektionen, {rec.overpasses ?? 0} Überflüge{rec.frpSumMw != null ? `, ΣFRP ${de(rec.frpSumMw)} MW` : ''} · Abzeichen {rec.anomaly ? BR_BADGE_LABEL[rec.anomaly.kind] : '—'}</> : 'kein Signal — Beobachtungslücke oder kein Betrieb, keine Aussage'}</dd>
+          <dd>{rec ? <>{rec.hotspots ?? 0} Detektionen, {rec.overpasses ?? 0} Überflüge{rec.frpSumMw != null ? `, ΣFRP ${mwText(rec.frpSumMw, 0)} MW` : ''} · Abzeichen {rec.anomaly ? BR_BADGE_LABEL[rec.anomaly.kind] : '—'}</> : 'kein Signal — Beobachtungslücke oder kein Betrieb, keine Aussage'}</dd>
           {checks && (
             <>
               <dt>Signaturprüfung</dt>

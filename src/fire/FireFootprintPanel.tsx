@@ -54,7 +54,7 @@ import {
 } from './footprint/fireRegistry';
 import {
   CLUSTER_PAGE, STATIC_GREY, countryLabel,
-  strengthLabel, extentLabel, clusterColorOf, CLUSTER_FRP_STOPS, CLUSTER_NOTE,
+  strengthLabel, mwText, extentLabel, clusterColorOf, CLUSTER_FRP_STOPS, CLUSTER_NOTE,
 } from './fireClusters';
 import { freLabel, DAYNIGHT_LABEL } from './activity/intensity';
 import { activitySummary } from './activity/fireActivity';
@@ -1086,7 +1086,7 @@ export function DetailFrpRows({ r }: { r: FireRecord }) {
     <>
       {r.frpSumMw != null && (
         <FactRow term="ΣFRP">
-          {r.frpSumMw.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW — Leistung, summiert über Pixel und Überflüge, keine Fläche
+          {mwText(r.frpSumMw)} MW — Leistung, summiert über Pixel und Überflüge, keine Fläche
         </FactRow>
       )}
       {act && act.frpLastPassMw != null && (
@@ -1124,7 +1124,7 @@ export function DetailFactTiles({ r, nowMs }: { r: FireRecord; nowMs: number }) 
   const act = r.activity;
   const e = r.sources.effis;
   const gap = mappingGapText(r, nowMs);
-  const mw = (n: number) => `${n.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW`;
+  const mw = (n: number) => `${mwText(n)} MW`;
   const tiles: FactTile[] = [];
 
   // Doppelungen vermeiden: Fläche, Detektionen, Stärke und Tendenz stehen schon in den vier Kennzahlen
@@ -1271,7 +1271,7 @@ export function DetailVerlauf({ r, nowMs, compact = false, wide = false, wideWid
 function PassTable({ passes }: { passes: FireRecord['passes'] }) {
   const bp = useDossierBreakpoint();
   const rows = passes.slice(-8);
-  const mw = (ps: (typeof rows)[number]) => (ps.frpPixels > 0 ? `${ps.sumFrp.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW` : '—');
+  const mw = (ps: (typeof rows)[number]) => (ps.frpPixels > 0 ? `${mwText(ps.sumFrp)} MW` : '—');
   const glyph = (ps: (typeof rows)[number]) => (ps.day === true ? '☀' : ps.day === false ? '☾' : '');
   if (bp === 'mobile') {
     return (

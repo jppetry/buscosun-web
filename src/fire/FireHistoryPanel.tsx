@@ -8,7 +8,7 @@
  * ein leerer Monat heißt „keine Ereignisse im Stand vom …", nie „keine Brände".
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { CLUSTER_PAGE, clusterColor, STATIC_GREY } from './fireClusters';
+import { CLUSTER_PAGE, clusterColor, STATIC_GREY, mwText } from './fireClusters';
 import { groupPasses, sortPasses } from './activity/overpasses';
 import { footprintRing, VIIRS_NOMINAL_KM, type FirmsRow } from './sources/firmsHotspots';
 import { FirePassChart } from './FirePassChart';
@@ -248,7 +248,7 @@ export function historyStatTiles(e: HistoryIndexEntry): { lbl: string; val: stri
   return [
     { lbl: 'Fläche', ...area },
     { lbl: 'Detektionen', val: de(e.hotspots), sub: `${de(e.overpasses)} ${e.overpasses === 1 ? 'Überflug' : 'Überflüge'} · ${e.distinctDays} ${e.distinctDays === 1 ? 'Tag' : 'Tage'}` },
-    { lbl: 'Stärke', val: e.frpSumMw != null ? `${de(e.frpSumMw)} MW` : '—', sub: e.frpSumMw != null ? `ΣFRP · max ${de(e.frpMaxMw ?? 0)} MW` : 'keine FRP-Angabe' },
+    { lbl: 'Stärke', val: e.frpSumMw != null ? `${mwText(e.frpSumMw, 0)} MW` : '—', sub: e.frpSumMw != null ? `ΣFRP · max ${mwText(e.frpMaxMw ?? 0, 0)} MW` : 'keine FRP-Angabe' },
     { lbl: 'Zeitraum', val: spanLabel(e), sub: e.statusKind === 'out' ? 'beendet' : e.statusKind === 'active' ? 'aktiv zum Stand' : 'kein Signal zum Stand' },
   ];
 }

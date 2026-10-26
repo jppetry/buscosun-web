@@ -41,6 +41,7 @@ import Typography from '@mui/material/Typography';
 import { ResponsiveLine } from '@nivo/line';
 import type { FirePass } from './activity/overpasses';
 import { passTimeline, GAP_HOURS } from './detail/passTimeline';
+import { mwText } from './fireClusters';
 import { SVG_FONT } from '../theme/buscosunTheme';
 import { nivoTheme } from './charts/nivoTheme';
 import { useDossierBreakpoint } from './dossier/DossierPrimitives';
@@ -249,7 +250,7 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
             );
           }
           const yTop = yScale(Math.max(Y_FLOOR, b.frpMw));
-          const lines = [`${de(b.frpMw)} MW`, `${stamp(b.atMs)} · ${b.satellite}`, `${b.day === false ? '☾ Nacht' : '☀ Tag'} · ${b.pixels} Px`];
+          const lines = [`${mwText(b.frpMw)} MW`, `${stamp(b.atMs)} · ${b.satellite}`, `${b.day === false ? '☾ Nacht' : '☀ Tag'} · ${b.pixels} Px`];
           const dim = hover != null && hover.key !== b.key;
           return (
             <g
@@ -263,10 +264,10 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
                 d={roundedTopBar(x - bw / 2, yTop, bw, Math.max(1, y0 - yTop), wide ? 5 : 2)}
                 fill={`url(#${b.day === false ? gradNight : gradDay})`}
               >
-                <title>{`${stamp(b.atMs)} · ${b.satellite} ${b.day === false ? '☾ Nacht' : '☀ Tag'} · ${de(b.frpMw)} MW · ${b.pixels} Px`}</title>
+                <title>{`${stamp(b.atMs)} · ${b.satellite} ${b.day === false ? '☾ Nacht' : '☀ Tag'} · ${mwText(b.frpMw)} MW · ${b.pixels} Px`}</title>
               </path>
               {wide && mwAt.has(b.key) && (
-                <text x={x} y={yTop - 5} textAnchor="middle" fontFamily={SVG_FONT} fontSize={fontSize} fill={t.palette.text.secondary}>{de(b.frpMw)} MW</text>
+                <text x={x} y={yTop - 5} textAnchor="middle" fontFamily={SVG_FONT} fontSize={fontSize} fill={t.palette.text.secondary}>{mwText(b.frpMw)} MW</text>
               )}
               {(!wide || glyphAt.has(b.key)) && glyph}
               {wide && stampAt.has(b.key) && (
@@ -316,7 +317,7 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
         const last = tl.bars[tl.bars.length - 1];
         return (
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 2, mb: 1.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <ChartStat label="Spitze" value={peak ? `${de(peak.frpMw)} MW` : '—'} caption={peak ? stamp(peak.atMs) : 'keine FRP-Angabe'} />
+            <ChartStat label="Spitze" value={peak ? `${mwText(peak.frpMw)} MW` : '—'} caption={peak ? stamp(peak.atMs) : 'keine FRP-Angabe'} />
             <ChartStat label="Letzter Überflug" value={last ? stamp(last.atMs).split(', ').pop()! : '—'} caption={last ? stamp(last.atMs).split(', ')[0] : undefined} />
             <ChartStat label="Längste Lücke" value={`${de(tl.maxGapH, 0)} h`} caption={`ohne Überflug · ab ${GAP_HOURS} h schraffiert`} />
           </Box>
