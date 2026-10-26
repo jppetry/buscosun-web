@@ -2947,3 +2947,43 @@ dafür wurden lokal die Hindcast-Slots 22.–24.10. nachgezogen (`queue.mjs foll
    erster Regen/Spitze/Summe des Radar-Teils aus den Bild-Balken. Rückfall `?mvbars=0` = Linie + Kurve wie vorher (`verify:ruc` 136/136).
    Dateien im Befehl von Punkt 1 enthalten; dazu `git add audit/niederschlag-ruc/2026-10-25-balken-herborn-27h.jpg audit/niederschlag-ruc/2026-10-25-balken-hover-herborn.png`;
    getrennter Commit, wenn gewünscht: `git commit -m "feat(regenradar): minute chart draws every layer as bars at its own resolution (E-RUC-15)"`.
+
+## 76. Autobahnwetter — Dossier-Ebene „Karte | Dossier" (Phase AWD, `audit/autobahn-dossier.md`), 2026-10-26
+
+1. **Sichtprüfung** (nur mit der Gefahren-Leiste, also ohne `?roadhz=0`): `/autobahnwetter` → oben rechts „Karte | Dossier"; ein Abschnitt in der Liste rechts öffnet das Dossier (Streckenband + Detail in der Mitte), „Karte" bringt die Karte zurück. Desktop 1440, Tablet 1024, Mobil 390 (Belege: `%TEMP%\awd-shots\v3-dossier.png`, `v11-tablet-dossier.png`, `v9-mobil-dossier.png`).
+2. **E-AWD-2 bestätigen oder umstellen:** ein Klick auf einen Abschnitt oder Messpunkt auf der Karte markiert nur; die markierte Zeile trägt „Dossier öffnen ›". Wenn du lieber sofort ins Dossier springen willst, ist es eine Zeile in `pickSegment`/`pickStation` (`RoadPage.tsx`).
+3. **Commit/Push** (Auftrag fehlt bisher, daher nicht committed): `git add src/road/RoadPage.tsx src/road/RoadBand.tsx src/road/RoadHazardDetail.tsx src/road/RoadHazardPanel.tsx src/road/roadDeck.css src/road/roadState.ts scripts/verify-road-ui.mjs audit/autobahn-dossier.md CLAUDE.md MANUELLE-SCHRITTE.md` und `git commit -m "feat(road): map | dossier stage with the section strip and the segment detail in the centre"`. Push = live; `?roadhz=0` schaltet die Leiste samt Umschalter wieder ab.
+
+## 77. Autobahnwetter — „buscosun Fusion — Fahrbahn" (Phase FB, AW-6.2, `audit/autobahn-fahrbahn.md`), 2026-10-26
+
+Gebaut und verifiziert, alles uncommitted im Arbeitsbaum; Daten- und Archiv-Repo unberührt. **Gate D-T ist nach der
+eingefrorenen Regel ROT** (bei +1 h schlägt die reine Differenz Fahrbahn − Luft ohne Abklingen um 0,05 K; ab +2 h und
+gegen den heutigen Luft-Proxy der Seite ist FB-1 bei jedem Vorlauf 0,5–1,2 K besser), **Gate D-K nicht messbar**
+(33 statt ≥ 100 Frost-Ereignisse im Oktober). **Jan hat am Nachmittag trotzdem eingeschaltet (E-FB-10):
+`ROAD_SURFACE_LIVE = true`.** Live wird die Fahrbahn aber erst, wenn BEIDES passiert ist: Tabelle im Daten-Repo (Schritt 2)
+UND Push von `main` (Schritt 3). Rückweg je Besucher `?rsfc=0`, global `ROAD_SURFACE_LIVE = false` + Push.
+
+1. **Ansehen (2 min):** `/autobahnwetter/a8` — erst NACH Schritt 2 und 3 zeigt es echte Werte; vorher sagt der Lauf
+   „nicht gerechnet — static/surface.json fehlt" und die Seite bleibt bei „Luft". Ein Beleg mit Fixture-Lauf liegt in
+   `audit/autobahn-fahrbahn/ui/w2-fahrbahn-station-1440.png`. Bericht lesen:
+   `audit/autobahn-fahrbahn/backtest-2026-10-26.md` (Gate-Zeilen am Ende).
+2. ~~Tabelle ins Daten-Repo kopieren~~ **erledigt 26.10. 15:55 UTC+1 mit Jans Freigabe:** Daten-Repo `8e1f4ce18`
+   (`checkout --detach origin/main` → `cherry-pick` → `push HEAD:main`, erster Versuch nach einem abgewiesenen Push auf
+   altem Stand), `road/fc/v1/static/surface.json` 12 993 B, SHA-256 auf raw.githubusercontent geprüft. Der stündliche Lauf
+   schreibt die Reihen aber erst, wenn `buscosun-web/main` den neuen Producer trägt (Schritt 3 — der Job klont `main`);
+   bis dahin ignoriert der alte Producer die Datei. Zur Doku der Schritte:
+   `copy C:\dev\buscosun-road-publish\2026-10-26-fb1\surface.json <buscosun-data>\road\fc\v1\static\surface.json`
+   (SHA-256 `6f3d60f4e1e2fa5c2e2307501888e2d5d773a0c55b7c4e93a78639b340fe2683`), im Daten-Repo per
+   `checkout --detach origin/main` → `add` → `commit -m "road-fc: surface table FB-1 (2026-10-04 … 2026-10-25)"` →
+   `push HEAD:main` (V-WL-20). Der nächste `road-fc`-Lauf loggt „Fahrbahn (FB): Tabelle 6f3d60f4e1e2 …, N Punkte mit
+   eigener Messung". Rückweg: Datei löschen oder Repo-Variable `ROAD_SURFACE=0` (der Lauf nennt den Grund im Kopf).
+3. **Commit/Push `buscosun-web`** (Push = live: mit Schritt 2 zeigt die Seite die Fahrbahn „berechnet"):
+   `git add src/road/roadSurface.ts src/road/roadFc.ts src/road/roadFlag.ts src/road/roadFcView.ts src/road/RoadReadout.tsx src/road/RoadPage.tsx src/road/roadDeck.css src/router/pages/RoadRoute.tsx scripts/road/road-forecast.mjs scripts/road/road-fc-archive.mjs scripts/road/road-surface-backtest.mjs scripts/verify-road-surface.mjs scripts/verify-road-fc.mjs scripts/verify-road-ui.mjs package.json budget.json audit/autobahn-fahrbahn.md audit/autobahn-fahrbahn MANUELLE-SCHRITTE.md CLAUDE.md`
+   und `git commit -m "feat(road): buscosun Fusion - Fahrbahn: road surface forecast +0..6 h (FB-1) behind ROAD_SURFACE_LIVE, fit + backtest on the archive, shadow series in the route forecast"`.
+   Wichtig für den Archiv-Job: `road-fc-archive.mjs` nimmt die neuen Reihen erst mit, wenn `main` gepusht ist (der Job
+   klont `main`).
+4. **Dezember (ab den ersten Frostnächten, ≥ 100 Ereignisse):** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-surface-backtest.mjs --archive=C:\dev\buscosun-archiv --split=<Datum>` mit NEUER eingefrorener Regel
+   (Tabelle rollierend 14 Tage, V-FB-1; Tag/Nacht-Gewichte, V-FB-8). Rot ⇒ Entscheidung, ob der Schalter zurück auf
+   `false` geht.
+5. **V-FB-6 (Datenprüfung):** 20 Anlagen mit unplausiblem Abstand Fahrbahn − Luft (E774: Fahrbahn 54–74 °C im
+   Oktober) passieren die harten Regeln — eigener Auftrag, wenn gewünscht.

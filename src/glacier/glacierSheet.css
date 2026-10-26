@@ -301,3 +301,29 @@
   .gl-ds-tile, .gl-hb-tile, .gl-hb-tourtile, .gl-tabs button { transition: none; }
   .gl-ds-tile:hover, .gl-hb-tile:hover, .gl-hb-tourtile:hover { transform: none; }
 }
+
+/* Dossier on the phone (Jan 26.10.): "Detailansicht" opens the dossier level over the map, above the bottom bar. One column, the four
+   key figures as 2 × 2, the level stepper as three compact touch targets, buttons ≥ 44 px. Desktop and tablet are untouched. */
+@media (max-width: 767px) {
+  /* no top padding on the scroller: the sticky level bar would stop 10 px below the edge and let the content shine through above it */
+  .gl-ds-stage { padding: 0 10px 18px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .gl-ds { gap: 10px; padding-top: 10px; }
+  .gl-ds-card, .gl-hb-card { border-radius: 16px; padding: 12px; }
+  .gl-hb-hero { padding: 14px; }
+  .gl-ds-headrow { flex-direction: column; gap: 10px; }
+  .gl-ds-actions { justify-content: flex-start; width: 100%; }
+  .gl-ds-actions .gl-btn { min-height: 44px; }
+  .gl-ds-title, .gl-hb-hero .gl-ds-title { font-size: 22px; }
+  .gl-ds-kf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gl-ds-tile .gl-num, .gl-hb-hero .gl-ds-tile .gl-num { font-size: 20px; }
+  .gl-ds-steps { gap: 4px; padding: 4px; }
+  .gl-ds-step { min-height: 48px; padding: 6px 8px; gap: 7px; }
+  .gl-ds-step-t b { font-size: 13.5px; }
+  .gl-ds-step-t small { display: none; }
+  .gl-hb-row--melt, .gl-hb-row--week, .gl-hb-tourgrid { grid-template-columns: minmax(0, 1fr); }
+  .gl-ds-mapcard .gl-sheet-map { height: 320px; }
+  .gl-ds-mapcard .gl-sheet-legend { display: none; }
+  .gl-ds-maptools { gap: 6px; padding: 8px 10px; }
+  .gl-ds-lay, .gl-ds-maptools .gl-input { height: 44px; }
+  .gl-ds-time { gap: 8px; }
+}

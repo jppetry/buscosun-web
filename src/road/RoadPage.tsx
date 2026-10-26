@@ -37,10 +37,12 @@ import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type
 import type { RoadSegLine } from './RoadMap';
 import type { RoadSegment } from './roadSegments';
 import { stretchLine } from './roadSegments';
-import { roadHzFreshness, type RoadHazardGroup, type RoadHzFile } from './roadHazards';
+import { roadHzFreshness, type RoadHazardGroup, type RoadHzFile, type RoadLevel } from './roadHazards';
 import { loadRoadHz, loadRoadHzHistory, loadRoadSegments } from './roadHzClient';
 import { AW_SEV } from './roadNivoTheme';
-import { hzGroupRows, rowOrder, segMapState, segmentMainStation, segmentOfStation } from './roadHzView';
+import { hzGroupRows, rowOrder, segMapState, segmentMainStation, segmentOfStation, type HzRow } from './roadHzView';
+import RoadMapCard, { RoadCorridorCard } from './RoadMapCard';
+import { RoadDossierHead, RoadDossierTabs, RoadPickBar, RoadRouteCard, type RoadDossierChapter, type SegState } from './RoadDossier';
 // AW-8: rail and detail (with the nivo heatmap) are their own lazy chunk — a visitor without the switch loads none of it.
 const RoadHazardPanel = lazy(() => import('./RoadHazardPanel'));
 const RoadHazardDetail = lazy(() => import('./RoadHazardDetail'));
@@ -60,6 +62,8 @@ export interface RoadPageProps {
   popState?: (RoadUrlState & { key: string }) | null;
   /** AW-8: the hazard rail is on (`ROAD_HZ_LIVE` / `?roadhz=1`); off ⇒ the page of AW-5/AW-6.1b, unchanged. */
   hz?: boolean;
+  /** Phase FB: show the road surface forecast of the run (`ROAD_SURFACE_LIVE` / `?rsfc=1`); off ⇒ „Luft" as before. */
+  surface?: boolean;
 }
 
 const DEFAULT_CORRIDOR = 'a8';
@@ -70,7 +74,7 @@ const FC_REFRESH_MS = 10 * 60_000;
 const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: true, rain: false };
 const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
-export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz = false }: RoadPageProps) {
+export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz = false, surface = false }: RoadPageProps) {
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -104,6 +108,17 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [hzLoad, setHzLoad] = useState<{ slot: string; file: RoadHzFile | null; reason: string } | null>(null);
   const [hzPrev, setHzPrev] = useState<{ slot: string; files: Array<RoadHzFile | null> } | null>(null);
   const [hzDir, setHzDir] = useState<0 | 1>(0);
+  // AWD: the stage of the centre — map (default) or dossier (strip + detail of the open segment). Permalink `ds=1`; behind the hazard switch only.
+  const [stage, setStage] = useState<'map' | 'dossier'>(hz && initial.ds ? 'dossier' : 'map');
+  const inDossier = hz && stage === 'dossier';
+  // The segment a MAP click picked: its preview card (bottom left) is open until closed, a dossier opens or another segment is picked.
+  const [mapSeg, setMapSeg] = useState<string | null>(null);
+  // The corridor a MAP click on its line picked: its preview card, until closed, a dossier opens or a segment is picked.
+  const [mapCorr, setMapCorr] = useState<string | null>(null);
+  useEffect(() => { if (inDossier) { setMapSeg(null); setMapCorr(null); } }, [inDossier]);
+  // AWD chapters (like the fire dossier): entering the dossier with an open segment lands on „Abschnitt“, otherwise on „Strecke“.
+  const [dsChapter, setDsChapter] = useState<RoadDossierChapter>(1);
+  useEffect(() => { if (inDossier) setDsChapter(segId ? 2 : 1); }, [inDossier]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back/forward: the URL is the truth again (the corridor effect below then finds the URL equal and navigates nowhere).
   const popKey = popState?.key ?? null;
@@ -114,7 +129,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     setDir(popState.dir);
     setTab(popState.tab);
     setTime(popState.t);
-    if (hz) { setSegId(popState.seg ?? null); setHzFilter((popState.hf as RoadHazardGroup | null) ?? null); }
+    if (hz) { setSegId(popState.seg ?? null); setHzFilter((popState.hf as RoadHazardGroup | null) ?? null); setStage(popState.ds ? 'dossier' : 'map'); }
   }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- data ------------------------------------------------------------------------------------
@@ -163,11 +178,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     return () => ac.abort();
   }, [hzSlot]);
   useEffect(() => {
-    if (!hzSlot || !segId) return;
+    // The two earlier slots feed the plan table of the dossier only — a map click must not fetch them.
+    if (!hzSlot || !segId || !inDossier) return;
     const ac = new AbortController();
     loadRoadHzHistory(hzSlot, ac.signal).then((files) => setHzPrev({ slot: hzSlot, files }), () => {});
     return () => ac.abort();
-  }, [hzSlot, segId]);
+  }, [hzSlot, segId, inDossier]);
   const hzFile = hzLoad && hzLoad.slot === hzSlot ? hzLoad.file : null;
   const hzFresh = hzFile ? roadHzFreshness(hzFile.slotMs, nowMs, hzFile.killed) : 'dead';
   const segMap = useMemo(() => new Map((segments && segments !== 'error' ? segments : []).map((s) => [s.id, s] as const)), [segments]);
@@ -189,14 +205,35 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
 
   const corridor = useMemo(() => corridors?.find((c) => c.id === corridorId) ?? corridors?.find((c) => c.id === DEFAULT_CORRIDOR) ?? corridors?.[0] ?? null, [corridors, corridorId]);
   // AW-8.3: the segment lines of the open corridor in the window of the shared time (hour `t`, or the whole window).
-  const segLines = useMemo<RoadSegLine[]>(() => {
+  // The geometry (sampled along the corridor) depends on corridor + segments only; selection and hover are layer filters on the map, so a click never rebuilds the lines.
+  const segGeo = useMemo(() => {
     if (!hz || !corridor || !segments || segments === 'error') return [];
+    return segments.filter((s) => s.corridor === corridor.id).map((s) => ({ id: s.id, line: stretchLine(corridor.line, s.kmFrom, s.kmTo, 0.5) }));
+  }, [hz, corridor, segments]);
+  const segLines = useMemo<RoadSegLine[]>(() => {
     const win: RoadHzMode = hzMode === 'p6' ? 'p6' : time;
-    return segments.filter((s) => s.corridor === corridor.id).map((s) => {
-      const st = segMapState(hzShown?.seg[s.id], win, hzFilter);
-      return { id: s.id, line: stretchLine(corridor.line, s.kmFrom, s.kmTo, 0.5), color: st.lv ? AW_SEV[st.lv].bg : null, unknown: st.unknown, sel: s.id === segId, hover: s.id === hoverSeg };
+    return segGeo.map((g) => {
+      const st = segMapState(hzShown?.seg[g.id], win, hzFilter);
+      return { id: g.id, line: g.line, color: st.lv ? AW_SEV[st.lv].bg : null, unknown: st.unknown };
     });
-  }, [hz, corridor, segments, hzShown, hzMode, time, hzFilter, segId, hoverSeg]);
+  }, [segGeo, hzShown, hzMode, time, hzFilter]);
+  // Dossier: the same states for the route card (only with a valid hazard file — without one nothing is called „no hazard“).
+  const segStates = useMemo(() => {
+    const win: RoadHzMode = hzMode === 'p6' ? 'p6' : time;
+    return new Map<string, SegState>(hzShown ? segGeo.map((g) => [g.id, segMapState(hzShown.seg[g.id], win, hzFilter)] as const) : []);
+  }, [segGeo, hzShown, hzMode, time, hzFilter]);
+  const segGeoMap = useMemo(() => new Map(segGeo.map((g) => [g.id, g.line] as const)), [segGeo]);
+  // All segments of the open corridor in travel order — the dossier lets the user pick every one of them.
+  const corrSegs = useMemo(() => {
+    if (!hz || !corridor || !segments || segments === 'error') return [];
+    const l = segments.filter((x) => x.corridor === corridor.id).sort((a, b) => a.kmFrom - b.kmFrom);
+    return dir === 1 ? l.reverse() : l;
+  }, [hz, corridor, segments, dir]);
+  const corrRows = useMemo(() => {
+    const m = new Map<string, HzRow>();
+    for (const g of hzGroups) for (const r of g.rows) if (r.seg.corridor === corridor?.id && !m.has(r.segId)) m.set(r.segId, r);
+    return m;
+  }, [hzGroups, corridor?.id]);
   const inCorridor = useMemo(() => new Set(corridor?.stations.map((s) => s.id) ?? []), [corridor]);
   // AF-5: a section without a measuring station — the page shows its forecast only.
   const gap = corridor ? isGapCorridor(corridor) : false;
@@ -306,7 +343,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   }, [warn.state, liveAlerts, point]);
 
   // --- URL ------------------------------------------------------------------------------------------
-  const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: time, dir, tab, ...(hz ? { seg: segId, hf: hzFilter } : {}) };
+  const urlState: RoadUrlState = { corridor: corridor?.id ?? corridorId, st: stId, t: time, dir, tab, ...(hz ? { seg: segId, hf: hzFilter, ds: inDossier } : {}) };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstCorridor.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -335,7 +372,17 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     const main = segmentMainStation(s, shownById);
     setStId(main);
   }, [segMap, corridorId, shownById]);
-  const hzBack = useCallback(() => { setSegId(null); }, []);
+  // AWD: a click on a list row is the explicit wish for the details ⇒ open the segment AND switch to the dossier.
+  // A click on the map only marks (segment line, callout, row in the list with „Dossier öffnen“).
+  const openDossier = useCallback((id: string) => { pickSegment(id); setStage('dossier'); }, [pickSegment]);
+  // A click on the map picks the segment, but leaves the choice to the card: „Detailansicht öffnen“ switches to the dossier.
+  const pickSegmentFromMap = useCallback((id: string) => { pickSegment(id); setSheet('peek'); setMapSeg(id); setMapCorr(null); }, [pickSegment]);
+  const pickCorridorFromMap = useCallback((id: string) => { pickCorridor(id); setMapSeg(null); setMapCorr(id); }, [pickCorridor]);
+  const pickStationFromMap = useCallback((id: string) => {
+    pickStation(id);
+    if (hz && !isRoadFcAxisId(id) && segments && segments !== 'error') { const s = segmentOfStation(segments, id, corridorId); if (s) { setMapSeg(s.id); setMapCorr(null); } }
+  }, [pickStation, hz, segments, corridorId]);
+  const hzBack = useCallback(() => { setSegId(null); setDsChapter(1); }, []);
   const hzStep = useCallback((d: 1 | -1) => {
     if (!segId || !hzOrder.length) return;
     const i = hzOrder.indexOf(segId);
@@ -350,7 +397,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const loadingObs = !load;
   const dockLoading = { corridors: corrState === 'loading', obs: loadingObs };
   // Overlays cover the map: mobile pill + chips on top, the sheet (design 414 px) at the bottom; desktop band 165 px.
-  const padding = isMobile ? { top: 130, bottom: 430, left: 24, right: 24 } : { top: 110, bottom: 232, left: 40, right: 60 };
+  const padding = isMobile ? { top: 130, bottom: 430, left: 24, right: 24 } : { top: 110, bottom: hz ? 80 : 232, left: 40, right: 60 };
   const ends = corridor ? corridorEnds(corridor, dir) : null;
 
   // --- pieces -----------------------------------------------------------------------------------------
@@ -433,8 +480,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStation} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} onRain={setRain}
-      segLines={hz ? segLines : undefined} onSelectSegment={hz ? pickSegment : undefined} />
+      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} onRain={setRain}
+      segLines={hz ? segLines : undefined} selSegId={hz ? segId : null} hoverSegId={hz ? hoverSeg : null} onSelectSegment={hz ? pickSegmentFromMap : undefined} onSelectCorridor={hz ? pickCorridorFromMap : pickCorridor} />
   );
   const readoutProps = {
     tab, onTab: setTab, point, corridor, byId: shownById, dir, slotMs: obs?.slotMs ?? null, nowMs,
@@ -442,19 +489,94 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     onDepart: (d: number) => setDepartMin((m) => Math.max(0, Math.min(345, m + d))), onPick: pickStation, noData,
     fcFile, fcById, fcLabel, axis, time: t, onTime: setTimeShared,
     fcStation: fcStationNow ? (fcStationNow.load ?? ('loading' as const)) : null,
+    surface,
   };
-  // AW-8: the rail (Lage) or the detail of the open segment, inside the readout's Gefahren tab.
-  const hzNode = !hz ? undefined : (<Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>{openSeg && hzShown ? (
-    <RoadHazardDetail seg={openSeg} entry={hzShown.seg[openSeg.id] ?? null} file={hzShown} prev={hzPrev && hzPrev.slot === hzSlot ? hzPrev.files : [undefined, undefined]}
-      corridor={corridor} byId={shownById} fcFile={fcFile} ring={ring} nowMs={nowMs} dir={hzDir} onDir={setHzDir}
-      pos={{ i: Math.max(1, hzOrder.indexOf(openSeg.id) + 1), n: Math.max(1, hzOrder.length) }} onBack={hzBack} onPrev={() => hzStep(-1)} onNext={() => hzStep(1)}
-      selectedStation={point?.id ?? null} onPickStation={(id) => setStId(id)} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} stale={freshness === 'stale'}
-      stationCard={point && (openSeg.stations.includes(point.id) || openSeg.near.includes(point.id)) ? <RoadStationCard {...readoutProps} axis={null} /> : null} />
-  ) : (
+  // AW-8 / AWD: the readout's Gefahren tab carries the rail (Lage) in both stages — the detail of the open segment lives in the dossier (E-AWD-1).
+  const hzNode = !hz ? undefined : (<Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
     <RoadHazardPanel file={hzShown} state={hzState} segments={segMap} mode={hzMode} filter={hzFilter} selectedId={segId} nowMs={nowMs}
-      onMode={(m) => { setHzMode(m); if (m === 'now') setTime(0); else if (typeof m === 'number') setTime(m); }} onFilter={setHzFilter} onHour={(h) => setTime(h)} onPick={pickSegment} onHover={setHoverSeg} />
-  )}</Suspense>);
+      onMode={(m) => { setHzMode(m); if (m === 'now') setTime(0); else if (typeof m === 'number') setTime(m); }} onFilter={setHzFilter} onHour={(h) => setTime(h)}
+      onPick={openDossier} onHover={setHoverSeg} onOpenDossier={inDossier ? undefined : openDossier} />
+  </Suspense>);
   const readout = <RoadReadout {...readoutProps} hz={hzNode} />;
+
+  // AWD: the dossier of the centre — the strip of the corridor, then the detail of the open segment (or the empty state).
+  const hzWhy = hzState === 'loading' ? 'Gefahren werden geladen …'
+    : hzState === 'dead' ? 'Die Gefahrenauswertung ist älter als 3 Stunden.'
+      : hzState === 'no-segments' ? 'Die Abschnitte sind nicht ladbar.'
+        : 'Für diesen Slot liegt keine geprüfte Gefahrenauswertung vor.';
+  const noSeg = (
+    <div className="aw-dossier-empty" role="status">
+      {segId && !hzShown
+        ? <><strong>Abschnitt nicht verfügbar.</strong> {hzWhy}</>
+        : <><strong>Kein Abschnitt markiert.</strong> Wähle in der Streckenkarte einen Abschnitt — dann erscheinen hier Fahrbahn, Gefahren-Fahrplan, Wetter und Messpunkte.</>}
+      {dsChapter !== 1 && <button type="button" className="aw-ds-link" onClick={() => setDsChapter(1)}>Zur Streckenkarte →</button>}
+    </div>
+  );
+  const dossierBody = !hz ? null : dsChapter === 1 ? (
+    <>
+      {corridor && (
+        <RoadRouteCard corridor={corridor} dir={dir} segs={corrSegs} geo={segGeoMap} states={segStates} rows={corrRows} byId={shownById} others={corridors ?? []}
+          selectedId={segId} onPick={pickSegment} segNote={segments === 'error' ? 'Die Abschnitte sind nicht ladbar.' : !segments ? 'Abschnitte werden geladen …' : hzShown ? null : hzWhy} />
+      )}
+      {openSeg && <RoadPickBar seg={openSeg} state={segStates.get(openSeg.id)} onOpen={() => setDsChapter(2)} />}
+      {corridor && <RoadBand inline corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
+      {!openSeg && noSeg}
+      {/* Mobile has no readout column in this stage: the hazard list is a second way into a segment. */}
+      {isMobile && !openSeg && <div className="aw-dossier-list">{hzNode}</div>}
+    </>
+  ) : openSeg && hzShown ? (
+    <Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
+      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : dsChapter === 3 ? 'wx' : 'site'}
+        seg={openSeg} entry={hzShown.seg[openSeg.id] ?? null} file={hzShown} prev={hzPrev && hzPrev.slot === hzSlot ? hzPrev.files : [undefined, undefined]}
+        corridor={corridor} byId={shownById} fcFile={fcFile} ring={ring} nowMs={nowMs} dir={hzDir} onDir={setHzDir} backLabel="Alle Abschnitte"
+        pos={{ i: Math.max(1, hzOrder.indexOf(openSeg.id) + 1), n: Math.max(1, hzOrder.length) }} onBack={hzBack} onPrev={() => hzStep(-1)} onNext={() => hzStep(1)}
+        selectedStation={point?.id ?? null} onPickStation={(id) => setStId(id)} warnings={pointWarnings} warnState={warn.state} warnAt={warn.at} stale={freshness === 'stale'}
+        stationCard={point && (openSeg.stations.includes(point.id) || openSeg.near.includes(point.id)) ? <RoadStationCard {...readoutProps} axis={null} /> : null} />
+    </Suspense>
+  ) : noSeg;
+  const dossier = !inDossier ? null : (
+    <>
+      {corridor && <RoadDossierHead corridor={corridor} dir={dir} byId={shownById} states={segStates} hzOk={!!hzShown} segCount={corrSegs.length} standLabel={standLabel} />}
+      <RoadDossierTabs value={dsChapter} onChange={setDsChapter} segName={openSeg?.name ?? null} />
+      {dossierBody}
+    </>
+  );
+  // The preview card of the map-picked segment (same row as the hazard list, so card and list say the same).
+  const mapCardSeg = hz && !inDossier && mapSeg && mapSeg === segId ? segMap.get(mapSeg) ?? null : null;
+  // ... and the one of a corridor picked on the map: key facts of the road plus the hazard count of its segments.
+  const mapCardCorr = hz && !inDossier && !mapCardSeg && corridor && mapCorr === corridor.id ? corridor : null;
+  const corrCard = (c: RoadCorridor) => {
+    const pts = c.stations.map((st) => shownById.get(st.id)).filter((x): x is RoadPoint => !!x);
+    const nCrit = pts.filter((x) => isCritical(x.cls)).length;
+    const coldest = pts.filter((x) => x.rs != null).sort((a, b) => (a.rs as number) - (b.rs as number))[0];
+    const haz = hzGroups.flatMap((g) => g.rows).filter((r) => r.seg.corridor === c.id && r.best.lv !== null);
+    const facts = [
+      isGapCorridor(c) ? ROAD_GAP_SHORT : `${pts.length} von ${c.stations.length} Messpunkten mit Daten${nCrit ? `, ${nCrit} mit Glätte oder Frostgefahr` : ''}`,
+      ...(coldest ? [`Kälteste Stelle: ${coldest.n} ${f1(coldest.rs as number)} °C`] : []),
+    ];
+    return (
+      <RoadCorridorCard shields={c.shields} title={corridorRouteText(c, dir)} sub={`${corridorHeading(c, dir)} · ${c.countries.join(' · ')} · ${Math.round(c.lengthKm)} km`}
+        facts={facts} hazard={hzShown ? { n: haz.length, max: haz.reduce<RoadLevel | null>((m, r) => (r.best.lv !== null && (m === null || r.best.lv > m) ? r.best.lv : m), null) } : null}
+        onOpenDossier={() => { setMapCorr(null); setStage('dossier'); }} onClose={() => setMapCorr(null)} />
+    );
+  };
+  const mapCardEl = mapCardSeg ? (
+    <RoadMapCard seg={mapCardSeg} row={hzGroups.flatMap((g) => g.rows).find((r) => r.segId === mapCardSeg.id) ?? null}
+      onOpenDossier={() => { setMapSeg(null); setStage('dossier'); }} onClose={() => setMapSeg(null)} />
+  ) : mapCardCorr ? corrCard(mapCardCorr) : null;
+  /** Segment „Karte | Dossier“ (Desktop topbar, mobile top row) — only behind the hazard switch. */
+  const stageSeg = !hz ? null : (
+    <div className="aw-seg aw-stage-seg" role="group" aria-label="Bühne der Mitte">
+      <button type="button" aria-pressed={!inDossier} className={!inDossier ? 'is-active' : ''} onClick={() => setStage('map')}>Karte</button>
+      <button type="button" aria-pressed={inDossier} className={inDossier ? 'is-active' : ''} onClick={() => setStage('dossier')}>Dossier</button>
+    </div>
+  );
+  // The map stays mounted behind the dossier (no re-init); coming back it must measure its box again.
+  useEffect(() => {
+    if (inDossier) return;
+    const id = window.requestAnimationFrame(() => mapRef.current?.resize());
+    return () => window.cancelAnimationFrame(id);
+  }, [inDossier]);;
 
   // --- mobile ---------------------------------------------------------------------------------------------
   if (isMobile) {
@@ -479,13 +601,16 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     );
     return (
       <div className="aw-root is-mobile">
-        <main className="aw-map is-mobile" aria-label="Karte">
-          {map}
+        <main className="aw-map is-mobile" aria-label={inDossier ? 'Dossier' : 'Karte'}>
+          <div className="aw-m-mapwrap" hidden={inDossier}>{map}</div>
           <div className="aw-m-top">{mPill}<ShareButton className="aw-m-share" compact /></div>
           <div className="aw-m-times">{times}</div>
-          {emptyMap}
+          {stageSeg && <div className="aw-m-stage">{stageSeg}</div>}
+          {!inDossier && emptyMap}
+          {mapCardEl && <div className="aw-map-card">{mapCardEl}</div>}
+          {inDossier && <div className="aw-m-dossier">{dossier}</div>}
         </main>
-        <section className={`aw-sheet is-${sheet}`} aria-label="Strecken-Briefing">
+        <section className={`aw-sheet is-${sheet}`} aria-label="Strecken-Briefing" hidden={inDossier || !!mapCardEl}>
           <button type="button" className="aw-sheet-grip" aria-label={sheet === 'open' ? 'Briefing verkleinern' : 'Briefing aufklappen'} aria-expanded={sheet === 'open'}
             onClick={() => setSheet((s) => (s === 'open' ? 'peek' : 'open'))}><span /></button>
           <div className="aw-sheet-head">
@@ -563,6 +688,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           <span className="aw-topdiv" aria-hidden="true" />
           <span className="aw-topbar-sub">Autobahnwetter DACH</span>
           <div className="aw-topbar-right">
+            {stageSeg}
             <span className={`aw-live is-${liveTone}`} role="status"><span className="aw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Live' : liveTone === 'stale' ? 'Veraltet' : loadingObs ? 'Lädt' : 'Keine Daten'}</span>
             <span className="aw-topbar-stand">
               {obs && !noData ? <>Messung <strong>{hm(obs.slotMs)}</strong> · {summary.activeGroups} von {summary.totalGroups} DWD-Reihen</> : loadingObs ? 'Messung lädt …' : 'derzeit keine Messdaten'}
@@ -572,9 +698,15 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           </div>
         </header>
         <div className="aw-body">
-          <RoadDock corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
+          <RoadDock part="layers" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
             country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
-          <main className={`aw-map${fcCells ? ' has-fc' : ''}`} aria-label="Karte">
+          {inDossier && (
+            <main className="aw-dossier-stage" aria-label="Dossier">
+              <div className="aw-dossier-head">{pill}{times}</div>
+              <div className="aw-dossier-body">{dossier}</div>
+            </main>
+          )}
+          <main className={`aw-map${fcCells ? ' has-fc' : ''}${hz ? ' no-band' : ''}`} aria-label="Karte" hidden={inDossier}>
             {map}
             <div className="aw-ov-left">{pill}{times}</div>
             <div className="aw-ov-right">
@@ -585,9 +717,14 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
               </div>
             </div>
             {emptyMap}{corrFail}
-            {corridor && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
+            {mapCardEl && <div className="aw-map-card">{mapCardEl}</div>}
+            {/* AWD: with the hazard switch the strip lives in the dossier only; without it the map keeps its strip (rollback = the page of before). */}
+            {corridor && !hz && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
           </main>
-          {readout}
+          <RoadReadout {...readoutProps} hz={hzNode} roads={(
+            <RoadDock part="roads" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
+              country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
+          )} />
         </div>
       </div>
     </div>

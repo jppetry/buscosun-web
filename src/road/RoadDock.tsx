@@ -26,6 +26,8 @@ interface Props {
   hasData: boolean;
   /** M5 (D-9): still loading — corridors and/or the measurement slot; loading must not read like an outage. */
   loading?: { corridors: boolean; obs: boolean };
+  /** Desktop splits the dock: `roads` = search, countries, list (right sidebar); `layers` = layers and data per country (left). Absent = all (mobile picker). */
+  part?: 'roads' | 'layers';
 }
 
 const STATIC_ROWS: ReadonlyArray<{ cc: 'AT' | 'CH'; shield: string; title: string }> = [
@@ -52,8 +54,11 @@ export default function RoadDock(p: Props) {
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const entries = dockEntries(rows, { query: p.query, selectedId: p.selectedId, open });
   const staticRows = STATIC_ROWS.filter((r) => p.country === 'alle' || r.cc === p.country);
+  const roads = p.part !== 'layers', layersOn = p.part !== 'roads';
+  const Tag = p.part === 'roads' ? 'div' : 'aside';
   return (
-    <aside className="aw-dock" aria-label="Autobahnen und Ebenen">
+    <Tag className={p.part === 'roads' ? 'aw-roads' : `aw-dock${p.part ? ` is-${p.part}` : ''}`} aria-label={p.part === 'roads' ? 'Autobahnen' : p.part === 'layers' ? 'Ebenen' : 'Autobahnen und Ebenen'}>
+      {roads && <>
       <label htmlFor="aw-search" className="aw-eyebrow aw-dock-label">Autobahn oder Messstelle</label>
       <div className="aw-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
@@ -114,7 +119,9 @@ export default function RoadDock(p: Props) {
           </div>
         ))}
       </div>
+      </>}
 
+      {layersOn && <>
       <div className="aw-dock-h aw-dock-h-layers">Ebenen</div>
       <div className="aw-dock-list">
         {LAYERS.map((l) => (
@@ -142,6 +149,7 @@ export default function RoadDock(p: Props) {
           </div>
         )}
       </div>
-    </aside>
+      </>}
+    </Tag>
   );
 }

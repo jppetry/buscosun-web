@@ -58,7 +58,7 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const rt = ROAD_FC_VAR_IDS.every((v) => { const [lo, hi] = ROAD_FC_RANGE[v]; return [lo, hi, (lo + hi) / 2, lo + (hi - lo) / 7].every((x) => Math.abs(roadFcDecode(v, roadFcEncode(v, x)) - x) <= 0.5 / ROAD_FC_VARS[v].scale + 1e-12); });
   add('A2 Kodierung: ganzzahlig, Rundweg je Größe innerhalb eines halben Schritts; null/NaN ⇒ null (fehlt ≠ 0)',
     rt && roadFcEncode('t', null) === null && roadFcEncode('t', NaN) === null && roadFcDecode('t', null) === null && roadFcEncode('t', -0.04) === -0 && Number.isInteger(roadFcEncode('rr', 1.234)));
-  const good = () => Object.fromEntries(ROAD_FC_VAR_IDS.map((v) => [v, new Array(ROAD_FC_STEPS).fill(v === 'q' ? 0 : 5)]));
+  const good = () => Object.fromEntries(ROAD_FC_VAR_IDS.map((v) => [v, new Array(ROAD_FC_STEPS).fill(ROAD_FC_VARS[v].unit === 'code' ? 0 : 5)]));
   const mut = (fn) => { const g = good(); fn(g); return roadFcSeriesProblems(g); };
   add('A3 Wertschloss: gute Reihe ohne Befund; falsche Länge, Kommazahl, Wert außerhalb des Bereichs, fehlende Größe je erkannt (Negativkontrollen)',
     roadFcSeriesProblems(good()).length === 0 && mut((g) => g.t.pop()).length === 1 && mut((g) => { g.td[3] = 1.5; }).length === 1 && mut((g) => { g.t[0] = 900; }).length === 1
@@ -469,7 +469,7 @@ let built, runFiles;
   const now = Date.UTC(2026, 9, 4, 12, 0);
   const mk = (minAgo) => ({ run: roadFcStamp(now - minAgo * 60_000), issuedAt: new Date(now - minAgo * 60_000).toISOString(), t0Ms: roadFcT0(now - minAgo * 60_000), publishedAt: new Date(now - (minAgo - 2) * 60_000).toISOString(), points: 1, failed: 0 });
   const index = { schema: 1, product: 'road-fc-index', updatedAt: 'x', killed: false, runs: [mk(4), mk(64)] };
-  const good = Object.fromEntries(ROAD_FC_VAR_IDS.map((v) => [v, new Array(ROAD_FC_STEPS).fill(v === 'q' ? 0 : 5)]));
+  const good = Object.fromEntries(ROAD_FC_VAR_IDS.map((v) => [v, new Array(ROAD_FC_STEPS).fill(ROAD_FC_VARS[v].unit === 'code' ? 0 : 5)]));
   const fileFor = (run) => ({ schema: 1, product: 'road-fc', run, issuedAt: 'x', t0Ms: roadFcT0(roadFcStampToMs(run)), steps: ROAD_FC_STEPS, kind: 'corridor', id: 'a8', engine: {}, source: '', points: [{ id: 'a8@0', kind: 'axis', km: 0, lat: 50, lon: 10, h: 1, mos: null, v: good }] });
   const calls = [];
   const serve = (routes) => { globalThis.fetch = async (u) => { const url = String(u); calls.push(url); const r = routes(url); return r === undefined ? new Response('nf', { status: 404 }) : new Response(JSON.stringify(r), { status: 200 }); }; };

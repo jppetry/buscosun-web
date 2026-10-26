@@ -478,6 +478,21 @@
   border-color: color-mix(in srgb, var(--gl-accent) 55%, transparent);
 }
 .gl-metric.is-locked { box-shadow: none; background: transparent; }
+/* Toggles instead of the origin chip (Jan 26.10.): the switch sits right in the row, the description follows the one that is on. */
+.gl-metric-item { margin-bottom: 6px; }
+.gl-metric-item .gl-metric { margin-bottom: 0; }
+.gl-switch { flex: none; position: relative; width: 40px; height: 24px; border-radius: 99px; background: var(--gl-line-strong); transition: background .15s; }
+.gl-switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(44, 42, 38, .35); transition: transform .15s; }
+.gl-metric[aria-pressed="true"] .gl-switch { background: var(--gl-accent); }
+.gl-metric[aria-pressed="true"] .gl-switch i { transform: translateX(16px); }
+.gl-metric.is-locked .gl-switch { opacity: .45; }
+.gl-metric-about { margin: 6px 4px 0; padding: 8px 10px; border-left: 3px solid var(--gl-accent); border-radius: 0 8px 8px 0; background: var(--gl-tint); font-size: 12.5px; line-height: 1.5; color: var(--gl-ink); }
+.gl-metric-about .gl-chip { margin-left: 4px; vertical-align: 1px; white-space: nowrap; }
+@media (max-width: 767px) {
+  /* Phone: the whole row is the touch target (≥ 48 px); the description gets the full line width. */
+  .gl-metric-about { font-size: 13px; margin-inline: 2px; }
+}
+@media (prefers-reduced-motion: reduce) { .gl-switch, .gl-switch i { transition: none; } }
 .gl-rank button { border-radius: 10px; transition: background .15s; }
 .gl-rank button[aria-current="true"] { background: radial-gradient(120% 60px at 0% 0%, color-mix(in srgb, var(--gl-accent) 16%, transparent), transparent 100%), var(--gl-tint); }
 

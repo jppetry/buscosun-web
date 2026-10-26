@@ -8,8 +8,8 @@
  * Gate D). `st` is a station id or, since AW-6.1b, a forecast point of the corridor axis (`a8@70`).
  */
 
-export type RoadTab = 'station' | 'strecke' | 'quellen' | 'gefahren';
-export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen', 'gefahren'];
+export type RoadTab = 'station' | 'strecke' | 'quellen' | 'gefahren' | 'autobahnen';
+export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen', 'gefahren', 'autobahnen'];
 /** Time chips of the design (now, +1, +3, +6 h). */
 export const ROAD_TIMES = [0, 1, 3, 6] as const;
 /** AW-8: behind the hazard switch the time is hourly, 0 … 6 (one state for map, band, matrix and detail). */
@@ -29,6 +29,8 @@ export interface RoadUrlState {
   /** AW-8: the open segment of the detail view (`seg=A8-034`) and the group filter of the rail (`hf=glaette`). */
   seg?: string | null;
   hf?: string | null;
+  /** AWD: the centre stage shows the dossier (strip + segment detail) instead of the map (`ds=1`). Behind the hazard switch only. */
+  ds?: boolean;
 }
 
 export const ROAD_DEFAULT_STATE: RoadUrlState = { corridor: null, st: null, t: 0, dir: 0, tab: 'station' };
@@ -50,6 +52,9 @@ export function parseRoadUrl(slug: string | null | undefined, search: string, hz
     if (seg != null) { if (SEG_RE.test(seg)) state.seg = seg; else invalid.push('seg'); }
     const hf = q.get('hf');
     if (hf != null) { if (HF_RE.test(hf)) state.hf = hf; else invalid.push('hf'); }
+    // AWD: only the value 1 opens the dossier; anything else is invalid and the map stays the stage.
+    const ds = q.get('ds');
+    if (ds != null) { if (ds === '1') state.ds = true; else invalid.push('ds'); }
   }
   if (slug) { if (SLUG_RE.test(slug)) state.corridor = slug; else invalid.push('corridor'); }
   const st = q.get('st');
@@ -79,6 +84,7 @@ export function buildRoadUrl(s: RoadUrlState, extra: ReadonlyArray<[string, stri
   if (s.tab !== defaultTab) q.push(['tab', s.tab]);
   if (s.seg) q.push(['seg', s.seg]);
   if (s.hf) q.push(['hf', s.hf]);
+  if (s.ds) q.push(['ds', '1']);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
   return `/autobahnwetter${s.corridor ? `/${s.corridor}` : ''}${qs}`;

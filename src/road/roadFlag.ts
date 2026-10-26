@@ -69,3 +69,38 @@ export function rememberRoadHzFlag(search: string = typeof location !== 'undefin
   if (q !== '0' && q !== '1') return;
   try { localStorage.setItem('roadhz', q); } catch { /* private mode */ }
 }
+
+// --- Phase FB (audit/autobahn-fahrbahn.md): the road surface forecast, behind its own switch -------------------
+
+/**
+ * `ROAD_SURFACE_LIVE` = Jan's flag-on decision (E-FB-10, 26.10.2026: „du kannst es gerne einschalten" — ahead of a green
+ * Gate D-T, see `audit/autobahn-fahrbahn.md` §5.5; the page shows the surface only in runs that carry it, i.e. once the
+ * table is in the data repo). Off: the page says „Luft" as before and the surface series stay unread. `?rsfc=0|1` beats
+ * `localStorage.rsfc`, which beats the constant. Back: `false` and a push, or `?rsfc=0` per visitor.
+ */
+export const ROAD_SURFACE_LIVE = true;
+
+export function roadSurfaceFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+  live: boolean = ROAD_SURFACE_LIVE,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('rsfc'); } catch { /* broken query = no vote */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('rsfc') : null; } catch { s = null; }
+  }
+  if (s === '0') return false;
+  if (s === '1') return true;
+  return live;
+}
+
+export function rememberRoadSurfaceFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('rsfc'); } catch { return; }
+  if (q !== '0' && q !== '1') return;
+  try { localStorage.setItem('rsfc', q); } catch { /* private mode */ }
+}

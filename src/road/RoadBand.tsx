@@ -36,11 +36,13 @@ interface Props {
   fcLabel?: string;
   /** AF-5: why a section without a station shows no forecast row either (`kein Lauf für diese Strecke`, …). */
   fcWhy?: string;
+  /** AWD: the strip stands in the flow of the dossier instead of floating over the map foot (CSS only). */
+  inline?: boolean;
 }
 
 const COUNTRY: Record<string, string> = { AT: 'AT', CH: 'CH', CZ: 'CZ', PL: 'PL', FR: 'FR', NL: 'NL', BE: 'BE', DK: 'DK', LU: 'LU' };
 
-export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabel, zust, onPick, fc, fcLabel, fcWhy }: Props) {
+export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabel, zust, onPick, fc, fcLabel, fcWhy, inline = false }: Props) {
   const len = c.lengthKm;
   // AF-5: a section without a measuring station has no measured bar — the forecast row takes its place.
   const gap = isGapCorridor(c);
@@ -88,7 +90,7 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
   const ticks = kmTicks(len);
   const borders = c.borders.map((b) => ({ km: kmIn(c, b.km, dir), country: COUNTRY[b.country] ?? b.country }));
   return (
-    <section className="aw-band" aria-label="Streckenband">
+    <section className={`aw-band${inline ? ' is-inline' : ''}`} aria-label="Streckenband">
       <div className="aw-band-head">
         <span className="aw-eyebrow is-accent">Streckenband</span>
         <span className="aw-band-title">{c.shields.join(' · ')} · {corridorRouteText(c, dir)} · {dec(len, 0)} km</span>

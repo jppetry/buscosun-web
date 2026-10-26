@@ -28,7 +28,8 @@ import {
 
 /** Lead 0…24 h — the range Gate D scores (+1/+3/+6 h) with room for a day-ahead check. */
 export const ROAD_FC_ARCHIVE_STEPS = 25;
-export const ROAD_FC_ARCHIVE_VARS = Object.freeze(['t', 'ts', 'td', 'pp', 'rr', 'sn', 'ff', 'fx', 'n', 'q']);
+/** Phase FB (E-FB-8): `rs rk rq` = the road surface forecast, OPTIONAL in a run — absent ⇒ left out of the stored point. */
+export const ROAD_FC_ARCHIVE_VARS = Object.freeze(['t', 'ts', 'td', 'pp', 'rr', 'sn', 'ff', 'fx', 'n', 'q', 'rs', 'rk', 'rq']);
 export const ROAD_FC_ARCHIVE_SCHEMA = 1;
 
 export const fcArchivePath = (run) => `${new Date(roadFcStampToMs(run)).toISOString().slice(0, 10)}/${run}.json.gz`;
@@ -44,7 +45,7 @@ export function thinRun(files) {
       lat: p.lat, lon: p.lon, h: p.h ?? null, mos: p.mos ?? null, at: f.kind === 'corridor' ? f.id : null,
       // V-AW-21: whether (and by how much) this forecast was anchored on the station's measurement.
       ...(p.anc ? { anc: p.anc } : {}),
-      v: Object.fromEntries(ROAD_FC_ARCHIVE_VARS.map((k) => [k, p.v[k].slice(0, ROAD_FC_ARCHIVE_STEPS)])),
+      v: Object.fromEntries(ROAD_FC_ARCHIVE_VARS.filter((k) => Array.isArray(p.v[k])).map((k) => [k, p.v[k].slice(0, ROAD_FC_ARCHIVE_STEPS)])),
     };
   }
   return {

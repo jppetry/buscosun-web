@@ -14,6 +14,7 @@ import type { RoadCorridor } from './roadClient';
 import { roadStampToMs } from './roadContract';
 import { BAND_REACH_KM, dec, f1, hm, isGapCorridor, kmIn, shieldText } from './roadView';
 import { FUSION_BRAND, fusionName, fusionVersionOfEngine } from '../pointForecast/fusion/fusionRelease';
+import { ROAD_SURFACE_HINT_LABEL, ROAD_SURFACE_HORIZON_H, ROAD_SURFACE_WORD, roadSurfaceHintOf, type RoadSurfaceHint } from './roadSurface';
 
 const H = 3_600_000;
 
@@ -39,6 +40,10 @@ export interface RoadFcValue {
   n: number | null;
   /** The step is interpolated between native steps of the cube (origin code of the contract). */
   interpolated: boolean;
+  /** Phase FB: road surface forecast °C („berechnet"), its hint class and origin — null in runs without the surface or beyond +6 h. */
+  rs: number | null;
+  rk: RoadSurfaceHint | null;
+  rq: 'own' | 'clim' | null;
 }
 
 type RunShape = Pick<RoadFcFile, 't0Ms' | 'steps'>;
@@ -62,7 +67,52 @@ export function roadFcValue(p: RoadFcPoint, run: RunShape, ms: number): RoadFcVa
     pp: roadFcDecode('pp', p.v.pp[i]), rr: roadFcDecode('rr', p.v.rr[i]), sn: roadFcDecode('sn', p.v.sn[i]),
     ff: roadFcDecode('ff', p.v.ff[i]), fx: roadFcDecode('fx', p.v.fx[i]), dd: roadFcDecode('dd', p.v.dd[i]), n: roadFcDecode('n', p.v.n[i]),
     interpolated: q != null && q >= ROAD_FC_INTERPOLATED,
+    rs: roadFcDecode('rs', p.v.rs?.[i]), rk: roadSurfaceHintOf(p.v.rk?.[i]), rq: p.v.rq?.[i] === 0 ? 'own' : p.v.rq?.[i] === 1 ? 'clim' : null,
   };
+}
+
+// --- Phase FB: road surface forecast (audit/autobahn-fahrbahn.md) ------------------------------------
+
+/** Does this run carry the road surface forecast of „buscosun Fusion — Fahrbahn"? */
+export const roadFcHasSurface = (file: Pick<RoadFcFile, 'engine'> | null): boolean => file?.engine.surface?.mode === 'fb1';
+
+/** `Fahrbahn +1,2 °C · berechnet · Frostgefahr (ber.)` — null without a surface value. */
+export function roadSurfaceText(v: Pick<RoadFcValue, 'rs' | 'rk'>): string | null {
+  if (v.rs == null) return null;
+  return `Fahrbahn ${f1(v.rs)} °C · ${ROAD_SURFACE_WORD}${v.rk && v.rk !== 'none' ? ` · ${ROAD_SURFACE_HINT_LABEL[v.rk].short}` : ''}`;
+}
+
+/** The run's σ of a lead: `typisch ± 1,1 K`; empty when the run has none. */
+export function roadSurfaceSigmaText(file: Pick<RoadFcFile, 'engine'> | null, leadH: number): string {
+  const s = file?.engine.surface;
+  if (!s || s.mode !== 'fb1') return '';
+  const sig = s.sigma[Math.max(0, Math.min(ROAD_SURFACE_HORIZON_H, Math.round(leadH)))];
+  return sig == null ? '' : `typisch ± ${dec(sig)} K`;
+}
+
+/** Where the value came from (E-FB-3 `rq`). */
+export function roadSurfaceOriginText(v: Pick<RoadFcValue, 'rq'>): string {
+  return v.rq === 'own' ? 'aus der letzten Messung dieser Anlage fortgeschrieben' : 'ohne Messung: Klimatologie und Luft der Strecke';
+}
+
+/** The one-sentence limits of the surface product, with the fit window of the table the run used. */
+export function roadSurfaceUiNote(file: Pick<RoadFcFile, 'engine'> | null): string {
+  const s = file?.engine.surface;
+  const win = s && s.mode === 'fb1' ? ` (Tabelle ${s.fitted.from} … ${s.fitted.to})` : '';
+  return `Fahrbahn: buscosun Fusion — Fahrbahn, ${ROAD_SURFACE_WORD} aus der Luft der Strecke, dem typischen Abstand Fahrbahn − Luft nach Tagesstunde, Bewölkung, Wind und Nässe${win} und der letzten Messung der Anlage, bis +${ROAD_SURFACE_HORIZON_H} h. Keine Messung, kein amtliches Produkt.`;
+}
+
+/** Hourly surface forecast between two times (chart): `[hours from refMs, rs]`. */
+export function roadFcSurfaceSeries(p: RoadFcPoint, run: RunShape, refMs: number, fromH: number, toH: number): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  if (!Array.isArray(p.v.rs)) return out;
+  for (let i = 0; i < run.steps; i++) {
+    const dh = (run.t0Ms + i * H - refMs) / H;
+    if (dh < fromH || dh > toH) continue;
+    const rs = roadFcDecode('rs', p.v.rs[i]);
+    if (rs != null) out.push([dh, rs]);
+  }
+  return out;
 }
 
 // --- air classes (forecast row of the band, map dots) ---------------------------------------------

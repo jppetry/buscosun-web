@@ -30,6 +30,13 @@
  *      period and matrix cell = filter + shared hour; keyboard ↑/↓/Enter/Esc; detail (cross-section, text, timetable, lazy
  *      nivo charts with role=img + hidden tables, features, measuring points + station card, provenance); no hazard file;
  *      mobile sheet (44 px, matrix scrolls); segment lines on the map; no Google Fonts request
+ *   V  phase AWD (audit/autobahn-dossier.md): stage „Karte | Dossier“ behind the hazard switch — map is the default stage,
+ *      a map/strip click only marks („Dossier öffnen“ in the marked row), a list row opens segment + dossier, the detail lives
+ *      ONLY in the dossier (E-AWD-1), one strip per stage, map kept mounted and measured again, permalink `ds=1`, switch
+ *      off = the page of before, mobile dossier page; URL state as pure functions
+ *   W  phase FB (audit/autobahn-fahrbahn.md): the road surface forecast, on by default since E-FB-10 (`?rsfc=0` = the way
+ *      back) — tiles, grid, chart, notes, sources row and arrival column say „berechnet"; with `rsfc=0`, or with a run that
+ *      carries no surface, the page of before (never an invented road)
  *   I  console: no uncaught exception
  */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, cpSync, rmSync } from 'node:fs';
@@ -1235,9 +1242,9 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
     cpSync(site, noHz, { recursive: true });
     cpSync(join(FIX, 'segments-munich.json'), join(noHz, 'static', 'segments.json'));
     const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: noHz, hz: true });
-    const ok = await until(ctx, `/nicht verfügbar/.test(document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent ?? '') && document.querySelectorAll('.aw-band-tick').length > 0`, 30_000);
+    const ok = await until(ctx, `/nicht verfügbar/.test(document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent ?? '') && document.querySelectorAll('.aw-road').length > 0`, 30_000);
     const t = await ctx.evaluate(`document.querySelector('.aw-hz .aw-empty, .aw-hz .aw-note')?.textContent`);
-    add('U9 kein Gefahren-Slot (404) ⇒ „Gefahrenlage derzeit nicht verfügbar … keine Entwarnung", Messung und Band bleiben', ok && /keine Entwarnung/.test(t ?? ''), t);
+    add('U9 kein Gefahren-Slot (404) ⇒ „Gefahrenlage derzeit nicht verfügbar … keine Entwarnung", die Seite mit ihrer Autobahnliste bleibt', ok && /keine Entwarnung/.test(t ?? ''), t);
     off(); allErrors.push(...errors); await ctx.close();
   }
   // U10 mobile: the sheet opens on the Gefahren tab, matrix scrolls horizontally, rows ≥ 44 px, the detail as a full sheet.
@@ -1253,11 +1260,229 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
       small: [...document.querySelectorAll('.aw-hz button')].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.height < 44 && !b.closest('.aw-hz-matrix'); }).map((b) => b.className + ':' + Math.round(b.getBoundingClientRect().height)),
     })`));
     await ctx.evaluate(`document.querySelector('.aw-hz-row')?.click()`);
-    const detM = await until(ctx, `!!document.querySelector('.aw-sheet.is-open .aw-hz-detail')`, 8000);
-    add('U10 mobil 390 × 844: Blatt mit Reiter Gefahren, Zeilen ≥ 44 px, Matrix waagerecht scrollbar, jeder sichtbare Button der Leiste ≥ 44 px, Detail im geöffneten Blatt', open && rail && m.rows.every((h) => h >= 44) && m.scroll && m.scroll[0] > m.scroll[1] && m.small.length === 0 && detM, JSON.stringify({ rows: m.rows.slice(0, 3), scroll: m.scroll, small: m.small.slice(0, 5), detM }));
+    // AWD (E-AWD-1): a row click opens the segment AND the dossier — the detail is the page that replaces the map, not part of the sheet.
+    const detM = await until(ctx, `!!document.querySelector('.aw-m-dossier .aw-hz-detail')`, 8000);
+    add('U10 mobil 390 × 844: Blatt mit Reiter Gefahren, Zeilen ≥ 44 px, Matrix waagerecht scrollbar, jeder sichtbare Button der Leiste ≥ 44 px, Zeilenklick öffnet das Detail als Dossier-Seite', open && rail && m.rows.every((h) => h >= 44) && m.scroll && m.scroll[0] > m.scroll[1] && m.small.length === 0 && detM, JSON.stringify({ rows: m.rows.slice(0, 3), scroll: m.scroll, small: m.small.slice(0, 5), detM }));
     await shot(ctx, 'u10-mobil-gefahren');
     off(); allErrors.push(...errors); await ctx.close();
   }
+
+  // --- AWD: stage „Karte | Dossier“ (audit/autobahn-dossier.md) ------------------------------------------------
+  // V1 desktop: the map is the default stage; a row click opens the dossier; the detail lives ONLY there (E-AWD-1).
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1', root: hzSite, hz: true });
+    await until(ctx, `document.querySelectorAll('.aw-hz-row').length > 0 && !!document.querySelector('.aw-map-canvas')`, 45_000);
+    const map0 = JSON.parse(await ctx.evaluate(`JSON.stringify({
+      seg: [...document.querySelectorAll('.aw-stage-seg button')].map((b) => [b.textContent, b.getAttribute('aria-pressed')]),
+      dossier: document.querySelectorAll('.aw-dossier-stage').length, mapHidden: document.querySelector('.aw-map')?.hidden, bandInMap: document.querySelectorAll('.aw-map .aw-band').length,
+      noBand: document.querySelector('.aw-map')?.classList.contains('no-band'), band: document.querySelectorAll('.aw-band').length,
+      ds: /ds=/.test(location.search), open: document.querySelectorAll('.aw-hz-open').length })`));
+    add('V1 Karte ist die Standardbühne: Segment „Karte | Dossier“ (Karte aktiv), kein Dossier im DOM, KEIN Streckenband auf der Karte (es lebt im Dossier), URL ohne ds, noch keine Markierung',
+      JSON.stringify(map0.seg) === '[["Karte","true"],["Dossier","false"]]' && map0.dossier === 0 && map0.mapHidden === false && map0.bandInMap === 0 && map0.band === 0 && map0.noBand === true && !map0.ds && map0.open === 0, JSON.stringify(map0));
+    await sleep(1500);
+    await shot(ctx, 'v1-karte-ohne-band');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  {
+    // A click on the map's segment/measuring point only MARKS (`segId`, no stage change) — the same state as the permalink `?seg=…` without `ds`:
+    // the stage stays the map, the row carries „Dossier öffnen“.
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1&seg=A8-034', root: hzSite, hz: true });
+    await until(ctx, `document.querySelectorAll('.aw-hz-open').length === 1`, 45_000);
+    const marked = JSON.parse(await ctx.evaluate(`JSON.stringify({ dossier: document.querySelectorAll('.aw-dossier-stage').length, detail: document.querySelectorAll('.aw-hz-detail').length,
+      sel: document.querySelector('.aw-hz-row.is-selected')?.dataset.seg, open: document.querySelector('.aw-hz-open')?.textContent, afterRow: document.querySelector('.aw-hz-row.is-selected + .aw-hz-open') !== null })`));
+    add('V2 Markieren ohne Sprung (E-AWD-2): ein markierter Abschnitt (Klick auf der Karte, Permalink seg=) bleibt auf der Karte, kein Detail in der Spalte rechts; die markierte Zeile trägt „Dossier öffnen ›“ direkt unter sich',
+      marked.dossier === 0 && marked.detail === 0 && marked.sel === 'A8-034' && /Dossier öffnen/.test(marked.open ?? '') && marked.afterRow, JSON.stringify(marked));
+
+    await ctx.evaluate(`document.querySelector('.aw-hz-open')?.click()`);
+    const inDs = await until(ctx, `!!document.querySelector('.aw-dossier-stage .aw-hz-detail')`, 10_000);
+    await until(ctx, `/ds=1/.test(location.search)`, 5000);
+    await sleep(500);
+    const ds = JSON.parse(await ctx.evaluate(`JSON.stringify({
+      url: location.search, mapHidden: document.querySelector('.aw-map')?.hidden, bandsInDossier: document.querySelectorAll('.aw-dossier-stage .aw-band.is-inline').length, bandsInMap: document.querySelectorAll('.aw-map .aw-band').length,
+      detailInReadout: document.querySelectorAll('.aw-readout .aw-hz-detail').length, railInReadout: document.querySelectorAll('.aw-readout .aw-hz-row').length, sel: document.querySelector('.aw-readout .aw-hz-row.is-selected')?.dataset.seg,
+      open: document.querySelectorAll('.aw-hz-open').length, back: document.querySelector('.aw-hz-back')?.textContent, h2: document.querySelector('.aw-dossier-stage .aw-hz-h2')?.textContent,
+      head: [!!document.querySelector('.aw-dossier-head .aw-pill'), document.querySelectorAll('.aw-dossier-head .aw-times button').length],
+      seg: [...document.querySelectorAll('.aw-stage-seg button')].map((b) => b.getAttribute('aria-pressed')),
+      bandPos: getComputedStyle(document.querySelector('.aw-dossier-stage .aw-band')).position, legend: document.querySelector('.aw-dossier-stage .aw-band-legend')?.textContent,
+      station: document.querySelectorAll('.aw-dossier-stage .aw-hz-stationcard .aw-station').length })`));
+    add('V3 Dossier: das Detail steht in der Mitte unter dem Band und NICHT mehr im Readout; die Karte ist ausgeblendet (nicht abgebaut), genau ein Band im Fluss (static) und keines auf der Karte; URL ds=1&seg=…; Liste rechts bleibt mit markierter Zeile, ohne „Dossier öffnen“; Zurück heißt „Alle Abschnitte“; Kopf mit Pill und Zeitchips; Stationskarte im Dossier',
+      inDs && ds.mapHidden === true && ds.bandsInDossier === 1 && ds.bandsInMap === 0 && /ds=1/.test(ds.url) && /seg=A8-034/.test(ds.url) && ds.detailInReadout === 0 && ds.railInReadout > 0 && ds.sel === 'A8-034'
+      && ds.open === 0 && /Alle Abschnitte/.test(ds.back ?? '') && ds.h2 === 'Weyarn – Irschenberg' && ds.head[0] === true && ds.head[1] === 7 && JSON.stringify(ds.seg) === '["false","true"]'
+      && ds.bandPos === 'static' && /Messung DWD/.test(ds.legend ?? '') && ds.station === 1, JSON.stringify(ds));
+    await shot(ctx, 'v3-dossier');
+
+    // The band in the dossier is the same band: a tick opens that segment's detail here.
+    // Esc / „Alle Abschnitte“ close the SEGMENT and keep the dossier open with the empty state.
+    await ctx.evaluate(`document.querySelector('.aw-hz-back')?.click()`);
+    const empty = await until(ctx, `!document.querySelector('.aw-hz-detail') && !!document.querySelector('.aw-dossier-stage .aw-dossier-empty')`, 5000);
+    const e1 = JSON.parse(await ctx.evaluate(`JSON.stringify({ text: document.querySelector('.aw-dossier-empty')?.textContent, band: document.querySelectorAll('.aw-dossier-stage .aw-band').length, stage: document.querySelectorAll('.aw-dossier-stage').length })`));
+    add('V4 „Alle Abschnitte“ schließt den Abschnitt, das Dossier bleibt offen: Band + Leerzustand „Kein Abschnitt markiert …“',
+      empty && /Kein Abschnitt markiert/.test(e1.text ?? '') && e1.band === 1 && e1.stage === 1, JSON.stringify(e1));
+
+    // A list row (the explicit wish) opens segment + dossier in one click; from the dossier a tick of the strip switches the segment.
+    await ctx.evaluate(`document.querySelectorAll('.aw-hz-row')[1]?.click()`);
+    const viaRow = await until(ctx, `!!document.querySelector('.aw-dossier-stage .aw-hz-detail')`, 8000);
+    add('V5 Zeile in der Liste rechts öffnet im Dossier den Abschnitt (ein Klick), das Dossier bleibt die Bühne', viaRow, await ctx.evaluate(`document.querySelector('.aw-hz-h2')?.textContent`));
+
+    // Back to the map: the map is measured again (not 0 px), the strip is on it again, ds leaves the URL, the segment stays marked.
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-stage-seg button')].find((b) => b.textContent === 'Karte')?.click()`);
+    await until(ctx, `!document.querySelector('.aw-dossier-stage') && !/ds=/.test(location.search)`, 8000);
+    await sleep(500);
+    const back = JSON.parse(await ctx.evaluate(`JSON.stringify({ mapHidden: document.querySelector('.aw-map')?.hidden, w: Math.round(document.querySelector('.aw-map')?.getBoundingClientRect().width ?? 0),
+      canvas: (() => { const c = document.querySelector('.aw-map-canvas')?.getBoundingClientRect(); return c ? [Math.round(c.width), Math.round(c.height)] : null; })(), bandInMap: document.querySelectorAll('.aw-map .aw-band').length,
+      url: location.search, open: document.querySelectorAll('.aw-hz-open').length, detail: document.querySelectorAll('.aw-hz-detail').length })`));
+    add('V6 Zurück auf „Karte“: Karte sichtbar und neu vermessen (Canvas > 0 px), weiterhin kein Band auf der Karte, ds weg aus der URL, der Abschnitt bleibt markiert („Dossier öffnen“ wieder da), kein Detail in der Spalte',
+      back.mapHidden === false && back.w > 300 && back.canvas && back.canvas[0] > 300 && back.canvas[1] > 300 && back.bandInMap === 0 && !/ds=/.test(back.url) && /seg=/.test(back.url) && back.open === 1 && back.detail === 0, JSON.stringify(back));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // V7 permalink: ds=1 opens the dossier (with the segment); ds=1 alone shows the empty state; an invalid ds falls back to the map and is dropped.
+  {
+    const a = await openPage({ path: '/autobahnwetter?road=1&roadhz=1&seg=A8-034&ds=1', root: hzSite, hz: true });
+    const okA = await until(a.ctx, `!!document.querySelector('.aw-dossier-stage .aw-hz-detail')`, 45_000);
+    add('V7a Permalink ?seg=A8-034&ds=1 öffnet direkt das Dossier mit dem Detail (Segment „Dossier“ aktiv)', okA && (await a.ctx.evaluate(`document.querySelectorAll('.aw-stage-seg button[aria-pressed=true]')[0]?.textContent`)) === 'Dossier', '');
+    a.off(); allErrors.push(...a.errors); await a.ctx.close();
+    const b = await openPage({ path: '/autobahnwetter?road=1&roadhz=1&ds=1', root: hzSite, hz: true });
+    const okB = await until(b.ctx, `!!document.querySelector('.aw-dossier-stage .aw-dossier-empty') && document.querySelectorAll('.aw-dossier-stage .aw-band-tick').length > 0`, 45_000);
+    add('V7b Permalink ?ds=1 ohne Abschnitt: Band mit Messpunkten + Leerzustand, keine Karte im Weg', okB, '');
+    b.off(); allErrors.push(...b.errors); await b.ctx.close();
+    const c = await openPage({ path: '/autobahnwetter?road=1&roadhz=1&ds=2', root: hzSite, hz: true });
+    await until(c.ctx, `document.querySelectorAll('.aw-hz-row').length > 0`, 45_000);
+    await until(c.ctx, `!/ds=/.test(location.search)`, 5000);
+    const okC = await c.ctx.evaluate(`JSON.stringify({ stage: document.querySelectorAll('.aw-dossier-stage').length, url: location.search })`);
+    add('V7c ungültiges ds=2: Karte bleibt die Bühne, der Parameter wird kanonisch entfernt', JSON.parse(okC).stage === 0 && !/ds=/.test(JSON.parse(okC).url), okC);
+    c.off(); allErrors.push(...c.errors); await c.ctx.close();
+  }
+  // V8 switch off: no segment control, no dossier, `ds` is ignored — the page of before, byte for byte in its structure (flag-gating).
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=0&ds=1', root: hzSite, hz: true });
+    await until(ctx, `document.querySelectorAll('.aw-band-tick').length > 0`, 30_000);
+    const r = JSON.parse(await ctx.evaluate(`JSON.stringify({ seg: document.querySelectorAll('.aw-stage-seg').length, dossier: document.querySelectorAll('.aw-dossier-stage').length, hidden: document.querySelector('.aw-map')?.hidden, bandInMap: document.querySelectorAll('.aw-map .aw-band').length, noBand: document.querySelector('.aw-map')?.classList.contains('no-band') })`));
+    add('V8 Schalter aus (?roadhz=0): kein Umschalter, kein Dossier (auch mit ds=1), Karte mit Band wie bisher', r.seg === 0 && r.dossier === 0 && r.hidden === false && r.bandInMap === 1 && r.noBand === false, JSON.stringify(r));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // V9 mobile: the dossier is its own page in place of the map; the sheet is hidden; controls ≥ 44 px; the list of segments is the way in.
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1&ds=1', width: 390, height: 844, mobile: true, root: hzSite, hz: true });
+    const empty = await until(ctx, `!!document.querySelector('.aw-m-dossier .aw-dossier-empty') && document.querySelectorAll('.aw-m-dossier .aw-hz-row').length > 0`, 45_000);
+    const m0 = JSON.parse(await ctx.evaluate(`JSON.stringify({ sheetHidden: document.querySelector('.aw-sheet')?.hidden, mapHidden: document.querySelector('.aw-m-mapwrap')?.hidden, band: document.querySelectorAll('.aw-m-dossier .aw-band.is-inline').length,
+      seg: [...document.querySelectorAll('.aw-m-stage .aw-stage-seg button')].map((b) => [b.textContent, Math.round(b.getBoundingClientRect().height)]),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth || document.querySelector('.aw-m-dossier').scrollWidth > document.querySelector('.aw-m-dossier').clientWidth,
+      pillOverlap: (() => { const d = document.querySelector('.aw-m-dossier'); const s = document.querySelector('.aw-m-stage'); return !!d && !!s && parseFloat(getComputedStyle(d).paddingTop) >= s.getBoundingClientRect().bottom; })() })`));
+    add('V9a mobil: Dossier-Seite mit Band + Leerzustand + Liste der Abschnitte, Blatt ausgeblendet, Umschalter-Tasten ≥ 44 px, kein waagerechtes Scrollen, Inhalt beginnt unter den Bedienelementen',
+      empty && m0.sheetHidden === true && m0.mapHidden === true && m0.band === 1 && m0.seg.length === 2 && m0.seg.every((s) => s[1] >= 44) && !m0.overflow && m0.pillOverlap, JSON.stringify(m0));
+    await ctx.evaluate(`document.querySelector('.aw-m-dossier .aw-hz-row')?.click()`);
+    const det = await until(ctx, `!!document.querySelector('.aw-m-dossier .aw-hz-detail')`, 10_000);
+    await shot(ctx, 'v9-mobil-dossier');
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-m-stage .aw-stage-seg button')].find((b) => b.textContent === 'Karte')?.click()`);
+    const mapBack = await until(ctx, `document.querySelector('.aw-sheet')?.hidden === false && !document.querySelector('.aw-m-dossier')`, 8000);
+    add('V9b mobil: Zeilenklick öffnet das Detail im Dossier; „Karte“ bringt Karte und Blatt zurück', det && mapBack, '');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // V11 tablet 1024 × 768 (narrower columns, nothing removed): the dossier fits between dock (230) and readout (340), no horizontal scroll,
+  // the lazy charts are drawn in the narrower centre, the strip's town labels stay inside the band.
+  {
+    const { ctx, errors, off } = await openPage({ path: '/autobahnwetter?road=1&roadhz=1&seg=A8-034&ds=1', width: 1024, height: 768, root: hzSite, hz: true });
+    const ok = await until(ctx, `!!document.querySelector('.aw-dossier-stage .aw-hz-detail')`, 45_000);
+    await until(ctx, `document.querySelectorAll('.aw-dossier-stage .aw-hz-chart svg, .aw-dossier-stage .aw-hz-bullet-box svg, .aw-dossier-stage .aw-hz-wind-box svg').length >= 6`, 20_000);
+    await sleep(400);
+    const t = JSON.parse(await ctx.evaluate(`JSON.stringify({
+      stageW: Math.round(document.querySelector('.aw-dossier-stage').getBoundingClientRect().width), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      // No scrollbar (overflow-x hidden) AND nothing visible reaches past the edge — the hidden chart tables (aw-visually-hidden, 929 px wide) do, by design.
+      bodyOverflow: (() => { const b = document.querySelector('.aw-dossier-body'); const r = b.getBoundingClientRect().right;
+        return getComputedStyle(b).overflowX !== 'hidden' || [...b.querySelectorAll('*')].some((e) => !e.closest('.aw-visually-hidden') && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().right > r + 1); })(),
+      wide: (() => { const r = document.querySelector('.aw-dossier-body').getBoundingClientRect().right; return [...document.querySelectorAll('.aw-dossier-body *')].filter((e) => e.getBoundingClientRect().right > r + 1 && e.getBoundingClientRect().width > 0).slice(0, 6).map((e) => e.tagName + '.' + (e.className?.baseVal ?? e.className) + ' w' + Math.round(e.getBoundingClientRect().width) + ' +' + Math.round(e.getBoundingClientRect().right - r) + ' in ' + (e.parentElement?.className?.baseVal ?? e.parentElement?.className) + ' / ' + (e.parentElement?.parentElement?.className?.baseVal ?? e.parentElement?.parentElement?.className)); })(), sw: [document.querySelector('.aw-dossier-body').scrollWidth, document.querySelector('.aw-dossier-body').clientWidth],
+      charts: document.querySelectorAll('.aw-dossier-stage svg').length, readoutW: Math.round(document.querySelector('.aw-readout').getBoundingClientRect().width),
+      seg: [...document.querySelectorAll('.aw-stage-seg button')].map((b) => b.textContent) })`));
+    add('V11 Tablet 1024 × 768: Dossier zwischen Dock und Readout (340 px), kein waagerechtes Scrollen (Seite und Dossier), Diagramme gezeichnet, Umschalter in der Topbar',
+      ok && t.stageW > 380 && !t.overflow && !t.bodyOverflow && t.charts >= 6 && t.readoutW === 340 && JSON.stringify(t.seg) === '["Karte","Dossier"]', JSON.stringify(t));
+    await shot(ctx, 'v11-tablet-dossier');
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+}
+
+// --- W: Phase FB — the road surface forecast behind ROAD_SURFACE_LIVE / ?rsfc=1 (audit/autobahn-fahrbahn.md) ----------
+{
+  const { ROAD_SURFACE_WORD, ROAD_SURFACE_HORIZON_H } = await import('../src/road/roadSurface.ts');
+  // The real a8 run with synthetic surface series: station points from „their measurement" (rq 0), axis points climatology
+  // (rq 1); road = air − 1,5 K; the hint „Frostgefahr" where that road is ≤ +1 °C and precipitation ≥ 50 %, „Nass" on wet hours.
+  const withSurface = (base) => ({
+    ...base,
+    engine: { ...base.engine, surface: { mode: 'fb1', table: 'fixture00001', fitted: { from: '2026-10-04', to: '2026-10-25', runs: 151, pairs: 1110432, stations: 1226 }, decay: [1, 0.8, 0.67, 0.51, 0.38, 0.29, 0.21], sigma: [0, 1.1, 1.36, 1.54, 1.66, 1.72, 1.73], own: 3, clim: 20 } },
+    points: base.points.map((pt) => {
+      const rs = new Array(pt.v.t.length).fill(null), rk = new Array(pt.v.t.length).fill(null), rq = new Array(pt.v.t.length).fill(null);
+      for (let h = 0; h <= ROAD_SURFACE_HORIZON_H; h++) {
+        if (pt.v.t[h] == null) continue;
+        rs[h] = pt.v.t[h] - 15;
+        const wet = (pt.v.pp[h] ?? 0) >= 50;
+        rk[h] = rs[h] <= 10 && wet ? 2 : wet ? 1 : 0;
+        rq[h] = pt.kind === 'station' ? 0 : 1;
+      }
+      return { ...pt, v: { ...pt.v, rs, rk, rq } };
+    }),
+  });
+  const fcSurf = mkFcSite('fc-surface', SLOT_MS - 5 * 60_000, { base: withSurface(fcReal) });
+  const stId = fcSurf.file.points.find((x) => x.kind === 'station')?.id;
+  const stOf = (f) => f.points.find((x) => x.id === stId);
+  // W1: with the flag, the tiles lead with the computed road, the detail grid, the chart, the note and the sources row follow.
+  {
+    // E-FB-10: the switch is on by default — this page opens WITHOUT `rsfc=1`.
+    const { ctx, errors, off } = await openPage({ path: `/autobahnwetter/a8?road=1&st=${stId}`, fcRoot: fcSurf.dir });
+    await until(ctx, `document.querySelectorAll('button.aw-prog-tile.has-rs').length >= 2`, 30_000);
+    const now = await ctx.evaluate('Date.now()');
+    const want = [1, 3, 6].map((h) => { const v = roadFcValue(stOf(fcSurf.file), fcSurf.file, now + h * 3_600_000); return v && v.rs != null ? `${f1(v.rs)}°` : '—'; });
+    const r = JSON.parse(await ctx.evaluate(`JSON.stringify({
+      tiles: [...document.querySelectorAll('button.aw-prog-tile')].map((b) => [b.querySelector('span')?.textContent, b.querySelector('strong')?.textContent, b.querySelector('em')?.textContent, !!b.querySelector('em i.is-rs')]),
+      head: document.querySelector('.aw-card-head .aw-eyebrow')?.textContent ?? '', chartPts: (document.querySelector('.aw-chart-fc-rs')?.getAttribute('points') ?? '').trim().split(/\\s+/).filter(Boolean).length,
+      legend: document.querySelector('.aw-chart-legend')?.textContent ?? '', notes: [...document.querySelectorAll('.aw-fc-note')].map((e) => e.textContent).join(' | ') })`));
+    // The fixture run starts 07:00 and „now" is 08:12: +6 h is lead 7, beyond the 6-h horizon — that tile must fall back to „Luft" (never an invented road).
+    add('W1 Vorgabe (Schalter an, E-FB-10), Lauf mit Fahrbahn: Kacheln +1/+3 h führen „Fahrbahn · berechnet" mit dem Wert aus der Lauf-Datei und dem gestrichelten Marker, +6 h liegt hinter dem Horizont des Laufs und bleibt „Luft", „Jetzt" bleibt die Messung; Verlauf mit gestrichelter Fahrbahn (≥ 5 Werte) und Legende; Hinweis nennt das Tabellenfenster und „Keine Messung"',
+      r.tiles.length === 4 && r.tiles[0][0] === 'Jetzt' && !r.tiles[0][3] && r.tiles.slice(1).every((t, i) => (want[i] === '—' ? /Luft/.test(t[0]) && !t[3] : new RegExp(`Fahrbahn · ${ROAD_SURFACE_WORD}`).test(t[0]) && t[1] === want[i] && t[3])) && want.filter((w) => w !== '—').length >= 2
+      && /Fahrbahn/.test(r.head) && r.chartPts >= 5 && new RegExp(`Fahrbahn ${ROAD_SURFACE_WORD}`).test(r.legend) && /Tabelle 2026-10-04 … 2026-10-25/.test(r.notes) && /Keine Messung/.test(r.notes) && !/folgt erst nach dem Backtest/.test(r.notes),
+      JSON.stringify({ tiles: r.tiles.slice(0, 2), want, chartPts: r.chartPts }));
+    // +3 h chip ⇒ grid rows „Fahrbahn · berechnet" with σ and „Hinweis · berechnet".
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-times button')][2].click()`);
+    await until(ctx, `/[?&]t=3/.test(location.search) && /Fahrbahn/.test(document.querySelector('.aw-fc-grid')?.textContent ?? '')`, 8000);
+    const g = JSON.parse(await ctx.evaluate(`JSON.stringify([...document.querySelectorAll('.aw-fc-grid .aw-cell')].map((c) => [c.querySelector('span')?.textContent, c.querySelector('strong')?.textContent]))`));
+    add('W2 Chip +3 h: das Prognose-Raster beginnt mit „Fahrbahn · berechnet" (Wert · typisch ± 1,5 K) und „Hinweis · berechnet", die Luft-Zellen bleiben',
+      g.length === 8 && g[0][0] === `Fahrbahn · ${ROAD_SURFACE_WORD}` && /typisch ± 1,5 K/.test(g[0][1]) && g[1][0] === `Hinweis · ${ROAD_SURFACE_WORD}` && /\(ber\.\)/.test(g[1][1]) && g[2][0] === 'Luft 2 m', JSON.stringify(g.slice(0, 3)));
+    await shot(ctx, 'w2-fahrbahn-station');
+    // Sources tab: the row is „aktiv" with the window; Strecke tab: arrival rows carry the road.
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')].find((b) => b.textContent === 'Quellen').click()`);
+    const src = JSON.parse(await ctx.evaluate(`JSON.stringify([...document.querySelectorAll('.aw-source')].map((e) => [e.className, e.textContent]).find((x) => /buscosun Fusion — Fahrbahn/.test(x[1])) ?? null)`));
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')].find((b) => b.textContent === 'Strecke').click()`);
+    await until(ctx, `document.querySelectorAll('.aw-table-row').length > 3 || document.querySelectorAll('.aw-table .aw-table-fc').length > 3`, 10_000);
+    const strecke = JSON.parse(await ctx.evaluate(`JSON.stringify({ rs: document.querySelectorAll('.aw-table-fc u').length, note: [...document.querySelectorAll('.aw-note')].map((e) => e.textContent).join(' | ') })`));
+    add('W3 Quellen: Zeile „buscosun Fusion — Fahrbahn" ist aktiv (DE, Tabelle 2026-10-04 … 2026-10-25, in Erprobung); Strecke: Ankunftsspalte trägt „Fahrbahn … ber." und der Hinweis sagt „berechnet", nicht mehr „folgt erst nach dem Backtest"',
+      !!src && /is-aktiv/.test(src[0]) && /2026-10-04 … 2026-10-25/.test(src[1]) && /in Erprobung, Gate D im Dezember/.test(src[1]) && strecke.rs >= 1 && new RegExp(ROAD_SURFACE_WORD).test(strecke.note) && !/folgt erst nach dem Backtest/.test(strecke.note),
+      JSON.stringify({ src: src?.[1]?.slice(0, 80), rs: strecke.rs }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+  // W4: without the flag the same run shows the page of before (air tiles, planned row, old sentence); with the flag but a
+  // run WITHOUT the surface the page says „Luft" as well — the flag never invents a road.
+  for (const [id, path, fcRoot, what] of [['W4', `/autobahnwetter/a8?road=1&rsfc=0&st=${stId}`, fcSurf.dir, 'Rückweg ?rsfc=0, Lauf mit Fahrbahn'], ['W5', `/autobahnwetter/a8?road=1&st=${stId}`, fcLive.dir, 'Schalter an, Lauf ohne Fahrbahn']]) {
+    const { ctx, errors, off } = await openPage({ path, fcRoot });
+    await until(ctx, `[...document.querySelectorAll('button.aw-prog-tile')].slice(1).some((b) => !b.disabled)`, 30_000);
+    const r = JSON.parse(await ctx.evaluate(`JSON.stringify({ tiles: [...document.querySelectorAll('button.aw-prog-tile')].map((b) => b.querySelector('span')?.textContent), rsMarks: document.querySelectorAll('.aw-prog-tile em i.is-rs').length, chart: !!document.querySelector('.aw-chart-fc-rs')?.getAttribute('points')?.trim(), notes: [...document.querySelectorAll('.aw-fc-note')].map((e) => e.textContent).join(' | ') })`));
+    await ctx.evaluate(`[...document.querySelectorAll('.aw-tabs button')].find((b) => b.textContent === 'Quellen').click()`);
+    const src = JSON.parse(await ctx.evaluate(`JSON.stringify([...document.querySelectorAll('.aw-source')].map((e) => [e.className, e.textContent]).find((x) => /buscosun Fusion — Fahrbahn/.test(x[1])) ?? null)`));
+    add(`${id} ${what}: Kacheln sagen „Luft", kein Fahrbahn-Marker, keine Fahrbahn-Linie, kein Fahrbahn-Hinweis; Quellenzeile bleibt „geplant"`,
+      r.tiles.length === 4 && r.tiles.slice(1).every((t) => /Luft/.test(t) && !/Fahrbahn/.test(t)) && r.rsMarks === 0 && !r.chart && !new RegExp(`Fahrbahn: buscosun Fusion`).test(r.notes) && !!src && /is-geplant/.test(src[0]),
+      JSON.stringify({ tiles: r.tiles, rsMarks: r.rsMarks, src: src?.[0] }));
+    off(); allErrors.push(...errors); await ctx.close();
+  }
+}
+
+// AWD — URL state of the stage (pure functions, no browser).
+{
+  const { parseRoadUrl, buildRoadUrl } = await import('../src/road/roadState.ts');
+  const on = parseRoadUrl('a8', '?seg=A8-034&ds=1', true);
+  const bad = parseRoadUrl('a8', '?ds=0', true);
+  const off = parseRoadUrl('a8', '?ds=1', false);
+  const url = buildRoadUrl({ ...on.state, hf: 'glaette' });
+  add('V10 URL-Zustand ds: ds=1 ⇒ true; ds=0 ⇒ ungültig; ohne Schalter ignoriert; Aufbau ohne ds bleibt byte-gleich, mit ds an fester Stelle hinter hf',
+    on.state.ds === true && bad.invalid.includes('ds') && !bad.state.ds && off.state.ds === undefined && off.invalid.length === 0
+    && url === '/autobahnwetter/a8?seg=A8-034&hf=glaette&ds=1' && buildRoadUrl({ ...on.state, ds: false }) === '/autobahnwetter/a8?seg=A8-034' && buildRoadUrl({ ...on.state, seg: null, hf: null, ds: undefined }) === '/autobahnwetter/a8',
+    url);
 }
 
 add('I1 keine ungefangene Ausnahme in allen Abläufen', allErrors.length === 0, allErrors.slice(0, 3).join(' | '));

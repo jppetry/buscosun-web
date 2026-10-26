@@ -34,8 +34,9 @@ import {
   ROAD_FC_REPO_DIR, ROAD_FC_INDEX_PATH, ROAD_FC_POINTS_PATH, ROAD_FC_GEO_PATH, ROAD_FC_HOURS, ROAD_FC_STEPS, ROAD_FC_VAR_IDS,
   roadFcSourceText, ROAD_FC_MAX_FAILED_SHARE, ROAD_FC_ANCHOR_MODE,
   roadFcStamp, roadFcT0, roadFcEncode, roadFcOriginCode, roadFcSeriesProblems, roadFcPointUsable, roadFcCorridorPath, roadFcStatePath, roadFcWherePath,
-  roadFcPrune, parseRoadFcIndex, parseRoadFcPoints,
+  roadFcPrune, parseRoadFcIndex, parseRoadFcPoints, roadFcDecode,
 } from '../../src/road/roadFc.ts';
+import { ROAD_SURFACE_TABLE_PATH, ROAD_SURFACE_HORIZON_H, ROAD_SURFACE_ORIGIN, roadSurfaceTableProblems, roadSurfaceSeries } from '../../src/road/roadSurface.ts';
 import { newStoreStats } from '../../src/point/client/store.ts';
 import { decodeCubeChunk, POINT_LEARNED_PATH, POINT_STACK_PATH, POINT_CLIMA_PATH, stationManifestPath } from '../../src/point/cubeFormat.ts';
 import { loadStationCatalog, readStationPoint } from '../../src/point/client/stationPoint.ts';
@@ -195,6 +196,8 @@ export function swisTable(rows, catalog, points) {
     out.set(r.id, {
       id: r.id, name: r.n ?? c?.n ?? r.id, lat: lat ?? r.lat, lon: lon ?? r.lon, h: Number.isFinite(c?.h) ? c.h : null, place, tMs: r.t,
       ta: r.ta, td: Number.isFinite(r.td) ? r.td : null, rh: Number.isFinite(r.rh) ? r.rh : null,
+      // Phase FB: the station's own road temperature at the run hour — the anomaly of the surface forecast.
+      rs: Number.isFinite(r.rs) ? r.rs : null,
       ws: Number.isFinite(r.ws) ? r.ws : null, wd: Number.isFinite(r.wd) ? r.wd : null, wg: Number.isFinite(r.wg) ? r.wg : null,
     });
   }
@@ -243,6 +246,45 @@ export function anchorObsFor(p, table, opts = {}) {
   near.sort((a, b) => a[0] - b[0] || (a[1].id < b[1].id ? -1 : 1));
   for (const [km, m] of near.slice(0, ROAD_FC_ANCHOR.maxN - out.length)) out.push(toObs(m, km * 1000, m.h));
   return out;
+}
+
+// --- Phase FB: road surface forecast (audit/autobahn-fahrbahn.md) ---------------------------------
+
+/**
+ * The fitted table of „buscosun Fusion — Fahrbahn" from the checkout (`road/fc/v1/static/surface.json`, E-FB-2). Missing,
+ * unreadable or switched off (`ROAD_SURFACE=0`) ⇒ `{ table: null, reason }` — the route forecast runs as before and the
+ * engine block names the reason; a run never fails over the optional surface series.
+ */
+export function readSurfaceTable(dataDir) {
+  if (process.env.ROAD_SURFACE === '0') return { table: null, hash: null, reason: 'Schalter ROAD_SURFACE=0' };
+  const f = join(dataDir, ROAD_FC_REPO_DIR, ROAD_SURFACE_TABLE_PATH);
+  if (!existsSync(f)) return { table: null, hash: null, reason: `${ROAD_SURFACE_TABLE_PATH} fehlt im Daten-Repo` };
+  let doc;
+  try { doc = JSON.parse(readFileSync(f, 'utf8')); } catch (e) { return { table: null, hash: null, reason: `${ROAD_SURFACE_TABLE_PATH} nicht lesbar: ${String(e?.message ?? e).split('\n')[0]}` }; }
+  const problems = roadSurfaceTableProblems(doc);
+  if (problems.length) return { table: null, hash: null, reason: `${ROAD_SURFACE_TABLE_PATH} ungültig: ${problems.join('; ')}` };
+  return { table: doc, hash: sha12(f), reason: null };
+}
+
+/**
+ * Adds `rs rk rq` (leads 0 … ROAD_SURFACE_HORIZON_H, the rest null) to the coded series of a point. `obsRs` = the station's
+ * own road temperature of the run hour (null ⇒ climatology only, `rq = 1`). Returns the origin used.
+ */
+export function applySurface(v, t0Ms, stationId, obsRs, table) {
+  const steps = [];
+  for (let h = 0; h <= ROAD_SURFACE_HORIZON_H; h++) {
+    steps.push({ validMs: t0Ms + h * H, t: roadFcDecode('t', v.t[h]), td: roadFcDecode('td', v.td[h]), n: roadFcDecode('n', v.n[h]), ff: roadFcDecode('ff', v.ff[h]), pp: roadFcDecode('pp', v.pp[h]) });
+  }
+  const r = roadSurfaceSeries(table, stationId, steps, obsRs);
+  v.rs = new Array(ROAD_FC_STEPS).fill(null);
+  v.rk = new Array(ROAD_FC_STEPS).fill(null);
+  v.rq = new Array(ROAD_FC_STEPS).fill(null);
+  for (let h = 0; h <= ROAD_SURFACE_HORIZON_H; h++) {
+    v.rs[h] = roadFcEncode('rs', r.rs[h]);
+    v.rk[h] = r.rk[h];
+    v.rq[h] = r.rq[h];
+  }
+  return r.anomaly == null ? 'clim' : 'own';
 }
 
 // --- AW-7.1: MOSMIX visibility at the station member ---------------------------------------------
@@ -319,8 +361,8 @@ function runsOf(fc) {
   return { t1: r.t1?.run ?? null, t2: r.t2?.run ?? null, t3: r.t3?.run ?? null, stations: r.stations?.run ?? null, nowcast: (r.nowcast ?? []).map((n) => `${n.source}:${n.stamp}`).join(',') || null };
 }
 
-/** One point → `{ point }` or `{ error }`; never throws. */
-export async function computePoint(p, io, nowMs, obs = null) {
+/** One point → `{ point }` or `{ error }`; never throws. `surface` (Phase FB) = `{ table, obsRs }` or null. */
+export async function computePoint(p, io, nowMs, obs = null, surface = null) {
   try {
     clearCubeForecastCache();
     // V-AW-21: the measurements go in through the engine's own hook (`CubeIo.obs`), already resolved.
@@ -334,6 +376,8 @@ export async function computePoint(p, io, nowMs, obs = null) {
     let vis = null;
     if (used && st.distKm <= ROAD_FC_VIS_MAX_KM) { try { vis = await stationVisSeries(io, st); } catch { vis = null; } }
     const v = seriesOf(fc, t0Ms, { vis });
+    // Phase FB: the road surface series, from the air of THIS point and the station's own measurement (axis points: climatology).
+    const surfaceOrigin = surface?.table ? applySurface(v, t0Ms, p.kind === 'station' ? p.id : null, surface.obsRs ?? null, surface.table) : null;
     const problems = roadFcSeriesProblems(v);
     if (problems.length) return { error: `Werte: ${problems.slice(0, 3).join('; ')}` };
     const point = {
@@ -346,7 +390,7 @@ export async function computePoint(p, io, nowMs, obs = null) {
     };
     if (!roadFcPointUsable(point)) return { error: 'weniger als die Hälfte der Stunden mit Temperatur' };
     const stage = fusionVersionOfNotes(fc.cube.notes) === FUSION_CURRENT;
-    return { point, runs: runsOf(fc), stage, errors: fc.cube.errors.length, fc };
+    return { point, runs: runsOf(fc), stage, errors: fc.cube.errors.length, fc, surfaceOrigin };
   } catch (e) {
     return { error: String(e?.message ?? e).split('\n')[0] };
   }
@@ -374,19 +418,35 @@ export async function runShard({ dataDir, points, geoDoc, nowMs, anchor = null, 
   const out = [], failed = [];
   let runs = null, noStage = 0, readerErrors = 0;
   const opts = anchor === 'all' ? {} : anchor === 'stations' ? { noNeighbours: true } : null;
-  const swis = opts ? readSwisTable(dataDir, nowMs, allPoints ?? points) : null;
+  // Phase FB: the surface forecast reads the same measurement slot as the anchor, independent of the anchor switch.
+  const surface = readSurfaceTable(dataDir);
+  const swis = opts || surface.table ? readSwisTable(dataDir, nowMs, allPoints ?? points) : null;
+  const surfaceCount = { own: 0, clim: 0 };
   for (const p of points) {
-    const r = await computePoint(p, io, nowMs, swis ? anchorObsFor(p, swis.table, opts) : null);
+    const own = surface.table && p.kind === 'station' ? swis?.table.get(p.id)?.rs ?? null : null;
+    const r = await computePoint(p, io, nowMs, swis && opts ? anchorObsFor(p, swis.table, opts) : null, surface.table ? { table: surface.table, obsRs: own } : null);
     if (r.error) { failed.push({ id: p.id, error: r.error }); continue; }
     out.push(r.point);
     runs ??= r.runs;
     if (!r.stage) noStage++;
     readerErrors += r.errors;
+    if (r.surfaceOrigin) surfaceCount[r.surfaceOrigin]++;
   }
-  return { points: out, failed, runs, noStage, readerErrors, geo: cache.counts, anchorSlot: swis?.slot ?? null };
+  return { points: out, failed, runs, noStage, readerErrors, geo: cache.counts, anchorSlot: swis?.slot ?? null, surface: { ...surfaceCount, hash: surface.hash, reason: surface.reason, fitted: surface.table?.fitted ?? null, decay: surface.table?.decay ?? null, sigma: surface.table?.sigma ?? null } };
 }
 
 // --- A run -------------------------------------------------------------------------------------
+
+/** Phase FB: the engine block `surface` from the shard results — counts summed, the table named once. */
+export function surfaceEngineOf(parts) {
+  const withTable = parts.find((p) => p.surface?.hash);
+  if (!withTable) return { mode: 'none', reason: parts.find((p) => p.surface?.reason)?.surface.reason ?? 'keine Tabelle' };
+  const s = withTable.surface;
+  return {
+    mode: 'fb1', table: s.hash, fitted: s.fitted, decay: s.decay, sigma: s.sigma,
+    own: parts.reduce((n, p) => n + (p.surface?.own ?? 0), 0), clim: parts.reduce((n, p) => n + (p.surface?.clim ?? 0), 0),
+  };
+}
 
 const sha12 = (file) => (existsSync(file) ? createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 12) : null);
 
@@ -445,6 +505,8 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     tables: { learned: sha12(join(dataDir, POINT_LEARNED_PATH)), stack: sha12(join(dataDir, POINT_STACK_PATH)), clima: sha12(join(dataDir, POINT_CLIMA_PATH)) },
     // V-AW-39: the points file is an input — the repeat guard compares it.
     points: sha12(join(fcDir, ROAD_FC_POINTS_PATH)),
+    // Phase FB: what the run did about the road surface (E-FB-3).
+    surface: surfaceEngineOf(parts),
   };
   const noStage = parts.reduce((s, p) => s + p.noStage, 0);
   const geo = parts.reduce((s, p) => ({ terrainMiss: s.terrainMiss + p.geo.terrainMiss, z0Miss: s.z0Miss + p.geo.z0Miss }), { terrainMiss: 0, z0Miss: 0 });
@@ -481,6 +543,8 @@ export async function buildRun({ dataDir, outDir, nowMs = Date.now(), shards = 1
     corridors: byCorridor.size, states: byState.size, engine, ms: Date.now() - T0,
   };
   const stats = { total: all.length, failed, noStage, geo, bytes, readerErrors: parts.reduce((s, p) => s + p.readerErrors, 0) };
+  const sf = engine.surface;
+  log(`Fahrbahn (FB): ${sf.mode === 'fb1' ? `Tabelle ${sf.table} (${sf.fitted.from} … ${sf.fitted.to}), ${sf.own} Punkte mit eigener Messung, ${sf.clim} nur Klimatologie` : `nicht gerechnet — ${sf.reason}`}`);
   log(`Lauf ${run}: ${done.length}/${all.length} Punkte · ${failed.length} ohne Ergebnis · ${byCorridor.size} Korridore + ${byState.size} Länder · ${(bytes / 1e6).toFixed(2)} MB · ${((Date.now() - T0) / 1000).toFixed(1)} s · Cube ${JSON.stringify(runs)} · Anker ${anchored ? `SWIS ${anchorSlot} an ${anchored} Punkten (${anchor})` : `keiner${anchor === 'none' ? '' : anchorSlot ? ` — Messslot ${anchorSlot} da, aber kein gerechneter Punkt mit eigener Messung` : ' — die Messung der vollen Stunde liegt (noch) nicht im Klon'}`}${noStage ? ` · ${noStage} Punkte OHNE Stufe fs` : ''}${geo.terrainMiss || geo.z0Miss ? ` · Gelände nicht vorab: ${geo.terrainMiss}, z0: ${geo.z0Miss}` : ''}`);
   return { run, runDir, entry, stats };
 }

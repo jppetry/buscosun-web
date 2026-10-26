@@ -22,11 +22,12 @@ import {
   GLACIER_RAMPS, defsFor, fmt0, fmtRefYear, inLand, matchesQuery, metricValue, officialStandLabel, rankGlaciers, satAgeDays, seasonStatus,
 } from './glacierView';
 import {
-  glacierIdOfSegment, glacierSegmentOf, GLACIER_METRICS, GLACIER_LANDS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
+  glacierIdOfSegment, glacierSegmentOf, GLACIER_LANDS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
 } from './glacierState';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierMapCard from './GlacierMapCard';
 import GlacierDock from './GlacierDock';
+import GlacierMetricToggles from './GlacierMetricToggles';
 import GlacierList from './GlacierList';
 import { IcoBarMap, IcoBarLayers, IcoBarSettings } from '../fire/fireIcons';
 import GlacierFilters, { NO_FILTER, passesFilter, type GlacierFilter } from './GlacierFilters';
@@ -181,8 +182,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   // --- URL state -------------------------------------------------------------------------------------------------
   const stateNow = useCallback((patch: Partial<GlacierUrlState> = {}): GlacierUrlState => ({
-    ...initial, glacier: briefSeg, ...sheet, land, m: metric, q: query, sel: briefSeg ? null : selSeg, dossier: !briefSeg && !isMobile && stage === 'dossier', ...patch,
-  }), [initial, briefSeg, sheet, land, metric, query, selSeg, isMobile, stage]);
+    ...initial, glacier: briefSeg, ...sheet, land, m: metric, q: query, sel: briefSeg ? null : selSeg, dossier: !briefSeg && stage === 'dossier', ...patch,
+  }), [initial, briefSeg, sheet, land, metric, query, selSeg, stage]);
   useEffect(() => { onUrlState(stateNow()); }, [stateNow, onUrlState]);
 
   const pick = useCallback((id: string) => setSelSeg(glacierSegmentOf(id)), []);
@@ -202,13 +203,13 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const inkOn = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) > 140 ? '#2C2A26' : '#FFFFFF'; };
   const rampLabels = [`<${bounds[0]}`, `${bounds[0]}`, `${bounds[1]}`, `${bounds[2]}`, `≥${bounds[3]}`];
 
-  // Map card of the picked glacier (shape of the Brandradar's map card): "Detailansicht öffnen" opens the dossier in the
-  // middle on desktop (the sheet is one click further, as in the dossier) and the sheet `/gletscher/<slug>` on mobile.
+  // Map card of the picked glacier (shape of the Brandradar's map card): "Detailansicht öffnen" opens the dossier level — in
+  // the middle on desktop, over the map on mobile (Jan 26.10.); the sheet `/gletscher/<slug>` is one click further ("Steckbrief").
   const pill = sel && (
     <GlacierMapCard
       g={sel} def={def} value={selVal ?? undefined}
       followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
-      onOpenDetail={() => { if (isMobile) openBrief(); else setStage('dossier'); }}
+      onOpenDetail={() => setStage('dossier')}
       onClose={() => setSelSeg(null)}
     />
   );
@@ -296,6 +297,24 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       <ShareButton className="gl-share" text={isMobile ? undefined : 'Teilen'} compact={isMobile} />
     </header>
   );
+  /** The dossier level of the picked glacier (desktop: in the centre instead of the map; mobile: over the map, above the bottom bar). */
+  const dossierStage = (
+    <div className="gl-ds-stage">
+      {sel && d ? (
+        <Suspense fallback={<div className="gl-empty" role="status">Dossier wird geladen …</div>}>
+          <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} official={d.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
+            state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={() => setStage('map')} allow3d={allow3d} followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
+            onOpenSheet={GLACIER_BRIEF_READY ? openBrief : undefined} />
+        </Suspense>
+      ) : (
+        <div className="gl-ds-emptycard">
+          <span className="gl-label">Dossier</span>
+          <p><strong>Kein Gletscher markiert.</strong> Ein Klick auf eine Kachel rechts oder auf einen Gletscher der Karte öffnet hier sein Dossier: Heute, Saison, Langzeit, Tour und Quellen, dazu Karte und Steckbrief.</p>
+          <button type="button" className="gl-btn" onClick={() => setStage('map')}>Zur Karte</button>
+        </div>
+      )}
+    </div>
+  );
   const rail = (
     <FeatureRail active={'glacier' as RailFeature} onOpenFeature={(id) => nav.openFeature(id)} onHome={nav.goHome}
       navClass="gl-rail gl-rail-desktop" btnClass="gl-rail-btn" activeClass="is-active" spacerClass="gl-rail-spacer" />
@@ -318,19 +337,22 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     );
   }
   if (isMobile) {
+    // The dossier covers the map once a glacier is picked ("Detailansicht"); without one the map stays.
+    const dossierOn = stage === 'dossier' && !!sel;
     return (
       <div className="gl-root is-mobile">
         <div className="gl-main">
           {topbar}
           <div className="gl-body">
             <div className="gl-center">
-              <section className="gl-map" aria-label="Karte">
+              <section className={`gl-map${dossierOn ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={dossierOn ? true : undefined}>
                 {map}{note}
                 <div className="gl-m-overlay"><span className="gl-season">{season.label}</span>{satChip}</div>
                 {/* Compact legend above the bottom bar while no glacier card covers the map (Jan 2026-10-25). */}
                 {!sel && <div className="gl-m-maplegend">{legend}</div>}
                 <div className="gl-pill-slot">{pill}</div>
               </section>
+              {dossierOn && dossierStage}
             </div>
             {/* Bottom bar like the Brandradar's (Jan 2026-10-25): Gletscher (the desktop list), Layer (colour the map by), Einstellungen. */}
             {mTab && (
@@ -346,25 +368,14 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
                 <>
                   {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
                   {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={(id) => { pick(id); setMTab(null); }}
-                    onOpen={(id) => { if (GLACIER_BRIEF_READY) onGlacier(stateNow({ glacier: glacierSegmentOf(id), sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); else pick(id); }} />}
+                    onOpen={(id) => { pick(id); setStage('dossier'); setMTab(null); }} />}
                   {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={(id) => { pick(id); setMTab(null); }} onUnfollow={follow} fresh={fresh} />}
                 </>
               )}
               {mTab === 'layer' && (
                 <>
                   <div className="gl-label">Karte färben nach</div>
-                  <div role="group" aria-label="Größe der Karte">
-                    {GLACIER_METRICS.map((m) => {
-                      const md = defs[m];
-                      return (
-                        <button key={m} type="button" className={`gl-metric${md.locked ? ' is-locked' : ''}`} aria-pressed={metric === m} aria-disabled={!!md.locked}
-                          title={md.locked ?? undefined} onClick={() => { if (!md.locked) setMetric(m); }}>
-                          <span className="gl-m-main"><b>{md.label}</b><span>{md.locked ? 'gesperrt' : md.sub}</span></span>
-                          <OriginChip origin={md.origin} />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <GlacierMetricToggles metric={metric} onMetric={setMetric} defs={defs} />
                   {def.locked && <LockNote>{def.locked}</LockNote>}
                   <div className="gl-m-only gl-m-legend">{legend}</div>
                 </>
@@ -395,7 +406,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               ['layer', 'Layer', <IcoBarLayers key="i" />],
               ['settings', 'Einstellungen', <IcoBarSettings key="i" />],
             ] as const).map(([id, label, icon]) => (
-              <button key={id} type="button" className={`gl-bar-btn${(mTab ?? 'map') === id ? ' is-active' : ''}`} aria-current={(mTab ?? 'map') === id ? 'page' : undefined} onClick={() => setMTab(id === 'map' ? null : id)}>
+              <button key={id} type="button" className={`gl-bar-btn${(mTab ?? 'map') === id ? ' is-active' : ''}`} aria-current={(mTab ?? 'map') === id ? 'page' : undefined} onClick={() => { if (id === 'map') setStage('map'); setMTab(id === 'map' ? null : id); }}>
                 {icon}<span>{label}</span>
               </button>
             ))}
@@ -416,23 +427,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               {map}{zoom}{viewSeg}{legend}{pill}{note}
               <div className="gl-attrib">Karte: OpenStreetMap-Mitwirkende · Inventare je nach Land</div>
             </section>
-            {stage === 'dossier' && (
-              <div className="gl-ds-stage">
-                {sel && d ? (
-                  <Suspense fallback={<div className="gl-empty" role="status">Dossier wird geladen …</div>}>
-                    <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} official={d.official} nowMs={nowMs} isMobile={false} bases={bases}
-                      state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={() => setStage('map')} allow3d={allow3d} followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
-                      onOpenSheet={GLACIER_BRIEF_READY ? openBrief : undefined} />
-                  </Suspense>
-                ) : (
-                  <div className="gl-ds-emptycard">
-                    <span className="gl-label">Dossier</span>
-                    <p><strong>Kein Gletscher markiert.</strong> Ein Klick auf eine Kachel rechts oder auf einen Gletscher der Karte öffnet hier sein Dossier: Heute, Saison, Langzeit, Tour und Quellen, dazu Karte und Steckbrief.</p>
-                    <button type="button" className="gl-btn" onClick={() => setStage('map')}>Zur Karte</button>
-                  </div>
-                )}
-              </div>
-            )}
+            {stage === 'dossier' && dossierStage}
           </div>
           {readout}
         </div>

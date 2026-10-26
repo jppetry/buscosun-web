@@ -18,6 +18,8 @@
  *   road/fc/v1/static/geo.json             terrain and roughness per point, precomputed (producer only)
  */
 
+import type { RoadSurfaceEngine } from './roadSurface';
+
 export const ROAD_FC_VERSION = 'v1';
 export const ROAD_FC_REPO_DIR = `road/fc/${ROAD_FC_VERSION}`;
 export const ROAD_FC_CDN_BASE = `https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/${ROAD_FC_REPO_DIR}`;
@@ -139,6 +141,12 @@ export const ROAD_FC_VARS = Object.freeze({
   sl: { scale: 1, unit: 'm', what: 'Schneefallgrenze (buscosun Fusion, nur native Schritte)', optional: true },
   t85: { scale: 10, unit: '°C', what: 'Temperatur 850 hPa (Cube-Zelle, native Schritte, dazwischen linear)', optional: true },
   vs: { scale: 1, unit: 'm', what: 'Sichtweite MOSMIX an der Station des Punkts (nur ≤ 20 km)', optional: true },
+  // Phase FB (audit/autobahn-fahrbahn.md, E-FB-3): the road SURFACE forecast of buscosun Fusion — Fahrbahn (model FB-1,
+  // `roadSurface.ts`), leads 0 … 6 h only, the rest null. OPTIONAL like the AW-7.1 series: runs before FB and runs
+  // without the fitted table lack them (the engine block `surface` says why).
+  rs: { scale: 10, unit: '°C', what: 'Fahrbahntemperatur, berechnet (buscosun Fusion — Fahrbahn, nur 0–6 h)', optional: true },
+  rk: { scale: 1, unit: 'code', what: 'Fahrbahn-Hinweis, berechnet (0 kein Hinweis, 1 nass, 2 Frostgefahr)', optional: true },
+  rq: { scale: 1, unit: 'code', what: 'Herkunft der Fahrbahnprognose (0 eigene Messung der Anlage, 1 nur Klimatologie)', optional: true },
 } as const);
 export type RoadFcVar = keyof typeof ROAD_FC_VARS;
 export const ROAD_FC_VAR_IDS = Object.freeze(Object.keys(ROAD_FC_VARS) as RoadFcVar[]);
@@ -158,6 +166,7 @@ export function roadFcOriginCode(tier: string, interpolated: boolean): number | 
 export const ROAD_FC_RANGE: Readonly<Record<RoadFcVar, readonly [number, number]>> = Object.freeze({
   t: [-45, 50], ts: [0, 15], td: [-60, 35], pp: [0, 100], rr: [0, 150], sn: [0, 100], ff: [0, 60], fx: [0, 90], dd: [0, 360], n: [0, 100], cf: [0, 1], q: [0, 12],
   sl: [-500, 6000], t85: [-60, 40], vs: [0, 100_000],
+  rs: [-45, 70], rk: [0, 2], rq: [0, 1],
 });
 
 export const roadFcEncode = (v: RoadFcVar, x: number | null | undefined): number | null =>
@@ -231,6 +240,12 @@ export interface RoadFcEngine {
   tables: Record<string, string | null>;
   /** V-AW-39: sha-256 (first 12 hex) of the points file the run was computed from. Absent = a run before AF-3. */
   points?: string | null;
+  /**
+   * Phase FB: the road surface forecast — what the run DID: `mode: 'fb1'` with the table's hash, its fit window, τ, σ per
+   * lead and the counts of points with their own measurement (`own`) and with the climatology alone (`clim`); `mode: 'none'`
+   * with the reason (switched off, table missing or unreadable). Absent = a run before FB.
+   */
+  surface?: RoadSurfaceEngine;
 }
 
 export interface RoadFcFile {

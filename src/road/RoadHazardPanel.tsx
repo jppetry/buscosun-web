@@ -5,7 +5,7 @@
  * hazards, level chip, evidence form). Unknown rows last, hatched. Empty group: „Keine Abschnitte erkannt. Das ist
  * keine Entwarnung.“ Rows are buttons; ↑/↓ move the focus, Enter opens the detail.
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef } from 'react';
 import { ROAD_HAZARD_GROUPS, ROAD_HZ_CAP_TEXT, ROAD_HZ_NO_LEVEL_TEXT, type RoadHazardGroup, type RoadHzFile, type RoadLevel } from './roadHazards';
 import type { RoadSegment } from './roadSegments';
 import type { RoadHzMode, RoadTime } from './roadState';
@@ -28,6 +28,8 @@ export interface RoadHazardPanelProps {
   onPick: (segId: string) => void;
   onHover: (segId: string | null) => void;
   nowMs: number;
+  /** AWD: on the map stage the marked row carries „Dossier öffnen"; absent in the dossier itself. */
+  onOpenDossier?: (segId: string) => void;
 }
 
 /** The evidence form: filled = measured, half = derived, ring = forecast (CSS shapes, never glyphs). */
@@ -54,7 +56,8 @@ function Strip({ lv }: { lv: Array<RoadLevel | null> }) {
   );
 }
 
-function Row({ r, selected, onPick, onHover }: { r: HzRow; selected: boolean; onPick: (id: string) => void; onHover: (id: string | null) => void }) {
+// memo: a selection or hover change re-renders only the rows whose `selected` flips, not the whole list.
+const Row = memo(function Row({ r, selected, onPick, onHover }: { r: HzRow; selected: boolean; onPick: (id: string) => void; onHover: (id: string | null) => void }) {
   const lv = r.best.lv;
   return (
     <button type="button" className={`aw-hz-row${selected ? ' is-selected' : ''}${lv === null ? ' is-unknown' : ''}`} data-seg={r.segId}
@@ -76,11 +79,12 @@ function Row({ r, selected, onPick, onHover }: { r: HzRow; selected: boolean; on
       </span>
     </button>
   );
-}
+});
 
 export default function RoadHazardPanel(p: RoadHazardPanelProps) {
   const { file, mode, filter } = p;
   const groups = useMemo(() => (file ? hzGroupRows(file, p.segments, mode, filter) : []), [file, p.segments, mode, filter]);
+  let openShown = false;
   const counts = useMemo(() => (file ? hzCounts(file, mode) : null), [file, mode]);
   const matrix = useMemo(() => (file ? hzMatrix(file) : null), [file]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -99,6 +103,13 @@ export default function RoadHazardPanel(p: RoadHazardPanelProps) {
     el.addEventListener('keydown', onKey);
     return () => el.removeEventListener('keydown', onKey);
   }, []);
+
+  // AWD: a segment marked on the map scrolls into view in the list, where its „Dossier öffnen" waits.
+  useEffect(() => {
+    if (!p.selectedId || !listRef.current) return;
+    const row = [...listRef.current.querySelectorAll<HTMLElement>('button.aw-hz-row')].find((b) => b.dataset.seg === p.selectedId);
+    row?.scrollIntoView({ block: 'nearest' });
+  }, [p.selectedId]);
 
   const hours = file?.hours ?? [];
   const hour = typeof mode === 'number' ? mode : mode === 'now' ? 0 : null;
@@ -151,7 +162,17 @@ export default function RoadHazardPanel(p: RoadHazardPanelProps) {
           </div>
           {g.rows.length === 0 && <div className="aw-hz-group-empty">{ROAD_HZ_NO_LEVEL_TEXT}</div>}
           <div className="aw-hz-rows">
-            {g.rows.map((r) => <Row key={`${g.group}/${r.segId}`} r={r} selected={p.selectedId === r.segId} onPick={p.onPick} onHover={p.onHover} />)}
+            {g.rows.map((r) => {
+              // A segment can sit in several groups (all of its rows are marked) — the button stands under the first one only.
+              const showOpen = !!p.onOpenDossier && p.selectedId === r.segId && !openShown;
+              if (showOpen) openShown = true;
+              return (
+                <Fragment key={`${g.group}/${r.segId}`}>
+                  <Row r={r} selected={p.selectedId === r.segId} onPick={p.onPick} onHover={p.onHover} />
+                  {showOpen && <button type="button" className="aw-hz-open" onClick={() => p.onOpenDossier!(r.segId)}>Dossier öffnen<span aria-hidden="true"> ›</span></button>}
+                </Fragment>
+              );
+            })}
           </div>
         </section>
       ))}

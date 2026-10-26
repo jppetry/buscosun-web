@@ -110,6 +110,7 @@
     "verify:road-fc": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-fc.mjs",
     "verify:road-positions": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-positions.mjs",
     "verify:road-hazards": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-hazards.mjs",
+    "verify:road-surface": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-road-surface.mjs",
     "verify:sea-contract": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-contract.mjs",
     "verify:sea-decode": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-decode.mjs",
     "verify:sea-text": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-text.mjs",

@@ -1,7 +1,8 @@
 /** GL-1 — Dock of the situation page: search, country, "Karte färben nach" (origin at every metric, locked ones stay visible); the list of all glaciers sits in the readout (`GlacierList`). */
-import { OriginChip, LockNote } from './GlacierParts';
+import { LockNote } from './GlacierParts';
+import GlacierMetricToggles from './GlacierMetricToggles';
 import type { GlacierMetricDef } from './glacierView';
-import { GLACIER_LANDS, GLACIER_METRICS, type GlacierLand, type GlacierMetric } from './glacierState';
+import { GLACIER_LANDS, type GlacierLand, type GlacierMetric } from './glacierState';
 import { GLACIER_COUNTRY_LABEL } from './glacierContract';
 
 const LAND_LABEL: Record<GlacierLand, string> = { alle: 'Alle', ch: 'CH', at: 'AT', de: 'DE' };
@@ -31,18 +32,7 @@ export default function GlacierDock({ query, onQuery, land, onLand, metric, onMe
       </div>
       <div className="gl-field">
         <div className="gl-label">Karte färben nach</div>
-        <div role="group" aria-label="Größe der Karte">
-          {GLACIER_METRICS.map((m) => {
-            const d = defs[m];
-            return (
-              <button key={m} type="button" className={`gl-metric${d.locked ? ' is-locked' : ''}`} aria-pressed={metric === m} aria-disabled={!!d.locked}
-                title={d.locked ?? undefined} onClick={() => { if (!d.locked) onMetric(m); }}>
-                <span className="gl-m-main"><b>{d.label}</b><span>{d.locked ? 'gesperrt' : d.sub}</span></span>
-                <OriginChip origin={d.origin} />
-              </button>
-            );
-          })}
-        </div>
+        <GlacierMetricToggles metric={metric} onMetric={onMetric} defs={defs} />
         {def.locked && <LockNote>{def.locked}</LockNote>}
       </div>
       <div className="gl-dock-foot">Bezugsjahre der Flächen: {refYears}</div>

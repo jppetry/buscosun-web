@@ -11,7 +11,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
-import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag } from '../../road/roadFlag';
+import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag, roadSurfaceFlagFrom, rememberRoadSurfaceFlag } from '../../road/roadFlag';
 import { buildRoadUrl, parseRoadUrl, type RoadUrlState } from '../../road/roadState';
 
 const RoadPage = lazy(() => import('../../road/RoadPage'));
@@ -25,7 +25,9 @@ export default function RoadRoute() {
   const enabled = useMemo(() => roadFlagFrom(loc.search), [loc.search]);
   // AW-8: the hazard rail behind its own switch (`ROAD_HZ_LIVE`, `?roadhz=1`); off ⇒ the page of AW-5/AW-6.1b, unchanged.
   const hz = useMemo(() => roadHzFlagFrom(loc.search), [loc.search]);
-  useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); }, [loc.search]);
+  // Phase FB: the road surface forecast behind its own switch (`ROAD_SURFACE_LIVE`, `?rsfc=1`).
+  const surface = useMemo(() => roadSurfaceFlagFrom(loc.search), [loc.search]);
+  useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); }, [loc.search]);
 
   const parsed = useMemo(() => parseRoadUrl(road ?? null, loc.search, hz), [road, loc.search, hz]);
   const stateRef = useRef<RoadUrlState>(parsed.state);
@@ -65,7 +67,7 @@ export default function RoadRoute() {
     <Suspense fallback={<AppLoader />}>
       {/* Back/forward (POP) hands the URL's state to the mounted page — `initial` is read only once (review #6,
           pattern FireRoute `routeView`). */}
-      <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor} hz={hz}
+      <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor} hz={hz} surface={surface}
         popState={navType === 'POP' ? { ...parsed.state, key: loc.key } : null} />
     </Suspense>
   );

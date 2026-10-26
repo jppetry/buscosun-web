@@ -29,9 +29,9 @@ const Charts = lazy(() => import('./RoadHazardCharts').then((m) => ({ default: f
         <m.TempChart s={temp} slotMs={slotMs} />
       </section>
       <section className="aw-card" aria-label="Messgrößen gegen Schwellen">
-        <div className="aw-card-head"><span className="aw-eyebrow">Messgrößen gegen Schwellen</span><span className="aw-unit">Balken jetzt · Strich Prognose</span></div>
+        <div className="aw-card-head"><span className="aw-eyebrow">Messgrößen gegen Schwellen</span><span className="aw-unit">Wo liegt der Wert jetzt — wie nah an einer Stufe?</span></div>
         <m.ThresholdBullets rows={bullets} />
-        <div className="aw-note">Bänder = Stufe 1 / 2 / 3 (Startwerte, werden kalibriert). Je weiter rechts, desto ungünstiger.</div>
+        <div className="aw-note">Die Schwellen sind Startwerte und werden kalibriert. Je weiter rechts, desto ungünstiger.</div>
       </section>
       <section className="aw-card" aria-label="Wind zur Fahrbahnachse">
         <span className="aw-eyebrow">Wind zur Fahrbahnachse</span>
@@ -73,6 +73,10 @@ export interface RoadHazardDetailProps {
   /** The station card of AW-5 for the selected station (rendered by the readout). */
   stationCard: React.ReactNode;
   stale: boolean;
+  /** AWD: label of the back button — in the dossier it closes the segment, not a list below it. */
+  backLabel?: string;
+  /** AWD chapters: render only one part (`seg` = segment + timetable + warnings, `wx` = charts, `site` = features, measuring points, provenance); absent = all. */
+  part?: 'seg' | 'wx' | 'site';
 }
 
 export default function RoadHazardDetail(p: RoadHazardDetailProps) {
@@ -116,19 +120,27 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
     if (first > 0) return { id, text: `${HZ_SHORT[id]} · ab ${hm(file.hours[first])}`, tint: AW_SEV_TINT[lv[first] as RoadLevel], ev: 'p' as RoadEvidence, unknown: false };
     return null;
   }).filter((c): c is NonNullable<typeof c> => !!c) : [];
+  const nHaz = chips.filter((c) => !c.unknown).length, nUnk = chips.length - nHaz;
+  // With the „Nicht auswertbar“ block below, the unknown chips would say the same twice — the chips keep the levels only.
+  const shownChips = narrative?.unknown.length ? chips.filter((c) => !c.unknown) : chips;
   const evTop = xs.kind === 'unbekannt' ? 'Fahrbahnsensor verworfen' : xs.kind === 'nichtgemessen' ? 'Prognose, ohne Fahrbahnmessung' : `Messung ${hm(file.slotMs)}${p.stale ? ' · veraltet' : ''}`;
   const stations = [...seg.stations, ...seg.near].map((id) => p.byId.get(id)).filter((s): s is RoadPoint => !!s);
   const fcPointsN = seg.points.length;
+  const show = (k: 'seg' | 'wx' | 'site') => !p.part || p.part === k;
+  // Key tiles of the segment (dossier look): level now, road, size, measuring points.
+  const nowLv: RoadLevel | null = entry ? (Math.max(0, ...(Object.values(entry.lv) as Array<Array<RoadLevel | null> | undefined>).map((a) => a?.[0] ?? 0)) as RoadLevel) : null;
 
   return (
     <div className="aw-hz-detail">
       <div className="aw-hz-nav">
-        <button type="button" className="aw-hz-back" onClick={p.onBack}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>Alle Gefahren</button>
+        <button type="button" className="aw-hz-back" onClick={p.onBack}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>{p.backLabel ?? 'Alle Gefahren'}</button>
+        {p.part && p.part !== 'seg' && <span className="aw-hz-nav-name">{seg.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}<span>{seg.name}</span></span>}
         <span className="aw-hz-pos">{p.pos.i} / {p.pos.n}</span>
         <button type="button" className="aw-icon-btn" aria-label="Vorheriger Abschnitt" onClick={p.onPrev}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 15l-6-6-6 6" /></svg></button>
         <button type="button" className="aw-icon-btn" aria-label="Nächster Abschnitt" onClick={p.onNext}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 9l6 6 6-6" /></svg></button>
       </div>
 
+      {show('seg') && (
       <article className="aw-card aw-hz-article" aria-label="Detailansicht Abschnitt">
         <div className={`aw-eyebrow${xs.kind === 'unbekannt' ? ' is-muted' : xs.kind === 'nichtgemessen' ? ' is-warn' : ' is-accent'}`}>Abschnitt · DE · {evTop}</div>
         <div className="aw-hz-article-title">
@@ -136,28 +148,59 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
           <h2 ref={headRef} tabIndex={-1} className="aw-hz-h2">{seg.name}</h2>
         </div>
         <div className="aw-hz-article-sub">km {Math.round(seg.kmFrom)}–{Math.round(seg.kmTo)} · {dec(seg.lengthKm, 1)} km{seg.f.h ? ` · ${seg.f.h[1]}–${seg.f.h[2]} m` : ''}</div>
+        <div className="aw-ds-tiles is-seg">
+          <div className="aw-ds-tile">
+            <span className="aw-ds-tile-l">Gefahr jetzt</span>
+            <span className="aw-ds-tile-v" style={nowLv ? { color: nowLv > 0 ? AW_SEV_TINT[nowLv].ink : undefined } : undefined}>{nowLv === null ? '—' : nowLv > 0 ? `Stufe ${nowLv}` : chips.some((c) => c.unknown) ? 'unbekannt' : 'keine'}</span>
+            <span className="aw-ds-tile-s">{nowLv === null ? 'keine Auswertung' : nHaz ? `${nHaz} ${nHaz === 1 ? 'Gefahr' : 'Gefahren'} im Zeitraum${nUnk ? ` · ${nUnk} unbekannt` : ''}` : nUnk ? `${nUnk} Größen unbekannt — keine Entwarnung` : 'im Zeitraum keine erkannt'}</span>
+          </div>
+          <div className="aw-ds-tile">
+            <span className="aw-ds-tile-l">Fahrbahn</span>
+            <span className="aw-ds-tile-v">{xs.station?.rs != null ? `${f1(xs.station.rs)} °C` : '—'}</span>
+            <span className="aw-ds-tile-s">{xs.label}</span>
+          </div>
+          <div className="aw-ds-tile">
+            <span className="aw-ds-tile-l">Länge</span>
+            <span className="aw-ds-tile-v">{dec(seg.lengthKm, 1)} km</span>
+            <span className="aw-ds-tile-s">{seg.f.h ? `Höhe ${seg.f.h[1]}–${seg.f.h[2]} m` : `km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)}`}</span>
+          </div>
+          <div className="aw-ds-tile">
+            <span className="aw-ds-tile-l">Messpunkte</span>
+            <span className="aw-ds-tile-v">{stations.length}</span>
+            <span className="aw-ds-tile-s">{fcPointsN} {fcPointsN === 1 ? 'Stützpunkt' : 'Stützpunkte'} der Prognose</span>
+          </div>
+        </div>
         <div role="group" aria-label="Fahrtrichtung" className="aw-hz-dirs">
           {([0, 1] as const).map((d) => <button key={d} type="button" aria-pressed={p.dir === d} className={p.dir === d ? 'is-on' : ''} onClick={() => p.onDir(d)}>{d === 0 ? `Richtung ${seg.to}` : `Richtung ${seg.from}`}</button>)}
         </div>
-        {chips.length > 0 && (
-          <div className="aw-hz-nowchips">
-            {chips.map((c) => <span key={c.id} className="aw-hz-chip" style={{ background: c.tint.bg, borderColor: c.tint.border, color: c.tint.ink }}><EvDot ev={c.ev} unknown={c.unknown} />{c.unknown ? '? ' : ''}{c.text}</span>)}
+        {/* Cross-section and its text side by side (one column on narrow screens); the unknown inputs follow as one block. */}
+        <div className="aw-hz-xsgrid">
+          <div className="aw-hz-xscol">
+            <div className="aw-eyebrow aw-hz-xs-head">Was auf der Fahrbahn liegt</div>
+            <RoadCrossSection xs={xs} />
           </div>
-        )}
-        <div className="aw-eyebrow aw-hz-xs-head">Was auf der Fahrbahn liegt</div>
-        <RoadCrossSection xs={xs} />
-        {narrative ? (
-          <>
-            {narrative.now.length > 0 && <p className="aw-hz-text">{narrative.now.join(' ')}</p>}
-            {narrative.outlook.length > 0 && <p className="aw-hz-text is-sub">{narrative.outlook.join(' ')}</p>}
-            {narrative.unknown.map((u) => <p key={u} className="aw-hz-text is-unknown">{u}</p>)}
-          </>
-        ) : (
-          <p className="aw-hz-text is-sub">Für diesen Abschnitt ist im Fenster bis +6 h keine Gefahrenstufe erkannt und kein Eingang unbekannt. Das ist keine Entwarnung: Stufen sind Regeln über Messwerten und Prognosen, keine amtlichen Warnungen.</p>
-        )}
+          <div className="aw-hz-txtcol">
+            {shownChips.length > 0 && (
+              <div className="aw-hz-nowchips">
+                {shownChips.map((c) => <span key={c.id} className="aw-hz-chip" style={{ background: c.tint.bg, borderColor: c.tint.border, color: c.tint.ink }}><EvDot ev={c.ev} unknown={c.unknown} />{c.unknown ? '? ' : ''}{c.text}</span>)}
+              </div>
+            )}
+            {narrative ? (
+              <>
+                {narrative.now.length > 0 && <p className="aw-hz-text">{narrative.now.join(' ')}</p>}
+                {narrative.outlook.length > 0 && <p className="aw-hz-text is-sub">{narrative.outlook.join(' ')}</p>}
+                {!shownChips.length && !narrative.now.length && !narrative.outlook.length && <p className="aw-hz-text is-sub">Keine Gefahrenstufe erkannt — die offenen Eingänge stehen darunter.</p>}
+              </>
+            ) : (
+              <p className="aw-hz-text is-sub">Für diesen Abschnitt ist im Fenster bis +6 h keine Gefahrenstufe erkannt und kein Eingang unbekannt. Das ist keine Entwarnung: Stufen sind Regeln über Messwerten und Prognosen, keine amtlichen Warnungen.</p>
+            )}
+          </div>
+        </div>
+        {narrative && narrative.unknown.length > 0 && <UnknownList items={narrative.unknown} />}
       </article>
+      )}
 
-      {entry && (
+      {show('seg') && entry && (
         <section className="aw-card" aria-label="Gefahren-Fahrplan">
           <div className="aw-card-head"><span className="aw-eyebrow">Gefahren-Fahrplan</span><span className="aw-unit">−2 h bis +6 h · stündlich</span></div>
           <div className="aw-hz-plan" role="img" aria-label={`Gefahren-Fahrplan des Abschnitts ${seg.name} von −2 bis +6 Stunden`}>
@@ -176,10 +219,13 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         </section>
       )}
 
+      {show('wx') && (
       <Suspense fallback={<section className="aw-card"><span className="aw-eyebrow">Diagramme laden …</span></section>}>
         <Charts temp={temp} slotMs={file.slotMs} bullets={bullets} wind={wind} />
       </Suspense>
+      )}
 
+      {show('site') && (
       <section className="aw-card" aria-label="Ortsmerkmale">
         <span className="aw-eyebrow">Ortsmerkmale im Abschnitt</span>
         <div className="aw-hz-feats">
@@ -192,7 +238,9 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         </div>
         <div className="aw-note">Ortsmerkmale lösen allein keine Stufe aus; sie senken Schwellen oder ergänzen den Text. Quellen: OpenStreetMap (ODbL), Terrarium-Höhenmodell, ESA WorldCover.</div>
       </section>
+      )}
 
+      {show('site') && (
       <section className="aw-card" aria-label="Messpunkte und Anker">
         <span className="aw-eyebrow">Messpunkte und Anker</span>
         <div className="aw-hz-stations">
@@ -212,8 +260,9 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         </div>
         {p.stationCard && <div className="aw-hz-stationcard">{p.stationCard}</div>}
       </section>
+      )}
 
-      {p.warnState === 'ok' && p.warnings.map((w) => (
+      {show('seg') && p.warnState === 'ok' && p.warnings.map((w) => (
         <div key={w.id} className="aw-card aw-warn">
           <div className="aw-eyebrow is-warn">Amtliche Warnung · DWD{w.areas[0]?.desc ? ` · ${w.areas[0].desc}` : ''}</div>
           <p className="aw-warn-text">„{w.headline}“</p>
@@ -222,11 +271,26 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         </div>
       ))}
 
-      <div className="aw-hz-notobs"><strong>Nicht messbar:</strong> {narrative?.notMeasured ?? 'Verkehrsdichte (Gischt), Spurrinnen und Reifenzustand kennt buscosun nicht; Hinweise dazu beruhen nur auf Wetterbedingungen.'}</div>
+      {show('site') && <div className="aw-hz-notobs"><strong>Nicht messbar:</strong> {narrative?.notMeasured ?? 'Verkehrsdichte (Gischt), Spurrinnen und Reifenzustand kennt buscosun nicht; Hinweise dazu beruhen nur auf Wetterbedingungen.'}</div>}
+      {show('site') && (
       <div className="aw-sources aw-hz-src">
         Herkunft: DWD-Glättemeldeanlagen (Messung) · {fusion ?? 'buscosun Fusion'} an {fcPointsN} Stützpunkten, DWD RADOLAN-RV, KONRAD3D, ICON-D2 (Prognose) · Abschnitte und Ortsmerkmale © OpenStreetMap-Mitwirkende (ODbL)
         {file.missing.length ? ` · fehlend in diesem Slot: ${file.missing.join(', ')}` : ''}<br />Kein amtliches Warnprodukt · Prognose-Stufen in Erprobung, höchstens Stufe 2 · Stand {hm(file.slotMs)}
       </div>
+      )}
+    </div>
+  );
+}
+
+/** The „unbekannt“ sentences of the narrative as one compact block — the common closing sentence is said once. */
+function UnknownList({ items }: { items: readonly string[] }) {
+  const parsed = items.map((u) => { const m = /^(.*?): (.*) unbekannt — ein Eingang fehlt oder ist zu alt; das ist keine Entwarnung\.$/.exec(u); return m ? { name: m[1], when: m[2] } : null; });
+  if (parsed.some((x) => !x)) return <>{items.map((u) => <p key={u} className="aw-hz-text is-unknown">{u}</p>)}</>;
+  return (
+    <div className="aw-hz-unk">
+      <div className="aw-hz-unk-head">Nicht auswertbar · {items.length}</div>
+      <ul>{parsed.map((x) => <li key={x!.name}><b>{x!.name}</b><span>{x!.when}</span></li>)}</ul>
+      <p>Ein Eingang fehlt oder ist zu alt — das ist keine Entwarnung.</p>
     </div>
   );
 }
