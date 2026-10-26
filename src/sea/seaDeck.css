@@ -485,6 +485,10 @@
 .sw-warn-row dd { margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; color: var(--ink-900, #2C2A26); }
 .sw-warn-row dd b { font-weight: 700; color: #8A3320; }
 .sw-warn-row.is-own { background: #fff; border-color: #D9A36A; box-shadow: inset 3px 0 0 #B86A2E; }
+.sw-warn-more { display: block; margin-top: 4px; text-align: left; }
+.sw-ds-jump { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw-ds-jump-b { min-height: 32px; padding: 0 12px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: var(--cream-50, #FAF6EA); color: var(--sw-accent-dark, #0B5560); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.sw-ds-jump-b:hover { background: #fff; }
 .sw-warn-own { padding: 1px 7px; border-radius: 999px; background: #B86A2E; color: #fff; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
 .sw-ar-status .sw-warn-rows { margin-top: 2px; }
 /* Hour card of the chapter Am Spot: verdict and next window on top, then wind · sea state · compass in three blocks. */

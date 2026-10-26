@@ -154,7 +154,7 @@ export default function SeaReadout(p: Props) {
           ? (
             <>
               <span className="sw-official-meta">Deutsche {s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'}{p.warning.coast.nr ? ` · NR. ${p.warning.coast.nr}` : ''}{p.warning.coast.kind ? ` · ${p.warning.coast.kind}` : ''}</span>
-              <WarnRows text={p.warning.coast.text} own={s.coast?.name} />
+              <WarnRows text={p.warning.coast.text} own={s.coast?.name} onlyOwn={p.layout === 'dossier'} />
             </>
           )
           : null)}
@@ -444,15 +444,21 @@ export default function SeaReadout(p: Props) {
           <>
             {s ? (
               <>
-                <DsSection title="Gewählte Stunde" hint="Einordnung nach deinem Profil · Wind und Böen · Seegang · Lage zum Ufer" side={p.chips}>
+                {/* Jump bar: the chapter is long, so each section is one click away. */}
+                <nav className="sw-ds-jump" aria-label="Abschnitte von Am Spot">
+                  {([['sw-sec-stunde', 'Gewählte Stunde'], ['sw-sec-verlauf', 'Stundenband und Verlauf'], ...(p.waterLevel ? [['sw-sec-wasser', 'Wasserstand']] : []), [SEC_AREA, 'Amtlich']] as Array<[string, string]>).map(([id, label]) => (
+                    <button key={id} type="button" className="sw-ds-jump-b" onClick={() => document.getElementById(id)?.scrollIntoView({ block: 'start' })}>{label}</button>
+                  ))}
+                </nav>
+                <DsSection id="sw-sec-stunde" title="Gewählte Stunde" hint="Einordnung nach deinem Profil · Wind und Böen · Seegang · Lage zum Ufer" side={p.chips}>
                   {nowCard}
                 </DsSection>
-                <DsSection title="Stundenband und Verlauf" hint="Jede Stunde des Laufs — eine Stunde wählen setzt Karte und Werte oben auf diese Zeit">
+                <DsSection id="sw-sec-verlauf" title="Stundenband und Verlauf" hint="Jede Stunde des Laufs — eine Stunde wählen setzt Karte und Werte oben auf diese Zeit">
                   {p.band}
                   {chartCardOf(true)}
                 </DsSection>
                 {p.waterLevel && (
-                  <DsSection title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text">
+                  <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text">
                     {waterCardOf(true)}
                   </DsSection>
                 )}
@@ -798,7 +804,7 @@ const fold = (x: string) => x.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 
  * report (quote rule) — only arranged, numbers set bold; the spot's own coast section is marked. Any text that does
  * not have that shape is shown as one block.
  */
-function WarnRows({ text, own }: { text: string; own?: string | null }) {
+function WarnRows({ text, own, onlyOwn }: { text: string; own?: string | null; onlyOwn?: boolean }) {
   const rows: Array<{ area: string; lines: string[] }> = [];
   for (const raw of text.split('\n')) {
     const l = raw.trim();
@@ -809,18 +815,29 @@ function WarnRows({ text, own }: { text: string; own?: string | null }) {
   }
   if (!rows.length || rows.some((r) => !r.lines.length)) return <p className="sw-official">{text}</p>;
   const mine = own ? fold(own) : null;
+  const ownOf = (area: string) => mine != null && fold(area) === mine;
+  // Banner: only the spot's own section; the other sections stay verbatim in the chapter, one click away.
+  const shown = onlyOwn && rows.some((r) => ownOf(r.area)) ? rows.filter((r) => ownOf(r.area)) : rows;
+  const hidden = rows.length - shown.length;
   return (
-    <dl className="sw-warn-rows">
-      {rows.map((r) => {
-        const isOwn = mine != null && fold(r.area) === mine;
-        return (
-          <div key={r.area} className={`sw-warn-row${isOwn ? ' is-own' : ''}`}>
-            <dt>{r.area}:{isOwn && <span className="sw-warn-own">dein Abschnitt</span>}</dt>
-            <dd>{numBold(r.lines.join('\n'))}</dd>
-          </div>
-        );
-      })}
-    </dl>
+    <>
+      <dl className="sw-warn-rows">
+        {shown.map((r) => {
+          const isOwn = ownOf(r.area);
+          return (
+            <div key={r.area} className={`sw-warn-row${isOwn ? ' is-own' : ''}`}>
+              <dt>{r.area}:{isOwn && <span className="sw-warn-own">dein Abschnitt</span>}</dt>
+              <dd>{numBold(r.lines.join('\n'))}</dd>
+            </div>
+          );
+        })}
+      </dl>
+      {hidden > 0 && (
+        <button type="button" className="sw-link sw-warn-more" onClick={() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' })}>
+          {hidden} weitere {hidden === 1 ? 'Abschnitt' : 'Abschnitte'} der Meldung im Wortlaut ↓
+        </button>
+      )}
+    </>
   );
 }
 
@@ -942,7 +959,7 @@ function AreaDossier({ spot, texts, warning }: { spot: SeaSpot | null; texts: Se
         {texts.wodl && (
           <section className="sw-card is-official sw-ar-card">
             <div className="sw-eyebrow is-accent-dark">Starkwind-, Sturm- und Orkanwarnungen · {issued(texts.wodl)}</div>
-            <details className="sw-details" open={warning.status === 'unknown'}><summary>Warnmeldung im Wortlaut (WODL45)</summary><pre className="sw-pre">{texts.wodl.text}</pre></details>
+            <details className="sw-details"><summary>Warnmeldung im Wortlaut (WODL45) — Rohtext</summary><pre className="sw-pre">{texts.wodl.text}</pre></details>
           </section>
         )}
         <section className="sw-card is-cream sw-ar-card">
