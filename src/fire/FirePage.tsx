@@ -1693,33 +1693,44 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const legendPointsHistory = onlyKind === 'fires' && !!history;
   const pointLegend = (legendPointsLive || legendPointsHistory) ? (
     <div className="br-pointlegend" role="group" aria-label={legendPointsLive ? 'Legende Brandpunkte' : 'Legende Ereignispunkte'}>
-      <span className="br-eyebrow">{legendPointsLive ? 'Legende · Brandpunkte (Satellit)' : 'Legende · Ereignisse (Historie)'}</span>
-      <div className="br-pl-row">
-        <span className="br-pl-lbl">{legendPointsLive ? 'Farbe · Leistung (MW)' : 'Farbe · Σ Leistung (MW)'}</span>
-        {(legendPointsLive ? FRP_STOPS : CLUSTER_FRP_STOPS).map(([mw, col], i, a) => (
-          <span key={mw} className="br-pl-it"><i className="br-pl-dot" style={{ background: col }} />{mwRange(a, i)}</span>
-        ))}
+      <div className="br-pl-head">
+        <span className="br-pl-title">{legendPointsLive ? 'Brandpunkte' : 'Ereignisse'}</span>
+        <span className="br-pl-sub">{legendPointsLive ? 'Satelliten-Detektion — kein bestätigter Brand' : 'Historie — keine amtliche Meldung'}</span>
       </div>
-      <div className="br-pl-row">
-        <span className="br-pl-lbl">Größe</span>
-        <span className="br-pl-it"><i className="br-pl-dot is-s" />schwächer</span>
-        <span className="br-pl-it"><i className="br-pl-dot is-l" />stärker</span>
-        {legendPointsLive && (
-          <>
-            <span className="br-pl-lbl">Rand · Alter</span>
-            {([[1, '≤ 3 h'], [12, '≤ 24 h'], [48, '≤ 72 h'], [100, 'älter']] as const).map(([h, t]) => (
-              <span key={t} className="br-pl-it"><i className="br-pl-dot is-ring" style={{ borderColor: ageStroke(h) }} />{t}</span>
+      <div className="br-pl-grid">
+        <div className="br-pl-grp is-ramp">
+          <span className="br-pl-lbl">{legendPointsLive ? 'Leistung · MW' : 'Σ Leistung · MW'}</span>
+          <div className="br-pl-ramp">
+            {(legendPointsLive ? FRP_STOPS : CLUSTER_FRP_STOPS).map(([mw, col], i, a) => (
+              <span key={mw} className="br-pl-seg" style={{ ['--c' as string]: col }}><em>{mwRange(a, i)}</em></span>
             ))}
-          </>
+          </div>
+        </div>
+        <div className="br-pl-grp">
+          <span className="br-pl-lbl">Größe</span>
+          <span className="br-pl-sizes">
+            <i className="br-pl-dot is-s" /><i className="br-pl-dot is-m" /><i className="br-pl-dot is-l" />
+            <em>stärker</em>
+          </span>
+        </div>
+        {legendPointsLive && (
+          <div className="br-pl-grp">
+            <span className="br-pl-lbl">Rand · Alter</span>
+            <span className="br-pl-ages">
+              {([[1, '≤ 3 h'], [12, '≤ 24 h'], [48, '≤ 72 h'], [100, 'älter']] as const).map(([h, t]) => (
+                <span key={t} className="br-pl-age"><i className="br-pl-dot is-ring" style={{ borderColor: ageStroke(h) }} /><em>{t}</em></span>
+              ))}
+            </span>
+          </div>
         )}
+        <div className="br-pl-grp">
+          <span className="br-pl-lbl">Hinweise</span>
+          <span className="br-pl-chips">
+            <span className="br-pl-chip"><i className="br-pl-dot" style={{ background: STATIC_GREY }} />ortsfest (vermutlich Anlage)</span>
+            {legendPointsLive && <span className="br-pl-chip"><i className="br-pl-dot is-faint" />blass = geringe Konfidenz</span>}
+          </span>
+        </div>
       </div>
-      <div className="br-pl-row">
-        <span className="br-pl-it"><i className="br-pl-dot" style={{ background: STATIC_GREY }} />ortsfest (vermutlich Anlage)</span>
-        {legendPointsLive && <span className="br-pl-it"><i className="br-pl-dot is-faint" />blass: geringe Konfidenz</span>}
-      </div>
-      <span className="br-ml-note">
-        {legendPointsLive ? 'Satelliten-Detektion — kein bestätigter Brand' : 'Ein Punkt = ein Ereignis der Historie — keine amtliche Meldung'}
-      </span>
     </div>
   ) : null;
 
