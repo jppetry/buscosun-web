@@ -2080,6 +2080,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     // TA4: mobil ist „Thermalanomalien" ein Segment der Seite „Brände" — ein offenes Segment bleibt.
     if (t === 'fires' && readoutTab !== 'anomalies') setReadoutTab('fires');
     if (t === 'time' || t === 'map') setSheetSnap('half');
+    // Die Karte zeigt die Vorschaukachel nur auf der Kartenbühne — der Wechsel über die Bottom-Bar muss sie zurückholen.
+    if (t === 'map' || t === 'time') setStage('map');
   };
   const bottomBar = (
     <nav className="br-bar safe-pad-bottom" aria-label="Brandradar-Bereiche">
