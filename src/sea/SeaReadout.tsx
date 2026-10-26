@@ -284,6 +284,41 @@ export default function SeaReadout(p: Props) {
       pick(n[0], n[3]);
       e.currentTarget.querySelector<HTMLElement>(`[data-ch="${n[0]}"]`)?.focus();
     };
+    // Key figures of the chosen hour (like the key tiles in the head of the Brandradar dossier): verdict of the profile,
+    // wind, sea state, next window. The detail (gusts, periods, wave direction) follows in the section below.
+    const kpiRow = s && h && !p.noData && (
+      <>
+        <div className="sw-ds-kpibar">
+          <span className="sw-ds-kpibar-t">{dayShort(h.t)} {hh(h.t)} Uhr · Profil {p.profileLabel}</span>
+          {p.chips}
+        </div>
+        <div className="sw-ds-kpis">
+          <div className={`sw-kpi is-verdict is-${v?.cls ?? 'none'}`}>
+            <span className="sw-kpi-l">Einordnung</span>
+            <strong>
+              {v && <span className={`sw-dot${v.cls === 'keine' ? ' is-hatched' : ''}`} style={v.cls !== 'keine' ? { background: CLASS_COLOR[v.cls] } : undefined} />}
+              {v ? CLASS_LABEL[v.cls] : '–'}
+            </strong>
+            <span className="sw-kpi-c">{v && v.reasons.length > 0 ? v.reasons.join(' · ') : 'nach deinem Profil'}</span>
+          </div>
+          <div className="sw-kpi">
+            <span className="sw-kpi-l">Wind · {windName}</span>
+            <strong>{h.windMs == null ? '–' : <>{fmtWind(h.windMs, p.unit)}<small>{unitLabel(p.unit)}</small></>}</strong>
+            <span className="sw-kpi-c">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.gustMs != null ? ` · Böen ${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</span>
+          </div>
+          <div className="sw-kpi is-sea">
+            <span className="sw-kpi-l">Seegang · Modell CWAM</span>
+            <strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : <>{f1(h.hs)}<small>m</small></>}</strong>
+            <span className="sw-kpi-c">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)}${h.tm != null ? ` · Periode ${f1(h.tm)} s` : ''}`}</span>
+          </div>
+          <div className="sw-kpi is-win">
+            <span className="sw-kpi-l">Nächstes Fenster · {p.profileLabel}</span>
+            <strong>{p.windows.next ? `${dayShort(p.windows.next.from)} ${hh(p.windows.next.from)}–${hh(p.windows.next.to)} Uhr` : 'keins'}</strong>
+            <span className="sw-kpi-c">{p.windows.next ? `${p.windows.next.hours} h ${p.windows.next.tight ? 'passt oder knapp' : 'passt'}${p.windows.longest && p.windows.longest !== p.windows.next ? ` · längstes ${dayShort(p.windows.longest.from)} ${hh(p.windows.longest.from)}–${hh(p.windows.longest.to)} Uhr` : ''}` : 'bis zum Ende des Laufs'}</span>
+          </div>
+        </div>
+      </>
+    );
     const headCard = s && (
       <section className="sw-card sw-ds-head" aria-label="Spot-Dossier · Kopf">
         <div className="sw-ds-headrow">
@@ -295,6 +330,7 @@ export default function SeaReadout(p: Props) {
           </div>
           {p.onMap && <div className="sw-ds-headside"><button type="button" className="sw-link sw-ds-back" onClick={p.onMap}>↗ Zur Karte</button></div>}
         </div>
+        {cur === 'spot' && kpiRow}
       </section>
     );
     // Allgemein: the spot's facts, combined with what the sources say about them (report, station, gauge, model cell).
@@ -325,25 +361,6 @@ export default function SeaReadout(p: Props) {
         {p.noData && <div className="sw-empty"><strong>Keine Daten.</strong> {p.noData}</div>}
         {!p.noData && h && (
           <>
-            <div className="sw-now-top">
-              {v && (
-                <div className={`sw-now-verdict is-${v.cls}`}>
-                  <span className={`sw-dot${v.cls === 'keine' ? ' is-hatched' : ''}`} style={v.cls !== 'keine' ? { background: CLASS_COLOR[v.cls] } : undefined} />
-                  <span className="sw-now-verdict-tx">
-                    <em>Profil {p.profileLabel} · {dayShort(h.t)} {hh(h.t)} Uhr</em>
-                    <strong>{CLASS_LABEL[v.cls]}</strong>
-                    {v.reasons.length > 0 && <small>{v.reasons.join(' · ')}</small>}
-                  </span>
-                </div>
-              )}
-              {p.windows.next && (
-                <div className="sw-now-win">
-                  <em>Nächstes Fenster · {p.profileLabel}</em>
-                  <strong>{dayShort(p.windows.next.from)} {hh(p.windows.next.from)}–{hh(p.windows.next.to)} Uhr</strong>
-                  <small>{p.windows.next.hours} h {p.windows.next.tight ? 'passt oder knapp' : 'passt'}{p.windows.longest && p.windows.longest !== p.windows.next ? ` · längstes ${dayShort(p.windows.longest.from)} ${hh(p.windows.longest.from)}–${hh(p.windows.longest.to)} Uhr` : ''}</small>
-                </div>
-              )}
-            </div>
             <div className="sw-now-grid">
               <div className="sw-now-block">
                 <span className="sw-ds-stat-l">Wind · {windName}</span>
@@ -446,11 +463,11 @@ export default function SeaReadout(p: Props) {
               <>
                 {/* Jump bar: the chapter is long, so each section is one click away. */}
                 <nav className="sw-ds-jump" aria-label="Abschnitte von Am Spot">
-                  {([['sw-sec-stunde', 'Gewählte Stunde'], ['sw-sec-verlauf', 'Stundenband und Verlauf'], ...(p.waterLevel ? [['sw-sec-wasser', 'Wasserstand']] : []), [SEC_AREA, 'Amtlich']] as Array<[string, string]>).map(([id, label]) => (
+                  {([['sw-sec-stunde', 'Wind und Seegang'], ['sw-sec-verlauf', 'Stundenband und Verlauf'], ...(p.waterLevel ? [['sw-sec-wasser', 'Wasserstand']] : []), [SEC_AREA, 'Amtlich']] as Array<[string, string]>).map(([id, label]) => (
                     <button key={id} type="button" className="sw-ds-jump-b" onClick={() => document.getElementById(id)?.scrollIntoView({ block: 'start' })}>{label}</button>
                   ))}
                 </nav>
-                <DsSection id="sw-sec-stunde" title="Gewählte Stunde" hint="Einordnung nach deinem Profil · Wind und Böen · Seegang · Lage zum Ufer" side={p.chips}>
+                <DsSection id="sw-sec-stunde" title="Wind und Seegang im Detail" hint="Böen · Perioden · Wellenrichtung · Lage zum Ufer · Messung an Land">
                   {nowCard}
                 </DsSection>
                 <DsSection id="sw-sec-verlauf" title="Stundenband und Verlauf" hint="Jede Stunde des Laufs — eine Stunde wählen setzt Karte und Werte oben auf diese Zeit">
