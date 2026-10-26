@@ -416,9 +416,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   );
   const inDossier = stage === 'dossier';
   // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.
-  const official = !spot ? null : warning.status === 'unknown'
-    ? { text: 'Amtlich: Meldung liegt vor oder Status unbekannt — im Wortlaut in der Detailansicht.', warn: true }
-    : warning.coast?.text && warning.coast.text.length <= 70 ? { text: `Amtlich: „${warning.coast.text}“`, warn: false } : { text: 'Amtlicher Warnstatus: im Wortlaut in der Detailansicht.', warn: false };
   const cardEl = mapCard && spot && spot.id === mapCard && !inDossier ? (
     <SeaMapCard badge={pillBadge} name={spot.name} sub={`${spot.seaArea?.name ?? spot.coast?.name ?? ''} · ${kindsLabel(spot.kinds)} · Profil ${profLabel}`}
       verdict={noData ? 'keine Daten' : CLASS_LABEL[verdict?.cls ?? 'keine']} color={!noData && verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null}
@@ -428,8 +425,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
         { l: 'Welle', v: hour.dry ? DRY_VALUE : f1(hour.hs, ' m'), s: !hour.dry && hour.tm != null ? `${f1(hour.tm)} s` : undefined },
       ]}
       reason={!noData && verdict && verdict.cls !== 'passt' ? verdict.reasons[0] ?? null : null}
-      window={noData || !usable ? null : wins.next ? `Nächstes Fenster ${dayShort(wins.next.from)} ${hh(wins.next.from)}–${hh(wins.next.to)} Uhr` : 'Kein Fenster im Lauf'}
-      official={official}
+      window={noData || !usable || !wins.next ? null : `Nächstes Fenster ${dayShort(wins.next.from)} ${hh(wins.next.from)}–${hh(wins.next.to)} Uhr`}
+      official={null}
       onOpenDossier={() => { setMapCard(null); if (isMobile) { setTab('spot'); setSheet('open'); } else setStage('dossier'); }}
       onClose={() => setMapCard(null)} />
   ) : null;
