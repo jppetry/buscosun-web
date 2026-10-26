@@ -507,6 +507,7 @@ export const MATRIX_ALIASES: Readonly<Record<string, { id: string; why: string }
   RV: { id: 'radvor_rv', why: 'Kurzform von RADVOR RV in der AT-Spalte (⚠¹).' },
   'PRECIP RZC': { id: 'combiprecip', why: 'RZC ist das Radar-Produkt, CombiPrecip die eichkorrigierte Kombination; im Repo liegen beide unter radar/img/v1/rzc.' },
   IFS: { id: 'ifs_hres', why: 'In der 120–180-h-Zeile ohne Zusatz genannt; gemeint ist der deterministische Lauf.' },
+  'ICON-D2-RUC': { id: 'icon_d2', why: 'Stündlicher Rapid Update Cycle desselben ICON-D2 (⚠⁸); kein Cube-Eingang, sondern eigenes Produkt ruc/v1, das nur die 5-min-Form in der Stunde von buscosun Fusion liefert.' },
 });
 
 // ---------------------------------------------------------------------------
