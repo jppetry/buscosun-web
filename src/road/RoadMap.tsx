@@ -81,6 +81,12 @@ function dotFc(dots: readonly RoadFcDot[], sel: string | null): GeoJSON.FeatureC
 }
 const NO_DOTS: readonly RoadFcDot[] = [];
 const NO_SEGS: readonly RoadSegLine[] = [];
+/** Forgiving hit area around the thin segment lines (px) — a click or hover within this distance counts as on the line. */
+const SEG_HIT_PAD = 9;
+function segAt(map: maplibregl.Map, pt: maplibregl.Point) {
+  if (!map.getLayer('aw-seg')) return [];
+  return map.queryRenderedFeatures([[pt.x - SEG_HIT_PAD, pt.y - SEG_HIT_PAD], [pt.x + SEG_HIT_PAD, pt.y + SEG_HIT_PAD]], { layers: ['aw-seg', 'aw-seg-outline'] });
+}
 function segFc(segs: readonly RoadSegLine[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -215,8 +221,12 @@ export default function RoadMap(props: Props) {
       // AW-8.3 (design): 6-px line in the level colour with a dark 9-px contour over the corridor, unknown dotted grey,
       // the selected segment with a light 16-px halo (35 %), the hovered one with a thinner halo.
       map.addLayer({ id: 'aw-seg-halo', type: 'line', source: 'aw-segs', filter: ['any', ['==', ['get', 'sel'], 1], ['==', ['get', 'hover'], 1]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FAF6EA', 'line-width': ['case', ['==', ['get', 'sel'], 1], 16, 12], 'line-opacity': ['case', ['==', ['get', 'sel'], 1], 0.35, 0.22] } });
+      // Pointer hover: the segment under the mouse grows (wider line + halo) at once — the filter is set straight from `mousemove`, no React round trip.
+      map.addLayer({ id: 'aw-seg-hv-halo', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'id'], ''], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#FAF6EA', 'line-width': 20, 'line-opacity': 0.3 } });
       map.addLayer({ id: 'aw-seg-outline', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'on'], 1], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0B0E12', 'line-width': 9 } });
       map.addLayer({ id: 'aw-seg', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'on'], 1], layout: { 'line-cap': ['case', ['==', ['get', 'unknown'], 1], 'butt', 'round'], 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 6, 'line-dasharray': ['case', ['==', ['get', 'unknown'], 1], ['literal', [0.5, 1.2]], ['literal', [1, 0]]] } });
+      map.addLayer({ id: 'aw-seg-hv-out', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'id'], ''], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0B0E12', 'line-width': 13 } });
+      map.addLayer({ id: 'aw-seg-hv', type: 'line', source: 'aw-segs', filter: ['==', ['get', 'id'], ''], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 9 } });
       map.addLayer({
         id: 'aw-fc', type: 'circle', source: 'aw-fc',
         paint: {
@@ -288,14 +298,23 @@ export default function RoadMap(props: Props) {
       const id = (hits[0] ?? dots[0])?.properties?.id;
       if (typeof id === 'string') { propsRef.current.onSelect(id); return; }
       // AW-8.3: a click on a segment line opens its detail.
-      const segs = !hits.length && !dots.length && map.getLayer('aw-seg') ? map.queryRenderedFeatures(ev.point, { layers: ['aw-seg', 'aw-seg-outline'] }) : [];
+      const segs = !hits.length && !dots.length ? segAt(map, ev.point) : [];
       const sid = segs[0]?.properties?.id;
       if (typeof sid === 'string') propsRef.current.onSelectSegment?.(sid);
     });
+    let hoverSeg = '';
+    const setHoverSeg = (id: string) => {
+      if (id === hoverSeg || !map.getLayer('aw-seg-hv')) return;
+      hoverSeg = id;
+      for (const l of ['aw-seg-hv-halo', 'aw-seg-hv-out', 'aw-seg-hv']) map.setFilter(l, ['==', ['get', 'id'], id]);
+    };
     map.on('mousemove', (ev) => {
-      const hit = map.getLayer('aw-points') && map.queryRenderedFeatures(ev.point, { layers: [...(map.getLayer('aw-fc') ? ['aw-points', 'aw-fc'] : ['aw-points']), ...(map.getLayer('aw-seg') ? ['aw-seg'] : [])] }).length > 0;
-      map.getCanvas().style.cursor = hit ? 'pointer' : '';
+      const dot = map.getLayer('aw-points') && map.queryRenderedFeatures(ev.point, { layers: map.getLayer('aw-fc') ? ['aw-points', 'aw-fc'] : ['aw-points'] }).length > 0;
+      const sid = dot ? undefined : segAt(map, ev.point)[0]?.properties?.id;
+      setHoverSeg(typeof sid === 'string' ? sid : '');
+      map.getCanvas().style.cursor = dot || typeof sid === 'string' ? 'pointer' : '';
     });
+    map.getCanvas().addEventListener('mouseleave', () => setHoverSeg(''));
     props.onMap?.(map);
     return () => { props.onMap?.(null); map.remove(); mapRef.current = null; readyRef.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
