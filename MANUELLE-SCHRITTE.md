@@ -2987,3 +2987,24 @@ UND Push von `main` (Schritt 3). Rückweg je Besucher `?rsfc=0`, global `ROAD_SU
    `false` geht.
 5. **V-FB-6 (Datenprüfung):** 20 Anlagen mit unplausiblem Abstand Fahrbahn − Luft (E774: Fahrbahn 54–74 °C im
    Oktober) passieren die harten Regeln — eigener Auftrag, wenn gewünscht.
+
+## 78. buscosun Fusion 14 — ICON-D2-RUC als Niederschlags-Member (E-RUC-16, `audit/niederschlag-ruc.md` §15), 2026-10-26
+
+Auf dein Wort („neues buscosun fusion 14 … icon ruc inkludiert bei der beimischung … bis 27 h", Rückfrage: „Bauen, fitten, einschalten")
+gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER = 2`, Kurven in `priors.ts`; Fit 1–11 h an 23 Hindcast-Slots
+23.–26.10. gegen W1: Niederschlag-CRPS −3,2 % gegen Fusion 13, in keiner Vorlaufklasse und keinem Land schlechter; Brier P(nass) 7–11 h
++2,0 % schlechter (V-RUC-26); 13–27 h gesetzt, kein Spur-P-Urteil (Stichprobe von vier Tagen). **Lokal committet, nicht gepusht.**
+
+1. **Push = live** (der Commit trägt nur diese Linie: `src/pointForecast/{types,leadTimeWeights,pfFlags,cubeSource}.ts`,
+   `src/pointForecast/fusion/{priors,fusionRelease,output}.ts`, `src/dashboard/model/build.ts`, Audit §15 + Belege
+   `audit/niederschlag-ruc/2026-10-26-fit-ruc-f14*`, `CLAUDE.md`, `MANUELLE-SCHRITTE.md`). Danach zeigt jede Seite „buscosun Fusion 14";
+   `?rucm=0` ist je Besucher der Rückweg zu Fusion 13, global `FUSION14_RUC_MEMBER = 0` + Push.
+2. **Sichtprüfung nach dem Push:** Panel mit `?pflog=1` — die Options-Note nennt `rucMember:set — …`, die Ergebnis-Note
+   `rucMember: ICON-D2-RUC-Member an N Stunden (Lauf …, … min alt, …)`; ohne Produkt am Punkt steht dort „… ⇒ Niederschlag wie der Stand
+   davor, ohne RUC-Member" (dann rechnet er Fusion 13). Dashboard-Herkunft zeigt „ICON-D2-RUC" an Niederschlagsstunden. Konsole und
+   Ladezeit sind nicht geprüft (Sessionregel) — ein Blick lohnt (V-RUC-17).
+3. **Nachfit (nach ≥ 14 Tagen RUC-Reihe, V-RUC-27):** `node --max-old-space-size=6144 --experimental-strip-types --import ./scripts/lib/register-ts.mjs audit/niederschlag-ruc/2026-10-26-fit-ruc-f14.mjs --ruc=C:/dev/buscosun-data/ruc/v1/stations --from=<ab> --to=<bis> --base --grid=<Gitter> --out=<json>`
+   (vorher `queue.mjs follow` + `build-w1.mjs` bis zum Vortag; ein Prozess, über `detach.ps1`). Gitter dann 0,94–0,99 / τ 20–60 h für das
+   Vorkommen. Für 13–27 h braucht es Stationsreihen über 12 h hinaus (`RUC_STATION_STEPS` im Producer = Daten-Repo = dein Gate).
+4. **Offen zur Entscheidung:** V-RUC-26 (Brier 7–11 h: Modus 3 = Menge aus K-2, P(nass) aus der gelernten Hürde — eine Zeile im Motor,
+   dieselbe Messung); Spur P bleibt unmöglich, bis der Hindcast RUC trägt (V-RUC-11).

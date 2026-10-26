@@ -60,6 +60,14 @@ const FAMILY_CURVES: Record<SourceFamily, WeightCurve> = {
     shape: 'plateau',
     plateauUntil: 3,
   },
+  // ICON-D2-RUC (buscosun Fusion 14): only the cube path feeds this family; the legacy path never sees a `ruc` sample.
+  // Kept type-complete with the ICON-D2 row.
+  ruc: {
+    base0: 1.2,
+    base24: 1.8,
+    shape: 'plateau',
+    plateauUntil: 3,
+  },
   // MOSMIX (DWD station forecast): less spatial detail than high-res, but
   // gets bias-corrected at synoptic stations → reliable backbone.
   mosmix: {

@@ -13,6 +13,7 @@ export type SourceFamily =
   | 'obs'           // live station observations (DWD_OBS, TAWES, SMN)
   | 'nowcast'       // very-short range analysis/nowcast (INCA, RADOLAN)
   | 'highres'       // 1-3 km NWP (ICON-D2, ICON-CH1, AROME)
+  | 'ruc'           // ICON-D2-RUC: hourly rapid-update ICON-D2, 5-min precipitation to +27 h (buscosun Fusion 14, precipitation only)
   | 'mosmix'        // DWD MOSMIX station forecast (~30 km)
   | 'global';       // ECMWF IFS / Open-Meteo best_match catch-all
 

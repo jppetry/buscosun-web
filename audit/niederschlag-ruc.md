@@ -226,6 +226,7 @@ ab 3 h Alter die Stundenbalken wie heute. Kein Eingriff in buscosun Fusion, kein
 | E-RUC-13 | Minutenverlauf: die 5-min-Form „so wie im Radar" interpoliert, ohne Verlust an Genauigkeit (Jan 25.10.) | **Jan 25.10.: „ja, mache, nur bis 27 h"** ⇒ die 5-min-Form wird als Minutenkurve gezeichnet (`nowcast/rucCurve.ts`): nicht die Rate wird interpoliert (die 5-min-Werte sind Intervallmittel, lineares Verbinden verschöbe Masse zwischen den Intervallen und bräche E-RUC-4), sondern die **kumulierte Menge** durch die 5-min-Stützstellen mit einer monotonen kubischen Hermite-Kurve (Fritsch–Butland-Tangenten); die Minutenrate ist ihre Steigung. Eigenschaften (Block K): jede 5-min-Summe und jede Stundensumme exakt erhalten, nie negativ, flache Stunden bleiben flach, Lücken ⇒ getrennte Läufe. Nur Zeichnung: erster Regen, Spitze, Summe und Ereignisse lesen die Stufen; Hover-Punkt und -Wert folgen der Kurve, die Quellzeile nennt das 5-min-Mittel und „Minute interpoliert" (wie beim Radar). Fusion-Stunden jenseits +27 h bleiben Balken (keine Form vorhanden, keine wird erfunden). Schalter `?mvcurve=0` = Stufen (Rule 2). **Nachtrag (Jan 25.10.: „ja bitte, einfach ein weicher Übergang, ohne die Daten zu verfälschen"):** weicher Start an der Radar-Naht — die Starttangente der Kurve ist der letzte Radar-Minutenwert statt des ersten 5-min-Mittels, gedeckelt auf 0 … 3 × erstes Mittel (`RUC_CURVE_START_CAP`, Monotonie-Box nach Fritsch–Carlson); die Kurve biegt innerhalb der ersten fünf Minuten ein, deren Summe exakt bleibt; darüber oder bei trockenem erstem Intervall bleibt die Kante (echter Widerspruch der Quellen). Keine Überblendzone im Radar-Teil, keine Annäherung an der +27-h-Naht (abgelehnt, siehe §12). Umsetzung §12 |
 | E-RUC-14 | Zeitstufen der Detailansicht | **Jan 25.10.: „der Minutenverlauf soll jetzt nur noch 2 h, 6 h und 27 h anzeigen"** ⇒ `MV_VIEW_H = 27` (`minuteSeries.ts`): Stufen 2 \| 6 \| 27 h, Voreinstellung 27 h, Titel, KPIs „Spitze · 27 h"/„Summe · 27 h", Quellzeile und Reihe (`horizonH: MV_VIEW_H`) laufen bis +27 h; die 24-h- und 48-h-Stufen entfallen (Jans Freigabe, Funktionserhalt-Ausnahme). `MV_HORIZON_H` bleibt 48 für die Engine-Anfrage — die Ereignisse behalten ihre 48 h. Umsetzung §13 |
 | E-RUC-15 | Darstellung des Minutenverlaufs | **Jan 25.10.: „mach in der Minutenanzeige im Regenradar doch ein Balkendiagramm daraus, das macht mehr Sinn"; Rückfrage, Antwort: alles als Balken** ⇒ jede Ebene als Balken in ihrer eigenen Auflösung: ein Balken je Radarbild (Wert des Bildes vom Bild bis zum nächsten, erster Balken an „jetzt" angeschnitten, keiner über das letzte Bild hinaus), ein Balken je 5-min-Intervall des RUC, ein Balken je Fusion-Stunde; keine Linie, keine Kurve, nichts interpoliert (die Kurve E-RUC-13 und der weiche Start bleiben hinter `?mvbars=0` erreichbar). Erster Regen, Spitze und Summe des Radar-Teils lesen die Bild-Balken (Minute = Beginn des ersten nassen Bildes, nicht mehr die interpolierte Minute) — damit zeigt das Diagramm genau das, was die Zahlen sagen, und V-RUC-25 (Kurvengipfel über der Spitze) entfällt. Hover nennt „Bild hh:mm (alle 5 min), gilt bis hh:mm". Rule 2: `?mvbars=0` = Stand davor byte-gleich (Block L3). Umsetzung §14 |
+| E-RUC-16 | ICON-D2-RUC als Member von buscosun Fusion (Fusion 14, V-RUC-11) | **Jan 26.10.: „neues buscosun fusion 14 … einzige änderung: es soll icon ruc inkludiert haben bei der beimischung. mische es so über den zeitraum bis 27 h bei dass es die besten ergebnisse erzielt"; Rückfrage (0–27 h ist mit den Daten nicht messbar: RUC seit 23.10., Stationsreihen 0–12 h, kein RUC im Hindcast), Antwort: „Bauen, fitten, einschalten"** ⇒ Familie `ruc` als Niederschlags-Member (`FuseCubeOptions.rucMember`, Stundenmittel der 5-min-Raten des neuesten Laufs ≤ 3 h, ρ-Kurve `ACC.precipitation.ruc` / `ACC.precipOcc.ruc`, Fehlerkorrelation `CORR_PAIRS` gesetzt), ρ-Kurve 1–11 h an 23 Hindcast-Slots 23.–26.10. gegen W1 gefittet (eingefrorene Regel, 82 470 Paare), 13–27 h gesetzter Auslauf; Modus 2 (RUC-Stunde behält K-2 wie eine Radar-Stunde) — Modus 1 ließ jede Kurve gleich zählen, weil die Lernhürde K-2 ersetzte. Ergebnis CRPS −3,2 % gegen Fusion 13, Brier 7–11 h +2,0 % (V-RUC-26). **Eingeschaltet als buscosun Fusion 14** (Register `n: 14`, `FUSION14_RUC_MEMBER = 2`, Schalter `?rucm=0` = Fusion 13, `verify:fusion-release`), ohne Spur-P-Urteil wie Fusion 12/13 (E-OF-4/15); Prüfstand-Champion bleibt 9. Umsetzung §15 |
 
 ## 6. Umsetzungsplan
 
@@ -417,6 +418,8 @@ buscosun Fusion", nur „min" (Rückfall greift); Regensburg Mobil ebenfalls `ra
 | V-RUC-23 | **Roher RUC gegen buscosun Fusion 13 im Regenereignis 23./24.10. (Jan, 24.10. abends, nur Niederschlag):** Fenster 23.10. 12 UTC – 24.10. 15 UTC (Regen ab dem Abend, Kern 23–05 UTC mit bis 37 % nassen Stationen), Prüfnetz P1 (365 Stationen, 364 in der RUC-Stationsreihe `ruc/v1/stations`), Wahrheit W1 (unreif, 23./24.10. frisch gebaut), Fusion 13 = Register `fusion-12x` auf den Hindcast-Slots (dafür `queue.mjs follow` 22.–24.10. nachgezogen: 20 Slots, lokal; ohne Radar-Member und ohne Anker), RUC = Stundenmittel der 5-min-Reihe je Lauf. **Paare = gleiche Station, gleicher Stempel, gleicher Vorlauf (1–12 h), n = 31 452.** Ergebnis: Summe über alle Paare RUC 1,09, Fusion-Mittel 1,11 der gemessenen (beide unverzerrt); Fehler RUC MAE 0,193 mm/h, Fusion CRPS der Quantile 0,127 (−34 %), Fusion-Mittel MAE 0,190 (gleich); je Vorlauf 1–3 h RUC 0,150 / Fusion CRPS 0,110, 7–12 h 0,222 / 0,140. Nass/trocken (≥ 0,1 mm/h): RUC POD 73 % FAR 40 % ETS 0,34; Fusion bei P ≥ 50 % POD 35 % FAR 15 % ETS 0,25 (zu vorsichtig), bei P ≥ 30 % POD 82 % FAR 42 % ETS 0,35 (= RUC). Länder: DE RUC 0,99 der Summe, CH RUC 1,21 (zu nass); Fusion-Median überall ≈ ¼ der Summe (die Verteilung ist breit, der Median ist nicht der Produktwert). Stationen mit viel Regen (27 h): Säntis 39,2 mm gemessen, RUC 15,6, Fusion 24,9; La Dôle 32,8 / 37,1 / 26,7; Lüdenscheid 21,4 / 17,4 / 19,0; Ahaus 21,1 / 18,2 / 18,3. **Verlässlichkeit der Regenchance (39 120 Fusion-Zeilen, 1–12 h):** angezeigt 0–10 % ⇒ 3 % nass, 20–30 % ⇒ 17 %, 30–40 % ⇒ 39 %, 40–50 % ⇒ 62 %, 50–60 % ⇒ 76 %, 70–80 % ⇒ 94 %, ab 80 % ⇒ 98–100 % — bis 40 % ehrlich, darüber zu vorsichtig (es regnete öfter als gesagt). Schwellen-Sweep: P ≥ 30 % POD 80 % FAR 43 % ETS 0,35 (sagt 1,4-mal so oft Regen, wie er fiel), **P ≥ 35 % ETS 0,38 bei Häufigkeitsfaktor 0,97 (beste Trennung)**, P ≥ 40 % ETS 0,34, P ≥ 50 % POD 33 % ETS 0,24 (verfehlt zwei Drittel der nassen Stunden). Belege `audit/niederschlag-ruc/2026-10-24-ruc-vs-fusion13-niederschlag.{txt,json}`, Skript `…/2026-10-24-measure-ruc-f13.mjs` | ein Tag ist eine Stichprobe, kein Urteil; er stützt aber E-RUC-4 (Summe von Fusion 13, Form vom RUC) und zeigt, dass die Nass-Entscheidung der Fusion bei 50 % das Ereignis verfehlt, bei 30 % den RUC erreicht | (a) in T9 die Stundensummen beider Quellen mitmessen (RUC-Reihe liegt vor); (b) V-RUC-11 bleibt: RUC als Member in den Prüfstand (Fusion 14); (c) die Nass-Schwelle der Anzeigen an `RB_P_EDGE` 30 % hängen, nicht an 50 % (siehe E-RUC-11 a); Hindcast-Slots 22.–24.10. liegen lokal in `C:\dev\buscosun-hindcast\slots\` (Publish = Jan) |
 | V-RUC-25 | **Kurvengipfel über der „Spitze · 48 h" (E-RUC-13, Herborn 25.10. 01:00 MESZ):** die KPI liest die Stufen und das Radar (2 mm/h, 01:10 Radar), die Minutenkurve erreicht um 06:50 ≈ 2,5 mm/h (5-min-Mittel 06:50–06:55 1,9 mm/h) und die y-Achse zeigt 3. Das ist kein Rechenfehler, sondern die Eigenschaft jeder glatten Kurve durch Intervallmittel: liegt ein 5-min-Mittel über seinen Nachbarn, muss die Rate innerhalb der fünf Minuten irgendwo darüber liegen, sonst stimmt die Summe nicht; Fritsch–Butland begrenzt den Gipfel auf ≤ 3 × Stufe, gemessen ×1,35 (Block K6 auf Rauschen, Herborn ≈ ×1,3). Ein einzelner nasser 5-min-Schritt zwischen Nullen wird zur schmalen Spitze (Herborn 21:00) | eine Seite nennt eine Spitze und zeichnet eine höhere; die Zahl ist die ehrlichere (Daten), die Kurve die anschaulichere | Optionen für Jan: (a) so lassen, Tooltip erklärt es („5-min-Mittel x, Minute interpoliert"); (b) KPI-Untertitel „5-min-Mittel" bei RUC-Spitzen; (c) die KPI nimmt die Kurve mit dem Zusatz „Minute interpoliert" (wie das Radar, dessen Minuten ebenfalls interpoliert sind). Empfehlung (b): ein Wort, keine neue Zahl |
 | V-RUC-24 | **„Ab 9 Uhr Stundenbalken" im Minutenverlauf (Jan, 25.10. früh, Herborn):** die 5-min-Schicht reicht bis Lauf + 27 h (Lauf 21 UTC ⇒ Naht 01:00 MEZ, Produkt 324 Schritte, 0 Lücken — am Punkt direkt gelesen); ICON-D2-RUC rechnet Herborn aber ab +11 h (09:00) zehn Stunden exakt trocken und danach nur Spuren ≤ 0,04 mm/h, buscosun Fusion hält 0,2–0,4 mm/h bei 30–45 % Regenchance. Diese Stunden sind `flat` (keine Form, Fusion-Summe gleichmäßig) und wurden als schraffierte Blöcke gezeichnet — zwölf gleiche 5-min-Stufen sehen aus wie Stundenbalken, die Schraffur liest sich nicht als „ohne Form", sondern als anderes Produkt. Tooltip nannte es korrekt („Stunde ohne Form (RUC trocken) · Regenchance 43 %"). Die Nullen sind echt (Producer-Schwelle 0,001 mm je 5 min, `RUC_DRY_MM`) | eine zweite Kodierung (Schraffur) neben dem Regenchance-Streifen für dieselbe Unsicherheit verwirrt mehr, als sie erklärt; das Produkt erklärt sich über Streifen, Tooltip und Fußtext | E-RUC-12: Schraffur entfernt; Rest bleibt |
+| V-RUC-26 | **Fusion 14 verbessert die Menge, aber die Nass-Entscheidung 7–11 h wird schlechter (§15):** mit dem RUC-Member (Modus 2) sinkt der CRPS in jeder Vorlaufklasse und jedem Land, der Brier von P(nass) 1–3 h um 6,9 % und 4–6 h um 1,6 %, bei 7–11 h steigt er aber um 2,0 % (AT 5,5 %). Ursache: eine RUC-Stunde behält K-2 statt der gelernten Hürde (V-FL-18), und die Hürde war bei 7–11 h die bessere Nass-Entscheidung — der Gewinn 7–11 h kommt aus der Menge, nicht aus P(nass). Modus 1 (Hürde bleibt) hat den besseren Brier (−4,7 %), aber nur −1,5 % CRPS | ein Leser der Regenchance sieht bei 7–11 h etwas schlechtere Prozentzahlen als mit Fusion 13; die Menge und die Spanne sind besser | Modus 3: RUC-Stunde behält K-2 für die Menge, P(nass) aus der gelernten Hürde mit RUC-pDry-Merkmal (eine Zeile in `fuseCubePoint`, Messung mit demselben Skript); oder die Hürde bei 7–11 h wieder zulassen (Vorlauf-Schwelle) |
+| V-RUC-27 | **Das Gitter endet am Gewinner:** die Vorkommens-Kurve ρ₀ 0,94 / τ 30 h ist der Rand des eingefrorenen Gitters B (0,82 / 0,88 / 0,94), die Mengen-Kurve 0,55 / 6 h liegt mittig (0,45–0,72 nahezu gleich, ± 0,1 %). Die Kurve 13–27 h ist gesetzt (Stationsreihen enden bei 12 h, `RUC_STATION_STEPS` 144); Stichprobe = 4 Herbsttage mit einem Frontregen (23./24.10.) und ruhigen Tagen danach | das Optimum der Vorkommens-Kurve kann jenseits 0,94 liegen; der Auslauf 13–27 h ist ungemessen | nach ≥ 14 Tagen RUC-Reihe (T9-Termin) Gitter 0,94–0,99 und τ 20–60 h nachfitten; Stationsreihen auf 27 h verlängern (Producer, Daten-Repo = Jans Gate), dann 13–27 h messen |
 
 ## 9. Belege (Befehle, 23.10.2026)
 
@@ -651,3 +654,80 @@ Bilder `audit/niederschlag-ruc/2026-10-25-balken-herborn-27h.jpg`, `audit/nieder
 | 3 Touch-Targets ≥ 44 px | keine Bedienelemente berührt |
 | 4 Konsole sauber | keine App-Fehler (nur die Meldungen der Chrome-Erweiterung) |
 | 5 keine Long Tasks > 200 ms | ≤ 24 + 324 + 27 `<rect>` je Render, keine Kurvenrechnung mehr im Balkenmodus |
+
+## 15. buscosun Fusion 14 — ICON-D2-RUC als Niederschlags-Member (E-RUC-16, 26.10.2026)
+
+**Auftrag (Jan, 26.10.):** „ich möchte ein neues buscosun fusion 14 releasen, einzige änderung: es soll icon ruc inkludiert haben bei der
+beimischung. mische es so über den zeitraum bis 27 h bei dass es die besten ergebnisse erzielt." Rückfrage, weil „beste Ergebnisse über
+0–27 h" mit den Daten nicht messbar ist (RUC seit 23.10. 10 UTC, Stationsreihen `ruc/v1/stations` nur 0–12 h, kein RUC im Hindcast und
+damit nicht im Prüfstand); Jans Wahl: **„Bauen, fitten, einschalten"** — ρ-Kurve 1–12 h an den Stationsreihen gegen W1 fitten, 13–27 h als
+gesetzten Auslauf, Gegenprobe gegen Fusion 13, wenn nirgends schlechter live als Fusion 14 (Muster E-OF-15, ohne Spur P), `?rucm=0` = 13.
+
+**15.1 Bau (Motor, `src/pointForecast/`):** `SourceFamily` + `CubeProduct` `ruc`; `CubeFusionInput.ruc: RucPointSeries | null`;
+`FuseCubeOptions.rucMember: 0 | 1 | 2`; je Stunde t ein Sample `icon_d2_ruc` (Familie `ruc`, nur Niederschlag) = Mittel der 5-min-Raten in
+(t − 60 min, t] des neuesten Laufs (≥ `RUC_MEMBER_MIN_STEPS` 10 Intervalle, sonst keine Stunde), Member-Eintrag mit Lauf/Alter/Intervallen;
+Priors `ACC.precipitation.ruc`, `ACC.precipOcc.ruc` (Fit, unten), `CORR_PAIRS` `ruc|ruc` 0,80 · `ruc|nowcast` 0,45 · `ruc|highres` 0,60 ·
+`ruc|mosmix` 0,50 · `ruc|global` 0,40 · `ruc|obs` 0,20 (GESETZT, nicht gemessen), `AMPLITUDE` 1, `FOOTPRINT_FALLBACK_M` 2 500; Leser-Anbindung in
+`getPointForecastFromCube` (`loadRucPoint`, nur mit `CubeIo.rucMember` + Gray-Decoder + Radar-Pfad, `priority: 'low'`, progressiv wie der
+Radar-Member); Schalter `pfRucMemberFrom` (`?rucm=0`), Variantenschlüssel `rucm`/`rucm0`; Register `fusionRelease.ts` Eintrag `n: 14`
+(`FUSION14_RUC_MEMBER`, `io: { key: 'rucMember', set: true }`, `needs: 'ruc'`); Dashboard-Label „ICON-D2-RUC", Farbe `#A3B08A`;
+Options-Note und Ergebnis-Note nennen den Member und die Stunden („… ⇒ Niederschlag wie der Stand davor, ohne RUC-Member", wenn die Reihe
+fehlt). Alles andere (T, Td, Wind, Böe, Wolken, jede Stunde ohne RUC-Wert) rechnet byte-gleich zu Fusion 13 — der Member liefert nur
+`precipitation`, alle anderen Felder `null`.
+
+**Modus 1 → Modus 2 (Befund während des Fits):** im ersten Gitter (20 Mengen-Kurven, Modus 1) zählte JEDE Kurve gleich (CRPS 0,1341,
+Brier 0,0949). Ursache: die gelernte Hürde (`learnedPrecip`, V-FL-18) ersetzt die K-2-Verteilung, sobald kein Radar-/Stationsmember trägt —
+der RUC-Member kam nur über sein pDry-Merkmal zum Zug, die ρ-Kurve war wirkungslos. Darum `rucMember: 2`: eine RUC-Stunde behält K-2 wie eine
+Radar-Stunde (gleiche Bedingung in `learnedPost.precipKept` und `precipCal`-Situation). Probe auf 2 Slots: Modus 2 mit schwacher
+Mengen-Kurve −2,2 %, mit starker (0,88 / 48 h) +3,8 % schlechter ⇒ die Kurven greifen.
+
+**15.2 Fit — eingefrorene Regel** (Kopf von `audit/niederschlag-ruc/2026-10-26-fit-ruc-f14.mjs`, vor dem ersten Lauf geschrieben):
+Paare = Station s (Prüfnetz P1, 364 von 365 in der RUC-Reihe) × Hindcast-Slot t0 (3-stündlich) × Vorlauf L = 1 … 11 h; RUC-Lauf = t0 − 1 h
+(sonst t0 − 2 h); ein Paar zählt nur mit Wahrheit rr(t0 + L) in W1 UND vollständiger RUC-Stunde (12 Intervalle). DERSELBE Paarsatz misst die
+Basis (`rucMember: 0` = Fusion 13 als Register `fusion-12x`) und jeden Kandidaten. Score = mittlerer CRPS des Niederschlags-Quantilsatzes
+(Prüfstand-Score), zweite Zahl Brier von P(nass) gegen rr ≥ 0,1 mm/h; je Vorlaufklasse 1–3 / 4–6 / 7–11 h und je Land. **Verdikt = der
+Kandidat mit dem niedrigsten CRPS 1–11 h unter denen, die in keiner Vorlaufklasse schlechter als die Basis sind.** 13–27 h wird nicht
+gemessen. Daten: Slots 23.10. 12 UTC – 26.10. 12 UTC (23 Slots; 24.10. 18/21 UTC fehlen im Hindcast, 23.10. 00–09 UTC ohne RUC-Lauf), W1 bis
+26.10. unreif gebaut, **82 470 Paare**. Gitter B (12 Kandidaten, `…-gitter.json`): Modus 1 mit vier Vorkommens-Kurven; Modus 2 mit
+Mengen-Kurven ρ₀ 0,45–0,72 / τ 6–12 h bei Vorkommen 0,88 / 30 h, dazu 0,55 / 6 h mit Vorkommen 0,82 / 15 h und 0,94 / 30 h. Ein serieller
+Prozess (≈ 3 min je Kandidat, drei parallele Läufe hatte der Speicherwächter abgebrochen), über `scripts/hindcast/detach.ps1`, 44 min.
+
+**15.3 Ergebnis** (`…-ergebnis.json`, Tabelle `…-tabelle.txt`; Gewinn in % gegen Fusion 13, positiv = besser):
+
+| Kandidat | Modus | Menge ρ₀/τ | Vorkommen ρ₀/τ | CRPS 1–11 h | 1–3 h | 4–6 h | 7–11 h | Brier 1–11 h | Brier 7–11 h |
+|---|---|---|---|---|---|---|---|---|---|
+| Basis Fusion 13 | 0 | — | — | 0,1361 | 0,1339 | 0,1344 | 0,1387 | 0,0995 | 0,1025 |
+| m1-o088-t30 (bester Modus 1) | 1 | 0,80 / 24 | 0,88 / 30 | +1,47 % | +2,27 | +1,27 | +1,09 | **+4,67 %** | +3,57 |
+| m2-a055-t06 | 2 | 0,55 / 6 | 0,88 / 30 | +2,27 % | +4,70 | +1,04 | +1,46 | −0,13 % | −3,25 |
+| m2-a065-t12 (bester bei 0,88) | 2 | 0,65 / 12 | 0,88 / 30 | +2,51 % | +5,45 | +1,14 | +1,46 | −0,12 % | −3,29 |
+| m2-a055-t06-o082-t15 | 2 | 0,55 / 6 | 0,82 / 15 | −0,01 % (4–6 h −1,16 ⇒ verworfen) | +2,13 | −1,16 | −0,67 | −4,83 % | −8,26 |
+| **m2-a055-t06-o094-t30 — Verdikt** | **2** | **0,55 / 6** | **0,94 / 30** | **+3,19 % (0,1318)** | **+6,23** | **+1,90** | **+2,03** | **+1,46 %** | **−1,96** |
+
+Je Land (Verdikt, CRPS 1–11 h): DE +2,94 % (1–3 h +6,19, 4–6 h +1,34, 7–11 h +1,70), AT +3,03 % (+6,07 / +2,59 / +1,61), CH +3,74 %
+(+6,41 / +2,42 / +2,88) — kein Land, keine Klasse schlechter. Brier je Land: DE +2,65 %, CH +2,16 %, AT −2,05 % (7–11 h −5,47 %). Die
+Mengen-Kurven 0,45–0,72 unterscheiden sich um ≤ 0,3 % (die Menge des RUC ist so verrauscht wie die von ICON-D2; sein Wert ist das
+Vorkommen und das Timing in den ersten Stunden); die Vorkommens-Kurve entscheidet (0,82 → 0,88 → 0,94: ±0 → +2,3 → +3,2 %).
+
+**Grenzen (ehrlich):** (1) vier Herbsttage, ein Frontregen (23./24.10.) und ruhige Tage — eine Stichprobe, kein Spur-P-Urteil; der Prüfstand
+kann Fusion 14 nicht replayen, solange der Hindcast keinen RUC trägt (V-RUC-11 bleibt offen). (2) 13–27 h GESETZT: dieselbe Kurve läuft aus,
+`maxLeadH` 27 mit Taper-Fenster ≈ 4 h, kein Messwert (Stationsreihen enden bei 12 h, V-RUC-27). (3) Brier 7–11 h +2,0 % schlechter (AT
++5,5 %) — V-RUC-26 mit Skizze „Modus 3". (4) `CORR_PAIRS` der Familie sind gesetzt. (5) W1 für 25./26.10. unreif (Nachträge möglich).
+(6) Der Hindcast-Replay rechnet ohne Radar-Member und ohne Anker (wie V-RUC-23) — live stehen in 0–2 h Radar und Messung neben dem RUC, dort
+ist der Gewinn kleiner als 1–3 h hier sagt.
+
+**15.4 Umsetzung des Verdikts:** `priors.ts` `ACC.precipitation.ruc = { rho0: 0.55, tauH: 6, k: 1, maxLeadH: 27 }`, `ACC.precipOcc.ruc =
+{ rho0: 0.94, tauH: 30, k: 1, maxLeadH: 27 }`; `FUSION14_RUC_MEMBER = 2`; `fusionStage()` nennt „buscosun Fusion 14", `FUSION_CURRENT` 14,
+`?rucm=0` = Fusion 13 (kein Fetch, Register-Schalter `rucMember: false`). Ohne Produkt am Punkt (kein `latest.json`, Lauf > 3 h alt, außerhalb
+t1, Chunk fehlt) rechnet der Motor exakt Fusion 13 und sagt es in der Ergebnis-Note.
+
+**Gate E-RUC-16 (26.10. abends):** `npm run typecheck` grün · `verify:fusion-release` 30/30 (B2: keine feste Standnummer außerhalb des
+Registers — die Noten in `cubeSource.ts` sagen „Phase RUC, E-RUC-16" und „wie der Stand davor") · kein Build/Budget (keine neue Abhängigkeit,
+kein neuer Chunk; Jans Sessionregel) · kein Browser-Beleg (Sessionregel). Lokal committet, kein Push (§78 in `MANUELLE-SCHRITTE.md`).
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt einzeln | `?rucm=0` ⇒ `CubeIo.rucMember: false`, kein RUC-Fetch, Motor ohne `input.ruc` = Fusion 13 (Code-Pfad: `useRucMember = rucOpt && !!input.ruc`); nur `precipitation`/`precipOcc` lesen die Familie |
+| 2 Desktop pixelgleich | keine UI-Änderung außer Standname und Dashboard-Label „ICON-D2-RUC" in der Herkunft |
+| 3 Touch-Targets ≥ 44 px | keine Bedienelemente berührt |
+| 4 Konsole sauber | nicht im Browser geprüft (Sessionregel) — offen für Jans Sichtprüfung mit `?pflog=1` (Note `rucMember: ICON-D2-RUC-Member an N Stunden`) |
+| 5 keine Long Tasks > 200 ms | ein zusätzlicher Chunk-Abruf (`priority: 'low'`), eine Spalte dekodiert; nicht gemessen (V-RUC-17 gilt weiter) |

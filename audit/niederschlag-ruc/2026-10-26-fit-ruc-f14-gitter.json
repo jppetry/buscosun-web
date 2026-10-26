@@ -1,0 +1,14 @@
+[
+ { "id": "m1-o082-t15", "mode": 1, "amount": { "rho0": 0.80, "tauH": 24, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.82, "tauH": 15, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m1-o088-t30", "mode": 1, "amount": { "rho0": 0.80, "tauH": 24, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m1-o088-t90", "mode": 1, "amount": { "rho0": 0.80, "tauH": 24, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 90, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m1-o094-t30", "mode": 1, "amount": { "rho0": 0.80, "tauH": 24, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.94, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a045-t06", "mode": 2, "amount": { "rho0": 0.45, "tauH": 6, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a055-t06", "mode": 2, "amount": { "rho0": 0.55, "tauH": 6, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a055-t12", "mode": 2, "amount": { "rho0": 0.55, "tauH": 12, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a065-t06", "mode": 2, "amount": { "rho0": 0.65, "tauH": 6, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a065-t12", "mode": 2, "amount": { "rho0": 0.65, "tauH": 12, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a072-t06", "mode": 2, "amount": { "rho0": 0.72, "tauH": 6, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.88, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a055-t06-o082-t15", "mode": 2, "amount": { "rho0": 0.55, "tauH": 6, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.82, "tauH": 15, "k": 1.0, "maxLeadH": 27, "w": 0 } },
+ { "id": "m2-a055-t06-o094-t30", "mode": 2, "amount": { "rho0": 0.55, "tauH": 6, "k": 1.0, "maxLeadH": 27, "w": 0 }, "occ": { "rho0": 0.94, "tauH": 30, "k": 1.0, "maxLeadH": 27, "w": 0 } }
+]

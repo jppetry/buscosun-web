@@ -268,7 +268,7 @@ const MODEL_NAMES: Record<string, string> = {
 export const modelName = (id: string) => MODEL_NAMES[id] ?? id;
 
 /** Farben der Gewichtsleiste nach Produkt (Jan 16.10.: Sand statt Terracotta für die Modelle; Stahl, Salbei, Stein). */
-const PRODUCT_COLOR: Record<string, string> = { 'cube-t1': '#C4B896', 'cube-t2': '#C4B896', 'cube-t3': '#C4B896', station: '#3A6FA8', nowcast: '#7A9466', climatology: '#6E675A' };
+const PRODUCT_COLOR: Record<string, string> = { 'cube-t1': '#C4B896', 'cube-t2': '#C4B896', 'cube-t3': '#C4B896', station: '#3A6FA8', nowcast: '#7A9466', ruc: '#A3B08A', climatology: '#6E675A' };
 
 /** E-DB-23: halbe Breite des 80 %-Bands (p10–p90) der Temperatur. */
 const halfBand = (s: StepV2 | undefined): number | null => {
@@ -314,6 +314,7 @@ function buildConf(c: Ctx): ConfVM {
       label = models.length ? (models.length > 1 ? `${models[0]} +${models.length - 1}` : models[0]) : product.toUpperCase();
     } else if (product === 'station') label = 'MOSMIX';
     else if (product === 'nowcast') label = 'Radar';
+    else if (product === 'ruc') label = 'ICON-D2-RUC';
     else if (product === 'climatology') label = 'Klimatologie';
     else label = m.tag;
     if (Math.round(share * 100) > 0) weights.push({ label, pct: Math.round(share * 100), color: PRODUCT_COLOR[product] ?? '#6E675A' });

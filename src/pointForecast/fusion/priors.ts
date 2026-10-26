@@ -154,7 +154,7 @@ export function accAt(c: AccCurve, leadH: number, withTaper = true): number {
  * The residual spread is unaffected — α cancels in the variance.
  */
 export const AMPLITUDE: Readonly<Record<SourceFamily, number>> = Object.freeze({
-  obs: 1, nowcast: 1, highres: 1, mosmix: 1, global: 1,
+  obs: 1, nowcast: 1, highres: 1, ruc: 1, mosmix: 1, global: 1,
 });
 
 /**
@@ -167,7 +167,7 @@ export const AMPLITUDE: Readonly<Record<SourceFamily, number>> = Object.freeze({
  * horizon and undo the fade.
  */
 export const AMPLITUDE_RHO_EXPONENT: Readonly<Record<SourceFamily, number>> = Object.freeze({
-  obs: 0, nowcast: 0, highres: 0, mosmix: 0.5, global: 0,
+  obs: 0, nowcast: 0, highres: 0, ruc: 0, mosmix: 0.5, global: 0,
 });
 
 /** Anomaly amplitude of a family at skill correlation `rhoSkill`. */
@@ -198,6 +198,9 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
     // beobachtete Wert für eine ko-lokalisierte Station.
     obs:      { rho0: 0.999,  tauH: 30,  k: 1.35, maxLeadH: 36, w: 0 },
     nowcast:  { rho0: 0.985,  tauH: 40,  k: 1.15, maxLeadH: 8, w: 0 },
+    // `ruc` carries precipitation only (every other variable is null in its sample); the rows here are the ICON-D2 rows
+    // so that a type-complete table never gives the family a skill it was not fitted for.
+    ruc:      { rho0: 0.975,  tauH: 260, k: 1.75, maxLeadH: 60 },
     // A forecast is NOT as good as a measurement at lead 0 — ICON-D2 at its own
     // analysis time still misses a station by ~1 K. That gap is the whole reason
     // the observation anchor exists.
@@ -211,6 +214,7 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
     // beide Fehler erbt. Genau deshalb wird er fusioniert und RH daraus abgeleitet.
     obs:      { rho0: 0.999,  tauH: 26,  k: 1.30, maxLeadH: 30, w: 0 },
     nowcast:  { rho0: 0.970,  tauH: 30,  k: 1.10, maxLeadH: 8, w: 0 },
+    ruc:      { rho0: 0.960,  tauH: 210, k: 1.55, maxLeadH: 60 },
     highres:  { rho0: 0.960,  tauH: 210, k: 1.55, maxLeadH: 60 },
     mosmix:   { rho0: 0.968,  tauH: 235, k: 1.60, maxLeadH: 246 },
     global:   { rho0: 0.940,  tauH: 215, k: 1.50, maxLeadH: 384 },
@@ -218,6 +222,7 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
   humidity: {
     obs:      { rho0: 0.999,  tauH: 20,  k: 1.05, maxLeadH: 30, w: 0 },
     nowcast:  { rho0: 0.950,  tauH: 26,  k: 1.10, maxLeadH: 8, w: 0 },
+    ruc:      { rho0: 0.930,  tauH: 90,  k: 1.50, maxLeadH: 60 },
     highres:  { rho0: 0.930,  tauH: 90,  k: 1.50, maxLeadH: 60 },
     mosmix:   { rho0: 0.940,  tauH: 100, k: 1.50, maxLeadH: 246 },
     global:   { rho0: 0.900,  tauH: 95,  k: 1.45, maxLeadH: 384 },
@@ -227,6 +232,7 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
     // variables: an automatic station infers it, and the models disagree wildly.
     obs:      { rho0: 0.950,  tauH: 9,   k: 1.00, maxLeadH: 18, w: 0 },
     nowcast:  { rho0: 0.880,  tauH: 12,  k: 1.00, maxLeadH: 8, w: 0 },
+    ruc:      { rho0: 0.800,  tauH: 95,  k: 1.10, maxLeadH: 60 },
     highres:  { rho0: 0.800,  tauH: 95,  k: 1.10, maxLeadH: 60 },
     mosmix:   { rho0: 0.820,  tauH: 105, k: 1.10, maxLeadH: 246 },
     global:   { rho0: 0.780,  tauH: 100, k: 1.05, maxLeadH: 384 },
@@ -238,6 +244,13 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
     // is what makes the nowcast take over the first hours and hand back cleanly.
     obs:      { rho0: 0.750,  tauH: 2.0, k: 1.00, maxLeadH: 6, w: 0 },
     nowcast:  { rho0: 0.970,  tauH: 3.5, k: 1.60, maxLeadH: 6, w: 0 },
+    // buscosun Fusion 14: ICON-D2-RUC amount — the hourly rapid-update cycle with the radar assimilated. FITTED 1–11 h on 23
+    // hindcast slots 23.–26.10.2026 with the RUC station series injected, truth W1, 82 470 pairs (`audit/niederschlag-ruc.md`
+    // §15, `rucMember: 2`): the WEAK, fast-fading amount curve wins — ρ₀ 0,55 / τ 6 h with the occurrence row below gives CRPS
+    // −3,2 % against Fusion 13 (1–3 h −6,2 %, 4–6 h −1,9 %, 7–11 h −2,0 %, every country better); ρ₀ 0,80 / τ 24 h was −1,5 %,
+    // 0,88 / τ 48 h worse than Fusion 13 on the probe. The RUC's skill is the occurrence and the timing, its hourly amount is as
+    // noisy as ICON-D2's. maxLeadH is the product's (+27 h, the taper window 0,15 · 27 h ≈ 4 h fades it out before); 13–27 h SET.
+    ruc:      { rho0: 0.550,  tauH: 6,   k: 1.00, maxLeadH: 27, w: 0 },
     highres:  { rho0: 0.720,  tauH: 60,  k: 0.90, maxLeadH: 60 },
     mosmix:   { rho0: 0.750,  tauH: 70,  k: 0.90, maxLeadH: 246 },
     global:   { rho0: 0.680,  tauH: 65,  k: 0.85, maxLeadH: 384 },
@@ -253,6 +266,10 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
     // the prior spread is 1 by construction.
     obs:      { rho0: 0.800,  tauH: 1.5, k: 1.00, maxLeadH: 4, w: 0 },
     nowcast:  { rho0: 0.970,  tauH: 6.0, k: 1.60, maxLeadH: 6, w: 0 },
+    // buscosun Fusion 14: ICON-D2-RUC occurrence — fitted together with the amount row (§15): ρ₀ 0,94 / τ 30 h beat 0,88 / 30 h
+    // (CRPS −3,2 % vs −2,3 %) and 0,82 / 15 h (±0 %, Brier +4,8 % worse). 0,94 is the edge of the frozen grid (V-RUC-27);
+    // the Brier of 7–11 h is 2 % worse than Fusion 13 with this row (V-RUC-26). 13–27 h SET.
+    ruc:      { rho0: 0.940,  tauH: 30,  k: 1.00, maxLeadH: 27, w: 0 },
     highres:  { rho0: 0.830,  tauH: 90,  k: 1.00, maxLeadH: 60 },
     mosmix:   { rho0: 0.820,  tauH: 100, k: 1.00, maxLeadH: 246 },
     global:   { rho0: 0.750,  tauH: 95,  k: 0.95, maxLeadH: 384 },
@@ -260,6 +277,7 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
   wind: {
     obs:      { rho0: 0.998,  tauH: 14,  k: 1.00, maxLeadH: 24, w: 0 },
     nowcast:  { rho0: 0.920,  tauH: 18,  k: 1.05, maxLeadH: 8, w: 0 },
+    ruc:      { rho0: 0.930,  tauH: 175, k: 1.40, maxLeadH: 60 },
     highres:  { rho0: 0.930,  tauH: 175, k: 1.40, maxLeadH: 60 },
     mosmix:   { rho0: 0.940,  tauH: 190, k: 1.40, maxLeadH: 246 },
     global:   { rho0: 0.900,  tauH: 185, k: 1.35, maxLeadH: 384 },
@@ -267,6 +285,7 @@ export const ACC: Readonly<Record<FusionVariable, Readonly<Record<SourceFamily, 
   gust: {
     obs:      { rho0: 0.990,  tauH: 8,   k: 1.00, maxLeadH: 18, w: 0 },
     nowcast:  { rho0: 0.860,  tauH: 12,  k: 1.00, maxLeadH: 8, w: 0 },
+    ruc:      { rho0: 0.880,  tauH: 140, k: 1.30, maxLeadH: 60 },
     highres:  { rho0: 0.880,  tauH: 140, k: 1.30, maxLeadH: 60 },
     mosmix:   { rho0: 0.900,  tauH: 150, k: 1.30, maxLeadH: 246 },
     global:   { rho0: 0.850,  tauH: 145, k: 1.25, maxLeadH: 384 },
@@ -302,7 +321,7 @@ export const FOOTPRINT_M: Readonly<Record<string, number>> = Object.freeze({
 });
 
 export const FOOTPRINT_FALLBACK_M: Readonly<Record<SourceFamily, number>> = Object.freeze({
-  obs: 0, nowcast: 1_500, highres: 2_500, mosmix: 0, global: 28_000,
+  obs: 0, nowcast: 1_500, highres: 2_500, ruc: 2_500, mosmix: 0, global: 28_000,
 });
 
 /**
@@ -443,6 +462,15 @@ const CORR_PAIRS: Readonly<Record<string, number>> = Object.freeze({
   'mosmix|mosmix': 0.90,
   'mosmix|global': 0.45,
   'global|global': 0.70,
+  // buscosun Fusion 14: ICON-D2-RUC is ICON-D2 with an hourly rapid-update cycle that assimilates the radar — its errors are
+  // shared with the ICON-D2 member (same model, same physics) and, in the first hours, with the radar extrapolation it starts
+  // from. SET, not measured (the RUC series exists since 23.10.2026).
+  'ruc|ruc': 0.80,
+  'ruc|obs': 0.20,
+  'ruc|nowcast': 0.45,
+  'ruc|highres': 0.60,
+  'ruc|mosmix': 0.50,
+  'ruc|global': 0.40,
 });
 
 export function familyErrorCorrelation(a: SourceFamily, b: SourceFamily): number {

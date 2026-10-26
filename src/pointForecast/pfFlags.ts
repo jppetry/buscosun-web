@@ -116,6 +116,16 @@ export function pfAnchorBeforeAxisFrom(search: string): boolean {
   try { return new URLSearchParams(search).get('ancpre') !== '0'; } catch { return true; }
 }
 
+/**
+ * buscosun Fusion 14 (phase RUC, E-RUC-16, `audit/niederschlag-ruc.md` §15): the 5-min precipitation of ICON-D2-RUC as a
+ * precipitation member of the stage fs (`FuseCubeOptions.rucMember`, reader `point/client/rucPoint.ts`). Default ON.
+ *   `?rucm=0` → off: the named fallback — Fusion 13 (no RUC member, the point reads no RUC chunk).
+ *   anything else → on.
+ */
+export function pfRucMemberFrom(search: string): boolean {
+  try { return new URLSearchParams(search).get('rucm') !== '0'; } catch { return true; }
+}
+
 export function pfStationSourceFrom(search: string): PfStationSource {
   try {
     const v = new URLSearchParams(search).get('st');

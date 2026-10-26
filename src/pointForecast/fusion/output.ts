@@ -51,6 +51,8 @@ export interface MemberV2 {
   models?: string[];
   station?: CubeMemberInfo['station'];
   nowcast?: CubeMemberInfo['nowcast'];
+  /** buscosun Fusion 14: the ICON-D2-RUC member (run, age of the run, steps averaged into the hour). */
+  ruc?: CubeMemberInfo['ruc'];
   anchor?: CubeMemberInfo['anchor'];
 }
 

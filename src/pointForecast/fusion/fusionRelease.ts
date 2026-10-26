@@ -128,9 +128,28 @@ export const FUSION12_ANCHOR_BEFORE_AXIS = true;
 // buscosun fusion 13 nennst" ⇒ value 6; the stand is the bench candidate `fusion-12x`. Judged on the development set only, like Fusion 12
 // (E-OF-4); the Prüfstand champion stays Fusion 9 (E-OF-7). Value 6 switches the whole platform to Fusion 13.
 export const FUSION13_SIGMA_SCALE: 0 | 6 = 6;
+/**
+ * buscosun Fusion 14 (phase RUC, E-RUC-16, Jan 26.10.2026: „neues buscosun fusion 14 … icon ruc inkludiert bei der beimischung …
+ * über den zeitraum bis 27 h"): the stage `fs` adds the 5-min precipitation of ICON-D2-RUC (`buscosun-data/ruc/v1`, hourly runs,
+ * +27 h) as a precipitation member of its own family `ruc` (`FuseCubeOptions.rucMember`; reader `point/client/rucPoint.ts`, ONE
+ * chunk column per point, newest run ≤ 3 h old). Per valid hour t the member is the mean rate of the twelve 5-min intervals in
+ * (t − 60 min, t]; its skill ρ(τ) is the family row in `fusion/priors.ts` (`ACC.precipitation.ruc`, `ACC.precipOcc.ruc`), its error
+ * correlation to the radar and to ICON-D2 in `CORR_PAIRS`. Value 2: an hour with a RUC member KEEPS the K-2 distribution like
+ * an hour with a radar member (the learned hurdle, V-FL-18, does not replace it) — with value 1 the RUC acted only through its
+ * pDry feature and every ρ-curve scored the same. FITTED 1–11 h on 23 hindcast slots 23.–26.10.2026 with the RUC station
+ * series injected, truth W1, 82 470 pairs, frozen rule (`audit/niederschlag-ruc.md` §15): precipitation CRPS −3,2 % against
+ * Fusion 13 (1–3 h −6,2 %, 4–6 h −1,9 %, 7–11 h −2,0 %, DE/AT/CH all better), Brier of P(wet) 1–11 h −1,5 % but 7–11 h +2,0 %
+ * (V-RUC-26). A sample of four autumn days, NOT a track-P verdict (the hindcast carries no RUC, the Prüfstand cannot replay it);
+ * 13–27 h is a SET run-out (no station series beyond 12 h). Nothing else changes: T, Td, wind, gust, clouds and every hour
+ * without a RUC value compute byte-identical to Fusion 13. Fusion 14 = Fusion 13 (tables of data-repo commit 1aaec969
+ * unchanged) + this. Value 0 = Fusion 13. Named fallback: `CubeIo.rucMember: false` (`?rucm=0`) = Fusion 13 (the point reads
+ * no RUC chunk). Without the product (no `latest.json`, run older than `RUC_STALE_MS`, point outside the t1 domain, chunk
+ * missing) the engine computes exactly Fusion 13 and says so.
+ */
+export const FUSION14_RUC_MEMBER: 0 | 1 | 2 = 2;
 
 /** The `CubeIo` fields a stand can be taken back with (`false` = the named fallback to the stand before). */
-export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense' | 'sigmaScaleHour';
+export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense' | 'sigmaScaleHour' | 'rucMember';
 
 export interface FusionRelease {
   /** The number of the stand: „buscosun Fusion <n>". Ascending, without gaps. */
@@ -157,7 +176,7 @@ export interface FusionRelease {
   /** Words behind the number of the stand before when this one is switched off (kept from the wording of 02.10.). */
   offLabel?: string;
   /** The input without which this stand computes exactly the stand before — named by parts that lack it. */
-  needs?: 'measurement' | 'radar';
+  needs?: 'measurement' | 'radar' | 'ruc';
 }
 
 /** The stands since the frozen „buscosun Fusion 6" (data-repo commit 1aaec969), oldest first. A new stand = a new entry at the end. */
@@ -199,6 +218,12 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
     option: 'sigmaScale', value: FUSION13_SIGMA_SCALE,
     note: 'σ von T, Td und Böe je Tagesstunde, Vorlauf und Land skaliert (Tabelle H aus der Lauf-Route mit acht Slots je Tag, Böe ≤ 6 h mit Saisonfaktor; Wind unverändert; Phase OF, OF-9)', io: { key: 'sigmaScaleHour', flag: '?sscale=0' },
     offLabel: 'Stundenskala per Schalter aus',
+  },
+  {
+    n: 14, date: '2026-10-26', ref: 'E-RUC-16, audit/niederschlag-ruc.md §15 (Fit 1–11 h an 23 Hindcast-Slots 23.–26.10. mit den RUC-Stationsreihen gegen W1: Niederschlag-CRPS −3,2 % gegen 13; 13–27 h gesetzt; kein Spur-P-Urteil, Prüfstand-Champion bleibt 9 bis E-OF-7)',
+    option: 'rucMember', value: FUSION14_RUC_MEMBER,
+    note: 'ICON-D2-RUC (5-min-Niederschlag, stündlich frisch, +27 h) als eigener Niederschlags-Member mit gefitteter ρ-Kurve 1–11 h und gesetztem Auslauf bis 27 h; eine RUC-Stunde behält K-2 wie eine Radar-Stunde (Phase RUC, E-RUC-16)', io: { key: 'rucMember', set: true, flag: '?rucm=0' },
+    offLabel: 'RUC-Member per Schalter aus', needs: 'ruc',
   },
 ] as const);
 

@@ -93,13 +93,15 @@ import type { StationPointSeries } from '../point/client/stationPoint';
 import type { NowcastPointSeries } from '../point/client/nowcastPoint';
 import type { TerrainPointResult, TerrainOptions } from '../point/client/terrain';
 import type { PngDecoder, RgbPngDecoder } from '../point/client/nowcastPoint';
+import { loadRucPoint, type RucPointSeries } from '../point/client/rucPoint';
+import { RUC_STEP_MIN } from '../point/rucFormat';
 import { readPointBundle, tiersForWindow, withCrossChunk, type PointBundle, type CrossChunkResult } from '../point/client/readPoint';
 import { httpStore, type PointStore } from '../point/client/store';
 import { cachedStore, idbBackend, memoryBackend, type CacheBackend } from '../point/client/cache';
 import { loadZ0AtPoint, Z0_POINT_RADIUS_M, type Z0AtPoint, type Z0Options } from '../point/client/z0Point';
 import { loadLandCoverAtPoint, isLandCover, kappaAt, landCoverCell, LANDCOVER_SET, type LandCover } from '../point/client/landCover';
 import { decodeGrayPngBrowser, decodeRgbaPngBrowser } from '../point/client/browserPng';
-import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom, pfObsVarFrom, pfAnchorBeforeAxisFrom, pfSigmaScaleHourFrom } from './pfFlags';
+import { pfStationSourceFrom, pfClimaGridFrom, pfIncaAnchorFrom, pfHourMeanFrom, pfAnchorAtObsFrom, pfObsStoreFrom, pfObsDenseFrom, pfObsVarFrom, pfAnchorBeforeAxisFrom, pfSigmaScaleHourFrom, pfRucMemberFrom } from './pfFlags';
 import { OBS_DENSE_MAX, OBS_VAR_MAX_AGE_MS, OBS_PRODUCT_MAX_AGE_MS } from '../sources/obsStore';
 import { INCA_BOUNDS } from '../sources/geosphereInca';
 import { fusionStage, fusionStageIo, fusionStageNote } from './fusion/fusionRelease';
@@ -133,6 +135,11 @@ export interface CubeFusionInput {
   /** Warum die Station (nicht) trägt — aus `judgeStation`, nur für die Provenienz. */
   stationReason: string | null;
   nowcast: NowcastPointSeries[];
+  /**
+   * buscosun Fusion 14 (`FuseCubeOptions.rucMember`): the 5-min precipitation series of ICON-D2-RUC at the point (newest run,
+   * `point/client/rucPoint.ts`). Absent or `null` ⇒ no RUC member, the engine computes exactly Fusion 13 and names it.
+   */
+  ruc?: RucPointSeries | null;
   /** `imperv` %, `d0` m, `bldgH` m aus `point/static/urban` (AP5). */
   urban: Record<string, number | null> | null;
   /**
@@ -278,7 +285,7 @@ export type StepFlag =
   | 'stationOnly' | 'anchored' | 'learned' | 'learnedSpeed' | 'learnedPrecip' | 'precipCal' | 'longRange' | 'sigmaInflate'
   | 'gaugeOccurrence' | 'gaugeRadar' | 'anchorSigma' | 'sigmaScale';
 
-export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'anchor' | 'climatology';
+export type CubeProduct = 'cube-t1' | 'cube-t2' | 'cube-t3' | 'station' | 'nowcast' | 'ruc' | 'anchor' | 'climatology';
 export type StepTier = TierId | 'station' | 'clima';
 
 /** Interpolierte Quantile eines Schritts, der auf keinem nativen Raster liegt (AP7). */
@@ -296,6 +303,8 @@ export interface CubeMemberInfo {
   models?: string[];
   station?: { id: string; name: string; distKm: number; dElevM: number | null; /** AX-8: `mosmix_l` | `mosmix_s` (nur gesetzt, wenn nicht L). */ source?: string };
   nowcast?: { source: NowcastSourceId; ageMin: number; validAtSuspect: boolean; saturated: boolean; /** V-AX-23: nur mit `nowcastHourMean` — Zahl der gemittelten Frames; `mirror` = vorgemittelt vom Spiegel gelesen (`m<lead>.png`, E-AX-16) statt im Motor aus den Frames. */ hourMean?: { frames: number; mirror?: boolean } };
+  /** buscosun Fusion 14: the ICON-D2-RUC member — run, age of the run at `nowMs` (min), 5-min intervals averaged into the hour. */
+  ruc?: { run: string; ageMin: number; steps: number };
   /** AP6: die σ, mit der das Member je Größe in die Kombination ging (PAP 6). */
   sigma?: Partial<Record<UncVar, number>>;
   /** AP7: der Anker — Versatz Messung − Cube je Größe und der Zuschlag an diesem Schritt. */
@@ -381,6 +390,8 @@ export interface CubeFusionResult {
     station: { run: string; runAtMs: number; ageH: number; id: string; name: string; distKm: number; dElevM: number | null; elevM: number } | null;
     stationReason: string | null;
     nowcast: Array<{ source: NowcastSourceId; stamp: string; ageMin: number; frames: number; extrapolationH: number }>;
+    /** buscosun Fusion 14: the ICON-D2-RUC series the engine saw (`null` without one). */
+    ruc: { run: string; runAtMs: number; ageMin: number; steps: number } | null;
     /** `grid` = Stationsfeld (climaGrid.json), `clima-grid` = Klimagitter 1991–2020 der Zelle für das Tagesmittel T (AX-9). */
     clima: 'grid' | 'clima-grid' | 'none';
   };
@@ -746,6 +757,17 @@ export interface FuseCubeOptions {
    */
   nowcastHourMean?: boolean;
   /**
+   * buscosun Fusion 14 (phase RUC, E-RUC-16, `audit/niederschlag-ruc.md` §15): the 5-min precipitation of ICON-D2-RUC
+   * (`CubeFusionInput.ruc`, newest run) as a precipitation member of the family `ruc` — per valid hour t the mean of the
+   * twelve 5-min rates in (t − `NOWCAST_HOUR_MEAN_WINDOW_MS`, t], at least `RUC_MEMBER_MIN_STEPS` of them. Skill and error
+   * correlation of the family: `fusion/priors.ts` (`ACC.precipitation.ruc`, `ACC.precipOcc.ruc`, `CORR_PAIRS`). Without a
+   * series in the input the option changes nothing and says so. Absent or 0 ⇒ byte-identical (Fusion 13).
+   * 1 = the member joins K-2 only; where no radar/station member carries precipitation the learned hurdle still replaces the
+   *     K-2 distribution (the RUC acts through its pDry feature alone). 2 = an hour with a RUC member KEEPS K-2 (like a radar
+   *     member, V-FL-18), so the RUC amount and its ρ-curve carry the hour.
+   */
+  rucMember?: 0 | 1 | 2;
+  /**
    * Phase OF (buscosun Fusion 12 candidate, `audit/obs-fusion.md` §5.2): the anchor on the DENSE measurement set of the mirror
    * product (`CubeIo.obsDense`: the `OBS_DENSE_MAX` nearest 10-min stations including the precipitation-only gauges, with the
    * measured dew point and the gauge sums). The anchor math is unchanged (`anchor.ts`); only the station set changes: per
@@ -864,6 +886,11 @@ export interface FuseCubeOptions {
 export const NOWCAST_STALE_MIN = 60;
 /** Radar-Horizont (h), innerhalb dessen ein fehlendes Radar als `nowcastFallbackModel` gilt. */
 export const NOWCAST_HORIZON_H = 3;
+/** buscosun Fusion 14: the RUC member of an hour needs at least this many of the twelve 5-min intervals in (t − 60 min, t] (set: the first hour of a run at the seam, a hole in the series). */
+export const RUC_MEMBER_MIN_STEPS = 10;
+const RUC_STEPS_PER_HOUR = 60 / RUC_STEP_MIN;
+/** The `source` tag of the RUC member (footprint, contributor list, dashboard label). */
+export const RUC_MEMBER_TAG = 'icon_d2_ruc';
 /**
  * V-AX-23 (Option `nowcastHourMean`): Fenster des Radar-Stundenmittels — Frames mit Gültigzeit in (t − Fenster, t]. Seit E-AX-16
  * EINE Festlegung in `point/nowcastFormat.ts` (der Spiegel schreibt das Mittel mit demselben Fenster als `m<lead>.png`).
@@ -1145,6 +1172,11 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
   const pcCount = { applied: 0, k2: 0, learned: 0, identity: 0 };
   // V-AX-23: the radar hour mean (option, default off) — hours served by the mean, hours that fell back to the single frame
   const useHourMean = opts.nowcastHourMean === true;
+  // buscosun Fusion 14: the RUC member only with the option AND a series in the input (the stage says which of the two is missing).
+  const rucOpt = opts.rucMember === 1 || opts.rucMember === 2;
+  const useRucMember = rucOpt && !!input.ruc;
+  const rucKeepsK2 = opts.rucMember === 2;
+  const rucCount = { hours: 0, partial: 0, short: 0 };
   // Phase OF (buscosun Fusion 12 candidate): dense anchor set; the gauge options follow the bundle unless set explicitly.
   const useObsDense = opts.obsDense === 1;
   const useGaugeOcc = useObsDense && (opts.gaugeOccurrence ?? FUSION12_GAUGE.occurrence) === 1;
@@ -1305,6 +1337,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       : `anchorKSet:${ANCHOR_KSET_TABLE.provenance.kind} — die σ-Kopplung mit cov/var des gemittelten Innovationssatzes des K-Stationen-Ankers je f-Klasse: Faktor² = 1 − r·a²·(2C/f − V), gedeckelt bei 1 (${ANCHOR_KSET_TABLE.provenance.note}; V-OF-15)`] : []),
     ...(useSvAtObs ? [`stationValueAtObsTime:set —der Stationswert nimmt das Stationsprodukt linear an der Messminute (zwei Schritte um die Messung, Lücke ≤ ${ANCHOR_BRACKET_MAX_H} h) statt nur auf einem Schritt (V-OF-10)`] : []),
     ...(useGaugeRadar ? [`gaugeRadar:set — Radar-Member bei Vorlauf ≤ ${GAUGE_RADAR_LEAD_H} h mit dem Faktor Messgeräte-Stundensumme / Radar-Stundenmittel am Punkt skaliert (Geräte ≤ ${GAUGE_RADAR_KM} km, ε ${GAUGE_RADAR_EPS_MM} mm, Deckel ${GAUGE_RADAR_MAX}×, Abklingen τ ${GAUGE_RADAR_TAU_H} h, nur ab ${GAUGE_RADAR_MIN_MM} mm; Phase OF, Option a′)`] : []),
+    ...(rucOpt ? [`rucMember:set — ICON-D2-RUC als Niederschlags-Member je Stunde t: Mittel der zwölf 5-min-Raten in (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] des neuesten Laufs (mindestens ${RUC_MEMBER_MIN_STEPS} Intervalle), Familie ruc mit eigener ρ-Kurve (priors.ts: Fit 1–12 h an den Stationsreihen 23.–26.10.2026, Auslauf bis 27 h gesetzt)${rucKeepsK2 ? '; eine RUC-Stunde behält K-2 wie eine Radar-Stunde (rucMember: 2)' : '; die gelernte Hürde ersetzt K-2 weiterhin, der RUC wirkt über pDry (rucMember: 1)'}; Phase RUC, E-RUC-16`] : []),
     ...(useHourMean ? [`nowcastHourMean:set — Radar-Member je Stunde t als Mittel der Frame-Raten im Fenster (t − ${NOWCAST_HOUR_MEAN_WINDOW_MS / 60_000} min, t] bei ≥ ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames, sonst der Einzelframe; die Wahrheit ist die Stundensumme (V-AX-23, Kandidat buscosun Fusion 8 B)`] : []),
     ...(opts.stationValue === true ? [stackT
       ? `stationValue:archive — Stationswert M + b + w·I + c·(L − M) aus ${stackT.fitVersion} (${stackT.period.from}…${stackT.period.to}, ${stackT.period.issueDays} Ausgabetage, ${stackT.rows} Zeilen; Provenienz archive, nie measured) für T, Td, Windgeschwindigkeit, Böe — nur mit einer Station am Punkt (≤ ${stackT.range.maxKm} km, |Δh| ≤ ${stackT.range.maxDElevM} m); I aus der jüngsten Messung einer Station am Punkt; Richtung, Feuchte und Phase bleiben aus der Kombination`
@@ -1936,6 +1969,32 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       });
       nowcastMembers += 1;
     }
+    // buscosun Fusion 14 (`rucMember`): the ICON-D2-RUC member of the hour — the mean of the 5-min rates of the newest run with an
+    // interval end in (t − 60 min, t], at least RUC_MEMBER_MIN_STEPS of the twelve; fewer ⇒ no member for this hour (counted, named).
+    let rucHour = false;
+    if (useRucMember) {
+      const r = input.ruc!;
+      let sum = 0, n = 0;
+      for (const pt of r.points) {
+        if (pt.mmH == null || pt.toMs <= a.validAtMs - NOWCAST_HOUR_MEAN_WINDOW_MS || pt.toMs > a.validAtMs) continue;
+        sum += pt.mmH; n += 1;
+      }
+      if (n >= RUC_MEMBER_MIN_STEPS) {
+        samples.push({
+          source: RUC_MEMBER_TAG, family: 'ruc',
+          temperature: null, sourceElevation: null, u: null, v: null, gust: null, relativeHumidity: null,
+          snowLine: null, cloudLow: null, cloudMid: null, cloudHigh: null,
+          precipitation: sum / n, uvIndex: null, distanceMeters: 0, validAtMs: a.validAtMs,
+        });
+        members.push({
+          product: 'ruc', tag: RUC_MEMBER_TAG, run: r.run, runAtMs: r.runAtMs,
+          ageH: Math.round(((a.validAtMs - r.runAtMs) / H) * 100) / 100,
+          ruc: { run: r.run, ageMin: r.ageMin, steps: n },
+        });
+        rucHour = true;
+        rucCount.hours += 1; if (n < RUC_STEPS_PER_HOUR) rucCount.partial += 1;
+      } else if (n > 0) rucCount.short += 1;
+    }
     // AP7: das Radar deckt den Punkt, trägt diese Stunde aber nicht (Frist, Sonde, Frame) ⇒ Modell, benannt.
     if (!nowcastMembers && input.nowcastCovering.length && inHorizon(a.validAtMs)) flags.push('nowcastFallbackModel');
 
@@ -1950,7 +2009,8 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       }
       if (useLearnedPrecip && fused.precipitation && fused.precipitation.dist.kind === 'hurdleLogNormal') {
         // nur, wo der Motor-Wert allein aus dem Cube kommt: Radar- und Stationsmember tragen K-2 weiter
-        if (nowcastMembers || (st && st.precipitation != null)) learnedPost.precipKept += 1;
+        // buscosun Fusion 14 (`rucMember: 2`): an hour with a RUC member keeps K-2 like one with a radar member
+        if (nowcastMembers || (rucKeepsK2 && rucHour) || (st && st.precipitation != null)) learnedPost.precipKept += 1;
         else {
           const lp = predictPrecipLearned(learnedT, 'K', p.learnedSit, fused.precipitation.dist.pDry);
           if (lp) { fused = { ...fused, precipitation: { ...fused.precipitation, dist: lp.dist } }; flags.push('learnedPrecip'); learnedPost.precip += 1; }
@@ -1962,7 +2022,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     // Situation k2 = a station member and/or radar frames carried precipitation (the engine kept K-2 above), learned = the learned
     // hurdle's chain (whether or not a stratum was written — the scorer labels its rows the same way).
     if (fused && pcT && fused.precipitation && fused.precipitation.dist.kind === 'hurdleLogNormal') {
-      const sit: PrecipCalSituation = nowcastMembers || (st && st.precipitation != null) ? 'k2' : 'learned';
+      const sit: PrecipCalSituation = nowcastMembers || (rucKeepsK2 && rucHour) || (st && st.precipitation != null) ? 'k2' : 'learned';
       const e = precipCalEntry(pcT, sit, leadH);
       if (e && e.written) { fused = { ...fused, precipitation: { ...fused.precipitation, dist: applyPrecipCal(fused.precipitation.dist, e) } }; flags.push('precipCal'); pcCount.applied += 1; pcCount[sit] += 1; }
       else pcCount.identity += 1;
@@ -2122,6 +2182,9 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
     : `sigmaScale: Option an, aber ${ssAny.provenance.kind === 'identity' ? 'Identitätstabelle' : 'kein Schritt mit Faktor ≠ 1'} ⇒ σ unverändert`);
   if (useSvAtObs) notes.push(`stationValueAtObsTime: Stationsprodukt an ${svAtObsCount.interpolated} Messminute(n) zwischen zwei Schritten interpoliert, ${svAtObsCount.onStep} auf einem Schritt, ${svAtObsCount.none} ohne Schrittpaar (Lücke > ${ANCHOR_BRACKET_MAX_H} h oder außerhalb; V-OF-10)`);
   if (useGaugeRadar) notes.push(gaugeRadarF ? `gaugeRadar: Faktor ${gaugeRadarF.factor.toFixed(2)} aus ${gaugeRadarF.n} Messgerät(en) ≤ ${GAUGE_RADAR_KM} km (Geräte ${gaugeRadarF.gaugeMm.toFixed(2)} mm gegen Radar ${gaugeRadarF.radarMm.toFixed(2)} mm in der letzten Stunde) — an ${gaugeCount.radarSteps} Radar-Schritten` : `gaugeRadar: Option an, aber kein Paar (Messgerät ≤ ${GAUGE_RADAR_KM} km mit vollständiger Stundensumme, Radar-Stundenmittel am Punkt) oder unter ${GAUGE_RADAR_MIN_MM} mm ⇒ unverändert`);
+  if (rucOpt) notes.push(input.ruc
+    ? `rucMember: ICON-D2-RUC-Member an ${rucCount.hours} Stunden (Lauf ${input.ruc.run}, ${input.ruc.ageMin} min alt, ${input.ruc.points.length} Intervalle; Mittel der 5-min-Raten je Stunde${rucCount.partial ? `, ${rucCount.partial} Stunden aus ${RUC_MEMBER_MIN_STEPS}–${RUC_STEPS_PER_HOUR - 1} Intervallen` : ''}${rucCount.short ? `; ${rucCount.short} Stunden ohne Member (< ${RUC_MEMBER_MIN_STEPS} Intervalle)` : ''}; Phase RUC)`
+    : 'rucMember: Option an, aber keine RUC-Reihe am Punkt (kein Produkt, Lauf älter als 3 h, außerhalb des t1-Rasters oder Chunk fehlt) ⇒ Niederschlag wie der Stand davor, ohne RUC-Member');
   if (useHourMean) notes.push(`nowcastHourMean: Radar-Member an ${hmCount.mean} Stunden aus dem Stundenmittel (${hmCount.frames} Frames), ${hmCount.single} aus dem Einzelframe (< ${NOWCAST_HOUR_MEAN_MIN_FRAMES} Frames im Fenster)${hmCount.mirror ? `, davon ${hmCount.mirror} vorgemittelt aus dem Spiegel (m<lead>.png, E-AX-16)` : ''}`);
   if (opts.stationValue === true && stackT) {
     notes.push(stackOn
@@ -2268,6 +2331,7 @@ export function fuseCubePoint(input: CubeFusionInput, opts: FuseCubeOptions = {}
       station: st ? { run: st.run, runAtMs: st.runAtMs, ageH: st.ageH, id: st.station.id, name: st.station.name.trim(), distKm: st.station.distanceKm, dElevM: st.station.dElevM, elevM: st.station.elev, ...(st.source && st.source !== 'mosmix_l' ? { source: st.source } : {}) } : null,
       stationReason: input.stationReason,
       nowcast: input.nowcast.map((n) => ({ source: n.sourceId, stamp: n.stamp, ageMin: Math.round(n.slotAgeMin), frames: n.frames.length, extrapolationH: n.extrapolationH })),
+      ruc: input.ruc ? { run: input.ruc.run, runAtMs: input.ruc.runAtMs, ageMin: input.ruc.ageMin, steps: input.ruc.points.length } : null,
       clima: cgUsed ? 'clima-grid' : clima ? 'grid' : 'none',
     },
     calib,
@@ -2441,6 +2505,12 @@ export interface CubeIo {
    * σ per valid hour × lead × country) from the stage fs. Without the field the stage sets the option (`FUSION13_SIGMA_SCALE`).
    */
   sigmaScaleHour?: boolean;
+  /**
+   * buscosun Fusion 14 (E-RUC-16): `true` ⇒ the reader fetches the RUC series of the point (`loadRucPoint`, one chunk column,
+   * needs `decodePng`) and the stage computes with `rucMember`; `false` is the named fallback to Fusion 13 (`?rucm=0`) — no fetch,
+   * no member. `fusionStageIo()` sets it; without the field nothing is fetched and the stage option says „keine RUC-Reihe".
+   */
+  rucMember?: boolean;
   decodeRgbPng?: RgbPngDecoder;
   terrain: TerrainOptions | false;
   clima: () => Promise<ClimaField | null>;
@@ -2611,14 +2681,16 @@ export function cubeIoVariantKey(io: CubeIo): string {
   const hm = io.nowcastHourMean ? 'hm' : null;
   // buscosun Fusion 9 (V-AW-33): the fallback to Fusion 8 is another product — into the key, no suffix without the switch.
   const anc = io.anchorAtObsTime === false ? 'anc0' : null;
+  // buscosun Fusion 14: with the RUC member the point is another product, and so is the switch back — into the key, no suffix without the field.
+  const rucm = io.rucMember === false ? 'rucm0' : io.rucMember ? 'rucm' : null;
   // V-AF-9: the reader before V-AF-9 hands the engine other measurements — into the key, no suffix without the switch.
   const ov = io.obsPerVar === false ? 'obsvar0' : null;
   // V-AF-10: the anchor without the steps before the axis is another product — into the key, no suffix without the switch.
   const ap = io.anchorBeforeAxis === false ? 'ancpre0' : null;
-  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm && !anc && !ov && !ap) return '';
+  if (!fuse && !calib && !cross && !lcv && !zm && !learned && !climaS && !stackS && !pcS && !stage && !stS && !cg && !inca && !hm && !anc && !rucm && !ov && !ap) return '';
   const stable = (o: Record<string, unknown>): string => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
   // Ohne `crossChunk` exakt der Schlüssel von AP13 (keine Verschiebung bestehender Einträge).
-  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}${anc ? `|${anc}` : ''}${ov ? `|${ov}` : ''}${ap ? `|${ap}` : ''}`;
+  return `|io:${fuse ? stable(fuse as Record<string, unknown>) : ''}|calib:${calib ?? ''}${cross ? `|${cross}` : ''}${lcv ? `|${lcv}` : ''}${zm ? `|${zm}` : ''}${learned ? `|${learned}` : ''}${climaS ? `|${climaS}` : ''}${stackS ? `|${stackS}` : ''}${pcS ? `|${pcS}` : ''}${stage ? `|${stage}` : ''}${stS ? `|${stS}` : ''}${cg ? `|${cg}` : ''}${inca ? `|${inca}` : ''}${hm ? `|${hm}` : ''}${anc ? `|${anc}` : ''}${rucm ? `|${rucm}` : ''}${ov ? `|${ov}` : ''}${ap ? `|${ap}` : ''}`;
 }
 
 /** V-FI-17: so lange (ab Start) wartet der nicht-progressive Modus höchstens auf z0 — nie länger als `OBS_GRACE_MS` nach dem Bündel (set). */
@@ -2942,6 +3014,8 @@ export function defaultCubeIo(): CubeIo {
     ...(anchorBeforeAxisFlag ? {} : { anchorBeforeAxis: false }),
     // buscosun Fusion 13 (E-OF-15): `?sscale=0` takes the σ scale per valid hour back to Fusion 12 (no entry otherwise, key unchanged).
     ...(sigmaScaleHourFlag ? {} : { sigmaScaleHour: false }),
+    // buscosun Fusion 14 (E-RUC-16): `?rucm=0` takes the RUC member back (no fetch, the stage sets `rucMember` through fusionStageIo).
+    ...(rucMemberFlag ? {} : { rucMember: false }),
     // AX-8: `?st=s` / `?st=fresh` schalten das Stationsprodukt um; ohne Schalter MOSMIX-L (kein Eintrag, Schlüssel unverändert).
     ...(stationSourceFlag !== 'mosmix_l' ? { stationSource: stationSourceFlag } : {}),
   };
@@ -2954,6 +3028,7 @@ const anchorAtObsFlag = pfAnchorAtObsFrom(typeof window !== 'undefined' ? window
 const obsStoreFlag = pfObsStoreFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsDenseFlag = pfObsDenseFrom(typeof window !== 'undefined' ? window.location.search : '');
 const sigmaScaleHourFlag = pfSigmaScaleHourFrom(typeof window !== 'undefined' ? window.location.search : '');
+const rucMemberFlag = pfRucMemberFrom(typeof window !== 'undefined' ? window.location.search : '');
 const obsVarFlag = pfObsVarFrom(typeof window !== 'undefined' ? window.location.search : '');
 const anchorBeforeAxisFlag = pfAnchorBeforeAxisFrom(typeof window !== 'undefined' ? window.location.search : '');
 
@@ -2975,10 +3050,12 @@ export const UPDATE_WAIT_MS = 6_000;
 /** Bündel + Klimatologie + Messungen → `PointForecast` mit `cube`-Block (AP2–AP8); `obsNotes` sagen, warum ohne Anker. */
 function forecastFromBundle(
   bundle: PointBundle, clima: ClimaField | null, obs: CubeObs[] | null, obsNotes: string[], opts: PointForecastOptions, io: CubeIo,
-  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null; stack?: LoadedStack | null; precipCal?: LoadedPrecipCal | null },
+  t: { T0: number; nowMs: number; obsMs: number | null; emission?: 'first' | 'core' | 'update'; pending?: string[]; calib?: LoadedCalib | null; learned?: LoadedLearned | null; climaProduct?: LoadedClimaProduct | null; stack?: LoadedStack | null; precipCal?: LoadedPrecipCal | null; ruc?: RucPointSeries | null },
   z0: Z0AtPoint | null = null,
 ): PointForecast {
   const input = cubeInputFromBundle(bundle, clima, obs);
+  // buscosun Fusion 14: the RUC series the reader has at this emission (`undefined` = not yet there ⇒ no member, named by the stage).
+  if (t.ruc !== undefined) input.ruc = t.ruc;
   input.country = opts.country ?? null;   // AX-5: der Stationswert kennt das Land des Punkts
   input.notes.push(...obsNotes);
   if (t.calib) input.notes.push(...t.calib.notes);
@@ -3133,6 +3210,17 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
 
   const nowMs = io.nowMs ? io.nowMs() : Date.now();
   const t0Ms = Math.floor(nowMs / H) * H;
+  // buscosun Fusion 14 (E-RUC-16): the RUC series of the point (one chunk column) in parallel with the bundle — only with
+  // `CubeIo.rucMember` (fusionStageIo sets it, `?rucm=0` takes it back), a gray decoder and the radar (the parts without the
+  // radar member compute without the RUC member too, like Fusion 8 without the radar). Never awaited beyond the grace period:
+  // a late series rides with the progressive update, a failed read is `null` and the stage names it.
+  const rucT0 = now();
+  const rucP: Promise<RucPointSeries | null> = io.rucMember && io.decodePng && withRadar
+    ? loadRucPoint(io.store, lat, lon, nowMs, io.decodePng, { priority: 'low' }).catch(() => null)
+    : Promise.resolve(null);
+  let rucVal: RucPointSeries | null | undefined;
+  void rucP.then((r) => { rucVal = r; });
+  const rucNow = (): RucPointSeries | null | undefined => rucVal;
   // AP7: die Messung für den Anker läuft nebenher, mit harter Frist — und die Antwort wartet
   // höchstens OBS_GRACE_MS nach dem Bündel auf sie (nie auf dem kritischen Pfad).
   // AP12: im progressiven Modus startet sie erst mit dem Kern (unten).
@@ -3237,7 +3325,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const pending = [...all.filter((t) => !b1.tiers.includes(t)), ...(io.obs ? ['anchor'] : [])];
       try {
         resolvePaint(forecastFromBundle(b1, clima, null, [...(io.obs ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`] : []), ...(io.z0 && z0Missing(z0c) ? z0PendingNote(io, z0c, 'follows') : z0NoteOf(io, z0c, 'follows'))],
-          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0c));
+          opts, io, { T0, nowMs, obsMs: null, emission: 'first', pending: [...pending, ...(io.z0 && z0Missing(z0c) ? ['z0'] : [])], calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow(), ruc: rucNow() }, z0c));
       } catch { /* die erste Darstellung ist ein Angebot — der Kern kommt ohnehin */ }
     });
   } : undefined;
@@ -3282,7 +3370,9 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     if (learnedP && learnedVal === undefined) await Promise.race([learnedP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
     if (stackP && stackVal === undefined) await Promise.race([stackP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
     if (pcP && pcVal === undefined) await Promise.race([pcP, new Promise((r) => setTimeout(r, OBS_GRACE_MS))]);
-    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0);
+    // buscosun Fusion 14: the RUC series with the same rule as the measurement — at most the grace period after the bundle, never beyond the deadline.
+    if (rucVal === undefined) await Promise.race([rucP, new Promise((r) => setTimeout(r, Math.max(0, Math.min(OBS_GRACE_MS, OBS_DEADLINE_MS - (now() - rucT0)))))]);
+    const forecast = forecastFromBundle(bundle, clima, obs, notes, opts, io, { T0, nowMs, obsMs, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow(), ruc: rucNow() }, z0);
     cacheForecast(key, hours, forecast, opts);
     return forecast;
   }
@@ -3311,8 +3401,10 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
     const firstNotes = [...(io.obs
       ? [`anchor: Messung folgt (progressiv: Abruf ab dem Kern, Frist ${OBS_PROGRESSIVE_DEADLINE_MS} ms) — erste Ausgabe ohne Anker`]
       : obsNoteOf(io, null, 0, OBS_PROGRESSIVE_DEADLINE_MS, country)), ...(z0NetP ? z0PendingNote(io, z0c, 'follows') : [])];
-    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0c);
+    const core = forecastFromBundle(bundle, clima, null, firstNotes, opts, io, { T0, nowMs, obsMs: null, emission, pending, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow(), ruc: rucNow() }, z0c);
     last = { b: bundle, obs: null, notes: firstNotes, still: pending, z0: z0c };
+    // buscosun Fusion 14: did the core already carry the RUC series? If not and it arrives, the update is worth an emission.
+    const coreRuc = rucNow() != null;
     if (late.crossChunk) {
       void late.crossChunk.result.then((r) => {
         crossVal = r;
@@ -3321,7 +3413,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const L = last;
         const notesX = [...L.notes, `crossChunk: ${said} — 2×2-Block über die Chunk-Grenze, eigene Ausgabe (AP14)`];
         const fc4 = forecastFromBundle(cur(L.b), clima, L.obs, notesX, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, L.z0);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: stillOf(L.still), calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow(), ruc: rucNow() }, L.z0);
         last = { ...L, notes: notesX, still: stillOf(L.still) };
         cacheForecast(key, hours, fc4, opts);
         opts.onUpdate!(fc4);
@@ -3340,7 +3432,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         const notes3 = notesX.filter((n) => !n.startsWith('z0: '));
         const still3 = stillOf(stillX.filter((x) => x !== 'z0'));
         const fc3 = forecastFromBundle(cur(b), clima, obsX, notes3, opts, io,
-          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z);
+          { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still3, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow(), ruc: rucNow() }, z);
         last = { b, obs: obsX, notes: notes3, still: still3, z0: z };
         cacheForecast(key, hours, fc3, opts);
         opts.onUpdate!(fc3);
@@ -3352,6 +3444,8 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
         Promise.race([obs2P, until]),
         late.nowcast ? Promise.race([late.nowcast.result, until]) : Promise.resolve(undefined),
         late.static ? Promise.race([late.static.result, until]) : Promise.resolve(undefined),
+        // buscosun Fusion 14: the RUC series waits with the update, never beyond it (`rucVal` is set by its own `then`).
+        Promise.race([rucP, until]),
       ]);
       await Promise.resolve();   // ein schon fertiges z0 hat seinen `then` oben gerade gesetzt
       if (opts.signal?.aborted) return null;
@@ -3369,7 +3463,8 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const obsNotes = obsR === LATE
         ? [`anchor: Messung nach ${obsMs} ms ab dem Kern noch nicht da (Frist der Nachlieferung ${UPDATE_WAIT_MS} ms) — kein Anker`]
         : obsNoteOf(io, obs, obsMs, OBS_PROGRESSIVE_DEADLINE_MS, country);
-      if (!(obs && obs.length) && !gotNowcast && !gotStatic && !gotZ0) {
+      const gotRuc = !coreRuc && rucVal != null;
+      if (!(obs && obs.length) && !gotNowcast && !gotStatic && !gotZ0 && !gotRuc) {
         z0Later(bundle, null, obsNotes, pending.filter((x) => x === 'z0' || (x === 'anchor' && obsR === LATE) || (x === 'nowcast' && !ncDone) || (x === 'static' && !gotStatic)));
         return null;
       }
@@ -3389,7 +3484,7 @@ export async function getPointForecastFromCube(opts: PointForecastOptions, io: C
       const notes = [...obsNotes];
       const z0u = gotZ0 ? (z0Val as Z0AtPoint) : z0c;
       if (z0NetP && !gotZ0) notes.push(...z0PendingNote(io, z0c, z0Done ? 'missing' : 'follows'));
-      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow() }, z0u);
+      const second = forecastFromBundle(cur(b2), clima, obs, notes, opts, io, { T0, nowMs, obsMs: Math.round(now() - T0), emission: 'update', pending: still, calib: calibNow(), learned: learnedNow(), climaProduct: climaProductNow(), stack: stackNow(), precipCal: precipCalNow(), ruc: rucNow() }, z0u);
       last = { b: b2, obs, notes, still, z0: z0u };
       cacheForecast(key, hours, second, opts);
       opts.onUpdate!(second);
