@@ -2392,7 +2392,21 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </div>
                 </section>
               )}
-              {mobileTab === 'fires' && !(inDossier && (dossierRecord || (readoutTab === 'anomalies' && dossierSite))) && (
+              {/* BD2f (mobil): auch ein Historie-Ereignis (Monat/Saison) öffnet seine Dossier-Seite statt folgenlos in der Liste zu bleiben. */}
+              {mobileTab === 'fires' && inDossier && history && historyEntry && (
+                <section className="br-m-page br-m-dossier" aria-label={`Dossier ${historyEntryName(historyEntry)}`}>
+                  <header className="br-m-head br-m-dshead">
+                    <div className="br-m-dshead-row">
+                      <button type="button" className="br-link br-m-dsback" onClick={() => setStage('map')}>← Brände</button>
+                    </div>
+                    <h1 className="br-m-title">{historyEntryName(historyEntry)}</h1>
+                    <p className="br-m-dsregion">{historyEntry.country}</p>
+                    {stageSeg(true)}
+                  </header>
+                  <div className="br-m-scroll">{historyDossier}</div>
+                </section>
+              )}
+              {mobileTab === 'fires' && !(inDossier && (dossierRecord || (history && historyEntry) || (readoutTab === 'anomalies' && dossierSite))) && (
                 <section className="br-m-page" aria-label="Brände">
                   <header className="br-m-head">
                     <div>
