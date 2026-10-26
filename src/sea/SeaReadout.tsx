@@ -64,20 +64,18 @@ interface Props {
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
 /**
- * Dossier chapters (desktop centre stage): Am Spot · Wasserstand · Amtlich · Satellit · Allgemein. They replace the
- * tabs Spot · Seegebiet · Quellen there and take over their content; the URL keeps the tab keys
- * (`tab=spot|gebiet|quellen`, mobile uses them as tabs): Amtlich ⇔ `gebiet`, Allgemein ⇔ `quellen`, the others are
- * written as `spot`. Wasserstand is left out when the water level is switched off (`?wl=0`).
+ * Dossier chapters (desktop centre stage): Am Spot · Satellit · Allgemein. They replace the tabs Spot · Seegebiet ·
+ * Quellen there and take over their content; the URL keeps the tab keys (`tab=spot|gebiet|quellen`, mobile uses them
+ * as tabs): Allgemein ⇔ `quellen`, the others are written as `spot`. Am Spot holds the hour, the hourly band, the
+ * water level (left out when it is switched off, `?wl=0`) and the official texts (`tab=gebiet` scrolls to them).
  */
-type DsChapter = 'spot' | 'wasser' | 'amtlich' | 'satellit' | 'allgemein';
+type DsChapter = 'spot' | 'satellit' | 'allgemein';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
-  ['spot', 'Am Spot', 'Stunde · Stundenband · Verlauf', 'spot'],
-  ['wasser', 'Wasserstand', 'BSH-Pegel · Füllstand · Vorhersage', 'spot'],
-  ['amtlich', 'Amtlich', 'Warnstatus · Berichte · Mittelfrist', 'gebiet'],
+  ['spot', 'Am Spot', 'Stunde · Verlauf · Wasserstand · Amtlich', 'spot'],
   ['satellit', 'Satellit', 'Lage · Küste im Zeitverlauf', 'spot'],
   ['allgemein', 'Allgemein', 'Steckbrief · Datenquellen', 'quellen'],
 ];
-const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : t === 'gebiet' ? 'amtlich' : 'spot');
+const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'spot');
 const SEC_AREA = 'sw-sec-seegebiet';
 function DsSection({ id, title, hint, side, children }: { id?: string; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
   const tid = id ? `${id}-t` : undefined;
@@ -140,7 +138,9 @@ export default function SeaReadout(p: Props) {
     if (requestedTab.current === p.tab) { requestedTab.current = null; return; }
     requestedTab.current = null;
     setChapter(chapterOf(p.tab));
-  }, [p.tab]);
+    // `gebiet` (e.g. "ganzen Text lesen") lands on the official section of the chapter Am Spot.
+    if (p.layout === 'dossier' && p.tab === 'gebiet') requestAnimationFrame(() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' }));
+  }, [p.tab, p.layout]);
   const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const officialBanner = s && p.warning.status === 'unknown' && (
     <section className="sw-card is-warn sw-warnbar" aria-label="Amtliche Meldung">
@@ -267,8 +267,8 @@ export default function SeaReadout(p: Props) {
     const spread = h && h.windMs != null && h.gustMs != null ? h.gustMs - h.windMs : null;
     const gauge = p.waterLevel?.gauge ?? null;
     const stationName = s?.station ? s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase() : null;
-    const chapters = DS_CHAPTERS.filter(([k]) => k !== 'wasser' || p.waterLevel);
-    const cur: DsChapter = chapters.some(([k]) => k === chapter) ? chapter : 'spot';
+    const chapters = DS_CHAPTERS;
+    const cur: DsChapter = chapter;
     const pick = (c: DsChapter, tab: SeaTab) => {
       // A new chapter starts at its top, not at the scroll position of the previous one.
       if (c !== cur) dsRef.current?.closest('.sw-ds-scroll')?.scrollTo({ top: 0 });
@@ -389,7 +389,7 @@ export default function SeaReadout(p: Props) {
             )}
             {p.dry.hours > 0
               ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
-              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt das Kapitel „Wasserstand“, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
+              : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt der Abschnitt „Wasserstand“, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
           </>
         )}
       </section>
@@ -418,14 +418,13 @@ export default function SeaReadout(p: Props) {
         <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers" onKeyDown={onTabKey}>
           {chapters.map(([k, t, hint, tab], i) => (
             <button key={k} type="button" role="tab" data-ch={k} tabIndex={cur === k ? 0 : -1} aria-selected={cur === k} className={`sw-ds-tab${cur === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
-              <span className="sw-ds-tab-n" aria-hidden="true">{k === 'amtlich' && p.warning.status === 'unknown' && s ? '!' : i + 1}</span>
+              <span className="sw-ds-tab-n" aria-hidden="true">{k === 'spot' && p.warning.status === 'unknown' && s ? '!' : i + 1}</span>
               <span className="sw-ds-tab-tx"><span className="sw-ds-tab-t">{t}</span><span className="sw-ds-tab-h">{hint}</span></span>
             </button>
           ))}
         </div>
         {headCard}
-        {/* The status tiles open the chapter Amtlich with the same verbatim text — the banner stands on every other one. */}
-        {cur !== 'amtlich' && officialBanner}
+        {officialBanner}
         {cur === 'allgemein' && (
           <>
             {s ? (
@@ -452,18 +451,13 @@ export default function SeaReadout(p: Props) {
                   {p.band}
                   {chartCardOf(true)}
                 </DsSection>
+                {p.waterLevel && (
+                  <DsSection title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text">
+                    {waterCardOf(true)}
+                  </DsSection>
+                )}
               </>
             ) : empty}
-            {s && disclaimer}
-          </>
-        )}
-        {cur === 'wasser' && (s ? (
-          <DsSection title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text" side={p.chips}>
-            {waterCardOf(true)}
-          </DsSection>
-        ) : empty)}
-        {cur === 'amtlich' && (
-          <>
             <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
               <AreaDossier spot={s} texts={p.texts} warning={p.warning} />
             </DsSection>
